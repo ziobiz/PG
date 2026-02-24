@@ -1,0 +1,4 @@
+이 파일이 보인다면, FTP로 올린 위치가 Nginx 문서 루트와 일치합니다.
+즉, 사이트 파일(index.html, login.html, js, css 등)이 올바르게 배포된 상태입니다.
+
+확인 일시: 배포 후 http://otlpay.cafe24.com/FTP_업로드_경로.txt 로 접속해 보세요.

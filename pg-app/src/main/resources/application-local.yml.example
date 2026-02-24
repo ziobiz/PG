@@ -1,0 +1,8 @@
+# 복사 후 application-local.yml 로 저장하고, 비밀번호 등 입력
+# Spring Boot 실행 시 프로파일: --spring.profiles.active=local
+
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/pgdev
+    username: pgadmin
+    password: 여기에_DB비밀번호

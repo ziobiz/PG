@@ -1,0 +1,70 @@
+========================================
+  FTP 업로드 경로 = Nginx 문서 루트 (한 경로로 통일)
+========================================
+
+※ 이 프로젝트에서는 "한 곳"만 씁니다. FTP로 올리는 위치 = Nginx가 서빙하는 위치.
+
+----------------------------------------
+  사용하는 경로 (고정)
+----------------------------------------
+  /home/ftpuser/site
+
+  - FTP(ftpuser)로 접속해서 이 경로에 올리면 됨.
+  - Nginx 설정(server-config/nginx-otlpay.conf)도 root를 이 경로로 해 두었음.
+  - 서버에 이 설정을 적용해 두면, 올린 파일이 그대로 사이트로 나감.
+
+----------------------------------------
+  로컬 ↔ 원격
+----------------------------------------
+  로컬 (우리 PC):
+    d:\Delopment\PG\site\
+
+  원격 (서버):
+    /home/ftpuser/site
+
+  올리는 방법:
+    "site 폴더 자체"를 올리지 말고, "site 폴더 안에 있는 내용"만 올립니다.
+    원격에서 /home/ftpuser/site 로 이동한 뒤, 그 안에 index.html, login.html, css/, js/ 등이 오도록.
+
+  올바른 결과 (원격에 이렇게 있어야 함):
+    /home/ftpuser/site/index.html
+    /home/ftpuser/site/login.html
+    /home/ftpuser/site/css/site.css
+    /home/ftpuser/site/js/config.js
+    /home/ftpuser/site/js/app.js
+    /home/ftpuser/site/js/screens.js
+    /home/ftpuser/site/js/api.js
+
+  잘못된 예 (사이트가 안 나옴):
+    /home/ftpuser/site/site/index.html   ← site 폴더를 통째로 올린 경우
+
+----------------------------------------
+  FileZilla 설정
+----------------------------------------
+  호스트: otlpay.cafe24.com (또는 서버 IP)
+  사용자: ftpuser
+  비밀번호: (설정한 것)
+
+  로컬(왼쪽):   d:\Delopment\PG\site
+  원격(오른쪽):  /home/ftpuser/site
+
+  업로드: site 안의 파일/폴더만 선택 → 원격 /home/ftpuser/site 에 덮어쓰기
+
+----------------------------------------
+  서버에서 Nginx도 같은 경로인지 확인
+----------------------------------------
+  서버에 이미 다른 경로(예: /var/www/otlpay)로 되어 있다면,
+  프로젝트의 server-config/nginx-otlpay.conf 내용으로 교체한 뒤:
+
+    sudo nginx -t
+    sudo systemctl reload nginx
+
+  교체 후 Nginx의 root는 /home/ftpuser/site 로 통일됨.
+
+----------------------------------------
+  업로드 확인
+----------------------------------------
+  http://otlpay.cafe24.com/FTP_업로드_경로.txt
+  → 내용이 보이면 /home/ftpuser/site 에 올바르게 올라간 것.
+
+========================================

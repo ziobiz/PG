@@ -1,0 +1,69 @@
+========================================
+  우리 사이트가 도메인에 나오게 - 준비
+========================================
+
+[흐름]
+1. 여기서 개발 (site 폴더 수정)
+2. 서버에 덮어쓰기 (아래 ① ②)
+3. DB 문제면 DB 덮어쓰기 (③)
+
+----------------------------------------
+※ 서버에서 할 일은 전부 SSH로 접속한 뒤 실행합니다.
+----------------------------------------
+
+① 서버에 "우리 사이트" 폴더 만들기 (최초 1번)
+----------------------------------------
+SSH로 접속 후 (Nginx와 FTP가 같은 경로를 쓰도록 한 곳만 사용):
+
+  sudo mkdir -p /home/ftpuser/site
+  sudo chown ftpuser:ftpuser /home/ftpuser/site
+  sudo chmod 755 /home/ftpuser/site
+  # ftpuser로 FTP 접속 시 이 폴더에 올리면, Nginx가 여기서 그대로 서빙함
+
+----------------------------------------
+② Nginx 설정 바꾸기 (최초 1번, 우리 사이트 나오게)
+----------------------------------------
+SSH로 접속한 뒤:
+1) 기존 설정 백업:
+   sudo cp /etc/nginx/sites-available/otlpay.conf /etc/nginx/sites-available/otlpay.conf.bak
+
+2) 새 설정 넣기:
+   - 프로젝트 안에 있는 파일을 서버에 복사:
+     server-config/nginx-otlpay.conf  →  서버의 /etc/nginx/sites-available/otlpay.conf
+   - 또는 서버에서 직접:
+     sudo nano /etc/nginx/sites-available/otlpay.conf
+     (server-config/nginx-otlpay.conf 내용 전체 붙여넣기)
+
+3) 적용:
+   sudo nginx -t
+   sudo systemctl reload nginx
+
+----------------------------------------
+③ 이후: 개발한 걸 서버에 덮어쓰기
+----------------------------------------
+※ Nginx와 FTP 업로드 경로를 같게 했음 → 원격은 항상 아래 한 곳.
+
+- 로컬:  d:\Delopment\PG\site\  (이 폴더 "안의 내용"만 올림. site 폴더 자체 X)
+- 원격:  /home/ftpuser/site   (고정. Nginx도 이 경로 서빙)
+
+하는 일:  site\ 안에 있는 모든 파일(login.html, index.html, js, css 등)을
+          원격 /home/ftpuser/site 에 덮어쓰기 (FTP 또는 복사).
+
+FTP (FileZilla 등):
+  - 호스트: otlpay.cafe24.com (또는 서버 IP)
+  - 사용자: ftpuser
+  - 로컬(왼쪽):  d:\Delopment\PG\site  → 안의 파일/폴더만 선택
+  - 원격(오른쪽): /home/ftpuser/site   ← 여기로 이동 후 덮어쓰기
+
+배포 확인: http://otlpay.cafe24.com/FTP_업로드_경로.txt 가 보이면 올바른 위치.
+끝나면 http://otlpay.cafe24.com 새로고침 → 우리 사이트 나옴.
+
+----------------------------------------
+④ DB 문제 있을 때 (덮어쓰기)
+----------------------------------------
+- DB를 새로 덮어쓰거나 바꿨다면, 8080에서 도는 백엔드(pg-app)가 그 DB를 보도록
+  연결 정보만 맞추면 됨.
+- 연결 정보 위치: pg-app 쪽 application.yml 또는 서버 환경변수 (DB 호스트, DB 이름, 사용자, 비밀번호).
+- DB 덮어쓰기 후에는 백엔드 재시작 필요할 수 있음.
+
+========================================

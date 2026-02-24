@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PG 통합관리자</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+  <link href="css/site.css" rel="stylesheet">
+  <script src="js/config.js"></script>
+  <script src="js/api.js"></script>
+</head>
+<body class="" data-layout-config='{"leftSideBarTheme":"dark"}' data-leftbar-theme="dark" data-leftbar-compact-mode="">
+  <div class="dimmed" id="dimm" style="display:none">
+    <div class="spinner-border avatar-lg text-primary dimmed-icon" role="status"></div>
+    <div class="text-primary dimmed-text">잠시만 기다려주십시오</div>
+  </div>
+  <script>
+    (function(){
+      var origin = window.location.origin || '';
+      if (!sessionStorage.getItem('pg_admin_auth')) {
+        window.location.href = origin ? (origin + '/login.html') : 'login.html';
+      }
+    })();
+  </script>
+  <div class="wrapper">
+    <div class="wrapper-body">
+    <!-- 이미지 기준: #ICOPAY + Cloud, ≫펴기/접기, 아이콘 메뉴, 통합본사관리 -->
+    <div class="left-side-menu" style="z-index:99 !important">
+      <a href="/main" class="logo-icopay-wrap" id="leftside-logo">
+        <span class="logo-icopay-title">#ICOPAY</span>
+        <span class="logo-icopay-sub">Cloud</span>
+      </a>
+      <div class="h-100" id="left-side-menu-container">
+        <div class="menuFoldDiv">
+          <button type="button" class="btn btn-secondary" id="leftSideFoldBtn" style="width:100%">
+            <i class="bi bi-chevron-left" id="leftSideFoldIcon"></i><span id="leftSideFoldSpan"> 접기</span>
+          </button>
+        </div>
+        <ul class="metismenu side-nav" id="side-nav-ul">
+          <li class="side-nav-item">
+            <a href="javascript:void(0)" class="side-nav-link" aria-expanded="false">
+              <i class="bi bi-gear-wide-connected"></i>
+              <span> 본사설정 </span>
+              <span class="menu-arrow"></span>
+            </a>
+            <ul class="side-nav-second-level mm-collapse" aria-expanded="false">
+              <li class="child-li" data-url="/hq/pgApiMng"><a href="javascript:fnTopMenuMove('/hq/pgApiMng')" data-menu_id="M0101">PG사 API 연동</a></li>
+              <li class="child-li" data-url="/hq/defaultCommission"><a href="javascript:fnTopMenuMove('/hq/defaultCommission')" data-menu_id="M0102">기본 수수료 정책</a></li>
+              <li class="child-li" data-url="/hq/apiConfig"><a href="javascript:fnTopMenuMove('/hq/apiConfig')" data-menu_id="M0103">API 구성 세팅</a></li>
+              <li class="child-li" data-url="/hq/permissionMng"><a href="javascript:fnTopMenuMove('/hq/permissionMng')" data-menu_id="M0104">본사별 권한 세팅</a></li>
+            </ul>
+          </li>
+          <li class="side-nav-item">
+            <a href="javascript:void(0)" class="side-nav-link" aria-expanded="false">
+              <i class="bi bi-building"></i>
+              <span> 업체관리 </span>
+              <span class="menu-arrow"></span>
+            </a>
+            <ul class="side-nav-second-level mm-collapse" aria-expanded="false">
+              <li class="child-li" data-url="/system/noticeList"><a href="javascript:fnTopMenuMove('/system/noticeList')" data-menu_id="M0201">공지사항</a></li>
+              <li class="child-li" data-url="/comp/compInfo"><a href="javascript:fnTopMenuMove('/comp/compInfo')" data-menu_id="M0202">업체정보조회</a></li>
+              <li class="child-li" data-url="/comp/compMng"><a href="javascript:fnTopMenuMove('/comp/compMng')" data-menu_id="M0203">업체관리</a></li>
+              <li class="child-li" data-url="/commission/commisionList"><a href="javascript:fnTopMenuMove('/commission/commisionList')" data-menu_id="M0210">수수료관리</a></li>
+              <li class="child-li" data-url="/comp/compChangeHistory"><a href="javascript:fnTopMenuMove('/comp/compChangeHistory')" data-menu_id="M0204">업체변경이력</a></li>
+            </ul>
+          </li>
+          <li class="side-nav-item">
+            <a href="javascript:void(0)" class="side-nav-link" aria-expanded="false">
+              <i class="bi bi-credit-card"></i>
+              <span> 결제관리 </span>
+              <span class="menu-arrow"></span>
+            </a>
+            <ul class="side-nav-second-level mm-collapse" aria-expanded="false">
+              <li class="child-li" data-url="/calc/payList"><a href="javascript:fnTopMenuMove('/calc/payList')" data-menu_id="M0301">결제내역</a></li>
+              <li class="child-li" data-url="/calc/payListNew"><a href="javascript:fnTopMenuMove('/calc/payListNew')" data-menu_id="M0311">결제내역(신)</a></li>
+              <li class="child-li" data-url="/calc/payFailList"><a href="javascript:fnTopMenuMove('/calc/payFailList')" data-menu_id="M0303">결제실패내역</a></li>
+              <li class="child-li" data-url="/calc/offsetCancelList"><a href="javascript:fnTopMenuMove('/calc/offsetCancelList')" data-menu_id="M0304">상계취소내역</a></li>
+              <li class="child-li" data-url="/calc/urlPayList"><a href="javascript:fnTopMenuMove('/calc/urlPayList')" data-menu_id="M0305">URL간편결제 내역</a></li>
+              <li class="child-li" data-url="/calc/cashReceiptList"><a href="javascript:fnTopMenuMove('/calc/cashReceiptList')" data-menu_id="M0306">현금영수증내역</a></li>
+            </ul>
+          </li>
+          <li class="side-nav-item">
+            <a href="javascript:void(0)" class="side-nav-link" aria-expanded="false">
+              <i class="bi bi-cash-stack"></i>
+              <span> 정산관리 </span>
+              <span class="menu-arrow"></span>
+            </a>
+            <ul class="side-nav-second-level mm-collapse" aria-expanded="false">
+              <li class="child-li" data-url="/settlement/distributionList"><a href="javascript:fnTopMenuMove('/settlement/distributionList')" data-menu_id="M0401">유통망정산내역</a></li>
+              <li class="child-li" data-url="/settlement/franchiseList"><a href="javascript:fnTopMenuMove('/settlement/franchiseList')" data-menu_id="M0402">가맹정산내역</a></li>
+              <li class="child-li" data-url="/settlement/recallMng"><a href="javascript:fnTopMenuMove('/settlement/recallMng')" data-menu_id="M0403">환수금관리</a></li>
+              <li class="child-li" data-url="/settlement/balanceMng"><a href="javascript:fnTopMenuMove('/settlement/balanceMng')" data-menu_id="M0404">잔액/미수금관리</a></li>
+              <li class="child-li" data-url="/settlement/execute"><a href="javascript:fnTopMenuMove('/settlement/execute')" data-menu_id="M0405">정산실행</a></li>
+              <li class="child-li" data-url="/settlement/holdList"><a href="javascript:fnTopMenuMove('/settlement/holdList')" data-menu_id="M0406">정산보류내역</a></li>
+            </ul>
+          </li>
+          <li class="side-nav-item">
+            <a href="javascript:void(0)" class="side-nav-link" aria-expanded="false">
+              <i class="bi bi-send"></i>
+              <span> 통보관리 </span>
+              <span class="menu-arrow"></span>
+            </a>
+            <ul class="side-nav-second-level mm-collapse" aria-expanded="false">
+              <li class="child-li" data-url="/notify/payUrlMng"><a href="javascript:fnTopMenuMove('/notify/payUrlMng')" data-menu_id="M0501">결제통보 URL관리</a></li>
+              <li class="child-li" data-url="/notify/paySendMng"><a href="javascript:fnTopMenuMove('/notify/paySendMng')" data-menu_id="M0502">결제통보 전송관리</a></li>
+              <li class="child-li" data-url="/notify/cashReceiptUrlMng"><a href="javascript:fnTopMenuMove('/notify/cashReceiptUrlMng')" data-menu_id="M0503">현금영수증통보 URL관리</a></li>
+              <li class="child-li" data-url="/notify/cashReceiptSendMng"><a href="javascript:fnTopMenuMove('/notify/cashReceiptSendMng')" data-menu_id="M0504">현금영수증통보 전송관리</a></li>
+            </ul>
+          </li>
+          <li class="side-nav-item">
+            <a href="javascript:void(0)" class="side-nav-link" aria-expanded="false">
+              <i class="bi bi-person-gear"></i>
+              <span> 사용자관리 </span>
+              <span class="menu-arrow"></span>
+            </a>
+            <ul class="side-nav-second-level mm-collapse" aria-expanded="false">
+              <li class="child-li" data-url="/user/userMng"><a href="javascript:fnTopMenuMove('/user/userMng')" data-menu_id="M0601">사용자관리</a></li>
+              <li class="child-li" data-url="/user/menuOrderMng"><a href="javascript:fnTopMenuMove('/user/menuOrderMng')" data-menu_id="M0602">메뉴별항목순서관리</a></li>
+            </ul>
+          </li>
+          <li class="side-nav-item">
+            <a href="javascript:void(0)" class="side-nav-link" aria-expanded="false">
+              <i class="bi bi-shield-exclamation"></i>
+              <span> 리스크관리 </span>
+              <span class="menu-arrow"></span>
+            </a>
+            <ul class="side-nav-second-level mm-collapse" aria-expanded="false">
+              <li class="child-li" data-url="/risk/list"><a href="javascript:fnTopMenuMove('/risk/list')" data-menu_id="M0701">리스크 현황</a></li>
+            </ul>
+          </li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="content-page">
+      <!-- 헤더: 참고 이미지 - 우측만 접속IP·접속시간·사용자(아이콘+ID+이름)·전체닫기 -->
+      <header class="header-top">
+        <div class="header-top-right">
+          <span class="header-top-info">접속 IP: <span id="headerClientIp">-</span></span>
+          <span class="header-top-info">접속시간: <span id="headerAccessTime">-</span></span>
+          <div class="header-user dropdown">
+            <a href="#" class="header-user-link dropdown-toggle" data-bs-toggle="dropdown" role="button">
+              <span class="header-user-icon"><i class="bi bi-person-circle"></i></span>
+              <span class="header-user-text" id="headerUserDisplay">ONTHELINE FXHU 이방선</span>
+            </a>
+            <div class="dropdown-menu dropdown-menu-end">
+              <a class="dropdown-item" href="#" id="logOutBtn"><i class="bi bi-box-arrow-right me-1"></i>로그아웃</a>
+            </div>
+          </div>
+          <button type="button" class="btn btn-header-close" id="tabTopAllCloseBtn"><i class="bi bi-x-lg"></i> 전체닫기</button>
+        </div>
+      </header>
+      <div class="content-body">
+        <!-- 탭 바: 다크 그레이, 탭 + × -->
+        <div class="content-tab-row">
+          <ul class="nav content-tabs" id="copyTopTabUl">
+            <li class="nav-item copyTopTab" top_tab_url="/main">
+              <a href="#main" data-toggle="tab" class="nav-link tab-a active" menu_id="">메인</a>
+              <button type="button" class="tab-close-button" tab_id="main">×</button>
+            </li>
+          </ul>
+        </div>
+        <div class="container-fluid content-inner">
+          <input type="hidden" id="_menuId" value="">
+          <div class="row">
+            <div class="col-12">
+              <div class="page-title-box">
+                <h4 class="page-title" id="common__header__title">메인</h4>
+                <ol class="breadcrumb m-0"><li class="breadcrumb-item navi">메인</li></ol>
+              </div>
+            </div>
+          </div>
+          <div id="contentsMain">
+            <div class="tab-content" id="topTapMain">
+              <div class="tab-pane tabConDiv show active" id="main" formurl="/main">
+                <div class="card">
+                  <div class="card-body text-center">
+                    <p class="text-muted mb-0">좌측 메뉴에서 화면을 선택하세요. 메뉴 클릭 시 해당 탭이 열립니다.</p>
+                    <div class="page-footer">Copyright © 2023 ICOPAY Service by Ontheline Co., Ltd.</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    </div>
+    <footer class="footer">
+      <div class="container-fluid">
+        <div class="row">
+          <div class="col-md-12" id="footerText">Copyright © 2023 ICOPAY Service by Ontheline Co., Ltd.</div>
+        </div>
+      </div>
+    </footer>
+  </div>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="js/screens.js?v=2"></script>
+  <script src="js/app.js?v=2"></script>
+  <script>
+    (function () {
+      var user = null;
+      try { user = JSON.parse(sessionStorage.getItem('pg_admin_user') || '{}'); } catch (e) {}
+      var userDisplay = document.getElementById('headerUserDisplay');
+      if (userDisplay) userDisplay.textContent = (user.loginId || user.compNm || 'ONTHELINE FXHU') + ' ' + (user.userNm || '이방선');
+      if (document.getElementById('headerClientIp')) document.getElementById('headerClientIp').textContent = '127.0.0.1';
+      if (document.getElementById('headerAccessTime')) {
+        var d = new Date();
+        document.getElementById('headerAccessTime').textContent = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0') + ' ' + String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0') + ':' + String(d.getSeconds()).padStart(2, '0');
+      }
+      var logOut = document.getElementById('logOutBtn');
+      if (logOut) logOut.addEventListener('click', function (e) {
+        e.preventDefault();
+        sessionStorage.removeItem('pg_admin_auth');
+        sessionStorage.removeItem('pg_admin_user');
+        window.location.href = (window.location.origin || '') + '/login.html';
+      });
+    })();
+    document.getElementById('tabTopAllCloseBtn').addEventListener('click', function () {
+      var ul = document.getElementById('copyTopTabUl');
+      ul.querySelectorAll('.copyTopTab').forEach(function (li) {
+        if (li.getAttribute('top_tab_url') === '/main') return;
+        li.remove();
+      });
+      var mainTab = ul.querySelector('[top_tab_url="/main"]');
+      if (mainTab) mainTab.querySelector('.tab-a').click();
+    });
+  </script>
+</body>
+</html>

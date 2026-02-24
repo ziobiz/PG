@@ -1,0 +1,60 @@
+{
+  "title": "FXHJ 좌측 메뉴 구조 (그대로 구축용)",
+  "source": "output/fxhj-main-after-login.html",
+  "menuMoveFn": "fnTopMenuMove",
+  "items": [
+    {
+      "label": "업체관리",
+      "icon": "dripicons-store",
+      "children": [
+        { "label": "공지사항", "url": "/system/noticeList", "menuId": "M0101" },
+        { "label": "업체정보조회", "url": "/comp/myCompMng", "menuId": "M0102" },
+        { "label": "업체관리", "url": "/comp/compMngTree", "menuId": "M0109" },
+        { "label": "수수료관리", "url": "/commission/commisionList", "menuId": "M0110" },
+        { "label": "업체변경이력", "url": "/comp/compInfoHistList", "menuId": "M0114" }
+      ]
+    },
+    {
+      "label": "결제관리",
+      "icon": "dripicons-card",
+      "children": [
+        { "label": "결제내역", "url": "/calc/payList", "menuId": "M0301" },
+        { "label": "결제내역(신)", "url": "/calc/payListNew", "menuId": "M0311" },
+        { "label": "결제실패내역", "url": "/calc/payFailList", "menuId": "M0303" },
+        { "label": "상계취소내역", "url": "/calc/offsetCancList", "menuId": "M0309" },
+        { "label": "URL간편결제 내역", "url": "/pay/easyPay", "menuId": "M0310" },
+        { "label": "현금영수증내역", "url": "/calc/cashReceiptList", "menuId": "M0314" }
+      ]
+    },
+    {
+      "label": "정산관리",
+      "icon": "uil-dollar-alt",
+      "children": [
+        { "label": "유통망정산내역", "url": "/calc/calcList", "menuId": "M0404" },
+        { "label": "가맹정산내역", "url": "/calc/calcGmList", "menuId": "M0405" },
+        { "label": "환수금관리", "url": "/calc/compPointMngList", "menuId": "M0407" },
+        { "label": "잔액/미수금관리", "url": "/calc/balcInfo", "menuId": "M0412" },
+        { "label": "정산실행", "url": "/calc/exCalcList", "menuId": "M0418" },
+        { "label": "정산보류내역", "url": "/pay/payHoldList", "menuId": "M0312" }
+      ]
+    },
+    {
+      "label": "통보관리",
+      "icon": "mdi mdi-file-send",
+      "children": [
+        { "label": "결제통보 URL관리", "url": "/noti/notiUrlMng", "menuId": "M0801" },
+        { "label": "결제통보 전송관리", "url": "/noti/notiSendMngList", "menuId": "M0802" },
+        { "label": "현금영수증통보 URL관리", "url": "/noti/notiCashReceiptUrlMng", "menuId": "M0805" },
+        { "label": "현금영수증통보 전송관리", "url": "/noti/notiCashReceiptSendMngList", "menuId": "M0806" }
+      ]
+    },
+    {
+      "label": "사용자관리",
+      "icon": "dripicons-user-group",
+      "children": [
+        { "label": "사용자관리", "url": "/user/userMng", "menuId": "M0502" },
+        { "label": "메뉴별항목순서관리", "url": "/set/gridSetMng", "menuId": "M0505" }
+      ]
+    }
+  ]
+}

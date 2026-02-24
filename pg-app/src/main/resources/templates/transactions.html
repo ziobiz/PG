@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>거래 조회 — PG 통합관리자</title>
+  <link rel="stylesheet" th:href="@{/css/login.css}" href="/css/login.css">
+  <link rel="stylesheet" th:href="@{/css/dashboard.css}" href="/css/dashboard.css">
+</head>
+<body>
+  <div class="dashboard-wrap">
+    <aside class="dashboard-sidebar">
+      <div class="logo"><span class="logo-text">PG 통합관리자</span><span class="logo-short">PG</span></div>
+      <div th:replace="~{fragments/sidebar :: sidebar(activeMenu='transactions')}"></div>
+    </aside>
+    <div class="dashboard-main">
+      <header class="dashboard-header">
+        <h1>거래 조회</h1>
+        <form th:action="@{/logout}" method="post" style="display:inline;">
+          <button type="submit" class="btn-logout">로그아웃</button>
+        </form>
+      </header>
+      <main class="dashboard-content">
+        <div class="dashboard-card">
+          <h2>거래 목록</h2>
+          <div class="table-wrap">
+            <p class="empty-msg">거래 데이터가 없습니다. (PG_TRNSCTN 연동 후 목록이 표시됩니다)</p>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+  <script th:src="@{/js/sidebar.js}"></script>
+</body>
+</html>

@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>로그인</title>
+  <link rel="stylesheet" th:href="@{/css/login.css}" href="/css/login.css">
+</head>
+<body>
+  <div class="wrap">
+    <header class="header">
+      <h1 class="logo">PG 통합관리자</h1>
+    </header>
+
+    <main class="main">
+      <section class="login-section">
+        <h2 class="blind">로그인</h2>
+        <p class="wait-msg">잠시만 기다려주십시오</p>
+        <div class="otp-notice">
+          <p>알림톡 혹은 문자로 GOOGLE OTP 키값을 전송하였습니다</p>
+          <p>GOOGLE OTP앱으로 키값을 등록 후 다시 로그인하시기 바랍니다.</p>
+          <p>알림톡 혹은 문자가 수신되지 않은 경우 본사에 문의하시기 바랍니다.</p>
+        </div>
+
+        <form th:action="@{/login}" method="post" class="login-form" id="loginForm">
+          <div class="form-group">
+            <label for="username">아이디</label>
+            <input type="text" id="username" name="username" autocomplete="username" required>
+          </div>
+          <div class="form-group">
+            <label for="password">비밀번호</label>
+            <input type="password" id="password" name="password" autocomplete="current-password" required>
+          </div>
+          <div class="form-group">
+            <label for="changePassword">변경 비밀번호</label>
+            <input type="password" id="changePassword" name="changePassword" autocomplete="new-password">
+          </div>
+          <div class="form-group">
+            <label for="authNumber">인증번호</label>
+            <input type="text" id="authNumber" name="authNumber" autocomplete="one-time-code">
+          </div>
+          <div class="form-group">
+            <label for="otpNumber">OTP번호</label>
+            <input type="text" id="otpNumber" name="otpNumber" inputmode="numeric" maxlength="6" autocomplete="one-time-code">
+          </div>
+          <div th:if="${param.error}" class="error-msg">아이디 또는 비밀번호가 올바르지 않습니다.</div>
+          <div th:if="${param.logout}" class="logout-msg">로그아웃되었습니다.</div>
+          <div class="form-actions">
+            <button type="submit" class="btn-login">로그인</button>
+            <p class="form-footer-link"><button type="button" class="link-btn" id="openChangePwModal">초기비밀번호 변경</button></p>
+          </div>
+        </form>
+      </section>
+
+      <section class="notice-section">
+        <h3 class="notice-title">※ 사칭 피해 주의 안내 ※</h3>
+        <p>최근 본사나 PG사를 사칭해 금전적 요구를 하는 사례가 발생하고 있습니다.</p>
+        <p>저희는 결제 관련 금전 요청을 하지 않으니, 의심스러운 연락을 받으신 경우 고객센터 또는 계약된 영업지사 확인해주시기 바랍니다.</p>
+        <p>안전한 서비스 이용을 위해 항상 주의와 협조 부탁드립니다.</p>
+      </section>
+    </main>
+  </div>
+
+  <!-- 초기비밀번호 변경 모달 -->
+  <div class="modal" id="modalChangePassword" aria-hidden="true">
+    <div class="modal-backdrop" data-close="modalChangePassword"></div>
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h4 class="modal-title">초기비밀번호 변경</h4>
+        <button type="button" class="modal-close" data-close="modalChangePassword" aria-label="닫기">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p class="modal-validation-msg">4자미만 , 아이디+1!, 초기화된 비밀번호와 동일한 비밀번호는 사용불가</p>
+        <div class="form-group">
+          <label for="modalOldPassword">기존비밀번호</label>
+          <input type="password" id="modalOldPassword" name="oldPassword">
+        </div>
+        <div class="form-group">
+          <label for="modalNewPassword">변경 비밀번호</label>
+          <input type="password" id="modalNewPassword" name="newPassword">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn-secondary" data-close="modalChangePassword">닫기</button>
+        <button type="button" class="btn-primary" id="btnSavePassword">저장</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 확인 모달 -->
+  <div class="modal" id="modalConfirm" aria-hidden="true">
+    <div class="modal-backdrop" data-close="modalConfirm"></div>
+    <div class="modal-dialog modal-sm">
+      <div class="modal-header">
+        <h4 class="modal-title">확인</h4>
+        <button type="button" class="modal-close" data-close="modalConfirm" aria-label="닫기">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p class="modal-message" id="modalConfirmMessage">확인</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn-primary" data-close="modalConfirm">확인</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 알림 모달 -->
+  <div class="modal" id="modalAlert" aria-hidden="true">
+    <div class="modal-backdrop" data-close="modalAlert"></div>
+    <div class="modal-dialog modal-sm">
+      <div class="modal-header">
+        <h4 class="modal-title">알림</h4>
+        <button type="button" class="modal-close" data-close="modalAlert" aria-label="닫기">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p class="modal-message" id="modalAlertMessage">닫기</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn-primary" data-close="modalAlert">닫기</button>
+      </div>
+    </div>
+  </div>
+
+  <script th:src="@{/js/login.js}" src="/js/login.js"></script>
+</body>
+</html>

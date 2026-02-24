@@ -1,0 +1,144 @@
+<!--
+  FXHJ 좌측 메뉴 - 원본과 동일 구조로 구축
+  사용: include 또는 fetch 후 #left-side-menu-container 자리에 삽입
+  메뉴 데이터: ../docs/menu-structure.json
+-->
+<div class="left-side-menu" style="z-index:99 !important">
+  <a href="/main" class="logo text-center logo-light" id="leftside-logo">
+    <span class="logo-lg" style="height:70px">
+      <img src="" alt="LOGO" style="max-height:50px" id="lg-logo">
+    </span>
+    <span class="logo-sm">
+      <img src="" alt="LOGO" style="max-width:70px" id="sm-logo">
+    </span>
+  </a>
+  <div class="h-100" id="left-side-menu-container" data-simplebar="init">
+    <div class="menuFoldDiv">
+      <button type="button" class="btn btn-secondary" id="leftSideFoldBtn" style="width:100%">
+        <i class="mdi mdi-chevron-double-left"></i><span id="leftSideFoldSpan">접기</span>
+      </button>
+    </div>
+    <div class="mobileAreadDiv" style="height:42px;"></div>
+    <ul class="metismenu side-nav" id="side-nav-ul">
+      <!-- 1. 업체관리 -->
+      <li class="side-nav-item mm-active">
+        <a href="javascript:void(0)" class="side-nav-link" aria-expanded="true">
+          <i class="dripicons-store"></i>
+          <span> 업체관리 </span>
+          <span class="menu-arrow"></span>
+        </a>
+        <ul class="side-nav-second-level mm-collapse mm-show" aria-expanded="true">
+          <li class="child-li mm-active" data-url="/system/noticeList">
+            <a href="javascript:fnTopMenuMove('/system/noticeList')" data-menu_id="M0101">공지사항</a>
+          </li>
+          <li class="child-li" data-url="/comp/myCompMng">
+            <a href="javascript:fnTopMenuMove('/comp/myCompMng')" data-menu_id="M0102">업체정보조회</a>
+          </li>
+          <li class="child-li" data-url="/comp/compMngTree">
+            <a href="javascript:fnTopMenuMove('/comp/compMngTree')" data-menu_id="M0109">업체관리</a>
+          </li>
+          <li class="child-li" data-url="/commission/commisionList">
+            <a href="javascript:fnTopMenuMove('/commission/commisionList')" data-menu_id="M0110">수수료관리</a>
+          </li>
+          <li class="child-li" data-url="/comp/compInfoHistList">
+            <a href="javascript:fnTopMenuMove('/comp/compInfoHistList')" data-menu_id="M0114">업체변경이력</a>
+          </li>
+        </ul>
+      </li>
+      <!-- 2. 결제관리 -->
+      <li class="side-nav-item">
+        <a href="javascript:void(0)" class="side-nav-link" aria-expanded="false">
+          <i class="dripicons-card"></i>
+          <span> 결제관리 </span>
+          <span class="menu-arrow"></span>
+        </a>
+        <ul class="side-nav-second-level mm-collapse" aria-expanded="true">
+          <li class="child-li" data-url="/calc/payList">
+            <a href="javascript:fnTopMenuMove('/calc/payList')" data-menu_id="M0301">결제내역</a>
+          </li>
+          <li class="child-li" data-url="/calc/payListNew">
+            <a href="javascript:fnTopMenuMove('/calc/payListNew')" data-menu_id="M0311">결제내역(신)</a>
+          </li>
+          <li class="child-li" data-url="/calc/payFailList">
+            <a href="javascript:fnTopMenuMove('/calc/payFailList')" data-menu_id="M0303">결제실패내역</a>
+          </li>
+          <li class="child-li" data-url="/calc/offsetCancList">
+            <a href="javascript:fnTopMenuMove('/calc/offsetCancList')" data-menu_id="M0309">상계취소내역</a>
+          </li>
+          <li class="child-li" data-url="/pay/easyPay">
+            <a href="javascript:fnTopMenuMove('/pay/easyPay')" data-menu_id="M0310">URL간편결제 내역</a>
+          </li>
+          <li class="child-li" data-url="/calc/cashReceiptList">
+            <a href="javascript:fnTopMenuMove('/calc/cashReceiptList')" data-menu_id="M0314">현금영수증내역</a>
+          </li>
+        </ul>
+      </li>
+      <!-- 3. 정산관리 -->
+      <li class="side-nav-item">
+        <a href="javascript:void(0)" class="side-nav-link" aria-expanded="false">
+          <i class="uil-dollar-alt"></i>
+          <span> 정산관리 </span>
+          <span class="menu-arrow"></span>
+        </a>
+        <ul class="side-nav-second-level mm-collapse" aria-expanded="true">
+          <li class="child-li" data-url="/calc/calcList">
+            <a href="javascript:fnTopMenuMove('/calc/calcList')" data-menu_id="M0404">유통망정산내역</a>
+          </li>
+          <li class="child-li" data-url="/calc/calcGmList">
+            <a href="javascript:fnTopMenuMove('/calc/calcGmList')" data-menu_id="M0405">가맹정산내역</a>
+          </li>
+          <li class="child-li" data-url="/calc/compPointMngList">
+            <a href="javascript:fnTopMenuMove('/calc/compPointMngList')" data-menu_id="M0407">환수금관리</a>
+          </li>
+          <li class="child-li" data-url="/calc/balcInfo">
+            <a href="javascript:fnTopMenuMove('/calc/balcInfo')" data-menu_id="M0412">잔액/미수금관리</a>
+          </li>
+          <li class="child-li" data-url="/calc/exCalcList">
+            <a href="javascript:fnTopMenuMove('/calc/exCalcList')" data-menu_id="M0418">정산실행</a>
+          </li>
+          <li class="child-li" data-url="/pay/payHoldList">
+            <a href="javascript:fnTopMenuMove('/pay/payHoldList')" data-menu_id="M0312">정산보류내역</a>
+          </li>
+        </ul>
+      </li>
+      <!-- 4. 통보관리 -->
+      <li class="side-nav-item">
+        <a href="javascript:void(0)" class="side-nav-link" aria-expanded="false">
+          <i class="mdi mdi-file-send"></i>
+          <span> 통보관리 </span>
+          <span class="menu-arrow"></span>
+        </a>
+        <ul class="side-nav-second-level mm-collapse" aria-expanded="true">
+          <li class="child-li" data-url="/noti/notiUrlMng">
+            <a href="javascript:fnTopMenuMove('/noti/notiUrlMng')" data-menu_id="M0801">결제통보 URL관리</a>
+          </li>
+          <li class="child-li" data-url="/noti/notiSendMngList">
+            <a href="javascript:fnTopMenuMove('/noti/notiSendMngList')" data-menu_id="M0802">결제통보 전송관리</a>
+          </li>
+          <li class="child-li" data-url="/noti/notiCashReceiptUrlMng">
+            <a href="javascript:fnTopMenuMove('/noti/notiCashReceiptUrlMng')" data-menu_id="M0805">현금영수증통보 URL관리</a>
+          </li>
+          <li class="child-li" data-url="/noti/notiCashReceiptSendMngList">
+            <a href="javascript:fnTopMenuMove('/noti/notiCashReceiptSendMngList')" data-menu_id="M0806">현금영수증통보 전송관리</a>
+          </li>
+        </ul>
+      </li>
+      <!-- 5. 사용자관리 -->
+      <li class="side-nav-item">
+        <a href="javascript:void(0)" class="side-nav-link" aria-expanded="false">
+          <i class="dripicons-user-group"></i>
+          <span> 사용자관리 </span>
+          <span class="menu-arrow"></span>
+        </a>
+        <ul class="side-nav-second-level mm-collapse" aria-expanded="true">
+          <li class="child-li" data-url="/user/userMng">
+            <a href="javascript:fnTopMenuMove('/user/userMng')" data-menu_id="M0502">사용자관리</a>
+          </li>
+          <li class="child-li" data-url="/set/gridSetMng">
+            <a href="javascript:fnTopMenuMove('/set/gridSetMng')" data-menu_id="M0505">메뉴별항목순서관리</a>
+          </li>
+        </ul>
+      </li>
+    </ul>
+  </div>
+</div>
