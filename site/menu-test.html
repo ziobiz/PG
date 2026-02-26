@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>메뉴 테스트</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+  <link href="css/site.css?v=11" rel="stylesheet">
+</head>
+<body>
+  <div id="flyout-submenu" class="flyout-submenu" style="display:none"></div>
+  <script>sessionStorage.setItem('pg_admin_auth','1');sessionStorage.setItem('pg_admin_user','{}');</script>
+  <div class="wrapper">
+    <div class="wrapper-body">
+      <div class="left-side-menu" style="z-index:99">
+        <a href="/main" class="logo-icopay-wrap"><span class="logo-icopay-title">#ICOPAY</span><span class="logo-icopay-sub">Cloud</span></a>
+        <div id="left-side-menu-container">
+          <div class="menuFoldDiv">
+            <button type="button" class="btn btn-secondary" id="leftSideFoldBtn" style="width:100%">
+              <i class="bi bi-chevron-left" id="leftSideFoldIcon"></i><span id="leftSideFoldSpan"> 접기</span>
+            </button>
+          </div>
+          <ul class="side-nav" id="side-nav-ul">
+            <li class="side-nav-item mm-active">
+              <a href="javascript:void(0)" class="side-nav-link" aria-expanded="true"><i class="bi bi-gear-wide-connected"></i><span> 본사설정 </span><span class="menu-arrow"></span></a>
+              <ul class="side-nav-second-level mm-show">
+                <li class="child-li"><a href="#">PG사 API 연동</a></li>
+                <li class="child-li"><a href="#">기본 수수료 정책</a></li>
+              </ul>
+            </li>
+            <li class="side-nav-item">
+              <a href="javascript:void(0)" class="side-nav-link" aria-expanded="false"><i class="bi bi-building"></i><span> 업체관리 </span><span class="menu-arrow"></span></a>
+              <ul class="side-nav-second-level">
+                <li class="child-li"><a href="#">공지사항</a></li>
+                <li class="child-li"><a href="#">업체정보조회</a></li>
+              </ul>
+            </li>
+          </ul>
+        </div>
+      </div>
+      <div class="content-page" style="padding:20px">
+        <p>메뉴 테스트 - 본사설정 아래 서브 보임. 업체관리 클릭 시 서브 열림.</p>
+      </div>
+    </div>
+  </div>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="js/app.js?v=13"></script>
+</body>
+</html>

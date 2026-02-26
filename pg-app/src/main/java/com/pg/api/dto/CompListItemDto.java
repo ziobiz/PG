@@ -11,6 +11,7 @@ public class CompListItemDto {
 
     public static Map<String, Object> from(OrgUnit o) {
         Map<String, Object> row = new HashMap<>();
+        row.put("id", o.getId());
         row.put("compId", o.getCode());
         row.put("compNm", o.getName());
         row.put("compDiv", o.getOrgLevel() != null ? o.getOrgLevel().name() : "-");

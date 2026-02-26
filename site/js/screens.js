@@ -125,6 +125,15 @@
             [{ label: '계좌번호*', type: 'text', name: 'accountNo', col: 2 }, { label: '예금주*', type: 'text', name: 'accountHolder', col: 2 }]
           ]
         },
+        {
+          title: '정산 기본설정',
+          notice: '출금제한, 지급한도, 보류율, 정산주기 등 가맹점별 정산 옵션입니다.',
+          rows: [
+            [{ label: '출금제한(일)', type: 'text', name: 'withdrawLimitDays', col: 2, placeholder: '0' }, { label: '기본 지급한도(원)', type: 'text', name: 'payLimitDefault', col: 2 }, { label: '추가 지급한도(원)', type: 'text', name: 'payLimitExtra', col: 2 }],
+            [{ label: '보류율(%)', type: 'text', name: 'holdRate', col: 2 }, { label: '보류기간(일)', type: 'text', name: 'holdDays', col: 2 }, { label: '정산주기', type: 'select', name: 'calcCycle', options: [{ v: '', t: '선택' }, { v: 'D3', t: 'D+3' }, { v: 'D5', t: 'D+5' }, { v: 'D7', t: 'D+7' }, { v: 'D10', t: 'D+10' }, { v: 'D15', t: 'D+15' }, { v: 'D20', t: 'D+20' }, { v: 'D30', t: 'D+30' }, { v: 'W5', t: '주 D+5' }, { v: 'W7', t: '주 D+7' }, { v: 'WEEKLY', t: '주간' }], col: 2 }],
+            [{ label: '이체구분', type: 'select', name: 'transferType', options: [{ v: 'MANUAL', t: '수동' }, { v: 'AUTO', t: '자동' }, { v: 'FUMBANKING', t: '펌뱅킹' }], col: 2 }, { label: '자동이체 최소(원)', type: 'text', name: 'autoTransferMin', col: 2 }, { label: '지급보류', type: 'select', name: 'payHoldYn', options: [{ v: 'N', t: '아니오' }, { v: 'Y', t: '예' }], col: 2 }]
+          ]
+        },
         { title: '기타', rows: [[{ label: '특이사항', type: 'textarea', name: 'remark', col: 6 }]] },
         { title: '첨부파일', rows: [[{ type: 'file', name: 'attach', col: 4, button: '추가' }]] }
       ],
@@ -143,7 +152,7 @@
         ]
       ],
       summary: ['건수'],
-      buttons: [{ id: 'searchBtn', label: '검색', cls: 'btn-primary' }, { id: 'excelBtn', label: '엑셀다운로드', cls: 'btn-info' }],
+      buttons: [{ id: 'searchBtn', label: '검색', cls: 'btn-primary' }, { id: 'commissionSettingBtn', label: '수수료설정', cls: 'btn-info' }, { id: 'excelBtn', label: '엑셀다운로드', cls: 'btn-info' }],
       columns: [{ key: '_chk', type: 'checkbox' }, { key: 'compId', label: '업체코드' }, { key: 'compNm', label: '업체명' }, { key: 'cmsnRate', label: '수수료율' }, { key: 'applyDt', label: '적용일' }]
     },
     '/comp/compInfoHistList': {
@@ -327,8 +336,9 @@
     '/calc/exCalcList': {
       searchRows: [
         [
-          { label: '정산일자', type: 'text', name: 'calcDt' },
-          { label: '업체구분', type: 'select', name: 'compDiv', options: [{ v: '', t: '전체' }, { v: '2', t: '총판' }, { v: '3', t: '지사' }, { v: '6', t: '대리점' }], size: 8 },
+          { label: '정산기간', type: 'daterange', from: 'searchFromDate', to: 'searchToDate' },
+          { type: 'quickdate' },
+          { label: '업체코드', type: 'text', name: 'searchCompId', placeholder: '가맹점 코드' },
           { type: 'searchBtn' }
         ]
       ],
@@ -486,6 +496,7 @@
             [{ label: '사용여부*', type: 'select', name: 'useYn', options: [{ v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }], col: 2 }, { label: '로그인ID*', type: 'text', name: 'loginId', col: 2 }],
             [{ label: '계좌은행', type: 'select', name: 'bankCd', options: [{ v: '', t: '선택' }, { v: '04', t: '국민' }, { v: '20', t: '우리' }, { v: '81', t: 'KEB하나' }, { v: '88', t: '신한' }, { v: '11', t: 'NH농협' }], col: 2 }, { label: '이체수수료(원)', type: 'text', name: 'transferFee', col: 2 }],
             [{ label: '계좌번호*', type: 'text', name: 'accountNo', col: 2 }, { label: '예금주*', type: 'text', name: 'accountHolder', col: 2 }],
+            [{ label: '수수료 설정 권한', type: 'select', name: 'commissionConfigAllowed', options: [{ v: 'N', t: '미부여' }, { v: 'Y', t: '부여' }], col: 2 }],
             [{ label: '특이사항', type: 'textarea', name: 'remark', col: 6 }]
           ]
         }

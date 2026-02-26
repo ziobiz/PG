@@ -2,7 +2,7 @@
 * { box-sizing: border-box; }
 body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans KR", sans-serif; font-size: 14px; }
 .wrapper { display: flex; flex-direction: column; min-height: 100vh; }
-.wrapper-body { display: flex; flex: 1; min-height: 0; min-width: 0; }
+.wrapper-body { display: flex; flex-direction: row; flex: 1; min-height: 0; min-width: 0; overflow: hidden; }
 
 /* ========== 좌측 사이드바: layout/left-side-menu.html 구조 (로고 → 접기 → 메뉴) ========== */
 .left-side-menu {
@@ -17,12 +17,45 @@ body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Ro
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  position: relative;
+  z-index: 100;
 }
-.left-side-menu.collapsed { width: 70px; min-width: 70px; }
+.left-side-menu.collapsed {
+  width: 70px !important;
+  min-width: 70px !important;
+}
 .left-side-menu.collapsed .menu-arrow,
 .left-side-menu.collapsed .side-nav-link span,
 .left-side-menu.collapsed #leftSideFoldSpan { display: none !important; }
+.left-side-menu.collapsed .side-nav-second-level { display: none !important; }
 .left-side-menu.collapsed .logo-icopay-sub { display: none !important; }
+.left-side-menu.collapsed .side-nav-link { justify-content: center; padding: 10px; }
+.left-side-menu.collapsed .side-nav-link i { margin-right: 0; }
+.menuFoldDiv { padding: 8px 10px; border-bottom: 1px solid rgba(255,255,255,0.06); }
+/* 접힌 상태 플라이아웃: 사이드바 오른쪽에 떠 있는 서브메뉴 */
+.flyout-submenu {
+  position: fixed;
+  left: 70px;
+  top: 0;
+  width: 190px;
+  min-height: 100px;
+  max-height: 70vh;
+  overflow-y: auto;
+  background: #2c3138;
+  color: #a6b0bf;
+  box-shadow: 4px 0 12px rgba(0,0,0,0.3);
+  z-index: 1000;
+  border-radius: 0 4px 4px 0;
+  border-left: 1px solid rgba(255,255,255,0.08);
+}
+.flyout-submenu .side-nav-second-level {
+  display: block !important;
+  max-height: none;
+  background: transparent;
+}
+.flyout-submenu .child-li a {
+  padding: 8px 18px;
+}
 .logo-icopay-wrap {
   display: block;
   padding: 16px 12px;
@@ -35,8 +68,13 @@ body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Ro
 .logo-icopay-wrap:hover { color: #fff; opacity: 0.9; }
 .logo-icopay-title { display: block; font-weight: 700; font-size: 1.2rem; color: #e74c3c; }
 .logo-icopay-sub { display: block; font-size: 0.85rem; color: rgba(231,76,60,0.9); margin-top: 2px; }
-.left-side-menu .h-100 { flex: 1; overflow-y: auto; min-height: 0; }
-.menuFoldDiv { padding: 8px 10px; border-bottom: 1px solid rgba(255,255,255,0.06); }
+#left-side-menu-container {
+  flex: 1;
+  min-height: 180px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+}
 .left-side-menu .btn-secondary {
   background: #3a4149 !important;
   border: 1px solid rgba(255,255,255,0.1) !important;
@@ -45,7 +83,6 @@ body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Ro
   padding: 6px 10px;
 }
 .left-side-menu .btn-secondary:hover { background: #454d56 !important; color: #fff !important; }
-#left-side-menu-container { flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden; -webkit-overflow-scrolling: touch; }
 .side-nav { list-style: none; margin: 0; padding: 8px 0 12px; }
 .side-nav-item { margin: 0; }
 .side-nav-link {
@@ -78,18 +115,16 @@ body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Ro
   overflow-y: auto;
   overflow-x: hidden;
 }
-.left-side-menu .h-100,
+.side-nav-second-level.mm-show { display: block !important; }
 #left-side-menu-container,
 .side-nav-second-level {
   scrollbar-width: none;
 }
-.left-side-menu .h-100::-webkit-scrollbar,
 #left-side-menu-container::-webkit-scrollbar,
 .side-nav-second-level::-webkit-scrollbar {
   width: 0;
   height: 0;
 }
-.left-side-menu .side-nav-second-level.mm-show { display: block !important; }
 .child-li { margin: 0; }
 .child-li a {
   display: block;
@@ -102,10 +137,8 @@ body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Ro
 .child-li a:hover { color: #fff; background: #3a4149; }
 /* 실제 선택된 메뉴(클릭된 서브메뉴)는 보라색 */
 .child-li.mm-active a { color: #fff; background: #6658dd; font-weight: 500; }
-.left-side-menu .side-nav-icon-only .side-nav-link span { display: none !important; }
-
 /* ========== 상단 헤더: 우측만 - 접속IP·접속시간·사용자(아이콘+ID+이름)·전체닫기 ========== */
-.content-page { flex: 1; display: flex; flex-direction: column; min-width: 0; width: auto; background: #f5f5f5; overflow: hidden; }
+.content-page { flex: 1; display: flex; flex-direction: column; min-width: 0; min-height: 0; width: auto; background: #f5f5f5; overflow: hidden; position: relative; z-index: 1; }
 .header-top {
   display: flex;
   align-items: center;
@@ -133,7 +166,7 @@ body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Ro
 .btn-header-close:hover { background: #a00 !important; border-color: #800 !important; color: #fff !important; }
 
 /* ========== 탭 바: 다크 그레이 (참고 이미지) ========== */
-.content-body { flex: 1; display: flex; flex-direction: column; min-height: 0; background: #fff; }
+.content-body { flex: 1; display: flex; flex-direction: column; min-height: 0; overflow: hidden; background: #fff; }
 .content-tab-row {
   display: flex;
   align-items: center;
@@ -182,15 +215,15 @@ body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Ro
 .content-tabs .tab-close-button:hover { color: #fff; }
 
 /* ========== 본문 내부 (흰 배경, 너비 자동 조절) ========== */
-.content-inner { padding: 16px 20px; flex: 1; min-height: 0; min-width: 0; width: 100%; max-width: none; background: #fff; overflow-x: auto; }
-.content-page .container-fluid { max-width: none; width: 100%; }
+.content-inner { padding: 16px 20px; flex: 1; min-height: 0; min-width: 0; width: 100%; max-width: none; background: #fff; overflow-x: auto; overflow-y: auto; }
+.content-page .container-fluid { max-width: none; width: 100%; overflow: hidden; }
 .page-title-box { margin-bottom: 14px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; }
 .page-title-box .page-title { margin: 0; order: 1; font-size: 1.2rem; font-weight: 600; color: #333; }
 .page-title-box .breadcrumb { margin: 0; padding: 0; background: none; font-size: 13px; color: #666; order: 2; }
 .page-title-box .breadcrumb-item.navi { font-weight: 600; color: #333; }
 .page-title-box .page-title.empty-title { display: none; }
-#contentsMain { flex: 1; min-height: 0; }
-.tab-pane.tabConDiv { height: 100%; display: none; padding: 0; }
+#contentsMain { flex: 1; min-height: 0; overflow: hidden; }
+.tab-pane.tabConDiv { height: 100%; min-height: 0; display: none; padding: 0; overflow-y: auto; }
 .tab-pane.tabConDiv.show.active { display: block; }
 
 /* 목록 화면 통일 간격: 검색 줄·알림·요약·테이블 구분 (결제내역·결제실패 등 전체) */

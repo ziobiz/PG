@@ -1,0 +1,76 @@
+{
+  "title": "PG 통합관리자 메뉴 구조",
+  "menuMoveFn": "fnTopMenuMove",
+  "items": [
+    {
+      "label": "본사설정",
+      "icon": "bi-gear-wide-connected",
+      "children": [
+        { "label": "PG사 API 연동", "url": "/hq/pgApiMng", "menuId": "M0101" },
+        { "label": "기본 수수료 정책", "url": "/hq/defaultCommission", "menuId": "M0102" },
+        { "label": "API 구성 세팅", "url": "/hq/apiConfig", "menuId": "M0103" },
+        { "label": "본사별 권한 세팅", "url": "/hq/permissionMng", "menuId": "M0104" }
+      ]
+    },
+    {
+      "label": "업체관리",
+      "icon": "bi-building",
+      "children": [
+        { "label": "공지사항", "url": "/system/noticeList", "menuId": "M0201" },
+        { "label": "업체정보조회", "url": "/comp/myCompMng", "menuId": "M0202" },
+        { "label": "업체관리", "url": "/comp/compMngTree", "menuId": "M0209" },
+        { "label": "수수료관리", "url": "/commission/commisionList", "menuId": "M0210" },
+        { "label": "업체변경이력", "url": "/comp/compInfoHistList", "menuId": "M0214" }
+      ]
+    },
+    {
+      "label": "결제관리",
+      "icon": "bi-credit-card",
+      "children": [
+        { "label": "결제내역", "url": "/calc/payList", "menuId": "M0301" },
+        { "label": "결제내역(신)", "url": "/calc/payListNew", "menuId": "M0311" },
+        { "label": "결제실패내역", "url": "/calc/payFailList", "menuId": "M0303" },
+        { "label": "상계취소내역", "url": "/calc/offsetCancList", "menuId": "M0309" },
+        { "label": "URL간편결제 내역", "url": "/pay/easyPay", "menuId": "M0310" },
+        { "label": "현금영수증내역", "url": "/calc/cashReceiptList", "menuId": "M0314" }
+      ]
+    },
+    {
+      "label": "정산관리",
+      "icon": "bi-cash-stack",
+      "children": [
+        { "label": "유통망정산내역", "url": "/calc/calcList", "menuId": "M0404" },
+        { "label": "가맹정산내역", "url": "/calc/calcGmList", "menuId": "M0405" },
+        { "label": "환수금관리", "url": "/calc/compPointMngList", "menuId": "M0407" },
+        { "label": "잔액/미수금관리", "url": "/calc/balcInfo", "menuId": "M0412" },
+        { "label": "정산실행", "url": "/calc/exCalcList", "menuId": "M0418" },
+        { "label": "정산보류내역", "url": "/pay/payHoldList", "menuId": "M0312" }
+      ]
+    },
+    {
+      "label": "통보관리",
+      "icon": "bi-send",
+      "children": [
+        { "label": "결제통보 URL관리", "url": "/noti/notiUrlMng", "menuId": "M0801" },
+        { "label": "결제통보 전송관리", "url": "/noti/notiSendMngList", "menuId": "M0802" },
+        { "label": "현금영수증통보 URL관리", "url": "/noti/notiCashReceiptUrlMng", "menuId": "M0805" },
+        { "label": "현금영수증통보 전송관리", "url": "/noti/notiCashReceiptSendMngList", "menuId": "M0806" }
+      ]
+    },
+    {
+      "label": "사용자관리",
+      "icon": "bi-person-gear",
+      "children": [
+        { "label": "사용자관리", "url": "/user/userMng", "menuId": "M0502" },
+        { "label": "메뉴별항목순서관리", "url": "/set/gridSetMng", "menuId": "M0505" }
+      ]
+    },
+    {
+      "label": "리스크관리",
+      "icon": "bi-shield-exclamation",
+      "children": [
+        { "label": "리스크 현황", "url": "/risk/list", "menuId": "M0701" }
+      ]
+    }
+  ]
+}

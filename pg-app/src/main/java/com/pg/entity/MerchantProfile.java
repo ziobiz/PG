@@ -80,6 +80,10 @@ public class MerchantProfile {
     @Column(name = "remark", length = 500)
     private String remark;
 
+    /** 수수료 설정 권한 (총본사가 본사/총판에 부여) Y/N */
+    @Column(name = "commission_config_allowed", length = 1)
+    private String commissionConfigAllowed = "N";
+
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 
@@ -132,6 +136,8 @@ public class MerchantProfile {
     public void setAccountHolder(String accountHolder) { this.accountHolder = accountHolder; }
     public String getRemark() { return remark; }
     public void setRemark(String remark) { this.remark = remark; }
+    public String getCommissionConfigAllowed() { return commissionConfigAllowed; }
+    public void setCommissionConfigAllowed(String commissionConfigAllowed) { this.commissionConfigAllowed = commissionConfigAllowed; }
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
 }

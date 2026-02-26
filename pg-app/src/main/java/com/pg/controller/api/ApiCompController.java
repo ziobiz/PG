@@ -3,6 +3,7 @@ package com.pg.controller.api;
 import com.pg.api.ApiResponse;
 import com.pg.api.dto.PageResult;
 import com.pg.entity.OrgUnit;
+import com.pg.repository.OrgUnitRepository;
 import com.pg.service.CompService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -16,9 +17,11 @@ import org.springframework.web.bind.annotation.*;
 public class ApiCompController {
 
     private final CompService compService;
+    private final OrgUnitRepository orgUnitRepository;
 
-    public ApiCompController(CompService compService) {
+    public ApiCompController(CompService compService, OrgUnitRepository orgUnitRepository) {
         this.compService = compService;
+        this.orgUnitRepository = orgUnitRepository;
     }
 
     @GetMapping("/changeHistory")
@@ -75,10 +78,36 @@ public class ApiCompController {
             @RequestParam(required = false) String transferFee,
             @RequestParam(required = false) String accountNo,
             @RequestParam(required = false) String accountHolder,
-            @RequestParam(required = false) String remark) {
+            @RequestParam(required = false) String remark,
+            @RequestParam(required = false) String withdrawLimitDays,
+            @RequestParam(required = false) String payLimitDefault,
+            @RequestParam(required = false) String payLimitExtra,
+            @RequestParam(required = false) String holdRate,
+            @RequestParam(required = false) String holdDays,
+            @RequestParam(required = false) String calcCycle,
+            @RequestParam(required = false) String transferType,
+            @RequestParam(required = false) String autoTransferMin,
+            @RequestParam(required = false) String payHoldYn) {
         Long parentIdVal = parentId;
-        if (parentIdVal == null && parentComp != null && !parentComp.isEmpty() && parentComp.matches("\\d+")) {
-            parentIdVal = Long.parseLong(parentComp.trim());
+        if (parentIdVal == null && parentComp != null && !parentComp.isEmpty()) {
+            String trimmed = parentComp.trim();
+            // 숫자만 들어온 경우: OrgUnit PK로 간주
+            if (trimmed.matches("\\d+")) {
+                parentIdVal = Long.parseLong(trimmed);
+            } else {
+                // 그 외에는 상위업체 코드(업체코드)로 간주 → OrgUnit.code 로 조회
+                parentIdVal = orgUnitRepository.findByCode(trimmed)
+                        .map(OrgUnit::getId)
+                        .orElse(null);
+            }
+        }
+        Integer withdrawDays = null;
+        if (withdrawLimitDays != null && !withdrawLimitDays.trim().isEmpty()) {
+            try { withdrawDays = Integer.parseInt(withdrawLimitDays.trim()); } catch (NumberFormatException ignored) {}
+        }
+        Integer holdDaysInt = null;
+        if (holdDays != null && !holdDays.trim().isEmpty()) {
+            try { holdDaysInt = Integer.parseInt(holdDays.trim()); } catch (NumberFormatException ignored) {}
         }
         String code = "C" + System.currentTimeMillis();
         OrgUnit saved = compService.registerWithExtra(code, compNm, compDiv, parentIdVal,
@@ -87,7 +116,9 @@ public class ApiCompController {
                 regNo, bizType, industry, fax,
                 email, pwd,
                 bankCd, transferFee, accountNo, accountHolder,
-                remark);
+                remark,
+                withdrawDays, payLimitDefault, payLimitExtra, holdRate, holdDaysInt,
+                calcCycle, transferType, autoTransferMin, payHoldYn);
         return ResponseEntity.ok(ApiResponse.ok(Map.of("compId", saved.getCode(), "compNm", saved.getName())));
     }
 
@@ -114,11 +145,45 @@ public class ApiCompController {
             @RequestParam(required = false) String transferFee,
             @RequestParam(required = false) String accountNo,
             @RequestParam(required = false) String accountHolder,
-            @RequestParam(required = false) String remark) {
+            @RequestParam(required = false) String remark,
+            @RequestParam(required = false) String commissionConfigAllowed) {
         boolean ok = compService.update(compId, compNm, compDiv, compTel, zipCode, addr, addrDetail,
                 ceoNm, ceoMobile, useYn, loginId, regNo, bizType, industry, fax, email,
-                bankCd, transferFee, accountNo, accountHolder, remark);
+                bankCd, transferFee, accountNo, accountHolder, remark, commissionConfigAllowed);
         return ResponseEntity.ok(ok ? ApiResponse.ok(Map.of("success", true, "message", "저장되었습니다."))
                 : ApiResponse.fail("업체를 찾을 수 없습니다.", "NOT_FOUND"));
+    }
+
+    @GetMapping("/settlementSetting")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> settlementSetting(@RequestParam String compId) {
+        return compService.getSettlementSetting(compId)
+                .map(ApiResponse::ok)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.ok(ApiResponse.fail("업체 또는 정산설정을 찾을 수 없습니다.")));
+    }
+
+    @PostMapping("/settlementSetting/save")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> settlementSettingSave(
+            @RequestParam String compId,
+            @RequestParam(required = false) String withdrawLimitDays,
+            @RequestParam(required = false) String payLimitDefault,
+            @RequestParam(required = false) String payLimitExtra,
+            @RequestParam(required = false) String holdRate,
+            @RequestParam(required = false) String holdDays,
+            @RequestParam(required = false) String calcCycle,
+            @RequestParam(required = false) String transferType,
+            @RequestParam(required = false) String autoTransferMin,
+            @RequestParam(required = false) String payHoldYn) {
+        Integer withdrawDays = null;
+        if (withdrawLimitDays != null && !withdrawLimitDays.trim().isEmpty()) {
+            try { withdrawDays = Integer.parseInt(withdrawLimitDays.trim()); } catch (NumberFormatException ignored) {}
+        }
+        Integer holdDaysInt = null;
+        if (holdDays != null && !holdDays.trim().isEmpty()) {
+            try { holdDaysInt = Integer.parseInt(holdDays.trim()); } catch (NumberFormatException ignored) {}
+        }
+        boolean ok = compService.saveSettlementSetting(compId, withdrawDays, payLimitDefault, payLimitExtra,
+                holdRate, holdDaysInt, calcCycle, transferType, autoTransferMin, payHoldYn);
+        return ResponseEntity.ok(ok ? ApiResponse.ok(Map.of("success", true)) : ApiResponse.fail("업체를 찾을 수 없습니다."));
     }
 }

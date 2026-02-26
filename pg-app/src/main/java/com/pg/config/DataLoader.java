@@ -33,7 +33,10 @@ public class DataLoader {
     @Bean
     public CommandLineRunner seedNoticeAndTrnsctn(NoticeRepository noticeRepository,
                                                   PgTrnsctnRepository trnsctnRepository,
-                                                  OrgUnitRepository orgUnitRepository) {
+                                                  OrgUnitRepository orgUnitRepository,
+                                                  MerchantProfileRepository merchantProfileRepository,
+                                                  SettlementSettingRepository settlementSettingRepository,
+                                                  MerchantCommissionExtraRepository merchantCommissionExtraRepository) {
         return args -> {
             if (noticeRepository.count() == 0) {
                 String[] titles = { "PG 통합관리자 시스템 오픈 안내", "정산 주기 변경 안내", "점검 일정 안내" };
@@ -66,6 +69,27 @@ public class DataLoader {
                 m2.setName("테스트가맹점2");
                 m2.setStatus("ACTIVE");
                 orgUnitRepository.save(m2);
+                for (OrgUnit ou : java.util.Arrays.asList(hq, m1, m2)) {
+                    if (merchantProfileRepository.findByOrgUnitId(ou.getId()).isEmpty()) {
+                        MerchantProfile mp = new MerchantProfile();
+                        mp.setOrgUnitId(ou.getId());
+                        mp.setCompDiv(ou.getOrgLevel() != null ? ou.getOrgLevel().name() : null);
+                        mp.setUseYn("Y");
+                        merchantProfileRepository.save(mp);
+                    }
+                    if (settlementSettingRepository.findByOrgUnitId(ou.getId()).isEmpty()) {
+                        SettlementSetting ss = new SettlementSetting();
+                        ss.setOrgUnitId(ou.getId());
+                        ss.setCalcCycle("D7");
+                        ss.setTransferType("MANUAL");
+                        settlementSettingRepository.save(ss);
+                    }
+                    if (merchantCommissionExtraRepository.findByOrgUnitId(ou.getId()).isEmpty()) {
+                        MerchantCommissionExtra ex = new MerchantCommissionExtra();
+                        ex.setOrgUnitId(ou.getId());
+                        merchantCommissionExtraRepository.save(ex);
+                    }
+                }
             }
             if (trnsctnRepository.count() == 0) {
                 for (int i = 0; i < 15; i++) {

@@ -8,6 +8,9 @@ import com.pg.repository.CommissionPolicyRepository;
 import com.pg.repository.PgTrnsctnRepository;
 import com.pg.repository.RollingReserveRepository;
 import com.pg.repository.SettlementRunRepository;
+import com.pg.repository.SettlementSettingRepository;
+import com.pg.repository.OrgUnitRepository;
+import com.pg.entity.SettlementSetting;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -30,15 +33,21 @@ public class SettlementCalcService {
     private final CommissionPolicyRepository commissionPolicyRepository;
     private final SettlementRunRepository settlementRunRepository;
     private final RollingReserveRepository rollingReserveRepository;
+    private final SettlementSettingRepository settlementSettingRepository;
+    private final OrgUnitRepository orgUnitRepository;
 
     public SettlementCalcService(PgTrnsctnRepository trnsctnRepository,
                                  CommissionPolicyRepository commissionPolicyRepository,
                                  SettlementRunRepository settlementRunRepository,
-                                 RollingReserveRepository rollingReserveRepository) {
+                                 RollingReserveRepository rollingReserveRepository,
+                                 SettlementSettingRepository settlementSettingRepository,
+                                 OrgUnitRepository orgUnitRepository) {
         this.trnsctnRepository = trnsctnRepository;
         this.commissionPolicyRepository = commissionPolicyRepository;
         this.settlementRunRepository = settlementRunRepository;
         this.rollingReserveRepository = rollingReserveRepository;
+        this.settlementSettingRepository = settlementSettingRepository;
+        this.orgUnitRepository = orgUnitRepository;
     }
 
     public List<SettlementRun> listRuns(LocalDate fromDate, LocalDate toDate) {
@@ -109,8 +118,15 @@ public class SettlementCalcService {
         BigDecimal payRate = policy.getPayRate() != null ? policy.getPayRate() : BigDecimal.ZERO;
         BigDecimal refundRate = policy.getRefundRate() != null ? policy.getRefundRate() : BigDecimal.ZERO;
         BigDecimal failFee = policy.getFailFee() != null ? policy.getFailFee() : BigDecimal.ZERO;
-        BigDecimal rollingPct = policy.getRollingPct() != null ? policy.getRollingPct() : BigDecimal.ZERO;
-        int rollingDays = policy.getRollingDays() != null ? policy.getRollingDays() : 0;
+        BigDecimal[] rollingPctRef = new BigDecimal[]{ policy.getRollingPct() != null ? policy.getRollingPct() : BigDecimal.ZERO };
+        int[] rollingDaysRef = new int[]{ policy.getRollingDays() != null ? policy.getRollingDays() : 0 };
+        orgUnitRepository.findByCode(merchantId).ifPresent(ou ->
+                settlementSettingRepository.findByOrgUnitId(ou.getId()).ifPresent(ss -> {
+                    if (ss.getHoldRate() != null && ss.getHoldRate().compareTo(BigDecimal.ZERO) > 0) rollingPctRef[0] = ss.getHoldRate();
+                    if (ss.getHoldDays() != null && ss.getHoldDays() > 0) rollingDaysRef[0] = ss.getHoldDays();
+                }));
+        BigDecimal rollingPct = rollingPctRef[0];
+        int rollingDays = rollingDaysRef[0];
 
         BigDecimal feePerTx = perTxFee.multiply(BigDecimal.valueOf(payCnt)).setScale(0, RoundingMode.HALF_UP);
         BigDecimal feePayRate = approveAmt.multiply(payRate).divide(BigDecimal.valueOf(100), 0, RoundingMode.HALF_UP);

@@ -103,13 +103,13 @@
     },
 
     compRegister: function (data) {
-      var form = new FormData();
-      for (var k in data) if (data[k] !== undefined && data[k] !== null) form.append(k, data[k]);
       var base = getBaseUrl();
       var token = getToken();
+      var headers = { 'Content-Type': 'application/x-www-form-urlencoded', 'Accept': 'application/json' };
+      if (token) headers['Authorization'] = 'Bearer ' + token;
       return fetch(base + '/api/comp/register', {
         method: 'POST',
-        headers: token ? { 'Authorization': 'Bearer ' + token } : {},
+        headers: headers,
         body: new URLSearchParams(data)
       }).then(function (res) { return res.json(); }).then(function (r) {
         if (r.success === false && r.success !== undefined) throw new Error(r.message || '등록 실패');
@@ -142,9 +142,49 @@
     compChangeHistory: function (params) {
       return get('/api/comp/changeHistory', params).then(function (r) { return r.data; });
     },
+    settlementSetting: function (compId) {
+      return get('/api/comp/settlementSetting', { compId: compId }).then(function (r) {
+        if (r.success === false && r.success !== undefined) throw new Error(r.message || '조회 실패');
+        return r.data;
+      });
+    },
+    settlementSettingSave: function (compId, data) {
+      var body = new URLSearchParams({ compId: compId });
+      for (var k in data) if (data[k] !== undefined && data[k] !== null) body.append(k, data[k]);
+      var base = getBaseUrl();
+      var token = getToken();
+      var headers = { 'Content-Type': 'application/x-www-form-urlencoded', 'Accept': 'application/json' };
+      if (token) headers['Authorization'] = 'Bearer ' + token;
+      return fetch(base + '/api/comp/settlementSetting/save', { method: 'POST', headers: headers, body: body })
+        .then(function (res) { return res.json(); })
+        .then(function (r) {
+          if (r.success === false && r.success !== undefined) throw new Error(r.message || '저장 실패');
+          return r;
+        });
+    },
 
     commissionList: function (params) {
       return get('/api/commission/list', params).then(function (r) { return r.data; });
+    },
+    commissionDetail: function (compId) {
+      return get('/api/commission/detail', { compId: compId }).then(function (r) {
+        if (r.success === false && r.success !== undefined) throw new Error(r.message || '조회 실패');
+        return r.data;
+      });
+    },
+    commissionSave: function (compId, data) {
+      var body = new URLSearchParams({ compId: compId });
+      for (var k in data) if (data[k] !== undefined && data[k] !== null) body.append(k, data[k]);
+      var base = getBaseUrl();
+      var token = getToken();
+      var headers = { 'Content-Type': 'application/x-www-form-urlencoded', 'Accept': 'application/json' };
+      if (token) headers['Authorization'] = 'Bearer ' + token;
+      return fetch(base + '/api/commission/save', { method: 'POST', headers: headers, body: body })
+        .then(function (res) { return res.json(); })
+        .then(function (r) {
+          if (r.success === false && r.success !== undefined) throw new Error(r.message || '저장 실패');
+          return r;
+        });
     },
 
     userList: function (params) {
