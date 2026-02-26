@@ -15,6 +15,7 @@ public class CompListItemDto {
         row.put("compId", o.getCode());
         row.put("compNm", o.getName());
         row.put("compDiv", o.getOrgLevel() != null ? o.getOrgLevel().name() : "-");
+        row.put("compDivNm", o.getOrgLevel() != null ? o.getOrgLevel().getNameKo() : "-");
         row.put("regDt", o.getCreatedAt() != null ? o.getCreatedAt().format(DateTimeFormatter.ISO_LOCAL_DATE).replace("T", " ") : null);
         return row;
     }

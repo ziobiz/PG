@@ -44,6 +44,18 @@ public class CommissionPolicy {
     @Column(name = "refund_rate", precision = 5, scale = 2)
     private BigDecimal refundRate = BigDecimal.ZERO;
 
+    /** D형: 건당 정산수수료 */
+    @Column(name = "fee_settlement_per_tx", precision = 12, scale = 0)
+    private BigDecimal feeSettlementPerTx = BigDecimal.ZERO;
+
+    /** D형: USDT 변환 수수료 */
+    @Column(name = "fee_usdt", precision = 12, scale = 2)
+    private BigDecimal feeUsdt = BigDecimal.ZERO;
+
+    /** D형: FX 수수료 */
+    @Column(name = "fee_fx", precision = 12, scale = 2)
+    private BigDecimal feeFx = BigDecimal.ZERO;
+
     /** 롤링(담보금) 비율 % - 결제대금에서 보류 */
     @Column(name = "rolling_pct", precision = 5, scale = 2)
     private BigDecimal rollingPct = BigDecimal.ZERO;
@@ -85,6 +97,12 @@ public class CommissionPolicy {
     public void setPayRate(BigDecimal payRate) { this.payRate = payRate; }
     public BigDecimal getRefundRate() { return refundRate; }
     public void setRefundRate(BigDecimal refundRate) { this.refundRate = refundRate; }
+    public BigDecimal getFeeSettlementPerTx() { return feeSettlementPerTx; }
+    public void setFeeSettlementPerTx(BigDecimal feeSettlementPerTx) { this.feeSettlementPerTx = feeSettlementPerTx; }
+    public BigDecimal getFeeUsdt() { return feeUsdt; }
+    public void setFeeUsdt(BigDecimal feeUsdt) { this.feeUsdt = feeUsdt; }
+    public BigDecimal getFeeFx() { return feeFx; }
+    public void setFeeFx(BigDecimal feeFx) { this.feeFx = feeFx; }
     public BigDecimal getRollingPct() { return rollingPct; }
     public void setRollingPct(BigDecimal rollingPct) { this.rollingPct = rollingPct; }
     public Integer getRollingDays() { return rollingDays; }

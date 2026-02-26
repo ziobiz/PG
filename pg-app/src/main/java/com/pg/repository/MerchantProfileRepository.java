@@ -8,5 +8,7 @@ import java.util.Optional;
 public interface MerchantProfileRepository extends JpaRepository<MerchantProfile, Long> {
 
     Optional<MerchantProfile> findByOrgUnitId(Long orgUnitId);
+
+    Optional<MerchantProfile> findByLoginId(String loginId);
 }
 

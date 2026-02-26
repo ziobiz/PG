@@ -34,3 +34,10 @@ spring:
 app:
   cors:
     allowed-origins: http://localhost:5500,http://127.0.0.1:5500,http://localhost:3000,http://localhost
+  # ChillPay (칠리페이) DirectCredit API 연동
+  chillpay:
+    merchant-code: ${CHILLPAY_MERCHANT_CODE:M035594}
+    api-key: ${CHILLPAY_API_KEY:}
+    md5-key: ${CHILLPAY_MD5_KEY:}
+    route-no: ${CHILLPAY_ROUTE_NO:4}
+    sandbox: ${CHILLPAY_SANDBOX:true}

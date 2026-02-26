@@ -43,11 +43,15 @@ public class SettlementSetting {
     @Column(name = "pay_limit_alert_sms", length = 1)
     private String payLimitAlertSms = "N";
 
-    /** 보류율 (%) */
+    /** 보류율 본사정책 따름 Y/N (Y면 본사 수수료정책 롤링 비율/일수 사용) */
+    @Column(name = "hold_rate_follow_hq", length = 1)
+    private String holdRateFollowHq = "Y";
+
+    /** 보류율 (%) - holdRateFollowHq=N일 때 사용 */
     @Column(name = "hold_rate", precision = 5, scale = 2)
     private BigDecimal holdRate;
 
-    /** 보류기간 (일) */
+    /** 보류기간 (일) - holdRateFollowHq=N일 때 사용 */
     @Column(name = "hold_days")
     private Integer holdDays;
 
@@ -79,9 +83,17 @@ public class SettlementSetting {
     @Column(name = "calc_exclude_dates", length = 200)
     private String calcExcludeDates;
 
-    /** 정산개시시간 */
+    /** 정산개시시간 (정산제외대상 활성 시 해당일 정산 시작시간) */
     @Column(name = "calc_start_time")
     private LocalTime calcStartTime;
+
+    /** 정산제외대상: NONE, WEB, OFFLINE (주말/공휴일 등 제외일 시 제한할 결제수단) */
+    @Column(name = "calc_exclude_target", length = 20)
+    private String calcExcludeTarget;
+
+    /** 정산제외 사용여부 (주말·공휴일 제외) */
+    @Column(name = "calc_exclude_yn", length = 1)
+    private String calcExcludeYn = "N";
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
@@ -99,6 +111,8 @@ public class SettlementSetting {
     public void setPayLimitExtra(BigDecimal payLimitExtra) { this.payLimitExtra = payLimitExtra; }
     public String getPayLimitAlertSms() { return payLimitAlertSms; }
     public void setPayLimitAlertSms(String payLimitAlertSms) { this.payLimitAlertSms = payLimitAlertSms; }
+    public String getHoldRateFollowHq() { return holdRateFollowHq; }
+    public void setHoldRateFollowHq(String holdRateFollowHq) { this.holdRateFollowHq = holdRateFollowHq; }
     public BigDecimal getHoldRate() { return holdRate; }
     public void setHoldRate(BigDecimal holdRate) { this.holdRate = holdRate; }
     public Integer getHoldDays() { return holdDays; }
@@ -119,4 +133,8 @@ public class SettlementSetting {
     public void setCalcExcludeDates(String calcExcludeDates) { this.calcExcludeDates = calcExcludeDates; }
     public LocalTime getCalcStartTime() { return calcStartTime; }
     public void setCalcStartTime(LocalTime calcStartTime) { this.calcStartTime = calcStartTime; }
+    public String getCalcExcludeTarget() { return calcExcludeTarget; }
+    public void setCalcExcludeTarget(String calcExcludeTarget) { this.calcExcludeTarget = calcExcludeTarget; }
+    public String getCalcExcludeYn() { return calcExcludeYn; }
+    public void setCalcExcludeYn(String calcExcludeYn) { this.calcExcludeYn = calcExcludeYn; }
 }

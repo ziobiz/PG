@@ -6,3 +6,13 @@ spring:
     url: jdbc:postgresql://localhost:5432/pgdev
     username: pgadmin
     password: 여기에_DB비밀번호
+
+# ChillPay (칠리페이) - 환경변수 또는 여기 설정
+# CHILLPAY_API_KEY, CHILLPAY_MD5_KEY 는 ChillPay 매뉴얼에서 발급
+# app:
+#   chillpay:
+#     merchant-code: M035594
+#     api-key: 여기에_API_Key
+#     md5-key: 여기에_MD5_Secret_Key
+#     route-no: 4
+#     sandbox: true

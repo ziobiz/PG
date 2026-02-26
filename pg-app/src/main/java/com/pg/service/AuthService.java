@@ -3,13 +3,18 @@ package com.pg.service;
 import com.pg.api.dto.LoginResponse;
 import com.pg.entity.AppUser;
 import com.pg.entity.AuthToken;
+import com.pg.entity.OrgUnit;
 import com.pg.repository.AuthTokenRepository;
+import com.pg.repository.MerchantProfileRepository;
+import com.pg.repository.OrgUnitRepository;
 import com.pg.repository.UserRepository;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -21,11 +26,17 @@ public class AuthService {
     private final UserRepository userRepository;
     private final AuthTokenRepository authTokenRepository;
     private final PasswordEncoder passwordEncoder;
+    private final MerchantProfileRepository merchantProfileRepository;
+    private final OrgUnitRepository orgUnitRepository;
 
-    public AuthService(UserRepository userRepository, AuthTokenRepository authTokenRepository, PasswordEncoder passwordEncoder) {
+    public AuthService(UserRepository userRepository, AuthTokenRepository authTokenRepository,
+                       PasswordEncoder passwordEncoder, MerchantProfileRepository merchantProfileRepository,
+                       OrgUnitRepository orgUnitRepository) {
         this.userRepository = userRepository;
         this.authTokenRepository = authTokenRepository;
         this.passwordEncoder = passwordEncoder;
+        this.merchantProfileRepository = merchantProfileRepository;
+        this.orgUnitRepository = orgUnitRepository;
     }
 
     @Transactional
@@ -45,6 +56,15 @@ public class AuthService {
         res.setToken(token);
         res.setUserId(user.getUsername());
         res.setUserNm(user.getName() != null ? user.getName() : user.getUsername());
+        merchantProfileRepository.findByLoginId(username)
+                .map(mp -> orgUnitRepository.findById(mp.getOrgUnitId()))
+                .filter(Optional::isPresent)
+                .map(o -> o.get())
+                .ifPresent(ou -> {
+                    res.setOrgUnitId(ou.getId());
+                    res.setCompId(ou.getCode());
+                    res.setOrgLevel(ou.getOrgLevel() != null ? ou.getOrgLevel().name() : null);
+                });
         return Optional.of(res);
     }
 
@@ -52,5 +72,22 @@ public class AuthService {
         if (token == null || token.isEmpty()) return Optional.empty();
         return authTokenRepository.findByTokenAndExpiresAtAfter(token, Instant.now())
                 .flatMap(at -> userRepository.findById(at.getUserId()));
+    }
+
+    /** 로그인ID( username )로 조직 정보 조회 - 업체정보조회 필터·권한 판단용 */
+    public Map<String, Object> getOrgInfo(String loginId) {
+        if (loginId == null || loginId.isEmpty()) return null;
+        return merchantProfileRepository.findByLoginId(loginId)
+                .map(mp -> orgUnitRepository.findById(mp.getOrgUnitId()))
+                .filter(Optional::isPresent)
+                .map(o -> o.get())
+                .map(ou -> {
+                    Map<String, Object> m = new HashMap<>();
+                    m.put("orgUnitId", ou.getId());
+                    m.put("compId", ou.getCode());
+                    m.put("orgLevel", ou.getOrgLevel() != null ? ou.getOrgLevel().name() : null);
+                    return m;
+                })
+                .orElse(null);
     }
 }

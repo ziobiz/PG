@@ -122,8 +122,10 @@ public class SettlementCalcService {
         int[] rollingDaysRef = new int[]{ policy.getRollingDays() != null ? policy.getRollingDays() : 0 };
         orgUnitRepository.findByCode(merchantId).ifPresent(ou ->
                 settlementSettingRepository.findByOrgUnitId(ou.getId()).ifPresent(ss -> {
-                    if (ss.getHoldRate() != null && ss.getHoldRate().compareTo(BigDecimal.ZERO) > 0) rollingPctRef[0] = ss.getHoldRate();
-                    if (ss.getHoldDays() != null && ss.getHoldDays() > 0) rollingDaysRef[0] = ss.getHoldDays();
+                    if ("N".equalsIgnoreCase(ss.getHoldRateFollowHq() != null ? ss.getHoldRateFollowHq().trim() : "")) {
+                        if (ss.getHoldRate() != null && ss.getHoldRate().compareTo(BigDecimal.ZERO) > 0) rollingPctRef[0] = ss.getHoldRate();
+                        if (ss.getHoldDays() != null && ss.getHoldDays() > 0) rollingDaysRef[0] = ss.getHoldDays();
+                    }
                 }));
         BigDecimal rollingPct = rollingPctRef[0];
         int rollingDays = rollingDaysRef[0];

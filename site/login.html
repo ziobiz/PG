@@ -160,7 +160,7 @@
         if (api && api.getBaseUrl && api.getBaseUrl()) {
             api.login(userId, pwd).then(function (res) {
               if (res && res.success && res.data && res.data.token) {
-              api.setAuth(res.data.token, { loginId: res.data.userId, userId: res.data.userId, userNm: res.data.userNm || '관리자' });
+              api.setAuth(res.data.token, { loginId: res.data.userId, userId: res.data.userId, userNm: res.data.userNm || '관리자', orgUnitId: res.data.orgUnitId, compId: res.data.compId, orgLevel: res.data.orgLevel });
               window.location.href = 'index.html';
             } else {
               alert(res && res.message ? res.message : '로그인에 실패했습니다.');

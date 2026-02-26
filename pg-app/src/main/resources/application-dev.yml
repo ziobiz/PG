@@ -1,0 +1,17 @@
+# H2 인메모리 DB - PostgreSQL 없이 로컬 개발/테스트용
+# 실행: --spring.profiles.active=dev
+# 또는 환경변수: SPRING_PROFILES_ACTIVE=dev
+
+spring:
+  datasource:
+    url: jdbc:h2:mem:pgdev;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    username: sa
+    password:
+    driver-class-name: org.h2.Driver
+  h2:
+    console:
+      enabled: true
+  jpa:
+    database-platform: org.hibernate.dialect.H2Dialect
+    hibernate:
+      ddl-auto: create-drop

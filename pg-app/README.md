@@ -63,6 +63,17 @@ Cursor에서 **pg-app 폴더를 열고** 터미널에서 `gradle wrapper` 를 �
 gradlew.bat bootRun --args='--spring.profiles.active=local'
 ```
 
+### PostgreSQL 없이 H2로 테스트 (dev 프로파일)
+
+PostgreSQL이 없거나 빠르게 테스트할 때:
+
+```bash
+gradlew.bat bootRun --args='--spring.profiles.active=dev'
+```
+
+- H2 인메모리 DB 사용, 시드 데이터 자동 생성
+- 업체관리 등 기본 메뉴에서 샘플 업체(HQ01, M001, M002, A01~E01 등) 조회 가능
+
 ---
 
 ## JAR 빌드 (서버 배포용)

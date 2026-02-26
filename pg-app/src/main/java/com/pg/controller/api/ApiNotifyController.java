@@ -2,6 +2,7 @@ package com.pg.controller.api;
 
 import com.pg.api.ApiResponse;
 import com.pg.api.dto.PageResult;
+import com.pg.service.NotifyUrlService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.bind.annotation.*;
@@ -13,6 +14,12 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/notify")
 public class ApiNotifyController {
+
+    private final NotifyUrlService notifyUrlService;
+
+    public ApiNotifyController(NotifyUrlService notifyUrlService) {
+        this.notifyUrlService = notifyUrlService;
+    }
 
     private static PageResult<Map<String, Object>> emptyPage(int page, int size) {
         PageResult<Map<String, Object>> pr = new PageResult<>();
@@ -27,9 +34,11 @@ public class ApiNotifyController {
     @GetMapping("/payUrlMng")
     public ResponseEntity<ApiResponse<PageResult<Map<String, Object>>>> payUrlMng(
             @RequestParam(required = false) String searchCompId,
+            @RequestParam(required = false) String searchUrlType,
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "20") int size) {
-        return ResponseEntity.ok(ApiResponse.ok(emptyPage(page, size)));
+        PageResult<Map<String, Object>> result = notifyUrlService.searchPayUrl(searchCompId, searchUrlType, page, size);
+        return ResponseEntity.ok(ApiResponse.ok(result));
     }
 
     @GetMapping("/paySendMng")

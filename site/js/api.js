@@ -99,7 +99,18 @@
     },
 
     compList: function (params) {
-      return get('/api/comp/list', params).then(function (r) { return r.data; });
+      return get('/api/comp/list', params).then(function (r) {
+        var d = r && r.data;
+        if (!d || typeof d !== 'object') return { list: [], totalElements: 0, totalPages: 1, page: 1, size: 20 };
+        return { list: d.list || [], totalElements: d.totalElements != null ? d.totalElements : (d.list || []).length, totalPages: d.totalPages != null ? d.totalPages : 1, page: d.page != null ? d.page : 1, size: d.size != null ? d.size : 20 };
+      });
+    },
+
+    pgAgencyList: function () {
+      return get('/api/hq/pgAgencyList').then(function (r) {
+        if (r.success === false && r.success !== undefined) throw new Error(r.message || '조회 실패');
+        return r.data || [];
+      });
     },
 
     compRegister: function (data) {
@@ -111,9 +122,14 @@
         method: 'POST',
         headers: headers,
         body: new URLSearchParams(data)
-      }).then(function (res) { return res.json(); }).then(function (r) {
-        if (r.success === false && r.success !== undefined) throw new Error(r.message || '등록 실패');
-        return r;
+      }).then(function (res) {
+        if (res.status === 401) { clearAuth(); if (window.location) window.location.href = 'login.html'; return Promise.reject(new Error('인증이 만료되었습니다.')); }
+        return res.text().then(function (text) {
+          var r;
+          try { r = text ? JSON.parse(text) : {}; } catch (e) { return Promise.reject(new Error('서버 응답 오류 (API 서버가 실행 중인지, 주소가 맞는지 확인하세요)')); }
+          if (r.success === false && r.success !== undefined) throw new Error(r.message || '등록 실패');
+          return r;
+        });
       });
     },
 
@@ -133,9 +149,14 @@
         method: 'POST',
         headers: headers,
         body: new URLSearchParams(data)
-      }).then(function (res) { return res.json(); }).then(function (r) {
-        if (r.success === false && r.success !== undefined) throw new Error(r.message || '수정 실패');
-        return r;
+      }).then(function (res) {
+        if (res.status === 401) { clearAuth(); if (window.location) window.location.href = 'login.html'; return Promise.reject(new Error('인증이 만료되었습니다.')); }
+        return res.text().then(function (text) {
+          var r;
+          try { r = text ? JSON.parse(text) : {}; } catch (e) { return Promise.reject(new Error('서버 응답 오류 (API 서버가 실행 중인지, 주소가 맞는지 확인하세요)')); }
+          if (r.success === false && r.success !== undefined) throw new Error(r.message || '수정 실패');
+          return r;
+        });
       });
     },
 
@@ -156,10 +177,13 @@
       var headers = { 'Content-Type': 'application/x-www-form-urlencoded', 'Accept': 'application/json' };
       if (token) headers['Authorization'] = 'Bearer ' + token;
       return fetch(base + '/api/comp/settlementSetting/save', { method: 'POST', headers: headers, body: body })
-        .then(function (res) { return res.json(); })
-        .then(function (r) {
-          if (r.success === false && r.success !== undefined) throw new Error(r.message || '저장 실패');
-          return r;
+        .then(function (res) {
+          if (res.status === 401) { clearAuth(); if (window.location) window.location.href = 'login.html'; return Promise.reject(new Error('인증이 만료되었습니다.')); }
+          return res.text().then(function (text) {
+            var r; try { r = text ? JSON.parse(text) : {}; } catch (e) { return Promise.reject(new Error('서버 응답 오류')); }
+            if (r.success === false && r.success !== undefined) throw new Error(r.message || '저장 실패');
+            return r;
+          });
         });
     },
 
@@ -180,10 +204,13 @@
       var headers = { 'Content-Type': 'application/x-www-form-urlencoded', 'Accept': 'application/json' };
       if (token) headers['Authorization'] = 'Bearer ' + token;
       return fetch(base + '/api/commission/save', { method: 'POST', headers: headers, body: body })
-        .then(function (res) { return res.json(); })
-        .then(function (r) {
-          if (r.success === false && r.success !== undefined) throw new Error(r.message || '저장 실패');
-          return r;
+        .then(function (res) {
+          if (res.status === 401) { clearAuth(); if (window.location) window.location.href = 'login.html'; return Promise.reject(new Error('인증이 만료되었습니다.')); }
+          return res.text().then(function (text) {
+            var r; try { r = text ? JSON.parse(text) : {}; } catch (e) { return Promise.reject(new Error('서버 응답 오류')); }
+            if (r.success === false && r.success !== undefined) throw new Error(r.message || '저장 실패');
+            return r;
+          });
         });
     },
 

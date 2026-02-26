@@ -7,7 +7,7 @@
       "icon": "bi-gear-wide-connected",
       "children": [
         { "label": "PG사 API 연동", "url": "/hq/pgApiMng", "menuId": "M0101" },
-        { "label": "기본 수수료 정책", "url": "/hq/defaultCommission", "menuId": "M0102" },
+        { "label": "기본정책", "url": "/hq/defaultCommission", "menuId": "M0102" },
         { "label": "API 구성 세팅", "url": "/hq/apiConfig", "menuId": "M0103" },
         { "label": "본사별 권한 세팅", "url": "/hq/permissionMng", "menuId": "M0104" }
       ]
