@@ -95,6 +95,50 @@ public class SettlementSetting {
     @Column(name = "calc_exclude_yn", length = 1)
     private String calcExcludeYn = "N";
 
+    /** 월한도_결제 (원) */
+    @Column(name = "pay_limit_month", precision = 18, scale = 0)
+    private BigDecimal payLimitMonth;
+
+    /** 연한도_결제 (원) */
+    @Column(name = "pay_limit_year", precision = 18, scale = 0)
+    private BigDecimal payLimitYear;
+
+    /** 제한시(시)_결제 - 출금제한 시간(시) */
+    @Column(name = "withdraw_limit_hour")
+    private Integer withdrawLimitHour;
+
+    /** 시간내결제금액 (원) */
+    @Column(name = "pay_amount_in_time", precision = 18, scale = 0)
+    private BigDecimal payAmountInTime;
+
+    /** 동일카드제한 일(WEB) */
+    @Column(name = "same_card_limit_day_web")
+    private Integer sameCardLimitDayWeb;
+
+    /** 동일카드제한 회(WEB) */
+    @Column(name = "same_card_limit_cnt_web")
+    private Integer sameCardLimitCntWeb;
+
+    /** 동일카드제한 원(WEB) */
+    @Column(name = "same_card_limit_amt_web", precision = 18, scale = 0)
+    private BigDecimal sameCardLimitAmtWeb;
+
+    /** 동일카드제한 일(단말) */
+    @Column(name = "same_card_limit_day_terminal")
+    private Integer sameCardLimitDayTerminal;
+
+    /** 동일카드제한 회(단말) */
+    @Column(name = "same_card_limit_cnt_terminal")
+    private Integer sameCardLimitCntTerminal;
+
+    /** 동일카드제한 원(단말) */
+    @Column(name = "same_card_limit_amt_terminal", precision = 18, scale = 0)
+    private BigDecimal sameCardLimitAmtTerminal;
+
+    /** 일 지급한도 (원) */
+    @Column(name = "pay_limit_daily", precision = 18, scale = 0)
+    private BigDecimal payLimitDaily;
+
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
     public Long getOrgUnitId() { return orgUnitId; }
@@ -137,4 +181,26 @@ public class SettlementSetting {
     public void setCalcExcludeTarget(String calcExcludeTarget) { this.calcExcludeTarget = calcExcludeTarget; }
     public String getCalcExcludeYn() { return calcExcludeYn; }
     public void setCalcExcludeYn(String calcExcludeYn) { this.calcExcludeYn = calcExcludeYn; }
+    public BigDecimal getPayLimitMonth() { return payLimitMonth; }
+    public void setPayLimitMonth(BigDecimal payLimitMonth) { this.payLimitMonth = payLimitMonth; }
+    public BigDecimal getPayLimitYear() { return payLimitYear; }
+    public void setPayLimitYear(BigDecimal payLimitYear) { this.payLimitYear = payLimitYear; }
+    public Integer getWithdrawLimitHour() { return withdrawLimitHour; }
+    public void setWithdrawLimitHour(Integer withdrawLimitHour) { this.withdrawLimitHour = withdrawLimitHour; }
+    public BigDecimal getPayAmountInTime() { return payAmountInTime; }
+    public void setPayAmountInTime(BigDecimal payAmountInTime) { this.payAmountInTime = payAmountInTime; }
+    public Integer getSameCardLimitDayWeb() { return sameCardLimitDayWeb; }
+    public void setSameCardLimitDayWeb(Integer sameCardLimitDayWeb) { this.sameCardLimitDayWeb = sameCardLimitDayWeb; }
+    public Integer getSameCardLimitCntWeb() { return sameCardLimitCntWeb; }
+    public void setSameCardLimitCntWeb(Integer sameCardLimitCntWeb) { this.sameCardLimitCntWeb = sameCardLimitCntWeb; }
+    public BigDecimal getSameCardLimitAmtWeb() { return sameCardLimitAmtWeb; }
+    public void setSameCardLimitAmtWeb(BigDecimal sameCardLimitAmtWeb) { this.sameCardLimitAmtWeb = sameCardLimitAmtWeb; }
+    public Integer getSameCardLimitDayTerminal() { return sameCardLimitDayTerminal; }
+    public void setSameCardLimitDayTerminal(Integer sameCardLimitDayTerminal) { this.sameCardLimitDayTerminal = sameCardLimitDayTerminal; }
+    public Integer getSameCardLimitCntTerminal() { return sameCardLimitCntTerminal; }
+    public void setSameCardLimitCntTerminal(Integer sameCardLimitCntTerminal) { this.sameCardLimitCntTerminal = sameCardLimitCntTerminal; }
+    public BigDecimal getSameCardLimitAmtTerminal() { return sameCardLimitAmtTerminal; }
+    public void setSameCardLimitAmtTerminal(BigDecimal sameCardLimitAmtTerminal) { this.sameCardLimitAmtTerminal = sameCardLimitAmtTerminal; }
+    public BigDecimal getPayLimitDaily() { return payLimitDaily; }
+    public void setPayLimitDaily(BigDecimal payLimitDaily) { this.payLimitDaily = payLimitDaily; }
 }

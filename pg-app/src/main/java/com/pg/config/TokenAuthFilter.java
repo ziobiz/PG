@@ -1,6 +1,5 @@
 package com.pg.config;
 
-import com.pg.entity.AppUser;
 import com.pg.service.AuthService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -9,7 +8,6 @@ import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
-import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
@@ -17,8 +15,8 @@ import java.util.Collections;
 
 /**
  * API 요청의 Authorization: Bearer <token> 검증 후 SecurityContext 설정
+ * (SecurityConfig에서 직접 등록 - @Component 제거로 Filter order 오류 방지)
  */
-@Component
 public class TokenAuthFilter extends OncePerRequestFilter {
 
     private final AuthService authService;

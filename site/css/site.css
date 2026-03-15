@@ -368,6 +368,8 @@ body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Ro
   font-weight: 600;
 }
 .summary-total-bar .summary-total-item { white-space: nowrap; }
+.comp-mng-sort-label { display: inline; font-weight: 500; margin: 0; }
+.comp-mng-sort-select { display: inline-block; width: auto; min-width: 90px; }
 /* 액션 버튼은 항상 오른쪽 (요약 있든 없든, 목록/폼/정산실행 동일) */
 .screen-summary-action-row .screen-action-buttons {
   display: flex;

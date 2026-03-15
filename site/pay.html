@@ -48,10 +48,11 @@
     <div id="result" class="result-box" style="display:none;"></div>
   </div>
 
+  <script src="js/config.js"></script>
   <script>
     (function () {
-      var API_BASE = (window.PG_API_BASE !== undefined && window.PG_API_BASE !== '') ? window.PG_API_BASE : (window.location.port === '8080' ? '' : (window.location.origin || '') + (window.location.port === '80' || window.location.port === '443' ? '' : ':' + window.location.port));
-      if (!API_BASE) API_BASE = window.location.protocol + '//' + window.location.host;
+      var host = (window.location && window.location.hostname) ? window.location.hostname : '';
+      var API_BASE = (window.PG_API_BASE !== undefined && window.PG_API_BASE !== '') ? window.PG_API_BASE : ((host === 'icopay.co.kr' || host === 'www.icopay.co.kr') ? 'https://api.icopay.co.kr' : (window.location.origin || ''));
       API_BASE = (API_BASE + '').replace(/\/$/, '');
 
       document.getElementById('orderNo').value = 'ORD' + Date.now();

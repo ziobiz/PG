@@ -21,6 +21,7 @@ Thumbs.db
 # 민감 정보
 application-local.yml
 *.local.yml
+server-config/ssl/
 
 # 참고용 레거시 소스 (용량 큼, 필요시 이 줄 삭제)
 PG소스_CD/

@@ -149,6 +149,14 @@ public class MerchantProfile {
     @Column(name = "base_currency", length = 10)
     private String baseCurrency;
 
+    /** 터미널[단말] 개수 */
+    @Column(name = "terminal_count_terminal")
+    private Integer terminalCountTerminal;
+
+    /** 터미널[웹] 개수 */
+    @Column(name = "terminal_count_web")
+    private Integer terminalCountWeb;
+
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 
@@ -239,6 +247,10 @@ public class MerchantProfile {
     public void setWebPaymentUseYn(String webPaymentUseYn) { this.webPaymentUseYn = webPaymentUseYn; }
     public String getBaseCurrency() { return baseCurrency; }
     public void setBaseCurrency(String baseCurrency) { this.baseCurrency = baseCurrency; }
+    public Integer getTerminalCountTerminal() { return terminalCountTerminal; }
+    public void setTerminalCountTerminal(Integer terminalCountTerminal) { this.terminalCountTerminal = terminalCountTerminal; }
+    public Integer getTerminalCountWeb() { return terminalCountWeb; }
+    public void setTerminalCountWeb(Integer terminalCountWeb) { this.terminalCountWeb = terminalCountWeb; }
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
 }

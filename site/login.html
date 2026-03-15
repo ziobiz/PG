@@ -135,7 +135,8 @@
           alert('아이디와 비밀번호를 입력하세요.');
           return;
         }
-        var isFirstLogin = localStorage.getItem('pg_first_login_' + userId) !== 'false';
+        var skipFirstLogin = (typeof URLSearchParams !== 'undefined' && new URLSearchParams(window.location.search).get('skipFirstLogin')) === '1';
+        var isFirstLogin = !skipFirstLogin && localStorage.getItem('pg_first_login_' + userId) !== 'false';
         if (isFirstLogin) {
           var modal = new bootstrap.Modal(document.getElementById('pwChangeModal'));
           modal.show();
@@ -157,9 +158,9 @@
 
       function doLogin(userId, pwd) {
         var api = window.PG_API;
-        if (api && api.getBaseUrl && api.getBaseUrl()) {
-            api.login(userId, pwd).then(function (res) {
-              if (res && res.success && res.data && res.data.token) {
+        if (api && api.login) {
+          api.login(userId, pwd).then(function (res) {
+            if (res && res.success && res.data && res.data.token) {
               api.setAuth(res.data.token, { loginId: res.data.userId, userId: res.data.userId, userNm: res.data.userNm || '관리자', orgUnitId: res.data.orgUnitId, compId: res.data.compId, orgLevel: res.data.orgLevel });
               window.location.href = 'index.html';
             } else {

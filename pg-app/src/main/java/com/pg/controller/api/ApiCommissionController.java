@@ -11,7 +11,7 @@ import java.time.LocalDate;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/api/commission")
+@RequestMapping(value = "/api/commission", produces = "application/json")
 public class ApiCommissionController {
 
     private final CommissionService commissionService;

@@ -10,7 +10,7 @@ import java.util.ArrayList;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/api/user")
+@RequestMapping(value = "/api/user", produces = "application/json")
 public class ApiUserController {
 
     private final UserListService userListService;

@@ -102,6 +102,7 @@
           notice: '상위 본사(우리)가 권한을 준 회사의 정보입니다. 그리드에서 한 건 선택 후 [상세] 버튼으로 조회·수정합니다.',
           rows: [
             [{ label: '업체코드', type: 'text', name: 'compId', col: 2, readonly: true }, { label: '업체구분', type: 'select', name: 'compDiv', options: [{ v: '', t: '선택' }, { v: 'REGIONAL', t: '본사' }, { v: 'MASTER_DIST', t: '총판' }, { v: 'BRANCH', t: '지사' }, { v: 'AGENCY', t: '대리점' }, { v: 'MERCHANT', t: '가맹점' }], col: 2 }],
+            [{ label: '상위 본사', type: 'text', name: 'parentComp', col: 2, button: '검색', placeholder: '상위 조직 선택' }],
             [{ label: '업체명(본사명)*', type: 'text', name: 'compNm', col: 2 }, { label: '사업자번호*', type: 'text', name: 'regNo', col: 2 }],
             [{ label: '업태', type: 'text', name: 'bizType', col: 2 }, { label: '종목', type: 'text', name: 'industry', col: 2 }],
             [{ label: '대표자명*', type: 'text', name: 'ceoNm', col: 2 }, { label: '대표자 휴대폰*', type: 'text', name: 'ceoMobile', col: 2 }],
@@ -131,9 +132,10 @@
       searchFormClass: 'comp-mng-search-multiline',
       searchRows: [
         [
-          { label: '업체구분', type: 'select', name: 'searchCompDiv', options: [{ v: '', t: '전체' }, { v: 'REGIONAL', t: '본사' }, { v: 'MASTER_DIST', t: '총판' }, { v: 'BRANCH', t: '지사' }, { v: 'AGENCY', t: '대리점' }, { v: 'MERCHANT', t: '가맹점' }], size: 10 },
+          { label: '상위 조직', type: 'text', name: 'searchParentCompId', size: 14, button: '검색', placeholder: '선택 시 해당 조직+하위 전체 조회' },
+          { label: '업체구분', type: 'select', name: 'searchCompDiv', options: [{ v: '', t: '전체' }, { v: 'HEADQUARTERS', t: '총본사' }, { v: 'REGIONAL', t: '본사' }, { v: 'MASTER_DIST', t: '총판' }, { v: 'BRANCH', t: '지사' }, { v: 'AGENCY', t: '대리점' }, { v: 'MERCHANT', t: '가맹점' }], size: 10 },
           { label: '대표자명', type: 'text', name: 'searchCeoNm', size: 12 },
-          { label: '업체사용상태', type: 'select', name: 'searchUseYn', options: [{ v: 'Y', t: '사용' }, { v: '', t: '전체' }, { v: 'N', t: '미사용' }], size: 10 },
+          { label: '업체사용상태', type: 'select', name: 'searchUseYn', options: [{ v: '', t: '전체' }, { v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }], size: 10 },
           { label: '업체코드', type: 'text', name: 'searchCompId', size: 12 },
           { label: '업체명', type: 'text', name: 'searchCompNm', size: 12 }
         ],
@@ -142,31 +144,61 @@
           { label: '터미널ID', type: 'text', name: 'searchTerminalId', size: 12 },
           { label: '휴대폰', type: 'text', name: 'searchCeoMobile', size: 12 },
           { label: '사업자번호', type: 'text', name: 'searchRegNo', size: 12 },
-          { label: '하위업체포함', type: 'checkbox', name: 'searchIncludeSub' },
+          { label: '유형', type: 'text', name: 'searchType', size: 10 },
+          { label: '주요업체포함', type: 'checkbox', name: 'searchKeyCompInclude' },
           { type: 'searchBtn', label: '검색', noIcon: true }
         ]
       ],
-      noticeList: ['정산금/미수금은 \'참고메뉴 설정\'으로 발생되므로 확인바랍니다.'],
+      noticeList: ['정산금/미수금은 결제발생일로부터 확인바랍니다.'],
       noticeRefButton: { id: 'noticeRefBtn', label: '참고', cls: 'btn-success' },
-      summary: ['건수'],
-      buttons: [{ id: 'excelBtn', label: '엑셀다운로드', cls: 'btn-info' }, { id: 'compRegBtn', label: '등록', cls: 'btn-danger' }],
+      summary: ['Total'],
+      summaryExtras: '<label class="comp-mng-sort-label ms-3">정렬</label><select class="form-control form-control-sm comp-mng-sort-select ms-1" id="compMngSortBy"><option value="compNm">업체명</option><option value="compId">업체코드</option><option value="compDivNm">업체구분</option></select><label class="comp-mng-sort-label ms-3">출력</label><select class="form-control form-control-sm comp-mng-sort-select ms-1" id="compMngOutput"><option value="all">모두</option><option value="current">현재페이지</option></select>',
+      buttons: [{ id: 'excelBtn', label: '액셀다운로드', cls: 'btn-info' }, { id: 'compRegBtn', label: '등록', cls: 'btn-danger' }],
       columns: [
         { key: '_chk', type: 'checkbox' },
         { key: 'rowNo', label: 'No.' },
         { key: 'compId', label: '업체코드' },
         { key: 'compNm', label: '업체명' },
         { key: 'compDivNm', label: '업체구분' },
+        { key: 'regNo', label: '사업자번호' },
         { key: 'settlementAmt', label: '정산금' },
         { key: 'receivables', label: '미수금' },
-        { key: 'regNo', label: '사업자번호' },
         { key: 'ceoNm', label: '대표자명' },
+        { key: 'industry', label: '업종' },
+        { key: 'bizType', label: '업태' },
+        { key: 'email', label: '이메일' },
         { key: 'contact', label: '연락처' },
+        { key: 'zipCode', label: '우편번호' },
+        { key: 'addr', label: '주소' },
         { key: 'bankNm', label: '은행' },
         { key: 'accountNo', label: '계좌번호' },
-        { key: 'transferFee', label: '이체수수료' },
+        { key: 'accountHolder', label: '계좌주명' },
         { key: 'calcCycle', label: '정산주기' },
+        { key: 'calcCloseTime', label: '정산시간' },
+        { key: 'transferFee', label: '이체수수료' },
         { key: 'transferType', label: '이체구분' },
-        { key: 'transferCycleHours', label: '이체주기(시)' }
+        { key: 'transferCycleHours', label: '이체주기(시간)' },
+        { key: 'calcExcludeYn', label: '정산제외' },
+        { key: 'calcExcludeTarget', label: '정산제외대상' },
+        { key: 'calcStartTime', label: '정산개시시간' },
+        { key: 'payHoldYnDisplay', label: '지급보류상태' },
+        { key: 'payLimitDefault', label: '1회한도_결제' },
+        { key: 'payLimitExtra', label: '일한도_결제' },
+        { key: 'payLimitMonth', label: '월한도_결제' },
+        { key: 'payLimitYear', label: '연한도_결제' },
+        { key: 'withdrawLimitHour', label: '제한시(시)_결제' },
+        { key: 'payAmountInTime', label: '시간내결제금액' },
+        { key: 'sameCardLimitDayWeb', label: '동일카드제한 일(WEB)' },
+        { key: 'sameCardLimitCntWeb', label: '회(WEB)' },
+        { key: 'sameCardLimitAmtWeb', label: '원(WEB)' },
+        { key: 'sameCardLimitDayTerminal', label: '일(단말)' },
+        { key: 'sameCardLimitCntTerminal', label: '회(단말)' },
+        { key: 'sameCardLimitAmtTerminal', label: '원(단말)' },
+        { key: 'payLimitDaily', label: '일 지급한도' },
+        { key: 'useYnDisplay', label: '업체사용여부' },
+        { key: 'terminalCountTerminal', label: '터미널[단말]' },
+        { key: 'terminalCountWeb', label: '터미널[웹]' },
+        { key: 'regDt', label: '등록일자' }
       ],
       emptyMessage: '조회된 데이터가 없습니다.'
     },
@@ -175,9 +207,9 @@
       formSections: [
         {
           title: '기본정보',
-          notice: '업체구분을 선택하시면 해당하는 입력 항목이 표시됩니다.',
+          notice: '업체구분을 선택하시면 해당하는 입력 항목이 표시됩니다. 총판·지사·대리점·가맹점은 상위 지점을 반드시 선택해야 합니다. (본사만 선택 없음)',
           rows: [
-            [{ label: '상위 본사', type: 'text', name: 'parentComp', col: 2, button: '검색', placeholder: '상위 코드' }, { label: '업체구분*', type: 'select', name: 'compDiv', options: [{ v: '', t: '선택' }, { v: 'REGIONAL', t: '본사' }, { v: 'MASTER_DIST', t: '총판' }, { v: 'BRANCH', t: '지사' }, { v: 'AGENCY', t: '대리점' }, { v: 'MERCHANT', t: '가맹점' }], col: 1 }, { label: '업체명*', type: 'text', name: 'compNm', col: 2 }, { label: '사업자번호*', type: 'text', name: 'regNo', col: 2 }, { label: '업태', type: 'text', name: 'bizType', col: 1 }, { label: '종목', type: 'text', name: 'industry', col: 1 }],
+            [{ label: '상위 지점*', type: 'text', name: 'parentComp', col: 2, button: '검색', placeholder: '총판·지사·대리점·가맹점은 필수' }, { label: '업체구분*', type: 'select', name: 'compDiv', options: [{ v: '', t: '선택' }, { v: 'REGIONAL', t: '본사' }, { v: 'MASTER_DIST', t: '총판' }, { v: 'BRANCH', t: '지사' }, { v: 'AGENCY', t: '대리점' }, { v: 'MERCHANT', t: '가맹점' }], col: 1 }, { label: '업체명*', type: 'text', name: 'compNm', col: 2 }, { label: '사업자번호*', type: 'text', name: 'regNo', col: 2 }, { label: '업태', type: 'text', name: 'bizType', col: 1 }, { label: '종목', type: 'text', name: 'industry', col: 1 }],
             [{ label: '대표자명*', type: 'text', name: 'ceoNm', col: 2 }, { label: '휴대폰*', type: 'text', name: 'ceoMobile', col: 2 }, { label: '업체전화*', type: 'text', name: 'compTel', col: 2 }, { label: '팩스', type: 'text', name: 'fax', col: 1 }, { label: '우편번호*', type: 'text', name: 'zipCode', col: 1 }, { label: '주소*', type: 'text', name: 'addr', col: 2 }],
             [{ label: '상세주소', type: 'text', name: 'addrDetail', col: 2 }, { label: '이메일', type: 'text', name: 'email', col: 2 }, { label: '사이트 주소', type: 'text', name: 'siteUrl', col: 2, placeholder: 'https://' }],
             [{ label: '사용여부*', type: 'select', name: 'useYn', options: [{ v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }], col: 1 }, { label: '로그인ID*', type: 'text', name: 'loginId', col: 2, button: '중복확인' }, { label: '비밀번호*', type: 'password', name: 'pwd', col: 2 }]
@@ -655,6 +687,7 @@
           notice: '상위 본사(우리)가 권한을 준 회사의 정보입니다. 그리드에서 한 건 선택 후 [상세] 버튼으로 조회·수정합니다.',
           rows: [
             [{ label: '업체코드', type: 'text', name: 'compId', col: 2, readonly: true }, { label: '업체구분', type: 'select', name: 'compDiv', options: [{ v: '', t: '선택' }, { v: 'REGIONAL', t: '본사' }, { v: 'MASTER_DIST', t: '총판' }, { v: 'BRANCH', t: '지사' }, { v: 'AGENCY', t: '대리점' }, { v: 'MERCHANT', t: '가맹점' }], col: 2 }],
+            [{ label: '상위 본사', type: 'text', name: 'parentComp', col: 2, button: '검색', placeholder: '상위 조직 선택' }],
             [{ label: '업체명(본사명)*', type: 'text', name: 'compNm', col: 2 }, { label: '사업자번호*', type: 'text', name: 'regNo', col: 2 }],
             [{ label: '업태', type: 'text', name: 'bizType', col: 2 }, { label: '종목', type: 'text', name: 'industry', col: 2 }],
             [{ label: '대표자명*', type: 'text', name: 'ceoNm', col: 2 }, { label: '대표자 휴대폰*', type: 'text', name: 'ceoMobile', col: 2 }],
@@ -861,7 +894,9 @@
       return wrapSearchCell(inner, !!field.label);
     }
     if (field.type === 'text') {
-      inner = (field.label ? '<span class="search-cell-label">' + field.label + '</span>' : '') + '<div class="search-cell-input"><input type="text" class="form-control form-control-sm _searchText" id="' + (field.name || '') + '" name="' + (field.name || '') + '" placeholder="' + (field.placeholder || '') + '" style="' + sz + '"></div>';
+      var inp = '<input type="text" class="form-control form-control-sm _searchText" id="' + (field.name || '') + '" name="' + (field.name || '') + '" placeholder="' + (field.placeholder || '') + '" style="' + sz + '">';
+      if (field.button) inp = '<div class="form-input-with-btn"><span class="form-input-wrap">' + inp + '</span><button type="button" class="btn btn-outline-secondary btn-sm" data-field="' + (field.name || '') + '" data-action="' + field.button + '">' + field.button + '</button></div>';
+      inner = (field.label ? '<span class="search-cell-label">' + field.label + '</span>' : '') + '<div class="search-cell-input">' + inp + '</div>';
       return wrapSearchCell(inner, !!field.label);
     }
     return '';
@@ -1029,6 +1064,7 @@
       items.forEach(function (s) {
         summaryHtml += '<span class="summary-total-item" id="summary_' + s + '">' + s + ': ' + fmt + '</span>';
       });
+      if (cfg.summaryExtras) summaryHtml += cfg.summaryExtras;
       summaryHtml += '</div>';
     }
     var buttonsHtml = '';

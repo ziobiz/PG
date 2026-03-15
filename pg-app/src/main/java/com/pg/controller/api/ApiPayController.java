@@ -14,7 +14,7 @@ import java.util.Map;
  * 결제 API - ChillPay DirectCredit 연동.
  */
 @RestController
-@RequestMapping("/api/pay")
+@RequestMapping(value = "/api/pay", produces = "application/json")
 public class ApiPayController {
 
     private final ChillPayService chillPayService;

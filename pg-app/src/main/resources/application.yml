@@ -4,6 +4,8 @@ server:
 # 로컬 한 서버 테스트: pg-app 실행 디렉터리가 pg-app 일 때, 상위의 site 폴더를 정적 리소스로 서빙
 # (프로젝트 루트에서 ./pg-app/gradlew bootRun 이면 working dir 에 따라 경로 조정 필요)
 spring:
+  aop:
+    proxy-target-class: false  # final 클래스 프록시 오류 방지 (JDK 인터페이스 프록시 사용)
   web:
     resources:
       static-locations: classpath:/META-INF/resources/,classpath:/resources/,classpath:/static/,classpath:/public/,file:../site/
@@ -17,9 +19,11 @@ spring:
     driver-class-name: org.postgresql.Driver
     hikari:
       maximum-pool-size: 5
+      connection-timeout: 30000
+      initialization-fail-timeout: 10000
   jpa:
     hibernate:
-      ddl-auto: update
+      ddl-auto: validate  # update는 대용량 DB에서 스키마 비교 시 멈출 수 있음. 스키마는 SQL로 관리.
     show-sql: false
     properties:
       hibernate:
@@ -33,7 +37,7 @@ spring:
 # SPA( site ) 연동 시 CORS 허용 오리진 (쉼표 구분)
 app:
   cors:
-    allowed-origins: http://localhost:5500,http://127.0.0.1:5500,http://localhost:3000,http://localhost
+    allowed-origins: https://icopay.co.kr,https://www.icopay.co.kr,http://icopay.co.kr,http://www.icopay.co.kr
   # ChillPay (칠리페이) DirectCredit API 연동
   chillpay:
     merchant-code: ${CHILLPAY_MERCHANT_CODE:M035594}

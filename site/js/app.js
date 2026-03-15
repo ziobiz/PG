@@ -290,8 +290,8 @@
         if (dimm) dimm.style.display = 'none';
         var tbody = p.querySelector('#grid_' + tid + ' tbody');
         if (tbody) tbody.innerHTML = '<tr><td colspan="' + (cfg.columns.length) + '" class="empty-state-cell text-center text-muted">조회된 데이터가 없습니다.</td></tr>';
-        var cntEl = p.querySelector('#summary_건수, .summary-count, [data-summary="건수"]');
-        if (cntEl) cntEl.textContent = (cntEl.id === 'summary_건수' ? '건수: ' : '') + '0';
+        var cntEl = p.querySelector('#summary_건수, #summary_Total, .summary-count, [data-summary="건수"]');
+        if (cntEl) cntEl.textContent = (cntEl.id === 'summary_Total' ? 'Total: ' : cntEl.id === 'summary_건수' ? '건수: ' : '') + '0';
         return;
       }
       promise.then(function (data) {
@@ -316,8 +316,8 @@
           });
           tbody.innerHTML = html;
         }
-        var cntEl = p.querySelector('#summary_건수, .summary-count, [data-summary="건수"]');
-        if (cntEl) cntEl.textContent = (cntEl.id === 'summary_건수' ? '건수: ' : '') + total;
+        var cntEl = p.querySelector('#summary_건수, #summary_Total, .summary-count, [data-summary="건수"]');
+        if (cntEl) cntEl.textContent = (cntEl.id === 'summary_Total' ? 'Total: ' : cntEl.id === 'summary_건수' ? '건수: ' : '') + total;
         if (window.updatePaging) window.updatePaging(tid, params.page, totalPages);
         p.setAttribute('data-last-total-pages', String(totalPages));
       }).catch(function (err) {
@@ -441,6 +441,11 @@
         fd.compNm = fd.compNm || fd.comp_name;
         fd.compDiv = fd.compDiv || fd.comp_div || 'MERCHANT';
         if (fd.parentId) fd.parentComp = ''; else if (fd.parentComp && fd.parentComp.indexOf(' (') > 0) fd.parentComp = fd.parentComp.split(' (')[0].trim();
+        var needsParent = ['MASTER_DIST', 'BRANCH', 'AGENCY', 'MERCHANT'].indexOf(fd.compDiv) >= 0;
+        if (needsParent && !fd.parentId && (!fd.parentComp || fd.parentComp.trim() === '')) {
+          alert('총판·지사·대리점·가맹점은 상위 지점을 반드시 선택해야 합니다.');
+          return;
+        }
         var tbody = form.querySelector('#pgBindingTbody');
         if (tbody) {
           var operationalVal = form.querySelector('input[name="pgOperational"]:checked');
@@ -554,110 +559,104 @@
       var parentCompSearchBtn = pane.querySelector('button[data-field="parentComp"][data-action="검색"]');
       if (parentCompSearchBtn) {
         parentCompSearchBtn.addEventListener('click', function () {
-          var modalEl = document.getElementById('parentCompSearchModal');
-          if (!modalEl) return;
-          var modal = window.bootstrap && bootstrap.Modal ? new bootstrap.Modal(modalEl) : null;
-          if (modal) modal.show();
-          var tbody = document.getElementById('parentCompSearchTbody');
-          var kw = document.getElementById('parentCompSearchKeyword');
-          function runSearch() {
-            var dimm = document.getElementById('dimm');
-            if (dimm) dimm.style.display = 'flex';
-            window.PG_API.compList({ searchCompId: (kw && kw.value) || '', searchCompNm: (kw && kw.value) || '', page: 1, size: 50 }).then(function (data) {
-              var list = (data && data.list) ? data.list : [];
-              if (!tbody) return;
-              tbody.innerHTML = '';
-              list.forEach(function (row) {
-                var tr = document.createElement('tr');
-                tr.style.cursor = 'pointer';
-                tr.setAttribute('data-id', row.id != null ? row.id : '');
-                tr.setAttribute('data-compId', row.compId != null ? row.compId : '');
-                tr.setAttribute('data-compNm', row.compNm != null ? row.compNm : '');
-                tr.innerHTML = '<td><button type="button" class="btn btn-sm btn-outline-primary">선택</button></td><td>' + (row.compId || '') + '</td><td>' + (row.compNm || '') + '</td><td>' + (row.compDivNm || row.compDiv || '') + '</td>';
-                tr.addEventListener('click', function (e) {
-                  if (e.target.tagName === 'BUTTON') return;
-                  selectParentComp(tr);
-                });
-                tr.querySelector('button').addEventListener('click', function () { selectParentComp(tr); });
-                tbody.appendChild(tr);
-              });
-              if (list.length === 0) tbody.innerHTML = '<tr><td colspan="4" class="text-muted text-center">조회된 업체가 없습니다.</td></tr>';
-            }).catch(function (err) {
-              if (tbody) tbody.innerHTML = '<tr><td colspan="4" class="text-danger text-center">' + (err && err.message ? err.message : '조회 실패') + '</td></tr>';
-            }).finally(function () { if (dimm) dimm.style.display = 'none'; });
-          }
-          function selectParentComp(tr) {
-            var id = tr.getAttribute('data-id');
-            var compId = tr.getAttribute('data-compId');
-            var compNm = tr.getAttribute('data-compNm');
-            var f = pane.querySelector('#compRegForm');
-            if (f) {
-              var pid = f.querySelector('input[name="parentId"]');
-              if (pid) pid.value = id || '';
-              var pc = f.querySelector('input[name="parentComp"]');
-              if (pc) pc.value = (compId || '') + (compNm ? ' (' + compNm + ')' : '');
-            }
-            if (modal) modal.hide();
-          }
-          var modalSearchBtn = document.getElementById('parentCompSearchBtn');
-          if (modalSearchBtn && !modalSearchBtn._parentCompBound) {
-            modalSearchBtn._parentCompBound = true;
-            modalSearchBtn.addEventListener('click', function () {
-              var tbody = document.getElementById('parentCompSearchTbody');
-              var dimm = document.getElementById('dimm');
-              var kw = document.getElementById('parentCompSearchKeyword');
-              if (!tbody) return;
-              if (dimm) dimm.style.display = 'flex';
-              window.PG_API.compList({ searchCompId: (kw && kw.value) || '', searchCompNm: (kw && kw.value) || '', page: 1, size: 50 }).then(function (data) {
-                var list = (data && data.list) ? data.list : [];
-                tbody.innerHTML = '';
-                list.forEach(function (row) {
-                  var tr = document.createElement('tr');
-                  tr.style.cursor = 'pointer';
-                  tr.setAttribute('data-id', row.id != null ? row.id : '');
-                  tr.setAttribute('data-compId', row.compId != null ? row.compId : '');
-                  tr.setAttribute('data-compNm', row.compNm != null ? row.compNm : '');
-                  tr.innerHTML = '<td><button type="button" class="btn btn-sm btn-outline-primary">선택</button></td><td>' + (row.compId || '') + '</td><td>' + (row.compNm || '') + '</td><td>' + (row.compDivNm || row.compDiv || '') + '</td>';
-                  tr.addEventListener('click', function (e) {
-                    if (e.target.tagName === 'BUTTON') return;
-                    var f2 = document.querySelector('[formurl="/comp/compReg"]');
-                    if (f2) {
-                      var form = f2.querySelector('#compRegForm');
-                      if (form) {
-                        var pid = form.querySelector('input[name="parentId"]');
-                        if (pid) pid.value = tr.getAttribute('data-id') || '';
-                        var pc = form.querySelector('input[name="parentComp"]');
-                        if (pc) pc.value = (tr.getAttribute('data-compId') || '') + (tr.getAttribute('data-compNm') ? ' (' + tr.getAttribute('data-compNm') + ')' : '');
-                      }
-                    }
-                    if (modalEl && window.bootstrap && bootstrap.Modal) { var m = bootstrap.Modal.getInstance(modalEl); if (m) m.hide(); }
-                  });
-                  tr.querySelector('button').addEventListener('click', function () {
-                    var f2 = document.querySelector('[formurl="/comp/compReg"]');
-                    if (f2) {
-                      var form = f2.querySelector('#compRegForm');
-                      if (form) {
-                        var pid = form.querySelector('input[name="parentId"]');
-                        if (pid) pid.value = tr.getAttribute('data-id') || '';
-                        var pc = form.querySelector('input[name="parentComp"]');
-                        if (pc) pc.value = (tr.getAttribute('data-compId') || '') + (tr.getAttribute('data-compNm') ? ' (' + tr.getAttribute('data-compNm') + ')' : '');
-                      }
-                    }
-                    if (modalEl && window.bootstrap && bootstrap.Modal) { var m = bootstrap.Modal.getInstance(modalEl); if (m) m.hide(); }
-                  });
-                  tbody.appendChild(tr);
-                });
-                if (list.length === 0) tbody.innerHTML = '<tr><td colspan="4" class="text-muted text-center">조회된 업체가 없습니다.</td></tr>';
-              }).catch(function (err) {
-                tbody.innerHTML = '<tr><td colspan="4" class="text-danger text-center">' + (err && err.message ? err.message : '조회 실패') + '</td></tr>';
-              }).finally(function () { if (dimm) dimm.style.display = 'none'; });
-            });
-          }
-          runSearch();
+          var targetForm = pane.querySelector('#compRegForm');
+          var compDivEl = targetForm ? targetForm.querySelector('[name="compDiv"]') : null;
+          var compDiv = compDivEl ? compDivEl.value : '';
+          window._parentCompSearchCtx = { form: targetForm, searchCompDiv: (function () { var m = { REGIONAL: 'HEADQUARTERS', MASTER_DIST: 'REGIONAL', BRANCH: 'MASTER_DIST', AGENCY: 'BRANCH', MERCHANT: 'AGENCY' }; return m[compDiv] || null; })() };
+          openParentCompSearchModal();
+        });
+      }
+    }
+    function openParentCompSearchModal() {
+      var modalEl = document.getElementById('parentCompSearchModal');
+      if (!modalEl) return;
+      var modal = window.bootstrap && bootstrap.Modal ? new bootstrap.Modal(modalEl) : null;
+      if (modal) modal.show();
+      runParentCompSearch();
+    }
+    function runParentCompSearch() {
+      var tbody = document.getElementById('parentCompSearchTbody');
+      var kw = document.getElementById('parentCompSearchKeyword');
+      var dimm = document.getElementById('dimm');
+      var ctx = window._parentCompSearchCtx || {};
+      var params = { searchCompId: (kw && kw.value) || '', searchCompNm: (kw && kw.value) || '', page: 1, size: 50 };
+      if (ctx.searchCompDiv) params.searchCompDiv = ctx.searchCompDiv;
+      if (dimm) dimm.style.display = 'flex';
+      window.PG_API.compList(params).then(function (data) {
+        var list = (data && data.list) ? data.list : [];
+        if (!tbody) return;
+        tbody.innerHTML = '';
+        list.forEach(function (row) {
+          var tr = document.createElement('tr');
+          tr.style.cursor = 'pointer';
+          tr.setAttribute('data-id', row.id != null ? row.id : '');
+          tr.setAttribute('data-compId', row.compId != null ? row.compId : '');
+          tr.setAttribute('data-compNm', row.compNm != null ? row.compNm : '');
+          tr.innerHTML = '<td><button type="button" class="btn btn-sm btn-outline-primary">선택</button></td><td>' + (row.compId || '') + '</td><td>' + (row.compNm || '') + '</td><td>' + (row.compDivNm || row.compDiv || '') + '</td>';
+          tr.addEventListener('click', function (e) {
+            if (e.target.tagName === 'BUTTON') return;
+            selectParentCompFromModal(tr);
+          });
+          tr.querySelector('button').addEventListener('click', function () { selectParentCompFromModal(tr); });
+          tbody.appendChild(tr);
+        });
+        if (list.length === 0) tbody.innerHTML = '<tr><td colspan="4" class="text-muted text-center">조회된 업체가 없습니다.</td></tr>';
+      }).catch(function (err) {
+        if (tbody) tbody.innerHTML = '<tr><td colspan="4" class="text-danger text-center">' + (err && err.message ? err.message : '조회 실패') + '</td></tr>';
+      }).finally(function () { if (dimm) dimm.style.display = 'none'; });
+    }
+    function selectParentCompFromModal(tr) {
+      var ctx = window._parentCompSearchCtx || {};
+      var f = ctx.form || document.querySelector('#compRegForm') || document.querySelector('#compInfoDetailForm') || document.querySelector('#screenSearchForm');
+      var displayVal = (tr.getAttribute('data-compId') || '') + (tr.getAttribute('data-compNm') ? ' (' + tr.getAttribute('data-compNm') + ')' : '');
+      if (f) {
+        var pid = f.querySelector('input[name="parentId"]');
+        if (pid) pid.value = tr.getAttribute('data-id') || '';
+        var pc = f.querySelector('[name="parentComp"]');
+        if (pc) pc.value = displayVal;
+        var searchParent = f.querySelector('[name="searchParentCompId"]');
+        if (searchParent) searchParent.value = displayVal;
+      }
+      var modalEl = document.getElementById('parentCompSearchModal');
+      if (modalEl && window.bootstrap && bootstrap.Modal) { var m = bootstrap.Modal.getInstance(modalEl); if (m) m.hide(); }
+    }
+    (function bindParentCompSearchModal() {
+      var modalSearchBtn = document.getElementById('parentCompSearchBtn');
+      if (modalSearchBtn && !modalSearchBtn._parentCompBound) {
+        modalSearchBtn._parentCompBound = true;
+        modalSearchBtn.addEventListener('click', runParentCompSearch);
+      }
+    })();
+    if (url === '/comp/compMngTree') {
+      var searchParentCompBtn = pane.querySelector('button[data-field="searchParentCompId"][data-action="검색"]');
+      if (searchParentCompBtn && !searchParentCompBtn._bound) {
+        searchParentCompBtn._bound = true;
+        searchParentCompBtn.addEventListener('click', function () {
+          var form = pane.querySelector('#screenSearchForm');
+          window._parentCompSearchCtx = { form: form, searchCompDiv: null };
+          openParentCompSearchModal();
         });
       }
     }
     if (url === '/comp/compInfo' || url === '/comp/myCompMng') {
+      var compInfoDetailForm = pane.querySelector('#compInfoDetailForm');
+      if (compInfoDetailForm && !compInfoDetailForm.querySelector('input[name="parentId"]')) {
+        var hid = document.createElement('input');
+        hid.type = 'hidden';
+        hid.name = 'parentId';
+        compInfoDetailForm.insertBefore(hid, compInfoDetailForm.firstChild);
+      }
+      var detailParentCompSearchBtn = pane.querySelector('#compInfoDetailForm button[data-field="parentComp"][data-action="검색"]');
+      if (detailParentCompSearchBtn && !detailParentCompSearchBtn._bound) {
+        detailParentCompSearchBtn._bound = true;
+        detailParentCompSearchBtn.addEventListener('click', function () {
+          var form = pane.querySelector('#compInfoDetailForm');
+          var compDivEl = form ? form.querySelector('[name="compDiv"]') : null;
+          var compDiv = compDivEl ? compDivEl.value : '';
+          window._parentCompSearchCtx = { form: form, searchCompDiv: (function () { var m = { REGIONAL: 'HEADQUARTERS', MASTER_DIST: 'REGIONAL', BRANCH: 'MASTER_DIST', AGENCY: 'BRANCH', MERCHANT: 'AGENCY' }; return m[compDiv] || null; })() };
+          openParentCompSearchModal();
+        });
+      }
       var compInfoDetailBtn = pane.querySelector('#compInfoDetailBtn');
       if (compInfoDetailBtn) {
         compInfoDetailBtn.addEventListener('click', function () {
@@ -682,6 +681,10 @@
               var el = form.querySelector('[name="' + k + '"]');
               if (el && data[k] != null) el.value = data[k];
             });
+            var parentIdEl = form.querySelector('input[name="parentId"]');
+            var parentCompEl = form.querySelector('[name="parentComp"]');
+            if (parentIdEl) parentIdEl.value = data.parentId != null ? data.parentId : '';
+            if (parentCompEl) parentCompEl.value = data.parentComp != null ? data.parentComp : '';
             var pgInfoCard = pane.querySelector('#pgInfoCard');
             if (pgInfoCard) {
               pgInfoCard.style.display = (data.compDiv === 'MERCHANT') ? '' : 'none';
@@ -728,6 +731,7 @@
             if (el.name && el.type !== 'file') fd[el.name] = el.value;
           });
           fd.compId = compId;
+          if (!fd.parentId || fd.parentId === '') delete fd.parentId;
           var dimm = document.getElementById('dimm');
           if (dimm) dimm.style.display = 'flex';
           window.PG_API.compUpdate(fd).then(function () {

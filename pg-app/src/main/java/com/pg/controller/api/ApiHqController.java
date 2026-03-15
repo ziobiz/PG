@@ -21,7 +21,7 @@ import java.util.*;
  * 1. PG사 API 연동  2. 기본 수수료 정책  3. API 구성 세팅  4. 본사별 권한 세팅
  */
 @RestController
-@RequestMapping("/api/hq")
+@RequestMapping(value = "/api/hq", produces = "application/json")
 public class ApiHqController {
 
     private final CommissionPolicyRepository commissionPolicyRepository;

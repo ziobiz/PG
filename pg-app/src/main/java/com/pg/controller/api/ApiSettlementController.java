@@ -13,7 +13,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 @RestController
-@RequestMapping("/api/settlement")
+@RequestMapping(value = "/api/settlement", produces = "application/json")
 public class ApiSettlementController {
 
     private final SettlementCalcService settlementCalcService;

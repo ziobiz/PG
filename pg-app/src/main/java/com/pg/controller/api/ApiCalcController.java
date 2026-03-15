@@ -11,7 +11,7 @@ import java.time.LocalDate;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/api/calc")
+@RequestMapping(value = "/api/calc", produces = "application/json")
 public class ApiCalcController {
 
     private final PayListService payListService;

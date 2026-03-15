@@ -11,7 +11,7 @@ import org.springframework.web.bind.annotation.*;
 import java.time.LocalDate;
 
 @RestController
-@RequestMapping("/api/system")
+@RequestMapping(value = "/api/system", produces = "application/json")
 public class ApiNoticeController {
 
     private final NoticeService noticeService;

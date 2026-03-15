@@ -14,10 +14,11 @@ import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.time.LocalDate;
 import java.util.Map;
+import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/api/comp")
+@RequestMapping(value = "/api/comp", produces = MediaType.APPLICATION_JSON_VALUE)
 public class ApiCompController {
 
     private final CompService compService;
@@ -53,6 +54,7 @@ public class ApiCompController {
             @RequestParam(required = false) String searchCeoMobile,
             @RequestParam(required = false) String searchRegNo,
             @RequestParam(required = false) Boolean searchIncludeSub,
+            @RequestParam(required = false) String searchParentCompId,
             @RequestParam(required = false) Boolean myOrgOnly,
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "20") int size) {
@@ -60,16 +62,20 @@ public class ApiCompController {
         if (Boolean.TRUE.equals(myOrgOnly)) {
             Authentication auth = SecurityContextHolder.getContext().getAuthentication();
             if (auth != null && auth.getPrincipal() instanceof AppUser u) {
-                Map<String, Object> org = authService.getOrgInfo(u.getUsername());
-                if (org != null && org.get("compId") != null) {
-                    scopeCompId = org.get("compId").toString();
+                if ("ADMIN".equalsIgnoreCase(u.getRole())) {
+                    scopeCompId = null;
+                } else {
+                    Map<String, Object> org = authService.getOrgInfo(u.getUsername());
+                    if (org != null && org.get("compId") != null) {
+                        scopeCompId = org.get("compId").toString();
+                    }
                 }
             }
         }
         PageResult<Map<String, Object>> result = compService.search(
                 searchCompId, searchCompNm, searchCompDiv, searchUseYn, searchPayHoldYn,
                 searchCeoNm, searchTerminalId, searchCeoMobile, searchRegNo, searchIncludeSub,
-                page, size, scopeCompId);
+                searchParentCompId, page, size, scopeCompId);
         return ResponseEntity.ok(ApiResponse.ok(result));
     }
 
@@ -79,7 +85,7 @@ public class ApiCompController {
         return compService.getDetail(compId)
                 .map(ApiResponse::ok)
                 .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.ok(ApiResponse.fail("업체를 찾을 수 없습니다.")));
+                .orElse(ResponseEntity.ok(ApiResponse.fail("업체를 찾을 수 없습니다.", "NOT_FOUND")));
     }
 
     @PostMapping("/register")
@@ -187,6 +193,7 @@ public class ApiCompController {
         if (transferCycleDays != null && !transferCycleDays.trim().isEmpty()) {
             try { transferCycleDaysInt = Integer.parseInt(transferCycleDays.trim()); } catch (NumberFormatException ignored) {}
         }
+        try {
         String code = "C" + System.currentTimeMillis();
         OrgUnit saved = compService.registerWithExtra(code, compNm, compDiv, parentIdVal,
                 compTel, zipCode, addr, addrDetail,
@@ -205,14 +212,18 @@ public class ApiCompController {
                 commissionFollowHq, perTxFee, cancelRate, usageRate, failFee, payRate, refundRate, rollingPct, rollingDays,
                 feeSettlementPerTx, feeUsdt, feeFx);
         return ResponseEntity.ok(ApiResponse.ok(Map.of("compId", saved.getCode(), "compNm", saved.getName())));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.ok(ApiResponse.fail(e.getMessage(), "VALIDATION"));
+        }
     }
 
-    /** 지역 본사(업체) 정보 수정 - 업체정보조회 상세에서 저장. 본사(REGIONAL)는 총본사만 수정 가능. */
+    /** 지역 본사(업체) 정보 수정 - 업체정보조회 상세에서 저장. 본사(REGIONAL)는 총본사만 수정 가능. parentId로 소속 이동. */
     @PostMapping("/update")
     public ResponseEntity<ApiResponse<Map<String, Object>>> update(
             @RequestParam String compId,
             @RequestParam(required = false) String compNm,
             @RequestParam(required = false) String compDiv,
+            @RequestParam(required = false) Long parentId,
             @RequestParam(required = false) String compTel,
             @RequestParam(required = false) String zipCode,
             @RequestParam(required = false) String addr,
@@ -253,11 +264,15 @@ public class ApiCompController {
                 }
             }
         }
-        boolean ok = compService.update(compId, compNm, compDiv, compTel, zipCode, addr, addrDetail,
-                ceoNm, ceoMobile, useYn, loginId, regNo, bizType, industry, bizNature, product, homepage, settleName, settleTelNo, fax, email,
-                bankCd, transferFee, accountNo, accountHolder, remark, commissionConfigAllowed, webPaymentUseYn, baseCurrency);
-        return ResponseEntity.ok(ok ? ApiResponse.ok(Map.of("success", true, "message", "저장되었습니다."))
-                : ApiResponse.fail("업체를 찾을 수 없습니다.", "NOT_FOUND"));
+        try {
+            boolean ok = compService.update(compId, compNm, compDiv, parentId, compTel, zipCode, addr, addrDetail,
+                    ceoNm, ceoMobile, useYn, loginId, regNo, bizType, industry, bizNature, product, homepage, settleName, settleTelNo, fax, email,
+                    bankCd, transferFee, accountNo, accountHolder, remark, commissionConfigAllowed, webPaymentUseYn, baseCurrency);
+            return ResponseEntity.ok(ok ? ApiResponse.ok(Map.of("success", true, "message", "저장되었습니다."))
+                    : ApiResponse.fail("업체를 찾을 수 없습니다.", "NOT_FOUND"));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.ok(ApiResponse.fail(e.getMessage(), "VALIDATION"));
+        }
     }
 
     @GetMapping("/settlementSetting")
@@ -265,7 +280,7 @@ public class ApiCompController {
         return compService.getSettlementSetting(compId)
                 .map(ApiResponse::ok)
                 .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.ok(ApiResponse.fail("업체 또는 정산설정을 찾을 수 없습니다.")));
+                .orElse(ResponseEntity.ok(ApiResponse.fail("업체 또는 정산설정을 찾을 수 없습니다.", "NOT_FOUND")));
     }
 
     @PostMapping("/settlementSetting/save")
@@ -290,6 +305,6 @@ public class ApiCompController {
         }
         boolean ok = compService.saveSettlementSetting(compId, withdrawDays, payLimitDefault, payLimitExtra,
                 holdRate, holdDaysInt, calcCycle, transferType, autoTransferMin, payHoldYn);
-        return ResponseEntity.ok(ok ? ApiResponse.ok(Map.of("success", true)) : ApiResponse.fail("업체를 찾을 수 없습니다."));
+        return ResponseEntity.ok(ok ? ApiResponse.ok(Map.of("success", true)) : ApiResponse.fail("업체를 찾을 수 없습니다.", "NOT_FOUND"));
     }
 }

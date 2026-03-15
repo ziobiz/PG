@@ -12,7 +12,7 @@ import java.util.ArrayList;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/api/notify")
+@RequestMapping(value = "/api/notify", produces = "application/json")
 public class ApiNotifyController {
 
     private final NotifyUrlService notifyUrlService;

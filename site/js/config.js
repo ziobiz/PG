@@ -1,8 +1,7 @@
 /**
  * PG 통합관리자 - 사이트/API 설정
- * - 로컬(localhost/127.0.0.1): API는 http://localhost:8080 으로 자동 설정 (백엔드 별도 실행 시)
- * - 운영(otlpay.cafe24.com 등): 같은 도메인으로 API 호출 (PG_API_BASE = '')
- * - URL에 ?api=http://localhost:8080 넣으면 해당 주소로 강제 사용 (개발용)
+ * - icopay.co.kr: API는 https://api.icopay.co.kr 로 호출 (홈페이지 분리 가능)
+ * - URL에 ?api=주소 넣으면 해당 주소로 강제 사용
  */
 (function () {
   window.PG_BASE_URL = window.PG_BASE_URL || '';
@@ -18,8 +17,8 @@
   } else if (savedApi !== null && savedApi !== '') {
     window.PG_API_BASE = savedApi;
   } else if (window.PG_API_BASE === undefined) {
-    if (host === 'localhost' || host === '127.0.0.1' || host === '') {
-      window.PG_API_BASE = 'http://localhost:8080';
+    if (host === 'icopay.co.kr' || host === 'www.icopay.co.kr') {
+      window.PG_API_BASE = '';
     } else {
       window.PG_API_BASE = '';
     }

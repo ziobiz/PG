@@ -1,0 +1,47 @@
+========================================
+  FTP 업로드 - 덮어쓰기 할 파일 목록
+========================================
+
+[1] pg-app (백엔드) - 아래 파일들을 서버에 덮어쓰기
+
+로컬 경로                                    →  서버 경로
+------------------------------------------------------------
+pg-app\src\main\java\com\pg\config\ApiAcceptFilter.java
+  →  /home/ftpuser/pg-app/pg-app/src/main/java/com/pg/config/ApiAcceptFilter.java
+
+pg-app\src\main\java\com\pg\service\CompService.java
+  →  /home/ftpuser/pg-app/pg-app/src/main/java/com/pg/service/CompService.java
+
+pg-app\src\main\java\com\pg\entity\SettlementSetting.java
+  →  /home/ftpuser/pg-app/pg-app/src/main/java/com/pg/entity/SettlementSetting.java
+
+pg-app\src\main\java\com\pg\entity\MerchantProfile.java
+  →  /home/ftpuser/pg-app/pg-app/src/main/java/com/pg/entity/MerchantProfile.java
+
+pg-app\src\main\java\com\pg\api\dto\CompListItemDto.java
+  →  /home/ftpuser/pg-app/pg-app/src/main/java/com/pg/api/dto/CompListItemDto.java
+
+pg-app\src\main\java\com\pg\service\SettlementCalcService.java
+  →  /home/ftpuser/pg-app/pg-app/src/main/java/com/pg/service/SettlementCalcService.java
+
+pg-app\src\main\java\com\pg\api\ApiResponse.java
+  →  /home/ftpuser/pg-app/pg-app/src/main/java/com/pg/api/ApiResponse.java
+
+
+[2] site (프론트) - 아래 파일을 서버에 덮어쓰기
+
+로컬 경로                                    →  서버 경로
+------------------------------------------------------------
+site\js\screens.js
+  →  /home/ftpuser/site/js/screens.js
+  (또는 사이트 실제 경로)
+
+
+[3] 업로드 후 서버에서 실행
+
+cd /home/ftpuser/pg-app/pg-app
+./gradlew bootJar
+
+(빌드 성공 시 JAR 재시작)
+
+========================================

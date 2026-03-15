@@ -132,18 +132,18 @@ public class SettlementCalcService {
 
         BigDecimal feePerTx = perTxFee.multiply(BigDecimal.valueOf(payCnt)).setScale(0, RoundingMode.HALF_UP);
         BigDecimal feePayRate = approveAmt.multiply(payRate).divide(BigDecimal.valueOf(100), 0, RoundingMode.HALF_UP);
-        BigDecimal feeCancelRate = cancelAmt.multiply(cancelRate).divide(BigDecimal.valueOf(100), 0, RoundingMode.HAL_UP);
-        BigDecimal feeRefundRate = cancelAmt.multiply(refundRate).divide(BigDecimal.valueOf(100), 0, RoundingMode.HAL_UP);
+        BigDecimal feeCancelRate = cancelAmt.multiply(cancelRate).divide(BigDecimal.valueOf(100), 0, RoundingMode.HALF_UP);
+        BigDecimal feeRefundRate = cancelAmt.multiply(refundRate).divide(BigDecimal.valueOf(100), 0, RoundingMode.HALF_UP);
         BigDecimal feeUsage = netSales.multiply(usageRate).divide(BigDecimal.valueOf(100), 0, RoundingMode.HALF_UP);
-        BigDecimal totalFee = feePerTx.add(feePayRate).add(feeCancelRate).add(feeRefundRate).add(feeUsage).setScale(0, RoundingMode.HAL_UP);
+        BigDecimal totalFee = feePerTx.add(feePayRate).add(feeCancelRate).add(feeRefundRate).add(feeUsage).setScale(0, RoundingMode.HALF_UP);
 
         BigDecimal rollingReserveAmt = BigDecimal.ZERO;
         if (rollingDays > 0 && rollingPct.compareTo(BigDecimal.ZERO) > 0) {
-            rollingReserveAmt = netSales.multiply(rollingPct).divide(BigDecimal.valueOf(100), 0, RoundingMode.HAL_UP);
+            rollingReserveAmt = netSales.multiply(rollingPct).divide(BigDecimal.valueOf(100), 0, RoundingMode.HALF_UP);
             for (PgTrnsctn t : txList) {
                 if (!"10".equals(t.getStatus())) continue;
                 BigDecimal amt = t.getAmtKrw() != null ? t.getAmtKrw() : BigDecimal.ZERO;
-                BigDecimal reserve = amt.multiply(rollingPct).divide(BigDecimal.valueOf(100), 0, RoundingMode.HAL_UP);
+                BigDecimal reserve = amt.multiply(rollingPct).divide(BigDecimal.valueOf(100), 0, RoundingMode.HALF_UP);
                 if (reserve.compareTo(BigDecimal.ZERO) > 0) {
                     RollingReserve rr = new RollingReserve();
                     rr.setTrnId(t.getTrnId());
@@ -157,7 +157,7 @@ public class SettlementCalcService {
             }
         }
 
-        BigDecimal payAmt = netSales.subtract(totalFee).subtract(rollingReserveAmt).setScale(0, RoundingMode.HAL_UP);
+        BigDecimal payAmt = netSales.subtract(totalFee).subtract(rollingReserveAmt).setScale(0, RoundingMode.HALF_UP);
         if (payAmt.compareTo(BigDecimal.ZERO) < 0) payAmt = BigDecimal.ZERO;
 
         SettlementRun run = new SettlementRun();
