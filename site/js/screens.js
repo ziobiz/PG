@@ -101,9 +101,8 @@
           title: '본사 정보 상세 (업체정보조회)',
           notice: '상위 본사(우리)가 권한을 준 회사의 정보입니다. 그리드에서 한 건 선택 후 [상세] 버튼으로 조회·수정합니다.',
           rows: [
-            [{ label: '업체코드', type: 'text', name: 'compId', col: 2, readonly: true }, { label: '업체구분', type: 'select', name: 'compDiv', options: [{ v: '', t: '선택' }, { v: 'REGIONAL', t: '본사' }, { v: 'MASTER_DIST', t: '총판' }, { v: 'BRANCH', t: '지사' }, { v: 'AGENCY', t: '대리점' }, { v: 'MERCHANT', t: '가맹점' }], col: 2 }],
-            [{ label: '상위 본사', type: 'text', name: 'parentComp', col: 2, button: '검색', placeholder: '상위 조직 선택' }],
-            [{ label: '업체명(본사명)*', type: 'text', name: 'compNm', col: 2 }, { label: '사업자번호*', type: 'text', name: 'regNo', col: 2 }],
+            [{ label: '업체코드', type: 'text', name: 'compId', col: 2, readonly: true }, { label: '업체구분', type: 'select', name: 'compDiv', options: [{ v: '', t: '선택' }, { v: 'REGIONAL', t: '본사' }, { v: 'MASTER_DIST', t: '총판' }, { v: 'BRANCH', t: '지사' }, { v: 'AGENCY', t: '대리점' }, { v: 'SALES_OFFICE', t: '영업점' }, { v: 'MERCHANT', t: '가맹점' }], col: 2 }],
+            [{ label: '업체명(본사명)*', type: 'text', name: 'compNm', col: 2 }, { label: '사업자번호*', type: 'regNoWithType', name: 'regNo', col: 2 }],
             [{ label: '업태', type: 'text', name: 'bizType', col: 2 }, { label: '종목', type: 'text', name: 'industry', col: 2 }],
             [{ label: '대표자명*', type: 'text', name: 'ceoNm', col: 2 }, { label: '대표자 휴대폰*', type: 'text', name: 'ceoMobile', col: 2 }],
             [{ label: '업체전화*', type: 'text', name: 'compTel', col: 2 }, { label: '팩스', type: 'text', name: 'fax', col: 2 }],
@@ -132,86 +131,64 @@
       searchFormClass: 'comp-mng-search-multiline',
       searchRows: [
         [
-          { label: '상위 조직', type: 'text', name: 'searchParentCompId', size: 14, button: '검색', placeholder: '선택 시 해당 조직+하위 전체 조회' },
-          { label: '업체구분', type: 'select', name: 'searchCompDiv', options: [{ v: '', t: '전체' }, { v: 'HEADQUARTERS', t: '총본사' }, { v: 'REGIONAL', t: '본사' }, { v: 'MASTER_DIST', t: '총판' }, { v: 'BRANCH', t: '지사' }, { v: 'AGENCY', t: '대리점' }, { v: 'MERCHANT', t: '가맹점' }], size: 10 },
+          { label: '업체구분', type: 'select', name: 'searchCompDiv', options: [{ v: '', t: '전체' }, { v: 'REGIONAL', t: '본사' }, { v: 'MASTER_DIST', t: '총판' }, { v: 'BRANCH', t: '지사' }, { v: 'AGENCY', t: '대리점' }, { v: 'SALES_OFFICE', t: '영업점' }, { v: 'MERCHANT', t: '가맹점' }], size: 10 },
           { label: '대표자명', type: 'text', name: 'searchCeoNm', size: 12 },
           { label: '업체사용상태', type: 'select', name: 'searchUseYn', options: [{ v: '', t: '전체' }, { v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }], size: 10 },
           { label: '업체코드', type: 'text', name: 'searchCompId', size: 12 },
           { label: '업체명', type: 'text', name: 'searchCompNm', size: 12 }
         ],
         [
-          { label: '지급보류상태', type: 'select', name: 'searchPayHoldYn', options: [{ v: '', t: '전체' }, { v: 'Y', t: '보류' }, { v: 'N', t: '정상' }], size: 10 },
+          { label: '지급보류', type: 'select', name: 'searchPayHoldYn', options: [{ v: '', t: '전체' }, { v: 'Y', t: '보류' }, { v: 'N', t: '정상' }], size: 10 },
           { label: '터미널ID', type: 'text', name: 'searchTerminalId', size: 12 },
           { label: '휴대폰', type: 'text', name: 'searchCeoMobile', size: 12 },
           { label: '사업자번호', type: 'text', name: 'searchRegNo', size: 12 },
-          { label: '유형', type: 'text', name: 'searchType', size: 10 },
-          { label: '주요업체포함', type: 'checkbox', name: 'searchKeyCompInclude' },
-          { type: 'searchBtn', label: '검색', noIcon: true }
+          { type: 'compMngSearchActions', label: '하위업체포함', checkboxName: 'searchIncludeSub', searchLabel: '검색' }
         ]
       ],
-      noticeList: ['정산금/미수금은 결제발생일로부터 확인바랍니다.'],
+      noticeList: ['정산금/미수금은 \'참고메뉴 설정\'으로 발생되므로 확인바랍니다. 업체구분·업체사용상태는 \'전체\'로 두고 검색하세요.'],
       noticeRefButton: { id: 'noticeRefBtn', label: '참고', cls: 'btn-success' },
-      summary: ['Total'],
-      summaryExtras: '<label class="comp-mng-sort-label ms-3">정렬</label><select class="form-control form-control-sm comp-mng-sort-select ms-1" id="compMngSortBy"><option value="compNm">업체명</option><option value="compId">업체코드</option><option value="compDivNm">업체구분</option></select><label class="comp-mng-sort-label ms-3">출력</label><select class="form-control form-control-sm comp-mng-sort-select ms-1" id="compMngOutput"><option value="all">모두</option><option value="current">현재페이지</option></select>',
-      buttons: [{ id: 'excelBtn', label: '액셀다운로드', cls: 'btn-info' }, { id: 'compRegBtn', label: '등록', cls: 'btn-danger' }],
+      summary: ['건수'],
+      buttons: [{ id: 'excelBtn', label: '엑셀다운로드', cls: 'btn-info' }, { id: 'compRegBtn', label: '등록', cls: 'btn-danger' }],
+      tableColumnGuide: true,
       columns: [
         { key: '_chk', type: 'checkbox' },
         { key: 'rowNo', label: 'No.' },
         { key: 'compId', label: '업체코드' },
         { key: 'compNm', label: '업체명' },
         { key: 'compDivNm', label: '업체구분' },
-        { key: 'regNo', label: '사업자번호' },
         { key: 'settlementAmt', label: '정산금' },
         { key: 'receivables', label: '미수금' },
+        { key: 'regNo', label: '사업자번호' },
         { key: 'ceoNm', label: '대표자명' },
-        { key: 'industry', label: '업종' },
-        { key: 'bizType', label: '업태' },
-        { key: 'email', label: '이메일' },
         { key: 'contact', label: '연락처' },
-        { key: 'zipCode', label: '우편번호' },
-        { key: 'addr', label: '주소' },
         { key: 'bankNm', label: '은행' },
         { key: 'accountNo', label: '계좌번호' },
-        { key: 'accountHolder', label: '계좌주명' },
-        { key: 'calcCycle', label: '정산주기' },
-        { key: 'calcCloseTime', label: '정산시간' },
         { key: 'transferFee', label: '이체수수료' },
+        { key: 'calcCycle', label: '정산주기' },
         { key: 'transferType', label: '이체구분' },
-        { key: 'transferCycleHours', label: '이체주기(시간)' },
+        { key: 'transferCycleHours', label: '이체주기(시)' },
         { key: 'calcExcludeYn', label: '정산제외' },
         { key: 'calcExcludeTarget', label: '정산제외대상' },
         { key: 'calcStartTime', label: '정산개시시간' },
-        { key: 'payHoldYnDisplay', label: '지급보류상태' },
-        { key: 'payLimitDefault', label: '1회한도_결제' },
-        { key: 'payLimitExtra', label: '일한도_결제' },
-        { key: 'payLimitMonth', label: '월한도_결제' },
-        { key: 'payLimitYear', label: '연한도_결제' },
-        { key: 'withdrawLimitHour', label: '제한시(시)_결제' },
-        { key: 'payAmountInTime', label: '시간내결제금액' },
-        { key: 'sameCardLimitDayWeb', label: '동일카드제한 일(WEB)' },
-        { key: 'sameCardLimitCntWeb', label: '회(WEB)' },
-        { key: 'sameCardLimitAmtWeb', label: '원(WEB)' },
-        { key: 'sameCardLimitDayTerminal', label: '일(단말)' },
-        { key: 'sameCardLimitCntTerminal', label: '회(단말)' },
-        { key: 'sameCardLimitAmtTerminal', label: '원(단말)' },
-        { key: 'payLimitDaily', label: '일 지급한도' },
-        { key: 'useYnDisplay', label: '업체사용여부' },
-        { key: 'terminalCountTerminal', label: '터미널[단말]' },
-        { key: 'terminalCountWeb', label: '터미널[웹]' },
+        { key: 'payHoldYn', label: '지급보류' },
+        { key: 'useYn', label: '업체사용상태' },
+        { key: 'terminalCountTerminal', label: '터미널(단말)' },
+        { key: 'terminalCountWeb', label: '터미널(웹)' },
         { key: 'regDt', label: '등록일자' }
       ],
-      emptyMessage: '조회된 데이터가 없습니다.'
+      emptyMessage: '조회된 데이터가 없습니다.',
+      tableScrollable: true
     },
     '/comp/compReg': {
       isForm: true,
       formSections: [
         {
           title: '기본정보',
-          notice: '업체구분을 선택하시면 해당하는 입력 항목이 표시됩니다. 총판·지사·대리점·가맹점은 상위 지점을 반드시 선택해야 합니다. (본사만 선택 없음)',
+          notice: '업체구분을 선택하시면 해당하는 입력 항목이 표시됩니다.',
           rows: [
-            [{ label: '상위 지점*', type: 'text', name: 'parentComp', col: 2, button: '검색', placeholder: '총판·지사·대리점·가맹점은 필수' }, { label: '업체구분*', type: 'select', name: 'compDiv', options: [{ v: '', t: '선택' }, { v: 'REGIONAL', t: '본사' }, { v: 'MASTER_DIST', t: '총판' }, { v: 'BRANCH', t: '지사' }, { v: 'AGENCY', t: '대리점' }, { v: 'MERCHANT', t: '가맹점' }], col: 1 }, { label: '업체명*', type: 'text', name: 'compNm', col: 2 }, { label: '사업자번호*', type: 'text', name: 'regNo', col: 2 }, { label: '업태', type: 'text', name: 'bizType', col: 1 }, { label: '종목', type: 'text', name: 'industry', col: 1 }],
+            [{ label: '상위 본사', type: 'text', name: 'parentComp', col: 2, button: '검색', placeholder: '상위 코드' }, { label: '업체구분*', type: 'select', name: 'compDiv', options: [{ v: '', t: '선택' }, { v: 'REGIONAL', t: '본사' }, { v: 'MASTER_DIST', t: '총판' }, { v: 'BRANCH', t: '지사' }, { v: 'AGENCY', t: '대리점' }, { v: 'SALES_OFFICE', t: '영업점' }, { v: 'MERCHANT', t: '가맹점' }], col: 1 }, { label: '업체명*', type: 'text', name: 'compNm', col: 2 }, { label: '사업자번호*', type: 'regNoWithType', name: 'regNo', col: 2 }, { label: '업태', type: 'text', name: 'bizType', col: 1 }, { label: '종목', type: 'text', name: 'industry', col: 1 }],
             [{ label: '대표자명*', type: 'text', name: 'ceoNm', col: 2 }, { label: '휴대폰*', type: 'text', name: 'ceoMobile', col: 2 }, { label: '업체전화*', type: 'text', name: 'compTel', col: 2 }, { label: '팩스', type: 'text', name: 'fax', col: 1 }, { label: '우편번호*', type: 'text', name: 'zipCode', col: 1 }, { label: '주소*', type: 'text', name: 'addr', col: 2 }],
-            [{ label: '상세주소', type: 'text', name: 'addrDetail', col: 2 }, { label: '이메일', type: 'text', name: 'email', col: 2 }, { label: '사이트 주소', type: 'text', name: 'siteUrl', col: 2, placeholder: 'https://' }],
+            [{ label: '상세주소', type: 'text', name: 'addrDetail', col: 2 }, { label: '이메일', type: 'text', name: 'email', col: 2 }, { label: '비고', type: 'text', name: 'remark', col: 2 }],
             [{ label: '사용여부*', type: 'select', name: 'useYn', options: [{ v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }], col: 1 }, { label: '로그인ID*', type: 'text', name: 'loginId', col: 2, button: '중복확인' }, { label: '비밀번호*', type: 'password', name: 'pwd', col: 2 }]
           ]
         },
@@ -228,10 +205,10 @@
         {
           title: '상세정보',
           id: 'distributorExtraCard',
-          distributorOnly: true,
-          notice: '총판/지사/대리점일 때만 입력합니다. 기준 화폐는 1화폐 1본사 운영 시 해당 본사의 결제·정산 기준 화폐입니다.',
+          masterDistOnly: true,
+          notice: '총판일 때만 입력합니다. 기준 화폐는 1화폐 1본사 운영 시 해당 본사의 결제·정산 기준 화폐입니다.',
           rows: [
-            [{ label: '기준 화폐*', type: 'select', name: 'baseCurrency', options: [{ v: '', t: '선택' }, { v: 'KRW', t: 'KRW (원)' }, { v: 'USD', t: 'USD (달러)' }, { v: 'JPY', t: 'JPY (엔)' }, { v: 'THB', t: 'THB (바트)' }, { v: 'EUR', t: 'EUR (유로)' }], col: 2 }, { label: '사업자형태', type: 'text', name: 'bizNature', col: 2, placeholder: '사업자형태' }, { label: '취급물품', type: 'text', name: 'product', col: 2 }, { label: '대표사이트', type: 'text', name: 'homepage', col: 2, placeholder: 'https://' }],
+            [{ label: '기준 화폐*', type: 'select', name: 'baseCurrency', options: [{ v: '', t: '선택' }, { v: 'KRW', t: 'KRW (원)' }, { v: 'USD', t: 'USD (달러)' }, { v: 'JPY', t: 'JPY (엔)' }, { v: 'THB', t: 'THB (바트)' }, { v: 'EUR', t: 'EUR (유로)' }], col: 2 }, { label: '사이트개요', type: 'text', name: 'siteSummary', col: 2, placeholder: '사이트개요' }, { label: '취급물품', type: 'text', name: 'product', col: 2 }, { label: '대표사이트', type: 'text', name: 'homepage', col: 2, placeholder: 'https://' }],
             [{ label: '정산담당자명', type: 'text', name: 'settleName', col: 2 }, { label: '정산담당자연락처', type: 'text', name: 'settleTelNo', col: 2, placeholder: '010-0000-0000' }, { label: '정산형태', type: 'select', name: 'settleType', options: [{ v: '', t: '선택' }, { v: 'M', t: '가맹점별' }, { v: 'G', t: '총판' }], col: 1 }, { label: '요율(%)', type: 'text', name: 'commissionRate', col: 1, placeholder: '요율' }, { label: '사용한도', type: 'text', name: 'limitAmt', col: 2, placeholder: '사용한도' }]
           ]
         },
@@ -249,9 +226,9 @@
           id: 'settlementAccountCard',
           distributorOrMerchantOnly: true,
           rows: [
-            [{ label: '국가', type: 'text', name: 'countryCd', col: 1, placeholder: 'KR' }, { label: '계좌은행*', type: 'select', name: 'bankCd', options: [{ v: '', t: '선택' }, { v: '04', t: '국민' }, { v: '20', t: '우리' }, { v: '81', t: 'KEB하나' }, { v: '88', t: '신한' }, { v: '11', t: 'NH농협' }], col: 1 }, { label: '계좌번호*', type: 'text', name: 'accountNo', col: 2 }, { label: '예금주*', type: 'text', name: 'accountHolder', col: 2 }],
+            [{ label: '국가', type: 'select', name: 'countryCd', col: 1, options: [{ v: '', t: '선택' }], loadCountries: true }, { label: '계좌은행*', type: 'select', name: 'bankCd', col: 1, options: [{ v: '', t: '국가 선택 후' }], bankByCountry: true }, { label: '계좌번호*', type: 'text', name: 'accountNo', col: 2 }, { label: '예금주*', type: 'text', name: 'accountHolder', col: 2 }],
             [{ label: 'SWIFT', type: 'text', name: 'swift', col: 2, placeholder: 'SWIFT 코드' }, { label: '지점이름', type: 'text', name: 'branchName', col: 2 }, { label: '지점 주소', type: 'text', name: 'branchAddr', col: 2 }, { label: '담당전화번호', type: 'text', name: 'contactTel', col: 2 }],
-            [{ label: '코인 지갑 주소', type: 'text', name: 'walletAddress', col: 4, placeholder: '코인 수취 지갑 주소' }, { label: '네트워크', type: 'text', name: 'networkName', col: 2, placeholder: '네트워크 이름' }]
+            [{ label: '코인 지갑 주소', type: 'text', name: 'walletAddress', col: 4, placeholder: '코인 수취 지갑 주소' }, { label: '네트워크', type: 'text', name: 'networkName', col: 2, placeholder: '네트워크 이름' }, { label: '이체수수료', type: 'text', name: 'transferFee', col: 2, placeholder: '원' }, { label: '크립토 이체 수수료', type: 'text', name: 'cryptoTransferFee', col: 2, placeholder: '원' }]
           ]
         },
         {
@@ -334,10 +311,148 @@
             [{ label: 'URL Background', type: 'text', name: 'notifyUrlBackground', col: 5, placeholder: 'https://' }, { label: 'URL Result', type: 'text', name: 'notifyUrlResult', col: 5, placeholder: 'https://' }]
           ]
         },
-        { title: '기타', rows: [[{ label: '특이사항', type: 'textarea', name: 'remark', col: 6 }]] },
+        { title: '기타', rows: [[{ label: '특이사항', type: 'textarea', name: 'remark', col: 6 }]], branchAgencySalesHide: true },
         { title: '첨부파일', rows: [[{ type: 'file', name: 'attach', col: 4, button: '추가' }]] }
       ],
       buttons: [{ id: 'compRegSaveBtn', label: '저장', cls: 'btn-primary' }, { id: 'compRegCancelBtn', label: '취소', cls: 'btn-secondary' }]
+    },
+    '/comp/compDetail': {
+      isForm: true,
+      isCompDetail: true,
+      formSections: [
+        {
+          title: '기본정보',
+          notice: '업체구분에 따라 해당하는 입력 항목이 표시됩니다.',
+          rows: [
+            [{ label: '업체코드', type: 'text', name: 'compId', col: 2, readonly: true }, { label: '상위 본사', type: 'text', name: 'parentComp', col: 2, readonly: true }, { label: '업체구분*', type: 'select', name: 'compDiv', options: [{ v: '', t: '선택' }, { v: 'REGIONAL', t: '본사' }, { v: 'MASTER_DIST', t: '총판' }, { v: 'BRANCH', t: '지사' }, { v: 'AGENCY', t: '대리점' }, { v: 'SALES_OFFICE', t: '영업점' }, { v: 'MERCHANT', t: '가맹점' }], col: 1 }, { label: '업체명*', type: 'text', name: 'compNm', col: 2 }, { label: '사업자번호*', type: 'regNoWithType', name: 'regNo', col: 2 }, { label: '업태', type: 'text', name: 'bizType', col: 1 }, { label: '종목', type: 'text', name: 'industry', col: 1 }],
+            [{ label: '대표자명*', type: 'text', name: 'ceoNm', col: 2 }, { label: '휴대폰*', type: 'text', name: 'ceoMobile', col: 2 }, { label: '업체전화*', type: 'text', name: 'compTel', col: 2 }, { label: '팩스', type: 'text', name: 'fax', col: 1 }, { label: '우편번호*', type: 'text', name: 'zipCode', col: 1 }, { label: '주소*', type: 'text', name: 'addr', col: 2 }],
+            [{ label: '상세주소', type: 'text', name: 'addrDetail', col: 2 }, { label: '이메일', type: 'text', name: 'email', col: 2 }, { label: '비고', type: 'text', name: 'remark', col: 2 }],
+            [{ label: '사용여부*', type: 'select', name: 'useYn', options: [{ v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }], col: 1 }, { label: '로그인ID*', type: 'text', name: 'loginId', col: 2, button: 'ID변경' }, { label: '비밀번호', type: 'passwordReset', name: 'pwdReset', col: 2 }]
+          ]
+        },
+        {
+          title: '본사 설정 (환기준)',
+          id: 'regionalExtraCard',
+          regionalOnly: true,
+          notice: '총본사 로그인 시에만 본사를 추가할 수 있습니다. 환기준(기준 화폐)은 해당 본사의 결제·정산 기준 화폐입니다.',
+          rows: [
+            [{ label: '환기준(기준 화폐)*', type: 'select', name: 'baseCurrency', options: [{ v: '', t: '선택' }, { v: 'KRW', t: 'KRW (원)' }, { v: 'USD', t: 'USD (달러)' }, { v: 'JPY', t: 'JPY (엔)' }, { v: 'THB', t: 'THB (바트)' }, { v: 'EUR', t: 'EUR (유로)' }], col: 2 }, { label: '사업자형태', type: 'text', name: 'bizNature', col: 2 }, { label: '취급물품', type: 'text', name: 'product', col: 2 }, { label: '대표사이트', type: 'text', name: 'homepage', col: 2, placeholder: 'https://' }],
+            [{ label: '정산담당자명', type: 'text', name: 'settleName', col: 2 }, { label: '정산담당자연락처', type: 'text', name: 'settleTelNo', col: 2, placeholder: '010-0000-0000' }]
+          ]
+        },
+        {
+          title: '상세정보',
+          id: 'distributorExtraCard',
+          masterDistOnly: true,
+          notice: '총판일 때만 입력합니다. 기준 화폐는 1화폐 1본사 운영 시 해당 본사의 결제·정산 기준 화폐입니다.',
+          rows: [
+            [{ label: '기준 화폐*', type: 'select', name: 'baseCurrency', options: [{ v: '', t: '선택' }, { v: 'KRW', t: 'KRW (원)' }, { v: 'USD', t: 'USD (달러)' }, { v: 'JPY', t: 'JPY (엔)' }, { v: 'THB', t: 'THB (바트)' }, { v: 'EUR', t: 'EUR (유로)' }], col: 2 }, { label: '사이트개요', type: 'text', name: 'siteSummary', col: 2, placeholder: '사이트개요' }, { label: '취급물품', type: 'text', name: 'product', col: 2 }, { label: '대표사이트', type: 'text', name: 'homepage', col: 2, placeholder: 'https://' }],
+            [{ label: '정산담당자명', type: 'text', name: 'settleName', col: 2 }, { label: '정산담당자연락처', type: 'text', name: 'settleTelNo', col: 2, placeholder: '010-0000-0000' }, { label: '정산형태', type: 'select', name: 'settleType', options: [{ v: '', t: '선택' }, { v: 'M', t: '가맹점별' }, { v: 'G', t: '총판' }], col: 1 }, { label: '요율(%)', type: 'text', name: 'commissionRate', col: 1, placeholder: '요율' }, { label: '사용한도', type: 'text', name: 'limitAmt', col: 2, placeholder: '사용한도' }]
+          ]
+        },
+        {
+          title: '가맹점 상세 정보',
+          id: 'merchantExtraCard',
+          merchantOnly: true,
+          notice: '가맹점일 때만 입력합니다.',
+          rows: [
+            [{ label: '사업자형태', type: 'text', name: 'bizNature', col: 2 }, { label: '취급물품', type: 'text', name: 'product', col: 2 }, { label: '대표사이트', type: 'text', name: 'homepage', col: 2, placeholder: 'https://' }, { label: '정산담당자명', type: 'text', name: 'settleName', col: 2 }, { label: '정산담당자연락처', type: 'text', name: 'settleTelNo', col: 2 }]
+          ]
+        },
+        {
+          title: '계좌정보',
+          id: 'settlementAccountCard',
+          distributorOrMerchantOnly: true,
+          rows: [
+            [{ label: '국가', type: 'select', name: 'countryCd', col: 1, options: [{ v: '', t: '선택' }], loadCountries: true }, { label: '계좌은행*', type: 'select', name: 'bankCd', col: 1, options: [{ v: '', t: '국가 선택 후' }], bankByCountry: true }, { label: '계좌번호*', type: 'text', name: 'accountNo', col: 2 }, { label: '예금주*', type: 'text', name: 'accountHolder', col: 2 }],
+            [{ label: 'SWIFT', type: 'text', name: 'swift', col: 2, placeholder: 'SWIFT 코드' }, { label: '지점이름', type: 'text', name: 'branchName', col: 2 }, { label: '지점 주소', type: 'text', name: 'branchAddr', col: 2 }, { label: '담당전화번호', type: 'text', name: 'contactTel', col: 2 }],
+            [{ label: '코인 지갑 주소', type: 'text', name: 'walletAddress', col: 4, placeholder: '코인 수취 지갑 주소' }, { label: '네트워크', type: 'text', name: 'networkName', col: 2, placeholder: '네트워크 이름' }, { label: '이체수수료', type: 'text', name: 'transferFee', col: 2, placeholder: '원' }, { label: '크립토 이체 수수료', type: 'text', name: 'cryptoTransferFee', col: 2, placeholder: '원' }]
+          ]
+        },
+        {
+          title: '출금 제한 설정',
+          id: 'withdrawLimitCard',
+          merchantOnly: true,
+          rows: [
+            [{ label: '출금제한일', type: 'text', name: 'withdrawLimitDays', col: 1, placeholder: '일' }, { label: '출금시작시간', type: 'time', name: 'withdrawStartTime', col: 1 }, { label: '출금종료시간', type: 'time', name: 'withdrawEndTime', col: 1 }]
+          ]
+        },
+        {
+          title: '지급한도 설정',
+          id: 'payLimitCard',
+          merchantOnly: true,
+          rows: [
+            [{ label: '기본한도(원)', type: 'text', name: 'payLimitDefault', col: 2, placeholder: '1회 지급한도' }, { label: '추가한도(원)', type: 'text', name: 'payLimitExtra', col: 2 }, { label: '한도알림', type: 'select', name: 'payLimitAlertSms', options: [{ v: 'N', t: '미사용' }, { v: 'Y', t: 'SMS' }], col: 1 }]
+          ]
+        },
+        {
+          title: '보류율 설정',
+          id: 'holdRateCard',
+          merchantOnly: true,
+          notice: '본사정책 따름 선택 시 본사설정의 수수료 정책(롤링 비율/일수)에 연동되어 반영됩니다.',
+          rows: [
+            [{ label: '본사정책 따름', type: 'select', name: 'holdRateFollowHq', options: [{ v: 'Y', t: '본사정책 따름' }, { v: 'N', t: '직접입력' }], col: 2 }],
+            [{ label: '보류율(%)', type: 'text', name: 'holdRate', col: 1, placeholder: '5', holdRateOnly: true }, { label: '보류기간(일)', type: 'text', name: 'holdDays', col: 1, placeholder: '120', holdRateOnly: true }]
+          ]
+        },
+        {
+          title: '수수료정책',
+          id: 'commissionPolicyCard',
+          merchantOnly: true,
+          notice: '본사정책 따름 선택 시 본사설정이 적용되며, 직접입력 시 아래 항목을 입력합니다.',
+          rows: [
+            [{ label: '본사정책 따름', type: 'select', name: 'commissionFollowHq', options: [{ v: 'Y', t: '본사정책 따름' }, { v: 'N', t: '직접입력' }], col: 2 }],
+            [{ label: '실패수수료', type: 'text', name: 'failFee', col: 2, customOnly: true }, { label: '이용수수료', type: 'text', name: 'usageRate', col: 2, customOnly: true }, { label: '결제 수수료', type: 'text', name: 'payRate', col: 2, customOnly: true }],
+            [{ label: '취소 수수료', type: 'text', name: 'cancelRate', col: 2, customOnly: true }, { label: '환불 수수료', type: 'text', name: 'refundRate', col: 2, customOnly: true }, { label: '비고', type: 'text', name: 'commissionMemo', col: 2, customOnly: true }],
+            [{ label: '정산수수료', type: 'text', name: 'feeSettlementPerTx', col: 2, customOnly: true }, { label: 'USDT수수료', type: 'text', name: 'feeUsdt', col: 2, customOnly: true }, { label: 'FX수수료', type: 'text', name: 'feeFx', col: 2, customOnly: true }]
+          ]
+        },
+        {
+          title: '정산방법',
+          id: 'calcMethodCard',
+          merchantOnly: true,
+          rows: [
+            [{ label: '정산주기', type: 'select', name: 'calcCycle', options: [{ v: '', t: '선택' }, { v: 'D3', t: 'D+3' }, { v: 'D5', t: 'D+5' }, { v: 'D7', t: 'D+7' }, { v: 'D10', t: 'D+10' }, { v: 'D15', t: 'D+15' }, { v: 'D20', t: 'D+20' }, { v: 'D30', t: 'D+30' }, { v: 'W5', t: '주D+5' }, { v: 'W7', t: '주D+7' }, { v: 'W10', t: '주D+10' }, { v: 'W14', t: '주D+14' }, { v: 'WEEKLY', t: 'Weekly' }], col: 1 }, { label: '정산시간', type: 'time', name: 'calcCloseTime', col: 1 }, { label: '이체구분', type: 'select', name: 'transferType', options: [{ v: 'MANUAL', t: '수동' }, { v: 'AUTO', t: '자동' }, { v: 'FUMBANKING', t: '펌뱅킹' }], col: 1 }, { label: '이체주기(일)', type: 'text', name: 'transferCycleDays', col: 1 }, { label: '자동이체최소(원)', type: 'text', name: 'autoTransferMin', col: 1 }],
+            [{ label: '정산제외', type: 'select', name: 'calcExcludeYn', options: [{ v: 'N', t: '미사용' }, { v: 'Y', t: '사용' }], col: 1 }, { label: '정산제외대상', type: 'select', name: 'calcExcludeTarget', options: [{ v: 'NONE', t: '해당없음' }, { v: 'WEB', t: 'Web제외' }, { v: 'OFFLINE', t: '오프라인제외' }], col: 1 }, { label: '정산개시시간', type: 'time', name: 'calcStartTime', col: 1 }, { label: '지급보류', type: 'select', name: 'payHoldYn', options: [{ v: 'N', t: '아니오' }, { v: 'Y', t: '예' }], col: 1 }]
+          ]
+        },
+        {
+          type: 'pgBindingList',
+          title: '결제대행사 설정',
+          id: 'pgBindingCard',
+          merchantOnly: true,
+          notice: '여러 결제대행사를 추가할 수 있습니다. ChillPay 선택 시 MID=Merchant Code, API KEY=API Key, IV KEY=MD5 Key를 입력하세요. 운영대상에서 하나를 선택하여 실제 결제에 사용합니다.'
+        },
+        {
+          title: '웹결제 사용',
+          id: 'webPaymentCard',
+          merchantOnly: true,
+          notice: '미사용 선택 시 WEB 결제 시스템이 중지됩니다.',
+          rows: [
+            [{ label: '웹결제 사용여부', type: 'select', name: 'webPaymentUseYn', options: [{ v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }], col: 2 }]
+          ]
+        },
+        {
+          title: '대표 기본상품정보 (온라인 URL 결제용)',
+          id: 'defaultProductCard',
+          merchantOnly: true,
+          rows: [
+            [{ label: '상품명', type: 'text', name: 'defaultProductName', col: 2, placeholder: '대표 상품명' }, { label: '상품코드', type: 'text', name: 'defaultProductCode', col: 1 }, { label: '기본금액(원)', type: 'text', name: 'defaultProductAmount', col: 1, placeholder: '0' }, { label: '상품설명', type: 'text', name: 'defaultProductDesc', col: 4 }]
+          ]
+        },
+        {
+          title: '결제통보 URL',
+          id: 'notifyUrlCard',
+          merchantOnly: true,
+          notice: '결제 응답을 가맹점에게 송부할 노티 주소. 등록 시 결제통보 URL관리에 자동 반영됩니다.',
+          rows: [
+            [{ label: 'URL Background', type: 'text', name: 'notifyUrlBackground', col: 5, placeholder: 'https://' }, { label: 'URL Result', type: 'text', name: 'notifyUrlResult', col: 5, placeholder: 'https://' }]
+          ]
+        },
+        { title: '첨부파일', rows: [[{ type: 'file', name: 'attach', col: 4, button: '추가' }]] },
+        { type: 'pgInfoDisplay', title: '결제 URL', id: 'pgInfoCard', merchantOnly: true, notice: '가맹점만 표시됩니다.' }
+      ],
+      buttons: [{ id: 'compDetailListBtn', label: '목록', cls: 'btn-secondary' }, { id: 'compDetailSaveBtn', label: '저장', cls: 'btn-primary' }]
     },
     '/commission/commisionList': {
       searchRows: [
@@ -686,9 +801,8 @@
           title: '본사 정보 상세 (업체정보조회)',
           notice: '상위 본사(우리)가 권한을 준 회사의 정보입니다. 그리드에서 한 건 선택 후 [상세] 버튼으로 조회·수정합니다.',
           rows: [
-            [{ label: '업체코드', type: 'text', name: 'compId', col: 2, readonly: true }, { label: '업체구분', type: 'select', name: 'compDiv', options: [{ v: '', t: '선택' }, { v: 'REGIONAL', t: '본사' }, { v: 'MASTER_DIST', t: '총판' }, { v: 'BRANCH', t: '지사' }, { v: 'AGENCY', t: '대리점' }, { v: 'MERCHANT', t: '가맹점' }], col: 2 }],
-            [{ label: '상위 본사', type: 'text', name: 'parentComp', col: 2, button: '검색', placeholder: '상위 조직 선택' }],
-            [{ label: '업체명(본사명)*', type: 'text', name: 'compNm', col: 2 }, { label: '사업자번호*', type: 'text', name: 'regNo', col: 2 }],
+            [{ label: '업체코드', type: 'text', name: 'compId', col: 2, readonly: true }, { label: '업체구분', type: 'select', name: 'compDiv', options: [{ v: '', t: '선택' }, { v: 'REGIONAL', t: '본사' }, { v: 'MASTER_DIST', t: '총판' }, { v: 'BRANCH', t: '지사' }, { v: 'AGENCY', t: '대리점' }, { v: 'SALES_OFFICE', t: '영업점' }, { v: 'MERCHANT', t: '가맹점' }], col: 2 }],
+            [{ label: '업체명(본사명)*', type: 'text', name: 'compNm', col: 2 }, { label: '사업자번호*', type: 'regNoWithType', name: 'regNo', col: 2 }],
             [{ label: '업태', type: 'text', name: 'bizType', col: 2 }, { label: '종목', type: 'text', name: 'industry', col: 2 }],
             [{ label: '대표자명*', type: 'text', name: 'ceoNm', col: 2 }, { label: '대표자 휴대폰*', type: 'text', name: 'ceoMobile', col: 2 }],
             [{ label: '업체전화*', type: 'text', name: 'compTel', col: 2 }, { label: '팩스', type: 'text', name: 'fax', col: 2 }],
@@ -877,10 +991,23 @@
       inner = '<div class="search-cell-input">' + btns + '</div>';
       return wrapSearchCell(inner, false);
     }
+    if (field.type === 'compMngSearchActions') {
+      var cbName = field.checkboxName || 'searchIncludeSub';
+      var searchLbl = field.searchLabel || '검색';
+      inner = '<div class="search-cell-input comp-mng-search-actions-wrap d-flex align-items-center gap-2 flex-wrap">' +
+        '<label class="d-flex align-items-center mb-0"><input type="checkbox" class="form-check-input me-1" id="' + cbName + '" name="' + cbName + '">' + (field.label || '') + '</label>' +
+        '<button type="button" class="btn btn-primary btn-sm screen-search-btn">' + searchLbl + '</button>' +
+        '</div>';
+      return wrapSearchCell(inner, false);
+    }
     if (field.type === 'searchBtn') {
       var btnLabel = field.label || '검색';
       var iconHtml = field.noIcon ? '' : '<i class="bi bi-search"></i> ';
       inner = '<div class="search-cell-input search-cell-input--right"><button type="button" class="btn btn-primary btn-sm screen-search-btn">' + iconHtml + btnLabel + '</button></div>';
+      return wrapSearchCell(inner, false);
+    }
+    if (field.type === 'button' && field.name === 'searchReset') {
+      inner = '<div class="search-cell-input"><button type="button" class="btn btn-outline-secondary btn-sm search-reset-btn">' + (field.label || '초기화') + '</button></div>';
       return wrapSearchCell(inner, false);
     }
     if (field.type === 'checkbox') {
@@ -894,9 +1021,7 @@
       return wrapSearchCell(inner, !!field.label);
     }
     if (field.type === 'text') {
-      var inp = '<input type="text" class="form-control form-control-sm _searchText" id="' + (field.name || '') + '" name="' + (field.name || '') + '" placeholder="' + (field.placeholder || '') + '" style="' + sz + '">';
-      if (field.button) inp = '<div class="form-input-with-btn"><span class="form-input-wrap">' + inp + '</span><button type="button" class="btn btn-outline-secondary btn-sm" data-field="' + (field.name || '') + '" data-action="' + field.button + '">' + field.button + '</button></div>';
-      inner = (field.label ? '<span class="search-cell-label">' + field.label + '</span>' : '') + '<div class="search-cell-input">' + inp + '</div>';
+      inner = (field.label ? '<span class="search-cell-label">' + field.label + '</span>' : '') + '<div class="search-cell-input"><input type="text" class="form-control form-control-sm _searchText" id="' + (field.name || '') + '" name="' + (field.name || '') + '" placeholder="' + (field.placeholder || '') + '" style="' + sz + '"></div>';
       return wrapSearchCell(inner, !!field.label);
     }
     return '';
@@ -932,7 +1057,37 @@
     return '<div class="search-notice mb-2 d-flex align-items-center flex-wrap">' + (list.length > 0 ? '<div class="search-notice-text flex-grow-1">' + noticeHtml + '</div>' : '') + btnHtml + '</div>';
   }
 
+  function renderTableColumnGuide(cfg) {
+    if (!cfg.tableColumnGuide || !cfg.columns) return '';
+    var fixedKeys = ['rowNo', 'compId', 'compNm', 'compDivNm'];
+    var cols = cfg.columns.filter(function (c) { return c.type !== 'checkbox' && fixedKeys.indexOf(c.key) === -1; });
+    var items = cols.map(function (c) {
+      var key = c.key || '';
+      var label = c.label || c.key;
+      return '<label class="column-guide-item"><input type="checkbox" class="column-guide-check" data-key="' + key + '" checked> ' + label + '</label>';
+    }).join('');
+    return '<div class="table-column-guide mb-3 p-2 border rounded bg-light" id="tableColumnGuide">' +
+      '<div class="column-guide-row column-guide-title">VIEW SETTING</div>' +
+      '<div class="column-guide-row column-guide-list">' + items + ' <button type="button" class="btn btn-xs btn-outline-primary ms-2" id="compMngSaveColumnsBtn">저장</button> <button type="button" class="btn btn-xs btn-outline-secondary ms-1" id="compMngClearColumnsBtn">모두해제</button></div>' +
+      '</div>';
+  }
+
   function renderFormField(f, readonlyAttr) {
+    if (f.type === 'hidden') {
+      return '<input type="hidden" name="' + (f.name || '') + '" id="' + (f.name || '') + '">';
+    }
+    if (f.type === 'passwordReset') {
+      var col = f.col || 2;
+      var label = (f.label || '비밀번호').replace(/\*$/, '');
+      return '<div class="col-sm-' + col + ' form-field-block"><label class="form-label">' + label + '</label><div class="form-input-with-btn"><button type="button" class="btn btn-outline-secondary btn-sm" id="compDetailPwdResetBtn" data-action="비밀번호 초기화">비밀번호 초기화</button></div></div>';
+    }
+    if (f.type === 'regNoWithType') {
+      var col = f.col || 2;
+      var label = (f.label || '사업자번호').replace(/\*$/, '') + (f.label && f.label.indexOf('*') !== -1 ? ' <span class="text-danger">*</span>' : '');
+      return '<div class="col-sm-' + col + ' form-field-block"><label class="form-label">' + label + '</label>' +
+        '<div class="d-flex gap-1 align-items-center"><select class="form-control form-control-sm" name="regType" id="regType" style="width:auto;min-width:70px"><option value="CORP">법인</option><option value="PERSONAL">개인</option></select>' +
+        '<input type="text" class="form-control form-control-sm flex-grow-1" name="' + (f.name || 'regNo') + '" id="' + (f.name || 'regNo') + '" placeholder="번호 입력"></div></div>';
+    }
     var col = f.col || 2;
     var req = (f.label && f.label.indexOf('*') !== -1) ? '' : '';
     var label = (f.label || '').replace(/\*$/, '') + (f.label && f.label.indexOf('*') !== -1 ? ' <span class="text-danger">*</span>' : '');
@@ -946,7 +1101,8 @@
       inp = '<input type="time" class="form-control form-control-sm" name="' + name + '" id="' + id + '"' + (f.placeholder ? ' placeholder="' + f.placeholder + '"' : '') + '>';
     } else if (f.type === 'select') {
       var opts = (f.options || []).map(function (o) { return '<option value="' + (o.v || '') + '">' + (o.t || o.v) + '</option>'; }).join('');
-      inp = '<select class="form-control form-control-sm" name="' + name + '" id="' + id + '"' + (f.readonly ? ' disabled' : '') + '>' + opts + '</select>';
+      var selAttrs = (f.readonly ? ' disabled' : '') + (f.loadCountries ? ' data-load-countries="true"' : '') + (f.bankByCountry ? ' data-bank-by-country="true"' : '');
+      inp = '<select class="form-control form-control-sm" name="' + name + '" id="' + id + '"' + selAttrs + '>' + opts + '</select>';
     } else if (f.type === 'textarea') {
       inp = '<textarea class="form-control form-control-sm" name="' + name + '" id="' + id + '" rows="3"' + ro + '></textarea>';
     } else if (f.type === 'file') {
@@ -967,7 +1123,8 @@
   function renderFormSections(cfg) {
     var sections = cfg.formSections || [];
     if (sections.length === 0) return '';
-    return renderFormSectionsWithId(sections, 'compRegForm', null);
+    var formId = cfg.isCompDetail ? 'compDetailForm' : 'compRegForm';
+    return renderFormSectionsWithId(sections, formId, null);
   }
 
   function renderFormSectionsWithId(sections, formId, buttons) {
@@ -981,8 +1138,10 @@
       var cardClass = 'card mb-3';
       if (sec.merchantOnly) cardClass += ' merchant-only-section d-none';
       else if (sec.regionalOnly) cardClass += ' regional-only-section d-none';
+      else if (sec.masterDistOnly) cardClass += ' master-dist-only-section d-none';
       else if (sec.distributorOnly) cardClass += ' distributor-only-section d-none';
       else if (sec.distributorOrMerchantOnly) cardClass += ' distributor-or-merchant-section d-none';
+      if (sec.branchAgencySalesHide) cardClass += ' branch-agency-sales-hide-section';
       var cardId = sec.id ? ' id="' + sec.id + '"' : '';
       html += '<div' + cardId + ' class="' + cardClass + '"><div class="card-header">' + (sec.title || '') + '</div><div class="card-body">';
       if (sec.notice) html += '<p class="text-muted small mb-2">' + sec.notice + '</p>';
@@ -1064,7 +1223,6 @@
       items.forEach(function (s) {
         summaryHtml += '<span class="summary-total-item" id="summary_' + s + '">' + s + ': ' + fmt + '</span>';
       });
-      if (cfg.summaryExtras) summaryHtml += cfg.summaryExtras;
       summaryHtml += '</div>';
     }
     var buttonsHtml = '';
@@ -1087,19 +1245,27 @@
     }).join('');
     var emptyMsg = cfg.emptyMessage || '조회된 데이터가 없습니다.';
     var emptyRow = '<tr><td colspan="' + cols.length + '" class="empty-state-cell text-center text-muted py-4">' + emptyMsg + '</td></tr>';
-    var html = '<div class="table-responsive"><table class="table table-bordered table-hover table-sm" id="grid_' + (tabId || '') + '"><thead><tr>' + ths + '</tr></thead><tbody>' + emptyRow + '</tbody></table></div>';
+    var respClass = 'table-responsive' + (cfg.tableScrollable ? ' table-scrollable' : '');
+    var html = '<div class="' + respClass + '"><table class="table table-bordered table-hover table-sm" id="grid_' + (tabId || '') + '"><thead><tr>' + ths + '</tr></thead><tbody>' + emptyRow + '</tbody></table></div>';
     return html;
   }
 
   function renderPagination(tabId) {
     return '<div class="pagination-row">' +
-      '<div class="pagination-left">' +
-      '<input type="number" class="form-control form-control-sm pagination-input" id="pageCnt" value="1" min="1"> <span class="pagination-sep">/</span> <span id="totalPageCount">1</span> <button type="button" class="btn btn-primary btn-sm pagination-btn" id="pageSearch">이동</button>' +
+      '<div class="pagination-view-at-once">' +
+      '<span class="pagination-label">한 번에 보기:</span>' +
+      '<div class="pagination-size-options">' +
+      '<button type="button" class="pagination-size-opt" data-size="10">10</button>' +
+      '<button type="button" class="pagination-size-opt" data-size="25">25</button>' +
+      '<button type="button" class="pagination-size-opt" data-size="50">50</button>' +
+      '<button type="button" class="pagination-size-opt pagination-size-opt--active" data-size="100">100</button>' +
       '</div>' +
+      '<span class="pagination-total">건 (총 <span id="totalElementsCount">0</span>건)</span>' +
+      '</div>' +
+      '<input type="hidden" id="recordsPerPage" value="100">' +
+      '<input type="hidden" id="pageCnt" value="1">' +
+      '<span id="totalPageCount" style="display:none">1</span>' +
       '<div class="pagination-center"><div class="pagination-pages" id="paging_' + (tabId || '') + '"></div></div>' +
-      '<div class="pagination-right">' +
-      '<select id="recordsPerPage" class="form-control form-control-sm pagination-select _searchChange"><option value="100">100</option><option value="500">500</option><option value="1000">1,000</option></select> 개씩 보기' +
-      '</div>' +
       '</div>';
   }
 
@@ -1123,8 +1289,12 @@
       html += renderSearchForm(cfg);
       if (cfg.noticeList && cfg.noticeList.length > 0) html += renderNotice(cfg);
       html += renderSummaryAndActions(cfg);
+      if (cfg.tableColumnGuide) html += renderTableColumnGuide(cfg);
       html += renderTable(cfg, tabId);
       html += renderPagination(tabId);
+      if (cfg.hasSelectedTable) {
+        html += '<div class="card mt-4" id="compMngSelectedCard"><div class="card-header">선택된 업체</div><div class="card-body"><p class="text-muted small mb-2">위 테이블에서 선택 후 [선택 저장] 버튼을 누르면 선택된 항목만 아래에 표시됩니다.</p><div class="table-responsive table-scrollable" id="compMngSelectedWrap"><table class="table table-bordered table-sm" id="grid_compMngSelected"><thead><tr id="compMngSelectedThead"></tr></thead><tbody id="compMngSelectedTbody"><tr><td colspan="20" class="text-center text-muted py-4">선택된 항목이 없습니다.</td></tr></tbody></table></div></div></div>';
+      }
       if (cfg.hasCompInfoDetailForm && cfg.compInfoDetailFormSections && cfg.compInfoDetailFormSections.length > 0) {
         html += '<div class="card mt-3"><div class="card-body" id="compInfoDetailCard">';
         html += renderFormSectionsWithId(cfg.compInfoDetailFormSections, 'compInfoDetailForm', cfg.compInfoDetailButtons);

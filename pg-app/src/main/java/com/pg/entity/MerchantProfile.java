@@ -72,6 +72,10 @@ public class MerchantProfile {
     @Column(name = "site_url", length = 255)
     private String siteUrl;
 
+    /** 사이트개요 */
+    @Column(name = "site_summary", length = 500)
+    private String siteSummary;
+
     /** 정산담당자명 (가맹점 전용) */
     @Column(name = "settle_name", length = 100)
     private String settleName;
@@ -106,6 +110,9 @@ public class MerchantProfile {
 
     @Column(name = "transfer_fee", length = 50)
     private String transferFee;
+
+    @Column(name = "crypto_transfer_fee", length = 50)
+    private String cryptoTransferFee;
 
     @Column(name = "account_no", length = 50)
     private String accountNo;
@@ -201,6 +208,8 @@ public class MerchantProfile {
     public void setHomepage(String homepage) { this.homepage = homepage; }
     public String getSiteUrl() { return siteUrl; }
     public void setSiteUrl(String siteUrl) { this.siteUrl = siteUrl; }
+    public String getSiteSummary() { return siteSummary; }
+    public void setSiteSummary(String siteSummary) { this.siteSummary = siteSummary; }
     public String getSettleName() { return settleName; }
     public void setSettleName(String settleName) { this.settleName = settleName; }
     public String getSettleTelNo() { return settleTelNo; }
@@ -221,6 +230,8 @@ public class MerchantProfile {
     public void setBankCd(String bankCd) { this.bankCd = bankCd; }
     public String getTransferFee() { return transferFee; }
     public void setTransferFee(String transferFee) { this.transferFee = transferFee; }
+    public String getCryptoTransferFee() { return cryptoTransferFee; }
+    public void setCryptoTransferFee(String cryptoTransferFee) { this.cryptoTransferFee = cryptoTransferFee; }
     public String getAccountNo() { return accountNo; }
     public void setAccountNo(String accountNo) { this.accountNo = accountNo; }
     public String getAccountHolder() { return accountHolder; }

@@ -21,6 +21,7 @@
     '/system/noticeList': { label: '공지사항', parent: '업체관리' },
     '/comp/myCompMng': { label: '업체정보조회', parent: '업체관리' },
     '/comp/compMngTree': { label: '업체관리', parent: '업체관리' },
+    '/comp/compDetail': { label: '업체정보', parent: '업체관리' },
     '/commission/commisionList': { label: '수수료관리', parent: '업체관리' },
     '/comp/compInfoHistList': { label: '업체변경이력', parent: '업체관리' },
     '/comp/compReg': { label: '업체등록', parent: '업체관리' },
@@ -50,6 +51,31 @@
   var TAB_MAIN = 'topTapMain';
   var CONTENT_FRAME = 'content-frame';
   var PLACEHOLDER_ID = 'content-placeholder';
+  var TABLE_ROW_PADDING_KEY = 'pg_table_row_padding_y';
+
+  function getTableRowPaddingY() {
+    var v = parseInt(localStorage.getItem(TABLE_ROW_PADDING_KEY), 10);
+    return (isNaN(v) || v < 4 || v > 40) ? 10 : v;
+  }
+  function setTableRowPaddingY(px) {
+    var v = Math.max(4, Math.min(40, px));
+    document.documentElement.style.setProperty('--table-row-padding-y', v + 'px');
+    localStorage.setItem(TABLE_ROW_PADDING_KEY, String(v));
+  }
+  function injectTableRowResizeHandles(tbody, colCount) {
+    if (!tbody || tbody.querySelector('.table-row-resize-handle')) return;
+    var rows = Array.from(tbody.querySelectorAll('tr')).filter(function (tr) {
+      return !tr.classList.contains('table-row-resize-handle') && !tr.querySelector('.empty-state-cell');
+    });
+    if (rows.length < 2) return;
+    var count = colCount || (rows[0] && rows[0].querySelectorAll('td').length) || 10;
+    for (var i = rows.length - 1; i >= 1; i--) {
+      var handle = document.createElement('tr');
+      handle.className = 'table-row-resize-handle';
+      handle.innerHTML = '<td colspan="' + count + '"></td>';
+      rows[i].parentNode.insertBefore(handle, rows[i]);
+    }
+  }
 
   function getTabIdFromUrl(url) {
     if (!url || url === '/main') return 'main';
@@ -80,7 +106,39 @@
 
   var MAX_TOP_TABS = 12;
 
-  function initPgBindingList(pane) {
+  function initBankByCountry(pane) {
+    if (!pane) return;
+    var countrySel = pane.querySelector('select[data-load-countries="true"]');
+    var bankSel = pane.querySelector('select[data-bank-by-country="true"]');
+    if (!countrySel || !bankSel || bankSel._bankByCountryInit) return;
+    bankSel._bankByCountryInit = true;
+    function loadCountries() {
+      window.PG_API.bankCountries().then(function (list) {
+        var cur = countrySel.value;
+        countrySel.innerHTML = '<option value="">선택</option>' + (list || []).map(function (c) {
+          return '<option value="' + (c.code || '') + '">' + (c.name || c.code) + '</option>';
+        }).join('');
+        if (cur) countrySel.value = cur;
+      }).catch(function () {});
+    }
+    function loadBanks(countryCd, preserveBank) {
+      bankSel.innerHTML = '<option value="">국가 선택 후</option>';
+      if (!countryCd || !countryCd.trim()) return;
+      window.PG_API.bankListByCountry(countryCd).then(function (list) {
+        bankSel.innerHTML = '<option value="">선택</option>' + (list || []).map(function (b) {
+          return '<option value="' + (b.code || '') + '">' + (b.name || b.code) + '</option>';
+        }).join('');
+        if (preserveBank) bankSel.value = preserveBank;
+      }).catch(function () {});
+    }
+    loadCountries();
+    countrySel.addEventListener('change', function () {
+      loadBanks(this.value);
+    });
+    if (countrySel.value) loadBanks(countrySel.value, bankSel.value);
+  }
+
+  function initPgBindingList(pane, initialBindings) {
     var tbody = pane.querySelector('#pgBindingTbody');
     var addBtn = pane.querySelector('#pgBindingAddBtn');
     if (!tbody || !addBtn || addBtn._pgBindingInit) return;
@@ -120,11 +178,17 @@
       (list || []).forEach(function (p) {
         pgAgencyOpts += '<option value="' + (p.pgCd || '') + '">' + (p.pgNm || p.pgCd) + '</option>';
       });
-      tbody.querySelectorAll('[data-field="pgCd"]').forEach(function (sel) {
-        var v = sel.value;
-        sel.innerHTML = pgAgencyOpts;
-        sel.value = v;
-      });
+      var bindings = initialBindings || [];
+      if (bindings.length > 0) {
+        bindings.forEach(function (b, i) {
+          addRow(i, { pgCd: b.pgCd, activationYn: b.activationYn || 'Y', operationalYn: b.operationalYn || (i === 0 ? 'Y' : 'N'), payMethod: b.payMethod || 'WEB', mid: b.mid, apiKey: b.apiKey, ivKey: b.ivKey, installmentYn: b.installmentYn || 'N', maxInstallmentMonths: b.maxInstallmentMonths != null ? String(b.maxInstallmentMonths) : '' });
+        });
+        tbody.querySelectorAll('[data-field="pgCd"]').forEach(function (sel) {
+          var v = sel.value;
+          sel.innerHTML = pgAgencyOpts;
+          sel.value = v;
+        });
+      }
     }).catch(function () {});
 
     addBtn.addEventListener('click', function () {
@@ -234,7 +298,7 @@
     function collectSearchParams(p) {
       var params = { page: 1, size: 20 };
       var sizeEl = p.querySelector('#recordsPerPage');
-      if (sizeEl) params.size = parseInt(sizeEl.value, 10) || 20;
+      if (sizeEl) params.size = Math.max(1, parseInt(sizeEl.value, 10) || 20);
       p.querySelectorAll('input, select').forEach(function (el) {
         var name = el.name || el.id;
         if (!name) return;
@@ -249,6 +313,35 @@
       var pageEl = p.querySelector('#pageCnt');
       if (pageEl) params.page = parseInt(pageEl.value, 10) || 1;
       return params;
+    }
+    function applyTreeVisibility(pane, tbody, list) {
+      var expanded = pane._treeExpanded;
+      if (!expanded) return;
+      var visible = {};
+      for (var i = 0; i < list.length; i++) {
+        var row = list[i];
+        var id = row.id != null ? String(row.id) : '';
+        var pid = row.parentId != null ? String(row.parentId) : '';
+        var isVisible = !pid ? true : (visible[pid] && (expanded.has ? expanded.has(pid) : pid in expanded));
+        visible[id] = isVisible;
+      }
+      var rows = tbody.querySelectorAll('tr[data-id]');
+      for (var j = 0; j < rows.length; j++) {
+        var tr = rows[j];
+        var rid = tr.getAttribute('data-id') || '';
+        tr.style.display = visible[rid] !== false ? '' : 'none';
+      }
+      tbody.querySelectorAll('.table-row-resize-handle').forEach(function (handle) {
+        var next = handle.nextElementSibling;
+        handle.style.display = (next && next.style.display === 'none') ? 'none' : '';
+      });
+      tbody.querySelectorAll('.tree-toggle.expanded, .tree-toggle.collapsed').forEach(function (span) {
+        var sid = span.getAttribute('data-id') || '';
+        var isExp = expanded.has ? expanded.has(sid) : sid in expanded;
+        span.className = 'tree-toggle ' + (isExp ? 'expanded' : 'collapsed');
+        span.textContent = isExp ? '\u25BC' : '\u25B6';
+        span.title = isExp ? '접기' : '펼치기';
+      });
     }
     function doSearch(p, tid, pageOverride) {
       var url = p.getAttribute('formurl') || '';
@@ -290,36 +383,117 @@
         if (dimm) dimm.style.display = 'none';
         var tbody = p.querySelector('#grid_' + tid + ' tbody');
         if (tbody) tbody.innerHTML = '<tr><td colspan="' + (cfg.columns.length) + '" class="empty-state-cell text-center text-muted">조회된 데이터가 없습니다.</td></tr>';
-        var cntEl = p.querySelector('#summary_건수, #summary_Total, .summary-count, [data-summary="건수"]');
-        if (cntEl) cntEl.textContent = (cntEl.id === 'summary_Total' ? 'Total: ' : cntEl.id === 'summary_건수' ? '건수: ' : '') + '0';
+        var cntEl = p.querySelector('#summary_건수, .summary-count, [data-summary="건수"]');
+        if (cntEl) cntEl.textContent = (cntEl.id === 'summary_건수' ? '건수: ' : '') + '0';
         return;
       }
       promise.then(function (data) {
         var list = data && data.list ? data.list : [];
         var total = data && data.totalElements !== undefined ? data.totalElements : list.length;
         var totalPages = data && data.totalPages !== undefined ? data.totalPages : 1;
-        var cols = cfg.columns;
-        var thLen = (p.querySelectorAll('#grid_' + tid + ' thead th') || []).length;
+        var allCols = cfg.columns;
+        var selCols = p._compMngSelectedColumns;
+        var fixedKeys = ['rowNo', 'compId', 'compNm', 'compDivNm'];
+        var cols = allCols.filter(function (c) {
+          if (c.type === 'checkbox' || fixedKeys.indexOf(c.key) !== -1) return true;
+          if (!selCols || selCols.length === 0) return true;
+          return selCols.indexOf(c.key) !== -1;
+        });
+        var theadTr = p.querySelector('#grid_' + tid + ' thead tr');
+        if (theadTr) {
+          theadTr.innerHTML = cols.map(function (c) {
+            if (c.type === 'checkbox') return '<th style="width:40px"><input type="checkbox" class="grid-check-all" title="전체선택"></th>';
+            return '<th>' + (c.label || c.key) + '</th>';
+          }).join('');
+        }
+        var thLen = cols.length;
         var tbody = p.querySelector('#grid_' + tid + ' tbody');
         if (!tbody) return;
         if (list.length === 0) {
           tbody.innerHTML = '<tr><td colspan="' + (thLen || (cfg.columns && cfg.columns.length)) + '" class="empty-state-cell text-center text-muted py-4">조회된 데이터가 없습니다.</td></tr>';
         } else {
           var html = '';
+          var isCompMngTree = (url === '/comp/compMngTree');
+          var hasChildrenMap = {};
+          if (isCompMngTree) {
+            list.forEach(function (r) {
+              var pid = r.parentId != null ? String(r.parentId) : null;
+              if (pid) hasChildrenMap[pid] = true;
+            });
+            var SetOrFallback = window.Set || function () { var o = {}; return { add: function (k) { o[k] = 1; }, has: function (k) { return k in o; }, delete: function (k) { delete o[k]; } }; };
+            p._treeExpanded = new SetOrFallback();
+            list.forEach(function (r) {
+              var id = r.id != null ? String(r.id) : '';
+              if (id && hasChildrenMap[id]) p._treeExpanded.add(id);
+            });
+          }
           list.forEach(function (row) {
-            html += '<tr>';
+            var rowId = row.id != null ? String(row.id) : '';
+            var parentId = row.parentId != null ? String(row.parentId) : '';
+            var hasChildren = isCompMngTree && rowId && hasChildrenMap[rowId];
+            html += '<tr data-id="' + (rowId || '') + '" data-parent-id="' + (parentId || '') + '" data-row="' + (isCompMngTree ? encodeURIComponent(JSON.stringify(row)) : '') + '">';
             cols.forEach(function (c) {
               if (c.type === 'checkbox') html += '<td><input type="checkbox" class="grid-row-check"></td>';
-              else html += '<td>' + (row[c.key] !== undefined && row[c.key] !== null ? String(row[c.key]) : '') + '</td>';
+              else {
+                var val = row[c.key] !== undefined && row[c.key] !== null ? String(row[c.key]) : '';
+                if (isCompMngTree && c.key === 'rowNo') {
+                  html += '<td>' + (val || '') + '</td>';
+                } else if (isCompMngTree && c.key === 'compId') {
+                  var depth = (row.depth != null && row.depth !== '') ? parseInt(row.depth, 10) : 0;
+                  if (isNaN(depth)) depth = 0;
+                  var px = 18 + depth * 18;
+                  var expanded = p._treeExpanded && p._treeExpanded.has(rowId);
+                  var folderSvg = '<svg class="tree-icon tree-icon-folder" width="16" height="16" viewBox="0 0 24 24"><path fill="currentColor" d="M10 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"/></svg>';
+                  var docSvg = '<svg class="tree-icon tree-icon-doc" width="16" height="16" viewBox="0 0 24 24"><path fill="currentColor" d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6z"/></svg>';
+                  var icon = hasChildren ? folderSvg : docSvg;
+                  var toggle = hasChildren ? '<span class="tree-toggle ' + (expanded ? 'expanded' : 'collapsed') + '" data-id="' + rowId + '" title="' + (expanded ? '접기' : '펼치기') + '">' + (expanded ? '\u25BC' : '\u25B6') + '</span>' : '<span class="tree-toggle-placeholder"></span>';
+                  html += '<td class="tree-comp-cell" style="padding-left:' + px + 'px">' + icon + toggle + (val || '') + '</td>';
+                } else if (isCompMngTree && c.key === 'compNm') {
+                  html += '<td>' + (val || '') + '</td>';
+                } else html += '<td>' + val + '</td>';
+              }
             });
             html += '</tr>';
           });
           tbody.innerHTML = html;
+          injectTableRowResizeHandles(tbody, thLen);
+          if (isCompMngTree && list.length) {
+            p._treeList = list;
+            applyTreeVisibility(p, tbody, list);
+          }
         }
-        var cntEl = p.querySelector('#summary_건수, #summary_Total, .summary-count, [data-summary="건수"]');
-        if (cntEl) cntEl.textContent = (cntEl.id === 'summary_Total' ? 'Total: ' : cntEl.id === 'summary_건수' ? '건수: ' : '') + total;
-        if (window.updatePaging) window.updatePaging(tid, params.page, totalPages);
+        var cntEl = p.querySelector('#summary_건수, .summary-count, [data-summary="건수"]');
+        if (cntEl) cntEl.textContent = (cntEl.id === 'summary_건수' ? '건수: ' : '') + total;
+        if (window.updatePaging) window.updatePaging(tid, params.page, totalPages, total);
         p.setAttribute('data-last-total-pages', String(totalPages));
+        if (url === '/comp/compMngTree') {
+          var returnCompId = '';
+          try { returnCompId = sessionStorage.getItem('pg_comp_detail_return_compId') || ''; } catch (e) {}
+          if (returnCompId && tbody) {
+            try { sessionStorage.removeItem('pg_comp_detail_return_compId'); } catch (e) {}
+            var targetTr = null;
+            var rows = tbody.querySelectorAll('tr[data-row]');
+            for (var r = 0; r < rows.length; r++) {
+              var dr = rows[r].getAttribute('data-row');
+              if (dr) {
+                try {
+                  var rowData = JSON.parse(decodeURIComponent(dr));
+                  if (rowData.compId === returnCompId) {
+                    targetTr = rows[r];
+                    break;
+                  }
+                } catch (e) {}
+              }
+            }
+            if (targetTr) {
+              var chk = targetTr.querySelector('.grid-row-check');
+              if (chk) chk.checked = true;
+              targetTr.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+              targetTr.classList.add('table-warning');
+              setTimeout(function () { if (targetTr) targetTr.classList.remove('table-warning'); }, 2000);
+            }
+          }
+        }
       }).catch(function (err) {
         var tbody = p.querySelector('#grid_' + tid + ' tbody');
         if (tbody) tbody.innerHTML = '<tr><td colspan="' + (cfg.columns.length) + '" class="empty-state-cell text-center text-danger">' + (err && err.message ? err.message : '조회 실패') + '</td></tr>';
@@ -329,6 +503,15 @@
     }
     pane.querySelectorAll('#searchBtn, .screen-search-btn').forEach(function (btn) {
       btn.addEventListener('click', function () {
+        var pageEl = pane.querySelector('#pageCnt');
+        if (pageEl) pageEl.value = 1;
+        doSearch(pane, tabId, 1);
+      });
+    });
+    pane.querySelectorAll('.search-reset-btn').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        pane.querySelectorAll('select[name^="search"]').forEach(function (el) { el.selectedIndex = 0; });
+        pane.querySelectorAll('input[name^="search"]').forEach(function (el) { if (el.type === 'text') el.value = ''; else if (el.type === 'checkbox') el.checked = false; });
         var pageEl = pane.querySelector('#pageCnt');
         if (pageEl) pageEl.value = 1;
         doSearch(pane, tabId, 1);
@@ -425,6 +608,47 @@
         }).catch(function (err) { alert(err && err.message ? err.message : '저장 실패'); }).finally(function () { if (dimm) dimm.style.display = 'none'; });
       });
     }
+    if (url === '/comp/compMngTree' && !pane._treeToggleBound) {
+      pane._treeToggleBound = true;
+      pane.addEventListener('click', function (e) {
+        var tg = e.target && e.target.closest ? e.target.closest('.tree-toggle') : null;
+        if (!tg || tg.classList.contains('tree-toggle-placeholder')) return;
+        var id = tg.getAttribute('data-id') || '';
+        if (!id) return;
+        var tbody = pane.querySelector('#grid_' + tabId + ' tbody');
+        var list = pane._treeList;
+        if (!tbody || !list) return;
+        var expanded = pane._treeExpanded;
+        if (!expanded) return;
+        if (expanded.has) {
+          if (expanded.has(id)) expanded.delete(id); else expanded.add(id);
+        } else {
+          if (id in expanded) delete expanded[id]; else expanded[id] = 1;
+        }
+        applyTreeVisibility(pane, tbody, list);
+      });
+    }
+    var compMngSaveColumnsBtn = pane.querySelector('#compMngSaveColumnsBtn');
+    if (compMngSaveColumnsBtn && url === '/comp/compMngTree' && !compMngSaveColumnsBtn._bound) {
+      compMngSaveColumnsBtn._bound = true;
+      compMngSaveColumnsBtn.addEventListener('click', function () {
+        var checks = pane.querySelectorAll('.column-guide-check:checked');
+        var keys = [];
+        checks.forEach(function (cb) {
+          var k = cb.getAttribute('data-key');
+          if (k) keys.push(k);
+        });
+        pane._compMngSelectedColumns = keys.length > 0 ? keys : null;
+        alert('저장되었습니다. 검색하면 선택된 칼럼만 표시됩니다.');
+      });
+    }
+    var compMngClearColumnsBtn = pane.querySelector('#compMngClearColumnsBtn');
+    if (compMngClearColumnsBtn && url === '/comp/compMngTree' && !compMngClearColumnsBtn._bound) {
+      compMngClearColumnsBtn._bound = true;
+      compMngClearColumnsBtn.addEventListener('click', function () {
+        pane.querySelectorAll('.column-guide-check').forEach(function (cb) { cb.checked = false; });
+      });
+    }
     var compRegBtn = pane.querySelector('#compRegBtn');
     if (compRegBtn) {
       compRegBtn.addEventListener('click', function () { fnTopMenuMove('/comp/compReg'); });
@@ -441,11 +665,7 @@
         fd.compNm = fd.compNm || fd.comp_name;
         fd.compDiv = fd.compDiv || fd.comp_div || 'MERCHANT';
         if (fd.parentId) fd.parentComp = ''; else if (fd.parentComp && fd.parentComp.indexOf(' (') > 0) fd.parentComp = fd.parentComp.split(' (')[0].trim();
-        var needsParent = ['MASTER_DIST', 'BRANCH', 'AGENCY', 'MERCHANT'].indexOf(fd.compDiv) >= 0;
-        if (needsParent && !fd.parentId && (!fd.parentComp || fd.parentComp.trim() === '')) {
-          alert('총판·지사·대리점·가맹점은 상위 지점을 반드시 선택해야 합니다.');
-          return;
-        }
+        if (fd.regType != null) { fd.regNo = (fd.regType || 'CORP') + '|' + (fd.regNo || ''); delete fd.regType; }
         var tbody = form.querySelector('#pgBindingTbody');
         if (tbody) {
           var operationalVal = form.querySelector('input[name="pgOperational"]:checked');
@@ -489,6 +709,7 @@
       compRegCancelBtn.addEventListener('click', function () { fnTopMenuMove('/comp/compMngTree'); });
     }
     if (url === '/comp/compReg') {
+      initBankByCountry(pane);
       var form = pane.querySelector('#compRegForm');
       if (form && !form.querySelector('input[name="parentId"]')) {
         var hid = document.createElement('input');
@@ -500,7 +721,9 @@
       function toggleByCompDiv(compDiv) {
         var isMerchant = compDiv === 'MERCHANT';
         var isRegional = compDiv === 'REGIONAL';
-        var isDistributor = compDiv === 'MASTER_DIST' || compDiv === 'BRANCH' || compDiv === 'AGENCY';
+        var isMasterDist = compDiv === 'MASTER_DIST';
+        var isBranchAgencySales = compDiv === 'BRANCH' || compDiv === 'AGENCY' || compDiv === 'SALES_OFFICE';
+        var isDistributor = isMasterDist || isBranchAgencySales;
         var showAccount = isMerchant || isDistributor || isRegional;
         pane.querySelectorAll('.merchant-only-section').forEach(function (card) {
           if (isMerchant) card.classList.remove('d-none'); else card.classList.add('d-none');
@@ -508,11 +731,17 @@
         pane.querySelectorAll('.regional-only-section').forEach(function (card) {
           if (isRegional) card.classList.remove('d-none'); else card.classList.add('d-none');
         });
+        pane.querySelectorAll('.master-dist-only-section').forEach(function (card) {
+          if (isMasterDist) card.classList.remove('d-none'); else card.classList.add('d-none');
+        });
         pane.querySelectorAll('.distributor-only-section').forEach(function (card) {
           if (isDistributor) card.classList.remove('d-none'); else card.classList.add('d-none');
         });
         pane.querySelectorAll('.distributor-or-merchant-section').forEach(function (card) {
           if (showAccount) card.classList.remove('d-none'); else card.classList.add('d-none');
+        });
+        pane.querySelectorAll('.branch-agency-sales-hide-section').forEach(function (card) {
+          if (isBranchAgencySales) card.classList.add('d-none'); else card.classList.remove('d-none');
         });
         var hint = pane.querySelector('.comp-div-hint');
         if (hint) hint.style.display = (!compDiv || compDiv === '') ? 'block' : 'none';
@@ -559,104 +788,187 @@
       var parentCompSearchBtn = pane.querySelector('button[data-field="parentComp"][data-action="검색"]');
       if (parentCompSearchBtn) {
         parentCompSearchBtn.addEventListener('click', function () {
-          var targetForm = pane.querySelector('#compRegForm');
-          var compDivEl = targetForm ? targetForm.querySelector('[name="compDiv"]') : null;
-          var compDiv = compDivEl ? compDivEl.value : '';
-          window._parentCompSearchCtx = { form: targetForm, searchCompDiv: (function () { var m = { REGIONAL: 'HEADQUARTERS', MASTER_DIST: 'REGIONAL', BRANCH: 'MASTER_DIST', AGENCY: 'BRANCH', MERCHANT: 'AGENCY' }; return m[compDiv] || null; })() };
-          openParentCompSearchModal();
+          var modalEl = document.getElementById('parentCompSearchModal');
+          if (!modalEl) return;
+          var modal = window.bootstrap && bootstrap.Modal ? new bootstrap.Modal(modalEl) : null;
+          if (modal) modal.show();
+          var tbody = document.getElementById('parentCompSearchTbody');
+          var kw = document.getElementById('parentCompSearchKeyword');
+          function runSearch() {
+            var dimm = document.getElementById('dimm');
+            if (dimm) dimm.style.display = 'flex';
+            window.PG_API.compList({ searchCompId: (kw && kw.value) || '', searchCompNm: (kw && kw.value) || '', page: 1, size: 50 }).then(function (data) {
+              var list = (data && data.list) ? data.list : [];
+              if (!tbody) return;
+              tbody.innerHTML = '';
+              list.forEach(function (row) {
+                var tr = document.createElement('tr');
+                tr.style.cursor = 'pointer';
+                tr.setAttribute('data-id', row.id != null ? row.id : '');
+                tr.setAttribute('data-compId', row.compId != null ? row.compId : '');
+                tr.setAttribute('data-compNm', row.compNm != null ? row.compNm : '');
+                tr.innerHTML = '<td><button type="button" class="btn btn-sm btn-outline-primary">선택</button></td><td>' + (row.compId || '') + '</td><td>' + (row.compNm || '') + '</td><td>' + (row.compDivNm || row.compDiv || '') + '</td>';
+                tr.addEventListener('click', function (e) {
+                  if (e.target.tagName === 'BUTTON') return;
+                  selectParentComp(tr);
+                });
+                tr.querySelector('button').addEventListener('click', function () { selectParentComp(tr); });
+                tbody.appendChild(tr);
+              });
+              if (list.length === 0) tbody.innerHTML = '<tr><td colspan="4" class="text-muted text-center">조회된 업체가 없습니다.</td></tr>';
+            }).catch(function (err) {
+              if (tbody) tbody.innerHTML = '<tr><td colspan="4" class="text-danger text-center">' + (err && err.message ? err.message : '조회 실패') + '</td></tr>';
+            }).finally(function () { if (dimm) dimm.style.display = 'none'; });
+          }
+          function selectParentComp(tr) {
+            var id = tr.getAttribute('data-id');
+            var compId = tr.getAttribute('data-compId');
+            var compNm = tr.getAttribute('data-compNm');
+            var f = pane.querySelector('#compRegForm');
+            if (f) {
+              var pid = f.querySelector('input[name="parentId"]');
+              if (pid) pid.value = id || '';
+              var pc = f.querySelector('input[name="parentComp"]');
+              if (pc) pc.value = (compId || '') + (compNm ? ' (' + compNm + ')' : '');
+            }
+            if (modal) modal.hide();
+          }
+          var modalSearchBtn = document.getElementById('parentCompSearchBtn');
+          if (modalSearchBtn && !modalSearchBtn._parentCompBound) {
+            modalSearchBtn._parentCompBound = true;
+            modalSearchBtn.addEventListener('click', function () {
+              var tbody = document.getElementById('parentCompSearchTbody');
+              var dimm = document.getElementById('dimm');
+              var kw = document.getElementById('parentCompSearchKeyword');
+              if (!tbody) return;
+              if (dimm) dimm.style.display = 'flex';
+              window.PG_API.compList({ searchCompId: (kw && kw.value) || '', searchCompNm: (kw && kw.value) || '', page: 1, size: 50 }).then(function (data) {
+                var list = (data && data.list) ? data.list : [];
+                tbody.innerHTML = '';
+                list.forEach(function (row) {
+                  var tr = document.createElement('tr');
+                  tr.style.cursor = 'pointer';
+                  tr.setAttribute('data-id', row.id != null ? row.id : '');
+                  tr.setAttribute('data-compId', row.compId != null ? row.compId : '');
+                  tr.setAttribute('data-compNm', row.compNm != null ? row.compNm : '');
+                  tr.innerHTML = '<td><button type="button" class="btn btn-sm btn-outline-primary">선택</button></td><td>' + (row.compId || '') + '</td><td>' + (row.compNm || '') + '</td><td>' + (row.compDivNm || row.compDiv || '') + '</td>';
+                  tr.addEventListener('click', function (e) {
+                    if (e.target.tagName === 'BUTTON') return;
+                    var f2 = document.querySelector('[formurl="/comp/compReg"]');
+                    if (f2) {
+                      var form = f2.querySelector('#compRegForm');
+                      if (form) {
+                        var pid = form.querySelector('input[name="parentId"]');
+                        if (pid) pid.value = tr.getAttribute('data-id') || '';
+                        var pc = form.querySelector('input[name="parentComp"]');
+                        if (pc) pc.value = (tr.getAttribute('data-compId') || '') + (tr.getAttribute('data-compNm') ? ' (' + tr.getAttribute('data-compNm') + ')' : '');
+                      }
+                    }
+                    if (modalEl && window.bootstrap && bootstrap.Modal) { var m = bootstrap.Modal.getInstance(modalEl); if (m) m.hide(); }
+                  });
+                  tr.querySelector('button').addEventListener('click', function () {
+                    var f2 = document.querySelector('[formurl="/comp/compReg"]');
+                    if (f2) {
+                      var form = f2.querySelector('#compRegForm');
+                      if (form) {
+                        var pid = form.querySelector('input[name="parentId"]');
+                        if (pid) pid.value = tr.getAttribute('data-id') || '';
+                        var pc = form.querySelector('input[name="parentComp"]');
+                        if (pc) pc.value = (tr.getAttribute('data-compId') || '') + (tr.getAttribute('data-compNm') ? ' (' + tr.getAttribute('data-compNm') + ')' : '');
+                      }
+                    }
+                    if (modalEl && window.bootstrap && bootstrap.Modal) { var m = bootstrap.Modal.getInstance(modalEl); if (m) m.hide(); }
+                  });
+                  tbody.appendChild(tr);
+                });
+                if (list.length === 0) tbody.innerHTML = '<tr><td colspan="4" class="text-muted text-center">조회된 업체가 없습니다.</td></tr>';
+              }).catch(function (err) {
+                tbody.innerHTML = '<tr><td colspan="4" class="text-danger text-center">' + (err && err.message ? err.message : '조회 실패') + '</td></tr>';
+              }).finally(function () { if (dimm) dimm.style.display = 'none'; });
+            });
+          }
+          runSearch();
         });
       }
     }
-    function openParentCompSearchModal() {
-      var modalEl = document.getElementById('parentCompSearchModal');
-      if (!modalEl) return;
-      var modal = window.bootstrap && bootstrap.Modal ? new bootstrap.Modal(modalEl) : null;
-      if (modal) modal.show();
-      runParentCompSearch();
-    }
-    function runParentCompSearch() {
-      var tbody = document.getElementById('parentCompSearchTbody');
-      var kw = document.getElementById('parentCompSearchKeyword');
+    function loadCompDetailIntoForm(pane, compId) {
+      if (!compId) return;
       var dimm = document.getElementById('dimm');
-      var ctx = window._parentCompSearchCtx || {};
-      var params = { searchCompId: (kw && kw.value) || '', searchCompNm: (kw && kw.value) || '', page: 1, size: 50 };
-      if (ctx.searchCompDiv) params.searchCompDiv = ctx.searchCompDiv;
       if (dimm) dimm.style.display = 'flex';
-      window.PG_API.compList(params).then(function (data) {
-        var list = (data && data.list) ? data.list : [];
-        if (!tbody) return;
-        tbody.innerHTML = '';
-        list.forEach(function (row) {
-          var tr = document.createElement('tr');
-          tr.style.cursor = 'pointer';
-          tr.setAttribute('data-id', row.id != null ? row.id : '');
-          tr.setAttribute('data-compId', row.compId != null ? row.compId : '');
-          tr.setAttribute('data-compNm', row.compNm != null ? row.compNm : '');
-          tr.innerHTML = '<td><button type="button" class="btn btn-sm btn-outline-primary">선택</button></td><td>' + (row.compId || '') + '</td><td>' + (row.compNm || '') + '</td><td>' + (row.compDivNm || row.compDiv || '') + '</td>';
-          tr.addEventListener('click', function (e) {
-            if (e.target.tagName === 'BUTTON') return;
-            selectParentCompFromModal(tr);
+      window.PG_API.compDetail(compId).then(function (data) {
+        var form = pane.querySelector('#compInfoDetailForm');
+        if (!form || !data) return;
+        ['compId', 'compNm', 'compDiv', 'regNo', 'bizType', 'industry', 'bizNature', 'product', 'homepage', 'settleName', 'settleTelNo', 'ceoNm', 'ceoMobile', 'compTel', 'fax', 'zipCode', 'addr', 'addrDetail', 'email', 'useYn', 'loginId', 'bankCd', 'transferFee', 'cryptoTransferFee', 'accountNo', 'accountHolder', 'commissionConfigAllowed', 'webPaymentUseYn', 'baseCurrency', 'remark'].forEach(function (k) {
+          var el = form.querySelector('[name="' + k + '"]');
+          if (el && data[k] != null) el.value = data[k];
+        });
+        var rn = data.regNo;
+        if (rn && rn.indexOf('|') >= 0) {
+          var p = rn.split('|');
+          var rt = form.querySelector('[name="regType"]');
+          var rnEl = form.querySelector('[name="regNo"]');
+          if (rt) rt.value = (p[0] === 'PERSONAL' || p[0] === 'CORP') ? p[0] : 'CORP';
+          if (rnEl) rnEl.value = p.length > 1 ? p.slice(1).join('|') : '';
+        }
+        var pgInfoCard = pane.querySelector('#pgInfoCard');
+        if (pgInfoCard) {
+          pgInfoCard.style.display = (data.compDiv === 'MERCHANT') ? '' : 'none';
+          var paymentUrlEl = pane.querySelector('#paymentUrlDisplay');
+          if (paymentUrlEl && data.orgUnitId && data.compDiv === 'MERCHANT') {
+            var base = (window.SITE_CONFIG && window.SITE_CONFIG.paymentBaseUrl) || (window.location.origin || '');
+            paymentUrlEl.value = base.replace(/\/$/, '') + '/pay.html?m=' + data.orgUnitId;
+          } else if (paymentUrlEl) paymentUrlEl.value = '';
+        }
+        var isRegionalSelf = data.compDiv === 'REGIONAL';
+        if (isRegionalSelf) {
+          try {
+            var u = JSON.parse(sessionStorage.getItem('pg_admin_user') || '{}');
+            if (u.compId === data.compId && u.orgLevel === 'REGIONAL') {
+              form.querySelectorAll('input, select, textarea').forEach(function (el) { if (el.name !== 'compId') el.disabled = true; });
+              var updBtn = pane.querySelector('#compInfoUpdateBtn');
+              if (updBtn) updBtn.style.display = 'none';
+            }
+          } catch (e) {}
+        }
+        var copyBtn = pane.querySelector('#paymentUrlCopyBtn');
+        if (copyBtn && !copyBtn._bound) {
+          copyBtn._bound = true;
+          copyBtn.addEventListener('click', function () {
+            var inp = pane.querySelector('#paymentUrlDisplay');
+            if (inp && inp.value) {
+              navigator.clipboard.writeText(inp.value).then(function () { alert('복사되었습니다.'); }).catch(function () { alert('복사 실패'); });
+            }
           });
-          tr.querySelector('button').addEventListener('click', function () { selectParentCompFromModal(tr); });
-          tbody.appendChild(tr);
-        });
-        if (list.length === 0) tbody.innerHTML = '<tr><td colspan="4" class="text-muted text-center">조회된 업체가 없습니다.</td></tr>';
-      }).catch(function (err) {
-        if (tbody) tbody.innerHTML = '<tr><td colspan="4" class="text-danger text-center">' + (err && err.message ? err.message : '조회 실패') + '</td></tr>';
-      }).finally(function () { if (dimm) dimm.style.display = 'none'; });
+        }
+        var card = pane.querySelector('#compInfoDetailCard');
+        if (card) card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }).catch(function (e) { alert(e && e.message ? e.message : '상세 조회 실패'); }).finally(function () { if (dimm) dimm.style.display = 'none'; });
     }
-    function selectParentCompFromModal(tr) {
-      var ctx = window._parentCompSearchCtx || {};
-      var f = ctx.form || document.querySelector('#compRegForm') || document.querySelector('#compInfoDetailForm') || document.querySelector('#screenSearchForm');
-      var displayVal = (tr.getAttribute('data-compId') || '') + (tr.getAttribute('data-compNm') ? ' (' + tr.getAttribute('data-compNm') + ')' : '');
-      if (f) {
-        var pid = f.querySelector('input[name="parentId"]');
-        if (pid) pid.value = tr.getAttribute('data-id') || '';
-        var pc = f.querySelector('[name="parentComp"]');
-        if (pc) pc.value = displayVal;
-        var searchParent = f.querySelector('[name="searchParentCompId"]');
-        if (searchParent) searchParent.value = displayVal;
-      }
-      var modalEl = document.getElementById('parentCompSearchModal');
-      if (modalEl && window.bootstrap && bootstrap.Modal) { var m = bootstrap.Modal.getInstance(modalEl); if (m) m.hide(); }
-    }
-    (function bindParentCompSearchModal() {
-      var modalSearchBtn = document.getElementById('parentCompSearchBtn');
-      if (modalSearchBtn && !modalSearchBtn._parentCompBound) {
-        modalSearchBtn._parentCompBound = true;
-        modalSearchBtn.addEventListener('click', runParentCompSearch);
-      }
-    })();
-    if (url === '/comp/compMngTree') {
-      var searchParentCompBtn = pane.querySelector('button[data-field="searchParentCompId"][data-action="검색"]');
-      if (searchParentCompBtn && !searchParentCompBtn._bound) {
-        searchParentCompBtn._bound = true;
-        searchParentCompBtn.addEventListener('click', function () {
-          var form = pane.querySelector('#screenSearchForm');
-          window._parentCompSearchCtx = { form: form, searchCompDiv: null };
-          openParentCompSearchModal();
-        });
-      }
+    if (url === '/comp/compMngTree' && !pane._compMngTreeDblclickBound) {
+      pane._compMngTreeDblclickBound = true;
+      pane.addEventListener('dblclick', function (e) {
+        var tr = e.target && e.target.closest ? e.target.closest('tr') : null;
+        if (!tr || !tr.closest('#grid_' + tabId)) return;
+        if (tr.classList.contains('empty-state-cell') || !tr.getAttribute('data-row')) return;
+        if (e.target && e.target.closest && e.target.closest('.tree-toggle')) return;
+        var dataRow = tr.getAttribute('data-row');
+        var compId = '';
+        if (dataRow) {
+          try {
+            var row = JSON.parse(decodeURIComponent(dataRow));
+            compId = row.compId || '';
+          } catch (e) {}
+        }
+        if (compId) {
+          try {
+            sessionStorage.setItem('pg_comp_detail_compId', compId);
+            sessionStorage.setItem('pg_comp_detail_compDiv', row.compDiv || '');
+          } catch (e) {}
+          fnTopMenuMove('/comp/compDetail', null, '업체정보');
+        }
+      });
     }
     if (url === '/comp/compInfo' || url === '/comp/myCompMng') {
-      var compInfoDetailForm = pane.querySelector('#compInfoDetailForm');
-      if (compInfoDetailForm && !compInfoDetailForm.querySelector('input[name="parentId"]')) {
-        var hid = document.createElement('input');
-        hid.type = 'hidden';
-        hid.name = 'parentId';
-        compInfoDetailForm.insertBefore(hid, compInfoDetailForm.firstChild);
-      }
-      var detailParentCompSearchBtn = pane.querySelector('#compInfoDetailForm button[data-field="parentComp"][data-action="검색"]');
-      if (detailParentCompSearchBtn && !detailParentCompSearchBtn._bound) {
-        detailParentCompSearchBtn._bound = true;
-        detailParentCompSearchBtn.addEventListener('click', function () {
-          var form = pane.querySelector('#compInfoDetailForm');
-          var compDivEl = form ? form.querySelector('[name="compDiv"]') : null;
-          var compDiv = compDivEl ? compDivEl.value : '';
-          window._parentCompSearchCtx = { form: form, searchCompDiv: (function () { var m = { REGIONAL: 'HEADQUARTERS', MASTER_DIST: 'REGIONAL', BRANCH: 'MASTER_DIST', AGENCY: 'BRANCH', MERCHANT: 'AGENCY' }; return m[compDiv] || null; })() };
-          openParentCompSearchModal();
-        });
-      }
       var compInfoDetailBtn = pane.querySelector('#compInfoDetailBtn');
       if (compInfoDetailBtn) {
         compInfoDetailBtn.addEventListener('click', function () {
@@ -672,50 +984,7 @@
           if (compIdIdx < 0) compIdIdx = 1;
           var compId = (tds[compIdIdx] && tds[compIdIdx].textContent) ? tds[compIdIdx].textContent.trim() : '';
           if (!compId) { alert('업체코드를 찾을 수 없습니다.'); return; }
-          var dimm = document.getElementById('dimm');
-          if (dimm) dimm.style.display = 'flex';
-          window.PG_API.compDetail(compId).then(function (data) {
-            var form = pane.querySelector('#compInfoDetailForm');
-            if (!form || !data) return;
-            ['compId', 'compNm', 'compDiv', 'regNo', 'bizType', 'industry', 'bizNature', 'product', 'homepage', 'settleName', 'settleTelNo', 'ceoNm', 'ceoMobile', 'compTel', 'fax', 'zipCode', 'addr', 'addrDetail', 'email', 'useYn', 'loginId', 'bankCd', 'transferFee', 'accountNo', 'accountHolder', 'commissionConfigAllowed', 'webPaymentUseYn', 'baseCurrency', 'remark'].forEach(function (k) {
-              var el = form.querySelector('[name="' + k + '"]');
-              if (el && data[k] != null) el.value = data[k];
-            });
-            var parentIdEl = form.querySelector('input[name="parentId"]');
-            var parentCompEl = form.querySelector('[name="parentComp"]');
-            if (parentIdEl) parentIdEl.value = data.parentId != null ? data.parentId : '';
-            if (parentCompEl) parentCompEl.value = data.parentComp != null ? data.parentComp : '';
-            var pgInfoCard = pane.querySelector('#pgInfoCard');
-            if (pgInfoCard) {
-              pgInfoCard.style.display = (data.compDiv === 'MERCHANT') ? '' : 'none';
-              var paymentUrlEl = pane.querySelector('#paymentUrlDisplay');
-              if (paymentUrlEl && data.orgUnitId && data.compDiv === 'MERCHANT') {
-                var base = (window.SITE_CONFIG && window.SITE_CONFIG.paymentBaseUrl) || (window.location.origin || '');
-                paymentUrlEl.value = base.replace(/\/$/, '') + '/pay.html?m=' + data.orgUnitId;
-              } else if (paymentUrlEl) paymentUrlEl.value = '';
-            }
-            var isRegionalSelf = data.compDiv === 'REGIONAL';
-            if (isRegionalSelf) {
-              try {
-                var u = JSON.parse(sessionStorage.getItem('pg_admin_user') || '{}');
-                if (u.compId === data.compId && u.orgLevel === 'REGIONAL') {
-                  form.querySelectorAll('input, select, textarea').forEach(function (el) { if (el.name !== 'compId') el.disabled = true; });
-                  var updBtn = pane.querySelector('#compInfoUpdateBtn');
-                  if (updBtn) updBtn.style.display = 'none';
-                }
-              } catch (e) {}
-            }
-            var copyBtn = pane.querySelector('#paymentUrlCopyBtn');
-            if (copyBtn && !copyBtn._bound) {
-              copyBtn._bound = true;
-              copyBtn.addEventListener('click', function () {
-                var inp = pane.querySelector('#paymentUrlDisplay');
-                if (inp && inp.value) {
-                  navigator.clipboard.writeText(inp.value).then(function () { alert('복사되었습니다.'); }).catch(function () { alert('복사 실패'); });
-                }
-              });
-            }
-          }).catch(function (e) { alert(e && e.message ? e.message : '상세 조회 실패'); }).finally(function () { if (dimm) dimm.style.display = 'none'; });
+          loadCompDetailIntoForm(pane, compId);
         });
       }
       var compInfoUpdateBtn = pane.querySelector('#compInfoUpdateBtn');
@@ -731,7 +1000,7 @@
             if (el.name && el.type !== 'file') fd[el.name] = el.value;
           });
           fd.compId = compId;
-          if (!fd.parentId || fd.parentId === '') delete fd.parentId;
+          if (fd.regType != null) { fd.regNo = (fd.regType || 'CORP') + '|' + (fd.regNo || ''); delete fd.regType; }
           var dimm = document.getElementById('dimm');
           if (dimm) dimm.style.display = 'flex';
           window.PG_API.compUpdate(fd).then(function () {
@@ -740,6 +1009,205 @@
           }).catch(function (e) { alert(e && e.message ? e.message : '수정 저장 실패'); }).finally(function () { if (dimm) dimm.style.display = 'none'; });
         });
       }
+    }
+    if (url === '/comp/compDetail') {
+      function toggleByCompDiv(compDiv) {
+        var isMerchant = compDiv === 'MERCHANT';
+        var isRegional = compDiv === 'REGIONAL';
+        var isMasterDist = compDiv === 'MASTER_DIST';
+        var isBranchAgencySales = compDiv === 'BRANCH' || compDiv === 'AGENCY' || compDiv === 'SALES_OFFICE';
+        var isDistributor = isMasterDist || isBranchAgencySales;
+        var showAccount = isMerchant || isDistributor || isRegional;
+        pane.querySelectorAll('.merchant-only-section').forEach(function (card) {
+          if (isMerchant) card.classList.remove('d-none'); else card.classList.add('d-none');
+        });
+        pane.querySelectorAll('.regional-only-section').forEach(function (card) {
+          if (isRegional) card.classList.remove('d-none'); else card.classList.add('d-none');
+        });
+        pane.querySelectorAll('.master-dist-only-section').forEach(function (card) {
+          if (isMasterDist) card.classList.remove('d-none'); else card.classList.add('d-none');
+        });
+        pane.querySelectorAll('.distributor-only-section').forEach(function (card) {
+          if (isDistributor) card.classList.remove('d-none'); else card.classList.add('d-none');
+        });
+        pane.querySelectorAll('.distributor-or-merchant-section').forEach(function (card) {
+          if (showAccount) card.classList.remove('d-none'); else card.classList.add('d-none');
+        });
+        pane.querySelectorAll('.branch-agency-sales-hide-section').forEach(function (card) {
+          if (isBranchAgencySales) card.classList.add('d-none'); else card.classList.remove('d-none');
+        });
+      }
+      var compId = '';
+      var storedCompDiv = '';
+      try {
+        compId = sessionStorage.getItem('pg_comp_detail_compId') || '';
+        storedCompDiv = sessionStorage.getItem('pg_comp_detail_compDiv') || '';
+      } catch (e) {}
+      if (!compId) {
+        pane.innerHTML = '<div class="card"><div class="card-body"><p class="text-muted">업체코드가 없습니다. 업체관리에서 행을 더블클릭하여 조회하세요.</p><button type="button" class="btn btn-secondary btn-sm" id="compDetailListBtn">목록</button></div></div>';
+      } else {
+      toggleByCompDiv(storedCompDiv);
+      var dimm = document.getElementById('dimm');
+      if (dimm) dimm.style.display = 'flex';
+      window.PG_API.compDetail(compId).then(function (data) {
+        if (!data) return;
+        var form = pane.querySelector('#compDetailForm');
+        if (!form) return;
+        var allFields = ['compId', 'parentComp', 'compNm', 'compDiv', 'regNo', 'bizType', 'industry', 'bizNature', 'product', 'homepage', 'settleName', 'settleTelNo', 'ceoNm', 'ceoMobile', 'compTel', 'fax', 'zipCode', 'addr', 'addrDetail', 'email', 'siteUrl', 'siteSummary', 'useYn', 'loginId', 'bankCd', 'transferFee', 'cryptoTransferFee', 'accountNo', 'accountHolder', 'commissionConfigAllowed', 'webPaymentUseYn', 'baseCurrency', 'remark', 'settleType', 'commissionRate', 'limitAmt', 'countryCd', 'swift', 'branchName', 'branchAddr', 'contactTel', 'walletAddress', 'networkName', 'withdrawLimitDays', 'withdrawStartTime', 'withdrawEndTime', 'payLimitDefault', 'payLimitExtra', 'payLimitAlertSms', 'holdRateFollowHq', 'holdRate', 'holdDays', 'commissionFollowHq', 'failFee', 'usageRate', 'payRate', 'cancelRate', 'refundRate', 'commissionMemo', 'feeSettlementPerTx', 'feeUsdt', 'feeFx', 'calcCycle', 'calcCloseTime', 'transferType', 'transferCycleDays', 'autoTransferMin', 'calcExcludeYn', 'calcExcludeTarget', 'calcStartTime', 'payHoldYn', 'defaultProductName', 'defaultProductCode', 'defaultProductAmount', 'defaultProductDesc', 'notifyUrlBackground', 'notifyUrlResult'];
+        allFields.forEach(function (k) {
+          var el = form.querySelector('[name="' + k + '"]');
+          if (el && data[k] != null) el.value = data[k];
+        });
+        var regNoVal = data.regNo;
+        if (regNoVal && regNoVal.indexOf('|') >= 0) {
+          var parts = regNoVal.split('|');
+          var rt = form.querySelector('[name="regType"]');
+          var rn = form.querySelector('[name="regNo"]');
+          if (rt) rt.value = (parts[0] === 'PERSONAL' || parts[0] === 'CORP') ? parts[0] : 'CORP';
+          if (rn) rn.value = parts.length > 1 ? parts.slice(1).join('|') : '';
+        }
+        var apiCompDiv = (data.compDiv && data.compDiv !== '-') ? data.compDiv : storedCompDiv;
+        toggleByCompDiv(apiCompDiv || storedCompDiv);
+        initPgBindingList(pane, data.pgBindings);
+        var commissionFollowEl = pane.querySelector('[name="commissionFollowHq"]');
+        if (commissionFollowEl && !commissionFollowEl._commissionToggleBound) {
+          commissionFollowEl._commissionToggleBound = true;
+          function toggleCommissionCustom(useHq) {
+            pane.querySelectorAll('.commission-custom-only').forEach(function (el) {
+              el.style.display = useHq === 'Y' ? 'none' : '';
+            });
+          }
+          commissionFollowEl.addEventListener('change', function () { toggleCommissionCustom(this.value); });
+          toggleCommissionCustom(commissionFollowEl.value || 'Y');
+        }
+        var holdRateFollowEl = pane.querySelector('[name="holdRateFollowHq"]');
+        if (holdRateFollowEl && !holdRateFollowEl._holdRateToggleBound) {
+          holdRateFollowEl._holdRateToggleBound = true;
+          function toggleHoldRateCustom(useHq) {
+            pane.querySelectorAll('.hold-rate-custom-only').forEach(function (el) {
+              el.style.display = useHq === 'Y' ? 'none' : '';
+            });
+          }
+          holdRateFollowEl.addEventListener('change', function () { toggleHoldRateCustom(this.value); });
+          toggleHoldRateCustom(holdRateFollowEl.value || 'Y');
+        }
+        var pgInfoCard = pane.querySelector('#pgInfoCard');
+        if (pgInfoCard) {
+          var divForPg = apiCompDiv || storedCompDiv;
+          pgInfoCard.style.display = (divForPg === 'MERCHANT') ? '' : 'none';
+          var paymentUrlEl = pane.querySelector('#paymentUrlDisplay');
+          if (paymentUrlEl && data.orgUnitId && divForPg === 'MERCHANT') {
+            var base = (window.SITE_CONFIG && window.SITE_CONFIG.paymentBaseUrl) || (window.location.origin || '');
+            paymentUrlEl.value = base.replace(/\/$/, '') + '/pay.html?m=' + data.orgUnitId;
+          } else if (paymentUrlEl) paymentUrlEl.value = '';
+        }
+        var copyBtn = pane.querySelector('#paymentUrlCopyBtn');
+        if (copyBtn && !copyBtn._bound) {
+          copyBtn._bound = true;
+          copyBtn.addEventListener('click', function () {
+            var inp = pane.querySelector('#paymentUrlDisplay');
+            if (inp && inp.value) {
+              navigator.clipboard.writeText(inp.value).then(function () { alert('복사되었습니다.'); }).catch(function () { alert('복사 실패'); });
+            }
+          });
+        }
+        initBankByCountry(pane);
+      }).catch(function (e) {
+        pane.innerHTML = '<div class="card"><div class="card-body"><p class="text-danger">' + (e && e.message ? e.message : '조회 실패') + '</p><button type="button" class="btn btn-secondary btn-sm" id="compDetailListBtn">목록</button></div></div>';
+      }).finally(function () { if (dimm) dimm.style.display = 'none'; });
+      }
+      var compDetailSaveBtn = pane.querySelector('#compDetailSaveBtn');
+      if (compDetailSaveBtn) {
+        compDetailSaveBtn.addEventListener('click', function () {
+          var form = pane.querySelector('#compDetailForm');
+          if (!form) return;
+          var compIdEl = form.querySelector('[name="compId"]');
+          var compId = compIdEl && compIdEl.value ? compIdEl.value.trim() : '';
+          if (!compId) { alert('업체코드가 없습니다.'); return; }
+          var fd = {};
+          form.querySelectorAll('input, select, textarea').forEach(function (el) {
+            if (el.name && el.type !== 'file' && el.name !== 'pgOperational') fd[el.name] = el.value;
+          });
+          fd.compId = compId;
+          if (fd.parentComp && fd.parentComp.indexOf(' (') > 0) fd.parentComp = fd.parentComp.split(' (')[0].trim();
+          if (fd.regType != null) { fd.regNo = (fd.regType || 'CORP') + '|' + (fd.regNo || ''); delete fd.regType; }
+          var tbody = form.querySelector('#pgBindingTbody');
+          if (tbody) {
+            var operationalVal = form.querySelector('input[name="pgOperational"]:checked');
+            var operationalIdx = operationalVal ? parseInt(operationalVal.value, 10) : 0;
+            var bindings = [];
+            tbody.querySelectorAll('tr').forEach(function (tr, i) {
+              var sel = function (f) { var e = tr.querySelector('[data-field="' + f + '"]'); return e ? e.value : ''; };
+              var pgCd = sel('pgCd');
+              if (pgCd) {
+                bindings.push({
+                  pgCd: pgCd,
+                  activationYn: sel('activationYn') || 'Y',
+                  operationalYn: i === operationalIdx ? 'Y' : 'N',
+                  payMethod: sel('payMethod') || 'WEB',
+                  mid: sel('mid'),
+                  apiKey: sel('apiKey'),
+                  ivKey: sel('ivKey'),
+                  installmentYn: sel('installmentYn') || 'N',
+                  maxInstallmentMonths: sel('maxInstallmentMonths')
+                });
+              }
+            });
+            fd.pgBindings = JSON.stringify(bindings);
+          }
+          var dimm = document.getElementById('dimm');
+          if (dimm) dimm.style.display = 'flex';
+          window.PG_API.compUpdate(fd).then(function () {
+            var settleFd = {};
+            ['withdrawLimitDays', 'payLimitDefault', 'payLimitExtra', 'holdRate', 'holdDays', 'calcCycle', 'transferType', 'autoTransferMin', 'payHoldYn'].forEach(function (k) {
+              if (fd[k] !== undefined && fd[k] !== null && fd[k] !== '') settleFd[k] = fd[k];
+            });
+            if (Object.keys(settleFd).length > 0) {
+              return window.PG_API.settlementSettingSave(compId, settleFd);
+            }
+            return Promise.resolve();
+          }).then(function () {
+            alert('저장되었습니다.');
+          }).catch(function (e) { alert(e && e.message ? e.message : '수정 저장 실패'); }).finally(function () { if (dimm) dimm.style.display = 'none'; });
+        });
+      }
+      pane.addEventListener('click', function (e) {
+        var listBtn = e.target && e.target.closest ? e.target.closest('#compDetailListBtn') : null;
+        var idChangeBtn = e.target && e.target.closest ? e.target.closest('[data-action="ID변경"]') : null;
+        var pwdResetBtn = e.target && e.target.closest ? e.target.closest('#compDetailPwdResetBtn, [data-action="비밀번호 초기화"]') : null;
+        var form = pane.querySelector('#compDetailForm');
+        var compIdEl = form && form.querySelector('[name="compId"]');
+        var compId = compIdEl && compIdEl.value ? compIdEl.value.trim() : '';
+        if (listBtn) {
+          if (compId) { try { sessionStorage.setItem('pg_comp_detail_return_compId', compId); } catch (e) {} }
+          fnTopMenuMove('/comp/compMngTree', null, '업체관리');
+          return;
+        }
+        if (idChangeBtn && compId) {
+          var loginIdEl = form && form.querySelector('[name="loginId"]');
+          var currentId = loginIdEl ? loginIdEl.value : '';
+          var newId = prompt('새 로그인 ID를 입력하세요.', currentId);
+          if (newId != null && newId.trim()) {
+            var dimm = document.getElementById('dimm');
+            if (dimm) dimm.style.display = 'flex';
+            window.PG_API.compChangeLoginId(compId, newId.trim()).then(function () {
+              alert('로그인 ID가 변경되었습니다.');
+              if (loginIdEl) loginIdEl.value = newId.trim();
+            }).catch(function (err) { alert(err && err.message ? err.message : 'ID 변경 실패'); }).finally(function () { if (dimm) dimm.style.display = 'none'; });
+          }
+          return;
+        }
+        if (pwdResetBtn && compId) {
+          if (!confirm('해당 업체의 비밀번호를 초기화하시겠습니까?')) return;
+          var dimm = document.getElementById('dimm');
+          if (dimm) dimm.style.display = 'flex';
+          window.PG_API.compResetPassword(compId).then(function (r) {
+            var pwd = (r && r.data && r.data.tempPassword) ? r.data.tempPassword : (r && r.tempPassword) ? r.tempPassword : '';
+            alert(pwd ? '비밀번호가 초기화되었습니다. 임시비밀번호: ' + pwd : '비밀번호가 초기화되었습니다.');
+          }).catch(function (err) { alert(err && err.message ? err.message : '비밀번호 초기화 실패'); }).finally(function () { if (dimm) dimm.style.display = 'none'; });
+          return;
+        }
+      });
     }
     if (url === '/hq/defaultCommission') {
       var dimm = document.getElementById('dimm');
@@ -825,15 +1293,29 @@
     return pane.querySelector('#paging_' + tabId) || pane.querySelector('.pagination-pages');
   }
 
-  function renderPagingNumbers(pane, tabId, currentPage, totalPages) {
+  function syncPaginationSizeButtons(pane, size) {
+    if (!pane) return;
+    pane.querySelectorAll('.pagination-size-opt').forEach(function (btn) {
+      var s = btn.getAttribute('data-size');
+      btn.classList.toggle('pagination-size-opt--active', s === String(size));
+    });
+  }
+
+  function renderPagingNumbers(pane, tabId, currentPage, totalPages, totalElements) {
     var container = getPagingContainer(pane, tabId);
     if (!container) return;
     currentPage = Math.max(1, parseInt(currentPage, 10) || 1);
     totalPages = Math.max(1, parseInt(totalPages, 10) || 1);
+    var total = totalElements != null ? parseInt(totalElements, 10) : 0;
+    if (isNaN(total)) total = 0;
     var totalPageEl = pane.querySelector('#totalPageCount');
     if (totalPageEl) totalPageEl.textContent = totalPages;
+    var totalEl = pane.querySelector('#totalElementsCount');
+    if (totalEl) totalEl.textContent = total;
     var pageCntEl = pane.querySelector('#pageCnt');
     if (pageCntEl) { pageCntEl.value = currentPage; pageCntEl.setAttribute('max', totalPages); }
+    var sizeEl = pane.querySelector('#recordsPerPage');
+    if (sizeEl) syncPaginationSizeButtons(pane, sizeEl.value);
     var html = '';
     if (totalPages <= 1) {
       html = '<span class="pagination-num pagination-num--current">1</span>';
@@ -870,7 +1352,9 @@
         if (!page) return;
         var cnt = pane.querySelector('#pageCnt');
         if (cnt) cnt.value = page;
-        renderPagingNumbers(pane, tabId, page, totalPages);
+        var totalEl = pane.querySelector('#totalElementsCount');
+        var totalElements = totalEl ? parseInt(totalEl.textContent || '0', 10) : 0;
+        renderPagingNumbers(pane, tabId, page, totalPages, totalElements);
         pane.dispatchEvent(new CustomEvent('paging-change', { detail: { page: page, totalPages: totalPages } }));
       });
     });
@@ -878,33 +1362,32 @@
 
   function bindPagingEvents(pane, tabId) {
     if (!pane || !tabId) return;
-    renderPagingNumbers(pane, tabId, 1, 1);
-    var pageSearchBtn = pane.querySelector('#pageSearch');
-    if (pageSearchBtn) {
-      pageSearchBtn.addEventListener('click', function () {
-        var pageCntEl = pane.querySelector('#pageCnt');
-        var totalPageEl = pane.querySelector('#totalPageCount');
-        var page = parseInt(pageCntEl && pageCntEl.value ? pageCntEl.value : 1, 10);
-        var total = parseInt(totalPageEl && totalPageEl.textContent ? totalPageEl.textContent : 1, 10);
-        page = Math.max(1, Math.min(total, page));
-        if (pageCntEl) pageCntEl.value = page;
-        renderPagingNumbers(pane, tabId, page, total);
-        pane.dispatchEvent(new CustomEvent('paging-change', { detail: { page: page, totalPages: total } }));
+    renderPagingNumbers(pane, tabId, 1, 1, 0);
+    pane.querySelectorAll('.pagination-size-opt').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var size = this.getAttribute('data-size');
+        if (!size) return;
+        var sizeInput = pane.querySelector('#recordsPerPage');
+        if (sizeInput) sizeInput.value = size;
+        syncPaginationSizeButtons(pane, size);
+        doSearch(pane, tabId, 1);
       });
-    }
+    });
     var pageCntEl = pane.querySelector('#pageCnt');
     if (pageCntEl) {
       pageCntEl.addEventListener('change', function () {
-        var total = parseInt(pane.querySelector('#totalPageCount').textContent || 1, 10);
-        var page = Math.max(1, Math.min(total, parseInt(this.value, 10) || 1));
-        renderPagingNumbers(pane, tabId, page, total);
+        var totalPages = parseInt(pane.querySelector('#totalPageCount').textContent || 1, 10);
+        var page = Math.max(1, Math.min(totalPages, parseInt(this.value, 10) || 1));
+        var totalEl = pane.querySelector('#totalElementsCount');
+        var totalElements = totalEl ? parseInt(totalEl.textContent || '0', 10) : 0;
+        renderPagingNumbers(pane, tabId, page, totalPages, totalElements);
       });
     }
   }
 
-  window.updatePaging = function (tabId, currentPage, totalPages) {
+  window.updatePaging = function (tabId, currentPage, totalPages, totalElements) {
     var pane = document.getElementById(tabId);
-    if (pane) renderPagingNumbers(pane, tabId, currentPage, totalPages);
+    if (pane) renderPagingNumbers(pane, tabId, currentPage, totalPages, totalElements);
   };
 
   function ensureTabPane(tabId, url) {
@@ -981,6 +1464,24 @@
 
   // 로고 클릭 / 탭 위임 / 접기
   document.addEventListener('DOMContentLoaded', function () {
+    setTableRowPaddingY(getTableRowPaddingY());
+    var rowResizeState = { active: false, startY: 0, startPx: 0 };
+    document.addEventListener('mousedown', function (e) {
+      var handle = e.target && e.target.closest ? e.target.closest('.table-row-resize-handle') : null;
+      if (!handle) return;
+      e.preventDefault();
+      rowResizeState.active = true;
+      rowResizeState.startY = e.clientY;
+      rowResizeState.startPx = getTableRowPaddingY();
+    });
+    document.addEventListener('mousemove', function (e) {
+      if (!rowResizeState.active) return;
+      var delta = e.clientY - rowResizeState.startY;
+      setTableRowPaddingY(rowResizeState.startPx + delta);
+    });
+    document.addEventListener('mouseup', function () {
+      rowResizeState.active = false;
+    });
     var ul = document.getElementById(TAB_UL);
     if (ul) {
       ul.addEventListener('click', function (e) {

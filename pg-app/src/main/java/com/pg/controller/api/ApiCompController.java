@@ -75,7 +75,7 @@ public class ApiCompController {
         PageResult<Map<String, Object>> result = compService.search(
                 searchCompId, searchCompNm, searchCompDiv, searchUseYn, searchPayHoldYn,
                 searchCeoNm, searchTerminalId, searchCeoMobile, searchRegNo, searchIncludeSub,
-                searchParentCompId, page, size, scopeCompId);
+                page, size, scopeCompId);
         return ResponseEntity.ok(ApiResponse.ok(result));
     }
 
@@ -118,6 +118,7 @@ public class ApiCompController {
             @RequestParam(required = false) String pwd,
             @RequestParam(required = false) String bankCd,
             @RequestParam(required = false) String transferFee,
+            @RequestParam(required = false) String cryptoTransferFee,
             @RequestParam(required = false) String accountNo,
             @RequestParam(required = false) String accountHolder,
             @RequestParam(required = false) String countryCd,
@@ -128,6 +129,7 @@ public class ApiCompController {
             @RequestParam(required = false) String walletAddress,
             @RequestParam(required = false) String networkName,
             @RequestParam(required = false) String siteUrl,
+            @RequestParam(required = false) String siteSummary,
             @RequestParam(required = false) String remark,
             @RequestParam(required = false) String withdrawLimitDays,
             @RequestParam(required = false) String withdrawStartTime,
@@ -194,14 +196,13 @@ public class ApiCompController {
             try { transferCycleDaysInt = Integer.parseInt(transferCycleDays.trim()); } catch (NumberFormatException ignored) {}
         }
         try {
-        String code = "C" + System.currentTimeMillis();
-        OrgUnit saved = compService.registerWithExtra(code, compNm, compDiv, parentIdVal,
+        OrgUnit saved = compService.registerWithExtra(null, compNm, compDiv, parentIdVal,
                 compTel, zipCode, addr, addrDetail,
                 ceoNm, ceoMobile, useYn, loginId,
                 regNo, bizType, industry, bizNature, product, homepage, settleName, settleTelNo, settleType, commissionRate, limitAmt, fax,
                 email, pwd,
-                bankCd, transferFee, accountNo, accountHolder,
-                countryCd, swift, branchName, branchAddr, contactTel, walletAddress, networkName, siteUrl,
+                bankCd, transferFee, cryptoTransferFee, accountNo, accountHolder,
+                countryCd, swift, branchName, branchAddr, contactTel, walletAddress, networkName, siteUrl, siteSummary,
                 remark,
                 withdrawDays, withdrawStartTime, withdrawEndTime, payLimitDefault, payLimitExtra, payLimitAlertSms,
                 holdRateFollowHq, holdRate, holdDaysInt, calcCycle, calcCloseTime, transferType, transferCycleDaysInt, autoTransferMin, payHoldYn,
@@ -244,12 +245,16 @@ public class ApiCompController {
             @RequestParam(required = false) String email,
             @RequestParam(required = false) String bankCd,
             @RequestParam(required = false) String transferFee,
+            @RequestParam(required = false) String cryptoTransferFee,
             @RequestParam(required = false) String accountNo,
             @RequestParam(required = false) String accountHolder,
             @RequestParam(required = false) String remark,
             @RequestParam(required = false) String commissionConfigAllowed,
             @RequestParam(required = false) String webPaymentUseYn,
-            @RequestParam(required = false) String baseCurrency) {
+            @RequestParam(required = false) String baseCurrency,
+            @RequestParam(required = false) String siteUrl,
+            @RequestParam(required = false) String siteSummary,
+            @RequestParam(required = false) String pgBindings) {
         var targetOpt = compService.getDetail(compId);
         if (targetOpt.isEmpty()) {
             return ResponseEntity.ok(ApiResponse.fail("업체를 찾을 수 없습니다.", "NOT_FOUND"));
@@ -267,8 +272,30 @@ public class ApiCompController {
         try {
             boolean ok = compService.update(compId, compNm, compDiv, parentId, compTel, zipCode, addr, addrDetail,
                     ceoNm, ceoMobile, useYn, loginId, regNo, bizType, industry, bizNature, product, homepage, settleName, settleTelNo, fax, email,
-                    bankCd, transferFee, accountNo, accountHolder, remark, commissionConfigAllowed, webPaymentUseYn, baseCurrency);
+                    bankCd, transferFee, cryptoTransferFee, accountNo, accountHolder, remark, commissionConfigAllowed, webPaymentUseYn, baseCurrency, siteUrl, siteSummary, pgBindings);
             return ResponseEntity.ok(ok ? ApiResponse.ok(Map.of("success", true, "message", "저장되었습니다."))
+                    : ApiResponse.fail("업체를 찾을 수 없습니다.", "NOT_FOUND"));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.ok(ApiResponse.fail(e.getMessage(), "VALIDATION"));
+        }
+    }
+
+    /** 업체 비밀번호 초기화 - 기본 비밀번호(test123!)로 재설정 */
+    @PostMapping("/resetPassword")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> resetPassword(@RequestParam String compId) {
+        boolean ok = compService.resetPassword(compId);
+        return ResponseEntity.ok(ok ? ApiResponse.ok(Map.of("success", true, "message", "비밀번호가 초기화되었습니다.", "tempPassword", "test123!"))
+                : ApiResponse.fail("업체를 찾을 수 없습니다.", "NOT_FOUND"));
+    }
+
+    /** 업체 로그인ID 변경 */
+    @PostMapping("/changeLoginId")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> changeLoginId(
+            @RequestParam String compId,
+            @RequestParam String newLoginId) {
+        try {
+            boolean ok = compService.changeLoginId(compId, newLoginId.trim());
+            return ResponseEntity.ok(ok ? ApiResponse.ok(Map.of("success", true, "message", "로그인ID가 변경되었습니다."))
                     : ApiResponse.fail("업체를 찾을 수 없습니다.", "NOT_FOUND"));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.ok(ApiResponse.fail(e.getMessage(), "VALIDATION"));
