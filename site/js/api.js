@@ -59,6 +59,13 @@
       return res.text().then(function (text) {
         var data;
         try { data = text ? JSON.parse(text) : {}; } catch (e) { data = {}; }
+        if (!res.ok) {
+          var hint = (data && data.message) ? data.message : (text ? String(text).slice(0, 120) : '');
+          return Promise.reject(new Error(
+            'API 오류 HTTP ' + res.status + (hint ? (': ' + hint) : '') +
+            ' (도메인/프록시·CORS 확인)'
+          ));
+        }
         if (data.success === false) {
           return Promise.reject(new Error(data.message || '요청 처리에 실패했습니다.'));
         }
@@ -79,6 +86,10 @@
 
   function post(path, body) {
     return request({ path: path, method: 'POST', body: body || {} });
+  }
+
+  function del(path) {
+    return request({ path: path, method: 'DELETE' });
   }
 
   window.PG_API = {
@@ -141,9 +152,86 @@
       });
     },
 
+    /** 바이너리 응답 (xlsx 등) — JSON 파싱 안 함 */
+    fetchBinary: function (path, init) {
+      var base = getBaseUrl();
+      var url = base + (path || '');
+      var headers = {};
+      var token = getToken();
+      if (token) headers['Authorization'] = 'Bearer ' + token;
+      if (init && init.headers) {
+        for (var hk in init.headers) headers[hk] = init.headers[hk];
+      }
+      var opt = { method: (init && init.method) || 'GET', headers: headers, credentials: 'same-origin' };
+      if (init && init.body) opt.body = init.body;
+      return fetch(url, opt).then(function (res) {
+        if (res.status === 401) {
+          clearAuth();
+          if (typeof window.location !== 'undefined') window.location.replace((window.location.origin || '') + '/login.html');
+          return Promise.reject(new Error('인증이 만료되었습니다. 다시 로그인하세요.'));
+        }
+        if (!res.ok) {
+          return res.text().then(function (t) {
+            throw new Error(t || ('다운로드 실패 (HTTP ' + res.status + ')'));
+          });
+        }
+        return res.blob();
+      });
+    },
+
+    compExcelSample: function () {
+      return this.fetchBinary('/api/comp/excelSample');
+    },
+
+    exportStyledExcel: function (payload) {
+      return this.fetchBinary('/api/comp/exportStyledExcel', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        },
+        body: JSON.stringify(payload || {})
+      });
+    },
+
+    compExcelRegister: function (file) {
+      var base = getBaseUrl();
+      var token = getToken();
+      var fd = new FormData();
+      fd.append('file', file);
+      var headers = {};
+      if (token) headers['Authorization'] = 'Bearer ' + token;
+      return fetch(base + '/api/comp/excelRegister', {
+        method: 'POST',
+        headers: headers,
+        body: fd
+      }).then(function (res) {
+        if (res.status === 401) { clearAuth(); if (window.location) window.location.replace((window.location.origin || '') + '/login.html'); return Promise.reject(new Error('인증이 만료되었습니다.')); }
+        return res.text().then(function (text) {
+          var r;
+          try { r = text ? JSON.parse(text) : {}; } catch (e) { return Promise.reject(new Error('서버 응답 오류')); }
+          if (r.success === false && r.success !== undefined) throw new Error(r.message || '엑셀 등록 실패');
+          return r;
+        });
+      });
+    },
+
     compDetail: function (compId) {
       return get('/api/comp/detail', { compId: compId }).then(function (r) {
         if (r.success === false && r.success !== undefined) throw new Error(r.message || '조회 실패');
+        return r.data;
+      });
+    },
+
+    compPgBindingSave: function (body) {
+      return post('/api/comp/pgBinding/save', body || {}).then(function (r) {
+        return r.data;
+      });
+    },
+
+    compPgBindingDelete: function (compId, bindingId) {
+      var path = '/api/comp/pgBinding/' + encodeURIComponent(String(bindingId)) + '?compId=' + encodeURIComponent(compId || '');
+      return del(path).then(function (r) {
         return r.data;
       });
     },
@@ -329,11 +417,67 @@
     hqApiConfigSave: function (body) {
       return post('/api/hq/apiConfig/save', body).then(function (r) { return r.data; });
     },
+
+    hqNotifyEnv: function () {
+      return get('/api/hq/notifyEnv').then(function (r) { return r.data; });
+    },
+    hqNotifyEnvSave: function (body) {
+      return post('/api/hq/notifyEnv/save', body || {}).then(function (r) { return r.data; });
+    },
+    hqNotifyEnvRegenerateToken: function () {
+      return post('/api/hq/notifyEnv/regenerateToken', {}).then(function (r) { return r.data; });
+    },
+
+    payAction: function (trnId, action) {
+      return post('/api/calc/payAction', { trnId: trnId, action: action }).then(function (r) { return r.data; });
+    },
     hqPermissionMng: function (params) {
       return get('/api/hq/permissionMng', params).then(function (r) { return r.data; });
     },
     hqPermissionMngSave: function (body) {
       return post('/api/hq/permissionMng/save', body).then(function (r) { return r.data; });
+    },
+
+    /** 본사/총판 브랜딩 - 로그인 페이지용 (인증 불필요) */
+    orgBrandingPublic: function (compId) {
+      var params = compId ? { compId: compId } : {};
+      var base = getBaseUrl();
+      var url = base + '/api/public/org/branding' + (compId ? '?compId=' + encodeURIComponent(compId) : '');
+      return fetch(url, { method: 'GET', headers: { 'Accept': 'application/json' }, credentials: 'same-origin' })
+        .then(function (r) { return r.json(); })
+        .then(function (r) { return r.data || r; });
+    },
+    /** 본사/총판 브랜딩 조회 */
+    orgBranding: function (compId) {
+      return get('/api/org/branding', compId ? { compId: compId } : {}).then(function (r) { return r.data || r; });
+    },
+    /** 브랜딩 이미지 업로드 */
+    orgBrandingUpload: function (compId, imageType, file) {
+      var base = getBaseUrl();
+      var token = getToken();
+      var fd = new FormData();
+      fd.append('compId', compId);
+      fd.append('imageType', imageType);
+      fd.append('file', file);
+      var headers = {};
+      if (token) headers['Authorization'] = 'Bearer ' + token;
+      return fetch(base + '/api/org/branding/upload', {
+        method: 'POST',
+        headers: headers,
+        body: fd
+      }).then(function (r) { return r.json(); });
+    },
+    /** 브랜딩 테마 저장 */
+    orgBrandingSave: function (compId, theme) {
+      var base = getBaseUrl();
+      var token = getToken();
+      var headers = { 'Content-Type': 'application/x-www-form-urlencoded', 'Accept': 'application/json' };
+      if (token) headers['Authorization'] = 'Bearer ' + token;
+      return fetch(base + '/api/org/branding/save', {
+        method: 'POST',
+        headers: headers,
+        body: new URLSearchParams({ compId: compId, theme: theme || 'DEFAULT' })
+      }).then(function (r) { return r.json(); });
     }
   };
 })();

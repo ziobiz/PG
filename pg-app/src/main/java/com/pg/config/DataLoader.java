@@ -2,11 +2,13 @@ package com.pg.config;
 
 import com.pg.entity.*;
 import com.pg.repository.*;
+import com.pg.service.HqNotifyEnvService;
 import java.util.Optional;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
+import org.springframework.core.env.Environment;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.math.BigDecimal;
@@ -17,14 +19,26 @@ import java.util.UUID;
 public class DataLoader {
 
     @Bean
-    public CommandLineRunner initAdmin(UserRepository userRepository, PasswordEncoder passwordEncoder) {
+    public CommandLineRunner ensureHqNotifyEnv(HqNotifyEnvService hqNotifyEnvService) {
+        return args -> hqNotifyEnvService.getOrCreate();
+    }
+
+    @Bean
+    public CommandLineRunner initAdmin(UserRepository userRepository, PasswordEncoder passwordEncoder, Environment env) {
         return args -> {
-            if (userRepository.findByUsername("admin").isEmpty()) {
+            String defaultPwd = "admin1!";
+            Optional<AppUser> adminOpt = userRepository.findByUsername("admin");
+            if (adminOpt.isEmpty()) {
                 AppUser admin = new AppUser();
                 admin.setUsername("admin");
-                admin.setPassword(passwordEncoder.encode("admin1!"));
+                admin.setPassword(passwordEncoder.encode(defaultPwd));
                 admin.setName("관리자");
                 admin.setRole("ADMIN");
+                admin.setEnabled(true);
+                userRepository.save(admin);
+            } else if (java.util.Arrays.stream(env.getActiveProfiles()).anyMatch("dev"::equals)) {
+                AppUser admin = adminOpt.get();
+                admin.setPassword(passwordEncoder.encode(defaultPwd));
                 admin.setEnabled(true);
                 userRepository.save(admin);
             }
@@ -56,21 +70,90 @@ public class DataLoader {
                 hq.setName("총본사");
                 hq.setStatus("ACTIVE");
                 orgUnitRepository.save(hq);
+                // 본사 1개
+                OrgUnit r01 = new OrgUnit();
+                r01.setOrgLevel(OrgLevel.REGIONAL);
+                r01.setParentId(hq.getId());
+                r01.setCode("R01");
+                r01.setName("본사1");
+                r01.setStatus("ACTIVE");
+                orgUnitRepository.save(r01);
+                // 총판 2개
+                OrgUnit d01 = new OrgUnit();
+                d01.setOrgLevel(OrgLevel.MASTER_DIST);
+                d01.setParentId(r01.getId());
+                d01.setCode("D01");
+                d01.setName("총판1");
+                d01.setStatus("ACTIVE");
+                orgUnitRepository.save(d01);
+                OrgUnit d02 = new OrgUnit();
+                d02.setOrgLevel(OrgLevel.MASTER_DIST);
+                d02.setParentId(r01.getId());
+                d02.setCode("D02");
+                d02.setName("총판2");
+                d02.setStatus("ACTIVE");
+                orgUnitRepository.save(d02);
+                // 지사 2개 (총판1, 총판2 아래 각 1개)
+                OrgUnit b01 = new OrgUnit();
+                b01.setOrgLevel(OrgLevel.BRANCH);
+                b01.setParentId(d01.getId());
+                b01.setCode("B01");
+                b01.setName("지사1");
+                b01.setStatus("ACTIVE");
+                orgUnitRepository.save(b01);
+                OrgUnit b02 = new OrgUnit();
+                b02.setOrgLevel(OrgLevel.BRANCH);
+                b02.setParentId(d02.getId());
+                b02.setCode("B02");
+                b02.setName("지사2");
+                b02.setStatus("ACTIVE");
+                orgUnitRepository.save(b02);
+                // 대리점 2개
+                OrgUnit a01 = new OrgUnit();
+                a01.setOrgLevel(OrgLevel.AGENCY);
+                a01.setParentId(b01.getId());
+                a01.setCode("A01");
+                a01.setName("대리점1");
+                a01.setStatus("ACTIVE");
+                orgUnitRepository.save(a01);
+                OrgUnit a02 = new OrgUnit();
+                a02.setOrgLevel(OrgLevel.AGENCY);
+                a02.setParentId(b02.getId());
+                a02.setCode("A02");
+                a02.setName("대리점2");
+                a02.setStatus("ACTIVE");
+                orgUnitRepository.save(a02);
+                // 영업점 2개
+                OrgUnit s01 = new OrgUnit();
+                s01.setOrgLevel(OrgLevel.SALES_OFFICE);
+                s01.setParentId(a01.getId());
+                s01.setCode("S01");
+                s01.setName("영업점1");
+                s01.setStatus("ACTIVE");
+                orgUnitRepository.save(s01);
+                OrgUnit s02 = new OrgUnit();
+                s02.setOrgLevel(OrgLevel.SALES_OFFICE);
+                s02.setParentId(a02.getId());
+                s02.setCode("S02");
+                s02.setName("영업점2");
+                s02.setStatus("ACTIVE");
+                orgUnitRepository.save(s02);
+                // 가맹점 2개 (영업점1, 영업점2 아래 각 1개)
                 OrgUnit m1 = new OrgUnit();
                 m1.setOrgLevel(OrgLevel.MERCHANT);
-                m1.setParentId(hq.getId());
+                m1.setParentId(s01.getId());
                 m1.setCode("M001");
-                m1.setName("테스트가맹점1");
+                m1.setName("가맹점1");
                 m1.setStatus("ACTIVE");
                 orgUnitRepository.save(m1);
                 OrgUnit m2 = new OrgUnit();
                 m2.setOrgLevel(OrgLevel.MERCHANT);
-                m2.setParentId(hq.getId());
+                m2.setParentId(s02.getId());
                 m2.setCode("M002");
-                m2.setName("테스트가맹점2");
+                m2.setName("가맹점2");
                 m2.setStatus("ACTIVE");
                 orgUnitRepository.save(m2);
-                for (OrgUnit ou : java.util.Arrays.asList(hq, m1, m2)) {
+                for (OrgUnit ou : java.util.Arrays.asList(hq, r01, d01, d02, b01, b02, a01, a02, s01, s02, m1, m2)) {
                     if (merchantProfileRepository.findByOrgUnitId(ou.getId()).isEmpty()) {
                         MerchantProfile mp = new MerchantProfile();
                         mp.setOrgUnitId(ou.getId());
@@ -94,17 +177,45 @@ public class DataLoader {
                 }
             }
             if (trnsctnRepository.count() == 0) {
-                for (int i = 0; i < 15; i++) {
+                for (int i = 0; i < 30; i++) {
                     PgTrnsctn t = new PgTrnsctn();
                     t.setTrnId("T" + (System.currentTimeMillis() + i));
                     t.setMerchantId(i % 2 == 0 ? "M001" : "M002");
                     t.setServiceType("WEB");
-                    t.setStatus(i % 5 == 0 ? "20" : "10");
+                    switch (i % 8) {
+                        case 0:
+                            t.setStatus("10");
+                            break;
+                        case 1:
+                            t.setStatus("20");
+                            break;
+                        case 2:
+                            t.setStatus("F0");
+                            break;
+                        case 3:
+                            t.setStatus("30");
+                            break;
+                        case 4:
+                            t.setStatus("31");
+                            break;
+                        case 5:
+                            t.setStatus("99");
+                            break;
+                        default:
+                            t.setStatus("10");
+                    }
+                    if (i % 9 == 0) {
+                        t.setOrigin("NOTI");
+                    } else if (i % 7 == 0) {
+                        t.setOrigin("URL");
+                    } else {
+                        t.setOrigin(null);
+                    }
                     t.setCurType("KRW");
-                    t.setAmtKrw(BigDecimal.valueOf(10000 + i * 5000));
+                    t.setAmtKrw(BigDecimal.valueOf(10000 + i * 5000L));
                     t.setPayNo("ORD" + (1000 + i));
                     t.setApprovalNo(String.format("%06d", 100000 + i));
-                    t.setVan("INICIS");
+                    t.setVan("CHILLPAY");
                     trnsctnRepository.save(t);
                 }
             }
@@ -215,6 +326,7 @@ public class DataLoader {
                     binding2.setOperationalYn("Y");
                     binding2.setPayMethod("WEB");
                     binding2.setMid("M035594");
+                    binding2.setRootNo("4");
                     binding2.setApiKey("");
                     binding2.setIvKey("");
                     binding2.setSortOrder(1);
@@ -374,6 +486,7 @@ public class DataLoader {
                     binding.setOperationalYn("Y");
                     binding.setPayMethod("WEB");
                     binding.setMid("M035594");
+                    binding.setRootNo("4");
                     binding.setApiKey("");
                     binding.setIvKey("");
                     binding.setSortOrder(1);
@@ -387,6 +500,7 @@ public class DataLoader {
                     binding2.setOperationalYn("Y");
                     binding2.setPayMethod("WEB");
                     binding2.setMid("M035594");
+                    binding2.setRootNo("4");
                     binding2.setApiKey("");
                     binding2.setIvKey("");
                     binding2.setSortOrder(1);
@@ -517,6 +631,7 @@ public class DataLoader {
                 binding.setOperationalYn("Y");
                 binding.setPayMethod("WEB");
                 binding.setMid("M035594");
+                binding.setRootNo("4");
                 binding.setApiKey("");
                 binding.setIvKey("");
                 binding.setSortOrder(1);

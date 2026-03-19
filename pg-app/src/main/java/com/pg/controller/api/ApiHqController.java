@@ -92,7 +92,51 @@ public class ApiHqController {
 
     @PostMapping("/pgApiMng/save")
     public ResponseEntity<ApiResponse<Map<String, Object>>> pgApiMngSave(@RequestBody Map<String, Object> body) {
-        return ResponseEntity.ok(ApiResponse.ok(Map.of("success", true, "message", "저장되었습니다.")));
+        try {
+            String pgNm = hqStr(body, "pgNm");
+            String pgCdRaw = hqStr(body, "pgCd");
+            if (pgNm == null || pgNm.isBlank() || pgCdRaw == null || pgCdRaw.isBlank()) {
+                return ResponseEntity.ok(ApiResponse.fail("PG사코드와 PG사명은 필수입니다.", "VALIDATION"));
+            }
+            String pgCd = pgCdRaw.trim().toUpperCase();
+            String endpoint = hqStr(body, "apiEndpoint");
+            String useYn = "N".equalsIgnoreCase(hqStr(body, "useYn")) ? "N" : "Y";
+
+            PgAgency entity;
+            Object idObj = body.get("id");
+            if (idObj != null && !idObj.toString().isBlank()) {
+                long id = Long.parseLong(idObj.toString().trim());
+                entity = pgAgencyRepository.findById(id)
+                        .orElseThrow(() -> new IllegalArgumentException("PG사 정보를 찾을 수 없습니다."));
+                entity.setPgNm(pgNm.trim());
+                if (endpoint != null) entity.setApiEndpoint(endpoint.trim());
+                entity.setUseYn(useYn);
+            } else {
+                if (pgAgencyRepository.findByPgCd(pgCd).isPresent()) {
+                    return ResponseEntity.ok(ApiResponse.fail("이미 등록된 PG사코드입니다.", "DUPLICATE"));
+                }
+                entity = new PgAgency();
+                entity.setPgCd(pgCd);
+                entity.setPgNm(pgNm.trim());
+                entity.setApiEndpoint(endpoint != null ? endpoint.trim() : null);
+                entity.setUseYn(useYn);
+            }
+            pgAgencyRepository.save(entity);
+            Map<String, Object> data = new HashMap<>();
+            data.put("message", "저장되었습니다.");
+            data.put("id", entity.getId());
+            data.put("pgCd", entity.getPgCd());
+            return ResponseEntity.ok(ApiResponse.ok(data));
+        } catch (NumberFormatException e) {
+            return ResponseEntity.ok(ApiResponse.fail("ID 형식이 올바르지 않습니다.", "VALIDATION"));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.ok(ApiResponse.fail(e.getMessage(), "VALIDATION"));
+        }
+    }
+
+    private static String hqStr(Map<String, Object> body, String key) {
+        Object v = body.get(key);
+        return v == null ? null : v.toString();
     }
 
     /** 2. 기본정책 (건당/이용/실패/취소/환불/결제/정산/USDT/FX/롤링%) */

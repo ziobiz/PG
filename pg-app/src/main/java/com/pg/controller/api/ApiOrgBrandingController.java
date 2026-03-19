@@ -1,0 +1,170 @@
+package com.pg.controller.api;
+
+import com.pg.api.ApiResponse;
+import com.pg.entity.OrgBranding;
+import com.pg.entity.OrgLevel;
+import com.pg.entity.OrgUnit;
+import com.pg.repository.OrgBrandingRepository;
+import com.pg.repository.OrgUnitRepository;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.Map;
+import java.util.Optional;
+import java.util.UUID;
+
+/**
+ * 본사/총판 브랜딩 API
+ * - GET /api/public/org/branding?compId=XXX : 로그인 페이지용 (인증 불필요)
+ * - GET /api/org/branding?compId=XXX : 대시보드용
+ * - POST /api/org/branding/upload : 이미지 업로드
+ * - POST /api/org/branding/save : 테마 등 저장
+ */
+@RestController
+@RequestMapping(value = "/api/org/branding", produces = MediaType.APPLICATION_JSON_VALUE)
+public class ApiOrgBrandingController {
+
+    private static final long MAIN_IMAGE_MAX_BYTES = 2 * 1024 * 1024;  // 2MB
+    private static final long LOGO_IMAGE_MAX_BYTES = 1 * 1024 * 1024;  // 1MB
+
+    private final OrgBrandingRepository brandingRepository;
+    private final OrgUnitRepository orgUnitRepository;
+
+    @Value("${app.upload-dir:uploads}")
+    private String uploadDir;
+
+    public ApiOrgBrandingController(OrgBrandingRepository brandingRepository, OrgUnitRepository orgUnitRepository) {
+        this.brandingRepository = brandingRepository;
+        this.orgUnitRepository = orgUnitRepository;
+    }
+
+    @GetMapping
+    public ResponseEntity<ApiResponse<Map<String, Object>>> get(@RequestParam(required = false) String compId) {
+        return getBranding(compId);
+    }
+
+    private ResponseEntity<ApiResponse<Map<String, Object>>> getBranding(String compId) {
+        if (compId == null || compId.trim().isEmpty()) {
+            return ResponseEntity.ok(ApiResponse.ok(Map.of(
+                    "mainImageUrl", "",
+                    "logoImageUrl", "",
+                    "theme", "DEFAULT"
+            )));
+        }
+        return orgUnitRepository.findByCode(compId.trim())
+                .filter(ou -> ou.getOrgLevel() == OrgLevel.REGIONAL || ou.getOrgLevel() == OrgLevel.MASTER_DIST)
+                .flatMap(ou -> brandingRepository.findByOrgUnitId(ou.getId())
+                        .map(b -> Map.<String, Object>of(
+                                "compId", compId,
+                                "mainImageUrl", b.getMainImageUrl() != null ? b.getMainImageUrl() : "",
+                                "logoImageUrl", b.getLogoImageUrl() != null ? b.getLogoImageUrl() : "",
+                                "theme", b.getTheme() != null ? b.getTheme() : "DEFAULT"
+                        )))
+                .map(ApiResponse::ok)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.ok(ApiResponse.ok(Map.of(
+                        "mainImageUrl", "",
+                        "logoImageUrl", "",
+                        "theme", "DEFAULT"
+                ))));
+    }
+
+    @PostMapping("/upload")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> upload(
+            @RequestParam String compId,
+            @RequestParam String imageType,
+            @RequestParam("file") MultipartFile file) {
+        if (file.isEmpty()) {
+            return ResponseEntity.ok(ApiResponse.fail("파일을 선택하세요.", "EMPTY"));
+        }
+        Optional<OrgUnit> ouOpt = orgUnitRepository.findByCode(compId.trim());
+        if (ouOpt.isEmpty()) {
+            return ResponseEntity.ok(ApiResponse.fail("업체를 찾을 수 없습니다.", "NOT_FOUND"));
+        }
+        OrgUnit ou = ouOpt.get();
+        if (ou.getOrgLevel() != OrgLevel.REGIONAL && ou.getOrgLevel() != OrgLevel.MASTER_DIST) {
+            return ResponseEntity.ok(ApiResponse.fail("본사 또는 총판만 브랜딩을 설정할 수 있습니다.", "FORBIDDEN"));
+        }
+        if (!"main".equals(imageType) && !"logo".equals(imageType)) {
+            return ResponseEntity.ok(ApiResponse.fail("imageType은 main 또는 logo여야 합니다.", "INVALID"));
+        }
+        long maxBytes = "main".equals(imageType) ? MAIN_IMAGE_MAX_BYTES : LOGO_IMAGE_MAX_BYTES;
+        if (file.getSize() > maxBytes) {
+            return ResponseEntity.ok(ApiResponse.fail(
+                    "main".equals(imageType) ? "메인이미지는 2MB 이하여야 합니다." : "로고이미지는 1MB 이하여야 합니다.",
+                    "SIZE_EXCEEDED"));
+        }
+        String ext = getExtension(file.getOriginalFilename());
+        if (ext == null || (!ext.equalsIgnoreCase("png") && !ext.equalsIgnoreCase("jpg") && !ext.equalsIgnoreCase("jpeg"))) {
+            return ResponseEntity.ok(ApiResponse.fail("PNG 또는 JPG 파일만 업로드 가능합니다.", "INVALID_TYPE"));
+        }
+        try {
+            Path basePath = Paths.get(System.getProperty("user.dir"), uploadDir, "org", compId.trim()).normalize();
+            Files.createDirectories(basePath);
+            String fileName = imageType + "_" + UUID.randomUUID().toString().substring(0, 8) + "." + ext;
+            Path targetPath = basePath.resolve(fileName);
+            Files.copy(file.getInputStream(), targetPath, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+            String url = "/uploads/org/" + compId.trim() + "/" + fileName;
+
+            OrgBranding b = brandingRepository.findByOrgUnitId(ou.getId())
+                    .orElseGet(() -> {
+                        OrgBranding nb = new OrgBranding();
+                        nb.setOrgUnitId(ou.getId());
+                        return nb;
+                    });
+            if ("main".equals(imageType)) {
+                b.setMainImageUrl(url);
+            } else {
+                b.setLogoImageUrl(url);
+            }
+            brandingRepository.save(b);
+
+            return ResponseEntity.ok(ApiResponse.ok(Map.of(
+                    "url", url,
+                    "imageType", imageType
+            )));
+        } catch (IOException e) {
+            return ResponseEntity.ok(ApiResponse.fail("파일 저장 실패: " + e.getMessage(), "IO_ERROR"));
+        }
+    }
+
+    @PostMapping("/save")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> save(
+            @RequestParam String compId,
+            @RequestParam(required = false) String theme) {
+        Optional<OrgUnit> ouOpt = orgUnitRepository.findByCode(compId.trim());
+        if (ouOpt.isEmpty()) {
+            return ResponseEntity.ok(ApiResponse.fail("업체를 찾을 수 없습니다.", "NOT_FOUND"));
+        }
+        OrgUnit ou = ouOpt.get();
+        if (ou.getOrgLevel() != OrgLevel.REGIONAL && ou.getOrgLevel() != OrgLevel.MASTER_DIST) {
+            return ResponseEntity.ok(ApiResponse.fail("본사 또는 총판만 브랜딩을 설정할 수 있습니다.", "FORBIDDEN"));
+        }
+        String themeVal = (theme != null && !theme.trim().isEmpty()) ? theme.trim().toUpperCase() : "DEFAULT";
+        if (!themeVal.matches("DEFAULT|LIGHT|DARK|PASTEL_1|PASTEL_2|PASTEL_3|PASTEL_4|PASTEL_5")) {
+            themeVal = "DEFAULT";
+        }
+        OrgBranding b = brandingRepository.findByOrgUnitId(ou.getId())
+                .orElseGet(() -> {
+                    OrgBranding nb = new OrgBranding();
+                    nb.setOrgUnitId(ou.getId());
+                    return nb;
+                });
+        b.setTheme(themeVal);
+        brandingRepository.save(b);
+        return ResponseEntity.ok(ApiResponse.ok(Map.of("success", true, "theme", themeVal)));
+    }
+
+    private static String getExtension(String filename) {
+        if (filename == null || filename.isEmpty()) return null;
+        int i = filename.lastIndexOf('.');
+        return i > 0 ? filename.substring(i + 1) : null;
+    }
+}

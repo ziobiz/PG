@@ -1,0 +1,12 @@
+# /etc/nginx/nginx.conf 의 http { ... } 블록 **맨 위쪽**(server 보다 앞)에 붙여 넣은 뒤,
+# api 프록시 location 에서 아래처럼 사용하세요.
+#
+#   proxy_set_header X-Forwarded-Proto $pg_forwarded_proto;
+#
+# Cloudflare 없이 오리진에 직접 붙는 요청은 $scheme(대개 http)이 쓰이고,
+# Cloudflare 뒤에서는 방문자가 쓴 https 가 유지됩니다.
+
+map $http_x_forwarded_proto $pg_forwarded_proto {
+    ""      $scheme;
+    default $http_x_forwarded_proto;
+}

@@ -11,6 +11,7 @@
 | **site/** (HTML, JS, CSS) | ✅ 필요 | ❌ 불필요 | 파일만 올리면 바로 반영 |
 | **pg-app/** (Java 소스) | ✅ 필요 | ✅ 필요 | **빌드 후** JAR 올리고 재시작 |
 | **pg-app/** (application.yml 등 설정만) | ✅ 필요 | ✅ 필요 | 빌드 없이 올리고 재시작 |
+| **PostgreSQL 데이터/스키마** | ❌ FTP 아님 | 앱·DB 작업 | [DB_서버_반영_가이드.md](./DB_서버_반영_가이드.md) 참고 |
 
 ---
 
@@ -23,10 +24,18 @@
 
 브라우저 새로고침(F5) 또는 캐시 비우고 새로고침(Ctrl+Shift+R) 후 확인.
 
+### 로그인 화면 브랜딩(로고·왼쪽 배경)
+
+- API는 **업체 코드(`org`)** 가 있어야 브랜딩을 내려줍니다.  
+  예: `https://otlpay.cafe24.com/login.html?org=본사업체코드`
+- 카페24는 정적 호스팅만 하므로 `site/js/config.js` 에서 **API 베이스**가 실제 pg-app 주소를 가리켜야 합니다. (`otlpay.cafe24.com` 은 코드에서 자동 지정, 백엔드가 다르면 해당 상수 수정)
+- 서버(pg-app) `application.yml` 의 **CORS**에 `https://otlpay.cafe24.com` 등이 포함되어 있어야 브라우저에서 API 호출이 됩니다.
+
 ### 업로드 예시
 
 | 로컬 경로 | 서버 경로 (예시) |
 |-----------|------------------|
+| `site/js/config.js` | `/home/ftpuser/site/js/config.js` |
 | `site/js/app.js` | `/home/ftpuser/site/js/app.js` |
 | `site/js/screens.js` | `/home/ftpuser/site/js/screens.js` |
 | `site/index.html` | `/home/ftpuser/site/index.html` |
@@ -54,14 +63,14 @@ cd pg-app
 
 | 업로드할 파일 | 서버 경로 (예시) |
 |--------------|------------------|
-| `pg-app/build/libs/pg-app-0.0.1-SNAPSHOT.jar` | `/root/pg-app/build/libs/` (기존 JAR 덮어쓰기) |
+| `pg-app/build/libs/pg-app-0.0.1-SNAPSHOT.jar` | 서버 pg-app `build/libs/` (기존 JAR 덮어쓰기). 예: `/home/ftpuser/pg-app/build/libs/` |
 
 #### 3단계: 서버 재시작
 
-SSH 접속 후:
+SSH 접속 후 (pg-app 루트는 서버마다 다름):
 
 ```bash
-cd /root/pg-app
+cd /home/ftpuser/pg-app
 ./restart-pg-app.sh
 ```
 
@@ -77,11 +86,11 @@ Java 소스는 건드리지 않고 **application.yml, application-*.yml** 등만
 2. SSH로 서버 접속 후 재시작:
 
 ```bash
-cd /root/pg-app
+cd /home/ftpuser/pg-app
 ./restart-pg-app.sh
 ```
 
-빌드는 하지 않아도 됩니다.
+빌드는 하지 않아도 됩니다. (단, **JAR 안에만** 들어 있는 설정은 `application.yml` 을 classpath 밖에 두는 방식이 아니면 JAR 재빌드가 필요할 수 있음.)
 
 ---
 

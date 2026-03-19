@@ -17,6 +17,8 @@ import com.pg.entity.MerchantNotifyUrl;
 import com.pg.entity.CommissionPolicy;
 import com.pg.entity.AppUser;
 import com.pg.repository.MerchantPgBindingRepository;
+import com.pg.repository.PgAgencyRepository;
+import com.pg.entity.PgAgency;
 import com.pg.repository.MerchantDefaultProductRepository;
 import com.pg.repository.MerchantNotifyUrlRepository;
 import com.pg.repository.CommissionPolicyRepository;
@@ -30,6 +32,7 @@ import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -44,11 +47,13 @@ public class CompService {
     private final SettlementSettingRepository settlementSettingRepository;
     private final MerchantCommissionExtraRepository merchantCommissionExtraRepository;
     private final MerchantPgBindingRepository merchantPgBindingRepository;
+    private final PgAgencyRepository pgAgencyRepository;
     private final MerchantDefaultProductRepository merchantDefaultProductRepository;
     private final MerchantNotifyUrlRepository merchantNotifyUrlRepository;
     private final CommissionPolicyRepository commissionPolicyRepository;
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final CompExcelImportService compExcelImportService;
 
     private static LocalTime parseTime(String s) {
         if (s == null || s.trim().isEmpty()) return null;
@@ -58,6 +63,40 @@ public class CompService {
             if (t.matches("\\d{1,2}:\\d{2}:\\d{2}")) return LocalTime.parse(t, DateTimeFormatter.ofPattern("H:mm:ss"));
             return LocalTime.parse(t);
         } catch (DateTimeParseException e) { return null; }
+    }
+
+    /**
+     * 상위 조직으로의 이동만 허용. 하위 조직으로의 이동은 금지.
+     * 예: 대리점은 영업점 밑으로 이동 불가. 가맹점은 총판/본사/지사/대리점/영업점 중 어디든 배치 가능.
+     * @param parentId 상위 조직 ID (null이면 검증 스킵)
+     * @param childLevel 자식 조직의 OrgLevel
+     * @param childId 자식 조직 ID (자기 자신을 parent로 설정하는 것 방지용, 등록 시 null)
+     */
+    private void validateParentLevel(Long parentId, OrgLevel childLevel, Long childId) {
+        if (parentId == null || childLevel == null) return;
+        if (childId != null && parentId.equals(childId)) {
+            throw new IllegalArgumentException("상위업체로 자기 자신을 선택할 수 없습니다.");
+        }
+        OrgUnit parent = orgUnitRepository.findById(parentId).orElse(null);
+        if (parent == null || parent.getOrgLevel() == null) return;
+        int parentCode = parent.getOrgLevel().getCode();
+        int childCode = childLevel.getCode();
+        if (parentCode > childCode) {
+            throw new IllegalArgumentException(
+                "하위 조직으로의 이동은 불가합니다. " + parent.getOrgLevel().getNameKo() + "은(는) " + childLevel.getNameKo() + "보다 하위 조직입니다.");
+        }
+    }
+
+    /** 기준 화폐 검증: 본사 최대 3종(comma구분), 총판 1종만 */
+    private static void validateBaseCurrency(String compDiv, String baseCurrency) {
+        if (baseCurrency == null || baseCurrency.trim().isEmpty()) return;
+        String val = baseCurrency.trim();
+        if ("REGIONAL".equalsIgnoreCase(compDiv)) {
+            String[] parts = val.split(",\\s*");
+            if (parts.length > 3) throw new IllegalArgumentException("본사는 기준 화폐를 최대 3가지까지 지정할 수 있습니다.");
+        } else if ("MASTER_DIST".equalsIgnoreCase(compDiv)) {
+            if (val.contains(",")) throw new IllegalArgumentException("총판은 1가지 화폐만 지정할 수 있습니다.");
+        }
     }
 
     /** 업체구분(compDiv) 문자열 → OrgLevel 매핑 (총본사/본사/총판/지사/대리점/영업점/가맹점) */
@@ -93,20 +132,24 @@ public class CompService {
                        SettlementSettingRepository settlementSettingRepository,
                        MerchantCommissionExtraRepository merchantCommissionExtraRepository,
                        MerchantPgBindingRepository merchantPgBindingRepository,
+                       PgAgencyRepository pgAgencyRepository,
                        MerchantDefaultProductRepository merchantDefaultProductRepository,
                        MerchantNotifyUrlRepository merchantNotifyUrlRepository,
                        CommissionPolicyRepository commissionPolicyRepository,
-                       UserRepository userRepository, PasswordEncoder passwordEncoder) {
+                       UserRepository userRepository, PasswordEncoder passwordEncoder,
+                       CompExcelImportService compExcelImportService) {
         this.orgUnitRepository = orgUnitRepository;
         this.merchantProfileRepository = merchantProfileRepository;
         this.settlementSettingRepository = settlementSettingRepository;
         this.merchantCommissionExtraRepository = merchantCommissionExtraRepository;
         this.merchantPgBindingRepository = merchantPgBindingRepository;
+        this.pgAgencyRepository = pgAgencyRepository;
         this.merchantDefaultProductRepository = merchantDefaultProductRepository;
         this.merchantNotifyUrlRepository = merchantNotifyUrlRepository;
         this.commissionPolicyRepository = commissionPolicyRepository;
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
+        this.compExcelImportService = compExcelImportService;
     }
 
     /** scopeCompId: 로그인 사용자의 업체코드(본인 org만 조회, 업체정보조회용) */
@@ -193,6 +236,8 @@ public class CompService {
                             m.put("zipCode", mp.getZipCode());
                             m.put("addr", mp.getAddr());
                             m.put("addrDetail", mp.getAddrDetail());
+                            m.put("addrEtc", mp.getAddrEtc());
+                            m.put("addrCountryCd", mp.getAddrCountryCd());
                             m.put("ceoNm", mp.getCeoNm());
                             m.put("ceoMobile", mp.getCeoMobile());
                             m.put("useYn", mp.getUseYn());
@@ -219,20 +264,51 @@ public class CompService {
                             m.put("webPaymentUseYn", mp.getWebPaymentUseYn() != null ? mp.getWebPaymentUseYn() : "Y");
                             m.put("baseCurrency", mp.getBaseCurrency());
                             m.put("orgUnitId", ou.getId());
+                            if ("MASTER_DIST".equalsIgnoreCase(ou.getOrgLevel() != null ? ou.getOrgLevel().name() : "")) {
+                                for (MerchantNotifyUrl n : merchantNotifyUrlRepository.findByOrgUnitIdOrderByUrlTypeAsc(ou.getId())) {
+                                    if (n.getUrlType() == null) continue;
+                                    switch (n.getUrlType()) {
+                                        case "NOTIFY_1" -> m.put("notifyUrl1", n.getNotiUrl());
+                                        case "NOTIFY_2" -> m.put("notifyUrl2", n.getNotiUrl());
+                                        case "NOTIFY_3" -> m.put("notifyUrl3", n.getNotiUrl());
+                                        case "NOTIFY_4" -> m.put("notifyUrl4", n.getNotiUrl());
+                                        default -> {}
+                                    }
+                                }
+                            }
                             List<Map<String, Object>> pgBindings = merchantPgBindingRepository.findByOrgUnitIdOrderBySortOrderAsc(ou.getId()).stream()
-                                    .map(b -> Map.<String, Object>of(
-                                            "pgCd", b.getPgCd() != null ? b.getPgCd() : "",
-                                            "activationYn", b.getActivationYn() != null ? b.getActivationYn() : "Y",
-                                            "operationalYn", b.getOperationalYn() != null ? b.getOperationalYn() : "N",
-                                            "payMethod", b.getPayMethod() != null ? b.getPayMethod() : "WEB",
-                                            "mid", b.getMid() != null ? b.getMid() : "",
-                                            "apiKey", b.getApiKey() != null ? b.getApiKey() : "",
-                                            "ivKey", b.getIvKey() != null ? b.getIvKey() : "",
-                                            "installmentYn", b.getInstallmentYn() != null ? b.getInstallmentYn() : "N",
-                                            "maxInstallmentMonths", b.getMaxInstallmentMonths() != null ? String.valueOf(b.getMaxInstallmentMonths()) : ""
-                                    ))
+                                    .map(b -> {
+                                        Map<String, Object> bm = new HashMap<>();
+                                        bm.put("id", b.getId());
+                                        bm.put("pgCd", b.getPgCd() != null ? b.getPgCd() : "");
+                                        bm.put("activationYn", b.getActivationYn() != null ? b.getActivationYn() : "Y");
+                                        bm.put("operationalYn", b.getOperationalYn() != null ? b.getOperationalYn() : "N");
+                                        bm.put("payMethod", b.getPayMethod() != null ? b.getPayMethod() : "WEB");
+                                        bm.put("mid", b.getMid() != null ? b.getMid() : "");
+                                        bm.put("rootNo", b.getRootNo() != null ? b.getRootNo() : "");
+                                        bm.put("apiKey", b.getApiKey() != null ? b.getApiKey() : "");
+                                        bm.put("ivKey", b.getIvKey() != null ? b.getIvKey() : "");
+                                        bm.put("installmentYn", b.getInstallmentYn() != null ? b.getInstallmentYn() : "N");
+                                        bm.put("maxInstallmentMonths", b.getMaxInstallmentMonths() != null ? String.valueOf(b.getMaxInstallmentMonths()) : "");
+                                        return bm;
+                                    })
                                     .collect(Collectors.toList());
                             m.put("pgBindings", pgBindings);
+                            if ("REGIONAL".equalsIgnoreCase(ou.getOrgLevel() != null ? ou.getOrgLevel().name() : "") && mp.getRegionalSettings() != null && !mp.getRegionalSettings().trim().isEmpty()) {
+                                try {
+                                    com.fasterxml.jackson.databind.ObjectMapper om = new com.fasterxml.jackson.databind.ObjectMapper();
+                                    java.util.Map<String, Object> rs = om.readValue(mp.getRegionalSettings().trim(), new com.fasterxml.jackson.core.type.TypeReference<java.util.Map<String, Object>>() {});
+                                    if (rs != null) m.putAll(rs);
+                                    Object rcl = rs != null ? rs.get("regionalCardLimits") : null;
+                                    if (rcl instanceof String) {
+                                        try { m.put("regionalCardLimits", om.readValue((String) rcl, java.util.List.class)); } catch (Exception ignored) {}
+                                    } else if (rcl instanceof java.util.List) m.put("regionalCardLimits", rcl);
+                                    Object rt = rs != null ? rs.get("regionalTerminals") : null;
+                                    if (rt instanceof String) {
+                                        try { m.put("regionalTerminals", om.readValue((String) rt, java.util.List.class)); } catch (Exception ignored) {}
+                                    } else if (rt instanceof java.util.List) m.put("regionalTerminals", rt);
+                                } catch (Exception ignored) {}
+                            }
                             settlementSettingRepository.findByOrgUnitId(ou.getId()).ifPresent(ss -> {
                                 m.put("calcCycle", ss.getCalcCycle());
                                 m.put("transferType", ss.getTransferType());
@@ -259,31 +335,51 @@ public class CompService {
 
     /** 지역 본사(업체) 정보 수정 */
     public boolean update(String compId, String compNm, String compDiv, Long parentId, String compTel,
-                          String zipCode, String addr, String addrDetail, String ceoNm, String ceoMobile,
+                          String zipCode, String addr, String addrDetail, String addrEtc, String addrCountryCd, String ceoNm, String ceoMobile,
                           String useYn, String loginId, String regNo, String bizType, String industry,
                           String bizNature, String product, String homepage, String settleName, String settleTelNo,
                           String fax, String email, String bankCd, String transferFee, String cryptoTransferFee, String accountNo, String accountHolder,
                           String remark, String commissionConfigAllowed, String webPaymentUseYn, String baseCurrency,
-                          String siteUrl, String siteSummary, String pgBindings) {
+                          String siteUrl, String siteSummary, String pgBindings, String regionalSettings,
+                          String notifyUrl1, String notifyUrl2, String notifyUrl3, String notifyUrl4) {
         return orgUnitRepository.findByCode(compId != null ? compId : "")
                 .flatMap(ou -> merchantProfileRepository.findByOrgUnitId(ou.getId())
                         .map(mp -> {
                             if (compNm != null) ou.setName(compNm);
                             if (compDiv != null) ou.setOrgLevel(orgLevelFromCompDiv(compDiv));
-                            if (parentId != null) ou.setParentId(parentId);
+                            if (parentId != null) {
+                                OrgLevel childLevel = ou.getOrgLevel() != null ? ou.getOrgLevel() : orgLevelFromCompDiv(compDiv);
+                                validateParentLevel(parentId, childLevel, ou.getId());
+                                ou.setParentId(parentId);
+                            }
                             orgUnitRepository.save(ou);
                             if (commissionConfigAllowed != null) mp.setCommissionConfigAllowed(commissionConfigAllowed);
                             if (webPaymentUseYn != null && !webPaymentUseYn.trim().isEmpty()) mp.setWebPaymentUseYn(webPaymentUseYn.trim());
-                            if (baseCurrency != null && !baseCurrency.trim().isEmpty()) mp.setBaseCurrency(baseCurrency.trim());
+                            if (baseCurrency != null && !baseCurrency.trim().isEmpty()) {
+                                validateBaseCurrency(compDiv != null ? compDiv : (ou.getOrgLevel() != null ? ou.getOrgLevel().name() : ""), baseCurrency);
+                                mp.setBaseCurrency(baseCurrency.trim());
+                            }
                             if (siteUrl != null) mp.setSiteUrl(siteUrl.trim());
                             if (siteSummary != null) mp.setSiteSummary(siteSummary.trim());
                             mp.setCompTel(compTel);
                             mp.setZipCode(zipCode);
                             mp.setAddr(addr);
                             mp.setAddrDetail(addrDetail);
+                            if (addrEtc != null) mp.setAddrEtc(addrEtc.trim());
+                            if (addrCountryCd != null) mp.setAddrCountryCd(addrCountryCd.trim());
                             mp.setCeoNm(ceoNm);
                             mp.setCeoMobile(ceoMobile);
-                            mp.setUseYn(useYn);
+                            if (useYn != null) {
+                                mp.setUseYn(useYn);
+                                if ("N".equalsIgnoreCase(useYn.trim())) {
+                                    for (Long did : collectDescendantIds(ou.getId())) {
+                                        merchantProfileRepository.findByOrgUnitId(did).ifPresent(dmp -> {
+                                            dmp.setUseYn("N");
+                                            merchantProfileRepository.save(dmp);
+                                        });
+                                    }
+                                }
+                            }
                             mp.setLoginId(loginId);
                             mp.setRegNo(regNo);
                             mp.setBizType(bizType);
@@ -300,7 +396,11 @@ public class CompService {
                             mp.setAccountNo(accountNo);
                             mp.setAccountHolder(accountHolder);
                             mp.setRemark(remark);
+                            if ("REGIONAL".equalsIgnoreCase(compDiv != null ? compDiv : "") && regionalSettings != null && !regionalSettings.trim().isEmpty()) mp.setRegionalSettings(regionalSettings.trim());
                             merchantProfileRepository.save(mp);
+                            if ("MASTER_DIST".equalsIgnoreCase(ou.getOrgLevel() != null ? ou.getOrgLevel().name() : "") && (notifyUrl1 != null || notifyUrl2 != null || notifyUrl3 != null || notifyUrl4 != null)) {
+                                saveDistributorNotifyUrls(ou.getId(), notifyUrl1, notifyUrl2, notifyUrl3, notifyUrl4);
+                            }
                             if ("MERCHANT".equalsIgnoreCase(ou.getOrgLevel() != null ? ou.getOrgLevel().name() : "") && pgBindings != null && !pgBindings.trim().isEmpty()) {
                                 try {
                                     com.fasterxml.jackson.databind.ObjectMapper om = new com.fasterxml.jackson.databind.ObjectMapper();
@@ -318,6 +418,7 @@ public class CompService {
                                         binding.setOperationalYn("Y".equalsIgnoreCase(optStr(m, "operationalYn")) ? "Y" : "N");
                                         binding.setPayMethod(optStr(m, "payMethod") != null && !optStr(m, "payMethod").isEmpty() ? optStr(m, "payMethod") : "WEB");
                                         binding.setMid(optStr(m, "mid"));
+                                        binding.setRootNo(optStr(m, "rootNo"));
                                         binding.setApiKey(optStr(m, "apiKey"));
                                         binding.setIvKey(optStr(m, "ivKey"));
                                         binding.setInstallmentYn("Y".equalsIgnoreCase(optStr(m, "installmentYn")) ? "Y" : "N");
@@ -394,20 +495,27 @@ public class CompService {
                             String regNo, String email, String pwd,
                             String bankCd, String transferFee, String accountNo, String accountHolder,
                             String remark) {
-        return registerWithExtra(code, name, compDiv, parentId, compTel, zipCode, addr, addrDetail,
+        return registerWithExtra(code, name, compDiv, parentId, compTel, zipCode, addr, addrDetail, null, null,
                 ceoNm, ceoMobile, useYn, loginId, regNo,
                 null, null, null, null, null, null, null, null, null, null, null, /* settleType, commissionRate, limitAmt */ email, pwd,
                 bankCd, transferFee, null, accountNo, accountHolder,
-                null, null, null, null, null, null, null, null, null, remark,
-                null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null,
-                null, null, null, null, null, null, null, null, null, null, null, null,
-                null, null,
-                null,
-                null, null, null, null, null, null);  /* pgBindings, webPaymentUseYn, baseCurrency, defaultProduct*, notifyUrl*, commission*, fee* */
+                null, null, null, null, null, null, null, null, null,
+                remark,
+                /* 44–54: withdraw / pay limit / hold / calc */
+                null, null, null, null, null, null, null, null, null, null, null,
+                /* 55–61: transfer / calc exclude / pgBindings start */
+                null, null, null, null, null, null, null,
+                /* 62–64 */
+                null, null, null,
+                /* 65–68 default product */
+                null, null, null, null,
+                /* 69–87: notify, commission, fees, regional (19 nulls) */
+                null, null, null, null, null, null, null, null, null, null,
+                null, null, null, null, null, null, null, null, null);  /* 11+7+3+4+19 = 44 */
     }
 
     public OrgUnit registerWithExtra(String code, String name, String compDiv, Long parentId,
-                                     String compTel, String zipCode, String addr, String addrDetail,
+                                     String compTel, String zipCode, String addr, String addrDetail, String addrEtc, String addrCountryCd,
                                      String ceoNm, String ceoMobile, String useYn, String loginId,
                                      String regNo, String bizType, String industry,
                                      String bizNature, String product, String homepage, String settleName, String settleTelNo,
@@ -425,9 +533,11 @@ public class CompService {
                                      String pgBindings, String webPaymentUseYn, String baseCurrency,
                                      String defaultProductName, String defaultProductCode, String defaultProductAmount, String defaultProductDesc,
                                      String notifyUrlBackground, String notifyUrlResult,
+                                     String notifyUrl1, String notifyUrl2, String notifyUrl3, String notifyUrl4,
                                      String commissionFollowHq, String perTxFee, String cancelRate, String usageRate,
                                      String failFee, String payRate, String refundRate, String rollingPct, String rollingDays,
-                                     String feeSettlementPerTx, String feeUsdt, String feeFx) {
+                                     String feeSettlementPerTx, String feeUsdt, String feeFx,
+                                     String regionalSettings) {
         OrgUnit o = new OrgUnit();
         String compDivVal = compDiv != null ? compDiv.trim() : "AGENCY";
         String finalCode = (code != null && !code.trim().isEmpty()) ? code.trim() : generateNextCompCode(compDivVal);
@@ -436,7 +546,9 @@ public class CompService {
         }
         o.setCode(finalCode);
         o.setName(name != null ? name : "");
-        o.setOrgLevel(orgLevelFromCompDiv(compDiv != null ? compDiv : "AGENCY"));
+        OrgLevel childLevel = orgLevelFromCompDiv(compDiv != null ? compDiv : "AGENCY");
+        o.setOrgLevel(childLevel);
+        validateParentLevel(parentId, childLevel, null);
         o.setParentId(parentId);
         o.setStatus("ACTIVE");
         OrgUnit saved = orgUnitRepository.save(o);
@@ -448,6 +560,7 @@ public class CompService {
         mp.setZipCode(zipCode);
         mp.setAddr(addr);
         mp.setAddrDetail(addrDetail);
+        if (addrCountryCd != null) mp.setAddrCountryCd(addrCountryCd.trim());
         mp.setCeoNm(ceoNm);
         mp.setCeoMobile(ceoMobile);
         mp.setUseYn(useYn);
@@ -482,7 +595,11 @@ public class CompService {
         if (siteSummary != null) mp.setSiteSummary(siteSummary.trim());
         mp.setRemark(remark);
         if (webPaymentUseYn != null && !webPaymentUseYn.trim().isEmpty()) mp.setWebPaymentUseYn(webPaymentUseYn.trim());
-        if (baseCurrency != null && !baseCurrency.trim().isEmpty()) mp.setBaseCurrency(baseCurrency.trim());
+        if (baseCurrency != null && !baseCurrency.trim().isEmpty()) {
+            validateBaseCurrency(compDiv != null ? compDiv : "AGENCY", baseCurrency);
+            mp.setBaseCurrency(baseCurrency.trim());
+        }
+        if ("REGIONAL".equalsIgnoreCase(compDiv) && regionalSettings != null && !regionalSettings.trim().isEmpty()) mp.setRegionalSettings(regionalSettings.trim());
         merchantProfileRepository.save(mp);
 
         SettlementSetting ss = new SettlementSetting();
@@ -529,6 +646,7 @@ public class CompService {
                     binding.setOperationalYn("Y".equalsIgnoreCase(optStr(m, "operationalYn")) ? "Y" : "N");
                     binding.setPayMethod(optStr(m, "payMethod") != null && !optStr(m, "payMethod").isEmpty() ? optStr(m, "payMethod") : "WEB");
                     binding.setMid(optStr(m, "mid"));
+                    binding.setRootNo(optStr(m, "rootNo"));
                     binding.setApiKey(optStr(m, "apiKey"));
                     binding.setIvKey(optStr(m, "ivKey"));
                     binding.setInstallmentYn("Y".equalsIgnoreCase(optStr(m, "installmentYn")) ? "Y" : "N");
@@ -575,6 +693,9 @@ public class CompService {
                 n2.setUseYn("Y");
                 merchantNotifyUrlRepository.save(n2);
             }
+        }
+        if ("MASTER_DIST".equalsIgnoreCase(compDiv)) {
+            saveDistributorNotifyUrls(saved.getId(), notifyUrl1, notifyUrl2, notifyUrl3, notifyUrl4);
         }
 
         if ("MERCHANT".equalsIgnoreCase(compDiv) && "N".equalsIgnoreCase(commissionFollowHq != null ? commissionFollowHq.trim() : "")) {
@@ -749,6 +870,41 @@ public class CompService {
                 .map(mp -> mp.getRegNo() != null && mp.getRegNo().contains(regNo.trim())).orElse(true);
     }
 
+    /** 총판 노티 URL 4개 저장 (NOTIFY_1~4). 본사/총판 생성 시 총본사 설정에서 설정 */
+    private void saveDistributorNotifyUrls(Long orgUnitId, String url1, String url2, String url3, String url4) {
+        merchantNotifyUrlRepository.deleteByOrgUnitIdAndUrlTypeIn(orgUnitId,
+                java.util.List.of("NOTIFY_1", "NOTIFY_2", "NOTIFY_3", "NOTIFY_4"));
+        String[] urls = { url1, url2, url3, url4 };
+        for (int i = 0; i < 4; i++) {
+            if (urls[i] != null && !urls[i].trim().isEmpty()) {
+                MerchantNotifyUrl n = new MerchantNotifyUrl();
+                n.setOrgUnitId(orgUnitId);
+                n.setUrlType("NOTIFY_" + (i + 1));
+                n.setNotiUrl(urls[i].trim());
+                n.setUseYn("Y");
+                merchantNotifyUrlRepository.save(n);
+            }
+        }
+    }
+
+    /** 해당 조직의 모든 하위 조직 ID 수집 (대리점→영업점→가맹점 등 전체 하위 트리) */
+    private List<Long> collectDescendantIds(Long rootId) {
+        List<OrgUnit> all = orgUnitRepository.findAll();
+        Map<Long, List<OrgUnit>> byParent = all.stream()
+                .filter(o -> o.getParentId() != null)
+                .collect(Collectors.groupingBy(OrgUnit::getParentId));
+        List<Long> result = new ArrayList<>();
+        collectDescendantIdsRec(rootId, byParent, result);
+        return result;
+    }
+
+    private void collectDescendantIdsRec(Long id, Map<Long, List<OrgUnit>> byParent, List<Long> result) {
+        for (OrgUnit child : byParent.getOrDefault(id, Collections.emptyList())) {
+            result.add(child.getId());
+            collectDescendantIdsRec(child.getId(), byParent, result);
+        }
+    }
+
     /** 계층 정렬용 키 생성 (레그 구조: 부모→자식 순) */
     private java.util.Map<Long, String> buildHierarchySortKeys(List<OrgUnit> all) {
         java.util.Map<Long, java.util.List<OrgUnit>> byParent = all.stream()
@@ -826,5 +982,194 @@ public class CompService {
     private static String payHoldYnToDisplay(String y) {
         if (y == null || y.isEmpty()) return "-";
         return "Y".equalsIgnoreCase(y) ? "보류" : "정상";
+    }
+
+    /** 엑셀 업로드로 업체 일괄 등록. 1행=헤더, 2행~=데이터 */
+    public Map<String, Object> importFromExcel(org.springframework.web.multipart.MultipartFile file) {
+        List<String> created = new ArrayList<>();
+        List<String> errors = new ArrayList<>();
+        try {
+            List<Map<String, String>> rawRows = compExcelImportService.parseExcel(file);
+            for (int i = 0; i < rawRows.size(); i++) {
+                Map<String, String> row = compExcelImportService.toStandardRow(rawRows.get(i));
+                String compNm = row.get("compNm");
+                String compDiv = row.get("compDiv");
+                if (compNm == null || compNm.isEmpty()) {
+                    errors.add((i + 2) + "행: 업체명이 없습니다.");
+                    continue;
+                }
+                if (compDiv == null || compDiv.isEmpty()) {
+                    errors.add((i + 2) + "행: 업체구분이 없습니다.");
+                    continue;
+                }
+                Long parentId = null;
+                String parentComp = row.get("parentComp");
+                if (parentComp != null && !parentComp.isEmpty()) {
+                    parentId = orgUnitRepository.findByCode(parentComp.trim())
+                            .map(OrgUnit::getId)
+                            .orElse(null);
+                    if (parentId == null) {
+                        errors.add((i + 2) + "행: 상위코드 '" + parentComp + "'를 찾을 수 없습니다.");
+                        continue;
+                    }
+                } else if (!"REGIONAL".equalsIgnoreCase(compDiv)) {
+                    errors.add((i + 2) + "행: 본사 외 업체는 상위코드가 필요합니다.");
+                    continue;
+                }
+                String pwd = row.get("pwd");
+                if (pwd == null || pwd.isEmpty()) pwd = "test123!";
+                String loginIdVal = row.get("loginId");
+                if (loginIdVal == null || loginIdVal.isEmpty()) {
+                    loginIdVal = "excel" + System.currentTimeMillis() + "_" + i;
+                }
+                try {
+                    OrgUnit saved = registerWithExtra(
+                            row.get("compId"),
+                            compNm,
+                            compDiv,
+                            parentId,
+                            row.get("compTel"),
+                            row.get("zipCode"), row.get("addr"), row.get("addrDetail"), null, null,
+                            row.get("ceoNm"),
+                            row.get("ceoMobile"),
+                            row.getOrDefault("useYn", "Y"),
+                            loginIdVal,
+                            row.get("regNo"),
+                            null, null, null, null, null, null, null, null, null, null,
+                            null,
+                            row.get("email"),
+                            pwd,
+                            row.get("bankCd"),
+                            row.get("transferFee"),
+                            null,
+                            row.get("accountNo"),
+                            row.get("accountHolder"),
+                            null, null, null, null, null, null, null, null, null,
+                            row.get("remark"),
+                            null, null, null, null, null, null, null, null, null, row.get("calcCycle"), null,
+                            row.get("transferType"), null, null, null, null, null, null,
+                            null, null, null,
+                            null, null, null, null,
+                            null, null, null, null, null, null, null, null, null, null,
+                            null, null, null, null, null, null, null, null, null);
+                    if (loginIdVal != null && !loginIdVal.isEmpty() && userRepository.findByUsername(loginIdVal).isEmpty()) {
+                        AppUser appUser = new AppUser();
+                        appUser.setUsername(loginIdVal);
+                        appUser.setPassword(passwordEncoder.encode(pwd));
+                        appUser.setName(compNm);
+                        appUser.setRole("USER");
+                        appUser.setEnabled(true);
+                        userRepository.save(appUser);
+                    }
+                    created.add(saved.getCode() + " " + saved.getName());
+                } catch (Exception e) {
+                    errors.add((i + 2) + "행: " + (e.getMessage() != null ? e.getMessage() : "등록 실패"));
+                }
+            }
+        } catch (Exception e) {
+            errors.add("엑셀 파싱 오류: " + (e.getMessage() != null ? e.getMessage() : e.toString()));
+        }
+        Map<String, Object> result = new HashMap<>();
+        result.put("createdCount", created.size());
+        result.put("created", created);
+        result.put("errorCount", errors.size());
+        result.put("errors", errors);
+        return result;
+    }
+
+    /** 가맹점 결제대행사 1건 저장 (업체정보 상세에서 행 단위 저장) */
+    public Map<String, Object> saveMerchantPgBinding(String compId, Long bindingId, String pgCd, String payMethod,
+                                                     String mid, String rootNo, String apiKey, String ivKey,
+                                                     String activationYn, String operationalYn,
+                                                     String installmentYn, String maxInstallmentMonthsStr) {
+        OrgUnit ou = orgUnitRepository.findByCode(compId != null ? compId.trim() : "")
+                .orElseThrow(() -> new IllegalArgumentException("업체를 찾을 수 없습니다."));
+        if (ou.getOrgLevel() != OrgLevel.MERCHANT) {
+            throw new IllegalArgumentException("가맹점만 결제대행사를 등록할 수 있습니다.");
+        }
+        String pc = pgCd != null ? pgCd.trim() : "";
+        if (pc.isEmpty()) {
+            throw new IllegalArgumentException("결제대행사(PG)를 선택하세요.");
+        }
+        PgAgency agency = pgAgencyRepository.findByPgCd(pc)
+                .orElseThrow(() -> new IllegalArgumentException("등록되지 않은 PG사코드입니다. 본사설정 > PG사 API 연동에서 먼저 등록하세요."));
+        if (!"Y".equalsIgnoreCase(agency.getUseYn())) {
+            throw new IllegalArgumentException("사용 중지된 결제대행사입니다.");
+        }
+        String pm = payMethod != null && !payMethod.isBlank() ? payMethod.trim() : "WEB";
+
+        MerchantPgBinding binding;
+        if (bindingId != null) {
+            binding = merchantPgBindingRepository.findByIdAndOrgUnitId(bindingId, ou.getId())
+                    .orElseThrow(() -> new IllegalArgumentException("연동 정보를 찾을 수 없습니다."));
+            if (merchantPgBindingRepository.existsByOrgUnitIdAndPgCdAndPayMethodAndIdNot(ou.getId(), pc, pm, bindingId)) {
+                throw new IllegalArgumentException("동일 PG·결제구분 조합이 이미 있습니다.");
+            }
+        } else {
+            if (merchantPgBindingRepository.existsByOrgUnitIdAndPgCdAndPayMethod(ou.getId(), pc, pm)) {
+                throw new IllegalArgumentException("동일 PG·결제구분 조합이 이미 있습니다.");
+            }
+            binding = new MerchantPgBinding();
+            binding.setOrgUnitId(ou.getId());
+            int maxOrder = merchantPgBindingRepository.findByOrgUnitIdOrderBySortOrderAsc(ou.getId()).stream()
+                    .map(MerchantPgBinding::getSortOrder)
+                    .filter(o -> o != null)
+                    .max(Integer::compareTo)
+                    .orElse(-1);
+            binding.setSortOrder(maxOrder + 1);
+        }
+        binding.setPgCd(pc);
+        binding.setPayMethod(pm);
+        binding.setMid(mid != null ? mid.trim() : null);
+        binding.setRootNo(rootNo != null && !rootNo.isBlank() ? rootNo.trim() : null);
+        binding.setApiKey(apiKey != null ? apiKey.trim() : null);
+        binding.setIvKey(ivKey != null ? ivKey.trim() : null);
+        binding.setActivationYn("Y".equalsIgnoreCase(activationYn) ? "Y" : "N");
+        binding.setInstallmentYn("Y".equalsIgnoreCase(installmentYn) ? "Y" : "N");
+        if (maxInstallmentMonthsStr != null && !maxInstallmentMonthsStr.isBlank()) {
+            try {
+                binding.setMaxInstallmentMonths(Integer.parseInt(maxInstallmentMonthsStr.trim()));
+            } catch (NumberFormatException ignored) {
+                binding.setMaxInstallmentMonths(null);
+            }
+        } else {
+            binding.setMaxInstallmentMonths(null);
+        }
+        boolean opY = "Y".equalsIgnoreCase(operationalYn);
+        if (opY) {
+            for (MerchantPgBinding other : merchantPgBindingRepository.findByOrgUnitIdOrderBySortOrderAsc(ou.getId())) {
+                if (binding.getId() != null && other.getId().equals(binding.getId())) continue;
+                other.setOperationalYn("N");
+                merchantPgBindingRepository.save(other);
+            }
+        }
+        binding.setOperationalYn(opY ? "Y" : "N");
+        merchantPgBindingRepository.save(binding);
+
+        Map<String, Object> bm = new HashMap<>();
+        bm.put("id", binding.getId());
+        bm.put("pgCd", binding.getPgCd());
+        bm.put("activationYn", binding.getActivationYn());
+        bm.put("operationalYn", binding.getOperationalYn());
+        bm.put("payMethod", binding.getPayMethod());
+        bm.put("mid", binding.getMid() != null ? binding.getMid() : "");
+        bm.put("rootNo", binding.getRootNo() != null ? binding.getRootNo() : "");
+        bm.put("apiKey", binding.getApiKey() != null ? binding.getApiKey() : "");
+        bm.put("ivKey", binding.getIvKey() != null ? binding.getIvKey() : "");
+        bm.put("installmentYn", binding.getInstallmentYn());
+        bm.put("maxInstallmentMonths", binding.getMaxInstallmentMonths() != null ? String.valueOf(binding.getMaxInstallmentMonths()) : "");
+        return bm;
+    }
+
+    public void deleteMerchantPgBinding(String compId, Long bindingId) {
+        if (bindingId == null) throw new IllegalArgumentException("삭제할 연동이 없습니다.");
+        OrgUnit ou = orgUnitRepository.findByCode(compId != null ? compId.trim() : "")
+                .orElseThrow(() -> new IllegalArgumentException("업체를 찾을 수 없습니다."));
+        if (ou.getOrgLevel() != OrgLevel.MERCHANT) {
+            throw new IllegalArgumentException("가맹점만 해당 기능을 사용할 수 있습니다.");
+        }
+        MerchantPgBinding b = merchantPgBindingRepository.findByIdAndOrgUnitId(bindingId, ou.getId())
+                .orElseThrow(() -> new IllegalArgumentException("연동 정보를 찾을 수 없습니다."));
+        merchantPgBindingRepository.delete(b);
     }
 }

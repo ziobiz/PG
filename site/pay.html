@@ -48,11 +48,35 @@
     <div id="result" class="result-box" style="display:none;"></div>
   </div>
 
-  <script src="js/config.js"></script>
+  <script src="js/config.js?v=6"></script>
   <script>
     (function () {
-      var host = (window.location && window.location.hostname) ? window.location.hostname : '';
-      var API_BASE = (window.PG_API_BASE !== undefined && window.PG_API_BASE !== '') ? window.PG_API_BASE : ((host === 'icopay.co.kr' || host === 'www.icopay.co.kr') ? 'https://api.icopay.co.kr' : (window.location.origin || ''));
+      var h = (window.location && window.location.hostname) ? window.location.hostname : '';
+      if (h === 'localhost' || h === '127.0.0.1') return;
+      if (h === 'api.icopay.co.kr') {
+        try {
+          var og = (window.location.origin || '').replace(/\/$/, '');
+          if (og) {
+            try { localStorage.removeItem('pg_api_base'); } catch (e) {}
+            window.PG_API_BASE = og;
+          }
+        } catch (e2) {}
+        return;
+      }
+      var api = window.PG_PUBLIC_ICOPAY_API || 'https://api.icopay.co.kr';
+      var b = (window.PG_API_BASE || '').replace(/\/$/, '');
+      var bad = !b || /^https?:\/\/(localhost|127\.0\.0\.1)(:|\/|$)/i.test(b);
+      if (bad) {
+        try { localStorage.removeItem('pg_api_base'); } catch (e) {}
+        window.PG_API_BASE = api;
+      }
+    })();
+  </script>
+  <script>
+    (function () {
+      var API_BASE = (window.PG_API_BASE !== undefined && window.PG_API_BASE !== '')
+        ? window.PG_API_BASE
+        : (typeof window.PG_assetApiBase === 'function' ? window.PG_assetApiBase() : (window.location.origin || ''));
       API_BASE = (API_BASE + '').replace(/\/$/, '');
 
       document.getElementById('orderNo').value = 'ORD' + Date.now();

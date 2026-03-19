@@ -2,20 +2,26 @@ package com.pg.controller.api;
 
 import com.pg.api.ApiResponse;
 import com.pg.api.dto.PageResult;
+import com.pg.api.dto.StyledExcelExportRequest;
 import com.pg.entity.AppUser;
 import com.pg.entity.OrgUnit;
 import com.pg.repository.OrgUnitRepository;
 import com.pg.service.AuthService;
 import com.pg.service.CompService;
+import com.pg.service.ExcelStyledExportService;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.time.LocalDate;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequestMapping(value = "/api/comp", produces = MediaType.APPLICATION_JSON_VALUE)
@@ -24,11 +30,14 @@ public class ApiCompController {
     private final CompService compService;
     private final OrgUnitRepository orgUnitRepository;
     private final AuthService authService;
+    private final ExcelStyledExportService excelStyledExportService;
 
-    public ApiCompController(CompService compService, OrgUnitRepository orgUnitRepository, AuthService authService) {
+    public ApiCompController(CompService compService, OrgUnitRepository orgUnitRepository, AuthService authService,
+                             ExcelStyledExportService excelStyledExportService) {
         this.compService = compService;
         this.orgUnitRepository = orgUnitRepository;
         this.authService = authService;
+        this.excelStyledExportService = excelStyledExportService;
     }
 
     @GetMapping("/changeHistory")
@@ -98,6 +107,8 @@ public class ApiCompController {
             @RequestParam(required = false) String zipCode,
             @RequestParam(required = false) String addr,
             @RequestParam(required = false) String addrDetail,
+            @RequestParam(required = false) String addrEtc,
+            @RequestParam(required = false) String addrCountryCd,
             @RequestParam(required = false) String ceoNm,
             @RequestParam(required = false) String ceoMobile,
             @RequestParam(required = false) String useYn,
@@ -158,6 +169,10 @@ public class ApiCompController {
             @RequestParam(required = false) String defaultProductDesc,
             @RequestParam(required = false) String notifyUrlBackground,
             @RequestParam(required = false) String notifyUrlResult,
+            @RequestParam(required = false) String notifyUrl1,
+            @RequestParam(required = false) String notifyUrl2,
+            @RequestParam(required = false) String notifyUrl3,
+            @RequestParam(required = false) String notifyUrl4,
             @RequestParam(required = false) String commissionFollowHq,
             @RequestParam(required = false) String perTxFee,
             @RequestParam(required = false) String cancelRate,
@@ -169,7 +184,8 @@ public class ApiCompController {
             @RequestParam(required = false) String rollingDays,
             @RequestParam(required = false) String feeSettlementPerTx,
             @RequestParam(required = false) String feeUsdt,
-            @RequestParam(required = false) String feeFx) {
+            @RequestParam(required = false) String feeFx,
+            @RequestParam(required = false) String regionalSettings) {
         Long parentIdVal = parentId;
         if (parentIdVal == null && parentComp != null && !parentComp.isEmpty()) {
             String trimmed = parentComp.trim();
@@ -197,7 +213,7 @@ public class ApiCompController {
         }
         try {
         OrgUnit saved = compService.registerWithExtra(null, compNm, compDiv, parentIdVal,
-                compTel, zipCode, addr, addrDetail,
+                compTel, zipCode, addr, addrDetail, addrEtc, addrCountryCd,
                 ceoNm, ceoMobile, useYn, loginId,
                 regNo, bizType, industry, bizNature, product, homepage, settleName, settleTelNo, settleType, commissionRate, limitAmt, fax,
                 email, pwd,
@@ -210,8 +226,9 @@ public class ApiCompController {
                 pgBindings, webPaymentUseYn, baseCurrency,
                 defaultProductName, defaultProductCode, defaultProductAmount, defaultProductDesc,
                 notifyUrlBackground, notifyUrlResult,
+                notifyUrl1, notifyUrl2, notifyUrl3, notifyUrl4,
                 commissionFollowHq, perTxFee, cancelRate, usageRate, failFee, payRate, refundRate, rollingPct, rollingDays,
-                feeSettlementPerTx, feeUsdt, feeFx);
+                feeSettlementPerTx, feeUsdt, feeFx, regionalSettings);
         return ResponseEntity.ok(ApiResponse.ok(Map.of("compId", saved.getCode(), "compNm", saved.getName())));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.ok(ApiResponse.fail(e.getMessage(), "VALIDATION"));
@@ -229,6 +246,8 @@ public class ApiCompController {
             @RequestParam(required = false) String zipCode,
             @RequestParam(required = false) String addr,
             @RequestParam(required = false) String addrDetail,
+            @RequestParam(required = false) String addrEtc,
+            @RequestParam(required = false) String addrCountryCd,
             @RequestParam(required = false) String ceoNm,
             @RequestParam(required = false) String ceoMobile,
             @RequestParam(required = false) String useYn,
@@ -254,7 +273,12 @@ public class ApiCompController {
             @RequestParam(required = false) String baseCurrency,
             @RequestParam(required = false) String siteUrl,
             @RequestParam(required = false) String siteSummary,
-            @RequestParam(required = false) String pgBindings) {
+            @RequestParam(required = false) String pgBindings,
+            @RequestParam(required = false) String regionalSettings,
+            @RequestParam(required = false) String notifyUrl1,
+            @RequestParam(required = false) String notifyUrl2,
+            @RequestParam(required = false) String notifyUrl3,
+            @RequestParam(required = false) String notifyUrl4) {
         var targetOpt = compService.getDetail(compId);
         if (targetOpt.isEmpty()) {
             return ResponseEntity.ok(ApiResponse.fail("업체를 찾을 수 없습니다.", "NOT_FOUND"));
@@ -270,9 +294,10 @@ public class ApiCompController {
             }
         }
         try {
-            boolean ok = compService.update(compId, compNm, compDiv, parentId, compTel, zipCode, addr, addrDetail,
+            boolean ok = compService.update(compId, compNm, compDiv, parentId, compTel, zipCode, addr, addrDetail, addrEtc, addrCountryCd,
                     ceoNm, ceoMobile, useYn, loginId, regNo, bizType, industry, bizNature, product, homepage, settleName, settleTelNo, fax, email,
-                    bankCd, transferFee, cryptoTransferFee, accountNo, accountHolder, remark, commissionConfigAllowed, webPaymentUseYn, baseCurrency, siteUrl, siteSummary, pgBindings);
+                    bankCd, transferFee, cryptoTransferFee, accountNo, accountHolder, remark, commissionConfigAllowed, webPaymentUseYn, baseCurrency, siteUrl, siteSummary, pgBindings, regionalSettings,
+                    notifyUrl1, notifyUrl2, notifyUrl3, notifyUrl4);
             return ResponseEntity.ok(ok ? ApiResponse.ok(Map.of("success", true, "message", "저장되었습니다."))
                     : ApiResponse.fail("업체를 찾을 수 없습니다.", "NOT_FOUND"));
         } catch (IllegalArgumentException e) {
@@ -299,6 +324,110 @@ public class ApiCompController {
                     : ApiResponse.fail("업체를 찾을 수 없습니다.", "NOT_FOUND"));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.ok(ApiResponse.fail(e.getMessage(), "VALIDATION"));
+        }
+    }
+
+    /** 가맹점 결제대행사 연동 1건 저장 (업체정보 상세) */
+    @PostMapping(value = "/pgBinding/save", consumes = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<ApiResponse<Map<String, Object>>> pgBindingSave(@RequestBody Map<String, Object> body) {
+        try {
+            String compId = body.get("compId") != null ? body.get("compId").toString().trim() : "";
+            Long bindingId = null;
+            Object idObj = body.get("id");
+            if (idObj != null && !idObj.toString().isBlank()) {
+                bindingId = Long.parseLong(idObj.toString().trim());
+            }
+            String pgCd = body.get("pgCd") != null ? body.get("pgCd").toString() : "";
+            String payMethod = body.get("payMethod") != null ? body.get("payMethod").toString() : "WEB";
+            String mid = body.get("mid") != null ? body.get("mid").toString() : "";
+            String rootNo = body.get("rootNo") != null ? body.get("rootNo").toString() : "";
+            String apiKey = body.get("apiKey") != null ? body.get("apiKey").toString() : "";
+            String ivKey = body.get("ivKey") != null ? body.get("ivKey").toString() : "";
+            String activationYn = body.get("activationYn") != null ? body.get("activationYn").toString() : "Y";
+            String operationalYn = body.get("operationalYn") != null ? body.get("operationalYn").toString() : "N";
+            String installmentYn = body.get("installmentYn") != null ? body.get("installmentYn").toString() : "N";
+            String maxMo = body.get("maxInstallmentMonths") != null ? body.get("maxInstallmentMonths").toString() : "";
+            Map<String, Object> saved = compService.saveMerchantPgBinding(compId, bindingId, pgCd, payMethod,
+                    mid, rootNo, apiKey, ivKey, activationYn, operationalYn, installmentYn, maxMo);
+            return ResponseEntity.ok(ApiResponse.ok(saved));
+        } catch (NumberFormatException e) {
+            return ResponseEntity.ok(ApiResponse.fail("ID 형식이 올바르지 않습니다.", "VALIDATION"));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.ok(ApiResponse.fail(e.getMessage(), "VALIDATION"));
+        }
+    }
+
+    @DeleteMapping("/pgBinding/{id}")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> pgBindingDelete(
+            @PathVariable Long id,
+            @RequestParam String compId) {
+        try {
+            compService.deleteMerchantPgBinding(compId, id);
+            return ResponseEntity.ok(ApiResponse.ok(Map.of("success", true, "message", "삭제되었습니다.")));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.ok(ApiResponse.fail(e.getMessage(), "VALIDATION"));
+        }
+    }
+
+    /** 업체 엑셀등록용 SAMPLE — 헤더 색·가운데 정렬·테두리·계좌번호 등 텍스트 서식 */
+    @GetMapping(value = "/excelSample", produces = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+    public ResponseEntity<byte[]> excelSample() {
+        try {
+            byte[] bytes = excelStyledExportService.buildCompRegisterSample();
+            return ResponseEntity.ok()
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"comp_register_SAMPLE.xlsx\"")
+                    .contentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
+                    .body(bytes);
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+
+    /**
+     * 그리드 목록 등 — 헤더/데이터 행을 JSON으로 받아 동일 서식의 xlsx 생성.
+     */
+    @PostMapping(value = "/exportStyledExcel", consumes = MediaType.APPLICATION_JSON_VALUE,
+            produces = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+    public ResponseEntity<byte[]> exportStyledExcel(@RequestBody StyledExcelExportRequest req) {
+        try {
+            if (req.getHeaders() == null || req.getHeaders().isEmpty()) {
+                return ResponseEntity.badRequest().build();
+            }
+            Set<Integer> textSet = new HashSet<>();
+            if (req.getTextColumnIndexes() != null) {
+                textSet.addAll(req.getTextColumnIndexes());
+            }
+            byte[] bytes = excelStyledExportService.buildStyledTable(
+                    req.getSheetName(),
+                    req.getHeaders(),
+                    req.getRows(),
+                    textSet);
+            return ResponseEntity.ok()
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"export.xlsx\"")
+                    .contentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
+                    .body(bytes);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().build();
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+
+    /** 엑셀 파일 업로드로 업체 일괄 등록. 1행=헤더(업체명, 업체구분, 상위코드 등), 2행~=데이터 */
+    @PostMapping(value = "/excelRegister", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<ApiResponse<Map<String, Object>>> excelRegister(@RequestParam("file") MultipartFile file) {
+        if (file == null || file.isEmpty()) {
+            return ResponseEntity.ok(ApiResponse.fail("엑셀 파일을 선택하세요.", "VALIDATION"));
+        }
+        String name = file.getOriginalFilename();
+        if (name == null || (!name.endsWith(".xlsx") && !name.endsWith(".xls"))) {
+            return ResponseEntity.ok(ApiResponse.fail("xlsx 또는 xls 파일만 업로드 가능합니다.", "VALIDATION"));
+        }
+        try {
+            Map<String, Object> result = compService.importFromExcel(file);
+            return ResponseEntity.ok(ApiResponse.ok(result));
+        } catch (Exception e) {
+            return ResponseEntity.ok(ApiResponse.fail(e.getMessage() != null ? e.getMessage() : "엑셀 처리 중 오류가 발생했습니다.", "ERROR"));
         }
     }
 

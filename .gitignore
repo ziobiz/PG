@@ -5,9 +5,22 @@ output/
 scripts/node_modules/
 server/node_modules/
 
+# 업로드 파일 (본사/총판 브랜딩 이미지)
+uploads/
+
 # 빌드 산출물
 *.jar
 !pg-app/gradle/wrapper/gradle-wrapper.jar
+
+# Gradle/Java 빌드 디렉터리 (커밋 금지)
+pg-app/.gradle/
+pg-app/build/
+pg-app/bin/
+**/*.class
+
+# 레거시/백업 스크립트 (배포·운영에 불필요)
+site/js/screens_original.js
+tmp-*.txt
 
 # IDE
 .idea/

@@ -39,6 +39,10 @@ public class PgTrnsctn {
     @Column(name = "van", length = 10)
     private String van;
 
+    /** CHILL(또는 null) API동기화, NOTI 노티적재, URL URL직접결제 */
+    @Column(name = "origin", length = 20)
+    private String origin;
+
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 
@@ -65,6 +69,8 @@ public class PgTrnsctn {
     public void setApprovalNo(String approvalNo) { this.approvalNo = approvalNo; }
     public String getVan() { return van; }
     public void setVan(String van) { this.van = van; }
+    public String getOrigin() { return origin; }
+    public void setOrigin(String origin) { this.origin = origin; }
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
 }

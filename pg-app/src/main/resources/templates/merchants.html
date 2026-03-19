@@ -11,7 +11,7 @@
   <div class="dashboard-wrap">
     <aside class="dashboard-sidebar">
       <div class="logo"><span class="logo-text">PG 통합관리자</span><span class="logo-short">PG</span></div>
-      <div th:replace="~{fragments/sidebar :: sidebar(activeMenu='org6')}"></div>
+      <div th:replace="~{fragments/sidebar :: sidebar}" th:with="activeMenu='org6'"></div>
     </aside>
     <div class="dashboard-main">
       <header class="dashboard-header">

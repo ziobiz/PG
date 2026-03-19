@@ -8,6 +8,7 @@
       "children": [
         { "label": "PG사 API 연동", "url": "/hq/pgApiMng", "menuId": "M0101" },
         { "label": "기본정책", "url": "/hq/defaultCommission", "menuId": "M0102" },
+        { "label": "전산노티·결제환경", "url": "/hq/notifyEnv", "menuId": "M0105" },
         { "label": "API 구성 세팅", "url": "/hq/apiConfig", "menuId": "M0103" },
         { "label": "본사별 권한 세팅", "url": "/hq/permissionMng", "menuId": "M0104" }
       ]
@@ -28,11 +29,14 @@
       "icon": "bi-credit-card",
       "children": [
         { "label": "결제내역", "url": "/calc/payList", "menuId": "M0301" },
-        { "label": "결제내역(신)", "url": "/calc/payListNew", "menuId": "M0311" },
-        { "label": "결제실패내역", "url": "/calc/payFailList", "menuId": "M0303" },
+        { "label": "노티내역", "url": "/calc/payNotiList", "menuId": "M0302" },
+        { "label": "성공내역", "url": "/calc/paySuccessList", "menuId": "M0315" },
+        { "label": "실패내역", "url": "/calc/payFailList", "menuId": "M0303" },
+        { "label": "환불내역", "url": "/calc/payRefundList", "menuId": "M0316" },
+        { "label": "강제환불", "url": "/calc/payForceRefundList", "menuId": "M0317" },
+        { "label": "취소내역", "url": "/calc/payCancelList", "menuId": "M0318" },
         { "label": "상계취소내역", "url": "/calc/offsetCancList", "menuId": "M0309" },
-        { "label": "URL간편결제 내역", "url": "/pay/easyPay", "menuId": "M0310" },
-        { "label": "현금영수증내역", "url": "/calc/cashReceiptList", "menuId": "M0314" }
+        { "label": "URL결제내역", "url": "/pay/easyPay", "menuId": "M0310" }
       ]
     },
     {

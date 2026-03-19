@@ -18,7 +18,7 @@ public class ApiBankController {
     private static final Map<String, List<Map<String, String>>> BANKS_BY_COUNTRY = new LinkedHashMap<>();
 
     static {
-        // 대한민국 (금융기관코드)
+        // 대한민국 (금융기관코드 - 한국은행 기준)
         BANKS_BY_COUNTRY.put("KR", List.of(
                 Map.of("code", "02", "name", "산업은행"),
                 Map.of("code", "03", "name", "기업은행"),
@@ -43,22 +43,28 @@ public class ApiBankController {
                 Map.of("code", "88", "name", "신한"),
                 Map.of("code", "89", "name", "케이뱅크"),
                 Map.of("code", "90", "name", "카카오뱅크"),
-                Map.of("code", "92", "name", "토스뱅크")
+                Map.of("code", "92", "name", "토스뱅크"),
+                Map.of("code", "23", "name", "SC제일은행")
         ));
-        // 태국 (ChillPay 연동)
+        // 태국 (ChillPay/결제 연동용)
         BANKS_BY_COUNTRY.put("TH", List.of(
                 Map.of("code", "002", "name", "Bangkok Bank"),
                 Map.of("code", "004", "name", "Kasikorn Bank"),
                 Map.of("code", "006", "name", "Krung Thai Bank"),
+                Map.of("code", "009", "name", "HSBC Thailand"),
                 Map.of("code", "011", "name", "TMBThanachart Bank"),
                 Map.of("code", "014", "name", "Siam Commercial Bank"),
-                Map.of("code", "025", "name", "Bank of Ayudhya"),
+                Map.of("code", "022", "name", "Standard Chartered"),
+                Map.of("code", "024", "name", "UOB Thailand"),
+                Map.of("code", "025", "name", "Bank of Ayudhya (Krungsri)"),
                 Map.of("code", "030", "name", "Government Savings Bank"),
                 Map.of("code", "034", "name", "Government Housing Bank"),
+                Map.of("code", "067", "name", "ICBC Thai"),
                 Map.of("code", "069", "name", "Kiatnakin Phatra Bank"),
-                Map.of("code", "073", "name", "Land and Houses Bank")
+                Map.of("code", "073", "name", "Land and Houses Bank"),
+                Map.of("code", "076", "name", "Thanachart Bank")
         ));
-        // 일본
+        // 일본 (統一金融機関コード)
         BANKS_BY_COUNTRY.put("JP", List.of(
                 Map.of("code", "0001", "name", "みずほ銀行"),
                 Map.of("code", "0005", "name", "三菱UFJ銀行"),
@@ -66,8 +72,15 @@ public class ApiBankController {
                 Map.of("code", "0010", "name", "りそな銀行"),
                 Map.of("code", "0017", "name", "埼玉りそな銀行"),
                 Map.of("code", "0033", "name", "ジャパンネット銀行"),
+                Map.of("code", "0034", "name", "セブン銀行"),
                 Map.of("code", "0036", "name", "楽天銀行"),
-                Map.of("code", "0038", "name", "ソニー銀行")
+                Map.of("code", "0038", "name", "ソニー銀行"),
+                Map.of("code", "0039", "name", "auじぶん銀行"),
+                Map.of("code", "0040", "name", "イオン銀行"),
+                Map.of("code", "9900", "name", "ゆうちょ銀行"),
+                Map.of("code", "0116", "name", "横浜銀行"),
+                Map.of("code", "0117", "name", "静岡銀行"),
+                Map.of("code", "0118", "name", "北陸銀行")
         ));
         // 미국
         BANKS_BY_COUNTRY.put("US", List.of(

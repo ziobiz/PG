@@ -39,9 +39,11 @@ for %%i in ("%APP_HOME%") do set APP_HOME=%%~fi
 set DEFAULT_JVM_OPTS="-Xmx64m" "-Xms64m"
 
 @rem Find java.exe
-if defined JAVA_HOME find "%JAVA_HOME%\java.exe" -version >NUL 2>&1
-if %ERRORLEVEL% EQU 0 goto init
-echo JAVA_HOME is not set. Please install Java 17 and set JAVA_HOME.
+if not defined JAVA_HOME goto nojava
+if not exist "%JAVA_HOME%\bin\java.exe" goto nojava
+goto init
+:nojava
+echo JAVA_HOME is not set or invalid. Set JAVA_HOME to JDK root (e.g. C:\Program Files\Eclipse Adoptium\jdk-17).
 pause
 exit /b 1
 

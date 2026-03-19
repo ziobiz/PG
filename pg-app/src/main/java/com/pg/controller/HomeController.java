@@ -6,14 +6,11 @@ import org.springframework.web.bind.annotation.GetMapping;
 @Controller
 public class HomeController {
 
-    @GetMapping("/")
-    public String index() {
-        return "redirect:/login";
-    }
+    /** 루트(/) 리다이렉트는 RootRedirectFilter 가 처리 (환영 페이지 406 방지) */
 
     @GetMapping("/main")
     public String main() {
-        return "main";
+        return "redirect:/index.html";
     }
 
     @GetMapping("/transactions")

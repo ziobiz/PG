@@ -16,6 +16,7 @@ repositories {
 }
 
 dependencies {
+    implementation 'org.apache.poi:poi-ooxml:5.2.5'
     implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
     implementation 'org.springframework.boot:spring-boot-starter-security'
     implementation 'org.springframework.boot:spring-boot-starter-thymeleaf'
@@ -29,4 +30,15 @@ dependencies {
 
 tasks.named('test') {
     useJUnitPlatform()
+}
+
+// 관리자 SPA(site/)를 classpath 정적 리소스에 포함 → /login.html, /index.html 등이 JAR에서 직접 서빙됨
+// (api.icopay.co.kr 이 Nginx로 8080 전체 프록시될 때 Apache 403 없이 동작)
+processResources {
+    from("${rootDir}/../site") {
+        into 'static'
+        exclude 'README.md', 'README-로컬개발.txt', 'FTP_업로드_경로.txt'
+        exclude '로컬 서버 실행.bat', 'menu-test.html'
+        exclude '**/screens_original.js'
+    }
 }

@@ -15,5 +15,9 @@
 
 ■ 나중에 서버(otlpay.cafe24.com) 복구 후
 
-사이트를 카페24에 업로드하면 그 도메인으로 접속 시 자동으로 같은 도메인으로 API를 호출합니다.
-별도 설정 변경 없이 배포하면 됩니다.
+카페24는 보통 정적 파일(HTML/JS/CSS)만 제공합니다. pg-app API(/api/...)는 별도 서버에서 돌아갑니다.
+→ site/js/config.js 의 CAFE24_STATIC_SITE_API 를 실제 API 주소(예: https://api.icopay.co.kr)로 두고,
+  pg-app application.yml 의 app.cors.allowed-origins 에 otlpay.cafe24.com 이 포함되어 있어야
+  로그인·브랜딩(로고·로그인 배경)·메뉴 API가 동작합니다.
+
+임시로 다른 API를 쓰려면 주소창에 ?api=https://API주소 한 번 열면 localStorage 에 저장됩니다.

@@ -35,6 +35,10 @@ public class MerchantPgBinding {
     @Column(name = "mid", length = 50)
     private String mid;
 
+    /** ChillPay Route / NOTI 루트번호 — 노티 MID+루트로 가맹점 매칭 시 사용 (없으면 MID만으로 매칭) */
+    @Column(name = "root_no", length = 40)
+    private String rootNo;
+
     @Column(name = "api_key", length = 255)
     private String apiKey;
 
@@ -74,6 +78,8 @@ public class MerchantPgBinding {
     public void setPayMethod(String payMethod) { this.payMethod = payMethod; }
     public String getMid() { return mid; }
     public void setMid(String mid) { this.mid = mid; }
+    public String getRootNo() { return rootNo; }
+    public void setRootNo(String rootNo) { this.rootNo = rootNo; }
     public String getApiKey() { return apiKey; }
     public void setApiKey(String apiKey) { this.apiKey = apiKey; }
     public String getIvKey() { return ivKey; }

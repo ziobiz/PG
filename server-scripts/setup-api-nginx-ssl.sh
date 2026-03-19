@@ -4,6 +4,12 @@
 #   chmod +x setup-api-nginx-ssl.sh
 #   sed -i 's/\r$//' setup-api-nginx-ssl.sh
 #   sudo ./setup-api-nginx-ssl.sh
+#
+# ★ Cloudflare(주황 구름 프록시) 사용 시:
+#   Let's Encrypt HTTP-01은 http://api.icopay.co.kr/.well-known/... 로 검증하는데,
+#   프록시가 켜 있으면 403·차단으로 실패합니다.
+#   → Cloudflare DNS에서 api.icopay.co.kr 을 "DNS만 사용"(회색 구름)으로 바꾼 뒤
+#     이 스크립트 4단계(인증서 발급)를 다시 실행하거나, docs/certbot_Cloudflare_403_해결.md 참고.
 
 set -e
 
@@ -29,7 +35,6 @@ server {
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
-        proxy_set_header Accept "application/json";
     }
 
     location / {
@@ -49,8 +54,14 @@ echo "3. Certbot 설치..."
 sudo apt update -qq
 sudo apt install -y certbot
 
-echo "4. SSL 인증서 발급..."
-sudo certbot certonly --webroot -w /var/www/certbot -d api.icopay.co.kr --non-interactive --agree-tos --register-unsafely-without-email
+echo "4. SSL 인증서 발급 (webroot, Let's Encrypt HTTP-01)..."
+echo ""
+echo ">>> Cloudflare 쓰는 경우: api.icopay.co.kr 레코드가 '프록시 끔(회색)'인지 먼저 확인하세요."
+echo ">>> (주황 구름이면 여기서 거의 항상 unauthorized / 403)"
+echo ""
+sudo certbot certonly --webroot -w /var/www/certbot -d api.icopay.co.kr \
+  --non-interactive --agree-tos --register-unsafely-without-email \
+  --preferred-challenges http-01
 
 echo "5. HTTPS 설정 적용..."
 sudo tee "$NGINX_CONF" > /dev/null << 'NGINX_SSL_EOF'
@@ -80,7 +91,6 @@ server {
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
-        proxy_set_header Accept "application/json";
     }
 
     location / {

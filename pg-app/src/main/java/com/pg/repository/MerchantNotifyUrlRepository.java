@@ -7,4 +7,5 @@ import java.util.List;
 
 public interface MerchantNotifyUrlRepository extends JpaRepository<MerchantNotifyUrl, Long> {
     List<MerchantNotifyUrl> findByOrgUnitIdOrderByUrlTypeAsc(Long orgUnitId);
+    void deleteByOrgUnitIdAndUrlTypeIn(Long orgUnitId, java.util.Collection<String> urlTypes);
 }

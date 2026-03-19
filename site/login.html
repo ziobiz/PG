@@ -1,79 +1,96 @@
 <!DOCTYPE html>
+<!-- 기본 API: https://api.icopay.co.kr (다른 주소 쓰면 data-pg-api-base 지정) -->
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ONTHELINE FXHJ</title>
+  <title>PG 통합관리자</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
   <link href="css/site.css" rel="stylesheet">
   <style>
-    body { background: #f5f6f8; display: flex; align-items: center; justify-content: center; min-height: 100vh; flex-direction: column; }
-    .login-card { max-width: 420px; box-shadow: 0 2px 12px rgba(0,0,0,0.08); }
-    .login-header { background: #313a46; color: #fff; padding: 20px; text-align: center; border-radius: 0.25rem 0.25rem 0 0; }
-    .wait-msg { display: none; margin-bottom: 1rem; }
-    .otp-notice { font-size: 12px; color: #0c5460; background: #d1ecf1; padding: 10px; border-radius: 4px; margin-bottom: 16px; }
-    .otp-notice p { margin: 0 0 4px; }
-    .notice-section { max-width: 420px; margin-top: 24px; font-size: 12px; color: #856404; background: #fff3cd; padding: 12px; border-radius: 4px; }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; height: 100%; overflow: hidden; }
+    .login-page { display: flex; flex-direction: row; height: 100vh; }
+    .login-main-area { flex: 1; min-width: 0; position: relative; background: #1a1d21; }
+    .login-main-area .main-bg { position: absolute; inset: 0; background-size: cover; background-position: center; background-repeat: no-repeat; }
+    .login-main-area .main-overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.3); }
+    .login-main-area .main-logo { position: absolute; top: 24px; left: 50%; transform: translateX(-50%); max-height: 60px; max-width: 80%; object-fit: contain; z-index: 2; }
+    .login-main-area .main-text { position: absolute; bottom: 24px; left: 24px; color: #fff; font-size: 14px; z-index: 2; text-shadow: 0 1px 2px rgba(0,0,0,0.5); }
+    .login-panel-wrap { width: 420px; min-width: 420px; flex-shrink: 0; display: flex; flex-direction: column; background: #fff; overflow-y: auto; }
+    .login-panel { padding: 24px; flex: 1; }
+    .login-panel .logo-top { max-height: 50px; max-width: 180px; margin-bottom: 24px; object-fit: contain; }
+    .login-panel .form-control { background: #e8f4fd; }
+    .notice-section { font-size: 12px; color: #856404; background: #fff3cd; padding: 12px; margin: 0 24px 24px; border-radius: 4px; }
     .notice-title { font-weight: 700; margin-bottom: 8px; }
     .notice-section p { margin: 0 0 4px; }
+    .otp-notice { font-size: 12px; color: #0c5460; background: #d1ecf1; padding: 10px; border-radius: 4px; margin-bottom: 16px; }
+    .otp-notice p { margin: 0 0 4px; }
+    @media (max-width: 768px) {
+      .login-page { flex-direction: column; }
+      .login-main-area { min-height: 200px; }
+      .login-panel-wrap { width: 100%; min-width: 0; }
+    }
   </style>
 </head>
-<body>
+<body class="theme-default">
   <script>
     (function(){
       if (sessionStorage.getItem('pg_admin_auth')) {
         var origin = window.location.origin || '';
-        window.location.href = origin ? (origin + '/index.html') : 'index.html';
+        window.location.replace(origin ? (origin + '/index.html') : 'index.html');
+        return;
       }
     })();
   </script>
-  <div class="card login-card">
-    <div class="login-header">
-      <h5 class="mb-0">ONTHELINE FXHJ</h5>
+  <div class="login-page">
+    <div class="login-main-area">
+      <div class="main-bg" id="loginMainBg"></div>
+      <div class="main-overlay"></div>
+      <img class="main-logo d-none" id="loginMainLogo" alt="Logo" src="">
+      <div class="main-text" id="loginMainText">PG 통합관리자</div>
     </div>
-    <div class="card-body p-4">
-      <p class="wait-msg" id="waitMsg">잠시만 기다려주십시오</p>
-      <div class="otp-notice">
-        <p>알림톡 혹은 문자로 GOOGLE OTP 키값을 전송하였습니다</p>
-        <p>GOOGLE OTP앱으로 키값을 등록 후 다시 로그인하시기 바랍니다.</p>
-        <p>알림톡 혹은 문자가 수신되지 않은 경우 본사에 문의하시기 바랍니다.</p>
+    <div class="login-panel-wrap">
+      <div class="login-panel">
+        <img class="logo-top" id="loginPanelLogo" src="" alt="Logo" style="display:none">
+        <h5 class="mb-3" id="loginPanelTitle">PG 통합관리자</h5>
+        <div class="otp-notice">
+          <p>알림톡 혹은 문자로 GOOGLE OTP 키값을 전송하였습니다</p>
+          <p>GOOGLE OTP앱으로 키값을 등록 후 다시 로그인하시기 바랍니다.</p>
+        </div>
+        <form id="loginForm" onsubmit="return false;">
+          <div class="mb-3">
+            <label for="userId" class="form-label">아이디</label>
+            <input type="text" class="form-control" id="userId" name="userId" autocomplete="username">
+          </div>
+          <div class="mb-3">
+            <label for="userPwd" class="form-label">비밀번호</label>
+            <input type="password" class="form-control" id="userPwd" name="userPwd" autocomplete="current-password">
+          </div>
+          <div class="mb-3 d-none">
+            <label for="changePassword" class="form-label">변경 비밀번호</label>
+            <input type="password" class="form-control" id="changePassword" name="changePassword">
+          </div>
+          <div class="mb-3 d-none">
+            <label for="authNumber" class="form-label">인증번호</label>
+            <input type="text" class="form-control" id="authNumber" name="authNumber">
+          </div>
+          <div class="mb-3 d-none">
+            <label for="otpNo" class="form-label">OTP번호</label>
+            <input type="text" class="form-control" id="otpNo" name="otpNo">
+          </div>
+          <button type="submit" class="btn btn-primary w-100" id="loginBtn">로그인</button>
+          <p class="mt-2 mb-0"><button type="button" class="btn btn-link p-0" id="openChangePwModal">초기비밀번호 변경</button></p>
+        </form>
       </div>
-      <form id="loginForm" onsubmit="return false;">
-        <div class="mb-3">
-          <label for="userId" class="form-label">아이디</label>
-          <input type="text" class="form-control" id="userId" name="userId" autocomplete="username">
-        </div>
-        <div class="mb-3">
-          <label for="userPwd" class="form-label">비밀번호</label>
-          <input type="password" class="form-control" id="userPwd" name="userPwd" autocomplete="current-password">
-        </div>
-        <div class="mb-3">
-          <label for="changePassword" class="form-label">변경 비밀번호</label>
-          <input type="password" class="form-control" id="changePassword" name="changePassword">
-        </div>
-        <div class="mb-3">
-          <label for="authNumber" class="form-label">인증번호</label>
-          <input type="text" class="form-control" id="authNumber" name="authNumber">
-        </div>
-        <div class="mb-3">
-          <label for="otpNo" class="form-label">OTP번호</label>
-          <input type="text" class="form-control" id="otpNo" name="otpNo" inputmode="numeric" maxlength="6" autocomplete="one-time-code">
-        </div>
-        <button type="submit" class="btn btn-primary w-100" id="loginBtn">로그인</button>
-        <p class="mt-2 mb-0"><button type="button" class="btn btn-link p-0" id="openChangePwModal">초기비밀번호 변경</button></p>
-      </form>
+      <section class="notice-section">
+        <h3 class="notice-title">※ 사칭 피해 주의 안내 ※</h3>
+        <p>최근 본사나 PG사를 사칭해 금전적 요구를 하는 사례가 발생하고 있습니다.</p>
+        <p>저희는 결제 관련 금전 요청을 하지 않으니, 의심스러운 연락을 받으신 경우 고객센터 또는 계약된 영업지사를 확인해주시기 바랍니다.</p>
+      </section>
     </div>
   </div>
-  <section class="notice-section">
-    <h3 class="notice-title">※ 사칭 피해 주의 안내 ※</h3>
-    <p>최근 본사나 PG사를 사칭해 금전적 요구를 하는 사례가 발생하고 있습니다.</p>
-    <p>저희는 결제 관련 금전 요청을 하지 않으니,</p>
-    <p>의심스러운 연락을 받으신 경우</p>
-    <p>고객센터 또는 계약된 영업지사 확인해주시기 바랍니다.</p>
-    <p>안전한 서비스 이용을 위해 항상 주의와 협조 부탁드립니다.</p>
-  </section>
 
-  <!-- 초기비밀번호 변경 modal (fxhj 동일: 기존비밀번호, 변경 비밀번호, 유효성 문구) -->
   <div class="modal fade" id="pwChangeModal" tabindex="-1" data-bs-backdrop="static">
     <div class="modal-dialog modal-dialog-centered">
       <div class="modal-content">
@@ -82,7 +99,7 @@
           <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
         </div>
         <div class="modal-body">
-          <p class="text-muted small">4자미만 , 아이디+1!, 초기화된 비밀번호와 동일한 비밀번호는 사용불가</p>
+          <p class="text-muted small">4자 이상, 아이디+1!, 초기화된 비밀번호와 동일한 비밀번호는 사용불가</p>
           <div class="mb-2">
             <label for="modalOldPassword" class="form-label">기존비밀번호</label>
             <input type="password" class="form-control" id="modalOldPassword" name="oldPassword">
@@ -100,16 +117,66 @@
     </div>
   </div>
 
-  <script src="js/config.js"></script>
-  <script src="js/api.js"></script>
+  <script src="js/config.js?v=6"></script>
+  <!-- 예전 config / 잘못된 localStorage 보정: API 호스트에서는 반드시 현재 origin -->
+  <script>
+    (function () {
+      var h = (window.location && window.location.hostname) ? window.location.hostname : '';
+      if (h === 'localhost' || h === '127.0.0.1') return;
+      if (h === 'api.icopay.co.kr') {
+        try {
+          var og = (window.location.origin || '').replace(/\/$/, '');
+          if (og) {
+            try { localStorage.removeItem('pg_api_base'); } catch (e) {}
+            window.PG_API_BASE = og;
+          }
+        } catch (e2) {}
+        return;
+      }
+      var api = window.PG_PUBLIC_ICOPAY_API || 'https://api.icopay.co.kr';
+      var b = (window.PG_API_BASE || '').replace(/\/$/, '');
+      var bad = !b || /^https?:\/\/(localhost|127\.0\.0\.1)(:|\/|$)/i.test(b);
+      if (bad) {
+        try { localStorage.removeItem('pg_api_base'); } catch (e) {}
+        window.PG_API_BASE = api;
+      }
+    })();
+  </script>
+  <script src="js/api.js?v=4"></script>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
   <script>
     (function () {
       var origin = window.location.origin || '';
-      var AUTH_KEY = 'pg_admin_auth';
+      var apiBase = typeof window.PG_assetApiBase === 'function' ? window.PG_assetApiBase() : ((window.PG_API_BASE || '').replace(/\/$/, '') || origin);
+      var compId = (typeof URLSearchParams !== 'undefined' && new URLSearchParams(window.location.search).get('org')) || '';
 
+      function applyBranding(b) {
+        var mainBg = document.getElementById('loginMainBg');
+        var mainLogo = document.getElementById('loginMainLogo');
+        var panelLogo = document.getElementById('loginPanelLogo');
+        if (b.mainImageUrl) {
+          mainBg.style.backgroundImage = 'url(' + apiBase + b.mainImageUrl + ')';
+        }
+        if (b.logoImageUrl) {
+          mainLogo.src = apiBase + b.logoImageUrl;
+          mainLogo.classList.remove('d-none');
+          panelLogo.src = apiBase + b.logoImageUrl;
+          panelLogo.style.display = '';
+          document.getElementById('loginPanelTitle').style.display = 'none';
+        } else {
+          document.getElementById('loginPanelTitle').style.display = '';
+        }
+        var theme = (b.theme || 'DEFAULT').toUpperCase();
+        document.body.className = 'theme-' + theme.toLowerCase();
+      }
+
+      if (window.PG_API && window.PG_API.orgBrandingPublic) {
+        window.PG_API.orgBrandingPublic(compId).then(applyBranding).catch(function () {});
+      }
+
+      var AUTH_KEY = 'pg_admin_auth';
       if (sessionStorage.getItem(AUTH_KEY) || sessionStorage.getItem('pg_admin_token')) {
-        window.location.href = 'index.html';
+        window.location.replace((origin || '') + '/index.html');
         return;
       }
 
@@ -119,41 +186,19 @@
       });
 
       document.getElementById('btnSavePassword').addEventListener('click', function () {
-        var oldPwd = document.getElementById('modalOldPassword').value;
         var newPwd = document.getElementById('modalNewPassword').value;
-        if (!newPwd || newPwd.length < 4) {
-          alert('4자 이상 입력하세요.');
-          return;
-        }
+        if (!newPwd || newPwd.length < 4) { alert('4자 이상 입력하세요.'); return; }
+        alert('비밀번호 변경은 이 화면(SPA)에서 서버에 반영되지 않습니다. 총본사/관리자에게 비밀번호 초기화를 요청하거나, VPS 관리자 화면에서 변경해 주세요.');
         document.getElementById('pwChangeModal').querySelector('.btn-close').click();
       });
 
       document.getElementById('loginForm').addEventListener('submit', function () {
         var userId = document.getElementById('userId').value.trim();
         var userPwd = document.getElementById('userPwd').value;
-        if (!userId || !userPwd) {
-          alert('아이디와 비밀번호를 입력하세요.');
-          return;
-        }
-        var skipFirstLogin = (typeof URLSearchParams !== 'undefined' && new URLSearchParams(window.location.search).get('skipFirstLogin')) === '1';
-        var isFirstLogin = !skipFirstLogin && localStorage.getItem('pg_first_login_' + userId) !== 'false';
-        if (isFirstLogin) {
-          var modal = new bootstrap.Modal(document.getElementById('pwChangeModal'));
-          modal.show();
-          document.getElementById('modalNewPassword').value = '';
-          document.getElementById('btnSavePassword').onclick = function () {
-            var newPwd = document.getElementById('modalNewPassword').value;
-            if (!newPwd || newPwd.length < 4) {
-              alert('4자 이상 입력하세요.');
-              return;
-            }
-            localStorage.setItem('pg_first_login_' + userId, 'false');
-            modal.hide();
-            doLogin(userId, newPwd);
-          };
-        } else {
-          doLogin(userId, userPwd);
-        }
+        if (!userId || !userPwd) { alert('아이디와 비밀번호를 입력하세요.'); return; }
+        // SPA 로그인: 서버는 /api/auth/login 의 (아이디 + 아래 입력 비밀번호)만 검증합니다.
+        // 예전 "첫 로그인" 모달은 새 비번으로 doLogin()을 호출해 서버 비번과 달라 항상 실패했음 → 제거.
+        doLogin(userId, userPwd);
       });
 
       function doLogin(userId, pwd) {
@@ -162,17 +207,15 @@
           api.login(userId, pwd).then(function (res) {
             if (res && res.success && res.data && res.data.token) {
               api.setAuth(res.data.token, { loginId: res.data.userId, userId: res.data.userId, userNm: res.data.userNm || '관리자', orgUnitId: res.data.orgUnitId, compId: res.data.compId, orgLevel: res.data.orgLevel });
-              window.location.href = 'index.html';
-            } else {
-              alert(res && res.message ? res.message : '로그인에 실패했습니다.');
-            }
+              window.location.replace((origin || '') + '/index.html');
+            } else { alert(res && res.message ? res.message : '로그인에 실패했습니다.'); }
           }).catch(function (err) {
             alert(err && err.message ? err.message : '로그인 요청이 실패했습니다. API 서버를 확인하세요.');
           });
         } else {
           sessionStorage.setItem(AUTH_KEY, '1');
-          sessionStorage.setItem('pg_admin_user', JSON.stringify({ userId: userId, userNm: 'ONTHELINE FXHJ' }));
-          window.location.href = 'index.html';
+          sessionStorage.setItem('pg_admin_user', JSON.stringify({ userId: userId, userNm: 'PG 통합관리자' }));
+          window.location.replace((origin || '') + '/index.html');
         }
       }
     })();

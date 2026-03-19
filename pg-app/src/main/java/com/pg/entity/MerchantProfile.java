@@ -33,6 +33,9 @@ public class MerchantProfile {
     @Column(name = "addr_detail", length = 255)
     private String addrDetail;
 
+    @Column(name = "addr_etc", length = 255)
+    private String addrEtc;
+
     @Column(name = "ceo_nm", length = 100)
     private String ceoNm;
 
@@ -123,6 +126,10 @@ public class MerchantProfile {
     @Column(name = "country_cd", length = 10)
     private String countryCd;
 
+    /** 주소 국가 (기본정보) JP/KR/TH 또는 기타 시 국가명 */
+    @Column(name = "addr_country_cd", length = 20)
+    private String addrCountryCd;
+
     @Column(name = "swift", length = 50)
     private String swift;
 
@@ -152,8 +159,8 @@ public class MerchantProfile {
     @Column(name = "web_payment_use_yn", length = 1)
     private String webPaymentUseYn = "Y";
 
-    /** 기준 화폐 (본사: USD, JPY, KRW 등 - 1화폐 1본사) */
-    @Column(name = "base_currency", length = 10)
+    /** 기준 화폐. 본사: 최대 3종 comma구분 (KRW,USD,JPY). 총판: 1종만 */
+    @Column(name = "base_currency", length = 30)
     private String baseCurrency;
 
     /** 터미널[단말] 개수 */
@@ -163,6 +170,10 @@ public class MerchantProfile {
     /** 터미널[웹] 개수 */
     @Column(name = "terminal_count_web")
     private Integer terminalCountWeb;
+
+    /** 본사(REGIONAL) 전용 JSON 설정 */
+    @Column(name = "regional_settings", columnDefinition = "TEXT")
+    private String regionalSettings;
 
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
@@ -186,6 +197,8 @@ public class MerchantProfile {
     public void setAddr(String addr) { this.addr = addr; }
     public String getAddrDetail() { return addrDetail; }
     public void setAddrDetail(String addrDetail) { this.addrDetail = addrDetail; }
+    public String getAddrEtc() { return addrEtc; }
+    public void setAddrEtc(String addrEtc) { this.addrEtc = addrEtc; }
     public String getCeoNm() { return ceoNm; }
     public void setCeoNm(String ceoNm) { this.ceoNm = ceoNm; }
     public String getCeoMobile() { return ceoMobile; }
@@ -238,6 +251,8 @@ public class MerchantProfile {
     public void setAccountHolder(String accountHolder) { this.accountHolder = accountHolder; }
     public String getCountryCd() { return countryCd; }
     public void setCountryCd(String countryCd) { this.countryCd = countryCd; }
+    public String getAddrCountryCd() { return addrCountryCd; }
+    public void setAddrCountryCd(String addrCountryCd) { this.addrCountryCd = addrCountryCd; }
     public String getSwift() { return swift; }
     public void setSwift(String swift) { this.swift = swift; }
     public String getBranchName() { return branchName; }
@@ -262,6 +277,8 @@ public class MerchantProfile {
     public void setTerminalCountTerminal(Integer terminalCountTerminal) { this.terminalCountTerminal = terminalCountTerminal; }
     public Integer getTerminalCountWeb() { return terminalCountWeb; }
     public void setTerminalCountWeb(Integer terminalCountWeb) { this.terminalCountWeb = terminalCountWeb; }
+    public String getRegionalSettings() { return regionalSettings; }
+    public void setRegionalSettings(String regionalSettings) { this.regionalSettings = regionalSettings; }
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
 }

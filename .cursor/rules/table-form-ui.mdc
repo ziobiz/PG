@@ -1,0 +1,19 @@
+---
+description: 테이블·검색폼 UI 규칙 (가운데 정렬, 입력창 너비 통일)
+globs: site/**/*.css, site/**/*.js, site/**/*.html
+alwaysApply: false
+---
+
+# 테이블·폼 UI 규칙
+
+## 테이블
+
+- **모든 테이블**의 제목(th)과 내용(td)은 **상하좌우 가운데 정렬** 필수
+- `text-align: center`, `vertical-align: middle` 적용
+- 예외: 트리 구조(업체코드·업체명 등 계층 표시)는 `text-align: left` 유지
+
+## 검색폼 입력창
+
+- 업체관리 등 **다중 입력 필드**가 있는 검색 영역은 입력창 **너비 통일**
+- `.comp-mng-search-multiline` 내 input/select는 동일 너비(예: 140px) 적용
+- UI 일관성 유지

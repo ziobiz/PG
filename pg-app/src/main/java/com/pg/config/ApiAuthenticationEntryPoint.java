@@ -6,12 +6,14 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.authentication.HttpStatusEntryPoint;
+import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 
 /**
- * /api/** 인증 실패 시 401 반환 (302 리다이렉트 방지)
+ * API auth failure: return 401 instead of 302 redirect
  */
+@Component
 public class ApiAuthenticationEntryPoint implements AuthenticationEntryPoint {
 
     private static final HttpStatusEntryPoint UNAUTHORIZED = new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED);
