@@ -2,12 +2,14 @@ package com.pg.service;
 
 import com.pg.api.dto.PageResult;
 import com.pg.entity.CommissionPolicy;
+import com.pg.entity.DistributionFeeConfig;
 import com.pg.entity.MerchantCommissionExtra;
 import com.pg.entity.OrgUnit;
 import com.pg.repository.CommissionPolicyRepository;
 import com.pg.repository.CommissionHistoryRepository;
 import com.pg.repository.MerchantCommissionExtraRepository;
 import com.pg.repository.OrgUnitRepository;
+import com.pg.repository.DistributionFeeConfigRepository;
 import com.pg.entity.CommissionHistory;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
@@ -23,15 +25,18 @@ public class CommissionService {
     private final CommissionPolicyRepository commissionPolicyRepository;
     private final MerchantCommissionExtraRepository merchantCommissionExtraRepository;
     private final CommissionHistoryRepository commissionHistoryRepository;
+    private final DistributionFeeConfigRepository distributionFeeConfigRepository;
 
     public CommissionService(OrgUnitRepository orgUnitRepository,
                              CommissionPolicyRepository commissionPolicyRepository,
                              MerchantCommissionExtraRepository merchantCommissionExtraRepository,
-                             CommissionHistoryRepository commissionHistoryRepository) {
+                             CommissionHistoryRepository commissionHistoryRepository,
+                             DistributionFeeConfigRepository distributionFeeConfigRepository) {
         this.orgUnitRepository = orgUnitRepository;
         this.commissionPolicyRepository = commissionPolicyRepository;
         this.merchantCommissionExtraRepository = merchantCommissionExtraRepository;
         this.commissionHistoryRepository = commissionHistoryRepository;
+        this.distributionFeeConfigRepository = distributionFeeConfigRepository;
     }
 
     public PageResult<Map<String, Object>> search(String searchCompId, String searchCompNm, int page, int size) {
@@ -56,6 +61,7 @@ public class CommissionService {
             String regDt = ou.getCreatedAt() != null ? ou.getCreatedAt().toString().substring(0, 10) : null;
             m.put("regDt", regDt);
             m.put("applyDt", regDt);
+            fillHierarchy(m, ou);
             CommissionPolicy policy = commissionPolicyRepository.findByScope(ou.getCode()).or(() -> defaultPolicy).orElse(null);
             if (policy != null) {
                 m.put("cmsnRate", policy.getPayRate());
@@ -72,6 +78,13 @@ public class CommissionService {
                 m.put("feeTechService", ex.getFeeTechService());
                 m.put("feeSettlementPerTx", ex.getFeeSettlementPerTx());
                 m.put("feeRefund", ex.getFeeRefund());
+            });
+            distributionFeeConfigRepository.findByCompId(ou.getCode()).ifPresent(df -> {
+                m.put("hqRate", df.getHqRate());
+                m.put("regionalRate", df.getRegionalRate());
+                m.put("masterRate", df.getMasterRate());
+                m.put("branchRate", df.getBranchRate());
+                m.put("agencyRate", df.getAgencyRate());
             });
             list.add(m);
         }
@@ -116,6 +129,13 @@ public class CommissionService {
                 m.put("feeRefund", ex.getFeeRefund());
                 m.put("feeChargebackWarn", ex.getFeeChargebackWarn());
             });
+            distributionFeeConfigRepository.findByCompId(ou.getCode()).ifPresent(df -> {
+                m.put("hqRate", df.getHqRate());
+                m.put("regionalRate", df.getRegionalRate());
+                m.put("masterRate", df.getMasterRate());
+                m.put("branchRate", df.getBranchRate());
+                m.put("agencyRate", df.getAgencyRate());
+            });
             return m;
         });
     }
@@ -150,6 +170,17 @@ public class CommissionService {
             if (body.get("feeSettlementPerTx") != null && !body.get("feeSettlementPerTx").toString().isEmpty()) extra.setFeeSettlementPerTx(new BigDecimal(body.get("feeSettlementPerTx").toString()));
             if (body.get("feeRefund") != null && !body.get("feeRefund").toString().isEmpty()) extra.setFeeRefund(new BigDecimal(body.get("feeRefund").toString()));
             merchantCommissionExtraRepository.save(extra);
+            DistributionFeeConfig df = distributionFeeConfigRepository.findByCompId(compId).orElseGet(() -> {
+                DistributionFeeConfig x = new DistributionFeeConfig();
+                x.setCompId(compId);
+                return x;
+            });
+            if (body.get("hqRate") != null && !body.get("hqRate").toString().isEmpty()) df.setHqRate(new BigDecimal(body.get("hqRate").toString()));
+            if (body.get("regionalRate") != null && !body.get("regionalRate").toString().isEmpty()) df.setRegionalRate(new BigDecimal(body.get("regionalRate").toString()));
+            if (body.get("masterRate") != null && !body.get("masterRate").toString().isEmpty()) df.setMasterRate(new BigDecimal(body.get("masterRate").toString()));
+            if (body.get("branchRate") != null && !body.get("branchRate").toString().isEmpty()) df.setBranchRate(new BigDecimal(body.get("branchRate").toString()));
+            if (body.get("agencyRate") != null && !body.get("agencyRate").toString().isEmpty()) df.setAgencyRate(new BigDecimal(body.get("agencyRate").toString()));
+            distributionFeeConfigRepository.save(df);
             CommissionHistory hist = new CommissionHistory();
             hist.setCompId(compId);
             hist.setChgType("COMMISSION");
@@ -157,5 +188,28 @@ public class CommissionService {
             commissionHistoryRepository.save(hist);
             return true;
         }).orElse(false);
+    }
+
+    private void fillHierarchy(Map<String, Object> m, OrgUnit merchant) {
+        String hq = "", regional = "", master = "", branch = "", agency = "";
+        OrgUnit cur = merchant;
+        for (int i = 0; i < 8 && cur != null; i++) {
+            if (cur.getOrgLevel() != null) {
+                switch (cur.getOrgLevel()) {
+                    case HEADQUARTERS -> hq = cur.getName();
+                    case REGIONAL -> regional = cur.getName();
+                    case MASTER_DIST -> master = cur.getName();
+                    case BRANCH -> branch = cur.getName();
+                    case AGENCY, SALES_OFFICE -> agency = cur.getName();
+                    default -> {}
+                }
+            }
+            cur = cur.getParentId() != null ? orgUnitRepository.findById(cur.getParentId()).orElse(null) : null;
+        }
+        m.put("hqNm", hq);
+        m.put("regionalNm", regional);
+        m.put("masterNm", master);
+        m.put("branchNm", branch);
+        m.put("agencyNm", agency);
     }
 }

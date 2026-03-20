@@ -8,12 +8,10 @@ import com.pg.entity.PgAgency;
 import com.pg.repository.CommissionPolicyRepository;
 import com.pg.repository.HqApiConfigRepository;
 import com.pg.repository.PgAgencyRepository;
-import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
 import java.util.*;
 
 /**
@@ -23,6 +21,7 @@ import java.util.*;
 @RestController
 @RequestMapping(value = "/api/hq", produces = "application/json")
 public class ApiHqController {
+    private static final String TEMPLATE_SCOPE_PREFIX = "HQPOL:";
 
     private final CommissionPolicyRepository commissionPolicyRepository;
     private final HqApiConfigRepository hqApiConfigRepository;
@@ -156,24 +155,42 @@ public class ApiHqController {
             data.put("rollingPct", p.getRollingPct() != null ? p.getRollingPct().toString() : "5");
             data.put("rollingDays", p.getRollingDays() != null ? p.getRollingDays() : 180);
         });
-        if (data.isEmpty()) {
+        if (!data.containsKey("payRate")) {
             data.put("perTxFee", "0"); data.put("usageRate", "0"); data.put("failFee", "0");
             data.put("cancelRate", "0"); data.put("refundRate", "0"); data.put("payRate", "2.5");
             data.put("feeSettlementPerTx", "0"); data.put("feeUsdt", "0"); data.put("feeFx", "0");
             data.put("rollingPct", "5"); data.put("rollingDays", 180);
         }
+        List<Map<String, Object>> templates = commissionPolicyRepository
+                .findByScopeStartingWithOrderByScopeAsc(TEMPLATE_SCOPE_PREFIX)
+                .stream()
+                .map(this::policyToMap)
+                .toList();
+        data.put("templates", templates);
+        String deployedScope = commissionPolicyRepository
+                .findFirstByScopeStartingWithAndDeployYnOrderByUpdatedAtDesc(TEMPLATE_SCOPE_PREFIX, "Y")
+                .map(CommissionPolicy::getScope)
+                .orElse("");
+        data.put("deployedTemplateScope", deployedScope);
         data.put("memo", "건당/취소/이용/실패/결제/환불 수수료 차감 후, 롤링(담보금)%를 N일간 보류하고 정산 주기에 지급.");
         return ResponseEntity.ok(ApiResponse.ok(data));
     }
 
     @PostMapping("/defaultCommission/save")
+    @SuppressWarnings("null")
     public ResponseEntity<ApiResponse<Map<String, Object>>> defaultCommissionSave(@RequestBody Map<String, Object> body) {
-        CommissionPolicy p = commissionPolicyRepository.findByScope("DEFAULT")
-                .orElseGet(() -> {
-                    CommissionPolicy def = new CommissionPolicy();
-                    def.setScope("DEFAULT");
-                    return def;
-                });
+        String templateScope = hqStr(body, "templateScope");
+        String scope = (templateScope != null && !templateScope.trim().isEmpty()) ? templateScope.trim() : "DEFAULT";
+        CommissionPolicy p = commissionPolicyRepository.findByScope(scope).orElseGet(() -> {
+            CommissionPolicy def = new CommissionPolicy();
+            def.setScope(scope);
+            return def;
+        });
+        if (scope.startsWith(TEMPLATE_SCOPE_PREFIX)) {
+            String policyName = hqStr(body, "policyName");
+            p.setPolicyName(policyName != null && !policyName.trim().isEmpty() ? policyName.trim() : scope.substring(TEMPLATE_SCOPE_PREFIX.length()));
+            p.setDeployYn("Y".equalsIgnoreCase(hqStr(body, "deployYn")) ? "Y" : "N");
+        }
         p.setPerTxFee(toBigDecimal(body.get("perTxFee")));
         p.setUsageRate(toBigDecimal(body.get("usageRate")));
         p.setFailFee(toBigDecimal(body.get("failFee")));
@@ -187,7 +204,111 @@ public class ApiHqController {
         Object rd = body.get("rollingDays");
         p.setRollingDays(rd != null && !rd.toString().isEmpty() ? Integer.parseInt(rd.toString()) : 180);
         commissionPolicyRepository.save(p);
+        if (scope.startsWith(TEMPLATE_SCOPE_PREFIX) && "Y".equalsIgnoreCase(p.getDeployYn())) {
+            // 다른 템플릿 deploy 해제
+            commissionPolicyRepository.findByScopeStartingWithOrderByScopeAsc(TEMPLATE_SCOPE_PREFIX).forEach(tp -> {
+                if (!Objects.equals(tp.getId(), p.getId())) {
+                    tp.setDeployYn("N");
+                    commissionPolicyRepository.save(tp);
+                }
+            });
+            // 배포: DEFAULT에 복사
+            CommissionPolicy def = commissionPolicyRepository.findByScope("DEFAULT").orElseGet(() -> {
+                CommissionPolicy x = new CommissionPolicy();
+                x.setScope("DEFAULT");
+                return x;
+            });
+            copyPolicyValues(p, def);
+            commissionPolicyRepository.save(def);
+        }
         return ResponseEntity.ok(ApiResponse.ok(Map.of("success", true, "message", "저장되었습니다.")));
+    }
+
+    @GetMapping("/defaultCommission/templateOptions")
+    public ResponseEntity<ApiResponse<List<Map<String, Object>>>> defaultCommissionTemplateOptions() {
+        List<Map<String, Object>> list = commissionPolicyRepository.findByScopeStartingWithOrderByScopeAsc(TEMPLATE_SCOPE_PREFIX)
+                .stream()
+                .map(this::policyToMap)
+                .toList();
+        return ResponseEntity.ok(ApiResponse.ok(list));
+    }
+
+    @PostMapping("/defaultCommission/template/add")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> addDefaultCommissionTemplate(@RequestBody Map<String, Object> body) {
+        String codeRaw = hqStr(body, "templateCode");
+        String code = (codeRaw == null || codeRaw.isBlank()) ? null : codeRaw.trim().toUpperCase(Locale.ROOT);
+        if (code == null) {
+            for (char c = 'A'; c <= 'Z'; c++) {
+                String s = String.valueOf(c);
+                if (commissionPolicyRepository.findByScope(TEMPLATE_SCOPE_PREFIX + s).isEmpty()) {
+                    code = s;
+                    break;
+                }
+            }
+        }
+        if (code == null || !code.matches("[A-Z0-9_\\-]{1,20}")) {
+            return ResponseEntity.ok(ApiResponse.fail("정책코드는 영문 대문자/숫자(1~20자)로 입력하세요.", "VALIDATION"));
+        }
+        String scope = TEMPLATE_SCOPE_PREFIX + code;
+        if (commissionPolicyRepository.findByScope(scope).isPresent()) {
+            return ResponseEntity.ok(ApiResponse.fail("이미 존재하는 정책코드입니다.", "DUPLICATE"));
+        }
+        CommissionPolicy src = commissionPolicyRepository.findByScope("DEFAULT").orElseGet(CommissionPolicy::new);
+        CommissionPolicy n = new CommissionPolicy();
+        n.setScope(scope);
+        n.setPolicyName(code);
+        n.setDeployYn("N");
+        copyPolicyValues(src, n);
+        commissionPolicyRepository.save(n);
+        return ResponseEntity.ok(ApiResponse.ok(Map.of("scope", scope, "policyName", code, "message", "정책 템플릿이 추가되었습니다.")));
+    }
+
+    @PostMapping("/defaultCommission/template/delete")
+    @SuppressWarnings("null")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> deleteDefaultCommissionTemplate(@RequestBody Map<String, Object> body) {
+        String scope = hqStr(body, "scope");
+        if (scope == null || scope.isBlank() || !scope.startsWith(TEMPLATE_SCOPE_PREFIX)) {
+            return ResponseEntity.ok(ApiResponse.fail("삭제할 정책 scope가 올바르지 않습니다.", "VALIDATION"));
+        }
+        Optional<CommissionPolicy> opt = commissionPolicyRepository.findByScope(scope.trim());
+        if (opt.isEmpty()) {
+            return ResponseEntity.ok(ApiResponse.fail("정책을 찾을 수 없습니다.", "NOT_FOUND"));
+        }
+        commissionPolicyRepository.delete(opt.get());
+        return ResponseEntity.ok(ApiResponse.ok(Map.of("message", "정책 템플릿이 삭제되었습니다.")));
+    }
+
+    private Map<String, Object> policyToMap(CommissionPolicy p) {
+        Map<String, Object> m = new LinkedHashMap<>();
+        m.put("scope", p.getScope());
+        m.put("policyName", p.getPolicyName() != null ? p.getPolicyName() : "");
+        m.put("deployYn", p.getDeployYn() != null ? p.getDeployYn() : "N");
+        m.put("perTxFee", p.getPerTxFee() != null ? p.getPerTxFee().toString() : "0");
+        m.put("usageRate", p.getUsageRate() != null ? p.getUsageRate().toString() : "0");
+        m.put("failFee", p.getFailFee() != null ? p.getFailFee().toString() : "0");
+        m.put("cancelRate", p.getCancelRate() != null ? p.getCancelRate().toString() : "0");
+        m.put("refundRate", p.getRefundRate() != null ? p.getRefundRate().toString() : "0");
+        m.put("payRate", p.getPayRate() != null ? p.getPayRate().toString() : "0");
+        m.put("feeSettlementPerTx", p.getFeeSettlementPerTx() != null ? p.getFeeSettlementPerTx().toString() : "0");
+        m.put("feeUsdt", p.getFeeUsdt() != null ? p.getFeeUsdt().toString() : "0");
+        m.put("feeFx", p.getFeeFx() != null ? p.getFeeFx().toString() : "0");
+        m.put("rollingPct", p.getRollingPct() != null ? p.getRollingPct().toString() : "0");
+        m.put("rollingDays", p.getRollingDays() != null ? p.getRollingDays() : 180);
+        return m;
+    }
+
+    private static void copyPolicyValues(CommissionPolicy src, CommissionPolicy dst) {
+        dst.setPerTxFee(src.getPerTxFee());
+        dst.setUsageRate(src.getUsageRate());
+        dst.setFailFee(src.getFailFee());
+        dst.setCancelRate(src.getCancelRate());
+        dst.setRefundRate(src.getRefundRate());
+        dst.setPayRate(src.getPayRate());
+        dst.setFeeSettlementPerTx(src.getFeeSettlementPerTx());
+        dst.setFeeUsdt(src.getFeeUsdt());
+        dst.setFeeFx(src.getFeeFx());
+        dst.setRollingPct(src.getRollingPct());
+        dst.setRollingDays(src.getRollingDays());
     }
 
     private static BigDecimal toBigDecimal(Object o) {

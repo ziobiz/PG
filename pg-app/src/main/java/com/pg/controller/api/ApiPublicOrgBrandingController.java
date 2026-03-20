@@ -2,7 +2,6 @@ package com.pg.controller.api;
 
 import com.pg.api.ApiResponse;
 import com.pg.entity.OrgLevel;
-import com.pg.entity.OrgUnit;
 import com.pg.repository.OrgBrandingRepository;
 import com.pg.repository.OrgUnitRepository;
 import org.springframework.http.MediaType;
@@ -40,7 +39,9 @@ public class ApiPublicOrgBrandingController {
             )));
         }
         return orgUnitRepository.findByCode(compId.trim())
-                .filter(ou -> ou.getOrgLevel() == OrgLevel.REGIONAL || ou.getOrgLevel() == OrgLevel.MASTER_DIST)
+                .filter(ou -> ou.getOrgLevel() == OrgLevel.HEADQUARTERS
+                        || ou.getOrgLevel() == OrgLevel.REGIONAL
+                        || ou.getOrgLevel() == OrgLevel.MASTER_DIST)
                 .flatMap(ou -> brandingRepository.findByOrgUnitId(ou.getId())
                         .map(b -> Map.<String, Object>of(
                                 "compId", compId,

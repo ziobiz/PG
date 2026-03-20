@@ -75,6 +75,7 @@
               <li class="child-li" data-url="/hq/notifyEnv"><a href="#" data-menu_id="M0105">전산노티·결제환경</a></li>
               <li class="child-li" data-url="/hq/apiConfig"><a href="#" data-menu_id="M0103">API 구성 세팅</a></li>
               <li class="child-li" data-url="/hq/permissionMng"><a href="#" data-menu_id="M0104">본사별 권한 세팅</a></li>
+              <li class="child-li" data-url="/hq/accountMng"><a href="#" data-menu_id="M0106">계정·업체접근</a></li>
             </ul>
           </li>
           <!-- 업체관리 (FXHJ 동일) -->
@@ -157,6 +158,7 @@
               <span class="header-user-text" id="headerUserDisplay">ONTHELINE FXHU 이방선</span>
             </a>
             <div class="dropdown-menu dropdown-menu-end">
+              <a class="dropdown-item" href="#" id="myInfoBtn"><i class="bi bi-person-circle me-1"></i>나의정보</a>
               <a class="dropdown-item" href="#" id="logOutBtn"><i class="bi bi-box-arrow-right me-1"></i>로그아웃</a>
             </div>
           </div>
@@ -251,6 +253,13 @@
               <div class="col-md-4"><label class="form-label">A형 연회비(원)</label><input type="text" class="form-control form-control-sm" name="feeAnnual" id="commissionFeeAnnual"></div>
               <div class="col-md-4"><label class="form-label">D형 건당 정산수수료(원)</label><input type="text" class="form-control form-control-sm" name="feeSettlementPerTx" id="commissionFeeSettlementPerTx"></div>
             </div>
+            <div class="row mb-2">
+              <div class="col-md-2"><label class="form-label">본사 수수료율%</label><input type="text" class="form-control form-control-sm" name="hqRate" id="commissionHqRate"></div>
+              <div class="col-md-2"><label class="form-label">총판 수수료율%</label><input type="text" class="form-control form-control-sm" name="regionalRate" id="commissionRegionalRate"></div>
+              <div class="col-md-2"><label class="form-label">지사 수수료율%</label><input type="text" class="form-control form-control-sm" name="masterRate" id="commissionMasterRate"></div>
+              <div class="col-md-3"><label class="form-label">대리점 수수료율%</label><input type="text" class="form-control form-control-sm" name="branchRate" id="commissionBranchRate"></div>
+              <div class="col-md-3"><label class="form-label">영업점 수수료율%</label><input type="text" class="form-control form-control-sm" name="agencyRate" id="commissionAgencyRate"></div>
+            </div>
             <div class="mt-3">
               <button type="button" class="btn btn-primary btn-sm" id="commissionSettingSaveBtn">저장</button>
             </div>
@@ -296,6 +305,44 @@
         </div>
       </div>
     </div>
+    <!-- 나의정보(본인 비밀번호 변경) -->
+    <div class="modal fade" id="myInfoModal" tabindex="-1" aria-labelledby="myInfoModalLabel" aria-hidden="true">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="myInfoModalLabel">나의 정보</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="닫기"></button>
+          </div>
+          <div class="modal-body">
+            <div class="mb-2">
+              <label class="form-label">아이디</label>
+              <input type="text" class="form-control form-control-sm" id="myInfoUserId" readonly>
+            </div>
+            <div class="mb-2">
+              <label class="form-label">이름</label>
+              <input type="text" class="form-control form-control-sm" id="myInfoUserNm" readonly>
+            </div>
+            <hr>
+            <div class="mb-2">
+              <label class="form-label">현재 비밀번호</label>
+              <input type="password" class="form-control form-control-sm" id="myInfoCurrentPassword">
+            </div>
+            <div class="mb-2">
+              <label class="form-label">새 비밀번호</label>
+              <input type="password" class="form-control form-control-sm" id="myInfoNewPassword">
+            </div>
+            <div class="mb-2">
+              <label class="form-label">새 비밀번호 확인</label>
+              <input type="password" class="form-control form-control-sm" id="myInfoConfirmPassword">
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-primary btn-sm" id="myInfoSaveBtn">저장</button>
+            <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">취소</button>
+          </div>
+        </div>
+      </div>
+    </div>
     <footer class="footer">
       <div class="container-fluid">
         <div class="row">
@@ -336,6 +383,52 @@
         document.getElementById('headerAccessTime').textContent = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0') + ' ' + String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0') + ':' + String(d.getSeconds()).padStart(2, '0');
       }
       var logOut = document.getElementById('logOutBtn');
+      var myInfoBtn = document.getElementById('myInfoBtn');
+      var myInfoModalEl = document.getElementById('myInfoModal');
+      var myInfoSaveBtn = document.getElementById('myInfoSaveBtn');
+      if (myInfoBtn && myInfoModalEl) {
+        myInfoBtn.addEventListener('click', function (e) {
+          e.preventDefault();
+          var u = null;
+          try { u = JSON.parse(sessionStorage.getItem('pg_admin_user') || '{}'); } catch (er) { u = {}; }
+          var idEl = document.getElementById('myInfoUserId');
+          var nmEl = document.getElementById('myInfoUserNm');
+          if (idEl) idEl.value = (u && (u.loginId || u.userId)) ? (u.loginId || u.userId) : '';
+          if (nmEl) nmEl.value = (u && (u.userNm || u.compNm)) ? (u.userNm || u.compNm) : '';
+          ['myInfoCurrentPassword', 'myInfoNewPassword', 'myInfoConfirmPassword'].forEach(function (id) {
+            var el = document.getElementById(id);
+            if (el) el.value = '';
+          });
+          if (window.bootstrap && bootstrap.Modal) {
+            new bootstrap.Modal(myInfoModalEl).show();
+          }
+        });
+      }
+      if (myInfoSaveBtn && !myInfoSaveBtn._bound) {
+        myInfoSaveBtn._bound = true;
+        myInfoSaveBtn.addEventListener('click', function () {
+          var currentPassword = (document.getElementById('myInfoCurrentPassword') || {}).value || '';
+          var newPassword = (document.getElementById('myInfoNewPassword') || {}).value || '';
+          var confirmPassword = (document.getElementById('myInfoConfirmPassword') || {}).value || '';
+          if (!currentPassword || !newPassword || !confirmPassword) {
+            alert('비밀번호 항목을 모두 입력하세요.');
+            return;
+          }
+          var dimm = document.getElementById('dimm');
+          if (dimm) dimm.style.display = 'flex';
+          window.PG_API.authChangePassword(currentPassword, newPassword, confirmPassword).then(function () {
+            alert('비밀번호가 변경되었습니다. 다시 로그인해 주세요.');
+            if (window.PG_API && window.PG_API.clearAuth) window.PG_API.clearAuth();
+            sessionStorage.removeItem('pg_admin_auth');
+            sessionStorage.removeItem('pg_admin_user');
+            window.location.replace((window.location.origin || '') + '/login.html');
+          }).catch(function (err) {
+            alert(err && err.message ? err.message : '비밀번호 변경 실패');
+          }).finally(function () {
+            if (dimm) dimm.style.display = 'none';
+          });
+        });
+      }
       if (logOut) logOut.addEventListener('click', function (e) {
         e.preventDefault();
         if (window.PG_API && window.PG_API.clearAuth) window.PG_API.clearAuth();

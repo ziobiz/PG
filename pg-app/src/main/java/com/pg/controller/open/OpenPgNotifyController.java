@@ -28,6 +28,11 @@ public class OpenPgNotifyController {
 
     @PostMapping("/{token}")
     public ResponseEntity<String> receive(@PathVariable String token, HttpServletRequest req) throws IOException {
+        return receiveByTarget(token, null, req);
+    }
+
+    @PostMapping("/{token}/{targetCode}")
+    public ResponseEntity<String> receiveByTarget(@PathVariable String token, @PathVariable(required = false) String targetCode, HttpServletRequest req) throws IOException {
         byte[] buf = req.getInputStream().readAllBytes();
         String body = new String(buf, StandardCharsets.UTF_8);
         try {

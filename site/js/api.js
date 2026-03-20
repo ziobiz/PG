@@ -102,6 +102,19 @@
       return post('/api/auth/login', { username: username, password: password });
     },
 
+    /** 현재 토큰 기준 사용자·소속 업체 (업체정보조회 등) */
+    authMe: function () {
+      return get('/api/auth/me');
+    },
+
+    authChangePassword: function (currentPassword, newPassword, confirmPassword) {
+      return post('/api/auth/change-password', {
+        currentPassword: currentPassword || '',
+        newPassword: newPassword || '',
+        confirmPassword: confirmPassword || ''
+      });
+    },
+
     noticeList: function (params) {
       return get('/api/system/notice', params).then(function (r) { return r.data; });
     },
@@ -150,6 +163,9 @@
           return r;
         });
       });
+    },
+    compCheckLoginId: function (loginId) {
+      return get('/api/comp/check-login-id', { loginId: loginId || '' }).then(function (r) { return r.data; });
     },
 
     /** 바이너리 응답 (xlsx 등) — JSON 파싱 안 함 */
@@ -350,9 +366,30 @@
     userList: function (params) {
       return get('/api/user/list', params).then(function (r) { return r.data; });
     },
+    userCapability: function () {
+      return get('/api/user/capability').then(function (r) { return r.data || {}; });
+    },
+    userAdd: function (body) {
+      return post('/api/user/add', body || {}).then(function (r) { return r.data || r; });
+    },
+    userDelete: function (id) {
+      return post('/api/user/delete', { id: id }).then(function (r) { return r.data || r; });
+    },
+    userResetPassword: function (id) {
+      return post('/api/user/resetPassword', { id: id }).then(function (r) { return r.data || r; });
+    },
 
     menuOrderMng: function (params) {
       return get('/api/user/menuOrderMng', params).then(function (r) { return r.data; });
+    },
+    userViewSetting: function (pageUrl) {
+      return get('/api/user/viewSetting', { pageUrl: pageUrl || '' }).then(function (r) { return r.data; });
+    },
+    userViewSettingSave: function (pageUrl, selectedKeysJson) {
+      return post('/api/user/viewSetting/save', {
+        pageUrl: pageUrl || '',
+        selectedKeysJson: selectedKeysJson || '[]'
+      }).then(function (r) { return r.data; });
     },
 
     settlementDistributionList: function (params) {
@@ -366,6 +403,12 @@
     },
     settlementBalanceMng: function (params) {
       return get('/api/settlement/balanceMng', params).then(function (r) { return r.data; });
+    },
+    settlementBalanceList: function (params) {
+      return get('/api/settlement/balanceList', params).then(function (r) { return r.data; });
+    },
+    settlementUnpaidMng: function (params) {
+      return get('/api/settlement/unpaidMng', params).then(function (r) { return r.data; });
     },
     settlementHoldList: function (params) {
       return get('/api/settlement/holdList', params).then(function (r) { return r.data; });
@@ -411,6 +454,12 @@
     hqDefaultCommissionSave: function (body) {
       return post('/api/hq/defaultCommission/save', body).then(function (r) { return r.data; });
     },
+    hqDefaultCommissionTemplateAdd: function (body) {
+      return post('/api/hq/defaultCommission/template/add', body || {}).then(function (r) { return r.data; });
+    },
+    hqDefaultCommissionTemplateDelete: function (scope) {
+      return post('/api/hq/defaultCommission/template/delete', { scope: scope || '' }).then(function (r) { return r.data; });
+    },
     hqApiConfig: function () {
       return get('/api/hq/apiConfig').then(function (r) { return r.data; });
     },
@@ -427,6 +476,15 @@
     hqNotifyEnvRegenerateToken: function () {
       return post('/api/hq/notifyEnv/regenerateToken', {}).then(function (r) { return r.data; });
     },
+    hqNotifyTargets: function () {
+      return get('/api/hq/notifyEnv/targets').then(function (r) { return r.data || []; });
+    },
+    hqNotifyTargetCreate: function (targetName) {
+      return post('/api/hq/notifyEnv/targets/create', { targetName: targetName || '' }).then(function (r) { return r.data || r; });
+    },
+    hqNotifyTargetDelete: function (id) {
+      return del('/api/hq/notifyEnv/targets/' + encodeURIComponent(id)).then(function (r) { return r.data || r; });
+    },
 
     payAction: function (trnId, action) {
       return post('/api/calc/payAction', { trnId: trnId, action: action }).then(function (r) { return r.data; });
@@ -436,6 +494,25 @@
     },
     hqPermissionMngSave: function (body) {
       return post('/api/hq/permissionMng/save', body).then(function (r) { return r.data; });
+    },
+    hqAccountAccessList: function (params) {
+      return get('/api/hq/accountAccess', params || {}).then(function (r) {
+        var d = r.data || r;
+        var list = d.list || [];
+        return {
+          list: list,
+          totalElements: list.length,
+          totalPages: 1,
+          page: 1,
+          size: list.length || 20
+        };
+      });
+    },
+    hqAccountAccessAdd: function (body) {
+      return post('/api/hq/accountAccess/add', body || {}).then(function (r) { return r.data || r; });
+    },
+    hqAccountAccessDelete: function (id) {
+      return del('/api/hq/accountAccess/' + encodeURIComponent(id)).then(function (r) { return r.data || r; });
     },
 
     /** 본사/총판 브랜딩 - 로그인 페이지용 (인증 불필요) */
@@ -465,7 +542,10 @@
         method: 'POST',
         headers: headers,
         body: fd
-      }).then(function (r) { return r.json(); });
+      }).then(function (r) { return r.json(); }).then(function (r) {
+        if (r && r.success === false) throw new Error(r.message || '브랜딩 업로드 실패');
+        return r.data || r;
+      });
     },
     /** 브랜딩 테마 저장 */
     orgBrandingSave: function (compId, theme) {
@@ -477,7 +557,10 @@
         method: 'POST',
         headers: headers,
         body: new URLSearchParams({ compId: compId, theme: theme || 'DEFAULT' })
-      }).then(function (r) { return r.json(); });
+      }).then(function (r) { return r.json(); }).then(function (r) {
+        if (r && r.success === false) throw new Error(r.message || '브랜딩 저장 실패');
+        return r.data || r;
+      });
     }
   };
 })();

@@ -2,10 +2,12 @@ package com.pg.controller.api;
 
 import com.pg.api.ApiResponse;
 import com.pg.service.HqNotifyEnvService;
+import com.pg.service.HqNotifyTargetService;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -16,9 +18,11 @@ import java.util.Map;
 public class ApiHqNotifyEnvController {
 
     private final HqNotifyEnvService hqNotifyEnvService;
+    private final HqNotifyTargetService hqNotifyTargetService;
 
-    public ApiHqNotifyEnvController(HqNotifyEnvService hqNotifyEnvService) {
+    public ApiHqNotifyEnvController(HqNotifyEnvService hqNotifyEnvService, HqNotifyTargetService hqNotifyTargetService) {
         this.hqNotifyEnvService = hqNotifyEnvService;
+        this.hqNotifyTargetService = hqNotifyTargetService;
     }
 
     @GetMapping
@@ -40,5 +44,30 @@ public class ApiHqNotifyEnvController {
     @PostMapping("/regenerateToken")
     public ResponseEntity<ApiResponse<Map<String, Object>>> regenerateToken(HttpServletRequest req) {
         return ResponseEntity.ok(ApiResponse.ok(hqNotifyEnvService.regenerateToken(req)));
+    }
+
+    @GetMapping("/targets")
+    public ResponseEntity<ApiResponse<List<Map<String, Object>>>> targets() {
+        return ResponseEntity.ok(ApiResponse.ok(hqNotifyTargetService.list()));
+    }
+
+    @PostMapping("/targets/create")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> createTarget(@RequestBody Map<String, Object> body, HttpServletRequest req) {
+        try {
+            String targetName = body.get("targetName") != null ? String.valueOf(body.get("targetName")) : "";
+            return ResponseEntity.ok(ApiResponse.ok(hqNotifyTargetService.create(targetName, req)));
+        } catch (Exception e) {
+            return ResponseEntity.ok(ApiResponse.fail(e.getMessage(), "VALIDATION"));
+        }
+    }
+
+    @DeleteMapping("/targets/{id}")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> deleteTarget(@PathVariable Long id) {
+        try {
+            hqNotifyTargetService.delete(id);
+            return ResponseEntity.ok(ApiResponse.ok(Map.of("message", "삭제되었습니다.")));
+        } catch (Exception e) {
+            return ResponseEntity.ok(ApiResponse.fail(e.getMessage(), "VALIDATION"));
+        }
     }
 }

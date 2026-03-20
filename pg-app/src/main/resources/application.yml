@@ -38,6 +38,11 @@ spring:
 
 # SPA( site ) 연동 시 CORS 허용 오리진 (쉼표 구분)
 app:
+  data:
+    # true 시 기동 직후 업체·연관 데이터 전부 삭제 후 OTL HQ(HQ01)만 유지 (보통 1회 후 false)
+    reset-org-hierarchy-on-startup: false
+    # true 시 레거시 데모 계층(A01/M100 등) CommandLineRunner 시드 실행
+    seed-legacy-demo-hierarchy: false
   cors:
     allowed-origins: https://api.icopay.co.kr,http://api.icopay.co.kr,https://icopay.co.kr,https://www.icopay.co.kr,http://icopay.co.kr,http://www.icopay.co.kr,https://otlpay.cafe24.com,http://otlpay.cafe24.com,https://www.otlpay.cafe24.com,http://www.otlpay.cafe24.com
   # ChillPay (칠리페이) DirectCredit API 연동

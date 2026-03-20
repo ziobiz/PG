@@ -3,6 +3,7 @@ package com.pg.service;
 import com.pg.api.dto.LoginResponse;
 import com.pg.entity.AppUser;
 import com.pg.entity.AuthToken;
+import com.pg.entity.OrgLevel;
 import com.pg.entity.OrgUnit;
 import com.pg.repository.AuthTokenRepository;
 import com.pg.repository.MerchantProfileRepository;
@@ -13,6 +14,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -65,6 +67,13 @@ public class AuthService {
                     res.setCompId(ou.getCode());
                     res.setOrgLevel(ou.getOrgLevel() != null ? ou.getOrgLevel().name() : null);
                 });
+        if (res.getCompId() == null && "ADMIN".equalsIgnoreCase(user.getRole())) {
+            firstHeadquartersOrg().ifPresent(headquarters -> {
+                res.setOrgUnitId(headquarters.getId());
+                res.setCompId(headquarters.getCode());
+                res.setOrgLevel(headquarters.getOrgLevel() != null ? headquarters.getOrgLevel().name() : null);
+            });
+        }
         return Optional.of(res);
     }
 
@@ -74,20 +83,56 @@ public class AuthService {
                 .flatMap(at -> userRepository.findById(at.getUserId()));
     }
 
+    @Transactional
+    public void changeOwnPassword(String username, String currentPassword, String newPassword) {
+        if (username == null || username.isBlank()) {
+            throw new IllegalArgumentException("사용자 정보를 확인할 수 없습니다.");
+        }
+        if (currentPassword == null || currentPassword.isBlank()) {
+            throw new IllegalArgumentException("현재 비밀번호를 입력하세요.");
+        }
+        if (newPassword == null || newPassword.isBlank()) {
+            throw new IllegalArgumentException("새 비밀번호를 입력하세요.");
+        }
+        if (newPassword.length() < 8) {
+            throw new IllegalArgumentException("새 비밀번호는 8자 이상이어야 합니다.");
+        }
+        AppUser user = userRepository.findByUsername(username.trim())
+                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+        if (!passwordEncoder.matches(currentPassword, user.getPassword())) {
+            throw new IllegalArgumentException("현재 비밀번호가 올바르지 않습니다.");
+        }
+        if (passwordEncoder.matches(newPassword, user.getPassword())) {
+            throw new IllegalArgumentException("현재 비밀번호와 다른 비밀번호를 입력하세요.");
+        }
+        user.setPassword(passwordEncoder.encode(newPassword));
+        userRepository.save(user);
+    }
+
     /** 로그인ID( username )로 조직 정보 조회 - 업체정보조회 필터·권한 판단용 */
     public Map<String, Object> getOrgInfo(String loginId) {
         if (loginId == null || loginId.isEmpty()) return null;
-        return merchantProfileRepository.findByLoginId(loginId)
-                .map(mp -> orgUnitRepository.findById(mp.getOrgUnitId()))
-                .filter(Optional::isPresent)
-                .map(o -> o.get())
-                .map(ou -> {
-                    Map<String, Object> m = new HashMap<>();
-                    m.put("orgUnitId", ou.getId());
-                    m.put("compId", ou.getCode());
-                    m.put("orgLevel", ou.getOrgLevel() != null ? ou.getOrgLevel().name() : null);
-                    return m;
-                })
-                .orElse(null);
+        Optional<Map<String, Object>> fromProfile = merchantProfileRepository.findByLoginId(loginId)
+                .flatMap(mp -> orgUnitRepository.findById(mp.getOrgUnitId()))
+                .map(ou -> orgToMap(ou));
+        if (fromProfile.isPresent()) return fromProfile.get();
+        Optional<AppUser> userOpt = userRepository.findByUsername(loginId);
+        if (userOpt.isEmpty() || !"ADMIN".equalsIgnoreCase(userOpt.get().getRole())) return null;
+        return firstHeadquartersOrg().map(this::orgToMap).orElse(null);
+    }
+
+    private Map<String, Object> orgToMap(OrgUnit ou) {
+        Map<String, Object> m = new HashMap<>();
+        m.put("orgUnitId", ou.getId());
+        m.put("compId", ou.getCode());
+        m.put("orgLevel", ou.getOrgLevel() != null ? ou.getOrgLevel().name() : null);
+        return m;
+    }
+
+    /** 시드·운영에서 총본사가 여러 건이면 코드 순 첫 건 */
+    private Optional<OrgUnit> firstHeadquartersOrg() {
+        return orgUnitRepository.findAll().stream()
+                .filter(unit -> unit.getOrgLevel() == OrgLevel.HEADQUARTERS)
+                .min(Comparator.comparing(OrgUnit::getCode, Comparator.nullsFirst(String::compareTo)));
     }
 }

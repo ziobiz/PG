@@ -21,11 +21,16 @@ public class HqNotifyEnvService {
 
     @Transactional
     public HqNotifyEnvConfig getOrCreate() {
-        return repository.findFirstByOrderByIdAsc().orElseGet(() -> {
-            HqNotifyEnvConfig c = new HqNotifyEnvConfig();
-            c.setIngressToken(UUID.randomUUID().toString().replace("-", ""));
-            return repository.save(c);
+        HqNotifyEnvConfig c = repository.findFirstByOrderByIdAsc().orElseGet(() -> {
+            HqNotifyEnvConfig x = new HqNotifyEnvConfig();
+            x.setIngressToken(UUID.randomUUID().toString().replace("-", ""));
+            return repository.save(x);
         });
+        if (c.getOtpRequiredYn() == null || c.getOtpRequiredYn().isBlank()) {
+            c.setOtpRequiredYn("Y");
+            c = repository.save(c);
+        }
+        return c;
     }
 
     /** NOTI/칠페이 등에 등록할 전사 노티 수신 URL (토큰 경로 포함) */
@@ -61,6 +66,12 @@ public class HqNotifyEnvService {
         m.put("forceRefundYn", yn(c.getForceRefundYn()));
         m.put("autoVoidAfterHours", c.getAutoVoidAfterHours() != null ? c.getAutoVoidAfterHours() : "");
         m.put("notifyOkResponse", c.getNotifyOkResponse() != null ? c.getNotifyOkResponse() : "{\"result\":\"OK\"}");
+        m.put("otpRequiredYn", yn(c.getOtpRequiredYn()));
+        m.put("otpPolicyMode", (c.getOtpPolicyMode() == null || c.getOtpPolicyMode().isBlank()) ? "NOTI" : c.getOtpPolicyMode());
+        m.put("passwordPolicyMode", (c.getPasswordPolicyMode() == null || c.getPasswordPolicyMode().isBlank()) ? "NOTI" : c.getPasswordPolicyMode());
+        m.put("forgotPasswordEnabledYn", yn(c.getForgotPasswordEnabledYn()));
+        m.put("managerUserControlEnabledYn", yn(c.getManagerUserControlEnabledYn()));
+        m.put("managerPasswordResetEnabledYn", yn(c.getManagerPasswordResetEnabledYn()));
         m.put("updatedAt", c.getUpdatedAt() != null ? c.getUpdatedAt().toString() : "");
         return m;
     }
@@ -97,6 +108,26 @@ public class HqNotifyEnvService {
             if (!r.isEmpty()) {
                 c.setNotifyOkResponse(r);
             }
+        }
+        if (body.containsKey("otpRequiredYn")) {
+            c.setOtpRequiredYn(yn(String.valueOf(body.get("otpRequiredYn"))));
+        }
+        if (body.containsKey("otpPolicyMode")) {
+            String v = String.valueOf(body.get("otpPolicyMode"));
+            c.setOtpPolicyMode((v == null || v.isBlank()) ? "NOTI" : v.trim().toUpperCase());
+        }
+        if (body.containsKey("passwordPolicyMode")) {
+            String v = String.valueOf(body.get("passwordPolicyMode"));
+            c.setPasswordPolicyMode((v == null || v.isBlank()) ? "NOTI" : v.trim().toUpperCase());
+        }
+        if (body.containsKey("forgotPasswordEnabledYn")) {
+            c.setForgotPasswordEnabledYn(yn(String.valueOf(body.get("forgotPasswordEnabledYn"))));
+        }
+        if (body.containsKey("managerUserControlEnabledYn")) {
+            c.setManagerUserControlEnabledYn(yn(String.valueOf(body.get("managerUserControlEnabledYn"))));
+        }
+        if (body.containsKey("managerPasswordResetEnabledYn")) {
+            c.setManagerPasswordResetEnabledYn(yn(String.valueOf(body.get("managerPasswordResetEnabledYn"))));
         }
         return repository.save(c);
     }

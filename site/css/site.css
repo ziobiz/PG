@@ -247,6 +247,21 @@ body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Ro
 .table-responsive.table-scrollable::-webkit-scrollbar-thumb:hover {
   background: #b0b0b0;
 }
+
+/* 필수 입력값 통일 표현: 파스텔 배경 */
+.comp-reg-form .form-control.required-input:not([readonly]):not(:disabled),
+.comp-reg-form .form-select.required-input:not([readonly]):not(:disabled),
+.comp-reg-form textarea.form-control.required-input:not([readonly]):not(:disabled) {
+  background-color: #fff4e8 !important;
+  border-color: #f2d4b6;
+}
+.comp-reg-form .form-control.required-input:not([readonly]):not(:disabled):focus,
+.comp-reg-form .form-select.required-input:not([readonly]):not(:disabled):focus,
+.comp-reg-form textarea.form-control.required-input:not([readonly]):not(:disabled):focus {
+  background-color: #ffefdf !important;
+  border-color: #f0c99d;
+  box-shadow: 0 0 0 0.18rem rgba(240, 201, 157, 0.28);
+}
 .content-page .container-fluid { max-width: none; width: 100%; overflow: hidden; }
 .page-title-box { margin-bottom: 14px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; }
 .page-title-box .page-title { margin: 0; order: 1; font-size: 1.2rem; font-weight: 600; color: #333; }
@@ -319,6 +334,22 @@ body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Ro
   width: 154px;
   min-width: 140px;
   max-width: none;
+}
+/* 결제관리 검색: 라벨 글자길이와 무관하게 입력칸 시작선/폭을 통일 */
+.screen-search-form.pay-mng-search-form .search-cell--with-label .search-cell-label {
+  width: 74px;
+  min-width: 74px;
+}
+.screen-search-form.pay-mng-search-form .search-cell-input input.form-control-sm,
+.screen-search-form.pay-mng-search-form .search-cell-input select.form-control-sm {
+  width: 190px !important;
+  min-width: 190px !important;
+}
+.screen-search-form.pay-mng-search-form .search-cell-input select[name="searchTranFactor"],
+.screen-search-form.pay-mng-search-form .search-cell-input select[name="searchPayDivCd"],
+.screen-search-form.pay-mng-search-form .search-cell-input select[name="searchPg"] {
+  width: 220px !important;
+  min-width: 220px !important;
 }
 /* 퀵 날짜 버튼: 당일·당월 핑크 톤, 나머지 기존 톤 */
 .quick-date { font-size: 12px; padding: 4px 8px; }
@@ -488,6 +519,85 @@ body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Ro
 #contentsMain .table-row-resize-handle:hover td { background: rgba(49,112,143,0.2); border-top-color: #31708f; }
 #contentsMain .table-row-resize-handle td::after { content: '\22EE'; font-size: 10px; color: #31708f; display: block; }
 #contentsMain .table-bordered th { border-color: #bce8f1; }
+
+/* 가맹점정산내역: 2단 헤더/합계바를 스크린샷 톤으로 보정 */
+.screen-calc-gm-list .summary-total-bar {
+  background: #f8fbff;
+  border: 1px solid #d7e8fb;
+  padding: 8px 12px;
+}
+.screen-calc-gm-list [data-summary] {
+  color: #2b5f8d;
+  font-weight: 600;
+}
+.screen-calc-gm-list #contentsMain .table thead tr:first-child th {
+  background: #eaf4ff;
+  color: #275a84;
+  font-weight: 700;
+  border-color: #cfe1f6;
+  text-align: center;
+}
+.screen-calc-gm-list #contentsMain .table thead tr:nth-child(2) th {
+  background: #f4f9ff;
+  color: #34668f;
+  border-color: #dbe8f7;
+  text-align: center;
+}
+.screen-calc-gm-list #contentsMain .table th,
+.screen-calc-gm-list #contentsMain .table td {
+  white-space: nowrap;
+  font-size: 12px;
+}
+.screen-calc-gm-list #contentsMain .table th[data-key="merchantNm"] { min-width: 150px; }
+.screen-calc-gm-list #contentsMain .table th[data-key="compId"] { min-width: 105px; }
+.screen-calc-gm-list #contentsMain .table th[data-key="bizType"] { min-width: 82px; }
+.screen-calc-gm-list #contentsMain .table th[data-key="bizNo"] { min-width: 120px; }
+.screen-calc-gm-list #contentsMain .table th[data-key="cardAprvNo"] { min-width: 120px; }
+.screen-calc-gm-list #contentsMain .table th[data-key="terminalId"] { min-width: 110px; }
+.screen-calc-gm-list #contentsMain .table th[data-key="amount"],
+.screen-calc-gm-list #contentsMain .table th[data-key="feeAmt"],
+.screen-calc-gm-list #contentsMain .table th[data-key="feeVat"],
+.screen-calc-gm-list #contentsMain .table th[data-key="holdAmt"],
+.screen-calc-gm-list #contentsMain .table th[data-key="settleAmt"] { min-width: 96px; text-align: right; }
+.screen-calc-gm-list #contentsMain .table th[data-key="feeCnt"],
+.screen-calc-gm-list #contentsMain .table th[data-key="feeRate"],
+.screen-calc-gm-list #contentsMain .table th[data-key="holdRate"] { min-width: 78px; text-align: right; }
+.screen-calc-gm-list #contentsMain .table th[data-key="calcDt"],
+.screen-calc-gm-list #contentsMain .table th[data-key="approveDt"],
+.screen-calc-gm-list #contentsMain .table th[data-key="cancelDt"] { min-width: 138px; }
+
+/* 결제내역(통합·파생): 참고 UI — 연한 블루 2단 헤더, 요약 숫자 색 구분, 행 줄무늬 */
+.screen-pay-list .summary-total-bar {
+  background: #f8fbff;
+  border: 1px solid #cde6f3;
+  color: #1a3a52;
+  font-weight: 600;
+}
+.screen-pay-list .summary-total-item#summary_건수 { color: #222; font-weight: 700; }
+.screen-pay-list .summary-total-item#summary_승인금액 { color: #198754; }
+.screen-pay-list .summary-total-item#summary_취소금액 { color: #dc3545; }
+.screen-pay-list .summary-total-item#summary_결제금액,
+.screen-pay-list .summary-total-item#summary_총수수료,
+.screen-pay-list .summary-total-item#summary_보류금액,
+.screen-pay-list .summary-total-item#summary_지급액 { color: #0d6efd; }
+.screen-pay-list #contentsMain .table thead tr:first-child th {
+  background: #eaf4ff;
+  color: #275a84;
+  font-weight: 700;
+  border-color: #cfe1f6;
+  text-align: center;
+}
+.screen-pay-list #contentsMain .table thead tr:nth-child(2) th {
+  background: #f4f9ff;
+  color: #34668f;
+  border-color: #dbe8f7;
+  text-align: center;
+}
+.screen-pay-list #contentsMain .table tbody tr:nth-child(odd) { background: #fff; }
+.screen-pay-list #contentsMain .table tbody tr:nth-child(even) { background: #eef6fc; }
+.screen-pay-list #contentsMain .table th,
+.screen-pay-list #contentsMain .table td { font-size: 12px; }
+
 #contentsMain .table-responsive { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
 /* 업체관리 등: 가로·세로 스크롤로 모든 자료 한 화면에서 볼 수 있게 */
 #contentsMain .table-responsive.table-scrollable {
@@ -514,15 +624,45 @@ body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Ro
 #contentsMain .table-responsive .table[id^="grid_comp_compMngTree"] tbody tr:nth-child(even) { background: #E6F7FF; }
 #contentsMain .table-responsive .table[id^="grid_comp_compMngTree"] td,
 #contentsMain .table-responsive .table[id^="grid_comp_compMngTree"] th { border: none !important; }
-/* 업체관리 VIEW SETTING: 두 줄 레이아웃, 글자 크기 축소, 좌우상하 중간 정렬 */
-.table-column-guide { font-size: 10px; text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center; }
-.table-column-guide .column-guide-row { margin-bottom: 4px; text-align: center; }
+/* 업체관리 VIEW SETTING: 항목 한 줄 좌측 정렬 + 우측 액션 고정 */
+.table-column-guide { font-size: 10px; display: flex; flex-direction: column; align-items: stretch; justify-content: center; }
+.table-column-guide .column-guide-row { margin-bottom: 4px; }
 .table-column-guide .column-guide-row:last-child { margin-bottom: 0; }
-.table-column-guide .column-guide-title { font-weight: 600; color: #495057; font-size: 10px; align-self: flex-start; margin-left: 12px; }
-.table-column-guide .column-guide-list { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 6px 12px; }
-.table-column-guide .column-guide-item { margin: 0; font-weight: 500; cursor: pointer; white-space: nowrap; font-size: 10px; }
+.table-column-guide .column-guide-title { font-weight: 600; color: #495057; font-size: 10px; padding-left: 0; margin-bottom: 2px; }
+.table-column-guide .column-guide-body { display: flex; flex-wrap: nowrap; align-items: stretch; gap: 10px; width: 100%; }
+.table-column-guide .column-guide-list {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 6px 10px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-top: 0;
+}
+.table-column-guide .column-guide-actions {
+  flex: 0 0 auto !important;
+  margin-left: auto;
+  width: auto;
+  display: inline-flex !important;
+  flex-direction: row;
+  justify-content: flex-end !important;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap !important;
+}
+.table-column-guide .column-guide-actions .btn {
+  display: inline-block !important;
+  width: auto !important;
+  flex: 0 0 auto !important;
+  min-width: 44px;
+  white-space: nowrap !important;
+}
+.table-column-guide .column-guide-item { margin: 0; font-weight: 500; cursor: pointer; white-space: nowrap; font-size: 10px; display: inline-flex; align-items: center; }
 .table-column-guide .column-guide-item input { margin-right: 3px; }
-.table-column-guide .btn.btn-xs { font-size: 10px; padding: 2px 6px; }
+.table-column-guide .btn.btn-xs { font-size: 10px; padding: 2px 6px; width: 100%; min-height: 24px; }
 /* 업체관리 트리 접기/펼치기 (계층 구조 유지를 위해 좌측 정렬) */
 .tree-toggle-cell { white-space: nowrap; }
 .tree-comp-cell { white-space: nowrap; text-align: left !important; }
@@ -802,4 +942,19 @@ body.theme-pastel_4 .content-page, body.theme-pastel_5 .content-page {
   font-size: 11px;
   text-align: center;
   margin-bottom: 0;
+}
+
+/* 사용자관리: 권한그룹(본사설정과 동일 정책) 기준 구간 구분 — 참고 UI(거래목록 그룹) 스타일 */
+.table tbody tr.tr-user-group-start td:first-child {
+  box-shadow: inset 4px 0 0 #fd7e14;
+}
+.column-guide-item { user-select: none; }
+.column-guide-item .column-guide-label {
+  font-weight: 600;
+}
+.column-guide-item--on .column-guide-label {
+  color: #212529;
+}
+.column-guide-item--off .column-guide-label {
+  color: #9aa0a6;
 }

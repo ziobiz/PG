@@ -44,6 +44,30 @@ public class HqNotifyEnvConfig {
     @Column(name = "notify_ok_response", length = 500)
     private String notifyOkResponse = "{\"result\":\"OK\"}";
 
+    /** 전 사용자 OTP 필수 여부 (본사설정·ziobiz NOTI 계정정책 대응) */
+    @Column(name = "otp_required_yn", length = 1)
+    private String otpRequiredYn = "Y";
+
+    /** OTP 정책 모드 (NOTI와 동일 포맷 적용 여부) */
+    @Column(name = "otp_policy_mode", length = 20)
+    private String otpPolicyMode = "NOTI";
+
+    /** 비밀번호 정책 모드 (NOTI와 동일 포맷 적용 여부) */
+    @Column(name = "password_policy_mode", length = 20)
+    private String passwordPolicyMode = "NOTI";
+
+    /** 비밀번호 찾기 기능 사용 여부 (보안상 기본 N) */
+    @Column(name = "forgot_password_enabled_yn", length = 1)
+    private String forgotPasswordEnabledYn = "N";
+
+    /** 사용자관리(추가/삭제/초기화) 권한 기능 활성화 여부 */
+    @Column(name = "manager_user_control_enabled_yn", length = 1)
+    private String managerUserControlEnabledYn = "N";
+
+    /** 사용자관리 권한자 비밀번호 초기화 허용 여부 */
+    @Column(name = "manager_password_reset_enabled_yn", length = 1)
+    private String managerPasswordResetEnabledYn = "N";
+
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
@@ -71,6 +95,18 @@ public class HqNotifyEnvConfig {
     public void setAutoVoidAfterHours(Integer autoVoidAfterHours) { this.autoVoidAfterHours = autoVoidAfterHours; }
     public String getNotifyOkResponse() { return notifyOkResponse; }
     public void setNotifyOkResponse(String notifyOkResponse) { this.notifyOkResponse = notifyOkResponse; }
+    public String getOtpRequiredYn() { return otpRequiredYn; }
+    public void setOtpRequiredYn(String otpRequiredYn) { this.otpRequiredYn = otpRequiredYn; }
+    public String getOtpPolicyMode() { return otpPolicyMode; }
+    public void setOtpPolicyMode(String otpPolicyMode) { this.otpPolicyMode = otpPolicyMode; }
+    public String getPasswordPolicyMode() { return passwordPolicyMode; }
+    public void setPasswordPolicyMode(String passwordPolicyMode) { this.passwordPolicyMode = passwordPolicyMode; }
+    public String getForgotPasswordEnabledYn() { return forgotPasswordEnabledYn; }
+    public void setForgotPasswordEnabledYn(String forgotPasswordEnabledYn) { this.forgotPasswordEnabledYn = forgotPasswordEnabledYn; }
+    public String getManagerUserControlEnabledYn() { return managerUserControlEnabledYn; }
+    public void setManagerUserControlEnabledYn(String managerUserControlEnabledYn) { this.managerUserControlEnabledYn = managerUserControlEnabledYn; }
+    public String getManagerPasswordResetEnabledYn() { return managerPasswordResetEnabledYn; }
+    public void setManagerPasswordResetEnabledYn(String managerPasswordResetEnabledYn) { this.managerPasswordResetEnabledYn = managerPasswordResetEnabledYn; }
     public LocalDateTime getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
 }

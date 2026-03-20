@@ -5,6 +5,7 @@ import com.pg.repository.*;
 import com.pg.service.HqNotifyEnvService;
 import java.util.Optional;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
@@ -35,11 +36,21 @@ public class DataLoader {
                 admin.setName("관리자");
                 admin.setRole("ADMIN");
                 admin.setEnabled(true);
+                admin.setOrgUnitCode("0000000000");
+                admin.setPermissionGroupNm("시스템관리자");
+                admin.setOtpRegisteredYn("Y");
                 userRepository.save(admin);
             } else if (java.util.Arrays.stream(env.getActiveProfiles()).anyMatch("dev"::equals)) {
                 AppUser admin = adminOpt.get();
                 admin.setPassword(passwordEncoder.encode(defaultPwd));
                 admin.setEnabled(true);
+                if (admin.getOrgUnitCode() == null || admin.getOrgUnitCode().isBlank()) {
+                    admin.setOrgUnitCode("0000000000");
+                }
+                if (admin.getPermissionGroupNm() == null || admin.getPermissionGroupNm().isBlank()) {
+                    admin.setPermissionGroupNm("시스템관리자");
+                }
+                admin.setOtpRegisteredYn("Y");
                 userRepository.save(admin);
             }
         };
@@ -66,94 +77,11 @@ public class DataLoader {
             if (orgUnitRepository.count() == 0) {
                 OrgUnit hq = new OrgUnit();
                 hq.setOrgLevel(OrgLevel.HEADQUARTERS);
-                hq.setCode("HQ01");
-                hq.setName("총본사");
+                hq.setCode("0000000000");
+                hq.setName("OTL HQ");
                 hq.setStatus("ACTIVE");
                 orgUnitRepository.save(hq);
-                // 본사 1개
-                OrgUnit r01 = new OrgUnit();
-                r01.setOrgLevel(OrgLevel.REGIONAL);
-                r01.setParentId(hq.getId());
-                r01.setCode("R01");
-                r01.setName("본사1");
-                r01.setStatus("ACTIVE");
-                orgUnitRepository.save(r01);
-                // 총판 2개
-                OrgUnit d01 = new OrgUnit();
-                d01.setOrgLevel(OrgLevel.MASTER_DIST);
-                d01.setParentId(r01.getId());
-                d01.setCode("D01");
-                d01.setName("총판1");
-                d01.setStatus("ACTIVE");
-                orgUnitRepository.save(d01);
-                OrgUnit d02 = new OrgUnit();
-                d02.setOrgLevel(OrgLevel.MASTER_DIST);
-                d02.setParentId(r01.getId());
-                d02.setCode("D02");
-                d02.setName("총판2");
-                d02.setStatus("ACTIVE");
-                orgUnitRepository.save(d02);
-                // 지사 2개 (총판1, 총판2 아래 각 1개)
-                OrgUnit b01 = new OrgUnit();
-                b01.setOrgLevel(OrgLevel.BRANCH);
-                b01.setParentId(d01.getId());
-                b01.setCode("B01");
-                b01.setName("지사1");
-                b01.setStatus("ACTIVE");
-                orgUnitRepository.save(b01);
-                OrgUnit b02 = new OrgUnit();
-                b02.setOrgLevel(OrgLevel.BRANCH);
-                b02.setParentId(d02.getId());
-                b02.setCode("B02");
-                b02.setName("지사2");
-                b02.setStatus("ACTIVE");
-                orgUnitRepository.save(b02);
-                // 대리점 2개
-                OrgUnit a01 = new OrgUnit();
-                a01.setOrgLevel(OrgLevel.AGENCY);
-                a01.setParentId(b01.getId());
-                a01.setCode("A01");
-                a01.setName("대리점1");
-                a01.setStatus("ACTIVE");
-                orgUnitRepository.save(a01);
-                OrgUnit a02 = new OrgUnit();
-                a02.setOrgLevel(OrgLevel.AGENCY);
-                a02.setParentId(b02.getId());
-                a02.setCode("A02");
-                a02.setName("대리점2");
-                a02.setStatus("ACTIVE");
-                orgUnitRepository.save(a02);
-                // 영업점 2개
-                OrgUnit s01 = new OrgUnit();
-                s01.setOrgLevel(OrgLevel.SALES_OFFICE);
-                s01.setParentId(a01.getId());
-                s01.setCode("S01");
-                s01.setName("영업점1");
-                s01.setStatus("ACTIVE");
-                orgUnitRepository.save(s01);
-                OrgUnit s02 = new OrgUnit();
-                s02.setOrgLevel(OrgLevel.SALES_OFFICE);
-                s02.setParentId(a02.getId());
-                s02.setCode("S02");
-                s02.setName("영업점2");
-                s02.setStatus("ACTIVE");
-                orgUnitRepository.save(s02);
-                // 가맹점 2개 (영업점1, 영업점2 아래 각 1개)
-                OrgUnit m1 = new OrgUnit();
-                m1.setOrgLevel(OrgLevel.MERCHANT);
-                m1.setParentId(s01.getId());
-                m1.setCode("M001");
-                m1.setName("가맹점1");
-                m1.setStatus("ACTIVE");
-                orgUnitRepository.save(m1);
-                OrgUnit m2 = new OrgUnit();
-                m2.setOrgLevel(OrgLevel.MERCHANT);
-                m2.setParentId(s02.getId());
-                m2.setCode("M002");
-                m2.setName("가맹점2");
-                m2.setStatus("ACTIVE");
-                orgUnitRepository.save(m2);
-                for (OrgUnit ou : java.util.Arrays.asList(hq, r01, d01, d02, b01, b02, a01, a02, s01, s02, m1, m2)) {
+                for (OrgUnit ou : java.util.Collections.singletonList(hq)) {
                     if (merchantProfileRepository.findByOrgUnitId(ou.getId()).isEmpty()) {
                         MerchantProfile mp = new MerchantProfile();
                         mp.setOrgUnitId(ou.getId());
@@ -176,7 +104,7 @@ public class DataLoader {
                     }
                 }
             }
-            if (trnsctnRepository.count() == 0) {
+            if (trnsctnRepository.count() == 0 && orgUnitRepository.findByCode("M001").isPresent()) {
                 for (int i = 0; i < 30; i++) {
                     PgTrnsctn t = new PgTrnsctn();
                     t.setTrnId("T" + (System.currentTimeMillis() + i));
@@ -214,6 +142,18 @@ public class DataLoader {
                     t.setCurType("KRW");
                     t.setAmtKrw(BigDecimal.valueOf(10000 + i * 5000L));
                     t.setPayNo("ORD" + (1000 + i));
+                    t.setOrderNo("ORD" + (1000 + i));
+                    t.setChillTransactionId(String.valueOf(8_000_000L + i));
+                    t.setCustomerId("guest_" + i);
+                    t.setCustomerNm("시드고객" + i);
+                    t.setPaymentChannel(i % 3 == 0 ? "CARD" : (i % 3 == 1 ? "BANK" : "CHILLPAY"));
+                    t.setPaidAt(LocalDateTime.now().minusMinutes(i));
+                    t.setIcopayAmt(BigDecimal.valueOf(50L + i));
+                    t.setChillFeeAmt(BigDecimal.valueOf(30L + i % 5));
+                    t.setTotalAmt(t.getAmtKrw().add(t.getChillFeeAmt()));
+                    t.setRouteNo(String.valueOf(4 + (i % 3)));
+                    t.setChillPaymentStatus("10".equals(t.getStatus()) ? "Paid" : ("20".equals(t.getStatus()) ? "Cancelled" : "WaitAuthorize"));
+                    t.setSettledYn(i % 5 == 0 ? "Y" : "N");
                     t.setApprovalNo(String.format("%06d", 100000 + i));
                     t.setVan("CHILLPAY");
                     trnsctnRepository.save(t);
@@ -268,8 +208,9 @@ public class DataLoader {
         };
     }
 
-    /** a본사, b총판, c지사, d대리점, e가맹점 계층 생성. e가맹점은 ChillPay 사용 */
+    /** 레거시 데모 계층 (기본 비활성). 프로퍼티 app.data.seed-legacy-demo-hierarchy 가 true 일 때만 실행 */
     @Bean
+    @ConditionalOnProperty(prefix = "app.data", name = "seed-legacy-demo-hierarchy", havingValue = "true")
     public CommandLineRunner seedOrgHierarchy(OrgUnitRepository orgUnitRepository,
                                               MerchantProfileRepository merchantProfileRepository,
                                               SettlementSettingRepository settlementSettingRepository,
@@ -350,8 +291,8 @@ public class DataLoader {
                     .orElseGet(() -> {
                         OrgUnit x = new OrgUnit();
                         x.setOrgLevel(OrgLevel.HEADQUARTERS);
-                        x.setCode("HQ01");
-                        x.setName("총본사");
+                        x.setCode("0000000000");
+                        x.setName("OTL HQ");
                         x.setStatus("ACTIVE");
                         return orgUnitRepository.save(x);
                     });
@@ -527,9 +468,10 @@ public class DataLoader {
         };
     }
 
-    /** M100 테스트가맹점이 없으면 반드시 추가 (다른 시드보다 나중에 실행) */
+    /** M100 데모 가맹점 (기본 비활성). 프로퍼티 app.data.seed-legacy-demo-hierarchy 가 true 일 때만 */
     @Bean
     @Order(1000)
+    @ConditionalOnProperty(prefix = "app.data", name = "seed-legacy-demo-hierarchy", havingValue = "true")
     public CommandLineRunner seedM100(OrgUnitRepository orgUnitRepository,
                                      MerchantProfileRepository merchantProfileRepository,
                                      SettlementSettingRepository settlementSettingRepository,
@@ -552,8 +494,8 @@ public class DataLoader {
                                 .orElseGet(() -> {
                                     OrgUnit x = new OrgUnit();
                                     x.setOrgLevel(OrgLevel.HEADQUARTERS);
-                                    x.setCode("HQ01");
-                                    x.setName("총본사");
+                                    x.setCode("0000000000");
+                                    x.setName("OTL HQ");
                                     x.setStatus("ACTIVE");
                                     return orgUnitRepository.save(x);
                                 });

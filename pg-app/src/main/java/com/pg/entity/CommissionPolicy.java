@@ -20,6 +20,14 @@ public class CommissionPolicy {
     @Column(name = "scope", nullable = false, length = 50)
     private String scope = "DEFAULT";
 
+    /** 본사정책 템플릿명 (A/B/C/D 등 이름 변경 가능) */
+    @Column(name = "policy_name", length = 100)
+    private String policyName;
+
+    /** 본사 템플릿 배포 여부(Y/N). 가맹점 등록 시 자동 부여 대상 표시용 */
+    @Column(name = "deploy_yn", length = 1)
+    private String deployYn = "N";
+
     /** 건당 수수료(원) */
     @Column(name = "per_tx_fee", precision = 12, scale = 0)
     private BigDecimal perTxFee = BigDecimal.ZERO;
@@ -85,6 +93,10 @@ public class CommissionPolicy {
     public void setId(Long id) { this.id = id; }
     public String getScope() { return scope; }
     public void setScope(String scope) { this.scope = scope; }
+    public String getPolicyName() { return policyName; }
+    public void setPolicyName(String policyName) { this.policyName = policyName; }
+    public String getDeployYn() { return deployYn; }
+    public void setDeployYn(String deployYn) { this.deployYn = deployYn; }
     public BigDecimal getPerTxFee() { return perTxFee; }
     public void setPerTxFee(BigDecimal perTxFee) { this.perTxFee = perTxFee; }
     public BigDecimal getCancelRate() { return cancelRate; }

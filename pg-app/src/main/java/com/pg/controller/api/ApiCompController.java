@@ -71,13 +71,9 @@ public class ApiCompController {
         if (Boolean.TRUE.equals(myOrgOnly)) {
             Authentication auth = SecurityContextHolder.getContext().getAuthentication();
             if (auth != null && auth.getPrincipal() instanceof AppUser u) {
-                if ("ADMIN".equalsIgnoreCase(u.getRole())) {
-                    scopeCompId = null;
-                } else {
-                    Map<String, Object> org = authService.getOrgInfo(u.getUsername());
-                    if (org != null && org.get("compId") != null) {
-                        scopeCompId = org.get("compId").toString();
-                    }
+                Map<String, Object> org = authService.getOrgInfo(u.getUsername());
+                if (org != null && org.get("compId") != null) {
+                    scopeCompId = org.get("compId").toString();
                 }
             }
         }
@@ -91,6 +87,17 @@ public class ApiCompController {
     /** 지역 본사(업체) 상세 - 업체정보조회 화면에서 사용 */
     @GetMapping("/detail")
     public ResponseEntity<ApiResponse<Map<String, Object>>> detail(@RequestParam String compId) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth != null && auth.getPrincipal() instanceof AppUser u) {
+            if (!"ADMIN".equalsIgnoreCase(u.getRole())) {
+                Map<String, Object> org = authService.getOrgInfo(u.getUsername());
+                String mine = org != null && org.get("compId") != null ? org.get("compId").toString().trim() : "";
+                String target = compId != null ? compId.trim() : "";
+                if (mine.isEmpty() || target.isEmpty() || !mine.equals(target)) {
+                    return ResponseEntity.ok(ApiResponse.fail("본인 소속 업체만 조회할 수 있습니다.", "FORBIDDEN"));
+                }
+            }
+        }
         return compService.getDetail(compId)
                 .map(ApiResponse::ok)
                 .map(ResponseEntity::ok)
@@ -113,6 +120,7 @@ public class ApiCompController {
             @RequestParam(required = false) String ceoMobile,
             @RequestParam(required = false) String useYn,
             @RequestParam(required = false) String loginId,
+            @RequestParam(required = false) String pwd,
             @RequestParam(required = false) String regNo,
             @RequestParam(required = false) String bizType,
             @RequestParam(required = false) String industry,
@@ -126,7 +134,6 @@ public class ApiCompController {
             @RequestParam(required = false) String limitAmt,
             @RequestParam(required = false) String fax,
             @RequestParam(required = false) String email,
-            @RequestParam(required = false) String pwd,
             @RequestParam(required = false) String bankCd,
             @RequestParam(required = false) String transferFee,
             @RequestParam(required = false) String cryptoTransferFee,
@@ -174,6 +181,7 @@ public class ApiCompController {
             @RequestParam(required = false) String notifyUrl3,
             @RequestParam(required = false) String notifyUrl4,
             @RequestParam(required = false) String commissionFollowHq,
+            @RequestParam(required = false) String hqPolicyScope,
             @RequestParam(required = false) String perTxFee,
             @RequestParam(required = false) String cancelRate,
             @RequestParam(required = false) String usageRate,
@@ -189,14 +197,12 @@ public class ApiCompController {
         Long parentIdVal = parentId;
         if (parentIdVal == null && parentComp != null && !parentComp.isEmpty()) {
             String trimmed = parentComp.trim();
-            // 숫자만 들어온 경우: OrgUnit PK로 간주
-            if (trimmed.matches("\\d+")) {
+            // 우선 업체코드(문자열)로 조회하고, 없을 때만 PK 숫자값으로 해석
+            parentIdVal = orgUnitRepository.findByCode(trimmed)
+                    .map(OrgUnit::getId)
+                    .orElse(null);
+            if (parentIdVal == null && trimmed.matches("\\d+")) {
                 parentIdVal = Long.parseLong(trimmed);
-            } else {
-                // 그 외에는 상위업체 코드(업체코드)로 간주 → OrgUnit.code 로 조회
-                parentIdVal = orgUnitRepository.findByCode(trimmed)
-                        .map(OrgUnit::getId)
-                        .orElse(null);
             }
         }
         Integer withdrawDays = null;
@@ -227,12 +233,23 @@ public class ApiCompController {
                 defaultProductName, defaultProductCode, defaultProductAmount, defaultProductDesc,
                 notifyUrlBackground, notifyUrlResult,
                 notifyUrl1, notifyUrl2, notifyUrl3, notifyUrl4,
-                commissionFollowHq, perTxFee, cancelRate, usageRate, failFee, payRate, refundRate, rollingPct, rollingDays,
+                commissionFollowHq, hqPolicyScope, perTxFee, cancelRate, usageRate, failFee, payRate, refundRate, rollingPct, rollingDays,
                 feeSettlementPerTx, feeUsdt, feeFx, regionalSettings);
         return ResponseEntity.ok(ApiResponse.ok(Map.of("compId", saved.getCode(), "compNm", saved.getName())));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.ok(ApiResponse.fail(e.getMessage(), "VALIDATION"));
         }
+    }
+
+    @GetMapping("/check-login-id")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> checkLoginId(
+            @RequestParam(required = false) String loginId) {
+        String lid = loginId != null ? loginId.trim() : "";
+        if (lid.isEmpty()) {
+            return ResponseEntity.ok(ApiResponse.fail("로그인ID를 입력하세요.", "VALIDATION"));
+        }
+        boolean available = compService.isLoginIdAvailable(lid);
+        return ResponseEntity.ok(ApiResponse.ok(Map.of("loginId", lid, "available", available)));
     }
 
     /** 지역 본사(업체) 정보 수정 - 업체정보조회 상세에서 저장. 본사(REGIONAL)는 총본사만 수정 가능. parentId로 소속 이동. */
@@ -252,6 +269,7 @@ public class ApiCompController {
             @RequestParam(required = false) String ceoMobile,
             @RequestParam(required = false) String useYn,
             @RequestParam(required = false) String loginId,
+            @RequestParam(required = false) String pwd,
             @RequestParam(required = false) String regNo,
             @RequestParam(required = false) String bizType,
             @RequestParam(required = false) String industry,
@@ -275,6 +293,10 @@ public class ApiCompController {
             @RequestParam(required = false) String siteSummary,
             @RequestParam(required = false) String pgBindings,
             @RequestParam(required = false) String regionalSettings,
+            @RequestParam(required = false) String assistantLoginId,
+            @RequestParam(required = false) String assistantPwd,
+            @RequestParam(required = false) String assistantRoleType,
+            @RequestParam(required = false) String brandingEditAllowedYn,
             @RequestParam(required = false) String notifyUrl1,
             @RequestParam(required = false) String notifyUrl2,
             @RequestParam(required = false) String notifyUrl3,
@@ -282,6 +304,16 @@ public class ApiCompController {
         var targetOpt = compService.getDetail(compId);
         if (targetOpt.isEmpty()) {
             return ResponseEntity.ok(ApiResponse.fail("업체를 찾을 수 없습니다.", "NOT_FOUND"));
+        }
+        Authentication auth0 = SecurityContextHolder.getContext().getAuthentication();
+        if (auth0 != null && auth0.getPrincipal() instanceof AppUser u0) {
+            if (!"ADMIN".equalsIgnoreCase(u0.getRole())) {
+                Map<String, Object> org0 = authService.getOrgInfo(u0.getUsername());
+                String mine0 = org0 != null && org0.get("compId") != null ? org0.get("compId").toString().trim() : "";
+                if (mine0.isEmpty() || !mine0.equals(compId != null ? compId.trim() : "")) {
+                    return ResponseEntity.ok(ApiResponse.fail("본인 소속 업체만 수정할 수 있습니다.", "FORBIDDEN"));
+                }
+            }
         }
         String targetCompDiv = (String) targetOpt.get().get("compDiv");
         if ("REGIONAL".equals(targetCompDiv)) {
@@ -295,8 +327,9 @@ public class ApiCompController {
         }
         try {
             boolean ok = compService.update(compId, compNm, compDiv, parentId, compTel, zipCode, addr, addrDetail, addrEtc, addrCountryCd,
-                    ceoNm, ceoMobile, useYn, loginId, regNo, bizType, industry, bizNature, product, homepage, settleName, settleTelNo, fax, email,
+                    ceoNm, ceoMobile, useYn, loginId, pwd, regNo, bizType, industry, bizNature, product, homepage, settleName, settleTelNo, fax, email,
                     bankCd, transferFee, cryptoTransferFee, accountNo, accountHolder, remark, commissionConfigAllowed, webPaymentUseYn, baseCurrency, siteUrl, siteSummary, pgBindings, regionalSettings,
+                    assistantLoginId, assistantPwd, assistantRoleType, brandingEditAllowedYn,
                     notifyUrl1, notifyUrl2, notifyUrl3, notifyUrl4);
             return ResponseEntity.ok(ok ? ApiResponse.ok(Map.of("success", true, "message", "저장되었습니다."))
                     : ApiResponse.fail("업체를 찾을 수 없습니다.", "NOT_FOUND"));

@@ -53,4 +53,27 @@ public class ApiAuthController {
         }
         return ResponseEntity.ok(ApiResponse.ok(user));
     }
+
+    @PostMapping("/change-password")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> changePassword(@RequestBody Map<String, Object> body) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        String username = null;
+        if (auth != null && auth.getPrincipal() instanceof AppUser u) {
+            username = u.getUsername();
+        } else if (auth != null) {
+            username = auth.getName();
+        }
+        String currentPassword = body.get("currentPassword") != null ? String.valueOf(body.get("currentPassword")) : "";
+        String newPassword = body.get("newPassword") != null ? String.valueOf(body.get("newPassword")) : "";
+        String confirmPassword = body.get("confirmPassword") != null ? String.valueOf(body.get("confirmPassword")) : "";
+        if (!newPassword.equals(confirmPassword)) {
+            return ResponseEntity.ok(ApiResponse.fail("새 비밀번호와 확인 비밀번호가 일치하지 않습니다.", "VALIDATION"));
+        }
+        try {
+            authService.changeOwnPassword(username, currentPassword, newPassword);
+            return ResponseEntity.ok(ApiResponse.ok(Map.of("success", true, "message", "비밀번호가 변경되었습니다.")));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.ok(ApiResponse.fail(e.getMessage(), "VALIDATION"));
+        }
+    }
 }

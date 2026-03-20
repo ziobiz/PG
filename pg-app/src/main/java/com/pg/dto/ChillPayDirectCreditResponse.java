@@ -1,5 +1,6 @@
 package com.pg.dto;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
@@ -24,10 +25,30 @@ public class ChillPayDirectCreditResponse {
         private String paymentUrl;     // OTP 확인 페이지 URL
         private String ipAddress;
         private String token;
+        @JsonAlias({"TransactionId"})
         private Long transactionId;
         private String channelCode;
         private String createdDate;
         private String expiredDate;
+        /** 칠페이 정산/목록 시트·노티에서 내려올 수 있는 확장 필드 */
+        @JsonProperty("Fee")
+        private Long fee;
+        @JsonProperty("TotalAmount")
+        private Long totalAmount;
+        @JsonProperty("ICOPAY")
+        private Long icopay;
+        @JsonProperty("Currency")
+        private String currency;
+        @JsonProperty("RouteNo")
+        private Object routeNo;
+        @JsonProperty("Settled")
+        private String settled;
+        @JsonProperty("Merchant")
+        private String merchant;
+        @JsonProperty("Customer")
+        private String customer;
+        @JsonProperty("PaymentChannel")
+        private String paymentChannelAlt;
 
         public String getPaymentStatus() { return paymentStatus; }
         public void setPaymentStatus(String paymentStatus) { this.paymentStatus = paymentStatus; }
@@ -53,6 +74,25 @@ public class ChillPayDirectCreditResponse {
         public void setCreatedDate(String createdDate) { this.createdDate = createdDate; }
         public String getExpiredDate() { return expiredDate; }
         public void setExpiredDate(String expiredDate) { this.expiredDate = expiredDate; }
+
+        public Long getFee() { return fee; }
+        public void setFee(Long fee) { this.fee = fee; }
+        public Long getTotalAmount() { return totalAmount; }
+        public void setTotalAmount(Long totalAmount) { this.totalAmount = totalAmount; }
+        public Long getIcopay() { return icopay; }
+        public void setIcopay(Long icopay) { this.icopay = icopay; }
+        public String getCurrency() { return currency; }
+        public void setCurrency(String currency) { this.currency = currency; }
+        public Object getRouteNo() { return routeNo; }
+        public void setRouteNo(Object routeNo) { this.routeNo = routeNo; }
+        public String getSettled() { return settled; }
+        public void setSettled(String settled) { this.settled = settled; }
+        public String getMerchant() { return merchant; }
+        public void setMerchant(String merchant) { this.merchant = merchant; }
+        public String getCustomer() { return customer; }
+        public void setCustomer(String customer) { this.customer = customer; }
+        public String getPaymentChannelAlt() { return paymentChannelAlt; }
+        public void setPaymentChannelAlt(String paymentChannelAlt) { this.paymentChannelAlt = paymentChannelAlt; }
     }
 
     public int getStatus() { return status; }

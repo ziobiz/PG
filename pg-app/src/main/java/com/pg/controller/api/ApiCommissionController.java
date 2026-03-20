@@ -55,7 +55,12 @@ public class ApiCommissionController {
             @RequestParam(required = false) String feeAnnual,
             @RequestParam(required = false) String feeTechService,
             @RequestParam(required = false) String feeSettlementPerTx,
-            @RequestParam(required = false) String feeRefund) {
+            @RequestParam(required = false) String feeRefund,
+            @RequestParam(required = false) String hqRate,
+            @RequestParam(required = false) String regionalRate,
+            @RequestParam(required = false) String masterRate,
+            @RequestParam(required = false) String branchRate,
+            @RequestParam(required = false) String agencyRate) {
         Map<String, Object> body = new java.util.HashMap<>();
         body.put("perTxFee", perTxFee != null ? perTxFee : "");
         body.put("cancelRate", cancelRate != null ? cancelRate : "");
@@ -70,6 +75,11 @@ public class ApiCommissionController {
         body.put("feeTechService", feeTechService != null ? feeTechService : "");
         body.put("feeSettlementPerTx", feeSettlementPerTx != null ? feeSettlementPerTx : "");
         body.put("feeRefund", feeRefund != null ? feeRefund : "");
+        body.put("hqRate", hqRate != null ? hqRate : "");
+        body.put("regionalRate", regionalRate != null ? regionalRate : "");
+        body.put("masterRate", masterRate != null ? masterRate : "");
+        body.put("branchRate", branchRate != null ? branchRate : "");
+        body.put("agencyRate", agencyRate != null ? agencyRate : "");
         boolean ok = commissionService.save(compId, body);
         return ResponseEntity.ok(ok ? ApiResponse.ok(Map.of("success", true)) : ApiResponse.fail("업체를 찾을 수 없습니다."));
     }

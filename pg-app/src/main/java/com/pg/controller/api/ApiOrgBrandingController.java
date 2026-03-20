@@ -1,14 +1,18 @@
 package com.pg.controller.api;
 
 import com.pg.api.ApiResponse;
+import com.pg.entity.AppUser;
 import com.pg.entity.OrgBranding;
 import com.pg.entity.OrgLevel;
 import com.pg.entity.OrgUnit;
+import com.pg.repository.MerchantProfileRepository;
 import com.pg.repository.OrgBrandingRepository;
 import com.pg.repository.OrgUnitRepository;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -36,13 +40,16 @@ public class ApiOrgBrandingController {
 
     private final OrgBrandingRepository brandingRepository;
     private final OrgUnitRepository orgUnitRepository;
+    private final MerchantProfileRepository merchantProfileRepository;
 
     @Value("${app.upload-dir:uploads}")
     private String uploadDir;
 
-    public ApiOrgBrandingController(OrgBrandingRepository brandingRepository, OrgUnitRepository orgUnitRepository) {
+    public ApiOrgBrandingController(OrgBrandingRepository brandingRepository, OrgUnitRepository orgUnitRepository,
+                                    MerchantProfileRepository merchantProfileRepository) {
         this.brandingRepository = brandingRepository;
         this.orgUnitRepository = orgUnitRepository;
+        this.merchantProfileRepository = merchantProfileRepository;
     }
 
     @GetMapping
@@ -59,7 +66,9 @@ public class ApiOrgBrandingController {
             )));
         }
         return orgUnitRepository.findByCode(compId.trim())
-                .filter(ou -> ou.getOrgLevel() == OrgLevel.REGIONAL || ou.getOrgLevel() == OrgLevel.MASTER_DIST)
+                .filter(ou -> ou.getOrgLevel() == OrgLevel.HEADQUARTERS
+                        || ou.getOrgLevel() == OrgLevel.REGIONAL
+                        || ou.getOrgLevel() == OrgLevel.MASTER_DIST)
                 .flatMap(ou -> brandingRepository.findByOrgUnitId(ou.getId())
                         .map(b -> Map.<String, Object>of(
                                 "compId", compId,
@@ -89,8 +98,11 @@ public class ApiOrgBrandingController {
             return ResponseEntity.ok(ApiResponse.fail("업체를 찾을 수 없습니다.", "NOT_FOUND"));
         }
         OrgUnit ou = ouOpt.get();
-        if (ou.getOrgLevel() != OrgLevel.REGIONAL && ou.getOrgLevel() != OrgLevel.MASTER_DIST) {
-            return ResponseEntity.ok(ApiResponse.fail("본사 또는 총판만 브랜딩을 설정할 수 있습니다.", "FORBIDDEN"));
+        if (ou.getOrgLevel() != OrgLevel.HEADQUARTERS && ou.getOrgLevel() != OrgLevel.REGIONAL && ou.getOrgLevel() != OrgLevel.MASTER_DIST) {
+            return ResponseEntity.ok(ApiResponse.fail("총본사, 본사 또는 총판만 브랜딩을 설정할 수 있습니다.", "FORBIDDEN"));
+        }
+        if (!isBrandingEditable(ou)) {
+            return ResponseEntity.ok(ApiResponse.fail("브랜딩(배경/로고) 변경권한이 없습니다.", "FORBIDDEN"));
         }
         if (!"main".equals(imageType) && !"logo".equals(imageType)) {
             return ResponseEntity.ok(ApiResponse.fail("imageType은 main 또는 logo여야 합니다.", "INVALID"));
@@ -144,8 +156,11 @@ public class ApiOrgBrandingController {
             return ResponseEntity.ok(ApiResponse.fail("업체를 찾을 수 없습니다.", "NOT_FOUND"));
         }
         OrgUnit ou = ouOpt.get();
-        if (ou.getOrgLevel() != OrgLevel.REGIONAL && ou.getOrgLevel() != OrgLevel.MASTER_DIST) {
-            return ResponseEntity.ok(ApiResponse.fail("본사 또는 총판만 브랜딩을 설정할 수 있습니다.", "FORBIDDEN"));
+        if (ou.getOrgLevel() != OrgLevel.HEADQUARTERS && ou.getOrgLevel() != OrgLevel.REGIONAL && ou.getOrgLevel() != OrgLevel.MASTER_DIST) {
+            return ResponseEntity.ok(ApiResponse.fail("총본사, 본사 또는 총판만 브랜딩을 설정할 수 있습니다.", "FORBIDDEN"));
+        }
+        if (!isBrandingEditable(ou)) {
+            return ResponseEntity.ok(ApiResponse.fail("브랜딩(배경/로고) 변경권한이 없습니다.", "FORBIDDEN"));
         }
         String themeVal = (theme != null && !theme.trim().isEmpty()) ? theme.trim().toUpperCase() : "DEFAULT";
         if (!themeVal.matches("DEFAULT|LIGHT|DARK|PASTEL_1|PASTEL_2|PASTEL_3|PASTEL_4|PASTEL_5")) {
@@ -166,5 +181,24 @@ public class ApiOrgBrandingController {
         if (filename == null || filename.isEmpty()) return null;
         int i = filename.lastIndexOf('.');
         return i > 0 ? filename.substring(i + 1) : null;
+    }
+
+    private boolean isBrandingEditable(OrgUnit ou) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth != null && auth.getPrincipal() instanceof AppUser u && "ADMIN".equalsIgnoreCase(u.getRole())) {
+            return true;
+        }
+        return merchantProfileRepository.findByOrgUnitId(ou.getId()).map(mp -> {
+            String rs = mp.getRegionalSettings();
+            if (rs == null || rs.isBlank()) return false;
+            try {
+                com.fasterxml.jackson.databind.ObjectMapper om = new com.fasterxml.jackson.databind.ObjectMapper();
+                java.util.Map<String, Object> m = om.readValue(rs, new com.fasterxml.jackson.core.type.TypeReference<java.util.Map<String, Object>>() {});
+                Object v = m.get("brandingEditAllowedYn");
+                return v != null && "Y".equalsIgnoreCase(String.valueOf(v));
+            } catch (Exception e) {
+                return false;
+            }
+        }).orElse(false);
     }
 }
