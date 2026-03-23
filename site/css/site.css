@@ -151,6 +151,7 @@ body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Ro
 .header-user-link:hover { color: #111; }
 .header-user-icon { font-size: 1.5rem; color: #555; }
 .header-user-text { font-size: 12px; line-height: 1.4; text-align: left; }
+.header-user .dropdown-menu .dropdown-item { font-size: 12px; }
 .btn-header-close {
   background: #c00 !important;
   border: 1px solid #a00 !important;
@@ -1081,6 +1082,145 @@ body.theme-pastel_4 .content-page, body.theme-pastel_5 .content-page {
 .hq-holiday-day--off:hover {
   background: #c2c8cf !important;
 }
+/* 영업일설정: 일자 구분별 색 (휴일 표시) */
+.hq-holiday-day.hq-holiday-day--kind[data-holiday-kind="공휴일"] { background: #fecdd3 !important; color: #7f1d1d !important; font-weight: 600; }
+.hq-holiday-day.hq-holiday-day--kind[data-holiday-kind="국경일"] { background: #fed7aa !important; color: #7c2d12 !important; font-weight: 600; }
+.hq-holiday-day.hq-holiday-day--kind[data-holiday-kind="기념일"] { background: #bfdbfe !important; color: #1e3a5f !important; font-weight: 600; }
+.hq-holiday-day.hq-holiday-day--kind[data-holiday-kind="종교휴일"] { background: #ddd6fe !important; color: #4c1d95 !important; font-weight: 600; }
+.hq-holiday-day.hq-holiday-day--kind[data-holiday-kind="임시공휴일"] { background: #fef08a !important; color: #713f12 !important; font-weight: 600; }
+.hq-holiday-day.hq-holiday-day--kind[data-holiday-kind="대체공휴일"] { background: #99f6e4 !important; color: #115e59 !important; font-weight: 600; }
 .hq-holiday-ui-wrap .hq-holiday-calendar-grid {
   max-height: none;
+}
+
+/* 전산노티·결제환경 — 총판 노티: 노티 대상명 ↔ 아래 표 간격 축소 */
+.comp-reg-form .hq-notify-new-target-name-col.form-field-block {
+  margin-bottom: 0.5rem;
+}
+.comp-reg-form .hq-notify-target-table-wrap {
+  margin-top: 0.2rem;
+}
+
+/* 전산노티·결제환경 — 총판 노티: 노티 대상명 입력·표 열 기본(120px) 대비 30% 확대 */
+.comp-reg-form .hq-notify-new-target-name-col.col-sm-2 {
+  flex: 0 0 calc(100% * 2 / 12 * 1.3);
+  max-width: calc(100% * 2 / 12 * 1.3);
+}
+#hqNotifyTargetTable thead th.hq-notify-target-name-th {
+  min-width: 156px;
+}
+
+/* 전산노티·결제환경 — 총판 노티 대상 테이블 */
+#hqNotifyTargetTable .hq-notify-url-cell {
+  font-size: 14px;
+  line-height: 1.45;
+  vertical-align: middle;
+}
+#hqNotifyTargetTable .hq-notify-copy-cell {
+  vertical-align: middle;
+  white-space: nowrap;
+}
+#hqNotifyTargetTable .hq-notify-url-code {
+  font-size: 14px;
+  word-break: break-all;
+  background: transparent;
+}
+/* 노티 주소 글자색 — 성격과 동일 계열 */
+#hqNotifyTargetTable .hq-notify-url-cell--callback .hq-notify-url-code {
+  color: #087990;
+  font-weight: 600;
+}
+#hqNotifyTargetTable .hq-notify-url-cell--result .hq-notify-url-code {
+  color: #b45309;
+  font-weight: 600;
+}
+#hqNotifyTargetTable .hq-notify-channel-cell {
+  width: 132px;
+  min-width: 132px;
+  max-width: 132px;
+  text-align: center;
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+#hqNotifyTargetTable .hq-notify-channel-badge {
+  display: inline-block;
+  box-sizing: border-box;
+  min-width: 7.25rem;
+  width: 7.25rem;
+  padding: 0.25rem 0.35rem;
+  border-radius: 0.35rem;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-align: center;
+}
+/* CALLBACK: 서버 노티 — 청록 계열 */
+#hqNotifyTargetTable .hq-notify-channel-cell--callback .hq-notify-channel-badge {
+  background: #cff4fc;
+  color: #055160;
+  border: 1px solid #9eeaf9;
+}
+/* RESULT: 브라우저·리다이렉트 — 주황 계열 */
+#hqNotifyTargetTable .hq-notify-channel-cell--result .hq-notify-channel-badge {
+  background: #ffe5d0;
+  color: #984c0c;
+  border: 1px solid #ffc9a3;
+}
+#hqNotifyTargetTable th.hq-notify-channel-th {
+  white-space: nowrap;
+  width: 132px;
+  min-width: 132px;
+}
+
+/* 노티 대상 선택 모달 — 선택 열 가운데 정렬, CALLBACK/RESULT 색 구분 */
+#notifyTargetPickerModal .notify-picker-select-cell {
+  text-align: center;
+  vertical-align: middle !important;
+  width: 104px;
+}
+#notifyTargetPickerModal .notify-picker-select-cell .btn {
+  display: inline-block;
+  vertical-align: middle;
+}
+#notifyTargetPickerModal .notify-target-picker-table thead th {
+  vertical-align: middle;
+}
+#notifyTargetPickerModal .notify-picker-badge {
+  display: inline-block;
+  min-width: 6.5rem;
+  padding: 0.25rem 0.4rem;
+  border-radius: 0.35rem;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+#notifyTargetPickerModal .notify-picker-badge--callback {
+  background: #cff4fc;
+  color: #055160;
+  border: 1px solid #9eeaf9;
+}
+#notifyTargetPickerModal .notify-picker-badge--result {
+  background: #ffe5d0;
+  color: #984c0c;
+  border: 1px solid #ffc9a3;
+}
+#notifyTargetPickerModal .notify-picker-channel-th-cb {
+  color: #055160;
+  font-weight: 600;
+}
+#notifyTargetPickerModal .notify-picker-channel-th-rs {
+  color: #984c0c;
+  font-weight: 600;
+}
+#notifyTargetPickerModal .notify-picker-url-cell--callback .notify-picker-url-code {
+  color: #087990;
+  font-weight: 600;
+  word-break: break-all;
+}
+#notifyTargetPickerModal .notify-picker-url-cell--result .notify-picker-url-code {
+  color: #b45309;
+  font-weight: 600;
+  word-break: break-all;
 }

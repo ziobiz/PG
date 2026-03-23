@@ -19,7 +19,8 @@ public class ApiHolidayController {
     }
 
     /**
-     * 연도·국가별 공휴일 프리셋 (KR/US/JP/TH). countries=KR,US 형식, 생략 시 4국.
+     * 연도·국가별 공휴일 프리셋 (KR/US/JP/TH/CN) 및 GLOBAL(해당 연도 토·일 전체).
+     * countries=KR,US 형식, 생략 시 4국(KR,US,JP,TH).
      */
     @GetMapping("/presets")
     public ResponseEntity<ApiResponse<Map<String, Object>>> presets(

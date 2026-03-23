@@ -1,5 +1,5 @@
 @echo off
-REM PG 통합관리자 - 로컬 개발 실행 (H2 인메모리 DB, PostgreSQL 불필요)
+REM PG 통합관리자 - 로컬 개발 실행 (H2 파일 DB=pg-app/data, PostgreSQL 불필요)
 REM 프로젝트 루트(PG)에서 실행
 
 cd /d "%~dp0pg-app"

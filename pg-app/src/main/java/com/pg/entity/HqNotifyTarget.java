@@ -21,6 +21,10 @@ public class HqNotifyTarget {
     @Column(name = "target_url", nullable = false, length = 500)
     private String targetUrl;
 
+    /** CALLBACK: 서버→서버 노티, RESULT: 브라우저 리다이렉트 등 */
+    @Column(name = "channel_type", nullable = false, length = 16)
+    private String channelType = "CALLBACK";
+
     @Column(name = "use_yn", length = 1)
     private String useYn = "Y";
 
@@ -40,6 +44,8 @@ public class HqNotifyTarget {
     public void setTargetName(String targetName) { this.targetName = targetName; }
     public String getTargetUrl() { return targetUrl; }
     public void setTargetUrl(String targetUrl) { this.targetUrl = targetUrl; }
+    public String getChannelType() { return channelType; }
+    public void setChannelType(String channelType) { this.channelType = channelType; }
     public String getUseYn() { return useYn; }
     public void setUseYn(String useYn) { this.useYn = useYn; }
     public LocalDateTime getCreatedAt() { return createdAt; }

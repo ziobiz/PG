@@ -4,6 +4,42 @@
 (function () {
   'use strict';
 
+  /** 업체관리 목록 검색: OrgLevel.code 와 동일 순서 (총본사 1 … 가맹점 7) */
+  var COMP_MNG_SEARCH_COMP_DIV_LEVELS = [
+    { v: 'HEADQUARTERS', t: '총본사', ord: 1 },
+    { v: 'REGIONAL', t: '본사', ord: 2 },
+    { v: 'MASTER_DIST', t: '총판', ord: 3 },
+    { v: 'BRANCH', t: '지사', ord: 4 },
+    { v: 'AGENCY', t: '대리점', ord: 5 },
+    { v: 'SALES_OFFICE', t: '영업점', ord: 6 },
+    { v: 'MERCHANT', t: '가맹점', ord: 7 }
+  ];
+
+  /**
+   * 업체관리 검색용 업체구분 셀렉트 옵션.
+   * 비관리자: 로그인 조직 단계보다 아래 단계만 (본인·상위 단계는 선택 불가).
+   * ADMIN: 전 단계 + 전체.
+   */
+  function getCompMngSearchCompDivOptions(viewerOrgLevel, isAdmin) {
+    var allWithWhole = [{ v: '', t: '전체' }].concat(COMP_MNG_SEARCH_COMP_DIV_LEVELS.map(function (o) { return { v: o.v, t: o.t }; }));
+    if (isAdmin) return allWithWhole;
+    var vo = String(viewerOrgLevel || '').trim();
+    var viewerOrd = 0;
+    for (var i = 0; i < COMP_MNG_SEARCH_COMP_DIV_LEVELS.length; i++) {
+      if (COMP_MNG_SEARCH_COMP_DIV_LEVELS[i].v === vo) {
+        viewerOrd = COMP_MNG_SEARCH_COMP_DIV_LEVELS[i].ord;
+        break;
+      }
+    }
+    if (viewerOrd <= 0) return allWithWhole;
+    var out = [{ v: '', t: '전체' }];
+    for (var j = 0; j < COMP_MNG_SEARCH_COMP_DIV_LEVELS.length; j++) {
+      var L = COMP_MNG_SEARCH_COMP_DIV_LEVELS[j];
+      if (L.ord > viewerOrd) out.push({ v: L.v, t: L.t });
+    }
+    return out;
+  }
+
   /** 정산주기 저장값(v)·화면표시(t) — 가맹점 정산방법·결제내역 검색 공통 */
   var CALC_CYCLE_OPTIONS = [
     { v: '', t: '선택' },
@@ -46,12 +82,14 @@
   ];
 
   /** 본사 영업일·휴일: 연간 미니달력 + 공휴일 프리셋 (hq-holiday-calendar.js) */
-  var HQ_HOLIDAY_UI_HTML = '<div class="col-12"><div class="hq-holiday-ui-wrap border rounded p-2 bg-light mt-1">' +
+  var HQ_HOLIDAY_UI_HTML = '<div class="col-12"><div class="hq-holiday-ui-wrap border rounded p-2 bg-light mt-1" data-hq-calendar-readonly="true">' +
     '<div class="d-flex flex-wrap align-items-center gap-2 mb-2">' +
     '<label class="small mb-0 text-nowrap">연도</label><select class="form-select form-select-sm hq-holiday-year" style="width:auto;min-width:5rem"></select>' +
-    '<button type="button" class="btn btn-sm btn-outline-primary hq-holiday-load-presets">4국 공휴일 불러오기</button>' +
-    '<button type="button" class="btn btn-sm btn-outline-secondary hq-holiday-refresh">달력 동기화</button></div>' +
-    '<p class="text-muted small mb-2">날짜를 클릭하면 비영업일에서 추가/제거됩니다. [4국 공휴일 불러오기]는 위 국가 코드에 맞춰 아래 목록에 병합합니다.</p>' +
+    '<button type="button" class="btn btn-sm btn-outline-primary hq-holiday-load-presets">공휴일 프리셋 불러오기</button>' +
+    '<button type="button" class="btn btn-sm btn-outline-secondary hq-holiday-refresh">달력 동기화</button>' +
+    '<button type="button" class="btn btn-sm btn-outline-secondary" id="hqBizdayProfileNewBtn">신규</button>' +
+    '<button type="button" class="btn btn-sm btn-primary" id="hqBizdayProfileSaveBtn">저장</button></div>' +
+    '<p class="text-muted small mb-2">날짜를 클릭하면 비영업일에서 추가/제거됩니다. [공휴일 프리셋 불러오기]는 기준국가에 따라 병합합니다. KR/US/JP/TH/CN은 연도별 법정·공지 연휴, GLOBAL은 해당 연도 토·일만 포함합니다.</p>' +
     '<div class="hq-holiday-calendar-grid"></div></div></div>';
 
   /** 본사 영업일·휴일: 기간형 추가 목록(언제부터~언제까지/내용/추가일/작성자) */
@@ -69,10 +107,33 @@
     '</div></div>';
 
   /** 본사설정 > 영업일설정: 등록된 설정 목록 */
+  var HQ_BIZDAY_KIND_OPTIONS = ['공휴일', '국경일', '기념일', '종교휴일', '임시공휴일', '대체공휴일'];
+  var HQ_BIZDAY_MANUAL_UI_HTML = '<div class="col-12"><div class="border rounded p-2 bg-light mt-1 mb-2">' +
+    '<input type="hidden" name="businessHolidayExtraDates" id="hqBizdayExtraDatesHidden">' +
+    '<input type="hidden" name="holidayManualEntriesJson" id="hqBizdayManualEntriesJson">' +
+    '<strong class="small d-block mb-2">휴일·비영업일 구간 등록</strong>' +
+    '<p class="text-muted small mb-2">시작·종료일·구분·내용을 입력한 뒤 [구간 추가]로 넣거나, 목록의 [수정]으로 불러온 뒤 [수정 반영]으로 바꿉니다. [삭제]로 행을 제거할 수 있습니다. 하단 달력에 반영됩니다.</p>' +
+    '<div class="row g-2 align-items-end mb-2">' +
+    '<div class="col-sm-6 col-md-2"><label class="form-label mb-1 small">시작일</label><input type="date" class="form-control form-control-sm" id="hqBizdayRangeFrom"></div>' +
+    '<div class="col-sm-6 col-md-2"><label class="form-label mb-1 small">종료일</label><input type="date" class="form-control form-control-sm" id="hqBizdayRangeTo"></div>' +
+    '<div class="col-sm-6 col-md-2"><label class="form-label mb-1 small">일자 구분</label><select class="form-select form-select-sm" id="hqBizdayRangeKind">' +
+    HQ_BIZDAY_KIND_OPTIONS.map(function (k) { return '<option value="' + k + '">' + k + '</option>'; }).join('') +
+    '</select></div>' +
+    '<div class="col-sm-12 col-md-3"><label class="form-label mb-1 small">내용</label><input type="text" class="form-control form-control-sm" id="hqBizdayRangeNote" placeholder="예: 설날 연휴"></div>' +
+    '<div class="col-sm-12 col-md-3"><label class="form-label mb-1 small d-block">&nbsp;</label><div class="d-flex flex-wrap gap-1 align-items-center">' +
+    '<button type="button" class="btn btn-sm btn-primary" id="hqBizdayRangeAddBtn">구간 추가</button>' +
+    '<button type="button" class="btn btn-sm btn-outline-secondary d-none" id="hqBizdayRangeCancelEditBtn">편집 취소</button></div></div></div>' +
+    '<div class="table-responsive"><table class="table table-sm table-bordered mb-0"><thead><tr><th style="width:110px">시작</th><th style="width:110px">종료</th><th style="width:120px">구분</th><th>내용</th><th style="width:72px">수정</th><th style="width:72px">삭제</th></tr></thead>' +
+    '<tbody id="hqBizdayManualTbody"><tr class="hq-bizday-manual-empty"><td colspan="6" class="text-center text-muted">등록된 구간이 없습니다.</td></tr></tbody></table></div></div></div>';
+
   var HQ_BIZDAY_PROFILE_LIST_HTML = '<div class="col-12"><div class="border rounded p-2 bg-light mt-1">' +
-    '<div class="d-flex justify-content-between align-items-center mb-2"><strong>저장된 영업일 설정 목록</strong><small class="text-muted">목록에서 행을 선택하면 상단 편집영역으로 불러옵니다.</small></div>' +
-    '<div class="table-responsive"><table class="table table-sm table-bordered mb-0"><thead><tr><th style="width:64px">번호</th><th style="width:220px">이름</th><th style="width:140px">기준국가</th><th>추가 리스트(휴일) 건수</th><th style="width:130px">수정일</th></tr></thead>' +
-    '<tbody id="hqBizdayProfileTbody"><tr><td colspan="5" class="text-center text-muted">저장된 설정이 없습니다.</td></tr></tbody></table></div>' +
+    '<div class="d-flex justify-content-between align-items-center mb-2"><strong>저장된 영업일 설정 목록</strong><small class="text-muted">행의 [수정]으로 불러오거나, 데이터 열을 눌러 선택할 수 있습니다.</small></div>' +
+    '<div class="table-responsive"><table class="table table-sm table-bordered mb-0"><thead><tr><th style="width:48px">번호</th><th style="width:160px">이름</th><th style="width:72px">기준국가</th><th style="width:100px">등록자</th>' +
+    '<th class="text-center align-middle" style="width:88px" title="저장된 비영업일 중 토·일·기준국가 법정(프리셋) 공휴일에 해당하는 일수.">공식공휴일</th>' +
+    '<th class="text-center align-middle" style="width:88px" title="저장된 비영업일 중 위 공식에 해당하지 않는 일수(추가 지정 평일 등).">추가공휴일</th>' +
+    '<th class="text-center align-middle" style="width:80px" title="저장된 비영업 일자 수(중복 1회). 공식+추가와 일치.">총공휴일</th>' +
+    '<th style="width:100px">작성일</th><th style="width:100px">수정일</th><th class="text-center" style="width:76px">수정</th><th class="text-center" style="width:76px">삭제</th></tr></thead>' +
+    '<tbody id="hqBizdayProfileTbody"><tr><td colspan="11" class="text-center text-muted">저장된 설정이 없습니다.</td></tr></tbody></table></div>' +
     '</div></div>';
 
   var MENU_SCREENS = {
@@ -111,22 +172,17 @@
       formSections: [
         {
           title: '영업일 설정',
-          notice: '4개국(KR/US/JP/TH) 기준으로 이름별 영업일 설정을 저장합니다. 업체등록의 본사 설정에서 이 이름을 선택하면 해당 국가/비영업일 목록이 적용됩니다.',
+          notice: 'KR/US/JP/TH/CN 및 GLOBAL(토·일만 휴일) 기준으로 이름별 영업일 설정을 저장합니다. CN은 중국 국무원 공지 연휴(조정일 포함)를 반영합니다. 신규 저장 시 등록자(로그인 아이디)가 자동 기록됩니다. 업체(본사) 정보에서 영업일 설정 이름을 선택하면 해당 국가·휴일이 적용됩니다. 휴일 구간은 아래에서 추가하며, [공휴일 프리셋 불러오기]로 일자를 합칠 수 있습니다. 목록 집계: 공식공휴일=저장된 비영업일 중 토·일·해당국 법정(프리셋) 일자, 추가공휴일=그 외 저장 일자, 총공휴일=저장된 비영업 일수(공식+추가).',
           rows: [
-            [{ label: '이름', type: 'text', name: 'hqBizdayProfileName', col: 3, placeholder: '예: KR 기본 영업일' },
-             { label: '기준국가선택', type: 'select', name: 'holidayCountryCodes', options: [{ v: 'KR', t: 'KR (대한민국)' }, { v: 'US', t: 'US (미국)' }, { v: 'JP', t: 'JP (일본)' }, { v: 'TH', t: 'TH (태국)' }], col: 2 },
-             { label: '선택ID', type: 'text', name: 'hqBizdayProfileId', col: 2, readonly: true }],
-            [{ label: '추가 리스트 (한 줄에 YYYY-MM-DD 하나)', type: 'textarea', name: 'businessHolidayExtraDates', col: 12, rows: 5, placeholder: 'YYYY-MM-DD 한 줄에 하나' }],
+            [{ label: '이름', type: 'text', name: 'hqBizdayProfileName', col: 4, placeholder: '예: KR 기본 영업일' },
+             { label: '기준국가선택', type: 'select', name: 'holidayCountryCodes', options: [{ v: 'KR', t: 'KR (대한민국)' }, { v: 'US', t: 'US (미국)' }, { v: 'JP', t: 'JP (일본)' }, { v: 'TH', t: 'TH (태국)' }, { v: 'CN', t: 'CN (중국)' }, { v: 'GLOBAL', t: 'GLOBAL (토·일만 휴일)' }], col: 3 }],
+            [{ type: 'customHtml', html: HQ_BIZDAY_MANUAL_UI_HTML, col: 12 }],
             [{ type: 'customHtml', html: HQ_HOLIDAY_UI_HTML, col: 12 }],
             [{ type: 'customHtml', html: HQ_BIZDAY_PROFILE_LIST_HTML, col: 12 }]
           ]
         }
       ],
-      buttons: [
-        { id: 'hqBizdayProfileNewBtn', label: '신규', cls: 'btn-outline-secondary' },
-        { id: 'hqBizdayProfileDeleteBtn', label: '삭제', cls: 'btn-outline-danger' },
-        { id: 'hqBizdayProfileSaveBtn', label: '저장', cls: 'btn-primary' }
-      ]
+      buttons: []
     },
     '/hq/notifyEnv': {
       isForm: true,
@@ -163,13 +219,10 @@
         },
         {
           title: '총판 노티 대상 생성',
-          notice: '여기서 생성한 URL을 ziobiz/NOTI 전산노티대상에 등록한 뒤, 총판 상세정보에서 선택하여 연결합니다.',
+          notice: '[노티자동생성] 시 CALLBACK(서버 노티)·RESULT(브라우저 결과/리다이렉트) URL이 짧은 경로(cb/rs+6자)로 각각 발급됩니다. NOTI 전산노티대상에 유형별로 등록한 뒤, 총판 등록 화면에서 연결합니다. 아래 목록에서 행별 삭제할 수 있습니다.',
           rows: [
-            [{ label: '노티 대상명', type: 'text', name: 'newNotifyTargetName', col: 3, placeholder: '예: 총판A 수신' },
-             { label: '생성된 URL', type: 'text', name: 'newNotifyTargetUrl', col: 6, readonly: true },
-             { label: '생성', type: 'text', name: 'newNotifyTargetAction', col: 3, readonly: true, button: '노티 생성' }],
-            [{ label: '삭제 대상', type: 'select', name: 'deleteNotifyTargetId', col: 3, loadNotifyTargets: true },
-             { label: '삭제', type: 'text', name: 'deleteNotifyTargetAction', col: 3, readonly: true, button: '선택 삭제' }]
+            [{ label: '노티 대상명', type: 'text', name: 'newNotifyTargetName', col: 2, placeholder: '예: 총판A 수신', button: '노티자동생성', blockExtraClass: 'hq-notify-new-target-name-col' }],
+            [{ type: 'customHtml', col: 12, html: '<div class="table-responsive hq-notify-target-table-wrap"><table class="table table-sm table-bordered align-middle mb-1" id="hqNotifyTargetTable"><thead class="table-light"><tr><th class="text-center" style="width:52px">No.</th><th class="hq-notify-target-name-th">노티 대상명</th><th>노티 주소</th><th class="text-center" style="width:88px">복사</th><th class="hq-notify-channel-th text-center" style="width:132px;min-width:132px">노티 성격</th><th class="text-center" style="width:100px">삭제</th></tr></thead><tbody id="hqNotifyTargetTbody"></tbody></table><p class="text-muted small mb-0 d-none" id="hqNotifyTargetEmpty">등록된 노티 대상이 없습니다.</p></div>' }]
           ]
         }
       ],
@@ -200,7 +253,7 @@
       formHtmlId: 'hqOrgViewColumnAllowanceForm',
       formSections: [
         {
-          title: '본사별 VIEW SETTING 노출설정',
+          title: '본사별 노출설정',
           notice: '총본사가 각 본사(REGIONAL)마다, 화면별 그리드에서 VIEW SETTING으로 노출·선택 가능한 열을 지정합니다. 여기서 체크한 항목만 해당 본사 및 그 하위 조직(총판·가맹점 등) 사용자가 개인 VIEW SETTING에서 켜고 끌 수 있습니다. 이 설정이 없으면(불러오기 시 정책 없음) 전 항목 선택 가능합니다. 고정 열(번호·업체명·거래일·Route No 등)은 항상 표시되며 여기 목록에 나오지 않습니다.',
           rows: [
             [{ label: '설정 대상 본사', type: 'select', name: 'regionalOrgCode', col: 4, options: [{ v: '', t: '선택' }], loadRegionalBranches: true }],
@@ -352,7 +405,7 @@
           { type: 'compMngSearchActions', label: '하위업체포함', checkboxName: 'searchIncludeSub', searchLabel: '검색' }
         ]
       ],
-      noticeList: ['업체구분·업체사용상태는 \'전체\'로 두고 검색하세요. 데이터가 없으면 [시드 생성]을 눌러주세요.', '엑셀등록: [SAMPLE]으로 서식 있는 xlsx(헤더 색·표선·가운데 정렬)를 받아 예시 행을 수정·추가한 뒤 [엑셀등록]에 업로드하세요.'],
+      noticeList: ['업체구분은 로그인 조직보다 하위 단계만 선택해 검색할 수 있습니다. 업체사용상태 등은 \'전체\'로 두고 검색하세요. 데이터가 없으면 [시드 생성]을 눌러주세요.', '엑셀등록: [SAMPLE]으로 서식 있는 xlsx(헤더 색·표선·가운데 정렬)를 받아 예시 행을 수정·추가한 뒤 [엑셀등록]에 업로드하세요.'],
       noticeRefButton: { id: 'noticeRefBtn', label: '참고', cls: 'btn-success' },
       summary: ['건수'],
       buttons: [{ id: 'seedBtn', label: '시드 생성', cls: 'btn-outline-warning' }, { id: 'excelBtn', label: '엑셀다운로드', cls: 'btn-info' }, { id: 'excelSampleBtn', label: 'SAMPLE', cls: 'btn-outline-secondary' }, { id: 'excelRegBtn', label: '엑셀등록', cls: 'btn-outline-success' }, { id: 'compRegBtn', label: '등록', cls: 'btn-danger' }],
@@ -392,12 +445,12 @@
       formSections: [
         {
           title: '기본정보',
-          notice: '업체코드는 등록 저장 시에만 자동 부여되며(업체구분별 접두 2자리+순번 8자리), 부여 후에는 변경할 수 없습니다. 업체관리 목록에 동일 코드로 표시됩니다. 업체구분을 선택하면 해당 입력 항목이 표시됩니다. 조직 이동은 상위로만 가능하며(하위로 이동 불가), 이동 시 하위 전체가 함께 이동합니다. 사용여부 미사용 시 하위 전체 미사용, 가맹점은 상위 변경으로 개별 활성화할 수 있습니다.',
+          notice: '업체코드는 등록 저장 시에만 자동 부여되며(업체구분별 접두 2자리+순번 8자리), 부여 후에는 변경할 수 없습니다. 업체관리 목록에 동일 코드로 표시됩니다. 업체구분을 선택하면 해당 입력 항목이 표시됩니다. 조직 이동은 상위로만 가능하며(하위로 이동 불가), 이동 시 하위 전체가 함께 이동합니다. 사용여부 미사용 시 하위 전체 미사용, 가맹점은 상위 변경으로 개별 활성화할 수 있습니다. 비밀번호는 입력 후 옆 [저장]으로 확정한 뒤 하단 [저장]으로 등록하세요. 등록 후 비밀번호를 잊었거나 초기화가 필요하면 [업체정보조회] 또는 [업체정보] 상세에서 [비밀번호 초기화] 후 로그인ID+1! 로 로그인해 변경하면 됩니다.',
           rows: [
             [{ label: '상위 본사', type: 'text', name: 'parentComp', col: 2, button: '검색', placeholder: '상위 코드' }, { label: '업체구분*', type: 'select', name: 'compDiv', options: [{ v: '', t: '선택' }, { v: 'REGIONAL', t: '본사' }, { v: 'MASTER_DIST', t: '총판' }, { v: 'BRANCH', t: '지사' }, { v: 'AGENCY', t: '대리점' }, { v: 'SALES_OFFICE', t: '영업점' }, { v: 'MERCHANT', t: '가맹점' }], col: 1 }, { label: '업체명*', type: 'text', name: 'compNm', col: 2 }, { label: '사업자번호*', type: 'regNoWithType', name: 'regNo', col: 2 }, { label: '업태', type: 'text', name: 'bizType', col: 1 }, { label: '종목', type: 'text', name: 'industry', col: 1 }],
             [{ label: '대표자명*', type: 'text', name: 'ceoNm', col: 2 }, { label: '휴대폰*', type: 'text', name: 'ceoMobile', col: 2 }, { label: '업체전화*', type: 'text', name: 'compTel', col: 2 }, { label: '팩스', type: 'text', name: 'fax', col: 2 }, { label: '이메일', type: 'text', name: 'email', col: 2 }, { label: '비고', type: 'text', name: 'remark', col: 2 }],
             [{ type: 'countryAddressRow', zipLabel: '우편번호*', addrLabel: '주소*', addrDetailLabel: '상세주소', addrEtcLabel: '기타' }],
-            [{ label: '사용여부*', type: 'select', name: 'useYn', options: [{ v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }], col: 1 }, { label: '로그인ID*', type: 'text', name: 'loginId', col: 2, button: '중복확인' }, { label: '비밀번호*', type: 'password', name: 'pwd', col: 2 }]
+            [{ label: '사용여부*', type: 'select', name: 'useYn', options: [{ v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }], col: 1 }, { label: '로그인ID*', type: 'text', name: 'loginId', col: 2, button: '중복확인' }, { label: '비밀번호*', type: 'password', name: 'pwd', col: 2, button: '저장', placeholder: '8자 이상 → 옆 [저장] 확정' }]
           ]
         },
         {
@@ -495,12 +548,13 @@
           title: '상세정보',
           id: 'distributorExtraCard',
           masterDistOnly: true,
-          notice: '총판일 때만 입력합니다. 총판은 1가지 화폐만 지정할 수 있습니다. 노티 URL 1은 기본(필수)이며, 2~4는 보조 URL입니다. 이 주소로 들어온 결제 정보만 해당 총판에서 조회됩니다.',
+          notice: '총판일 때만 입력합니다. 총판은 1가지 화폐만 지정할 수 있습니다. 노티 URL 1에는 CALLBACK(서버 노티), 2에는 RESULT(브라우저·리다이렉트) URL을 넣습니다(둘 다 필수). [노티 쌍 선택]으로 동일 대상명의 CALLBACK·RESULT를 한 번에 넣을 수 있습니다. URL 3·4는 보조입니다.',
           rows: [
             [{ label: '기준 화폐*', type: 'select', name: 'baseCurrency', options: [{ v: '', t: '선택' }, { v: 'KRW', t: 'KRW (원)' }, { v: 'USD', t: 'USD (달러)' }, { v: 'JPY', t: 'JPY (엔)' }, { v: 'THB', t: 'THB (바트)' }, { v: 'EUR', t: 'EUR (유로)' }], col: 2 }, { label: '사이트개요', type: 'text', name: 'siteSummary', col: 2, placeholder: '사이트개요' }, { label: '취급물품', type: 'text', name: 'product', col: 2 }, { label: '대표사이트', type: 'text', name: 'homepage', col: 2, placeholder: 'https://' }],
             [{ label: '정산담당자명', type: 'text', name: 'settleName', col: 2 }, { label: '정산담당자연락처', type: 'text', name: 'settleTelNo', col: 2, placeholder: '010-0000-0000' }, { label: '정산형태', type: 'select', name: 'settleType', options: [{ v: '', t: '선택' }, { v: 'M', t: '가맹점별' }, { v: 'G', t: '총판' }], col: 1 }, { label: '요율(%)', type: 'text', name: 'commissionRate', col: 1, placeholder: '요율' }, { label: '사용한도', type: 'text', name: 'limitAmt', col: 2, placeholder: '사용한도' }],
-            [{ label: '노티 URL 1(기본)*', type: 'select', name: 'notifyUrl1', col: 6, loadNotifyTargets: true, button: '노티선택' }, { label: '노티 URL 2(보조)', type: 'select', name: 'notifyUrl2', col: 6, loadNotifyTargets: true, button: '노티선택' }],
-            [{ label: '노티 URL 3', type: 'select', name: 'notifyUrl3', col: 6, loadNotifyTargets: true, button: '노티선택' }, { label: '노티 URL 4', type: 'select', name: 'notifyUrl4', col: 6, loadNotifyTargets: true, button: '노티선택' }]
+            [{ label: '노티 CALLBACK (URL 1)*', type: 'select', name: 'notifyUrl1', col: 6, loadNotifyTargets: true, button: '노티선택' }, { label: '노티 RESULT (URL 2)*', type: 'select', name: 'notifyUrl2', col: 6, loadNotifyTargets: true, button: '노티선택' }],
+            [{ type: 'customHtml', col: 12, html: '<div class="d-flex align-items-center flex-wrap gap-2 mb-1"><button type="button" class="btn btn-sm btn-outline-primary" data-action="노티쌍선택" data-callback-field="notifyUrl1" data-result-field="notifyUrl2">노티 쌍 선택 (CALLBACK+RESULT)</button><span class="text-muted small">전산노티에서 같은 대상명으로 발급된 CALLBACK·RESULT URL을 URL 1·2에 동시에 설정합니다.</span></div>' }],
+            [{ label: '노티 URL 3(보조)', type: 'select', name: 'notifyUrl3', col: 6, loadNotifyTargets: true, button: '노티선택' }, { label: '노티 URL 4(보조)', type: 'select', name: 'notifyUrl4', col: 6, loadNotifyTargets: true, button: '노티선택' }]
           ]
         },
         {
@@ -564,7 +618,7 @@
           title: '정산방법',
           id: 'calcMethodCard',
           merchantOnly: true,
-          notice: '정산주기·영업일(휴일 제외) 기준은 본사 정산정보와 동일합니다. 정산마감시간까지 거래를 마감하고, 정산자동개시시간에 정산 계산(정산구분 자동 시). 정산구분: 수동=마감 후 운영자가 개시, 자동=개시시간에 자동, 펌뱅킹=마감 금액 기준 이체까지 연동. 이체및송금구분은 펌뱅킹 송금 방식(수동/자동/사용안함). 정산제외여부 사용 시 마감·자동개시가 보류되며, 해제 후 해당일 정산마감·자동개시 규칙이 적용됩니다. 정산최소금액 미만이면 해당 주기 정산은 다음 순번으로 이월됩니다. 이체및송금최소금액 미만이면 펌뱅킹 송금이 제한됩니다. 이체시간은 펌뱅킹 연동 시 해당 시각에 이체합니다.',
+          notice: '정산주기는 가맹점에만 적용되는 값입니다(총본사~영업점에는 없음). 그 외 항목: 영업일(휴일 제외) 기준은 본사 정산정보와 동일합니다. 정산마감시간까지 거래를 마감하고, 정산자동개시시간에 정산 계산(정산구분 자동 시). 정산구분: 수동=마감 후 운영자가 개시, 자동=개시시간에 자동, 펌뱅킹=마감 금액 기준 이체까지 연동. 이체및송금구분은 펌뱅킹 송금 방식(수동/자동/사용안함). 정산제외여부 사용 시 마감·자동개시가 보류되며, 해제 후 해당일 정산마감·자동개시 규칙이 적용됩니다. 정산최소금액 미만이면 해당 주기 정산은 다음 순번으로 이월됩니다. 이체및송금최소금액 미만이면 펌뱅킹 송금이 제한됩니다. 이체시간은 펌뱅킹 연동 시 해당 시각에 이체합니다.',
           rows: [
             [{ label: '정산주기', type: 'select', name: 'calcCycle', options: CALC_CYCLE_OPTIONS, col: 1 }, { label: '정산마감시간', type: 'time', name: 'calcCloseTime', col: 1 }, { label: '정산자동개시시간', type: 'time', name: 'calcStartTime', col: 1 }],
             [{ label: '정산구분', type: 'select', name: 'calcProcType', options: CALC_PROC_OPTIONS, col: 1 }, { label: '이체및송금구분', type: 'select', name: 'transferType', options: TRANSFER_REMIT_OPTIONS, col: 1 }, { label: '이체주기(일)', type: 'text', name: 'transferCycleDays', col: 1 }, { label: '이체시간', type: 'time', name: 'transferExecTime', col: 1 }],
@@ -727,12 +781,13 @@
           title: '상세정보',
           id: 'distributorExtraCard',
           masterDistOnly: true,
-          notice: '총판일 때만 입력합니다. 총판은 1가지 화폐만 지정할 수 있습니다. 노티 URL 1은 기본(필수)이며, 2~4는 보조 URL입니다. 이 주소로 들어온 결제 정보만 해당 총판에서 조회됩니다.',
+          notice: '총판일 때만 입력합니다. 총판은 1가지 화폐만 지정할 수 있습니다. 노티 URL 1에는 CALLBACK(서버 노티), 2에는 RESULT(브라우저·리다이렉트) URL을 넣습니다(둘 다 필수). [노티 쌍 선택]으로 동일 대상명의 CALLBACK·RESULT를 한 번에 넣을 수 있습니다. URL 3·4는 보조입니다.',
           rows: [
             [{ label: '기준 화폐*', type: 'select', name: 'baseCurrency', options: [{ v: '', t: '선택' }, { v: 'KRW', t: 'KRW (원)' }, { v: 'USD', t: 'USD (달러)' }, { v: 'JPY', t: 'JPY (엔)' }, { v: 'THB', t: 'THB (바트)' }, { v: 'EUR', t: 'EUR (유로)' }], col: 2 }, { label: '사이트개요', type: 'text', name: 'siteSummary', col: 2, placeholder: '사이트개요' }, { label: '취급물품', type: 'text', name: 'product', col: 2 }, { label: '대표사이트', type: 'text', name: 'homepage', col: 2, placeholder: 'https://' }],
             [{ label: '정산담당자명', type: 'text', name: 'settleName', col: 2 }, { label: '정산담당자연락처', type: 'text', name: 'settleTelNo', col: 2, placeholder: '010-0000-0000' }, { label: '정산형태', type: 'select', name: 'settleType', options: [{ v: '', t: '선택' }, { v: 'M', t: '가맹점별' }, { v: 'G', t: '총판' }], col: 1 }, { label: '요율(%)', type: 'text', name: 'commissionRate', col: 1, placeholder: '요율' }, { label: '사용한도', type: 'text', name: 'limitAmt', col: 2, placeholder: '사용한도' }],
-            [{ label: '노티 URL 1(기본)*', type: 'select', name: 'notifyUrl1', col: 6, loadNotifyTargets: true, button: '노티선택' }, { label: '노티 URL 2(보조)', type: 'select', name: 'notifyUrl2', col: 6, loadNotifyTargets: true, button: '노티선택' }],
-            [{ label: '노티 URL 3', type: 'select', name: 'notifyUrl3', col: 6, loadNotifyTargets: true, button: '노티선택' }, { label: '노티 URL 4', type: 'select', name: 'notifyUrl4', col: 6, loadNotifyTargets: true, button: '노티선택' }]
+            [{ label: '노티 CALLBACK (URL 1)*', type: 'select', name: 'notifyUrl1', col: 6, loadNotifyTargets: true, button: '노티선택' }, { label: '노티 RESULT (URL 2)*', type: 'select', name: 'notifyUrl2', col: 6, loadNotifyTargets: true, button: '노티선택' }],
+            [{ type: 'customHtml', col: 12, html: '<div class="d-flex align-items-center flex-wrap gap-2 mb-1"><button type="button" class="btn btn-sm btn-outline-primary" data-action="노티쌍선택" data-callback-field="notifyUrl1" data-result-field="notifyUrl2">노티 쌍 선택 (CALLBACK+RESULT)</button><span class="text-muted small">전산노티에서 같은 대상명으로 발급된 CALLBACK·RESULT URL을 URL 1·2에 동시에 설정합니다.</span></div>' }],
+            [{ label: '노티 URL 3(보조)', type: 'select', name: 'notifyUrl3', col: 6, loadNotifyTargets: true, button: '노티선택' }, { label: '노티 URL 4(보조)', type: 'select', name: 'notifyUrl4', col: 6, loadNotifyTargets: true, button: '노티선택' }]
           ]
         },
         {
@@ -796,7 +851,7 @@
           title: '정산방법',
           id: 'calcMethodCard',
           merchantOnly: true,
-          notice: '정산주기·영업일(휴일 제외) 기준은 본사 정산정보와 동일합니다. 정산마감시간까지 거래를 마감하고, 정산자동개시시간에 정산 계산(정산구분 자동 시). 정산구분: 수동=마감 후 운영자가 개시, 자동=개시시간에 자동, 펌뱅킹=마감 금액 기준 이체까지 연동. 이체및송금구분은 펌뱅킹 송금 방식(수동/자동/사용안함). 정산제외여부 사용 시 마감·자동개시가 보류되며, 해제 후 해당일 정산마감·자동개시 규칙이 적용됩니다. 정산최소금액 미만이면 해당 주기 정산은 다음 순번으로 이월됩니다. 이체및송금최소금액 미만이면 펌뱅킹 송금이 제한됩니다. 이체시간은 펌뱅킹 연동 시 해당 시각에 이체합니다.',
+          notice: '정산주기는 가맹점에만 적용되는 값입니다(총본사~영업점에는 없음). 그 외 항목: 영업일(휴일 제외) 기준은 본사 정산정보와 동일합니다. 정산마감시간까지 거래를 마감하고, 정산자동개시시간에 정산 계산(정산구분 자동 시). 정산구분: 수동=마감 후 운영자가 개시, 자동=개시시간에 자동, 펌뱅킹=마감 금액 기준 이체까지 연동. 이체및송금구분은 펌뱅킹 송금 방식(수동/자동/사용안함). 정산제외여부 사용 시 마감·자동개시가 보류되며, 해제 후 해당일 정산마감·자동개시 규칙이 적용됩니다. 정산최소금액 미만이면 해당 주기 정산은 다음 순번으로 이월됩니다. 이체및송금최소금액 미만이면 펌뱅킹 송금이 제한됩니다. 이체시간은 펌뱅킹 연동 시 해당 시각에 이체합니다.',
           rows: [
             [{ label: '정산주기', type: 'select', name: 'calcCycle', options: CALC_CYCLE_OPTIONS, col: 1 }, { label: '정산마감시간', type: 'time', name: 'calcCloseTime', col: 1 }, { label: '정산자동개시시간', type: 'time', name: 'calcStartTime', col: 1 }],
             [{ label: '정산구분', type: 'select', name: 'calcProcType', options: CALC_PROC_OPTIONS, col: 1 }, { label: '이체및송금구분', type: 'select', name: 'transferType', options: TRANSFER_REMIT_OPTIONS, col: 1 }, { label: '이체주기(일)', type: 'text', name: 'transferCycleDays', col: 1 }, { label: '이체시간', type: 'time', name: 'transferExecTime', col: 1 }],
@@ -976,7 +1031,7 @@
       buttons: [{ id: 'reclaimBtn', label: '상신회수', cls: 'btn-warning' }, { id: 'excelDownBtn', label: '엑셀다운로드', cls: 'btn-info' }],
       /** 참고: 결제내역 UI 2단 헤더 — 정산주기 뒤 PG승인(금액·일시), 보류(금액·일시), 수수료(건·%) */
       headerGroups: [
-        { label: '사업자', keys: ['compRegDivNm', 'compRegNo'] },
+        { label: '사업자번호', keys: ['compRegNo'] },
         { label: 'PG승인', keys: ['pgApproveAmt', 'payAprv'] },
         { label: '보류', keys: ['holdAmt', 'holdDttm'] },
         { label: '수수료', keys: ['feeCnt', 'feeRate'] }
@@ -1003,8 +1058,7 @@
         { key: 'currency', label: 'Currency' },
         { key: 'chillPaymentStatus', label: 'Status' },
         { key: 'settledYn', label: 'Settled' },
-        { key: 'compRegDivNm', label: '구분' },
-        { key: 'compRegNo', label: '번호' },
+        { key: 'compRegNo', label: '사업자번호' },
         { key: 'payDivNm', label: '구분' },
         { key: 'payCard', label: '결제카드' },
         { key: 'cardAprvNo', label: '승인번호' },
@@ -1109,7 +1163,7 @@
       summary: ['건수', '금액', '수수료금액', '수수료부가세', '보류금액', '정산금액'],
       buttons: [{ id: 'searchBtn', label: '검색', cls: 'btn-primary' }, { id: 'excelBtn', label: '엑셀다운로드', cls: 'btn-info' }],
       headerGroups: [
-        { label: '사업자', keys: ['bizType', 'bizNo'] },
+        { label: '사업자번호', keys: ['bizNo'] },
         { label: 'PG승인', keys: ['amount', 'payNo'] },
         { label: '수수료', keys: ['feeCnt', 'feeRate', 'feeAmt', 'feeVat', 'holdRate', 'holdAmt'] }
       ],
@@ -1118,7 +1172,6 @@
         { key: 'rowNo', label: '번호' },
         { key: 'compNm', label: '업체명' },
         { key: 'compId', label: '업체코드' },
-        { key: 'bizType', label: '사업자구분' },
         { key: 'bizNo', label: '사업자번호' },
         { key: 'payDivNm', label: '구분' },
         { key: 'payCard', label: '결제카드' },
@@ -1943,7 +1996,18 @@
     var id = name;
     var ro = (readonlyAttr || f.readonly) ? ' readonly' : '';
     var inp = '';
-    if (f.type === 'text' || f.type === 'password') {
+    var intlPhoneTargets = { ceoMobile: true, compTel: true, fax: true, settleTelNo: true, contactTel: true };
+    var useIntlPhone = (f.type === 'phoneIntl') || ((f.type === 'text') && !!intlPhoneTargets[name]);
+    if (useIntlPhone) {
+      var intlOptions = window.PG_INTL_PHONE_OPTIONS || '<option value="+81">Japan (+81)</option><option value="+82">South Korea (+82)</option><option value="+66">Thailand (+66)</option><option value="+1">United States (+1)</option><option value="+86">China (+86)</option><option value="+65">Singapore (+65)</option><option value="+852">Hong Kong (+852)</option><option value="" disabled>---------------</option>';
+      var ccName = '__phone_cc_' + name;
+      var numName = '__phone_num_' + name;
+      inp = '<div class="d-flex gap-1 align-items-center intl-phone-field" data-intl-phone-group="' + name + '">' +
+        '<input type="hidden" name="' + name + '" id="' + id + '">' +
+        '<select class="form-control form-control-sm' + reqClass + '" name="' + ccName + '" data-intl-phone-code-for="' + name + '"' + (f.readonly ? ' disabled' : '') + '>' + intlOptions + '</select>' +
+        '<input type="text" class="form-control form-control-sm' + reqClass + '" name="' + numName + '" data-intl-phone-number-for="' + name + '"' + (f.placeholder ? ' placeholder="' + f.placeholder + '"' : ' placeholder="Phone number"') + ro + '>' +
+        '</div>';
+    } else if (f.type === 'text' || f.type === 'password') {
       inp = '<input type="' + (f.type || 'text') + '" class="form-control form-control-sm' + reqClass + '" name="' + name + '" id="' + id + '"' + (f.placeholder ? ' placeholder="' + f.placeholder + '"' : '') + ro + '>';
     } else if (f.type === 'time') {
       inp = '<input type="time" class="form-control form-control-sm' + reqClass + '" name="' + name + '" id="' + id + '"' + (f.placeholder ? ' placeholder="' + f.placeholder + '"' : '') + '>';
@@ -1977,6 +2041,7 @@
     var blockClass = 'col-sm-' + col + ' form-field-block';
     if (f.customOnly) blockClass += ' commission-custom-only';
     if (f.holdRateOnly) blockClass += ' hold-rate-custom-only';
+    if (f.blockExtraClass) blockClass += ' ' + String(f.blockExtraClass);
     return '<div class="' + blockClass + hqC + hqPolicyC + '"><label class="form-label">' + label + '</label>' + inpWrap + '</div>';
   }
 
@@ -2285,6 +2350,7 @@
   window.PG_SCREENS = {
     getScreenHtml: getScreenHtml,
     getMenuScreens: function () { return MENU_SCREENS; },
-    buildDistributionListTheadHtml: buildDistributionListTheadHtml
+    buildDistributionListTheadHtml: buildDistributionListTheadHtml,
+    getCompMngSearchCompDivOptions: getCompMngSearchCompDivOptions
   };
 })();

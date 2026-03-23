@@ -8,10 +8,15 @@ import com.pg.entity.PgAgency;
 import com.pg.repository.CommissionPolicyRepository;
 import com.pg.repository.HqApiConfigRepository;
 import com.pg.repository.PgAgencyRepository;
+import com.pg.entity.AppUser;
+import com.pg.service.HolidayPresetService;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -27,13 +32,16 @@ public class ApiHqController {
     private final CommissionPolicyRepository commissionPolicyRepository;
     private final HqApiConfigRepository hqApiConfigRepository;
     private final PgAgencyRepository pgAgencyRepository;
+    private final HolidayPresetService holidayPresetService;
 
     public ApiHqController(CommissionPolicyRepository commissionPolicyRepository,
                            HqApiConfigRepository hqApiConfigRepository,
-                           PgAgencyRepository pgAgencyRepository) {
+                           PgAgencyRepository pgAgencyRepository,
+                           HolidayPresetService holidayPresetService) {
         this.commissionPolicyRepository = commissionPolicyRepository;
         this.hqApiConfigRepository = hqApiConfigRepository;
         this.pgAgencyRepository = pgAgencyRepository;
+        this.holidayPresetService = holidayPresetService;
     }
 
     private static PageResult<Map<String, Object>> emptyPage(int page, int size) {
@@ -378,6 +386,7 @@ public class ApiHqController {
         HqApiConfig c = hqApiConfigRepository.findAll().stream().findFirst().orElse(null);
         String raw = c != null ? c.getBusinessDaySettingsJson() : null;
         List<Map<String, Object>> list = parseBusinessDaySettings(raw);
+        enrichBusinessDayHolidayCounts(list);
         return ResponseEntity.ok(ApiResponse.ok(list));
     }
 
@@ -391,8 +400,8 @@ public class ApiHqController {
         String name = Optional.ofNullable(hqStr(body, "name")).orElse("").trim();
         String countryCode = Optional.ofNullable(hqStr(body, "countryCode")).orElse("KR").trim().toUpperCase(Locale.ROOT);
         String extraDates = Optional.ofNullable(hqStr(body, "businessHolidayExtraDates")).orElse("").trim();
-        if (!Set.of("KR", "US", "JP", "TH").contains(countryCode)) {
-            return ResponseEntity.ok(ApiResponse.fail("기준국가는 KR/US/JP/TH만 가능합니다.", "VALIDATION"));
+        if (!Set.of("KR", "US", "JP", "TH", "CN", "GLOBAL").contains(countryCode)) {
+            return ResponseEntity.ok(ApiResponse.fail("기준국가는 KR/US/JP/TH/CN/GLOBAL만 가능합니다.", "VALIDATION"));
         }
         if ("DELETE".equals(mode)) {
             if (id.isEmpty()) return ResponseEntity.ok(ApiResponse.fail("삭제할 ID가 필요합니다.", "VALIDATION"));
@@ -400,9 +409,11 @@ public class ApiHqController {
             list = list.stream().filter(m -> !Objects.equals(String.valueOf(m.getOrDefault("id", "")), deleteId)).collect(Collectors.toList());
             c.setBusinessDaySettingsJson(writeBusinessDaySettings(list));
             hqApiConfigRepository.save(c);
+            enrichBusinessDayHolidayCounts(list);
             return ResponseEntity.ok(ApiResponse.ok(Map.of("success", true, "message", "삭제되었습니다.", "list", list)));
         }
         if (name.isEmpty()) return ResponseEntity.ok(ApiResponse.fail("이름은 필수입니다.", "VALIDATION"));
+        String originalIdFromClient = id;
         if (id.isEmpty()) id = UUID.randomUUID().toString();
         String finalId = id;
         for (Map<String, Object> m : list) {
@@ -412,12 +423,47 @@ public class ApiHqController {
                 return ResponseEntity.ok(ApiResponse.fail("동일한 이름이 이미 있습니다.", "DUPLICATE"));
             }
         }
+        List<Map<String, Object>> manualEntries = parseHolidayManualEntriesFromBody(body.get("holidayManualEntries"));
+        String extraFromEntries = expandHolidayManualEntriesToDates(manualEntries);
+        String mergedExtra = mergeHolidayDateLines(extraDates, extraFromEntries);
+
+        String preservedCreatedBy = "";
+        String preservedCreatedAt = "";
+        String preservedUpdatedAt = "";
+        for (Map<String, Object> ex : list) {
+            if (Objects.equals(String.valueOf(ex.getOrDefault("id", "")), finalId)) {
+                preservedCreatedBy = String.valueOf(ex.getOrDefault("createdBy", ""));
+                preservedCreatedAt = String.valueOf(ex.getOrDefault("createdAt", ""));
+                preservedUpdatedAt = String.valueOf(ex.getOrDefault("updatedAt", ""));
+                break;
+            }
+        }
+        boolean isNewProfile = originalIdFromClient.isEmpty();
+        String actor = resolveCurrentLoginId();
+        String createdByVal = isNewProfile ? actor : (preservedCreatedBy.isBlank() ? actor : preservedCreatedBy);
+        String today = java.time.LocalDate.now().toString();
+        String createdAtVal;
+        if (isNewProfile) {
+            createdAtVal = today;
+        } else {
+            if (preservedCreatedAt != null && !preservedCreatedAt.isBlank() && !"null".equalsIgnoreCase(preservedCreatedAt)) {
+                createdAtVal = preservedCreatedAt;
+            } else if (preservedUpdatedAt != null && !preservedUpdatedAt.isBlank() && !"null".equalsIgnoreCase(preservedUpdatedAt)) {
+                createdAtVal = preservedUpdatedAt;
+            } else {
+                createdAtVal = today;
+            }
+        }
+
         Map<String, Object> row = new LinkedHashMap<>();
         row.put("id", id);
         row.put("name", name);
         row.put("countryCode", countryCode);
-        row.put("businessHolidayExtraDates", extraDates);
-        row.put("updatedAt", java.time.LocalDate.now().toString());
+        row.put("businessHolidayExtraDates", mergedExtra);
+        row.put("holidayManualEntries", manualEntries);
+        row.put("createdBy", createdByVal);
+        row.put("createdAt", createdAtVal);
+        row.put("updatedAt", today);
         boolean updated = false;
         for (int i = 0; i < list.size(); i++) {
             if (Objects.equals(String.valueOf(list.get(i).getOrDefault("id", "")), id)) {
@@ -429,7 +475,134 @@ public class ApiHqController {
         if (!updated) list.add(row);
         c.setBusinessDaySettingsJson(writeBusinessDaySettings(list));
         hqApiConfigRepository.save(c);
+        enrichBusinessDayHolidayCounts(list);
         return ResponseEntity.ok(ApiResponse.ok(Map.of("success", true, "message", "저장되었습니다.", "id", id, "list", list)));
+    }
+
+    /** 저장된 비영업 일자 중 공식(토·일·해당국 프리셋 법정일) / 추가(그 외) / 총 — API 응답용 (DB JSON에는 넣지 않음) */
+    private void enrichBusinessDayHolidayCounts(List<Map<String, Object>> list) {
+        if (list == null || holidayPresetService == null) return;
+        for (Map<String, Object> row : list) {
+            attachHolidayKindCounts(row);
+        }
+    }
+
+    private void attachHolidayKindCounts(Map<String, Object> row) {
+        Set<String> totalSet = parseBizdayHolidayDateSet(String.valueOf(row.getOrDefault("businessHolidayExtraDates", "")));
+        int total = totalSet.size();
+        String cc = String.valueOf(row.getOrDefault("countryCode", "KR")).trim().toUpperCase(Locale.ROOT);
+        Set<Integer> years = new TreeSet<>();
+        for (String d : totalSet) {
+            if (d == null || d.length() < 4) continue;
+            try {
+                years.add(Integer.parseInt(d.substring(0, 4)));
+            } catch (NumberFormatException ignored) {
+            }
+        }
+        Set<String> officialRef = new TreeSet<>();
+        for (int y : years) {
+            officialRef.addAll(holidayPresetService.officialHolidayDatesForProfile(y, cc));
+        }
+        int official = 0;
+        for (String d : totalSet) {
+            if (officialRef.contains(d)) {
+                official++;
+            }
+        }
+        int additional = total - official;
+        row.put("holidayCountOfficial", official);
+        row.put("holidayCountAdditional", Math.max(0, additional));
+        row.put("holidayCountTotal", total);
+    }
+
+    private static Set<String> parseBizdayHolidayDateSet(String raw) {
+        Set<String> set = new TreeSet<>();
+        if (raw == null || raw.isBlank()) {
+            return set;
+        }
+        for (String line : raw.split("\\r?\\n")) {
+            String t = line.trim();
+            if (t.matches("\\d{4}-\\d{2}-\\d{2}.*")) {
+                set.add(t.substring(0, 10));
+            }
+        }
+        return set;
+    }
+
+    private static String resolveCurrentLoginId() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth != null && auth.getPrincipal() instanceof AppUser u && u.getUsername() != null) {
+            return u.getUsername().trim();
+        }
+        if (auth != null && auth.getName() != null) {
+            return auth.getName().trim();
+        }
+        return "";
+    }
+
+    @SuppressWarnings("unchecked")
+    private static List<Map<String, Object>> parseHolidayManualEntriesFromBody(Object raw) {
+        if (raw == null) return new ArrayList<>();
+        try {
+            var om = new com.fasterxml.jackson.databind.ObjectMapper();
+            if (raw instanceof String s) {
+                s = s.trim();
+                if (s.isEmpty()) return new ArrayList<>();
+                return om.readValue(s, new com.fasterxml.jackson.core.type.TypeReference<List<Map<String, Object>>>() {});
+            }
+            if (raw instanceof List<?> l) {
+                List<Map<String, Object>> out = new ArrayList<>();
+                for (Object o : l) {
+                    if (o instanceof Map<?, ?> mm) {
+                        Map<String, Object> row = new LinkedHashMap<>();
+                        mm.forEach((k, v) -> row.put(String.valueOf(k), v));
+                        out.add(row);
+                    }
+                }
+                return out;
+            }
+        } catch (Exception ignored) {
+        }
+        return new ArrayList<>();
+    }
+
+    private static String expandHolidayManualEntriesToDates(List<Map<String, Object>> entries) {
+        if (entries == null || entries.isEmpty()) return "";
+        Set<String> days = new TreeSet<>();
+        for (Map<String, Object> e : entries) {
+            String from = String.valueOf(e.getOrDefault("fromDate", "")).trim();
+            String to = String.valueOf(e.getOrDefault("toDate", "")).trim();
+            if (from.isEmpty()) continue;
+            if (to.isEmpty()) to = from;
+            try {
+                LocalDate a = LocalDate.parse(from);
+                LocalDate b = LocalDate.parse(to);
+                if (b.isBefore(a)) {
+                    LocalDate t = a;
+                    a = b;
+                    b = t;
+                }
+                for (LocalDate d = a; !d.isAfter(b); d = d.plusDays(1)) {
+                    days.add(d.toString());
+                }
+            } catch (Exception ignored) {
+            }
+        }
+        return String.join("\n", days);
+    }
+
+    private static String mergeHolidayDateLines(String a, String b) {
+        Set<String> set = new TreeSet<>();
+        for (String part : new String[] { a, b }) {
+            if (part == null || part.isBlank()) continue;
+            for (String line : part.split("\\r?\\n")) {
+                String t = line.trim();
+                if (t.matches("\\d{4}-\\d{2}-\\d{2}.*")) {
+                    set.add(t.substring(0, 10));
+                }
+            }
+        }
+        return String.join("\n", set);
     }
 
     @SuppressWarnings("unchecked")
@@ -448,11 +621,20 @@ public class ApiHqController {
                 Object ccVal = mm.get("countryCode");
                 Object extraVal = mm.get("businessHolidayExtraDates");
                 Object updVal = mm.get("updatedAt");
+                Object createdByVal = mm.get("createdBy");
+                Object createdAtVal = mm.get("createdAt");
                 row.put("id", idVal == null ? "" : String.valueOf(idVal));
                 row.put("name", nameVal == null ? "" : String.valueOf(nameVal));
                 row.put("countryCode", ccVal == null ? "KR" : String.valueOf(ccVal));
                 row.put("businessHolidayExtraDates", extraVal == null ? "" : String.valueOf(extraVal));
                 row.put("updatedAt", updVal == null ? "" : String.valueOf(updVal));
+                row.put("createdBy", createdByVal == null ? "" : String.valueOf(createdByVal));
+                row.put("createdAt", createdAtVal == null ? "" : String.valueOf(createdAtVal));
+                List<Map<String, Object>> manual = extractHolidayManualEntries(mm.get("holidayManualEntries"));
+                if (manual.isEmpty()) {
+                    manual = migrateExtraDatesLinesToEntries(String.valueOf(row.get("businessHolidayExtraDates")));
+                }
+                row.put("holidayManualEntries", manual);
                 out.add(row);
             }
             return out;
@@ -468,6 +650,48 @@ public class ApiHqController {
         } catch (Exception e) {
             return "[]";
         }
+    }
+
+    @SuppressWarnings("unchecked")
+    private static List<Map<String, Object>> extractHolidayManualEntries(Object raw) {
+        if (raw == null) return new ArrayList<>();
+        if (raw instanceof List<?> l) {
+            List<Map<String, Object>> out = new ArrayList<>();
+            for (Object o : l) {
+                if (o instanceof Map<?, ?> mm) {
+                    Map<String, Object> row = new LinkedHashMap<>();
+                    mm.forEach((k, v) -> row.put(String.valueOf(k), v));
+                    out.add(row);
+                }
+            }
+            return out;
+        }
+        if (raw instanceof String s && !s.isBlank()) {
+            try {
+                var om = new com.fasterxml.jackson.databind.ObjectMapper();
+                return om.readValue(s.trim(), new com.fasterxml.jackson.core.type.TypeReference<List<Map<String, Object>>>() {});
+            } catch (Exception ignored) {
+            }
+        }
+        return new ArrayList<>();
+    }
+
+    private static List<Map<String, Object>> migrateExtraDatesLinesToEntries(String extra) {
+        List<Map<String, Object>> out = new ArrayList<>();
+        if (extra == null || extra.isBlank()) return out;
+        for (String line : extra.split("\\r?\\n")) {
+            String t = line.trim();
+            if (t.length() >= 10 && t.substring(0, 10).matches("\\d{4}-\\d{2}-\\d{2}")) {
+                String day = t.substring(0, 10);
+                Map<String, Object> e = new LinkedHashMap<>();
+                e.put("fromDate", day);
+                e.put("toDate", day);
+                e.put("holidayKind", "공휴일");
+                e.put("note", "");
+                out.add(e);
+            }
+        }
+        return out;
     }
 
     /** 4. 본사별 페이지/기능 접근 권한 세팅 */

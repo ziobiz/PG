@@ -16,6 +16,157 @@
     rest.forEach(function (c) { html += '<option value="' + c + '">' + c + '</option>'; });
     return html;
   })();
+  var PHONE_PRIORITY_ORDER = ['JP', 'KR', 'TH', 'US', 'CN', 'SG', 'HK'];
+  var PHONE_DIAL_BY_ISO = {
+    AF: '+93', AL: '+355', DZ: '+213', AR: '+54', AU: '+61', AT: '+43', BD: '+880', BE: '+32', BR: '+55', BN: '+673', BG: '+359', KH: '+855',
+    CA: '+1', CL: '+56', CN: '+86', CO: '+57', HR: '+385', CY: '+357', CZ: '+420', DK: '+45', EG: '+20', FI: '+358', FR: '+33', DE: '+49',
+    GR: '+30', HK: '+852', HU: '+36', IN: '+91', ID: '+62', IE: '+353', IL: '+972', IT: '+39', JP: '+81', JO: '+962', KZ: '+7', KE: '+254',
+    KR: '+82', KW: '+965', LA: '+856', LU: '+352', MO: '+853', MY: '+60', MX: '+52', MM: '+95', NL: '+31', NZ: '+64', NG: '+234', NO: '+47',
+    PK: '+92', PH: '+63', PL: '+48', PT: '+351', QA: '+974', RO: '+40', RU: '+7', SA: '+966', RS: '+381', SG: '+65', SK: '+421', SI: '+386',
+    ZA: '+27', ES: '+34', LK: '+94', SE: '+46', CH: '+41', TW: '+886', TH: '+66', TR: '+90', AE: '+971', GB: '+44', US: '+1', VN: '+84'
+  };
+  /** Priority countries: English labels only (no Korean in dropdown). */
+  var PHONE_EN_LABEL_BY_ISO = {
+    JP: 'Japan', KR: 'South Korea', TH: 'Thailand', US: 'United States', CN: 'China', SG: 'Singapore', HK: 'Hong Kong'
+  };
+  var PG_INTL_PHONE_OPTIONS_CACHE_VER = 2;
+  function phoneLabelAlphaGroup(label) {
+    var c = String(label || '').trim().charAt(0).toUpperCase();
+    return /^[A-Z]$/.test(c) ? c : '#';
+  }
+  function buildIntlPhoneOptionsHtml() {
+    if (window.PG_INTL_PHONE_OPTIONS_CACHE_VER === PG_INTL_PHONE_OPTIONS_CACHE_VER && window.PG_INTL_PHONE_OPTIONS) {
+      return window.PG_INTL_PHONE_OPTIONS;
+    }
+    var regionCodes = Object.keys(PHONE_DIAL_BY_ISO);
+    if (typeof Intl !== 'undefined' && Intl.DisplayNames && Intl.supportedValuesOf) {
+      try {
+        var supported = Intl.supportedValuesOf('region') || [];
+        regionCodes = supported.filter(function (iso) { return !!PHONE_DIAL_BY_ISO[iso]; });
+      } catch (e) {}
+    }
+    var regionName = null;
+    try {
+      regionName = new Intl.DisplayNames(['en'], { type: 'region' });
+    } catch (e) {}
+    var byIso = {};
+    regionCodes.forEach(function (iso) {
+      byIso[iso] = {
+        iso: iso,
+        dial: PHONE_DIAL_BY_ISO[iso],
+        label: PHONE_EN_LABEL_BY_ISO[iso] || (regionName && regionName.of(iso)) || iso
+      };
+    });
+    var priorityRows = PHONE_PRIORITY_ORDER.map(function (iso) { return byIso[iso]; }).filter(Boolean);
+    var prioritySet = {};
+    PHONE_PRIORITY_ORDER.forEach(function (iso) { prioritySet[iso] = true; });
+    var restRows = regionCodes.filter(function (iso) { return !prioritySet[iso]; }).map(function (iso) { return byIso[iso]; });
+    restRows.sort(function (a, b) { return String(a.label).localeCompare(String(b.label), 'en'); });
+    var parts = [];
+    priorityRows.forEach(function (r) {
+      parts.push('<option value="' + r.dial + '">' + r.label + ' (' + r.dial + ')</option>');
+    });
+    parts.push('<option value="" disabled>---------------</option>');
+    var lastGroup = null;
+    restRows.forEach(function (r) {
+      var g = phoneLabelAlphaGroup(r.label);
+      if (g !== lastGroup) {
+        lastGroup = g;
+        parts.push('<option value="" disabled>---------- ' + g + ' ----------</option>');
+      }
+      parts.push('<option value="' + r.dial + '">' + r.label + ' (' + r.dial + ')</option>');
+    });
+    window.PG_INTL_PHONE_OPTIONS_CACHE_VER = PG_INTL_PHONE_OPTIONS_CACHE_VER;
+    window.PG_INTL_PHONE_OPTIONS = parts.join('');
+    return window.PG_INTL_PHONE_OPTIONS;
+  }
+  /** 노티 대상 피커: CALLBACK/RESULT 구분·쌍 선택 */
+  function pgEscHtml(s) {
+    return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+  }
+  function pgShortNotifyChannel(t) {
+    var ch = String((t && t.channelType) || '').toUpperCase();
+    return ch === 'RESULT' ? 'RESULT' : 'CALLBACK';
+  }
+  function pgNotifyPairKey(code) {
+    var c = String(code || '');
+    if (/^cb/i.test(c) || /^rs/i.test(c)) return 'p:' + c.substring(2).toLowerCase();
+    return 'legacy:' + c;
+  }
+  function pgGroupNotifyTargetsByPairKey(list) {
+    var byKey = {};
+    var keys = [];
+    (list || []).forEach(function (t) {
+      var k = pgNotifyPairKey(t.targetCode);
+      if (!byKey[k]) {
+        byKey[k] = [];
+        keys.push(k);
+      }
+      byKey[k].push(t);
+    });
+    keys.sort(function (ka, kb) {
+      var maxA = Math.max.apply(null, byKey[ka].map(function (x) { return Number(x.id) || 0; }));
+      var maxB = Math.max.apply(null, byKey[kb].map(function (x) { return Number(x.id) || 0; }));
+      return maxB - maxA;
+    });
+    return keys.map(function (k) {
+      var g = byKey[k].slice();
+      g.sort(function (a, b) {
+        var oa = pgShortNotifyChannel(a) === 'CALLBACK' ? 0 : 1;
+        var ob = pgShortNotifyChannel(b) === 'CALLBACK' ? 0 : 1;
+        if (oa !== ob) return oa - ob;
+        return (Number(a.id) || 0) - (Number(b.id) || 0);
+      });
+      return g;
+    });
+  }
+  function pgNotifyTargetsFilterKeyword(list, kw) {
+    var k = kw ? String(kw).trim().toLowerCase() : '';
+    return (list || []).filter(function (t) {
+      if (!k) return true;
+      return String(t.targetName || '').toLowerCase().indexOf(k) >= 0 || String(t.targetUrl || '').toLowerCase().indexOf(k) >= 0;
+    });
+  }
+  buildIntlPhoneOptionsHtml();
+
+  function parseIntlPhone(rawValue) {
+    var raw = (rawValue == null) ? '' : String(rawValue).trim();
+    if (!raw) return { code: '+82', number: '' };
+    var m = raw.match(/^(\+\d{1,4})[\s-]*(.*)$/);
+    if (!m) return { code: '+82', number: raw };
+    return { code: m[1], number: (m[2] || '').trim() };
+  }
+
+  function syncIntlPhoneHidden(form, fieldName) {
+    if (!form || !fieldName) return;
+    var hidden = form.querySelector('[name="' + fieldName + '"]');
+    var codeSel = form.querySelector('[data-intl-phone-code-for="' + fieldName + '"]');
+    var numInp = form.querySelector('[data-intl-phone-number-for="' + fieldName + '"]');
+    if (!hidden || !codeSel || !numInp) return;
+    var code = String(codeSel.value || '').trim();
+    var number = String(numInp.value || '').trim();
+    hidden.value = number ? ((code || '+82') + ' ' + number) : '';
+  }
+
+  function initIntlPhoneFields(root) {
+    if (!root) return;
+    root.querySelectorAll('[data-intl-phone-group]').forEach(function (group) {
+      if (group._intlPhoneInit) return;
+      group._intlPhoneInit = true;
+      var fieldName = group.getAttribute('data-intl-phone-group') || '';
+      var hidden = group.querySelector('input[type="hidden"][name="' + fieldName + '"]');
+      var codeSel = group.querySelector('[data-intl-phone-code-for="' + fieldName + '"]');
+      var numInp = group.querySelector('[data-intl-phone-number-for="' + fieldName + '"]');
+      if (!hidden || !codeSel || !numInp) return;
+      if (!codeSel.querySelector('option')) codeSel.innerHTML = buildIntlPhoneOptionsHtml();
+      var parsed = parseIntlPhone(hidden.value);
+      if (codeSel.querySelector('option[value="' + parsed.code + '"]')) codeSel.value = parsed.code;
+      else codeSel.value = '+82';
+      numInp.value = parsed.number;
+      codeSel.addEventListener('change', function () { syncIntlPhoneHidden(root, fieldName); });
+      numInp.addEventListener('input', function () { syncIntlPhoneHidden(root, fieldName); });
+    });
+  }
 
   window.SITE_CONFIG = {
     contentBaseUrl: '',
@@ -32,7 +183,7 @@
     '/hq/permissionMng': { label: '본사별 권한 세팅', parent: '본사설정' },
     '/hq/notifyEnv': { label: '전산노티·결제환경', parent: '본사설정' },
     '/hq/notifyMapping': { label: '노티매핑설정', parent: '본사설정' },
-    '/hq/orgViewColumnAllowance': { label: '본사별 VIEW SETTING 노출설정', parent: '본사설정' },
+    '/hq/orgViewColumnAllowance': { label: '본사별 노출설정', parent: '본사설정' },
     '/hq/accountMng': { label: '계정·업체접근', parent: '본사설정' },
     '/system/noticeList': { label: '공지사항', parent: '업체관리' },
     '/comp/myCompMng': { label: '업체정보조회', parent: '업체관리' },
@@ -813,6 +964,18 @@
     var hiddenCountryCodes = form.querySelector('[name="holidayCountryCodes"]');
     var hiddenDates = form.querySelector('[name="businessHolidayExtraDates"]');
     var hiddenRanges = form.querySelector('[name="businessHolidayRangesJson"]');
+    var lockHint = form.querySelector('.holiday-profile-lock-hint');
+    if (!lockHint && profileSel && profileSel.parentElement) {
+      lockHint = document.createElement('small');
+      lockHint.className = 'holiday-profile-lock-hint text-danger d-none';
+      lockHint.textContent = '총본사에서 상위 본사 영업일을 지정하여 이 총판의 영업일 설정은 상속 고정됩니다.';
+      profileSel.parentElement.appendChild(lockHint);
+    }
+    function applyLockState() {
+      var locked = (data && String(data.holidayLockedByHeadquartersYn || '').toUpperCase() === 'Y');
+      if (profileSel) profileSel.disabled = !!locked;
+      if (lockHint) lockHint.classList.toggle('d-none', !locked);
+    }
     function applySelectedProfile() {
       var name = profileSel.value || '';
       var list = pane._hqBizdayProfiles || [];
@@ -848,9 +1011,11 @@
       var initName = (data && data.holidayProfileName) ? data.holidayProfileName : (profileSel.value || '');
       if (initName) profileSel.value = initName;
       applySelectedProfile();
+      applyLockState();
     }).catch(function () {
       profileSel.innerHTML = '<option value="">선택</option>';
       applySelectedProfile();
+      applyLockState();
     });
     profileSel.addEventListener('change', applySelectedProfile);
   }
@@ -1022,6 +1187,23 @@
   function bindScreenEvents(pane, tabId) {
     if (!pane) return;
     var initFormUrl = pane.getAttribute('formurl') || '';
+    if (initFormUrl === '/comp/compMngTree' && window.PG_SCREENS && typeof window.PG_SCREENS.getCompMngSearchCompDivOptions === 'function') {
+      var selCompDiv = pane.querySelector('select[name="searchCompDiv"]');
+      if (selCompDiv) {
+        var uSearch = {};
+        try { uSearch = JSON.parse(sessionStorage.getItem('pg_admin_user') || '{}'); } catch (e1) { uSearch = {}; }
+        var isAdminSearch = String(uSearch.role || '').toUpperCase() === 'ADMIN';
+        var divOpts = window.PG_SCREENS.getCompMngSearchCompDivOptions(uSearch.orgLevel, isAdminSearch);
+        var prevDiv = selCompDiv.value;
+        var escOpt = function (s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;'); };
+        selCompDiv.innerHTML = divOpts.map(function (o) { return '<option value="' + escOpt(o.v) + '">' + escOpt(o.t) + '</option>'; }).join('');
+        var keepPrev = false;
+        for (var di = 0; di < selCompDiv.options.length; di++) {
+          if (selCompDiv.options[di].value === prevDiv) { keepPrev = true; break; }
+        }
+        selCompDiv.value = keepPrev ? prevDiv : '';
+      }
+    }
     if (pane.classList) {
       pane.classList.toggle('screen-distribution-list', initFormUrl === '/calc/calcList' || initFormUrl === '/settlement/distributionList');
     }
@@ -1213,12 +1395,18 @@
     function applyTreeVisibility(pane, tbody, list) {
       var expanded = pane._treeExpanded;
       if (!expanded) return;
+      var idSet = {};
+      for (var h = 0; h < list.length; h++) {
+        var hid = list[h].id != null ? String(list[h].id) : '';
+        if (hid) idSet[hid] = true;
+      }
       var visible = {};
       for (var i = 0; i < list.length; i++) {
         var row = list[i];
         var id = row.id != null ? String(row.id) : '';
         var pid = row.parentId != null ? String(row.parentId) : '';
-        var isVisible = !pid ? true : (visible[pid] && (expanded.has ? expanded.has(pid) : pid in expanded));
+        var parentInList = pid && idSet[pid];
+        var isVisible = !parentInList ? true : (visible[pid] && (expanded.has ? expanded.has(pid) : pid in expanded));
         visible[id] = isVisible;
       }
       var rows = tbody.querySelectorAll('tr[data-id]');
@@ -1843,15 +2031,50 @@
         '<div class="modal-body">' +
         '<div class="d-flex gap-2 mb-2"><input type="text" class="form-control form-control-sm" id="notifyTargetKeyword" placeholder="대상명/URL 검색">' +
         '<button type="button" class="btn btn-sm btn-primary" id="notifyTargetSearchBtn">검색</button></div>' +
-        '<div class="table-responsive"><table class="table table-sm table-bordered mb-0"><thead><tr><th style="width:90px">선택</th><th>대상명</th><th>URL</th></tr></thead><tbody id="notifyTargetPickerTbody"></tbody></table></div>' +
+        '<div class="table-responsive"><table class="table table-sm table-bordered mb-0 notify-target-picker-table"><thead><tr id="notifyTargetPickerTheadRow"><th class="notify-picker-select-cell align-middle">선택</th><th class="text-center" style="width:118px">구분</th><th>대상명</th><th>URL</th></tr></thead><tbody id="notifyTargetPickerTbody"></tbody></table></div>' +
         '</div></div></div></div>';
       document.body.appendChild(wrap.firstChild);
-      return document.getElementById('notifyTargetPickerModal');
+      var created = document.getElementById('notifyTargetPickerModal');
+      var sb = created && created.querySelector('#notifyTargetSearchBtn');
+      if (created && sb && !created._notifySearchBound && window.PG_API && window.PG_API.hqNotifyTargets) {
+        created._notifySearchBound = true;
+        sb.addEventListener('click', function () {
+          window.PG_API.hqNotifyTargets().then(function (list2) {
+            var mode = created.getAttribute('data-picker-mode') || 'single';
+            if (mode === 'pair' && typeof created._renderPairRows === 'function') {
+              created._renderPairRows(list2 || []);
+            } else if (typeof created._renderSingleRows === 'function') {
+              created._renderSingleRows(list2 || []);
+            }
+          }).catch(function () {});
+        });
+      }
+      return created;
     }
     function bindNotifyTargetPicker() {
-      var btns = pane.querySelectorAll('button[data-action="노티선택"]');
-      if (!btns || btns.length === 0 || !window.PG_API || !window.PG_API.hqNotifyTargets) return;
-      btns.forEach(function (btn) {
+      if (!window.PG_API || !window.PG_API.hqNotifyTargets) return;
+      var singleBtns = pane.querySelectorAll('button[data-action="노티선택"]');
+      var pairBtns = pane.querySelectorAll('button[data-action="노티쌍선택"]');
+      if (singleBtns.length === 0 && pairBtns.length === 0) return;
+      function setNotifyPickerThead(modalEl, mode) {
+        var theadRow = modalEl.querySelector('#notifyTargetPickerTheadRow');
+        if (!theadRow) return;
+        modalEl.setAttribute('data-picker-mode', mode);
+        if (mode === 'pair') {
+          theadRow.innerHTML =
+            '<th class="notify-picker-select-cell align-middle">선택</th>' +
+            '<th class="align-middle">대상명</th>' +
+            '<th class="text-center align-middle notify-picker-channel-th-cb">CALLBACK <span class="text-muted fw-normal small">(서버)</span></th>' +
+            '<th class="text-center align-middle notify-picker-channel-th-rs">RESULT <span class="text-muted fw-normal small">(브라우저)</span></th>';
+        } else {
+          theadRow.innerHTML =
+            '<th class="notify-picker-select-cell align-middle">선택</th>' +
+            '<th class="text-center align-middle" style="width:118px">구분</th>' +
+            '<th class="align-middle">대상명</th>' +
+            '<th class="align-middle">URL</th>';
+        }
+      }
+      singleBtns.forEach(function (btn) {
         if (btn._notifyPickerBound) return;
         btn._notifyPickerBound = true;
         btn.addEventListener('click', function () {
@@ -1860,24 +2083,30 @@
           if (!selectEl) return;
           var modalEl = ensureNotifyTargetPickerModal();
           var keywordEl = modalEl.querySelector('#notifyTargetKeyword');
-          var searchBtn = modalEl.querySelector('#notifyTargetSearchBtn');
           var tbody = modalEl.querySelector('#notifyTargetPickerTbody');
-          function render(list) {
-            var kw = keywordEl && keywordEl.value ? String(keywordEl.value).trim().toLowerCase() : '';
-            var rows = (list || []).filter(function (t) {
-              if (!kw) return true;
-              return String(t.targetName || '').toLowerCase().indexOf(kw) >= 0 || String(t.targetUrl || '').toLowerCase().indexOf(kw) >= 0;
-            });
+          modalEl._pickerSelectEl = selectEl;
+          modalEl._pickerSelCallback = null;
+          modalEl._pickerSelResult = null;
+          setNotifyPickerThead(modalEl, 'single');
+          function renderSingleRows(list) {
+            var rows = pgNotifyTargetsFilterKeyword(list || [], keywordEl && keywordEl.value);
             tbody.innerHTML = '';
             if (rows.length === 0) {
-              tbody.innerHTML = '<tr><td colspan="3" class="text-center text-muted">조회 결과가 없습니다.</td></tr>';
+              tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted">조회 결과가 없습니다.</td></tr>';
               return;
             }
+            var sel = modalEl._pickerSelectEl;
             rows.forEach(function (t) {
+              var ch = pgShortNotifyChannel(t);
+              var badgeCls = ch === 'RESULT' ? 'notify-picker-badge notify-picker-badge--result' : 'notify-picker-badge notify-picker-badge--callback';
               var tr = document.createElement('tr');
-              tr.innerHTML = '<td><button type="button" class="btn btn-sm btn-outline-primary">선택</button></td><td>' + (t.targetName || t.targetCode || '') + '</td><td>' + (t.targetUrl || '') + '</td>';
+              tr.innerHTML =
+                '<td class="notify-picker-select-cell align-middle"><button type="button" class="btn btn-sm btn-outline-primary">선택</button></td>' +
+                '<td class="text-center align-middle"><span class="' + badgeCls + '">' + ch + '</span></td>' +
+                '<td class="align-middle">' + pgEscHtml(t.targetName || t.targetCode || '') + '</td>' +
+                '<td class="align-middle"><code class="small notify-picker-url-code">' + pgEscHtml(t.targetUrl || '') + '</code></td>';
               tr.querySelector('button').addEventListener('click', function () {
-                selectEl.value = t.targetUrl || '';
+                if (sel) sel.value = t.targetUrl || '';
                 if (window.bootstrap && bootstrap.Modal) {
                   var mm = bootstrap.Modal.getInstance(modalEl);
                   if (mm) mm.hide();
@@ -1886,16 +2115,78 @@
               tbody.appendChild(tr);
             });
           }
+          modalEl._renderSingleRows = renderSingleRows;
+          modalEl._renderPairRows = null;
           var dimm = document.getElementById('dimm');
           if (dimm) dimm.style.display = 'flex';
           window.PG_API.hqNotifyTargets().then(function (list) {
-            render(list || []);
-            if (searchBtn && !searchBtn._bound) {
-              searchBtn._bound = true;
-              searchBtn.addEventListener('click', function () {
-                window.PG_API.hqNotifyTargets().then(function (list2) { render(list2 || []); });
-              });
+            renderSingleRows(list || []);
+            if (window.bootstrap && bootstrap.Modal) {
+              new bootstrap.Modal(modalEl).show();
             }
+          }).catch(function (e) {
+            alert(e && e.message ? e.message : '노티 대상 조회 실패');
+          }).finally(function () { if (dimm) dimm.style.display = 'none'; });
+        });
+      });
+      pairBtns.forEach(function (btn) {
+        if (btn._notifyPairPickerBound) return;
+        btn._notifyPairPickerBound = true;
+        btn.addEventListener('click', function () {
+          var cbName = btn.getAttribute('data-callback-field') || 'notifyUrl1';
+          var rsName = btn.getAttribute('data-result-field') || 'notifyUrl2';
+          var selCb = pane.querySelector('[name="' + cbName + '"][data-load-notify-targets="true"]');
+          var selRs = pane.querySelector('[name="' + rsName + '"][data-load-notify-targets="true"]');
+          if (!selCb || !selRs) return;
+          var modalEl = ensureNotifyTargetPickerModal();
+          var keywordEl = modalEl.querySelector('#notifyTargetKeyword');
+          var tbody = modalEl.querySelector('#notifyTargetPickerTbody');
+          modalEl._pickerSelectEl = null;
+          modalEl._pickerSelCallback = selCb;
+          modalEl._pickerSelResult = selRs;
+          setNotifyPickerThead(modalEl, 'pair');
+          function renderPairRows(list) {
+            var filtered = pgNotifyTargetsFilterKeyword(list || [], keywordEl && keywordEl.value);
+            var groups = pgGroupNotifyTargetsByPairKey(filtered);
+            var pairs = groups.filter(function (g) {
+              var cb = g.filter(function (x) { return pgShortNotifyChannel(x) === 'CALLBACK'; })[0];
+              var rs = g.filter(function (x) { return pgShortNotifyChannel(x) === 'RESULT'; })[0];
+              return cb && rs;
+            });
+            tbody.innerHTML = '';
+            if (pairs.length === 0) {
+              tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted">CALLBACK·RESULT 쌍이 없습니다. 본사설정 &gt; 전산노티·결제환경에서 [노티자동생성]으로 등록하세요.</td></tr>';
+              return;
+            }
+            var scb = modalEl._pickerSelCallback;
+            var srs = modalEl._pickerSelResult;
+            pairs.forEach(function (g) {
+              var cb = g.filter(function (x) { return pgShortNotifyChannel(x) === 'CALLBACK'; })[0];
+              var rs = g.filter(function (x) { return pgShortNotifyChannel(x) === 'RESULT'; })[0];
+              var name = (cb && cb.targetName) || (rs && rs.targetName) || '';
+              var tr = document.createElement('tr');
+              tr.innerHTML =
+                '<td class="notify-picker-select-cell align-middle"><button type="button" class="btn btn-sm btn-outline-primary">쌍 선택</button></td>' +
+                '<td class="align-middle">' + pgEscHtml(name) + '</td>' +
+                '<td class="align-middle notify-picker-url-cell notify-picker-url-cell--callback"><code class="small notify-picker-url-code">' + pgEscHtml((cb && cb.targetUrl) || '') + '</code></td>' +
+                '<td class="align-middle notify-picker-url-cell notify-picker-url-cell--result"><code class="small notify-picker-url-code">' + pgEscHtml((rs && rs.targetUrl) || '') + '</code></td>';
+              tr.querySelector('button').addEventListener('click', function () {
+                if (scb) scb.value = (cb && cb.targetUrl) || '';
+                if (srs) srs.value = (rs && rs.targetUrl) || '';
+                if (window.bootstrap && bootstrap.Modal) {
+                  var mm = bootstrap.Modal.getInstance(modalEl);
+                  if (mm) mm.hide();
+                }
+              });
+              tbody.appendChild(tr);
+            });
+          }
+          modalEl._renderPairRows = renderPairRows;
+          modalEl._renderSingleRows = null;
+          var dimm = document.getElementById('dimm');
+          if (dimm) dimm.style.display = 'flex';
+          window.PG_API.hqNotifyTargets().then(function (list) {
+            renderPairRows(list || []);
             if (window.bootstrap && bootstrap.Modal) {
               new bootstrap.Modal(modalEl).show();
             }
@@ -1912,7 +2203,10 @@
           var current = sel.value || '';
           var html = '<option value="">선택</option>';
           arr.forEach(function (t) {
-            html += '<option value="' + (t.targetUrl || '') + '">' + (t.targetName || t.targetCode || '노티') + ' - ' + (t.targetUrl || '') + '</option>';
+            var ch = pgShortNotifyChannel(t);
+            var url = String(t.targetUrl || '');
+            var label = (t.targetName || t.targetCode || '노티') + ' [' + ch + ']';
+            html += '<option value="' + url.replace(/&/g, '&amp;').replace(/"/g, '&quot;') + '">' + pgEscHtml(label) + '</option>';
           });
           sel.innerHTML = html;
           if (current) sel.value = current;
@@ -2229,9 +2523,12 @@
       compRegSaveBtn.addEventListener('click', function () {
         var form = pane.querySelector('#compRegForm');
         if (!form) return;
+        initIntlPhoneFields(form);
+        ['ceoMobile', 'compTel', 'fax', 'settleTelNo', 'contactTel'].forEach(function (n) { syncIntlPhoneHidden(form, n); });
         var fd = {};
         form.querySelectorAll('input, select, textarea').forEach(function (el) {
           if (el.name && el.type !== 'file' && el.name !== 'pgOperational') {
+            if (el.name.indexOf('__phone_') === 0) return;
             var card = el.closest('.card');
             if (card && card.classList.contains('d-none')) return;
             fd[el.name] = el.value;
@@ -2245,6 +2542,10 @@
         if (!fd.compDiv || fd.compDiv === '') { alert('업체구분을 선택하세요.'); return; }
         if (!fd.loginId || !String(fd.loginId).trim()) { alert('로그인ID를 입력하세요.'); return; }
         if (!fd.pwd || !String(fd.pwd).trim()) { alert('비밀번호를 입력하세요.'); return; }
+        if ((form.getAttribute('data-password-confirmed') || '') !== 'Y') {
+          alert('비밀번호 입력 후 옆의 [저장] 버튼으로 비밀번호를 확정하세요.');
+          return;
+        }
         var checkedId = form.getAttribute('data-login-id-checked') || '';
         if (checkedId !== String(fd.loginId).trim()) {
           alert('로그인ID 중복확인을 먼저 진행하세요.');
@@ -2279,13 +2580,22 @@
           });
           fd.pgBindings = JSON.stringify(bindings);
         }
-        if (fd.compDiv === 'REGIONAL' || fd.compDiv === 'MASTER_DIST') {
+        if (fd.compDiv === 'REGIONAL') {
           var bc = [fd.baseCurrency1, fd.baseCurrency2, fd.baseCurrency3].filter(function (v) { return v && v.trim(); });
           if (bc.length === 0) { alert('본사는 기준 화폐를 1가지 이상 선택하세요.'); return; }
           fd.baseCurrency = bc.join(',');
           delete fd.baseCurrency1;
           delete fd.baseCurrency2;
           delete fd.baseCurrency3;
+        } else if (fd.compDiv === 'MASTER_DIST') {
+          var masterCur = (fd.baseCurrency || '').trim();
+          if (!masterCur) { alert('총판은 상위 본사가 설정한 기준 화폐 중 1가지를 선택하세요.'); return; }
+          fd.baseCurrency = masterCur;
+          delete fd.baseCurrency1;
+          delete fd.baseCurrency2;
+          delete fd.baseCurrency3;
+        }
+        if (fd.compDiv === 'REGIONAL' || fd.compDiv === 'MASTER_DIST') {
           var cardLimitTbody = form.querySelector('#regionalCardLimitTbody');
           if (cardLimitTbody) {
             var cardLimits = [];
@@ -2318,9 +2628,11 @@
         }
         if (fd.compDiv === 'MASTER_DIST') {
           var n1 = String(fd.notifyUrl1 || '').trim();
-          var hasBackup = !!(String(fd.notifyUrl2 || '').trim() || String(fd.notifyUrl3 || '').trim() || String(fd.notifyUrl4 || '').trim());
-          if (!n1) { alert('총판은 노티 URL 1(기본)을 입력해야 합니다.'); return; }
-          if (hasBackup && !n1) { alert('노티 URL 2~4를 사용할 때는 노티 URL 1(기본)이 필수입니다.'); return; }
+          var n2 = String(fd.notifyUrl2 || '').trim();
+          var hasBackup = !!(String(fd.notifyUrl3 || '').trim() || String(fd.notifyUrl4 || '').trim());
+          if (!n1) { alert('총판은 노티 CALLBACK(URL 1)을 입력해야 합니다.'); return; }
+          if (!n2) { alert('총판은 노티 RESULT(URL 2)를 입력해야 합니다.'); return; }
+          if (hasBackup && (!n1 || !n2)) { alert('노티 URL 3·4(보조)를 쓰려면 URL 1·2(CALLBACK·RESULT)가 모두 필요합니다.'); return; }
         }
         var dimm = document.getElementById('dimm');
         if (dimm) dimm.style.display = 'flex';
@@ -2363,12 +2675,33 @@
       initBankByCountry(pane);
       initCountryBankGroup(pane);
       initCountryAddressGroup(pane);
+      initIntlPhoneFields(pane);
       var form = pane.querySelector('#compRegForm');
       var loginIdElForCheck = form ? form.querySelector('[name="loginId"]') : null;
       if (loginIdElForCheck && !loginIdElForCheck._dupResetBound) {
         loginIdElForCheck._dupResetBound = true;
         loginIdElForCheck.addEventListener('input', function () {
           if (form) form.setAttribute('data-login-id-checked', '');
+        });
+      }
+      var pwdElForConfirm = form ? form.querySelector('[name="pwd"]') : null;
+      if (pwdElForConfirm && !pwdElForConfirm._pwdConfirmResetBound) {
+        pwdElForConfirm._pwdConfirmResetBound = true;
+        pwdElForConfirm.addEventListener('input', function () {
+          if (form) form.removeAttribute('data-password-confirmed');
+        });
+      }
+      if (form && !form._compRegPwdSaveDelegated) {
+        form._compRegPwdSaveDelegated = true;
+        form.addEventListener('click', function (ev) {
+          var btn = ev.target && ev.target.closest ? ev.target.closest('button[data-field="pwd"][data-action="저장"]') : null;
+          if (!btn || !form.contains(btn)) return;
+          var pwdInput = form.querySelector('[name="pwd"]');
+          var v = pwdInput && pwdInput.value ? String(pwdInput.value).trim() : '';
+          if (!v) { alert('비밀번호를 입력하세요.'); return; }
+          if (v.length < 8) { alert('비밀번호는 8자 이상 입력하세요.'); return; }
+          form.setAttribute('data-password-confirmed', 'Y');
+          alert('비밀번호가 확정되었습니다. 하단 [저장]으로 업체를 등록하세요.');
         });
       }
       var loginDupBtn = pane.querySelector('button[data-field="loginId"][data-action="중복확인"]');
@@ -2453,8 +2786,8 @@
         compDivEl.addEventListener('change', function () {
           toggleByCompDiv(this.value);
         });
-        if (!compDivEl.value) compDivEl.value = 'MASTER_DIST';
-        toggleByCompDiv(compDivEl.value || 'MASTER_DIST');
+        // 업체등록 첫 진입 기본값은 '선택' 유지 (강제 총판 기본값 제거)
+        toggleByCompDiv(compDivEl.value || '');
         initPgBindingList(pane);
         initRegionalCardLimitTable(pane);
         initRegionalTerminalTable(pane);
@@ -2511,22 +2844,122 @@
         holdRateFollowEl.addEventListener('change', function () { toggleHoldRateCustom(this.value); });
         toggleHoldRateCustom(holdRateFollowEl.value || 'Y');
       }
+      bindParentCompSearchModal(pane);
+    }
+    function applyCompInfoHeadquartersVisibility(form, compDiv) {
+      if (!form) return;
+      var hide = compDiv === 'HEADQUARTERS';
+      form.querySelectorAll('.comp-info-hide-if-hq').forEach(function (el) {
+        el.style.display = hide ? 'none' : '';
+      });
+    }
+    /** 업체정보 상세: 본사·총판은 상위 변경 불가. 총판 산하는 동일 총판 하위만 상위 검색 목록에 표시 */
+    function applyCompParentMoveRules(form, data) {
+      if (!form) return;
+      var locked = !!(data && data.parentOrgChangeLocked);
+      var pc = form.querySelector('input[name="parentComp"]');
+      var btn = form.querySelector('button[data-field="parentComp"][data-action="검색"]');
+      if (pc) {
+        pc.readOnly = locked;
+        pc.title = locked ? '본사·총판은 상위 조직을 변경할 수 없습니다.' : '';
+      }
+      if (btn) {
+        btn.disabled = locked;
+        btn.title = locked ? '본사·총판은 상위 조직을 변경할 수 없습니다.' : '';
+      }
+      if (data && data.masterDistScopeOrgId != null && String(data.masterDistScopeOrgId) !== '') {
+        form.dataset.masterDistScopeOrgId = String(data.masterDistScopeOrgId);
+      } else {
+        delete form.dataset.masterDistScopeOrgId;
+      }
+    }
+    function filterParentCompCandidates(list, form) {
+      if (!list || !form) return list || [];
+      if (form.id !== 'compDetailForm') return list;
+      var scope = form.dataset.masterDistScopeOrgId;
+      if (!scope) return list;
+      return list.filter(function (row) {
+        var rid = row.id != null ? String(row.id) : '';
+        var rscope = row.masterDistScopeOrgId != null ? String(row.masterDistScopeOrgId) : '';
+        return rscope === scope || rid === scope;
+      });
+    }
+    /** 업체 등록·업체정보 상세 공통: 상위업체 검색 모달 */
+    function bindParentCompSearchModal(pane) {
       var parentCompSearchBtn = pane.querySelector('button[data-field="parentComp"][data-action="검색"]');
-      if (parentCompSearchBtn) {
-        parentCompSearchBtn.addEventListener('click', function () {
-          var modalEl = document.getElementById('parentCompSearchModal');
-          if (!modalEl) return;
-          var modal = window.bootstrap && bootstrap.Modal ? new bootstrap.Modal(modalEl) : null;
-          if (modal) modal.show();
-          var tbody = document.getElementById('parentCompSearchTbody');
-          var kw = document.getElementById('parentCompSearchKeyword');
-          function runSearch() {
+      if (!parentCompSearchBtn || parentCompSearchBtn._parentModalBound) return;
+      parentCompSearchBtn._parentModalBound = true;
+      parentCompSearchBtn.addEventListener('click', function () {
+        var modalEl = document.getElementById('parentCompSearchModal');
+        if (!modalEl) return;
+        var modal = window.bootstrap && bootstrap.Modal ? new bootstrap.Modal(modalEl) : null;
+        if (modal) modal.show();
+        var tbody = document.getElementById('parentCompSearchTbody');
+        var kw = document.getElementById('parentCompSearchKeyword');
+        function runSearch() {
+          var dimm = document.getElementById('dimm');
+          if (dimm) dimm.style.display = 'flex';
+          window.PG_API.compList({ searchCompId: (kw && kw.value) || '', searchCompNm: (kw && kw.value) || '', page: 1, size: 50 }).then(function (data) {
+            var raw = (data && data.list) ? data.list : [];
+            var activeForm = pane.querySelector('#compDetailForm') || pane.querySelector('#compRegForm');
+            var list = filterParentCompCandidates(raw, activeForm);
+            if (!tbody) return;
+            tbody.innerHTML = '';
+            list.forEach(function (row) {
+              var tr = document.createElement('tr');
+              tr.style.cursor = 'pointer';
+              tr.setAttribute('data-id', row.id != null ? row.id : '');
+              tr.setAttribute('data-compId', row.compId != null ? row.compId : '');
+              tr.setAttribute('data-compNm', row.compNm != null ? row.compNm : '');
+              tr.innerHTML = '<td><button type="button" class="btn btn-sm btn-outline-primary">선택</button></td><td>' + (row.compId || '') + '</td><td>' + (row.compNm || '') + '</td><td>' + (row.compDivNm || row.compDiv || '') + '</td>';
+              tr.addEventListener('click', function (e) {
+                if (e.target.tagName === 'BUTTON') return;
+                selectParentComp(tr);
+              });
+              tr.querySelector('button').addEventListener('click', function () { selectParentComp(tr); });
+              tbody.appendChild(tr);
+            });
+            if (list.length === 0) tbody.innerHTML = '<tr><td colspan="4" class="text-muted text-center">' + (raw.length ? '동일 총판 산하로 선택 가능한 업체만 표시됩니다. 조건에 맞는 업체가 없습니다.' : '조회된 업체가 없습니다.') + '</td></tr>';
+          }).catch(function (err) {
+            if (tbody) tbody.innerHTML = '<tr><td colspan="4" class="text-danger text-center">' + (err && err.message ? err.message : '조회 실패') + '</td></tr>';
+          }).finally(function () { if (dimm) dimm.style.display = 'none'; });
+        }
+        function selectParentComp(tr) {
+          var id = tr.getAttribute('data-id');
+          var compId = tr.getAttribute('data-compId');
+          var compNm = tr.getAttribute('data-compNm');
+          var val = (compId || '') + (compNm ? ' (' + compNm + ')' : '');
+          [pane.querySelector('#compRegForm'), pane.querySelector('#compDetailForm')].forEach(function (f) {
+            if (f) {
+              var pid = f.querySelector('input[name="parentId"]');
+              if (pid) pid.value = id || '';
+              else {
+                var hid = document.createElement('input');
+                hid.type = 'hidden';
+                hid.name = 'parentId';
+                hid.value = id || '';
+                f.appendChild(hid);
+              }
+              var pc = f.querySelector('input[name="parentComp"]');
+              if (pc) pc.value = val;
+            }
+          });
+          if (modal) modal.hide();
+        }
+        var modalSearchBtn = document.getElementById('parentCompSearchBtn');
+        if (modalSearchBtn && !modalSearchBtn._parentCompBound) {
+          modalSearchBtn._parentCompBound = true;
+          modalSearchBtn.addEventListener('click', function () {
+            var tbody2 = document.getElementById('parentCompSearchTbody');
             var dimm = document.getElementById('dimm');
+            var kw2 = document.getElementById('parentCompSearchKeyword');
+            if (!tbody2) return;
             if (dimm) dimm.style.display = 'flex';
-            window.PG_API.compList({ searchCompId: (kw && kw.value) || '', searchCompNm: (kw && kw.value) || '', page: 1, size: 50 }).then(function (data) {
-              var list = (data && data.list) ? data.list : [];
-              if (!tbody) return;
-              tbody.innerHTML = '';
+            window.PG_API.compList({ searchCompId: (kw2 && kw2.value) || '', searchCompNm: (kw2 && kw2.value) || '', page: 1, size: 50 }).then(function (data) {
+              var raw = (data && data.list) ? data.list : [];
+              var activeForm = document.querySelector('#compDetailForm') || document.querySelector('#compRegForm');
+              var list = filterParentCompCandidates(raw, activeForm);
+              tbody2.innerHTML = '';
               list.forEach(function (row) {
                 var tr = document.createElement('tr');
                 tr.style.cursor = 'pointer';
@@ -2536,105 +2969,44 @@
                 tr.innerHTML = '<td><button type="button" class="btn btn-sm btn-outline-primary">선택</button></td><td>' + (row.compId || '') + '</td><td>' + (row.compNm || '') + '</td><td>' + (row.compDivNm || row.compDiv || '') + '</td>';
                 tr.addEventListener('click', function (e) {
                   if (e.target.tagName === 'BUTTON') return;
-                  selectParentComp(tr);
+                  var id = tr.getAttribute('data-id') || '';
+                  var val = (tr.getAttribute('data-compId') || '') + (tr.getAttribute('data-compNm') ? ' (' + tr.getAttribute('data-compNm') + ')' : '');
+                  ['#compRegForm', '#compDetailForm'].forEach(function (formId) {
+                    var form = document.querySelector(formId);
+                    if (form) {
+                      var pid = form.querySelector('input[name="parentId"]');
+                      if (pid) pid.value = id;
+                      else { var hid = document.createElement('input'); hid.type = 'hidden'; hid.name = 'parentId'; hid.value = id; form.appendChild(hid); }
+                      var pc = form.querySelector('input[name="parentComp"]');
+                      if (pc) pc.value = val;
+                    }
+                  });
+                  if (modalEl && window.bootstrap && bootstrap.Modal) { var m = bootstrap.Modal.getInstance(modalEl); if (m) m.hide(); }
                 });
-                tr.querySelector('button').addEventListener('click', function () { selectParentComp(tr); });
-                tbody.appendChild(tr);
+                tr.querySelector('button').addEventListener('click', function () {
+                  var id = tr.getAttribute('data-id') || '';
+                  var val = (tr.getAttribute('data-compId') || '') + (tr.getAttribute('data-compNm') ? ' (' + tr.getAttribute('data-compNm') + ')' : '');
+                  ['#compRegForm', '#compDetailForm'].forEach(function (formId) {
+                    var form = document.querySelector(formId);
+                    if (form) {
+                      var pid = form.querySelector('input[name="parentId"]');
+                      if (pid) pid.value = id;
+                      else { var hid = document.createElement('input'); hid.type = 'hidden'; hid.name = 'parentId'; hid.value = id; form.appendChild(hid); }
+                      var pc = form.querySelector('input[name="parentComp"]');
+                      if (pc) pc.value = val;
+                    }
+                  });
+                  if (modalEl && window.bootstrap && bootstrap.Modal) { var m = bootstrap.Modal.getInstance(modalEl); if (m) m.hide(); }
+                });
+                tbody2.appendChild(tr);
               });
-              if (list.length === 0) tbody.innerHTML = '<tr><td colspan="4" class="text-muted text-center">조회된 업체가 없습니다.</td></tr>';
+              if (list.length === 0) tbody2.innerHTML = '<tr><td colspan="4" class="text-muted text-center">' + (raw.length ? '동일 총판 산하로 선택 가능한 업체만 표시됩니다. 조건에 맞는 업체가 없습니다.' : '조회된 업체가 없습니다.') + '</td></tr>';
             }).catch(function (err) {
-              if (tbody) tbody.innerHTML = '<tr><td colspan="4" class="text-danger text-center">' + (err && err.message ? err.message : '조회 실패') + '</td></tr>';
+              tbody2.innerHTML = '<tr><td colspan="4" class="text-danger text-center">' + (err && err.message ? err.message : '조회 실패') + '</td></tr>';
             }).finally(function () { if (dimm) dimm.style.display = 'none'; });
-          }
-          function selectParentComp(tr) {
-            var id = tr.getAttribute('data-id');
-            var compId = tr.getAttribute('data-compId');
-            var compNm = tr.getAttribute('data-compNm');
-            var val = (compId || '') + (compNm ? ' (' + compNm + ')' : '');
-            [pane.querySelector('#compRegForm'), pane.querySelector('#compDetailForm')].forEach(function (f) {
-              if (f) {
-                var pid = f.querySelector('input[name="parentId"]');
-                if (pid) pid.value = id || '';
-                else {
-                  var hid = document.createElement('input');
-                  hid.type = 'hidden';
-                  hid.name = 'parentId';
-                  hid.value = id || '';
-                  f.appendChild(hid);
-                }
-                var pc = f.querySelector('input[name="parentComp"]');
-                if (pc) pc.value = val;
-              }
-            });
-            if (modal) modal.hide();
-          }
-          var modalSearchBtn = document.getElementById('parentCompSearchBtn');
-          if (modalSearchBtn && !modalSearchBtn._parentCompBound) {
-            modalSearchBtn._parentCompBound = true;
-            modalSearchBtn.addEventListener('click', function () {
-              var tbody = document.getElementById('parentCompSearchTbody');
-              var dimm = document.getElementById('dimm');
-              var kw = document.getElementById('parentCompSearchKeyword');
-              if (!tbody) return;
-              if (dimm) dimm.style.display = 'flex';
-              window.PG_API.compList({ searchCompId: (kw && kw.value) || '', searchCompNm: (kw && kw.value) || '', page: 1, size: 50 }).then(function (data) {
-                var list = (data && data.list) ? data.list : [];
-                tbody.innerHTML = '';
-                list.forEach(function (row) {
-                  var tr = document.createElement('tr');
-                  tr.style.cursor = 'pointer';
-                  tr.setAttribute('data-id', row.id != null ? row.id : '');
-                  tr.setAttribute('data-compId', row.compId != null ? row.compId : '');
-                  tr.setAttribute('data-compNm', row.compNm != null ? row.compNm : '');
-                  tr.innerHTML = '<td><button type="button" class="btn btn-sm btn-outline-primary">선택</button></td><td>' + (row.compId || '') + '</td><td>' + (row.compNm || '') + '</td><td>' + (row.compDivNm || row.compDiv || '') + '</td>';
-                  tr.addEventListener('click', function (e) {
-                    if (e.target.tagName === 'BUTTON') return;
-                    var id = tr.getAttribute('data-id') || '';
-                    var val = (tr.getAttribute('data-compId') || '') + (tr.getAttribute('data-compNm') ? ' (' + tr.getAttribute('data-compNm') + ')' : '');
-                    ['#compRegForm', '#compDetailForm'].forEach(function (formId) {
-                      var form = document.querySelector(formId);
-                      if (form) {
-                        var pid = form.querySelector('input[name="parentId"]');
-                        if (pid) pid.value = id;
-                        else { var hid = document.createElement('input'); hid.type = 'hidden'; hid.name = 'parentId'; hid.value = id; form.appendChild(hid); }
-                        var pc = form.querySelector('input[name="parentComp"]');
-                        if (pc) pc.value = val;
-                      }
-                    });
-                    if (modalEl && window.bootstrap && bootstrap.Modal) { var m = bootstrap.Modal.getInstance(modalEl); if (m) m.hide(); }
-                  });
-                  tr.querySelector('button').addEventListener('click', function () {
-                    var id = tr.getAttribute('data-id') || '';
-                    var val = (tr.getAttribute('data-compId') || '') + (tr.getAttribute('data-compNm') ? ' (' + tr.getAttribute('data-compNm') + ')' : '');
-                    ['#compRegForm', '#compDetailForm'].forEach(function (formId) {
-                      var form = document.querySelector(formId);
-                      if (form) {
-                        var pid = form.querySelector('input[name="parentId"]');
-                        if (pid) pid.value = id;
-                        else { var hid = document.createElement('input'); hid.type = 'hidden'; hid.name = 'parentId'; hid.value = id; form.appendChild(hid); }
-                        var pc = form.querySelector('input[name="parentComp"]');
-                        if (pc) pc.value = val;
-                      }
-                    });
-                    if (modalEl && window.bootstrap && bootstrap.Modal) { var m = bootstrap.Modal.getInstance(modalEl); if (m) m.hide(); }
-                  });
-                  tbody.appendChild(tr);
-                });
-                if (list.length === 0) tbody.innerHTML = '<tr><td colspan="4" class="text-muted text-center">조회된 업체가 없습니다.</td></tr>';
-              }).catch(function (err) {
-                tbody.innerHTML = '<tr><td colspan="4" class="text-danger text-center">' + (err && err.message ? err.message : '조회 실패') + '</td></tr>';
-              }).finally(function () { if (dimm) dimm.style.display = 'none'; });
-            });
-          }
-          runSearch();
-        });
-      }
-    }
-    function applyCompInfoHeadquartersVisibility(form, compDiv) {
-      if (!form) return;
-      var hide = compDiv === 'HEADQUARTERS';
-      form.querySelectorAll('.comp-info-hide-if-hq').forEach(function (el) {
-        el.style.display = hide ? 'none' : '';
+          });
+        }
+        runSearch();
       });
     }
     function applyMyCompBrandingPermission(pane, form, compDiv, brandingEditAllowedYn) {
@@ -2672,6 +3044,7 @@
         });
         form.setAttribute('data-login-id-checked', data.loginId ? String(data.loginId).trim() : '');
         form.setAttribute('data-assistant-login-id-checked', data.assistantLoginId ? String(data.assistantLoginId).trim() : '');
+        initIntlPhoneFields(form);
         if ((data.compDiv === 'REGIONAL' || data.compDiv === 'MASTER_DIST') && data.baseCurrency) {
           var parts = data.compDiv === 'REGIONAL' ? String(data.baseCurrency).split(/,\s*/) : [data.baseCurrency, '', ''];
           ['baseCurrency1', 'baseCurrency2', 'baseCurrency3'].forEach(function (n, i) {
@@ -2763,6 +3136,7 @@
     }
     if (url === '/comp/compInfo' || url === '/comp/myCompMng') {
       initCountryAddressGroup(pane);
+      initIntlPhoneFields(pane);
       var compInfoDetailBtn = pane.querySelector('#compInfoDetailBtn');
       if (compInfoDetailBtn) {
         compInfoDetailBtn.addEventListener('click', function () {
@@ -2786,12 +3160,17 @@
         compInfoUpdateBtn.addEventListener('click', function () {
           var form = pane.querySelector('#compInfoDetailForm');
           if (!form) return;
+          initIntlPhoneFields(form);
+          ['ceoMobile', 'compTel', 'fax', 'settleTelNo', 'contactTel'].forEach(function (n) { syncIntlPhoneHidden(form, n); });
           var compIdEl = form.querySelector('[name="compId"]');
           var compId = compIdEl && compIdEl.value ? compIdEl.value.trim() : '';
           if (!compId) { alert('업체코드가 없습니다. 먼저 [상세]로 조회하세요.'); return; }
           var fd = {};
           form.querySelectorAll('input, select, textarea').forEach(function (el) {
-            if (el.name && el.type !== 'file') fd[el.name] = el.value;
+            if (el.name && el.type !== 'file') {
+              if (el.name.indexOf('__phone_') === 0) return;
+              fd[el.name] = el.value;
+            }
           });
           if (fd.addrCountryCd === 'OTHER') { fd.addrCountryCd = fd.addrCountryCdOther || ''; delete fd.addrCountryCdOther; }
           fd.compId = compId;
@@ -2811,15 +3190,17 @@
           }
           if (fd.regType != null) { fd.regNo = (fd.regType || 'CORP') + '|' + (fd.regNo || ''); delete fd.regType; }
           var compDivVal = fd.compDiv || '';
-          if (compDivVal === 'REGIONAL' || compDivVal === 'MASTER_DIST') {
+          if (compDivVal === 'REGIONAL') {
             var bc = [fd.baseCurrency1, fd.baseCurrency2, fd.baseCurrency3].filter(function (v) { return v && v.trim(); });
             fd.baseCurrency = bc.join(',');
           } else if (compDivVal === 'MASTER_DIST') {
-            fd.baseCurrency = (fd.baseCurrency1 || '').trim();
+            fd.baseCurrency = (fd.baseCurrency || '').trim();
           }
-          delete fd.baseCurrency1;
-          delete fd.baseCurrency2;
-          delete fd.baseCurrency3;
+          if (compDivVal === 'REGIONAL' || compDivVal === 'MASTER_DIST') {
+            delete fd.baseCurrency1;
+            delete fd.baseCurrency2;
+            delete fd.baseCurrency3;
+          }
           var dimm = document.getElementById('dimm');
           if (dimm) dimm.style.display = 'flex';
           window.PG_API.compUpdate(fd).then(function () {
@@ -2923,6 +3304,7 @@
       }
     }
     if (url === '/comp/compDetail') {
+      bindParentCompSearchModal(pane);
       function toggleByCompDiv(compDiv) {
         var isMerchant = compDiv === 'MERCHANT';
         var isRegional = compDiv === 'REGIONAL';
@@ -2977,6 +3359,7 @@
           var el = form.querySelector('[name="' + k + '"]');
           if (el && data[k] != null) el.value = data[k];
         });
+        initIntlPhoneFields(form);
         var holidayCountryCodeEl = form.querySelector('[name="holidayCountryCode"]');
         if (holidayCountryCodeEl && !holidayCountryCodeEl.value) {
           var legacyCodes = data.holidayCountryCodes ? String(data.holidayCountryCodes).split(',') : [];
@@ -3038,6 +3421,7 @@
         initRegionalCardLimitTable(pane, data.regionalCardLimits || []);
         initRegionalTerminalTable(pane, data.regionalTerminals || []);
         initRegionalHolidayProfileSelector(pane, form, data);
+        applyCompParentMoveRules(form, data);
         var commissionFollowEl = pane.querySelector('[name="commissionFollowHq"]');
         if (commissionFollowEl && !commissionFollowEl._commissionToggleBound) {
           commissionFollowEl._commissionToggleBound = true;
@@ -3112,12 +3496,17 @@
         compDetailSaveBtn.addEventListener('click', function () {
           var form = pane.querySelector('#compDetailForm');
           if (!form) return;
+          initIntlPhoneFields(form);
+          ['ceoMobile', 'compTel', 'fax', 'settleTelNo', 'contactTel'].forEach(function (n) { syncIntlPhoneHidden(form, n); });
           var compIdEl = form.querySelector('[name="compId"]');
           var compId = compIdEl && compIdEl.value ? compIdEl.value.trim() : '';
           if (!compId) { alert('업체코드가 없습니다.'); return; }
           var fd = {};
           form.querySelectorAll('input, select, textarea').forEach(function (el) {
-            if (el.name && el.type !== 'file' && el.name !== 'pgOperational') fd[el.name] = el.value;
+            if (el.name && el.type !== 'file' && el.name !== 'pgOperational') {
+              if (el.name.indexOf('__phone_') === 0) return;
+              fd[el.name] = el.value;
+            }
           });
           if (fd.countryCd === 'OTHER') { fd.bankCd = fd.bankCdText || fd.bankCd; delete fd.bankCdText; }
           if (fd.addrCountryCd === 'OTHER') { fd.addrCountryCd = fd.addrCountryCdOther || ''; delete fd.addrCountryCdOther; }
@@ -3154,9 +3543,11 @@
           var compDivVal = form.querySelector('[name="compDiv"]') ? form.querySelector('[name="compDiv"]').value : '';
           if (compDivVal === 'MASTER_DIST') {
             var dn1 = String(fd.notifyUrl1 || '').trim();
-            var dHasBackup = !!(String(fd.notifyUrl2 || '').trim() || String(fd.notifyUrl3 || '').trim() || String(fd.notifyUrl4 || '').trim());
-            if (!dn1) { alert('총판은 노티 URL 1(기본)을 입력해야 합니다.'); return; }
-            if (dHasBackup && !dn1) { alert('노티 URL 2~4를 사용할 때는 노티 URL 1(기본)이 필수입니다.'); return; }
+            var dn2 = String(fd.notifyUrl2 || '').trim();
+            var dHasBackup = !!(String(fd.notifyUrl3 || '').trim() || String(fd.notifyUrl4 || '').trim());
+            if (!dn1) { alert('총판은 노티 CALLBACK(URL 1)을 입력해야 합니다.'); return; }
+            if (!dn2) { alert('총판은 노티 RESULT(URL 2)를 입력해야 합니다.'); return; }
+            if (dHasBackup && (!dn1 || !dn2)) { alert('노티 URL 3·4(보조)를 쓰려면 URL 1·2(CALLBACK·RESULT)가 모두 필요합니다.'); return; }
           }
           if (compDivVal === 'REGIONAL') {
             var bc = [fd.baseCurrency1, fd.baseCurrency2, fd.baseCurrency3].filter(function (v) { return v && v.trim(); });
@@ -3203,7 +3594,9 @@
           var isRegOrMaster = brandingCard && !brandingCard.classList.contains('d-none');
           window.PG_API.compUpdate(fd).then(function () {
             var settleFd = {};
-            ['withdrawLimitDays', 'payLimitDefault', 'payLimitExtra', 'holdRate', 'holdDays', 'calcCycle', 'calcCloseTime', 'calcStartTime', 'transferCycleDays', 'calcProcType', 'transferType', 'autoTransferMin', 'payHoldYn', 'calcExcludeYn', 'calcExcludeTarget', 'calcMinAmt', 'transferExecTime'].forEach(function (k) {
+            var settleKeys = ['withdrawLimitDays', 'payLimitDefault', 'payLimitExtra', 'holdRate', 'holdDays', 'calcCloseTime', 'calcStartTime', 'transferCycleDays', 'calcProcType', 'transferType', 'autoTransferMin', 'payHoldYn', 'calcExcludeYn', 'calcExcludeTarget', 'calcMinAmt', 'transferExecTime'];
+            if (compDivVal === 'MERCHANT') settleKeys.splice(5, 0, 'calcCycle');
+            settleKeys.forEach(function (k) {
               if (fd[k] !== undefined && fd[k] !== null && fd[k] !== '') settleFd[k] = fd[k];
             });
             if (Object.keys(settleFd).length > 0) {
@@ -3366,23 +3759,99 @@
     }
     if (url === '/hq/notifyEnv') {
       var dimmN = document.getElementById('dimm');
+      function escNt(s) {
+        return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+      }
+      function pairKeyFromNotifyCode(code) {
+        var c = String(code || '');
+        if (/^cb/i.test(c) || /^rs/i.test(c)) return 'p:' + c.substring(2).toLowerCase();
+        return 'legacy:' + c;
+      }
+      function shortNotifyChannel(t) {
+        var ch = String(t.channelType || '').toUpperCase();
+        return ch === 'RESULT' ? 'RESULT' : 'CALLBACK';
+      }
+      function groupNotifyTargetsForTable(list) {
+        var byKey = {};
+        var keys = [];
+        (list || []).forEach(function (t) {
+          var k = pairKeyFromNotifyCode(t.targetCode);
+          if (!byKey[k]) {
+            byKey[k] = [];
+            keys.push(k);
+          }
+          byKey[k].push(t);
+        });
+        keys.sort(function (ka, kb) {
+          var maxA = Math.max.apply(null, byKey[ka].map(function (x) { return Number(x.id) || 0; }));
+          var maxB = Math.max.apply(null, byKey[kb].map(function (x) { return Number(x.id) || 0; }));
+          return maxB - maxA;
+        });
+        return keys.map(function (k) {
+          var g = byKey[k].slice();
+          g.sort(function (a, b) {
+            var oa = shortNotifyChannel(a) === 'CALLBACK' ? 0 : 1;
+            var ob = shortNotifyChannel(b) === 'CALLBACK' ? 0 : 1;
+            if (oa !== ob) return oa - ob;
+            return (Number(a.id) || 0) - (Number(b.id) || 0);
+          });
+          return g;
+        });
+      }
+      function renderHqNotifyTargetTable(arr) {
+        var tbody = pane.querySelector('#hqNotifyTargetTbody');
+        var emptyEl = pane.querySelector('#hqNotifyTargetEmpty');
+        if (!tbody) return;
+        var list = Array.isArray(arr) ? arr : [];
+        if (list.length === 0) {
+          tbody.innerHTML = '';
+          if (emptyEl) { emptyEl.classList.remove('d-none'); }
+          return;
+        }
+        if (emptyEl) { emptyEl.classList.add('d-none'); }
+        var groups = groupNotifyTargetsForTable(list);
+        var html = '';
+        var no = 0;
+        groups.forEach(function (g) {
+          no += 1;
+          var rs = g.length;
+          var name = (g[0] && g[0].targetName) ? g[0].targetName : '';
+          g.forEach(function (t, i) {
+            var id = t.id != null ? String(t.id) : '';
+            var ch = shortNotifyChannel(t);
+            var url = t.targetUrl || '';
+            html += '<tr>';
+            if (i === 0) {
+              html += '<td class="text-center align-middle" rowspan="' + rs + '">' + no + '</td>';
+              html += '<td class="align-middle" rowspan="' + rs + '">' + escNt(name) + '</td>';
+            }
+            var urlCls = ch === 'RESULT' ? 'hq-notify-url-cell--result' : 'hq-notify-url-cell--callback';
+            html += '<td class="hq-notify-url-cell align-middle ' + urlCls + '"><code class="hq-notify-url-code">' + escNt(url) + '</code></td>';
+            html += '<td class="hq-notify-copy-cell text-center align-middle">' +
+              '<button type="button" class="btn btn-sm btn-outline-secondary hq-notify-copy-url" data-url="' + escNt(url) + '">복사</button></td>';
+            var chCls = ch === 'RESULT' ? 'hq-notify-channel-cell--result' : 'hq-notify-channel-cell--callback';
+            html += '<td class="hq-notify-channel-cell align-middle ' + chCls + '"><span class="hq-notify-channel-badge">' + escNt(ch) + '</span></td>';
+            html += '<td class="align-middle text-center">' +
+              (id ? '<button type="button" class="btn btn-sm btn-outline-danger hq-notify-target-del" data-id="' + escNt(id) + '">삭제</button>' : '-') + '</td>';
+            html += '</tr>';
+          });
+        });
+        tbody.innerHTML = html;
+      }
       function fillNotifyTargets(list) {
         var arr = Array.isArray(list) ? list : [];
         pane.querySelectorAll('select[data-load-notify-targets="true"]').forEach(function (sel) {
           var cur = sel.value || '';
           var html = '<option value="">선택</option>';
           arr.forEach(function (t) {
-            html += '<option value="' + (t.targetUrl || '') + '" data-id="' + (t.id || '') + '">' + (t.targetName || t.targetCode || '노티') + ' - ' + (t.targetUrl || '') + '</option>';
+            var ch = shortNotifyChannel(t);
+            var label = (t.targetName || t.targetCode || '노티') + ' [' + ch + '] ' + (t.targetUrl || '');
+            html += '<option value="' + escNt(t.targetUrl || '') + '" data-id="' + escNt(t.id != null ? String(t.id) : '') + '">' + escNt(label) + '</option>';
           });
           sel.innerHTML = html;
           if (cur) sel.value = cur;
         });
-        var delSel = pane.querySelector('[name="deleteNotifyTargetId"]');
-        if (delSel) {
-          var dhtml = '<option value="">선택</option>';
-          arr.forEach(function (t) { dhtml += '<option value="' + (t.id || '') + '">' + (t.targetName || t.targetCode || '노티') + '</option>'; });
-          delSel.innerHTML = dhtml;
-        }
+        renderHqNotifyTargetTable(arr);
       }
       function fillNotifyEnv(data) {
         if (!data) return;
@@ -3421,34 +3890,56 @@
           window.PG_API.hqNotifyEnvRegenerateToken().then(function (data) { fillNotifyEnv(data); alert('토큰이 재발급되었습니다. 새 URL을 NOTI에 반영하세요.'); }).catch(function (e) { alert(e && e.message ? e.message : '실패'); }).finally(function () { if (dimmN) dimmN.style.display = 'none'; });
         });
       }
-      var createBtn = pane.querySelector('button[data-field="newNotifyTargetAction"][data-action="노티 생성"]');
+      var createBtn = pane.querySelector('button[data-field="newNotifyTargetName"][data-action="노티자동생성"]');
       if (createBtn && !createBtn._bound) {
         createBtn._bound = true;
         createBtn.addEventListener('click', function () {
           var nameEl = pane.querySelector('[name="newNotifyTargetName"]');
-          var urlEl = pane.querySelector('[name="newNotifyTargetUrl"]');
           var name = nameEl && nameEl.value ? String(nameEl.value).trim() : '';
           if (!name) { alert('노티 대상명을 입력하세요.'); return; }
           if (dimmN) dimmN.style.display = 'flex';
-          window.PG_API.hqNotifyTargetCreate(name).then(function (d) {
-            if (urlEl) urlEl.value = d && d.targetUrl ? d.targetUrl : '';
+          window.PG_API.hqNotifyTargetCreate(name).then(function () {
             return window.PG_API.hqNotifyTargets();
           }).then(function (list) {
             fillNotifyTargets(list);
-            alert('노티 대상 URL이 생성되었습니다.');
-          }).catch(function (e) { alert(e && e.message ? e.message : '노티 생성 실패'); }).finally(function () { if (dimmN) dimmN.style.display = 'none'; });
+            alert('CALLBACK·RESULT 노티 URL이 자동 생성되었습니다. 아래 목록에서 확인하세요.');
+          }).catch(function (e) { alert(e && e.message ? e.message : '노티 자동생성 실패'); }).finally(function () { if (dimmN) dimmN.style.display = 'none'; });
         });
       }
-      var delBtn = pane.querySelector('button[data-field="deleteNotifyTargetAction"][data-action="선택 삭제"]');
-      if (delBtn && !delBtn._bound) {
-        delBtn._bound = true;
-        delBtn.addEventListener('click', function () {
-          var sel = pane.querySelector('[name="deleteNotifyTargetId"]');
-          var id = sel && sel.value ? String(sel.value) : '';
-          if (!id) { alert('삭제할 노티 대상을 선택하세요.'); return; }
-          if (!window.confirm('선택한 노티 대상을 삭제하시겠습니까?')) return;
+      if (!pane._hqNotifyTargetTableActionDelegated) {
+        pane._hqNotifyTargetTableActionDelegated = true;
+        pane.addEventListener('click', function (ev) {
+          var copyB = ev.target && ev.target.closest ? ev.target.closest('.hq-notify-copy-url') : null;
+          if (copyB && pane.contains(copyB)) {
+            var u = copyB.getAttribute('data-url') || '';
+            if (!u) return;
+            var fail = function () { alert('복사에 실패했습니다. 주소를 직접 선택해 복사하세요.'); };
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+              navigator.clipboard.writeText(u).catch(function () {
+                var ta = document.createElement('textarea');
+                ta.value = u;
+                document.body.appendChild(ta);
+                ta.select();
+                try { if (!document.execCommand('copy')) fail(); } catch (e2) { fail(); }
+                document.body.removeChild(ta);
+              });
+            } else {
+              var ta2 = document.createElement('textarea');
+              ta2.value = u;
+              document.body.appendChild(ta2);
+              ta2.select();
+              try { if (!document.execCommand('copy')) fail(); } catch (e3) { fail(); }
+              document.body.removeChild(ta2);
+            }
+            return;
+          }
+          var delB = ev.target && ev.target.closest ? ev.target.closest('.hq-notify-target-del') : null;
+          if (!delB || !pane.contains(delB)) return;
+          var rid = delB.getAttribute('data-id') || '';
+          if (!rid) return;
+          if (!window.confirm('이 노티 URL을 삭제하시겠습니까?')) return;
           if (dimmN) dimmN.style.display = 'flex';
-          window.PG_API.hqNotifyTargetDelete(id).then(function () {
+          window.PG_API.hqNotifyTargetDelete(rid).then(function () {
             return window.PG_API.hqNotifyTargets();
           }).then(function (list) {
             fillNotifyTargets(list);
@@ -3737,43 +4228,230 @@
         window.PG_API.hqApiConfigSave(fd).then(function () { alert('저장되었습니다.'); }).catch(function (e) { alert(e && e.message ? e.message : '저장 실패'); }).finally(function () { if (dimm2) dimm2.style.display = 'none'; });
       });
     }
-    if (url === '/hq/businessDaySetting' && !pane._hqBizdayBound) {
-      pane._hqBizdayBound = true;
+    /** 영업일설정: 탭 pane은 유지되고 innerHTML만 갈아끼우므로, 재진입 시에도 매번 바인딩·목록조회·달력 init 필요. pane 클릭 위임은 한 번만 등록. */
+    if (url === '/hq/businessDaySetting') {
+      var st = pane._hqBizdayState || (pane._hqBizdayState = { manualEntries: [], currentList: [], currentEditingId: '', manualEditIdx: null });
+      st.manualEntries = [];
+      st.currentList = [];
+      st.currentEditingId = '';
+      st.manualEditIdx = null;
       var formBiz = pane.querySelector('form');
       var nameEl = formBiz ? formBiz.querySelector('[name="hqBizdayProfileName"]') : null;
-      var idEl = formBiz ? formBiz.querySelector('[name="hqBizdayProfileId"]') : null;
       var countryEl = formBiz ? formBiz.querySelector('[name="holidayCountryCodes"]') : null;
-      var datesEl = formBiz ? formBiz.querySelector('[name="businessHolidayExtraDates"]') : null;
+      var extraHidden = formBiz ? (formBiz.querySelector('#hqBizdayExtraDatesHidden') || formBiz.querySelector('[name="businessHolidayExtraDates"]')) : null;
+      var manualJsonHidden = formBiz ? formBiz.querySelector('#hqBizdayManualEntriesJson') : null;
+      var manualTbody = pane.querySelector('#hqBizdayManualTbody');
       var tbodyBiz = pane.querySelector('#hqBizdayProfileTbody');
       var saveBtnBiz = pane.querySelector('#hqBizdayProfileSaveBtn');
       var newBtnBiz = pane.querySelector('#hqBizdayProfileNewBtn');
-      var delBtnBiz = pane.querySelector('#hqBizdayProfileDeleteBtn');
       var dimmBiz = document.getElementById('dimm');
-      var currentList = [];
-      function countDates(txt) {
-        return String(txt || '').split(/\r?\n/).map(function (x) { return x.trim(); }).filter(function (x) { return !!x; }).length;
+
+      function hqExpandYmdRange(fromStr, toStr) {
+        var out = [];
+        if (!fromStr || String(fromStr).length < 10) return out;
+        var fs = String(fromStr).substring(0, 10);
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(fs)) return out;
+        var ts = (toStr && String(toStr).length >= 10 && /^\d{4}-\d{2}-\d{2}$/.test(String(toStr).substring(0, 10)))
+          ? String(toStr).substring(0, 10) : fs;
+        var a = fs.split('-').map(Number);
+        var b = ts.split('-').map(Number);
+        var d = new Date(a[0], a[1] - 1, a[2]);
+        var end = new Date(b[0], b[1] - 1, b[2]);
+        if (end < d) { var tmp = d; d = end; end = tmp; }
+        var pad2 = function (n) { return n < 10 ? '0' + n : String(n); };
+        while (d <= end) {
+          out.push(d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()));
+          d.setDate(d.getDate() + 1);
+        }
+        return out;
       }
-      function renderList(list) {
-        currentList = Array.isArray(list) ? list : [];
-        if (!tbodyBiz) return;
-        if (!currentList.length) {
-          tbodyBiz.innerHTML = '<tr><td colspan="5" class="text-center text-muted">저장된 설정이 없습니다.</td></tr>';
+
+      /** hidden 비영업일 문자열 → { 'yyyy-MM-dd': true } */
+      function hqBizdayParseExtraMap(text) {
+        var map = {};
+        String(text || '').split(/\r?\n/).forEach(function (line) {
+          var m = line.trim().match(/^(\d{4}-\d{2}-\d{2})/);
+          if (m) map[m[1]] = true;
+        });
+        return map;
+      }
+      function hqBizdayExtraMapToLines(map) {
+        return Object.keys(map).sort().join('\n');
+      }
+
+      /** 달력·프리셋으로 쌓인 일자 + 수동 구간을 합집합으로 유지 (기존: 수동만 넣어 프리셋 토·일이 저장 시 삭제되던 버그 수정) */
+      function syncHiddenFromManualEntries() {
+        var set = hqBizdayParseExtraMap(extraHidden && extraHidden.value);
+        st.manualEntries.forEach(function (e) {
+          hqExpandYmdRange(e.fromDate, e.toDate || e.fromDate).forEach(function (day) { set[day] = true; });
+        });
+        if (extraHidden) extraHidden.value = hqBizdayExtraMapToLines(set);
+        if (manualJsonHidden) manualJsonHidden.value = JSON.stringify(st.manualEntries);
+      }
+
+      function clearManualRangeInputs() {
+        var rf = pane.querySelector('#hqBizdayRangeFrom');
+        var rt = pane.querySelector('#hqBizdayRangeTo');
+        var rk = pane.querySelector('#hqBizdayRangeKind');
+        var rn = pane.querySelector('#hqBizdayRangeNote');
+        if (rf) rf.value = '';
+        if (rt) rt.value = '';
+        if (rk) rk.value = '공휴일';
+        if (rn) rn.value = '';
+      }
+
+      function refreshManualRangeFormUi() {
+        var addBtn = pane.querySelector('#hqBizdayRangeAddBtn');
+        var cancelBtn = pane.querySelector('#hqBizdayRangeCancelEditBtn');
+        var editing = st.manualEditIdx != null && !isNaN(st.manualEditIdx) && st.manualEditIdx >= 0 && st.manualEditIdx < st.manualEntries.length;
+        if (addBtn) addBtn.textContent = editing ? '수정 반영' : '구간 추가';
+        if (cancelBtn) cancelBtn.classList.toggle('d-none', !editing);
+      }
+
+      function renderManualTable() {
+        if (!manualTbody) return;
+        if (!st.manualEntries.length) {
+          manualTbody.innerHTML = '<tr class="hq-bizday-manual-empty"><td colspan="6" class="text-center text-muted">등록된 구간이 없습니다.</td></tr>';
+          refreshManualRangeFormUi();
           return;
         }
         var html = '';
-        currentList.forEach(function (it, i) {
-          html += '<tr class="hq-bizday-row" data-id="' + (it.id || '') + '" style="cursor:pointer">' +
+        st.manualEntries.forEach(function (e, idx) {
+          var hi = st.manualEditIdx === idx ? ' table-info' : '';
+          html += '<tr data-manual-idx="' + idx + '" class="' + hi.trim() + '"><td>' + (e.fromDate || '') + '</td><td>' + (e.toDate || e.fromDate || '') + '</td>' +
+            '<td>' + (e.holidayKind || '') + '</td><td>' + escapeHtml(String(e.note || '')) + '</td>' +
+            '<td><button type="button" class="btn btn-sm btn-outline-primary hq-bizday-manual-edit" data-idx="' + idx + '">수정</button></td>' +
+            '<td><button type="button" class="btn btn-sm btn-outline-danger hq-bizday-manual-del" data-idx="' + idx + '">삭제</button></td></tr>';
+        });
+        manualTbody.innerHTML = html;
+        refreshManualRangeFormUi();
+      }
+
+      function escapeHtml(s) {
+        return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+      }
+
+      function loadManualFromItem(item) {
+        if (extraHidden) {
+          extraHidden.value = (item && item.businessHolidayExtraDates != null) ? String(item.businessHolidayExtraDates) : '';
+        }
+        st.manualEntries = [];
+        if (item && Array.isArray(item.holidayManualEntries) && item.holidayManualEntries.length) {
+          st.manualEntries = item.holidayManualEntries.map(function (e) {
+            return {
+              fromDate: (e.fromDate != null) ? String(e.fromDate).substring(0, 10) : '',
+              toDate: (e.toDate != null) ? String(e.toDate).substring(0, 10) : '',
+              holidayKind: (e.holidayKind != null) ? String(e.holidayKind) : '공휴일',
+              note: (e.note != null) ? String(e.note) : ''
+            };
+          });
+        }
+        syncHiddenFromManualEntries();
+        st.manualEditIdx = null;
+        renderManualTable();
+      }
+
+      /** yyyy-MM-dd 가 토·일이면 true (공식공휴일에 포함되는 주말). */
+      function bizdayIsWeekendYmd(ymd) {
+        if (!ymd || String(ymd).length < 10) return false;
+        var p = String(ymd).substring(0, 10).split('-').map(Number);
+        if (p.length !== 3 || isNaN(p[0]) || isNaN(p[1]) || isNaN(p[2])) return false;
+        var dt = new Date(p[0], p[1] - 1, p[2]);
+        var w = dt.getDay();
+        return w === 0 || w === 6;
+      }
+
+      /**
+       * 목록 열 집계: 서버가 내려주면 holidayCount* 사용(토·일·해당국 법정 프리셋 = 공식, 나머지 저장일 = 추가).
+       * 구 API는 아래 클라이언트 추정 로직으로 폴백.
+       */
+      function bizdayHolidayKindCounts(it) {
+        if (it != null && it.holidayCountTotal != null && it.holidayCountOfficial != null && it.holidayCountAdditional != null) {
+          var t0 = Number(it.holidayCountTotal);
+          var o0 = Number(it.holidayCountOfficial);
+          var a0 = Number(it.holidayCountAdditional);
+          if (!isNaN(t0) && t0 >= 0 && !isNaN(o0) && !isNaN(a0)) {
+            return { official: o0, added: a0, total: t0 };
+          }
+        }
+        var totalMap = {};
+        String((it && it.businessHolidayExtraDates) || '').split(/\r?\n/).forEach(function (line) {
+          var m = line.trim().match(/^(\d{4}-\d{2}-\d{2})/);
+          if (m) totalMap[m[1]] = true;
+        });
+        var days = Object.keys(totalMap);
+        var total = days.length;
+        var cc = (it && it.countryCode != null) ? String(it.countryCode).trim().toUpperCase() : '';
+        if (cc === 'GLOBAL') {
+          var offG = 0;
+          var addG = 0;
+          days.forEach(function (d) {
+            if (bizdayIsWeekendYmd(d)) offG += 1;
+            else addG += 1;
+          });
+          return { official: offG, added: addG, total: total };
+        }
+        var addedMap = {};
+        var arr = (it && it.holidayManualEntries) || [];
+        arr.forEach(function (e) {
+          hqExpandYmdRange(e.fromDate, e.toDate || e.fromDate).forEach(function (day) {
+            addedMap[day] = true;
+          });
+        });
+        var added = 0;
+        Object.keys(addedMap).forEach(function (d) {
+          if (totalMap[d] && !bizdayIsWeekendYmd(d)) added += 1;
+        });
+        var official = total - added;
+        return { official: official < 0 ? 0 : official, added: added, total: total };
+      }
+      function renderList(list) {
+        st.currentList = Array.isArray(list) ? list : [];
+        if (!tbodyBiz) return;
+        if (!st.currentList.length) {
+          tbodyBiz.innerHTML = '<tr><td colspan="11" class="text-center text-muted">저장된 설정이 없습니다.</td></tr>';
+          return;
+        }
+        var html = '';
+        var sel = String(st.currentEditingId || '');
+        st.currentList.forEach(function (it, i) {
+          var hc = bizdayHolidayKindCounts(it);
+          var createdDisp = (it.createdAt && String(it.createdAt).trim()) ? String(it.createdAt).trim().substring(0, 10)
+            : ((it.updatedAt && String(it.updatedAt).trim()) ? String(it.updatedAt).trim().substring(0, 10) : '-');
+          var updatedDisp = (it.updatedAt && String(it.updatedAt).trim()) ? String(it.updatedAt).trim().substring(0, 10) : '-';
+          var idStr = String(it.id || '');
+          var rowHi = (sel && sel === idStr) ? ' table-active' : '';
+          html += '<tr class="hq-bizday-row' + rowHi + '" data-id="' + idStr + '" style="cursor:pointer">' +
             '<td>' + (i + 1) + '</td><td>' + (it.name || '') + '</td><td>' + (it.countryCode || '') + '</td>' +
-            '<td>' + countDates(it.businessHolidayExtraDates) + '건</td><td>' + (it.updatedAt || '') + '</td></tr>';
+            '<td>' + (it.createdBy || '-') + '</td>' +
+            '<td class="text-center align-middle">' + hc.official + '</td><td class="text-center align-middle">' + hc.added + '</td><td class="text-center align-middle">' + hc.total + '</td>' +
+            '<td>' + createdDisp + '</td><td>' + updatedDisp + '</td>' +
+            '<td class="text-center p-1 align-middle"><button type="button" class="btn btn-sm btn-outline-primary hq-bizday-profile-edit" data-id="' + idStr + '">수정</button></td>' +
+            '<td class="text-center p-1 align-middle"><button type="button" class="btn btn-sm btn-outline-danger hq-bizday-profile-del" data-id="' + idStr + '">삭제</button></td></tr>';
         });
         tbodyBiz.innerHTML = html;
       }
+      function loadBizdayProfileIntoEditor(item) {
+        if (!item) return;
+        st.currentEditingId = item.id || '';
+        if (nameEl) nameEl.value = item.name || '';
+        if (countryEl) countryEl.value = item.countryCode || 'KR';
+        loadManualFromItem(item);
+        if (window.PG_HQ_HOLIDAY && typeof window.PG_HQ_HOLIDAY.init === 'function') window.PG_HQ_HOLIDAY.init(pane, { force: true });
+        renderList(st.currentList);
+      }
       function clearEditor() {
-        if (idEl) idEl.value = '';
+        st.currentEditingId = '';
+        st.manualEntries = [];
         if (nameEl) nameEl.value = '';
         if (countryEl) countryEl.value = 'KR';
-        if (datesEl) datesEl.value = '';
+        if (extraHidden) extraHidden.value = '';
+        syncHiddenFromManualEntries();
+        st.manualEditIdx = null;
+        clearManualRangeInputs();
+        renderManualTable();
         if (window.PG_HQ_HOLIDAY && typeof window.PG_HQ_HOLIDAY.init === 'function') window.PG_HQ_HOLIDAY.init(pane, { force: true });
+        renderList(st.currentList);
       }
       function loadList() {
         if (dimmBiz) dimmBiz.style.display = 'flex';
@@ -3781,51 +4459,200 @@
           renderList(list || []);
           if (window.PG_HQ_HOLIDAY && typeof window.PG_HQ_HOLIDAY.init === 'function') window.PG_HQ_HOLIDAY.init(pane, { force: true });
         }).catch(function (e) {
-          if (tbodyBiz) tbodyBiz.innerHTML = '<tr><td colspan="5" class="text-center text-danger">' + (e && e.message ? e.message : '조회 실패') + '</td></tr>';
+          if (tbodyBiz) tbodyBiz.innerHTML = '<tr><td colspan="11" class="text-center text-danger">' + (e && e.message ? e.message : '조회 실패') + '</td></tr>';
         }).finally(function () { if (dimmBiz) dimmBiz.style.display = 'none'; });
       }
-      if (newBtnBiz) newBtnBiz.addEventListener('click', function () { clearEditor(); });
+      /** 신규·저장·삭제 공통: 1차 확인 → 2차 최종 확인(취소 시 중단) */
+      function hqBizdayTwoStepConfirm(msgStep1, msgStep2) {
+        if (!window.confirm(msgStep1)) return false;
+        if (!window.confirm(msgStep2)) return false;
+        return true;
+      }
+      if (newBtnBiz) newBtnBiz.addEventListener('click', function () {
+        if (!hqBizdayTwoStepConfirm(
+          '[1단계] 신규를 누르면 편집 중인 이름·기준국가·휴일 구간·달력에 반영된 데이터가 모두 초기화됩니다.\n진행하시겠습니까? (취소 시 아무 변화 없음)',
+          '[2단계] 최종 확인: 모든 입력을 비우고 신규 작성 화면으로 전환합니다.\n정말 진행하시겠습니까?'
+        )) return;
+        clearEditor();
+      });
+      var addRangeBtn = pane.querySelector('#hqBizdayRangeAddBtn');
+      if (addRangeBtn) {
+        addRangeBtn.addEventListener('click', function () {
+          var rf = pane.querySelector('#hqBizdayRangeFrom');
+          var rt = pane.querySelector('#hqBizdayRangeTo');
+          var rk = pane.querySelector('#hqBizdayRangeKind');
+          var rn = pane.querySelector('#hqBizdayRangeNote');
+          var from = rf && rf.value ? rf.value.trim() : '';
+          var to = rt && rt.value ? rt.value.trim() : '';
+          if (!from) { alert('시작일을 선택하세요.'); return; }
+          if (!to) to = from;
+          if (from > to) { var x = from; from = to; to = x; }
+          var entry = {
+            fromDate: from,
+            toDate: to,
+            holidayKind: (rk && rk.value) ? rk.value : '공휴일',
+            note: (rn && rn.value) ? rn.value.trim() : ''
+          };
+          var ix = st.manualEditIdx;
+          if (ix != null && !isNaN(ix) && ix >= 0 && ix < st.manualEntries.length) {
+            st.manualEntries[ix] = entry;
+            st.manualEditIdx = null;
+            clearManualRangeInputs();
+          } else {
+            st.manualEntries.push(entry);
+          }
+          syncHiddenFromManualEntries();
+          renderManualTable();
+          if (window.PG_HQ_HOLIDAY && typeof window.PG_HQ_HOLIDAY.init === 'function') window.PG_HQ_HOLIDAY.init(pane, { force: true });
+        });
+      }
+      var cancelRangeEditBtn = pane.querySelector('#hqBizdayRangeCancelEditBtn');
+      if (cancelRangeEditBtn) {
+        cancelRangeEditBtn.addEventListener('click', function () {
+          st.manualEditIdx = null;
+          clearManualRangeInputs();
+          refreshManualRangeFormUi();
+          renderManualTable();
+        });
+      }
       if (saveBtnBiz) saveBtnBiz.addEventListener('click', function () {
         var name = nameEl && nameEl.value ? nameEl.value.trim() : '';
         var cc = countryEl && countryEl.value ? countryEl.value : 'KR';
-        var extra = datesEl && datesEl.value ? datesEl.value : '';
+        syncHiddenFromManualEntries();
+        var extra = extraHidden && extraHidden.value ? extraHidden.value : '';
         if (!name) { alert('이름을 입력하세요.'); return; }
+        if (!hqBizdayTwoStepConfirm(
+          '[1단계] 현재 화면의 영업일 설정을 서버에 저장합니다.\n진행하시겠습니까? (취소 시 저장 안 함)',
+          '[2단계] 최종 확인: 저장하면 목록 및 적용 데이터가 갱신됩니다.\n저장하시겠습니까?'
+        )) return;
         if (dimmBiz) dimmBiz.style.display = 'flex';
         window.PG_API.hqBusinessDaySettingsSave({
           mode: 'UPSERT',
-          id: idEl && idEl.value ? idEl.value : '',
+          id: st.currentEditingId,
           name: name,
           countryCode: cc,
-          businessHolidayExtraDates: extra
-        }).then(function (r) {
-          alert((r && r.message) ? r.message : '저장되었습니다.');
-          if (idEl && r && r.id) idEl.value = r.id;
-          renderList((r && r.list) ? r.list : []);
+          businessHolidayExtraDates: extra,
+          holidayManualEntries: st.manualEntries
+        }).then(function (data) {
+          alert((data && data.message) ? data.message : '저장되었습니다.');
+          if (data && data.id) st.currentEditingId = String(data.id);
+          renderList((data && data.list) ? data.list : []);
+          if (st.currentEditingId && data && data.list) {
+            var found = data.list.find(function (x) { return String(x.id || '') === st.currentEditingId; });
+            if (found) loadManualFromItem(found);
+          }
         }).catch(function (e) { alert(e && e.message ? e.message : '저장 실패'); }).finally(function () { if (dimmBiz) dimmBiz.style.display = 'none'; });
       });
-      if (delBtnBiz) delBtnBiz.addEventListener('click', function () {
-        var id = idEl && idEl.value ? idEl.value : '';
-        if (!id) { alert('삭제할 설정을 먼저 선택하세요.'); return; }
-        if (!confirm('선택한 영업일 설정을 삭제하시겠습니까?')) return;
+      function runHqBizdayDeleteById(deleteId) {
+        if (!deleteId) return;
+        var victim = st.currentList.filter(function (x) { return String(x.id || '') === String(deleteId); })[0];
+        var vname = victim && victim.name ? String(victim.name) : String(deleteId);
+        if (!hqBizdayTwoStepConfirm(
+          '[1단계] 영업일 설정 [' + vname + ']을(를) 삭제합니다.\n진행하시겠습니까? (취소 시 삭제 안 함)',
+          '[2단계] 최종 확인: 삭제 후에는 복구할 수 없습니다.\n삭제하시겠습니까?'
+        )) return;
         if (dimmBiz) dimmBiz.style.display = 'flex';
-        window.PG_API.hqBusinessDaySettingsSave({ mode: 'DELETE', id: id }).then(function (r) {
-          alert((r && r.message) ? r.message : '삭제되었습니다.');
-          clearEditor();
-          renderList((r && r.list) ? r.list : []);
+        window.PG_API.hqBusinessDaySettingsSave({ mode: 'DELETE', id: deleteId }).then(function (data) {
+          alert((data && data.message) ? data.message : '삭제되었습니다.');
+          if (String(st.currentEditingId) === String(deleteId)) clearEditor();
+          renderList((data && data.list) ? data.list : []);
         }).catch(function (e) { alert(e && e.message ? e.message : '삭제 실패'); }).finally(function () { if (dimmBiz) dimmBiz.style.display = 'none'; });
-      });
-      pane.addEventListener('click', function (ev) {
-        var tr = ev.target && ev.target.closest ? ev.target.closest('.hq-bizday-row') : null;
-        if (!tr) return;
-        var id = tr.getAttribute('data-id') || '';
-        var item = currentList.find(function (x) { return (x.id || '') === id; });
-        if (!item) return;
-        if (idEl) idEl.value = item.id || '';
-        if (nameEl) nameEl.value = item.name || '';
-        if (countryEl) countryEl.value = item.countryCode || 'KR';
-        if (datesEl) datesEl.value = item.businessHolidayExtraDates || '';
-        if (window.PG_HQ_HOLIDAY && typeof window.PG_HQ_HOLIDAY.init === 'function') window.PG_HQ_HOLIDAY.init(pane, { force: true });
-      });
+      }
+      pane._hqBizdayRuntime = {
+        st: st,
+        syncHiddenFromManualEntries: syncHiddenFromManualEntries,
+        hqExpandYmdRange: hqExpandYmdRange,
+        hqBizdayParseExtraMap: hqBizdayParseExtraMap,
+        hqBizdayExtraMapToLines: hqBizdayExtraMapToLines,
+        renderManualTable: renderManualTable,
+        loadBizdayProfileIntoEditor: loadBizdayProfileIntoEditor,
+        runHqBizdayDeleteById: runHqBizdayDeleteById,
+        loadManualFromItem: loadManualFromItem,
+        clearManualRangeInputs: clearManualRangeInputs,
+        refreshManualRangeFormUi: refreshManualRangeFormUi
+      };
+      if (!pane._hqBizdayProfileClickDelegated) {
+        pane._hqBizdayProfileClickDelegated = true;
+        pane.addEventListener('click', function (ev) {
+          var p = ev.currentTarget;
+          if (p.getAttribute('formurl') !== '/hq/businessDaySetting') return;
+          var rt = p._hqBizdayRuntime;
+          if (!rt || !rt.st) return;
+          var st0 = rt.st;
+          var editM = ev.target && ev.target.closest ? ev.target.closest('.hq-bizday-manual-edit') : null;
+          if (editM && p.contains(editM)) {
+            var eix = parseInt(editM.getAttribute('data-idx'), 10);
+            if (!isNaN(eix) && st0.manualEntries[eix]) {
+              var ent = st0.manualEntries[eix];
+              var rf0 = p.querySelector('#hqBizdayRangeFrom');
+              var rt0 = p.querySelector('#hqBizdayRangeTo');
+              var rk0 = p.querySelector('#hqBizdayRangeKind');
+              var rn0 = p.querySelector('#hqBizdayRangeNote');
+              if (rf0) rf0.value = ent.fromDate || '';
+              if (rt0) rt0.value = ent.toDate || ent.fromDate || '';
+              if (rk0) rk0.value = ent.holidayKind || '공휴일';
+              if (rn0) rn0.value = ent.note || '';
+              st0.manualEditIdx = eix;
+              rt.refreshManualRangeFormUi();
+              rt.renderManualTable();
+            }
+            return;
+          }
+          var delM = ev.target && ev.target.closest ? ev.target.closest('.hq-bizday-manual-del') : null;
+          if (delM && p.contains(delM)) {
+            var ix = parseInt(delM.getAttribute('data-idx'), 10);
+            if (!isNaN(ix)) {
+              var editingIdx = st0.manualEditIdx;
+              var exH = p.querySelector('#hqBizdayExtraDatesHidden') || p.querySelector('[name="businessHolidayExtraDates"]');
+              var removedEnt = st0.manualEntries[ix];
+              var removedDays = removedEnt ? rt.hqExpandYmdRange(removedEnt.fromDate, removedEnt.toDate || removedEnt.fromDate) : [];
+              st0.manualEntries.splice(ix, 1);
+              if (exH && removedDays.length) {
+                var mset = rt.hqBizdayParseExtraMap(exH.value);
+                removedDays.forEach(function (d) { delete mset[d]; });
+                st0.manualEntries.forEach(function (e) {
+                  rt.hqExpandYmdRange(e.fromDate, e.toDate || e.fromDate).forEach(function (day) { mset[day] = true; });
+                });
+                exH.value = rt.hqBizdayExtraMapToLines(mset);
+              }
+              if (editingIdx != null && !isNaN(editingIdx)) {
+                if (editingIdx === ix) {
+                  st0.manualEditIdx = null;
+                  rt.clearManualRangeInputs();
+                } else if (editingIdx > ix) {
+                  st0.manualEditIdx = editingIdx - 1;
+                }
+              }
+              rt.syncHiddenFromManualEntries();
+              rt.renderManualTable();
+              rt.refreshManualRangeFormUi();
+              if (window.PG_HQ_HOLIDAY && typeof window.PG_HQ_HOLIDAY.init === 'function') window.PG_HQ_HOLIDAY.init(p, { force: true });
+            }
+            return;
+          }
+          var profileDel = ev.target && ev.target.closest ? ev.target.closest('.hq-bizday-profile-del') : null;
+          if (profileDel && p.contains(profileDel)) {
+            ev.stopPropagation();
+            var delId = profileDel.getAttribute('data-id') || '';
+            rt.runHqBizdayDeleteById(delId);
+            return;
+          }
+          var profileEdit = ev.target && ev.target.closest ? ev.target.closest('.hq-bizday-profile-edit') : null;
+          if (profileEdit && p.contains(profileEdit)) {
+            ev.stopPropagation();
+            var peId = profileEdit.getAttribute('data-id') || '';
+            var peItem = st0.currentList.find(function (x) { return String(x.id || '') === peId; });
+            if (peItem) rt.loadBizdayProfileIntoEditor(peItem);
+            return;
+          }
+          var tr = ev.target && ev.target.closest ? ev.target.closest('.hq-bizday-row') : null;
+          if (!tr || !p.contains(tr)) return;
+          var id = tr.getAttribute('data-id') || '';
+          var item = st0.currentList.find(function (x) { return String(x.id || '') === id; });
+          if (!item) return;
+          rt.loadBizdayProfileIntoEditor(item);
+        });
+      }
       loadList();
     }
     var hqPgApiAddBtn = pane.querySelector('#hqPgApiAddBtn');

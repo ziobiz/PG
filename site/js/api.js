@@ -336,7 +336,7 @@
       return get('/api/bank/list', { countryCd: countryCd || '' }).then(function (r) { return r.data || []; });
     },
 
-    /** KR/US/JP/TH 공휴일 프리셋 (연도·국가) */
+    /** 공휴일 프리셋 (연도·국가): KR/US/JP/TH/CN은 JSON, GLOBAL은 해당 연도 토·일 전체 */
     holidayPresets: function (year, countries) {
       return get('/api/holiday/presets', {
         year: year != null ? year : new Date().getFullYear(),

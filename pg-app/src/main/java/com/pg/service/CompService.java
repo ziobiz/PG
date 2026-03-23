@@ -39,6 +39,7 @@ import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -91,6 +92,46 @@ public class CompService {
         }
     }
 
+    /** 상위 체인에서 가장 가까운 총판(MASTER_DIST) 조직 ID. 없으면 empty (본사 직속 등). */
+    private Optional<Long> findNearestMasterDistAncestorId(Long orgUnitId) {
+        if (orgUnitId == null) return Optional.empty();
+        Long cur = orgUnitId;
+        Set<Long> seen = new HashSet<>();
+        while (cur != null && seen.add(cur)) {
+            OrgUnit ou = orgUnitRepository.findById(cur).orElse(null);
+            if (ou == null) break;
+            if (ou.getOrgLevel() == OrgLevel.MASTER_DIST) return Optional.of(ou.getId());
+            cur = ou.getParentId();
+        }
+        return Optional.empty();
+    }
+
+    /**
+     * candidateParentId 조직이 masterDistOrgId 총판과 같거나, 그 총판의 하위(후손)인지.
+     * 즉 동일 총판 산하에서만 상위 변경 허용할 때 사용.
+     */
+    private boolean isUnderMasterDistScope(Long masterDistOrgId, Long candidateParentId) {
+        if (masterDistOrgId == null || candidateParentId == null) return false;
+        Long cur = candidateParentId;
+        Set<Long> seen = new HashSet<>();
+        while (cur != null && seen.add(cur)) {
+            if (masterDistOrgId.equals(cur)) return true;
+            OrgUnit x = orgUnitRepository.findById(cur).orElse(null);
+            cur = x != null ? x.getParentId() : null;
+        }
+        return false;
+    }
+
+    private void validateParentNotDescendantOfChild(Long childOrgUnitId, Long newParentId) {
+        if (childOrgUnitId == null || newParentId == null) return;
+        if (newParentId.equals(childOrgUnitId)) {
+            throw new IllegalArgumentException("상위업체로 자기 자신을 선택할 수 없습니다.");
+        }
+        if (collectDescendantIds(childOrgUnitId).contains(newParentId)) {
+            throw new IllegalArgumentException("소속 하위 조직을 상위로 지정할 수 없습니다.");
+        }
+    }
+
     /** 기준 화폐 검증: 본사 최대 3종(comma구분), 총판 1종만 */
     private static void validateBaseCurrency(String compDiv, String baseCurrency) {
         if (baseCurrency == null || baseCurrency.trim().isEmpty()) return;
@@ -100,6 +141,34 @@ public class CompService {
             if (parts.length > 3) throw new IllegalArgumentException("본사는 기준 화폐를 최대 3가지까지 지정할 수 있습니다.");
         } else if ("MASTER_DIST".equalsIgnoreCase(compDiv)) {
             if (val.contains(",")) throw new IllegalArgumentException("총판은 1가지 화폐만 지정할 수 있습니다.");
+        }
+    }
+
+    /**
+     * 총판 기준 화폐는 직계 상위가 본사(REGIONAL)인 경우, 해당 본사가 설정한 기준 화폐(최대 3종) 중 하나만 허용.
+     */
+    private void validateMasterDistBaseCurrencyAgainstRegionalParent(Long parentOrgUnitId, String chosenCurrency) {
+        if (parentOrgUnitId == null || chosenCurrency == null || chosenCurrency.isBlank()) return;
+        Optional<OrgUnit> pou = orgUnitRepository.findById(parentOrgUnitId);
+        if (pou.isEmpty() || pou.get().getOrgLevel() != OrgLevel.REGIONAL) return;
+        Optional<MerchantProfile> pmp = merchantProfileRepository.findByOrgUnitId(parentOrgUnitId);
+        if (pmp.isEmpty()) {
+            throw new IllegalArgumentException("상위 본사 프로필을 찾을 수 없습니다. 본사 등록 상태를 확인하세요.");
+        }
+        String pc = pmp.get().getBaseCurrency();
+        if (pc == null || pc.trim().isEmpty()) {
+            throw new IllegalArgumentException("상위 본사에 기준 화폐가 설정되어 있지 않습니다. 본사에서 기준 화폐를 먼저 설정한 뒤 총판을 등록·수정하세요.");
+        }
+        String chosen = chosenCurrency.trim();
+        boolean ok = false;
+        for (String part : pc.split(",\\s*")) {
+            if (chosen.equalsIgnoreCase(part.trim())) {
+                ok = true;
+                break;
+            }
+        }
+        if (!ok) {
+            throw new IllegalArgumentException("총판 기준 화폐는 상위 본사가 지정한 기준 화폐 중에서만 선택할 수 있습니다.");
         }
     }
 
@@ -159,20 +228,40 @@ public class CompService {
 
     /** scopeCompId: 로그인 사용자의 업체코드(본인 org만 조회, 업체정보조회용) */
     public PageResult<Map<String, Object>> search(String compId, String compNm, int page, int size, String scopeCompId) {
-        return search(compId, compNm, null, null, null, null, null, null, null, null, page, size, scopeCompId);
+        return search(compId, compNm, null, null, null, null, null, null, null, null, page, size, scopeCompId, false);
     }
 
-    /** 업체관리 검색 - 확장 파라미터 (업체구분, 사용상태, 지급보류, 대표자명, 터미널ID, 휴대폰, 사업자번호, 하위업체포함) */
+    /**
+     * 업체관리 검색 - 확장 파라미터.
+     * @param scopeCompId 로그인 사용자 업체코드 등
+     * @param scopeSubtreeBelowLoginOrg true면 본인 조직 행은 제외하고 직·간접 하위만 목록에 포함(업체관리 트리용)
+     */
     public PageResult<Map<String, Object>> search(String compId, String compNm,
             String compDiv, String useYn, String payHoldYn, String ceoNm, String terminalId, String ceoMobile, String regNo, Boolean includeSub,
-            int page, int size, String scopeCompId) {
+            int page, int size, String scopeCompId, boolean scopeSubtreeBelowLoginOrg) {
         String cId = (compId != null && !compId.trim().isEmpty()) ? compId.trim() : null;
         String cNm = (compNm != null && !compNm.trim().isEmpty()) ? compNm.trim() : null;
         String cDiv = (compDiv != null && !compDiv.trim().isEmpty()) ? compDiv.trim() : null;
         List<OrgUnit> all = orgUnitRepository.findAll();
-        List<OrgUnit> scoped = all.stream()
-                .filter(o -> (scopeCompId == null || scopeCompId.trim().isEmpty() || (o.getCode() != null && o.getCode().equals(scopeCompId))))
-                .collect(Collectors.toList());
+        List<OrgUnit> scoped;
+        if (scopeCompId == null || scopeCompId.trim().isEmpty()) {
+            scoped = all;
+        } else if (scopeSubtreeBelowLoginOrg) {
+            String sc = scopeCompId.trim();
+            Optional<OrgUnit> rootOu = all.stream()
+                    .filter(o -> o.getCode() != null && sc.equals(o.getCode().trim()))
+                    .findFirst();
+            if (rootOu.isEmpty()) {
+                scoped = Collections.emptyList();
+            } else {
+                Set<Long> allowed = new HashSet<>(collectDescendantIds(rootOu.get().getId()));
+                scoped = all.stream().filter(o -> allowed.contains(o.getId())).collect(Collectors.toList());
+            }
+        } else {
+            scoped = all.stream()
+                    .filter(o -> o.getCode() != null && scopeCompId.trim().equals(o.getCode().trim()))
+                    .collect(Collectors.toList());
+        }
         List<OrgUnit> filtered;
         if (Boolean.TRUE.equals(includeSub) && cId != null) {
             Set<Long> subtreeIds = new HashSet<>();
@@ -206,6 +295,11 @@ public class CompService {
         }
         java.util.Map<Long, String> idToSortKey = buildHierarchySortKeys(all);
         java.util.Map<Long, Integer> idToDepth = buildHierarchyDepth(all);
+        boolean relativeDepth = scopeSubtreeBelowLoginOrg && scopeCompId != null && !scopeCompId.trim().isEmpty() && !filtered.isEmpty();
+        int minDepthFiltered = 0;
+        if (relativeDepth) {
+            minDepthFiltered = filtered.stream().mapToInt(o -> idToDepth.getOrDefault(o.getId(), 0)).min().orElse(0);
+        }
         filtered.sort((a, b) -> {
             String ka = idToSortKey.getOrDefault(a.getId(), "z");
             String kb = idToSortKey.getOrDefault(b.getId(), "z");
@@ -221,7 +315,8 @@ public class CompService {
                 Map<String, Object> row = buildCompListItem(ou);
                 row.put("rowNo", start + i + 1);
                 row.put("parentId", ou.getParentId());
-                row.put("depth", idToDepth.getOrDefault(ou.getId(), 0));
+                int d = idToDepth.getOrDefault(ou.getId(), 0);
+                row.put("depth", relativeDepth ? (d - minDepthFiltered) : d);
                 list.add(row);
             }
         }
@@ -256,6 +351,12 @@ public class CompService {
                             m.put("compDiv", ou.getOrgLevel() != null ? ou.getOrgLevel().name() : null);
                             m.put("compDivNm", ou.getOrgLevel() != null ? ou.getOrgLevel().getNameKo() : null);
                             m.put("parentId", ou.getParentId());
+                            OrgLevel ol = ou.getOrgLevel();
+                            boolean parentOrgChangeLocked = ol == OrgLevel.HEADQUARTERS || ol == OrgLevel.REGIONAL || ol == OrgLevel.MASTER_DIST;
+                            m.put("parentOrgChangeLocked", parentOrgChangeLocked);
+                            findNearestMasterDistAncestorId(ou.getId()).ifPresentOrElse(
+                                    mid -> m.put("masterDistScopeOrgId", mid),
+                                    () -> m.put("masterDistScopeOrgId", null));
                             if (ou.getParentId() != null) {
                                 orgUnitRepository.findById(ou.getParentId())
                                         .ifPresent(p -> m.put("parentComp", p.getCode() + (p.getName() != null ? " (" + p.getName() + ")" : "")));
@@ -337,17 +438,30 @@ public class CompService {
                                     } else if (rt instanceof java.util.List) m.put("regionalTerminals", rt);
                                 } catch (Exception ignored) {}
                             }
-                            // 총판은 미설정 시 상위 본사(REGIONAL) 영업일 설정을 상속
-                            if (ou.getOrgLevel() == OrgLevel.MASTER_DIST) {
-                                boolean hasOwnHoliday = hasOwnHolidaySetting(ownRegionalSettings);
-                                if (!hasOwnHoliday) {
+                            // 총본사가 본사 영업일을 지정한 경우: 총판은 상위 본사 값을 강제 상속(하위 개별 설정 불가)
+                            if (ou.getOrgLevel() == OrgLevel.REGIONAL) {
+                                m.put("holidayManagedByHeadquartersYn", isHolidayManagedByHeadquarters(ownRegionalSettings) ? "Y" : "N");
+                            } else if (ou.getOrgLevel() == OrgLevel.MASTER_DIST) {
+                                boolean parentLockedByHq = isParentRegionalHolidayManagedByHeadquarters(ou.getParentId());
+                                if (parentLockedByHq) {
                                     Map<String, Object> inherited = resolveInheritedHolidaySettings(ou.getParentId());
                                     if (!inherited.isEmpty()) {
                                         m.putAll(inherited);
-                                        m.put("holidayInheritedYn", "Y");
                                     }
+                                    m.put("holidayInheritedYn", "Y");
+                                    m.put("holidayLockedByHeadquartersYn", "Y");
                                 } else {
-                                    m.put("holidayInheritedYn", "N");
+                                    boolean hasOwnHoliday = hasOwnHolidaySetting(ownRegionalSettings);
+                                    if (!hasOwnHoliday) {
+                                        Map<String, Object> inherited = resolveInheritedHolidaySettings(ou.getParentId());
+                                        if (!inherited.isEmpty()) {
+                                            m.putAll(inherited);
+                                            m.put("holidayInheritedYn", "Y");
+                                        }
+                                    } else {
+                                        m.put("holidayInheritedYn", "N");
+                                    }
+                                    m.put("holidayLockedByHeadquartersYn", "N");
                                 }
                             }
                             String primaryLoginId = mp.getLoginId() != null ? mp.getLoginId().trim() : "";
@@ -374,7 +488,11 @@ public class CompService {
                             String brandingYn = m.get("brandingEditAllowedYn") != null ? String.valueOf(m.get("brandingEditAllowedYn")) : "N";
                             m.put("brandingEditAllowedYn", "Y".equalsIgnoreCase(brandingYn) ? "Y" : "N");
                             settlementSettingRepository.findByOrgUnitId(ou.getId()).ifPresent(ss -> {
-                                m.put("calcCycle", ss.getCalcCycle());
+                                if (ou.getOrgLevel() == OrgLevel.MERCHANT) {
+                                    m.put("calcCycle", ss.getCalcCycle());
+                                } else {
+                                    m.put("calcCycle", null);
+                                }
                                 m.put("calcProcType", ss.getCalcProcType());
                                 m.put("transferType", ss.getTransferType());
                                 m.put("holdRate", ss.getHoldRate());
@@ -415,16 +533,39 @@ public class CompService {
                         .map(mp -> {
                             if (compNm != null) ou.setName(compNm);
                             if (compDiv != null) ou.setOrgLevel(orgLevelFromCompDiv(compDiv));
+                            OrgLevel childLevel = ou.getOrgLevel() != null ? ou.getOrgLevel() : orgLevelFromCompDiv(compDiv);
+                            boolean parentLocked = childLevel == OrgLevel.HEADQUARTERS
+                                    || childLevel == OrgLevel.REGIONAL
+                                    || childLevel == OrgLevel.MASTER_DIST;
                             if (parentId != null) {
-                                OrgLevel childLevel = ou.getOrgLevel() != null ? ou.getOrgLevel() : orgLevelFromCompDiv(compDiv);
-                                validateParentLevel(parentId, childLevel, ou.getId());
-                                ou.setParentId(parentId);
+                                if (parentLocked) {
+                                    if (!Objects.equals(parentId, ou.getParentId())) {
+                                        throw new IllegalArgumentException("본사·총판은 상위 조직을 변경할 수 없습니다.");
+                                    }
+                                } else {
+                                    validateParentNotDescendantOfChild(ou.getId(), parentId);
+                                    validateParentLevel(parentId, childLevel, ou.getId());
+                                    Optional<Long> masterOpt = findNearestMasterDistAncestorId(ou.getId());
+                                    if (masterOpt.isPresent()) {
+                                        Long m = masterOpt.get();
+                                        if (!isUnderMasterDistScope(m, parentId)) {
+                                            throw new IllegalArgumentException(
+                                                    "동일 총판 산하에서만 상위를 변경할 수 있습니다. 해당 총판 또는 그 하위 조직만 선택하세요.");
+                                        }
+                                    }
+                                    ou.setParentId(parentId);
+                                }
                             }
                             orgUnitRepository.save(ou);
                             if (commissionConfigAllowed != null) mp.setCommissionConfigAllowed(commissionConfigAllowed);
                             if (webPaymentUseYn != null && !webPaymentUseYn.trim().isEmpty()) mp.setWebPaymentUseYn(webPaymentUseYn.trim());
                             if (baseCurrency != null && !baseCurrency.trim().isEmpty()) {
-                                validateBaseCurrency(compDiv != null ? compDiv : (ou.getOrgLevel() != null ? ou.getOrgLevel().name() : ""), baseCurrency);
+                                String divForVal = compDiv != null ? compDiv : (ou.getOrgLevel() != null ? ou.getOrgLevel().name() : "");
+                                validateBaseCurrency(divForVal, baseCurrency);
+                                if ("MASTER_DIST".equalsIgnoreCase(divForVal)) {
+                                    Long pid = parentId != null ? parentId : ou.getParentId();
+                                    validateMasterDistBaseCurrencyAgainstRegionalParent(pid, baseCurrency.trim());
+                                }
                                 mp.setBaseCurrency(baseCurrency.trim());
                             }
                             if (siteUrl != null) mp.setSiteUrl(siteUrl.trim());
@@ -487,7 +628,29 @@ public class CompService {
                             String mergedSettings = mergeRegionalSettings(mp.getRegionalSettings(), regionalSettings,
                                     assistantLoginId, assistantPwd, assistantRoleType, brandingEditAllowedYn);
                             if (mergedSettings != null && !mergedSettings.isBlank()) {
-                                mp.setRegionalSettings(mergedSettings);
+                                Map<String, Object> mergedMap = parseRegionalSettings(mergedSettings);
+                                if (ou.getOrgLevel() == OrgLevel.REGIONAL) {
+                                    // 총본사가 본사의 영업일을 지정한 경우, 하위(총판) 개별 설정 잠금 정책 활성화
+                                    if (incomingHasHolidaySetting(regionalSettings)
+                                            && resolveCurrentActorOrgLevel().orElse(null) == OrgLevel.HEADQUARTERS) {
+                                        mergedMap.put("holidayManagedByHeadquartersYn", "Y");
+                                    }
+                                } else if (ou.getOrgLevel() == OrgLevel.MASTER_DIST) {
+                                    // 상위 본사가 총본사에 의해 지정된 상태면 총판 영업일은 상속 강제(개별 저장 무효화)
+                                    if (isParentRegionalHolidayManagedByHeadquarters(ou.getParentId())) {
+                                        clearHolidayKeys(mergedMap);
+                                        mergedMap.putAll(resolveInheritedHolidaySettings(ou.getParentId()));
+                                        mergedMap.put("holidayLockedByHeadquartersYn", "Y");
+                                    } else {
+                                        mergedMap.remove("holidayLockedByHeadquartersYn");
+                                    }
+                                }
+                                try {
+                                    com.fasterxml.jackson.databind.ObjectMapper om = new com.fasterxml.jackson.databind.ObjectMapper();
+                                    mp.setRegionalSettings(om.writeValueAsString(mergedMap));
+                                } catch (Exception ignored) {
+                                    mp.setRegionalSettings(mergedSettings);
+                                }
                             }
                             if (pwd != null && !pwd.trim().isEmpty()) {
                                 if (prevLoginId.isEmpty()) {
@@ -783,6 +946,9 @@ public class CompService {
         if (webPaymentUseYn != null && !webPaymentUseYn.trim().isEmpty()) mp.setWebPaymentUseYn(webPaymentUseYn.trim());
         if (baseCurrency != null && !baseCurrency.trim().isEmpty()) {
             validateBaseCurrency(compDiv != null ? compDiv : "AGENCY", baseCurrency);
+            if ("MASTER_DIST".equalsIgnoreCase(compDivVal)) {
+                validateMasterDistBaseCurrencyAgainstRegionalParent(effectiveParentId, baseCurrency.trim());
+            }
             mp.setBaseCurrency(baseCurrency.trim());
         }
         if (("REGIONAL".equalsIgnoreCase(compDiv) || "MASTER_DIST".equalsIgnoreCase(compDiv))
@@ -793,7 +959,12 @@ public class CompService {
 
         SettlementSetting ss = new SettlementSetting();
         ss.setOrgUnitId(saved.getId());
-        ss.setCalcCycle(calcCycle != null && !calcCycle.isEmpty() ? calcCycle : "D7");
+        /** 정산주기(calcCycle)는 가맹점에만 부여. 총본사~영업점은 미사용(null). */
+        if (childLevel == OrgLevel.MERCHANT) {
+            ss.setCalcCycle(calcCycle != null && !calcCycle.isEmpty() ? calcCycle : "D7");
+        } else {
+            ss.setCalcCycle(null);
+        }
         if (calcProcType != null && !calcProcType.isBlank()) {
             ss.setCalcProcType(calcProcType.trim());
             ss.setTransferType(transferType != null && !transferType.isBlank() ? transferType.trim() : "MANUAL");
@@ -1014,6 +1185,35 @@ public class CompService {
                 || hasText(rs.get("businessHolidayExtraDates"));
     }
 
+    private static boolean incomingHasHolidaySetting(String incomingJson) {
+        if (incomingJson == null || incomingJson.isBlank()) return false;
+        Map<String, Object> rs = parseRegionalSettings(incomingJson);
+        return hasOwnHolidaySetting(rs);
+    }
+
+    private static boolean isHolidayManagedByHeadquarters(Map<String, Object> rs) {
+        if (rs == null || rs.isEmpty()) return false;
+        Object v = rs.get("holidayManagedByHeadquartersYn");
+        return v != null && "Y".equalsIgnoreCase(String.valueOf(v).trim());
+    }
+
+    private boolean isParentRegionalHolidayManagedByHeadquarters(Long parentId) {
+        Long cur = parentId;
+        while (cur != null) {
+            Optional<OrgUnit> opt = orgUnitRepository.findById(cur);
+            if (opt.isEmpty()) break;
+            OrgUnit org = opt.get();
+            if (org.getOrgLevel() == OrgLevel.REGIONAL) {
+                Optional<MerchantProfile> mpOpt = merchantProfileRepository.findByOrgUnitId(org.getId());
+                if (mpOpt.isEmpty()) return false;
+                Map<String, Object> rs = parseRegionalSettings(mpOpt.get().getRegionalSettings());
+                return isHolidayManagedByHeadquarters(rs);
+            }
+            cur = org.getParentId();
+        }
+        return false;
+    }
+
     private Map<String, Object> resolveInheritedHolidaySettings(Long parentId) {
         Long cur = parentId;
         while (cur != null) {
@@ -1044,8 +1244,46 @@ public class CompService {
         if (v != null && !String.valueOf(v).isBlank()) to.put(key, v);
     }
 
+    private static void clearHolidayKeys(Map<String, Object> rs) {
+        if (rs == null || rs.isEmpty()) return;
+        rs.remove("holidayProfileName");
+        rs.remove("holidayProfileCountry");
+        rs.remove("holidayCountryCode");
+        rs.remove("holidayCountryCodes");
+        rs.remove("businessHolidayExtraDates");
+        rs.remove("businessHolidayRangesJson");
+    }
+
     private static boolean hasText(Object v) {
         return v != null && !String.valueOf(v).isBlank();
+    }
+
+    private Optional<OrgLevel> resolveCurrentActorOrgLevel() {
+        try {
+            var auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+            if (auth == null || auth.getPrincipal() == null) return Optional.empty();
+            String username = null;
+            Object p = auth.getPrincipal();
+            if (p instanceof AppUser u && u.getUsername() != null && !u.getUsername().isBlank()) {
+                username = u.getUsername().trim();
+            } else if (auth.getName() != null && !auth.getName().isBlank()) {
+                username = auth.getName().trim();
+            }
+            if (username == null || username.isBlank()) return Optional.empty();
+            Optional<MerchantProfile> mpOpt = merchantProfileRepository.findByLoginId(username);
+            if (mpOpt.isPresent()) {
+                return orgUnitRepository.findById(mpOpt.get().getOrgUnitId()).map(OrgUnit::getOrgLevel);
+            }
+            Optional<AppUser> userOpt = userRepository.findByUsername(username);
+            if (userOpt.isPresent()) {
+                AppUser u = userOpt.get();
+                if ("ADMIN".equalsIgnoreCase(u.getRole())) return Optional.of(OrgLevel.HEADQUARTERS);
+                if (u.getOrgUnitCode() != null && !u.getOrgUnitCode().isBlank()) {
+                    return orgUnitRepository.findByCode(u.getOrgUnitCode().trim()).map(OrgUnit::getOrgLevel);
+                }
+            }
+        } catch (Exception ignored) {}
+        return Optional.empty();
     }
 
     private static String normalizeAssistantRoleType(String roleType) {
@@ -1078,7 +1316,7 @@ public class CompService {
                             m.put("payLimitExtra", ss.getPayLimitExtra());
                             m.put("holdRate", ss.getHoldRate());
                             m.put("holdDays", ss.getHoldDays());
-                            m.put("calcCycle", ss.getCalcCycle());
+                            m.put("calcCycle", ou.getOrgLevel() == OrgLevel.MERCHANT ? ss.getCalcCycle() : null);
                             m.put("calcProcType", ss.getCalcProcType());
                             m.put("transferType", ss.getTransferType());
                             m.put("calcCloseTime", ss.getCalcCloseTime() != null ? ss.getCalcCloseTime().toString() : null);
@@ -1108,7 +1346,11 @@ public class CompService {
                             if (payLimitExtra != null && !payLimitExtra.isEmpty()) try { ss.setPayLimitExtra(new BigDecimal(payLimitExtra.trim())); } catch (Exception ignored) {}
                             if (holdRate != null && !holdRate.isEmpty()) try { ss.setHoldRate(new BigDecimal(holdRate.trim())); } catch (Exception ignored) {}
                             if (holdDays != null) ss.setHoldDays(holdDays);
-                            if (calcCycle != null && !calcCycle.isEmpty()) ss.setCalcCycle(calcCycle);
+                            if (ou.getOrgLevel() == OrgLevel.MERCHANT) {
+                                if (calcCycle != null && !calcCycle.isEmpty()) ss.setCalcCycle(calcCycle);
+                            } else {
+                                ss.setCalcCycle(null);
+                            }
                             if (parseTime(calcCloseTime) != null) ss.setCalcCloseTime(parseTime(calcCloseTime));
                             if (parseTime(calcStartTime) != null) ss.setCalcStartTime(parseTime(calcStartTime));
                             if (transferCycleDays != null) ss.setTransferCycleDays(transferCycleDays);
@@ -1188,6 +1430,17 @@ public class CompService {
         return v != null ? v.toString().trim() : null;
     }
 
+    /** 목록·엑셀 노출용: 저장값 CORP|번호 / PERSONAL|번호 → 번호만 (구분 미노출) */
+    private static String regNoForDisplay(String regNo) {
+        if (regNo == null || regNo.isBlank()) return "-";
+        int bar = regNo.indexOf('|');
+        if (bar >= 0 && bar < regNo.length() - 1) {
+            String num = regNo.substring(bar + 1).trim();
+            return num.isEmpty() ? "-" : num;
+        }
+        return regNo.trim();
+    }
+
     /** 업체관리 목록용 행 구성 (정산금, 미수금, 대표자명, 연락처, 은행, 계좌번호, 이체수수료, 정산주기, 이체구분 등) */
     private Map<String, Object> buildCompListItem(OrgUnit o) {
         Map<String, Object> m = CompListItemDto.from(o);
@@ -1210,8 +1463,11 @@ public class CompService {
         m.put("terminalCountWeb", "-");
         m.put("settlementAmt", "-");
         m.put("receivables", "-");
+        findNearestMasterDistAncestorId(o.getId()).ifPresentOrElse(
+                mid -> m.put("masterDistScopeOrgId", mid),
+                () -> m.put("masterDistScopeOrgId", null));
         merchantProfileRepository.findByOrgUnitId(o.getId()).ifPresent(mp -> {
-            m.put("regNo", mp.getRegNo() != null ? mp.getRegNo() : "-");
+            m.put("regNo", regNoForDisplay(mp.getRegNo()));
             m.put("ceoNm", mp.getCeoNm() != null ? mp.getCeoNm() : "-");
             String contact = mp.getCeoMobile() != null && !mp.getCeoMobile().isEmpty() ? mp.getCeoMobile() : (mp.getCompTel() != null ? mp.getCompTel() : "-");
             m.put("contact", contact);
@@ -1223,7 +1479,11 @@ public class CompService {
             m.put("terminalCountWeb", mp.getTerminalCountWeb() != null ? String.valueOf(mp.getTerminalCountWeb()) : "-");
         });
         settlementSettingRepository.findByOrgUnitId(o.getId()).ifPresent(ss -> {
-            m.put("calcCycle", calcCycleToDisplay(ss.getCalcCycle()));
+            if (o.getOrgLevel() == OrgLevel.MERCHANT) {
+                m.put("calcCycle", calcCycleToDisplay(ss.getCalcCycle()));
+            } else {
+                m.put("calcCycle", "-");
+            }
             m.put("calcProcType", calcProcTypeToDisplay(ss.getCalcProcType()));
             m.put("transferType", transferRemitTypeToDisplay(ss.getTransferType()));
             m.put("transferCycleHours", ss.getTransferCycleDays() != null ? String.valueOf(ss.getTransferCycleDays()) : "-");
@@ -1319,6 +1579,56 @@ public class CompService {
         for (OrgUnit child : byParent.getOrDefault(id, Collections.emptyList())) {
             result.add(child.getId());
             collectDescendantIdsRec(child.getId(), byParent, result);
+        }
+    }
+
+    /**
+     * viewer 업체코드 기준으로 target이 viewer 본인이거나 viewer의 직·간접 하위 조직인지(상세·수정 권한 판별).
+     */
+    public boolean isTargetUnderViewerOrg(String viewerCompCode, String targetCompCode) {
+        if (viewerCompCode == null || targetCompCode == null) return false;
+        String v = viewerCompCode.trim();
+        String t = targetCompCode.trim();
+        if (v.isEmpty() || t.isEmpty()) return false;
+        if (v.equals(t)) return true;
+        Optional<OrgUnit> cur = orgUnitRepository.findByCode(t);
+        while (cur.isPresent()) {
+            Long pid = cur.get().getParentId();
+            if (pid == null) return false;
+            Optional<OrgUnit> parent = orgUnitRepository.findById(pid);
+            if (parent.isEmpty()) return false;
+            String pc = parent.get().getCode();
+            if (pc != null && v.equals(pc.trim())) return true;
+            cur = parent;
+        }
+        return false;
+    }
+
+    /**
+     * 업체관리(로그인 조직 하위만) 목록 검색 시 업체구분 필터: 본인·상위 단계는 무시하고 하위만 허용.
+     * @return 허용 시 enum 이름, 무효/동급·상위면 null(=전체와 동일)
+     */
+    public String sanitizeSearchCompDivForSubtreeViewer(String viewerOrgLevelName, String requestedCompDiv) {
+        if (requestedCompDiv == null || requestedCompDiv.isBlank()) return null;
+        String t = requestedCompDiv.trim();
+        OrgLevel viewer = parseOrgLevelName(viewerOrgLevelName);
+        OrgLevel filter;
+        try {
+            filter = OrgLevel.valueOf(t.toUpperCase());
+        } catch (IllegalArgumentException e) {
+            return t;
+        }
+        if (viewer == null) return filter.name();
+        if (filter.getCode() <= viewer.getCode()) return null;
+        return filter.name();
+    }
+
+    private static OrgLevel parseOrgLevelName(String name) {
+        if (name == null || name.isBlank()) return null;
+        try {
+            return OrgLevel.valueOf(name.trim().toUpperCase());
+        } catch (IllegalArgumentException e) {
+            return null;
         }
     }
 

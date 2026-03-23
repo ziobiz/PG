@@ -59,7 +59,7 @@ public class ApiCompListBypassFilter extends OncePerRequestFilter {
             PageResult<Map<String, Object>> result = compService.search(
                     searchCompId, searchCompNm, searchCompDiv, searchUseYn, searchPayHoldYn,
                     searchCeoNm, searchTerminalId, searchCeoMobile, searchRegNo, searchIncludeSub,
-                    page, size, null);
+                    page, size, null, false);
 
             writeJson(response, 200, ApiResponse.ok(result));
         } catch (Exception e) {

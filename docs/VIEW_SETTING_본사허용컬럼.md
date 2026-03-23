@@ -31,7 +31,7 @@
 
 ## 전산 UI
 
-- **본사설정 → 본사별 VIEW SETTING 노출설정** (`/hq/orgViewColumnAllowance`): 본사·화면 선택 후, 해당 본사에 VIEW SETTING으로 **노출할 그리드 열**을 체크해 저장.
+- **본사설정 → 본사별 노출설정** (`/hq/orgViewColumnAllowance`): 본사·화면 선택 후, 해당 본사에 VIEW SETTING으로 **노출할 그리드 열**을 체크해 저장.
 - 지원 화면(초기): **결제내역** (`/calc/payList`), **업체관리** (`/comp/compMngTree`). 추가 시 동일 API에 `pageUrl`만 맞추면 됩니다.
 
 ## 본사(REGIONAL) 판별

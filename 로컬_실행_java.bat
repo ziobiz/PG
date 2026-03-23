@@ -4,7 +4,7 @@ REM JAVA_HOME 문제 시 이 파일 사용
 
 cd /d "%~dp0pg-app"
 
-echo [로컬 개발 모드] H2 DB + site 정적파일
+echo [로컬 개발 모드] H2 파일 DB ^(pg-app\data^) + site 정적파일
 echo 접속: http://localhost:8080/login.html
 echo 로그인: admin / admin1!
 echo.

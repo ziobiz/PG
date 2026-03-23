@@ -16,6 +16,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -68,19 +69,42 @@ public class ApiCompController {
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "20") int size) {
         String scopeCompId = null;
+        boolean scopeSubtreeBelow = false;
+        Map<String, Object> viewerOrgForSubtree = null;
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        AppUser appUser = (auth != null && auth.getPrincipal() instanceof AppUser au) ? au : null;
+
         if (Boolean.TRUE.equals(myOrgOnly)) {
-            Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-            if (auth != null && auth.getPrincipal() instanceof AppUser u) {
-                Map<String, Object> org = authService.getOrgInfo(u.getUsername());
+            if (appUser != null) {
+                Map<String, Object> org = authService.getOrgInfo(appUser.getUsername());
                 if (org != null && org.get("compId") != null) {
-                    scopeCompId = org.get("compId").toString();
+                    scopeCompId = org.get("compId").toString().trim();
                 }
             }
+            if (scopeCompId == null || scopeCompId.isEmpty()) {
+                return ResponseEntity.ok(ApiResponse.ok(emptyCompPage(page, size)));
+            }
+        } else if (appUser != null && !"ADMIN".equalsIgnoreCase(appUser.getRole())) {
+            Map<String, Object> org = authService.getOrgInfo(appUser.getUsername());
+            if (org == null || org.get("compId") == null || org.get("compId").toString().trim().isEmpty()) {
+                return ResponseEntity.ok(ApiResponse.ok(emptyCompPage(page, size)));
+            }
+            scopeCompId = org.get("compId").toString().trim();
+            scopeSubtreeBelow = true;
+            viewerOrgForSubtree = org;
         }
+
+        String effectiveSearchCompDiv = searchCompDiv;
+        if (scopeSubtreeBelow && viewerOrgForSubtree != null) {
+            String vLevel = viewerOrgForSubtree.get("orgLevel") != null
+                    ? viewerOrgForSubtree.get("orgLevel").toString().trim() : "";
+            effectiveSearchCompDiv = compService.sanitizeSearchCompDivForSubtreeViewer(vLevel, searchCompDiv);
+        }
+
         PageResult<Map<String, Object>> result = compService.search(
-                searchCompId, searchCompNm, searchCompDiv, searchUseYn, searchPayHoldYn,
+                searchCompId, searchCompNm, effectiveSearchCompDiv, searchUseYn, searchPayHoldYn,
                 searchCeoNm, searchTerminalId, searchCeoMobile, searchRegNo, searchIncludeSub,
-                page, size, scopeCompId);
+                page, size, scopeCompId, scopeSubtreeBelow);
         return ResponseEntity.ok(ApiResponse.ok(result));
     }
 
@@ -93,8 +117,8 @@ public class ApiCompController {
                 Map<String, Object> org = authService.getOrgInfo(u.getUsername());
                 String mine = org != null && org.get("compId") != null ? org.get("compId").toString().trim() : "";
                 String target = compId != null ? compId.trim() : "";
-                if (mine.isEmpty() || target.isEmpty() || !mine.equals(target)) {
-                    return ResponseEntity.ok(ApiResponse.fail("본인 소속 업체만 조회할 수 있습니다.", "FORBIDDEN"));
+                if (mine.isEmpty() || target.isEmpty() || !compService.isTargetUnderViewerOrg(mine, target)) {
+                    return ResponseEntity.ok(ApiResponse.fail("소속 업체 및 하위 업체만 조회할 수 있습니다.", "FORBIDDEN"));
                 }
             }
         }
@@ -310,12 +334,8 @@ public class ApiCompController {
         }
         Authentication auth0 = SecurityContextHolder.getContext().getAuthentication();
         if (auth0 != null && auth0.getPrincipal() instanceof AppUser u0) {
-            if (!"ADMIN".equalsIgnoreCase(u0.getRole())) {
-                Map<String, Object> org0 = authService.getOrgInfo(u0.getUsername());
-                String mine0 = org0 != null && org0.get("compId") != null ? org0.get("compId").toString().trim() : "";
-                if (mine0.isEmpty() || !mine0.equals(compId != null ? compId.trim() : "")) {
-                    return ResponseEntity.ok(ApiResponse.fail("본인 소속 업체만 수정할 수 있습니다.", "FORBIDDEN"));
-                }
+            if (!canAccessCompAsViewer(u0, compId)) {
+                return ResponseEntity.ok(ApiResponse.fail("소속 업체 및 하위 업체만 수정할 수 있습니다.", "FORBIDDEN"));
             }
         }
         String targetCompDiv = (String) targetOpt.get().get("compDiv");
@@ -346,12 +366,8 @@ public class ApiCompController {
     public ResponseEntity<ApiResponse<Map<String, Object>>> resetPassword(@RequestParam String compId) {
         Authentication auth0 = SecurityContextHolder.getContext().getAuthentication();
         if (auth0 != null && auth0.getPrincipal() instanceof AppUser u0) {
-            if (!"ADMIN".equalsIgnoreCase(u0.getRole())) {
-                Map<String, Object> org0 = authService.getOrgInfo(u0.getUsername());
-                String mine0 = org0 != null && org0.get("compId") != null ? org0.get("compId").toString().trim() : "";
-                if (mine0.isEmpty() || !mine0.equals(compId != null ? compId.trim() : "")) {
-                    return ResponseEntity.ok(ApiResponse.fail("본인 소속 업체만 비밀번호를 초기화할 수 있습니다.", "FORBIDDEN"));
-                }
+            if (!canAccessCompAsViewer(u0, compId)) {
+                return ResponseEntity.ok(ApiResponse.fail("소속 업체 및 하위 업체에 대해서만 비밀번호를 초기화할 수 있습니다.", "FORBIDDEN"));
             }
         }
         return compService.resetPassword(compId)
@@ -370,6 +386,12 @@ public class ApiCompController {
     public ResponseEntity<ApiResponse<Map<String, Object>>> changeLoginId(
             @RequestParam String compId,
             @RequestParam String newLoginId) {
+        Authentication auth0 = SecurityContextHolder.getContext().getAuthentication();
+        if (auth0 != null && auth0.getPrincipal() instanceof AppUser u0) {
+            if (!canAccessCompAsViewer(u0, compId)) {
+                return ResponseEntity.ok(ApiResponse.fail("권한이 없습니다.", "FORBIDDEN"));
+            }
+        }
         try {
             boolean ok = compService.changeLoginId(compId, newLoginId.trim());
             return ResponseEntity.ok(ok ? ApiResponse.ok(Map.of("success", true, "message", "로그인ID가 변경되었습니다."))
@@ -384,6 +406,12 @@ public class ApiCompController {
     public ResponseEntity<ApiResponse<Map<String, Object>>> pgBindingSave(@RequestBody Map<String, Object> body) {
         try {
             String compId = body.get("compId") != null ? body.get("compId").toString().trim() : "";
+            Authentication auth0 = SecurityContextHolder.getContext().getAuthentication();
+            if (auth0 != null && auth0.getPrincipal() instanceof AppUser u0) {
+                if (!canAccessCompAsViewer(u0, compId)) {
+                    return ResponseEntity.ok(ApiResponse.fail("권한이 없습니다.", "FORBIDDEN"));
+                }
+            }
             Long bindingId = null;
             Object idObj = body.get("id");
             if (idObj != null && !idObj.toString().isBlank()) {
@@ -414,6 +442,12 @@ public class ApiCompController {
             @PathVariable Long id,
             @RequestParam String compId) {
         try {
+            Authentication auth0 = SecurityContextHolder.getContext().getAuthentication();
+            if (auth0 != null && auth0.getPrincipal() instanceof AppUser u0) {
+                if (!canAccessCompAsViewer(u0, compId)) {
+                    return ResponseEntity.ok(ApiResponse.fail("권한이 없습니다.", "FORBIDDEN"));
+                }
+            }
             compService.deleteMerchantPgBinding(compId, id);
             return ResponseEntity.ok(ApiResponse.ok(Map.of("success", true, "message", "삭제되었습니다.")));
         } catch (IllegalArgumentException e) {
@@ -485,6 +519,12 @@ public class ApiCompController {
 
     @GetMapping("/settlementSetting")
     public ResponseEntity<ApiResponse<Map<String, Object>>> settlementSetting(@RequestParam String compId) {
+        Authentication auth0 = SecurityContextHolder.getContext().getAuthentication();
+        if (auth0 != null && auth0.getPrincipal() instanceof AppUser u0) {
+            if (!canAccessCompAsViewer(u0, compId)) {
+                return ResponseEntity.ok(ApiResponse.fail("조회 권한이 없습니다.", "FORBIDDEN"));
+            }
+        }
         return compService.getSettlementSetting(compId)
                 .map(ApiResponse::ok)
                 .map(ResponseEntity::ok)
@@ -511,6 +551,12 @@ public class ApiCompController {
             @RequestParam(required = false) String calcExcludeTarget,
             @RequestParam(required = false) String calcMinAmt,
             @RequestParam(required = false) String transferExecTime) {
+        Authentication auth0 = SecurityContextHolder.getContext().getAuthentication();
+        if (auth0 != null && auth0.getPrincipal() instanceof AppUser u0) {
+            if (!canAccessCompAsViewer(u0, compId)) {
+                return ResponseEntity.ok(ApiResponse.fail("저장 권한이 없습니다.", "FORBIDDEN"));
+            }
+        }
         Integer withdrawDays = null;
         if (withdrawLimitDays != null && !withdrawLimitDays.trim().isEmpty()) {
             try { withdrawDays = Integer.parseInt(withdrawLimitDays.trim()); } catch (NumberFormatException ignored) {}
@@ -530,5 +576,25 @@ public class ApiCompController {
                 calcExcludeYn, calcExcludeTarget,
                 calcMinAmt, transferExecTime);
         return ResponseEntity.ok(ok ? ApiResponse.ok(Map.of("success", true)) : ApiResponse.fail("업체를 찾을 수 없습니다.", "NOT_FOUND"));
+    }
+
+    private static PageResult<Map<String, Object>> emptyCompPage(int page, int size) {
+        PageResult<Map<String, Object>> pr = new PageResult<>();
+        pr.setList(new ArrayList<>());
+        pr.setPage(page);
+        pr.setSize(size);
+        pr.setTotalElements(0);
+        pr.setTotalPages(1);
+        return pr;
+    }
+
+    /** ADMIN은 전체, 그 외 로그인 소속 업체·하위 업체만 */
+    private boolean canAccessCompAsViewer(AppUser u, String targetCompId) {
+        if (u == null) return false;
+        if ("ADMIN".equalsIgnoreCase(u.getRole())) return true;
+        if (targetCompId == null || targetCompId.isBlank()) return false;
+        Map<String, Object> org = authService.getOrgInfo(u.getUsername());
+        String mine = org != null && org.get("compId") != null ? org.get("compId").toString().trim() : "";
+        return !mine.isEmpty() && compService.isTargetUnderViewerOrg(mine, targetCompId.trim());
     }
 }

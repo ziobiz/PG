@@ -55,7 +55,7 @@ public class ApiHqNotifyEnvController {
     public ResponseEntity<ApiResponse<Map<String, Object>>> createTarget(@RequestBody Map<String, Object> body, HttpServletRequest req) {
         try {
             String targetName = body.get("targetName") != null ? String.valueOf(body.get("targetName")) : "";
-            return ResponseEntity.ok(ApiResponse.ok(hqNotifyTargetService.create(targetName, req)));
+            return ResponseEntity.ok(ApiResponse.ok(hqNotifyTargetService.createPair(targetName, req)));
         } catch (Exception e) {
             return ResponseEntity.ok(ApiResponse.fail(e.getMessage(), "VALIDATION"));
         }

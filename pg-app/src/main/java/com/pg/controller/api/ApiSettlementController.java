@@ -976,7 +976,7 @@ public class ApiSettlementController {
         m.put("merchantNm", merchantNm);
         m.put("compNm", merchantNm);
         m.put("compId", compId);
-        m.put("bizType", regType(mp != null ? mp.getRegNo() : null));
+        m.put("bizType", "-");
         m.put("bizNo", regNo(mp != null ? mp.getRegNo() : null));
         m.put("payDivNm", payDivLabel(t.getStatus()));
         m.put("payCard", "-");
@@ -1081,11 +1081,6 @@ public class ApiSettlementController {
             return t.getCustomerId().trim();
         }
         return "-";
-    }
-    private String regType(String regNo) {
-        if (regNo == null || !regNo.contains("|")) return "-";
-        String t = regNo.split("\\|", 2)[0];
-        return "PERSONAL".equalsIgnoreCase(t) ? "개인" : "법인";
     }
     private String regNo(String regNo) {
         if (regNo == null) return "-";

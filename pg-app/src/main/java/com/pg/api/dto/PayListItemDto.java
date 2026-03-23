@@ -62,7 +62,8 @@ public class PayListItemDto {
         row.put("merchantNm", compNm);
         row.put("compDivCode9", compNm);
         row.put("compId", t.getMerchantId());
-        row.put("compRegDivNm", regType(mp));
+        /** 사업자번호 노출 시 법인/개인 구분 미표시 — 번호 컬럼만 사용 */
+        row.put("compRegDivNm", "-");
         row.put("compRegNo", regNo(mp));
         row.put("settleDiv", "정산");
         row.put("payDivNm", payDivLabel(t.getStatus()));
@@ -248,12 +249,6 @@ public class PayListItemDto {
             case "F0", "99" -> "Failed";
             default -> t.getStatus() != null ? t.getStatus() : "-";
         };
-    }
-
-    private static String regType(MerchantProfile mp) {
-        if (mp == null || mp.getRegNo() == null || !mp.getRegNo().contains("|")) return "-";
-        String t = mp.getRegNo().split("\\|", 2)[0];
-        return "PERSONAL".equalsIgnoreCase(t) ? "개인" : "법인";
     }
 
     private static String regNo(MerchantProfile mp) {

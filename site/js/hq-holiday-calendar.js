@@ -1,5 +1,6 @@
 /**
  * 본사(REGIONAL) 영업일·휴일: 연도별 12개월 미니달력 + 공휴일 API 병합
+ * 영업일설정(/hq/businessDaySetting): 기준국가(KR/US/JP/TH/CN/GLOBAL)별 프리셋, data-hq-calendar-readonly 시 클릭 토글 비활성
  */
 (function () {
   'use strict';
@@ -27,11 +28,49 @@
     return Object.keys(map).sort().join('\n');
   }
 
+  function expandYmdRange(fromStr, toStr) {
+    var out = [];
+    if (!fromStr || String(fromStr).length < 10) return out;
+    var fs = String(fromStr).substring(0, 10);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(fs)) return out;
+    var ts = (toStr && String(toStr).length >= 10 && /^\d{4}-\d{2}-\d{2}$/.test(String(toStr).substring(0, 10)))
+      ? String(toStr).substring(0, 10) : fs;
+    var a = fs.split('-').map(Number);
+    var b = ts.split('-').map(Number);
+    var d = new Date(a[0], a[1] - 1, a[2]);
+    var end = new Date(b[0], b[1] - 1, b[2]);
+    if (end < d) { var tmp = d; d = end; end = tmp; }
+    while (d <= end) {
+      out.push(d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()));
+      d.setDate(d.getDate() + 1);
+    }
+    return out;
+  }
+
+  /** 날짜 -> { kind, note } (구간 JSON 기준) */
+  function buildKindMetaFromEntriesJson(text) {
+    var byDate = {};
+    try {
+      var arr = JSON.parse(text || '[]');
+      if (!Array.isArray(arr)) return byDate;
+      arr.forEach(function (e) {
+        var from = (e.fromDate != null) ? String(e.fromDate).trim() : '';
+        var to = (e.toDate != null) ? String(e.toDate).trim() : '';
+        var kind = (e.holidayKind != null) ? String(e.holidayKind).trim() : '공휴일';
+        var note = (e.note != null) ? String(e.note) : '';
+        expandYmdRange(from, to || from).forEach(function (day) {
+          byDate[day] = { kind: kind, note: note };
+        });
+      });
+    } catch (err) { /* ignore */ }
+    return byDate;
+  }
+
   function daysInMonth(y, m) {
     return new Date(y, m, 0).getDate();
   }
 
-  function renderMonth(y, m, selectedMap) {
+  function renderMonth(y, m, selectedMap, kindMeta) {
     var dim = daysInMonth(y, m);
     var firstDow = new Date(y, m - 1, 1).getDay();
     var box = document.createElement('div');
@@ -74,8 +113,14 @@
         btn.setAttribute('data-date', ds);
         if (isWeekend) btn.setAttribute('data-weekend', 'Y');
         btn.textContent = String(dayNum);
+        var meta = kindMeta && kindMeta[ds];
         if (isWeekend || selectedMap[ds]) {
           btn.classList.add('hq-holiday-day--off');
+        }
+        if (meta && meta.kind) {
+          btn.setAttribute('data-holiday-kind', meta.kind);
+          btn.classList.add('hq-holiday-day--kind');
+          btn.setAttribute('title', meta.kind + (meta.note ? ' — ' + meta.note : ''));
         }
         td.appendChild(btn);
         dayNum++;
@@ -87,7 +132,7 @@
     return box;
   }
 
-  function renderYear(wrap, year, selectedMap) {
+  function renderYear(wrap, year, selectedMap, kindMeta) {
     var grid = wrap.querySelector('.hq-holiday-calendar-grid');
     if (!grid) return;
     grid.innerHTML = '';
@@ -96,7 +141,7 @@
     for (var mo = 1; mo <= 12; mo++) {
       var col = document.createElement('div');
       col.className = 'col-lg-6 col-xl-4';
-      col.appendChild(renderMonth(year, mo, selectedMap));
+      col.appendChild(renderMonth(year, mo, selectedMap, kindMeta || {}));
       row.appendChild(col);
     }
     grid.appendChild(row);
@@ -104,12 +149,14 @@
 
   function initWrap(wrap, pane) {
     var cardBody = wrap.closest('.card-body');
-    if (!cardBody) return;
+    if (!cardBody) return false;
     var ta = cardBody.querySelector('[name="businessHolidayExtraDates"]');
+    var metaInput = cardBody.querySelector('[name="holidayManualEntriesJson"]');
     var countryEl = cardBody.querySelector('[name="holidayCountryCodes"]');
     var yearSel = wrap.querySelector('.hq-holiday-year');
     var grid = wrap.querySelector('.hq-holiday-calendar-grid');
-    if (!ta || !yearSel || !grid) return;
+    var readOnly = wrap.getAttribute('data-hq-calendar-readonly') === 'true';
+    if (!ta || !yearSel || !grid) return false;
 
     var y0 = new Date().getFullYear();
     yearSel.innerHTML = '';
@@ -123,16 +170,19 @@
 
     function refresh() {
       var sel = parseDates(ta.value);
+      var kindMeta = metaInput ? buildKindMetaFromEntriesJson(metaInput.value) : {};
       var y = parseInt(yearSel.value, 10) || y0;
-      renderYear(wrap, y, sel);
+      renderYear(wrap, y, sel, kindMeta);
     }
 
     yearSel.addEventListener('change', refresh);
-    wrap.querySelector('.hq-holiday-refresh').addEventListener('click', function () {
+    var btnRef = wrap.querySelector('.hq-holiday-refresh');
+    if (btnRef) btnRef.addEventListener('click', function () {
       refresh();
     });
 
-    wrap.querySelector('.hq-holiday-load-presets').addEventListener('click', function () {
+    var btnPreset = wrap.querySelector('.hq-holiday-load-presets');
+    if (btnPreset) btnPreset.addEventListener('click', function () {
       if (!window.PG_API || !window.PG_API.holidayPresets) {
         alert('API가 준비되지 않았습니다.');
         return;
@@ -152,21 +202,25 @@
       });
     });
 
-    grid.addEventListener('click', function (ev) {
-      var btn = ev.target && ev.target.closest ? ev.target.closest('.hq-holiday-day') : null;
-      if (!btn) return;
-      if (btn.getAttribute('data-weekend') === 'Y') return;
-      var ds = btn.getAttribute('data-date');
-      if (!ds) return;
-      var set = parseDates(ta.value);
-      if (set[ds]) delete set[ds];
-      else set[ds] = true;
-      ta.value = datesToText(set);
-      refresh();
-    });
+    if (!readOnly) {
+      grid.addEventListener('click', function (ev) {
+        var btn = ev.target && ev.target.closest ? ev.target.closest('.hq-holiday-day') : null;
+        if (!btn) return;
+        if (btn.getAttribute('data-weekend') === 'Y') return;
+        var ds = btn.getAttribute('data-date');
+        if (!ds) return;
+        var set = parseDates(ta.value);
+        if (set[ds]) delete set[ds];
+        else set[ds] = true;
+        ta.value = datesToText(set);
+        refresh();
+      });
+    }
 
     ta.addEventListener('input', refresh);
+    if (metaInput) metaInput.addEventListener('input', refresh);
     refresh();
+    return true;
   }
 
   function init(pane, opts) {
@@ -175,8 +229,8 @@
     pane.querySelectorAll('.hq-holiday-ui-wrap').forEach(function (wrap) {
       if (force) delete wrap._hqHolidayInit;
       if (wrap._hqHolidayInit) return;
-      wrap._hqHolidayInit = true;
-      initWrap(wrap, pane);
+      var ok = initWrap(wrap, pane);
+      if (ok) wrap._hqHolidayInit = true;
     });
   }
 

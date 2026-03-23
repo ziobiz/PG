@@ -1,4 +1,5 @@
-# H2 인메모리 DB - PostgreSQL 없이 로컬 개발/테스트용
+# H2 파일 DB - PostgreSQL 없이 로컬 개발용 (재시작 후에도 데이터 유지)
+# DB 파일: pg-app/data/pgdev.mv.db (작업 디렉터리가 pg-app 일 때)
 # 실행: --spring.profiles.active=dev
 # 또는 환경변수: SPRING_PROFILES_ACTIVE=dev
 
@@ -13,7 +14,9 @@ app:
 
 spring:
   datasource:
-    url: jdbc:h2:mem:pgdev;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    # mem → file: 서버 재시작·종료 후에도 설정·업체 등 DB 데이터 유지
+    # create-drop 은 종료 시 스키마 삭제로 동일 증상 발생 → update 사용
+    url: jdbc:h2:file:./data/pgdev;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
     username: sa
     password:
     driver-class-name: org.h2.Driver
@@ -23,4 +26,4 @@ spring:
   jpa:
     database-platform: org.hibernate.dialect.H2Dialect
     hibernate:
-      ddl-auto: create-drop
+      ddl-auto: update
