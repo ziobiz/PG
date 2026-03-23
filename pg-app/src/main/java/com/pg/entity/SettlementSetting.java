@@ -55,15 +55,19 @@ public class SettlementSetting {
     @Column(name = "hold_days")
     private Integer holdDays;
 
-    /** 정산주기 코드: D3,D5,D7,D10,D15,D20,D30 / W5,W7,W10,W14,WEEKLY */
-    @Column(name = "calc_cycle", length = 20)
+    /** 정산주기 코드: RT,M5,M10,H1… / D1…D30 / W3,W5… / WEEKLY,WEEKLY2 등 */
+    @Column(name = "calc_cycle", length = 64)
     private String calcCycle;
 
     /** 정산 마감시간 */
     @Column(name = "calc_close_time")
     private LocalTime calcCloseTime;
 
-    /** 이체구분: MANUAL, AUTO, FUMBANKING */
+    /** 정산구분: MANUAL(수동), AUTO(자동), FUMBANKING(펌뱅킹) */
+    @Column(name = "calc_proc_type", length = 20)
+    private String calcProcType = "MANUAL";
+
+    /** 이체및송금구분: MANUAL, AUTO, NONE(사용안함) — 펌뱅킹 연동 시 이체 실행 방식 */
     @Column(name = "transfer_type", length = 20)
     private String transferType;
 
@@ -71,9 +75,17 @@ public class SettlementSetting {
     @Column(name = "transfer_cycle_days")
     private Integer transferCycleDays;
 
-    /** 자동이체 최소금액 (원) */
+    /** 자동이체 최소금액 (원) — 이체및송금 최소금액(펌뱅킹) */
     @Column(name = "auto_transfer_min", precision = 18, scale = 0)
     private BigDecimal autoTransferMin;
+
+    /** 정산 최소금액(원) — 미만이면 해당 주기 정산 연기 */
+    @Column(name = "calc_min_amt", precision = 18, scale = 0)
+    private BigDecimal calcMinAmt;
+
+    /** 이체·송금 실행 시각(펌뱅킹 연동) */
+    @Column(name = "transfer_exec_time")
+    private LocalTime transferExecTime;
 
     /** 지급보류 여부 */
     @Column(name = "pay_hold_yn", length = 1)
@@ -165,12 +177,18 @@ public class SettlementSetting {
     public void setCalcCycle(String calcCycle) { this.calcCycle = calcCycle; }
     public LocalTime getCalcCloseTime() { return calcCloseTime; }
     public void setCalcCloseTime(LocalTime calcCloseTime) { this.calcCloseTime = calcCloseTime; }
+    public String getCalcProcType() { return calcProcType; }
+    public void setCalcProcType(String calcProcType) { this.calcProcType = calcProcType; }
     public String getTransferType() { return transferType; }
     public void setTransferType(String transferType) { this.transferType = transferType; }
     public Integer getTransferCycleDays() { return transferCycleDays; }
     public void setTransferCycleDays(Integer transferCycleDays) { this.transferCycleDays = transferCycleDays; }
     public BigDecimal getAutoTransferMin() { return autoTransferMin; }
     public void setAutoTransferMin(BigDecimal autoTransferMin) { this.autoTransferMin = autoTransferMin; }
+    public BigDecimal getCalcMinAmt() { return calcMinAmt; }
+    public void setCalcMinAmt(BigDecimal calcMinAmt) { this.calcMinAmt = calcMinAmt; }
+    public LocalTime getTransferExecTime() { return transferExecTime; }
+    public void setTransferExecTime(LocalTime transferExecTime) { this.transferExecTime = transferExecTime; }
     public String getPayHoldYn() { return payHoldYn; }
     public void setPayHoldYn(String payHoldYn) { this.payHoldYn = payHoldYn; }
     public String getCalcExcludeDates() { return calcExcludeDates; }

@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * 본사설정 API
@@ -333,6 +334,8 @@ public class ApiHqController {
         data.put("chillpayMd5Key", "");
         data.put("chillpayRouteNo", 4);
         data.put("chillpaySandbox", "Y");
+        data.put("recallIncludeFeeYn", "N");
+        data.put("settlementVatApplyYn", "Y");
         hqApiConfigRepository.findAll().stream().findFirst().ifPresent(c -> {
             if (c.getBaseUrl() != null) data.put("baseUrl", c.getBaseUrl());
             if (c.getAuthType() != null) data.put("authType", c.getAuthType());
@@ -343,6 +346,8 @@ public class ApiHqController {
             if (c.getChillpayMd5Key() != null) data.put("chillpayMd5Key", c.getChillpayMd5Key());
             if (c.getChillpayRouteNo() != null) data.put("chillpayRouteNo", c.getChillpayRouteNo());
             if (c.getChillpaySandbox() != null) data.put("chillpaySandbox", c.getChillpaySandbox());
+            if (c.getRecallIncludeFeeYn() != null) data.put("recallIncludeFeeYn", c.getRecallIncludeFeeYn());
+            if (c.getSettlementVatApplyYn() != null) data.put("settlementVatApplyYn", c.getSettlementVatApplyYn());
         });
         return ResponseEntity.ok(ApiResponse.ok(data));
     }
@@ -361,8 +366,108 @@ public class ApiHqController {
         Object rn = body.get("chillpayRouteNo");
         c.setChillpayRouteNo(rn != null && !rn.toString().isEmpty() ? Integer.parseInt(rn.toString()) : 4);
         c.setChillpaySandbox(body.get("chillpaySandbox") != null ? body.get("chillpaySandbox").toString().trim() : "Y");
+        c.setRecallIncludeFeeYn("Y".equalsIgnoreCase(String.valueOf(body.getOrDefault("recallIncludeFeeYn", "N"))) ? "Y" : "N");
+        c.setSettlementVatApplyYn("N".equalsIgnoreCase(String.valueOf(body.getOrDefault("settlementVatApplyYn", "Y"))) ? "N" : "Y");
         hqApiConfigRepository.save(c);
         return ResponseEntity.ok(ApiResponse.ok(Map.of("success", true, "message", "저장되었습니다.")));
+    }
+
+    /** 본사설정 > 영업일설정 목록 조회 */
+    @GetMapping("/businessDaySettings")
+    public ResponseEntity<ApiResponse<List<Map<String, Object>>>> businessDaySettings() {
+        HqApiConfig c = hqApiConfigRepository.findAll().stream().findFirst().orElse(null);
+        String raw = c != null ? c.getBusinessDaySettingsJson() : null;
+        List<Map<String, Object>> list = parseBusinessDaySettings(raw);
+        return ResponseEntity.ok(ApiResponse.ok(list));
+    }
+
+    /** 본사설정 > 영업일설정 저장(추가/수정/삭제) */
+    @PostMapping("/businessDaySettings/save")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> businessDaySettingsSave(@RequestBody Map<String, Object> body) {
+        HqApiConfig c = hqApiConfigRepository.findAll().stream().findFirst().orElse(new HqApiConfig());
+        List<Map<String, Object>> list = parseBusinessDaySettings(c.getBusinessDaySettingsJson());
+        String mode = Optional.ofNullable(hqStr(body, "mode")).orElse("UPSERT").trim().toUpperCase(Locale.ROOT);
+        String id = Optional.ofNullable(hqStr(body, "id")).orElse("").trim();
+        String name = Optional.ofNullable(hqStr(body, "name")).orElse("").trim();
+        String countryCode = Optional.ofNullable(hqStr(body, "countryCode")).orElse("KR").trim().toUpperCase(Locale.ROOT);
+        String extraDates = Optional.ofNullable(hqStr(body, "businessHolidayExtraDates")).orElse("").trim();
+        if (!Set.of("KR", "US", "JP", "TH").contains(countryCode)) {
+            return ResponseEntity.ok(ApiResponse.fail("기준국가는 KR/US/JP/TH만 가능합니다.", "VALIDATION"));
+        }
+        if ("DELETE".equals(mode)) {
+            if (id.isEmpty()) return ResponseEntity.ok(ApiResponse.fail("삭제할 ID가 필요합니다.", "VALIDATION"));
+            final String deleteId = id;
+            list = list.stream().filter(m -> !Objects.equals(String.valueOf(m.getOrDefault("id", "")), deleteId)).collect(Collectors.toList());
+            c.setBusinessDaySettingsJson(writeBusinessDaySettings(list));
+            hqApiConfigRepository.save(c);
+            return ResponseEntity.ok(ApiResponse.ok(Map.of("success", true, "message", "삭제되었습니다.", "list", list)));
+        }
+        if (name.isEmpty()) return ResponseEntity.ok(ApiResponse.fail("이름은 필수입니다.", "VALIDATION"));
+        if (id.isEmpty()) id = UUID.randomUUID().toString();
+        String finalId = id;
+        for (Map<String, Object> m : list) {
+            String mid = String.valueOf(m.getOrDefault("id", ""));
+            String mn = String.valueOf(m.getOrDefault("name", ""));
+            if (!mid.equals(finalId) && mn.equalsIgnoreCase(name)) {
+                return ResponseEntity.ok(ApiResponse.fail("동일한 이름이 이미 있습니다.", "DUPLICATE"));
+            }
+        }
+        Map<String, Object> row = new LinkedHashMap<>();
+        row.put("id", id);
+        row.put("name", name);
+        row.put("countryCode", countryCode);
+        row.put("businessHolidayExtraDates", extraDates);
+        row.put("updatedAt", java.time.LocalDate.now().toString());
+        boolean updated = false;
+        for (int i = 0; i < list.size(); i++) {
+            if (Objects.equals(String.valueOf(list.get(i).getOrDefault("id", "")), id)) {
+                list.set(i, row);
+                updated = true;
+                break;
+            }
+        }
+        if (!updated) list.add(row);
+        c.setBusinessDaySettingsJson(writeBusinessDaySettings(list));
+        hqApiConfigRepository.save(c);
+        return ResponseEntity.ok(ApiResponse.ok(Map.of("success", true, "message", "저장되었습니다.", "id", id, "list", list)));
+    }
+
+    @SuppressWarnings("unchecked")
+    private List<Map<String, Object>> parseBusinessDaySettings(String raw) {
+        if (raw == null || raw.isBlank()) return new ArrayList<>();
+        try {
+            var om = new com.fasterxml.jackson.databind.ObjectMapper();
+            Object parsed = om.readValue(raw, Object.class);
+            if (!(parsed instanceof List<?> l)) return new ArrayList<>();
+            List<Map<String, Object>> out = new ArrayList<>();
+            for (Object it : l) {
+                if (!(it instanceof Map<?, ?> mm)) continue;
+                Map<String, Object> row = new LinkedHashMap<>();
+                Object idVal = mm.get("id");
+                Object nameVal = mm.get("name");
+                Object ccVal = mm.get("countryCode");
+                Object extraVal = mm.get("businessHolidayExtraDates");
+                Object updVal = mm.get("updatedAt");
+                row.put("id", idVal == null ? "" : String.valueOf(idVal));
+                row.put("name", nameVal == null ? "" : String.valueOf(nameVal));
+                row.put("countryCode", ccVal == null ? "KR" : String.valueOf(ccVal));
+                row.put("businessHolidayExtraDates", extraVal == null ? "" : String.valueOf(extraVal));
+                row.put("updatedAt", updVal == null ? "" : String.valueOf(updVal));
+                out.add(row);
+            }
+            return out;
+        } catch (Exception e) {
+            return new ArrayList<>();
+        }
+    }
+
+    private String writeBusinessDaySettings(List<Map<String, Object>> list) {
+        try {
+            var om = new com.fasterxml.jackson.databind.ObjectMapper();
+            return om.writeValueAsString(list == null ? List.of() : list);
+        } catch (Exception e) {
+            return "[]";
+        }
     }
 
     /** 4. 본사별 페이지/기능 접근 권한 세팅 */

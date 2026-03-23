@@ -36,6 +36,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -321,20 +322,33 @@ public class CompService {
                                     })
                                     .collect(Collectors.toList());
                             m.put("pgBindings", pgBindings);
-                            if (mp.getRegionalSettings() != null && !mp.getRegionalSettings().trim().isEmpty()) {
+                            Map<String, Object> ownRegionalSettings = parseRegionalSettings(mp.getRegionalSettings());
+                            if (!ownRegionalSettings.isEmpty()) {
+                                m.putAll(ownRegionalSettings);
                                 try {
                                     com.fasterxml.jackson.databind.ObjectMapper om = new com.fasterxml.jackson.databind.ObjectMapper();
-                                    java.util.Map<String, Object> rs = om.readValue(mp.getRegionalSettings().trim(), new com.fasterxml.jackson.core.type.TypeReference<java.util.Map<String, Object>>() {});
-                                    if (rs != null) m.putAll(rs);
-                                    Object rcl = rs != null ? rs.get("regionalCardLimits") : null;
+                                    Object rcl = ownRegionalSettings.get("regionalCardLimits");
                                     if (rcl instanceof String) {
                                         try { m.put("regionalCardLimits", om.readValue((String) rcl, java.util.List.class)); } catch (Exception ignored) {}
                                     } else if (rcl instanceof java.util.List) m.put("regionalCardLimits", rcl);
-                                    Object rt = rs != null ? rs.get("regionalTerminals") : null;
+                                    Object rt = ownRegionalSettings.get("regionalTerminals");
                                     if (rt instanceof String) {
                                         try { m.put("regionalTerminals", om.readValue((String) rt, java.util.List.class)); } catch (Exception ignored) {}
                                     } else if (rt instanceof java.util.List) m.put("regionalTerminals", rt);
                                 } catch (Exception ignored) {}
+                            }
+                            // 총판은 미설정 시 상위 본사(REGIONAL) 영업일 설정을 상속
+                            if (ou.getOrgLevel() == OrgLevel.MASTER_DIST) {
+                                boolean hasOwnHoliday = hasOwnHolidaySetting(ownRegionalSettings);
+                                if (!hasOwnHoliday) {
+                                    Map<String, Object> inherited = resolveInheritedHolidaySettings(ou.getParentId());
+                                    if (!inherited.isEmpty()) {
+                                        m.putAll(inherited);
+                                        m.put("holidayInheritedYn", "Y");
+                                    }
+                                } else {
+                                    m.put("holidayInheritedYn", "N");
+                                }
                             }
                             String primaryLoginId = mp.getLoginId() != null ? mp.getLoginId().trim() : "";
                             String assistantLoginId = m.get("assistantLoginId") != null ? String.valueOf(m.get("assistantLoginId")).trim() : "";
@@ -361,6 +375,7 @@ public class CompService {
                             m.put("brandingEditAllowedYn", "Y".equalsIgnoreCase(brandingYn) ? "Y" : "N");
                             settlementSettingRepository.findByOrgUnitId(ou.getId()).ifPresent(ss -> {
                                 m.put("calcCycle", ss.getCalcCycle());
+                                m.put("calcProcType", ss.getCalcProcType());
                                 m.put("transferType", ss.getTransferType());
                                 m.put("holdRate", ss.getHoldRate());
                                 m.put("holdDays", ss.getHoldDays());
@@ -374,6 +389,8 @@ public class CompService {
                                 m.put("calcCloseTime", ss.getCalcCloseTime() != null ? ss.getCalcCloseTime().toString() : null);
                                 m.put("transferCycleDays", ss.getTransferCycleDays());
                                 m.put("autoTransferMin", ss.getAutoTransferMin());
+                                m.put("calcMinAmt", ss.getCalcMinAmt());
+                                m.put("transferExecTime", ss.getTransferExecTime() != null ? ss.getTransferExecTime().toString() : null);
                                 m.put("payHoldYn", ss.getPayHoldYn());
                                 m.put("calcExcludeYn", ss.getCalcExcludeYn());
                                 m.put("calcExcludeTarget", ss.getCalcExcludeTarget());
@@ -488,12 +505,14 @@ public class CompService {
                                     nu.setOrgUnitCode(ou.getCode());
                                     nu.setPermissionGroupNm("업체사용자");
                                     nu.setOtpRegisteredYn("N");
+                                    nu.setPasswordMustChangeYn("N");
                                     return nu;
                                 });
                                 primary.setPassword(encoded);
                                 primary.setOrgUnitCode(ou.getCode());
                                 primary.setPermissionGroupNm("업체사용자");
                                 primary.setOtpRegisteredYn("N");
+                                primary.setPasswordMustChangeYn("N");
                                 primary.setRole("USER");
                                 primary.setEnabled(true);
                                 userRepository.save(primary);
@@ -534,6 +553,7 @@ public class CompService {
                                 au.setParentUsername(representativeLoginId.isEmpty() ? null : representativeLoginId);
                                 if (assistantPwd != null && !assistantPwd.trim().isEmpty()) {
                                     au.setPassword(passwordEncoder.encode(assistantPwd.trim()));
+                                    au.setPasswordMustChangeYn("N");
                                 }
                                 if (au.getPassword() == null || au.getPassword().isBlank()) {
                                     throw new IllegalArgumentException("보조 아이디 비밀번호를 입력하세요.");
@@ -578,25 +598,30 @@ public class CompService {
                 .orElse(false);
     }
 
-    /** 업체 비밀번호 초기화 - 기본 비밀번호로 재설정 (MerchantProfile.pwd, AppUser.password) */
-    public boolean resetPassword(String compId) {
+    /**
+     * 업체 대표 계정 비밀번호 초기화 — 임시 비밀번호 {@code 로그인ID + "1!"} (MerchantProfile.pwd, AppUser 동기화).
+     * @return 임시 평문 비밀번호, 실패 시 empty
+     */
+    public java.util.Optional<String> resetPassword(String compId) {
         return orgUnitRepository.findByCode(compId != null ? compId : "")
                 .flatMap(ou -> merchantProfileRepository.findByOrgUnitId(ou.getId())
-                        .map(mp -> {
-                            String defaultPwd = "test123!";
-                            String encoded = passwordEncoder.encode(defaultPwd);
+                        .flatMap(mp -> {
+                            String loginId = mp.getLoginId();
+                            if (loginId == null || loginId.isBlank()) {
+                                return java.util.Optional.empty();
+                            }
+                            String lid = loginId.trim();
+                            String tempPlain = lid + "1!";
+                            String encoded = passwordEncoder.encode(tempPlain);
                             mp.setPwd(encoded);
                             merchantProfileRepository.save(mp);
-                            String loginId = mp.getLoginId();
-                            if (loginId != null && !loginId.isEmpty()) {
-                                userRepository.findByUsername(loginId).ifPresent(u -> {
-                                    u.setPassword(encoded);
-                                    userRepository.save(u);
-                                });
-                            }
-                            return true;
-                        }))
-                .orElse(false);
+                            userRepository.findByUsername(lid).ifPresent(u -> {
+                                u.setPassword(encoded);
+                                u.setPasswordMustChangeYn("Y");
+                                userRepository.save(u);
+                            });
+                            return java.util.Optional.of(tempPlain);
+                        }));
     }
 
     /** 업체 로그인ID 변경 - MerchantProfile.loginId, AppUser.username 동시 변경 */
@@ -620,13 +645,15 @@ public class CompService {
                             } else {
                                 AppUser appUser = new AppUser();
                                 appUser.setUsername(trimmed);
-                                appUser.setPassword(passwordEncoder.encode("test123!"));
+                                String initPlain = trimmed + "1!";
+                                appUser.setPassword(passwordEncoder.encode(initPlain));
                                 appUser.setName(mp.getCeoNm() != null ? mp.getCeoNm() : trimmed);
                                 appUser.setRole("USER");
                                 appUser.setEnabled(true);
                                 appUser.setOrgUnitCode(compId);
                                 appUser.setPermissionGroupNm("업체사용자");
                                 appUser.setOtpRegisteredYn("N");
+                                appUser.setPasswordMustChangeYn("Y");
                                 userRepository.save(appUser);
                             }
                             return true;
@@ -648,9 +675,9 @@ public class CompService {
                 remark,
                 /* 44–54: withdraw / pay limit / hold / calc */
                 null, null, null, null, null, null, null, null, null, null, null,
-                /* 55–61: transfer / calc exclude / pgBindings start */
-                null, null, null, null, null, null, null,
-                /* 62–64 */
+                /* 55–64: transfer … calcStart … calcProc … */
+                null, null, null, null, null, null, null, null, null, null,
+                /* pgBindings … */
                 null, null, null,
                 /* 65–68 default product */
                 null, null, null, null,
@@ -676,6 +703,7 @@ public class CompService {
                                      String holdRateFollowHq, String holdRate, Integer holdDays, String calcCycle, String calcCloseTime,
                                      String transferType, Integer transferCycleDays, String autoTransferMin, String payHoldYn,
                                      String calcExcludeYn, String calcExcludeTarget, String calcStartTime,
+                                     String calcProcType, String calcMinAmt, String transferExecTime,
                                      String pgBindings, String webPaymentUseYn, String baseCurrency,
                                      String defaultProductName, String defaultProductCode, String defaultProductAmount, String defaultProductDesc,
                                      String notifyUrlBackground, String notifyUrlResult,
@@ -757,13 +785,21 @@ public class CompService {
             validateBaseCurrency(compDiv != null ? compDiv : "AGENCY", baseCurrency);
             mp.setBaseCurrency(baseCurrency.trim());
         }
-        if ("REGIONAL".equalsIgnoreCase(compDiv) && regionalSettings != null && !regionalSettings.trim().isEmpty()) mp.setRegionalSettings(regionalSettings.trim());
+        if (("REGIONAL".equalsIgnoreCase(compDiv) || "MASTER_DIST".equalsIgnoreCase(compDiv))
+                && regionalSettings != null && !regionalSettings.trim().isEmpty()) {
+            mp.setRegionalSettings(regionalSettings.trim());
+        }
         merchantProfileRepository.save(mp);
 
         SettlementSetting ss = new SettlementSetting();
         ss.setOrgUnitId(saved.getId());
         ss.setCalcCycle(calcCycle != null && !calcCycle.isEmpty() ? calcCycle : "D7");
-        ss.setTransferType(transferType != null && !transferType.isEmpty() ? transferType : "MANUAL");
+        if (calcProcType != null && !calcProcType.isBlank()) {
+            ss.setCalcProcType(calcProcType.trim());
+            ss.setTransferType(transferType != null && !transferType.isBlank() ? transferType.trim() : "MANUAL");
+        } else {
+            applyLegacySettlementFields(ss, transferType);
+        }
         if (withdrawLimitDays != null) ss.setWithdrawLimitDays(withdrawLimitDays);
         if (parseTime(withdrawStartTime) != null) ss.setWithdrawStartTime(parseTime(withdrawStartTime));
         if (parseTime(withdrawEndTime) != null) ss.setWithdrawEndTime(parseTime(withdrawEndTime));
@@ -782,6 +818,8 @@ public class CompService {
         if (calcExcludeYn != null && !calcExcludeYn.isEmpty()) ss.setCalcExcludeYn(calcExcludeYn);
         if (calcExcludeTarget != null && !calcExcludeTarget.isEmpty()) ss.setCalcExcludeTarget(calcExcludeTarget);
         if (parseTime(calcStartTime) != null) ss.setCalcStartTime(parseTime(calcStartTime));
+        if (calcMinAmt != null && !calcMinAmt.isEmpty()) try { ss.setCalcMinAmt(new BigDecimal(calcMinAmt.trim())); } catch (Exception ignored) {}
+        if (parseTime(transferExecTime) != null) ss.setTransferExecTime(parseTime(transferExecTime));
         settlementSettingRepository.save(ss);
 
         MerchantCommissionExtra extra = new MerchantCommissionExtra();
@@ -957,6 +995,59 @@ public class CompService {
         }
     }
 
+    private static Map<String, Object> parseRegionalSettings(String json) {
+        if (json == null || json.isBlank()) return new LinkedHashMap<>();
+        try {
+            com.fasterxml.jackson.databind.ObjectMapper om = new com.fasterxml.jackson.databind.ObjectMapper();
+            Map<String, Object> map = om.readValue(json.trim(), new com.fasterxml.jackson.core.type.TypeReference<Map<String, Object>>() {});
+            return map != null ? map : new LinkedHashMap<>();
+        } catch (Exception ignored) {
+            return new LinkedHashMap<>();
+        }
+    }
+
+    private static boolean hasOwnHolidaySetting(Map<String, Object> rs) {
+        if (rs == null || rs.isEmpty()) return false;
+        return hasText(rs.get("holidayProfileName"))
+                || hasText(rs.get("holidayCountryCode"))
+                || hasText(rs.get("holidayCountryCodes"))
+                || hasText(rs.get("businessHolidayExtraDates"));
+    }
+
+    private Map<String, Object> resolveInheritedHolidaySettings(Long parentId) {
+        Long cur = parentId;
+        while (cur != null) {
+            Optional<OrgUnit> opt = orgUnitRepository.findById(cur);
+            if (opt.isEmpty()) break;
+            OrgUnit org = opt.get();
+            Optional<MerchantProfile> mpOpt = merchantProfileRepository.findByOrgUnitId(org.getId());
+            if (mpOpt.isPresent()) {
+                Map<String, Object> rs = parseRegionalSettings(mpOpt.get().getRegionalSettings());
+                if (!rs.isEmpty() && org.getOrgLevel() == OrgLevel.REGIONAL) {
+                    Map<String, Object> onlyHoliday = new LinkedHashMap<>();
+                    copyIfPresent(rs, onlyHoliday, "holidayProfileName");
+                    copyIfPresent(rs, onlyHoliday, "holidayProfileCountry");
+                    copyIfPresent(rs, onlyHoliday, "holidayCountryCode");
+                    copyIfPresent(rs, onlyHoliday, "holidayCountryCodes");
+                    copyIfPresent(rs, onlyHoliday, "businessHolidayExtraDates");
+                    copyIfPresent(rs, onlyHoliday, "businessHolidayRangesJson");
+                    return onlyHoliday;
+                }
+            }
+            cur = org.getParentId();
+        }
+        return new LinkedHashMap<>();
+    }
+
+    private static void copyIfPresent(Map<String, Object> from, Map<String, Object> to, String key) {
+        Object v = from.get(key);
+        if (v != null && !String.valueOf(v).isBlank()) to.put(key, v);
+    }
+
+    private static boolean hasText(Object v) {
+        return v != null && !String.valueOf(v).isBlank();
+    }
+
     private static String normalizeAssistantRoleType(String roleType) {
         if (roleType == null || roleType.isBlank()) return "MANAGER";
         String v = roleType.trim().toUpperCase();
@@ -988,16 +1079,27 @@ public class CompService {
                             m.put("holdRate", ss.getHoldRate());
                             m.put("holdDays", ss.getHoldDays());
                             m.put("calcCycle", ss.getCalcCycle());
+                            m.put("calcProcType", ss.getCalcProcType());
                             m.put("transferType", ss.getTransferType());
+                            m.put("calcCloseTime", ss.getCalcCloseTime() != null ? ss.getCalcCloseTime().toString() : null);
+                            m.put("calcStartTime", ss.getCalcStartTime() != null ? ss.getCalcStartTime().toString() : null);
+                            m.put("transferExecTime", ss.getTransferExecTime() != null ? ss.getTransferExecTime().toString() : null);
                             m.put("autoTransferMin", ss.getAutoTransferMin());
+                            m.put("calcMinAmt", ss.getCalcMinAmt());
                             m.put("payHoldYn", ss.getPayHoldYn());
+                            m.put("calcExcludeYn", ss.getCalcExcludeYn());
+                            m.put("calcExcludeTarget", ss.getCalcExcludeTarget());
                             return m;
                         }));
     }
 
+    /** 가맹점 상세 저장 시 정산(tb_settlement_setting) 일괄 반영 */
     public boolean saveSettlementSetting(String compId, Integer withdrawLimitDays, String payLimitDefault, String payLimitExtra,
-                                         String holdRate, Integer holdDays, String calcCycle, String transferType,
-                                         String autoTransferMin, String payHoldYn) {
+                                         String holdRate, Integer holdDays, String calcCycle,
+                                         String calcCloseTime, String calcStartTime, Integer transferCycleDays,
+                                         String calcProcType, String transferType, String autoTransferMin, String payHoldYn,
+                                         String calcExcludeYn, String calcExcludeTarget,
+                                         String calcMinAmt, String transferExecTime) {
         return orgUnitRepository.findByCode(compId != null ? compId : "")
                 .flatMap(ou -> settlementSettingRepository.findByOrgUnitId(ou.getId())
                         .map(ss -> {
@@ -1007,13 +1109,44 @@ public class CompService {
                             if (holdRate != null && !holdRate.isEmpty()) try { ss.setHoldRate(new BigDecimal(holdRate.trim())); } catch (Exception ignored) {}
                             if (holdDays != null) ss.setHoldDays(holdDays);
                             if (calcCycle != null && !calcCycle.isEmpty()) ss.setCalcCycle(calcCycle);
-                            if (transferType != null && !transferType.isEmpty()) ss.setTransferType(transferType);
+                            if (parseTime(calcCloseTime) != null) ss.setCalcCloseTime(parseTime(calcCloseTime));
+                            if (parseTime(calcStartTime) != null) ss.setCalcStartTime(parseTime(calcStartTime));
+                            if (transferCycleDays != null) ss.setTransferCycleDays(transferCycleDays);
+                            if (calcProcType != null && !calcProcType.isEmpty()) ss.setCalcProcType(calcProcType.trim());
+                            if (transferType != null && !transferType.isEmpty()) ss.setTransferType(transferType.trim());
                             if (autoTransferMin != null && !autoTransferMin.isEmpty()) try { ss.setAutoTransferMin(new BigDecimal(autoTransferMin.trim())); } catch (Exception ignored) {}
+                            if (calcMinAmt != null && !calcMinAmt.isEmpty()) try { ss.setCalcMinAmt(new BigDecimal(calcMinAmt.trim())); } catch (Exception ignored) {}
+                            if (parseTime(transferExecTime) != null) ss.setTransferExecTime(parseTime(transferExecTime));
                             if (payHoldYn != null && !payHoldYn.isEmpty()) ss.setPayHoldYn(payHoldYn);
+                            if (calcExcludeYn != null && !calcExcludeYn.isEmpty()) ss.setCalcExcludeYn(calcExcludeYn);
+                            if (calcExcludeTarget != null && !calcExcludeTarget.isEmpty()) ss.setCalcExcludeTarget(calcExcludeTarget);
                             settlementSettingRepository.save(ss);
                             return true;
                         }))
                 .orElse(false);
+    }
+
+    /** 레거시 등록 API 단일 transferType(구 이체구분) → 정산구분 + 이체및송금구분 */
+    private static void applyLegacySettlementFields(SettlementSetting ss, String legacyTransferType) {
+        if (legacyTransferType == null || legacyTransferType.isBlank()) {
+            ss.setCalcProcType("MANUAL");
+            ss.setTransferType("MANUAL");
+            return;
+        }
+        switch (legacyTransferType.trim().toUpperCase()) {
+            case "FUMBANKING" -> {
+                ss.setCalcProcType("FUMBANKING");
+                ss.setTransferType("AUTO");
+            }
+            case "AUTO" -> {
+                ss.setCalcProcType("AUTO");
+                ss.setTransferType("AUTO");
+            }
+            default -> {
+                ss.setCalcProcType("MANUAL");
+                ss.setTransferType("MANUAL");
+            }
+        }
     }
 
     /** 업체코드 10자리 자동 부여. 총본사=0000000000, 총판=0000000001부터(총판끼리 순번), 나머지=접두2자리+순번8자리. */
@@ -1065,6 +1198,7 @@ public class CompService {
         m.put("accountNo", "-");
         m.put("transferFee", "-");
         m.put("calcCycle", "-");
+        m.put("calcProcType", "-");
         m.put("transferType", "사용안함");
         m.put("transferCycleHours", "-");
         m.put("calcExcludeYn", "-");
@@ -1090,7 +1224,8 @@ public class CompService {
         });
         settlementSettingRepository.findByOrgUnitId(o.getId()).ifPresent(ss -> {
             m.put("calcCycle", calcCycleToDisplay(ss.getCalcCycle()));
-            m.put("transferType", transferTypeToDisplay(ss.getTransferType()));
+            m.put("calcProcType", calcProcTypeToDisplay(ss.getCalcProcType()));
+            m.put("transferType", transferRemitTypeToDisplay(ss.getTransferType()));
             m.put("transferCycleHours", ss.getTransferCycleDays() != null ? String.valueOf(ss.getTransferCycleDays()) : "-");
             m.put("calcExcludeYn", ss.getCalcExcludeYn() != null ? ss.getCalcExcludeYn() : "-");
             m.put("calcExcludeTarget", calcExcludeTargetToDisplay(ss.getCalcExcludeTarget()));
@@ -1237,16 +1372,46 @@ public class CompService {
 
     private static String calcCycleToDisplay(String c) {
         if (c == null || c.isEmpty()) return "-";
-        if (c.matches("D\\d+")) return "D+" + c.substring(1);
-        return c;
+        String u = c.trim().toUpperCase();
+        return switch (u) {
+            case "RT", "REALTIME" -> "실시간";
+            case "M5" -> "5분";
+            case "M10" -> "10분";
+            case "H1" -> "1시간";
+            case "H2" -> "2시간";
+            case "H4" -> "4시간";
+            case "W3" -> "W+3";
+            case "W5" -> "W+5";
+            case "W7" -> "W+7";
+            case "W10" -> "W+10";
+            case "W14" -> "W+14";
+            case "WEEKLY" -> "Weekly";
+            case "WEEKLY2" -> "Weekly2";
+            default -> {
+                if (u.matches("D\\d+")) yield "D+" + u.substring(1);
+                yield c;
+            }
+        };
     }
 
-    private static String transferTypeToDisplay(String t) {
-        if (t == null || t.isEmpty()) return "사용안함";
+    /** 정산구분(수동·자동·펌뱅킹) */
+    private static String calcProcTypeToDisplay(String t) {
+        if (t == null || t.isEmpty()) return "-";
         return switch (t.toUpperCase()) {
             case "MANUAL" -> "수동";
             case "AUTO" -> "자동";
             case "FUMBANKING" -> "펌뱅킹";
+            default -> t;
+        };
+    }
+
+    /** 이체및송금구분(수동·자동·사용안함) */
+    private static String transferRemitTypeToDisplay(String t) {
+        if (t == null || t.isEmpty()) return "사용안함";
+        return switch (t.toUpperCase()) {
+            case "MANUAL" -> "수동";
+            case "AUTO" -> "자동";
+            case "NONE" -> "사용안함";
             default -> t;
         };
     }
@@ -1257,6 +1422,7 @@ public class CompService {
             case "NONE" -> "전체";
             case "WEB" -> "웹";
             case "OFFLINE" -> "오프라인";
+            case "BOTH", "WEB_OFFLINE" -> "웹+오프라인";
             default -> t;
         };
     }
@@ -1329,7 +1495,7 @@ public class CompService {
                             null, null, null, null, null, null, null, null, null,
                             row.get("remark"),
                             null, null, null, null, null, null, null, null, null, row.get("calcCycle"), null,
-                            row.get("transferType"), null, null, null, null, null, null,
+                            row.get("transferType"), null, null, null, null, null, null, null, null, null,
                             null, null, null,
                             null, null, null, null,
                             null, null, null, null, null, null, null, null, null, null,
@@ -1344,6 +1510,7 @@ public class CompService {
                         appUser.setOrgUnitCode(saved.getCode());
                         appUser.setPermissionGroupNm("업체사용자");
                         appUser.setOtpRegisteredYn("N");
+                        appUser.setPasswordMustChangeYn("N");
                         userRepository.save(appUser);
                     }
                     created.add(saved.getCode() + " " + saved.getName());

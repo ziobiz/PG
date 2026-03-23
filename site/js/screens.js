@@ -4,6 +4,77 @@
 (function () {
   'use strict';
 
+  /** 정산주기 저장값(v)·화면표시(t) — 가맹점 정산방법·결제내역 검색 공통 */
+  var CALC_CYCLE_OPTIONS = [
+    { v: '', t: '선택' },
+    { v: 'RT', t: '실시간' },
+    { v: 'M5', t: '5분' },
+    { v: 'M10', t: '10분' },
+    { v: 'H1', t: '1시간' },
+    { v: 'H2', t: '2시간' },
+    { v: 'H4', t: '4시간' },
+    { v: 'D1', t: 'D+1' },
+    { v: 'D2', t: 'D+2' },
+    { v: 'D3', t: 'D+3' },
+    { v: 'D5', t: 'D+5' },
+    { v: 'D7', t: 'D+7' },
+    { v: 'D10', t: 'D+10' },
+    { v: 'D15', t: 'D+15' },
+    { v: 'D20', t: 'D+20' },
+    { v: 'D30', t: 'D+30' },
+    { v: 'W3', t: 'W+3' },
+    { v: 'W5', t: 'W+5' },
+    { v: 'W7', t: 'W+7' },
+    { v: 'W10', t: 'W+10' },
+    { v: 'W14', t: 'W+14' },
+    { v: 'WEEKLY', t: 'Weekly' },
+    { v: 'WEEKLY2', t: 'Weekly2' }
+  ];
+  var CALC_CYCLE_SEARCH_OPTIONS = [{ v: '', t: '전체' }].concat(CALC_CYCLE_OPTIONS.filter(function (o) { return o.v !== ''; }));
+
+  /** 정산구분: 정산 마감 후 개시 방식 (수동/자동/펌뱅킹) */
+  var CALC_PROC_OPTIONS = [
+    { v: 'MANUAL', t: '수동' },
+    { v: 'AUTO', t: '자동' },
+    { v: 'FUMBANKING', t: '펌뱅킹' }
+  ];
+  /** 이체및송금구분: 펌뱅킹 연동 시 이체 실행 (수동/자동/사용안함) */
+  var TRANSFER_REMIT_OPTIONS = [
+    { v: 'MANUAL', t: '수동' },
+    { v: 'AUTO', t: '자동' },
+    { v: 'NONE', t: '사용안함' }
+  ];
+
+  /** 본사 영업일·휴일: 연간 미니달력 + 공휴일 프리셋 (hq-holiday-calendar.js) */
+  var HQ_HOLIDAY_UI_HTML = '<div class="col-12"><div class="hq-holiday-ui-wrap border rounded p-2 bg-light mt-1">' +
+    '<div class="d-flex flex-wrap align-items-center gap-2 mb-2">' +
+    '<label class="small mb-0 text-nowrap">연도</label><select class="form-select form-select-sm hq-holiday-year" style="width:auto;min-width:5rem"></select>' +
+    '<button type="button" class="btn btn-sm btn-outline-primary hq-holiday-load-presets">4국 공휴일 불러오기</button>' +
+    '<button type="button" class="btn btn-sm btn-outline-secondary hq-holiday-refresh">달력 동기화</button></div>' +
+    '<p class="text-muted small mb-2">날짜를 클릭하면 비영업일에서 추가/제거됩니다. [4국 공휴일 불러오기]는 위 국가 코드에 맞춰 아래 목록에 병합합니다.</p>' +
+    '<div class="hq-holiday-calendar-grid"></div></div></div>';
+
+  /** 본사 영업일·휴일: 기간형 추가 목록(언제부터~언제까지/내용/추가일/작성자) */
+  var REGIONAL_BIZDAY_RANGE_UI_HTML = '<div class="col-12"><div class="border rounded p-2 bg-light mt-1">' +
+    '<div class="d-flex flex-wrap align-items-end gap-2 mb-2">' +
+    '<div><label class="form-label mb-1">언제부터</label><input type="date" class="form-control form-control-sm" id="bizHolidayFromDate"></div>' +
+    '<div><label class="form-label mb-1">언제까지</label><input type="date" class="form-control form-control-sm" id="bizHolidayToDate"></div>' +
+    '<div style="min-width:220px"><label class="form-label mb-1">내용</label><input type="text" class="form-control form-control-sm" id="bizHolidayReason" placeholder="예: 설 연휴"></div>' +
+    '<div><label class="form-label mb-1">작성자</label><input type="text" class="form-control form-control-sm" id="bizHolidayWriter" placeholder="작성자"></div>' +
+    '<div><button type="button" class="btn btn-sm btn-primary" id="bizHolidayAddBtn">추가</button></div>' +
+    '</div>' +
+    '<div class="table-responsive"><table class="table table-sm table-bordered mb-0"><thead><tr><th style="width:120px">언제부터</th><th style="width:120px">언제까지</th><th>내용</th><th style="width:130px">추가한날짜</th><th style="width:120px">작성자</th><th style="width:170px">처리</th></tr></thead>' +
+    '<tbody id="bizHolidayRangeTbody"><tr><td colspan="6" class="text-muted text-center">추가된 기간이 없습니다.</td></tr></tbody></table></div>' +
+    '<input type="hidden" name="businessHolidayRangesJson" id="businessHolidayRangesJson">' +
+    '</div></div>';
+
+  /** 본사설정 > 영업일설정: 등록된 설정 목록 */
+  var HQ_BIZDAY_PROFILE_LIST_HTML = '<div class="col-12"><div class="border rounded p-2 bg-light mt-1">' +
+    '<div class="d-flex justify-content-between align-items-center mb-2"><strong>저장된 영업일 설정 목록</strong><small class="text-muted">목록에서 행을 선택하면 상단 편집영역으로 불러옵니다.</small></div>' +
+    '<div class="table-responsive"><table class="table table-sm table-bordered mb-0"><thead><tr><th style="width:64px">번호</th><th style="width:220px">이름</th><th style="width:140px">기준국가</th><th>추가 리스트(휴일) 건수</th><th style="width:130px">수정일</th></tr></thead>' +
+    '<tbody id="hqBizdayProfileTbody"><tr><td colspan="5" class="text-center text-muted">저장된 설정이 없습니다.</td></tr></tbody></table></div>' +
+    '</div></div>';
+
   var MENU_SCREENS = {
     '/hq/pgApiMng': {
       emptyMessage: '조회된 데이터가 없습니다.',
@@ -14,7 +85,7 @@
       ]],
       summary: ['건수'],
       buttons: [{ id: 'searchBtn', label: '검색', cls: 'btn-primary' }, { id: 'hqPgApiAddBtn', label: 'PG사 연동 추가', cls: 'btn-success' }],
-      columns: [{ key: '_chk', type: 'checkbox' }, { key: 'pgCd', label: 'PG사코드' }, { key: 'pgNm', label: 'PG사명' }, { key: 'apiEndpoint', label: 'API 엔드포인트' }, { key: 'useYn', label: '사용여부' }, { key: 'regDt', label: '등록일' }]
+      columns: [{ key: '_chk', type: 'checkbox' }, { key: 'rowNo', label: '번호' }, { key: 'pgNm', label: '업체명' }, { key: 'pgCd', label: '업체코드' }, { key: 'apiEndpoint', label: 'API 엔드포인트' }, { key: 'useYn', label: '사용여부' }, { key: 'regDt', label: '등록일' }]
     },
     '/hq/defaultCommission': {
       isForm: true,
@@ -33,6 +104,28 @@
         { id: 'hqDefaultCommissionTemplateAddBtn', label: '정책 추가', cls: 'btn-success' },
         { id: 'hqDefaultCommissionTemplateDeleteBtn', label: '정책 삭제', cls: 'btn-outline-danger' },
         { id: 'hqDefaultCommissionSaveBtn', label: '저장', cls: 'btn-primary' }
+      ]
+    },
+    '/hq/businessDaySetting': {
+      isForm: true,
+      formSections: [
+        {
+          title: '영업일 설정',
+          notice: '4개국(KR/US/JP/TH) 기준으로 이름별 영업일 설정을 저장합니다. 업체등록의 본사 설정에서 이 이름을 선택하면 해당 국가/비영업일 목록이 적용됩니다.',
+          rows: [
+            [{ label: '이름', type: 'text', name: 'hqBizdayProfileName', col: 3, placeholder: '예: KR 기본 영업일' },
+             { label: '기준국가선택', type: 'select', name: 'holidayCountryCodes', options: [{ v: 'KR', t: 'KR (대한민국)' }, { v: 'US', t: 'US (미국)' }, { v: 'JP', t: 'JP (일본)' }, { v: 'TH', t: 'TH (태국)' }], col: 2 },
+             { label: '선택ID', type: 'text', name: 'hqBizdayProfileId', col: 2, readonly: true }],
+            [{ label: '추가 리스트 (한 줄에 YYYY-MM-DD 하나)', type: 'textarea', name: 'businessHolidayExtraDates', col: 12, rows: 5, placeholder: 'YYYY-MM-DD 한 줄에 하나' }],
+            [{ type: 'customHtml', html: HQ_HOLIDAY_UI_HTML, col: 12 }],
+            [{ type: 'customHtml', html: HQ_BIZDAY_PROFILE_LIST_HTML, col: 12 }]
+          ]
+        }
+      ],
+      buttons: [
+        { id: 'hqBizdayProfileNewBtn', label: '신규', cls: 'btn-outline-secondary' },
+        { id: 'hqBizdayProfileDeleteBtn', label: '삭제', cls: 'btn-outline-danger' },
+        { id: 'hqBizdayProfileSaveBtn', label: '저장', cls: 'btn-primary' }
       ]
     },
     '/hq/notifyEnv': {
@@ -82,6 +175,49 @@
       ],
       buttons: [{ id: 'hqNotifyRegenTokenBtn', label: '토큰 재발급', cls: 'btn-warning' }, { id: 'hqNotifyEnvSaveBtn', label: '저장', cls: 'btn-primary' }]
     },
+    '/hq/notifyMapping': {
+      isForm: true,
+      formHtmlId: 'hqNotifyMappingForm',
+      formSections: [
+        {
+          title: '노티매핑설정',
+          notice: '각 PG사가 CALLBACK·RESULT(및 Background 등)로 넘기는 노티 파라미터를, 전산의 어느 화면(URL)과 그리드/필드(internalKey)에 반영할지 정의합니다. 결제대행사가 추가되면 JSON의 vendors 배열에 동일 구조로 항목을 추가하면 됩니다. 실제 수신 파싱·저장 로직은 이 정의를 참조해 단계적으로 연동합니다.',
+          rows: [
+            [{ label: '매핑 정의 (JSON)', type: 'textarea', name: 'mappingDefinitionJson', col: 6, rows: 22, placeholder: '{ "version": 1, "vendors": [ ... ] }' }],
+            [{ label: '최종 수정일시', type: 'text', name: 'updatedAt', col: 3, readonly: true }]
+          ]
+        },
+        {
+          title: '구조 안내',
+          notice: 'vendorCode·vendorName: PG 식별. channels: CALLBACK(서버 노티), RESULT(브라우저 리다이렉트) 등. targetPageUrl·targetPageLabel: 전산 메뉴 경로. fieldMappings: pgField(피지사 파라미터명) → internalKey(결제내역 그리드 키 등). 상세는 저장소 docs/노티매핑설정.md 를 참고하세요.',
+          rows: []
+        }
+      ],
+      buttons: [{ id: 'hqNotifyMappingSaveBtn', label: '저장', cls: 'btn-primary' }]
+    },
+    '/hq/orgViewColumnAllowance': {
+      isForm: true,
+      formHtmlId: 'hqOrgViewColumnAllowanceForm',
+      formSections: [
+        {
+          title: '본사별 VIEW SETTING 노출설정',
+          notice: '총본사가 각 본사(REGIONAL)마다, 화면별 그리드에서 VIEW SETTING으로 노출·선택 가능한 열을 지정합니다. 여기서 체크한 항목만 해당 본사 및 그 하위 조직(총판·가맹점 등) 사용자가 개인 VIEW SETTING에서 켜고 끌 수 있습니다. 이 설정이 없으면(불러오기 시 정책 없음) 전 항목 선택 가능합니다. 고정 열(번호·업체명·거래일·Route No 등)은 항상 표시되며 여기 목록에 나오지 않습니다.',
+          rows: [
+            [{ label: '설정 대상 본사', type: 'select', name: 'regionalOrgCode', col: 4, options: [{ v: '', t: '선택' }], loadRegionalBranches: true }],
+            [{ label: '설정 대상 화면', type: 'select', name: 'targetPageUrl', col: 4, options: [
+              { v: '/calc/payList', t: '결제내역(통합)' },
+              { v: '/comp/compMngTree', t: '업체관리' }
+            ] }],
+            [{ type: 'customHtml', col: 12, html: '<div class="mb-2"><span class="form-label d-block">이 본사에 노출할 열 (VIEW SETTING에서 선택 가능)</span><div id="hqOrgAllowColumnChecks" class="column-guide-list border rounded p-2 bg-light"></div><p class="text-muted small mb-0 mt-1">체크한 열만 하위 사용자 화면의 VIEW SETTING에 나타납니다.</p></div>' }]
+          ]
+        }
+      ],
+      buttons: [
+        { id: 'hqOrgAllowLoadBtn', label: '불러오기', cls: 'btn-outline-secondary' },
+        { id: 'hqOrgAllowSaveBtn', label: '노출 항목 저장', cls: 'btn-primary' },
+        { id: 'hqOrgAllowDeleteBtn', label: '노출 제한 해제', cls: 'btn-outline-danger' }
+      ]
+    },
     '/hq/apiConfig': {
       isForm: true,
       formSections: [
@@ -101,6 +237,16 @@
             [{ label: 'Merchant Code', type: 'text', name: 'chillpayMerchantCode', col: 2, placeholder: 'M035594' }, { label: 'API Key', type: 'text', name: 'chillpayApiKey', col: 4, placeholder: 'ChillPay에서 발급' }],
             [{ label: 'MD5 Secret Key', type: 'text', name: 'chillpayMd5Key', col: 4, placeholder: 'CheckSum 생성용' }, { label: 'Route No', type: 'text', name: 'chillpayRouteNo', col: 1, placeholder: '4' }, { label: 'Sandbox', type: 'select', name: 'chillpaySandbox', options: [{ v: 'Y', t: '사용' }, { v: 'N', t: '운영' }], col: 1 }]
           ]
+        },
+        {
+          title: '정산/환수 정책',
+          notice: '환수금 처리 시 수수료 포함 여부와 정산 VAT 부과 여부를 본사 정책으로 설정합니다.',
+          rows: [
+            [
+              { label: '환수금 수수료 포함', type: 'select', name: 'recallIncludeFeeYn', options: [{ v: 'Y', t: '포함' }, { v: 'N', t: '제외' }], col: 2 },
+              { label: '정산 VAT 부과', type: 'select', name: 'settlementVatApplyYn', options: [{ v: 'Y', t: '부과' }, { v: 'N', t: '미부과' }], col: 2 }
+            ]
+          ]
         }
       ],
       buttons: [{ id: 'hqApiConfigSaveBtn', label: '저장', cls: 'btn-primary' }]
@@ -114,7 +260,7 @@
       ]],
       summary: ['건수'],
       buttons: [{ id: 'searchBtn', label: '검색', cls: 'btn-primary' }, { id: 'hqPermissionSaveBtn', label: '권한 저장', cls: 'btn-primary' }],
-      columns: [{ key: '_chk', type: 'checkbox' }, { key: 'hqCd', label: '본사코드' }, { key: 'hqNm', label: '본사명' }, { key: 'menuId', label: '메뉴ID' }, { key: 'menuNm', label: '메뉴명' }, { key: 'accessYn', label: '접근허용' }, { key: 'regDt', label: '적용일' }]
+      columns: [{ key: '_chk', type: 'checkbox' }, { key: 'rowNo', label: '번호' }, { key: 'hqNm', label: '업체명' }, { key: 'hqCd', label: '업체코드' }, { key: 'menuId', label: '메뉴ID' }, { key: 'menuNm', label: '메뉴명' }, { key: 'accessYn', label: '접근허용' }, { key: 'regDt', label: '적용일' }]
     },
     '/hq/accountMng': {
       emptyMessage: '등록된 업체별 접근 규칙이 없습니다.',
@@ -130,9 +276,10 @@
       ],
       columns: [
         { key: '_chk', type: 'checkbox' },
-        { key: 'rowNo', label: 'No.' },
+        { key: 'rowNo', label: '번호' },
+        { key: 'compNm', label: '업체명' },
+        { key: 'compCode', label: '업체코드' },
         { key: 'username', label: '사용자ID' },
-        { key: 'compCode', label: '허용 업체코드' },
         { key: 'regDt', label: '등록일시' },
         { key: 'id', type: 'accountAccessDelete', label: '삭제' }
       ]
@@ -149,7 +296,7 @@
       ],
       summary: ['건수'],
       buttons: [{ id: 'searchBtn', label: '검색', cls: 'btn-primary' }, { id: 'excelBtn', label: '엑셀다운로드', cls: 'btn-info' }],
-      columns: [{ key: '_chk', label: '', type: 'checkbox' }, { key: 'title', label: '제목' }, { key: 'regDt', label: '작성일' }, { key: 'hitCnt', label: '조회수' }]
+      columns: [{ key: '_chk', label: '', type: 'checkbox' }, { key: 'rowNo', label: '번호' }, { key: 'compNm', label: '업체명' }, { key: 'compId', label: '업체코드' }, { key: 'title', label: '제목' }, { key: 'regDt', label: '작성일' }, { key: 'hitCnt', label: '조회수' }]
     },
     '/comp/myCompMng': {
       hideListGrid: true,
@@ -166,7 +313,7 @@
             [{ label: '업체코드', type: 'text', name: 'compId', col: 2, readonly: true }, { label: '업체구분', type: 'select', name: 'compDiv', options: [{ v: '', t: '선택' }, { v: 'HEADQUARTERS', t: '총본사' }, { v: 'REGIONAL', t: '본사' }, { v: 'MASTER_DIST', t: '총판' }, { v: 'BRANCH', t: '지사' }, { v: 'AGENCY', t: '대리점' }, { v: 'SALES_OFFICE', t: '영업점' }, { v: 'MERCHANT', t: '가맹점' }], col: 2 }, { label: '업체명', type: 'text', name: 'compNm', col: 2 }, { label: '사업자번호', type: 'regNoWithType', name: 'regNo', col: 2 }, { label: '업태', type: 'text', name: 'bizType', col: 2 }, { label: '종목', type: 'text', name: 'industry', col: 2 }],
             [{ label: '대표자명', type: 'text', name: 'ceoNm', col: 2 }, { label: '휴대폰', type: 'text', name: 'ceoMobile', col: 2 }, { label: '업체전화', type: 'text', name: 'compTel', col: 2 }, { label: '팩스', type: 'text', name: 'fax', col: 2 }, { label: '이메일', type: 'text', name: 'email', col: 2 }, { label: '비고', type: 'text', name: 'remark', col: 2 }],
             [{ type: 'countryAddressRow', zipLabel: '우편번호', addrLabel: '주소', addrDetailLabel: '상세주조', addrEtcLabel: '기타' }],
-            [{ label: '대표 아이디 (중복검사)', type: 'text', name: 'loginId', col: 2, button: '중복확인' }, { label: '패스워드', type: 'password', name: 'pwd', col: 2 }],
+            [{ label: '대표 아이디 (중복검사)', type: 'text', name: 'loginId', col: 2, button: '중복확인' }, { label: '비밀번호', type: 'passwordReset', name: 'pwdReset', col: 2 }],
             [{ label: '보조 아이디 (중복검사)', type: 'text', name: 'assistantLoginId', col: 2, button: '중복확인' }, { label: '패스워드', type: 'password', name: 'assistantPwd', col: 2 }],
             [{ label: '배경/로고 변경권한', type: 'select', name: 'brandingEditAllowedYn', options: [{ v: 'N', t: '미부여' }, { v: 'Y', t: '부여' }], col: 2 }],
             [{ label: '특이사항', type: 'textarea', name: 'siteSummary', col: 6 }]
@@ -212,9 +359,9 @@
       tableColumnGuide: true,
       columns: [
         { key: '_chk', type: 'checkbox' },
-        { key: 'rowNo', label: 'No.' },
-        { key: 'compId', label: '업체코드' },
+        { key: 'rowNo', label: '번호' },
         { key: 'compNm', label: '업체명' },
+        { key: 'compId', label: '업체코드' },
         { key: 'compDivNm', label: '업체구분' },
         { key: 'settlementAmt', label: '정산금' },
         { key: 'receivables', label: '미수금' },
@@ -225,7 +372,8 @@
         { key: 'accountNo', label: '계좌번호' },
         { key: 'transferFee', label: '이체수수료' },
         { key: 'calcCycle', label: '정산주기' },
-        { key: 'transferType', label: '이체구분' },
+        { key: 'calcProcType', label: '정산구분' },
+        { key: 'transferType', label: '이체및송금' },
         { key: 'transferCycleHours', label: '이체주기(시)' },
         { key: 'calcExcludeYn', label: '정산제외' },
         { key: 'calcExcludeTarget', label: '정산제외대상' },
@@ -260,6 +408,17 @@
           rows: [
             [{ label: '기준 화폐1*', type: 'select', name: 'baseCurrency1', options: [{ v: '', t: '선택' }, { v: 'KRW', t: 'KRW (원)' }, { v: 'USD', t: 'USD (달러)' }, { v: 'JPY', t: 'JPY (엔)' }, { v: 'THB', t: 'THB (바트)' }, { v: 'EUR', t: 'EUR (유로)' }], col: 2 }, { label: '기준 화폐2', type: 'select', name: 'baseCurrency2', options: [{ v: '', t: '선택' }, { v: 'KRW', t: 'KRW (원)' }, { v: 'USD', t: 'USD (달러)' }, { v: 'JPY', t: 'JPY (엔)' }, { v: 'THB', t: 'THB (바트)' }, { v: 'EUR', t: 'EUR (유로)' }], col: 2 }, { label: '기준 화폐3', type: 'select', name: 'baseCurrency3', options: [{ v: '', t: '선택' }, { v: 'KRW', t: 'KRW (원)' }, { v: 'USD', t: 'USD (달러)' }, { v: 'JPY', t: 'JPY (엔)' }, { v: 'THB', t: 'THB (바트)' }, { v: 'EUR', t: 'EUR (유로)' }], col: 2 }, { label: '사업자형태', type: 'text', name: 'bizNature', col: 2 }, { label: '취급물품', type: 'text', name: 'product', col: 2 }, { label: '대표사이트', type: 'text', name: 'homepage', col: 2, placeholder: 'https://' }],
             [{ label: '정산담당자명', type: 'text', name: 'settleName', col: 2 }, { label: '정산담당자연락처', type: 'text', name: 'settleTelNo', col: 2, placeholder: '010-0000-0000' }, { label: '송금자명(입금시)', type: 'text', name: 'remitterName', col: 2, placeholder: '입금 시 송금자명' }]
+          ]
+        },
+        {
+          title: '영업일 · 휴일 (본사)',
+          id: 'regionalBusinessHolidayCard',
+          regionalOrMasterDistOnly: true,
+          notice: '영업일 상세는 [본사설정 > 영업일설정]에서 관리합니다. 여기서는 적용할 설정 이름을 선택하세요.',
+          rows: [
+            [{ label: '영업일 설정 이름', type: 'select', name: 'holidayProfileName', options: [{ v: '', t: '선택' }], col: 3 }],
+            [{ label: '기준국가', type: 'text', name: 'holidayProfileCountry', col: 2, readonly: true }],
+            [{ type: 'customHtml', html: '<input type="hidden" name="holidayCountryCode"><input type="hidden" name="holidayCountryCodes"><input type="hidden" name="businessHolidayExtraDates"><input type="hidden" name="businessHolidayRangesJson">', col: 12 }]
           ]
         },
         {
@@ -405,9 +564,12 @@
           title: '정산방법',
           id: 'calcMethodCard',
           merchantOnly: true,
+          notice: '정산주기·영업일(휴일 제외) 기준은 본사 정산정보와 동일합니다. 정산마감시간까지 거래를 마감하고, 정산자동개시시간에 정산 계산(정산구분 자동 시). 정산구분: 수동=마감 후 운영자가 개시, 자동=개시시간에 자동, 펌뱅킹=마감 금액 기준 이체까지 연동. 이체및송금구분은 펌뱅킹 송금 방식(수동/자동/사용안함). 정산제외여부 사용 시 마감·자동개시가 보류되며, 해제 후 해당일 정산마감·자동개시 규칙이 적용됩니다. 정산최소금액 미만이면 해당 주기 정산은 다음 순번으로 이월됩니다. 이체및송금최소금액 미만이면 펌뱅킹 송금이 제한됩니다. 이체시간은 펌뱅킹 연동 시 해당 시각에 이체합니다.',
           rows: [
-            [{ label: '정산주기', type: 'select', name: 'calcCycle', options: [{ v: '', t: '선택' }, { v: 'D3', t: 'D+3' }, { v: 'D5', t: 'D+5' }, { v: 'D7', t: 'D+7' }, { v: 'D10', t: 'D+10' }, { v: 'D15', t: 'D+15' }, { v: 'D20', t: 'D+20' }, { v: 'D30', t: 'D+30' }, { v: 'W5', t: '주D+5' }, { v: 'W7', t: '주D+7' }, { v: 'W10', t: '주D+10' }, { v: 'W14', t: '주D+14' }, { v: 'WEEKLY', t: 'Weekly' }], col: 1 }, { label: '정산시간', type: 'time', name: 'calcCloseTime', col: 1 }, { label: '이체구분', type: 'select', name: 'transferType', options: [{ v: 'MANUAL', t: '수동' }, { v: 'AUTO', t: '자동' }, { v: 'FUMBANKING', t: '펌뱅킹' }], col: 1 }, { label: '이체주기(일)', type: 'text', name: 'transferCycleDays', col: 1 }, { label: '자동이체최소(원)', type: 'text', name: 'autoTransferMin', col: 1 }],
-            [{ label: '정산제외', type: 'select', name: 'calcExcludeYn', options: [{ v: 'N', t: '미사용' }, { v: 'Y', t: '사용' }], col: 1 }, { label: '정산제외대상', type: 'select', name: 'calcExcludeTarget', options: [{ v: 'NONE', t: '해당없음' }, { v: 'WEB', t: 'Web제외' }, { v: 'OFFLINE', t: '오프라인제외' }], col: 1 }, { label: '정산개시시간', type: 'time', name: 'calcStartTime', col: 1 }, { label: '지급보류', type: 'select', name: 'payHoldYn', options: [{ v: 'N', t: '아니오' }, { v: 'Y', t: '예' }], col: 1 }]
+            [{ label: '정산주기', type: 'select', name: 'calcCycle', options: CALC_CYCLE_OPTIONS, col: 1 }, { label: '정산마감시간', type: 'time', name: 'calcCloseTime', col: 1 }, { label: '정산자동개시시간', type: 'time', name: 'calcStartTime', col: 1 }],
+            [{ label: '정산구분', type: 'select', name: 'calcProcType', options: CALC_PROC_OPTIONS, col: 1 }, { label: '이체및송금구분', type: 'select', name: 'transferType', options: TRANSFER_REMIT_OPTIONS, col: 1 }, { label: '이체주기(일)', type: 'text', name: 'transferCycleDays', col: 1 }, { label: '이체시간', type: 'time', name: 'transferExecTime', col: 1 }],
+            [{ label: '정산제외여부', type: 'select', name: 'calcExcludeYn', options: [{ v: 'N', t: '미사용' }, { v: 'Y', t: '사용' }], col: 1 }, { label: '정산제외대상', type: 'select', name: 'calcExcludeTarget', options: [{ v: 'NONE', t: '해당없음' }, { v: 'WEB', t: 'WEB' }, { v: 'OFFLINE', t: '오프라인' }, { v: 'BOTH', t: 'WEB+오프라인' }], col: 1 }, { label: '지급보류', type: 'select', name: 'payHoldYn', options: [{ v: 'N', t: '아니오' }, { v: 'Y', t: '예' }], col: 1 }],
+            [{ label: '정산최소금액(원)', type: 'text', name: 'calcMinAmt', col: 1, placeholder: '미만 시 다음 주기' }, { label: '이체및송금최소금액(원)', type: 'text', name: 'autoTransferMin', col: 1, placeholder: '펌뱅킹 최소' }]
           ]
         },
         {
@@ -478,6 +640,17 @@
           rows: [
             [{ label: '기준 화폐1*', type: 'select', name: 'baseCurrency1', options: [{ v: '', t: '선택' }, { v: 'KRW', t: 'KRW (원)' }, { v: 'USD', t: 'USD (달러)' }, { v: 'JPY', t: 'JPY (엔)' }, { v: 'THB', t: 'THB (바트)' }, { v: 'EUR', t: 'EUR (유로)' }], col: 2 }, { label: '기준 화폐2', type: 'select', name: 'baseCurrency2', options: [{ v: '', t: '선택' }, { v: 'KRW', t: 'KRW (원)' }, { v: 'USD', t: 'USD (달러)' }, { v: 'JPY', t: 'JPY (엔)' }, { v: 'THB', t: 'THB (바트)' }, { v: 'EUR', t: 'EUR (유로)' }], col: 2 }, { label: '기준 화폐3', type: 'select', name: 'baseCurrency3', options: [{ v: '', t: '선택' }, { v: 'KRW', t: 'KRW (원)' }, { v: 'USD', t: 'USD (달러)' }, { v: 'JPY', t: 'JPY (엔)' }, { v: 'THB', t: 'THB (바트)' }, { v: 'EUR', t: 'EUR (유로)' }], col: 2 }, { label: '사업자형태', type: 'text', name: 'bizNature', col: 2 }, { label: '취급물품', type: 'text', name: 'product', col: 2 }, { label: '대표사이트', type: 'text', name: 'homepage', col: 2, placeholder: 'https://' }],
             [{ label: '정산담당자명', type: 'text', name: 'settleName', col: 2 }, { label: '정산담당자연락처', type: 'text', name: 'settleTelNo', col: 2, placeholder: '010-0000-0000' }, { label: '송금자명(입금시)', type: 'text', name: 'remitterName', col: 2, placeholder: '입금 시 송금자명' }]
+          ]
+        },
+        {
+          title: '영업일 · 휴일 (본사)',
+          id: 'regionalBusinessHolidayCard',
+          regionalOrMasterDistOnly: true,
+          notice: '영업일 상세는 [본사설정 > 영업일설정]에서 관리합니다. 여기서는 적용할 설정 이름을 선택하세요.',
+          rows: [
+            [{ label: '영업일 설정 이름', type: 'select', name: 'holidayProfileName', options: [{ v: '', t: '선택' }], col: 3 }],
+            [{ label: '기준국가', type: 'text', name: 'holidayProfileCountry', col: 2, readonly: true }],
+            [{ type: 'customHtml', html: '<input type="hidden" name="holidayCountryCode"><input type="hidden" name="holidayCountryCodes"><input type="hidden" name="businessHolidayExtraDates"><input type="hidden" name="businessHolidayRangesJson">', col: 12 }]
           ]
         },
         {
@@ -623,9 +796,12 @@
           title: '정산방법',
           id: 'calcMethodCard',
           merchantOnly: true,
+          notice: '정산주기·영업일(휴일 제외) 기준은 본사 정산정보와 동일합니다. 정산마감시간까지 거래를 마감하고, 정산자동개시시간에 정산 계산(정산구분 자동 시). 정산구분: 수동=마감 후 운영자가 개시, 자동=개시시간에 자동, 펌뱅킹=마감 금액 기준 이체까지 연동. 이체및송금구분은 펌뱅킹 송금 방식(수동/자동/사용안함). 정산제외여부 사용 시 마감·자동개시가 보류되며, 해제 후 해당일 정산마감·자동개시 규칙이 적용됩니다. 정산최소금액 미만이면 해당 주기 정산은 다음 순번으로 이월됩니다. 이체및송금최소금액 미만이면 펌뱅킹 송금이 제한됩니다. 이체시간은 펌뱅킹 연동 시 해당 시각에 이체합니다.',
           rows: [
-            [{ label: '정산주기', type: 'select', name: 'calcCycle', options: [{ v: '', t: '선택' }, { v: 'D3', t: 'D+3' }, { v: 'D5', t: 'D+5' }, { v: 'D7', t: 'D+7' }, { v: 'D10', t: 'D+10' }, { v: 'D15', t: 'D+15' }, { v: 'D20', t: 'D+20' }, { v: 'D30', t: 'D+30' }, { v: 'W5', t: '주D+5' }, { v: 'W7', t: '주D+7' }, { v: 'W10', t: '주D+10' }, { v: 'W14', t: '주D+14' }, { v: 'WEEKLY', t: 'Weekly' }], col: 1 }, { label: '정산시간', type: 'time', name: 'calcCloseTime', col: 1 }, { label: '이체구분', type: 'select', name: 'transferType', options: [{ v: 'MANUAL', t: '수동' }, { v: 'AUTO', t: '자동' }, { v: 'FUMBANKING', t: '펌뱅킹' }], col: 1 }, { label: '이체주기(일)', type: 'text', name: 'transferCycleDays', col: 1 }, { label: '자동이체최소(원)', type: 'text', name: 'autoTransferMin', col: 1 }],
-            [{ label: '정산제외', type: 'select', name: 'calcExcludeYn', options: [{ v: 'N', t: '미사용' }, { v: 'Y', t: '사용' }], col: 1 }, { label: '정산제외대상', type: 'select', name: 'calcExcludeTarget', options: [{ v: 'NONE', t: '해당없음' }, { v: 'WEB', t: 'Web제외' }, { v: 'OFFLINE', t: '오프라인제외' }], col: 1 }, { label: '정산개시시간', type: 'time', name: 'calcStartTime', col: 1 }, { label: '지급보류', type: 'select', name: 'payHoldYn', options: [{ v: 'N', t: '아니오' }, { v: 'Y', t: '예' }], col: 1 }]
+            [{ label: '정산주기', type: 'select', name: 'calcCycle', options: CALC_CYCLE_OPTIONS, col: 1 }, { label: '정산마감시간', type: 'time', name: 'calcCloseTime', col: 1 }, { label: '정산자동개시시간', type: 'time', name: 'calcStartTime', col: 1 }],
+            [{ label: '정산구분', type: 'select', name: 'calcProcType', options: CALC_PROC_OPTIONS, col: 1 }, { label: '이체및송금구분', type: 'select', name: 'transferType', options: TRANSFER_REMIT_OPTIONS, col: 1 }, { label: '이체주기(일)', type: 'text', name: 'transferCycleDays', col: 1 }, { label: '이체시간', type: 'time', name: 'transferExecTime', col: 1 }],
+            [{ label: '정산제외여부', type: 'select', name: 'calcExcludeYn', options: [{ v: 'N', t: '미사용' }, { v: 'Y', t: '사용' }], col: 1 }, { label: '정산제외대상', type: 'select', name: 'calcExcludeTarget', options: [{ v: 'NONE', t: '해당없음' }, { v: 'WEB', t: 'WEB' }, { v: 'OFFLINE', t: '오프라인' }, { v: 'BOTH', t: 'WEB+오프라인' }], col: 1 }, { label: '지급보류', type: 'select', name: 'payHoldYn', options: [{ v: 'N', t: '아니오' }, { v: 'Y', t: '예' }], col: 1 }],
+            [{ label: '정산최소금액(원)', type: 'text', name: 'calcMinAmt', col: 1, placeholder: '미만 시 다음 주기' }, { label: '이체및송금최소금액(원)', type: 'text', name: 'autoTransferMin', col: 1, placeholder: '펌뱅킹 최소' }]
           ]
         },
         {
@@ -686,17 +862,67 @@
           { type: 'searchBtn' }
         ]
       ],
+      tableScrollable: true,
+      noticeList: [
+        '적용시작일을 비우면 저장 시점(서버 시각) 기준으로 적용됩니다.',
+        '동일 가맹점에 미래 적용일이 중복되지 않도록 한 번에 한 건만 등록하는 것을 권장합니다.',
+        '상위 조직 수수료 정책이 바뀌면 이후 신규 가맹점 등록 시 하위 배분 설정에 반영될 수 있습니다.'
+      ],
       summary: ['건수'],
       buttons: [{ id: 'searchBtn', label: '검색', cls: 'btn-primary' }, { id: 'commissionSettingBtn', label: '수수료설정', cls: 'btn-info' }, { id: 'excelBtn', label: '엑셀다운로드', cls: 'btn-info' }],
+      /** 2단 헤더 좁은 컬럼: 한 줄 표시 + site.css .commission-split-grid */
+      tableExtraClass: 'commission-split-grid',
+      headerGroups: [
+        { label: '총본사', keys: ['hqNm', 'hqRate', 'hqPerTxFee'] },
+        { label: '본사', keys: ['regionalNm', 'regionalRate', 'regionalPerTxFee'] },
+        { label: '총판', keys: ['masterNm', 'masterRate', 'masterPerTxFee'] },
+        { label: '지사', keys: ['branchNm', 'branchRate', 'branchPerTxFee'] },
+        { label: '대리점', keys: ['agencyNm', 'agencyRate', 'agencyPerTxFee'] },
+        { label: '영업점', keys: ['salesOfficeNm', 'salesOfficeRate', 'salesOfficePerTxFee'] },
+        { label: '합계', keys: ['totalNm', 'totalRate', 'totalPerTxFee'] },
+        { label: '처리', keys: ['inlineActions'] }
+      ],
       columns: [
-        { key: '_chk', type: 'checkbox' }, { key: 'compId', label: '업체코드' }, { key: 'compNm', label: '가맹명' },
-        { key: 'hqNm', label: '본사' }, { key: 'hqRate', label: '수수료%(본사)' },
-        { key: 'regionalNm', label: '총판' }, { key: 'regionalRate', label: '수수료%(총판)' },
-        { key: 'masterNm', label: '지사' }, { key: 'masterRate', label: '수수료%(지사)' },
-        { key: 'branchNm', label: '대리점' }, { key: 'branchRate', label: '수수료%(대리점)' },
-        { key: 'agencyNm', label: '영업점' }, { key: 'agencyRate', label: '수수료%(영업점)' },
-        { key: 'applyDt', label: '적용일' }
-      ]
+        { key: '_chk', type: 'checkbox' },
+        { key: 'rowNo', label: 'No.' },
+        { key: 'compNm', label: '가맹점' },
+        { key: 'compId', label: '업체코드' },
+        { key: 'hqNm', label: '업체명' }, { key: 'hqRate', label: '요율%' }, { key: 'hqPerTxFee', label: '건당료' },
+        { key: 'regionalNm', label: '업체명' }, { key: 'regionalRate', label: '요율%' }, { key: 'regionalPerTxFee', label: '건당료' },
+        { key: 'masterNm', label: '업체명' }, { key: 'masterRate', label: '요율%' }, { key: 'masterPerTxFee', label: '건당료' },
+        { key: 'branchNm', label: '업체명' }, { key: 'branchRate', label: '요율%' }, { key: 'branchPerTxFee', label: '건당료' },
+        { key: 'agencyNm', label: '업체명' }, { key: 'agencyRate', label: '요율%' }, { key: 'agencyPerTxFee', label: '건당료' },
+        { key: 'salesOfficeNm', label: '업체명' }, { key: 'salesOfficeRate', label: '요율%' }, { key: 'salesOfficePerTxFee', label: '건당료' },
+        { key: 'totalNm', label: '업체명' }, { key: 'totalRate', label: '요율%' }, { key: 'totalPerTxFee', label: '건당료' },
+        { key: 'applyDt', label: '적용시작일' },
+        { key: 'inlineActions', type: 'commissionInlineActions', label: '처리' }
+      ],
+      hasCommissionHistoryTable: true,
+      commissionHistory: {
+        headerGroups: [
+          { label: '총본사', keys: ['hqNm', 'hqRate', 'hqPerTxFee'] },
+          { label: '본사', keys: ['regionalNm', 'regionalRate', 'regionalPerTxFee'] },
+          { label: '총판', keys: ['masterNm', 'masterRate', 'masterPerTxFee'] },
+          { label: '지사', keys: ['branchNm', 'branchRate', 'branchPerTxFee'] },
+          { label: '대리점', keys: ['agencyNm', 'agencyRate', 'agencyPerTxFee'] },
+          { label: '영업점', keys: ['salesOfficeNm', 'salesOfficeRate', 'salesOfficePerTxFee'] },
+          { label: '합계', keys: ['totalNm', 'totalRate', 'totalPerTxFee'] }
+        ],
+        columns: [
+          { key: 'rowNo', label: 'No.' },
+          { key: 'compNm', label: '가맹점' },
+          { key: 'startDttm', label: '시작일시' },
+          { key: 'endDttm', label: '종료일시' },
+          { key: 'hqNm', label: '업체명' }, { key: 'hqRate', label: '요율%' }, { key: 'hqPerTxFee', label: '건당료' },
+          { key: 'regionalNm', label: '업체명' }, { key: 'regionalRate', label: '요율%' }, { key: 'regionalPerTxFee', label: '건당료' },
+          { key: 'masterNm', label: '업체명' }, { key: 'masterRate', label: '요율%' }, { key: 'masterPerTxFee', label: '건당료' },
+          { key: 'branchNm', label: '업체명' }, { key: 'branchRate', label: '요율%' }, { key: 'branchPerTxFee', label: '건당료' },
+          { key: 'agencyNm', label: '업체명' }, { key: 'agencyRate', label: '요율%' }, { key: 'agencyPerTxFee', label: '건당료' },
+          { key: 'salesOfficeNm', label: '업체명' }, { key: 'salesOfficeRate', label: '요율%' }, { key: 'salesOfficePerTxFee', label: '건당료' },
+          { key: 'totalNm', label: '업체명' }, { key: 'totalRate', label: '요율%' }, { key: 'totalPerTxFee', label: '건당료' },
+          { key: 'changedBy', label: '변경자' }
+        ]
+      }
     },
     '/comp/compInfoHistList': {
       searchRows: [
@@ -709,10 +935,12 @@
       ],
       summary: ['건수'],
       buttons: [{ id: 'searchBtn', label: '검색', cls: 'btn-primary' }, { id: 'excelBtn', label: '엑셀다운로드', cls: 'btn-info' }],
-      columns: [{ key: '_chk', type: 'checkbox' }, { key: 'compId', label: '업체코드' }, { key: 'chgType', label: '변경구분' }, { key: 'chgDt', label: '변경일시' }, { key: 'chgDesc', label: '변경내용' }]
+      columns: [{ key: '_chk', type: 'checkbox' }, { key: 'rowNo', label: '번호' }, { key: 'compNm', label: '업체명' }, { key: 'compId', label: '업체코드' }, { key: 'chgType', label: '변경구분' }, { key: 'chgDt', label: '변경일시' }, { key: 'chgDesc', label: '변경내용' }]
     },
     '/calc/payList': {
       payListVariant: 'INTEGRATED',
+      /** VIEW SETTING: 1행 제목·저장, 2행 컬럼 체크(줄바꿈) */
+      tableColumnGuideTwoRow: true,
       searchFormClass: 'pay-mng-search-form',
       searchRows: [
         [
@@ -730,7 +958,7 @@
         ],
         [
           { label: 'PG사', type: 'select', name: 'searchPg', options: [{ v: '', t: '전체' }], size: 11 },
-          { label: '정산주기', type: 'select', name: 'searchCycle', options: [{ v: '', t: '전체' }] },
+          { label: '정산주기', type: 'select', name: 'searchCycle', options: CALC_CYCLE_SEARCH_OPTIONS },
           { label: '사업자번호', type: 'text', name: 'searchRegNo' },
           { label: '카드승인번호', type: 'text', name: 'searchCardAprvNo' },
           { type: 'searchBtn', label: 'Q 검색' }
@@ -753,7 +981,7 @@
         { label: '보류', keys: ['holdAmt', 'holdDttm'] },
         { label: '수수료', keys: ['feeCnt', 'feeRate'] }
       ],
-      /** 앞쪽 고정 순서: 번호 → 업체명 → 업체코드 → 거래일 → 거래시간 → Route No(칠페이) → TransactionId(칠페이) */
+      /** 앞쪽 고정 순서: 번호 → 업체명 → 업체코드 → 거래일 → 거래시간 → Route No → TransactionId(칠페이) */
       columns: [
         { key: '_chk', type: 'checkbox' },
         { key: 'rowNo', label: '번호' },
@@ -761,7 +989,7 @@
         { key: 'compId', label: '업체코드' },
         { key: 'trnDate', label: '거래일' },
         { key: 'trnTime', label: '거래시간' },
-        { key: 'routeNo', label: 'Route No(칠페이)' },
+        { key: 'routeNo', label: 'Route No' },
         { key: 'chillTransactionId', label: 'TransactionId(칠페이)' },
         { key: 'trnId', label: '거래번호(우리)' },
         { key: 'chillCustomer', label: 'Customer(칠페이)' },
@@ -807,28 +1035,63 @@
       emptyMessage: '조회된 데이터가 없습니다.'
     },
     '/calc/calcList': {
+      searchFormClass: 'screen-search-form screen-distribution-search',
+      tableScrollable: true,
+      distributionThreeRowHeader: true,
       searchRows: [
         [
-          { label: '정산일자', type: 'daterange', from: 'searchFromDate', to: 'searchToDate', col: 5 },
-          { type: 'quickdate' },
-          { label: '조회기준', type: 'select', name: 'searchView', options: [
-            { v: 'DETAIL', t: '상세(가맹점)' }, { v: 'HQ', t: '본사집계' }, { v: 'REGIONAL', t: '총판집계' }, { v: 'MASTER', t: '지사집계' }, { v: 'BRANCH', t: '대리점집계' }, { v: 'AGENCY', t: '영업점집계' }
+          { label: '조회기준', type: 'select', name: 'searchDateType', options: [
+            { v: 'APPROVE', t: '승인일자' },
+            { v: 'SETTLE', t: '정산일자' }
+          ], size: 10 },
+          { label: '기간', type: 'daterange', from: 'searchFromDate', to: 'searchToDate' },
+          { type: 'quickdate', quickdateLabels: ['오늘', '전일', '금주', '전주'], quickdateRanges: ['day', 'prevDay', 'weekCal', 'prevWeekCal'] },
+          { label: '업체구분', type: 'select', name: 'searchCompDiv', options: [
+            { v: '', t: '전체(단계별 합산)' },
+            { v: 'REGIONAL', t: '본사' },
+            { v: 'MASTER_DIST', t: '총판' },
+            { v: 'BRANCH', t: '지사' },
+            { v: 'AGENCY', t: '대리점' },
+            { v: 'SALES_OFFICE', t: '영업점' }
           ] }
         ],
         [
+          { label: '업체코드', type: 'text', name: 'searchCompId' },
           { label: '업체명', type: 'text', name: 'searchCompNm' },
           { type: 'searchBtn' }
         ]
       ],
-      summary: ['건수', '정산금액', '수수료', '지급액'],
-      buttons: [{ id: 'searchBtn', label: '검색', cls: 'btn-primary' }, { id: 'excelBtn', label: '엑셀다운로드', cls: 'btn-info' }],
+      noticeList: [
+        '유통망 정산: 로그인 소속 조직부터 그 하위(영업점)까지만 조회됩니다. 가맹점 단위 행은 표시되지 않으며, 하위 가맹 정산액이 조직 행에 합산됩니다.',
+        '업체구분을 선택하면 해당 단계(예: 대리점) 조직만 한 행으로 보입니다. 조회기준·승인일자는 추후 거래일 기준 필터와 연동 예정이며, 현재는 정산일(calc_dt) 기준입니다.'
+      ],
+      summary: ['Total', '정산금액', '수수료', '지급액'],
+      buttons: [
+        { id: 'printBtn', label: '인쇄설정', cls: 'btn-success' },
+        { id: 'excelBtn', label: '엑셀다운로드', cls: 'btn-info' }
+      ],
       columns: [
-        { key: '_chk', type: 'checkbox' }, { key: 'calcDt', label: '정산일자' }, { key: 'compId', label: '업체코드' }, { key: 'settleAmt', label: '정산금액' },
-        { key: 'hqNm', label: '본사' }, { key: 'hqFee', label: '수수료(본사)' }, { key: 'hqRate', label: '수수료율%' },
-        { key: 'regionalNm', label: '총판' }, { key: 'regionalFee', label: '수수료(총판)' }, { key: 'regionalRate', label: '수수료율%' },
-        { key: 'masterNm', label: '지사' }, { key: 'masterFee', label: '수수료(지사)' }, { key: 'masterRate', label: '수수료율%' },
-        { key: 'branchNm', label: '대리점' }, { key: 'branchFee', label: '수수료(대리점)' }, { key: 'branchRate', label: '수수료율%' },
-        { key: 'agencyNm', label: '영업점' }, { key: 'agencyFee', label: '수수료(영업점)' }, { key: 'agencyRate', label: '수수료율%' }
+        { key: 'rowNo', label: 'No.' },
+        { key: 'settleMonth', label: '정산월' },
+        { key: 'orgDivNm', label: '구분' },
+        { key: 'regionalNm', label: '본사' },
+        { key: 'masterNm', label: '총판' },
+        { key: 'branchNm', label: '지사' },
+        { key: 'agencyNm', label: '대리점' },
+        { key: 'compId', label: '업체코드' },
+        { key: 'aprvCnt', label: '승인건수' },
+        { key: 'aprvAmt', label: '승인금액' },
+        { key: 'aprvFeeCnt', label: '승인수수료건' },
+        { key: 'aprvFeePct', label: '승인수수료%' },
+        { key: 'aprvFeeSum', label: '승인수수료합계' },
+        { key: 'aprvFeeVat', label: '승인부가세' },
+        { key: 'canCnt', label: '취소건수' },
+        { key: 'canAmt', label: '취소금액' },
+        { key: 'canFeeCnt', label: '취소수수료건' },
+        { key: 'canFeePct', label: '취소수수료%' },
+        { key: 'canFeeSum', label: '취소수수료합계' },
+        { key: 'canFeeVat', label: '취소부가세' },
+        { key: 'settleAmt', label: '정산금액' }
       ]
     },
     '/calc/calcGmList': {
@@ -852,7 +1115,8 @@
       ],
       columns: [
         { key: '_chk', type: 'checkbox' },
-        { key: 'merchantNm', label: '가맹점' },
+        { key: 'rowNo', label: '번호' },
+        { key: 'compNm', label: '업체명' },
         { key: 'compId', label: '업체코드' },
         { key: 'bizType', label: '사업자구분' },
         { key: 'bizNo', label: '사업자번호' },
@@ -899,8 +1163,53 @@
       summary: ['건수', '환수금액'],
       buttons: [{ id: 'searchBtn', label: '검색', cls: 'btn-primary' }, { id: 'excelBtn', label: '엑셀다운로드', cls: 'btn-info' }],
       columns: [
-        { key: '_chk', type: 'checkbox' }, { key: 'calcDt', label: '발생일자' }, { key: 'compId', label: '업체코드' }, { key: 'compNm', label: '업체명' },
-        { key: 'settleAmt', label: '정산대상금액' }, { key: 'recallAmt', label: '미수금' }, { key: 'deductAmt', label: '미수금 차감' }
+        { key: '_chk', type: 'checkbox' },
+        { key: 'rowNo', label: '번호' },
+        { key: 'compNm', label: '업체명' },
+        { key: 'compId', label: '업체코드' },
+        { key: 'calcDt', label: '발생일자' },
+        { key: 'statusNm', label: '처리구분' },
+        { key: 'settleAmt', label: '원거래금액' },
+        { key: 'recallAmt', label: '환수금액' },
+        { key: 'deductAmt', label: '정산반영(-)' },
+        { key: 'feeIncludedYn', label: '수수료포함' },
+        { key: 'vatAppliedYn', label: 'VAT적용' }
+      ]
+    },
+    '/calc/feeList': {
+      searchRows: [
+        [
+          { label: '업체코드', type: 'text', name: 'searchCompId' },
+          { label: '업체명', type: 'text', name: 'searchCompNm' },
+          { label: '거래일자', type: 'daterange', from: 'searchFromDate', to: 'searchToDate' },
+          { type: 'quickdate' },
+          { type: 'searchBtn' }
+        ]
+      ],
+      summary: ['건수', '총수수료', '부가세'],
+      buttons: [{ id: 'searchBtn', label: '검색', cls: 'btn-primary' }, { id: 'excelBtn', label: '엑셀다운로드', cls: 'btn-info' }],
+      columns: [
+        { key: '_chk', type: 'checkbox' },
+        { key: 'rowNo', label: '번호' },
+        { key: 'compNm', label: '업체명' },
+        { key: 'compId', label: '업체코드' },
+        { key: 'trnDate', label: '거래일자' },
+        { key: 'trnId', label: '거래ID' },
+        { key: 'statusNm', label: '상태' },
+        { key: 'amount', label: '결제금액' },
+        { key: 'perTxFee', label: '건당수수료' },
+        { key: 'usageFee', label: '이용수수료' },
+        { key: 'failFee', label: '실패수수료' },
+        { key: 'cancelFee', label: '취소수수료' },
+        { key: 'refundFee', label: '환불수수료' },
+        { key: 'payFeeRate', label: '결제수수료율(%)' },
+        { key: 'payFee', label: '결제수수료' },
+        { key: 'settlementPerTxFee', label: '정산수수료' },
+        { key: 'usdtFee', label: 'USDT수수료' },
+        { key: 'fxFee', label: 'FX수수료' },
+        { key: 'totalFee', label: '총수수료' },
+        { key: 'feeVat', label: '부가세' },
+        { key: 'vatAppliedYn', label: 'VAT적용' }
       ]
     },
     '/calc/balanceList': {
@@ -914,7 +1223,7 @@
       ],
       summary: ['건수', '충전내역합계'],
       buttons: [{ id: 'searchBtn', label: '검색', cls: 'btn-primary' }, { id: 'excelBtn', label: '엑셀다운로드', cls: 'btn-info' }, { id: 'chargeBtn', label: '충전실행', cls: 'btn-success' }],
-      columns: [{ key: '_chk', type: 'checkbox' }, { key: 'compId', label: '업체코드' }, { key: 'compNm', label: '업체명' }, { key: 'condition', label: '검색조건' }, { key: 'chargeType', label: '거래구분' }, { key: 'payMethod', label: '결제수단' }, { key: 'chargeNm', label: '거래명칭' }, { key: 'chargeAmt', label: '충전내역' }, { key: 'sumChargeAmt', label: '충전내역합계' }]
+      columns: [{ key: '_chk', type: 'checkbox' }, { key: 'rowNo', label: '번호' }, { key: 'compNm', label: '업체명' }, { key: 'compId', label: '업체코드' }, { key: 'condition', label: '검색조건' }, { key: 'chargeType', label: '거래구분' }, { key: 'payMethod', label: '결제수단' }, { key: 'chargeNm', label: '거래명칭' }, { key: 'chargeAmt', label: '충전내역' }, { key: 'sumChargeAmt', label: '충전내역합계' }]
     },
     '/calc/unpaidMng': {
       searchRows: [
@@ -929,7 +1238,7 @@
       ],
       summary: ['건수', '잔액합계', '미수금합계'],
       buttons: [{ id: 'searchBtn', label: '검색', cls: 'btn-primary' }, { id: 'excelBtn', label: '엑셀다운로드', cls: 'btn-info' }],
-      columns: [{ key: '_chk', type: 'checkbox' }, { key: 'compId', label: '업체코드' }, { key: 'compNm', label: '업체명' }, { key: 'settleAmt', label: '정산잔액' }, { key: 'deductCnt', label: '미수금' }, { key: 'deductStatus', label: '미수금차감' }]
+      columns: [{ key: '_chk', type: 'checkbox' }, { key: 'rowNo', label: '번호' }, { key: 'compNm', label: '업체명' }, { key: 'compId', label: '업체코드' }, { key: 'settleAmt', label: '정산잔액' }, { key: 'deductCnt', label: '미수금' }, { key: 'deductStatus', label: '미수금차감' }]
     },
     '/calc/balcInfo': {
       searchRows: [
@@ -939,9 +1248,16 @@
           { type: 'searchBtn' }
         ]
       ],
-      summary: ['잔액합계', '미수금합계'],
-      buttons: [{ id: 'searchBtn', label: '검색', cls: 'btn-primary' }],
-      columns: [{ key: '_chk', type: 'checkbox' }, { key: 'compId', label: '업체코드' }, { key: 'compNm', label: '업체명' }, { key: 'balcAmount', label: '잔액' }, { key: 'unpaidAmount', label: '미수금' }]
+      summary: ['잔액합계', '미수금합계', '차감합계', '가용잔액합계'],
+      buttons: [
+        { id: 'searchBtn', label: '검색', cls: 'btn-primary' },
+        { id: 'balanceDeductBtn', label: '선택차감', cls: 'btn-warning' },
+        { id: 'balanceManualDeductBtn', label: '직접입력차감', cls: 'btn-outline-warning' }
+      ],
+      columns: [
+        { key: '_chk', type: 'checkbox' }, { key: 'rowNo', label: '번호' }, { key: 'compNm', label: '업체명' }, { key: 'compId', label: '업체코드' },
+        { key: 'balcAmount', label: '잔액(지급보류)' }, { key: 'unpaidAmount', label: '미수금' }, { key: 'deductedAmount', label: '차감누계' }, { key: 'remainAmount', label: '가용잔액' }
+      ]
     },
     '/calc/exCalcList': {
       searchRows: [
@@ -954,7 +1270,81 @@
       ],
       summary: [],
       buttons: [{ id: 'searchBtn', label: '검색', cls: 'btn-primary' }, { id: 'exCalcBtn', label: '정산실행', cls: 'btn-warning' }, { id: 'excelBtn', label: '엑셀다운로드', cls: 'btn-info' }],
-      columns: [{ key: '_chk', type: 'checkbox' }, { key: 'calcDt', label: '정산일자' }, { key: 'compId', label: '업체코드' }, { key: 'status', label: '상태' }, { key: 'payAmount', label: '지급액' }]
+      columns: [{ key: '_chk', type: 'checkbox' }, { key: 'rowNo', label: '번호' }, { key: 'compNm', label: '업체명' }, { key: 'compId', label: '업체코드' }, { key: 'calcDt', label: '정산일자' }, { key: 'targetAmt', label: '정산대상금액' }, { key: 'totalFee', label: '공제수수료' }, { key: 'rollingReserveAmt', label: '롤링보류' }, { key: 'payAmount', label: '지급액' }, { key: 'status', label: '상태' }]
+    },
+    '/calc/settlementReport': {
+      noticeList: [
+        '[리포트 형식] 가맹점 정산 리포트: 총본사·본사·총판 등이 소속 가맹에 보내는 정산 형식. 본사 지급 리포트: 총본사가 본사(REGIONAL)에 지급할 금액을 본사 단위로 합산(총본사·본사 로그인만 선택 가능).',
+        '[하위 구분] 정산집계·정산실시·정산집계표. 예치·Processing·건당요금·+7영업일은 백엔드 상수이며 응답 meta에 안내가 있습니다.'
+      ],
+      searchRows: [
+        [
+          { label: '리포트 형식', type: 'select', name: 'searchReportKind', options: [{ v: 'MERCHANT_STMT', t: '가맹점 정산 리포트' }, { v: 'REGIONAL_PAYOUT', t: '본사 지급 리포트(총본사→본사)' }], size: 22 },
+          { label: '리포트구분', type: 'select', name: 'searchReportSub', options: [{ v: 'AGG', t: '정산집계' }, { v: 'EXE', t: '정산실시' }, { v: 'SUM', t: '정산집계표' }], size: 12 },
+          { label: '결제일자', type: 'daterange', from: 'searchFromDate', to: 'searchToDate' },
+          { type: 'quickdate' }
+        ],
+        [
+          { label: '가맹점코드', type: 'text', name: 'searchCompId', placeholder: '가맹점 코드' },
+          { label: '총판(상위)코드', type: 'text', name: 'searchMasterId', placeholder: '총판 조직 코드' },
+          { label: '본사코드', type: 'text', name: 'searchRegionalId', placeholder: '본사 지급 리포트 시 필터' },
+          { label: '통화', type: 'select', name: 'searchCurType', options: [{ v: '', t: '전체' }, { v: 'KRW', t: 'KRW' }, { v: 'USD', t: 'USD' }, { v: 'JPY', t: 'JPY' }, { v: 'THB', t: 'THB' }], size: 8 },
+          { type: 'searchBtn' }
+        ]
+      ],
+      summary: ['건수', '결제액', '환불', '순액', '정산금'],
+      buttons: [{ id: 'searchBtn', label: '검색', cls: 'btn-primary' }, { id: 'excelBtn', label: '엑셀다운로드', cls: 'btn-info' }],
+      columns: [],
+      columnsBySub: {
+        AGG: [
+          { key: '_chk', type: 'checkbox' }, { key: 'rowNo', label: '번호' },
+          { key: 'payDate', label: '결제일' }, { key: 'compNm', label: '가맹점명' }, { key: 'compId', label: '가맹코드' }, { key: 'curType', label: '통화' },
+          { key: 'grossPay', label: '결제액' }, { key: 'refundAmt', label: '환불/취소' }, { key: 'netPay', label: '순결제' },
+          { key: 'depositAmt', label: '예치(10%)' }, { key: 'processingFeeTotal', label: 'Processing(5.6%)' },
+          { key: 'txnFeeTotal', label: '건당수수료합' }, { key: 'settlementAmt', label: '정산금(추정)' },
+          { key: 'settlementDueDt', label: '지급예정일(+7영업일)' }, { key: 'settledYn', label: '정산완료' }
+        ],
+        EXE: [
+          { key: '_chk', type: 'checkbox' }, { key: 'rowNo', label: '번호' },
+          { key: 'calcDt', label: '정산일' }, { key: 'compNm', label: '가맹점명' }, { key: 'compId', label: '가맹코드' },
+          { key: 'approveAmt', label: '승인합' }, { key: 'cancelAmt', label: '취소합' }, { key: 'netPay', label: '순액' },
+          { key: 'depositAmt', label: '예치(10%)' }, { key: 'processingFeeTotal', label: 'Processing(5.6%)' },
+          { key: 'payAmount', label: '지급액(배치)' }, { key: 'totalFee', label: '공제수수료' }, { key: 'rollingReserveAmt', label: '롤링보류' },
+          { key: 'settlementDueDt', label: '지급예정일(+7영업일)' }, { key: 'settledYn', label: '완료' }, { key: 'status', label: '상태' }
+        ],
+        SUM: [
+          { key: '_chk', type: 'checkbox' }, { key: 'rowNo', label: '번호' },
+          { key: 'periodFrom', label: '기간FROM' }, { key: 'periodTo', label: '기간TO' },
+          { key: 'grossPay', label: '결제액합' }, { key: 'refundAmt', label: '환불합' }, { key: 'netPay', label: '순결제합' },
+          { key: 'depositAmt', label: '예치합' }, { key: 'processingFeeTotal', label: 'Processing합' }, { key: 'txnFeeTotal', label: '건당수수료합' },
+          { key: 'settlementAmt', label: '정산금합(추정)' }, { key: 'approveCnt', label: '승인건' }, { key: 'refundCnt', label: '환불건' }, { key: 'rowCount', label: '집계행수' }
+        ]
+      },
+      columnsRegionalPayout: {
+        AGG: [
+          { key: '_chk', type: 'checkbox' }, { key: 'rowNo', label: '번호' },
+          { key: 'payDate', label: '결제일' }, { key: 'regionalCompId', label: '본사코드' }, { key: 'regionalNm', label: '본사명' }, { key: 'merchantCnt', label: '가맹점수' }, { key: 'curType', label: '통화' },
+          { key: 'grossPay', label: '결제액합' }, { key: 'refundAmt', label: '환불/취소' }, { key: 'netPay', label: '순결제' },
+          { key: 'depositAmt', label: '예치(10%)' }, { key: 'processingFeeTotal', label: 'Processing(5.6%)' },
+          { key: 'txnFeeTotal', label: '건당수수료합' }, { key: 'settlementAmt', label: '지급액(추정)' },
+          { key: 'settlementDueDt', label: '지급예정일(+7영업일)' }, { key: 'settledYn', label: '정산완료' }
+        ],
+        EXE: [
+          { key: '_chk', type: 'checkbox' }, { key: 'rowNo', label: '번호' },
+          { key: 'calcDt', label: '정산일' }, { key: 'regionalCompId', label: '본사코드' }, { key: 'regionalNm', label: '본사명' },
+          { key: 'batchRunCnt', label: '배치건수' }, { key: 'approveAmt', label: '승인합' }, { key: 'cancelAmt', label: '취소합' }, { key: 'netPay', label: '순액' },
+          { key: 'payAmount', label: '지급액합' }, { key: 'totalFee', label: '공제수수료합' }, { key: 'rollingReserveAmt', label: '롤링보류합' },
+          { key: 'settlementDueDt', label: '지급예정일(+7영업일)' }, { key: 'settledYn', label: '완료' }, { key: 'status', label: '상태' }
+        ],
+        SUM: [
+          { key: '_chk', type: 'checkbox' }, { key: 'rowNo', label: '번호' },
+          { key: 'periodFrom', label: '기간FROM' }, { key: 'periodTo', label: '기간TO' },
+          { key: 'grossPay', label: '결제액합' }, { key: 'refundAmt', label: '환불합' }, { key: 'netPay', label: '순결제합' },
+          { key: 'depositAmt', label: '예치합' }, { key: 'processingFeeTotal', label: 'Processing합' }, { key: 'txnFeeTotal', label: '건당수수료합' },
+          { key: 'settlementAmt', label: '지급액합(추정)' }, { key: 'approveCnt', label: '승인건' }, { key: 'refundCnt', label: '환불건' }, { key: 'rowCount', label: '집계행수' }
+        ]
+      },
+      emptyMessage: '조회된 데이터가 없습니다.'
     },
     '/pay/payHoldList': {
       searchRows: [
@@ -969,7 +1359,43 @@
       ],
       summary: ['건수', '보류금액'],
       buttons: [{ id: 'searchBtn', label: '검색', cls: 'btn-primary' }, { id: 'excelBtn', label: '엑셀다운로드', cls: 'btn-info' }],
-      columns: [{ key: '_chk', type: 'checkbox' }, { key: 'holdDt', label: '보류일시' }, { key: 'compId', label: '업체코드' }, { key: 'holdAmount', label: '보류금액' }, { key: 'holdReason', label: '보류사유' }]
+      columns: [{ key: '_chk', type: 'checkbox' }, { key: 'rowNo', label: '번호' }, { key: 'compNm', label: '업체명' }, { key: 'compId', label: '업체코드' }, { key: 'holdDt', label: '보류일시' }, { key: 'holdAmount', label: '보류금액' }, { key: 'holdReason', label: '보류사유' }]
+    },
+    '/calc/collateralList': {
+      noticeList: [
+        '담보금(롤링): 결제(승인) 건별로 정산 실행 시 설정된 비율(%)만큼 예치되며, 보류 영업일(주말 제외·공휴일 미반영) 후 해지일에 정산 실행하면 지급액에 합산됩니다.',
+        '비율·보류 일수: 본사설정 수수료정책의 롤링(담보금) 또는 가맹점 정산설정에서 「보류율 본사정책 따름=N」일 때 개별 보류율·일수를 사용합니다.'
+      ],
+      searchRows: [
+        [
+          { label: '적용일(담보)', type: 'daterange', from: 'searchFromDate', to: 'searchToDate', col: 5 },
+          { type: 'quickdate' }
+        ],
+        [
+          { label: '업체코드', type: 'text', name: 'searchCompId', col: 3 },
+          { label: '업체명', type: 'text', name: 'searchCompNm', col: 3 },
+          { label: '상태', type: 'select', name: 'searchStatus', options: [{ v: '', t: '전체' }, { v: 'HOLD', t: '보류' }, { v: 'RELEASED', t: '해지' }], col: 2 },
+          { type: 'searchBtn' }
+        ]
+      ],
+      summary: ['건수', '담보금액'],
+      buttons: [{ id: 'searchBtn', label: '검색', cls: 'btn-primary' }, { id: 'excelBtn', label: '엑셀다운로드', cls: 'btn-info' }],
+      columns: [
+        { key: '_chk', type: 'checkbox' },
+        { key: 'rowNo', label: '번호' },
+        { key: 'compNm', label: '업체명' },
+        { key: 'compId', label: '업체코드' },
+        { key: 'trnId', label: '거래ID' },
+        { key: 'reserveAmt', label: '담보금액' },
+        { key: 'rollingPct', label: '적용비율(%)' },
+        { key: 'holdBusinessDays', label: '보류영업일' },
+        { key: 'holdStartDt', label: '적용일' },
+        { key: 'releaseDt', label: '해지(반환)일' },
+        { key: 'remainingBizDays', label: '남은영업일' },
+        { key: 'statusNm', label: '상태' },
+        { key: 'releasedAt', label: '해지처리일시' },
+        { key: 'settlementNote', label: '정산반영안내' }
+      ]
     },
     '/noti/notiUrlMng': {
       searchRows: [
@@ -981,7 +1407,7 @@
       ],
       summary: ['건수'],
       buttons: [{ id: 'searchBtn', label: '검색', cls: 'btn-primary' }],
-      columns: [{ key: '_chk', type: 'checkbox' }, { key: 'compId', label: '업체코드' }, { key: 'urlType', label: 'URL구분' }, { key: 'notiUrl', label: '통보URL' }, { key: 'useYn', label: '사용여부' }]
+      columns: [{ key: '_chk', type: 'checkbox' }, { key: 'rowNo', label: '번호' }, { key: 'compNm', label: '업체명' }, { key: 'compId', label: '업체코드' }, { key: 'urlType', label: 'URL구분' }, { key: 'notiUrl', label: '통보URL' }, { key: 'useYn', label: '사용여부' }]
     },
     '/noti/notiSendMngList': {
       searchRows: [
@@ -996,7 +1422,7 @@
       ],
       summary: ['건수', '성공', '실패'],
       buttons: [{ id: 'searchBtn', label: '검색', cls: 'btn-primary' }, { id: 'excelBtn', label: '엑셀다운로드', cls: 'btn-info' }],
-      columns: [{ key: '_chk', type: 'checkbox' }, { key: 'sendDt', label: '전송일시' }, { key: 'compId', label: '업체코드' }, { key: 'result', label: '결과' }, { key: 'retryCnt', label: '재전송횟수' }]
+      columns: [{ key: '_chk', type: 'checkbox' }, { key: 'rowNo', label: '번호' }, { key: 'compNm', label: '업체명' }, { key: 'compId', label: '업체코드' }, { key: 'sendDt', label: '전송일시' }, { key: 'result', label: '결과' }, { key: 'retryCnt', label: '재전송횟수' }]
     },
     '/noti/notiCashReceiptUrlMng': {
       searchRows: [
@@ -1007,7 +1433,7 @@
       ],
       summary: ['건수'],
       buttons: [{ id: 'searchBtn', label: '검색', cls: 'btn-primary' }],
-      columns: [{ key: '_chk', type: 'checkbox' }, { key: 'compId', label: '업체코드' }, { key: 'notiUrl', label: '현금영수증 통보URL' }, { key: 'useYn', label: '사용여부' }]
+      columns: [{ key: '_chk', type: 'checkbox' }, { key: 'rowNo', label: '번호' }, { key: 'compNm', label: '업체명' }, { key: 'compId', label: '업체코드' }, { key: 'notiUrl', label: '현금영수증 통보URL' }, { key: 'useYn', label: '사용여부' }]
     },
     '/noti/notiCashReceiptSendMngList': {
       searchRows: [
@@ -1022,7 +1448,7 @@
       ],
       summary: ['건수'],
       buttons: [{ id: 'searchBtn', label: '검색', cls: 'btn-primary' }, { id: 'excelBtn', label: '엑셀다운로드', cls: 'btn-info' }],
-      columns: [{ key: '_chk', type: 'checkbox' }, { key: 'sendDt', label: '전송일시' }, { key: 'compId', label: '업체코드' }, { key: 'result', label: '결과' }]
+      columns: [{ key: '_chk', type: 'checkbox' }, { key: 'rowNo', label: '번호' }, { key: 'compNm', label: '업체명' }, { key: 'compId', label: '업체코드' }, { key: 'sendDt', label: '전송일시' }, { key: 'result', label: '결과' }]
     },
     '/user/userMng': {
       rowGroupByKey: 'permissionGroupNm',
@@ -1039,9 +1465,10 @@
       columns: [
         { key: '_chk', type: 'checkbox' },
         { key: 'rowNo', label: '번호' },
+        { key: 'compNm', label: '업체명' },
+        { key: 'compId', label: '업체코드' },
         { key: 'userId', label: '사용자ID' },
         { key: 'userNm', label: '사용자명' },
-        { key: 'compId', label: '소속업체코드' },
         { key: 'permissionGroupNm', label: '권한그룹' },
         { key: 'roleNm', label: '역할' },
         { key: 'otpRegisteredYn', label: 'OTP' },
@@ -1059,49 +1486,49 @@
       ],
       summary: [],
       buttons: [{ id: 'searchBtn', label: '검색', cls: 'btn-primary' }, { id: 'saveBtn', label: '저장', cls: 'btn-primary' }],
-      columns: [{ key: '_chk', type: 'checkbox' }, { key: 'sortOrder', label: '순서' }, { key: 'colId', label: '항목ID' }, { key: 'colNm', label: '항목명' }, { key: 'dispYn', label: '표시여부' }],
+      columns: [{ key: '_chk', type: 'checkbox' }, { key: 'rowNo', label: '번호' }, { key: 'compNm', label: '업체명' }, { key: 'compId', label: '업체코드' }, { key: 'sortOrder', label: '순서' }, { key: 'colId', label: '항목ID' }, { key: 'colNm', label: '항목명' }, { key: 'dispYn', label: '표시여부' }],
       emptyMessage: '조회된 데이터가 없습니다.'
     },
     '/calc/withdrawList': {
       searchRows: [[{ label: '조회일자', type: 'daterange', from: 'searchFromDate', to: 'searchToDate' }, { type: 'quickdate' }, { type: 'searchBtn' }]],
       summary: ['건수'],
       buttons: [{ id: 'searchBtn', label: '검색', cls: 'btn-primary' }, { id: 'excelBtn', label: '엑셀다운로드', cls: 'btn-info' }],
-      columns: [{ key: '_chk', type: 'checkbox' }, { key: 'withdrawDt', label: '출금일시' }, { key: 'compId', label: '업체코드' }, { key: 'amount', label: '출금금액' }, { key: 'status', label: '상태' }],
+      columns: [{ key: '_chk', type: 'checkbox' }, { key: 'rowNo', label: '번호' }, { key: 'compNm', label: '업체명' }, { key: 'compId', label: '업체코드' }, { key: 'withdrawDt', label: '출금일시' }, { key: 'amount', label: '출금금액' }, { key: 'status', label: '상태' }],
       emptyMessage: '조회된 데이터가 없습니다.'
     },
     '/calc/salesByComp': {
       searchRows: [[{ label: '조회일자', type: 'daterange', from: 'searchFromDate', to: 'searchToDate' }, { type: 'quickdate' }, { type: 'searchBtn' }]],
       summary: ['건수'],
       buttons: [{ id: 'searchBtn', label: '검색', cls: 'btn-primary' }, { id: 'excelBtn', label: '엑셀다운로드', cls: 'btn-info' }],
-      columns: [{ key: '_chk', type: 'checkbox' }, { key: 'compId', label: '사업자코드' }, { key: 'compNm', label: '업체명' }, { key: 'salesAmt', label: '매출금액' }, { key: 'regDt', label: '집계일시' }],
+      columns: [{ key: '_chk', type: 'checkbox' }, { key: 'rowNo', label: '번호' }, { key: 'compNm', label: '업체명' }, { key: 'compId', label: '업체코드' }, { key: 'salesAmt', label: '매출금액' }, { key: 'regDt', label: '집계일시' }],
       emptyMessage: '조회된 데이터가 없습니다.'
     },
     '/calc/payerSum': {
       searchRows: [[{ label: '조회일자', type: 'daterange', from: 'searchFromDate', to: 'searchToDate' }, { type: 'quickdate' }, { type: 'searchBtn' }]],
       summary: ['건수'],
       buttons: [{ id: 'searchBtn', label: '검색', cls: 'btn-primary' }, { id: 'excelBtn', label: '엑셀다운로드', cls: 'btn-info' }],
-      columns: [{ key: '_chk', type: 'checkbox' }, { key: 'payerId', label: '결제자ID' }, { key: 'totalAmt', label: '누적금액' }, { key: 'cnt', label: '건수' }],
+      columns: [{ key: '_chk', type: 'checkbox' }, { key: 'rowNo', label: '번호' }, { key: 'compNm', label: '업체명' }, { key: 'compId', label: '업체코드' }, { key: 'payerId', label: '결제자ID' }, { key: 'totalAmt', label: '누적금액' }, { key: 'cnt', label: '건수' }],
       emptyMessage: '조회된 데이터가 없습니다.'
     },
     '/calc/withdrawByAcct': {
       searchRows: [[{ label: '조회일자', type: 'daterange', from: 'searchFromDate', to: 'searchToDate' }, { type: 'quickdate' }, { type: 'searchBtn' }]],
       summary: ['건수'],
       buttons: [{ id: 'searchBtn', label: '검색', cls: 'btn-primary' }, { id: 'excelBtn', label: '엑셀다운로드', cls: 'btn-info' }],
-      columns: [{ key: '_chk', type: 'checkbox' }, { key: 'acctNo', label: '출금계좌' }, { key: 'compId', label: '업체코드' }, { key: 'sumAmt', label: '집계금액' }],
+      columns: [{ key: '_chk', type: 'checkbox' }, { key: 'rowNo', label: '번호' }, { key: 'compNm', label: '업체명' }, { key: 'compId', label: '업체코드' }, { key: 'acctNo', label: '출금계좌' }, { key: 'sumAmt', label: '집계금액' }],
       emptyMessage: '조회된 데이터가 없습니다.'
     },
     '/support/complaintList': {
       searchRows: [[{ label: '접수일자', type: 'daterange', from: 'searchFromDate', to: 'searchToDate' }, { type: 'quickdate' }, { type: 'searchBtn' }]],
       summary: ['건수'],
       buttons: [{ id: 'searchBtn', label: '검색', cls: 'btn-primary' }, { id: 'excelBtn', label: '엑셀다운로드', cls: 'btn-info' }],
-      columns: [{ key: '_chk', type: 'checkbox' }, { key: 'complaintNo', label: '민원번호' }, { key: 'compId', label: '업체코드' }, { key: 'title', label: '제목' }, { key: 'regDt', label: '접수일' }, { key: 'status', label: '처리상태' }],
+      columns: [{ key: '_chk', type: 'checkbox' }, { key: 'rowNo', label: '번호' }, { key: 'compNm', label: '업체명' }, { key: 'compId', label: '업체코드' }, { key: 'complaintNo', label: '민원번호' }, { key: 'title', label: '제목' }, { key: 'regDt', label: '접수일' }, { key: 'status', label: '처리상태' }],
       emptyMessage: '조회된 데이터가 없습니다.'
     },
     '/comp/compInfo': {
       searchRows: [[{ label: '업체코드', type: 'text', name: 'searchCompId' }, { label: '업체명(본사명)', type: 'text', name: 'searchCompNm' }, { type: 'searchBtn' }]],
       summary: ['건수'],
       buttons: [{ id: 'searchBtn', label: '검색', cls: 'btn-primary' }, { id: 'compInfoDetailBtn', label: '상세(지역본사정보)', cls: 'btn-info' }, { id: 'excelBtn', label: '엑셀다운로드', cls: 'btn-info' }],
-      columns: [{ key: '_chk', type: 'checkbox' }, { key: 'compId', label: '업체코드' }, { key: 'compNm', label: '업체명(본사명)' }, { key: 'compDivNm', label: '업체구분' }, { key: 'regNo', label: '사업자번호' }, { key: 'regDt', label: '등록일' }],
+      columns: [{ key: '_chk', type: 'checkbox' }, { key: 'rowNo', label: '번호' }, { key: 'compNm', label: '업체명(본사명)' }, { key: 'compId', label: '업체코드' }, { key: 'compDivNm', label: '업체구분' }, { key: 'regNo', label: '사업자번호' }, { key: 'regDt', label: '등록일' }],
       emptyMessage: '조회된 데이터가 없습니다.',
       hasCompInfoDetailForm: true,
       compInfoDetailFormSections: [
@@ -1114,7 +1541,7 @@
             [{ label: '업태', type: 'text', name: 'bizType', col: 2 }, { label: '종목', type: 'text', name: 'industry', col: 2 }],
             [{ label: '대표자명*', type: 'text', name: 'ceoNm', col: 2 }, { label: '휴대폰*', type: 'text', name: 'ceoMobile', col: 2 }, { label: '업체전화*', type: 'text', name: 'compTel', col: 2 }, { label: '팩스', type: 'text', name: 'fax', col: 2 }, { label: '이메일', type: 'text', name: 'email', col: 2 }, { label: '비고', type: 'text', name: 'remark', col: 2 }],
             [{ type: 'countryAddressRow', zipLabel: '우편번호*', addrLabel: '주소*', addrDetailLabel: '상세주소', addrEtcLabel: '기타' }],
-            [{ label: '사용여부*', type: 'select', name: 'useYn', options: [{ v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }], col: 2 }, { label: '로그인ID*', type: 'text', name: 'loginId', col: 2 }],
+            [{ label: '사용여부*', type: 'select', name: 'useYn', options: [{ v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }], col: 2 }, { label: '로그인ID*', type: 'text', name: 'loginId', col: 2 }, { label: '비밀번호', type: 'passwordReset', name: 'pwdReset', col: 2 }],
             [{ label: '사업자형태', type: 'text', name: 'bizNature', col: 2 }, { label: '취급물품', type: 'text', name: 'product', col: 2 }],
             [{ label: '대표사이트', type: 'text', name: 'homepage', col: 2 }, { label: '정산담당자명', type: 'text', name: 'settleName', col: 2 }],
             [{ label: '정산담당자연락처', type: 'text', name: 'settleTelNo', col: 2 }],
@@ -1137,112 +1564,112 @@
       searchRows: [[{ label: '업체코드', type: 'text', name: 'searchCompId' }, { label: '업체명', type: 'text', name: 'searchCompNm' }, { type: 'searchBtn' }]],
       summary: ['건수'],
       buttons: [{ id: 'searchBtn', label: '검색', cls: 'btn-primary' }, { id: 'compRegBtn', label: '등록', cls: 'btn-danger' }],
-      columns: [{ key: '_chk', type: 'checkbox' }, { key: 'compId', label: '업체코드' }, { key: 'compNm', label: '업체명' }, { key: 'compDivNm', label: '업체구분' }, { key: 'regDt', label: '등록일' }],
+      columns: [{ key: '_chk', type: 'checkbox' }, { key: 'rowNo', label: '번호' }, { key: 'compNm', label: '업체명' }, { key: 'compId', label: '업체코드' }, { key: 'compDivNm', label: '업체구분' }, { key: 'regDt', label: '등록일' }],
       emptyMessage: '조회된 데이터가 없습니다.'
     },
     '/comp/compChangeHistory': {
       searchRows: [[{ label: '업체코드', type: 'text', name: 'searchCompId' }, { label: '변경일자', type: 'daterange', from: 'searchFromDate', to: 'searchToDate' }, { type: 'quickdate' }, { type: 'searchBtn' }]],
       summary: ['건수'],
       buttons: [{ id: 'searchBtn', label: '검색', cls: 'btn-primary' }, { id: 'excelBtn', label: '엑셀다운로드', cls: 'btn-info' }],
-      columns: [{ key: '_chk', type: 'checkbox' }, { key: 'chgDt', label: '변경일시' }, { key: 'compId', label: '업체코드' }, { key: 'chgItem', label: '변경항목' }, { key: 'beforeVal', label: '변경전' }, { key: 'afterVal', label: '변경후' }],
+      columns: [{ key: '_chk', type: 'checkbox' }, { key: 'rowNo', label: '번호' }, { key: 'compNm', label: '업체명' }, { key: 'compId', label: '업체코드' }, { key: 'chgDt', label: '변경일시' }, { key: 'chgItem', label: '변경항목' }, { key: 'beforeVal', label: '변경전' }, { key: 'afterVal', label: '변경후' }],
       emptyMessage: '조회된 데이터가 없습니다.'
     },
     '/calc/offsetCancelList': {
       searchRows: [[{ label: '조회일자', type: 'daterange', from: 'searchFromDate', to: 'searchToDate' }, { type: 'quickdate' }], [{ label: '업체명', type: 'text', name: 'searchCompNm' }, { type: 'searchBtn' }]],
       summary: ['건수', '취소금액'],
       buttons: [{ id: 'searchBtn', label: '검색', cls: 'btn-primary' }, { id: 'excelBtn', label: '엑셀다운로드', cls: 'btn-info' }],
-      columns: [{ key: '_chk', type: 'checkbox' }, { key: 'cancDt', label: '취소일시' }, { key: 'compId', label: '업체코드' }, { key: 'cancAmount', label: '취소금액' }, { key: 'paySeq', label: '원거래번호' }],
+      columns: [{ key: '_chk', type: 'checkbox' }, { key: 'rowNo', label: '번호' }, { key: 'compNm', label: '업체명' }, { key: 'compId', label: '업체코드' }, { key: 'cancDt', label: '취소일시' }, { key: 'cancAmount', label: '취소금액' }, { key: 'paySeq', label: '원거래번호' }],
       emptyMessage: '조회된 데이터가 없습니다.'
     },
     '/calc/urlPayList': {
       searchRows: [[{ label: '조회일자', type: 'daterange', from: 'searchFromDate', to: 'searchToDate' }, { type: 'quickdate' }], [{ label: '업체명', type: 'text', name: 'searchCompNm' }, { type: 'searchBtn' }]],
       summary: ['건수', '금액'],
       buttons: [{ id: 'searchBtn', label: '검색', cls: 'btn-primary' }, { id: 'excelBtn', label: '엑셀다운로드', cls: 'btn-info' }],
-      columns: [{ key: '_chk', type: 'checkbox' }, { key: 'payDt', label: '결제일시' }, { key: 'compId', label: '업체코드' }, { key: 'orderNo', label: '주문번호' }, { key: 'amount', label: '금액' }],
+      columns: [{ key: '_chk', type: 'checkbox' }, { key: 'rowNo', label: '번호' }, { key: 'compNm', label: '업체명' }, { key: 'compId', label: '업체코드' }, { key: 'payDt', label: '결제일시' }, { key: 'orderNo', label: '주문번호' }, { key: 'amount', label: '금액' }],
       emptyMessage: '조회된 데이터가 없습니다.'
     },
     '/settlement/distributionList': {
       searchRows: [[{ label: '정산일자', type: 'daterange', from: 'searchFromDate', to: 'searchToDate' }, { type: 'quickdate' }, { type: 'searchBtn' }]],
-      summary: ['건수', '금액'],
+      summary: ['건수', '정산금액', '수수료', '지급액'],
       buttons: [{ id: 'searchBtn', label: '검색', cls: 'btn-primary' }, { id: 'excelBtn', label: '엑셀다운로드', cls: 'btn-info' }],
-      columns: [{ key: '_chk', type: 'checkbox' }, { key: 'calcDt', label: '정산일' }, { key: 'compId', label: '업체코드' }, { key: 'amount', label: '금액' }, { key: 'status', label: '상태' }],
+      columns: [],
       emptyMessage: '조회된 데이터가 없습니다.'
     },
     '/settlement/franchiseList': {
       searchRows: [[{ label: '정산일자', type: 'daterange', from: 'searchFromDate', to: 'searchToDate' }, { type: 'quickdate' }, { type: 'searchBtn' }]],
-      summary: ['건수', '금액'],
+      summary: ['건수', '금액', '수수료금액', '수수료부가세', '보류금액', '정산금액'],
       buttons: [{ id: 'searchBtn', label: '검색', cls: 'btn-primary' }, { id: 'excelBtn', label: '엑셀다운로드', cls: 'btn-info' }],
-      columns: [{ key: '_chk', type: 'checkbox' }, { key: 'calcDt', label: '정산일' }, { key: 'compId', label: '가맹점코드' }, { key: 'amount', label: '금액' }],
+      columns: [],
       emptyMessage: '조회된 데이터가 없습니다.'
     },
     '/settlement/recallMng': {
       searchRows: [[{ label: '조회일자', type: 'daterange', from: 'searchFromDate', to: 'searchToDate' }, { type: 'quickdate' }, { type: 'searchBtn' }]],
       summary: ['건수'],
       buttons: [{ id: 'searchBtn', label: '검색', cls: 'btn-primary' }, { id: 'excelBtn', label: '엑셀다운로드', cls: 'btn-info' }],
-      columns: [{ key: '_chk', type: 'checkbox' }, { key: 'recallDt', label: '환수일' }, { key: 'compId', label: '업체코드' }, { key: 'amount', label: '환수금액' }],
+      columns: [{ key: '_chk', type: 'checkbox' }, { key: 'rowNo', label: '번호' }, { key: 'compNm', label: '업체명' }, { key: 'compId', label: '업체코드' }, { key: 'calcDt', label: '정산일자' }, { key: 'settleAmt', label: '정산잔액' }, { key: 'recallAmt', label: '미수금' }, { key: 'deductAmt', label: '미수금 차감' }],
       emptyMessage: '조회된 데이터가 없습니다.'
     },
     '/settlement/balanceMng': {
       searchRows: [[{ label: '조회일자', type: 'daterange', from: 'searchFromDate', to: 'searchToDate' }, { type: 'quickdate' }, { type: 'searchBtn' }]],
       summary: ['건수'],
       buttons: [{ id: 'searchBtn', label: '검색', cls: 'btn-primary' }, { id: 'excelBtn', label: '엑셀다운로드', cls: 'btn-info' }],
-      columns: [{ key: '_chk', type: 'checkbox' }, { key: 'compId', label: '업체코드' }, { key: 'balance', label: '잔액' }, { key: 'shortfall', label: '미수금' }],
+      columns: [{ key: '_chk', type: 'checkbox' }, { key: 'rowNo', label: '번호' }, { key: 'compNm', label: '업체명' }, { key: 'compId', label: '업체코드' }, { key: 'balcAmount', label: '잔액' }, { key: 'unpaidAmount', label: '미수금' }],
       emptyMessage: '조회된 데이터가 없습니다.'
     },
     '/settlement/execute': {
       searchRows: [[{ label: '정산대상일', type: 'daterange', from: 'searchFromDate', to: 'searchToDate' }, { type: 'searchBtn' }]],
       summary: [],
       buttons: [{ id: 'searchBtn', label: '조회', cls: 'btn-primary' }, { id: 'executeBtn', label: '정산실행', cls: 'btn-danger' }],
-      columns: [{ key: '_chk', type: 'checkbox' }, { key: 'calcDt', label: '정산일' }, { key: 'compId', label: '업체코드' }, { key: 'targetAmt', label: '정산대상금액' }, { key: 'totalFee', label: '공제수수료' }, { key: 'rollingReserveAmt', label: '롤링보류' }, { key: 'payAmount', label: '지급액' }, { key: 'status', label: '상태' }],
+      columns: [{ key: '_chk', type: 'checkbox' }, { key: 'rowNo', label: '번호' }, { key: 'compNm', label: '업체명' }, { key: 'compId', label: '업체코드' }, { key: 'calcDt', label: '정산일' }, { key: 'targetAmt', label: '정산대상금액' }, { key: 'totalFee', label: '공제수수료' }, { key: 'rollingReserveAmt', label: '롤링보류' }, { key: 'payAmount', label: '지급액' }, { key: 'status', label: '상태' }],
       emptyMessage: '조회된 데이터가 없습니다.'
     },
     '/settlement/holdList': {
       searchRows: [[{ label: '조회일자', type: 'daterange', from: 'searchFromDate', to: 'searchToDate' }, { type: 'quickdate' }, { type: 'searchBtn' }]],
       summary: ['건수'],
       buttons: [{ id: 'searchBtn', label: '검색', cls: 'btn-primary' }, { id: 'excelBtn', label: '엑셀다운로드', cls: 'btn-info' }],
-      columns: [{ key: '_chk', type: 'checkbox' }, { key: 'holdDt', label: '보류일' }, { key: 'compId', label: '업체코드' }, { key: 'amount', label: '금액' }, { key: 'reason', label: '보류사유' }],
+      columns: [{ key: '_chk', type: 'checkbox' }, { key: 'rowNo', label: '번호' }, { key: 'compNm', label: '업체명' }, { key: 'compId', label: '업체코드' }, { key: 'holdDt', label: '보류일' }, { key: 'holdAmount', label: '보류금액' }, { key: 'holdReason', label: '보류사유' }],
       emptyMessage: '조회된 데이터가 없습니다.'
     },
     '/notify/payUrlMng': {
       searchRows: [[{ label: '업체코드', type: 'text', name: 'searchCompId' }, { type: 'searchBtn' }]],
       summary: ['건수'],
       buttons: [{ id: 'searchBtn', label: '검색', cls: 'btn-primary' }, { id: 'addBtn', label: '등록', cls: 'btn-success' }],
-      columns: [{ key: '_chk', type: 'checkbox' }, { key: 'compId', label: '업체코드' }, { key: 'notifyUrl', label: '결제통보 URL' }, { key: 'useYn', label: '사용여부' }],
+      columns: [{ key: '_chk', type: 'checkbox' }, { key: 'rowNo', label: '번호' }, { key: 'compNm', label: '업체명' }, { key: 'compId', label: '업체코드' }, { key: 'notifyUrl', label: '결제통보 URL' }, { key: 'useYn', label: '사용여부' }],
       emptyMessage: '조회된 데이터가 없습니다.'
     },
     '/notify/paySendMng': {
       searchRows: [[{ label: '전송일자', type: 'daterange', from: 'searchFromDate', to: 'searchToDate' }, { type: 'quickdate' }, { type: 'searchBtn' }]],
       summary: ['건수'],
       buttons: [{ id: 'searchBtn', label: '검색', cls: 'btn-primary' }, { id: 'excelBtn', label: '엑셀다운로드', cls: 'btn-info' }],
-      columns: [{ key: '_chk', type: 'checkbox' }, { key: 'sendDt', label: '전송일시' }, { key: 'compId', label: '업체코드' }, { key: 'result', label: '결과' }],
+      columns: [{ key: '_chk', type: 'checkbox' }, { key: 'rowNo', label: '번호' }, { key: 'compNm', label: '업체명' }, { key: 'compId', label: '업체코드' }, { key: 'sendDt', label: '전송일시' }, { key: 'result', label: '결과' }],
       emptyMessage: '조회된 데이터가 없습니다.'
     },
     '/notify/cashReceiptUrlMng': {
       searchRows: [[{ label: '업체코드', type: 'text', name: 'searchCompId' }, { type: 'searchBtn' }]],
       summary: ['건수'],
       buttons: [{ id: 'searchBtn', label: '검색', cls: 'btn-primary' }, { id: 'addBtn', label: '등록', cls: 'btn-success' }],
-      columns: [{ key: '_chk', type: 'checkbox' }, { key: 'compId', label: '업체코드' }, { key: 'notifyUrl', label: '현금영수증통보 URL' }, { key: 'useYn', label: '사용여부' }],
+      columns: [{ key: '_chk', type: 'checkbox' }, { key: 'rowNo', label: '번호' }, { key: 'compNm', label: '업체명' }, { key: 'compId', label: '업체코드' }, { key: 'notifyUrl', label: '현금영수증통보 URL' }, { key: 'useYn', label: '사용여부' }],
       emptyMessage: '조회된 데이터가 없습니다.'
     },
     '/notify/cashReceiptSendMng': {
       searchRows: [[{ label: '전송일자', type: 'daterange', from: 'searchFromDate', to: 'searchToDate' }, { type: 'quickdate' }, { type: 'searchBtn' }]],
       summary: ['건수'],
       buttons: [{ id: 'searchBtn', label: '검색', cls: 'btn-primary' }, { id: 'excelBtn', label: '엑셀다운로드', cls: 'btn-info' }],
-      columns: [{ key: '_chk', type: 'checkbox' }, { key: 'sendDt', label: '전송일시' }, { key: 'compId', label: '업체코드' }, { key: 'result', label: '결과' }],
+      columns: [{ key: '_chk', type: 'checkbox' }, { key: 'rowNo', label: '번호' }, { key: 'compNm', label: '업체명' }, { key: 'compId', label: '업체코드' }, { key: 'sendDt', label: '전송일시' }, { key: 'result', label: '결과' }],
       emptyMessage: '조회된 데이터가 없습니다.'
     },
     '/user/menuOrderMng': {
       searchRows: [[{ label: '메뉴', type: 'select', name: 'searchMenuId', options: [{ v: '', t: '선택' }] }, { type: 'searchBtn' }]],
       summary: [],
       buttons: [{ id: 'searchBtn', label: '검색', cls: 'btn-primary' }, { id: 'saveBtn', label: '저장', cls: 'btn-primary' }],
-      columns: [{ key: '_chk', type: 'checkbox' }, { key: 'sortOrder', label: '순서' }, { key: 'colId', label: '항목ID' }, { key: 'colNm', label: '항목명' }, { key: 'dispYn', label: '표시여부' }],
+      columns: [{ key: '_chk', type: 'checkbox' }, { key: 'rowNo', label: '번호' }, { key: 'compNm', label: '업체명' }, { key: 'compId', label: '업체코드' }, { key: 'sortOrder', label: '순서' }, { key: 'colId', label: '항목ID' }, { key: 'colNm', label: '항목명' }, { key: 'dispYn', label: '표시여부' }],
       emptyMessage: '조회된 데이터가 없습니다.'
     },
     '/risk/list': {
       searchRows: [[{ label: '업체코드', type: 'text', name: 'searchCompId' }, { label: '리스크구분', type: 'select', name: 'searchRiskDiv', options: [{ v: '', t: '전체' }] }, { type: 'searchBtn' }]],
       summary: ['건수'],
       buttons: [{ id: 'searchBtn', label: '검색', cls: 'btn-primary' }, { id: 'excelBtn', label: '엑셀다운로드', cls: 'btn-info' }],
-      columns: [{ key: '_chk', type: 'checkbox' }, { key: 'compId', label: '업체코드' }, { key: 'riskDiv', label: '리스크구분' }, { key: 'riskDesc', label: '내용' }, { key: 'regDt', label: '등록일' }],
+      columns: [{ key: '_chk', type: 'checkbox' }, { key: 'rowNo', label: '번호' }, { key: 'compNm', label: '업체명' }, { key: 'compId', label: '업체코드' }, { key: 'riskDiv', label: '리스크구분' }, { key: 'riskDesc', label: '내용' }, { key: 'regDt', label: '등록일' }],
       emptyMessage: '조회된 데이터가 없습니다.'
     }
   };
@@ -1275,6 +1702,60 @@
     MENU_SCREENS['/calc/payCancelList'] = cloneWith('CANCEL', ['취소내역: 통합 결제내역에서 취소만 간추렸습니다.']);
     MENU_SCREENS['/calc/offsetCancList'] = cloneWith('OFFSET_CANCEL', ['상계취소내역: 정산 상계 처리용 — 승인 성공(결제)을 제외한 전 건(실패·환불·강제환불·취소·기타)을 한 화면에서 봅니다. 이후 빈도·집계로 상계에 활용합니다.']);
     MENU_SCREENS['/pay/easyPay'] = cloneWith('URL_PAY', ['URL결제내역: 가맹점 API연동 노티 외, 플랫폼이 칠페이 결제 API로 발급한 결제수소(URL)로 발생한 전 건(성공·실패·환불·취소 등). 통합 결제내역에도 포함되며, 여기서는 origin=URL 만 조회합니다.']);
+  })();
+
+  /** 정산 메뉴(/settlement/*) 중 /calc/*와 동일 API·그리드를 쓰는 화면은 컬럼을 복제해 드리프트를 막음 */
+  (function mirrorSettlementScreensToCalc() {
+    try {
+      var gm = MENU_SCREENS['/calc/calcGmList'];
+      var fr = MENU_SCREENS['/settlement/franchiseList'];
+      if (gm && fr && gm.columns && gm.columns.length) {
+        fr.columns = JSON.parse(JSON.stringify(gm.columns));
+        fr.headerGroups = gm.headerGroups ? JSON.parse(JSON.stringify(gm.headerGroups)) : fr.headerGroups;
+        fr.summary = gm.summary ? gm.summary.slice() : fr.summary;
+      }
+      var cl = MENU_SCREENS['/calc/calcList'];
+      var dist = MENU_SCREENS['/settlement/distributionList'];
+      if (cl && dist && cl.columns && cl.columns.length) {
+        dist.columns = JSON.parse(JSON.stringify(cl.columns));
+        dist.summary = cl.summary ? cl.summary.slice() : dist.summary;
+        dist.searchRows = cl.searchRows ? JSON.parse(JSON.stringify(cl.searchRows)) : dist.searchRows;
+        dist.noticeList = cl.noticeList ? cl.noticeList.slice() : dist.noticeList;
+        dist.distributionThreeRowHeader = !!cl.distributionThreeRowHeader;
+        dist.searchFormClass = cl.searchFormClass || dist.searchFormClass;
+        dist.tableScrollable = cl.tableScrollable;
+        dist.buttons = cl.buttons ? JSON.parse(JSON.stringify(cl.buttons)) : dist.buttons;
+      }
+      var ex = MENU_SCREENS['/settlement/execute'];
+      var exc = MENU_SCREENS['/calc/exCalcList'];
+      if (ex && exc && ex.columns && ex.columns.length) {
+        exc.columns = JSON.parse(JSON.stringify(ex.columns));
+      }
+      var fee = MENU_SCREENS['/calc/feeList'];
+      if (fee && !MENU_SCREENS['/settlement/feeList']) {
+        MENU_SCREENS['/settlement/feeList'] = JSON.parse(JSON.stringify(fee));
+      }
+      var rc = MENU_SCREENS['/calc/compPointMngList'];
+      var rcs = MENU_SCREENS['/settlement/recallMng'];
+      if (rc && rcs) {
+        rcs.columns = JSON.parse(JSON.stringify(rc.columns || []));
+        rcs.searchRows = JSON.parse(JSON.stringify(rc.searchRows || []));
+        rcs.summary = (rc.summary || []).slice();
+      }
+      var sr = MENU_SCREENS['/calc/settlementReport'];
+      if (sr && !MENU_SCREENS['/settlement/settlementReport']) {
+        MENU_SCREENS['/settlement/settlementReport'] = JSON.parse(JSON.stringify(sr));
+      }
+      /* /settlement/settlementReport 가 이미 있으면 본사 지급 컬럼만 동기화 */
+      var srs = MENU_SCREENS['/settlement/settlementReport'];
+      if (sr && srs && sr.columnsRegionalPayout) {
+        srs.columnsRegionalPayout = JSON.parse(JSON.stringify(sr.columnsRegionalPayout));
+      }
+      var col = MENU_SCREENS['/calc/collateralList'];
+      if (col && !MENU_SCREENS['/settlement/collateralList']) {
+        MENU_SCREENS['/settlement/collateralList'] = JSON.parse(JSON.stringify(col));
+      }
+    } catch (e) { /* ignore */ }
   })();
 
   /** 글자수(라벨·옵션·placeholder)에 연동된 입력창 너비(ch) 자동 계산 */
@@ -1395,22 +1876,38 @@
 
   function renderTableColumnGuide(cfg) {
     if (cfg.tableColumnGuide === false || !cfg.columns || cfg.columns.length === 0) return '';
-    var fixedKeys = ['rowNo', 'compId', 'compNm', 'compDivNm'];
-    var cols = cfg.columns.filter(function (c) { return c.type !== 'checkbox' && fixedKeys.indexOf(c.key) === -1; });
+    /** 번호·업체·거래일시·Route No 는 전산 기본 노출(결제 그리드 앞쪽 고정) — VIEW SETTING에서 토글 제외 */
+    var fixedKeys = ['rowNo', 'compId', 'compNm', 'compDivNm', 'trnDate', 'trnTime', 'routeNo'];
+    var cols = cfg.columns.filter(function (c) {
+      if (c.type === 'checkbox' || c.type === 'payActions' || c.type === 'accountAccessDelete' || c.type === 'userResetPassword' || c.type === 'userDelete') return false;
+      return fixedKeys.indexOf(c.key) === -1;
+    });
     if (cols.length === 0) return '';
     var items = cols.map(function (c) {
       var key = c.key || '';
       var label = c.label || c.key;
       return '<label class="column-guide-item column-guide-item--on"><input type="checkbox" class="column-guide-check" data-key="' + key + '" checked> <span class="column-guide-label">' + label + '</span></label>';
     }).join('');
-    return '<div class="table-column-guide mb-3 p-2 border rounded bg-light" id="tableColumnGuide">' +
+    var actionsHtml =
+      '<button type="button" class="btn btn-xs btn-outline-primary" id="compMngSaveColumnsBtn">저장</button>' +
+      '<button type="button" class="btn btn-xs btn-outline-secondary" id="compMngClearColumnsBtn">해제</button>';
+    var rootClass = 'table-column-guide mb-3 p-2 border rounded bg-light';
+    if (cfg.tableColumnGuideTwoRow === true) {
+      return '<div class="' + rootClass + ' table-column-guide--two-row" id="tableColumnGuide">' +
+        '<div class="column-guide-row column-guide-top">' +
+        '<div class="column-guide-title">VIEW SETTING</div>' +
+        '<div class="column-guide-actions">' + actionsHtml + '</div>' +
+        '</div>' +
+        '<div class="column-guide-row column-guide-checkboxes">' +
+        '<div class="column-guide-list">' + items + '</div>' +
+        '</div>' +
+        '</div>';
+    }
+    return '<div class="' + rootClass + '" id="tableColumnGuide">' +
       '<div class="column-guide-row column-guide-title">VIEW SETTING</div>' +
       '<div class="column-guide-row column-guide-body">' +
       '<div class="column-guide-list">' + items + '</div>' +
-      '<div class="column-guide-actions">' +
-      '<button type="button" class="btn btn-xs btn-outline-primary" id="compMngSaveColumnsBtn">저장</button>' +
-      '<button type="button" class="btn btn-xs btn-outline-secondary" id="compMngClearColumnsBtn">해제</button>' +
-      '</div>' +
+      '<div class="column-guide-actions">' + actionsHtml + '</div>' +
       '</div>' +
       '</div>';
   }
@@ -1420,6 +1917,10 @@
     var hqPolicyC = f.hqPolicyOnly ? ' hq-policy-only' : '';
     if (f.type === 'hidden') {
       return '<input type="hidden" name="' + (f.name || '') + '" id="' + (f.name || '') + '">';
+    }
+    if (f.type === 'customHtml') {
+      var colH = f.col || 12;
+      return '<div class="col-sm-' + colH + '">' + (f.html || '') + '</div>';
     }
     if (f.type === 'passwordReset') {
       var col = f.col || 2;
@@ -1451,10 +1952,12 @@
       var selAttrs = (f.readonly ? ' disabled' : '')
         + (f.loadCountries ? ' data-load-countries="true"' : '')
         + (f.bankByCountry ? ' data-bank-by-country="true"' : '')
-        + (f.loadNotifyTargets ? ' data-load-notify-targets="true"' : '');
+        + (f.loadNotifyTargets ? ' data-load-notify-targets="true"' : '')
+        + (f.loadRegionalBranches ? ' data-load-regional-branches="true"' : '');
       inp = '<select class="form-control form-control-sm' + reqClass + '" name="' + name + '" id="' + id + '"' + selAttrs + '>' + opts + '</select>';
     } else if (f.type === 'textarea') {
-      inp = '<textarea class="form-control form-control-sm' + reqClass + '" name="' + name + '" id="' + id + '" rows="3"' + ro + '></textarea>';
+      var taRows = f.rows != null ? Math.max(2, parseInt(f.rows, 10) || 3) : 3;
+      inp = '<textarea class="form-control form-control-sm' + reqClass + '" name="' + name + '" id="' + id + '" rows="' + taRows + '"' + ro + '></textarea>';
     } else if (f.type === 'file') {
       inp = '<input type="file" class="form-control form-control-sm" name="' + name + '" id="' + id + '">';
     } else {
@@ -1480,7 +1983,7 @@
   function renderFormSections(cfg) {
     var sections = cfg.formSections || [];
     if (sections.length === 0) return '';
-    var formId = cfg.isCompDetail ? 'compDetailForm' : 'compRegForm';
+    var formId = cfg.isCompDetail ? 'compDetailForm' : (cfg.formHtmlId || 'compRegForm');
     return renderFormSectionsWithId(sections, formId, null);
   }
 
@@ -1652,8 +2155,55 @@
     return '<div class="screen-summary-action-row">' + summaryHtml + buttonsHtml + '</div>';
   }
 
+  /** 유통망정산내역: 승인/취소 × 수수료 4단 중첩 헤더 */
+  function buildDistributionListTheadHtml() {
+    return (
+      '<tr>' +
+      '<th rowspan="3" data-key="rowNo" class="text-nowrap">No.</th>' +
+      '<th rowspan="3" data-key="settleMonth" class="text-nowrap">정산월</th>' +
+      '<th rowspan="3" data-key="orgDivNm" class="text-nowrap">구분</th>' +
+      '<th rowspan="3" data-key="regionalNm" class="text-nowrap">본사</th>' +
+      '<th rowspan="3" data-key="masterNm" class="text-nowrap">총판</th>' +
+      '<th rowspan="3" data-key="branchNm" class="text-nowrap">지사</th>' +
+      '<th rowspan="3" data-key="agencyNm" class="text-nowrap">대리점</th>' +
+      '<th rowspan="3" data-key="compId" class="text-nowrap">업체코드</th>' +
+      '<th colspan="6" class="dist-th-group text-center">승인</th>' +
+      '<th colspan="6" class="dist-th-group text-center">취소</th>' +
+      '<th rowspan="3" data-key="settleAmt" class="text-nowrap">정산금액</th>' +
+      '</tr>' +
+      '<tr>' +
+      '<th rowspan="2" data-key="aprvCnt" class="text-nowrap">건수</th>' +
+      '<th rowspan="2" data-key="aprvAmt" class="text-nowrap">금액</th>' +
+      '<th colspan="4" class="dist-th-fee text-center text-nowrap">수수료</th>' +
+      '<th rowspan="2" data-key="canCnt" class="text-nowrap">건수</th>' +
+      '<th rowspan="2" data-key="canAmt" class="text-nowrap">금액</th>' +
+      '<th colspan="4" class="dist-th-fee text-center text-nowrap">수수료</th>' +
+      '</tr>' +
+      '<tr>' +
+      '<th data-key="aprvFeeCnt" class="text-nowrap dist-th-fee-sub">건</th>' +
+      '<th data-key="aprvFeePct" class="text-nowrap dist-th-fee-sub">%</th>' +
+      '<th data-key="aprvFeeSum" class="text-nowrap dist-th-fee-sub">합계</th>' +
+      '<th data-key="aprvFeeVat" class="text-nowrap dist-th-fee-sub">부가세</th>' +
+      '<th data-key="canFeeCnt" class="text-nowrap dist-th-fee-sub">건</th>' +
+      '<th data-key="canFeePct" class="text-nowrap dist-th-fee-sub">%</th>' +
+      '<th data-key="canFeeSum" class="text-nowrap dist-th-fee-sub">합계</th>' +
+      '<th data-key="canFeeVat" class="text-nowrap dist-th-fee-sub">부가세</th>' +
+      '</tr>'
+    );
+  }
+
   function renderTable(cfg, tabId) {
     var cols = cfg.columns || [];
+    if (cfg.distributionThreeRowHeader) {
+      var emptyMsg = cfg.emptyMessage || '조회된 데이터가 없습니다.';
+      var emptyRow = '<tr><td colspan="' + cols.length + '" class="empty-state-cell text-center text-muted py-4">' + emptyMsg + '</td></tr>';
+      var respClass = 'table-responsive' + (cfg.tableScrollable ? ' table-scrollable' : '');
+      var tblExtra = cfg.tableExtraClass ? (' ' + cfg.tableExtraClass) : '';
+      return '<div class="' + respClass + '">' +
+        '<table class="table table-bordered table-hover table-sm screen-distribution-grid' + tblExtra + '" id="grid_' + (tabId || '') + '">' +
+        '<thead>' + buildDistributionListTheadHtml() + '</thead>' +
+        '<tbody>' + emptyRow + '</tbody></table></div>';
+    }
     var ths = cols.map(function (c) {
       if (c.type === 'checkbox') return '<th style="width:40px"><input type="checkbox" class="grid-check-all" title="전체선택"></th>';
       return '<th>' + (c.label || c.key) + '</th>';
@@ -1661,7 +2211,8 @@
     var emptyMsg = cfg.emptyMessage || '조회된 데이터가 없습니다.';
     var emptyRow = '<tr><td colspan="' + cols.length + '" class="empty-state-cell text-center text-muted py-4">' + emptyMsg + '</td></tr>';
     var respClass = 'table-responsive' + (cfg.tableScrollable ? ' table-scrollable' : '');
-    var html = '<div class="' + respClass + '"><table class="table table-bordered table-hover table-sm" id="grid_' + (tabId || '') + '"><thead><tr>' + ths + '</tr></thead><tbody>' + emptyRow + '</tbody></table></div>';
+    var tblExtra = cfg.tableExtraClass ? (' ' + cfg.tableExtraClass) : '';
+    var html = '<div class="' + respClass + '"><table class="table table-bordered table-hover table-sm' + tblExtra + '" id="grid_' + (tabId || '') + '"><thead><tr>' + ths + '</tr></thead><tbody>' + emptyRow + '</tbody></table></div>';
     return html;
   }
 
@@ -1708,6 +2259,12 @@
         if (cfg.columns && cfg.columns.length > 0) html += renderTableColumnGuide(cfg);
         html += renderTable(cfg, tabId);
         html += renderPagination(tabId);
+        if (cfg.hasCommissionHistoryTable) {
+          html += '<div class="card mt-4 commission-history-card"><div class="card-header py-2 fw-semibold">수수료 변경 히스토리</div><div class="card-body pt-2">' +
+            '<p class="text-muted small mb-2" id="commissionHistSubtitle_' + tabId + '">목록에서 가맹점 행을 클릭하면 해당 업체의 변경 이력이 표시됩니다. (최근 변경이 No.1)</p>' +
+            '<div class="table-responsive table-scrollable"><table class="table table-bordered table-sm table-hover mb-0 commission-split-grid" id="grid_commissionHist_' + tabId + '">' +
+            '<thead><tr><th class="text-muted">…</th></tr></thead><tbody><tr><td class="text-center text-muted py-3">조회 전</td></tr></tbody></table></div></div></div>';
+        }
       }
       if (cfg.hasSelectedTable) {
         html += '<div class="card mt-4" id="compMngSelectedCard"><div class="card-header">선택된 업체</div><div class="card-body"><p class="text-muted small mb-2">위 테이블에서 선택 후 [선택 저장] 버튼을 누르면 선택된 항목만 아래에 표시됩니다.</p><div class="table-responsive table-scrollable" id="compMngSelectedWrap"><table class="table table-bordered table-sm" id="grid_compMngSelected"><thead><tr id="compMngSelectedThead"></tr></thead><tbody id="compMngSelectedTbody"><tr><td colspan="20" class="text-center text-muted py-4">선택된 항목이 없습니다.</td></tr></tbody></table></div></div></div>';
@@ -1723,8 +2280,11 @@
     return html;
   }
 
+  window.PG_CALC_CYCLE_OPTIONS = CALC_CYCLE_OPTIONS;
+  window.PG_CALC_CYCLE_SEARCH_OPTIONS = CALC_CYCLE_SEARCH_OPTIONS;
   window.PG_SCREENS = {
     getScreenHtml: getScreenHtml,
-    getMenuScreens: function () { return MENU_SCREENS; }
+    getMenuScreens: function () { return MENU_SCREENS; },
+    buildDistributionListTheadHtml: buildDistributionListTheadHtml
   };
 })();

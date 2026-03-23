@@ -27,7 +27,7 @@ public class ApiCommissionController {
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate searchFromDate,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate searchToDate,
             @RequestParam(defaultValue = "1") int page,
-            @RequestParam(defaultValue = "20") int size) {
+            @RequestParam(defaultValue = "500") int size) {
         PageResult<Map<String, Object>> pr = commissionService.search(searchCompId, searchCompNm, page, size);
         return ResponseEntity.ok(ApiResponse.ok(pr));
     }
@@ -38,6 +38,14 @@ public class ApiCommissionController {
                 .map(ApiResponse::ok)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.ok(ApiResponse.fail("업체를 찾을 수 없습니다.")));
+    }
+
+    @GetMapping("/history")
+    public ResponseEntity<ApiResponse<PageResult<Map<String, Object>>>> history(
+            @RequestParam String compId,
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "100") int size) {
+        return ResponseEntity.ok(ApiResponse.ok(commissionService.history(compId, page, size)));
     }
 
     @PostMapping("/save")
@@ -60,7 +68,15 @@ public class ApiCommissionController {
             @RequestParam(required = false) String regionalRate,
             @RequestParam(required = false) String masterRate,
             @RequestParam(required = false) String branchRate,
-            @RequestParam(required = false) String agencyRate) {
+            @RequestParam(required = false) String agencyRate,
+            @RequestParam(required = false) String salesOfficeRate,
+            @RequestParam(required = false) String hqPerTxFee,
+            @RequestParam(required = false) String regionalPerTxFee,
+            @RequestParam(required = false) String masterPerTxFee,
+            @RequestParam(required = false) String branchPerTxFee,
+            @RequestParam(required = false) String agencyPerTxFee,
+            @RequestParam(required = false) String salesOfficePerTxFee,
+            @RequestParam(required = false) String applyStartDate) {
         Map<String, Object> body = new java.util.HashMap<>();
         body.put("perTxFee", perTxFee != null ? perTxFee : "");
         body.put("cancelRate", cancelRate != null ? cancelRate : "");
@@ -80,6 +96,14 @@ public class ApiCommissionController {
         body.put("masterRate", masterRate != null ? masterRate : "");
         body.put("branchRate", branchRate != null ? branchRate : "");
         body.put("agencyRate", agencyRate != null ? agencyRate : "");
+        body.put("salesOfficeRate", salesOfficeRate != null ? salesOfficeRate : "");
+        body.put("hqPerTxFee", hqPerTxFee != null ? hqPerTxFee : "");
+        body.put("regionalPerTxFee", regionalPerTxFee != null ? regionalPerTxFee : "");
+        body.put("masterPerTxFee", masterPerTxFee != null ? masterPerTxFee : "");
+        body.put("branchPerTxFee", branchPerTxFee != null ? branchPerTxFee : "");
+        body.put("agencyPerTxFee", agencyPerTxFee != null ? agencyPerTxFee : "");
+        body.put("salesOfficePerTxFee", salesOfficePerTxFee != null ? salesOfficePerTxFee : "");
+        body.put("applyStartDate", applyStartDate != null ? applyStartDate : "");
         boolean ok = commissionService.save(compId, body);
         return ResponseEntity.ok(ok ? ApiResponse.ok(Map.of("success", true)) : ApiResponse.fail("업체를 찾을 수 없습니다."));
     }

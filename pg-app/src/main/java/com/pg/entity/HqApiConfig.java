@@ -42,6 +42,18 @@ public class HqApiConfig {
     @Column(name = "chillpay_sandbox", length = 1)
     private String chillpaySandbox;
 
+    /** 환수금에서 수수료 포함 여부 (Y/N) */
+    @Column(name = "recall_include_fee_yn", length = 1)
+    private String recallIncludeFeeYn = "N";
+
+    /** 정산 관련 VAT 부과 여부 (Y/N) */
+    @Column(name = "settlement_vat_apply_yn", length = 1)
+    private String settlementVatApplyYn = "Y";
+
+    /** 본사 영업일 설정 목록 JSON */
+    @Column(name = "business_day_settings_json", columnDefinition = "TEXT")
+    private String businessDaySettingsJson;
+
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
@@ -71,6 +83,12 @@ public class HqApiConfig {
     public void setChillpayRouteNo(Integer chillpayRouteNo) { this.chillpayRouteNo = chillpayRouteNo; }
     public String getChillpaySandbox() { return chillpaySandbox; }
     public void setChillpaySandbox(String chillpaySandbox) { this.chillpaySandbox = chillpaySandbox; }
+    public String getRecallIncludeFeeYn() { return recallIncludeFeeYn; }
+    public void setRecallIncludeFeeYn(String recallIncludeFeeYn) { this.recallIncludeFeeYn = recallIncludeFeeYn; }
+    public String getSettlementVatApplyYn() { return settlementVatApplyYn; }
+    public void setSettlementVatApplyYn(String settlementVatApplyYn) { this.settlementVatApplyYn = settlementVatApplyYn; }
+    public String getBusinessDaySettingsJson() { return businessDaySettingsJson; }
+    public void setBusinessDaySettingsJson(String businessDaySettingsJson) { this.businessDaySettingsJson = businessDaySettingsJson; }
     public LocalDateTime getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
 }

@@ -1,7 +1,11 @@
 /* PG 통합관리자 - 참고 이미지 구조 정확 반영 */
 * { box-sizing: border-box; }
-:root { --table-row-padding-y: 10px; }
-body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans KR", sans-serif; font-size: 14px; }
+:root {
+  --table-row-padding-y: 10px;
+  --app-base-font-size: 13px;
+  --app-table-font-size: 12px;
+}
+body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans KR", sans-serif; font-size: var(--app-base-font-size); }
 .wrapper { display: flex; flex-direction: column; min-height: 100vh; }
 /* 세로로 메뉴가 길면 사이드바 내부 스크롤 대신 본 행 전체를 스크롤 */
 .wrapper-body { display: flex; flex-direction: row; flex: 1; min-height: 0; min-width: 0; overflow-x: hidden; overflow-y: auto; align-items: stretch; }
@@ -95,7 +99,7 @@ body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Ro
   text-decoration: none;
   cursor: pointer;
   border-left: 3px solid transparent;
-  font-size: 14px;
+  font-size: 13px;
 }
 .side-nav-link:hover { color: #fff; background: rgba(255,255,255,0.08); }
 /* 대메뉴 선택: 연한 그레이, 보라색 포인트는 왼쪽 라인 */
@@ -142,7 +146,7 @@ body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Ro
   flex-shrink: 0;
 }
 .header-top-right { display: flex; align-items: center; flex-wrap: wrap; gap: 16px 20px; }
-.header-top-info { font-size: 13px; color: #333; font-weight: 500; }
+.header-top-info { font-size: 12px; color: #333; font-weight: 500; }
 .header-user-link { display: flex; align-items: center; gap: 8px; color: #333; text-decoration: none; }
 .header-user-link:hover { color: #111; }
 .header-user-icon { font-size: 1.5rem; color: #555; }
@@ -190,7 +194,7 @@ body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Ro
 .content-tabs .nav-item.copyTopTab .tab-a.active { background: #5a5a5a; color: #fff; font-weight: 600; }
 .content-tabs .tab-a {
   padding: 8px 14px;
-  font-size: 13px;
+  font-size: 12px;
   text-decoration: none;
   display: inline-block;
 }
@@ -264,8 +268,8 @@ body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Ro
 }
 .content-page .container-fluid { max-width: none; width: 100%; overflow: hidden; }
 .page-title-box { margin-bottom: 14px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; }
-.page-title-box .page-title { margin: 0; order: 1; font-size: 1.2rem; font-weight: 600; color: #333; }
-.page-title-box .breadcrumb { margin: 0; padding: 0; background: none; font-size: 13px; color: #666; order: 2; }
+.page-title-box .page-title { margin: 0; order: 1; font-size: 1.1rem; font-weight: 600; color: #333; }
+.page-title-box .breadcrumb { margin: 0; padding: 0; background: none; font-size: 12px; color: #666; order: 2; }
 .page-title-box .breadcrumb-item.navi { font-weight: 600; color: #333; }
 .page-title-box .page-title.empty-title { display: none; }
 #contentsMain { flex: 1; min-height: 0; overflow: hidden; }
@@ -316,8 +320,8 @@ body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Ro
 /* 입력창: 너비는 글자수 자동(ch), 높이/폰트는 30% 확대 */
 .screen-search-form .search-cell-input .form-control-sm,
 .screen-search-form .search-cell-input select.form-control-sm {
-  font-size: 14px;
-  height: 29px;
+  font-size: 13px;
+  height: 28px;
   padding: 2px 8px;
   line-height: 1.3;
 }
@@ -328,8 +332,8 @@ body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Ro
 /* 조회일자: 달력 40% 확대 */
 .screen-search-form .search-cell-input--daterange { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .screen-search-form .search-date-input {
-  font-size: 15px;
-  height: 31px;
+  font-size: 14px;
+  height: 30px;
   padding: 2px 8px;
   width: 154px;
   min-width: 140px;
@@ -499,11 +503,11 @@ body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Ro
 #contentsMain .btn-danger:hover { background: #a00; border-color: #800; }
 
 /* 요약 바 (연파랑) */
-.summary-bar { background: #d9edf7; border: 1px solid #bce8f1; padding: 8px 14px; margin-bottom: 10px; font-size: 13px; border-radius: 2px; }
+.summary-bar { background: #d9edf7; border: 1px solid #bce8f1; padding: 8px 14px; margin-bottom: 10px; font-size: 12px; border-radius: 2px; }
 .summary-bar label { margin: 0 12px 0 0; font-weight: 500; color: #31708f; }
 
 /* 테이블: 제목·내용 상하좌우 가운데 정렬 (모든 테이블 공통 규칙) */
-#contentsMain .table { font-size: 13px; }
+#contentsMain .table { font-size: var(--app-table-font-size); }
 #contentsMain .table thead th,
 #contentsMain .table tbody td { text-align: center; vertical-align: middle; }
 #contentsMain .card { border: 1px solid #ddd; border-radius: 2px; }
@@ -546,7 +550,7 @@ body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Ro
 .screen-calc-gm-list #contentsMain .table th,
 .screen-calc-gm-list #contentsMain .table td {
   white-space: nowrap;
-  font-size: 12px;
+  font-size: 11px;
 }
 .screen-calc-gm-list #contentsMain .table th[data-key="merchantNm"] { min-width: 150px; }
 .screen-calc-gm-list #contentsMain .table th[data-key="compId"] { min-width: 105px; }
@@ -596,7 +600,7 @@ body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Ro
 .screen-pay-list #contentsMain .table tbody tr:nth-child(odd) { background: #fff; }
 .screen-pay-list #contentsMain .table tbody tr:nth-child(even) { background: #eef6fc; }
 .screen-pay-list #contentsMain .table th,
-.screen-pay-list #contentsMain .table td { font-size: 12px; }
+.screen-pay-list #contentsMain .table td { font-size: 11px; }
 
 #contentsMain .table-responsive { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
 /* 업체관리 등: 가로·세로 스크롤로 모든 자료 한 화면에서 볼 수 있게 */
@@ -624,6 +628,33 @@ body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Ro
 #contentsMain .table-responsive .table[id^="grid_comp_compMngTree"] tbody tr:nth-child(even) { background: #E6F7FF; }
 #contentsMain .table-responsive .table[id^="grid_comp_compMngTree"] td,
 #contentsMain .table-responsive .table[id^="grid_comp_compMngTree"] th { border: none !important; }
+/* 유통망정산내역: 3단 헤더(승인/취소·수수료 하위) — 좁은 칸도 한 줄로 보이게 */
+.screen-distribution-list .screen-distribution-grid.table {
+  table-layout: auto;
+  min-width: 1280px;
+  font-size: 11px;
+}
+.screen-distribution-list .screen-distribution-grid thead th {
+  vertical-align: middle;
+}
+.screen-distribution-list .screen-distribution-grid .dist-th-group {
+  font-weight: 600;
+}
+.screen-distribution-list .screen-distribution-grid .dist-th-fee,
+.screen-distribution-list .screen-distribution-grid .dist-th-fee-sub {
+  white-space: nowrap;
+  font-size: 10px;
+  padding-left: 4px;
+  padding-right: 4px;
+}
+
+/* 본사설정 — 노티매핑 JSON 편집 */
+#hqNotifyMappingForm textarea[name="mappingDefinitionJson"] {
+  font-family: ui-monospace, Consolas, "Cascadia Code", monospace;
+  font-size: 11px;
+  line-height: 1.35;
+}
+
 /* 업체관리 VIEW SETTING: 항목 한 줄 좌측 정렬 + 우측 액션 고정 */
 .table-column-guide { font-size: 10px; display: flex; flex-direction: column; align-items: stretch; justify-content: center; }
 .table-column-guide .column-guide-row { margin-bottom: 4px; }
@@ -641,6 +672,55 @@ body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Ro
   overflow-x: auto;
   overflow-y: hidden;
   padding-top: 0;
+}
+/* 결제내역 등: VIEW SETTING 2행 — 1행 제목+버튼, 2행 컬럼 체크 줄바꿈 */
+.table-column-guide.table-column-guide--two-row {
+  gap: 8px;
+}
+.table-column-guide--two-row .column-guide-top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 12px;
+  width: 100%;
+  margin-bottom: 0;
+}
+.table-column-guide--two-row .column-guide-top .column-guide-title {
+  margin-bottom: 0;
+  flex: 1 1 auto;
+  min-width: 8em;
+  line-height: 1.4;
+}
+.table-column-guide--two-row .column-guide-top .column-guide-actions {
+  flex: 0 0 auto;
+  margin-left: 0;
+  display: inline-flex !important;
+  flex-direction: row;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+.table-column-guide--two-row .column-guide-checkboxes {
+  width: 100%;
+  margin-bottom: 0;
+}
+.table-column-guide--two-row .column-guide-checkboxes .column-guide-list {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  align-content: flex-start;
+  gap: 6px 12px;
+  overflow-x: visible;
+  overflow-y: visible;
+  max-width: 100%;
+}
+.table-column-guide--two-row .column-guide-label {
+  white-space: normal;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  line-height: 1.35;
 }
 .table-column-guide .column-guide-actions {
   flex: 0 0 auto !important;
@@ -660,7 +740,8 @@ body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Ro
   min-width: 44px;
   white-space: nowrap !important;
 }
-.table-column-guide .column-guide-item { margin: 0; font-weight: 500; cursor: pointer; white-space: nowrap; font-size: 10px; display: inline-flex; align-items: center; }
+.table-column-guide:not(.table-column-guide--two-row) .column-guide-item { margin: 0; font-weight: 500; cursor: pointer; white-space: nowrap; font-size: 10px; display: inline-flex; align-items: center; }
+.table-column-guide.table-column-guide--two-row .column-guide-item { margin: 0; font-weight: 500; cursor: pointer; white-space: normal; font-size: 10px; display: inline-flex; align-items: flex-start; max-width: 100%; }
 .table-column-guide .column-guide-item input { margin-right: 3px; }
 .table-column-guide .btn.btn-xs { font-size: 10px; padding: 2px 6px; width: 100%; min-height: 24px; }
 /* 업체관리 트리 접기/펼치기 (계층 구조 유지를 위해 좌측 정렬) */
@@ -781,7 +862,7 @@ td.empty-state-cell {
   user-select: none;
 }
 #contentsMain .pagination { margin: 0; }
-#contentsMain .pagination .page-link { font-size: 13px; }
+#contentsMain .pagination .page-link { font-size: 12px; }
 
 /* 각 페이지 하단 회사명 (목록/폼 공통) */
 .page-footer {
@@ -808,7 +889,7 @@ td.empty-state-cell {
   display: block;
   margin-bottom: 6px;
   white-space: nowrap;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 500;
   color: #333;
 }
@@ -957,4 +1038,49 @@ body.theme-pastel_4 .content-page, body.theme-pastel_5 .content-page {
 }
 .column-guide-item--off .column-guide-label {
   color: #9aa0a6;
+}
+
+/* 수수료관리 2단 헤더: 컬럼 전체 선택 시에도 하위 헤더 한 줄 유지 */
+.commission-split-grid thead th {
+  vertical-align: middle;
+}
+.commission-split-grid thead tr:first-child th {
+  white-space: nowrap;
+}
+.commission-split-grid thead th[data-key$="Rate"],
+.commission-split-grid thead th[data-key$="PerTxFee"] {
+  white-space: nowrap;
+  min-width: 3rem;
+}
+.commission-split-grid thead th[data-key$="Nm"] {
+  white-space: nowrap;
+  min-width: 4rem;
+}
+
+/* 본사(REGIONAL) 휴일 미니달력 */
+.hq-holiday-mini-table td {
+  padding: 2px !important;
+  vertical-align: middle;
+  min-width: 1.75rem;
+}
+.hq-holiday-day {
+  min-height: 1.6rem;
+  line-height: 1.2;
+  font-size: 11px;
+  background: #f8f9fa;
+  color: #212529;
+}
+.hq-holiday-day:hover {
+  background: #e9ecef;
+}
+.hq-holiday-day--off {
+  background: #d0d4da !important;
+  color: #343a40 !important;
+  font-weight: 600;
+}
+.hq-holiday-day--off:hover {
+  background: #c2c8cf !important;
+}
+.hq-holiday-ui-wrap .hq-holiday-calendar-grid {
+  max-height: none;
 }

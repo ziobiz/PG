@@ -93,6 +93,7 @@ public class DataLoader {
                         SettlementSetting ss = new SettlementSetting();
                         ss.setOrgUnitId(ou.getId());
                         ss.setCalcCycle("D7");
+                        ss.setCalcProcType("MANUAL");
                         ss.setTransferType("MANUAL");
                         ss.setPayHoldYn("N");
                         settlementSettingRepository.save(ss);
@@ -253,6 +254,7 @@ public class DataLoader {
                     SettlementSetting ss = new SettlementSetting();
                     ss.setOrgUnitId(ou.getId());
                     ss.setCalcCycle("D7");
+                    ss.setCalcProcType("MANUAL");
                     ss.setTransferType("MANUAL");
                     settlementSettingRepository.save(ss);
                     MerchantCommissionExtra ex = new MerchantCommissionExtra();
@@ -408,6 +410,7 @@ public class DataLoader {
                     SettlementSetting ss = new SettlementSetting();
                     ss.setOrgUnitId(ou.getId());
                     ss.setCalcCycle("D7");
+                    ss.setCalcProcType("MANUAL");
                     ss.setTransferType("MANUAL");
                     settlementSettingRepository.save(ss);
                 }
@@ -558,6 +561,7 @@ public class DataLoader {
             SettlementSetting ss = new SettlementSetting();
             ss.setOrgUnitId(e2.getId());
             ss.setCalcCycle("D7");
+            ss.setCalcProcType("MANUAL");
             ss.setTransferType("MANUAL");
             settlementSettingRepository.save(ss);
 

@@ -167,6 +167,9 @@ public class ApiCompController {
             @RequestParam(required = false) String calcExcludeYn,
             @RequestParam(required = false) String calcExcludeTarget,
             @RequestParam(required = false) String calcStartTime,
+            @RequestParam(required = false) String calcProcType,
+            @RequestParam(required = false) String calcMinAmt,
+            @RequestParam(required = false) String transferExecTime,
             @RequestParam(required = false) String pgBindings,
             @RequestParam(required = false) String webPaymentUseYn,
             @RequestParam(required = false) String baseCurrency,
@@ -228,7 +231,7 @@ public class ApiCompController {
                 remark,
                 withdrawDays, withdrawStartTime, withdrawEndTime, payLimitDefault, payLimitExtra, payLimitAlertSms,
                 holdRateFollowHq, holdRate, holdDaysInt, calcCycle, calcCloseTime, transferType, transferCycleDaysInt, autoTransferMin, payHoldYn,
-                calcExcludeYn, calcExcludeTarget, calcStartTime,
+                calcExcludeYn, calcExcludeTarget, calcStartTime, calcProcType, calcMinAmt, transferExecTime,
                 pgBindings, webPaymentUseYn, baseCurrency,
                 defaultProductName, defaultProductCode, defaultProductAmount, defaultProductDesc,
                 notifyUrlBackground, notifyUrlResult,
@@ -338,12 +341,28 @@ public class ApiCompController {
         }
     }
 
-    /** 업체 비밀번호 초기화 - 기본 비밀번호(test123!)로 재설정 */
+    /** 업체 대표 계정 비밀번호 초기화 — 임시 비밀번호 로그인ID+1! */
     @PostMapping("/resetPassword")
     public ResponseEntity<ApiResponse<Map<String, Object>>> resetPassword(@RequestParam String compId) {
-        boolean ok = compService.resetPassword(compId);
-        return ResponseEntity.ok(ok ? ApiResponse.ok(Map.of("success", true, "message", "비밀번호가 초기화되었습니다.", "tempPassword", "test123!"))
-                : ApiResponse.fail("업체를 찾을 수 없습니다.", "NOT_FOUND"));
+        Authentication auth0 = SecurityContextHolder.getContext().getAuthentication();
+        if (auth0 != null && auth0.getPrincipal() instanceof AppUser u0) {
+            if (!"ADMIN".equalsIgnoreCase(u0.getRole())) {
+                Map<String, Object> org0 = authService.getOrgInfo(u0.getUsername());
+                String mine0 = org0 != null && org0.get("compId") != null ? org0.get("compId").toString().trim() : "";
+                if (mine0.isEmpty() || !mine0.equals(compId != null ? compId.trim() : "")) {
+                    return ResponseEntity.ok(ApiResponse.fail("본인 소속 업체만 비밀번호를 초기화할 수 있습니다.", "FORBIDDEN"));
+                }
+            }
+        }
+        return compService.resetPassword(compId)
+                .map(temp -> {
+                    Map<String, Object> body = new java.util.LinkedHashMap<>();
+                    body.put("success", true);
+                    body.put("message", "비밀번호가 초기화되었습니다.");
+                    body.put("tempPassword", temp);
+                    return ResponseEntity.ok(ApiResponse.ok(body));
+                })
+                .orElseGet(() -> ResponseEntity.ok(ApiResponse.fail("업체를 찾을 수 없거나 대표 로그인ID가 없습니다.", "NOT_FOUND")));
     }
 
     /** 업체 로그인ID 변경 */
@@ -481,9 +500,17 @@ public class ApiCompController {
             @RequestParam(required = false) String holdRate,
             @RequestParam(required = false) String holdDays,
             @RequestParam(required = false) String calcCycle,
+            @RequestParam(required = false) String calcCloseTime,
+            @RequestParam(required = false) String calcStartTime,
+            @RequestParam(required = false) String transferCycleDays,
+            @RequestParam(required = false) String calcProcType,
             @RequestParam(required = false) String transferType,
             @RequestParam(required = false) String autoTransferMin,
-            @RequestParam(required = false) String payHoldYn) {
+            @RequestParam(required = false) String payHoldYn,
+            @RequestParam(required = false) String calcExcludeYn,
+            @RequestParam(required = false) String calcExcludeTarget,
+            @RequestParam(required = false) String calcMinAmt,
+            @RequestParam(required = false) String transferExecTime) {
         Integer withdrawDays = null;
         if (withdrawLimitDays != null && !withdrawLimitDays.trim().isEmpty()) {
             try { withdrawDays = Integer.parseInt(withdrawLimitDays.trim()); } catch (NumberFormatException ignored) {}
@@ -492,8 +519,16 @@ public class ApiCompController {
         if (holdDays != null && !holdDays.trim().isEmpty()) {
             try { holdDaysInt = Integer.parseInt(holdDays.trim()); } catch (NumberFormatException ignored) {}
         }
+        Integer transferCycleDaysInt = null;
+        if (transferCycleDays != null && !transferCycleDays.trim().isEmpty()) {
+            try { transferCycleDaysInt = Integer.parseInt(transferCycleDays.trim()); } catch (NumberFormatException ignored) {}
+        }
         boolean ok = compService.saveSettlementSetting(compId, withdrawDays, payLimitDefault, payLimitExtra,
-                holdRate, holdDaysInt, calcCycle, transferType, autoTransferMin, payHoldYn);
+                holdRate, holdDaysInt, calcCycle,
+                calcCloseTime, calcStartTime, transferCycleDaysInt,
+                calcProcType, transferType, autoTransferMin, payHoldYn,
+                calcExcludeYn, calcExcludeTarget,
+                calcMinAmt, transferExecTime);
         return ResponseEntity.ok(ok ? ApiResponse.ok(Map.of("success", true)) : ApiResponse.fail("업체를 찾을 수 없습니다.", "NOT_FOUND"));
     }
 }

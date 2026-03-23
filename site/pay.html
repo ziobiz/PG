@@ -17,6 +17,13 @@
   <div class="container">
     <h4 class="mb-4">ChillPay 결제</h4>
     <div id="configError" class="alert alert-warning" style="display:none;">API 설정을 불러올 수 없습니다. 서버(8080)가 실행 중인지 확인하세요.</div>
+    <div id="chillpayMeta" class="alert alert-light border small mb-3" style="display:none;">
+      <div class="fw-semibold mb-1">ChillPay 엔드포인트 (샌드박스/운영은 서버 설정에 따름)</div>
+      <div><span class="text-muted">호스티드 결제(브라우저 POST)</span><br><code id="metaRedirectUrl" class="small user-select-all"></code></div>
+      <div class="mt-1"><span class="text-muted">DirectCredit API (인라인)</span><br><code id="metaDirectApiUrl" class="small user-select-all"></code></div>
+      <div class="mt-1"><span class="text-muted">Payment API v2 (서버 폼 POST, urlencoded)</span><br><code id="metaV2Url" class="small user-select-all"></code></div>
+      <p class="text-muted mb-0 mt-2 small">이 페이지는 <strong>DirectCredit</strong> 흐름만 처리합니다. 리다이렉트 결제는 동일 설정으로 별도 폼 POST를 구성하면 됩니다. 필드·CheckSum 순서는 ChillPay 매뉴얼 표를 따르세요.</p>
+    </div>
 
     <form id="payForm">
       <div class="mb-3">
@@ -123,6 +130,16 @@
       }
 
       loadConfig().then(function (cfg) {
+        if (cfg.redirectPaymentPageUrl) {
+          document.getElementById('metaRedirectUrl').textContent = cfg.redirectPaymentPageUrl;
+        }
+        if (cfg.directCreditApiUrl) {
+          document.getElementById('metaDirectApiUrl').textContent = cfg.directCreditApiUrl;
+        }
+        if (cfg.paymentAppsrvV2Url) {
+          document.getElementById('metaV2Url').textContent = cfg.paymentAppsrvV2Url;
+        }
+        document.getElementById('chillpayMeta').style.display = 'block';
         return loadChillPayScript(cfg.ccdScriptUrl).then(function () { return cfg; });
       }).then(function (cfg) {
         if (window.ChillPay || window.CCDPayment) {

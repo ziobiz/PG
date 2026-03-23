@@ -7,6 +7,8 @@ public class LoginResponse {
     private Long orgUnitId;
     private String compId;
     private String orgLevel;
+    /** 비밀번호 초기화 등으로 임시 비번 사용 중이면 true — 클라이언트에서 변경 유도 */
+    private boolean mustChangePassword;
 
     public String getToken() { return token; }
     public void setToken(String token) { this.token = token; }
@@ -20,4 +22,6 @@ public class LoginResponse {
     public void setCompId(String compId) { this.compId = compId; }
     public String getOrgLevel() { return orgLevel; }
     public void setOrgLevel(String orgLevel) { this.orgLevel = orgLevel; }
+    public boolean isMustChangePassword() { return mustChangePassword; }
+    public void setMustChangePassword(boolean mustChangePassword) { this.mustChangePassword = mustChangePassword; }
 }

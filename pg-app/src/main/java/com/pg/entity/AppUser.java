@@ -41,6 +41,10 @@ public class AppUser {
     @Column(name = "otp_registered_yn", length = 1)
     private String otpRegisteredYn = "N";
 
+    /** Y: 다음 로그인 후 비밀번호 변경 필수(초기화 시 loginId+1! 등) */
+    @Column(name = "password_must_change_yn", nullable = false, length = 1)
+    private String passwordMustChangeYn = "N";
+
     /** 사용자 유형: REPRESENTATIVE / ASSISTANT */
     @Column(name = "user_type", length = 20)
     private String userType = "REPRESENTATIVE";
@@ -83,6 +87,8 @@ public class AppUser {
     public void setPermissionGroupNm(String permissionGroupNm) { this.permissionGroupNm = permissionGroupNm; }
     public String getOtpRegisteredYn() { return otpRegisteredYn; }
     public void setOtpRegisteredYn(String otpRegisteredYn) { this.otpRegisteredYn = otpRegisteredYn; }
+    public String getPasswordMustChangeYn() { return passwordMustChangeYn; }
+    public void setPasswordMustChangeYn(String passwordMustChangeYn) { this.passwordMustChangeYn = passwordMustChangeYn; }
     public String getUserType() { return userType; }
     public void setUserType(String userType) { this.userType = userType; }
     public String getAssistantRoleType() { return assistantRoleType; }

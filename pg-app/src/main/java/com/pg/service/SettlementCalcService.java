@@ -11,6 +11,7 @@ import com.pg.repository.SettlementRunRepository;
 import com.pg.repository.SettlementSettingRepository;
 import com.pg.repository.OrgUnitRepository;
 import com.pg.entity.SettlementSetting;
+import com.pg.util.BusinessDayCalendar;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -20,7 +21,10 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -74,15 +78,38 @@ public class SettlementCalcService {
         List<PgTrnsctn> list = trnsctnRepository.findForSettlement(merchantId, from, to);
         List<String> merchantIds = list.stream().map(PgTrnsctn::getMerchantId).distinct().collect(Collectors.toList());
         List<SettlementRun> results = new ArrayList<>();
+        /* 정산 기준일: 기간 종료일(해지일 비교·롤링 해지일 계산에 사용) */
+        LocalDate calcDt = toDate;
         for (String mid : merchantIds) {
             List<PgTrnsctn> txList = list.stream().filter(t -> mid.equals(t.getMerchantId())).collect(Collectors.toList());
-            SettlementRun run = calcOne(mid, fromDate, txList);
+            SettlementRun run = calcOne(mid, calcDt, txList);
             if (run != null) {
                 settlementRunRepository.save(run);
                 results.add(run);
             }
         }
+        appendReleaseOnlyMerchants(calcDt, merchantId, results);
         return results;
+    }
+
+    /**
+     * 기간 내 거래는 없으나, 종료일 기준 해지 대상 담보가 있는 가맹은 지급액에 반환만 하는 정산 행 생성.
+     */
+    private void appendReleaseOnlyMerchants(LocalDate calcDt, String merchantIdFilter, List<SettlementRun> results) {
+        Set<String> done = results.stream().map(SettlementRun::getMerchantId).collect(Collectors.toCollection(LinkedHashSet::new));
+        List<RollingReserve> due = rollingReserveRepository.findByStatusAndReleaseDateLessThanEqual("HOLD", calcDt);
+        Set<String> candidates = due.stream().map(RollingReserve::getMerchantId).collect(Collectors.toCollection(LinkedHashSet::new));
+        if (merchantIdFilter != null && !merchantIdFilter.isBlank()) {
+            candidates.removeIf(m -> !merchantIdFilter.trim().equals(m));
+        }
+        candidates.removeAll(done);
+        for (String mid : candidates) {
+            SettlementRun run = calcOne(mid, calcDt, Collections.emptyList());
+            if (run != null) {
+                settlementRunRepository.save(run);
+                results.add(run);
+            }
+        }
     }
 
     private SettlementRun calcOne(String merchantId, LocalDate calcDt, List<PgTrnsctn> txList) {
@@ -109,9 +136,28 @@ public class SettlementCalcService {
             }
         }
         BigDecimal netSales = approveAmt.subtract(cancelAmt);
-        if (netSales.compareTo(BigDecimal.ZERO) <= 0 && payCnt == 0 && cancelCnt == 0) {
+
+        /* 해지일이 도래한 담보금(롤링) → 이번 정산 지급액에 합산 후 RELEASED 처리 */
+        List<RollingReserve> maturing = rollingReserveRepository.findByMerchantIdAndStatusAndReleaseDateLessThanEqual(
+                merchantId, "HOLD", calcDt);
+        BigDecimal releasedFromReserve = BigDecimal.ZERO;
+        LocalDateTime releaseStamp = LocalDateTime.now();
+        if (!maturing.isEmpty()) {
+            for (RollingReserve rr : maturing) {
+                if (rr.getReserveAmt() != null) {
+                    releasedFromReserve = releasedFromReserve.add(rr.getReserveAmt());
+                }
+                rr.setStatus("RELEASED");
+                rr.setReleasedAt(releaseStamp);
+            }
+            rollingReserveRepository.saveAll(maturing);
+        }
+
+        boolean noTx = netSales.compareTo(BigDecimal.ZERO) <= 0 && payCnt == 0 && cancelCnt == 0;
+        if (noTx && releasedFromReserve.compareTo(BigDecimal.ZERO) <= 0) {
             return null;
         }
+
         BigDecimal perTxFee = policy.getPerTxFee() != null ? policy.getPerTxFee() : BigDecimal.ZERO;
         BigDecimal cancelRate = policy.getCancelRate() != null ? policy.getCancelRate() : BigDecimal.ZERO;
         BigDecimal usageRate = policy.getUsageRate() != null ? policy.getUsageRate() : BigDecimal.ZERO;
@@ -150,14 +196,16 @@ public class SettlementCalcService {
                     rr.setMerchantId(merchantId);
                     rr.setReserveAmt(reserve);
                     rr.setRollingPct(rollingPct);
-                    rr.setReleaseDate(calcDt.plusDays(rollingDays));
+                    rr.setHoldStartDate(calcDt);
+                    rr.setHoldBusinessDays(rollingDays);
+                    rr.setReleaseDate(BusinessDayCalendar.addBusinessDays(calcDt, rollingDays, Collections.emptySet()));
                     rr.setStatus("HOLD");
                     rollingReserveRepository.save(rr);
                 }
             }
         }
 
-        BigDecimal payAmt = netSales.subtract(totalFee).subtract(rollingReserveAmt).setScale(0, RoundingMode.HALF_UP);
+        BigDecimal payAmt = netSales.subtract(totalFee).subtract(rollingReserveAmt).add(releasedFromReserve).setScale(0, RoundingMode.HALF_UP);
         if (payAmt.compareTo(BigDecimal.ZERO) < 0) payAmt = BigDecimal.ZERO;
 
         SettlementRun run = new SettlementRun();

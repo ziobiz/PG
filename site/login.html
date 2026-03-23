@@ -67,6 +67,19 @@
             <label for="userPwd" class="form-label">비밀번호</label>
             <input type="password" class="form-control" id="userPwd" name="userPwd" autocomplete="current-password">
           </div>
+          <div id="forcePwChangeBlock" class="d-none">
+            <p class="small text-danger mb-2">임시 비밀번호(초기화 후 <strong>로그인ID+1!</strong>)로 로그인하셨습니다. 새 비밀번호(8자 이상)를 설정한 뒤 입장합니다.</p>
+            <div class="mb-2">
+              <label for="forceNewPwd1" class="form-label">새 비밀번호</label>
+              <input type="password" class="form-control" id="forceNewPwd1" autocomplete="new-password">
+            </div>
+            <div class="mb-3">
+              <label for="forceNewPwd2" class="form-label">새 비밀번호 확인</label>
+              <input type="password" class="form-control" id="forceNewPwd2" autocomplete="new-password">
+            </div>
+            <button type="button" class="btn btn-warning w-100 mb-2" id="forcePwChangeSubmit">비밀번호 설정 후 입장</button>
+            <button type="button" class="btn btn-outline-secondary btn-sm w-100" id="forcePwChangeCancel">로그인 화면으로</button>
+          </div>
           <div class="mb-3 d-none">
             <label for="changePassword" class="form-label">변경 비밀번호</label>
             <input type="password" class="form-control" id="changePassword" name="changePassword">
@@ -185,11 +198,35 @@
         modal.show();
       });
 
+      var loginPending = null;
       document.getElementById('btnSavePassword').addEventListener('click', function () {
+        var userId = document.getElementById('userId').value.trim();
+        var oldPwd = document.getElementById('modalOldPassword').value;
         var newPwd = document.getElementById('modalNewPassword').value;
-        if (!newPwd || newPwd.length < 4) { alert('4자 이상 입력하세요.'); return; }
-        alert('비밀번호 변경은 이 화면(SPA)에서 서버에 반영되지 않습니다. 총본사/관리자에게 비밀번호 초기화를 요청하거나, VPS 관리자 화면에서 변경해 주세요.');
-        document.getElementById('pwChangeModal').querySelector('.btn-close').click();
+        var newPwd2 = document.getElementById('modalNewPasswordConfirm').value;
+        if (!userId) { alert('상단에 로그인 아이디를 입력하세요.'); return; }
+        if (!oldPwd || !newPwd) { alert('기존·변경 비밀번호를 입력하세요.'); return; }
+        if (newPwd.length < 8) { alert('새 비밀번호는 8자 이상이어야 합니다.'); return; }
+        if (newPwd !== newPwd2) { alert('새 비밀번호 확인이 일치하지 않습니다.'); return; }
+        var api = window.PG_API;
+        if (!api || !api.login || !api.authChangePassword) { alert('API를 불러올 수 없습니다.'); return; }
+        api.login(userId, oldPwd).then(function (res) {
+          if (!(res && res.success && res.data && res.data.token)) throw new Error((res && res.message) || '로그인에 실패했습니다.');
+          var d = res.data;
+          api.setAuth(d.token, { loginId: d.userId, userId: d.userId, userNm: d.userNm || userId, orgUnitId: d.orgUnitId, compId: d.compId, orgLevel: d.orgLevel });
+          return api.authChangePassword(oldPwd, newPwd, newPwd2);
+        }).then(function () {
+          alert('비밀번호가 변경되었습니다. 새 비밀번호로 로그인하세요.');
+          try {
+            var m = bootstrap.Modal.getInstance(document.getElementById('pwChangeModal'));
+            if (m) m.hide();
+          } catch (e) {}
+          document.getElementById('userPwd').value = '';
+          document.getElementById('modalOldPassword').value = '';
+          document.getElementById('modalNewPassword').value = '';
+          document.getElementById('modalNewPasswordConfirm').value = '';
+          api.clearAuth();
+        }).catch(function (err) { alert(err && err.message ? err.message : '변경 실패'); });
       });
 
       document.getElementById('loginForm').addEventListener('submit', function () {
@@ -201,13 +238,29 @@
         doLogin(userId, userPwd);
       });
 
+      function finishLogin(resData, userId) {
+        var api = window.PG_API;
+        if (api && api.setAuth) {
+          api.setAuth(resData.token, { loginId: resData.userId, userId: resData.userId, userNm: resData.userNm || '관리자', orgUnitId: resData.orgUnitId, compId: resData.compId, orgLevel: resData.orgLevel });
+        }
+        window.location.replace((origin || '') + '/index.html');
+      }
+
       function doLogin(userId, pwd) {
         var api = window.PG_API;
         if (api && api.login) {
           api.login(userId, pwd).then(function (res) {
             if (res && res.success && res.data && res.data.token) {
-              api.setAuth(res.data.token, { loginId: res.data.userId, userId: res.data.userId, userNm: res.data.userNm || '관리자', orgUnitId: res.data.orgUnitId, compId: res.data.compId, orgLevel: res.data.orgLevel });
-              window.location.replace((origin || '') + '/index.html');
+              var d = res.data;
+              if (d.mustChangePassword) {
+                loginPending = { userId: userId, userPwd: pwd, data: d };
+                document.getElementById('loginForm').classList.add('d-none');
+                document.getElementById('forcePwChangeBlock').classList.remove('d-none');
+                document.getElementById('forceNewPwd1').value = '';
+                document.getElementById('forceNewPwd2').value = '';
+                return;
+              }
+              finishLogin(d, userId);
             } else { alert(res && res.message ? res.message : '로그인에 실패했습니다.'); }
           }).catch(function (err) {
             alert(err && err.message ? err.message : '로그인 요청이 실패했습니다. API 서버를 확인하세요.');
@@ -218,6 +271,30 @@
           window.location.replace((origin || '') + '/index.html');
         }
       }
+
+      document.getElementById('forcePwChangeSubmit').addEventListener('click', function () {
+        if (!loginPending) return;
+        var n1 = document.getElementById('forceNewPwd1').value;
+        var n2 = document.getElementById('forceNewPwd2').value;
+        if (!n1 || n1.length < 8) { alert('새 비밀번호는 8자 이상 입력하세요.'); return; }
+        if (n1 !== n2) { alert('새 비밀번호 확인이 일치하지 않습니다.'); return; }
+        var api = window.PG_API;
+        var p = loginPending;
+        api.setAuth(p.data.token, { loginId: p.data.userId, userId: p.data.userId, userNm: p.data.userNm || p.userId, orgUnitId: p.data.orgUnitId, compId: p.data.compId, orgLevel: p.data.orgLevel });
+        api.authChangePassword(p.userPwd, n1, n2).then(function () {
+          loginPending = null;
+          finishLogin(p.data, p.userId);
+        }).catch(function (err) {
+          alert(err && err.message ? err.message : '비밀번호 변경 실패');
+          try { api.clearAuth(); } catch (e) {}
+        });
+      });
+      document.getElementById('forcePwChangeCancel').addEventListener('click', function () {
+        loginPending = null;
+        try { window.PG_API && window.PG_API.clearAuth(); } catch (e) {}
+        document.getElementById('forcePwChangeBlock').classList.add('d-none');
+        document.getElementById('loginForm').classList.remove('d-none');
+      });
     })();
   </script>
 </body>

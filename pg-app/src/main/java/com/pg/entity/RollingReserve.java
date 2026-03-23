@@ -31,8 +31,19 @@ public class RollingReserve {
     @Column(name = "release_date")
     private LocalDate releaseDate;
 
+    /** 담보금 적용 기준일(정산 실행일). 해지 예정일 계산의 시작 */
+    @Column(name = "hold_start_date")
+    private LocalDate holdStartDate;
+
+    /** 보류 영업일 수(정책상 롤링 일수) */
+    @Column(name = "hold_business_days")
+    private Integer holdBusinessDays;
+
     @Column(name = "status", length = 20)
     private String status = "HOLD";
+
+    @Column(name = "released_at")
+    private LocalDateTime releasedAt;
 
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
@@ -54,8 +65,14 @@ public class RollingReserve {
     public void setRollingPct(BigDecimal rollingPct) { this.rollingPct = rollingPct; }
     public LocalDate getReleaseDate() { return releaseDate; }
     public void setReleaseDate(LocalDate releaseDate) { this.releaseDate = releaseDate; }
+    public LocalDate getHoldStartDate() { return holdStartDate; }
+    public void setHoldStartDate(LocalDate holdStartDate) { this.holdStartDate = holdStartDate; }
+    public Integer getHoldBusinessDays() { return holdBusinessDays; }
+    public void setHoldBusinessDays(Integer holdBusinessDays) { this.holdBusinessDays = holdBusinessDays; }
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }
+    public LocalDateTime getReleasedAt() { return releasedAt; }
+    public void setReleasedAt(LocalDateTime releasedAt) { this.releasedAt = releasedAt; }
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
 }

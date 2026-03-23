@@ -34,8 +34,8 @@ public class ApiPayController {
     }
 
     /**
-     * ChillPay 결제 페이지용 설정 (CCD 스크립트 URL, Merchant Code 등).
-     * 프론트엔드에서 ChillPay CCD 스크립트 로드 시 사용.
+     * ChillPay 결제 페이지용 설정 (CCD 스크립트 URL, Merchant Code, 호스티드 결제 CDN URL, v2 Payment API URL 등).
+     * 프론트엔드에서 ChillPay CCD 스크립트 로드·리다이렉트 연동 안내에 사용.
      */
     @GetMapping("/chillpay/config")
     public ResponseEntity<ApiResponse<Map<String, Object>>> chillpayConfig(

@@ -74,6 +74,7 @@ public class AuthService {
                 res.setOrgLevel(headquarters.getOrgLevel() != null ? headquarters.getOrgLevel().name() : null);
             });
         }
+        res.setMustChangePassword("Y".equalsIgnoreCase(user.getPasswordMustChangeYn()));
         return Optional.of(res);
     }
 
@@ -97,7 +98,12 @@ public class AuthService {
         if (newPassword.length() < 8) {
             throw new IllegalArgumentException("새 비밀번호는 8자 이상이어야 합니다.");
         }
-        AppUser user = userRepository.findByUsername(username.trim())
+        String uid = username.trim();
+        String forbidden = uid + "1!";
+        if (forbidden.equals(newPassword)) {
+            throw new IllegalArgumentException("로그인ID+1! 형태의 초기 비밀번호는 새 비밀번호로 사용할 수 없습니다.");
+        }
+        AppUser user = userRepository.findByUsername(uid)
                 .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
         if (!passwordEncoder.matches(currentPassword, user.getPassword())) {
             throw new IllegalArgumentException("현재 비밀번호가 올바르지 않습니다.");
@@ -106,19 +112,35 @@ public class AuthService {
             throw new IllegalArgumentException("현재 비밀번호와 다른 비밀번호를 입력하세요.");
         }
         user.setPassword(passwordEncoder.encode(newPassword));
+        user.setPasswordMustChangeYn("N");
         userRepository.save(user);
+    }
+
+    /**
+     * 로그인ID로 소속 {@link OrgUnit} 조회.
+     * 우선순위: 가맹점 프로필(로그인ID) → 사용자(tb_user)의 org_unit_code → ADMIN이면 총본사 1건.
+     */
+    public Optional<OrgUnit> resolveOrgUnitForLoginId(String loginId) {
+        if (loginId == null || loginId.isBlank()) return Optional.empty();
+        String id = loginId.trim();
+        Optional<OrgUnit> fromMp = merchantProfileRepository.findByLoginId(id)
+                .flatMap(mp -> orgUnitRepository.findById(mp.getOrgUnitId()));
+        if (fromMp.isPresent()) return fromMp;
+        Optional<AppUser> userOpt = userRepository.findByUsername(id);
+        if (userOpt.isEmpty()) return Optional.empty();
+        AppUser u = userOpt.get();
+        if (u.getOrgUnitCode() != null && !u.getOrgUnitCode().isBlank()) {
+            return orgUnitRepository.findByCode(u.getOrgUnitCode().trim());
+        }
+        if ("ADMIN".equalsIgnoreCase(u.getRole())) {
+            return firstHeadquartersOrg();
+        }
+        return Optional.empty();
     }
 
     /** 로그인ID( username )로 조직 정보 조회 - 업체정보조회 필터·권한 판단용 */
     public Map<String, Object> getOrgInfo(String loginId) {
-        if (loginId == null || loginId.isEmpty()) return null;
-        Optional<Map<String, Object>> fromProfile = merchantProfileRepository.findByLoginId(loginId)
-                .flatMap(mp -> orgUnitRepository.findById(mp.getOrgUnitId()))
-                .map(ou -> orgToMap(ou));
-        if (fromProfile.isPresent()) return fromProfile.get();
-        Optional<AppUser> userOpt = userRepository.findByUsername(loginId);
-        if (userOpt.isEmpty() || !"ADMIN".equalsIgnoreCase(userOpt.get().getRole())) return null;
-        return firstHeadquartersOrg().map(this::orgToMap).orElse(null);
+        return resolveOrgUnitForLoginId(loginId).map(this::orgToMap).orElse(null);
     }
 
     private Map<String, Object> orgToMap(OrgUnit ou) {

@@ -336,6 +336,17 @@
       return get('/api/bank/list', { countryCd: countryCd || '' }).then(function (r) { return r.data || []; });
     },
 
+    /** KR/US/JP/TH 공휴일 프리셋 (연도·국가) */
+    holidayPresets: function (year, countries) {
+      return get('/api/holiday/presets', {
+        year: year != null ? year : new Date().getFullYear(),
+        countries: countries != null ? countries : 'KR,US,JP,TH'
+      }).then(function (r) {
+        if (r.success === false && r.success !== undefined) throw new Error(r.message || '조회 실패');
+        return r.data || {};
+      });
+    },
+
     commissionList: function (params) {
       return get('/api/commission/list', params).then(function (r) { return r.data; });
     },
@@ -344,6 +355,10 @@
         if (r.success === false && r.success !== undefined) throw new Error(r.message || '조회 실패');
         return r.data;
       });
+    },
+    commissionHistory: function (compId, params) {
+      var q = Object.assign({ compId: compId || '' }, params || {});
+      return get('/api/commission/history', q).then(function (r) { return r.data; });
     },
     commissionSave: function (compId, data) {
       var body = new URLSearchParams({ compId: compId });
@@ -404,6 +419,14 @@
     settlementBalanceMng: function (params) {
       return get('/api/settlement/balanceMng', params).then(function (r) { return r.data; });
     },
+    settlementBalanceDeduct: function (body) {
+      var base = getBaseUrl();
+      return fetch(base + '/api/settlement/balance/deduct', {
+        method: 'POST',
+        headers: authHeaders({ 'Content-Type': 'application/json' }),
+        body: JSON.stringify(body || {})
+      }).then(handleResponse).then(function (r) { return r.data; });
+    },
     settlementBalanceList: function (params) {
       return get('/api/settlement/balanceList', params).then(function (r) { return r.data; });
     },
@@ -413,8 +436,26 @@
     settlementHoldList: function (params) {
       return get('/api/settlement/holdList', params).then(function (r) { return r.data; });
     },
+    settlementCollateralList: function (params) {
+      return get('/api/settlement/collateralList', params).then(function (r) { return r.data; });
+    },
+    settlementFeeList: function (params) {
+      return get('/api/settlement/feeList', params).then(function (r) { return r.data; });
+    },
     settlementExecute: function (params) {
       return get('/api/settlement/execute', params).then(function (r) { return r.data; });
+    },
+    settlementReportAggregate: function (params) {
+      return get('/api/settlement/report/aggregate', params).then(function (r) { return r.data; });
+    },
+    settlementReportExecute: function (params) {
+      return get('/api/settlement/report/execute', params).then(function (r) { return r.data; });
+    },
+    settlementReportSummary: function (params) {
+      return get('/api/settlement/report/summary', params).then(function (r) { return r.data; });
+    },
+    settlementReportAccess: function () {
+      return get('/api/settlement/report/access', {}).then(function (r) { return r.data; });
     },
     settlementExecuteRun: function (params) {
       var q = (params && typeof params === 'object') ? params : {};
@@ -466,6 +507,12 @@
     hqApiConfigSave: function (body) {
       return post('/api/hq/apiConfig/save', body).then(function (r) { return r.data; });
     },
+    hqBusinessDaySettings: function () {
+      return get('/api/hq/businessDaySettings').then(function (r) { return r.data || []; });
+    },
+    hqBusinessDaySettingsSave: function (body) {
+      return post('/api/hq/businessDaySettings/save', body || {}).then(function (r) { return r.data || r; });
+    },
 
     hqNotifyEnv: function () {
       return get('/api/hq/notifyEnv').then(function (r) { return r.data; });
@@ -484,6 +531,27 @@
     },
     hqNotifyTargetDelete: function (id) {
       return del('/api/hq/notifyEnv/targets/' + encodeURIComponent(id)).then(function (r) { return r.data || r; });
+    },
+    hqNotifyMapping: function () {
+      return get('/api/hq/notifyMapping').then(function (r) { return r.data; });
+    },
+    hqNotifyMappingSave: function (body) {
+      return post('/api/hq/notifyMapping/save', body || {}).then(function (r) { return r.data; });
+    },
+    hqOrgViewColumnRegionalBranches: function () {
+      return get('/api/hq/orgViewColumnAllowance/regionalBranches').then(function (r) { return r.data || []; });
+    },
+    hqOrgViewColumnAllowanceGet: function (regionalOrgCode, pageUrl) {
+      return get('/api/hq/orgViewColumnAllowance', {
+        regionalOrgCode: regionalOrgCode || '',
+        pageUrl: pageUrl || ''
+      }).then(function (r) { return r.data; });
+    },
+    hqOrgViewColumnAllowanceSave: function (body) {
+      return post('/api/hq/orgViewColumnAllowance/save', body || {}).then(function (r) { return r.data; });
+    },
+    hqOrgViewColumnAllowanceDelete: function (body) {
+      return post('/api/hq/orgViewColumnAllowance/delete', body || {}).then(function (r) { return r.data; });
     },
 
     payAction: function (trnId, action) {

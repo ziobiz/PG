@@ -32,6 +32,19 @@ public class ChillPayService {
     private static final String DIRECT_CREDIT_SANDBOX = "https://sandbox-api-directcredit.chillpay.co";
     private static final String DIRECT_CREDIT_PROD = "https://api-directcredit.chillpay.co";
 
+    /**
+     * 브라우저가 POST로 이동하는 ChillPay 호스티드 결제 페이지 (HTML Form / Code Template).
+     * Merchant Integration Manual §2.1, 2.2
+     */
+    private static final String REDIRECT_PAYMENT_SANDBOX = "https://sandbox-cdnv3.chillpay.co/Payment/";
+    private static final String REDIRECT_PAYMENT_PROD = "https://cdn.chillpay.co/Payment/";
+    /**
+     * 서버 간 연동용 Payment API v2 (application/x-www-form-urlencoded).
+     * Manual §2.3
+     */
+    private static final String APPSRV_PAYMENT_V2_SANDBOX = "https://sandbox-appsrv2.chillpay.co/api/v2/Payment/";
+    private static final String APPSRV_PAYMENT_V2_PROD = "https://appsrv.chillpay.co/api/v2/Payment/";
+
     private static final String PG_CD_CHILLPAY = "CHILLPAY";
 
     private final ChillPayProperties props;
@@ -82,6 +95,8 @@ public class ChillPayService {
     private record Config(String merchantCode, String apiKey, String md5Key, int routeNo, boolean sandbox) {
         String getCcdScriptUrl() { return sandbox ? CCD_SCRIPT_SANDBOX : CCD_SCRIPT_PROD; }
         String getPaymentApiUrl() { return (sandbox ? DIRECT_CREDIT_SANDBOX : DIRECT_CREDIT_PROD) + "/api/v1/payment"; }
+        String getRedirectPaymentPageUrl() { return sandbox ? REDIRECT_PAYMENT_SANDBOX : REDIRECT_PAYMENT_PROD; }
+        String getAppsrvPaymentV2Url() { return sandbox ? APPSRV_PAYMENT_V2_SANDBOX : APPSRV_PAYMENT_V2_PROD; }
     }
 
     /**
@@ -163,6 +178,9 @@ public class ChillPayService {
         Config cfg = resolveConfig(merchantOrgUnitId);
         return Map.of(
                 "ccdScriptUrl", cfg.getCcdScriptUrl(),
+                "directCreditApiUrl", cfg.getPaymentApiUrl(),
+                "redirectPaymentPageUrl", cfg.getRedirectPaymentPageUrl(),
+                "paymentAppsrvV2Url", cfg.getAppsrvPaymentV2Url(),
                 "merchantCode", cfg.merchantCode(),
                 "routeNo", cfg.routeNo(),
                 "sandbox", cfg.sandbox()

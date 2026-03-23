@@ -2,6 +2,7 @@ package com.pg.entity;
 
 import jakarta.persistence.*;
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Entity
@@ -25,6 +26,25 @@ public class DistributionFeeConfig {
     @Column(name = "agency_rate", precision = 5, scale = 2)
     private BigDecimal agencyRate = BigDecimal.ZERO;
 
+    @Column(name = "sales_office_rate", precision = 5, scale = 2)
+    private BigDecimal salesOfficeRate = BigDecimal.ZERO;
+
+    @Column(name = "hq_per_tx_fee", precision = 12, scale = 2)
+    private BigDecimal hqPerTxFee = BigDecimal.ZERO;
+    @Column(name = "regional_per_tx_fee", precision = 12, scale = 2)
+    private BigDecimal regionalPerTxFee = BigDecimal.ZERO;
+    @Column(name = "master_per_tx_fee", precision = 12, scale = 2)
+    private BigDecimal masterPerTxFee = BigDecimal.ZERO;
+    @Column(name = "branch_per_tx_fee", precision = 12, scale = 2)
+    private BigDecimal branchPerTxFee = BigDecimal.ZERO;
+    @Column(name = "agency_per_tx_fee", precision = 12, scale = 2)
+    private BigDecimal agencyPerTxFee = BigDecimal.ZERO;
+    @Column(name = "sales_office_per_tx_fee", precision = 12, scale = 2)
+    private BigDecimal salesOfficePerTxFee = BigDecimal.ZERO;
+
+    @Column(name = "apply_start_date")
+    private LocalDate applyStartDate;
+
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
@@ -47,5 +67,21 @@ public class DistributionFeeConfig {
     public void setAgencyRate(BigDecimal agencyRate) { this.agencyRate = agencyRate; }
     public LocalDateTime getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
+    public BigDecimal getSalesOfficeRate() { return salesOfficeRate; }
+    public void setSalesOfficeRate(BigDecimal salesOfficeRate) { this.salesOfficeRate = salesOfficeRate; }
+    public BigDecimal getHqPerTxFee() { return hqPerTxFee; }
+    public void setHqPerTxFee(BigDecimal hqPerTxFee) { this.hqPerTxFee = hqPerTxFee; }
+    public BigDecimal getRegionalPerTxFee() { return regionalPerTxFee; }
+    public void setRegionalPerTxFee(BigDecimal regionalPerTxFee) { this.regionalPerTxFee = regionalPerTxFee; }
+    public BigDecimal getMasterPerTxFee() { return masterPerTxFee; }
+    public void setMasterPerTxFee(BigDecimal masterPerTxFee) { this.masterPerTxFee = masterPerTxFee; }
+    public BigDecimal getBranchPerTxFee() { return branchPerTxFee; }
+    public void setBranchPerTxFee(BigDecimal branchPerTxFee) { this.branchPerTxFee = branchPerTxFee; }
+    public BigDecimal getAgencyPerTxFee() { return agencyPerTxFee; }
+    public void setAgencyPerTxFee(BigDecimal agencyPerTxFee) { this.agencyPerTxFee = agencyPerTxFee; }
+    public BigDecimal getSalesOfficePerTxFee() { return salesOfficePerTxFee; }
+    public void setSalesOfficePerTxFee(BigDecimal salesOfficePerTxFee) { this.salesOfficePerTxFee = salesOfficePerTxFee; }
+    public LocalDate getApplyStartDate() { return applyStartDate; }
+    public void setApplyStartDate(LocalDate applyStartDate) { this.applyStartDate = applyStartDate; }
 }
 

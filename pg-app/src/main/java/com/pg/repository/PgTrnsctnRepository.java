@@ -17,4 +17,12 @@ public interface PgTrnsctnRepository extends JpaRepository<PgTrnsctn, String>, J
     List<PgTrnsctn> findForSettlement(@Param("merchantId") String merchantId,
                                       @Param("fromDt") LocalDateTime fromDt,
                                       @Param("toDt") LocalDateTime toDt);
+
+    /** 정산 리포트: 결제일시 = COALESCE(paidAt, createdAt) */
+    @Query("SELECT t FROM PgTrnsctn t WHERE " +
+           "COALESCE(t.paidAt, t.createdAt) >= :fromDt AND COALESCE(t.paidAt, t.createdAt) <= :toDt " +
+           "AND (:curType IS NULL OR t.curType = :curType) ORDER BY COALESCE(t.paidAt, t.createdAt) ASC")
+    List<PgTrnsctn> findForReportRange(@Param("fromDt") LocalDateTime fromDt,
+                                       @Param("toDt") LocalDateTime toDt,
+                                       @Param("curType") String curType);
 }

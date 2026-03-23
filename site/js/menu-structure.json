@@ -8,7 +8,10 @@
       "children": [
         { "label": "PG사 API 연동", "url": "/hq/pgApiMng", "menuId": "M0101" },
         { "label": "기본정책", "url": "/hq/defaultCommission", "menuId": "M0102" },
+        { "label": "영업일설정", "url": "/hq/businessDaySetting", "menuId": "M0109" },
         { "label": "전산노티·결제환경", "url": "/hq/notifyEnv", "menuId": "M0105" },
+        { "label": "노티매핑설정", "url": "/hq/notifyMapping", "menuId": "M0107" },
+        { "label": "본사별 VIEW SETTING 노출설정", "url": "/hq/orgViewColumnAllowance", "menuId": "M0108" },
         { "label": "API 구성 세팅", "url": "/hq/apiConfig", "menuId": "M0103" },
         { "label": "본사별 권한 세팅", "url": "/hq/permissionMng", "menuId": "M0104" },
         { "label": "계정·업체접근", "url": "/hq/accountMng", "menuId": "M0106" }
@@ -30,7 +33,6 @@
       "icon": "bi-credit-card",
       "children": [
         { "label": "결제내역", "url": "/calc/payList", "menuId": "M0301" },
-        { "label": "노티내역", "url": "/calc/payNotiList", "menuId": "M0302" },
         { "label": "성공내역", "url": "/calc/paySuccessList", "menuId": "M0315" },
         { "label": "실패내역", "url": "/calc/payFailList", "menuId": "M0303" },
         { "label": "환불내역", "url": "/calc/payRefundList", "menuId": "M0316" },
@@ -46,10 +48,13 @@
       "children": [
         { "label": "유통망정산내역", "url": "/calc/calcList", "menuId": "M0404" },
         { "label": "가맹정산내역", "url": "/calc/calcGmList", "menuId": "M0405" },
+        { "label": "수수료내역", "url": "/calc/feeList", "menuId": "M0406" },
         { "label": "환수금관리", "url": "/calc/compPointMngList", "menuId": "M0407" },
         { "label": "잔액내역", "url": "/calc/balanceList", "menuId": "M0412" },
         { "label": "미수금관리", "url": "/calc/unpaidMng", "menuId": "M0413" },
         { "label": "정산실행", "url": "/calc/exCalcList", "menuId": "M0418" },
+        { "label": "정산리포트", "url": "/calc/settlementReport", "menuId": "M0419" },
+        { "label": "담보금내역", "url": "/calc/collateralList", "menuId": "M0420" },
         { "label": "정산보류내역", "url": "/pay/payHoldList", "menuId": "M0312" }
       ]
     },

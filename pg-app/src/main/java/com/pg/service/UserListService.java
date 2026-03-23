@@ -21,7 +21,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Locale;
-import java.util.Random;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -181,8 +180,13 @@ public class UserListService {
         if (!allowedCompCodes.isEmpty() && !allowedCompCodes.contains(safeTrim(target.getOrgUnitCode()))) {
             throw new IllegalArgumentException("본인 또는 하위 조직 사용자만 초기화할 수 있습니다.");
         }
-        String tempPassword = generateTempPassword();
+        String uid = target.getUsername() != null ? target.getUsername().trim() : "";
+        if (uid.isEmpty()) {
+            throw new IllegalArgumentException("사용자 아이디가 없어 초기화할 수 없습니다.");
+        }
+        String tempPassword = uid + "1!";
         target.setPassword(passwordEncoder.encode(tempPassword));
+        target.setPasswordMustChangeYn("Y");
         target.setOtpRegisteredYn("N");
         userRepository.save(target);
         Map<String, Object> out = new LinkedHashMap<>();
@@ -203,16 +207,6 @@ public class UserListService {
         if (actor == null) return false;
         if ("ADMIN".equalsIgnoreCase(actor.getRole())) return true;
         return "MANAGER".equalsIgnoreCase(safeTrim(actor.getAssistantRoleType()));
-    }
-
-    private String generateTempPassword() {
-        String chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789!@#$";
-        Random random = new Random();
-        StringBuilder sb = new StringBuilder();
-        for (int i = 0; i < 10; i++) {
-            sb.append(chars.charAt(random.nextInt(chars.length())));
-        }
-        return sb.toString();
     }
 
     private String normalizeRole(String role) {
