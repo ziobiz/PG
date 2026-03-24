@@ -10,6 +10,7 @@ import com.pg.repository.RollingReserveRepository;
 import com.pg.repository.SettlementRunRepository;
 import com.pg.repository.SettlementSettingRepository;
 import com.pg.repository.OrgUnitRepository;
+import com.pg.entity.OrgUnit;
 import com.pg.entity.SettlementSetting;
 import com.pg.util.BusinessDayCalendar;
 import org.springframework.stereotype.Service;
@@ -24,6 +25,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -39,19 +41,22 @@ public class SettlementCalcService {
     private final RollingReserveRepository rollingReserveRepository;
     private final SettlementSettingRepository settlementSettingRepository;
     private final OrgUnitRepository orgUnitRepository;
+    private final OrgServiceUseService orgServiceUseService;
 
     public SettlementCalcService(PgTrnsctnRepository trnsctnRepository,
                                  CommissionPolicyRepository commissionPolicyRepository,
                                  SettlementRunRepository settlementRunRepository,
                                  RollingReserveRepository rollingReserveRepository,
                                  SettlementSettingRepository settlementSettingRepository,
-                                 OrgUnitRepository orgUnitRepository) {
+                                 OrgUnitRepository orgUnitRepository,
+                                 OrgServiceUseService orgServiceUseService) {
         this.trnsctnRepository = trnsctnRepository;
         this.commissionPolicyRepository = commissionPolicyRepository;
         this.settlementRunRepository = settlementRunRepository;
         this.rollingReserveRepository = rollingReserveRepository;
         this.settlementSettingRepository = settlementSettingRepository;
         this.orgUnitRepository = orgUnitRepository;
+        this.orgServiceUseService = orgServiceUseService;
     }
 
     public List<SettlementRun> listRuns(LocalDate fromDate, LocalDate toDate) {
@@ -113,6 +118,18 @@ public class SettlementCalcService {
     }
 
     private SettlementRun calcOne(String merchantId, LocalDate calcDt, List<PgTrnsctn> txList) {
+        if (merchantId != null && !orgServiceUseService.isOrgServiceActiveByCompCode(merchantId)) {
+            return null;
+        }
+        if (merchantId != null && !merchantId.isBlank()) {
+            Optional<OrgUnit> ou = orgUnitRepository.findByCode(merchantId.trim());
+            if (ou.isPresent()) {
+                Optional<SettlementSetting> ssOpt = settlementSettingRepository.findByOrgUnitId(ou.get().getId());
+                if (ssOpt.isPresent() && "NONE".equalsIgnoreCase(ssOpt.get().getCalcCycle())) {
+                    return null;
+                }
+            }
+        }
         CommissionPolicy policy = getPolicy(merchantId);
         if (policy == null) {
             policy = new CommissionPolicy();

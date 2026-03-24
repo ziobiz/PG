@@ -2247,7 +2247,7 @@
     }
     if (url === '/calc/settlementReport' || url === '/settlement/settlementReport') {
       setTimeout(function () {
-        if (window.PG_LAST_REGISTERED_COMP && (url === '/commission/commisionList' || url === '/comp/compMngTree')) {
+        if (window.PG_LAST_REGISTERED_COMP && url === '/commission/commisionList') {
           var sid = pane.querySelector('input[name="searchCompId"]');
           if (sid) sid.value = window.PG_LAST_REGISTERED_COMP;
           window.PG_LAST_REGISTERED_COMP = null;
@@ -2256,7 +2256,7 @@
       }, 100);
     } else if (autoSearchUrls.indexOf(url) !== -1) {
       setTimeout(function () {
-        if (window.PG_LAST_REGISTERED_COMP && (url === '/commission/commisionList' || url === '/comp/compMngTree')) {
+        if (window.PG_LAST_REGISTERED_COMP && url === '/commission/commisionList') {
           var sid = pane.querySelector('input[name="searchCompId"]');
           if (sid) sid.value = window.PG_LAST_REGISTERED_COMP;
           window.PG_LAST_REGISTERED_COMP = null;
@@ -2659,9 +2659,18 @@
           return res;
         }).then(function (res) {
           var data = res && res.data ? res.data : res;
-          if (data && data.compId) window.PG_LAST_REGISTERED_COMP = data.compId;
+          if (data && data.compId) {
+            window.PG_LAST_REGISTERED_COMP = data.compId;
+            if (fd.compDiv !== 'MERCHANT') {
+              try { sessionStorage.setItem('pg_comp_detail_return_compId', data.compId); } catch (e) {}
+            }
+          }
           alert('저장되었습니다.');
-          fnTopMenuMove('/comp/compMngTree');
+          if (fd.compDiv === 'MERCHANT') {
+            fnTopMenuMove('/commission/commisionList', null, '수수료관리');
+          } else {
+            fnTopMenuMove('/comp/compMngTree', null, '업체관리');
+          }
         }).catch(function (err) {
           alert(err && err.message ? err.message : '저장에 실패했습니다.');
         }).finally(function () { if (dimm) dimm.style.display = 'none'; });
@@ -2884,6 +2893,18 @@
         return rscope === scope || rid === scope;
       });
     }
+    /** 상위로 부적합: 가맹점 행은 제외(가맹점의 상위는 영업점·대리점·지사·총판·본사·총본사 등). 총판 산하 한정은 filterParentCompCandidates 이후 적용. */
+    function filterParentExcludeMerchantLeaf(list) {
+      if (!list || !list.length) return list || [];
+      return list.filter(function (row) {
+        return String(row.compDiv || '').toUpperCase() !== 'MERCHANT';
+      });
+    }
+    function resolveParentSearchForm(pane) {
+      var reg = pane && pane.querySelector('#compRegForm');
+      var det = pane && pane.querySelector('#compDetailForm');
+      return reg || det;
+    }
     /** 업체 등록·업체정보 상세 공통: 상위업체 검색 모달 */
     function bindParentCompSearchModal(pane) {
       var parentCompSearchBtn = pane.querySelector('button[data-field="parentComp"][data-action="검색"]');
@@ -2899,10 +2920,16 @@
         function runSearch() {
           var dimm = document.getElementById('dimm');
           if (dimm) dimm.style.display = 'flex';
-          window.PG_API.compList({ searchCompId: (kw && kw.value) || '', searchCompNm: (kw && kw.value) || '', page: 1, size: 50 }).then(function (data) {
+          window.PG_API.compList({
+            searchCompId: (kw && kw.value) || '',
+            searchCompNm: (kw && kw.value) || '',
+            searchUseYn: 'ALL',
+            page: 1,
+            size: 1000
+          }).then(function (data) {
             var raw = (data && data.list) ? data.list : [];
-            var activeForm = pane.querySelector('#compDetailForm') || pane.querySelector('#compRegForm');
-            var list = filterParentCompCandidates(raw, activeForm);
+            var activeForm = resolveParentSearchForm(pane);
+            var list = filterParentExcludeMerchantLeaf(filterParentCompCandidates(raw, activeForm));
             if (!tbody) return;
             tbody.innerHTML = '';
             list.forEach(function (row) {
@@ -2955,10 +2982,16 @@
             var kw2 = document.getElementById('parentCompSearchKeyword');
             if (!tbody2) return;
             if (dimm) dimm.style.display = 'flex';
-            window.PG_API.compList({ searchCompId: (kw2 && kw2.value) || '', searchCompNm: (kw2 && kw2.value) || '', page: 1, size: 50 }).then(function (data) {
+            window.PG_API.compList({
+              searchCompId: (kw2 && kw2.value) || '',
+              searchCompNm: (kw2 && kw2.value) || '',
+              searchUseYn: 'ALL',
+              page: 1,
+              size: 1000
+            }).then(function (data) {
               var raw = (data && data.list) ? data.list : [];
-              var activeForm = document.querySelector('#compDetailForm') || document.querySelector('#compRegForm');
-              var list = filterParentCompCandidates(raw, activeForm);
+              var activeForm = resolveParentSearchForm(pane) || document.querySelector('#compRegForm') || document.querySelector('#compDetailForm');
+              var list = filterParentExcludeMerchantLeaf(filterParentCompCandidates(raw, activeForm));
               tbody2.innerHTML = '';
               list.forEach(function (row) {
                 var tr = document.createElement('tr');
@@ -3354,7 +3387,7 @@
         if (!data) return;
         var form = pane.querySelector('#compDetailForm');
         if (!form) return;
-        var allFields = ['compId', 'parentComp', 'compNm', 'compDiv', 'regNo', 'bizType', 'industry', 'bizNature', 'product', 'homepage', 'settleName', 'settleTelNo', 'ceoNm', 'ceoMobile', 'compTel', 'fax', 'zipCode', 'addr', 'addrDetail', 'addrEtc', 'addrCountryCd', 'addrCountryCdOther', 'email', 'siteUrl', 'siteSummary', 'useYn', 'loginId', 'bankCd', 'transferFee', 'cryptoTransferFee', 'accountNo', 'accountHolder', 'commissionConfigAllowed', 'webPaymentUseYn', 'baseCurrency', 'remark', 'settleType', 'commissionRate', 'limitAmt', 'countryCd', 'countryCdOther', 'swift', 'branchName', 'branchAddr', 'contactTel', 'walletAddress', 'networkName', 'withdrawLimitDays', 'withdrawStartTime', 'withdrawEndTime', 'payLimitDefault', 'payLimitExtra', 'payLimitAlertSms', 'holdRateFollowHq', 'holdRate', 'holdDays', 'commissionFollowHq', 'hqPolicyScope', 'failFee', 'usageRate', 'payRate', 'cancelRate', 'refundRate', 'commissionMemo', 'feeSettlementPerTx', 'feeUsdt', 'feeFx', 'calcCycle', 'calcProcType', 'calcCloseTime', 'transferType', 'transferCycleDays', 'autoTransferMin', 'calcMinAmt', 'transferExecTime', 'calcExcludeYn', 'calcExcludeTarget', 'calcStartTime', 'payHoldYn', 'defaultProductName', 'defaultProductCode', 'defaultProductAmount', 'defaultProductDesc', 'notifyUrlBackground', 'notifyUrlResult', 'notifyUrl1', 'notifyUrl2', 'notifyUrl3', 'notifyUrl4', 'remitterName', 'balanceNotifyAmt', 'suspiciousNotifyAmt', 'overseasLoginNotifyAmt', 'tempPwdNotifyAmt', 'nonTranCriterionMonth', 'sameCardLimitWebDay', 'sameCardLimitWebTimes', 'sameCardLimitWebAmt', 'sameCardLimitTerminalDay', 'sameCardLimitTerminalTimes', 'sameCardLimitTerminalAmt', 'dailyUsageFee', 'depositNameLookup', 'transferAuthNo', 'autoConvertNewMemberLimit', 'newMemberDailyLimit', 'convertRefDate', 'convertDailyLimit', 'applyStartDate', 'pgFeeGeneral', 'settleDiffMonthCnt', 'settleReportBankCd', 'pgFeeSamsung', 'smsFee', 'taxInvoiceEmail', 'settleAccountNo', 'directFee', 'solutionFee', 'settleAccountHolder', 'withdrawRestrictType', 'withdrawRestrictStartTime', 'withdrawRestrictEndTime', 'terminalPayRestrict', 'webPayRestrict', 'defaultFeeHq', 'defaultFeeDist', 'defaultFeeBranch', 'defaultFeeAgency', 'defaultFeeSalesOffice', 'defaultPayLimitPerTx', 'defaultPayLimitDay', 'defaultPayLimitMonth', 'defaultPayLimitYearCorp', 'defaultPayLimitYearInd', 'copyright', 'holidayProfileName', 'holidayProfileCountry', 'holidayCountryCode', 'holidayCountryCodes', 'businessHolidayRangesJson', 'businessHolidayExtraDates'];
+        var allFields = ['compId', 'parentComp', 'compNm', 'compDiv', 'regNo', 'bizType', 'industry', 'bizNature', 'product', 'homepage', 'settleName', 'settleTelNo', 'ceoNm', 'ceoMobile', 'compTel', 'fax', 'zipCode', 'addr', 'addrDetail', 'addrEtc', 'addrCountryCd', 'addrCountryCdOther', 'email', 'siteUrl', 'siteSummary', 'useYn', 'loginId', 'bankCd', 'transferFee', 'cryptoTransferFee', 'accountNo', 'accountHolder', 'commissionConfigAllowed', 'webPaymentUseYn', 'baseCurrency', 'remark', 'settleType', 'commissionRate', 'limitAmt', 'countryCd', 'countryCdOther', 'swift', 'branchName', 'branchAddr', 'contactTel', 'walletAddress', 'networkName', 'withdrawRestrictType', 'withdrawStartTime', 'withdrawEndTime', 'payLimitDefault', 'payLimitExtra', 'payLimitAlertSms', 'holdRateFollowHq', 'holdRate', 'holdDays', 'commissionFollowHq', 'hqPolicyScope', 'failFee', 'usageRate', 'payRate', 'cancelRate', 'refundRate', 'commissionMemo', 'feeSettlementPerTx', 'feeUsdt', 'feeFx', 'calcCycle', 'calcProcType', 'calcCloseTime', 'transferType', 'transferCycleDays', 'autoTransferMin', 'calcMinAmt', 'transferExecTime', 'calcExcludeYn', 'calcExcludeTarget', 'calcStartTime', 'payHoldYn', 'defaultProductName', 'defaultProductCode', 'defaultProductAmount', 'defaultProductDesc', 'notifyUrlBackground', 'notifyUrlResult', 'notifyUrl1', 'notifyUrl2', 'notifyUrl3', 'notifyUrl4', 'remitterName', 'balanceNotifyAmt', 'suspiciousNotifyAmt', 'overseasLoginNotifyAmt', 'tempPwdNotifyAmt', 'nonTranCriterionMonth', 'sameCardLimitWebDay', 'sameCardLimitWebTimes', 'sameCardLimitWebAmt', 'sameCardLimitTerminalDay', 'sameCardLimitTerminalTimes', 'sameCardLimitTerminalAmt', 'dailyUsageFee', 'depositNameLookup', 'transferAuthNo', 'autoConvertNewMemberLimit', 'newMemberDailyLimit', 'convertRefDate', 'convertDailyLimit', 'applyStartDate', 'pgFeeGeneral', 'settleDiffMonthCnt', 'settleReportBankCd', 'pgFeeSamsung', 'smsFee', 'taxInvoiceEmail', 'settleAccountNo', 'directFee', 'solutionFee', 'settleAccountHolder', 'withdrawRestrictType', 'withdrawRestrictStartTime', 'withdrawRestrictEndTime', 'terminalPayRestrict', 'webPayRestrict', 'defaultFeeHq', 'defaultFeeDist', 'defaultFeeBranch', 'defaultFeeAgency', 'defaultFeeSalesOffice', 'defaultPayLimitPerTx', 'defaultPayLimitDay', 'defaultPayLimitMonth', 'defaultPayLimitYearCorp', 'defaultPayLimitYearInd', 'copyright', 'holidayProfileName', 'holidayProfileCountry', 'holidayCountryCode', 'holidayCountryCodes', 'businessHolidayRangesJson', 'businessHolidayExtraDates'];
         allFields.forEach(function (k) {
           var el = form.querySelector('[name="' + k + '"]');
           if (el && data[k] != null) el.value = data[k];
@@ -3594,7 +3627,7 @@
           var isRegOrMaster = brandingCard && !brandingCard.classList.contains('d-none');
           window.PG_API.compUpdate(fd).then(function () {
             var settleFd = {};
-            var settleKeys = ['withdrawLimitDays', 'payLimitDefault', 'payLimitExtra', 'holdRate', 'holdDays', 'calcCloseTime', 'calcStartTime', 'transferCycleDays', 'calcProcType', 'transferType', 'autoTransferMin', 'payHoldYn', 'calcExcludeYn', 'calcExcludeTarget', 'calcMinAmt', 'transferExecTime'];
+            var settleKeys = ['withdrawRestrictType', 'withdrawStartTime', 'withdrawEndTime', 'payLimitDefault', 'payLimitExtra', 'holdRate', 'holdDays', 'calcCloseTime', 'calcStartTime', 'transferCycleDays', 'calcProcType', 'transferType', 'autoTransferMin', 'payHoldYn', 'calcExcludeYn', 'calcExcludeTarget', 'calcMinAmt', 'transferExecTime'];
             if (compDivVal === 'MERCHANT') settleKeys.splice(5, 0, 'calcCycle');
             settleKeys.forEach(function (k) {
               if (fd[k] !== undefined && fd[k] !== null && fd[k] !== '') settleFd[k] = fd[k];

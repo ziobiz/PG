@@ -31,6 +31,13 @@ public class SettlementSetting {
     @Column(name = "withdraw_end_time")
     private LocalTime withdrawEndTime;
 
+    /**
+     * 출금제한 유형: DAILY(매일), HOLIDAY(공휴일), EVE_HOLIDAY_17, EVE_HOLIDAY_18, NONE(미사용) 등.
+     * 공휴일·전영업일 판단은 본사 영업일 설정과 연동해 출금 API·배치에서 해석합니다.
+     */
+    @Column(name = "withdraw_restrict_type", length = 32)
+    private String withdrawRestrictType;
+
     /** 기본 지급한도 (원) */
     @Column(name = "pay_limit_default", precision = 18, scale = 0)
     private BigDecimal payLimitDefault;
@@ -55,7 +62,7 @@ public class SettlementSetting {
     @Column(name = "hold_days")
     private Integer holdDays;
 
-    /** 정산주기 코드: RT,M5,M10,H1… / D1…D30 / W3,W5… / WEEKLY,WEEKLY2 등 */
+    /** 정산주기 코드: RT,M5,M10,H1… / D1…D30 / W3,W5… / WK1W,WK2W,WK1WT,WK2WT 등 */
     @Column(name = "calc_cycle", length = 64)
     private String calcCycle;
 
@@ -67,8 +74,8 @@ public class SettlementSetting {
     @Column(name = "calc_proc_type", length = 20)
     private String calcProcType = "MANUAL";
 
-    /** 이체및송금구분: MANUAL, AUTO, NONE(사용안함) — 펌뱅킹 연동 시 이체 실행 방식 */
-    @Column(name = "transfer_type", length = 20)
+    /** 이체및송금구분: MANUAL, AUTO, AUTO_NO_MANUAL, ARBITRARY, NONE(사용안함) 등 */
+    @Column(name = "transfer_type", length = 32)
     private String transferType;
 
     /** 이체주기 (일) */
@@ -161,6 +168,8 @@ public class SettlementSetting {
     public void setWithdrawStartTime(LocalTime withdrawStartTime) { this.withdrawStartTime = withdrawStartTime; }
     public LocalTime getWithdrawEndTime() { return withdrawEndTime; }
     public void setWithdrawEndTime(LocalTime withdrawEndTime) { this.withdrawEndTime = withdrawEndTime; }
+    public String getWithdrawRestrictType() { return withdrawRestrictType; }
+    public void setWithdrawRestrictType(String withdrawRestrictType) { this.withdrawRestrictType = withdrawRestrictType; }
     public BigDecimal getPayLimitDefault() { return payLimitDefault; }
     public void setPayLimitDefault(BigDecimal payLimitDefault) { this.payLimitDefault = payLimitDefault; }
     public BigDecimal getPayLimitExtra() { return payLimitExtra; }

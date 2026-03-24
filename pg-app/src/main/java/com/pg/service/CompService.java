@@ -498,6 +498,7 @@ public class CompService {
                                 m.put("holdRate", ss.getHoldRate());
                                 m.put("holdDays", ss.getHoldDays());
                                 m.put("payLimitDefault", ss.getPayLimitDefault());
+                                m.put("withdrawRestrictType", ss.getWithdrawRestrictType());
                                 m.put("withdrawLimitDays", ss.getWithdrawLimitDays());
                                 m.put("withdrawStartTime", ss.getWithdrawStartTime() != null ? ss.getWithdrawStartTime().toString() : null);
                                 m.put("withdrawEndTime", ss.getWithdrawEndTime() != null ? ss.getWithdrawEndTime().toString() : null);
@@ -836,8 +837,8 @@ public class CompService {
                 bankCd, transferFee, null, accountNo, accountHolder,
                 null, null, null, null, null, null, null, null, null,
                 remark,
-                /* 44–54: withdraw / pay limit / hold / calc */
-                null, null, null, null, null, null, null, null, null, null, null,
+                /* withdrawRestrictType + withdraw / pay limit / hold / calc */
+                null, null, null, null, null, null, null, null, null, null, null, null,
                 /* 55–64: transfer … calcStart … calcProc … */
                 null, null, null, null, null, null, null, null, null, null,
                 /* pgBindings … */
@@ -859,8 +860,9 @@ public class CompService {
                                      String fax, String email, String pwd,
                                      String bankCd, String transferFee, String cryptoTransferFee, String accountNo, String accountHolder,
                                      String countryCd, String swift, String branchName, String branchAddr,
-                                     String contactTel, String walletAddress, String networkName, String siteUrl, String siteSummary,
+                                     String contactTel, String walletAddress, String networkName,                                      String siteUrl, String siteSummary,
                                      String remark,
+                                     String withdrawRestrictType,
                                      Integer withdrawLimitDays, String withdrawStartTime, String withdrawEndTime,
                                      String payLimitDefault, String payLimitExtra, String payLimitAlertSms,
                                      String holdRateFollowHq, String holdRate, Integer holdDays, String calcCycle, String calcCloseTime,
@@ -970,6 +972,9 @@ public class CompService {
             ss.setTransferType(transferType != null && !transferType.isBlank() ? transferType.trim() : "MANUAL");
         } else {
             applyLegacySettlementFields(ss, transferType);
+        }
+        if (withdrawRestrictType != null && !withdrawRestrictType.isBlank()) {
+            ss.setWithdrawRestrictType(withdrawRestrictType.trim());
         }
         if (withdrawLimitDays != null) ss.setWithdrawLimitDays(withdrawLimitDays);
         if (parseTime(withdrawStartTime) != null) ss.setWithdrawStartTime(parseTime(withdrawStartTime));
@@ -1312,6 +1317,9 @@ public class CompService {
                             m.put("compId", ou.getCode());
                             m.put("orgUnitId", ou.getId());
                             m.put("withdrawLimitDays", ss.getWithdrawLimitDays());
+                            m.put("withdrawRestrictType", ss.getWithdrawRestrictType());
+                            m.put("withdrawStartTime", ss.getWithdrawStartTime() != null ? ss.getWithdrawStartTime().toString() : null);
+                            m.put("withdrawEndTime", ss.getWithdrawEndTime() != null ? ss.getWithdrawEndTime().toString() : null);
                             m.put("payLimitDefault", ss.getPayLimitDefault());
                             m.put("payLimitExtra", ss.getPayLimitExtra());
                             m.put("holdRate", ss.getHoldRate());
@@ -1332,7 +1340,9 @@ public class CompService {
     }
 
     /** 가맹점 상세 저장 시 정산(tb_settlement_setting) 일괄 반영 */
-    public boolean saveSettlementSetting(String compId, Integer withdrawLimitDays, String payLimitDefault, String payLimitExtra,
+    public boolean saveSettlementSetting(String compId, String withdrawRestrictType, Integer withdrawLimitDays,
+                                         String withdrawStartTime, String withdrawEndTime,
+                                         String payLimitDefault, String payLimitExtra,
                                          String holdRate, Integer holdDays, String calcCycle,
                                          String calcCloseTime, String calcStartTime, Integer transferCycleDays,
                                          String calcProcType, String transferType, String autoTransferMin, String payHoldYn,
@@ -1341,7 +1351,13 @@ public class CompService {
         return orgUnitRepository.findByCode(compId != null ? compId : "")
                 .flatMap(ou -> settlementSettingRepository.findByOrgUnitId(ou.getId())
                         .map(ss -> {
+                            if (withdrawRestrictType != null) {
+                                String w = withdrawRestrictType.trim();
+                                ss.setWithdrawRestrictType(w.isEmpty() ? null : w);
+                            }
                             if (withdrawLimitDays != null) ss.setWithdrawLimitDays(withdrawLimitDays);
+                            if (parseTime(withdrawStartTime) != null) ss.setWithdrawStartTime(parseTime(withdrawStartTime));
+                            if (parseTime(withdrawEndTime) != null) ss.setWithdrawEndTime(parseTime(withdrawEndTime));
                             if (payLimitDefault != null && !payLimitDefault.isEmpty()) try { ss.setPayLimitDefault(new BigDecimal(payLimitDefault.trim())); } catch (Exception ignored) {}
                             if (payLimitExtra != null && !payLimitExtra.isEmpty()) try { ss.setPayLimitExtra(new BigDecimal(payLimitExtra.trim())); } catch (Exception ignored) {}
                             if (holdRate != null && !holdRate.isEmpty()) try { ss.setHoldRate(new BigDecimal(holdRate.trim())); } catch (Exception ignored) {}
@@ -1508,10 +1524,25 @@ public class CompService {
         };
     }
 
+    /**
+     * 업체관리 목록: 미지정 시 기본 "사용(Y)"만 표시. "ALL"/"*"이면 필터 없음.
+     */
+    private String normalizeUseYnFilter(String useYn) {
+        if (useYn == null || useYn.trim().isEmpty()) return "Y";
+        String t = useYn.trim();
+        if ("ALL".equalsIgnoreCase(t) || "*".equals(t)) return null;
+        return t;
+    }
+
     private boolean matchUseYn(OrgUnit o, String useYn) {
-        if (useYn == null || useYn.trim().isEmpty()) return true;
+        String f = normalizeUseYnFilter(useYn);
+        if (f == null) return true;
         return merchantProfileRepository.findByOrgUnitId(o.getId())
-                .map(mp -> useYn.trim().equals(mp.getUseYn() != null ? mp.getUseYn() : "")).orElse(true);
+                .map(mp -> {
+                    String v = mp.getUseYn() != null ? mp.getUseYn().trim() : "Y";
+                    return f.equalsIgnoreCase(v);
+                })
+                .orElseGet(() -> "Y".equalsIgnoreCase(f));
     }
 
     private boolean matchPayHoldYn(OrgUnit o, String payHoldYn) {
@@ -1684,6 +1715,7 @@ public class CompService {
         if (c == null || c.isEmpty()) return "-";
         String u = c.trim().toUpperCase();
         return switch (u) {
+            case "NONE" -> "정산안함";
             case "RT", "REALTIME" -> "실시간";
             case "M5" -> "5분";
             case "M10" -> "10분";
@@ -1695,8 +1727,12 @@ public class CompService {
             case "W7" -> "W+7";
             case "W10" -> "W+10";
             case "W14" -> "W+14";
-            case "WEEKLY" -> "Weekly";
-            case "WEEKLY2" -> "Weekly2";
+            case "WK1W" -> "WK+1W";
+            case "WK2W" -> "WK+2W";
+            case "WK1WT" -> "WK+1WT";
+            case "WK2WT" -> "WK+2WT";
+            case "WEEKLY" -> "Weekly(구)";
+            case "WEEKLY2" -> "Weekly2(구)";
             default -> {
                 if (u.matches("D\\d+")) yield "D+" + u.substring(1);
                 yield c;
@@ -1721,6 +1757,8 @@ public class CompService {
         return switch (t.toUpperCase()) {
             case "MANUAL" -> "수동";
             case "AUTO" -> "자동";
+            case "AUTO_NO_MANUAL" -> "자동(수동불가)";
+            case "ARBITRARY" -> "임의출금";
             case "NONE" -> "사용안함";
             default -> t;
         };
@@ -1739,7 +1777,7 @@ public class CompService {
 
     private static String payHoldYnToDisplay(String y) {
         if (y == null || y.isEmpty()) return "-";
-        return "Y".equalsIgnoreCase(y) ? "보류" : "정상";
+        return "Y".equalsIgnoreCase(y) ? "보류" : "지급";
     }
 
     /** 엑셀 업로드로 업체 일괄 등록. 1행=헤더, 2행~=데이터 */
@@ -1804,7 +1842,7 @@ public class CompService {
                             row.get("accountHolder"),
                             null, null, null, null, null, null, null, null, null,
                             row.get("remark"),
-                            null, null, null, null, null, null, null, null, null, row.get("calcCycle"), null,
+                            null, null, null, null, null, null, null, null, null, null, row.get("calcCycle"), null,
                             row.get("transferType"), null, null, null, null, null, null, null, null, null,
                             null, null, null,
                             null, null, null, null,

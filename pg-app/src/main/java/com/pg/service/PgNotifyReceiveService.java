@@ -30,15 +30,18 @@ public class PgNotifyReceiveService {
     private final PgNotifyInboundRepository inboundRepository;
     private final MerchantPgBindingRepository bindingRepository;
     private final OrgUnitRepository orgUnitRepository;
+    private final OrgServiceUseService orgServiceUseService;
 
     public PgNotifyReceiveService(HqNotifyEnvService hqNotifyEnvService,
                                 PgNotifyInboundRepository inboundRepository,
                                 MerchantPgBindingRepository bindingRepository,
-                                OrgUnitRepository orgUnitRepository) {
+                                OrgUnitRepository orgUnitRepository,
+                                OrgServiceUseService orgServiceUseService) {
         this.hqNotifyEnvService = hqNotifyEnvService;
         this.inboundRepository = inboundRepository;
         this.bindingRepository = bindingRepository;
         this.orgUnitRepository = orgUnitRepository;
+        this.orgServiceUseService = orgServiceUseService;
     }
 
     @Transactional
@@ -62,7 +65,12 @@ public class PgNotifyReceiveService {
             in.setOrgUnitId(b.getOrgUnitId());
             Optional<OrgUnit> ou = orgUnitRepository.findById(b.getOrgUnitId());
             ou.ifPresent(o -> in.setMerchantId(o.getCode()));
-            in.setProcessStatus("PARSED");
+            if (!orgServiceUseService.isOrgServiceActive(b.getOrgUnitId())) {
+                in.setProcessStatus("MERCHANT_DISABLED");
+                in.setErrorMessage("업체 미사용(서비스 중지) — 노티 미처리");
+            } else {
+                in.setProcessStatus("PARSED");
+            }
         } else {
             in.setProcessStatus("MERCHANT_UNRESOLVED");
             in.setErrorMessage(parsed.mid == null || parsed.mid.isBlank() ? "mid missing" : "no binding for mid/root");

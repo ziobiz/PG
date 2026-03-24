@@ -4,6 +4,7 @@ import com.pg.api.ApiResponse;
 import com.pg.dto.ChillPayDirectCreditResponse;
 import com.pg.repository.OrgUnitRepository;
 import com.pg.service.ChillPayService;
+import com.pg.service.OrgServiceUseService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -19,10 +20,13 @@ public class ApiPayController {
 
     private final ChillPayService chillPayService;
     private final OrgUnitRepository orgUnitRepository;
+    private final OrgServiceUseService orgServiceUseService;
 
-    public ApiPayController(ChillPayService chillPayService, OrgUnitRepository orgUnitRepository) {
+    public ApiPayController(ChillPayService chillPayService, OrgUnitRepository orgUnitRepository,
+                            OrgServiceUseService orgServiceUseService) {
         this.chillPayService = chillPayService;
         this.orgUnitRepository = orgUnitRepository;
+        this.orgServiceUseService = orgServiceUseService;
     }
 
     private Long resolveMerchantOrgUnitId(Long merchantId, String compId) {
@@ -42,6 +46,10 @@ public class ApiPayController {
             @RequestParam(required = false) Long merchantId,
             @RequestParam(required = false) String compId) {
         Long orgUnitId = resolveMerchantOrgUnitId(merchantId, compId);
+        if (orgUnitId != null && !orgServiceUseService.isOrgServiceActive(orgUnitId)) {
+            return ResponseEntity.ok(ApiResponse.fail(
+                    "서비스가 중지된 업체입니다. (미사용 또는 상위 조직 미사용)", "ORG_DISABLED"));
+        }
         return ResponseEntity.ok(ApiResponse.ok(chillPayService.getConfigForFrontend(orgUnitId)));
     }
 
@@ -86,6 +94,11 @@ public class ApiPayController {
         String custEmail = (String) body.get("custEmail");
 
         String ipAddress = getClientIp(request);
+
+        if (merchantOrgUnitId != null && !orgServiceUseService.isOrgServiceActive(merchantOrgUnitId)) {
+            return ResponseEntity.ok(ApiResponse.fail(
+                    "서비스가 중지된 업체입니다. (미사용 또는 상위 조직 미사용)", "ORG_DISABLED"));
+        }
 
         try {
             ChillPayDirectCreditResponse res = chillPayService.requestPayment(

@@ -50,13 +50,16 @@ public class ChillPayService {
     private final ChillPayProperties props;
     private final HqApiConfigRepository hqApiConfigRepository;
     private final MerchantPgBindingRepository merchantPgBindingRepository;
+    private final OrgServiceUseService orgServiceUseService;
     private final RestTemplate restTemplate = new RestTemplate();
 
     public ChillPayService(ChillPayProperties props, HqApiConfigRepository hqApiConfigRepository,
-                          MerchantPgBindingRepository merchantPgBindingRepository) {
+                          MerchantPgBindingRepository merchantPgBindingRepository,
+                          OrgServiceUseService orgServiceUseService) {
         this.props = props;
         this.hqApiConfigRepository = hqApiConfigRepository;
         this.merchantPgBindingRepository = merchantPgBindingRepository;
+        this.orgServiceUseService = orgServiceUseService;
     }
 
     /** 가맹점 orgUnitId가 있으면 해당 가맹점의 ChillPay 설정(결제대행사 설정) 우선, 없으면 본사 설정 */
@@ -107,6 +110,10 @@ public class ChillPayService {
             String orderNo, String customerId, Long amount, String directCreditToken,
             String phoneNumber, String description, String ipAddress, String custEmail,
             Long merchantOrgUnitId) {
+
+        if (merchantOrgUnitId != null && !orgServiceUseService.isOrgServiceActive(merchantOrgUnitId)) {
+            throw new IllegalStateException("서비스가 중지된 업체입니다. (미사용 또는 상위 조직 미사용)");
+        }
 
         Config cfg = resolveConfig(merchantOrgUnitId);
         if (cfg.apiKey() == null || cfg.apiKey().isEmpty()) {

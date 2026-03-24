@@ -17,32 +17,16 @@
 
   /**
    * 업체관리 검색용 업체구분 셀렉트 옵션.
-   * 비관리자: 로그인 조직 단계보다 아래 단계만 (본인·상위 단계는 선택 불가).
-   * ADMIN: 전 단계 + 전체.
+   * 총본사~가맹점 전 단계 + 전체(목록 API도 비관리자에게 전체 조직 반환).
    */
   function getCompMngSearchCompDivOptions(viewerOrgLevel, isAdmin) {
-    var allWithWhole = [{ v: '', t: '전체' }].concat(COMP_MNG_SEARCH_COMP_DIV_LEVELS.map(function (o) { return { v: o.v, t: o.t }; }));
-    if (isAdmin) return allWithWhole;
-    var vo = String(viewerOrgLevel || '').trim();
-    var viewerOrd = 0;
-    for (var i = 0; i < COMP_MNG_SEARCH_COMP_DIV_LEVELS.length; i++) {
-      if (COMP_MNG_SEARCH_COMP_DIV_LEVELS[i].v === vo) {
-        viewerOrd = COMP_MNG_SEARCH_COMP_DIV_LEVELS[i].ord;
-        break;
-      }
-    }
-    if (viewerOrd <= 0) return allWithWhole;
-    var out = [{ v: '', t: '전체' }];
-    for (var j = 0; j < COMP_MNG_SEARCH_COMP_DIV_LEVELS.length; j++) {
-      var L = COMP_MNG_SEARCH_COMP_DIV_LEVELS[j];
-      if (L.ord > viewerOrd) out.push({ v: L.v, t: L.t });
-    }
-    return out;
+    return [{ v: '', t: '전체' }].concat(COMP_MNG_SEARCH_COMP_DIV_LEVELS.map(function (o) { return { v: o.v, t: o.t }; }));
   }
 
   /** 정산주기 저장값(v)·화면표시(t) — 가맹점 정산방법·결제내역 검색 공통 */
   var CALC_CYCLE_OPTIONS = [
     { v: '', t: '선택' },
+    { v: 'NONE', t: '정산안함' },
     { v: 'RT', t: '실시간' },
     { v: 'M5', t: '5분' },
     { v: 'M10', t: '10분' },
@@ -63,8 +47,10 @@
     { v: 'W7', t: 'W+7' },
     { v: 'W10', t: 'W+10' },
     { v: 'W14', t: 'W+14' },
-    { v: 'WEEKLY', t: 'Weekly' },
-    { v: 'WEEKLY2', t: 'Weekly2' }
+    { v: 'WK1W', t: 'WK+1W' },
+    { v: 'WK2W', t: 'WK+2W' },
+    { v: 'WK1WT', t: 'WK+1WT' },
+    { v: 'WK2WT', t: 'WK+2WT' }
   ];
   var CALC_CYCLE_SEARCH_OPTIONS = [{ v: '', t: '전체' }].concat(CALC_CYCLE_OPTIONS.filter(function (o) { return o.v !== ''; }));
 
@@ -78,8 +64,20 @@
   var TRANSFER_REMIT_OPTIONS = [
     { v: 'MANUAL', t: '수동' },
     { v: 'AUTO', t: '자동' },
+    { v: 'AUTO_NO_MANUAL', t: '자동(수동불가)' },
+    { v: 'ARBITRARY', t: '임의출금' },
     { v: 'NONE', t: '사용안함' }
   ];
+  /** 가맹점·본사 출금제한 유형(저장값은 tb_settlement_setting.withdraw_restrict_type 또는 본사 regional JSON) */
+  var WITHDRAW_POLICY_OPTIONS = [
+    { v: '', t: '선택' },
+    { v: 'DAILY', t: '매일' },
+    { v: 'HOLIDAY', t: '공휴일' },
+    { v: 'EVE_HOLIDAY_17', t: '공휴일 전날 17시 이후' },
+    { v: 'EVE_HOLIDAY_18', t: '공휴일 전날 18시 이후' },
+    { v: 'NONE', t: '미사용' }
+  ];
+  var CALC_METHOD_MERCHANT_NOTICE = '정산주기는 가맹점 전용입니다. 정산안함: 정산 배치로 정산금을 쌓지 않습니다(이미 NONE으로 결제된 건은 주기 변경 후에도 정산금 미적립). 시간대(RT·M5 등): 결제승인일시 기준 이후 정산. D+1~3: 결제일 이후 해당 영업일·설정한 정산시간에 정산. 정산마감·정산자동개시·이체시간은 D+·이체 연동 시 사용합니다. 이체및송금: 수동(정산이체 화면), 자동(이체주기 분마다 자동이체최소+이체수수료 합 이상이면 출금, 수동 병행 가능), 자동(수동불가), 임의출금(다중출금), 사용안함(해당 업체는 정산실행 등으로만 정산금 처리). 이체주기(분)는 자동·자동(수동불가)에만 적용되며 미수금이면 출금하지 않습니다. 지급보류: 보류 시 정산은 주기대로, 출금만 제한. 정산제외: 당일(D+0) 계열에서 주말·공휴일·수단별 제외·익영업일 개시시간을 쓸 수 있으며, D+1~3은 영업일 정산만(제외 설정 미적용).';
 
   /** 본사 영업일·휴일: 연간 미니달력 + 공휴일 프리셋 (hq-holiday-calendar.js) */
   var HQ_HOLIDAY_UI_HTML = '<div class="col-12"><div class="hq-holiday-ui-wrap border rounded p-2 bg-light mt-1" data-hq-calendar-readonly="true">' +
@@ -393,7 +391,7 @@
         [
           { label: '업체구분', type: 'select', name: 'searchCompDiv', options: [{ v: '', t: '전체' }, { v: 'REGIONAL', t: '본사' }, { v: 'MASTER_DIST', t: '총판' }, { v: 'BRANCH', t: '지사' }, { v: 'AGENCY', t: '대리점' }, { v: 'SALES_OFFICE', t: '영업점' }, { v: 'MERCHANT', t: '가맹점' }], size: 10 },
           { label: '대표자명', type: 'text', name: 'searchCeoNm', size: 12 },
-          { label: '업체사용상태', type: 'select', name: 'searchUseYn', options: [{ v: '', t: '전체' }, { v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }], size: 10 },
+          { label: '업체사용상태', type: 'select', name: 'searchUseYn', options: [{ v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }, { v: 'ALL', t: '전체' }], size: 10 },
           { label: '업체코드', type: 'text', name: 'searchCompId', size: 12 },
           { label: '업체명', type: 'text', name: 'searchCompNm', size: 12 }
         ],
@@ -405,7 +403,7 @@
           { type: 'compMngSearchActions', label: '하위업체포함', checkboxName: 'searchIncludeSub', searchLabel: '검색' }
         ]
       ],
-      noticeList: ['업체구분은 로그인 조직보다 하위 단계만 선택해 검색할 수 있습니다. 업체사용상태 등은 \'전체\'로 두고 검색하세요. 데이터가 없으면 [시드 생성]을 눌러주세요.', '엑셀등록: [SAMPLE]으로 서식 있는 xlsx(헤더 색·표선·가운데 정렬)를 받아 예시 행을 수정·추가한 뒤 [엑셀등록]에 업로드하세요.'],
+      noticeList: ['기본 목록은 사용(사용여부) 업체만 표시됩니다. 미사용으로 바꾼 조직은 목록에 나오지 않으며, 업체사용상태를 미사용으로 검색한 뒤 사용으로 변경하면 결제·정산·노티가 복구됩니다. 상위를 미사용으로 두면 하위 프로필도 함께 미사용 처리됩니다.', '엑셀등록: [SAMPLE]으로 서식 있는 xlsx(헤더 색·표선·가운데 정렬)를 받아 예시 행을 수정·추가한 뒤 [엑셀등록]에 업로드하세요.'],
       noticeRefButton: { id: 'noticeRefBtn', label: '참고', cls: 'btn-success' },
       summary: ['건수'],
       buttons: [{ id: 'seedBtn', label: '시드 생성', cls: 'btn-outline-warning' }, { id: 'excelBtn', label: '엑셀다운로드', cls: 'btn-info' }, { id: 'excelSampleBtn', label: 'SAMPLE', cls: 'btn-outline-secondary' }, { id: 'excelRegBtn', label: '엑셀등록', cls: 'btn-outline-success' }, { id: 'compRegBtn', label: '등록', cls: 'btn-danger' }],
@@ -427,7 +425,7 @@
         { key: 'calcCycle', label: '정산주기' },
         { key: 'calcProcType', label: '정산구분' },
         { key: 'transferType', label: '이체및송금' },
-        { key: 'transferCycleHours', label: '이체주기(시)' },
+        { key: 'transferCycleHours', label: '이체주기(분)' },
         { key: 'calcExcludeYn', label: '정산제외' },
         { key: 'calcExcludeTarget', label: '정산제외대상' },
         { key: 'calcStartTime', label: '정산개시시간' },
@@ -509,9 +507,9 @@
           title: '출금 제한 시간 설정',
           id: 'regionalWithdrawLimitCard',
           regionalOnly: true,
-          notice: '출금제한일에는 출금이 실행되지 않습니다. 시작시간과 종료시간은 출금제한일 이외날짜에 적용됩니다.',
+          notice: '본사 기본 출금 제한 정책입니다. 매일: 시작~종료 매일 적용. 공휴일: 당일 00:00~23:59 전면 제한, 그 외 영업일은 시작~종료. 공휴일 전날 17시/18시 이후: 전영업일 해당 시각~공휴일 23:59(시작이 17·18시보다 이르면 시작시간부터), 그 외 날은 시작~종료. 실제 출금 시 본사 영업일·공휴일 데이터와 함께 판단합니다.',
           rows: [
-            [{ label: '출금제한', type: 'select', name: 'withdrawRestrictType', options: [{ v: '', t: '선택' }, { v: 'MONTHLY', t: '매월' }, { v: 'WEEKLY', t: '매주' }, { v: 'NONE', t: '미사용' }], col: 1 }, { label: '출금제한시작시간*', type: 'time', name: 'withdrawRestrictStartTime', col: 1 }, { label: '출금제한종료시간*', type: 'time', name: 'withdrawRestrictEndTime', col: 1 }]
+            [{ label: '출금제한 유형', type: 'select', name: 'withdrawRestrictType', options: WITHDRAW_POLICY_OPTIONS, col: 2 }, { label: '출금제한시작시간*', type: 'time', name: 'withdrawRestrictStartTime', col: 1 }, { label: '출금제한종료시간*', type: 'time', name: 'withdrawRestrictEndTime', col: 1 }]
           ]
         },
         {
@@ -580,8 +578,9 @@
           title: '출금 제한 설정',
           id: 'withdrawLimitCard',
           merchantOnly: true,
+          notice: '가맹점 출금 제한 유형입니다. 매일·공휴일·공휴일 전날(17·18시) 규칙은 본사 영업일·공휴일 캘린더와 함께 출금 처리 시 해석합니다. 평일 구간은 시작·종료 시각으로 좁힙니다.',
           rows: [
-            [{ label: '출금제한일', type: 'text', name: 'withdrawLimitDays', col: 1, placeholder: '일' }, { label: '출금시작시간', type: 'time', name: 'withdrawStartTime', col: 1 }, { label: '출금종료시간', type: 'time', name: 'withdrawEndTime', col: 1 }]
+            [{ label: '출금제한 유형', type: 'select', name: 'withdrawRestrictType', options: WITHDRAW_POLICY_OPTIONS, col: 2 }, { label: '시작시간', type: 'time', name: 'withdrawStartTime', col: 1 }, { label: '종료시간', type: 'time', name: 'withdrawEndTime', col: 1 }]
           ]
         },
         {
@@ -596,7 +595,7 @@
           title: '보류율 설정',
           id: 'holdRateCard',
           merchantOnly: true,
-          notice: '본사정책 따름 선택 시 본사설정의 수수료 정책(롤링 비율/일수)에 연동되어 반영됩니다.',
+          notice: '결제 정산금 중 보류율(%)만큼 보류기간(일) 동안 지급하지 않으며, 정산일자+보류기간 경과 후 정산금으로 전환됩니다. 보류 해지일이 공휴일이면 익영업일에 전환됩니다. 본사정책 따름 시 본사 수수료 정책(롤링 비율/일수)에 연동됩니다.',
           rows: [
             [{ label: '본사정책 따름', type: 'select', name: 'holdRateFollowHq', options: [{ v: 'Y', t: '본사정책 따름' }, { v: 'N', t: '직접입력' }], col: 2 }],
             [{ label: '보류율(%)', type: 'text', name: 'holdRate', col: 1, placeholder: '5', holdRateOnly: true }, { label: '보류기간(일)', type: 'text', name: 'holdDays', col: 1, placeholder: '120', holdRateOnly: true }]
@@ -618,11 +617,11 @@
           title: '정산방법',
           id: 'calcMethodCard',
           merchantOnly: true,
-          notice: '정산주기는 가맹점에만 적용되는 값입니다(총본사~영업점에는 없음). 그 외 항목: 영업일(휴일 제외) 기준은 본사 정산정보와 동일합니다. 정산마감시간까지 거래를 마감하고, 정산자동개시시간에 정산 계산(정산구분 자동 시). 정산구분: 수동=마감 후 운영자가 개시, 자동=개시시간에 자동, 펌뱅킹=마감 금액 기준 이체까지 연동. 이체및송금구분은 펌뱅킹 송금 방식(수동/자동/사용안함). 정산제외여부 사용 시 마감·자동개시가 보류되며, 해제 후 해당일 정산마감·자동개시 규칙이 적용됩니다. 정산최소금액 미만이면 해당 주기 정산은 다음 순번으로 이월됩니다. 이체및송금최소금액 미만이면 펌뱅킹 송금이 제한됩니다. 이체시간은 펌뱅킹 연동 시 해당 시각에 이체합니다.',
+          notice: CALC_METHOD_MERCHANT_NOTICE,
           rows: [
             [{ label: '정산주기', type: 'select', name: 'calcCycle', options: CALC_CYCLE_OPTIONS, col: 1 }, { label: '정산마감시간', type: 'time', name: 'calcCloseTime', col: 1 }, { label: '정산자동개시시간', type: 'time', name: 'calcStartTime', col: 1 }],
-            [{ label: '정산구분', type: 'select', name: 'calcProcType', options: CALC_PROC_OPTIONS, col: 1 }, { label: '이체및송금구분', type: 'select', name: 'transferType', options: TRANSFER_REMIT_OPTIONS, col: 1 }, { label: '이체주기(일)', type: 'text', name: 'transferCycleDays', col: 1 }, { label: '이체시간', type: 'time', name: 'transferExecTime', col: 1 }],
-            [{ label: '정산제외여부', type: 'select', name: 'calcExcludeYn', options: [{ v: 'N', t: '미사용' }, { v: 'Y', t: '사용' }], col: 1 }, { label: '정산제외대상', type: 'select', name: 'calcExcludeTarget', options: [{ v: 'NONE', t: '해당없음' }, { v: 'WEB', t: 'WEB' }, { v: 'OFFLINE', t: '오프라인' }, { v: 'BOTH', t: 'WEB+오프라인' }], col: 1 }, { label: '지급보류', type: 'select', name: 'payHoldYn', options: [{ v: 'N', t: '아니오' }, { v: 'Y', t: '예' }], col: 1 }],
+            [{ label: '정산구분', type: 'select', name: 'calcProcType', options: CALC_PROC_OPTIONS, col: 1 }, { label: '이체및송금구분', type: 'select', name: 'transferType', options: TRANSFER_REMIT_OPTIONS, col: 1 }, { label: '이체주기(분)', type: 'text', name: 'transferCycleDays', col: 1, placeholder: '예: 5, 60' }, { label: '이체시간', type: 'time', name: 'transferExecTime', col: 1 }],
+            [{ label: '정산제외여부', type: 'select', name: 'calcExcludeYn', options: [{ v: 'N', t: '미사용' }, { v: 'Y', t: '사용' }], col: 1 }, { label: '정산제외대상', type: 'select', name: 'calcExcludeTarget', options: [{ v: 'NONE', t: '해당없음' }, { v: 'WEB', t: 'WEB' }, { v: 'OFFLINE', t: '오프라인' }, { v: 'BOTH', t: 'WEB+오프라인' }], col: 1 }, { label: '지급보류', type: 'select', name: 'payHoldYn', options: [{ v: 'N', t: '지급' }, { v: 'Y', t: '보류' }], col: 1 }],
             [{ label: '정산최소금액(원)', type: 'text', name: 'calcMinAmt', col: 1, placeholder: '미만 시 다음 주기' }, { label: '이체및송금최소금액(원)', type: 'text', name: 'autoTransferMin', col: 1, placeholder: '펌뱅킹 최소' }]
           ]
         },
@@ -742,9 +741,9 @@
           title: '출금 제한 시간 설정',
           id: 'regionalWithdrawLimitCard',
           regionalOnly: true,
-          notice: '출금제한일에는 출금이 실행되지 않습니다. 시작시간과 종료시간은 출금제한일 이외날짜에 적용됩니다.',
+          notice: '본사 기본 출금 제한 정책입니다. 매일: 시작~종료 매일 적용. 공휴일: 당일 00:00~23:59 전면 제한, 그 외 영업일은 시작~종료. 공휴일 전날 17시/18시 이후: 전영업일 해당 시각~공휴일 23:59(시작이 17·18시보다 이르면 시작시간부터), 그 외 날은 시작~종료. 실제 출금 시 본사 영업일·공휴일 데이터와 함께 판단합니다.',
           rows: [
-            [{ label: '출금제한', type: 'select', name: 'withdrawRestrictType', options: [{ v: '', t: '선택' }, { v: 'MONTHLY', t: '매월' }, { v: 'WEEKLY', t: '매주' }, { v: 'NONE', t: '미사용' }], col: 1 }, { label: '출금제한시작시간*', type: 'time', name: 'withdrawRestrictStartTime', col: 1 }, { label: '출금제한종료시간*', type: 'time', name: 'withdrawRestrictEndTime', col: 1 }]
+            [{ label: '출금제한 유형', type: 'select', name: 'withdrawRestrictType', options: WITHDRAW_POLICY_OPTIONS, col: 2 }, { label: '출금제한시작시간*', type: 'time', name: 'withdrawRestrictStartTime', col: 1 }, { label: '출금제한종료시간*', type: 'time', name: 'withdrawRestrictEndTime', col: 1 }]
           ]
         },
         {
@@ -813,8 +812,9 @@
           title: '출금 제한 설정',
           id: 'withdrawLimitCard',
           merchantOnly: true,
+          notice: '가맹점 출금 제한 유형입니다. 매일·공휴일·공휴일 전날(17·18시) 규칙은 본사 영업일·공휴일 캘린더와 함께 출금 처리 시 해석합니다. 평일 구간은 시작·종료 시각으로 좁힙니다.',
           rows: [
-            [{ label: '출금제한일', type: 'text', name: 'withdrawLimitDays', col: 1, placeholder: '일' }, { label: '출금시작시간', type: 'time', name: 'withdrawStartTime', col: 1 }, { label: '출금종료시간', type: 'time', name: 'withdrawEndTime', col: 1 }]
+            [{ label: '출금제한 유형', type: 'select', name: 'withdrawRestrictType', options: WITHDRAW_POLICY_OPTIONS, col: 2 }, { label: '시작시간', type: 'time', name: 'withdrawStartTime', col: 1 }, { label: '종료시간', type: 'time', name: 'withdrawEndTime', col: 1 }]
           ]
         },
         {
@@ -829,7 +829,7 @@
           title: '보류율 설정',
           id: 'holdRateCard',
           merchantOnly: true,
-          notice: '본사정책 따름 선택 시 본사설정의 수수료 정책(롤링 비율/일수)에 연동되어 반영됩니다.',
+          notice: '결제 정산금 중 보류율(%)만큼 보류기간(일) 동안 지급하지 않으며, 정산일자+보류기간 경과 후 정산금으로 전환됩니다. 보류 해지일이 공휴일이면 익영업일에 전환됩니다. 본사정책 따름 시 본사 수수료 정책(롤링 비율/일수)에 연동됩니다.',
           rows: [
             [{ label: '본사정책 따름', type: 'select', name: 'holdRateFollowHq', options: [{ v: 'Y', t: '본사정책 따름' }, { v: 'N', t: '직접입력' }], col: 2 }],
             [{ label: '보류율(%)', type: 'text', name: 'holdRate', col: 1, placeholder: '5', holdRateOnly: true }, { label: '보류기간(일)', type: 'text', name: 'holdDays', col: 1, placeholder: '120', holdRateOnly: true }]
@@ -851,11 +851,11 @@
           title: '정산방법',
           id: 'calcMethodCard',
           merchantOnly: true,
-          notice: '정산주기는 가맹점에만 적용되는 값입니다(총본사~영업점에는 없음). 그 외 항목: 영업일(휴일 제외) 기준은 본사 정산정보와 동일합니다. 정산마감시간까지 거래를 마감하고, 정산자동개시시간에 정산 계산(정산구분 자동 시). 정산구분: 수동=마감 후 운영자가 개시, 자동=개시시간에 자동, 펌뱅킹=마감 금액 기준 이체까지 연동. 이체및송금구분은 펌뱅킹 송금 방식(수동/자동/사용안함). 정산제외여부 사용 시 마감·자동개시가 보류되며, 해제 후 해당일 정산마감·자동개시 규칙이 적용됩니다. 정산최소금액 미만이면 해당 주기 정산은 다음 순번으로 이월됩니다. 이체및송금최소금액 미만이면 펌뱅킹 송금이 제한됩니다. 이체시간은 펌뱅킹 연동 시 해당 시각에 이체합니다.',
+          notice: CALC_METHOD_MERCHANT_NOTICE,
           rows: [
             [{ label: '정산주기', type: 'select', name: 'calcCycle', options: CALC_CYCLE_OPTIONS, col: 1 }, { label: '정산마감시간', type: 'time', name: 'calcCloseTime', col: 1 }, { label: '정산자동개시시간', type: 'time', name: 'calcStartTime', col: 1 }],
-            [{ label: '정산구분', type: 'select', name: 'calcProcType', options: CALC_PROC_OPTIONS, col: 1 }, { label: '이체및송금구분', type: 'select', name: 'transferType', options: TRANSFER_REMIT_OPTIONS, col: 1 }, { label: '이체주기(일)', type: 'text', name: 'transferCycleDays', col: 1 }, { label: '이체시간', type: 'time', name: 'transferExecTime', col: 1 }],
-            [{ label: '정산제외여부', type: 'select', name: 'calcExcludeYn', options: [{ v: 'N', t: '미사용' }, { v: 'Y', t: '사용' }], col: 1 }, { label: '정산제외대상', type: 'select', name: 'calcExcludeTarget', options: [{ v: 'NONE', t: '해당없음' }, { v: 'WEB', t: 'WEB' }, { v: 'OFFLINE', t: '오프라인' }, { v: 'BOTH', t: 'WEB+오프라인' }], col: 1 }, { label: '지급보류', type: 'select', name: 'payHoldYn', options: [{ v: 'N', t: '아니오' }, { v: 'Y', t: '예' }], col: 1 }],
+            [{ label: '정산구분', type: 'select', name: 'calcProcType', options: CALC_PROC_OPTIONS, col: 1 }, { label: '이체및송금구분', type: 'select', name: 'transferType', options: TRANSFER_REMIT_OPTIONS, col: 1 }, { label: '이체주기(분)', type: 'text', name: 'transferCycleDays', col: 1, placeholder: '예: 5, 60' }, { label: '이체시간', type: 'time', name: 'transferExecTime', col: 1 }],
+            [{ label: '정산제외여부', type: 'select', name: 'calcExcludeYn', options: [{ v: 'N', t: '미사용' }, { v: 'Y', t: '사용' }], col: 1 }, { label: '정산제외대상', type: 'select', name: 'calcExcludeTarget', options: [{ v: 'NONE', t: '해당없음' }, { v: 'WEB', t: 'WEB' }, { v: 'OFFLINE', t: '오프라인' }, { v: 'BOTH', t: 'WEB+오프라인' }], col: 1 }, { label: '지급보류', type: 'select', name: 'payHoldYn', options: [{ v: 'N', t: '지급' }, { v: 'Y', t: '보류' }], col: 1 }],
             [{ label: '정산최소금액(원)', type: 'text', name: 'calcMinAmt', col: 1, placeholder: '미만 시 다음 주기' }, { label: '이체및송금최소금액(원)', type: 'text', name: 'autoTransferMin', col: 1, placeholder: '펌뱅킹 최소' }]
           ]
         },

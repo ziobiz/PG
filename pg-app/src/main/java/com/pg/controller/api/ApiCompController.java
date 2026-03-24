@@ -70,7 +70,6 @@ public class ApiCompController {
             @RequestParam(defaultValue = "20") int size) {
         String scopeCompId = null;
         boolean scopeSubtreeBelow = false;
-        Map<String, Object> viewerOrgForSubtree = null;
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         AppUser appUser = (auth != null && auth.getPrincipal() instanceof AppUser au) ? au : null;
 
@@ -84,25 +83,15 @@ public class ApiCompController {
             if (scopeCompId == null || scopeCompId.isEmpty()) {
                 return ResponseEntity.ok(ApiResponse.ok(emptyCompPage(page, size)));
             }
-        } else if (appUser != null && !"ADMIN".equalsIgnoreCase(appUser.getRole())) {
-            Map<String, Object> org = authService.getOrgInfo(appUser.getUsername());
-            if (org == null || org.get("compId") == null || org.get("compId").toString().trim().isEmpty()) {
-                return ResponseEntity.ok(ApiResponse.ok(emptyCompPage(page, size)));
-            }
-            scopeCompId = org.get("compId").toString().trim();
-            scopeSubtreeBelow = true;
-            viewerOrgForSubtree = org;
         }
-
-        String effectiveSearchCompDiv = searchCompDiv;
-        if (scopeSubtreeBelow && viewerOrgForSubtree != null) {
-            String vLevel = viewerOrgForSubtree.get("orgLevel") != null
-                    ? viewerOrgForSubtree.get("orgLevel").toString().trim() : "";
-            effectiveSearchCompDiv = compService.sanitizeSearchCompDivForSubtreeViewer(vLevel, searchCompDiv);
+        /* 업체관리(/comp/compMngTree): 비관리자도 전체 조직 트리를 조회(이전: 로그인 조직 하위만 → 본인 제외 시 빈 목록 등 이슈). 업체정보조회는 myOrgOnly=true로 본인만. */
+        String effectiveSearchUseYn = searchUseYn;
+        if (Boolean.TRUE.equals(myOrgOnly) && (searchUseYn == null || searchUseYn.isBlank())) {
+            effectiveSearchUseYn = "ALL";
         }
 
         PageResult<Map<String, Object>> result = compService.search(
-                searchCompId, searchCompNm, effectiveSearchCompDiv, searchUseYn, searchPayHoldYn,
+                searchCompId, searchCompNm, searchCompDiv, effectiveSearchUseYn, searchPayHoldYn,
                 searchCeoNm, searchTerminalId, searchCeoMobile, searchRegNo, searchIncludeSub,
                 page, size, scopeCompId, scopeSubtreeBelow);
         return ResponseEntity.ok(ApiResponse.ok(result));
@@ -173,6 +162,7 @@ public class ApiCompController {
             @RequestParam(required = false) String siteUrl,
             @RequestParam(required = false) String siteSummary,
             @RequestParam(required = false) String remark,
+            @RequestParam(required = false) String withdrawRestrictType,
             @RequestParam(required = false) String withdrawLimitDays,
             @RequestParam(required = false) String withdrawStartTime,
             @RequestParam(required = false) String withdrawEndTime,
@@ -253,6 +243,7 @@ public class ApiCompController {
                 bankCd, transferFee, cryptoTransferFee, accountNo, accountHolder,
                 countryCd, swift, branchName, branchAddr, contactTel, walletAddress, networkName, siteUrl, siteSummary,
                 remark,
+                withdrawRestrictType,
                 withdrawDays, withdrawStartTime, withdrawEndTime, payLimitDefault, payLimitExtra, payLimitAlertSms,
                 holdRateFollowHq, holdRate, holdDaysInt, calcCycle, calcCloseTime, transferType, transferCycleDaysInt, autoTransferMin, payHoldYn,
                 calcExcludeYn, calcExcludeTarget, calcStartTime, calcProcType, calcMinAmt, transferExecTime,
@@ -534,7 +525,10 @@ public class ApiCompController {
     @PostMapping("/settlementSetting/save")
     public ResponseEntity<ApiResponse<Map<String, Object>>> settlementSettingSave(
             @RequestParam String compId,
+            @RequestParam(required = false) String withdrawRestrictType,
             @RequestParam(required = false) String withdrawLimitDays,
+            @RequestParam(required = false) String withdrawStartTime,
+            @RequestParam(required = false) String withdrawEndTime,
             @RequestParam(required = false) String payLimitDefault,
             @RequestParam(required = false) String payLimitExtra,
             @RequestParam(required = false) String holdRate,
@@ -569,7 +563,9 @@ public class ApiCompController {
         if (transferCycleDays != null && !transferCycleDays.trim().isEmpty()) {
             try { transferCycleDaysInt = Integer.parseInt(transferCycleDays.trim()); } catch (NumberFormatException ignored) {}
         }
-        boolean ok = compService.saveSettlementSetting(compId, withdrawDays, payLimitDefault, payLimitExtra,
+        boolean ok = compService.saveSettlementSetting(compId, withdrawRestrictType, withdrawDays,
+                withdrawStartTime, withdrawEndTime,
+                payLimitDefault, payLimitExtra,
                 holdRate, holdDaysInt, calcCycle,
                 calcCloseTime, calcStartTime, transferCycleDaysInt,
                 calcProcType, transferType, autoTransferMin, payHoldYn,
