@@ -9,6 +9,7 @@ import com.pg.repository.AuthTokenRepository;
 import com.pg.repository.MerchantProfileRepository;
 import com.pg.repository.OrgUnitRepository;
 import com.pg.repository.UserRepository;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -30,15 +31,18 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final MerchantProfileRepository merchantProfileRepository;
     private final OrgUnitRepository orgUnitRepository;
+    private final OrgPagePermissionService orgPagePermissionService;
 
     public AuthService(UserRepository userRepository, AuthTokenRepository authTokenRepository,
                        PasswordEncoder passwordEncoder, MerchantProfileRepository merchantProfileRepository,
-                       OrgUnitRepository orgUnitRepository) {
+                       OrgUnitRepository orgUnitRepository,
+                       @Lazy OrgPagePermissionService orgPagePermissionService) {
         this.userRepository = userRepository;
         this.authTokenRepository = authTokenRepository;
         this.passwordEncoder = passwordEncoder;
         this.merchantProfileRepository = merchantProfileRepository;
         this.orgUnitRepository = orgUnitRepository;
+        this.orgPagePermissionService = orgPagePermissionService;
     }
 
     @Transactional
@@ -47,6 +51,9 @@ public class AuthService {
         if (userOpt.isEmpty()) return Optional.empty();
         AppUser user = userOpt.get();
         if (!user.isEnabled() || !passwordEncoder.matches(password, user.getPassword()))
+            return Optional.empty();
+        String ust = user.getUserStatus();
+        if (ust != null && !ust.isBlank() && !"ACTIVE".equalsIgnoreCase(ust.trim()))
             return Optional.empty();
         String token = UUID.randomUUID().toString().replace("-", "");
         AuthToken at = new AuthToken();
@@ -58,6 +65,7 @@ public class AuthService {
         res.setToken(token);
         res.setUserId(user.getUsername());
         res.setUserNm(user.getName() != null ? user.getName() : user.getUsername());
+        res.setRole(user.getRole());
         merchantProfileRepository.findByLoginId(username)
                 .map(mp -> orgUnitRepository.findById(mp.getOrgUnitId()))
                 .filter(Optional::isPresent)
@@ -75,6 +83,7 @@ public class AuthService {
             });
         }
         res.setMustChangePassword("Y".equalsIgnoreCase(user.getPasswordMustChangeYn()));
+        res.setPagePermissions(orgPagePermissionService.resolvePagePermissionsForUser(user));
         return Optional.of(res);
     }
 
@@ -101,7 +110,7 @@ public class AuthService {
         String uid = username.trim();
         String forbidden = uid + "1!";
         if (forbidden.equals(newPassword)) {
-            throw new IllegalArgumentException("로그인ID+1! 형태의 초기 비밀번호는 새 비밀번호로 사용할 수 없습니다.");
+            throw new IllegalArgumentException("아이디+1! 형태의 초기 비밀번호는 새 비밀번호로 사용할 수 없습니다.");
         }
         AppUser user = userRepository.findByUsername(uid)
                 .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
@@ -147,8 +156,24 @@ public class AuthService {
         Map<String, Object> m = new HashMap<>();
         m.put("orgUnitId", ou.getId());
         m.put("compId", ou.getCode());
+        m.put("compNm", ou.getName());
         m.put("orgLevel", ou.getOrgLevel() != null ? ou.getOrgLevel().name() : null);
         return m;
+    }
+
+    public void changeOwnName(String username, String newName) {
+        if (username == null || username.isBlank()) {
+            throw new IllegalArgumentException("로그인 정보가 없습니다.");
+        }
+        String uid = username.trim();
+        String nn = newName != null ? newName.trim() : "";
+        if (nn.isEmpty()) {
+            throw new IllegalArgumentException("이름을 입력하세요.");
+        }
+        AppUser user = userRepository.findByUsername(uid)
+                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+        user.setName(nn);
+        userRepository.save(user);
     }
 
     /** 시드·운영에서 총본사가 여러 건이면 코드 순 첫 건 */

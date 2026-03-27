@@ -7,7 +7,7 @@
   <title>PG 통합관리자</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
-  <link href="css/site.css?v=15" rel="stylesheet">
+  <link href="css/site.css?v=25" rel="stylesheet">
   <script src="js/config.js?v=6"></script>
   <script>
     (function () {
@@ -32,7 +32,7 @@
       }
     })();
   </script>
-  <script src="js/api.js?v=4"></script>
+  <script src="js/api.js?v=6"></script>
   <script src="js/hq-holiday-calendar.js?v=2"></script>
   <script src="//t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
 </head>
@@ -56,14 +56,14 @@
     <!-- 이미지 기준: #ICOPAY + Cloud, ≫펴기/접기, 아이콘 메뉴, 통합본사관리 -->
     <div class="left-side-menu" style="z-index:99 !important">
       <a href="/index.html" class="logo-icopay-wrap" id="leftside-logo">
-        <img id="sidebar-logo-img" src="" alt="Logo" style="max-height:50px;max-width:180px;display:none;object-fit:contain">
+        <img id="sidebar-logo-img" class="sidebar-logo-img" src="" alt="Logo">
         <span class="logo-icopay-title" id="sidebar-logo-text">#ICOPAY</span>
         <span class="logo-icopay-sub" id="sidebar-logo-sub">Cloud</span>
       </a>
       <div id="left-side-menu-container">
         <div class="menuFoldDiv">
           <button type="button" class="btn btn-secondary" id="leftSideFoldBtn" style="width:100%">
-            <i class="bi bi-chevron-left" id="leftSideFoldIcon"></i><span id="leftSideFoldSpan"> 접기</span>
+            <i class="bi bi-chevron-double-left" id="leftSideFoldIcon"></i><span id="leftSideFoldSpan"> « 접기</span>
           </button>
         </div>
         <ul class="side-nav" id="side-nav-ul">
@@ -335,12 +335,8 @@
           </div>
           <div class="modal-body">
             <div class="mb-2">
-              <label class="form-label">아이디</label>
-              <input type="text" class="form-control form-control-sm" id="myInfoUserId" readonly>
-            </div>
-            <div class="mb-2">
               <label class="form-label">이름</label>
-              <input type="text" class="form-control form-control-sm" id="myInfoUserNm" readonly>
+              <input type="text" class="form-control form-control-sm" id="myInfoUserNm">
             </div>
             <hr>
             <div class="mb-2">
@@ -372,14 +368,33 @@
     </footer>
   </div>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
-  <script src="js/screens.js?v=6"></script>
-  <script src="js/app.js?v=16"></script>
+  <script src="js/screens.js?v=36"></script>
+  <script src="js/app.js?v=51"></script>
   <script>
     (function () {
       var user = null;
       try { user = JSON.parse(sessionStorage.getItem('pg_admin_user') || '{}'); } catch (e) {}
-      var userDisplay = document.getElementById('headerUserDisplay');
-      if (userDisplay) userDisplay.textContent = (user.loginId || user.compNm || 'PG 통합관리자') + ' ' + (user.userNm || '');
+      function applyHeaderUserDisplay(u) {
+        var userDisplay = document.getElementById('headerUserDisplay');
+        if (!userDisplay) return;
+        var compNm = (u && u.compNm) ? String(u.compNm).trim() : '';
+        var userNm = (u && u.userNm) ? String(u.userNm).trim() : '';
+        if (!compNm && !userNm) userDisplay.textContent = 'PG 통합관리자';
+        else if (!compNm) userDisplay.textContent = userNm;
+        else if (!userNm) userDisplay.textContent = compNm;
+        else userDisplay.textContent = compNm + ' | ' + userNm;
+      }
+      applyHeaderUserDisplay(user || {});
+      if (window.PG_API && typeof window.PG_API.authMe === 'function') {
+        window.PG_API.authMe().then(function (res) {
+          var me = res && res.data ? res.data : {};
+          if (!me || typeof me !== 'object') return;
+          var merged = Object.assign({}, (user || {}), me);
+          try { sessionStorage.setItem('pg_admin_user', JSON.stringify(merged)); } catch (eSave) {}
+          user = merged;
+          applyHeaderUserDisplay(merged);
+        }).catch(function () {});
+      }
       if (user.compId && window.PG_API && window.PG_API.orgBranding) {
         window.PG_API.orgBranding(user.compId).then(function (b) {
           if (b && b.logoImageUrl) {
@@ -411,10 +426,8 @@
           e.preventDefault();
           var u = null;
           try { u = JSON.parse(sessionStorage.getItem('pg_admin_user') || '{}'); } catch (er) { u = {}; }
-          var idEl = document.getElementById('myInfoUserId');
           var nmEl = document.getElementById('myInfoUserNm');
-          if (idEl) idEl.value = (u && (u.loginId || u.userId)) ? (u.loginId || u.userId) : '';
-          if (nmEl) nmEl.value = (u && (u.userNm || u.compNm)) ? (u.userNm || u.compNm) : '';
+          if (nmEl) nmEl.value = (u && u.userNm) ? u.userNm : '';
           ['myInfoCurrentPassword', 'myInfoNewPassword', 'myInfoConfirmPassword'].forEach(function (id) {
             var el = document.getElementById(id);
             if (el) el.value = '';
@@ -427,23 +440,55 @@
       if (myInfoSaveBtn && !myInfoSaveBtn._bound) {
         myInfoSaveBtn._bound = true;
         myInfoSaveBtn.addEventListener('click', function () {
+          var nmEl = document.getElementById('myInfoUserNm');
+          var newName = (nmEl && nmEl.value) ? String(nmEl.value).trim() : '';
           var currentPassword = (document.getElementById('myInfoCurrentPassword') || {}).value || '';
           var newPassword = (document.getElementById('myInfoNewPassword') || {}).value || '';
           var confirmPassword = (document.getElementById('myInfoConfirmPassword') || {}).value || '';
-          if (!currentPassword || !newPassword || !confirmPassword) {
-            alert('비밀번호 항목을 모두 입력하세요.');
+          var hasPasswordInput = !!(currentPassword || newPassword || confirmPassword);
+          var savedUser = {};
+          try { savedUser = JSON.parse(sessionStorage.getItem('pg_admin_user') || '{}') || {}; } catch (e) {}
+          var oldName = savedUser && savedUser.userNm ? String(savedUser.userNm).trim() : '';
+          var shouldChangeName = !!newName && newName !== oldName;
+          if (!shouldChangeName && !hasPasswordInput) {
+            alert('변경할 정보를 입력하세요.');
+            return;
+          }
+          if (hasPasswordInput && (!currentPassword || !newPassword || !confirmPassword)) {
+            alert('비밀번호를 변경하려면 비밀번호 항목을 모두 입력하세요.');
             return;
           }
           var dimm = document.getElementById('dimm');
           if (dimm) dimm.style.display = 'flex';
-          window.PG_API.authChangePassword(currentPassword, newPassword, confirmPassword).then(function () {
-            alert('비밀번호가 변경되었습니다. 다시 로그인해 주세요.');
-            if (window.PG_API && window.PG_API.clearAuth) window.PG_API.clearAuth();
-            sessionStorage.removeItem('pg_admin_auth');
-            sessionStorage.removeItem('pg_admin_user');
-            window.location.replace((window.location.origin || '') + '/login.html');
-          }).catch(function (err) {
-            alert(err && err.message ? err.message : '비밀번호 변경 실패');
+          var p = Promise.resolve();
+          if (shouldChangeName) {
+            p = p.then(function () { return window.PG_API.authChangeName(newName); }).then(function () {
+              savedUser.userNm = newName;
+              try { sessionStorage.setItem('pg_admin_user', JSON.stringify(savedUser)); } catch (eSave) {}
+              applyHeaderUserDisplay(savedUser);
+            });
+          }
+          if (hasPasswordInput) {
+            p = p.then(function () {
+              return window.PG_API.authChangePassword(currentPassword, newPassword, confirmPassword);
+            }).then(function () {
+              alert('이름/비밀번호가 저장되었습니다. 비밀번호 변경으로 다시 로그인해 주세요.');
+              if (window.PG_API && window.PG_API.clearAuth) window.PG_API.clearAuth();
+              sessionStorage.removeItem('pg_admin_auth');
+              sessionStorage.removeItem('pg_admin_user');
+              window.location.replace((window.location.origin || '') + '/login.html');
+            });
+          } else {
+            p = p.then(function () {
+              alert('이름이 저장되었습니다.');
+              if (window.bootstrap && bootstrap.Modal) {
+                var inst = bootstrap.Modal.getInstance(myInfoModalEl);
+                if (inst) inst.hide();
+              }
+            });
+          }
+          p.catch(function (err) {
+            alert(err && err.message ? err.message : '저장 실패');
           }).finally(function () {
             if (dimm) dimm.style.display = 'none';
           });

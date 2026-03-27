@@ -29,11 +29,26 @@ public class AppUser {
     @Column(nullable = false)
     private boolean enabled = true;
 
+    /** 연락처(사용자관리) */
+    @Column(length = 64)
+    private String mobile;
+
+    /**
+     * 계정 상태: ACTIVE(사용), INACTIVE(미사용), SUSPENDED(영구정지).
+     * 로그인 가능 여부는 enabled 및 본 필드와 동기화(UserListService 등에서 처리).
+     */
+    @Column(name = "user_status", length = 20)
+    private String userStatus = "ACTIVE";
+
+    /** 미사용 전환 시 사유 */
+    @Column(name = "inactive_reason", length = 500)
+    private String inactiveReason;
+
     /** 소속 업체코드(OrgUnit.code) — 사용자관리·접근권한 연동 */
     @Column(name = "org_unit_code", length = 32)
     private String orgUnitCode;
 
-    /** 권한그룹명(본사설정 본사별 권한 세팅과 동일 정책 트리 표시용) */
+    /** 권한그룹명(본사설정 조직별 권한 세팅과 동일 정책 트리 표시용) */
     @Column(name = "permission_group_nm", length = 100)
     private String permissionGroupNm;
 
@@ -81,6 +96,12 @@ public class AppUser {
     public void setRole(String role) { this.role = role; }
     public boolean isEnabled() { return enabled; }
     public void setEnabled(boolean enabled) { this.enabled = enabled; }
+    public String getMobile() { return mobile; }
+    public void setMobile(String mobile) { this.mobile = mobile; }
+    public String getUserStatus() { return userStatus; }
+    public void setUserStatus(String userStatus) { this.userStatus = userStatus; }
+    public String getInactiveReason() { return inactiveReason; }
+    public void setInactiveReason(String inactiveReason) { this.inactiveReason = inactiveReason; }
     public String getOrgUnitCode() { return orgUnitCode; }
     public void setOrgUnitCode(String orgUnitCode) { this.orgUnitCode = orgUnitCode; }
     public String getPermissionGroupNm() { return permissionGroupNm; }

@@ -19,8 +19,8 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -40,7 +40,8 @@ public class UserListService {
         this.passwordEncoder = passwordEncoder;
     }
 
-    public PageResult<Map<String, Object>> search(String searchUserId, String searchUserNm, String searchCompId, int page, int size) {
+    public PageResult<Map<String, Object>> search(String searchUserId, String searchUserNm, String searchCompId,
+                                                    String searchUseStatus, int page, int size) {
         Sort sort = Sort.by(
                 Order.asc("permissionGroupNm").nullsLast(),
                 Order.asc("username").nullsLast());
@@ -48,7 +49,8 @@ public class UserListService {
         String uid = (searchUserId != null && !searchUserId.isEmpty()) ? searchUserId.trim() : "";
         String nm = (searchUserNm != null && !searchUserNm.isEmpty()) ? searchUserNm.trim() : "";
         String cc = (searchCompId != null && !searchCompId.isEmpty()) ? searchCompId.trim() : "";
-        Page<AppUser> result = userRepository.searchForList(uid, nm, cc, p);
+        String st = normalizeSearchUseStatus(searchUseStatus);
+        Page<AppUser> result = userRepository.searchForList(uid, nm, cc, st, p);
         List<Map<String, Object>> list = result.getContent().stream().map(this::toRow).collect(Collectors.toList());
         PageResult<Map<String, Object>> pr = new PageResult<>();
         pr.setList(list);
@@ -60,16 +62,17 @@ public class UserListService {
     }
 
     public PageResult<Map<String, Object>> searchScoped(String searchUserId, String searchUserNm, String searchCompId,
-                                                        int page, int size, String scopeCompCode) {
+                                                        String searchUseStatus, int page, int size, String scopeCompCode) {
         if (scopeCompCode == null || scopeCompCode.isBlank()) {
-            return search(searchUserId, searchUserNm, searchCompId, page, size);
+            return search(searchUserId, searchUserNm, searchCompId, searchUseStatus, page, size);
         }
         Set<String> allowed = collectSelfAndDescendantCodes(scopeCompCode.trim());
         if (allowed.isEmpty()) allowed.add(scopeCompCode.trim());
         String uid = (searchUserId != null && !searchUserId.isEmpty()) ? searchUserId.trim() : "";
         String nm = (searchUserNm != null && !searchUserNm.isEmpty()) ? searchUserNm.trim() : "";
         String cc = (searchCompId != null && !searchCompId.isEmpty()) ? searchCompId.trim() : "";
-        List<Map<String, Object>> filtered = userRepository.searchForList(uid, nm, cc, Pageable.unpaged()).getContent().stream()
+        String st = normalizeSearchUseStatus(searchUseStatus);
+        List<Map<String, Object>> filtered = userRepository.searchForList(uid, nm, cc, st, Pageable.unpaged()).getContent().stream()
                 .map(this::toRow)
                 .filter(row -> allowed.contains(String.valueOf(row.getOrDefault("compId", ""))))
                 .collect(Collectors.toList());
@@ -84,6 +87,13 @@ public class UserListService {
         pr.setTotalElements(filtered.size());
         pr.setTotalPages(Math.max(1, (int) Math.ceil((double) filtered.size() / safeSize)));
         return pr;
+    }
+
+    private String normalizeSearchUseStatus(String searchUseStatus) {
+        if (searchUseStatus == null || searchUseStatus.isBlank()) return "";
+        String t = searchUseStatus.trim().toUpperCase(Locale.ROOT);
+        if ("ACTIVE".equals(t) || "INACTIVE".equals(t) || "SUSPENDED".equals(t)) return t;
+        return "";
     }
 
     private Set<String> collectSelfAndDescendantCodes(String rootCode) {
@@ -130,7 +140,12 @@ public class UserListService {
         return out;
     }
 
-    public void createUserScoped(AppUser actor, Set<String> allowedCompCodes, String username, String name, String password,
+    /**
+     * 신규 사용자는 로그인한 사용자와 동일한 조직(업체코드)에만 등록 가능. 하위 가맹점 전용 계정은 이 화면에서 생성할 수 없음.
+     * (ADMIN 등 scopeCompCode 가 비어 있으면 기존처럼 본문 compId 검증은 저장소 정책에 따름)
+     */
+    public void createUserScoped(AppUser actor, Set<String> allowedCompCodes, String scopeCompCode,
+                                 String username, String name, String password, String mobile,
                                  String compId, String role, String userType, String assistantRoleType, String parentUsername) {
         requireManage(actor, false);
         String uid = safeTrim(username);
@@ -139,16 +154,21 @@ public class UserListService {
         String pwd = safeTrim(password);
         if (pwd.length() < 8) throw new IllegalArgumentException("비밀번호는 8자 이상이어야 합니다.");
         String code = safeTrim(compId);
-        if (!allowedCompCodes.isEmpty() && !allowedCompCodes.contains(code)) {
-            throw new IllegalArgumentException("본인 또는 하위 조직 코드만 등록할 수 있습니다.");
+        if (scopeCompCode != null && !scopeCompCode.isBlank()) {
+            if (!code.equalsIgnoreCase(scopeCompCode.trim())) {
+                throw new IllegalArgumentException("본인 조직의 사용자만 등록할 수 있습니다. 하위 가맹점 사용자는 이 화면에서 등록할 수 없습니다.");
+            }
+        } else if (!allowedCompCodes.isEmpty() && !allowedCompCodes.contains(code)) {
+            throw new IllegalArgumentException("유효한 업체코드가 아닙니다.");
         }
         AppUser u = new AppUser();
         u.setUsername(uid);
         u.setName(safeTrim(name));
         u.setPassword(passwordEncoder.encode(pwd));
         u.setOrgUnitCode(code);
+        u.setMobile(safeTrim(mobile));
         u.setRole(normalizeRole(role));
-        u.setEnabled(true);
+        applyUserStatus(u, "ACTIVE");
         u.setOtpRegisteredYn("N");
         u.setUserType(normalizeUserType(userType));
         u.setAssistantRoleType(normalizeAssistantRole(assistantRoleType));
@@ -157,8 +177,11 @@ public class UserListService {
         userRepository.save(u);
     }
 
+    /** 저장된 사용자 삭제는 시스템 ADMIN만 가능. 일반 운영자는 미사용 처리로만 변경. */
     public void deleteUserScoped(AppUser actor, Set<String> allowedCompCodes, Long targetId) {
-        requireManage(actor, false);
+        if (actor == null || !"ADMIN".equalsIgnoreCase(safeTrim(actor.getRole()))) {
+            throw new IllegalArgumentException("저장된 사용자는 삭제할 수 없습니다. 미사용·영구정지 처리로 변경하세요.");
+        }
         AppUser target = userRepository.findById(targetId)
                 .orElseThrow(() -> new IllegalArgumentException("삭제할 사용자를 찾을 수 없습니다."));
         if (actor.getUsername() != null && actor.getUsername().equalsIgnoreCase(target.getUsername())) {
@@ -168,9 +191,26 @@ public class UserListService {
             throw new IllegalArgumentException("ADMIN 계정은 삭제할 수 없습니다.");
         }
         if (!allowedCompCodes.isEmpty() && !allowedCompCodes.contains(safeTrim(target.getOrgUnitCode()))) {
-            throw new IllegalArgumentException("본인 또는 하위 조직 사용자만 삭제할 수 있습니다.");
+            throw new IllegalArgumentException("권한 범위 내 사용자만 삭제할 수 있습니다.");
         }
         userRepository.delete(target);
+    }
+
+    public void updateUserScoped(AppUser actor, Set<String> allowedCompCodes, Long targetId,
+                                 String mobile, String userStatus, String inactiveReason, String assistantRoleType) {
+        requireManage(actor, false);
+        AppUser target = userRepository.findById(targetId)
+                .orElseThrow(() -> new IllegalArgumentException("수정할 사용자를 찾을 수 없습니다."));
+        if (!allowedCompCodes.isEmpty() && !allowedCompCodes.contains(safeTrim(target.getOrgUnitCode()))) {
+            throw new IllegalArgumentException("권한 범위 내 사용자만 수정할 수 있습니다.");
+        }
+        target.setMobile(safeTrim(mobile));
+        applyUserStatus(target, userStatus);
+        String ir = safeTrim(inactiveReason);
+        target.setInactiveReason(ir.isEmpty() ? null : ir);
+        target.setAssistantRoleType(normalizeAssistantRole(assistantRoleType));
+        target.setPermissionGroupNm(permissionGroupByAssistantRole(target.getAssistantRoleType()));
+        userRepository.save(target);
     }
 
     public Map<String, Object> resetPasswordScoped(AppUser actor, Set<String> allowedCompCodes, Long targetId) {
@@ -193,6 +233,37 @@ public class UserListService {
         out.put("userId", target.getUsername());
         out.put("tempPassword", tempPassword);
         return out;
+    }
+
+    public void resetOtpScoped(AppUser actor, Set<String> allowedCompCodes, Long targetId) {
+        requireManage(actor, true);
+        AppUser target = userRepository.findById(targetId)
+                .orElseThrow(() -> new IllegalArgumentException("OTP를 초기화할 사용자를 찾을 수 없습니다."));
+        if (!allowedCompCodes.isEmpty() && !allowedCompCodes.contains(safeTrim(target.getOrgUnitCode()))) {
+            throw new IllegalArgumentException("본인 또는 하위 조직 사용자만 초기화할 수 있습니다.");
+        }
+        target.setOtpRegisteredYn("N");
+        userRepository.save(target);
+    }
+
+    private void applyUserStatus(AppUser u, String status) {
+        String s = safeTrim(status).toUpperCase(Locale.ROOT);
+        if (s.isEmpty()) s = "ACTIVE";
+        switch (s) {
+            case "ACTIVE" -> {
+                u.setUserStatus("ACTIVE");
+                u.setEnabled(true);
+            }
+            case "INACTIVE" -> {
+                u.setUserStatus("INACTIVE");
+                u.setEnabled(false);
+            }
+            case "SUSPENDED" -> {
+                u.setUserStatus("SUSPENDED");
+                u.setEnabled(false);
+            }
+            default -> throw new IllegalArgumentException("알 수 없는 사용여부입니다.");
+        }
     }
 
     private void requireManage(AppUser actor, boolean needReset) {
@@ -255,8 +326,14 @@ public class UserListService {
             compNm = orgUnitRepository.findByCode(ouCode).map(OrgUnit::getName).orElse(ouCode);
         }
         row.put("compNm", compNm);
+        row.put("mobile", u.getMobile() != null ? u.getMobile() : "");
+        String ust = u.getUserStatus() != null && !u.getUserStatus().isBlank() ? u.getUserStatus().trim().toUpperCase(Locale.ROOT) : "ACTIVE";
+        if (!"ACTIVE".equals(ust) && !"INACTIVE".equals(ust) && !"SUSPENDED".equals(ust)) ust = u.isEnabled() ? "ACTIVE" : "INACTIVE";
+        row.put("userStatus", ust);
+        row.put("inactiveReason", u.getInactiveReason() != null ? u.getInactiveReason() : "");
         row.put("roleNm", u.getRole() != null ? u.getRole() : "USER");
         row.put("permissionGroupNm", u.getPermissionGroupNm() != null ? u.getPermissionGroupNm() : "");
+        row.put("assistantRoleType", u.getAssistantRoleType() != null ? u.getAssistantRoleType() : "MANAGER");
         row.put("otpRegisteredYn", "Y".equalsIgnoreCase(u.getOtpRegisteredYn()) ? "Y" : "N");
         row.put("useYn", u.isEnabled() ? "Y" : "N");
         return row;

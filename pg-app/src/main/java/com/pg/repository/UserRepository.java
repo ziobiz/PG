@@ -21,6 +21,8 @@ public interface UserRepository extends JpaRepository<AppUser, Long> {
     @Query("SELECT u FROM AppUser u WHERE " +
             "(:uid = '' OR LOWER(u.username) LIKE LOWER(CONCAT('%', :uid, '%'))) AND " +
             "(:nm = '' OR LOWER(COALESCE(u.name, '')) LIKE LOWER(CONCAT('%', :nm, '%'))) AND " +
-            "(:cc = '' OR LOWER(COALESCE(u.orgUnitCode, '')) LIKE LOWER(CONCAT('%', :cc, '%')))")
-    Page<AppUser> searchForList(@Param("uid") String uid, @Param("nm") String nm, @Param("cc") String cc, Pageable pageable);
+            "(:cc = '' OR LOWER(COALESCE(u.orgUnitCode, '')) LIKE LOWER(CONCAT('%', :cc, '%'))) AND " +
+            "(:st = '' OR COALESCE(u.userStatus, 'ACTIVE') = :st)")
+    Page<AppUser> searchForList(@Param("uid") String uid, @Param("nm") String nm, @Param("cc") String cc,
+                               @Param("st") String st, Pageable pageable);
 }

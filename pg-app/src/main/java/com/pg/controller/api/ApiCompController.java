@@ -73,20 +73,32 @@ public class ApiCompController {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         AppUser appUser = (auth != null && auth.getPrincipal() instanceof AppUser au) ? au : null;
 
-        if (Boolean.TRUE.equals(myOrgOnly)) {
+        String viewerOrgLevel = null;
+        if (Boolean.TRUE.equals(myOrgOnly) || (appUser != null && !"ADMIN".equalsIgnoreCase(appUser.getRole()))) {
             if (appUser != null) {
                 Map<String, Object> org = authService.getOrgInfo(appUser.getUsername());
                 if (org != null && org.get("compId") != null) {
                     scopeCompId = org.get("compId").toString().trim();
                 }
+                if (org != null && org.get("orgLevel") != null) {
+                    viewerOrgLevel = org.get("orgLevel").toString();
+                }
             }
-            if (scopeCompId == null || scopeCompId.isEmpty()) {
+            if (Boolean.TRUE.equals(myOrgOnly) && (scopeCompId == null || scopeCompId.isEmpty())) {
                 return ResponseEntity.ok(ApiResponse.ok(emptyCompPage(page, size)));
             }
         }
-        /* 업체관리(/comp/compMngTree): 비관리자도 전체 조직 트리를 조회(이전: 로그인 조직 하위만 → 본인 제외 시 빈 목록 등 이슈). 업체정보조회는 myOrgOnly=true로 본인만. */
+        if (appUser != null && !"ADMIN".equalsIgnoreCase(appUser.getRole())
+                && (scopeCompId == null || scopeCompId.isBlank())) {
+            return ResponseEntity.ok(ApiResponse.ok(emptyCompPage(page, size)));
+        }
+        if (!Boolean.TRUE.equals(myOrgOnly) && appUser != null && !"ADMIN".equalsIgnoreCase(appUser.getRole())) {
+            scopeSubtreeBelow = true;
+            searchCompDiv = compService.sanitizeSearchCompDivForSubtreeViewer(viewerOrgLevel, searchCompDiv);
+        }
+
         String effectiveSearchUseYn = searchUseYn;
-        if (Boolean.TRUE.equals(myOrgOnly) && (searchUseYn == null || searchUseYn.isBlank())) {
+        if ((Boolean.TRUE.equals(myOrgOnly) || scopeSubtreeBelow) && (searchUseYn == null || searchUseYn.isBlank())) {
             effectiveSearchUseYn = "ALL";
         }
 
@@ -328,14 +340,15 @@ public class ApiCompController {
             if (!canAccessCompAsViewer(u0, compId)) {
                 return ResponseEntity.ok(ApiResponse.fail("소속 업체 및 하위 업체만 수정할 수 있습니다.", "FORBIDDEN"));
             }
-        }
-        String targetCompDiv = (String) targetOpt.get().get("compDiv");
-        if ("REGIONAL".equals(targetCompDiv)) {
-            Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-            if (auth != null && auth.getPrincipal() instanceof AppUser u) {
-                Map<String, Object> org = authService.getOrgInfo(u.getUsername());
-                if (org != null && compId.equals(org.get("compId")) && "REGIONAL".equals(org.get("orgLevel"))) {
-                    return ResponseEntity.ok(ApiResponse.fail("본사는 직접 수정할 수 없습니다. 총본사만 수정 가능합니다.", "NO_PERMISSION"));
+            if (!"ADMIN".equalsIgnoreCase(u0.getRole())) {
+                Map<String, Object> org = authService.getOrgInfo(u0.getUsername());
+                String mine = org != null && org.get("compId") != null ? org.get("compId").toString().trim() : "";
+                String myLevel = org != null && org.get("orgLevel") != null ? org.get("orgLevel").toString().trim() : "";
+                if (!mine.isEmpty() && compId.trim().equals(mine)) {
+                    /* 가맹점은 [내 업체정보]에서 자기 프로필 수정 허용. 그 외 조직(영업점 등)은 본인 레코드는 상위만 수정 */
+                    if (!"MERCHANT".equalsIgnoreCase(myLevel)) {
+                        return ResponseEntity.ok(ApiResponse.fail("소속 업체 본인 정보는 상위 조직에서만 수정할 수 있습니다.", "NO_SELF_EDIT"));
+                    }
                 }
             }
         }
@@ -370,6 +383,26 @@ public class ApiCompController {
                     return ResponseEntity.ok(ApiResponse.ok(body));
                 })
                 .orElseGet(() -> ResponseEntity.ok(ApiResponse.fail("업체를 찾을 수 없거나 대표 로그인ID가 없습니다.", "NOT_FOUND")));
+    }
+
+    /** 보조(assistant) 계정 비밀번호 초기화 — 임시 비밀번호 보조로그인ID+1! */
+    @PostMapping("/resetAssistantPassword")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> resetAssistantPassword(@RequestParam String compId) {
+        Authentication auth0 = SecurityContextHolder.getContext().getAuthentication();
+        if (auth0 != null && auth0.getPrincipal() instanceof AppUser u0) {
+            if (!canAccessCompAsViewer(u0, compId)) {
+                return ResponseEntity.ok(ApiResponse.fail("소속 업체 및 하위 업체에 대해서만 비밀번호를 초기화할 수 있습니다.", "FORBIDDEN"));
+            }
+        }
+        return compService.resetAssistantPassword(compId)
+                .map(temp -> {
+                    Map<String, Object> body = new java.util.LinkedHashMap<>();
+                    body.put("success", true);
+                    body.put("message", "비밀번호가 초기화되었습니다.");
+                    body.put("tempPassword", temp);
+                    return ResponseEntity.ok(ApiResponse.ok(body));
+                })
+                .orElseGet(() -> ResponseEntity.ok(ApiResponse.fail("보조 계정을 찾을 수 없습니다.", "NOT_FOUND")));
     }
 
     /** 업체 로그인ID 변경 */

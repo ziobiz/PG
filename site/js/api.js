@@ -114,6 +114,11 @@
         confirmPassword: confirmPassword || ''
       });
     },
+    authChangeName: function (newName) {
+      return post('/api/auth/change-name', {
+        newName: newName || ''
+      });
+    },
 
     noticeList: function (params) {
       return get('/api/system/notice', params).then(function (r) { return r.data; });
@@ -290,6 +295,21 @@
           });
         });
     },
+    compResetAssistantPassword: function (compId) {
+      var base = getBaseUrl();
+      var token = getToken();
+      var headers = { 'Content-Type': 'application/x-www-form-urlencoded' };
+      if (token) headers['Authorization'] = 'Bearer ' + token;
+      return fetch(base + '/api/comp/resetAssistantPassword', { method: 'POST', headers: headers, body: new URLSearchParams({ compId: compId }) })
+        .then(function (res) {
+          if (res.status === 401) { clearAuth(); if (window.location) window.location.replace((window.location.origin || '') + '/login.html'); return Promise.reject(new Error('인증이 만료되었습니다.')); }
+          return res.text().then(function (text) {
+            var r; try { r = text ? JSON.parse(text) : {}; } catch (e) { return Promise.reject(new Error('서버 응답 오류')); }
+            if (r.success === false && r.success !== undefined) throw new Error(r.message || '비밀번호 초기화 실패');
+            return r;
+          });
+        });
+    },
     compChangeLoginId: function (compId, newLoginId) {
       var base = getBaseUrl();
       var token = getToken();
@@ -387,11 +407,17 @@
     userAdd: function (body) {
       return post('/api/user/add', body || {}).then(function (r) { return r.data || r; });
     },
+    userUpdate: function (body) {
+      return post('/api/user/update', body || {}).then(function (r) { return r.data || r; });
+    },
     userDelete: function (id) {
       return post('/api/user/delete', { id: id }).then(function (r) { return r.data || r; });
     },
     userResetPassword: function (id) {
       return post('/api/user/resetPassword', { id: id }).then(function (r) { return r.data || r; });
+    },
+    userResetOtp: function (id) {
+      return post('/api/user/resetOtp', { id: id }).then(function (r) { return r.data || r; });
     },
 
     menuOrderMng: function (params) {
@@ -561,7 +587,13 @@
       return get('/api/hq/permissionMng', params).then(function (r) { return r.data; });
     },
     hqPermissionMngSave: function (body) {
-      return post('/api/hq/permissionMng/save', body).then(function (r) { return r.data; });
+      return post('/api/hq/permissionMng/save', body || {}).then(function (r) { return r.data; });
+    },
+    hqOrgUnitPermission: function (params) {
+      return get('/api/hq/orgUnitPermission', params || {}).then(function (r) { return r.data; });
+    },
+    hqOrgUnitPermissionSave: function (body) {
+      return post('/api/hq/orgUnitPermission/save', body || {}).then(function (r) { return r.data; });
     },
     hqAccountAccessList: function (params) {
       return get('/api/hq/accountAccess', params || {}).then(function (r) {

@@ -67,8 +67,13 @@
             <label for="userPwd" class="form-label">비밀번호</label>
             <input type="password" class="form-control" id="userPwd" name="userPwd" autocomplete="current-password">
           </div>
+          <div id="forcePwPopupNotice" class="d-none">
+            <p class="small text-danger mb-2">임시 비밀번호(초기화 후 <strong>아이디+1!</strong>)로 로그인하셨습니다. <strong>새로 연 창</strong>에서 새 비밀번호(8자 이상)를 설정한 뒤 입장합니다.</p>
+            <p class="small text-muted mb-2">팝업이 보이지 않으면 브라우저에서 팝업 허용 후 다시 로그인해 주세요.</p>
+            <button type="button" class="btn btn-outline-secondary btn-sm w-100 mb-2" id="forcePwOpenThisScreen">이 화면에서 새 비밀번호 설정하기</button>
+          </div>
           <div id="forcePwChangeBlock" class="d-none">
-            <p class="small text-danger mb-2">임시 비밀번호(초기화 후 <strong>로그인ID+1!</strong>)로 로그인하셨습니다. 새 비밀번호(8자 이상)를 설정한 뒤 입장합니다.</p>
+            <p class="small text-danger mb-2">임시 비밀번호(초기화 후 <strong>아이디+1!</strong>)로 로그인하셨습니다. 새 비밀번호(8자 이상)를 설정한 뒤 입장합니다.</p>
             <div class="mb-2">
               <label for="forceNewPwd1" class="form-label">새 비밀번호</label>
               <input type="password" class="form-control" id="forceNewPwd1" autocomplete="new-password">
@@ -120,6 +125,10 @@
           <div class="mb-2">
             <label for="modalNewPassword" class="form-label">변경 비밀번호</label>
             <input type="password" class="form-control" id="modalNewPassword" name="newPassword">
+          </div>
+          <div class="mb-2">
+            <label for="modalNewPasswordConfirm" class="form-label">변경 비밀번호 확인</label>
+            <input type="password" class="form-control" id="modalNewPasswordConfirm" name="newPasswordConfirm">
           </div>
         </div>
         <div class="modal-footer">
@@ -241,7 +250,10 @@
       function finishLogin(resData, userId) {
         var api = window.PG_API;
         if (api && api.setAuth) {
-          api.setAuth(resData.token, { loginId: resData.userId, userId: resData.userId, userNm: resData.userNm || '관리자', orgUnitId: resData.orgUnitId, compId: resData.compId, orgLevel: resData.orgLevel });
+          var u = { loginId: resData.userId, userId: resData.userId, userNm: resData.userNm || '관리자', orgUnitId: resData.orgUnitId, compId: resData.compId, orgLevel: resData.orgLevel };
+          if (resData.role) u.role = resData.role;
+          if (resData.pagePermissions) u.pagePermissions = resData.pagePermissions;
+          api.setAuth(resData.token, u);
         }
         window.location.replace((origin || '') + '/index.html');
       }
@@ -254,10 +266,23 @@
               var d = res.data;
               if (d.mustChangePassword) {
                 loginPending = { userId: userId, userPwd: pwd, data: d };
+                window.__pgLoginPending = loginPending;
+                var popW = 440;
+                var popH = 560;
+                var left = Math.max(0, (window.screen.width - popW) / 2);
+                var top = Math.max(0, (window.screen.height - popH) / 2);
+                var feat = 'width=' + popW + ',height=' + popH + ',left=' + left + ',top=' + top + ',scrollbars=yes,resizable=yes';
+                var pop = window.open((origin || '') + '/login-force-password.html', 'pgForcePwChange', feat);
                 document.getElementById('loginForm').classList.add('d-none');
-                document.getElementById('forcePwChangeBlock').classList.remove('d-none');
-                document.getElementById('forceNewPwd1').value = '';
-                document.getElementById('forceNewPwd2').value = '';
+                document.getElementById('forcePwPopupNotice').classList.add('d-none');
+                document.getElementById('forcePwChangeBlock').classList.add('d-none');
+                if (pop) {
+                  document.getElementById('forcePwPopupNotice').classList.remove('d-none');
+                } else {
+                  document.getElementById('forcePwChangeBlock').classList.remove('d-none');
+                  document.getElementById('forceNewPwd1').value = '';
+                  document.getElementById('forceNewPwd2').value = '';
+                }
                 return;
               }
               finishLogin(d, userId);
@@ -280,9 +305,13 @@
         if (n1 !== n2) { alert('새 비밀번호 확인이 일치하지 않습니다.'); return; }
         var api = window.PG_API;
         var p = loginPending;
-        api.setAuth(p.data.token, { loginId: p.data.userId, userId: p.data.userId, userNm: p.data.userNm || p.userId, orgUnitId: p.data.orgUnitId, compId: p.data.compId, orgLevel: p.data.orgLevel });
+        var u = { loginId: p.data.userId, userId: p.data.userId, userNm: p.data.userNm || p.userId, orgUnitId: p.data.orgUnitId, compId: p.data.compId, orgLevel: p.data.orgLevel };
+        if (p.data.role) u.role = p.data.role;
+        if (p.data.pagePermissions) u.pagePermissions = p.data.pagePermissions;
+        api.setAuth(p.data.token, u);
         api.authChangePassword(p.userPwd, n1, n2).then(function () {
           loginPending = null;
+          try { window.__pgLoginPending = null; } catch (e) {}
           finishLogin(p.data, p.userId);
         }).catch(function (err) {
           alert(err && err.message ? err.message : '비밀번호 변경 실패');
@@ -291,9 +320,18 @@
       });
       document.getElementById('forcePwChangeCancel').addEventListener('click', function () {
         loginPending = null;
+        try { window.__pgLoginPending = null; } catch (e) {}
         try { window.PG_API && window.PG_API.clearAuth(); } catch (e) {}
         document.getElementById('forcePwChangeBlock').classList.add('d-none');
+        document.getElementById('forcePwPopupNotice').classList.add('d-none');
         document.getElementById('loginForm').classList.remove('d-none');
+      });
+
+      document.getElementById('forcePwOpenThisScreen').addEventListener('click', function () {
+        document.getElementById('forcePwPopupNotice').classList.add('d-none');
+        document.getElementById('forcePwChangeBlock').classList.remove('d-none');
+        document.getElementById('forceNewPwd1').value = '';
+        document.getElementById('forceNewPwd2').value = '';
       });
     })();
   </script>

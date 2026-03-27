@@ -257,7 +257,17 @@
             [{ label: '설정 대상 본사', type: 'select', name: 'regionalOrgCode', col: 4, options: [{ v: '', t: '선택' }], loadRegionalBranches: true }],
             [{ label: '설정 대상 화면', type: 'select', name: 'targetPageUrl', col: 4, options: [
               { v: '/calc/payList', t: '결제내역(통합)' },
-              { v: '/comp/compMngTree', t: '업체관리' }
+              { v: '/comp/compMngTree', t: '업체관리' },
+              { v: '/commission/commisionList', t: '수수료관리' },
+              { v: '/calc/calcList', t: '정산·유통망정산내역' },
+              { v: '/calc/calcGmList', t: '정산·가맹정산내역' },
+              { v: '/calc/feeList', t: '정산·수수료내역' },
+              { v: '/calc/compPointMngList', t: '정산·환수금관리' },
+              { v: '/calc/balcInfo', t: '정산·잔액·미수금관리' },
+              { v: '/calc/exCalcList', t: '정산·정산실행' },
+              { v: '/calc/settlementReport', t: '정산·정산리포트' },
+              { v: '/calc/collateralList', t: '정산·담보금내역' },
+              { v: '/pay/payHoldList', t: '정산·정산보류내역' }
             ] }],
             [{ type: 'customHtml', col: 12, html: '<div class="mb-2"><span class="form-label d-block">이 본사에 노출할 열 (VIEW SETTING에서 선택 가능)</span><div id="hqOrgAllowColumnChecks" class="column-guide-list border rounded p-2 bg-light"></div><p class="text-muted small mb-0 mt-1">체크한 열만 하위 사용자 화면의 VIEW SETTING에 나타납니다.</p></div>' }]
           ]
@@ -303,21 +313,17 @@
       buttons: [{ id: 'hqApiConfigSaveBtn', label: '저장', cls: 'btn-primary' }]
     },
     '/hq/permissionMng': {
-      emptyMessage: '조회된 데이터가 없습니다.',
-      searchRows: [[
-        { label: '본사명', type: 'text', name: 'searchHqNm' },
-        { label: '메뉴ID', type: 'text', name: 'searchMenuId' },
-        { type: 'searchBtn', label: '검색' }
-      ]],
-      summary: ['건수'],
-      buttons: [{ id: 'searchBtn', label: '검색', cls: 'btn-primary' }, { id: 'hqPermissionSaveBtn', label: '권한 저장', cls: 'btn-primary' }],
-      columns: [{ key: '_chk', type: 'checkbox' }, { key: 'rowNo', label: '번호' }, { key: 'hqNm', label: '업체명' }, { key: 'hqCd', label: '업체코드' }, { key: 'menuId', label: '메뉴ID' }, { key: 'menuNm', label: '메뉴명' }, { key: 'accessYn', label: '접근허용' }, { key: 'regDt', label: '적용일' }]
+      orgPagePermissionMatrix: true,
+      hideListGrid: true,
+      summary: [],
+      buttons: [],
+      columns: []
     },
     '/hq/accountMng': {
       emptyMessage: '등록된 업체별 접근 규칙이 없습니다.',
       noticeList: [
         'ziobiz/NOTI의 계정관리에서 하던 것처럼, 로그인 ID(사용자)별로 접근 가능한 업체코드(본사·총판·가맹점 등)를 지정합니다.',
-        '사용자관리 화면의 권한그룹은 [본사별 권한 세팅] 메뉴와 동일한 정책을 사용합니다. OTP 필수 여부는 [전산노티·결제환경]의 로그인·OTP 정책에서 설정합니다.'
+        '사용자관리 화면의 권한그룹은 [조직별 권한 세팅] 메뉴와 동일한 정책을 사용합니다. OTP 필수 여부는 [전산노티·결제환경]의 로그인·OTP 정책에서 설정합니다.'
       ],
       searchRows: [[{ type: 'searchBtn', label: '새로고침' }]],
       summary: ['건수'],
@@ -358,30 +364,129 @@
       hasCompInfoDetailForm: true,
       compInfoDetailFormSections: [
         {
-          title: '본사 정보 상세',
-          notice: '로그인한 계정에 연결된 업체(총본사·본사·총판·가맹점 등) 정보가 자동으로 표시됩니다. 아래에서 조회·수정합니다.',
+          title: '기본정보',
+          notice: '로그인한 계정에 연결된 소속 업체 정보가 자동으로 표시됩니다. 아래에서 조회·수정합니다.',
           rows: [
-            [{ label: '업체코드', type: 'text', name: 'compId', col: 2, readonly: true }, { label: '업체구분', type: 'select', name: 'compDiv', options: [{ v: '', t: '선택' }, { v: 'HEADQUARTERS', t: '총본사' }, { v: 'REGIONAL', t: '본사' }, { v: 'MASTER_DIST', t: '총판' }, { v: 'BRANCH', t: '지사' }, { v: 'AGENCY', t: '대리점' }, { v: 'SALES_OFFICE', t: '영업점' }, { v: 'MERCHANT', t: '가맹점' }], col: 2 }, { label: '업체명', type: 'text', name: 'compNm', col: 2 }, { label: '사업자번호', type: 'regNoWithType', name: 'regNo', col: 2 }, { label: '업태', type: 'text', name: 'bizType', col: 2 }, { label: '종목', type: 'text', name: 'industry', col: 2 }],
-            [{ label: '대표자명', type: 'text', name: 'ceoNm', col: 2 }, { label: '휴대폰', type: 'text', name: 'ceoMobile', col: 2 }, { label: '업체전화', type: 'text', name: 'compTel', col: 2 }, { label: '팩스', type: 'text', name: 'fax', col: 2 }, { label: '이메일', type: 'text', name: 'email', col: 2 }, { label: '비고', type: 'text', name: 'remark', col: 2 }],
-            [{ type: 'countryAddressRow', zipLabel: '우편번호', addrLabel: '주소', addrDetailLabel: '상세주조', addrEtcLabel: '기타' }],
-            [{ label: '대표 아이디 (중복검사)', type: 'text', name: 'loginId', col: 2, button: '중복확인' }, { label: '비밀번호', type: 'passwordReset', name: 'pwdReset', col: 2 }],
-            [{ label: '보조 아이디 (중복검사)', type: 'text', name: 'assistantLoginId', col: 2, button: '중복확인' }, { label: '패스워드', type: 'password', name: 'assistantPwd', col: 2 }],
-            [{ label: '배경/로고 변경권한', type: 'select', name: 'brandingEditAllowedYn', options: [{ v: 'N', t: '미부여' }, { v: 'Y', t: '부여' }], col: 2 }],
-            [{ label: '특이사항', type: 'textarea', name: 'siteSummary', col: 6 }]
+            [{ label: '업체코드', type: 'text', name: 'compId', col: 2, readonly: true }, { label: '상위 본사', type: 'text', name: 'parentComp', col: 2, readonly: true, placeholder: '상위 코드' }, { label: '업체구분', type: 'select', name: 'compDiv', options: [{ v: '', t: '선택' }, { v: 'HEADQUARTERS', t: '총본사' }, { v: 'REGIONAL', t: '본사' }, { v: 'MASTER_DIST', t: '총판' }, { v: 'BRANCH', t: '지사' }, { v: 'AGENCY', t: '대리점' }, { v: 'SALES_OFFICE', t: '영업점' }, { v: 'MERCHANT', t: '가맹점' }], col: 2 }],
+            [{ label: '업체명', type: 'text', name: 'compNm', col: 2 }, { label: '사업자번호', type: 'regNoWithType', name: 'regNo', col: 2 }, { label: '업태', type: 'text', name: 'bizType', col: 2 }, { label: '종목', type: 'text', name: 'industry', col: 2 }],
+            [{ label: '대표자명', type: 'text', name: 'ceoNm', col: 2 }, { label: '휴대폰', type: 'text', name: 'ceoMobile', col: 2 }, { label: '업체전화', type: 'text', name: 'compTel', col: 2 }, { label: '팩스', type: 'text', name: 'fax', col: 2 }, { label: '이메일', type: 'text', name: 'email', col: 2 }],
+            [{ type: 'countryAddressRow', zipLabel: '우편번호', addrLabel: '주소', addrDetailLabel: '상세주소', addrEtcLabel: '기타' }],
+            [{ label: '사용여부', type: 'select', name: 'useYn', options: [{ v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }], col: 1 }, { label: '대표 아이디 (중복검사)', type: 'text', name: 'loginId', col: 2, button: '중복확인' }, { label: '비밀번호', type: 'passwordReset', name: 'pwdReset', col: 2 }],
+            [{ label: '보조 아이디 (중복검사)', type: 'text', name: 'assistantLoginId', col: 2, button: '중복확인' }, { type: 'assistantPasswordManage', col: 2 }]
+          ]
+        },
+        {
+          title: '가맹점 상세정보',
+          id: 'merchantBasicDetailCard',
+          merchantOnly: true,
+          rows: [
+            [{ label: '사업자형태', type: 'text', name: 'bizNature', col: 2 }, { label: '취급물품', type: 'text', name: 'product', col: 2 }, { label: '대표사이트', type: 'text', name: 'homepage', col: 2, placeholder: 'https://' }, { label: '정산담당자명', type: 'text', name: 'settleName', col: 2 }, { label: '정산담당자연락처', type: 'text', name: 'settleTelNo', col: 2, placeholder: '010-0000-0000' }]
+          ]
+        },
+        {
+          title: '계좌정보',
+          id: 'settlementAccountCard',
+          distributorMerchantOnlyNoRegional: true,
+          rows: [
+            [{ type: 'countryBankRow', bankLabel: '계좌은행*', accountNoLabel: '계좌번호*', accountHolderLabel: '예금주*' }],
+            [{ label: 'SWIFT', type: 'text', name: 'swift', col: 2, placeholder: 'SWIFT 코드' }, { label: '지점이름', type: 'text', name: 'branchName', col: 2 }, { label: '지점 주소', type: 'text', name: 'branchAddr', col: 2 }, { label: '담당전화번호', type: 'text', name: 'contactTel', col: 2 }],
+            [{ label: '코인 지갑 주소', type: 'text', name: 'walletAddress', col: 4, placeholder: '코인 수취 지갑 주소' }, { label: '네트워크', type: 'text', name: 'networkName', col: 2, placeholder: '네트워크 이름' }, { label: '크립토 이체 수수료(USD)', type: 'text', name: 'cryptoTransferFee', col: 2, placeholder: 'USD' }, { label: '이체수수료', type: 'text', name: 'transferFee', col: 2, placeholder: '기준화폐' }]
+          ]
+        },
+        {
+          title: '출금 제한 설정',
+          id: 'withdrawLimitCard',
+          merchantOnly: true,
+          notice: '가맹점 출금 제한 유형입니다. 매일·공휴일·공휴일 전날(17·18시) 규칙은 본사 영업일·공휴일 캘린더와 함께 출금 처리 시 해석합니다. 평일 구간은 시작·종료 시각으로 좁힙니다.',
+          rows: [
+            [{ label: '출금제한 유형', type: 'select', name: 'withdrawRestrictType', options: WITHDRAW_POLICY_OPTIONS, col: 2 }, { label: '시작시간', type: 'time', name: 'withdrawStartTime', col: 1 }, { label: '종료시간', type: 'time', name: 'withdrawEndTime', col: 1 }]
+          ]
+        },
+        {
+          title: '지급한도 설정',
+          id: 'payLimitCard',
+          merchantOnly: true,
+          rows: [
+            [{ label: '기본한도(원)', type: 'text', name: 'payLimitDefault', col: 2, placeholder: '1회 지급한도' }, { label: '추가한도(원)', type: 'text', name: 'payLimitExtra', col: 2 }, { label: '한도알림', type: 'select', name: 'payLimitAlertSms', options: [{ v: 'N', t: '미사용' }, { v: 'Y', t: 'SMS' }], col: 1 }]
+          ]
+        },
+        {
+          title: '보류율 설정',
+          id: 'holdRateCard',
+          merchantOnly: true,
+          notice: '결제 정산금 중 보류율(%)만큼 보류기간(일) 동안 지급하지 않으며, 정산일자+보류기간 경과 후 정산금으로 전환됩니다. 보류 해지일이 공휴일이면 익영업일에 전환됩니다. 본사정책 따름 시 본사 수수료 정책(롤링 비율/일수)에 연동됩니다.',
+          rows: [
+            [{ label: '본사정책 따름', type: 'select', name: 'holdRateFollowHq', options: [{ v: 'Y', t: '본사정책 따름' }, { v: 'N', t: '직접입력' }], col: 2 }],
+            [{ label: '보류율(%)', type: 'text', name: 'holdRate', col: 1, placeholder: '5', holdRateOnly: true }, { label: '보류기간(일)', type: 'text', name: 'holdDays', col: 1, placeholder: '120', holdRateOnly: true }]
+          ]
+        },
+        {
+          title: '수수료정책',
+          id: 'commissionPolicyCard',
+          merchantOnly: true,
+          notice: '본사정책 따름 선택 시 본사설정이 적용되며, 직접입력 시 아래 항목을 입력합니다.',
+          rows: [
+            [{ label: '본사정책 따름', type: 'select', name: 'commissionFollowHq', options: [{ v: 'Y', t: '본사정책 따름' }, { v: 'N', t: '직접입력' }], col: 2 }, { label: '본사 정책선택', type: 'select', name: 'hqPolicyScope', options: [{ v: '', t: '기본(DEFAULT)' }], col: 2, hqPolicyOnly: true }],
+            [{ label: '실패수수료', type: 'text', name: 'failFee', col: 2, customOnly: true }, { label: '이용수수료', type: 'text', name: 'usageRate', col: 2, customOnly: true }, { label: '결제 수수료', type: 'text', name: 'payRate', col: 2, customOnly: true }],
+            [{ label: '취소 수수료', type: 'text', name: 'cancelRate', col: 2, customOnly: true }, { label: '환불 수수료', type: 'text', name: 'refundRate', col: 2, customOnly: true }, { label: '비고', type: 'text', name: 'commissionMemo', col: 2, customOnly: true }],
+            [{ label: '정산수수료', type: 'text', name: 'feeSettlementPerTx', col: 2, customOnly: true }, { label: 'USDT수수료', type: 'text', name: 'feeUsdt', col: 2, customOnly: true }, { label: 'FX수수료', type: 'text', name: 'feeFx', col: 2, customOnly: true }]
+          ]
+        },
+        {
+          title: '정산방법',
+          id: 'calcMethodCard',
+          merchantOnly: true,
+          notice: CALC_METHOD_MERCHANT_NOTICE,
+          rows: [
+            [{ label: '정산주기', type: 'select', name: 'calcCycle', options: CALC_CYCLE_OPTIONS, col: 1 }, { label: '정산마감시간', type: 'time', name: 'calcCloseTime', col: 1 }, { label: '정산자동개시시간', type: 'time', name: 'calcStartTime', col: 1 }],
+            [{ label: '정산구분', type: 'select', name: 'calcProcType', options: CALC_PROC_OPTIONS, col: 1 }, { label: '이체및송금구분', type: 'select', name: 'transferType', options: TRANSFER_REMIT_OPTIONS, col: 1 }, { label: '이체주기(분)', type: 'text', name: 'transferCycleDays', col: 1, placeholder: '예: 5, 60' }, { label: '이체시간', type: 'time', name: 'transferExecTime', col: 1 }],
+            [{ label: '정산제외여부', type: 'select', name: 'calcExcludeYn', options: [{ v: 'N', t: '미사용' }, { v: 'Y', t: '사용' }], col: 1 }, { label: '정산제외대상', type: 'select', name: 'calcExcludeTarget', options: [{ v: 'NONE', t: '해당없음' }, { v: 'WEB', t: 'WEB' }, { v: 'OFFLINE', t: '오프라인' }, { v: 'BOTH', t: 'WEB+오프라인' }], col: 1 }, { label: '지급보류', type: 'select', name: 'payHoldYn', options: [{ v: 'N', t: '지급' }, { v: 'Y', t: '보류' }], col: 1 }],
+            [{ label: '정산최소금액(원)', type: 'text', name: 'calcMinAmt', col: 1, placeholder: '미만 시 다음 주기' }, { label: '이체및송금최소금액(원)', type: 'text', name: 'autoTransferMin', col: 1, placeholder: '펌뱅킹 최소' }]
+          ]
+        },
+        {
+          type: 'pgBindingList',
+          title: '결제대행사 설정',
+          id: 'pgBindingCard',
+          merchantOnly: true,
+          notice: '본사설정 > PG사 API 연동에 등록된 결제대행사를 선택하고 MID·API KEY 등을 입력하세요. 등록 화면에서는 하단 [저장] 시 한꺼번에 반영됩니다.'
+        },
+        {
+          title: '웹결제 사용 / 대표 기본상품정보 (온라인 URL 결제용)',
+          id: 'webPaymentCard',
+          merchantOnly: true,
+          notice: '미사용 선택 시 WEB 결제 시스템이 중지됩니다. 아래 대표 기본상품정보는 온라인 URL 결제 기본값으로 사용됩니다.',
+          rows: [
+            [{ label: '웹결제 사용여부', type: 'select', name: 'webPaymentUseYn', options: [{ v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }], col: 2 }],
+            [{ label: '상품명', type: 'text', name: 'defaultProductName', col: 2, placeholder: '대표 상품명' }, { label: '상품코드', type: 'text', name: 'defaultProductCode', col: 1 }, { label: '기본금액(원)', type: 'text', name: 'defaultProductAmount', col: 1, placeholder: '0' }, { label: '상품설명', type: 'text', name: 'defaultProductDesc', col: 4 }],
+            [{ type: 'customHtml', col: 12, html: '<div class="row mb-2"><div class="col-sm-5"><label class="form-label">결제 URL</label><div class="input-group input-group-sm"><input type="text" class="form-control" id="paymentUrlDisplay" readonly placeholder="가맹점 저장 후 조회"><button type="button" class="btn btn-outline-primary" id="paymentUrlCopyBtn">복사</button></div></div></div>' }]
           ]
         },
         {
           type: 'branding',
           title: '브랜딩 설정',
           id: 'brandingCard',
-          notice: '총본사/본사/총판은 배경이미지·로고·테마를 설정할 수 있습니다. 본사/총판은 총본사에서 [배경/로고 변경권한]을 부여한 경우에만 수정 가능합니다.'
+          merchantOnly: true,
+          notice: '본사에서 [배경/로고 변경권한]을 부여한 가맹점은 메인·로고·테마를 수정할 수 있습니다. 메인이미지=로그인 화면 왼쪽 배경, 로고=로그인창 상단·사이드바 상단.'
         },
         {
-          type: 'pgInfoDisplay',
-          title: '결제대행사정보',
-          id: 'pgInfoCard',
-          notice: '가맹점만 표시됩니다. 결제 URL은 간편결제용으로, API 연동과 별도로 가맹점 생성 시 즉시 결제 페이지를 제공합니다.'
-        }
+          title: '기타',
+          id: 'merchantMiscCard',
+          merchantOnly: true,
+          rows: [
+            [{ label: '비고', type: 'textarea', name: 'remark', col: 6 }]
+          ]
+        },
+        {
+          title: '결제통보 URL',
+          id: 'notifyUrlCard',
+          merchantOnly: true,
+          notice: '결제 응답을 가맹점에게 송부할 노티 주소. 등록 시 결제통보 URL관리에 자동 반영됩니다.',
+          rows: [
+            [{ label: 'URL Background', type: 'text', name: 'notifyUrlBackground', col: 5, placeholder: 'https://' }, { label: 'URL Result', type: 'text', name: 'notifyUrlResult', col: 5, placeholder: 'https://' }]
+          ]
+        },
+        { title: '첨부파일', rows: [[{ type: 'file', name: 'attach', col: 4, button: '추가' }]] }
       ],
       compInfoDetailButtons: [{ id: 'compInfoUpdateBtn', label: '수정 저장', cls: 'btn-primary' }]
     },
@@ -391,7 +496,7 @@
         [
           { label: '업체구분', type: 'select', name: 'searchCompDiv', options: [{ v: '', t: '전체' }, { v: 'REGIONAL', t: '본사' }, { v: 'MASTER_DIST', t: '총판' }, { v: 'BRANCH', t: '지사' }, { v: 'AGENCY', t: '대리점' }, { v: 'SALES_OFFICE', t: '영업점' }, { v: 'MERCHANT', t: '가맹점' }], size: 10 },
           { label: '대표자명', type: 'text', name: 'searchCeoNm', size: 12 },
-          { label: '업체사용상태', type: 'select', name: 'searchUseYn', options: [{ v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }, { v: 'ALL', t: '전체' }], size: 10 },
+          { label: '업체사용상태', type: 'select', name: 'searchUseYn', options: [{ v: 'ALL', t: '전체' }, { v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }], size: 10 },
           { label: '업체코드', type: 'text', name: 'searchCompId', size: 12 },
           { label: '업체명', type: 'text', name: 'searchCompNm', size: 12 }
         ],
@@ -403,7 +508,7 @@
           { type: 'compMngSearchActions', label: '하위업체포함', checkboxName: 'searchIncludeSub', searchLabel: '검색' }
         ]
       ],
-      noticeList: ['기본 목록은 사용(사용여부) 업체만 표시됩니다. 미사용으로 바꾼 조직은 목록에 나오지 않으며, 업체사용상태를 미사용으로 검색한 뒤 사용으로 변경하면 결제·정산·노티가 복구됩니다. 상위를 미사용으로 두면 하위 프로필도 함께 미사용 처리됩니다.', '엑셀등록: [SAMPLE]으로 서식 있는 xlsx(헤더 색·표선·가운데 정렬)를 받아 예시 행을 수정·추가한 뒤 [엑셀등록]에 업로드하세요.'],
+      noticeList: ['기본 조회는 사용·미사용 업체를 모두 포함합니다(업체사용상태에서 좁힐 수 있음). 본사별 화면 권한(옵저버·수정 등)은 사용/미사용과 관계없이 동일하게 적용됩니다. 미사용으로 바꾼 조직은 결제·정산·노티가 중단되며, 사용으로 되돌리면 복구됩니다. 상위를 미사용으로 두면 하위 프로필도 함께 미사용 처리됩니다.', '엑셀등록: [SAMPLE]으로 서식 있는 xlsx(헤더 색·표선·가운데 정렬)를 받아 예시 행을 수정·추가한 뒤 [엑셀등록]에 업로드하세요.'],
       noticeRefButton: { id: 'noticeRefBtn', label: '참고', cls: 'btn-success' },
       summary: ['건수'],
       buttons: [{ id: 'seedBtn', label: '시드 생성', cls: 'btn-outline-warning' }, { id: 'excelBtn', label: '엑셀다운로드', cls: 'btn-info' }, { id: 'excelSampleBtn', label: 'SAMPLE', cls: 'btn-outline-secondary' }, { id: 'excelRegBtn', label: '엑셀등록', cls: 'btn-outline-success' }, { id: 'compRegBtn', label: '등록', cls: 'btn-danger' }],
@@ -446,7 +551,7 @@
           notice: '업체코드는 등록 저장 시에만 자동 부여되며(업체구분별 접두 2자리+순번 8자리), 부여 후에는 변경할 수 없습니다. 업체관리 목록에 동일 코드로 표시됩니다. 업체구분을 선택하면 해당 입력 항목이 표시됩니다. 조직 이동은 상위로만 가능하며(하위로 이동 불가), 이동 시 하위 전체가 함께 이동합니다. 사용여부 미사용 시 하위 전체 미사용, 가맹점은 상위 변경으로 개별 활성화할 수 있습니다. 비밀번호는 입력 후 옆 [저장]으로 확정한 뒤 하단 [저장]으로 등록하세요. 등록 후 비밀번호를 잊었거나 초기화가 필요하면 [업체정보조회] 또는 [업체정보] 상세에서 [비밀번호 초기화] 후 로그인ID+1! 로 로그인해 변경하면 됩니다.',
           rows: [
             [{ label: '상위 본사', type: 'text', name: 'parentComp', col: 2, button: '검색', placeholder: '상위 코드' }, { label: '업체구분*', type: 'select', name: 'compDiv', options: [{ v: '', t: '선택' }, { v: 'REGIONAL', t: '본사' }, { v: 'MASTER_DIST', t: '총판' }, { v: 'BRANCH', t: '지사' }, { v: 'AGENCY', t: '대리점' }, { v: 'SALES_OFFICE', t: '영업점' }, { v: 'MERCHANT', t: '가맹점' }], col: 1 }, { label: '업체명*', type: 'text', name: 'compNm', col: 2 }, { label: '사업자번호*', type: 'regNoWithType', name: 'regNo', col: 2 }, { label: '업태', type: 'text', name: 'bizType', col: 1 }, { label: '종목', type: 'text', name: 'industry', col: 1 }],
-            [{ label: '대표자명*', type: 'text', name: 'ceoNm', col: 2 }, { label: '휴대폰*', type: 'text', name: 'ceoMobile', col: 2 }, { label: '업체전화*', type: 'text', name: 'compTel', col: 2 }, { label: '팩스', type: 'text', name: 'fax', col: 2 }, { label: '이메일', type: 'text', name: 'email', col: 2 }, { label: '비고', type: 'text', name: 'remark', col: 2 }],
+            [{ label: '대표자명*', type: 'text', name: 'ceoNm', col: 2 }, { label: '휴대폰*', type: 'text', name: 'ceoMobile', col: 2 }, { label: '업체전화*', type: 'text', name: 'compTel', col: 2 }, { label: '팩스', type: 'text', name: 'fax', col: 2 }, { label: '이메일', type: 'text', name: 'email', col: 2 }],
             [{ type: 'countryAddressRow', zipLabel: '우편번호*', addrLabel: '주소*', addrDetailLabel: '상세주소', addrEtcLabel: '기타' }],
             [{ label: '사용여부*', type: 'select', name: 'useYn', options: [{ v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }], col: 1 }, { label: '로그인ID*', type: 'text', name: 'loginId', col: 2, button: '중복확인' }, { label: '비밀번호*', type: 'password', name: 'pwd', col: 2, button: '저장', placeholder: '8자 이상 → 옆 [저장] 확정' }]
           ]
@@ -480,7 +585,7 @@
           rows: [
             [{ type: 'countryBankRow', bankLabel: '계좌은행*', accountNoLabel: '계좌번호*', accountHolderLabel: '예금주*' }],
             [{ label: 'SWIFT', type: 'text', name: 'swift', col: 2, placeholder: 'SWIFT 코드' }, { label: '지점이름', type: 'text', name: 'branchName', col: 2 }, { label: '지점 주소', type: 'text', name: 'branchAddr', col: 2 }, { label: '담당전화번호', type: 'text', name: 'contactTel', col: 2 }],
-            [{ label: '코인 지갑 주소', type: 'text', name: 'walletAddress', col: 4, placeholder: '코인 수취 지갑 주소' }, { label: '네트워크', type: 'text', name: 'networkName', col: 2, placeholder: '네트워크 이름' }, { label: '이체수수료', type: 'text', name: 'transferFee', col: 2, placeholder: '원' }, { label: '크립토 이체 수수료(USD)', type: 'text', name: 'cryptoTransferFee', col: 2, placeholder: 'USD' }],
+            [{ label: '코인 지갑 주소', type: 'text', name: 'walletAddress', col: 4, placeholder: '코인 수취 지갑 주소' }, { label: '네트워크', type: 'text', name: 'networkName', col: 2, placeholder: '네트워크 이름' }, { label: '크립토 이체 수수료(USD)', type: 'text', name: 'cryptoTransferFee', col: 2, placeholder: 'USD' }, { label: '이체수수료', type: 'text', name: 'transferFee', col: 2, placeholder: '기준화폐' }],
             [{ label: '잔액알림금액', type: 'text', name: 'balanceNotifyAmt', col: 2, smsButton: true, smsColor: 'primary' }, { label: '의심거래/오류알림', type: 'text', name: 'suspiciousNotifyAmt', col: 2, smsButton: true, smsColor: 'warning' }, { label: '해외로그인알림', type: 'text', name: 'overseasLoginNotifyAmt', col: 2, smsButton: true, smsColor: 'success' }, { label: '임시비밀번호알림', type: 'text', name: 'tempPwdNotifyAmt', col: 2, smsButton: true, smsColor: 'secondary' }, { label: '비거래기준월', type: 'text', name: 'nonTranCriterionMonth', col: 2, placeholder: '60' }],
             [{ label: '동일카드 중복결제 한도(WEB)*', type: 'text', name: 'sameCardLimitWebDay', col: 2, placeholder: '일' }, { label: '회', type: 'text', name: 'sameCardLimitWebTimes', col: 2, placeholder: '회' }, { label: '원', type: 'text', name: 'sameCardLimitWebAmt', col: 2, placeholder: '원' }, { label: '동일카드 중복결제 한도(단말)*', type: 'text', name: 'sameCardLimitTerminalDay', col: 2, placeholder: '일' }, { label: '회', type: 'text', name: 'sameCardLimitTerminalTimes', col: 2, placeholder: '회' }, { label: '원', type: 'text', name: 'sameCardLimitTerminalAmt', col: 2, placeholder: '원' }],
             [{ label: '일 이용료', type: 'text', name: 'dailyUsageFee', col: 2 }, { label: '입금자명조회*', type: 'select', name: 'depositNameLookup', options: [{ v: '', t: '선택' }, { v: 'N', t: '미조회' }, { v: 'Y', t: '조회' }], col: 2 }, { label: '이체/출금 인증번호', type: 'text', name: 'transferAuthNo', col: 2 }],
@@ -498,7 +603,7 @@
           id: 'regionalSettleCard',
           regionalOnly: true,
           rows: [
-            [{ label: 'PG수수료(일반)*', type: 'text', name: 'pgFeeGeneral', col: 2, placeholder: '%' }, { label: '이체수수료', type: 'text', name: 'transferFee', col: 2, placeholder: '원' }, { label: '차액정산 월횟수', type: 'text', name: 'settleDiffMonthCnt', col: 2 }, { label: '정산보고서 은행*', type: 'select', name: 'settleReportBankCd', options: [{ v: '', t: '선택하세요' }, { v: '04', t: '국민' }, { v: '20', t: '우리' }, { v: '81', t: 'KEB하나' }, { v: '88', t: '신한' }, { v: '11', t: 'NH농협' }], col: 2 }],
+            [{ label: 'PG수수료(일반)*', type: 'text', name: 'pgFeeGeneral', col: 2, placeholder: '%' }, { label: '이체수수료', type: 'text', name: 'transferFee', col: 2, placeholder: '기준화폐' }, { label: '차액정산 월횟수', type: 'text', name: 'settleDiffMonthCnt', col: 2 }, { label: '정산보고서 은행*', type: 'select', name: 'settleReportBankCd', options: [{ v: '', t: '선택하세요' }, { v: '04', t: '국민' }, { v: '20', t: '우리' }, { v: '81', t: 'KEB하나' }, { v: '88', t: '신한' }, { v: '11', t: 'NH농협' }], col: 2 }],
             [{ label: 'PG수수료(삼성페이)', type: 'text', name: 'pgFeeSamsung', col: 2 }, { label: 'SMS수수료', type: 'text', name: 'smsFee', col: 2 }, { label: '세금계산서 이메일', type: 'text', name: 'taxInvoiceEmail', col: 2 }, { label: '계좌번호', type: 'text', name: 'settleAccountNo', col: 2 }],
             [{ label: '직결수수료', type: 'text', name: 'directFee', col: 2 }, { label: '솔루션수수료', type: 'text', name: 'solutionFee', col: 2, placeholder: '0.1%' }, { label: '예금주명*', type: 'text', name: 'settleAccountHolder', col: 2 }]
           ]
@@ -571,7 +676,7 @@
           rows: [
             [{ type: 'countryBankRow', bankLabel: '계좌은행*', accountNoLabel: '계좌번호*', accountHolderLabel: '예금주*' }],
             [{ label: 'SWIFT', type: 'text', name: 'swift', col: 2, placeholder: 'SWIFT 코드' }, { label: '지점이름', type: 'text', name: 'branchName', col: 2 }, { label: '지점 주소', type: 'text', name: 'branchAddr', col: 2 }, { label: '담당전화번호', type: 'text', name: 'contactTel', col: 2 }],
-            [{ label: '코인 지갑 주소', type: 'text', name: 'walletAddress', col: 4, placeholder: '코인 수취 지갑 주소' }, { label: '네트워크', type: 'text', name: 'networkName', col: 2, placeholder: '네트워크 이름' }, { label: '이체수수료', type: 'text', name: 'transferFee', col: 2, placeholder: '원' }, { label: '크립토 이체 수수료(USD)', type: 'text', name: 'cryptoTransferFee', col: 2, placeholder: 'USD' }]
+            [{ label: '코인 지갑 주소', type: 'text', name: 'walletAddress', col: 4, placeholder: '코인 수취 지갑 주소' }, { label: '네트워크', type: 'text', name: 'networkName', col: 2, placeholder: '네트워크 이름' }, { label: '크립토 이체 수수료(USD)', type: 'text', name: 'cryptoTransferFee', col: 2, placeholder: 'USD' }, { label: '이체수수료', type: 'text', name: 'transferFee', col: 2, placeholder: '기준화폐' }]
           ]
         },
         {
@@ -633,29 +738,14 @@
           notice: '본사설정 > PG사 API 연동에 등록된 결제대행사를 선택하고 MID·API KEY 등을 입력하세요. 등록 화면에서는 하단 [저장] 시 한꺼번에 반영됩니다.'
         },
         {
-          title: '웹결제 사용',
+          title: '웹결제 사용 / 대표 기본상품정보 (온라인 URL 결제용)',
           id: 'webPaymentCard',
           merchantOnly: true,
-          notice: '미사용 선택 시 WEB 결제 시스템이 중지됩니다.',
+          notice: '미사용 선택 시 WEB 결제 시스템이 중지됩니다. 아래 대표 기본상품정보는 온라인 URL 결제 기본값으로 사용됩니다.',
           rows: [
-            [{ label: '웹결제 사용여부', type: 'select', name: 'webPaymentUseYn', options: [{ v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }], col: 2 }]
-          ]
-        },
-        {
-          title: '대표 기본상품정보 (온라인 URL 결제용)',
-          id: 'defaultProductCard',
-          merchantOnly: true,
-          rows: [
-            [{ label: '상품명', type: 'text', name: 'defaultProductName', col: 2, placeholder: '대표 상품명' }, { label: '상품코드', type: 'text', name: 'defaultProductCode', col: 1 }, { label: '기본금액(원)', type: 'text', name: 'defaultProductAmount', col: 1, placeholder: '0' }, { label: '상품설명', type: 'text', name: 'defaultProductDesc', col: 4 }]
-          ]
-        },
-        {
-          title: '결제통보 URL',
-          id: 'notifyUrlCard',
-          merchantOnly: true,
-          notice: '결제 응답을 가맹점에게 송부할 노티 주소. 등록 시 결제통보 URL관리에 자동 반영됩니다.',
-          rows: [
-            [{ label: 'URL Background', type: 'text', name: 'notifyUrlBackground', col: 5, placeholder: 'https://' }, { label: 'URL Result', type: 'text', name: 'notifyUrlResult', col: 5, placeholder: 'https://' }]
+            [{ label: '웹결제 사용여부', type: 'select', name: 'webPaymentUseYn', options: [{ v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }], col: 2 }],
+            [{ label: '상품명', type: 'text', name: 'defaultProductName', col: 2, placeholder: '대표 상품명' }, { label: '상품코드', type: 'text', name: 'defaultProductCode', col: 1 }, { label: '기본금액(원)', type: 'text', name: 'defaultProductAmount', col: 1, placeholder: '0' }, { label: '상품설명', type: 'text', name: 'defaultProductDesc', col: 4 }],
+            [{ type: 'customHtml', col: 12, html: '<div class="row mb-2"><div class="col-sm-5"><label class="form-label">결제 URL</label><div class="input-group input-group-sm"><input type="text" class="form-control" id="paymentUrlDisplay" readonly placeholder="가맹점 저장 후 조회"><button type="button" class="btn btn-outline-primary" id="paymentUrlCopyBtn">복사</button></div></div></div>' }]
           ]
         },
         {
@@ -665,8 +755,17 @@
           regionalOrMasterDistOnly: true,
           notice: '본사·총판만 설정 가능. 메인이미지=로그인 화면 왼쪽 배경, 로고=로그인창 상단·사이드바 상단.'
         },
-        { title: '기타(본사)', id: 'regionalMiscCard', regionalOnly: true, notice: '메인이미지는 2MB, 로고이미지는 1MB까지 업로드 가능합니다. PNG파일을 추천합니다.', rows: [[{ label: 'COPYRIGHT', type: 'textarea', name: 'copyright', col: 6, placeholder: 'Copyright © 2025 ICOPAY Service by Ontheline Co., Ltd.' }, { label: '특이사항', type: 'textarea', name: 'remark', col: 6 }]] },
-        { title: '기타', rows: [[{ label: '특이사항', type: 'textarea', name: 'remark', col: 6 }]], branchAgencySalesHide: true },
+        { title: '기타(본사)', id: 'regionalMiscCard', regionalOnly: true, notice: '메인이미지는 2MB, 로고이미지는 1MB까지 업로드 가능합니다. PNG파일을 추천합니다.', rows: [[{ label: 'COPYRIGHT', type: 'textarea', name: 'copyright', col: 6, placeholder: 'Copyright © 2025 ICOPAY Service by Ontheline Co., Ltd.' }, { label: '비고', type: 'textarea', name: 'remark', col: 6 }]] },
+        { title: '기타', id: 'nonRegionalMiscCard', distributorMerchantOnlyNoRegional: true, rows: [[{ label: '비고', type: 'textarea', name: 'remark', col: 6 }]] },
+        {
+          title: '결제통보 URL',
+          id: 'notifyUrlCard',
+          merchantOnly: true,
+          notice: '결제 응답을 가맹점에게 송부할 노티 주소. 등록 시 결제통보 URL관리에 자동 반영됩니다.',
+          rows: [
+            [{ label: 'URL Background', type: 'text', name: 'notifyUrlBackground', col: 5, placeholder: 'https://' }, { label: 'URL Result', type: 'text', name: 'notifyUrlResult', col: 5, placeholder: 'https://' }]
+          ]
+        },
         { title: '첨부파일', rows: [[{ type: 'file', name: 'attach', col: 4, button: '추가' }]] }
       ],
       buttons: [{ id: 'compRegSaveBtn', label: '저장', cls: 'btn-primary' }, { id: 'compRegCancelBtn', label: '취소', cls: 'btn-secondary' }]
@@ -714,7 +813,7 @@
           rows: [
             [{ type: 'countryBankRow', bankLabel: '계좌은행*', accountNoLabel: '계좌번호*', accountHolderLabel: '예금주*' }],
             [{ label: 'SWIFT', type: 'text', name: 'swift', col: 2, placeholder: 'SWIFT 코드' }, { label: '지점이름', type: 'text', name: 'branchName', col: 2 }, { label: '지점 주소', type: 'text', name: 'branchAddr', col: 2 }, { label: '담당전화번호', type: 'text', name: 'contactTel', col: 2 }],
-            [{ label: '코인 지갑 주소', type: 'text', name: 'walletAddress', col: 4, placeholder: '코인 수취 지갑 주소' }, { label: '네트워크', type: 'text', name: 'networkName', col: 2, placeholder: '네트워크 이름' }, { label: '이체수수료', type: 'text', name: 'transferFee', col: 2, placeholder: '원' }, { label: '크립토 이체 수수료(USD)', type: 'text', name: 'cryptoTransferFee', col: 2, placeholder: 'USD' }],
+            [{ label: '코인 지갑 주소', type: 'text', name: 'walletAddress', col: 4, placeholder: '코인 수취 지갑 주소' }, { label: '네트워크', type: 'text', name: 'networkName', col: 2, placeholder: '네트워크 이름' }, { label: '크립토 이체 수수료(USD)', type: 'text', name: 'cryptoTransferFee', col: 2, placeholder: 'USD' }, { label: '이체수수료', type: 'text', name: 'transferFee', col: 2, placeholder: '기준화폐' }],
             [{ label: '잔액알림금액', type: 'text', name: 'balanceNotifyAmt', col: 2, smsButton: true, smsColor: 'primary' }, { label: '의심거래/오류알림', type: 'text', name: 'suspiciousNotifyAmt', col: 2, smsButton: true, smsColor: 'warning' }, { label: '해외로그인알림', type: 'text', name: 'overseasLoginNotifyAmt', col: 2, smsButton: true, smsColor: 'success' }, { label: '임시비밀번호알림', type: 'text', name: 'tempPwdNotifyAmt', col: 2, smsButton: true, smsColor: 'secondary' }, { label: '비거래기준월', type: 'text', name: 'nonTranCriterionMonth', col: 2, placeholder: '60' }],
             [{ label: '동일카드 중복결제 한도(WEB)*', type: 'text', name: 'sameCardLimitWebDay', col: 2, placeholder: '일' }, { label: '회', type: 'text', name: 'sameCardLimitWebTimes', col: 2, placeholder: '회' }, { label: '원', type: 'text', name: 'sameCardLimitWebAmt', col: 2, placeholder: '원' }, { label: '동일카드 중복결제 한도(단말)*', type: 'text', name: 'sameCardLimitTerminalDay', col: 2, placeholder: '일' }, { label: '회', type: 'text', name: 'sameCardLimitTerminalTimes', col: 2, placeholder: '회' }, { label: '원', type: 'text', name: 'sameCardLimitTerminalAmt', col: 2, placeholder: '원' }],
             [{ label: '일 이용료', type: 'text', name: 'dailyUsageFee', col: 2 }, { label: '입금자명조회*', type: 'select', name: 'depositNameLookup', options: [{ v: '', t: '선택' }, { v: 'N', t: '미조회' }, { v: 'Y', t: '조회' }], col: 2 }, { label: '이체/출금 인증번호', type: 'text', name: 'transferAuthNo', col: 2 }],
@@ -732,7 +831,7 @@
           id: 'regionalSettleCard',
           regionalOnly: true,
           rows: [
-            [{ label: 'PG수수료(일반)*', type: 'text', name: 'pgFeeGeneral', col: 2, placeholder: '%' }, { label: '이체수수료', type: 'text', name: 'transferFee', col: 2, placeholder: '원' }, { label: '차액정산 월횟수', type: 'text', name: 'settleDiffMonthCnt', col: 2 }, { label: '정산보고서 은행*', type: 'select', name: 'settleReportBankCd', options: [{ v: '', t: '선택하세요' }, { v: '04', t: '국민' }, { v: '20', t: '우리' }, { v: '81', t: 'KEB하나' }, { v: '88', t: '신한' }, { v: '11', t: 'NH농협' }], col: 2 }],
+            [{ label: 'PG수수료(일반)*', type: 'text', name: 'pgFeeGeneral', col: 2, placeholder: '%' }, { label: '이체수수료', type: 'text', name: 'transferFee', col: 2, placeholder: '기준화폐' }, { label: '차액정산 월횟수', type: 'text', name: 'settleDiffMonthCnt', col: 2 }, { label: '정산보고서 은행*', type: 'select', name: 'settleReportBankCd', options: [{ v: '', t: '선택하세요' }, { v: '04', t: '국민' }, { v: '20', t: '우리' }, { v: '81', t: 'KEB하나' }, { v: '88', t: '신한' }, { v: '11', t: 'NH농협' }], col: 2 }],
             [{ label: 'PG수수료(삼성페이)', type: 'text', name: 'pgFeeSamsung', col: 2 }, { label: 'SMS수수료', type: 'text', name: 'smsFee', col: 2 }, { label: '세금계산서 이메일', type: 'text', name: 'taxInvoiceEmail', col: 2 }, { label: '계좌번호', type: 'text', name: 'settleAccountNo', col: 2 }],
             [{ label: '직결수수료', type: 'text', name: 'directFee', col: 2 }, { label: '솔루션수수료', type: 'text', name: 'solutionFee', col: 2, placeholder: '0.1%' }, { label: '예금주명*', type: 'text', name: 'settleAccountHolder', col: 2 }]
           ]
@@ -805,7 +904,7 @@
           rows: [
             [{ type: 'countryBankRow', bankLabel: '계좌은행*', accountNoLabel: '계좌번호*', accountHolderLabel: '예금주*' }],
             [{ label: 'SWIFT', type: 'text', name: 'swift', col: 2, placeholder: 'SWIFT 코드' }, { label: '지점이름', type: 'text', name: 'branchName', col: 2 }, { label: '지점 주소', type: 'text', name: 'branchAddr', col: 2 }, { label: '담당전화번호', type: 'text', name: 'contactTel', col: 2 }],
-            [{ label: '코인 지갑 주소', type: 'text', name: 'walletAddress', col: 4, placeholder: '코인 수취 지갑 주소' }, { label: '네트워크', type: 'text', name: 'networkName', col: 2, placeholder: '네트워크 이름' }, { label: '이체수수료', type: 'text', name: 'transferFee', col: 2, placeholder: '원' }, { label: '크립토 이체 수수료(USD)', type: 'text', name: 'cryptoTransferFee', col: 2, placeholder: 'USD' }]
+            [{ label: '코인 지갑 주소', type: 'text', name: 'walletAddress', col: 4, placeholder: '코인 수취 지갑 주소' }, { label: '네트워크', type: 'text', name: 'networkName', col: 2, placeholder: '네트워크 이름' }, { label: '크립토 이체 수수료(USD)', type: 'text', name: 'cryptoTransferFee', col: 2, placeholder: 'USD' }, { label: '이체수수료', type: 'text', name: 'transferFee', col: 2, placeholder: '기준화폐' }]
           ]
         },
         {
@@ -867,29 +966,14 @@
           notice: '본사설정 > PG사 API 연동에 등록된 결제대행사 이름(코드)을 선택한 뒤 MID·API KEY·IV KEY를 입력합니다. [추가] 시 입력란이 열리고, 업체정보(가맹점)에서는 [저장][삭제][수정]마다 확인창이 두 번 뜹니다.'
         },
         {
-          title: '웹결제 사용',
+          title: '웹결제 사용 / 대표 기본상품정보 (온라인 URL 결제용)',
           id: 'webPaymentCard',
           merchantOnly: true,
-          notice: '미사용 선택 시 WEB 결제 시스템이 중지됩니다.',
+          notice: '미사용 선택 시 WEB 결제 시스템이 중지됩니다. 아래 대표 기본상품정보는 온라인 URL 결제 기본값으로 사용됩니다.',
           rows: [
-            [{ label: '웹결제 사용여부', type: 'select', name: 'webPaymentUseYn', options: [{ v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }], col: 2 }]
-          ]
-        },
-        {
-          title: '대표 기본상품정보 (온라인 URL 결제용)',
-          id: 'defaultProductCard',
-          merchantOnly: true,
-          rows: [
-            [{ label: '상품명', type: 'text', name: 'defaultProductName', col: 2, placeholder: '대표 상품명' }, { label: '상품코드', type: 'text', name: 'defaultProductCode', col: 1 }, { label: '기본금액(원)', type: 'text', name: 'defaultProductAmount', col: 1, placeholder: '0' }, { label: '상품설명', type: 'text', name: 'defaultProductDesc', col: 4 }]
-          ]
-        },
-        {
-          title: '결제통보 URL',
-          id: 'notifyUrlCard',
-          merchantOnly: true,
-          notice: '결제 응답을 가맹점에게 송부할 노티 주소. 등록 시 결제통보 URL관리에 자동 반영됩니다.',
-          rows: [
-            [{ label: 'URL Background', type: 'text', name: 'notifyUrlBackground', col: 5, placeholder: 'https://' }, { label: 'URL Result', type: 'text', name: 'notifyUrlResult', col: 5, placeholder: 'https://' }]
+            [{ label: '웹결제 사용여부', type: 'select', name: 'webPaymentUseYn', options: [{ v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }], col: 2 }],
+            [{ label: '상품명', type: 'text', name: 'defaultProductName', col: 2, placeholder: '대표 상품명' }, { label: '상품코드', type: 'text', name: 'defaultProductCode', col: 1 }, { label: '기본금액(원)', type: 'text', name: 'defaultProductAmount', col: 1, placeholder: '0' }, { label: '상품설명', type: 'text', name: 'defaultProductDesc', col: 4 }],
+            [{ type: 'customHtml', col: 12, html: '<div class="row mb-2"><div class="col-sm-5"><label class="form-label">결제 URL</label><div class="input-group input-group-sm"><input type="text" class="form-control" id="paymentUrlDisplay" readonly placeholder="가맹점 선택 후 조회"><button type="button" class="btn btn-outline-primary" id="paymentUrlCopyBtn">복사</button></div></div></div>' }]
           ]
         },
         {
@@ -899,9 +983,17 @@
           regionalOrMasterDistOnly: true,
           notice: '본사·총판만 설정 가능. 메인이미지=로그인 화면 왼쪽 배경, 로고=로그인창 상단·사이드바 상단.'
         },
-        { title: '기타(본사)', id: 'regionalMiscCard', regionalOnly: true, notice: '메인이미지는 2MB, 로고이미지는 1MB까지 업로드 가능합니다. PNG파일을 추천합니다.', rows: [[{ label: 'COPYRIGHT', type: 'textarea', name: 'copyright', col: 6, placeholder: 'Copyright © 2025 ICOPAY Service by Ontheline Co., Ltd.' }, { label: '특이사항', type: 'textarea', name: 'remark', col: 6 }]] },
-        { title: '첨부파일', rows: [[{ type: 'file', name: 'attach', col: 4, button: '추가' }]] },
-        { type: 'pgInfoDisplay', title: '결제 URL', id: 'pgInfoCard', merchantOnly: true, notice: '가맹점만 표시됩니다.' }
+        { title: '기타(본사)', id: 'regionalMiscCard', regionalOnly: true, notice: '메인이미지는 2MB, 로고이미지는 1MB까지 업로드 가능합니다. PNG파일을 추천합니다.', rows: [[{ label: 'COPYRIGHT', type: 'textarea', name: 'copyright', col: 6, placeholder: 'Copyright © 2025 ICOPAY Service by Ontheline Co., Ltd.' }, { label: '비고', type: 'textarea', name: 'remark', col: 6 }]] },
+        {
+          title: '결제통보 URL',
+          id: 'notifyUrlCard',
+          merchantOnly: true,
+          notice: '결제 응답을 가맹점에게 송부할 노티 주소. 등록 시 결제통보 URL관리에 자동 반영됩니다.',
+          rows: [
+            [{ label: 'URL Background', type: 'text', name: 'notifyUrlBackground', col: 5, placeholder: 'https://' }, { label: 'URL Result', type: 'text', name: 'notifyUrlResult', col: 5, placeholder: 'https://' }]
+          ]
+        },
+        { title: '첨부파일', rows: [[{ type: 'file', name: 'attach', col: 4, button: '추가' }]] }
       ],
       buttons: [{ id: 'compDetailListBtn', label: '목록', cls: 'btn-secondary' }, { id: 'compDetailSaveBtn', label: '저장', cls: 'btn-primary' }]
     },
@@ -1504,30 +1596,44 @@
       columns: [{ key: '_chk', type: 'checkbox' }, { key: 'rowNo', label: '번호' }, { key: 'compNm', label: '업체명' }, { key: 'compId', label: '업체코드' }, { key: 'sendDt', label: '전송일시' }, { key: 'result', label: '결과' }]
     },
     '/user/userMng': {
-      rowGroupByKey: 'permissionGroupNm',
       searchRows: [
         [
-          { label: '사용자ID', type: 'text', name: 'searchUserId' },
+          { label: '사용자 ID', type: 'text', name: 'searchUserId' },
           { label: '사용자명', type: 'text', name: 'searchUserNm' },
           { label: '업체코드', type: 'text', name: 'searchCompId' },
+          {
+            label: '사용여부',
+            type: 'select',
+            name: 'searchUseStatus',
+            options: [
+              { v: '', t: '전체' },
+              { v: 'ACTIVE', t: '사용' },
+              { v: 'INACTIVE', t: '미사용' },
+              { v: 'SUSPENDED', t: '영구정지' }
+            ]
+          },
           { type: 'searchBtn' }
         ]
       ],
       summary: ['건수'],
-      buttons: [{ id: 'searchBtn', label: '검색', cls: 'btn-primary' }, { id: 'addBtn', label: '등록', cls: 'btn-success' }],
+      buttons: [
+        { id: 'addBtn', label: '추가', cls: 'btn-outline-secondary' },
+        { id: 'saveBtn', label: '저장', cls: 'btn-primary' }
+      ],
       columns: [
-        { key: '_chk', type: 'checkbox' },
-        { key: 'rowNo', label: '번호' },
-        { key: 'compNm', label: '업체명' },
+        { key: 'rowNo', label: 'No.' },
         { key: 'compId', label: '업체코드' },
-        { key: 'userId', label: '사용자ID' },
-        { key: 'userNm', label: '사용자명' },
-        { key: 'permissionGroupNm', label: '권한그룹' },
-        { key: 'roleNm', label: '역할' },
-        { key: 'otpRegisteredYn', label: 'OTP' },
-        { key: 'useYn', label: '사용여부' },
-        { key: 'id', type: 'userResetPassword', label: '비밀번호' },
-        { key: 'id', type: 'userDelete', label: '삭제' }
+        { key: 'compNm', label: '업체명' },
+        { key: 'userId', label: '사용자ID*', type: 'userMngUserId' },
+        { key: 'userNm', label: '사용자명*', type: 'userMngUserNm' },
+        { key: 'mobile', label: '연락처*', type: 'userMngMobile' },
+        { key: 'permissionGroupNm', label: '권한그룹*', type: 'userMngAssistantRole' },
+        { key: 'roleNm', label: '역할', type: 'userMngRoleNm' },
+        { key: '_pwd', label: '비밀번호', type: 'userMngPassword' },
+        { key: '_otp', label: 'OTP', type: 'userMngOtp' },
+        { key: 'userStatus', label: '사용여부*', type: 'userMngStatus' },
+        { key: '_del', label: '삭제', type: 'userMngDraftDelete' },
+        { key: 'inactiveReason', label: '미사용전환사유', type: 'userMngInactiveReason' }
       ]
     },
     '/set/gridSetMng': {
@@ -1586,8 +1692,8 @@
       hasCompInfoDetailForm: true,
       compInfoDetailFormSections: [
         {
-          title: '본사 정보 상세 (업체정보조회)',
-          notice: '상위 본사(우리)가 권한을 준 회사의 정보입니다. 그리드에서 한 건 선택 후 [상세] 버튼으로 조회·수정합니다.',
+          title: '업체 정보 상세 (업체정보조회)',
+          notice: '그리드에서 한 건 선택 후 [상세] 버튼으로 조회·수정합니다.',
           rows: [
             [{ label: '업체코드', type: 'text', name: 'compId', col: 2, readonly: true }, { label: '업체구분', type: 'select', name: 'compDiv', options: [{ v: '', t: '선택' }, { v: 'REGIONAL', t: '본사' }, { v: 'MASTER_DIST', t: '총판' }, { v: 'BRANCH', t: '지사' }, { v: 'AGENCY', t: '대리점' }, { v: 'SALES_OFFICE', t: '영업점' }, { v: 'MERCHANT', t: '가맹점' }], col: 2 }],
             [{ label: '업체명(본사명)*', type: 'text', name: 'compNm', col: 2 }, { label: '사업자번호*', type: 'regNoWithType', name: 'regNo', col: 2 }],
@@ -1598,10 +1704,10 @@
             [{ label: '사업자형태', type: 'text', name: 'bizNature', col: 2 }, { label: '취급물품', type: 'text', name: 'product', col: 2 }],
             [{ label: '대표사이트', type: 'text', name: 'homepage', col: 2 }, { label: '정산담당자명', type: 'text', name: 'settleName', col: 2 }],
             [{ label: '정산담당자연락처', type: 'text', name: 'settleTelNo', col: 2 }],
-            [{ label: '계좌은행', type: 'select', name: 'bankCd', options: [{ v: '', t: '선택' }, { v: '04', t: '국민' }, { v: '20', t: '우리' }, { v: '81', t: 'KEB하나' }, { v: '88', t: '신한' }, { v: '11', t: 'NH농협' }], col: 2 }, { label: '이체수수료(원)', type: 'text', name: 'transferFee', col: 2 }],
+            [{ label: '계좌은행', type: 'select', name: 'bankCd', options: [{ v: '', t: '선택' }, { v: '04', t: '국민' }, { v: '20', t: '우리' }, { v: '81', t: 'KEB하나' }, { v: '88', t: '신한' }, { v: '11', t: 'NH농협' }], col: 2 }, { label: '이체수수료(기준화폐)', type: 'text', name: 'transferFee', col: 2 }],
             [{ label: '계좌번호*', type: 'text', name: 'accountNo', col: 2 }, { label: '예금주*', type: 'text', name: 'accountHolder', col: 2 }],
             [{ label: '수수료 설정 권한', type: 'select', name: 'commissionConfigAllowed', options: [{ v: 'N', t: '미부여' }, { v: 'Y', t: '부여' }], col: 2 }, { label: '기준 화폐1', type: 'select', name: 'baseCurrency1', options: [{ v: '', t: '선택' }, { v: 'KRW', t: 'KRW (원)' }, { v: 'USD', t: 'USD (달러)' }, { v: 'JPY', t: 'JPY (엔)' }, { v: 'THB', t: 'THB (바트)' }, { v: 'EUR', t: 'EUR (유로)' }], col: 2 }, { label: '기준 화폐2', type: 'select', name: 'baseCurrency2', options: [{ v: '', t: '선택' }, { v: 'KRW', t: 'KRW (원)' }, { v: 'USD', t: 'USD (달러)' }, { v: 'JPY', t: 'JPY (엔)' }, { v: 'THB', t: 'THB (바트)' }, { v: 'EUR', t: 'EUR (유로)' }], col: 2 }, { label: '기준 화폐3', type: 'select', name: 'baseCurrency3', options: [{ v: '', t: '선택' }, { v: 'KRW', t: 'KRW (원)' }, { v: 'USD', t: 'USD (달러)' }, { v: 'JPY', t: 'JPY (엔)' }, { v: 'THB', t: 'THB (바트)' }, { v: 'EUR', t: 'EUR (유로)' }], col: 2 }],
-            [{ label: '특이사항', type: 'textarea', name: 'remark', col: 6 }]
+            [{ label: '비고', type: 'textarea', name: 'remark', col: 6 }]
           ]
         },
         {
@@ -1932,7 +2038,7 @@
     /** 번호·업체·거래일시·Route No 는 전산 기본 노출(결제 그리드 앞쪽 고정) — VIEW SETTING에서 토글 제외 */
     var fixedKeys = ['rowNo', 'compId', 'compNm', 'compDivNm', 'trnDate', 'trnTime', 'routeNo'];
     var cols = cfg.columns.filter(function (c) {
-      if (c.type === 'checkbox' || c.type === 'payActions' || c.type === 'accountAccessDelete' || c.type === 'userResetPassword' || c.type === 'userDelete') return false;
+      if (c.type === 'checkbox' || c.type === 'payActions' || c.type === 'commissionInlineActions' || c.type === 'accountAccessDelete' || c.type === 'userResetPassword' || c.type === 'userDelete') return false;
       return fixedKeys.indexOf(c.key) === -1;
     });
     if (cols.length === 0) return '';
@@ -1975,6 +2081,17 @@
       var colH = f.col || 12;
       return '<div class="col-sm-' + colH + '">' + (f.html || '') + '</div>';
     }
+    if (f.type === 'assistantPasswordManage') {
+      var colAp = f.col || 2;
+      return '<div class="col-sm-' + colAp + ' form-field-block' + hqC + hqPolicyC + '"><label class="form-label">비밀번호</label>' +
+        '<div id="assistantPwdInitialRow">' +
+        '<div class="form-input-with-btn"><span class="form-input-wrap">' +
+        '<input type="password" class="form-control form-control-sm" name="assistantPwd" id="assistantPwd" autocomplete="new-password" placeholder="8자 이상">' +
+        '</span><button type="button" class="btn btn-outline-secondary btn-sm" data-field="assistantPwd" data-action="저장">저장</button></div>' +
+        '<p class="text-muted small mb-0 mt-1">입력 후 [저장]으로 확정한 뒤 하단 [수정 저장]으로 반영하세요.</p></div>' +
+        '<div id="assistantPwdResetRow" class="d-none">' +
+        '<div class="form-input-with-btn"><button type="button" class="btn btn-outline-secondary btn-sm" id="assistantPwdResetBtn" data-action="보조 비밀번호 초기화">비밀번호 초기화</button></div></div></div>';
+    }
     if (f.type === 'passwordReset') {
       var col = f.col || 2;
       var label = (f.label || '비밀번호').replace(/\*$/, '');
@@ -1998,6 +2115,7 @@
     var inp = '';
     var intlPhoneTargets = { ceoMobile: true, compTel: true, fax: true, settleTelNo: true, contactTel: true };
     var useIntlPhone = (f.type === 'phoneIntl') || ((f.type === 'text') && !!intlPhoneTargets[name]);
+    var isWideTime = false;
     if (useIntlPhone) {
       var intlOptions = window.PG_INTL_PHONE_OPTIONS || '<option value="+81">Japan (+81)</option><option value="+82">South Korea (+82)</option><option value="+66">Thailand (+66)</option><option value="+1">United States (+1)</option><option value="+86">China (+86)</option><option value="+65">Singapore (+65)</option><option value="+852">Hong Kong (+852)</option><option value="" disabled>---------------</option>';
       var ccName = '__phone_cc_' + name;
@@ -2010,7 +2128,11 @@
     } else if (f.type === 'text' || f.type === 'password') {
       inp = '<input type="' + (f.type || 'text') + '" class="form-control form-control-sm' + reqClass + '" name="' + name + '" id="' + id + '"' + (f.placeholder ? ' placeholder="' + f.placeholder + '"' : '') + ro + '>';
     } else if (f.type === 'time') {
-      inp = '<input type="time" class="form-control form-control-sm' + reqClass + '" name="' + name + '" id="' + id + '"' + (f.placeholder ? ' placeholder="' + f.placeholder + '"' : '') + '>';
+      var isSettlementTime = (name === 'calcCloseTime' || name === 'calcStartTime' || name === 'transferExecTime');
+      var isWithdrawLimitTime = (name === 'withdrawRestrictStartTime' || name === 'withdrawRestrictEndTime' || name === 'withdrawStartTime' || name === 'withdrawEndTime');
+      isWideTime = (isSettlementTime || isWithdrawLimitTime);
+      var wideTime = isWideTime ? ' settle-time-wide' : '';
+      inp = '<input type="time" class="form-control form-control-sm' + reqClass + wideTime + '" name="' + name + '" id="' + id + '"' + (f.placeholder ? ' placeholder="' + f.placeholder + '"' : '') + '>';
     } else if (f.type === 'select') {
       var opts = (f.options || []).map(function (o) { return '<option value="' + (o.v || '') + '">' + (o.t || o.v) + '</option>'; }).join('');
       var selAttrs = (f.readonly ? ' disabled' : '')
@@ -2041,6 +2163,7 @@
     var blockClass = 'col-sm-' + col + ' form-field-block';
     if (f.customOnly) blockClass += ' commission-custom-only';
     if (f.holdRateOnly) blockClass += ' hold-rate-custom-only';
+    if (isWideTime) blockClass += ' settle-time-wide-block';
     if (f.blockExtraClass) blockClass += ' ' + String(f.blockExtraClass);
     return '<div class="' + blockClass + hqC + hqPolicyC + '"><label class="form-label">' + label + '</label>' + inpWrap + '</div>';
   }
@@ -2075,11 +2198,11 @@
       if (sec.type === 'branding') {
         html += '<p class="text-danger small mb-2">메인이미지는 2MB, 로고이미지는 1MB까지 업로드 가능합니다. 가능하면 PNG파일을 추천합니다.</p>' +
           '<div class="row mb-2"><div class="col-sm-6"><label class="form-label">메인이미지</label><div class="input-group input-group-sm">' +
-          '<input type="text" class="form-control" name="mainImageUrl" id="brandingMainImageUrl" readonly placeholder="업로드된 이미지">' +
+          '<input type="text" class="form-control form-control-sm" name="mainImageUrl" id="brandingMainImageUrl" readonly placeholder="업로드된 이미지">' +
           '<input type="file" class="d-none" id="brandingMainImageFile" accept="image/png,image/jpeg,image/jpg">' +
           '<button type="button" class="btn btn-outline-secondary" id="brandingMainImageBrowse">Browse</button></div></div></div>' +
           '<div class="row mb-2"><div class="col-sm-6"><label class="form-label">로고이미지</label><div class="input-group input-group-sm">' +
-          '<input type="text" class="form-control" name="logoImageUrl" id="brandingLogoImageUrl" readonly placeholder="업로드된 이미지">' +
+          '<input type="text" class="form-control form-control-sm" name="logoImageUrl" id="brandingLogoImageUrl" readonly placeholder="업로드된 이미지">' +
           '<input type="file" class="d-none" id="brandingLogoImageFile" accept="image/png,image/jpeg,image/jpg">' +
           '<button type="button" class="btn btn-outline-secondary" id="brandingLogoImageBrowse">Browse</button></div></div></div>' +
           '<div class="row mb-2"><div class="col-sm-4"><label class="form-label">배경테마</label><select class="form-control form-control-sm" name="brandingTheme" id="brandingTheme">' +
@@ -2094,7 +2217,7 @@
       } else if (sec.type === 'pgInfoDisplay') {
         html += '<div id="pgInfoDisplayWrap" class="pg-info-display">' +
           '<div class="row mb-2"><div class="col-sm-3"><label class="form-label">웹결제 사용여부</label><select class="form-control form-control-sm" name="webPaymentUseYn"><option value="Y">사용</option><option value="N">미사용</option></select></div>' +
-          '<div class="col-sm-9"><label class="form-label">결제 URL</label><div class="input-group input-group-sm"><input type="text" class="form-control" id="paymentUrlDisplay" readonly placeholder="가맹점 선택 후 조회"><button type="button" class="btn btn-outline-primary" id="paymentUrlCopyBtn">복사</button></div></div></div>' +
+          '<div class="col-sm-5"><label class="form-label">결제 URL</label><div class="input-group input-group-sm"><input type="text" class="form-control" id="paymentUrlDisplay" readonly placeholder="가맹점 선택 후 조회"><button type="button" class="btn btn-outline-primary" id="paymentUrlCopyBtn">복사</button></div></div></div>' +
           '</div>';
       } else if (sec.type === 'regionalCardLimitTable') {
         html += '<div class="d-flex justify-content-end mb-2"><button type="button" class="btn btn-success btn-sm me-1" id="regionalCardLimitAddBtn">추가</button><button type="button" class="btn btn-danger btn-sm" id="regionalCardLimitDelBtn">삭제</button></div>' +
@@ -2281,6 +2404,76 @@
     return html;
   }
 
+  /** 조직별 권한 세팅 — 조직 탭 + 페이지별 권한 셀렉트 (내용은 API 로드 후 채움) */
+  function renderOrgPagePermissionShell(tabId) {
+    return (
+      '<div class="org-perm-matrix card border-0 shadow-sm mb-3">' +
+      '<div class="card-body">' +
+      '<p class="text-muted small mb-3">' +
+      '조직 구분(총본사~가맹점)별로 메뉴(URL) 접근 권한을 설정합니다. <strong>총본사</strong>는 DB에 별도 저장이 없을 때 기본으로 <strong>모든 메뉴 전체 권한(삭제·전체)</strong>입니다. 각 대메뉴(본사설정·업체관리 등) 구역 제목 오른쪽 <strong>간편</strong>에서 권한을 고르면 그 구역의 하위 메뉴가 한 번에 동일하게 맞춰집니다. ' +
+      '<strong>옵저버</strong>는 조회만, <strong>수정</strong>은 쓰기·수정(삭제·일괄삭제 등 제한), ' +
+      '<strong>삭제</strong>는 해당 화면의 삭제·수정·저장 등 모든 작업을 허용합니다. ' +
+      '<strong>접근불가</strong>는 메뉴에서 숨깁니다. (계정·업체접근은 사용자별 허용 업체를 별도 지정합니다.)' +
+      '</p>' +
+      '<div class="d-flex flex-wrap align-items-center mb-2 org-perm-legend text-muted">' +
+      '<span class="me-2 fw-semibold text-secondary">행 색:</span>' +
+      '<span><i class="org-perm-legend-none" aria-hidden="true"></i>접근불가</span>' +
+      '<span><i class="org-perm-legend-observer" aria-hidden="true"></i>옵저버</span>' +
+      '<span><i class="org-perm-legend-modify" aria-hidden="true"></i>수정</span>' +
+      '<span><i class="org-perm-legend-delete" aria-hidden="true"></i>삭제(전체)</span>' +
+      '</div>' +
+      '<ul class="nav nav-pills flex-wrap gap-1 mb-3 org-perm-level-tabs" id="orgPermTabs_' + tabId + '" role="tablist"></ul>' +
+      '<div class="table-responsive org-perm-table-wrap">' +
+      '<table class="table table-sm table-bordered align-middle mb-0 org-perm-table" id="orgPermTable_' + tabId + '">' +
+      '<thead><tr><th class="text-center text-nowrap org-perm-th-no" style="width:3.25rem">No.</th><th style="width:13%">메뉴ID</th><th>화면</th><th style="width:24%">권한</th></tr></thead>' +
+      '<tbody id="orgPermTbody_' + tabId + '"><tr><td colspan="4" class="text-center text-muted py-4">불러오는 중…</td></tr></tbody>' +
+      '</table></div>' +
+      '</div></div>' +
+      '<div class="d-flex justify-content-end align-items-center flex-wrap gap-2 mb-2 org-perm-default-actions">' +
+      '<button type="button" class="btn btn-outline-secondary btn-sm" id="hqPermissionReloadBtn" title="서버에 저장된 단계별 기본 권한을 다시 불러옵니다(저장하지 않은 편집은 사라질 수 있습니다)">다시 불러오기</button>' +
+      '<button type="button" class="btn btn-primary btn-sm" id="hqPermissionSaveBtn">권한 저장</button></div>' +
+      '<div class="card border-0 shadow-sm mb-3 org-perm-unit-section">' +
+      '<div class="card-header fw-semibold">개별 조직 권한</div>' +
+      '<div class="card-body">' +
+      '<p class="text-muted small mb-3">총본사~가맹점 <strong>각 조직</strong>을 선택해, 단계별 기본과 다른 권한을 둘 수 있습니다. ' +
+      '<strong>단계 기본 따름</strong>이면 위 탭의 조직 구분 기준만 적용되고, <strong>개별 설정</strong>이면 아래 표에서만 덮어씁니다. ' +
+      '조직을 고르면 <strong>현재 적용되는 권한(최종)</strong>이 표시됩니다.</p>' +
+      '<div class="row g-2 align-items-end mb-2 org-perm-unit-control-row">' +
+      '<div class="col-lg-3 col-md-6">' +
+      '<label class="form-label small mb-1">업체명</label>' +
+      '<select class="form-select form-select-sm" id="orgPermUnitSelect_' + tabId + '">' +
+      '<option value="">— 업체를 선택하세요 —</option>' +
+      '</select></div>' +
+      '<div class="col-lg-2 col-md-6">' +
+      '<label class="form-label small mb-1">업체코드</label>' +
+      '<input type="text" class="form-control form-control-sm" id="orgPermUnitCode_' + tabId + '" readonly>' +
+      '</div>' +
+      '<div class="col-lg-2 col-md-6">' +
+      '<label class="form-label small mb-1">조직구분</label>' +
+      '<input type="text" class="form-control form-control-sm" id="orgPermUnitLevel_' + tabId + '" readonly>' +
+      '</div>' +
+      '<div class="col-lg-2 col-md-6">' +
+      '<label class="form-label small mb-1">현재방식</label>' +
+      '<input type="text" class="form-control form-control-sm" id="orgPermUnitCurrentMode_' + tabId + '" readonly>' +
+      '</div>' +
+      '<div class="col-lg-2 col-md-6">' +
+      '<label class="form-label small mb-1">적용방식</label>' +
+      '<select class="form-select form-select-sm" id="orgPermUnitMode_' + tabId + '" disabled>' +
+      '<option value="LEVEL_DEFAULT">단계 기본 따름</option>' +
+      '<option value="CUSTOM">개별 설정</option>' +
+      '</select></div>' +
+      '<div class="col-lg-1 col-md-6">' +
+      '<button type="button" class="btn btn-sm btn-primary w-100" id="hqOrgUnitPermissionSaveBtn_' + tabId + '" disabled>설정저장</button>' +
+      '</div></div>' +
+      '<p class="small mb-2" id="orgPermUnitHint_' + tabId + '">조직을 선택하면 적용 방식과 권한 표가 채워집니다.</p>' +
+      '<div class="table-responsive org-perm-table-wrap">' +
+      '<table class="table table-sm table-bordered align-middle mb-0 org-perm-table" id="orgPermUnitTable_' + tabId + '">' +
+      '<thead><tr><th class="text-center text-nowrap org-perm-th-no" style="width:3.25rem">No.</th><th style="width:13%">메뉴ID</th><th>화면</th><th style="width:24%">권한</th></tr></thead>' +
+      '<tbody id="orgPermUnitTbody_' + tabId + '"><tr><td colspan="4" class="text-center text-muted py-4">조직을 선택하세요.</td></tr></tbody>' +
+      '</table></div></div></div>'
+    );
+  }
+
   function renderPagination(tabId) {
     return '<div class="pagination-row">' +
       '<div class="pagination-view-at-once">' +
@@ -2315,6 +2508,9 @@
       html += renderSummaryAndActions(cfg);
     } else if (cfg.isForm && cfg.formRows && cfg.formRows.length > 0) {
       html += renderFormRows(cfg);
+      html += renderSummaryAndActions(cfg);
+    } else if (cfg.orgPagePermissionMatrix) {
+      html += renderOrgPagePermissionShell(tabId);
       html += renderSummaryAndActions(cfg);
     } else {
       if (!cfg.hideListGrid) {

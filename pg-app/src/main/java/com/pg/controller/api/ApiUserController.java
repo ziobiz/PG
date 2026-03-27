@@ -36,6 +36,7 @@ public class ApiUserController {
             @RequestParam(required = false) String searchUserId,
             @RequestParam(required = false) String searchUserNm,
             @RequestParam(required = false) String searchCompId,
+            @RequestParam(required = false) String searchUseStatus,
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "20") int size) {
         String scopeCompCode = null;
@@ -47,7 +48,7 @@ public class ApiUserController {
             }
         }
         PageResult<Map<String, Object>> result = userListService.searchScoped(
-                searchUserId, searchUserNm, searchCompId, page, size, scopeCompCode);
+                searchUserId, searchUserNm, searchCompId, searchUseStatus, page, size, scopeCompCode);
         AppUser actor = currentUser();
         Map<String, Object> cap = userListService.managementCapability(actor);
         String canManage = String.valueOf(cap.getOrDefault("canManageUsers", "N"));
@@ -74,9 +75,11 @@ public class ApiUserController {
             userListService.createUserScoped(
                     actor,
                     allowed,
+                    scopeCompCode,
                     str(body, "userId"),
                     str(body, "userNm"),
                     str(body, "password"),
+                    str(body, "mobile"),
                     str(body, "compId"),
                     str(body, "role"),
                     str(body, "userType"),
@@ -84,6 +87,40 @@ public class ApiUserController {
                     str(body, "parentUsername")
             );
             return ResponseEntity.ok(ApiResponse.ok(Map.of("message", "사용자가 등록되었습니다.")));
+        } catch (Exception e) {
+            return ResponseEntity.ok(ApiResponse.fail(e.getMessage(), "VALIDATION"));
+        }
+    }
+
+    @PostMapping("/update")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> update(@RequestBody Map<String, Object> body) {
+        try {
+            AppUser actor = currentUser();
+            String scopeCompCode = resolveScopeCompCode(actor);
+            Set<String> allowed = userListService.resolveAllowedCompCodes(scopeCompCode);
+            Long id = body.get("id") == null ? null : Long.parseLong(String.valueOf(body.get("id")));
+            if (id == null) throw new IllegalArgumentException("수정할 사용자 ID가 필요합니다.");
+            userListService.updateUserScoped(actor, allowed, id,
+                    str(body, "mobile"),
+                    str(body, "userStatus"),
+                    str(body, "inactiveReason"),
+                    str(body, "assistantRoleType"));
+            return ResponseEntity.ok(ApiResponse.ok(Map.of("message", "저장되었습니다.")));
+        } catch (Exception e) {
+            return ResponseEntity.ok(ApiResponse.fail(e.getMessage(), "VALIDATION"));
+        }
+    }
+
+    @PostMapping("/resetOtp")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> resetOtp(@RequestBody Map<String, Object> body) {
+        try {
+            AppUser actor = currentUser();
+            String scopeCompCode = resolveScopeCompCode(actor);
+            Set<String> allowed = userListService.resolveAllowedCompCodes(scopeCompCode);
+            Long id = body.get("id") == null ? null : Long.parseLong(String.valueOf(body.get("id")));
+            if (id == null) throw new IllegalArgumentException("초기화할 사용자 ID가 필요합니다.");
+            userListService.resetOtpScoped(actor, allowed, id);
+            return ResponseEntity.ok(ApiResponse.ok(Map.of("message", "OTP 등록이 초기화되었습니다.")));
         } catch (Exception e) {
             return ResponseEntity.ok(ApiResponse.fail(e.getMessage(), "VALIDATION"));
         }

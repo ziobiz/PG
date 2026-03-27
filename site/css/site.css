@@ -2,10 +2,32 @@
 * { box-sizing: border-box; }
 :root {
   --table-row-padding-y: 10px;
-  --app-base-font-size: 13px;
-  --app-table-font-size: 12px;
+  /* 사용자관리 화면과 동일한 스케일로 전역 통일 */
+  --app-base-font-size: 11px;
+  --app-table-font-size: 10px;
+  --app-form-sm-font-size: 10px;
 }
 body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans KR", sans-serif; font-size: var(--app-base-font-size); }
+
+/* OBSERVER(조회전용): ziobim/NOTI의 비활성 버튼 톤과 유사하게 회색 고정 */
+.pg-perm-observer .btn:disabled,
+.pg-perm-observer .btn.disabled,
+.pg-perm-observer button:disabled,
+.pg-perm-observer a.btn.disabled {
+  background-color: #e9ecef !important;
+  border-color: #ced4da !important;
+  color: #6c757d !important;
+  opacity: 1 !important;
+  cursor: not-allowed !important;
+  box-shadow: none !important;
+}
+.pg-perm-observer input:disabled,
+.pg-perm-observer select:disabled,
+.pg-perm-observer textarea:disabled {
+  background-color: #f1f3f5 !important;
+  color: #6c757d !important;
+  cursor: not-allowed !important;
+}
 .wrapper { display: flex; flex-direction: column; min-height: 100vh; }
 /* 세로로 메뉴가 길면 사이드바 내부 스크롤 대신 본 행 전체를 스크롤 */
 .wrapper-body { display: flex; flex-direction: row; flex: 1; min-height: 0; min-width: 0; overflow-x: hidden; overflow-y: auto; align-items: stretch; }
@@ -38,6 +60,26 @@ body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Ro
 .left-side-menu.collapsed .logo-icopay-sub { display: none !important; }
 .left-side-menu.collapsed .side-nav-link { justify-content: center; padding: 10px; }
 .left-side-menu.collapsed .side-nav-link i { margin-right: 0; }
+/* 접힘: 상단 로고 영역·이미지 축소 (브랜딩 업로드 후에도 동일) */
+.left-side-menu.collapsed .logo-icopay-wrap {
+  padding: 8px 4px;
+}
+.left-side-menu.collapsed .logo-icopay-title {
+  font-size: 0.72rem;
+  line-height: 1.15;
+}
+.left-side-menu.collapsed #sidebar-logo-img,
+.left-side-menu.collapsed .sidebar-logo-img {
+  max-height: 32px !important;
+  max-width: 56px !important;
+}
+.logo-icopay-wrap,
+.logo-icopay-title,
+.logo-icopay-sub,
+#sidebar-logo-img,
+.sidebar-logo-img {
+  transition: padding 0.2s ease, font-size 0.2s ease, max-height 0.2s ease, max-width 0.2s ease;
+}
 .menuFoldDiv { padding: 8px 10px; border-bottom: 1px solid rgba(255,255,255,0.06); }
 /* 접힌 상태 플라이아웃: 사이드바 오른쪽에 떠 있는 서브메뉴 */
 .flyout-submenu {
@@ -63,6 +105,7 @@ body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Ro
 }
 .flyout-submenu .child-li a {
   padding: 8px 18px;
+  font-size: var(--app-base-font-size);
 }
 .logo-icopay-wrap {
   display: block;
@@ -74,8 +117,15 @@ body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Ro
   flex-shrink: 0;
 }
 .logo-icopay-wrap:hover { color: #fff; opacity: 0.9; }
-.logo-icopay-title { display: block; font-weight: 700; font-size: 1.2rem; color: #e74c3c; }
-.logo-icopay-sub { display: block; font-size: 0.85rem; color: rgba(231,76,60,0.9); margin-top: 2px; }
+.logo-icopay-title { display: block; font-weight: 700; font-size: 1.05rem; color: #e74c3c; }
+.logo-icopay-sub { display: block; font-size: 0.75rem; color: rgba(231,76,60,0.9); margin-top: 2px; }
+#sidebar-logo-img,
+.sidebar-logo-img {
+  max-height: 50px;
+  max-width: 180px;
+  display: none;
+  object-fit: contain;
+}
 /* 내부 스크롤 없이 메뉴 전체 높이만큼 펼침 → 부모 .wrapper-body 세로 스크롤 */
 #left-side-menu-container {
   flex: 0 0 auto;
@@ -85,7 +135,7 @@ body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Ro
   background: #3a4149 !important;
   border: 1px solid rgba(255,255,255,0.1) !important;
   color: #fff !important;
-  font-size: 13px;
+  font-size: var(--app-base-font-size);
   padding: 6px 10px;
 }
 .left-side-menu .btn-secondary:hover { background: #454d56 !important; color: #fff !important; }
@@ -99,7 +149,7 @@ body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Ro
   text-decoration: none;
   cursor: pointer;
   border-left: 3px solid transparent;
-  font-size: 13px;
+  font-size: var(--app-base-font-size);
 }
 .side-nav-link:hover { color: #fff; background: rgba(255,255,255,0.08); }
 /* 대메뉴 선택: 연한 그레이, 보라색 포인트는 왼쪽 라인 */
@@ -108,8 +158,23 @@ body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Ro
   border-left-color: #6658dd;
   background: #3a4149;
 }
-.side-nav-link i { margin-right: 10px; width: 20px; text-align: center; font-size: 1.1rem; }
-.menu-arrow { margin-left: auto; font-size: 10px; transition: transform 0.2s; }
+.side-nav-link i { margin-right: 10px; width: 20px; text-align: center; font-size: 1.05rem; }
+/* 대메뉴 우측: 접힘 ▶ / 펼침 ▼ (회전으로 전환) */
+.menu-arrow {
+  margin-left: auto;
+  flex-shrink: 0;
+  width: 1em;
+  text-align: center;
+  font-size: var(--app-base-font-size);
+  font-weight: 700;
+  line-height: 1;
+  color: rgba(255,255,255,0.55);
+  transition: transform 0.2s ease;
+}
+.menu-arrow::before {
+  content: '>';
+  display: inline-block;
+}
 .side-nav-item.mm-active > .side-nav-link .menu-arrow { transform: rotate(90deg); }
 .side-nav-second-level {
   list-style: none;
@@ -127,7 +192,7 @@ body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Ro
   padding: 8px 18px 8px 48px;
   color: #a6b0bf;
   text-decoration: none;
-  font-size: 13px;
+  font-size: var(--app-base-font-size);
   white-space: nowrap;
 }
 .child-li a:hover { color: #fff; background: #3a4149; }
@@ -146,17 +211,17 @@ body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Ro
   flex-shrink: 0;
 }
 .header-top-right { display: flex; align-items: center; flex-wrap: wrap; gap: 16px 20px; }
-.header-top-info { font-size: 12px; color: #333; font-weight: 500; }
+.header-top-info { font-size: var(--app-base-font-size); color: #333; font-weight: 500; }
 .header-user-link { display: flex; align-items: center; gap: 8px; color: #333; text-decoration: none; }
 .header-user-link:hover { color: #111; }
 .header-user-icon { font-size: 1.5rem; color: #555; }
-.header-user-text { font-size: 12px; line-height: 1.4; text-align: left; }
-.header-user .dropdown-menu .dropdown-item { font-size: 12px; }
+.header-user-text { font-size: var(--app-base-font-size); line-height: 1.4; text-align: left; }
+.header-user .dropdown-menu .dropdown-item { font-size: var(--app-base-font-size); }
 .btn-header-close {
   background: #c00 !important;
   border: 1px solid #a00 !important;
   color: #fff !important;
-  font-size: 13px;
+  font-size: var(--app-base-font-size);
   padding: 6px 14px;
   font-weight: 500;
 }
@@ -195,14 +260,14 @@ body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Ro
 .content-tabs .nav-item.copyTopTab .tab-a.active { background: #5a5a5a; color: #fff; font-weight: 600; }
 .content-tabs .tab-a {
   padding: 8px 14px;
-  font-size: 12px;
+  font-size: var(--app-base-font-size);
   text-decoration: none;
   display: inline-block;
 }
 .content-tabs .tab-close-button {
   margin: 0 4px;
   padding: 0 6px;
-  font-size: 14px;
+  font-size: var(--app-base-font-size);
   line-height: 1.2;
   background: none;
   border: none;
@@ -212,7 +277,22 @@ body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Ro
 .content-tabs .tab-close-button:hover { color: #fff; }
 
 /* ========== 본문 내부 (흰 배경, 너비 자동 조절) ========== */
-.content-inner { padding: 16px 20px; flex: 1; min-height: 0; min-width: 0; width: 100%; max-width: none; background: #fff; overflow-x: auto; overflow-y: auto; }
+.content-inner { padding: 16px 20px; flex: 1; min-height: 0; min-width: 0; width: 100%; max-width: none; background: #fff; overflow-x: auto; overflow-y: auto; font-size: var(--app-base-font-size); }
+/* 본문 공통: sm 입력·셀렉트는 사용자관리와 동일 10px */
+.content-inner .form-control-sm,
+.content-inner .form-select-sm,
+.tab-pane.tabConDiv .form-control-sm,
+.tab-pane.tabConDiv .form-select-sm {
+  font-size: var(--app-form-sm-font-size);
+}
+.content-inner .form-label,
+.tab-pane.tabConDiv .form-label {
+  font-size: var(--app-base-font-size);
+}
+.content-inner .form-control:not(.form-control-sm),
+.tab-pane.tabConDiv .form-control:not(.form-control-sm) {
+  font-size: var(--app-base-font-size);
+}
 /* 스크롤바: 얇은 연한 회색 */
 .content-inner,
 .tab-pane.tabConDiv,
@@ -267,14 +347,38 @@ body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Ro
   border-color: #f0c99d;
   box-shadow: 0 0 0 0.18rem rgba(240, 201, 157, 0.28);
 }
+/* 정산방법 시간 입력(정산마감/정산자동개시/이체시간): 기존 대비 50% 확대 */
+.comp-reg-form input[type="time"].settle-time-wide {
+  width: 100%;
+  min-width: 0;
+  max-width: none;
+}
+/* 겹침 방지: 시간 필드 블록 자체를 넓혀 간격 유지 */
+.comp-reg-form .form-field-block.settle-time-wide-block {
+  flex: 0 0 16.6667%;
+  max-width: 16.6667%;
+  padding-right: 10px;
+}
+@media (max-width: 992px) {
+  .comp-reg-form input[type="time"].settle-time-wide {
+    width: 100%;
+    min-width: 0;
+    max-width: none;
+  }
+  .comp-reg-form .form-field-block.settle-time-wide-block {
+    flex: 0 0 100%;
+    max-width: 100%;
+    padding-right: calc(var(--bs-gutter-x, 1.5rem) * .5);
+  }
+}
 .content-page .container-fluid { max-width: none; width: 100%; overflow: hidden; }
 .page-title-box { margin-bottom: 14px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; }
-.page-title-box .page-title { margin: 0; order: 1; font-size: 1.1rem; font-weight: 600; color: #333; }
-.page-title-box .breadcrumb { margin: 0; padding: 0; background: none; font-size: 12px; color: #666; order: 2; }
+.page-title-box .page-title { margin: 0; order: 1; font-size: var(--app-base-font-size); font-weight: 600; color: #333; }
+.page-title-box .breadcrumb { margin: 0; padding: 0; background: none; font-size: var(--app-base-font-size); color: #666; order: 2; }
 .page-title-box .breadcrumb-item.navi { font-weight: 600; color: #333; }
 .page-title-box .page-title.empty-title { display: none; }
 #contentsMain { flex: 1; min-height: 0; overflow: hidden; }
-.tab-pane.tabConDiv { height: 100%; min-height: 0; display: none; padding: 0; overflow-y: auto; }
+.tab-pane.tabConDiv { height: 100%; min-height: 0; display: none; padding: 0; overflow-y: auto; font-size: var(--app-base-font-size); }
 .tab-pane.tabConDiv.show.active { display: block; }
 
 /* 목록 화면 통일 간격: 검색 줄·알림·요약·테이블 구분 (결제내역·결제실패 등 전체) */
@@ -283,6 +387,7 @@ body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Ro
   flex-direction: column;
   gap: 18px;
   margin-bottom: 20px;
+  font-size: var(--app-base-font-size);
 }
 /* 검색 행: 한 줄 고정, 글자수 연동 자동 너비 → 줄바꿈 없이 가로 스크롤 */
 .screen-search-form .search-form-row {
@@ -305,7 +410,7 @@ body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Ro
   flex-shrink: 0;
   width: auto;
   min-width: 36px;
-  font-size: 12px;
+  font-size: var(--app-base-font-size);
   color: #495057;
   text-align: right;
   white-space: nowrap;
@@ -321,7 +426,7 @@ body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Ro
 /* 입력창: 너비는 글자수 자동(ch), 높이/폰트는 30% 확대 */
 .screen-search-form .search-cell-input .form-control-sm,
 .screen-search-form .search-cell-input select.form-control-sm {
-  font-size: 13px;
+  font-size: var(--app-base-font-size);
   height: 28px;
   padding: 2px 8px;
   line-height: 1.3;
@@ -333,7 +438,7 @@ body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Ro
 /* 조회일자: 달력 40% 확대 */
 .screen-search-form .search-cell-input--daterange { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .screen-search-form .search-date-input {
-  font-size: 14px;
+  font-size: var(--app-base-font-size);
   height: 30px;
   padding: 2px 8px;
   width: 154px;
@@ -357,7 +462,7 @@ body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Ro
   min-width: 220px !important;
 }
 /* 퀵 날짜 버튼: 당일·당월 핑크 톤, 나머지 기존 톤 */
-.quick-date { font-size: 12px; padding: 4px 8px; }
+.quick-date { font-size: var(--app-base-font-size); padding: 4px 8px; }
 .quick-date--pink {
   background: linear-gradient(180deg, #fce4ec 0%, #f8bbd9 100%) !important;
   border-color: #f48fb1 !important;
@@ -410,7 +515,7 @@ body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Ro
   .screen-search-form:not(.comp-mng-search-multiline) .search-form-row { -webkit-overflow-scrolling: touch; }
 }
 @media (max-width: 768px) {
-  .screen-search-form .search-cell--with-label .search-cell-label { min-width: 28px; font-size: 11px; }
+  .screen-search-form .search-cell--with-label .search-cell-label { min-width: 28px; font-size: var(--app-base-font-size); }
   .screen-search-form .search-date-input { min-width: 90px; }
 }
 
@@ -422,7 +527,7 @@ body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Ro
   padding: 10px 14px 10px 36px;
   margin-top: 0;
   margin-bottom: 20px;
-  font-size: 13px;
+  font-size: var(--app-base-font-size);
   border-radius: 2px;
   position: relative;
 }
@@ -460,7 +565,7 @@ body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Ro
   color: #4a148c;
   padding: 8px 14px;
   border-radius: 6px;
-  font-size: 13px;
+  font-size: var(--app-base-font-size);
   font-weight: 600;
 }
 .summary-total-bar .summary-total-item { white-space: nowrap; }
@@ -502,9 +607,19 @@ body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Ro
 #contentsMain .btn-primary:hover { background: #286090; border-color: #204d74; }
 #contentsMain .btn-danger { background: #c00; border-color: #a00; }
 #contentsMain .btn-danger:hover { background: #a00; border-color: #800; }
+#contentsMain .btn,
+.tab-pane.tabConDiv .btn,
+.modal-body .btn {
+  font-size: var(--app-base-font-size);
+}
+#contentsMain .btn-sm,
+.tab-pane.tabConDiv .btn-sm,
+.modal-body .btn-sm {
+  font-size: var(--app-form-sm-font-size);
+}
 
 /* 요약 바 (연파랑) */
-.summary-bar { background: #d9edf7; border: 1px solid #bce8f1; padding: 8px 14px; margin-bottom: 10px; font-size: 12px; border-radius: 2px; }
+.summary-bar { background: #d9edf7; border: 1px solid #bce8f1; padding: 8px 14px; margin-bottom: 10px; font-size: var(--app-base-font-size); border-radius: 2px; }
 .summary-bar label { margin: 0 12px 0 0; font-weight: 500; color: #31708f; }
 
 /* 테이블: 제목·내용 상하좌우 가운데 정렬 (모든 테이블 공통 규칙) */
@@ -512,6 +627,7 @@ body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Ro
 #contentsMain .table thead th,
 #contentsMain .table tbody td { text-align: center; vertical-align: middle; }
 #contentsMain .card { border: 1px solid #ddd; border-radius: 2px; }
+#contentsMain .card-header { font-size: var(--app-base-font-size); }
 #contentsMain .card-body { padding: 16px 20px; }
 #contentsMain .table thead th { background: #d9edf7; border: 1px solid #bce8f1; font-weight: 600; color: #31708f; padding: 10px 12px; }
 #contentsMain .table td { padding: var(--table-row-padding-y) 12px; border-color: #ddd; }
@@ -551,7 +667,7 @@ body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Ro
 .screen-calc-gm-list #contentsMain .table th,
 .screen-calc-gm-list #contentsMain .table td {
   white-space: nowrap;
-  font-size: 11px;
+  font-size: var(--app-table-font-size);
 }
 .screen-calc-gm-list #contentsMain .table th[data-key="merchantNm"] { min-width: 150px; }
 .screen-calc-gm-list #contentsMain .table th[data-key="compId"] { min-width: 105px; }
@@ -601,7 +717,7 @@ body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Ro
 .screen-pay-list #contentsMain .table tbody tr:nth-child(odd) { background: #fff; }
 .screen-pay-list #contentsMain .table tbody tr:nth-child(even) { background: #eef6fc; }
 .screen-pay-list #contentsMain .table th,
-.screen-pay-list #contentsMain .table td { font-size: 11px; }
+.screen-pay-list #contentsMain .table td { font-size: var(--app-table-font-size); }
 
 #contentsMain .table-responsive { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
 /* 업체관리 등: 가로·세로 스크롤로 모든 자료 한 화면에서 볼 수 있게 */
@@ -633,7 +749,7 @@ body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Ro
 .screen-distribution-list .screen-distribution-grid.table {
   table-layout: auto;
   min-width: 1280px;
-  font-size: 11px;
+  font-size: var(--app-table-font-size);
 }
 .screen-distribution-list .screen-distribution-grid thead th {
   vertical-align: middle;
@@ -652,7 +768,7 @@ body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Ro
 /* 본사설정 — 노티매핑 JSON 편집 */
 #hqNotifyMappingForm textarea[name="mappingDefinitionJson"] {
   font-family: ui-monospace, Consolas, "Cascadia Code", monospace;
-  font-size: 11px;
+  font-size: var(--app-base-font-size);
   line-height: 1.35;
 }
 
@@ -801,7 +917,7 @@ td.empty-state-cell {
   gap: 10px 14px;
   flex-wrap: wrap;
 }
-.pagination-label { font-size: 11px; color: #31708f; font-weight: 500; }
+.pagination-label { font-size: var(--app-base-font-size); color: #31708f; font-weight: 500; }
 .pagination-size-options { display: flex; align-items: center; gap: 4px; }
 .pagination-size-opt {
   min-width: 32px;
@@ -823,7 +939,7 @@ td.empty-state-cell {
   font-weight: 600;
 }
 .pagination-size-opt--active:hover { background: #46b8da; color: #fff; }
-.pagination-total { font-size: 11px; color: #31708f; }
+.pagination-total { font-size: var(--app-base-font-size); color: #31708f; }
 .pagination-center {
   display: flex;
   align-items: center;
@@ -859,24 +975,24 @@ td.empty-state-cell {
 .pagination-ellipsis {
   padding: 0 4px;
   color: #5a6c7d;
-  font-size: 11px;
+  font-size: var(--app-base-font-size);
   user-select: none;
 }
 #contentsMain .pagination { margin: 0; }
-#contentsMain .pagination .page-link { font-size: 12px; }
+#contentsMain .pagination .page-link { font-size: var(--app-base-font-size); }
 
 /* 각 페이지 하단 회사명 (목록/폼 공통) */
 .page-footer {
   margin-top: 16px;
   padding-top: 12px;
   border-top: 1px solid #e8e8e8;
-  font-size: 12px;
+  font-size: var(--app-base-font-size);
   color: #888;
   text-align: center;
 }
 
 /* 전역 푸터: 회사명은 각 페이지 하단으로 이동 후 유지 또는 제거용 */
-.footer { flex-shrink: 0; background: #fff; padding: 8px 20px; border-top: 1px solid #e8e8e8; font-size: 12px; color: #999; }
+.footer { flex-shrink: 0; background: #fff; padding: 8px 20px; border-top: 1px solid #e8e8e8; font-size: var(--app-base-font-size); color: #999; }
 .dimmed { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.4); z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; }
 .dimmed-icon { width: 3rem; height: 3rem; }
 .dimmed-text { margin-top: 12px; font-weight: 600; color: #fff !important; }
@@ -890,7 +1006,7 @@ td.empty-state-cell {
   display: block;
   margin-bottom: 6px;
   white-space: nowrap;
-  font-size: 12px;
+  font-size: var(--app-base-font-size);
   font-weight: 500;
   color: #333;
 }
@@ -929,7 +1045,7 @@ td.empty-state-cell {
 .pg-binding-list-wrap {
   overflow-x: auto;
 }
-.pg-binding-table { font-size: 0.875rem; }
+.pg-binding-table { font-size: var(--app-table-font-size); }
 .pg-binding-table th, .pg-binding-table td { vertical-align: middle; }
 .pg-binding-table input, .pg-binding-table select { min-width: 80px; }
 
@@ -973,14 +1089,14 @@ body.theme-pastel_4 .content-page, body.theme-pastel_5 .content-page {
   right: 16px;
 }
 #parentCompSearchModal .modal-title {
-  font-size: 13px;
+  font-size: var(--app-base-font-size);
   font-weight: 600;
   text-align: center;
 }
 #parentCompSearchModal .modal-body {
   padding: 12px 20px 16px;
   text-align: center;
-  font-size: 12px;
+  font-size: var(--app-base-font-size);
 }
 #parentCompSearchModal .modal-body .row.mb-3 {
   display: flex;
@@ -995,15 +1111,15 @@ body.theme-pastel_4 .content-page, body.theme-pastel_5 .content-page {
   justify-content: center;
 }
 #parentCompSearchModal .modal-body .form-control {
-  font-size: 12px;
+  font-size: var(--app-base-font-size);
   text-align: center;
 }
 #parentCompSearchModal .modal-body .btn {
-  font-size: 12px;
+  font-size: var(--app-base-font-size);
   padding: 4px 12px;
 }
 #parentCompSearchModal .table {
-  font-size: 12px;
+  font-size: var(--app-table-font-size);
   margin-bottom: 10px;
 }
 #parentCompSearchModal .table th,
@@ -1014,14 +1130,14 @@ body.theme-pastel_4 .content-page, body.theme-pastel_5 .content-page {
 }
 #parentCompSearchModal .table th {
   font-weight: 600;
-  font-size: 11px;
+  font-size: var(--app-table-font-size);
 }
 #parentCompSearchModal .table td .btn {
-  font-size: 11px;
+  font-size: var(--app-base-font-size);
   padding: 2px 8px;
 }
 #parentCompSearchModal .text-muted.small {
-  font-size: 11px;
+  font-size: var(--app-base-font-size);
   text-align: center;
   margin-bottom: 0;
 }
@@ -1029,6 +1145,53 @@ body.theme-pastel_4 .content-page, body.theme-pastel_5 .content-page {
 /* 사용자관리: 권한그룹(본사설정과 동일 정책) 기준 구간 구분 — 참고 UI(거래목록 그룹) 스타일 */
 .table tbody tr.tr-user-group-start td:first-child {
   box-shadow: inset 4px 0 0 #fd7e14;
+}
+
+/* 사용자관리: 글자 축소, 검색줄 입력·사용여부(select) 너비 통일 */
+.screen-user-mng .table,
+.screen-user-mng .table thead th,
+.screen-user-mng .table tbody td {
+  font-size: 10px;
+}
+.screen-user-mng .table .form-control-sm,
+.screen-user-mng .table .form-select-sm {
+  font-size: 10px;
+}
+.screen-user-mng .screen-search-form {
+  font-size: 11px;
+}
+.screen-user-mng .screen-search-form .search-cell-input input.form-control-sm,
+.screen-user-mng .screen-search-form .search-cell-input select.form-control-sm {
+  font-size: 11px;
+  width: 24ch !important;
+  min-width: 24ch !important;
+  max-width: none !important;
+}
+.screen-user-mng .summary-bar {
+  font-size: 11px;
+}
+/* 사용자관리: 초안 행 삭제 글자 축소, OTP 등록/미등록 배지 한 단계 확대 */
+.screen-user-mng .user-mng-draft-remove {
+  font-size: 0.65rem;
+  line-height: 1.2;
+  padding: 0.08rem 0.32rem;
+}
+.screen-user-mng .user-mng-otp-badge {
+  font-size: 10px;
+  line-height: 1.15;
+  padding: 0.12rem 0.4rem;
+  font-weight: 500;
+}
+.screen-user-mng .user-mng-pwd-menu-toggle {
+  font-size: 10px;
+  line-height: 1.2;
+}
+.screen-user-mng .user-mng-pwd-dropdown {
+  font-size: 11px;
+  min-width: 7.5rem;
+}
+.screen-user-mng .user-mng-pwd-dropdown .dropdown-item {
+  font-size: 11px;
 }
 .column-guide-item { user-select: none; }
 .column-guide-item .column-guide-label {
@@ -1067,7 +1230,7 @@ body.theme-pastel_4 .content-page, body.theme-pastel_5 .content-page {
 .hq-holiday-day {
   min-height: 1.6rem;
   line-height: 1.2;
-  font-size: 11px;
+  font-size: var(--app-base-font-size);
   background: #f8f9fa;
   color: #212529;
 }
@@ -1112,7 +1275,7 @@ body.theme-pastel_4 .content-page, body.theme-pastel_5 .content-page {
 
 /* 전산노티·결제환경 — 총판 노티 대상 테이블 */
 #hqNotifyTargetTable .hq-notify-url-cell {
-  font-size: 14px;
+  font-size: var(--app-base-font-size);
   line-height: 1.45;
   vertical-align: middle;
 }
@@ -1121,7 +1284,7 @@ body.theme-pastel_4 .content-page, body.theme-pastel_5 .content-page {
   white-space: nowrap;
 }
 #hqNotifyTargetTable .hq-notify-url-code {
-  font-size: 14px;
+  font-size: var(--app-base-font-size);
   word-break: break-all;
   background: transparent;
 }
@@ -1139,7 +1302,7 @@ body.theme-pastel_4 .content-page, body.theme-pastel_5 .content-page {
   min-width: 132px;
   max-width: 132px;
   text-align: center;
-  font-size: 14px;
+  font-size: var(--app-base-font-size);
   font-weight: 600;
   white-space: nowrap;
   vertical-align: middle;
@@ -1151,7 +1314,7 @@ body.theme-pastel_4 .content-page, body.theme-pastel_5 .content-page {
   width: 7.25rem;
   padding: 0.25rem 0.35rem;
   border-radius: 0.35rem;
-  font-size: 13px;
+  font-size: var(--app-base-font-size);
   font-weight: 700;
   letter-spacing: 0.02em;
   text-align: center;
@@ -1192,7 +1355,7 @@ body.theme-pastel_4 .content-page, body.theme-pastel_5 .content-page {
   min-width: 6.5rem;
   padding: 0.25rem 0.4rem;
   border-radius: 0.35rem;
-  font-size: 12px;
+  font-size: var(--app-base-font-size);
   font-weight: 700;
   letter-spacing: 0.02em;
 }
@@ -1223,4 +1386,125 @@ body.theme-pastel_4 .content-page, body.theme-pastel_5 .content-page {
   color: #b45309;
   font-weight: 600;
   word-break: break-all;
+}
+
+/* 조직별 권한 세팅 — 조직 탭 + 매트릭스 */
+.org-perm-matrix .org-perm-level-tabs .nav-link {
+  border-radius: 999px;
+  padding: 0.35rem 0.85rem;
+  font-size: var(--app-base-font-size);
+  border: 1px solid #dee2e6;
+  background: #fff;
+  color: #495057;
+}
+.org-perm-matrix .org-perm-level-tabs .nav-link.active {
+  background: #0d6efd;
+  border-color: #0d6efd;
+  color: #fff;
+}
+.org-perm-table-wrap {
+  max-height: min(70vh, 560px);
+  overflow: auto;
+  border: 1px solid #e9ecef;
+  border-radius: 0.375rem;
+}
+.org-perm-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: #f8f9fa;
+  font-size: var(--app-table-font-size);
+  white-space: nowrap;
+}
+.org-perm-table .org-perm-th-no,
+.org-perm-table td.org-perm-td-no {
+  width: 3.25rem;
+  max-width: 3.5rem;
+  padding-left: 0.35rem;
+  padding-right: 0.35rem;
+  vertical-align: middle;
+}
+.org-perm-table tbody tr.org-perm-group-header td.org-perm-group-title {
+  background: linear-gradient(180deg, #f1f3f5 0%, #e9ecef 100%);
+  border-top: 2px solid #ced4da;
+  letter-spacing: -0.02em;
+}
+.org-perm-group-bar {
+  padding: 0.45rem 0.65rem;
+}
+.org-perm-group-name {
+  font-weight: 700;
+  font-size: var(--app-base-font-size);
+  color: #212529;
+}
+.org-perm-bulk-hint {
+  font-size: var(--app-base-font-size);
+  white-space: nowrap;
+}
+.org-perm-table .org-perm-bulk-select {
+  min-width: 10.5rem;
+  max-width: 16rem;
+  font-size: var(--app-base-font-size);
+}
+.org-perm-table tbody tr.org-perm-group-header:first-child td.org-perm-group-title {
+  border-top: 1px solid #dee2e6;
+}
+.org-perm-table tbody td {
+  font-size: var(--app-table-font-size);
+  vertical-align: middle;
+}
+.org-perm-table .org-perm-select {
+  min-width: 220px;
+}
+/* 권한별 행 배경·왼쪽 강조 — NONE / OBSERVER / MODIFY / DELETE */
+.org-perm-table tbody tr.org-perm-row {
+  transition: background-color 0.15s ease, box-shadow 0.15s ease;
+}
+.org-perm-table tbody tr.org-perm-row--NONE {
+  background: linear-gradient(90deg, rgba(220, 53, 69, 0.22) 0, rgba(220, 53, 69, 0.06) 12px, #fff5f5 28px);
+  box-shadow: inset 4px 0 0 0 #dc3545;
+}
+.org-perm-table tbody tr.org-perm-row--OBSERVER {
+  background: linear-gradient(90deg, rgba(13, 110, 253, 0.18) 0, rgba(13, 110, 253, 0.05) 12px, #f0f7ff 28px);
+  box-shadow: inset 4px 0 0 0 #0d6efd;
+}
+.org-perm-table tbody tr.org-perm-row--MODIFY {
+  background: linear-gradient(90deg, rgba(253, 126, 20, 0.2) 0, rgba(253, 126, 20, 0.06) 12px, #fff9f0 28px);
+  box-shadow: inset 4px 0 0 0 #fd7e14;
+}
+.org-perm-table tbody tr.org-perm-row--DELETE {
+  background: linear-gradient(90deg, rgba(25, 135, 84, 0.18) 0, rgba(25, 135, 84, 0.05) 12px, #f4fbf7 28px);
+  box-shadow: inset 4px 0 0 0 #198754;
+}
+/* 조직별 권한 — 개별 조직 선택 컨트롤 */
+.org-perm-unit-control-row .form-label {
+  color: #6c757d;
+  font-weight: 600;
+}
+.org-perm-unit-control-row .form-control[readonly] {
+  background-color: #f8f9fa;
+}
+
+.org-perm-matrix .org-perm-legend {
+  font-size: var(--app-base-font-size);
+  gap: 0.75rem 1rem;
+}
+.org-perm-matrix .org-perm-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+.org-perm-matrix .org-perm-legend i {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+.org-perm-legend .org-perm-legend-none { background: #dc3545; }
+.org-perm-legend .org-perm-legend-observer { background: #0d6efd; }
+.org-perm-legend .org-perm-legend-modify { background: #fd7e14; }
+.org-perm-legend .org-perm-legend-delete { background: #198754; }
+.pg-perm-observer .btn:not(#searchBtn):not(.pagination-size-opt),
+.pg-perm-modify .btn-danger {
+  opacity: 0.65;
 }

@@ -1,7 +1,9 @@
 package com.pg.config;
 
+import com.pg.catalog.PageMenuCatalog;
 import com.pg.entity.*;
 import com.pg.repository.*;
+import com.pg.service.OrgPagePermissionService;
 import com.pg.service.HqNotifyEnvService;
 import java.util.Optional;
 import org.springframework.boot.CommandLineRunner;
@@ -592,6 +594,32 @@ public class DataLoader {
                 appUser.setRole("USER");
                 appUser.setEnabled(true);
                 userRepository.save(appUser);
+            }
+        };
+    }
+
+    /**
+     * 가맹점(MERCHANT) 조직 기본 화면권한 — 구 SPA 하드코딩(공지·업체정보조회만 허용)과 동일.
+     * 이미 tb_org_page_permission 에 MERCHANT 행이 있으면 스킵(운영에서 조직별 권한 세팅으로 변경한 경우 보존).
+     */
+    @Bean
+    @Order(200)
+    public CommandLineRunner seedMerchantOrgPagePermissions(OrgPagePermissionRepository orgPagePermissionRepository) {
+        return args -> {
+            if (orgPagePermissionRepository.countByOrgLevel(OrgLevel.MERCHANT.name()) > 0) {
+                return;
+            }
+            for (PageMenuCatalog.PageMenuItem item : PageMenuCatalog.items()) {
+                String url = item.pageUrl();
+                if ("/system/noticeList".equals(url) || "/comp/myCompMng".equals(url)) {
+                    continue;
+                }
+                OrgPagePermission row = new OrgPagePermission();
+                row.setOrgLevel(OrgLevel.MERCHANT.name());
+                row.setPageUrl(url);
+                row.setMenuId(item.menuId());
+                row.setPermission(OrgPagePermissionService.P_NONE);
+                orgPagePermissionRepository.save(row);
             }
         };
     }

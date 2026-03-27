@@ -10,6 +10,7 @@ import com.pg.repository.HqApiConfigRepository;
 import com.pg.repository.PgAgencyRepository;
 import com.pg.entity.AppUser;
 import com.pg.service.HolidayPresetService;
+import com.pg.service.OrgPagePermissionService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -22,7 +23,7 @@ import java.util.stream.Collectors;
 
 /**
  * 본사설정 API
- * 1. PG사 API 연동  2. 기본 수수료 정책  3. API 구성 세팅  4. 본사별 권한 세팅
+ * 1. PG사 API 연동  2. 기본 수수료 정책  3. API 구성 세팅  4. 조직별 권한 세팅
  */
 @RestController
 @RequestMapping(value = "/api/hq", produces = "application/json")
@@ -33,15 +34,18 @@ public class ApiHqController {
     private final HqApiConfigRepository hqApiConfigRepository;
     private final PgAgencyRepository pgAgencyRepository;
     private final HolidayPresetService holidayPresetService;
+    private final OrgPagePermissionService orgPagePermissionService;
 
     public ApiHqController(CommissionPolicyRepository commissionPolicyRepository,
                            HqApiConfigRepository hqApiConfigRepository,
                            PgAgencyRepository pgAgencyRepository,
-                           HolidayPresetService holidayPresetService) {
+                           HolidayPresetService holidayPresetService,
+                           OrgPagePermissionService orgPagePermissionService) {
         this.commissionPolicyRepository = commissionPolicyRepository;
         this.hqApiConfigRepository = hqApiConfigRepository;
         this.pgAgencyRepository = pgAgencyRepository;
         this.holidayPresetService = holidayPresetService;
+        this.orgPagePermissionService = orgPagePermissionService;
     }
 
     private static PageResult<Map<String, Object>> emptyPage(int page, int size) {
@@ -694,18 +698,89 @@ public class ApiHqController {
         return out;
     }
 
-    /** 4. 본사별 페이지/기능 접근 권한 세팅 */
+    /** 4. 조직별 페이지/기능 접근 권한 세팅 (ADMIN 전용) */
     @GetMapping("/permissionMng")
-    public ResponseEntity<ApiResponse<PageResult<Map<String, Object>>>> permissionMng(
-            @RequestParam(required = false) String searchHqNm,
-            @RequestParam(required = false) String searchMenuId,
-            @RequestParam(defaultValue = "1") int page,
-            @RequestParam(defaultValue = "20") int size) {
-        return ResponseEntity.ok(ApiResponse.ok(emptyPage(page, size)));
+    public ResponseEntity<ApiResponse<Map<String, Object>>> permissionMng() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !(auth.getPrincipal() instanceof AppUser u) || !"ADMIN".equalsIgnoreCase(u.getRole())) {
+            return ResponseEntity.ok(ApiResponse.fail("관리자만 조회할 수 있습니다.", "FORBIDDEN"));
+        }
+        return ResponseEntity.ok(ApiResponse.ok(orgPagePermissionService.buildAdminPayload()));
     }
 
     @PostMapping("/permissionMng/save")
+    @SuppressWarnings("unchecked")
     public ResponseEntity<ApiResponse<Map<String, Object>>> permissionMngSave(@RequestBody Map<String, Object> body) {
-        return ResponseEntity.ok(ApiResponse.ok(Map.of("success", true, "message", "저장되었습니다.")));
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !(auth.getPrincipal() instanceof AppUser u) || !"ADMIN".equalsIgnoreCase(u.getRole())) {
+            return ResponseEntity.ok(ApiResponse.fail("관리자만 저장할 수 있습니다.", "FORBIDDEN"));
+        }
+        try {
+            Object raw = body != null ? body.get("matrix") : null;
+            if (!(raw instanceof Map)) {
+                return ResponseEntity.ok(ApiResponse.fail("matrix 형식이 올바르지 않습니다.", "VALIDATION"));
+            }
+            Map<String, Map<String, String>> matrix = new LinkedHashMap<>();
+            for (Map.Entry<?, ?> e : ((Map<?, ?>) raw).entrySet()) {
+                String orgLv = e.getKey() != null ? e.getKey().toString() : "";
+                if (!(e.getValue() instanceof Map<?, ?> sub)) continue;
+                Map<String, String> pages = new LinkedHashMap<>();
+                for (Map.Entry<?, ?> pe : sub.entrySet()) {
+                    pages.put(String.valueOf(pe.getKey()), pe.getValue() != null ? pe.getValue().toString() : "");
+                }
+                matrix.put(orgLv, pages);
+            }
+            orgPagePermissionService.saveMatrix(matrix);
+            return ResponseEntity.ok(ApiResponse.ok(orgPagePermissionService.buildAdminPayload()));
+        } catch (Exception ex) {
+            return ResponseEntity.ok(ApiResponse.fail(ex.getMessage() != null ? ex.getMessage() : "저장 실패", "ERROR"));
+        }
+    }
+
+    /** 개별 조직(총본사~가맹점) 권한 조회 — 단계 기본·최종 적용값 포함 */
+    @GetMapping("/orgUnitPermission")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> orgUnitPermission(@RequestParam Long orgUnitId) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !(auth.getPrincipal() instanceof AppUser u) || !"ADMIN".equalsIgnoreCase(u.getRole())) {
+            return ResponseEntity.ok(ApiResponse.fail("관리자만 조회할 수 있습니다.", "FORBIDDEN"));
+        }
+        try {
+            return ResponseEntity.ok(ApiResponse.ok(orgPagePermissionService.buildOrgUnitPermissionPayload(orgUnitId)));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.ok(ApiResponse.fail(e.getMessage(), "VALIDATION"));
+        }
+    }
+
+    /** 개별 조직 권한 저장 (단계 기본 따름 / 개별 설정) */
+    @PostMapping("/orgUnitPermission/save")
+    @SuppressWarnings("unchecked")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> orgUnitPermissionSave(@RequestBody Map<String, Object> body) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !(auth.getPrincipal() instanceof AppUser u) || !"ADMIN".equalsIgnoreCase(u.getRole())) {
+            return ResponseEntity.ok(ApiResponse.fail("관리자만 저장할 수 있습니다.", "FORBIDDEN"));
+        }
+        try {
+            Object idObj = body != null ? body.get("orgUnitId") : null;
+            if (idObj == null) {
+                return ResponseEntity.ok(ApiResponse.fail("orgUnitId가 필요합니다.", "VALIDATION"));
+            }
+            long orgUnitId = Long.parseLong(idObj.toString().trim());
+            String mode = body != null && body.get("mode") != null ? body.get("mode").toString() : OrgPagePermissionService.MODE_LEVEL_DEFAULT;
+            Map<String, String> pages = new LinkedHashMap<>();
+            Object rawPages = body != null ? body.get("pages") : null;
+            if (rawPages instanceof Map<?, ?> rm) {
+                for (Map.Entry<?, ?> pe : rm.entrySet()) {
+                    pages.put(String.valueOf(pe.getKey()), pe.getValue() != null ? pe.getValue().toString() : "");
+                }
+            }
+            orgPagePermissionService.saveOrgUnitPermission(orgUnitId, mode, pages);
+            return ResponseEntity.ok(ApiResponse.ok(orgPagePermissionService.buildOrgUnitPermissionPayload(orgUnitId)));
+        } catch (NumberFormatException e) {
+            return ResponseEntity.ok(ApiResponse.fail("orgUnitId 형식이 올바르지 않습니다.", "VALIDATION"));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.ok(ApiResponse.fail(e.getMessage(), "VALIDATION"));
+        } catch (Exception ex) {
+            return ResponseEntity.ok(ApiResponse.fail(ex.getMessage() != null ? ex.getMessage() : "저장 실패", "ERROR"));
+        }
     }
 }

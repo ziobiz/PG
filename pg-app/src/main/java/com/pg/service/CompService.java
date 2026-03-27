@@ -239,6 +239,15 @@ public class CompService {
     public PageResult<Map<String, Object>> search(String compId, String compNm,
             String compDiv, String useYn, String payHoldYn, String ceoNm, String terminalId, String ceoMobile, String regNo, Boolean includeSub,
             int page, int size, String scopeCompId, boolean scopeSubtreeBelowLoginOrg) {
+        if (scopeSubtreeBelowLoginOrg && (scopeCompId == null || scopeCompId.trim().isEmpty())) {
+            PageResult<Map<String, Object>> empty = new PageResult<>();
+            empty.setList(new ArrayList<>());
+            empty.setPage(page);
+            empty.setSize(size);
+            empty.setTotalElements(0);
+            empty.setTotalPages(1);
+            return empty;
+        }
         String cId = (compId != null && !compId.trim().isEmpty()) ? compId.trim() : null;
         String cNm = (compNm != null && !compNm.trim().isEmpty()) ? compNm.trim() : null;
         String cDiv = (compDiv != null && !compDiv.trim().isEmpty()) ? compDiv.trim() : null;
@@ -477,6 +486,9 @@ public class CompService {
                                 }
                             }
                             if (!assistantLoginId.isEmpty()) m.put("assistantLoginId", assistantLoginId);
+                            boolean assistantAccountExists = !assistantLoginId.isEmpty()
+                                    && userRepository.findByUsername(assistantLoginId).isPresent();
+                            m.put("assistantPwdSetYn", assistantAccountExists ? "Y" : "N");
                             String assistantRoleType = m.get("assistantRoleType") != null ? String.valueOf(m.get("assistantRoleType")).trim() : "";
                             if ((assistantRoleType == null || assistantRoleType.isBlank()) && !assistantLoginId.isEmpty()) {
                                 userRepository.findByUsername(assistantLoginId).ifPresent(au -> {
@@ -785,6 +797,42 @@ public class CompService {
                                 userRepository.save(u);
                             });
                             return java.util.Optional.of(tempPlain);
+                        }));
+    }
+
+    /**
+     * 보조(assistant) 계정 비밀번호 초기화 — 임시 비밀번호 {@code 보조로그인ID + "1!"} (AppUser만 변경).
+     */
+    @Transactional
+    public java.util.Optional<String> resetAssistantPassword(String compId) {
+        return orgUnitRepository.findByCode(compId != null ? compId : "")
+                .flatMap(ou -> merchantProfileRepository.findByOrgUnitId(ou.getId())
+                        .flatMap(mp -> {
+                            String primaryLoginId = mp.getLoginId() != null ? mp.getLoginId().trim() : "";
+                            Map<String, Object> rs = parseRegionalSettings(mp.getRegionalSettings());
+                            String assistantLoginId = rs.get("assistantLoginId") != null
+                                    ? String.valueOf(rs.get("assistantLoginId")).trim() : "";
+                            if (assistantLoginId.isEmpty() && ou.getCode() != null && !ou.getCode().isBlank()) {
+                                for (AppUser u : userRepository.findByOrgUnitCode(ou.getCode().trim())) {
+                                    String uname = u.getUsername() != null ? u.getUsername().trim() : "";
+                                    if (uname.isEmpty()) continue;
+                                    if (!primaryLoginId.isEmpty() && primaryLoginId.equalsIgnoreCase(uname)) continue;
+                                    if ("ADMIN".equalsIgnoreCase(u.getRole())) continue;
+                                    assistantLoginId = uname;
+                                    break;
+                                }
+                            }
+                            if (assistantLoginId.isBlank()) {
+                                return java.util.Optional.empty();
+                            }
+                            final String aid = assistantLoginId.trim();
+                            return userRepository.findByUsername(aid).map(u -> {
+                                String tempPlain = aid + "1!";
+                                u.setPassword(passwordEncoder.encode(tempPlain));
+                                u.setPasswordMustChangeYn("Y");
+                                userRepository.save(u);
+                                return tempPlain;
+                            });
                         }));
     }
 

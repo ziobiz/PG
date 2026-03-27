@@ -5,6 +5,7 @@ import com.pg.api.dto.LoginRequest;
 import com.pg.api.dto.LoginResponse;
 import com.pg.entity.AppUser;
 import com.pg.service.AuthService;
+import com.pg.service.OrgPagePermissionService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -19,9 +20,11 @@ import java.util.Map;
 public class ApiAuthController {
 
     private final AuthService authService;
+    private final OrgPagePermissionService orgPagePermissionService;
 
-    public ApiAuthController(AuthService authService) {
+    public ApiAuthController(AuthService authService, OrgPagePermissionService orgPagePermissionService) {
         this.authService = authService;
+        this.orgPagePermissionService = orgPagePermissionService;
     }
 
     @PostMapping("/login")
@@ -48,8 +51,10 @@ public class ApiAuthController {
             if (org != null) {
                 user.put("orgUnitId", org.get("orgUnitId"));
                 user.put("compId", org.get("compId"));
+                user.put("compNm", org.get("compNm"));
                 user.put("orgLevel", org.get("orgLevel"));
             }
+            user.put("pagePermissions", orgPagePermissionService.resolvePagePermissionsForUser(u));
         }
         return ResponseEntity.ok(ApiResponse.ok(user));
     }
@@ -72,6 +77,24 @@ public class ApiAuthController {
         try {
             authService.changeOwnPassword(username, currentPassword, newPassword);
             return ResponseEntity.ok(ApiResponse.ok(Map.of("success", true, "message", "비밀번호가 변경되었습니다.")));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.ok(ApiResponse.fail(e.getMessage(), "VALIDATION"));
+        }
+    }
+
+    @PostMapping("/change-name")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> changeName(@RequestBody Map<String, Object> body) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        String username = null;
+        if (auth != null && auth.getPrincipal() instanceof AppUser u) {
+            username = u.getUsername();
+        } else if (auth != null) {
+            username = auth.getName();
+        }
+        String newName = body.get("newName") != null ? String.valueOf(body.get("newName")) : "";
+        try {
+            authService.changeOwnName(username, newName);
+            return ResponseEntity.ok(ApiResponse.ok(Map.of("success", true, "message", "이름이 변경되었습니다.")));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.ok(ApiResponse.fail(e.getMessage(), "VALIDATION"));
         }

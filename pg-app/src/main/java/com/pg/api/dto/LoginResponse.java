@@ -1,5 +1,7 @@
 package com.pg.api.dto;
 
+import java.util.Map;
+
 public class LoginResponse {
     private String token;
     private String userId;
@@ -7,8 +9,11 @@ public class LoginResponse {
     private Long orgUnitId;
     private String compId;
     private String orgLevel;
+    private String role;
     /** 비밀번호 초기화 등으로 임시 비번 사용 중이면 true — 클라이언트에서 변경 유도 */
     private boolean mustChangePassword;
+    /** 조직별 메뉴 권한(URL→NONE/OBSERVER/MODIFY/DELETE). ADMIN이면 null(무제한) */
+    private Map<String, String> pagePermissions;
 
     public String getToken() { return token; }
     public void setToken(String token) { this.token = token; }
@@ -22,6 +27,10 @@ public class LoginResponse {
     public void setCompId(String compId) { this.compId = compId; }
     public String getOrgLevel() { return orgLevel; }
     public void setOrgLevel(String orgLevel) { this.orgLevel = orgLevel; }
+    public String getRole() { return role; }
+    public void setRole(String role) { this.role = role; }
     public boolean isMustChangePassword() { return mustChangePassword; }
     public void setMustChangePassword(boolean mustChangePassword) { this.mustChangePassword = mustChangePassword; }
+    public Map<String, String> getPagePermissions() { return pagePermissions; }
+    public void setPagePermissions(Map<String, String> pagePermissions) { this.pagePermissions = pagePermissions; }
 }
