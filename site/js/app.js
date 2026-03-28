@@ -233,26 +233,16 @@
 
   function getTableRowPaddingY() {
     var v = parseInt(localStorage.getItem(TABLE_ROW_PADDING_KEY), 10);
-    return (isNaN(v) || v < 4 || v > 40) ? 10 : v;
+    return (isNaN(v) || v < 4 || v > 40) ? 6 : v;
   }
   function setTableRowPaddingY(px) {
     var v = Math.max(4, Math.min(40, px));
     document.documentElement.style.setProperty('--table-row-padding-y', v + 'px');
     localStorage.setItem(TABLE_ROW_PADDING_KEY, String(v));
   }
-  function injectTableRowResizeHandles(tbody, colCount) {
-    if (!tbody || tbody.querySelector('.table-row-resize-handle')) return;
-    var rows = Array.from(tbody.querySelectorAll('tr')).filter(function (tr) {
-      return !tr.classList.contains('table-row-resize-handle') && !tr.querySelector('.empty-state-cell');
-    });
-    if (rows.length < 2) return;
-    var count = colCount || (rows[0] && rows[0].querySelectorAll('td').length) || 10;
-    for (var i = rows.length - 1; i >= 1; i--) {
-      var handle = document.createElement('tr');
-      handle.className = 'table-row-resize-handle';
-      handle.innerHTML = '<td colspan="' + count + '"></td>';
-      rows[i].parentNode.insertBefore(handle, rows[i]);
-    }
+  /** 예전: 행 사이 점선 리사이즈 줄 삽입. UX상 제거(그리드·목록 테이블 공통). */
+  function injectTableRowResizeHandles(/* tbody, colCount */) {
+    return;
   }
 
   function getTabIdFromUrl(url) {
@@ -2514,6 +2504,26 @@
       }).catch(function () {});
     }
     bindNotifyTargetPicker();
+    if (url === '/system/noticeList') {
+      var actRowNw = pane.querySelector('.screen-action-buttons');
+      if (actRowNw && !pane.querySelector('[data-notice-write-btn]')) {
+        var wb = document.createElement('button');
+        wb.type = 'button';
+        wb.className = 'btn btn-success btn-sm';
+        wb.setAttribute('data-notice-write-btn', '1');
+        wb.classList.add('d-none');
+        wb.textContent = '공지 등록';
+        wb.addEventListener('click', function () {
+          var u = getSessionUser();
+          if (!u || !u.canWriteNotice) { alert('공지 등록 권한이 없습니다. 조직 등급(총본사·본사·총판)과 [공지사항] 화면 권한을 확인하세요.'); return; }
+          openNoticeWriteModal(function () {
+            doSearch(pane, tabId, 1);
+          });
+        });
+        actRowNw.insertBefore(wb, actRowNw.firstChild);
+      }
+      syncAllNoticeWriteButtons();
+    }
     var autoSearchUrls = ['/system/noticeList', '/calc/payList', '/calc/payNotiList', '/calc/paySuccessList', '/calc/payFailList', '/calc/payRefundList', '/calc/payForceRefundList', '/calc/payCancelList', '/calc/offsetCancList', '/pay/easyPay', '/pay/chatbotPay',
       '/comp/compMngTree', '/comp/compInfoHistList', '/commission/commisionList',
       '/user/userMng', '/set/gridSetMng',
@@ -2766,16 +2776,93 @@
         });
       });
     }
-    var seedBtn = pane.querySelector('#seedBtn');
-    if (seedBtn && url === '/comp/compMngTree') {
-      seedBtn.addEventListener('click', function () {
+    // TEMP_REMOVE_AFTER_DEV — [업체전체초기화] 버튼·핸들러 (ApiCompController admin-reset·플래그와 함께 제거)
+    var compAdminResetOrgBtn = pane.querySelector('#compAdminResetOrgBtn');
+    if (compAdminResetOrgBtn && url === '/comp/compMngTree') {
+      var uReset = getSessionUser();
+      if (!uReset || String(uReset.role || '').toUpperCase() !== 'ADMIN') {
+        compAdminResetOrgBtn.classList.add('d-none');
+      } else {
+        compAdminResetOrgBtn.classList.remove('d-none');
+      }
+      if (!compAdminResetOrgBtn._bound) {
+      compAdminResetOrgBtn._bound = true;
+      compAdminResetOrgBtn.addEventListener('click', function () {
+        if (getPagePermissionForUrl(url) === 'OBSERVER') return;
+        if (!confirm('【업체 전체 초기화】\n\n· 모든 조직(총판·본사·가맹점 등) 및 거래·정산·가맹 연관 데이터가 삭제됩니다.\n· ADMIN 계정은 유지되나, 모든 로그인 세션이 끊깁니다.\n· 총본사 코드 0000000000 만 다시 생성됩니다.\n\n정말 실행할까요?')) return;
+        if (!confirm('마지막 확인: 되돌릴 수 없습니다. 서버에서 allow-org-hierarchy-reset 이 켜져 있어야 성공합니다. 계속?')) return;
+        if (!window.PG_API || !window.PG_API.compAdminResetOrgHierarchy) {
+          alert('API를 사용할 수 없습니다. site/js/api.js 를 반영했는지 확인하세요.');
+          return;
+        }
+        var dimmR = document.getElementById('dimm');
+        if (dimmR) dimmR.style.display = 'flex';
+        window.PG_API.compAdminResetOrgHierarchy().then(function (r) {
+          if (r && r.success === false) {
+            alert(r.message || '실패했습니다. 서버 설정 app.features.allow-org-hierarchy-reset=true 및 재시작 여부를 확인하세요.');
+            return;
+          }
+          var d = r && r.data ? r.data : r;
+          var msg = (d && d.message) ? d.message : '초기화되었습니다.';
+          alert(msg);
+          try {
+            if (window.PG_API.clearAuth) window.PG_API.clearAuth();
+          } catch (e0) {}
+          try {
+            if (window.location) window.location.replace((window.location.origin || '') + '/login.html');
+          } catch (e1) {}
+        }).catch(function (e) {
+          alert(e && e.message ? e.message : '초기화 요청 실패');
+        }).finally(function () {
+          if (dimmR) dimmR.style.display = 'none';
+        });
+      });
+      }
+    }
+    // TEMP_REMOVE_AFTER_DEV — [삭제(개발)] 버튼·핸들러 (dev-tree-remove·플래그와 함께 제거)
+    var compDevTreeRemoveBtn = pane.querySelector('#compDevTreeRemoveBtn');
+    if (compDevTreeRemoveBtn && url === '/comp/compMngTree') {
+      var uDev = getSessionUser();
+      if (!uDev || String(uDev.role || '').toUpperCase() !== 'ADMIN') {
+        compDevTreeRemoveBtn.classList.add('d-none');
+      } else {
+        compDevTreeRemoveBtn.classList.remove('d-none');
+      }
+      compDevTreeRemoveBtn.addEventListener('click', function () {
+        if (getPagePermissionForUrl(url) === 'OBSERVER') return;
+        var grid = pane.querySelector('#grid_' + tabId);
+        if (!grid) return;
+        var checked = grid.querySelectorAll('tbody .grid-row-check:checked');
+        if (checked.length !== 1) {
+          alert('그리드에서 정확히 한 건만 체크한 뒤 [삭제(개발)]을 눌러주세요.');
+          return;
+        }
+        var tr = checked[0].closest('tr');
+        var dr = tr && tr.getAttribute('data-row');
+        var compId = '';
+        if (dr) {
+          try {
+            var row = JSON.parse(decodeURIComponent(dr));
+            compId = row.compId ? String(row.compId).trim() : '';
+          } catch (e1) {}
+        }
+        if (!compId) {
+          alert('선택한 행에서 업체코드를 읽을 수 없습니다.');
+          return;
+        }
+        if (!confirm('[' + compId + '] 및 그 하위 전체 조직의 업체 프로필을 미사용(N)으로 바꿉니다.\n(개발용 — DB 행·테이블 물리 삭제 없음. 총본사는 불가)\n계속할까요?')) return;
+        if (!window.PG_API || !window.PG_API.compDevTreeRemove) {
+          alert('API를 사용할 수 없습니다.');
+          return;
+        }
         var dimm = document.getElementById('dimm');
         if (dimm) dimm.style.display = 'flex';
-        window.PG_API.seedDev().then(function (r) {
-          var msg = (r && r.data && r.data.message) ? r.data.message : (r && r.message) ? r.message : '시드 생성 완료';
-          if (r && r.success === false) alert(msg);
+        window.PG_API.compDevTreeRemove(compId).then(function (r) {
+          var d = r && r.data ? r.data : r;
+          var msg = (d && d.message) ? d.message : '처리되었습니다.';
+          if (r && r.success === false) alert(r.message || msg);
           else { alert(msg); doSearch(pane, tabId, 1); }
-        }).catch(function (e) { alert(e && e.message ? e.message : '시드 생성 실패'); }).finally(function () { if (dimm) dimm.style.display = 'none'; });
+        }).catch(function (e) { alert(e && e.message ? e.message : '처리 실패'); }).finally(function () { if (dimm) dimm.style.display = 'none'; });
       });
     }
     var excelRegBtn = pane.querySelector('#excelRegBtn');
@@ -5802,13 +5889,97 @@
 
   window.fnTopMenuMove = function (url, menuId, label) {
     if (!url) return;
-    if (!isMenuAllowedForCurrentUser(url)) return;
+    if (!isMenuAllowedForCurrentUser(url)) {
+      alert('이 메뉴에 대한 접근 권한이 없습니다. [조직별 권한 세팅]에서 해당 화면 권한을 확인하세요.');
+      return;
+    }
     var link = document.querySelector('.child-li[data-url="' + url + '"] a');
     var mid = menuId || (link && link.getAttribute('data-menu_id'));
     var info = MENU_INFO[url] || {};
     var text = label || (link && link.textContent.trim()) || info.label || getTabIdFromUrl(url);
     addTabAndSwitch(url, mid, text);
   };
+
+  function syncAllNoticeWriteButtons() {
+    var u = getSessionUser();
+    var show = !!(u && u.canWriteNotice);
+    document.querySelectorAll('[data-notice-write-btn]').forEach(function (btn) {
+      btn.classList.toggle('d-none', !show);
+    });
+  }
+
+  function ensureNoticeWriteModal() {
+    var el = document.getElementById('pgNoticeWriteModal');
+    if (el) return el;
+    var wrap = document.createElement('div');
+    wrap.innerHTML =
+      '<div class="modal fade" id="pgNoticeWriteModal" tabindex="-1" aria-labelledby="pgNoticeWriteModalLabel" aria-hidden="true">' +
+      '<div class="modal-dialog modal-lg modal-dialog-scrollable">' +
+      '<div class="modal-content">' +
+      '<div class="modal-header">' +
+      '<h5 class="modal-title" id="pgNoticeWriteModalLabel">공지 등록</h5>' +
+      '<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="닫기"></button></div>' +
+      '<div class="modal-body">' +
+      '<div class="mb-3"><label class="form-label" for="pgNoticeWriteTitle">제목</label>' +
+      '<input type="text" class="form-control" id="pgNoticeWriteTitle" maxlength="500" placeholder="제목"></div>' +
+      '<div class="mb-0"><label class="form-label" for="pgNoticeWriteContent">내용</label>' +
+      '<textarea class="form-control" id="pgNoticeWriteContent" rows="12" placeholder="내용"></textarea></div>' +
+      '</div>' +
+      '<div class="modal-footer">' +
+      '<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">취소</button>' +
+      '<button type="button" class="btn btn-primary" id="pgNoticeWriteSaveBtn">등록</button>' +
+      '</div></div></div></div>';
+    document.body.appendChild(wrap.firstChild);
+    el = document.getElementById('pgNoticeWriteModal');
+    var saveBtn = el.querySelector('#pgNoticeWriteSaveBtn');
+    if (saveBtn && !saveBtn._pgBound) {
+      saveBtn._pgBound = true;
+      saveBtn.addEventListener('click', function () {
+        var titleEl = el.querySelector('#pgNoticeWriteTitle');
+        var contentEl = el.querySelector('#pgNoticeWriteContent');
+        var title = titleEl && titleEl.value ? String(titleEl.value).trim() : '';
+        var content = contentEl && contentEl.value ? String(contentEl.value) : '';
+        if (!title) { alert('제목을 입력하세요.'); return; }
+        if (!window.PG_API || !window.PG_API.noticeCreate) { alert('API를 사용할 수 없습니다.'); return; }
+        window.PG_API.noticeCreate(title, content).then(function () {
+          alert('등록되었습니다.');
+          try {
+            var M = window.bootstrap && window.bootstrap.Modal;
+            if (M) {
+              var inst = M.getOrCreateInstance ? M.getOrCreateInstance(el) : M.getInstance(el);
+              if (inst) inst.hide();
+            }
+          } catch (err) {}
+          if (titleEl) titleEl.value = '';
+          if (contentEl) contentEl.value = '';
+          if (typeof el._onNoticeSaved === 'function') {
+            try { el._onNoticeSaved(); } catch (e1) {}
+          }
+          el._onNoticeSaved = null;
+        }).catch(function (e) {
+          alert(e && e.message ? e.message : '등록 실패');
+        });
+      });
+    }
+    return el;
+  }
+
+  function openNoticeWriteModal(onSaved) {
+    var el = ensureNoticeWriteModal();
+    el._onNoticeSaved = typeof onSaved === 'function' ? onSaved : null;
+    var titleEl = el.querySelector('#pgNoticeWriteTitle');
+    var contentEl = el.querySelector('#pgNoticeWriteContent');
+    if (titleEl) titleEl.value = '';
+    if (contentEl) contentEl.value = '';
+    try {
+      var M = window.bootstrap && window.bootstrap.Modal;
+      if (!M) { alert('화면 구성을 불러오지 못했습니다.'); return; }
+      var modal = M.getOrCreateInstance ? M.getOrCreateInstance(el) : new M(el);
+      modal.show();
+    } catch (e) {
+      alert('공지 등록 창을 열 수 없습니다.');
+    }
+  }
 
   // 로고 클릭 / 탭 위임 / 접기
   function syncSessionUserFromAuthMe() {
@@ -5827,7 +5998,9 @@
         if (d.compId !== undefined) prev.compId = d.compId;
         if (d.orgUnitId !== undefined) prev.orgUnitId = d.orgUnitId;
         if (d.role !== undefined) prev.role = d.role;
+        if (d.canWriteNotice !== undefined) prev.canWriteNotice = !!d.canWriteNotice;
         sessionStorage.setItem('pg_admin_user', JSON.stringify(prev));
+        syncAllNoticeWriteButtons();
       } catch (e) {}
     }).catch(function () {});
   }
@@ -5836,11 +6009,19 @@
     if (!pane || !url) return;
     var perm = getPagePermissionForUrl(url);
     pane.classList.remove('pg-perm-observer', 'pg-perm-modify');
+    function observerAllowTarget(t) {
+      if (!t || !t.closest) return false;
+      if (t.closest('.screen-search-form')) return true;
+      if (t.closest('.pagination-row')) return true;
+      if (t.closest('.table-column-guide')) return true;
+      return false;
+    }
     if (perm === 'OBSERVER') {
       pane.classList.add('pg-perm-observer');
       pane.querySelectorAll('input, select, textarea').forEach(function (el) {
         if (!el) return;
         if (el.type === 'hidden') return;
+        if (observerAllowTarget(el)) return;
         el.disabled = true;
         if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') el.readOnly = true;
       });
@@ -5852,6 +6033,15 @@
           btn.style.pointerEvents = '';
           return;
         }
+        if (observerAllowTarget(btn)) return;
+        if ((btn.id || '') === 'compDevTreeRemoveBtn') return;
+        if ((btn.id || '') === 'compAdminResetOrgBtn') return;
+        if ((btn.id || '') === 'searchBtn' || btn.classList.contains('screen-search-btn')) return;
+        if ((btn.id || '') === 'excelBtn' || (btn.id || '') === 'excelDownBtn' || (btn.id || '') === 'printBtn') return;
+        if (btn.classList.contains('quick-date')) return;
+        if (btn.classList.contains('pagination-size-opt')) return;
+        if (btn.classList.contains('pagination-num')) return;
+        if (btn.getAttribute('data-notice-write-btn')) return;
         btn.disabled = true;
         btn.style.display = '';
       });
@@ -5883,6 +6073,8 @@
           var t = e.target;
           if (!t || !t.closest) return;
           if (t.closest('#compDetailListBtn')) return;
+          if (observerAllowTarget(t)) return;
+          if (t.closest('#searchBtn, .screen-search-btn, #excelBtn, #excelDownBtn, #printBtn, .quick-date, .pagination-size-opt, .pagination-num, [data-notice-write-btn], #compDevTreeRemoveBtn, #compAdminResetOrgBtn')) return;
           if (t.closest('button, a, [role="button"], .btn, .tab-close-button')) {
             e.preventDefault();
             e.stopPropagation();
@@ -5893,6 +6085,7 @@
           if (getPagePermissionForUrl(url) !== 'OBSERVER') return;
           var t = e.target;
           if (!t || !t.closest) return;
+          if (observerAllowTarget(t)) return;
           e.preventDefault();
           e.stopPropagation();
           e.stopImmediatePropagation();
@@ -5901,6 +6094,7 @@
           if (getPagePermissionForUrl(url) !== 'OBSERVER') return;
           var t = e.target;
           if (!t || !t.closest) return;
+          if (observerAllowTarget(t)) return;
           e.preventDefault();
           e.stopPropagation();
           e.stopImmediatePropagation();
@@ -5915,6 +6109,8 @@
     } else if (perm === 'MODIFY') {
       pane.classList.add('pg-perm-modify');
       pane.querySelectorAll('.btn-danger, button').forEach(function (btn) {
+        if ((btn.id || '') === 'compDevTreeRemoveBtn') return;
+        if ((btn.id || '') === 'compAdminResetOrgBtn') return;
         var t = (btn.textContent || '').trim();
         if (t.indexOf('삭제') !== -1 || t.indexOf('일괄삭제') !== -1) btn.disabled = true;
       });
@@ -6340,23 +6536,6 @@
       redirectIfActiveMenuForbidden();
     });
     setTableRowPaddingY(getTableRowPaddingY());
-    var rowResizeState = { active: false, startY: 0, startPx: 0 };
-    document.addEventListener('mousedown', function (e) {
-      var handle = e.target && e.target.closest ? e.target.closest('.table-row-resize-handle') : null;
-      if (!handle) return;
-      e.preventDefault();
-      rowResizeState.active = true;
-      rowResizeState.startY = e.clientY;
-      rowResizeState.startPx = getTableRowPaddingY();
-    });
-    document.addEventListener('mousemove', function (e) {
-      if (!rowResizeState.active) return;
-      var delta = e.clientY - rowResizeState.startY;
-      setTableRowPaddingY(rowResizeState.startPx + delta);
-    });
-    document.addEventListener('mouseup', function () {
-      rowResizeState.active = false;
-    });
     var ul = document.getElementById(TAB_UL);
     if (ul) {
       ul.addEventListener('click', function (e) {

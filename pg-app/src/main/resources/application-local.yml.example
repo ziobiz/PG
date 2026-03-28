@@ -1,6 +1,11 @@
 # 복사 후 application-local.yml 로 저장하고, 비밀번호 등 입력
 # Spring Boot 실행 시 프로파일: --spring.profiles.active=local
 
+# 임시: 업체관리 개발용 트리 비활성 API (운영에서는 false 또는 미설정)
+# app:
+#   features:
+#     comp-dev-tree-remove: true
+
 spring:
   datasource:
     url: jdbc:postgresql://localhost:5432/pgdev

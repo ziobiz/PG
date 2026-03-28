@@ -84,6 +84,7 @@ public class AuthService {
         }
         res.setMustChangePassword("Y".equalsIgnoreCase(user.getPasswordMustChangeYn()));
         res.setPagePermissions(orgPagePermissionService.resolvePagePermissionsForUser(user));
+        res.setCanWriteNotice(orgPagePermissionService.canWriteNotice(user));
         return Optional.of(res);
     }
 

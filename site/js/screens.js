@@ -508,10 +508,10 @@
           { type: 'compMngSearchActions', label: '하위업체포함', checkboxName: 'searchIncludeSub', searchLabel: '검색' }
         ]
       ],
-      noticeList: ['기본 조회는 사용·미사용 업체를 모두 포함합니다(업체사용상태에서 좁힐 수 있음). 본사별 화면 권한(옵저버·수정 등)은 사용/미사용과 관계없이 동일하게 적용됩니다. 미사용으로 바꾼 조직은 결제·정산·노티가 중단되며, 사용으로 되돌리면 복구됩니다. 상위를 미사용으로 두면 하위 프로필도 함께 미사용 처리됩니다.', '엑셀등록: [SAMPLE]으로 서식 있는 xlsx(헤더 색·표선·가운데 정렬)를 받아 예시 행을 수정·추가한 뒤 [엑셀등록]에 업로드하세요.'],
+      noticeList: ['[TEMP_REMOVE_AFTER_DEV] [업체전체초기화]·[삭제(개발)] 버튼은 개발 임시 — 정식 완료 후 코드에서 제거 예정.', '기본 조회는 사용·미사용 업체를 모두 포함합니다(업체사용상태에서 좁힐 수 있음). 본사별 화면 권한(옵저버·수정 등)은 사용/미사용과 관계없이 동일하게 적용됩니다. 미사용으로 바꾼 조직은 결제·정산·노티가 중단되며, 사용으로 되돌리면 복구됩니다. 상위를 미사용으로 두면 하위 프로필도 함께 미사용 처리됩니다.', '엑셀등록: [SAMPLE]으로 서식 있는 xlsx(헤더 색·표선·가운데 정렬)를 받아 예시 행을 수정·추가한 뒤 [엑셀등록]에 업로드하세요.', '★ 행을 통째로 없애려면 [업체전체초기화]만 해당합니다. 서버 allow-org-hierarchy-reset=true + JAR 배포 + ADMIN. 목록에서 안 보이게만 하려면 미사용(N)이지 삭제가 아닙니다.', '[업체전체초기화] — 조직·거래·정산·분배수수료·잔액공제·뷰설정 등 연관 행을 삭제하고 총본사(0000000000)만 재생성. 실행 후 다시 로그인.', '임시(개발): [삭제(개발)] — 한 행 체크 시 해당 조직·하위 프로필만 미사용(N). DB 행 삭제 없음(그래서 목록에 남을 수 있음). 총본사 불가. comp-dev-tree-remove 필요.'],
       noticeRefButton: { id: 'noticeRefBtn', label: '참고', cls: 'btn-success' },
       summary: ['건수'],
-      buttons: [{ id: 'seedBtn', label: '시드 생성', cls: 'btn-outline-warning' }, { id: 'excelBtn', label: '엑셀다운로드', cls: 'btn-info' }, { id: 'excelSampleBtn', label: 'SAMPLE', cls: 'btn-outline-secondary' }, { id: 'excelRegBtn', label: '엑셀등록', cls: 'btn-outline-success' }, { id: 'compRegBtn', label: '등록', cls: 'btn-danger' }],
+      buttons: [{ id: 'compAdminResetOrgBtn', label: '업체전체초기화', cls: 'btn-outline-danger' }, { id: 'compDevTreeRemoveBtn', label: '삭제(개발)', cls: 'btn-outline-warning' }, { id: 'excelBtn', label: '엑셀다운로드', cls: 'btn-info' }, { id: 'excelSampleBtn', label: 'SAMPLE', cls: 'btn-outline-secondary' }, { id: 'excelRegBtn', label: '엑셀등록', cls: 'btn-outline-success' }, { id: 'compRegBtn', label: '등록', cls: 'btn-danger' }],
       tableColumnGuide: true,
       columns: [
         { key: '_chk', type: 'checkbox' },

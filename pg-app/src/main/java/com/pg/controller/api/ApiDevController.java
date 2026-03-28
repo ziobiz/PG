@@ -91,6 +91,7 @@ public class ApiDevController {
 
     /**
      * 업체·결제·수수료 등 조직 연관 데이터 전부 삭제 후 0000000000만 재생성. dev 프로파일에서만 허용.
+     * <p>TEMP_REMOVE_AFTER_DEV — {@link com.pg.service.OrgHierarchyResetService} 일괄 제거 시 이 엔드포인트·주입도 정리.
      */
     @GetMapping("/reset-org-hierarchy")
     public ResponseEntity<ApiResponse<Object>> resetOrgHierarchy() {

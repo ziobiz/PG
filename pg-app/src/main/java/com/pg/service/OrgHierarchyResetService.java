@@ -11,7 +11,16 @@ import java.util.List;
 
 /**
  * 업체(조직) 트리 및 연관 데이터 전부 삭제 후 OTL HQ(0000000000)만 재생성.
- * 등록으로만 조직을 쌓기 위한 초기화용.
+ * <p><b>TEMP_REMOVE_AFTER_DEV</b> — 개발 단계 임시 기능. 스테이징/운영 정식 완료 후 아래를 <b>일괄 제거</b>할 것:
+ * <ul>
+ *   <li>이 서비스 클래스 및 Spring 빈 주입 참조</li>
+ *   <li>{@code ApiCompController}: {@code /api/comp/dev-tree-remove}, {@code /api/comp/admin-reset-org-hierarchy}, 플래그 필드</li>
+ *   <li>{@code app.features.comp-dev-tree-remove}, {@code app.features.allow-org-hierarchy-reset} (모든 yml)</li>
+ *   <li>프론트: {@code compDevTreeRemoveBtn}, {@code compAdminResetOrgBtn}, {@code PG_API.compDevTreeRemove}, {@code compAdminResetOrgHierarchy}</li>
+ *   <li>{@link com.pg.config.OrgHierarchyStartupReset}, {@code CompService#softDeactivateOrgSubtreeForDev}</li>
+ *   <li>선택: dev 전용 {@code ApiDevController} {@code GET /api/dev/reset-org-hierarchy} (같은 서비스 사용 시 함께 정리)</li>
+ * </ul>
+ * 검색 키워드: {@code TEMP_REMOVE_AFTER_DEV}
  */
 @Service
 public class OrgHierarchyResetService {
@@ -35,6 +44,12 @@ public class OrgHierarchyResetService {
     private final OrgBrandingRepository orgBrandingRepository;
     private final OrgUnitRepository orgUnitRepository;
     private final UserCompAccessRepository userCompAccessRepository;
+    private final NoticeRepository noticeRepository;
+    private final OrgUnitPagePermissionRepository orgUnitPagePermissionRepository;
+    private final DistributionFeeConfigRepository distributionFeeConfigRepository;
+    private final OrgViewColumnAllowanceRepository orgViewColumnAllowanceRepository;
+    private final UserViewSettingRepository userViewSettingRepository;
+    private final BalanceDeductionRepository balanceDeductionRepository;
 
     public OrgHierarchyResetService(AuthTokenRepository authTokenRepository,
                                     UserRepository userRepository,
@@ -52,7 +67,13 @@ public class OrgHierarchyResetService {
                                     SettlementSettingRepository settlementSettingRepository,
                                     OrgBrandingRepository orgBrandingRepository,
                                     OrgUnitRepository orgUnitRepository,
-                                    UserCompAccessRepository userCompAccessRepository) {
+                                    UserCompAccessRepository userCompAccessRepository,
+                                    NoticeRepository noticeRepository,
+                                    OrgUnitPagePermissionRepository orgUnitPagePermissionRepository,
+                                    DistributionFeeConfigRepository distributionFeeConfigRepository,
+                                    OrgViewColumnAllowanceRepository orgViewColumnAllowanceRepository,
+                                    UserViewSettingRepository userViewSettingRepository,
+                                    BalanceDeductionRepository balanceDeductionRepository) {
         this.authTokenRepository = authTokenRepository;
         this.userRepository = userRepository;
         this.commissionHistoryRepository = commissionHistoryRepository;
@@ -70,6 +91,12 @@ public class OrgHierarchyResetService {
         this.orgBrandingRepository = orgBrandingRepository;
         this.orgUnitRepository = orgUnitRepository;
         this.userCompAccessRepository = userCompAccessRepository;
+        this.noticeRepository = noticeRepository;
+        this.orgUnitPagePermissionRepository = orgUnitPagePermissionRepository;
+        this.distributionFeeConfigRepository = distributionFeeConfigRepository;
+        this.orgViewColumnAllowanceRepository = orgViewColumnAllowanceRepository;
+        this.userViewSettingRepository = userViewSettingRepository;
+        this.balanceDeductionRepository = balanceDeductionRepository;
     }
 
     @Transactional
@@ -92,6 +119,7 @@ public class OrgHierarchyResetService {
         rollingReserveRepository.deleteAll();
         pgTrnsctnRepository.deleteAll();
         pgNotifyInboundRepository.deleteAll();
+        balanceDeductionRepository.deleteAll();
         merchantPgBindingRepository.deleteAll();
         merchantNotifyUrlRepository.deleteAll();
         merchantDefaultProductRepository.deleteAll();
@@ -99,6 +127,12 @@ public class OrgHierarchyResetService {
         merchantProfileRepository.deleteAll();
         settlementSettingRepository.deleteAll();
         orgBrandingRepository.deleteAll();
+
+        noticeRepository.deleteAll();
+        orgUnitPagePermissionRepository.deleteAll();
+        distributionFeeConfigRepository.deleteAll();
+        orgViewColumnAllowanceRepository.deleteAll();
+        userViewSettingRepository.deleteAll();
 
         List<OrgUnit> units = orgUnitRepository.findAll();
         for (OrgUnit o : units) {
@@ -131,6 +165,12 @@ public class OrgHierarchyResetService {
         ex.setOrgUnitId(hq.getId());
         merchantCommissionExtraRepository.save(ex);
 
-        log.info("Org hierarchy reset complete. Only 0000000000 remains.");
+        for (AppUser left : userRepository.findAll()) {
+            left.setOrgUnitCode(hq.getCode());
+            userRepository.save(left);
+        }
+
+        log.info("Org hierarchy reset complete. Only {} remains ({} org row(s)).",
+                hq.getCode(), orgUnitRepository.count());
     }
 }

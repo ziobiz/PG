@@ -124,12 +124,26 @@
       return get('/api/system/notice', params).then(function (r) { return r.data; });
     },
 
+    noticeCreate: function (title, content) {
+      return post('/api/system/notice', { title: title || '', content: content || '' });
+    },
+
     payList: function (params) {
       return get('/api/calc/payList', params).then(function (r) { return r.data; });
     },
 
     seedDev: function () {
       return get('/api/dev/seed');
+    },
+
+    /** TEMP_REMOVE_AFTER_DEV — 임시: 선택 조직+하위 프로필 미사용(N). ADMIN + comp-dev-tree-remove */
+    compDevTreeRemove: function (compId) {
+      return post('/api/comp/dev-tree-remove', { compId: compId || '' });
+    },
+
+    /** TEMP_REMOVE_AFTER_DEV — 임시: 업체 전체 초기화. ADMIN + allow-org-hierarchy-reset */
+    compAdminResetOrgHierarchy: function () {
+      return post('/api/comp/admin-reset-org-hierarchy', {});
     },
 
     compList: function (params) {

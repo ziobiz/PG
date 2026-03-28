@@ -38,6 +38,12 @@ spring:
 
 # SPA( site ) 연동 시 CORS 허용 오리진 (쉼표 구분)
 app:
+  # TEMP_REMOVE_AFTER_DEV — 아래 두 플래그·대응 API·업체관리 버튼(삭제개발/업체전체초기화)·OrgHierarchyResetService 는 개발 임시. 정식 완료 후 일괄 삭제.
+  features:
+    # TEMP_REMOVE_AFTER_DEV — true: [삭제(개발)] POST /api/comp/dev-tree-remove (use_yn=N 만, 물리삭제 없음). ADMIN.
+    comp-dev-tree-remove: false
+    # TEMP_REMOVE_AFTER_DEV — true: [업체전체초기화] POST /api/comp/admin-reset-org-hierarchy. ADMIN.
+    allow-org-hierarchy-reset: false
   data:
     # true 시 기동 직후 업체·연관 데이터 전부 삭제 후 OTL HQ(HQ01)만 유지 (보통 1회 후 false)
     reset-org-hierarchy-on-startup: false

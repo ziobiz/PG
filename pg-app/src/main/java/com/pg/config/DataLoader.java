@@ -613,14 +613,15 @@ public class DataLoader {
             }
             for (PageMenuCatalog.PageMenuItem item : PageMenuCatalog.items()) {
                 String url = item.pageUrl();
-                if ("/system/noticeList".equals(url) || "/comp/myCompMng".equals(url)) {
-                    continue;
-                }
                 OrgPagePermission row = new OrgPagePermission();
                 row.setOrgLevel(OrgLevel.MERCHANT.name());
                 row.setPageUrl(url);
                 row.setMenuId(item.menuId());
-                row.setPermission(OrgPagePermissionService.P_NONE);
+                if ("/system/noticeList".equals(url) || "/comp/myCompMng".equals(url)) {
+                    row.setPermission(OrgPagePermissionService.P_OBSERVER);
+                } else {
+                    row.setPermission(OrgPagePermissionService.P_NONE);
+                }
                 orgPagePermissionRepository.save(row);
             }
         };

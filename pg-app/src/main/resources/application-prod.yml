@@ -1,0 +1,9 @@
+# 운영(prod) 프로파일 — spring.profiles.active=prod 일 때 병합됩니다.
+# TEMP_REMOVE_AFTER_DEV — comp-dev-tree-remove / allow-org-hierarchy-reset 및 대응 API·화면 버튼은 개발 임시. 정식 완료 후 코드·이 플래그들 일괄 제거.
+app:
+  features:
+    comp-dev-tree-remove: true
+    # TEMP_REMOVE_AFTER_DEV — 저장소 기본은 false. 서버에서 초기화할 때만 일시 true
+    allow-org-hierarchy-reset: false
+
+

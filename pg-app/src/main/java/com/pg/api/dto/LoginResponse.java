@@ -14,6 +14,8 @@ public class LoginResponse {
     private boolean mustChangePassword;
     /** 조직별 메뉴 권한(URL→NONE/OBSERVER/MODIFY/DELETE). ADMIN이면 null(무제한) */
     private Map<String, String> pagePermissions;
+    /** 공지사항 등록 가능(총본사·본사·총판 + 화면 권한 MODIFY 이상) */
+    private boolean canWriteNotice;
 
     public String getToken() { return token; }
     public void setToken(String token) { this.token = token; }
@@ -33,4 +35,6 @@ public class LoginResponse {
     public void setMustChangePassword(boolean mustChangePassword) { this.mustChangePassword = mustChangePassword; }
     public Map<String, String> getPagePermissions() { return pagePermissions; }
     public void setPagePermissions(Map<String, String> pagePermissions) { this.pagePermissions = pagePermissions; }
+    public boolean isCanWriteNotice() { return canWriteNotice; }
+    public void setCanWriteNotice(boolean canWriteNotice) { this.canWriteNotice = canWriteNotice; }
 }

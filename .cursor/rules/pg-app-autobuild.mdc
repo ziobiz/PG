@@ -1,0 +1,42 @@
+---
+description: pg-app 수정 시 Gradle bootJar 자동 실행 — 사용자는 JAR 업로드·재시작만
+alwaysApply: true
+---
+
+# pg-app 빌드 자동 실행 (필수)
+
+## 전제
+- 사용자는 **빌드 산출물을 올리고 서버에서 재시작**만 한다.
+- **에이전트는** 저장소에서 `pg-app` 관련 개발을 마칠 때 **반드시** 아래 빌드를 수행한다. (요청이 없어도 동일)
+
+## 반드시 지킬 것
+
+1. **다음 경로를 에이전트가 수정한 턴**에는, 답변·작업을 끝내기 **전에** 반드시 빌드를 실행한다.
+   - `pg-app/src/main/java/**`
+   - `pg-app/src/main/resources/**` (예: `application.yml`, `db/*.sql` 리소스 등)
+   - `pg-app/build.gradle`, `pg-app/settings.gradle` 등 빌드·의존성 정의
+
+2. **실행 명령** (Windows 저장소 기준, `pg-app`이 하위 디렉터리일 때):
+   - 디렉터리: `pg-app`
+   - 명령: `.\gradlew.bat bootJar --no-daemon`
+   - `compileJava`만으로 끝내지 않는다. **배포용 산출물은 `bootJar`** 이다.
+
+3. **빌드 실패 시**
+   - 성공할 때까지 원인을 수정하고 **재실행**한다.
+   - 불가피하게 막힌 경우에만 실패 로그와 함께 사용자에게 알린다.
+
+4. **답변 말미**
+   - 빌드를 실행했다는 것을 짧게 밝힌다.
+   - 업로드할 JAR 경로를 **항상** 명시한다: `pg-app/build/libs/pg-app-0.0.1-SNAPSHOT.jar` (프로젝트에서 버전·이름이 다르면 실제 산출물 경로로 맞춘다).
+
+## 예외 (bootJar 생략 가능)
+- `pg-app` **이외**만 수정하고, Java·리소스·Gradle을 건드리지 않은 턴 (예: `site/`만, `docs/`만, `.mdc`만).
+- 순수 질의·설명으로 **파일을 수정하지 않은** 턴.
+
+## `site/` 와 JAR
+- 이 프로젝트는 **일반적인 JAR 배포**에서 `site/` 가 JAR 정적 리소스에 포함될 수 있다. `site/` 와 `pg-app` 을 **같은 배포 주기**로 올리는 운영이면, 그 턴에 **`bootJar`까지 실행**해 최신 정적이 들어간 JAR을 만든다.
+- **정적만 카페24 등 별도 경로**로만 올리는 운영이면, 사용자가 그렇다고 한 경우에만 JAR 없이 `site/` 목록만 안내한다.
+
+## 다른 규칙과의 관계
+- 배포 절차·FTP·재시작 문구는 **`deployment-rule.mdc`** 및 `docs/배포_가이드_FTP_업로드_및_재시작.md` 와 맞춘다.
+- 답변 말미 블록은 **`development-workflow.mdc`** 의 “코드 수정 후 답변 말미”와 함께 적용한다.

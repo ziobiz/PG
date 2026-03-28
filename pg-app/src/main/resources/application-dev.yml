@@ -2,8 +2,13 @@
 # DB 파일: pg-app/data/pgdev.mv.db (작업 디렉터리가 pg-app 일 때)
 # 실행: --spring.profiles.active=dev
 # 또는 환경변수: SPRING_PROFILES_ACTIVE=dev
+#
+# TEMP_REMOVE_AFTER_DEV — 아래 두 플래그는 [삭제(개발)]·[업체전체초기화] 임시 기능용. 정식 완료 후 yml·코드 일괄 제거.
 
 app:
+  features:
+    comp-dev-tree-remove: true
+    allow-org-hierarchy-reset: true
   data:
     # true: 매 기동마다 업체 전부 삭제 후 HQ01만 유지(등록 테스트 시 주의). 1회만 초기화할 때는 false 두고
     #       브라우저에서 GET http://localhost:8080/api/dev/reset-org-hierarchy (dev 프로파일) 호출 권장

@@ -55,6 +55,7 @@ public class ApiAuthController {
                 user.put("orgLevel", org.get("orgLevel"));
             }
             user.put("pagePermissions", orgPagePermissionService.resolvePagePermissionsForUser(u));
+            user.put("canWriteNotice", orgPagePermissionService.canWriteNotice(u));
         }
         return ResponseEntity.ok(ApiResponse.ok(user));
     }

@@ -87,10 +87,46 @@ public class OrgPagePermissionService {
         }
         Map<String, String> out = new LinkedHashMap<>();
         for (PageMenuCatalog.PageMenuItem item : PageMenuCatalog.items()) {
-            String p = byUrl.get(item.pageUrl());
-            out.put(item.pageUrl(), p != null ? p : P_DELETE);
+            String url = item.pageUrl();
+            String p = byUrl.get(url);
+            if (p == null && OrgLevel.MERCHANT.name().equals(orgLevel)) {
+                if ("/system/noticeList".equals(url) || "/comp/myCompMng".equals(url)) {
+                    p = P_OBSERVER;
+                }
+            }
+            out.put(url, p != null ? p : P_DELETE);
         }
         return out;
+    }
+
+    /**
+     * 공지 등록: 화면 권한이 MODIFY/DELETE 이고, 조직이 총본사·본사(REGIONAL)·총판(MASTER_DIST)일 때만.
+     * ADMIN 은 항상 가능. 페이지 권한은 조직별 권한 세팅에서 조정.
+     */
+    public boolean canWriteNotice(AppUser user) {
+        if (user == null) {
+            return false;
+        }
+        if ("ADMIN".equalsIgnoreCase(user.getRole())) {
+            return true;
+        }
+        Map<String, String> m = resolvePagePermissionsForUser(user);
+        if (m != null) {
+            String raw = m.get("/system/noticeList");
+            String p = raw != null ? normalizePerm(raw) : P_DELETE;
+            if (P_NONE.equals(p) || P_OBSERVER.equals(p)) {
+                return false;
+            }
+            if (!P_MODIFY.equals(p) && !P_DELETE.equals(p)) {
+                return false;
+            }
+        }
+        Map<String, Object> org = authService.getOrgInfo(user.getUsername());
+        if (org == null) {
+            return false;
+        }
+        String level = String.valueOf(org.getOrDefault("orgLevel", "")).trim().toUpperCase(Locale.ROOT);
+        return "HEADQUARTERS".equals(level) || "REGIONAL".equals(level) || "MASTER_DIST".equals(level);
     }
 
     /**
@@ -240,7 +276,7 @@ public class OrgPagePermissionService {
         for (PageMenuCatalog.PageMenuItem item : PageMenuCatalog.items()) {
             String u = item.pageUrl();
             boolean allow = "/system/noticeList".equals(u) || "/comp/myCompMng".equals(u);
-            out.put(u, allow ? P_DELETE : P_NONE);
+            out.put(u, allow ? P_OBSERVER : P_NONE);
         }
         return out;
     }

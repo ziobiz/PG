@@ -2020,4 +2020,45 @@ public class CompService {
                 .orElseThrow(() -> new IllegalArgumentException("연동 정보를 찾을 수 없습니다."));
         merchantPgBindingRepository.delete(b);
     }
+
+    /**
+     * TEMP_REMOVE_AFTER_DEV — 임시 개발용: 선택 조직 + 전체 하위의 {@code tb_merchant_profile.use_yn} 만 {@code N} (물리 삭제 없음).
+     * 총본사 제외. {@code /api/comp/dev-tree-remove}·플래그·화면 [삭제(개발)] 와 함께 제거.
+     */
+    @Transactional
+    public Map<String, Object> softDeactivateOrgSubtreeForDev(String compId, AppUser user, boolean featureEnabled) {
+        if (!featureEnabled) {
+            throw new IllegalArgumentException("개발용 기능이 비활성화되어 있습니다. app.features.comp-dev-tree-remove=true 인 프로파일에서만 사용할 수 있습니다.");
+        }
+        if (user == null || !"ADMIN".equalsIgnoreCase(user.getRole())) {
+            throw new IllegalArgumentException("관리자(ADMIN)만 사용할 수 있는 개발용 기능입니다.");
+        }
+        if (compId == null || compId.isBlank()) {
+            throw new IllegalArgumentException("그리드에서 한 건을 체크한 뒤 진행하세요.");
+        }
+        OrgUnit root = orgUnitRepository.findByCode(compId.trim())
+                .orElseThrow(() -> new IllegalArgumentException("업체를 찾을 수 없습니다."));
+        if (root.getOrgLevel() == OrgLevel.HEADQUARTERS) {
+            throw new IllegalArgumentException("총본사는 처리 대상에서 제외됩니다.");
+        }
+        List<Long> subtree = new ArrayList<>();
+        subtree.add(root.getId());
+        subtree.addAll(collectDescendantIds(root.getId()));
+        int profileUpdated = 0;
+        for (Long ouId : subtree) {
+            Optional<MerchantProfile> omp = merchantProfileRepository.findByOrgUnitId(ouId);
+            if (omp.isPresent()) {
+                MerchantProfile mp = omp.get();
+                mp.setUseYn("N");
+                merchantProfileRepository.save(mp);
+                profileUpdated++;
+            }
+        }
+        Map<String, Object> out = new LinkedHashMap<>();
+        out.put("message", "선택 조직 및 하위 " + subtree.size() + "개 조직 중 프로필 " + profileUpdated + "건을 미사용(N) 처리했습니다. (DB 물리 삭제 없음)");
+        out.put("orgCount", subtree.size());
+        out.put("profileUpdated", profileUpdated);
+        out.put("rootCompId", root.getCode());
+        return out;
+    }
 }

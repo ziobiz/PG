@@ -253,6 +253,7 @@
           var u = { loginId: resData.userId, userId: resData.userId, userNm: resData.userNm || '관리자', orgUnitId: resData.orgUnitId, compId: resData.compId, orgLevel: resData.orgLevel };
           if (resData.role) u.role = resData.role;
           if (resData.pagePermissions) u.pagePermissions = resData.pagePermissions;
+          if (resData.canWriteNotice !== undefined) u.canWriteNotice = !!resData.canWriteNotice;
           api.setAuth(resData.token, u);
         }
         window.location.replace((origin || '') + '/index.html');

@@ -23,6 +23,10 @@ public class Notice {
     @Column(name = "hit_cnt")
     private int hitCnt = 0;
 
+    /** 작성 시점 로그인 조직(tb_org_unit.id). 없으면 구 데이터 */
+    @Column(name = "org_unit_id")
+    private Long orgUnitId;
+
     @Column(name = "reg_dt", nullable = false, updatable = false)
     private LocalDateTime regDt;
 
@@ -43,6 +47,8 @@ public class Notice {
     public void setContent(String content) { this.content = content; }
     public int getHitCnt() { return hitCnt; }
     public void setHitCnt(int hitCnt) { this.hitCnt = hitCnt; }
+    public Long getOrgUnitId() { return orgUnitId; }
+    public void setOrgUnitId(Long orgUnitId) { this.orgUnitId = orgUnitId; }
     public LocalDateTime getRegDt() { return regDt; }
     public void setRegDt(LocalDateTime regDt) { this.regDt = regDt; }
     public LocalDateTime getCreatedAt() { return createdAt; }
