@@ -1,7 +1,7 @@
 server:
   port: 8080
-  # Nginx 등 리버스 프록시 뒤: X-Forwarded-Proto/Host 반영 (리다이렉트·절대 URL)
-  forward-headers-strategy: framework
+  # Nginx 등 리버스 프록시 뒤: X-Forwarded-Proto 반영. 잘못된 헤더면 https↔http 리다이렉트 루프(ERR_TOO_MANY_REDIRECTS) 가능 → 필요 시 FORWARD_HEADERS_STRATEGY=none
+  forward-headers-strategy: ${FORWARD_HEADERS_STRATEGY:framework}
 
 # 로컬 한 서버 테스트: pg-app 실행 디렉터리가 pg-app 일 때, 상위의 site 폴더를 정적 리소스로 서빙
 # (프로젝트 루트에서 ./pg-app/gradlew bootRun 이면 working dir 에 따라 경로 조정 필요)
@@ -31,7 +31,7 @@ spring:
       hibernate:
         format_sql: true
         default_schema: public
-    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    # PostgreSQL dialect는 JDBC URL로 자동 선택 (명시 시 HHH90000025 경고). H2는 application-dev.yml 에서 지정.
 
 # 로컬에서 서버 DB 접속 시 아래처럼 주소만 바꿔서 사용 (application-local.yml 또는 환경변수)
 # spring.datasource.url: jdbc:postgresql://서버IP:5432/pgdev
@@ -53,8 +53,15 @@ app:
   serverManage:
     uiAutoRefreshSeconds: 120
     nginxStubStatusUrl: ${NGINX_STUB_STATUS_URL:}
+  # 일별 트래픽·메모리 피크 수집 (OSHI). NOTI 시스템 모니터 유사 차트용.
+  serverUsage:
+    enabled: true
+    collectIntervalMs: 600000
+  # 관리자 SPA 도메인이 카페24·별도 도메인 등 제각각일 수 있어 기본은 전 Origin 허용(*). API는 Bearer만 사용(쿠키 없음).
+  # 보수적으로 쓰려면 allow-all-origins: false 후 allowed-origin-patterns 만 나열.
   cors:
-    allowed-origins: https://api.icopay.co.kr,http://api.icopay.co.kr,https://icopay.co.kr,https://www.icopay.co.kr,http://icopay.co.kr,http://www.icopay.co.kr,https://otlpay.cafe24.com,http://otlpay.cafe24.com,https://www.otlpay.cafe24.com,http://www.otlpay.cafe24.com
+    allow-all-origins: true
+    allowed-origin-patterns: https://*.icopay.co.kr,https://icopay.co.kr,https://www.icopay.co.kr,http://localhost:*,http://127.0.0.1:*,https://*.cafe24.com,http://*.cafe24.com,https://otlpay.cafe24.com,http://otlpay.cafe24.com,https://www.otlpay.cafe24.com,http://www.otlpay.cafe24.com
   # ChillPay (칠리페이) DirectCredit API 연동
   chillpay:
     merchant-code: ${CHILLPAY_MERCHANT_CODE:M035594}

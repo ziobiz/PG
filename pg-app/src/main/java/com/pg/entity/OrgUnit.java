@@ -1,6 +1,7 @@
 package com.pg.entity;
 
 import jakarta.persistence.*;
+
 import java.time.LocalDateTime;
 
 /**
@@ -39,6 +40,19 @@ public class OrgUnit {
     @Column(name = "page_permission_mode", length = 20)
     private String pagePermissionMode = "LEVEL_DEFAULT";
 
+    /** 본사·총판 도메인 설정 화면용 표시 이름 */
+    @Column(name = "domain_setting_name", length = 200)
+    private String domainSettingName;
+
+    @Column(name = "org_domain_admin_url", length = 500)
+    private String orgDomainAdminUrl;
+
+    @Column(name = "org_domain_api_url", length = 500)
+    private String orgDomainApiUrl;
+
+    @Column(name = "domain_urls_updated_at")
+    private LocalDateTime domainUrlsUpdatedAt;
+
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 
@@ -75,6 +89,14 @@ public class OrgUnit {
         return (pagePermissionMode != null && !pagePermissionMode.isBlank()) ? pagePermissionMode : "LEVEL_DEFAULT";
     }
     public void setPagePermissionMode(String pagePermissionMode) { this.pagePermissionMode = pagePermissionMode; }
+    public String getDomainSettingName() { return domainSettingName; }
+    public void setDomainSettingName(String domainSettingName) { this.domainSettingName = domainSettingName; }
+    public String getOrgDomainAdminUrl() { return orgDomainAdminUrl; }
+    public void setOrgDomainAdminUrl(String orgDomainAdminUrl) { this.orgDomainAdminUrl = orgDomainAdminUrl; }
+    public String getOrgDomainApiUrl() { return orgDomainApiUrl; }
+    public void setOrgDomainApiUrl(String orgDomainApiUrl) { this.orgDomainApiUrl = orgDomainApiUrl; }
+    public LocalDateTime getDomainUrlsUpdatedAt() { return domainUrlsUpdatedAt; }
+    public void setDomainUrlsUpdatedAt(LocalDateTime domainUrlsUpdatedAt) { this.domainUrlsUpdatedAt = domainUrlsUpdatedAt; }
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
 }

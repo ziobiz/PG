@@ -509,6 +509,34 @@ ALTER TABLE tb_hq_api_config ADD COLUMN IF NOT EXISTS server_manage_ssl_cert_pat
 ALTER TABLE tb_hq_api_config ADD COLUMN IF NOT EXISTS server_manage_ssl_le_domain VARCHAR(255);
 ALTER TABLE tb_org_branding ADD COLUMN IF NOT EXISTS brand_host VARCHAR(255);
 
+-- V43: 본사·총판 조직별 도메인 URL (tb_org_unit)
+ALTER TABLE tb_org_unit ADD COLUMN IF NOT EXISTS domain_setting_name VARCHAR(200);
+ALTER TABLE tb_org_unit ADD COLUMN IF NOT EXISTS org_domain_admin_url VARCHAR(500);
+ALTER TABLE tb_org_unit ADD COLUMN IF NOT EXISTS org_domain_api_url VARCHAR(500);
+ALTER TABLE tb_org_unit ADD COLUMN IF NOT EXISTS domain_urls_updated_at TIMESTAMP;
+
+-- V44: 서버관리 호스팅 약정(디스크·트래픽 MB, 기간, 트래픽 사용량 수동)
+ALTER TABLE tb_hq_api_config ADD COLUMN IF NOT EXISTS server_manage_contract_disk_mb INTEGER;
+ALTER TABLE tb_hq_api_config ADD COLUMN IF NOT EXISTS server_manage_contract_traffic_mb INTEGER;
+ALTER TABLE tb_hq_api_config ADD COLUMN IF NOT EXISTS server_manage_contract_start DATE;
+ALTER TABLE tb_hq_api_config ADD COLUMN IF NOT EXISTS server_manage_contract_end DATE;
+ALTER TABLE tb_hq_api_config ADD COLUMN IF NOT EXISTS server_manage_traffic_used_mb INTEGER;
+
+-- V45: 서버 일별 트래픽·메모리 피크 시계열
+CREATE TABLE IF NOT EXISTS tb_server_usage_daily (
+    usage_date DATE NOT NULL PRIMARY KEY,
+    traffic_bytes BIGINT NOT NULL DEFAULT 0,
+    memory_peak_pct DOUBLE PRECISION NOT NULL DEFAULT 0
+);
+CREATE TABLE IF NOT EXISTS tb_server_usage_state (
+    id SMALLINT NOT NULL PRIMARY KEY,
+    last_net_total_bytes BIGINT,
+    updated_at TIMESTAMP
+);
+INSERT INTO tb_server_usage_state (id, last_net_total_bytes, updated_at)
+VALUES (1, NULL, NULL)
+ON CONFLICT (id) DO NOTHING;
+
 -- #############################################################################
 -- SECTION C: check_tables.sql (검증용 SELECT)
 -- #############################################################################

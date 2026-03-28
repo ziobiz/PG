@@ -4,14 +4,18 @@ import com.pg.api.ApiResponse;
 import com.pg.api.dto.PageResult;
 import com.pg.entity.CommissionPolicy;
 import com.pg.entity.HqApiConfig;
+import com.pg.entity.OrgLevel;
+import com.pg.entity.OrgUnit;
 import com.pg.entity.PgAgency;
 import com.pg.repository.CommissionPolicyRepository;
 import com.pg.repository.HqApiConfigRepository;
+import com.pg.repository.OrgUnitRepository;
 import com.pg.repository.PgAgencyRepository;
 import com.pg.entity.AppUser;
 import com.pg.service.HolidayPresetService;
 import com.pg.service.HqServerManageService;
 import com.pg.service.OrgPagePermissionService;
+import com.pg.service.ServerUsageService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -19,6 +23,8 @@ import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.format.DateTimeParseException;
+import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -37,19 +43,25 @@ public class ApiHqController {
     private final HolidayPresetService holidayPresetService;
     private final OrgPagePermissionService orgPagePermissionService;
     private final HqServerManageService hqServerManageService;
+    private final ServerUsageService serverUsageService;
+    private final OrgUnitRepository orgUnitRepository;
 
     public ApiHqController(CommissionPolicyRepository commissionPolicyRepository,
                            HqApiConfigRepository hqApiConfigRepository,
                            PgAgencyRepository pgAgencyRepository,
                            HolidayPresetService holidayPresetService,
                            OrgPagePermissionService orgPagePermissionService,
-                           HqServerManageService hqServerManageService) {
+                           HqServerManageService hqServerManageService,
+                           ServerUsageService serverUsageService,
+                           OrgUnitRepository orgUnitRepository) {
         this.commissionPolicyRepository = commissionPolicyRepository;
         this.hqApiConfigRepository = hqApiConfigRepository;
         this.pgAgencyRepository = pgAgencyRepository;
         this.holidayPresetService = holidayPresetService;
         this.orgPagePermissionService = orgPagePermissionService;
         this.hqServerManageService = hqServerManageService;
+        this.serverUsageService = serverUsageService;
+        this.orgUnitRepository = orgUnitRepository;
     }
 
     private static PageResult<Map<String, Object>> emptyPage(int page, int size) {
@@ -413,7 +425,7 @@ public class ApiHqController {
         return ResponseEntity.ok(ApiResponse.ok(Map.of("success", true, "message", "저장되었습니다.")));
     }
 
-    /** 도메인·공개 URL (관리자/API 안내용) */
+    /** 도메인·공개 URL (관리자/API 안내용) + 본사·총판 조직별 도메인 행 */
     @GetMapping("/domainConfig")
     public ResponseEntity<ApiResponse<Map<String, Object>>> domainConfig() {
         Map<String, Object> data = new LinkedHashMap<>();
@@ -424,6 +436,7 @@ public class ApiHqController {
             if (c.getPublicAdminSiteUrl() != null) data.put("publicAdminSiteUrl", c.getPublicAdminSiteUrl());
             if (c.getPublicApiBaseUrl() != null) data.put("publicApiBaseUrl", c.getPublicApiBaseUrl());
         });
+        data.put("orgDomainRows", loadOrgDomainRows());
         return ResponseEntity.ok(ApiResponse.ok(data));
     }
 
@@ -440,6 +453,63 @@ public class ApiHqController {
         return ResponseEntity.ok(ApiResponse.ok(Map.of("success", true, "message", "저장되었습니다.")));
     }
 
+    /** 본사·총판(tb_org_unit) 조직별 공개 URL·설정명 저장 */
+    @PostMapping("/domainConfig/orgSave")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> domainConfigOrgSave(@RequestBody Map<String, Object> body) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !(auth.getPrincipal() instanceof AppUser u) || !"ADMIN".equalsIgnoreCase(u.getRole())) {
+            return ResponseEntity.ok(ApiResponse.fail("관리자만 저장할 수 있습니다.", "FORBIDDEN"));
+        }
+        if (body == null || body.get("orgUnitId") == null || body.get("orgUnitId").toString().isBlank()) {
+            return ResponseEntity.ok(ApiResponse.fail("조직(업체)을 선택하세요.", "VALIDATION"));
+        }
+        long orgUnitId;
+        try {
+            orgUnitId = Long.parseLong(body.get("orgUnitId").toString().trim());
+        } catch (NumberFormatException e) {
+            return ResponseEntity.ok(ApiResponse.fail("조직 ID가 올바르지 않습니다.", "VALIDATION"));
+        }
+        OrgUnit ou = orgUnitRepository.findById(orgUnitId).orElse(null);
+        if (ou == null) {
+            return ResponseEntity.ok(ApiResponse.fail("조직을 찾을 수 없습니다.", "NOT_FOUND"));
+        }
+        if (ou.getOrgLevel() != OrgLevel.REGIONAL && ou.getOrgLevel() != OrgLevel.MASTER_DIST) {
+            return ResponseEntity.ok(ApiResponse.fail("본사·총판만 도메인을 설정할 수 있습니다.", "VALIDATION"));
+        }
+        ou.setDomainSettingName(hqTrimToNull(body.get("domainSettingName")));
+        ou.setOrgDomainAdminUrl(hqTrimToNull(body.get("orgDomainAdminUrl")));
+        ou.setOrgDomainApiUrl(hqTrimToNull(body.get("orgDomainApiUrl")));
+        ou.setDomainUrlsUpdatedAt(LocalDateTime.now());
+        orgUnitRepository.save(ou);
+        Map<String, Object> out = new LinkedHashMap<>();
+        out.put("success", true);
+        out.put("message", "도메인 설정이 저장되었습니다.");
+        out.put("orgDomainRows", loadOrgDomainRows());
+        return ResponseEntity.ok(ApiResponse.ok(out));
+    }
+
+    private List<Map<String, Object>> loadOrgDomainRows() {
+        List<OrgUnit> orgs = orgUnitRepository.findByOrgLevelInOrderByNameAsc(List.of(OrgLevel.REGIONAL, OrgLevel.MASTER_DIST));
+        return orgs.stream()
+                .filter(o -> o.getStatus() == null || "ACTIVE".equalsIgnoreCase(o.getStatus()))
+                .map(this::orgUnitToDomainRow)
+                .collect(Collectors.toList());
+    }
+
+    private Map<String, Object> orgUnitToDomainRow(OrgUnit o) {
+        Map<String, Object> m = new LinkedHashMap<>();
+        m.put("orgUnitId", o.getId());
+        m.put("code", o.getCode());
+        m.put("name", o.getName());
+        m.put("orgLevel", o.getOrgLevel() != null ? o.getOrgLevel().name() : "");
+        m.put("orgLevelLabel", o.getOrgLevel() != null ? o.getOrgLevel().getNameKo() : "");
+        m.put("domainSettingName", o.getDomainSettingName() != null ? o.getDomainSettingName() : "");
+        m.put("orgDomainAdminUrl", o.getOrgDomainAdminUrl() != null ? o.getOrgDomainAdminUrl() : "");
+        m.put("orgDomainApiUrl", o.getOrgDomainApiUrl() != null ? o.getOrgDomainApiUrl() : "");
+        m.put("domainUrlsUpdatedAt", o.getDomainUrlsUpdatedAt() != null ? o.getDomainUrlsUpdatedAt().toString() : "");
+        return m;
+    }
+
     /** 서버관리 요약(SSL·Certbot·호스트 등) */
     @GetMapping("/serverManage")
     public ResponseEntity<ApiResponse<Map<String, Object>>> serverManage() {
@@ -448,6 +518,20 @@ public class ApiHqController {
             return ResponseEntity.ok(ApiResponse.fail("관리자만 조회할 수 있습니다.", "FORBIDDEN"));
         }
         return ResponseEntity.ok(ApiResponse.ok(hqServerManageService.buildSummary()));
+    }
+
+    /**
+     * 일간/주간/월간 트래픽(송수신 합)·메모리 피크 시계열 + 현황 요약 (NOTI 시스템 모니터 유사).
+     * grain=daily | weekly | monthly
+     */
+    @GetMapping("/serverUsage")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> serverUsage(
+            @RequestParam(name = "grain", defaultValue = "daily") String grain) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !(auth.getPrincipal() instanceof AppUser u) || !"ADMIN".equalsIgnoreCase(u.getRole())) {
+            return ResponseEntity.ok(ApiResponse.fail("관리자만 조회할 수 있습니다.", "FORBIDDEN"));
+        }
+        return ResponseEntity.ok(ApiResponse.ok(serverUsageService.buildUsageReport(grain)));
     }
 
     @PostMapping("/serverManage/save")
@@ -459,6 +543,11 @@ public class ApiHqController {
         HqApiConfig c = hqApiConfigRepository.findAll().stream().findFirst().orElse(new HqApiConfig());
         c.setServerManageSslCertPath(hqTrimToNull(body != null ? body.get("serverManageSslCertPath") : null));
         c.setServerManageSslLeDomain(hqTrimToNull(body != null ? body.get("serverManageSslLeDomain") : null));
+        c.setServerManageContractDiskMb(hqParsePositiveInt(body != null ? body.get("serverManageContractDiskMb") : null));
+        c.setServerManageContractTrafficMb(hqParsePositiveInt(body != null ? body.get("serverManageContractTrafficMb") : null));
+        c.setServerManageTrafficUsedMb(hqParseOptionalNonNegativeInt(body != null ? body.get("serverManageTrafficUsedMb") : null));
+        c.setServerManageContractStart(hqParseLocalDate(body != null ? body.get("serverManageContractStart") : null));
+        c.setServerManageContractEnd(hqParseLocalDate(body != null ? body.get("serverManageContractEnd") : null));
         hqApiConfigRepository.save(c);
         return ResponseEntity.ok(ApiResponse.ok(Map.of("success", true, "message", "저장되었습니다.")));
     }
@@ -467,6 +556,42 @@ public class ApiHqController {
         if (o == null) return null;
         String s = o.toString().trim();
         return s.isEmpty() ? null : s;
+    }
+
+    private static Integer hqParsePositiveInt(Object o) {
+        if (o == null) return null;
+        String s = o.toString().trim().replace(",", "");
+        if (s.isEmpty()) return null;
+        try {
+            int v = Integer.parseInt(s);
+            return v <= 0 ? null : v;
+        } catch (NumberFormatException e) {
+            return null;
+        }
+    }
+
+    private static LocalDate hqParseLocalDate(Object o) {
+        if (o == null) return null;
+        String s = o.toString().trim();
+        if (s.isEmpty()) return null;
+        try {
+            return LocalDate.parse(s);
+        } catch (DateTimeParseException e) {
+            return null;
+        }
+    }
+
+    /** 비우면 null, 0 이상 정수 (트래픽 누적 등) */
+    private static Integer hqParseOptionalNonNegativeInt(Object o) {
+        if (o == null) return null;
+        String s = o.toString().trim().replace(",", "");
+        if (s.isEmpty()) return null;
+        try {
+            int v = Integer.parseInt(s);
+            return Math.max(0, v);
+        } catch (NumberFormatException e) {
+            return null;
+        }
     }
 
     /** 본사설정 > 영업일설정 목록 조회 */

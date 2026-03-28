@@ -1,6 +1,7 @@
 package com.pg.entity;
 
 import jakarta.persistence.*;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 /**
@@ -84,6 +85,21 @@ public class HqApiConfig {
     @Column(name = "server_manage_ssl_le_domain", length = 255)
     private String serverManageSslLeDomain;
 
+    @Column(name = "server_manage_contract_disk_mb")
+    private Integer serverManageContractDiskMb;
+
+    @Column(name = "server_manage_contract_traffic_mb")
+    private Integer serverManageContractTrafficMb;
+
+    @Column(name = "server_manage_contract_start")
+    private LocalDate serverManageContractStart;
+
+    @Column(name = "server_manage_contract_end")
+    private LocalDate serverManageContractEnd;
+
+    @Column(name = "server_manage_traffic_used_mb")
+    private Integer serverManageTrafficUsedMb;
+
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
@@ -131,6 +147,16 @@ public class HqApiConfig {
     public void setServerManageSslCertPath(String serverManageSslCertPath) { this.serverManageSslCertPath = serverManageSslCertPath; }
     public String getServerManageSslLeDomain() { return serverManageSslLeDomain; }
     public void setServerManageSslLeDomain(String serverManageSslLeDomain) { this.serverManageSslLeDomain = serverManageSslLeDomain; }
+    public Integer getServerManageContractDiskMb() { return serverManageContractDiskMb; }
+    public void setServerManageContractDiskMb(Integer serverManageContractDiskMb) { this.serverManageContractDiskMb = serverManageContractDiskMb; }
+    public Integer getServerManageContractTrafficMb() { return serverManageContractTrafficMb; }
+    public void setServerManageContractTrafficMb(Integer serverManageContractTrafficMb) { this.serverManageContractTrafficMb = serverManageContractTrafficMb; }
+    public LocalDate getServerManageContractStart() { return serverManageContractStart; }
+    public void setServerManageContractStart(LocalDate serverManageContractStart) { this.serverManageContractStart = serverManageContractStart; }
+    public LocalDate getServerManageContractEnd() { return serverManageContractEnd; }
+    public void setServerManageContractEnd(LocalDate serverManageContractEnd) { this.serverManageContractEnd = serverManageContractEnd; }
+    public Integer getServerManageTrafficUsedMb() { return serverManageTrafficUsedMb; }
+    public void setServerManageTrafficUsedMb(Integer serverManageTrafficUsedMb) { this.serverManageTrafficUsedMb = serverManageTrafficUsedMb; }
     public LocalDateTime getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
 }

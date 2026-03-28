@@ -282,18 +282,10 @@
       ]
     },
     '/hq/domainConfig': {
-      isForm: true,
-      formSections: [
-        {
-          title: '도메인·공개 URL',
-          notice: '관리자 웹·API 베이스 URL을 저장합니다. 노티 안내·문서·가맹점 연동 안내에 활용합니다. 저장은 시스템 관리자(ADMIN)만 가능합니다.',
-          rows: [
-            [{ label: '관리자(웹) 공개 URL', type: 'text', name: 'publicAdminSiteUrl', col: 6, placeholder: 'https://icopay.co.kr' }],
-            [{ label: 'API 공개 베이스 URL', type: 'text', name: 'publicApiBaseUrl', col: 6, placeholder: 'https://api.icopay.co.kr' }]
-          ]
-        }
-      ],
-      buttons: [{ id: 'hqDomainConfigSaveBtn', label: '저장', cls: 'btn-primary' }]
+      domainConfigScreen: true,
+      hideListGrid: true,
+      summary: [],
+      buttons: []
     },
     '/hq/serverManage': {
       isForm: true,
@@ -307,10 +299,56 @@
           ]
         },
         {
-          title: '실시간 요약',
-          notice: '호스트·JVM·DB·SSL·Certbot·Nginx stub(설정 시) 요약입니다. [요약 새로고침] 또는 일정 주기로 갱신됩니다.',
+          title: '호스팅 약정',
+          notice: '디스크·트래픽은 GB 단위로 입력합니다(소수 가능). 저장 시 서버에 MB로 환산되어 저장됩니다. 디스크 사용량은 서버 조회값과 약정을 비교하고, 트래픽은 패널의 기간 누적 사용량을 GB로 입력하면 비율이 계산됩니다.',
           rows: [
-            [{ type: 'customHtml', col: 12, html: '<div id="hqServerManageSummary" class="small border rounded p-2 bg-light" style="min-height:120px;white-space:pre-wrap;font-family:monospace">불러오는 중…</div>' }]
+            [
+              { label: '약정 디스크 (GB)', type: 'number', name: 'serverManageContractDiskGb', col: 3, step: '0.001', placeholder: '예: 1 또는 0.977' },
+              { label: '약정 트래픽 (GB/기간)', type: 'number', name: 'serverManageContractTrafficGb', col: 3, step: '0.001', placeholder: '예: 1.5' },
+              { label: '트래픽 누적 사용 (GB)', type: 'number', name: 'serverManageTrafficUsedGb', col: 3, step: '0.001', placeholder: '패널 누적' }
+            ],
+            [
+              { label: '약정 시작일', type: 'date', name: 'serverManageContractStart', col: 3 },
+              { label: '약정 종료일', type: 'date', name: 'serverManageContractEnd', col: 3 }
+            ]
+          ]
+        },
+        {
+          title: '실시간 대시보드',
+          notice: '레이아웃은 NOTI GitHub 저장소의 /admin/system-monitor(통계 그리드·SSL 정의목록·Certbot/Nginx)를 참고했습니다. PG는 Spring API(JSON)로 동일 정보를 채웁니다. 교차 출처 접속 시 상단 안내를 확인하세요.',
+          rows: [
+            [{
+              type: 'customHtml',
+              col: 12,
+              html: '<div id="hqServerManageDashboard" class="hq-server-manage-dashboard hq-noti-monitor">' +
+                '<div class="d-flex flex-wrap align-items-center gap-3 mb-2 p-2 hq-mon-toolbar">' +
+                '<span id="hqSrvGeneratedAt" class="text-muted small">—</span>' +
+                '<span id="hqSrvCountdown" class="small fw-semibold text-primary">—</span>' +
+                '<label class="mb-0 small d-flex align-items-center gap-1 user-select-none"><input type="checkbox" id="hqSrvAutoRefresh" checked> 자동 갱신</label>' +
+                '<span class="text-muted small">간격 <span id="hqSrvIntervalSec">—</span>초</span>' +
+                '</div>' +
+                '<div id="hqMonCrossOriginHint" class="alert alert-secondary py-2 small mb-0 mt-2 d-none" role="note"></div>' +
+                '<div id="hqSrvInlineMsg" class="small mt-2" role="status" aria-live="polite"></div>' +
+                '<div id="hqSrvAlerts"></div>' +
+                '<div id="hqSrvCards"></div>' +
+                '<div id="hqSrvUsageSection" class="hq-srv-usage-section mt-3">' +
+                '<h3 class="h6 fw-bold mb-2">트래픽 · 메모리 피크</h3>' +
+                '<p class="small text-muted mb-2">일간/주간/월간 전환 시 그래프·요약이 바뀝니다. 수집은 앱이 주기적으로 수행합니다. 레이아웃은 <a href="https://github.com/ziobiz/NOTI" target="_blank" rel="noopener">NOTI</a> 시스템 모니터를 참고했습니다.</p>' +
+                '<div class="btn-group btn-group-sm mb-2" role="group" aria-label="기간">' +
+                '<button type="button" class="btn btn-outline-primary active" data-hq-usage-grain="daily">일간</button>' +
+                '<button type="button" class="btn btn-outline-primary" data-hq-usage-grain="weekly">주간</button>' +
+                '<button type="button" class="btn btn-outline-primary" data-hq-usage-grain="monthly">월간</button>' +
+                '</div>' +
+                '<div class="row g-2 mb-2">' +
+                '<div class="col-lg-7"><div class="hq-usage-chart-wrap border rounded bg-white p-2"><canvas id="hqUsageChartMixed"></canvas></div></div>' +
+                '<div class="col-lg-5"><div class="hq-usage-chart-wrap border rounded bg-white p-2"><canvas id="hqUsageChartMem"></canvas></div></div>' +
+                '</div>' +
+                '<div id="hqUsageSummary" class="hq-usage-summary border rounded bg-white p-3 small text-body"></div>' +
+                '</div>' +
+                '<details class="mt-3 border rounded p-2 bg-light"><summary class="small text-muted user-select-none">원본 JSON (디버그)</summary>' +
+                '<pre id="hqSrvJsonRaw" class="small mt-2 mb-0" style="max-height:240px;overflow:auto;white-space:pre-wrap"></pre></details>' +
+                '</div>'
+            }]
           ]
         }
       ],
@@ -2169,6 +2207,11 @@
         '<select class="form-control form-control-sm' + reqClass + '" name="' + ccName + '" data-intl-phone-code-for="' + name + '"' + (f.readonly ? ' disabled' : '') + '>' + intlOptions + '</select>' +
         '<input type="text" class="form-control form-control-sm' + reqClass + '" name="' + numName + '" data-intl-phone-number-for="' + name + '"' + (f.placeholder ? ' placeholder="' + f.placeholder + '"' : ' placeholder="Phone number"') + ro + '>' +
         '</div>';
+    } else if (f.type === 'number') {
+      var numStep = (f.step != null && f.step !== '') ? String(f.step) : '1';
+      inp = '<input type="number" min="0" step="' + numStep + '" class="form-control form-control-sm' + reqClass + '" name="' + name + '" id="' + id + '"' + (f.placeholder ? ' placeholder="' + f.placeholder + '"' : '') + ro + '>';
+    } else if (f.type === 'date') {
+      inp = '<input type="date" class="form-control form-control-sm' + reqClass + '" name="' + name + '" id="' + id + '"' + ro + '>';
     } else if (f.type === 'text' || f.type === 'password') {
       inp = '<input type="' + (f.type || 'text') + '" class="form-control form-control-sm' + reqClass + '" name="' + name + '" id="' + id + '"' + (f.placeholder ? ' placeholder="' + f.placeholder + '"' : '') + ro + '>';
     } else if (f.type === 'time') {
@@ -2449,6 +2492,75 @@
     return html;
   }
 
+  /** 본사설정 > 도메인구성: 전사 URL + 본사·총판별 도메인 (개별 조직 권한 블록과 유사 레이아웃) */
+  function renderDomainConfigShell(tabId) {
+    var sid = tabId || 'hq_domainConfig';
+    return (
+      '<div class="hq-domain-config-wrap">' +
+      '<div class="card mb-3">' +
+      '<div class="card-header py-2 fw-semibold">전사 기본 URL</div>' +
+      '<div class="card-body">' +
+      '<p class="text-muted small mb-2">노티·문서·가맹점 안내에 쓰는 기본 공개 URL입니다. 저장은 시스템 관리자(ADMIN)만 가능합니다.</p>' +
+      '<div class="row g-2 align-items-end">' +
+      '<div class="col-lg-5 col-md-12"><label class="form-label small mb-1">관리자(웹) 공개 URL</label>' +
+      '<input type="text" class="form-control form-control-sm" name="publicAdminSiteUrl" placeholder="https://icopay.co.kr"></div>' +
+      '<div class="col-lg-5 col-md-12"><label class="form-label small mb-1">API 공개 베이스 URL</label>' +
+      '<input type="text" class="form-control form-control-sm" name="publicApiBaseUrl" placeholder="https://api.icopay.co.kr"></div>' +
+      '<div class="col-lg-2 col-md-12">' +
+      '<button type="button" class="btn btn-sm btn-outline-primary w-100" id="hqDomainGlobalSaveBtn_' + sid + '">전사 URL 저장</button></div>' +
+      '</div>' +
+      '<div class="small mt-2" id="hqDomainGlobalMsg_' + sid + '" role="status"></div>' +
+      '</div></div>' +
+      '<div class="card border-0 shadow-sm mb-3 org-perm-unit-section">' +
+      '<div class="card-header fw-semibold">본사·총판 도메인 설정</div>' +
+      '<div class="card-body">' +
+      '<p class="text-muted small mb-3">업체명에서 <strong>본사</strong> 또는 <strong>총판</strong>만 선택할 수 있습니다. 선택 후 설정 이름·URL을 입력하고 [설정저장]하면 하단 목록에 반영됩니다.</p>' +
+      '<div class="row g-2 align-items-end mb-2 org-perm-unit-control-row">' +
+      '<div class="col-lg-3 col-md-6">' +
+      '<label class="form-label small mb-1">업체명</label>' +
+      '<select class="form-select form-select-sm" id="hqDomainOrgSelect_' + sid + '">' +
+      '<option value="">— 업체를 선택하세요 —</option></select></div>' +
+      '<div class="col-lg-2 col-md-6">' +
+      '<label class="form-label small mb-1">업체코드</label>' +
+      '<input type="text" class="form-control form-control-sm" id="hqDomainOrgCode_' + sid + '" readonly></div>' +
+      '<div class="col-lg-2 col-md-6">' +
+      '<label class="form-label small mb-1">조직구분</label>' +
+      '<input type="text" class="form-control form-control-sm" id="hqDomainOrgLevel_' + sid + '" readonly></div>' +
+      '<div class="col-lg-2 col-md-6">' +
+      '<label class="form-label small mb-1">설정 이름</label>' +
+      '<input type="text" class="form-control form-control-sm" id="hqDomainSettingName_' + sid + '" placeholder="표시용 이름" disabled></div>' +
+      '</div>' +
+      '<div class="row g-2 align-items-end mb-2">' +
+      '<div class="col-lg-4 col-md-6">' +
+      '<label class="form-label small mb-1">관리자(웹) URL</label>' +
+      '<input type="text" class="form-control form-control-sm" id="hqDomainOrgAdminUrl_' + sid + '" placeholder="https://icopay.co.kr" disabled></div>' +
+      '<div class="col-lg-4 col-md-6">' +
+      '<label class="form-label small mb-1">API URL</label>' +
+      '<input type="text" class="form-control form-control-sm" id="hqDomainOrgApiUrl_' + sid + '" placeholder="https://api.icopay.co.kr" disabled></div>' +
+      '<div class="col-lg-2 col-md-6">' +
+      '<button type="button" class="btn btn-sm btn-primary w-100" id="hqDomainOrgSaveBtn_' + sid + '" disabled>설정저장</button></div>' +
+      '</div>' +
+      '<p class="small mb-2 text-muted" id="hqDomainOrgHint_' + sid + '">업체를 선택하면 입력란이 활성화됩니다.</p>' +
+      '<div class="small mb-2" id="hqDomainOrgMsg_' + sid + '" role="status"></div>' +
+      '<div class="table-responsive">' +
+      '<table class="table table-sm table-bordered align-middle mb-0" id="hqDomainOrgTable_' + sid + '">' +
+      '<thead><tr>' +
+      '<th class="text-center text-nowrap" style="width:3rem">No.</th>' +
+      '<th>업체명</th>' +
+      '<th class="text-nowrap" style="width:9rem">업체코드</th>' +
+      '<th class="text-nowrap" style="width:5rem">조직구분</th>' +
+      '<th>설정 이름</th>' +
+      '<th>관리자(웹) URL</th>' +
+      '<th>API URL</th>' +
+      '<th class="text-nowrap" style="width:10rem">수정일시</th>' +
+      '</tr></thead>' +
+      '<tbody id="hqDomainOrgTableTbody_' + sid + '">' +
+      '<tr><td colspan="8" class="text-center text-muted py-3">불러오는 중…</td></tr>' +
+      '</tbody></table></div>' +
+      '</div></div></div>'
+    );
+  }
+
   /** 조직별 권한 세팅 — 조직 탭 + 페이지별 권한 셀렉트 (내용은 API 로드 후 채움) */
   function renderOrgPagePermissionShell(tabId) {
     return (
@@ -2553,6 +2665,9 @@
       html += renderSummaryAndActions(cfg);
     } else if (cfg.isForm && cfg.formRows && cfg.formRows.length > 0) {
       html += renderFormRows(cfg);
+      html += renderSummaryAndActions(cfg);
+    } else if (cfg.domainConfigScreen) {
+      html += renderDomainConfigShell(tabId);
       html += renderSummaryAndActions(cfg);
     } else if (cfg.orgPagePermissionMatrix) {
       html += renderOrgPagePermissionShell(tabId);

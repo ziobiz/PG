@@ -5154,6 +5154,88 @@
     }
     if (url === '/hq/domainConfig') {
       var dimmDom = document.getElementById('dimm');
+      var sid = tabId;
+      function escDomCfg(s) {
+        return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+      }
+      function setDomInlineMsg(el, kind, text) {
+        if (!el) return;
+        el.textContent = text || '';
+        el.className = 'small mb-2';
+        if (kind === 'success') el.className += ' text-success';
+        else if (kind === 'error') el.className += ' text-danger';
+        else el.className += ' text-muted';
+      }
+      function renderOrgDomainTableBody(rows) {
+        var tb = pane.querySelector('#hqDomainOrgTableTbody_' + sid);
+        if (!tb) return;
+        var list = Array.isArray(rows) ? rows : [];
+        if (!list.length) {
+          tb.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-3">등록된 본사·총판 조직이 없습니다.</td></tr>';
+          return;
+        }
+        var html = '';
+        list.forEach(function (r, i) {
+          html += '<tr data-org-id="' + escDomCfg(r.orgUnitId) + '">' +
+            '<td class="text-center text-muted">' + (i + 1) + '</td>' +
+            '<td>' + escDomCfg(r.name) + '</td>' +
+            '<td class="font-monospace small">' + escDomCfg(r.code) + '</td>' +
+            '<td>' + escDomCfg(r.orgLevelLabel || r.orgLevel) + '</td>' +
+            '<td>' + escDomCfg(r.domainSettingName) + '</td>' +
+            '<td class="small"><code class="hq-domain-url-cell">' + escDomCfg(r.orgDomainAdminUrl) + '</code></td>' +
+            '<td class="small"><code class="hq-domain-url-cell">' + escDomCfg(r.orgDomainApiUrl) + '</code></td>' +
+            '<td class="small text-muted text-nowrap">' + escDomCfg(r.domainUrlsUpdatedAt ? String(r.domainUrlsUpdatedAt).replace('T', ' ').slice(0, 19) : '') + '</td>' +
+            '</tr>';
+        });
+        tb.innerHTML = html;
+      }
+      function findOrgRowById(id) {
+        var rows = pane._hqDomainOrgRows || [];
+        var s = String(id || '');
+        for (var i = 0; i < rows.length; i++) {
+          if (String(rows[i].orgUnitId) === s) return rows[i];
+        }
+        return null;
+      }
+      function setOrgEditorEnabled(on) {
+        ['hqDomainSettingName_' + sid, 'hqDomainOrgAdminUrl_' + sid, 'hqDomainOrgApiUrl_' + sid].forEach(function (id) {
+          var el = pane.querySelector('#' + id);
+          if (el) el.disabled = !on;
+        });
+        var saveB = pane.querySelector('#hqDomainOrgSaveBtn_' + sid);
+        if (saveB) saveB.disabled = !on;
+      }
+      function fillOrgEditorFromRow(row) {
+        var codeEl = pane.querySelector('#hqDomainOrgCode_' + sid);
+        var lvEl = pane.querySelector('#hqDomainOrgLevel_' + sid);
+        var nmEl = pane.querySelector('#hqDomainSettingName_' + sid);
+        var adEl = pane.querySelector('#hqDomainOrgAdminUrl_' + sid);
+        var apEl = pane.querySelector('#hqDomainOrgApiUrl_' + sid);
+        if (!row) {
+          if (codeEl) codeEl.value = '';
+          if (lvEl) lvEl.value = '';
+          if (nmEl) nmEl.value = '';
+          if (adEl) adEl.value = '';
+          if (apEl) apEl.value = '';
+          return;
+        }
+        if (codeEl) codeEl.value = row.code || '';
+        if (lvEl) lvEl.value = row.orgLevelLabel || row.orgLevel || '';
+        if (nmEl) nmEl.value = row.domainSettingName || '';
+        if (adEl) adEl.value = row.orgDomainAdminUrl || '';
+        if (apEl) apEl.value = row.orgDomainApiUrl || '';
+      }
+      function fillOrgSelect(rows) {
+        var sel = pane.querySelector('#hqDomainOrgSelect_' + sid);
+        if (!sel) return;
+        var list = Array.isArray(rows) ? rows : [];
+        var cur = sel.value;
+        sel.innerHTML = '<option value="">— 업체를 선택하세요 —</option>' +
+          list.map(function (r) {
+            return '<option value="' + escDomCfg(r.orgUnitId) + '">' + escDomCfg(r.name || '') + '</option>';
+          }).join('');
+        if (cur && list.some(function (r) { return String(r.orgUnitId) === cur; })) sel.value = cur;
+      }
       if (dimmDom) dimmDom.style.display = 'flex';
       window.PG_API.hqDomainConfig().then(function (data) {
         if (!data) return;
@@ -5161,71 +5243,607 @@
           var el = pane.querySelector('[name="' + k + '"]');
           if (el && data[k] != null) el.value = data[k];
         });
-      }).catch(function () {}).finally(function () { if (dimmDom) dimmDom.style.display = 'none'; });
-      var domSave = pane.querySelector('#hqDomainConfigSaveBtn');
-      if (domSave && !domSave._bound) {
-        domSave._bound = true;
-        domSave.addEventListener('click', function () {
-          var fd = {};
-          pane.querySelectorAll('input, select, textarea').forEach(function (el) { if (el.name) fd[el.name] = el.value; });
+        pane._hqDomainOrgRows = data.orgDomainRows || [];
+        fillOrgSelect(pane._hqDomainOrgRows);
+        renderOrgDomainTableBody(pane._hqDomainOrgRows);
+        setOrgEditorEnabled(false);
+        fillOrgEditorFromRow(null);
+        var hint = pane.querySelector('#hqDomainOrgHint_' + sid);
+        if (hint) hint.textContent = '업체를 선택하면 입력란이 활성화됩니다.';
+      }).catch(function () {
+        renderOrgDomainTableBody([]);
+      }).finally(function () { if (dimmDom) dimmDom.style.display = 'none'; });
+
+      var gSave = pane.querySelector('#hqDomainGlobalSaveBtn_' + sid);
+      if (gSave && !gSave._hqDomBound) {
+        gSave._hqDomBound = true;
+        gSave.addEventListener('click', function () {
+          var gMsg = pane.querySelector('#hqDomainGlobalMsg_' + sid);
+          setDomInlineMsg(gMsg, '', '');
+          var fd = {
+            publicAdminSiteUrl: (pane.querySelector('[name="publicAdminSiteUrl"]') || {}).value || '',
+            publicApiBaseUrl: (pane.querySelector('[name="publicApiBaseUrl"]') || {}).value || ''
+          };
           if (dimmDom) dimmDom.style.display = 'flex';
-          window.PG_API.hqDomainConfigSave(fd).then(function () { alert('저장되었습니다.'); }).catch(function (e) { alert(e && e.message ? e.message : '저장 실패'); }).finally(function () { if (dimmDom) dimmDom.style.display = 'none'; });
+          window.PG_API.hqDomainConfigSave(fd).then(function (res) {
+            setDomInlineMsg(gMsg, 'success', (res && res.message) ? res.message : '전사 URL이 저장되었습니다.');
+          }).catch(function (e) {
+            setDomInlineMsg(gMsg, 'error', e && e.message ? e.message : '저장 실패');
+          }).finally(function () { if (dimmDom) dimmDom.style.display = 'none'; });
+        });
+      }
+
+      var orgSel = pane.querySelector('#hqDomainOrgSelect_' + sid);
+      if (orgSel && !orgSel._hqDomBound) {
+        orgSel._hqDomBound = true;
+        orgSel.addEventListener('change', function () {
+          var oMsg = pane.querySelector('#hqDomainOrgMsg_' + sid);
+          setDomInlineMsg(oMsg, '', '');
+          var id = orgSel.value;
+          if (!id) {
+            setOrgEditorEnabled(false);
+            fillOrgEditorFromRow(null);
+            return;
+          }
+          var row = findOrgRowById(id);
+          setOrgEditorEnabled(true);
+          fillOrgEditorFromRow(row);
+        });
+      }
+
+      var orgSave = pane.querySelector('#hqDomainOrgSaveBtn_' + sid);
+      if (orgSave && !orgSave._hqDomBound) {
+        orgSave._hqDomBound = true;
+        orgSave.addEventListener('click', function () {
+          var oMsg = pane.querySelector('#hqDomainOrgMsg_' + sid);
+          setDomInlineMsg(oMsg, '', '');
+          var selEl = pane.querySelector('#hqDomainOrgSelect_' + sid);
+          var oid = selEl && selEl.value ? String(selEl.value).trim() : '';
+          if (!oid) {
+            setDomInlineMsg(oMsg, 'error', '업체를 먼저 선택하세요.');
+            return;
+          }
+          var body = {
+            orgUnitId: oid,
+            domainSettingName: (pane.querySelector('#hqDomainSettingName_' + sid) || {}).value || '',
+            orgDomainAdminUrl: (pane.querySelector('#hqDomainOrgAdminUrl_' + sid) || {}).value || '',
+            orgDomainApiUrl: (pane.querySelector('#hqDomainOrgApiUrl_' + sid) || {}).value || ''
+          };
+          if (dimmDom) dimmDom.style.display = 'flex';
+          window.PG_API.hqDomainConfigOrgSave(body).then(function (res) {
+            if (res && res.orgDomainRows) {
+              pane._hqDomainOrgRows = res.orgDomainRows;
+              fillOrgSelect(pane._hqDomainOrgRows);
+              renderOrgDomainTableBody(pane._hqDomainOrgRows);
+              fillOrgEditorFromRow(findOrgRowById(oid));
+            }
+            setDomInlineMsg(oMsg, 'success', (res && res.message) ? res.message : '도메인 설정이 저장되었습니다.');
+          }).catch(function (e) {
+            setDomInlineMsg(oMsg, 'error', e && e.message ? e.message : '저장 실패');
+          }).finally(function () { if (dimmDom) dimmDom.style.display = 'none'; });
         });
       }
     }
     if (url === '/hq/serverManage') {
-      if (pane._serverManageTimer) {
-        clearInterval(pane._serverManageTimer);
-        pane._serverManageTimer = null;
+      function hqSrvClearTimers() {
+        if (pane._serverManageTimer) {
+          clearInterval(pane._serverManageTimer);
+          pane._serverManageTimer = null;
+        }
+        if (pane._hqSrvCountdownTimer) {
+          clearInterval(pane._hqSrvCountdownTimer);
+          pane._hqSrvCountdownTimer = null;
+        }
       }
+      hqSrvClearTimers();
       var dimmSrv = document.getElementById('dimm');
-      function renderServerSummary(d) {
-        var el = pane.querySelector('#hqServerManageSummary');
+
+      function hqSrvEsc(s) {
+        return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+      }
+      function hqSrvFmtGbFromMb(mb) {
+        if (mb == null || mb === '') return '—';
+        var n = Number(mb);
+        if (isNaN(n) || n < 0) return '—';
+        return (Math.round((n / 1024) * 1000) / 1000).toFixed(3).replace(/\.?0+$/, '') + ' GB';
+      }
+      function hqSrvMbToGbInput(mb) {
+        if (mb === undefined || mb === null || mb === '') return '';
+        var n = Number(mb);
+        if (isNaN(n) || n <= 0) return '';
+        var g = n / 1024;
+        var s = g.toFixed(4).replace(/\.?0+$/, '');
+        return s;
+      }
+      function hqSrvGbToMbContract(gbStr) {
+        if (gbStr === undefined || gbStr === null) return null;
+        var t = String(gbStr).trim().replace(',', '.');
+        if (t === '') return null;
+        var g = parseFloat(t);
+        if (isNaN(g) || g < 0) return null;
+        var mb = Math.round(g * 1024);
+        return mb <= 0 ? null : mb;
+      }
+      function hqSrvGbToMbTrafficUsed(gbStr) {
+        if (gbStr === undefined || gbStr === null) return null;
+        var t = String(gbStr).trim().replace(',', '.');
+        if (t === '') return null;
+        var g = parseFloat(t);
+        if (isNaN(g) || g < 0) return null;
+        return Math.max(0, Math.round(g * 1024));
+      }
+      function hqSrvFmtBytes(n) {
+        n = Number(n) || 0;
+        if (n >= 1099511627776) return (n / 1099511627776).toFixed(2) + ' TB';
+        if (n >= 1073741824) return (n / 1073741824).toFixed(2) + ' GB';
+        if (n >= 1048576) return (n / 1048576).toFixed(2) + ' MB';
+        if (n >= 1024) return (n / 1024).toFixed(2) + ' KB';
+        return n + ' B';
+      }
+      function hqSrvFmtUptimeMs(ms) {
+        ms = Number(ms) || 0;
+        var s = Math.floor(ms / 1000);
+        var d = Math.floor(s / 86400);
+        s -= d * 86400;
+        var h = Math.floor(s / 3600);
+        s -= h * 3600;
+        var m = Math.floor(s / 60);
+        return d + '일 ' + h + '시간 ' + m + '분';
+      }
+      function hqSrvBadge(status) {
+        if (status === 'danger') return '<span class="badge bg-danger">위험</span>';
+        if (status === 'warn') return '<span class="badge bg-warning text-dark">주의</span>';
+        return '<span class="badge bg-success">양호</span>';
+      }
+      function hqSrvProgress(pct, level) {
+        pct = Math.max(0, Math.min(100, Number(pct) || 0));
+        var cls = level === 'danger' ? 'bg-danger' : level === 'warn' ? 'bg-warning' : 'bg-success';
+        return '<div class="progress mt-2" style="height:10px"><div class="progress-bar ' + cls + '" role="progressbar" style="width:' + pct + '%"></div></div>';
+      }
+      function updateHqMonCrossOriginHint() {
+        var el = pane.querySelector('#hqMonCrossOriginHint');
         if (!el) return;
+        var pageH = (window.location && window.location.hostname) || '';
+        var apiRoot = '';
         try {
-          el.textContent = typeof d === 'object' && d !== null ? JSON.stringify(d, null, 2) : String(d);
-        } catch (e) {
-          el.textContent = String(d);
+          apiRoot = (typeof window.PG_API_BASE === 'string' ? window.PG_API_BASE : '').replace(/\/$/, '').trim();
+          if (!apiRoot) apiRoot = (window.PG_PUBLIC_ICOPAY_API || 'https://api.icopay.co.kr').replace(/\/$/, '');
+          var u = new URL(apiRoot);
+          if (u.hostname && pageH && u.hostname !== pageH && pageH !== 'localhost' && pageH !== '127.0.0.1') {
+            el.classList.remove('d-none');
+            el.className = 'alert alert-info py-2 small mb-0 mt-2';
+            el.innerHTML = '<strong>구조 안내 (NOTI 대비)</strong> ' +
+              '<a href="https://github.com/ziobiz/NOTI" target="_blank" rel="noopener">NOTI</a> 서버관리는 Node가 <em>같은 출처</em>로 HTML을 내려 세션만으로 조회합니다. ' +
+              'PG 관리자는 브라우저가 <code>' + hqSrvEsc(u.origin) + '</code> 로 API를 호출합니다. ' +
+              '목록이 비면 CORS·방화벽·최신 JAR를 확인하거나, <strong>API와 동일 호스트</strong>에서 관리자를 여는 것을 권장합니다.';
+            return;
+          }
+        } catch (e0) { /* ignore */ }
+        el.classList.add('d-none');
+        el.innerHTML = '';
+      }
+      function hqMonStat(k, v, sub, danger) {
+        return '<div class="hq-mon-stat' + (danger ? ' danger' : '') + '">' +
+          '<div class="hq-mon-stat-k">' + hqSrvEsc(k) + '</div>' +
+          '<div class="hq-mon-stat-v">' + hqSrvEsc(v) + '</div>' +
+          (sub ? '<div class="hq-mon-stat-sub">' + sub + '</div>' : '') +
+          '</div>';
+      }
+      function hqLoadChartJsOnce() {
+        if (window.Chart) return Promise.resolve();
+        if (window._pgChartJsLoading) return window._pgChartJsLoading;
+        window._pgChartJsLoading = new Promise(function (resolve, reject) {
+          var s = document.createElement('script');
+          s.src = 'https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js';
+          s.async = true;
+          s.onload = function () { resolve(); };
+          s.onerror = function () { reject(new Error('Chart.js load failed')); };
+          document.head.appendChild(s);
+        });
+        return window._pgChartJsLoading;
+      }
+      function hqUsageFormatSummary(sum, grain) {
+        if (!sum) return '';
+        var g = grain || 'daily';
+        var lines = [];
+        lines.push('<div class="fw-semibold mb-2">[' + hqSrvEsc(sum.grainLabel || '일간') + '] 현황 요약 <span class="text-muted fw-normal">(아래 그래프와 동일 데이터)</span></div>');
+        if (!sum.hasData) {
+          lines.push('<p class="text-muted mb-2">아직 누적 데이터가 거의 없습니다. 앱이 서버에서 수집(기본 10분 간격)을 수행하면 일별로 쌓입니다.</p>');
+        }
+        lines.push('<ul class="mb-0 ps-3">');
+        lines.push('<li>그래프 구간 수: <strong>' + (sum.daysInChart != null ? sum.daysInChart : '—') + '</strong>' +
+          (g === 'daily' && sum.maxChartDays ? ' (일간 최대 ' + sum.maxChartDays + '일)' : '') + '</li>');
+        lines.push('<li>최근 7일 트래픽 합: <strong>' + hqSrvEsc(String(sum.trafficTotalLast7DaysMb != null ? sum.trafficTotalLast7DaysMb : '—')) + '</strong> MB</li>');
+        lines.push('<li>그래프 기간 트래픽 합: <strong>' + hqSrvEsc(String(sum.trafficTotalPeriodMb != null ? sum.trafficTotalPeriodMb : '—')) + '</strong> MB</li>');
+        var liRecent = '<li>가장 최근 일(' + hqSrvEsc(sum.latestDate || '—') + ') 트래픽 <strong>' +
+          hqSrvEsc(String(sum.latestTrafficMb != null ? sum.latestTrafficMb : '—')) + '</strong> MB';
+        if (sum.prevTrafficMb != null) {
+          liRecent += ', 전일 <strong>' + hqSrvEsc(String(sum.prevTrafficMb)) + '</strong> MB';
+        }
+        if (sum.trafficDeltaMb != null) {
+          liRecent += ', 증감 <strong>' + hqSrvEsc(String(sum.trafficDeltaMb)) + '</strong> MB';
+          if (sum.trafficDeltaPct != null) {
+            liRecent += ' (<strong>' + hqSrvEsc(String(sum.trafficDeltaPct)) + '</strong>%)';
+          }
+        }
+        liRecent += '</li>';
+        lines.push(liRecent);
+        lines.push('<li>최근 31일 기준 일일 트래픽 최대: <strong>' + hqSrvEsc(String(sum.maxDayTrafficMb != null ? sum.maxDayTrafficMb : '—')) + '</strong> MB' +
+          (sum.maxDayTrafficDate ? ' <span class="text-muted">(' + hqSrvEsc(sum.maxDayTrafficDate) + ')</span>' : '') + '</li>');
+        lines.push('<li>일평균 트래픽(트래픽이 있었던 날만): <strong>' +
+          hqSrvEsc(sum.avgDailyTrafficMb != null ? String(sum.avgDailyTrafficMb) : '—') + '</strong> MB</li>');
+        lines.push('<li>메모리 일일 피크(%): 그래프 최근 값 <strong>' + hqSrvEsc(String(sum.memoryLatestPeakPct != null ? sum.memoryLatestPeakPct : '—')) +
+          '</strong>%, 기간 최대 <strong>' + hqSrvEsc(String(sum.memoryPeriodMaxPeakPct != null ? sum.memoryPeriodMaxPeakPct : '—')) + '</strong>% (오른쪽 붉은 그래프)</li>');
+        lines.push('</ul>');
+        return lines.join('');
+      }
+      function refreshHqUsageCharts(pane, grain) {
+        var sec = pane.querySelector('#hqSrvUsageSection');
+        if (!sec) return;
+        hqLoadChartJsOnce().then(function () {
+          return window.PG_API.hqServerUsage(grain || 'daily');
+        }).then(function (payload) {
+          pane._hqUsageGrain = grain || 'daily';
+          var labels = payload.labels || [];
+          var tGb = payload.trafficSeriesGb || [];
+          var mem = payload.memoryPeakSeriesPct || [];
+          var sum = payload.summary || {};
+          var c1 = pane.querySelector('#hqUsageChartMixed');
+          var c2 = pane.querySelector('#hqUsageChartMem');
+          if (pane._hqUsageChartMixed) {
+            try { pane._hqUsageChartMixed.destroy(); } catch (e1) { /* ignore */ }
+            pane._hqUsageChartMixed = null;
+          }
+          if (pane._hqUsageChartMem) {
+            try { pane._hqUsageChartMem.destroy(); } catch (e2) { /* ignore */ }
+            pane._hqUsageChartMem = null;
+          }
+          if (c1 && window.Chart) {
+            pane._hqUsageChartMixed = new Chart(c1.getContext('2d'), {
+              type: 'bar',
+              data: {
+                labels: labels,
+                datasets: [
+                  {
+                    type: 'bar',
+                    label: '트래픽 (송수신 합, GB)',
+                    data: tGb,
+                    backgroundColor: 'rgba(13, 110, 253, 0.45)',
+                    borderColor: 'rgba(13, 110, 253, 0.9)',
+                    borderWidth: 1,
+                    yAxisID: 'y'
+                  },
+                  {
+                    type: 'line',
+                    label: '메모리 피크 (%)',
+                    data: mem,
+                    borderColor: 'rgb(220, 53, 69)',
+                    backgroundColor: 'rgba(220, 53, 69, 0.06)',
+                    borderWidth: 2,
+                    tension: 0.2,
+                    pointRadius: 2,
+                    yAxisID: 'y1'
+                  }
+                ]
+              },
+              options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: { mode: 'index', intersect: false },
+                plugins: { legend: { position: 'bottom' } },
+                scales: {
+                  y: {
+                    type: 'linear',
+                    position: 'left',
+                    title: { display: true, text: 'GB' },
+                    beginAtZero: true
+                  },
+                  y1: {
+                    type: 'linear',
+                    position: 'right',
+                    min: 0,
+                    max: 100,
+                    title: { display: true, text: '%' },
+                    grid: { drawOnChartArea: false }
+                  }
+                }
+              }
+            });
+          }
+          if (c2 && window.Chart) {
+            pane._hqUsageChartMem = new Chart(c2.getContext('2d'), {
+              type: 'line',
+              data: {
+                labels: labels,
+                datasets: [{
+                  label: '메모리 피크 (%)',
+                  data: mem,
+                  borderColor: 'rgb(220, 53, 69)',
+                  backgroundColor: 'rgba(220, 53, 69, 0.12)',
+                  borderWidth: 2,
+                  tension: 0.2,
+                  fill: true,
+                  pointRadius: 2
+                }]
+              },
+              options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { position: 'bottom' } },
+                scales: {
+                  y: {
+                    min: 0,
+                    max: 100,
+                    title: { display: true, text: '%' }
+                  }
+                }
+              }
+            });
+          }
+          var sumEl = pane.querySelector('#hqUsageSummary');
+          if (sumEl) sumEl.innerHTML = hqUsageFormatSummary(sum, pane._hqUsageGrain);
+        }).catch(function () {
+          var sumEl = pane.querySelector('#hqUsageSummary');
+          if (sumEl) sumEl.innerHTML = '<p class="text-danger mb-0 small">차트 데이터를 불러오지 못했습니다. ADMIN·<code>/api/hq/serverUsage</code>·최신 JAR·DB V45를 확인하세요.</p>';
+        });
+      }
+      function renderHqServerDashboard(data) {
+        var genEl = pane.querySelector('#hqSrvGeneratedAt');
+        var rawEl = pane.querySelector('#hqSrvJsonRaw');
+        var cardsEl = pane.querySelector('#hqSrvCards');
+        var alertEl = pane.querySelector('#hqSrvAlerts');
+        var intEl = pane.querySelector('#hqSrvIntervalSec');
+        updateHqMonCrossOriginHint();
+        if (rawEl) {
+          try { rawEl.textContent = JSON.stringify(data, null, 2); } catch (e) { rawEl.textContent = String(data); }
+        }
+        if (genEl) genEl.textContent = '조회 시각: ' + (data && data.generatedAt ? data.generatedAt : '—');
+        if (intEl) intEl.textContent = String((data && data.uiAutoRefreshSeconds > 0) ? data.uiAutoRefreshSeconds : 120);
+        if (alertEl) {
+          var alerts = data && data.health && Array.isArray(data.health.alerts) ? data.health.alerts : [];
+          if (!alerts.length) alertEl.innerHTML = '';
+          else {
+            alertEl.innerHTML = '<div class="alert alert-danger py-2 small mb-2" role="alert"><strong>헬스 경고</strong><ul class="mb-0 mt-1 ps-3">' +
+              alerts.map(function (a) { return '<li>' + hqSrvEsc(a) + '</li>'; }).join('') + '</ul></div>';
+          }
+        }
+        if (!cardsEl) return;
+        var host = (data && data.host) || {};
+        var jvm = (data && data.jvm) || {};
+        if (!data || !host || Object.keys(host).length === 0) {
+          var errMsg = (data && data.error) ? String(data.error) : '데이터가 없습니다.';
+          cardsEl.innerHTML = '<div class="hq-mon-card border-danger">' +
+            '<h3 class="text-danger">대시보드 데이터를 불러오지 못했습니다</h3>' +
+            '<p class="small mb-2">' + hqSrvEsc(errMsg) + '</p>' +
+            '<p class="small text-muted mb-0">' +
+            '[요약 새로고침]을 누르고, F12 Network에서 <code>/api/hq/serverManage</code> 응답을 확인하세요. ' +
+            'ADMIN 권한·API 기준 URL·CORS(최신 JAR)를 점검하세요.</p></div>';
+          return;
+        }
+        var disk = (data && data.disk) || {};
+        var ssl = (data && data.ssl) || {};
+        var db = (data && data.db) || {};
+        var nginx = (data && data.nginxStub) || {};
+        var certbot = (data && data.certbot) || {};
+        var health = (data && data.health) || {};
+        var tm = host.memoryTotalMb != null ? host.memoryTotalMb : 0;
+        var am = host.memoryAvailableMb != null ? host.memoryAvailableMb : 0;
+        var hpct = tm > 0 ? Math.round(((tm - am) / tm) * 1000) / 10 : 0;
+        var heapPct = Number(jvm.heapUsedPct) || 0;
+        var dp = disk.ok ? (Number(disk.usedPct) || 0) : null;
+        var files = certbot.renewalConfFiles || [];
+        var timer = certbot.certbotTimer || {};
+        var sslDays = ssl.status === 'OK' ? Number(ssl.daysRemaining) : null;
+        var sslDayCls = sslDays != null && sslDays <= 7 ? ' hq-mon-ssl-warn-danger' : sslDays != null && sslDays <= 30 ? ' hq-mon-ssl-warn' : '';
+        var stats = [];
+        stats.push(hqMonStat('호스트명', host.hostname || '—', host.osFamily ? (host.osFamily + ' · ' + (host.osVersion || '')) : '', !!host.error));
+        stats.push(hqMonStat('시스템 메모리', host.error ? '—' : (hpct + '%'), host.error ? hqSrvEsc(host.error) : ('가용 ' + am + ' / 총 ' + tm + ' MB'), hpct >= 90));
+        stats.push(hqMonStat('JVM 힙', (jvm.heapUsedMb != null ? jvm.heapUsedMb : '—') + ' / ' + (jvm.heapMaxMb != null ? jvm.heapMaxMb : '—') + ' MB', 'Java ' + (jvm.javaVersion || '—'), heapPct >= 92));
+        stats.push(hqMonStat('Load(1m) · CPU', jvm.systemLoadAverage != null ? String(jvm.systemLoadAverage) : '—', '논리 ' + (jvm.cpuCount || '—') + ' 코어', false));
+        stats.push(hqMonStat('업타임', hqSrvFmtUptimeMs(jvm.uptimeMs), '', false));
+        stats.push(hqMonStat('디스크 사용', dp != null ? (dp + '%') : '—', disk.ok ? hqSrvFmtBytes(disk.usedBytes) + ' / ' + hqSrvFmtBytes(disk.totalBytes) : hqSrvEsc(disk.error || '조회 불가'), dp != null && dp >= 90));
+        stats.push(hqMonStat('DB 테이블 수', db.ok && db.tableCountInSchema != null ? String(db.tableCountInSchema) : '—', db.ok ? 'public 스키마' : hqSrvEsc(db.error || ''), !db.ok));
+        stats.push(hqMonStat('certbot.timer', timer.active || '—', 'renewal .conf ' + files.length + '개', (timer.active || '').toLowerCase() !== 'active'));
+        var gridHtml = '<div class="hq-mon-grid">' + stats.join('') + '</div>';
+        var resolvedPath = (data && data.sslResolvedPath) ? String(data.sslResolvedPath) : '';
+        var cfgPath = (data && data.serverManageSslCertPath) ? String(data.serverManageSslCertPath) : '';
+        var leDom = (data && data.serverManageSslLeDomain) ? String(data.serverManageSslLeDomain) : '';
+        var sslDl = '';
+        if (ssl.status === 'OK') {
+          var days = Number(ssl.daysRemaining);
+          var barPct = Math.min(100, Math.max(0, (days / 90) * 100));
+          var lv = days < 14 ? 'danger' : days < 30 ? 'warn' : 'ok';
+          sslDl =
+            '<dl class="hq-mon-ssl-dl">' +
+            '<dt>실제 읽은 경로</dt><dd>' + hqSrvEsc(resolvedPath || cfgPath || '—') + '</dd>' +
+            '<dt>DB 저장 경로</dt><dd>' + hqSrvEsc(cfgPath || '—') + '</dd>' +
+            '<dt>LE live 폴더명</dt><dd>' + hqSrvEsc(leDom || '—') + '</dd>' +
+            '<dt>Subject</dt><dd class="text-break">' + hqSrvEsc(ssl.subjectDn) + '</dd>' +
+            '<dt>Issuer</dt><dd class="text-break">' + hqSrvEsc(ssl.issuerDn) + '</dd>' +
+            '<dt>유효 기간</dt><dd>' + hqSrvEsc(ssl.notBefore) + ' ~ ' + hqSrvEsc(ssl.notAfter) + '</dd>' +
+            '<dt>잔여 일수</dt><dd class="' + sslDayCls.replace(/^\s+/, '') + '"><strong>' + days + '</strong> 일</dd>' +
+            '<dt>SHA-256</dt><dd class="font-monospace small text-break">' + hqSrvEsc(ssl.fingerprintSha256 || '—') + '</dd>' +
+            '</dl>' + hqSrvProgress(barPct, lv);
+        } else {
+          sslDl = '<p class="small text-warning mb-2">' + hqSrvEsc(ssl.detail || ssl.status || '—') + '</p>' +
+            '<dl class="hq-mon-ssl-dl"><dt>실제 읽은 경로</dt><dd>' + hqSrvEsc(resolvedPath || '—') + '</dd>' +
+            '<dt>환경변수</dt><dd><code>PG_SSL_CERT_PATH</code> (선택)</dd></dl>';
+        }
+        var sslCard = '<div class="hq-mon-card">' +
+          '<h3>SSL 인증서</h3>' +
+          '<p class="hq-mon-card-desc">Let’s Encrypt fullchain 등 PEM을 읽어 만료·지문을 표시합니다. 상단 폼에서 경로를 저장하면 반영됩니다.</p>' +
+          sslDl + '</div>';
+        var cbHtml = '<h3>Certbot · 갱신</h3>' +
+          '<p class="hq-mon-card-desc">서버의 <code>systemctl is-active certbot.timer</code> 결과입니다.</p>' +
+          '<p class="small mb-1"><strong>timer</strong> ' + hqSrvEsc(timer.active || '—') + '</p>' +
+          '<p class="small text-muted text-break mb-2">다음 실행: ' + hqSrvEsc(timer.next || '—') + '</p>' +
+          '<p class="small fw-semibold mb-1">renewal/*.conf (' + files.length + ')</p>' +
+          '<ul class="small mb-0 ps-3" style="max-height:120px;overflow:auto">' +
+          files.slice(0, 40).map(function (f) { return '<li>' + hqSrvEsc(f) + '</li>'; }).join('') +
+          (files.length > 40 ? '<li>… 외 ' + (files.length - 40) + '개</li>' : '') + '</ul>';
+        var nxBody = '<p class="small mb-1">상태: <strong>' + hqSrvEsc(nginx.status) + '</strong></p>';
+        if (nginx.bodyPreview) nxBody += '<pre class="small bg-light border rounded p-2 mb-0" style="max-height:140px;overflow:auto">' + hqSrvEsc(nginx.bodyPreview) + '</pre>';
+        else if (nginx.detail) nxBody += '<p class="small text-muted mb-0">' + hqSrvEsc(nginx.detail) + '</p>';
+        if (data && data.nginxStubStatusUrlConfigured === false && nginx.status === 'SKIPPED') {
+          nxBody = '<p class="small text-muted mb-0">stub_status URL 미설정 (<code>NGINX_STUB_STATUS_URL</code> 또는 <code>app.serverManage.nginxStubStatusUrl</code>).</p>';
+        }
+        var nxHtml = '<h3>Nginx stub</h3><p class="hq-mon-card-desc">stub_status 연동 시 활성 접속 등을 표시합니다.</p>' + nxBody;
+        var dbHtml = '<h3>데이터베이스</h3><p class="hq-mon-card-desc">JDBC 연결 기준 public 스키마 테이블 수입니다.</p>' +
+          (db.ok ? '<p class="small mb-0">테이블 수: <strong>' + (db.tableCountInSchema != null ? db.tableCountInSchema : '—') + '</strong></p>' :
+            '<p class="small text-danger mb-0">' + hqSrvEsc(db.error || '') + '</p>');
+        var hRows = health.rows || [];
+        var tableRows = hRows.map(function (r) {
+          var crit = (r && r.criteria != null && String(r.criteria) !== '') ? String(r.criteria) : '—';
+          return '<tr><td>' + hqSrvEsc(r.label) + '</td><td class="hq-mon-health-criteria text-muted">' + hqSrvEsc(crit) + '</td><td>' + hqSrvEsc(r.value) + '</td><td>' + hqSrvBadge(r.status) + '</td></tr>';
+        }).join('');
+        var ctr = (data && data.serverManageContract) || {};
+        var ctrCard = '<div class="hq-mon-card hq-mon-contract-card">' +
+          '<h3>호스팅 약정</h3>' +
+          '<p class="hq-mon-card-desc">상단 <strong>호스팅 약정</strong> 폼에서 저장한 값입니다. 표시는 GB이며 서버에는 MB로 저장됩니다.</p>' +
+          '<p class="small mb-1">디스크 약정: <strong>' + hqSrvFmtGbFromMb(ctr.diskMb) + '</strong> · 트래픽 약정: <strong>' +
+          (ctr.trafficMb != null ? hqSrvFmtGbFromMb(ctr.trafficMb) + ' (기간당)' : '—') + '</strong></p>' +
+          '<p class="small text-muted mb-1">트래픽 누적 입력: <strong>' + (ctr.trafficUsedMb != null ? hqSrvFmtGbFromMb(ctr.trafficUsedMb) : '미입력') + '</strong></p>' +
+          '<p class="small text-muted mb-0">약정기간: ' + hqSrvEsc((ctr.periodStart || '—') + ' ~ ' + (ctr.periodEnd || '—')) + '</p></div>';
+        var healthHtml = '<div class="hq-mon-card hq-mon-health-table">' +
+          '<h3>헬스 요약</h3>' +
+          '<p class="hq-mon-card-desc">일반 항목은 NOTI와 동일한 비율 임계치입니다. <strong>약정 디스크·트래픽</strong> 행은 약정(GB) 대비 사용률(주의 ≥75%, 위험 ≥90%)입니다.</p>' +
+          '<div class="table-responsive"><table class="table table-sm table-bordered align-middle mb-0">' +
+          '<thead class="table-light"><tr><th>항목</th><th>양호·주의·위험 기준</th><th>값</th><th style="width:88px">상태</th></tr></thead><tbody>' + tableRows + '</tbody></table></div>' +
+          '<p class="small text-muted mt-2 mb-0">종합: ' + hqSrvBadge(health.worstStatus || 'ok') + '</p></div>';
+        cardsEl.innerHTML = gridHtml + sslCard +
+          '<div class="hq-mon-row2"><div class="hq-mon-card">' + cbHtml + '</div><div class="hq-mon-card">' + nxHtml + '</div></div>' +
+          '<div class="hq-mon-card">' + dbHtml + '</div>' + ctrCard + healthHtml;
+        if (typeof requestAnimationFrame === 'function') {
+          requestAnimationFrame(function () { refreshHqUsageCharts(pane, pane._hqUsageGrain || 'daily'); });
+        } else {
+          setTimeout(function () { refreshHqUsageCharts(pane, pane._hqUsageGrain || 'daily'); }, 0);
         }
       }
       function applyServerFormFromSummary(data) {
         if (!data) return;
-        ['serverManageSslCertPath', 'serverManageSslLeDomain'].forEach(function (k) {
+        ['serverManageSslCertPath', 'serverManageSslLeDomain', 'serverManageContractStart', 'serverManageContractEnd'].forEach(function (k) {
           var inp = pane.querySelector('[name="' + k + '"]');
-          if (inp && data[k] != null && String(data[k]) !== '') inp.value = data[k];
+          if (!inp) return;
+          var v = data[k];
+          if (v === undefined || v === null || v === '') inp.value = '';
+          else inp.value = v;
         });
+        var dIn = pane.querySelector('[name="serverManageContractDiskGb"]');
+        if (dIn) dIn.value = hqSrvMbToGbInput(data.serverManageContractDiskMb);
+        var tIn = pane.querySelector('[name="serverManageContractTrafficGb"]');
+        if (tIn) tIn.value = hqSrvMbToGbInput(data.serverManageContractTrafficMb);
+        var uIn = pane.querySelector('[name="serverManageTrafficUsedGb"]');
+        if (uIn) {
+          var tu = data.serverManageTrafficUsedMb;
+          uIn.value = (tu !== undefined && tu !== null && tu !== '') ? hqSrvMbToGbInput(tu) : '';
+        }
+      }
+      function scheduleDataRefresh() {
+        hqSrvClearTimers();
+        var cb = pane.querySelector('#hqSrvAutoRefresh');
+        var auto = !cb || cb.checked;
+        var sec = Math.max(30, pane._hqSrvRefreshSec || 120);
+        if (auto) {
+          pane._serverManageTimer = setInterval(function () { loadServerSummary(false); }, sec * 1000);
+        }
+        pane._hqSrvNextRefreshAt = Date.now() + sec * 1000;
+        pane._hqSrvCountdownTimer = setInterval(function () {
+          var el = pane.querySelector('#hqSrvCountdown');
+          var box = pane.querySelector('#hqSrvAutoRefresh');
+          if (!el) return;
+          if (!box || !box.checked) {
+            el.textContent = '자동 갱신 꺼짐 · [요약 새로고침]으로 수동 조회';
+            el.className = 'small fw-semibold text-secondary';
+            return;
+          }
+          el.className = 'small fw-semibold text-primary';
+          var rem = Math.max(0, Math.ceil((pane._hqSrvNextRefreshAt - Date.now()) / 1000));
+          el.textContent = '다음 자동 갱신까지 약 ' + rem + '초';
+        }, 1000);
       }
       function loadServerSummary(showDimm) {
         if (showDimm && dimmSrv) dimmSrv.style.display = 'flex';
         window.PG_API.hqServerManage().then(function (data) {
           applyServerFormFromSummary(data);
-          renderServerSummary(data);
-          var sec = (data && data.uiAutoRefreshSeconds > 0) ? data.uiAutoRefreshSeconds : 120;
-          if (!pane._serverManageTimer) {
-            pane._serverManageTimer = setInterval(function () { loadServerSummary(false); }, Math.max(30, sec) * 1000);
-          }
+          renderHqServerDashboard(data);
+          pane._hqSrvRefreshSec = (data && data.uiAutoRefreshSeconds > 0) ? data.uiAutoRefreshSeconds : 120;
+          scheduleDataRefresh();
         }).catch(function (err) {
-          renderServerSummary({ error: err && err.message ? err.message : '조회 실패 (ADMIN 권한·네트워크 확인)' });
+          hqSrvClearTimers();
+          renderHqServerDashboard({
+            error: err && err.message ? err.message : '조회 실패 (ADMIN 권한·네트워크 확인)',
+            health: { alerts: [err && err.message ? err.message : '조회 실패'], rows: [], worstStatus: 'danger' }
+          });
+          var cEl = pane.querySelector('#hqSrvCountdown');
+          if (cEl) {
+            cEl.textContent = '조회 실패 — [요약 새로고침]을 눌러 주세요';
+            cEl.className = 'small text-danger fw-semibold';
+          }
         }).finally(function () {
           if (showDimm && dimmSrv) dimmSrv.style.display = 'none';
         });
       }
       loadServerSummary(true);
+      if (!pane._hqSrvPaneChangeBound) {
+        pane._hqSrvPaneChangeBound = true;
+        pane.addEventListener('change', function (ev) {
+          if (ev.target && ev.target.id === 'hqSrvAutoRefresh') {
+            scheduleDataRefresh();
+          }
+        });
+      }
+      if (!pane._hqUsageGrainBound) {
+        pane._hqUsageGrainBound = true;
+        pane.addEventListener('click', function (ev) {
+          var btn = ev.target && ev.target.closest && ev.target.closest('[data-hq-usage-grain]');
+          if (!btn || !pane.contains(btn)) return;
+          var g = btn.getAttribute('data-hq-usage-grain') || 'daily';
+          pane._hqUsageGrain = g;
+          pane.querySelectorAll('[data-hq-usage-grain]').forEach(function (b) {
+            b.classList.toggle('active', b.getAttribute('data-hq-usage-grain') === g);
+          });
+          refreshHqUsageCharts(pane, g);
+        });
+      }
       var srvSave = pane.querySelector('#hqServerManageSaveBtn');
       var srvRef = pane.querySelector('#hqServerManageRefreshBtn');
+      function setHqSrvInlineMsg(text, kind) {
+        var el = pane.querySelector('#hqSrvInlineMsg');
+        if (!el) return;
+        el.textContent = text || '';
+        el.className = 'small mt-2';
+        if (kind === 'success') el.className += ' text-success';
+        else if (kind === 'error') el.className += ' text-danger';
+        else el.className += ' text-muted';
+      }
       if (srvSave && !srvSave._bound) {
         srvSave._bound = true;
         srvSave.addEventListener('click', function () {
+          setHqSrvInlineMsg('', '');
           var fd = {};
           pane.querySelectorAll('input, select, textarea').forEach(function (el) { if (el.name) fd[el.name] = el.value; });
+          var gDisk = fd.serverManageContractDiskGb;
+          var gTrf = fd.serverManageContractTrafficGb;
+          var gUsed = fd.serverManageTrafficUsedGb;
+          delete fd.serverManageContractDiskGb;
+          delete fd.serverManageContractTrafficGb;
+          delete fd.serverManageTrafficUsedGb;
+          fd.serverManageContractDiskMb = hqSrvGbToMbContract(gDisk);
+          fd.serverManageContractTrafficMb = hqSrvGbToMbContract(gTrf);
+          var usedMb = hqSrvGbToMbTrafficUsed(gUsed);
+          fd.serverManageTrafficUsedMb = usedMb;
           if (dimmSrv) dimmSrv.style.display = 'flex';
           window.PG_API.hqServerManageSave(fd).then(function () {
-            alert('저장되었습니다.');
+            setHqSrvInlineMsg('서버관리 설정(SSL·호스팅 약정)이 저장되었습니다. 대시보드가 갱신되었습니다.', 'success');
             return window.PG_API.hqServerManage();
           }).then(function (data) {
             applyServerFormFromSummary(data);
-            renderServerSummary(data);
-          }).catch(function (e) { alert(e && e.message ? e.message : '저장 실패'); }).finally(function () { if (dimmSrv) dimmSrv.style.display = 'none'; });
+            renderHqServerDashboard(data);
+            pane._hqSrvRefreshSec = (data && data.uiAutoRefreshSeconds > 0) ? data.uiAutoRefreshSeconds : 120;
+            scheduleDataRefresh();
+          }).catch(function (e) {
+            setHqSrvInlineMsg(e && e.message ? e.message : '저장 실패', 'error');
+          }).finally(function () { if (dimmSrv) dimmSrv.style.display = 'none'; });
         });
       }
       if (srvRef && !srvRef._bound) {

@@ -1,0 +1,168 @@
+/**
+ * 본사설정 > 서버관리 실시간 대시보드
+ * NOTI /admin/system-monitor(mon-grid, mon-stat, mon-ssl-dl) 레이아웃을 참고한 스타일
+ */
+.hq-noti-monitor {
+  --hq-mon-bg: #edf2f7;
+  --hq-mon-card: #fff;
+  --hq-mon-border: #e5e7eb;
+  --hq-mon-muted: #6b7280;
+  --hq-mon-danger-bg: #fef2f2;
+  --hq-mon-danger-border: #f87171;
+}
+
+.hq-server-manage-dashboard.hq-noti-monitor {
+  background: var(--hq-mon-bg);
+  margin: 0 -4px;
+  padding: 12px 8px 8px;
+  border-radius: 10px;
+}
+
+.hq-mon-toolbar {
+  background: var(--hq-mon-card);
+  border: 1px solid var(--hq-mon-border);
+  border-radius: 10px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+
+.hq-mon-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(168px, 1fr));
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.hq-mon-stat {
+  background: #f9fafb;
+  border: 1px solid var(--hq-mon-border);
+  border-radius: 8px;
+  padding: 12px 14px;
+}
+
+.hq-mon-stat.danger {
+  background: var(--hq-mon-danger-bg);
+  border-color: var(--hq-mon-danger-border);
+}
+
+.hq-mon-stat.danger .hq-mon-stat-k {
+  color: #991b1b;
+}
+
+.hq-mon-stat.danger .hq-mon-stat-v {
+  color: #b91c1c;
+}
+
+.hq-mon-stat-k {
+  font-size: 11px;
+  color: var(--hq-mon-muted);
+  margin-bottom: 4px;
+  font-weight: 600;
+}
+
+.hq-mon-stat-v {
+  font-size: 17px;
+  font-weight: 700;
+  color: #111827;
+  line-height: 1.25;
+}
+
+.hq-mon-stat-sub {
+  font-size: 11px;
+  color: var(--hq-mon-muted);
+  margin-top: 4px;
+  line-height: 1.35;
+}
+
+.hq-mon-card {
+  background: var(--hq-mon-card);
+  border: 1px solid var(--hq-mon-border);
+  border-radius: 10px;
+  padding: 18px 20px;
+  margin-top: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+
+.hq-mon-card h3 {
+  margin: 0 0 6px 0;
+  font-size: 1.08rem;
+  font-weight: 700;
+  color: #111827;
+}
+
+.hq-mon-card .hq-mon-card-desc {
+  font-size: 11px;
+  color: var(--hq-mon-muted);
+  line-height: 1.45;
+  margin-bottom: 12px;
+}
+
+.hq-mon-ssl-dl {
+  display: grid;
+  grid-template-columns: minmax(120px, 200px) 1fr;
+  gap: 8px 16px;
+  font-size: 13px;
+  margin-top: 8px;
+  align-items: start;
+}
+
+.hq-mon-ssl-dl dt {
+  color: var(--hq-mon-muted);
+  font-weight: 600;
+  margin: 0;
+}
+
+.hq-mon-ssl-dl dd {
+  margin: 0;
+  word-break: break-word;
+}
+
+.hq-mon-ssl-warn {
+  color: #b45309;
+  font-weight: 600;
+}
+
+.hq-mon-ssl-warn-danger {
+  color: #b91c1c;
+  font-weight: 700;
+}
+
+.hq-mon-row2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+@media (max-width: 768px) {
+  .hq-mon-row2 {
+    grid-template-columns: 1fr;
+  }
+}
+
+.hq-mon-health-table .table th {
+  font-size: 12px;
+}
+
+.hq-mon-health-table .table td {
+  font-size: 12px;
+  vertical-align: middle;
+}
+
+.hq-mon-health-table .hq-mon-health-criteria {
+  font-size: 11px;
+  line-height: 1.45;
+  min-width: 200px;
+  max-width: 420px;
+  white-space: normal;
+  word-break: keep-all;
+}
+
+.hq-srv-usage-section .hq-usage-chart-wrap {
+  position: relative;
+  min-height: 260px;
+  height: 260px;
+}
+
+.hq-usage-summary ul li {
+  margin-bottom: 0.35rem;
+}

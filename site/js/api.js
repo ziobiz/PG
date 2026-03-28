@@ -8,8 +8,30 @@
   var AUTH_USER_KEY = 'pg_admin_user';
   var AUTH_FLAG_KEY = 'pg_admin_auth';
 
+  /** 운영 API 기본 (config.js 의 PG_PUBLIC_ICOPAY_API 와 동일 개념) */
+  function publicApiRoot() {
+    var p = (typeof window !== 'undefined' && window.PG_PUBLIC_ICOPAY_API) ? String(window.PG_PUBLIC_ICOPAY_API) : 'https://api.icopay.co.kr';
+    return p.replace(/\/$/, '').trim() || 'https://api.icopay.co.kr';
+  }
+
+  /**
+   * 절대 URL만 반환. base 가 비면 상대 경로 /api 가 "현재 페이지 호스트"로 나가 카페24 등에서 전부 실패함.
+   */
   function getBaseUrl() {
-    return (window.PG_API_BASE || '').replace(/\/$/, '');
+    var raw = window.PG_API_BASE != null ? String(window.PG_API_BASE) : '';
+    var b = raw.replace(/\/$/, '').trim();
+    if (b && !/^https?:\/\//i.test(b)) {
+      b = '';
+    }
+    if (b) return b;
+    try {
+      var h = window.location && window.location.hostname;
+      if (h === 'api.icopay.co.kr' || h === 'localhost' || h === '127.0.0.1') {
+        var og = (window.location.origin || '').replace(/\/$/, '').trim();
+        if (og) return og;
+      }
+    } catch (e1) { /* ignore */ }
+    return publicApiRoot();
   }
 
   function getToken() {
@@ -30,7 +52,11 @@
 
   function request(options) {
     var base = getBaseUrl();
-    var url = base ? (base + (options.path || options.url)) : (options.path || options.url);
+    var path = options.path || options.url || '';
+    if (path && path.charAt(0) !== '/') {
+      path = '/' + path;
+    }
+    var url = base + path;
     var headers = { 'Content-Type': 'application/json', 'Accept': 'application/json' };
     var token = getToken();
     if (token) headers['Authorization'] = 'Bearer ' + token;
@@ -49,7 +75,10 @@
       if (q.length) url += (url.indexOf('?') >= 0 ? '&' : '?') + q.join('&');
     }
     if (!url) return Promise.reject(new Error('API 경로가 없습니다.'));
-    init.credentials = 'same-origin';
+    // 교차 출처(관리자 도메인 ≠ API 도메인)에서 same-origin + Allow-Credentials 조합이 막히는 경우 방지.
+    // Authorization: Bearer 는 omit 이어도 전송됨(쿠키만 생략).
+    init.credentials = 'omit';
+    init.mode = 'cors';
     return fetch(url, init).then(function (res) {
       if (res.status === 401) {
         clearAuth();
@@ -74,7 +103,10 @@
     }).catch(function (err) {
       var msg = (err && err.message) ? err.message : '';
       if (msg === 'Failed to fetch' || msg.indexOf('NetworkError') !== -1 || msg.indexOf('Load failed') !== -1 || msg === 'Network request failed') {
-        return Promise.reject(new Error('서버에 연결할 수 없습니다. API 서버(8080)가 실행 중인지 확인하세요.'));
+        return Promise.reject(new Error(
+          'API에 연결하지 못했습니다. 요청: ' + url +
+            ' — 최신 JAR 배포·ADMIN 로그인·브라우저 Network(CORS)를 확인하세요.'
+        ));
       }
       return Promise.reject(err);
     });
@@ -553,11 +585,18 @@
     hqDomainConfigSave: function (body) {
       return post('/api/hq/domainConfig/save', body || {}).then(function (r) { return r.data; });
     },
+    hqDomainConfigOrgSave: function (body) {
+      return post('/api/hq/domainConfig/orgSave', body || {}).then(function (r) { return r.data; });
+    },
     hqServerManage: function () {
       return get('/api/hq/serverManage').then(function (r) { return r.data; });
     },
     hqServerManageSave: function (body) {
       return post('/api/hq/serverManage/save', body || {}).then(function (r) { return r.data; });
+    },
+    /** grain: daily | weekly | monthly — NOTI 유사 트래픽·메모리 피크 시계열 */
+    hqServerUsage: function (grain) {
+      return get('/api/hq/serverUsage', { grain: grain || 'daily' }).then(function (r) { return r.data; });
     },
     hqBusinessDaySettings: function () {
       return get('/api/hq/businessDaySettings').then(function (r) { return r.data || []; });

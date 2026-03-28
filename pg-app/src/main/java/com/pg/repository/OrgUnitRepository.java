@@ -6,10 +6,13 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
 public interface OrgUnitRepository extends JpaRepository<OrgUnit, Long> {
+
+    List<OrgUnit> findByOrgLevelInOrderByNameAsc(Collection<OrgLevel> levels);
 
     List<OrgUnit> findByOrgLevelOrderByCodeAsc(OrgLevel orgLevel);
     List<OrgUnit> findByParentIdOrderByCodeAsc(Long parentId);
