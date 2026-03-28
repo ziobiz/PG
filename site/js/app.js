@@ -201,6 +201,7 @@
     '/calc/payCancelList': { label: '취소내역', parent: '결제관리' },
     '/calc/offsetCancList': { label: '상계취소내역', parent: '결제관리' },
     '/pay/easyPay': { label: 'URL결제내역', parent: '결제관리' },
+    '/pay/chatbotPay': { label: '챗봇결제내역', parent: '결제관리' },
     '/calc/calcList': { label: '유통망정산내역', parent: '정산관리' },
     '/calc/calcGmList': { label: '가맹정산내역', parent: '정산관리' },
     '/calc/feeList': { label: '수수료내역', parent: '정산관리' },
@@ -1701,7 +1702,7 @@
       if (!url || url === '/main') return;
       if (p && p.classList) {
         p.classList.toggle('screen-calc-gm-list', url === '/calc/calcGmList' || url === '/settlement/franchiseList');
-        p.classList.toggle('screen-pay-list', url === '/calc/payList' || url === '/calc/payNotiList' || url === '/calc/paySuccessList' || url === '/calc/payFailList' || url === '/calc/payRefundList' || url === '/calc/payForceRefundList' || url === '/calc/payCancelList' || url === '/calc/offsetCancList' || url === '/pay/easyPay');
+        p.classList.toggle('screen-pay-list', url === '/calc/payList' || url === '/calc/payNotiList' || url === '/calc/paySuccessList' || url === '/calc/payFailList' || url === '/calc/payRefundList' || url === '/calc/payForceRefundList' || url === '/calc/payCancelList' || url === '/calc/offsetCancList' || url === '/pay/easyPay' || url === '/pay/chatbotPay');
         p.classList.toggle('screen-distribution-list', url === '/calc/calcList' || url === '/settlement/distributionList');
         p.classList.toggle('screen-user-mng', url === '/user/userMng');
       }
@@ -1751,7 +1752,7 @@
       if (dimm) dimm.style.display = 'flex';
       var promise = null;
       if (url === '/system/noticeList') promise = api.noticeList(params);
-      else if (url === '/calc/payList' || url === '/calc/payFailList' || url === '/calc/offsetCancList' || url === '/pay/easyPay' || url === '/calc/payNotiList' || url === '/calc/paySuccessList' || url === '/calc/payRefundList' || url === '/calc/payForceRefundList' || url === '/calc/payCancelList') promise = api.payList(params);
+      else if (url === '/calc/payList' || url === '/calc/payFailList' || url === '/calc/offsetCancList' || url === '/pay/easyPay' || url === '/pay/chatbotPay' || url === '/calc/payNotiList' || url === '/calc/paySuccessList' || url === '/calc/payRefundList' || url === '/calc/payForceRefundList' || url === '/calc/payCancelList') promise = api.payList(params);
       else if (url === '/comp/compMngTree' || url === '/comp/myCompMng' || url === '/comp/compMng' || url === '/comp/compInfo') {
         if (url === '/comp/myCompMng') params.myOrgOnly = true;
         promise = api.compList(params);
@@ -2026,7 +2027,7 @@
               } else {
                 var val = row[c.key] !== undefined && row[c.key] !== null ? String(row[c.key]) : '';
                 var cellClass = '';
-                var isPayScr = url === '/calc/payList' || url === '/calc/payNotiList' || url === '/calc/paySuccessList' || url === '/calc/payFailList' || url === '/calc/payRefundList' || url === '/calc/payForceRefundList' || url === '/calc/payCancelList' || url === '/calc/offsetCancList' || url === '/pay/easyPay';
+                var isPayScr = url === '/calc/payList' || url === '/calc/payNotiList' || url === '/calc/paySuccessList' || url === '/calc/payFailList' || url === '/calc/payRefundList' || url === '/calc/payForceRefundList' || url === '/calc/payCancelList' || url === '/calc/offsetCancList' || url === '/pay/easyPay' || url === '/pay/chatbotPay';
                 if (url === '/calc/calcGmList' || url === '/settlement/franchiseList') {
                   var gmCls = [];
                   if (['amount', 'feeCnt', 'feeRate', 'feeAmt', 'feeVat', 'holdRate', 'holdAmt', 'settleAmt'].indexOf(c.key) >= 0) gmCls.push('text-end');
@@ -2206,7 +2207,7 @@
             setSummaryText(p, '정산금', fmtNum(tr.st));
           }
         }
-        if (url === '/calc/payList' || url === '/calc/payNotiList' || url === '/calc/paySuccessList' || url === '/calc/payFailList' || url === '/calc/payRefundList' || url === '/calc/payForceRefundList' || url === '/calc/payCancelList' || url === '/calc/offsetCancList' || url === '/pay/easyPay') {
+        if (url === '/calc/payList' || url === '/calc/payNotiList' || url === '/calc/paySuccessList' || url === '/calc/payFailList' || url === '/calc/payRefundList' || url === '/calc/payForceRefundList' || url === '/calc/payCancelList' || url === '/calc/offsetCancList' || url === '/pay/easyPay' || url === '/pay/chatbotPay') {
           var ps = { aprv: 0, canc: 0, fee: 0, vat: 0, pay: 0, hold: 0 };
           list.forEach(function (r) {
             var amt = asNum(r.pgApproveAmt != null ? r.pgApproveAmt : r.payAmount);
@@ -2513,7 +2514,7 @@
       }).catch(function () {});
     }
     bindNotifyTargetPicker();
-    var autoSearchUrls = ['/system/noticeList', '/calc/payList', '/calc/payNotiList', '/calc/paySuccessList', '/calc/payFailList', '/calc/payRefundList', '/calc/payForceRefundList', '/calc/payCancelList', '/calc/offsetCancList', '/pay/easyPay',
+    var autoSearchUrls = ['/system/noticeList', '/calc/payList', '/calc/payNotiList', '/calc/paySuccessList', '/calc/payFailList', '/calc/payRefundList', '/calc/payForceRefundList', '/calc/payCancelList', '/calc/offsetCancList', '/pay/easyPay', '/pay/chatbotPay',
       '/comp/compMngTree', '/comp/compInfoHistList', '/commission/commisionList',
       '/user/userMng', '/set/gridSetMng',
       '/calc/calcList', '/calc/calcGmList', '/calc/feeList', '/settlement/feeList', '/calc/compPointMngList', '/settlement/recallMng', '/calc/balcInfo', '/calc/balanceList', '/calc/unpaidMng', '/calc/exCalcList', '/pay/payHoldList', '/calc/collateralList', '/settlement/collateralList',

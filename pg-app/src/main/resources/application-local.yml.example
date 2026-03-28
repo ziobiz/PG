@@ -16,3 +16,11 @@ spring:
 #     md5-key: 여기에_MD5_Secret_Key
 #     route-no: 4
 #     sandbox: true
+
+# ziobiz/NOTI → PG 노티 수신 보완 (비우면 검증 생략 — 로컬 curl 테스트 시 주석 처리)
+# app:
+#   pg-notify:
+#     allowed-client-cidrs: 203.0.113.10,198.51.100.0/24
+#     hmac-secret: NOTI와_동일한_공유비밀
+#     hmac-header: X-PG-Notify-Hmac
+# NOTI 측: 헤더에 HMAC-SHA256(UTF-8 비밀, 요청 본문 RAW 바이트) 소문자 hex. 접두어 sha256= 선택.

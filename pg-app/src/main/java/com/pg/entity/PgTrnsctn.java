@@ -39,7 +39,7 @@ public class PgTrnsctn {
     @Column(name = "van", length = 10)
     private String van;
 
-    /** CHILL(또는 null) API동기화, NOTI 노티적재, URL URL직접결제 */
+    /** null·CHILL(동기화), NOTI(전산노티), URL(칠페이 URL 결제), CHATBOT(EFO 웹챗봇·동일 칠페이 API) */
     @Column(name = "origin", length = 20)
     private String origin;
 

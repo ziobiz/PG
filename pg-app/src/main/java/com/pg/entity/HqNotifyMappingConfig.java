@@ -14,8 +14,8 @@ public class HqNotifyMappingConfig {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Lob
-    @Column(name = "mapping_json")
+    /** PostgreSQL TEXT (V21). @Lob 금지 — LONGVARCHAR(-1) 도 PG 검증에서 CLOB(oid)로 잡힐 수 있음 */
+    @Column(name = "mapping_json", columnDefinition = "TEXT")
     private String mappingJson;
 
     @Column(name = "updated_at")

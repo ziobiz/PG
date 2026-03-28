@@ -39,7 +39,8 @@
         { "label": "강제환불", "url": "/calc/payForceRefundList", "menuId": "M0317" },
         { "label": "취소내역", "url": "/calc/payCancelList", "menuId": "M0318" },
         { "label": "상계취소내역", "url": "/calc/offsetCancList", "menuId": "M0309" },
-        { "label": "URL결제내역", "url": "/pay/easyPay", "menuId": "M0310" }
+        { "label": "URL결제내역", "url": "/pay/easyPay", "menuId": "M0310" },
+        { "label": "챗봇결제내역", "url": "/pay/chatbotPay", "menuId": "M0311" }
       ]
     },
     {

@@ -1861,6 +1861,10 @@
     MENU_SCREENS['/calc/payCancelList'] = cloneWith('CANCEL', ['취소내역: 통합 결제내역에서 취소만 간추렸습니다.']);
     MENU_SCREENS['/calc/offsetCancList'] = cloneWith('OFFSET_CANCEL', ['상계취소내역: 정산 상계 처리용 — 승인 성공(결제)을 제외한 전 건(실패·환불·강제환불·취소·기타)을 한 화면에서 봅니다. 이후 빈도·집계로 상계에 활용합니다.']);
     MENU_SCREENS['/pay/easyPay'] = cloneWith('URL_PAY', ['URL결제내역: 가맹점 API연동 노티 외, 플랫폼이 칠페이 결제 API로 발급한 결제수소(URL)로 발생한 전 건(성공·실패·환불·취소 등). 통합 결제내역에도 포함되며, 여기서는 origin=URL 만 조회합니다.']);
+    MENU_SCREENS['/pay/chatbotPay'] = cloneWith('CHATBOT_PAY', [
+      '챗봇결제내역: 웹 EFO 챗봇 결제 플로우에서 동일 칠페이(URL/카드) API로 생성·적재한 건만 표시합니다. 통합 결제내역에도 포함되며, 여기서는 origin=CHATBOT 만 조회합니다.',
+      'URL결제내역과 동일 API(/api/calc/payList)·그리드를 사용하며 payListVariant=CHATBOT_PAY 로 구분합니다.'
+    ]);
   })();
 
   /** 정산 메뉴(/settlement/*) 중 /calc/*와 동일 API·그리드를 쓰는 화면은 컬럼을 복제해 드리프트를 막음 */

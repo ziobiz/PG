@@ -166,6 +166,8 @@ public class PayListService {
             case "CANCEL" -> cb.equal(root.get("status"), "20");
             case "OFFSET_CANCEL" -> cb.or(cb.isNull(root.get("status")), cb.notEqual(root.get("status"), "10"));
             case "URL_PAY" -> cb.equal(root.get("origin"), "URL");
+            /** EFO 웹 챗봇 결제 플로우에서 동일 칠페이 API로 적재한 건 — 통합 결제내역에 포함, 이 화면에서는 origin=CHATBOT 만 */
+            case "CHATBOT_PAY" -> cb.equal(root.get("origin"), "CHATBOT");
             case "NOTI" -> cb.equal(root.get("origin"), "NOTI");
             default -> cb.conjunction();
         };

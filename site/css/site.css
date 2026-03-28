@@ -2,10 +2,9 @@
 * { box-sizing: border-box; }
 :root {
   --table-row-padding-y: 10px;
-  /* 사용자관리 화면과 동일한 스케일로 전역 통일 */
-  --app-base-font-size: 11px;
-  --app-table-font-size: 10px;
-  --app-form-sm-font-size: 10px;
+  --app-base-font-size: 13px;
+  --app-table-font-size: 12px;
+  --app-form-sm-font-size: 12px;
 }
 body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans KR", sans-serif; font-size: var(--app-base-font-size); }
 
@@ -760,7 +759,7 @@ body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Ro
 .screen-distribution-list .screen-distribution-grid .dist-th-fee,
 .screen-distribution-list .screen-distribution-grid .dist-th-fee-sub {
   white-space: nowrap;
-  font-size: 10px;
+  font-size: var(--app-table-font-size);
   padding-left: 4px;
   padding-right: 4px;
 }
@@ -773,10 +772,10 @@ body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Ro
 }
 
 /* 업체관리 VIEW SETTING: 항목 한 줄 좌측 정렬 + 우측 액션 고정 */
-.table-column-guide { font-size: 10px; display: flex; flex-direction: column; align-items: stretch; justify-content: center; }
+.table-column-guide { font-size: var(--app-table-font-size); display: flex; flex-direction: column; align-items: stretch; justify-content: center; }
 .table-column-guide .column-guide-row { margin-bottom: 4px; }
 .table-column-guide .column-guide-row:last-child { margin-bottom: 0; }
-.table-column-guide .column-guide-title { font-weight: 600; color: #495057; font-size: 10px; padding-left: 0; margin-bottom: 2px; }
+.table-column-guide .column-guide-title { font-weight: 600; color: #495057; font-size: var(--app-table-font-size); padding-left: 0; margin-bottom: 2px; }
 .table-column-guide .column-guide-body { display: flex; flex-wrap: nowrap; align-items: stretch; gap: 10px; width: 100%; }
 .table-column-guide .column-guide-list {
   flex: 1 1 auto;
@@ -857,10 +856,10 @@ body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Ro
   min-width: 44px;
   white-space: nowrap !important;
 }
-.table-column-guide:not(.table-column-guide--two-row) .column-guide-item { margin: 0; font-weight: 500; cursor: pointer; white-space: nowrap; font-size: 10px; display: inline-flex; align-items: center; }
-.table-column-guide.table-column-guide--two-row .column-guide-item { margin: 0; font-weight: 500; cursor: pointer; white-space: normal; font-size: 10px; display: inline-flex; align-items: flex-start; max-width: 100%; }
+.table-column-guide:not(.table-column-guide--two-row) .column-guide-item { margin: 0; font-weight: 500; cursor: pointer; white-space: nowrap; font-size: var(--app-table-font-size); display: inline-flex; align-items: center; }
+.table-column-guide.table-column-guide--two-row .column-guide-item { margin: 0; font-weight: 500; cursor: pointer; white-space: normal; font-size: var(--app-table-font-size); display: inline-flex; align-items: flex-start; max-width: 100%; }
 .table-column-guide .column-guide-item input { margin-right: 3px; }
-.table-column-guide .btn.btn-xs { font-size: 10px; padding: 2px 6px; width: 100%; min-height: 24px; }
+.table-column-guide .btn.btn-xs { font-size: var(--app-form-sm-font-size); padding: 2px 6px; width: 100%; min-height: 24px; }
 /* 업체관리 트리 접기/펼치기 (계층 구조 유지를 위해 좌측 정렬) */
 .tree-toggle-cell { white-space: nowrap; }
 .tree-comp-cell { white-space: nowrap; text-align: left !important; }
@@ -926,7 +925,7 @@ td.empty-state-cell {
   border: 1px solid #bce8f1;
   background: #fff;
   color: #5a6c7d;
-  font-size: 10px;
+  font-size: var(--app-form-sm-font-size);
   border-radius: 4px;
   cursor: pointer;
   transition: all 0.2s;
@@ -1147,51 +1146,50 @@ body.theme-pastel_4 .content-page, body.theme-pastel_5 .content-page {
   box-shadow: inset 4px 0 0 #fd7e14;
 }
 
-/* 사용자관리: 글자 축소, 검색줄 입력·사용여부(select) 너비 통일 */
+/* 사용자관리: 전역 변수와 동일 스케일, 검색줄 입력·사용여부(select) 너비만 유지 */
 .screen-user-mng .table,
 .screen-user-mng .table thead th,
 .screen-user-mng .table tbody td {
-  font-size: 10px;
+  font-size: var(--app-table-font-size);
 }
 .screen-user-mng .table .form-control-sm,
 .screen-user-mng .table .form-select-sm {
-  font-size: 10px;
+  font-size: var(--app-form-sm-font-size);
 }
 .screen-user-mng .screen-search-form {
-  font-size: 11px;
+  font-size: var(--app-base-font-size);
 }
 .screen-user-mng .screen-search-form .search-cell-input input.form-control-sm,
 .screen-user-mng .screen-search-form .search-cell-input select.form-control-sm {
-  font-size: 11px;
+  font-size: var(--app-base-font-size);
   width: 24ch !important;
   min-width: 24ch !important;
   max-width: none !important;
 }
 .screen-user-mng .summary-bar {
-  font-size: 11px;
+  font-size: var(--app-base-font-size);
 }
-/* 사용자관리: 초안 행 삭제 글자 축소, OTP 등록/미등록 배지 한 단계 확대 */
 .screen-user-mng .user-mng-draft-remove {
-  font-size: 0.65rem;
+  font-size: var(--app-form-sm-font-size);
   line-height: 1.2;
-  padding: 0.08rem 0.32rem;
+  padding: 0.1rem 0.35rem;
 }
 .screen-user-mng .user-mng-otp-badge {
-  font-size: 10px;
+  font-size: var(--app-form-sm-font-size);
   line-height: 1.15;
-  padding: 0.12rem 0.4rem;
+  padding: 0.15rem 0.45rem;
   font-weight: 500;
 }
 .screen-user-mng .user-mng-pwd-menu-toggle {
-  font-size: 10px;
+  font-size: var(--app-form-sm-font-size);
   line-height: 1.2;
 }
 .screen-user-mng .user-mng-pwd-dropdown {
-  font-size: 11px;
+  font-size: var(--app-base-font-size);
   min-width: 7.5rem;
 }
 .screen-user-mng .user-mng-pwd-dropdown .dropdown-item {
-  font-size: 11px;
+  font-size: var(--app-base-font-size);
 }
 .column-guide-item { user-select: none; }
 .column-guide-item .column-guide-label {

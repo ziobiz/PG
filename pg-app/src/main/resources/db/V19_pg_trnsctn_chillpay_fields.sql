@@ -9,4 +9,5 @@ ALTER TABLE pg_trnsctn ADD COLUMN IF NOT EXISTS chill_fee_amt NUMERIC(15, 0);
 ALTER TABLE pg_trnsctn ADD COLUMN IF NOT EXISTS total_amt NUMERIC(15, 0);
 ALTER TABLE pg_trnsctn ADD COLUMN IF NOT EXISTS route_no VARCHAR(32);
 ALTER TABLE pg_trnsctn ADD COLUMN IF NOT EXISTS chill_payment_status VARCHAR(50);
-ALTER TABLE pg_trnsctn ADD COLUMN IF NOT EXISTS settled_yn CHAR(1) DEFAULT 'N';
+-- Hibernate validate: String + length 1 → VARCHAR(1). CHAR(1)/bpchar 는 타입 불일치 오류 발생.
+ALTER TABLE pg_trnsctn ADD COLUMN IF NOT EXISTS settled_yn VARCHAR(1) DEFAULT 'N';

@@ -9,6 +9,7 @@ import com.pg.entity.PgNotifyInbound;
 import com.pg.repository.MerchantPgBindingRepository;
 import com.pg.repository.OrgUnitRepository;
 import com.pg.repository.PgNotifyInboundRepository;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -31,21 +32,25 @@ public class PgNotifyReceiveService {
     private final MerchantPgBindingRepository bindingRepository;
     private final OrgUnitRepository orgUnitRepository;
     private final OrgServiceUseService orgServiceUseService;
+    private final PgNotifyIngressGuard notifyIngressGuard;
 
     public PgNotifyReceiveService(HqNotifyEnvService hqNotifyEnvService,
                                 PgNotifyInboundRepository inboundRepository,
                                 MerchantPgBindingRepository bindingRepository,
                                 OrgUnitRepository orgUnitRepository,
-                                OrgServiceUseService orgServiceUseService) {
+                                OrgServiceUseService orgServiceUseService,
+                                PgNotifyIngressGuard notifyIngressGuard) {
         this.hqNotifyEnvService = hqNotifyEnvService;
         this.inboundRepository = inboundRepository;
         this.bindingRepository = bindingRepository;
         this.orgUnitRepository = orgUnitRepository;
         this.orgServiceUseService = orgServiceUseService;
+        this.notifyIngressGuard = notifyIngressGuard;
     }
 
     @Transactional
-    public String receiveAndRespond(String pathToken, String rawBody, String contentType, String clientIp) {
+    public String receiveAndRespond(String pathToken, String rawBody, String contentType, String clientIp, HttpServletRequest request) {
+        notifyIngressGuard.assertAllowed(clientIp, rawBody != null ? rawBody : "", request);
         HqNotifyEnvConfig env = hqNotifyEnvService.getOrCreate();
         if (!env.getIngressToken().equals(pathToken)) {
             throw new SecurityException("invalid notify token");

@@ -9,5 +9,6 @@ ALTER TABLE tb_distribution_fee_config ADD COLUMN IF NOT EXISTS sales_office_rat
 ALTER TABLE tb_distribution_fee_config ADD COLUMN IF NOT EXISTS apply_start_date DATE;
 
 -- 수수료 변경 이력: 스냅샷 JSON, 변경자
-ALTER TABLE tb_commission_history ADD COLUMN IF NOT EXISTS snapshot_json CLOB;
+-- PostgreSQL: CLOB 없음 → TEXT (JPA columnDefinition = TEXT 와 동일)
+ALTER TABLE tb_commission_history ADD COLUMN IF NOT EXISTS snapshot_json TEXT;
 ALTER TABLE tb_commission_history ADD COLUMN IF NOT EXISTS changed_by VARCHAR(100);

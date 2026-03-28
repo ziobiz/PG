@@ -139,6 +139,8 @@ public class DataLoader {
                         t.setOrigin("NOTI");
                     } else if (i % 7 == 0) {
                         t.setOrigin("URL");
+                    } else if (i % 13 == 0) {
+                        t.setOrigin("CHATBOT");
                     } else {
                         t.setOrigin(null);
                     }

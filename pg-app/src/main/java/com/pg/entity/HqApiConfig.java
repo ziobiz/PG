@@ -42,6 +42,20 @@ public class HqApiConfig {
     @Column(name = "chillpay_sandbox", length = 1)
     private String chillpaySandbox;
 
+    /**
+     * ChillPay 호스티드 결제 ResultUrl 경로 (publicBaseUrl 기준).
+     * 예: /pay-result.html — 비우면 기본 /pay-result.html
+     */
+    @Column(name = "chillpay_url_result_path", length = 255)
+    private String chillpayUrlResultPath;
+
+    /**
+     * ChillPay CallbackUrl 전체 (서버 노티). 비우면 전산노티 환경의 PG 노티 수신 URL을 사용합니다.
+     * ziobiz/NOTI 등 미들웨어 URL을 ChillPay에 등록한 경우 그 URL을 입력합니다.
+     */
+    @Column(name = "chillpay_url_callback_url", length = 1024)
+    private String chillpayUrlCallbackUrl;
+
     /** 환수금에서 수수료 포함 여부 (Y/N) */
     @Column(name = "recall_include_fee_yn", length = 1)
     private String recallIncludeFeeYn = "N";
@@ -83,6 +97,10 @@ public class HqApiConfig {
     public void setChillpayRouteNo(Integer chillpayRouteNo) { this.chillpayRouteNo = chillpayRouteNo; }
     public String getChillpaySandbox() { return chillpaySandbox; }
     public void setChillpaySandbox(String chillpaySandbox) { this.chillpaySandbox = chillpaySandbox; }
+    public String getChillpayUrlResultPath() { return chillpayUrlResultPath; }
+    public void setChillpayUrlResultPath(String chillpayUrlResultPath) { this.chillpayUrlResultPath = chillpayUrlResultPath; }
+    public String getChillpayUrlCallbackUrl() { return chillpayUrlCallbackUrl; }
+    public void setChillpayUrlCallbackUrl(String chillpayUrlCallbackUrl) { this.chillpayUrlCallbackUrl = chillpayUrlCallbackUrl; }
     public String getRecallIncludeFeeYn() { return recallIncludeFeeYn; }
     public void setRecallIncludeFeeYn(String recallIncludeFeeYn) { this.recallIncludeFeeYn = recallIncludeFeeYn; }
     public String getSettlementVatApplyYn() { return settlementVatApplyYn; }
