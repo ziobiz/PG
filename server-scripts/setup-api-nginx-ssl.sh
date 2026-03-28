@@ -65,6 +65,15 @@ sudo certbot certonly --webroot -w /var/www/certbot -d api.icopay.co.kr \
 
 echo "5. HTTPS 설정 적용..."
 sudo tee "$NGINX_CONF" > /dev/null << 'NGINX_SSL_EOF'
+# Cloudflare Flexible: 방문자는 HTTPS, 원본은 80(HTTP)만 쓰면
+#   return 301 https://$host... 만 있으면 매 요청마다 같은 URL로 301 → ERR_TOO_MANY_REDIRECTS
+# X-Forwarded-Proto 가 https 이면 301 생략하고 바로 pg-app 으로 넘깁니다.
+# (권장: Cloudflare SSL 은 Full 또는 Full (strict) + 원본 443)
+map $http_x_forwarded_proto $api_80_tls_redirect {
+    default 1;
+    https   0;
+}
+
 server {
     listen 80;
     server_name api.icopay.co.kr;
@@ -73,7 +82,14 @@ server {
         allow all;
     }
     location / {
-        return 301 https://api.icopay.co.kr$request_uri;
+        if ($api_80_tls_redirect) {
+            return 301 https://$host$request_uri;
+        }
+        proxy_pass http://127.0.0.1:8080;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto https;
     }
 }
 

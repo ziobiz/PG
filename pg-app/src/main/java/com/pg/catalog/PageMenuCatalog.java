@@ -22,6 +22,8 @@ public final class PageMenuCatalog {
         add(list, "/hq/notifyMapping", "M0107", "노티매핑설정", "본사설정");
         add(list, "/hq/orgViewColumnAllowance", "M0108", "본사별 노출설정", "본사설정");
         add(list, "/hq/apiConfig", "M0103", "API 구성 세팅", "본사설정");
+        add(list, "/hq/domainConfig", "M0115", "도메인구성", "본사설정");
+        add(list, "/hq/serverManage", "M0116", "서버관리", "본사설정");
         add(list, "/hq/permissionMng", "M0104", "조직별 권한 세팅", "본사설정");
         add(list, "/hq/accountMng", "M0106", "계정·업체접근", "본사설정");
         add(list, "/system/noticeList", "M0201", "공지사항", "업체관리");

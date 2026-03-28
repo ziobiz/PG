@@ -1,4 +1,4 @@
-﻿-- =============================================================================
+-- =============================================================================
 -- ALL: 마이그레이션 V2 ~ V36 + check_tables.sql (PostgreSQL / pgdev)
 -- =============================================================================
 -- 경로: pg-app/src/main/resources/db/ALL_migrate_V2_V36_plus_check_tables_postgresql.sql
@@ -495,6 +495,19 @@ ALTER TABLE tb_hq_api_config
 -- V19 가 CHAR(1) 로 추가된 DB: Hibernate 가 varchar(1) 을 기대하여 validate 실패할 때 정렬
 ALTER TABLE pg_trnsctn
     ALTER COLUMN settled_yn TYPE VARCHAR(1) USING trim(settled_yn)::varchar;
+
+-- ---------- V42_hq_domain_ssl_commission_brand.sql ----------
+-- 본사설정 확장: 기본정책(통화·3DS·차지백·비고), 도메인 URL, 서버관리 SSL 경로, 브랜딩 로그인 호스트
+ALTER TABLE tb_commission_policy ADD COLUMN IF NOT EXISTS currency_code VARCHAR(16);
+ALTER TABLE tb_commission_policy ADD COLUMN IF NOT EXISTS policy_remark TEXT;
+ALTER TABLE tb_commission_policy ADD COLUMN IF NOT EXISTS fee_3ds_rate NUMERIC(5, 2);
+ALTER TABLE tb_commission_policy ADD COLUMN IF NOT EXISTS chargeback_fee_per_tx NUMERIC(12, 0);
+UPDATE tb_commission_policy SET currency_code = 'KRW' WHERE currency_code IS NULL;
+ALTER TABLE tb_hq_api_config ADD COLUMN IF NOT EXISTS public_admin_site_url VARCHAR(500);
+ALTER TABLE tb_hq_api_config ADD COLUMN IF NOT EXISTS public_api_base_url VARCHAR(500);
+ALTER TABLE tb_hq_api_config ADD COLUMN IF NOT EXISTS server_manage_ssl_cert_path VARCHAR(500);
+ALTER TABLE tb_hq_api_config ADD COLUMN IF NOT EXISTS server_manage_ssl_le_domain VARCHAR(255);
+ALTER TABLE tb_org_branding ADD COLUMN IF NOT EXISTS brand_host VARCHAR(255);
 
 -- #############################################################################
 -- SECTION C: check_tables.sql (검증용 SELECT)

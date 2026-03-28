@@ -32,7 +32,7 @@
       }
     })();
   </script>
-  <script src="js/api.js?v=6"></script>
+  <script src="js/api.js?v=7"></script>
   <script src="js/hq-holiday-calendar.js?v=2"></script>
   <script src="//t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
 </head>
@@ -45,7 +45,9 @@
   <script>
     (function(){
       var origin = window.location.origin || '';
-      if (!sessionStorage.getItem('pg_admin_auth')) {
+      // login.html 과 동일: 토큰만 있고 pg_admin_auth 가 비면 index가 로그인으로 보내고, login이 다시 index로 보내 무한 리디렉션 → 둘 다 인정
+      var hasSession = sessionStorage.getItem('pg_admin_auth') || sessionStorage.getItem('pg_admin_token');
+      if (!hasSession) {
         window.location.replace(origin ? (origin + '/login.html') : 'login.html');
         return;
       }
@@ -78,6 +80,8 @@
               <li class="child-li" data-url="/hq/notifyMapping"><a href="#" data-menu_id="M0107">노티매핑설정</a></li>
               <li class="child-li" data-url="/hq/orgViewColumnAllowance"><a href="#" data-menu_id="M0108">본사별 노출설정</a></li>
               <li class="child-li" data-url="/hq/apiConfig"><a href="#" data-menu_id="M0103">API 구성 세팅</a></li>
+              <li class="child-li" data-url="/hq/domainConfig"><a href="#" data-menu_id="M0115">도메인구성</a></li>
+              <li class="child-li" data-url="/hq/serverManage"><a href="#" data-menu_id="M0116">서버관리</a></li>
               <li class="child-li" data-url="/hq/permissionMng"><a href="#" data-menu_id="M0104">본사별 권한 세팅</a></li>
               <li class="child-li" data-url="/hq/accountMng"><a href="#" data-menu_id="M0106">계정·업체접근</a></li>
             </ul>
@@ -369,8 +373,8 @@
     </footer>
   </div>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
-  <script src="js/screens.js?v=37"></script>
-  <script src="js/app.js?v=52"></script>
+  <script src="js/screens.js?v=39"></script>
+  <script src="js/app.js?v=55"></script>
   <script>
     (function () {
       var user = null;

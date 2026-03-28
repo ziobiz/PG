@@ -180,6 +180,8 @@
     '/hq/defaultCommission': { label: '기본정책', parent: '본사설정' },
     '/hq/businessDaySetting': { label: '영업일설정', parent: '본사설정' },
     '/hq/apiConfig': { label: 'API 구성 세팅', parent: '본사설정' },
+    '/hq/domainConfig': { label: '도메인구성', parent: '본사설정' },
+    '/hq/serverManage': { label: '서버관리', parent: '본사설정' },
     '/hq/permissionMng': { label: '조직별 권한 세팅', parent: '본사설정' },
     '/hq/notifyEnv': { label: '전산노티·결제환경', parent: '본사설정' },
     '/hq/notifyMapping': { label: '노티매핑설정', parent: '본사설정' },
@@ -3027,6 +3029,7 @@
         var mainFile = form.querySelector('#brandingMainImageFile');
         var logoFile = form.querySelector('#brandingLogoImageFile');
         var themeEl = form.querySelector('#brandingTheme');
+        var hostEl = form.querySelector('#brandingBrandHost');
         var isRegOrMaster = (fd.compDiv === 'REGIONAL' || fd.compDiv === 'MASTER_DIST');
         window.PG_API.compRegister(fd).then(function (res) {
           var data = res && res.data ? res.data : res;
@@ -3039,8 +3042,8 @@
             if (logoFile && logoFile.files && logoFile.files[0]) {
               chain = chain.then(function () { return window.PG_API.orgBrandingUpload(compId, 'logo', logoFile.files[0]); });
             }
-            if (themeEl && themeEl.value) {
-              chain = chain.then(function () { return window.PG_API.orgBrandingSave(compId, themeEl.value); });
+            if (themeEl) {
+              chain = chain.then(function () { return window.PG_API.orgBrandingSave(compId, themeEl.value || 'DEFAULT', hostEl ? hostEl.value : undefined); });
             }
             return chain.then(function () { return res; });
           }
@@ -3704,9 +3707,11 @@
               var mainUrl = pane.querySelector('#brandingMainImageUrl');
               var logoUrl = pane.querySelector('#brandingLogoImageUrl');
               var themeSel = pane.querySelector('#brandingTheme');
+              var hostEl = pane.querySelector('#brandingBrandHost');
               if (mainUrl && b.mainImageUrl) mainUrl.value = b.mainImageUrl;
               if (logoUrl && b.logoImageUrl) logoUrl.value = b.logoImageUrl;
               if (themeSel && b.theme) themeSel.value = b.theme || 'DEFAULT';
+              if (hostEl) hostEl.value = (b.brandHost != null && b.brandHost !== undefined) ? b.brandHost : '';
             }).catch(function () {});
           }
         }
@@ -3917,6 +3922,7 @@
             var mainFile = form.querySelector('#brandingMainImageFile');
             var logoFile = form.querySelector('#brandingLogoImageFile');
             var themeEl = form.querySelector('#brandingTheme');
+            var hostEl = form.querySelector('#brandingBrandHost');
             var chain = Promise.resolve();
             if (mainFile && mainFile.files && mainFile.files[0]) {
               chain = chain.then(function () { return window.PG_API.orgBrandingUpload(compId, 'main', mainFile.files[0]); });
@@ -3924,8 +3930,8 @@
             if (logoFile && logoFile.files && logoFile.files[0]) {
               chain = chain.then(function () { return window.PG_API.orgBrandingUpload(compId, 'logo', logoFile.files[0]); });
             }
-            if (themeEl && themeEl.value) {
-              chain = chain.then(function () { return window.PG_API.orgBrandingSave(compId, themeEl.value); });
+            if (themeEl || hostEl) {
+              chain = chain.then(function () { return window.PG_API.orgBrandingSave(compId, (themeEl && themeEl.value) ? themeEl.value : 'DEFAULT', hostEl ? hostEl.value : undefined); });
             }
             return chain;
           }).then(function () {
@@ -4239,9 +4245,11 @@
             var mainUrl = pane.querySelector('#brandingMainImageUrl');
             var logoUrl = pane.querySelector('#brandingLogoImageUrl');
             var themeSel = pane.querySelector('#brandingTheme');
+            var hostEl = pane.querySelector('#brandingBrandHost');
             if (mainUrl && b.mainImageUrl) mainUrl.value = b.mainImageUrl;
             if (logoUrl && b.logoImageUrl) logoUrl.value = b.logoImageUrl;
             if (themeSel && b.theme) themeSel.value = b.theme || 'DEFAULT';
+            if (hostEl) hostEl.value = (b.brandHost != null && b.brandHost !== undefined) ? b.brandHost : '';
           }).catch(function () {});
         }
         var mainBrowse = pane.querySelector('#brandingMainImageBrowse');
@@ -4366,6 +4374,7 @@
           var mainFile = form.querySelector('#brandingMainImageFile');
           var logoFile = form.querySelector('#brandingLogoImageFile');
           var themeEl = form.querySelector('#brandingTheme');
+          var hostEl = form.querySelector('#brandingBrandHost');
           var brandingCard = form.closest('.tab-pane') && form.closest('.tab-pane').querySelector('#brandingCard');
           var isRegOrMaster = brandingCard && !brandingCard.classList.contains('d-none');
           window.PG_API.compUpdate(fd).then(function () {
@@ -4388,8 +4397,8 @@
               if (logoFile && logoFile.files && logoFile.files[0]) {
                 chain = chain.then(function () { return window.PG_API.orgBrandingUpload(compId, 'logo', logoFile.files[0]); });
               }
-              if (themeEl && themeEl.value) {
-                chain = chain.then(function () { return window.PG_API.orgBrandingSave(compId, themeEl.value); });
+              if (themeEl || hostEl) {
+                chain = chain.then(function () { return window.PG_API.orgBrandingSave(compId, (themeEl && themeEl.value) ? themeEl.value : 'DEFAULT', hostEl ? hostEl.value : undefined); });
               }
               return chain;
             }
@@ -4454,7 +4463,7 @@
       }
       function fillDefaultCommissionForm(data) {
         if (!(data && pane.querySelector('[name="payRate"]'))) return;
-        ['perTxFee', 'cancelRate', 'usageRate', 'failFee', 'payRate', 'refundRate', 'rollingPct', 'rollingDays', 'memo', 'policyName', 'deployYn', 'templateScope', 'deployedTemplateScope', 'feeSettlementPerTx', 'feeUsdt', 'feeFx'].forEach(function (k) {
+        ['perTxFee', 'cancelRate', 'usageRate', 'failFee', 'payRate', 'refundRate', 'rollingPct', 'rollingDays', 'policyName', 'deployYn', 'templateScope', 'deployedTemplateScope', 'feeSettlementPerTx', 'feeUsdt', 'feeFx', 'currencyCode', 'policyRemark', 'fee3dsRate', 'chargebackFeePerTx'].forEach(function (k) {
           var el = pane.querySelector('[name="' + k + '"]');
           if (el && data[k] != null) el.value = data[k];
         });
@@ -5142,6 +5151,89 @@
         if (dimm2) dimm2.style.display = 'flex';
         window.PG_API.hqApiConfigSave(fd).then(function () { alert('저장되었습니다.'); }).catch(function (e) { alert(e && e.message ? e.message : '저장 실패'); }).finally(function () { if (dimm2) dimm2.style.display = 'none'; });
       });
+    }
+    if (url === '/hq/domainConfig') {
+      var dimmDom = document.getElementById('dimm');
+      if (dimmDom) dimmDom.style.display = 'flex';
+      window.PG_API.hqDomainConfig().then(function (data) {
+        if (!data) return;
+        ['publicAdminSiteUrl', 'publicApiBaseUrl'].forEach(function (k) {
+          var el = pane.querySelector('[name="' + k + '"]');
+          if (el && data[k] != null) el.value = data[k];
+        });
+      }).catch(function () {}).finally(function () { if (dimmDom) dimmDom.style.display = 'none'; });
+      var domSave = pane.querySelector('#hqDomainConfigSaveBtn');
+      if (domSave && !domSave._bound) {
+        domSave._bound = true;
+        domSave.addEventListener('click', function () {
+          var fd = {};
+          pane.querySelectorAll('input, select, textarea').forEach(function (el) { if (el.name) fd[el.name] = el.value; });
+          if (dimmDom) dimmDom.style.display = 'flex';
+          window.PG_API.hqDomainConfigSave(fd).then(function () { alert('저장되었습니다.'); }).catch(function (e) { alert(e && e.message ? e.message : '저장 실패'); }).finally(function () { if (dimmDom) dimmDom.style.display = 'none'; });
+        });
+      }
+    }
+    if (url === '/hq/serverManage') {
+      if (pane._serverManageTimer) {
+        clearInterval(pane._serverManageTimer);
+        pane._serverManageTimer = null;
+      }
+      var dimmSrv = document.getElementById('dimm');
+      function renderServerSummary(d) {
+        var el = pane.querySelector('#hqServerManageSummary');
+        if (!el) return;
+        try {
+          el.textContent = typeof d === 'object' && d !== null ? JSON.stringify(d, null, 2) : String(d);
+        } catch (e) {
+          el.textContent = String(d);
+        }
+      }
+      function applyServerFormFromSummary(data) {
+        if (!data) return;
+        ['serverManageSslCertPath', 'serverManageSslLeDomain'].forEach(function (k) {
+          var inp = pane.querySelector('[name="' + k + '"]');
+          if (inp && data[k] != null && String(data[k]) !== '') inp.value = data[k];
+        });
+      }
+      function loadServerSummary(showDimm) {
+        if (showDimm && dimmSrv) dimmSrv.style.display = 'flex';
+        window.PG_API.hqServerManage().then(function (data) {
+          applyServerFormFromSummary(data);
+          renderServerSummary(data);
+          var sec = (data && data.uiAutoRefreshSeconds > 0) ? data.uiAutoRefreshSeconds : 120;
+          if (!pane._serverManageTimer) {
+            pane._serverManageTimer = setInterval(function () { loadServerSummary(false); }, Math.max(30, sec) * 1000);
+          }
+        }).catch(function (err) {
+          renderServerSummary({ error: err && err.message ? err.message : '조회 실패 (ADMIN 권한·네트워크 확인)' });
+        }).finally(function () {
+          if (showDimm && dimmSrv) dimmSrv.style.display = 'none';
+        });
+      }
+      loadServerSummary(true);
+      var srvSave = pane.querySelector('#hqServerManageSaveBtn');
+      var srvRef = pane.querySelector('#hqServerManageRefreshBtn');
+      if (srvSave && !srvSave._bound) {
+        srvSave._bound = true;
+        srvSave.addEventListener('click', function () {
+          var fd = {};
+          pane.querySelectorAll('input, select, textarea').forEach(function (el) { if (el.name) fd[el.name] = el.value; });
+          if (dimmSrv) dimmSrv.style.display = 'flex';
+          window.PG_API.hqServerManageSave(fd).then(function () {
+            alert('저장되었습니다.');
+            return window.PG_API.hqServerManage();
+          }).then(function (data) {
+            applyServerFormFromSummary(data);
+            renderServerSummary(data);
+          }).catch(function (e) { alert(e && e.message ? e.message : '저장 실패'); }).finally(function () { if (dimmSrv) dimmSrv.style.display = 'none'; });
+        });
+      }
+      if (srvRef && !srvRef._bound) {
+        srvRef._bound = true;
+        srvRef.addEventListener('click', function () {
+          loadServerSummary(true);
+        });
+      }
     }
     /** 영업일설정: 탭 pane은 유지되고 innerHTML만 갈아끼우므로, 재진입 시에도 매번 바인딩·목록조회·달력 init 필요. pane 클릭 위임은 한 번만 등록. */
     if (url === '/hq/businessDaySetting') {

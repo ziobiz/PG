@@ -10,6 +10,7 @@ import com.pg.repository.HqApiConfigRepository;
 import com.pg.repository.PgAgencyRepository;
 import com.pg.entity.AppUser;
 import com.pg.service.HolidayPresetService;
+import com.pg.service.HqServerManageService;
 import com.pg.service.OrgPagePermissionService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -35,17 +36,20 @@ public class ApiHqController {
     private final PgAgencyRepository pgAgencyRepository;
     private final HolidayPresetService holidayPresetService;
     private final OrgPagePermissionService orgPagePermissionService;
+    private final HqServerManageService hqServerManageService;
 
     public ApiHqController(CommissionPolicyRepository commissionPolicyRepository,
                            HqApiConfigRepository hqApiConfigRepository,
                            PgAgencyRepository pgAgencyRepository,
                            HolidayPresetService holidayPresetService,
-                           OrgPagePermissionService orgPagePermissionService) {
+                           OrgPagePermissionService orgPagePermissionService,
+                           HqServerManageService hqServerManageService) {
         this.commissionPolicyRepository = commissionPolicyRepository;
         this.hqApiConfigRepository = hqApiConfigRepository;
         this.pgAgencyRepository = pgAgencyRepository;
         this.holidayPresetService = holidayPresetService;
         this.orgPagePermissionService = orgPagePermissionService;
+        this.hqServerManageService = hqServerManageService;
     }
 
     private static PageResult<Map<String, Object>> emptyPage(int page, int size) {
@@ -167,12 +171,20 @@ public class ApiHqController {
             data.put("feeFx", p.getFeeFx() != null ? p.getFeeFx().toString() : "0");
             data.put("rollingPct", p.getRollingPct() != null ? p.getRollingPct().toString() : "5");
             data.put("rollingDays", p.getRollingDays() != null ? p.getRollingDays() : 180);
+            data.put("currencyCode", p.getCurrencyCode() != null && !p.getCurrencyCode().isBlank() ? p.getCurrencyCode() : "KRW");
+            data.put("policyRemark", p.getPolicyRemark() != null ? p.getPolicyRemark() : "");
+            data.put("fee3dsRate", p.getFee3dsRate() != null ? p.getFee3dsRate().toPlainString() : "0");
+            data.put("chargebackFeePerTx", p.getChargebackFeePerTx() != null ? p.getChargebackFeePerTx().toPlainString() : "0");
         });
         if (!data.containsKey("payRate")) {
             data.put("perTxFee", "0"); data.put("usageRate", "0"); data.put("failFee", "0");
             data.put("cancelRate", "0"); data.put("refundRate", "0"); data.put("payRate", "2.5");
             data.put("feeSettlementPerTx", "0"); data.put("feeUsdt", "0"); data.put("feeFx", "0");
             data.put("rollingPct", "5"); data.put("rollingDays", 180);
+            data.put("currencyCode", "KRW");
+            data.put("policyRemark", "");
+            data.put("fee3dsRate", "0");
+            data.put("chargebackFeePerTx", "0");
         }
         List<Map<String, Object>> templates = commissionPolicyRepository
                 .findByScopeStartingWithOrderByScopeAsc(TEMPLATE_SCOPE_PREFIX)
@@ -216,6 +228,11 @@ public class ApiHqController {
         p.setRollingPct(toBigDecimal(body.get("rollingPct")));
         Object rd = body.get("rollingDays");
         p.setRollingDays(rd != null && !rd.toString().isEmpty() ? Integer.parseInt(rd.toString()) : 180);
+        String cc = hqStr(body, "currencyCode");
+        p.setCurrencyCode(cc != null && !cc.isBlank() ? cc.trim().toUpperCase(Locale.ROOT) : "KRW");
+        p.setPolicyRemark(hqStr(body, "policyRemark"));
+        p.setFee3dsRate(toBigDecimal(body.get("fee3dsRate")));
+        p.setChargebackFeePerTx(toBigDecimal(body.get("chargebackFeePerTx")));
         commissionPolicyRepository.save(p);
         if (scope.startsWith(TEMPLATE_SCOPE_PREFIX) && "Y".equalsIgnoreCase(p.getDeployYn())) {
             // 다른 템플릿 deploy 해제
@@ -360,7 +377,13 @@ public class ApiHqController {
             if (c.getChillpaySandbox() != null) data.put("chillpaySandbox", c.getChillpaySandbox());
             if (c.getRecallIncludeFeeYn() != null) data.put("recallIncludeFeeYn", c.getRecallIncludeFeeYn());
             if (c.getSettlementVatApplyYn() != null) data.put("settlementVatApplyYn", c.getSettlementVatApplyYn());
+            if (c.getPublicAdminSiteUrl() != null) data.put("publicAdminSiteUrl", c.getPublicAdminSiteUrl());
+            if (c.getPublicApiBaseUrl() != null) data.put("publicApiBaseUrl", c.getPublicApiBaseUrl());
         });
+        if (!data.containsKey("publicAdminSiteUrl")) {
+            data.put("publicAdminSiteUrl", "");
+            data.put("publicApiBaseUrl", "");
+        }
         return ResponseEntity.ok(ApiResponse.ok(data));
     }
 
@@ -380,8 +403,70 @@ public class ApiHqController {
         c.setChillpaySandbox(body.get("chillpaySandbox") != null ? body.get("chillpaySandbox").toString().trim() : "Y");
         c.setRecallIncludeFeeYn("Y".equalsIgnoreCase(String.valueOf(body.getOrDefault("recallIncludeFeeYn", "N"))) ? "Y" : "N");
         c.setSettlementVatApplyYn("N".equalsIgnoreCase(String.valueOf(body.getOrDefault("settlementVatApplyYn", "Y"))) ? "N" : "Y");
+        if (body.get("publicAdminSiteUrl") != null) {
+            c.setPublicAdminSiteUrl(hqTrimToNull(body.get("publicAdminSiteUrl")));
+        }
+        if (body.get("publicApiBaseUrl") != null) {
+            c.setPublicApiBaseUrl(hqTrimToNull(body.get("publicApiBaseUrl")));
+        }
         hqApiConfigRepository.save(c);
         return ResponseEntity.ok(ApiResponse.ok(Map.of("success", true, "message", "저장되었습니다.")));
+    }
+
+    /** 도메인·공개 URL (관리자/API 안내용) */
+    @GetMapping("/domainConfig")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> domainConfig() {
+        Map<String, Object> data = new LinkedHashMap<>();
+        data.put("publicAdminSiteUrl", "");
+        data.put("publicApiBaseUrl", "");
+        data.put("memo", "가맹점·문서·노티 안내에 사용할 공개 URL입니다.");
+        hqApiConfigRepository.findAll().stream().findFirst().ifPresent(c -> {
+            if (c.getPublicAdminSiteUrl() != null) data.put("publicAdminSiteUrl", c.getPublicAdminSiteUrl());
+            if (c.getPublicApiBaseUrl() != null) data.put("publicApiBaseUrl", c.getPublicApiBaseUrl());
+        });
+        return ResponseEntity.ok(ApiResponse.ok(data));
+    }
+
+    @PostMapping("/domainConfig/save")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> domainConfigSave(@RequestBody Map<String, Object> body) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !(auth.getPrincipal() instanceof AppUser u) || !"ADMIN".equalsIgnoreCase(u.getRole())) {
+            return ResponseEntity.ok(ApiResponse.fail("관리자만 저장할 수 있습니다.", "FORBIDDEN"));
+        }
+        HqApiConfig c = hqApiConfigRepository.findAll().stream().findFirst().orElse(new HqApiConfig());
+        c.setPublicAdminSiteUrl(hqTrimToNull(body != null ? body.get("publicAdminSiteUrl") : null));
+        c.setPublicApiBaseUrl(hqTrimToNull(body != null ? body.get("publicApiBaseUrl") : null));
+        hqApiConfigRepository.save(c);
+        return ResponseEntity.ok(ApiResponse.ok(Map.of("success", true, "message", "저장되었습니다.")));
+    }
+
+    /** 서버관리 요약(SSL·Certbot·호스트 등) */
+    @GetMapping("/serverManage")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> serverManage() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !(auth.getPrincipal() instanceof AppUser u) || !"ADMIN".equalsIgnoreCase(u.getRole())) {
+            return ResponseEntity.ok(ApiResponse.fail("관리자만 조회할 수 있습니다.", "FORBIDDEN"));
+        }
+        return ResponseEntity.ok(ApiResponse.ok(hqServerManageService.buildSummary()));
+    }
+
+    @PostMapping("/serverManage/save")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> serverManageSave(@RequestBody Map<String, Object> body) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !(auth.getPrincipal() instanceof AppUser u) || !"ADMIN".equalsIgnoreCase(u.getRole())) {
+            return ResponseEntity.ok(ApiResponse.fail("관리자만 저장할 수 있습니다.", "FORBIDDEN"));
+        }
+        HqApiConfig c = hqApiConfigRepository.findAll().stream().findFirst().orElse(new HqApiConfig());
+        c.setServerManageSslCertPath(hqTrimToNull(body != null ? body.get("serverManageSslCertPath") : null));
+        c.setServerManageSslLeDomain(hqTrimToNull(body != null ? body.get("serverManageSslLeDomain") : null));
+        hqApiConfigRepository.save(c);
+        return ResponseEntity.ok(ApiResponse.ok(Map.of("success", true, "message", "저장되었습니다.")));
+    }
+
+    private static String hqTrimToNull(Object o) {
+        if (o == null) return null;
+        String s = o.toString().trim();
+        return s.isEmpty() ? null : s;
     }
 
     /** 본사설정 > 영업일설정 목록 조회 */

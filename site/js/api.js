@@ -547,6 +547,18 @@
     hqApiConfigSave: function (body) {
       return post('/api/hq/apiConfig/save', body).then(function (r) { return r.data; });
     },
+    hqDomainConfig: function () {
+      return get('/api/hq/domainConfig').then(function (r) { return r.data; });
+    },
+    hqDomainConfigSave: function (body) {
+      return post('/api/hq/domainConfig/save', body || {}).then(function (r) { return r.data; });
+    },
+    hqServerManage: function () {
+      return get('/api/hq/serverManage').then(function (r) { return r.data; });
+    },
+    hqServerManageSave: function (body) {
+      return post('/api/hq/serverManage/save', body || {}).then(function (r) { return r.data; });
+    },
     hqBusinessDaySettings: function () {
       return get('/api/hq/businessDaySettings').then(function (r) { return r.data || []; });
     },
@@ -662,15 +674,19 @@
       });
     },
     /** 브랜딩 테마 저장 */
-    orgBrandingSave: function (compId, theme) {
+    orgBrandingSave: function (compId, theme, brandHost) {
       var base = getBaseUrl();
       var token = getToken();
       var headers = { 'Content-Type': 'application/x-www-form-urlencoded', 'Accept': 'application/json' };
       if (token) headers['Authorization'] = 'Bearer ' + token;
+      var params = new URLSearchParams();
+      params.set('compId', compId);
+      params.set('theme', theme || 'DEFAULT');
+      if (typeof brandHost === 'string') params.set('brandHost', brandHost);
       return fetch(base + '/api/org/branding/save', {
         method: 'POST',
         headers: headers,
-        body: new URLSearchParams({ compId: compId, theme: theme || 'DEFAULT' })
+        body: params
       }).then(function (r) { return r.json(); }).then(function (r) {
         if (r && r.success === false) throw new Error(r.message || '브랜딩 저장 실패');
         return r.data || r;

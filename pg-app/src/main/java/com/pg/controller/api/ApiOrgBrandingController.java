@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
@@ -59,30 +60,37 @@ public class ApiOrgBrandingController {
 
     private ResponseEntity<ApiResponse<Map<String, Object>>> getBranding(String compId) {
         if (compId == null || compId.trim().isEmpty()) {
-            return ResponseEntity.ok(ApiResponse.ok(Map.of(
-                    "mainImageUrl", "",
-                    "logoImageUrl", "",
-                    "theme", "DEFAULT"
-            )));
+            Map<String, Object> empty = new LinkedHashMap<>();
+            empty.put("mainImageUrl", "");
+            empty.put("logoImageUrl", "");
+            empty.put("theme", "DEFAULT");
+            empty.put("brandHost", "");
+            return ResponseEntity.ok(ApiResponse.ok(empty));
         }
         return orgUnitRepository.findByCode(compId.trim())
                 .filter(ou -> ou.getOrgLevel() == OrgLevel.HEADQUARTERS
                         || ou.getOrgLevel() == OrgLevel.REGIONAL
                         || ou.getOrgLevel() == OrgLevel.MASTER_DIST)
                 .flatMap(ou -> brandingRepository.findByOrgUnitId(ou.getId())
-                        .map(b -> Map.<String, Object>of(
-                                "compId", compId,
-                                "mainImageUrl", b.getMainImageUrl() != null ? b.getMainImageUrl() : "",
-                                "logoImageUrl", b.getLogoImageUrl() != null ? b.getLogoImageUrl() : "",
-                                "theme", b.getTheme() != null ? b.getTheme() : "DEFAULT"
-                        )))
+                        .map(b -> {
+                            Map<String, Object> m = new LinkedHashMap<>();
+                            m.put("compId", compId);
+                            m.put("mainImageUrl", b.getMainImageUrl() != null ? b.getMainImageUrl() : "");
+                            m.put("logoImageUrl", b.getLogoImageUrl() != null ? b.getLogoImageUrl() : "");
+                            m.put("theme", b.getTheme() != null ? b.getTheme() : "DEFAULT");
+                            m.put("brandHost", b.getBrandHost() != null ? b.getBrandHost() : "");
+                            return m;
+                        }))
                 .map(ApiResponse::ok)
                 .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.ok(ApiResponse.ok(Map.of(
-                        "mainImageUrl", "",
-                        "logoImageUrl", "",
-                        "theme", "DEFAULT"
-                ))));
+                .orElseGet(() -> {
+                    Map<String, Object> empty = new LinkedHashMap<>();
+                    empty.put("mainImageUrl", "");
+                    empty.put("logoImageUrl", "");
+                    empty.put("theme", "DEFAULT");
+                    empty.put("brandHost", "");
+                    return ResponseEntity.ok(ApiResponse.ok(empty));
+                });
     }
 
     @PostMapping("/upload")
@@ -150,7 +158,8 @@ public class ApiOrgBrandingController {
     @PostMapping("/save")
     public ResponseEntity<ApiResponse<Map<String, Object>>> save(
             @RequestParam String compId,
-            @RequestParam(required = false) String theme) {
+            @RequestParam(required = false) String theme,
+            @RequestParam(required = false) String brandHost) {
         Optional<OrgUnit> ouOpt = orgUnitRepository.findByCode(compId.trim());
         if (ouOpt.isEmpty()) {
             return ResponseEntity.ok(ApiResponse.fail("업체를 찾을 수 없습니다.", "NOT_FOUND"));
@@ -173,8 +182,15 @@ public class ApiOrgBrandingController {
                     return nb;
                 });
         b.setTheme(themeVal);
+        if (brandHost != null) {
+            b.setBrandHost(brandHost.isBlank() ? null : brandHost.trim());
+        }
         brandingRepository.save(b);
-        return ResponseEntity.ok(ApiResponse.ok(Map.of("success", true, "theme", themeVal)));
+        Map<String, Object> out = new LinkedHashMap<>();
+        out.put("success", true);
+        out.put("theme", themeVal);
+        out.put("brandHost", b.getBrandHost() != null ? b.getBrandHost() : "");
+        return ResponseEntity.ok(ApiResponse.ok(out));
     }
 
     private static String getExtension(String filename) {

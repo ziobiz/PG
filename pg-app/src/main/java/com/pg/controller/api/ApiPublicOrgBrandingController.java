@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 /**
@@ -32,29 +33,36 @@ public class ApiPublicOrgBrandingController {
     @GetMapping
     public ResponseEntity<ApiResponse<Map<String, Object>>> get(@RequestParam(required = false) String compId) {
         if (compId == null || compId.trim().isEmpty()) {
-            return ResponseEntity.ok(ApiResponse.ok(Map.of(
-                    "mainImageUrl", "",
-                    "logoImageUrl", "",
-                    "theme", "DEFAULT"
-            )));
+            Map<String, Object> empty = new LinkedHashMap<>();
+            empty.put("mainImageUrl", "");
+            empty.put("logoImageUrl", "");
+            empty.put("theme", "DEFAULT");
+            empty.put("brandHost", "");
+            return ResponseEntity.ok(ApiResponse.ok(empty));
         }
         return orgUnitRepository.findByCode(compId.trim())
                 .filter(ou -> ou.getOrgLevel() == OrgLevel.HEADQUARTERS
                         || ou.getOrgLevel() == OrgLevel.REGIONAL
                         || ou.getOrgLevel() == OrgLevel.MASTER_DIST)
                 .flatMap(ou -> brandingRepository.findByOrgUnitId(ou.getId())
-                        .map(b -> Map.<String, Object>of(
-                                "compId", compId,
-                                "mainImageUrl", b.getMainImageUrl() != null ? b.getMainImageUrl() : "",
-                                "logoImageUrl", b.getLogoImageUrl() != null ? b.getLogoImageUrl() : "",
-                                "theme", b.getTheme() != null ? b.getTheme() : "DEFAULT"
-                        )))
+                        .map(b -> {
+                            Map<String, Object> m = new LinkedHashMap<>();
+                            m.put("compId", compId);
+                            m.put("mainImageUrl", b.getMainImageUrl() != null ? b.getMainImageUrl() : "");
+                            m.put("logoImageUrl", b.getLogoImageUrl() != null ? b.getLogoImageUrl() : "");
+                            m.put("theme", b.getTheme() != null ? b.getTheme() : "DEFAULT");
+                            m.put("brandHost", b.getBrandHost() != null ? b.getBrandHost() : "");
+                            return m;
+                        }))
                 .map(ApiResponse::ok)
                 .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.ok(ApiResponse.ok(Map.of(
-                        "mainImageUrl", "",
-                        "logoImageUrl", "",
-                        "theme", "DEFAULT"
-                ))));
+                .orElseGet(() -> {
+                    Map<String, Object> empty = new LinkedHashMap<>();
+                    empty.put("mainImageUrl", "");
+                    empty.put("logoImageUrl", "");
+                    empty.put("theme", "DEFAULT");
+                    empty.put("brandHost", "");
+                    return ResponseEntity.ok(ApiResponse.ok(empty));
+                });
     }
 }

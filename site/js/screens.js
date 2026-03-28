@@ -155,7 +155,9 @@
           rows: [
             [{ label: '정책코드', type: 'select', name: 'templateScope', options: [{ v: 'HQPOL:A', t: 'A' }, { v: 'HQPOL:B', t: 'B' }, { v: 'HQPOL:C', t: 'C' }, { v: 'HQPOL:D', t: 'D' }], col: 2 }, { label: '정책명', type: 'text', name: 'policyName', col: 2, placeholder: '예: 기본정책 A' }, { label: '배포', type: 'select', name: 'deployYn', options: [{ v: 'Y', t: '배포' }, { v: 'N', t: '미배포' }], col: 2 }],
             [{ label: '실패수수료', type: 'text', name: 'failFee', col: 2 }, { label: '이용수수료', type: 'text', name: 'usageRate', col: 2 }, { label: '결제 수수료', type: 'text', name: 'payRate', col: 2 }, { label: '취소 수수료', type: 'text', name: 'cancelRate', col: 2 }, { label: '환불 수수료', type: 'text', name: 'refundRate', col: 2 }, { label: '건당 수수료', type: 'text', name: 'perTxFee', col: 2 }],
-            [{ label: '정산수수료', type: 'text', name: 'feeSettlementPerTx', col: 2 }, { label: 'USDT수수료', type: 'text', name: 'feeUsdt', col: 2 }, { label: 'FX수수료', type: 'text', name: 'feeFx', col: 2 }, { label: '롤링(담보금) 비율%', type: 'text', name: 'rollingPct', col: 2, placeholder: '5 또는 10' }, { label: '롤링보류일수', type: 'text', name: 'rollingDays', col: 2, placeholder: '120 또는 180' }, { label: '비고', type: 'text', name: 'memo', col: 2 }]
+            [{ label: '정산수수료', type: 'text', name: 'feeSettlementPerTx', col: 2 }, { label: 'USDT수수료', type: 'text', name: 'feeUsdt', col: 2 }, { label: 'FX수수료', type: 'text', name: 'feeFx', col: 2 }, { label: '롤링(담보금) 비율%', type: 'text', name: 'rollingPct', col: 2, placeholder: '5 또는 10' }, { label: '롤링보류일수', type: 'text', name: 'rollingDays', col: 2, placeholder: '120 또는 180' }],
+            [{ label: '통화코드', type: 'text', name: 'currencyCode', col: 2, placeholder: 'KRW' }, { label: '3DS 수수료율(%)', type: 'text', name: 'fee3dsRate', col: 2 }, { label: '차지백 건당(원)', type: 'text', name: 'chargebackFeePerTx', col: 2 }],
+            [{ label: '정책 비고(저장)', type: 'textarea', name: 'policyRemark', col: 12, rows: 3 }]
           ]
         }
       ],
@@ -277,6 +279,44 @@
         { id: 'hqOrgAllowLoadBtn', label: '불러오기', cls: 'btn-outline-secondary' },
         { id: 'hqOrgAllowSaveBtn', label: '노출 항목 저장', cls: 'btn-primary' },
         { id: 'hqOrgAllowDeleteBtn', label: '노출 제한 해제', cls: 'btn-outline-danger' }
+      ]
+    },
+    '/hq/domainConfig': {
+      isForm: true,
+      formSections: [
+        {
+          title: '도메인·공개 URL',
+          notice: '관리자 웹·API 베이스 URL을 저장합니다. 노티 안내·문서·가맹점 연동 안내에 활용합니다. 저장은 시스템 관리자(ADMIN)만 가능합니다.',
+          rows: [
+            [{ label: '관리자(웹) 공개 URL', type: 'text', name: 'publicAdminSiteUrl', col: 6, placeholder: 'https://icopay.co.kr' }],
+            [{ label: 'API 공개 베이스 URL', type: 'text', name: 'publicApiBaseUrl', col: 6, placeholder: 'https://api.icopay.co.kr' }]
+          ]
+        }
+      ],
+      buttons: [{ id: 'hqDomainConfigSaveBtn', label: '저장', cls: 'btn-primary' }]
+    },
+    '/hq/serverManage': {
+      isForm: true,
+      formSections: [
+        {
+          title: 'SSL 인증서 모니터링',
+          notice: 'fullchain.pem 절대 경로와 Let\'s Encrypt live 디렉터리명(주 도메인)을 지정합니다. 조회·저장은 시스템 관리자(ADMIN)만 가능합니다.',
+          rows: [
+            [{ label: 'fullchain.pem 경로', type: 'text', name: 'serverManageSslCertPath', col: 8, placeholder: '/etc/letsencrypt/live/example.com/fullchain.pem' }],
+            [{ label: 'LE live 폴더명(도메인)', type: 'text', name: 'serverManageSslLeDomain', col: 4, placeholder: 'api.example.com' }]
+          ]
+        },
+        {
+          title: '실시간 요약',
+          notice: '호스트·JVM·DB·SSL·Certbot·Nginx stub(설정 시) 요약입니다. [요약 새로고침] 또는 일정 주기로 갱신됩니다.',
+          rows: [
+            [{ type: 'customHtml', col: 12, html: '<div id="hqServerManageSummary" class="small border rounded p-2 bg-light" style="min-height:120px;white-space:pre-wrap;font-family:monospace">불러오는 중…</div>' }]
+          ]
+        }
+      ],
+      buttons: [
+        { id: 'hqServerManageSaveBtn', label: '설정 저장', cls: 'btn-primary' },
+        { id: 'hqServerManageRefreshBtn', label: '요약 새로고침', cls: 'btn-outline-secondary' }
       ]
     },
     '/hq/apiConfig': {
@@ -508,10 +548,10 @@
           { type: 'compMngSearchActions', label: '하위업체포함', checkboxName: 'searchIncludeSub', searchLabel: '검색' }
         ]
       ],
-      noticeList: ['[TEMP_REMOVE_AFTER_DEV] [업체전체초기화]·[삭제(개발)] 버튼은 개발 임시 — 정식 완료 후 코드에서 제거 예정.', '기본 조회는 사용·미사용 업체를 모두 포함합니다(업체사용상태에서 좁힐 수 있음). 본사별 화면 권한(옵저버·수정 등)은 사용/미사용과 관계없이 동일하게 적용됩니다. 미사용으로 바꾼 조직은 결제·정산·노티가 중단되며, 사용으로 되돌리면 복구됩니다. 상위를 미사용으로 두면 하위 프로필도 함께 미사용 처리됩니다.', '엑셀등록: [SAMPLE]으로 서식 있는 xlsx(헤더 색·표선·가운데 정렬)를 받아 예시 행을 수정·추가한 뒤 [엑셀등록]에 업로드하세요.', '★ 행을 통째로 없애려면 [업체전체초기화]만 해당합니다. 서버 allow-org-hierarchy-reset=true + JAR 배포 + ADMIN. 목록에서 안 보이게만 하려면 미사용(N)이지 삭제가 아닙니다.', '[업체전체초기화] — 조직·거래·정산·분배수수료·잔액공제·뷰설정 등 연관 행을 삭제하고 총본사(0000000000)만 재생성. 실행 후 다시 로그인.', '임시(개발): [삭제(개발)] — 한 행 체크 시 해당 조직·하위 프로필만 미사용(N). DB 행 삭제 없음(그래서 목록에 남을 수 있음). 총본사 불가. comp-dev-tree-remove 필요.'],
+      noticeList: ['기본 조회는 사용·미사용 업체를 모두 포함합니다(업체사용상태에서 좁힐 수 있음). 본사별 화면 권한(옵저버·수정 등)은 사용/미사용과 관계없이 동일하게 적용됩니다. 미사용으로 바꾼 조직은 결제·정산·노티가 중단되며, 사용으로 되돌리면 복구됩니다. 상위를 미사용으로 두면 하위 프로필도 함께 미사용 처리됩니다.', '엑셀등록: [SAMPLE]으로 서식 있는 xlsx(헤더 색·표선·가운데 정렬)를 받아 예시 행을 수정·추가한 뒤 [엑셀등록]에 업로드하세요.'],
       noticeRefButton: { id: 'noticeRefBtn', label: '참고', cls: 'btn-success' },
       summary: ['건수'],
-      buttons: [{ id: 'compAdminResetOrgBtn', label: '업체전체초기화', cls: 'btn-outline-danger' }, { id: 'compDevTreeRemoveBtn', label: '삭제(개발)', cls: 'btn-outline-warning' }, { id: 'excelBtn', label: '엑셀다운로드', cls: 'btn-info' }, { id: 'excelSampleBtn', label: 'SAMPLE', cls: 'btn-outline-secondary' }, { id: 'excelRegBtn', label: '엑셀등록', cls: 'btn-outline-success' }, { id: 'compRegBtn', label: '등록', cls: 'btn-danger' }],
+      buttons: [{ id: 'seedBtn', label: '시드 생성', cls: 'btn-outline-warning' }, { id: 'excelBtn', label: '엑셀다운로드', cls: 'btn-info' }, { id: 'excelSampleBtn', label: 'SAMPLE', cls: 'btn-outline-secondary' }, { id: 'excelRegBtn', label: '엑셀등록', cls: 'btn-outline-success' }, { id: 'compRegBtn', label: '등록', cls: 'btn-danger' }],
       tableColumnGuide: true,
       columns: [
         { key: '_chk', type: 'checkbox' },
@@ -2212,7 +2252,8 @@
           '<div class="row mb-2"><div class="col-sm-4"><label class="form-label">배경테마</label><select class="form-control form-control-sm" name="brandingTheme" id="brandingTheme">' +
           '<option value="DEFAULT">기본(현재)</option><option value="LIGHT">Light (흰배경/검정글씨)</option><option value="DARK">Dark (어두운배경/흰글씨)</option>' +
           '<option value="PASTEL_1">파스텔1</option><option value="PASTEL_2">파스텔2</option><option value="PASTEL_3">파스텔3</option><option value="PASTEL_4">파스텔4</option><option value="PASTEL_5">파스텔5</option>' +
-          '</select></div></div>';
+          '</select></div></div>' +
+          '<div class="row mb-2"><div class="col-sm-8"><label class="form-label">로그인 안내 호스트</label><input type="text" class="form-control form-control-sm" name="brandHost" id="brandingBrandHost" placeholder="예: api.example.com (선택)"></div></div>';
       } else if (sec.type === 'pgBindingList') {
         html += '<div class="pg-binding-list-wrap"><table class="table table-sm table-bordered pg-binding-table"><thead><tr>' +
           '<th>운영</th><th>착신화</th><th>결제대행사</th><th>결제구분</th><th>MID</th><th>루트번호</th><th>API KEY</th><th>IV KEY</th><th>할부</th><th>최대할부</th><th style="min-width:200px">작업</th></tr></thead><tbody id="pgBindingTbody"></tbody></table>' +

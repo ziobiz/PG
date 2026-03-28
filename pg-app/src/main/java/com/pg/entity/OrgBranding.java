@@ -30,6 +30,10 @@ public class OrgBranding {
     @Column(name = "theme", length = 20)
     private String theme = "DEFAULT";
 
+    /** 로그인/브랜딩 안내용 호스트 (예: api.example.com) */
+    @Column(name = "brand_host", length = 255)
+    private String brandHost;
+
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
@@ -49,6 +53,8 @@ public class OrgBranding {
     public void setLogoImageUrl(String logoImageUrl) { this.logoImageUrl = logoImageUrl; }
     public String getTheme() { return theme; }
     public void setTheme(String theme) { this.theme = theme != null ? theme : "DEFAULT"; }
+    public String getBrandHost() { return brandHost; }
+    public void setBrandHost(String brandHost) { this.brandHost = brandHost; }
     public LocalDateTime getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
 }

@@ -9,8 +9,6 @@ import com.pg.repository.OrgUnitRepository;
 import com.pg.service.AuthService;
 import com.pg.service.CompService;
 import com.pg.service.ExcelStyledExportService;
-import com.pg.service.OrgHierarchyResetService;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -34,24 +32,13 @@ public class ApiCompController {
     private final OrgUnitRepository orgUnitRepository;
     private final AuthService authService;
     private final ExcelStyledExportService excelStyledExportService;
-    private final OrgHierarchyResetService orgHierarchyResetService;
-
-    /** TEMP_REMOVE_AFTER_DEV — {@code dev-tree-remove} API·플래그·프론트 [삭제(개발)] 와 함께 제거 */
-    @Value("${app.features.comp-dev-tree-remove:false}")
-    private boolean compDevTreeRemove;
-
-    /** TEMP_REMOVE_AFTER_DEV — {@code admin-reset-org-hierarchy} API·플래그·프론트 [업체전체초기화] 와 함께 제거 */
-    @Value("${app.features.allow-org-hierarchy-reset:false}")
-    private boolean allowOrgHierarchyReset;
 
     public ApiCompController(CompService compService, OrgUnitRepository orgUnitRepository, AuthService authService,
-                             ExcelStyledExportService excelStyledExportService,
-                             OrgHierarchyResetService orgHierarchyResetService) {
+                             ExcelStyledExportService excelStyledExportService) {
         this.compService = compService;
         this.orgUnitRepository = orgUnitRepository;
         this.authService = authService;
         this.excelStyledExportService = excelStyledExportService;
-        this.orgHierarchyResetService = orgHierarchyResetService;
     }
 
     @GetMapping("/changeHistory")
@@ -618,58 +605,6 @@ public class ApiCompController {
                 calcExcludeYn, calcExcludeTarget,
                 calcMinAmt, transferExecTime);
         return ResponseEntity.ok(ok ? ApiResponse.ok(Map.of("success", true)) : ApiResponse.fail("업체를 찾을 수 없습니다.", "NOT_FOUND"));
-    }
-
-    /**
-     * 임시 개발용: 선택 업체 및 하위 merchant_profile.use_yn=N 만 설정 (물리 삭제 없음).
-     * {@code app.features.comp-dev-tree-remove=true} 이고 ADMIN 일 때만 동작.
-     */
-    @PostMapping("/dev-tree-remove")
-    public ResponseEntity<ApiResponse<Map<String, Object>>> devTreeRemove(
-            @RequestBody(required = false) Map<String, Object> body) {
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        if (auth == null || !(auth.getPrincipal() instanceof AppUser u)) {
-            return ResponseEntity.ok(ApiResponse.fail("로그인이 필요합니다.", "UNAUTH"));
-        }
-        String compId = "";
-        if (body != null && body.get("compId") != null) {
-            compId = String.valueOf(body.get("compId")).trim();
-        }
-        try {
-            Map<String, Object> result = compService.softDeactivateOrgSubtreeForDev(compId, u, compDevTreeRemove);
-            return ResponseEntity.ok(ApiResponse.ok(result));
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.ok(ApiResponse.fail(e.getMessage(), "VALIDATION"));
-        }
-    }
-
-    /**
-     * TEMP_REMOVE_AFTER_DEV — 업체(조직) 전체 초기화: 거래·수수료·가맹 프로필 등 연관 데이터 삭제 후 총본사(0000000000)만 재생성.
-     * ADMIN + {@code app.features.allow-org-hierarchy-reset=true} 일 때만 허용.
-     */
-    @PostMapping("/admin-reset-org-hierarchy")
-    public ResponseEntity<ApiResponse<Map<String, Object>>> adminResetOrgHierarchy() {
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        if (auth == null || !(auth.getPrincipal() instanceof AppUser u)) {
-            return ResponseEntity.ok(ApiResponse.fail("로그인이 필요합니다.", "UNAUTH"));
-        }
-        if (!"ADMIN".equalsIgnoreCase(u.getRole())) {
-            return ResponseEntity.ok(ApiResponse.fail("관리자(ADMIN)만 실행할 수 있습니다.", "FORBIDDEN"));
-        }
-        if (!allowOrgHierarchyReset) {
-            return ResponseEntity.ok(ApiResponse.fail(
-                    "기능이 비활성화되어 있습니다. app.features.allow-org-hierarchy-reset=true 인 설정에서만 사용할 수 있습니다.",
-                    "DISABLED"));
-        }
-        try {
-            orgHierarchyResetService.resetToHeadquartersOnly();
-            return ResponseEntity.ok(ApiResponse.ok(Map.of(
-                    "message",
-                    "모든 업체·연관 데이터를 삭제하고 OTL HQ(0000000000)만 남겼습니다. ADMIN 외 사용자·토큰은 삭제되었습니다. 다시 로그인하세요.")));
-        } catch (Exception e) {
-            String msg = e.getMessage() != null ? e.getMessage() : "초기화 중 오류";
-            return ResponseEntity.ok(ApiResponse.fail(msg, "ERROR"));
-        }
     }
 
     private static PageResult<Map<String, Object>> emptyCompPage(int page, int size) {

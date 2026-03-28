@@ -36,7 +36,7 @@
 <body class="theme-default">
   <script>
     (function(){
-      if (sessionStorage.getItem('pg_admin_auth')) {
+      if (sessionStorage.getItem('pg_admin_auth') || sessionStorage.getItem('pg_admin_token')) {
         var origin = window.location.origin || '';
         window.location.replace(origin ? (origin + '/index.html') : 'index.html');
         return;

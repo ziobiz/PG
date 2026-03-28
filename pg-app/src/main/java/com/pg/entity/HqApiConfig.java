@@ -68,6 +68,22 @@ public class HqApiConfig {
     @Column(name = "business_day_settings_json", columnDefinition = "TEXT")
     private String businessDaySettingsJson;
 
+    /** 관리자(웹) 공개 URL — 안내·문서용 */
+    @Column(name = "public_admin_site_url", length = 500)
+    private String publicAdminSiteUrl;
+
+    /** API 공개 베이스 URL — 안내용 */
+    @Column(name = "public_api_base_url", length = 500)
+    private String publicApiBaseUrl;
+
+    /** 서버관리: 모니터링할 fullchain.pem 경로(비우면 ENV 또는 LE 자동) */
+    @Column(name = "server_manage_ssl_cert_path", length = 500)
+    private String serverManageSslCertPath;
+
+    /** 서버관리: Let's Encrypt live 폴더명(다중 도메인 시) */
+    @Column(name = "server_manage_ssl_le_domain", length = 255)
+    private String serverManageSslLeDomain;
+
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
@@ -107,6 +123,14 @@ public class HqApiConfig {
     public void setSettlementVatApplyYn(String settlementVatApplyYn) { this.settlementVatApplyYn = settlementVatApplyYn; }
     public String getBusinessDaySettingsJson() { return businessDaySettingsJson; }
     public void setBusinessDaySettingsJson(String businessDaySettingsJson) { this.businessDaySettingsJson = businessDaySettingsJson; }
+    public String getPublicAdminSiteUrl() { return publicAdminSiteUrl; }
+    public void setPublicAdminSiteUrl(String publicAdminSiteUrl) { this.publicAdminSiteUrl = publicAdminSiteUrl; }
+    public String getPublicApiBaseUrl() { return publicApiBaseUrl; }
+    public void setPublicApiBaseUrl(String publicApiBaseUrl) { this.publicApiBaseUrl = publicApiBaseUrl; }
+    public String getServerManageSslCertPath() { return serverManageSslCertPath; }
+    public void setServerManageSslCertPath(String serverManageSslCertPath) { this.serverManageSslCertPath = serverManageSslCertPath; }
+    public String getServerManageSslLeDomain() { return serverManageSslLeDomain; }
+    public void setServerManageSslLeDomain(String serverManageSslLeDomain) { this.serverManageSslLeDomain = serverManageSslLeDomain; }
     public LocalDateTime getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
 }

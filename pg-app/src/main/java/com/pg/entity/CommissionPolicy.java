@@ -72,6 +72,22 @@ public class CommissionPolicy {
     @Column(name = "rolling_days")
     private Integer rollingDays = 0;
 
+    /** 정책 기준 통화 (표시·연동용, 예: KRW) */
+    @Column(name = "currency_code", length = 16)
+    private String currencyCode = "KRW";
+
+    /** 정책 비고(내부 메모) */
+    @Column(name = "policy_remark", columnDefinition = "TEXT")
+    private String policyRemark;
+
+    /** 3-D Secure 등 추가 인증 건당/건별 수수료율(%) */
+    @Column(name = "fee_3ds_rate", precision = 5, scale = 2)
+    private BigDecimal fee3dsRate = BigDecimal.ZERO;
+
+    /** 차지백 건당 수수료(원) */
+    @Column(name = "chargeback_fee_per_tx", precision = 12, scale = 0)
+    private BigDecimal chargebackFeePerTx = BigDecimal.ZERO;
+
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 
@@ -119,6 +135,14 @@ public class CommissionPolicy {
     public void setRollingPct(BigDecimal rollingPct) { this.rollingPct = rollingPct; }
     public Integer getRollingDays() { return rollingDays; }
     public void setRollingDays(Integer rollingDays) { this.rollingDays = rollingDays; }
+    public String getCurrencyCode() { return currencyCode; }
+    public void setCurrencyCode(String currencyCode) { this.currencyCode = currencyCode != null ? currencyCode : "KRW"; }
+    public String getPolicyRemark() { return policyRemark; }
+    public void setPolicyRemark(String policyRemark) { this.policyRemark = policyRemark; }
+    public BigDecimal getFee3dsRate() { return fee3dsRate; }
+    public void setFee3dsRate(BigDecimal fee3dsRate) { this.fee3dsRate = fee3dsRate != null ? fee3dsRate : BigDecimal.ZERO; }
+    public BigDecimal getChargebackFeePerTx() { return chargebackFeePerTx; }
+    public void setChargebackFeePerTx(BigDecimal chargebackFeePerTx) { this.chargebackFeePerTx = chargebackFeePerTx != null ? chargebackFeePerTx : BigDecimal.ZERO; }
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
     public LocalDateTime getUpdatedAt() { return updatedAt; }
