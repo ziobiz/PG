@@ -22,7 +22,8 @@ public class MerchantNotifyUrl {
     @Column(name = "url_type", nullable = false, length = 20)
     private String urlType;
 
-    @Column(name = "noti_url", length = 500)
+    /** 전산노티·칠페이 등 전체 URL(쿼리 포함 가능). DB는 V48 마이그레이션으로 2048 정렬. */
+    @Column(name = "noti_url", length = 2048)
     private String notiUrl;
 
     @Column(name = "use_yn", length = 1)

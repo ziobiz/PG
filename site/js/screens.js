@@ -23,6 +23,28 @@
     return [{ v: '', t: '전체' }].concat(COMP_MNG_SEARCH_COMP_DIV_LEVELS.map(function (o) { return { v: o.v, t: o.t }; }));
   }
 
+  /** 기본정책: 기타(비고) 수수료 4슬롯 — 유형 %·고정, 이름, 값 */
+  function hqDefaultExtraFeesCardHtml() {
+    function extraRow(i) {
+      return '<div class="row g-2 align-items-end mb-2 pb-2 border-bottom border-light-subtle">' +
+        '<div class="col-6 col-md-2">' +
+        '<label class="form-label small mb-0 text-muted">유형</label>' +
+        '<select name="extraFee' + i + 'Mode" class="form-select form-select-sm">' +
+        '<option value="">—</option><option value="PCT">% (승인건별)</option><option value="FIX">고정 (정산당 1회)</option></select></div>' +
+        '<div class="col-6 col-md-4">' +
+        '<label class="form-label small mb-0 text-muted">수수료명</label>' +
+        '<input type="text" name="extraFee' + i + 'Name" class="form-control form-control-sm" maxlength="64" placeholder="예: 리스·가입" autocomplete="off"></div>' +
+        '<div class="col-12 col-md-3">' +
+        '<label class="form-label small mb-0 text-muted">값</label>' +
+        '<input type="text" name="extraFee' + i + 'Value" class="form-control form-control-sm" placeholder="% 또는 통화 금액" autocomplete="off"></div></div>';
+    }
+    return '<div class="card border mb-3 hq-extra-fees-card">' +
+      '<div class="card-header py-2 px-3 bg-light">' +
+      '<strong class="small d-block mb-1">기타 수수료 (비고 · 최대 4건)</strong>' +
+      '<span class="text-muted small">이름·유형·값을 모두 입력한 슬롯만 정산·수수료내역에 반영됩니다. 향후 항목을 바꿀 때 여기서 수정하면 됩니다.</span></div>' +
+      '<div class="card-body py-2 px-3">' + extraRow(1) + extraRow(2) + extraRow(3) + extraRow(4) + '</div></div>';
+  }
+
   /** 정산주기 저장값(v)·화면표시(t) — 가맹점 정산방법·결제내역 검색 공통 */
   var CALC_CYCLE_OPTIONS = [
     { v: '', t: '선택' },
@@ -151,21 +173,114 @@
       formSections: [
         {
           title: '기본정책',
-          notice: '정책 템플릿(A/B/C/D...)을 만들고 이름을 바꾼 뒤 배포할 수 있습니다. 배포된 정책은 가맹점 생성 시 [본사정책 따름]을 선택하면 자동 부여됩니다.',
+          notice: '정책 템플릿(A/B/C/D...)을 만들고 이름을 바꾼 뒤 배포할 수 있습니다. 배포된 정책은 가맹점·본사·총판 등록 시 [본사정책 따름]을 선택하면 자동 부여됩니다. 결제수수료율·USDT·FX·롤링(담보금)·3DS는 승인(결제) 금액 기준 비율(%)입니다. 건당·실패·정산·차지백·취소·환불 수수료는 통화코드 단위 건당 금액이며, 취소(상태 20)·환불·강제환불(30·31) 건수만큼 합산됩니다. 월간이용료는 통화코드 기준 고정 금액이며, 정산 시 해당 월 최초 실행에 1회만 반영됩니다. 기타 수수료(최대 4건)는 %·고정을 골라 이름과 값을 넣어 확장합니다.',
           rows: [
-            [{ label: '정책코드', type: 'select', name: 'templateScope', options: [{ v: 'HQPOL:A', t: 'A' }, { v: 'HQPOL:B', t: 'B' }, { v: 'HQPOL:C', t: 'C' }, { v: 'HQPOL:D', t: 'D' }], col: 2 }, { label: '정책명', type: 'text', name: 'policyName', col: 2, placeholder: '예: 기본정책 A' }, { label: '배포', type: 'select', name: 'deployYn', options: [{ v: 'Y', t: '배포' }, { v: 'N', t: '미배포' }], col: 2 }],
-            [{ label: '실패수수료', type: 'text', name: 'failFee', col: 2 }, { label: '이용수수료', type: 'text', name: 'usageRate', col: 2 }, { label: '결제 수수료', type: 'text', name: 'payRate', col: 2 }, { label: '취소 수수료', type: 'text', name: 'cancelRate', col: 2 }, { label: '환불 수수료', type: 'text', name: 'refundRate', col: 2 }, { label: '건당 수수료', type: 'text', name: 'perTxFee', col: 2 }],
-            [{ label: '정산수수료', type: 'text', name: 'feeSettlementPerTx', col: 2 }, { label: 'USDT수수료', type: 'text', name: 'feeUsdt', col: 2 }, { label: 'FX수수료', type: 'text', name: 'feeFx', col: 2 }, { label: '롤링(담보금) 비율%', type: 'text', name: 'rollingPct', col: 2, placeholder: '5 또는 10' }, { label: '롤링보류일수', type: 'text', name: 'rollingDays', col: 2, placeholder: '120 또는 180' }],
-            [{ label: '통화코드', type: 'text', name: 'currencyCode', col: 2, placeholder: 'KRW' }, { label: '3DS 수수료율(%)', type: 'text', name: 'fee3dsRate', col: 2 }, { label: '차지백 건당(원)', type: 'text', name: 'chargebackFeePerTx', col: 2 }],
-            [{ label: '정책 비고(저장)', type: 'textarea', name: 'policyRemark', col: 12, rows: 3 }]
+            [{ type: 'customHtml', col: 2, html: '<div class="form-field-block">' +
+              '<label class="form-label">정책코드</label>' +
+              '<input type="hidden" name="templateScope" id="hqDefCommTemplateScope" value="">' +
+              '<select id="hqDefCommTemplateScopeDisplay" class="form-control form-control-sm" disabled title="코드는 저장 시 자동 부여되며, 수정할 수 없습니다.">' +
+              '<option value="">(신규) 저장 시 자동 부여</option></select>' +
+              '<p class="text-muted small mb-0 mt-1">고유 코드는 시스템이 부여합니다. 목록에서 정책을 불러와 편집만 할 수 있습니다.</p></div>' },
+            { label: '정책명', type: 'text', name: 'policyName', col: 2, placeholder: '예: 기본정책 A' }, { label: '배포', type: 'select', name: 'deployYn', options: [{ v: 'Y', t: '배포' }, { v: 'N', t: '미배포' }], col: 2 }, { label: '통화코드', type: 'text', name: 'currencyCode', col: 2, placeholder: 'KRW, USD, JPY…' }],
+            [{ label: '결제수수료율(%)', type: 'text', name: 'payRate', col: 2 }, { label: '건당수수료(건)', type: 'text', name: 'perTxFee', col: 2 }, { label: '실패수수료(건)', type: 'text', name: 'failFee', col: 2 }, { label: '취소수수료(건)', type: 'text', name: 'cancelRate', col: 2 }, { label: '환불수수료(건)', type: 'text', name: 'refundRate', col: 2 }, { label: '정산수수료(건)', type: 'text', name: 'feeSettlementPerTx', col: 2 }],
+            [{ label: 'USDT수수료율(%)', type: 'text', name: 'feeUsdt', col: 2, placeholder: '승인금액 대비 %' }, { label: 'FX수수료율(%)', type: 'text', name: 'feeFx', col: 2, placeholder: '승인금액 대비 %' }, { label: '롤링(담보금)비율(%)', type: 'text', name: 'rollingPct', col: 2, placeholder: '5 또는 10' }, { label: '롤링보류일수', type: 'text', name: 'rollingDays', col: 2, placeholder: '120 또는 180' }, { label: '월간이용료(월 1회·고정)', type: 'text', name: 'usageRate', col: 2, placeholder: '통화코드 단위 금액' }],
+            [{ label: '3DS수수료율(%)', type: 'text', name: 'fee3dsRate', col: 2 }, { label: '차지백수수료(건)', type: 'text', name: 'chargebackFeePerTx', col: 2 }, { label: '차지백 구간정책', type: 'select', name: 'chargebackPolicyId', col: 4, options: [{ v: '', t: '(미사용) 건당 차지백만' }] }],
+            [{ type: 'customHtml', col: 12, html: hqDefaultExtraFeesCardHtml() }],
+            [{ type: 'customHtml', col: 12, html: '<div class="form-field-block">' +
+              '<label class="form-label" for="hqDefCommPolicyRemark">정책비고(저장)</label>' +
+              '<textarea class="form-control form-control-sm" name="policyRemark" id="hqDefCommPolicyRemark" rows="3"></textarea>' +
+              '<div class="d-flex justify-content-end flex-wrap gap-2 mt-2">' +
+              '<button type="button" class="btn btn-outline-secondary btn-sm" id="hqDefCommNewPolicyBtn">신규정책</button>' +
+              '<button type="button" class="btn btn-primary btn-sm" id="hqDefCommFormSaveBtn">저장</button>' +
+              '</div></div>' }]
           ]
+        },
+        {
+          title: '저장된 정책 목록',
+          notice: '위 [저장] 후 목록이 갱신됩니다. 체크 후 [수정] 또는 행 클릭으로 폼에 불러옵니다. [신규정책]으로 초기화한 뒤 입력·저장하면 코드가 자동 부여되어 목록에 나타납니다. 체크한 항목만 [선택 정책 삭제]할 수 있습니다(여러 건 가능). 헤더 체크박스로 전체 선택·해제합니다.',
+          rows: [[{
+            type: 'customHtml',
+            col: 12,
+            html: '<div id="hqDefaultCommissionFlash" class="alert alert-dismissible d-none mb-3" role="alert">' +
+              '<span data-pg-banner-text></span>' +
+              '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="닫기"></button></div>' +
+              '<div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-2">' +
+              '<h6 class="small text-secondary mb-0"><i class="bi bi-list-ul me-1" aria-hidden="true"></i>정책 템플릿 목록</h6>' +
+              '<span class="badge bg-secondary">체크·[수정] 또는 행 클릭 → 위 폼에 불러오기</span></div>' +
+              '<p class="small text-muted mb-2 mb-md-1">헤더 1행은 <strong>수수료 고정</strong>·<strong>수수료 %</strong>·<strong>담보율</strong>·<strong>기타</strong> 묶음입니다. <strong>수수료 %</strong> 열은 숫자만 표시(단위 % 생략). 결제·USDT·FX·3DS·담보 비율은 승인금액 기준 %입니다.</p>' +
+              '<div class="table-responsive border rounded">' +
+              '<table class="table table-sm table-hover align-middle mb-0 hq-default-comm-policy-table">' +
+              '<thead class="table-light">' +
+              '<tr>' +
+              '<th rowspan="2" class="text-center align-middle hq-def-comm-th-chk" title="전체 선택">' +
+              '<span class="d-block small fw-semibold mb-1">선택</span>' +
+              '<input type="checkbox" class="form-check-input m-0 align-middle" id="hqDefCommSelectAll" aria-label="목록 전체 선택">' +
+              '</th>' +
+              '<th rowspan="2" class="text-center align-middle hq-def-comm-th-code">코드</th>' +
+              '<th rowspan="2" class="text-center align-middle hq-def-comm-th-name">이름</th>' +
+              '<th rowspan="2" class="text-center align-middle hq-def-comm-th-deploy">적용</th>' +
+              '<th rowspan="2" class="text-center align-middle hq-def-comm-th-cur">통화</th>' +
+              '<th colspan="6" class="text-center align-middle small hq-def-comm-th-group border-start">수수료 고정</th>' +
+              '<th colspan="4" class="text-center align-middle small hq-def-comm-th-group border-start">수수료 %</th>' +
+              '<th colspan="2" class="text-center align-middle small hq-def-comm-th-group border-start">담보율</th>' +
+              '<th rowspan="2" class="text-center align-middle hq-def-comm-th-mon border-start">월간</th>' +
+              '<th colspan="3" class="text-center align-middle small hq-def-comm-th-group border-start">기타</th>' +
+              '<th rowspan="2" class="text-center align-middle hq-def-comm-th-upd text-nowrap border-start">일지</th>' +
+              '</tr>' +
+              '<tr>' +
+              '<th class="hq-def-comm-th-sub text-center border-start">건당</th><th class="hq-def-comm-th-sub text-center">실패</th><th class="hq-def-comm-th-sub text-center">정산</th><th class="hq-def-comm-th-sub text-center">차지백</th><th class="hq-def-comm-th-sub text-center">취소</th><th class="hq-def-comm-th-sub text-center">환불</th>' +
+              '<th class="hq-def-comm-th-sub text-center border-start">결제</th><th class="hq-def-comm-th-sub text-center">USDT</th><th class="hq-def-comm-th-sub text-center">FX</th><th class="hq-def-comm-th-sub text-center">3DS</th>' +
+              '<th class="hq-def-comm-th-sub text-center border-start">비율</th><th class="hq-def-comm-th-sub text-center">일</th>' +
+              '<th class="hq-def-comm-th-sub text-center border-start">1</th><th class="hq-def-comm-th-sub text-center">2</th><th class="hq-def-comm-th-sub text-center">3</th>' +
+              '</tr>' +
+              '</thead>' +
+              '<tbody id="hqDefaultCommissionPolicyList"></tbody></table>' +
+              '<p class="small text-muted px-3 py-2 mb-0 d-none" id="hqDefaultCommissionPolicyListEmpty">등록된 템플릿이 없습니다. 위에서 [신규정책] 후 [저장]하세요.</p></div>' +
+              '<div class="modal fade" id="hqDefaultCommissionDeleteModal" tabindex="-1" aria-hidden="true">' +
+              '<div class="modal-dialog modal-dialog-centered"><div class="modal-content">' +
+              '<div class="modal-header"><h5 class="modal-title">정책 삭제</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="닫기"></button></div>' +
+              '<div class="modal-body"><p class="mb-0" id="hqDefaultCommissionDeleteModalText"></p></div>' +
+              '<div class="modal-footer">' +
+              '<button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">취소</button>' +
+              '<button type="button" class="btn btn-danger btn-sm" id="hqDefaultCommissionDeleteConfirmBtn">삭제</button>' +
+              '</div></div></div></div>'
+          }]]
         }
       ],
       buttons: [
-        { id: 'hqDefaultCommissionTemplateAddBtn', label: '정책 추가', cls: 'btn-success' },
-        { id: 'hqDefaultCommissionTemplateDeleteBtn', label: '정책 삭제', cls: 'btn-outline-danger' },
-        { id: 'hqDefaultCommissionSaveBtn', label: '저장', cls: 'btn-primary' }
+        { id: 'hqDefaultCommissionEditBtn', label: '수정', cls: 'btn-outline-primary' },
+        { id: 'hqDefaultCommissionTemplateDeleteBtn', label: '선택 정책 삭제', cls: 'btn-outline-danger' }
       ]
+    },
+    '/hq/chargebackPolicy': {
+      isForm: true,
+      formSections: [{
+        title: '차지백 구간 정책',
+        notice: '월간 환불·강제환불(거래 상태 30·31) 건수로 구간을 정합니다. 해당 월 누적 건수에 맞는 첫 구간의 건당 금액을, 정산 배치에 포함된 환불·강제환불 건수만큼 곱해 합산합니다. 구간 정책을 쓰지 않으면 [기본정책]의 차지백수수료(건)만 적용됩니다.',
+        rows: [[{
+          type: 'customHtml',
+          col: 12,
+          html: '<div id="hqChargebackPolicyFlash" class="alert alert-dismissible d-none mb-3" role="alert"><span data-pg-banner-text></span><button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="닫기"></button></div>' +
+            '<div class="row g-3"><div class="col-12 col-lg-4"><div class="card h-100"><div class="card-header py-2 small fw-semibold">저장된 유형</div><div class="card-body p-2">' +
+            '<div class="table-responsive border rounded" style="max-height:420px;overflow-y:auto"><table class="table table-sm table-hover align-middle mb-0"><thead class="table-light"><tr><th class="text-nowrap">ID</th><th>이름</th><th class="text-nowrap">기준통화</th><th>비고</th></tr></thead><tbody id="hqChargebackPolicyListTbody"><tr><td colspan="4" class="text-muted text-center small">불러오는 중…</td></tr></tbody></table></div>' +
+            '<button type="button" class="btn btn-success btn-sm mt-2 w-100" id="hqChargebackPolicyNewBtn">새 유형</button></div></div></div>' +
+            '<div class="col-12 col-lg-8"><div class="card h-100"><div class="card-header py-2 small fw-semibold">편집</div><div class="card-body p-3">' +
+            '<input type="hidden" id="hqCbPolId" value="" />' +
+            '<div class="mb-2"><label class="form-label small mb-0" for="hqCbPolName">이름</label><input type="text" class="form-control form-control-sm" id="hqCbPolName" maxlength="120" placeholder="예: 월간 차지백 단가표" /></div>' +
+            '<div class="mb-2"><label class="form-label small mb-0" for="hqCbPolCurrencyCode">기준통화</label><select class="form-select form-select-sm" id="hqCbPolCurrencyCode">' +
+            '<option value="KRW">KRW</option><option value="USD">USD</option><option value="JPY">JPY</option><option value="EUR">EUR</option>' +
+            '<option value="CNY">CNY</option><option value="THB">THB</option><option value="VND">VND</option><option value="GBP">GBP</option>' +
+            '<option value="TWD">TWD</option><option value="HKD">HKD</option><option value="USDT">USDT</option></select>' +
+            '<p class="small text-muted mb-0 mt-1">구간 건당 금액의 표시·집계 단위 안내용입니다.</p></div>' +
+            '<div class="mb-2"><label class="form-label small mb-0" for="hqCbPolRemark">비고</label><textarea class="form-control form-control-sm" id="hqCbPolRemark" rows="2" placeholder="내부 메모"></textarea></div>' +
+            '<div class="d-flex align-items-center justify-content-between mb-1"><span class="small fw-semibold">구간 (해당 월 30·31 건수)</span><button type="button" class="btn btn-outline-secondary btn-sm" id="hqCbPolAddTierBtn">행 추가</button></div>' +
+            '<p class="small text-muted mb-2">sort 오름차순으로 검사하며, 건수 ≥ 최소건 and (최대건 비움 = 상한 없음 or 건수 ≤ 최대건) 인 첫 행이 적용됩니다.</p>' +
+            '<div class="table-responsive border rounded mb-3"><table class="table table-sm mb-0 align-middle" id="hqCbPolTierTable"><thead class="table-light"><tr><th style="width:72px">sort</th><th style="width:100px">최소건</th><th style="width:100px">최대건</th><th>건당금액</th><th style="width:52px"></th></tr></thead><tbody id="hqCbPolTierTbody"></tbody></table></div>' +
+            '<div class="d-flex flex-wrap gap-2"><button type="button" class="btn btn-primary btn-sm" id="hqChargebackPolicySaveBtn">저장</button>' +
+            '<button type="button" class="btn btn-outline-danger btn-sm" id="hqChargebackPolicyDeleteBtn">삭제</button></div></div></div></div></div>'
+        }]]
+      }],
+      buttons: [{ id: 'hqChargebackPolicyReloadBtn', label: '목록 새로고침', cls: 'btn-outline-secondary' }]
     },
     '/hq/businessDaySetting': {
       isForm: true,
@@ -253,10 +368,16 @@
       formHtmlId: 'hqOrgViewColumnAllowanceForm',
       formSections: [
         {
-          title: '본사별 노출설정',
-          notice: '총본사가 각 본사(REGIONAL)마다, 화면별 그리드에서 VIEW SETTING으로 노출·선택 가능한 열을 지정합니다. 여기서 체크한 항목만 해당 본사 및 그 하위 조직(총판·가맹점 등) 사용자가 개인 VIEW SETTING에서 켜고 끌 수 있습니다. 이 설정이 없으면(불러오기 시 정책 없음) 전 항목 선택 가능합니다. 고정 열(번호·업체명·거래일·Route No 등)은 항상 표시되며 여기 목록에 나오지 않습니다.',
+          title: '조직별 노출설정',
+          notice: '총본사가 각 본사(REGIONAL) 트리마다, 조직 유형·화면별로 VIEW SETTING에서 노출·선택 가능한 열을 지정합니다. 본사·총판·지사·대리점·영업점(동일 설정)·가맹점 네 가지로 나누어 저장합니다. 지사·대리점·영업점과 가맹점에 별도 저장이 없으면 해당 화면의 총판 설정을 그대로 따릅니다. 정책 행이 없으면(불러오기 시 정책 없음) 제한 없이 전 항목 선택 가능합니다. 고정 열(번호·업체명·거래일·Route No 등)은 항상 표시되며 여기 목록에 나오지 않습니다. [불러오기]는 현재 선택한 본사·조직 유형·화면에 대해 서버에 저장된 체크 상태를 가져와 반영합니다(저장 전에 서버 값을 확인할 때 사용).',
           rows: [
             [{ label: '설정 대상 본사', type: 'select', name: 'regionalOrgCode', col: 4, options: [{ v: '', t: '선택' }], loadRegionalBranches: true }],
+            [{ label: '노출 대상 조직', type: 'select', name: 'viewerScope', col: 4, options: [
+              { v: 'REGIONAL', t: '본사' },
+              { v: 'MASTER_DIST', t: '총판' },
+              { v: 'BRANCH_GROUP', t: '지사·대리점·영업점' },
+              { v: 'MERCHANT', t: '가맹점' }
+            ] }],
             [{ label: '설정 대상 화면', type: 'select', name: 'targetPageUrl', col: 4, options: [
               { v: '/calc/payList', t: '결제내역(통합)' },
               { v: '/comp/compMngTree', t: '업체관리' },
@@ -271,7 +392,23 @@
               { v: '/calc/collateralList', t: '정산·담보금내역' },
               { v: '/pay/payHoldList', t: '정산·정산보류내역' }
             ] }],
-            [{ type: 'customHtml', col: 12, html: '<div class="mb-2"><span class="form-label d-block">이 본사에 노출할 열 (VIEW SETTING에서 선택 가능)</span><div id="hqOrgAllowColumnChecks" class="column-guide-list border rounded p-2 bg-light"></div><p class="text-muted small mb-0 mt-1">체크한 열만 하위 사용자 화면의 VIEW SETTING에 나타납니다.</p></div>' }]
+            [{ type: 'customHtml', col: 12, html: '<div class="mb-2">' +
+              '<div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-1">' +
+              '<span class="form-label mb-0">선택한 조직 유형에 노출할 열 (VIEW SETTING에서 선택 가능)</span>' +
+              '<div class="btn-group btn-group-sm flex-shrink-0">' +
+              '<button type="button" class="btn btn-outline-danger" id="hqOrgAllowColSelectAllBtn">전체선택</button>' +
+              '<button type="button" class="btn btn-outline-secondary" id="hqOrgAllowColClearAllBtn">전체해제</button>' +
+              '</div></div>' +
+              '<div id="hqOrgAllowColumnChecks" class="column-guide-list border rounded p-2 bg-light"></div>' +
+              '<p class="text-muted small mb-0 mt-1">체크한 열만 해당 조직 유형 사용자 화면의 VIEW SETTING에 나타납니다. 지사·대리점·영업점·가맹점은 저장이 없으면 총판 설정을 사용합니다.</p></div>' +
+              '<div class="mb-0" id="hqOrgAllowSavedWrap">' +
+              '<span class="form-label d-block mb-1">저장된 설정 요약 (선택한 본사)</span>' +
+              '<p class="text-muted small mb-2">행을 클릭하면 위의 화면·조직 유형이 맞춰지고 서버에 저장된 체크 상태가 불러와집니다.</p>' +
+              '<div class="table-responsive border rounded">' +
+              '<table class="table table-sm table-hover mb-0"><thead class="thead-light"><tr>' +
+              '<th>화면</th><th>조직 유형</th><th class="text-right">허용 열 수</th><th>수정일시</th>' +
+              '</tr></thead><tbody id="hqOrgAllowPolicyList"></tbody></table></div>' +
+              '<p class="text-muted small mb-0 mt-2" id="hqOrgAllowPolicyListHint"></p></div>' }]
           ]
         }
       ],
@@ -292,15 +429,23 @@
       formSections: [
         {
           title: 'SSL 인증서 모니터링',
-          notice: 'fullchain.pem 절대 경로와 Let\'s Encrypt live 디렉터리명(주 도메인)을 지정합니다. 조회·저장은 시스템 관리자(ADMIN)만 가능합니다.',
+          notice: 'Let’s Encrypt: Nginx가 사용하는 fullchain.pem 을 모니터링합니다. live 폴더명은 certbot 인증서 이름(예: api.icopay.co.kr)과 동일합니다. 다중 서브도메인(SAN)은 한 장의 인증서에 포함됩니다. 카페24 등 권한 DNS에 A 레코드가 VPS IP를 가리키는지·일부 ISP DNS 캐시로 예전 IP가 남지 않는지 확인하세요. 조회·저장은 시스템 관리자(ADMIN)만 가능합니다.',
           rows: [
-            [{ label: 'fullchain.pem 경로', type: 'text', name: 'serverManageSslCertPath', col: 8, placeholder: '/etc/letsencrypt/live/example.com/fullchain.pem' }],
-            [{ label: 'LE live 폴더명(도메인)', type: 'text', name: 'serverManageSslLeDomain', col: 4, placeholder: 'api.example.com' }]
+            [{ label: 'fullchain.pem 경로', type: 'text', name: 'serverManageSslCertPath', col: 8, placeholder: '/etc/letsencrypt/live/api.icopay.co.kr/fullchain.pem' }],
+            [{ label: 'LE live 폴더명(인증서 이름)', type: 'text', name: 'serverManageSslLeDomain', col: 4, placeholder: 'api.icopay.co.kr' }],
+            [{ type: 'customHtml', col: 12, html: '<label class="form-label d-block mb-1" for="serverManageUiRefreshMin">실시간 대시보드 자동 갱신(분)</label>' }],
+            [{ type: 'customHtml', col: 12, html: '<div class="d-flex flex-wrap align-items-center gap-2 hq-srv-refresh-min-row">' +
+              '<div class="hq-srv-refresh-min-input-wrap">' +
+              '<input type="number" class="form-control form-control-sm" name="serverManageUiRefreshMin" id="serverManageUiRefreshMin" min="1" max="60" step="1" placeholder="비우면 서버 기본">' +
+              '</div>' +
+              '<button type="button" id="hqServerManageTopSaveBtn" class="btn btn-sm btn-outline-primary flex-shrink-0">저장</button>' +
+              '</div>' }],
+            [{ type: 'customHtml', col: 12, html: '<p class="text-muted small mb-0 mt-2">1~60분만 저장됩니다(내부는 초로 환산). 비우면 <code>application.yml</code>의 <code>app.serverManage.uiAutoRefreshSeconds</code>가 적용됩니다. 아래 [설정 저장]과 동일하게 전체 폼을 저장합니다.</p>' }]
           ]
         },
         {
           title: '호스팅 약정',
-          notice: '디스크·트래픽은 GB 단위로 입력합니다(소수 가능). 저장 시 서버에 MB로 환산되어 저장됩니다. 디스크 사용량은 서버 조회값과 약정을 비교하고, 트래픽은 패널의 기간 누적 사용량을 GB로 입력하면 비율이 계산됩니다.',
+          notice: '디스크·트래픽은 GB 단위로 입력합니다(소수 가능). 저장 시 서버에 MB로 환산되어 저장됩니다. 디스크 사용량은 서버 조회값과 약정을 비교합니다. 트래픽 누적은 호스팅 패널 값을 넣거나, 약정 시작일이 있으면 앱이 수집한 일별 트래픽 합으로 폼을 자동 채웁니다(패널과 다를 수 있으니 확인 후 저장).',
           rows: [
             [
               { label: '약정 디스크 (GB)', type: 'number', name: 'serverManageContractDiskGb', col: 3, step: '0.001', placeholder: '예: 1 또는 0.977' },
@@ -315,7 +460,7 @@
         },
         {
           title: '실시간 대시보드',
-          notice: '레이아웃은 NOTI GitHub 저장소의 /admin/system-monitor(통계 그리드·SSL 정의목록·Certbot/Nginx)를 참고했습니다. PG는 Spring API(JSON)로 동일 정보를 채웁니다. 교차 출처 접속 시 상단 안내를 확인하세요.',
+          notice: 'SSL 카드에 인증서 SAN(호스트명) 목록과 운영 안내(카페24 DNS·Cloudflare·다중 -d)가 포함됩니다. 도메인구성 화면에서는 전사·조직 URL과 SAN 대조 표가 함께 표시됩니다. 레이아웃은 NOTI GitHub 저장소의 /admin/system-monitor를 참고했습니다. PG는 Spring API(JSON)로 채웁니다. 교차 출처 접속 시 상단 안내를 확인하세요.',
           rows: [
             [{
               type: 'customHtml',
@@ -325,7 +470,7 @@
                 '<span id="hqSrvGeneratedAt" class="text-muted small">—</span>' +
                 '<span id="hqSrvCountdown" class="small fw-semibold text-primary">—</span>' +
                 '<label class="mb-0 small d-flex align-items-center gap-1 user-select-none"><input type="checkbox" id="hqSrvAutoRefresh" checked> 자동 갱신</label>' +
-                '<span class="text-muted small">간격 <span id="hqSrvIntervalSec">—</span>초</span>' +
+                '<span class="text-muted small">간격 <span id="hqSrvIntervalSec">—</span></span>' +
                 '</div>' +
                 '<div id="hqMonCrossOriginHint" class="alert alert-secondary py-2 small mb-0 mt-2 d-none" role="note"></div>' +
                 '<div id="hqSrvInlineMsg" class="small mt-2" role="status" aria-live="polite"></div>' +
@@ -400,8 +545,8 @@
     '/hq/accountMng': {
       emptyMessage: '등록된 업체별 접근 규칙이 없습니다.',
       noticeList: [
-        'ziobiz/NOTI의 계정관리에서 하던 것처럼, 로그인 ID(사용자)별로 접근 가능한 업체코드(본사·총판·가맹점 등)를 지정합니다.',
-        '사용자관리 화면의 권한그룹은 [조직별 권한 세팅] 메뉴와 동일한 정책을 사용합니다. OTP 필수 여부는 [전산노티·결제환경]의 로그인·OTP 정책에서 설정합니다.'
+        '로그인 ID(사용자)별로 접근 가능한 업체코드(본사·총판·가맹점 등)를 지정합니다. 행이 하나라도 있으면 사용자관리 목록·등록·초기화 범위는 <strong>하위 조직 ∩ 여기서 지정한 업체</strong>로만 제한됩니다.',
+        '담당자(ASSISTANT) 계정의 메뉴 권한은 [조직별 권한 세팅]의 <strong>담당자 권한그룹별 메뉴</strong>에서 조직 상한 내에서 조정합니다. OTP 정책은 [전산노티·결제환경]을 따릅니다.'
       ],
       searchRows: [[{ type: 'searchBtn', label: '새로고침' }]],
       summary: ['건수'],
@@ -501,13 +646,22 @@
         {
           title: '수수료정책',
           id: 'commissionPolicyCard',
-          merchantOnly: true,
-          notice: '본사정책 따름 선택 시 본사설정이 적용되며, 직접입력 시 아래 항목을 입력합니다.',
+          merchantRegionalMasterCommission: true,
+          notice: '본사정책 따름 선택 시 본사설정에서 배포한 정책 템플릿을 선택할 수 있으며, 본사·총판·가맹점에 동일하게 적용·저장됩니다.',
           rows: [
             [{ label: '본사정책 따름', type: 'select', name: 'commissionFollowHq', options: [{ v: 'Y', t: '본사정책 따름' }, { v: 'N', t: '직접입력' }], col: 2 }, { label: '본사 정책선택', type: 'select', name: 'hqPolicyScope', options: [{ v: '', t: '기본(DEFAULT)' }], col: 2, hqPolicyOnly: true }],
-            [{ label: '실패수수료', type: 'text', name: 'failFee', col: 2, customOnly: true }, { label: '이용수수료', type: 'text', name: 'usageRate', col: 2, customOnly: true }, { label: '결제 수수료', type: 'text', name: 'payRate', col: 2, customOnly: true }],
-            [{ label: '취소 수수료', type: 'text', name: 'cancelRate', col: 2, customOnly: true }, { label: '환불 수수료', type: 'text', name: 'refundRate', col: 2, customOnly: true }, { label: '비고', type: 'text', name: 'commissionMemo', col: 2, customOnly: true }],
-            [{ label: '정산수수료', type: 'text', name: 'feeSettlementPerTx', col: 2, customOnly: true }, { label: 'USDT수수료', type: 'text', name: 'feeUsdt', col: 2, customOnly: true }, { label: 'FX수수료', type: 'text', name: 'feeFx', col: 2, customOnly: true }]
+            [{ label: '결제수수료율(%)', type: 'text', name: 'payRate', col: 2, customOnly: true }, { label: '실패수수료(건)', type: 'text', name: 'failFee', col: 2, customOnly: true }, { label: '취소수수료(건)', type: 'text', name: 'cancelRate', col: 2, customOnly: true }],
+            [{ label: '환불수수료(건)', type: 'text', name: 'refundRate', col: 2, customOnly: true }, { label: '월간이용료(월 1회·고정)', type: 'text', name: 'usageRate', col: 2, customOnly: true, placeholder: '통화코드 단위 금액' }, { label: '비고', type: 'text', name: 'commissionMemo', col: 2, customOnly: true }],
+            [{ label: '정산수수료(건)', type: 'text', name: 'feeSettlementPerTx', col: 2, customOnly: true }, { label: 'USDT수수료율(%)', type: 'text', name: 'feeUsdt', col: 2, customOnly: true }, { label: 'FX수수료율(%)', type: 'text', name: 'feeFx', col: 2, customOnly: true }]
+          ]
+        },
+        {
+          title: '차지백 정책',
+          id: 'chargebackPolicyCard',
+          merchantOnly: true,
+          notice: '본사정책 따름이면 선택한 본사 정책 템플릿의 3DS·차지백 설정이 적용됩니다. 직접입력일 때만 아래를 저장할 수 있습니다.',
+          rows: [
+            [{ label: '3DS수수료율(%)', type: 'text', name: 'fee3dsRate', col: 2, customOnly: true }, { label: '차지백수수료(건)', type: 'text', name: 'chargebackFeePerTx', col: 2, customOnly: true }, { label: '차지백 구간정책', type: 'select', name: 'chargebackPolicyId', col: 4, customOnly: true, options: [{ v: '', t: '(미사용) 건당 차지백만' }] }]
           ]
         },
         {
@@ -519,7 +673,7 @@
             [{ label: '정산주기', type: 'select', name: 'calcCycle', options: CALC_CYCLE_OPTIONS, col: 1 }, { label: '정산마감시간', type: 'time', name: 'calcCloseTime', col: 1 }, { label: '정산자동개시시간', type: 'time', name: 'calcStartTime', col: 1 }],
             [{ label: '정산구분', type: 'select', name: 'calcProcType', options: CALC_PROC_OPTIONS, col: 1 }, { label: '이체및송금구분', type: 'select', name: 'transferType', options: TRANSFER_REMIT_OPTIONS, col: 1 }, { label: '이체주기(분)', type: 'text', name: 'transferCycleDays', col: 1, placeholder: '예: 5, 60' }, { label: '이체시간', type: 'time', name: 'transferExecTime', col: 1 }],
             [{ label: '정산제외여부', type: 'select', name: 'calcExcludeYn', options: [{ v: 'N', t: '미사용' }, { v: 'Y', t: '사용' }], col: 1 }, { label: '정산제외대상', type: 'select', name: 'calcExcludeTarget', options: [{ v: 'NONE', t: '해당없음' }, { v: 'WEB', t: 'WEB' }, { v: 'OFFLINE', t: '오프라인' }, { v: 'BOTH', t: 'WEB+오프라인' }], col: 1 }, { label: '지급보류', type: 'select', name: 'payHoldYn', options: [{ v: 'N', t: '지급' }, { v: 'Y', t: '보류' }], col: 1 }],
-            [{ label: '정산최소금액(원)', type: 'text', name: 'calcMinAmt', col: 1, placeholder: '미만 시 다음 주기' }, { label: '이체및송금최소금액(원)', type: 'text', name: 'autoTransferMin', col: 1, placeholder: '펌뱅킹 최소' }]
+            [{ label: '정산최소금액', type: 'text', name: 'calcMinAmt', col: 1, placeholder: '미만 시 다음 주기' }, { label: '이체및송금최소금액', type: 'text', name: 'autoTransferMin', col: 1, placeholder: '펌뱅킹 최소' }]
           ]
         },
         {
@@ -586,7 +740,7 @@
           { type: 'compMngSearchActions', label: '하위업체포함', checkboxName: 'searchIncludeSub', searchLabel: '검색' }
         ]
       ],
-      noticeList: ['기본 조회는 사용·미사용 업체를 모두 포함합니다(업체사용상태에서 좁힐 수 있음). 본사별 화면 권한(옵저버·수정 등)은 사용/미사용과 관계없이 동일하게 적용됩니다. 미사용으로 바꾼 조직은 결제·정산·노티가 중단되며, 사용으로 되돌리면 복구됩니다. 상위를 미사용으로 두면 하위 프로필도 함께 미사용 처리됩니다.', '엑셀등록: [SAMPLE]으로 서식 있는 xlsx(헤더 색·표선·가운데 정렬)를 받아 예시 행을 수정·추가한 뒤 [엑셀등록]에 업로드하세요.'],
+      noticeList: ['기본 조회는 사용·미사용 업체를 모두 포함합니다(업체사용상태에서 좁힐 수 있음). 조직별 화면 권한(옵저버·수정 등)은 사용/미사용과 관계없이 동일하게 적용됩니다. 미사용으로 바꾼 조직은 결제·정산·노티가 중단되며, 사용으로 되돌리면 복구됩니다. 상위를 미사용으로 두면 하위 프로필도 함께 미사용 처리됩니다.', '엑셀등록: [SAMPLE]으로 서식 있는 xlsx(헤더 색·표선·가운데 정렬)를 받아 예시 행을 수정·추가한 뒤 [엑셀등록]에 업로드하세요.'],
       noticeRefButton: { id: 'noticeRefBtn', label: '참고', cls: 'btn-success' },
       summary: ['건수'],
       buttons: [{ id: 'seedBtn', label: '시드 생성', cls: 'btn-outline-warning' }, { id: 'excelBtn', label: '엑셀다운로드', cls: 'btn-info' }, { id: 'excelSampleBtn', label: 'SAMPLE', cls: 'btn-outline-secondary' }, { id: 'excelRegBtn', label: '엑셀등록', cls: 'btn-outline-success' }, { id: 'compRegBtn', label: '등록', cls: 'btn-danger' }],
@@ -729,13 +883,12 @@
           title: '상세정보',
           id: 'distributorExtraCard',
           masterDistOnly: true,
-          notice: '총판일 때만 입력합니다. 총판은 1가지 화폐만 지정할 수 있습니다. 노티 URL 1에는 CALLBACK(서버 노티), 2에는 RESULT(브라우저·리다이렉트) URL을 넣습니다(둘 다 필수). [노티 쌍 선택]으로 동일 대상명의 CALLBACK·RESULT를 한 번에 넣을 수 있습니다. URL 3·4는 보조입니다.',
+          notice: '총판일 때만 입력합니다. 총판은 1가지 화폐만 지정할 수 있습니다. 노티 대상은 본사설정 > 전산노티·결제환경의 [총판 노티 대상 생성]에서 먼저 등록합니다. 왼쪽 [노티 쌍 선택]·[보조 쌍 선택]으로 URL을 한 번에 채우거나, 각 칸에서 드롭다운·[노티선택]을 사용하세요. URL 1=CALLBACK, 2=RESULT(필수). URL 3·4는 보조입니다.',
           rows: [
             [{ label: '기준 화폐*', type: 'select', name: 'baseCurrency', options: [{ v: '', t: '선택' }, { v: 'KRW', t: 'KRW (원)' }, { v: 'USD', t: 'USD (달러)' }, { v: 'JPY', t: 'JPY (엔)' }, { v: 'THB', t: 'THB (바트)' }, { v: 'EUR', t: 'EUR (유로)' }], col: 2 }, { label: '사이트개요', type: 'text', name: 'siteSummary', col: 2, placeholder: '사이트개요' }, { label: '취급물품', type: 'text', name: 'product', col: 2 }, { label: '대표사이트', type: 'text', name: 'homepage', col: 2, placeholder: 'https://' }],
             [{ label: '정산담당자명', type: 'text', name: 'settleName', col: 2 }, { label: '정산담당자연락처', type: 'text', name: 'settleTelNo', col: 2, placeholder: '010-0000-0000' }, { label: '정산형태', type: 'select', name: 'settleType', options: [{ v: '', t: '선택' }, { v: 'M', t: '가맹점별' }, { v: 'G', t: '총판' }], col: 1 }, { label: '요율(%)', type: 'text', name: 'commissionRate', col: 1, placeholder: '요율' }, { label: '사용한도', type: 'text', name: 'limitAmt', col: 2, placeholder: '사용한도' }],
-            [{ label: '노티 CALLBACK (URL 1)*', type: 'select', name: 'notifyUrl1', col: 6, loadNotifyTargets: true, button: '노티선택' }, { label: '노티 RESULT (URL 2)*', type: 'select', name: 'notifyUrl2', col: 6, loadNotifyTargets: true, button: '노티선택' }],
-            [{ type: 'customHtml', col: 12, html: '<div class="d-flex align-items-center flex-wrap gap-2 mb-1"><button type="button" class="btn btn-sm btn-outline-primary" data-action="노티쌍선택" data-callback-field="notifyUrl1" data-result-field="notifyUrl2">노티 쌍 선택 (CALLBACK+RESULT)</button><span class="text-muted small">전산노티에서 같은 대상명으로 발급된 CALLBACK·RESULT URL을 URL 1·2에 동시에 설정합니다.</span></div>' }],
-            [{ label: '노티 URL 3(보조)', type: 'select', name: 'notifyUrl3', col: 6, loadNotifyTargets: true, button: '노티선택' }, { label: '노티 URL 4(보조)', type: 'select', name: 'notifyUrl4', col: 6, loadNotifyTargets: true, button: '노티선택' }]
+            [{ type: 'notifyPairButton', col: 2, pairLabel: '필수 노티', buttonText: '노티 쌍 선택', callbackField: 'notifyUrl1', resultField: 'notifyUrl2', hint: 'CALLBACK→URL1, RESULT→URL2 동시 설정', titleHint: '본사설정 > 전산노티·결제환경에서 [노티자동생성]으로 등록한 쌍을 고릅니다.' }, { label: '노티 CALLBACK (URL 1)*', type: 'select', name: 'notifyUrl1', col: 5, loadNotifyTargets: true, button: '노티선택' }, { label: '노티 RESULT (URL 2)*', type: 'select', name: 'notifyUrl2', col: 5, loadNotifyTargets: true, button: '노티선택' }],
+            [{ type: 'notifyPairButton', col: 2, pairLabel: '보조 노티', buttonText: '보조 쌍 선택', callbackField: 'notifyUrl3', resultField: 'notifyUrl4', hint: 'URL 3·4를 같은 쌍으로 채웁니다.', titleHint: '보조 노티 URL 3·4를 한 번에 설정합니다.' }, { label: '노티 URL 3(보조)', type: 'select', name: 'notifyUrl3', col: 5, loadNotifyTargets: true, button: '노티선택' }, { label: '노티 URL 4(보조)', type: 'select', name: 'notifyUrl4', col: 5, loadNotifyTargets: true, button: '노티선택' }]
           ]
         },
         {
@@ -787,13 +940,22 @@
         {
           title: '수수료정책',
           id: 'commissionPolicyCard',
-          merchantOnly: true,
-          notice: '본사정책 따름 선택 시 본사설정에서 배포한 정책 템플릿을 선택할 수 있고, 선택한 정책값이 가맹점 생성 시 자동 부여됩니다.',
+          merchantRegionalMasterCommission: true,
+          notice: '본사정책 따름 선택 시 본사설정에서 배포한 정책 템플릿을 선택할 수 있으며, 본사·총판·가맹점에 동일하게 적용·저장됩니다.',
           rows: [
             [{ label: '본사정책 따름', type: 'select', name: 'commissionFollowHq', options: [{ v: 'Y', t: '본사정책 따름' }, { v: 'N', t: '직접입력' }], col: 2 }, { label: '본사 정책선택', type: 'select', name: 'hqPolicyScope', options: [{ v: '', t: '기본(DEFAULT)' }], col: 2, hqPolicyOnly: true }],
-            [{ label: '실패수수료', type: 'text', name: 'failFee', col: 2, customOnly: true }, { label: '이용수수료', type: 'text', name: 'usageRate', col: 2, customOnly: true }, { label: '결제 수수료', type: 'text', name: 'payRate', col: 2, customOnly: true }],
-            [{ label: '취소 수수료', type: 'text', name: 'cancelRate', col: 2, customOnly: true }, { label: '환불 수수료', type: 'text', name: 'refundRate', col: 2, customOnly: true }, { label: '비고', type: 'text', name: 'commissionMemo', col: 2, customOnly: true }],
-            [{ label: '정산수수료', type: 'text', name: 'feeSettlementPerTx', col: 2, customOnly: true }, { label: 'USDT수수료', type: 'text', name: 'feeUsdt', col: 2, customOnly: true }, { label: 'FX수수료', type: 'text', name: 'feeFx', col: 2, customOnly: true }]
+            [{ label: '결제수수료율(%)', type: 'text', name: 'payRate', col: 2, customOnly: true }, { label: '실패수수료(건)', type: 'text', name: 'failFee', col: 2, customOnly: true }, { label: '취소수수료(건)', type: 'text', name: 'cancelRate', col: 2, customOnly: true }],
+            [{ label: '환불수수료(건)', type: 'text', name: 'refundRate', col: 2, customOnly: true }, { label: '월간이용료(월 1회·고정)', type: 'text', name: 'usageRate', col: 2, customOnly: true, placeholder: '통화코드 단위 금액' }, { label: '비고', type: 'text', name: 'commissionMemo', col: 2, customOnly: true }],
+            [{ label: '정산수수료(건)', type: 'text', name: 'feeSettlementPerTx', col: 2, customOnly: true }, { label: 'USDT수수료율(%)', type: 'text', name: 'feeUsdt', col: 2, customOnly: true }, { label: 'FX수수료율(%)', type: 'text', name: 'feeFx', col: 2, customOnly: true }]
+          ]
+        },
+        {
+          title: '차지백 정책',
+          id: 'chargebackPolicyCard',
+          merchantOnly: true,
+          notice: '본사정책 따름이면 선택한 본사 정책 템플릿의 3DS·차지백 설정이 적용됩니다. 직접입력일 때만 아래를 저장할 수 있습니다.',
+          rows: [
+            [{ label: '3DS수수료율(%)', type: 'text', name: 'fee3dsRate', col: 2, customOnly: true }, { label: '차지백수수료(건)', type: 'text', name: 'chargebackFeePerTx', col: 2, customOnly: true }, { label: '차지백 구간정책', type: 'select', name: 'chargebackPolicyId', col: 4, customOnly: true, options: [{ v: '', t: '(미사용) 건당 차지백만' }] }]
           ]
         },
         {
@@ -805,7 +967,7 @@
             [{ label: '정산주기', type: 'select', name: 'calcCycle', options: CALC_CYCLE_OPTIONS, col: 1 }, { label: '정산마감시간', type: 'time', name: 'calcCloseTime', col: 1 }, { label: '정산자동개시시간', type: 'time', name: 'calcStartTime', col: 1 }],
             [{ label: '정산구분', type: 'select', name: 'calcProcType', options: CALC_PROC_OPTIONS, col: 1 }, { label: '이체및송금구분', type: 'select', name: 'transferType', options: TRANSFER_REMIT_OPTIONS, col: 1 }, { label: '이체주기(분)', type: 'text', name: 'transferCycleDays', col: 1, placeholder: '예: 5, 60' }, { label: '이체시간', type: 'time', name: 'transferExecTime', col: 1 }],
             [{ label: '정산제외여부', type: 'select', name: 'calcExcludeYn', options: [{ v: 'N', t: '미사용' }, { v: 'Y', t: '사용' }], col: 1 }, { label: '정산제외대상', type: 'select', name: 'calcExcludeTarget', options: [{ v: 'NONE', t: '해당없음' }, { v: 'WEB', t: 'WEB' }, { v: 'OFFLINE', t: '오프라인' }, { v: 'BOTH', t: 'WEB+오프라인' }], col: 1 }, { label: '지급보류', type: 'select', name: 'payHoldYn', options: [{ v: 'N', t: '지급' }, { v: 'Y', t: '보류' }], col: 1 }],
-            [{ label: '정산최소금액(원)', type: 'text', name: 'calcMinAmt', col: 1, placeholder: '미만 시 다음 주기' }, { label: '이체및송금최소금액(원)', type: 'text', name: 'autoTransferMin', col: 1, placeholder: '펌뱅킹 최소' }]
+            [{ label: '정산최소금액', type: 'text', name: 'calcMinAmt', col: 1, placeholder: '미만 시 다음 주기' }, { label: '이체및송금최소금액', type: 'text', name: 'autoTransferMin', col: 1, placeholder: '펌뱅킹 최소' }]
           ]
         },
         {
@@ -957,13 +1119,12 @@
           title: '상세정보',
           id: 'distributorExtraCard',
           masterDistOnly: true,
-          notice: '총판일 때만 입력합니다. 총판은 1가지 화폐만 지정할 수 있습니다. 노티 URL 1에는 CALLBACK(서버 노티), 2에는 RESULT(브라우저·리다이렉트) URL을 넣습니다(둘 다 필수). [노티 쌍 선택]으로 동일 대상명의 CALLBACK·RESULT를 한 번에 넣을 수 있습니다. URL 3·4는 보조입니다.',
+          notice: '총판일 때만 입력합니다. 총판은 1가지 화폐만 지정할 수 있습니다. 노티 대상은 본사설정 > 전산노티·결제환경의 [총판 노티 대상 생성]에서 먼저 등록합니다. 왼쪽 [노티 쌍 선택]·[보조 쌍 선택]으로 URL을 한 번에 채우거나, 각 칸에서 드롭다운·[노티선택]을 사용하세요. URL 1=CALLBACK, 2=RESULT(필수). URL 3·4는 보조입니다.',
           rows: [
             [{ label: '기준 화폐*', type: 'select', name: 'baseCurrency', options: [{ v: '', t: '선택' }, { v: 'KRW', t: 'KRW (원)' }, { v: 'USD', t: 'USD (달러)' }, { v: 'JPY', t: 'JPY (엔)' }, { v: 'THB', t: 'THB (바트)' }, { v: 'EUR', t: 'EUR (유로)' }], col: 2 }, { label: '사이트개요', type: 'text', name: 'siteSummary', col: 2, placeholder: '사이트개요' }, { label: '취급물품', type: 'text', name: 'product', col: 2 }, { label: '대표사이트', type: 'text', name: 'homepage', col: 2, placeholder: 'https://' }],
             [{ label: '정산담당자명', type: 'text', name: 'settleName', col: 2 }, { label: '정산담당자연락처', type: 'text', name: 'settleTelNo', col: 2, placeholder: '010-0000-0000' }, { label: '정산형태', type: 'select', name: 'settleType', options: [{ v: '', t: '선택' }, { v: 'M', t: '가맹점별' }, { v: 'G', t: '총판' }], col: 1 }, { label: '요율(%)', type: 'text', name: 'commissionRate', col: 1, placeholder: '요율' }, { label: '사용한도', type: 'text', name: 'limitAmt', col: 2, placeholder: '사용한도' }],
-            [{ label: '노티 CALLBACK (URL 1)*', type: 'select', name: 'notifyUrl1', col: 6, loadNotifyTargets: true, button: '노티선택' }, { label: '노티 RESULT (URL 2)*', type: 'select', name: 'notifyUrl2', col: 6, loadNotifyTargets: true, button: '노티선택' }],
-            [{ type: 'customHtml', col: 12, html: '<div class="d-flex align-items-center flex-wrap gap-2 mb-1"><button type="button" class="btn btn-sm btn-outline-primary" data-action="노티쌍선택" data-callback-field="notifyUrl1" data-result-field="notifyUrl2">노티 쌍 선택 (CALLBACK+RESULT)</button><span class="text-muted small">전산노티에서 같은 대상명으로 발급된 CALLBACK·RESULT URL을 URL 1·2에 동시에 설정합니다.</span></div>' }],
-            [{ label: '노티 URL 3(보조)', type: 'select', name: 'notifyUrl3', col: 6, loadNotifyTargets: true, button: '노티선택' }, { label: '노티 URL 4(보조)', type: 'select', name: 'notifyUrl4', col: 6, loadNotifyTargets: true, button: '노티선택' }]
+            [{ type: 'notifyPairButton', col: 2, pairLabel: '필수 노티', buttonText: '노티 쌍 선택', callbackField: 'notifyUrl1', resultField: 'notifyUrl2', hint: 'CALLBACK→URL1, RESULT→URL2 동시 설정', titleHint: '본사설정 > 전산노티·결제환경에서 [노티자동생성]으로 등록한 쌍을 고릅니다.' }, { label: '노티 CALLBACK (URL 1)*', type: 'select', name: 'notifyUrl1', col: 5, loadNotifyTargets: true, button: '노티선택' }, { label: '노티 RESULT (URL 2)*', type: 'select', name: 'notifyUrl2', col: 5, loadNotifyTargets: true, button: '노티선택' }],
+            [{ type: 'notifyPairButton', col: 2, pairLabel: '보조 노티', buttonText: '보조 쌍 선택', callbackField: 'notifyUrl3', resultField: 'notifyUrl4', hint: 'URL 3·4를 같은 쌍으로 채웁니다.', titleHint: '보조 노티 URL 3·4를 한 번에 설정합니다.' }, { label: '노티 URL 3(보조)', type: 'select', name: 'notifyUrl3', col: 5, loadNotifyTargets: true, button: '노티선택' }, { label: '노티 URL 4(보조)', type: 'select', name: 'notifyUrl4', col: 5, loadNotifyTargets: true, button: '노티선택' }]
           ]
         },
         {
@@ -1015,13 +1176,22 @@
         {
           title: '수수료정책',
           id: 'commissionPolicyCard',
-          merchantOnly: true,
-          notice: '본사정책 따름 선택 시 본사설정이 적용되며, 직접입력 시 아래 항목을 입력합니다.',
+          merchantRegionalMasterCommission: true,
+          notice: '본사정책 따름 선택 시 본사설정에서 배포한 정책 템플릿을 선택할 수 있으며, 본사·총판·가맹점에 동일하게 적용·저장됩니다.',
           rows: [
-            [{ label: '본사정책 따름', type: 'select', name: 'commissionFollowHq', options: [{ v: 'Y', t: '본사정책 따름' }, { v: 'N', t: '직접입력' }], col: 2 }],
-            [{ label: '실패수수료', type: 'text', name: 'failFee', col: 2, customOnly: true }, { label: '이용수수료', type: 'text', name: 'usageRate', col: 2, customOnly: true }, { label: '결제 수수료', type: 'text', name: 'payRate', col: 2, customOnly: true }],
-            [{ label: '취소 수수료', type: 'text', name: 'cancelRate', col: 2, customOnly: true }, { label: '환불 수수료', type: 'text', name: 'refundRate', col: 2, customOnly: true }, { label: '비고', type: 'text', name: 'commissionMemo', col: 2, customOnly: true }],
-            [{ label: '정산수수료', type: 'text', name: 'feeSettlementPerTx', col: 2, customOnly: true }, { label: 'USDT수수료', type: 'text', name: 'feeUsdt', col: 2, customOnly: true }, { label: 'FX수수료', type: 'text', name: 'feeFx', col: 2, customOnly: true }]
+            [{ label: '본사정책 따름', type: 'select', name: 'commissionFollowHq', options: [{ v: 'Y', t: '본사정책 따름' }, { v: 'N', t: '직접입력' }], col: 2 }, { label: '본사 정책선택', type: 'select', name: 'hqPolicyScope', options: [{ v: '', t: '기본(DEFAULT)' }], col: 2, hqPolicyOnly: true }],
+            [{ label: '결제수수료율(%)', type: 'text', name: 'payRate', col: 2, customOnly: true }, { label: '실패수수료(건)', type: 'text', name: 'failFee', col: 2, customOnly: true }, { label: '취소수수료(건)', type: 'text', name: 'cancelRate', col: 2, customOnly: true }],
+            [{ label: '환불수수료(건)', type: 'text', name: 'refundRate', col: 2, customOnly: true }, { label: '월간이용료(월 1회·고정)', type: 'text', name: 'usageRate', col: 2, customOnly: true, placeholder: '통화코드 단위 금액' }, { label: '비고', type: 'text', name: 'commissionMemo', col: 2, customOnly: true }],
+            [{ label: '정산수수료(건)', type: 'text', name: 'feeSettlementPerTx', col: 2, customOnly: true }, { label: 'USDT수수료율(%)', type: 'text', name: 'feeUsdt', col: 2, customOnly: true }, { label: 'FX수수료율(%)', type: 'text', name: 'feeFx', col: 2, customOnly: true }]
+          ]
+        },
+        {
+          title: '차지백 정책',
+          id: 'chargebackPolicyCard',
+          merchantOnly: true,
+          notice: '본사정책 따름이면 선택한 본사 정책 템플릿의 3DS·차지백 설정이 적용됩니다. 직접입력일 때만 아래를 저장할 수 있습니다.',
+          rows: [
+            [{ label: '3DS수수료율(%)', type: 'text', name: 'fee3dsRate', col: 2, customOnly: true }, { label: '차지백수수료(건)', type: 'text', name: 'chargebackFeePerTx', col: 2, customOnly: true }, { label: '차지백 구간정책', type: 'select', name: 'chargebackPolicyId', col: 4, customOnly: true, options: [{ v: '', t: '(미사용) 건당 차지백만' }] }]
           ]
         },
         {
@@ -1033,7 +1203,7 @@
             [{ label: '정산주기', type: 'select', name: 'calcCycle', options: CALC_CYCLE_OPTIONS, col: 1 }, { label: '정산마감시간', type: 'time', name: 'calcCloseTime', col: 1 }, { label: '정산자동개시시간', type: 'time', name: 'calcStartTime', col: 1 }],
             [{ label: '정산구분', type: 'select', name: 'calcProcType', options: CALC_PROC_OPTIONS, col: 1 }, { label: '이체및송금구분', type: 'select', name: 'transferType', options: TRANSFER_REMIT_OPTIONS, col: 1 }, { label: '이체주기(분)', type: 'text', name: 'transferCycleDays', col: 1, placeholder: '예: 5, 60' }, { label: '이체시간', type: 'time', name: 'transferExecTime', col: 1 }],
             [{ label: '정산제외여부', type: 'select', name: 'calcExcludeYn', options: [{ v: 'N', t: '미사용' }, { v: 'Y', t: '사용' }], col: 1 }, { label: '정산제외대상', type: 'select', name: 'calcExcludeTarget', options: [{ v: 'NONE', t: '해당없음' }, { v: 'WEB', t: 'WEB' }, { v: 'OFFLINE', t: '오프라인' }, { v: 'BOTH', t: 'WEB+오프라인' }], col: 1 }, { label: '지급보류', type: 'select', name: 'payHoldYn', options: [{ v: 'N', t: '지급' }, { v: 'Y', t: '보류' }], col: 1 }],
-            [{ label: '정산최소금액(원)', type: 'text', name: 'calcMinAmt', col: 1, placeholder: '미만 시 다음 주기' }, { label: '이체및송금최소금액(원)', type: 'text', name: 'autoTransferMin', col: 1, placeholder: '펌뱅킹 최소' }]
+            [{ label: '정산최소금액', type: 'text', name: 'calcMinAmt', col: 1, placeholder: '미만 시 다음 주기' }, { label: '이체및송금최소금액', type: 'text', name: 'autoTransferMin', col: 1, placeholder: '펌뱅킹 최소' }]
           ]
         },
         {
@@ -1400,6 +1570,7 @@
       ]
     },
     '/calc/feeList': {
+      notice: '거래 건별로 추정한 수수료입니다. 월간이용료·기타 고정 수수료는 정산 배치당 1회라 이 화면 행에는 0으로 보입니다. 기타 % 수수료는 승인 건만 [기타(%)]에 반영됩니다.',
       searchRows: [
         [
           { label: '업체코드', type: 'text', name: 'searchCompId' },
@@ -1421,15 +1592,21 @@
         { key: 'statusNm', label: '상태' },
         { key: 'amount', label: '결제금액' },
         { key: 'perTxFee', label: '건당수수료' },
-        { key: 'usageFee', label: '이용수수료' },
+        { key: 'usageFee', label: '월간이용(건별표시)' },
         { key: 'failFee', label: '실패수수료' },
         { key: 'cancelFee', label: '취소수수료' },
         { key: 'refundFee', label: '환불수수료' },
         { key: 'payFeeRate', label: '결제수수료율(%)' },
         { key: 'payFee', label: '결제수수료' },
-        { key: 'settlementPerTxFee', label: '정산수수료' },
+        { key: 'usdtFeeRate', label: 'USDT율(%)' },
         { key: 'usdtFee', label: 'USDT수수료' },
+        { key: 'fxFeeRate', label: 'FX율(%)' },
         { key: 'fxFee', label: 'FX수수료' },
+        { key: 'fee3dsRate', label: '3DS율(%)' },
+        { key: 'fee3dsFee', label: '3DS수수료' },
+        { key: 'settlementPerTxFee', label: '정산수수료' },
+        { key: 'chargebackFee', label: '차지백수수료' },
+        { key: 'extraFees', label: '기타(%)' },
         { key: 'totalFee', label: '총수수료' },
         { key: 'feeVat', label: '부가세' },
         { key: 'vatAppliedYn', label: 'VAT적용' }
@@ -1786,6 +1963,27 @@
             [{ label: '계좌번호*', type: 'text', name: 'accountNo', col: 2 }, { label: '예금주*', type: 'text', name: 'accountHolder', col: 2 }],
             [{ label: '수수료 설정 권한', type: 'select', name: 'commissionConfigAllowed', options: [{ v: 'N', t: '미부여' }, { v: 'Y', t: '부여' }], col: 2 }, { label: '기준 화폐1', type: 'select', name: 'baseCurrency1', options: [{ v: '', t: '선택' }, { v: 'KRW', t: 'KRW (원)' }, { v: 'USD', t: 'USD (달러)' }, { v: 'JPY', t: 'JPY (엔)' }, { v: 'THB', t: 'THB (바트)' }, { v: 'EUR', t: 'EUR (유로)' }], col: 2 }, { label: '기준 화폐2', type: 'select', name: 'baseCurrency2', options: [{ v: '', t: '선택' }, { v: 'KRW', t: 'KRW (원)' }, { v: 'USD', t: 'USD (달러)' }, { v: 'JPY', t: 'JPY (엔)' }, { v: 'THB', t: 'THB (바트)' }, { v: 'EUR', t: 'EUR (유로)' }], col: 2 }, { label: '기준 화폐3', type: 'select', name: 'baseCurrency3', options: [{ v: '', t: '선택' }, { v: 'KRW', t: 'KRW (원)' }, { v: 'USD', t: 'USD (달러)' }, { v: 'JPY', t: 'JPY (엔)' }, { v: 'THB', t: 'THB (바트)' }, { v: 'EUR', t: 'EUR (유로)' }], col: 2 }],
             [{ label: '비고', type: 'textarea', name: 'remark', col: 6 }]
+          ]
+        },
+        {
+          title: '수수료정책',
+          id: 'commissionPolicyCard',
+          merchantRegionalMasterCommission: true,
+          notice: '본사정책 따름 선택 시 본사설정에서 배포한 정책 템플릿을 선택할 수 있으며, 본사·총판·가맹점에 동일하게 적용·저장됩니다.',
+          rows: [
+            [{ label: '본사정책 따름', type: 'select', name: 'commissionFollowHq', options: [{ v: 'Y', t: '본사정책 따름' }, { v: 'N', t: '직접입력' }], col: 2 }, { label: '본사 정책선택', type: 'select', name: 'hqPolicyScope', options: [{ v: '', t: '기본(DEFAULT)' }], col: 2, hqPolicyOnly: true }],
+            [{ label: '결제수수료율(%)', type: 'text', name: 'payRate', col: 2, customOnly: true }, { label: '실패수수료(건)', type: 'text', name: 'failFee', col: 2, customOnly: true }, { label: '취소수수료(건)', type: 'text', name: 'cancelRate', col: 2, customOnly: true }],
+            [{ label: '환불수수료(건)', type: 'text', name: 'refundRate', col: 2, customOnly: true }, { label: '월간이용료(월 1회·고정)', type: 'text', name: 'usageRate', col: 2, customOnly: true, placeholder: '통화코드 단위 금액' }, { label: '비고', type: 'text', name: 'commissionMemo', col: 2, customOnly: true }],
+            [{ label: '정산수수료(건)', type: 'text', name: 'feeSettlementPerTx', col: 2, customOnly: true }, { label: 'USDT수수료율(%)', type: 'text', name: 'feeUsdt', col: 2, customOnly: true }, { label: 'FX수수료율(%)', type: 'text', name: 'feeFx', col: 2, customOnly: true }]
+          ]
+        },
+        {
+          title: '차지백 정책',
+          id: 'chargebackPolicyCard',
+          merchantOnly: true,
+          notice: '본사정책 따름이면 선택한 본사 정책 템플릿의 3DS·차지백 설정이 적용됩니다. 직접입력일 때만 아래를 저장할 수 있습니다.',
+          rows: [
+            [{ label: '3DS수수료율(%)', type: 'text', name: 'fee3dsRate', col: 2, customOnly: true }, { label: '차지백수수료(건)', type: 'text', name: 'chargebackFeePerTx', col: 2, customOnly: true }, { label: '차지백 구간정책', type: 'select', name: 'chargebackPolicyId', col: 4, customOnly: true, options: [{ v: '', t: '(미사용) 건당 차지백만' }] }]
           ]
         },
         {
@@ -2163,6 +2361,21 @@
       var colH = f.col || 12;
       return '<div class="col-sm-' + colH + '">' + (f.html || '') + '</div>';
     }
+    if (f.type === 'notifyPairButton') {
+      var colPair = f.col || 2;
+      var cbF = f.callbackField || 'notifyUrl1';
+      var rsF = f.resultField || 'notifyUrl2';
+      var pairLab = f.pairLabel != null ? String(f.pairLabel) : '노티 쌍';
+      var btnTxt = f.buttonText != null ? String(f.buttonText) : 'CALLBACK+RESULT 선택';
+      var hintTxt = f.hint != null ? String(f.hint) : '';
+      var titleAttr = f.titleHint ? ' title="' + String(f.titleHint).replace(/"/g, '&quot;') + '"' : '';
+      return '<div class="col-sm-' + colPair + ' form-field-block comp-notify-pair-inline">' +
+        '<label class="form-label comp-notify-pair-inline-label">' + pairLab + '</label>' +
+        '<button type="button" class="btn btn-outline-primary btn-sm w-100 comp-notify-pair-inline-btn"' + titleAttr +
+        ' data-action="노티쌍선택" data-callback-field="' + cbF + '" data-result-field="' + rsF + '">' + btnTxt + '</button>' +
+        (hintTxt ? '<p class="text-muted small mb-0 mt-1 comp-notify-pair-inline-hint">' + hintTxt + '</p>' : '') +
+        '</div>';
+    }
     if (f.type === 'assistantPasswordManage') {
       var colAp = f.col || 2;
       return '<div class="col-sm-' + colAp + ' form-field-block' + hqC + hqPolicyC + '"><label class="form-label">비밀번호</label>' +
@@ -2209,7 +2422,9 @@
         '</div>';
     } else if (f.type === 'number') {
       var numStep = (f.step != null && f.step !== '') ? String(f.step) : '1';
-      inp = '<input type="number" min="0" step="' + numStep + '" class="form-control form-control-sm' + reqClass + '" name="' + name + '" id="' + id + '"' + (f.placeholder ? ' placeholder="' + f.placeholder + '"' : '') + ro + '>';
+      var numMin = (f.min != null && f.min !== '') ? String(f.min) : '0';
+      var numMaxAttr = (f.max != null && f.max !== '') ? (' max="' + String(f.max) + '"') : '';
+      inp = '<input type="number" min="' + numMin + '" step="' + numStep + '"' + numMaxAttr + ' class="form-control form-control-sm' + reqClass + '" name="' + name + '" id="' + id + '"' + (f.placeholder ? ' placeholder="' + f.placeholder + '"' : '') + ro + '>';
     } else if (f.type === 'date') {
       inp = '<input type="date" class="form-control form-control-sm' + reqClass + '" name="' + name + '" id="' + id + '"' + ro + '>';
     } else if (f.type === 'text' || f.type === 'password') {
@@ -2275,6 +2490,7 @@
       else if (sec.regionalOnly) cardClass += ' regional-only-section d-none';
       else if (sec.masterDistOnly) cardClass += ' master-dist-only-section d-none';
       else if (sec.regionalOrMasterDistOnly) cardClass += ' regional-or-master-dist-only-section d-none';
+      else if (sec.merchantRegionalMasterCommission) cardClass += ' merchant-regional-master-commission-section d-none';
       else if (sec.distributorOnly) cardClass += ' distributor-only-section d-none';
       else if (sec.distributorMerchantOnlyNoRegional) cardClass += ' distributor-merchant-no-regional-section d-none';
       else if (sec.distributorOrMerchantOnly) cardClass += ' distributor-or-merchant-section d-none';
@@ -2285,11 +2501,11 @@
       if (sec.type === 'branding') {
         html += '<p class="text-danger small mb-2">메인이미지는 2MB, 로고이미지는 1MB까지 업로드 가능합니다. 가능하면 PNG파일을 추천합니다.</p>' +
           '<div class="row mb-2"><div class="col-sm-6"><label class="form-label">메인이미지</label><div class="input-group input-group-sm">' +
-          '<input type="text" class="form-control form-control-sm" name="mainImageUrl" id="brandingMainImageUrl" readonly placeholder="업로드된 이미지">' +
+          '<input type="text" class="form-control form-control-sm" name="mainImageUrl" id="brandingMainImageUrl" readonly placeholder="업로드 파일명">' +
           '<input type="file" class="d-none" id="brandingMainImageFile" accept="image/png,image/jpeg,image/jpg">' +
           '<button type="button" class="btn btn-outline-secondary" id="brandingMainImageBrowse">Browse</button></div></div></div>' +
           '<div class="row mb-2"><div class="col-sm-6"><label class="form-label">로고이미지</label><div class="input-group input-group-sm">' +
-          '<input type="text" class="form-control form-control-sm" name="logoImageUrl" id="brandingLogoImageUrl" readonly placeholder="업로드된 이미지">' +
+          '<input type="text" class="form-control form-control-sm" name="logoImageUrl" id="brandingLogoImageUrl" readonly placeholder="업로드 파일명">' +
           '<input type="file" class="d-none" id="brandingLogoImageFile" accept="image/png,image/jpeg,image/jpg">' +
           '<button type="button" class="btn btn-outline-secondary" id="brandingLogoImageBrowse">Browse</button></div></div></div>' +
           '<div class="row mb-2"><div class="col-sm-4"><label class="form-label">배경테마</label><select class="form-control form-control-sm" name="brandingTheme" id="brandingTheme">' +
@@ -2350,7 +2566,11 @@
               }).join('') : '') +
               '</div>';
           } else {
-            html += '<div class="row">';
+            var rowClass = 'row';
+            if (row && row[0] && row[0].type === 'notifyPairButton') {
+              rowClass = 'row g-2 mb-2 align-items-start comp-notify-pair-url-row';
+            }
+            html += '<div class="' + rowClass + '">';
             (row || []).forEach(function (f) { html += renderFormField(f); });
             html += '</div>';
           }
@@ -2511,10 +2731,22 @@
       '</div>' +
       '<div class="small mt-2" id="hqDomainGlobalMsg_' + sid + '" role="status"></div>' +
       '</div></div>' +
+      '<div class="card mb-3 border-secondary">' +
+      '<div class="card-header py-2 fw-semibold">Let’s Encrypt · 도메인구성 연동</div>' +
+      '<div class="card-body">' +
+      '<p class="text-muted small mb-2">이 서버의 <code>fullchain.pem</code> 에서 읽은 <strong>SAN(호스트명)</strong>과, 전사 URL·본사·총판에 저장된 URL의 호스트를 비교합니다. ' +
+      '표시·저장 시 주소에 <code>http://</code> 또는 <code>https://</code> 가 없으면 <strong>https://</strong> 를 붙입니다. ' +
+      '불일치 시 브라우저 인증서 경고가 날 수 있습니다. 서브도메인 추가 시 DNS A 레코드·Nginx <code>server_name</code>·<code>certbot --nginx -d …</code> 를 함께 적용하세요. ' +
+      '상세 SSL 경로·Certbot 타이머는 <strong>본사설정 → 서버관리</strong>를 참고하세요.</p>' +
+      '<div id="hqDomainSslLinkage_' + sid + '" class="small">불러오는 중…</div>' +
+      '</div></div>' +
       '<div class="card border-0 shadow-sm mb-3 org-perm-unit-section">' +
       '<div class="card-header fw-semibold">본사·총판 도메인 설정</div>' +
       '<div class="card-body">' +
-      '<p class="text-muted small mb-3">업체명에서 <strong>본사</strong> 또는 <strong>총판</strong>만 선택할 수 있습니다. 선택 후 설정 이름·URL을 입력하고 [설정저장]하면 하단 목록에 반영됩니다.</p>' +
+      '<p class="text-muted small mb-3">업체명에서 <strong>본사</strong> 또는 <strong>총판</strong>만 선택할 수 있습니다. 선택 후 설정 이름·URL을 입력하고 [설정저장]하면 하단 목록에 반영됩니다. ' +
+      'URL에 스킴이 없으면 <strong>https://</strong> 가 자동으로 붙습니다. ' +
+      '<strong>본사</strong> 관리자 URL 호스트로 접속하면 <strong>그 본사 조직에 직접 소속된 계정만</strong> 로그인됩니다(하위 총판·가맹점 계정은 본사 서브도메인에서 불가). ' +
+      '<strong>총판</strong> URL은 총판·지사·대리점·영업점·가맹점 계정만 허용되며 총본사·본사 계정은 로그인할 수 없습니다. 브랜딩은 각각 도메인구성 조직 기준으로 적용됩니다.</p>' +
       '<div class="row g-2 align-items-end mb-2 org-perm-unit-control-row">' +
       '<div class="col-lg-3 col-md-6">' +
       '<label class="form-label small mb-1">업체명</label>' +
@@ -2552,10 +2784,11 @@
       '<th>설정 이름</th>' +
       '<th>관리자(웹) URL</th>' +
       '<th>API URL</th>' +
+      '<th class="text-center text-nowrap" style="width:5rem">삭제</th>' +
       '<th class="text-nowrap" style="width:10rem">수정일시</th>' +
       '</tr></thead>' +
       '<tbody id="hqDomainOrgTableTbody_' + sid + '">' +
-      '<tr><td colspan="8" class="text-center text-muted py-3">불러오는 중…</td></tr>' +
+      '<tr><td colspan="9" class="text-center text-muted py-3">불러오는 중…</td></tr>' +
       '</tbody></table></div>' +
       '</div></div></div>'
     );
@@ -2570,7 +2803,7 @@
       '조직 구분(총본사~가맹점)별로 메뉴(URL) 접근 권한을 설정합니다. <strong>총본사</strong>는 DB에 별도 저장이 없을 때 기본으로 <strong>모든 메뉴 전체 권한(삭제·전체)</strong>입니다. 각 대메뉴(본사설정·업체관리 등) 구역 제목 오른쪽 <strong>간편</strong>에서 권한을 고르면 그 구역의 하위 메뉴가 한 번에 동일하게 맞춰집니다. ' +
       '<strong>옵저버</strong>는 조회만, <strong>수정</strong>은 쓰기·수정(삭제·일괄삭제 등 제한), ' +
       '<strong>삭제</strong>는 해당 화면의 삭제·수정·저장 등 모든 작업을 허용합니다. ' +
-      '<strong>접근불가</strong>는 메뉴에서 숨깁니다. (계정·업체접근은 사용자별 허용 업체를 별도 지정합니다.)' +
+      '<strong>접근불가</strong>는 메뉴에서 숨깁니다. <strong>계정·업체접근</strong>에 등록된 업체와 교집합으로 사용자관리 목록이 제한됩니다. 아래 <strong>담당자 권한그룹별 메뉴</strong>는 조직 최종 권한(상단 개별 조직 권한) 이내에서 관리/운영/정산/기술 담당 계정(ASSISTANT)의 메뉴를 한 단계 더 조입니다.' +
       '</p>' +
       '<div class="d-flex flex-wrap align-items-center mb-2 org-perm-legend text-muted">' +
       '<span class="me-2 fw-semibold text-secondary">행 색:</span>' +
@@ -2627,7 +2860,21 @@
       '<table class="table table-sm table-bordered align-middle mb-0 org-perm-table" id="orgPermUnitTable_' + tabId + '">' +
       '<thead><tr><th class="text-center text-nowrap org-perm-th-no" style="width:3.25rem">No.</th><th style="width:13%">메뉴ID</th><th>화면</th><th style="width:24%">권한</th></tr></thead>' +
       '<tbody id="orgPermUnitTbody_' + tabId + '"><tr><td colspan="4" class="text-center text-muted py-4">조직을 선택하세요.</td></tr></tbody>' +
-      '</table></div></div></div>'
+      '</table></div></div></div>' +
+      '<div class="card border-0 shadow-sm mb-3 org-perm-assist-section">' +
+      '<div class="card-header fw-semibold">담당자 권한그룹별 메뉴 (조직 상한 내)</div>' +
+      '<div class="card-body">' +
+      '<p class="text-muted small mb-2" id="orgPermAssistHint_' + tabId + '">위에서 조직을 선택하면, 해당 조직에 <strong>접근 가능한 메뉴</strong>만 표시됩니다. ' +
+      '값을 <strong>조직 기본(상한)</strong>으로 두면 담당자에게도 조직과 동일한 권한이 적용됩니다. 본사·총판·총본사는 자기 조직만 저장할 수 있습니다.</p>' +
+      '<ul class="nav nav-pills flex-wrap gap-1 mb-2 org-perm-assist-role-tabs" id="orgPermAssistRoleTabs_' + tabId + '" role="tablist"></ul>' +
+      '<div class="table-responsive org-perm-table-wrap">' +
+      '<table class="table table-sm table-bordered align-middle mb-0 org-perm-table" id="orgPermAssistTable_' + tabId + '">' +
+      '<thead><tr><th class="text-center text-nowrap org-perm-th-no" style="width:3.25rem">No.</th><th style="width:13%">메뉴ID</th><th>화면</th><th style="width:28%">담당자 권한</th></tr></thead>' +
+      '<tbody id="orgPermAssistTbody_' + tabId + '"><tr><td colspan="4" class="text-center text-muted py-3">조직을 선택하세요.</td></tr></tbody>' +
+      '</table></div>' +
+      '<div class="d-flex justify-content-end mt-2">' +
+      '<button type="button" class="btn btn-sm btn-primary" id="hqOrgAssistSaveBtn_' + tabId + '" disabled>권한그룹 저장</button></div>' +
+      '</div></div>'
     );
   }
 

@@ -6,7 +6,8 @@ import java.time.LocalDateTime;
 
 /**
  * 수수료 정책 (본사 기본 + 가맹점별 오버라이드)
- * 건당수수료, 취소수수료, 이용수수료, 실패수수료, 결제수수료, 환불수수료, 롤링(담보금) 비율/일수
+ * 건당수수료·취소·환불(건당 고정), 월간이용료(고정·월 1회), 실패·결제 수수료율, 롤링(담보금) 비율/일수,
+ * 기타(비고) 수수료 최대 4건(PCT=승인건별 %, FIX=정산당 고정액)
  */
 @Entity
 @Table(name = "tb_commission_policy")
@@ -32,12 +33,12 @@ public class CommissionPolicy {
     @Column(name = "per_tx_fee", precision = 12, scale = 0)
     private BigDecimal perTxFee = BigDecimal.ZERO;
 
-    /** 취소 수수료율(%) */
-    @Column(name = "cancel_rate", precision = 5, scale = 2)
+    /** 취소 건당 수수료({@link #currencyCode} 단위). DB 컬럼명 cancel_rate 유지. */
+    @Column(name = "cancel_rate", precision = 12, scale = 0)
     private BigDecimal cancelRate = BigDecimal.ZERO;
 
-    /** 이용 수수료율(%) */
-    @Column(name = "usage_rate", precision = 5, scale = 2)
+    /** 월 1회 부과 이용료(고정 금액, {@link #currencyCode} 단위). DB 컬럼명은 호환을 위해 usage_rate 유지. */
+    @Column(name = "usage_rate", precision = 12, scale = 0)
     private BigDecimal usageRate = BigDecimal.ZERO;
 
     /** 실패 수수료(원/건) */
@@ -48,19 +49,19 @@ public class CommissionPolicy {
     @Column(name = "pay_rate", precision = 5, scale = 2)
     private BigDecimal payRate = BigDecimal.ZERO;
 
-    /** 환불 수수료율(%) */
-    @Column(name = "refund_rate", precision = 5, scale = 2)
+    /** 환불·강제환불(30·31) 건당 수수료({@link #currencyCode} 단위). DB 컬럼명 refund_rate 유지. */
+    @Column(name = "refund_rate", precision = 12, scale = 0)
     private BigDecimal refundRate = BigDecimal.ZERO;
 
     /** D형: 건당 정산수수료 */
     @Column(name = "fee_settlement_per_tx", precision = 12, scale = 0)
     private BigDecimal feeSettlementPerTx = BigDecimal.ZERO;
 
-    /** D형: USDT 변환 수수료 */
+    /** USDT 정산/변환 등 — 승인(결제) 금액 대비 수수료율(%) */
     @Column(name = "fee_usdt", precision = 12, scale = 2)
     private BigDecimal feeUsdt = BigDecimal.ZERO;
 
-    /** D형: FX 수수료 */
+    /** FX 관련 — 승인(결제) 금액 대비 수수료율(%) */
     @Column(name = "fee_fx", precision = 12, scale = 2)
     private BigDecimal feeFx = BigDecimal.ZERO;
 
@@ -87,6 +88,38 @@ public class CommissionPolicy {
     /** 차지백 건당 수수료(원) */
     @Column(name = "chargeback_fee_per_tx", precision = 12, scale = 0)
     private BigDecimal chargebackFeePerTx = BigDecimal.ZERO;
+
+    /** 선택 시 월간 환불·강제환불(30/31) 건수로 구간별 건당 차지백 단가 적용. null 이면 위 건당 금액만 사용 */
+    @Column(name = "chargeback_policy_id")
+    private Long chargebackPolicyId;
+
+    @Column(name = "extra_fee_1_name", length = 64)
+    private String extraFee1Name;
+    @Column(name = "extra_fee_1_mode", length = 8)
+    private String extraFee1Mode;
+    @Column(name = "extra_fee_1_value", precision = 15, scale = 4)
+    private BigDecimal extraFee1Value;
+
+    @Column(name = "extra_fee_2_name", length = 64)
+    private String extraFee2Name;
+    @Column(name = "extra_fee_2_mode", length = 8)
+    private String extraFee2Mode;
+    @Column(name = "extra_fee_2_value", precision = 15, scale = 4)
+    private BigDecimal extraFee2Value;
+
+    @Column(name = "extra_fee_3_name", length = 64)
+    private String extraFee3Name;
+    @Column(name = "extra_fee_3_mode", length = 8)
+    private String extraFee3Mode;
+    @Column(name = "extra_fee_3_value", precision = 15, scale = 4)
+    private BigDecimal extraFee3Value;
+
+    @Column(name = "extra_fee_4_name", length = 64)
+    private String extraFee4Name;
+    @Column(name = "extra_fee_4_mode", length = 8)
+    private String extraFee4Mode;
+    @Column(name = "extra_fee_4_value", precision = 15, scale = 4)
+    private BigDecimal extraFee4Value;
 
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
@@ -143,6 +176,37 @@ public class CommissionPolicy {
     public void setFee3dsRate(BigDecimal fee3dsRate) { this.fee3dsRate = fee3dsRate != null ? fee3dsRate : BigDecimal.ZERO; }
     public BigDecimal getChargebackFeePerTx() { return chargebackFeePerTx; }
     public void setChargebackFeePerTx(BigDecimal chargebackFeePerTx) { this.chargebackFeePerTx = chargebackFeePerTx != null ? chargebackFeePerTx : BigDecimal.ZERO; }
+    public Long getChargebackPolicyId() { return chargebackPolicyId; }
+    public void setChargebackPolicyId(Long chargebackPolicyId) { this.chargebackPolicyId = chargebackPolicyId; }
+
+    public String getExtraFee1Name() { return extraFee1Name; }
+    public void setExtraFee1Name(String extraFee1Name) { this.extraFee1Name = extraFee1Name; }
+    public String getExtraFee1Mode() { return extraFee1Mode; }
+    public void setExtraFee1Mode(String extraFee1Mode) { this.extraFee1Mode = extraFee1Mode; }
+    public BigDecimal getExtraFee1Value() { return extraFee1Value; }
+    public void setExtraFee1Value(BigDecimal extraFee1Value) { this.extraFee1Value = extraFee1Value; }
+
+    public String getExtraFee2Name() { return extraFee2Name; }
+    public void setExtraFee2Name(String extraFee2Name) { this.extraFee2Name = extraFee2Name; }
+    public String getExtraFee2Mode() { return extraFee2Mode; }
+    public void setExtraFee2Mode(String extraFee2Mode) { this.extraFee2Mode = extraFee2Mode; }
+    public BigDecimal getExtraFee2Value() { return extraFee2Value; }
+    public void setExtraFee2Value(BigDecimal extraFee2Value) { this.extraFee2Value = extraFee2Value; }
+
+    public String getExtraFee3Name() { return extraFee3Name; }
+    public void setExtraFee3Name(String extraFee3Name) { this.extraFee3Name = extraFee3Name; }
+    public String getExtraFee3Mode() { return extraFee3Mode; }
+    public void setExtraFee3Mode(String extraFee3Mode) { this.extraFee3Mode = extraFee3Mode; }
+    public BigDecimal getExtraFee3Value() { return extraFee3Value; }
+    public void setExtraFee3Value(BigDecimal extraFee3Value) { this.extraFee3Value = extraFee3Value; }
+
+    public String getExtraFee4Name() { return extraFee4Name; }
+    public void setExtraFee4Name(String extraFee4Name) { this.extraFee4Name = extraFee4Name; }
+    public String getExtraFee4Mode() { return extraFee4Mode; }
+    public void setExtraFee4Mode(String extraFee4Mode) { this.extraFee4Mode = extraFee4Mode; }
+    public BigDecimal getExtraFee4Value() { return extraFee4Value; }
+    public void setExtraFee4Value(BigDecimal extraFee4Value) { this.extraFee4Value = extraFee4Value; }
+
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
     public LocalDateTime getUpdatedAt() { return updatedAt; }

@@ -1,7 +1,9 @@
 package com.pg.service;
 
 import com.pg.entity.HqApiConfig;
+import com.pg.entity.ServerUsageDaily;
 import com.pg.repository.HqApiConfigRepository;
+import com.pg.repository.ServerUsageDailyRepository;
 import oshi.SystemInfo;
 import oshi.hardware.HardwareAbstractionLayer;
 import oshi.software.os.OperatingSystem;
@@ -35,6 +37,11 @@ import java.lang.management.ManagementFactory;
 import java.lang.management.MemoryMXBean;
 import java.lang.management.MemoryUsage;
 import java.nio.file.FileStore;
+import java.net.URI;
+import java.util.Collection;
+import java.util.Set;
+import java.util.TreeSet;
+import java.util.stream.Collectors;
 
 /**
  * 본사설정 서버관리: 호스트·JVM·DB·SSL(PEM)·Certbot·Nginx stub 요약
@@ -57,6 +64,7 @@ public class HqServerManageService {
     private static final int SSL_DAYS_DANGER = 14;
 
     private final HqApiConfigRepository hqApiConfigRepository;
+    private final ServerUsageDailyRepository serverUsageDailyRepository;
     private final JdbcTemplate jdbcTemplate;
 
     @Value("${app.serverManage.uiAutoRefreshSeconds:120}")
@@ -65,8 +73,11 @@ public class HqServerManageService {
     @Value("${app.serverManage.nginxStubStatusUrl:}")
     private String nginxStubStatusUrl;
 
-    public HqServerManageService(HqApiConfigRepository hqApiConfigRepository, DataSource dataSource) {
+    public HqServerManageService(HqApiConfigRepository hqApiConfigRepository,
+                                 ServerUsageDailyRepository serverUsageDailyRepository,
+                                 DataSource dataSource) {
         this.hqApiConfigRepository = hqApiConfigRepository;
+        this.serverUsageDailyRepository = serverUsageDailyRepository;
         this.jdbcTemplate = new JdbcTemplate(dataSource);
     }
 
@@ -77,10 +88,16 @@ public class HqServerManageService {
     public Map<String, Object> buildSummary() {
         Map<String, Object> root = new LinkedHashMap<>();
         root.put("generatedAt", Instant.now().toString());
-        root.put("uiAutoRefreshSeconds", uiAutoRefreshSeconds);
         root.put("nginxStubStatusUrlConfigured", nginxStubStatusUrl != null && !nginxStubStatusUrl.isBlank());
 
         Optional<HqApiConfig> cfgOpt = hqApiConfigRepository.findAll().stream().findFirst();
+        HqApiConfig cfgRow = cfgOpt.orElse(null);
+        Integer suggestedTrafficMb = computeSuggestedTrafficUsedMb(cfgRow);
+        root.put("serverManageSuggestedTrafficUsedMb", suggestedTrafficMb);
+        int refreshEff = resolveDashboardRefreshSeconds(cfgOpt);
+        root.put("uiAutoRefreshSeconds", refreshEff);
+        root.put("serverManageUiRefreshSec", cfgOpt.map(HqApiConfig::getServerManageUiRefreshSec).orElse(null));
+
         String configuredPath = cfgOpt.map(HqApiConfig::getServerManageSslCertPath).orElse(null);
         String leDomain = cfgOpt.map(HqApiConfig::getServerManageSslLeDomain).orElse(null);
 
@@ -97,12 +114,143 @@ public class HqServerManageService {
         root.put("host", host);
         root.put("jvm", jvm);
         root.put("disk", disk);
-        root.put("health", buildHealth(host, jvm, disk, ssl, cfgOpt));
+        Map<String, Object> db = readDbInfo();
+        root.put("health", buildHealth(host, jvm, disk, ssl, cfgOpt, db, suggestedTrafficMb));
         root.put("certbot", readCertbotInfo());
-        root.put("db", readDbInfo());
+        root.put("db", db);
         root.put("nginxStub", readNginxStub());
+        root.put("sslOpsGuide", buildSslOpsGuide());
         putServerManageContractFields(root, cfgOpt);
         return root;
+    }
+
+    /** DB 저장값이 유효하면 사용, 아니면 yml 기본값(15~3600초로 클램프) */
+    private int resolveDashboardRefreshSeconds(Optional<HqApiConfig> cfgOpt) {
+        Integer stored = cfgOpt.map(HqApiConfig::getServerManageUiRefreshSec).orElse(null);
+        if (stored != null && stored >= 15 && stored <= 3600) {
+            return stored;
+        }
+        int d = uiAutoRefreshSeconds;
+        if (d < 15) {
+            d = 15;
+        }
+        if (d > 3600) {
+            d = 3600;
+        }
+        return d;
+    }
+
+    /** 운영 안내(카페24 DNS·다중 SAN·캐시 등) — UI 표시용 */
+    private Map<String, Object> buildSslOpsGuide() {
+        Map<String, Object> g = new LinkedHashMap<>();
+        g.put("dnsProviderNote", "권한 네임서버(예: 카페24)에 서브도메인별 A 레코드가 VPS 공인 IP를 가리키는지 확인하세요. 일부 ISP DNS는 전파 전 예전(프록시) IP를 캐시할 수 있어, 접속 PC에서 8.8.8.8 등으로 조회해 비교할 수 있습니다.");
+        g.put("leSanNote", "Let’s Encrypt는 한 장의 인증서(SAN)에 여러 호스트명을 넣을 수 있습니다. 서브도메인을 추가하면 certbot --nginx -d … 로 재발급하고, Nginx에 해당 server_name 과 동일 ssl_certificate 경로를 맞춥니다.");
+        g.put("cloudflareNote", "Cloudflare 프록시(주황 구름)를 쓰는 동안에는 원본 인증서 검증(Full strict) 오류(526 등)가 날 수 있습니다. DNS 전용(회색 구름)이거나 카페24 직접 A 레코드로 통일하는 편이 단순합니다.");
+        return g;
+    }
+
+    /**
+     * 도메인구성 화면 연동: PEM의 SAN과 전사·조직 URL에 적힌 호스트명을 대조합니다.
+     */
+    public Map<String, Object> buildSslDomainLinkage(String publicAdminSiteUrl, String publicApiBaseUrl,
+                                                     List<Map<String, Object>> orgDomainRows) {
+        Map<String, Object> out = new LinkedHashMap<>();
+        Optional<HqApiConfig> cfgOpt = hqApiConfigRepository.findAll().stream().findFirst();
+        String configuredPath = cfgOpt.map(HqApiConfig::getServerManageSslCertPath).orElse(null);
+        String leDomain = cfgOpt.map(HqApiConfig::getServerManageSslLeDomain).orElse(null);
+        Path pemPath = resolvePemPath(configuredPath, leDomain);
+        Map<String, Object> ssl = readSslInfo(pemPath);
+        out.put("sslStatus", ssl.get("status"));
+        out.put("sslDetail", ssl.getOrDefault("detail", ""));
+        out.put("notAfter", ssl.getOrDefault("notAfter", ""));
+        out.put("daysRemaining", ssl.get("daysRemaining"));
+        out.put("leLiveCertName", ssl.getOrDefault("leLiveCertName", ""));
+        @SuppressWarnings("unchecked")
+        List<String> san = ssl.get("sanDnsNames") instanceof List ? (List<String>) ssl.get("sanDnsNames") : List.of();
+        out.put("sanDnsNames", san);
+
+        Set<String> sanLower = san.stream()
+                .map(s -> s.toLowerCase(Locale.ROOT))
+                .collect(Collectors.toCollection(TreeSet::new));
+
+        List<Map<String, Object>> configuredRows = new ArrayList<>();
+        List<Map<String, Object>> missing = new ArrayList<>();
+        addLinkageRow(configuredRows, missing, sanLower, hostFromUrl(publicAdminSiteUrl), "전사 관리자(웹) 공개 URL");
+        addLinkageRow(configuredRows, missing, sanLower, hostFromUrl(publicApiBaseUrl), "전사 API 공개 베이스 URL");
+        if (orgDomainRows != null) {
+            for (Map<String, Object> row : orgDomainRows) {
+                String orgName = row.get("name") != null ? String.valueOf(row.get("name")) : "";
+                String srcBase = orgName.isBlank() ? "조직" : ("조직: " + orgName);
+                addLinkageRow(configuredRows, missing, sanLower, hostFromUrl(strObj(row.get("orgDomainAdminUrl"))),
+                        srcBase + " · 관리자 URL");
+                addLinkageRow(configuredRows, missing, sanLower, hostFromUrl(strObj(row.get("orgDomainApiUrl"))),
+                        srcBase + " · API URL");
+            }
+        }
+        out.put("configuredHostRows", configuredRows);
+        out.put("hostsMissingFromCert", missing);
+
+        Set<String> referredLower = new TreeSet<>();
+        for (Map<String, Object> e : configuredRows) {
+            Object h = e.get("hostname");
+            if (h != null && !String.valueOf(h).isBlank()) {
+                referredLower.add(String.valueOf(h).toLowerCase(Locale.ROOT));
+            }
+        }
+        List<String> sanOnly = new ArrayList<>();
+        for (String s : san) {
+            if (!referredLower.contains(s.toLowerCase(Locale.ROOT))) {
+                sanOnly.add(s);
+            }
+        }
+        out.put("sanWithoutConfiguredUrl", sanOnly);
+        out.put("linkageHint", "도메인구성 URL의 호스트명이 인증서 SAN에 없으면 HTTPS 경고가 납니다. SAN에만 있고 여기 미기재인 호스트는 운영용으로 쓰는지 검토하세요.");
+        return out;
+    }
+
+    private static String strObj(Object o) {
+        return o == null ? "" : String.valueOf(o);
+    }
+
+    private static void addLinkageRow(List<Map<String, Object>> configuredRows, List<Map<String, Object>> missing,
+                                      Set<String> sanLower, String host, String source) {
+        if (host == null || host.isBlank()) {
+            return;
+        }
+        String hn = host.trim();
+        String hLower = hn.toLowerCase(Locale.ROOT);
+        boolean ok = sanLower.contains(hLower);
+        Map<String, Object> row = new LinkedHashMap<>();
+        row.put("hostname", hn);
+        row.put("source", source);
+        row.put("inCertificate", ok);
+        configuredRows.add(row);
+        if (!ok) {
+            Map<String, Object> m = new LinkedHashMap<>();
+            m.put("hostname", hn);
+            m.put("source", source);
+            missing.add(m);
+        }
+    }
+
+    static String hostFromUrl(String url) {
+        if (url == null) {
+            return null;
+        }
+        String t = url.trim();
+        if (t.isEmpty()) {
+            return null;
+        }
+        try {
+            if (!t.contains("://")) {
+                t = "https://" + t;
+            }
+            URI u = new URI(t);
+            String h = u.getHost();
+            return h != null ? h : null;
+        } catch (Exception e) {
+            return null;
+        }
     }
 
     private void putServerManageContractFields(Map<String, Object> root, Optional<HqApiConfig> cfgOpt) {
@@ -123,6 +271,35 @@ public class HqServerManageService {
         contract.put("periodEnd", c != null && c.getServerManageContractEnd() != null
                 ? c.getServerManageContractEnd().toString() : "");
         root.put("serverManageContract", contract);
+    }
+
+    /**
+     * 약정 시작일~min(약정 종료일, 오늘) 구간의 일별 수집 트래픽 합(MB, 내림).
+     * 호스팅사 패널의 “기간 누적”과 측정 방식이 다를 수 있어 참고·폼 자동 채움용.
+     */
+    private Integer computeSuggestedTrafficUsedMb(HqApiConfig c) {
+        if (c == null || c.getServerManageContractStart() == null) {
+            return null;
+        }
+        LocalDate from = c.getServerManageContractStart();
+        LocalDate end = c.getServerManageContractEnd();
+        LocalDate today = LocalDate.now();
+        LocalDate to = (end == null || end.isAfter(today)) ? today : end;
+        if (from.isAfter(to)) {
+            return null;
+        }
+        long sumBytes = 0L;
+        for (ServerUsageDaily d : serverUsageDailyRepository.findByUsageDateBetweenOrderByUsageDateAsc(from, to)) {
+            sumBytes += d.getTrafficBytes();
+        }
+        if (sumBytes <= 0L) {
+            return null;
+        }
+        long mb = sumBytes / (1024L * 1024L);
+        if (mb < 1L) {
+            mb = 1L;
+        }
+        return (int) Math.min(Integer.MAX_VALUE, mb);
     }
 
     private Path resolvePemPath(String configured, String leDomain) {
@@ -150,9 +327,12 @@ public class HqServerManageService {
 
     private Map<String, Object> readSslInfo(Path pemPath) {
         Map<String, Object> m = new LinkedHashMap<>();
+        m.put("sanDnsNames", List.of());
+        m.put("leLiveCertName", pemPath != null && pemPath.getParent() != null
+                ? pemPath.getParent().getFileName().toString() : "");
         if (pemPath == null || !Files.isRegularFile(pemPath)) {
             m.put("status", "N/A");
-            m.put("detail", "인증서 파일을 찾을 수 없습니다. 경로 또는 LE 도메인을 저장하세요.");
+            m.put("detail", "인증서 파일을 찾을 수 없습니다. 경로 또는 LE live 폴더명(예: api.icopay.co.kr)을 저장하세요.");
             return m;
         }
         try {
@@ -175,11 +355,38 @@ public class HqServerManageService {
             m.put("notAfter", cert.getNotAfter().toInstant().toString());
             m.put("daysRemaining", daysBetween(Instant.now(), cert.getNotAfter().toInstant()));
             m.put("fingerprintSha256", sha256Hex(cert.getEncoded()));
+            m.put("sanDnsNames", extractSanDnsNames(cert));
+            m.put("leLiveCertName", pemPath.getParent().getFileName().toString());
         } catch (Exception ex) {
             m.put("status", "ERROR");
             m.put("detail", ex.getMessage() != null ? ex.getMessage() : "parse failed");
         }
         return m;
+    }
+
+    /** 리프 인증서의 Subject Alternative Name (dNSName) 목록 */
+    private static List<String> extractSanDnsNames(X509Certificate cert) {
+        List<String> out = new ArrayList<>();
+        try {
+            Collection<List<?>> sans = cert.getSubjectAlternativeNames();
+            if (sans == null) {
+                return out;
+            }
+            for (List<?> san : sans) {
+                if (san == null || san.size() < 2) {
+                    continue;
+                }
+                Object o0 = san.get(0);
+                Object o1 = san.get(1);
+                if (o0 instanceof Integer it && it == 2 && o1 instanceof String dns) {
+                    out.add(dns);
+                }
+            }
+        } catch (Exception ignored) {
+            /* ignore */
+        }
+        out.sort(String.CASE_INSENSITIVE_ORDER);
+        return out;
     }
 
     private static long daysBetween(Instant from, Instant to) {
@@ -280,7 +487,8 @@ public class HqServerManageService {
     }
 
     private Map<String, Object> buildHealth(Map<String, Object> host, Map<String, Object> jvm, Map<String, Object> disk, Map<String, Object> ssl,
-                                            Optional<HqApiConfig> cfgOpt) {
+                                            Optional<HqApiConfig> cfgOpt, Map<String, Object> db,
+                                            Integer suggestedTrafficUsedMb) {
         Map<String, Object> h = new LinkedHashMap<>();
         List<String> alerts = new ArrayList<>();
         List<Map<String, Object>> rows = new ArrayList<>();
@@ -390,24 +598,41 @@ public class HqServerManageService {
         Integer trafficUsedMb = cfg != null ? cfg.getServerManageTrafficUsedMb() : null;
         if (contractTrafficMb != null && contractTrafficMb > 0) {
             String quotaTrGb = formatGbFromMb(contractTrafficMb);
+            String trafficCriteria = String.format(Locale.ROOT,
+                    "약정 %s 대비 사용률 · 주의 ≥%.0f%% · 위험 ≥%.0f%%%s (저장값 또는 앱 수집 합산)",
+                    quotaTrGb, DISK_PCT_WARN, DISK_PCT_DANGER, contractPeriodNote(cfg));
             if (trafficUsedMb == null) {
-                rows.add(rowMetric("contract_traffic", "약정 트래픽",
-                        String.format(Locale.ROOT, "기간당 약정 %s · 사용률 주의 %.0f%%·위험 %.0f%% 이상 (패널 누적을 GB로 저장 후 판정)%s",
-                                quotaTrGb, DISK_PCT_WARN, DISK_PCT_DANGER, contractPeriodNote(cfg)),
-                        "사용량 미입력 — 호스팅 패널 누적을 GB로 입력 후 저장",
-                        "warn"));
+                String val;
+                if (suggestedTrafficUsedMb != null && suggestedTrafficUsedMb > 0) {
+                    val = "DB 미저장 — 앱 수집(약정기간 내 일별 합) 약 " + formatGbFromMb(suggestedTrafficUsedMb)
+                            + " · 호스팅 패널과 다를 수 있음. 폼에 반영된 뒤 [저장]하면 비율 판정에 쓰입니다.";
+                } else {
+                    val = "DB 미저장 — 호스팅 패널 누적(GB)을 입력하거나, 일별 수집이 쌓이면 추정이 표시됩니다.";
+                }
+                rows.add(rowMetric("contract_traffic", "약정 트래픽", trafficCriteria, val, "warn"));
             } else {
                 double pctT = Math.round((trafficUsedMb * 1000.0 / contractTrafficMb)) / 10.0;
                 String tStatus = pctT >= DISK_PCT_DANGER ? "danger" : pctT >= DISK_PCT_WARN ? "warn" : "ok";
                 if (pctT >= DISK_PCT_DANGER) {
                     alerts.add("약정 트래픽(" + quotaTrGb + ") 대비 사용이 " + (int) DISK_PCT_DANGER + "% 이상입니다.");
                 }
-                rows.add(rowMetric("contract_traffic", "약정 트래픽",
-                        String.format(Locale.ROOT, "누적 사용 ÷ 약정 %s · 주의: %.0f%% 이상 · 위험: %.0f%% 이상%s",
-                                quotaTrGb, DISK_PCT_WARN, DISK_PCT_DANGER, contractPeriodNote(cfg)),
+                rows.add(rowMetric("contract_traffic", "약정 트래픽", trafficCriteria,
                         String.format(Locale.ROOT, "%s / %s (%.1f%%)", formatGbFromMb(trafficUsedMb), quotaTrGb, pctT),
                         tStatus));
             }
+        }
+
+        if (db != null) {
+            boolean dbOk = Boolean.TRUE.equals(db.get("ok"));
+            Object tc = db.get("tableCountInSchema");
+            String dbVal = dbOk && tc != null ? String.valueOf(tc) : "—";
+            if (!dbOk) {
+                alerts.add("DB 메타 조회 실패: " + db.getOrDefault("error", ""));
+            }
+            rows.add(rowMetric("db_tables", "DB 테이블 수",
+                    "JDBC 연결 기준 public 스키마 BASE TABLE 개수",
+                    dbVal,
+                    dbOk ? "ok" : "danger"));
         }
 
         h.put("alerts", alerts);

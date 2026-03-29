@@ -4,8 +4,10 @@ import com.pg.api.dto.PageResult;
 import com.pg.entity.AppUser;
 import com.pg.entity.HqNotifyEnvConfig;
 import com.pg.entity.OrgUnit;
+import com.pg.entity.UserCompAccess;
 import com.pg.repository.HqNotifyEnvConfigRepository;
 import com.pg.repository.OrgUnitRepository;
+import com.pg.repository.UserCompAccessRepository;
 import com.pg.repository.UserRepository;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.data.domain.Page;
@@ -30,13 +32,17 @@ public class UserListService {
     private final UserRepository userRepository;
     private final OrgUnitRepository orgUnitRepository;
     private final HqNotifyEnvConfigRepository hqNotifyEnvConfigRepository;
+    private final UserCompAccessRepository userCompAccessRepository;
     private final PasswordEncoder passwordEncoder;
 
     public UserListService(UserRepository userRepository, OrgUnitRepository orgUnitRepository,
-                           HqNotifyEnvConfigRepository hqNotifyEnvConfigRepository, PasswordEncoder passwordEncoder) {
+                           HqNotifyEnvConfigRepository hqNotifyEnvConfigRepository,
+                           UserCompAccessRepository userCompAccessRepository,
+                           PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
         this.orgUnitRepository = orgUnitRepository;
         this.hqNotifyEnvConfigRepository = hqNotifyEnvConfigRepository;
+        this.userCompAccessRepository = userCompAccessRepository;
         this.passwordEncoder = passwordEncoder;
     }
 
@@ -62,12 +68,16 @@ public class UserListService {
     }
 
     public PageResult<Map<String, Object>> searchScoped(String searchUserId, String searchUserNm, String searchCompId,
-                                                        String searchUseStatus, int page, int size, String scopeCompCode) {
+                                                        String searchUseStatus, int page, int size, String scopeCompCode,
+                                                        String accessUsername, boolean actorIsAdmin) {
         if (scopeCompCode == null || scopeCompCode.isBlank()) {
             return search(searchUserId, searchUserNm, searchCompId, searchUseStatus, page, size);
         }
-        Set<String> allowed = collectSelfAndDescendantCodes(scopeCompCode.trim());
-        if (allowed.isEmpty()) allowed.add(scopeCompCode.trim());
+        Set<String> allowed0 = collectSelfAndDescendantCodes(scopeCompCode.trim());
+        if (allowed0.isEmpty()) {
+            allowed0.add(scopeCompCode.trim());
+        }
+        final Set<String> allowed = intersectWithAccountCompanyAccess(allowed0, accessUsername, actorIsAdmin);
         String uid = (searchUserId != null && !searchUserId.isEmpty()) ? searchUserId.trim() : "";
         String nm = (searchUserNm != null && !searchUserNm.isEmpty()) ? searchUserNm.trim() : "";
         String cc = (searchCompId != null && !searchCompId.isEmpty()) ? searchCompId.trim() : "";
@@ -126,6 +136,45 @@ public class UserListService {
         Set<String> allowed = collectSelfAndDescendantCodes(scopeCompCode.trim());
         if (allowed.isEmpty()) allowed.add(scopeCompCode.trim());
         return allowed;
+    }
+
+    /**
+     * [계정·업체접근]에 행이 있으면, 하위 조직 허용 집합과 교집합만 사용자관리에 노출합니다.
+     */
+    public Set<String> resolveAllowedCompCodesWithAccess(String scopeCompCode, String accessUsername, boolean actorIsAdmin) {
+        Set<String> allowed = resolveAllowedCompCodes(scopeCompCode);
+        return intersectWithAccountCompanyAccess(allowed, accessUsername, actorIsAdmin);
+    }
+
+    private Set<String> intersectWithAccountCompanyAccess(Set<String> allowed, String accessUsername, boolean actorIsAdmin) {
+        if (actorIsAdmin || accessUsername == null || accessUsername.isBlank() || allowed.isEmpty()) {
+            return allowed;
+        }
+        List<UserCompAccess> rows = userCompAccessRepository.findByUsernameIgnoreCaseOrderByCompCodeAsc(accessUsername.trim());
+        if (rows.isEmpty()) {
+            return allowed;
+        }
+        Set<String> whitelist = new HashSet<>();
+        for (UserCompAccess r : rows) {
+            if (r.getCompCode() != null && !r.getCompCode().isBlank()) {
+                whitelist.add(r.getCompCode().trim());
+            }
+        }
+        if (whitelist.isEmpty()) {
+            return allowed;
+        }
+        Set<String> out = new HashSet<>();
+        for (String c : allowed) {
+            if (c == null) {
+                continue;
+            }
+            String ct = c.trim();
+            boolean ok = whitelist.stream().anyMatch(w -> w.equalsIgnoreCase(ct));
+            if (ok) {
+                out.add(ct);
+            }
+        }
+        return out;
     }
 
     public Map<String, Object> managementCapability(AppUser actor) {

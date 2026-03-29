@@ -17,10 +17,11 @@ public final class PageMenuCatalog {
         List<PageMenuItem> list = new ArrayList<>();
         add(list, "/hq/pgApiMng", "M0101", "PG사 API 연동", "본사설정");
         add(list, "/hq/defaultCommission", "M0102", "기본정책", "본사설정");
+        add(list, "/hq/chargebackPolicy", "M0117", "차지백 구간정책", "본사설정");
         add(list, "/hq/businessDaySetting", "M0109", "영업일설정", "본사설정");
         add(list, "/hq/notifyEnv", "M0105", "전산노티·결제환경", "본사설정");
         add(list, "/hq/notifyMapping", "M0107", "노티매핑설정", "본사설정");
-        add(list, "/hq/orgViewColumnAllowance", "M0108", "본사별 노출설정", "본사설정");
+        add(list, "/hq/orgViewColumnAllowance", "M0108", "조직별 노출설정", "본사설정");
         add(list, "/hq/apiConfig", "M0103", "API 구성 세팅", "본사설정");
         add(list, "/hq/domainConfig", "M0115", "도메인구성", "본사설정");
         add(list, "/hq/serverManage", "M0116", "서버관리", "본사설정");

@@ -39,17 +39,17 @@ public class ApiUserController {
             @RequestParam(required = false) String searchUseStatus,
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "20") int size) {
-        String scopeCompCode = null;
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        if (auth != null && auth.getPrincipal() instanceof AppUser u) {
-            if (!"ADMIN".equalsIgnoreCase(u.getRole())) {
-                Map<String, Object> org = authService.getOrgInfo(u.getUsername());
-                scopeCompCode = org != null && org.get("compId") != null ? String.valueOf(org.get("compId")) : null;
-            }
-        }
-        PageResult<Map<String, Object>> result = userListService.searchScoped(
-                searchUserId, searchUserNm, searchCompId, searchUseStatus, page, size, scopeCompCode);
         AppUser actor = currentUser();
+        String scopeCompCode = null;
+        if (!"ADMIN".equalsIgnoreCase(actor.getRole())) {
+            Map<String, Object> org = authService.getOrgInfo(actor.getUsername());
+            scopeCompCode = org != null && org.get("compId") != null ? String.valueOf(org.get("compId")) : null;
+        }
+        boolean actorAdmin = "ADMIN".equalsIgnoreCase(actor.getRole());
+        String accessUser = actorAdmin ? null : actor.getUsername();
+        PageResult<Map<String, Object>> result = userListService.searchScoped(
+                searchUserId, searchUserNm, searchCompId, searchUseStatus, page, size, scopeCompCode,
+                accessUser, actorAdmin);
         Map<String, Object> cap = userListService.managementCapability(actor);
         String canManage = String.valueOf(cap.getOrDefault("canManageUsers", "N"));
         String canReset = String.valueOf(cap.getOrDefault("canResetPassword", "N"));
@@ -71,7 +71,8 @@ public class ApiUserController {
         try {
             AppUser actor = currentUser();
             String scopeCompCode = resolveScopeCompCode(actor);
-            Set<String> allowed = userListService.resolveAllowedCompCodes(scopeCompCode);
+            Set<String> allowed = userListService.resolveAllowedCompCodesWithAccess(scopeCompCode, actor.getUsername(),
+                    "ADMIN".equalsIgnoreCase(actor.getRole()));
             userListService.createUserScoped(
                     actor,
                     allowed,
@@ -97,7 +98,8 @@ public class ApiUserController {
         try {
             AppUser actor = currentUser();
             String scopeCompCode = resolveScopeCompCode(actor);
-            Set<String> allowed = userListService.resolveAllowedCompCodes(scopeCompCode);
+            Set<String> allowed = userListService.resolveAllowedCompCodesWithAccess(scopeCompCode, actor.getUsername(),
+                    "ADMIN".equalsIgnoreCase(actor.getRole()));
             Long id = body.get("id") == null ? null : Long.parseLong(String.valueOf(body.get("id")));
             if (id == null) throw new IllegalArgumentException("수정할 사용자 ID가 필요합니다.");
             userListService.updateUserScoped(actor, allowed, id,
@@ -116,7 +118,8 @@ public class ApiUserController {
         try {
             AppUser actor = currentUser();
             String scopeCompCode = resolveScopeCompCode(actor);
-            Set<String> allowed = userListService.resolveAllowedCompCodes(scopeCompCode);
+            Set<String> allowed = userListService.resolveAllowedCompCodesWithAccess(scopeCompCode, actor.getUsername(),
+                    "ADMIN".equalsIgnoreCase(actor.getRole()));
             Long id = body.get("id") == null ? null : Long.parseLong(String.valueOf(body.get("id")));
             if (id == null) throw new IllegalArgumentException("초기화할 사용자 ID가 필요합니다.");
             userListService.resetOtpScoped(actor, allowed, id);
@@ -131,7 +134,8 @@ public class ApiUserController {
         try {
             AppUser actor = currentUser();
             String scopeCompCode = resolveScopeCompCode(actor);
-            Set<String> allowed = userListService.resolveAllowedCompCodes(scopeCompCode);
+            Set<String> allowed = userListService.resolveAllowedCompCodesWithAccess(scopeCompCode, actor.getUsername(),
+                    "ADMIN".equalsIgnoreCase(actor.getRole()));
             Long id = body.get("id") == null ? null : Long.parseLong(String.valueOf(body.get("id")));
             if (id == null) throw new IllegalArgumentException("삭제할 사용자 ID가 필요합니다.");
             userListService.deleteUserScoped(actor, allowed, id);
@@ -146,7 +150,8 @@ public class ApiUserController {
         try {
             AppUser actor = currentUser();
             String scopeCompCode = resolveScopeCompCode(actor);
-            Set<String> allowed = userListService.resolveAllowedCompCodes(scopeCompCode);
+            Set<String> allowed = userListService.resolveAllowedCompCodesWithAccess(scopeCompCode, actor.getUsername(),
+                    "ADMIN".equalsIgnoreCase(actor.getRole()));
             Long id = body.get("id") == null ? null : Long.parseLong(String.valueOf(body.get("id")));
             if (id == null) throw new IllegalArgumentException("초기화할 사용자 ID가 필요합니다.");
             Map<String, Object> data = new LinkedHashMap<>(userListService.resetPasswordScoped(actor, allowed, id));

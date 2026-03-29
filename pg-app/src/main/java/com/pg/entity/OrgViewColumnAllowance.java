@@ -4,12 +4,14 @@ import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
 /**
- * 총본사가 지정한 본사(REGIONAL) 단위로, 특정 화면의 VIEW SETTING에서 선택 가능한 그리드 컬럼(키) 상한.
- * 행이 없으면 해당 본사 트리 사용자는 제한 없음. 행이 있으면 allowed_keys_json 에 포함된 키만 개인 설정 가능.
+ * 총본사가 지정한 본사(REGIONAL) 트리 단위로, 조직 유형별·화면별 VIEW SETTING 허용 그리드 컬럼(키) 상한.
+ * viewer_scope: REGIONAL(본사), MASTER_DIST(총판), BRANCH_GROUP(지사·대리점·영업점), MERCHANT(가맹점).
+ * 지사그룹·가맹점에 행이 없으면 동일 본사·화면의 총판(MASTER_DIST) 정책을 따름.
  */
 @Entity
 @Table(name = "tb_org_view_column_allowance",
-        uniqueConstraints = @UniqueConstraint(columnNames = {"regional_org_code", "page_url"}))
+        uniqueConstraints = @UniqueConstraint(name = "uk_org_view_col_allow_scope",
+                columnNames = {"regional_org_code", "page_url", "viewer_scope"}))
 public class OrgViewColumnAllowance {
 
     @Id
@@ -21,6 +23,9 @@ public class OrgViewColumnAllowance {
 
     @Column(name = "page_url", nullable = false, length = 200)
     private String pageUrl;
+
+    @Column(name = "viewer_scope", nullable = false, length = 32)
+    private String viewerScope;
 
     @Column(name = "allowed_keys_json", nullable = false, columnDefinition = "TEXT")
     private String allowedKeysJson;
@@ -40,6 +45,8 @@ public class OrgViewColumnAllowance {
     public void setRegionalOrgCode(String regionalOrgCode) { this.regionalOrgCode = regionalOrgCode; }
     public String getPageUrl() { return pageUrl; }
     public void setPageUrl(String pageUrl) { this.pageUrl = pageUrl; }
+    public String getViewerScope() { return viewerScope; }
+    public void setViewerScope(String viewerScope) { this.viewerScope = viewerScope; }
     public String getAllowedKeysJson() { return allowedKeysJson; }
     public void setAllowedKeysJson(String allowedKeysJson) { this.allowedKeysJson = allowedKeysJson; }
     public LocalDateTime getUpdatedAt() { return updatedAt; }

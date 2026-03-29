@@ -146,10 +146,12 @@ public class ApiOrgBrandingController {
             }
             brandingRepository.save(b);
 
-            return ResponseEntity.ok(ApiResponse.ok(Map.of(
-                    "url", url,
-                    "imageType", imageType
-            )));
+            Map<String, Object> payload = new LinkedHashMap<>();
+            payload.put("url", url);
+            payload.put("imageType", imageType);
+            payload.put("originalFileName", sanitizeUploadOriginalName(file.getOriginalFilename()));
+            payload.put("storedFileName", fileName);
+            return ResponseEntity.ok(ApiResponse.ok(payload));
         } catch (IOException e) {
             return ResponseEntity.ok(ApiResponse.fail("파일 저장 실패: " + e.getMessage(), "IO_ERROR"));
         }
@@ -197,6 +199,20 @@ public class ApiOrgBrandingController {
         if (filename == null || filename.isEmpty()) return null;
         int i = filename.lastIndexOf('.');
         return i > 0 ? filename.substring(i + 1) : null;
+    }
+
+    /** 업로드 응답·UI 표시용: 경로 제거·길이 제한 */
+    private static String sanitizeUploadOriginalName(String name) {
+        if (name == null) return "";
+        String s = name.trim().replace('\\', '/');
+        int slash = s.lastIndexOf('/');
+        if (slash >= 0) {
+            s = s.substring(slash + 1);
+        }
+        if (s.length() > 200) {
+            s = s.substring(0, 200);
+        }
+        return s;
     }
 
     private boolean isBrandingEditable(OrgUnit ou) {

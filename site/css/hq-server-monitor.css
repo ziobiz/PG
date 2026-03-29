@@ -18,6 +18,20 @@
   border-radius: 10px;
 }
 
+/* 본사설정 > 서버관리: 갱신(분) 입력은 행 너비의 60% (기존 col 전체 대비 축소) */
+.hq-srv-refresh-min-row {
+  width: 100%;
+}
+.hq-srv-refresh-min-input-wrap {
+  flex: 0 0 60%;
+  width: 60%;
+  max-width: 60%;
+  min-width: 5rem;
+}
+.hq-srv-refresh-min-input-wrap .form-control {
+  width: 100%;
+}
+
 .hq-mon-toolbar {
   background: var(--hq-mon-card);
   border: 1px solid var(--hq-mon-border);

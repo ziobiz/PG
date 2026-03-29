@@ -21,12 +21,17 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import org.springframework.http.MediaType;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @RestController
 @RequestMapping(value = "/api/comp", produces = MediaType.APPLICATION_JSON_VALUE)
 public class ApiCompController {
+
+    private static final Logger log = LoggerFactory.getLogger(ApiCompController.class);
 
     private final CompService compService;
     private final OrgUnitRepository orgUnitRepository;
@@ -268,6 +273,11 @@ public class ApiCompController {
         return ResponseEntity.ok(ApiResponse.ok(Map.of("compId", saved.getCode(), "compNm", saved.getName())));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.ok(ApiResponse.fail(e.getMessage(), "VALIDATION"));
+        } catch (DataIntegrityViolationException e) {
+            log.warn("comp register data integrity: {}", e.getMostSpecificCause() != null ? e.getMostSpecificCause().getMessage() : e.getMessage());
+            return ResponseEntity.ok(ApiResponse.fail(
+                    "저장 중 DB 제약 오류가 났습니다. 노티 URL이 너무 길지 않은지 확인하고, 운영 DB에 db/V48_merchant_notify_url_length.sql 적용 여부를 확인하세요.",
+                    "DATA_INTEGRITY"));
         }
     }
 
@@ -330,7 +340,23 @@ public class ApiCompController {
             @RequestParam(required = false) String notifyUrl1,
             @RequestParam(required = false) String notifyUrl2,
             @RequestParam(required = false) String notifyUrl3,
-            @RequestParam(required = false) String notifyUrl4) {
+            @RequestParam(required = false) String notifyUrl4,
+            @RequestParam(required = false) String commissionFollowHq,
+            @RequestParam(required = false) String hqPolicyScope,
+            @RequestParam(required = false) String perTxFee,
+            @RequestParam(required = false) String cancelRate,
+            @RequestParam(required = false) String usageRate,
+            @RequestParam(required = false) String failFee,
+            @RequestParam(required = false) String payRate,
+            @RequestParam(required = false) String refundRate,
+            @RequestParam(required = false) String rollingPct,
+            @RequestParam(required = false) String rollingDays,
+            @RequestParam(required = false) String feeSettlementPerTx,
+            @RequestParam(required = false) String feeUsdt,
+            @RequestParam(required = false) String feeFx,
+            @RequestParam(required = false) String fee3dsRate,
+            @RequestParam(required = false) String chargebackFeePerTx,
+            @RequestParam(required = false) String chargebackPolicyId) {
         var targetOpt = compService.getDetail(compId);
         if (targetOpt.isEmpty()) {
             return ResponseEntity.ok(ApiResponse.fail("업체를 찾을 수 없습니다.", "NOT_FOUND"));
@@ -343,12 +369,9 @@ public class ApiCompController {
             if (!"ADMIN".equalsIgnoreCase(u0.getRole())) {
                 Map<String, Object> org = authService.getOrgInfo(u0.getUsername());
                 String mine = org != null && org.get("compId") != null ? org.get("compId").toString().trim() : "";
-                String myLevel = org != null && org.get("orgLevel") != null ? org.get("orgLevel").toString().trim() : "";
-                if (!mine.isEmpty() && compId.trim().equals(mine)) {
-                    /* 가맹점은 [내 업체정보]에서 자기 프로필 수정 허용. 그 외 조직(영업점 등)은 본인 레코드는 상위만 수정 */
-                    if (!"MERCHANT".equalsIgnoreCase(myLevel)) {
-                        return ResponseEntity.ok(ApiResponse.fail("소속 업체 본인 정보는 상위 조직에서만 수정할 수 있습니다.", "NO_SELF_EDIT"));
-                    }
+                if (!mine.isEmpty() && compId.trim().equalsIgnoreCase(mine)) {
+                    return ResponseEntity.ok(ApiResponse.fail(
+                            "본인 소속 업체 정보는 조회 전용입니다. 변경은 상위 조직·관리자에서 진행하세요.", "READ_ONLY_SELF_COMP"));
                 }
             }
         }
@@ -357,11 +380,18 @@ public class ApiCompController {
                     ceoNm, ceoMobile, useYn, loginId, pwd, regNo, bizType, industry, bizNature, product, homepage, settleName, settleTelNo, fax, email,
                     bankCd, transferFee, cryptoTransferFee, accountNo, accountHolder, remark, commissionConfigAllowed, webPaymentUseYn, baseCurrency, siteUrl, siteSummary, pgBindings, regionalSettings,
                     assistantLoginId, assistantPwd, assistantRoleType, brandingEditAllowedYn,
-                    notifyUrl1, notifyUrl2, notifyUrl3, notifyUrl4);
+                    notifyUrl1, notifyUrl2, notifyUrl3, notifyUrl4,
+                    commissionFollowHq, hqPolicyScope, perTxFee, cancelRate, usageRate, failFee, payRate, refundRate, rollingPct, rollingDays,
+                    feeSettlementPerTx, feeUsdt, feeFx, fee3dsRate, chargebackFeePerTx, chargebackPolicyId);
             return ResponseEntity.ok(ok ? ApiResponse.ok(Map.of("success", true, "message", "저장되었습니다."))
                     : ApiResponse.fail("업체를 찾을 수 없습니다.", "NOT_FOUND"));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.ok(ApiResponse.fail(e.getMessage(), "VALIDATION"));
+        } catch (DataIntegrityViolationException e) {
+            log.warn("comp update data integrity: {}", e.getMostSpecificCause() != null ? e.getMostSpecificCause().getMessage() : e.getMessage());
+            return ResponseEntity.ok(ApiResponse.fail(
+                    "저장 중 DB 제약 오류가 났습니다. 노티 URL 길이·중복 등을 확인하고, DB에 db/V48_merchant_notify_url_length.sql 적용 여부를 확인하세요.",
+                    "DATA_INTEGRITY"));
         }
     }
 

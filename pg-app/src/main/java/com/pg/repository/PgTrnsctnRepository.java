@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDateTime;
+import java.util.Collection;
 import java.util.List;
 
 public interface PgTrnsctnRepository extends JpaRepository<PgTrnsctn, String>, JpaSpecificationExecutor<PgTrnsctn> {
@@ -25,4 +26,11 @@ public interface PgTrnsctnRepository extends JpaRepository<PgTrnsctn, String>, J
     List<PgTrnsctn> findForReportRange(@Param("fromDt") LocalDateTime fromDt,
                                        @Param("toDt") LocalDateTime toDt,
                                        @Param("curType") String curType);
+
+    /** 차지백 구간 산정용: 해당 월 환불(30)·강제환불(31) 건수 */
+    long countByMerchantIdAndStatusInAndCreatedAtGreaterThanEqualAndCreatedAtLessThan(
+            String merchantId,
+            Collection<String> statuses,
+            LocalDateTime createdAtGreaterThanEqual,
+            LocalDateTime createdAtLessThan);
 }

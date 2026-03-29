@@ -527,6 +527,7 @@ public class CompService {
                                 m.put("calcExcludeTarget", ss.getCalcExcludeTarget());
                                 m.put("calcStartTime", ss.getCalcStartTime() != null ? ss.getCalcStartTime().toString() : null);
                             });
+                            applyCommissionDetailToMap(m, ou);
                             return m;
                         }));
     }
@@ -540,7 +541,11 @@ public class CompService {
                           String remark, String commissionConfigAllowed, String webPaymentUseYn, String baseCurrency,
                           String siteUrl, String siteSummary, String pgBindings, String regionalSettings,
                           String assistantLoginId, String assistantPwd, String assistantRoleType, String brandingEditAllowedYn,
-                          String notifyUrl1, String notifyUrl2, String notifyUrl3, String notifyUrl4) {
+                          String notifyUrl1, String notifyUrl2, String notifyUrl3, String notifyUrl4,
+                          String commissionFollowHq, String hqPolicyScope, String perTxFee, String cancelRate, String usageRate,
+                          String failFee, String payRate, String refundRate, String rollingPct, String rollingDays,
+                          String feeSettlementPerTx, String feeUsdt, String feeFx,
+                          String fee3dsRate, String chargebackFeePerTx, String chargebackPolicyId) {
         return orgUnitRepository.findByCode(compId != null ? compId : "")
                 .flatMap(ou -> merchantProfileRepository.findByOrgUnitId(ou.getId())
                         .map(mp -> {
@@ -570,6 +575,9 @@ public class CompService {
                                 }
                             }
                             orgUnitRepository.save(ou);
+                            String effDivForCommission = compDiv != null && !compDiv.isBlank()
+                                    ? compDiv.trim().toUpperCase()
+                                    : (ou.getOrgLevel() != null ? ou.getOrgLevel().name() : "");
                             if (commissionConfigAllowed != null) mp.setCommissionConfigAllowed(commissionConfigAllowed);
                             if (webPaymentUseYn != null && !webPaymentUseYn.trim().isEmpty()) mp.setWebPaymentUseYn(webPaymentUseYn.trim());
                             if (baseCurrency != null && !baseCurrency.trim().isEmpty()) {
@@ -693,6 +701,12 @@ public class CompService {
                                 primary.setEnabled(true);
                                 userRepository.save(primary);
                             }
+                            if (usesCommissionPolicyForCompDiv(effDivForCommission)
+                                    && !allCommissionParamsAbsent(commissionFollowHq, hqPolicyScope, perTxFee, cancelRate, usageRate,
+                                    failFee, payRate, refundRate, rollingPct, rollingDays, feeSettlementPerTx, feeUsdt, feeFx,
+                                    fee3dsRate, chargebackFeePerTx, chargebackPolicyId)) {
+                                mergeCommissionUiIntoRegionalSettings(mp, commissionFollowHq, hqPolicyScope);
+                            }
                             merchantProfileRepository.save(mp);
                             if (assistantLoginId != null && !assistantLoginId.trim().isEmpty()) {
                                 String aid = assistantLoginId.trim();
@@ -768,6 +782,14 @@ public class CompService {
                                         merchantPgBindingRepository.save(binding);
                                     }
                                 } catch (Exception ignored) {}
+                            }
+                            if (usesCommissionPolicyForCompDiv(effDivForCommission)
+                                    && !allCommissionParamsAbsent(commissionFollowHq, hqPolicyScope, perTxFee, cancelRate, usageRate,
+                                    failFee, payRate, refundRate, rollingPct, rollingDays, feeSettlementPerTx, feeUsdt, feeFx,
+                                    fee3dsRate, chargebackFeePerTx, chargebackPolicyId)) {
+                                applyCommissionPolicyForOrgCode(ou.getCode(), effDivForCommission, commissionFollowHq, hqPolicyScope,
+                                        perTxFee, cancelRate, usageRate, failFee, payRate, refundRate, rollingPct, rollingDays,
+                                        feeSettlementPerTx, feeUsdt, feeFx, fee3dsRate, chargebackFeePerTx, chargebackPolicyId);
                             }
                             return true;
                         }))
@@ -1005,6 +1027,9 @@ public class CompService {
                 && regionalSettings != null && !regionalSettings.trim().isEmpty()) {
             mp.setRegionalSettings(regionalSettings.trim());
         }
+        if (usesCommissionPolicyForCompDiv(compDivVal)) {
+            mergeCommissionUiIntoRegionalSettings(mp, commissionFollowHq, hqPolicyScope);
+        }
         merchantProfileRepository.save(mp);
 
         SettlementSetting ss = new SettlementSetting();
@@ -1118,39 +1143,10 @@ public class CompService {
             saveDistributorNotifyUrls(saved.getId(), notifyUrl1, notifyUrl2, notifyUrl3, notifyUrl4);
         }
 
-        if ("MERCHANT".equalsIgnoreCase(compDiv) && "N".equalsIgnoreCase(commissionFollowHq != null ? commissionFollowHq.trim() : "")) {
-            CommissionPolicy policy = new CommissionPolicy();
-            policy.setScope(saved.getCode());
-            if (perTxFee != null && !perTxFee.trim().isEmpty()) try { policy.setPerTxFee(new BigDecimal(perTxFee.trim())); } catch (Exception ignored) {}
-            if (cancelRate != null && !cancelRate.trim().isEmpty()) try { policy.setCancelRate(new BigDecimal(cancelRate.trim())); } catch (Exception ignored) {}
-            if (usageRate != null && !usageRate.trim().isEmpty()) try { policy.setUsageRate(new BigDecimal(usageRate.trim())); } catch (Exception ignored) {}
-            if (failFee != null && !failFee.trim().isEmpty()) try { policy.setFailFee(new BigDecimal(failFee.trim())); } catch (Exception ignored) {}
-            if (payRate != null && !payRate.trim().isEmpty()) try { policy.setPayRate(new BigDecimal(payRate.trim())); } catch (Exception ignored) {}
-            if (refundRate != null && !refundRate.trim().isEmpty()) try { policy.setRefundRate(new BigDecimal(refundRate.trim())); } catch (Exception ignored) {}
-            if (rollingPct != null && !rollingPct.trim().isEmpty()) try { policy.setRollingPct(new BigDecimal(rollingPct.trim())); } catch (Exception ignored) {}
-            if (rollingDays != null && !rollingDays.trim().isEmpty()) try { policy.setRollingDays(Integer.parseInt(rollingDays.trim())); } catch (Exception ignored) {}
-            if (feeSettlementPerTx != null && !feeSettlementPerTx.trim().isEmpty()) try { policy.setFeeSettlementPerTx(new BigDecimal(feeSettlementPerTx.trim())); } catch (Exception ignored) {}
-            if (feeUsdt != null && !feeUsdt.trim().isEmpty()) try { policy.setFeeUsdt(new BigDecimal(feeUsdt.trim())); } catch (Exception ignored) {}
-            if (feeFx != null && !feeFx.trim().isEmpty()) try { policy.setFeeFx(new BigDecimal(feeFx.trim())); } catch (Exception ignored) {}
-            commissionPolicyRepository.save(policy);
-        } else if ("MERCHANT".equalsIgnoreCase(compDiv)) {
-            String srcScope = (hqPolicyScope != null && !hqPolicyScope.trim().isEmpty()) ? hqPolicyScope.trim() : "DEFAULT";
-            commissionPolicyRepository.findByScope(srcScope).ifPresent(src -> {
-                CommissionPolicy policy = new CommissionPolicy();
-                policy.setScope(saved.getCode());
-                policy.setPerTxFee(src.getPerTxFee());
-                policy.setUsageRate(src.getUsageRate());
-                policy.setFailFee(src.getFailFee());
-                policy.setCancelRate(src.getCancelRate());
-                policy.setRefundRate(src.getRefundRate());
-                policy.setPayRate(src.getPayRate());
-                policy.setFeeSettlementPerTx(src.getFeeSettlementPerTx());
-                policy.setFeeUsdt(src.getFeeUsdt());
-                policy.setFeeFx(src.getFeeFx());
-                policy.setRollingPct(src.getRollingPct());
-                policy.setRollingDays(src.getRollingDays());
-                commissionPolicyRepository.save(policy);
-            });
+        if (usesCommissionPolicyForCompDiv(compDivVal)) {
+            applyCommissionPolicyForOrgCode(saved.getCode(), compDivVal, commissionFollowHq, hqPolicyScope,
+                    perTxFee, cancelRate, usageRate, failFee, payRate, refundRate, rollingPct, rollingDays,
+                    feeSettlementPerTx, feeUsdt, feeFx, null, null, null);
         }
 
         String rawPwdFinal = (pwd != null && !pwd.trim().isEmpty()) ? pwd.trim() : null;
@@ -1494,6 +1490,206 @@ public class CompService {
         return v != null ? v.toString().trim() : null;
     }
 
+    private static boolean usesCommissionPolicyForCompDiv(String compDiv) {
+        if (compDiv == null || compDiv.isBlank()) return false;
+        String d = compDiv.trim().toUpperCase();
+        return "MERCHANT".equals(d) || "REGIONAL".equals(d) || "MASTER_DIST".equals(d);
+    }
+
+    private static boolean allCommissionParamsAbsent(String commissionFollowHq, String hqPolicyScope,
+                                                     String perTxFee, String cancelRate, String usageRate,
+                                                     String failFee, String payRate, String refundRate,
+                                                     String rollingPct, String rollingDays,
+                                                     String feeSettlementPerTx, String feeUsdt, String feeFx,
+                                                     String fee3dsRate, String chargebackFeePerTx, String chargebackPolicyId) {
+        return commissionFollowHq == null && hqPolicyScope == null && perTxFee == null && cancelRate == null
+                && usageRate == null && failFee == null && payRate == null && refundRate == null
+                && rollingPct == null && rollingDays == null && feeSettlementPerTx == null
+                && feeUsdt == null && feeFx == null
+                && fee3dsRate == null && chargebackFeePerTx == null && chargebackPolicyId == null;
+    }
+
+    private void mergeCommissionUiIntoRegionalSettings(MerchantProfile mp, String commissionFollowHq, String hqPolicyScope) {
+        Map<String, Object> rs = parseRegionalSettings(mp.getRegionalSettings());
+        String cf = commissionFollowHq != null && !commissionFollowHq.isBlank() ? commissionFollowHq.trim() : "Y";
+        rs.put("commissionFollowHq", "N".equalsIgnoreCase(cf) ? "N" : "Y");
+        rs.put("hqPolicyScope", hqPolicyScope != null ? hqPolicyScope.trim() : "");
+        try {
+            com.fasterxml.jackson.databind.ObjectMapper om = new com.fasterxml.jackson.databind.ObjectMapper();
+            mp.setRegionalSettings(om.writeValueAsString(rs));
+        } catch (Exception ignored) {
+            mp.setRegionalSettings("{\"commissionFollowHq\":\"" + ("N".equalsIgnoreCase(cf) ? "N" : "Y")
+                    + "\",\"hqPolicyScope\":\"" + (hqPolicyScope != null ? hqPolicyScope.trim().replace("\"", "\\\"") : "")
+                    + "\"}");
+        }
+    }
+
+    private void applyCommissionPolicyForOrgCode(String compCode, String compDiv,
+                                                 String commissionFollowHq, String hqPolicyScope,
+                                                 String perTxFee, String cancelRate, String usageRate,
+                                                 String failFee, String payRate, String refundRate,
+                                                 String rollingPct, String rollingDays,
+                                                 String feeSettlementPerTx, String feeUsdt, String feeFx,
+                                                 String fee3dsRate, String chargebackFeePerTx, String chargebackPolicyId) {
+        if (!usesCommissionPolicyForCompDiv(compDiv) || compCode == null || compCode.isBlank()) {
+            return;
+        }
+        boolean custom = "N".equalsIgnoreCase(commissionFollowHq != null ? commissionFollowHq.trim() : "");
+        if (custom) {
+            CommissionPolicy policy = commissionPolicyRepository.findByScope(compCode.trim()).orElseGet(CommissionPolicy::new);
+            policy.setScope(compCode.trim());
+            if (perTxFee != null && !perTxFee.trim().isEmpty()) try {
+                policy.setPerTxFee(new BigDecimal(perTxFee.trim()));
+            } catch (Exception ignored) {
+            }
+            if (cancelRate != null && !cancelRate.trim().isEmpty()) try {
+                policy.setCancelRate(new BigDecimal(cancelRate.trim()));
+            } catch (Exception ignored) {
+            }
+            if (usageRate != null && !usageRate.trim().isEmpty()) try {
+                policy.setUsageRate(new BigDecimal(usageRate.trim()));
+            } catch (Exception ignored) {
+            }
+            if (failFee != null && !failFee.trim().isEmpty()) try {
+                policy.setFailFee(new BigDecimal(failFee.trim()));
+            } catch (Exception ignored) {
+            }
+            if (payRate != null && !payRate.trim().isEmpty()) try {
+                policy.setPayRate(new BigDecimal(payRate.trim()));
+            } catch (Exception ignored) {
+            }
+            if (refundRate != null && !refundRate.trim().isEmpty()) try {
+                policy.setRefundRate(new BigDecimal(refundRate.trim()));
+            } catch (Exception ignored) {
+            }
+            if (rollingPct != null && !rollingPct.trim().isEmpty()) try {
+                policy.setRollingPct(new BigDecimal(rollingPct.trim()));
+            } catch (Exception ignored) {
+            }
+            if (rollingDays != null && !rollingDays.trim().isEmpty()) try {
+                policy.setRollingDays(Integer.parseInt(rollingDays.trim()));
+            } catch (Exception ignored) {
+            }
+            if (feeSettlementPerTx != null && !feeSettlementPerTx.trim().isEmpty()) try {
+                policy.setFeeSettlementPerTx(new BigDecimal(feeSettlementPerTx.trim()));
+            } catch (Exception ignored) {
+            }
+            if (feeUsdt != null && !feeUsdt.trim().isEmpty()) try {
+                policy.setFeeUsdt(new BigDecimal(feeUsdt.trim()));
+            } catch (Exception ignored) {
+            }
+            if (feeFx != null && !feeFx.trim().isEmpty()) try {
+                policy.setFeeFx(new BigDecimal(feeFx.trim()));
+            } catch (Exception ignored) {
+            }
+            if (fee3dsRate != null && !fee3dsRate.trim().isEmpty()) try {
+                policy.setFee3dsRate(new BigDecimal(fee3dsRate.trim()));
+            } catch (Exception ignored) {
+            }
+            if (chargebackFeePerTx != null && !chargebackFeePerTx.trim().isEmpty()) try {
+                policy.setChargebackFeePerTx(new BigDecimal(chargebackFeePerTx.trim()));
+            } catch (Exception ignored) {
+            }
+            if (chargebackPolicyId != null) {
+                String cp = chargebackPolicyId.trim();
+                if (cp.isEmpty()) {
+                    policy.setChargebackPolicyId(null);
+                } else {
+                    try {
+                        policy.setChargebackPolicyId(Long.parseLong(cp));
+                    } catch (Exception ignored) {
+                    }
+                }
+            }
+            commissionPolicyRepository.save(policy);
+        } else {
+            String srcScope = (hqPolicyScope != null && !hqPolicyScope.trim().isEmpty()) ? hqPolicyScope.trim() : "DEFAULT";
+            commissionPolicyRepository.findByScope(srcScope).ifPresent(src -> {
+                CommissionPolicy policy = commissionPolicyRepository.findByScope(compCode.trim()).orElseGet(CommissionPolicy::new);
+                policy.setScope(compCode.trim());
+                policy.setPerTxFee(src.getPerTxFee());
+                policy.setUsageRate(src.getUsageRate());
+                policy.setFailFee(src.getFailFee());
+                policy.setCancelRate(src.getCancelRate());
+                policy.setRefundRate(src.getRefundRate());
+                policy.setPayRate(src.getPayRate());
+                policy.setFeeSettlementPerTx(src.getFeeSettlementPerTx());
+                policy.setFeeUsdt(src.getFeeUsdt());
+                policy.setFeeFx(src.getFeeFx());
+                policy.setRollingPct(src.getRollingPct());
+                policy.setRollingDays(src.getRollingDays());
+                policy.setCurrencyCode(src.getCurrencyCode());
+                policy.setPolicyRemark(src.getPolicyRemark());
+                policy.setFee3dsRate(src.getFee3dsRate());
+                policy.setChargebackFeePerTx(src.getChargebackFeePerTx());
+                policy.setChargebackPolicyId(src.getChargebackPolicyId());
+                policy.setExtraFee1Name(src.getExtraFee1Name());
+                policy.setExtraFee1Mode(src.getExtraFee1Mode());
+                policy.setExtraFee1Value(src.getExtraFee1Value());
+                policy.setExtraFee2Name(src.getExtraFee2Name());
+                policy.setExtraFee2Mode(src.getExtraFee2Mode());
+                policy.setExtraFee2Value(src.getExtraFee2Value());
+                policy.setExtraFee3Name(src.getExtraFee3Name());
+                policy.setExtraFee3Mode(src.getExtraFee3Mode());
+                policy.setExtraFee3Value(src.getExtraFee3Value());
+                policy.setExtraFee4Name(src.getExtraFee4Name());
+                policy.setExtraFee4Mode(src.getExtraFee4Mode());
+                policy.setExtraFee4Value(src.getExtraFee4Value());
+                commissionPolicyRepository.save(policy);
+            });
+        }
+    }
+
+    private void applyCommissionDetailToMap(Map<String, Object> m, OrgUnit ou) {
+        OrgLevel ol = ou.getOrgLevel();
+        if (ol != OrgLevel.MERCHANT && ol != OrgLevel.REGIONAL && ol != OrgLevel.MASTER_DIST) {
+            return;
+        }
+        Object cf = m.get("commissionFollowHq");
+        if (cf == null || String.valueOf(cf).isBlank()) {
+            m.put("commissionFollowHq", "Y");
+        }
+        if (!m.containsKey("hqPolicyScope") || m.get("hqPolicyScope") == null) {
+            m.put("hqPolicyScope", "");
+        }
+        String code = ou.getCode();
+        if (code == null || code.isBlank()) {
+            return;
+        }
+        commissionPolicyRepository.findByScope(code.trim()).ifPresentOrElse(p -> putCommissionPolicyScalars(m, p),
+                () -> commissionPolicyRepository.findByScope("DEFAULT").ifPresent(def -> putCommissionPolicyScalars(m, def)));
+    }
+
+    private static void putCommissionPolicyScalars(Map<String, Object> m, CommissionPolicy p) {
+        m.put("perTxFee", p.getPerTxFee() != null ? p.getPerTxFee().toPlainString() : "");
+        m.put("failFee", p.getFailFee() != null ? p.getFailFee().toPlainString() : "");
+        m.put("usageRate", p.getUsageRate() != null ? p.getUsageRate().toPlainString() : "");
+        m.put("payRate", p.getPayRate() != null ? p.getPayRate().toPlainString() : "");
+        m.put("cancelRate", p.getCancelRate() != null ? p.getCancelRate().toPlainString() : "");
+        m.put("refundRate", p.getRefundRate() != null ? p.getRefundRate().toPlainString() : "");
+        m.put("rollingPct", p.getRollingPct() != null ? p.getRollingPct().toPlainString() : "");
+        m.put("rollingDays", p.getRollingDays() != null ? String.valueOf(p.getRollingDays()) : "");
+        m.put("feeSettlementPerTx", p.getFeeSettlementPerTx() != null ? p.getFeeSettlementPerTx().toPlainString() : "");
+        m.put("feeUsdt", p.getFeeUsdt() != null ? p.getFeeUsdt().toPlainString() : "");
+        m.put("feeFx", p.getFeeFx() != null ? p.getFeeFx().toPlainString() : "");
+        m.put("commissionMemo", p.getPolicyRemark() != null ? p.getPolicyRemark() : "");
+        m.put("extraFee1Name", p.getExtraFee1Name() != null ? p.getExtraFee1Name() : "");
+        m.put("extraFee1Mode", p.getExtraFee1Mode() != null ? p.getExtraFee1Mode() : "");
+        m.put("extraFee1Value", p.getExtraFee1Value() != null ? p.getExtraFee1Value().toPlainString() : "");
+        m.put("extraFee2Name", p.getExtraFee2Name() != null ? p.getExtraFee2Name() : "");
+        m.put("extraFee2Mode", p.getExtraFee2Mode() != null ? p.getExtraFee2Mode() : "");
+        m.put("extraFee2Value", p.getExtraFee2Value() != null ? p.getExtraFee2Value().toPlainString() : "");
+        m.put("extraFee3Name", p.getExtraFee3Name() != null ? p.getExtraFee3Name() : "");
+        m.put("extraFee3Mode", p.getExtraFee3Mode() != null ? p.getExtraFee3Mode() : "");
+        m.put("extraFee3Value", p.getExtraFee3Value() != null ? p.getExtraFee3Value().toPlainString() : "");
+        m.put("extraFee4Name", p.getExtraFee4Name() != null ? p.getExtraFee4Name() : "");
+        m.put("extraFee4Mode", p.getExtraFee4Mode() != null ? p.getExtraFee4Mode() : "");
+        m.put("extraFee4Value", p.getExtraFee4Value() != null ? p.getExtraFee4Value().toPlainString() : "");
+        m.put("chargebackPolicyId", p.getChargebackPolicyId() != null ? String.valueOf(p.getChargebackPolicyId()) : "");
+        m.put("fee3dsRate", p.getFee3dsRate() != null ? p.getFee3dsRate().toPlainString() : "");
+        m.put("chargebackFeePerTx", p.getChargebackFeePerTx() != null ? p.getChargebackFeePerTx().toPlainString() : "");
+    }
+
     /** 목록·엑셀 노출용: 저장값 CORP|번호 / PERSONAL|번호 → 번호만 (구분 미노출) */
     private static String regNoForDisplay(String regNo) {
         if (regNo == null || regNo.isBlank()) return "-";
@@ -1628,6 +1824,15 @@ public class CompService {
         if (hasAny && n1.isEmpty()) {
             throw new IllegalArgumentException("총판 노티 URL 1(기본)은 필수입니다.");
         }
+        if (hasAny && n2.isEmpty()) {
+            throw new IllegalArgumentException("총판 노티 URL 2(RESULT)는 필수입니다. CALLBACK(URL 1)과 함께 입력하세요.");
+        }
+        final int maxLen = 2048;
+        for (String u : new String[] { n1, n2, n3, n4 }) {
+            if (!u.isEmpty() && u.length() > maxLen) {
+                throw new IllegalArgumentException("노티 URL은 " + maxLen + "자 이하여야 합니다. (현재 " + u.length() + "자)");
+            }
+        }
         merchantNotifyUrlRepository.deleteByOrgUnitIdAndUrlTypeIn(orgUnitId,
                 java.util.List.of("NOTIFY_1", "NOTIFY_2", "NOTIFY_3", "NOTIFY_4"));
         String[] urls = { n1, n2, n3, n4 };
@@ -1637,7 +1842,7 @@ public class CompService {
                 n.setOrgUnitId(orgUnitId);
                 n.setUrlType("NOTIFY_" + (i + 1));
                 n.setNotiUrl(urls[i].trim());
-                n.setUseYn(i == 0 ? "Y" : "N");
+                n.setUseYn("Y");
                 merchantNotifyUrlRepository.save(n);
             }
         }

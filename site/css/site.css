@@ -1373,6 +1373,27 @@ body.theme-pastel_4 .content-page, body.theme-pastel_5 .content-page {
   min-width: 132px;
 }
 
+/* 업체등록·업체정보 — 총판: 노티 쌍 버튼을 URL 1·2(및 3·4)와 같은 행에 배치 */
+.comp-reg-form .comp-notify-pair-url-row {
+  margin-top: 0.15rem;
+}
+.comp-reg-form .comp-notify-pair-inline .comp-notify-pair-inline-label {
+  font-size: 0.8125rem;
+  color: #6c757d;
+  margin-bottom: 0.35rem;
+  font-weight: 600;
+}
+.comp-reg-form .comp-notify-pair-inline-btn {
+  white-space: normal;
+  line-height: 1.25;
+  padding: 0.4rem 0.45rem;
+  font-weight: 600;
+}
+.comp-reg-form .comp-notify-pair-inline-hint {
+  line-height: 1.35;
+  font-size: 0.75rem !important;
+}
+
 /* 노티 대상 선택 모달 — 선택 열 가운데 정렬, CALLBACK/RESULT 색 구분 */
 #notifyTargetPickerModal .notify-picker-select-cell {
   text-align: center;
@@ -1543,4 +1564,91 @@ body.theme-pastel_4 .content-page, body.theme-pastel_5 .content-page {
 .pg-perm-observer .btn:not(#searchBtn):not(.pagination-size-opt),
 .pg-perm-modify .btn-danger {
   opacity: 0.65;
+}
+
+/* 도메인구성: URL·호스트 링크 — 표 본문과 동일 글자 크기(Bootstrap code/small 보정) */
+.hq-domain-config-wrap table code.hq-domain-url-cell,
+.hq-domain-config-wrap table .hq-domain-host-link {
+  font-size: inherit;
+}
+
+/* 도메인구성: URL·호스트 링크 (새 탭) */
+.hq-domain-url-link {
+  cursor: pointer;
+}
+.hq-domain-url-link:hover code.hq-domain-url-cell {
+  text-decoration: underline;
+  color: var(--bs-link-hover-color, #0a58ca);
+}
+.hq-domain-config-wrap a[target="_blank"]:not(.hq-domain-url-link) {
+  cursor: pointer;
+}
+.hq-domain-config-wrap a[target="_blank"]:not(.hq-domain-url-link):hover {
+  text-decoration: underline;
+}
+
+/* 기본정책: 템플릿 목록 행 */
+.hq-default-comm-policy-row:hover {
+  background-color: rgba(13, 110, 253, 0.07) !important;
+}
+.hq-def-comm-chk-cell {
+  cursor: default;
+}
+#hqDefCommSelectAll {
+  cursor: pointer;
+}
+
+/* 기본정책: 목록 표 — 셀 가로·세로 가운데 */
+.hq-default-comm-policy-table > thead > tr > th,
+.hq-default-comm-policy-table > tbody > tr > td {
+  text-align: center;
+  vertical-align: middle;
+}
+
+/* 기본정책: 목록 표 — 건당 / % / 월간 묶음 */
+.hq-default-comm-policy-table .hq-def-comm-th-chk {
+  width: 3.25rem;
+  vertical-align: middle;
+}
+.hq-default-comm-policy-table .hq-def-comm-th-code {
+  width: 5.5rem;
+}
+.hq-default-comm-policy-table .hq-def-comm-th-deploy {
+  width: 4.75rem;
+}
+.hq-default-comm-policy-table .hq-def-comm-th-cur {
+  width: 3.75rem;
+}
+.hq-default-comm-policy-table .hq-def-comm-th-group {
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+.hq-default-comm-policy-table .hq-def-comm-th-sub {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  white-space: nowrap;
+  padding-top: 0.35rem;
+  padding-bottom: 0.35rem;
+}
+.hq-default-comm-policy-table .hq-def-comm-th-mon {
+  min-width: 4.5rem;
+}
+.hq-def-comm-policy-td-num {
+  text-align: center;
+  white-space: nowrap;
+  font-size: 0.8125rem;
+  font-variant-numeric: tabular-nums;
+  vertical-align: middle;
+}
+.hq-def-comm-policy-td-extra-slot {
+  text-align: center;
+  vertical-align: middle;
+  max-width: 7.5rem;
+  min-width: 4rem;
+}
+.hq-extra-fees-card .card-header .text-muted {
+  line-height: 1.35;
+}
+.hq-default-comm-policy-table .hq-def-comm-th-upd {
+  width: 11rem;
 }

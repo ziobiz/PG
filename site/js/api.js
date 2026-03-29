@@ -50,6 +50,43 @@
     sessionStorage.removeItem(AUTH_FLAG_KEY);
   }
 
+  /**
+   * JSON이 아닌 HTML(프록시 502/413, 옛 JAR에 없는 경로 등)이 와도 throw 대신 읽을 수 있는 메시지로 변환.
+   */
+  function fetchTextThenJson(url, init, badParseHead) {
+    init = init || {};
+    if (init.credentials === undefined) init.credentials = 'omit';
+    if (init.mode === undefined) init.mode = 'cors';
+    return fetch(url, init).then(function (res) {
+      return res.text().then(function (text) {
+        if (res.status === 401) {
+          clearAuth();
+          if (typeof window.location !== 'undefined') window.location.replace((window.location.origin || '') + '/login.html');
+          return Promise.reject(new Error('인증이 만료되었습니다. 다시 로그인하세요.'));
+        }
+        var data;
+        try {
+          data = text ? JSON.parse(text) : {};
+        } catch (e1) {
+          var flat = text ? String(text).replace(/<script[^>]*>[\s\S]*?<\/script>/gi, ' ').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 200) : '';
+          var head = badParseHead || '서버 응답이 JSON이 아닙니다.';
+          return Promise.reject(new Error(head + ' HTTP ' + res.status + (flat ? (' — ' + flat) : '') + ' (최신 pg-app 배포·Nginx 용량·502 등 확인)'));
+        }
+        if (!res.ok) {
+          var hint = (data && data.message) ? data.message : (text ? String(text).slice(0, 120) : '');
+          return Promise.reject(new Error('API 오류 HTTP ' + res.status + (hint ? ': ' + hint : '')));
+        }
+        return data;
+      });
+    }).catch(function (err) {
+      var msg = (err && err.message) ? err.message : '';
+      if (msg === 'Failed to fetch' || msg.indexOf('NetworkError') !== -1 || msg.indexOf('Load failed') !== -1 || msg === 'Network request failed') {
+        return Promise.reject(new Error('API에 연결하지 못했습니다. 요청: ' + url));
+      }
+      return Promise.reject(err);
+    });
+  }
+
   function request(options) {
     var base = getBaseUrl();
     var path = options.path || options.url || '';
@@ -105,7 +142,10 @@
       if (msg === 'Failed to fetch' || msg.indexOf('NetworkError') !== -1 || msg.indexOf('Load failed') !== -1 || msg === 'Network request failed') {
         return Promise.reject(new Error(
           'API에 연결하지 못했습니다. 요청: ' + url +
-            ' — 최신 JAR 배포·ADMIN 로그인·브라우저 Network(CORS)를 확인하세요.'
+            ' — 브라우저 F12 Network에서 해당 요청이 빨간색인지 확인하세요. ' +
+            '카페24 등 정적 호스팅이면 응답 헤더 Content-Security-Policy의 connect-src에 https://api.icopay.co.kr 가 허용되는지, ' +
+            'Nginx 앞단이 OPTIONS·POST를 API로 전달하는지, SSL·방화벽을 점검하세요. ' +
+            '(이 메시지는 서버 로그인 검증 전 단계 오류이며, 본사/총판 포털 규칙과는 별개입니다.)'
         ));
       }
       return Promise.reject(err);
@@ -131,7 +171,11 @@
     getBaseUrl: getBaseUrl,
 
     login: function (username, password) {
-      return post('/api/auth/login', { username: username, password: password });
+      var ch = '';
+      try {
+        if (typeof location !== 'undefined' && location.host) ch = location.host;
+      } catch (e) {}
+      return post('/api/auth/login', { username: username, password: password, clientHost: ch });
     },
 
     /** 현재 토큰 기준 사용자·소속 업체 (업체정보조회 등) */
@@ -573,6 +617,18 @@
     hqDefaultCommissionTemplateDelete: function (scope) {
       return post('/api/hq/defaultCommission/template/delete', { scope: scope || '' }).then(function (r) { return r.data; });
     },
+    hqChargebackPolicyList: function () {
+      return get('/api/hq/chargebackPolicy/list').then(function (r) { return r.data || []; });
+    },
+    hqChargebackPolicyDetail: function (id) {
+      return get('/api/hq/chargebackPolicy/' + encodeURIComponent(id)).then(function (r) { return r.data; });
+    },
+    hqChargebackPolicySave: function (body) {
+      return post('/api/hq/chargebackPolicy/save', body || {}).then(function (r) { return r.data; });
+    },
+    hqChargebackPolicyDelete: function (id) {
+      return post('/api/hq/chargebackPolicy/delete', { id: id }).then(function (r) { return r.data; });
+    },
     hqApiConfig: function () {
       return get('/api/hq/apiConfig').then(function (r) { return r.data; });
     },
@@ -587,6 +643,9 @@
     },
     hqDomainConfigOrgSave: function (body) {
       return post('/api/hq/domainConfig/orgSave', body || {}).then(function (r) { return r.data; });
+    },
+    hqDomainConfigOrgDelete: function (body) {
+      return post('/api/hq/domainConfig/orgDelete', body || {}).then(function (r) { return r.data; });
     },
     hqServerManage: function () {
       return get('/api/hq/serverManage').then(function (r) { return r.data; });
@@ -632,11 +691,16 @@
     hqOrgViewColumnRegionalBranches: function () {
       return get('/api/hq/orgViewColumnAllowance/regionalBranches').then(function (r) { return r.data || []; });
     },
-    hqOrgViewColumnAllowanceGet: function (regionalOrgCode, pageUrl) {
-      return get('/api/hq/orgViewColumnAllowance', {
+    hqOrgViewColumnAllowanceList: function (regionalOrgCode) {
+      return get('/api/hq/orgViewColumnAllowance/list', { regionalOrgCode: regionalOrgCode || '' }).then(function (r) { return r.data || []; });
+    },
+    hqOrgViewColumnAllowanceGet: function (regionalOrgCode, pageUrl, viewerScope) {
+      var params = {
         regionalOrgCode: regionalOrgCode || '',
         pageUrl: pageUrl || ''
-      }).then(function (r) { return r.data; });
+      };
+      if (viewerScope) params.viewerScope = viewerScope;
+      return get('/api/hq/orgViewColumnAllowance', params).then(function (r) { return r.data; });
     },
     hqOrgViewColumnAllowanceSave: function (body) {
       return post('/api/hq/orgViewColumnAllowance/save', body || {}).then(function (r) { return r.data; });
@@ -660,6 +724,9 @@
     hqOrgUnitPermissionSave: function (body) {
       return post('/api/hq/orgUnitPermission/save', body || {}).then(function (r) { return r.data; });
     },
+    hqOrgUnitAssistantPermissionSave: function (body) {
+      return post('/api/hq/orgUnitAssistantPermission/save', body || {}).then(function (r) { return r.data; });
+    },
     hqAccountAccessList: function (params) {
       return get('/api/hq/accountAccess', params || {}).then(function (r) {
         var d = r.data || r;
@@ -680,13 +747,18 @@
       return del('/api/hq/accountAccess/' + encodeURIComponent(id)).then(function (r) { return r.data || r; });
     },
 
+    /** 본사·총판 관리자(웹) URL 호스트와 일치하는 포털 + 브랜딩 (로그인·비밀번호 설정 페이지용) */
+    orgPortalByHost: function (host) {
+      var h = host || '';
+      var base = getBaseUrl();
+      var url = base + '/api/public/org/portalByHost?host=' + encodeURIComponent(h);
+      return fetchTextThenJson(url, { method: 'GET', headers: { 'Accept': 'application/json' }, credentials: 'same-origin' }, '포털(host) 조회 응답이 JSON이 아닙니다.');
+    },
     /** 본사/총판 브랜딩 - 로그인 페이지용 (인증 불필요) */
     orgBrandingPublic: function (compId) {
-      var params = compId ? { compId: compId } : {};
       var base = getBaseUrl();
       var url = base + '/api/public/org/branding' + (compId ? '?compId=' + encodeURIComponent(compId) : '');
-      return fetch(url, { method: 'GET', headers: { 'Accept': 'application/json' }, credentials: 'same-origin' })
-        .then(function (r) { return r.json(); })
+      return fetchTextThenJson(url, { method: 'GET', headers: { 'Accept': 'application/json' }, credentials: 'same-origin' }, '공개 브랜딩 조회 응답이 JSON이 아닙니다.')
         .then(function (r) { return r.data || r; });
     },
     /** 본사/총판 브랜딩 조회 */
@@ -701,13 +773,13 @@
       fd.append('compId', compId);
       fd.append('imageType', imageType);
       fd.append('file', file);
-      var headers = {};
+      var headers = { 'Accept': 'application/json' };
       if (token) headers['Authorization'] = 'Bearer ' + token;
-      return fetch(base + '/api/org/branding/upload', {
+      return fetchTextThenJson(base + '/api/org/branding/upload', {
         method: 'POST',
         headers: headers,
         body: fd
-      }).then(function (r) { return r.json(); }).then(function (r) {
+      }, '브랜딩 이미지 업로드 응답이 JSON이 아닙니다. 운영 서버에 최신 API가 배포됐는지, Nginx client_max_body_size(용량)를 확인하세요.').then(function (r) {
         if (r && r.success === false) throw new Error(r.message || '브랜딩 업로드 실패');
         return r.data || r;
       });
@@ -722,11 +794,11 @@
       params.set('compId', compId);
       params.set('theme', theme || 'DEFAULT');
       if (typeof brandHost === 'string') params.set('brandHost', brandHost);
-      return fetch(base + '/api/org/branding/save', {
+      return fetchTextThenJson(base + '/api/org/branding/save', {
         method: 'POST',
         headers: headers,
         body: params
-      }).then(function (r) { return r.json(); }).then(function (r) {
+      }, '브랜딩(테마) 저장 응답이 JSON이 아닙니다.').then(function (r) {
         if (r && r.success === false) throw new Error(r.message || '브랜딩 저장 실패');
         return r.data || r;
       });

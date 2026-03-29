@@ -164,13 +164,14 @@
       }
     })();
   </script>
-  <script src="js/api.js?v=10"></script>
+  <script src="js/api.js?v=11"></script>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
   <script>
     (function () {
       var origin = window.location.origin || '';
       var apiBase = typeof window.PG_assetApiBase === 'function' ? window.PG_assetApiBase() : ((window.PG_API_BASE || '').replace(/\/$/, '') || origin);
       var compId = (typeof URLSearchParams !== 'undefined' && new URLSearchParams(window.location.search).get('org')) || '';
+      var loginHost = (window.location && window.location.host) ? window.location.host : '';
 
       function applyBranding(b) {
         var mainBg = document.getElementById('loginMainBg');
@@ -192,9 +193,33 @@
         document.body.className = 'theme-' + theme.toLowerCase();
       }
 
-      if (window.PG_API && window.PG_API.orgBrandingPublic) {
-        window.PG_API.orgBrandingPublic(compId).then(applyBranding).catch(function () {});
+      function applyPortalAndBranding() {
+        var chain = Promise.resolve();
+        if (!compId && loginHost && window.PG_API && window.PG_API.orgPortalByHost) {
+          chain = window.PG_API.orgPortalByHost(loginHost).then(function (res) {
+            var payload = res && res.data !== undefined ? res.data : res;
+            if (payload && payload.matched && payload.compId) {
+              compId = String(payload.compId);
+              if (payload.compNm) {
+                var mt = document.getElementById('loginMainText');
+                if (mt) mt.textContent = String(payload.compNm);
+                try { document.title = String(payload.compNm) + ' · 로그인'; } catch (e1) {}
+              }
+              if (payload.branding && typeof payload.branding === 'object') {
+                applyBranding(payload.branding);
+              }
+            }
+          }).catch(function () {});
+        }
+        chain.then(function () {
+          if (window.PG_API && window.PG_API.orgBrandingPublic) {
+            return window.PG_API.orgBrandingPublic(compId).then(function (b) {
+              if (b) applyBranding(b);
+            });
+          }
+        }).catch(function () {});
       }
+      applyPortalAndBranding();
 
       var AUTH_KEY = 'pg_admin_auth';
       if (sessionStorage.getItem(AUTH_KEY) || sessionStorage.getItem('pg_admin_token')) {
@@ -254,6 +279,7 @@
           if (resData.role) u.role = resData.role;
           if (resData.pagePermissions) u.pagePermissions = resData.pagePermissions;
           if (resData.canWriteNotice !== undefined) u.canWriteNotice = !!resData.canWriteNotice;
+          if (resData.brandingCompId) u.brandingCompId = resData.brandingCompId;
           api.setAuth(resData.token, u);
         }
         window.location.replace((origin || '') + '/index.html');
@@ -309,6 +335,7 @@
         var u = { loginId: p.data.userId, userId: p.data.userId, userNm: p.data.userNm || p.userId, orgUnitId: p.data.orgUnitId, compId: p.data.compId, orgLevel: p.data.orgLevel };
         if (p.data.role) u.role = p.data.role;
         if (p.data.pagePermissions) u.pagePermissions = p.data.pagePermissions;
+        if (p.data.brandingCompId) u.brandingCompId = p.data.brandingCompId;
         api.setAuth(p.data.token, u);
         api.authChangePassword(p.userPwd, n1, n2).then(function () {
           loginPending = null;

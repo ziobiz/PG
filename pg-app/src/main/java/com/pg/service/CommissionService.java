@@ -28,6 +28,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -248,6 +249,21 @@ public class CommissionService {
                 m.put("refundRate", policy.getRefundRate());
                 m.put("rollingPct", policy.getRollingPct());
                 m.put("rollingDays", policy.getRollingDays());
+                m.put("fee3dsRate", policy.getFee3dsRate());
+                m.put("chargebackFeePerTx", policy.getChargebackFeePerTx());
+                m.put("chargebackPolicyId", policy.getChargebackPolicyId());
+                m.put("extraFee1Name", policy.getExtraFee1Name());
+                m.put("extraFee1Mode", policy.getExtraFee1Mode());
+                m.put("extraFee1Value", policy.getExtraFee1Value());
+                m.put("extraFee2Name", policy.getExtraFee2Name());
+                m.put("extraFee2Mode", policy.getExtraFee2Mode());
+                m.put("extraFee2Value", policy.getExtraFee2Value());
+                m.put("extraFee3Name", policy.getExtraFee3Name());
+                m.put("extraFee3Mode", policy.getExtraFee3Mode());
+                m.put("extraFee3Value", policy.getExtraFee3Value());
+                m.put("extraFee4Name", policy.getExtraFee4Name());
+                m.put("extraFee4Mode", policy.getExtraFee4Mode());
+                m.put("extraFee4Value", policy.getExtraFee4Value());
             }
             merchantCommissionExtraRepository.findByOrgUnitId(ou.getId()).ifPresent(ex -> {
                 m.put("feeAccountActivation", ex.getFeeAccountActivation());
@@ -294,6 +310,20 @@ public class CommissionService {
             if (body.get("rollingDays") != null && !body.get("rollingDays").toString().isEmpty()) {
                 policy.setRollingDays(Integer.parseInt(body.get("rollingDays").toString()));
             }
+            setBd(policy::setFee3dsRate, body.get("fee3dsRate"));
+            setBd(policy::setChargebackFeePerTx, body.get("chargebackFeePerTx"));
+            if (body.get("chargebackPolicyId") != null) {
+                String cp = body.get("chargebackPolicyId").toString().trim();
+                if (cp.isEmpty()) {
+                    policy.setChargebackPolicyId(null);
+                } else {
+                    try {
+                        policy.setChargebackPolicyId(Long.parseLong(cp));
+                    } catch (Exception ignored) {
+                    }
+                }
+            }
+            applyExtraFeesFromCommissionBody(policy, body);
             commissionPolicyRepository.save(policy);
 
             MerchantCommissionExtra extra = merchantCommissionExtraRepository.findByOrgUnitId(ou.getId())
@@ -420,5 +450,105 @@ public class CommissionService {
         pr.setTotalElements(total);
         pr.setTotalPages(sz <= 0 ? 1 : (int) Math.ceil((double) Math.max(0, total) / sz));
         return pr;
+    }
+
+    private void applyExtraFeesFromCommissionBody(CommissionPolicy p, Map<String, Object> body) {
+        for (int i = 1; i <= 4; i++) {
+            applyOneExtraFromBody(p, i, body);
+        }
+    }
+
+    private void applyOneExtraFromBody(CommissionPolicy p, int slot, Map<String, Object> body) {
+        String nk = "extraFee" + slot + "Name";
+        String mk = "extraFee" + slot + "Mode";
+        String vk = "extraFee" + slot + "Value";
+        String name = body.get(nk) != null ? body.get(nk).toString().trim() : "";
+        String modeNorm = normalizeExtraFeeMode(body.get(mk) != null ? body.get(mk).toString() : null);
+        BigDecimal val = parseBdExtra(body.get(vk));
+        if (name.isEmpty() || modeNorm == null) {
+            clearCommissionExtraSlot(p, slot);
+            return;
+        }
+        String trimmed = name.length() > 64 ? name.substring(0, 64) : name;
+        setCommissionExtraSlot(p, slot, trimmed, modeNorm, val);
+    }
+
+    private static BigDecimal parseBdExtra(Object o) {
+        if (o == null || o.toString().isBlank()) {
+            return BigDecimal.ZERO;
+        }
+        try {
+            return new BigDecimal(o.toString().trim());
+        } catch (Exception e) {
+            return BigDecimal.ZERO;
+        }
+    }
+
+    private static String normalizeExtraFeeMode(String raw) {
+        if (raw == null || raw.isBlank()) {
+            return null;
+        }
+        String u = raw.trim().toUpperCase(Locale.ROOT);
+        if ("PCT".equals(u) || "%".equals(u)) {
+            return "PCT";
+        }
+        if ("FIX".equals(u) || "고정".equals(u)) {
+            return "FIX";
+        }
+        return null;
+    }
+
+    private static void clearCommissionExtraSlot(CommissionPolicy p, int slot) {
+        switch (slot) {
+            case 1 -> {
+                p.setExtraFee1Name(null);
+                p.setExtraFee1Mode(null);
+                p.setExtraFee1Value(null);
+            }
+            case 2 -> {
+                p.setExtraFee2Name(null);
+                p.setExtraFee2Mode(null);
+                p.setExtraFee2Value(null);
+            }
+            case 3 -> {
+                p.setExtraFee3Name(null);
+                p.setExtraFee3Mode(null);
+                p.setExtraFee3Value(null);
+            }
+            case 4 -> {
+                p.setExtraFee4Name(null);
+                p.setExtraFee4Mode(null);
+                p.setExtraFee4Value(null);
+            }
+            default -> {
+            }
+        }
+    }
+
+    private static void setCommissionExtraSlot(CommissionPolicy p, int slot, String name, String mode, BigDecimal val) {
+        switch (slot) {
+            case 1 -> {
+                p.setExtraFee1Name(name);
+                p.setExtraFee1Mode(mode);
+                p.setExtraFee1Value(val);
+            }
+            case 2 -> {
+                p.setExtraFee2Name(name);
+                p.setExtraFee2Mode(mode);
+                p.setExtraFee2Value(val);
+            }
+            case 3 -> {
+                p.setExtraFee3Name(name);
+                p.setExtraFee3Mode(mode);
+                p.setExtraFee3Value(val);
+            }
+            case 4 -> {
+                p.setExtraFee4Name(name);
+                p.setExtraFee4Mode(mode);
+                p.setExtraFee4Value(val);
+            }
+            default -> {
+            }
+        }
     }
 }

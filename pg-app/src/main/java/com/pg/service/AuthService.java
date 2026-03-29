@@ -14,9 +14,11 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.net.URI;
 import java.time.Instant;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
@@ -32,21 +34,29 @@ public class AuthService {
     private final MerchantProfileRepository merchantProfileRepository;
     private final OrgUnitRepository orgUnitRepository;
     private final OrgPagePermissionService orgPagePermissionService;
+    private final OrgPortalHostService orgPortalHostService;
 
     public AuthService(UserRepository userRepository, AuthTokenRepository authTokenRepository,
                        PasswordEncoder passwordEncoder, MerchantProfileRepository merchantProfileRepository,
                        OrgUnitRepository orgUnitRepository,
-                       @Lazy OrgPagePermissionService orgPagePermissionService) {
+                       @Lazy OrgPagePermissionService orgPagePermissionService,
+                       OrgPortalHostService orgPortalHostService) {
         this.userRepository = userRepository;
         this.authTokenRepository = authTokenRepository;
         this.passwordEncoder = passwordEncoder;
         this.merchantProfileRepository = merchantProfileRepository;
         this.orgUnitRepository = orgUnitRepository;
         this.orgPagePermissionService = orgPagePermissionService;
+        this.orgPortalHostService = orgPortalHostService;
     }
 
     @Transactional
     public Optional<LoginResponse> login(String username, String password) {
+        return login(username, password, null);
+    }
+
+    @Transactional
+    public Optional<LoginResponse> login(String username, String password, String clientHost) {
         Optional<AppUser> userOpt = userRepository.findByUsername(username);
         if (userOpt.isEmpty()) return Optional.empty();
         AppUser user = userOpt.get();
@@ -55,6 +65,9 @@ public class AuthService {
         String ust = user.getUserStatus();
         if (ust != null && !ust.isBlank() && !"ACTIVE".equalsIgnoreCase(ust.trim()))
             return Optional.empty();
+        if (!loginHostAllowedForUser(user, clientHost)) {
+            return Optional.empty();
+        }
         String token = UUID.randomUUID().toString().replace("-", "");
         AuthToken at = new AuthToken();
         at.setToken(token);
@@ -69,12 +82,19 @@ public class AuthService {
         merchantProfileRepository.findByLoginId(username)
                 .map(mp -> orgUnitRepository.findById(mp.getOrgUnitId()))
                 .filter(Optional::isPresent)
-                .map(o -> o.get())
+                .map(Optional::get)
                 .ifPresent(ou -> {
                     res.setOrgUnitId(ou.getId());
                     res.setCompId(ou.getCode());
                     res.setOrgLevel(ou.getOrgLevel() != null ? ou.getOrgLevel().name() : null);
                 });
+        if (res.getCompId() == null) {
+            resolveOrgUnitForLoginId(username).ifPresent(ou -> {
+                res.setOrgUnitId(ou.getId());
+                res.setCompId(ou.getCode());
+                res.setOrgLevel(ou.getOrgLevel() != null ? ou.getOrgLevel().name() : null);
+            });
+        }
         if (res.getCompId() == null && "ADMIN".equalsIgnoreCase(user.getRole())) {
             firstHeadquartersOrg().ifPresent(headquarters -> {
                 res.setOrgUnitId(headquarters.getId());
@@ -85,6 +105,13 @@ public class AuthService {
         res.setMustChangePassword("Y".equalsIgnoreCase(user.getPasswordMustChangeYn()));
         res.setPagePermissions(orgPagePermissionService.resolvePagePermissionsForUser(user));
         res.setCanWriteNotice(orgPagePermissionService.canWriteNotice(user));
+        if (clientHost != null && !clientHost.isBlank()) {
+            orgPortalHostService.findPortalOrgByAdminWebHost(clientHost.trim()).ifPresent(portal -> {
+                if (portal.getCode() != null && !portal.getCode().isBlank()) {
+                    res.setBrandingCompId(portal.getCode().trim());
+                }
+            });
+        }
         return Optional.of(res);
     }
 
@@ -175,6 +202,83 @@ public class AuthService {
                 .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
         user.setName(nn);
         userRepository.save(user);
+    }
+
+    /**
+     * 호스트별 로그인 허용:
+     * <ul>
+     *   <li>본사(REGIONAL) 포털: 그 본사 조직에 <strong>직접</strong> 소속된 계정만 (하위 총판·가맹점 계정 불가).</li>
+     *   <li>총판(MASTER_DIST) 포털: 총판 및 그 하위(지사·대리점·영업점·가맹점)만. 총본사·본사 소속 불가.</li>
+     *   <li>그 외 포털: 기존처럼 포털 루트 하위 서브트리.</li>
+     *   <li>포털 미매칭(예: api.icopay.co.kr): 사용자 소속 조직의 관리자 URL 호스트와 비교(미설정이면 통과).</li>
+     * </ul>
+     * ADMIN·clientHost 미전달은 검사 생략.
+     */
+    private boolean loginHostAllowedForUser(AppUser user, String clientHost) {
+        if (user == null) {
+            return false;
+        }
+        if ("ADMIN".equalsIgnoreCase(user.getRole())) {
+            return true;
+        }
+        if (clientHost == null || clientHost.isBlank()) {
+            return true;
+        }
+        Optional<OrgUnit> portalOpt = orgPortalHostService.findPortalOrgByAdminWebHost(clientHost.trim());
+        Optional<OrgUnit> userOuOpt = resolveOrgUnitForLoginId(user.getUsername());
+        if (portalOpt.isPresent()) {
+            OrgUnit portal = portalOpt.get();
+            if (userOuOpt.isEmpty()) {
+                return false;
+            }
+            OrgUnit userOu = userOuOpt.get();
+            if (portal.getOrgLevel() == OrgLevel.REGIONAL) {
+                return userOu.getId() != null && portal.getId() != null && userOu.getId().equals(portal.getId());
+            }
+            if (portal.getOrgLevel() == OrgLevel.MASTER_DIST) {
+                OrgLevel ul = userOu.getOrgLevel();
+                if (ul == OrgLevel.HEADQUARTERS || ul == OrgLevel.REGIONAL) {
+                    return false;
+                }
+                return orgPortalHostService.userOrgBelongsToPortalSubtree(userOu, portal);
+            }
+            return orgPortalHostService.userOrgBelongsToPortalSubtree(userOu, portal);
+        }
+        if (userOuOpt.isEmpty()) {
+            return true;
+        }
+        String adminUrl = userOuOpt.get().getOrgDomainAdminUrl();
+        if (adminUrl == null || adminUrl.isBlank()) {
+            return true;
+        }
+        String expected = hostFromConfiguredUrl(adminUrl.trim());
+        if (expected == null || expected.isBlank()) {
+            return true;
+        }
+        return hostsMatch(expected, clientHost.trim());
+    }
+
+    private static String hostFromConfiguredUrl(String urlStr) {
+        try {
+            String u = urlStr.contains("://") ? urlStr : "https://" + urlStr;
+            URI uri = URI.create(u);
+            return uri.getHost() != null ? uri.getHost().trim().toLowerCase(Locale.ROOT) : null;
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    private static String hostOnlyFromClient(String clientHost) {
+        String t = clientHost.trim().toLowerCase(Locale.ROOT);
+        int colon = t.indexOf(':');
+        if (colon > 0) {
+            return t.substring(0, colon);
+        }
+        return t;
+    }
+
+    private static boolean hostsMatch(String expectedHost, String clientHost) {
+        return expectedHost.equalsIgnoreCase(hostOnlyFromClient(clientHost));
     }
 
     /** 시드·운영에서 총본사가 여러 건이면 코드 순 첫 건 */

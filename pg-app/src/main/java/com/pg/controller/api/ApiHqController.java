@@ -2,16 +2,20 @@ package com.pg.controller.api;
 
 import com.pg.api.ApiResponse;
 import com.pg.api.dto.PageResult;
+import com.pg.entity.ChargebackFeePolicy;
+import com.pg.entity.ChargebackFeeTier;
 import com.pg.entity.CommissionPolicy;
 import com.pg.entity.HqApiConfig;
 import com.pg.entity.OrgLevel;
 import com.pg.entity.OrgUnit;
 import com.pg.entity.PgAgency;
+import com.pg.repository.ChargebackFeePolicyRepository;
 import com.pg.repository.CommissionPolicyRepository;
 import com.pg.repository.HqApiConfigRepository;
 import com.pg.repository.OrgUnitRepository;
 import com.pg.repository.PgAgencyRepository;
 import com.pg.entity.AppUser;
+import com.pg.service.AuthService;
 import com.pg.service.HolidayPresetService;
 import com.pg.service.HqServerManageService;
 import com.pg.service.OrgPagePermissionService;
@@ -38,6 +42,7 @@ public class ApiHqController {
     private static final String TEMPLATE_SCOPE_PREFIX = "HQPOL:";
 
     private final CommissionPolicyRepository commissionPolicyRepository;
+    private final ChargebackFeePolicyRepository chargebackFeePolicyRepository;
     private final HqApiConfigRepository hqApiConfigRepository;
     private final PgAgencyRepository pgAgencyRepository;
     private final HolidayPresetService holidayPresetService;
@@ -45,16 +50,20 @@ public class ApiHqController {
     private final HqServerManageService hqServerManageService;
     private final ServerUsageService serverUsageService;
     private final OrgUnitRepository orgUnitRepository;
+    private final AuthService authService;
 
     public ApiHqController(CommissionPolicyRepository commissionPolicyRepository,
+                           ChargebackFeePolicyRepository chargebackFeePolicyRepository,
                            HqApiConfigRepository hqApiConfigRepository,
                            PgAgencyRepository pgAgencyRepository,
                            HolidayPresetService holidayPresetService,
                            OrgPagePermissionService orgPagePermissionService,
                            HqServerManageService hqServerManageService,
                            ServerUsageService serverUsageService,
-                           OrgUnitRepository orgUnitRepository) {
+                           OrgUnitRepository orgUnitRepository,
+                           AuthService authService) {
         this.commissionPolicyRepository = commissionPolicyRepository;
+        this.chargebackFeePolicyRepository = chargebackFeePolicyRepository;
         this.hqApiConfigRepository = hqApiConfigRepository;
         this.pgAgencyRepository = pgAgencyRepository;
         this.holidayPresetService = holidayPresetService;
@@ -62,6 +71,7 @@ public class ApiHqController {
         this.hqServerManageService = hqServerManageService;
         this.serverUsageService = serverUsageService;
         this.orgUnitRepository = orgUnitRepository;
+        this.authService = authService;
     }
 
     private static PageResult<Map<String, Object>> emptyPage(int page, int size) {
@@ -187,6 +197,8 @@ public class ApiHqController {
             data.put("policyRemark", p.getPolicyRemark() != null ? p.getPolicyRemark() : "");
             data.put("fee3dsRate", p.getFee3dsRate() != null ? p.getFee3dsRate().toPlainString() : "0");
             data.put("chargebackFeePerTx", p.getChargebackFeePerTx() != null ? p.getChargebackFeePerTx().toPlainString() : "0");
+            data.put("chargebackPolicyId", p.getChargebackPolicyId() != null ? p.getChargebackPolicyId() : "");
+            putExtraFeeScalarsOnMap(data, p);
         });
         if (!data.containsKey("payRate")) {
             data.put("perTxFee", "0"); data.put("usageRate", "0"); data.put("failFee", "0");
@@ -197,11 +209,36 @@ public class ApiHqController {
             data.put("policyRemark", "");
             data.put("fee3dsRate", "0");
             data.put("chargebackFeePerTx", "0");
+            data.put("chargebackPolicyId", "");
+            putExtraFeeScalarsOnMap(data, null);
+        }
+        Map<Long, String> chargebackNames = chargebackFeePolicyRepository.findAllByOrderByNameAsc().stream()
+                .collect(Collectors.toMap(ChargebackFeePolicy::getId, ChargebackFeePolicy::getName, (a, b) -> a));
+        List<Map<String, Object>> cbOpts = chargebackFeePolicyRepository.findAllByOrderByNameAsc().stream()
+                .map(p -> {
+                    Map<String, Object> o = new LinkedHashMap<>();
+                    o.put("id", p.getId());
+                    o.put("name", p.getName() != null ? p.getName() : "");
+                    o.put("currencyCode", p.getCurrencyCode() != null ? p.getCurrencyCode() : "KRW");
+                    return o;
+                })
+                .toList();
+        data.put("chargebackPolicyOptions", cbOpts);
+        Object cpidObj = data.get("chargebackPolicyId");
+        if (cpidObj != null && !cpidObj.toString().isBlank()) {
+            try {
+                long cid = Long.parseLong(cpidObj.toString().trim());
+                data.put("chargebackPolicyName", chargebackNames.getOrDefault(cid, ""));
+            } catch (NumberFormatException e) {
+                data.put("chargebackPolicyName", "");
+            }
+        } else {
+            data.put("chargebackPolicyName", "");
         }
         List<Map<String, Object>> templates = commissionPolicyRepository
                 .findByScopeStartingWithOrderByScopeAsc(TEMPLATE_SCOPE_PREFIX)
                 .stream()
-                .map(this::policyToMap)
+                .map(p -> enrichPolicyMapWithChargebackName(policyToMap(p), p.getChargebackPolicyId(), chargebackNames))
                 .toList();
         data.put("templates", templates);
         String deployedScope = commissionPolicyRepository
@@ -209,7 +246,7 @@ public class ApiHqController {
                 .map(CommissionPolicy::getScope)
                 .orElse("");
         data.put("deployedTemplateScope", deployedScope);
-        data.put("memo", "건당/취소/이용/실패/결제/환불 수수료 차감 후, 롤링(담보금)%를 N일간 보류하고 정산 주기에 지급.");
+        data.put("memo", "결제·USDT·FX·3DS는 승인금액 기준 %(통화별 절사·표시는 정책 통화코드 기준). 건당·실패·정산·차지백·취소·환불은 통화코드 단위 건당 금액입니다(취소·환불은 해당 상태 거래 건수만큼 합산). 차지백 구간정책을 선택하면 월간 환불·강제환불(30·31) 건수로 구간별 건당액을 씁니다(미선택 시 건당 차지백만). 월간이용료는 해당 월 정산 최초 실행 시 1회 부과합니다. 기타 수수료(최대 4건): %는 승인 건별, 고정은 정산 1회 합산. 차감 후 롤링(담보금)%를 N일간 보류하고 정산 주기에 지급합니다.");
         return ResponseEntity.ok(ApiResponse.ok(data));
     }
 
@@ -245,6 +282,8 @@ public class ApiHqController {
         p.setPolicyRemark(hqStr(body, "policyRemark"));
         p.setFee3dsRate(toBigDecimal(body.get("fee3dsRate")));
         p.setChargebackFeePerTx(toBigDecimal(body.get("chargebackFeePerTx")));
+        p.setChargebackPolicyId(parseOptionalPolicyLong(body.get("chargebackPolicyId")));
+        applyExtraFeesFromBody(p, body);
         commissionPolicyRepository.save(p);
         if (scope.startsWith(TEMPLATE_SCOPE_PREFIX) && "Y".equalsIgnoreCase(p.getDeployYn())) {
             // 다른 템플릿 deploy 해제
@@ -268,9 +307,11 @@ public class ApiHqController {
 
     @GetMapping("/defaultCommission/templateOptions")
     public ResponseEntity<ApiResponse<List<Map<String, Object>>>> defaultCommissionTemplateOptions() {
+        Map<Long, String> chargebackNames = chargebackFeePolicyRepository.findAllByOrderByNameAsc().stream()
+                .collect(Collectors.toMap(ChargebackFeePolicy::getId, ChargebackFeePolicy::getName, (a, b) -> a));
         List<Map<String, Object>> list = commissionPolicyRepository.findByScopeStartingWithOrderByScopeAsc(TEMPLATE_SCOPE_PREFIX)
                 .stream()
-                .map(this::policyToMap)
+                .map(po -> enrichPolicyMapWithChargebackName(policyToMap(po), po.getChargebackPolicyId(), chargebackNames))
                 .toList();
         return ResponseEntity.ok(ApiResponse.ok(list));
     }
@@ -336,7 +377,177 @@ public class ApiHqController {
         m.put("feeFx", p.getFeeFx() != null ? p.getFeeFx().toString() : "0");
         m.put("rollingPct", p.getRollingPct() != null ? p.getRollingPct().toString() : "0");
         m.put("rollingDays", p.getRollingDays() != null ? p.getRollingDays() : 180);
+        m.put("currencyCode", p.getCurrencyCode() != null && !p.getCurrencyCode().isBlank() ? p.getCurrencyCode() : "KRW");
+        m.put("policyRemark", p.getPolicyRemark() != null ? p.getPolicyRemark() : "");
+        m.put("fee3dsRate", p.getFee3dsRate() != null ? p.getFee3dsRate().toPlainString() : "0");
+        m.put("chargebackFeePerTx", p.getChargebackFeePerTx() != null ? p.getChargebackFeePerTx().toPlainString() : "0");
+        m.put("chargebackPolicyId", p.getChargebackPolicyId() != null ? p.getChargebackPolicyId() : "");
+        putExtraFeeScalarsOnMap(m, p);
+        m.put("updatedAt", p.getUpdatedAt() != null ? p.getUpdatedAt().toString() : "");
         return m;
+    }
+
+    private static Map<String, Object> enrichPolicyMapWithChargebackName(Map<String, Object> m, Long chargebackPolicyId,
+                                                                          Map<Long, String> names) {
+        if (chargebackPolicyId != null && names != null && names.containsKey(chargebackPolicyId)) {
+            m.put("chargebackPolicyName", names.get(chargebackPolicyId));
+        } else {
+            m.put("chargebackPolicyName", "");
+        }
+        return m;
+    }
+
+    private static Long parseOptionalPolicyLong(Object o) {
+        if (o == null) {
+            return null;
+        }
+        String s = o.toString().trim();
+        if (s.isEmpty() || "null".equalsIgnoreCase(s)) {
+            return null;
+        }
+        try {
+            long v = Long.parseLong(s);
+            return v > 0 ? v : null;
+        } catch (NumberFormatException e) {
+            return null;
+        }
+    }
+
+    private static void putExtraFeeScalarsOnMap(Map<String, Object> data, CommissionPolicy p) {
+        for (int i = 1; i <= 4; i++) {
+            String name = "";
+            String mode = "";
+            String val = "0";
+            if (p != null) {
+                switch (i) {
+                    case 1 -> {
+                        name = nzStr(p.getExtraFee1Name());
+                        mode = nzStr(p.getExtraFee1Mode());
+                        val = extraValStr(p.getExtraFee1Value());
+                    }
+                    case 2 -> {
+                        name = nzStr(p.getExtraFee2Name());
+                        mode = nzStr(p.getExtraFee2Mode());
+                        val = extraValStr(p.getExtraFee2Value());
+                    }
+                    case 3 -> {
+                        name = nzStr(p.getExtraFee3Name());
+                        mode = nzStr(p.getExtraFee3Mode());
+                        val = extraValStr(p.getExtraFee3Value());
+                    }
+                    case 4 -> {
+                        name = nzStr(p.getExtraFee4Name());
+                        mode = nzStr(p.getExtraFee4Mode());
+                        val = extraValStr(p.getExtraFee4Value());
+                    }
+                    default -> {
+                    }
+                }
+            }
+            data.put("extraFee" + i + "Name", name);
+            data.put("extraFee" + i + "Mode", mode);
+            data.put("extraFee" + i + "Value", val);
+        }
+    }
+
+    private static String nzStr(String s) {
+        return s != null ? s : "";
+    }
+
+    private static String extraValStr(BigDecimal b) {
+        return b != null ? b.stripTrailingZeros().toPlainString() : "0";
+    }
+
+    private void applyExtraFeesFromBody(CommissionPolicy p, Map<String, Object> body) {
+        for (int i = 1; i <= 4; i++) {
+            applyExtraFeeSlot(p, i, body);
+        }
+    }
+
+    private void applyExtraFeeSlot(CommissionPolicy p, int slot, Map<String, Object> body) {
+        String nk = "extraFee" + slot + "Name";
+        String mk = "extraFee" + slot + "Mode";
+        String vk = "extraFee" + slot + "Value";
+        String name = hqStr(body, nk);
+        String modeNorm = normalizeExtraMode(hqStr(body, mk));
+        BigDecimal val = toBigDecimal(body.get(vk));
+        if (name == null || name.isBlank() || modeNorm == null) {
+            clearExtraFeeSlot(p, slot);
+            return;
+        }
+        String trimmed = name.trim();
+        if (trimmed.length() > 64) {
+            trimmed = trimmed.substring(0, 64);
+        }
+        setExtraFeeSlot(p, slot, trimmed, modeNorm, val);
+    }
+
+    private static String normalizeExtraMode(String raw) {
+        if (raw == null || raw.isBlank()) {
+            return null;
+        }
+        String u = raw.trim().toUpperCase(Locale.ROOT);
+        if ("PCT".equals(u) || "%".equals(u)) {
+            return "PCT";
+        }
+        if ("FIX".equals(u) || "고정".equals(u)) {
+            return "FIX";
+        }
+        return null;
+    }
+
+    private static void clearExtraFeeSlot(CommissionPolicy p, int slot) {
+        switch (slot) {
+            case 1 -> {
+                p.setExtraFee1Name(null);
+                p.setExtraFee1Mode(null);
+                p.setExtraFee1Value(null);
+            }
+            case 2 -> {
+                p.setExtraFee2Name(null);
+                p.setExtraFee2Mode(null);
+                p.setExtraFee2Value(null);
+            }
+            case 3 -> {
+                p.setExtraFee3Name(null);
+                p.setExtraFee3Mode(null);
+                p.setExtraFee3Value(null);
+            }
+            case 4 -> {
+                p.setExtraFee4Name(null);
+                p.setExtraFee4Mode(null);
+                p.setExtraFee4Value(null);
+            }
+            default -> {
+            }
+        }
+    }
+
+    private static void setExtraFeeSlot(CommissionPolicy p, int slot, String name, String mode, BigDecimal val) {
+        switch (slot) {
+            case 1 -> {
+                p.setExtraFee1Name(name);
+                p.setExtraFee1Mode(mode);
+                p.setExtraFee1Value(val);
+            }
+            case 2 -> {
+                p.setExtraFee2Name(name);
+                p.setExtraFee2Mode(mode);
+                p.setExtraFee2Value(val);
+            }
+            case 3 -> {
+                p.setExtraFee3Name(name);
+                p.setExtraFee3Mode(mode);
+                p.setExtraFee3Value(val);
+            }
+            case 4 -> {
+                p.setExtraFee4Name(name);
+                p.setExtraFee4Mode(mode);
+                p.setExtraFee4Value(val);
+            }
+            default -> {
+            }
+        }
     }
 
     private static void copyPolicyValues(CommissionPolicy src, CommissionPolicy dst) {
@@ -351,6 +562,23 @@ public class ApiHqController {
         dst.setFeeFx(src.getFeeFx());
         dst.setRollingPct(src.getRollingPct());
         dst.setRollingDays(src.getRollingDays());
+        dst.setCurrencyCode(src.getCurrencyCode());
+        dst.setPolicyRemark(src.getPolicyRemark());
+        dst.setFee3dsRate(src.getFee3dsRate());
+        dst.setChargebackFeePerTx(src.getChargebackFeePerTx());
+        dst.setChargebackPolicyId(src.getChargebackPolicyId());
+        dst.setExtraFee1Name(src.getExtraFee1Name());
+        dst.setExtraFee1Mode(src.getExtraFee1Mode());
+        dst.setExtraFee1Value(src.getExtraFee1Value());
+        dst.setExtraFee2Name(src.getExtraFee2Name());
+        dst.setExtraFee2Mode(src.getExtraFee2Mode());
+        dst.setExtraFee2Value(src.getExtraFee2Value());
+        dst.setExtraFee3Name(src.getExtraFee3Name());
+        dst.setExtraFee3Mode(src.getExtraFee3Mode());
+        dst.setExtraFee3Value(src.getExtraFee3Value());
+        dst.setExtraFee4Name(src.getExtraFee4Name());
+        dst.setExtraFee4Mode(src.getExtraFee4Mode());
+        dst.setExtraFee4Value(src.getExtraFee4Value());
     }
 
     private static BigDecimal toBigDecimal(Object o) {
@@ -359,6 +587,142 @@ public class ApiHqController {
             return new BigDecimal(o.toString().trim());
         } catch (Exception e) {
             return BigDecimal.ZERO;
+        }
+    }
+
+    /** 차지백(정산 후 환불·강제환불) 월간 건수 구간 정책 — 수수료 정책에서 선택해 연결 */
+    @GetMapping("/chargebackPolicy/list")
+    public ResponseEntity<ApiResponse<List<Map<String, Object>>>> chargebackPolicyList() {
+        List<Map<String, Object>> list = chargebackFeePolicyRepository.findAllByOrderByNameAsc().stream()
+                .map(p -> {
+                    Map<String, Object> m = new LinkedHashMap<>();
+                    m.put("id", p.getId());
+                    m.put("name", p.getName() != null ? p.getName() : "");
+                    m.put("currencyCode", p.getCurrencyCode() != null ? p.getCurrencyCode() : "KRW");
+                    m.put("remark", p.getRemark() != null ? p.getRemark() : "");
+                    m.put("updatedAt", p.getUpdatedAt() != null ? p.getUpdatedAt().toString() : "");
+                    return m;
+                })
+                .toList();
+        return ResponseEntity.ok(ApiResponse.ok(list));
+    }
+
+    @GetMapping("/chargebackPolicy/{id}")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> chargebackPolicyDetail(@PathVariable("id") long id) {
+        return chargebackFeePolicyRepository.findByIdWithTiers(id)
+                .map(p -> ResponseEntity.ok(ApiResponse.ok(chargebackPolicyToDetailMap(p))))
+                .orElseGet(() -> ResponseEntity.ok(ApiResponse.fail("차지백 정책을 찾을 수 없습니다.", "NOT_FOUND")));
+    }
+
+    @PostMapping("/chargebackPolicy/save")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> chargebackPolicySave(@RequestBody Map<String, Object> body) {
+        try {
+            ChargebackFeePolicy policy;
+            Object idObj = body.get("id");
+            if (idObj != null && !idObj.toString().isBlank()) {
+                long pid = Long.parseLong(idObj.toString().trim());
+                policy = chargebackFeePolicyRepository.findByIdWithTiers(pid)
+                        .orElseThrow(() -> new IllegalArgumentException("차지백 정책을 찾을 수 없습니다."));
+            } else {
+                policy = new ChargebackFeePolicy();
+            }
+            String name = hqStr(body, "name");
+            if (name == null || name.isBlank()) {
+                return ResponseEntity.ok(ApiResponse.fail("이름은 필수입니다.", "VALIDATION"));
+            }
+            policy.setName(name.trim());
+            policy.setRemark(hqStr(body, "remark"));
+            String cur = hqStr(body, "currencyCode");
+            if (cur == null || cur.isBlank()) {
+                policy.setCurrencyCode("KRW");
+            } else {
+                policy.setCurrencyCode(cur.trim().toUpperCase(Locale.ROOT));
+            }
+            policy.getTiers().clear();
+            @SuppressWarnings("unchecked")
+            List<Map<String, Object>> tierRows = (List<Map<String, Object>>) body.get("tiers");
+            if (tierRows != null) {
+                int idx = 0;
+                for (Map<String, Object> row : tierRows) {
+                    if (row == null) {
+                        continue;
+                    }
+                    ChargebackFeeTier t = new ChargebackFeeTier();
+                    t.setPolicy(policy);
+                    t.setSortOrder(parseTierInt(row.get("sortOrder"), idx));
+                    t.setCountMin(Math.max(0, parseTierInt(row.get("countMin"), 0)));
+                    t.setCountMax(parseTierNullableInt(row.get("countMax")));
+                    t.setFeePerCase(toBigDecimal(row.get("feePerCase")));
+                    policy.getTiers().add(t);
+                    idx++;
+                }
+            }
+            chargebackFeePolicyRepository.save(policy);
+            return ResponseEntity.ok(ApiResponse.ok(Map.of("id", policy.getId(), "message", "저장되었습니다.")));
+        } catch (NumberFormatException e) {
+            return ResponseEntity.ok(ApiResponse.fail("ID 형식이 올바르지 않습니다.", "VALIDATION"));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.ok(ApiResponse.fail(e.getMessage(), "VALIDATION"));
+        }
+    }
+
+    @PostMapping("/chargebackPolicy/delete")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> chargebackPolicyDelete(@RequestBody Map<String, Object> body) {
+        Object idObj = body.get("id");
+        if (idObj == null || idObj.toString().isBlank()) {
+            return ResponseEntity.ok(ApiResponse.fail("삭제할 ID가 없습니다.", "VALIDATION"));
+        }
+        try {
+            long id = Long.parseLong(idObj.toString().trim());
+            if (commissionPolicyRepository.countByChargebackPolicyId(id) > 0) {
+                return ResponseEntity.ok(ApiResponse.fail("이 차지백 정책을 사용 중인 수수료 템플릿이 있어 삭제할 수 없습니다.", "IN_USE"));
+            }
+            chargebackFeePolicyRepository.deleteById(id);
+            return ResponseEntity.ok(ApiResponse.ok(Map.of("message", "삭제되었습니다.")));
+        } catch (NumberFormatException e) {
+            return ResponseEntity.ok(ApiResponse.fail("ID 형식이 올바르지 않습니다.", "VALIDATION"));
+        }
+    }
+
+    private Map<String, Object> chargebackPolicyToDetailMap(ChargebackFeePolicy p) {
+        Map<String, Object> m = new LinkedHashMap<>();
+        m.put("id", p.getId());
+        m.put("name", p.getName() != null ? p.getName() : "");
+        m.put("currencyCode", p.getCurrencyCode() != null ? p.getCurrencyCode() : "KRW");
+        m.put("remark", p.getRemark() != null ? p.getRemark() : "");
+        List<Map<String, Object>> tiers = new ArrayList<>();
+        for (ChargebackFeeTier t : p.getTiers()) {
+            Map<String, Object> row = new LinkedHashMap<>();
+            row.put("id", t.getId());
+            row.put("sortOrder", t.getSortOrder());
+            row.put("countMin", t.getCountMin());
+            row.put("countMax", t.getCountMax());
+            row.put("feePerCase", t.getFeePerCase() != null ? t.getFeePerCase().toPlainString() : "0");
+            tiers.add(row);
+        }
+        m.put("tiers", tiers);
+        return m;
+    }
+
+    private static int parseTierInt(Object o, int defaultVal) {
+        if (o == null || o.toString().isBlank()) {
+            return defaultVal;
+        }
+        try {
+            return Integer.parseInt(o.toString().trim());
+        } catch (NumberFormatException e) {
+            return defaultVal;
+        }
+    }
+
+    private static Integer parseTierNullableInt(Object o) {
+        if (o == null || o.toString().isBlank()) {
+            return null;
+        }
+        try {
+            return Integer.parseInt(o.toString().trim());
+        } catch (NumberFormatException e) {
+            return null;
         }
     }
 
@@ -389,8 +753,12 @@ public class ApiHqController {
             if (c.getChillpaySandbox() != null) data.put("chillpaySandbox", c.getChillpaySandbox());
             if (c.getRecallIncludeFeeYn() != null) data.put("recallIncludeFeeYn", c.getRecallIncludeFeeYn());
             if (c.getSettlementVatApplyYn() != null) data.put("settlementVatApplyYn", c.getSettlementVatApplyYn());
-            if (c.getPublicAdminSiteUrl() != null) data.put("publicAdminSiteUrl", c.getPublicAdminSiteUrl());
-            if (c.getPublicApiBaseUrl() != null) data.put("publicApiBaseUrl", c.getPublicApiBaseUrl());
+            if (c.getPublicAdminSiteUrl() != null) {
+                data.put("publicAdminSiteUrl", hqHttpsUrlForDisplay(c.getPublicAdminSiteUrl()));
+            }
+            if (c.getPublicApiBaseUrl() != null) {
+                data.put("publicApiBaseUrl", hqHttpsUrlForDisplay(c.getPublicApiBaseUrl()));
+            }
         });
         if (!data.containsKey("publicAdminSiteUrl")) {
             data.put("publicAdminSiteUrl", "");
@@ -416,10 +784,10 @@ public class ApiHqController {
         c.setRecallIncludeFeeYn("Y".equalsIgnoreCase(String.valueOf(body.getOrDefault("recallIncludeFeeYn", "N"))) ? "Y" : "N");
         c.setSettlementVatApplyYn("N".equalsIgnoreCase(String.valueOf(body.getOrDefault("settlementVatApplyYn", "Y"))) ? "N" : "Y");
         if (body.get("publicAdminSiteUrl") != null) {
-            c.setPublicAdminSiteUrl(hqTrimToNull(body.get("publicAdminSiteUrl")));
+            c.setPublicAdminSiteUrl(hqHttpsUrlForSave(body.get("publicAdminSiteUrl")));
         }
         if (body.get("publicApiBaseUrl") != null) {
-            c.setPublicApiBaseUrl(hqTrimToNull(body.get("publicApiBaseUrl")));
+            c.setPublicApiBaseUrl(hqHttpsUrlForSave(body.get("publicApiBaseUrl")));
         }
         hqApiConfigRepository.save(c);
         return ResponseEntity.ok(ApiResponse.ok(Map.of("success", true, "message", "저장되었습니다.")));
@@ -432,11 +800,23 @@ public class ApiHqController {
         data.put("publicAdminSiteUrl", "");
         data.put("publicApiBaseUrl", "");
         data.put("memo", "가맹점·문서·노티 안내에 사용할 공개 URL입니다.");
-        hqApiConfigRepository.findAll().stream().findFirst().ifPresent(c -> {
-            if (c.getPublicAdminSiteUrl() != null) data.put("publicAdminSiteUrl", c.getPublicAdminSiteUrl());
-            if (c.getPublicApiBaseUrl() != null) data.put("publicApiBaseUrl", c.getPublicApiBaseUrl());
-        });
-        data.put("orgDomainRows", loadOrgDomainRows());
+        String pubAdmin = "";
+        String pubApi = "";
+        var cfgRow = hqApiConfigRepository.findAll().stream().findFirst();
+        if (cfgRow.isPresent()) {
+            HqApiConfig c = cfgRow.get();
+            if (c.getPublicAdminSiteUrl() != null) {
+                pubAdmin = hqHttpsUrlForDisplay(c.getPublicAdminSiteUrl());
+                data.put("publicAdminSiteUrl", pubAdmin);
+            }
+            if (c.getPublicApiBaseUrl() != null) {
+                pubApi = hqHttpsUrlForDisplay(c.getPublicApiBaseUrl());
+                data.put("publicApiBaseUrl", pubApi);
+            }
+        }
+        List<Map<String, Object>> orgRows = loadOrgDomainRows();
+        data.put("orgDomainRows", orgRows);
+        data.put("sslDomainLinkage", hqServerManageService.buildSslDomainLinkage(pubAdmin, pubApi, orgRows));
         return ResponseEntity.ok(ApiResponse.ok(data));
     }
 
@@ -447,10 +827,16 @@ public class ApiHqController {
             return ResponseEntity.ok(ApiResponse.fail("관리자만 저장할 수 있습니다.", "FORBIDDEN"));
         }
         HqApiConfig c = hqApiConfigRepository.findAll().stream().findFirst().orElse(new HqApiConfig());
-        c.setPublicAdminSiteUrl(hqTrimToNull(body != null ? body.get("publicAdminSiteUrl") : null));
-        c.setPublicApiBaseUrl(hqTrimToNull(body != null ? body.get("publicApiBaseUrl") : null));
+        c.setPublicAdminSiteUrl(hqHttpsUrlForSave(body != null ? body.get("publicAdminSiteUrl") : null));
+        c.setPublicApiBaseUrl(hqHttpsUrlForSave(body != null ? body.get("publicApiBaseUrl") : null));
         hqApiConfigRepository.save(c);
-        return ResponseEntity.ok(ApiResponse.ok(Map.of("success", true, "message", "저장되었습니다.")));
+        Map<String, Object> out = new LinkedHashMap<>();
+        out.put("success", true);
+        out.put("message", "저장되었습니다.");
+        String pa = c.getPublicAdminSiteUrl() != null ? c.getPublicAdminSiteUrl() : "";
+        String pap = c.getPublicApiBaseUrl() != null ? c.getPublicApiBaseUrl() : "";
+        out.put("sslDomainLinkage", hqServerManageService.buildSslDomainLinkage(pa, pap, loadOrgDomainRows()));
+        return ResponseEntity.ok(ApiResponse.ok(out));
     }
 
     /** 본사·총판(tb_org_unit) 조직별 공개 URL·설정명 저장 */
@@ -477,14 +863,75 @@ public class ApiHqController {
             return ResponseEntity.ok(ApiResponse.fail("본사·총판만 도메인을 설정할 수 있습니다.", "VALIDATION"));
         }
         ou.setDomainSettingName(hqTrimToNull(body.get("domainSettingName")));
-        ou.setOrgDomainAdminUrl(hqTrimToNull(body.get("orgDomainAdminUrl")));
-        ou.setOrgDomainApiUrl(hqTrimToNull(body.get("orgDomainApiUrl")));
+        ou.setOrgDomainAdminUrl(hqHttpsUrlForSave(body.get("orgDomainAdminUrl")));
+        ou.setOrgDomainApiUrl(hqHttpsUrlForSave(body.get("orgDomainApiUrl")));
         ou.setDomainUrlsUpdatedAt(LocalDateTime.now());
         orgUnitRepository.save(ou);
+        List<Map<String, Object>> orgRows = loadOrgDomainRows();
+        String pa = "";
+        String pap = "";
+        Optional<HqApiConfig> cfg = hqApiConfigRepository.findAll().stream().findFirst();
+        if (cfg.isPresent()) {
+            if (cfg.get().getPublicAdminSiteUrl() != null) {
+                pa = cfg.get().getPublicAdminSiteUrl();
+            }
+            if (cfg.get().getPublicApiBaseUrl() != null) {
+                pap = cfg.get().getPublicApiBaseUrl();
+            }
+        }
         Map<String, Object> out = new LinkedHashMap<>();
         out.put("success", true);
         out.put("message", "도메인 설정이 저장되었습니다.");
-        out.put("orgDomainRows", loadOrgDomainRows());
+        out.put("orgDomainRows", orgRows);
+        out.put("sslDomainLinkage", hqServerManageService.buildSslDomainLinkage(pa, pap, orgRows));
+        return ResponseEntity.ok(ApiResponse.ok(out));
+    }
+
+    /** 본사·총판 조직별 도메인 설정 비우기(설정명·관리자 URL·API URL) */
+    @PostMapping("/domainConfig/orgDelete")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> domainConfigOrgDelete(@RequestBody Map<String, Object> body) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !(auth.getPrincipal() instanceof AppUser u) || !"ADMIN".equalsIgnoreCase(u.getRole())) {
+            return ResponseEntity.ok(ApiResponse.fail("관리자만 삭제할 수 있습니다.", "FORBIDDEN"));
+        }
+        if (body == null || body.get("orgUnitId") == null || body.get("orgUnitId").toString().isBlank()) {
+            return ResponseEntity.ok(ApiResponse.fail("조직(업체)을 지정하세요.", "VALIDATION"));
+        }
+        long orgUnitId;
+        try {
+            orgUnitId = Long.parseLong(body.get("orgUnitId").toString().trim());
+        } catch (NumberFormatException e) {
+            return ResponseEntity.ok(ApiResponse.fail("조직 ID가 올바르지 않습니다.", "VALIDATION"));
+        }
+        OrgUnit ou = orgUnitRepository.findById(orgUnitId).orElse(null);
+        if (ou == null) {
+            return ResponseEntity.ok(ApiResponse.fail("조직을 찾을 수 없습니다.", "NOT_FOUND"));
+        }
+        if (ou.getOrgLevel() != OrgLevel.REGIONAL && ou.getOrgLevel() != OrgLevel.MASTER_DIST) {
+            return ResponseEntity.ok(ApiResponse.fail("본사·총판만 도메인 설정 대상입니다.", "VALIDATION"));
+        }
+        ou.setDomainSettingName(null);
+        ou.setOrgDomainAdminUrl(null);
+        ou.setOrgDomainApiUrl(null);
+        ou.setDomainUrlsUpdatedAt(LocalDateTime.now());
+        orgUnitRepository.save(ou);
+        List<Map<String, Object>> orgRows = loadOrgDomainRows();
+        String pa = "";
+        String pap = "";
+        Optional<HqApiConfig> cfg = hqApiConfigRepository.findAll().stream().findFirst();
+        if (cfg.isPresent()) {
+            if (cfg.get().getPublicAdminSiteUrl() != null) {
+                pa = cfg.get().getPublicAdminSiteUrl();
+            }
+            if (cfg.get().getPublicApiBaseUrl() != null) {
+                pap = cfg.get().getPublicApiBaseUrl();
+            }
+        }
+        Map<String, Object> out = new LinkedHashMap<>();
+        out.put("success", true);
+        out.put("message", "도메인 설정을 삭제했습니다.");
+        out.put("orgDomainRows", orgRows);
+        out.put("sslDomainLinkage", hqServerManageService.buildSslDomainLinkage(pa, pap, orgRows));
         return ResponseEntity.ok(ApiResponse.ok(out));
     }
 
@@ -504,8 +951,8 @@ public class ApiHqController {
         m.put("orgLevel", o.getOrgLevel() != null ? o.getOrgLevel().name() : "");
         m.put("orgLevelLabel", o.getOrgLevel() != null ? o.getOrgLevel().getNameKo() : "");
         m.put("domainSettingName", o.getDomainSettingName() != null ? o.getDomainSettingName() : "");
-        m.put("orgDomainAdminUrl", o.getOrgDomainAdminUrl() != null ? o.getOrgDomainAdminUrl() : "");
-        m.put("orgDomainApiUrl", o.getOrgDomainApiUrl() != null ? o.getOrgDomainApiUrl() : "");
+        m.put("orgDomainAdminUrl", hqHttpsUrlForDisplay(o.getOrgDomainAdminUrl()));
+        m.put("orgDomainApiUrl", hqHttpsUrlForDisplay(o.getOrgDomainApiUrl()));
         m.put("domainUrlsUpdatedAt", o.getDomainUrlsUpdatedAt() != null ? o.getDomainUrlsUpdatedAt().toString() : "");
         return m;
     }
@@ -548,8 +995,36 @@ public class ApiHqController {
         c.setServerManageTrafficUsedMb(hqParseOptionalNonNegativeInt(body != null ? body.get("serverManageTrafficUsedMb") : null));
         c.setServerManageContractStart(hqParseLocalDate(body != null ? body.get("serverManageContractStart") : null));
         c.setServerManageContractEnd(hqParseLocalDate(body != null ? body.get("serverManageContractEnd") : null));
+        c.setServerManageUiRefreshSec(hqParseUiRefreshSec(body != null ? body.get("serverManageUiRefreshSec") : null));
         hqApiConfigRepository.save(c);
         return ResponseEntity.ok(ApiResponse.ok(Map.of("success", true, "message", "저장되었습니다.")));
+    }
+
+    /** 15~3600 또는 비움(NULL) → yml 기본 사용 (JSON 숫자가 Double 로 올 수 있음) */
+    private static Integer hqParseUiRefreshSec(Object o) {
+        if (o == null) {
+            return null;
+        }
+        if (o instanceof Number n) {
+            int v = (int) Math.round(n.doubleValue());
+            if (v < 15 || v > 3600) {
+                return null;
+            }
+            return v;
+        }
+        String s = o.toString().trim();
+        if (s.isEmpty()) {
+            return null;
+        }
+        try {
+            int v = Integer.parseInt(s.replace(",", ""));
+            if (v < 15 || v > 3600) {
+                return null;
+            }
+            return v;
+        } catch (NumberFormatException e) {
+            return null;
+        }
     }
 
     private static String hqTrimToNull(Object o) {
@@ -558,8 +1033,28 @@ public class ApiHqController {
         return s.isEmpty() ? null : s;
     }
 
+    /** 저장: 스킴 없으면 https:// 부착. http(s) 명시 시 유지. */
+    private static String hqHttpsUrlForSave(Object o) {
+        String t = hqTrimToNull(o);
+        if (t == null) return null;
+        if (t.matches("(?i)https?://.*")) return t;
+        return "https://" + t.replaceFirst("^/+", "");
+    }
+
+    /** 조회·목록 표시: 비면 "", 스킴 없으면 https:// 부착. */
+    private static String hqHttpsUrlForDisplay(String stored) {
+        String t = hqTrimToNull(stored);
+        if (t == null) return "";
+        if (t.matches("(?i)https?://.*")) return t;
+        return "https://" + t.replaceFirst("^/+", "");
+    }
+
     private static Integer hqParsePositiveInt(Object o) {
         if (o == null) return null;
+        if (o instanceof Number n) {
+            int v = (int) Math.round(n.doubleValue());
+            return v <= 0 ? null : v;
+        }
         String s = o.toString().trim().replace(",", "");
         if (s.isEmpty()) return null;
         try {
@@ -581,9 +1076,13 @@ public class ApiHqController {
         }
     }
 
-    /** 비우면 null, 0 이상 정수 (트래픽 누적 등) */
+    /** 비우면 null, 0 이상 정수 (트래픽 누적 등). JSON Number 가 Double 이면 parseInt 실패하던 문제 방지 */
     private static Integer hqParseOptionalNonNegativeInt(Object o) {
         if (o == null) return null;
+        if (o instanceof Number n) {
+            int v = (int) Math.round(n.doubleValue());
+            return Math.max(0, v);
+        }
         String s = o.toString().trim().replace(",", "");
         if (s.isEmpty()) return null;
         try {
@@ -908,22 +1407,28 @@ public class ApiHqController {
         return out;
     }
 
-    /** 4. 조직별 페이지/기능 접근 권한 세팅 (ADMIN 전용) */
+    /** 4. 조직별 페이지/기능 접근 권한 세팅 — 총본사(HEADQUARTERS)·ADMIN: 전체, 본사·총판: 담당자 권한그룹만 */
     @GetMapping("/permissionMng")
     public ResponseEntity<ApiResponse<Map<String, Object>>> permissionMng() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        if (auth == null || !(auth.getPrincipal() instanceof AppUser u) || !"ADMIN".equalsIgnoreCase(u.getRole())) {
-            return ResponseEntity.ok(ApiResponse.fail("관리자만 조회할 수 있습니다.", "FORBIDDEN"));
+        if (auth == null || !(auth.getPrincipal() instanceof AppUser u)) {
+            return ResponseEntity.ok(ApiResponse.fail("로그인이 필요합니다.", "FORBIDDEN"));
         }
-        return ResponseEntity.ok(ApiResponse.ok(orgPagePermissionService.buildAdminPayload()));
+        if (!mayOpenPermissionScreen(u)) {
+            return ResponseEntity.ok(ApiResponse.fail("이 메뉴를 열 권한이 없습니다.", "FORBIDDEN"));
+        }
+        return ResponseEntity.ok(ApiResponse.ok(orgPagePermissionService.buildPermissionMngPayload(u)));
     }
 
     @PostMapping("/permissionMng/save")
     @SuppressWarnings("unchecked")
     public ResponseEntity<ApiResponse<Map<String, Object>>> permissionMngSave(@RequestBody Map<String, Object> body) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        if (auth == null || !(auth.getPrincipal() instanceof AppUser u) || !"ADMIN".equalsIgnoreCase(u.getRole())) {
-            return ResponseEntity.ok(ApiResponse.fail("관리자만 저장할 수 있습니다.", "FORBIDDEN"));
+        if (auth == null || !(auth.getPrincipal() instanceof AppUser u)) {
+            return ResponseEntity.ok(ApiResponse.fail("로그인이 필요합니다.", "FORBIDDEN"));
+        }
+        if (!maySaveOrgLevelMatrix(u)) {
+            return ResponseEntity.ok(ApiResponse.fail("조직 단계별 기본 권한은 총본사(또는 시스템 관리자)만 저장할 수 있습니다.", "FORBIDDEN"));
         }
         try {
             Object raw = body != null ? body.get("matrix") : null;
@@ -941,18 +1446,21 @@ public class ApiHqController {
                 matrix.put(orgLv, pages);
             }
             orgPagePermissionService.saveMatrix(matrix);
-            return ResponseEntity.ok(ApiResponse.ok(orgPagePermissionService.buildAdminPayload()));
+            return ResponseEntity.ok(ApiResponse.ok(orgPagePermissionService.buildPermissionMngPayload(u)));
         } catch (Exception ex) {
             return ResponseEntity.ok(ApiResponse.fail(ex.getMessage() != null ? ex.getMessage() : "저장 실패", "ERROR"));
         }
     }
 
-    /** 개별 조직(총본사~가맹점) 권한 조회 — 단계 기본·최종 적용값 포함 */
+    /** 개별 조직(총본사~가맹점) 권한 조회 — 단계 기본·최종·담당자(권한그룹)별 매트릭스 포함 */
     @GetMapping("/orgUnitPermission")
     public ResponseEntity<ApiResponse<Map<String, Object>>> orgUnitPermission(@RequestParam Long orgUnitId) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        if (auth == null || !(auth.getPrincipal() instanceof AppUser u) || !"ADMIN".equalsIgnoreCase(u.getRole())) {
-            return ResponseEntity.ok(ApiResponse.fail("관리자만 조회할 수 있습니다.", "FORBIDDEN"));
+        if (auth == null || !(auth.getPrincipal() instanceof AppUser u)) {
+            return ResponseEntity.ok(ApiResponse.fail("로그인이 필요합니다.", "FORBIDDEN"));
+        }
+        if (!mayInspectOrgUnitPermission(u, orgUnitId)) {
+            return ResponseEntity.ok(ApiResponse.fail("해당 조직 권한을 조회할 수 없습니다.", "FORBIDDEN"));
         }
         try {
             return ResponseEntity.ok(ApiResponse.ok(orgPagePermissionService.buildOrgUnitPermissionPayload(orgUnitId)));
@@ -961,13 +1469,16 @@ public class ApiHqController {
         }
     }
 
-    /** 개별 조직 권한 저장 (단계 기본 따름 / 개별 설정) */
+    /** 개별 조직 권한 저장 (단계 기본 따름 / 개별 설정) — 총본사·ADMIN만 */
     @PostMapping("/orgUnitPermission/save")
     @SuppressWarnings("unchecked")
     public ResponseEntity<ApiResponse<Map<String, Object>>> orgUnitPermissionSave(@RequestBody Map<String, Object> body) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        if (auth == null || !(auth.getPrincipal() instanceof AppUser u) || !"ADMIN".equalsIgnoreCase(u.getRole())) {
-            return ResponseEntity.ok(ApiResponse.fail("관리자만 저장할 수 있습니다.", "FORBIDDEN"));
+        if (auth == null || !(auth.getPrincipal() instanceof AppUser u)) {
+            return ResponseEntity.ok(ApiResponse.fail("로그인이 필요합니다.", "FORBIDDEN"));
+        }
+        if (!maySaveOrgUnitCustomPermission(u)) {
+            return ResponseEntity.ok(ApiResponse.fail("개별 조직 권한은 총본사(또는 시스템 관리자)만 저장할 수 있습니다.", "FORBIDDEN"));
         }
         try {
             Object idObj = body != null ? body.get("orgUnitId") : null;
@@ -991,6 +1502,139 @@ public class ApiHqController {
             return ResponseEntity.ok(ApiResponse.fail(e.getMessage(), "VALIDATION"));
         } catch (Exception ex) {
             return ResponseEntity.ok(ApiResponse.fail(ex.getMessage() != null ? ex.getMessage() : "저장 실패", "ERROR"));
+        }
+    }
+
+    /**
+     * 담당자 권한그룹(관리/운영/정산/기술)별 메뉴 권한 저장 — 본사·총판·총본사는 자기 조직만, ADMIN은 전체.
+     */
+    @PostMapping("/orgUnitAssistantPermission/save")
+    @SuppressWarnings("unchecked")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> orgUnitAssistantPermissionSave(@RequestBody Map<String, Object> body) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !(auth.getPrincipal() instanceof AppUser u)) {
+            return ResponseEntity.ok(ApiResponse.fail("로그인이 필요합니다.", "FORBIDDEN"));
+        }
+        try {
+            Object idObj = body != null ? body.get("orgUnitId") : null;
+            if (idObj == null) {
+                return ResponseEntity.ok(ApiResponse.fail("orgUnitId가 필요합니다.", "VALIDATION"));
+            }
+            long orgUnitId = Long.parseLong(idObj.toString().trim());
+            if (!maySaveAssistantOrgPermission(u, orgUnitId)) {
+                return ResponseEntity.ok(ApiResponse.fail("담당자 권한그룹 설정을 저장할 수 없습니다.", "FORBIDDEN"));
+            }
+            Object rawMatrix = body != null ? body.get("matrix") : null;
+            Map<String, Map<String, String>> matrix = new LinkedHashMap<>();
+            if (rawMatrix instanceof Map<?, ?> rm) {
+                for (Map.Entry<?, ?> e : rm.entrySet()) {
+                    String role = e.getKey() != null ? e.getKey().toString() : "";
+                    if (!(e.getValue() instanceof Map<?, ?> sub)) {
+                        continue;
+                    }
+                    Map<String, String> pages = new LinkedHashMap<>();
+                    for (Map.Entry<?, ?> pe : sub.entrySet()) {
+                        pages.put(String.valueOf(pe.getKey()), pe.getValue() != null ? pe.getValue().toString() : "");
+                    }
+                    matrix.put(role, pages);
+                }
+            }
+            orgPagePermissionService.saveOrgUnitAssistantPermission(orgUnitId, matrix);
+            return ResponseEntity.ok(ApiResponse.ok(orgPagePermissionService.buildOrgUnitPermissionPayload(orgUnitId)));
+        } catch (NumberFormatException e) {
+            return ResponseEntity.ok(ApiResponse.fail("orgUnitId 형식이 올바르지 않습니다.", "VALIDATION"));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.ok(ApiResponse.fail(e.getMessage(), "VALIDATION"));
+        } catch (Exception ex) {
+            return ResponseEntity.ok(ApiResponse.fail(ex.getMessage() != null ? ex.getMessage() : "저장 실패", "ERROR"));
+        }
+    }
+
+    private boolean mayOpenPermissionScreen(AppUser u) {
+        if (u == null) {
+            return false;
+        }
+        if ("ADMIN".equalsIgnoreCase(u.getRole())) {
+            return true;
+        }
+        Map<String, Object> org = authService.getOrgInfo(u.getUsername());
+        if (org == null) {
+            return false;
+        }
+        String ol = String.valueOf(org.getOrDefault("orgLevel", "")).trim().toUpperCase(Locale.ROOT);
+        return "HEADQUARTERS".equals(ol) || "REGIONAL".equals(ol) || "MASTER_DIST".equals(ol);
+    }
+
+    private boolean maySaveOrgLevelMatrix(AppUser u) {
+        if (u == null) {
+            return false;
+        }
+        if ("ADMIN".equalsIgnoreCase(u.getRole())) {
+            return true;
+        }
+        Map<String, Object> org = authService.getOrgInfo(u.getUsername());
+        if (org == null) {
+            return false;
+        }
+        return "HEADQUARTERS".equals(String.valueOf(org.getOrDefault("orgLevel", "")).trim().toUpperCase(Locale.ROOT));
+    }
+
+    private boolean maySaveOrgUnitCustomPermission(AppUser u) {
+        return maySaveOrgLevelMatrix(u);
+    }
+
+    private boolean mayInspectOrgUnitPermission(AppUser u, long orgUnitId) {
+        if (u == null) {
+            return false;
+        }
+        if ("ADMIN".equalsIgnoreCase(u.getRole())) {
+            return true;
+        }
+        Map<String, Object> org = authService.getOrgInfo(u.getUsername());
+        if (org == null) {
+            return false;
+        }
+        String ol = String.valueOf(org.getOrDefault("orgLevel", "")).trim().toUpperCase(Locale.ROOT);
+        if ("HEADQUARTERS".equals(ol)) {
+            return true;
+        }
+        if ("REGIONAL".equals(ol) || "MASTER_DIST".equals(ol)) {
+            Object idObj = org.get("orgUnitId");
+            if (idObj == null) {
+                return false;
+            }
+            try {
+                return orgUnitId == Long.parseLong(idObj.toString().trim());
+            } catch (NumberFormatException e) {
+                return false;
+            }
+        }
+        return false;
+    }
+
+    private boolean maySaveAssistantOrgPermission(AppUser u, long orgUnitId) {
+        if (u == null) {
+            return false;
+        }
+        if ("ADMIN".equalsIgnoreCase(u.getRole())) {
+            return true;
+        }
+        Map<String, Object> org = authService.getOrgInfo(u.getUsername());
+        if (org == null) {
+            return false;
+        }
+        String ol = String.valueOf(org.getOrDefault("orgLevel", "")).trim().toUpperCase(Locale.ROOT);
+        if (!"HEADQUARTERS".equals(ol) && !"REGIONAL".equals(ol) && !"MASTER_DIST".equals(ol)) {
+            return false;
+        }
+        Object idObj = org.get("orgUnitId");
+        if (idObj == null) {
+            return false;
+        }
+        try {
+            return orgUnitId == Long.parseLong(idObj.toString().trim());
+        } catch (NumberFormatException e) {
+            return false;
         }
     }
 }

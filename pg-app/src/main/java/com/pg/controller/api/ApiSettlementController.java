@@ -4,6 +4,8 @@ import com.pg.api.ApiResponse;
 import com.pg.api.dto.PageResult;
 import com.pg.entity.AppUser;
 import com.pg.entity.BalanceDeduction;
+import com.pg.entity.ChargebackFeePolicy;
+import com.pg.entity.ChargebackFeeTier;
 import com.pg.entity.CommissionPolicy;
 import com.pg.entity.DistributionFeeConfig;
 import com.pg.entity.HqApiConfig;
@@ -20,6 +22,7 @@ import com.pg.repository.MerchantPgBindingRepository;
 import com.pg.repository.MerchantProfileRepository;
 import com.pg.repository.OrgUnitRepository;
 import com.pg.repository.PgTrnsctnRepository;
+import com.pg.repository.ChargebackFeePolicyRepository;
 import com.pg.repository.CommissionPolicyRepository;
 import com.pg.repository.BalanceDeductionRepository;
 import com.pg.repository.SettlementSettingRepository;
@@ -27,6 +30,8 @@ import com.pg.service.AuthService;
 import com.pg.service.CollateralLedgerService;
 import com.pg.service.SettlementCalcService;
 import com.pg.service.SettlementReportService;
+import com.pg.util.ChargebackTierResolver;
+import com.pg.util.CommissionExtraFeeUtil;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -37,6 +42,7 @@ import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -45,6 +51,8 @@ import java.util.stream.Collectors;
 @RequestMapping(value = "/api/settlement", produces = "application/json")
 public class ApiSettlementController {
 
+    private static final List<String> CHARGEBACK_STATUSES = List.of("30", "31");
+
     private final SettlementCalcService settlementCalcService;
     private final OrgUnitRepository orgUnitRepository;
     private final DistributionFeeConfigRepository distributionFeeConfigRepository;
@@ -52,6 +60,7 @@ public class ApiSettlementController {
     private final MerchantProfileRepository merchantProfileRepository;
     private final MerchantPgBindingRepository merchantPgBindingRepository;
     private final CommissionPolicyRepository commissionPolicyRepository;
+    private final ChargebackFeePolicyRepository chargebackFeePolicyRepository;
     private final SettlementSettingRepository settlementSettingRepository;
     private final BalanceDeductionRepository balanceDeductionRepository;
     private final HqApiConfigRepository hqApiConfigRepository;
@@ -66,6 +75,7 @@ public class ApiSettlementController {
                                    MerchantProfileRepository merchantProfileRepository,
                                    MerchantPgBindingRepository merchantPgBindingRepository,
                                    CommissionPolicyRepository commissionPolicyRepository,
+                                   ChargebackFeePolicyRepository chargebackFeePolicyRepository,
                                    SettlementSettingRepository settlementSettingRepository,
                                    BalanceDeductionRepository balanceDeductionRepository,
                                    HqApiConfigRepository hqApiConfigRepository,
@@ -79,6 +89,7 @@ public class ApiSettlementController {
         this.merchantProfileRepository = merchantProfileRepository;
         this.merchantPgBindingRepository = merchantPgBindingRepository;
         this.commissionPolicyRepository = commissionPolicyRepository;
+        this.chargebackFeePolicyRepository = chargebackFeePolicyRepository;
         this.settlementSettingRepository = settlementSettingRepository;
         this.balanceDeductionRepository = balanceDeductionRepository;
         this.hqApiConfigRepository = hqApiConfigRepository;
@@ -402,6 +413,8 @@ public class ApiSettlementController {
         LocalDateTime fromDt = fromDate.atStartOfDay();
         LocalDateTime toDt = toDate.atTime(LocalTime.MAX);
         FeePolicy hqPolicy = resolveHqFeePolicy();
+        Map<String, Long> monthCbCountCache = new HashMap<>();
+        Map<Long, List<ChargebackFeeTier>> tiersByPolicyId = new HashMap<>();
         List<Map<String, Object>> all = new ArrayList<>();
         for (PgTrnsctn t : pgTrnsctnRepository.findForSettlement(null, fromDt, toDt)) {
             String compId = t.getMerchantId();
@@ -414,19 +427,53 @@ public class ApiSettlementController {
             if (searchCompNm != null && !searchCompNm.isBlank() && !compNm.contains(searchCompNm.trim())) {
                 continue;
             }
+            CommissionPolicy pol = resolveCommissionPolicyForMerchant(compId);
             long amount = t.getAmtKrw() != null ? t.getAmtKrw().longValue() : 0L;
             BigDecimal amountBd = BigDecimal.valueOf(amount);
-            BigDecimal policyRate = resolvePayRate(compId);
-            long perTxFee = nz(hqPolicy.perTxFee).longValue();
-            long usageFee = amountBd.multiply(nz(hqPolicy.usageRate)).divide(BigDecimal.valueOf(100), 0, RoundingMode.HALF_UP).longValue();
-            long failFee = "F0".equals(t.getStatus()) || "99".equals(t.getStatus()) ? nz(hqPolicy.failFee).longValue() : 0L;
-            long cancelFee = "20".equals(t.getStatus()) ? amountBd.multiply(nz(hqPolicy.cancelRate)).divide(BigDecimal.valueOf(100), 0, RoundingMode.HALF_UP).longValue() : 0L;
-            long refundFee = ("30".equals(t.getStatus()) || "31".equals(t.getStatus())) ? amountBd.multiply(nz(hqPolicy.refundRate)).divide(BigDecimal.valueOf(100), 0, RoundingMode.HALF_UP).longValue() : 0L;
-            long payFee = "10".equals(t.getStatus()) ? amountBd.multiply(policyRate).divide(BigDecimal.valueOf(100), 0, RoundingMode.HALF_UP).longValue() : 0L;
-            long settlementPerTx = nz(hqPolicy.feeSettlementPerTx).longValue();
-            long usdtFee = nz(hqPolicy.feeUsdt).longValue();
-            long fxFee = nz(hqPolicy.feeFx).longValue();
-            long totalFee = Math.max(0L, perTxFee + usageFee + failFee + cancelFee + refundFee + payFee + settlementPerTx + usdtFee + fxFee);
+            String st = t.getStatus() != null ? t.getStatus().trim() : "";
+            BigDecimal payRateBd = nz(pol.getPayRate());
+            long perTxFee = nz(pol.getPerTxFee()).longValue();
+            /* 월간이용료는 정책 고정액·월 1회(정산 실행 시 합산). 거래 건별 비율 산정 아님 → 건별 0 */
+            long usageFee = 0L;
+            long failFee = ("F0".equals(st) || "99".equals(st)) ? nz(pol.getFailFee()).longValue() : 0L;
+            long cancelFee = "20".equals(st) ? nz(pol.getCancelRate()).longValue() : 0L;
+            long refundFee = ("30".equals(st) || "31".equals(st)) ? nz(pol.getRefundRate()).longValue() : 0L;
+            long payFee = "10".equals(st) ? amountBd.multiply(payRateBd).divide(BigDecimal.valueOf(100), 0, RoundingMode.HALF_UP).longValue() : 0L;
+            long usdtFee = "10".equals(st) ? amountBd.multiply(nz(pol.getFeeUsdt())).divide(BigDecimal.valueOf(100), 0, RoundingMode.HALF_UP).longValue() : 0L;
+            long fxFee = "10".equals(st) ? amountBd.multiply(nz(pol.getFeeFx())).divide(BigDecimal.valueOf(100), 0, RoundingMode.HALF_UP).longValue() : 0L;
+            long fee3dsFee = "10".equals(st) ? amountBd.multiply(nz(pol.getFee3dsRate())).divide(BigDecimal.valueOf(100), 0, RoundingMode.HALF_UP).longValue() : 0L;
+            long settlementPerTxFee = nz(pol.getFeeSettlementPerTx()).longValue();
+            long chargebackFee = 0L;
+            if ("30".equals(st) || "31".equals(st)) {
+                LocalDate cbDay = t.getCreatedAt() != null ? t.getCreatedAt().toLocalDate() : LocalDate.now();
+                YearMonth ymcb = YearMonth.from(cbDay);
+                String ck = compId + "|" + ymcb;
+                long monthCbCount = monthCbCountCache.computeIfAbsent(ck, k -> {
+                    LocalDateTime ms = ymcb.atDay(1).atStartOfDay();
+                    LocalDateTime me = ymcb.plusMonths(1).atDay(1).atStartOfDay();
+                    return pgTrnsctnRepository.countByMerchantIdAndStatusInAndCreatedAtGreaterThanEqualAndCreatedAtLessThan(
+                            compId, CHARGEBACK_STATUSES, ms, me);
+                });
+                int mc = (int) Math.min(monthCbCount, Integer.MAX_VALUE);
+                Long cpid = pol.getChargebackPolicyId();
+                if (cpid != null) {
+                    List<ChargebackFeeTier> tiers = tiersByPolicyId.computeIfAbsent(cpid, id ->
+                            chargebackFeePolicyRepository.findByIdWithTiers(id)
+                                    .map(ChargebackFeePolicy::getTiers)
+                                    .orElse(Collections.emptyList()));
+                    if (!tiers.isEmpty()) {
+                        chargebackFee = ChargebackTierResolver.feePerCaseForMonthlyCount(mc, tiers).longValue();
+                    } else {
+                        chargebackFee = nz(pol.getChargebackFeePerTx()).longValue();
+                    }
+                } else {
+                    chargebackFee = nz(pol.getChargebackFeePerTx()).longValue();
+                }
+            }
+            long extraFees = "10".equals(st)
+                    ? CommissionExtraFeeUtil.sumPctOnApprovedAmount(pol, amountBd).longValue()
+                    : 0L;
+            long totalFee = Math.max(0L, perTxFee + usageFee + failFee + cancelFee + refundFee + payFee + settlementPerTxFee + usdtFee + fxFee + fee3dsFee + chargebackFee + extraFees);
             long feeVat = hqPolicy.settlementVatApplyYn ? Math.round(totalFee * 0.1d) : 0L;
 
             Map<String, Object> m = new LinkedHashMap<>();
@@ -442,11 +489,17 @@ public class ApiSettlementController {
             m.put("failFee", failFee);
             m.put("cancelFee", cancelFee);
             m.put("refundFee", refundFee);
-            m.put("payFeeRate", policyRate);
+            m.put("payFeeRate", payRateBd.stripTrailingZeros().toPlainString());
             m.put("payFee", payFee);
-            m.put("settlementPerTxFee", settlementPerTx);
+            m.put("usdtFeeRate", nz(pol.getFeeUsdt()).stripTrailingZeros().toPlainString());
             m.put("usdtFee", usdtFee);
+            m.put("fxFeeRate", nz(pol.getFeeFx()).stripTrailingZeros().toPlainString());
             m.put("fxFee", fxFee);
+            m.put("fee3dsRate", nz(pol.getFee3dsRate()).stripTrailingZeros().toPlainString());
+            m.put("fee3dsFee", fee3dsFee);
+            m.put("settlementPerTxFee", settlementPerTxFee);
+            m.put("chargebackFee", chargebackFee);
+            m.put("extraFees", extraFees);
             m.put("totalFee", totalFee);
             m.put("feeVat", feeVat);
             m.put("vatAppliedYn", hqPolicy.settlementVatApplyYn ? "Y" : "N");
@@ -1027,6 +1080,16 @@ public class ApiSettlementController {
     private BigDecimal nz(BigDecimal v) { return v != null ? v : BigDecimal.ZERO; }
     private String blank(String s) { return (s == null || s.isBlank()) ? "-" : s; }
 
+    /** 가맹점별 수수료 정책(없으면 DEFAULT). 수수료내역·정산 표시에 사용 */
+    private CommissionPolicy resolveCommissionPolicyForMerchant(String merchantId) {
+        if (merchantId != null && !merchantId.isBlank()) {
+            String m = merchantId.trim();
+            return commissionPolicyRepository.findByScope(m)
+                    .orElseGet(() -> commissionPolicyRepository.findByScope("DEFAULT").orElseGet(CommissionPolicy::new));
+        }
+        return commissionPolicyRepository.findByScope("DEFAULT").orElseGet(CommissionPolicy::new);
+    }
+
     private record FeePolicy(
             BigDecimal perTxFee, BigDecimal usageRate, BigDecimal failFee,
             BigDecimal cancelRate, BigDecimal refundRate, BigDecimal payRate,
@@ -1034,6 +1097,7 @@ public class ApiSettlementController {
             boolean recallIncludeFeeYn, boolean settlementVatApplyYn
     ) {}
 
+    /** 회수관리 등: VAT·회수 시 수수료 포함 여부. 수수료 금액 추정은 가맹 정책의 결제율만 사용 */
     private FeePolicy resolveHqFeePolicy() {
         CommissionPolicy p = commissionPolicyRepository.findByScope("DEFAULT").orElseGet(CommissionPolicy::new);
         HqApiConfig c = hqApiConfigRepository.findAll().stream().findFirst().orElse(null);

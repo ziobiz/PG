@@ -33,10 +33,24 @@ public class ApiHqOrgViewColumnAllowanceController {
         return ResponseEntity.ok(ApiResponse.ok(allowanceService.listRegionalBranches()));
     }
 
+    @GetMapping("/list")
+    public ResponseEntity<ApiResponse<List<Map<String, Object>>>> list(@RequestParam String regionalOrgCode) {
+        try {
+            AppUser actor = tryActor();
+            if (actor == null) {
+                return ResponseEntity.ok(ApiResponse.fail("로그인이 필요합니다.", "AUTH"));
+            }
+            return ResponseEntity.ok(ApiResponse.ok(allowanceService.listAllowancesByRegional(regionalOrgCode, actor)));
+        } catch (Exception e) {
+            return ResponseEntity.ok(ApiResponse.fail(e.getMessage(), "VALIDATION"));
+        }
+    }
+
     @GetMapping
     public ResponseEntity<ApiResponse<Map<String, Object>>> get(
             @RequestParam String regionalOrgCode,
-            @RequestParam String pageUrl) {
+            @RequestParam String pageUrl,
+            @RequestParam(required = false) String viewerScope) {
         AppUser actor = tryActor();
         if (actor == null) {
             return ResponseEntity.ok(ApiResponse.fail("로그인이 필요합니다.", "AUTH"));
@@ -44,7 +58,7 @@ public class ApiHqOrgViewColumnAllowanceController {
         if (!allowanceService.canManageOrgViewAllowance(actor)) {
             return ResponseEntity.ok(ApiResponse.fail("권한이 없습니다.", "FORBIDDEN"));
         }
-        return ResponseEntity.ok(ApiResponse.ok(allowanceService.getAllowanceRow(regionalOrgCode, pageUrl)));
+        return ResponseEntity.ok(ApiResponse.ok(allowanceService.getAllowanceRow(regionalOrgCode, pageUrl, viewerScope)));
     }
 
     @PostMapping("/save")
@@ -56,8 +70,9 @@ public class ApiHqOrgViewColumnAllowanceController {
             }
             String regional = body.get("regionalOrgCode") != null ? String.valueOf(body.get("regionalOrgCode")) : "";
             String pageUrl = body.get("pageUrl") != null ? String.valueOf(body.get("pageUrl")) : "";
+            String viewerScope = body.get("viewerScope") != null ? String.valueOf(body.get("viewerScope")) : "";
             String allowedKeysJson = body.get("allowedKeysJson") != null ? String.valueOf(body.get("allowedKeysJson")) : "[]";
-            return ResponseEntity.ok(ApiResponse.ok(allowanceService.saveAllowance(regional, pageUrl, allowedKeysJson, actor)));
+            return ResponseEntity.ok(ApiResponse.ok(allowanceService.saveAllowance(regional, pageUrl, viewerScope, allowedKeysJson, actor)));
         } catch (Exception e) {
             return ResponseEntity.ok(ApiResponse.fail(e.getMessage(), "VALIDATION"));
         }
@@ -72,7 +87,8 @@ public class ApiHqOrgViewColumnAllowanceController {
             }
             String regional = body.get("regionalOrgCode") != null ? String.valueOf(body.get("regionalOrgCode")) : "";
             String pageUrl = body.get("pageUrl") != null ? String.valueOf(body.get("pageUrl")) : "";
-            return ResponseEntity.ok(ApiResponse.ok(allowanceService.deleteAllowance(regional, pageUrl, actor)));
+            String viewerScope = body.get("viewerScope") != null ? String.valueOf(body.get("viewerScope")) : "";
+            return ResponseEntity.ok(ApiResponse.ok(allowanceService.deleteAllowance(regional, pageUrl, viewerScope, actor)));
         } catch (Exception e) {
             return ResponseEntity.ok(ApiResponse.fail(e.getMessage(), "VALIDATION"));
         }

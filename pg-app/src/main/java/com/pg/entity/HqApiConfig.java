@@ -100,6 +100,10 @@ public class HqApiConfig {
     @Column(name = "server_manage_traffic_used_mb")
     private Integer serverManageTrafficUsedMb;
 
+    /** 서버관리 대시보드 자동 갱신 간격(초). NULL이면 application.yml app.serverManage.uiAutoRefreshSeconds */
+    @Column(name = "server_manage_ui_refresh_sec")
+    private Integer serverManageUiRefreshSec;
+
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
@@ -157,6 +161,8 @@ public class HqApiConfig {
     public void setServerManageContractEnd(LocalDate serverManageContractEnd) { this.serverManageContractEnd = serverManageContractEnd; }
     public Integer getServerManageTrafficUsedMb() { return serverManageTrafficUsedMb; }
     public void setServerManageTrafficUsedMb(Integer serverManageTrafficUsedMb) { this.serverManageTrafficUsedMb = serverManageTrafficUsedMb; }
+    public Integer getServerManageUiRefreshSec() { return serverManageUiRefreshSec; }
+    public void setServerManageUiRefreshSec(Integer serverManageUiRefreshSec) { this.serverManageUiRefreshSec = serverManageUiRefreshSec; }
     public LocalDateTime getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
 }

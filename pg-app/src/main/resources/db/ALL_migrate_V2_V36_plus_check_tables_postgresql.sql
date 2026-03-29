@@ -537,6 +537,9 @@ INSERT INTO tb_server_usage_state (id, last_net_total_bytes, updated_at)
 VALUES (1, NULL, NULL)
 ON CONFLICT (id) DO NOTHING;
 
+-- V46: 서버관리 대시보드 자동 갱신 간격(초), NULL이면 yml 기본
+ALTER TABLE tb_hq_api_config ADD COLUMN IF NOT EXISTS server_manage_ui_refresh_sec INTEGER;
+
 -- #############################################################################
 -- SECTION C: check_tables.sql (검증용 SELECT)
 -- #############################################################################

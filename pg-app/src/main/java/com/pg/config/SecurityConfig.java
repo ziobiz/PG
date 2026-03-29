@@ -8,7 +8,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
-import org.springframework.security.config.annotation.web.configuration.WebSecurityCustomizer;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
@@ -28,15 +27,9 @@ public class SecurityConfig {
         this.apiAuthenticationEntryPoint = apiAuthenticationEntryPoint;
     }
 
-    @Bean
-    public WebSecurityCustomizer webSecurityCustomizer() {
-        return web -> web.ignoring()
-            .requestMatchers(AntPathRequestMatcher.antMatcher("/api/auth/login"));
-    }
-
     /**
      * /api/** 전용: formLogin 없음 → LoginUrl 302 가 끼어들 여지 제거(ERR_TOO_MANY_REDIRECTS 방지).
-     * 미인증 시 항상 401.
+     * 미인증 시 항상 401. 로그인은 {@code permitAll}( {@code web.ignoring} 금지 — CORS 필터 미적용 방지).
      */
     @Bean
     @Order(1)
@@ -47,6 +40,7 @@ public class SecurityConfig {
                 .requestMatchers(AntPathRequestMatcher.antMatcher("/api/auth/me")).permitAll()
                 .requestMatchers(AntPathRequestMatcher.antMatcher("/api/dev/**")).permitAll()
                 .requestMatchers(AntPathRequestMatcher.antMatcher("/api/public/org/branding")).permitAll()
+                .requestMatchers(AntPathRequestMatcher.antMatcher("/api/public/org/portalByHost")).permitAll()
                 .requestMatchers(AntPathRequestMatcher.antMatcher("/api/pay/chillpay/**")).permitAll()
                 .requestMatchers(AntPathRequestMatcher.antMatcher("/api/open/pg-notify/**")).permitAll()
                 .requestMatchers(HttpMethod.OPTIONS, "/api/**").permitAll()

@@ -44,11 +44,15 @@ fi
 
 cd "$PG_APP_DIR"
 
-# 동시 재시작 방지 (다른 셸에서 ./restart-pg-app.sh 가 겹치면 안 됨)
+# 동시 재시작 방지: 이전 실행이 포트 대기(최대 60초) 중이면 즉시 실패하면 운영이 답답함.
+# → 최대 3분까지 잠금 해제를 기다린 뒤 진행. 그래도 못 잡으면 안내 후 종료.
 exec 200>"$LOCK_FILE" || true
 if command -v flock >/dev/null 2>&1; then
-  if ! flock -n 200; then
-    echo "오류: 다른 재시작이 진행 중입니다. 1~2분 후 한 번만 다시 실행하세요."
+  echo "   (다른 재시작이 있으면 최대 180초 대기 후 진행합니다.)"
+  if ! flock -w 180 200; then
+    echo "오류: 3분 안에 재시작 잠금을 얻지 못했습니다."
+    echo "  ps aux | grep restart-pg-app   로 다른 실행이 있는지 확인하거나,"
+    echo "  pg-app Java 가 멈춰 잠금만 남은 경우: 해당 셸/프로세스 종료 후 다시 실행하세요."
     exit 1
   fi
 fi
@@ -72,21 +76,30 @@ sleep 2
 if command -v ss >/dev/null 2>&1; then
   pid=$(ss -tlnp 2>/dev/null | grep ':8080' | sed -n 's/.*pid=\([0-9]*\).*/\1/p' | head -1)
   if [[ -n "$pid" ]]; then
-    echo "   8080 사용 중 PID=$pid 종료 시도..."
+    echo "   8080 사용 중 PID=$pid 종료 시도 (SIGTERM)..."
     kill "$pid" 2>/dev/null || true
     sleep 2
   fi
 fi
 
-echo "   8080 포트 해제 대기(최대 60초)..."
+echo "   8080 포트 해제 대기(최대 60초, 지연 시 SIGKILL)..."
 for _w in $(seq 1 60); do
   if ! port_8080_busy; then
     break
   fi
+  # Spring 종료 훅이 30초 타임아웃으로 길어질 수 있음 → 25초 넘게 점유 시 강제 종료
+  if [[ "$_w" -eq 25 ]] && command -v ss >/dev/null 2>&1; then
+    pid=$(ss -tlnp 2>/dev/null | grep ':8080' | sed -n 's/.*pid=\([0-9]*\).*/\1/p' | head -1)
+    if [[ -n "$pid" ]]; then
+      echo "   경고: 25초 경과 후에도 8080 점유 → PID=$pid 에 SIGKILL (종료 로그에 CNF 등이 찍힐 수 있음)"
+      kill -9 "$pid" 2>/dev/null || true
+      sleep 1
+    fi
+  fi
   sleep 1
 done
 if port_8080_busy; then
-  echo "경고: 60초 후에도 8080 이 사용 중입니다. 수동으로 점유 프로세스를 확인하세요."
+  echo "경고: 60초 후에도 8080 이 사용 중입니다. ss -tlnp | grep 8080 로 PID 확인 후 kill 하세요."
 fi
 
 echo "2) pg-app 기동 (prod)..."

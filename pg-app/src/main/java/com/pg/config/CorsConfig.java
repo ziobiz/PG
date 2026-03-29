@@ -24,7 +24,7 @@ public class CorsConfig {
     /**
      * allow-all 이 false 일 때만 사용.
      */
-    @Value("${app.cors.allowed-origin-patterns:https://*.icopay.co.kr,https://icopay.co.kr,https://www.icopay.co.kr,http://localhost:*,http://127.0.0.1:*,https://*.cafe24.com,http://*.cafe24.com}")
+    @Value("${app.cors.allowed-origin-patterns:https://*.icopay.co.kr,https://jp.icopay.co.kr,https://icopay.co.kr,https://www.icopay.co.kr,http://localhost:*,http://127.0.0.1:*,https://*.cafe24.com,http://*.cafe24.com}")
     private String allowedOriginPatterns;
 
     @Bean

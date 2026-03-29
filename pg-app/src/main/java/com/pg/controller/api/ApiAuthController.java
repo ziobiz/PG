@@ -32,7 +32,8 @@ public class ApiAuthController {
         if (req == null || req.getUsername() == null || req.getPassword() == null) {
             return ResponseEntity.ok(ApiResponse.fail("아이디와 비밀번호를 입력하세요.", "INVALID_INPUT"));
         }
-        return authService.login(req.getUsername().trim(), req.getPassword())
+        String ch = req.getClientHost() != null ? req.getClientHost().trim() : null;
+        return authService.login(req.getUsername().trim(), req.getPassword(), ch)
                 .map(res -> ResponseEntity.ok(ApiResponse.ok(res)))
                 .orElseGet(() -> ResponseEntity.ok(ApiResponse.fail("아이디 또는 비밀번호가 올바르지 않습니다.", "AUTH_FAIL")));
     }

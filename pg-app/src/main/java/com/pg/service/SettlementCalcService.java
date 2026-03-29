@@ -1,9 +1,11 @@
 package com.pg.service;
 
+import com.pg.entity.ChargebackFeePolicy;
 import com.pg.entity.CommissionPolicy;
 import com.pg.entity.PgTrnsctn;
 import com.pg.entity.RollingReserve;
 import com.pg.entity.SettlementRun;
+import com.pg.repository.ChargebackFeePolicyRepository;
 import com.pg.repository.CommissionPolicyRepository;
 import com.pg.repository.PgTrnsctnRepository;
 import com.pg.repository.RollingReserveRepository;
@@ -13,6 +15,8 @@ import com.pg.repository.OrgUnitRepository;
 import com.pg.entity.OrgUnit;
 import com.pg.entity.SettlementSetting;
 import com.pg.util.BusinessDayCalendar;
+import com.pg.util.ChargebackTierResolver;
+import com.pg.util.CommissionExtraFeeUtil;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -21,22 +25,27 @@ import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.YearMonth;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
- * 정산 수학 로직: 결제 데이터 → 수수료 차감(건당/취소/이용/실패/결제/환불) → 롤링(담보금 N% N일 보류) → 지급액
+ * 정산 수학 로직: 결제 데이터 → 수수료 차감(건당·정산·차지백·실패·취소·환불·이용·결제·USDT·FX·3DS %·롤링) → 롤링(담보금 N% N일 보류) → 지급액
  */
 @Service
 public class SettlementCalcService {
 
+    private static final List<String> CHARGEBACK_STATUSES = List.of("30", "31");
+
     private final PgTrnsctnRepository trnsctnRepository;
     private final CommissionPolicyRepository commissionPolicyRepository;
+    private final ChargebackFeePolicyRepository chargebackFeePolicyRepository;
     private final SettlementRunRepository settlementRunRepository;
     private final RollingReserveRepository rollingReserveRepository;
     private final SettlementSettingRepository settlementSettingRepository;
@@ -45,6 +54,7 @@ public class SettlementCalcService {
 
     public SettlementCalcService(PgTrnsctnRepository trnsctnRepository,
                                  CommissionPolicyRepository commissionPolicyRepository,
+                                 ChargebackFeePolicyRepository chargebackFeePolicyRepository,
                                  SettlementRunRepository settlementRunRepository,
                                  RollingReserveRepository rollingReserveRepository,
                                  SettlementSettingRepository settlementSettingRepository,
@@ -52,6 +62,7 @@ public class SettlementCalcService {
                                  OrgServiceUseService orgServiceUseService) {
         this.trnsctnRepository = trnsctnRepository;
         this.commissionPolicyRepository = commissionPolicyRepository;
+        this.chargebackFeePolicyRepository = chargebackFeePolicyRepository;
         this.settlementRunRepository = settlementRunRepository;
         this.rollingReserveRepository = rollingReserveRepository;
         this.settlementSettingRepository = settlementSettingRepository;
@@ -140,16 +151,26 @@ public class SettlementCalcService {
         }
         BigDecimal approveAmt = BigDecimal.ZERO;
         BigDecimal cancelAmt = BigDecimal.ZERO;
+        BigDecimal refundAmt = BigDecimal.ZERO;
         int payCnt = 0;
         int cancelCnt = 0;
+        int refundCnt = 0;
+        int failCnt = 0;
+        int txCount = txList.size();
         for (PgTrnsctn t : txList) {
             BigDecimal amt = t.getAmtKrw() != null ? t.getAmtKrw() : BigDecimal.ZERO;
-            if ("10".equals(t.getStatus())) {
+            String st = t.getStatus() != null ? t.getStatus().trim() : "";
+            if ("10".equals(st)) {
                 approveAmt = approveAmt.add(amt);
                 payCnt++;
-            } else if ("20".equals(t.getStatus())) {
+            } else if ("20".equals(st)) {
                 cancelAmt = cancelAmt.add(amt);
                 cancelCnt++;
+            } else if ("30".equals(st) || "31".equals(st)) {
+                refundAmt = refundAmt.add(amt);
+                refundCnt++;
+            } else if ("F0".equals(st) || "99".equals(st)) {
+                failCnt++;
             }
         }
         BigDecimal netSales = approveAmt.subtract(cancelAmt);
@@ -170,8 +191,7 @@ public class SettlementCalcService {
             rollingReserveRepository.saveAll(maturing);
         }
 
-        boolean noTx = netSales.compareTo(BigDecimal.ZERO) <= 0 && payCnt == 0 && cancelCnt == 0;
-        if (noTx && releasedFromReserve.compareTo(BigDecimal.ZERO) <= 0) {
+        if (txList.isEmpty() && releasedFromReserve.compareTo(BigDecimal.ZERO) <= 0) {
             return null;
         }
 
@@ -193,12 +213,73 @@ public class SettlementCalcService {
         BigDecimal rollingPct = rollingPctRef[0];
         int rollingDays = rollingDaysRef[0];
 
-        BigDecimal feePerTx = perTxFee.multiply(BigDecimal.valueOf(payCnt)).setScale(0, RoundingMode.HALF_UP);
+        BigDecimal feePerTx = perTxFee.multiply(BigDecimal.valueOf(txCount)).setScale(0, RoundingMode.HALF_UP);
         BigDecimal feePayRate = approveAmt.multiply(payRate).divide(BigDecimal.valueOf(100), 0, RoundingMode.HALF_UP);
-        BigDecimal feeCancelRate = cancelAmt.multiply(cancelRate).divide(BigDecimal.valueOf(100), 0, RoundingMode.HALF_UP);
-        BigDecimal feeRefundRate = cancelAmt.multiply(refundRate).divide(BigDecimal.valueOf(100), 0, RoundingMode.HALF_UP);
-        BigDecimal feeUsage = netSales.multiply(usageRate).divide(BigDecimal.valueOf(100), 0, RoundingMode.HALF_UP);
-        BigDecimal totalFee = feePerTx.add(feePayRate).add(feeCancelRate).add(feeRefundRate).add(feeUsage).setScale(0, RoundingMode.HALF_UP);
+        /* 취소·환불: 금액 비율이 아니라 건당 고정액 × 해당 건수 */
+        BigDecimal feeCancelRate = cancelRate.multiply(BigDecimal.valueOf(cancelCnt)).setScale(0, RoundingMode.HALF_UP);
+        BigDecimal feeRefundRate = refundRate.multiply(BigDecimal.valueOf(refundCnt)).setScale(0, RoundingMode.HALF_UP);
+        YearMonth ym = YearMonth.from(calcDt);
+        LocalDate monthStart = ym.atDay(1);
+        LocalDate monthEnd = ym.atEndOfMonth();
+        long runsAlreadyThisMonth = settlementRunRepository.countByMerchantIdAndCalcDtBetween(merchantId, monthStart, monthEnd);
+        boolean chargeMonthlyUsage = usageRate.compareTo(BigDecimal.ZERO) > 0 && runsAlreadyThisMonth == 0;
+        BigDecimal feeUsage = chargeMonthlyUsage ? usageRate.setScale(0, RoundingMode.HALF_UP) : BigDecimal.ZERO;
+        BigDecimal feeFailTotal = failFee.multiply(BigDecimal.valueOf(failCnt)).setScale(0, RoundingMode.HALF_UP);
+
+        BigDecimal feeSettlementPerTxBd = policy.getFeeSettlementPerTx() != null ? policy.getFeeSettlementPerTx() : BigDecimal.ZERO;
+        BigDecimal feeSettlementTotal = feeSettlementPerTxBd.multiply(BigDecimal.valueOf(txCount)).setScale(0, RoundingMode.HALF_UP);
+
+        long chargebackBatchCnt = txList.stream()
+                .map(PgTrnsctn::getStatus)
+                .filter(Objects::nonNull)
+                .map(String::trim)
+                .filter(st -> "30".equals(st) || "31".equals(st))
+                .count();
+        BigDecimal feeChargebackTotal = BigDecimal.ZERO;
+        if (chargebackBatchCnt > 0) {
+            BigDecimal perCase;
+            Long cbPolId = policy.getChargebackPolicyId();
+            if (cbPolId != null) {
+                Optional<ChargebackFeePolicy> cbOpt = chargebackFeePolicyRepository.findByIdWithTiers(cbPolId);
+                if (cbOpt.isPresent() && cbOpt.get().getTiers() != null && !cbOpt.get().getTiers().isEmpty()) {
+                    LocalDateTime monthStartDt = ym.atDay(1).atStartOfDay();
+                    LocalDateTime nextMonthStartDt = ym.plusMonths(1).atDay(1).atStartOfDay();
+                    long monthCbCount = trnsctnRepository.countByMerchantIdAndStatusInAndCreatedAtGreaterThanEqualAndCreatedAtLessThan(
+                            merchantId, CHARGEBACK_STATUSES, monthStartDt, nextMonthStartDt);
+                    int mc = (int) Math.min(monthCbCount, Integer.MAX_VALUE);
+                    perCase = ChargebackTierResolver.feePerCaseForMonthlyCount(mc, cbOpt.get().getTiers());
+                } else {
+                    perCase = policy.getChargebackFeePerTx() != null ? policy.getChargebackFeePerTx() : BigDecimal.ZERO;
+                }
+            } else {
+                perCase = policy.getChargebackFeePerTx() != null ? policy.getChargebackFeePerTx() : BigDecimal.ZERO;
+            }
+            feeChargebackTotal = perCase.multiply(BigDecimal.valueOf(chargebackBatchCnt)).setScale(0, RoundingMode.HALF_UP);
+        }
+
+        BigDecimal feeUsdtBd = policy.getFeeUsdt() != null ? policy.getFeeUsdt() : BigDecimal.ZERO;
+        BigDecimal feeFxBd = policy.getFeeFx() != null ? policy.getFeeFx() : BigDecimal.ZERO;
+        BigDecimal fee3dsBd = policy.getFee3dsRate() != null ? policy.getFee3dsRate() : BigDecimal.ZERO;
+        BigDecimal extraRateOnApprove = feeUsdtBd.add(feeFxBd).add(fee3dsBd);
+        BigDecimal feeUsdtFx3dsSum = BigDecimal.ZERO;
+        BigDecimal feeExtraPctSum = BigDecimal.ZERO;
+        for (PgTrnsctn t : txList) {
+            String st = t.getStatus() != null ? t.getStatus().trim() : "";
+            if (!"10".equals(st)) continue;
+            BigDecimal amt = t.getAmtKrw() != null ? t.getAmtKrw() : BigDecimal.ZERO;
+            if (extraRateOnApprove.signum() > 0) {
+                feeUsdtFx3dsSum = feeUsdtFx3dsSum.add(
+                        amt.multiply(extraRateOnApprove).divide(BigDecimal.valueOf(100), 0, RoundingMode.HALF_UP));
+            }
+            feeExtraPctSum = feeExtraPctSum.add(CommissionExtraFeeUtil.sumPctOnApprovedAmount(policy, amt));
+        }
+
+        BigDecimal feeExtraFix = CommissionExtraFeeUtil.sumFixedForSettlement(policy);
+
+        BigDecimal totalFee = feePerTx.add(feePayRate).add(feeCancelRate).add(feeRefundRate).add(feeUsage)
+                .add(feeFailTotal).add(feeSettlementTotal).add(feeChargebackTotal).add(feeUsdtFx3dsSum)
+                .add(feeExtraPctSum).add(feeExtraFix)
+                .setScale(0, RoundingMode.HALF_UP);
 
         BigDecimal rollingReserveAmt = BigDecimal.ZERO;
         if (rollingDays > 0 && rollingPct.compareTo(BigDecimal.ZERO) > 0) {

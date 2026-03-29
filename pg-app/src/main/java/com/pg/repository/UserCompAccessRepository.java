@@ -8,4 +8,6 @@ import java.util.List;
 public interface UserCompAccessRepository extends JpaRepository<UserCompAccess, Long> {
 
     List<UserCompAccess> findAllByOrderByUsernameAscCompCodeAsc();
+
+    List<UserCompAccess> findByUsernameIgnoreCaseOrderByCompCodeAsc(String username);
 }

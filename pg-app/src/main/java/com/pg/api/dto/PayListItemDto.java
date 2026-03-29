@@ -149,16 +149,24 @@ public class PayListItemDto {
         return row;
     }
 
+    /** 유통 수수료율(있으면) 또는 결제수수료율 + 정책의 USDT·FX·3DS 율(%) 합 — 승인 건 수수료 추정에 사용 */
     private static BigDecimal totalFeeRate(PayListRowContext ctx) {
-        if (ctx == null || ctx.getDistFee() == null) {
-            if (ctx != null && ctx.getPolicy() != null && ctx.getPolicy().getPayRate() != null) {
-                return ctx.getPolicy().getPayRate();
-            }
-            return BigDecimal.ZERO;
+        if (ctx == null) return BigDecimal.ZERO;
+        BigDecimal base;
+        if (ctx.getDistFee() != null) {
+            var d = ctx.getDistFee();
+            base = nz(d.getHqRate()).add(nz(d.getRegionalRate())).add(nz(d.getMasterRate()))
+                    .add(nz(d.getBranchRate())).add(nz(d.getAgencyRate()));
+        } else if (ctx.getPolicy() != null) {
+            base = nz(ctx.getPolicy().getPayRate());
+        } else {
+            base = BigDecimal.ZERO;
         }
-        var d = ctx.getDistFee();
-        return nz(d.getHqRate()).add(nz(d.getRegionalRate())).add(nz(d.getMasterRate()))
-                .add(nz(d.getBranchRate())).add(nz(d.getAgencyRate()));
+        if (ctx.getPolicy() != null) {
+            var p = ctx.getPolicy();
+            base = base.add(nz(p.getFeeUsdt())).add(nz(p.getFeeFx())).add(nz(p.getFee3dsRate()));
+        }
+        return base;
     }
 
     private static BigDecimal resolveRollingPct(PayListRowContext ctx) {

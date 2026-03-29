@@ -61,7 +61,8 @@ app:
   # 보수적으로 쓰려면 allow-all-origins: false 후 allowed-origin-patterns 만 나열.
   cors:
     allow-all-origins: true
-    allowed-origin-patterns: https://*.icopay.co.kr,https://icopay.co.kr,https://www.icopay.co.kr,http://localhost:*,http://127.0.0.1:*,https://*.cafe24.com,http://*.cafe24.com,https://otlpay.cafe24.com,http://otlpay.cafe24.com,https://www.otlpay.cafe24.com,http://www.otlpay.cafe24.com
+    # *.icopay.co.kr 에 더해 본사·총판 서브(예: jp) 명시 — allow-all-origins: false 운영 시에도 매칭 보장
+    allowed-origin-patterns: https://*.icopay.co.kr,https://jp.icopay.co.kr,https://icopay.co.kr,https://www.icopay.co.kr,http://localhost:*,http://127.0.0.1:*,https://*.cafe24.com,http://*.cafe24.com,https://otlpay.cafe24.com,http://otlpay.cafe24.com,https://www.otlpay.cafe24.com,http://www.otlpay.cafe24.com
   # ChillPay (칠리페이) DirectCredit API 연동
   chillpay:
     merchant-code: ${CHILLPAY_MERCHANT_CODE:M035594}
