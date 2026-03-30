@@ -6,7 +6,7 @@ import java.time.LocalDateTime;
 
 /**
  * 수수료 정책 (본사 기본 + 가맹점별 오버라이드)
- * 건당수수료·취소·환불(건당 고정), 월간이용료(고정·월 1회), 실패·결제 수수료율, 롤링(담보금) 비율/일수,
+ * 건당수수료·취소·무효·수동무효·환불(건당 고정), 월간이용료(고정·월 1회), 실패·결제 수수료율, 롤링(담보금) 비율/일수,
  * 기타(비고) 수수료 최대 4건(PCT=승인건별 %, FIX=정산당 고정액)
  */
 @Entity
@@ -52,6 +52,14 @@ public class CommissionPolicy {
     /** 환불·강제환불(30·31) 건당 수수료({@link #currencyCode} 단위). DB 컬럼명 refund_rate 유지. */
     @Column(name = "refund_rate", precision = 12, scale = 0)
     private BigDecimal refundRate = BigDecimal.ZERO;
+
+    /** 무효(거래 status 21): 승인 후 규정 시간 내 자동 무효 건당 수수료({@link #currencyCode} 단위). */
+    @Column(name = "void_fee_per_tx", precision = 12, scale = 0)
+    private BigDecimal voidFeePerTx = BigDecimal.ZERO;
+
+    /** 수동무효(거래 status 22): 무효 구간 이후 이메일 등 수동 무효 건당 수수료({@link #currencyCode} 단위). */
+    @Column(name = "manual_void_fee_per_tx", precision = 12, scale = 0)
+    private BigDecimal manualVoidFeePerTx = BigDecimal.ZERO;
 
     /** D형: 건당 정산수수료 */
     @Column(name = "fee_settlement_per_tx", precision = 12, scale = 0)
@@ -158,6 +166,10 @@ public class CommissionPolicy {
     public void setPayRate(BigDecimal payRate) { this.payRate = payRate; }
     public BigDecimal getRefundRate() { return refundRate; }
     public void setRefundRate(BigDecimal refundRate) { this.refundRate = refundRate; }
+    public BigDecimal getVoidFeePerTx() { return voidFeePerTx; }
+    public void setVoidFeePerTx(BigDecimal voidFeePerTx) { this.voidFeePerTx = voidFeePerTx != null ? voidFeePerTx : BigDecimal.ZERO; }
+    public BigDecimal getManualVoidFeePerTx() { return manualVoidFeePerTx; }
+    public void setManualVoidFeePerTx(BigDecimal manualVoidFeePerTx) { this.manualVoidFeePerTx = manualVoidFeePerTx != null ? manualVoidFeePerTx : BigDecimal.ZERO; }
     public BigDecimal getFeeSettlementPerTx() { return feeSettlementPerTx; }
     public void setFeeSettlementPerTx(BigDecimal feeSettlementPerTx) { this.feeSettlementPerTx = feeSettlementPerTx; }
     public BigDecimal getFeeUsdt() { return feeUsdt; }

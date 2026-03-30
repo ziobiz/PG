@@ -369,7 +369,7 @@ public class ApiSettlementController {
         FeePolicy hqPolicy = resolveHqFeePolicy();
         for (PgTrnsctn t : pgTrnsctnRepository.findForSettlement(null, fromDt, toDt)) {
             String s = t.getStatus() != null ? t.getStatus().trim() : "";
-            boolean recallTarget = "20".equals(s) || "30".equals(s) || "31".equals(s);
+            boolean recallTarget = "20".equals(s) || "21".equals(s) || "22".equals(s) || "30".equals(s) || "31".equals(s);
             if (!recallTarget) continue;
             String compId = t.getMerchantId();
             if (searchCompId != null && !searchCompId.isBlank() && (compId == null || !compId.contains(searchCompId.trim()))) {
@@ -390,7 +390,14 @@ public class ApiSettlementController {
             m.put("recallAmt", recallAmt);
             m.put("deductAmt", deductAmt);
             m.put("status", s);
-            m.put("statusNm", "20".equals(s) ? "당일무효" : ("30".equals(s) ? "환불" : "강제환불"));
+            m.put("statusNm", switch (s) {
+                case "20" -> "취소";
+                case "21" -> "무효";
+                case "22" -> "수동무효";
+                case "30" -> "환불";
+                case "31" -> "강제환불";
+                default -> s;
+            });
             m.put("feeIncludedYn", hqPolicy.recallIncludeFeeYn ? "Y" : "N");
             m.put("vatAppliedYn", hqPolicy.settlementVatApplyYn ? "Y" : "N");
             all.add(m);
@@ -437,6 +444,8 @@ public class ApiSettlementController {
             long usageFee = 0L;
             long failFee = ("F0".equals(st) || "99".equals(st)) ? nz(pol.getFailFee()).longValue() : 0L;
             long cancelFee = "20".equals(st) ? nz(pol.getCancelRate()).longValue() : 0L;
+            long voidFee = "21".equals(st) ? nz(pol.getVoidFeePerTx()).longValue() : 0L;
+            long manualVoidFee = "22".equals(st) ? nz(pol.getManualVoidFeePerTx()).longValue() : 0L;
             long refundFee = ("30".equals(st) || "31".equals(st)) ? nz(pol.getRefundRate()).longValue() : 0L;
             long payFee = "10".equals(st) ? amountBd.multiply(payRateBd).divide(BigDecimal.valueOf(100), 0, RoundingMode.HALF_UP).longValue() : 0L;
             long usdtFee = "10".equals(st) ? amountBd.multiply(nz(pol.getFeeUsdt())).divide(BigDecimal.valueOf(100), 0, RoundingMode.HALF_UP).longValue() : 0L;
@@ -473,7 +482,7 @@ public class ApiSettlementController {
             long extraFees = "10".equals(st)
                     ? CommissionExtraFeeUtil.sumPctOnApprovedAmount(pol, amountBd).longValue()
                     : 0L;
-            long totalFee = Math.max(0L, perTxFee + usageFee + failFee + cancelFee + refundFee + payFee + settlementPerTxFee + usdtFee + fxFee + fee3dsFee + chargebackFee + extraFees);
+            long totalFee = Math.max(0L, perTxFee + usageFee + failFee + cancelFee + voidFee + manualVoidFee + refundFee + payFee + settlementPerTxFee + usdtFee + fxFee + fee3dsFee + chargebackFee + extraFees);
             long feeVat = hqPolicy.settlementVatApplyYn ? Math.round(totalFee * 0.1d) : 0L;
 
             Map<String, Object> m = new LinkedHashMap<>();
@@ -488,6 +497,8 @@ public class ApiSettlementController {
             m.put("usageFee", usageFee);
             m.put("failFee", failFee);
             m.put("cancelFee", cancelFee);
+            m.put("voidFee", voidFee);
+            m.put("manualVoidFee", manualVoidFee);
             m.put("refundFee", refundFee);
             m.put("payFeeRate", payRateBd.stripTrailingZeros().toPlainString());
             m.put("payFee", payFee);
@@ -1155,6 +1166,8 @@ public class ApiSettlementController {
         return switch (status) {
             case "10" -> "결제";
             case "20" -> "취소";
+            case "21" -> "무효";
+            case "22" -> "수동무효";
             case "30", "31" -> "환불";
             case "F0", "99" -> "실패";
             default -> status;

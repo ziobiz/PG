@@ -202,6 +202,8 @@ public class DataLoader {
                 p.setScope("DEFAULT");
                 p.setPerTxFee(BigDecimal.ZERO);
                 p.setCancelRate(BigDecimal.ZERO);
+                p.setVoidFeePerTx(BigDecimal.ZERO);
+                p.setManualVoidFeePerTx(BigDecimal.ZERO);
                 p.setUsageRate(BigDecimal.ZERO);
                 p.setFailFee(BigDecimal.ZERO);
                 p.setPayRate(new BigDecimal("2.5"));

@@ -2132,7 +2132,7 @@
                   if (collCls.length) cellClass = ' class="' + collCls.join(' ') + '"';
                 } else if (url === '/calc/feeList' || url === '/settlement/feeList') {
                   var feeCls = [];
-                  if (['amount', 'perTxFee', 'usageFee', 'failFee', 'cancelFee', 'refundFee', 'payFeeRate', 'payFee', 'usdtFeeRate', 'usdtFee', 'fxFeeRate', 'fxFee', 'fee3dsRate', 'fee3dsFee', 'settlementPerTxFee', 'chargebackFee', 'extraFees', 'totalFee', 'feeVat'].indexOf(c.key) >= 0) feeCls.push('text-end');
+                  if (['amount', 'perTxFee', 'usageFee', 'failFee', 'cancelFee', 'voidFee', 'manualVoidFee', 'refundFee', 'payFeeRate', 'payFee', 'usdtFeeRate', 'usdtFee', 'fxFeeRate', 'fxFee', 'fee3dsRate', 'fee3dsFee', 'settlementPerTxFee', 'chargebackFee', 'extraFees', 'totalFee', 'feeVat'].indexOf(c.key) >= 0) feeCls.push('text-end');
                   if (feeCls.length) cellClass = ' class="' + feeCls.join(' ') + '"';
                 } else if (url === '/commission/commisionList') {
                   var cmCls = [];
@@ -2171,7 +2171,7 @@
                   html += '<td' + cellClass + '>' + collShow + '</td>';
                 } else if (url === '/calc/feeList' || url === '/settlement/feeList') {
                   var feeShow = val;
-                  if (['amount', 'perTxFee', 'usageFee', 'failFee', 'cancelFee', 'refundFee', 'payFee', 'settlementPerTxFee', 'usdtFee', 'fxFee', 'fee3dsFee', 'chargebackFee', 'extraFees', 'totalFee', 'feeVat'].indexOf(c.key) >= 0) {
+                  if (['amount', 'perTxFee', 'usageFee', 'failFee', 'cancelFee', 'voidFee', 'manualVoidFee', 'refundFee', 'payFee', 'settlementPerTxFee', 'usdtFee', 'fxFee', 'fee3dsFee', 'chargebackFee', 'extraFees', 'totalFee', 'feeVat'].indexOf(c.key) >= 0) {
                     feeShow = fmtNum(row[c.key]);
                   } else if (['payFeeRate', 'usdtFeeRate', 'fxFeeRate', 'fee3dsRate'].indexOf(c.key) >= 0) {
                     feeShow = (val != null && val !== '') ? String(val) : '0';
@@ -2718,6 +2718,8 @@
             var set = function (id, val) { var el = document.getElementById(id); if (el && val != null) el.value = String(val); };
             set('commissionPerTxFee', data.perTxFee);
             set('commissionCancelRate', data.cancelRate);
+            set('commissionVoidFeePerTx', data.voidFeePerTx);
+            set('commissionManualVoidFeePerTx', data.manualVoidFeePerTx);
             set('commissionPayRate', data.payRate);
             set('commissionRefundRate', data.refundRate);
             set('commissionRollingPct', data.rollingPct);
@@ -3742,7 +3744,7 @@
         form.querySelectorAll('input, select, textarea').forEach(function (el) { el.disabled = false; });
         var updBtnReset = pane.querySelector('#compInfoUpdateBtn');
         if (updBtnReset) updBtnReset.style.display = '';
-        var allFieldsInfo = ['compId', 'parentComp', 'compNm', 'compDiv', 'regNo', 'bizType', 'industry', 'bizNature', 'product', 'homepage', 'settleName', 'settleTelNo', 'ceoNm', 'ceoMobile', 'compTel', 'fax', 'zipCode', 'addr', 'addrDetail', 'addrEtc', 'addrCountryCd', 'addrCountryCdOther', 'email', 'siteUrl', 'siteSummary', 'useYn', 'loginId', 'bankCd', 'transferFee', 'cryptoTransferFee', 'accountNo', 'accountHolder', 'commissionConfigAllowed', 'webPaymentUseYn', 'baseCurrency', 'remark', 'countryCd', 'countryCdOther', 'swift', 'branchName', 'branchAddr', 'contactTel', 'walletAddress', 'networkName', 'withdrawRestrictType', 'withdrawStartTime', 'withdrawEndTime', 'payLimitDefault', 'payLimitExtra', 'payLimitAlertSms', 'holdRateFollowHq', 'holdRate', 'holdDays', 'commissionFollowHq', 'hqPolicyScope', 'failFee', 'usageRate', 'payRate', 'cancelRate', 'refundRate', 'commissionMemo', 'feeSettlementPerTx', 'feeUsdt', 'feeFx', 'fee3dsRate', 'chargebackFeePerTx', 'calcCycle', 'calcProcType', 'calcCloseTime', 'transferType', 'transferCycleDays', 'autoTransferMin', 'calcMinAmt', 'transferExecTime', 'calcExcludeYn', 'calcExcludeTarget', 'calcStartTime', 'payHoldYn', 'defaultProductName', 'defaultProductCode', 'defaultProductAmount', 'defaultProductDesc', 'notifyUrlBackground', 'notifyUrlResult', 'assistantLoginId', 'assistantPwd', 'assistantRoleType', 'brandingEditAllowedYn'];
+        var allFieldsInfo = ['compId', 'parentComp', 'compNm', 'compDiv', 'regNo', 'bizType', 'industry', 'bizNature', 'product', 'homepage', 'settleName', 'settleTelNo', 'ceoNm', 'ceoMobile', 'compTel', 'fax', 'zipCode', 'addr', 'addrDetail', 'addrEtc', 'addrCountryCd', 'addrCountryCdOther', 'email', 'siteUrl', 'siteSummary', 'useYn', 'loginId', 'bankCd', 'transferFee', 'cryptoTransferFee', 'accountNo', 'accountHolder', 'commissionConfigAllowed', 'webPaymentUseYn', 'baseCurrency', 'remark', 'countryCd', 'countryCdOther', 'swift', 'branchName', 'branchAddr', 'contactTel', 'walletAddress', 'networkName', 'withdrawRestrictType', 'withdrawStartTime', 'withdrawEndTime', 'payLimitDefault', 'payLimitExtra', 'payLimitAlertSms', 'holdRateFollowHq', 'holdRate', 'holdDays', 'commissionFollowHq', 'hqPolicyScope', 'failFee', 'usageRate', 'payRate', 'cancelRate', 'voidFeePerTx', 'manualVoidFeePerTx', 'refundRate', 'commissionMemo', 'feeSettlementPerTx', 'feeUsdt', 'feeFx', 'fee3dsRate', 'chargebackFeePerTx', 'calcCycle', 'calcProcType', 'calcCloseTime', 'transferType', 'transferCycleDays', 'autoTransferMin', 'calcMinAmt', 'transferExecTime', 'calcExcludeYn', 'calcExcludeTarget', 'calcStartTime', 'payHoldYn', 'defaultProductName', 'defaultProductCode', 'defaultProductAmount', 'defaultProductDesc', 'notifyUrlBackground', 'notifyUrlResult', 'assistantLoginId', 'assistantPwd', 'assistantRoleType', 'brandingEditAllowedYn'];
         allFieldsInfo.forEach(function (k) {
           var el = form.querySelector('[name="' + k + '"]');
           if (el && data[k] != null) el.value = data[k];
@@ -4290,7 +4292,7 @@
         if (!data) return;
         var form = pane.querySelector('#compDetailForm');
         if (!form) return;
-        var allFields = ['compId', 'parentComp', 'compNm', 'compDiv', 'regNo', 'bizType', 'industry', 'bizNature', 'product', 'homepage', 'settleName', 'settleTelNo', 'ceoNm', 'ceoMobile', 'compTel', 'fax', 'zipCode', 'addr', 'addrDetail', 'addrEtc', 'addrCountryCd', 'addrCountryCdOther', 'email', 'siteUrl', 'siteSummary', 'useYn', 'loginId', 'bankCd', 'transferFee', 'cryptoTransferFee', 'accountNo', 'accountHolder', 'commissionConfigAllowed', 'webPaymentUseYn', 'baseCurrency', 'remark', 'settleType', 'commissionRate', 'limitAmt', 'countryCd', 'countryCdOther', 'swift', 'branchName', 'branchAddr', 'contactTel', 'walletAddress', 'networkName', 'withdrawRestrictType', 'withdrawStartTime', 'withdrawEndTime', 'payLimitDefault', 'payLimitExtra', 'payLimitAlertSms', 'holdRateFollowHq', 'holdRate', 'holdDays', 'commissionFollowHq', 'hqPolicyScope', 'failFee', 'usageRate', 'payRate', 'cancelRate', 'refundRate', 'commissionMemo', 'feeSettlementPerTx', 'feeUsdt', 'feeFx', 'fee3dsRate', 'chargebackFeePerTx', 'calcCycle', 'calcProcType', 'calcCloseTime', 'transferType', 'transferCycleDays', 'autoTransferMin', 'calcMinAmt', 'transferExecTime', 'calcExcludeYn', 'calcExcludeTarget', 'calcStartTime', 'payHoldYn', 'defaultProductName', 'defaultProductCode', 'defaultProductAmount', 'defaultProductDesc', 'notifyUrlBackground', 'notifyUrlResult', 'notifyUrl1', 'notifyUrl2', 'notifyUrl3', 'notifyUrl4', 'remitterName', 'balanceNotifyAmt', 'suspiciousNotifyAmt', 'overseasLoginNotifyAmt', 'tempPwdNotifyAmt', 'nonTranCriterionMonth', 'sameCardLimitWebDay', 'sameCardLimitWebTimes', 'sameCardLimitWebAmt', 'sameCardLimitTerminalDay', 'sameCardLimitTerminalTimes', 'sameCardLimitTerminalAmt', 'dailyUsageFee', 'depositNameLookup', 'transferAuthNo', 'autoConvertNewMemberLimit', 'newMemberDailyLimit', 'convertRefDate', 'convertDailyLimit', 'applyStartDate', 'pgFeeGeneral', 'settleDiffMonthCnt', 'settleReportBankCd', 'pgFeeSamsung', 'smsFee', 'taxInvoiceEmail', 'settleAccountNo', 'directFee', 'solutionFee', 'settleAccountHolder', 'withdrawRestrictType', 'withdrawRestrictStartTime', 'withdrawRestrictEndTime', 'terminalPayRestrict', 'webPayRestrict', 'defaultFeeHq', 'defaultFeeDist', 'defaultFeeBranch', 'defaultFeeAgency', 'defaultFeeSalesOffice', 'defaultPayLimitPerTx', 'defaultPayLimitDay', 'defaultPayLimitMonth', 'defaultPayLimitYearCorp', 'defaultPayLimitYearInd', 'copyright', 'holidayProfileName', 'holidayProfileCountry', 'holidayCountryCode', 'holidayCountryCodes', 'businessHolidayRangesJson', 'businessHolidayExtraDates'];
+        var allFields = ['compId', 'parentComp', 'compNm', 'compDiv', 'regNo', 'bizType', 'industry', 'bizNature', 'product', 'homepage', 'settleName', 'settleTelNo', 'ceoNm', 'ceoMobile', 'compTel', 'fax', 'zipCode', 'addr', 'addrDetail', 'addrEtc', 'addrCountryCd', 'addrCountryCdOther', 'email', 'siteUrl', 'siteSummary', 'useYn', 'loginId', 'bankCd', 'transferFee', 'cryptoTransferFee', 'accountNo', 'accountHolder', 'commissionConfigAllowed', 'webPaymentUseYn', 'baseCurrency', 'remark', 'settleType', 'commissionRate', 'limitAmt', 'countryCd', 'countryCdOther', 'swift', 'branchName', 'branchAddr', 'contactTel', 'walletAddress', 'networkName', 'withdrawRestrictType', 'withdrawStartTime', 'withdrawEndTime', 'payLimitDefault', 'payLimitExtra', 'payLimitAlertSms', 'holdRateFollowHq', 'holdRate', 'holdDays', 'commissionFollowHq', 'hqPolicyScope', 'failFee', 'usageRate', 'payRate', 'cancelRate', 'voidFeePerTx', 'manualVoidFeePerTx', 'refundRate', 'commissionMemo', 'feeSettlementPerTx', 'feeUsdt', 'feeFx', 'fee3dsRate', 'chargebackFeePerTx', 'calcCycle', 'calcProcType', 'calcCloseTime', 'transferType', 'transferCycleDays', 'autoTransferMin', 'calcMinAmt', 'transferExecTime', 'calcExcludeYn', 'calcExcludeTarget', 'calcStartTime', 'payHoldYn', 'defaultProductName', 'defaultProductCode', 'defaultProductAmount', 'defaultProductDesc', 'notifyUrlBackground', 'notifyUrlResult', 'notifyUrl1', 'notifyUrl2', 'notifyUrl3', 'notifyUrl4', 'remitterName', 'balanceNotifyAmt', 'suspiciousNotifyAmt', 'overseasLoginNotifyAmt', 'tempPwdNotifyAmt', 'nonTranCriterionMonth', 'sameCardLimitWebDay', 'sameCardLimitWebTimes', 'sameCardLimitWebAmt', 'sameCardLimitTerminalDay', 'sameCardLimitTerminalTimes', 'sameCardLimitTerminalAmt', 'dailyUsageFee', 'depositNameLookup', 'transferAuthNo', 'autoConvertNewMemberLimit', 'newMemberDailyLimit', 'convertRefDate', 'convertDailyLimit', 'applyStartDate', 'pgFeeGeneral', 'settleDiffMonthCnt', 'settleReportBankCd', 'pgFeeSamsung', 'smsFee', 'taxInvoiceEmail', 'settleAccountNo', 'directFee', 'solutionFee', 'settleAccountHolder', 'withdrawRestrictType', 'withdrawRestrictStartTime', 'withdrawRestrictEndTime', 'terminalPayRestrict', 'webPayRestrict', 'defaultFeeHq', 'defaultFeeDist', 'defaultFeeBranch', 'defaultFeeAgency', 'defaultFeeSalesOffice', 'defaultPayLimitPerTx', 'defaultPayLimitDay', 'defaultPayLimitMonth', 'defaultPayLimitYearCorp', 'defaultPayLimitYearInd', 'copyright', 'holidayProfileName', 'holidayProfileCountry', 'holidayCountryCode', 'holidayCountryCodes', 'businessHolidayRangesJson', 'businessHolidayExtraDates'];
         allFields.forEach(function (k) {
           var el = form.querySelector('[name="' + k + '"]');
           if (el && data[k] != null) el.value = data[k];
@@ -4717,7 +4719,7 @@
       function hqDefCommResetFormForNew() {
         pane._hqDefCommIsNew = true;
         var defs = {
-          perTxFee: '0', cancelRate: '0', usageRate: '0', failFee: '0', payRate: '2.5', refundRate: '0',
+          perTxFee: '0', cancelRate: '0', voidFeePerTx: '0', manualVoidFeePerTx: '0', usageRate: '0', failFee: '0', payRate: '2.5', refundRate: '0',
           rollingPct: '5', rollingDays: '180', policyName: '', deployYn: 'N', feeSettlementPerTx: '0',
           feeUsdt: '0', feeFx: '0', currencyCode: 'KRW', policyRemark: '', fee3dsRate: '0', chargebackFeePerTx: '0'
         };
@@ -4826,17 +4828,21 @@
           var esc = String(scope).replace(/&/g, '&amp;').replace(/"/g, '&quot;');
           var cbPolRaw = (t.chargebackPolicyName != null && String(t.chargebackPolicyName).trim() !== '') ? String(t.chargebackPolicyName).trim() : '';
           var cbFeeAmt = nzStr(t, 'chargebackFeePerTx', '0');
-          var cbTdTitle = cbPolRaw ? escAttr(cbPolRaw) : '';
-          var cbTd = '<td class="hq-def-comm-policy-td-num"' + (cbTdTitle ? ' title="' + cbTdTitle + '"' : '') + '>' + escH(cbFeeAmt) + '</td>';
+          var cbTd = '<td class="hq-def-comm-policy-td-num">' + escH(cbFeeAmt) + '</td>';
+          var cbZoneTd = cbPolRaw
+            ? '<td class="hq-def-comm-policy-td-cbzone small text-truncate" title="' + escAttr(cbPolRaw) + '">' + escH(cbPolRaw) + '</td>'
+            : '<td class="hq-def-comm-policy-td-cbzone small text-muted">—</td>';
           h += '<tr class="hq-default-comm-policy-row' + active + '" data-scope="' + esc + '" style="cursor:pointer" title="클릭하여 이 정책 불러오기">';
           h += '<td class="text-center align-middle hq-def-comm-chk-cell"><input type="checkbox" class="form-check-input hq-def-comm-row-chk m-0 align-middle" data-scope="' + esc + '" aria-label="행 선택"></td>';
-          h += '<td class="font-monospace">' + String(shortCode).replace(/&/g, '&amp;').replace(/</g, '&lt;') + '</td><td>' + nm + '</td><td>' + dep + '</td>';
+          h += '<td class="font-monospace">' + String(shortCode).replace(/&/g, '&amp;').replace(/</g, '&lt;') + '</td><td>' + nm + '</td>' + cbZoneTd + '<td>' + dep + '</td>';
           h += '<td class="font-monospace small">' + cur.replace(/&/g, '&amp;').replace(/</g, '&lt;') + '</td>';
           h += tdNum(nzStr(t, 'perTxFee', '0'), 'border-start');
           h += tdNum(nzStr(t, 'failFee', '0'));
           h += tdNum(nzStr(t, 'feeSettlementPerTx', '0'));
           h += cbTd;
           h += tdNum(nzStr(t, 'cancelRate', '0'));
+          h += tdNum(nzStr(t, 'voidFeePerTx', '0'));
+          h += tdNum(nzStr(t, 'manualVoidFeePerTx', '0'));
           h += tdNum(nzStr(t, 'refundRate', '0'));
           h += tdPct(nzStr(t, 'payRate', '0'), 'border-start');
           h += tdPct(nzStr(t, 'feeUsdt', '0'));
@@ -4903,7 +4909,7 @@
       }
       function fillDefaultCommissionForm(tmpl) {
         if (!(tmpl && pane.querySelector('[name="payRate"]'))) return;
-        ['perTxFee', 'cancelRate', 'usageRate', 'failFee', 'payRate', 'refundRate', 'rollingPct', 'rollingDays', 'policyName', 'deployYn', 'templateScope', 'deployedTemplateScope', 'feeSettlementPerTx', 'feeUsdt', 'feeFx', 'currencyCode', 'policyRemark', 'fee3dsRate', 'chargebackFeePerTx',
+        ['perTxFee', 'cancelRate', 'voidFeePerTx', 'manualVoidFeePerTx', 'usageRate', 'failFee', 'payRate', 'refundRate', 'rollingPct', 'rollingDays', 'policyName', 'deployYn', 'templateScope', 'deployedTemplateScope', 'feeSettlementPerTx', 'feeUsdt', 'feeFx', 'currencyCode', 'policyRemark', 'fee3dsRate', 'chargebackFeePerTx',
           'extraFee1Name', 'extraFee1Mode', 'extraFee1Value', 'extraFee2Name', 'extraFee2Mode', 'extraFee2Value', 'extraFee3Name', 'extraFee3Mode', 'extraFee3Value', 'extraFee4Name', 'extraFee4Mode', 'extraFee4Value'].forEach(function (k) {
           var el = pane.querySelector('[name="' + k + '"]');
           if (el && tmpl[k] != null) el.value = tmpl[k];
@@ -4943,8 +4949,9 @@
           hqDefFlash('danger', '정책 목록을 불러오지 못했습니다.');
         }).finally(function () { if (dimm) dimm.style.display = 'none'; });
       }
-      if (!pane._hqDefCommBound) {
-        pane._hqDefCommBound = true;
+      /* pane은 탭 재진입 시 유지되고 innerHTML만 갈아끼워지므로, 행 클릭 위임만 1회 등록하고 버튼은 매번 새 DOM에 바인딩한다. */
+      if (!pane._hqDefCommRowClickBound) {
+        pane._hqDefCommRowClickBound = true;
         pane.addEventListener('click', function (ev) {
           if (ev.target && ev.target.closest && ev.target.closest('.hq-def-comm-chk-cell')) return;
           if (ev.target && ev.target.classList && ev.target.classList.contains('hq-def-comm-row-chk')) return;
@@ -4954,125 +4961,138 @@
           if (!scope) return;
           hqDefCommLoadScopeIntoForm(scope);
         });
-        var selAllEl = pane.querySelector('#hqDefCommSelectAll');
-        if (selAllEl && !selAllEl._hqDefCommBound) {
-          selAllEl._hqDefCommBound = true;
-          selAllEl.addEventListener('change', function () {
-            var on = selAllEl.checked;
-            pane.querySelectorAll('#hqDefaultCommissionPolicyList .hq-def-comm-row-chk').forEach(function (cb) { cb.checked = on; });
-          });
-        }
-        var hqDefEdit = pane.querySelector('#hqDefaultCommissionEditBtn');
-        if (hqDefEdit && !hqDefEdit._hqDefCommBound) {
-          hqDefEdit._hqDefCommBound = true;
-          hqDefEdit.addEventListener('click', function () {
-            var scopes = hqDefCommGetCheckedScopes();
-            if (scopes.length === 0) {
-              hqDefFlash('warning', '수정할 정책을 목록에서 한 건 체크하세요.');
-              return;
-            }
-            if (scopes.length > 1) {
-              hqDefFlash('warning', '[수정]은 한 번에 한 건만 선택할 수 있습니다.');
-              return;
-            }
-            hqDefCommLoadScopeIntoForm(scopes[0]);
-          });
-        }
-        function collectHqDefCommFd() {
-          var fd = {};
-          pane.querySelectorAll('input, select, textarea').forEach(function (el) {
-            if (el.name && !el.disabled) fd[el.name] = el.value;
-          });
-          return fd;
-        }
-        function hqDefCommDoSave() {
-          function finishSaveOk() {
-            hqDefFlash('success', '저장되었습니다. 아래 목록이 갱신되었습니다.');
-            return reloadHqDefaultCommission();
-          }
-          if (pane._hqDefCommIsNew) {
-            if (dimm) dimm.style.display = 'flex';
-            window.PG_API.hqDefaultCommissionTemplateAdd({ templateCode: '' }).then(function (res) {
-              var hid = pane.querySelector('#hqDefCommTemplateScope');
-              if (hid && res && res.scope) hid.value = res.scope;
-              pane._hqDefCommIsNew = false;
-              syncHqDefCommTemplateScopeDisplay();
-              return window.PG_API.hqDefaultCommissionSave(collectHqDefCommFd()).then(function () { return finishSaveOk(); });
-            }).catch(function (e) {
-              hqDefFlash('danger', (e && e.message) ? e.message : '저장 또는 정책 추가에 실패했습니다.');
-            }).finally(function () { if (dimm) dimm.style.display = 'none'; });
+      }
+      var selAllEl = pane.querySelector('#hqDefCommSelectAll');
+      if (selAllEl && !selAllEl._hqDefCommBound) {
+        selAllEl._hqDefCommBound = true;
+        selAllEl.addEventListener('change', function () {
+          var on = selAllEl.checked;
+          pane.querySelectorAll('#hqDefaultCommissionPolicyList .hq-def-comm-row-chk').forEach(function (cb) { cb.checked = on; });
+        });
+      }
+      var hqDefEdit = pane.querySelector('#hqDefaultCommissionEditBtn');
+      if (hqDefEdit && !hqDefEdit._hqDefCommBound) {
+        hqDefEdit._hqDefCommBound = true;
+        hqDefEdit.addEventListener('click', function () {
+          var scopes = hqDefCommGetCheckedScopes();
+          if (scopes.length === 0) {
+            hqDefFlash('warning', '수정할 정책을 목록에서 한 건 체크하세요.');
             return;
           }
+          if (scopes.length > 1) {
+            hqDefFlash('warning', '[수정]은 한 번에 한 건만 선택할 수 있습니다.');
+            return;
+          }
+          if (!window.confirm('선택한 정책을 폼에 불러와 수정할 수 있습니다. 진행할까요?')) return;
+          if (!window.confirm('불러온 뒤 반영하려면 [저장]을 눌러야 합니다. 계속하시겠습니까?')) return;
+          hqDefCommLoadScopeIntoForm(scopes[0]);
+        });
+      }
+      function collectHqDefCommFd() {
+        var fd = {};
+        pane.querySelectorAll('input, select, textarea').forEach(function (el) {
+          if (el.name && !el.disabled) fd[el.name] = el.value;
+        });
+        return fd;
+      }
+      function hqDefCommDoSave() {
+        if (!window.confirm('입력한 정책 내용을 서버에 저장하시겠습니까?')) return;
+        if (!window.confirm('저장 후 목록이 갱신됩니다. 정말 저장할까요?')) return;
+        function finishSaveOk() {
+          hqDefFlash('success', '저장되었습니다. 아래 목록이 갱신되었습니다.');
+          return reloadHqDefaultCommission();
+        }
+        if (pane._hqDefCommIsNew) {
           if (dimm) dimm.style.display = 'flex';
-          window.PG_API.hqDefaultCommissionSave(collectHqDefCommFd()).then(function () { return finishSaveOk(); }).catch(function (e) {
-            hqDefFlash('danger', (e && e.message) ? e.message : '저장 실패');
+          window.PG_API.hqDefaultCommissionTemplateAdd({ templateCode: '' }).then(function (res) {
+            var hid = pane.querySelector('#hqDefCommTemplateScope');
+            if (hid && res && res.scope) hid.value = res.scope;
+            pane._hqDefCommIsNew = false;
+            syncHqDefCommTemplateScopeDisplay();
+            return window.PG_API.hqDefaultCommissionSave(collectHqDefCommFd()).then(function () { return finishSaveOk(); });
+          }).catch(function (e) {
+            hqDefFlash('danger', (e && e.message) ? e.message : '저장 또는 정책 추가에 실패했습니다.');
           }).finally(function () { if (dimm) dimm.style.display = 'none'; });
+          return;
         }
-        var hqDefCommFormSave = pane.querySelector('#hqDefCommFormSaveBtn');
-        if (hqDefCommFormSave && !hqDefCommFormSave._hqDefCommBound) {
-          hqDefCommFormSave._hqDefCommBound = true;
-          hqDefCommFormSave.addEventListener('click', function () { hqDefCommDoSave(); });
-        }
-        var hqDefCommNewBtn = pane.querySelector('#hqDefCommNewPolicyBtn');
-        if (hqDefCommNewBtn && !hqDefCommNewBtn._hqDefCommBound) {
-          hqDefCommNewBtn._hqDefCommBound = true;
-          hqDefCommNewBtn.addEventListener('click', function () { hqDefCommResetFormForNew(); });
-        }
-        var delTplBtn = pane.querySelector('#hqDefaultCommissionTemplateDeleteBtn');
-        if (delTplBtn) {
-          delTplBtn.addEventListener('click', function () {
-            var scopes = hqDefCommGetCheckedScopes();
-            if (scopes.length === 0) {
-              hqDefFlash('warning', '삭제할 정책을 목록에서 체크하세요.');
-              return;
-            }
-            var lines = scopes.map(function (sc) {
-              return '· 「' + sc.replace(/^HQPOL:/, '') + '」(' + sc + ')';
-            });
-            var body = pane.querySelector('#hqDefaultCommissionDeleteModalText');
-            if (body) {
-              body.innerHTML = '<span class="d-block mb-2">아래 ' + scopes.length + '건 템플릿을 삭제합니다. 배포 중이면 가맹점 기본 부여에 영향이 있을 수 있습니다.</span>' +
-                '<span class="small text-break" style="white-space:pre-line">' + lines.join('\n') + '</span>';
-            }
-            pane._hqDefDeletePendingScopes = scopes.slice();
-            var delModal = pane.querySelector('#hqDefaultCommissionDeleteModal');
-            if (delModal && window.PG_UI && window.PG_UI.openModal) {
-              window.PG_UI.openModal(delModal);
-            } else if (window.confirm('선택한 ' + scopes.length + '건 정책을 삭제하시겠습니까?')) {
-              if (dimm) dimm.style.display = 'flex';
-              (function delNext(i) {
-                if (i >= scopes.length) {
-                  hqDefFlash('success', '선택한 정책이 삭제되었습니다.');
-                  return reloadHqDefaultCommission();
-                }
-                return window.PG_API.hqDefaultCommissionTemplateDelete(scopes[i]).then(function () { return delNext(i + 1); });
-              }(0)).catch(function (e) {
-                hqDefFlash('danger', (e && e.message) ? e.message : '정책 삭제 실패');
-              }).finally(function () { if (dimm) dimm.style.display = 'none'; });
-            }
+        if (dimm) dimm.style.display = 'flex';
+        window.PG_API.hqDefaultCommissionSave(collectHqDefCommFd()).then(function () { return finishSaveOk(); }).catch(function (e) {
+          hqDefFlash('danger', (e && e.message) ? e.message : '저장 실패');
+        }).finally(function () { if (dimm) dimm.style.display = 'none'; });
+      }
+      var hqDefCommFormSave = pane.querySelector('#hqDefCommFormSaveBtn');
+      if (hqDefCommFormSave && !hqDefCommFormSave._hqDefCommBound) {
+        hqDefCommFormSave._hqDefCommBound = true;
+        hqDefCommFormSave.addEventListener('click', function () { hqDefCommDoSave(); });
+      }
+      var hqDefCommNewBtn = pane.querySelector('#hqDefCommNewPolicyBtn');
+      if (hqDefCommNewBtn && !hqDefCommNewBtn._hqDefCommBound) {
+        hqDefCommNewBtn._hqDefCommBound = true;
+        hqDefCommNewBtn.addEventListener('click', function () {
+          if (!window.confirm('신규 정책 입력 모드로 전환합니다. 계속하시겠습니까?')) return;
+          if (!window.confirm('폼이 초기값으로 바뀝니다. 진행할까요?')) return;
+          hqDefCommResetFormForNew();
+        });
+      }
+      var delTplBtn = pane.querySelector('#hqDefaultCommissionTemplateDeleteBtn');
+      if (delTplBtn) {
+        delTplBtn.addEventListener('click', function () {
+          var scopes = hqDefCommGetCheckedScopes();
+          if (scopes.length === 0) {
+            hqDefFlash('warning', '삭제할 정책을 목록에서 체크하세요.');
+            return;
+          }
+          if (!window.confirm(scopes.length + '건을 삭제 절차를 시작합니다. 삭제 확인 단계로 진행할까요?')) return;
+          if (!window.confirm('삭제는 되돌리기 어렵습니다. 계속하시겠습니까?')) return;
+          var lines = scopes.map(function (sc) {
+            return '· 「' + sc.replace(/^HQPOL:/, '') + '」(' + sc + ')';
           });
-        }
-        var delConf = pane.querySelector('#hqDefaultCommissionDeleteConfirmBtn');
-        if (delConf) {
-          delConf.addEventListener('click', function () {
-            var scopes = pane._hqDefDeletePendingScopes;
-            if (!scopes || scopes.length === 0) return;
+          var body = pane.querySelector('#hqDefaultCommissionDeleteModalText');
+          if (body) {
+            body.innerHTML = '<span class="d-block mb-2">아래 ' + scopes.length + '건 템플릿을 삭제합니다. 배포 중이면 가맹점 기본 부여에 영향이 있을 수 있습니다.</span>' +
+              '<span class="small text-break" style="white-space:pre-line">' + lines.join('\n') + '</span>';
+          }
+          pane._hqDefDeletePendingScopes = scopes.slice();
+          var delModal = pane.querySelector('#hqDefaultCommissionDeleteModal');
+          if (delModal && window.PG_UI && window.PG_UI.openModal) {
+            window.PG_UI.openModal(delModal);
+          } else if (window.confirm('모달을 열 수 없어 바로 삭제 확인을 진행합니다. 선택한 ' + scopes.length + '건을 삭제할까요?') &&
+            window.confirm('삭제를 최종 확인합니다. 실행할까요?')) {
             if (dimm) dimm.style.display = 'flex';
             (function delNext(i) {
               if (i >= scopes.length) {
-                if (window.PG_UI && window.PG_UI.closeModal) {
-                  window.PG_UI.closeModal(pane.querySelector('#hqDefaultCommissionDeleteModal'));
-                }
-                pane._hqDefDeletePendingScopes = [];
-                hqDefFlash('success', '선택한 정책이 삭제되었습니다. 목록을 갱신했습니다.');
+                hqDefFlash('success', '선택한 정책이 삭제되었습니다.');
                 return reloadHqDefaultCommission();
               }
               return window.PG_API.hqDefaultCommissionTemplateDelete(scopes[i]).then(function () { return delNext(i + 1); });
             }(0)).catch(function (e) {
               hqDefFlash('danger', (e && e.message) ? e.message : '정책 삭제 실패');
             }).finally(function () { if (dimm) dimm.style.display = 'none'; });
-          });
-        }
+          }
+        });
+      }
+      var delConf = pane.querySelector('#hqDefaultCommissionDeleteConfirmBtn');
+      if (delConf) {
+        delConf.addEventListener('click', function () {
+          var scopes = pane._hqDefDeletePendingScopes;
+          if (!scopes || scopes.length === 0) return;
+          if (!window.confirm('선택한 ' + scopes.length + '건 템플릿을 서버에서 영구 삭제합니다. 진행할까요?')) return;
+          if (!window.confirm('삭제 후에는 복구할 수 없습니다. 정말 실행하시겠습니까?')) return;
+          if (dimm) dimm.style.display = 'flex';
+          (function delNext(i) {
+            if (i >= scopes.length) {
+              if (window.PG_UI && window.PG_UI.closeModal) {
+                window.PG_UI.closeModal(pane.querySelector('#hqDefaultCommissionDeleteModal'));
+              }
+              pane._hqDefDeletePendingScopes = [];
+              hqDefFlash('success', '선택한 정책이 삭제되었습니다. 목록을 갱신했습니다.');
+              return reloadHqDefaultCommission();
+            }
+            return window.PG_API.hqDefaultCommissionTemplateDelete(scopes[i]).then(function () { return delNext(i + 1); });
+          }(0)).catch(function (e) {
+            hqDefFlash('danger', (e && e.message) ? e.message : '정책 삭제 실패');
+          }).finally(function () { if (dimm) dimm.style.display = 'none'; });
+        });
       }
       reloadHqDefaultCommission();
     }

@@ -542,7 +542,8 @@ public class CompService {
                           String siteUrl, String siteSummary, String pgBindings, String regionalSettings,
                           String assistantLoginId, String assistantPwd, String assistantRoleType, String brandingEditAllowedYn,
                           String notifyUrl1, String notifyUrl2, String notifyUrl3, String notifyUrl4,
-                          String commissionFollowHq, String hqPolicyScope, String perTxFee, String cancelRate, String usageRate,
+                          String commissionFollowHq, String hqPolicyScope, String perTxFee, String cancelRate,
+                          String voidFeePerTx, String manualVoidFeePerTx, String usageRate,
                           String failFee, String payRate, String refundRate, String rollingPct, String rollingDays,
                           String feeSettlementPerTx, String feeUsdt, String feeFx,
                           String fee3dsRate, String chargebackFeePerTx, String chargebackPolicyId) {
@@ -702,7 +703,7 @@ public class CompService {
                                 userRepository.save(primary);
                             }
                             if (usesCommissionPolicyForCompDiv(effDivForCommission)
-                                    && !allCommissionParamsAbsent(commissionFollowHq, hqPolicyScope, perTxFee, cancelRate, usageRate,
+                                    && !allCommissionParamsAbsent(commissionFollowHq, hqPolicyScope, perTxFee, cancelRate, voidFeePerTx, manualVoidFeePerTx, usageRate,
                                     failFee, payRate, refundRate, rollingPct, rollingDays, feeSettlementPerTx, feeUsdt, feeFx,
                                     fee3dsRate, chargebackFeePerTx, chargebackPolicyId)) {
                                 mergeCommissionUiIntoRegionalSettings(mp, commissionFollowHq, hqPolicyScope);
@@ -784,11 +785,11 @@ public class CompService {
                                 } catch (Exception ignored) {}
                             }
                             if (usesCommissionPolicyForCompDiv(effDivForCommission)
-                                    && !allCommissionParamsAbsent(commissionFollowHq, hqPolicyScope, perTxFee, cancelRate, usageRate,
+                                    && !allCommissionParamsAbsent(commissionFollowHq, hqPolicyScope, perTxFee, cancelRate, voidFeePerTx, manualVoidFeePerTx, usageRate,
                                     failFee, payRate, refundRate, rollingPct, rollingDays, feeSettlementPerTx, feeUsdt, feeFx,
                                     fee3dsRate, chargebackFeePerTx, chargebackPolicyId)) {
                                 applyCommissionPolicyForOrgCode(ou.getCode(), effDivForCommission, commissionFollowHq, hqPolicyScope,
-                                        perTxFee, cancelRate, usageRate, failFee, payRate, refundRate, rollingPct, rollingDays,
+                                        perTxFee, cancelRate, voidFeePerTx, manualVoidFeePerTx, usageRate, failFee, payRate, refundRate, rollingPct, rollingDays,
                                         feeSettlementPerTx, feeUsdt, feeFx, fee3dsRate, chargebackFeePerTx, chargebackPolicyId);
                             }
                             return true;
@@ -915,9 +916,10 @@ public class CompService {
                 null, null, null,
                 /* 65–68 default product */
                 null, null, null, null,
-                /* 69–88: notify, commission, fees, regional (20 nulls) */
+                /* 69–90: notify, commission(+무효·수동무효), fees, regional (22 nulls) */
                 null, null, null, null, null, null, null, null, null, null,
-                null, null, null, null, null, null, null, null, null, null);  /* +hqPolicyScope */
+                null, null, null, null, null, null, null, null, null, null,
+                null, null);  /* +hqPolicyScope */
     }
 
     @Transactional
@@ -943,7 +945,8 @@ public class CompService {
                                      String defaultProductName, String defaultProductCode, String defaultProductAmount, String defaultProductDesc,
                                      String notifyUrlBackground, String notifyUrlResult,
                                      String notifyUrl1, String notifyUrl2, String notifyUrl3, String notifyUrl4,
-                                     String commissionFollowHq, String hqPolicyScope, String perTxFee, String cancelRate, String usageRate,
+                                     String commissionFollowHq, String hqPolicyScope, String perTxFee, String cancelRate,
+                                     String voidFeePerTx, String manualVoidFeePerTx, String usageRate,
                                      String failFee, String payRate, String refundRate, String rollingPct, String rollingDays,
                                      String feeSettlementPerTx, String feeUsdt, String feeFx,
                                      String regionalSettings) {
@@ -1145,7 +1148,7 @@ public class CompService {
 
         if (usesCommissionPolicyForCompDiv(compDivVal)) {
             applyCommissionPolicyForOrgCode(saved.getCode(), compDivVal, commissionFollowHq, hqPolicyScope,
-                    perTxFee, cancelRate, usageRate, failFee, payRate, refundRate, rollingPct, rollingDays,
+                    perTxFee, cancelRate, voidFeePerTx, manualVoidFeePerTx, usageRate, failFee, payRate, refundRate, rollingPct, rollingDays,
                     feeSettlementPerTx, feeUsdt, feeFx, null, null, null);
         }
 
@@ -1497,12 +1500,14 @@ public class CompService {
     }
 
     private static boolean allCommissionParamsAbsent(String commissionFollowHq, String hqPolicyScope,
-                                                     String perTxFee, String cancelRate, String usageRate,
+                                                     String perTxFee, String cancelRate, String voidFeePerTx, String manualVoidFeePerTx,
+                                                     String usageRate,
                                                      String failFee, String payRate, String refundRate,
                                                      String rollingPct, String rollingDays,
                                                      String feeSettlementPerTx, String feeUsdt, String feeFx,
                                                      String fee3dsRate, String chargebackFeePerTx, String chargebackPolicyId) {
         return commissionFollowHq == null && hqPolicyScope == null && perTxFee == null && cancelRate == null
+                && voidFeePerTx == null && manualVoidFeePerTx == null
                 && usageRate == null && failFee == null && payRate == null && refundRate == null
                 && rollingPct == null && rollingDays == null && feeSettlementPerTx == null
                 && feeUsdt == null && feeFx == null
@@ -1526,7 +1531,8 @@ public class CompService {
 
     private void applyCommissionPolicyForOrgCode(String compCode, String compDiv,
                                                  String commissionFollowHq, String hqPolicyScope,
-                                                 String perTxFee, String cancelRate, String usageRate,
+                                                 String perTxFee, String cancelRate, String voidFeePerTx, String manualVoidFeePerTx,
+                                                 String usageRate,
                                                  String failFee, String payRate, String refundRate,
                                                  String rollingPct, String rollingDays,
                                                  String feeSettlementPerTx, String feeUsdt, String feeFx,
@@ -1544,6 +1550,14 @@ public class CompService {
             }
             if (cancelRate != null && !cancelRate.trim().isEmpty()) try {
                 policy.setCancelRate(new BigDecimal(cancelRate.trim()));
+            } catch (Exception ignored) {
+            }
+            if (voidFeePerTx != null && !voidFeePerTx.trim().isEmpty()) try {
+                policy.setVoidFeePerTx(new BigDecimal(voidFeePerTx.trim()));
+            } catch (Exception ignored) {
+            }
+            if (manualVoidFeePerTx != null && !manualVoidFeePerTx.trim().isEmpty()) try {
+                policy.setManualVoidFeePerTx(new BigDecimal(manualVoidFeePerTx.trim()));
             } catch (Exception ignored) {
             }
             if (usageRate != null && !usageRate.trim().isEmpty()) try {
@@ -1611,6 +1625,8 @@ public class CompService {
                 policy.setUsageRate(src.getUsageRate());
                 policy.setFailFee(src.getFailFee());
                 policy.setCancelRate(src.getCancelRate());
+                policy.setVoidFeePerTx(src.getVoidFeePerTx());
+                policy.setManualVoidFeePerTx(src.getManualVoidFeePerTx());
                 policy.setRefundRate(src.getRefundRate());
                 policy.setPayRate(src.getPayRate());
                 policy.setFeeSettlementPerTx(src.getFeeSettlementPerTx());
@@ -1666,6 +1682,8 @@ public class CompService {
         m.put("usageRate", p.getUsageRate() != null ? p.getUsageRate().toPlainString() : "");
         m.put("payRate", p.getPayRate() != null ? p.getPayRate().toPlainString() : "");
         m.put("cancelRate", p.getCancelRate() != null ? p.getCancelRate().toPlainString() : "");
+        m.put("voidFeePerTx", p.getVoidFeePerTx() != null ? p.getVoidFeePerTx().toPlainString() : "");
+        m.put("manualVoidFeePerTx", p.getManualVoidFeePerTx() != null ? p.getManualVoidFeePerTx().toPlainString() : "");
         m.put("refundRate", p.getRefundRate() != null ? p.getRefundRate().toPlainString() : "");
         m.put("rollingPct", p.getRollingPct() != null ? p.getRollingPct().toPlainString() : "");
         m.put("rollingDays", p.getRollingDays() != null ? String.valueOf(p.getRollingDays()) : "");
@@ -2100,7 +2118,8 @@ public class CompService {
                             null, null, null,
                             null, null, null, null,
                             null, null, null, null, null, null, null, null, null, null,
-                            null, null, null, null, null, null, null, null, null, null);
+                            null, null, null, null, null, null, null, null, null, null,
+                            null, null);
                     if (loginIdVal != null && !loginIdVal.isEmpty() && userRepository.findByUsername(loginIdVal).isEmpty()) {
                         AppUser appUser = new AppUser();
                         appUser.setUsername(loginIdVal);

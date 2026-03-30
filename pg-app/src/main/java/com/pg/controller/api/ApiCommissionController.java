@@ -53,6 +53,8 @@ public class ApiCommissionController {
             @RequestParam String compId,
             @RequestParam(required = false) String perTxFee,
             @RequestParam(required = false) String cancelRate,
+            @RequestParam(required = false) String voidFeePerTx,
+            @RequestParam(required = false) String manualVoidFeePerTx,
             @RequestParam(required = false) String usageRate,
             @RequestParam(required = false) String failFee,
             @RequestParam(required = false) String payRate,
@@ -80,6 +82,8 @@ public class ApiCommissionController {
         Map<String, Object> body = new java.util.HashMap<>();
         body.put("perTxFee", perTxFee != null ? perTxFee : "");
         body.put("cancelRate", cancelRate != null ? cancelRate : "");
+        body.put("voidFeePerTx", voidFeePerTx != null ? voidFeePerTx : "");
+        body.put("manualVoidFeePerTx", manualVoidFeePerTx != null ? manualVoidFeePerTx : "");
         body.put("usageRate", usageRate != null ? usageRate : "");
         body.put("failFee", failFee != null ? failFee : "");
         body.put("payRate", payRate != null ? payRate : "");

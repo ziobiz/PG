@@ -253,6 +253,8 @@ public class PayListItemDto {
         return switch (t.getStatus() != null ? t.getStatus() : "") {
             case "10" -> "Paid";
             case "20" -> "Cancelled";
+            case "21" -> "Voided";
+            case "22" -> "Manual void";
             case "30", "31" -> "Refunded";
             case "F0", "99" -> "Failed";
             default -> t.getStatus() != null ? t.getStatus() : "-";
@@ -269,6 +271,8 @@ public class PayListItemDto {
         return switch (status) {
             case "10" -> "결제";
             case "20" -> "취소";
+            case "21" -> "무효";
+            case "22" -> "수동무효";
             case "30", "31" -> "환불";
             case "F0", "99" -> "실패";
             default -> status;

@@ -100,6 +100,8 @@ public class CommissionService {
             m.put("cmsnRate", policy.getPayRate());
             m.put("perTxFee", policy.getPerTxFee());
             m.put("cancelRate", policy.getCancelRate());
+            m.put("voidFeePerTx", policy.getVoidFeePerTx());
+            m.put("manualVoidFeePerTx", policy.getManualVoidFeePerTx());
             m.put("payRate", policy.getPayRate());
             m.put("refundRate", policy.getRefundRate());
             m.put("rollingPct", policy.getRollingPct());
@@ -243,6 +245,8 @@ public class CommissionService {
             if (policy != null) {
                 m.put("perTxFee", policy.getPerTxFee());
                 m.put("cancelRate", policy.getCancelRate());
+                m.put("voidFeePerTx", policy.getVoidFeePerTx());
+                m.put("manualVoidFeePerTx", policy.getManualVoidFeePerTx());
                 m.put("usageRate", policy.getUsageRate());
                 m.put("failFee", policy.getFailFee());
                 m.put("payRate", policy.getPayRate());
@@ -302,6 +306,8 @@ public class CommissionService {
                     });
             setBd(policy::setPerTxFee, body.get("perTxFee"));
             setBd(policy::setCancelRate, body.get("cancelRate"));
+            setBd(policy::setVoidFeePerTx, body.get("voidFeePerTx"));
+            setBd(policy::setManualVoidFeePerTx, body.get("manualVoidFeePerTx"));
             setBd(policy::setUsageRate, body.get("usageRate"));
             setBd(policy::setFailFee, body.get("failFee"));
             setBd(policy::setPayRate, body.get("payRate"));

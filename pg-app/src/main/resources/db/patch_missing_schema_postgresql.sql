@@ -95,3 +95,7 @@ ALTER TABLE tb_commission_policy
 ALTER TABLE tb_commission_policy
   ALTER COLUMN refund_rate TYPE NUMERIC(12, 0)
   USING ROUND(COALESCE(refund_rate, 0))::NUMERIC(12, 0);
+
+-- V55: 무효·수동무효 건당 수수료 (거래 status 21·22)
+ALTER TABLE tb_commission_policy ADD COLUMN IF NOT EXISTS void_fee_per_tx NUMERIC(12, 0) NOT NULL DEFAULT 0;
+ALTER TABLE tb_commission_policy ADD COLUMN IF NOT EXISTS manual_void_fee_per_tx NUMERIC(12, 0) NOT NULL DEFAULT 0;

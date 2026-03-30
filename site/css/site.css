@@ -1613,6 +1613,11 @@ body.theme-pastel_4 .content-page, body.theme-pastel_5 .content-page {
 .hq-default-comm-policy-table .hq-def-comm-th-code {
   width: 5.5rem;
 }
+.hq-default-comm-policy-table .hq-def-comm-th-cb-zone {
+  min-width: 6.5rem;
+  max-width: 9rem;
+  line-height: 1.25;
+}
 .hq-default-comm-policy-table .hq-def-comm-th-deploy {
   width: 4.75rem;
 }
@@ -1638,6 +1643,10 @@ body.theme-pastel_4 .content-page, body.theme-pastel_5 .content-page {
   white-space: nowrap;
   font-size: 0.8125rem;
   font-variant-numeric: tabular-nums;
+  vertical-align: middle;
+}
+.hq-def-comm-policy-td-cbzone {
+  max-width: 9rem;
   vertical-align: middle;
 }
 .hq-def-comm-policy-td-extra-slot {

@@ -36,7 +36,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
- * 정산 수학 로직: 결제 데이터 → 수수료 차감(건당·정산·차지백·실패·취소·환불·이용·결제·USDT·FX·3DS %·롤링) → 롤링(담보금 N% N일 보류) → 지급액
+ * 정산 수학 로직: 결제 데이터 → 수수료 차감(건당·정산·차지백·실패·취소·무효·수동무효·환불·이용·결제·USDT·FX·3DS %·롤링) → 롤링(담보금 N% N일 보류) → 지급액
  */
 @Service
 public class SettlementCalcService {
@@ -151,9 +151,13 @@ public class SettlementCalcService {
         }
         BigDecimal approveAmt = BigDecimal.ZERO;
         BigDecimal cancelAmt = BigDecimal.ZERO;
+        BigDecimal voidAmt = BigDecimal.ZERO;
+        BigDecimal manualVoidAmt = BigDecimal.ZERO;
         BigDecimal refundAmt = BigDecimal.ZERO;
         int payCnt = 0;
         int cancelCnt = 0;
+        int voidCnt = 0;
+        int manualVoidCnt = 0;
         int refundCnt = 0;
         int failCnt = 0;
         int txCount = txList.size();
@@ -166,6 +170,12 @@ public class SettlementCalcService {
             } else if ("20".equals(st)) {
                 cancelAmt = cancelAmt.add(amt);
                 cancelCnt++;
+            } else if ("21".equals(st)) {
+                voidAmt = voidAmt.add(amt);
+                voidCnt++;
+            } else if ("22".equals(st)) {
+                manualVoidAmt = manualVoidAmt.add(amt);
+                manualVoidCnt++;
             } else if ("30".equals(st) || "31".equals(st)) {
                 refundAmt = refundAmt.add(amt);
                 refundCnt++;
@@ -173,7 +183,7 @@ public class SettlementCalcService {
                 failCnt++;
             }
         }
-        BigDecimal netSales = approveAmt.subtract(cancelAmt);
+        BigDecimal netSales = approveAmt.subtract(cancelAmt).subtract(voidAmt).subtract(manualVoidAmt);
 
         /* 해지일이 도래한 담보금(롤링) → 이번 정산 지급액에 합산 후 RELEASED 처리 */
         List<RollingReserve> maturing = rollingReserveRepository.findByMerchantIdAndStatusAndReleaseDateLessThanEqual(
@@ -197,6 +207,8 @@ public class SettlementCalcService {
 
         BigDecimal perTxFee = policy.getPerTxFee() != null ? policy.getPerTxFee() : BigDecimal.ZERO;
         BigDecimal cancelRate = policy.getCancelRate() != null ? policy.getCancelRate() : BigDecimal.ZERO;
+        BigDecimal voidFeePerTx = policy.getVoidFeePerTx() != null ? policy.getVoidFeePerTx() : BigDecimal.ZERO;
+        BigDecimal manualVoidFeePerTx = policy.getManualVoidFeePerTx() != null ? policy.getManualVoidFeePerTx() : BigDecimal.ZERO;
         BigDecimal usageRate = policy.getUsageRate() != null ? policy.getUsageRate() : BigDecimal.ZERO;
         BigDecimal payRate = policy.getPayRate() != null ? policy.getPayRate() : BigDecimal.ZERO;
         BigDecimal refundRate = policy.getRefundRate() != null ? policy.getRefundRate() : BigDecimal.ZERO;
@@ -215,8 +227,10 @@ public class SettlementCalcService {
 
         BigDecimal feePerTx = perTxFee.multiply(BigDecimal.valueOf(txCount)).setScale(0, RoundingMode.HALF_UP);
         BigDecimal feePayRate = approveAmt.multiply(payRate).divide(BigDecimal.valueOf(100), 0, RoundingMode.HALF_UP);
-        /* 취소·환불: 금액 비율이 아니라 건당 고정액 × 해당 건수 */
+        /* 취소·무효·수동무효·환불: 건당 고정액 × 해당 건수 */
         BigDecimal feeCancelRate = cancelRate.multiply(BigDecimal.valueOf(cancelCnt)).setScale(0, RoundingMode.HALF_UP);
+        BigDecimal feeVoidPerTx = voidFeePerTx.multiply(BigDecimal.valueOf(voidCnt)).setScale(0, RoundingMode.HALF_UP);
+        BigDecimal feeManualVoidPerTx = manualVoidFeePerTx.multiply(BigDecimal.valueOf(manualVoidCnt)).setScale(0, RoundingMode.HALF_UP);
         BigDecimal feeRefundRate = refundRate.multiply(BigDecimal.valueOf(refundCnt)).setScale(0, RoundingMode.HALF_UP);
         YearMonth ym = YearMonth.from(calcDt);
         LocalDate monthStart = ym.atDay(1);
@@ -276,7 +290,7 @@ public class SettlementCalcService {
 
         BigDecimal feeExtraFix = CommissionExtraFeeUtil.sumFixedForSettlement(policy);
 
-        BigDecimal totalFee = feePerTx.add(feePayRate).add(feeCancelRate).add(feeRefundRate).add(feeUsage)
+        BigDecimal totalFee = feePerTx.add(feePayRate).add(feeCancelRate).add(feeVoidPerTx).add(feeManualVoidPerTx).add(feeRefundRate).add(feeUsage)
                 .add(feeFailTotal).add(feeSettlementTotal).add(feeChargebackTotal).add(feeUsdtFx3dsSum)
                 .add(feeExtraPctSum).add(feeExtraFix)
                 .setScale(0, RoundingMode.HALF_UP);

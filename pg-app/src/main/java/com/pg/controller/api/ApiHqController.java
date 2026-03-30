@@ -186,6 +186,8 @@ public class ApiHqController {
             data.put("usageRate", p.getUsageRate() != null ? p.getUsageRate().toString() : "0");
             data.put("failFee", p.getFailFee() != null ? p.getFailFee().toString() : "0");
             data.put("cancelRate", p.getCancelRate() != null ? p.getCancelRate().toString() : "0");
+            data.put("voidFeePerTx", p.getVoidFeePerTx() != null ? p.getVoidFeePerTx().toString() : "0");
+            data.put("manualVoidFeePerTx", p.getManualVoidFeePerTx() != null ? p.getManualVoidFeePerTx().toString() : "0");
             data.put("refundRate", p.getRefundRate() != null ? p.getRefundRate().toString() : "0");
             data.put("payRate", p.getPayRate() != null ? p.getPayRate().toString() : "2.5");
             data.put("feeSettlementPerTx", p.getFeeSettlementPerTx() != null ? p.getFeeSettlementPerTx().toString() : "0");
@@ -202,7 +204,8 @@ public class ApiHqController {
         });
         if (!data.containsKey("payRate")) {
             data.put("perTxFee", "0"); data.put("usageRate", "0"); data.put("failFee", "0");
-            data.put("cancelRate", "0"); data.put("refundRate", "0"); data.put("payRate", "2.5");
+            data.put("cancelRate", "0"); data.put("voidFeePerTx", "0"); data.put("manualVoidFeePerTx", "0");
+            data.put("refundRate", "0"); data.put("payRate", "2.5");
             data.put("feeSettlementPerTx", "0"); data.put("feeUsdt", "0"); data.put("feeFx", "0");
             data.put("rollingPct", "5"); data.put("rollingDays", 180);
             data.put("currencyCode", "KRW");
@@ -246,7 +249,7 @@ public class ApiHqController {
                 .map(CommissionPolicy::getScope)
                 .orElse("");
         data.put("deployedTemplateScope", deployedScope);
-        data.put("memo", "결제·USDT·FX·3DS는 승인금액 기준 %(통화별 절사·표시는 정책 통화코드 기준). 건당·실패·정산·차지백·취소·환불은 통화코드 단위 건당 금액입니다(취소·환불은 해당 상태 거래 건수만큼 합산). 차지백 구간정책을 선택하면 월간 환불·강제환불(30·31) 건수로 구간별 건당액을 씁니다(미선택 시 건당 차지백만). 월간이용료는 해당 월 정산 최초 실행 시 1회 부과합니다. 기타 수수료(최대 4건): %는 승인 건별, 고정은 정산 1회 합산. 차감 후 롤링(담보금)%를 N일간 보류하고 정산 주기에 지급합니다.");
+        data.put("memo", "결제·USDT·FX·3DS는 승인금액 기준 %(통화별 절사·표시는 정책 통화코드 기준). 건당·실패·정산·차지백·취소·무효·수동무효·환불은 통화코드 단위 건당 금액입니다(취소=20, 무효=21, 수동무효=22, 환불·강제환불=30·31 건수만큼 합산). 차지백 구간정책을 선택하면 월간 환불·강제환불(30·31) 건수로 구간별 건당액을 씁니다(미선택 시 건당 차지백만). 월간이용료는 해당 월 정산 최초 실행 시 1회 부과합니다. 기타 수수료(최대 4건): %는 승인 건별, 고정은 정산 1회 합산. 차감 후 롤링(담보금)%를 N일간 보류하고 정산 주기에 지급합니다.");
         return ResponseEntity.ok(ApiResponse.ok(data));
     }
 
@@ -269,6 +272,8 @@ public class ApiHqController {
         p.setUsageRate(toBigDecimal(body.get("usageRate")));
         p.setFailFee(toBigDecimal(body.get("failFee")));
         p.setCancelRate(toBigDecimal(body.get("cancelRate")));
+        p.setVoidFeePerTx(toBigDecimal(body.get("voidFeePerTx")));
+        p.setManualVoidFeePerTx(toBigDecimal(body.get("manualVoidFeePerTx")));
         p.setRefundRate(toBigDecimal(body.get("refundRate")));
         p.setPayRate(toBigDecimal(body.get("payRate")));
         p.setFeeSettlementPerTx(toBigDecimal(body.get("feeSettlementPerTx")));
@@ -370,6 +375,8 @@ public class ApiHqController {
         m.put("usageRate", p.getUsageRate() != null ? p.getUsageRate().toString() : "0");
         m.put("failFee", p.getFailFee() != null ? p.getFailFee().toString() : "0");
         m.put("cancelRate", p.getCancelRate() != null ? p.getCancelRate().toString() : "0");
+        m.put("voidFeePerTx", p.getVoidFeePerTx() != null ? p.getVoidFeePerTx().toString() : "0");
+        m.put("manualVoidFeePerTx", p.getManualVoidFeePerTx() != null ? p.getManualVoidFeePerTx().toString() : "0");
         m.put("refundRate", p.getRefundRate() != null ? p.getRefundRate().toString() : "0");
         m.put("payRate", p.getPayRate() != null ? p.getPayRate().toString() : "0");
         m.put("feeSettlementPerTx", p.getFeeSettlementPerTx() != null ? p.getFeeSettlementPerTx().toString() : "0");
@@ -555,6 +562,8 @@ public class ApiHqController {
         dst.setUsageRate(src.getUsageRate());
         dst.setFailFee(src.getFailFee());
         dst.setCancelRate(src.getCancelRate());
+        dst.setVoidFeePerTx(src.getVoidFeePerTx());
+        dst.setManualVoidFeePerTx(src.getManualVoidFeePerTx());
         dst.setRefundRate(src.getRefundRate());
         dst.setPayRate(src.getPayRate());
         dst.setFeeSettlementPerTx(src.getFeeSettlementPerTx());

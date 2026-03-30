@@ -172,8 +172,9 @@
       isForm: true,
       formSections: [
         {
-          title: '기본정책',
-          notice: '정책 템플릿(A/B/C/D...)을 만들고 이름을 바꾼 뒤 배포할 수 있습니다. 배포된 정책은 가맹점·본사·총판 등록 시 [본사정책 따름]을 선택하면 자동 부여됩니다. 결제수수료율·USDT·FX·롤링(담보금)·3DS는 승인(결제) 금액 기준 비율(%)입니다. 건당·실패·정산·차지백·취소·환불 수수료는 통화코드 단위 건당 금액이며, 취소(상태 20)·환불·강제환불(30·31) 건수만큼 합산됩니다. 월간이용료는 통화코드 기준 고정 금액이며, 정산 시 해당 월 최초 실행에 1회만 반영됩니다. 기타 수수료(최대 4건)는 %·고정을 골라 이름과 값을 넣어 확장합니다.',
+          title: '기본 수수료 정책',
+          id: 'hqDefaultCommFeeCard',
+          notice: '정책 템플릿(A/B/C/D…)을 만들고 배포할 수 있습니다. 배포된 템플릿은 가맹점·본사·총판 등록 시 [본사정책 따름]으로 자동 부여됩니다. 결제·USDT·FX·3DS 수수료율은 승인 금액 기준 %(통화별 절사). 건당·실패·정산·차지백·취소·무효·수동무효·환불은 통화 단위 건당액(취소 20·무효 21·수동무효 22·환불·강제환불 30·31 건수 합산). 월간이용료는 해당 월 정산 최초 1회. 기타(최대 4건)는 %·고정 선택.',
           rows: [
             [{ type: 'customHtml', col: 2, html: '<div class="form-field-block">' +
               '<label class="form-label">정책코드</label>' +
@@ -182,17 +183,27 @@
               '<option value="">(신규) 저장 시 자동 부여</option></select>' +
               '<p class="text-muted small mb-0 mt-1">고유 코드는 시스템이 부여합니다. 목록에서 정책을 불러와 편집만 할 수 있습니다.</p></div>' },
             { label: '정책명', type: 'text', name: 'policyName', col: 2, placeholder: '예: 기본정책 A' }, { label: '배포', type: 'select', name: 'deployYn', options: [{ v: 'Y', t: '배포' }, { v: 'N', t: '미배포' }], col: 2 }, { label: '통화코드', type: 'text', name: 'currencyCode', col: 2, placeholder: 'KRW, USD, JPY…' }],
-            [{ label: '결제수수료율(%)', type: 'text', name: 'payRate', col: 2 }, { label: '건당수수료(건)', type: 'text', name: 'perTxFee', col: 2 }, { label: '실패수수료(건)', type: 'text', name: 'failFee', col: 2 }, { label: '취소수수료(건)', type: 'text', name: 'cancelRate', col: 2 }, { label: '환불수수료(건)', type: 'text', name: 'refundRate', col: 2 }, { label: '정산수수료(건)', type: 'text', name: 'feeSettlementPerTx', col: 2 }],
-            [{ label: 'USDT수수료율(%)', type: 'text', name: 'feeUsdt', col: 2, placeholder: '승인금액 대비 %' }, { label: 'FX수수료율(%)', type: 'text', name: 'feeFx', col: 2, placeholder: '승인금액 대비 %' }, { label: '롤링(담보금)비율(%)', type: 'text', name: 'rollingPct', col: 2, placeholder: '5 또는 10' }, { label: '롤링보류일수', type: 'text', name: 'rollingDays', col: 2, placeholder: '120 또는 180' }, { label: '월간이용료(월 1회·고정)', type: 'text', name: 'usageRate', col: 2, placeholder: '통화코드 단위 금액' }],
+            [{ label: '결제수수료율(%)', type: 'text', name: 'payRate', col: 2 }, { label: '건당수수료(건)', type: 'text', name: 'perTxFee', col: 2 }, { label: '실패수수료(건)', type: 'text', name: 'failFee', col: 2 }, { label: '취소수수료(건)', type: 'text', name: 'cancelRate', col: 2 }],
+            [{ label: '무효수수료(건)', type: 'text', name: 'voidFeePerTx', col: 2, placeholder: '거래 21' }, { label: '수동무효수수료(건)', type: 'text', name: 'manualVoidFeePerTx', col: 2, placeholder: '거래 22' }, { label: '환불수수료(건)', type: 'text', name: 'refundRate', col: 2 }, { label: '정산수수료(건)', type: 'text', name: 'feeSettlementPerTx', col: 2 }],
+            [{ label: 'USDT수수료율(%)', type: 'text', name: 'feeUsdt', col: 2, placeholder: '승인금액 대비 %' }, { label: 'FX수수료율(%)', type: 'text', name: 'feeFx', col: 2, placeholder: '승인금액 대비 %' }, { label: '월간이용료(월 1회·고정)', type: 'text', name: 'usageRate', col: 2, placeholder: '통화코드 단위 금액' }],
             [{ label: '3DS수수료율(%)', type: 'text', name: 'fee3dsRate', col: 2 }, { label: '차지백수수료(건)', type: 'text', name: 'chargebackFeePerTx', col: 2 }, { label: '차지백 구간정책', type: 'select', name: 'chargebackPolicyId', col: 4, options: [{ v: '', t: '(미사용) 건당 차지백만' }] }],
             [{ type: 'customHtml', col: 12, html: hqDefaultExtraFeesCardHtml() }],
             [{ type: 'customHtml', col: 12, html: '<div class="form-field-block">' +
               '<label class="form-label" for="hqDefCommPolicyRemark">정책비고(저장)</label>' +
               '<textarea class="form-control form-control-sm" name="policyRemark" id="hqDefCommPolicyRemark" rows="3"></textarea>' +
-              '<div class="d-flex justify-content-end flex-wrap gap-2 mt-2">' +
+              '</div>' }]
+          ]
+        },
+        {
+          title: '기본 보류율 정책',
+          id: 'hqDefaultCommHoldCard',
+          notice: '가맹점 등록의 [보류율 설정]과 동일한 개념입니다. 승인(결제) 금액 중 롤링(담보금) 비율(%)만큼 보류하고, 설정한 보류 영업일 수가 지나면 정산 실행 시 지급액에 합산됩니다. 본사정책 따름(Y)이면 가맹점은 아래 본사 템플릿의 롤링 비율·일수를 따릅니다.',
+          rows: [
+            [{ label: '롤링(담보금)비율(%)', type: 'text', name: 'rollingPct', col: 2, placeholder: '5 또는 10' }, { label: '롤링보류일수', type: 'text', name: 'rollingDays', col: 2, placeholder: '120 또는 180' }],
+            [{ type: 'customHtml', col: 12, html: '<div class="d-flex justify-content-end flex-wrap gap-2 mt-2 pt-3 border-top">' +
               '<button type="button" class="btn btn-outline-secondary btn-sm" id="hqDefCommNewPolicyBtn">신규정책</button>' +
               '<button type="button" class="btn btn-primary btn-sm" id="hqDefCommFormSaveBtn">저장</button>' +
-              '</div></div>' }]
+              '</div>' }]
           ]
         },
         {
@@ -204,9 +215,6 @@
             html: '<div id="hqDefaultCommissionFlash" class="alert alert-dismissible d-none mb-3" role="alert">' +
               '<span data-pg-banner-text></span>' +
               '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="닫기"></button></div>' +
-              '<div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-2">' +
-              '<h6 class="small text-secondary mb-0"><i class="bi bi-list-ul me-1" aria-hidden="true"></i>정책 템플릿 목록</h6>' +
-              '<span class="badge bg-secondary">체크·[수정] 또는 행 클릭 → 위 폼에 불러오기</span></div>' +
               '<p class="small text-muted mb-2 mb-md-1">헤더 1행은 <strong>수수료 고정</strong>·<strong>수수료 %</strong>·<strong>담보율</strong>·<strong>기타</strong> 묶음입니다. <strong>수수료 %</strong> 열은 숫자만 표시(단위 % 생략). 결제·USDT·FX·3DS·담보 비율은 승인금액 기준 %입니다.</p>' +
               '<div class="table-responsive border rounded">' +
               '<table class="table table-sm table-hover align-middle mb-0 hq-default-comm-policy-table">' +
@@ -218,9 +226,10 @@
               '</th>' +
               '<th rowspan="2" class="text-center align-middle hq-def-comm-th-code">코드</th>' +
               '<th rowspan="2" class="text-center align-middle hq-def-comm-th-name">이름</th>' +
+              '<th rowspan="2" class="text-center align-middle hq-def-comm-th-cb-zone small">차지백<br>구간정책</th>' +
               '<th rowspan="2" class="text-center align-middle hq-def-comm-th-deploy">적용</th>' +
               '<th rowspan="2" class="text-center align-middle hq-def-comm-th-cur">통화</th>' +
-              '<th colspan="6" class="text-center align-middle small hq-def-comm-th-group border-start">수수료 고정</th>' +
+              '<th colspan="8" class="text-center align-middle small hq-def-comm-th-group border-start">수수료 고정</th>' +
               '<th colspan="4" class="text-center align-middle small hq-def-comm-th-group border-start">수수료 %</th>' +
               '<th colspan="2" class="text-center align-middle small hq-def-comm-th-group border-start">담보율</th>' +
               '<th rowspan="2" class="text-center align-middle hq-def-comm-th-mon border-start">월간</th>' +
@@ -228,7 +237,7 @@
               '<th rowspan="2" class="text-center align-middle hq-def-comm-th-upd text-nowrap border-start">일지</th>' +
               '</tr>' +
               '<tr>' +
-              '<th class="hq-def-comm-th-sub text-center border-start">건당</th><th class="hq-def-comm-th-sub text-center">실패</th><th class="hq-def-comm-th-sub text-center">정산</th><th class="hq-def-comm-th-sub text-center">차지백</th><th class="hq-def-comm-th-sub text-center">취소</th><th class="hq-def-comm-th-sub text-center">환불</th>' +
+              '<th class="hq-def-comm-th-sub text-center border-start">건당</th><th class="hq-def-comm-th-sub text-center">실패</th><th class="hq-def-comm-th-sub text-center">정산</th><th class="hq-def-comm-th-sub text-center">차지백</th><th class="hq-def-comm-th-sub text-center">취소</th><th class="hq-def-comm-th-sub text-center">무효</th><th class="hq-def-comm-th-sub text-center">수동무효</th><th class="hq-def-comm-th-sub text-center">환불</th>' +
               '<th class="hq-def-comm-th-sub text-center border-start">결제</th><th class="hq-def-comm-th-sub text-center">USDT</th><th class="hq-def-comm-th-sub text-center">FX</th><th class="hq-def-comm-th-sub text-center">3DS</th>' +
               '<th class="hq-def-comm-th-sub text-center border-start">비율</th><th class="hq-def-comm-th-sub text-center">일</th>' +
               '<th class="hq-def-comm-th-sub text-center border-start">1</th><th class="hq-def-comm-th-sub text-center">2</th><th class="hq-def-comm-th-sub text-center">3</th>' +
@@ -651,7 +660,8 @@
           rows: [
             [{ label: '본사정책 따름', type: 'select', name: 'commissionFollowHq', options: [{ v: 'Y', t: '본사정책 따름' }, { v: 'N', t: '직접입력' }], col: 2 }, { label: '본사 정책선택', type: 'select', name: 'hqPolicyScope', options: [{ v: '', t: '기본(DEFAULT)' }], col: 2, hqPolicyOnly: true }],
             [{ label: '결제수수료율(%)', type: 'text', name: 'payRate', col: 2, customOnly: true }, { label: '실패수수료(건)', type: 'text', name: 'failFee', col: 2, customOnly: true }, { label: '취소수수료(건)', type: 'text', name: 'cancelRate', col: 2, customOnly: true }],
-            [{ label: '환불수수료(건)', type: 'text', name: 'refundRate', col: 2, customOnly: true }, { label: '월간이용료(월 1회·고정)', type: 'text', name: 'usageRate', col: 2, customOnly: true, placeholder: '통화코드 단위 금액' }, { label: '비고', type: 'text', name: 'commissionMemo', col: 2, customOnly: true }],
+            [{ label: '무효수수료(건)', type: 'text', name: 'voidFeePerTx', col: 2, customOnly: true, placeholder: '거래 21' }, { label: '수동무효수수료(건)', type: 'text', name: 'manualVoidFeePerTx', col: 2, customOnly: true, placeholder: '거래 22' }, { label: '환불수수료(건)', type: 'text', name: 'refundRate', col: 2, customOnly: true }],
+            [{ label: '월간이용료(월 1회·고정)', type: 'text', name: 'usageRate', col: 2, customOnly: true, placeholder: '통화코드 단위 금액' }, { label: '비고', type: 'text', name: 'commissionMemo', col: 2, customOnly: true }],
             [{ label: '정산수수료(건)', type: 'text', name: 'feeSettlementPerTx', col: 2, customOnly: true }, { label: 'USDT수수료율(%)', type: 'text', name: 'feeUsdt', col: 2, customOnly: true }, { label: 'FX수수료율(%)', type: 'text', name: 'feeFx', col: 2, customOnly: true }]
           ]
         },
@@ -945,7 +955,8 @@
           rows: [
             [{ label: '본사정책 따름', type: 'select', name: 'commissionFollowHq', options: [{ v: 'Y', t: '본사정책 따름' }, { v: 'N', t: '직접입력' }], col: 2 }, { label: '본사 정책선택', type: 'select', name: 'hqPolicyScope', options: [{ v: '', t: '기본(DEFAULT)' }], col: 2, hqPolicyOnly: true }],
             [{ label: '결제수수료율(%)', type: 'text', name: 'payRate', col: 2, customOnly: true }, { label: '실패수수료(건)', type: 'text', name: 'failFee', col: 2, customOnly: true }, { label: '취소수수료(건)', type: 'text', name: 'cancelRate', col: 2, customOnly: true }],
-            [{ label: '환불수수료(건)', type: 'text', name: 'refundRate', col: 2, customOnly: true }, { label: '월간이용료(월 1회·고정)', type: 'text', name: 'usageRate', col: 2, customOnly: true, placeholder: '통화코드 단위 금액' }, { label: '비고', type: 'text', name: 'commissionMemo', col: 2, customOnly: true }],
+            [{ label: '무효수수료(건)', type: 'text', name: 'voidFeePerTx', col: 2, customOnly: true, placeholder: '거래 21' }, { label: '수동무효수수료(건)', type: 'text', name: 'manualVoidFeePerTx', col: 2, customOnly: true, placeholder: '거래 22' }, { label: '환불수수료(건)', type: 'text', name: 'refundRate', col: 2, customOnly: true }],
+            [{ label: '월간이용료(월 1회·고정)', type: 'text', name: 'usageRate', col: 2, customOnly: true, placeholder: '통화코드 단위 금액' }, { label: '비고', type: 'text', name: 'commissionMemo', col: 2, customOnly: true }],
             [{ label: '정산수수료(건)', type: 'text', name: 'feeSettlementPerTx', col: 2, customOnly: true }, { label: 'USDT수수료율(%)', type: 'text', name: 'feeUsdt', col: 2, customOnly: true }, { label: 'FX수수료율(%)', type: 'text', name: 'feeFx', col: 2, customOnly: true }]
           ]
         },
@@ -1181,7 +1192,8 @@
           rows: [
             [{ label: '본사정책 따름', type: 'select', name: 'commissionFollowHq', options: [{ v: 'Y', t: '본사정책 따름' }, { v: 'N', t: '직접입력' }], col: 2 }, { label: '본사 정책선택', type: 'select', name: 'hqPolicyScope', options: [{ v: '', t: '기본(DEFAULT)' }], col: 2, hqPolicyOnly: true }],
             [{ label: '결제수수료율(%)', type: 'text', name: 'payRate', col: 2, customOnly: true }, { label: '실패수수료(건)', type: 'text', name: 'failFee', col: 2, customOnly: true }, { label: '취소수수료(건)', type: 'text', name: 'cancelRate', col: 2, customOnly: true }],
-            [{ label: '환불수수료(건)', type: 'text', name: 'refundRate', col: 2, customOnly: true }, { label: '월간이용료(월 1회·고정)', type: 'text', name: 'usageRate', col: 2, customOnly: true, placeholder: '통화코드 단위 금액' }, { label: '비고', type: 'text', name: 'commissionMemo', col: 2, customOnly: true }],
+            [{ label: '무효수수료(건)', type: 'text', name: 'voidFeePerTx', col: 2, customOnly: true, placeholder: '거래 21' }, { label: '수동무효수수료(건)', type: 'text', name: 'manualVoidFeePerTx', col: 2, customOnly: true, placeholder: '거래 22' }, { label: '환불수수료(건)', type: 'text', name: 'refundRate', col: 2, customOnly: true }],
+            [{ label: '월간이용료(월 1회·고정)', type: 'text', name: 'usageRate', col: 2, customOnly: true, placeholder: '통화코드 단위 금액' }, { label: '비고', type: 'text', name: 'commissionMemo', col: 2, customOnly: true }],
             [{ label: '정산수수료(건)', type: 'text', name: 'feeSettlementPerTx', col: 2, customOnly: true }, { label: 'USDT수수료율(%)', type: 'text', name: 'feeUsdt', col: 2, customOnly: true }, { label: 'FX수수료율(%)', type: 'text', name: 'feeFx', col: 2, customOnly: true }]
           ]
         },
@@ -1595,6 +1607,8 @@
         { key: 'usageFee', label: '월간이용(건별표시)' },
         { key: 'failFee', label: '실패수수료' },
         { key: 'cancelFee', label: '취소수수료' },
+        { key: 'voidFee', label: '무효수수료' },
+        { key: 'manualVoidFee', label: '수동무효수수료' },
         { key: 'refundFee', label: '환불수수료' },
         { key: 'payFeeRate', label: '결제수수료율(%)' },
         { key: 'payFee', label: '결제수수료' },
@@ -1973,7 +1987,8 @@
           rows: [
             [{ label: '본사정책 따름', type: 'select', name: 'commissionFollowHq', options: [{ v: 'Y', t: '본사정책 따름' }, { v: 'N', t: '직접입력' }], col: 2 }, { label: '본사 정책선택', type: 'select', name: 'hqPolicyScope', options: [{ v: '', t: '기본(DEFAULT)' }], col: 2, hqPolicyOnly: true }],
             [{ label: '결제수수료율(%)', type: 'text', name: 'payRate', col: 2, customOnly: true }, { label: '실패수수료(건)', type: 'text', name: 'failFee', col: 2, customOnly: true }, { label: '취소수수료(건)', type: 'text', name: 'cancelRate', col: 2, customOnly: true }],
-            [{ label: '환불수수료(건)', type: 'text', name: 'refundRate', col: 2, customOnly: true }, { label: '월간이용료(월 1회·고정)', type: 'text', name: 'usageRate', col: 2, customOnly: true, placeholder: '통화코드 단위 금액' }, { label: '비고', type: 'text', name: 'commissionMemo', col: 2, customOnly: true }],
+            [{ label: '무효수수료(건)', type: 'text', name: 'voidFeePerTx', col: 2, customOnly: true, placeholder: '거래 21' }, { label: '수동무효수수료(건)', type: 'text', name: 'manualVoidFeePerTx', col: 2, customOnly: true, placeholder: '거래 22' }, { label: '환불수수료(건)', type: 'text', name: 'refundRate', col: 2, customOnly: true }],
+            [{ label: '월간이용료(월 1회·고정)', type: 'text', name: 'usageRate', col: 2, customOnly: true, placeholder: '통화코드 단위 금액' }, { label: '비고', type: 'text', name: 'commissionMemo', col: 2, customOnly: true }],
             [{ label: '정산수수료(건)', type: 'text', name: 'feeSettlementPerTx', col: 2, customOnly: true }, { label: 'USDT수수료율(%)', type: 'text', name: 'feeUsdt', col: 2, customOnly: true }, { label: 'FX수수료율(%)', type: 'text', name: 'feeFx', col: 2, customOnly: true }]
           ]
         },

@@ -218,6 +218,8 @@ public class ApiCompController {
             @RequestParam(required = false) String hqPolicyScope,
             @RequestParam(required = false) String perTxFee,
             @RequestParam(required = false) String cancelRate,
+            @RequestParam(required = false) String voidFeePerTx,
+            @RequestParam(required = false) String manualVoidFeePerTx,
             @RequestParam(required = false) String usageRate,
             @RequestParam(required = false) String failFee,
             @RequestParam(required = false) String payRate,
@@ -268,7 +270,7 @@ public class ApiCompController {
                 defaultProductName, defaultProductCode, defaultProductAmount, defaultProductDesc,
                 notifyUrlBackground, notifyUrlResult,
                 notifyUrl1, notifyUrl2, notifyUrl3, notifyUrl4,
-                commissionFollowHq, hqPolicyScope, perTxFee, cancelRate, usageRate, failFee, payRate, refundRate, rollingPct, rollingDays,
+                commissionFollowHq, hqPolicyScope, perTxFee, cancelRate, voidFeePerTx, manualVoidFeePerTx, usageRate, failFee, payRate, refundRate, rollingPct, rollingDays,
                 feeSettlementPerTx, feeUsdt, feeFx, regionalSettings);
         return ResponseEntity.ok(ApiResponse.ok(Map.of("compId", saved.getCode(), "compNm", saved.getName())));
         } catch (IllegalArgumentException e) {
@@ -345,6 +347,8 @@ public class ApiCompController {
             @RequestParam(required = false) String hqPolicyScope,
             @RequestParam(required = false) String perTxFee,
             @RequestParam(required = false) String cancelRate,
+            @RequestParam(required = false) String voidFeePerTx,
+            @RequestParam(required = false) String manualVoidFeePerTx,
             @RequestParam(required = false) String usageRate,
             @RequestParam(required = false) String failFee,
             @RequestParam(required = false) String payRate,
@@ -381,7 +385,7 @@ public class ApiCompController {
                     bankCd, transferFee, cryptoTransferFee, accountNo, accountHolder, remark, commissionConfigAllowed, webPaymentUseYn, baseCurrency, siteUrl, siteSummary, pgBindings, regionalSettings,
                     assistantLoginId, assistantPwd, assistantRoleType, brandingEditAllowedYn,
                     notifyUrl1, notifyUrl2, notifyUrl3, notifyUrl4,
-                    commissionFollowHq, hqPolicyScope, perTxFee, cancelRate, usageRate, failFee, payRate, refundRate, rollingPct, rollingDays,
+                    commissionFollowHq, hqPolicyScope, perTxFee, cancelRate, voidFeePerTx, manualVoidFeePerTx, usageRate, failFee, payRate, refundRate, rollingPct, rollingDays,
                     feeSettlementPerTx, feeUsdt, feeFx, fee3dsRate, chargebackFeePerTx, chargebackPolicyId);
             return ResponseEntity.ok(ok ? ApiResponse.ok(Map.of("success", true, "message", "저장되었습니다."))
                     : ApiResponse.fail("업체를 찾을 수 없습니다.", "NOT_FOUND"));
