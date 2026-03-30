@@ -20,6 +20,7 @@ import com.pg.service.HolidayPresetService;
 import com.pg.service.HqServerManageService;
 import com.pg.service.OrgPagePermissionService;
 import com.pg.service.ServerUsageService;
+import com.pg.util.PercentDecimalHelper;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -182,36 +183,36 @@ public class ApiHqController {
     public ResponseEntity<ApiResponse<Map<String, Object>>> defaultCommission() {
         Map<String, Object> data = new HashMap<>();
         commissionPolicyRepository.findByScope("DEFAULT").ifPresent(p -> {
-            data.put("perTxFee", p.getPerTxFee() != null ? p.getPerTxFee().toString() : "0");
-            data.put("usageRate", p.getUsageRate() != null ? p.getUsageRate().toString() : "0");
-            data.put("failFee", p.getFailFee() != null ? p.getFailFee().toString() : "0");
-            data.put("cancelRate", p.getCancelRate() != null ? p.getCancelRate().toString() : "0");
-            data.put("voidFeePerTx", p.getVoidFeePerTx() != null ? p.getVoidFeePerTx().toString() : "0");
-            data.put("manualVoidFeePerTx", p.getManualVoidFeePerTx() != null ? p.getManualVoidFeePerTx().toString() : "0");
-            data.put("refundRate", p.getRefundRate() != null ? p.getRefundRate().toString() : "0");
-            data.put("payRate", p.getPayRate() != null ? p.getPayRate().toString() : "2.5");
-            data.put("feeSettlementPerTx", p.getFeeSettlementPerTx() != null ? p.getFeeSettlementPerTx().toString() : "0");
-            data.put("feeUsdt", p.getFeeUsdt() != null ? p.getFeeUsdt().toString() : "0");
-            data.put("feeFx", p.getFeeFx() != null ? p.getFeeFx().toString() : "0");
-            data.put("rollingPct", p.getRollingPct() != null ? p.getRollingPct().toString() : "5");
+            data.put("perTxFee", p.getPerTxFee() != null ? PercentDecimalHelper.toPlainAmountOneDecimal(p.getPerTxFee()) : "0.0");
+            data.put("usageRate", p.getUsageRate() != null ? PercentDecimalHelper.toPlainAmountOneDecimal(p.getUsageRate()) : "0.0");
+            data.put("failFee", p.getFailFee() != null ? PercentDecimalHelper.toPlainAmountOneDecimal(p.getFailFee()) : "0.0");
+            data.put("cancelRate", p.getCancelRate() != null ? PercentDecimalHelper.toPlainAmountOneDecimal(p.getCancelRate()) : "0.0");
+            data.put("voidFeePerTx", p.getVoidFeePerTx() != null ? PercentDecimalHelper.toPlainAmountOneDecimal(p.getVoidFeePerTx()) : "0.0");
+            data.put("manualVoidFeePerTx", p.getManualVoidFeePerTx() != null ? PercentDecimalHelper.toPlainAmountOneDecimal(p.getManualVoidFeePerTx()) : "0.0");
+            data.put("refundRate", p.getRefundRate() != null ? PercentDecimalHelper.toPlainAmountOneDecimal(p.getRefundRate()) : "0.0");
+            data.put("payRate", p.getPayRate() != null ? PercentDecimalHelper.toPlainOneDecimal(p.getPayRate()) : "2.5");
+            data.put("feeSettlementPerTx", p.getFeeSettlementPerTx() != null ? PercentDecimalHelper.toPlainAmountOneDecimal(p.getFeeSettlementPerTx()) : "0.0");
+            data.put("feeUsdt", p.getFeeUsdt() != null ? PercentDecimalHelper.toPlainOneDecimal(p.getFeeUsdt()) : "0");
+            data.put("feeFx", p.getFeeFx() != null ? PercentDecimalHelper.toPlainOneDecimal(p.getFeeFx()) : "0");
+            data.put("rollingPct", p.getRollingPct() != null ? PercentDecimalHelper.toPlainOneDecimal(p.getRollingPct()) : "5");
             data.put("rollingDays", p.getRollingDays() != null ? p.getRollingDays() : 180);
             data.put("currencyCode", p.getCurrencyCode() != null && !p.getCurrencyCode().isBlank() ? p.getCurrencyCode() : "KRW");
             data.put("policyRemark", p.getPolicyRemark() != null ? p.getPolicyRemark() : "");
-            data.put("fee3dsRate", p.getFee3dsRate() != null ? p.getFee3dsRate().toPlainString() : "0");
-            data.put("chargebackFeePerTx", p.getChargebackFeePerTx() != null ? p.getChargebackFeePerTx().toPlainString() : "0");
+            data.put("fee3dsRate", p.getFee3dsRate() != null ? PercentDecimalHelper.toPlainOneDecimal(p.getFee3dsRate()) : "0");
+            data.put("chargebackFeePerTx", p.getChargebackFeePerTx() != null ? PercentDecimalHelper.toPlainAmountOneDecimal(p.getChargebackFeePerTx()) : "0.0");
             data.put("chargebackPolicyId", p.getChargebackPolicyId() != null ? p.getChargebackPolicyId() : "");
             putExtraFeeScalarsOnMap(data, p);
         });
         if (!data.containsKey("payRate")) {
-            data.put("perTxFee", "0"); data.put("usageRate", "0"); data.put("failFee", "0");
-            data.put("cancelRate", "0"); data.put("voidFeePerTx", "0"); data.put("manualVoidFeePerTx", "0");
-            data.put("refundRate", "0"); data.put("payRate", "2.5");
-            data.put("feeSettlementPerTx", "0"); data.put("feeUsdt", "0"); data.put("feeFx", "0");
+            data.put("perTxFee", "0.0"); data.put("usageRate", "0.0"); data.put("failFee", "0.0");
+            data.put("cancelRate", "0.0"); data.put("voidFeePerTx", "0.0"); data.put("manualVoidFeePerTx", "0.0");
+            data.put("refundRate", "0.0"); data.put("payRate", "2.5");
+            data.put("feeSettlementPerTx", "0.0"); data.put("feeUsdt", "0"); data.put("feeFx", "0");
             data.put("rollingPct", "5"); data.put("rollingDays", 180);
             data.put("currencyCode", "KRW");
             data.put("policyRemark", "");
             data.put("fee3dsRate", "0");
-            data.put("chargebackFeePerTx", "0");
+            data.put("chargebackFeePerTx", "0.0");
             data.put("chargebackPolicyId", "");
             putExtraFeeScalarsOnMap(data, null);
         }
@@ -244,12 +245,15 @@ public class ApiHqController {
                 .map(p -> enrichPolicyMapWithChargebackName(policyToMap(p), p.getChargebackPolicyId(), chargebackNames))
                 .toList();
         data.put("templates", templates);
-        String deployedScope = commissionPolicyRepository
-                .findFirstByScopeStartingWithAndDeployYnOrderByUpdatedAtDesc(TEMPLATE_SCOPE_PREFIX, "Y")
-                .map(CommissionPolicy::getScope)
-                .orElse("");
+        List<String> deployedScopes = templates.stream()
+                .filter(m -> "Y".equalsIgnoreCase(String.valueOf(m.getOrDefault("deployYn", "N"))))
+                .map(m -> String.valueOf(m.getOrDefault("scope", "")))
+                .filter(s -> !s.isBlank())
+                .toList();
+        data.put("deployedTemplateScopes", deployedScopes);
+        String deployedScope = deployedScopes.isEmpty() ? "" : deployedScopes.get(0);
         data.put("deployedTemplateScope", deployedScope);
-        data.put("memo", "결제·USDT·FX·3DS는 승인금액 기준 %(통화별 절사·표시는 정책 통화코드 기준). 건당·실패·정산·차지백·취소·무효·수동무효·환불은 통화코드 단위 건당 금액입니다(취소=20, 무효=21, 수동무효=22, 환불·강제환불=30·31 건수만큼 합산). 차지백 구간정책을 선택하면 월간 환불·강제환불(30·31) 건수로 구간별 건당액을 씁니다(미선택 시 건당 차지백만). 월간이용료는 해당 월 정산 최초 실행 시 1회 부과합니다. 기타 수수료(최대 4건): %는 승인 건별, 고정은 정산 1회 합산. 차감 후 롤링(담보금)%를 N일간 보류하고 정산 주기에 지급합니다.");
+        data.put("memo", "결제·USDT·FX·3DS는 승인금액 기준 %(통화별 절사·표시는 정책 통화코드 기준). 건당·실패·정산·차지백·취소·무효·수동무효·환불·월간이용료는 통화코드 단위 금액이며 USD·THB 등은 소수 첫째 자리까지 저장됩니다(취소=20, 무효=21, 수동무효=22, 환불·강제환불=30·31 건수만큼 합산). 차지백 구간정책을 선택하면 월간 환불·강제환불(30·31) 건수로 구간별 건당액을 씁니다(미선택 시 건당 차지백만). 월간이용료는 해당 월 정산 최초 실행 시 1회 부과합니다. 기타 수수료(최대 4건): %는 승인 건별, 고정은 정산 1회 합산. 차감 후 롤링(담보금)%를 N일간 보류하고 정산 주기에 지급합니다.");
         return ResponseEntity.ok(ApiResponse.ok(data));
     }
 
@@ -268,45 +272,30 @@ public class ApiHqController {
             p.setPolicyName(policyName != null && !policyName.trim().isEmpty() ? policyName.trim() : scope.substring(TEMPLATE_SCOPE_PREFIX.length()));
             p.setDeployYn("Y".equalsIgnoreCase(hqStr(body, "deployYn")) ? "Y" : "N");
         }
-        p.setPerTxFee(toBigDecimal(body.get("perTxFee")));
-        p.setUsageRate(toBigDecimal(body.get("usageRate")));
-        p.setFailFee(toBigDecimal(body.get("failFee")));
-        p.setCancelRate(toBigDecimal(body.get("cancelRate")));
-        p.setVoidFeePerTx(toBigDecimal(body.get("voidFeePerTx")));
-        p.setManualVoidFeePerTx(toBigDecimal(body.get("manualVoidFeePerTx")));
-        p.setRefundRate(toBigDecimal(body.get("refundRate")));
-        p.setPayRate(toBigDecimal(body.get("payRate")));
-        p.setFeeSettlementPerTx(toBigDecimal(body.get("feeSettlementPerTx")));
-        p.setFeeUsdt(toBigDecimal(body.get("feeUsdt")));
-        p.setFeeFx(toBigDecimal(body.get("feeFx")));
-        p.setRollingPct(toBigDecimal(body.get("rollingPct")));
+        p.setPerTxFee(PercentDecimalHelper.parseAmountOneDecimal(body.get("perTxFee")));
+        p.setUsageRate(PercentDecimalHelper.parseAmountOneDecimal(body.get("usageRate")));
+        p.setFailFee(PercentDecimalHelper.parseAmountOneDecimal(body.get("failFee")));
+        p.setCancelRate(PercentDecimalHelper.parseAmountOneDecimal(body.get("cancelRate")));
+        p.setVoidFeePerTx(PercentDecimalHelper.parseAmountOneDecimal(body.get("voidFeePerTx")));
+        p.setManualVoidFeePerTx(PercentDecimalHelper.parseAmountOneDecimal(body.get("manualVoidFeePerTx")));
+        p.setRefundRate(PercentDecimalHelper.parseAmountOneDecimal(body.get("refundRate")));
+        p.setPayRate(PercentDecimalHelper.parsePercentOneDecimal(body.get("payRate")));
+        p.setFeeSettlementPerTx(PercentDecimalHelper.parseAmountOneDecimal(body.get("feeSettlementPerTx")));
+        p.setFeeUsdt(PercentDecimalHelper.parsePercentOneDecimal(body.get("feeUsdt")));
+        p.setFeeFx(PercentDecimalHelper.parsePercentOneDecimal(body.get("feeFx")));
+        p.setRollingPct(PercentDecimalHelper.parsePercentOneDecimal(body.get("rollingPct")));
         Object rd = body.get("rollingDays");
         p.setRollingDays(rd != null && !rd.toString().isEmpty() ? Integer.parseInt(rd.toString()) : 180);
         String cc = hqStr(body, "currencyCode");
         p.setCurrencyCode(cc != null && !cc.isBlank() ? cc.trim().toUpperCase(Locale.ROOT) : "KRW");
         p.setPolicyRemark(hqStr(body, "policyRemark"));
-        p.setFee3dsRate(toBigDecimal(body.get("fee3dsRate")));
-        p.setChargebackFeePerTx(toBigDecimal(body.get("chargebackFeePerTx")));
+        p.setFee3dsRate(PercentDecimalHelper.parsePercentOneDecimal(body.get("fee3dsRate")));
+        p.setChargebackFeePerTx(PercentDecimalHelper.parseAmountOneDecimal(body.get("chargebackFeePerTx")));
         p.setChargebackPolicyId(parseOptionalPolicyLong(body.get("chargebackPolicyId")));
         applyExtraFeesFromBody(p, body);
         commissionPolicyRepository.save(p);
-        if (scope.startsWith(TEMPLATE_SCOPE_PREFIX) && "Y".equalsIgnoreCase(p.getDeployYn())) {
-            // 다른 템플릿 deploy 해제
-            commissionPolicyRepository.findByScopeStartingWithOrderByScopeAsc(TEMPLATE_SCOPE_PREFIX).forEach(tp -> {
-                if (!Objects.equals(tp.getId(), p.getId())) {
-                    tp.setDeployYn("N");
-                    commissionPolicyRepository.save(tp);
-                }
-            });
-            // 배포: DEFAULT에 복사
-            CommissionPolicy def = commissionPolicyRepository.findByScope("DEFAULT").orElseGet(() -> {
-                CommissionPolicy x = new CommissionPolicy();
-                x.setScope("DEFAULT");
-                return x;
-            });
-            copyPolicyValues(p, def);
-            commissionPolicyRepository.save(def);
-        }
+        /* 배포(Y): 가맹점 등록 시 동일 통화 기준으로 선택 가능한 정책으로 취급. 여러 템플릿을 동시에 배포할 수 있으며,
+           다른 템플릿을 자동 미배포로 바꾸지 않고 DEFAULT에 덮어쓰지도 않는다. */
         return ResponseEntity.ok(ApiResponse.ok(Map.of("success", true, "message", "저장되었습니다.")));
     }
 
@@ -371,23 +360,23 @@ public class ApiHqController {
         m.put("scope", p.getScope());
         m.put("policyName", p.getPolicyName() != null ? p.getPolicyName() : "");
         m.put("deployYn", p.getDeployYn() != null ? p.getDeployYn() : "N");
-        m.put("perTxFee", p.getPerTxFee() != null ? p.getPerTxFee().toString() : "0");
-        m.put("usageRate", p.getUsageRate() != null ? p.getUsageRate().toString() : "0");
-        m.put("failFee", p.getFailFee() != null ? p.getFailFee().toString() : "0");
-        m.put("cancelRate", p.getCancelRate() != null ? p.getCancelRate().toString() : "0");
-        m.put("voidFeePerTx", p.getVoidFeePerTx() != null ? p.getVoidFeePerTx().toString() : "0");
-        m.put("manualVoidFeePerTx", p.getManualVoidFeePerTx() != null ? p.getManualVoidFeePerTx().toString() : "0");
-        m.put("refundRate", p.getRefundRate() != null ? p.getRefundRate().toString() : "0");
-        m.put("payRate", p.getPayRate() != null ? p.getPayRate().toString() : "0");
-        m.put("feeSettlementPerTx", p.getFeeSettlementPerTx() != null ? p.getFeeSettlementPerTx().toString() : "0");
-        m.put("feeUsdt", p.getFeeUsdt() != null ? p.getFeeUsdt().toString() : "0");
-        m.put("feeFx", p.getFeeFx() != null ? p.getFeeFx().toString() : "0");
-        m.put("rollingPct", p.getRollingPct() != null ? p.getRollingPct().toString() : "0");
+        m.put("perTxFee", p.getPerTxFee() != null ? PercentDecimalHelper.toPlainAmountOneDecimal(p.getPerTxFee()) : "0.0");
+        m.put("usageRate", p.getUsageRate() != null ? PercentDecimalHelper.toPlainAmountOneDecimal(p.getUsageRate()) : "0.0");
+        m.put("failFee", p.getFailFee() != null ? PercentDecimalHelper.toPlainAmountOneDecimal(p.getFailFee()) : "0.0");
+        m.put("cancelRate", p.getCancelRate() != null ? PercentDecimalHelper.toPlainAmountOneDecimal(p.getCancelRate()) : "0.0");
+        m.put("voidFeePerTx", p.getVoidFeePerTx() != null ? PercentDecimalHelper.toPlainAmountOneDecimal(p.getVoidFeePerTx()) : "0.0");
+        m.put("manualVoidFeePerTx", p.getManualVoidFeePerTx() != null ? PercentDecimalHelper.toPlainAmountOneDecimal(p.getManualVoidFeePerTx()) : "0.0");
+        m.put("refundRate", p.getRefundRate() != null ? PercentDecimalHelper.toPlainAmountOneDecimal(p.getRefundRate()) : "0.0");
+        m.put("payRate", p.getPayRate() != null ? PercentDecimalHelper.toPlainOneDecimal(p.getPayRate()) : "0");
+        m.put("feeSettlementPerTx", p.getFeeSettlementPerTx() != null ? PercentDecimalHelper.toPlainAmountOneDecimal(p.getFeeSettlementPerTx()) : "0.0");
+        m.put("feeUsdt", p.getFeeUsdt() != null ? PercentDecimalHelper.toPlainOneDecimal(p.getFeeUsdt()) : "0");
+        m.put("feeFx", p.getFeeFx() != null ? PercentDecimalHelper.toPlainOneDecimal(p.getFeeFx()) : "0");
+        m.put("rollingPct", p.getRollingPct() != null ? PercentDecimalHelper.toPlainOneDecimal(p.getRollingPct()) : "0");
         m.put("rollingDays", p.getRollingDays() != null ? p.getRollingDays() : 180);
         m.put("currencyCode", p.getCurrencyCode() != null && !p.getCurrencyCode().isBlank() ? p.getCurrencyCode() : "KRW");
         m.put("policyRemark", p.getPolicyRemark() != null ? p.getPolicyRemark() : "");
-        m.put("fee3dsRate", p.getFee3dsRate() != null ? p.getFee3dsRate().toPlainString() : "0");
-        m.put("chargebackFeePerTx", p.getChargebackFeePerTx() != null ? p.getChargebackFeePerTx().toPlainString() : "0");
+        m.put("fee3dsRate", p.getFee3dsRate() != null ? PercentDecimalHelper.toPlainOneDecimal(p.getFee3dsRate()) : "0");
+        m.put("chargebackFeePerTx", p.getChargebackFeePerTx() != null ? PercentDecimalHelper.toPlainAmountOneDecimal(p.getChargebackFeePerTx()) : "0.0");
         m.put("chargebackPolicyId", p.getChargebackPolicyId() != null ? p.getChargebackPolicyId() : "");
         putExtraFeeScalarsOnMap(m, p);
         m.put("updatedAt", p.getUpdatedAt() != null ? p.getUpdatedAt().toString() : "");
@@ -430,22 +419,22 @@ public class ApiHqController {
                     case 1 -> {
                         name = nzStr(p.getExtraFee1Name());
                         mode = nzStr(p.getExtraFee1Mode());
-                        val = extraValStr(p.getExtraFee1Value());
+                        val = extraValStr(p.getExtraFee1Value(), mode);
                     }
                     case 2 -> {
                         name = nzStr(p.getExtraFee2Name());
                         mode = nzStr(p.getExtraFee2Mode());
-                        val = extraValStr(p.getExtraFee2Value());
+                        val = extraValStr(p.getExtraFee2Value(), mode);
                     }
                     case 3 -> {
                         name = nzStr(p.getExtraFee3Name());
                         mode = nzStr(p.getExtraFee3Mode());
-                        val = extraValStr(p.getExtraFee3Value());
+                        val = extraValStr(p.getExtraFee3Value(), mode);
                     }
                     case 4 -> {
                         name = nzStr(p.getExtraFee4Name());
                         mode = nzStr(p.getExtraFee4Mode());
-                        val = extraValStr(p.getExtraFee4Value());
+                        val = extraValStr(p.getExtraFee4Value(), mode);
                     }
                     default -> {
                     }
@@ -461,8 +450,14 @@ public class ApiHqController {
         return s != null ? s : "";
     }
 
-    private static String extraValStr(BigDecimal b) {
-        return b != null ? b.stripTrailingZeros().toPlainString() : "0";
+    private static String extraValStr(BigDecimal b, String mode) {
+        if (b == null) {
+            return "0";
+        }
+        if ("PCT".equalsIgnoreCase(mode)) {
+            return PercentDecimalHelper.toPlainOneDecimal(b);
+        }
+        return b.stripTrailingZeros().toPlainString();
     }
 
     private void applyExtraFeesFromBody(CommissionPolicy p, Map<String, Object> body) {
@@ -477,7 +472,9 @@ public class ApiHqController {
         String vk = "extraFee" + slot + "Value";
         String name = hqStr(body, nk);
         String modeNorm = normalizeExtraMode(hqStr(body, mk));
-        BigDecimal val = toBigDecimal(body.get(vk));
+        BigDecimal val = "PCT".equals(modeNorm)
+                ? PercentDecimalHelper.parsePercentOneDecimal(body.get(vk))
+                : toBigDecimal(body.get(vk));
         if (name == null || name.isBlank() || modeNorm == null) {
             clearExtraFeeSlot(p, slot);
             return;

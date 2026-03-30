@@ -23,6 +23,7 @@ import com.pg.repository.MerchantDefaultProductRepository;
 import com.pg.repository.MerchantNotifyUrlRepository;
 import com.pg.repository.CommissionPolicyRepository;
 import com.pg.repository.UserRepository;
+import com.pg.util.PercentDecimalHelper;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -507,7 +508,7 @@ public class CompService {
                                 }
                                 m.put("calcProcType", ss.getCalcProcType());
                                 m.put("transferType", ss.getTransferType());
-                                m.put("holdRate", ss.getHoldRate());
+                                m.put("holdRate", ss.getHoldRate() != null ? PercentDecimalHelper.toPlainOneDecimal(ss.getHoldRate()) : null);
                                 m.put("holdDays", ss.getHoldDays());
                                 m.put("payLimitDefault", ss.getPayLimitDefault());
                                 m.put("withdrawRestrictType", ss.getWithdrawRestrictType());
@@ -1060,7 +1061,9 @@ public class CompService {
         if (payLimitAlertSms != null && !payLimitAlertSms.isEmpty()) ss.setPayLimitAlertSms(payLimitAlertSms);
         if (holdRateFollowHq != null && !holdRateFollowHq.isEmpty()) ss.setHoldRateFollowHq(holdRateFollowHq.trim());
         if ("N".equalsIgnoreCase(holdRateFollowHq != null ? holdRateFollowHq.trim() : "")) {
-            if (holdRate != null && !holdRate.isEmpty()) try { ss.setHoldRate(new BigDecimal(holdRate.trim())); } catch (Exception ignored) {}
+            if (holdRate != null && !holdRate.isEmpty()) {
+                ss.setHoldRate(PercentDecimalHelper.parsePercentOneDecimal(holdRate));
+            }
             if (holdDays != null) ss.setHoldDays(holdDays);
         }
         if (parseTime(calcCloseTime) != null) ss.setCalcCloseTime(parseTime(calcCloseTime));
@@ -1369,7 +1372,7 @@ public class CompService {
                             m.put("withdrawEndTime", ss.getWithdrawEndTime() != null ? ss.getWithdrawEndTime().toString() : null);
                             m.put("payLimitDefault", ss.getPayLimitDefault());
                             m.put("payLimitExtra", ss.getPayLimitExtra());
-                            m.put("holdRate", ss.getHoldRate());
+                            m.put("holdRate", ss.getHoldRate() != null ? PercentDecimalHelper.toPlainOneDecimal(ss.getHoldRate()) : null);
                             m.put("holdDays", ss.getHoldDays());
                             m.put("calcCycle", ou.getOrgLevel() == OrgLevel.MERCHANT ? ss.getCalcCycle() : null);
                             m.put("calcProcType", ss.getCalcProcType());
@@ -1407,7 +1410,9 @@ public class CompService {
                             if (parseTime(withdrawEndTime) != null) ss.setWithdrawEndTime(parseTime(withdrawEndTime));
                             if (payLimitDefault != null && !payLimitDefault.isEmpty()) try { ss.setPayLimitDefault(new BigDecimal(payLimitDefault.trim())); } catch (Exception ignored) {}
                             if (payLimitExtra != null && !payLimitExtra.isEmpty()) try { ss.setPayLimitExtra(new BigDecimal(payLimitExtra.trim())); } catch (Exception ignored) {}
-                            if (holdRate != null && !holdRate.isEmpty()) try { ss.setHoldRate(new BigDecimal(holdRate.trim())); } catch (Exception ignored) {}
+                            if (holdRate != null && !holdRate.isEmpty()) {
+                                ss.setHoldRate(PercentDecimalHelper.parsePercentOneDecimal(holdRate));
+                            }
                             if (holdDays != null) ss.setHoldDays(holdDays);
                             if (ou.getOrgLevel() == OrgLevel.MERCHANT) {
                                 if (calcCycle != null && !calcCycle.isEmpty()) ss.setCalcCycle(calcCycle);
@@ -1544,65 +1549,51 @@ public class CompService {
         if (custom) {
             CommissionPolicy policy = commissionPolicyRepository.findByScope(compCode.trim()).orElseGet(CommissionPolicy::new);
             policy.setScope(compCode.trim());
-            if (perTxFee != null && !perTxFee.trim().isEmpty()) try {
-                policy.setPerTxFee(new BigDecimal(perTxFee.trim()));
-            } catch (Exception ignored) {
+            if (perTxFee != null && !perTxFee.trim().isEmpty()) {
+                policy.setPerTxFee(PercentDecimalHelper.parseAmountOneDecimal(perTxFee.trim()));
             }
-            if (cancelRate != null && !cancelRate.trim().isEmpty()) try {
-                policy.setCancelRate(new BigDecimal(cancelRate.trim()));
-            } catch (Exception ignored) {
+            if (cancelRate != null && !cancelRate.trim().isEmpty()) {
+                policy.setCancelRate(PercentDecimalHelper.parseAmountOneDecimal(cancelRate.trim()));
             }
-            if (voidFeePerTx != null && !voidFeePerTx.trim().isEmpty()) try {
-                policy.setVoidFeePerTx(new BigDecimal(voidFeePerTx.trim()));
-            } catch (Exception ignored) {
+            if (voidFeePerTx != null && !voidFeePerTx.trim().isEmpty()) {
+                policy.setVoidFeePerTx(PercentDecimalHelper.parseAmountOneDecimal(voidFeePerTx.trim()));
             }
-            if (manualVoidFeePerTx != null && !manualVoidFeePerTx.trim().isEmpty()) try {
-                policy.setManualVoidFeePerTx(new BigDecimal(manualVoidFeePerTx.trim()));
-            } catch (Exception ignored) {
+            if (manualVoidFeePerTx != null && !manualVoidFeePerTx.trim().isEmpty()) {
+                policy.setManualVoidFeePerTx(PercentDecimalHelper.parseAmountOneDecimal(manualVoidFeePerTx.trim()));
             }
-            if (usageRate != null && !usageRate.trim().isEmpty()) try {
-                policy.setUsageRate(new BigDecimal(usageRate.trim()));
-            } catch (Exception ignored) {
+            if (usageRate != null && !usageRate.trim().isEmpty()) {
+                policy.setUsageRate(PercentDecimalHelper.parseAmountOneDecimal(usageRate.trim()));
             }
-            if (failFee != null && !failFee.trim().isEmpty()) try {
-                policy.setFailFee(new BigDecimal(failFee.trim()));
-            } catch (Exception ignored) {
+            if (failFee != null && !failFee.trim().isEmpty()) {
+                policy.setFailFee(PercentDecimalHelper.parseAmountOneDecimal(failFee.trim()));
             }
-            if (payRate != null && !payRate.trim().isEmpty()) try {
-                policy.setPayRate(new BigDecimal(payRate.trim()));
-            } catch (Exception ignored) {
+            if (payRate != null && !payRate.trim().isEmpty()) {
+                policy.setPayRate(PercentDecimalHelper.parsePercentOneDecimal(payRate));
             }
-            if (refundRate != null && !refundRate.trim().isEmpty()) try {
-                policy.setRefundRate(new BigDecimal(refundRate.trim()));
-            } catch (Exception ignored) {
+            if (refundRate != null && !refundRate.trim().isEmpty()) {
+                policy.setRefundRate(PercentDecimalHelper.parseAmountOneDecimal(refundRate.trim()));
             }
-            if (rollingPct != null && !rollingPct.trim().isEmpty()) try {
-                policy.setRollingPct(new BigDecimal(rollingPct.trim()));
-            } catch (Exception ignored) {
+            if (rollingPct != null && !rollingPct.trim().isEmpty()) {
+                policy.setRollingPct(PercentDecimalHelper.parsePercentOneDecimal(rollingPct));
             }
             if (rollingDays != null && !rollingDays.trim().isEmpty()) try {
                 policy.setRollingDays(Integer.parseInt(rollingDays.trim()));
             } catch (Exception ignored) {
             }
-            if (feeSettlementPerTx != null && !feeSettlementPerTx.trim().isEmpty()) try {
-                policy.setFeeSettlementPerTx(new BigDecimal(feeSettlementPerTx.trim()));
-            } catch (Exception ignored) {
+            if (feeSettlementPerTx != null && !feeSettlementPerTx.trim().isEmpty()) {
+                policy.setFeeSettlementPerTx(PercentDecimalHelper.parseAmountOneDecimal(feeSettlementPerTx.trim()));
             }
-            if (feeUsdt != null && !feeUsdt.trim().isEmpty()) try {
-                policy.setFeeUsdt(new BigDecimal(feeUsdt.trim()));
-            } catch (Exception ignored) {
+            if (feeUsdt != null && !feeUsdt.trim().isEmpty()) {
+                policy.setFeeUsdt(PercentDecimalHelper.parsePercentOneDecimal(feeUsdt));
             }
-            if (feeFx != null && !feeFx.trim().isEmpty()) try {
-                policy.setFeeFx(new BigDecimal(feeFx.trim()));
-            } catch (Exception ignored) {
+            if (feeFx != null && !feeFx.trim().isEmpty()) {
+                policy.setFeeFx(PercentDecimalHelper.parsePercentOneDecimal(feeFx));
             }
-            if (fee3dsRate != null && !fee3dsRate.trim().isEmpty()) try {
-                policy.setFee3dsRate(new BigDecimal(fee3dsRate.trim()));
-            } catch (Exception ignored) {
+            if (fee3dsRate != null && !fee3dsRate.trim().isEmpty()) {
+                policy.setFee3dsRate(PercentDecimalHelper.parsePercentOneDecimal(fee3dsRate));
             }
-            if (chargebackFeePerTx != null && !chargebackFeePerTx.trim().isEmpty()) try {
-                policy.setChargebackFeePerTx(new BigDecimal(chargebackFeePerTx.trim()));
-            } catch (Exception ignored) {
+            if (chargebackFeePerTx != null && !chargebackFeePerTx.trim().isEmpty()) {
+                policy.setChargebackFeePerTx(PercentDecimalHelper.parseAmountOneDecimal(chargebackFeePerTx.trim()));
             }
             if (chargebackPolicyId != null) {
                 String cp = chargebackPolicyId.trim();
@@ -1680,32 +1671,42 @@ public class CompService {
         m.put("perTxFee", p.getPerTxFee() != null ? p.getPerTxFee().toPlainString() : "");
         m.put("failFee", p.getFailFee() != null ? p.getFailFee().toPlainString() : "");
         m.put("usageRate", p.getUsageRate() != null ? p.getUsageRate().toPlainString() : "");
-        m.put("payRate", p.getPayRate() != null ? p.getPayRate().toPlainString() : "");
+        m.put("payRate", p.getPayRate() != null ? PercentDecimalHelper.toPlainOneDecimal(p.getPayRate()) : "");
         m.put("cancelRate", p.getCancelRate() != null ? p.getCancelRate().toPlainString() : "");
         m.put("voidFeePerTx", p.getVoidFeePerTx() != null ? p.getVoidFeePerTx().toPlainString() : "");
         m.put("manualVoidFeePerTx", p.getManualVoidFeePerTx() != null ? p.getManualVoidFeePerTx().toPlainString() : "");
         m.put("refundRate", p.getRefundRate() != null ? p.getRefundRate().toPlainString() : "");
-        m.put("rollingPct", p.getRollingPct() != null ? p.getRollingPct().toPlainString() : "");
+        m.put("rollingPct", p.getRollingPct() != null ? PercentDecimalHelper.toPlainOneDecimal(p.getRollingPct()) : "");
         m.put("rollingDays", p.getRollingDays() != null ? String.valueOf(p.getRollingDays()) : "");
         m.put("feeSettlementPerTx", p.getFeeSettlementPerTx() != null ? p.getFeeSettlementPerTx().toPlainString() : "");
-        m.put("feeUsdt", p.getFeeUsdt() != null ? p.getFeeUsdt().toPlainString() : "");
-        m.put("feeFx", p.getFeeFx() != null ? p.getFeeFx().toPlainString() : "");
+        m.put("feeUsdt", p.getFeeUsdt() != null ? PercentDecimalHelper.toPlainOneDecimal(p.getFeeUsdt()) : "");
+        m.put("feeFx", p.getFeeFx() != null ? PercentDecimalHelper.toPlainOneDecimal(p.getFeeFx()) : "");
         m.put("commissionMemo", p.getPolicyRemark() != null ? p.getPolicyRemark() : "");
         m.put("extraFee1Name", p.getExtraFee1Name() != null ? p.getExtraFee1Name() : "");
         m.put("extraFee1Mode", p.getExtraFee1Mode() != null ? p.getExtraFee1Mode() : "");
-        m.put("extraFee1Value", p.getExtraFee1Value() != null ? p.getExtraFee1Value().toPlainString() : "");
+        m.put("extraFee1Value", extraFeeValuePlain(p.getExtraFee1Mode(), p.getExtraFee1Value()));
         m.put("extraFee2Name", p.getExtraFee2Name() != null ? p.getExtraFee2Name() : "");
         m.put("extraFee2Mode", p.getExtraFee2Mode() != null ? p.getExtraFee2Mode() : "");
-        m.put("extraFee2Value", p.getExtraFee2Value() != null ? p.getExtraFee2Value().toPlainString() : "");
+        m.put("extraFee2Value", extraFeeValuePlain(p.getExtraFee2Mode(), p.getExtraFee2Value()));
         m.put("extraFee3Name", p.getExtraFee3Name() != null ? p.getExtraFee3Name() : "");
         m.put("extraFee3Mode", p.getExtraFee3Mode() != null ? p.getExtraFee3Mode() : "");
-        m.put("extraFee3Value", p.getExtraFee3Value() != null ? p.getExtraFee3Value().toPlainString() : "");
+        m.put("extraFee3Value", extraFeeValuePlain(p.getExtraFee3Mode(), p.getExtraFee3Value()));
         m.put("extraFee4Name", p.getExtraFee4Name() != null ? p.getExtraFee4Name() : "");
         m.put("extraFee4Mode", p.getExtraFee4Mode() != null ? p.getExtraFee4Mode() : "");
-        m.put("extraFee4Value", p.getExtraFee4Value() != null ? p.getExtraFee4Value().toPlainString() : "");
+        m.put("extraFee4Value", extraFeeValuePlain(p.getExtraFee4Mode(), p.getExtraFee4Value()));
         m.put("chargebackPolicyId", p.getChargebackPolicyId() != null ? String.valueOf(p.getChargebackPolicyId()) : "");
-        m.put("fee3dsRate", p.getFee3dsRate() != null ? p.getFee3dsRate().toPlainString() : "");
+        m.put("fee3dsRate", p.getFee3dsRate() != null ? PercentDecimalHelper.toPlainOneDecimal(p.getFee3dsRate()) : "");
         m.put("chargebackFeePerTx", p.getChargebackFeePerTx() != null ? p.getChargebackFeePerTx().toPlainString() : "");
+    }
+
+    private static String extraFeeValuePlain(String mode, BigDecimal v) {
+        if (v == null) {
+            return "";
+        }
+        if ("PCT".equalsIgnoreCase(mode)) {
+            return PercentDecimalHelper.toPlainOneDecimal(v);
+        }
+        return v.toPlainString();
     }
 
     /** 목록·엑셀 노출용: 저장값 CORP|번호 / PERSONAL|번호 → 번호만 (구분 미노출) */

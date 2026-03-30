@@ -32,6 +32,7 @@ import com.pg.service.SettlementCalcService;
 import com.pg.service.SettlementReportService;
 import com.pg.util.ChargebackTierResolver;
 import com.pg.util.CommissionExtraFeeUtil;
+import com.pg.util.PercentDecimalHelper;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -439,20 +440,21 @@ public class ApiSettlementController {
             BigDecimal amountBd = BigDecimal.valueOf(amount);
             String st = t.getStatus() != null ? t.getStatus().trim() : "";
             BigDecimal payRateBd = nz(pol.getPayRate());
-            long perTxFee = nz(pol.getPerTxFee()).longValue();
+            /* 건당·고정 수수료: 통화 단위 소수 첫째 자리(USD·THB 등) — longValue 절삭 방지 */
+            double perTxFee = nz(pol.getPerTxFee()).doubleValue();
             /* 월간이용료는 정책 고정액·월 1회(정산 실행 시 합산). 거래 건별 비율 산정 아님 → 건별 0 */
-            long usageFee = 0L;
-            long failFee = ("F0".equals(st) || "99".equals(st)) ? nz(pol.getFailFee()).longValue() : 0L;
-            long cancelFee = "20".equals(st) ? nz(pol.getCancelRate()).longValue() : 0L;
-            long voidFee = "21".equals(st) ? nz(pol.getVoidFeePerTx()).longValue() : 0L;
-            long manualVoidFee = "22".equals(st) ? nz(pol.getManualVoidFeePerTx()).longValue() : 0L;
-            long refundFee = ("30".equals(st) || "31".equals(st)) ? nz(pol.getRefundRate()).longValue() : 0L;
-            long payFee = "10".equals(st) ? amountBd.multiply(payRateBd).divide(BigDecimal.valueOf(100), 0, RoundingMode.HALF_UP).longValue() : 0L;
-            long usdtFee = "10".equals(st) ? amountBd.multiply(nz(pol.getFeeUsdt())).divide(BigDecimal.valueOf(100), 0, RoundingMode.HALF_UP).longValue() : 0L;
-            long fxFee = "10".equals(st) ? amountBd.multiply(nz(pol.getFeeFx())).divide(BigDecimal.valueOf(100), 0, RoundingMode.HALF_UP).longValue() : 0L;
-            long fee3dsFee = "10".equals(st) ? amountBd.multiply(nz(pol.getFee3dsRate())).divide(BigDecimal.valueOf(100), 0, RoundingMode.HALF_UP).longValue() : 0L;
-            long settlementPerTxFee = nz(pol.getFeeSettlementPerTx()).longValue();
-            long chargebackFee = 0L;
+            double usageFee = 0d;
+            double failFee = ("F0".equals(st) || "99".equals(st)) ? nz(pol.getFailFee()).doubleValue() : 0d;
+            double cancelFee = "20".equals(st) ? nz(pol.getCancelRate()).doubleValue() : 0d;
+            double voidFee = "21".equals(st) ? nz(pol.getVoidFeePerTx()).doubleValue() : 0d;
+            double manualVoidFee = "22".equals(st) ? nz(pol.getManualVoidFeePerTx()).doubleValue() : 0d;
+            double refundFee = ("30".equals(st) || "31".equals(st)) ? nz(pol.getRefundRate()).doubleValue() : 0d;
+            double payFee = "10".equals(st) ? amountBd.multiply(payRateBd).divide(BigDecimal.valueOf(100), 0, RoundingMode.HALF_UP).doubleValue() : 0d;
+            double usdtFee = "10".equals(st) ? amountBd.multiply(nz(pol.getFeeUsdt())).divide(BigDecimal.valueOf(100), 0, RoundingMode.HALF_UP).doubleValue() : 0d;
+            double fxFee = "10".equals(st) ? amountBd.multiply(nz(pol.getFeeFx())).divide(BigDecimal.valueOf(100), 0, RoundingMode.HALF_UP).doubleValue() : 0d;
+            double fee3dsFee = "10".equals(st) ? amountBd.multiply(nz(pol.getFee3dsRate())).divide(BigDecimal.valueOf(100), 0, RoundingMode.HALF_UP).doubleValue() : 0d;
+            double settlementPerTxFee = nz(pol.getFeeSettlementPerTx()).doubleValue();
+            double chargebackFee = 0d;
             if ("30".equals(st) || "31".equals(st)) {
                 LocalDate cbDay = t.getCreatedAt() != null ? t.getCreatedAt().toLocalDate() : LocalDate.now();
                 YearMonth ymcb = YearMonth.from(cbDay);
@@ -471,18 +473,18 @@ public class ApiSettlementController {
                                     .map(ChargebackFeePolicy::getTiers)
                                     .orElse(Collections.emptyList()));
                     if (!tiers.isEmpty()) {
-                        chargebackFee = ChargebackTierResolver.feePerCaseForMonthlyCount(mc, tiers).longValue();
+                        chargebackFee = ChargebackTierResolver.feePerCaseForMonthlyCount(mc, tiers).doubleValue();
                     } else {
-                        chargebackFee = nz(pol.getChargebackFeePerTx()).longValue();
+                        chargebackFee = nz(pol.getChargebackFeePerTx()).doubleValue();
                     }
                 } else {
-                    chargebackFee = nz(pol.getChargebackFeePerTx()).longValue();
+                    chargebackFee = nz(pol.getChargebackFeePerTx()).doubleValue();
                 }
             }
-            long extraFees = "10".equals(st)
-                    ? CommissionExtraFeeUtil.sumPctOnApprovedAmount(pol, amountBd).longValue()
-                    : 0L;
-            long totalFee = Math.max(0L, perTxFee + usageFee + failFee + cancelFee + voidFee + manualVoidFee + refundFee + payFee + settlementPerTxFee + usdtFee + fxFee + fee3dsFee + chargebackFee + extraFees);
+            double extraFees = "10".equals(st)
+                    ? CommissionExtraFeeUtil.sumPctOnApprovedAmount(pol, amountBd).doubleValue()
+                    : 0d;
+            double totalFee = Math.max(0d, perTxFee + usageFee + failFee + cancelFee + voidFee + manualVoidFee + refundFee + payFee + settlementPerTxFee + usdtFee + fxFee + fee3dsFee + chargebackFee + extraFees);
             long feeVat = hqPolicy.settlementVatApplyYn ? Math.round(totalFee * 0.1d) : 0L;
 
             Map<String, Object> m = new LinkedHashMap<>();
@@ -500,13 +502,13 @@ public class ApiSettlementController {
             m.put("voidFee", voidFee);
             m.put("manualVoidFee", manualVoidFee);
             m.put("refundFee", refundFee);
-            m.put("payFeeRate", payRateBd.stripTrailingZeros().toPlainString());
+            m.put("payFeeRate", PercentDecimalHelper.toPlainOneDecimal(payRateBd));
             m.put("payFee", payFee);
-            m.put("usdtFeeRate", nz(pol.getFeeUsdt()).stripTrailingZeros().toPlainString());
+            m.put("usdtFeeRate", PercentDecimalHelper.toPlainOneDecimal(nz(pol.getFeeUsdt())));
             m.put("usdtFee", usdtFee);
-            m.put("fxFeeRate", nz(pol.getFeeFx()).stripTrailingZeros().toPlainString());
+            m.put("fxFeeRate", PercentDecimalHelper.toPlainOneDecimal(nz(pol.getFeeFx())));
             m.put("fxFee", fxFee);
-            m.put("fee3dsRate", nz(pol.getFee3dsRate()).stripTrailingZeros().toPlainString());
+            m.put("fee3dsRate", PercentDecimalHelper.toPlainOneDecimal(nz(pol.getFee3dsRate())));
             m.put("fee3dsFee", fee3dsFee);
             m.put("settlementPerTxFee", settlementPerTxFee);
             m.put("chargebackFee", chargebackFee);

@@ -29,20 +29,20 @@ public class CommissionPolicy {
     @Column(name = "deploy_yn", length = 1)
     private String deployYn = "N";
 
-    /** 건당 수수료(원) */
-    @Column(name = "per_tx_fee", precision = 12, scale = 0)
+    /** 건당 수수료({@link #currencyCode} 단위, USD·THB 등 소수 첫째 자리) */
+    @Column(name = "per_tx_fee", precision = 12, scale = 1)
     private BigDecimal perTxFee = BigDecimal.ZERO;
 
     /** 취소 건당 수수료({@link #currencyCode} 단위). DB 컬럼명 cancel_rate 유지. */
-    @Column(name = "cancel_rate", precision = 12, scale = 0)
+    @Column(name = "cancel_rate", precision = 12, scale = 1)
     private BigDecimal cancelRate = BigDecimal.ZERO;
 
     /** 월 1회 부과 이용료(고정 금액, {@link #currencyCode} 단위). DB 컬럼명은 호환을 위해 usage_rate 유지. */
-    @Column(name = "usage_rate", precision = 12, scale = 0)
+    @Column(name = "usage_rate", precision = 12, scale = 1)
     private BigDecimal usageRate = BigDecimal.ZERO;
 
-    /** 실패 수수료(원/건) */
-    @Column(name = "fail_fee", precision = 12, scale = 0)
+    /** 실패 수수료(통화/건) */
+    @Column(name = "fail_fee", precision = 12, scale = 1)
     private BigDecimal failFee = BigDecimal.ZERO;
 
     /** 결제 수수료율(%) */
@@ -93,8 +93,8 @@ public class CommissionPolicy {
     @Column(name = "fee_3ds_rate", precision = 5, scale = 2)
     private BigDecimal fee3dsRate = BigDecimal.ZERO;
 
-    /** 차지백 건당 수수료(원) */
-    @Column(name = "chargeback_fee_per_tx", precision = 12, scale = 0)
+    /** 차지백 건당 수수료({@link #currencyCode} 단위) */
+    @Column(name = "chargeback_fee_per_tx", precision = 12, scale = 1)
     private BigDecimal chargebackFeePerTx = BigDecimal.ZERO;
 
     /** 선택 시 월간 환불·강제환불(30/31) 건수로 구간별 건당 차지백 단가 적용. null 이면 위 건당 금액만 사용 */

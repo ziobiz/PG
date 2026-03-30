@@ -54,6 +54,66 @@
     }
   })();
 
+  /** % 필드: 소수 첫째 자리까지 표시·입력(USD·THB 등 동일 규칙) */
+  function pgFmtPctOneDecimal(v) {
+    var s = String(v == null || v === '' ? '0' : v).replace(/,/g, '.').trim();
+    var n = parseFloat(s);
+    if (!isFinite(n)) n = 0;
+    return (Math.round(n * 10) / 10).toFixed(1);
+  }
+  function pgFmtPctOneDecimalInput(v) {
+    if (v == null || v === '') return '';
+    var s = String(v).replace(/,/g, '.').trim();
+    if (s === '') return '';
+    var n = parseFloat(s);
+    if (!isFinite(n)) return String(v);
+    return (Math.round(n * 10) / 10).toFixed(1);
+  }
+
+  /**
+   * 저장된 정책 목록 등: 건당·고정액 표시
+   * KRW·JPY: 정수만. 그 외: 소수가 있으면 첫째 자리까지, 없으면 정수(45.0 → 45).
+   */
+  function pgFmtPolicyListAmount(v, currencyCode) {
+    var cc = (currencyCode || '').trim().toUpperCase();
+    var s = String(v == null || v === '' ? '0' : v).replace(/,/g, '.').trim();
+    var n = parseFloat(s);
+    if (!isFinite(n)) n = 0;
+    if (cc === 'KRW' || cc === 'JPY') {
+      return String(Math.round(n));
+    }
+    var x = Math.round(n * 10) / 10;
+    if (Math.abs(x - Math.round(x)) < 1e-9) {
+      return String(Math.round(x));
+    }
+    return x.toFixed(1);
+  }
+
+  /** 본사 수수료 템플릿: 배포(Y)만. 기준통화가 있으면 정책 통화와 일치하거나 정책 통화가 비어 있으면(레거시) 전체 허용 */
+  function pgFilterDeployedTemplatesForMerchant(templates, baseCurrency) {
+    var bc = (baseCurrency || '').trim().toUpperCase();
+    var out = [];
+    (templates || []).forEach(function (t) {
+      if (String(t.deployYn || '').toUpperCase() !== 'Y') return;
+      var tc = (t.currencyCode != null && String(t.currencyCode).trim() !== '') ? String(t.currencyCode).trim().toUpperCase() : '';
+      if (bc && tc && tc !== bc) return;
+      out.push(t);
+    });
+    return out;
+  }
+  function pgHqPolicyScopeOptionsHtml(filteredTemplates) {
+    var opts = '<option value="">기본(DEFAULT)</option>';
+    (filteredTemplates || []).forEach(function (t) {
+      var scope = t.scope || '';
+      var name = t.policyName || scope;
+      var cc = (t.currencyCode != null && String(t.currencyCode).trim() !== '') ? String(t.currencyCode).trim().toUpperCase() : '';
+      var lab = name + (cc ? ' (' + cc + ')' : '');
+      opts += '<option value="' + String(scope).replace(/"/g, '&quot;') + '">' +
+        String(lab).replace(/</g, '&lt;').replace(/"/g, '&quot;') + '</option>';
+    });
+    return opts;
+  }
+
   var COUNTRY_OTHER_TOP = ['CHINA', 'HONGKONG', 'INDONESIA', 'JAPAN', 'KOREA', 'MALAYSIA', 'SINGAPORE', 'THAILAND', 'USA', 'VIETNAM'];
   var COUNTRY_OTHER_REST = ['AFGHANISTAN', 'ALBANIA', 'ALGERIA', 'ARGENTINA', 'ARMENIA', 'AUSTRALIA', 'AUSTRIA', 'AZERBAIJAN', 'BAHRAIN', 'BANGLADESH', 'BELARUS', 'BELGIUM', 'BOLIVIA', 'BOSNIA', 'BRAZIL', 'BULGARIA', 'CAMBODIA', 'CAMEROON', 'CANADA', 'CHILE', 'COLOMBIA', 'COSTA RICA', 'CROATIA', 'CUBA', 'CYPRUS', 'CZECH REPUBLIC', 'DENMARK', 'ECUADOR', 'EGYPT', 'ESTONIA', 'ETHIOPIA', 'FINLAND', 'FRANCE', 'GEORGIA', 'GERMANY', 'GHANA', 'GREECE', 'GUATEMALA', 'HONDURAS', 'HUNGARY', 'ICELAND', 'INDIA', 'IRAN', 'IRAQ', 'IRELAND', 'ISRAEL', 'ITALY', 'JORDAN', 'KAZAKHSTAN', 'KENYA', 'KUWAIT', 'KYRGYZSTAN', 'LAOS', 'LATVIA', 'LEBANON', 'LIBYA', 'LITHUANIA', 'LUXEMBOURG', 'MACEDONIA', 'MADAGASCAR', 'MALAWI', 'MALTA', 'MAURITIUS', 'MEXICO', 'MOLDOVA', 'MONGOLIA', 'MONTENEGRO', 'MOROCCO', 'MOZAMBIQUE', 'MYANMAR', 'NEPAL', 'NETHERLANDS', 'NEW ZEALAND', 'NICARAGUA', 'NIGERIA', 'NORTH KOREA', 'NORWAY', 'OMAN', 'PAKISTAN', 'PALESTINE', 'PANAMA', 'PARAGUAY', 'PERU', 'PHILIPPINES', 'POLAND', 'PORTUGAL', 'QATAR', 'ROMANIA', 'RUSSIA', 'RWANDA', 'SAUDI ARABIA', 'SERBIA', 'SLOVAKIA', 'SLOVENIA', 'SOUTH AFRICA', 'SPAIN', 'SRI LANKA', 'SUDAN', 'SWEDEN', 'SWITZERLAND', 'SYRIA', 'TAIWAN', 'TANZANIA', 'TUNISIA', 'TURKEY', 'TURKMENISTAN', 'UGANDA', 'UKRAINE', 'UAE', 'UK', 'URUGUAY', 'UZBEKISTAN', 'VENEZUELA', 'YEMEN', 'ZAMBIA', 'ZIMBABWE'];
   window.PG_COUNTRY_OTHER_OPTIONS = (function () {
@@ -3326,20 +3386,40 @@
         commissionFollowEl.addEventListener('change', function () { toggleCommissionCustom(this.value); });
         toggleCommissionCustom(commissionFollowEl.value || 'Y');
       }
-      var hqPolicySel = pane.querySelector('[name="hqPolicyScope"]');
-      if (hqPolicySel && !hqPolicySel._loaded) {
-        hqPolicySel._loaded = true;
-        window.PG_API.hqDefaultCommission().then(function (data) {
-          var list = (data && data.templates) ? data.templates : [];
-          var opts = '<option value="">기본(DEFAULT)</option>';
-          list.forEach(function (t) {
-            var scope = t.scope || '';
-            var name = t.policyName || scope;
-            opts += '<option value="' + scope + '">' + name + '</option>';
+      var hqPolicySel = pane.querySelector('#compRegForm [name="hqPolicyScope"]') || pane.querySelector('[name="hqPolicyScope"]');
+      var baseCurEl = pane.querySelector('#compRegForm [name="baseCurrency"]');
+      if (hqPolicySel && !hqPolicySel._hqPolicyRegBound) {
+        hqPolicySel._hqPolicyRegBound = true;
+        function refreshHqPolicyReg(hqd) {
+          var list = (hqd && hqd.templates) ? hqd.templates : [];
+          pane._hqCommissionTemplatesCache = list;
+          var bc = baseCurEl ? baseCurEl.value : '';
+          var filt = pgFilterDeployedTemplatesForMerchant(list, bc);
+          var prev = hqPolicySel.value;
+          hqPolicySel.innerHTML = pgHqPolicyScopeOptionsHtml(filt);
+          if (prev) {
+            var ok = false;
+            var j;
+            for (j = 0; j < hqPolicySel.options.length; j++) {
+              if (hqPolicySel.options[j].value === prev) {
+                ok = true;
+                break;
+              }
+            }
+            if (ok) hqPolicySel.value = prev;
+          }
+        }
+        window.PG_API.hqDefaultCommission().then(refreshHqPolicyReg).catch(function () {});
+        if (baseCurEl && !baseCurEl._hqPolicyBaseBoundReg) {
+          baseCurEl._hqPolicyBaseBoundReg = true;
+          baseCurEl.addEventListener('change', function () {
+            if (pane._hqCommissionTemplatesCache) {
+              refreshHqPolicyReg({ templates: pane._hqCommissionTemplatesCache });
+            } else {
+              window.PG_API.hqDefaultCommission().then(refreshHqPolicyReg).catch(function () {});
+            }
           });
-          hqPolicySel.innerHTML = opts;
-          if (data && data.deployedTemplateScope) hqPolicySel.value = data.deployedTemplateScope;
-        }).catch(function () {});
+        }
       }
       fillChargebackPolicySelectsInRoot(pane, null);
       var holdRateFollowEl = pane.querySelector('[name="holdRateFollowHq"]');
@@ -3828,19 +3908,58 @@
               toggleCommissionCustom(commissionFollowEl.value || 'Y');
             }
             var hqPolicySel = pane.querySelector('#compInfoDetailForm [name="hqPolicyScope"]');
+            var baseCurInfo = pane.querySelector('#compInfoDetailForm [name="baseCurrency"]');
             if (hqPolicySel && !hqPolicySel._hqPolicyLoadedInfo) {
               hqPolicySel._hqPolicyLoadedInfo = true;
-              window.PG_API.hqDefaultCommission().then(function (hqd) {
+              function refreshHqPolicyInfo(hqd) {
                 var list = (hqd && hqd.templates) ? hqd.templates : [];
-                var opts = '<option value="">기본(DEFAULT)</option>';
-                list.forEach(function (t) {
-                  var scope = t.scope || '';
-                  var name = t.policyName || scope;
-                  opts += '<option value="' + scope + '">' + name + '</option>';
+                pane._hqCommissionTemplatesCacheInfo = list;
+                var bc = (data && data.baseCurrency) ? data.baseCurrency : (baseCurInfo ? baseCurInfo.value : '');
+                var filt = pgFilterDeployedTemplatesForMerchant(list, bc);
+                var prev = (data && data.hqPolicyScope) ? data.hqPolicyScope : hqPolicySel.value;
+                hqPolicySel.innerHTML = pgHqPolicyScopeOptionsHtml(filt);
+                if (prev) {
+                  var ok2 = false;
+                  var ji;
+                  for (ji = 0; ji < hqPolicySel.options.length; ji++) {
+                    if (hqPolicySel.options[ji].value === prev) {
+                      ok2 = true;
+                      break;
+                    }
+                  }
+                  if (ok2) hqPolicySel.value = prev;
+                }
+              }
+              window.PG_API.hqDefaultCommission().then(refreshHqPolicyInfo).catch(function () {});
+              if (baseCurInfo && !baseCurInfo._hqPolicyBaseBoundInfo) {
+                baseCurInfo._hqPolicyBaseBoundInfo = true;
+                baseCurInfo.addEventListener('change', function () {
+                  if (pane._hqCommissionTemplatesCacheInfo) {
+                    var list = pane._hqCommissionTemplatesCacheInfo;
+                    var bc = baseCurInfo.value;
+                    var filt = pgFilterDeployedTemplatesForMerchant(list, bc);
+                    var prev = hqPolicySel.value;
+                    hqPolicySel.innerHTML = pgHqPolicyScopeOptionsHtml(filt);
+                    if (prev) {
+                      var ok3 = false;
+                      var k;
+                      for (k = 0; k < hqPolicySel.options.length; k++) {
+                        if (hqPolicySel.options[k].value === prev) {
+                          ok3 = true;
+                          break;
+                        }
+                      }
+                      if (ok3) hqPolicySel.value = prev;
+                    }
+                  } else {
+                    window.PG_API.hqDefaultCommission().then(function (hqd) {
+                      pane._hqCommissionTemplatesCacheInfo = (hqd && hqd.templates) ? hqd.templates : [];
+                      var filt2 = pgFilterDeployedTemplatesForMerchant(pane._hqCommissionTemplatesCacheInfo, baseCurInfo.value);
+                      hqPolicySel.innerHTML = pgHqPolicyScopeOptionsHtml(filt2);
+                    }).catch(function () {});
+                  }
                 });
-                hqPolicySel.innerHTML = opts;
-                if (data.hqPolicyScope) hqPolicySel.value = data.hqPolicyScope;
-              }).catch(function () {});
+              }
             } else if (hqPolicySel && data.hqPolicyScope) {
               hqPolicySel.value = data.hqPolicyScope;
             }
@@ -4377,19 +4496,52 @@
           toggleCommissionCustom(commissionFollowEl.value || 'Y');
         }
         var hqPolicySelDetail = pane.querySelector('#compDetailForm [name="hqPolicyScope"]');
+        var baseCurDetail = pane.querySelector('#compDetailForm [name="baseCurrency"]');
         if (hqPolicySelDetail && !hqPolicySelDetail._hqPolicyLoadedDetail) {
           hqPolicySelDetail._hqPolicyLoadedDetail = true;
-          window.PG_API.hqDefaultCommission().then(function (hqd) {
+          function refreshHqPolicyDetail(hqd) {
             var list = (hqd && hqd.templates) ? hqd.templates : [];
-            var opts = '<option value="">기본(DEFAULT)</option>';
-            list.forEach(function (t) {
-              var scope = t.scope || '';
-              var name = t.policyName || scope;
-              opts += '<option value="' + scope + '">' + name + '</option>';
+            pane._hqCommissionTemplatesCacheDetail = list;
+            var bc = (data && data.baseCurrency) ? data.baseCurrency : (baseCurDetail ? baseCurDetail.value : '');
+            var filt = pgFilterDeployedTemplatesForMerchant(list, bc);
+            var prev = (data && data.hqPolicyScope) ? data.hqPolicyScope : hqPolicySelDetail.value;
+            hqPolicySelDetail.innerHTML = pgHqPolicyScopeOptionsHtml(filt);
+            if (prev) {
+              var okd = false;
+              var di;
+              for (di = 0; di < hqPolicySelDetail.options.length; di++) {
+                if (hqPolicySelDetail.options[di].value === prev) {
+                  okd = true;
+                  break;
+                }
+              }
+              if (okd) hqPolicySelDetail.value = prev;
+            }
+          }
+          window.PG_API.hqDefaultCommission().then(refreshHqPolicyDetail).catch(function () {});
+          if (baseCurDetail && !baseCurDetail._hqPolicyBaseBoundDetail) {
+            baseCurDetail._hqPolicyBaseBoundDetail = true;
+            baseCurDetail.addEventListener('change', function () {
+              if (pane._hqCommissionTemplatesCacheDetail) {
+                var filtD = pgFilterDeployedTemplatesForMerchant(pane._hqCommissionTemplatesCacheDetail, baseCurDetail.value);
+                var prevD = hqPolicySelDetail.value;
+                hqPolicySelDetail.innerHTML = pgHqPolicyScopeOptionsHtml(filtD);
+                if (prevD) {
+                  var ok4 = false;
+                  var d2;
+                  for (d2 = 0; d2 < hqPolicySelDetail.options.length; d2++) {
+                    if (hqPolicySelDetail.options[d2].value === prevD) {
+                      ok4 = true;
+                      break;
+                    }
+                  }
+                  if (ok4) hqPolicySelDetail.value = prevD;
+                }
+              } else {
+                window.PG_API.hqDefaultCommission().then(refreshHqPolicyDetail).catch(function () {});
+              }
             });
-            hqPolicySelDetail.innerHTML = opts;
-            if (data.hqPolicyScope) hqPolicySelDetail.value = data.hqPolicyScope;
-          }).catch(function () {});
+          }
         } else if (hqPolicySelDetail && data.hqPolicyScope) {
           hqPolicySelDetail.value = data.hqPolicyScope;
         }
@@ -4758,45 +4910,31 @@
         function escAttr(s) {
           return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
         }
-        /** % 열 표시: 소수는 최대 한 자리, 정수(10.0 등)는 소수 없이(10) */
-        function formatPctOneDec(v) {
-          var n = parseFloat(String(v == null ? '0' : v).replace(/,/g, '.'));
-          if (!isFinite(n)) n = 0;
-          var r = Math.round(n * 10) / 10;
-          if (Math.abs(r - Math.round(r)) < 1e-9) return String(Math.round(r));
-          return r.toFixed(1);
-        }
-        function tdNum(v, cls) {
-          return '<td class="hq-def-comm-policy-td-num' + (cls ? ' ' + cls : '') + '">' + escH(v) + '</td>';
-        }
-        function tdPct(v, cls) {
-          return '<td class="hq-def-comm-policy-td-num' + (cls ? ' ' + cls : '') + '">' + escH(formatPctOneDec(v)) + '</td>';
-        }
-        function formatExtraSlot(t, idx) {
+        function formatExtraSlot(t, idx, cc) {
           var enm = nzStr(t, 'extraFee' + idx + 'Name', '');
           if (!enm) {
             return '<td class="hq-def-comm-policy-td-extra-slot small text-muted text-center">—</td>';
           }
           var emd = (t['extraFee' + idx + 'Mode'] != null ? String(t['extraFee' + idx + 'Mode']) : '').trim().toUpperCase();
           var evv = nzStr(t, 'extraFee' + idx + 'Value', '0');
-          var evPct = formatPctOneDec(evv);
-          var raw = emd === 'PCT' ? enm + ' ' + evPct + '%' : enm + ' ' + evv;
-          var disp = emd === 'PCT' ? escH(enm) + ' ' + escH(evPct) + '%' : escH(enm) + ' ' + escH(evv);
+          var evFmt = pgFmtPolicyListAmount(evv, cc);
+          var raw = emd === 'PCT' ? enm + ' ' + evFmt + '%' : enm + ' ' + evFmt;
+          var disp = emd === 'PCT' ? escH(enm) + ' ' + escH(evFmt) + '%' : escH(enm) + ' ' + escH(evFmt);
           return '<td class="hq-def-comm-policy-td-extra-slot small text-truncate text-center" title="' + escAttr(raw) + '">' + disp + '</td>';
         }
-        function extraFeeOneLine(t, idx) {
+        function extraFeeOneLine(t, idx, cc) {
           var enm = nzStr(t, 'extraFee' + idx + 'Name', '');
           if (!enm) return null;
           var emd = (t['extraFee' + idx + 'Mode'] != null ? String(t['extraFee' + idx + 'Mode']) : '').trim().toUpperCase();
           var evv = nzStr(t, 'extraFee' + idx + 'Value', '0');
-          var evPct = formatPctOneDec(evv);
-          var raw = emd === 'PCT' ? enm + ' ' + evPct + '%' : enm + ' ' + evv;
-          var disp = emd === 'PCT' ? escH(enm) + ' ' + escH(evPct) + '%' : escH(enm) + ' ' + escH(evv);
+          var evFmt = pgFmtPolicyListAmount(evv, cc);
+          var raw = emd === 'PCT' ? enm + ' ' + evFmt + '%' : enm + ' ' + evFmt;
+          var disp = emd === 'PCT' ? escH(enm) + ' ' + escH(evFmt) + '%' : escH(enm) + ' ' + escH(evFmt);
           return { raw: raw, disp: disp };
         }
-        function formatExtraSlotLast(t) {
-          var a = extraFeeOneLine(t, 3);
-          var b = extraFeeOneLine(t, 4);
+        function formatExtraSlotLast(t, cc) {
+          var a = extraFeeOneLine(t, 3, cc);
+          var b = extraFeeOneLine(t, 4, cc);
           if (!a && !b) {
             return '<td class="hq-def-comm-policy-td-extra-slot small text-muted text-center">—</td>';
           }
@@ -4818,42 +4956,55 @@
         templates.forEach(function (t) {
           var scope = t.scope || '';
           var shortCode = scope.indexOf('HQPOL:') === 0 ? scope.substring(6) : scope;
-          var nm = String(t.policyName || shortCode || '').replace(/&/g, '&amp;').replace(/</g, '&lt;');
+          var rawName = String(t.policyName || shortCode || '');
+          var nm = rawName.replace(/&/g, '&amp;').replace(/</g, '&lt;');
           var dep = (t.deployYn === 'Y')
             ? '<span class="badge bg-success">배포</span>'
             : '<span class="badge bg-light text-dark border">미배포</span>';
           var cur = t.currencyCode != null && String(t.currencyCode).trim() !== '' ? String(t.currencyCode).trim().toUpperCase() : '—';
+          var ccForFmt = (t.currencyCode != null && String(t.currencyCode).trim() !== '') ? String(t.currencyCode).trim().toUpperCase() : 'KRW';
           var ua = t.updatedAt ? String(t.updatedAt).replace('T', ' ').replace(/\.\d+Z?$/, '') : '—';
           var active = (scope === curSel) ? ' table-active' : '';
           var esc = String(scope).replace(/&/g, '&amp;').replace(/"/g, '&quot;');
           var cbPolRaw = (t.chargebackPolicyName != null && String(t.chargebackPolicyName).trim() !== '') ? String(t.chargebackPolicyName).trim() : '';
-          var cbFeeAmt = nzStr(t, 'chargebackFeePerTx', '0');
+          var cbFeeAmt = pgFmtPolicyListAmount(nzStr(t, 'chargebackFeePerTx', '0'), ccForFmt);
           var cbTd = '<td class="hq-def-comm-policy-td-num">' + escH(cbFeeAmt) + '</td>';
+          function tdAmt(raw, cls) {
+            return '<td class="hq-def-comm-policy-td-num' + (cls ? ' ' + cls : '') + '">' + escH(pgFmtPolicyListAmount(raw, ccForFmt)) + '</td>';
+          }
+          function tdPctRow(raw, cls) {
+            return '<td class="hq-def-comm-policy-td-num' + (cls ? ' ' + cls : '') + '">' + escH(pgFmtPolicyListAmount(raw, ccForFmt)) + '</td>';
+          }
+          function tdDays(raw, cls) {
+            var nd = parseFloat(String(raw == null || raw === '' ? '0' : raw).replace(/,/g, '.'));
+            if (!isFinite(nd)) nd = 0;
+            return '<td class="hq-def-comm-policy-td-num' + (cls ? ' ' + cls : '') + '">' + escH(String(Math.round(nd))) + '</td>';
+          }
           var cbZoneTd = cbPolRaw
             ? '<td class="hq-def-comm-policy-td-cbzone small text-truncate" title="' + escAttr(cbPolRaw) + '">' + escH(cbPolRaw) + '</td>'
             : '<td class="hq-def-comm-policy-td-cbzone small text-muted">—</td>';
           h += '<tr class="hq-default-comm-policy-row' + active + '" data-scope="' + esc + '" style="cursor:pointer" title="클릭하여 이 정책 불러오기">';
           h += '<td class="text-center align-middle hq-def-comm-chk-cell"><input type="checkbox" class="form-check-input hq-def-comm-row-chk m-0 align-middle" data-scope="' + esc + '" aria-label="행 선택"></td>';
-          h += '<td class="font-monospace">' + String(shortCode).replace(/&/g, '&amp;').replace(/</g, '&lt;') + '</td><td>' + nm + '</td>' + cbZoneTd + '<td>' + dep + '</td>';
+          h += '<td class="font-monospace">' + String(shortCode).replace(/&/g, '&amp;').replace(/</g, '&lt;') + '</td><td class="hq-def-comm-policy-td-name small text-truncate align-middle" title="' + escAttr(rawName) + '">' + nm + '</td>' + cbZoneTd + '<td>' + dep + '</td>';
           h += '<td class="font-monospace small">' + cur.replace(/&/g, '&amp;').replace(/</g, '&lt;') + '</td>';
-          h += tdNum(nzStr(t, 'perTxFee', '0'), 'border-start');
-          h += tdNum(nzStr(t, 'failFee', '0'));
-          h += tdNum(nzStr(t, 'feeSettlementPerTx', '0'));
+          h += tdAmt(nzStr(t, 'perTxFee', '0'), 'border-start');
+          h += tdAmt(nzStr(t, 'failFee', '0'));
+          h += tdAmt(nzStr(t, 'feeSettlementPerTx', '0'));
           h += cbTd;
-          h += tdNum(nzStr(t, 'cancelRate', '0'));
-          h += tdNum(nzStr(t, 'voidFeePerTx', '0'));
-          h += tdNum(nzStr(t, 'manualVoidFeePerTx', '0'));
-          h += tdNum(nzStr(t, 'refundRate', '0'));
-          h += tdPct(nzStr(t, 'payRate', '0'), 'border-start');
-          h += tdPct(nzStr(t, 'feeUsdt', '0'));
-          h += tdPct(nzStr(t, 'feeFx', '0'));
-          h += tdPct(nzStr(t, 'fee3dsRate', '0'));
-          h += tdPct(nzStr(t, 'rollingPct', '0'), 'border-start');
-          h += tdNum(nzStr(t, 'rollingDays', '0'));
-          h += tdNum(nzStr(t, 'usageRate', '0'), 'border-start');
-          h += formatExtraSlot(t, 1);
-          h += formatExtraSlot(t, 2);
-          h += formatExtraSlotLast(t);
+          h += tdAmt(nzStr(t, 'cancelRate', '0'));
+          h += tdAmt(nzStr(t, 'voidFeePerTx', '0'));
+          h += tdAmt(nzStr(t, 'manualVoidFeePerTx', '0'));
+          h += tdAmt(nzStr(t, 'refundRate', '0'));
+          h += tdPctRow(nzStr(t, 'payRate', '0'), 'border-start');
+          h += tdPctRow(nzStr(t, 'feeUsdt', '0'));
+          h += tdPctRow(nzStr(t, 'feeFx', '0'));
+          h += tdPctRow(nzStr(t, 'fee3dsRate', '0'));
+          h += tdPctRow(nzStr(t, 'rollingPct', '0'), 'border-start');
+          h += tdDays(nzStr(t, 'rollingDays', '0'));
+          h += tdAmt(nzStr(t, 'usageRate', '0'), 'border-start');
+          h += formatExtraSlot(t, 1, ccForFmt);
+          h += formatExtraSlot(t, 2, ccForFmt);
+          h += formatExtraSlotLast(t, ccForFmt);
           h += '<td class="text-nowrap small">' + escH(ua) + '</td></tr>';
         });
         tb.innerHTML = h;
@@ -4909,10 +5060,24 @@
       }
       function fillDefaultCommissionForm(tmpl) {
         if (!(tmpl && pane.querySelector('[name="payRate"]'))) return;
+        var pctFieldNames = { payRate: 1, feeUsdt: 1, feeFx: 1, rollingPct: 1, fee3dsRate: 1 };
         ['perTxFee', 'cancelRate', 'voidFeePerTx', 'manualVoidFeePerTx', 'usageRate', 'failFee', 'payRate', 'refundRate', 'rollingPct', 'rollingDays', 'policyName', 'deployYn', 'templateScope', 'deployedTemplateScope', 'feeSettlementPerTx', 'feeUsdt', 'feeFx', 'currencyCode', 'policyRemark', 'fee3dsRate', 'chargebackFeePerTx',
           'extraFee1Name', 'extraFee1Mode', 'extraFee1Value', 'extraFee2Name', 'extraFee2Mode', 'extraFee2Value', 'extraFee3Name', 'extraFee3Mode', 'extraFee3Value', 'extraFee4Name', 'extraFee4Mode', 'extraFee4Value'].forEach(function (k) {
           var el = pane.querySelector('[name="' + k + '"]');
-          if (el && tmpl[k] != null) el.value = tmpl[k];
+          if (!el || tmpl[k] == null) return;
+          if (pctFieldNames[k]) {
+            el.value = pgFmtPctOneDecimalInput(tmpl[k]);
+            return;
+          }
+          if (k.indexOf('extraFee') === 0 && k.indexOf('Value') > 0) {
+            var modeKey = k.replace('Value', 'Mode');
+            var md = tmpl[modeKey];
+            if (md && String(md).toUpperCase() === 'PCT') {
+              el.value = pgFmtPctOneDecimalInput(tmpl[k]);
+              return;
+            }
+          }
+          el.value = tmpl[k];
         });
         var selCb = pane.querySelector('[name="chargebackPolicyId"]');
         if (selCb) {

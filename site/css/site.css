@@ -1598,6 +1598,85 @@ body.theme-pastel_4 .content-page, body.theme-pastel_5 .content-page {
   cursor: pointer;
 }
 
+/* 기본정책: 목록 표 — 전체 너비 100%, 열 비율 합계 100% (colgroup 25열) */
+.hq-default-comm-policy-table {
+  width: 100%;
+  table-layout: fixed;
+}
+
+/* 선택 2% */
+.hq-default-comm-policy-table col:nth-child(1) {
+  width: 2%;
+}
+
+/* 코드 2% */
+.hq-default-comm-policy-table col:nth-child(2) {
+  width: 2%;
+}
+
+/* 이름 15% */
+.hq-default-comm-policy-table col:nth-child(3) {
+  width: 15%;
+}
+
+/* 차지백 구간정책 */
+.hq-default-comm-policy-table col:nth-child(4) {
+  width: 6%;
+}
+
+/* 적용(배포) */
+.hq-default-comm-policy-table col:nth-child(5) {
+  width: 5%;
+}
+
+/* 통화 */
+.hq-default-comm-policy-table col:nth-child(6) {
+  width: 4%;
+}
+
+/* 수수료 고정 8열: 건당~환불 */
+.hq-default-comm-policy-table col:nth-child(7),
+.hq-default-comm-policy-table col:nth-child(8),
+.hq-default-comm-policy-table col:nth-child(9),
+.hq-default-comm-policy-table col:nth-child(10),
+.hq-default-comm-policy-table col:nth-child(11),
+.hq-default-comm-policy-table col:nth-child(12),
+.hq-default-comm-policy-table col:nth-child(13),
+.hq-default-comm-policy-table col:nth-child(14) {
+  width: 3%;
+}
+
+/* 수수료 % 4열: 결제·USDT·FX·3DS */
+.hq-default-comm-policy-table col:nth-child(15),
+.hq-default-comm-policy-table col:nth-child(16),
+.hq-default-comm-policy-table col:nth-child(17),
+.hq-default-comm-policy-table col:nth-child(18) {
+  width: 3%;
+}
+
+/* 담보율 2열: 비율·일 */
+.hq-default-comm-policy-table col:nth-child(19),
+.hq-default-comm-policy-table col:nth-child(20) {
+  width: 3%;
+}
+
+/* 월간 */
+.hq-default-comm-policy-table col:nth-child(21) {
+  width: 4%;
+}
+
+/* 기타 3열 */
+.hq-default-comm-policy-table col:nth-child(22),
+.hq-default-comm-policy-table col:nth-child(23),
+.hq-default-comm-policy-table col:nth-child(24) {
+  width: 3%;
+}
+
+/* 일지 */
+.hq-default-comm-policy-table col:nth-child(25) {
+  width: 11%;
+}
+
 /* 기본정책: 목록 표 — 셀 가로·세로 가운데 */
 .hq-default-comm-policy-table > thead > tr > th,
 .hq-default-comm-policy-table > tbody > tr > td {
@@ -1607,22 +1686,20 @@ body.theme-pastel_4 .content-page, body.theme-pastel_5 .content-page {
 
 /* 기본정책: 목록 표 — 건당 / % / 월간 묶음 */
 .hq-default-comm-policy-table .hq-def-comm-th-chk {
-  width: 3.25rem;
   vertical-align: middle;
 }
-.hq-default-comm-policy-table .hq-def-comm-th-code {
-  width: 5.5rem;
+.hq-default-comm-policy-table .hq-def-comm-th-name {
+  white-space: nowrap;
+}
+.hq-default-comm-policy-table td.hq-def-comm-policy-td-name {
+  max-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: middle;
 }
 .hq-default-comm-policy-table .hq-def-comm-th-cb-zone {
-  min-width: 6.5rem;
-  max-width: 9rem;
   line-height: 1.25;
-}
-.hq-default-comm-policy-table .hq-def-comm-th-deploy {
-  width: 4.75rem;
-}
-.hq-default-comm-policy-table .hq-def-comm-th-cur {
-  width: 3.75rem;
 }
 .hq-default-comm-policy-table .hq-def-comm-th-group {
   font-weight: 600;
@@ -1635,9 +1712,6 @@ body.theme-pastel_4 .content-page, body.theme-pastel_5 .content-page {
   padding-top: 0.35rem;
   padding-bottom: 0.35rem;
 }
-.hq-default-comm-policy-table .hq-def-comm-th-mon {
-  min-width: 4.5rem;
-}
 .hq-def-comm-policy-td-num {
   text-align: center;
   white-space: nowrap;
@@ -1646,18 +1720,18 @@ body.theme-pastel_4 .content-page, body.theme-pastel_5 .content-page {
   vertical-align: middle;
 }
 .hq-def-comm-policy-td-cbzone {
-  max-width: 9rem;
   vertical-align: middle;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 0;
 }
 .hq-def-comm-policy-td-extra-slot {
   text-align: center;
   vertical-align: middle;
-  max-width: 7.5rem;
-  min-width: 4rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 0;
 }
 .hq-extra-fees-card .card-header .text-muted {
   line-height: 1.35;
-}
-.hq-default-comm-policy-table .hq-def-comm-th-upd {
-  width: 11rem;
 }

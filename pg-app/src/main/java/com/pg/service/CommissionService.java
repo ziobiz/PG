@@ -15,6 +15,7 @@ import com.pg.repository.CommissionPolicyRepository;
 import com.pg.repository.DistributionFeeConfigRepository;
 import com.pg.repository.MerchantCommissionExtraRepository;
 import com.pg.repository.OrgUnitRepository;
+import com.pg.util.PercentDecimalHelper;
 import org.springframework.data.domain.Sort;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -304,20 +305,23 @@ public class CommissionService {
                         p.setScope(ou.getCode());
                         return p;
                     });
-            setBd(policy::setPerTxFee, body.get("perTxFee"));
-            setBd(policy::setCancelRate, body.get("cancelRate"));
-            setBd(policy::setVoidFeePerTx, body.get("voidFeePerTx"));
-            setBd(policy::setManualVoidFeePerTx, body.get("manualVoidFeePerTx"));
-            setBd(policy::setUsageRate, body.get("usageRate"));
-            setBd(policy::setFailFee, body.get("failFee"));
-            setBd(policy::setPayRate, body.get("payRate"));
-            setBd(policy::setRefundRate, body.get("refundRate"));
-            setBd(policy::setRollingPct, body.get("rollingPct"));
+            setAmtOne(policy::setPerTxFee, body.get("perTxFee"));
+            setAmtOne(policy::setCancelRate, body.get("cancelRate"));
+            setAmtOne(policy::setVoidFeePerTx, body.get("voidFeePerTx"));
+            setAmtOne(policy::setManualVoidFeePerTx, body.get("manualVoidFeePerTx"));
+            setAmtOne(policy::setUsageRate, body.get("usageRate"));
+            setAmtOne(policy::setFailFee, body.get("failFee"));
+            setPct(policy::setPayRate, body.get("payRate"));
+            setAmtOne(policy::setRefundRate, body.get("refundRate"));
+            setPct(policy::setRollingPct, body.get("rollingPct"));
             if (body.get("rollingDays") != null && !body.get("rollingDays").toString().isEmpty()) {
                 policy.setRollingDays(Integer.parseInt(body.get("rollingDays").toString()));
             }
-            setBd(policy::setFee3dsRate, body.get("fee3dsRate"));
-            setBd(policy::setChargebackFeePerTx, body.get("chargebackFeePerTx"));
+            setPct(policy::setFee3dsRate, body.get("fee3dsRate"));
+            setAmtOne(policy::setFeeSettlementPerTx, body.get("feeSettlementPerTx"));
+            setPct(policy::setFeeUsdt, body.get("feeUsdt"));
+            setPct(policy::setFeeFx, body.get("feeFx"));
+            setAmtOne(policy::setChargebackFeePerTx, body.get("chargebackFeePerTx"));
             if (body.get("chargebackPolicyId") != null) {
                 String cp = body.get("chargebackPolicyId").toString().trim();
                 if (cp.isEmpty()) {
@@ -343,6 +347,8 @@ public class CommissionService {
             setBd(extra::setFeeTechService, body.get("feeTechService"));
             setBd(extra::setFeeSettlementPerTx, body.get("feeSettlementPerTx"));
             setBd(extra::setFeeRefund, body.get("feeRefund"));
+            setPct(extra::setFeeUsdt, body.get("feeUsdt"));
+            setPct(extra::setFeeFx, body.get("feeFx"));
             merchantCommissionExtraRepository.save(extra);
 
             DistributionFeeConfig df = distributionFeeConfigRepository.findByCompId(compId).orElseGet(() -> {
@@ -350,12 +356,12 @@ public class CommissionService {
                 x.setCompId(compId);
                 return x;
             });
-            setBd(df::setHqRate, body.get("hqRate"));
-            setBd(df::setRegionalRate, body.get("regionalRate"));
-            setBd(df::setMasterRate, body.get("masterRate"));
-            setBd(df::setBranchRate, body.get("branchRate"));
-            setBd(df::setAgencyRate, body.get("agencyRate"));
-            setBd(df::setSalesOfficeRate, body.get("salesOfficeRate"));
+            setPct(df::setHqRate, body.get("hqRate"));
+            setPct(df::setRegionalRate, body.get("regionalRate"));
+            setPct(df::setMasterRate, body.get("masterRate"));
+            setPct(df::setBranchRate, body.get("branchRate"));
+            setPct(df::setAgencyRate, body.get("agencyRate"));
+            setPct(df::setSalesOfficeRate, body.get("salesOfficeRate"));
             setBd(df::setHqPerTxFee, body.get("hqPerTxFee"));
             setBd(df::setRegionalPerTxFee, body.get("regionalPerTxFee"));
             setBd(df::setMasterPerTxFee, body.get("masterPerTxFee"));
@@ -396,6 +402,18 @@ public class CommissionService {
             setter.accept(new BigDecimal(raw.toString().trim()));
         } catch (Exception ignored) {
         }
+    }
+
+    /** 건당·고정액(통화 단위) — 소수 첫째 자리 */
+    private void setAmtOne(java.util.function.Consumer<BigDecimal> setter, Object raw) {
+        if (raw == null || raw.toString().isEmpty()) return;
+        setter.accept(PercentDecimalHelper.parseAmountOneDecimal(raw));
+    }
+
+    /** 결제/USDT/FX/3DS/롤링·배분율 등 % 필드 — 소수 첫째 자리 */
+    private void setPct(java.util.function.Consumer<BigDecimal> setter, Object raw) {
+        if (raw == null || raw.toString().isEmpty()) return;
+        setter.accept(PercentDecimalHelper.parsePercentOneDecimal(raw));
     }
 
     private String currentUsername() {
@@ -470,7 +488,9 @@ public class CommissionService {
         String vk = "extraFee" + slot + "Value";
         String name = body.get(nk) != null ? body.get(nk).toString().trim() : "";
         String modeNorm = normalizeExtraFeeMode(body.get(mk) != null ? body.get(mk).toString() : null);
-        BigDecimal val = parseBdExtra(body.get(vk));
+        BigDecimal val = "PCT".equals(modeNorm)
+                ? PercentDecimalHelper.parsePercentOneDecimal(body.get(vk))
+                : parseBdExtra(body.get(vk));
         if (name.isEmpty() || modeNorm == null) {
             clearCommissionExtraSlot(p, slot);
             return;

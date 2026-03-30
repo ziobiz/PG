@@ -174,7 +174,7 @@
         {
           title: '기본 수수료 정책',
           id: 'hqDefaultCommFeeCard',
-          notice: '정책 템플릿(A/B/C/D…)을 만들고 배포할 수 있습니다. 배포된 템플릿은 가맹점·본사·총판 등록 시 [본사정책 따름]으로 자동 부여됩니다. 결제·USDT·FX·3DS 수수료율은 승인 금액 기준 %(통화별 절사). 건당·실패·정산·차지백·취소·무효·수동무효·환불은 통화 단위 건당액(취소 20·무효 21·수동무효 22·환불·강제환불 30·31 건수 합산). 월간이용료는 해당 월 정산 최초 1회. 기타(최대 4건)는 %·고정 선택.',
+          notice: '정책 템플릿(A/B/C/D…)을 만들 수 있으며, 여러 개를 동시에 배포(Y)할 수 있습니다. 배포된 템플릿은 가맹점·본사·총판 등록 시 [본사 정책선택] 목록에 나타나며, 기준통화와 정책의 통화코드가 같거나 정책 통화가 비어 있으면 선택할 수 있습니다. 결제·USDT·FX·3DS 수수료율은 승인 금액 기준 %(통화별 절사). 건당·실패·정산·차지백·취소·무효·수동무효·환불은 통화 단위 건당액(취소 20·무효 21·수동무효 22·환불·강제환불 30·31 건수 합산). 월간이용료는 해당 월 정산 최초 1회. 기타(최대 4건)는 %·고정 선택.',
           rows: [
             [{ type: 'customHtml', col: 2, html: '<div class="form-field-block">' +
               '<label class="form-label">정책코드</label>' +
@@ -182,7 +182,7 @@
               '<select id="hqDefCommTemplateScopeDisplay" class="form-control form-control-sm" disabled title="코드는 저장 시 자동 부여되며, 수정할 수 없습니다.">' +
               '<option value="">(신규) 저장 시 자동 부여</option></select>' +
               '<p class="text-muted small mb-0 mt-1">고유 코드는 시스템이 부여합니다. 목록에서 정책을 불러와 편집만 할 수 있습니다.</p></div>' },
-            { label: '정책명', type: 'text', name: 'policyName', col: 2, placeholder: '예: 기본정책 A' }, { label: '배포', type: 'select', name: 'deployYn', options: [{ v: 'Y', t: '배포' }, { v: 'N', t: '미배포' }], col: 2 }, { label: '통화코드', type: 'text', name: 'currencyCode', col: 2, placeholder: 'KRW, USD, JPY…' }],
+            { label: '정책명', type: 'text', name: 'policyName', col: 2, placeholder: '예: 기본정책 A' }, { label: '배포', type: 'select', name: 'deployYn', options: [{ v: 'Y', t: '배포' }, { v: 'N', t: '미배포' }], col: 2 }, { label: '통화코드', type: 'select', name: 'currencyCode', col: 2, options: [{ v: 'KRW', t: 'KRW' }, { v: 'USD', t: 'USD' }, { v: 'JPY', t: 'JPY' }, { v: 'EUR', t: 'EUR' }, { v: 'CNY', t: 'CNY' }, { v: 'THB', t: 'THB' }, { v: 'VND', t: 'VND' }, { v: 'GBP', t: 'GBP' }, { v: 'TWD', t: 'TWD' }, { v: 'HKD', t: 'HKD' }, { v: 'USDT', t: 'USDT' }] }],
             [{ label: '결제수수료율(%)', type: 'text', name: 'payRate', col: 2 }, { label: '건당수수료(건)', type: 'text', name: 'perTxFee', col: 2 }, { label: '실패수수료(건)', type: 'text', name: 'failFee', col: 2 }, { label: '취소수수료(건)', type: 'text', name: 'cancelRate', col: 2 }],
             [{ label: '무효수수료(건)', type: 'text', name: 'voidFeePerTx', col: 2, placeholder: '거래 21' }, { label: '수동무효수수료(건)', type: 'text', name: 'manualVoidFeePerTx', col: 2, placeholder: '거래 22' }, { label: '환불수수료(건)', type: 'text', name: 'refundRate', col: 2 }, { label: '정산수수료(건)', type: 'text', name: 'feeSettlementPerTx', col: 2 }],
             [{ label: 'USDT수수료율(%)', type: 'text', name: 'feeUsdt', col: 2, placeholder: '승인금액 대비 %' }, { label: 'FX수수료율(%)', type: 'text', name: 'feeFx', col: 2, placeholder: '승인금액 대비 %' }, { label: '월간이용료(월 1회·고정)', type: 'text', name: 'usageRate', col: 2, placeholder: '통화코드 단위 금액' }],
@@ -218,6 +218,15 @@
               '<p class="small text-muted mb-2 mb-md-1">헤더 1행은 <strong>수수료 고정</strong>·<strong>수수료 %</strong>·<strong>담보율</strong>·<strong>기타</strong> 묶음입니다. <strong>수수료 %</strong> 열은 숫자만 표시(단위 % 생략). 결제·USDT·FX·3DS·담보 비율은 승인금액 기준 %입니다.</p>' +
               '<div class="table-responsive border rounded">' +
               '<table class="table table-sm table-hover align-middle mb-0 hq-default-comm-policy-table">' +
+              '<colgroup>' +
+              '<col class="hq-def-comm-col" /><col class="hq-def-comm-col" /><col class="hq-def-comm-col" /><col class="hq-def-comm-col" /><col class="hq-def-comm-col" /><col class="hq-def-comm-col" />' +
+              '<col class="hq-def-comm-col" /><col class="hq-def-comm-col" /><col class="hq-def-comm-col" /><col class="hq-def-comm-col" /><col class="hq-def-comm-col" /><col class="hq-def-comm-col" /><col class="hq-def-comm-col" /><col class="hq-def-comm-col" />' +
+              '<col class="hq-def-comm-col" /><col class="hq-def-comm-col" /><col class="hq-def-comm-col" /><col class="hq-def-comm-col" />' +
+              '<col class="hq-def-comm-col" /><col class="hq-def-comm-col" />' +
+              '<col class="hq-def-comm-col" />' +
+              '<col class="hq-def-comm-col" /><col class="hq-def-comm-col" /><col class="hq-def-comm-col" />' +
+              '<col class="hq-def-comm-col" />' +
+              '</colgroup>' +
               '<thead class="table-light">' +
               '<tr>' +
               '<th rowspan="2" class="text-center align-middle hq-def-comm-th-chk" title="전체 선택">' +
@@ -225,7 +234,7 @@
               '<input type="checkbox" class="form-check-input m-0 align-middle" id="hqDefCommSelectAll" aria-label="목록 전체 선택">' +
               '</th>' +
               '<th rowspan="2" class="text-center align-middle hq-def-comm-th-code">코드</th>' +
-              '<th rowspan="2" class="text-center align-middle hq-def-comm-th-name">이름</th>' +
+              '<th rowspan="2" class="text-center align-middle hq-def-comm-th-name text-nowrap">이름</th>' +
               '<th rowspan="2" class="text-center align-middle hq-def-comm-th-cb-zone small">차지백<br>구간정책</th>' +
               '<th rowspan="2" class="text-center align-middle hq-def-comm-th-deploy">적용</th>' +
               '<th rowspan="2" class="text-center align-middle hq-def-comm-th-cur">통화</th>' +
@@ -656,7 +665,7 @@
           title: '수수료정책',
           id: 'commissionPolicyCard',
           merchantRegionalMasterCommission: true,
-          notice: '본사정책 따름 선택 시 본사설정에서 배포한 정책 템플릿을 선택할 수 있으며, 본사·총판·가맹점에 동일하게 적용·저장됩니다.',
+          notice: '본사정책 따름이면 [본사 정책선택]에서 사용합니다. 목록에는 배포(Y)인 템플릿만 나오며, 가맹점 기준통화와 정책 통화코드가 같거나 정책 통화가 비어 있는 항목만 표시됩니다. 본사·총판·가맹점에 동일하게 적용·저장됩니다.',
           rows: [
             [{ label: '본사정책 따름', type: 'select', name: 'commissionFollowHq', options: [{ v: 'Y', t: '본사정책 따름' }, { v: 'N', t: '직접입력' }], col: 2 }, { label: '본사 정책선택', type: 'select', name: 'hqPolicyScope', options: [{ v: '', t: '기본(DEFAULT)' }], col: 2, hqPolicyOnly: true }],
             [{ label: '결제수수료율(%)', type: 'text', name: 'payRate', col: 2, customOnly: true }, { label: '실패수수료(건)', type: 'text', name: 'failFee', col: 2, customOnly: true }, { label: '취소수수료(건)', type: 'text', name: 'cancelRate', col: 2, customOnly: true }],
@@ -669,7 +678,7 @@
           title: '차지백 정책',
           id: 'chargebackPolicyCard',
           merchantOnly: true,
-          notice: '본사정책 따름이면 선택한 본사 정책 템플릿의 3DS·차지백 설정이 적용됩니다. 직접입력일 때만 아래를 저장할 수 있습니다.',
+          notice: '본사정책 따름이면 위에서 고른 본사 정책 템플릿의 3DS·차지백 설정이 적용됩니다. 직접입력일 때만 아래를 저장할 수 있습니다.',
           rows: [
             [{ label: '3DS수수료율(%)', type: 'text', name: 'fee3dsRate', col: 2, customOnly: true }, { label: '차지백수수료(건)', type: 'text', name: 'chargebackFeePerTx', col: 2, customOnly: true }, { label: '차지백 구간정책', type: 'select', name: 'chargebackPolicyId', col: 4, customOnly: true, options: [{ v: '', t: '(미사용) 건당 차지백만' }] }]
           ]
@@ -951,7 +960,7 @@
           title: '수수료정책',
           id: 'commissionPolicyCard',
           merchantRegionalMasterCommission: true,
-          notice: '본사정책 따름 선택 시 본사설정에서 배포한 정책 템플릿을 선택할 수 있으며, 본사·총판·가맹점에 동일하게 적용·저장됩니다.',
+          notice: '본사정책 따름이면 [본사 정책선택]에서 사용합니다. 목록에는 배포(Y)인 템플릿만 나오며, 가맹점 기준통화와 정책 통화코드가 같거나 정책 통화가 비어 있는 항목만 표시됩니다. 본사·총판·가맹점에 동일하게 적용·저장됩니다.',
           rows: [
             [{ label: '본사정책 따름', type: 'select', name: 'commissionFollowHq', options: [{ v: 'Y', t: '본사정책 따름' }, { v: 'N', t: '직접입력' }], col: 2 }, { label: '본사 정책선택', type: 'select', name: 'hqPolicyScope', options: [{ v: '', t: '기본(DEFAULT)' }], col: 2, hqPolicyOnly: true }],
             [{ label: '결제수수료율(%)', type: 'text', name: 'payRate', col: 2, customOnly: true }, { label: '실패수수료(건)', type: 'text', name: 'failFee', col: 2, customOnly: true }, { label: '취소수수료(건)', type: 'text', name: 'cancelRate', col: 2, customOnly: true }],
@@ -964,7 +973,7 @@
           title: '차지백 정책',
           id: 'chargebackPolicyCard',
           merchantOnly: true,
-          notice: '본사정책 따름이면 선택한 본사 정책 템플릿의 3DS·차지백 설정이 적용됩니다. 직접입력일 때만 아래를 저장할 수 있습니다.',
+          notice: '본사정책 따름이면 위에서 고른 본사 정책 템플릿의 3DS·차지백 설정이 적용됩니다. 직접입력일 때만 아래를 저장할 수 있습니다.',
           rows: [
             [{ label: '3DS수수료율(%)', type: 'text', name: 'fee3dsRate', col: 2, customOnly: true }, { label: '차지백수수료(건)', type: 'text', name: 'chargebackFeePerTx', col: 2, customOnly: true }, { label: '차지백 구간정책', type: 'select', name: 'chargebackPolicyId', col: 4, customOnly: true, options: [{ v: '', t: '(미사용) 건당 차지백만' }] }]
           ]
@@ -1188,7 +1197,7 @@
           title: '수수료정책',
           id: 'commissionPolicyCard',
           merchantRegionalMasterCommission: true,
-          notice: '본사정책 따름 선택 시 본사설정에서 배포한 정책 템플릿을 선택할 수 있으며, 본사·총판·가맹점에 동일하게 적용·저장됩니다.',
+          notice: '본사정책 따름이면 [본사 정책선택]에서 사용합니다. 목록에는 배포(Y)인 템플릿만 나오며, 가맹점 기준통화와 정책 통화코드가 같거나 정책 통화가 비어 있는 항목만 표시됩니다. 본사·총판·가맹점에 동일하게 적용·저장됩니다.',
           rows: [
             [{ label: '본사정책 따름', type: 'select', name: 'commissionFollowHq', options: [{ v: 'Y', t: '본사정책 따름' }, { v: 'N', t: '직접입력' }], col: 2 }, { label: '본사 정책선택', type: 'select', name: 'hqPolicyScope', options: [{ v: '', t: '기본(DEFAULT)' }], col: 2, hqPolicyOnly: true }],
             [{ label: '결제수수료율(%)', type: 'text', name: 'payRate', col: 2, customOnly: true }, { label: '실패수수료(건)', type: 'text', name: 'failFee', col: 2, customOnly: true }, { label: '취소수수료(건)', type: 'text', name: 'cancelRate', col: 2, customOnly: true }],
@@ -1201,7 +1210,7 @@
           title: '차지백 정책',
           id: 'chargebackPolicyCard',
           merchantOnly: true,
-          notice: '본사정책 따름이면 선택한 본사 정책 템플릿의 3DS·차지백 설정이 적용됩니다. 직접입력일 때만 아래를 저장할 수 있습니다.',
+          notice: '본사정책 따름이면 위에서 고른 본사 정책 템플릿의 3DS·차지백 설정이 적용됩니다. 직접입력일 때만 아래를 저장할 수 있습니다.',
           rows: [
             [{ label: '3DS수수료율(%)', type: 'text', name: 'fee3dsRate', col: 2, customOnly: true }, { label: '차지백수수료(건)', type: 'text', name: 'chargebackFeePerTx', col: 2, customOnly: true }, { label: '차지백 구간정책', type: 'select', name: 'chargebackPolicyId', col: 4, customOnly: true, options: [{ v: '', t: '(미사용) 건당 차지백만' }] }]
           ]
@@ -1983,7 +1992,7 @@
           title: '수수료정책',
           id: 'commissionPolicyCard',
           merchantRegionalMasterCommission: true,
-          notice: '본사정책 따름 선택 시 본사설정에서 배포한 정책 템플릿을 선택할 수 있으며, 본사·총판·가맹점에 동일하게 적용·저장됩니다.',
+          notice: '본사정책 따름이면 [본사 정책선택]에서 사용합니다. 목록에는 배포(Y)인 템플릿만 나오며, 가맹점 기준통화와 정책 통화코드가 같거나 정책 통화가 비어 있는 항목만 표시됩니다. 본사·총판·가맹점에 동일하게 적용·저장됩니다.',
           rows: [
             [{ label: '본사정책 따름', type: 'select', name: 'commissionFollowHq', options: [{ v: 'Y', t: '본사정책 따름' }, { v: 'N', t: '직접입력' }], col: 2 }, { label: '본사 정책선택', type: 'select', name: 'hqPolicyScope', options: [{ v: '', t: '기본(DEFAULT)' }], col: 2, hqPolicyOnly: true }],
             [{ label: '결제수수료율(%)', type: 'text', name: 'payRate', col: 2, customOnly: true }, { label: '실패수수료(건)', type: 'text', name: 'failFee', col: 2, customOnly: true }, { label: '취소수수료(건)', type: 'text', name: 'cancelRate', col: 2, customOnly: true }],
@@ -1996,7 +2005,7 @@
           title: '차지백 정책',
           id: 'chargebackPolicyCard',
           merchantOnly: true,
-          notice: '본사정책 따름이면 선택한 본사 정책 템플릿의 3DS·차지백 설정이 적용됩니다. 직접입력일 때만 아래를 저장할 수 있습니다.',
+          notice: '본사정책 따름이면 위에서 고른 본사 정책 템플릿의 3DS·차지백 설정이 적용됩니다. 직접입력일 때만 아래를 저장할 수 있습니다.',
           rows: [
             [{ label: '3DS수수료율(%)', type: 'text', name: 'fee3dsRate', col: 2, customOnly: true }, { label: '차지백수수료(건)', type: 'text', name: 'chargebackFeePerTx', col: 2, customOnly: true }, { label: '차지백 구간정책', type: 'select', name: 'chargebackPolicyId', col: 4, customOnly: true, options: [{ v: '', t: '(미사용) 건당 차지백만' }] }]
           ]

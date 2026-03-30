@@ -99,3 +99,15 @@ ALTER TABLE tb_commission_policy
 -- V55: 무효·수동무효 건당 수수료 (거래 status 21·22)
 ALTER TABLE tb_commission_policy ADD COLUMN IF NOT EXISTS void_fee_per_tx NUMERIC(12, 0) NOT NULL DEFAULT 0;
 ALTER TABLE tb_commission_policy ADD COLUMN IF NOT EXISTS manual_void_fee_per_tx NUMERIC(12, 0) NOT NULL DEFAULT 0;
+
+-- V56: 건당·고정 수수료 소수 첫째 자리(USD·THB 등) — V56_commission_policy_amount_one_decimal.sql 과 동일
+ALTER TABLE tb_commission_policy
+  ALTER COLUMN per_tx_fee TYPE NUMERIC(12, 1) USING round(per_tx_fee::numeric, 1),
+  ALTER COLUMN cancel_rate TYPE NUMERIC(12, 1) USING round(cancel_rate::numeric, 1),
+  ALTER COLUMN usage_rate TYPE NUMERIC(12, 1) USING round(usage_rate::numeric, 1),
+  ALTER COLUMN fail_fee TYPE NUMERIC(12, 1) USING round(fail_fee::numeric, 1),
+  ALTER COLUMN refund_rate TYPE NUMERIC(12, 1) USING round(refund_rate::numeric, 1),
+  ALTER COLUMN void_fee_per_tx TYPE NUMERIC(12, 1) USING round(void_fee_per_tx::numeric, 1),
+  ALTER COLUMN manual_void_fee_per_tx TYPE NUMERIC(12, 1) USING round(manual_void_fee_per_tx::numeric, 1),
+  ALTER COLUMN fee_settlement_per_tx TYPE NUMERIC(12, 1) USING round(fee_settlement_per_tx::numeric, 1),
+  ALTER COLUMN chargeback_fee_per_tx TYPE NUMERIC(12, 1) USING round(chargeback_fee_per_tx::numeric, 1);
