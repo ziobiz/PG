@@ -229,6 +229,9 @@ public class ApiCompController {
             @RequestParam(required = false) String feeSettlementPerTx,
             @RequestParam(required = false) String feeUsdt,
             @RequestParam(required = false) String feeFx,
+            @RequestParam(required = false) String fee3dsRate,
+            @RequestParam(required = false) String chargebackFeePerTx,
+            @RequestParam(required = false) String chargebackPolicyId,
             @RequestParam(required = false) String regionalSettings) {
         Long parentIdVal = parentId;
         if (parentIdVal == null && parentComp != null && !parentComp.isEmpty()) {
@@ -271,7 +274,7 @@ public class ApiCompController {
                 notifyUrlBackground, notifyUrlResult,
                 notifyUrl1, notifyUrl2, notifyUrl3, notifyUrl4,
                 commissionFollowHq, hqPolicyScope, perTxFee, cancelRate, voidFeePerTx, manualVoidFeePerTx, usageRate, failFee, payRate, refundRate, rollingPct, rollingDays,
-                feeSettlementPerTx, feeUsdt, feeFx, regionalSettings);
+                feeSettlementPerTx, feeUsdt, feeFx, fee3dsRate, chargebackFeePerTx, chargebackPolicyId, regionalSettings);
         return ResponseEntity.ok(ApiResponse.ok(Map.of("compId", saved.getCode(), "compNm", saved.getName())));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.ok(ApiResponse.fail(e.getMessage(), "VALIDATION"));

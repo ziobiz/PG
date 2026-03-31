@@ -15,6 +15,8 @@ import com.pg.entity.MerchantPgBinding;
 import com.pg.entity.MerchantDefaultProduct;
 import com.pg.entity.MerchantNotifyUrl;
 import com.pg.entity.CommissionPolicy;
+import com.pg.entity.ChargebackFeePolicy;
+import com.pg.entity.DistributionFeeConfig;
 import com.pg.entity.AppUser;
 import com.pg.repository.MerchantPgBindingRepository;
 import com.pg.repository.PgAgencyRepository;
@@ -22,7 +24,10 @@ import com.pg.entity.PgAgency;
 import com.pg.repository.MerchantDefaultProductRepository;
 import com.pg.repository.MerchantNotifyUrlRepository;
 import com.pg.repository.CommissionPolicyRepository;
+import com.pg.repository.ChargebackFeePolicyRepository;
+import com.pg.repository.DistributionFeeConfigRepository;
 import com.pg.repository.UserRepository;
+import com.pg.util.CommissionTierJsonHelper;
 import com.pg.util.PercentDecimalHelper;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -57,6 +62,8 @@ public class CompService {
     private final MerchantDefaultProductRepository merchantDefaultProductRepository;
     private final MerchantNotifyUrlRepository merchantNotifyUrlRepository;
     private final CommissionPolicyRepository commissionPolicyRepository;
+    private final ChargebackFeePolicyRepository chargebackFeePolicyRepository;
+    private final DistributionFeeConfigRepository distributionFeeConfigRepository;
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final CompExcelImportService compExcelImportService;
@@ -173,6 +180,104 @@ public class CompService {
         }
     }
 
+    /**
+     * 가맹점 기준 화폐는 가장 가까운 상위 조직(총판/본사)에서 설정한 기준 화폐와 일치해야 한다.
+     * - 상위가 본사(REGIONAL)면 다중 통화 중 1개 허용
+     * - 상위가 총판(MASTER_DIST) 등 단일 통화면 동일 값만 허용
+     */
+    private void validateMerchantBaseCurrencyAgainstParent(Long parentOrgUnitId, String chosenCurrency) {
+        if (parentOrgUnitId == null || chosenCurrency == null || chosenCurrency.isBlank()) return;
+        String chosen = chosenCurrency.trim().toUpperCase();
+        Long cur = parentOrgUnitId;
+        Set<Long> seen = new HashSet<>();
+        while (cur != null && seen.add(cur)) {
+            OrgUnit ou = orgUnitRepository.findById(cur).orElse(null);
+            if (ou == null) break;
+            Optional<MerchantProfile> mp = merchantProfileRepository.findByOrgUnitId(cur);
+            String bc = mp.map(MerchantProfile::getBaseCurrency).orElse("");
+            if (bc != null && !bc.trim().isEmpty()) {
+                boolean ok = false;
+                for (String part : bc.split(",\\s*")) {
+                    if (chosen.equalsIgnoreCase(part.trim())) {
+                        ok = true;
+                        break;
+                    }
+                }
+                if (!ok) {
+                    throw new IllegalArgumentException("가맹점 기준 화폐는 상위 조직 기준 화폐와 동일해야 합니다. 상위 기준: " + bc);
+                }
+                return;
+            }
+            cur = ou.getParentId();
+        }
+    }
+
+    private static String nzUpper(String v) {
+        return v == null ? "" : v.trim().toUpperCase();
+    }
+
+    /**
+     * 가맹점 저장 시 통화-정책 정합성 검증:
+     * - 본사정책 따름: 선택한 본사 템플릿 통화 == 가맹점 통화
+     * - 직접입력: 선택한 차지백 구간정책 통화 == 가맹점 통화
+     */
+    private void validateMerchantPolicyCurrencyCompatibility(String chosenCurrency,
+                                                             String commissionFollowHq,
+                                                             String hqPolicyScope,
+                                                             String chargebackPolicyId) {
+        String cc = nzUpper(chosenCurrency);
+        if (cc.isEmpty()) return;
+        boolean custom = "N".equalsIgnoreCase(commissionFollowHq != null ? commissionFollowHq.trim() : "");
+
+        Long effectiveChargebackPolicyId = null;
+        if (!custom) {
+            String srcScope = (hqPolicyScope != null && !hqPolicyScope.trim().isEmpty()) ? hqPolicyScope.trim() : "DEFAULT";
+            CommissionPolicy src = commissionPolicyRepository.findByScope(srcScope).orElse(null);
+            if (src != null) {
+                String policyCur = nzUpper(src.getCurrencyCode());
+                if (!policyCur.isEmpty() && !policyCur.equals(cc)) {
+                    throw new IllegalArgumentException("선택한 본사 수수료 정책 통화(" + policyCur + ")와 가맹점 기준 화폐(" + cc + ")가 다릅니다.");
+                }
+            }
+        }
+        if (chargebackPolicyId != null && !chargebackPolicyId.trim().isEmpty()) {
+            try {
+                effectiveChargebackPolicyId = Long.parseLong(chargebackPolicyId.trim());
+            } catch (NumberFormatException e) {
+                throw new IllegalArgumentException("차지백 구간정책 ID 형식이 올바르지 않습니다.");
+            }
+        }
+
+        if (effectiveChargebackPolicyId != null) {
+            ChargebackFeePolicy cp = chargebackFeePolicyRepository.findById(effectiveChargebackPolicyId).orElse(null);
+            if (cp != null) {
+                String cpCur = nzUpper(cp.getCurrencyCode());
+                if (!cpCur.isEmpty() && !cpCur.equals(cc)) {
+                    throw new IllegalArgumentException("차지백 구간정책 통화(" + cpCur + ")와 가맹점 기준 화폐(" + cc + ")가 다릅니다.");
+                }
+            }
+        }
+    }
+
+    /** 가맹점은 차지백 구간정책을 수수료정책과 별도로 선택할 수 있어야 하므로 저장 시 별도 반영 */
+    private void applyMerchantIndependentChargebackPolicy(String compCode, String chargebackPolicyId) {
+        if (compCode == null || compCode.isBlank()) return;
+        if (chargebackPolicyId == null) return;
+        CommissionPolicy policy = commissionPolicyRepository.findByScope(compCode.trim()).orElseGet(CommissionPolicy::new);
+        policy.setScope(compCode.trim());
+        String cp = chargebackPolicyId.trim();
+        if (cp.isEmpty()) {
+            policy.setChargebackPolicyId(null);
+        } else {
+            try {
+                policy.setChargebackPolicyId(Long.parseLong(cp));
+            } catch (NumberFormatException e) {
+                throw new IllegalArgumentException("차지백 구간정책 ID 형식이 올바르지 않습니다.");
+            }
+        }
+        commissionPolicyRepository.save(policy);
+    }
+
     /** 업체구분(compDiv) 문자열 → OrgLevel 매핑 (총본사/본사/총판/지사/대리점/영업점/가맹점) */
     private static OrgLevel orgLevelFromCompDiv(String compDiv) {
         if (compDiv == null || compDiv.isEmpty()) return OrgLevel.AGENCY;
@@ -211,6 +316,8 @@ public class CompService {
                        MerchantDefaultProductRepository merchantDefaultProductRepository,
                        MerchantNotifyUrlRepository merchantNotifyUrlRepository,
                        CommissionPolicyRepository commissionPolicyRepository,
+                       ChargebackFeePolicyRepository chargebackFeePolicyRepository,
+                       DistributionFeeConfigRepository distributionFeeConfigRepository,
                        UserRepository userRepository, PasswordEncoder passwordEncoder,
                        CompExcelImportService compExcelImportService) {
         this.orgUnitRepository = orgUnitRepository;
@@ -222,6 +329,8 @@ public class CompService {
         this.merchantDefaultProductRepository = merchantDefaultProductRepository;
         this.merchantNotifyUrlRepository = merchantNotifyUrlRepository;
         this.commissionPolicyRepository = commissionPolicyRepository;
+        this.chargebackFeePolicyRepository = chargebackFeePolicyRepository;
+        this.distributionFeeConfigRepository = distributionFeeConfigRepository;
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.compExcelImportService = compExcelImportService;
@@ -785,6 +894,26 @@ public class CompService {
                                     }
                                 } catch (Exception ignored) {}
                             }
+                            if ("MERCHANT".equalsIgnoreCase(effDivForCommission)) {
+                                String chosenCur = (baseCurrency != null && !baseCurrency.trim().isEmpty())
+                                        ? baseCurrency.trim()
+                                        : mp.getBaseCurrency();
+                                Long effectiveParentId = parentId != null ? parentId : ou.getParentId();
+                                Map<String, Object> rs = parseRegionalSettings(mp.getRegionalSettings());
+                                String effectiveFollow = (commissionFollowHq != null && !commissionFollowHq.trim().isEmpty())
+                                        ? commissionFollowHq
+                                        : String.valueOf(rs.getOrDefault("commissionFollowHq", "Y"));
+                                String effectiveHqScope = (hqPolicyScope != null) ? hqPolicyScope : String.valueOf(rs.getOrDefault("hqPolicyScope", ""));
+                                String effectiveChargebackPolicyId = chargebackPolicyId;
+                                if (effectiveChargebackPolicyId == null || effectiveChargebackPolicyId.trim().isEmpty()) {
+                                    CommissionPolicy curPolicy = commissionPolicyRepository.findByScope(ou.getCode()).orElse(null);
+                                    if (curPolicy != null && curPolicy.getChargebackPolicyId() != null) {
+                                        effectiveChargebackPolicyId = String.valueOf(curPolicy.getChargebackPolicyId());
+                                    }
+                                }
+                                validateMerchantBaseCurrencyAgainstParent(effectiveParentId, chosenCur);
+                                validateMerchantPolicyCurrencyCompatibility(chosenCur, effectiveFollow, effectiveHqScope, effectiveChargebackPolicyId);
+                            }
                             if (usesCommissionPolicyForCompDiv(effDivForCommission)
                                     && !allCommissionParamsAbsent(commissionFollowHq, hqPolicyScope, perTxFee, cancelRate, voidFeePerTx, manualVoidFeePerTx, usageRate,
                                     failFee, payRate, refundRate, rollingPct, rollingDays, feeSettlementPerTx, feeUsdt, feeFx,
@@ -792,6 +921,9 @@ public class CompService {
                                 applyCommissionPolicyForOrgCode(ou.getCode(), effDivForCommission, commissionFollowHq, hqPolicyScope,
                                         perTxFee, cancelRate, voidFeePerTx, manualVoidFeePerTx, usageRate, failFee, payRate, refundRate, rollingPct, rollingDays,
                                         feeSettlementPerTx, feeUsdt, feeFx, fee3dsRate, chargebackFeePerTx, chargebackPolicyId);
+                                if ("MERCHANT".equalsIgnoreCase(effDivForCommission)) {
+                                    applyMerchantIndependentChargebackPolicy(ou.getCode(), chargebackPolicyId);
+                                }
                             }
                             return true;
                         }))
@@ -920,7 +1052,7 @@ public class CompService {
                 /* 69–90: notify, commission(+무효·수동무효), fees, regional (22 nulls) */
                 null, null, null, null, null, null, null, null, null, null,
                 null, null, null, null, null, null, null, null, null, null,
-                null, null);  /* +hqPolicyScope */
+                null, null, null, null, null);  /* +hqPolicyScope + chargeback */
     }
 
     @Transactional
@@ -950,6 +1082,65 @@ public class CompService {
                                      String voidFeePerTx, String manualVoidFeePerTx, String usageRate,
                                      String failFee, String payRate, String refundRate, String rollingPct, String rollingDays,
                                      String feeSettlementPerTx, String feeUsdt, String feeFx,
+                                     String regionalSettings) {
+        return registerWithExtra(code, name, compDiv, parentId,
+                compTel, zipCode, addr, addrDetail, addrEtc, addrCountryCd,
+                ceoNm, ceoMobile, useYn, loginId,
+                regNo, bizType, industry,
+                bizNature, product, homepage, settleName, settleTelNo,
+                settleType, commissionRate, limitAmt,
+                fax, email, pwd,
+                bankCd, transferFee, cryptoTransferFee, accountNo, accountHolder,
+                countryCd, swift, branchName, branchAddr,
+                contactTel, walletAddress, networkName, siteUrl, siteSummary,
+                remark,
+                withdrawRestrictType,
+                withdrawLimitDays, withdrawStartTime, withdrawEndTime,
+                payLimitDefault, payLimitExtra, payLimitAlertSms,
+                holdRateFollowHq, holdRate, holdDays, calcCycle, calcCloseTime,
+                transferType, transferCycleDays, autoTransferMin, payHoldYn,
+                calcExcludeYn, calcExcludeTarget, calcStartTime,
+                calcProcType, calcMinAmt, transferExecTime,
+                pgBindings, webPaymentUseYn, baseCurrency,
+                defaultProductName, defaultProductCode, defaultProductAmount, defaultProductDesc,
+                notifyUrlBackground, notifyUrlResult,
+                notifyUrl1, notifyUrl2, notifyUrl3, notifyUrl4,
+                commissionFollowHq, hqPolicyScope, perTxFee, cancelRate,
+                voidFeePerTx, manualVoidFeePerTx, usageRate,
+                failFee, payRate, refundRate, rollingPct, rollingDays,
+                feeSettlementPerTx, feeUsdt, feeFx,
+                null, null, null,
+                regionalSettings);
+    }
+
+    @Transactional
+    public OrgUnit registerWithExtra(String code, String name, String compDiv, Long parentId,
+                                     String compTel, String zipCode, String addr, String addrDetail, String addrEtc, String addrCountryCd,
+                                     String ceoNm, String ceoMobile, String useYn, String loginId,
+                                     String regNo, String bizType, String industry,
+                                     String bizNature, String product, String homepage, String settleName, String settleTelNo,
+                                     String settleType, String commissionRate, String limitAmt,
+                                     String fax, String email, String pwd,
+                                     String bankCd, String transferFee, String cryptoTransferFee, String accountNo, String accountHolder,
+                                     String countryCd, String swift, String branchName, String branchAddr,
+                                     String contactTel, String walletAddress, String networkName,                                      String siteUrl, String siteSummary,
+                                     String remark,
+                                     String withdrawRestrictType,
+                                     Integer withdrawLimitDays, String withdrawStartTime, String withdrawEndTime,
+                                     String payLimitDefault, String payLimitExtra, String payLimitAlertSms,
+                                     String holdRateFollowHq, String holdRate, Integer holdDays, String calcCycle, String calcCloseTime,
+                                     String transferType, Integer transferCycleDays, String autoTransferMin, String payHoldYn,
+                                     String calcExcludeYn, String calcExcludeTarget, String calcStartTime,
+                                     String calcProcType, String calcMinAmt, String transferExecTime,
+                                     String pgBindings, String webPaymentUseYn, String baseCurrency,
+                                     String defaultProductName, String defaultProductCode, String defaultProductAmount, String defaultProductDesc,
+                                     String notifyUrlBackground, String notifyUrlResult,
+                                     String notifyUrl1, String notifyUrl2, String notifyUrl3, String notifyUrl4,
+                                     String commissionFollowHq, String hqPolicyScope, String perTxFee, String cancelRate,
+                                     String voidFeePerTx, String manualVoidFeePerTx, String usageRate,
+                                     String failFee, String payRate, String refundRate, String rollingPct, String rollingDays,
+                                     String feeSettlementPerTx, String feeUsdt, String feeFx,
+                                     String fee3dsRate, String chargebackFeePerTx, String chargebackPolicyId,
                                      String regionalSettings) {
         OrgUnit o = new OrgUnit();
         String compDivVal = compDiv != null ? compDiv.trim() : "AGENCY";
@@ -1033,6 +1224,13 @@ public class CompService {
         }
         if (usesCommissionPolicyForCompDiv(compDivVal)) {
             mergeCommissionUiIntoRegionalSettings(mp, commissionFollowHq, hqPolicyScope);
+        }
+        if ("MERCHANT".equalsIgnoreCase(compDivVal)) {
+            String chosenCur = (baseCurrency != null && !baseCurrency.trim().isEmpty())
+                    ? baseCurrency.trim()
+                    : mp.getBaseCurrency();
+            validateMerchantBaseCurrencyAgainstParent(effectiveParentId, chosenCur);
+            validateMerchantPolicyCurrencyCompatibility(chosenCur, commissionFollowHq, hqPolicyScope, null);
         }
         merchantProfileRepository.save(mp);
 
@@ -1152,7 +1350,10 @@ public class CompService {
         if (usesCommissionPolicyForCompDiv(compDivVal)) {
             applyCommissionPolicyForOrgCode(saved.getCode(), compDivVal, commissionFollowHq, hqPolicyScope,
                     perTxFee, cancelRate, voidFeePerTx, manualVoidFeePerTx, usageRate, failFee, payRate, refundRate, rollingPct, rollingDays,
-                    feeSettlementPerTx, feeUsdt, feeFx, null, null, null);
+                    feeSettlementPerTx, feeUsdt, feeFx, fee3dsRate, chargebackFeePerTx, chargebackPolicyId);
+            if ("MERCHANT".equalsIgnoreCase(compDivVal)) {
+                applyMerchantIndependentChargebackPolicy(saved.getCode(), chargebackPolicyId);
+            }
         }
 
         String rawPwdFinal = (pwd != null && !pwd.trim().isEmpty()) ? pwd.trim() : null;
@@ -1642,9 +1843,29 @@ public class CompService {
                 policy.setExtraFee4Name(src.getExtraFee4Name());
                 policy.setExtraFee4Mode(src.getExtraFee4Mode());
                 policy.setExtraFee4Value(src.getExtraFee4Value());
+                policy.setTierCommissionJson(src.getTierCommissionJson());
                 commissionPolicyRepository.save(policy);
+                applyDistributionFromCommissionPolicyTemplate(src, compCode.trim());
             });
         }
+    }
+
+    /** 본사 템플릿 격자의 결제율·건당 열 → 가맹점 배분(tb_distribution_fee_config) */
+    private void applyDistributionFromCommissionPolicyTemplate(CommissionPolicy src, String compCode) {
+        if (compCode == null || compCode.isBlank() || src == null) {
+            return;
+        }
+        String json = src.getTierCommissionJson();
+        if (json == null || json.isBlank()) {
+            json = CommissionTierJsonHelper.buildTierJsonFromPolicyScalars(src);
+        }
+        DistributionFeeConfig df = distributionFeeConfigRepository.findByCompId(compCode.trim()).orElseGet(() -> {
+            DistributionFeeConfig x = new DistributionFeeConfig();
+            x.setCompId(compCode.trim());
+            return x;
+        });
+        CommissionTierJsonHelper.applyTierJsonToDistribution(json, df);
+        distributionFeeConfigRepository.save(df);
     }
 
     private void applyCommissionDetailToMap(Map<String, Object> m, OrgUnit ou) {

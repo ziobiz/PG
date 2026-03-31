@@ -30,6 +30,7 @@ import com.pg.service.AuthService;
 import com.pg.service.CollateralLedgerService;
 import com.pg.service.SettlementCalcService;
 import com.pg.service.SettlementReportService;
+import com.pg.util.BusinessDayCalendar;
 import com.pg.util.ChargebackTierResolver;
 import com.pg.util.CommissionExtraFeeUtil;
 import com.pg.util.PercentDecimalHelper;
@@ -43,6 +44,8 @@ import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.temporal.ChronoUnit;
+import java.time.temporal.TemporalAdjusters;
 import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
@@ -673,11 +676,119 @@ public class ApiSettlementController {
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fromDate,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate toDate,
             @RequestParam(required = false) String merchantId) {
-        if (fromDate == null) fromDate = LocalDate.now().minusDays(1);
-        if (toDate == null) toDate = LocalDate.now();
-        List<SettlementRun> runs = settlementCalcService.execute(fromDate, toDate, merchantId);
-        List<Map<String, Object>> list = runs.stream().map(this::toMap).collect(Collectors.toList());
+        /* 기간 지정 시: 기존 수동 실행(레거시 유지) */
+        if (fromDate != null || toDate != null) {
+            if (fromDate == null) fromDate = LocalDate.now().minusDays(1);
+            if (toDate == null) toDate = LocalDate.now();
+            List<SettlementRun> runs = settlementCalcService.execute(fromDate, toDate, merchantId);
+            List<Map<String, Object>> list = runs.stream().map(this::toMap).collect(Collectors.toList());
+            return ResponseEntity.ok(ApiResponse.ok(list));
+        }
+
+        /* 기간 미지정 시: calcCycle 기준 자동 실행 */
+        LocalDate today = LocalDate.now();
+        Set<String> alreadyDoneToday = settlementCalcService.listRuns(today, today).stream()
+                .map(SettlementRun::getMerchantId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+        List<SettlementRun> allRuns = new ArrayList<>();
+
+        List<OrgUnit> merchants = orgUnitRepository.findAll().stream()
+                .filter(ou -> ou.getOrgLevel() == OrgLevel.MERCHANT)
+                .filter(ou -> merchantId == null || merchantId.isBlank() || merchantId.trim().equalsIgnoreCase(ou.getCode()))
+                .toList();
+
+        for (OrgUnit ou : merchants) {
+            String mid = ou.getCode();
+            if (mid == null || mid.isBlank()) continue;
+            if (alreadyDoneToday.contains(mid)) continue;
+            Optional<SettlementSetting> ssOpt = settlementSettingRepository.findByOrgUnitId(ou.getId());
+            if (ssOpt.isEmpty()) continue;
+            PeriodWindow w = resolveAutoPeriodWindow(ssOpt.get().getCalcCycle(), today);
+            if (w == null) continue;
+            List<SettlementRun> runs = settlementCalcService.execute(w.fromDate(), w.toDate(), mid);
+            if (!runs.isEmpty()) {
+                allRuns.addAll(runs);
+            }
+        }
+        List<Map<String, Object>> list = allRuns.stream().map(this::toMap).collect(Collectors.toList());
         return ResponseEntity.ok(ApiResponse.ok(list));
+    }
+
+    private record PeriodWindow(LocalDate fromDate, LocalDate toDate) {}
+
+    private static String normalizeCalcCycle(String raw) {
+        if (raw == null) return "";
+        String u = raw.trim().toUpperCase(Locale.ROOT);
+        return u.replace("+", "");
+    }
+
+    private static LocalDate nextBusinessDayOrSame(LocalDate d) {
+        LocalDate cur = d;
+        while (!BusinessDayCalendar.isBusinessDay(cur, Collections.emptySet())) {
+            cur = cur.plusDays(1);
+        }
+        return cur;
+    }
+
+    private static boolean isBiWeeklyAnchor(LocalDate monday) {
+        LocalDate epochMonday = LocalDate.of(1970, 1, 5);
+        long weeks = ChronoUnit.WEEKS.between(epochMonday, monday);
+        return weeks % 2 == 0;
+    }
+
+    private static PeriodWindow resolveAutoPeriodWindow(String calcCycle, LocalDate today) {
+        String c = normalizeCalcCycle(calcCycle);
+        if (c.isEmpty() || "NONE".equals(c)) return null;
+
+        LocalDate thisMonday = today.with(TemporalAdjusters.previousOrSame(java.time.DayOfWeek.MONDAY));
+
+        /* W+D (예: W7): 주(월~일) 집계 + D일 후 도래, 지급일만 영업일 보정 */
+        if (c.matches("W\\d+")) {
+            int d = Integer.parseInt(c.substring(1));
+            for (int k = 0; k <= 16; k++) {
+                LocalDate start = thisMonday.minusWeeks(k);
+                LocalDate end = start.plusDays(6);
+                LocalDate base = end.plusDays(d);
+                LocalDate settle = nextBusinessDayOrSame(base);
+                if (settle.equals(today)) {
+                    return new PeriodWindow(start, end);
+                }
+            }
+            return null;
+        }
+
+        /* WK+1W / WK+1WT: 1주(월~일) 집계 */
+        if ("WK1W".equals(c) || "WK1WT".equals(c)) {
+            int deltaToWednesday = "WK1W".equals(c) ? 3 : 10; // 다음주 수요일 / 다다음주 수요일
+            for (int k = 0; k <= 16; k++) {
+                LocalDate start = thisMonday.minusWeeks(k);
+                LocalDate end = start.plusDays(6);
+                LocalDate base = end.plusDays(deltaToWednesday);
+                LocalDate settle = nextBusinessDayOrSame(base);
+                if (settle.equals(today)) {
+                    return new PeriodWindow(start, end);
+                }
+            }
+            return null;
+        }
+
+        /* WK+2W / WK+2WT: 2주(14일) 집계, 2주 간격 anchor(월요일) 고정 */
+        if ("WK2W".equals(c) || "WK2WT".equals(c)) {
+            int deltaToWednesday = "WK2W".equals(c) ? 3 : 10; // 2주 구간 종료 후 다음주/다다음주 수요일
+            for (int k = 0; k <= 24; k++) {
+                LocalDate start = thisMonday.minusWeeks(k);
+                if (!isBiWeeklyAnchor(start)) continue;
+                LocalDate end = start.plusDays(13);
+                LocalDate base = end.plusDays(deltaToWednesday);
+                LocalDate settle = nextBusinessDayOrSame(base);
+                if (settle.equals(today)) {
+                    return new PeriodWindow(start, end);
+                }
+            }
+            return null;
+        }
+        return null;
     }
 
     private Map<String, Object> toMap(SettlementRun r) {

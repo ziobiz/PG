@@ -129,6 +129,12 @@ public class CommissionPolicy {
     @Column(name = "extra_fee_4_value", precision = 15, scale = 4)
     private BigDecimal extraFee4Value;
 
+    /**
+     * 조직 단계별(총본사~가맹) 수수료 격자 JSON. 가맹(merchant) 열은 tb 컬럼 스칼라와 동기화.
+     */
+    @Column(name = "tier_commission_json", columnDefinition = "TEXT")
+    private String tierCommissionJson;
+
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 
@@ -218,6 +224,9 @@ public class CommissionPolicy {
     public void setExtraFee4Mode(String extraFee4Mode) { this.extraFee4Mode = extraFee4Mode; }
     public BigDecimal getExtraFee4Value() { return extraFee4Value; }
     public void setExtraFee4Value(BigDecimal extraFee4Value) { this.extraFee4Value = extraFee4Value; }
+
+    public String getTierCommissionJson() { return tierCommissionJson; }
+    public void setTierCommissionJson(String tierCommissionJson) { this.tierCommissionJson = tierCommissionJson; }
 
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }

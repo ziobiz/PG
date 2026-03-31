@@ -54,39 +54,53 @@
     }
   })();
 
-  /** % 필드: 소수 첫째 자리까지 표시·입력(USD·THB 등 동일 규칙) */
-  function pgFmtPctOneDecimal(v) {
-    var s = String(v == null || v === '' ? '0' : v).replace(/,/g, '.').trim();
-    var n = parseFloat(s);
-    if (!isFinite(n)) n = 0;
-    return (Math.round(n * 10) / 10).toFixed(1);
-  }
-  function pgFmtPctOneDecimalInput(v) {
+  /**
+   * %·건당·고정액 공통: 소수 첫째 자리까지, 소수부가 0이면 정수만 (300.0→300, 5.6→5.6).
+   * 빈 값은 빈 문자열 유지(입력 필드용).
+   */
+  function pgFmtOneDecimalStripWhole(v) {
     if (v == null || v === '') return '';
     var s = String(v).replace(/,/g, '.').trim();
     if (s === '') return '';
     var n = parseFloat(s);
     if (!isFinite(n)) return String(v);
-    return (Math.round(n * 10) / 10).toFixed(1);
-  }
-
-  /**
-   * 저장된 정책 목록 등: 건당·고정액 표시
-   * KRW·JPY: 정수만. 그 외: 소수가 있으면 첫째 자리까지, 없으면 정수(45.0 → 45).
-   */
-  function pgFmtPolicyListAmount(v, currencyCode) {
-    var cc = (currencyCode || '').trim().toUpperCase();
-    var s = String(v == null || v === '' ? '0' : v).replace(/,/g, '.').trim();
-    var n = parseFloat(s);
-    if (!isFinite(n)) n = 0;
-    if (cc === 'KRW' || cc === 'JPY') {
-      return String(Math.round(n));
-    }
     var x = Math.round(n * 10) / 10;
     if (Math.abs(x - Math.round(x)) < 1e-9) {
       return String(Math.round(x));
     }
     return x.toFixed(1);
+  }
+
+  /** % 필드: 소수 첫째 자리까지, 정수일 때는 .0 생략 */
+  function pgFmtPctOneDecimal(v) {
+    var out = pgFmtOneDecimalStripWhole(v == null || v === '' ? '0' : v);
+    return out === '' ? '0' : out;
+  }
+  function pgFmtPctOneDecimalInput(v) {
+    return pgFmtOneDecimalStripWhole(v);
+  }
+
+  /**
+   * 가맹점 수수료 정책 목록 등: 건당·고정액·% 셀 표시(통화 구분 없이 동일 규칙).
+   * currencyCode는 호환용으로만 받으며 포맷에는 사용하지 않음.
+   */
+  function pgFmtPolicyListAmount(v, currencyCode) {
+    var out = pgFmtOneDecimalStripWhole(v == null || v === '' ? '0' : v);
+    return out === '' ? '0' : out;
+  }
+
+  /** 업체 상세 등: 수수료·보류 관련 숫자 필드만 동일 표기 규칙 적용. 해당 없으면 null. */
+  function pgFmtCompDetailNumericField(fieldName, v) {
+    var pctFields = { payRate: 1, feeUsdt: 1, feeFx: 1, fee3dsRate: 1, rollingPct: 1, holdRate: 1 };
+    var amtFields = { failFee: 1, usageRate: 1, cancelRate: 1, voidFeePerTx: 1, manualVoidFeePerTx: 1, refundRate: 1, feeSettlementPerTx: 1, chargebackFeePerTx: 1, perTxFee: 1 };
+    var dayFields = { rollingDays: 1, holdDays: 1 };
+    if (pctFields[fieldName]) return pgFmtPctOneDecimalInput(v);
+    if (amtFields[fieldName]) return pgFmtOneDecimalStripWhole(v);
+    if (dayFields[fieldName]) {
+      var n = parseFloat(String(v).replace(/,/g, '.'));
+      return isFinite(n) ? String(Math.round(n)) : String(v);
+    }
+    return null;
   }
 
   /** 본사 수수료 템플릿: 배포(Y)만. 기준통화가 있으면 정책 통화와 일치하거나 정책 통화가 비어 있으면(레거시) 전체 허용 */
@@ -2217,7 +2231,9 @@
                   var toggle = hasChildren ? '<span class="tree-toggle ' + (expanded ? 'expanded' : 'collapsed') + '" data-id="' + rowId + '" title="' + (expanded ? '접기' : '펼치기') + '">' + (expanded ? '\u25BC' : '\u25B6') + '</span>' : '<span class="tree-toggle-placeholder"></span>';
                   html += '<td class="tree-comp-cell" style="padding-left:' + px + 'px">' + icon + toggle + (val || '') + '</td>';
                 } else if (isCompMngTree && c.key === 'compNm') {
-                  html += '<td' + cellClass + '>' + (val || '') + '</td>';
+                  html += '<td class="text-start align-middle">' + (val || '') + '</td>';
+                } else if (url === '/comp/compMng' && c.key === 'compNm') {
+                  html += '<td class="text-start align-middle">' + (val || '') + '</td>';
                 } else if (url === '/calc/calcList' || url === '/settlement/distributionList') {
                   var distFmtKeys = ['aprvCnt', 'aprvAmt', 'aprvFeeCnt', 'aprvFeeSum', 'aprvFeeVat', 'canCnt', 'canAmt', 'canFeeCnt', 'canFeeSum', 'canFeeVat', 'settleAmt'];
                   var distPctKeys = ['aprvFeePct', 'canFeePct'];
@@ -2775,31 +2791,45 @@
           var dimm = document.getElementById('dimm');
           if (dimm) dimm.style.display = 'flex';
           window.PG_API.commissionDetail(compId).then(function (data) {
+            function setAmt(id, val) {
+              var el = document.getElementById(id);
+              if (el && val != null) el.value = pgFmtOneDecimalStripWhole(val);
+            }
+            function setPct(id, val) {
+              var el = document.getElementById(id);
+              if (el && val != null) el.value = pgFmtPctOneDecimalInput(val);
+            }
+            function setDay(id, val) {
+              var el = document.getElementById(id);
+              if (!el || val == null) return;
+              var n = parseFloat(String(val).replace(/,/g, '.'));
+              el.value = isFinite(n) ? String(Math.round(n)) : String(val);
+            }
             var set = function (id, val) { var el = document.getElementById(id); if (el && val != null) el.value = String(val); };
-            set('commissionPerTxFee', data.perTxFee);
-            set('commissionCancelRate', data.cancelRate);
-            set('commissionVoidFeePerTx', data.voidFeePerTx);
-            set('commissionManualVoidFeePerTx', data.manualVoidFeePerTx);
-            set('commissionPayRate', data.payRate);
-            set('commissionRefundRate', data.refundRate);
-            set('commissionRollingPct', data.rollingPct);
-            set('commissionRollingDays', data.rollingDays);
-            set('commissionFeeAnnual', data.feeAnnual);
-            set('commissionFeeSettlementPerTx', data.feeSettlementPerTx);
-            set('commissionFee3dsRate', data.fee3dsRate);
-            set('commissionChargebackFeePerTx', data.chargebackFeePerTx);
-            set('commissionHqRate', data.hqRate);
-            set('commissionRegionalRate', data.regionalRate);
-            set('commissionMasterRate', data.masterRate);
-            set('commissionBranchRate', data.branchRate);
-            set('commissionAgencyRate', data.agencyRate);
-            set('commissionSalesOfficeRate', data.salesOfficeRate);
-            set('commissionHqPerTxFee', data.hqPerTxFee);
-            set('commissionRegionalPerTxFee', data.regionalPerTxFee);
-            set('commissionMasterPerTxFee', data.masterPerTxFee);
-            set('commissionBranchPerTxFee', data.branchPerTxFee);
-            set('commissionAgencyPerTxFee', data.agencyPerTxFee);
-            set('commissionSalesOfficePerTxFee', data.salesOfficePerTxFee);
+            setAmt('commissionPerTxFee', data.perTxFee);
+            setAmt('commissionCancelRate', data.cancelRate);
+            setAmt('commissionVoidFeePerTx', data.voidFeePerTx);
+            setAmt('commissionManualVoidFeePerTx', data.manualVoidFeePerTx);
+            setPct('commissionPayRate', data.payRate);
+            setAmt('commissionRefundRate', data.refundRate);
+            setPct('commissionRollingPct', data.rollingPct);
+            setDay('commissionRollingDays', data.rollingDays);
+            setAmt('commissionFeeAnnual', data.feeAnnual);
+            setAmt('commissionFeeSettlementPerTx', data.feeSettlementPerTx);
+            setPct('commissionFee3dsRate', data.fee3dsRate);
+            setAmt('commissionChargebackFeePerTx', data.chargebackFeePerTx);
+            setPct('commissionHqRate', data.hqRate);
+            setPct('commissionRegionalRate', data.regionalRate);
+            setPct('commissionMasterRate', data.masterRate);
+            setPct('commissionBranchRate', data.branchRate);
+            setPct('commissionAgencyRate', data.agencyRate);
+            setPct('commissionSalesOfficeRate', data.salesOfficeRate);
+            setAmt('commissionHqPerTxFee', data.hqPerTxFee);
+            setAmt('commissionRegionalPerTxFee', data.regionalPerTxFee);
+            setAmt('commissionMasterPerTxFee', data.masterPerTxFee);
+            setAmt('commissionBranchPerTxFee', data.branchPerTxFee);
+            setAmt('commissionAgencyPerTxFee', data.agencyPerTxFee);
+            setAmt('commissionSalesOfficePerTxFee', data.salesOfficePerTxFee);
             set('commissionApplyStartDate', data.applyStartDateStr || data.applyStartDate || '');
             fillChargebackPolicySelectsInRoot(modalEl, data.chargebackPolicyId).finally(function () {
               if (modalEl && window.bootstrap && bootstrap.Modal) {
@@ -3505,6 +3535,50 @@
       return s;
     }
     /** 업체정보 상세: 본사·총판은 상위 변경 불가. 총판 산하는 동일 총판 하위만 상위 검색 목록에 표시 */
+    function ensureChargebackPolicyPreviewHost(sel) {
+      if (!sel) return null;
+      var host = sel.parentElement ? sel.parentElement.querySelector('.pg-chargeback-policy-preview') : null;
+      if (host) return host;
+      host = document.createElement('div');
+      host.className = 'pg-chargeback-policy-preview small text-muted mt-1';
+      host.style.whiteSpace = 'pre-line';
+      if (sel.parentElement) sel.parentElement.appendChild(host);
+      return host;
+    }
+    function renderChargebackPolicyStructure(host, detail) {
+      if (!host) return;
+      var tiers = detail && Array.isArray(detail.tiers) ? detail.tiers : [];
+      if (!tiers.length) {
+        host.textContent = '';
+        return;
+      }
+      var lines = tiers.map(function (t, i) {
+        var min = t && t.countMin != null ? String(t.countMin) : '0';
+        var max = (t && t.countMax != null && String(t.countMax) !== '') ? String(t.countMax) : '이상';
+        var fee = t && t.feePerCase != null ? pgFmtOneDecimalStripWhole(t.feePerCase) : '0';
+        return (i + 1) + ') ' + min + ' ~ ' + max + '건 : ' + fee;
+      });
+      host.textContent = '차지백 구간정책 구조\n' + lines.join('\n');
+    }
+    function bindChargebackPolicyStructurePreview(sel) {
+      if (!sel || sel._cbStructureBound) return;
+      sel._cbStructureBound = true;
+      var host = ensureChargebackPolicyPreviewHost(sel);
+      function refresh() {
+        var v = sel.value != null ? String(sel.value).trim() : '';
+        if (!v) {
+          renderChargebackPolicyStructure(host, null);
+          return;
+        }
+        window.PG_API.hqChargebackPolicyDetail(v).then(function (detail) {
+          renderChargebackPolicyStructure(host, detail || {});
+        }).catch(function () {
+          renderChargebackPolicyStructure(host, null);
+        });
+      }
+      sel.addEventListener('change', refresh);
+      refresh();
+    }
     function fillChargebackPolicySelectsInRoot(root, selectedId) {
       if (!root || !window.PG_API || !window.PG_API.hqChargebackPolicyList) return Promise.resolve();
       var sels = root.querySelectorAll('select[name="chargebackPolicyId"]');
@@ -3521,6 +3595,7 @@
         sels.forEach(function (sel) {
           sel.innerHTML = opts;
           if (selStr) sel.value = selStr;
+          bindChargebackPolicyStructurePreview(sel);
         });
       }).catch(function () {});
     }
@@ -3827,7 +3902,10 @@
         var allFieldsInfo = ['compId', 'parentComp', 'compNm', 'compDiv', 'regNo', 'bizType', 'industry', 'bizNature', 'product', 'homepage', 'settleName', 'settleTelNo', 'ceoNm', 'ceoMobile', 'compTel', 'fax', 'zipCode', 'addr', 'addrDetail', 'addrEtc', 'addrCountryCd', 'addrCountryCdOther', 'email', 'siteUrl', 'siteSummary', 'useYn', 'loginId', 'bankCd', 'transferFee', 'cryptoTransferFee', 'accountNo', 'accountHolder', 'commissionConfigAllowed', 'webPaymentUseYn', 'baseCurrency', 'remark', 'countryCd', 'countryCdOther', 'swift', 'branchName', 'branchAddr', 'contactTel', 'walletAddress', 'networkName', 'withdrawRestrictType', 'withdrawStartTime', 'withdrawEndTime', 'payLimitDefault', 'payLimitExtra', 'payLimitAlertSms', 'holdRateFollowHq', 'holdRate', 'holdDays', 'commissionFollowHq', 'hqPolicyScope', 'failFee', 'usageRate', 'payRate', 'cancelRate', 'voidFeePerTx', 'manualVoidFeePerTx', 'refundRate', 'commissionMemo', 'feeSettlementPerTx', 'feeUsdt', 'feeFx', 'fee3dsRate', 'chargebackFeePerTx', 'calcCycle', 'calcProcType', 'calcCloseTime', 'transferType', 'transferCycleDays', 'autoTransferMin', 'calcMinAmt', 'transferExecTime', 'calcExcludeYn', 'calcExcludeTarget', 'calcStartTime', 'payHoldYn', 'defaultProductName', 'defaultProductCode', 'defaultProductAmount', 'defaultProductDesc', 'notifyUrlBackground', 'notifyUrlResult', 'assistantLoginId', 'assistantPwd', 'assistantRoleType', 'brandingEditAllowedYn'];
         allFieldsInfo.forEach(function (k) {
           var el = form.querySelector('[name="' + k + '"]');
-          if (el && data[k] != null) el.value = data[k];
+          if (el && data[k] != null) {
+            var nf = pgFmtCompDetailNumericField(k, data[k]);
+            el.value = nf != null ? nf : data[k];
+          }
         });
         var parentCompEl0 = form.querySelector('[name="parentComp"]');
         if (parentCompEl0) parentCompEl0.value = normalizeParentCompDisplay(data.parentComp != null ? data.parentComp : parentCompEl0.value);
@@ -4414,7 +4492,10 @@
         var allFields = ['compId', 'parentComp', 'compNm', 'compDiv', 'regNo', 'bizType', 'industry', 'bizNature', 'product', 'homepage', 'settleName', 'settleTelNo', 'ceoNm', 'ceoMobile', 'compTel', 'fax', 'zipCode', 'addr', 'addrDetail', 'addrEtc', 'addrCountryCd', 'addrCountryCdOther', 'email', 'siteUrl', 'siteSummary', 'useYn', 'loginId', 'bankCd', 'transferFee', 'cryptoTransferFee', 'accountNo', 'accountHolder', 'commissionConfigAllowed', 'webPaymentUseYn', 'baseCurrency', 'remark', 'settleType', 'commissionRate', 'limitAmt', 'countryCd', 'countryCdOther', 'swift', 'branchName', 'branchAddr', 'contactTel', 'walletAddress', 'networkName', 'withdrawRestrictType', 'withdrawStartTime', 'withdrawEndTime', 'payLimitDefault', 'payLimitExtra', 'payLimitAlertSms', 'holdRateFollowHq', 'holdRate', 'holdDays', 'commissionFollowHq', 'hqPolicyScope', 'failFee', 'usageRate', 'payRate', 'cancelRate', 'voidFeePerTx', 'manualVoidFeePerTx', 'refundRate', 'commissionMemo', 'feeSettlementPerTx', 'feeUsdt', 'feeFx', 'fee3dsRate', 'chargebackFeePerTx', 'calcCycle', 'calcProcType', 'calcCloseTime', 'transferType', 'transferCycleDays', 'autoTransferMin', 'calcMinAmt', 'transferExecTime', 'calcExcludeYn', 'calcExcludeTarget', 'calcStartTime', 'payHoldYn', 'defaultProductName', 'defaultProductCode', 'defaultProductAmount', 'defaultProductDesc', 'notifyUrlBackground', 'notifyUrlResult', 'notifyUrl1', 'notifyUrl2', 'notifyUrl3', 'notifyUrl4', 'remitterName', 'balanceNotifyAmt', 'suspiciousNotifyAmt', 'overseasLoginNotifyAmt', 'tempPwdNotifyAmt', 'nonTranCriterionMonth', 'sameCardLimitWebDay', 'sameCardLimitWebTimes', 'sameCardLimitWebAmt', 'sameCardLimitTerminalDay', 'sameCardLimitTerminalTimes', 'sameCardLimitTerminalAmt', 'dailyUsageFee', 'depositNameLookup', 'transferAuthNo', 'autoConvertNewMemberLimit', 'newMemberDailyLimit', 'convertRefDate', 'convertDailyLimit', 'applyStartDate', 'pgFeeGeneral', 'settleDiffMonthCnt', 'settleReportBankCd', 'pgFeeSamsung', 'smsFee', 'taxInvoiceEmail', 'settleAccountNo', 'directFee', 'solutionFee', 'settleAccountHolder', 'withdrawRestrictType', 'withdrawRestrictStartTime', 'withdrawRestrictEndTime', 'terminalPayRestrict', 'webPayRestrict', 'defaultFeeHq', 'defaultFeeDist', 'defaultFeeBranch', 'defaultFeeAgency', 'defaultFeeSalesOffice', 'defaultPayLimitPerTx', 'defaultPayLimitDay', 'defaultPayLimitMonth', 'defaultPayLimitYearCorp', 'defaultPayLimitYearInd', 'copyright', 'holidayProfileName', 'holidayProfileCountry', 'holidayCountryCode', 'holidayCountryCodes', 'businessHolidayRangesJson', 'businessHolidayExtraDates'];
         allFields.forEach(function (k) {
           var el = form.querySelector('[name="' + k + '"]');
-          if (el && data[k] != null) el.value = data[k];
+          if (el && data[k] != null) {
+            var nf2 = pgFmtCompDetailNumericField(k, data[k]);
+            el.value = nf2 != null ? nf2 : data[k];
+          }
         });
         var parentCompEl = form.querySelector('[name="parentComp"]');
         if (parentCompEl) parentCompEl.value = normalizeParentCompDisplay(parentCompEl.value);
@@ -4871,20 +4952,33 @@
       function hqDefCommResetFormForNew() {
         pane._hqDefCommIsNew = true;
         var defs = {
-          perTxFee: '0', cancelRate: '0', voidFeePerTx: '0', manualVoidFeePerTx: '0', usageRate: '0', failFee: '0', payRate: '2.5', refundRate: '0',
-          rollingPct: '5', rollingDays: '180', policyName: '', deployYn: 'N', feeSettlementPerTx: '0',
-          feeUsdt: '0', feeFx: '0', currencyCode: 'KRW', policyRemark: '', fee3dsRate: '0', chargebackFeePerTx: '0'
+          rollingPct: '5', rollingDays: '180', policyName: '', deployYn: 'N', currencyCode: 'KRW', policyRemark: ''
         };
         Object.keys(defs).forEach(function (k) {
           var el = pane.querySelector('[name="' + k + '"]');
           if (el) el.value = defs[k];
         });
-        var ei;
-        for (ei = 1; ei <= 4; ei++) {
-          ['Name', 'Mode', 'Value'].forEach(function (suf) {
-            var el = pane.querySelector('[name="extraFee' + ei + suf + '"]');
+        pane.querySelectorAll('.hq-tier-cell').forEach(function (inp) { inp.value = ''; });
+        var mdef = {
+          payRate: '2.5', perTxFee: '0', failFee: '0', cancelRate: '0', voidFeePerTx: '0', manualVoidFeePerTx: '0', refundRate: '0',
+          feeSettlementPerTx: '0', feeUsdt: '0', feeFx: '0', usageRate: '0', fee3dsRate: '0', chargebackFeePerTx: '0'
+        };
+        Object.keys(mdef).forEach(function (fk) {
+          hqTierSumLevels.forEach(function (lv) {
+            var el = pane.querySelector('.hq-tier-cell[data-fee="' + fk + '"][data-level="' + lv + '"]');
             if (el) el.value = '';
           });
+          var hqC = pane.querySelector('.hq-tier-cell[data-fee="' + fk + '"][data-level="hq"]');
+          if (hqC) hqC.value = mdef[fk];
+        });
+        hqRecalcMerchantAll(pane);
+        var ei;
+        for (ei = 1; ei <= 4; ei++) {
+          var nm = pane.querySelector('[name="extraFee' + ei + 'Name"]');
+          var md = pane.querySelector('[name="extraFee' + ei + 'Mode"]');
+          if (nm) nm.value = '';
+          if (md) md.value = '';
+          pane.querySelectorAll('.hq-tier-extra-cell[data-slot="' + ei + '"]').forEach(function (inp) { inp.value = ''; });
         }
         var cb = pane.querySelector('[name="chargebackPolicyId"]');
         if (cb) cb.value = '';
@@ -4985,7 +5079,7 @@
             : '<td class="hq-def-comm-policy-td-cbzone small text-muted">—</td>';
           h += '<tr class="hq-default-comm-policy-row' + active + '" data-scope="' + esc + '" style="cursor:pointer" title="클릭하여 이 정책 불러오기">';
           h += '<td class="text-center align-middle hq-def-comm-chk-cell"><input type="checkbox" class="form-check-input hq-def-comm-row-chk m-0 align-middle" data-scope="' + esc + '" aria-label="행 선택"></td>';
-          h += '<td class="font-monospace">' + String(shortCode).replace(/&/g, '&amp;').replace(/</g, '&lt;') + '</td><td class="hq-def-comm-policy-td-name small text-truncate align-middle" title="' + escAttr(rawName) + '">' + nm + '</td>' + cbZoneTd + '<td>' + dep + '</td>';
+          h += '<td class="font-monospace hq-def-comm-policy-td-code text-nowrap">' + String(shortCode).replace(/&/g, '&amp;').replace(/</g, '&lt;') + '</td><td class="hq-def-comm-policy-td-name small text-truncate align-middle" title="' + escAttr(rawName) + '">' + nm + '</td>' + cbZoneTd + '<td>' + dep + '</td>';
           h += '<td class="font-monospace small">' + cur.replace(/&/g, '&amp;').replace(/</g, '&lt;') + '</td>';
           h += tdAmt(nzStr(t, 'perTxFee', '0'), 'border-start');
           h += tdAmt(nzStr(t, 'failFee', '0'));
@@ -5058,27 +5152,151 @@
         if (cur) sel.value = cur;
         else sel.value = '';
       }
+      var hqTierSumLevels = ['hq', 'regional', 'master', 'branch', 'agency', 'salesOffice'];
+      var hqPctFeeKeys = { payRate: 1, feeUsdt: 1, feeFx: 1, fee3dsRate: 1 };
+      function hqParseTierCellNumber(s) {
+        if (s == null || String(s).trim() === '') return 0;
+        var n = parseFloat(String(s).replace(/,/g, '.').trim());
+        return isFinite(n) ? n : 0;
+      }
+      function hqRecalcMerchantAll(paneRef) {
+        var feeKeys = ['payRate', 'perTxFee', 'failFee', 'cancelRate', 'voidFeePerTx', 'manualVoidFeePerTx', 'refundRate', 'feeSettlementPerTx', 'feeUsdt', 'feeFx', 'usageRate', 'fee3dsRate', 'chargebackFeePerTx'];
+        feeKeys.forEach(function (fk) {
+          var sum = 0;
+          hqTierSumLevels.forEach(function (lv) {
+            var el = paneRef.querySelector('.hq-tier-cell[data-fee="' + fk + '"][data-level="' + lv + '"]');
+            sum += hqParseTierCellNumber(el && el.value);
+          });
+          var mcel = paneRef.querySelector('.hq-tier-cell[data-fee="' + fk + '"][data-level="merchant"]');
+          if (!mcel) return;
+          if (hqPctFeeKeys[fk]) {
+            mcel.value = pgFmtPctOneDecimalInput(String(sum));
+          } else {
+            mcel.value = pgFmtOneDecimalStripWhole(String(sum));
+          }
+        });
+        var si;
+        for (si = 1; si <= 4; si++) {
+          var modeEl = paneRef.querySelector('[name="extraFee' + si + 'Mode"]');
+          var mode = modeEl ? String(modeEl.value).trim().toUpperCase() : '';
+          var pct = mode === 'PCT' || mode === '%';
+          var sum = 0;
+          hqTierSumLevels.forEach(function (lv) {
+            var el = paneRef.querySelector('.hq-tier-extra-cell[data-slot="' + si + '"][data-level="' + lv + '"]');
+            sum += hqParseTierCellNumber(el && el.value);
+          });
+          var mcel = paneRef.querySelector('.hq-tier-extra-cell[data-slot="' + si + '"][data-level="merchant"]');
+          if (!mcel) continue;
+          if (pct) {
+            mcel.value = pgFmtPctOneDecimalInput(String(sum));
+          } else {
+            mcel.value = pgFmtOneDecimalStripWhole(String(sum));
+          }
+        }
+      }
+      function hqFillTierCommissionMatrix(paneRef, tmpl) {
+        var levels = ['hq', 'regional', 'master', 'branch', 'agency', 'salesOffice', 'merchant'];
+        var feeKeys = ['payRate', 'perTxFee', 'failFee', 'cancelRate', 'voidFeePerTx', 'manualVoidFeePerTx', 'refundRate', 'feeSettlementPerTx', 'feeUsdt', 'feeFx', 'usageRate', 'fee3dsRate', 'chargebackFeePerTx'];
+        function setTierCell(fk, lv, v) {
+          var el = paneRef.querySelector('.hq-tier-cell[data-fee="' + fk + '"][data-level="' + lv + '"]');
+          if (!el) return;
+          el.value = v != null && String(v) !== '' ? String(v) : '';
+        }
+        var tc = tmpl.tierCommission;
+        if (tc && tc.rows && typeof tc.rows === 'object') {
+          feeKeys.forEach(function (fk) {
+            var row = tc.rows[fk];
+            if (!row || typeof row !== 'object') return;
+            levels.forEach(function (lv) {
+              setTierCell(fk, lv, row[lv]);
+            });
+          });
+        } else {
+          var pctRowKeys = { payRate: 1, feeUsdt: 1, feeFx: 1, fee3dsRate: 1 };
+          feeKeys.forEach(function (fk) {
+            levels.forEach(function (lv) { setTierCell(fk, lv, ''); });
+            if (tmpl[fk] == null || tmpl[fk] === '') return;
+            var mv = pctRowKeys[fk] ? pgFmtPctOneDecimalInput(tmpl[fk]) : pgFmtOneDecimalStripWhole(tmpl[fk]);
+            setTierCell(fk, 'hq', mv);
+          });
+        }
+        var extras = (tc && tc.extras) ? tc.extras : [];
+        var si;
+        for (si = 1; si <= 4; si++) {
+          var slot = extras[si - 1];
+          var modeEl = paneRef.querySelector('[name="extraFee' + si + 'Mode"]');
+          var nameEl = paneRef.querySelector('[name="extraFee' + si + 'Name"]');
+          if (slot && slot.name) {
+            if (nameEl) nameEl.value = String(slot.name);
+            if (modeEl) modeEl.value = slot.mode ? String(slot.mode).toUpperCase() : '';
+            levels.forEach(function (lv) {
+              var ex = paneRef.querySelector('.hq-tier-extra-cell[data-slot="' + si + '"][data-level="' + lv + '"]');
+              if (ex && slot.tiers) ex.value = slot.tiers[lv] != null ? String(slot.tiers[lv]) : '';
+            });
+          } else {
+            if (nameEl) nameEl.value = tmpl['extraFee' + si + 'Name'] != null ? String(tmpl['extraFee' + si + 'Name']) : '';
+            if (modeEl) modeEl.value = tmpl['extraFee' + si + 'Mode'] != null ? String(tmpl['extraFee' + si + 'Mode']) : '';
+            paneRef.querySelectorAll('.hq-tier-extra-cell[data-slot="' + si + '"]').forEach(function (inp) { inp.value = ''; });
+            var md = tmpl['extraFee' + si + 'Mode'];
+            var mcel = paneRef.querySelector('.hq-tier-extra-cell[data-slot="' + si + '"][data-level="merchant"]');
+            if (mcel && tmpl['extraFee' + si + 'Value'] != null && tmpl['extraFee' + si + 'Value'] !== '') {
+              var hqEx = paneRef.querySelector('.hq-tier-extra-cell[data-slot="' + si + '"][data-level="hq"]');
+              if (hqEx) {
+                hqEx.value = md && String(md).toUpperCase() === 'PCT' ? pgFmtPctOneDecimalInput(tmpl['extraFee' + si + 'Value']) : pgFmtOneDecimalStripWhole(tmpl['extraFee' + si + 'Value']);
+              }
+            }
+          }
+        }
+        hqRecalcMerchantAll(paneRef);
+      }
+      function hqCollectTierCommissionPayload(paneRef) {
+        var levels = ['hq', 'regional', 'master', 'branch', 'agency', 'salesOffice', 'merchant'];
+        var feeKeys = ['payRate', 'perTxFee', 'failFee', 'cancelRate', 'voidFeePerTx', 'manualVoidFeePerTx', 'refundRate', 'feeSettlementPerTx', 'feeUsdt', 'feeFx', 'usageRate', 'fee3dsRate', 'chargebackFeePerTx'];
+        var rows = {};
+        feeKeys.forEach(function (fk) {
+          rows[fk] = {};
+          levels.forEach(function (lv) {
+            var el = paneRef.querySelector('.hq-tier-cell[data-fee="' + fk + '"][data-level="' + lv + '"]');
+            rows[fk][lv] = el && el.value != null ? String(el.value).trim() : '';
+          });
+        });
+        var extras = [];
+        var si;
+        for (si = 1; si <= 4; si++) {
+          var modeEl = paneRef.querySelector('[name="extraFee' + si + 'Mode"]');
+          var nameEl = paneRef.querySelector('[name="extraFee' + si + 'Name"]');
+          var mode = modeEl ? modeEl.value.trim() : '';
+          var name = nameEl ? nameEl.value.trim() : '';
+          var tiers = {};
+          levels.forEach(function (lv) {
+            var el = paneRef.querySelector('.hq-tier-extra-cell[data-slot="' + si + '"][data-level="' + lv + '"]');
+            tiers[lv] = el && el.value != null ? String(el.value).trim() : '';
+          });
+          if (!name || !mode) {
+            extras.push({ name: '', mode: '', tiers: { hq: '', regional: '', master: '', branch: '', agency: '', salesOffice: '', merchant: '' } });
+          } else {
+            extras.push({ name: name, mode: mode, tiers: tiers });
+          }
+        }
+        return { rows: rows, extras: extras };
+      }
       function fillDefaultCommissionForm(tmpl) {
-        if (!(tmpl && pane.querySelector('[name="payRate"]'))) return;
-        var pctFieldNames = { payRate: 1, feeUsdt: 1, feeFx: 1, rollingPct: 1, fee3dsRate: 1 };
-        ['perTxFee', 'cancelRate', 'voidFeePerTx', 'manualVoidFeePerTx', 'usageRate', 'failFee', 'payRate', 'refundRate', 'rollingPct', 'rollingDays', 'policyName', 'deployYn', 'templateScope', 'deployedTemplateScope', 'feeSettlementPerTx', 'feeUsdt', 'feeFx', 'currencyCode', 'policyRemark', 'fee3dsRate', 'chargebackFeePerTx',
-          'extraFee1Name', 'extraFee1Mode', 'extraFee1Value', 'extraFee2Name', 'extraFee2Mode', 'extraFee2Value', 'extraFee3Name', 'extraFee3Mode', 'extraFee3Value', 'extraFee4Name', 'extraFee4Mode', 'extraFee4Value'].forEach(function (k) {
+        if (!(tmpl && pane.querySelector('.hq-tier-cell'))) return;
+        ['policyName', 'deployYn', 'templateScope', 'deployedTemplateScope', 'currencyCode', 'policyRemark', 'rollingPct', 'rollingDays'].forEach(function (k) {
           var el = pane.querySelector('[name="' + k + '"]');
           if (!el || tmpl[k] == null) return;
-          if (pctFieldNames[k]) {
+          if (k === 'rollingDays') {
+            var rd = parseFloat(String(tmpl[k]).replace(/,/g, '.'));
+            el.value = isFinite(rd) ? String(Math.round(rd)) : String(tmpl[k]);
+            return;
+          }
+          if (k === 'rollingPct') {
             el.value = pgFmtPctOneDecimalInput(tmpl[k]);
             return;
           }
-          if (k.indexOf('extraFee') === 0 && k.indexOf('Value') > 0) {
-            var modeKey = k.replace('Value', 'Mode');
-            var md = tmpl[modeKey];
-            if (md && String(md).toUpperCase() === 'PCT') {
-              el.value = pgFmtPctOneDecimalInput(tmpl[k]);
-              return;
-            }
-          }
           el.value = tmpl[k];
         });
+        hqFillTierCommissionMatrix(pane, tmpl);
         var selCb = pane.querySelector('[name="chargebackPolicyId"]');
         if (selCb) {
           if (tmpl.chargebackPolicyId != null && String(tmpl.chargebackPolicyId) !== '') selCb.value = String(tmpl.chargebackPolicyId);
@@ -5127,6 +5345,24 @@
           hqDefCommLoadScopeIntoForm(scope);
         });
       }
+      if (!pane._hqDefCommTierInputBound) {
+        pane._hqDefCommTierInputBound = true;
+        pane.addEventListener('input', function (ev) {
+          var t = ev.target;
+          if (!t || !t.classList) return;
+          if (t.classList.contains('hq-tier-cell') && t.getAttribute('data-level') !== 'merchant') {
+            hqRecalcMerchantAll(pane);
+            return;
+          }
+          if (t.classList.contains('hq-tier-extra-cell') && t.getAttribute('data-level') !== 'merchant') {
+            hqRecalcMerchantAll(pane);
+            return;
+          }
+          if (t.name && /^extraFee[1-4]Mode$/.test(t.name)) {
+            hqRecalcMerchantAll(pane);
+          }
+        });
+      }
       var selAllEl = pane.querySelector('#hqDefCommSelectAll');
       if (selAllEl && !selAllEl._hqDefCommBound) {
         selAllEl._hqDefCommBound = true;
@@ -5154,10 +5390,16 @@
         });
       }
       function collectHqDefCommFd() {
+        hqRecalcMerchantAll(pane);
         var fd = {};
         pane.querySelectorAll('input, select, textarea').forEach(function (el) {
           if (el.name && !el.disabled) fd[el.name] = el.value;
         });
+        try {
+          fd.tierCommission = JSON.stringify(hqCollectTierCommissionPayload(pane));
+        } catch (e) {
+          fd.tierCommission = '{"rows":{},"extras":[]}';
+        }
         return fd;
       }
       function hqDefCommDoSave() {

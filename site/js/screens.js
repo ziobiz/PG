@@ -23,26 +23,78 @@
     return [{ v: '', t: '전체' }].concat(COMP_MNG_SEARCH_COMP_DIV_LEVELS.map(function (o) { return { v: o.v, t: o.t }; }));
   }
 
-  /** 기본정책: 기타(비고) 수수료 4슬롯 — 유형 %·고정, 이름, 값 */
+  /** 기본정책: 조직 단계별(총본사~가맹) 수수료 격자 — 가맹 열은 총본사~영업점 합계(읽기 전용) */
+  function hqDefaultCommissionTierMatrixHtml() {
+    var L = [
+      { k: 'hq', t: '총본사' },
+      { k: 'regional', t: '본사' },
+      { k: 'master', t: '총판' },
+      { k: 'branch', t: '지사' },
+      { k: 'agency', t: '대리점' },
+      { k: 'salesOffice', t: '영업점' },
+      { k: 'merchant', t: '가맹' }
+    ];
+    var R = [
+      { k: 'payRate', t: '결제수수료율', u: '%' },
+      { k: 'perTxFee', t: '건당수수료', u: '(건)' },
+      { k: 'failFee', t: '실패수수료', u: '(건)' },
+      { k: 'cancelRate', t: '취소수수료', u: '(건)' },
+      { k: 'voidFeePerTx', t: '무효수수료', u: '(건)' },
+      { k: 'manualVoidFeePerTx', t: '수동무효수수료', u: '(건)' },
+      { k: 'refundRate', t: '환불수수료', u: '(건)' },
+      { k: 'feeSettlementPerTx', t: '정산수수료', u: '(건)' },
+      { k: 'feeUsdt', t: 'USDT수수료율', u: '%' },
+      { k: 'feeFx', t: 'FX수수료율', u: '%' },
+      { k: 'usageRate', t: '월간이용료', u: '월' },
+      { k: 'fee3dsRate', t: '3DS수수료율', u: '%' },
+      { k: 'chargebackFeePerTx', t: '차지백수수료', u: '(건)' }
+    ];
+    var th = L.map(function (x) {
+      return '<th class="text-center align-middle small text-nowrap">' + x.t + '</th>';
+    }).join('');
+    var trb = '';
+    R.forEach(function (r, idx) {
+      var tds = L.map(function (lv) {
+        var ro = lv.k === 'merchant' ? ' readonly tabindex="-1" class="form-control form-control-sm hq-tier-cell text-center bg-light"' : ' class="form-control form-control-sm hq-tier-cell text-center"';
+        return '<td class="p-1"><input type="text"' + ro + ' data-fee="' + r.k + '" data-level="' + lv.k + '" autocomplete="off" /></td>';
+      }).join('');
+      trb += '<tr><td class="text-center small text-muted">' + (idx + 1) + '</td><td class="small text-start ps-2">' + r.t + '</td><td class="small text-center text-muted">' + r.u + '</td>' + tds + '</tr>';
+    });
+    return '<div class="table-responsive border rounded mb-3 hq-comm-tier-wrap">' +
+      '<table class="table table-sm table-bordered align-middle mb-0 hq-comm-tier-matrix">' +
+      '<thead class="table-light"><tr><th class="text-center align-middle" style="width:2.25rem">#</th>' +
+      '<th class="text-center align-middle small" style="min-width:6.5rem">내용</th><th class="text-center align-middle small" style="width:2.75rem">단위</th>' + th + '</tr></thead><tbody>' + trb + '</tbody></table></div>';
+  }
+
+  /** 기본정책: 기타(비고) 수수료 4슬롯 — 가맹 열은 총본사~영업점 합계(읽기 전용) */
   function hqDefaultExtraFeesCardHtml() {
+    var L = [
+      { k: 'hq', t: '총본사' },
+      { k: 'regional', t: '본사' },
+      { k: 'master', t: '총판' },
+      { k: 'branch', t: '지사' },
+      { k: 'agency', t: '대리점' },
+      { k: 'salesOffice', t: '영업점' },
+      { k: 'merchant', t: '가맹' }
+    ];
+    var th = '<th class="text-center small">유형</th><th class="text-center small" style="min-width:6rem">수수료명</th>' +
+      L.map(function (x) { return '<th class="text-center small text-nowrap">' + x.t + '</th>'; }).join('');
     function extraRow(i) {
-      return '<div class="row g-2 align-items-end mb-2 pb-2 border-bottom border-light-subtle">' +
-        '<div class="col-6 col-md-2">' +
-        '<label class="form-label small mb-0 text-muted">유형</label>' +
-        '<select name="extraFee' + i + 'Mode" class="form-select form-select-sm">' +
-        '<option value="">—</option><option value="PCT">% (승인건별)</option><option value="FIX">고정 (정산당 1회)</option></select></div>' +
-        '<div class="col-6 col-md-4">' +
-        '<label class="form-label small mb-0 text-muted">수수료명</label>' +
-        '<input type="text" name="extraFee' + i + 'Name" class="form-control form-control-sm" maxlength="64" placeholder="예: 리스·가입" autocomplete="off"></div>' +
-        '<div class="col-12 col-md-3">' +
-        '<label class="form-label small mb-0 text-muted">값</label>' +
-        '<input type="text" name="extraFee' + i + 'Value" class="form-control form-control-sm" placeholder="% 또는 통화 금액" autocomplete="off"></div></div>';
+      var tds = L.map(function (lv) {
+        var ro = lv.k === 'merchant' ? ' readonly tabindex="-1" class="form-control form-control-sm hq-tier-extra-cell text-center bg-light"' : ' class="form-control form-control-sm hq-tier-extra-cell text-center"';
+        return '<td class="p-1"><input type="text"' + ro + ' data-slot="' + i + '" data-level="' + lv.k + '" autocomplete="off" /></td>';
+      }).join('');
+      return '<tr><td class="p-1 align-middle"><select name="extraFee' + i + 'Mode" class="form-select form-select-sm">' +
+        '<option value="">—</option><option value="PCT">%</option><option value="FIX">고정</option></select></td>' +
+        '<td class="p-1 align-middle"><input type="text" name="extraFee' + i + 'Name" class="form-control form-control-sm" maxlength="64" placeholder="이름" autocomplete="off" /></td>' + tds + '</tr>';
     }
     return '<div class="card border mb-3 hq-extra-fees-card">' +
       '<div class="card-header py-2 px-3 bg-light">' +
       '<strong class="small d-block mb-1">기타 수수료 (비고 · 최대 4건)</strong>' +
-      '<span class="text-muted small">이름·유형·값을 모두 입력한 슬롯만 정산·수수료내역에 반영됩니다. 향후 항목을 바꿀 때 여기서 수정하면 됩니다.</span></div>' +
-      '<div class="card-body py-2 px-3">' + extraRow(1) + extraRow(2) + extraRow(3) + extraRow(4) + '</div></div>';
+      '<span class="text-muted small">이름·유형·조직별 값을 넣은 슬롯만 반영됩니다. 가맹 열은 총본사~영업점 합계로 표시·저장됩니다.</span></div>' +
+      '<div class="card-body py-2 px-3 table-responsive"><table class="table table-sm table-bordered align-middle mb-0 hq-extra-tier-table">' +
+      '<thead class="table-light"><tr>' + th + '</tr></thead><tbody>' +
+      extraRow(1) + extraRow(2) + extraRow(3) + extraRow(4) + '</tbody></table></div></div>';
   }
 
   /** 정산주기 저장값(v)·화면표시(t) — 가맹점 정산방법·결제내역 검색 공통 */
@@ -174,7 +226,7 @@
         {
           title: '기본 수수료 정책',
           id: 'hqDefaultCommFeeCard',
-          notice: '정책 템플릿(A/B/C/D…)을 만들 수 있으며, 여러 개를 동시에 배포(Y)할 수 있습니다. 배포된 템플릿은 가맹점·본사·총판 등록 시 [본사 정책선택] 목록에 나타나며, 기준통화와 정책의 통화코드가 같거나 정책 통화가 비어 있으면 선택할 수 있습니다. 결제·USDT·FX·3DS 수수료율은 승인 금액 기준 %(통화별 절사). 건당·실패·정산·차지백·취소·무효·수동무효·환불은 통화 단위 건당액(취소 20·무효 21·수동무효 22·환불·강제환불 30·31 건수 합산). 월간이용료는 해당 월 정산 최초 1회. 기타(최대 4건)는 %·고정 선택.',
+          notice: '총본사~영업점은 조직 배분(결제율·건당)에 반영됩니다. 가맹 열은 가맹점에 적용되는 합계(기본값)이며, 가맹점이 본사설정을 따를 때 기준이 됩니다. 업체관리 수수료에서 수정하면 그 값이 우선합니다. 결제·USDT·FX·3DS는 승인금액 기준 %, 나머지 건당·월간은 통화 단위.',
           rows: [
             [{ type: 'customHtml', col: 2, html: '<div class="form-field-block">' +
               '<label class="form-label">정책코드</label>' +
@@ -183,10 +235,8 @@
               '<option value="">(신규) 저장 시 자동 부여</option></select>' +
               '<p class="text-muted small mb-0 mt-1">고유 코드는 시스템이 부여합니다. 목록에서 정책을 불러와 편집만 할 수 있습니다.</p></div>' },
             { label: '정책명', type: 'text', name: 'policyName', col: 2, placeholder: '예: 기본정책 A' }, { label: '배포', type: 'select', name: 'deployYn', options: [{ v: 'Y', t: '배포' }, { v: 'N', t: '미배포' }], col: 2 }, { label: '통화코드', type: 'select', name: 'currencyCode', col: 2, options: [{ v: 'KRW', t: 'KRW' }, { v: 'USD', t: 'USD' }, { v: 'JPY', t: 'JPY' }, { v: 'EUR', t: 'EUR' }, { v: 'CNY', t: 'CNY' }, { v: 'THB', t: 'THB' }, { v: 'VND', t: 'VND' }, { v: 'GBP', t: 'GBP' }, { v: 'TWD', t: 'TWD' }, { v: 'HKD', t: 'HKD' }, { v: 'USDT', t: 'USDT' }] }],
-            [{ label: '결제수수료율(%)', type: 'text', name: 'payRate', col: 2 }, { label: '건당수수료(건)', type: 'text', name: 'perTxFee', col: 2 }, { label: '실패수수료(건)', type: 'text', name: 'failFee', col: 2 }, { label: '취소수수료(건)', type: 'text', name: 'cancelRate', col: 2 }],
-            [{ label: '무효수수료(건)', type: 'text', name: 'voidFeePerTx', col: 2, placeholder: '거래 21' }, { label: '수동무효수수료(건)', type: 'text', name: 'manualVoidFeePerTx', col: 2, placeholder: '거래 22' }, { label: '환불수수료(건)', type: 'text', name: 'refundRate', col: 2 }, { label: '정산수수료(건)', type: 'text', name: 'feeSettlementPerTx', col: 2 }],
-            [{ label: 'USDT수수료율(%)', type: 'text', name: 'feeUsdt', col: 2, placeholder: '승인금액 대비 %' }, { label: 'FX수수료율(%)', type: 'text', name: 'feeFx', col: 2, placeholder: '승인금액 대비 %' }, { label: '월간이용료(월 1회·고정)', type: 'text', name: 'usageRate', col: 2, placeholder: '통화코드 단위 금액' }],
-            [{ label: '3DS수수료율(%)', type: 'text', name: 'fee3dsRate', col: 2 }, { label: '차지백수수료(건)', type: 'text', name: 'chargebackFeePerTx', col: 2 }, { label: '차지백 구간정책', type: 'select', name: 'chargebackPolicyId', col: 4, options: [{ v: '', t: '(미사용) 건당 차지백만' }] }],
+            [{ type: 'customHtml', col: 12, html: hqDefaultCommissionTierMatrixHtml() }],
+            [{ label: '차지백 구간정책', type: 'select', name: 'chargebackPolicyId', col: 6, options: [{ v: '', t: '(미사용) 건당 차지백만' }] }],
             [{ type: 'customHtml', col: 12, html: hqDefaultExtraFeesCardHtml() }],
             [{ type: 'customHtml', col: 12, html: '<div class="form-field-block">' +
               '<label class="form-label" for="hqDefCommPolicyRemark">정책비고(저장)</label>' +
@@ -207,8 +257,8 @@
           ]
         },
         {
-          title: '저장된 정책 목록',
-          notice: '위 [저장] 후 목록이 갱신됩니다. 체크 후 [수정] 또는 행 클릭으로 폼에 불러옵니다. [신규정책]으로 초기화한 뒤 입력·저장하면 코드가 자동 부여되어 목록에 나타납니다. 체크한 항목만 [선택 정책 삭제]할 수 있습니다(여러 건 가능). 헤더 체크박스로 전체 선택·해제합니다.',
+          title: '가맹점 수수료 정책',
+          notice: '위 [저장] 후 목록이 갱신됩니다. 수치 열은 총본사~영업점 합계(가맹 적용분) 기준입니다. 체크 후 [수정] 또는 행 클릭으로 폼에 불러옵니다. [신규정책]으로 초기화한 뒤 입력·저장하면 코드가 자동 부여되어 목록에 나타납니다. 체크한 항목만 [선택 정책 삭제]할 수 있습니다(여러 건 가능). 헤더 체크박스로 전체 선택·해제합니다.',
           rows: [[{
             type: 'customHtml',
             col: 12,
@@ -230,11 +280,12 @@
               '<thead class="table-light">' +
               '<tr>' +
               '<th rowspan="2" class="text-center align-middle hq-def-comm-th-chk" title="전체 선택">' +
-              '<span class="d-block small fw-semibold mb-1">선택</span>' +
+              '<span class="hq-def-comm-th-chk-inner">' +
+              '<span class="hq-def-comm-th-chk-label">선택</span>' +
               '<input type="checkbox" class="form-check-input m-0 align-middle" id="hqDefCommSelectAll" aria-label="목록 전체 선택">' +
-              '</th>' +
+              '</span></th>' +
               '<th rowspan="2" class="text-center align-middle hq-def-comm-th-code">코드</th>' +
-              '<th rowspan="2" class="text-center align-middle hq-def-comm-th-name text-nowrap">이름</th>' +
+              '<th rowspan="2" class="text-center align-middle hq-def-comm-th-name">이름</th>' +
               '<th rowspan="2" class="text-center align-middle hq-def-comm-th-cb-zone small">차지백<br>구간정책</th>' +
               '<th rowspan="2" class="text-center align-middle hq-def-comm-th-deploy">적용</th>' +
               '<th rowspan="2" class="text-center align-middle hq-def-comm-th-cur">통화</th>' +
@@ -629,9 +680,9 @@
           id: 'settlementAccountCard',
           distributorMerchantOnlyNoRegional: true,
           rows: [
-            [{ type: 'countryBankRow', bankLabel: '계좌은행*', accountNoLabel: '계좌번호*', accountHolderLabel: '예금주*' }],
+            [{ type: 'countryBankRow', bankLabel: '계좌은행*', accountNoLabel: '계좌번호*', accountHolderLabel: '예금주*', extraFields: [{ label: '송금이체수수료', name: 'transferFee', col: 2, placeholder: '기준화폐' }] }],
             [{ label: 'SWIFT', type: 'text', name: 'swift', col: 2, placeholder: 'SWIFT 코드' }, { label: '지점이름', type: 'text', name: 'branchName', col: 2 }, { label: '지점 주소', type: 'text', name: 'branchAddr', col: 2 }, { label: '담당전화번호', type: 'text', name: 'contactTel', col: 2 }],
-            [{ label: '코인 지갑 주소', type: 'text', name: 'walletAddress', col: 4, placeholder: '코인 수취 지갑 주소' }, { label: '네트워크', type: 'text', name: 'networkName', col: 2, placeholder: '네트워크 이름' }, { label: '크립토 이체 수수료(USD)', type: 'text', name: 'cryptoTransferFee', col: 2, placeholder: 'USD' }, { label: '이체수수료', type: 'text', name: 'transferFee', col: 2, placeholder: '기준화폐' }]
+            [{ label: '코인 지갑 주소', type: 'text', name: 'walletAddress', col: 4, placeholder: '코인 수취 지갑 주소' }, { label: '네트워크', type: 'text', name: 'networkName', col: 2, placeholder: '네트워크 이름' }, { label: '크립토 이체 수수료(USD)', type: 'text', name: 'cryptoTransferFee', col: 2, placeholder: 'USD' }]
           ]
         },
         {
@@ -680,7 +731,7 @@
           merchantOnly: true,
           notice: '본사정책 따름이면 위에서 고른 본사 정책 템플릿의 3DS·차지백 설정이 적용됩니다. 직접입력일 때만 아래를 저장할 수 있습니다.',
           rows: [
-            [{ label: '3DS수수료율(%)', type: 'text', name: 'fee3dsRate', col: 2, customOnly: true }, { label: '차지백수수료(건)', type: 'text', name: 'chargebackFeePerTx', col: 2, customOnly: true }, { label: '차지백 구간정책', type: 'select', name: 'chargebackPolicyId', col: 4, customOnly: true, options: [{ v: '', t: '(미사용) 건당 차지백만' }] }]
+            [{ label: '3DS수수료율(%)', type: 'text', name: 'fee3dsRate', col: 2, customOnly: true }, { label: '차지백수수료(건)', type: 'text', name: 'chargebackFeePerTx', col: 2, customOnly: true }, { label: '차지백 구간정책', type: 'select', name: 'chargebackPolicyId', col: 4, options: [{ v: '', t: '(미사용) 건당 차지백만' }] }]
           ]
         },
         {
@@ -767,8 +818,8 @@
       columns: [
         { key: '_chk', type: 'checkbox' },
         { key: 'rowNo', label: '번호' },
-        { key: 'compNm', label: '업체명' },
         { key: 'compId', label: '업체코드' },
+        { key: 'compNm', label: '업체명' },
         { key: 'compDivNm', label: '업체구분' },
         { key: 'settlementAmt', label: '정산금' },
         { key: 'receivables', label: '미수금' },
@@ -777,7 +828,7 @@
         { key: 'contact', label: '연락처' },
         { key: 'bankNm', label: '은행' },
         { key: 'accountNo', label: '계좌번호' },
-        { key: 'transferFee', label: '이체수수료' },
+        { key: 'transferFee', label: '송금이체수수료' },
         { key: 'calcCycle', label: '정산주기' },
         { key: 'calcProcType', label: '정산구분' },
         { key: 'transferType', label: '이체및송금' },
@@ -924,9 +975,9 @@
           id: 'settlementAccountCard',
           distributorMerchantOnlyNoRegional: true,
           rows: [
-            [{ type: 'countryBankRow', bankLabel: '계좌은행*', accountNoLabel: '계좌번호*', accountHolderLabel: '예금주*' }],
+            [{ type: 'countryBankRow', bankLabel: '계좌은행*', accountNoLabel: '계좌번호*', accountHolderLabel: '예금주*', extraFields: [{ label: '송금이체수수료', name: 'transferFee', col: 2, placeholder: '기준화폐' }] }],
             [{ label: 'SWIFT', type: 'text', name: 'swift', col: 2, placeholder: 'SWIFT 코드' }, { label: '지점이름', type: 'text', name: 'branchName', col: 2 }, { label: '지점 주소', type: 'text', name: 'branchAddr', col: 2 }, { label: '담당전화번호', type: 'text', name: 'contactTel', col: 2 }],
-            [{ label: '코인 지갑 주소', type: 'text', name: 'walletAddress', col: 4, placeholder: '코인 수취 지갑 주소' }, { label: '네트워크', type: 'text', name: 'networkName', col: 2, placeholder: '네트워크 이름' }, { label: '크립토 이체 수수료(USD)', type: 'text', name: 'cryptoTransferFee', col: 2, placeholder: 'USD' }, { label: '이체수수료', type: 'text', name: 'transferFee', col: 2, placeholder: '기준화폐' }]
+            [{ label: '코인 지갑 주소', type: 'text', name: 'walletAddress', col: 4, placeholder: '코인 수취 지갑 주소' }, { label: '네트워크', type: 'text', name: 'networkName', col: 2, placeholder: '네트워크 이름' }, { label: '크립토 이체 수수료(USD)', type: 'text', name: 'cryptoTransferFee', col: 2, placeholder: 'USD' }]
           ]
         },
         {
@@ -975,7 +1026,7 @@
           merchantOnly: true,
           notice: '본사정책 따름이면 위에서 고른 본사 정책 템플릿의 3DS·차지백 설정이 적용됩니다. 직접입력일 때만 아래를 저장할 수 있습니다.',
           rows: [
-            [{ label: '3DS수수료율(%)', type: 'text', name: 'fee3dsRate', col: 2, customOnly: true }, { label: '차지백수수료(건)', type: 'text', name: 'chargebackFeePerTx', col: 2, customOnly: true }, { label: '차지백 구간정책', type: 'select', name: 'chargebackPolicyId', col: 4, customOnly: true, options: [{ v: '', t: '(미사용) 건당 차지백만' }] }]
+            [{ label: '3DS수수료율(%)', type: 'text', name: 'fee3dsRate', col: 2, customOnly: true }, { label: '차지백수수료(건)', type: 'text', name: 'chargebackFeePerTx', col: 2, customOnly: true }, { label: '차지백 구간정책', type: 'select', name: 'chargebackPolicyId', col: 4, options: [{ v: '', t: '(미사용) 건당 차지백만' }] }]
           ]
         },
         {
@@ -1161,9 +1212,9 @@
           id: 'settlementAccountCard',
           distributorMerchantOnlyNoRegional: true,
           rows: [
-            [{ type: 'countryBankRow', bankLabel: '계좌은행*', accountNoLabel: '계좌번호*', accountHolderLabel: '예금주*' }],
+            [{ type: 'countryBankRow', bankLabel: '계좌은행*', accountNoLabel: '계좌번호*', accountHolderLabel: '예금주*', extraFields: [{ label: '송금이체수수료', name: 'transferFee', col: 2, placeholder: '기준화폐' }] }],
             [{ label: 'SWIFT', type: 'text', name: 'swift', col: 2, placeholder: 'SWIFT 코드' }, { label: '지점이름', type: 'text', name: 'branchName', col: 2 }, { label: '지점 주소', type: 'text', name: 'branchAddr', col: 2 }, { label: '담당전화번호', type: 'text', name: 'contactTel', col: 2 }],
-            [{ label: '코인 지갑 주소', type: 'text', name: 'walletAddress', col: 4, placeholder: '코인 수취 지갑 주소' }, { label: '네트워크', type: 'text', name: 'networkName', col: 2, placeholder: '네트워크 이름' }, { label: '크립토 이체 수수료(USD)', type: 'text', name: 'cryptoTransferFee', col: 2, placeholder: 'USD' }, { label: '이체수수료', type: 'text', name: 'transferFee', col: 2, placeholder: '기준화폐' }]
+            [{ label: '코인 지갑 주소', type: 'text', name: 'walletAddress', col: 4, placeholder: '코인 수취 지갑 주소' }, { label: '네트워크', type: 'text', name: 'networkName', col: 2, placeholder: '네트워크 이름' }, { label: '크립토 이체 수수료(USD)', type: 'text', name: 'cryptoTransferFee', col: 2, placeholder: 'USD' }]
           ]
         },
         {
@@ -1212,7 +1263,7 @@
           merchantOnly: true,
           notice: '본사정책 따름이면 위에서 고른 본사 정책 템플릿의 3DS·차지백 설정이 적용됩니다. 직접입력일 때만 아래를 저장할 수 있습니다.',
           rows: [
-            [{ label: '3DS수수료율(%)', type: 'text', name: 'fee3dsRate', col: 2, customOnly: true }, { label: '차지백수수료(건)', type: 'text', name: 'chargebackFeePerTx', col: 2, customOnly: true }, { label: '차지백 구간정책', type: 'select', name: 'chargebackPolicyId', col: 4, customOnly: true, options: [{ v: '', t: '(미사용) 건당 차지백만' }] }]
+            [{ label: '3DS수수료율(%)', type: 'text', name: 'fee3dsRate', col: 2, customOnly: true }, { label: '차지백수수료(건)', type: 'text', name: 'chargebackFeePerTx', col: 2, customOnly: true }, { label: '차지백 구간정책', type: 'select', name: 'chargebackPolicyId', col: 4, options: [{ v: '', t: '(미사용) 건당 차지백만' }] }]
           ]
         },
         {
@@ -2007,7 +2058,7 @@
           merchantOnly: true,
           notice: '본사정책 따름이면 위에서 고른 본사 정책 템플릿의 3DS·차지백 설정이 적용됩니다. 직접입력일 때만 아래를 저장할 수 있습니다.',
           rows: [
-            [{ label: '3DS수수료율(%)', type: 'text', name: 'fee3dsRate', col: 2, customOnly: true }, { label: '차지백수수료(건)', type: 'text', name: 'chargebackFeePerTx', col: 2, customOnly: true }, { label: '차지백 구간정책', type: 'select', name: 'chargebackPolicyId', col: 4, customOnly: true, options: [{ v: '', t: '(미사용) 건당 차지백만' }] }]
+            [{ label: '3DS수수료율(%)', type: 'text', name: 'fee3dsRate', col: 2, customOnly: true }, { label: '차지백수수료(건)', type: 'text', name: 'chargebackFeePerTx', col: 2, customOnly: true }, { label: '차지백 구간정책', type: 'select', name: 'chargebackPolicyId', col: 4, options: [{ v: '', t: '(미사용) 건당 차지백만' }] }]
           ]
         },
         {
@@ -2023,7 +2074,7 @@
       searchRows: [[{ label: '업체코드', type: 'text', name: 'searchCompId' }, { label: '업체명', type: 'text', name: 'searchCompNm' }, { type: 'searchBtn' }]],
       summary: ['건수'],
       buttons: [{ id: 'searchBtn', label: '검색', cls: 'btn-primary' }, { id: 'compRegBtn', label: '등록', cls: 'btn-danger' }],
-      columns: [{ key: '_chk', type: 'checkbox' }, { key: 'rowNo', label: '번호' }, { key: 'compNm', label: '업체명' }, { key: 'compId', label: '업체코드' }, { key: 'compDivNm', label: '업체구분' }, { key: 'regDt', label: '등록일' }],
+      columns: [{ key: '_chk', type: 'checkbox' }, { key: 'rowNo', label: '번호' }, { key: 'compId', label: '업체코드' }, { key: 'compNm', label: '업체명' }, { key: 'compDivNm', label: '업체구분' }, { key: 'regDt', label: '등록일' }],
       emptyMessage: '조회된 데이터가 없습니다.'
     },
     '/comp/compChangeHistory': {

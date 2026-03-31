@@ -1604,19 +1604,19 @@ body.theme-pastel_4 .content-page, body.theme-pastel_5 .content-page {
   table-layout: fixed;
 }
 
-/* 선택 2% */
+/* 선택: 라벨+전체선택 체크 한 줄 */
 .hq-default-comm-policy-table col:nth-child(1) {
-  width: 2%;
+  width: 3%;
 }
 
-/* 코드 2% */
+/* 코드 */
 .hq-default-comm-policy-table col:nth-child(2) {
-  width: 2%;
+  width: 3%;
 }
 
-/* 이름 15% */
+/* 이름(정책명) — 폭 축소 */
 .hq-default-comm-policy-table col:nth-child(3) {
-  width: 15%;
+  width: 9%;
 }
 
 /* 차지백 구간정책 */
@@ -1672,9 +1672,9 @@ body.theme-pastel_4 .content-page, body.theme-pastel_5 .content-page {
   width: 3%;
 }
 
-/* 일지 */
+/* 일지 (이름 열 축소분 일부 반영) */
 .hq-default-comm-policy-table col:nth-child(25) {
-  width: 11%;
+  width: 15%;
 }
 
 /* 기본정책: 목록 표 — 셀 가로·세로 가운데 */
@@ -1687,9 +1687,38 @@ body.theme-pastel_4 .content-page, body.theme-pastel_5 .content-page {
 /* 기본정책: 목록 표 — 건당 / % / 월간 묶음 */
 .hq-default-comm-policy-table .hq-def-comm-th-chk {
   vertical-align: middle;
+  padding-left: 0.25rem;
+  padding-right: 0.25rem;
+}
+.hq-def-comm-th-chk-inner {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.2rem;
+  flex-wrap: nowrap;
+  white-space: nowrap;
+}
+.hq-def-comm-th-chk-label {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  line-height: 1;
+}
+.hq-default-comm-policy-table .hq-def-comm-th-code {
+  white-space: nowrap;
+  font-size: 0.75rem;
+  padding-left: 0.2rem;
+  padding-right: 0.2rem;
+}
+.hq-default-comm-policy-table td.hq-def-comm-policy-td-code {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 0.8125rem;
+  max-width: 0;
 }
 .hq-default-comm-policy-table .hq-def-comm-th-name {
   white-space: nowrap;
+  font-size: 0.75rem;
 }
 .hq-default-comm-policy-table td.hq-def-comm-policy-td-name {
   max-width: 0;
@@ -1734,4 +1763,32 @@ body.theme-pastel_4 .content-page, body.theme-pastel_5 .content-page {
 }
 .hq-extra-fees-card .card-header .text-muted {
   line-height: 1.35;
+}
+
+/* 본사 기본정책: 조직 단계별 수수료 격자 */
+.hq-comm-tier-wrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.hq-comm-tier-matrix .hq-tier-cell,
+.hq-extra-tier-table .hq-tier-extra-cell {
+  min-width: 3.25rem;
+  font-size: 0.8125rem;
+}
+.hq-comm-tier-matrix th,
+.hq-comm-tier-matrix td {
+  vertical-align: middle;
+}
+
+/* 가맹점: 차지백 정책 카드 — 빨강 파스텔톤 배경 */
+#chargebackPolicyCard {
+  background: #fff1f3; /* rose-50 */
+  border-color: #fecdd3; /* rose-200 */
+}
+#chargebackPolicyCard > .card-header {
+  background: #ffe4e6; /* rose-100 */
+  border-bottom-color: #fecdd3;
+}
+#chargebackPolicyCard > .card-body {
+  background: transparent;
 }

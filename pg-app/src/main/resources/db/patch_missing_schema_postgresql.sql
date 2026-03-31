@@ -111,3 +111,6 @@ ALTER TABLE tb_commission_policy
   ALTER COLUMN manual_void_fee_per_tx TYPE NUMERIC(12, 1) USING round(manual_void_fee_per_tx::numeric, 1),
   ALTER COLUMN fee_settlement_per_tx TYPE NUMERIC(12, 1) USING round(fee_settlement_per_tx::numeric, 1),
   ALTER COLUMN chargeback_fee_per_tx TYPE NUMERIC(12, 1) USING round(chargeback_fee_per_tx::numeric, 1);
+
+-- V57: 본사 기본정책 — 조직 단계별 수수료 격자(JSON)
+ALTER TABLE tb_commission_policy ADD COLUMN IF NOT EXISTS tier_commission_json TEXT;

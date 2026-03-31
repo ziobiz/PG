@@ -20,7 +20,9 @@ import com.pg.service.HolidayPresetService;
 import com.pg.service.HqServerManageService;
 import com.pg.service.OrgPagePermissionService;
 import com.pg.service.ServerUsageService;
+import com.pg.util.CommissionTierJsonHelper;
 import com.pg.util.PercentDecimalHelper;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -41,6 +43,7 @@ import java.util.stream.Collectors;
 @RequestMapping(value = "/api/hq", produces = "application/json")
 public class ApiHqController {
     private static final String TEMPLATE_SCOPE_PREFIX = "HQPOL:";
+    private static final ObjectMapper HQ_OBJECT_MAPPER = new ObjectMapper();
 
     private final CommissionPolicyRepository commissionPolicyRepository;
     private final ChargebackFeePolicyRepository chargebackFeePolicyRepository;
@@ -202,6 +205,8 @@ public class ApiHqController {
             data.put("chargebackFeePerTx", p.getChargebackFeePerTx() != null ? PercentDecimalHelper.toPlainAmountOneDecimal(p.getChargebackFeePerTx()) : "0.0");
             data.put("chargebackPolicyId", p.getChargebackPolicyId() != null ? p.getChargebackPolicyId() : "");
             putExtraFeeScalarsOnMap(data, p);
+            data.put("tierCommission", tierMapForPolicy(p));
+            CommissionTierJsonHelper.applyTierJsonSumsToDisplayMap(data, p);
         });
         if (!data.containsKey("payRate")) {
             data.put("perTxFee", "0.0"); data.put("usageRate", "0.0"); data.put("failFee", "0.0");
@@ -215,6 +220,7 @@ public class ApiHqController {
             data.put("chargebackFeePerTx", "0.0");
             data.put("chargebackPolicyId", "");
             putExtraFeeScalarsOnMap(data, null);
+            data.put("tierCommission", Map.of("rows", Map.of(), "extras", List.of()));
         }
         Map<Long, String> chargebackNames = chargebackFeePolicyRepository.findAllByOrderByNameAsc().stream()
                 .collect(Collectors.toMap(ChargebackFeePolicy::getId, ChargebackFeePolicy::getName, (a, b) -> a));
@@ -253,7 +259,7 @@ public class ApiHqController {
         data.put("deployedTemplateScopes", deployedScopes);
         String deployedScope = deployedScopes.isEmpty() ? "" : deployedScopes.get(0);
         data.put("deployedTemplateScope", deployedScope);
-        data.put("memo", "결제·USDT·FX·3DS는 승인금액 기준 %(통화별 절사·표시는 정책 통화코드 기준). 건당·실패·정산·차지백·취소·무효·수동무효·환불·월간이용료는 통화코드 단위 금액이며 USD·THB 등은 소수 첫째 자리까지 저장됩니다(취소=20, 무효=21, 수동무효=22, 환불·강제환불=30·31 건수만큼 합산). 차지백 구간정책을 선택하면 월간 환불·강제환불(30·31) 건수로 구간별 건당액을 씁니다(미선택 시 건당 차지백만). 월간이용료는 해당 월 정산 최초 실행 시 1회 부과합니다. 기타 수수료(최대 4건): %는 승인 건별, 고정은 정산 1회 합산. 차감 후 롤링(담보금)%를 N일간 보류하고 정산 주기에 지급합니다.");
+        data.put("memo", "조직별 격자: 총본사~영업점은 배분(결제율·건당)에 반영됩니다. 가맹 열은 위 6단계 합계(가맹점 적용분)로 표시·저장됩니다. 가맹점이 본사설정을 따르면 이 합계가 기준이 되고, 업체관리 수수료에서 수정 시 그 값이 우선합니다. 결제·USDT·FX·3DS는 승인금액 기준 %. 건당·고정액은 통화 단위(소수 첫째 자리). 차지백 구간정책·롤링은 격자 외 필드입니다.");
         return ResponseEntity.ok(ApiResponse.ok(data));
     }
 
@@ -272,27 +278,42 @@ public class ApiHqController {
             p.setPolicyName(policyName != null && !policyName.trim().isEmpty() ? policyName.trim() : scope.substring(TEMPLATE_SCOPE_PREFIX.length()));
             p.setDeployYn("Y".equalsIgnoreCase(hqStr(body, "deployYn")) ? "Y" : "N");
         }
-        p.setPerTxFee(PercentDecimalHelper.parseAmountOneDecimal(body.get("perTxFee")));
-        p.setUsageRate(PercentDecimalHelper.parseAmountOneDecimal(body.get("usageRate")));
-        p.setFailFee(PercentDecimalHelper.parseAmountOneDecimal(body.get("failFee")));
-        p.setCancelRate(PercentDecimalHelper.parseAmountOneDecimal(body.get("cancelRate")));
-        p.setVoidFeePerTx(PercentDecimalHelper.parseAmountOneDecimal(body.get("voidFeePerTx")));
-        p.setManualVoidFeePerTx(PercentDecimalHelper.parseAmountOneDecimal(body.get("manualVoidFeePerTx")));
-        p.setRefundRate(PercentDecimalHelper.parseAmountOneDecimal(body.get("refundRate")));
-        p.setPayRate(PercentDecimalHelper.parsePercentOneDecimal(body.get("payRate")));
-        p.setFeeSettlementPerTx(PercentDecimalHelper.parseAmountOneDecimal(body.get("feeSettlementPerTx")));
-        p.setFeeUsdt(PercentDecimalHelper.parsePercentOneDecimal(body.get("feeUsdt")));
-        p.setFeeFx(PercentDecimalHelper.parsePercentOneDecimal(body.get("feeFx")));
+        boolean fromTier = false;
+        try {
+            String tj = tierCommissionJsonFromBody(body);
+            if (tj != null) {
+                String normalized = CommissionTierJsonHelper.normalizeTierJsonMerchantSums(tj);
+                p.setTierCommissionJson(normalized);
+                CommissionTierJsonHelper.applyTierJsonToPolicy(p, normalized);
+                fromTier = true;
+            }
+        } catch (Exception e) {
+            return ResponseEntity.ok(ApiResponse.fail("조직별 수수료(tierCommission) 형식이 올바르지 않습니다.", "VALIDATION"));
+        }
+        if (!fromTier) {
+            p.setPerTxFee(PercentDecimalHelper.parseAmountOneDecimal(body.get("perTxFee")));
+            p.setUsageRate(PercentDecimalHelper.parseAmountOneDecimal(body.get("usageRate")));
+            p.setFailFee(PercentDecimalHelper.parseAmountOneDecimal(body.get("failFee")));
+            p.setCancelRate(PercentDecimalHelper.parseAmountOneDecimal(body.get("cancelRate")));
+            p.setVoidFeePerTx(PercentDecimalHelper.parseAmountOneDecimal(body.get("voidFeePerTx")));
+            p.setManualVoidFeePerTx(PercentDecimalHelper.parseAmountOneDecimal(body.get("manualVoidFeePerTx")));
+            p.setRefundRate(PercentDecimalHelper.parseAmountOneDecimal(body.get("refundRate")));
+            p.setPayRate(PercentDecimalHelper.parsePercentOneDecimal(body.get("payRate")));
+            p.setFeeSettlementPerTx(PercentDecimalHelper.parseAmountOneDecimal(body.get("feeSettlementPerTx")));
+            p.setFeeUsdt(PercentDecimalHelper.parsePercentOneDecimal(body.get("feeUsdt")));
+            p.setFeeFx(PercentDecimalHelper.parsePercentOneDecimal(body.get("feeFx")));
+            p.setFee3dsRate(PercentDecimalHelper.parsePercentOneDecimal(body.get("fee3dsRate")));
+            p.setChargebackFeePerTx(PercentDecimalHelper.parseAmountOneDecimal(body.get("chargebackFeePerTx")));
+            applyExtraFeesFromBody(p, body);
+            p.setTierCommissionJson(CommissionTierJsonHelper.buildTierJsonFromPolicyScalars(p));
+        }
         p.setRollingPct(PercentDecimalHelper.parsePercentOneDecimal(body.get("rollingPct")));
         Object rd = body.get("rollingDays");
         p.setRollingDays(rd != null && !rd.toString().isEmpty() ? Integer.parseInt(rd.toString()) : 180);
         String cc = hqStr(body, "currencyCode");
         p.setCurrencyCode(cc != null && !cc.isBlank() ? cc.trim().toUpperCase(Locale.ROOT) : "KRW");
         p.setPolicyRemark(hqStr(body, "policyRemark"));
-        p.setFee3dsRate(PercentDecimalHelper.parsePercentOneDecimal(body.get("fee3dsRate")));
-        p.setChargebackFeePerTx(PercentDecimalHelper.parseAmountOneDecimal(body.get("chargebackFeePerTx")));
         p.setChargebackPolicyId(parseOptionalPolicyLong(body.get("chargebackPolicyId")));
-        applyExtraFeesFromBody(p, body);
         commissionPolicyRepository.save(p);
         /* 배포(Y): 가맹점 등록 시 동일 통화 기준으로 선택 가능한 정책으로 취급. 여러 템플릿을 동시에 배포할 수 있으며,
            다른 템플릿을 자동 미배포로 바꾸지 않고 DEFAULT에 덮어쓰지도 않는다. */
@@ -379,8 +400,34 @@ public class ApiHqController {
         m.put("chargebackFeePerTx", p.getChargebackFeePerTx() != null ? PercentDecimalHelper.toPlainAmountOneDecimal(p.getChargebackFeePerTx()) : "0.0");
         m.put("chargebackPolicyId", p.getChargebackPolicyId() != null ? p.getChargebackPolicyId() : "");
         putExtraFeeScalarsOnMap(m, p);
+        m.put("tierCommission", tierMapForPolicy(p));
+        CommissionTierJsonHelper.applyTierJsonSumsToDisplayMap(m, p);
         m.put("updatedAt", p.getUpdatedAt() != null ? p.getUpdatedAt().toString() : "");
         return m;
+    }
+
+    private static Map<String, Object> tierMapForPolicy(CommissionPolicy p) {
+        String j = CommissionTierJsonHelper.hasTierJson(p.getTierCommissionJson())
+                ? p.getTierCommissionJson()
+                : CommissionTierJsonHelper.buildTierJsonFromPolicyScalars(p);
+        if (CommissionTierJsonHelper.hasTierJson(p.getTierCommissionJson())) {
+            j = CommissionTierJsonHelper.normalizeTierJsonMerchantSums(j);
+        }
+        return CommissionTierJsonHelper.parseTierJsonToMap(j);
+    }
+
+    private static String tierCommissionJsonFromBody(Map<String, Object> body) throws Exception {
+        Object t = body.get("tierCommission");
+        if (t == null) {
+            return null;
+        }
+        if (t instanceof String s) {
+            return s.isBlank() ? null : s.trim();
+        }
+        if (t instanceof Map<?, ?> m && !m.isEmpty()) {
+            return HQ_OBJECT_MAPPER.writeValueAsString(t);
+        }
+        return null;
     }
 
     private static Map<String, Object> enrichPolicyMapWithChargebackName(Map<String, Object> m, Long chargebackPolicyId,
@@ -585,6 +632,7 @@ public class ApiHqController {
         dst.setExtraFee4Name(src.getExtraFee4Name());
         dst.setExtraFee4Mode(src.getExtraFee4Mode());
         dst.setExtraFee4Value(src.getExtraFee4Value());
+        dst.setTierCommissionJson(src.getTierCommissionJson());
     }
 
     private static BigDecimal toBigDecimal(Object o) {
