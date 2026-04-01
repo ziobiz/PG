@@ -83,9 +83,11 @@ public class ApiPublicOrgBrandingController {
             m.put("compId", codeForResponse != null ? codeForResponse : "");
             m.put("mainImageUrl", b.getMainImageUrl() != null ? b.getMainImageUrl() : "");
             m.put("logoImageUrl", b.getLogoImageUrl() != null ? b.getLogoImageUrl() : "");
+            m.put("firstLogoImageUrl", b.getFirstLogoImageUrl() != null ? b.getFirstLogoImageUrl() : "");
             m.put("popconImageUrl", b.getPopconImageUrl() != null ? b.getPopconImageUrl() : "");
             m.put("theme", b.getTheme() != null ? b.getTheme() : "DEFAULT");
             m.put("brandHost", b.getBrandHost() != null ? b.getBrandHost() : "");
+            m.put("siteName", b.getSiteName() != null ? b.getSiteName() : "");
             return m;
         });
     }
@@ -112,9 +114,11 @@ public class ApiPublicOrgBrandingController {
         Map<String, Object> empty = new LinkedHashMap<>();
         empty.put("mainImageUrl", "");
         empty.put("logoImageUrl", "");
+        empty.put("firstLogoImageUrl", "");
         empty.put("popconImageUrl", "");
         empty.put("theme", "DEFAULT");
         empty.put("brandHost", "");
+        empty.put("siteName", "");
         return empty;
     }
 }

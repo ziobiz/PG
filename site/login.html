@@ -73,12 +73,12 @@
       <div class="main-bg" id="loginMainBg"></div>
       <div class="main-overlay"></div>
       <img class="main-logo d-none" id="loginMainLogo" alt="Logo" src="">
-      <div class="main-text" id="loginMainText">PG 통합관리자</div>
+      <div class="main-text" id="loginMainText"></div>
     </div>
     <div class="login-panel-wrap">
       <div class="login-panel">
         <img class="logo-top" id="loginPanelLogo" src="" alt="Logo" style="display:none">
-        <h5 class="mb-3" id="loginPanelTitle">PG 통합관리자</h5>
+        <h5 class="mb-3 d-none" id="loginPanelTitle"></h5>
         <div class="otp-notice">
           <p>알림톡 혹은 문자로 GOOGLE OTP 키값을 전송하였습니다</p>
           <p>GOOGLE OTP앱으로 키값을 등록 후 다시 로그인하시기 바랍니다.</p>
@@ -218,8 +218,8 @@
           mainLogo.classList.add('d-none');
           mainLogo.removeAttribute('src');
         }
-        if (b.logoImageUrl) {
-          panelLogo.src = absUrl(b.logoImageUrl);
+        if (b.firstLogoImageUrl) {
+          panelLogo.src = absUrl(b.firstLogoImageUrl);
           panelLogo.style.display = '';
           document.getElementById('loginPanelTitle').style.display = 'none';
         } else {
@@ -245,6 +245,9 @@
           var closeBtn = box.querySelector('button');
           if (closeBtn) closeBtn.addEventListener('click', function () { box.remove(); });
           document.body.appendChild(box);
+        }
+        if (b.siteName) {
+          try { document.title = String(b.siteName); } catch (eTitle) {}
         }
         var theme = (b.theme || 'DEFAULT').toUpperCase();
         document.body.className = 'theme-' + theme.toLowerCase();

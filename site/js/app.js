@@ -242,7 +242,9 @@
     if (!rootEl) return;
     var id = imageType === 'logo'
       ? 'brandingLogoImageUrl'
-      : (imageType === 'popcon' ? 'brandingPopconImageUrl' : 'brandingMainImageUrl');
+      : (imageType === 'first'
+        ? 'brandingFirstLogoImageUrl'
+        : (imageType === 'popcon' ? 'brandingPopconImageUrl' : 'brandingMainImageUrl'));
     var el = rootEl.querySelector('#' + id);
     if (!el) return;
     var label = pgBrandingDisplayNameAfterUpload(data, fallbackFile);
@@ -251,21 +253,25 @@
   function pgBrandingFillImageDisplayFromFetch(rootEl, b) {
     if (!rootEl || !b) return;
     var mainEl = rootEl.querySelector('#brandingMainImageUrl');
+    var firstEl = rootEl.querySelector('#brandingFirstLogoImageUrl');
     var logoEl = rootEl.querySelector('#brandingLogoImageUrl');
     var popconEl = rootEl.querySelector('#brandingPopconImageUrl');
     if (mainEl) mainEl.value = b.mainImageUrl ? pgBrandingBasenameFromStoredUrl(b.mainImageUrl) : '';
+    if (firstEl) firstEl.value = b.firstLogoImageUrl ? pgBrandingBasenameFromStoredUrl(b.firstLogoImageUrl) : '';
     if (logoEl) logoEl.value = b.logoImageUrl ? pgBrandingBasenameFromStoredUrl(b.logoImageUrl) : '';
     if (popconEl) popconEl.value = b.popconImageUrl ? pgBrandingBasenameFromStoredUrl(b.popconImageUrl) : '';
   }
   function pgBindBrandingBrowse(rootEl) {
     if (!rootEl) return;
     var pairs = [
-      { browse: '#brandingMainImageBrowse', file: '#brandingMainImageFile', text: '#brandingMainImageUrl' },
-      { browse: '#brandingLogoImageBrowse', file: '#brandingLogoImageFile', text: '#brandingLogoImageUrl' },
-      { browse: '#brandingPopconImageBrowse', file: '#brandingPopconImageFile', text: '#brandingPopconImageUrl' }
+      { imageType: 'main', browse: '#brandingMainImageBrowse', del: '#brandingMainImageDelete', file: '#brandingMainImageFile', text: '#brandingMainImageUrl' },
+      { imageType: 'first', browse: '#brandingFirstLogoImageBrowse', del: '#brandingFirstLogoImageDelete', file: '#brandingFirstLogoImageFile', text: '#brandingFirstLogoImageUrl' },
+      { imageType: 'logo', browse: '#brandingLogoImageBrowse', del: '#brandingLogoImageDelete', file: '#brandingLogoImageFile', text: '#brandingLogoImageUrl' },
+      { imageType: 'popcon', browse: '#brandingPopconImageBrowse', del: '#brandingPopconImageDelete', file: '#brandingPopconImageFile', text: '#brandingPopconImageUrl' }
     ];
     pairs.forEach(function (p) {
       var b = rootEl.querySelector(p.browse);
+      var d = rootEl.querySelector(p.del);
       var f = rootEl.querySelector(p.file);
       var t = rootEl.querySelector(p.text);
       if (b && !b._brandingBrowseBound) {
@@ -276,6 +282,24 @@
         f._brandingFileBound = true;
         f.addEventListener('change', function () {
           if (t && this.files && this.files[0]) t.value = this.files[0].name;
+        });
+      }
+      if (d && !d._brandingDeleteBound) {
+        d._brandingDeleteBound = true;
+        d.addEventListener('click', function () {
+          if (!window.PG_API || !window.PG_API.orgBrandingDeleteImage) return;
+          var form = rootEl.querySelector('form') || rootEl.closest('form') || rootEl;
+          var compEl = form.querySelector('[name="compId"]');
+          var compId = compEl && compEl.value ? String(compEl.value).trim() : '';
+          if (!compId) { alert('업체코드가 없어 삭제할 수 없습니다.'); return; }
+          if (!confirm('선택한 이미지를 삭제하시겠습니까?')) return;
+          window.PG_API.orgBrandingDeleteImage(compId, p.imageType).then(function () {
+            if (t) t.value = '';
+            if (f) f.value = '';
+            alert('삭제되었습니다.');
+          }).catch(function (e) {
+            alert(e && e.message ? e.message : '삭제 실패');
+          });
         });
       }
     });
@@ -3525,10 +3549,12 @@
         var dimm = document.getElementById('dimm');
         if (dimm) dimm.style.display = 'flex';
         var mainFile = form.querySelector('#brandingMainImageFile');
+        var firstFile = form.querySelector('#brandingFirstLogoImageFile');
         var logoFile = form.querySelector('#brandingLogoImageFile');
         var popconFile = form.querySelector('#brandingPopconImageFile');
         var themeEl = form.querySelector('#brandingTheme');
         var hostEl = form.querySelector('#brandingBrandHost');
+        var siteNameEl = form.querySelector('#brandingSiteName');
         var isRegOrMaster = (fd.compDiv === 'HEADQUARTERS' || fd.compDiv === 'REGIONAL' || fd.compDiv === 'MASTER_DIST');
         window.PG_API.compRegister(fd).then(function (res) {
           var data = res && res.data ? res.data : res;
@@ -3549,6 +3575,24 @@
               chain = chain.then(function () {
                 return window.PG_API.orgBrandingUpload(compId, 'logo', _regLogoF).then(function (data) {
                   pgBrandingSetImageDisplayInput(form, 'logo', data, _regLogoF);
+                  try {
+                    if (window.PG_applySidebarLogo && data && data.url) {
+                      var _apiBase = (typeof window.PG_assetApiBase === 'function')
+                        ? window.PG_assetApiBase()
+                        : ((window.PG_API_BASE || '').replace(/\/$/, '') || window.location.origin);
+                      var _src = /^https?:\/\//i.test(String(data.url)) ? String(data.url) : (_apiBase + String(data.url));
+                      window.PG_applySidebarLogo(_src + (_src.indexOf('?') >= 0 ? '&' : '?') + 'v=' + Date.now());
+                    }
+                  } catch (eLogo0) {}
+                  return data;
+                });
+              });
+            }
+            if (firstFile && firstFile.files && firstFile.files[0]) {
+              var _regFirstF = firstFile.files[0];
+              chain = chain.then(function () {
+                return window.PG_API.orgBrandingUpload(compId, 'first', _regFirstF).then(function (data) {
+                  pgBrandingSetImageDisplayInput(form, 'first', data, _regFirstF);
                   return data;
                 });
               });
@@ -3563,7 +3607,7 @@
               });
             }
             if (themeEl) {
-              chain = chain.then(function () { return window.PG_API.orgBrandingSave(compId, themeEl.value || 'DEFAULT', hostEl ? hostEl.value : undefined); });
+              chain = chain.then(function () { return window.PG_API.orgBrandingSave(compId, themeEl.value || 'DEFAULT', hostEl ? hostEl.value : undefined, siteNameEl ? siteNameEl.value : undefined); });
             }
             return chain.then(function () { return res; });
           }
@@ -4163,18 +4207,24 @@
         }
       }
       var mainBrowse = pane.querySelector('#brandingMainImageBrowse');
+      var firstBrowse = pane.querySelector('#brandingFirstLogoImageBrowse');
       var logoBrowse = pane.querySelector('#brandingLogoImageBrowse');
       var popconBrowse = pane.querySelector('#brandingPopconImageBrowse');
+      var mainDelete = pane.querySelector('#brandingMainImageDelete');
+      var firstDelete = pane.querySelector('#brandingFirstLogoImageDelete');
+      var logoDelete = pane.querySelector('#brandingLogoImageDelete');
+      var popconDelete = pane.querySelector('#brandingPopconImageDelete');
       var mainFile = pane.querySelector('#brandingMainImageFile');
+      var firstFile = pane.querySelector('#brandingFirstLogoImageFile');
       var logoFile = pane.querySelector('#brandingLogoImageFile');
       var popconFile = pane.querySelector('#brandingPopconImageFile');
       var themeSel = pane.querySelector('#brandingTheme');
-      [mainBrowse, logoBrowse, popconBrowse].forEach(function (btn) {
+      [mainBrowse, firstBrowse, logoBrowse, popconBrowse, mainDelete, firstDelete, logoDelete, popconDelete].forEach(function (btn) {
         if (!btn) return;
         btn.style.display = allowed ? '' : 'none';
         btn.disabled = !allowed;
       });
-      [mainFile, logoFile, popconFile, themeSel].forEach(function (el) {
+      [mainFile, firstFile, logoFile, popconFile, themeSel].forEach(function (el) {
         if (!el) return;
         el.disabled = !allowed;
       });
@@ -4484,8 +4534,10 @@
               pgBrandingFillImageDisplayFromFetch(pane, b);
               var themeSel = pane.querySelector('#brandingTheme');
               var hostEl = pane.querySelector('#brandingBrandHost');
+              var siteNameEl = pane.querySelector('#brandingSiteName');
               if (themeSel && b.theme) themeSel.value = b.theme || 'DEFAULT';
               if (hostEl) hostEl.value = (b.brandHost != null && b.brandHost !== undefined) ? b.brandHost : '';
+              if (siteNameEl) siteNameEl.value = (b.siteName != null && b.siteName !== undefined) ? b.siteName : '';
             }).catch(function () {});
           }
         }
@@ -4730,10 +4782,12 @@
             if (!canBranding) return Promise.resolve();
             if (!window.PG_API.orgBrandingUpload || !window.PG_API.orgBrandingSave) return Promise.resolve();
             var mainFile = form.querySelector('#brandingMainImageFile');
+            var firstFile = form.querySelector('#brandingFirstLogoImageFile');
             var logoFile = form.querySelector('#brandingLogoImageFile');
             var popconFile = form.querySelector('#brandingPopconImageFile');
             var themeEl = form.querySelector('#brandingTheme');
             var hostEl = form.querySelector('#brandingBrandHost');
+            var siteNameEl = form.querySelector('#brandingSiteName');
             var chain = Promise.resolve();
             if (mainFile && mainFile.files && mainFile.files[0]) {
               var _myMainF = mainFile.files[0];
@@ -4749,6 +4803,24 @@
               chain = chain.then(function () {
                 return window.PG_API.orgBrandingUpload(compId, 'logo', _myLogoF).then(function (data) {
                   pgBrandingSetImageDisplayInput(form, 'logo', data, _myLogoF);
+                  try {
+                    if (window.PG_applySidebarLogo && data && data.url) {
+                      var _apiBase2 = (typeof window.PG_assetApiBase === 'function')
+                        ? window.PG_assetApiBase()
+                        : ((window.PG_API_BASE || '').replace(/\/$/, '') || window.location.origin);
+                      var _src2 = /^https?:\/\//i.test(String(data.url)) ? String(data.url) : (_apiBase2 + String(data.url));
+                      window.PG_applySidebarLogo(_src2 + (_src2.indexOf('?') >= 0 ? '&' : '?') + 'v=' + Date.now());
+                    }
+                  } catch (eLogo1) {}
+                  return data;
+                });
+              });
+            }
+            if (firstFile && firstFile.files && firstFile.files[0]) {
+              var _myFirstF = firstFile.files[0];
+              chain = chain.then(function () {
+                return window.PG_API.orgBrandingUpload(compId, 'first', _myFirstF).then(function (data) {
+                  pgBrandingSetImageDisplayInput(form, 'first', data, _myFirstF);
                   return data;
                 });
               });
@@ -4763,7 +4835,7 @@
               });
             }
             if (themeEl || hostEl) {
-              chain = chain.then(function () { return window.PG_API.orgBrandingSave(compId, (themeEl && themeEl.value) ? themeEl.value : 'DEFAULT', hostEl ? hostEl.value : undefined); });
+              chain = chain.then(function () { return window.PG_API.orgBrandingSave(compId, (themeEl && themeEl.value) ? themeEl.value : 'DEFAULT', hostEl ? hostEl.value : undefined, siteNameEl ? siteNameEl.value : undefined); });
             }
             return chain.catch(function (eBrand) {
               try { console.warn('branding save failed:', eBrand); } catch (e0) {}
@@ -5154,8 +5226,10 @@
             pgBrandingFillImageDisplayFromFetch(pane, b);
             var themeSel = pane.querySelector('#brandingTheme');
             var hostEl = pane.querySelector('#brandingBrandHost');
+            var siteNameEl = pane.querySelector('#brandingSiteName');
             if (themeSel && b.theme) themeSel.value = b.theme || 'DEFAULT';
             if (hostEl) hostEl.value = (b.brandHost != null && b.brandHost !== undefined) ? b.brandHost : '';
+            if (siteNameEl) siteNameEl.value = (b.siteName != null && b.siteName !== undefined) ? b.siteName : '';
           }).catch(function () {});
         }
         pgBindBrandingBrowse(pane);
@@ -5269,10 +5343,12 @@
           var dimm = document.getElementById('dimm');
           if (dimm) dimm.style.display = 'flex';
           var mainFile = form.querySelector('#brandingMainImageFile');
+          var firstFile = form.querySelector('#brandingFirstLogoImageFile');
           var logoFile = form.querySelector('#brandingLogoImageFile');
           var popconFile = form.querySelector('#brandingPopconImageFile');
           var themeEl = form.querySelector('#brandingTheme');
           var hostEl = form.querySelector('#brandingBrandHost');
+          var siteNameEl = form.querySelector('#brandingSiteName');
           var brandingCard = form.closest('.tab-pane') && form.closest('.tab-pane').querySelector('#brandingCard');
           var isRegOrMaster = brandingCard && !brandingCard.classList.contains('d-none');
           window.PG_API.compUpdate(fd).then(function () {
@@ -5303,6 +5379,24 @@
                 chain = chain.then(function () {
                   return window.PG_API.orgBrandingUpload(compId, 'logo', _detLogoF).then(function (data) {
                     pgBrandingSetImageDisplayInput(form, 'logo', data, _detLogoF);
+                    try {
+                      if (window.PG_applySidebarLogo && data && data.url) {
+                        var _apiBase3 = (typeof window.PG_assetApiBase === 'function')
+                          ? window.PG_assetApiBase()
+                          : ((window.PG_API_BASE || '').replace(/\/$/, '') || window.location.origin);
+                        var _src3 = /^https?:\/\//i.test(String(data.url)) ? String(data.url) : (_apiBase3 + String(data.url));
+                        window.PG_applySidebarLogo(_src3 + (_src3.indexOf('?') >= 0 ? '&' : '?') + 'v=' + Date.now());
+                      }
+                    } catch (eLogo2) {}
+                    return data;
+                  });
+                });
+              }
+              if (firstFile && firstFile.files && firstFile.files[0]) {
+                var _detFirstF = firstFile.files[0];
+                chain = chain.then(function () {
+                  return window.PG_API.orgBrandingUpload(compId, 'first', _detFirstF).then(function (data) {
+                    pgBrandingSetImageDisplayInput(form, 'first', data, _detFirstF);
                     return data;
                   });
                 });
@@ -5317,7 +5411,7 @@
                 });
               }
               if (themeEl || hostEl) {
-                chain = chain.then(function () { return window.PG_API.orgBrandingSave(compId, (themeEl && themeEl.value) ? themeEl.value : 'DEFAULT', hostEl ? hostEl.value : undefined); });
+                chain = chain.then(function () { return window.PG_API.orgBrandingSave(compId, (themeEl && themeEl.value) ? themeEl.value : 'DEFAULT', hostEl ? hostEl.value : undefined, siteNameEl ? siteNameEl.value : undefined); });
               }
               return chain.catch(function (eBrand2) {
                 try { console.warn('branding save failed:', eBrand2); } catch (e0) {}

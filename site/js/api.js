@@ -182,6 +182,79 @@
     return request({ path: path, method: 'DELETE' });
   }
 
+  function fileToDataUrl(file) {
+    return new Promise(function (resolve, reject) {
+      try {
+        var fr = new FileReader();
+        fr.onload = function () { resolve(String(fr.result || '')); };
+        fr.onerror = function () { reject(new Error('이미지 읽기에 실패했습니다.')); };
+        fr.readAsDataURL(file);
+      } catch (e) {
+        reject(e);
+      }
+    });
+  }
+
+  function dataUrlToBlob(dataUrl) {
+    var arr = String(dataUrl || '').split(',');
+    var mime = (arr[0].match(/:(.*?);/) || [])[1] || 'image/jpeg';
+    var bstr = atob(arr[1] || '');
+    var n = bstr.length;
+    var u8arr = new Uint8Array(n);
+    while (n--) u8arr[n] = bstr.charCodeAt(n);
+    return new Blob([u8arr], { type: mime });
+  }
+
+  function compressImageForUpload(file, maxBytes) {
+    var safeMax = Math.max(200 * 1024, Number(maxBytes) || (900 * 1024));
+    return fileToDataUrl(file).then(function (dataUrl) {
+      return new Promise(function (resolve, reject) {
+        var img = new Image();
+        img.onload = function () {
+          try {
+            var canvas = document.createElement('canvas');
+            var width = img.width || 0;
+            var height = img.height || 0;
+            if (!width || !height) {
+              return reject(new Error('이미지 크기를 확인할 수 없습니다.'));
+            }
+            // 과도한 고해상도 이미지는 먼저 축소
+            var maxSide = 2200;
+            if (width > maxSide || height > maxSide) {
+              var scale = Math.min(maxSide / width, maxSide / height);
+              width = Math.max(1, Math.round(width * scale));
+              height = Math.max(1, Math.round(height * scale));
+            }
+            canvas.width = width;
+            canvas.height = height;
+            var ctx = canvas.getContext('2d');
+            if (!ctx) return reject(new Error('이미지 압축 컨텍스트를 생성할 수 없습니다.'));
+            ctx.drawImage(img, 0, 0, width, height);
+
+            var q = 0.9;
+            var outData = '';
+            var outBlob = null;
+            while (q >= 0.45) {
+              outData = canvas.toDataURL('image/jpeg', q);
+              outBlob = dataUrlToBlob(outData);
+              if (outBlob.size <= safeMax) break;
+              q -= 0.1;
+            }
+            if (!outBlob) return reject(new Error('이미지 압축 결과가 비어 있습니다.'));
+            var ext = outBlob.type === 'image/png' ? 'png' : 'jpg';
+            var baseName = String(file.name || 'upload').replace(/\.[^/.]+$/, '');
+            var outName = baseName + '_compressed.' + ext;
+            resolve(new File([outBlob], outName, { type: outBlob.type || 'image/jpeg', lastModified: Date.now() }));
+          } catch (e2) {
+            reject(e2);
+          }
+        };
+        img.onerror = function () { reject(new Error('이미지 로딩에 실패했습니다.')); };
+        img.src = dataUrl;
+      });
+    });
+  }
+
   window.PG_API = {
     getToken: getToken,
     setAuth: setAuth,
@@ -797,9 +870,11 @@
       if (!file || typeof file.size !== 'number') {
         return Promise.reject(new Error('업로드할 파일을 선택하세요.'));
       }
-      var max = (imageType === 'main') ? (5 * 1024 * 1024) : (1 * 1024 * 1024); // main 5MB, logo/popcon 1MB
+      var max = (imageType === 'main') ? (5 * 1024 * 1024) : (1 * 1024 * 1024); // main 5MB, first/logo/popcon 1MB
       if (file.size > max) {
-        var typeNm = imageType === 'main' ? '메인이미지' : (imageType === 'popcon' ? '팝콘이미지' : '로고이미지');
+        var typeNm = imageType === 'main'
+          ? '메인이미지'
+          : (imageType === 'popcon' ? '팝콘이미지' : (imageType === 'first' ? '첫화면 로고이미지' : '로고이미지'));
         var maxMb = imageType === 'main' ? '5MB' : '1MB';
         return Promise.reject(new Error(typeNm + '는 ' + maxMb + ' 이하만 업로드할 수 있습니다.'));
       }
@@ -811,17 +886,33 @@
       fd.append('file', file);
       var headers = { 'Accept': 'application/json' };
       if (token) headers['Authorization'] = 'Bearer ' + token;
-      return fetchTextThenJson(base + '/api/org/branding/upload', {
-        method: 'POST',
-        headers: headers,
-        body: fd
-      }, '브랜딩 이미지 업로드 응답이 JSON이 아닙니다. 운영 서버에 최신 API가 배포됐는지, Nginx client_max_body_size(용량)를 확인하세요.').then(function (r) {
+      var uploadOnce = function (uploadFile) {
+        var sendFd = new FormData();
+        sendFd.append('compId', compId);
+        sendFd.append('imageType', imageType);
+        sendFd.append('file', uploadFile);
+        return fetchTextThenJson(base + '/api/org/branding/upload', {
+          method: 'POST',
+          headers: headers,
+          body: sendFd
+        }, '브랜딩 이미지 업로드 응답이 JSON이 아닙니다. 운영 서버에 최신 API가 배포됐는지, Nginx client_max_body_size(용량)를 확인하세요.');
+      };
+      return uploadOnce(file).catch(function (err) {
+        var msg = err && err.message ? String(err.message) : '';
+        if (msg.indexOf('HTTP 413') === -1) return Promise.reject(err);
+        // 프록시 제한(예: 1MB) 환경 대응: 자동 압축 후 1회 재시도
+        return compressImageForUpload(file, 900 * 1024).then(function (compressed) {
+          return uploadOnce(compressed);
+        }).catch(function (e2) {
+          return Promise.reject(e2 || err);
+        });
+      }).then(function (r) {
         if (r && r.success === false) throw new Error(r.message || '브랜딩 업로드 실패');
         return r.data || r;
       });
     },
     /** 브랜딩 테마 저장 */
-    orgBrandingSave: function (compId, theme, brandHost) {
+    orgBrandingSave: function (compId, theme, brandHost, siteName) {
       var base = getBaseUrl();
       var token = getToken();
       var headers = { 'Content-Type': 'application/x-www-form-urlencoded', 'Accept': 'application/json' };
@@ -830,12 +921,31 @@
       params.set('compId', compId);
       params.set('theme', theme || 'DEFAULT');
       if (typeof brandHost === 'string') params.set('brandHost', brandHost);
+      if (typeof siteName === 'string') params.set('siteName', siteName);
       return fetchTextThenJson(base + '/api/org/branding/save', {
         method: 'POST',
         headers: headers,
         body: params
       }, '브랜딩(테마) 저장 응답이 JSON이 아닙니다.').then(function (r) {
         if (r && r.success === false) throw new Error(r.message || '브랜딩 저장 실패');
+        return r.data || r;
+      });
+    },
+    /** 브랜딩 이미지 삭제 */
+    orgBrandingDeleteImage: function (compId, imageType) {
+      var base = getBaseUrl();
+      var token = getToken();
+      var headers = { 'Content-Type': 'application/x-www-form-urlencoded', 'Accept': 'application/json' };
+      if (token) headers['Authorization'] = 'Bearer ' + token;
+      var params = new URLSearchParams();
+      params.set('compId', compId || '');
+      params.set('imageType', imageType || '');
+      return fetchTextThenJson(base + '/api/org/branding/delete-image', {
+        method: 'POST',
+        headers: headers,
+        body: params
+      }, '브랜딩 이미지 삭제 응답이 JSON이 아닙니다.').then(function (r) {
+        if (r && r.success === false) throw new Error(r.message || '브랜딩 이미지 삭제 실패');
         return r.data || r;
       });
     }

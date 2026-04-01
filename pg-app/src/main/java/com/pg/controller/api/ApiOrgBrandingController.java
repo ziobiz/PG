@@ -39,6 +39,7 @@ public class ApiOrgBrandingController {
     private static final long MAIN_IMAGE_MAX_BYTES = 5 * 1024 * 1024;  // 5MB
     private static final long LOGO_IMAGE_MAX_BYTES = 1 * 1024 * 1024;  // 1MB
     private static final long POPCON_IMAGE_MAX_BYTES = 1 * 1024 * 1024;  // 1MB
+    private static final long FIRST_LOGO_IMAGE_MAX_BYTES = 1 * 1024 * 1024;  // 1MB
 
     private final OrgBrandingRepository brandingRepository;
     private final OrgUnitRepository orgUnitRepository;
@@ -64,9 +65,11 @@ public class ApiOrgBrandingController {
             Map<String, Object> empty = new LinkedHashMap<>();
             empty.put("mainImageUrl", "");
             empty.put("logoImageUrl", "");
+            empty.put("firstLogoImageUrl", "");
             empty.put("popconImageUrl", "");
             empty.put("theme", "DEFAULT");
             empty.put("brandHost", "");
+            empty.put("siteName", "");
             return ResponseEntity.ok(ApiResponse.ok(empty));
         }
         return orgUnitRepository.findByCode(compId.trim())
@@ -79,9 +82,11 @@ public class ApiOrgBrandingController {
                             m.put("compId", compId);
                             m.put("mainImageUrl", b.getMainImageUrl() != null ? b.getMainImageUrl() : "");
                             m.put("logoImageUrl", b.getLogoImageUrl() != null ? b.getLogoImageUrl() : "");
+                            m.put("firstLogoImageUrl", b.getFirstLogoImageUrl() != null ? b.getFirstLogoImageUrl() : "");
                             m.put("popconImageUrl", b.getPopconImageUrl() != null ? b.getPopconImageUrl() : "");
                             m.put("theme", b.getTheme() != null ? b.getTheme() : "DEFAULT");
                             m.put("brandHost", b.getBrandHost() != null ? b.getBrandHost() : "");
+                            m.put("siteName", b.getSiteName() != null ? b.getSiteName() : "");
                             return m;
                         }))
                 .map(ApiResponse::ok)
@@ -90,9 +95,11 @@ public class ApiOrgBrandingController {
                     Map<String, Object> empty = new LinkedHashMap<>();
                     empty.put("mainImageUrl", "");
                     empty.put("logoImageUrl", "");
+                    empty.put("firstLogoImageUrl", "");
                     empty.put("popconImageUrl", "");
                     empty.put("theme", "DEFAULT");
                     empty.put("brandHost", "");
+                    empty.put("siteName", "");
                     return ResponseEntity.ok(ApiResponse.ok(empty));
                 });
     }
@@ -116,15 +123,18 @@ public class ApiOrgBrandingController {
         if (!isBrandingEditable(ou)) {
             return ResponseEntity.ok(ApiResponse.fail("브랜딩(배경/로고) 변경권한이 없습니다.", "FORBIDDEN"));
         }
-        if (!"main".equals(imageType) && !"logo".equals(imageType) && !"popcon".equals(imageType)) {
-            return ResponseEntity.ok(ApiResponse.fail("imageType은 main, logo 또는 popcon이어야 합니다.", "INVALID"));
+        if (!"main".equals(imageType) && !"logo".equals(imageType) && !"first".equals(imageType) && !"popcon".equals(imageType)) {
+            return ResponseEntity.ok(ApiResponse.fail("imageType은 main, logo, first 또는 popcon이어야 합니다.", "INVALID"));
         }
         long maxBytes = "main".equals(imageType)
                 ? MAIN_IMAGE_MAX_BYTES
-                : ("popcon".equals(imageType) ? POPCON_IMAGE_MAX_BYTES : LOGO_IMAGE_MAX_BYTES);
+                : ("popcon".equals(imageType)
+                    ? POPCON_IMAGE_MAX_BYTES
+                    : ("first".equals(imageType) ? FIRST_LOGO_IMAGE_MAX_BYTES : LOGO_IMAGE_MAX_BYTES));
         if (file.getSize() > maxBytes) {
             String sizeMsg = "메인이미지는 5MB 이하여야 합니다.";
             if ("logo".equals(imageType)) sizeMsg = "로고이미지는 1MB 이하여야 합니다.";
+            if ("first".equals(imageType)) sizeMsg = "첫화면 로고이미지는 1MB 이하여야 합니다.";
             if ("popcon".equals(imageType)) sizeMsg = "팝콘이미지는 1MB 이하여야 합니다.";
             return ResponseEntity.ok(ApiResponse.fail(
                     sizeMsg,
@@ -152,6 +162,8 @@ public class ApiOrgBrandingController {
                 b.setMainImageUrl(url);
             } else if ("logo".equals(imageType)) {
                 b.setLogoImageUrl(url);
+            } else if ("first".equals(imageType)) {
+                b.setFirstLogoImageUrl(url);
             } else {
                 b.setPopconImageUrl(url);
             }
@@ -172,7 +184,8 @@ public class ApiOrgBrandingController {
     public ResponseEntity<ApiResponse<Map<String, Object>>> save(
             @RequestParam String compId,
             @RequestParam(required = false) String theme,
-            @RequestParam(required = false) String brandHost) {
+            @RequestParam(required = false) String brandHost,
+            @RequestParam(required = false) String siteName) {
         Optional<OrgUnit> ouOpt = orgUnitRepository.findByCode(compId.trim());
         if (ouOpt.isEmpty()) {
             return ResponseEntity.ok(ApiResponse.fail("업체를 찾을 수 없습니다.", "NOT_FOUND"));
@@ -198,11 +211,63 @@ public class ApiOrgBrandingController {
         if (brandHost != null) {
             b.setBrandHost(brandHost.isBlank() ? null : brandHost.trim());
         }
+        if (siteName != null) {
+            String s = siteName.trim();
+            if (s.length() > 100) s = s.substring(0, 100);
+            b.setSiteName(s.isBlank() ? null : s);
+        }
         brandingRepository.save(b);
         Map<String, Object> out = new LinkedHashMap<>();
         out.put("success", true);
         out.put("theme", themeVal);
         out.put("brandHost", b.getBrandHost() != null ? b.getBrandHost() : "");
+        out.put("siteName", b.getSiteName() != null ? b.getSiteName() : "");
+        return ResponseEntity.ok(ApiResponse.ok(out));
+    }
+
+    @PostMapping("/delete-image")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> deleteImage(
+            @RequestParam String compId,
+            @RequestParam String imageType) {
+        Optional<OrgUnit> ouOpt = orgUnitRepository.findByCode(compId.trim());
+        if (ouOpt.isEmpty()) {
+            return ResponseEntity.ok(ApiResponse.fail("업체를 찾을 수 없습니다.", "NOT_FOUND"));
+        }
+        OrgUnit ou = ouOpt.get();
+        if (ou.getOrgLevel() != OrgLevel.HEADQUARTERS && ou.getOrgLevel() != OrgLevel.REGIONAL && ou.getOrgLevel() != OrgLevel.MASTER_DIST) {
+            return ResponseEntity.ok(ApiResponse.fail("총본사, 본사 또는 총판만 브랜딩을 설정할 수 있습니다.", "FORBIDDEN"));
+        }
+        if (!isBrandingEditable(ou)) {
+            return ResponseEntity.ok(ApiResponse.fail("브랜딩(배경/로고) 변경권한이 없습니다.", "FORBIDDEN"));
+        }
+        if (!"main".equals(imageType) && !"logo".equals(imageType) && !"first".equals(imageType) && !"popcon".equals(imageType)) {
+            return ResponseEntity.ok(ApiResponse.fail("imageType은 main, logo, first 또는 popcon이어야 합니다.", "INVALID"));
+        }
+        OrgBranding b = brandingRepository.findByOrgUnitId(ou.getId())
+                .orElseGet(() -> {
+                    OrgBranding nb = new OrgBranding();
+                    nb.setOrgUnitId(ou.getId());
+                    return nb;
+                });
+        String oldUrl;
+        if ("main".equals(imageType)) {
+            oldUrl = b.getMainImageUrl();
+            b.setMainImageUrl(null);
+        } else if ("logo".equals(imageType)) {
+            oldUrl = b.getLogoImageUrl();
+            b.setLogoImageUrl(null);
+        } else if ("first".equals(imageType)) {
+            oldUrl = b.getFirstLogoImageUrl();
+            b.setFirstLogoImageUrl(null);
+        } else {
+            oldUrl = b.getPopconImageUrl();
+            b.setPopconImageUrl(null);
+        }
+        brandingRepository.save(b);
+        deleteUploadedFileIfManaged(compId.trim(), oldUrl);
+        Map<String, Object> out = new LinkedHashMap<>();
+        out.put("imageType", imageType);
+        out.put("deleted", true);
         return ResponseEntity.ok(ApiResponse.ok(out));
     }
 
@@ -224,6 +289,20 @@ public class ApiOrgBrandingController {
             s = s.substring(0, 200);
         }
         return s;
+    }
+
+    private void deleteUploadedFileIfManaged(String compId, String oldUrl) {
+        if (oldUrl == null || oldUrl.isBlank() || compId == null || compId.isBlank()) return;
+        String prefix = "/uploads/org/" + compId + "/";
+        if (!oldUrl.startsWith(prefix)) return;
+        String fileName = oldUrl.substring(prefix.length()).trim();
+        if (fileName.isBlank() || fileName.contains("..") || fileName.contains("/") || fileName.contains("\\")) return;
+        try {
+            Path filePath = Paths.get(System.getProperty("user.dir"), uploadDir, "org", compId, fileName).normalize();
+            Files.deleteIfExists(filePath);
+        } catch (Exception ignored) {
+            // DB 값 제거가 우선이며 파일 삭제 실패는 무시한다.
+        }
     }
 
     private boolean isBrandingEditable(OrgUnit ou) {

@@ -55,15 +55,19 @@ public class ApiPublicOrgPortalController {
         Map<String, Object> branding = new LinkedHashMap<>();
         branding.put("mainImageUrl", "");
         branding.put("logoImageUrl", "");
+        branding.put("firstLogoImageUrl", "");
         branding.put("popconImageUrl", "");
         branding.put("theme", "DEFAULT");
         branding.put("brandHost", "");
+        branding.put("siteName", "");
         brandingRepository.findByOrgUnitId(ou.getId()).ifPresent(b -> {
             branding.put("mainImageUrl", b.getMainImageUrl() != null ? b.getMainImageUrl() : "");
             branding.put("logoImageUrl", b.getLogoImageUrl() != null ? b.getLogoImageUrl() : "");
+            branding.put("firstLogoImageUrl", b.getFirstLogoImageUrl() != null ? b.getFirstLogoImageUrl() : "");
             branding.put("popconImageUrl", b.getPopconImageUrl() != null ? b.getPopconImageUrl() : "");
             branding.put("theme", b.getTheme() != null ? b.getTheme() : "DEFAULT");
             branding.put("brandHost", b.getBrandHost() != null ? b.getBrandHost() : "");
+            branding.put("siteName", b.getSiteName() != null ? b.getSiteName() : "");
         });
         out.put("branding", branding);
         return ResponseEntity.ok(ApiResponse.ok(out));

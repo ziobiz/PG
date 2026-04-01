@@ -456,10 +456,108 @@
         if (!userDisplay) return;
         var compNm = (u && u.compNm) ? String(u.compNm).trim() : '';
         var userNm = (u && u.userNm) ? String(u.userNm).trim() : '';
-        if (!compNm && !userNm) userDisplay.textContent = 'PG 통합관리자';
+        if (!compNm && !userNm) userDisplay.textContent = '';
         else if (!compNm) userDisplay.textContent = userNm;
         else if (!userNm) userDisplay.textContent = compNm;
         else userDisplay.textContent = compNm + ' | ' + userNm;
+      }
+      function applySidebarLogo(url) {
+        var img = document.getElementById('sidebar-logo-img');
+        var text = document.getElementById('sidebar-logo-text');
+        var sub = document.getElementById('sidebar-logo-sub');
+        if (!img) return;
+        var src = String(url || '').trim();
+        if (!src) {
+          img.style.display = 'none';
+          img.removeAttribute('src');
+          if (text) text.style.display = '';
+          if (sub) sub.style.display = '';
+          return;
+        }
+        function showTextFallback() {
+          img.style.display = 'none';
+          if (text) text.style.display = '';
+          if (sub) sub.style.display = '';
+        }
+        function showImage() {
+          img.style.display = 'block';
+          img.style.margin = '0 auto';
+          img.style.maxWidth = '180px';
+          img.style.maxHeight = '50px';
+          if (text) text.style.display = 'none';
+          if (sub) sub.style.display = 'none';
+        }
+        var probe = new Image();
+        probe.onload = function () {
+          img.src = src;
+          if (img.complete && img.naturalWidth > 0) {
+            showImage();
+            return;
+          }
+          img.onload = showImage;
+          img.onerror = showTextFallback;
+        };
+        probe.onerror = showTextFallback;
+        probe.src = src;
+      }
+      window.PG_applySidebarLogo = applySidebarLogo;
+      var sidebarLogoResolveSeq = 0;
+      function resolveAndApplySidebarLogo(userObj, hostValue) {
+        var mySeq = ++sidebarLogoResolveSeq;
+        if (!window.PG_API) return Promise.resolve(false);
+        var hostNorm = String(hostValue || '').trim();
+        var apiBase = typeof window.PG_assetApiBase === 'function'
+          ? window.PG_assetApiBase()
+          : ((window.PG_API_BASE || '').replace(/\/$/, '') || window.location.origin);
+        function absUrl(u) {
+          var s = String(u || '').trim();
+          if (!s) return '';
+          if (/^https?:\/\//i.test(s)) return s;
+          return apiBase + s;
+        }
+        function tryApplyFromBranding(b) {
+          if (!b || !b.logoImageUrl) return false;
+          var src = absUrl(b.logoImageUrl);
+          if (!src) return false;
+          // 업로드 직후/동일 URL 캐시로 갱신이 안 되는 케이스 방지
+          src += (src.indexOf('?') >= 0 ? '&' : '?') + 'v=' + Date.now();
+          if (mySeq !== sidebarLogoResolveSeq) return false;
+          applySidebarLogo(src);
+          return true;
+        }
+        function tryOrgBranding(compId) {
+          var cid = String(compId || '').trim();
+          if (!cid || !window.PG_API.orgBranding) return Promise.resolve(false);
+          return window.PG_API.orgBranding(cid).then(function (b) {
+            return tryApplyFromBranding(b);
+          }).catch(function () { return false; });
+        }
+        function tryPublicHostBranding() {
+          if (!hostNorm || !window.PG_API.orgBrandingPublic) return Promise.resolve(false);
+          return window.PG_API.orgBrandingPublic('', hostNorm).then(function (b) {
+            return tryApplyFromBranding(b);
+          }).catch(function () { return false; });
+        }
+        function tryPortalHostBranding() {
+          if (!hostNorm || !window.PG_API.orgPortalByHost) return Promise.resolve(false);
+          return window.PG_API.orgPortalByHost(hostNorm).then(function (res) {
+            var p0 = res && res.data !== undefined ? res.data : res;
+            return tryApplyFromBranding(p0 && p0.branding ? p0.branding : null);
+          }).catch(function () { return false; });
+        }
+        var brandingCompId = (userObj && userObj.brandingCompId) ? String(userObj.brandingCompId).trim() : '';
+        var compId = (userObj && userObj.compId) ? String(userObj.compId).trim() : '';
+        var chain = Promise.resolve(false);
+        chain = chain.then(function (ok) { return ok ? true : tryOrgBranding(brandingCompId); });
+        chain = chain.then(function (ok) { return ok ? true : tryOrgBranding(compId); });
+        chain = chain.then(function (ok) { return ok ? true : tryPublicHostBranding(); });
+        chain = chain.then(function (ok) { return ok ? true : tryPortalHostBranding(); });
+        chain = chain.then(function (ok) { return ok ? true : tryOrgBranding('0000000000'); });
+        return chain.then(function (ok) {
+          // 오래된 비동기 결과가 최신 로고 상태를 덮어쓰지 않도록 보호
+          if (mySeq !== sidebarLogoResolveSeq) return false;
+          return ok;
+        });
       }
       applyHeaderUserDisplay(user || {});
       var host = (window.location && window.location.host) ? window.location.host : '';
@@ -472,25 +570,7 @@
           try { sessionStorage.setItem('pg_admin_user', JSON.stringify(merged)); } catch (eSave) {}
           user = merged;
           applyHeaderUserDisplay(merged);
-          // host 기반 브랜딩과 별개로, 좌측 상단 로고는 소속 조직 브랜딩으로 보조 보장
-          var cid2 = (merged && merged.brandingCompId) ? String(merged.brandingCompId).trim() : '';
-          if (!cid2 && merged && merged.compId) cid2 = String(merged.compId).trim();
-          if (cid2 && window.PG_API && window.PG_API.orgBranding) {
-            window.PG_API.orgBranding(cid2).then(function (b2) {
-              if (!b2 || !b2.logoImageUrl) return;
-              var apiBase2 = typeof window.PG_assetApiBase === 'function' ? window.PG_assetApiBase() : ((window.PG_API_BASE || '').replace(/\/$/, '') || window.location.origin);
-              var img2 = document.getElementById('sidebar-logo-img');
-              var text2 = document.getElementById('sidebar-logo-text');
-              var sub2 = document.getElementById('sidebar-logo-sub');
-              if (img2) {
-                var src2 = /^https?:\/\//i.test(String(b2.logoImageUrl)) ? String(b2.logoImageUrl) : (apiBase2 + b2.logoImageUrl);
-                img2.src = src2;
-                img2.style.display = '';
-              }
-              if (text2) text2.style.display = 'none';
-              if (sub2) sub2.style.display = 'none';
-            }).catch(function () {});
-          }
+          resolveAndApplySidebarLogo(merged, host).catch(function () {});
         }).catch(function () {});
       }
       function applyRuntimeBranding(b) {
@@ -503,12 +583,7 @@
           return apiBase + s;
         }
         if (b.logoImageUrl) {
-          var img = document.getElementById('sidebar-logo-img');
-          var text = document.getElementById('sidebar-logo-text');
-          var sub = document.getElementById('sidebar-logo-sub');
-          if (img) { img.src = absUrl(b.logoImageUrl); img.style.display = ''; }
-          if (text) text.style.display = 'none';
-          if (sub) sub.style.display = 'none';
+          applySidebarLogo(absUrl(b.logoImageUrl));
         }
         if (b.popconImageUrl && !sessionStorage.getItem('pg_popcon_seen')) {
           var p = document.getElementById('popconPreviewModal');
@@ -531,6 +606,9 @@
           document.body.classList.remove('theme-default', 'theme-light', 'theme-dark', 'theme-pastel_1', 'theme-pastel_2', 'theme-pastel_3', 'theme-pastel_4', 'theme-pastel_5');
           document.body.classList.add('theme-' + (b.theme || 'default').toLowerCase());
         }
+        if (b.siteName) {
+          try { document.title = String(b.siteName); } catch (eTitle) {}
+        }
       }
       if (host && window.PG_API && window.PG_API.orgPortalByHost) {
         window.PG_API.orgPortalByHost(host).then(function (resHost) {
@@ -552,13 +630,19 @@
       }
       var brandingCid = (user && user.brandingCompId) ? String(user.brandingCompId).trim() : '';
       if (!brandingCid && user && user.compId) brandingCid = String(user.compId).trim();
-      // 도메인 분리 브랜딩 원칙: host가 있으면 사용자 compId 브랜딩으로 덮어쓰지 않는다.
-      if (!host && brandingCid && window.PG_API && window.PG_API.orgBranding) {
+      // 로그인 후 사이드 로고는 사용자 소속 브랜딩을 최종 보장한다.
+      if (brandingCid && window.PG_API && window.PG_API.orgBranding) {
         window.PG_API.orgBranding(brandingCid).then(function (b) {
-          if (hostBrandingApplied) return;
           applyRuntimeBranding(b);
         }).catch(function () {});
       }
+      resolveAndApplySidebarLogo(user || {}, host).catch(function () {});
+      // 로그인 직후 브랜딩 저장 반영 지연/캐시/비동기 경쟁 상황에서도 로고를 최종 보장
+      [1200, 3200, 6200].forEach(function (ms) {
+        setTimeout(function () {
+          resolveAndApplySidebarLogo(user || {}, host).catch(function () {});
+        }, ms);
+      });
       if (document.getElementById('headerClientIp')) document.getElementById('headerClientIp').textContent = '127.0.0.1';
       if (document.getElementById('headerAccessTime')) {
         var d = new Date();

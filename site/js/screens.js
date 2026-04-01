@@ -2607,19 +2607,24 @@
           '<div class="row mb-2"><div class="col-sm-6"><label class="form-label">메인이미지</label><div class="input-group input-group-sm">' +
           '<input type="text" class="form-control form-control-sm" name="mainImageUrl" id="brandingMainImageUrl" readonly placeholder="업로드 파일명">' +
           '<input type="file" class="d-none" id="brandingMainImageFile" accept="image/png,image/jpeg,image/jpg">' +
-          '<button type="button" class="btn btn-outline-secondary" id="brandingMainImageBrowse">Browse</button></div></div></div>' +
-          '<div class="row mb-2"><div class="col-sm-6"><label class="form-label">로고이미지</label><div class="input-group input-group-sm">' +
+          '<button type="button" class="btn btn-outline-secondary" id="brandingMainImageBrowse">Browse</button><button type="button" class="btn btn-outline-danger" id="brandingMainImageDelete">삭제</button></div></div></div>' +
+          '<div class="row mb-2"><div class="col-sm-6"><label class="form-label">첫화면 로고이미지(로그인 페이지)</label><div class="input-group input-group-sm">' +
+          '<input type="text" class="form-control form-control-sm" name="firstLogoImageUrl" id="brandingFirstLogoImageUrl" readonly placeholder="업로드 파일명">' +
+          '<input type="file" class="d-none" id="brandingFirstLogoImageFile" accept="image/png,image/jpeg,image/jpg">' +
+          '<button type="button" class="btn btn-outline-secondary" id="brandingFirstLogoImageBrowse">Browse</button><button type="button" class="btn btn-outline-danger" id="brandingFirstLogoImageDelete">삭제</button></div></div></div>' +
+          '<div class="row mb-2"><div class="col-sm-6"><label class="form-label">로그인 후 로고이미지(좌측 메뉴)</label><div class="input-group input-group-sm">' +
           '<input type="text" class="form-control form-control-sm" name="logoImageUrl" id="brandingLogoImageUrl" readonly placeholder="업로드 파일명">' +
           '<input type="file" class="d-none" id="brandingLogoImageFile" accept="image/png,image/jpeg,image/jpg">' +
-          '<button type="button" class="btn btn-outline-secondary" id="brandingLogoImageBrowse">Browse</button></div></div></div>' +
+          '<button type="button" class="btn btn-outline-secondary" id="brandingLogoImageBrowse">Browse</button><button type="button" class="btn btn-outline-danger" id="brandingLogoImageDelete">삭제</button></div></div></div>' +
           '<div class="row mb-2"><div class="col-sm-6"><label class="form-label">팝콘이미지</label><div class="input-group input-group-sm">' +
           '<input type="text" class="form-control form-control-sm" name="popconImageUrl" id="brandingPopconImageUrl" readonly placeholder="업로드 파일명">' +
           '<input type="file" class="d-none" id="brandingPopconImageFile" accept="image/png,image/jpeg,image/jpg">' +
-          '<button type="button" class="btn btn-outline-secondary" id="brandingPopconImageBrowse">Browse</button></div></div></div>' +
+          '<button type="button" class="btn btn-outline-secondary" id="brandingPopconImageBrowse">Browse</button><button type="button" class="btn btn-outline-danger" id="brandingPopconImageDelete">삭제</button></div></div></div>' +
           '<div class="row mb-2"><div class="col-sm-4"><label class="form-label">배경테마</label><select class="form-control form-control-sm" name="brandingTheme" id="brandingTheme">' +
           '<option value="DEFAULT">기본(현재)</option><option value="LIGHT">Light (흰배경/검정글씨)</option><option value="DARK">Dark (어두운배경/흰글씨)</option>' +
           '<option value="PASTEL_1">파스텔1</option><option value="PASTEL_2">파스텔2</option><option value="PASTEL_3">파스텔3</option><option value="PASTEL_4">파스텔4</option><option value="PASTEL_5">파스텔5</option>' +
           '</select></div></div>' +
+          '<div class="row mb-2"><div class="col-sm-8"><label class="form-label">사이트 이름(브라우저 탭)</label><input type="text" class="form-control form-control-sm" name="siteName" id="brandingSiteName" maxlength="100" placeholder="예: OTL PAY 관리자"></div></div>' +
           '<div class="row mb-2"><div class="col-sm-8"><label class="form-label">로그인 안내 호스트</label><input type="text" class="form-control form-control-sm" name="brandHost" id="brandingBrandHost" placeholder="예: api.example.com (선택)"></div></div>';
       } else if (sec.type === 'pgBindingList') {
         html += '<div class="pg-binding-list-wrap"><table class="table table-sm table-bordered pg-binding-table"><thead><tr>' +
