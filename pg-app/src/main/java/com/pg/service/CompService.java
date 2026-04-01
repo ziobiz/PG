@@ -293,6 +293,11 @@ public class CompService {
         };
     }
 
+    private static boolean isHeadquartersFixedCode(String compId) {
+        String v = compId != null ? compId.trim() : "";
+        return "0000000000".equals(v);
+    }
+
     /** 업체구분별 접두사: 본사=10, 총판=20, 지사=30, 대리점=40, 영업점=50, 가맹점=60. 총본사(HQ)는 0000000000 고정. */
     private static String compCodePrefixFromCompDiv(String compDiv) {
         if (compDiv == null || compDiv.isEmpty()) return "40";
@@ -661,8 +666,24 @@ public class CompService {
                 .flatMap(ou -> merchantProfileRepository.findByOrgUnitId(ou.getId())
                         .map(mp -> {
                             if (compNm != null) ou.setName(compNm);
-                            if (compDiv != null) ou.setOrgLevel(orgLevelFromCompDiv(compDiv));
-                            OrgLevel childLevel = ou.getOrgLevel() != null ? ou.getOrgLevel() : orgLevelFromCompDiv(compDiv);
+                            // 업체정보 수정에서는 기존 조직레벨 변경을 허용하지 않는다.
+                            // (업체코드-조직레벨 정합성 보장: 총본사/본사/총판이 하위 레벨로 바뀌는 오작동 방지)
+                            OrgLevel childLevel = ou.getOrgLevel();
+                            // 총본사 고정코드(0000000000)는 레벨을 항상 HEADQUARTERS로 강제 보정한다.
+                            if (isHeadquartersFixedCode(ou.getCode()) && childLevel != OrgLevel.HEADQUARTERS) {
+                                ou.setOrgLevel(OrgLevel.HEADQUARTERS);
+                                childLevel = OrgLevel.HEADQUARTERS;
+                            }
+                            if (childLevel == null) {
+                                throw new IllegalArgumentException("조직 레벨 정보가 없습니다. 관리자에게 문의하세요.");
+                            }
+                            if (compDiv != null && !compDiv.isBlank()) {
+                                String incomingDiv = compDiv.trim().toUpperCase();
+                                String currentDiv = childLevel.name();
+                                if (!incomingDiv.equals(currentDiv)) {
+                                    throw new IllegalArgumentException("업체구분은 변경할 수 없습니다. 현재 조직구분(" + currentDiv + ")으로만 저장 가능합니다.");
+                                }
+                            }
                             boolean parentLocked = childLevel == OrgLevel.HEADQUARTERS
                                     || childLevel == OrgLevel.REGIONAL
                                     || childLevel == OrgLevel.MASTER_DIST;
@@ -686,13 +707,11 @@ public class CompService {
                                 }
                             }
                             orgUnitRepository.save(ou);
-                            String effDivForCommission = compDiv != null && !compDiv.isBlank()
-                                    ? compDiv.trim().toUpperCase()
-                                    : (ou.getOrgLevel() != null ? ou.getOrgLevel().name() : "");
+                            String effDivForCommission = childLevel.name();
                             if (commissionConfigAllowed != null) mp.setCommissionConfigAllowed(commissionConfigAllowed);
                             if (webPaymentUseYn != null && !webPaymentUseYn.trim().isEmpty()) mp.setWebPaymentUseYn(webPaymentUseYn.trim());
                             if (baseCurrency != null && !baseCurrency.trim().isEmpty()) {
-                                String divForVal = compDiv != null ? compDiv : (ou.getOrgLevel() != null ? ou.getOrgLevel().name() : "");
+                                String divForVal = childLevel.name();
                                 validateBaseCurrency(divForVal, baseCurrency);
                                 if ("MASTER_DIST".equalsIgnoreCase(divForVal)) {
                                     Long pid = parentId != null ? parentId : ou.getParentId();

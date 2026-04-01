@@ -63,12 +63,15 @@ public class CommissionService {
         this.distributionFeeConfigRepository = distributionFeeConfigRepository;
     }
 
-    public PageResult<Map<String, Object>> search(String searchCompId, String searchCompNm, int page, int size) {
+    public PageResult<Map<String, Object>> search(String searchCompId, String searchCompNm, String searchCompDiv, String useYn, int page, int size) {
         List<OrgUnit> all = orgUnitRepository.findAll(Sort.by(Sort.Direction.ASC, "code"));
+        Map<Long, OrgUnit> orgById = all.stream()
+                .filter(o -> o.getId() != null)
+                .collect(Collectors.toMap(OrgUnit::getId, o -> o, (a, b) -> a));
         List<OrgUnit> filtered = all.stream()
                 .filter(o -> o.getOrgLevel() == OrgLevel.MERCHANT)
-                .filter(o -> (searchCompId == null || searchCompId.isEmpty() || (o.getCode() != null && o.getCode().contains(searchCompId))))
-                .filter(o -> (searchCompNm == null || searchCompNm.isEmpty() || (o.getName() != null && o.getName().contains(searchCompNm))))
+                .filter(o -> matchUseYn(o, useYn))
+                .filter(o -> matchCommissionSearchTarget(o, searchCompId, searchCompNm, searchCompDiv))
                 .collect(Collectors.toList());
         int total = filtered.size();
         int start = (page - 1) * size;
@@ -79,6 +82,7 @@ public class CommissionService {
         List<Map<String, Object>> list = new ArrayList<>();
         for (OrgUnit ou : pageList) {
             Map<String, Object> m = buildCommissionRow(ou, defaultPolicy);
+            syncNamesFromCurrentOrgTree(m, ou, orgById);
             list.add(m);
         }
 
@@ -97,9 +101,11 @@ public class CommissionService {
         m.put("compId", merchant.getCode());
         m.put("compNm", merchant.getName());
         m.put("compDiv", merchant.getOrgLevel() != null ? merchant.getOrgLevel().name() : "");
+        m.put("useYn", resolveOrgUseYn(merchant));
         String regDt = merchant.getCreatedAt() != null ? merchant.getCreatedAt().toString().substring(0, 10) : null;
         m.put("regDt", regDt);
         fillAncestorNames(m, merchant);
+        refreshAncestorNamesByCode(m);
 
         String effectiveScope = resolveMerchantHqScopeForDisplay(merchant);
         CommissionPolicy policy = commissionPolicyRepository.findByScope(merchant.getCode())
@@ -249,35 +255,51 @@ public class CommissionService {
      */
     private void fillAncestorNames(Map<String, Object> m, OrgUnit merchant) {
         String hqNm = "", regionalNm = "", masterNm = "", branchNm = "", agencyNm = "", salesOfficeNm = "";
+        String hqId = "", regionalId = "", masterId = "", branchId = "", agencyId = "", salesOfficeId = "";
         OrgUnit cur = merchant;
         for (int i = 0; i < 20 && cur != null; i++) {
             OrgLevel lv = cur.getOrgLevel();
             if (lv != null) {
-                String nm = cur.getName() != null ? cur.getName() : "";
+                String nm = "";
+                if (cur.getName() != null && !cur.getName().isBlank()) {
+                    nm = cur.getName().trim();
+                } else if (cur.getDomainSettingName() != null && !cur.getDomainSettingName().isBlank()) {
+                    nm = cur.getDomainSettingName().trim();
+                } else if (cur.getCode() != null) {
+                    nm = cur.getCode();
+                }
+                String code = cur.getCode() != null ? cur.getCode() : "";
                 switch (lv) {
                     case HEADQUARTERS -> {
                         if (hqNm.isEmpty()) hqNm = nm;
+                        if (hqId.isEmpty()) hqId = code;
                     }
                     case REGIONAL -> {
                         if (regionalNm.isEmpty()) regionalNm = nm;
+                        if (regionalId.isEmpty()) regionalId = code;
                     }
                     case MASTER_DIST -> {
                         if (masterNm.isEmpty()) masterNm = nm;
+                        if (masterId.isEmpty()) masterId = code;
                     }
                     case BRANCH -> {
                         if (branchNm.isEmpty()) branchNm = nm;
+                        if (branchId.isEmpty()) branchId = code;
                     }
                     case AGENCY -> {
                         if (agencyNm.isEmpty()) agencyNm = nm;
+                        if (agencyId.isEmpty()) agencyId = code;
                     }
                     case SALES_OFFICE -> {
                         if (salesOfficeNm.isEmpty()) salesOfficeNm = nm;
+                        if (salesOfficeId.isEmpty()) salesOfficeId = code;
                     }
                     default -> {
                     }
                 }
             }
-            cur = cur.getParentId() != null ? orgUnitRepository.findById(cur.getParentId()).orElse(null) : null;
+            Long parentId = cur.getParentId();
+            cur = parentId != null ? orgUnitRepository.findById(parentId).orElse(null) : null;
         }
         m.put("hqNm", hqNm);
         m.put("regionalNm", regionalNm);
@@ -285,6 +307,174 @@ public class CommissionService {
         m.put("branchNm", branchNm);
         m.put("agencyNm", agencyNm);
         m.put("salesOfficeNm", salesOfficeNm);
+        m.put("hqId", hqId);
+        m.put("regionalId", regionalId);
+        m.put("masterId", masterId);
+        m.put("branchId", branchId);
+        m.put("agencyId", agencyId);
+        m.put("salesOfficeId", salesOfficeId);
+    }
+
+    /**
+     * 수수료관리의 상위 조직 업체명은 항상 현재 OrgUnit.name 기준으로 보정한다.
+     * (이전 화면 캐시/과거 스냅샷 영향 제거)
+     */
+    private void refreshAncestorNamesByCode(Map<String, Object> m) {
+        if (m == null) return;
+        String[][] pairs = new String[][] {
+                {"hqId", "hqNm"},
+                {"regionalId", "regionalNm"},
+                {"masterId", "masterNm"},
+                {"branchId", "branchNm"},
+                {"agencyId", "agencyNm"},
+                {"salesOfficeId", "salesOfficeNm"}
+        };
+        for (String[] p : pairs) {
+            String codeKey = p[0];
+            String nameKey = p[1];
+            Object codeObj = m.get(codeKey);
+            String code = codeObj != null ? String.valueOf(codeObj).trim() : "";
+            if (code.isEmpty()) continue;
+            orgUnitRepository.findByCode(code).ifPresent(ou -> {
+                String nm = ou.getName() != null ? ou.getName().trim() : "";
+                if (!nm.isEmpty()) m.put(nameKey, nm);
+            });
+        }
+    }
+
+    /**
+     * 검색 응답 직전에 조직 트리를 다시 타며 현재 업체명을 최종 동기화한다.
+     * (업체코드/parentId 기반 단일 소스 보장)
+     */
+    private void syncNamesFromCurrentOrgTree(Map<String, Object> m, OrgUnit merchant, Map<Long, OrgUnit> orgById) {
+        if (m == null || merchant == null || orgById == null || orgById.isEmpty()) return;
+        if (merchant.getName() != null && !merchant.getName().isBlank()) {
+            m.put("compNm", merchant.getName().trim());
+        }
+
+        String hqNm = "", regionalNm = "", masterNm = "", branchNm = "", agencyNm = "", salesOfficeNm = "";
+        String hqId = "", regionalId = "", masterId = "", branchId = "", agencyId = "", salesOfficeId = "";
+
+        OrgUnit cur = merchant;
+        for (int i = 0; i < 20 && cur != null; i++) {
+            OrgLevel lv = cur.getOrgLevel();
+            String nm = cur.getName() != null ? cur.getName().trim() : "";
+            String code = cur.getCode() != null ? cur.getCode().trim() : "";
+            if (lv != null) {
+                switch (lv) {
+                    case HEADQUARTERS -> {
+                        if (hqId.isEmpty()) hqId = code;
+                        if (hqNm.isEmpty()) hqNm = !nm.isEmpty() ? nm : code;
+                    }
+                    case REGIONAL -> {
+                        if (regionalId.isEmpty()) regionalId = code;
+                        if (regionalNm.isEmpty()) regionalNm = !nm.isEmpty() ? nm : code;
+                    }
+                    case MASTER_DIST -> {
+                        if (masterId.isEmpty()) masterId = code;
+                        if (masterNm.isEmpty()) masterNm = !nm.isEmpty() ? nm : code;
+                    }
+                    case BRANCH -> {
+                        if (branchId.isEmpty()) branchId = code;
+                        if (branchNm.isEmpty()) branchNm = !nm.isEmpty() ? nm : code;
+                    }
+                    case AGENCY -> {
+                        if (agencyId.isEmpty()) agencyId = code;
+                        if (agencyNm.isEmpty()) agencyNm = !nm.isEmpty() ? nm : code;
+                    }
+                    case SALES_OFFICE -> {
+                        if (salesOfficeId.isEmpty()) salesOfficeId = code;
+                        if (salesOfficeNm.isEmpty()) salesOfficeNm = !nm.isEmpty() ? nm : code;
+                    }
+                    default -> {
+                    }
+                }
+            }
+            Long pid = cur.getParentId();
+            cur = pid != null ? orgById.get(pid) : null;
+        }
+
+        m.put("hqId", hqId); m.put("hqNm", hqNm);
+        m.put("regionalId", regionalId); m.put("regionalNm", regionalNm);
+        m.put("masterId", masterId); m.put("masterNm", masterNm);
+        m.put("branchId", branchId); m.put("branchNm", branchNm);
+        m.put("agencyId", agencyId); m.put("agencyNm", agencyNm);
+        m.put("salesOfficeId", salesOfficeId); m.put("salesOfficeNm", salesOfficeNm);
+    }
+
+    private String resolveOrgUseYn(OrgUnit orgUnit) {
+        if (orgUnit == null) return "Y";
+        Long orgUnitId = orgUnit.getId();
+        if (orgUnitId == null) return "Y";
+        String fromProfile = merchantProfileRepository.findByOrgUnitId(orgUnitId)
+                .map(mp -> {
+                    String v = mp.getUseYn();
+                    return normalizeStoredUseYn(v);
+                })
+                .orElse("");
+        if (!fromProfile.isBlank()) return fromProfile;
+        String status = orgUnit.getStatus() != null ? orgUnit.getStatus().trim().toUpperCase(Locale.ROOT) : "";
+        if (!status.isBlank()) return "ACTIVE".equals(status) ? "Y" : "N";
+        return "Y";
+    }
+
+    private static String normalizeStoredUseYn(String raw) {
+        if (raw == null || raw.trim().isEmpty()) return "";
+        String t = raw.trim().toUpperCase(Locale.ROOT);
+        if ("Y".equals(t) || "사용".equals(raw.trim())) return "Y";
+        if ("N".equals(t) || "미사용".equals(raw.trim())) return "N";
+        // 비표준 값은 미사용으로 간주 (운영 데이터 편차 대응)
+        return "N";
+    }
+
+    private static boolean containsIgnoreCase(String src, String keyword) {
+        if (keyword == null || keyword.trim().isEmpty()) return true;
+        if (src == null || src.isEmpty()) return false;
+        return src.toLowerCase(Locale.ROOT).contains(keyword.trim().toLowerCase(Locale.ROOT));
+    }
+
+    private static String normalizeUseYnFilter(String useYn) {
+        if (useYn == null || useYn.trim().isEmpty()) return "Y";
+        String t = useYn.trim().toUpperCase(Locale.ROOT);
+        if ("미사용".equals(useYn.trim())) return "N";
+        return "N".equals(t) ? "N" : "Y";
+    }
+
+    private boolean matchUseYn(OrgUnit orgUnit, String useYn) {
+        String f = normalizeUseYnFilter(useYn);
+        return f.equals(resolveOrgUseYn(orgUnit));
+    }
+
+    private boolean matchCommissionSearchTarget(OrgUnit merchant, String searchCompId, String searchCompNm, String searchCompDiv) {
+        String div = searchCompDiv != null ? searchCompDiv.trim().toUpperCase(Locale.ROOT) : "";
+        if (div.isEmpty() || "MERCHANT".equals(div)) {
+            return containsIgnoreCase(merchant.getCode(), searchCompId)
+                    && containsIgnoreCase(merchant.getName(), searchCompNm);
+        }
+        Map<String, Object> target = new HashMap<>();
+        fillAncestorNames(target, merchant);
+        String codeKey = switch (div) {
+            case "HEADQUARTERS" -> "hqId";
+            case "REGIONAL" -> "regionalId";
+            case "MASTER_DIST" -> "masterId";
+            case "BRANCH" -> "branchId";
+            case "AGENCY" -> "agencyId";
+            case "SALES_OFFICE" -> "salesOfficeId";
+            default -> "";
+        };
+        String nameKey = switch (div) {
+            case "HEADQUARTERS" -> "hqNm";
+            case "REGIONAL" -> "regionalNm";
+            case "MASTER_DIST" -> "masterNm";
+            case "BRANCH" -> "branchNm";
+            case "AGENCY" -> "agencyNm";
+            case "SALES_OFFICE" -> "salesOfficeNm";
+            default -> "";
+        };
+        String targetCode = codeKey.isEmpty() ? "" : String.valueOf(target.getOrDefault(codeKey, ""));
+        String targetName = nameKey.isEmpty() ? "" : String.valueOf(target.getOrDefault(nameKey, ""));
+        return containsIgnoreCase(targetCode, searchCompId)
+                && containsIgnoreCase(targetName, searchCompNm);
     }
 
     public Optional<Map<String, Object>> getDetail(String compId) {
@@ -336,6 +526,18 @@ public class CommissionService {
                 m.put("feeFx", ex.getFeeFx());
                 m.put("feeRefund", ex.getFeeRefund());
                 m.put("feeChargebackWarn", ex.getFeeChargebackWarn());
+            });
+            merchantProfileRepository.findByOrgUnitId(ou.getId()).ifPresent(mp -> {
+                String rs = mp.getRegionalSettings();
+                if (rs == null || rs.isBlank()) return;
+                try {
+                    Map<String, Object> obj = MAPPER.readValue(rs, new TypeReference<>() {});
+                    if (obj.get("hqPolicyScope") != null) m.put("hqPolicyScope", String.valueOf(obj.get("hqPolicyScope")));
+                    if (obj.get("holdRate") != null) m.put("holdRate", obj.get("holdRate"));
+                    if (obj.get("holdDays") != null) m.put("holdDays", obj.get("holdDays"));
+                    if (obj.get("commissionFollowHq") != null) m.put("commissionFollowHq", String.valueOf(obj.get("commissionFollowHq")));
+                } catch (Exception ignored) {
+                }
             });
             Optional<DistributionFeeConfig> odf2 = distributionFeeConfigRepository.findByCompId(ou.getCode());
             if (odf2.isPresent()) {
@@ -437,7 +639,7 @@ public class CommissionService {
             snap.put("compId", compId);
 
             CommissionHistory hist = new CommissionHistory();
-            hist.setCompId(compId);
+            hist.setCompId(compId != null ? compId.trim() : "");
             hist.setChgType("COMMISSION");
             hist.setChgDesc("수수료 설정 변경 저장");
             hist.setChangedBy(currentUsername());
@@ -491,6 +693,11 @@ public class CommissionService {
             return pr;
         }
         List<CommissionHistory> desc = commissionHistoryRepository.findAllByCompIdOrderByCreatedAtDesc(c);
+        if (desc.isEmpty()) {
+            desc = commissionHistoryRepository.findAll(Sort.by(Sort.Direction.DESC, "createdAt")).stream()
+                    .filter(h -> h.getCompId() != null && h.getCompId().trim().equalsIgnoreCase(c))
+                    .collect(Collectors.toList());
+        }
         int total = desc.size();
         int sz = Math.max(1, size);
         int pg = Math.max(1, page);

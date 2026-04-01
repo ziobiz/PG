@@ -24,11 +24,13 @@ public class ApiCommissionController {
     public ResponseEntity<ApiResponse<PageResult<Map<String, Object>>>> list(
             @RequestParam(required = false) String searchCompId,
             @RequestParam(required = false) String searchCompNm,
+            @RequestParam(required = false) String searchCompDiv,
+            @RequestParam(required = false) String useYn,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate searchFromDate,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate searchToDate,
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "500") int size) {
-        PageResult<Map<String, Object>> pr = commissionService.search(searchCompId, searchCompNm, page, size);
+        PageResult<Map<String, Object>> pr = commissionService.search(searchCompId, searchCompNm, searchCompDiv, useYn, page, size);
         return ResponseEntity.ok(ApiResponse.ok(pr));
     }
 

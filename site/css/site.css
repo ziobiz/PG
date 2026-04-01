@@ -1090,20 +1090,47 @@ td.empty-state-cell {
 /* DEFAULT: 현재 색톤 */
 body.theme-default { --theme-bg: #f5f6f8; --theme-text: #333; --theme-sidebar-bg: #2c3138; --theme-sidebar-text: #a6b0bf; }
 /* LIGHT: 흰배경/검정글씨 */
-body.theme-light { --theme-bg: #fff; --theme-text: #000; --theme-sidebar-bg: #f8f9fa; --theme-sidebar-text: #212529; }
+body.theme-light { --theme-bg: #fff; --theme-text: #000; --theme-sidebar-bg: #f8f9fa; --theme-sidebar-text: #212529; --theme-topbar-bg: #ffffff; --theme-tab-row-bg: #f4f4f4; --theme-tab-item-bg: #f4f4f4; --theme-tab-active-bg: #e9e9e9; --theme-menu-hover-bg: #eceff3; --theme-menu-active-bg: #e6e6e6; --theme-border-soft: #d9dde3; }
 body.theme-light .left-side-menu { background: var(--theme-sidebar-bg); color: var(--theme-sidebar-text); }
 body.theme-light .content-page { background: var(--theme-bg); color: var(--theme-text); }
+/* LIGHT 공통: 흰 배경 + 검은 글씨로 고정색 영역까지 통일 */
+body.theme-light .header {
+  background: #ffffff !important;
+}
+body.theme-light .content-tabs {
+  background: #f4f4f4 !important;
+}
+body.theme-light .content-tabs .nav-item.copyTopTab .tab-a {
+  color: #111 !important;
+}
+body.theme-light .content-tabs .nav-item.copyTopTab .tab-a.active {
+  background: #e9e9e9 !important;
+  color: #000 !important;
+}
+body.theme-light .content-body,
+body.theme-light .content-inner,
+body.theme-light .header-top-info,
+body.theme-light .header-user-link,
+body.theme-light .side-nav-link,
+body.theme-light .child-li a {
+  color: #111 !important;
+}
+body.theme-light .side-nav-item.mm-active > .side-nav-link {
+  background: #e6e6e6 !important;
+  color: #000 !important;
+  border-left-color: #000 !important;
+}
 /* DARK: 어두운배경/흰글씨 */
 body.theme-dark { --theme-bg: #1a1d21; --theme-text: #fff; --theme-sidebar-bg: #0d0f11; --theme-sidebar-text: #e9ecef; }
 body.theme-dark .left-side-menu { background: var(--theme-sidebar-bg); color: var(--theme-sidebar-text); }
 body.theme-dark .content-page { background: var(--theme-bg); color: var(--theme-text); }
 body.theme-dark .content-body { background: var(--theme-bg); }
 /* 파스텔 1~5 */
-body.theme-pastel_1 { --theme-bg: #fff5f5; --theme-text: #4a2c2a; --theme-sidebar-bg: #ffe4e1; --theme-sidebar-text: #5c3d3b; }
-body.theme-pastel_2 { --theme-bg: #f0fff4; --theme-text: #2d4a32; --theme-sidebar-bg: #d1fae5; --theme-sidebar-text: #2d4a32; }
-body.theme-pastel_3 { --theme-bg: #f0f9ff; --theme-text: #1e3a5f; --theme-sidebar-bg: #bae6fd; --theme-sidebar-text: #1e3a5f; }
-body.theme-pastel_4 { --theme-bg: #faf5ff; --theme-text: #4c1d95; --theme-sidebar-bg: #e9d5ff; --theme-sidebar-text: #4c1d95; }
-body.theme-pastel_5 { --theme-bg: #fffbeb; --theme-text: #78350f; --theme-sidebar-bg: #fef3c7; --theme-sidebar-text: #78350f; }
+body.theme-pastel_1 { --theme-bg: #fff5f5; --theme-text: #111; --theme-sidebar-bg: #ffe4e1; --theme-sidebar-text: #111; --theme-topbar-bg: #f8dede; --theme-tab-row-bg: #f3d3d3; --theme-tab-item-bg: #f3d3d3; --theme-tab-active-bg: #efc1c1; --theme-menu-hover-bg: #f3caca; --theme-menu-active-bg: #f0b7b7; --theme-border-soft: #e7b9b9; }
+body.theme-pastel_2 { --theme-bg: #f0fff4; --theme-text: #111; --theme-sidebar-bg: #d1fae5; --theme-sidebar-text: #111; --theme-topbar-bg: #d8f5e7; --theme-tab-row-bg: #c8ecd9; --theme-tab-item-bg: #c8ecd9; --theme-tab-active-bg: #b6e4cb; --theme-menu-hover-bg: #bae4cf; --theme-menu-active-bg: #a8dcc0; --theme-border-soft: #9fd2bb; }
+body.theme-pastel_3 { --theme-bg: #f0f9ff; --theme-text: #111; --theme-sidebar-bg: #bae6fd; --theme-sidebar-text: #111; --theme-topbar-bg: #c9ebff; --theme-tab-row-bg: #b7e2fb; --theme-tab-item-bg: #b7e2fb; --theme-tab-active-bg: #a8d9f8; --theme-menu-hover-bg: #abd6ee; --theme-menu-active-bg: #99cff3; --theme-border-soft: #8dc2df; }
+body.theme-pastel_4 { --theme-bg: #faf5ff; --theme-text: #111; --theme-sidebar-bg: #e9d5ff; --theme-sidebar-text: #111; --theme-topbar-bg: #ecdffd; --theme-tab-row-bg: #e2ccfb; --theme-tab-item-bg: #e2ccfb; --theme-tab-active-bg: #d7bef8; --theme-menu-hover-bg: #d4baf1; --theme-menu-active-bg: #ccb0f3; --theme-border-soft: #bf9ee5; }
+body.theme-pastel_5 { --theme-bg: #fffbeb; --theme-text: #111; --theme-sidebar-bg: #fef3c7; --theme-sidebar-text: #111; --theme-topbar-bg: #fbefc9; --theme-tab-row-bg: #f7e8b9; --theme-tab-item-bg: #f7e8b9; --theme-tab-active-bg: #f3de9f; --theme-menu-hover-bg: #f1deab; --theme-menu-active-bg: #edd587; --theme-border-soft: #dfc87f; }
 body.theme-pastel_1 .left-side-menu, body.theme-pastel_2 .left-side-menu, body.theme-pastel_3 .left-side-menu,
 body.theme-pastel_4 .left-side-menu, body.theme-pastel_5 .left-side-menu {
   background: var(--theme-sidebar-bg); color: var(--theme-sidebar-text);
@@ -1111,6 +1138,84 @@ body.theme-pastel_4 .left-side-menu, body.theme-pastel_5 .left-side-menu {
 body.theme-pastel_1 .content-page, body.theme-pastel_2 .content-page, body.theme-pastel_3 .content-page,
 body.theme-pastel_4 .content-page, body.theme-pastel_5 .content-page {
   background: var(--theme-bg); color: var(--theme-text);
+}
+/* 파스텔 공통: 글자 검정 + 상단/탭/메뉴의 고정 어두운 톤 제거 */
+body.theme-pastel_1 .header, body.theme-pastel_2 .header, body.theme-pastel_3 .header, body.theme-pastel_4 .header, body.theme-pastel_5 .header,
+body.theme-pastel_1 .content-tabs, body.theme-pastel_2 .content-tabs, body.theme-pastel_3 .content-tabs, body.theme-pastel_4 .content-tabs, body.theme-pastel_5 .content-tabs,
+body.theme-pastel_1 .content-body, body.theme-pastel_2 .content-body, body.theme-pastel_3 .content-body, body.theme-pastel_4 .content-body, body.theme-pastel_5 .content-body,
+body.theme-pastel_1 .content-inner, body.theme-pastel_2 .content-inner, body.theme-pastel_3 .content-inner, body.theme-pastel_4 .content-inner, body.theme-pastel_5 .content-inner {
+  color: var(--theme-text) !important;
+}
+body.theme-pastel_1 .header, body.theme-pastel_2 .header, body.theme-pastel_3 .header, body.theme-pastel_4 .header, body.theme-pastel_5 .header {
+  background: var(--theme-topbar-bg) !important;
+}
+body.theme-pastel_1 .content-tabs, body.theme-pastel_2 .content-tabs, body.theme-pastel_3 .content-tabs, body.theme-pastel_4 .content-tabs, body.theme-pastel_5 .content-tabs {
+  background: var(--theme-tab-bg) !important;
+}
+body.theme-pastel_1 .content-tabs .nav-item.copyTopTab .tab-a, body.theme-pastel_2 .content-tabs .nav-item.copyTopTab .tab-a,
+body.theme-pastel_3 .content-tabs .nav-item.copyTopTab .tab-a, body.theme-pastel_4 .content-tabs .nav-item.copyTopTab .tab-a,
+body.theme-pastel_5 .content-tabs .nav-item.copyTopTab .tab-a {
+  color: var(--theme-text) !important;
+}
+body.theme-pastel_1 .content-tabs .nav-item.copyTopTab .tab-a.active, body.theme-pastel_2 .content-tabs .nav-item.copyTopTab .tab-a.active,
+body.theme-pastel_3 .content-tabs .nav-item.copyTopTab .tab-a.active, body.theme-pastel_4 .content-tabs .nav-item.copyTopTab .tab-a.active,
+body.theme-pastel_5 .content-tabs .nav-item.copyTopTab .tab-a.active {
+  background: var(--theme-tab-active-bg) !important;
+  color: #000 !important;
+}
+body.theme-pastel_1 .side-nav-link, body.theme-pastel_2 .side-nav-link, body.theme-pastel_3 .side-nav-link,
+body.theme-pastel_4 .side-nav-link, body.theme-pastel_5 .side-nav-link,
+body.theme-pastel_1 .child-li a, body.theme-pastel_2 .child-li a, body.theme-pastel_3 .child-li a,
+body.theme-pastel_4 .child-li a, body.theme-pastel_5 .child-li a,
+body.theme-pastel_1 .header-top-info, body.theme-pastel_2 .header-top-info, body.theme-pastel_3 .header-top-info,
+body.theme-pastel_4 .header-top-info, body.theme-pastel_5 .header-top-info,
+body.theme-pastel_1 .header-user-link, body.theme-pastel_2 .header-user-link, body.theme-pastel_3 .header-user-link,
+body.theme-pastel_4 .header-user-link, body.theme-pastel_5 .header-user-link {
+  color: #000 !important;
+}
+body.theme-pastel_1 .side-nav-item.mm-active > .side-nav-link, body.theme-pastel_2 .side-nav-item.mm-active > .side-nav-link,
+body.theme-pastel_3 .side-nav-item.mm-active > .side-nav-link, body.theme-pastel_4 .side-nav-item.mm-active > .side-nav-link,
+body.theme-pastel_5 .side-nav-item.mm-active > .side-nav-link {
+  background: var(--theme-active-bg) !important;
+  color: #000 !important;
+  border-left-color: #000 !important;
+}
+/* LIGHT + 파스텔: 좌측 메뉴/우측상단/탭바 색톤 통일 */
+body.theme-light .header-top, body.theme-pastel_1 .header-top, body.theme-pastel_2 .header-top, body.theme-pastel_3 .header-top, body.theme-pastel_4 .header-top, body.theme-pastel_5 .header-top {
+  background: var(--theme-topbar-bg) !important;
+  border-bottom-color: var(--theme-border-soft) !important;
+}
+body.theme-light .content-tab-row, body.theme-pastel_1 .content-tab-row, body.theme-pastel_2 .content-tab-row, body.theme-pastel_3 .content-tab-row, body.theme-pastel_4 .content-tab-row, body.theme-pastel_5 .content-tab-row {
+  background: var(--theme-tab-row-bg) !important;
+  border-bottom-color: var(--theme-border-soft) !important;
+}
+body.theme-light .content-tabs .nav-item.copyTopTab, body.theme-pastel_1 .content-tabs .nav-item.copyTopTab, body.theme-pastel_2 .content-tabs .nav-item.copyTopTab, body.theme-pastel_3 .content-tabs .nav-item.copyTopTab, body.theme-pastel_4 .content-tabs .nav-item.copyTopTab, body.theme-pastel_5 .content-tabs .nav-item.copyTopTab {
+  background: var(--theme-tab-item-bg) !important;
+  border-right-color: var(--theme-border-soft) !important;
+}
+body.theme-light .side-nav-link:hover, body.theme-pastel_1 .side-nav-link:hover, body.theme-pastel_2 .side-nav-link:hover, body.theme-pastel_3 .side-nav-link:hover, body.theme-pastel_4 .side-nav-link:hover, body.theme-pastel_5 .side-nav-link:hover,
+body.theme-light .child-li a:hover, body.theme-pastel_1 .child-li a:hover, body.theme-pastel_2 .child-li a:hover, body.theme-pastel_3 .child-li a:hover, body.theme-pastel_4 .child-li a:hover, body.theme-pastel_5 .child-li a:hover {
+  background: var(--theme-menu-hover-bg) !important;
+  color: #000 !important;
+}
+body.theme-light .side-nav-item.mm-active > .side-nav-link, body.theme-pastel_1 .side-nav-item.mm-active > .side-nav-link, body.theme-pastel_2 .side-nav-item.mm-active > .side-nav-link, body.theme-pastel_3 .side-nav-item.mm-active > .side-nav-link, body.theme-pastel_4 .side-nav-item.mm-active > .side-nav-link, body.theme-pastel_5 .side-nav-item.mm-active > .side-nav-link,
+body.theme-light .child-li.mm-active a, body.theme-pastel_1 .child-li.mm-active a, body.theme-pastel_2 .child-li.mm-active a, body.theme-pastel_3 .child-li.mm-active a, body.theme-pastel_4 .child-li.mm-active a, body.theme-pastel_5 .child-li.mm-active a {
+  background: var(--theme-menu-active-bg) !important;
+  color: #000 !important;
+}
+/* 좌측 접기 영역/버튼도 동일 톤 */
+body.theme-light .menuFoldDiv, body.theme-pastel_1 .menuFoldDiv, body.theme-pastel_2 .menuFoldDiv, body.theme-pastel_3 .menuFoldDiv, body.theme-pastel_4 .menuFoldDiv, body.theme-pastel_5 .menuFoldDiv {
+  background: var(--theme-sidebar-bg) !important;
+  border-bottom-color: var(--theme-border-soft) !important;
+}
+body.theme-light .left-side-menu .btn-secondary, body.theme-pastel_1 .left-side-menu .btn-secondary, body.theme-pastel_2 .left-side-menu .btn-secondary, body.theme-pastel_3 .left-side-menu .btn-secondary, body.theme-pastel_4 .left-side-menu .btn-secondary, body.theme-pastel_5 .left-side-menu .btn-secondary {
+  background: var(--theme-menu-active-bg) !important;
+  border-color: var(--theme-border-soft) !important;
+  color: #000 !important;
+}
+body.theme-light .left-side-menu .btn-secondary:hover, body.theme-pastel_1 .left-side-menu .btn-secondary:hover, body.theme-pastel_2 .left-side-menu .btn-secondary:hover, body.theme-pastel_3 .left-side-menu .btn-secondary:hover, body.theme-pastel_4 .left-side-menu .btn-secondary:hover, body.theme-pastel_5 .left-side-menu .btn-secondary:hover {
+  background: var(--theme-menu-hover-bg) !important;
+  color: #000 !important;
 }
 
 /* ========== 상위업체 검색 모달 ========== */
@@ -1262,19 +1367,21 @@ body.theme-pastel_4 .content-page, body.theme-pastel_5 .content-page {
 /* 수수료관리: 밀도 높은 그리드 가독성용 축소 폰트 */
 .commission-split-grid th,
 .commission-split-grid td {
-  font-size: 0.72rem;
+  font-size: 0.66rem;
 }
 
 .commission-split-grid .form-control-sm {
-  font-size: 0.72rem;
+  font-size: 0.66rem;
 }
 
 .commission-inline-cell {
   cursor: text;
   padding: 0.125rem 0.25rem !important;
+  overflow: hidden;
 }
 
 .commission-inline-cell .commission-inline-input {
+  display: block;
   width: 100% !important;
   max-width: 100%;
   min-width: 0;
@@ -1282,6 +1389,17 @@ body.theme-pastel_4 .content-page, body.theme-pastel_5 .content-page {
   margin: 0;
   padding: 0.1rem 0.2rem;
   height: calc(1.2em + 0.35rem + 2px);
+}
+
+/* 수수료설정 모달: 데이터 표시 글자 크기 축소 */
+#commissionSettingModal .modal-body .form-label {
+  font-size: 0.68rem;
+  margin-bottom: 0.2rem;
+}
+#commissionSettingModal .modal-body .form-control-sm,
+#commissionSettingModal .modal-body .form-select-sm,
+#commissionSettingModal .modal-body .form-control.form-control-sm {
+  font-size: 0.68rem;
 }
 
 /* 본사(REGIONAL) 휴일 미니달력 */
@@ -1625,7 +1743,7 @@ body.theme-pastel_4 .content-page, body.theme-pastel_5 .content-page {
   cursor: pointer;
 }
 
-/* 기본정책: 목록 표 — 전체 너비 100%, 열 비율 합계 100% (colgroup 25열) */
+/* 기본정책: 목록 표 — 전체 너비 100% (colgroup 28열) */
 .hq-default-comm-policy-table {
   width: 100%;
   table-layout: fixed;
@@ -1643,7 +1761,7 @@ body.theme-pastel_4 .content-page, body.theme-pastel_5 .content-page {
 
 /* 이름(정책명) — 폭 축소 */
 .hq-default-comm-policy-table col:nth-child(3) {
-  width: 9%;
+  width: 8%;
 }
 
 /* 차지백 구간정책 */
@@ -1653,15 +1771,15 @@ body.theme-pastel_4 .content-page, body.theme-pastel_5 .content-page {
 
 /* 적용(배포) */
 .hq-default-comm-policy-table col:nth-child(5) {
-  width: 5%;
+  width: 4%;
 }
 
 /* 통화 */
 .hq-default-comm-policy-table col:nth-child(6) {
-  width: 4%;
+  width: 3%;
 }
 
-/* 수수료 고정 8열: 건당~환불 */
+/* 수수료 고정 10열: 건당~환불 */
 .hq-default-comm-policy-table col:nth-child(7),
 .hq-default-comm-policy-table col:nth-child(8),
 .hq-default-comm-policy-table col:nth-child(9),
@@ -1669,39 +1787,42 @@ body.theme-pastel_4 .content-page, body.theme-pastel_5 .content-page {
 .hq-default-comm-policy-table col:nth-child(11),
 .hq-default-comm-policy-table col:nth-child(12),
 .hq-default-comm-policy-table col:nth-child(13),
-.hq-default-comm-policy-table col:nth-child(14) {
+.hq-default-comm-policy-table col:nth-child(14),
+.hq-default-comm-policy-table col:nth-child(15),
+.hq-default-comm-policy-table col:nth-child(16) {
   width: 3%;
 }
 
 /* 수수료 % 4열: 결제·USDT·FX·3DS */
-.hq-default-comm-policy-table col:nth-child(15),
-.hq-default-comm-policy-table col:nth-child(16),
 .hq-default-comm-policy-table col:nth-child(17),
-.hq-default-comm-policy-table col:nth-child(18) {
-  width: 3%;
+.hq-default-comm-policy-table col:nth-child(18),
+.hq-default-comm-policy-table col:nth-child(19),
+.hq-default-comm-policy-table col:nth-child(20) {
+  width: 2.5%;
 }
 
 /* 담보율 2열: 비율·일 */
-.hq-default-comm-policy-table col:nth-child(19),
-.hq-default-comm-policy-table col:nth-child(20) {
-  width: 3%;
+.hq-default-comm-policy-table col:nth-child(21),
+.hq-default-comm-policy-table col:nth-child(22) {
+  width: 2.5%;
 }
 
 /* 월간 */
-.hq-default-comm-policy-table col:nth-child(21) {
-  width: 4%;
-}
-
-/* 기타 3열 */
-.hq-default-comm-policy-table col:nth-child(22),
-.hq-default-comm-policy-table col:nth-child(23),
-.hq-default-comm-policy-table col:nth-child(24) {
+.hq-default-comm-policy-table col:nth-child(23) {
   width: 3%;
 }
 
-/* 일지 (이름 열 축소분 일부 반영) */
-.hq-default-comm-policy-table col:nth-child(25) {
-  width: 15%;
+/* 기타 4열 */
+.hq-default-comm-policy-table col:nth-child(24),
+.hq-default-comm-policy-table col:nth-child(25),
+.hq-default-comm-policy-table col:nth-child(26),
+.hq-default-comm-policy-table col:nth-child(27) {
+  width: 4%;
+}
+
+/* 일지 */
+.hq-default-comm-policy-table col:nth-child(28) {
+  width: 9%;
 }
 
 /* 기본정책: 목록 표 — 셀 가로·세로 가운데 */
@@ -1762,16 +1883,17 @@ body.theme-pastel_4 .content-page, body.theme-pastel_5 .content-page {
   letter-spacing: -0.02em;
 }
 .hq-default-comm-policy-table .hq-def-comm-th-sub {
-  font-size: 0.6875rem;
+  font-size: 0.64rem;
   font-weight: 600;
   white-space: nowrap;
   padding-top: 0.35rem;
   padding-bottom: 0.35rem;
+  line-height: 1.15;
 }
 .hq-def-comm-policy-td-num {
   text-align: center;
   white-space: nowrap;
-  font-size: 0.8125rem;
+  font-size: 0.68rem;
   font-variant-numeric: tabular-nums;
   vertical-align: middle;
 }
@@ -1779,14 +1901,38 @@ body.theme-pastel_4 .content-page, body.theme-pastel_5 .content-page {
   vertical-align: middle;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 0;
+  max-width: 8rem;
+  white-space: nowrap;
 }
 .hq-def-comm-policy-td-extra-slot {
   text-align: center;
   vertical-align: middle;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 0;
+  max-width: 11rem;
+  white-space: nowrap;
+}
+.hq-default-comm-policy-table .hq-def-comm-th-upd,
+.hq-default-comm-policy-table .hq-def-comm-policy-td-upd {
+  white-space: nowrap;
+  min-width: 0;
+}
+.hq-default-comm-policy-table {
+  table-layout: fixed;
+}
+.hq-default-comm-policy-table th,
+.hq-default-comm-policy-table td {
+  padding: 0.24rem 0.2rem;
+  font-size: 0.66rem;
+  line-height: 1.12;
+  word-break: normal;
+}
+.hq-default-comm-policy-table td.hq-def-comm-policy-td-code,
+.hq-default-comm-policy-table td.hq-def-comm-policy-td-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 9rem;
+  white-space: nowrap;
 }
 .hq-extra-fees-card .card-header .text-muted {
   line-height: 1.35;

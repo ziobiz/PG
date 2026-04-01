@@ -240,7 +240,9 @@
   }
   function pgBrandingSetImageDisplayInput(rootEl, imageType, data, fallbackFile) {
     if (!rootEl) return;
-    var id = imageType === 'logo' ? 'brandingLogoImageUrl' : 'brandingMainImageUrl';
+    var id = imageType === 'logo'
+      ? 'brandingLogoImageUrl'
+      : (imageType === 'popcon' ? 'brandingPopconImageUrl' : 'brandingMainImageUrl');
     var el = rootEl.querySelector('#' + id);
     if (!el) return;
     var label = pgBrandingDisplayNameAfterUpload(data, fallbackFile);
@@ -250,8 +252,33 @@
     if (!rootEl || !b) return;
     var mainEl = rootEl.querySelector('#brandingMainImageUrl');
     var logoEl = rootEl.querySelector('#brandingLogoImageUrl');
+    var popconEl = rootEl.querySelector('#brandingPopconImageUrl');
     if (mainEl) mainEl.value = b.mainImageUrl ? pgBrandingBasenameFromStoredUrl(b.mainImageUrl) : '';
     if (logoEl) logoEl.value = b.logoImageUrl ? pgBrandingBasenameFromStoredUrl(b.logoImageUrl) : '';
+    if (popconEl) popconEl.value = b.popconImageUrl ? pgBrandingBasenameFromStoredUrl(b.popconImageUrl) : '';
+  }
+  function pgBindBrandingBrowse(rootEl) {
+    if (!rootEl) return;
+    var pairs = [
+      { browse: '#brandingMainImageBrowse', file: '#brandingMainImageFile', text: '#brandingMainImageUrl' },
+      { browse: '#brandingLogoImageBrowse', file: '#brandingLogoImageFile', text: '#brandingLogoImageUrl' },
+      { browse: '#brandingPopconImageBrowse', file: '#brandingPopconImageFile', text: '#brandingPopconImageUrl' }
+    ];
+    pairs.forEach(function (p) {
+      var b = rootEl.querySelector(p.browse);
+      var f = rootEl.querySelector(p.file);
+      var t = rootEl.querySelector(p.text);
+      if (b && !b._brandingBrowseBound) {
+        b._brandingBrowseBound = true;
+        b.addEventListener('click', function () { if (f) f.click(); });
+      }
+      if (f && !f._brandingFileBound) {
+        f._brandingFileBound = true;
+        f.addEventListener('change', function () {
+          if (t && this.files && this.files[0]) t.value = this.files[0].name;
+        });
+      }
+    });
   }
   function pgShortNotifyChannel(t) {
     var ch = String((t && t.channelType) || '').toUpperCase();
@@ -1586,6 +1613,29 @@
         if (byKey[k]) listEl.appendChild(byKey[k]);
       });
     }
+    function rememberColumnGuideDefaultOrder() {
+      if (pane._columnGuideDefaultOrder && pane._columnGuideDefaultOrder.length) return;
+      var listEl = pane.querySelector('.column-guide-list');
+      if (!listEl) return;
+      var keys = [];
+      listEl.querySelectorAll('.column-guide-check').forEach(function (cb) {
+        var k = cb.getAttribute('data-key');
+        if (k) keys.push(k);
+      });
+      pane._columnGuideDefaultOrder = keys;
+    }
+    function resetColumnGuideToDefault() {
+      rememberColumnGuideDefaultOrder();
+      var listEl = pane.querySelector('.column-guide-list');
+      if (!listEl) return;
+      var order = pane._columnGuideDefaultOrder || [];
+      if (order.length) reorderColumnGuideListByKeys(order);
+      pane.querySelectorAll('.column-guide-check').forEach(function (cb) {
+        cb.checked = true;
+      });
+      pane._selectedColumns = null;
+      syncColumnGuideUiState();
+    }
     function bindColumnGuideDrag() {
       if (pane._columnGuideDragBound) return;
       pane._columnGuideDragBound = true;
@@ -1624,6 +1674,16 @@
       var keys = [];
       pane.querySelectorAll('.column-guide-check:checked').forEach(function (cb) {
         var k = cb.getAttribute('data-key');
+        if (k) keys.push(k);
+      });
+      return keys;
+    }
+    function getVisibleGuideKeys() {
+      var keys = [];
+      pane.querySelectorAll('.column-guide-item').forEach(function (item) {
+        if (item.style && item.style.display === 'none') return;
+        var cb = item.querySelector('.column-guide-check');
+        var k = cb ? cb.getAttribute('data-key') : '';
         if (k) keys.push(k);
       });
       return keys;
@@ -1671,9 +1731,7 @@
           if (pane._columnAllowanceRestricted && pane._allowedColumnKeys && pane._allowedColumnKeys.length) {
             applySelectedGuideKeys(pane._allowedColumnKeys.slice());
           } else {
-            pane._selectedColumns = null;
-            pane.querySelectorAll('.column-guide-check').forEach(function (cb) { cb.checked = false; });
-            syncColumnGuideUiState();
+            applySelectedGuideKeys(getVisibleGuideKeys());
           }
           return;
         }
@@ -1954,6 +2012,9 @@
       if (!cfg || ((!cfg.columns || cfg.columns.length === 0) && !cfg.columnsBySub && !cfg.columnsRegionalPayout && !cfg.orgPagePermissionMatrix)) return;
       var params = collectSearchParams(p);
       if (pageOverride) params.page = pageOverride;
+      if (url === '/commission/commisionList') {
+        params.useYn = (params.searchUseYn != null && String(params.searchUseYn).trim() !== '') ? String(params.searchUseYn).trim() : 'Y';
+      }
       if ((url === '/calc/settlementReport' || url === '/settlement/settlementReport') && !params.searchReportSub) {
         params.searchReportSub = 'AGG';
       }
@@ -2347,6 +2408,11 @@
                     var cDateVal = val ? String(val).substring(0, 10) : '';
                     html += '<td><input type="date" class="form-control form-control-sm commission-inline-input text-center" data-key="applyDt" value="' + String(cDateVal).replace(/"/g, '&quot;') + '"></td>';
                   } else {
+                    if ((c.key === 'hqNm' || c.key === 'regionalNm' || c.key === 'masterNm' || c.key === 'branchNm' || c.key === 'agencyNm' || c.key === 'salesOfficeNm') && (!val || !String(val).trim())) {
+                      var idMap = { hqNm: 'hqId', regionalNm: 'regionalId', masterNm: 'masterId', branchNm: 'branchId', agencyNm: 'agencyId', salesOfficeNm: 'salesOfficeId' };
+                      var fb = row[idMap[c.key]];
+                      val = (fb != null && String(fb).trim() !== '') ? String(fb) : '-';
+                    }
                     html += '<td' + cellClass + '>' + val + '</td>';
                   }
                 } else html += '<td' + cellClass + '>' + val + '</td>';
@@ -2479,9 +2545,21 @@
         p.setAttribute('data-last-total-pages', String(totalPages));
         if (url === '/commission/commisionList') {
           p.querySelectorAll('#grid_' + tid + ' tbody tr.table-active').forEach(function (x) { x.classList.remove('table-active'); });
-          p._commissionHistCompId = list.length ? list[0].compId : '';
+          var prevCompId = p._commissionHistCompId ? String(p._commissionHistCompId).trim() : '';
+          var keepCompId = '';
+          if (prevCompId) {
+            for (var ci = 0; ci < list.length; ci++) {
+              if (String(list[ci] && list[ci].compId || '').trim() === prevCompId) {
+                keepCompId = prevCompId;
+                break;
+              }
+            }
+          }
+          p._commissionHistCompId = keepCompId || (list.length ? list[0].compId : '');
+          var activeTr = tbody ? tbody.querySelector('tr[data-comp-id="' + String(p._commissionHistCompId || '').replace(/"/g, '&quot;') + '"]') : null;
           var firstTr = tbody ? tbody.querySelector('tr[data-comp-id]') : null;
-          if (firstTr) firstTr.classList.add('table-active');
+          if (activeTr) activeTr.classList.add('table-active');
+          else if (firstTr) firstTr.classList.add('table-active');
           loadCommissionHistoryGrid(p, tid);
         }
         if (url === '/comp/compMngTree') {
@@ -2873,6 +2951,42 @@
     }
     if (url === '/commission/commisionList') {
       var commissionSettingBtn = pane.querySelector('#commissionSettingBtn');
+      var commissionInlineTopSaveBtn = pane.querySelector('#commissionInlineTopSaveBtn');
+      function parseNum(v) {
+        if (v == null) return 0;
+        var n = parseFloat(String(v).replace(/,/g, '.').trim());
+        return isFinite(n) ? n : 0;
+      }
+      function fmtNum(v) {
+        var n = parseNum(v);
+        return pgFmtOneDecimalStripWhole(String(n));
+      }
+      function recalcCommissionRowTotals(tr) {
+        if (!tr) return;
+        var rateKeys = ['hqRate', 'regionalRate', 'masterRate', 'branchRate', 'agencyRate', 'salesOfficeRate'];
+        var feeKeys = ['hqPerTxFee', 'regionalPerTxFee', 'masterPerTxFee', 'branchPerTxFee', 'agencyPerTxFee', 'salesOfficePerTxFee'];
+        function sumBy(keys) {
+          var s = 0;
+          keys.forEach(function (k) {
+            var td = tr.querySelector('.commission-inline-cell[data-key="' + k + '"]');
+            var v = td ? (td.getAttribute('data-value') || '') : '';
+            s += parseNum(v);
+          });
+          return s;
+        }
+        var totalRate = fmtNum(sumBy(rateKeys));
+        var totalFee = fmtNum(sumBy(feeKeys));
+        var tdRate = tr.querySelector('.commission-inline-cell[data-key="totalRate"]');
+        var tdFee = tr.querySelector('.commission-inline-cell[data-key="totalPerTxFee"]');
+        if (tdRate) {
+          tdRate.setAttribute('data-value', totalRate);
+          tdRate.innerHTML = '<span class="commission-inline-view">' + totalRate + '</span>';
+        }
+        if (tdFee) {
+          tdFee.setAttribute('data-value', totalFee);
+          tdFee.innerHTML = '<span class="commission-inline-view">' + totalFee + '</span>';
+        }
+      }
       function commissionInlineCellClose(cell) {
         if (!cell) return;
         var inp = cell.querySelector('.commission-inline-input[data-key]');
@@ -2882,6 +2996,7 @@
         var esc = String(v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
         cell.setAttribute('data-value', v);
         cell.innerHTML = '<span class="commission-inline-view">' + esc + '</span>';
+        recalcCommissionRowTotals(cell.closest('tr'));
       }
       if (commissionSettingBtn) {
         commissionSettingBtn.addEventListener('click', function () {
@@ -2926,12 +3041,17 @@
             setAmt('commissionCancelRate', data.cancelRate);
             setAmt('commissionVoidFeePerTx', data.voidFeePerTx);
             setAmt('commissionManualVoidFeePerTx', data.manualVoidFeePerTx);
+            setAmt('commissionFailFee', data.failFee);
             setPct('commissionPayRate', data.payRate);
             setAmt('commissionRefundRate', data.refundRate);
             setPct('commissionRollingPct', data.rollingPct);
             setDay('commissionRollingDays', data.rollingDays);
             setAmt('commissionFeeAnnual', data.feeAnnual);
             setAmt('commissionFeeSettlementPerTx', data.feeSettlementPerTx);
+            setAmt('commissionRemittanceTransferFee', data.remittanceTransferFee);
+            setAmt('commissionUsdtTransferFeeUsd', data.usdtTransferFeeUsd);
+            setPct('commissionFeeUsdt', data.feeUsdt);
+            setPct('commissionFeeFx', data.feeFx);
             setPct('commissionFee3dsRate', data.fee3dsRate);
             setAmt('commissionChargebackFeePerTx', data.chargebackFeePerTx);
             setPct('commissionHqRate', data.hqRate);
@@ -2946,6 +3066,9 @@
             setAmt('commissionBranchPerTxFee', data.branchPerTxFee);
             setAmt('commissionAgencyPerTxFee', data.agencyPerTxFee);
             setAmt('commissionSalesOfficePerTxFee', data.salesOfficePerTxFee);
+            set('commissionHqPolicyScopeView', data.hqPolicyScope || '');
+            setPct('commissionHoldRateView', data.holdRate);
+            setDay('commissionHoldDaysView', data.holdDays);
             set('commissionApplyStartDate', data.applyStartDateStr || data.applyStartDate || '');
             fillChargebackPolicySelectsInRoot(modalEl, data.chargebackPolicyId).finally(function () {
               if (modalEl && window.bootstrap && bootstrap.Modal) {
@@ -2954,6 +3077,33 @@
               }
             });
           }).catch(function (e) { alert(e && e.message ? e.message : '수수료 조회 실패'); }).finally(function () { if (dimm) dimm.style.display = 'none'; });
+        });
+      }
+      if (commissionInlineTopSaveBtn && !commissionInlineTopSaveBtn._bound) {
+        commissionInlineTopSaveBtn._bound = true;
+        commissionInlineTopSaveBtn.addEventListener('click', function () {
+          var grid = pane.querySelector('#grid_' + tabId + ' tbody');
+          var tr = null;
+          var activeInput = pane.querySelector('.commission-inline-cell .commission-inline-input[data-key]');
+          if (activeInput) tr = activeInput.closest('tr');
+          if (!tr) {
+            var checkedRows = grid ? grid.querySelectorAll('tr .grid-row-check:checked') : null;
+            if (checkedRows && checkedRows.length === 1) tr = checkedRows[0].closest('tr');
+            else if (checkedRows && checkedRows.length > 1) {
+              alert('한 번에 한 행만 저장할 수 있습니다. 한 건만 체크해 주세요.');
+              return;
+            }
+          }
+          if (!tr) {
+            alert('저장할 행을 선택(또는 편집)한 뒤 [저장]을 눌러주세요.');
+            return;
+          }
+          var saveBtn = tr ? tr.querySelector('.commission-inline-save') : null;
+          if (!saveBtn) {
+            alert('행 저장 버튼을 찾을 수 없습니다.');
+            return;
+          }
+          saveBtn.click();
         });
       }
       if (!pane._commissionInlineEditBound) {
@@ -2972,6 +3122,11 @@
               editCell.innerHTML = '<input type="text" class="form-control form-control-sm commission-inline-input text-center" data-key="' + key + '" value="' + safe + '">';
               var ip = editCell.querySelector('.commission-inline-input');
               if (ip) {
+                // 셀 실제 너비(px) 기준으로 입력창 폭을 고정해 과확장 방지
+                var cw = Math.max(36, Math.floor(editCell.getBoundingClientRect().width) - 2);
+                ip.style.width = cw + 'px';
+                ip.style.maxWidth = cw + 'px';
+                ip.style.minWidth = '0';
                 ip.focus();
                 ip.select();
                 ip.addEventListener('blur', function () {
@@ -3011,7 +3166,9 @@
           if (dimmI) dimmI.style.display = 'flex';
           window.PG_API.commissionSave(compIdVal, fd).then(function () {
             alert(clearBtn ? '수수료를 0으로 초기화했습니다.' : '수수료가 저장되었습니다.');
+            pane._commissionHistCompId = compIdVal;
             doSearch(pane, tabId, parseInt(pane.getAttribute('data-last-page') || '1', 10) || 1);
+            try { loadCommissionHistoryGrid(pane, tabId); } catch (e0) {}
           }).catch(function (err) {
             alert(err && err.message ? err.message : '수수료 저장 실패');
           }).finally(function () {
@@ -3041,7 +3198,11 @@
           if (modalEl && window.bootstrap && bootstrap.Modal) { var m = bootstrap.Modal.getInstance(modalEl); if (m) m.hide(); }
           var pane = window._commissionSettingPane;
           var tabId = window._commissionSettingTabId;
-          if (pane && tabId && typeof doSearch === 'function') doSearch(pane, tabId, 1);
+          if (pane && tabId && typeof doSearch === 'function') {
+            pane._commissionHistCompId = compIdVal;
+            doSearch(pane, tabId, 1);
+            try { loadCommissionHistoryGrid(pane, tabId); } catch (e0) {}
+          }
         }).catch(function (err) { alert(err && err.message ? err.message : '저장 실패'); }).finally(function () { if (dimm) dimm.style.display = 'none'; });
       });
     }
@@ -3068,6 +3229,7 @@
     var compMngSaveColumnsBtn = pane.querySelector('#compMngSaveColumnsBtn');
     if (compMngSaveColumnsBtn && !compMngSaveColumnsBtn._bound) {
       bindColumnGuideDrag();
+      rememberColumnGuideDefaultOrder();
       pane.querySelectorAll('.column-guide-check').forEach(function (cb) {
         cb.addEventListener('change', syncColumnGuideUiState);
       });
@@ -3088,12 +3250,21 @@
         });
       });
     }
+    var compMngReleaseColumnsBtn = pane.querySelector('#compMngReleaseColumnsBtn');
+    if (compMngReleaseColumnsBtn && !compMngReleaseColumnsBtn._bound) {
+      compMngReleaseColumnsBtn._bound = true;
+      compMngReleaseColumnsBtn.addEventListener('click', function () {
+        pane._selectedColumns = null;
+        pane.querySelectorAll('.column-guide-check').forEach(function (cb) { cb.checked = false; });
+        syncColumnGuideUiState();
+      });
+    }
     var compMngClearColumnsBtn = pane.querySelector('#compMngClearColumnsBtn');
     if (compMngClearColumnsBtn && !compMngClearColumnsBtn._bound) {
       compMngClearColumnsBtn._bound = true;
       compMngClearColumnsBtn.addEventListener('click', function () {
-        if (!confirm('모든 칼럼 선택을 해제하시겠습니까?')) return;
-        applySelectedGuideKeys([]);
+        if (!confirm('VIEW SETTING을 최초 세팅값(기본 순서/기본 노출)으로 초기화할까요?')) return;
+        resetColumnGuideToDefault();
         var dimm = document.getElementById('dimm');
         if (dimm) dimm.style.display = 'flex';
         window.PG_API.userViewSettingSave(url, '[]').then(function () {
@@ -3355,9 +3526,10 @@
         if (dimm) dimm.style.display = 'flex';
         var mainFile = form.querySelector('#brandingMainImageFile');
         var logoFile = form.querySelector('#brandingLogoImageFile');
+        var popconFile = form.querySelector('#brandingPopconImageFile');
         var themeEl = form.querySelector('#brandingTheme');
         var hostEl = form.querySelector('#brandingBrandHost');
-        var isRegOrMaster = (fd.compDiv === 'REGIONAL' || fd.compDiv === 'MASTER_DIST');
+        var isRegOrMaster = (fd.compDiv === 'HEADQUARTERS' || fd.compDiv === 'REGIONAL' || fd.compDiv === 'MASTER_DIST');
         window.PG_API.compRegister(fd).then(function (res) {
           var data = res && res.data ? res.data : res;
           var compId = data && data.compId ? data.compId : '';
@@ -3377,6 +3549,15 @@
               chain = chain.then(function () {
                 return window.PG_API.orgBrandingUpload(compId, 'logo', _regLogoF).then(function (data) {
                   pgBrandingSetImageDisplayInput(form, 'logo', data, _regLogoF);
+                  return data;
+                });
+              });
+            }
+            if (popconFile && popconFile.files && popconFile.files[0]) {
+              var _regPopconF = popconFile.files[0];
+              chain = chain.then(function () {
+                return window.PG_API.orgBrandingUpload(compId, 'popcon', _regPopconF).then(function (data) {
+                  pgBrandingSetImageDisplayInput(form, 'popcon', data, _regPopconF);
                   return data;
                 });
               });
@@ -3521,7 +3702,7 @@
         var cycleEl = regForm.querySelector('[name="calcCycle"]');
         var closeEl = regForm.querySelector('[name="calcCloseTime"]');
         var startEl = regForm.querySelector('[name="calcStartTime"]');
-        if (cycleEl && (!cycleEl.value || String(cycleEl.value).trim() === '')) cycleEl.value = 'W7';
+        if (cycleEl && (!cycleEl.value || String(cycleEl.value).trim() === '')) cycleEl.value = '';
         if (closeEl && (!closeEl.value || String(closeEl.value).trim() === '')) closeEl.value = '00:00';
         if (startEl && (!startEl.value || String(startEl.value).trim() === '')) startEl.value = '04:30';
       }
@@ -3547,16 +3728,7 @@
         initRegionalTerminalTable(pane);
         var regForm = pane.querySelector('#compRegForm');
         initRegionalHolidayProfileSelector(pane, regForm, null);
-        var mainBrowse = pane.querySelector('#brandingMainImageBrowse');
-        var logoBrowse = pane.querySelector('#brandingLogoImageBrowse');
-        if (mainBrowse) mainBrowse.addEventListener('click', function () { var f = pane.querySelector('#brandingMainImageFile'); if (f) f.click(); });
-        if (logoBrowse) logoBrowse.addEventListener('click', function () { var f = pane.querySelector('#brandingLogoImageFile'); if (f) f.click(); });
-        [pane.querySelector('#brandingMainImageFile'), pane.querySelector('#brandingLogoImageFile')].forEach(function (inp) {
-          if (inp) inp.addEventListener('change', function () {
-            var urlInp = this.id === 'brandingMainImageFile' ? pane.querySelector('#brandingMainImageUrl') : pane.querySelector('#brandingLogoImageUrl');
-            if (urlInp && this.files && this.files[0]) urlInp.value = this.files[0].name;
-          });
-        });
+        pgBindBrandingBrowse(pane);
       }
       var commissionFollowEl = pane.querySelector('[name="commissionFollowHq"]');
       if (commissionFollowEl && !commissionFollowEl._commissionToggleBound) {
@@ -3576,6 +3748,11 @@
       var baseCurEl = pane.querySelector('#compRegForm [name="baseCurrency"]');
       if (hqPolicySel && !hqPolicySel._hqPolicyRegBound) {
         hqPolicySel._hqPolicyRegBound = true;
+        function syncRegChargebackFromPolicy() {
+          var followVal = commissionFollowEl && commissionFollowEl.value ? String(commissionFollowEl.value).trim().toUpperCase() : 'Y';
+          if (followVal !== 'Y') return;
+          applyChargebackByHqPolicyScope(pane, pane._hqCommissionTemplatesCache || [], hqPolicySel.value);
+        }
         function refreshHqPolicyReg(hqd) {
           var list = (hqd && hqd.templates) ? hqd.templates : [];
           pane._hqCommissionTemplatesCache = list;
@@ -3595,8 +3772,12 @@
             }
             if (ok) hqPolicySel.value = prev;
           }
+          syncRegChargebackFromPolicy();
         }
         window.PG_API.hqDefaultCommission().then(refreshHqPolicyReg).catch(function () {});
+        hqPolicySel.addEventListener('change', function () {
+          syncRegChargebackFromPolicy();
+        });
         if (baseCurEl && !baseCurEl._hqPolicyBaseBoundReg) {
           baseCurEl._hqPolicyBaseBoundReg = true;
           baseCurEl.addEventListener('change', function () {
@@ -3766,6 +3947,23 @@
           bindChargebackPolicyStructurePreview(sel);
         });
       }).catch(function () {});
+    }
+    function applyChargebackByHqPolicyScope(root, templates, scope) {
+      if (!root || !Array.isArray(templates)) return Promise.resolve();
+      var selScope = scope != null ? String(scope).trim() : '';
+      if (!selScope) return fillChargebackPolicySelectsInRoot(root, null);
+      var picked = null;
+      for (var i = 0; i < templates.length; i++) {
+        var t = templates[i] || {};
+        if (String(t.scope || '') === selScope) {
+          picked = t;
+          break;
+        }
+      }
+      if (!picked || picked.chargebackPolicyId == null || String(picked.chargebackPolicyId).trim() === '') {
+        return fillChargebackPolicySelectsInRoot(root, null);
+      }
+      return fillChargebackPolicySelectsInRoot(root, String(picked.chargebackPolicyId));
     }
     function applyCompParentMoveRules(form, data) {
       if (!form) return;
@@ -3966,15 +4164,17 @@
       }
       var mainBrowse = pane.querySelector('#brandingMainImageBrowse');
       var logoBrowse = pane.querySelector('#brandingLogoImageBrowse');
+      var popconBrowse = pane.querySelector('#brandingPopconImageBrowse');
       var mainFile = pane.querySelector('#brandingMainImageFile');
       var logoFile = pane.querySelector('#brandingLogoImageFile');
+      var popconFile = pane.querySelector('#brandingPopconImageFile');
       var themeSel = pane.querySelector('#brandingTheme');
-      [mainBrowse, logoBrowse].forEach(function (btn) {
+      [mainBrowse, logoBrowse, popconBrowse].forEach(function (btn) {
         if (!btn) return;
         btn.style.display = allowed ? '' : 'none';
         btn.disabled = !allowed;
       });
-      [mainFile, logoFile, themeSel].forEach(function (el) {
+      [mainFile, logoFile, popconFile, themeSel].forEach(function (el) {
         if (!el) return;
         el.disabled = !allowed;
       });
@@ -4075,6 +4275,26 @@
             el.value = nf != null ? nf : data[k];
           }
         });
+        // 예외 상황으로 기본정보 카드가 중복 렌더링되었을 때, 값 없는 카드(유령 카드)를 제거한다.
+        (function cleanupDuplicateBasicInfoCards() {
+          var host = pane.querySelector('#compInfoDetailCard');
+          if (!host) return;
+          var basics = Array.prototype.slice.call(host.querySelectorAll('.card')).filter(function (card) {
+            var h = card.querySelector('.card-header');
+            return h && String(h.textContent || '').trim() === '기본정보';
+          });
+          if (basics.length <= 1) return;
+          var keep = null;
+          basics.forEach(function (card) {
+            var idEl = card.querySelector('[name="compId"]');
+            var v = idEl && idEl.value ? String(idEl.value).trim() : '';
+            if (!keep && v) keep = card;
+          });
+          if (!keep) keep = basics[basics.length - 1];
+          basics.forEach(function (card) {
+            if (card !== keep) card.remove();
+          });
+        })();
         var parentCompEl0 = form.querySelector('[name="parentComp"]');
         if (parentCompEl0) parentCompEl0.value = normalizeParentCompDisplay(data.parentComp != null ? data.parentComp : parentCompEl0.value);
         var pidEl = form.querySelector('input[name="parentId"]');
@@ -4086,6 +4306,10 @@
         }
         if (data.parentId != null) pidEl.value = String(data.parentId);
         applyCompParentMoveRules(form, data);
+        if (formUrl === '/comp/myCompMng') {
+          var divSelReadonly = form.querySelector('[name="compDiv"]');
+          if (divSelReadonly) divSelReadonly.disabled = true;
+        }
         form.setAttribute('data-login-id-checked', data.loginId ? String(data.loginId).trim() : '');
         form.setAttribute('data-assistant-login-id-checked', data.assistantLoginId ? String(data.assistantLoginId).trim() : '');
         initIntlPhoneFields(form);
@@ -4123,6 +4347,19 @@
           if (rnEl) rnEl.value = p.length > 1 ? p.slice(1).join('|') : '';
         }
         applyCompInfoPaneByCompDiv(pane, data.compDiv || '');
+        if (formUrl === '/comp/myCompMng') {
+          var commissionCard = pane.querySelector('#commissionPolicyCard');
+          if (commissionCard) {
+            commissionCard.style.display = (data.compDiv === 'HEADQUARTERS') ? 'none' : '';
+          }
+        }
+        if (formUrl === '/comp/myCompMng') {
+          var regMiscCard = pane.querySelector('#regionalMiscCard');
+          if (regMiscCard) {
+            var isHeadOfficeTier = data.compDiv === 'HEADQUARTERS' || data.compDiv === 'REGIONAL' || data.compDiv === 'MASTER_DIST';
+            regMiscCard.style.display = isHeadOfficeTier ? '' : 'none';
+          }
+        }
         if (formUrl === '/comp/myCompMng' || formUrl === '/comp/compInfo') {
           applyMerchantAccountFieldVisibility(form, data.compDiv || '');
         }
@@ -4157,6 +4394,11 @@
             var baseCurInfo = pane.querySelector('#compInfoDetailForm [name="baseCurrency"]');
             if (hqPolicySel && !hqPolicySel._hqPolicyLoadedInfo) {
               hqPolicySel._hqPolicyLoadedInfo = true;
+              function syncInfoChargebackFromPolicy() {
+                var followVal = commissionFollowEl && commissionFollowEl.value ? String(commissionFollowEl.value).trim().toUpperCase() : 'Y';
+                if (followVal !== 'Y') return;
+                applyChargebackByHqPolicyScope(form, pane._hqCommissionTemplatesCacheInfo || [], hqPolicySel.value);
+              }
               function refreshHqPolicyInfo(hqd) {
                 var list = (hqd && hqd.templates) ? hqd.templates : [];
                 pane._hqCommissionTemplatesCacheInfo = list;
@@ -4176,8 +4418,12 @@
                   }
                   if (ok2) hqPolicySel.value = prev;
                 }
+                syncInfoChargebackFromPolicy();
               }
               window.PG_API.hqDefaultCommission().then(refreshHqPolicyInfo).catch(function () {});
+              hqPolicySel.addEventListener('change', function () {
+                syncInfoChargebackFromPolicy();
+              });
               if (baseCurInfo && !baseCurInfo._hqPolicyBaseBoundInfo) {
                 baseCurInfo._hqPolicyBaseBoundInfo = true;
                 baseCurInfo.addEventListener('change', function () {
@@ -4230,15 +4476,17 @@
             initBankByCountry(pane);
             initCountryBankGroup(pane);
             initCountryAddressGroup(pane);
-            if (String(data.brandingEditAllowedYn || '').toUpperCase() === 'Y' && window.PG_API.orgBranding) {
-              window.PG_API.orgBranding(compId).then(function (b) {
-                pgBrandingFillImageDisplayFromFetch(pane, b);
-                var themeSel = pane.querySelector('#brandingTheme');
-                var hostEl = pane.querySelector('#brandingBrandHost');
-                if (themeSel && b.theme) themeSel.value = b.theme || 'DEFAULT';
-                if (hostEl) hostEl.value = (b.brandHost != null && b.brandHost !== undefined) ? b.brandHost : '';
-              }).catch(function () {});
-            }
+          }
+          var allowBrandingFetch = (cdInfo === 'HEADQUARTERS' || cdInfo === 'REGIONAL' || cdInfo === 'MASTER_DIST')
+            || (cdInfo === 'MERCHANT' && String(data.brandingEditAllowedYn || '').toUpperCase() === 'Y');
+          if (allowBrandingFetch && window.PG_API.orgBranding) {
+            window.PG_API.orgBranding(compId).then(function (b) {
+              pgBrandingFillImageDisplayFromFetch(pane, b);
+              var themeSel = pane.querySelector('#brandingTheme');
+              var hostEl = pane.querySelector('#brandingBrandHost');
+              if (themeSel && b.theme) themeSel.value = b.theme || 'DEFAULT';
+              if (hostEl) hostEl.value = (b.brandHost != null && b.brandHost !== undefined) ? b.brandHost : '';
+            }).catch(function () {});
           }
         }
         var paymentInfoCard = pane.querySelector('#webPaymentCard') || pane.querySelector('#pgInfoCard');
@@ -4251,6 +4499,7 @@
           } else if (paymentUrlEl) paymentUrlEl.value = '';
         }
         pane._lastCompInfoDetailData = data;
+        pgBindBrandingBrowse(pane);
         var compDivSel = form.querySelector('[name="compDiv"]');
         if (formUrl === '/comp/myCompMng' && compDivSel) {
           compDivSel.disabled = true;
@@ -4316,17 +4565,57 @@
       var compInfoDetailBtn = pane.querySelector('#compInfoDetailBtn');
       if (compInfoDetailBtn) {
         compInfoDetailBtn.addEventListener('click', function () {
+          // 업체정보조회(/comp/myCompMng)는 항상 로그인 소속 업체코드를 조회한다.
+          if (url === '/comp/myCompMng') {
+            var myCid = '';
+            try {
+              var su = JSON.parse(sessionStorage.getItem('pg_admin_user') || '{}');
+              myCid = (su && su.compId) ? String(su.compId).trim() : '';
+            } catch (e0) {}
+            if (myCid) {
+              loadCompDetailIntoForm(pane, myCid);
+              return;
+            }
+            if (window.PG_API && window.PG_API.authMe) {
+              window.PG_API.authMe().then(function (r) {
+                var d0 = r && r.data ? r.data : r;
+                var cid0 = d0 && d0.compId ? String(d0.compId).trim() : '';
+                if (!cid0) { alert('소속 업체코드를 확인할 수 없습니다. 다시 로그인해 주세요.'); return; }
+                try {
+                  var prev0 = JSON.parse(sessionStorage.getItem('pg_admin_user') || '{}');
+                  prev0.compId = cid0;
+                  prev0.orgLevel = d0.orgLevel;
+                  prev0.orgUnitId = d0.orgUnitId;
+                  sessionStorage.setItem('pg_admin_user', JSON.stringify(prev0));
+                } catch (e1) {}
+                loadCompDetailIntoForm(pane, cid0);
+              }).catch(function () { alert('소속 업체 정보를 불러오지 못했습니다.'); });
+              return;
+            }
+            alert('소속 업체코드를 확인할 수 없습니다.');
+            return;
+          }
           var grid = pane.querySelector('#grid_' + tabId + ' tbody');
           if (!grid) return;
           var checked = grid.querySelector('tr .grid-row-check:checked');
           if (!checked) { alert('그리드에서 한 건을 선택한 뒤 [상세] 버튼을 눌러주세요.'); return; }
           var tr = checked.closest('tr');
-          var tds = tr.querySelectorAll('td');
-          var cfg = window.PG_SCREENS && (window.PG_SCREENS.getMenuScreens()['/comp/compInfo'] || window.PG_SCREENS.getMenuScreens()['/comp/myCompMng']);
-          var cols = (cfg && cfg.columns) || [];
-          var compIdIdx = cols.findIndex(function (c) { return c.key === 'compId'; });
-          if (compIdIdx < 0) compIdIdx = 1;
-          var compId = (tds[compIdIdx] && tds[compIdIdx].textContent) ? tds[compIdIdx].textContent.trim() : '';
+          var compId = '';
+          var dr = tr && tr.getAttribute('data-row');
+          if (dr) {
+            try {
+              var row0 = JSON.parse(decodeURIComponent(dr));
+              compId = row0 && row0.compId ? String(row0.compId).trim() : '';
+            } catch (e2) {}
+          }
+          if (!compId) {
+            var tds = tr.querySelectorAll('td');
+            var cfg = window.PG_SCREENS && (window.PG_SCREENS.getMenuScreens()['/comp/compInfo'] || window.PG_SCREENS.getMenuScreens()['/comp/myCompMng']);
+            var cols = (cfg && cfg.columns) || [];
+            var compIdIdx = cols.findIndex(function (c) { return c.key === 'compId'; });
+            if (compIdIdx < 0) compIdIdx = 1;
+            compId = (tds[compIdIdx] && tds[compIdIdx].textContent) ? tds[compIdIdx].textContent.trim() : '';
+          }
           if (!compId) { alert('업체코드를 찾을 수 없습니다.'); return; }
           loadCompDetailIntoForm(pane, compId);
         });
@@ -4436,10 +4725,13 @@
             }
             return Promise.resolve();
           }).then(function () {
-            if (compDivVal !== 'MERCHANT' || String(fd.brandingEditAllowedYn || '').toUpperCase() !== 'Y') return Promise.resolve();
+            var canBranding = (compDivVal === 'HEADQUARTERS' || compDivVal === 'REGIONAL' || compDivVal === 'MASTER_DIST')
+              || (compDivVal === 'MERCHANT' && String(fd.brandingEditAllowedYn || '').toUpperCase() === 'Y');
+            if (!canBranding) return Promise.resolve();
             if (!window.PG_API.orgBrandingUpload || !window.PG_API.orgBrandingSave) return Promise.resolve();
             var mainFile = form.querySelector('#brandingMainImageFile');
             var logoFile = form.querySelector('#brandingLogoImageFile');
+            var popconFile = form.querySelector('#brandingPopconImageFile');
             var themeEl = form.querySelector('#brandingTheme');
             var hostEl = form.querySelector('#brandingBrandHost');
             var chain = Promise.resolve();
@@ -4461,10 +4753,22 @@
                 });
               });
             }
+            if (popconFile && popconFile.files && popconFile.files[0]) {
+              var _myPopconF = popconFile.files[0];
+              chain = chain.then(function () {
+                return window.PG_API.orgBrandingUpload(compId, 'popcon', _myPopconF).then(function (data) {
+                  pgBrandingSetImageDisplayInput(form, 'popcon', data, _myPopconF);
+                  return data;
+                });
+              });
+            }
             if (themeEl || hostEl) {
               chain = chain.then(function () { return window.PG_API.orgBrandingSave(compId, (themeEl && themeEl.value) ? themeEl.value : 'DEFAULT', hostEl ? hostEl.value : undefined); });
             }
-            return chain;
+            return chain.catch(function (eBrand) {
+              try { console.warn('branding save failed:', eBrand); } catch (e0) {}
+              return Promise.reject(eBrand);
+            });
           }).then(function () {
             alert('저장되었습니다.');
             if (url === '/comp/myCompMng') {
@@ -4569,7 +4873,6 @@
                 myCompForm.removeAttribute('data-assistant-pwd-confirmed');
               });
             }
-              pgToggleUsdDependentCommissionFields(pane, (data && data.baseCurrency) ? data.baseCurrency : (baseCurInfo ? baseCurInfo.value : ''));
           }
         }
         function runMyCompAutoLoad() {
@@ -4751,6 +5054,11 @@
         var baseCurDetail = pane.querySelector('#compDetailForm [name="baseCurrency"]');
         if (hqPolicySelDetail && !hqPolicySelDetail._hqPolicyLoadedDetail) {
           hqPolicySelDetail._hqPolicyLoadedDetail = true;
+          function syncDetailChargebackFromPolicy() {
+            var followVal = commissionFollowEl && commissionFollowEl.value ? String(commissionFollowEl.value).trim().toUpperCase() : 'Y';
+            if (followVal !== 'Y') return;
+            applyChargebackByHqPolicyScope(form, pane._hqCommissionTemplatesCacheDetail || [], hqPolicySelDetail.value);
+          }
           function refreshHqPolicyDetail(hqd) {
             var list = (hqd && hqd.templates) ? hqd.templates : [];
             pane._hqCommissionTemplatesCacheDetail = list;
@@ -4770,8 +5078,12 @@
               }
               if (okd) hqPolicySelDetail.value = prev;
             }
+            syncDetailChargebackFromPolicy();
           }
           window.PG_API.hqDefaultCommission().then(refreshHqPolicyDetail).catch(function () {});
+          hqPolicySelDetail.addEventListener('change', function () {
+            syncDetailChargebackFromPolicy();
+          });
           if (baseCurDetail && !baseCurDetail._hqPolicyBaseBoundDetail) {
             baseCurDetail._hqPolicyBaseBoundDetail = true;
             baseCurDetail.addEventListener('change', function () {
@@ -4846,16 +5158,7 @@
             if (hostEl) hostEl.value = (b.brandHost != null && b.brandHost !== undefined) ? b.brandHost : '';
           }).catch(function () {});
         }
-        var mainBrowse = pane.querySelector('#brandingMainImageBrowse');
-        var logoBrowse = pane.querySelector('#brandingLogoImageBrowse');
-        if (mainBrowse) mainBrowse.addEventListener('click', function () { var f = pane.querySelector('#brandingMainImageFile'); if (f) f.click(); });
-        if (logoBrowse) logoBrowse.addEventListener('click', function () { var f = pane.querySelector('#brandingLogoImageFile'); if (f) f.click(); });
-        [pane.querySelector('#brandingMainImageFile'), pane.querySelector('#brandingLogoImageFile')].forEach(function (inp) {
-          if (inp) inp.addEventListener('change', function () {
-            var urlInp = this.id === 'brandingMainImageFile' ? pane.querySelector('#brandingMainImageUrl') : pane.querySelector('#brandingLogoImageUrl');
-            if (urlInp && this.files && this.files[0]) urlInp.value = this.files[0].name;
-          });
-        });
+        pgBindBrandingBrowse(pane);
       }).catch(function (e) {
         pane.innerHTML = '<div class="card"><div class="card-body"><p class="text-danger">' + (e && e.message ? e.message : '조회 실패') + '</p><button type="button" class="btn btn-secondary btn-sm" id="compDetailListBtn">목록</button></div></div>';
       }).finally(function () {
@@ -4967,6 +5270,7 @@
           if (dimm) dimm.style.display = 'flex';
           var mainFile = form.querySelector('#brandingMainImageFile');
           var logoFile = form.querySelector('#brandingLogoImageFile');
+          var popconFile = form.querySelector('#brandingPopconImageFile');
           var themeEl = form.querySelector('#brandingTheme');
           var hostEl = form.querySelector('#brandingBrandHost');
           var brandingCard = form.closest('.tab-pane') && form.closest('.tab-pane').querySelector('#brandingCard');
@@ -5003,10 +5307,22 @@
                   });
                 });
               }
+              if (popconFile && popconFile.files && popconFile.files[0]) {
+                var _detPopconF = popconFile.files[0];
+                chain = chain.then(function () {
+                  return window.PG_API.orgBrandingUpload(compId, 'popcon', _detPopconF).then(function (data) {
+                    pgBrandingSetImageDisplayInput(form, 'popcon', data, _detPopconF);
+                    return data;
+                  });
+                });
+              }
               if (themeEl || hostEl) {
                 chain = chain.then(function () { return window.PG_API.orgBrandingSave(compId, (themeEl && themeEl.value) ? themeEl.value : 'DEFAULT', hostEl ? hostEl.value : undefined); });
               }
-              return chain;
+              return chain.catch(function (eBrand2) {
+                try { console.warn('branding save failed:', eBrand2); } catch (e0) {}
+                return Promise.reject(eBrand2);
+              });
             }
             return Promise.resolve();
           }).then(function () {
@@ -5178,34 +5494,52 @@
         function escAttr(s) {
           return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
         }
+        function isBlankValue(v) {
+          return v == null || String(v).trim() === '';
+        }
+        function getExtraMerchantValue(t, idx) {
+          var tc = t && t.tierCommission ? t.tierCommission : null;
+          var extras = tc && Array.isArray(tc.extras) ? tc.extras : null;
+          var slot = extras && extras[idx - 1] ? extras[idx - 1] : null;
+          var mv = slot && slot.tiers ? slot.tiers.merchant : null;
+          if (mv != null && String(mv).trim() !== '') return String(mv);
+          return nzStr(t, 'extraFee' + idx + 'Value', '');
+        }
         function formatExtraSlot(t, idx, cc) {
-          var enm = nzStr(t, 'extraFee' + idx + 'Name', '');
-          if (!enm) {
-            return '<td class="hq-def-comm-policy-td-extra-slot small text-muted text-center">—</td>';
-          }
           var emd = (t['extraFee' + idx + 'Mode'] != null ? String(t['extraFee' + idx + 'Mode']) : '').trim().toUpperCase();
-          var evv = nzStr(t, 'extraFee' + idx + 'Value', '0');
+          var enm = nzStr(t, 'extraFee' + idx + 'Name', '');
+          var evv = getExtraMerchantValue(t, idx);
+          if (isBlankValue(evv)) {
+            return '<td class="hq-def-comm-policy-td-extra-slot small text-center"></td>';
+          }
+          if (!enm) enm = '이름';
           var evFmt = pgFmtPolicyListAmount(evv, cc);
-          var raw = emd === 'PCT' ? enm + ' ' + evFmt + '%' : enm + ' ' + evFmt;
-          var disp = emd === 'PCT' ? escH(enm) + ' ' + escH(evFmt) + '%' : escH(enm) + ' ' + escH(evFmt);
+          var unit = emd === 'PCT' ? '(%)' : '(건)';
+          var raw = enm + unit + ' ' + evFmt;
+          var disp = escH(enm) + unit + ' ' + escH(evFmt);
           return '<td class="hq-def-comm-policy-td-extra-slot small text-truncate text-center" title="' + escAttr(raw) + '">' + disp + '</td>';
         }
         function extraFeeOneLine(t, idx, cc) {
+          var evv = getExtraMerchantValue(t, idx);
+          if (isBlankValue(evv)) return null;
           var enm = nzStr(t, 'extraFee' + idx + 'Name', '');
-          if (!enm) return null;
+          if (!enm) enm = '이름';
           var emd = (t['extraFee' + idx + 'Mode'] != null ? String(t['extraFee' + idx + 'Mode']) : '').trim().toUpperCase();
-          var evv = nzStr(t, 'extraFee' + idx + 'Value', '0');
           var evFmt = pgFmtPolicyListAmount(evv, cc);
-          var raw = emd === 'PCT' ? enm + ' ' + evFmt + '%' : enm + ' ' + evFmt;
-          var disp = emd === 'PCT' ? escH(enm) + ' ' + escH(evFmt) + '%' : escH(enm) + ' ' + escH(evFmt);
+          var unit = emd === 'PCT' ? '(%)' : '(건)';
+          var raw = enm + unit + ' ' + evFmt;
+          var disp = escH(enm) + unit + ' ' + escH(evFmt);
           return { raw: raw, disp: disp };
+        }
+        function formatExtraHeader(name, mode, fallback) {
+          var nm = name != null ? String(name).trim() : '';
+          if (!nm) return fallback;
+          var md = mode != null ? String(mode).trim().toUpperCase() : '';
+          return nm + (md === 'PCT' ? '(%)' : '(건)');
         }
         function formatExtraSlotLast(t, cc) {
           var a = extraFeeOneLine(t, 3, cc);
           var b = extraFeeOneLine(t, 4, cc);
-          if (!a && !b) {
-            return '<td class="hq-def-comm-policy-td-extra-slot small text-muted text-center">—</td>';
-          }
           var raws = [];
           var disps = [];
           if (a) {
@@ -5216,10 +5550,27 @@
             raws.push(b.raw);
             disps.push(b.disp);
           }
+          if (!disps.length) return '<td class="hq-def-comm-policy-td-extra-slot small text-center"></td>';
           return '<td class="hq-def-comm-policy-td-extra-slot small text-truncate text-center" title="' + escAttr(raws.join(' · ')) + '">' + disps.join(' · ') + '</td>';
         }
         var templates = (data && data.templates) ? data.templates : [];
         var curSel = (pane.querySelector('[name="templateScope"]') || {}).value || '';
+        var selected = null;
+        for (var ti = 0; ti < templates.length; ti++) {
+          if (String(templates[ti].scope || '') === String(curSel || '')) {
+            selected = templates[ti];
+            break;
+          }
+        }
+        if (!selected && templates.length) selected = templates[0];
+        var h1 = pane.querySelector('#hqDefCommExtraHead1');
+        var h2 = pane.querySelector('#hqDefCommExtraHead2');
+        var h3 = pane.querySelector('#hqDefCommExtraHead3');
+        var h4 = pane.querySelector('#hqDefCommExtraHead4');
+        if (h1) h1.textContent = formatExtraHeader(selected && selected.extraFee1Name, selected && selected.extraFee1Mode, '기타1');
+        if (h2) h2.textContent = formatExtraHeader(selected && selected.extraFee2Name, selected && selected.extraFee2Mode, '기타2');
+        if (h3) h3.textContent = formatExtraHeader(selected && selected.extraFee3Name, selected && selected.extraFee3Mode, '기타3');
+        if (h4) h4.textContent = formatExtraHeader(selected && selected.extraFee4Name, selected && selected.extraFee4Mode, '기타4');
         var h = '';
         templates.forEach(function (t) {
           var scope = t.scope || '';
@@ -5229,53 +5580,61 @@
           var dep = (t.deployYn === 'Y')
             ? '<span class="badge bg-success">배포</span>'
             : '<span class="badge bg-light text-dark border">미배포</span>';
-          var cur = t.currencyCode != null && String(t.currencyCode).trim() !== '' ? String(t.currencyCode).trim().toUpperCase() : '—';
+          var cur = t.currencyCode != null && String(t.currencyCode).trim() !== '' ? String(t.currencyCode).trim().toUpperCase() : '';
           var ccForFmt = (t.currencyCode != null && String(t.currencyCode).trim() !== '') ? String(t.currencyCode).trim().toUpperCase() : 'KRW';
-          var ua = t.updatedAt ? String(t.updatedAt).replace('T', ' ').replace(/\.\d+Z?$/, '') : '—';
+          var ua = t.updatedAt ? String(t.updatedAt).replace('T', ' ').replace(/\.\d+Z?$/, '') : '';
           var active = (scope === curSel) ? ' table-active' : '';
           var esc = String(scope).replace(/&/g, '&amp;').replace(/"/g, '&quot;');
           var cbPolRaw = (t.chargebackPolicyName != null && String(t.chargebackPolicyName).trim() !== '') ? String(t.chargebackPolicyName).trim() : '';
-          var cbFeeAmt = pgFmtPolicyListAmount(nzStr(t, 'chargebackFeePerTx', '0'), ccForFmt);
+          var cbFeeRaw = nzStr(t, 'chargebackFeePerTx', '');
+          var cbFeeAmt = isBlankValue(cbFeeRaw) ? '' : pgFmtPolicyListAmount(cbFeeRaw, ccForFmt);
           var cbTd = '<td class="hq-def-comm-policy-td-num">' + escH(cbFeeAmt) + '</td>';
           function tdAmt(raw, cls) {
-            return '<td class="hq-def-comm-policy-td-num' + (cls ? ' ' + cls : '') + '">' + escH(pgFmtPolicyListAmount(raw, ccForFmt)) + '</td>';
+            var rv = raw == null ? '' : String(raw).trim();
+            var out = rv === '' ? '' : pgFmtPolicyListAmount(rv, ccForFmt);
+            return '<td class="hq-def-comm-policy-td-num' + (cls ? ' ' + cls : '') + '">' + escH(out) + '</td>';
           }
           function tdPctRow(raw, cls) {
-            return '<td class="hq-def-comm-policy-td-num' + (cls ? ' ' + cls : '') + '">' + escH(pgFmtPolicyListAmount(raw, ccForFmt)) + '</td>';
+            var rv = raw == null ? '' : String(raw).trim();
+            var out = rv === '' ? '' : pgFmtPolicyListAmount(rv, ccForFmt);
+            return '<td class="hq-def-comm-policy-td-num' + (cls ? ' ' + cls : '') + '">' + escH(out) + '</td>';
           }
           function tdDays(raw, cls) {
-            var nd = parseFloat(String(raw == null || raw === '' ? '0' : raw).replace(/,/g, '.'));
-            if (!isFinite(nd)) nd = 0;
+            var rv = raw == null ? '' : String(raw).trim();
+            if (rv === '') return '<td class="hq-def-comm-policy-td-num' + (cls ? ' ' + cls : '') + '"></td>';
+            var nd = parseFloat(rv.replace(/,/g, '.'));
+            if (!isFinite(nd)) return '<td class="hq-def-comm-policy-td-num' + (cls ? ' ' + cls : '') + '"></td>';
             return '<td class="hq-def-comm-policy-td-num' + (cls ? ' ' + cls : '') + '">' + escH(String(Math.round(nd))) + '</td>';
           }
           var cbZoneTd = cbPolRaw
             ? '<td class="hq-def-comm-policy-td-cbzone small text-truncate" title="' + escAttr(cbPolRaw) + '">' + escH(cbPolRaw) + '</td>'
-            : '<td class="hq-def-comm-policy-td-cbzone small text-muted">—</td>';
+            : '<td class="hq-def-comm-policy-td-cbzone small"></td>';
           h += '<tr class="hq-default-comm-policy-row' + active + '" data-scope="' + esc + '" style="cursor:pointer" title="클릭하여 이 정책 불러오기">';
           h += '<td class="text-center align-middle hq-def-comm-chk-cell"><input type="checkbox" class="form-check-input hq-def-comm-row-chk m-0 align-middle" data-scope="' + esc + '" aria-label="행 선택"></td>';
           h += '<td class="font-monospace hq-def-comm-policy-td-code text-nowrap">' + String(shortCode).replace(/&/g, '&amp;').replace(/</g, '&lt;') + '</td><td class="hq-def-comm-policy-td-name small text-truncate align-middle" title="' + escAttr(rawName) + '">' + nm + '</td>' + cbZoneTd + '<td>' + dep + '</td>';
-          h += '<td class="font-monospace small">' + cur.replace(/&/g, '&amp;').replace(/</g, '&lt;') + '</td>';
-          h += tdAmt(nzStr(t, 'perTxFee', '0'), 'border-start');
-          h += tdAmt(nzStr(t, 'failFee', '0'));
-          h += tdAmt(nzStr(t, 'feeSettlementPerTx', '0'));
-          h += tdAmt(nzStr(t, 'remittanceTransferFee', '0'));
-          h += tdAmt(nzStr(t, 'usdtTransferFeeUsd', '0'));
+          h += '<td class="font-monospace small">' + escH(cur) + '</td>';
+          h += tdAmt(nzStr(t, 'perTxFee', ''), 'border-start');
+          h += tdAmt(nzStr(t, 'failFee', ''));
+          h += tdAmt(nzStr(t, 'feeSettlementPerTx', ''));
+          h += tdAmt(nzStr(t, 'remittanceTransferFee', ''));
+          h += tdAmt(nzStr(t, 'usdtTransferFeeUsd', ''));
           h += cbTd;
-          h += tdAmt(nzStr(t, 'cancelRate', '0'));
-          h += tdAmt(nzStr(t, 'voidFeePerTx', '0'));
-          h += tdAmt(nzStr(t, 'manualVoidFeePerTx', '0'));
-          h += tdAmt(nzStr(t, 'refundRate', '0'));
-          h += tdPctRow(nzStr(t, 'payRate', '0'), 'border-start');
-          h += tdPctRow(nzStr(t, 'feeUsdt', '0'));
-          h += tdPctRow(nzStr(t, 'feeFx', '0'));
-          h += tdPctRow(nzStr(t, 'fee3dsRate', '0'));
-          h += tdPctRow(nzStr(t, 'rollingPct', '0'), 'border-start');
-          h += tdDays(nzStr(t, 'rollingDays', '0'));
-          h += tdAmt(nzStr(t, 'usageRate', '0'), 'border-start');
+          h += tdAmt(nzStr(t, 'cancelRate', ''));
+          h += tdAmt(nzStr(t, 'voidFeePerTx', ''));
+          h += tdAmt(nzStr(t, 'manualVoidFeePerTx', ''));
+          h += tdAmt(nzStr(t, 'refundRate', ''));
+          h += tdPctRow(nzStr(t, 'payRate', ''), 'border-start');
+          h += tdPctRow(nzStr(t, 'feeUsdt', ''));
+          h += tdPctRow(nzStr(t, 'feeFx', ''));
+          h += tdPctRow(nzStr(t, 'fee3dsRate', ''));
+          h += tdPctRow(nzStr(t, 'rollingPct', ''), 'border-start');
+          h += tdDays(nzStr(t, 'rollingDays', ''));
+          h += tdAmt(nzStr(t, 'usageRate', ''), 'border-start');
           h += formatExtraSlot(t, 1, ccForFmt);
           h += formatExtraSlot(t, 2, ccForFmt);
-          h += formatExtraSlotLast(t, ccForFmt);
-          h += '<td class="text-nowrap small">' + escH(ua) + '</td></tr>';
+          h += formatExtraSlot(t, 3, ccForFmt);
+          h += formatExtraSlot(t, 4, ccForFmt);
+          h += '<td class="text-nowrap small hq-def-comm-policy-td-upd" title="' + escAttr(ua) + '">' + escH(ua) + '</td></tr>';
         });
         tb.innerHTML = h;
         var selAll = pane.querySelector('#hqDefCommSelectAll');

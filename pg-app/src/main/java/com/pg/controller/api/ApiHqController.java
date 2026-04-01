@@ -247,8 +247,7 @@ public class ApiHqController {
         } else {
             data.put("chargebackPolicyName", "");
         }
-        List<Map<String, Object>> templates = commissionPolicyRepository
-                .findByScopeStartingWithOrderByScopeAsc(TEMPLATE_SCOPE_PREFIX)
+        List<Map<String, Object>> templates = listAllTemplatePolicies()
                 .stream()
                 .map(p -> enrichPolicyMapWithChargebackName(policyToMap(p), p.getChargebackPolicyId(), chargebackNames))
                 .toList();
@@ -328,11 +327,25 @@ public class ApiHqController {
     public ResponseEntity<ApiResponse<List<Map<String, Object>>>> defaultCommissionTemplateOptions() {
         Map<Long, String> chargebackNames = chargebackFeePolicyRepository.findAllByOrderByNameAsc().stream()
                 .collect(Collectors.toMap(ChargebackFeePolicy::getId, ChargebackFeePolicy::getName, (a, b) -> a));
-        List<Map<String, Object>> list = commissionPolicyRepository.findByScopeStartingWithOrderByScopeAsc(TEMPLATE_SCOPE_PREFIX)
+        List<Map<String, Object>> list = listAllTemplatePolicies()
                 .stream()
                 .map(po -> enrichPolicyMapWithChargebackName(policyToMap(po), po.getChargebackPolicyId(), chargebackNames))
                 .toList();
         return ResponseEntity.ok(ApiResponse.ok(list));
+    }
+
+    private List<CommissionPolicy> listAllTemplatePolicies() {
+        return commissionPolicyRepository.findAll().stream()
+                .filter(p -> {
+                    String scope = p.getScope() != null ? p.getScope().trim() : "";
+                    if (scope.isBlank() || "DEFAULT".equalsIgnoreCase(scope)) return false;
+                    if (scope.startsWith(TEMPLATE_SCOPE_PREFIX)) return true;
+                    String policyName = p.getPolicyName() != null ? p.getPolicyName().trim() : "";
+                    // 레거시 템플릿: 정책명이 있고, scope가 순수 숫자(업체코드) 형식이 아닌 항목
+                    return !policyName.isBlank() && !scope.matches("\\d{6,}");
+                })
+                .sorted(Comparator.comparing(CommissionPolicy::getScope, Comparator.nullsLast(String::compareTo)))
+                .toList();
     }
 
     @PostMapping("/defaultCommission/template/add")

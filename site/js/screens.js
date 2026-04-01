@@ -32,7 +32,7 @@
       { k: 'branch', t: '지사' },
       { k: 'agency', t: '대리점' },
       { k: 'salesOffice', t: '영업점' },
-      { k: 'merchant', t: '가맹' }
+      { k: 'merchant', t: '가맹점' }
     ];
     var R = [
       { k: 'payRate', t: '결제수수료율', u: '%' },
@@ -40,10 +40,10 @@
       { k: 'failFee', t: '실패수수료', u: '(건)' },
       { k: 'cancelRate', t: '취소수수료', u: '(건)' },
       { k: 'voidFeePerTx', t: '무효수수료', u: '(건)' },
-      { k: 'manualVoidFeePerTx', t: '수동무효수수료', u: '(건)' },
+      { k: 'manualVoidFeePerTx', t: '수무효수수료', u: '(건)' },
       { k: 'refundRate', t: '환불수수료', u: '(건)' },
       { k: 'feeSettlementPerTx', t: '정산수수료', u: '(건)' },
-      { k: 'remittanceTransferFee', t: '송금이체수수료', u: '(건)' },
+      { k: 'remittanceTransferFee', t: '송금수수료', u: '(건)' },
       { k: 'usdtTransferFeeUsd', t: 'USDT 송금수수료', u: '(USD)' },
       { k: 'feeUsdt', t: 'USDT수수료율', u: '%' },
       { k: 'feeFx', t: 'FX수수료율', u: '%' },
@@ -77,7 +77,7 @@
       { k: 'branch', t: '지사' },
       { k: 'agency', t: '대리점' },
       { k: 'salesOffice', t: '영업점' },
-      { k: 'merchant', t: '가맹' }
+      { k: 'merchant', t: '가맹점' }
     ];
     var th = '<th class="text-center small">유형</th><th class="text-center small" style="min-width:6rem">수수료명</th>' +
       L.map(function (x) { return '<th class="text-center small text-nowrap">' + x.t + '</th>'; }).join('');
@@ -276,16 +276,12 @@
               '<col class="hq-def-comm-col" /><col class="hq-def-comm-col" /><col class="hq-def-comm-col" /><col class="hq-def-comm-col" />' +
               '<col class="hq-def-comm-col" /><col class="hq-def-comm-col" />' +
               '<col class="hq-def-comm-col" />' +
-              '<col class="hq-def-comm-col" /><col class="hq-def-comm-col" /><col class="hq-def-comm-col" />' +
-              '<col class="hq-def-comm-col" />' +
+              '<col class="hq-def-comm-col" /><col class="hq-def-comm-col" /><col class="hq-def-comm-col" /><col class="hq-def-comm-col" />' +
+              '<col class="hq-def-comm-col" /><col class="hq-def-comm-col" />' +
               '</colgroup>' +
               '<thead class="table-light">' +
               '<tr>' +
-              '<th rowspan="2" class="text-center align-middle hq-def-comm-th-chk" title="전체 선택">' +
-              '<span class="hq-def-comm-th-chk-inner">' +
-              '<span class="hq-def-comm-th-chk-label">선택</span>' +
-              '<input type="checkbox" class="form-check-input m-0 align-middle" id="hqDefCommSelectAll" aria-label="목록 전체 선택">' +
-              '</span></th>' +
+              '<th rowspan="2" class="text-center align-middle hq-def-comm-th-chk"><span class="hq-def-comm-th-chk-label">선택</span></th>' +
               '<th rowspan="2" class="text-center align-middle hq-def-comm-th-code">코드</th>' +
               '<th rowspan="2" class="text-center align-middle hq-def-comm-th-name">이름</th>' +
               '<th rowspan="2" class="text-center align-middle hq-def-comm-th-cb-zone small">차지백<br>구간정책</th>' +
@@ -295,14 +291,14 @@
               '<th colspan="4" class="text-center align-middle small hq-def-comm-th-group border-start">수수료 %</th>' +
               '<th colspan="2" class="text-center align-middle small hq-def-comm-th-group border-start">담보율</th>' +
               '<th rowspan="2" class="text-center align-middle hq-def-comm-th-mon border-start">월간</th>' +
-              '<th colspan="3" class="text-center align-middle small hq-def-comm-th-group border-start">기타</th>' +
+              '<th colspan="4" class="text-center align-middle small hq-def-comm-th-group border-start">기타</th>' +
               '<th rowspan="2" class="text-center align-middle hq-def-comm-th-upd text-nowrap border-start">일지</th>' +
               '</tr>' +
               '<tr>' +
-              '<th class="hq-def-comm-th-sub text-center border-start">건당</th><th class="hq-def-comm-th-sub text-center">실패</th><th class="hq-def-comm-th-sub text-center">정산</th><th class="hq-def-comm-th-sub text-center">송금이체</th><th class="hq-def-comm-th-sub text-center">U송금</th><th class="hq-def-comm-th-sub text-center">차지백</th><th class="hq-def-comm-th-sub text-center">취소</th><th class="hq-def-comm-th-sub text-center">무효</th><th class="hq-def-comm-th-sub text-center">수동무효</th><th class="hq-def-comm-th-sub text-center">환불</th>' +
+              '<th class="hq-def-comm-th-sub text-center border-start">건당</th><th class="hq-def-comm-th-sub text-center">실패</th><th class="hq-def-comm-th-sub text-center">정산</th><th class="hq-def-comm-th-sub text-center">송금</th><th class="hq-def-comm-th-sub text-center">U송금</th><th class="hq-def-comm-th-sub text-center">차지백</th><th class="hq-def-comm-th-sub text-center">취소</th><th class="hq-def-comm-th-sub text-center">무효</th><th class="hq-def-comm-th-sub text-center">수무효</th><th class="hq-def-comm-th-sub text-center">환불</th>' +
               '<th class="hq-def-comm-th-sub text-center border-start">결제</th><th class="hq-def-comm-th-sub text-center">USDT</th><th class="hq-def-comm-th-sub text-center">FX</th><th class="hq-def-comm-th-sub text-center">3DS</th>' +
               '<th class="hq-def-comm-th-sub text-center border-start">비율</th><th class="hq-def-comm-th-sub text-center">일</th>' +
-              '<th class="hq-def-comm-th-sub text-center border-start">1</th><th class="hq-def-comm-th-sub text-center">2</th><th class="hq-def-comm-th-sub text-center">3</th>' +
+              '<th id="hqDefCommExtraHead1" class="hq-def-comm-th-sub text-center border-start">기타1</th><th id="hqDefCommExtraHead2" class="hq-def-comm-th-sub text-center">기타2</th><th id="hqDefCommExtraHead3" class="hq-def-comm-th-sub text-center">기타3</th><th id="hqDefCommExtraHead4" class="hq-def-comm-th-sub text-center">기타4</th>' +
               '</tr>' +
               '</thead>' +
               '<tbody id="hqDefaultCommissionPolicyList"></tbody></table>' +
@@ -749,9 +745,9 @@
           rows: [
             [{ label: '본사정책 따름', type: 'select', name: 'commissionFollowHq', options: [{ v: 'Y', t: '본사정책 따름' }, { v: 'N', t: '직접입력' }], col: 2 }, { label: '본사 정책선택', type: 'select', name: 'hqPolicyScope', options: [{ v: '', t: '기본(DEFAULT)' }], col: 2, hqPolicyOnly: true }],
             [{ label: '결제수수료율(%)', type: 'text', name: 'payRate', col: 2, customOnly: true }, { label: '실패수수료(건)', type: 'text', name: 'failFee', col: 2, customOnly: true }, { label: '취소수수료(건)', type: 'text', name: 'cancelRate', col: 2, customOnly: true }],
-            [{ label: '무효수수료(건)', type: 'text', name: 'voidFeePerTx', col: 2, customOnly: true, placeholder: '거래 21' }, { label: '수동무효수수료(건)', type: 'text', name: 'manualVoidFeePerTx', col: 2, customOnly: true, placeholder: '거래 22' }, { label: '환불수수료(건)', type: 'text', name: 'refundRate', col: 2, customOnly: true }],
+            [{ label: '무효수수료(건)', type: 'text', name: 'voidFeePerTx', col: 2, customOnly: true, placeholder: '거래 21' }, { label: '수무효수수료(건)', type: 'text', name: 'manualVoidFeePerTx', col: 2, customOnly: true, placeholder: '거래 22' }, { label: '환불수수료(건)', type: 'text', name: 'refundRate', col: 2, customOnly: true }],
             [{ label: '월간이용료(월 1회·고정)', type: 'text', name: 'usageRate', col: 2, customOnly: true, placeholder: '통화코드 단위 금액' }, { label: '비고', type: 'text', name: 'commissionMemo', col: 2, customOnly: true }],
-            [{ label: '정산수수료(건)', type: 'text', name: 'feeSettlementPerTx', col: 2, customOnly: true }, { label: '송금이체수수료', type: 'text', name: 'remittanceTransferFee', col: 2, customOnly: true }, { label: 'USDT 송금수수료(USD)', type: 'text', name: 'usdtTransferFeeUsd', col: 2, customOnly: true }, { label: 'USDT수수료율(%)', type: 'text', name: 'feeUsdt', col: 2, customOnly: true }, { label: 'FX수수료율(%)', type: 'text', name: 'feeFx', col: 2, customOnly: true }, { label: '3DS수수료율(%)', type: 'text', name: 'fee3dsRate', col: 2, customOnly: true }]
+            [{ label: '정산수수료(건)', type: 'text', name: 'feeSettlementPerTx', col: 2, customOnly: true }, { label: '송금수수료', type: 'text', name: 'remittanceTransferFee', col: 2, customOnly: true }, { label: 'USDT 송금수수료(USD)', type: 'text', name: 'usdtTransferFeeUsd', col: 2, customOnly: true }, { label: 'USDT수수료율(%)', type: 'text', name: 'feeUsdt', col: 2, customOnly: true }, { label: 'FX수수료율(%)', type: 'text', name: 'feeFx', col: 2, customOnly: true }, { label: '3DS수수료율(%)', type: 'text', name: 'fee3dsRate', col: 2, customOnly: true }]
           ]
         },
         {
@@ -797,8 +793,13 @@
           type: 'branding',
           title: '브랜딩 설정',
           id: 'brandingCard',
-          merchantOnly: true,
           notice: '본사에서 [배경/로고 변경권한]을 부여한 가맹점은 메인·로고·테마를 수정할 수 있습니다. 메인이미지=로그인 화면 왼쪽 배경, 로고=로그인창 상단·사이드바 상단.'
+        },
+        {
+          title: '기타(본사)',
+          id: 'regionalMiscCard',
+          notice: '메인이미지는 2MB, 로고이미지는 1MB까지 업로드 가능합니다. PNG파일을 추천합니다.',
+          rows: [[{ label: 'COPYRIGHT', type: 'textarea', name: 'copyright', col: 6, placeholder: 'Copyright © 2025 ICOPAY Service by Ontheline Co., Ltd.' }, { label: '비고', type: 'textarea', name: 'remark', col: 6 }]]
         },
         {
           title: '기타',
@@ -857,7 +858,7 @@
         { key: 'contact', label: '연락처' },
         { key: 'bankNm', label: '은행' },
         { key: 'accountNo', label: '계좌번호' },
-        { key: 'transferFee', label: '송금이체수수료' },
+        { key: 'transferFee', label: '송금수수료' },
         { key: 'calcCycle', label: '정산주기' },
         { key: 'calcProcType', label: '정산구분' },
         { key: 'transferType', label: '이체및송금' },
@@ -1044,9 +1045,9 @@
           rows: [
             [{ label: '본사정책 따름', type: 'select', name: 'commissionFollowHq', options: [{ v: 'Y', t: '본사정책 따름' }, { v: 'N', t: '직접입력' }], col: 2 }, { label: '본사 정책선택', type: 'select', name: 'hqPolicyScope', options: [{ v: '', t: '기본(DEFAULT)' }], col: 2, hqPolicyOnly: true }],
             [{ label: '결제수수료율(%)', type: 'text', name: 'payRate', col: 2, customOnly: true }, { label: '실패수수료(건)', type: 'text', name: 'failFee', col: 2, customOnly: true }, { label: '취소수수료(건)', type: 'text', name: 'cancelRate', col: 2, customOnly: true }],
-            [{ label: '무효수수료(건)', type: 'text', name: 'voidFeePerTx', col: 2, customOnly: true, placeholder: '거래 21' }, { label: '수동무효수수료(건)', type: 'text', name: 'manualVoidFeePerTx', col: 2, customOnly: true, placeholder: '거래 22' }, { label: '환불수수료(건)', type: 'text', name: 'refundRate', col: 2, customOnly: true }],
+            [{ label: '무효수수료(건)', type: 'text', name: 'voidFeePerTx', col: 2, customOnly: true, placeholder: '거래 21' }, { label: '수무효수수료(건)', type: 'text', name: 'manualVoidFeePerTx', col: 2, customOnly: true, placeholder: '거래 22' }, { label: '환불수수료(건)', type: 'text', name: 'refundRate', col: 2, customOnly: true }],
             [{ label: '월간이용료(월 1회·고정)', type: 'text', name: 'usageRate', col: 2, customOnly: true, placeholder: '통화코드 단위 금액' }, { label: '비고', type: 'text', name: 'commissionMemo', col: 2, customOnly: true }],
-            [{ label: '정산수수료(건)', type: 'text', name: 'feeSettlementPerTx', col: 2, customOnly: true }, { label: '송금이체수수료', type: 'text', name: 'remittanceTransferFee', col: 2, customOnly: true }, { label: 'USDT 송금수수료(USD)', type: 'text', name: 'usdtTransferFeeUsd', col: 2, customOnly: true }, { label: 'USDT수수료율(%)', type: 'text', name: 'feeUsdt', col: 2, customOnly: true }, { label: 'FX수수료율(%)', type: 'text', name: 'feeFx', col: 2, customOnly: true }, { label: '3DS수수료율(%)', type: 'text', name: 'fee3dsRate', col: 2, customOnly: true }]
+            [{ label: '정산수수료(건)', type: 'text', name: 'feeSettlementPerTx', col: 2, customOnly: true }, { label: '송금수수료', type: 'text', name: 'remittanceTransferFee', col: 2, customOnly: true }, { label: 'USDT 송금수수료(USD)', type: 'text', name: 'usdtTransferFeeUsd', col: 2, customOnly: true }, { label: 'USDT수수료율(%)', type: 'text', name: 'feeUsdt', col: 2, customOnly: true }, { label: 'FX수수료율(%)', type: 'text', name: 'feeFx', col: 2, customOnly: true }, { label: '3DS수수료율(%)', type: 'text', name: 'fee3dsRate', col: 2, customOnly: true }]
           ]
         },
         {
@@ -1118,7 +1119,7 @@
           title: '기본정보',
           notice: '업체구분에 따라 해당하는 입력 항목이 표시됩니다. 사용여부를 미사용으로 변경하면 하위 조직 전체가 미사용됩니다. 가맹점은 상위 지점을 변경하여 다른 사용 중인 상위 아래로 활성화할 수 있습니다.',
           rows: [
-            [{ label: '업체코드', type: 'text', name: 'compId', col: 2, readonly: true }, { label: '상위 본사', type: 'text', name: 'parentComp', col: 2, button: '검색', placeholder: '상위 코드' }, { label: '업체구분*', type: 'select', name: 'compDiv', options: [{ v: '', t: '선택' }, { v: 'REGIONAL', t: '본사' }, { v: 'MASTER_DIST', t: '총판' }, { v: 'BRANCH', t: '지사' }, { v: 'AGENCY', t: '대리점' }, { v: 'SALES_OFFICE', t: '영업점' }, { v: 'MERCHANT', t: '가맹점' }], col: 1 }, { label: '업체명*', type: 'text', name: 'compNm', col: 2 }, { label: '사업자번호*', type: 'regNoWithType', name: 'regNo', col: 2 }, { label: '업태', type: 'text', name: 'bizType', col: 1 }, { label: '종목', type: 'text', name: 'industry', col: 1 }],
+            [{ label: '업체코드', type: 'text', name: 'compId', col: 2, readonly: true }, { label: '상위 본사', type: 'text', name: 'parentComp', col: 2, button: '검색', placeholder: '상위 코드' }, { label: '업체구분*', type: 'select', name: 'compDiv', options: [{ v: '', t: '선택' }, { v: 'HEADQUARTERS', t: '총본사' }, { v: 'REGIONAL', t: '본사' }, { v: 'MASTER_DIST', t: '총판' }, { v: 'BRANCH', t: '지사' }, { v: 'AGENCY', t: '대리점' }, { v: 'SALES_OFFICE', t: '영업점' }, { v: 'MERCHANT', t: '가맹점' }], col: 1 }, { label: '업체명*', type: 'text', name: 'compNm', col: 2 }, { label: '사업자번호*', type: 'regNoWithType', name: 'regNo', col: 2 }, { label: '업태', type: 'text', name: 'bizType', col: 1 }, { label: '종목', type: 'text', name: 'industry', col: 1 }],
             [{ label: '대표자명*', type: 'text', name: 'ceoNm', col: 2 }, { label: '휴대폰*', type: 'text', name: 'ceoMobile', col: 2 }, { label: '업체전화*', type: 'text', name: 'compTel', col: 2 }, { label: '팩스', type: 'text', name: 'fax', col: 2 }, { label: '이메일', type: 'text', name: 'email', col: 2 }, { label: '비고', type: 'text', name: 'remark', col: 2 }],
             [{ type: 'countryAddressRow', zipLabel: '우편번호*', addrLabel: '주소*', addrDetailLabel: '상세주소', addrEtcLabel: '기타' }],
             [{ label: '사용여부*', type: 'select', name: 'useYn', options: [{ v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }], col: 1 }, { label: '로그인ID*', type: 'text', name: 'loginId', col: 2, button: 'ID변경' }, { label: '비밀번호', type: 'passwordReset', name: 'pwdReset', col: 2 }]
@@ -1281,9 +1282,9 @@
           rows: [
             [{ label: '본사정책 따름', type: 'select', name: 'commissionFollowHq', options: [{ v: 'Y', t: '본사정책 따름' }, { v: 'N', t: '직접입력' }], col: 2 }, { label: '본사 정책선택', type: 'select', name: 'hqPolicyScope', options: [{ v: '', t: '기본(DEFAULT)' }], col: 2, hqPolicyOnly: true }],
             [{ label: '결제수수료율(%)', type: 'text', name: 'payRate', col: 2, customOnly: true }, { label: '실패수수료(건)', type: 'text', name: 'failFee', col: 2, customOnly: true }, { label: '취소수수료(건)', type: 'text', name: 'cancelRate', col: 2, customOnly: true }],
-            [{ label: '무효수수료(건)', type: 'text', name: 'voidFeePerTx', col: 2, customOnly: true, placeholder: '거래 21' }, { label: '수동무효수수료(건)', type: 'text', name: 'manualVoidFeePerTx', col: 2, customOnly: true, placeholder: '거래 22' }, { label: '환불수수료(건)', type: 'text', name: 'refundRate', col: 2, customOnly: true }],
+            [{ label: '무효수수료(건)', type: 'text', name: 'voidFeePerTx', col: 2, customOnly: true, placeholder: '거래 21' }, { label: '수무효수수료(건)', type: 'text', name: 'manualVoidFeePerTx', col: 2, customOnly: true, placeholder: '거래 22' }, { label: '환불수수료(건)', type: 'text', name: 'refundRate', col: 2, customOnly: true }],
             [{ label: '월간이용료(월 1회·고정)', type: 'text', name: 'usageRate', col: 2, customOnly: true, placeholder: '통화코드 단위 금액' }, { label: '비고', type: 'text', name: 'commissionMemo', col: 2, customOnly: true }],
-            [{ label: '정산수수료(건)', type: 'text', name: 'feeSettlementPerTx', col: 2, customOnly: true }, { label: '송금이체수수료', type: 'text', name: 'remittanceTransferFee', col: 2, customOnly: true }, { label: 'USDT 송금수수료(USD)', type: 'text', name: 'usdtTransferFeeUsd', col: 2, customOnly: true }, { label: 'USDT수수료율(%)', type: 'text', name: 'feeUsdt', col: 2, customOnly: true }, { label: 'FX수수료율(%)', type: 'text', name: 'feeFx', col: 2, customOnly: true }, { label: '3DS수수료율(%)', type: 'text', name: 'fee3dsRate', col: 2, customOnly: true }]
+            [{ label: '정산수수료(건)', type: 'text', name: 'feeSettlementPerTx', col: 2, customOnly: true }, { label: '송금수수료', type: 'text', name: 'remittanceTransferFee', col: 2, customOnly: true }, { label: 'USDT 송금수수료(USD)', type: 'text', name: 'usdtTransferFeeUsd', col: 2, customOnly: true }, { label: 'USDT수수료율(%)', type: 'text', name: 'feeUsdt', col: 2, customOnly: true }, { label: 'FX수수료율(%)', type: 'text', name: 'feeFx', col: 2, customOnly: true }, { label: '3DS수수료율(%)', type: 'text', name: 'fee3dsRate', col: 2, customOnly: true }]
           ]
         },
         {
@@ -1349,12 +1350,10 @@
     '/commission/commisionList': {
       searchRows: [
         [
+          { label: '업체선택(조직)', type: 'select', name: 'searchCompDiv', options: [{ v: '', t: '전체' }, { v: 'REGIONAL', t: '본사' }, { v: 'MASTER_DIST', t: '총판' }, { v: 'BRANCH', t: '지사' }, { v: 'AGENCY', t: '대리점' }, { v: 'SALES_OFFICE', t: '영업점' }, { v: 'MERCHANT', t: '가맹점' }] },
+          { label: '업체사용여부', type: 'select', name: 'searchUseYn', options: [{ v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }] },
           { label: '업체코드', type: 'text', name: 'searchCompId' },
-          { label: '업체명', type: 'text', name: 'searchCompNm' }
-        ],
-        [
-          { label: '적용일자', type: 'daterange', from: 'searchFromDate', to: 'searchToDate' },
-          { type: 'quickdate' },
+          { label: '업체명', type: 'text', name: 'searchCompNm' },
           { type: 'searchBtn' }
         ]
       ],
@@ -1365,7 +1364,7 @@
         '상위 조직 수수료 정책이 바뀌면 이후 신규 가맹점 등록 시 하위 배분 설정에 반영될 수 있습니다.'
       ],
       summary: ['건수'],
-      buttons: [{ id: 'searchBtn', label: '검색', cls: 'btn-primary' }, { id: 'commissionSettingBtn', label: '수수료설정', cls: 'btn-info' }, { id: 'excelBtn', label: '엑셀다운로드', cls: 'btn-info' }],
+      buttons: [{ id: 'commissionSettingBtn', label: '수수료설정', cls: 'btn-info' }, { id: 'excelBtn', label: '엑셀다운로드', cls: 'btn-info' }, { id: 'commissionInlineTopSaveBtn', label: '저장', cls: 'btn-primary' }],
       /** 2단 헤더 좁은 컬럼: 한 줄 표시 + site.css .commission-split-grid */
       tableExtraClass: 'commission-split-grid',
       headerGroups: [
@@ -1697,7 +1696,7 @@
         { key: 'failFee', label: '실패수수료' },
         { key: 'cancelFee', label: '취소수수료' },
         { key: 'voidFee', label: '무효수수료' },
-        { key: 'manualVoidFee', label: '수동무효수수료' },
+        { key: 'manualVoidFee', label: '수무효수수료' },
         { key: 'refundFee', label: '환불수수료' },
         { key: 'payFeeRate', label: '결제수수료율(%)' },
         { key: 'payFee', label: '결제수수료' },
@@ -2053,12 +2052,12 @@
           title: '업체 정보 상세 (업체정보조회)',
           notice: '그리드에서 한 건 선택 후 [상세] 버튼으로 조회·수정합니다.',
           rows: [
-            [{ label: '업체코드', type: 'text', name: 'compId', col: 2, readonly: true }, { label: '업체구분', type: 'select', name: 'compDiv', options: [{ v: '', t: '선택' }, { v: 'REGIONAL', t: '본사' }, { v: 'MASTER_DIST', t: '총판' }, { v: 'BRANCH', t: '지사' }, { v: 'AGENCY', t: '대리점' }, { v: 'SALES_OFFICE', t: '영업점' }, { v: 'MERCHANT', t: '가맹점' }], col: 2 }],
+            [{ label: '업체코드', type: 'text', name: 'compId', col: 2, readonly: true }, { label: '업체구분', type: 'select', name: 'compDiv', options: [{ v: '', t: '선택' }, { v: 'HEADQUARTERS', t: '총본사' }, { v: 'REGIONAL', t: '본사' }, { v: 'MASTER_DIST', t: '총판' }, { v: 'BRANCH', t: '지사' }, { v: 'AGENCY', t: '대리점' }, { v: 'SALES_OFFICE', t: '영업점' }, { v: 'MERCHANT', t: '가맹점' }], col: 2 }],
             [{ label: '업체명(본사명)*', type: 'text', name: 'compNm', col: 2 }, { label: '사업자번호*', type: 'regNoWithType', name: 'regNo', col: 2 }],
             [{ label: '업태', type: 'text', name: 'bizType', col: 2 }, { label: '종목', type: 'text', name: 'industry', col: 2 }],
             [{ label: '대표자명*', type: 'text', name: 'ceoNm', col: 2 }, { label: '휴대폰*', type: 'text', name: 'ceoMobile', col: 2 }, { label: '업체전화*', type: 'text', name: 'compTel', col: 2 }, { label: '팩스', type: 'text', name: 'fax', col: 2 }, { label: '이메일', type: 'text', name: 'email', col: 2 }, { label: '비고', type: 'text', name: 'remark', col: 2 }],
             [{ type: 'countryAddressRow', zipLabel: '우편번호*', addrLabel: '주소*', addrDetailLabel: '상세주소', addrEtcLabel: '기타' }],
-            [{ label: '사용여부*', type: 'select', name: 'useYn', options: [{ v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }], col: 2 }, { label: '로그인ID*', type: 'text', name: 'loginId', col: 2 }, { label: '비밀번호', type: 'passwordReset', name: 'pwdReset', col: 2 }],
+            [{ label: '사용여부*', type: 'select', name: 'useYn', options: [{ v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }], col: 2 }, { label: '대표 아이디 (중복검사)', type: 'text', name: 'loginId', col: 2, button: '중복확인' }, { label: '비밀번호', type: 'passwordReset', name: 'pwdReset', col: 2 }],
             [{ label: '사업자형태', type: 'text', name: 'bizNature', col: 2 }, { label: '취급물품', type: 'text', name: 'product', col: 2 }],
             [{ label: '대표사이트', type: 'text', name: 'homepage', col: 2 }, { label: '정산담당자명', type: 'text', name: 'settleName', col: 2 }],
             [{ label: '정산담당자연락처', type: 'text', name: 'settleTelNo', col: 2 }],
@@ -2076,9 +2075,9 @@
           rows: [
             [{ label: '본사정책 따름', type: 'select', name: 'commissionFollowHq', options: [{ v: 'Y', t: '본사정책 따름' }, { v: 'N', t: '직접입력' }], col: 2 }, { label: '본사 정책선택', type: 'select', name: 'hqPolicyScope', options: [{ v: '', t: '기본(DEFAULT)' }], col: 2, hqPolicyOnly: true }],
             [{ label: '결제수수료율(%)', type: 'text', name: 'payRate', col: 2, customOnly: true }, { label: '실패수수료(건)', type: 'text', name: 'failFee', col: 2, customOnly: true }, { label: '취소수수료(건)', type: 'text', name: 'cancelRate', col: 2, customOnly: true }],
-            [{ label: '무효수수료(건)', type: 'text', name: 'voidFeePerTx', col: 2, customOnly: true, placeholder: '거래 21' }, { label: '수동무효수수료(건)', type: 'text', name: 'manualVoidFeePerTx', col: 2, customOnly: true, placeholder: '거래 22' }, { label: '환불수수료(건)', type: 'text', name: 'refundRate', col: 2, customOnly: true }],
+            [{ label: '무효수수료(건)', type: 'text', name: 'voidFeePerTx', col: 2, customOnly: true, placeholder: '거래 21' }, { label: '수무효수수료(건)', type: 'text', name: 'manualVoidFeePerTx', col: 2, customOnly: true, placeholder: '거래 22' }, { label: '환불수수료(건)', type: 'text', name: 'refundRate', col: 2, customOnly: true }],
             [{ label: '월간이용료(월 1회·고정)', type: 'text', name: 'usageRate', col: 2, customOnly: true, placeholder: '통화코드 단위 금액' }, { label: '비고', type: 'text', name: 'commissionMemo', col: 2, customOnly: true }],
-            [{ label: '정산수수료(건)', type: 'text', name: 'feeSettlementPerTx', col: 2, customOnly: true }, { label: '송금이체수수료', type: 'text', name: 'remittanceTransferFee', col: 2, customOnly: true }, { label: 'USDT 송금수수료(USD)', type: 'text', name: 'usdtTransferFeeUsd', col: 2, customOnly: true }, { label: 'USDT수수료율(%)', type: 'text', name: 'feeUsdt', col: 2, customOnly: true }, { label: 'FX수수료율(%)', type: 'text', name: 'feeFx', col: 2, customOnly: true }, { label: '3DS수수료율(%)', type: 'text', name: 'fee3dsRate', col: 2, customOnly: true }]
+            [{ label: '정산수수료(건)', type: 'text', name: 'feeSettlementPerTx', col: 2, customOnly: true }, { label: '송금수수료', type: 'text', name: 'remittanceTransferFee', col: 2, customOnly: true }, { label: 'USDT 송금수수료(USD)', type: 'text', name: 'usdtTransferFeeUsd', col: 2, customOnly: true }, { label: 'USDT수수료율(%)', type: 'text', name: 'feeUsdt', col: 2, customOnly: true }, { label: 'FX수수료율(%)', type: 'text', name: 'feeFx', col: 2, customOnly: true }, { label: '3DS수수료율(%)', type: 'text', name: 'fee3dsRate', col: 2, customOnly: true }]
           ]
         },
         {
@@ -2432,8 +2431,9 @@
       return '<label class="column-guide-item column-guide-item--on"><input type="checkbox" class="column-guide-check" data-key="' + key + '" checked> <span class="column-guide-label">' + label + '</span></label>';
     }).join('');
     var actionsHtml =
+      '<button type="button" class="btn btn-xs btn-outline-secondary" id="compMngReleaseColumnsBtn">해제</button>' +
       '<button type="button" class="btn btn-xs btn-outline-primary" id="compMngSaveColumnsBtn">저장</button>' +
-      '<button type="button" class="btn btn-xs btn-outline-secondary" id="compMngClearColumnsBtn">해제</button>';
+      '<button type="button" class="btn btn-xs btn-outline-secondary" id="compMngClearColumnsBtn">초기화</button>';
     var rootClass = 'table-column-guide mb-3 p-2 border rounded bg-light';
     if (cfg.tableColumnGuideTwoRow === true) {
       return '<div class="' + rootClass + ' table-column-guide--two-row" id="tableColumnGuide">' +
@@ -2603,7 +2603,7 @@
       html += '<div' + cardId + ' class="' + cardClass + '"><div class="card-header">' + (sec.title || '') + '</div><div class="card-body">';
       if (sec.notice) html += '<p class="text-muted small mb-2">' + sec.notice + '</p>';
       if (sec.type === 'branding') {
-        html += '<p class="text-danger small mb-2">메인이미지는 2MB, 로고이미지는 1MB까지 업로드 가능합니다. 가능하면 PNG파일을 추천합니다.</p>' +
+        html += '<p class="text-danger small mb-2">메인이미지는 5MB, 로고이미지는 1MB까지 업로드 가능합니다. 가능하면 PNG파일을 추천합니다.</p>' +
           '<div class="row mb-2"><div class="col-sm-6"><label class="form-label">메인이미지</label><div class="input-group input-group-sm">' +
           '<input type="text" class="form-control form-control-sm" name="mainImageUrl" id="brandingMainImageUrl" readonly placeholder="업로드 파일명">' +
           '<input type="file" class="d-none" id="brandingMainImageFile" accept="image/png,image/jpeg,image/jpg">' +
@@ -2612,6 +2612,10 @@
           '<input type="text" class="form-control form-control-sm" name="logoImageUrl" id="brandingLogoImageUrl" readonly placeholder="업로드 파일명">' +
           '<input type="file" class="d-none" id="brandingLogoImageFile" accept="image/png,image/jpeg,image/jpg">' +
           '<button type="button" class="btn btn-outline-secondary" id="brandingLogoImageBrowse">Browse</button></div></div></div>' +
+          '<div class="row mb-2"><div class="col-sm-6"><label class="form-label">팝콘이미지</label><div class="input-group input-group-sm">' +
+          '<input type="text" class="form-control form-control-sm" name="popconImageUrl" id="brandingPopconImageUrl" readonly placeholder="업로드 파일명">' +
+          '<input type="file" class="d-none" id="brandingPopconImageFile" accept="image/png,image/jpeg,image/jpg">' +
+          '<button type="button" class="btn btn-outline-secondary" id="brandingPopconImageBrowse">Browse</button></div></div></div>' +
           '<div class="row mb-2"><div class="col-sm-4"><label class="form-label">배경테마</label><select class="form-control form-control-sm" name="brandingTheme" id="brandingTheme">' +
           '<option value="DEFAULT">기본(현재)</option><option value="LIGHT">Light (흰배경/검정글씨)</option><option value="DARK">Dark (어두운배경/흰글씨)</option>' +
           '<option value="PASTEL_1">파스텔1</option><option value="PASTEL_2">파스텔2</option><option value="PASTEL_3">파스텔3</option><option value="PASTEL_4">파스텔4</option><option value="PASTEL_5">파스텔5</option>' +

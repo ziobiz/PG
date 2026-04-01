@@ -14,22 +14,47 @@
     .login-page { display: flex; flex-direction: row; height: 100vh; }
     .login-main-area { flex: 1; min-width: 0; position: relative; background: #1a1d21; }
     .login-main-area .main-bg { position: absolute; inset: 0; background-size: cover; background-position: center; background-repeat: no-repeat; }
-    .login-main-area .main-overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.3); }
+    .login-main-area .main-overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.12); }
     .login-main-area .main-logo { position: absolute; top: 24px; left: 50%; transform: translateX(-50%); max-height: 60px; max-width: 80%; object-fit: contain; z-index: 2; }
-    .login-main-area .main-text { position: absolute; bottom: 24px; left: 24px; color: #fff; font-size: 14px; z-index: 2; text-shadow: 0 1px 2px rgba(0,0,0,0.5); }
-    .login-panel-wrap { width: 420px; min-width: 420px; flex-shrink: 0; display: flex; flex-direction: column; background: #fff; overflow-y: auto; }
-    .login-panel { padding: 24px; flex: 1; }
-    .login-panel .logo-top { max-height: 50px; max-width: 180px; margin-bottom: 24px; object-fit: contain; }
+    .login-main-area .main-text {
+      position: absolute;
+      left: 18%;
+      top: 38%;
+      transform: translateY(-50%);
+      color: #0f172a;
+      font-size: 42px;
+      line-height: 1.25;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      z-index: 2;
+      text-shadow: 0 1px 1px rgba(255,255,255,0.35);
+      max-width: 48%;
+      white-space: pre-line;
+    }
+    .login-panel-wrap { width: 360px; min-width: 360px; flex-shrink: 0; display: flex; flex-direction: column; background: #fff; overflow-y: auto; }
+    .login-panel { padding: 18px 16px; flex: 1; }
+    .login-panel .logo-top { max-height: 42px; max-width: 170px; margin: 0 0 18px; object-fit: contain; display: block; }
     .login-panel .form-control { background: #e8f4fd; }
     .notice-section { font-size: 12px; color: #856404; background: #fff3cd; padding: 12px; margin: 0 24px 24px; border-radius: 4px; }
     .notice-title { font-weight: 700; margin-bottom: 8px; }
     .notice-section p { margin: 0 0 4px; }
     .otp-notice { font-size: 12px; color: #0c5460; background: #d1ecf1; padding: 10px; border-radius: 4px; margin-bottom: 16px; }
     .otp-notice p { margin: 0 0 4px; }
+    .login-host-note { font-size: 11px; color: #334155; background: #eef2ff; border: 1px solid #c7d2fe; border-radius: 4px; padding: 6px 8px; margin-top: 8px; }
+    .login-popcon { position: fixed; right: 14px; bottom: 14px; z-index: 1200; max-width: 220px; background: #fff; border: 1px solid #e5e7eb; border-radius: 8px; box-shadow: 0 8px 20px rgba(0,0,0,0.18); overflow: hidden; }
+    .login-popcon img { display: block; width: 100%; height: auto; }
+    .login-popcon .btn-close-wrap { position: absolute; top: 6px; right: 6px; }
+    .login-popcon .btn-close-wrap button { border: 0; border-radius: 999px; width: 22px; height: 22px; background: rgba(0,0,0,0.45); color: #fff; line-height: 1; font-size: 14px; }
     @media (max-width: 768px) {
       .login-page { flex-direction: column; }
-      .login-main-area { min-height: 200px; }
+      .login-main-area { min-height: 220px; }
       .login-panel-wrap { width: 100%; min-width: 0; }
+      .login-main-area .main-text {
+        left: 8%;
+        top: 62%;
+        font-size: 28px;
+        max-width: 84%;
+      }
     }
   </style>
 </head>
@@ -57,6 +82,7 @@
         <div class="otp-notice">
           <p>알림톡 혹은 문자로 GOOGLE OTP 키값을 전송하였습니다</p>
           <p>GOOGLE OTP앱으로 키값을 등록 후 다시 로그인하시기 바랍니다.</p>
+          <div class="login-host-note d-none" id="loginHostNote"></div>
         </div>
         <form id="loginForm" onsubmit="return false;">
           <div class="mb-3">
@@ -177,17 +203,48 @@
         var mainBg = document.getElementById('loginMainBg');
         var mainLogo = document.getElementById('loginMainLogo');
         var panelLogo = document.getElementById('loginPanelLogo');
+        var hostNote = document.getElementById('loginHostNote');
+        function absUrl(u) {
+          var s = String(u || '').trim();
+          if (!s) return '';
+          if (/^https?:\/\//i.test(s)) return s;
+          return apiBase + s;
+        }
         if (b.mainImageUrl) {
-          mainBg.style.backgroundImage = 'url(' + apiBase + b.mainImageUrl + ')';
+          mainBg.style.backgroundImage = 'url(' + absUrl(b.mainImageUrl) + ')';
+        }
+        // 로그인 화면 왼쪽(메인 영역) 상단 로고는 사용하지 않음: 우측 패널 로고만 표시
+        if (mainLogo) {
+          mainLogo.classList.add('d-none');
+          mainLogo.removeAttribute('src');
         }
         if (b.logoImageUrl) {
-          mainLogo.src = apiBase + b.logoImageUrl;
-          mainLogo.classList.remove('d-none');
-          panelLogo.src = apiBase + b.logoImageUrl;
+          panelLogo.src = absUrl(b.logoImageUrl);
           panelLogo.style.display = '';
           document.getElementById('loginPanelTitle').style.display = 'none';
         } else {
           document.getElementById('loginPanelTitle').style.display = '';
+        }
+        if (hostNote) {
+          var h = (b.brandHost || '').toString().trim();
+          if (h) {
+            hostNote.textContent = '로그인 안내 호스트: ' + h;
+            hostNote.classList.remove('d-none');
+          } else {
+            hostNote.classList.add('d-none');
+            hostNote.textContent = '';
+          }
+        }
+        if (b.popconImageUrl) {
+          var oldPop = document.getElementById('loginPopconBox');
+          if (oldPop && oldPop.parentNode) oldPop.parentNode.removeChild(oldPop);
+          var box = document.createElement('div');
+          box.id = 'loginPopconBox';
+          box.className = 'login-popcon';
+          box.innerHTML = '<div class="btn-close-wrap"><button type="button" aria-label="닫기">×</button></div><img alt="팝콘이미지" src="' + absUrl(b.popconImageUrl) + '">';
+          var closeBtn = box.querySelector('button');
+          if (closeBtn) closeBtn.addEventListener('click', function () { box.remove(); });
+          document.body.appendChild(box);
         }
         var theme = (b.theme || 'DEFAULT').toUpperCase();
         document.body.className = 'theme-' + theme.toLowerCase();
@@ -213,7 +270,7 @@
         }
         chain.then(function () {
           if (window.PG_API && window.PG_API.orgBrandingPublic) {
-            return window.PG_API.orgBrandingPublic(compId).then(function (b) {
+            return window.PG_API.orgBrandingPublic('', loginHost).then(function (b) {
               if (b) applyBranding(b);
             });
           }

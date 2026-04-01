@@ -36,8 +36,9 @@ import java.util.UUID;
 @RequestMapping(value = "/api/org/branding", produces = MediaType.APPLICATION_JSON_VALUE)
 public class ApiOrgBrandingController {
 
-    private static final long MAIN_IMAGE_MAX_BYTES = 2 * 1024 * 1024;  // 2MB
+    private static final long MAIN_IMAGE_MAX_BYTES = 5 * 1024 * 1024;  // 5MB
     private static final long LOGO_IMAGE_MAX_BYTES = 1 * 1024 * 1024;  // 1MB
+    private static final long POPCON_IMAGE_MAX_BYTES = 1 * 1024 * 1024;  // 1MB
 
     private final OrgBrandingRepository brandingRepository;
     private final OrgUnitRepository orgUnitRepository;
@@ -63,6 +64,7 @@ public class ApiOrgBrandingController {
             Map<String, Object> empty = new LinkedHashMap<>();
             empty.put("mainImageUrl", "");
             empty.put("logoImageUrl", "");
+            empty.put("popconImageUrl", "");
             empty.put("theme", "DEFAULT");
             empty.put("brandHost", "");
             return ResponseEntity.ok(ApiResponse.ok(empty));
@@ -77,6 +79,7 @@ public class ApiOrgBrandingController {
                             m.put("compId", compId);
                             m.put("mainImageUrl", b.getMainImageUrl() != null ? b.getMainImageUrl() : "");
                             m.put("logoImageUrl", b.getLogoImageUrl() != null ? b.getLogoImageUrl() : "");
+                            m.put("popconImageUrl", b.getPopconImageUrl() != null ? b.getPopconImageUrl() : "");
                             m.put("theme", b.getTheme() != null ? b.getTheme() : "DEFAULT");
                             m.put("brandHost", b.getBrandHost() != null ? b.getBrandHost() : "");
                             return m;
@@ -87,6 +90,7 @@ public class ApiOrgBrandingController {
                     Map<String, Object> empty = new LinkedHashMap<>();
                     empty.put("mainImageUrl", "");
                     empty.put("logoImageUrl", "");
+                    empty.put("popconImageUrl", "");
                     empty.put("theme", "DEFAULT");
                     empty.put("brandHost", "");
                     return ResponseEntity.ok(ApiResponse.ok(empty));
@@ -112,13 +116,18 @@ public class ApiOrgBrandingController {
         if (!isBrandingEditable(ou)) {
             return ResponseEntity.ok(ApiResponse.fail("브랜딩(배경/로고) 변경권한이 없습니다.", "FORBIDDEN"));
         }
-        if (!"main".equals(imageType) && !"logo".equals(imageType)) {
-            return ResponseEntity.ok(ApiResponse.fail("imageType은 main 또는 logo여야 합니다.", "INVALID"));
+        if (!"main".equals(imageType) && !"logo".equals(imageType) && !"popcon".equals(imageType)) {
+            return ResponseEntity.ok(ApiResponse.fail("imageType은 main, logo 또는 popcon이어야 합니다.", "INVALID"));
         }
-        long maxBytes = "main".equals(imageType) ? MAIN_IMAGE_MAX_BYTES : LOGO_IMAGE_MAX_BYTES;
+        long maxBytes = "main".equals(imageType)
+                ? MAIN_IMAGE_MAX_BYTES
+                : ("popcon".equals(imageType) ? POPCON_IMAGE_MAX_BYTES : LOGO_IMAGE_MAX_BYTES);
         if (file.getSize() > maxBytes) {
+            String sizeMsg = "메인이미지는 5MB 이하여야 합니다.";
+            if ("logo".equals(imageType)) sizeMsg = "로고이미지는 1MB 이하여야 합니다.";
+            if ("popcon".equals(imageType)) sizeMsg = "팝콘이미지는 1MB 이하여야 합니다.";
             return ResponseEntity.ok(ApiResponse.fail(
-                    "main".equals(imageType) ? "메인이미지는 2MB 이하여야 합니다." : "로고이미지는 1MB 이하여야 합니다.",
+                    sizeMsg,
                     "SIZE_EXCEEDED"));
         }
         String ext = getExtension(file.getOriginalFilename());
@@ -141,8 +150,10 @@ public class ApiOrgBrandingController {
                     });
             if ("main".equals(imageType)) {
                 b.setMainImageUrl(url);
-            } else {
+            } else if ("logo".equals(imageType)) {
                 b.setLogoImageUrl(url);
+            } else {
+                b.setPopconImageUrl(url);
             }
             brandingRepository.save(b);
 
@@ -216,6 +227,12 @@ public class ApiOrgBrandingController {
     }
 
     private boolean isBrandingEditable(OrgUnit ou) {
+        if (ou == null) return false;
+        if (ou != null && (ou.getOrgLevel() == OrgLevel.HEADQUARTERS
+                || ou.getOrgLevel() == OrgLevel.REGIONAL
+                || ou.getOrgLevel() == OrgLevel.MASTER_DIST)) {
+            return true;
+        }
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         if (auth != null && auth.getPrincipal() instanceof AppUser u && "ADMIN".equalsIgnoreCase(u.getRole())) {
             return true;

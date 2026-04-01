@@ -7,4 +7,10 @@ app:
     # TEMP_REMOVE_AFTER_DEV — 저장소 기본은 false. 서버에서 초기화할 때만 일시 true
     allow-org-hierarchy-reset: false
 
+spring:
+  servlet:
+    multipart:
+      max-file-size: 6MB
+      max-request-size: 6MB
+
 

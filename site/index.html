@@ -262,15 +262,28 @@
               <div class="col-md-3"><label class="form-label">수동무효 수수료(건)</label><input type="text" class="form-control form-control-sm" name="manualVoidFeePerTx" id="commissionManualVoidFeePerTx" title="거래 상태 22"></div>
             </div>
             <div class="row mb-2">
+              <div class="col-md-3"><label class="form-label">실패 수수료(건)</label><input type="text" class="form-control form-control-sm" name="failFee" id="commissionFailFee"></div>
+              <div class="col-md-3"><label class="form-label">정산 수수료(건)</label><input type="text" class="form-control form-control-sm" name="feeSettlementPerTx" id="commissionFeeSettlementPerTx"></div>
+              <div class="col-md-3"><label class="form-label">송금 수수료(건)</label><input type="text" class="form-control form-control-sm" name="remittanceTransferFee" id="commissionRemittanceTransferFee"></div>
+              <div class="col-md-3"><label class="form-label">USDT 송금수수료(USD)</label><input type="text" class="form-control form-control-sm" name="usdtTransferFeeUsd" id="commissionUsdtTransferFeeUsd"></div>
+            </div>
+            <div class="row mb-2">
               <div class="col-md-3"><label class="form-label">결제 수수료율(%)</label><input type="text" class="form-control form-control-sm" name="payRate" id="commissionPayRate"></div>
               <div class="col-md-3"><label class="form-label">적용시작일</label><input type="date" class="form-control form-control-sm" name="applyStartDate" id="commissionApplyStartDate"></div>
               <div class="col-md-3"><label class="form-label">환불 수수료(건)</label><input type="text" class="form-control form-control-sm" name="refundRate" id="commissionRefundRate"></div>
               <div class="col-md-3"><label class="form-label">롤링 비율(%)</label><input type="text" class="form-control form-control-sm" name="rollingPct" id="commissionRollingPct"></div>
               <div class="col-md-3"><label class="form-label">롤링 일수</label><input type="text" class="form-control form-control-sm" name="rollingDays" id="commissionRollingDays"></div>
+              <div class="col-md-3"><label class="form-label">USDT 수수료율(%)</label><input type="text" class="form-control form-control-sm" name="feeUsdt" id="commissionFeeUsdt"></div>
+              <div class="col-md-3"><label class="form-label">FX 수수료율(%)</label><input type="text" class="form-control form-control-sm" name="feeFx" id="commissionFeeFx"></div>
             </div>
             <div class="row mb-2">
               <div class="col-md-4"><label class="form-label">A형 연회비(원)</label><input type="text" class="form-control form-control-sm" name="feeAnnual" id="commissionFeeAnnual"></div>
-              <div class="col-md-4"><label class="form-label">D형 건당 정산수수료(원)</label><input type="text" class="form-control form-control-sm" name="feeSettlementPerTx" id="commissionFeeSettlementPerTx"></div>
+            </div>
+            <h6 class="mt-2 border-bottom pb-1">가맹점 등록 기준값(참고)</h6>
+            <div class="row mb-2">
+              <div class="col-md-4"><label class="form-label">수수료정책 Scope</label><input type="text" class="form-control form-control-sm" id="commissionHqPolicyScopeView" readonly></div>
+              <div class="col-md-4"><label class="form-label">보유율(%)</label><input type="text" class="form-control form-control-sm" id="commissionHoldRateView" readonly></div>
+              <div class="col-md-4"><label class="form-label">보유기간(일)</label><input type="text" class="form-control form-control-sm" id="commissionHoldDaysView" readonly></div>
             </div>
             <h6 class="mt-2 border-bottom pb-1">차지백 정책</h6>
             <p class="text-muted small mb-2">3DS·차지백은 결제·정산 수수료 정책과 연동됩니다. 구간 정책은 본사설정 &gt; 차지백 구간정책에서 등록합니다.</p>
@@ -449,6 +462,8 @@
         else userDisplay.textContent = compNm + ' | ' + userNm;
       }
       applyHeaderUserDisplay(user || {});
+      var host = (window.location && window.location.host) ? window.location.host : '';
+      var hostBrandingApplied = false;
       if (window.PG_API && typeof window.PG_API.authMe === 'function') {
         window.PG_API.authMe().then(function (res) {
           var me = res && res.data ? res.data : {};
@@ -457,25 +472,91 @@
           try { sessionStorage.setItem('pg_admin_user', JSON.stringify(merged)); } catch (eSave) {}
           user = merged;
           applyHeaderUserDisplay(merged);
+          // host 기반 브랜딩과 별개로, 좌측 상단 로고는 소속 조직 브랜딩으로 보조 보장
+          var cid2 = (merged && merged.brandingCompId) ? String(merged.brandingCompId).trim() : '';
+          if (!cid2 && merged && merged.compId) cid2 = String(merged.compId).trim();
+          if (cid2 && window.PG_API && window.PG_API.orgBranding) {
+            window.PG_API.orgBranding(cid2).then(function (b2) {
+              if (!b2 || !b2.logoImageUrl) return;
+              var apiBase2 = typeof window.PG_assetApiBase === 'function' ? window.PG_assetApiBase() : ((window.PG_API_BASE || '').replace(/\/$/, '') || window.location.origin);
+              var img2 = document.getElementById('sidebar-logo-img');
+              var text2 = document.getElementById('sidebar-logo-text');
+              var sub2 = document.getElementById('sidebar-logo-sub');
+              if (img2) {
+                var src2 = /^https?:\/\//i.test(String(b2.logoImageUrl)) ? String(b2.logoImageUrl) : (apiBase2 + b2.logoImageUrl);
+                img2.src = src2;
+                img2.style.display = '';
+              }
+              if (text2) text2.style.display = 'none';
+              if (sub2) sub2.style.display = 'none';
+            }).catch(function () {});
+          }
+        }).catch(function () {});
+      }
+      function applyRuntimeBranding(b) {
+        if (!b || typeof b !== 'object') return;
+        var apiBase = typeof window.PG_assetApiBase === 'function' ? window.PG_assetApiBase() : ((window.PG_API_BASE || '').replace(/\/$/, '') || window.location.origin);
+        function absUrl(u) {
+          var s = String(u || '').trim();
+          if (!s) return '';
+          if (/^https?:\/\//i.test(s)) return s;
+          return apiBase + s;
+        }
+        if (b.logoImageUrl) {
+          var img = document.getElementById('sidebar-logo-img');
+          var text = document.getElementById('sidebar-logo-text');
+          var sub = document.getElementById('sidebar-logo-sub');
+          if (img) { img.src = absUrl(b.logoImageUrl); img.style.display = ''; }
+          if (text) text.style.display = 'none';
+          if (sub) sub.style.display = 'none';
+        }
+        if (b.popconImageUrl && !sessionStorage.getItem('pg_popcon_seen')) {
+          var p = document.getElementById('popconPreviewModal');
+          if (!p) {
+            p = document.createElement('div');
+            p.className = 'modal fade';
+            p.id = 'popconPreviewModal';
+            p.tabIndex = -1;
+            p.innerHTML = '<div class="modal-dialog modal-dialog-centered"><div class="modal-content"><div class="modal-header py-2"><h6 class="modal-title">공지</h6><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body p-2 text-center"><img id="popconPreviewImg" alt="팝콘이미지" style="max-width:100%;height:auto;"></div></div></div>';
+            document.body.appendChild(p);
+          }
+          var pi = document.getElementById('popconPreviewImg');
+          if (pi) pi.src = absUrl(b.popconImageUrl);
+          try { sessionStorage.setItem('pg_popcon_seen', '1'); } catch (ePop) {}
+          if (window.bootstrap && bootstrap.Modal) {
+            new bootstrap.Modal(p).show();
+          }
+        }
+        if (b.theme) {
+          document.body.classList.remove('theme-default', 'theme-light', 'theme-dark', 'theme-pastel_1', 'theme-pastel_2', 'theme-pastel_3', 'theme-pastel_4', 'theme-pastel_5');
+          document.body.classList.add('theme-' + (b.theme || 'default').toLowerCase());
+        }
+      }
+      if (host && window.PG_API && window.PG_API.orgPortalByHost) {
+        window.PG_API.orgPortalByHost(host).then(function (resHost) {
+          var p0 = resHost && resHost.data !== undefined ? resHost.data : resHost;
+          if (p0 && p0.matched && p0.branding) {
+            hostBrandingApplied = true;
+            applyRuntimeBranding(p0.branding);
+            return;
+          }
+          if (window.PG_API && window.PG_API.orgBrandingPublic) {
+            return window.PG_API.orgBrandingPublic('', host).then(function (b0) {
+              if (b0) {
+                hostBrandingApplied = true;
+                applyRuntimeBranding(b0);
+              }
+            });
+          }
         }).catch(function () {});
       }
       var brandingCid = (user && user.brandingCompId) ? String(user.brandingCompId).trim() : '';
       if (!brandingCid && user && user.compId) brandingCid = String(user.compId).trim();
-      if (brandingCid && window.PG_API && window.PG_API.orgBranding) {
+      // 도메인 분리 브랜딩 원칙: host가 있으면 사용자 compId 브랜딩으로 덮어쓰지 않는다.
+      if (!host && brandingCid && window.PG_API && window.PG_API.orgBranding) {
         window.PG_API.orgBranding(brandingCid).then(function (b) {
-          if (b && b.logoImageUrl) {
-            var apiBase = typeof window.PG_assetApiBase === 'function' ? window.PG_assetApiBase() : ((window.PG_API_BASE || '').replace(/\/$/, '') || window.location.origin);
-            var img = document.getElementById('sidebar-logo-img');
-            var text = document.getElementById('sidebar-logo-text');
-            var sub = document.getElementById('sidebar-logo-sub');
-            if (img) { img.src = apiBase + b.logoImageUrl; img.style.display = ''; }
-            if (text) text.style.display = 'none';
-            if (sub) sub.style.display = 'none';
-          }
-          if (b && b.theme) {
-            document.body.classList.remove('theme-default', 'theme-light', 'theme-dark', 'theme-pastel_1', 'theme-pastel_2', 'theme-pastel_3', 'theme-pastel_4', 'theme-pastel_5');
-            document.body.classList.add('theme-' + (b.theme || 'default').toLowerCase());
-          }
+          if (hostBrandingApplied) return;
+          applyRuntimeBranding(b);
         }).catch(function () {});
       }
       if (document.getElementById('headerClientIp')) document.getElementById('headerClientIp').textContent = '127.0.0.1';

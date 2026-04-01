@@ -64,6 +64,9 @@
           if (typeof window.location !== 'undefined') window.location.replace((window.location.origin || '') + '/login.html');
           return Promise.reject(new Error('인증이 만료되었습니다. 다시 로그인하세요.'));
         }
+        if (res.status === 413) {
+          return Promise.reject(new Error('업로드 파일 용량이 서버 제한을 초과했습니다. 파일 크기를 줄여 다시 시도하세요. (HTTP 413, 프록시/Nginx의 client_max_body_size도 6MB 이상 필요)'));
+        }
         var data;
         try {
           data = text ? JSON.parse(text) : {};
@@ -88,7 +91,7 @@
   }
 
   function request(options) {
-    var base = getBaseUrl();
+    var base = (options && options.baseOverride) ? String(options.baseOverride).replace(/\/$/, '') : getBaseUrl();
     var path = options.path || options.url || '';
     if (path && path.charAt(0) !== '/') {
       path = '/' + path;
@@ -139,7 +142,22 @@
       });
     }).catch(function (err) {
       var msg = (err && err.message) ? err.message : '';
-      if (msg === 'Failed to fetch' || msg.indexOf('NetworkError') !== -1 || msg.indexOf('Load failed') !== -1 || msg === 'Network request failed') {
+      var isNetworkFail = (msg === 'Failed to fetch' || msg.indexOf('NetworkError') !== -1 || msg.indexOf('Load failed') !== -1 || msg === 'Network request failed');
+      if (isNetworkFail) {
+        // 정적 호스팅/리버스프록시 환경에서 공용 API 도메인 실패 시 현재 도메인 /api 로 1회 폴백
+        var canRetrySameOrigin = !options._retriedSameOrigin
+          && path.indexOf('/api/') === 0
+          && typeof window !== 'undefined'
+          && window.location
+          && window.location.origin
+          && base !== String(window.location.origin).replace(/\/$/, '');
+        if (canRetrySameOrigin) {
+          var retryOpt = {};
+          for (var rk in options) retryOpt[rk] = options[rk];
+          retryOpt.baseOverride = String(window.location.origin).replace(/\/$/, '');
+          retryOpt._retriedSameOrigin = true;
+          return request(retryOpt);
+        }
         return Promise.reject(new Error(
           'API에 연결하지 못했습니다. 요청: ' + url +
             ' — 브라우저 F12 Network에서 해당 요청이 빨간색인지 확인하세요. ' +
@@ -360,7 +378,13 @@
         if (res.status === 401) { clearAuth(); if (window.location) window.location.replace((window.location.origin || '') + '/login.html'); return Promise.reject(new Error('인증이 만료되었습니다.')); }
         return res.text().then(function (text) {
           var r;
-          try { r = text ? JSON.parse(text) : {}; } catch (e) { return Promise.reject(new Error('서버 응답 오류 (API 서버가 실행 중인지, 주소가 맞는지 확인하세요)')); }
+          try {
+            r = text ? JSON.parse(text) : {};
+          } catch (e) {
+            // 일부 운영 환경에서 업데이트 성공 후 빈 본문/비JSON 본문이 반환될 수 있으므로 성공으로 간주
+            if (res.ok) return { success: true, data: {} };
+            return Promise.reject(new Error('서버 응답 오류 (API 서버가 실행 중인지, 주소가 맞는지 확인하세요)'));
+          }
           if (r.success === false && r.success !== undefined) throw new Error(r.message || '수정 실패');
           return r;
         });
@@ -754,10 +778,13 @@
       var url = base + '/api/public/org/portalByHost?host=' + encodeURIComponent(h);
       return fetchTextThenJson(url, { method: 'GET', headers: { 'Accept': 'application/json' }, credentials: 'same-origin' }, '포털(host) 조회 응답이 JSON이 아닙니다.');
     },
-    /** 본사/총판 브랜딩 - 로그인 페이지용 (인증 불필요) */
-    orgBrandingPublic: function (compId) {
+    /** 본사/총판 브랜딩 - 로그인 페이지용 (인증 불필요, host 우선 조회 가능) */
+    orgBrandingPublic: function (compId, host) {
       var base = getBaseUrl();
-      var url = base + '/api/public/org/branding' + (compId ? '?compId=' + encodeURIComponent(compId) : '');
+      var q = [];
+      if (host) q.push('host=' + encodeURIComponent(host));
+      if (compId) q.push('compId=' + encodeURIComponent(compId));
+      var url = base + '/api/public/org/branding' + (q.length ? ('?' + q.join('&')) : '');
       return fetchTextThenJson(url, { method: 'GET', headers: { 'Accept': 'application/json' }, credentials: 'same-origin' }, '공개 브랜딩 조회 응답이 JSON이 아닙니다.')
         .then(function (r) { return r.data || r; });
     },
@@ -767,6 +794,15 @@
     },
     /** 브랜딩 이미지 업로드 */
     orgBrandingUpload: function (compId, imageType, file) {
+      if (!file || typeof file.size !== 'number') {
+        return Promise.reject(new Error('업로드할 파일을 선택하세요.'));
+      }
+      var max = (imageType === 'main') ? (5 * 1024 * 1024) : (1 * 1024 * 1024); // main 5MB, logo/popcon 1MB
+      if (file.size > max) {
+        var typeNm = imageType === 'main' ? '메인이미지' : (imageType === 'popcon' ? '팝콘이미지' : '로고이미지');
+        var maxMb = imageType === 'main' ? '5MB' : '1MB';
+        return Promise.reject(new Error(typeNm + '는 ' + maxMb + ' 이하만 업로드할 수 있습니다.'));
+      }
       var base = getBaseUrl();
       var token = getToken();
       var fd = new FormData();

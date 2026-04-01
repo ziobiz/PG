@@ -32,3 +32,7 @@ spring:
     database-platform: org.hibernate.dialect.H2Dialect
     hibernate:
       ddl-auto: update
+  servlet:
+    multipart:
+      max-file-size: 6MB
+      max-request-size: 6MB
