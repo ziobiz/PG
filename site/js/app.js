@@ -92,7 +92,7 @@
   /** 업체 상세 등: 수수료·보류 관련 숫자 필드만 동일 표기 규칙 적용. 해당 없으면 null. */
   function pgFmtCompDetailNumericField(fieldName, v) {
     var pctFields = { payRate: 1, feeUsdt: 1, feeFx: 1, fee3dsRate: 1, rollingPct: 1, holdRate: 1 };
-    var amtFields = { failFee: 1, usageRate: 1, cancelRate: 1, voidFeePerTx: 1, manualVoidFeePerTx: 1, refundRate: 1, feeSettlementPerTx: 1, chargebackFeePerTx: 1, perTxFee: 1 };
+    var amtFields = { failFee: 1, usageRate: 1, cancelRate: 1, voidFeePerTx: 1, manualVoidFeePerTx: 1, refundRate: 1, feeSettlementPerTx: 1, remittanceTransferFee: 1, usdtTransferFeeUsd: 1, chargebackFeePerTx: 1, perTxFee: 1 };
     var dayFields = { rollingDays: 1, holdDays: 1 };
     if (pctFields[fieldName]) return pgFmtPctOneDecimalInput(v);
     if (amtFields[fieldName]) return pgFmtOneDecimalStripWhole(v);
@@ -126,6 +126,21 @@
         String(lab).replace(/</g, '&lt;').replace(/"/g, '&quot;') + '</option>';
     });
     return opts;
+  }
+
+  function pgToggleUsdDependentCommissionFields(rootEl, baseCurrency) {
+    if (!rootEl) return;
+    var isUsd = String(baseCurrency || '').trim().toUpperCase() === 'USD';
+    ['usdtTransferFeeUsd', 'feeUsdt'].forEach(function (name) {
+      var el = rootEl.querySelector('[name="' + name + '"]');
+      if (!el) return;
+      if (isUsd) {
+        el.disabled = false;
+      } else {
+        el.disabled = true;
+        el.value = '';
+      }
+    });
   }
 
   var COUNTRY_OTHER_TOP = ['CHINA', 'HONGKONG', 'INDONESIA', 'JAPAN', 'KOREA', 'MALAYSIA', 'SINGAPORE', 'THAILAND', 'USA', 'VIETNAM'];
@@ -3424,6 +3439,7 @@
           var list = (hqd && hqd.templates) ? hqd.templates : [];
           pane._hqCommissionTemplatesCache = list;
           var bc = baseCurEl ? baseCurEl.value : '';
+          pgToggleUsdDependentCommissionFields(pane, bc);
           var filt = pgFilterDeployedTemplatesForMerchant(list, bc);
           var prev = hqPolicySel.value;
           hqPolicySel.innerHTML = pgHqPolicyScopeOptionsHtml(filt);
@@ -3443,6 +3459,7 @@
         if (baseCurEl && !baseCurEl._hqPolicyBaseBoundReg) {
           baseCurEl._hqPolicyBaseBoundReg = true;
           baseCurEl.addEventListener('change', function () {
+            pgToggleUsdDependentCommissionFields(pane, this.value);
             if (pane._hqCommissionTemplatesCache) {
               refreshHqPolicyReg({ templates: pane._hqCommissionTemplatesCache });
             } else {
@@ -3450,6 +3467,7 @@
             }
           });
         }
+        pgToggleUsdDependentCommissionFields(pane, baseCurEl ? baseCurEl.value : '');
       }
       fillChargebackPolicySelectsInRoot(pane, null);
       var holdRateFollowEl = pane.querySelector('[name="holdRateFollowHq"]');
@@ -3899,7 +3917,7 @@
         form.querySelectorAll('input, select, textarea').forEach(function (el) { el.disabled = false; });
         var updBtnReset = pane.querySelector('#compInfoUpdateBtn');
         if (updBtnReset) updBtnReset.style.display = '';
-        var allFieldsInfo = ['compId', 'parentComp', 'compNm', 'compDiv', 'regNo', 'bizType', 'industry', 'bizNature', 'product', 'homepage', 'settleName', 'settleTelNo', 'ceoNm', 'ceoMobile', 'compTel', 'fax', 'zipCode', 'addr', 'addrDetail', 'addrEtc', 'addrCountryCd', 'addrCountryCdOther', 'email', 'siteUrl', 'siteSummary', 'useYn', 'loginId', 'bankCd', 'transferFee', 'cryptoTransferFee', 'accountNo', 'accountHolder', 'commissionConfigAllowed', 'webPaymentUseYn', 'baseCurrency', 'remark', 'countryCd', 'countryCdOther', 'swift', 'branchName', 'branchAddr', 'contactTel', 'walletAddress', 'networkName', 'withdrawRestrictType', 'withdrawStartTime', 'withdrawEndTime', 'payLimitDefault', 'payLimitExtra', 'payLimitAlertSms', 'holdRateFollowHq', 'holdRate', 'holdDays', 'commissionFollowHq', 'hqPolicyScope', 'failFee', 'usageRate', 'payRate', 'cancelRate', 'voidFeePerTx', 'manualVoidFeePerTx', 'refundRate', 'commissionMemo', 'feeSettlementPerTx', 'feeUsdt', 'feeFx', 'fee3dsRate', 'chargebackFeePerTx', 'calcCycle', 'calcProcType', 'calcCloseTime', 'transferType', 'transferCycleDays', 'autoTransferMin', 'calcMinAmt', 'transferExecTime', 'calcExcludeYn', 'calcExcludeTarget', 'calcStartTime', 'payHoldYn', 'defaultProductName', 'defaultProductCode', 'defaultProductAmount', 'defaultProductDesc', 'notifyUrlBackground', 'notifyUrlResult', 'assistantLoginId', 'assistantPwd', 'assistantRoleType', 'brandingEditAllowedYn'];
+        var allFieldsInfo = ['compId', 'parentComp', 'compNm', 'compDiv', 'regNo', 'bizType', 'industry', 'bizNature', 'product', 'homepage', 'settleName', 'settleTelNo', 'ceoNm', 'ceoMobile', 'compTel', 'fax', 'zipCode', 'addr', 'addrDetail', 'addrEtc', 'addrCountryCd', 'addrCountryCdOther', 'email', 'siteUrl', 'siteSummary', 'useYn', 'loginId', 'bankCd', 'transferFee', 'cryptoTransferFee', 'accountNo', 'accountHolder', 'commissionConfigAllowed', 'webPaymentUseYn', 'baseCurrency', 'remark', 'countryCd', 'countryCdOther', 'swift', 'branchName', 'branchAddr', 'contactTel', 'walletAddress', 'networkName', 'withdrawRestrictType', 'withdrawStartTime', 'withdrawEndTime', 'payLimitDefault', 'payLimitExtra', 'payLimitAlertSms', 'holdRateFollowHq', 'holdRate', 'holdDays', 'commissionFollowHq', 'hqPolicyScope', 'failFee', 'usageRate', 'payRate', 'cancelRate', 'voidFeePerTx', 'manualVoidFeePerTx', 'refundRate', 'commissionMemo', 'feeSettlementPerTx', 'remittanceTransferFee', 'usdtTransferFeeUsd', 'feeUsdt', 'feeFx', 'fee3dsRate', 'chargebackFeePerTx', 'calcCycle', 'calcProcType', 'calcCloseTime', 'transferType', 'transferCycleDays', 'autoTransferMin', 'calcMinAmt', 'transferExecTime', 'calcExcludeYn', 'calcExcludeTarget', 'calcStartTime', 'payHoldYn', 'defaultProductName', 'defaultProductCode', 'defaultProductAmount', 'defaultProductDesc', 'notifyUrlBackground', 'notifyUrlResult', 'assistantLoginId', 'assistantPwd', 'assistantRoleType', 'brandingEditAllowedYn'];
         allFieldsInfo.forEach(function (k) {
           var el = form.querySelector('[name="' + k + '"]');
           if (el && data[k] != null) {
@@ -3993,6 +4011,7 @@
                 var list = (hqd && hqd.templates) ? hqd.templates : [];
                 pane._hqCommissionTemplatesCacheInfo = list;
                 var bc = (data && data.baseCurrency) ? data.baseCurrency : (baseCurInfo ? baseCurInfo.value : '');
+                pgToggleUsdDependentCommissionFields(pane, bc);
                 var filt = pgFilterDeployedTemplatesForMerchant(list, bc);
                 var prev = (data && data.hqPolicyScope) ? data.hqPolicyScope : hqPolicySel.value;
                 hqPolicySel.innerHTML = pgHqPolicyScopeOptionsHtml(filt);
@@ -4012,6 +4031,7 @@
               if (baseCurInfo && !baseCurInfo._hqPolicyBaseBoundInfo) {
                 baseCurInfo._hqPolicyBaseBoundInfo = true;
                 baseCurInfo.addEventListener('change', function () {
+                  pgToggleUsdDependentCommissionFields(pane, this.value);
                   if (pane._hqCommissionTemplatesCacheInfo) {
                     var list = pane._hqCommissionTemplatesCacheInfo;
                     var bc = baseCurInfo.value;
@@ -4399,6 +4419,7 @@
                 myCompForm.removeAttribute('data-assistant-pwd-confirmed');
               });
             }
+              pgToggleUsdDependentCommissionFields(pane, (data && data.baseCurrency) ? data.baseCurrency : (baseCurInfo ? baseCurInfo.value : ''));
           }
         }
         function runMyCompAutoLoad() {
@@ -4489,7 +4510,7 @@
         if (!data) return;
         var form = pane.querySelector('#compDetailForm');
         if (!form) return;
-        var allFields = ['compId', 'parentComp', 'compNm', 'compDiv', 'regNo', 'bizType', 'industry', 'bizNature', 'product', 'homepage', 'settleName', 'settleTelNo', 'ceoNm', 'ceoMobile', 'compTel', 'fax', 'zipCode', 'addr', 'addrDetail', 'addrEtc', 'addrCountryCd', 'addrCountryCdOther', 'email', 'siteUrl', 'siteSummary', 'useYn', 'loginId', 'bankCd', 'transferFee', 'cryptoTransferFee', 'accountNo', 'accountHolder', 'commissionConfigAllowed', 'webPaymentUseYn', 'baseCurrency', 'remark', 'settleType', 'commissionRate', 'limitAmt', 'countryCd', 'countryCdOther', 'swift', 'branchName', 'branchAddr', 'contactTel', 'walletAddress', 'networkName', 'withdrawRestrictType', 'withdrawStartTime', 'withdrawEndTime', 'payLimitDefault', 'payLimitExtra', 'payLimitAlertSms', 'holdRateFollowHq', 'holdRate', 'holdDays', 'commissionFollowHq', 'hqPolicyScope', 'failFee', 'usageRate', 'payRate', 'cancelRate', 'voidFeePerTx', 'manualVoidFeePerTx', 'refundRate', 'commissionMemo', 'feeSettlementPerTx', 'feeUsdt', 'feeFx', 'fee3dsRate', 'chargebackFeePerTx', 'calcCycle', 'calcProcType', 'calcCloseTime', 'transferType', 'transferCycleDays', 'autoTransferMin', 'calcMinAmt', 'transferExecTime', 'calcExcludeYn', 'calcExcludeTarget', 'calcStartTime', 'payHoldYn', 'defaultProductName', 'defaultProductCode', 'defaultProductAmount', 'defaultProductDesc', 'notifyUrlBackground', 'notifyUrlResult', 'notifyUrl1', 'notifyUrl2', 'notifyUrl3', 'notifyUrl4', 'remitterName', 'balanceNotifyAmt', 'suspiciousNotifyAmt', 'overseasLoginNotifyAmt', 'tempPwdNotifyAmt', 'nonTranCriterionMonth', 'sameCardLimitWebDay', 'sameCardLimitWebTimes', 'sameCardLimitWebAmt', 'sameCardLimitTerminalDay', 'sameCardLimitTerminalTimes', 'sameCardLimitTerminalAmt', 'dailyUsageFee', 'depositNameLookup', 'transferAuthNo', 'autoConvertNewMemberLimit', 'newMemberDailyLimit', 'convertRefDate', 'convertDailyLimit', 'applyStartDate', 'pgFeeGeneral', 'settleDiffMonthCnt', 'settleReportBankCd', 'pgFeeSamsung', 'smsFee', 'taxInvoiceEmail', 'settleAccountNo', 'directFee', 'solutionFee', 'settleAccountHolder', 'withdrawRestrictType', 'withdrawRestrictStartTime', 'withdrawRestrictEndTime', 'terminalPayRestrict', 'webPayRestrict', 'defaultFeeHq', 'defaultFeeDist', 'defaultFeeBranch', 'defaultFeeAgency', 'defaultFeeSalesOffice', 'defaultPayLimitPerTx', 'defaultPayLimitDay', 'defaultPayLimitMonth', 'defaultPayLimitYearCorp', 'defaultPayLimitYearInd', 'copyright', 'holidayProfileName', 'holidayProfileCountry', 'holidayCountryCode', 'holidayCountryCodes', 'businessHolidayRangesJson', 'businessHolidayExtraDates'];
+        var allFields = ['compId', 'parentComp', 'compNm', 'compDiv', 'regNo', 'bizType', 'industry', 'bizNature', 'product', 'homepage', 'settleName', 'settleTelNo', 'ceoNm', 'ceoMobile', 'compTel', 'fax', 'zipCode', 'addr', 'addrDetail', 'addrEtc', 'addrCountryCd', 'addrCountryCdOther', 'email', 'siteUrl', 'siteSummary', 'useYn', 'loginId', 'bankCd', 'transferFee', 'cryptoTransferFee', 'accountNo', 'accountHolder', 'commissionConfigAllowed', 'webPaymentUseYn', 'baseCurrency', 'remark', 'settleType', 'commissionRate', 'limitAmt', 'countryCd', 'countryCdOther', 'swift', 'branchName', 'branchAddr', 'contactTel', 'walletAddress', 'networkName', 'withdrawRestrictType', 'withdrawStartTime', 'withdrawEndTime', 'payLimitDefault', 'payLimitExtra', 'payLimitAlertSms', 'holdRateFollowHq', 'holdRate', 'holdDays', 'commissionFollowHq', 'hqPolicyScope', 'failFee', 'usageRate', 'payRate', 'cancelRate', 'voidFeePerTx', 'manualVoidFeePerTx', 'refundRate', 'commissionMemo', 'feeSettlementPerTx', 'remittanceTransferFee', 'usdtTransferFeeUsd', 'feeUsdt', 'feeFx', 'fee3dsRate', 'chargebackFeePerTx', 'calcCycle', 'calcProcType', 'calcCloseTime', 'transferType', 'transferCycleDays', 'autoTransferMin', 'calcMinAmt', 'transferExecTime', 'calcExcludeYn', 'calcExcludeTarget', 'calcStartTime', 'payHoldYn', 'defaultProductName', 'defaultProductCode', 'defaultProductAmount', 'defaultProductDesc', 'notifyUrlBackground', 'notifyUrlResult', 'notifyUrl1', 'notifyUrl2', 'notifyUrl3', 'notifyUrl4', 'remitterName', 'balanceNotifyAmt', 'suspiciousNotifyAmt', 'overseasLoginNotifyAmt', 'tempPwdNotifyAmt', 'nonTranCriterionMonth', 'sameCardLimitWebDay', 'sameCardLimitWebTimes', 'sameCardLimitWebAmt', 'sameCardLimitTerminalDay', 'sameCardLimitTerminalTimes', 'sameCardLimitTerminalAmt', 'dailyUsageFee', 'depositNameLookup', 'transferAuthNo', 'autoConvertNewMemberLimit', 'newMemberDailyLimit', 'convertRefDate', 'convertDailyLimit', 'applyStartDate', 'pgFeeGeneral', 'settleDiffMonthCnt', 'settleReportBankCd', 'pgFeeSamsung', 'smsFee', 'taxInvoiceEmail', 'settleAccountNo', 'directFee', 'solutionFee', 'settleAccountHolder', 'withdrawRestrictType', 'withdrawRestrictStartTime', 'withdrawRestrictEndTime', 'terminalPayRestrict', 'webPayRestrict', 'defaultFeeHq', 'defaultFeeDist', 'defaultFeeBranch', 'defaultFeeAgency', 'defaultFeeSalesOffice', 'defaultPayLimitPerTx', 'defaultPayLimitDay', 'defaultPayLimitMonth', 'defaultPayLimitYearCorp', 'defaultPayLimitYearInd', 'copyright', 'holidayProfileName', 'holidayProfileCountry', 'holidayCountryCode', 'holidayCountryCodes', 'businessHolidayRangesJson', 'businessHolidayExtraDates'];
         allFields.forEach(function (k) {
           var el = form.querySelector('[name="' + k + '"]');
           if (el && data[k] != null) {
@@ -4584,6 +4605,7 @@
             var list = (hqd && hqd.templates) ? hqd.templates : [];
             pane._hqCommissionTemplatesCacheDetail = list;
             var bc = (data && data.baseCurrency) ? data.baseCurrency : (baseCurDetail ? baseCurDetail.value : '');
+            pgToggleUsdDependentCommissionFields(pane, bc);
             var filt = pgFilterDeployedTemplatesForMerchant(list, bc);
             var prev = (data && data.hqPolicyScope) ? data.hqPolicyScope : hqPolicySelDetail.value;
             hqPolicySelDetail.innerHTML = pgHqPolicyScopeOptionsHtml(filt);
@@ -4603,6 +4625,7 @@
           if (baseCurDetail && !baseCurDetail._hqPolicyBaseBoundDetail) {
             baseCurDetail._hqPolicyBaseBoundDetail = true;
             baseCurDetail.addEventListener('change', function () {
+              pgToggleUsdDependentCommissionFields(pane, this.value);
               if (pane._hqCommissionTemplatesCacheDetail) {
                 var filtD = pgFilterDeployedTemplatesForMerchant(pane._hqCommissionTemplatesCacheDetail, baseCurDetail.value);
                 var prevD = hqPolicySelDetail.value;
@@ -4623,6 +4646,7 @@
               }
             });
           }
+          pgToggleUsdDependentCommissionFields(pane, (data && data.baseCurrency) ? data.baseCurrency : (baseCurDetail ? baseCurDetail.value : ''));
         } else if (hqPolicySelDetail && data.hqPolicyScope) {
           hqPolicySelDetail.value = data.hqPolicyScope;
         }
@@ -5084,6 +5108,8 @@
           h += tdAmt(nzStr(t, 'perTxFee', '0'), 'border-start');
           h += tdAmt(nzStr(t, 'failFee', '0'));
           h += tdAmt(nzStr(t, 'feeSettlementPerTx', '0'));
+          h += tdAmt(nzStr(t, 'remittanceTransferFee', '0'));
+          h += tdAmt(nzStr(t, 'usdtTransferFeeUsd', '0'));
           h += cbTd;
           h += tdAmt(nzStr(t, 'cancelRate', '0'));
           h += tdAmt(nzStr(t, 'voidFeePerTx', '0'));
@@ -5160,7 +5186,7 @@
         return isFinite(n) ? n : 0;
       }
       function hqRecalcMerchantAll(paneRef) {
-        var feeKeys = ['payRate', 'perTxFee', 'failFee', 'cancelRate', 'voidFeePerTx', 'manualVoidFeePerTx', 'refundRate', 'feeSettlementPerTx', 'feeUsdt', 'feeFx', 'usageRate', 'fee3dsRate', 'chargebackFeePerTx'];
+        var feeKeys = ['payRate', 'perTxFee', 'failFee', 'cancelRate', 'voidFeePerTx', 'manualVoidFeePerTx', 'refundRate', 'feeSettlementPerTx', 'remittanceTransferFee', 'usdtTransferFeeUsd', 'feeUsdt', 'feeFx', 'usageRate', 'fee3dsRate', 'chargebackFeePerTx'];
         feeKeys.forEach(function (fk) {
           var sum = 0;
           hqTierSumLevels.forEach(function (lv) {
@@ -5196,7 +5222,7 @@
       }
       function hqFillTierCommissionMatrix(paneRef, tmpl) {
         var levels = ['hq', 'regional', 'master', 'branch', 'agency', 'salesOffice', 'merchant'];
-        var feeKeys = ['payRate', 'perTxFee', 'failFee', 'cancelRate', 'voidFeePerTx', 'manualVoidFeePerTx', 'refundRate', 'feeSettlementPerTx', 'feeUsdt', 'feeFx', 'usageRate', 'fee3dsRate', 'chargebackFeePerTx'];
+        var feeKeys = ['payRate', 'perTxFee', 'failFee', 'cancelRate', 'voidFeePerTx', 'manualVoidFeePerTx', 'refundRate', 'feeSettlementPerTx', 'remittanceTransferFee', 'usdtTransferFeeUsd', 'feeUsdt', 'feeFx', 'usageRate', 'fee3dsRate', 'chargebackFeePerTx'];
         function setTierCell(fk, lv, v) {
           var el = paneRef.querySelector('.hq-tier-cell[data-fee="' + fk + '"][data-level="' + lv + '"]');
           if (!el) return;
@@ -5251,7 +5277,7 @@
       }
       function hqCollectTierCommissionPayload(paneRef) {
         var levels = ['hq', 'regional', 'master', 'branch', 'agency', 'salesOffice', 'merchant'];
-        var feeKeys = ['payRate', 'perTxFee', 'failFee', 'cancelRate', 'voidFeePerTx', 'manualVoidFeePerTx', 'refundRate', 'feeSettlementPerTx', 'feeUsdt', 'feeFx', 'usageRate', 'fee3dsRate', 'chargebackFeePerTx'];
+        var feeKeys = ['payRate', 'perTxFee', 'failFee', 'cancelRate', 'voidFeePerTx', 'manualVoidFeePerTx', 'refundRate', 'feeSettlementPerTx', 'remittanceTransferFee', 'usdtTransferFeeUsd', 'feeUsdt', 'feeFx', 'usageRate', 'fee3dsRate', 'chargebackFeePerTx'];
         var rows = {};
         feeKeys.forEach(function (fk) {
           rows[fk] = {};

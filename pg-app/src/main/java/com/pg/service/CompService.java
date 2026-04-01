@@ -655,7 +655,7 @@ public class CompService {
                           String commissionFollowHq, String hqPolicyScope, String perTxFee, String cancelRate,
                           String voidFeePerTx, String manualVoidFeePerTx, String usageRate,
                           String failFee, String payRate, String refundRate, String rollingPct, String rollingDays,
-                          String feeSettlementPerTx, String feeUsdt, String feeFx,
+                          String feeSettlementPerTx, String remittanceTransferFee, String usdtTransferFeeUsd, String feeUsdt, String feeFx,
                           String fee3dsRate, String chargebackFeePerTx, String chargebackPolicyId) {
         return orgUnitRepository.findByCode(compId != null ? compId : "")
                 .flatMap(ou -> merchantProfileRepository.findByOrgUnitId(ou.getId())
@@ -814,7 +814,7 @@ public class CompService {
                             }
                             if (usesCommissionPolicyForCompDiv(effDivForCommission)
                                     && !allCommissionParamsAbsent(commissionFollowHq, hqPolicyScope, perTxFee, cancelRate, voidFeePerTx, manualVoidFeePerTx, usageRate,
-                                    failFee, payRate, refundRate, rollingPct, rollingDays, feeSettlementPerTx, feeUsdt, feeFx,
+                                    failFee, payRate, refundRate, rollingPct, rollingDays, feeSettlementPerTx, remittanceTransferFee, usdtTransferFeeUsd, feeUsdt, feeFx,
                                     fee3dsRate, chargebackFeePerTx, chargebackPolicyId)) {
                                 mergeCommissionUiIntoRegionalSettings(mp, commissionFollowHq, hqPolicyScope);
                             }
@@ -916,11 +916,11 @@ public class CompService {
                             }
                             if (usesCommissionPolicyForCompDiv(effDivForCommission)
                                     && !allCommissionParamsAbsent(commissionFollowHq, hqPolicyScope, perTxFee, cancelRate, voidFeePerTx, manualVoidFeePerTx, usageRate,
-                                    failFee, payRate, refundRate, rollingPct, rollingDays, feeSettlementPerTx, feeUsdt, feeFx,
+                                    failFee, payRate, refundRate, rollingPct, rollingDays, feeSettlementPerTx, remittanceTransferFee, usdtTransferFeeUsd, feeUsdt, feeFx,
                                     fee3dsRate, chargebackFeePerTx, chargebackPolicyId)) {
                                 applyCommissionPolicyForOrgCode(ou.getCode(), effDivForCommission, commissionFollowHq, hqPolicyScope,
                                         perTxFee, cancelRate, voidFeePerTx, manualVoidFeePerTx, usageRate, failFee, payRate, refundRate, rollingPct, rollingDays,
-                                        feeSettlementPerTx, feeUsdt, feeFx, fee3dsRate, chargebackFeePerTx, chargebackPolicyId);
+                                        feeSettlementPerTx, remittanceTransferFee, usdtTransferFeeUsd, feeUsdt, feeFx, fee3dsRate, chargebackFeePerTx, chargebackPolicyId);
                                 if ("MERCHANT".equalsIgnoreCase(effDivForCommission)) {
                                     applyMerchantIndependentChargebackPolicy(ou.getCode(), chargebackPolicyId);
                                 }
@@ -1049,10 +1049,10 @@ public class CompService {
                 null, null, null,
                 /* 65–68 default product */
                 null, null, null, null,
-                /* 69–90: notify, commission(+무효·수동무효), fees, regional (22 nulls) */
+                /* 69–92: notify, commission(+무효·수동무효), fees, regional (24 nulls) */
                 null, null, null, null, null, null, null, null, null, null,
                 null, null, null, null, null, null, null, null, null, null,
-                null, null, null, null, null);  /* +hqPolicyScope + chargeback */
+                null, null, null, null, null, null, null);  /* +hqPolicyScope + chargeback */
     }
 
     @Transactional
@@ -1081,7 +1081,7 @@ public class CompService {
                                      String commissionFollowHq, String hqPolicyScope, String perTxFee, String cancelRate,
                                      String voidFeePerTx, String manualVoidFeePerTx, String usageRate,
                                      String failFee, String payRate, String refundRate, String rollingPct, String rollingDays,
-                                     String feeSettlementPerTx, String feeUsdt, String feeFx,
+                                     String feeSettlementPerTx, String remittanceTransferFee, String usdtTransferFeeUsd, String feeUsdt, String feeFx,
                                      String regionalSettings) {
         return registerWithExtra(code, name, compDiv, parentId,
                 compTel, zipCode, addr, addrDetail, addrEtc, addrCountryCd,
@@ -1108,7 +1108,7 @@ public class CompService {
                 commissionFollowHq, hqPolicyScope, perTxFee, cancelRate,
                 voidFeePerTx, manualVoidFeePerTx, usageRate,
                 failFee, payRate, refundRate, rollingPct, rollingDays,
-                feeSettlementPerTx, feeUsdt, feeFx,
+                feeSettlementPerTx, remittanceTransferFee, usdtTransferFeeUsd, feeUsdt, feeFx,
                 null, null, null,
                 regionalSettings);
     }
@@ -1139,7 +1139,7 @@ public class CompService {
                                      String commissionFollowHq, String hqPolicyScope, String perTxFee, String cancelRate,
                                      String voidFeePerTx, String manualVoidFeePerTx, String usageRate,
                                      String failFee, String payRate, String refundRate, String rollingPct, String rollingDays,
-                                     String feeSettlementPerTx, String feeUsdt, String feeFx,
+                                     String feeSettlementPerTx, String remittanceTransferFee, String usdtTransferFeeUsd, String feeUsdt, String feeFx,
                                      String fee3dsRate, String chargebackFeePerTx, String chargebackPolicyId,
                                      String regionalSettings) {
         OrgUnit o = new OrgUnit();
@@ -1350,7 +1350,7 @@ public class CompService {
         if (usesCommissionPolicyForCompDiv(compDivVal)) {
             applyCommissionPolicyForOrgCode(saved.getCode(), compDivVal, commissionFollowHq, hqPolicyScope,
                     perTxFee, cancelRate, voidFeePerTx, manualVoidFeePerTx, usageRate, failFee, payRate, refundRate, rollingPct, rollingDays,
-                    feeSettlementPerTx, feeUsdt, feeFx, fee3dsRate, chargebackFeePerTx, chargebackPolicyId);
+                    feeSettlementPerTx, remittanceTransferFee, usdtTransferFeeUsd, feeUsdt, feeFx, fee3dsRate, chargebackFeePerTx, chargebackPolicyId);
             if ("MERCHANT".equalsIgnoreCase(compDivVal)) {
                 applyMerchantIndependentChargebackPolicy(saved.getCode(), chargebackPolicyId);
             }
@@ -1710,12 +1710,13 @@ public class CompService {
                                                      String usageRate,
                                                      String failFee, String payRate, String refundRate,
                                                      String rollingPct, String rollingDays,
-                                                     String feeSettlementPerTx, String feeUsdt, String feeFx,
+                                                     String feeSettlementPerTx, String remittanceTransferFee, String usdtTransferFeeUsd, String feeUsdt, String feeFx,
                                                      String fee3dsRate, String chargebackFeePerTx, String chargebackPolicyId) {
         return commissionFollowHq == null && hqPolicyScope == null && perTxFee == null && cancelRate == null
                 && voidFeePerTx == null && manualVoidFeePerTx == null
                 && usageRate == null && failFee == null && payRate == null && refundRate == null
                 && rollingPct == null && rollingDays == null && feeSettlementPerTx == null
+                && remittanceTransferFee == null && usdtTransferFeeUsd == null
                 && feeUsdt == null && feeFx == null
                 && fee3dsRate == null && chargebackFeePerTx == null && chargebackPolicyId == null;
     }
@@ -1741,7 +1742,7 @@ public class CompService {
                                                  String usageRate,
                                                  String failFee, String payRate, String refundRate,
                                                  String rollingPct, String rollingDays,
-                                                 String feeSettlementPerTx, String feeUsdt, String feeFx,
+                                                 String feeSettlementPerTx, String remittanceTransferFee, String usdtTransferFeeUsd, String feeUsdt, String feeFx,
                                                  String fee3dsRate, String chargebackFeePerTx, String chargebackPolicyId) {
         if (!usesCommissionPolicyForCompDiv(compDiv) || compCode == null || compCode.isBlank()) {
             return;
@@ -1784,6 +1785,12 @@ public class CompService {
             if (feeSettlementPerTx != null && !feeSettlementPerTx.trim().isEmpty()) {
                 policy.setFeeSettlementPerTx(PercentDecimalHelper.parseAmountOneDecimal(feeSettlementPerTx.trim()));
             }
+            if (remittanceTransferFee != null && !remittanceTransferFee.trim().isEmpty()) {
+                policy.setRemittanceTransferFee(PercentDecimalHelper.parseAmountOneDecimal(remittanceTransferFee.trim()));
+            }
+            if (usdtTransferFeeUsd != null && !usdtTransferFeeUsd.trim().isEmpty()) {
+                policy.setUsdtTransferFeeUsd(PercentDecimalHelper.parseAmountOneDecimal(usdtTransferFeeUsd.trim()));
+            }
             if (feeUsdt != null && !feeUsdt.trim().isEmpty()) {
                 policy.setFeeUsdt(PercentDecimalHelper.parsePercentOneDecimal(feeUsdt));
             }
@@ -1822,6 +1829,8 @@ public class CompService {
                 policy.setRefundRate(src.getRefundRate());
                 policy.setPayRate(src.getPayRate());
                 policy.setFeeSettlementPerTx(src.getFeeSettlementPerTx());
+                policy.setRemittanceTransferFee(src.getRemittanceTransferFee());
+                policy.setUsdtTransferFeeUsd(src.getUsdtTransferFeeUsd());
                 policy.setFeeUsdt(src.getFeeUsdt());
                 policy.setFeeFx(src.getFeeFx());
                 policy.setRollingPct(src.getRollingPct());
@@ -1900,6 +1909,8 @@ public class CompService {
         m.put("rollingPct", p.getRollingPct() != null ? PercentDecimalHelper.toPlainOneDecimal(p.getRollingPct()) : "");
         m.put("rollingDays", p.getRollingDays() != null ? String.valueOf(p.getRollingDays()) : "");
         m.put("feeSettlementPerTx", p.getFeeSettlementPerTx() != null ? p.getFeeSettlementPerTx().toPlainString() : "");
+        m.put("remittanceTransferFee", p.getRemittanceTransferFee() != null ? p.getRemittanceTransferFee().toPlainString() : "");
+        m.put("usdtTransferFeeUsd", p.getUsdtTransferFeeUsd() != null ? p.getUsdtTransferFeeUsd().toPlainString() : "");
         m.put("feeUsdt", p.getFeeUsdt() != null ? PercentDecimalHelper.toPlainOneDecimal(p.getFeeUsdt()) : "");
         m.put("feeFx", p.getFeeFx() != null ? PercentDecimalHelper.toPlainOneDecimal(p.getFeeFx()) : "");
         m.put("commissionMemo", p.getPolicyRemark() != null ? p.getPolicyRemark() : "");
@@ -2339,7 +2350,7 @@ public class CompService {
                             row.get("transferType"), null, null, null, null, null, null, null, null, null,
                             null, null, null,
                             null, null, null, null,
-                            null, null, null, null, null, null, null, null, null, null,
+                            null, null, null, null, null, null, null, null, null, null, null, null,
                             null, null, null, null, null, null, null, null, null, null,
                             null, null);
                     if (loginIdVal != null && !loginIdVal.isEmpty() && userRepository.findByUsername(loginIdVal).isEmpty()) {

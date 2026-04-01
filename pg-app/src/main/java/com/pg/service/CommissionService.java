@@ -257,6 +257,8 @@ public class CommissionService {
                 m.put("fee3dsRate", policy.getFee3dsRate());
                 m.put("chargebackFeePerTx", policy.getChargebackFeePerTx());
                 m.put("chargebackPolicyId", policy.getChargebackPolicyId());
+                m.put("remittanceTransferFee", policy.getRemittanceTransferFee());
+                m.put("usdtTransferFeeUsd", policy.getUsdtTransferFeeUsd());
                 m.put("extraFee1Name", policy.getExtraFee1Name());
                 m.put("extraFee1Mode", policy.getExtraFee1Mode());
                 m.put("extraFee1Value", policy.getExtraFee1Value());
@@ -319,6 +321,8 @@ public class CommissionService {
             }
             setPct(policy::setFee3dsRate, body.get("fee3dsRate"));
             setAmtOne(policy::setFeeSettlementPerTx, body.get("feeSettlementPerTx"));
+            setAmtOne(policy::setRemittanceTransferFee, body.get("remittanceTransferFee"));
+            setAmtOne(policy::setUsdtTransferFeeUsd, body.get("usdtTransferFeeUsd"));
             setPct(policy::setFeeUsdt, body.get("feeUsdt"));
             setPct(policy::setFeeFx, body.get("feeFx"));
             setAmtOne(policy::setChargebackFeePerTx, body.get("chargebackFeePerTx"));

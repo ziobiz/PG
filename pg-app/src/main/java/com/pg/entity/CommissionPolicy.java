@@ -65,6 +65,14 @@ public class CommissionPolicy {
     @Column(name = "fee_settlement_per_tx", precision = 12, scale = 0)
     private BigDecimal feeSettlementPerTx = BigDecimal.ZERO;
 
+    /** 송금 이체 수수료({@link #currencyCode} 단위) */
+    @Column(name = "remittance_transfer_fee", precision = 12, scale = 1)
+    private BigDecimal remittanceTransferFee = BigDecimal.ZERO;
+
+    /** USDT 송금 수수료(USD 고정 단위) */
+    @Column(name = "usdt_transfer_fee_usd", precision = 12, scale = 1)
+    private BigDecimal usdtTransferFeeUsd = BigDecimal.ZERO;
+
     /** USDT 정산/변환 등 — 승인(결제) 금액 대비 수수료율(%) */
     @Column(name = "fee_usdt", precision = 12, scale = 2)
     private BigDecimal feeUsdt = BigDecimal.ZERO;
@@ -178,6 +186,10 @@ public class CommissionPolicy {
     public void setManualVoidFeePerTx(BigDecimal manualVoidFeePerTx) { this.manualVoidFeePerTx = manualVoidFeePerTx != null ? manualVoidFeePerTx : BigDecimal.ZERO; }
     public BigDecimal getFeeSettlementPerTx() { return feeSettlementPerTx; }
     public void setFeeSettlementPerTx(BigDecimal feeSettlementPerTx) { this.feeSettlementPerTx = feeSettlementPerTx; }
+    public BigDecimal getRemittanceTransferFee() { return remittanceTransferFee; }
+    public void setRemittanceTransferFee(BigDecimal remittanceTransferFee) { this.remittanceTransferFee = remittanceTransferFee != null ? remittanceTransferFee : BigDecimal.ZERO; }
+    public BigDecimal getUsdtTransferFeeUsd() { return usdtTransferFeeUsd; }
+    public void setUsdtTransferFeeUsd(BigDecimal usdtTransferFeeUsd) { this.usdtTransferFeeUsd = usdtTransferFeeUsd != null ? usdtTransferFeeUsd : BigDecimal.ZERO; }
     public BigDecimal getFeeUsdt() { return feeUsdt; }
     public void setFeeUsdt(BigDecimal feeUsdt) { this.feeUsdt = feeUsdt; }
     public BigDecimal getFeeFx() { return feeFx; }

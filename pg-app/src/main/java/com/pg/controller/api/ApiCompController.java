@@ -227,6 +227,8 @@ public class ApiCompController {
             @RequestParam(required = false) String rollingPct,
             @RequestParam(required = false) String rollingDays,
             @RequestParam(required = false) String feeSettlementPerTx,
+            @RequestParam(required = false) String remittanceTransferFee,
+            @RequestParam(required = false) String usdtTransferFeeUsd,
             @RequestParam(required = false) String feeUsdt,
             @RequestParam(required = false) String feeFx,
             @RequestParam(required = false) String fee3dsRate,
@@ -274,7 +276,7 @@ public class ApiCompController {
                 notifyUrlBackground, notifyUrlResult,
                 notifyUrl1, notifyUrl2, notifyUrl3, notifyUrl4,
                 commissionFollowHq, hqPolicyScope, perTxFee, cancelRate, voidFeePerTx, manualVoidFeePerTx, usageRate, failFee, payRate, refundRate, rollingPct, rollingDays,
-                feeSettlementPerTx, feeUsdt, feeFx, fee3dsRate, chargebackFeePerTx, chargebackPolicyId, regionalSettings);
+                feeSettlementPerTx, remittanceTransferFee, usdtTransferFeeUsd, feeUsdt, feeFx, fee3dsRate, chargebackFeePerTx, chargebackPolicyId, regionalSettings);
         return ResponseEntity.ok(ApiResponse.ok(Map.of("compId", saved.getCode(), "compNm", saved.getName())));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.ok(ApiResponse.fail(e.getMessage(), "VALIDATION"));
@@ -359,6 +361,8 @@ public class ApiCompController {
             @RequestParam(required = false) String rollingPct,
             @RequestParam(required = false) String rollingDays,
             @RequestParam(required = false) String feeSettlementPerTx,
+            @RequestParam(required = false) String remittanceTransferFee,
+            @RequestParam(required = false) String usdtTransferFeeUsd,
             @RequestParam(required = false) String feeUsdt,
             @RequestParam(required = false) String feeFx,
             @RequestParam(required = false) String fee3dsRate,
@@ -389,7 +393,7 @@ public class ApiCompController {
                     assistantLoginId, assistantPwd, assistantRoleType, brandingEditAllowedYn,
                     notifyUrl1, notifyUrl2, notifyUrl3, notifyUrl4,
                     commissionFollowHq, hqPolicyScope, perTxFee, cancelRate, voidFeePerTx, manualVoidFeePerTx, usageRate, failFee, payRate, refundRate, rollingPct, rollingDays,
-                    feeSettlementPerTx, feeUsdt, feeFx, fee3dsRate, chargebackFeePerTx, chargebackPolicyId);
+                    feeSettlementPerTx, remittanceTransferFee, usdtTransferFeeUsd, feeUsdt, feeFx, fee3dsRate, chargebackFeePerTx, chargebackPolicyId);
             return ResponseEntity.ok(ok ? ApiResponse.ok(Map.of("success", true, "message", "저장되었습니다."))
                     : ApiResponse.fail("업체를 찾을 수 없습니다.", "NOT_FOUND"));
         } catch (IllegalArgumentException e) {

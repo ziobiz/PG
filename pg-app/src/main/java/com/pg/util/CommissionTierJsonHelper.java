@@ -29,7 +29,8 @@ public final class CommissionTierJsonHelper {
     /** 격자 행 키(프론트·API와 동일) */
     public static final List<String> ROW_KEYS = List.of(
             "payRate", "perTxFee", "failFee", "cancelRate", "voidFeePerTx", "manualVoidFeePerTx",
-            "refundRate", "feeSettlementPerTx", "feeUsdt", "feeFx", "usageRate", "fee3dsRate", "chargebackFeePerTx");
+            "refundRate", "feeSettlementPerTx", "remittanceTransferFee", "usdtTransferFeeUsd",
+            "feeUsdt", "feeFx", "usageRate", "fee3dsRate", "chargebackFeePerTx");
 
     private CommissionTierJsonHelper() {
     }
@@ -124,6 +125,8 @@ public final class CommissionTierJsonHelper {
             case "manualVoidFeePerTx" -> p.getManualVoidFeePerTx() != null ? PercentDecimalHelper.toPlainAmountOneDecimal(p.getManualVoidFeePerTx()) : "";
             case "refundRate" -> p.getRefundRate() != null ? PercentDecimalHelper.toPlainAmountOneDecimal(p.getRefundRate()) : "";
             case "feeSettlementPerTx" -> p.getFeeSettlementPerTx() != null ? PercentDecimalHelper.toPlainAmountOneDecimal(p.getFeeSettlementPerTx()) : "";
+            case "remittanceTransferFee" -> p.getRemittanceTransferFee() != null ? PercentDecimalHelper.toPlainAmountOneDecimal(p.getRemittanceTransferFee()) : "";
+            case "usdtTransferFeeUsd" -> p.getUsdtTransferFeeUsd() != null ? PercentDecimalHelper.toPlainAmountOneDecimal(p.getUsdtTransferFeeUsd()) : "";
             case "feeUsdt" -> p.getFeeUsdt() != null ? PercentDecimalHelper.toPlainOneDecimal(p.getFeeUsdt()) : "";
             case "feeFx" -> p.getFeeFx() != null ? PercentDecimalHelper.toPlainOneDecimal(p.getFeeFx()) : "";
             case "usageRate" -> p.getUsageRate() != null ? PercentDecimalHelper.toPlainAmountOneDecimal(p.getUsageRate()) : "";
@@ -149,6 +152,8 @@ public final class CommissionTierJsonHelper {
             p.setManualVoidFeePerTx(sumLevels(rows, "manualVoidFeePerTx", false));
             p.setRefundRate(sumLevels(rows, "refundRate", false));
             p.setFeeSettlementPerTx(sumLevels(rows, "feeSettlementPerTx", false));
+            p.setRemittanceTransferFee(sumLevels(rows, "remittanceTransferFee", false));
+            p.setUsdtTransferFeeUsd(sumLevels(rows, "usdtTransferFeeUsd", false));
             p.setFeeUsdt(sumLevels(rows, "feeUsdt", true));
             p.setFeeFx(sumLevels(rows, "feeFx", true));
             p.setUsageRate(sumLevels(rows, "usageRate", false));

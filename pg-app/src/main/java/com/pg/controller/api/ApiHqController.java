@@ -195,6 +195,8 @@ public class ApiHqController {
             data.put("refundRate", p.getRefundRate() != null ? PercentDecimalHelper.toPlainAmountOneDecimal(p.getRefundRate()) : "0.0");
             data.put("payRate", p.getPayRate() != null ? PercentDecimalHelper.toPlainOneDecimal(p.getPayRate()) : "2.5");
             data.put("feeSettlementPerTx", p.getFeeSettlementPerTx() != null ? PercentDecimalHelper.toPlainAmountOneDecimal(p.getFeeSettlementPerTx()) : "0.0");
+            data.put("remittanceTransferFee", p.getRemittanceTransferFee() != null ? PercentDecimalHelper.toPlainAmountOneDecimal(p.getRemittanceTransferFee()) : "0.0");
+            data.put("usdtTransferFeeUsd", p.getUsdtTransferFeeUsd() != null ? PercentDecimalHelper.toPlainAmountOneDecimal(p.getUsdtTransferFeeUsd()) : "0.0");
             data.put("feeUsdt", p.getFeeUsdt() != null ? PercentDecimalHelper.toPlainOneDecimal(p.getFeeUsdt()) : "0");
             data.put("feeFx", p.getFeeFx() != null ? PercentDecimalHelper.toPlainOneDecimal(p.getFeeFx()) : "0");
             data.put("rollingPct", p.getRollingPct() != null ? PercentDecimalHelper.toPlainOneDecimal(p.getRollingPct()) : "5");
@@ -212,7 +214,7 @@ public class ApiHqController {
             data.put("perTxFee", "0.0"); data.put("usageRate", "0.0"); data.put("failFee", "0.0");
             data.put("cancelRate", "0.0"); data.put("voidFeePerTx", "0.0"); data.put("manualVoidFeePerTx", "0.0");
             data.put("refundRate", "0.0"); data.put("payRate", "2.5");
-            data.put("feeSettlementPerTx", "0.0"); data.put("feeUsdt", "0"); data.put("feeFx", "0");
+            data.put("feeSettlementPerTx", "0.0"); data.put("remittanceTransferFee", "0.0"); data.put("usdtTransferFeeUsd", "0.0"); data.put("feeUsdt", "0"); data.put("feeFx", "0");
             data.put("rollingPct", "5"); data.put("rollingDays", 180);
             data.put("currencyCode", "KRW");
             data.put("policyRemark", "");
@@ -300,6 +302,8 @@ public class ApiHqController {
             p.setRefundRate(PercentDecimalHelper.parseAmountOneDecimal(body.get("refundRate")));
             p.setPayRate(PercentDecimalHelper.parsePercentOneDecimal(body.get("payRate")));
             p.setFeeSettlementPerTx(PercentDecimalHelper.parseAmountOneDecimal(body.get("feeSettlementPerTx")));
+            p.setRemittanceTransferFee(PercentDecimalHelper.parseAmountOneDecimal(body.get("remittanceTransferFee")));
+            p.setUsdtTransferFeeUsd(PercentDecimalHelper.parseAmountOneDecimal(body.get("usdtTransferFeeUsd")));
             p.setFeeUsdt(PercentDecimalHelper.parsePercentOneDecimal(body.get("feeUsdt")));
             p.setFeeFx(PercentDecimalHelper.parsePercentOneDecimal(body.get("feeFx")));
             p.setFee3dsRate(PercentDecimalHelper.parsePercentOneDecimal(body.get("fee3dsRate")));
@@ -390,6 +394,8 @@ public class ApiHqController {
         m.put("refundRate", p.getRefundRate() != null ? PercentDecimalHelper.toPlainAmountOneDecimal(p.getRefundRate()) : "0.0");
         m.put("payRate", p.getPayRate() != null ? PercentDecimalHelper.toPlainOneDecimal(p.getPayRate()) : "0");
         m.put("feeSettlementPerTx", p.getFeeSettlementPerTx() != null ? PercentDecimalHelper.toPlainAmountOneDecimal(p.getFeeSettlementPerTx()) : "0.0");
+        m.put("remittanceTransferFee", p.getRemittanceTransferFee() != null ? PercentDecimalHelper.toPlainAmountOneDecimal(p.getRemittanceTransferFee()) : "0.0");
+        m.put("usdtTransferFeeUsd", p.getUsdtTransferFeeUsd() != null ? PercentDecimalHelper.toPlainAmountOneDecimal(p.getUsdtTransferFeeUsd()) : "0.0");
         m.put("feeUsdt", p.getFeeUsdt() != null ? PercentDecimalHelper.toPlainOneDecimal(p.getFeeUsdt()) : "0");
         m.put("feeFx", p.getFeeFx() != null ? PercentDecimalHelper.toPlainOneDecimal(p.getFeeFx()) : "0");
         m.put("rollingPct", p.getRollingPct() != null ? PercentDecimalHelper.toPlainOneDecimal(p.getRollingPct()) : "0");
@@ -611,6 +617,8 @@ public class ApiHqController {
         dst.setRefundRate(src.getRefundRate());
         dst.setPayRate(src.getPayRate());
         dst.setFeeSettlementPerTx(src.getFeeSettlementPerTx());
+        dst.setRemittanceTransferFee(src.getRemittanceTransferFee());
+        dst.setUsdtTransferFeeUsd(src.getUsdtTransferFeeUsd());
         dst.setFeeUsdt(src.getFeeUsdt());
         dst.setFeeFx(src.getFeeFx());
         dst.setRollingPct(src.getRollingPct());
