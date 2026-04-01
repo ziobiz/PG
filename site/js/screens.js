@@ -299,7 +299,7 @@
               '<th rowspan="2" class="text-center align-middle hq-def-comm-th-upd text-nowrap border-start">일지</th>' +
               '</tr>' +
               '<tr>' +
-              '<th class="hq-def-comm-th-sub text-center border-start">건당</th><th class="hq-def-comm-th-sub text-center">실패</th><th class="hq-def-comm-th-sub text-center">정산</th><th class="hq-def-comm-th-sub text-center">송금이체</th><th class="hq-def-comm-th-sub text-center">USDT송금</th><th class="hq-def-comm-th-sub text-center">차지백</th><th class="hq-def-comm-th-sub text-center">취소</th><th class="hq-def-comm-th-sub text-center">무효</th><th class="hq-def-comm-th-sub text-center">수동무효</th><th class="hq-def-comm-th-sub text-center">환불</th>' +
+              '<th class="hq-def-comm-th-sub text-center border-start">건당</th><th class="hq-def-comm-th-sub text-center">실패</th><th class="hq-def-comm-th-sub text-center">정산</th><th class="hq-def-comm-th-sub text-center">송금이체</th><th class="hq-def-comm-th-sub text-center">U송금</th><th class="hq-def-comm-th-sub text-center">차지백</th><th class="hq-def-comm-th-sub text-center">취소</th><th class="hq-def-comm-th-sub text-center">무효</th><th class="hq-def-comm-th-sub text-center">수동무효</th><th class="hq-def-comm-th-sub text-center">환불</th>' +
               '<th class="hq-def-comm-th-sub text-center border-start">결제</th><th class="hq-def-comm-th-sub text-center">USDT</th><th class="hq-def-comm-th-sub text-center">FX</th><th class="hq-def-comm-th-sub text-center">3DS</th>' +
               '<th class="hq-def-comm-th-sub text-center border-start">비율</th><th class="hq-def-comm-th-sub text-center">일</th>' +
               '<th class="hq-def-comm-th-sub text-center border-start">1</th><th class="hq-def-comm-th-sub text-center">2</th><th class="hq-def-comm-th-sub text-center">3</th>' +
@@ -605,6 +605,33 @@
         }
       ],
       buttons: [{ id: 'hqApiConfigSaveBtn', label: '저장', cls: 'btn-primary' }]
+    },
+    '/hq/paymentOrchestration': {
+      isForm: true,
+      formSections: [
+        {
+          title: '결제연동 확장설정',
+          notice: '결제대행 연동 핵심 정책입니다. 통합유형(API_BROKER/URL_PAY)별 결제 실행방식(INLINE/REDIRECT) 기본값과 URL결제 경로를 설정합니다.',
+          rows: [
+            [{ label: 'API 중계형 기본 방식', type: 'select', name: 'apiBrokerDefaultFlowType', options: [{ v: 'INLINE', t: 'INLINE' }, { v: 'REDIRECT', t: 'REDIRECT' }], col: 2 },
+             { label: 'URL 결제형 기본 방식', type: 'select', name: 'urlPayDefaultFlowType', options: [{ v: 'INLINE', t: 'INLINE' }, { v: 'REDIRECT', t: 'REDIRECT' }], col: 2 },
+             { label: 'URL 결제 경로 템플릿', type: 'text', name: 'urlPayPathTemplate', col: 4, placeholder: '/pay/{compCode}' }],
+            [{ label: 'API 중계형 INLINE 제공', type: 'select', name: 'apiBrokerInlineEnabledYn', options: [{ v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }], col: 2 },
+             { label: 'API 중계형 REDIRECT 제공', type: 'select', name: 'apiBrokerRedirectEnabledYn', options: [{ v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }], col: 2 },
+             { label: 'URL 결제형 INLINE 제공', type: 'select', name: 'urlPayInlineEnabledYn', options: [{ v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }], col: 2 },
+             { label: 'URL 결제형 REDIRECT 제공', type: 'select', name: 'urlPayRedirectEnabledYn', options: [{ v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }], col: 2 }]
+          ]
+        },
+        {
+          title: '확장형 PG 레지스트리',
+          notice: '향후 PG사 추가를 위해 벤더별 기능/방식/엔드포인트를 JSON으로 관리합니다. 기본 구조를 유지한 채 vendors 배열에 계속 추가하면 됩니다.',
+          rows: [
+            [{ label: '결제연동 레지스트리(JSON)', type: 'textarea', name: 'paymentProviderRegistryJson', col: 8, rows: 16,
+               placeholder: '{\n  "version": 1,\n  "vendors": [\n    {\n      "vendorCode": "CHILLPAY",\n      "vendorName": "칠리페이",\n      "integrationTypes": ["API_BROKER", "URL_PAY"],\n      "flowTypes": ["INLINE", "REDIRECT"],\n      "activeYn": "Y"\n    }\n  ]\n}' }]
+          ]
+        }
+      ],
+      buttons: [{ id: 'hqPaymentOrchSaveBtn', label: '저장', cls: 'btn-primary' }]
     },
     '/hq/permissionMng': {
       orgPagePermissionMatrix: true,

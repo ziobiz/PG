@@ -350,6 +350,7 @@
     '/hq/chargebackPolicy': { label: '차지백 구간정책', parent: '본사설정' },
     '/hq/businessDaySetting': { label: '영업일설정', parent: '본사설정' },
     '/hq/apiConfig': { label: 'API 구성 세팅', parent: '본사설정' },
+    '/hq/paymentOrchestration': { label: '결제연동 확장설정', parent: '본사설정' },
     '/hq/domainConfig': { label: '도메인구성', parent: '본사설정' },
     '/hq/serverManage': { label: '서버관리', parent: '본사설정' },
     '/hq/permissionMng': { label: '조직별 권한 세팅', parent: '본사설정' },
@@ -1572,6 +1573,53 @@
         item.classList.toggle('column-guide-item--off', !on);
       });
     }
+    function reorderColumnGuideListByKeys(keys) {
+      var listEl = pane.querySelector('.column-guide-list');
+      if (!listEl || !Array.isArray(keys) || !keys.length) return;
+      var byKey = {};
+      listEl.querySelectorAll('.column-guide-item').forEach(function (item) {
+        var cb = item.querySelector('.column-guide-check');
+        var k = cb ? cb.getAttribute('data-key') : '';
+        if (k) byKey[k] = item;
+      });
+      keys.forEach(function (k) {
+        if (byKey[k]) listEl.appendChild(byKey[k]);
+      });
+    }
+    function bindColumnGuideDrag() {
+      if (pane._columnGuideDragBound) return;
+      pane._columnGuideDragBound = true;
+      pane.addEventListener('dragstart', function (e) {
+        var item = e.target && e.target.closest ? e.target.closest('.column-guide-item') : null;
+        if (!item || !pane.contains(item)) return;
+        pane._dragGuideItem = item;
+        item.classList.add('column-guide-item--dragging');
+        if (e.dataTransfer) {
+          e.dataTransfer.effectAllowed = 'move';
+          e.dataTransfer.setData('text/plain', 'drag');
+        }
+      });
+      pane.addEventListener('dragend', function (e) {
+        var item = e.target && e.target.closest ? e.target.closest('.column-guide-item') : null;
+        if (item) item.classList.remove('column-guide-item--dragging');
+        pane._dragGuideItem = null;
+      });
+      pane.addEventListener('dragover', function (e) {
+        var target = e.target && e.target.closest ? e.target.closest('.column-guide-item') : null;
+        var dragItem = pane._dragGuideItem;
+        if (!target || !dragItem || target === dragItem) return;
+        e.preventDefault();
+        var rect = target.getBoundingClientRect();
+        var before = e.clientY < rect.top + rect.height / 2;
+        if (before) target.parentNode.insertBefore(dragItem, target);
+        else target.parentNode.insertBefore(dragItem, target.nextSibling);
+      });
+      pane.addEventListener('mousedown', function (e) {
+        var item = e.target && e.target.closest ? e.target.closest('.column-guide-item') : null;
+        if (!item || !pane.contains(item)) return;
+        item.setAttribute('draggable', 'true');
+      });
+    }
     function getSelectedGuideKeys() {
       var keys = [];
       pane.querySelectorAll('.column-guide-check:checked').forEach(function (cb) {
@@ -1584,6 +1632,7 @@
       var set = {};
       (keys || []).forEach(function (k) { set[k] = 1; });
       var hasAny = (keys || []).length > 0;
+      if (hasAny) reorderColumnGuideListByKeys(keys);
       pane.querySelectorAll('.column-guide-check').forEach(function (cb) {
         var k = cb.getAttribute('data-key') || '';
         cb.checked = hasAny ? !!set[k] : false;
@@ -1996,6 +2045,21 @@
           if (!selCols || selCols.length === 0) return true;
           return selCols.indexOf(c.key) !== -1;
         });
+        if (selCols && selCols.length) {
+          var selectedOrder = {};
+          selCols.forEach(function (k, i) { selectedOrder[k] = i; });
+          cols = cols.slice().sort(function (a, b) {
+            var aFixed = a.type === 'checkbox' || fixedKeys.indexOf(a.key) !== -1;
+            var bFixed = b.type === 'checkbox' || fixedKeys.indexOf(b.key) !== -1;
+            if (aFixed || bFixed) return 0;
+            var ai = selectedOrder[a.key];
+            var bi = selectedOrder[b.key];
+            if (ai == null && bi == null) return 0;
+            if (ai == null) return 1;
+            if (bi == null) return -1;
+            return ai - bi;
+          });
+        }
         p._lastGridList = list;
         p._lastGridCols = cols;
         var thead = p.querySelector('#grid_' + tid + ' thead');
@@ -2202,7 +2266,9 @@
                   if (gmCls.length) cellClass = ' class="' + gmCls.join(' ') + '"';
                 } else if (url === '/commission/commisionList') {
                   var commCls = [];
-                  if (['hqRate', 'regionalRate', 'masterRate', 'branchRate', 'agencyRate', 'salesOfficeRate', 'totalRate', 'hqPerTxFee', 'regionalPerTxFee', 'masterPerTxFee', 'branchPerTxFee', 'agencyPerTxFee', 'salesOfficePerTxFee', 'totalPerTxFee'].indexOf(c.key) >= 0) commCls.push('text-end');
+                  var commNameKeys = ['compNm', 'hqNm', 'regionalNm', 'masterNm', 'branchNm', 'agencyNm', 'salesOfficeNm', 'totalNm'];
+                  if (['hqRate', 'regionalRate', 'masterRate', 'branchRate', 'agencyRate', 'salesOfficeRate', 'totalRate', 'hqPerTxFee', 'regionalPerTxFee', 'masterPerTxFee', 'branchPerTxFee', 'agencyPerTxFee', 'salesOfficePerTxFee', 'totalPerTxFee'].indexOf(c.key) >= 0) commCls.push('text-center');
+                  if (commNameKeys.indexOf(c.key) >= 0 || c.key === 'compId') commCls.push('text-center', 'text-nowrap');
                   if (commCls.length) cellClass = ' class="' + commCls.join(' ') + '"';
                 } else if (isPayScr) {
                   var payCls = [];
@@ -2225,7 +2291,9 @@
                   if (feeCls.length) cellClass = ' class="' + feeCls.join(' ') + '"';
                 } else if (url === '/commission/commisionList') {
                   var cmCls = [];
-                  if (['hqRate', 'regionalRate', 'masterRate', 'branchRate', 'agencyRate', 'salesOfficeRate', 'hqPerTxFee', 'regionalPerTxFee', 'masterPerTxFee', 'branchPerTxFee', 'agencyPerTxFee', 'salesOfficePerTxFee', 'applyDt'].indexOf(c.key) >= 0) cmCls.push('text-end');
+                  var cmNameKeys = ['compNm', 'hqNm', 'regionalNm', 'masterNm', 'branchNm', 'agencyNm', 'salesOfficeNm', 'totalNm'];
+                  if (['hqRate', 'regionalRate', 'masterRate', 'branchRate', 'agencyRate', 'salesOfficeRate', 'hqPerTxFee', 'regionalPerTxFee', 'masterPerTxFee', 'branchPerTxFee', 'agencyPerTxFee', 'salesOfficePerTxFee', 'applyDt'].indexOf(c.key) >= 0) cmCls.push('text-center');
+                  if (cmNameKeys.indexOf(c.key) >= 0 || c.key === 'compId') cmCls.push('text-center', 'text-nowrap');
                   if (cmCls.length) cellClass = ' class="' + cmCls.join(' ') + '"';
                 }
                 if (isCompMngTree && c.key === 'rowNo') {
@@ -2269,11 +2337,15 @@
                   }
                   html += '<td' + cellClass + '>' + feeShow + '</td>';
                 } else if (url === '/commission/commisionList') {
-                  var cEditable = ['hqRate', 'regionalRate', 'masterRate', 'branchRate', 'agencyRate', 'salesOfficeRate', 'hqPerTxFee', 'regionalPerTxFee', 'masterPerTxFee', 'branchPerTxFee', 'agencyPerTxFee', 'salesOfficePerTxFee', 'applyDt'];
-                  if (cEditable.indexOf(c.key) >= 0) {
-                    var cType = c.key === 'applyDt' ? 'date' : 'text';
-                    var cVal = c.key === 'applyDt' ? (val ? String(val).substring(0, 10) : '') : (val || '0');
-                    html += '<td><input type="' + cType + '" class="form-control form-control-sm commission-inline-input text-end" data-key="' + c.key + '" value="' + String(cVal).replace(/"/g, '&quot;') + '"></td>';
+                  var cClickEditable = ['hqRate', 'regionalRate', 'masterRate', 'branchRate', 'agencyRate', 'salesOfficeRate', 'hqPerTxFee', 'regionalPerTxFee', 'masterPerTxFee', 'branchPerTxFee', 'agencyPerTxFee', 'salesOfficePerTxFee'];
+                  if (cClickEditable.indexOf(c.key) >= 0) {
+                    var cShowVal = (val || '0');
+                    var cEscVal = String(cShowVal).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+                    html += '<td class="commission-inline-cell text-center" data-key="' + c.key + '" data-value="' + cEscVal + '" title="클릭하여 수정">' +
+                      '<span class="commission-inline-view">' + cEscVal + '</span></td>';
+                  } else if (c.key === 'applyDt') {
+                    var cDateVal = val ? String(val).substring(0, 10) : '';
+                    html += '<td><input type="date" class="form-control form-control-sm commission-inline-input text-center" data-key="applyDt" value="' + String(cDateVal).replace(/"/g, '&quot;') + '"></td>';
                   } else {
                     html += '<td' + cellClass + '>' + val + '</td>';
                   }
@@ -2780,8 +2852,37 @@
         loadCommissionHistoryGrid(pane, tabId);
       });
     }
+    if (url === '/commission/commisionList' && !pane._commissionRowDblclickBound) {
+      pane._commissionRowDblclickBound = true;
+      pane.addEventListener('dblclick', function (e) {
+        var tr = e.target && e.target.closest ? e.target.closest('#grid_' + tabId + ' tbody tr') : null;
+        if (!tr || tr.querySelector('.empty-state-cell')) return;
+        if (e.target && e.target.closest && e.target.closest('.grid-row-check, .commission-inline-save, .commission-inline-clear, .commission-inline-input, input, button')) return;
+        var idx = parseInt(tr.getAttribute('data-row-idx') || '-1', 10);
+        var list = pane._lastGridList || [];
+        if (idx < 0 || idx >= list.length) return;
+        var row = list[idx] || {};
+        var compId = row.compId != null ? String(row.compId).trim() : '';
+        if (!compId) return;
+        try {
+          sessionStorage.setItem('pg_comp_detail_compId', compId);
+          if (row.compDiv != null) sessionStorage.setItem('pg_comp_detail_compDiv', String(row.compDiv));
+        } catch (err) {}
+        fnTopMenuMove('/comp/compDetail', null, '업체정보');
+      });
+    }
     if (url === '/commission/commisionList') {
       var commissionSettingBtn = pane.querySelector('#commissionSettingBtn');
+      function commissionInlineCellClose(cell) {
+        if (!cell) return;
+        var inp = cell.querySelector('.commission-inline-input[data-key]');
+        if (!inp) return;
+        var v = (inp.value || '').trim();
+        if (!v) v = '0';
+        var esc = String(v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+        cell.setAttribute('data-value', v);
+        cell.innerHTML = '<span class="commission-inline-view">' + esc + '</span>';
+      }
       if (commissionSettingBtn) {
         commissionSettingBtn.addEventListener('click', function () {
           var grid = pane.querySelector('#grid_' + tabId + ' tbody');
@@ -2858,6 +2959,28 @@
       if (!pane._commissionInlineEditBound) {
         pane._commissionInlineEditBound = true;
         pane.addEventListener('click', function (e) {
+          var activeInput = pane.querySelector('.commission-inline-cell .commission-inline-input[data-key]');
+          if (activeInput && (!e.target || !e.target.closest || !e.target.closest('.commission-inline-cell[data-key]'))) {
+            commissionInlineCellClose(activeInput.closest('.commission-inline-cell[data-key]'));
+          }
+          var editCell = e.target && e.target.closest ? e.target.closest('.commission-inline-cell[data-key]') : null;
+          if (editCell && pane.contains(editCell)) {
+            if (!editCell.querySelector('.commission-inline-input')) {
+              var key = editCell.getAttribute('data-key') || '';
+              var cur = editCell.getAttribute('data-value') || '';
+              var safe = String(cur).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+              editCell.innerHTML = '<input type="text" class="form-control form-control-sm commission-inline-input text-center" data-key="' + key + '" value="' + safe + '">';
+              var ip = editCell.querySelector('.commission-inline-input');
+              if (ip) {
+                ip.focus();
+                ip.select();
+                ip.addEventListener('blur', function () {
+                  commissionInlineCellClose(editCell);
+                }, { once: true });
+              }
+            }
+            return;
+          }
           var saveBtn = e.target && e.target.closest ? e.target.closest('.commission-inline-save') : null;
           var clearBtn = e.target && e.target.closest ? e.target.closest('.commission-inline-clear') : null;
           if (!saveBtn && !clearBtn) return;
@@ -2873,8 +2996,13 @@
           var fd = {};
           editableKeys.forEach(function (k) {
             var inp = tr.querySelector('.commission-inline-input[data-key="' + k + '"]');
-            if (!inp) return;
-            var v = (inp.value || '').trim();
+            var v = '';
+            if (inp) {
+              v = (inp.value || '').trim();
+            } else {
+              var td = tr.querySelector('.commission-inline-cell[data-key="' + k + '"]');
+              if (td) v = String(td.getAttribute('data-value') || '').trim();
+            }
             if (clearBtn && k !== 'applyDt') v = '0';
             if (k === 'applyDt') fd.applyStartDate = v;
             else fd[k] = v === '' ? '0' : v;
@@ -2939,6 +3067,7 @@
     }
     var compMngSaveColumnsBtn = pane.querySelector('#compMngSaveColumnsBtn');
     if (compMngSaveColumnsBtn && !compMngSaveColumnsBtn._bound) {
+      bindColumnGuideDrag();
       pane.querySelectorAll('.column-guide-check').forEach(function (cb) {
         cb.addEventListener('change', syncColumnGuideUiState);
       });
@@ -3386,6 +3515,16 @@
           window.PG_HQ_HOLIDAY.init(pane);
         }
       }
+      function applyMerchantSettlementDefaults() {
+        var regForm = pane.querySelector('#compRegForm');
+        if (!regForm) return;
+        var cycleEl = regForm.querySelector('[name="calcCycle"]');
+        var closeEl = regForm.querySelector('[name="calcCloseTime"]');
+        var startEl = regForm.querySelector('[name="calcStartTime"]');
+        if (cycleEl && (!cycleEl.value || String(cycleEl.value).trim() === '')) cycleEl.value = 'W7';
+        if (closeEl && (!closeEl.value || String(closeEl.value).trim() === '')) closeEl.value = '00:00';
+        if (startEl && (!startEl.value || String(startEl.value).trim() === '')) startEl.value = '04:30';
+      }
       var compDivEl = pane.querySelector('#compRegForm [name="compDiv"]');
       if (compDivEl && !compDivEl._merchantToggleBound) {
         compDivEl._merchantToggleBound = true;
@@ -3398,9 +3537,11 @@
         } catch (e) {}
         compDivEl.addEventListener('change', function () {
           toggleByCompDiv(this.value);
+          if (this.value === 'MERCHANT') applyMerchantSettlementDefaults();
         });
         // 업체등록 첫 진입 기본값은 '선택' 유지 (강제 총판 기본값 제거)
         toggleByCompDiv(compDivEl.value || '');
+        if (compDivEl.value === 'MERCHANT') applyMerchantSettlementDefaults();
         initPgBindingList(pane);
         initRegionalCardLimitTable(pane);
         initRegionalTerminalTable(pane);
@@ -3558,8 +3699,7 @@
       var host = sel.parentElement ? sel.parentElement.querySelector('.pg-chargeback-policy-preview') : null;
       if (host) return host;
       host = document.createElement('div');
-      host.className = 'pg-chargeback-policy-preview small text-muted mt-1';
-      host.style.whiteSpace = 'pre-line';
+      host.className = 'pg-chargeback-policy-preview mt-2';
       if (sel.parentElement) sel.parentElement.appendChild(host);
       return host;
     }
@@ -3567,16 +3707,26 @@
       if (!host) return;
       var tiers = detail && Array.isArray(detail.tiers) ? detail.tiers : [];
       if (!tiers.length) {
-        host.textContent = '';
+        host.innerHTML = '';
         return;
       }
-      var lines = tiers.map(function (t, i) {
+      var rows = tiers.map(function (t, i) {
         var min = t && t.countMin != null ? String(t.countMin) : '0';
         var max = (t && t.countMax != null && String(t.countMax) !== '') ? String(t.countMax) : '이상';
         var fee = t && t.feePerCase != null ? pgFmtOneDecimalStripWhole(t.feePerCase) : '0';
-        return (i + 1) + ') ' + min + ' ~ ' + max + '건 : ' + fee;
+        var rangeText = pgEscHtml(min + ' ~ ' + max + '건');
+        return '<tr>' +
+          '<td class="text-center">' + (i + 1) + '</td>' +
+          '<td class="text-center">' + rangeText + '</td>' +
+          '<td class="text-center">' + pgEscHtml(fee) + '</td>' +
+          '</tr>';
       });
-      host.textContent = '차지백 구간정책 구조\n' + lines.join('\n');
+      host.innerHTML = '' +
+        '<div class="pg-chargeback-policy-preview-title">차지백 구간정책 구조</div>' +
+        '<div class="table-responsive">' +
+        '<table class="table table-sm table-bordered mb-0 pg-chargeback-policy-preview-table">' +
+        '<thead><tr><th class="text-center">No</th><th class="text-center">구간</th><th class="text-center">건당수수료</th></tr></thead>' +
+        '<tbody>' + rows.join('') + '</tbody></table></div>';
     }
     function bindChargebackPolicyStructurePreview(sel) {
       if (!sel || sel._cbStructureBound) return;
@@ -6381,18 +6531,22 @@
         }).catch(function (err) { alert(err && err.message ? err.message : '실패'); }).finally(function () { if (dimmP) dimmP.style.display = 'none'; });
       });
     }
-    if (url === '/hq/apiConfig') {
+    if (url === '/hq/apiConfig' || url === '/hq/paymentOrchestration') {
       var dimm2 = document.getElementById('dimm');
       if (dimm2) dimm2.style.display = 'flex';
       window.PG_API.hqApiConfig().then(function (data) {
         if (data && pane.querySelector('[name="baseUrl"]')) {
-          ['baseUrl', 'authType', 'timeoutSec', 'memo', 'chillpayMerchantCode', 'chillpayApiKey', 'chillpayMd5Key', 'chillpayRouteNo', 'chillpaySandbox', 'recallIncludeFeeYn', 'settlementVatApplyYn'].forEach(function (k) {
+          ['baseUrl', 'authType', 'timeoutSec', 'memo', 'chillpayMerchantCode', 'chillpayApiKey', 'chillpayMd5Key', 'chillpayRouteNo', 'chillpaySandbox', 'recallIncludeFeeYn', 'settlementVatApplyYn',
+            'apiBrokerDefaultFlowType', 'urlPayDefaultFlowType', 'urlPayPathTemplate',
+            'apiBrokerInlineEnabledYn', 'apiBrokerRedirectEnabledYn', 'urlPayInlineEnabledYn', 'urlPayRedirectEnabledYn',
+            'paymentProviderRegistryJson'
+          ].forEach(function (k) {
             var el = pane.querySelector('[name="' + k + '"]');
             if (el && data[k] != null) el.value = data[k];
           });
         }
       }).catch(function () {}).finally(function () { if (dimm2) dimm2.style.display = 'none'; });
-      var hqApiSave = pane.querySelector('#hqApiConfigSaveBtn');
+      var hqApiSave = pane.querySelector('#hqApiConfigSaveBtn') || pane.querySelector('#hqPaymentOrchSaveBtn');
       if (hqApiSave) hqApiSave.addEventListener('click', function () {
         var fd = {};
         pane.querySelectorAll('input, select, textarea').forEach(function (el) { if (el.name) fd[el.name] = el.value; });

@@ -803,6 +803,14 @@ public class ApiHqController {
         data.put("chillpaySandbox", "Y");
         data.put("recallIncludeFeeYn", "N");
         data.put("settlementVatApplyYn", "Y");
+        data.put("apiBrokerDefaultFlowType", "INLINE");
+        data.put("urlPayDefaultFlowType", "REDIRECT");
+        data.put("urlPayPathTemplate", "/pay/{compCode}");
+        data.put("apiBrokerInlineEnabledYn", "Y");
+        data.put("apiBrokerRedirectEnabledYn", "Y");
+        data.put("urlPayInlineEnabledYn", "Y");
+        data.put("urlPayRedirectEnabledYn", "Y");
+        data.put("paymentProviderRegistryJson", "{\n  \"version\": 1,\n  \"vendors\": [\n    {\n      \"vendorCode\": \"CHILLPAY\",\n      \"vendorName\": \"칠리페이\",\n      \"integrationTypes\": [\"API_BROKER\", \"URL_PAY\"],\n      \"flowTypes\": [\"INLINE\", \"REDIRECT\"],\n      \"activeYn\": \"Y\"\n    }\n  ]\n}");
         hqApiConfigRepository.findAll().stream().findFirst().ifPresent(c -> {
             if (c.getBaseUrl() != null) data.put("baseUrl", c.getBaseUrl());
             if (c.getAuthType() != null) data.put("authType", c.getAuthType());
@@ -815,6 +823,14 @@ public class ApiHqController {
             if (c.getChillpaySandbox() != null) data.put("chillpaySandbox", c.getChillpaySandbox());
             if (c.getRecallIncludeFeeYn() != null) data.put("recallIncludeFeeYn", c.getRecallIncludeFeeYn());
             if (c.getSettlementVatApplyYn() != null) data.put("settlementVatApplyYn", c.getSettlementVatApplyYn());
+            if (c.getApiBrokerDefaultFlowType() != null) data.put("apiBrokerDefaultFlowType", c.getApiBrokerDefaultFlowType());
+            if (c.getUrlPayDefaultFlowType() != null) data.put("urlPayDefaultFlowType", c.getUrlPayDefaultFlowType());
+            if (c.getUrlPayPathTemplate() != null) data.put("urlPayPathTemplate", c.getUrlPayPathTemplate());
+            if (c.getApiBrokerInlineEnabledYn() != null) data.put("apiBrokerInlineEnabledYn", c.getApiBrokerInlineEnabledYn());
+            if (c.getApiBrokerRedirectEnabledYn() != null) data.put("apiBrokerRedirectEnabledYn", c.getApiBrokerRedirectEnabledYn());
+            if (c.getUrlPayInlineEnabledYn() != null) data.put("urlPayInlineEnabledYn", c.getUrlPayInlineEnabledYn());
+            if (c.getUrlPayRedirectEnabledYn() != null) data.put("urlPayRedirectEnabledYn", c.getUrlPayRedirectEnabledYn());
+            if (c.getPaymentProviderRegistryJson() != null) data.put("paymentProviderRegistryJson", c.getPaymentProviderRegistryJson());
             if (c.getPublicAdminSiteUrl() != null) {
                 data.put("publicAdminSiteUrl", hqHttpsUrlForDisplay(c.getPublicAdminSiteUrl()));
             }
@@ -845,6 +861,15 @@ public class ApiHqController {
         c.setChillpaySandbox(body.get("chillpaySandbox") != null ? body.get("chillpaySandbox").toString().trim() : "Y");
         c.setRecallIncludeFeeYn("Y".equalsIgnoreCase(String.valueOf(body.getOrDefault("recallIncludeFeeYn", "N"))) ? "Y" : "N");
         c.setSettlementVatApplyYn("N".equalsIgnoreCase(String.valueOf(body.getOrDefault("settlementVatApplyYn", "Y"))) ? "N" : "Y");
+        c.setApiBrokerDefaultFlowType("REDIRECT".equalsIgnoreCase(String.valueOf(body.getOrDefault("apiBrokerDefaultFlowType", "INLINE"))) ? "REDIRECT" : "INLINE");
+        c.setUrlPayDefaultFlowType("INLINE".equalsIgnoreCase(String.valueOf(body.getOrDefault("urlPayDefaultFlowType", "REDIRECT"))) ? "INLINE" : "REDIRECT");
+        String pathTpl = body.get("urlPayPathTemplate") != null ? body.get("urlPayPathTemplate").toString().trim() : "";
+        c.setUrlPayPathTemplate(pathTpl.isEmpty() ? "/pay/{compCode}" : pathTpl);
+        c.setApiBrokerInlineEnabledYn("N".equalsIgnoreCase(String.valueOf(body.getOrDefault("apiBrokerInlineEnabledYn", "Y"))) ? "N" : "Y");
+        c.setApiBrokerRedirectEnabledYn("N".equalsIgnoreCase(String.valueOf(body.getOrDefault("apiBrokerRedirectEnabledYn", "Y"))) ? "N" : "Y");
+        c.setUrlPayInlineEnabledYn("N".equalsIgnoreCase(String.valueOf(body.getOrDefault("urlPayInlineEnabledYn", "Y"))) ? "N" : "Y");
+        c.setUrlPayRedirectEnabledYn("N".equalsIgnoreCase(String.valueOf(body.getOrDefault("urlPayRedirectEnabledYn", "Y"))) ? "N" : "Y");
+        c.setPaymentProviderRegistryJson(body.get("paymentProviderRegistryJson") != null ? body.get("paymentProviderRegistryJson").toString().trim() : null);
         if (body.get("publicAdminSiteUrl") != null) {
             c.setPublicAdminSiteUrl(hqHttpsUrlForSave(body.get("publicAdminSiteUrl")));
         }

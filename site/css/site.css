@@ -1230,6 +1230,8 @@ body.theme-pastel_4 .content-page, body.theme-pastel_5 .content-page {
   font-size: var(--app-base-font-size);
 }
 .column-guide-item { user-select: none; }
+.column-guide-item { cursor: grab; }
+.column-guide-item--dragging { opacity: 0.55; }
 .column-guide-item .column-guide-label {
   font-weight: 600;
 }
@@ -1255,6 +1257,31 @@ body.theme-pastel_4 .content-page, body.theme-pastel_5 .content-page {
 .commission-split-grid thead th[data-key$="Nm"] {
   white-space: nowrap;
   min-width: 4rem;
+}
+
+/* 수수료관리: 밀도 높은 그리드 가독성용 축소 폰트 */
+.commission-split-grid th,
+.commission-split-grid td {
+  font-size: 0.72rem;
+}
+
+.commission-split-grid .form-control-sm {
+  font-size: 0.72rem;
+}
+
+.commission-inline-cell {
+  cursor: text;
+  padding: 0.125rem 0.25rem !important;
+}
+
+.commission-inline-cell .commission-inline-input {
+  width: 100% !important;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0.1rem 0.2rem;
+  height: calc(1.2em + 0.35rem + 2px);
 }
 
 /* 본사(REGIONAL) 휴일 미니달력 */
@@ -1791,4 +1818,25 @@ body.theme-pastel_4 .content-page, body.theme-pastel_5 .content-page {
 }
 #chargebackPolicyCard > .card-body {
   background: transparent;
+}
+
+.pg-chargeback-policy-preview-title {
+  font-size: 0.75rem;
+  color: #6c757d;
+  margin-bottom: 0.375rem;
+}
+
+.pg-chargeback-policy-preview-table th,
+.pg-chargeback-policy-preview-table td {
+  font-size: 0.75rem;
+  vertical-align: middle;
+  text-align: center;
+  background: #fff5f6;
+  border-color: #fbc9d0;
+}
+
+.pg-chargeback-policy-preview-table thead th {
+  background: #ffe3e8;
+  color: #7f1d2d;
+  white-space: nowrap;
 }

@@ -57,6 +57,30 @@ public class HqApiConfig {
     @Column(name = "chillpay_url_callback_url", length = 1024)
     private String chillpayUrlCallbackUrl;
 
+    @Column(name = "api_broker_default_flow_type", length = 20)
+    private String apiBrokerDefaultFlowType = "INLINE";
+
+    @Column(name = "url_pay_default_flow_type", length = 20)
+    private String urlPayDefaultFlowType = "REDIRECT";
+
+    @Column(name = "url_pay_path_template", length = 255)
+    private String urlPayPathTemplate = "/pay/{compCode}";
+
+    @Column(name = "api_broker_inline_enabled_yn", length = 1)
+    private String apiBrokerInlineEnabledYn = "Y";
+
+    @Column(name = "api_broker_redirect_enabled_yn", length = 1)
+    private String apiBrokerRedirectEnabledYn = "Y";
+
+    @Column(name = "url_pay_inline_enabled_yn", length = 1)
+    private String urlPayInlineEnabledYn = "Y";
+
+    @Column(name = "url_pay_redirect_enabled_yn", length = 1)
+    private String urlPayRedirectEnabledYn = "Y";
+
+    @Column(name = "payment_provider_registry_json", columnDefinition = "TEXT")
+    private String paymentProviderRegistryJson;
+
     /** 환수금에서 수수료 포함 여부 (Y/N) */
     @Column(name = "recall_include_fee_yn", length = 1)
     private String recallIncludeFeeYn = "N";
@@ -137,6 +161,22 @@ public class HqApiConfig {
     public void setChillpayUrlResultPath(String chillpayUrlResultPath) { this.chillpayUrlResultPath = chillpayUrlResultPath; }
     public String getChillpayUrlCallbackUrl() { return chillpayUrlCallbackUrl; }
     public void setChillpayUrlCallbackUrl(String chillpayUrlCallbackUrl) { this.chillpayUrlCallbackUrl = chillpayUrlCallbackUrl; }
+    public String getApiBrokerDefaultFlowType() { return apiBrokerDefaultFlowType; }
+    public void setApiBrokerDefaultFlowType(String apiBrokerDefaultFlowType) { this.apiBrokerDefaultFlowType = apiBrokerDefaultFlowType; }
+    public String getUrlPayDefaultFlowType() { return urlPayDefaultFlowType; }
+    public void setUrlPayDefaultFlowType(String urlPayDefaultFlowType) { this.urlPayDefaultFlowType = urlPayDefaultFlowType; }
+    public String getUrlPayPathTemplate() { return urlPayPathTemplate; }
+    public void setUrlPayPathTemplate(String urlPayPathTemplate) { this.urlPayPathTemplate = urlPayPathTemplate; }
+    public String getApiBrokerInlineEnabledYn() { return apiBrokerInlineEnabledYn; }
+    public void setApiBrokerInlineEnabledYn(String apiBrokerInlineEnabledYn) { this.apiBrokerInlineEnabledYn = apiBrokerInlineEnabledYn; }
+    public String getApiBrokerRedirectEnabledYn() { return apiBrokerRedirectEnabledYn; }
+    public void setApiBrokerRedirectEnabledYn(String apiBrokerRedirectEnabledYn) { this.apiBrokerRedirectEnabledYn = apiBrokerRedirectEnabledYn; }
+    public String getUrlPayInlineEnabledYn() { return urlPayInlineEnabledYn; }
+    public void setUrlPayInlineEnabledYn(String urlPayInlineEnabledYn) { this.urlPayInlineEnabledYn = urlPayInlineEnabledYn; }
+    public String getUrlPayRedirectEnabledYn() { return urlPayRedirectEnabledYn; }
+    public void setUrlPayRedirectEnabledYn(String urlPayRedirectEnabledYn) { this.urlPayRedirectEnabledYn = urlPayRedirectEnabledYn; }
+    public String getPaymentProviderRegistryJson() { return paymentProviderRegistryJson; }
+    public void setPaymentProviderRegistryJson(String paymentProviderRegistryJson) { this.paymentProviderRegistryJson = paymentProviderRegistryJson; }
     public String getRecallIncludeFeeYn() { return recallIncludeFeeYn; }
     public void setRecallIncludeFeeYn(String recallIncludeFeeYn) { this.recallIncludeFeeYn = recallIncludeFeeYn; }
     public String getSettlementVatApplyYn() { return settlementVatApplyYn; }

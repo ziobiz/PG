@@ -14,6 +14,7 @@
         { "label": "노티매핑설정", "url": "/hq/notifyMapping", "menuId": "M0107" },
         { "label": "조직별 노출설정", "url": "/hq/orgViewColumnAllowance", "menuId": "M0108" },
         { "label": "API 구성 세팅", "url": "/hq/apiConfig", "menuId": "M0103" },
+        { "label": "결제연동 확장설정", "url": "/hq/paymentOrchestration", "menuId": "M0118" },
         { "label": "도메인구성", "url": "/hq/domainConfig", "menuId": "M0115" },
         { "label": "서버관리", "url": "/hq/serverManage", "menuId": "M0116" },
         { "label": "조직별 권한 세팅", "url": "/hq/permissionMng", "menuId": "M0104" },

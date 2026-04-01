@@ -8,12 +8,14 @@ import com.pg.entity.CommissionHistory;
 import com.pg.entity.CommissionPolicy;
 import com.pg.entity.DistributionFeeConfig;
 import com.pg.entity.MerchantCommissionExtra;
+import com.pg.entity.MerchantProfile;
 import com.pg.entity.OrgLevel;
 import com.pg.entity.OrgUnit;
 import com.pg.repository.CommissionHistoryRepository;
 import com.pg.repository.CommissionPolicyRepository;
 import com.pg.repository.DistributionFeeConfigRepository;
 import com.pg.repository.MerchantCommissionExtraRepository;
+import com.pg.repository.MerchantProfileRepository;
 import com.pg.repository.OrgUnitRepository;
 import com.pg.util.PercentDecimalHelper;
 import org.springframework.data.domain.Sort;
@@ -43,17 +45,20 @@ public class CommissionService {
     private final OrgUnitRepository orgUnitRepository;
     private final CommissionPolicyRepository commissionPolicyRepository;
     private final MerchantCommissionExtraRepository merchantCommissionExtraRepository;
+    private final MerchantProfileRepository merchantProfileRepository;
     private final CommissionHistoryRepository commissionHistoryRepository;
     private final DistributionFeeConfigRepository distributionFeeConfigRepository;
 
     public CommissionService(OrgUnitRepository orgUnitRepository,
                              CommissionPolicyRepository commissionPolicyRepository,
                              MerchantCommissionExtraRepository merchantCommissionExtraRepository,
+                             MerchantProfileRepository merchantProfileRepository,
                              CommissionHistoryRepository commissionHistoryRepository,
                              DistributionFeeConfigRepository distributionFeeConfigRepository) {
         this.orgUnitRepository = orgUnitRepository;
         this.commissionPolicyRepository = commissionPolicyRepository;
         this.merchantCommissionExtraRepository = merchantCommissionExtraRepository;
+        this.merchantProfileRepository = merchantProfileRepository;
         this.commissionHistoryRepository = commissionHistoryRepository;
         this.distributionFeeConfigRepository = distributionFeeConfigRepository;
     }
@@ -96,7 +101,11 @@ public class CommissionService {
         m.put("regDt", regDt);
         fillAncestorNames(m, merchant);
 
-        CommissionPolicy policy = commissionPolicyRepository.findByScope(merchant.getCode()).or(() -> defaultPolicy).orElse(null);
+        String effectiveScope = resolveMerchantHqScopeForDisplay(merchant);
+        CommissionPolicy policy = commissionPolicyRepository.findByScope(merchant.getCode())
+                .or(() -> effectiveScope != null && !effectiveScope.isBlank() ? commissionPolicyRepository.findByScope(effectiveScope) : Optional.empty())
+                .or(() -> defaultPolicy)
+                .orElse(null);
         if (policy != null) {
             m.put("cmsnRate", policy.getPayRate());
             m.put("perTxFee", policy.getPerTxFee());
@@ -116,10 +125,17 @@ public class CommissionService {
             m.put("feeRefund", ex.getFeeRefund());
         });
         Optional<DistributionFeeConfig> odf = distributionFeeConfigRepository.findByCompId(merchant.getCode());
+        if (odf.isEmpty() && effectiveScope != null && !effectiveScope.isBlank() && !effectiveScope.equals(merchant.getCode())) {
+            odf = distributionFeeConfigRepository.findByCompId(effectiveScope);
+        }
         if (odf.isPresent()) {
             applyDistributionToMap(m, odf.get());
         } else {
             applyDistributionToMap(m, null);
+            // 가맹점 직접입력(N)인데 배분 행이 아직 없으면, 정책의 결제율/건당을 기본 표시값으로 사용
+            if (effectiveScope == null && policy != null) {
+                applyDirectPolicyFallbackToDistribution(m, policy);
+            }
         }
 
         m.put("totalNm", "");
@@ -128,6 +144,41 @@ public class CommissionService {
                 : (m.get("applyStartDate") != null ? LocalDate.parse(m.get("applyStartDate").toString()) : null);
         m.put("applyDt", apply != null ? apply.toString() : regDt);
         return m;
+    }
+
+    private void applyDirectPolicyFallbackToDistribution(Map<String, Object> m, CommissionPolicy policy) {
+        if (m == null || policy == null) return;
+        m.put("hqRate", policy.getPayRate() != null ? policy.getPayRate() : BigDecimal.ZERO);
+        m.put("hqPerTxFee", policy.getPerTxFee() != null ? policy.getPerTxFee() : BigDecimal.ZERO);
+        m.put("regionalRate", BigDecimal.ZERO);
+        m.put("masterRate", BigDecimal.ZERO);
+        m.put("branchRate", BigDecimal.ZERO);
+        m.put("agencyRate", BigDecimal.ZERO);
+        m.put("salesOfficeRate", BigDecimal.ZERO);
+        m.put("regionalPerTxFee", BigDecimal.ZERO);
+        m.put("masterPerTxFee", BigDecimal.ZERO);
+        m.put("branchPerTxFee", BigDecimal.ZERO);
+        m.put("agencyPerTxFee", BigDecimal.ZERO);
+        m.put("salesOfficePerTxFee", BigDecimal.ZERO);
+    }
+
+    private String resolveMerchantHqScopeForDisplay(OrgUnit merchant) {
+        if (merchant == null) return "DEFAULT";
+        Long orgUnitId = merchant.getId();
+        if (orgUnitId == null) return "DEFAULT";
+        Optional<MerchantProfile> mp = merchantProfileRepository.findByOrgUnitId(orgUnitId);
+        if (mp.isEmpty()) return "DEFAULT";
+        String rs = mp.get().getRegionalSettings();
+        if (rs == null || rs.isBlank()) return "DEFAULT";
+        try {
+            Map<String, Object> obj = MAPPER.readValue(rs, new TypeReference<>() {});
+            String follow = obj.get("commissionFollowHq") != null ? String.valueOf(obj.get("commissionFollowHq")).trim() : "Y";
+            if ("N".equalsIgnoreCase(follow)) return null;
+            String scope = obj.get("hqPolicyScope") != null ? String.valueOf(obj.get("hqPolicyScope")).trim() : "";
+            return scope.isEmpty() ? "DEFAULT" : scope;
+        } catch (Exception e) {
+            return "DEFAULT";
+        }
     }
 
     private void applyDistributionToMap(Map<String, Object> m, DistributionFeeConfig df) {
