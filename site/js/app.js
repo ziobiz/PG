@@ -250,6 +250,149 @@
     var label = pgBrandingDisplayNameAfterUpload(data, fallbackFile);
     if (label) el.value = label;
   }
+  var PG_ATTACH_ALLOWED_EXT = {
+    png: 1, jpg: 1, jpeg: 1, gif: 1, webp: 1, bmp: 1,
+    pdf: 1, doc: 1, docx: 1, hwp: 1, hwpx: 1, txt: 1, xls: 1, xlsx: 1, ppt: 1, pptx: 1
+  };
+  function pgGetFileExt(name) {
+    var s = String(name || '').trim();
+    var dot = s.lastIndexOf('.');
+    if (dot < 0) return '';
+    return s.slice(dot + 1).toLowerCase();
+  }
+  function pgAttachmentRenderTable(section, list) {
+    var tbody = section.querySelector('[data-attach-table] tbody');
+    if (!tbody) return;
+    if (!list || !list.length) {
+      tbody.innerHTML = '<tr data-empty-row><td colspan="5" class="text-center text-muted py-2">첨부된 파일이 없습니다.</td></tr>';
+      return;
+    }
+    var rows = '';
+    list.forEach(function (it, idx) {
+      rows += '<tr data-idx="' + idx + '">' +
+        '<td>' + (idx + 1) + '</td>' +
+        '<td>' + String(it.displayName || '') + '</td>' +
+        '<td>' + String(it.fileName || '') + '</td>' +
+        '<td><button type="button" class="btn btn-outline-primary btn-sm" data-attach-edit="' + idx + '">수정</button></td>' +
+        '<td><button type="button" class="btn btn-outline-danger btn-sm" data-attach-del="' + idx + '">삭제</button></td>' +
+        '</tr>';
+    });
+    tbody.innerHTML = rows;
+  }
+  function initAttachmentSection(rootEl) {
+    if (!rootEl) return;
+    rootEl.querySelectorAll('[data-attach-section="1"]').forEach(function (section) {
+      if (section._attachInitDone) return;
+      section._attachInitDone = true;
+      var jsonEl = section.querySelector('[data-attach-json]');
+      var nameEl = section.querySelector('[data-attach-display-name]');
+      var fileEl = section.querySelector('[data-attach-file]');
+      var fileLabelEl = section.querySelector('[data-attach-file-label]');
+      var addBtn = section.querySelector('[data-attach-add]');
+      var list = [];
+      section._attachEditIndex = null;
+      try {
+        list = jsonEl && jsonEl.value ? JSON.parse(jsonEl.value) : [];
+        if (!Array.isArray(list)) list = [];
+      } catch (e) { list = []; }
+      pgAttachmentRenderTable(section, list);
+      function pgAttachResetFileLabel() {
+        if (fileLabelEl) fileLabelEl.textContent = '파일 선택';
+      }
+      function pgAttachClearEditMode() {
+        section._attachEditIndex = null;
+        if (addBtn) addBtn.textContent = '추가';
+      }
+      if (fileEl) {
+        fileEl.addEventListener('change', function () {
+          if (!fileLabelEl) return;
+          var fn = this.files && this.files[0] ? String(this.files[0].name || '') : '';
+          if (!fn) {
+            fileLabelEl.textContent = '파일 선택';
+            return;
+          }
+          fileLabelEl.textContent = fn.length > 20 ? fn.slice(0, 17) + '…' : fn;
+        });
+      }
+      if (addBtn) {
+        addBtn.addEventListener('click', function () {
+          var displayName = nameEl && nameEl.value ? String(nameEl.value).trim() : '';
+          if (!displayName) { alert('파일이름을 입력하세요.'); return; }
+          var f = fileEl && fileEl.files && fileEl.files[0] ? fileEl.files[0] : null;
+          var editIdx = section._attachEditIndex;
+          if (editIdx != null && isFinite(editIdx) && editIdx >= 0 && editIdx < list.length) {
+            if (!f) {
+              list[editIdx].displayName = displayName;
+            } else {
+              var ext = pgGetFileExt(f.name);
+              if (!PG_ATTACH_ALLOWED_EXT[ext]) {
+                alert('허용되지 않은 파일 형식입니다. 이미지/PDF/문서 파일만 업로드할 수 있습니다.');
+                return;
+              }
+              list[editIdx].displayName = displayName;
+              list[editIdx].fileName = String(f.name || '');
+              list[editIdx].ext = ext;
+            }
+            if (jsonEl) jsonEl.value = JSON.stringify(list);
+            pgAttachmentRenderTable(section, list);
+            if (nameEl) nameEl.value = '';
+            if (fileEl) fileEl.value = '';
+            pgAttachResetFileLabel();
+            pgAttachClearEditMode();
+            return;
+          }
+          if (!f) { alert('첨부할 파일을 선택하세요.'); return; }
+          var ext = pgGetFileExt(f.name);
+          if (!PG_ATTACH_ALLOWED_EXT[ext]) {
+            alert('허용되지 않은 파일 형식입니다. 이미지/PDF/문서 파일만 업로드할 수 있습니다.');
+            return;
+          }
+          list.push({ displayName: displayName, fileName: String(f.name || ''), ext: ext });
+          if (jsonEl) jsonEl.value = JSON.stringify(list);
+          pgAttachmentRenderTable(section, list);
+          if (nameEl) nameEl.value = '';
+          if (fileEl) fileEl.value = '';
+          pgAttachResetFileLabel();
+        });
+      }
+      section.addEventListener('click', function (ev) {
+        var ed = ev.target && ev.target.closest ? ev.target.closest('[data-attach-edit]') : null;
+        if (ed && section.contains(ed)) {
+          var eidx = parseInt(ed.getAttribute('data-attach-edit') || '-1', 10);
+          if (!isFinite(eidx) || eidx < 0 || eidx >= list.length) return;
+          section._attachEditIndex = eidx;
+          if (nameEl) nameEl.value = String(list[eidx].displayName || '');
+          if (fileEl) fileEl.value = '';
+          pgAttachResetFileLabel();
+          if (addBtn) addBtn.textContent = '적용';
+          return;
+        }
+        var del = ev.target && ev.target.closest ? ev.target.closest('[data-attach-del]') : null;
+        if (!del || !section.contains(del)) return;
+        var idx = parseInt(del.getAttribute('data-attach-del') || '-1', 10);
+        if (!isFinite(idx) || idx < 0 || idx >= list.length) return;
+        var eix = section._attachEditIndex;
+        if (eix === idx) pgAttachClearEditMode();
+        else if (eix != null && eix > idx) section._attachEditIndex = eix - 1;
+        list.splice(idx, 1);
+        if (jsonEl) jsonEl.value = JSON.stringify(list);
+        pgAttachmentRenderTable(section, list);
+      });
+    });
+  }
+  var PG_DEFAULT_COPYRIGHT_TEXT = 'Copyright © 2023 ICOPAY Service by Ontheline Co., Ltd.';
+  function pgApplyFooterCopyright(rootEl, data) {
+    var txt = PG_DEFAULT_COPYRIGHT_TEXT;
+    var div = data && data.compDiv ? String(data.compDiv).toUpperCase() : '';
+    var c = data && data.copyright != null ? String(data.copyright).trim() : '';
+    if ((div === 'HEADQUARTERS' || div === 'REGIONAL' || div === 'MASTER_DIST') && c) {
+      txt = c;
+    }
+    var scope = rootEl || document;
+    scope.querySelectorAll('.page-footer').forEach(function (el) { el.textContent = txt; });
+    var footerText = document.getElementById('footerText');
+    if (footerText) footerText.textContent = txt;
+  }
   function pgBrandingFillImageDisplayFromFetch(rootEl, b) {
     if (!rootEl || !b) return;
     var mainEl = rootEl.querySelector('#brandingMainImageUrl');
@@ -3507,7 +3650,7 @@
           delete fd.baseCurrency2;
           delete fd.baseCurrency3;
         }
-        if (fd.compDiv === 'REGIONAL' || fd.compDiv === 'MASTER_DIST') {
+        if (fd.compDiv === 'HEADQUARTERS' || fd.compDiv === 'REGIONAL' || fd.compDiv === 'MASTER_DIST') {
           var cardLimitTbody = form.querySelector('#regionalCardLimitTbody');
           if (cardLimitTbody) {
             var cardLimits = [];
@@ -3533,7 +3676,10 @@
               fd.businessHolidayExtraDates = (_rows || []).map(function (r) { return r.fromDate || ''; }).filter(function (v) { return !!v; }).join('\n');
             } catch (e) {}
           }
-          var regionalKeys = ['remitterName', 'balanceNotifyAmt', 'suspiciousNotifyAmt', 'overseasLoginNotifyAmt', 'tempPwdNotifyAmt', 'nonTranCriterionMonth', 'sameCardLimitWebDay', 'sameCardLimitWebTimes', 'sameCardLimitWebAmt', 'sameCardLimitTerminalDay', 'sameCardLimitTerminalTimes', 'sameCardLimitTerminalAmt', 'dailyUsageFee', 'depositNameLookup', 'transferAuthNo', 'autoConvertNewMemberLimit', 'newMemberDailyLimit', 'convertRefDate', 'convertDailyLimit', 'applyStartDate', 'pgFeeGeneral', 'transferFee', 'settleDiffMonthCnt', 'settleReportBankCd', 'pgFeeSamsung', 'smsFee', 'taxInvoiceEmail', 'settleAccountNo', 'directFee', 'solutionFee', 'settleAccountHolder', 'withdrawRestrictType', 'withdrawRestrictStartTime', 'withdrawRestrictEndTime', 'terminalPayRestrict', 'webPayRestrict', 'defaultFeeHq', 'defaultFeeDist', 'defaultFeeBranch', 'defaultFeeAgency', 'defaultFeeSalesOffice', 'defaultPayLimitPerTx', 'defaultPayLimitDay', 'defaultPayLimitMonth', 'defaultPayLimitYearCorp', 'defaultPayLimitYearInd', 'copyright', 'regionalCardLimits', 'regionalTerminals', 'holidayProfileName', 'holidayProfileCountry', 'holidayCountryCode', 'holidayCountryCodes', 'businessHolidayRangesJson', 'businessHolidayExtraDates'];
+          var regionalKeys = ['copyright'];
+          if (fd.compDiv === 'REGIONAL' || fd.compDiv === 'MASTER_DIST') {
+            regionalKeys = ['remitterName', 'balanceNotifyAmt', 'suspiciousNotifyAmt', 'overseasLoginNotifyAmt', 'tempPwdNotifyAmt', 'nonTranCriterionMonth', 'sameCardLimitWebDay', 'sameCardLimitWebTimes', 'sameCardLimitWebAmt', 'sameCardLimitTerminalDay', 'sameCardLimitTerminalTimes', 'sameCardLimitTerminalAmt', 'dailyUsageFee', 'depositNameLookup', 'transferAuthNo', 'autoConvertNewMemberLimit', 'newMemberDailyLimit', 'convertRefDate', 'convertDailyLimit', 'applyStartDate', 'pgFeeGeneral', 'transferFee', 'settleDiffMonthCnt', 'settleReportBankCd', 'pgFeeSamsung', 'smsFee', 'taxInvoiceEmail', 'settleAccountNo', 'directFee', 'solutionFee', 'settleAccountHolder', 'withdrawRestrictType', 'withdrawRestrictStartTime', 'withdrawRestrictEndTime', 'terminalPayRestrict', 'webPayRestrict', 'defaultFeeHq', 'defaultFeeDist', 'defaultFeeBranch', 'defaultFeeAgency', 'defaultFeeSalesOffice', 'defaultPayLimitPerTx', 'defaultPayLimitDay', 'defaultPayLimitMonth', 'defaultPayLimitYearCorp', 'defaultPayLimitYearInd', 'copyright', 'regionalCardLimits', 'regionalTerminals', 'holidayProfileName', 'holidayProfileCountry', 'holidayCountryCode', 'holidayCountryCodes', 'businessHolidayRangesJson', 'businessHolidayExtraDates'];
+          }
           var regionalSettings = {};
           regionalKeys.forEach(function (k) { if (fd[k] !== undefined && fd[k] !== null && fd[k] !== '') regionalSettings[k] = fd[k]; });
           fd.regionalSettings = JSON.stringify(regionalSettings);
@@ -3640,6 +3786,7 @@
       initCountryBankGroup(pane);
       initCountryAddressGroup(pane);
       initIntlPhoneFields(pane);
+      initAttachmentSection(pane);
       var form = pane.querySelector('#compRegForm');
       var loginIdElForCheck = form ? form.querySelector('[name="loginId"]') : null;
       if (loginIdElForCheck && !loginIdElForCheck._dupResetBound) {
@@ -3701,6 +3848,7 @@
       }
       function toggleByCompDiv(compDiv) {
         var isMerchant = compDiv === 'MERCHANT';
+        var isHeadquarters = compDiv === 'HEADQUARTERS';
         var isRegional = compDiv === 'REGIONAL';
         var isMasterDist = compDiv === 'MASTER_DIST';
         var isBranchAgencySales = compDiv === 'BRANCH' || compDiv === 'AGENCY' || compDiv === 'SALES_OFFICE';
@@ -3730,6 +3878,10 @@
         var isRegionalOrMasterDist = isRegional || isMasterDist;
         pane.querySelectorAll('.regional-or-master-dist-only-section').forEach(function (card) {
           if (isRegionalOrMasterDist) card.classList.remove('d-none'); else card.classList.add('d-none');
+        });
+        var isHeadOfficeTier = isHeadquarters || isRegional || isMasterDist;
+        pane.querySelectorAll('.head-office-tier-only-section').forEach(function (card) {
+          if (isHeadOfficeTier) card.classList.remove('d-none'); else card.classList.add('d-none');
         });
         pane.querySelectorAll('.merchant-regional-master-commission-section').forEach(function (card) {
           if (isMerchant || isRegional || isMasterDist) card.classList.remove('d-none'); else card.classList.add('d-none');
@@ -4243,6 +4395,7 @@
     function applyCompInfoPaneByCompDiv(pane, compDiv) {
       if (!pane || !compDiv) return;
       var isMerchant = compDiv === 'MERCHANT';
+      var isHeadquarters = compDiv === 'HEADQUARTERS';
       var isRegional = compDiv === 'REGIONAL';
       var isMasterDist = compDiv === 'MASTER_DIST';
       var isBranchAgencySales = compDiv === 'BRANCH' || compDiv === 'AGENCY' || compDiv === 'SALES_OFFICE';
@@ -4262,6 +4415,10 @@
       });
       pane.querySelectorAll('.merchant-regional-master-commission-section').forEach(function (card) {
         if (isMerchant || isRegional || isMasterDist) card.classList.remove('d-none'); else card.classList.add('d-none');
+      });
+      var isHeadOfficeTier = isHeadquarters || isRegional || isMasterDist;
+      pane.querySelectorAll('.head-office-tier-only-section').forEach(function (card) {
+        if (isHeadOfficeTier) card.classList.remove('d-none'); else card.classList.add('d-none');
       });
     }
     /** 가맹점 계정정보(대표/보조 아이디·비밀번호) 노출: 총본사/본사/총판만 허용 */
@@ -4313,11 +4470,12 @@
       window.PG_API.compDetail(compId).then(function (data) {
         var form = pane.querySelector('#compInfoDetailForm');
         if (!form || !data) return;
+        initAttachmentSection(pane);
         var formUrl = pane.getAttribute('formurl') || '';
         form.querySelectorAll('input, select, textarea').forEach(function (el) { el.disabled = false; });
         var updBtnReset = pane.querySelector('#compInfoUpdateBtn');
         if (updBtnReset) updBtnReset.style.display = '';
-        var allFieldsInfo = ['compId', 'parentComp', 'compNm', 'compDiv', 'regNo', 'bizType', 'industry', 'bizNature', 'product', 'homepage', 'settleName', 'settleTelNo', 'ceoNm', 'ceoMobile', 'compTel', 'fax', 'zipCode', 'addr', 'addrDetail', 'addrEtc', 'addrCountryCd', 'addrCountryCdOther', 'email', 'siteUrl', 'siteSummary', 'useYn', 'loginId', 'bankCd', 'transferFee', 'cryptoTransferFee', 'accountNo', 'accountHolder', 'commissionConfigAllowed', 'webPaymentUseYn', 'baseCurrency', 'remark', 'countryCd', 'countryCdOther', 'swift', 'branchName', 'branchAddr', 'contactTel', 'walletAddress', 'networkName', 'withdrawRestrictType', 'withdrawStartTime', 'withdrawEndTime', 'payLimitDefault', 'payLimitExtra', 'payLimitAlertSms', 'holdRateFollowHq', 'holdRate', 'holdDays', 'commissionFollowHq', 'hqPolicyScope', 'failFee', 'usageRate', 'payRate', 'cancelRate', 'voidFeePerTx', 'manualVoidFeePerTx', 'refundRate', 'commissionMemo', 'feeSettlementPerTx', 'remittanceTransferFee', 'usdtTransferFeeUsd', 'feeUsdt', 'feeFx', 'fee3dsRate', 'chargebackFeePerTx', 'calcCycle', 'calcProcType', 'calcCloseTime', 'transferType', 'transferCycleDays', 'autoTransferMin', 'calcMinAmt', 'transferExecTime', 'calcExcludeYn', 'calcExcludeTarget', 'calcStartTime', 'payHoldYn', 'defaultProductName', 'defaultProductCode', 'defaultProductAmount', 'defaultProductDesc', 'notifyUrlBackground', 'notifyUrlResult', 'assistantLoginId', 'assistantPwd', 'assistantRoleType', 'brandingEditAllowedYn'];
+        var allFieldsInfo = ['compId', 'parentComp', 'compNm', 'compDiv', 'regNo', 'bizType', 'industry', 'bizNature', 'product', 'homepage', 'settleName', 'settleTelNo', 'ceoNm', 'ceoMobile', 'compTel', 'fax', 'zipCode', 'addr', 'addrDetail', 'addrEtc', 'addrCountryCd', 'addrCountryCdOther', 'email', 'siteUrl', 'siteSummary', 'useYn', 'loginId', 'bankCd', 'transferFee', 'cryptoTransferFee', 'accountNo', 'accountHolder', 'commissionConfigAllowed', 'webPaymentUseYn', 'baseCurrency', 'remark', 'countryCd', 'countryCdOther', 'swift', 'branchName', 'branchAddr', 'contactTel', 'walletAddress', 'networkName', 'withdrawRestrictType', 'withdrawStartTime', 'withdrawEndTime', 'payLimitDefault', 'payLimitExtra', 'payLimitAlertSms', 'holdRateFollowHq', 'holdRate', 'holdDays', 'commissionFollowHq', 'hqPolicyScope', 'failFee', 'usageRate', 'payRate', 'cancelRate', 'voidFeePerTx', 'manualVoidFeePerTx', 'refundRate', 'commissionMemo', 'feeSettlementPerTx', 'remittanceTransferFee', 'usdtTransferFeeUsd', 'feeUsdt', 'feeFx', 'fee3dsRate', 'chargebackFeePerTx', 'calcCycle', 'calcProcType', 'calcCloseTime', 'transferType', 'transferCycleDays', 'autoTransferMin', 'calcMinAmt', 'transferExecTime', 'calcExcludeYn', 'calcExcludeTarget', 'calcStartTime', 'payHoldYn', 'defaultProductName', 'defaultProductCode', 'defaultProductAmount', 'defaultProductDesc', 'notifyUrlBackground', 'notifyUrlResult', 'assistantLoginId', 'assistantPwd', 'assistantRoleType', 'brandingEditAllowedYn', 'copyright'];
         allFieldsInfo.forEach(function (k) {
           var el = form.querySelector('[name="' + k + '"]');
           if (el && data[k] != null) {
@@ -4572,6 +4730,7 @@
             }
           });
         }
+        pgApplyFooterCopyright(pane, data);
         var card = pane.querySelector('#compInfoDetailCard');
         if (card) card.scrollIntoView({ behavior: 'smooth', block: 'start' });
         applyCompInfoHeadquartersVisibility(form, data.compDiv || '');
@@ -4842,6 +5001,7 @@
               return Promise.reject(eBrand);
             });
           }).then(function () {
+            pgApplyFooterCopyright(pane, fd);
             alert('저장되었습니다.');
             if (url === '/comp/myCompMng') {
               /* 가맹점 업체정보: 저장 후 같은 탭·같은 화면 유지(상세 재조회 시 스크롤/맥락이 바뀌는 문제 방지) */
@@ -4985,6 +5145,7 @@
       bindParentCompSearchModal(pane);
       function toggleByCompDiv(compDiv) {
         var isMerchant = compDiv === 'MERCHANT';
+        var isHeadquarters = compDiv === 'HEADQUARTERS';
         var isRegional = compDiv === 'REGIONAL';
         var isMasterDist = compDiv === 'MASTER_DIST';
         var isBranchAgencySales = compDiv === 'BRANCH' || compDiv === 'AGENCY' || compDiv === 'SALES_OFFICE';
@@ -5015,6 +5176,10 @@
         pane.querySelectorAll('.regional-or-master-dist-only-section').forEach(function (card) {
           if (isRegionalOrMasterDist) card.classList.remove('d-none'); else card.classList.add('d-none');
         });
+        var isHeadOfficeTier = isHeadquarters || isRegional || isMasterDist;
+        pane.querySelectorAll('.head-office-tier-only-section').forEach(function (card) {
+          if (isHeadOfficeTier) card.classList.remove('d-none'); else card.classList.add('d-none');
+        });
         pane.querySelectorAll('.merchant-regional-master-commission-section').forEach(function (card) {
           if (isMerchant || isRegional || isMasterDist) card.classList.remove('d-none'); else card.classList.add('d-none');
         });
@@ -5035,6 +5200,7 @@
         if (!data) return;
         var form = pane.querySelector('#compDetailForm');
         if (!form) return;
+        initAttachmentSection(pane);
         var allFields = ['compId', 'parentComp', 'compNm', 'compDiv', 'regNo', 'bizType', 'industry', 'bizNature', 'product', 'homepage', 'settleName', 'settleTelNo', 'ceoNm', 'ceoMobile', 'compTel', 'fax', 'zipCode', 'addr', 'addrDetail', 'addrEtc', 'addrCountryCd', 'addrCountryCdOther', 'email', 'siteUrl', 'siteSummary', 'useYn', 'loginId', 'bankCd', 'transferFee', 'cryptoTransferFee', 'accountNo', 'accountHolder', 'commissionConfigAllowed', 'webPaymentUseYn', 'baseCurrency', 'remark', 'settleType', 'commissionRate', 'limitAmt', 'countryCd', 'countryCdOther', 'swift', 'branchName', 'branchAddr', 'contactTel', 'walletAddress', 'networkName', 'withdrawRestrictType', 'withdrawStartTime', 'withdrawEndTime', 'payLimitDefault', 'payLimitExtra', 'payLimitAlertSms', 'holdRateFollowHq', 'holdRate', 'holdDays', 'commissionFollowHq', 'hqPolicyScope', 'failFee', 'usageRate', 'payRate', 'cancelRate', 'voidFeePerTx', 'manualVoidFeePerTx', 'refundRate', 'commissionMemo', 'feeSettlementPerTx', 'remittanceTransferFee', 'usdtTransferFeeUsd', 'feeUsdt', 'feeFx', 'fee3dsRate', 'chargebackFeePerTx', 'calcCycle', 'calcProcType', 'calcCloseTime', 'transferType', 'transferCycleDays', 'autoTransferMin', 'calcMinAmt', 'transferExecTime', 'calcExcludeYn', 'calcExcludeTarget', 'calcStartTime', 'payHoldYn', 'defaultProductName', 'defaultProductCode', 'defaultProductAmount', 'defaultProductDesc', 'notifyUrlBackground', 'notifyUrlResult', 'notifyUrl1', 'notifyUrl2', 'notifyUrl3', 'notifyUrl4', 'remitterName', 'balanceNotifyAmt', 'suspiciousNotifyAmt', 'overseasLoginNotifyAmt', 'tempPwdNotifyAmt', 'nonTranCriterionMonth', 'sameCardLimitWebDay', 'sameCardLimitWebTimes', 'sameCardLimitWebAmt', 'sameCardLimitTerminalDay', 'sameCardLimitTerminalTimes', 'sameCardLimitTerminalAmt', 'dailyUsageFee', 'depositNameLookup', 'transferAuthNo', 'autoConvertNewMemberLimit', 'newMemberDailyLimit', 'convertRefDate', 'convertDailyLimit', 'applyStartDate', 'pgFeeGeneral', 'settleDiffMonthCnt', 'settleReportBankCd', 'pgFeeSamsung', 'smsFee', 'taxInvoiceEmail', 'settleAccountNo', 'directFee', 'solutionFee', 'settleAccountHolder', 'withdrawRestrictType', 'withdrawRestrictStartTime', 'withdrawRestrictEndTime', 'terminalPayRestrict', 'webPayRestrict', 'defaultFeeHq', 'defaultFeeDist', 'defaultFeeBranch', 'defaultFeeAgency', 'defaultFeeSalesOffice', 'defaultPayLimitPerTx', 'defaultPayLimitDay', 'defaultPayLimitMonth', 'defaultPayLimitYearCorp', 'defaultPayLimitYearInd', 'copyright', 'holidayProfileName', 'holidayProfileCountry', 'holidayCountryCode', 'holidayCountryCodes', 'businessHolidayRangesJson', 'businessHolidayExtraDates'];
         allFields.forEach(function (k) {
           var el = form.querySelector('[name="' + k + '"]');
@@ -5043,6 +5209,7 @@
             el.value = nf2 != null ? nf2 : data[k];
           }
         });
+        pgApplyFooterCopyright(pane, data);
         var parentCompEl = form.querySelector('[name="parentComp"]');
         if (parentCompEl) parentCompEl.value = normalizeParentCompDisplay(parentCompEl.value);
         initIntlPhoneFields(form);
@@ -5303,9 +5470,11 @@
             if (!dn2) { alert('총판은 노티 RESULT(URL 2)를 입력해야 합니다.'); return; }
             if (dHasBackup && (!dn1 || !dn2)) { alert('노티 URL 3·4(보조)를 쓰려면 URL 1·2(CALLBACK·RESULT)가 모두 필요합니다.'); return; }
           }
-          if (compDivVal === 'REGIONAL') {
-            var bc = [fd.baseCurrency1, fd.baseCurrency2, fd.baseCurrency3].filter(function (v) { return v && v.trim(); });
-            fd.baseCurrency = bc.join(',');
+          if (compDivVal === 'HEADQUARTERS' || compDivVal === 'REGIONAL' || compDivVal === 'MASTER_DIST') {
+            if (compDivVal === 'REGIONAL') {
+              var bc = [fd.baseCurrency1, fd.baseCurrency2, fd.baseCurrency3].filter(function (v) { return v && v.trim(); });
+              fd.baseCurrency = bc.join(',');
+            }
             delete fd.baseCurrency1;
             delete fd.baseCurrency2;
             delete fd.baseCurrency3;
@@ -5334,7 +5503,10 @@
                 fd.businessHolidayExtraDates = (_rows2 || []).map(function (r) { return r.fromDate || ''; }).filter(function (v) { return !!v; }).join('\n');
               } catch (e) {}
             }
-            var regionalKeys = ['remitterName', 'balanceNotifyAmt', 'suspiciousNotifyAmt', 'overseasLoginNotifyAmt', 'tempPwdNotifyAmt', 'nonTranCriterionMonth', 'sameCardLimitWebDay', 'sameCardLimitWebTimes', 'sameCardLimitWebAmt', 'sameCardLimitTerminalDay', 'sameCardLimitTerminalTimes', 'sameCardLimitTerminalAmt', 'dailyUsageFee', 'depositNameLookup', 'transferAuthNo', 'autoConvertNewMemberLimit', 'newMemberDailyLimit', 'convertRefDate', 'convertDailyLimit', 'applyStartDate', 'pgFeeGeneral', 'transferFee', 'settleDiffMonthCnt', 'settleReportBankCd', 'pgFeeSamsung', 'smsFee', 'taxInvoiceEmail', 'settleAccountNo', 'directFee', 'solutionFee', 'settleAccountHolder', 'withdrawRestrictType', 'withdrawRestrictStartTime', 'withdrawRestrictEndTime', 'terminalPayRestrict', 'webPayRestrict', 'defaultFeeHq', 'defaultFeeDist', 'defaultFeeBranch', 'defaultFeeAgency', 'defaultFeeSalesOffice', 'defaultPayLimitPerTx', 'defaultPayLimitDay', 'defaultPayLimitMonth', 'defaultPayLimitYearCorp', 'defaultPayLimitYearInd', 'copyright', 'regionalCardLimits', 'regionalTerminals', 'holidayProfileName', 'holidayProfileCountry', 'holidayCountryCode', 'holidayCountryCodes', 'businessHolidayRangesJson', 'businessHolidayExtraDates'];
+            var regionalKeys = ['copyright'];
+            if (compDivVal === 'REGIONAL' || compDivVal === 'MASTER_DIST') {
+              regionalKeys = ['remitterName', 'balanceNotifyAmt', 'suspiciousNotifyAmt', 'overseasLoginNotifyAmt', 'tempPwdNotifyAmt', 'nonTranCriterionMonth', 'sameCardLimitWebDay', 'sameCardLimitWebTimes', 'sameCardLimitWebAmt', 'sameCardLimitTerminalDay', 'sameCardLimitTerminalTimes', 'sameCardLimitTerminalAmt', 'dailyUsageFee', 'depositNameLookup', 'transferAuthNo', 'autoConvertNewMemberLimit', 'newMemberDailyLimit', 'convertRefDate', 'convertDailyLimit', 'applyStartDate', 'pgFeeGeneral', 'transferFee', 'settleDiffMonthCnt', 'settleReportBankCd', 'pgFeeSamsung', 'smsFee', 'taxInvoiceEmail', 'settleAccountNo', 'directFee', 'solutionFee', 'settleAccountHolder', 'withdrawRestrictType', 'withdrawRestrictStartTime', 'withdrawRestrictEndTime', 'terminalPayRestrict', 'webPayRestrict', 'defaultFeeHq', 'defaultFeeDist', 'defaultFeeBranch', 'defaultFeeAgency', 'defaultFeeSalesOffice', 'defaultPayLimitPerTx', 'defaultPayLimitDay', 'defaultPayLimitMonth', 'defaultPayLimitYearCorp', 'defaultPayLimitYearInd', 'copyright', 'regionalCardLimits', 'regionalTerminals', 'holidayProfileName', 'holidayProfileCountry', 'holidayCountryCode', 'holidayCountryCodes', 'businessHolidayRangesJson', 'businessHolidayExtraDates'];
+            }
             var regionalSettings = {};
             regionalKeys.forEach(function (k) { if (fd[k] !== undefined && fd[k] !== null && fd[k] !== '') regionalSettings[k] = fd[k]; });
             fd.regionalSettings = JSON.stringify(regionalSettings);
@@ -5420,6 +5592,7 @@
             }
             return Promise.resolve();
           }).then(function () {
+            pgApplyFooterCopyright(pane, fd);
             alert('저장되었습니다.');
           }).catch(function (e) { alert(e && e.message ? e.message : '수정 저장 실패'); }).finally(function () { if (dimm) dimm.style.display = 'none'; });
         });

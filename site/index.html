@@ -582,28 +582,27 @@
           if (/^https?:\/\//i.test(s)) return s;
           return apiBase + s;
         }
+        function applyFavicon(url) {
+          var href = absUrl(url);
+          if (!href) return;
+          var head = document.head || document.getElementsByTagName('head')[0];
+          if (!head) return;
+          var link = document.querySelector('link[data-branding-favicon="1"]');
+          if (!link) {
+            link = document.createElement('link');
+            link.setAttribute('data-branding-favicon', '1');
+            link.setAttribute('rel', 'icon');
+            link.setAttribute('type', 'image/png');
+            head.appendChild(link);
+          }
+          link.setAttribute('href', href + (href.indexOf('?') >= 0 ? '&' : '?') + 'v=' + Date.now());
+        }
         if (b.logoImageUrl) {
           applySidebarLogo(absUrl(b.logoImageUrl));
         }
-        if (b.popconImageUrl && !sessionStorage.getItem('pg_popcon_seen')) {
-          var p = document.getElementById('popconPreviewModal');
-          if (!p) {
-            p = document.createElement('div');
-            p.className = 'modal fade';
-            p.id = 'popconPreviewModal';
-            p.tabIndex = -1;
-            p.innerHTML = '<div class="modal-dialog modal-dialog-centered"><div class="modal-content"><div class="modal-header py-2"><h6 class="modal-title">공지</h6><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body p-2 text-center"><img id="popconPreviewImg" alt="팝콘이미지" style="max-width:100%;height:auto;"></div></div></div>';
-            document.body.appendChild(p);
-          }
-          var pi = document.getElementById('popconPreviewImg');
-          if (pi) pi.src = absUrl(b.popconImageUrl);
-          try { sessionStorage.setItem('pg_popcon_seen', '1'); } catch (ePop) {}
-          if (window.bootstrap && bootstrap.Modal) {
-            new bootstrap.Modal(p).show();
-          }
-        }
+        if (b.popconImageUrl) applyFavicon(b.popconImageUrl);
         if (b.theme) {
-          document.body.classList.remove('theme-default', 'theme-light', 'theme-dark', 'theme-pastel_1', 'theme-pastel_2', 'theme-pastel_3', 'theme-pastel_4', 'theme-pastel_5');
+          document.body.classList.remove('theme-default', 'theme-light', 'theme-gray', 'theme-brown', 'theme-dark', 'theme-pastel_1', 'theme-pastel_2', 'theme-pastel_3', 'theme-pastel_4', 'theme-pastel_5');
           document.body.classList.add('theme-' + (b.theme || 'default').toLowerCase());
         }
         if (b.siteName) {

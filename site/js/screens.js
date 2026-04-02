@@ -796,9 +796,10 @@
           notice: '본사에서 [배경/로고 변경권한]을 부여한 가맹점은 메인·로고·테마를 수정할 수 있습니다. 메인이미지=로그인 화면 왼쪽 배경, 로고=로그인창 상단·사이드바 상단.'
         },
         {
-          title: '기타(본사)',
+          title: '기타',
           id: 'regionalMiscCard',
-          notice: '메인이미지는 2MB, 로고이미지는 1MB까지 업로드 가능합니다. PNG파일을 추천합니다.',
+          headOfficeTierOnly: true,
+          notice: '본사/총판 공통 설정입니다. COPYRIGHT에 입력한 문구는 화면 하단에 표시됩니다.',
           rows: [[{ label: 'COPYRIGHT', type: 'textarea', name: 'copyright', col: 6, placeholder: 'Copyright © 2025 ICOPAY Service by Ontheline Co., Ltd.' }, { label: '비고', type: 'textarea', name: 'remark', col: 6 }]]
         },
         {
@@ -818,7 +819,7 @@
             [{ label: 'URL Background', type: 'text', name: 'notifyUrlBackground', col: 5, placeholder: 'https://' }, { label: 'URL Result', type: 'text', name: 'notifyUrlResult', col: 5, placeholder: 'https://' }]
           ]
         },
-        { title: '첨부파일', rows: [[{ type: 'file', name: 'attach', col: 4, button: '추가' }]] }
+        { title: '첨부파일', rows: [[{ type: 'file', name: 'attach', col: 12, blockExtraClass: 'attach-field-block' }]] }
       ],
       compInfoDetailButtons: [{ id: 'compInfoUpdateBtn', label: '수정 저장', cls: 'btn-primary' }]
     },
@@ -1096,7 +1097,7 @@
           regionalOrMasterDistOnly: true,
           notice: '본사·총판만 설정 가능. 메인이미지=로그인 화면 왼쪽 배경, 로고=로그인창 상단·사이드바 상단.'
         },
-        { title: '기타(본사)', id: 'regionalMiscCard', regionalOnly: true, notice: '메인이미지는 2MB, 로고이미지는 1MB까지 업로드 가능합니다. PNG파일을 추천합니다.', rows: [[{ label: 'COPYRIGHT', type: 'textarea', name: 'copyright', col: 6, placeholder: 'Copyright © 2025 ICOPAY Service by Ontheline Co., Ltd.' }, { label: '비고', type: 'textarea', name: 'remark', col: 6 }]] },
+        { title: '기타', id: 'regionalMiscCard', headOfficeTierOnly: true, notice: '총본사/본사/총판 공통 설정입니다. COPYRIGHT에 입력한 문구는 화면 하단에 표시됩니다.', rows: [[{ label: 'COPYRIGHT', type: 'textarea', name: 'copyright', col: 6, placeholder: 'Copyright © 2025 ICOPAY Service by Ontheline Co., Ltd.' }, { label: '비고', type: 'textarea', name: 'remark', col: 6 }]] },
         { title: '기타', id: 'nonRegionalMiscCard', distributorMerchantOnlyNoRegional: true, rows: [[{ label: '비고', type: 'textarea', name: 'remark', col: 6 }]] },
         {
           title: '결제통보 URL',
@@ -1107,7 +1108,7 @@
             [{ label: 'URL Background', type: 'text', name: 'notifyUrlBackground', col: 5, placeholder: 'https://' }, { label: 'URL Result', type: 'text', name: 'notifyUrlResult', col: 5, placeholder: 'https://' }]
           ]
         },
-        { title: '첨부파일', rows: [[{ type: 'file', name: 'attach', col: 4, button: '추가' }]] }
+        { title: '첨부파일', rows: [[{ type: 'file', name: 'attach', col: 12, blockExtraClass: 'attach-field-block' }]] }
       ],
       buttons: [{ id: 'compRegSaveBtn', label: '저장', cls: 'btn-primary' }, { id: 'compRegCancelBtn', label: '취소', cls: 'btn-secondary' }]
     },
@@ -1333,7 +1334,7 @@
           regionalOrMasterDistOnly: true,
           notice: '본사·총판만 설정 가능. 메인이미지=로그인 화면 왼쪽 배경, 로고=로그인창 상단·사이드바 상단.'
         },
-        { title: '기타(본사)', id: 'regionalMiscCard', regionalOnly: true, notice: '메인이미지는 2MB, 로고이미지는 1MB까지 업로드 가능합니다. PNG파일을 추천합니다.', rows: [[{ label: 'COPYRIGHT', type: 'textarea', name: 'copyright', col: 6, placeholder: 'Copyright © 2025 ICOPAY Service by Ontheline Co., Ltd.' }, { label: '비고', type: 'textarea', name: 'remark', col: 6 }]] },
+        { title: '기타', id: 'regionalMiscCard', headOfficeTierOnly: true, notice: '총본사/본사/총판 공통 설정입니다. COPYRIGHT에 입력한 문구는 화면 하단에 표시됩니다.', rows: [[{ label: 'COPYRIGHT', type: 'textarea', name: 'copyright', col: 6, placeholder: 'Copyright © 2025 ICOPAY Service by Ontheline Co., Ltd.' }, { label: '비고', type: 'textarea', name: 'remark', col: 6 }]] },
         {
           title: '결제통보 URL',
           id: 'notifyUrlCard',
@@ -1343,7 +1344,7 @@
             [{ label: 'URL Background', type: 'text', name: 'notifyUrlBackground', col: 5, placeholder: 'https://' }, { label: 'URL Result', type: 'text', name: 'notifyUrlResult', col: 5, placeholder: 'https://' }]
           ]
         },
-        { title: '첨부파일', rows: [[{ type: 'file', name: 'attach', col: 4, button: '추가' }]] }
+        { title: '첨부파일', rows: [[{ type: 'file', name: 'attach', col: 12, blockExtraClass: 'attach-field-block' }]] }
       ],
       buttons: [{ id: 'compDetailListBtn', label: '목록', cls: 'btn-secondary' }, { id: 'compDetailSaveBtn', label: '저장', cls: 'btn-primary' }]
     },
@@ -2551,7 +2552,27 @@
       var taRows = f.rows != null ? Math.max(2, parseInt(f.rows, 10) || 3) : 3;
       inp = '<textarea class="form-control form-control-sm' + reqClass + '" name="' + name + '" id="' + id + '" rows="' + taRows + '"' + ro + '></textarea>';
     } else if (f.type === 'file') {
-      inp = '<input type="file" class="form-control form-control-sm" name="' + name + '" id="' + id + '">';
+      if (name === 'attach') {
+        inp = '<div class="attach-section" data-attach-section="1">' +
+          '<input type="hidden" name="attachListJson" data-attach-json value="[]">' +
+          '<div class="attach-toolbar">' +
+          '<input type="text" class="form-control form-control-sm attach-display-name" data-attach-display-name placeholder="파일명 (예: 사업자등록증)">' +
+          '<label class="btn btn-outline-secondary btn-sm attach-file-pick mb-0">' +
+          '<span data-attach-file-label>파일 선택</span>' +
+          '<input type="file" class="d-none" data-attach-file accept=".png,.jpg,.jpeg,.gif,.webp,.bmp,.pdf,.doc,.docx,.hwp,.hwpx,.txt,.xls,.xlsx,.ppt,.pptx">' +
+          '</label>' +
+          '<button type="button" class="btn btn-primary btn-sm" data-attach-add>추가</button>' +
+          '</div>' +
+          '<div class="table-responsive attach-table-wrap">' +
+          '<table class="table table-sm table-bordered mb-0 w-100" data-attach-table>' +
+          '<thead><tr><th style="width:56px">No.</th><th>파일이름</th><th>첨부된 파일</th><th style="width:80px">수정</th><th style="width:80px">삭제</th></tr></thead>' +
+          '<tbody><tr data-empty-row><td colspan="5" class="text-center text-muted py-2">첨부된 파일이 없습니다.</td></tr></tbody>' +
+          '</table></div>' +
+          '<p class="text-muted small mt-1 mb-0">허용 파일: 이미지, PDF, 문서 파일(doc/docx/hwp/hwpx/txt/xls/xlsx/ppt/pptx)</p>' +
+          '</div>';
+      } else {
+        inp = '<input type="file" class="form-control form-control-sm" name="' + name + '" id="' + id + '">';
+      }
     } else {
       inp = '<input type="text" class="form-control form-control-sm' + reqClass + '" name="' + name + '" id="' + id + '"' + (f.placeholder ? ' placeholder="' + f.placeholder + '"' : '') + ro + '>';
     }
@@ -2594,6 +2615,7 @@
       else if (sec.regionalOnly) cardClass += ' regional-only-section d-none';
       else if (sec.masterDistOnly) cardClass += ' master-dist-only-section d-none';
       else if (sec.regionalOrMasterDistOnly) cardClass += ' regional-or-master-dist-only-section d-none';
+      else if (sec.headOfficeTierOnly) cardClass += ' head-office-tier-only-section d-none';
       else if (sec.merchantRegionalMasterCommission) cardClass += ' merchant-regional-master-commission-section d-none';
       else if (sec.distributorOnly) cardClass += ' distributor-only-section d-none';
       else if (sec.distributorMerchantOnlyNoRegional) cardClass += ' distributor-merchant-no-regional-section d-none';
@@ -2603,7 +2625,7 @@
       html += '<div' + cardId + ' class="' + cardClass + '"><div class="card-header">' + (sec.title || '') + '</div><div class="card-body">';
       if (sec.notice) html += '<p class="text-muted small mb-2">' + sec.notice + '</p>';
       if (sec.type === 'branding') {
-        html += '<p class="text-danger small mb-2">메인이미지는 5MB, 로고이미지는 1MB까지 업로드 가능합니다. 가능하면 PNG파일을 추천합니다.</p>' +
+        html += '<p class="text-danger small mb-2">메인이미지는 5MB, 로고/파비콘 이미지는 1MB까지 업로드 가능합니다. 파비콘은 PNG/JPG 업로드 시 32x32 PNG로 자동 변환되어 적용됩니다.</p>' +
           '<div class="row mb-2"><div class="col-sm-6"><label class="form-label">메인이미지</label><div class="input-group input-group-sm">' +
           '<input type="text" class="form-control form-control-sm" name="mainImageUrl" id="brandingMainImageUrl" readonly placeholder="업로드 파일명">' +
           '<input type="file" class="d-none" id="brandingMainImageFile" accept="image/png,image/jpeg,image/jpg">' +
@@ -2616,12 +2638,12 @@
           '<input type="text" class="form-control form-control-sm" name="logoImageUrl" id="brandingLogoImageUrl" readonly placeholder="업로드 파일명">' +
           '<input type="file" class="d-none" id="brandingLogoImageFile" accept="image/png,image/jpeg,image/jpg">' +
           '<button type="button" class="btn btn-outline-secondary" id="brandingLogoImageBrowse">Browse</button><button type="button" class="btn btn-outline-danger" id="brandingLogoImageDelete">삭제</button></div></div></div>' +
-          '<div class="row mb-2"><div class="col-sm-6"><label class="form-label">팝콘이미지</label><div class="input-group input-group-sm">' +
+          '<div class="row mb-2"><div class="col-sm-6"><label class="form-label">파비콘 이미지</label><div class="input-group input-group-sm">' +
           '<input type="text" class="form-control form-control-sm" name="popconImageUrl" id="brandingPopconImageUrl" readonly placeholder="업로드 파일명">' +
           '<input type="file" class="d-none" id="brandingPopconImageFile" accept="image/png,image/jpeg,image/jpg">' +
           '<button type="button" class="btn btn-outline-secondary" id="brandingPopconImageBrowse">Browse</button><button type="button" class="btn btn-outline-danger" id="brandingPopconImageDelete">삭제</button></div></div></div>' +
           '<div class="row mb-2"><div class="col-sm-4"><label class="form-label">배경테마</label><select class="form-control form-control-sm" name="brandingTheme" id="brandingTheme">' +
-          '<option value="DEFAULT">기본(현재)</option><option value="LIGHT">Light (흰배경/검정글씨)</option><option value="DARK">Dark (어두운배경/흰글씨)</option>' +
+          '<option value="DEFAULT">기본(현재)</option><option value="LIGHT">Light (흰배경/검정글씨)</option><option value="GRAY">Gray (라이트·다크 중간 톤)</option><option value="BROWN">Brown (상단 메뉴 톤 정렬)</option><option value="DARK">Dark (어두운배경/흰글씨)</option>' +
           '<option value="PASTEL_1">파스텔1</option><option value="PASTEL_2">파스텔2</option><option value="PASTEL_3">파스텔3</option><option value="PASTEL_4">파스텔4</option><option value="PASTEL_5">파스텔5</option>' +
           '</select></div></div>' +
           '<div class="row mb-2"><div class="col-sm-8"><label class="form-label">사이트 이름(브라우저 탭)</label><input type="text" class="form-control form-control-sm" name="siteName" id="brandingSiteName" maxlength="100" placeholder="예: OTL PAY 관리자"></div></div>' +

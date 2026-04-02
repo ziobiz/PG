@@ -204,6 +204,21 @@
         var mainLogo = document.getElementById('loginMainLogo');
         var panelLogo = document.getElementById('loginPanelLogo');
         var hostNote = document.getElementById('loginHostNote');
+        function applyFavicon(url) {
+          var href = absUrl(url);
+          if (!href) return;
+          var head = document.head || document.getElementsByTagName('head')[0];
+          if (!head) return;
+          var link = document.querySelector('link[data-branding-favicon="1"]');
+          if (!link) {
+            link = document.createElement('link');
+            link.setAttribute('data-branding-favicon', '1');
+            link.setAttribute('rel', 'icon');
+            link.setAttribute('type', 'image/png');
+            head.appendChild(link);
+          }
+          link.setAttribute('href', href + (href.indexOf('?') >= 0 ? '&' : '?') + 'v=' + Date.now());
+        }
         function absUrl(u) {
           var s = String(u || '').trim();
           if (!s) return '';
@@ -235,17 +250,7 @@
             hostNote.textContent = '';
           }
         }
-        if (b.popconImageUrl) {
-          var oldPop = document.getElementById('loginPopconBox');
-          if (oldPop && oldPop.parentNode) oldPop.parentNode.removeChild(oldPop);
-          var box = document.createElement('div');
-          box.id = 'loginPopconBox';
-          box.className = 'login-popcon';
-          box.innerHTML = '<div class="btn-close-wrap"><button type="button" aria-label="닫기">×</button></div><img alt="팝콘이미지" src="' + absUrl(b.popconImageUrl) + '">';
-          var closeBtn = box.querySelector('button');
-          if (closeBtn) closeBtn.addEventListener('click', function () { box.remove(); });
-          document.body.appendChild(box);
-        }
+        if (b.popconImageUrl) applyFavicon(b.popconImageUrl);
         if (b.siteName) {
           try { document.title = String(b.siteName); } catch (eTitle) {}
         }
