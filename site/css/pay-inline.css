@@ -1,0 +1,280 @@
+/* 공개 URL 결제 (pay.html) — 호스티드/간편폼 참고: 라벨 좌·입력 우 행 레이아웃 */
+:root {
+  --pay-primary: #0d6efd;
+  --pay-primary-hover: #0b5ed7;
+  --pay-border: #dee2e6;
+  --pay-muted: #6c757d;
+  --pay-bg: #f4f6f9;
+  --pay-row-line: #e8eaef;
+}
+
+body.pay-inline-body {
+  margin: 0;
+  min-height: 100vh;
+  background: var(--pay-bg);
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans KR", "Noto Sans JP", "Noto Sans Thai", sans-serif;
+}
+
+.pay-redirect-banner {
+  margin-bottom: 1rem;
+}
+
+.pay-shell {
+  max-width: 520px;
+  margin: 0 auto;
+  padding: 1.5rem 1rem 3rem;
+}
+
+.pay-card {
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
+  padding: 1.75rem 1.5rem 2rem;
+}
+
+.pay-brand {
+  text-align: center;
+  margin-bottom: 1rem;
+}
+
+.pay-brand-logo {
+  font-weight: 700;
+  font-size: 1.1rem;
+  letter-spacing: 0.02em;
+  color: #1a1a2e;
+}
+
+.pay-brand-sub {
+  font-size: 0.75rem;
+  color: var(--pay-muted);
+  margin-top: 0.25rem;
+}
+
+.pay-lang {
+  display: flex;
+  justify-content: center;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+  margin-bottom: 1.25rem;
+}
+
+.pay-lang button {
+  border: 1px solid var(--pay-primary);
+  background: #fff;
+  color: var(--pay-primary);
+  padding: 0.25rem 0.65rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.pay-lang button:hover {
+  background: rgba(13, 110, 253, 0.08);
+}
+
+.pay-lang button.active {
+  background: var(--pay-primary);
+  color: #fff;
+}
+
+/* —— 참고 리다이렉트 폼: 행 단위 구분선 —— */
+.pay-form-grid {
+  margin-bottom: 0.25rem;
+}
+
+.pay-row {
+  display: grid;
+  grid-template-columns: minmax(6.5rem, 36%) 1fr;
+  gap: 0.65rem 1rem;
+  align-items: center;
+  padding: 0.65rem 0;
+  border-bottom: 1px solid var(--pay-row-line);
+}
+
+.pay-row-static .pay-row-value {
+  font-weight: 600;
+  color: #1a1a2e;
+}
+
+.pay-row-label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #333;
+  line-height: 1.3;
+}
+
+.pay-row-label .req {
+  color: #dc3545;
+}
+
+.pay-row-value {
+  min-width: 0;
+}
+
+.pay-row-split {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.4rem;
+}
+
+.pay-input-round {
+  border-radius: 8px;
+}
+
+.pay-merchant-readonly {
+  display: block;
+  width: 100%;
+  font-size: 0.875rem;
+  font-weight: 600;
+  padding: 0.45rem 0.65rem;
+  background: #fff;
+  border-radius: 8px;
+  border: 1px solid var(--pay-border);
+  color: #1a1a2e;
+}
+
+.pay-currency-hint {
+  font-size: 0.7rem;
+}
+
+.pay-inline-only-block {
+  margin-top: 0.5rem;
+}
+
+.pay-label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+  color: #333;
+}
+
+.pay-label .req {
+  color: #dc3545;
+}
+
+.pay-divider {
+  border: 0;
+  border-top: 1px solid var(--pay-border);
+  margin: 1.25rem 0;
+}
+
+.pay-cardnums {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.35rem;
+}
+
+.pay-cardnums input {
+  text-align: center;
+  letter-spacing: 0.05em;
+}
+
+.pay-exp-cvv {
+  display: grid;
+  grid-template-columns: 1fr 1fr 100px;
+  gap: 0.5rem;
+}
+
+@media (max-width: 480px) {
+  .pay-row {
+    grid-template-columns: 1fr;
+    gap: 0.35rem;
+  }
+  .pay-row-label {
+    margin-bottom: 0.15rem;
+  }
+  .pay-exp-cvv {
+    grid-template-columns: 1fr 1fr;
+  }
+  .pay-exp-cvv .pay-cvv-wrap {
+    grid-column: 1 / -1;
+  }
+}
+
+.pay-ccd-wrap {
+  border: 1px dashed var(--pay-border);
+  border-radius: 8px;
+  padding: 0.75rem;
+  background: #fafbfc;
+  min-height: 100px;
+}
+
+.pay-ccd-wrap .pay-ccd-hint {
+  font-size: 0.72rem;
+  color: var(--pay-muted);
+  margin-bottom: 0.5rem;
+}
+
+#chillpay-card-host {
+  min-height: 80px;
+}
+
+.pay-sandbox-token {
+  margin-top: 0.75rem;
+}
+
+.pay-sandbox-token summary {
+  font-size: 0.75rem;
+  color: var(--pay-muted);
+  cursor: pointer;
+}
+
+.pay-checks {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--pay-row-line);
+  font-size: 0.8rem;
+}
+
+.pay-checks .form-check {
+  margin-bottom: 0.45rem;
+}
+
+.pay-checks .form-check-label {
+  color: var(--pay-primary);
+  font-weight: 500;
+}
+
+.pay-checks .form-check-input:checked {
+  background-color: var(--pay-primary);
+  border-color: var(--pay-primary);
+}
+
+.pay-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 1.25rem;
+}
+
+.pay-actions .btn-pay {
+  min-width: 140px;
+  font-weight: 600;
+  padding: 0.5rem 1.25rem;
+  border-radius: 6px;
+}
+
+.pay-alert-config {
+  font-size: 0.85rem;
+}
+
+#payResult {
+  margin-top: 1rem;
+  padding: 0.85rem 1rem;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  display: none;
+}
+
+#payResult.ok {
+  display: block;
+  background: #d1e7dd;
+  color: #0f5132;
+}
+
+#payResult.err {
+  display: block;
+  background: #f8d7da;
+  color: #842029;
+}

@@ -984,6 +984,12 @@ td.empty-state-cell {
   flex: 1;
   min-width: 100px;
 }
+.pagination-row-save {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  margin-left: 12px;
+}
 .pagination-pages { display: flex; align-items: center; justify-content: center; gap: 4px; flex-wrap: wrap; }
 .pagination-num {
   min-width: 28px;

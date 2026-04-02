@@ -114,3 +114,15 @@ ALTER TABLE tb_commission_policy
 
 -- V57: 본사 기본정책 — 조직 단계별 수수료 격자(JSON)
 ALTER TABLE tb_commission_policy ADD COLUMN IF NOT EXISTS tier_commission_json TEXT;
+
+-- V60: URL 공개 결제 폼 모드 (FULL/SIMPLE) — db/V60_url_pay_form_mode.sql 과 동일
+ALTER TABLE tb_hq_api_config
+    ADD COLUMN IF NOT EXISTS url_pay_form_mode VARCHAR(20) DEFAULT 'FULL';
+
+-- V61: PG사 API 연동 자격 — db/V61_pg_agency_credentials.sql 과 동일
+ALTER TABLE tb_pg_agency ADD COLUMN IF NOT EXISTS merchant_mid VARCHAR(100);
+ALTER TABLE tb_pg_agency ADD COLUMN IF NOT EXISTS api_key VARCHAR(512);
+ALTER TABLE tb_pg_agency ADD COLUMN IF NOT EXISTS md5_secret_key VARCHAR(255);
+ALTER TABLE tb_pg_agency ADD COLUMN IF NOT EXISTS route_no INTEGER;
+ALTER TABLE tb_pg_agency ADD COLUMN IF NOT EXISTS sandbox_yn VARCHAR(1) DEFAULT 'Y';
+ALTER TABLE tb_pg_agency ADD COLUMN IF NOT EXISTS credentials_extra_json TEXT;

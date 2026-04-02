@@ -38,17 +38,20 @@ public class OrgPagePermissionService {
     private final OrgUnitAssistantPagePermissionRepository orgUnitAssistantPagePermissionRepository;
     private final OrgUnitRepository orgUnitRepository;
     private final AuthService authService;
+    private final OrgUnitChangeAuditService orgUnitChangeAuditService;
 
     public OrgPagePermissionService(OrgPagePermissionRepository orgPagePermissionRepository,
                                       OrgUnitPagePermissionRepository orgUnitPagePermissionRepository,
                                       OrgUnitAssistantPagePermissionRepository orgUnitAssistantPagePermissionRepository,
                                       OrgUnitRepository orgUnitRepository,
-                                      AuthService authService) {
+                                      AuthService authService,
+                                      OrgUnitChangeAuditService orgUnitChangeAuditService) {
         this.orgPagePermissionRepository = orgPagePermissionRepository;
         this.orgUnitPagePermissionRepository = orgUnitPagePermissionRepository;
         this.orgUnitAssistantPagePermissionRepository = orgUnitAssistantPagePermissionRepository;
         this.orgUnitRepository = orgUnitRepository;
         this.authService = authService;
+        this.orgUnitChangeAuditService = orgUnitChangeAuditService;
     }
 
     /** ADMIN·미연결 계정: 제한 없음 → null */
@@ -326,11 +329,16 @@ public class OrgPagePermissionService {
     public void saveOrgUnitAssistantPermission(long orgUnitId, Map<String, Map<String, String>> matrix) {
         OrgUnit ou = orgUnitRepository.findById(orgUnitId)
                 .orElseThrow(() -> new IllegalArgumentException("조직을 찾을 수 없습니다."));
+        int oldAsstCount = orgUnitAssistantPagePermissionRepository
+                .findByOrgUnitIdOrderByAssistantRoleTypeAscPageUrlAsc(orgUnitId).size();
         String level = ou.getOrgLevel() != null ? ou.getOrgLevel().name() : "";
         Map<String, String> effective = effectiveMapForOrgUnit(orgUnitId, level);
         orgUnitAssistantPagePermissionRepository.deleteByOrgUnitId(orgUnitId);
         orgUnitAssistantPagePermissionRepository.flush();
         if (matrix == null) {
+            int newAsstCount = orgUnitAssistantPagePermissionRepository
+                    .findByOrgUnitIdOrderByAssistantRoleTypeAscPageUrlAsc(orgUnitId).size();
+            logAssistantPermissionAudit(ou, oldAsstCount, newAsstCount);
             return;
         }
         for (Map.Entry<String, Map<String, String>> re : matrix.entrySet()) {
@@ -371,6 +379,16 @@ public class OrgPagePermissionService {
                 orgUnitAssistantPagePermissionRepository.save(row);
             }
         }
+        int newAsstCount = orgUnitAssistantPagePermissionRepository
+                .findByOrgUnitIdOrderByAssistantRoleTypeAscPageUrlAsc(orgUnitId).size();
+        logAssistantPermissionAudit(ou, oldAsstCount, newAsstCount);
+    }
+
+    private void logAssistantPermissionAudit(OrgUnit ou, int oldCnt, int newCnt) {
+        String cid = ou.getCode() != null ? ou.getCode().trim() : "";
+        String cnm = ou.getName() != null ? ou.getName().trim() : "";
+        orgUnitChangeAuditService.appendIfChanged(ou.getId(), cid, cnm, "[조직권한] 담당자별메뉴 오버라이드 건수",
+                String.valueOf(oldCnt), String.valueOf(newCnt));
     }
 
     /**
@@ -458,6 +476,8 @@ public class OrgPagePermissionService {
     public void saveOrgUnitPermission(long orgUnitId, String mode, Map<String, String> pages) {
         OrgUnit ou = orgUnitRepository.findById(orgUnitId)
                 .orElseThrow(() -> new IllegalArgumentException("조직을 찾을 수 없습니다."));
+        String oldModeRaw = ou.getPagePermissionMode() != null ? ou.getPagePermissionMode().trim() : MODE_LEVEL_DEFAULT;
+        int oldPermCount = orgUnitPagePermissionRepository.findByOrgUnitIdOrderByPageUrlAsc(orgUnitId).size();
         String m = mode != null ? mode.trim().toUpperCase(Locale.ROOT) : MODE_LEVEL_DEFAULT;
         if (!MODE_CUSTOM.equals(m) && !MODE_LEVEL_DEFAULT.equals(m)) {
             m = MODE_LEVEL_DEFAULT;
@@ -469,6 +489,8 @@ public class OrgPagePermissionService {
         orgUnitPagePermissionRepository.flush();
 
         if (!MODE_CUSTOM.equals(m) || pages == null) {
+            int newPermCount = orgUnitPagePermissionRepository.findByOrgUnitIdOrderByPageUrlAsc(orgUnitId).size();
+            logOrgPermissionAudit(ou, oldModeRaw, m, oldPermCount, newPermCount);
             return;
         }
         Map<String, String> dedup = pages.entrySet().stream()
@@ -495,6 +517,18 @@ public class OrgPagePermissionService {
             if (meta != null) row.setMenuId(meta.menuId());
             orgUnitPagePermissionRepository.save(row);
         }
+        int newPermCount = orgUnitPagePermissionRepository.findByOrgUnitIdOrderByPageUrlAsc(orgUnitId).size();
+        logOrgPermissionAudit(ou, oldModeRaw, m, oldPermCount, newPermCount);
+    }
+
+    private void logOrgPermissionAudit(OrgUnit ou, String oldModeRaw, String newModeRaw, int oldPermCount, int newPermCount) {
+        String cid = ou.getCode() != null ? ou.getCode().trim() : "";
+        String cnm = ou.getName() != null ? ou.getName().trim() : "";
+        String oldKo = MODE_CUSTOM.equalsIgnoreCase(oldModeRaw) ? "개별 설정" : "단계 기본";
+        String newKo = MODE_CUSTOM.equalsIgnoreCase(newModeRaw) ? "개별 설정" : "단계 기본";
+        orgUnitChangeAuditService.appendIfChanged(ou.getId(), cid, cnm, "[조직권한] 메뉴권한방식", oldKo, newKo);
+        orgUnitChangeAuditService.appendIfChanged(ou.getId(), cid, cnm, "[조직권한] 개별메뉴 건수",
+                String.valueOf(oldPermCount), String.valueOf(newPermCount));
     }
 
     /**

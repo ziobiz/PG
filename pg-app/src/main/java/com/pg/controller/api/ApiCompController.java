@@ -49,11 +49,14 @@ public class ApiCompController {
     @GetMapping("/changeHistory")
     public ResponseEntity<ApiResponse<PageResult<Map<String, Object>>>> changeHistory(
             @RequestParam(required = false) String searchCompId,
+            @RequestParam(required = false) String searchCompNm,
+            @RequestParam(required = false) String searchChangedBy,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate searchFromDate,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate searchToDate,
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "20") int size) {
-        PageResult<Map<String, Object>> result = compService.changeHistory(searchCompId, null, null, page, size);
+        PageResult<Map<String, Object>> result = compService.changeHistory(
+                searchCompId, searchCompNm, searchChangedBy, searchFromDate, searchToDate, page, size);
         return ResponseEntity.ok(ApiResponse.ok(result));
     }
 

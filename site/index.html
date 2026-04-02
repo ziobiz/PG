@@ -319,7 +319,7 @@
     </div>
     <!-- PG사 API 연동 추가/수정 모달 -->
     <div class="modal fade" id="pgAgencyEditModal" tabindex="-1" aria-labelledby="pgAgencyEditModalLabel" aria-hidden="true">
-      <div class="modal-dialog">
+      <div class="modal-dialog modal-lg modal-dialog-scrollable">
         <div class="modal-content">
           <div class="modal-header">
             <h5 class="modal-title" id="pgAgencyEditModalLabel">PG사 연동</h5>
@@ -330,7 +330,7 @@
             <div class="mb-2">
               <label class="form-label">PG사코드 <span class="text-danger">*</span></label>
               <input type="text" class="form-control form-control-sm" id="pgAgencyEditPgCd" maxlength="20" placeholder="예 CHILLPAY">
-              <div class="form-text">신규 등록 시만 입력. 수정 시에는 변경할 수 없습니다.</div>
+              <div class="form-text">신규 등록 시만 입력. 수정 시에는 변경할 수 없습니다. PG사마다 MID·키 필드명이 다를 수 있습니다.</div>
             </div>
             <div class="mb-2">
               <label class="form-label">PG사명 <span class="text-danger">*</span></label>
@@ -339,6 +339,38 @@
             <div class="mb-2">
               <label class="form-label">API 엔드포인트</label>
               <input type="text" class="form-control form-control-sm" id="pgAgencyEditEndpoint" maxlength="255" placeholder="https://">
+            </div>
+            <hr class="my-3">
+            <p class="small text-muted mb-2">아래는 PG사별 연동 자격입니다. ChillPay는 MID·API Key·MD5·Route·Sandbox를 입력하세요. 수정 시 API Key·MD5는 <strong>바꿀 때만</strong> 입력(비우면 기존 유지).</p>
+            <div class="row g-2">
+              <div class="col-md-6 mb-2">
+                <label class="form-label">MID / Merchant Code</label>
+                <input type="text" class="form-control form-control-sm" id="pgAgencyEditMid" maxlength="100" placeholder="예 M035594" autocomplete="off">
+              </div>
+              <div class="col-md-3 mb-2">
+                <label class="form-label">Route No</label>
+                <input type="text" class="form-control form-control-sm" id="pgAgencyEditRouteNo" inputmode="numeric" placeholder="4" autocomplete="off">
+              </div>
+              <div class="col-md-3 mb-2">
+                <label class="form-label">Sandbox</label>
+                <select class="form-select form-select-sm" id="pgAgencyEditSandboxYn">
+                  <option value="Y">사용</option>
+                  <option value="N">운영</option>
+                </select>
+              </div>
+            </div>
+            <div class="mb-2">
+              <label class="form-label">API Key</label>
+              <input type="password" class="form-control form-control-sm" id="pgAgencyEditApiKey" maxlength="512" placeholder="신규 또는 변경 시 입력" autocomplete="new-password">
+            </div>
+            <div class="mb-2">
+              <label class="form-label">MD5 / 서명 시크릿</label>
+              <input type="password" class="form-control form-control-sm" id="pgAgencyEditMd5Key" maxlength="255" placeholder="신규 또는 변경 시 입력" autocomplete="new-password">
+            </div>
+            <div class="mb-2">
+              <label class="form-label">추가 설정(JSON)</label>
+              <textarea class="form-control form-control-sm font-monospace" id="pgAgencyEditCredentialsExtra" rows="3" placeholder='{"custom":"…"}'></textarea>
+              <div class="form-text">해당 PG 전용 확장 파라미터(선택).</div>
             </div>
             <div class="mb-2">
               <label class="form-label">사용여부</label>

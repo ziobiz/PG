@@ -2,6 +2,9 @@ package com.pg.controller.api;
 
 import com.pg.api.ApiResponse;
 import com.pg.dto.ChillPayDirectCreditResponse;
+import com.pg.entity.MerchantDefaultProduct;
+import com.pg.entity.OrgUnit;
+import com.pg.repository.MerchantDefaultProductRepository;
 import com.pg.repository.OrgUnitRepository;
 import com.pg.service.ChillPayService;
 import com.pg.service.OrgServiceUseService;
@@ -9,7 +12,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import jakarta.servlet.http.HttpServletRequest;
+import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 
 /**
  * 결제 API - ChillPay DirectCredit 연동.
@@ -20,12 +25,15 @@ public class ApiPayController {
 
     private final ChillPayService chillPayService;
     private final OrgUnitRepository orgUnitRepository;
+    private final MerchantDefaultProductRepository merchantDefaultProductRepository;
     private final OrgServiceUseService orgServiceUseService;
 
     public ApiPayController(ChillPayService chillPayService, OrgUnitRepository orgUnitRepository,
+                            MerchantDefaultProductRepository merchantDefaultProductRepository,
                             OrgServiceUseService orgServiceUseService) {
         this.chillPayService = chillPayService;
         this.orgUnitRepository = orgUnitRepository;
+        this.merchantDefaultProductRepository = merchantDefaultProductRepository;
         this.orgServiceUseService = orgServiceUseService;
     }
 
@@ -51,6 +59,43 @@ public class ApiPayController {
                     "서비스가 중지된 업체입니다. (미사용 또는 상위 조직 미사용)", "ORG_DISABLED"));
         }
         return ResponseEntity.ok(ApiResponse.ok(chillPayService.getConfigForFrontend(orgUnitId)));
+    }
+
+    /**
+     * 공개 URL 결제 페이지(pay.html)용: 가맹점 표시명·기본 상품·금액(JPY 정수),
+     * 본사 설정 기준 {@code urlPayFlow}(INLINE/REDIRECT), {@code urlPayFormMode}(FULL/SIMPLE), ChillPay URL 안내 필드.
+     */
+    @GetMapping("/chillpay/checkout-context")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> chillpayCheckoutContext(
+            @RequestParam(required = false) Long merchantId,
+            @RequestParam(required = false) String compId) {
+        Long orgUnitId = resolveMerchantOrgUnitId(merchantId, compId);
+        if (orgUnitId == null) {
+            return ResponseEntity.ok(ApiResponse.fail("가맹점을 찾을 수 없습니다.", "NOT_FOUND"));
+        }
+        if (!orgServiceUseService.isOrgServiceActive(orgUnitId)) {
+            return ResponseEntity.ok(ApiResponse.fail(
+                    "서비스가 중지된 업체입니다. (미사용 또는 상위 조직 미사용)", "ORG_DISABLED"));
+        }
+        Optional<OrgUnit> ou = orgUnitRepository.findById(orgUnitId);
+        if (ou.isEmpty()) {
+            return ResponseEntity.ok(ApiResponse.fail("가맹점을 찾을 수 없습니다.", "NOT_FOUND"));
+        }
+        Map<String, Object> data = new HashMap<>();
+        data.put("compId", ou.get().getCode());
+        data.put("merchantName", ou.get().getName());
+        Optional<MerchantDefaultProduct> dp = merchantDefaultProductRepository.findByOrgUnitId(orgUnitId);
+        if (dp.isPresent()) {
+            MerchantDefaultProduct p = dp.get();
+            if (p.getProductName() != null && !p.getProductName().isBlank()) {
+                data.put("defaultProductName", p.getProductName().trim());
+            }
+            if (p.getDefaultAmount() != null) {
+                data.put("defaultAmountYen", p.getDefaultAmount().longValue());
+            }
+        }
+        data.putAll(chillPayService.getUrlPayPresentationForCheckout(orgUnitId));
+        return ResponseEntity.ok(ApiResponse.ok(data));
     }
 
     /**
@@ -87,11 +132,16 @@ public class ApiPayController {
             return ResponseEntity.ok(ApiResponse.fail("유효한 결제 금액을 입력하세요.", "INVALID_AMOUNT"));
         }
 
-        String orderNo = (String) body.get("orderNo");
-        String customerId = body.get("customerId") != null ? body.get("customerId").toString() : "guest";
-        String phoneNumber = (String) body.get("phoneNumber");
-        String description = (String) body.get("description");
-        String custEmail = (String) body.get("custEmail");
+        String orderNo = str(body, "orderNo");
+        String custEmail = str(body, "custEmail");
+        String customerId = str(body, "customerId");
+        if (customerId == null || customerId.isEmpty()) {
+            customerId = (custEmail != null && !custEmail.isEmpty()) ? custEmail : "guest";
+        }
+        String phoneNumber = str(body, "phoneNumber");
+        String description = buildInlineDescription(body);
+
+        String langCode = str(body, "langCode");
 
         String ipAddress = getClientIp(request);
 
@@ -104,7 +154,7 @@ public class ApiPayController {
             ChillPayDirectCreditResponse res = chillPayService.requestPayment(
                     orderNo, customerId, amount, directCreditToken,
                     phoneNumber, description, ipAddress, custEmail,
-                    merchantOrgUnitId
+                    merchantOrgUnitId, langCode
             );
             return ResponseEntity.ok(ApiResponse.ok(res));
         } catch (Exception e) {
@@ -125,5 +175,53 @@ public class ApiPayController {
             return xRealIp;
         }
         return request.getRemoteAddr() != null ? request.getRemoteAddr() : "127.0.0.1";
+    }
+
+    private static String str(Map<String, Object> body, String key) {
+        Object v = body.get(key);
+        if (v == null) {
+            return null;
+        }
+        String s = v.toString().trim();
+        return s.isEmpty() ? null : s;
+    }
+
+    /**
+     * DirectCredit API 본문(Description)은 Table 1.3 필드만 서명에 포함.
+     * 청구지·구매자 성명 등은 Description 끝에 구분자로 부가(매뉴얼 필드 외 메타).
+     */
+    private static String buildInlineDescription(Map<String, Object> body) {
+        String item = str(body, "item");
+        String desc = str(body, "description");
+        String base = (item != null && !item.isEmpty()) ? item : (desc != null ? desc : "");
+        String fn = str(body, "firstName");
+        String ln = str(body, "lastName");
+        String zip = str(body, "zipCode");
+        String country = str(body, "country");
+        String city = str(body, "city");
+        String addr = str(body, "addressLine");
+        StringBuilder meta = new StringBuilder();
+        if (fn != null || ln != null) {
+            meta.append("name=").append(fn != null ? fn : "").append(" ").append(ln != null ? ln : "").append(";");
+        }
+        if (zip != null) {
+            meta.append("zip=").append(zip).append(";");
+        }
+        if (country != null) {
+            meta.append("cty=").append(country).append(";");
+        }
+        if (city != null) {
+            meta.append("city=").append(city).append(";");
+        }
+        if (addr != null) {
+            meta.append("addr=").append(addr).append(";");
+        }
+        if (meta.length() == 0) {
+            return base;
+        }
+        if (base.isEmpty()) {
+            return meta.toString();
+        }
+        return base + " | " + meta;
     }
 }

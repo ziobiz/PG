@@ -19,6 +19,7 @@ import com.pg.service.AuthService;
 import com.pg.service.HolidayPresetService;
 import com.pg.service.HqServerManageService;
 import com.pg.service.OrgPagePermissionService;
+import com.pg.service.OrgUnitChangeAuditService;
 import com.pg.service.ServerUsageService;
 import com.pg.util.CommissionTierJsonHelper;
 import com.pg.util.PercentDecimalHelper;
@@ -26,6 +27,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
@@ -55,6 +57,7 @@ public class ApiHqController {
     private final ServerUsageService serverUsageService;
     private final OrgUnitRepository orgUnitRepository;
     private final AuthService authService;
+    private final OrgUnitChangeAuditService orgUnitChangeAuditService;
 
     public ApiHqController(CommissionPolicyRepository commissionPolicyRepository,
                            ChargebackFeePolicyRepository chargebackFeePolicyRepository,
@@ -65,7 +68,8 @@ public class ApiHqController {
                            HqServerManageService hqServerManageService,
                            ServerUsageService serverUsageService,
                            OrgUnitRepository orgUnitRepository,
-                           AuthService authService) {
+                           AuthService authService,
+                           OrgUnitChangeAuditService orgUnitChangeAuditService) {
         this.commissionPolicyRepository = commissionPolicyRepository;
         this.chargebackFeePolicyRepository = chargebackFeePolicyRepository;
         this.hqApiConfigRepository = hqApiConfigRepository;
@@ -76,6 +80,7 @@ public class ApiHqController {
         this.serverUsageService = serverUsageService;
         this.orgUnitRepository = orgUnitRepository;
         this.authService = authService;
+        this.orgUnitChangeAuditService = orgUnitChangeAuditService;
     }
 
     private static PageResult<Map<String, Object>> emptyPage(int page, int size) {
@@ -88,6 +93,27 @@ public class ApiHqController {
         return pr;
     }
 
+    /** 사용(Y)인 결제대행사가 정확히 1건이면 운영(operational)을 자동 Y로 맞춤 */
+    private void ensureSingleUseAgencyOperational() {
+        List<PgAgency> all = pgAgencyRepository.findAllByOrderByPgCdAsc();
+        List<PgAgency> active = all.stream()
+                .filter(a -> a.getUseYn() != null && "Y".equalsIgnoreCase(a.getUseYn().trim()))
+                .toList();
+        if (active.size() != 1) {
+            return;
+        }
+        PgAgency only = active.get(0);
+        String op = only.getOperationalYn();
+        if (op == null || !"Y".equalsIgnoreCase(op.trim())) {
+            only.setOperationalYn("Y");
+            pgAgencyRepository.save(only);
+        }
+    }
+
+    private static boolean isPgOperationalYes(PgAgency p) {
+        return p.getOperationalYn() != null && "Y".equalsIgnoreCase(p.getOperationalYn().trim());
+    }
+
     /** 1. PG사 API 연동 - 결제대행사 목록 (가맹점 배포용 결제 모듈) */
     @GetMapping("/pgApiMng")
     public ResponseEntity<ApiResponse<PageResult<Map<String, Object>>>> pgApiMng(
@@ -95,6 +121,7 @@ public class ApiHqController {
             @RequestParam(required = false) String searchUseYn,
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "20") int size) {
+        ensureSingleUseAgencyOperational();
         List<PgAgency> all = pgAgencyRepository.findAllByOrderByPgCdAsc();
         List<PgAgency> filtered = all.stream()
                 .filter(p -> (searchPgNm == null || searchPgNm.isEmpty() || (p.getPgNm() != null && p.getPgNm().contains(searchPgNm))))
@@ -110,6 +137,14 @@ public class ApiHqController {
                     m.put("pgNm", p.getPgNm());
                     m.put("apiEndpoint", p.getApiEndpoint());
                     m.put("useYn", p.getUseYn());
+                    m.put("operationalYn", isPgOperationalYes(p) ? "Y" : "N");
+                    m.put("merchantMid", p.getMerchantMid() != null ? p.getMerchantMid() : "");
+                    boolean cred = p.getApiKey() != null && !p.getApiKey().isBlank()
+                            && p.getMd5SecretKey() != null && !p.getMd5SecretKey().isBlank();
+                    m.put("hasCredentials", cred ? "Y" : "N");
+                    m.put("routeNo", p.getRouteNo() != null ? p.getRouteNo() : "");
+                    m.put("sandboxYn", p.getSandboxYn() != null ? p.getSandboxYn() : "Y");
+                    m.put("credentialsExtraJson", p.getCredentialsExtraJson() != null ? p.getCredentialsExtraJson() : "");
                     m.put("regDt", p.getCreatedAt() != null ? p.getCreatedAt().toString().substring(0, 10) : null);
                     return m;
                 })
@@ -123,13 +158,53 @@ public class ApiHqController {
         return ResponseEntity.ok(ApiResponse.ok(pr));
     }
 
-    /** 결제대행사 목록 (드롭다운용 - 전체) */
+    /** 결제대행사 목록 (드롭다운용 - 사용+운영 지정된 PG만) */
     @GetMapping("/pgAgencyList")
     public ResponseEntity<ApiResponse<List<Map<String, Object>>>> pgAgencyList() {
+        ensureSingleUseAgencyOperational();
         List<Map<String, Object>> list = pgAgencyRepository.findByUseYnOrderByPgCdAsc("Y").stream()
+                .filter(ApiHqController::isPgOperationalYes)
                 .map(p -> Map.<String, Object>of("pgCd", p.getPgCd(), "pgNm", p.getPgNm()))
                 .toList();
         return ResponseEntity.ok(ApiResponse.ok(list));
+    }
+
+    /** 결제대행사 운영 지정 저장: 전체를 N 후, 요청한 코드(사용 Y인 것만)를 Y */
+    @PostMapping("/pgApiMng/operational")
+    @Transactional
+    public ResponseEntity<ApiResponse<Map<String, Object>>> pgApiMngOperationalSave(@RequestBody Map<String, Object> body) {
+        try {
+            @SuppressWarnings("unchecked")
+            List<Object> raw = body != null ? (List<Object>) body.get("operationalPgCds") : null;
+            List<String> want = new ArrayList<>();
+            if (raw != null) {
+                for (Object o : raw) {
+                    if (o == null) continue;
+                    String s = o.toString().trim().toUpperCase();
+                    if (!s.isEmpty()) want.add(s);
+                }
+            }
+            List<PgAgency> all = pgAgencyRepository.findAllByOrderByPgCdAsc();
+            for (PgAgency a : all) {
+                a.setOperationalYn("N");
+            }
+            Set<String> wantSet = new HashSet<>(want);
+            for (PgAgency a : all) {
+                if (!wantSet.contains(a.getPgCd())) {
+                    continue;
+                }
+                if (a.getUseYn() != null && "Y".equalsIgnoreCase(a.getUseYn().trim())) {
+                    a.setOperationalYn("Y");
+                }
+            }
+            pgAgencyRepository.saveAll(all);
+            ensureSingleUseAgencyOperational();
+            Map<String, Object> data = new HashMap<>();
+            data.put("message", "운영 설정이 저장되었습니다.");
+            return ResponseEntity.ok(ApiResponse.ok(data));
+        } catch (ClassCastException e) {
+            return ResponseEntity.ok(ApiResponse.fail("operationalPgCds 형식이 올바르지 않습니다.", "VALIDATION"));
+        }
     }
 
     @PostMapping("/pgApiMng/save")
@@ -153,6 +228,7 @@ public class ApiHqController {
                 entity.setPgNm(pgNm.trim());
                 if (endpoint != null) entity.setApiEndpoint(endpoint.trim());
                 entity.setUseYn(useYn);
+                applyPgAgencyCredentialFields(entity, body, true);
             } else {
                 if (pgAgencyRepository.findByPgCd(pgCd).isPresent()) {
                     return ResponseEntity.ok(ApiResponse.fail("이미 등록된 PG사코드입니다.", "DUPLICATE"));
@@ -162,8 +238,10 @@ public class ApiHqController {
                 entity.setPgNm(pgNm.trim());
                 entity.setApiEndpoint(endpoint != null ? endpoint.trim() : null);
                 entity.setUseYn(useYn);
+                applyPgAgencyCredentialFields(entity, body, false);
             }
             pgAgencyRepository.save(entity);
+            ensureSingleUseAgencyOperational();
             Map<String, Object> data = new HashMap<>();
             data.put("message", "저장되었습니다.");
             data.put("id", entity.getId());
@@ -179,6 +257,55 @@ public class ApiHqController {
     private static String hqStr(Map<String, Object> body, String key) {
         Object v = body.get(key);
         return v == null ? null : v.toString();
+    }
+
+    /**
+     * PG사 자격 필드 반영. 수정 시 apiKey·md5Key는 비어 있으면 기존 값 유지(화면에 비밀 미표시).
+     */
+    private static void applyPgAgencyCredentialFields(PgAgency entity, Map<String, Object> body, boolean isUpdate) {
+        if (body.containsKey("mid")) {
+            String mid = hqStr(body, "mid");
+            entity.setMerchantMid(mid != null && !mid.isBlank() ? mid.trim() : null);
+        } else if (!isUpdate) {
+            entity.setMerchantMid(null);
+        }
+        String ak = hqStr(body, "apiKey");
+        if (ak != null && !ak.isBlank()) {
+            entity.setApiKey(ak.trim());
+        } else if (!isUpdate) {
+            entity.setApiKey(null);
+        }
+        String mk = hqStr(body, "md5Key");
+        if (mk != null && !mk.isBlank()) {
+            entity.setMd5SecretKey(mk.trim());
+        } else if (!isUpdate) {
+            entity.setMd5SecretKey(null);
+        }
+        if (body.containsKey("routeNo")) {
+            Object r = body.get("routeNo");
+            if (r == null || r.toString().isBlank()) {
+                entity.setRouteNo(null);
+            } else {
+                try {
+                    entity.setRouteNo(Integer.parseInt(r.toString().trim()));
+                } catch (NumberFormatException e) {
+                    throw new IllegalArgumentException("Route No는 정수여야 합니다.");
+                }
+            }
+        } else if (!isUpdate) {
+            entity.setRouteNo(null);
+        }
+        if (body.containsKey("sandboxYn")) {
+            entity.setSandboxYn("N".equalsIgnoreCase(hqStr(body, "sandboxYn")) ? "N" : "Y");
+        } else if (!isUpdate) {
+            entity.setSandboxYn("Y");
+        }
+        if (body.containsKey("credentialsExtraJson")) {
+            String j = hqStr(body, "credentialsExtraJson");
+            entity.setCredentialsExtraJson(j != null && !j.isBlank() ? j.trim() : null);
+        } else if (!isUpdate) {
+            entity.setCredentialsExtraJson(null);
+        }
     }
 
     /** 2. 기본정책 (건당/이용/실패/취소/환불/결제/정산/USDT/FX/롤링%) */
@@ -823,6 +950,7 @@ public class ApiHqController {
         data.put("apiBrokerRedirectEnabledYn", "Y");
         data.put("urlPayInlineEnabledYn", "Y");
         data.put("urlPayRedirectEnabledYn", "Y");
+        data.put("urlPayFormMode", "FULL");
         data.put("paymentProviderRegistryJson", "{\n  \"version\": 1,\n  \"vendors\": [\n    {\n      \"vendorCode\": \"CHILLPAY\",\n      \"vendorName\": \"칠리페이\",\n      \"integrationTypes\": [\"API_BROKER\", \"URL_PAY\"],\n      \"flowTypes\": [\"INLINE\", \"REDIRECT\"],\n      \"activeYn\": \"Y\"\n    }\n  ]\n}");
         hqApiConfigRepository.findAll().stream().findFirst().ifPresent(c -> {
             if (c.getBaseUrl() != null) data.put("baseUrl", c.getBaseUrl());
@@ -843,6 +971,7 @@ public class ApiHqController {
             if (c.getApiBrokerRedirectEnabledYn() != null) data.put("apiBrokerRedirectEnabledYn", c.getApiBrokerRedirectEnabledYn());
             if (c.getUrlPayInlineEnabledYn() != null) data.put("urlPayInlineEnabledYn", c.getUrlPayInlineEnabledYn());
             if (c.getUrlPayRedirectEnabledYn() != null) data.put("urlPayRedirectEnabledYn", c.getUrlPayRedirectEnabledYn());
+            if (c.getUrlPayFormMode() != null) data.put("urlPayFormMode", c.getUrlPayFormMode());
             if (c.getPaymentProviderRegistryJson() != null) data.put("paymentProviderRegistryJson", c.getPaymentProviderRegistryJson());
             if (c.getPublicAdminSiteUrl() != null) {
                 data.put("publicAdminSiteUrl", hqHttpsUrlForDisplay(c.getPublicAdminSiteUrl()));
@@ -882,6 +1011,8 @@ public class ApiHqController {
         c.setApiBrokerRedirectEnabledYn("N".equalsIgnoreCase(String.valueOf(body.getOrDefault("apiBrokerRedirectEnabledYn", "Y"))) ? "N" : "Y");
         c.setUrlPayInlineEnabledYn("N".equalsIgnoreCase(String.valueOf(body.getOrDefault("urlPayInlineEnabledYn", "Y"))) ? "N" : "Y");
         c.setUrlPayRedirectEnabledYn("N".equalsIgnoreCase(String.valueOf(body.getOrDefault("urlPayRedirectEnabledYn", "Y"))) ? "N" : "Y");
+        String upForm = body.get("urlPayFormMode") != null ? body.get("urlPayFormMode").toString().trim() : "FULL";
+        c.setUrlPayFormMode("SIMPLE".equalsIgnoreCase(upForm) ? "SIMPLE" : "FULL");
         c.setPaymentProviderRegistryJson(body.get("paymentProviderRegistryJson") != null ? body.get("paymentProviderRegistryJson").toString().trim() : null);
         if (body.get("publicAdminSiteUrl") != null) {
             c.setPublicAdminSiteUrl(hqHttpsUrlForSave(body.get("publicAdminSiteUrl")));
@@ -962,11 +1093,22 @@ public class ApiHqController {
         if (ou.getOrgLevel() != OrgLevel.REGIONAL && ou.getOrgLevel() != OrgLevel.MASTER_DIST) {
             return ResponseEntity.ok(ApiResponse.fail("본사·총판만 도메인을 설정할 수 있습니다.", "VALIDATION"));
         }
+        String oldNm = ou.getDomainSettingName() != null ? ou.getDomainSettingName().trim() : "";
+        String oldAdm = ou.getOrgDomainAdminUrl() != null ? ou.getOrgDomainAdminUrl().trim() : "";
+        String oldApi = ou.getOrgDomainApiUrl() != null ? ou.getOrgDomainApiUrl().trim() : "";
         ou.setDomainSettingName(hqTrimToNull(body.get("domainSettingName")));
         ou.setOrgDomainAdminUrl(hqHttpsUrlForSave(body.get("orgDomainAdminUrl")));
         ou.setOrgDomainApiUrl(hqHttpsUrlForSave(body.get("orgDomainApiUrl")));
         ou.setDomainUrlsUpdatedAt(LocalDateTime.now());
         orgUnitRepository.save(ou);
+        String compNm = ou.getName() != null ? ou.getName().trim() : "";
+        String p = "[도메인설정] ";
+        orgUnitChangeAuditService.appendIfChanged(ou.getId(), ou.getCode(), compNm, p + "설정표시명",
+                oldNm, ou.getDomainSettingName() != null ? ou.getDomainSettingName().trim() : "");
+        orgUnitChangeAuditService.appendIfChanged(ou.getId(), ou.getCode(), compNm, p + "관리자 URL",
+                oldAdm, ou.getOrgDomainAdminUrl() != null ? ou.getOrgDomainAdminUrl().trim() : "");
+        orgUnitChangeAuditService.appendIfChanged(ou.getId(), ou.getCode(), compNm, p + "API URL",
+                oldApi, ou.getOrgDomainApiUrl() != null ? ou.getOrgDomainApiUrl().trim() : "");
         List<Map<String, Object>> orgRows = loadOrgDomainRows();
         String pa = "";
         String pap = "";
@@ -1010,11 +1152,19 @@ public class ApiHqController {
         if (ou.getOrgLevel() != OrgLevel.REGIONAL && ou.getOrgLevel() != OrgLevel.MASTER_DIST) {
             return ResponseEntity.ok(ApiResponse.fail("본사·총판만 도메인 설정 대상입니다.", "VALIDATION"));
         }
+        String oldNm = ou.getDomainSettingName() != null ? ou.getDomainSettingName().trim() : "";
+        String oldAdm = ou.getOrgDomainAdminUrl() != null ? ou.getOrgDomainAdminUrl().trim() : "";
+        String oldApi = ou.getOrgDomainApiUrl() != null ? ou.getOrgDomainApiUrl().trim() : "";
         ou.setDomainSettingName(null);
         ou.setOrgDomainAdminUrl(null);
         ou.setOrgDomainApiUrl(null);
         ou.setDomainUrlsUpdatedAt(LocalDateTime.now());
         orgUnitRepository.save(ou);
+        String compNm = ou.getName() != null ? ou.getName().trim() : "";
+        String p = "[도메인설정] ";
+        orgUnitChangeAuditService.appendIfChanged(ou.getId(), ou.getCode(), compNm, p + "설정표시명", oldNm, "");
+        orgUnitChangeAuditService.appendIfChanged(ou.getId(), ou.getCode(), compNm, p + "관리자 URL", oldAdm, "");
+        orgUnitChangeAuditService.appendIfChanged(ou.getId(), ou.getCode(), compNm, p + "API URL", oldApi, "");
         List<Map<String, Object>> orgRows = loadOrgDomainRows();
         String pa = "";
         String pap = "";

@@ -571,7 +571,13 @@
       var cid = compId != null ? String(compId).trim() : '';
       if (!cid) return Promise.reject(new Error('업체코드가 없습니다.'));
       var body = new URLSearchParams({ compId: cid });
-      for (var k in data) if (data[k] !== undefined && data[k] !== null) body.append(k, data[k]);
+      for (var k in data) {
+        if (!Object.prototype.hasOwnProperty.call(data, k)) continue;
+        var v = data[k];
+        if (v === undefined || v === null) continue;
+        if (typeof v === 'object') continue;
+        body.append(k, v);
+      }
       var base = getBaseUrl();
       var token = getToken();
       var headers = { 'Content-Type': 'application/x-www-form-urlencoded', 'Accept': 'application/json' };
@@ -716,6 +722,9 @@
     },
     hqPgApiMngSave: function (body) {
       return post('/api/hq/pgApiMng/save', body).then(function (r) { return r.data; });
+    },
+    hqPgApiMngOperationalSave: function (body) {
+      return post('/api/hq/pgApiMng/operational', body).then(function (r) { return r.data; });
     },
     hqDefaultCommission: function () {
       return get('/api/hq/defaultCommission').then(function (r) { return r.data; });

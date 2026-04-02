@@ -41,7 +41,8 @@ Manual §2.3. 리다이렉트와 별도로, 백엔드에서 폼 인코딩 POST�
 
 - `GET http://localhost:8080/api/pay/chillpay/config` 응답에 다음 필드가 포함됩니다.  
   - `ccdScriptUrl`, `directCreditApiUrl`, `redirectPaymentPageUrl`, `paymentAppsrvV2Url`, `merchantCode`, `routeNo`, `sandbox`
-- 결제 데모 페이지: `http://localhost:8080/pay.html` 에서 위 URL 안내 블록 확인 가능.
+- `GET /api/pay/chillpay/checkout-context?compId={업체코드}` — 인라인 결제 페이지용 가맹점명·기본상품·금액(JPY).
+- 결제 페이지: `/pay/{compId}` → `pay.html?m=` (인라인 UI, DirectCredit API).
 
 ## 6. CheckSum
 

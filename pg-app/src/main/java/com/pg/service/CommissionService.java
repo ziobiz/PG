@@ -2,6 +2,7 @@ package com.pg.service;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.pg.api.dto.PageResult;
 import com.pg.entity.AppUser;
 import com.pg.entity.CommissionHistory;
@@ -40,7 +41,8 @@ import java.util.stream.Collectors;
 @Service
 public class CommissionService {
 
-    private static final ObjectMapper MAPPER = new ObjectMapper();
+    /** LocalDate 등 스냅샷 직렬화 + 수수료관리 이력 JSON 안정화 */
+    private static final ObjectMapper MAPPER = new ObjectMapper().registerModule(new JavaTimeModule());
     private static final DateTimeFormatter DT_FMT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
     private final OrgUnitRepository orgUnitRepository;
@@ -49,19 +51,34 @@ public class CommissionService {
     private final MerchantProfileRepository merchantProfileRepository;
     private final CommissionHistoryRepository commissionHistoryRepository;
     private final DistributionFeeConfigRepository distributionFeeConfigRepository;
+    private final OrgUnitChangeAuditService orgUnitChangeAuditService;
 
     public CommissionService(OrgUnitRepository orgUnitRepository,
                              CommissionPolicyRepository commissionPolicyRepository,
                              MerchantCommissionExtraRepository merchantCommissionExtraRepository,
                              MerchantProfileRepository merchantProfileRepository,
                              CommissionHistoryRepository commissionHistoryRepository,
-                             DistributionFeeConfigRepository distributionFeeConfigRepository) {
+                             DistributionFeeConfigRepository distributionFeeConfigRepository,
+                             OrgUnitChangeAuditService orgUnitChangeAuditService) {
         this.orgUnitRepository = orgUnitRepository;
         this.commissionPolicyRepository = commissionPolicyRepository;
         this.merchantCommissionExtraRepository = merchantCommissionExtraRepository;
         this.merchantProfileRepository = merchantProfileRepository;
         this.commissionHistoryRepository = commissionHistoryRepository;
         this.distributionFeeConfigRepository = distributionFeeConfigRepository;
+        this.orgUnitChangeAuditService = orgUnitChangeAuditService;
+    }
+
+    /**
+     * OrgUnit.code 앞뒤 공백이 있으면 저장 시 {@code DistributionFeeConfig.comp_id}는 trim 되는데
+     * 조회는 공백 포함으로 하면 행을 못 찾아 본사/기본 배분으로 보이며 "저장이 안 된 것처럼" 보인다.
+     */
+    private static String normCompCode(String code) {
+        return code != null ? code.trim() : "";
+    }
+
+    private static String normCompCode(OrgUnit ou) {
+        return ou == null ? "" : normCompCode(ou.getCode());
     }
 
     private Optional<OrgUnit> resolveOrgByCode(String compId) {
@@ -106,8 +123,9 @@ public class CommissionService {
 
     private Map<String, Object> buildCommissionRow(OrgUnit merchant, Optional<CommissionPolicy> defaultPolicy) {
         Map<String, Object> m = new HashMap<>();
+        String mc = normCompCode(merchant);
         m.put("id", merchant.getId());
-        m.put("compId", merchant.getCode());
+        m.put("compId", mc.isEmpty() ? merchant.getCode() : mc);
         m.put("compNm", merchant.getName());
         m.put("compDiv", merchant.getOrgLevel() != null ? merchant.getOrgLevel().name() : "");
         m.put("useYn", resolveOrgUseYn(merchant));
@@ -117,7 +135,9 @@ public class CommissionService {
         refreshAncestorNamesByCode(m);
 
         String effectiveScope = resolveMerchantHqScopeForDisplay(merchant);
-        CommissionPolicy policy = commissionPolicyRepository.findByScope(merchant.getCode())
+        CommissionPolicy policy = commissionPolicyRepository.findByScope(mc)
+                .or(() -> merchant.getCode() != null && !mc.equals(merchant.getCode())
+                        ? commissionPolicyRepository.findByScope(merchant.getCode()) : Optional.empty())
                 .or(() -> effectiveScope != null && !effectiveScope.isBlank() ? commissionPolicyRepository.findByScope(effectiveScope) : Optional.empty())
                 .or(() -> defaultPolicy)
                 .orElse(null);
@@ -139,8 +159,11 @@ public class CommissionService {
             m.put("feeSettlementPerTx", ex.getFeeSettlementPerTx());
             m.put("feeRefund", ex.getFeeRefund());
         });
-        Optional<DistributionFeeConfig> odf = distributionFeeConfigRepository.findByCompId(merchant.getCode());
-        if (odf.isEmpty() && effectiveScope != null && !effectiveScope.isBlank() && !effectiveScope.equals(merchant.getCode())) {
+        Optional<DistributionFeeConfig> odf = distributionFeeConfigRepository.findByCompId(mc);
+        if (odf.isEmpty() && merchant.getCode() != null && !mc.equals(merchant.getCode())) {
+            odf = distributionFeeConfigRepository.findByCompId(merchant.getCode());
+        }
+        if (odf.isEmpty() && effectiveScope != null && !effectiveScope.isBlank() && !effectiveScope.equals(mc)) {
             odf = distributionFeeConfigRepository.findByCompId(effectiveScope);
         }
         if (odf.isPresent()) {
@@ -500,10 +523,14 @@ public class CommissionService {
     public Optional<Map<String, Object>> getDetail(String compId) {
         return resolveOrgByCode(compId).map(ou -> {
             Map<String, Object> m = new HashMap<>();
-            m.put("compId", ou.getCode());
+            String mc = normCompCode(ou);
+            m.put("compId", mc.isEmpty() ? ou.getCode() : mc);
             m.put("compNm", ou.getName());
             m.put("orgUnitId", ou.getId());
-            CommissionPolicy policy = commissionPolicyRepository.findByScope(ou.getCode()).orElse(null);
+            CommissionPolicy policy = commissionPolicyRepository.findByScope(mc)
+                    .or(() -> ou.getCode() != null && !mc.equals(ou.getCode())
+                            ? commissionPolicyRepository.findByScope(ou.getCode()) : Optional.empty())
+                    .orElse(null);
             if (policy != null) {
                 m.put("perTxFee", policy.getPerTxFee());
                 m.put("cancelRate", policy.getCancelRate());
@@ -559,7 +586,10 @@ public class CommissionService {
                 } catch (Exception ignored) {
                 }
             });
-            Optional<DistributionFeeConfig> odf2 = distributionFeeConfigRepository.findByCompId(ou.getCode());
+            Optional<DistributionFeeConfig> odf2 = distributionFeeConfigRepository.findByCompId(mc);
+            if (odf2.isEmpty() && ou.getCode() != null && !mc.equals(ou.getCode())) {
+                odf2 = distributionFeeConfigRepository.findByCompId(ou.getCode());
+            }
             if (odf2.isPresent()) {
                 applyDistributionToMap(m, odf2.get());
             } else {
@@ -575,13 +605,18 @@ public class CommissionService {
     @Transactional(rollbackFor = Exception.class)
     public boolean save(String compId, Map<String, Object> body) {
         return resolveOrgByCode(compId).map(ou -> {
-            String merchantCode = ou.getCode() != null ? ou.getCode().trim() : "";
-            CommissionPolicy policy = commissionPolicyRepository.findByScope(ou.getCode())
+            String merchantCode = normCompCode(ou);
+            CommissionPolicy policy = commissionPolicyRepository.findByScope(merchantCode)
+                    .or(() -> ou.getCode() != null && !merchantCode.equals(ou.getCode())
+                            ? commissionPolicyRepository.findByScope(ou.getCode()) : Optional.empty())
                     .orElseGet(() -> {
                         CommissionPolicy p = new CommissionPolicy();
-                        p.setScope(ou.getCode());
+                        p.setScope(merchantCode);
                         return p;
                     });
+            if (policy.getScope() != null && !normCompCode(policy.getScope()).equals(merchantCode)) {
+                policy.setScope(merchantCode);
+            }
             setAmtOne(policy::setPerTxFee, body.get("perTxFee"));
             setAmtOne(policy::setCancelRate, body.get("cancelRate"));
             setAmtOne(policy::setVoidFeePerTx, body.get("voidFeePerTx"));
@@ -630,11 +665,17 @@ public class CommissionService {
             setPct(extra::setFeeFx, body.get("feeFx"));
             merchantCommissionExtraRepository.save(extra);
 
-            DistributionFeeConfig df = distributionFeeConfigRepository.findByCompId(merchantCode).orElseGet(() -> {
-                DistributionFeeConfig x = new DistributionFeeConfig();
-                x.setCompId(merchantCode);
-                return x;
-            });
+            DistributionFeeConfig df = distributionFeeConfigRepository.findByCompId(merchantCode)
+                    .or(() -> ou.getCode() != null && !merchantCode.equals(ou.getCode())
+                            ? distributionFeeConfigRepository.findByCompId(ou.getCode()) : Optional.empty())
+                    .orElseGet(() -> {
+                        DistributionFeeConfig x = new DistributionFeeConfig();
+                        x.setCompId(merchantCode);
+                        return x;
+                    });
+            if (df.getCompId() != null && !normCompCode(df.getCompId()).equals(merchantCode)) {
+                df.setCompId(merchantCode);
+            }
             setPct(df::setHqRate, body.get("hqRate"));
             setPct(df::setRegionalRate, body.get("regionalRate"));
             setPct(df::setMasterRate, body.get("masterRate"));
@@ -671,6 +712,9 @@ public class CommissionService {
                 hist.setSnapshotJson("{}");
             }
             commissionHistoryRepository.save(hist);
+            orgUnitChangeAuditService.appendIfChanged(ou.getId(), merchantCode,
+                    ou.getName() != null ? ou.getName().trim() : "",
+                    "[수수료관리] 수수료·배분 저장", "-", "저장 반영(상세: 수수료관리 히스토리)");
             return true;
         }).orElse(false);
     }

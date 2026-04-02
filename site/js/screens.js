@@ -218,9 +218,17 @@
         { label: '사용여부', type: 'select', name: 'searchUseYn', options: [{ v: '', t: '전체' }, { v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }] },
         { type: 'searchBtn', label: '검색' }
       ]],
+      noticeList: [
+        'API Key·MD5 등 민감값은 목록에 노출하지 않습니다. 각 행의 [연동 입력] 버튼 또는 행 더블클릭으로 모달을 연 뒤 MID·API Key·MD5·Route·Sandbox·추가 JSON을 입력·저장하세요. 신규는 [PG사 연동 추가]입니다.',
+        'ChillPay는 PG코드 CHILLPAY로 등록한 뒤 모달에 자격 증명을 넣으면 결제 연동 시 최우선 사용됩니다. 모달 입력란이 없으면 관리자 정적·JAR 배포가 최신인지 확인하세요.'
+      ],
       summary: ['건수'],
-      buttons: [{ id: 'searchBtn', label: '검색', cls: 'btn-primary' }, { id: 'hqPgApiAddBtn', label: 'PG사 연동 추가', cls: 'btn-success' }],
-      columns: [{ key: '_chk', type: 'checkbox' }, { key: 'rowNo', label: '번호' }, { key: 'pgNm', label: '업체명' }, { key: 'pgCd', label: '업체코드' }, { key: 'apiEndpoint', label: 'API 엔드포인트' }, { key: 'useYn', label: '사용여부' }, { key: 'regDt', label: '등록일' }]
+      buttons: [
+        { id: 'searchBtn', label: '검색', cls: 'btn-primary' },
+        { id: 'hqPgApiOperationalSaveBtn', label: '운영 저장', cls: 'btn-outline-primary' },
+        { id: 'hqPgApiAddBtn', label: 'PG사 연동 추가', cls: 'btn-success' }
+      ],
+      columns: [{ key: '_chk', type: 'checkbox' }, { key: 'rowNo', label: '번호' }, { key: '_pgCredEdit', type: 'pgAgencyEdit', label: '연동 입력' }, { key: 'pgNm', label: '업체명' }, { key: 'pgCd', label: 'PG코드' }, { key: 'merchantMid', label: 'MID' }, { key: 'hasCredentials', label: '키등록' }, { key: 'routeNo', label: 'Route' }, { key: 'sandboxYn', label: '샌드박스' }, { key: 'apiEndpoint', label: 'API URL' }, { key: 'operationalYn', label: '운영' }, { key: 'useYn', label: '사용' }, { key: 'regDt', label: '등록일' }]
     },
     '/hq/defaultCommission': {
       isForm: true,
@@ -574,7 +582,7 @@
       formSections: [
         {
           title: 'API 구성 세팅',
-          notice: '여러 PG사 API 연동 후, 가맹점에게 발급하는 통합 API 기본 구성입니다.',
+          notice: '가맹점에 발급하는 통합 API의 기본 URL·인증·타임아웃입니다. PG사별 MID·API Key·시크릿은 「PG사 API 연동」에서 PG코드 단위로 추가·저장하세요(여 PG 병행).',
           rows: [
             [{ label: 'API 기본 URL', type: 'text', name: 'baseUrl', col: 6, placeholder: 'https://api.example.com/v1' }],
             [{ label: '인증방식', type: 'select', name: 'authType', options: [{ v: 'API_KEY', t: 'API Key' }, { v: 'Bearer', t: 'Bearer Token' }, { v: 'BASIC', t: 'Basic' }], col: 2 }, { label: '타임아웃(초)', type: 'text', name: 'timeoutSec', col: 2 }],
@@ -582,8 +590,18 @@
           ]
         },
         {
-          title: 'ChillPay (칠리페이) 연동',
-          notice: 'DirectCredit 결제 API 연동 설정. ChillPay 가맹점 등록 후 발급받은 API Key, MD5 Key를 입력하세요.',
+          title: 'PG 자격 증명 (등록 위치)',
+          notice: '[PG사 연동 추가]로 PG코드·표시명을 만든 뒤, 동일 화면에서 MID·API Key·MD5(또는 서명키)·Route·Sandbox를 입력합니다. ChillPay 결제는 PG코드 CHILLPAY 행에 값이 있으면 그것을 최우선으로 사용하고, 비어 있을 때만 아래 레거시 필드를 사용합니다.',
+          rows: [[{
+            type: 'customHtml',
+            col: 12,
+            html: '<button type="button" class="btn btn-sm btn-primary" id="hqApiConfigOpenPgLink">PG사 API 연동 화면 열기</button>' +
+              '<span class="text-muted small ms-2">목록에서 행을 더블클릭하면 자격 증명을 편집할 수 있습니다.</span>'
+          }]]
+        },
+        {
+          title: 'ChillPay 레거시 (tb_hq_api_config 호환)',
+          notice: 'PG사 API 연동에 CHILLPAY로 API Key·MD5가 등록되어 있으면 이 블록은 무시됩니다. 기존 DB만 쓰는 환경용입니다.',
           rows: [
             [{ label: 'Merchant Code', type: 'text', name: 'chillpayMerchantCode', col: 2, placeholder: 'M035594' }, { label: 'API Key', type: 'text', name: 'chillpayApiKey', col: 4, placeholder: 'ChillPay에서 발급' }],
             [{ label: 'MD5 Secret Key', type: 'text', name: 'chillpayMd5Key', col: 4, placeholder: 'CheckSum 생성용' }, { label: 'Route No', type: 'text', name: 'chillpayRouteNo', col: 1, placeholder: '4' }, { label: 'Sandbox', type: 'select', name: 'chillpaySandbox', options: [{ v: 'Y', t: '사용' }, { v: 'N', t: '운영' }], col: 1 }]
@@ -616,6 +634,13 @@
              { label: 'API 중계형 REDIRECT 제공', type: 'select', name: 'apiBrokerRedirectEnabledYn', options: [{ v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }], col: 2 },
              { label: 'URL 결제형 INLINE 제공', type: 'select', name: 'urlPayInlineEnabledYn', options: [{ v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }], col: 2 },
              { label: 'URL 결제형 REDIRECT 제공', type: 'select', name: 'urlPayRedirectEnabledYn', options: [{ v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }], col: 2 }]
+          ]
+        },
+        {
+          title: 'URL 결제 폼 설정',
+          notice: '공개 결제 URL(/pay/업체코드 등)에서 보여 줄 입력 화면입니다. 방식(인라인 DirectCredit vs 리다이렉트 호스티드)은 위 「URL 결제형 기본 방식」과 INLINE/REDIRECT 제공 여부로 결정됩니다. 리다이렉트는 ChillPay 호스티드 POST(CheckSum) 서버 연동이 추가로 필요합니다.',
+          rows: [
+            [{ label: 'URL 결제 입력 폼', type: 'select', name: 'urlPayFormMode', options: [{ v: 'FULL', t: '전체 입력 (청구지·성명 분리)' }, { v: 'SIMPLE', t: '간편 입력 (필수 최소)' }], col: 4 }]
           ]
         },
         {
@@ -829,7 +854,7 @@
         [
           { label: '업체구분', type: 'select', name: 'searchCompDiv', options: [{ v: '', t: '전체' }, { v: 'REGIONAL', t: '본사' }, { v: 'MASTER_DIST', t: '총판' }, { v: 'BRANCH', t: '지사' }, { v: 'AGENCY', t: '대리점' }, { v: 'SALES_OFFICE', t: '영업점' }, { v: 'MERCHANT', t: '가맹점' }], size: 10 },
           { label: '대표자명', type: 'text', name: 'searchCeoNm', size: 12 },
-          { label: '업체사용상태', type: 'select', name: 'searchUseYn', options: [{ v: 'ALL', t: '전체' }, { v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }], size: 10 },
+          { label: '업체사용상태', type: 'select', name: 'searchUseYn', options: [{ v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }, { v: 'ALL', t: '전체' }], size: 10 },
           { label: '업체코드', type: 'text', name: 'searchCompId', size: 12 },
           { label: '업체명', type: 'text', name: 'searchCompNm', size: 12 }
         ],
@@ -841,8 +866,7 @@
           { type: 'compMngSearchActions', label: '하위업체포함', checkboxName: 'searchIncludeSub', searchLabel: '검색' }
         ]
       ],
-      noticeList: ['기본 조회는 사용·미사용 업체를 모두 포함합니다(업체사용상태에서 좁힐 수 있음). 조직별 화면 권한(옵저버·수정 등)은 사용/미사용과 관계없이 동일하게 적용됩니다. 미사용으로 바꾼 조직은 결제·정산·노티가 중단되며, 사용으로 되돌리면 복구됩니다. 상위를 미사용으로 두면 하위 프로필도 함께 미사용 처리됩니다.', '엑셀등록: [SAMPLE]으로 서식 있는 xlsx(헤더 색·표선·가운데 정렬)를 받아 예시 행을 수정·추가한 뒤 [엑셀등록]에 업로드하세요.'],
-      noticeRefButton: { id: 'noticeRefBtn', label: '참고', cls: 'btn-success' },
+      noticeList: ['기본 조회는 업체사용상태가 사용인 업체만 표시합니다. 미사용·전체는 셀렉트에서 선택하세요. 조직별 화면 권한(옵저버·수정 등)은 사용/미사용과 관계없이 동일하게 적용됩니다. 미사용으로 바꾼 조직은 결제·정산·노티가 중단되며, 사용으로 되돌리면 복구됩니다. 상위를 미사용으로 두면 하위 프로필도 함께 미사용 처리됩니다.', '엑셀등록: [SAMPLE]으로 서식 있는 xlsx(헤더 색·표선·가운데 정렬)를 받아 예시 행을 수정·추가한 뒤 [엑셀등록]에 업로드하세요.'],
       summary: ['건수'],
       buttons: [{ id: 'seedBtn', label: '시드 생성', cls: 'btn-outline-warning' }, { id: 'excelBtn', label: '엑셀다운로드', cls: 'btn-info' }, { id: 'excelSampleBtn', label: 'SAMPLE', cls: 'btn-outline-secondary' }, { id: 'excelRegBtn', label: '엑셀등록', cls: 'btn-outline-success' }, { id: 'compRegBtn', label: '등록', cls: 'btn-danger' }],
       tableColumnGuide: true,
@@ -852,6 +876,7 @@
         { key: 'compId', label: '업체코드' },
         { key: 'compNm', label: '업체명' },
         { key: 'compDivNm', label: '업체구분' },
+        { key: 'siteRoot', label: '루트', title: '결제대행사 설정의 루트번호', align: 'center' },
         { key: 'settlementAmt', label: '정산금' },
         { key: 'receivables', label: '미수금' },
         { key: 'regNo', label: '사업자번호' },
@@ -1349,6 +1374,8 @@
       buttons: [{ id: 'compDetailListBtn', label: '목록', cls: 'btn-secondary' }, { id: 'compDetailSaveBtn', label: '저장', cls: 'btn-primary' }]
     },
     '/commission/commisionList': {
+      /** 페이지네이션 행 오른쪽에 [저장] (상단 저장과 동일 동작) */
+      paginationTrailingSaveButton: true,
       /** 인라인 저장은 모든 배분·적용일·처리 열의 td가 필요함 — VIEW SETTING 숨김은 저장 시 값 누락으로 이어짐 */
       tableColumnGuide: false,
       searchRows: [
@@ -1425,15 +1452,25 @@
     '/comp/compInfoHistList': {
       searchRows: [
         [
-          { label: '업체코드', type: 'text', name: 'searchCompId' },
-          { label: '변경일자', type: 'daterange', from: 'searchFromDate', to: 'searchToDate' },
+          { label: '접속일자', type: 'daterange', from: 'searchFromDate', to: 'searchToDate' },
           { type: 'quickdate' },
+          { label: '업체명', type: 'text', name: 'searchCompNm', placeholder: '업체명·업체코드' },
+          { label: '변경자명', type: 'text', name: 'searchChangedBy' },
           { type: 'searchBtn' }
         ]
       ],
       summary: ['건수'],
-      buttons: [{ id: 'searchBtn', label: '검색', cls: 'btn-primary' }, { id: 'excelBtn', label: '엑셀다운로드', cls: 'btn-info' }],
-      columns: [{ key: '_chk', type: 'checkbox' }, { key: 'rowNo', label: '번호' }, { key: 'compNm', label: '업체명' }, { key: 'compId', label: '업체코드' }, { key: 'chgType', label: '변경구분' }, { key: 'chgDt', label: '변경일시' }, { key: 'chgDesc', label: '변경내용' }]
+      buttons: [],
+      columns: [
+        { key: 'rowNo', label: 'No.' },
+        { key: 'chgDt', label: '변경일시' },
+        { key: 'compId', label: '업체코드' },
+        { key: 'compNm', label: '업체명' },
+        { key: 'chgTarget', label: '변경대상' },
+        { key: 'chgBefore', label: '변경 전' },
+        { key: 'chgAfter', label: '변경 후' },
+        { key: 'changedBy', label: '변경자' }
+      ]
     },
     '/calc/payList': {
       payListVariant: 'INTEGRATED',
@@ -2108,11 +2145,29 @@
       columns: [{ key: '_chk', type: 'checkbox' }, { key: 'rowNo', label: '번호' }, { key: 'compId', label: '업체코드' }, { key: 'compNm', label: '업체명' }, { key: 'compDivNm', label: '업체구분' }, { key: 'regDt', label: '등록일' }],
       emptyMessage: '조회된 데이터가 없습니다.'
     },
+    /** 업체변경이력 — compInfoHistList 와 동일(별칭 URL) */
     '/comp/compChangeHistory': {
-      searchRows: [[{ label: '업체코드', type: 'text', name: 'searchCompId' }, { label: '변경일자', type: 'daterange', from: 'searchFromDate', to: 'searchToDate' }, { type: 'quickdate' }, { type: 'searchBtn' }]],
+      searchRows: [
+        [
+          { label: '접속일자', type: 'daterange', from: 'searchFromDate', to: 'searchToDate' },
+          { type: 'quickdate' },
+          { label: '업체명', type: 'text', name: 'searchCompNm', placeholder: '업체명·업체코드' },
+          { label: '변경자명', type: 'text', name: 'searchChangedBy' },
+          { type: 'searchBtn' }
+        ]
+      ],
       summary: ['건수'],
-      buttons: [{ id: 'searchBtn', label: '검색', cls: 'btn-primary' }, { id: 'excelBtn', label: '엑셀다운로드', cls: 'btn-info' }],
-      columns: [{ key: '_chk', type: 'checkbox' }, { key: 'rowNo', label: '번호' }, { key: 'compNm', label: '업체명' }, { key: 'compId', label: '업체코드' }, { key: 'chgDt', label: '변경일시' }, { key: 'chgItem', label: '변경항목' }, { key: 'beforeVal', label: '변경전' }, { key: 'afterVal', label: '변경후' }],
+      buttons: [],
+      columns: [
+        { key: 'rowNo', label: 'No.' },
+        { key: 'chgDt', label: '변경일시' },
+        { key: 'compId', label: '업체코드' },
+        { key: 'compNm', label: '업체명' },
+        { key: 'chgTarget', label: '변경대상' },
+        { key: 'chgBefore', label: '변경 전' },
+        { key: 'chgAfter', label: '변경 후' },
+        { key: 'changedBy', label: '변경자' }
+      ],
       emptyMessage: '조회된 데이터가 없습니다.'
     },
     '/calc/offsetCancelList': {
@@ -3015,7 +3070,12 @@
     );
   }
 
-  function renderPagination(tabId) {
+  function renderPagination(tabId, listCfg) {
+    var trailingSave = '';
+    if (listCfg && listCfg.paginationTrailingSaveButton) {
+      trailingSave = '<div class="pagination-row-save">' +
+        '<button type="button" class="btn btn-sm btn-primary" id="commissionPaginationSaveBtn">저장</button></div>';
+    }
     return '<div class="pagination-row">' +
       '<div class="pagination-view-at-once">' +
       '<span class="pagination-label">한 번에 보기:</span>' +
@@ -3031,6 +3091,7 @@
       '<input type="hidden" id="pageCnt" value="1">' +
       '<span id="totalPageCount" style="display:none">1</span>' +
       '<div class="pagination-center"><div class="pagination-pages" id="paging_' + (tabId || '') + '"></div></div>' +
+      trailingSave +
       '</div>';
   }
 
@@ -3063,7 +3124,7 @@
         html += renderSummaryAndActions(cfg);
         if (cfg.columns && cfg.columns.length > 0) html += renderTableColumnGuide(cfg);
         html += renderTable(cfg, tabId);
-        html += renderPagination(tabId);
+        html += renderPagination(tabId, cfg);
         if (cfg.hasCommissionHistoryTable) {
           html += '<div class="card mt-4 commission-history-card"><div class="card-header py-2 fw-semibold">수수료 변경 히스토리</div><div class="card-body pt-2">' +
             '<p class="text-muted small mb-2" id="commissionHistSubtitle_' + tabId + '">목록에서 가맹점 행을 클릭하면 해당 업체의 변경 이력이 표시됩니다. (최근 변경이 No.1)</p>' +

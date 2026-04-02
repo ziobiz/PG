@@ -68,6 +68,13 @@ public class ApiCommissionController {
             @RequestParam(required = false) String feeTechService,
             @RequestParam(required = false) String feeSettlementPerTx,
             @RequestParam(required = false) String feeRefund,
+            @RequestParam(required = false) String fee3dsRate,
+            @RequestParam(required = false) String remittanceTransferFee,
+            @RequestParam(required = false) String usdtTransferFeeUsd,
+            @RequestParam(required = false) String feeUsdt,
+            @RequestParam(required = false) String feeFx,
+            @RequestParam(required = false) String chargebackFeePerTx,
+            @RequestParam(required = false) String chargebackPolicyId,
             @RequestParam(required = false) String hqRate,
             @RequestParam(required = false) String regionalRate,
             @RequestParam(required = false) String masterRate,
@@ -97,6 +104,13 @@ public class ApiCommissionController {
         body.put("feeTechService", feeTechService != null ? feeTechService : "");
         body.put("feeSettlementPerTx", feeSettlementPerTx != null ? feeSettlementPerTx : "");
         body.put("feeRefund", feeRefund != null ? feeRefund : "");
+        body.put("fee3dsRate", fee3dsRate != null ? fee3dsRate : "");
+        body.put("remittanceTransferFee", remittanceTransferFee != null ? remittanceTransferFee : "");
+        body.put("usdtTransferFeeUsd", usdtTransferFeeUsd != null ? usdtTransferFeeUsd : "");
+        body.put("feeUsdt", feeUsdt != null ? feeUsdt : "");
+        body.put("feeFx", feeFx != null ? feeFx : "");
+        body.put("chargebackFeePerTx", chargebackFeePerTx != null ? chargebackFeePerTx : "");
+        body.put("chargebackPolicyId", chargebackPolicyId != null ? chargebackPolicyId : "");
         body.put("hqRate", hqRate != null ? hqRate : "");
         body.put("regionalRate", regionalRate != null ? regionalRate : "");
         body.put("masterRate", masterRate != null ? masterRate : "");

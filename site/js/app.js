@@ -983,10 +983,16 @@
   window.pgDoubleConfirm = pgDoubleConfirm;
 
   /**
-   * 더블확인: 저장 시도 전 확인(확인/취소 한 번). 취소 시 false.
+   * 더블확인: 저장(또는 서버 반영) 직전 연속 확인 두 번. 첫·둘 중 취소 시 false.
+   * @param {string} [message] 첫 번째 안내
+   * @param {string} [secondMessage] 두 번째 안내 (생략 시 저장 반영용 기본 문구)
    */
-  function pgConfirmBeforeSave(message) {
-    return window.confirm(message || '저장하시겠습니까?\n취소하면 저장되지 않습니다.');
+  function pgConfirmBeforeSave(message, secondMessage) {
+    var m1 = message || '저장하시겠습니까?\n취소하면 저장되지 않습니다.';
+    var m2 = (secondMessage !== undefined && secondMessage !== null && String(secondMessage) !== '')
+      ? String(secondMessage)
+      : '서버에 반영합니다. 정말 진행할까요?';
+    return window.confirm(m1) && window.confirm(m2);
   }
   window.pgConfirmBeforeSave = pgConfirmBeforeSave;
 
@@ -1273,12 +1279,24 @@
     var nmEl = document.getElementById('pgAgencyEditPgNm');
     var epEl = document.getElementById('pgAgencyEditEndpoint');
     var uyEl = document.getElementById('pgAgencyEditUseYn');
+    var midEl = document.getElementById('pgAgencyEditMid');
+    var rnEl = document.getElementById('pgAgencyEditRouteNo');
+    var sbEl = document.getElementById('pgAgencyEditSandboxYn');
+    var akEl = document.getElementById('pgAgencyEditApiKey');
+    var mkEl = document.getElementById('pgAgencyEditMd5Key');
+    var exEl = document.getElementById('pgAgencyEditCredentialsExtra');
     if (!idEl || !cdEl || !nmEl) return;
     idEl.value = preset.id != null ? String(preset.id) : '';
     cdEl.value = preset.pgCd || '';
     nmEl.value = preset.pgNm || '';
     if (epEl) epEl.value = preset.apiEndpoint || '';
     if (uyEl) uyEl.value = (preset.useYn === 'N') ? 'N' : 'Y';
+    if (midEl) midEl.value = preset.merchantMid != null ? String(preset.merchantMid) : '';
+    if (rnEl) rnEl.value = preset.routeNo != null && preset.routeNo !== '' ? String(preset.routeNo) : '';
+    if (sbEl) sbEl.value = (preset.sandboxYn === 'N') ? 'N' : 'Y';
+    if (exEl) exEl.value = preset.credentialsExtraJson != null ? String(preset.credentialsExtraJson) : '';
+    if (akEl) akEl.value = '';
+    if (mkEl) mkEl.value = '';
     cdEl.readOnly = !!(preset.id);
     var el = document.getElementById('pgAgencyEditModal');
     if (el && window.bootstrap && bootstrap.Modal) {
@@ -1685,7 +1703,8 @@
     var textKeys = {
       compId: 1, regNo: 1, contact: 1, accountNo: 1, zipCode: 1, loginId: 1,
       ceoMobile: 1, compTel: 1, bankNm: 1, rowNo: 1, terminalCountTerminal: 1, terminalCountWeb: 1,
-      transferType: 1, calcProcType: 1, calcCycle: 1, calcExcludeYn: 1, payHoldYn: 1, useYn: 1, compDivNm: 1
+      transferType: 1, calcProcType: 1, calcCycle: 1, calcExcludeYn: 1, payHoldYn: 1, useYn: 1, compDivNm: 1,
+      siteRoot: 1
     };
     var textColumnIndexes = [];
     for (var ti = 0; ti < dataCols.length; ti++) {
@@ -2263,7 +2282,7 @@
             : (cfg.columns || []);
         }
         var selCols = p._selectedColumns;
-        var fixedKeys = ['rowNo', 'compNm', 'compId', 'trnDate', 'trnTime', 'routeNo', 'chillTransactionId', 'compDivNm', 'merchantNm'];
+        var fixedKeys = ['rowNo', 'compNm', 'compId', 'trnDate', 'trnTime', 'routeNo', 'chillTransactionId', 'compDivNm', 'merchantNm', '_pgCredEdit'];
         var restrictCols = p._columnAllowanceRestricted === true;
         var allowKeys = p._allowedColumnKeys;
         var cols = allCols.filter(function (c) {
@@ -2305,7 +2324,9 @@
             var theadTr = thead.querySelector('tr') || document.createElement('tr');
             theadTr.innerHTML = cols.map(function (c) {
               if (c.type === 'checkbox') return '<th data-key="_chk" style="width:40px"><input type="checkbox" class="grid-check-all" title="전체선택"></th>';
-              return '<th data-key="' + (c.key || '') + '">' + (c.label || c.key) + '</th>';
+              var thT = c.title ? (' title="' + String(c.title).replace(/&/g, '&amp;').replace(/"/g, '&quot;') + '"') : '';
+              var thCls = (c.align === 'center') ? ' class="text-center"' : '';
+              return '<th data-key="' + (c.key || '') + '"' + thT + thCls + '>' + (c.label || c.key) + '</th>';
             }).join('');
             if (!theadTr.parentNode) thead.appendChild(theadTr);
           } else {
@@ -2488,6 +2509,13 @@
                   : '<span class="text-muted">-</span>') + '</td>';
               } else if (c.type === 'commissionInlineActions' && url === '/commission/commisionList') {
                 html += '<td class="text-nowrap"><button type="button" class="btn btn-sm btn-primary commission-inline-save me-1">저장</button><button type="button" class="btn btn-sm btn-outline-danger commission-inline-clear">삭제</button></td>';
+              } else if (c.type === 'pgAgencyEdit' && url === '/hq/pgApiMng') {
+                html += '<td class="text-center text-nowrap"><button type="button" class="btn btn-sm btn-outline-primary hq-pg-agency-open-modal py-0 px-2" data-row-idx="' + idx + '" title="MID·API Key·MD5 등 입력">연동 입력</button></td>';
+              } else if (url === '/hq/pgApiMng' && c.key === 'operationalYn') {
+                var pgCdEsc = escAttr(row.pgCd || '');
+                var opChecked = String(row.operationalYn || '') === 'Y' ? ' checked' : '';
+                var useDisabled = String(row.useYn || 'Y') === 'N' ? ' disabled' : '';
+                html += '<td class="text-center"><input type="checkbox" class="form-check-input hq-pg-operational-cb" data-pg-cd="' + pgCdEsc + '" title="결제 운영(가맹점 연동·PG 선택 노출)"' + opChecked + useDisabled + '></td>';
               } else {
                 var val = row[c.key] !== undefined && row[c.key] !== null ? String(row[c.key]) : '';
                 var cellClass = '';
@@ -2549,6 +2577,10 @@
                   html += '<td class="tree-comp-cell" style="padding-left:' + px + 'px">' + icon + toggle + (val || '') + '</td>';
                 } else if (isCompMngTree && c.key === 'compNm') {
                   html += '<td class="text-start align-middle">' + (val || '') + '</td>';
+                } else if (isCompMngTree && c.key === 'siteRoot') {
+                  var sr0 = (val == null || val === '' || val === '-') ? '-' : String(val);
+                  var srEsc = sr0.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+                  html += '<td class="text-center align-middle small text-break" title="' + srEsc + '">' + (sr0 === '-' ? '-' : srEsc) + '</td>';
                 } else if (url === '/comp/compMng' && c.key === 'compNm') {
                   html += '<td class="text-start align-middle">' + (val || '') + '</td>';
                 } else if (url === '/calc/calcList' || url === '/settlement/distributionList') {
@@ -2806,6 +2838,20 @@
       doSearch(pane, tabId, detail.page);
     });
     var url = pane.getAttribute('formurl') || '';
+    var commissionSignal = undefined;
+    /** 수수료 화면: 행 클릭·인라인 편집 시 체크 자동(다중 행 저장) */
+    var commissionEnsureRowCheckSelected = function () {};
+    if (url === '/commission/commisionList') {
+      if (!pane._commissionListenersAbort) {
+        pane._commissionListenersAbort = new AbortController();
+      }
+      commissionSignal = pane._commissionListenersAbort.signal;
+      commissionEnsureRowCheckSelected = function (tr0) {
+        if (!tr0) return;
+        var chk = tr0.querySelector('.grid-row-check');
+        if (chk && !chk.checked) chk.checked = true;
+      };
+    }
     function ensureNotifyTargetPickerModal() {
       var modalEl = document.getElementById('notifyTargetPickerModal');
       if (modalEl) return modalEl;
@@ -3082,8 +3128,7 @@
         }
       });
     }
-    if (url === '/commission/commisionList' && !pane._commissionHistRowClickBound) {
-      pane._commissionHistRowClickBound = true;
+    if (url === '/commission/commisionList' && commissionSignal) {
       pane.addEventListener('click', function (e) {
         var tr = e.target && e.target.closest ? e.target.closest('#grid_' + tabId + ' tbody tr') : null;
         if (!tr || tr.querySelector('.empty-state-cell')) return;
@@ -3093,29 +3138,38 @@
         pane._commissionHistCompId = cid;
         pane.querySelectorAll('#grid_' + tabId + ' tbody tr.table-active').forEach(function (x) { x.classList.remove('table-active'); });
         tr.classList.add('table-active');
+        commissionEnsureRowCheckSelected(tr);
         loadCommissionHistoryGrid(pane, tabId);
-      });
-    }
-    if (url === '/commission/commisionList' && !pane._commissionHistCheckBound) {
-      pane._commissionHistCheckBound = true;
+      }, { signal: commissionSignal });
       pane.addEventListener('change', function (e) {
         var t = e.target;
         if (!t || !t.classList || !t.classList.contains('grid-row-check')) return;
         var grid = pane.querySelector('#grid_' + tabId + ' tbody');
         if (!grid || !grid.contains(t)) return;
-        var checked = grid.querySelectorAll('.grid-row-check:checked');
-        if (checked.length !== 1) return;
-        var tr = checked[0].closest('tr');
-        var cid = tr && tr.getAttribute('data-comp-id');
-        if (!cid) return;
-        pane._commissionHistCompId = cid;
-        pane.querySelectorAll('#grid_' + tabId + ' tbody tr.table-active').forEach(function (x) { x.classList.remove('table-active'); });
-        if (tr) tr.classList.add('table-active');
-        loadCommissionHistoryGrid(pane, tabId);
-      });
-    }
-    if (url === '/commission/commisionList' && !pane._commissionRowDblclickBound) {
-      pane._commissionRowDblclickBound = true;
+        var trCh = t.closest('tr');
+        function syncHistoryToTr(tr0) {
+          if (!tr0) return;
+          var cid0 = (tr0.getAttribute('data-comp-id') || '').trim();
+          if (!cid0) return;
+          pane._commissionHistCompId = cid0;
+          pane.querySelectorAll('#grid_' + tabId + ' tbody tr.table-active').forEach(function (x) { x.classList.remove('table-active'); });
+          tr0.classList.add('table-active');
+          try { loadCommissionHistoryGrid(pane, tabId); } catch (eH) {}
+        }
+        var allChecked = grid.querySelectorAll('tr .grid-row-check:checked');
+        if (t.checked && trCh) {
+          syncHistoryToTr(trCh);
+        } else if (!t.checked) {
+          if (allChecked.length === 1) syncHistoryToTr(allChecked[0].closest('tr'));
+          else if (allChecked.length === 0) {
+            pane._commissionHistCompId = '';
+            pane.querySelectorAll('#grid_' + tabId + ' tbody tr.table-active').forEach(function (x) { x.classList.remove('table-active'); });
+            try { loadCommissionHistoryGrid(pane, tabId); } catch (eH2) {}
+          } else {
+            syncHistoryToTr(allChecked[0].closest('tr'));
+          }
+        }
+      }, { signal: commissionSignal });
       pane.addEventListener('dblclick', function (e) {
         var tr = e.target && e.target.closest ? e.target.closest('#grid_' + tabId + ' tbody tr') : null;
         if (!tr || tr.querySelector('.empty-state-cell')) return;
@@ -3131,11 +3185,10 @@
           if (row.compDiv != null) sessionStorage.setItem('pg_comp_detail_compDiv', String(row.compDiv));
         } catch (err) {}
         fnTopMenuMove('/comp/compDetail', null, '업체정보');
-      });
+      }, { signal: commissionSignal });
     }
     if (url === '/commission/commisionList') {
       var commissionSettingBtn = pane.querySelector('#commissionSettingBtn');
-      var commissionInlineTopSaveBtn = pane.querySelector('#commissionInlineTopSaveBtn');
       function parseNum(v) {
         if (v == null) return 0;
         var n = parseFloat(String(v).replace(/,/g, '.').trim());
@@ -3218,8 +3271,59 @@
         if (sp0 && sp0.textContent != null) return String(sp0.textContent).replace(/\s/g, '').trim();
         return '';
       }
-      function runCommissionRowInlineSave(tr, isClear) {
-        if (!tr) return;
+      /** 상세/목록 JSON 값 → 폼 인코딩용 문자열(객체·배열은 서버 파싱 오류를 피하도록 정규화) */
+      function commissionScalarToSaveString(x) {
+        if (x === undefined || x === null) return '';
+        if (typeof x === 'number' && isFinite(x)) return String(x);
+        if (typeof x === 'boolean') return x ? 'true' : 'false';
+        if (typeof x === 'string') return x;
+        if (Array.isArray(x) && x.length >= 3) {
+          var y = parseInt(x[0], 10);
+          var mo = parseInt(x[1], 10);
+          var d = parseInt(x[2], 10);
+          if (isFinite(y) && isFinite(mo) && isFinite(d)) {
+            var ms = mo < 10 ? '0' + mo : String(mo);
+            var ds = d < 10 ? '0' + d : String(d);
+            return String(y) + '-' + ms + '-' + ds;
+          }
+        }
+        return '';
+      }
+      /** 상세 API 결과 → /api/commission/save 파라미터명 (모달 저장과 동일 스키마) */
+      function commissionDetailToSaveFd(detail) {
+        var fd = {};
+        if (!detail || typeof detail !== 'object') return fd;
+        var keys = [
+          'perTxFee', 'cancelRate', 'voidFeePerTx', 'manualVoidFeePerTx', 'usageRate', 'failFee', 'payRate', 'refundRate', 'rollingPct', 'rollingDays',
+          'feeAccountActivation', 'feeAnnual', 'feeTechService', 'feeSettlementPerTx', 'feeRefund',
+          'fee3dsRate', 'chargebackFeePerTx', 'chargebackPolicyId', 'remittanceTransferFee', 'usdtTransferFeeUsd', 'feeUsdt', 'feeFx',
+          'hqRate', 'regionalRate', 'masterRate', 'branchRate', 'agencyRate', 'salesOfficeRate',
+          'hqPerTxFee', 'regionalPerTxFee', 'masterPerTxFee', 'branchPerTxFee', 'agencyPerTxFee', 'salesOfficePerTxFee'
+        ];
+        keys.forEach(function (k) { fd[k] = commissionScalarToSaveString(detail[k]); });
+        var ap = detail.applyStartDateStr || detail.applyStartDate || '';
+        var apStr = commissionScalarToSaveString(ap) || (typeof ap === 'string' ? ap : '');
+        if (apStr) {
+          fd.applyStartDate = apStr.length >= 10 ? apStr.substring(0, 10) : apStr;
+        } else {
+          fd.applyStartDate = '';
+        }
+        return fd;
+      }
+      /**
+       * @param {boolean} isClear 행 [삭제] 초기화
+       * @param {{ skipConfirm?: boolean, silent?: boolean, batchDimm?: boolean }} [saveOpts] silent=batch 시 알림·목록갱신 생략
+       * @returns {Promise<{ skipped?: boolean, ok?: boolean, compId?: string }>}
+       */
+      function runCommissionRowInlineSave(tr, isClear, saveOpts) {
+        saveOpts = saveOpts || {};
+        var skipConfirm = !!saveOpts.skipConfirm;
+        var silent = !!saveOpts.silent;
+        var batchDimm = !!saveOpts.batchDimm;
+        function cancelled() {
+          return Promise.resolve({ skipped: true });
+        }
+        if (!tr) return cancelled();
         flushOpenCommissionInlineCells(tr);
         var idx = parseInt(tr.getAttribute('data-row-idx') || '-1', 10);
         var list = pane._lastGridList || [];
@@ -3229,13 +3333,13 @@
         }
         if (!compIdVal) {
           alert('업체코드를 찾을 수 없습니다. 목록을 다시 검색해 주세요.');
-          return;
+          return Promise.reject(new Error('업체코드 없음'));
         }
         if (idx >= 0 && idx < list.length && list[idx] && list[idx].compId != null) {
           var listCid = String(list[idx].compId).trim();
           if (listCid && listCid !== compIdVal) {
             alert('행 정보가 목록과 맞지 않습니다. 검색을 다시 해 주세요.');
-            return;
+            return Promise.reject(new Error('행 불일치'));
           }
         }
         var editableKeys = ['hqRate', 'regionalRate', 'masterRate', 'branchRate', 'agencyRate', 'salesOfficeRate', 'hqPerTxFee', 'regionalPerTxFee', 'masterPerTxFee', 'branchPerTxFee', 'agencyPerTxFee', 'salesOfficePerTxFee', 'applyDt'];
@@ -3249,32 +3353,63 @@
         });
         if (missingTd.length) {
           alert('저장에 필요한 그리드 칸이 없습니다. 브라우저 강력 새로고침(Ctrl+F5) 후 다시 검색하거나, 최신 JAR(정적 포함) 배포 여부를 확인하세요.\n누락 키: ' + missingTd.join(', '));
-          return;
+          return Promise.reject(new Error('그리드 칸 누락'));
         }
-        var fd = {};
-        editableKeys.forEach(function (k) {
-          var v = readCommissionEditableValue(tr, k);
-          if (isClear && k !== 'applyDt') v = '0';
-          if (k === 'applyDt') fd.applyStartDate = v;
-          else fd[k] = v === '' ? '0' : v;
-        });
+        if (!skipConfirm) {
+          if (isClear) {
+            if (!pgConfirmBeforeSave(
+              '[' + compIdVal + '] 수수료 배분·건당 수수료를 0으로 초기화합니다. 계속할까요?',
+              '초기화 내용이 서버에 반영됩니다. 정말 진행할까요?'
+            )) return cancelled();
+          } else {
+            if (!pgConfirmBeforeSave(
+              '[' + compIdVal + '] 그리드에서 수정한 수수료를 저장합니다. 계속할까요?',
+              '기존 상세 수수료와 병합되어 서버에 반영됩니다. 정말 저장할까요?'
+            )) return cancelled();
+          }
+        }
         var dimmI = document.getElementById('dimm');
-        if (dimmI) dimmI.style.display = 'flex';
-        window.PG_API.commissionSave(compIdVal, fd).then(function () {
-          alert(isClear ? '수수료를 0으로 초기화했습니다.' : '수수료가 저장되었습니다.');
-          pane._commissionHistCompId = compIdVal;
-          doSearch(pane, tabId, parseInt(pane.getAttribute('data-last-page') || '1', 10) || 1);
-          // 저장 직후에는 DB 커밋/리스트 재렌더 타이밍에 따라 히스토리 재조회가 1회로는 늦을 수 있어 2회 시도
-          try { loadCommissionHistoryGrid(pane, tabId); } catch (e0) {}
-          setTimeout(function () { try { loadCommissionHistoryGrid(pane, tabId); } catch (e1) {} }, 600);
+        if (!batchDimm) {
+          if (dimmI) dimmI.style.display = 'flex';
+        }
+        return window.PG_API.commissionDetail(compIdVal).catch(function (errD) {
+          console.warn('[commission] detail merge skipped:', errD && errD.message ? errD.message : errD);
+          return null;
+        }).then(function (d) {
+          var raw = d;
+          if (raw && typeof raw === 'object' && raw.data != null && typeof raw.data === 'object' && raw.success !== false) {
+            raw = raw.data;
+          }
+          if (!raw || typeof raw !== 'object') raw = {};
+          var fd = commissionDetailToSaveFd(raw);
+          editableKeys.forEach(function (k) {
+            var v = readCommissionEditableValue(tr, k);
+            if (isClear && k !== 'applyDt') v = '0';
+            if (k === 'applyDt') fd.applyStartDate = v;
+            else fd[k] = v === '' ? '0' : v;
+          });
+          return window.PG_API.commissionSave(compIdVal, fd);
+        }).then(function () {
+          if (!silent) {
+            alert(isClear ? '수수료를 0으로 초기화했습니다.' : '수수료가 저장되었습니다.');
+            pane._commissionHistCompId = compIdVal;
+            doSearch(pane, tabId, parseInt(pane.getAttribute('data-last-page') || '1', 10) || 1);
+            try { loadCommissionHistoryGrid(pane, tabId); } catch (e0) {}
+            setTimeout(function () { try { loadCommissionHistoryGrid(pane, tabId); } catch (e1) {} }, 600);
+          }
+          return { ok: true, compId: compIdVal };
         }).catch(function (err) {
-          alert(err && err.message ? err.message : '수수료 저장 실패');
+          if (!silent) {
+            alert(err && err.message ? err.message : '수수료 저장 실패');
+          }
+          throw err;
         }).finally(function () {
-          if (dimmI) dimmI.style.display = 'none';
+          if (!batchDimm) {
+            if (dimmI) dimmI.style.display = 'none';
+          }
         });
       }
-      if (!pane._commissionInlineSaveCaptureBound) {
-        pane._commissionInlineSaveCaptureBound = true;
+      if (commissionSignal) {
         // mousedown에서 먼저 편집 중인 셀을 닫아 blur/click 순서에 따른 값 유실 방지
         pane.addEventListener('mousedown', function (e) {
           var actM = e.target && e.target.closest ? e.target.closest('.commission-inline-save, .commission-inline-clear') : null;
@@ -3284,7 +3419,7 @@
           var trM = actM.closest('tr');
           if (!trM || trM.querySelector('.empty-state-cell')) return;
           flushOpenCommissionInlineCells(trM);
-        }, true);
+        }, { capture: true, signal: commissionSignal });
         pane.addEventListener('click', function (e) {
           var act = e.target && e.target.closest ? e.target.closest('.commission-inline-save, .commission-inline-clear') : null;
           if (!act || !pane.contains(act)) return;
@@ -3294,18 +3429,25 @@
           if (!trS || trS.querySelector('.empty-state-cell')) return;
           e.preventDefault();
           e.stopPropagation();
-          runCommissionRowInlineSave(trS, act.classList.contains('commission-inline-clear'));
-        }, true);
+          runCommissionRowInlineSave(trS, act.classList.contains('commission-inline-clear')).catch(function () {});
+        }, { capture: true, signal: commissionSignal });
       }
       if (commissionSettingBtn) {
         commissionSettingBtn.addEventListener('click', function () {
           var grid = pane.querySelector('#grid_' + tabId + ' tbody');
-          var checked = grid ? grid.querySelector('tr .grid-row-check:checked') : null;
-          if (!checked) {
-            alert('그리드에서 한 건을 선택한 뒤 [수수료설정]을 눌러주세요.');
+          var tr = null;
+          if (grid) {
+            var ta = grid.querySelector('tr.table-active');
+            if (ta && ta.querySelector('.grid-row-check:checked')) tr = ta;
+            if (!tr) {
+              var ch = grid.querySelector('tr .grid-row-check:checked');
+              if (ch) tr = ch.closest('tr');
+            }
+          }
+          if (!tr) {
+            alert('그리드에서 행을 클릭하거나 체크한 뒤 [수수료설정]을 눌러주세요.');
             return;
           }
-          var tr = checked.closest('tr');
           var tds = tr.querySelectorAll('td');
           var cfg = window.PG_SCREENS && window.PG_SCREENS.getMenuScreens()['/commission/commisionList'];
           var cols = (cfg && cfg.columns) || [];
@@ -3382,34 +3524,109 @@
           }).catch(function (e) { alert(e && e.message ? e.message : '수수료 조회 실패'); }).finally(function () { if (dimm) dimm.style.display = 'none'; });
         });
       }
-      if (commissionInlineTopSaveBtn && !commissionInlineTopSaveBtn._bound) {
-        commissionInlineTopSaveBtn._bound = true;
-        commissionInlineTopSaveBtn.addEventListener('click', function () {
+      [pane.querySelector('#commissionInlineTopSaveBtn'), pane.querySelector('#commissionPaginationSaveBtn')].forEach(function (commissionSaveToolbarBtn) {
+        if (!commissionSaveToolbarBtn || commissionSaveToolbarBtn._commissionToolbarSaveBound) return;
+        commissionSaveToolbarBtn._commissionToolbarSaveBound = true;
+        commissionSaveToolbarBtn.addEventListener('click', function () {
           var grid = pane.querySelector('#grid_' + tabId + ' tbody');
-          var tr = null;
-          var activeInput = pane.querySelector('.commission-inline-cell .commission-inline-input[data-key]');
-          if (activeInput) tr = activeInput.closest('tr');
-          if (!tr) {
-            var checkedRows = grid ? grid.querySelectorAll('tr .grid-row-check:checked') : null;
-            if (checkedRows && checkedRows.length === 1) tr = checkedRows[0].closest('tr');
-            else if (checkedRows && checkedRows.length > 1) {
-              alert('한 번에 한 행만 저장할 수 있습니다. 한 건만 체크해 주세요.');
+          var trs = [];
+          var seenC = {};
+          if (grid) {
+            grid.querySelectorAll('tr .grid-row-check:checked').forEach(function (cb) {
+              var r = cb.closest('tr');
+              if (!r || r.querySelector('.empty-state-cell')) return;
+              var cidK = (r.getAttribute('data-comp-id') || '').trim() || ('_idx_' + String(r.getAttribute('data-row-idx') || ''));
+              if (seenC[cidK]) return;
+              seenC[cidK] = true;
+              trs.push(r);
+            });
+          }
+          if (trs.length === 0) {
+            var tr = null;
+            var activeInput = pane.querySelector('.commission-inline-cell .commission-inline-input[data-key]');
+            if (activeInput) tr = activeInput.closest('tr');
+            if (!tr && grid) {
+              var dateFocus = grid.querySelector('.commission-inline-input[data-key="applyDt"]:focus');
+              if (dateFocus) tr = dateFocus.closest('tr');
+            }
+            if (!tr && grid) {
+              var marked = grid.querySelector('tr.table-active');
+              var mc = marked && (marked.getAttribute('data-comp-id') || '').trim();
+              if (mc) tr = marked;
+            }
+            if (!tr && grid) {
+              var histCid = String(pane._commissionHistCompId || '').trim();
+              if (histCid) {
+                var rows = grid.querySelectorAll('tr[data-comp-id]');
+                var nMatch = 0;
+                var lastMatch = null;
+                for (var ri = 0; ri < rows.length; ri++) {
+                  if ((rows[ri].getAttribute('data-comp-id') || '').trim() === histCid) {
+                    nMatch++;
+                    lastMatch = rows[ri];
+                  }
+                }
+                if (nMatch === 1) tr = lastMatch;
+              }
+            }
+            if (tr) trs.push(tr);
+          }
+          if (trs.length === 0) {
+            alert('저장할 행을 먼저 클릭하거나(또는 체크·셀 편집)한 뒤 [저장]을 눌러주세요.');
+            return;
+          }
+          for (var vi = 0; vi < trs.length; vi++) {
+            var trV = trs[vi];
+            var canSaveCommissionRow = trV.querySelector('.commission-inline-save')
+              || trV.querySelector('.commission-inline-cell[data-key="hqRate"]')
+              || trV.querySelector('.commission-inline-input[data-key="applyDt"]');
+            if (!canSaveCommissionRow) {
+              alert('선택된 행 중 수수료 인라인 열이 없는 행이 있습니다. 해당 행의 체크를 해제하거나 목록을 확인해 주세요.');
               return;
             }
           }
-          if (!tr) {
-            alert('저장할 행을 선택(또는 편집)한 뒤 [저장]을 눌러주세요.');
+          trs.forEach(function (t) { flushOpenCommissionInlineCells(t); });
+          if (trs.length === 1) {
+            runCommissionRowInlineSave(trs[0], false).catch(function () {});
             return;
           }
-          if (!tr.querySelector('.commission-inline-save')) {
-            alert('행 저장 버튼을 찾을 수 없습니다.');
-            return;
+          if (!pgConfirmBeforeSave(
+            '체크된 ' + trs.length + '건의 수수료를 한꺼번에 저장합니다. 계속할까요?',
+            '각 행의 그리드 값이 서버에 순서대로 반영됩니다. 정말 저장할까요?'
+          )) return;
+          var dimmBatch = document.getElementById('dimm');
+          if (dimmBatch) dimmBatch.style.display = 'flex';
+          var bi = 0;
+          function runNextBatch() {
+            if (bi >= trs.length) {
+              if (dimmBatch) dimmBatch.style.display = 'none';
+              alert(trs.length + '건 저장을 완료했습니다.');
+              var lastTr = trs[trs.length - 1];
+              var lc = lastTr && (lastTr.getAttribute('data-comp-id') || '').trim();
+              if (lc) pane._commissionHistCompId = lc;
+              doSearch(pane, tabId, parseInt(pane.getAttribute('data-last-page') || '1', 10) || 1);
+              try { loadCommissionHistoryGrid(pane, tabId); } catch (e0) {}
+              setTimeout(function () { try { loadCommissionHistoryGrid(pane, tabId); } catch (e1) {} }, 600);
+              return;
+            }
+            var trB = trs[bi++];
+            runCommissionRowInlineSave(trB, false, { skipConfirm: true, silent: true, batchDimm: true })
+              .then(function (res) {
+                if (res && res.skipped) {
+                  if (dimmBatch) dimmBatch.style.display = 'none';
+                  return;
+                }
+                runNextBatch();
+              })
+              .catch(function (err) {
+                if (dimmBatch) dimmBatch.style.display = 'none';
+                alert(err && err.message ? err.message : '수수료 저장 실패');
+              });
           }
-          runCommissionRowInlineSave(tr, false);
+          runNextBatch();
         });
-      }
-      if (!pane._commissionInlineEditBound) {
-        pane._commissionInlineEditBound = true;
+      });
+      if (commissionSignal) {
         pane.addEventListener('click', function (e) {
           var activeInput = pane.querySelector('.commission-inline-cell .commission-inline-input[data-key]');
           if (activeInput && (!e.target || !e.target.closest || !e.target.closest('.commission-inline-cell[data-key]'))) {
@@ -3422,10 +3639,11 @@
               var cidEdit = trEdit ? (trEdit.getAttribute('data-comp-id') || '').trim() : '';
               if (cidEdit && String(pane._commissionHistCompId || '').trim() !== cidEdit) {
                 pane._commissionHistCompId = cidEdit;
-                pane.querySelectorAll('#grid_' + tabId + ' tbody tr.table-active').forEach(function (x) { x.classList.remove('table-active'); });
-                if (trEdit) trEdit.classList.add('table-active');
                 try { loadCommissionHistoryGrid(pane, tabId); } catch (eHistSync) {}
               }
+              pane.querySelectorAll('#grid_' + tabId + ' tbody tr.table-active').forEach(function (x) { x.classList.remove('table-active'); });
+              if (trEdit) trEdit.classList.add('table-active');
+              commissionEnsureRowCheckSelected(trEdit);
               var key = editCell.getAttribute('data-key') || '';
               var cur = editCell.getAttribute('data-value') || '';
               var safe = String(cur).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
@@ -3446,7 +3664,24 @@
             }
             return;
           }
-        });
+        }, { signal: commissionSignal });
+        pane.addEventListener('focusin', function (e) {
+          var t = e.target;
+          if (!t || !t.getAttribute || t.getAttribute('data-key') !== 'applyDt') return;
+          if (!t.classList || !t.classList.contains('commission-inline-input')) return;
+          var tbody = pane.querySelector('#grid_' + tabId + ' tbody');
+          if (!tbody || !t.closest || !tbody.contains(t)) return;
+          var trDt = t.closest('tr');
+          if (!trDt) return;
+          var cidDt = (trDt.getAttribute('data-comp-id') || '').trim();
+          if (cidDt && String(pane._commissionHistCompId || '').trim() !== cidDt) {
+            pane._commissionHistCompId = cidDt;
+            try { loadCommissionHistoryGrid(pane, tabId); } catch (eFi) {}
+          }
+          pane.querySelectorAll('#grid_' + tabId + ' tbody tr.table-active').forEach(function (x) { x.classList.remove('table-active'); });
+          trDt.classList.add('table-active');
+          commissionEnsureRowCheckSelected(trDt);
+        }, { signal: commissionSignal });
       }
     }
     var commissionSettingSaveBtn = document.getElementById('commissionSettingSaveBtn');
@@ -3463,6 +3698,10 @@
             if (el.name) fd[el.name] = el.value;
           });
         }
+        if (!pgConfirmBeforeSave(
+          '[' + compIdVal + '] 수수료 설정(모달)을 저장합니다. 계속할까요?',
+          '입력한 내용이 서버에 반영됩니다. 정말 저장할까요?'
+        )) return;
         var dimm = document.getElementById('dimm');
         if (dimm) dimm.style.display = 'flex';
         window.PG_API.commissionSave(compIdVal, fd).then(function () {
@@ -7266,10 +7505,11 @@
       var dimm2 = document.getElementById('dimm');
       if (dimm2) dimm2.style.display = 'flex';
       window.PG_API.hqApiConfig().then(function (data) {
-        if (data && pane.querySelector('[name="baseUrl"]')) {
+        if (data && (pane.querySelector('[name="baseUrl"]') || pane.querySelector('[name="urlPayPathTemplate"]') || pane.querySelector('[name="paymentProviderRegistryJson"]'))) {
           ['baseUrl', 'authType', 'timeoutSec', 'memo', 'chillpayMerchantCode', 'chillpayApiKey', 'chillpayMd5Key', 'chillpayRouteNo', 'chillpaySandbox', 'recallIncludeFeeYn', 'settlementVatApplyYn',
             'apiBrokerDefaultFlowType', 'urlPayDefaultFlowType', 'urlPayPathTemplate',
             'apiBrokerInlineEnabledYn', 'apiBrokerRedirectEnabledYn', 'urlPayInlineEnabledYn', 'urlPayRedirectEnabledYn',
+            'urlPayFormMode',
             'paymentProviderRegistryJson'
           ].forEach(function (k) {
             var el = pane.querySelector('[name="' + k + '"]');
@@ -7284,6 +7524,15 @@
         if (dimm2) dimm2.style.display = 'flex';
         window.PG_API.hqApiConfigSave(fd).then(function () { alert('저장되었습니다.'); }).catch(function (e) { alert(e && e.message ? e.message : '저장 실패'); }).finally(function () { if (dimm2) dimm2.style.display = 'none'; });
       });
+      var pgJump = pane.querySelector('#hqApiConfigOpenPgLink');
+      if (pgJump && !pgJump._hqPgJumpBound) {
+        pgJump._hqPgJumpBound = true;
+        pgJump.addEventListener('click', function () {
+          if (typeof window.fnTopMenuMove === 'function') {
+            window.fnTopMenuMove('/hq/pgApiMng', 'M0101', 'PG사 API 연동');
+          }
+        });
+      }
     }
     if (url === '/hq/domainConfig') {
       var dimmDom = document.getElementById('dimm');
@@ -8648,27 +8897,81 @@
         if (window.openPgAgencyModal) window.openPgAgencyModal({});
       });
     }
+    var hqPgApiOperationalSaveBtn = pane.querySelector('#hqPgApiOperationalSaveBtn');
+    if (hqPgApiOperationalSaveBtn && url === '/hq/pgApiMng' && !hqPgApiOperationalSaveBtn._hqPgOpBound) {
+      hqPgApiOperationalSaveBtn._hqPgOpBound = true;
+      hqPgApiOperationalSaveBtn.addEventListener('click', function () {
+        if (!window.pgDoubleConfirm || !window.pgDoubleConfirm('결제대행사 운영 설정을 저장하시겠습니까?', '체크한 PG만 운영(가맹점 PG 선택·연동)으로 저장됩니다. 계속하시겠습니까?')) return;
+        var dimmOp = document.getElementById('dimm');
+        var fullParams = collectSearchParams(pane);
+        fullParams.page = 1;
+        fullParams.size = 2000;
+        if (dimmOp) dimmOp.style.display = 'flex';
+        window.PG_API.hqPgApiMng(fullParams).then(function (data) {
+          var fullList = (data && data.list) ? data.list : [];
+          var override = {};
+          pane.querySelectorAll('.hq-pg-operational-cb').forEach(function (cb) {
+            var cd = cb.getAttribute('data-pg-cd') || '';
+            if (cd) override[cd] = !!cb.checked;
+          });
+          var cds = [];
+          fullList.forEach(function (row) {
+            if (String(row.useYn || '') !== 'Y') return;
+            var cdx = String(row.pgCd || '').trim();
+            if (!cdx) return;
+            var checked = Object.prototype.hasOwnProperty.call(override, cdx) ? override[cdx] : (String(row.operationalYn || '') === 'Y');
+            if (checked) cds.push(cdx);
+          });
+          return window.PG_API.hqPgApiMngOperationalSave({ operationalPgCds: cds });
+        }).then(function () {
+          alert('운영 설정이 저장되었습니다.');
+          var sb = pane.querySelector('#searchBtn');
+          if (sb) sb.click();
+        }).catch(function (e) { alert(e && e.message ? e.message : '저장 실패'); }).finally(function () { if (dimmOp) dimmOp.style.display = 'none'; });
+      });
+    }
     if (url === '/hq/pgApiMng' && !pane._hqPgGridDbl) {
       pane._hqPgGridDbl = true;
+      function openPgAgencyModalFromRow(row) {
+        if (!row || !window.openPgAgencyModal) return;
+        window.openPgAgencyModal({
+          id: row.id,
+          pgCd: row.pgCd,
+          pgNm: row.pgNm,
+          apiEndpoint: row.apiEndpoint || '',
+          useYn: row.useYn || 'Y',
+          merchantMid: row.merchantMid || '',
+          routeNo: row.routeNo,
+          sandboxYn: row.sandboxYn || 'Y',
+          credentialsExtraJson: row.credentialsExtraJson || ''
+        });
+      }
+      pane.addEventListener('click', function (e) {
+        var btn = e.target && e.target.closest ? e.target.closest('.hq-pg-agency-open-modal') : null;
+        if (!btn || !pane.contains(btn)) return;
+        e.preventDefault();
+        e.stopPropagation();
+        var ridx = btn.getAttribute('data-row-idx');
+        var idx = ridx != null && ridx !== '' ? parseInt(ridx, 10) : NaN;
+        var list = pane._lastGridList || [];
+        if (isNaN(idx) || idx < 0 || idx >= list.length) return;
+        openPgAgencyModalFromRow(list[idx]);
+      });
       pane.addEventListener('dblclick', function (e) {
+        if (e.target && e.target.closest && e.target.closest('.hq-pg-agency-open-modal')) return;
         var tr = e.target.closest('tbody tr');
         if (!tr || tr.querySelector('.empty-state-cell')) return;
         var grid = pane.querySelector('#grid_' + tabId + ' tbody');
         if (!grid || !grid.contains(tr)) return;
-        var rows = grid.querySelectorAll('tr');
-        var idx = Array.prototype.indexOf.call(rows, tr);
+        var attrIdx = tr.getAttribute('data-row-idx');
+        var idx = attrIdx != null && attrIdx !== '' ? parseInt(attrIdx, 10) : NaN;
+        if (isNaN(idx)) {
+          var rows = grid.querySelectorAll('tr');
+          idx = Array.prototype.indexOf.call(rows, tr);
+        }
         var list = pane._lastGridList || [];
         if (idx < 0 || idx >= list.length) return;
-        var row = list[idx];
-        if (window.openPgAgencyModal) {
-          window.openPgAgencyModal({
-            id: row.id,
-            pgCd: row.pgCd,
-            pgNm: row.pgNm,
-            apiEndpoint: row.apiEndpoint || '',
-            useYn: row.useYn || 'Y'
-          });
-        }
+        openPgAgencyModalFromRow(list[idx]);
       });
     }
     var hqPermissionSaveBtn = pane.querySelector('#hqPermissionSaveBtn');
@@ -8695,7 +8998,10 @@
       hqPermissionReloadBtn._bound = true;
       hqPermissionReloadBtn.addEventListener('click', function () {
         if (!window.PG_API || !window.PG_API.hqPermissionMng) return;
-        if (!pgConfirmBeforeSave('서버에 저장된 단계별 기본 권한을 다시 불러옵니다. 저장하지 않은 편집은 취소됩니다. 계속할까요?')) return;
+        if (!pgConfirmBeforeSave(
+          '서버에 저장된 단계별 기본 권한을 다시 불러옵니다. 저장하지 않은 편집은 취소됩니다. 계속할까요?',
+          '불러오면 편집 중인 내용이 사라집니다. 정말 진행할까요?'
+        )) return;
         var keepOrgLevel = pane._orgPermActiveLv || '';
         var dimmR = document.getElementById('dimm');
         if (dimmR) dimmR.style.display = 'flex';
@@ -8934,6 +9240,13 @@
       if (pane && window.PG_SCREENS && window.PG_SCREENS.getScreenHtml) {
         pane.setAttribute('formurl', url || '');
         pane.innerHTML = window.PG_SCREENS.getScreenHtml(url, tabId);
+        /* 탭 전환마다 innerHTML이 바뀌어도 pane은 동일 → 이전 수수료용 리스너를 제거하지 않으면 중복 또는(플래그로 스킵 시) 신규 DOM에 미바인딩 */
+        if (url === '/commission/commisionList') {
+          if (pane._commissionListenersAbort) {
+            try { pane._commissionListenersAbort.abort(); } catch (eCommAb) {}
+          }
+          pane._commissionListenersAbort = new AbortController();
+        }
         pane.classList.add('show', 'active');
         pane.style.display = 'block';
         bindScreenEvents(pane, tabId);
@@ -9939,8 +10252,17 @@
           pgCd: document.getElementById('pgAgencyEditPgCd').value.trim(),
           pgNm: document.getElementById('pgAgencyEditPgNm').value.trim(),
           apiEndpoint: (document.getElementById('pgAgencyEditEndpoint') && document.getElementById('pgAgencyEditEndpoint').value) ? document.getElementById('pgAgencyEditEndpoint').value.trim() : '',
-          useYn: (document.getElementById('pgAgencyEditUseYn') && document.getElementById('pgAgencyEditUseYn').value) || 'Y'
+          useYn: (document.getElementById('pgAgencyEditUseYn') && document.getElementById('pgAgencyEditUseYn').value) || 'Y',
+          mid: (document.getElementById('pgAgencyEditMid') && document.getElementById('pgAgencyEditMid').value) ? document.getElementById('pgAgencyEditMid').value.trim() : '',
+          routeNo: (document.getElementById('pgAgencyEditRouteNo') && document.getElementById('pgAgencyEditRouteNo').value.trim()) ? document.getElementById('pgAgencyEditRouteNo').value.trim() : '',
+          sandboxYn: (document.getElementById('pgAgencyEditSandboxYn') && document.getElementById('pgAgencyEditSandboxYn').value) ? document.getElementById('pgAgencyEditSandboxYn').value : 'Y',
+          credentialsExtraJson: (document.getElementById('pgAgencyEditCredentialsExtra') && document.getElementById('pgAgencyEditCredentialsExtra').value.trim())
+            ? document.getElementById('pgAgencyEditCredentialsExtra').value.trim() : ''
         };
+        var ak = document.getElementById('pgAgencyEditApiKey');
+        var mk = document.getElementById('pgAgencyEditMd5Key');
+        if (ak && ak.value.trim()) body.apiKey = ak.value.trim();
+        if (mk && mk.value.trim()) body.md5Key = mk.value.trim();
         if (idVal) body.id = idVal;
         if (!body.pgCd || !body.pgNm) { alert('PG사코드와 PG사명은 필수입니다.'); return; }
         var dimm = document.getElementById('dimm');

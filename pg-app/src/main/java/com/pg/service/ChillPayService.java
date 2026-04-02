@@ -5,8 +5,10 @@ import com.pg.dto.ChillPayDirectCreditRequest;
 import com.pg.dto.ChillPayDirectCreditResponse;
 import com.pg.entity.HqApiConfig;
 import com.pg.entity.MerchantPgBinding;
+import com.pg.entity.PgAgency;
 import com.pg.repository.HqApiConfigRepository;
 import com.pg.repository.MerchantPgBindingRepository;
+import com.pg.repository.PgAgencyRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.*;
@@ -16,12 +18,13 @@ import org.springframework.web.client.RestTemplate;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
 
 /**
  * ChillPay DirectCredit API 연동 서비스.
- * 설정은 본사설정 > API 구성 세팅에서 저장한 DB 값을 사용합니다.
+ * 본사 ChillPay 자격: PG사 API 연동(tb_pg_agency, CHILLPAY) → API 구성 세팅(tb_hq_api_config) → application.yml 순.
  */
 @Service
 public class ChillPayService {
@@ -50,15 +53,18 @@ public class ChillPayService {
     private final ChillPayProperties props;
     private final HqApiConfigRepository hqApiConfigRepository;
     private final MerchantPgBindingRepository merchantPgBindingRepository;
+    private final PgAgencyRepository pgAgencyRepository;
     private final OrgServiceUseService orgServiceUseService;
     private final RestTemplate restTemplate = new RestTemplate();
 
     public ChillPayService(ChillPayProperties props, HqApiConfigRepository hqApiConfigRepository,
                           MerchantPgBindingRepository merchantPgBindingRepository,
+                          PgAgencyRepository pgAgencyRepository,
                           OrgServiceUseService orgServiceUseService) {
         this.props = props;
         this.hqApiConfigRepository = hqApiConfigRepository;
         this.merchantPgBindingRepository = merchantPgBindingRepository;
+        this.pgAgencyRepository = pgAgencyRepository;
         this.orgServiceUseService = orgServiceUseService;
     }
 
@@ -80,8 +86,34 @@ public class ChillPayService {
         return resolveConfigFromHq();
     }
 
+    /** PG사 API 연동(CHILLPAY 행)에 API Key·MD5가 있으면 최우선(본사 단일 자격). */
+    private Optional<Config> configFromPgAgencyChillPay() {
+        Optional<PgAgency> oa = pgAgencyRepository.findByPgCd(PG_CD_CHILLPAY);
+        if (oa.isEmpty()) {
+            return Optional.empty();
+        }
+        PgAgency a = oa.get();
+        if (a.getUseYn() == null || !"Y".equalsIgnoreCase(a.getUseYn().trim())) {
+            return Optional.empty();
+        }
+        if (a.getApiKey() == null || a.getApiKey().isBlank()
+                || a.getMd5SecretKey() == null || a.getMd5SecretKey().isBlank()) {
+            return Optional.empty();
+        }
+        String mc = (a.getMerchantMid() != null && !a.getMerchantMid().isBlank())
+                ? a.getMerchantMid().trim()
+                : props.getMerchantCode();
+        int routeNo = a.getRouteNo() != null ? a.getRouteNo() : props.getRouteNo();
+        boolean sandbox = a.getSandboxYn() == null || !"N".equalsIgnoreCase(a.getSandboxYn().trim());
+        return Optional.of(new Config(mc, a.getApiKey().trim(), a.getMd5SecretKey().trim(), routeNo, sandbox));
+    }
+
     /** 본사설정(API 구성 세팅) 또는 application.yml에서 ChillPay 설정 조회 */
     private Config resolveConfigFromHq() {
+        Optional<Config> fromAgency = configFromPgAgencyChillPay();
+        if (fromAgency.isPresent()) {
+            return fromAgency.get();
+        }
         Optional<HqApiConfig> opt = hqApiConfigRepository.findAll().stream().findFirst();
         if (opt.isPresent()) {
             HqApiConfig c = opt.get();
@@ -106,10 +138,13 @@ public class ChillPayService {
      * ChillPay DirectCredit 결제 API 호출.
      */
     /** merchantOrgUnitId: 가맹점 등록 시 결제대행사 설정에 ChillPay를 운영대상으로 등록한 경우 해당 가맹점 설정 사용 */
+    /**
+     * @param langCode UI 언어(KOR/ENG/CHN/JPN/THA 등) → ChillPay LangCode(KO/EN/ZH/JA/TH 등)로 매핑
+     */
     public ChillPayDirectCreditResponse requestPayment(
             String orderNo, String customerId, Long amount, String directCreditToken,
             String phoneNumber, String description, String ipAddress, String custEmail,
-            Long merchantOrgUnitId) {
+            Long merchantOrgUnitId, String langCode) {
 
         if (merchantOrgUnitId != null && !orgServiceUseService.isOrgServiceActive(merchantOrgUnitId)) {
             throw new IllegalStateException("서비스가 중지된 업체입니다. (미사용 또는 상위 조직 미사용)");
@@ -133,6 +168,7 @@ public class ChillPayService {
         req.setRouteNo(cfg.routeNo());
         req.setIPAddress(ipAddress != null ? ipAddress : "127.0.0.1");
         req.setCustEmail(custEmail != null ? custEmail : "");
+        req.setLangCode(toChillPayLangCode(langCode));
 
         String concat = req.toConcatString();
         String checkSum = md5(concat + cfg.md5Key());
@@ -166,6 +202,22 @@ public class ChillPayService {
         }
     }
 
+    /** ChillPay DirectCredit Table 1.3 LangCode (EN/KO/JA/ZH 등 매뉴얼 기준) */
+    static String toChillPayLangCode(String uiLang) {
+        if (uiLang == null || uiLang.isBlank()) {
+            return "EN";
+        }
+        String u = uiLang.trim().toUpperCase();
+        return switch (u) {
+            case "KOR", "KO", "KR" -> "KO";
+            case "CHN", "ZH", "CN" -> "ZH";
+            case "JPN", "JA", "JP", "JPY" -> "JA";
+            case "THA", "TH", "THAI" -> "TH";
+            case "ENG", "EN" -> "EN";
+            default -> "EN";
+        };
+    }
+
     private static String md5(String input) {
         try {
             MessageDigest md = MessageDigest.getInstance("MD5");
@@ -192,5 +244,55 @@ public class ChillPayService {
                 "routeNo", cfg.routeNo(),
                 "sandbox", cfg.sandbox()
         );
+    }
+
+    /**
+     * 공개 URL 결제 페이지용: 본사 {@link HqApiConfig} 기준 인라인/리다이렉트·폼 모드 및 ChillPay URL 안내.
+     * (가맹점별 오버라이드 없음 — URL 결제 정책은 본사 단일 설정.)
+     */
+    public Map<String, Object> getUrlPayPresentationForCheckout(Long merchantOrgUnitId) {
+        Config cfg = resolveConfig(merchantOrgUnitId);
+        Map<String, Object> m = new LinkedHashMap<>();
+        Optional<HqApiConfig> opt = hqApiConfigRepository.findAll().stream().findFirst();
+        if (opt.isEmpty()) {
+            m.put("urlPayFlow", "INLINE");
+            m.put("urlPayFormMode", "FULL");
+        } else {
+            HqApiConfig c = opt.get();
+            m.put("urlPayFlow", effectiveUrlPayFlow(c));
+            m.put("urlPayFormMode", effectiveUrlPayFormMode(c));
+        }
+        m.put("redirectPaymentPageUrl", cfg.getRedirectPaymentPageUrl());
+        m.put("paymentAppsrvV2Url", cfg.getAppsrvPaymentV2Url());
+        m.put("ccdScriptUrl", cfg.getCcdScriptUrl());
+        return m;
+    }
+
+    /** URL 결제 기본 방식과 INLINE/REDIRECT 제공 여부를 반영한 실효 방식 */
+    static String effectiveUrlPayFlow(HqApiConfig c) {
+        String def = c.getUrlPayDefaultFlowType() != null ? c.getUrlPayDefaultFlowType().trim() : "REDIRECT";
+        boolean inlineOk = !"N".equalsIgnoreCase(c.getUrlPayInlineEnabledYn());
+        boolean redirectOk = !"N".equalsIgnoreCase(c.getUrlPayRedirectEnabledYn());
+        if ("INLINE".equalsIgnoreCase(def)) {
+            if (inlineOk) {
+                return "INLINE";
+            }
+            return redirectOk ? "REDIRECT" : "INLINE";
+        }
+        if ("REDIRECT".equalsIgnoreCase(def)) {
+            if (redirectOk) {
+                return "REDIRECT";
+            }
+            return inlineOk ? "INLINE" : "REDIRECT";
+        }
+        return "INLINE";
+    }
+
+    static String effectiveUrlPayFormMode(HqApiConfig c) {
+        String fm = c.getUrlPayFormMode();
+        if (fm == null || fm.isBlank()) {
+            return "FULL";
+        }
+        return "SIMPLE".equalsIgnoreCase(fm.trim()) ? "SIMPLE" : "FULL";
     }
 }

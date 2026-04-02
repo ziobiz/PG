@@ -78,6 +78,13 @@ public class HqApiConfig {
     @Column(name = "url_pay_redirect_enabled_yn", length = 1)
     private String urlPayRedirectEnabledYn = "Y";
 
+    /**
+     * URL 공개 결제 페이지(/pay/…) 입력 필드 구성.
+     * FULL: 청구지·성명 분리 등 전체, SIMPLE: 상품·연락·금액 중심 간편 폼.
+     */
+    @Column(name = "url_pay_form_mode", length = 20)
+    private String urlPayFormMode = "FULL";
+
     @Column(name = "payment_provider_registry_json", columnDefinition = "TEXT")
     private String paymentProviderRegistryJson;
 
@@ -175,6 +182,8 @@ public class HqApiConfig {
     public void setUrlPayInlineEnabledYn(String urlPayInlineEnabledYn) { this.urlPayInlineEnabledYn = urlPayInlineEnabledYn; }
     public String getUrlPayRedirectEnabledYn() { return urlPayRedirectEnabledYn; }
     public void setUrlPayRedirectEnabledYn(String urlPayRedirectEnabledYn) { this.urlPayRedirectEnabledYn = urlPayRedirectEnabledYn; }
+    public String getUrlPayFormMode() { return urlPayFormMode; }
+    public void setUrlPayFormMode(String urlPayFormMode) { this.urlPayFormMode = urlPayFormMode; }
     public String getPaymentProviderRegistryJson() { return paymentProviderRegistryJson; }
     public void setPaymentProviderRegistryJson(String paymentProviderRegistryJson) { this.paymentProviderRegistryJson = paymentProviderRegistryJson; }
     public String getRecallIncludeFeeYn() { return recallIncludeFeeYn; }
