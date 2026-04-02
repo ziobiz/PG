@@ -22,6 +22,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -61,6 +62,14 @@ public class CommissionService {
         this.merchantProfileRepository = merchantProfileRepository;
         this.commissionHistoryRepository = commissionHistoryRepository;
         this.distributionFeeConfigRepository = distributionFeeConfigRepository;
+    }
+
+    private Optional<OrgUnit> resolveOrgByCode(String compId) {
+        String c = compId != null ? compId.trim() : "";
+        if (c.isEmpty()) {
+            return Optional.empty();
+        }
+        return orgUnitRepository.findByCode(c).or(() -> orgUnitRepository.findByCodeIgnoreCase(c));
     }
 
     public PageResult<Map<String, Object>> search(String searchCompId, String searchCompNm, String searchCompDiv, String useYn, int page, int size) {
@@ -146,8 +155,19 @@ public class CommissionService {
 
         m.put("totalNm", "");
         putTotals(m);
-        LocalDate apply = m.get("applyStartDate") instanceof LocalDate d ? d
-                : (m.get("applyStartDate") != null ? LocalDate.parse(m.get("applyStartDate").toString()) : null);
+        LocalDate apply = null;
+        if (m.get("applyStartDate") instanceof LocalDate d) {
+            apply = d;
+        } else if (m.get("applyStartDate") != null) {
+            try {
+                String s = m.get("applyStartDate").toString().trim();
+                if (s.length() >= 10) {
+                    apply = LocalDate.parse(s.substring(0, 10));
+                }
+            } catch (Exception ignored) {
+                apply = null;
+            }
+        }
         m.put("applyDt", apply != null ? apply.toString() : regDt);
         return m;
     }
@@ -478,7 +498,7 @@ public class CommissionService {
     }
 
     public Optional<Map<String, Object>> getDetail(String compId) {
-        return orgUnitRepository.findByCode(compId != null ? compId : "").map(ou -> {
+        return resolveOrgByCode(compId).map(ou -> {
             Map<String, Object> m = new HashMap<>();
             m.put("compId", ou.getCode());
             m.put("compNm", ou.getName());
@@ -552,8 +572,10 @@ public class CommissionService {
         });
     }
 
+    @Transactional(rollbackFor = Exception.class)
     public boolean save(String compId, Map<String, Object> body) {
-        return orgUnitRepository.findByCode(compId != null ? compId : "").map(ou -> {
+        return resolveOrgByCode(compId).map(ou -> {
+            String merchantCode = ou.getCode() != null ? ou.getCode().trim() : "";
             CommissionPolicy policy = commissionPolicyRepository.findByScope(ou.getCode())
                     .orElseGet(() -> {
                         CommissionPolicy p = new CommissionPolicy();
@@ -608,9 +630,9 @@ public class CommissionService {
             setPct(extra::setFeeFx, body.get("feeFx"));
             merchantCommissionExtraRepository.save(extra);
 
-            DistributionFeeConfig df = distributionFeeConfigRepository.findByCompId(compId).orElseGet(() -> {
+            DistributionFeeConfig df = distributionFeeConfigRepository.findByCompId(merchantCode).orElseGet(() -> {
                 DistributionFeeConfig x = new DistributionFeeConfig();
-                x.setCompId(compId);
+                x.setCompId(merchantCode);
                 return x;
             });
             setPct(df::setHqRate, body.get("hqRate"));
@@ -636,10 +658,10 @@ public class CommissionService {
             Optional<CommissionPolicy> defaultPolicy = commissionPolicyRepository.findByScope("DEFAULT");
             Map<String, Object> snap = buildCommissionRow(ou, defaultPolicy);
             snap.put("compNm", ou.getName());
-            snap.put("compId", compId);
+            snap.put("compId", merchantCode);
 
             CommissionHistory hist = new CommissionHistory();
-            hist.setCompId(compId != null ? compId.trim() : "");
+            hist.setCompId(merchantCode);
             hist.setChgType("COMMISSION");
             hist.setChgDesc("수수료 설정 변경 저장");
             hist.setChangedBy(currentUsername());
@@ -684,58 +706,122 @@ public class CommissionService {
     public PageResult<Map<String, Object>> history(String compId, int page, int size) {
         String c = compId != null ? compId.trim() : "";
         PageResult<Map<String, Object>> pr = new PageResult<>();
-        pr.setPage(page);
-        pr.setSize(size);
+        int sz = Math.max(1, size);
+        int pg = Math.max(1, page);
+        pr.setPage(pg);
+        pr.setSize(sz);
         if (c.isEmpty()) {
             pr.setList(List.of());
             pr.setTotalElements(0);
             pr.setTotalPages(1);
             return pr;
         }
-        List<CommissionHistory> desc = commissionHistoryRepository.findAllByCompIdOrderByCreatedAtDesc(c);
-        if (desc.isEmpty()) {
-            desc = commissionHistoryRepository.findAll(Sort.by(Sort.Direction.DESC, "createdAt")).stream()
+        Optional<OrgUnit> ouOpt = resolveOrgByCode(c);
+        if (ouOpt.isEmpty()) {
+            pr.setList(List.of());
+            pr.setTotalElements(0);
+            pr.setTotalPages(1);
+            return pr;
+        }
+        OrgUnit ou = ouOpt.get();
+
+        List<OrgUnit> allOrgs = orgUnitRepository.findAll(Sort.by(Sort.Direction.ASC, "code"));
+        Map<Long, OrgUnit> orgById = allOrgs.stream()
+                .filter(o -> o.getId() != null)
+                .collect(Collectors.toMap(OrgUnit::getId, o -> o, (a, b) -> a));
+        Optional<CommissionPolicy> defaultPolicy = commissionPolicyRepository.findByScope("DEFAULT");
+
+        Map<String, Object> live = new LinkedHashMap<>(buildCommissionRow(ou, defaultPolicy));
+        syncNamesFromCurrentOrgTree(live, ou, orgById);
+        refreshAncestorNamesByCode(live);
+
+        List<CommissionHistory> asc = commissionHistoryRepository.findByCompIdIgnoreCaseOrderByCreatedAtAsc(c);
+        if (asc.isEmpty()) {
+            asc = commissionHistoryRepository.findAll(Sort.by(Sort.Direction.ASC, "createdAt")).stream()
                     .filter(h -> h.getCompId() != null && h.getCompId().trim().equalsIgnoreCase(c))
                     .collect(Collectors.toList());
         }
-        int total = desc.size();
-        int sz = Math.max(1, size);
-        int pg = Math.max(1, page);
-        int from = (pg - 1) * sz;
-        int to = Math.min(from + sz, total);
 
-        List<Map<String, Object>> rows = new ArrayList<>();
         LocalDateTime farFuture = LocalDateTime.of(9999, 12, 31, 23, 59, 59);
-        for (int i = from; i < to; i++) {
-            CommissionHistory h = desc.get(i);
-            LocalDateTime start = h.getCreatedAt();
-            LocalDateTime end = (i == 0) ? farFuture : desc.get(i - 1).getCreatedAt();
+        List<Map<String, Object>> allRows = new ArrayList<>();
+        int n = asc.size();
 
-            Map<String, Object> row = new LinkedHashMap<>();
-            row.put("rowNo", i + 1);
-            row.put("startDttm", start != null ? DT_FMT.format(start) : "");
-            row.put("endDttm", end != null ? DT_FMT.format(end) : "");
-            row.put("changedBy", h.getChangedBy() != null ? h.getChangedBy() : "");
-            if (h.getSnapshotJson() != null && !h.getSnapshotJson().isBlank()) {
-                try {
-                    Map<String, Object> snap = MAPPER.readValue(h.getSnapshotJson(), new TypeReference<>() {});
-                    if (snap != null) {
-                        for (Map.Entry<String, Object> e : snap.entrySet()) {
-                            if (!row.containsKey(e.getKey())) {
-                                row.put(e.getKey(), e.getValue());
-                            }
-                        }
-                    }
-                } catch (Exception ignored) {
-                }
+        if (n == 0) {
+            allRows.add(historyRowShell(inferCommissionEffectiveStart(ou), farFuture, "", live));
+        } else {
+            CommissionHistory newest = asc.get(n - 1);
+            LocalDateTime tNew = newest.getCreatedAt() != null ? newest.getCreatedAt() : LocalDateTime.now();
+            String byNew = newest.getChangedBy() != null ? newest.getChangedBy() : "";
+            allRows.add(historyRowShell(tNew, farFuture, byNew, live));
+
+            for (int idx = n - 2; idx >= 0; idx--) {
+                CommissionHistory h = asc.get(idx);
+                LocalDateTime start = h.getCreatedAt();
+                LocalDateTime end = asc.get(idx + 1).getCreatedAt();
+                Map<String, Object> snapBody = parseHistorySnapshotMap(h);
+                refreshAncestorNamesByCode(snapBody);
+                String by = h.getChangedBy() != null ? h.getChangedBy() : "";
+                allRows.add(historyRowShell(start, end, by, snapBody));
             }
-            rows.add(row);
         }
 
-        pr.setList(rows);
+        int total = allRows.size();
+        int from = (pg - 1) * sz;
+        int to = Math.min(from + sz, total);
+        List<Map<String, Object>> pageList = new ArrayList<>();
+        for (int i = from; i < to; i++) {
+            Map<String, Object> copy = new LinkedHashMap<>(allRows.get(i));
+            copy.put("rowNo", i + 1);
+            pageList.add(copy);
+        }
+
+        pr.setList(pageList);
         pr.setTotalElements(total);
-        pr.setTotalPages(sz <= 0 ? 1 : (int) Math.ceil((double) Math.max(0, total) / sz));
+        pr.setTotalPages((int) Math.ceil((double) Math.max(0, total) / sz));
         return pr;
+    }
+
+    private static Map<String, Object> historyRowShell(LocalDateTime start, LocalDateTime end, String changedBy, Map<String, Object> body) {
+        Map<String, Object> row = new LinkedHashMap<>();
+        if (body != null) {
+            row.putAll(body);
+        }
+        row.put("startDttm", start != null ? DT_FMT.format(start) : "");
+        row.put("endDttm", end != null ? DT_FMT.format(end) : "");
+        row.put("changedBy", changedBy != null ? changedBy : "");
+        return row;
+    }
+
+    private Map<String, Object> parseHistorySnapshotMap(CommissionHistory h) {
+        Map<String, Object> snap = new LinkedHashMap<>();
+        if (h == null || h.getSnapshotJson() == null || h.getSnapshotJson().isBlank()) {
+            return snap;
+        }
+        try {
+            Map<String, Object> parsed = MAPPER.readValue(h.getSnapshotJson(), new TypeReference<>() {});
+            if (parsed != null) {
+                snap.putAll(parsed);
+            }
+        } catch (Exception ignored) {
+        }
+        return snap;
+    }
+
+    private LocalDateTime inferCommissionEffectiveStart(OrgUnit ou) {
+        if (ou == null) {
+            return LocalDateTime.now();
+        }
+        String code = ou.getCode() != null ? ou.getCode().trim() : "";
+        if (!code.isEmpty()) {
+            Optional<DistributionFeeConfig> df = distributionFeeConfigRepository.findByCompId(code);
+            if (df.isPresent() && df.get().getApplyStartDate() != null) {
+                return df.get().getApplyStartDate().atStartOfDay();
+            }
+        }
+        if (ou.getCreatedAt() != null) {
+            return ou.getCreatedAt();
+        }
+        return LocalDateTime.now();
     }
 
     private void applyExtraFeesFromCommissionBody(CommissionPolicy p, Map<String, Object> body) {

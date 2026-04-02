@@ -1468,6 +1468,13 @@ body.theme-light .left-side-menu .btn-secondary:hover, body.theme-gray .left-sid
   font-size: 0.66rem;
 }
 
+/* 수수료 변경 히스토리: 제목(th)·내용(td) 상하좌우 가운데 정렬 (테이블·폼 UI 규칙) */
+.commission-history-card .commission-split-grid th,
+.commission-history-card .commission-split-grid td {
+  text-align: center;
+  vertical-align: middle;
+}
+
 .commission-split-grid .form-control-sm {
   font-size: 0.66rem;
 }

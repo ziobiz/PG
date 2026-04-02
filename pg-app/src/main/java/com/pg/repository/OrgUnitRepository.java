@@ -18,6 +18,8 @@ public interface OrgUnitRepository extends JpaRepository<OrgUnit, Long> {
     List<OrgUnit> findByParentIdOrderByCodeAsc(Long parentId);
     Optional<OrgUnit> findByCode(String code);
 
+    Optional<OrgUnit> findByCodeIgnoreCase(String code);
+
     @Query("SELECT o FROM OrgUnit o WHERE o.orgLevel = :lvl AND LOWER(o.name) LIKE LOWER(CONCAT('%', :q, '%'))")
     List<OrgUnit> findByOrgLevelAndNameContainingIgnoreCase(@Param("lvl") OrgLevel lvl, @Param("q") String q);
 }

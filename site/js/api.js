@@ -568,7 +568,9 @@
       return get('/api/commission/history', q).then(function (r) { return r.data; });
     },
     commissionSave: function (compId, data) {
-      var body = new URLSearchParams({ compId: compId });
+      var cid = compId != null ? String(compId).trim() : '';
+      if (!cid) return Promise.reject(new Error('업체코드가 없습니다.'));
+      var body = new URLSearchParams({ compId: cid });
       for (var k in data) if (data[k] !== undefined && data[k] !== null) body.append(k, data[k]);
       var base = getBaseUrl();
       var token = getToken();
@@ -578,7 +580,20 @@
         .then(function (res) {
           if (res.status === 401) { clearAuth(); if (window.location) window.location.replace((window.location.origin || '') + '/login.html'); return Promise.reject(new Error('인증이 만료되었습니다.')); }
           return res.text().then(function (text) {
-            var r; try { r = text ? JSON.parse(text) : {}; } catch (e) { return Promise.reject(new Error('서버 응답 오류')); }
+            var r = {};
+            try {
+              r = text ? JSON.parse(text) : {};
+            } catch (eParse) {
+              if (!res.ok) {
+                var flat = text ? String(text).replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 160) : '';
+                return Promise.reject(new Error('저장 실패 HTTP ' + res.status + (flat ? ' — ' + flat : '') + ' (JSON이 아닌 응답)'));
+              }
+              return Promise.reject(new Error('서버 응답 오류'));
+            }
+            if (!res.ok) {
+              var hint = (r && r.message) ? r.message : (text ? String(text).trim().slice(0, 200) : '');
+              return Promise.reject(new Error('저장 실패 HTTP ' + res.status + (hint ? ': ' + hint : '')));
+            }
             if (r.success === false && r.success !== undefined) throw new Error(r.message || '저장 실패');
             return r;
           });

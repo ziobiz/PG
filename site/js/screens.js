@@ -1349,6 +1349,8 @@
       buttons: [{ id: 'compDetailListBtn', label: '목록', cls: 'btn-secondary' }, { id: 'compDetailSaveBtn', label: '저장', cls: 'btn-primary' }]
     },
     '/commission/commisionList': {
+      /** 인라인 저장은 모든 배분·적용일·처리 열의 td가 필요함 — VIEW SETTING 숨김은 저장 시 값 누락으로 이어짐 */
+      tableColumnGuide: false,
       searchRows: [
         [
           { label: '업체선택(조직)', type: 'select', name: 'searchCompDiv', options: [{ v: '', t: '전체' }, { v: 'REGIONAL', t: '본사' }, { v: 'MASTER_DIST', t: '총판' }, { v: 'BRANCH', t: '지사' }, { v: 'AGENCY', t: '대리점' }, { v: 'SALES_OFFICE', t: '영업점' }, { v: 'MERCHANT', t: '가맹점' }] },
