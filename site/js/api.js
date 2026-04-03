@@ -136,7 +136,10 @@
           ));
         }
         if (data.success === false) {
-          return Promise.reject(new Error(data.message || '요청 처리에 실패했습니다.'));
+          var failMsg = data.message || '요청 처리에 실패했습니다.';
+          var failErr = new Error(failMsg);
+          if (data.errorCode) failErr.errorCode = data.errorCode;
+          return Promise.reject(failErr);
         }
         return data;
       });
@@ -722,6 +725,9 @@
     },
     hqPgApiMngSave: function (body) {
       return post('/api/hq/pgApiMng/save', body).then(function (r) { return r.data; });
+    },
+    hqPgApiMngDelete: function (body) {
+      return post('/api/hq/pgApiMng/delete', body).then(function (r) { return r.data; });
     },
     hqPgApiMngOperationalSave: function (body) {
       return post('/api/hq/pgApiMng/operational', body).then(function (r) { return r.data; });

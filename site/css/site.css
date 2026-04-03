@@ -1822,13 +1822,13 @@ body.theme-light .left-side-menu .btn-secondary:hover, body.theme-gray .left-sid
   opacity: 0.65;
 }
 
-/* 도메인구성: URL·호스트 링크 — 표 본문과 동일 글자 크기(Bootstrap code/small 보정) */
+/* 도메인구성설정: URL·호스트 링크 — 표 본문과 동일 글자 크기(Bootstrap code/small 보정) */
 .hq-domain-config-wrap table code.hq-domain-url-cell,
 .hq-domain-config-wrap table .hq-domain-host-link {
   font-size: inherit;
 }
 
-/* 도메인구성: URL·호스트 링크 (새 탭) */
+/* 도메인구성설정: URL·호스트 링크 (새 탭) */
 .hq-domain-url-link {
   cursor: pointer;
 }
@@ -1843,7 +1843,7 @@ body.theme-light .left-side-menu .btn-secondary:hover, body.theme-gray .left-sid
   text-decoration: underline;
 }
 
-/* 기본정책: 템플릿 목록 행 */
+/* 수수료설정: 템플릿 목록 행 */
 .hq-default-comm-policy-row:hover {
   background-color: rgba(13, 110, 253, 0.07) !important;
 }
@@ -1854,7 +1854,7 @@ body.theme-light .left-side-menu .btn-secondary:hover, body.theme-gray .left-sid
   cursor: pointer;
 }
 
-/* 기본정책: 목록 표 — 전체 너비 100% (colgroup 28열) */
+/* 수수료설정: 목록 표 — 전체 너비 100% (colgroup 28열) */
 .hq-default-comm-policy-table {
   width: 100%;
   table-layout: fixed;
@@ -1936,14 +1936,14 @@ body.theme-light .left-side-menu .btn-secondary:hover, body.theme-gray .left-sid
   width: 9%;
 }
 
-/* 기본정책: 목록 표 — 셀 가로·세로 가운데 */
+/* 수수료설정: 목록 표 — 셀 가로·세로 가운데 */
 .hq-default-comm-policy-table > thead > tr > th,
 .hq-default-comm-policy-table > tbody > tr > td {
   text-align: center;
   vertical-align: middle;
 }
 
-/* 기본정책: 목록 표 — 건당 / % / 월간 묶음 */
+/* 수수료설정: 목록 표 — 건당 / % / 월간 묶음 */
 .hq-default-comm-policy-table .hq-def-comm-th-chk {
   vertical-align: middle;
   padding-left: 0.25rem;
@@ -2049,7 +2049,7 @@ body.theme-light .left-side-menu .btn-secondary:hover, body.theme-gray .left-sid
   line-height: 1.35;
 }
 
-/* 본사 기본정책: 조직 단계별 수수료 격자 */
+/* 본사 수수료설정: 조직 단계별 수수료 격자 */
 .hq-comm-tier-wrap {
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
@@ -2190,3 +2190,20 @@ body.theme-light .left-side-menu .btn-secondary:hover, body.theme-gray .left-sid
     min-width: 100%;
   }
 }
+
+/* 본사 API연동설정: 미사용 행의 운영 열 비활성 표시 */
+.hq-pg-operational-cell--inactive {
+  opacity: 0.45;
+  filter: grayscale(0.35);
+}
+.hq-pg-operational-cell--inactive .form-check-input {
+  cursor: not-allowed;
+}
+
+/* 본사 API연동설정: 연동용도 배지·엔드포인트 줄 단위 가독성 */
+.pg-api-mng-scope-th { min-width: 7rem; max-width: 12rem; }
+.pg-api-mng-scope-cell { max-width: 12rem; vertical-align: top !important; line-height: 1.35; }
+.pg-api-mng-endpoints-th { min-width: 14rem; max-width: 26rem; }
+.pg-api-mng-ep-cell { max-width: 26rem; min-width: 12rem; vertical-align: top !important; }
+.pg-api-mng-ep-line { line-height: 1.4; margin-bottom: 0.25rem; word-break: break-all; }
+.pg-api-mng-ep-line:last-child { margin-bottom: 0; }

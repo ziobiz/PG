@@ -6,19 +6,19 @@
       "label": "본사설정",
       "icon": "bi-gear-wide-connected",
       "children": [
-        { "label": "PG사 API 연동", "url": "/hq/pgApiMng", "menuId": "M0101" },
-        { "label": "기본정책", "url": "/hq/defaultCommission", "menuId": "M0102" },
-        { "label": "차지백 구간정책", "url": "/hq/chargebackPolicy", "menuId": "M0117" },
+        { "label": "수수료설정", "url": "/hq/defaultCommission", "menuId": "M0102" },
+        { "label": "차지백설정", "url": "/hq/chargebackPolicy", "menuId": "M0117" },
         { "label": "영업일설정", "url": "/hq/businessDaySetting", "menuId": "M0109" },
-        { "label": "전산노티·결제환경", "url": "/hq/notifyEnv", "menuId": "M0105" },
+        { "label": "본사권한설정", "url": "/hq/permissionMng", "menuId": "M0104" },
+        { "label": "업체접근설정", "url": "/hq/accountMng", "menuId": "M0106" },
+        { "label": "조직항목설정", "url": "/hq/orgViewColumnAllowance", "menuId": "M0108" },
+        { "label": "API연동설정", "url": "/hq/pgApiMng", "menuId": "M0101" },
+        { "label": "API배포설정", "url": "/hq/apiConfig", "menuId": "M0103" },
+        { "label": "결제로직설정", "url": "/hq/paymentOrchestration", "menuId": "M0118" },
+        { "label": "노티구성설정", "url": "/hq/notifyEnv", "menuId": "M0105" },
         { "label": "노티매핑설정", "url": "/hq/notifyMapping", "menuId": "M0107" },
-        { "label": "조직별 노출설정", "url": "/hq/orgViewColumnAllowance", "menuId": "M0108" },
-        { "label": "API 구성 세팅", "url": "/hq/apiConfig", "menuId": "M0103" },
-        { "label": "결제연동 확장설정", "url": "/hq/paymentOrchestration", "menuId": "M0118" },
-        { "label": "도메인구성", "url": "/hq/domainConfig", "menuId": "M0115" },
-        { "label": "서버관리", "url": "/hq/serverManage", "menuId": "M0116" },
-        { "label": "조직별 권한 세팅", "url": "/hq/permissionMng", "menuId": "M0104" },
-        { "label": "계정·업체접근", "url": "/hq/accountMng", "menuId": "M0106" }
+        { "label": "도메인구성설정", "url": "/hq/domainConfig", "menuId": "M0115" },
+        { "label": "서버운영관리", "url": "/hq/serverManage", "menuId": "M0116" }
       ]
     },
     {

@@ -6,6 +6,7 @@ import com.pg.entity.MerchantDefaultProduct;
 import com.pg.entity.OrgUnit;
 import com.pg.repository.MerchantDefaultProductRepository;
 import com.pg.repository.OrgUnitRepository;
+import com.pg.service.ChillPayDirectCreditRecordService;
 import com.pg.service.ChillPayService;
 import com.pg.service.OrgServiceUseService;
 import org.springframework.http.ResponseEntity;
@@ -24,14 +25,18 @@ import java.util.Optional;
 public class ApiPayController {
 
     private final ChillPayService chillPayService;
+    private final ChillPayDirectCreditRecordService chillPayDirectCreditRecordService;
     private final OrgUnitRepository orgUnitRepository;
     private final MerchantDefaultProductRepository merchantDefaultProductRepository;
     private final OrgServiceUseService orgServiceUseService;
 
-    public ApiPayController(ChillPayService chillPayService, OrgUnitRepository orgUnitRepository,
+    public ApiPayController(ChillPayService chillPayService,
+                            ChillPayDirectCreditRecordService chillPayDirectCreditRecordService,
+                            OrgUnitRepository orgUnitRepository,
                             MerchantDefaultProductRepository merchantDefaultProductRepository,
                             OrgServiceUseService orgServiceUseService) {
         this.chillPayService = chillPayService;
+        this.chillPayDirectCreditRecordService = chillPayDirectCreditRecordService;
         this.orgUnitRepository = orgUnitRepository;
         this.merchantDefaultProductRepository = merchantDefaultProductRepository;
         this.orgServiceUseService = orgServiceUseService;
@@ -156,6 +161,9 @@ public class ApiPayController {
                     phoneNumber, description, ipAddress, custEmail,
                     merchantOrgUnitId, langCode
             );
+            int routeNo = chillPayService.resolveEffectiveRouteNo(merchantOrgUnitId);
+            chillPayDirectCreditRecordService.recordAfterDirectCreditResponse(
+                    merchantOrgUnitId, res, amount, orderNo, customerId, routeNo);
             return ResponseEntity.ok(ApiResponse.ok(res));
         } catch (Exception e) {
             return ResponseEntity.ok(ApiResponse.fail(
@@ -194,6 +202,7 @@ public class ApiPayController {
         String item = str(body, "item");
         String desc = str(body, "description");
         String base = (item != null && !item.isEmpty()) ? item : (desc != null ? desc : "");
+        String compId = str(body, "compId");
         String fn = str(body, "firstName");
         String ln = str(body, "lastName");
         String zip = str(body, "zipCode");
@@ -201,6 +210,9 @@ public class ApiPayController {
         String city = str(body, "city");
         String addr = str(body, "addressLine");
         StringBuilder meta = new StringBuilder();
+        if (compId != null && !compId.isEmpty()) {
+            meta.append("icopayCompId=").append(compId).append(";");
+        }
         if (fn != null || ln != null) {
             meta.append("name=").append(fn != null ? fn : "").append(" ").append(ln != null ? ln : "").append(";");
         }

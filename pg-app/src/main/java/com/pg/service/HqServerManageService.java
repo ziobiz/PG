@@ -44,7 +44,7 @@ import java.util.TreeSet;
 import java.util.stream.Collectors;
 
 /**
- * 본사설정 서버관리: 호스트·JVM·DB·SSL(PEM)·Certbot·Nginx stub 요약
+ * 본사설정 서버운영관리: 호스트·JVM·DB·SSL(PEM)·Certbot·Nginx stub 요약
  */
 @Service
 public class HqServerManageService {
@@ -150,7 +150,7 @@ public class HqServerManageService {
     }
 
     /**
-     * 도메인구성 화면 연동: PEM의 SAN과 전사·조직 URL에 적힌 호스트명을 대조합니다.
+     * 도메인구성설정 화면 연동: PEM의 SAN과 전사·조직 URL에 적힌 호스트명을 대조합니다.
      */
     public Map<String, Object> buildSslDomainLinkage(String publicAdminSiteUrl, String publicApiBaseUrl,
                                                      List<Map<String, Object>> orgDomainRows) {
@@ -204,7 +204,7 @@ public class HqServerManageService {
             }
         }
         out.put("sanWithoutConfiguredUrl", sanOnly);
-        out.put("linkageHint", "도메인구성 URL의 호스트명이 인증서 SAN에 없으면 HTTPS 경고가 납니다. SAN에만 있고 여기 미기재인 호스트는 운영용으로 쓰는지 검토하세요.");
+        out.put("linkageHint", "도메인구성설정 URL의 호스트명이 인증서 SAN에 없으면 HTTPS 경고가 납니다. SAN에만 있고 여기 미기재인 호스트는 운영용으로 쓰는지 검토하세요.");
         return out;
     }
 

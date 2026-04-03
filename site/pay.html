@@ -201,7 +201,7 @@
           totalAmount: '결제 금액', agreeTerms: '이용약관에 동의합니다.', confirmOrder: '위 주문 내용을 확인했습니다.',
           payButton: '결제', configErr: '설정을 불러올 수 없습니다.', needComp: '유효한 가맹점 코드(m)가 필요합니다.',
           needToken: 'DirectCreditToken을 입력하세요.', needAmount: '금액을 입력하세요.',
-          redirectModeNotice: '본사 설정이 리다이렉트(호스티드) URL 결제입니다. ChillPay 호스티드로 보내는 서명 POST는 서버 연동 후 사용할 수 있습니다. 「결제연동 확장설정」에서 URL 결제형 기본 방식을 INLINE으로 바꾸면 이 페이지에서 카드 토큰(DirectCredit) 결제를 쓸 수 있습니다.',
+          redirectModeNotice: '본사 설정이 리다이렉트(호스티드) URL 결제입니다. ChillPay 호스티드로 보내는 서명 POST는 서버 연동 후 사용할 수 있습니다. 「결제로직설정」에서 URL 결제형 기본 방식을 INLINE으로 바꾸면 이 페이지에서 카드 토큰(DirectCredit) 결제를 쓸 수 있습니다.',
           orgDisabled: '서비스가 중지된 가맹점입니다.',
           payOk: '결제 요청이 처리되었습니다.', payFail: '결제에 실패했습니다.'
         },
@@ -479,7 +479,7 @@
           if (checkoutCtx.defaultAmountYen != null && checkoutCtx.defaultAmountYen !== '') {
             document.getElementById('amount').value = String(checkoutCtx.defaultAmountYen);
           }
-          document.getElementById('orderNo').value = 'ORD' + Date.now();
+          document.getElementById('orderNo').value = 'ORD-' + compId + '-' + Date.now();
           applyCheckoutPresentation();
           applyI18n();
           if (urlPayFlow === 'REDIRECT') {

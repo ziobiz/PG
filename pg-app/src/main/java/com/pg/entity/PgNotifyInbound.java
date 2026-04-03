@@ -20,6 +20,10 @@ public class PgNotifyInbound {
     @Column(name = "root_no", length = 40)
     private String rootNo;
 
+    /** 노티 본문에서 파싱한 업체코드(URL 결제 1:N 분기). MID+루트만 쓰는 노티 연동에서는 비움 */
+    @Column(name = "payload_comp_id", length = 64)
+    private String payloadCompId;
+
     @Column(name = "merchant_id", length = 20)
     private String merchantId;
 
@@ -56,6 +60,8 @@ public class PgNotifyInbound {
     public void setMid(String mid) { this.mid = mid; }
     public String getRootNo() { return rootNo; }
     public void setRootNo(String rootNo) { this.rootNo = rootNo; }
+    public String getPayloadCompId() { return payloadCompId; }
+    public void setPayloadCompId(String payloadCompId) { this.payloadCompId = payloadCompId; }
     public String getMerchantId() { return merchantId; }
     public void setMerchantId(String merchantId) { this.merchantId = merchantId; }
     public Long getOrgUnitId() { return orgUnitId; }

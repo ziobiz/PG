@@ -61,7 +61,7 @@ public class PayListActionService {
 
     private static void requireYn(String yn, String label) {
         if (!"Y".equalsIgnoreCase(yn)) {
-            throw new IllegalStateException("본사설정 > 전산노티·결제환경에서 [" + label + "] 사용이 꺼져 있습니다.");
+            throw new IllegalStateException("본사설정 > 노티구성설정에서 [" + label + "] 사용이 꺼져 있습니다.");
         }
     }
 }

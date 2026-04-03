@@ -23,7 +23,7 @@
     return [{ v: '', t: '전체' }].concat(COMP_MNG_SEARCH_COMP_DIV_LEVELS.map(function (o) { return { v: o.v, t: o.t }; }));
   }
 
-  /** 기본정책: 조직 단계별(총본사~가맹) 수수료 격자 — 가맹 열은 총본사~영업점 합계(읽기 전용) */
+  /** 수수료설정: 조직 단계별(총본사~가맹) 수수료 격자 — 가맹 열은 총본사~영업점 합계(읽기 전용) */
   function hqDefaultCommissionTierMatrixHtml() {
     var L = [
       { k: 'hq', t: '총본사' },
@@ -68,7 +68,7 @@
       '<th class="text-center align-middle small" style="min-width:6.5rem">내용</th><th class="text-center align-middle small" style="width:2.75rem">단위</th>' + th + '</tr></thead><tbody>' + trb + '</tbody></table></div>';
   }
 
-  /** 기본정책: 기타(비고) 수수료 4슬롯 — 가맹 열은 총본사~영업점 합계(읽기 전용) */
+  /** 수수료설정: 기타(비고) 수수료 4슬롯 — 가맹 열은 총본사~영업점 합계(읽기 전용) */
   function hqDefaultExtraFeesCardHtml() {
     var L = [
       { k: 'hq', t: '총본사' },
@@ -219,8 +219,8 @@
         { type: 'searchBtn', label: '검색' }
       ]],
       noticeList: [
-        'API Key·MD5 등 민감값은 목록에 노출하지 않습니다. 각 행의 [연동 입력] 버튼 또는 행 더블클릭으로 모달을 연 뒤 MID·API Key·MD5·Route·Sandbox·추가 JSON을 입력·저장하세요. 신규는 [PG사 연동 추가]입니다.',
-        'ChillPay는 PG코드 CHILLPAY로 등록한 뒤 모달에 자격 증명을 넣으면 결제 연동 시 최우선 사용됩니다. 모달 입력란이 없으면 관리자 정적·JAR 배포가 최신인지 확인하세요.'
+        '연동 용도(노티·URL결제·웹챗봇·API)와 용도별 엔드포인트를 구분해 저장합니다. 노티=미들웨어 수신 매칭, URL=URL결제 플로우, 챗봇/API=피지사 API 직연동(챗봇·API 동일 PG 연동 URL). API Key·MD5는 목록 미노출. [삭제]는 등록일 오른쪽, 신규는 [PG사 연동 추가]입니다.',
+        'ChillPay는 PG코드 CHILLPAY, API·URL 엔드포인트는 ChillPayService가 병합 반영합니다. 운영 DB는 db/V35_pg_agency_integration_scope.sql 적용 후 배포하세요.'
       ],
       summary: ['건수'],
       buttons: [
@@ -228,7 +228,8 @@
         { id: 'hqPgApiOperationalSaveBtn', label: '운영 저장', cls: 'btn-outline-primary' },
         { id: 'hqPgApiAddBtn', label: 'PG사 연동 추가', cls: 'btn-success' }
       ],
-      columns: [{ key: '_chk', type: 'checkbox' }, { key: 'rowNo', label: '번호' }, { key: '_pgCredEdit', type: 'pgAgencyEdit', label: '연동 입력' }, { key: 'pgNm', label: '업체명' }, { key: 'pgCd', label: 'PG코드' }, { key: 'merchantMid', label: 'MID' }, { key: 'hasCredentials', label: '키등록' }, { key: 'routeNo', label: 'Route' }, { key: 'sandboxYn', label: '샌드박스' }, { key: 'apiEndpoint', label: 'API URL' }, { key: 'operationalYn', label: '운영' }, { key: 'useYn', label: '사용' }, { key: 'regDt', label: '등록일' }]
+      columnGuideFixedKeys: ['rowNo', '_pgRowAct'],
+      columns: [{ key: '_chk', type: 'checkbox' }, { key: 'rowNo', label: '번호' }, { key: 'pgNm', label: '업체명' }, { key: 'pgCd', label: 'PG코드' }, { key: 'integrationScopeLabel', label: '연동용도', thClass: 'pg-api-mng-scope-th' }, { key: 'endpointsSummary', label: '엔드포인트', thClass: 'pg-api-mng-endpoints-th' }, { key: 'merchantMid', label: 'MID' }, { key: 'hasCredentials', label: '키등록' }, { key: 'routeNo', label: 'Route' }, { key: 'sandboxYn', label: 'Environment' }, { key: 'operationalYn', label: '운영' }, { key: 'useYn', label: '사용' }, { key: 'regDt', label: '등록일' }, { key: '_pgRowAct', type: 'pgApiMngRowActions', label: '관리' }]
     },
     '/hq/defaultCommission': {
       isForm: true,
@@ -330,8 +331,8 @@
     '/hq/chargebackPolicy': {
       isForm: true,
       formSections: [{
-        title: '차지백 구간 정책',
-        notice: '월간 환불·강제환불(거래 상태 30·31) 건수로 구간을 정합니다. 해당 월 누적 건수에 맞는 첫 구간의 건당 금액을, 정산 배치에 포함된 환불·강제환불 건수만큼 곱해 합산합니다. 구간 정책을 쓰지 않으면 [기본정책]의 차지백수수료(건)만 적용됩니다.',
+        title: '차지백설정',
+        notice: '월간 환불·강제환불(거래 상태 30·31) 건수로 구간을 정합니다. 해당 월 누적 건수에 맞는 첫 구간의 건당 금액을, 정산 배치에 포함된 환불·강제환불 건수만큼 곱해 합산합니다. 구간 정책을 쓰지 않으면 [수수료설정]의 차지백수수료(건)만 적용됩니다.',
         rows: [[{
           type: 'customHtml',
           col: 12,
@@ -379,7 +380,7 @@
       formSections: [
         {
           title: '전산 노티 수신 (NOTI 전산노티대상 연동)',
-          notice: '아래 URL을 ziobiz/NOTI 전산노티대상 설정에 등록하세요. 경로 끝 토큰으로 무단 호출을 막습니다. 운영 배포 후 [공개 URL 베이스]에 https://실제도메인 을 넣으면 안내 URL이 고정됩니다.',
+          notice: '아래 URL을 ziobiz/NOTI 전산노티대상 설정에 등록하세요. 경로 끝 토큰으로 무단 호출을 막습니다. 운영 배포 후 [공개 URL 베이스]에 https://실제도메인 을 넣으면 안내 URL이 고정됩니다. API연동설정에서 연동용도가 노티(등)인 PG는 노티를 MID+루트로 분기합니다. URL 결제만인 PG는 동일 MID가 여러 가맹점이면 본문에 업체코드(compId) 또는 icopayCompId= 가 필요합니다.',
           rows: [
             [{ label: '노티 수신 URL', type: 'text', name: 'notifyIngressUrl', col: 6, readonly: true }],
             [{ label: 'Ingress 토큰(참고)', type: 'text', name: 'ingressToken', col: 6, readonly: true }],
@@ -443,7 +444,7 @@
       formHtmlId: 'hqOrgViewColumnAllowanceForm',
       formSections: [
         {
-          title: '조직별 노출설정',
+          title: '조직항목설정',
           notice: '총본사가 각 본사(REGIONAL) 트리마다, 조직 유형·화면별로 VIEW SETTING에서 노출·선택 가능한 열을 지정합니다. 본사·총판·지사·대리점·영업점(동일 설정)·가맹점 네 가지로 나누어 저장합니다. 지사·대리점·영업점과 가맹점에 별도 저장이 없으면 해당 화면의 총판 설정을 그대로 따릅니다. 정책 행이 없으면(불러오기 시 정책 없음) 제한 없이 전 항목 선택 가능합니다. 고정 열(번호·업체명·거래일·Route No 등)은 항상 표시되며 여기 목록에 나오지 않습니다. [불러오기]는 현재 선택한 본사·조직 유형·화면에 대해 서버에 저장된 체크 상태를 가져와 반영합니다(저장 전에 서버 값을 확인할 때 사용).',
           rows: [
             [{ label: '설정 대상 본사', type: 'select', name: 'regionalOrgCode', col: 4, options: [{ v: '', t: '선택' }], loadRegionalBranches: true }],
@@ -535,7 +536,7 @@
         },
         {
           title: '실시간 대시보드',
-          notice: 'SSL 카드에 인증서 SAN(호스트명) 목록과 운영 안내(카페24 DNS·Cloudflare·다중 -d)가 포함됩니다. 도메인구성 화면에서는 전사·조직 URL과 SAN 대조 표가 함께 표시됩니다. 레이아웃은 NOTI GitHub 저장소의 /admin/system-monitor를 참고했습니다. PG는 Spring API(JSON)로 채웁니다. 교차 출처 접속 시 상단 안내를 확인하세요.',
+          notice: 'SSL 카드에 인증서 SAN(호스트명) 목록과 운영 안내(카페24 DNS·Cloudflare·다중 -d)가 포함됩니다. 도메인구성설정 화면에서는 전사·조직 URL과 SAN 대조 표가 함께 표시됩니다. 레이아웃은 NOTI GitHub 저장소의 /admin/system-monitor를 참고했습니다. PG는 Spring API(JSON)로 채웁니다. 교차 출처 접속 시 상단 안내를 확인하세요.',
           rows: [
             [{
               type: 'customHtml',
@@ -581,8 +582,8 @@
       isForm: true,
       formSections: [
         {
-          title: 'API 구성 세팅',
-          notice: '가맹점에 발급하는 통합 API의 기본 URL·인증·타임아웃입니다. PG사별 MID·API Key·시크릿은 「PG사 API 연동」에서 PG코드 단위로 추가·저장하세요(여 PG 병행).',
+          title: 'API배포설정',
+          notice: '가맹점에 발급하는 통합 API의 기본 URL·인증·타임아웃입니다. PG사별 MID·API Key·시크릿은 「API연동설정」에서 PG코드 단위로 추가·저장하세요(여 PG 병행).',
           rows: [
             [{ label: 'API 기본 URL', type: 'text', name: 'baseUrl', col: 6, placeholder: 'https://api.example.com/v1' }],
             [{ label: '인증방식', type: 'select', name: 'authType', options: [{ v: 'API_KEY', t: 'API Key' }, { v: 'Bearer', t: 'Bearer Token' }, { v: 'BASIC', t: 'Basic' }], col: 2 }, { label: '타임아웃(초)', type: 'text', name: 'timeoutSec', col: 2 }],
@@ -591,20 +592,20 @@
         },
         {
           title: 'PG 자격 증명 (등록 위치)',
-          notice: '[PG사 연동 추가]로 PG코드·표시명을 만든 뒤, 동일 화면에서 MID·API Key·MD5(또는 서명키)·Route·Sandbox를 입력합니다. ChillPay 결제는 PG코드 CHILLPAY 행에 값이 있으면 그것을 최우선으로 사용하고, 비어 있을 때만 아래 레거시 필드를 사용합니다.',
+          notice: '[PG사 연동 추가]로 PG코드·표시명을 만든 뒤, 동일 화면에서 MID·API Key·MD5(또는 서명키)·Route·Environment (Sandbox/Production)을 입력합니다. ChillPay 결제는 PG코드 CHILLPAY 행에 값이 있으면 그것을 최우선으로 사용하고, 비어 있을 때만 아래 레거시 필드를 사용합니다.',
           rows: [[{
             type: 'customHtml',
             col: 12,
-            html: '<button type="button" class="btn btn-sm btn-primary" id="hqApiConfigOpenPgLink">PG사 API 연동 화면 열기</button>' +
+            html: '<button type="button" class="btn btn-sm btn-primary" id="hqApiConfigOpenPgLink">API연동설정 화면 열기</button>' +
               '<span class="text-muted small ms-2">목록에서 행을 더블클릭하면 자격 증명을 편집할 수 있습니다.</span>'
           }]]
         },
         {
           title: 'ChillPay 레거시 (tb_hq_api_config 호환)',
-          notice: 'PG사 API 연동에 CHILLPAY로 API Key·MD5가 등록되어 있으면 이 블록은 무시됩니다. 기존 DB만 쓰는 환경용입니다.',
+          notice: 'API연동설정에 CHILLPAY로 API Key·MD5가 등록되어 있으면 이 블록은 무시됩니다. 기존 DB만 쓰는 환경용입니다.',
           rows: [
             [{ label: 'Merchant Code', type: 'text', name: 'chillpayMerchantCode', col: 2, placeholder: 'M035594' }, { label: 'API Key', type: 'text', name: 'chillpayApiKey', col: 4, placeholder: 'ChillPay에서 발급' }],
-            [{ label: 'MD5 Secret Key', type: 'text', name: 'chillpayMd5Key', col: 4, placeholder: 'CheckSum 생성용' }, { label: 'Route No', type: 'text', name: 'chillpayRouteNo', col: 1, placeholder: '4' }, { label: 'Sandbox', type: 'select', name: 'chillpaySandbox', options: [{ v: 'Y', t: '사용' }, { v: 'N', t: '운영' }], col: 1 }]
+            [{ label: 'MD5 Secret Key', type: 'text', name: 'chillpayMd5Key', col: 4, placeholder: 'CheckSum 생성용' }, { label: 'Route No', type: 'text', name: 'chillpayRouteNo', col: 1, placeholder: '4' }, { label: 'Environment', type: 'select', name: 'chillpaySandbox', options: [{ v: 'Y', t: 'Sandbox' }, { v: 'N', t: 'Production' }], col: 1 }]
           ]
         },
         {
@@ -624,7 +625,7 @@
       isForm: true,
       formSections: [
         {
-          title: '결제연동 확장설정',
+          title: '결제로직설정',
           notice: '결제대행 연동 핵심 정책입니다. 통합유형(API_BROKER/URL_PAY)별 결제 실행방식(INLINE/REDIRECT) 기본값과 URL결제 경로를 설정합니다.',
           rows: [
             [{ label: 'API 중계형 기본 방식', type: 'select', name: 'apiBrokerDefaultFlowType', options: [{ v: 'INLINE', t: 'INLINE' }, { v: 'REDIRECT', t: 'REDIRECT' }], col: 2 },
@@ -665,7 +666,7 @@
       emptyMessage: '등록된 업체별 접근 규칙이 없습니다.',
       noticeList: [
         '로그인 ID(사용자)별로 접근 가능한 업체코드(본사·총판·가맹점 등)를 지정합니다. 행이 하나라도 있으면 사용자관리 목록·등록·초기화 범위는 <strong>하위 조직 ∩ 여기서 지정한 업체</strong>로만 제한됩니다.',
-        '담당자(ASSISTANT) 계정의 메뉴 권한은 [조직별 권한 세팅]의 <strong>담당자 권한그룹별 메뉴</strong>에서 조직 상한 내에서 조정합니다. OTP 정책은 [전산노티·결제환경]을 따릅니다.'
+        '담당자(ASSISTANT) 계정의 메뉴 권한은 [본사권한설정]의 <strong>담당자 권한그룹별 메뉴</strong>에서 조직 상한 내에서 조정합니다. OTP 정책은 [노티구성설정]을 따릅니다.'
       ],
       searchRows: [[{ type: 'searchBtn', label: '새로고침' }]],
       summary: ['건수'],
@@ -801,7 +802,7 @@
           title: '결제대행사 설정',
           id: 'pgBindingCard',
           merchantOnly: true,
-          notice: '본사설정 > PG사 API 연동에 등록된 결제대행사를 선택하고 MID·API KEY 등을 입력하세요. 등록 화면에서는 하단 [저장] 시 한꺼번에 반영됩니다.'
+          notice: '본사설정 > API연동설정에서 사용(Y)으로 등록된 결제대행사가 목록에 표시됩니다. PG를 고르면 API연동설정의 MID·Route 등이 기본값으로 채워지며, 가맹점 전용 값은 수정·저장하면 됩니다. 실제 결제 운영 PG는 라디오(운영)로 하나만 지정합니다. 등록 화면은 하단 [저장] 시 한꺼번에 반영됩니다.'
         },
         {
           title: '웹결제 사용 / 대표 기본상품정보 (온라인 URL 결제용)',
@@ -1009,11 +1010,11 @@
           title: '상세정보',
           id: 'distributorExtraCard',
           masterDistOnly: true,
-          notice: '총판일 때만 입력합니다. 총판은 1가지 화폐만 지정할 수 있습니다. 노티 대상은 본사설정 > 전산노티·결제환경의 [총판 노티 대상 생성]에서 먼저 등록합니다. 왼쪽 [노티 쌍 선택]·[보조 쌍 선택]으로 URL을 한 번에 채우거나, 각 칸에서 드롭다운·[노티선택]을 사용하세요. URL 1=CALLBACK, 2=RESULT(필수). URL 3·4는 보조입니다.',
+          notice: '총판일 때만 입력합니다. 총판은 1가지 화폐만 지정할 수 있습니다. 노티 대상은 본사설정 > 노티구성설정의 [총판 노티 대상 생성]에서 먼저 등록합니다. 왼쪽 [노티 쌍 선택]·[보조 쌍 선택]으로 URL을 한 번에 채우거나, 각 칸에서 드롭다운·[노티선택]을 사용하세요. URL 1=CALLBACK, 2=RESULT(필수). URL 3·4는 보조입니다.',
           rows: [
             [{ label: '기준 화폐*', type: 'select', name: 'baseCurrency', options: [{ v: '', t: '선택' }, { v: 'KRW', t: 'KRW (원)' }, { v: 'USD', t: 'USD (달러)' }, { v: 'JPY', t: 'JPY (엔)' }, { v: 'THB', t: 'THB (바트)' }, { v: 'EUR', t: 'EUR (유로)' }], col: 2 }, { label: '사이트개요', type: 'text', name: 'siteSummary', col: 2, placeholder: '사이트개요' }, { label: '취급물품', type: 'text', name: 'product', col: 2 }, { label: '대표사이트', type: 'text', name: 'homepage', col: 2, placeholder: 'https://' }],
             [{ label: '정산담당자명', type: 'text', name: 'settleName', col: 2 }, { label: '정산담당자연락처', type: 'text', name: 'settleTelNo', col: 2, placeholder: '010-0000-0000' }, { label: '정산형태', type: 'select', name: 'settleType', options: [{ v: '', t: '선택' }, { v: 'M', t: '가맹점별' }, { v: 'G', t: '총판' }], col: 1 }, { label: '요율(%)', type: 'text', name: 'commissionRate', col: 1, placeholder: '요율' }, { label: '사용한도', type: 'text', name: 'limitAmt', col: 2, placeholder: '사용한도' }],
-            [{ type: 'notifyPairButton', col: 2, pairLabel: '필수 노티', buttonText: '노티 쌍 선택', callbackField: 'notifyUrl1', resultField: 'notifyUrl2', hint: 'CALLBACK→URL1, RESULT→URL2 동시 설정', titleHint: '본사설정 > 전산노티·결제환경에서 [노티자동생성]으로 등록한 쌍을 고릅니다.' }, { label: '노티 CALLBACK (URL 1)*', type: 'select', name: 'notifyUrl1', col: 5, loadNotifyTargets: true, button: '노티선택' }, { label: '노티 RESULT (URL 2)*', type: 'select', name: 'notifyUrl2', col: 5, loadNotifyTargets: true, button: '노티선택' }],
+            [{ type: 'notifyPairButton', col: 2, pairLabel: '필수 노티', buttonText: '노티 쌍 선택', callbackField: 'notifyUrl1', resultField: 'notifyUrl2', hint: 'CALLBACK→URL1, RESULT→URL2 동시 설정', titleHint: '본사설정 > 노티구성설정에서 [노티자동생성]으로 등록한 쌍을 고릅니다.' }, { label: '노티 CALLBACK (URL 1)*', type: 'select', name: 'notifyUrl1', col: 5, loadNotifyTargets: true, button: '노티선택' }, { label: '노티 RESULT (URL 2)*', type: 'select', name: 'notifyUrl2', col: 5, loadNotifyTargets: true, button: '노티선택' }],
             [{ type: 'notifyPairButton', col: 2, pairLabel: '보조 노티', buttonText: '보조 쌍 선택', callbackField: 'notifyUrl3', resultField: 'notifyUrl4', hint: 'URL 3·4를 같은 쌍으로 채웁니다.', titleHint: '보조 노티 URL 3·4를 한 번에 설정합니다.' }, { label: '노티 URL 3(보조)', type: 'select', name: 'notifyUrl3', col: 5, loadNotifyTargets: true, button: '노티선택' }, { label: '노티 URL 4(보조)', type: 'select', name: 'notifyUrl4', col: 5, loadNotifyTargets: true, button: '노티선택' }]
           ]
         },
@@ -1102,7 +1103,7 @@
           title: '결제대행사 설정',
           id: 'pgBindingCard',
           merchantOnly: true,
-          notice: '본사설정 > PG사 API 연동에 등록된 결제대행사를 선택하고 MID·API KEY 등을 입력하세요. 등록 화면에서는 하단 [저장] 시 한꺼번에 반영됩니다.'
+          notice: '본사설정 > API연동설정에서 사용(Y)으로 등록된 결제대행사가 목록에 표시됩니다. PG를 고르면 API연동설정의 MID·Route 등이 기본값으로 채워지며, 가맹점 전용 값은 수정·저장하면 됩니다. 실제 결제 운영 PG는 라디오(운영)로 하나만 지정합니다. 등록 화면은 하단 [저장] 시 한꺼번에 반영됩니다.'
         },
         {
           title: '웹결제 사용 / 대표 기본상품정보 (온라인 URL 결제용)',
@@ -1246,11 +1247,11 @@
           title: '상세정보',
           id: 'distributorExtraCard',
           masterDistOnly: true,
-          notice: '총판일 때만 입력합니다. 총판은 1가지 화폐만 지정할 수 있습니다. 노티 대상은 본사설정 > 전산노티·결제환경의 [총판 노티 대상 생성]에서 먼저 등록합니다. 왼쪽 [노티 쌍 선택]·[보조 쌍 선택]으로 URL을 한 번에 채우거나, 각 칸에서 드롭다운·[노티선택]을 사용하세요. URL 1=CALLBACK, 2=RESULT(필수). URL 3·4는 보조입니다.',
+          notice: '총판일 때만 입력합니다. 총판은 1가지 화폐만 지정할 수 있습니다. 노티 대상은 본사설정 > 노티구성설정의 [총판 노티 대상 생성]에서 먼저 등록합니다. 왼쪽 [노티 쌍 선택]·[보조 쌍 선택]으로 URL을 한 번에 채우거나, 각 칸에서 드롭다운·[노티선택]을 사용하세요. URL 1=CALLBACK, 2=RESULT(필수). URL 3·4는 보조입니다.',
           rows: [
             [{ label: '기준 화폐*', type: 'select', name: 'baseCurrency', options: [{ v: '', t: '선택' }, { v: 'KRW', t: 'KRW (원)' }, { v: 'USD', t: 'USD (달러)' }, { v: 'JPY', t: 'JPY (엔)' }, { v: 'THB', t: 'THB (바트)' }, { v: 'EUR', t: 'EUR (유로)' }], col: 2 }, { label: '사이트개요', type: 'text', name: 'siteSummary', col: 2, placeholder: '사이트개요' }, { label: '취급물품', type: 'text', name: 'product', col: 2 }, { label: '대표사이트', type: 'text', name: 'homepage', col: 2, placeholder: 'https://' }],
             [{ label: '정산담당자명', type: 'text', name: 'settleName', col: 2 }, { label: '정산담당자연락처', type: 'text', name: 'settleTelNo', col: 2, placeholder: '010-0000-0000' }, { label: '정산형태', type: 'select', name: 'settleType', options: [{ v: '', t: '선택' }, { v: 'M', t: '가맹점별' }, { v: 'G', t: '총판' }], col: 1 }, { label: '요율(%)', type: 'text', name: 'commissionRate', col: 1, placeholder: '요율' }, { label: '사용한도', type: 'text', name: 'limitAmt', col: 2, placeholder: '사용한도' }],
-            [{ type: 'notifyPairButton', col: 2, pairLabel: '필수 노티', buttonText: '노티 쌍 선택', callbackField: 'notifyUrl1', resultField: 'notifyUrl2', hint: 'CALLBACK→URL1, RESULT→URL2 동시 설정', titleHint: '본사설정 > 전산노티·결제환경에서 [노티자동생성]으로 등록한 쌍을 고릅니다.' }, { label: '노티 CALLBACK (URL 1)*', type: 'select', name: 'notifyUrl1', col: 5, loadNotifyTargets: true, button: '노티선택' }, { label: '노티 RESULT (URL 2)*', type: 'select', name: 'notifyUrl2', col: 5, loadNotifyTargets: true, button: '노티선택' }],
+            [{ type: 'notifyPairButton', col: 2, pairLabel: '필수 노티', buttonText: '노티 쌍 선택', callbackField: 'notifyUrl1', resultField: 'notifyUrl2', hint: 'CALLBACK→URL1, RESULT→URL2 동시 설정', titleHint: '본사설정 > 노티구성설정에서 [노티자동생성]으로 등록한 쌍을 고릅니다.' }, { label: '노티 CALLBACK (URL 1)*', type: 'select', name: 'notifyUrl1', col: 5, loadNotifyTargets: true, button: '노티선택' }, { label: '노티 RESULT (URL 2)*', type: 'select', name: 'notifyUrl2', col: 5, loadNotifyTargets: true, button: '노티선택' }],
             [{ type: 'notifyPairButton', col: 2, pairLabel: '보조 노티', buttonText: '보조 쌍 선택', callbackField: 'notifyUrl3', resultField: 'notifyUrl4', hint: 'URL 3·4를 같은 쌍으로 채웁니다.', titleHint: '보조 노티 URL 3·4를 한 번에 설정합니다.' }, { label: '노티 URL 3(보조)', type: 'select', name: 'notifyUrl3', col: 5, loadNotifyTargets: true, button: '노티선택' }, { label: '노티 URL 4(보조)', type: 'select', name: 'notifyUrl4', col: 5, loadNotifyTargets: true, button: '노티선택' }]
           ]
         },
@@ -1339,7 +1340,7 @@
           title: '결제대행사 설정',
           id: 'pgBindingCard',
           merchantOnly: true,
-          notice: '본사설정 > PG사 API 연동에 등록된 결제대행사 이름(코드)을 선택한 뒤 MID·API KEY·IV KEY를 입력합니다. [추가] 시 입력란이 열리고, 업체정보(가맹점)에서는 [저장][삭제][수정]마다 확인창이 두 번 뜹니다.'
+          notice: 'API연동설정(사용 Y) 전체가 목록에 나오며, PG 선택 시 본사에 등록한 MID·Route가 기본 입력됩니다. API KEY·IV는 비우면 본사 연동 자격을 따를 수 있습니다(ChillPay 등). 운영 PG는 라디오로 지정합니다. [추가]로 행을 열고, 업체정보(가맹점)에서는 [저장][삭제][수정]마다 확인창이 두 번 뜹니다.'
         },
         {
           title: '웹결제 사용 / 대표 기본상품정보 (온라인 URL 결제용)',
@@ -1503,7 +1504,7 @@
       searchRows3: [],
       noticeList: [
         '통합 결제내역: 칠페이 API 동기화·노티 적재·URL직접결제 등 전 출처를 한 그리드에 표시합니다. 앞쪽 컬럼(거래일~Settled)은 칠페이 거래내역 시트 필드와 대응합니다.',
-        '[후속조치]는 본사설정 > 전산노티·결제환경에서 기능을 켠 경우에만 동작합니다 (NOTI 환경설정과 동일).',
+        '[후속조치]는 본사설정 > 노티구성설정에서 기능을 켠 경우에만 동작합니다 (NOTI 환경설정과 동일).',
         '취소 건에 대한 정산 수수료 및 부가세는 정산 주기에 따라 반영됩니다.',
         '정산 주기 및 정산 수수료는 가맹점별로 상이할 수 있습니다.'
       ],
@@ -2287,7 +2288,7 @@
     MENU_SCREENS['/calc/payNotiList'] = cloneWith('NOTI', [
       '노티내역: 통합 결제내역과 동일한 그리드입니다(칠페이 시트 컬럼·2단 헤더·요약바·후속조치 포함). 조회만 origin=NOTI(전산 노티 적재)로 제한됩니다.',
       'ziobiz/NOTI 종합거래의 노티거래내역과 동일 성격의 데이터입니다.',
-      '[후속조치]는 본사설정 > 전산노티·결제환경에서 기능을 켠 경우에만 동작합니다 (NOTI 환경설정과 동일).',
+      '[후속조치]는 본사설정 > 노티구성설정에서 기능을 켠 경우에만 동작합니다 (NOTI 환경설정과 동일).',
       '취소 건에 대한 정산 수수료 및 부가세는 정산 주기에 따라 반영됩니다.',
       '정산 주기 및 정산 수수료는 가맹점별로 상이할 수 있습니다.'
     ], true);
@@ -2476,8 +2477,9 @@
 
   function renderTableColumnGuide(cfg) {
     if (cfg.tableColumnGuide === false || !cfg.columns || cfg.columns.length === 0) return '';
-    /** 번호·업체·거래일시·Route No 는 전산 기본 노출(결제 그리드 앞쪽 고정) — VIEW SETTING에서 토글 제외 */
-    var fixedKeys = ['rowNo', 'compId', 'compNm', 'compDivNm', 'trnDate', 'trnTime', 'routeNo'];
+    /** 기본: 번호·업체·거래일시·Route No 등 결제 그리드 고정열 — VIEW 토글 제외. 화면별로 columnGuideFixedKeys 로 덮어쓸 수 있음(API연동설정은 Route 등 토글 가능). */
+    var defaultFixed = ['rowNo', 'compId', 'compNm', 'compDivNm', 'trnDate', 'trnTime', 'routeNo'];
+    var fixedKeys = (cfg.columnGuideFixedKeys && cfg.columnGuideFixedKeys.length) ? cfg.columnGuideFixedKeys : defaultFixed;
     var cols = cfg.columns.filter(function (c) {
       if (c.type === 'checkbox' || c.type === 'payActions' || c.type === 'commissionInlineActions' || c.type === 'accountAccessDelete' || c.type === 'userResetPassword' || c.type === 'userDelete') return false;
       return fixedKeys.indexOf(c.key) === -1;
@@ -2904,7 +2906,7 @@
     return html;
   }
 
-  /** 본사설정 > 도메인구성: 전사 URL + 본사·총판별 도메인 (개별 조직 권한 블록과 유사 레이아웃) */
+  /** 본사설정 > 도메인구성설정: 전사 URL + 본사·총판별 도메인 (개별 조직 권한 블록과 유사 레이아웃) */
   function renderDomainConfigShell(tabId) {
     var sid = tabId || 'hq_domainConfig';
     return (
@@ -2924,12 +2926,12 @@
       '<div class="small mt-2" id="hqDomainGlobalMsg_' + sid + '" role="status"></div>' +
       '</div></div>' +
       '<div class="card mb-3 border-secondary">' +
-      '<div class="card-header py-2 fw-semibold">Let’s Encrypt · 도메인구성 연동</div>' +
+      '<div class="card-header py-2 fw-semibold">Let’s Encrypt · 도메인구성설정 연동</div>' +
       '<div class="card-body">' +
       '<p class="text-muted small mb-2">이 서버의 <code>fullchain.pem</code> 에서 읽은 <strong>SAN(호스트명)</strong>과, 전사 URL·본사·총판에 저장된 URL의 호스트를 비교합니다. ' +
       '표시·저장 시 주소에 <code>http://</code> 또는 <code>https://</code> 가 없으면 <strong>https://</strong> 를 붙입니다. ' +
       '불일치 시 브라우저 인증서 경고가 날 수 있습니다. 서브도메인 추가 시 DNS A 레코드·Nginx <code>server_name</code>·<code>certbot --nginx -d …</code> 를 함께 적용하세요. ' +
-      '상세 SSL 경로·Certbot 타이머는 <strong>본사설정 → 서버관리</strong>를 참고하세요.</p>' +
+      '상세 SSL 경로·Certbot 타이머는 <strong>본사설정 → 서버운영관리</strong>를 참고하세요.</p>' +
       '<div id="hqDomainSslLinkage_' + sid + '" class="small">불러오는 중…</div>' +
       '</div></div>' +
       '<div class="card border-0 shadow-sm mb-3 org-perm-unit-section">' +
@@ -2938,7 +2940,7 @@
       '<p class="text-muted small mb-3">업체명에서 <strong>본사</strong> 또는 <strong>총판</strong>만 선택할 수 있습니다. 선택 후 설정 이름·URL을 입력하고 [설정저장]하면 하단 목록에 반영됩니다. ' +
       'URL에 스킴이 없으면 <strong>https://</strong> 가 자동으로 붙습니다. ' +
       '<strong>본사</strong> 관리자 URL 호스트로 접속하면 <strong>그 본사 조직에 직접 소속된 계정만</strong> 로그인됩니다(하위 총판·가맹점 계정은 본사 서브도메인에서 불가). ' +
-      '<strong>총판</strong> URL은 총판·지사·대리점·영업점·가맹점 계정만 허용되며 총본사·본사 계정은 로그인할 수 없습니다. 브랜딩은 각각 도메인구성 조직 기준으로 적용됩니다.</p>' +
+      '<strong>총판</strong> URL은 총판·지사·대리점·영업점·가맹점 계정만 허용되며 총본사·본사 계정은 로그인할 수 없습니다. 브랜딩은 각각 도메인구성설정 조직 기준으로 적용됩니다.</p>' +
       '<div class="row g-2 align-items-end mb-2 org-perm-unit-control-row">' +
       '<div class="col-lg-3 col-md-6">' +
       '<label class="form-label small mb-1">업체명</label>' +
@@ -2995,7 +2997,7 @@
       '조직 구분(총본사~가맹점)별로 메뉴(URL) 접근 권한을 설정합니다. <strong>총본사</strong>는 DB에 별도 저장이 없을 때 기본으로 <strong>모든 메뉴 전체 권한(삭제·전체)</strong>입니다. 각 대메뉴(본사설정·업체관리 등) 구역 제목 오른쪽 <strong>간편</strong>에서 권한을 고르면 그 구역의 하위 메뉴가 한 번에 동일하게 맞춰집니다. ' +
       '<strong>옵저버</strong>는 조회만, <strong>수정</strong>은 쓰기·수정(삭제·일괄삭제 등 제한), ' +
       '<strong>삭제</strong>는 해당 화면의 삭제·수정·저장 등 모든 작업을 허용합니다. ' +
-      '<strong>접근불가</strong>는 메뉴에서 숨깁니다. <strong>계정·업체접근</strong>에 등록된 업체와 교집합으로 사용자관리 목록이 제한됩니다. 아래 <strong>담당자 권한그룹별 메뉴</strong>는 조직 최종 권한(상단 개별 조직 권한) 이내에서 관리/운영/정산/기술 담당 계정(ASSISTANT)의 메뉴를 한 단계 더 조입니다.' +
+      '<strong>접근불가</strong>는 메뉴에서 숨깁니다. <strong>업체접근설정</strong>에 등록된 업체와 교집합으로 사용자관리 목록이 제한됩니다. 아래 <strong>담당자 권한그룹별 메뉴</strong>는 조직 최종 권한(상단 개별 조직 권한) 이내에서 관리/운영/정산/기술 담당 계정(ASSISTANT)의 메뉴를 한 단계 더 조입니다.' +
       '</p>' +
       '<div class="d-flex flex-wrap align-items-center mb-2 org-perm-legend text-muted">' +
       '<span class="me-2 fw-semibold text-secondary">행 색:</span>' +

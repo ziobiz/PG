@@ -30,6 +30,9 @@ import com.pg.repository.UserRepository;
 import com.pg.entity.OrgUnitChangeLog;
 import com.pg.util.CommissionTierJsonHelper;
 import com.pg.util.PercentDecimalHelper;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -1215,9 +1218,9 @@ public class CompService {
                             }
                             if ("MERCHANT".equalsIgnoreCase(ou.getOrgLevel() != null ? ou.getOrgLevel().name() : "") && pgBindings != null && !pgBindings.trim().isEmpty()) {
                                 try {
-                                    com.fasterxml.jackson.databind.ObjectMapper om = new com.fasterxml.jackson.databind.ObjectMapper();
-                                    java.util.List<Map<String, Object>> list = om.readValue(pgBindings.trim(),
-                                        new com.fasterxml.jackson.core.type.TypeReference<java.util.List<Map<String, Object>>>() {});
+                                    List<Map<String, Object>> list = PG_BINDINGS_OBJECT_MAPPER.readValue(pgBindings.trim(),
+                                            new TypeReference<List<Map<String, Object>>>() {});
+                                    validateMerchantPgBindingJsonRows(list);
                                     merchantPgBindingRepository.deleteByOrgUnitId(ou.getId());
                                     int order = 0;
                                     for (Map<String, Object> m : list) {
@@ -1241,7 +1244,9 @@ public class CompService {
                                         binding.setSortOrder(order++);
                                         merchantPgBindingRepository.save(binding);
                                     }
-                                } catch (Exception ignored) {}
+                                } catch (JsonProcessingException e) {
+                                    throw new IllegalArgumentException("결제대행사(JSON) 형식이 올바르지 않습니다.", e);
+                                }
                             }
                             if ("MERCHANT".equalsIgnoreCase(effDivForCommission)) {
                                 String chosenCur = (baseCurrency != null && !baseCurrency.trim().isEmpty())
@@ -1639,9 +1644,9 @@ public class CompService {
 
         if ("MERCHANT".equalsIgnoreCase(compDiv) && pgBindings != null && !pgBindings.trim().isEmpty()) {
             try {
-                com.fasterxml.jackson.databind.ObjectMapper om = new com.fasterxml.jackson.databind.ObjectMapper();
-                java.util.List<Map<String, Object>> list = om.readValue(pgBindings.trim(),
-                    new com.fasterxml.jackson.core.type.TypeReference<java.util.List<Map<String, Object>>>() {});
+                List<Map<String, Object>> list = PG_BINDINGS_OBJECT_MAPPER.readValue(pgBindings.trim(),
+                        new TypeReference<List<Map<String, Object>>>() {});
+                validateMerchantPgBindingJsonRows(list);
                 int order = 0;
                 for (Map<String, Object> m : list) {
                     String pc = m.get("pgCd") != null ? m.get("pgCd").toString().trim() : "";
@@ -1664,7 +1669,9 @@ public class CompService {
                     binding.setSortOrder(++order);
                     merchantPgBindingRepository.save(binding);
                 }
-            } catch (Exception ignored) {}
+            } catch (JsonProcessingException e) {
+                throw new IllegalArgumentException("결제대행사(JSON) 형식이 올바르지 않습니다.", e);
+            }
         }
 
         boolean hasDefaultProduct = (defaultProductName != null && !defaultProductName.trim().isEmpty())
@@ -2861,6 +2868,37 @@ public class CompService {
                 + " 할부=" + nz(b.getInstallmentYn());
     }
 
+    private static final ObjectMapper PG_BINDINGS_OBJECT_MAPPER = new ObjectMapper();
+
+    /**
+     * 가맹점이 선택할 수 있는 PG인지 검증(API연동설정에 등록·사용 Y).
+     * 본사 화면의 「운영」체크는 가맹점 선택 가능 여부와 무관합니다.
+     */
+    private void requireSelectablePgAgencyForMerchant(String pgCd) {
+        String pc = pgCd != null ? pgCd.trim() : "";
+        if (pc.isEmpty()) {
+            throw new IllegalArgumentException("결제대행사(PG) 코드가 비었습니다.");
+        }
+        PgAgency agency = pgAgencyRepository.findByPgCd(pc)
+                .orElseThrow(() -> new IllegalArgumentException("등록되지 않은 PG사코드입니다. 본사설정 > API연동설정에서 먼저 등록하세요."));
+        if (!"Y".equalsIgnoreCase(agency.getUseYn())) {
+            throw new IllegalArgumentException("사용 중지된 결제대행사입니다: " + pc);
+        }
+    }
+
+    private void validateMerchantPgBindingJsonRows(List<Map<String, Object>> list) {
+        if (list == null) {
+            return;
+        }
+        for (Map<String, Object> m : list) {
+            String pc = m.get("pgCd") != null ? m.get("pgCd").toString().trim() : "";
+            if (pc.isEmpty()) {
+                continue;
+            }
+            requireSelectablePgAgencyForMerchant(pc);
+        }
+    }
+
     /** 가맹점 결제대행사 1건 저장 (업체정보 상세에서 행 단위 저장) */
     public Map<String, Object> saveMerchantPgBinding(String compId, Long bindingId, String pgCd, String payMethod,
                                                      String mid, String rootNo, String apiKey, String ivKey,
@@ -2875,15 +2913,7 @@ public class CompService {
         if (pc.isEmpty()) {
             throw new IllegalArgumentException("결제대행사(PG)를 선택하세요.");
         }
-        PgAgency agency = pgAgencyRepository.findByPgCd(pc)
-                .orElseThrow(() -> new IllegalArgumentException("등록되지 않은 PG사코드입니다. 본사설정 > PG사 API 연동에서 먼저 등록하세요."));
-        if (!"Y".equalsIgnoreCase(agency.getUseYn())) {
-            throw new IllegalArgumentException("사용 중지된 결제대행사입니다.");
-        }
-        String opYn = agency.getOperationalYn();
-        if (opYn == null || !"Y".equalsIgnoreCase(opYn.trim())) {
-            throw new IllegalArgumentException("운영으로 지정되지 않은 결제대행사입니다. 본사설정 > PG사 API 연동에서 운영을 체크한 뒤 [운영 저장] 하세요.");
-        }
+        requireSelectablePgAgencyForMerchant(pc);
         String pm = payMethod != null && !payMethod.isBlank() ? payMethod.trim() : "WEB";
 
         MerchantPgBinding binding;

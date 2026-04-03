@@ -179,7 +179,13 @@ public class DataLoader {
                     PgAgency pa = new PgAgency();
                     pa.setPgCd(a[0]);
                     pa.setPgNm(a[1]);
-                    pa.setApiEndpoint("CHILLPAY".equals(a[0]) ? "https://api-directcredit.chillpay.co" : "https://api.example.com/" + a[0].toLowerCase());
+                    String ep = "CHILLPAY".equals(a[0]) ? "https://api-directcredit.chillpay.co" : "https://api.example.com/" + a[0].toLowerCase();
+                    pa.setApiEndpoint(ep);
+                    pa.setEndpointApi(ep);
+                    pa.setIntegNotiYn("N");
+                    pa.setIntegUrlPayYn("N");
+                    pa.setIntegWebChatbotYn("N");
+                    pa.setIntegApiYn("Y");
                     pa.setUseYn("Y");
                     pgAgencyRepository.save(pa);
                 }
@@ -187,7 +193,13 @@ public class DataLoader {
                 PgAgency pa = new PgAgency();
                 pa.setPgCd("CHILLPAY");
                 pa.setPgNm("ChillPay(칠리페이)");
-                pa.setApiEndpoint("https://api-directcredit.chillpay.co");
+                String ep = "https://api-directcredit.chillpay.co";
+                pa.setApiEndpoint(ep);
+                pa.setEndpointApi(ep);
+                pa.setIntegNotiYn("N");
+                pa.setIntegUrlPayYn("N");
+                pa.setIntegWebChatbotYn("N");
+                pa.setIntegApiYn("Y");
                 pa.setUseYn("Y");
                 pgAgencyRepository.save(pa);
             }

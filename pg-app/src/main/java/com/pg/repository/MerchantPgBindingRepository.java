@@ -18,4 +18,7 @@ public interface MerchantPgBindingRepository extends JpaRepository<MerchantPgBin
     boolean existsByOrgUnitIdAndPgCdAndPayMethod(Long orgUnitId, String pgCd, String payMethod);
 
     boolean existsByOrgUnitIdAndPgCdAndPayMethodAndIdNot(Long orgUnitId, String pgCd, String payMethod, Long id);
+
+    /** PG사 삭제 전: 가맹점 결제대행사 설정 참조 여부 */
+    boolean existsByPgCd(String pgCd);
 }

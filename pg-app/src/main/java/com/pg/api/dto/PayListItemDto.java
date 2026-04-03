@@ -252,6 +252,7 @@ public class PayListItemDto {
         }
         return switch (t.getStatus() != null ? t.getStatus() : "") {
             case "10" -> "Paid";
+            case "08" -> "WaitAuthorize";
             case "20" -> "Cancelled";
             case "21" -> "Voided";
             case "22" -> "Manual void";
@@ -270,6 +271,7 @@ public class PayListItemDto {
         if (status == null) return "-";
         return switch (status) {
             case "10" -> "결제";
+            case "08" -> "인증대기";
             case "20" -> "취소";
             case "21" -> "무효";
             case "22" -> "수동무효";
@@ -281,12 +283,14 @@ public class PayListItemDto {
 
     private static String payProcLabel(String status) {
         if ("10".equals(status)) return "정산대기";
+        if ("08".equals(status)) return "인증대기";
         if ("20".equals(status)) return "결제취소";
         return "정산대기";
     }
 
     private static String payStatusLabel(String status) {
         if ("10".equals(status)) return "정산대기";
+        if ("08".equals(status)) return "인증대기";
         if ("20".equals(status)) return "취소";
         return payDivLabel(status);
     }

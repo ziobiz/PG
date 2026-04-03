@@ -14,7 +14,7 @@ import java.nio.charset.StandardCharsets;
 
 /**
  * 외부 시스템(NOTI, ChillPay 등)에서 호출하는 공개 노티 수신 URL.
- * 경로 토큰은 본사설정 > 전산노티·결제환경에서 확인합니다.
+ * 경로 토큰은 본사설정 > 노티구성설정에서 확인합니다.
  */
 @RestController
 @RequestMapping("/api/open/pg-notify")

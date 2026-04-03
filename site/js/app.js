@@ -539,19 +539,19 @@
 
   // 메뉴별 URL → 라벨, parent (브레드크럼/탭 제목용) - FXHJ + 본사설정 + 리스크 통합
   var MENU_INFO = {
-    '/hq/pgApiMng': { label: 'PG사 API 연동', parent: '본사설정' },
-    '/hq/defaultCommission': { label: '기본정책', parent: '본사설정' },
-    '/hq/chargebackPolicy': { label: '차지백 구간정책', parent: '본사설정' },
+    '/hq/pgApiMng': { label: 'API연동설정', parent: '본사설정' },
+    '/hq/defaultCommission': { label: '수수료설정', parent: '본사설정' },
+    '/hq/chargebackPolicy': { label: '차지백설정', parent: '본사설정' },
     '/hq/businessDaySetting': { label: '영업일설정', parent: '본사설정' },
-    '/hq/apiConfig': { label: 'API 구성 세팅', parent: '본사설정' },
-    '/hq/paymentOrchestration': { label: '결제연동 확장설정', parent: '본사설정' },
-    '/hq/domainConfig': { label: '도메인구성', parent: '본사설정' },
-    '/hq/serverManage': { label: '서버관리', parent: '본사설정' },
-    '/hq/permissionMng': { label: '조직별 권한 세팅', parent: '본사설정' },
-    '/hq/notifyEnv': { label: '전산노티·결제환경', parent: '본사설정' },
+    '/hq/apiConfig': { label: 'API배포설정', parent: '본사설정' },
+    '/hq/paymentOrchestration': { label: '결제로직설정', parent: '본사설정' },
+    '/hq/domainConfig': { label: '도메인구성설정', parent: '본사설정' },
+    '/hq/serverManage': { label: '서버운영관리', parent: '본사설정' },
+    '/hq/permissionMng': { label: '본사권한설정', parent: '본사설정' },
+    '/hq/notifyEnv': { label: '노티구성설정', parent: '본사설정' },
     '/hq/notifyMapping': { label: '노티매핑설정', parent: '본사설정' },
-    '/hq/orgViewColumnAllowance': { label: '조직별 노출설정', parent: '본사설정' },
-    '/hq/accountMng': { label: '계정·업체접근', parent: '본사설정' },
+    '/hq/orgViewColumnAllowance': { label: '조직항목설정', parent: '본사설정' },
+    '/hq/accountMng': { label: '업체접근설정', parent: '본사설정' },
     '/system/noticeList': { label: '공지사항', parent: '업체관리' },
     '/comp/myCompMng': { label: '업체정보조회', parent: '업체관리' },
     '/comp/compMngTree': { label: '업체관리', parent: '업체관리' },
@@ -1074,11 +1074,23 @@
       });
     }
 
+    function escPgOpt(s) {
+      return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+    }
+
     function wireRow(tr) {
       var delBtn = tr.querySelector('.pg-binding-del');
       var editBtn = tr.querySelector('.pg-binding-edit');
       var saveBtn = tr.querySelector('.pg-binding-save');
       var cancelBtn = tr.querySelector('.pg-binding-cancel');
+
+      var pgSel = tr.querySelector('[data-field="pgCd"]');
+      if (pgSel && !pgSel._pgAgencyTemplateBound) {
+        pgSel._pgAgencyTemplateBound = true;
+        pgSel.addEventListener('change', function () {
+          applyPgAgencyTemplateDefaults(tr);
+        });
+      }
 
       if (delBtn) {
         delBtn.addEventListener('click', function () {
@@ -1139,7 +1151,7 @@
             return e ? e.value : '';
           };
           var pgCd = sel('pgCd');
-          if (!pgCd) { alert('결제대행사(PG)를 선택하세요. 본사설정 > PG사 API 연동에 먼저 등록해야 목록에 나타납니다.'); return; }
+          if (!pgCd) { alert('결제대행사(PG)를 선택하세요. 본사설정 > API연동설정에 먼저 등록해야 목록에 나타납니다.'); return; }
           var trs = Array.prototype.slice.call(tbody.querySelectorAll('tr'));
           var myIdx = trs.indexOf(tr);
           var formRoot = pane.querySelector('#compDetailForm') || pane.querySelector('#compRegForm');
@@ -1227,13 +1239,38 @@
       if (rowActionMode && hasId) setRowReadonly(tr, true);
 
       tbody.appendChild(tr);
+      applyPgAgencyTemplateDefaults(tr);
       wireRow(tr);
     }
 
+    function applyPgAgencyTemplateDefaults(tr) {
+      if (!tr || !pgAgencyCatalog) return;
+      var selEl = tr.querySelector('[data-field="pgCd"]');
+      if (!selEl || !selEl.value) return;
+      var p = pgAgencyCatalog[String(selEl.value).toUpperCase()];
+      if (!p) return;
+      var midEl = tr.querySelector('[data-field="mid"]');
+      var rootEl = tr.querySelector('[data-field="rootNo"]');
+      if (midEl && !String(midEl.value || '').trim() && p.defaultMid) midEl.value = String(p.defaultMid);
+      if (rootEl && !String(rootEl.value || '').trim() && p.routeNo != null && String(p.routeNo) !== '') rootEl.value = String(p.routeNo);
+    }
+
+    var pgAgencyCatalog = null;
+
     window.PG_API.pgAgencyList().then(function (list) {
+      pgAgencyCatalog = {};
+      (list || []).forEach(function (p) {
+        var cd = (p.pgCd || '').trim();
+        if (cd) pgAgencyCatalog[cd.toUpperCase()] = p;
+      });
       var pgAgencyOptsHtml = '<option value="">선택</option>';
       (list || []).forEach(function (p) {
-        pgAgencyOptsHtml += '<option value="' + (p.pgCd || '') + '">' + (p.pgNm || p.pgCd) + '</option>';
+        var cd = (p.pgCd || '').trim();
+        var lab = (p.pgNm || cd) + ' (' + cd + ')';
+        var kLab = (p.integKindLabel || '').trim();
+        if (kLab) lab += ' · ' + kLab;
+        if (p.hqOperationalYn === 'N') lab += ' · 본사미운영';
+        pgAgencyOptsHtml += '<option value="' + escPgOpt(cd) + '">' + escPgOpt(lab) + '</option>';
       });
       var bindings = initialBindings || [];
       if (bindings.length > 0) {
@@ -1263,6 +1300,7 @@
         reindexRows();
       });
     }).catch(function () {
+      pgAgencyCatalog = {};
       var pgAgencyOptsHtml = '<option value="">선택</option>';
       addBtn.addEventListener('click', function () {
         var idx = tbody.querySelectorAll('tr').length;
@@ -1274,6 +1312,21 @@
 
   window.openPgAgencyModal = function (preset) {
     preset = preset || {};
+    function resolvePresetIntegKind(p) {
+      if (p.integKind && String(p.integKind).toUpperCase() !== 'MULTI') return String(p.integKind).toUpperCase();
+      if (String(p.integNotiYn || '').toUpperCase() === 'Y') return 'NOTI';
+      if (String(p.integUrlPayYn || '').toUpperCase() === 'Y') return 'URL_PAY';
+      if (String(p.integWebChatbotYn || '').toUpperCase() === 'Y') return 'WEB_CHATBOT';
+      if (String(p.integApiYn || '').toUpperCase() === 'Y') return 'API';
+      return '';
+    }
+    function presetIntegrationEndpoint(p, kind) {
+      if (p.primaryEndpoint != null && String(p.primaryEndpoint).trim()) return String(p.primaryEndpoint).trim();
+      if (kind === 'NOTI') return p.endpointNoti || '';
+      if (kind === 'URL_PAY') return p.endpointUrlPay || '';
+      if (kind === 'WEB_CHATBOT' || kind === 'API') return p.endpointApi || p.apiEndpoint || '';
+      return '';
+    }
     var idEl = document.getElementById('pgAgencyEditId');
     var cdEl = document.getElementById('pgAgencyEditPgCd');
     var nmEl = document.getElementById('pgAgencyEditPgNm');
@@ -1285,11 +1338,17 @@
     var akEl = document.getElementById('pgAgencyEditApiKey');
     var mkEl = document.getElementById('pgAgencyEditMd5Key');
     var exEl = document.getElementById('pgAgencyEditCredentialsExtra');
+    var kindEl = document.getElementById('pgAgencyEditIntegKind');
+    var intEpEl = document.getElementById('pgAgencyEditIntegrationEndpoint');
     if (!idEl || !cdEl || !nmEl) return;
     idEl.value = preset.id != null ? String(preset.id) : '';
     cdEl.value = preset.pgCd || '';
     nmEl.value = preset.pgNm || '';
     if (epEl) epEl.value = preset.apiEndpoint || '';
+    var pgNewBlank = (preset.id == null || String(preset.id).trim() === '') && (!preset.pgCd || !String(preset.pgCd).trim());
+    var resolvedKind = resolvePresetIntegKind(preset);
+    if (kindEl) kindEl.value = pgNewBlank ? '' : resolvedKind;
+    if (intEpEl) intEpEl.value = pgNewBlank ? '' : presetIntegrationEndpoint(preset, resolvedKind);
     if (uyEl) uyEl.value = (preset.useYn === 'N') ? 'N' : 'Y';
     if (midEl) midEl.value = preset.merchantMid != null ? String(preset.merchantMid) : '';
     if (rnEl) rnEl.value = preset.routeNo != null && preset.routeNo !== '' ? String(preset.routeNo) : '';
@@ -2283,10 +2342,16 @@
         }
         var selCols = p._selectedColumns;
         var fixedKeys = ['rowNo', 'compNm', 'compId', 'trnDate', 'trnTime', 'routeNo', 'chillTransactionId', 'compDivNm', 'merchantNm', '_pgCredEdit'];
+        if (url === '/hq/pgApiMng') {
+          /** 번호·관리(_pgRowAct는 아래 별도 처리)만 고정. Route·엔드포인트 등은 VIEW SETTING과 동일 */
+          fixedKeys = ['rowNo'];
+        }
         var restrictCols = p._columnAllowanceRestricted === true;
         var allowKeys = p._allowedColumnKeys;
         var cols = allCols.filter(function (c) {
           if (c.type === 'checkbox' || fixedKeys.indexOf(c.key) !== -1) return true;
+          // API연동설정: [관리]는 VIEW에서 숨겨도 항상 표시(가맹점 행 수정·삭제)
+          if (url === '/hq/pgApiMng' && (c.key === '_pgRowAct' || c.type === 'pgApiMngRowActions')) return true;
           if (restrictCols) {
             if (!allowKeys || allowKeys.length === 0) return false;
             if (allowKeys.indexOf(c.key) === -1) return false;
@@ -2313,6 +2378,20 @@
             return ai - bi;
           });
         }
+        // API연동설정: [관리]는 행의 가장 오른쪽(체크박스 제외 마지막 열). VIEW 정렬로 regDt 뒤에 다른 열이 있어도 관리가 끝에 오도록 분리 후 push.
+        if (url === '/hq/pgApiMng') {
+          var hqPgActCol = null;
+          cols = cols.filter(function (c) {
+            if (c.key === '_pgRowAct' || c.type === 'pgApiMngRowActions') {
+              hqPgActCol = c;
+              return false;
+            }
+            return true;
+          });
+          if (hqPgActCol) {
+            cols.push(hqPgActCol);
+          }
+        }
         p._lastGridList = list;
         p._lastGridCols = cols;
         var thead = p.querySelector('#grid_' + tid + ' thead');
@@ -2325,7 +2404,10 @@
             theadTr.innerHTML = cols.map(function (c) {
               if (c.type === 'checkbox') return '<th data-key="_chk" style="width:40px"><input type="checkbox" class="grid-check-all" title="전체선택"></th>';
               var thT = c.title ? (' title="' + String(c.title).replace(/&/g, '&amp;').replace(/"/g, '&quot;') + '"') : '';
-              var thCls = (c.align === 'center') ? ' class="text-center"' : '';
+              var thClassParts = [];
+              if (c.align === 'center') thClassParts.push('text-center');
+              if (c.thClass) thClassParts.push(String(c.thClass));
+              var thCls = thClassParts.length ? (' class="' + thClassParts.join(' ') + '"') : '';
               return '<th data-key="' + (c.key || '') + '"' + thT + thCls + '>' + (c.label || c.key) + '</th>';
             }).join('');
             if (!theadTr.parentNode) thead.appendChild(theadTr);
@@ -2509,13 +2591,49 @@
                   : '<span class="text-muted">-</span>') + '</td>';
               } else if (c.type === 'commissionInlineActions' && url === '/commission/commisionList') {
                 html += '<td class="text-nowrap"><button type="button" class="btn btn-sm btn-primary commission-inline-save me-1">저장</button><button type="button" class="btn btn-sm btn-outline-danger commission-inline-clear">삭제</button></td>';
-              } else if (c.type === 'pgAgencyEdit' && url === '/hq/pgApiMng') {
-                html += '<td class="text-center text-nowrap"><button type="button" class="btn btn-sm btn-outline-primary hq-pg-agency-open-modal py-0 px-2" data-row-idx="' + idx + '" title="MID·API Key·MD5 등 입력">연동 입력</button></td>';
+              } else if (c.type === 'pgApiMngRowActions' && url === '/hq/pgApiMng') {
+                html += '<td class="text-center text-nowrap">' +
+                  '<button type="button" class="btn btn-sm btn-outline-primary hq-pg-row-edit py-0 px-1 me-1" data-row-idx="' + idx + '" title="연동 자격 수정">수정</button>' +
+                  '<button type="button" class="btn btn-sm btn-outline-danger hq-pg-row-del py-0 px-1" data-row-idx="' + idx + '" title="PG 연동 삭제">삭제</button></td>';
+              } else if (url === '/hq/pgApiMng' && c.key === 'integrationScopeLabel') {
+                var ik = String(row.integKind || '');
+                var scopeHtml;
+                if (ik === 'MULTI') {
+                  var badges = [];
+                  if (String(row.integNotiYn || '').toUpperCase() === 'Y') badges.push('<span class="badge bg-secondary me-1 mb-1">노티</span>');
+                  if (String(row.integUrlPayYn || '').toUpperCase() === 'Y') badges.push('<span class="badge bg-primary me-1 mb-1">URL</span>');
+                  if (String(row.integWebChatbotYn || '').toUpperCase() === 'Y') badges.push('<span class="badge bg-info text-dark me-1 mb-1">챗봇</span>');
+                  if (String(row.integApiYn || '').toUpperCase() === 'Y') badges.push('<span class="badge bg-success me-1 mb-1">API</span>');
+                  scopeHtml = badges.length ? badges.join('') : '<span class="text-muted">—</span>';
+                } else if (row.integKindLabel) {
+                  var kl = String(row.integKindLabel);
+                  scopeHtml = '<span class="badge bg-dark">' + escAttr(kl) + '</span>';
+                } else {
+                  scopeHtml = '<span class="text-muted">—</span>';
+                }
+                html += '<td class="pg-api-mng-scope-cell align-top">' + scopeHtml + '</td>';
+              } else if (url === '/hq/pgApiMng' && c.key === 'endpointsSummary') {
+                var pe = row.primaryEndpoint != null ? String(row.primaryEndpoint) : '';
+                if (!pe.trim()) {
+                  html += '<td class="pg-api-mng-ep-cell align-top"><span class="text-muted">—</span></td>';
+                } else {
+                  var fullPe = pe.trim();
+                  var escPe = escAttr(fullPe);
+                  var shortPe = fullPe.length > 56 ? (fullPe.slice(0, 53) + '…') : fullPe;
+                  html += '<td class="pg-api-mng-ep-cell align-top"><div class="pg-api-mng-ep-line text-start" title="' + escPe + '"><span class="font-monospace small">' + escAttr(shortPe) + '</span></div></td>';
+                }
               } else if (url === '/hq/pgApiMng' && c.key === 'operationalYn') {
                 var pgCdEsc = escAttr(row.pgCd || '');
                 var opChecked = String(row.operationalYn || '') === 'Y' ? ' checked' : '';
-                var useDisabled = String(row.useYn || 'Y') === 'N' ? ' disabled' : '';
-                html += '<td class="text-center"><input type="checkbox" class="form-check-input hq-pg-operational-cb" data-pg-cd="' + pgCdEsc + '" title="결제 운영(가맹점 연동·PG 선택 노출)"' + opChecked + useDisabled + '></td>';
+                var useInactive = String(row.useYn || 'Y') === 'N';
+                var useDisabled = useInactive ? ' disabled' : '';
+                var opTdClass = 'text-center' + (useInactive ? ' hq-pg-operational-cell--inactive' : '');
+                var opTitle = useInactive ? '미사용 PG는 운영 지정 불가' : '결제 운영(가맹점 연동·PG 선택 노출)';
+                html += '<td class="' + opTdClass + '"><input type="checkbox" class="form-check-input hq-pg-operational-cb" data-pg-cd="' + pgCdEsc + '" title="' + escAttr(opTitle) + '"' + opChecked + useDisabled + '></td>';
+              } else if (url === '/hq/pgApiMng' && c.key === 'sandboxYn') {
+                var sbRaw = String(row.sandboxYn || 'Y').toUpperCase();
+                var sbLabel = (sbRaw === 'N') ? 'Production' : 'Sandbox';
+                html += '<td class="text-center text-nowrap">' + sbLabel + '</td>';
               } else {
                 var val = row[c.key] !== undefined && row[c.key] !== null ? String(row[c.key]) : '';
                 var cellClass = '';
@@ -2987,7 +3105,7 @@
             });
             tbody.innerHTML = '';
             if (pairs.length === 0) {
-              tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted">CALLBACK·RESULT 쌍이 없습니다. 본사설정 &gt; 전산노티·결제환경에서 [노티자동생성]으로 등록하세요.</td></tr>';
+              tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted">CALLBACK·RESULT 쌍이 없습니다. 본사설정 &gt; 노티구성설정에서 [노티자동생성]으로 등록하세요.</td></tr>';
               return;
             }
             var scb = modalEl._pickerSelCallback;
@@ -4443,7 +4561,7 @@
           '</tr>';
       });
       host.innerHTML = '' +
-        '<div class="pg-chargeback-policy-preview-title">차지백 구간정책 구조</div>' +
+        '<div class="pg-chargeback-policy-preview-title">차지백설정 구조</div>' +
         '<div class="table-responsive">' +
         '<table class="table table-sm table-bordered mb-0 pg-chargeback-policy-preview-table">' +
         '<thead><tr><th class="text-center">No</th><th class="text-center">구간</th><th class="text-center">건당수수료</th></tr></thead>' +
@@ -7529,7 +7647,7 @@
         pgJump._hqPgJumpBound = true;
         pgJump.addEventListener('click', function () {
           if (typeof window.fnTopMenuMove === 'function') {
-            window.fnTopMenuMove('/hq/pgApiMng', 'M0101', 'PG사 API 연동');
+            window.fnTopMenuMove('/hq/pgApiMng', 'M0101', 'API연동설정');
           }
         });
       }
@@ -7569,7 +7687,7 @@
           return null;
         }
       }
-      /** 도메인구성 표시용: 유효 URL이면 새 탭 링크(표시문자에도 https:// 반영), 아니면 code만 */
+      /** 도메인구성설정 표시용: 유효 URL이면 새 탭 링크(표시문자에도 https:// 반영), 아니면 code만 */
       function domainCfgUrlCell(raw) {
         var s = raw == null ? '' : String(raw).trim();
         if (!s) return '<span class="text-muted">—</span>';
@@ -7717,9 +7835,9 @@
                 '<td class="text-center">' + domainCfgHostLink(h) + '</td></tr>';
             }).join('') +
             '</tbody></table></div>'
-          : '<p class="text-muted small mb-2">SAN 목록을 읽지 못했습니다. 서버관리에서 LE 경로를 확인하세요.</p>';
+          : '<p class="text-muted small mb-2">SAN 목록을 읽지 못했습니다. 서버운영관리에서 LE 경로를 확인하세요.</p>';
         var sanOnlyBlock = sanOnly.length
-          ? '<p class="small text-muted mb-0">SAN에만 있고 도메인구성 URL에 없는 호스트: ' +
+          ? '<p class="small text-muted mb-0">SAN에만 있고 도메인구성설정 URL에 없는 호스트: ' +
             sanOnly.map(function (h) { return domainCfgHostLink(h); }).join('<span class="text-muted">, </span>') + '</p>'
           : '';
         box.innerHTML =
@@ -8246,7 +8364,7 @@
         }
         var sslCard = '<div class="hq-mon-card">' +
           '<h3>SSL 인증서</h3>' +
-          '<p class="hq-mon-card-desc">Let’s Encrypt <code>fullchain.pem</code> 를 읽어 만료·SAN·지문을 표시합니다. 상단 폼의 LE live 폴더명(인증서 이름)을 저장하면 경로가 맞춰집니다. 도메인 URL과 SAN 대조는 <strong>도메인구성</strong> 화면을 사용하세요.</p>' +
+          '<p class="hq-mon-card-desc">Let’s Encrypt <code>fullchain.pem</code> 를 읽어 만료·SAN·지문을 표시합니다. 상단 폼의 LE live 폴더명(인증서 이름)을 저장하면 경로가 맞춰집니다. 도메인 URL과 SAN 대조는 <strong>도메인구성설정</strong> 화면을 사용하세요.</p>' +
           sslDl + sslGuideHtml + '</div>';
         var cbHtml = '<h3>Certbot · 갱신</h3>' +
           '<p class="hq-mon-card-desc"><code>certbot.timer</code> 가 주기적으로 <code>certbot renew</code> 를 실행합니다. 만료 30일 전부터 갱신이 시도됩니다. 서브도메인 추가 시에는 수동으로 <code>certbot --nginx -d …</code> 로 인증서를 확장한 뒤 Nginx를 리로드하세요.</p>' +
@@ -8437,7 +8555,7 @@
         }
         if (dimmSrv) dimmSrv.style.display = 'flex';
         window.PG_API.hqServerManageSave(fd).then(function () {
-          setHqSrvInlineMsg('서버관리 설정(SSL·호스팅 약정·갱신 간격)이 저장되었습니다. 대시보드가 갱신되었습니다.', 'success');
+          setHqSrvInlineMsg('서버운영관리 설정(SSL·호스팅 약정·갱신 간격)이 저장되었습니다. 대시보드가 갱신되었습니다.', 'success');
           return window.PG_API.hqServerManage();
         }).then(function (data) {
           applyServerFormFromSummary(data);
@@ -8938,7 +9056,16 @@
           id: row.id,
           pgCd: row.pgCd,
           pgNm: row.pgNm,
+          integKind: row.integKind,
+          primaryEndpoint: row.primaryEndpoint,
           apiEndpoint: row.apiEndpoint || '',
+          endpointNoti: row.endpointNoti || '',
+          endpointUrlPay: row.endpointUrlPay || '',
+          endpointApi: row.endpointApi || '',
+          integNotiYn: row.integNotiYn || 'N',
+          integUrlPayYn: row.integUrlPayYn || 'N',
+          integWebChatbotYn: row.integWebChatbotYn || 'N',
+          integApiYn: row.integApiYn || 'N',
           useYn: row.useYn || 'Y',
           merchantMid: row.merchantMid || '',
           routeNo: row.routeNo,
@@ -8947,18 +9074,49 @@
         });
       }
       pane.addEventListener('click', function (e) {
-        var btn = e.target && e.target.closest ? e.target.closest('.hq-pg-agency-open-modal') : null;
-        if (!btn || !pane.contains(btn)) return;
+        var delBtn = e.target && e.target.closest ? e.target.closest('.hq-pg-row-del') : null;
+        if (delBtn && pane.contains(delBtn)) {
+          e.preventDefault();
+          e.stopPropagation();
+          var dridx = delBtn.getAttribute('data-row-idx');
+          var didx = dridx != null && dridx !== '' ? parseInt(dridx, 10) : NaN;
+          var dlist = pane._lastGridList || [];
+          if (isNaN(didx) || didx < 0 || didx >= dlist.length) return;
+          var drow = dlist[didx];
+          if (!drow || drow.id == null) return;
+          var pgLab = (drow.pgNm || drow.pgCd || '') + ' (' + (drow.pgCd || '') + ')';
+          var okDel = window.pgDoubleConfirm
+            ? window.pgDoubleConfirm('PG 연동을 삭제하시겠습니까?\n' + pgLab, '삭제 후 복구할 수 없습니다. 가맹점 결제대행사에서 이 PG를 사용 중이면 삭제할 수 없습니다. 계속하시겠습니까?')
+            : window.confirm('PG 연동을 삭제하시겠습니까?\n' + pgLab);
+          if (!okDel) return;
+          var dimmDel = document.getElementById('dimm');
+          if (dimmDel) dimmDel.style.display = 'flex';
+          window.PG_API.hqPgApiMngDelete({ id: drow.id }).then(function () {
+            alert('삭제되었습니다.');
+            var sb2 = pane.querySelector('#searchBtn');
+            if (sb2) sb2.click();
+          }).catch(function (err) {
+            var msg = err && err.message ? err.message : '삭제 실패';
+            if (err && err.errorCode === 'IN_USE') {
+              alert('가맹점에서 이 PG를 사용 중이어서 삭제할 수 없습니다.\n\n' + msg);
+            } else {
+              alert(msg);
+            }
+          }).finally(function () { if (dimmDel) dimmDel.style.display = 'none'; });
+          return;
+        }
+        var editBtn = e.target && e.target.closest ? e.target.closest('.hq-pg-row-edit') : null;
+        if (!editBtn || !pane.contains(editBtn)) return;
         e.preventDefault();
         e.stopPropagation();
-        var ridx = btn.getAttribute('data-row-idx');
+        var ridx = editBtn.getAttribute('data-row-idx');
         var idx = ridx != null && ridx !== '' ? parseInt(ridx, 10) : NaN;
         var list = pane._lastGridList || [];
         if (isNaN(idx) || idx < 0 || idx >= list.length) return;
         openPgAgencyModalFromRow(list[idx]);
       });
       pane.addEventListener('dblclick', function (e) {
-        if (e.target && e.target.closest && e.target.closest('.hq-pg-agency-open-modal')) return;
+        if (e.target && e.target.closest && e.target.closest('.hq-pg-row-edit, .hq-pg-row-del')) return;
         var tr = e.target.closest('tbody tr');
         if (!tr || tr.querySelector('.empty-state-cell')) return;
         var grid = pane.querySelector('#grid_' + tabId + ' tbody');
@@ -9274,7 +9432,7 @@
   window.fnTopMenuMove = function (url, menuId, label) {
     if (!url) return;
     if (!isMenuAllowedForCurrentUser(url)) {
-      alert('이 메뉴에 대한 접근 권한이 없습니다. [조직별 권한 세팅]에서 해당 화면 권한을 확인하세요.');
+      alert('이 메뉴에 대한 접근 권한이 없습니다. [본사권한설정]에서 해당 화면 권한을 확인하세요.');
       return;
     }
     var link = document.querySelector('.child-li[data-url="' + url + '"] a');
@@ -10248,10 +10406,15 @@
       pgAgSave.addEventListener('click', function () {
         if (!window.pgDoubleConfirm || !window.pgDoubleConfirm('PG사 연동 정보를 저장하시겠습니까?', '정말 저장하시겠습니까?')) return;
         var idVal = document.getElementById('pgAgencyEditId').value.trim();
+        var kindSel = document.getElementById('pgAgencyEditIntegKind');
+        var integKind = kindSel && kindSel.value ? String(kindSel.value).trim().toUpperCase() : '';
         var body = {
           pgCd: document.getElementById('pgAgencyEditPgCd').value.trim(),
           pgNm: document.getElementById('pgAgencyEditPgNm').value.trim(),
           apiEndpoint: (document.getElementById('pgAgencyEditEndpoint') && document.getElementById('pgAgencyEditEndpoint').value) ? document.getElementById('pgAgencyEditEndpoint').value.trim() : '',
+          integKind: integKind,
+          integrationEndpoint: (document.getElementById('pgAgencyEditIntegrationEndpoint') && document.getElementById('pgAgencyEditIntegrationEndpoint').value.trim())
+            ? document.getElementById('pgAgencyEditIntegrationEndpoint').value.trim() : '',
           useYn: (document.getElementById('pgAgencyEditUseYn') && document.getElementById('pgAgencyEditUseYn').value) || 'Y',
           mid: (document.getElementById('pgAgencyEditMid') && document.getElementById('pgAgencyEditMid').value) ? document.getElementById('pgAgencyEditMid').value.trim() : '',
           routeNo: (document.getElementById('pgAgencyEditRouteNo') && document.getElementById('pgAgencyEditRouteNo').value.trim()) ? document.getElementById('pgAgencyEditRouteNo').value.trim() : '',
@@ -10265,6 +10428,7 @@
         if (mk && mk.value.trim()) body.md5Key = mk.value.trim();
         if (idVal) body.id = idVal;
         if (!body.pgCd || !body.pgNm) { alert('PG사코드와 PG사명은 필수입니다.'); return; }
+        if (!body.integKind) { alert('연동 용도를 선택하세요. 용도별로 PG코드를 나누어 등록합니다.'); return; }
         var dimm = document.getElementById('dimm');
         if (dimm) dimm.style.display = 'flex';
         window.PG_API.hqPgApiMngSave(body).then(function () {

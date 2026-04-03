@@ -1,5 +1,5 @@
 /**
- * 본사설정 > 서버관리 실시간 대시보드
+ * 본사설정 > 서버운영관리 실시간 대시보드
  * NOTI /admin/system-monitor(mon-grid, mon-stat, mon-ssl-dl) 레이아웃을 참고한 스타일
  */
 .hq-noti-monitor {
@@ -18,7 +18,7 @@
   border-radius: 10px;
 }
 
-/* 본사설정 > 서버관리: 갱신(분) 입력은 행 너비의 60% (기존 col 전체 대비 축소) */
+/* 본사설정 > 서버운영관리: 갱신(분) 입력은 행 너비의 60% (기존 col 전체 대비 축소) */
 .hq-srv-refresh-min-row {
   width: 100%;
 }

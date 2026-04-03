@@ -13,6 +13,7 @@ import com.pg.repository.ChargebackFeePolicyRepository;
 import com.pg.repository.CommissionPolicyRepository;
 import com.pg.repository.HqApiConfigRepository;
 import com.pg.repository.OrgUnitRepository;
+import com.pg.repository.MerchantPgBindingRepository;
 import com.pg.repository.PgAgencyRepository;
 import com.pg.entity.AppUser;
 import com.pg.service.AuthService;
@@ -51,6 +52,7 @@ public class ApiHqController {
     private final ChargebackFeePolicyRepository chargebackFeePolicyRepository;
     private final HqApiConfigRepository hqApiConfigRepository;
     private final PgAgencyRepository pgAgencyRepository;
+    private final MerchantPgBindingRepository merchantPgBindingRepository;
     private final HolidayPresetService holidayPresetService;
     private final OrgPagePermissionService orgPagePermissionService;
     private final HqServerManageService hqServerManageService;
@@ -63,6 +65,7 @@ public class ApiHqController {
                            ChargebackFeePolicyRepository chargebackFeePolicyRepository,
                            HqApiConfigRepository hqApiConfigRepository,
                            PgAgencyRepository pgAgencyRepository,
+                           MerchantPgBindingRepository merchantPgBindingRepository,
                            HolidayPresetService holidayPresetService,
                            OrgPagePermissionService orgPagePermissionService,
                            HqServerManageService hqServerManageService,
@@ -74,6 +77,7 @@ public class ApiHqController {
         this.chargebackFeePolicyRepository = chargebackFeePolicyRepository;
         this.hqApiConfigRepository = hqApiConfigRepository;
         this.pgAgencyRepository = pgAgencyRepository;
+        this.merchantPgBindingRepository = merchantPgBindingRepository;
         this.holidayPresetService = holidayPresetService;
         this.orgPagePermissionService = orgPagePermissionService;
         this.hqServerManageService = hqServerManageService;
@@ -114,6 +118,127 @@ public class ApiHqController {
         return p.getOperationalYn() != null && "Y".equalsIgnoreCase(p.getOperationalYn().trim());
     }
 
+    private static boolean ynPg(String v) {
+        return v != null && "Y".equalsIgnoreCase(v.trim());
+    }
+
+    private static String integrationScopeLabel(PgAgency p) {
+        List<String> parts = new ArrayList<>();
+        if (ynPg(p.getIntegNotiYn())) {
+            parts.add("노티");
+        }
+        if (ynPg(p.getIntegUrlPayYn())) {
+            parts.add("URL");
+        }
+        if (ynPg(p.getIntegWebChatbotYn())) {
+            parts.add("챗봇");
+        }
+        if (ynPg(p.getIntegApiYn())) {
+            parts.add("API");
+        }
+        return parts.isEmpty() ? "—" : String.join("/", parts);
+    }
+
+    /** DB 플래그 기준 단일/복합 용도 코드: NOTI, URL_PAY, WEB_CHATBOT, API, MULTI(레거시), 빈 문자열 */
+    private static String resolveIntegKind(PgAgency p) {
+        List<String> ys = new ArrayList<>();
+        if (ynPg(p.getIntegNotiYn())) {
+            ys.add("NOTI");
+        }
+        if (ynPg(p.getIntegUrlPayYn())) {
+            ys.add("URL_PAY");
+        }
+        if (ynPg(p.getIntegWebChatbotYn())) {
+            ys.add("WEB_CHATBOT");
+        }
+        if (ynPg(p.getIntegApiYn())) {
+            ys.add("API");
+        }
+        if (ys.size() == 1) {
+            return ys.get(0);
+        }
+        if (ys.size() > 1) {
+            return "MULTI";
+        }
+        return "";
+    }
+
+    private static String integKindLabel(String kind) {
+        if (kind == null || kind.isEmpty()) {
+            return "";
+        }
+        return switch (kind) {
+            case "NOTI" -> "노티";
+            case "URL_PAY" -> "URL결제";
+            case "WEB_CHATBOT" -> "웹챗봇";
+            case "API" -> "API";
+            case "MULTI" -> "복합(레거시)";
+            default -> kind;
+        };
+    }
+
+    private static String primaryEndpointForRow(PgAgency p, String kind) {
+        if ("NOTI".equals(kind)) {
+            return nz(p.getEndpointNoti());
+        }
+        if ("URL_PAY".equals(kind)) {
+            return nz(p.getEndpointUrlPay());
+        }
+        if ("WEB_CHATBOT".equals(kind) || "API".equals(kind)) {
+            String a = nz(p.getEndpointApi());
+            return !a.isEmpty() ? a : nz(p.getApiEndpoint());
+        }
+        if ("MULTI".equals(kind)) {
+            return endpointsSummary(p);
+        }
+        return firstNonBlank(nz(p.getEndpointNoti()), nz(p.getEndpointUrlPay()), nz(p.getEndpointApi()), nz(p.getApiEndpoint()));
+    }
+
+    private static String nz(String s) {
+        return s != null ? s.trim() : "";
+    }
+
+    private static String firstNonBlank(String... xs) {
+        if (xs == null) {
+            return "";
+        }
+        for (String x : xs) {
+            if (x != null && !x.isBlank()) {
+                return x.trim();
+            }
+        }
+        return "";
+    }
+
+    private static String endpointsSummary(PgAgency p) {
+        StringBuilder sb = new StringBuilder();
+        appendEp(sb, "노티", p.getEndpointNoti());
+        appendEp(sb, "URL", p.getEndpointUrlPay());
+        appendEp(sb, "API", p.getEndpointApi());
+        if (p.getApiEndpoint() != null && !p.getApiEndpoint().isBlank()) {
+            appendEp(sb, "구버전", p.getApiEndpoint());
+        }
+        String s = sb.toString().trim();
+        if (s.length() > 140) {
+            return s.substring(0, 137) + "...";
+        }
+        return s.isEmpty() ? "—" : s;
+    }
+
+    private static void appendEp(StringBuilder sb, String tag, String url) {
+        if (url == null || url.isBlank()) {
+            return;
+        }
+        if (!sb.isEmpty()) {
+            sb.append(' ');
+        }
+        String u = url.trim();
+        if (u.length() > 48) {
+            u = u.substring(0, 45) + "...";
+        }
+        sb.append(tag).append(':').append(u);
+    }
+
     /** 1. PG사 API 연동 - 결제대행사 목록 (가맹점 배포용 결제 모듈) */
     @GetMapping("/pgApiMng")
     public ResponseEntity<ApiResponse<PageResult<Map<String, Object>>>> pgApiMng(
@@ -136,6 +261,19 @@ public class ApiHqController {
                     m.put("pgCd", p.getPgCd());
                     m.put("pgNm", p.getPgNm());
                     m.put("apiEndpoint", p.getApiEndpoint());
+                    m.put("endpointNoti", p.getEndpointNoti() != null ? p.getEndpointNoti() : "");
+                    m.put("endpointUrlPay", p.getEndpointUrlPay() != null ? p.getEndpointUrlPay() : "");
+                    m.put("endpointApi", p.getEndpointApi() != null ? p.getEndpointApi() : "");
+                    m.put("integNotiYn", ynPg(p.getIntegNotiYn()) ? "Y" : "N");
+                    m.put("integUrlPayYn", ynPg(p.getIntegUrlPayYn()) ? "Y" : "N");
+                    m.put("integWebChatbotYn", ynPg(p.getIntegWebChatbotYn()) ? "Y" : "N");
+                    m.put("integApiYn", ynPg(p.getIntegApiYn()) ? "Y" : "N");
+                    String integKind = resolveIntegKind(p);
+                    m.put("integKind", integKind);
+                    m.put("integKindLabel", integKindLabel(integKind));
+                    m.put("primaryEndpoint", primaryEndpointForRow(p, integKind));
+                    m.put("integrationScopeLabel", integrationScopeLabel(p));
+                    m.put("endpointsSummary", endpointsSummary(p));
                     m.put("useYn", p.getUseYn());
                     m.put("operationalYn", isPgOperationalYes(p) ? "Y" : "N");
                     m.put("merchantMid", p.getMerchantMid() != null ? p.getMerchantMid() : "");
@@ -158,13 +296,40 @@ public class ApiHqController {
         return ResponseEntity.ok(ApiResponse.ok(pr));
     }
 
-    /** 결제대행사 목록 (드롭다운용 - 사용+운영 지정된 PG만) */
+    /**
+     * 결제대행사 목록 (가맹점 등록·결제대행사 설정 드롭다운용).
+     * API연동설정에서 <strong>사용(Y)</strong>인 행 전부. 본사 「운영」체크 여부는 참고용(hqOperationalYn)으로만 내려가며,
+     * 가맹점이 선택·운영(가맹점 행의 operational)하는 데 필수는 아닙니다.
+     */
     @GetMapping("/pgAgencyList")
     public ResponseEntity<ApiResponse<List<Map<String, Object>>>> pgAgencyList() {
         ensureSingleUseAgencyOperational();
         List<Map<String, Object>> list = pgAgencyRepository.findByUseYnOrderByPgCdAsc("Y").stream()
-                .filter(ApiHqController::isPgOperationalYes)
-                .map(p -> Map.<String, Object>of("pgCd", p.getPgCd(), "pgNm", p.getPgNm()))
+                .map(p -> {
+                    Map<String, Object> m = new LinkedHashMap<>();
+                    m.put("pgCd", p.getPgCd());
+                    m.put("pgNm", p.getPgNm());
+                    m.put("defaultMid", p.getMerchantMid() != null ? p.getMerchantMid() : "");
+                    m.put("routeNo", p.getRouteNo() != null ? p.getRouteNo() : "");
+                    m.put("sandboxYn", p.getSandboxYn() != null ? p.getSandboxYn() : "Y");
+                    m.put("apiEndpoint", p.getApiEndpoint() != null ? p.getApiEndpoint() : "");
+                    m.put("endpointNoti", p.getEndpointNoti() != null ? p.getEndpointNoti() : "");
+                    m.put("endpointUrlPay", p.getEndpointUrlPay() != null ? p.getEndpointUrlPay() : "");
+                    m.put("endpointApi", p.getEndpointApi() != null ? p.getEndpointApi() : "");
+                    m.put("integNotiYn", ynPg(p.getIntegNotiYn()) ? "Y" : "N");
+                    m.put("integUrlPayYn", ynPg(p.getIntegUrlPayYn()) ? "Y" : "N");
+                    m.put("integWebChatbotYn", ynPg(p.getIntegWebChatbotYn()) ? "Y" : "N");
+                    m.put("integApiYn", ynPg(p.getIntegApiYn()) ? "Y" : "N");
+                    String integKind = resolveIntegKind(p);
+                    m.put("integKind", integKind);
+                    m.put("integKindLabel", integKindLabel(integKind));
+                    m.put("integrationScopeLabel", integrationScopeLabel(p));
+                    m.put("hqOperationalYn", isPgOperationalYes(p) ? "Y" : "N");
+                    boolean cred = p.getApiKey() != null && !p.getApiKey().isBlank()
+                            && p.getMd5SecretKey() != null && !p.getMd5SecretKey().isBlank();
+                    m.put("hasCredentials", cred ? "Y" : "N");
+                    return m;
+                })
                 .toList();
         return ResponseEntity.ok(ApiResponse.ok(list));
     }
@@ -215,20 +380,30 @@ public class ApiHqController {
             if (pgNm == null || pgNm.isBlank() || pgCdRaw == null || pgCdRaw.isBlank()) {
                 return ResponseEntity.ok(ApiResponse.fail("PG사코드와 PG사명은 필수입니다.", "VALIDATION"));
             }
-            String pgCd = pgCdRaw.trim().toUpperCase();
-            String endpoint = hqStr(body, "apiEndpoint");
+            String pgCd = pgCdRaw.trim().toUpperCase(Locale.ROOT);
             String useYn = "N".equalsIgnoreCase(hqStr(body, "useYn")) ? "N" : "Y";
 
             PgAgency entity;
             Object idObj = body.get("id");
+            boolean isNew = idObj == null || idObj.toString().isBlank();
+            if (isNew) {
+                String ik = hqStr(body, "integKind");
+                if (ik == null || ik.isBlank()) {
+                    return ResponseEntity.ok(ApiResponse.fail("신규 PG 연동은 연동용도를 선택해야 합니다. (PG코드는 용도별로 나누어 등록하세요)", "VALIDATION"));
+                }
+            }
             if (idObj != null && !idObj.toString().isBlank()) {
                 long id = Long.parseLong(idObj.toString().trim());
                 entity = pgAgencyRepository.findById(id)
                         .orElseThrow(() -> new IllegalArgumentException("PG사 정보를 찾을 수 없습니다."));
                 entity.setPgNm(pgNm.trim());
-                if (endpoint != null) entity.setApiEndpoint(endpoint.trim());
+                if (body.containsKey("apiEndpoint")) {
+                    String ep = hqStr(body, "apiEndpoint");
+                    entity.setApiEndpoint(ep != null && !ep.isBlank() ? ep.trim() : null);
+                }
                 entity.setUseYn(useYn);
                 applyPgAgencyCredentialFields(entity, body, true);
+                applyPgAgencyIntegrationScope(entity, body, true);
             } else {
                 if (pgAgencyRepository.findByPgCd(pgCd).isPresent()) {
                     return ResponseEntity.ok(ApiResponse.fail("이미 등록된 PG사코드입니다.", "DUPLICATE"));
@@ -236,9 +411,17 @@ public class ApiHqController {
                 entity = new PgAgency();
                 entity.setPgCd(pgCd);
                 entity.setPgNm(pgNm.trim());
-                entity.setApiEndpoint(endpoint != null ? endpoint.trim() : null);
+                String endpointNew = hqStr(body, "apiEndpoint");
+                entity.setApiEndpoint(endpointNew != null && !endpointNew.isBlank() ? endpointNew.trim() : null);
                 entity.setUseYn(useYn);
                 applyPgAgencyCredentialFields(entity, body, false);
+                applyPgAgencyIntegrationScope(entity, body, false);
+            }
+            if ("Y".equalsIgnoreCase(entity.getUseYn())) {
+                if (!ynPg(entity.getIntegNotiYn()) && !ynPg(entity.getIntegUrlPayYn())
+                        && !ynPg(entity.getIntegWebChatbotYn()) && !ynPg(entity.getIntegApiYn())) {
+                    return ResponseEntity.ok(ApiResponse.fail("사용(Y)인 경우 연동 용도를 한 가지 이상 지정하세요.", "VALIDATION"));
+                }
             }
             pgAgencyRepository.save(entity);
             ensureSingleUseAgencyOperational();
@@ -246,6 +429,36 @@ public class ApiHqController {
             data.put("message", "저장되었습니다.");
             data.put("id", entity.getId());
             data.put("pgCd", entity.getPgCd());
+            return ResponseEntity.ok(ApiResponse.ok(data));
+        } catch (NumberFormatException e) {
+            return ResponseEntity.ok(ApiResponse.fail("ID 형식이 올바르지 않습니다.", "VALIDATION"));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.ok(ApiResponse.fail(e.getMessage(), "VALIDATION"));
+        }
+    }
+
+    /** PG사 연동 삭제 — 가맹점 결제대행사(tb_merchant_pg_binding)에서 해당 pg_cd를 쓰는 행이 있으면 거부 */
+    @PostMapping("/pgApiMng/delete")
+    @Transactional
+    public ResponseEntity<ApiResponse<Map<String, Object>>> pgApiMngDelete(@RequestBody Map<String, Object> body) {
+        try {
+            Object idObj = body != null ? body.get("id") : null;
+            if (idObj == null || idObj.toString().isBlank()) {
+                return ResponseEntity.ok(ApiResponse.fail("삭제할 PG사 ID가 필요합니다.", "VALIDATION"));
+            }
+            long id = Long.parseLong(idObj.toString().trim());
+            PgAgency entity = pgAgencyRepository.findById(id)
+                    .orElseThrow(() -> new IllegalArgumentException("PG사 정보를 찾을 수 없습니다."));
+            String pgCd = entity.getPgCd();
+            if (pgCd != null && merchantPgBindingRepository.existsByPgCd(pgCd.trim())) {
+                return ResponseEntity.ok(ApiResponse.fail(
+                        "가맹점 등록의 결제대행사 설정에서 이 PG(" + pgCd + ")를 사용 중입니다. 먼저 해당 연동을 제거한 뒤 삭제하세요.",
+                        "IN_USE"));
+            }
+            pgAgencyRepository.delete(entity);
+            ensureSingleUseAgencyOperational();
+            Map<String, Object> data = new HashMap<>();
+            data.put("message", "삭제되었습니다.");
             return ResponseEntity.ok(ApiResponse.ok(data));
         } catch (NumberFormatException e) {
             return ResponseEntity.ok(ApiResponse.fail("ID 형식이 올바르지 않습니다.", "VALIDATION"));
@@ -305,6 +518,88 @@ public class ApiHqController {
             entity.setCredentialsExtraJson(j != null && !j.isBlank() ? j.trim() : null);
         } else if (!isUpdate) {
             entity.setCredentialsExtraJson(null);
+        }
+    }
+
+    /**
+     * 연동 범위·엔드포인트. {@code integKind} 가 오면 용도 1개 + {@code integrationEndpoint} 1개만 반영(나머지 플래그·용도별 URL 초기화).
+     * 없으면 레거시(개별 YN·엔드포인트 필드) 경로.
+     */
+    private static void applyPgAgencyIntegrationScope(PgAgency entity, Map<String, Object> body, boolean isUpdate) {
+        String integKind = hqStr(body, "integKind");
+        if (integKind != null && !integKind.isBlank()) {
+            applySingleIntegrationKind(entity, integKind.trim().toUpperCase(Locale.ROOT), body);
+            return;
+        }
+        if (body.containsKey("integNotiYn")) {
+            entity.setIntegNotiYn("Y".equalsIgnoreCase(hqStr(body, "integNotiYn")) ? "Y" : "N");
+        } else if (!isUpdate) {
+            entity.setIntegNotiYn("N");
+        }
+        if (body.containsKey("integUrlPayYn")) {
+            entity.setIntegUrlPayYn("Y".equalsIgnoreCase(hqStr(body, "integUrlPayYn")) ? "Y" : "N");
+        } else if (!isUpdate) {
+            entity.setIntegUrlPayYn("N");
+        }
+        if (body.containsKey("integWebChatbotYn")) {
+            entity.setIntegWebChatbotYn("Y".equalsIgnoreCase(hqStr(body, "integWebChatbotYn")) ? "Y" : "N");
+        } else if (!isUpdate) {
+            entity.setIntegWebChatbotYn("N");
+        }
+        if (body.containsKey("integApiYn")) {
+            entity.setIntegApiYn("Y".equalsIgnoreCase(hqStr(body, "integApiYn")) ? "Y" : "N");
+        } else if (!isUpdate) {
+            entity.setIntegApiYn("N");
+        }
+        if (body.containsKey("endpointNoti")) {
+            String s = hqStr(body, "endpointNoti");
+            entity.setEndpointNoti(s != null && !s.isBlank() ? s.trim() : null);
+        } else if (!isUpdate) {
+            entity.setEndpointNoti(null);
+        }
+        if (body.containsKey("endpointUrlPay")) {
+            String s = hqStr(body, "endpointUrlPay");
+            entity.setEndpointUrlPay(s != null && !s.isBlank() ? s.trim() : null);
+        } else if (!isUpdate) {
+            entity.setEndpointUrlPay(null);
+        }
+        if (body.containsKey("endpointApi")) {
+            String s = hqStr(body, "endpointApi");
+            entity.setEndpointApi(s != null && !s.isBlank() ? s.trim() : null);
+        } else if (!isUpdate) {
+            entity.setEndpointApi(null);
+        }
+    }
+
+    /** 용도 1개만 Y, 해당 용도 엔드포인트만 설정(다른 용도 URL·플래그 제거) */
+    private static void applySingleIntegrationKind(PgAgency entity, String kind, Map<String, Object> body) {
+        String epRaw = hqStr(body, "integrationEndpoint");
+        String ep = epRaw != null && !epRaw.isBlank() ? epRaw.trim() : null;
+        entity.setIntegNotiYn("N");
+        entity.setIntegUrlPayYn("N");
+        entity.setIntegWebChatbotYn("N");
+        entity.setIntegApiYn("N");
+        entity.setEndpointNoti(null);
+        entity.setEndpointUrlPay(null);
+        entity.setEndpointApi(null);
+        switch (kind) {
+            case "NOTI" -> {
+                entity.setIntegNotiYn("Y");
+                entity.setEndpointNoti(ep);
+            }
+            case "URL_PAY" -> {
+                entity.setIntegUrlPayYn("Y");
+                entity.setEndpointUrlPay(ep);
+            }
+            case "WEB_CHATBOT" -> {
+                entity.setIntegWebChatbotYn("Y");
+                entity.setEndpointApi(ep);
+            }
+            case "API" -> {
+                entity.setIntegApiYn("Y");
+                entity.setEndpointApi(ep);
+            }
+            default -> throw new IllegalArgumentException("연동용도는 NOTI, URL_PAY, WEB_CHATBOT, API 중 하나여야 합니다.");
         }
     }
 
@@ -1102,7 +1397,7 @@ public class ApiHqController {
         ou.setDomainUrlsUpdatedAt(LocalDateTime.now());
         orgUnitRepository.save(ou);
         String compNm = ou.getName() != null ? ou.getName().trim() : "";
-        String p = "[도메인설정] ";
+        String p = "[도메인구성설정] ";
         orgUnitChangeAuditService.appendIfChanged(ou.getId(), ou.getCode(), compNm, p + "설정표시명",
                 oldNm, ou.getDomainSettingName() != null ? ou.getDomainSettingName().trim() : "");
         orgUnitChangeAuditService.appendIfChanged(ou.getId(), ou.getCode(), compNm, p + "관리자 URL",
@@ -1161,7 +1456,7 @@ public class ApiHqController {
         ou.setDomainUrlsUpdatedAt(LocalDateTime.now());
         orgUnitRepository.save(ou);
         String compNm = ou.getName() != null ? ou.getName().trim() : "";
-        String p = "[도메인설정] ";
+        String p = "[도메인구성설정] ";
         orgUnitChangeAuditService.appendIfChanged(ou.getId(), ou.getCode(), compNm, p + "설정표시명", oldNm, "");
         orgUnitChangeAuditService.appendIfChanged(ou.getId(), ou.getCode(), compNm, p + "관리자 URL", oldAdm, "");
         orgUnitChangeAuditService.appendIfChanged(ou.getId(), ou.getCode(), compNm, p + "API URL", oldApi, "");
@@ -1207,7 +1502,7 @@ public class ApiHqController {
         return m;
     }
 
-    /** 서버관리 요약(SSL·Certbot·호스트 등) */
+    /** 서버운영관리 요약(SSL·Certbot·호스트 등) */
     @GetMapping("/serverManage")
     public ResponseEntity<ApiResponse<Map<String, Object>>> serverManage() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();

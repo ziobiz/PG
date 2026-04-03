@@ -108,11 +108,11 @@ public class HqApiConfig {
     @Column(name = "public_api_base_url", length = 500)
     private String publicApiBaseUrl;
 
-    /** 서버관리: 모니터링할 fullchain.pem 경로(비우면 ENV 또는 LE 자동) */
+    /** 서버운영관리: 모니터링할 fullchain.pem 경로(비우면 ENV 또는 LE 자동) */
     @Column(name = "server_manage_ssl_cert_path", length = 500)
     private String serverManageSslCertPath;
 
-    /** 서버관리: Let's Encrypt live 폴더명(다중 도메인 시) */
+    /** 서버운영관리: Let's Encrypt live 폴더명(다중 도메인 시) */
     @Column(name = "server_manage_ssl_le_domain", length = 255)
     private String serverManageSslLeDomain;
 
@@ -131,7 +131,7 @@ public class HqApiConfig {
     @Column(name = "server_manage_traffic_used_mb")
     private Integer serverManageTrafficUsedMb;
 
-    /** 서버관리 대시보드 자동 갱신 간격(초). NULL이면 application.yml app.serverManage.uiAutoRefreshSeconds */
+    /** 서버운영관리 대시보드 자동 갱신 간격(초). NULL이면 application.yml app.serverManage.uiAutoRefreshSeconds */
     @Column(name = "server_manage_ui_refresh_sec")
     private Integer serverManageUiRefreshSec;
 

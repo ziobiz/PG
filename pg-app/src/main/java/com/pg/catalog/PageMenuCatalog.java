@@ -15,18 +15,19 @@ public final class PageMenuCatalog {
 
     private static List<PageMenuItem> build() {
         List<PageMenuItem> list = new ArrayList<>();
-        add(list, "/hq/pgApiMng", "M0101", "PG사 API 연동", "본사설정");
-        add(list, "/hq/defaultCommission", "M0102", "기본정책", "본사설정");
-        add(list, "/hq/chargebackPolicy", "M0117", "차지백 구간정책", "본사설정");
+        add(list, "/hq/defaultCommission", "M0102", "수수료설정", "본사설정");
+        add(list, "/hq/chargebackPolicy", "M0117", "차지백설정", "본사설정");
         add(list, "/hq/businessDaySetting", "M0109", "영업일설정", "본사설정");
-        add(list, "/hq/notifyEnv", "M0105", "전산노티·결제환경", "본사설정");
+        add(list, "/hq/permissionMng", "M0104", "본사권한설정", "본사설정");
+        add(list, "/hq/accountMng", "M0106", "업체접근설정", "본사설정");
+        add(list, "/hq/orgViewColumnAllowance", "M0108", "조직항목설정", "본사설정");
+        add(list, "/hq/pgApiMng", "M0101", "API연동설정", "본사설정");
+        add(list, "/hq/apiConfig", "M0103", "API배포설정", "본사설정");
+        add(list, "/hq/paymentOrchestration", "M0118", "결제로직설정", "본사설정");
+        add(list, "/hq/notifyEnv", "M0105", "노티구성설정", "본사설정");
         add(list, "/hq/notifyMapping", "M0107", "노티매핑설정", "본사설정");
-        add(list, "/hq/orgViewColumnAllowance", "M0108", "조직별 노출설정", "본사설정");
-        add(list, "/hq/apiConfig", "M0103", "API 구성 세팅", "본사설정");
-        add(list, "/hq/domainConfig", "M0115", "도메인구성", "본사설정");
-        add(list, "/hq/serverManage", "M0116", "서버관리", "본사설정");
-        add(list, "/hq/permissionMng", "M0104", "조직별 권한 세팅", "본사설정");
-        add(list, "/hq/accountMng", "M0106", "계정·업체접근", "본사설정");
+        add(list, "/hq/domainConfig", "M0115", "도메인구성설정", "본사설정");
+        add(list, "/hq/serverManage", "M0116", "서버운영관리", "본사설정");
         add(list, "/system/noticeList", "M0201", "공지사항", "업체관리");
         add(list, "/comp/myCompMng", "M0202", "업체정보조회", "업체관리");
         add(list, "/comp/compReg", "M0208", "업체등록", "업체관리");
