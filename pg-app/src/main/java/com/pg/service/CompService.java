@@ -53,6 +53,7 @@ import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Locale;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -959,6 +960,24 @@ public class CompService {
                                 m.put("calcStartTime", ss.getCalcStartTime() != null ? ss.getCalcStartTime().toString() : null);
                             });
                             applyCommissionDetailToMap(m, ou);
+                            if (ou.getOrgLevel() == OrgLevel.MERCHANT) {
+                                merchantDefaultProductRepository.findByOrgUnitId(ou.getId()).ifPresent(dp -> {
+                                    if (dp.getProductName() != null) m.put("defaultProductName", dp.getProductName());
+                                    if (dp.getProductCode() != null) m.put("defaultProductCode", dp.getProductCode());
+                                    if (dp.getDefaultAmount() != null) {
+                                        m.put("defaultProductAmount", dp.getDefaultAmount().stripTrailingZeros().toPlainString());
+                                    }
+                                    if (dp.getProductDesc() != null) m.put("defaultProductDesc", dp.getProductDesc());
+                                });
+                                for (MerchantNotifyUrl n : merchantNotifyUrlRepository.findByOrgUnitIdOrderByUrlTypeAsc(ou.getId())) {
+                                    if (n.getUrlType() == null) continue;
+                                    if ("BACKGROUND".equals(n.getUrlType())) {
+                                        m.put("notifyUrlBackground", n.getNotiUrl());
+                                    } else if ("RESULT".equals(n.getUrlType())) {
+                                        m.put("notifyUrlResult", n.getNotiUrl());
+                                    }
+                                }
+                            }
                             return m;
                         }));
     }
@@ -973,6 +992,8 @@ public class CompService {
                           String remark, String commissionConfigAllowed, String webPaymentUseYn, String baseCurrency,
                           String siteUrl, String siteSummary, String pgBindings, String regionalSettings,
                           String assistantLoginId, String assistantPwd, String assistantRoleType, String brandingEditAllowedYn,
+                          String defaultProductName, String defaultProductCode, String defaultProductAmount, String defaultProductDesc,
+                          String notifyUrlBackground, String notifyUrlResult,
                           String notifyUrl1, String notifyUrl2, String notifyUrl3, String notifyUrl4,
                           String commissionFollowHq, String hqPolicyScope, String perTxFee, String cancelRate,
                           String voidFeePerTx, String manualVoidFeePerTx, String usageRate,
@@ -1220,6 +1241,7 @@ public class CompService {
                                 try {
                                     List<Map<String, Object>> list = PG_BINDINGS_OBJECT_MAPPER.readValue(pgBindings.trim(),
                                             new TypeReference<List<Map<String, Object>>>() {});
+                                    list = dedupeMerchantPgBindingJsonRows(list);
                                     validateMerchantPgBindingJsonRows(list);
                                     merchantPgBindingRepository.deleteByOrgUnitId(ou.getId());
                                     int order = 0;
@@ -1280,10 +1302,93 @@ public class CompService {
                                 }
                             }
                             boolean pwdChanged = pwd != null && !pwd.trim().isEmpty();
+                            if (ou.getOrgLevel() == OrgLevel.MERCHANT) {
+                                saveMerchantDefaultProductOrClear(ou.getId(), defaultProductName, defaultProductCode,
+                                        defaultProductAmount, defaultProductDesc);
+                                saveMerchantPayNotifyUrls(ou.getId(), notifyUrlBackground, notifyUrlResult);
+                            }
                             persistMerchantAuditDiff(snap, ou, mp, pwdChanged);
                             return true;
                         }))
                 .orElse(false);
+    }
+
+    /**
+     * 가맹점 온라인 URL 결제용 기본상품. 값이 모두 비면 행 삭제.
+     */
+    private void saveMerchantDefaultProductOrClear(Long orgUnitId,
+                                                   String defaultProductName, String defaultProductCode,
+                                                   String defaultProductAmount, String defaultProductDesc) {
+        boolean hasAny = (defaultProductName != null && !defaultProductName.trim().isEmpty())
+                || (defaultProductCode != null && !defaultProductCode.trim().isEmpty())
+                || (defaultProductAmount != null && !defaultProductAmount.trim().isEmpty())
+                || (defaultProductDesc != null && !defaultProductDesc.trim().isEmpty());
+        java.util.Optional<MerchantDefaultProduct> existing = merchantDefaultProductRepository.findByOrgUnitId(orgUnitId);
+        if (!hasAny) {
+            existing.ifPresent(merchantDefaultProductRepository::delete);
+            return;
+        }
+        MerchantDefaultProduct dp = existing.orElseGet(() -> {
+            MerchantDefaultProduct x = new MerchantDefaultProduct();
+            x.setOrgUnitId(orgUnitId);
+            return x;
+        });
+        dp.setProductName(defaultProductName != null && !defaultProductName.trim().isEmpty() ? defaultProductName.trim() : null);
+        dp.setProductCode(defaultProductCode != null && !defaultProductCode.trim().isEmpty() ? defaultProductCode.trim() : null);
+        if (defaultProductAmount != null && !defaultProductAmount.trim().isEmpty()) {
+            try {
+                dp.setDefaultAmount(new java.math.BigDecimal(defaultProductAmount.trim()));
+            } catch (NumberFormatException ignored) {
+                dp.setDefaultAmount(null);
+            }
+        } else {
+            dp.setDefaultAmount(null);
+        }
+        dp.setProductDesc(defaultProductDesc != null && !defaultProductDesc.trim().isEmpty() ? defaultProductDesc.trim() : null);
+        merchantDefaultProductRepository.save(dp);
+    }
+
+    /** 플레이스홀더만 있는 값은 미등록으로 간주 */
+    private static String normalizeMerchantPayNotifyUrl(String raw) {
+        if (raw == null) return "";
+        String t = raw.trim();
+        if (t.isEmpty()) return "";
+        String lower = t.toLowerCase();
+        if ("https://".equals(lower) || "http://".equals(lower)) return "";
+        return t;
+    }
+
+    /**
+     * 가맹점 결제통보 URL Background/Result. 기존 행을 지운 뒤 재삽입하여 (org_unit_id, url_type) 중복을 방지.
+     */
+    private void saveMerchantPayNotifyUrls(Long orgUnitId, String background, String result) {
+        String bg = normalizeMerchantPayNotifyUrl(background);
+        String rs = normalizeMerchantPayNotifyUrl(result);
+        final int maxLen = 2048;
+        if (bg.length() > maxLen) {
+            throw new IllegalArgumentException("URL Background는 " + maxLen + "자 이하여야 합니다. (현재 " + bg.length() + "자)");
+        }
+        if (rs.length() > maxLen) {
+            throw new IllegalArgumentException("URL Result는 " + maxLen + "자 이하여야 합니다. (현재 " + rs.length() + "자)");
+        }
+        merchantNotifyUrlRepository.deleteByOrgUnitIdAndUrlTypeIn(orgUnitId,
+                java.util.List.of("BACKGROUND", "RESULT"));
+        if (!bg.isEmpty()) {
+            MerchantNotifyUrl n1 = new MerchantNotifyUrl();
+            n1.setOrgUnitId(orgUnitId);
+            n1.setUrlType("BACKGROUND");
+            n1.setNotiUrl(bg);
+            n1.setUseYn("Y");
+            merchantNotifyUrlRepository.save(n1);
+        }
+        if (!rs.isEmpty()) {
+            MerchantNotifyUrl n2 = new MerchantNotifyUrl();
+            n2.setOrgUnitId(orgUnitId);
+            n2.setUrlType("RESULT");
+            n2.setNotiUrl(rs);
+            n2.setUseYn("Y");
+            merchantNotifyUrlRepository.save(n2);
+        }
     }
 
     /**
@@ -1646,6 +1751,7 @@ public class CompService {
             try {
                 List<Map<String, Object>> list = PG_BINDINGS_OBJECT_MAPPER.readValue(pgBindings.trim(),
                         new TypeReference<List<Map<String, Object>>>() {});
+                list = dedupeMerchantPgBindingJsonRows(list);
                 validateMerchantPgBindingJsonRows(list);
                 int order = 0;
                 for (Map<String, Object> m : list) {
@@ -1674,39 +1780,10 @@ public class CompService {
             }
         }
 
-        boolean hasDefaultProduct = (defaultProductName != null && !defaultProductName.trim().isEmpty())
-                || (defaultProductCode != null && !defaultProductCode.trim().isEmpty())
-                || (defaultProductAmount != null && !defaultProductAmount.trim().isEmpty())
-                || (defaultProductDesc != null && !defaultProductDesc.trim().isEmpty());
-        if ("MERCHANT".equalsIgnoreCase(compDiv) && hasDefaultProduct) {
-            MerchantDefaultProduct dp = new MerchantDefaultProduct();
-            dp.setOrgUnitId(saved.getId());
-            dp.setProductName(defaultProductName != null ? defaultProductName.trim() : null);
-            dp.setProductCode(defaultProductCode != null ? defaultProductCode.trim() : null);
-            if (defaultProductAmount != null && !defaultProductAmount.trim().isEmpty()) {
-                try { dp.setDefaultAmount(new BigDecimal(defaultProductAmount.trim())); } catch (NumberFormatException ignored) {}
-            }
-            dp.setProductDesc(defaultProductDesc != null ? defaultProductDesc.trim() : null);
-            merchantDefaultProductRepository.save(dp);
-        }
-
         if ("MERCHANT".equalsIgnoreCase(compDiv)) {
-            if (notifyUrlBackground != null && !notifyUrlBackground.trim().isEmpty()) {
-                MerchantNotifyUrl n1 = new MerchantNotifyUrl();
-                n1.setOrgUnitId(saved.getId());
-                n1.setUrlType("BACKGROUND");
-                n1.setNotiUrl(notifyUrlBackground.trim());
-                n1.setUseYn("Y");
-                merchantNotifyUrlRepository.save(n1);
-            }
-            if (notifyUrlResult != null && !notifyUrlResult.trim().isEmpty()) {
-                MerchantNotifyUrl n2 = new MerchantNotifyUrl();
-                n2.setOrgUnitId(saved.getId());
-                n2.setUrlType("RESULT");
-                n2.setNotiUrl(notifyUrlResult.trim());
-                n2.setUseYn("Y");
-                merchantNotifyUrlRepository.save(n2);
-            }
+            saveMerchantDefaultProductOrClear(saved.getId(), defaultProductName, defaultProductCode,
+                    defaultProductAmount, defaultProductDesc);
+            saveMerchantPayNotifyUrls(saved.getId(), notifyUrlBackground, notifyUrlResult);
         }
         if ("MASTER_DIST".equalsIgnoreCase(compDiv)) {
             saveDistributorNotifyUrls(saved.getId(), notifyUrl1, notifyUrl2, notifyUrl3, notifyUrl4);
@@ -2897,6 +2974,34 @@ public class CompService {
             }
             requireSelectablePgAgencyForMerchant(pc);
         }
+    }
+
+    /**
+     * DB 유니크 (org_unit_id, pg_cd, pay_method) 에 맞춤. JSON에 동일 조합이 중복되면 뒤쪽 행이 앞을 덮어쓴다.
+     */
+    private List<Map<String, Object>> dedupeMerchantPgBindingJsonRows(List<Map<String, Object>> list) {
+        if (list == null || list.isEmpty()) {
+            return list;
+        }
+        List<Map<String, Object>> out = new ArrayList<>();
+        java.util.Map<String, Integer> keyToIndex = new java.util.HashMap<>();
+        for (Map<String, Object> m : list) {
+            String pc = m.get("pgCd") != null ? m.get("pgCd").toString().trim() : "";
+            if (pc.isEmpty()) {
+                continue;
+            }
+            String pmRaw = optStr(m, "payMethod");
+            String pm = (pmRaw != null && !pmRaw.isEmpty()) ? pmRaw.trim() : "WEB";
+            String key = pc.toUpperCase(Locale.ROOT) + "\0" + pm.toUpperCase(Locale.ROOT);
+            Integer idx = keyToIndex.get(key);
+            if (idx != null) {
+                out.set(idx, m);
+            } else {
+                keyToIndex.put(key, out.size());
+                out.add(m);
+            }
+        }
+        return out;
     }
 
     /** 가맹점 결제대행사 1건 저장 (업체정보 상세에서 행 단위 저장) */

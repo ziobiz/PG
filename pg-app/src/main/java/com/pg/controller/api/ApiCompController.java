@@ -347,6 +347,12 @@ public class ApiCompController {
             @RequestParam(required = false) String assistantPwd,
             @RequestParam(required = false) String assistantRoleType,
             @RequestParam(required = false) String brandingEditAllowedYn,
+            @RequestParam(required = false) String defaultProductName,
+            @RequestParam(required = false) String defaultProductCode,
+            @RequestParam(required = false) String defaultProductAmount,
+            @RequestParam(required = false) String defaultProductDesc,
+            @RequestParam(required = false) String notifyUrlBackground,
+            @RequestParam(required = false) String notifyUrlResult,
             @RequestParam(required = false) String notifyUrl1,
             @RequestParam(required = false) String notifyUrl2,
             @RequestParam(required = false) String notifyUrl3,
@@ -394,6 +400,8 @@ public class ApiCompController {
                     ceoNm, ceoMobile, useYn, loginId, pwd, regNo, bizType, industry, bizNature, product, homepage, settleName, settleTelNo, fax, email,
                     bankCd, transferFee, cryptoTransferFee, accountNo, accountHolder, remark, commissionConfigAllowed, webPaymentUseYn, baseCurrency, siteUrl, siteSummary, pgBindings, regionalSettings,
                     assistantLoginId, assistantPwd, assistantRoleType, brandingEditAllowedYn,
+                    defaultProductName, defaultProductCode, defaultProductAmount, defaultProductDesc,
+                    notifyUrlBackground, notifyUrlResult,
                     notifyUrl1, notifyUrl2, notifyUrl3, notifyUrl4,
                     commissionFollowHq, hqPolicyScope, perTxFee, cancelRate, voidFeePerTx, manualVoidFeePerTx, usageRate, failFee, payRate, refundRate, rollingPct, rollingDays,
                     feeSettlementPerTx, remittanceTransferFee, usdtTransferFeeUsd, feeUsdt, feeFx, fee3dsRate, chargebackFeePerTx, chargebackPolicyId);
@@ -402,9 +410,11 @@ public class ApiCompController {
         } catch (IllegalArgumentException e) {
             return ResponseEntity.ok(ApiResponse.fail(e.getMessage(), "VALIDATION"));
         } catch (DataIntegrityViolationException e) {
-            log.warn("comp update data integrity: {}", e.getMostSpecificCause() != null ? e.getMostSpecificCause().getMessage() : e.getMessage());
+            String cause = e.getMostSpecificCause() != null ? e.getMostSpecificCause().getMessage() : e.getMessage();
+            log.warn("comp update data integrity: {}", cause);
             return ResponseEntity.ok(ApiResponse.fail(
-                    "저장 중 DB 제약 오류가 났습니다. 노티 URL 길이·중복 등을 확인하고, DB에 db/V48_merchant_notify_url_length.sql 적용 여부를 확인하세요.",
+                    "저장 중 DB 제약 오류가 났습니다. (" + (cause != null ? cause : "")
+                            + ") 결제대행사(PG) 목록에 동일 PG·결제구분(WEB 등)이 중복되지 않는지, 노티 URL 길이(2048자) 등을 확인하세요. (tb_merchant_pg_binding 유니크 / V48 노티 URL 컬럼 길이)",
                     "DATA_INTEGRITY"));
         }
     }

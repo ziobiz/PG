@@ -1092,6 +1092,57 @@ td.empty-state-cell {
 .pg-binding-table th, .pg-binding-table td { vertical-align: middle; }
 .pg-binding-table input, .pg-binding-table select { min-width: 80px; }
 
+/* 결제대행사 설정: 운영(라디오 선택) 행만 파스텔 레드, 그 외 행은 그레이 */
+.pg-binding-table tbody tr.pg-binding-row--operational > td {
+  background: linear-gradient(180deg, #fff5f5 0%, #ffe4e8 100%) !important;
+  border-top-color: #fecdd3 !important;
+  border-bottom-color: #fecdd3 !important;
+}
+.pg-binding-table tbody tr.pg-binding-row--inactive > td {
+  background-color: #eef0f3 !important;
+  color: #5c6370;
+}
+.pg-binding-table tbody tr.pg-binding-row--inactive .form-control,
+.pg-binding-table tbody tr.pg-binding-row--inactive .form-select {
+  background-color: #f8f9fa;
+}
+/* 운영 열 라디오: 선택 시 동그란 표시도 파스텔 레드( accent-color ) */
+.pg-binding-table tbody tr.pg-binding-row--operational input[type="radio"][name="pgOperational"] {
+  accent-color: #e85d75;
+  width: 1.15em;
+  height: 1.15em;
+  cursor: pointer;
+  vertical-align: middle;
+}
+.pg-binding-table tbody tr.pg-binding-row--inactive input[type="radio"][name="pgOperational"] {
+  accent-color: #94a3b8;
+  width: 1.05em;
+  height: 1.05em;
+  cursor: pointer;
+  vertical-align: middle;
+}
+
+/* 본사 API연동설정: 운영 체크(사용 Y) 행만 파스텔 레드 */
+.table tbody tr.hq-pg-row-operational > td {
+  background: linear-gradient(180deg, #fff5f5 0%, #ffe4e8 100%);
+  border-top-color: #fecdd3;
+  border-bottom-color: #fecdd3;
+}
+.table tbody tr.hq-pg-row-inactive > td {
+  background-color: #eef0f3;
+  color: #5c6370;
+}
+.table tbody tr.hq-pg-row-operational .hq-pg-operational-cb {
+  accent-color: #e85d75;
+  width: 1.15em;
+  height: 1.15em;
+  cursor: pointer;
+  vertical-align: middle;
+}
+.table tbody tr.hq-pg-row-inactive .hq-pg-operational-cb:not(:disabled) {
+  accent-color: #94a3b8;
+}
+
 /* ========== 브랜딩 테마 (본사/총판) ========== */
 /* DEFAULT: 현재 색톤 */
 body.theme-default { --theme-bg: #f5f6f8; --theme-text: #333; --theme-sidebar-bg: #2c3138; --theme-sidebar-text: #a6b0bf; }

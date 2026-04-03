@@ -15,22 +15,33 @@ import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
+import jakarta.servlet.http.HttpServletRequest;
+
+import java.math.BigDecimal;
+import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 
 /**
  * ChillPay DirectCredit API 연동 서비스.
- * 본사 ChillPay 자격: PG사 API 연동(tb_pg_agency, CHILLPAY) → API 구성 세팅(tb_hq_api_config) → application.yml 순.
  * <p>
- * {@code tb_pg_agency} 에서 PG코드가 {@code CHILLPAY} 로 시작하고 사용 Y인 행들의 엔드포인트를 병합합니다.
- * (용도별로 {@code CHILLPAY_API}, {@code CHILLPAY_URL} 등 분리 등록 가능.)
+ * <strong>URL 결제</strong>는 연동용도가 URL결제({@code integ_url_pay_yn=Y})인 {@code tb_pg_agency} 행과 같은 {@code pg_cd}의
+ * 가맹점 바인딩을 운영 행 후보 중에서 <strong>최우선</strong>으로 고른 뒤, 그 행에 입력된 엔드포인트·샌드박스·루트를 따른다(다른 PG 코드 URL과 병합하지 않음).
+ * <p>
+ * <strong>ApiKey·MD5(IV)</strong>는 가맹점 {@code tb_merchant_pg_binding} 행에서 쓴다.
+ * <strong>MID·Route</strong>는 가맹점 바인딩 → 동일 {@code pg_cd}의 {@code tb_pg_agency} 순이다.
+ * 동일 PG 행에 MID가 없을 때 <strong>다른</strong> PG 행·본사 설정에서 가져온 MID를 바인딩 Api-Key와 섞지 않는다(ChillPay 1002 Invalid MerchantCode 방지).
+ * {@code pg_cd} 매칭 행이 없을 때만 본사 {@code resolveConfigFromHq}의 MID를 쓴다. Route는 동일 PG 행이 있으나 비어 있으면 {@code application.yml} 기본 route를 쓴다.
+ * 바인딩만 있고 동일 {@code pg_cd}의 PG사 API 행이 없거나 ChillPay가 아니면, 본사 ChillPay 계열 PG 병합·{@code tb_hq_api_config}·yml 순으로 폴백한다.
  */
 @Service
 public class ChillPayService {
@@ -77,26 +88,118 @@ public class ChillPayService {
         return resolveConfig(merchantOrgUnitId).routeNo();
     }
 
-    /** 가맹점 orgUnitId가 있으면 해당 가맹점의 ChillPay 계열(pg_cd가 CHILLPAY로 시작) 운영 행 우선, 없으면 본사 설정 */
+    /**
+     * 가맹점 ChillPay 바인딩이 있으면 자격은 바인딩; 샌드박스·route·ChillPay URL은 동일 {@code pg_cd}의 {@link PgAgency} 한 행만 사용(타 PG 행 URL 병합 없음).
+     */
     private Config resolveConfig(Long merchantOrgUnitId) {
-        ChillPayAgencyUrlOverrides urlOv = loadChillPayAgencyUrlOverrides();
-        if (merchantOrgUnitId != null) {
-            Optional<MerchantPgBinding> binding = findOperationalChillPayFamilyBinding(merchantOrgUnitId);
-            if (binding.isPresent()) {
-                MerchantPgBinding b = binding.get();
-                String mc = (b.getMid() != null && !b.getMid().isEmpty()) ? b.getMid() : null;
-                String ak = (b.getApiKey() != null && !b.getApiKey().isEmpty()) ? b.getApiKey() : null;
-                String mk = (b.getIvKey() != null && !b.getIvKey().isEmpty()) ? b.getIvKey() : null;
-                if (ak != null && mk != null) {
-                    Config base = resolveConfigFromHq(urlOv);
-                    return new Config(mc != null ? mc : base.merchantCode(), ak, mk, base.routeNo(), base.sandbox(), urlOv);
-                }
-            }
+        ChillPayAgencyUrlOverrides globalUrlOv = loadChillPayAgencyUrlOverrides();
+        if (merchantOrgUnitId == null) {
+            return resolveConfigFromHq(globalUrlOv);
         }
-        return resolveConfigFromHq(urlOv);
+        Optional<MerchantPgBinding> bindingOpt = findOperationalChillPayFamilyBinding(merchantOrgUnitId);
+        if (bindingOpt.isEmpty()) {
+            return resolveConfigFromHq(globalUrlOv);
+        }
+        MerchantPgBinding b = bindingOpt.get();
+        Optional<PgAgency> agencyForPgCd = resolvePgAgencyForMerchantBinding(b);
+        ChillPayAgencyUrlOverrides perPgCdUrls = agencyForPgCd.map(this::urlOverridesFromSinglePgAgency)
+                .orElse(ChillPayAgencyUrlOverrides.empty());
+        /* URL 결제: 동일 pg_cd의 API연동 행에만 정의된 URL 사용. 타 ChillPay PG 행과 병합하지 않음(미파싱 항목은 샌드박스별 기본 URL). */
+        ChillPayAgencyUrlOverrides urlOv = agencyForPgCd.isPresent() ? perPgCdUrls : globalUrlOv;
+
+        String ak = (b.getApiKey() != null && !b.getApiKey().isEmpty()) ? b.getApiKey().trim() : null;
+        String mk = (b.getIvKey() != null && !b.getIvKey().isEmpty()) ? b.getIvKey().trim() : null;
+        if (ak == null || mk == null) {
+            return resolveConfigFromHq(globalUrlOv);
+        }
+        Config hqRef = resolveConfigFromHq(globalUrlOv);
+        String mc = resolveMerchantMidForUrlPay(b, agencyForPgCd, hqRef);
+        if (mc == null || mc.isEmpty()) {
+            if (agencyForPgCd.isPresent()) {
+                log.warn(
+                        "orgUnitId={}: ChillPay MID empty on merchant binding and on tb_pg_agency pg_cd={}. "
+                                + "Fill MID on one of them (do not pair merchant Api-Key with another row's MID). Using full HQ ChillPay credentials.",
+                        merchantOrgUnitId, b.getPgCd());
+            } else {
+                log.warn(
+                        "orgUnitId={}: No matching tb_pg_agency for pg_cd={}; ChillPay MID missing on binding. Using HQ ChillPay credentials only.",
+                        merchantOrgUnitId, b.getPgCd());
+            }
+            return resolveConfigFromHq(globalUrlOv);
+        }
+        int routeNo = parseBindingRouteNo(b.getRootNo())
+                .orElseGet(() -> agencyForPgCd.flatMap(a -> Optional.ofNullable(a.getRouteNo()))
+                        .orElseGet(() -> agencyForPgCd.isPresent() ? props.getRouteNo() : hqRef.routeNo()));
+        boolean sandbox = agencyForPgCd
+                .map(a -> a.getSandboxYn() == null || !"N".equalsIgnoreCase(a.getSandboxYn().trim()))
+                .orElse(hqRef.sandbox());
+        return new Config(mc, ak, mk, routeNo, sandbox, urlOv);
     }
 
-    private static boolean isChillPayFamilyPgCd(String pgCd) {
+    /** 바인딩 {@code pg_cd} 와 일치하고 사용 Y인 ChillPay 계열 {@link PgAgency} (가맹점이 선택한 PG 연동 정의). */
+    private Optional<PgAgency> resolvePgAgencyForMerchantBinding(MerchantPgBinding b) {
+        if (b.getPgCd() == null || b.getPgCd().isBlank()) {
+            return Optional.empty();
+        }
+        return pgAgencyRepository.findByPgCd(b.getPgCd().trim())
+                .filter(a -> a.getUseYn() != null && "Y".equalsIgnoreCase(a.getUseYn().trim()))
+                .filter(a -> isChillPayFamilyPgCd(a.getPgCd()));
+    }
+
+    /**
+     * 한 건 PG사 API 행만 파싱. 연동용도가 URL결제이면 {@code endpoint_url_pay} 등 URL 필드를 먼저 적용해
+     * API 전용 필드와 겹칠 때 URL 결제 연동에 맞는 값이 우선한다.
+     */
+    private ChillPayAgencyUrlOverrides urlOverridesFromSinglePgAgency(PgAgency a) {
+        Objects.requireNonNull(a);
+        boolean urlPayRow = a.getIntegUrlPayYn() != null && "Y".equalsIgnoreCase(a.getIntegUrlPayYn().trim());
+        String[] fields = urlPayRow
+                ? new String[] { a.getEndpointUrlPay(), a.getApiEndpoint(), a.getEndpointNoti(), a.getEndpointApi() }
+                : new String[] { a.getEndpointApi(), a.getApiEndpoint(), a.getEndpointUrlPay(), a.getEndpointNoti() };
+        ChillPayAgencyUrlOverrides acc = ChillPayAgencyUrlOverrides.empty();
+        for (String raw : fields) {
+            if (raw == null || raw.isBlank()) {
+                continue;
+            }
+            acc = acc.merge(parseChillPayApiEndpoint(raw.trim()));
+        }
+        return acc;
+    }
+
+    private static Optional<Integer> parseBindingRouteNo(String rootNo) {
+        if (rootNo == null || rootNo.isBlank()) {
+            return Optional.empty();
+        }
+        try {
+            return Optional.of(Integer.parseInt(rootNo.trim()));
+        } catch (NumberFormatException e) {
+            return Optional.empty();
+        }
+    }
+
+    /**
+     * ChillPay Merchant-Code: 가맹점 바인딩 MID → (동일 {@code pg_cd} 행이 있으면) 그 행의 {@link PgAgency#merchantMid} 만.
+     * 그 행이 없을 때만 본사 {@link Config#merchantCode()} — 다른 PG 코드 행의 MID는 바인딩 키와 섞지 않는다.
+     */
+    private static String resolveMerchantMidForUrlPay(
+            MerchantPgBinding b, Optional<PgAgency> agencyForPgCd, Config hqRef) {
+        if (b.getMid() != null && !b.getMid().isBlank()) {
+            return b.getMid().trim();
+        }
+        if (agencyForPgCd.isPresent()) {
+            return agencyForPgCd
+                    .map(PgAgency::getMerchantMid)
+                    .filter(s -> s != null && !s.isBlank())
+                    .map(String::trim)
+                    .orElse(null);
+        }
+        if (hqRef.merchantCode() != null && !hqRef.merchantCode().isBlank()) {
+            return hqRef.merchantCode();
+        }
+        return null;
+    }
+
+    public static boolean isChillPayFamilyPgCd(String pgCd) {
         if (pgCd == null) {
             return false;
         }
@@ -104,19 +207,119 @@ public class ChillPayService {
         return u.equals("CHILLPAY") || u.startsWith("CHILLPAY");
     }
 
-    /** 운영(Y)인 결제대행사 행 중 ChillPay 계열 첫 행 — 정확히 CHILLPAY 코드 우선 */
+    /**
+     * 공개 URL 결제: 웹·운영(Y) PG 바인딩 1건.
+     * {@code tb_pg_agency} 에서 연동용도 URL결제(Y)인 {@code pg_cd} 를 먼저 고르고, 그다음 ChillPay 계열 우선.
+     */
+    public Optional<MerchantPgBinding> findOperationalWebBindingForUrlPay(Long orgUnitId) {
+        if (orgUnitId == null) {
+            return Optional.empty();
+        }
+        List<MerchantPgBinding> list = merchantPgBindingRepository.findByOrgUnitIdOrderBySortOrderAsc(orgUnitId);
+        Map<String, Boolean> urlPayByPgCd = urlPayAgencyFlagByPgCd(list);
+        return list.stream()
+                .filter(b -> b.getOperationalYn() != null && "Y".equalsIgnoreCase(b.getOperationalYn().trim()))
+                .filter(b -> b.getActivationYn() == null || "Y".equalsIgnoreCase(b.getActivationYn().trim()))
+                .filter(b -> b.getPgCd() != null && !b.getPgCd().isBlank())
+                .filter(b -> {
+                    String pm = b.getPayMethod();
+                    return pm == null || pm.isBlank() || "WEB".equalsIgnoreCase(pm.trim());
+                })
+                .min(Comparator
+                        .comparing((MerchantPgBinding b) -> Boolean.TRUE.equals(urlPayByPgCd.get(pgCdKey(b))) ? 0 : 1)
+                        .thenComparing((MerchantPgBinding b) -> isChillPayFamilyPgCd(b.getPgCd()) ? 0 : 1)
+                        .thenComparing(b -> b.getSortOrder() != null ? b.getSortOrder() : Integer.MAX_VALUE)
+                        .thenComparing(MerchantPgBinding::getId));
+    }
+
+    /**
+     * 인라인 카드 위젯 종류(다중 PG 확장용). ChillPay만 CCD 연동 완료, 그 외는 프론트에서 위젯 슬롯만 비우고 안내.
+     */
+    public static String resolveUrlPayInlineWidgetKind(String pgCd) {
+        if (pgCd == null || pgCd.isBlank()) {
+            return "UNSUPPORTED_INLINE";
+        }
+        return isChillPayFamilyPgCd(pgCd) ? "CHILLPAY_CCD" : "UNSUPPORTED_INLINE";
+    }
+
+    /**
+     * URL 결제 시 운영 PG 코드({@code pg_cd}) — {@link #getUrlPayPresentationForCheckout} 의 {@code urlPayOperationalPgCd} 와 동일 규칙.
+     * 결제통화 스케일 규칙 매칭·API 스케일링에 사용.
+     */
+    public String resolveUrlPayOperationalPgCd(Long merchantOrgUnitId) {
+        if (merchantOrgUnitId == null) {
+            return "";
+        }
+        Optional<MerchantPgBinding> webOp = findOperationalWebBindingForUrlPay(merchantOrgUnitId);
+        if (webOp.isPresent()) {
+            String cd = webOp.get().getPgCd();
+            return cd != null ? cd.trim() : "";
+        }
+        Config cfg = resolveConfig(merchantOrgUnitId);
+        boolean canHqChillPay = cfg.apiKey() != null && !cfg.apiKey().isBlank()
+                && cfg.merchantCode() != null && !cfg.merchantCode().isBlank();
+        return canHqChillPay ? "CHILLPAY" : "";
+    }
+
+    /**
+     * 운영(Y) ChillPay 계열 바인딩 — API연동설정에서 연동용도 URL결제인 {@code pg_cd} 를 최우선, 다음 WEB(또는 결제구분 미입력), 그다음 기타 결제구분.
+     */
     private Optional<MerchantPgBinding> findOperationalChillPayFamilyBinding(Long orgUnitId) {
         if (orgUnitId == null) {
             return Optional.empty();
         }
         List<MerchantPgBinding> list = merchantPgBindingRepository.findByOrgUnitIdOrderBySortOrderAsc(orgUnitId);
+        Map<String, Boolean> urlPayByPgCd = urlPayAgencyFlagByPgCd(list);
+        Optional<MerchantPgBinding> web = pickOperationalChillPayBindingRow(list, true, urlPayByPgCd);
+        return web.isPresent() ? web : pickOperationalChillPayBindingRow(list, false, urlPayByPgCd);
+    }
+
+    private Optional<MerchantPgBinding> pickOperationalChillPayBindingRow(
+            List<MerchantPgBinding> list, boolean webOnly, Map<String, Boolean> urlPayByPgCd) {
         return list.stream()
                 .filter(b -> b.getOperationalYn() != null && "Y".equalsIgnoreCase(b.getOperationalYn().trim()))
+                .filter(b -> b.getActivationYn() == null || "Y".equalsIgnoreCase(b.getActivationYn().trim()))
                 .filter(b -> b.getPgCd() != null && isChillPayFamilyPgCd(b.getPgCd()))
+                .filter(b -> !webOnly || isWebOrUnsetPayMethod(b.getPayMethod()))
                 .min(Comparator
-                        .comparing((MerchantPgBinding b) -> "CHILLPAY".equalsIgnoreCase(b.getPgCd().trim()) ? 0 : 1)
+                        .comparing((MerchantPgBinding b) -> Boolean.TRUE.equals(urlPayByPgCd.get(pgCdKey(b))) ? 0 : 1)
+                        .thenComparing((MerchantPgBinding b) -> "CHILLPAY".equalsIgnoreCase(b.getPgCd().trim()) ? 0 : 1)
                         .thenComparing(b -> b.getSortOrder() != null ? b.getSortOrder() : Integer.MAX_VALUE)
                         .thenComparing(MerchantPgBinding::getId));
+    }
+
+    /** 바인딩 목록에 나온 {@code pg_cd} 별로, 사용 Y인 {@code tb_pg_agency} 행의 URL결제 연동 여부. */
+    private Map<String, Boolean> urlPayAgencyFlagByPgCd(List<MerchantPgBinding> list) {
+        Map<String, Boolean> m = new HashMap<>();
+        for (MerchantPgBinding b : list) {
+            String k = pgCdKey(b);
+            if (k.isEmpty()) {
+                continue;
+            }
+            m.computeIfAbsent(k, this::loadAgencyIntegUrlPayYn);
+        }
+        return m;
+    }
+
+    private boolean loadAgencyIntegUrlPayYn(String pgCd) {
+        return pgAgencyRepository.findByPgCd(pgCd)
+                .filter(a -> a.getUseYn() != null && "Y".equalsIgnoreCase(a.getUseYn().trim()))
+                .map(a -> "Y".equalsIgnoreCase(a.getIntegUrlPayYn() != null ? a.getIntegUrlPayYn().trim() : ""))
+                .orElse(false);
+    }
+
+    private static String pgCdKey(MerchantPgBinding b) {
+        if (b == null || b.getPgCd() == null || b.getPgCd().isBlank()) {
+            return "";
+        }
+        return b.getPgCd().trim();
+    }
+
+    private static boolean isWebOrUnsetPayMethod(String payMethod) {
+        if (payMethod == null || payMethod.isBlank()) {
+            return true;
+        }
+        return "WEB".equalsIgnoreCase(payMethod.trim());
     }
 
     /**
@@ -276,15 +479,47 @@ public class ChillPayService {
         return new Config(props.getMerchantCode(), props.getApiKey(), props.getMd5Key(), props.getRouteNo(), props.isSandbox(), urlOv);
     }
 
+    /**
+     * ChillPay CCD 번들은 {@code document.querySelector('script[src^="…"]')} 로 자기 script 태그를 찾는다.
+     * 프로덕션: {@code https://cdn.chill.credit} · 샌드박스: {@code https://sandbox-bankdemo3.chillpay.co}.
+     * PG사 엔드포인트에 잘못된 {@code ccdpayment.js} URL이 있으면 초기화가 되지 않아 iframe이 비어 보인다.
+     */
+    private static String normalizeChillPayCcdScriptUrl(String url, boolean sandbox) {
+        if (url == null || url.isBlank()) {
+            return sandbox ? CCD_SCRIPT_SANDBOX : CCD_SCRIPT_PROD;
+        }
+        String u = url.trim();
+        if (!u.toLowerCase(Locale.ROOT).contains("ccdpayment.js")) {
+            return u;
+        }
+        if (sandbox) {
+            if (u.startsWith("https://sandbox-bankdemo3.chillpay.co")) {
+                return u;
+            }
+            log.warn("ChillPay CCD script URL does not match sandbox bundle prefix; using {}. Configured: {}",
+                    CCD_SCRIPT_SANDBOX, url);
+            return CCD_SCRIPT_SANDBOX;
+        }
+        if (u.startsWith("https://cdn.chill.credit")) {
+            return u;
+        }
+        log.warn("ChillPay CCD script URL does not match production bundle prefix (cdn.chill.credit); using {}. Configured: {}",
+                CCD_SCRIPT_PROD, url);
+        return CCD_SCRIPT_PROD;
+    }
+
     private record Config(String merchantCode, String apiKey, String md5Key, int routeNo, boolean sandbox,
                           ChillPayAgencyUrlOverrides urlOv) {
         Config {
             urlOv = urlOv != null ? urlOv : ChillPayAgencyUrlOverrides.empty();
+            merchantCode = merchantCode != null ? merchantCode.trim() : null;
+            apiKey = apiKey != null ? apiKey.trim() : null;
+            md5Key = md5Key != null ? md5Key.trim() : null;
         }
 
         String getCcdScriptUrl() {
             if (notBlank(urlOv.ccdScriptUrl())) {
-                return urlOv.ccdScriptUrl().trim();
+                return normalizeChillPayCcdScriptUrl(urlOv.ccdScriptUrl().trim(), sandbox);
             }
             return sandbox ? CCD_SCRIPT_SANDBOX : CCD_SCRIPT_PROD;
         }
@@ -318,12 +553,19 @@ public class ChillPayService {
      */
     /** merchantOrgUnitId: 가맹점 등록 시 결제대행사 설정에 ChillPay를 운영대상으로 등록한 경우 해당 가맹점 설정 사용 */
     /**
-     * @param langCode UI 언어(KOR/ENG/CHN/JPN/THA 등) → ChillPay LangCode(KO/EN/ZH/JA/TH 등)로 매핑
+     * @param langCode UI 언어(KOR/ENG/CHN/JPN/THA 등) → ChillPay LangCode(한국어는 EN, 나머지 EN/TH/JA/ZH)로 매핑
+     */
+    /**
+     * @param checkoutCurrencyCode 가맹점 checkout 통화(예: JPY, THB) 또는 ISO 4217 숫자(392). null/공백이면 JPY(392).
+     */
+    /**
+     * @param browserReturnUrl ChillPay 호스티드(WaitAuthorize) 단계 후 브라우저 복귀 URL. 비우면 미전송.
      */
     public ChillPayDirectCreditResponse requestPayment(
-            String orderNo, String customerId, Long amount, String directCreditToken,
+            String orderNo, String customerId, BigDecimal amount, String directCreditToken,
             String phoneNumber, String description, String ipAddress, String custEmail,
-            Long merchantOrgUnitId, String langCode) {
+            Long merchantOrgUnitId, String langCode, String checkoutCurrencyCode,
+            String browserReturnUrl) {
 
         if (merchantOrgUnitId != null && !orgServiceUseService.isOrgServiceActive(merchantOrgUnitId)) {
             throw new IllegalStateException("서비스가 중지된 업체입니다. (미사용 또는 상위 조직 미사용)");
@@ -340,23 +582,34 @@ public class ChillPayService {
         ChillPayDirectCreditRequest req = new ChillPayDirectCreditRequest();
         req.setOrderNo(orderNo != null ? orderNo : "ORD" + System.currentTimeMillis());
         req.setCustomerId(customerId != null ? customerId : "guest");
-        req.setAmount(amount != null ? amount : 0L);
+        req.setAmount(amount != null ? amount : BigDecimal.ZERO);
         req.setDirectCreditToken(directCreditToken);
-        req.setPhoneNumber(phoneNumber != null ? phoneNumber : "");
+        /* NOTI /admin/test-pay/submit: PhoneNumber 기본값 */
+        String phone = (phoneNumber != null && !phoneNumber.isBlank()) ? phoneNumber.trim() : "0911111111";
+        req.setPhoneNumber(phone);
         req.setDescription(description != null ? description : "");
         req.setRouteNo(cfg.routeNo());
         req.setIPAddress(ipAddress != null ? ipAddress : "127.0.0.1");
-        req.setCustEmail(custEmail != null ? custEmail : "");
+        /* NOTI /admin/test-pay/submit: CustEmail 기본값 */
+        String email = (custEmail != null && !custEmail.isBlank()) ? custEmail.trim() : "test@sample.com";
+        req.setCustEmail(email);
         req.setLangCode(toChillPayLangCode(langCode));
+        req.setCurrency(toChillPayCurrencyNumeric(checkoutCurrencyCode));
 
         String concat = req.toConcatString();
         String checkSum = md5(concat + cfg.md5Key());
         req.setCheckSum(checkSum);
 
+        if (browserReturnUrl != null && !browserReturnUrl.isBlank()) {
+            req.setReturnUrl(browserReturnUrl.trim());
+            log.info("ChillPay DirectCredit ReturnUrl set (browser return after hosted step if supported)");
+        }
+
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
-        headers.set("Api-Key", cfg.apiKey());
-        headers.set("Merchant-Code", cfg.merchantCode());
+        /* ziobiz/NOTI ChillPay DirectCredit 호출과 동일 헤더명 */
+        headers.set("CHILLPAY-MerchantCode", cfg.merchantCode());
+        headers.set("CHILLPAY-ApiKey", cfg.apiKey());
 
         HttpEntity<ChillPayDirectCreditRequest> entity = new HttpEntity<>(req, headers);
         String url = cfg.getPaymentApiUrl();
@@ -381,14 +634,43 @@ public class ChillPayService {
         }
     }
 
-    /** ChillPay DirectCredit Table 1.3 LangCode (EN/KO/JA/ZH 등 매뉴얼 기준) */
+    /**
+     * NOTI 테스트 설정·ChillPay Table 1.3 의 Currency 문자열 코드(392=JPY, 764=THB 등).
+     * 알파벳 통화(JPY, THB, …)는 숫자로 치환하고, 이미 숫자만이면 그대로 둔다.
+     */
+    static String toChillPayCurrencyNumeric(String checkoutCurrencyCode) {
+        if (checkoutCurrencyCode == null || checkoutCurrencyCode.isBlank()) {
+            return "392";
+        }
+        String s = checkoutCurrencyCode.trim();
+        if (s.chars().allMatch(Character::isDigit)) {
+            return s;
+        }
+        return switch (s.toUpperCase(Locale.ROOT)) {
+            case "JPY" -> "392";
+            case "THB" -> "764";
+            case "USD" -> "840";
+            case "KRW", "KOR", "WON" -> "410";
+            case "CNY", "RMB" -> "156";
+            case "EUR" -> "978";
+            case "GBP" -> "826";
+            case "VND" -> "704";
+            default -> "392";
+        };
+    }
+
+    /**
+     * ChillPay DirectCredit Table 1.3 LangCode.
+     * 운영에서 {@code KO}(한국어) 전달 시 응답 {@code 1010 Invalid Language Code} 가 나는 경우가 있어,
+     * 한국어 UI는 그대로 두고 API에는 {@code EN}으로 보냅니다(결제 페이지 문구는 자사 pay.html 담당).
+     */
     static String toChillPayLangCode(String uiLang) {
         if (uiLang == null || uiLang.isBlank()) {
             return "EN";
         }
-        String u = uiLang.trim().toUpperCase();
+        String u = uiLang.trim().toUpperCase(Locale.ROOT);
         return switch (u) {
-            case "KOR", "KO", "KR" -> "KO";
+            case "KOR", "KO", "KR" -> "EN";
             case "CHN", "ZH", "CN" -> "ZH";
             case "JPN", "JA", "JP", "JPY" -> "JA";
             case "THA", "TH", "THAI" -> "TH";
@@ -411,23 +693,28 @@ public class ChillPayService {
         }
     }
 
-    /** 결제 페이지용 설정. merchantOrgUnitId 있으면 해당 가맹점 ChillPay 설정 사용 */
+    /**
+     * 결제 페이지용 설정. URL·샌드박스는 {@link #resolveConfig(Long)}(가맹점 {@code pg_cd} → {@code tb_pg_agency}) 기준.
+     * {@code apiKey}는 CCD 스크립트 {@code data-api-key}용으로 브라우저에 내려감.
+     */
     public Map<String, Object> getConfigForFrontend(Long merchantOrgUnitId) {
         Config cfg = resolveConfig(merchantOrgUnitId);
-        return Map.of(
-                "ccdScriptUrl", cfg.getCcdScriptUrl(),
-                "directCreditApiUrl", cfg.getPaymentApiUrl(),
-                "redirectPaymentPageUrl", cfg.getRedirectPaymentPageUrl(),
-                "paymentAppsrvV2Url", cfg.getAppsrvPaymentV2Url(),
-                "merchantCode", cfg.merchantCode(),
-                "routeNo", cfg.routeNo(),
-                "sandbox", cfg.sandbox()
-        );
+        Map<String, Object> m = new LinkedHashMap<>();
+        m.put("ccdScriptUrl", cfg.getCcdScriptUrl());
+        m.put("directCreditApiUrl", cfg.getPaymentApiUrl());
+        m.put("redirectPaymentPageUrl", cfg.getRedirectPaymentPageUrl());
+        m.put("paymentAppsrvV2Url", cfg.getAppsrvPaymentV2Url());
+        m.put("merchantCode", cfg.merchantCode() != null ? cfg.merchantCode() : "");
+        m.put("apiKey", cfg.apiKey() != null ? cfg.apiKey() : "");
+        m.put("routeNo", cfg.routeNo());
+        m.put("sandbox", cfg.sandbox());
+        return m;
     }
 
     /**
-     * 공개 URL 결제 페이지용: 본사 {@link HqApiConfig} 기준 인라인/리다이렉트·폼 모드 및 ChillPay URL 안내.
-     * (가맹점별 오버라이드 없음 — URL 결제 정책은 본사 단일 설정.)
+     * 공개 URL 결제 페이지용: {@link HqApiConfig}의 인라인/리다이렉트·폼 모드 플래그와,
+     * {@link #resolveConfig(Long)}에 따른 ChillPay URL(ccd·DirectCredit·리다이렉트·appsrv) — 가맹점 바인딩 {@code pg_cd}의 {@code tb_pg_agency} 내용.
+     * {@code urlPayOperationalPgCd} / {@code urlPayInlineWidgetKind} 는 운영 WEB 바인딩 기준(연동용도 URL결제 PG 우선).
      */
     public Map<String, Object> getUrlPayPresentationForCheckout(Long merchantOrgUnitId) {
         Config cfg = resolveConfig(merchantOrgUnitId);
@@ -441,6 +728,10 @@ public class ChillPayService {
             m.put("urlPayFlow", effectiveUrlPayFlow(c));
             m.put("urlPayFormMode", effectiveUrlPayFormMode(c));
         }
+        String opPgCd = resolveUrlPayOperationalPgCd(merchantOrgUnitId);
+        String widgetKind = resolveUrlPayInlineWidgetKind(opPgCd);
+        m.put("urlPayOperationalPgCd", opPgCd);
+        m.put("urlPayInlineWidgetKind", widgetKind);
         m.put("redirectPaymentPageUrl", cfg.getRedirectPaymentPageUrl());
         m.put("paymentAppsrvV2Url", cfg.getAppsrvPaymentV2Url());
         m.put("ccdScriptUrl", cfg.getCcdScriptUrl());
@@ -473,5 +764,44 @@ public class ChillPayService {
             return "FULL";
         }
         return "SIMPLE".equalsIgnoreCase(fm.trim()) ? "SIMPLE" : "FULL";
+    }
+
+    /**
+     * URL 결제 복귀(결과) 페이지 전체 URL. ChillPay 머천트 포털의 Result URL·DirectCredit ReturnUrl에 동일하게 등록 가능.
+     * 우선순위: {@code public_api_base_url} → {@code public_admin_site_url} → 현재 요청의 scheme/host.
+     */
+    public String resolveUrlPayResultAbsolute(HttpServletRequest request, String compId) {
+        if (request == null) {
+            return "";
+        }
+        Optional<HqApiConfig> opt = hqApiConfigRepository.findAll().stream().findFirst();
+        HqApiConfig cfg = opt.orElse(null);
+        String base = "";
+        if (cfg != null && cfg.getPublicApiBaseUrl() != null && !cfg.getPublicApiBaseUrl().isBlank()) {
+            base = cfg.getPublicApiBaseUrl().trim();
+        } else if (cfg != null && cfg.getPublicAdminSiteUrl() != null && !cfg.getPublicAdminSiteUrl().isBlank()) {
+            base = cfg.getPublicAdminSiteUrl().trim();
+        } else {
+            base = request.getScheme() + "://" + request.getServerName();
+            int port = request.getServerPort();
+            if (port != 80 && port != 443 && port > 0) {
+                base += ":" + port;
+            }
+        }
+        while (base.endsWith("/")) {
+            base = base.substring(0, base.length() - 1);
+        }
+        String path = (cfg != null && cfg.getChillpayUrlResultPath() != null && !cfg.getChillpayUrlResultPath().isBlank())
+                ? cfg.getChillpayUrlResultPath().trim()
+                : "/pay-result.html";
+        if (!path.startsWith("/")) {
+            path = "/" + path;
+        }
+        String url = base + path;
+        if (compId != null && !compId.isBlank()) {
+            String enc = URLEncoder.encode(compId.trim(), StandardCharsets.UTF_8);
+            url += (url.contains("?") ? "&" : "?") + "m=" + enc;
+        }
+        return url;
     }
 }

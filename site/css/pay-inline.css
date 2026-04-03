@@ -30,11 +30,20 @@ body.pay-inline-body {
   border-radius: 12px;
   box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
   padding: 1.75rem 1.5rem 2rem;
+  overflow: visible; /* ChillPay CCD iframe 이 잘리지 않도록 */
 }
 
 .pay-brand {
   text-align: center;
   margin-bottom: 1rem;
+}
+
+.pay-brand-logo-img {
+  display: block;
+  margin: 0 auto 0.35rem;
+  max-height: 48px;
+  max-width: min(280px, 100%);
+  object-fit: contain;
 }
 
 .pay-brand-logo {
@@ -160,6 +169,12 @@ body.pay-inline-body {
   margin: 1.25rem 0;
 }
 
+/* 결제안내·내용1~3·CCD 입력 블록 아래 — 이후 구매자 정보 폼과 구분 */
+.pay-divider-after-card {
+  margin-top: 1rem;
+  margin-bottom: 0.75rem;
+}
+
 .pay-cardnums {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -193,6 +208,10 @@ body.pay-inline-body {
   }
 }
 
+.ccd-brand-adaptive-hint {
+  line-height: 1.45;
+}
+
 .pay-ccd-wrap {
   border: 1px dashed var(--pay-border);
   border-radius: 8px;
@@ -201,14 +220,36 @@ body.pay-inline-body {
   min-height: 100px;
 }
 
-.pay-ccd-wrap .pay-ccd-hint {
-  font-size: 0.72rem;
-  color: var(--pay-muted);
-  margin-bottom: 0.5rem;
+.pay-ccd-field-split {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
 }
 
-#chillpay-card-host {
-  min-height: 80px;
+@media (max-width: 420px) {
+  .pay-ccd-field-split {
+    grid-template-columns: 1fr;
+  }
+}
+
+.pay-ccd-slot {
+  min-height: 52px;
+  border-radius: 6px;
+  background: #fff;
+}
+
+.pay-ccd-slot iframe {
+  display: block;
+  max-width: 100%;
+}
+
+.pay-direct-token .pay-token-input {
+  font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
+  font-size: 0.8rem;
+}
+
+.pay-ccd-fallback-hint {
+  margin-top: 0.35rem;
 }
 
 .pay-sandbox-token {
@@ -277,4 +318,16 @@ body.pay-inline-body {
   display: block;
   background: #f8d7da;
   color: #842029;
+}
+
+/* 인라인 결제 최종 결과: 입력 폼 숨김 후 전체 카드 영역 사용 */
+#payResult.pay-result-final {
+  margin-top: 0;
+  padding: 1.1rem 1.2rem;
+  font-size: 0.9375rem;
+}
+
+#payResult.pay-result-final .pay-result-title {
+  font-weight: 600;
+  margin-bottom: 0.5rem;
 }

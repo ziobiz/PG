@@ -3,17 +3,22 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
+  <meta http-equiv="Pragma" content="no-cache">
   <title>Payment</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;600&display=swap" rel="stylesheet">
-  <link href="css/pay-inline.css?v=4" rel="stylesheet">
+  <link href="css/pay-inline.css?v=24" rel="stylesheet">
 </head>
 <body class="pay-inline-body">
   <div class="pay-shell">
     <div class="pay-card">
       <div class="pay-brand">
-        <div class="pay-brand-logo" data-i18n="brandTitle">ICOPAY</div>
-        <div class="pay-brand-sub" data-i18n="brandSub">Secure checkout</div>
+        <img id="payBrandLogoImg" class="pay-brand-logo-img d-none" src="" alt="">
+        <div id="payBrandTextWrap">
+          <div class="pay-brand-logo" data-i18n="brandTitle">ICOPAY</div>
+          <div class="pay-brand-sub" data-i18n="brandSub">Secure checkout</div>
+        </div>
       </div>
 
       <div class="pay-lang" role="group" aria-label="Language">
@@ -27,42 +32,90 @@
       <div id="configError" class="alert alert-warning pay-alert-config" style="display:none;"></div>
       <div id="payRedirectBanner" class="alert alert-info small pay-redirect-banner d-none" role="status" data-i18n="redirectModeNotice"></div>
 
+      <!-- 가맹점·상품·금액: 카드(호스티드 필드) 위에 배치. REDIRECT 시에도 표시되도록 #payInlineOnly 밖에 둠 -->
+      <div id="payOrderSummaryTop" class="pay-form-grid pay-order-summary-top mb-2">
+        <div class="pay-row pay-row-static">
+          <div class="pay-row-label"><span data-i18n="merchantNameLabel">Merchant Name</span></div>
+          <div class="pay-row-value"><span id="merchantNameDisplay" class="pay-merchant-readonly">___PAY_M_FALLBACK___</span></div>
+        </div>
+        <div class="pay-row">
+          <label class="pay-row-label mb-0" for="item"><span data-i18n="item">Item</span> <span class="req">*</span></label>
+          <div class="pay-row-value">
+            <input type="text" class="form-control form-control-sm pay-input-round" id="item" name="item" form="payForm" required autocomplete="off" data-i18n-placeholder="phItem">
+          </div>
+        </div>
+        <div class="pay-row">
+          <label class="pay-row-label mb-0" for="amount"><span data-i18n="totalAmount">Total Amount</span> <span class="req">*</span> <span class="pay-currency-hint text-muted fw-normal" id="payAmountCurrencyHint">(JPY)</span></label>
+          <div class="pay-row-value">
+            <input type="number" class="form-control form-control-sm pay-input-round" id="amount" name="amount" form="payForm" required min="0.01" step="0.01" inputmode="decimal">
+            <p class="small text-muted mb-0 mt-1 d-none" id="payAmountScaleNotice" role="status"></p>
+          </div>
+        </div>
+      </div>
+
+      <!-- ChillPay CCD 슬롯은 폼 밖(NOTI /admin/test-pay 와 동일). 스크립트는 #payForm 안 상단에 주입 -->
+      <div id="payInlineOnly" class="pay-inline-only-block">
+        <div class="pay-label mb-1"><span id="payCardSectionLabel" data-i18n="cardSection">Card</span> <span class="req">*</span></div>
+        <div id="payInlineUnsupported" class="alert alert-warning small pay-inline-unsupported d-none" role="status"></div>
+        <div class="pay-inline-chillpay-only">
+        <p class="small text-muted mb-1" id="payCardNoteText" data-i18n="cardNote">Enter your card only in the secure fields inside each box above. For this inline checkout, the cardholder name is collected only in «Name on card» above (we do not ask for it again below). ChillPay handles card data; our server does not receive your full card number as plain text.</p>
+        <p class="small text-muted mb-2 ccd-brand-adaptive-hint" id="payCardCcdHintText" data-i18n="ccdBrandAdaptiveHint">Card fields are provided by the active PG’s secure widget; layout and rules (e.g. number/CVV length by brand) follow that PG. Other PGs can be wired later under the same checkout shell.</p>
+        <p class="small text-muted mb-2 d-none" id="payCardBody3Text" role="status"></p>
+        <div id="ccdConfigWarn" class="alert alert-warning small py-2 d-none" role="status"></div>
+        <input type="hidden" id="clientIpHolder" value="">
+
+        <div id="payCreditCardData">
+        <div class="pay-ccd-wrap mb-2">
+          <div class="pay-ccd-field mb-2">
+            <div class="small text-muted mb-1" data-i18n="ccdLabelName">Name on card</div>
+            <div id="ccdinline-card-name" class="pay-ccd-slot"></div>
+          </div>
+          <div class="pay-ccd-field mb-2">
+            <div class="small text-muted mb-1" data-i18n="ccdLabelNumber">Card number</div>
+            <div id="ccdinline-card-number" class="pay-ccd-slot"></div>
+          </div>
+          <div class="pay-ccd-field mb-2 pay-ccd-field-split">
+            <div>
+              <div class="small text-muted mb-1" data-i18n="ccdLabelExpiry">Expiry</div>
+              <div id="ccdinline-card-expiry" class="pay-ccd-slot"></div>
+            </div>
+            <div>
+              <div class="small text-muted mb-1" data-i18n="ccdLabelCvv">CVV</div>
+              <div id="ccdinline-card-cvv" class="pay-ccd-slot"></div>
+            </div>
+          </div>
+          <div class="pay-ccd-field mb-2">
+            <div class="small text-muted mb-1" data-i18n="ccdLabelRemember">Save card consent</div>
+            <div id="ccdinline-card-remember" class="pay-ccd-slot"></div>
+          </div>
+        </div>
+        </div>
+
+        <hr class="pay-divider pay-divider-after-card" aria-hidden="true">
+
+        </div>
+      </div>
+
       <form id="payForm" novalidate>
         <input type="hidden" id="directCreditToken" name="directCreditToken" value="">
-        <input type="hidden" id="orderNo" name="orderNo" value="">
+        <input type="hidden" id="orderNo" name="orderNo" value="" maxlength="20" autocomplete="off">
 
         <div class="pay-form-grid">
-          <div class="pay-row pay-row-static">
-            <div class="pay-row-label"><span data-i18n="merchantNameLabel">Merchant Name</span></div>
-            <div class="pay-row-value"><span id="merchantNameDisplay" class="pay-merchant-readonly">—</span></div>
-          </div>
-
-          <div class="pay-row">
-            <label class="pay-row-label mb-0" for="amount"><span data-i18n="totalAmount">Total Amount</span> <span class="req">*</span> <span class="pay-currency-hint text-muted fw-normal" data-i18n="currencyJpy">(JPY)</span></label>
-            <div class="pay-row-value">
-              <input type="number" class="form-control form-control-sm pay-input-round" id="amount" name="amount" required min="1" step="1" inputmode="numeric">
+          <!-- FULL·SIMPLE 공통: 카드 명의와 동일한 성명(인라인 DirectCredit Description·추적용) -->
+          <div id="payFullNameRow" class="pay-row">
+            <div class="pay-row-label"><span data-i18n="nameOnCardPair">First / Last name</span> <span class="req">*</span></div>
+            <div class="pay-row-value pay-row-split">
+              <input type="text" class="form-control form-control-sm pay-input-round" id="firstName" name="firstName" required autocomplete="given-name" data-i18n-placeholder="phFirst" placeholder="">
+              <input type="text" class="form-control form-control-sm pay-input-round" id="lastName" name="lastName" required autocomplete="family-name" data-i18n-placeholder="phLast" placeholder="">
             </div>
           </div>
-
-          <div class="pay-row">
-            <label class="pay-row-label mb-0" for="item"><span data-i18n="item">Item</span> <span class="req">*</span></label>
-            <div class="pay-row-value">
-              <input type="text" class="form-control form-control-sm pay-input-round" id="item" name="item" required autocomplete="off" data-i18n-placeholder="phItem">
-            </div>
-          </div>
+          <p class="small text-muted pay-simple-name-hint d-none mb-2" id="paySimpleNameHint" data-i18n="simpleNameHint">간편 입력: 위 카드 보안 칸과 성명·상품·금액만 사용합니다.</p>
 
           <div id="payExtendedFields">
             <div class="pay-row">
               <label class="pay-row-label mb-0" for="phoneNumber"><span data-i18n="mobile">Mobile Number</span> <span class="req">*</span></label>
               <div class="pay-row-value">
                 <input type="tel" class="form-control form-control-sm pay-input-round" id="phoneNumber" name="phoneNumber" required autocomplete="tel">
-              </div>
-            </div>
-            <div id="payFullNameRow" class="pay-row">
-              <div class="pay-row-label"><span data-i18n="nameOnCardPair">First / Last name</span> <span class="req">*</span></div>
-              <div class="pay-row-value pay-row-split">
-                <input type="text" class="form-control form-control-sm pay-input-round" id="firstName" required autocomplete="given-name" data-i18n-placeholder="phFirst" placeholder="">
-                <input type="text" class="form-control form-control-sm pay-input-round" id="lastName" required autocomplete="family-name" data-i18n-placeholder="phLast" placeholder="">
               </div>
             </div>
             <div class="pay-row">
@@ -102,36 +155,6 @@
           </div>
         </div>
 
-        <div id="payInlineOnly" class="pay-inline-only-block">
-        <hr class="pay-divider">
-
-        <div class="pay-label mb-1"><span data-i18n="cardSection">Card</span> <span class="req">*</span></div>
-        <p class="small text-muted mb-2" data-i18n="cardNote">Card data is tokenized via ChillPay CCD. Enter the security token below in sandbox, or use the hosted input when available.</p>
-        <div class="pay-cardnums mb-2" aria-hidden="true">
-          <input type="text" class="form-control form-control-sm" maxlength="4" inputmode="numeric" pattern="[0-9]*" disabled placeholder="••••" title="">
-          <input type="text" class="form-control form-control-sm" maxlength="4" inputmode="numeric" pattern="[0-9]*" disabled placeholder="••••">
-          <input type="text" class="form-control form-control-sm" maxlength="4" inputmode="numeric" pattern="[0-9]*" disabled placeholder="••••">
-          <input type="text" class="form-control form-control-sm" maxlength="4" inputmode="numeric" pattern="[0-9]*" disabled placeholder="••••">
-        </div>
-        <div class="pay-exp-cvv mb-2">
-          <select class="form-select form-select-sm" id="expMonth" disabled aria-hidden="true"></select>
-          <select class="form-select form-select-sm" id="expYear" disabled aria-hidden="true"></select>
-          <div class="pay-cvv-wrap">
-            <input type="text" class="form-control form-control-sm" maxlength="4" placeholder="CVV" disabled aria-hidden="true">
-          </div>
-        </div>
-
-        <div class="pay-ccd-wrap">
-          <div class="pay-ccd-hint" data-i18n="ccdMountHint">ChillPay secure card input (CCD)</div>
-          <div id="chillpay-card-host"></div>
-        </div>
-
-        <details class="pay-sandbox-token">
-          <summary data-i18n="sandboxToken">Sandbox: DirectCreditToken</summary>
-          <input type="text" class="form-control form-control-sm mt-1" id="directCreditTokenManual" autocomplete="off" data-i18n-placeholder="phToken" placeholder="">
-        </details>
-        </div>
-
         <div class="pay-checks">
           <div class="form-check">
             <input class="form-check-input" type="checkbox" id="agreeTerms" required>
@@ -152,7 +175,7 @@
     </div>
   </div>
 
-  <script src="js/config.js?v=6"></script>
+  <script src="js/config.js?v=8"></script>
   <script>
     (function () {
       var h = (window.location && window.location.hostname) ? window.location.hostname : '';
@@ -178,16 +201,40 @@
   </script>
   <script>
     (function () {
-      var API_BASE = (window.PG_API_BASE !== undefined && window.PG_API_BASE !== '')
-        ? window.PG_API_BASE
-        : (typeof window.PG_assetApiBase === 'function' ? window.PG_assetApiBase() : (window.location.origin || ''));
-      API_BASE = (API_BASE + '').replace(/\/$/, '');
+      var API_BASE = (function () {
+        try {
+          var host0 = (window.location && window.location.hostname) ? window.location.hostname : '';
+          if (host0 === 'api.icopay.co.kr' && window.location.origin) {
+            return String(window.location.origin).replace(/\/$/, '');
+          }
+        } catch (e0) { /* ignore */ }
+        var b = (window.PG_API_BASE !== undefined && window.PG_API_BASE !== '')
+          ? window.PG_API_BASE
+          : (typeof window.PG_assetApiBase === 'function' ? window.PG_assetApiBase() : (window.location.origin || ''));
+        return String(b).replace(/\/$/, '');
+      })();
+
+      function absPayAssetUrl(path) {
+        var p = path == null ? '' : String(path).trim();
+        if (!p) return '';
+        if (/^https?:\/\//i.test(p)) return p;
+        var base = API_BASE.replace(/\/$/, '');
+        return base + (p.charAt(0) === '/' ? p : '/' + p);
+      }
 
       var LANG = 'ENG';
       /** 본사 checkout-context: urlPayFlow INLINE|REDIRECT, urlPayFormMode FULL|SIMPLE */
       var urlPayFlow = 'INLINE';
       var urlPayFormMode = 'FULL';
-
+      /** checkout-context: CHILLPAY_CCD | UNSUPPORTED_INLINE (다중 PG 확장) */
+      var urlPayInlineWidgetKind = 'CHILLPAY_CCD';
+      var urlPayOperationalPgCd = '';
+      /** checkout-context: SAME | MULTIPLY_100 | DIVIDE_100 — 본사 결제통화로직 */
+      var urlPayAmountScaleMode = 'SAME';
+      window.__pgPayUnsupportedApplied = false;
+      window.__pgPayUnsupportedPgCd = '';
+      /** checkout-context urlPayCardCopy — 본사 결제구문설정 */
+      window.__payUrlCardCopy = null;
       var I18N = {
         KOR: {
           brandTitle: 'ICOPAY', brandSub: '안전 결제', phItem: '상품·서비스명',
@@ -195,15 +242,33 @@
           nameOnCardPair: '이름 / 성', phFirst: '이름', phLast: '성',
           item: '상품', mobile: '휴대전화', firstName: '이름', lastName: '성',
           email: '이메일', zip: '우편번호', country: '국가', countryPh: '선택', city: '시·구', address: '주소',
-          cardSection: '카드', cardNote: '실제 카드번호는 ChillPay CCD 보안 입력으로 토큰화됩니다. 샌드박스에서는 아래 토큰을 입력하세요.',
-          ccdMountHint: 'ChillPay 보안 카드 입력 영역',
-          sandboxToken: '샌드박스: DirectCreditToken', phToken: 'CCD 또는 데모에서 발급한 토큰',
+          cardSection: '카드', cardNote: '카드 정보는 위 각 칸 안의 ChillPay 보안 입력(iframe)에서만 입력합니다. 카드 명의(Name on card)도 위 칸에만 입력하면 되며, iframe 밖에서는 값을 읽을 수 없어 하단 이름·성 입력은 표시하지 않습니다. ChillPay가 안전하게 처리하며, 당사 서버로 카드번호 평문이 전달되지 않습니다.',
+          ccdBrandAdaptiveHint: '카드 입력은 연동된 PG사 보안 위젯(iframe 등)에서 제공합니다. 브랜드별 자릿수·CVV 규칙은 해당 PG가 처리하며, ChillPay는 AMEX 미지원입니다. 다른 PG 연동 시 같은 결제 껍데기 안에서 벤더별 위젯으로 갈아끼우는 형태가 일반적입니다.',
+          ccdLabelName: '카드 명의', ccdLabelNumber: '카드 번호', ccdLabelExpiry: '유효기간', ccdLabelCvv: 'CVC/CVV', ccdLabelRemember: '카드 저장 동의',
           totalAmount: '결제 금액', agreeTerms: '이용약관에 동의합니다.', confirmOrder: '위 주문 내용을 확인했습니다.',
           payButton: '결제', configErr: '설정을 불러올 수 없습니다.', needComp: '유효한 가맹점 코드(m)가 필요합니다.',
-          needToken: 'DirectCreditToken을 입력하세요.', needAmount: '금액을 입력하세요.',
+          needToken: '각 카드 보안 칸에 입력한 뒤 「결제」를 누르세요. 칸이 비어 있으면 새로고침 후 다시 시도하거나 가맹점에 문의하세요.', needAmount: '금액을 입력하세요.',
+          needCcdConfig: 'ChillPay API Key 또는 가맹점 코드가 없습니다. 본사 API연동설정을 확인하세요.',
+          ccdNotReady: '카드 입력 위젯이 아직 준비되지 않았습니다. 잠시 후 다시 시도하세요.',
+          ccdScriptLoadFail: 'ChillPay CCD 스크립트를 불러오지 못했습니다. 네트워크·차단 프로그램을 확인하세요.',
+          ccdIframeMissing: '카드 입력 iframe이 나타나지 않았습니다. 본사 「PG사 API」에 등록된 ccdpayment.js 주소가 잘못되었을 수 있습니다. 운영(프로덕션)은 https://cdn.chill.credit/js/ccdpayment.js 가 맞습니다. 브라우저 F12 콘솔의 CCD 오류도 확인하세요.',
+          ccdTokenFail: '카드 토큰 생성에 실패했습니다.',
+          needPayerName: '결제자 성명(이름·성)을 입력하세요.',
+          simpleNameHint: '간편 입력: 위 카드 보안 칸과 성명·상품·금액만 사용합니다. 카드번호는 보안 칸 안에서 입력합니다.',
           redirectModeNotice: '본사 설정이 리다이렉트(호스티드) URL 결제입니다. ChillPay 호스티드로 보내는 서명 POST는 서버 연동 후 사용할 수 있습니다. 「결제로직설정」에서 URL 결제형 기본 방식을 INLINE으로 바꾸면 이 페이지에서 카드 토큰(DirectCredit) 결제를 쓸 수 있습니다.',
           orgDisabled: '서비스가 중지된 가맹점입니다.',
-          payOk: '결제 요청이 처리되었습니다.', payFail: '결제에 실패했습니다.'
+          payOk: '결제 요청이 처리되었습니다.', payFail: '결제에 실패했습니다.',
+          unsupportedInlinePgNoPg: '이 가맹점의 운영 PG는 공개 URL 인라인 카드 입력을 아직 지원하지 않습니다. 호스티드 결제 등 다른 흐름이나 PG별 위젯 연동 후 이용해 주세요.',
+          unsupportedInlinePgWithPg: '운영 PG 코드 {pg} 는 공개 URL 인라인 카드 입력을 아직 지원하지 않습니다. 호스티드 결제 등 다른 흐름이나 PG별 위젯 연동 후 이용해 주세요.',
+          unsupportedInlineSubmit: '인라인 카드 결제를 사용할 수 없습니다. 운영 PG 설정을 확인하세요.',
+          amountScaleMultiply: '본사 「결제통화로직설정」에 따라 입력하신 금액의 100배가 결제 대행사(칠리페이 등)로 전달됩니다.',
+          amountScaleDivide: '본사 「결제통화로직설정」에 따라 입력하신 금액의 1/100이 결제 대행사로 전달됩니다.',
+          payResultOkTitle: '결제 완료',
+          payResultFailTitle: '결제가 완료되지 않았거나 취소되었습니다',
+          payResultCancelTitle: '결제 취소',
+          orderNoLabel: '주문번호',
+          payResultConfirm: '확인',
+          payResultDisclaimer: '팝업으로 연 경우 창을 닫아 주세요. 새 탭이면 아래 버튼으로 결제 페이지로 돌아가거나 탭을 닫아 주세요.'
         },
         ENG: {
           brandTitle: 'ICOPAY', brandSub: 'Secure checkout', phItem: 'Digital Contents Product',
@@ -211,15 +276,33 @@
           nameOnCardPair: 'First / Last name', phFirst: 'First name', phLast: 'Last name',
           item: 'Item', mobile: 'Mobile Number', firstName: 'First Name', lastName: 'Last Name',
           email: 'Email Address', zip: 'Zip / Postal Code', country: 'Country', countryPh: 'Select an option', city: 'City', address: 'Primary Address',
-          cardSection: 'Card', cardNote: 'Card data is tokenized via ChillPay CCD. For sandbox, paste DirectCreditToken below.',
-          ccdMountHint: 'ChillPay secure card input (CCD)',
-          sandboxToken: 'Sandbox: DirectCreditToken', phToken: 'Token from CCD or ChillPay demo',
+          cardSection: 'Card', cardNote: 'Enter your card only in the secure fields inside each box above. For this inline checkout, the cardholder name is collected only in «Name on card» above (we do not ask for it again below). ChillPay handles card data; our server does not receive your full card number as plain text.',
+          ccdBrandAdaptiveHint: 'Card inputs come from the active PG’s secure widget; brand-specific rules (e.g. AMEX at other PGs) are handled there—not in this page’s HTML. ChillPay does not support AMEX; multi-PG checkout swaps widgets under the same shell.',
+          ccdLabelName: 'Name on card', ccdLabelNumber: 'Card number', ccdLabelExpiry: 'Expiry', ccdLabelCvv: 'CVV/CVC', ccdLabelRemember: 'Save-card consent',
           totalAmount: 'Total Amount', agreeTerms: 'I agree to the Terms and Conditions.', confirmOrder: 'I confirm the order details above.',
           payButton: 'Payment', configErr: 'Could not load payment configuration.', needComp: 'A valid merchant code (m) is required.',
-          needToken: 'DirectCreditToken is required.', needAmount: 'Enter a valid amount.',
+          needToken: 'Fill each secure card field, then press Pay. If the fields stay blank, refresh or contact the merchant.', needAmount: 'Enter a valid amount.',
+          needPayerName: 'Enter payer name (first and last name).',
+          simpleNameHint: 'Simple checkout: use the secure card fields above, then name, item, and amount.',
+          needCcdConfig: 'ChillPay API Key or merchant code is missing. Check HQ API integration settings.',
+          ccdNotReady: 'Card widget is not ready yet. Please wait and try again.',
+          ccdScriptLoadFail: 'Could not load the ChillPay CCD script. Check network and blockers.',
+          ccdIframeMissing: 'Card iframes did not appear. A wrong ccdpayment.js URL in HQ PG agency settings can cause this. Production script must be https://cdn.chill.credit/js/ccdpayment.js. Check the browser console (F12) for CCD errors.',
+          ccdTokenFail: 'Could not create card token.',
           redirectModeNotice: 'HQ settings use hosted (redirect) URL checkout. A server-signed POST to ChillPay is required to complete this flow. Set URL pay default to INLINE under Payment orchestration to use card token (DirectCredit) on this page.',
           orgDisabled: 'This merchant is disabled.',
-          payOk: 'Payment request processed.', payFail: 'Payment failed.'
+          payOk: 'Payment request processed.', payFail: 'Payment failed.',
+          unsupportedInlinePgNoPg: 'Inline card capture on this public URL is not wired for this merchant’s active payment provider yet. Use hosted checkout or add that PSP’s widget when available.',
+          unsupportedInlinePgWithPg: 'Inline card capture is not wired for PSP code {pg} on this public URL yet. Use hosted checkout or integrate that PSP’s widget under this checkout shell.',
+          unsupportedInlineSubmit: 'Inline card payment is not available for the configured PSP.',
+          amountScaleMultiply: 'Per HQ payment-currency rules, the amount sent to the PSP is your input × 100.',
+          amountScaleDivide: 'Per HQ payment-currency rules, the amount sent to the PSP is your input ÷ 100.',
+          payResultOkTitle: 'Payment completed',
+          payResultFailTitle: 'Payment was not completed or was cancelled',
+          payResultCancelTitle: 'Payment cancelled',
+          orderNoLabel: 'Order no.',
+          payResultConfirm: 'OK',
+          payResultDisclaimer: 'If this opened in a popup, close the window. Otherwise use the button below to return to checkout or close the tab.'
         },
         CHN: {
           brandTitle: 'ICOPAY', brandSub: '安全结账', phItem: '商品或服务名称',
@@ -227,15 +310,33 @@
           nameOnCardPair: '名 / 姓', phFirst: '名', phLast: '姓',
           item: '商品', mobile: '手机号码', firstName: '名', lastName: '姓',
           email: '电子邮箱', zip: '邮政编码', country: '国家', countryPh: '请选择', city: '城市', address: '地址',
-          cardSection: '银行卡', cardNote: '卡信息通过 ChillPay CCD 令牌化。测试环境请在下方粘贴 DirectCreditToken。',
-          ccdMountHint: 'ChillPay 安全卡输入 (CCD)',
-          sandboxToken: '测试: DirectCreditToken', phToken: '来自 CCD 或演示的令牌',
+          cardSection: '银行卡', cardNote: '请在上方每个框内的安全输入区输入卡信息；持卡人姓名仅在「Name on card」中填写，下方不再重复询问（iframe 外无法读取该值）。由 ChillPay 处理，卡号不以明文提交到我方服务器。',
+          ccdBrandAdaptiveHint: '卡号等信息由当前对接的 PG 安全控件提供；品牌规则由该 PG 处理。ChillPay 不支持 AMEX。多 PG 时可在同一结账框架下切换不同厂商控件。',
+          ccdLabelName: '持卡人姓名', ccdLabelNumber: '卡号', ccdLabelExpiry: '有效期', ccdLabelCvv: 'CVV/CVC', ccdLabelRemember: '保存卡片同意',
           totalAmount: '总金额', agreeTerms: '我同意条款和条件。', confirmOrder: '我确认以上订单信息。',
           payButton: '支付', configErr: '无法加载支付配置。', needComp: '需要有效的商户代码 (m)。',
-          needToken: '需要 DirectCreditToken。', needAmount: '请输入有效金额。',
+          needToken: '请填好每个安全卡槽后点支付。若始终空白请刷新或联系商户。', needAmount: '请输入有效金额。',
+          needCcdConfig: '缺少 ChillPay API Key 或商户代码，请检查总部 API 设置。',
+          ccdNotReady: '卡输入组件尚未就绪，请稍后重试。',
+          ccdScriptLoadFail: '无法加载 ChillPay CCD 脚本，请检查网络或拦截。',
+          ccdIframeMissing: '未出现卡输入 iframe。总部 PG 配置中的 ccdpayment.js 地址可能错误；生产环境应为 https://cdn.chill.credit/js/ccdpayment.js。请查看浏览器 F12 控制台。',
+          ccdTokenFail: '创建卡令牌失败。',
+          needPayerName: '请输入付款人姓名（名与姓）。',
+          simpleNameHint: '简捷模式：先使用上方安全卡区，再填姓名、商品、金额。',
           redirectModeNotice: '当前为托管（跳转）URL 结账。需服务器对 ChillPay 的签名 POST 完成后方可使用。请在「支付编排」中将 URL 支付默认改为 INLINE，以在本页使用 DirectCredit 卡令牌。',
           orgDisabled: '该商户已停用。',
-          payOk: '支付请求已处理。', payFail: '支付失败。'
+          payOk: '支付请求已处理。', payFail: '支付失败。',
+          unsupportedInlinePgNoPg: '当前商户的运营 PG 尚未在此公开 URL 上接入内联卡输入。请使用托管结账或后续接入该 PG 的安全控件。',
+          unsupportedInlinePgWithPg: '运营 PG（代码 {pg}）尚未在此公开 URL 上接入内联卡输入。请使用托管结账或接入该 PG 的控件。',
+          unsupportedInlineSubmit: '无法使用内联卡支付，请检查运营 PG 配置。',
+          amountScaleMultiply: '根据总部支付货币规则，提交给支付机构的金额为输入金额 × 100。',
+          amountScaleDivide: '根据总部支付货币规则，提交给支付机构的金额为输入金额 ÷ 100。',
+          payResultOkTitle: 'Payment completed',
+          payResultFailTitle: 'Payment was not completed or was cancelled',
+          payResultCancelTitle: 'Payment cancelled',
+          orderNoLabel: 'Order no.',
+          payResultConfirm: 'OK',
+          payResultDisclaimer: 'If this opened in a popup, close the window. Otherwise use the button below to return to checkout or close the tab.'
         },
         JPN: {
           brandTitle: 'ICOPAY', brandSub: 'セキュア決済', phItem: '商品・サービス名',
@@ -243,15 +344,33 @@
           nameOnCardPair: '名 / 姓', phFirst: '名', phLast: '姓',
           item: '商品', mobile: '携帯電話', firstName: '名', lastName: '姓',
           email: 'メールアドレス', zip: '郵便番号', country: '国', countryPh: '選択してください', city: '市区町村', address: '住所',
-          cardSection: 'カード', cardNote: 'カード情報は ChillPay CCD でトークン化されます。サンドボックスでは DirectCreditToken を入力してください。',
-          ccdMountHint: 'ChillPay セキュアカード入力 (CCD)',
-          sandboxToken: 'サンドボックス: DirectCreditToken', phToken: 'CCD またはデモで発行したトークン',
+          cardSection: 'カード', cardNote: 'カード情報は上の各枠内のセキュア入力欄のみに入力してください。氏名は「Name on card」のみで、下の名・姓は表示しません（iframe 外からは読み取れません）。ChillPay が処理し、当サーバーにカード番号の平文は送られません。',
+          ccdBrandAdaptiveHint: 'カード入力は接続中のPGのセキュアウィジェットが提供します。ブランド別桁数はPG側です。ChillPayはAMEX非対応。複数PGは同一チェックアウト枠でウィジェットを切替えるのが一般的です。',
+          ccdLabelName: 'カード名義', ccdLabelNumber: 'カード番号', ccdLabelExpiry: '有効期限', ccdLabelCvv: 'CVV/CVC', ccdLabelRemember: 'カード保存の同意',
           totalAmount: '合計金額', agreeTerms: '利用規約に同意します。', confirmOrder: '上記の注文内容を確認しました。',
           payButton: '決済', configErr: '設定を読み込めませんでした。', needComp: '有効な加盟店コード (m) が必要です。',
-          needToken: 'DirectCreditToken が必要です。', needAmount: '有効な金額を入力してください。', needSimpleName: '氏名を入力してください。',
+          needToken: '各セキュア欄に入力してから「決済」を押してください。欄が空のままなら再読み込みするか加盟店へお問い合わせください。', needAmount: '有効な金額を入力してください。',
+          needCcdConfig: 'ChillPay API Key または加盟店コードがありません。本社 API 設定を確認してください。',
+          ccdNotReady: 'カード入力ウィジェットの準備ができていません。しばらくしてから再試行してください。',
+          ccdScriptLoadFail: 'ChillPay CCD スクリプトの読み込みに失敗しました。ネットワーク等を確認してください。',
+          ccdIframeMissing: 'カード入力 iframe が表示されません。本社 PG 設定の ccdpayment.js URL が誤っている可能性があります。本番は https://cdn.chill.credit/js/ccdpayment.js です。F12 コンソールを確認してください。',
+          ccdTokenFail: 'カードトークンの作成に失敗しました。',
+          needPayerName: '決済者の氏名（名・姓）を入力してください。',
+          simpleNameHint: '簡易入力: 上のセキュアカード欄と氏名・商品・金額のみ。カード番号はセキュア欄内で入力します。',
           redirectModeNotice: '本社設定はホスティド（リダイレクト）URL 決済です。ChillPay への署名付き POST はサーバ連携後に利用できます。「決済連携拡張設定」で URL 決済を INLINE にすると、本ページで DirectCredit（カードトークン）が使えます。',
           orgDisabled: 'この加盟店は利用できません。',
-          payOk: '決済リクエストを処理しました。', payFail: '決済に失敗しました。'
+          payOk: '決済リクエストを処理しました。', payFail: '決済に失敗しました。',
+          unsupportedInlinePgNoPg: 'この公開URLでのインラインカード入力は、設定されている運用PGでは未対応です。ホスティド決済やPG別ウィジェット連携をご利用ください。',
+          unsupportedInlinePgWithPg: '運用PGコード {pg} はこの公開URLでのインラインカード入力に未対応です。ホスティド決済やウィジェット連携をご利用ください。',
+          unsupportedInlineSubmit: 'インラインカード決済は利用できません。運用PG設定を確認してください。',
+          amountScaleMultiply: '本社の決済通貨ルールにより、決済代行に送る金額は入力金額の100倍です。',
+          amountScaleDivide: '本社の決済通貨ルールにより、決済代行に送る金額は入力金額の1/100です。',
+          payResultOkTitle: 'Payment completed',
+          payResultFailTitle: 'Payment was not completed or was cancelled',
+          payResultCancelTitle: 'Payment cancelled',
+          orderNoLabel: 'Order no.',
+          payResultConfirm: 'OK',
+          payResultDisclaimer: 'If this opened in a popup, close the window. Otherwise use the button below to return to checkout or close the tab.'
         },
         THA: {
           brandTitle: 'ICOPAY', brandSub: 'ชำระเงินปลอดภัย', phItem: 'ชื่อสินค้าหรือบริการ',
@@ -259,15 +378,33 @@
           nameOnCardPair: 'ชื่อจริง / นามสกุล', phFirst: 'ชื่อ', phLast: 'นามสกุล',
           item: 'สินค้า / บริการ', mobile: 'เบอร์โทรศัพท์มือถือ', firstName: 'ชื่อ', lastName: 'นามสกุล',
           email: 'อีเมล', zip: 'รหัสไปรษณีย์', country: 'ประเทศ', countryPh: 'กรุณาเลือก', city: 'เมือง / อำเภอ', address: 'ที่อยู่',
-          cardSection: 'บัตร', cardNote: 'ข้อมูลบัตรจะถูกแปลงเป็นโทเค็นผ่าน ChillPay CCD ในระบบทดสอบให้วาง DirectCreditToken ด้านล่าง',
-          ccdMountHint: 'ช่องกรอกบัตรที่ปลอดภัย ChillPay (CCD)',
-          sandboxToken: 'แซนด์บ็อกซ์: DirectCreditToken', phToken: 'โทเค็นจาก CCD หรือ ChillPay demo',
+          cardSection: 'บัตร', cardNote: 'กรอกข้อมูลบัตรเฉพาะในช่องปลอดภัยด้านบน ชื่อบนบัตรกรอกเฉพาะใน «Name on card» ด้านบนเท่านั้น เราไม่ถามชื่อซ้ำด้านล่าง ChillPay จัดการ ไม่ส่งหมายเลขบัตรแบบเปล่าไปยังเซิร์ฟเวอร์ของเรา',
+          ccdBrandAdaptiveHint: 'ช่องกรอกบัตรมาจากวิดเจ็ตของ PG ที่เชื่อมอยู่ กฎตามแบรนด์เป็นของ PG ChillPay ไม่รองรับ AMEX หลาย PG ใช้กรอบเช็คเอาต์เดียวแล้วสลับวิดเจ็ต',
+          ccdLabelName: 'ชื่อบนบัตร', ccdLabelNumber: 'หมายเลขบัตร', ccdLabelExpiry: 'วันหมดอายุ', ccdLabelCvv: 'CVV/CVC', ccdLabelRemember: 'ยินยอมบันทึกบัตร',
           totalAmount: 'จำนวนเงินรวม', agreeTerms: 'ข้าพเจ้ายอมรับข้อกำหนดและเงื่อนไข', confirmOrder: 'ข้าพเจ้ายืนยันรายละเอียดคำสั่งซื้อด้านบน',
           payButton: 'ชำระเงิน', configErr: 'ไม่สามารถโหลดการตั้งค่าได้', needComp: 'ต้องใช้รหัสร้านค้า (m) ที่ถูกต้อง',
-          needToken: 'ต้องใส่ DirectCreditToken', needAmount: 'กรุณากรอกจำนวนเงินที่ถูกต้อง',
+          needToken: 'กรอกช่องบัตรปลอดภัยให้ครบแล้วกดชำระ ถ้าว่างตลอดให้รีเฟรชหรือติดต่อร้าน', needAmount: 'กรุณากรอกจำนวนเงินที่ถูกต้อง',
+          needCcdConfig: 'ไม่มี ChillPay API Key หรือรหัสร้านค้า ตรวจสอบการตั้งค่า API',
+          ccdNotReady: 'วิดเจ็ตบัตรยังไม่พร้อม โปรดรอแล้วลองอีกครั้ง',
+          ccdScriptLoadFail: 'โหลดสคริปต์ ChillPay CCD ไม่สำเร็จ ตรวจสอบเครือข่ายหรือตัวบล็อก',
+          ccdIframeMissing: 'ไม่มี iframe กรอกบัตร อาจตั้งค่า ccdpayment.js ผิดในระบบ PG โปรดใช้โปรดักชัน https://cdn.chill.credit/js/ccdpayment.js ตรวจคอนโซล F12',
+          ccdTokenFail: 'สร้างโทเค็นบัตรไม่สำเร็จ',
+          needPayerName: 'กรุณากรอกชื่อผู้ชำระเงิน (ชื่อและนามสกุล)',
+          simpleNameHint: 'โหมดง่าย: ช่องบัตรปลอดภัยด้านบน แล้วตามด้วยชื่อ สินค้า จำนวนเงิน',
           redirectModeNotice: 'ตั้งค่าเป็นชำระแบบโฮสต์ (รีไดเร็กต์) ต้องมี POST แบบมีลายเซ็นจากเซิร์ฟเวอร์ไป ChillPay จึงจะใช้งานได้ เปลี่ยน URL เป็น INLINE ในการตั้งค่า orchestration เพื่อใช้ DirectCredit บนหน้านี้',
           orgDisabled: 'ร้านค้านี้ถูกระงับ',
-          payOk: 'ดำเนินการชำระเงินแล้ว', payFail: 'การชำระเงินล้มเหลว'
+          payOk: 'ดำเนินการชำระเงินแล้ว', payFail: 'การชำระเงินล้มเหลว',
+          unsupportedInlinePgNoPg: 'ผู้ให้บริการชำระเงินที่เปิดใช้งานของร้านนี้ยังไม่รองรับการกรอกบัตรแบบอินไลน์บน URL สาธารณะนี้ ใช้แบบโฮสต์หรือเชื่อมวิดเจ็ตของ PSP นั้นเมื่อพร้อม',
+          unsupportedInlinePgWithPg: 'PSP รหัส {pg} ยังไม่รองรับการกรอกบัตรแบบอินไลน์บน URL นี้ ใช้แบบโฮสต์หรือเชื่อมวิดเจ็ตของ PSP',
+          unsupportedInlineSubmit: 'ไม่สามารถชำระด้วยบัตรแบบอินไลน์สำหรับ PSP ที่ตั้งค่าไว้',
+          amountScaleMultiply: 'ตามกฎสกุลเงินของสำนักงานใหญ่ จำนวนที่ส่งให้ PSP เท่ากับจำนวนที่กรอก × 100',
+          amountScaleDivide: 'ตามกฎสกุลเงินของสำนักงานใหญ่ จำนวนที่ส่งให้ PSP เท่ากับจำนวนที่กรอก ÷ 100',
+          payResultOkTitle: 'Payment completed',
+          payResultFailTitle: 'Payment was not completed or was cancelled',
+          payResultCancelTitle: 'Payment cancelled',
+          orderNoLabel: 'Order no.',
+          payResultConfirm: 'OK',
+          payResultDisclaimer: 'If this opened in a popup, close the window. Otherwise use the button below to return to checkout or close the tab.'
         }
       };
 
@@ -297,7 +434,8 @@
         var banner = document.getElementById('payRedirectBanner');
         var inlineOnly = document.getElementById('payInlineOnly');
         var ext = document.getElementById('payExtendedFields');
-        var ids = ['phoneNumber', 'firstName', 'lastName', 'custEmail', 'zipCode', 'country', 'city', 'addressLine'];
+        var ids = ['phoneNumber', 'custEmail', 'zipCode', 'country', 'city', 'addressLine'];
+        var nameHint = document.getElementById('paySimpleNameHint');
 
         if (banner) {
           banner.classList.toggle('d-none', flow !== 'REDIRECT');
@@ -310,6 +448,9 @@
         if (ext) {
           ext.classList.toggle('d-none', simple);
         }
+        if (nameHint) {
+          nameHint.classList.toggle('d-none', !simple || flow === 'REDIRECT');
+        }
         ids.forEach(function (id) {
           setReqInput(id, !simple);
         });
@@ -317,13 +458,84 @@
 
       function getCompId() {
         var p = new URLSearchParams(window.location.search);
-        var m = p.get('m');
-        return m ? String(m).trim() : '';
+        var raw = p.get('m') || p.get('compId') || p.get('merchant') || '';
+        if (raw) return String(raw).trim();
+        try {
+          var path = (window.location.pathname || '').replace(/\/+$/, '');
+          var seg = path.split('/').filter(Boolean);
+          if (seg.length >= 2 && seg[0].toLowerCase() === 'pay' && String(seg[1]).indexOf('.') < 0) {
+            return String(seg[1]).trim();
+          }
+        } catch (e) { /* ignore */ }
+        return '';
       }
 
       function t(key) {
         var pack = I18N[LANG] || I18N.ENG;
         return pack[key] != null ? pack[key] : (I18N.ENG[key] || key);
+      }
+
+      function tFmt(key, vars) {
+        var s = t(key);
+        if (!vars) return s;
+        Object.keys(vars).forEach(function (k) {
+          var v = vars[k] != null ? String(vars[k]) : '';
+          s = s.split('{' + k + '}').join(v);
+        });
+        return s;
+      }
+
+      /** ChillPay CCD 인라인: 카드 명의는 PG iframe에만 입력(부모 페이지에서 값 읽기 불가). */
+      function urlPayCcdCardholderOnly() {
+        return urlPayFlow === 'INLINE' && urlPayInlineWidgetKind === 'CHILLPAY_CCD';
+      }
+
+      function applyCcdPayerRow() {
+        var row = document.getElementById('payFullNameRow');
+        var hint = document.getElementById('paySimpleNameHint');
+        var hide = urlPayCcdCardholderOnly();
+        if (row) {
+          row.classList.toggle('d-none', hide);
+          setReqInput('firstName', !hide);
+          setReqInput('lastName', !hide);
+          if (hide) {
+            var f = document.getElementById('firstName');
+            var l = document.getElementById('lastName');
+            if (f) f.value = '';
+            if (l) l.value = '';
+          }
+        }
+        if (hint) {
+          if (hide) {
+            hint.classList.add('d-none');
+          } else {
+            var simple = urlPayFormMode === 'SIMPLE';
+            hint.classList.toggle('d-none', !simple || urlPayFlow === 'REDIRECT');
+          }
+        }
+      }
+
+      function applyUnsupportedInlineUi(enabled, pgCd) {
+        window.__pgPayUnsupportedApplied = !!enabled;
+        window.__pgPayUnsupportedPgCd = enabled ? (pgCd || '') : '';
+        var banner = document.getElementById('payInlineUnsupported');
+        var chillBlocks = document.querySelectorAll('.pay-inline-chillpay-only');
+        if (banner) {
+          banner.classList.toggle('d-none', !enabled);
+          if (enabled) {
+            banner.textContent = pgCd
+              ? tFmt('unsupportedInlinePgWithPg', { pg: pgCd })
+              : t('unsupportedInlinePgNoPg');
+          }
+        }
+        chillBlocks.forEach(function (el) {
+          el.classList.toggle('d-none', enabled);
+        });
+        var btn = document.getElementById('submitBtn');
+        if (btn && urlPayFlow === 'INLINE') {
+          btn.disabled = !!enabled;
+        }
+        applyCcdPayerRow();
       }
 
       function applyI18n() {
@@ -335,7 +547,84 @@
           var k = el.getAttribute('data-i18n-placeholder');
           if (k) el.setAttribute('placeholder', t(k));
         });
+        if (window.__pgPayUnsupportedApplied) {
+          var uns = document.getElementById('payInlineUnsupported');
+          if (uns && !uns.classList.contains('d-none')) {
+            uns.textContent = window.__pgPayUnsupportedPgCd
+              ? tFmt('unsupportedInlinePgWithPg', { pg: window.__pgPayUnsupportedPgCd })
+              : t('unsupportedInlinePgNoPg');
+          }
+        }
         fillCountryOptions();
+        applyPayAmountScaleNotice();
+        updatePayCardSectionTexts();
+        applyPayDocumentTitle();
+      }
+
+      function applyPayDocumentTitle() {
+        var c = window.__payUrlCardCopy;
+        var s = '';
+        if (c && c.browserTabTitle && typeof c.browserTabTitle === 'object') {
+          s = String(pickLangMap(c.browserTabTitle) || '').trim();
+        }
+        document.title = s || 'Payment';
+      }
+
+      function pickLangMap(m) {
+        if (!m || typeof m !== 'object') return '';
+        if (m[LANG]) return String(m[LANG]);
+        if (m.ENG) return String(m.ENG);
+        if (m.KOR) return String(m.KOR);
+        var ks = Object.keys(m);
+        return ks.length ? String(m[ks[0]]) : '';
+      }
+
+      function updatePayCardSectionTexts() {
+        var sec = document.getElementById('payCardSectionLabel');
+        var n1 = document.getElementById('payCardNoteText');
+        var n2 = document.getElementById('payCardCcdHintText');
+        var n3 = document.getElementById('payCardBody3Text');
+        var c = window.__payUrlCardCopy;
+        var t1 = c && c.cardSection ? pickLangMap(c.cardSection) : '';
+        if (t1) {
+          if (sec) sec.textContent = t1;
+          if (n1) n1.textContent = c.cardNote ? pickLangMap(c.cardNote) : '';
+          if (n2) n2.textContent = c.ccdBrandAdaptiveHint ? pickLangMap(c.ccdBrandAdaptiveHint) : '';
+          if (n3) {
+            var t3 = c.cardBody3 ? pickLangMap(c.cardBody3) : '';
+            if (t3) {
+              n3.textContent = t3;
+              n3.classList.remove('d-none');
+            } else {
+              n3.textContent = '';
+              n3.classList.add('d-none');
+            }
+          }
+        } else {
+          if (sec) sec.textContent = t('cardSection');
+          if (n1) n1.textContent = t('cardNote');
+          if (n2) n2.textContent = t('ccdBrandAdaptiveHint');
+          if (n3) {
+            n3.textContent = '';
+            n3.classList.add('d-none');
+          }
+        }
+      }
+
+      function applyCheckoutHeaderBranding() {
+        var logoPath = (checkoutCtx && checkoutCtx.checkoutHeaderLogoUrl) ? String(checkoutCtx.checkoutHeaderLogoUrl).trim() : '';
+        var img = document.getElementById('payBrandLogoImg');
+        var wrap = document.getElementById('payBrandTextWrap');
+        if (!img || !wrap) return;
+        if (logoPath) {
+          img.src = absPayAssetUrl(logoPath);
+          img.classList.remove('d-none');
+          wrap.classList.add('d-none');
+        } else {
+          img.removeAttribute('src');
+          img.classList.add('d-none');
+          wrap.classList.remove('d-none');
+        }
       }
 
       function fillCountryOptions() {
@@ -363,6 +652,9 @@
           b.classList.toggle('active', b.getAttribute('data-lang') === code);
         });
         applyI18n();
+        if (bootCompId && checkoutCtx) {
+          applyCheckoutFormDefaults(bootCompId, checkoutCtx);
+        }
       }
 
       document.querySelectorAll('.pay-lang button').forEach(function (btn) {
@@ -378,25 +670,62 @@
         el.textContent = msg;
       }
 
-      function loadExpOptions() {
-        var m = document.getElementById('expMonth');
-        var y = document.getElementById('expYear');
-        if (!m || !y) return;
-        m.innerHTML = '';
-        for (var i = 1; i <= 12; i++) {
-          var o = document.createElement('option');
-          o.value = String(i).padStart(2, '0');
-          o.textContent = o.value;
-          m.appendChild(o);
-        }
-        y.innerHTML = '';
-        var yr = new Date().getFullYear();
-        for (var j = 0; j < 16; j++) {
-          var yy = yr + j;
-          var o2 = document.createElement('option');
-          o2.value = String(yy);
-          o2.textContent = String(yy);
-          y.appendChild(o2);
+      function escapeHtmlPay(s) {
+        var d = document.createElement('div');
+        d.textContent = s == null ? '' : String(s);
+        return d.innerHTML;
+      }
+
+      function hidePayEntryUi() {
+        ['payForm', 'payOrderSummaryTop', 'payInlineOnly', 'payRedirectBanner', 'configError'].forEach(function (id) {
+          var el = document.getElementById(id);
+          if (el) el.style.display = 'none';
+        });
+        document.querySelectorAll('.pay-lang').forEach(function (el) { el.style.display = 'none'; });
+      }
+
+      /**
+       * DirectCredit 최종 응답 후: 결제 입력 UI 숨김 + 결과 카드 + 확인 시 창 닫기 또는 결제 URL로 복귀.
+       */
+      function showPayFinished(isErr, msg, orderNo, isCancel) {
+        hidePayEntryUi();
+        var el = document.getElementById('payResult');
+        if (!el) return;
+        el.style.display = 'block';
+        var titleKey = isCancel ? 'payResultCancelTitle' : (isErr ? 'payResultFailTitle' : 'payResultOkTitle');
+        var cls = (isErr || isCancel) ? 'err' : 'ok';
+        el.className = cls + ' pay-result-final';
+        var msgHtml = escapeHtmlPay(msg != null ? String(msg) : '');
+        var ord = orderNo != null ? String(orderNo).trim() : '';
+        var ordBlock = ord
+          ? '<p class="small text-muted mb-3">' + escapeHtmlPay(t('orderNoLabel')) + ': <strong>' + escapeHtmlPay(ord) + '</strong></p>'
+          : '';
+        el.innerHTML =
+          '<div class="pay-result-title">' + escapeHtmlPay(t(titleKey)) + '</div>' +
+          '<p class="mb-2">' + msgHtml + '</p>' +
+          ordBlock +
+          '<button type="button" class="btn btn-primary btn-pay mt-1" id="payResultCloseBtn">' + escapeHtmlPay(t('payResultConfirm')) + '</button>' +
+          '<p class="small text-muted mt-3 mb-0">' + escapeHtmlPay(t('payResultDisclaimer')) + '</p>';
+        var b = document.getElementById('payResultCloseBtn');
+        if (b) {
+          b.addEventListener('click', function () {
+            try { window.close(); } catch (e0) {}
+            window.setTimeout(function () {
+              var mid = getCompId();
+              if (mid) {
+                var pth = (window.location.pathname || '').replace(/\/+$/, '');
+                if (pth.toLowerCase().indexOf('/pay/') >= 0) {
+                  window.location.href = pth;
+                  return;
+                }
+                window.location.href = 'pay.html?m=' + encodeURIComponent(mid);
+                return;
+              }
+              if (window.history.length > 1) {
+                window.history.back();
+              }
+            }, 150);
+          });
         }
       }
 
@@ -407,49 +736,204 @@
       }
 
       function fetchJson(url) {
-        return fetch(url).then(function (r) { return r.json(); });
-      }
-
-      function loadChillPayScript(url) {
-        return new Promise(function (resolve, reject) {
-          if (document.querySelector('script[data-chillpay-ccd="1"]')) {
-            resolve();
-            return;
-          }
-          var s = document.createElement('script');
-          s.src = url;
-          s.async = true;
-          s.setAttribute('data-chillpay-ccd', '1');
-          s.onload = function () { resolve(); };
-          s.onerror = function () { reject(new Error('CCD script')); };
-          document.head.appendChild(s);
+        return fetch(url, { credentials: 'omit', cache: 'no-store' }).then(function (r) {
+          return r.text().then(function (text) {
+            if (!r.ok) {
+              var msg = 'HTTP ' + r.status;
+              try {
+                var ej = text ? JSON.parse(text) : {};
+                if (ej.message) msg = ej.message;
+              } catch (e2) {
+                if (text && text.length < 280) msg = text;
+              }
+              throw new Error(msg);
+            }
+            try {
+              return text ? JSON.parse(text) : {};
+            } catch (e1) {
+              throw new Error(t('configErr') + ' (invalid JSON)');
+            }
+          });
         });
       }
 
-      function tryInitCcd(cfg) {
-        /* ChillPay 매뉴얼의 CCD 전역명이 환경별로 다를 수 있어, 로드 후 콜백만 준비 */
-        var host = document.getElementById('chillpay-card-host');
-        var tok = document.getElementById('directCreditToken');
-        var manual = document.getElementById('directCreditTokenManual');
-        function syncManual() {
-          if (manual && manual.value && tok) tok.value = manual.value.trim();
+      function delayPay(ms) {
+        return new Promise(function (resolve) { window.setTimeout(resolve, ms); });
+      }
+
+      /**
+       * ChillPay DirectCredit OrderNo: 최대 20자 (ziobiz/NOTI /admin/test-pay 의 maxlength=20 과 동일).
+       * ORD-{compId}-{Date.now()} 형태는 업체코드가 길면 초과하여 status 1006 Invalid Order No 가 난다.
+       */
+      function buildChillPayOrderNo(compId) {
+        var t = String(Date.now());
+        var c = String(compId || 'X').replace(/[^0-9A-Za-z]/g, '');
+        if (c.length > 6) c = c.slice(0, 6);
+        var raw = 'P' + c + t;
+        if (raw.length > 20) raw = raw.slice(0, 20);
+        return raw;
+      }
+
+      /** 게이트웨이 502·일시 오류 시 자동 재시도 */
+      function fetchJsonWithRetry(url, maxAttempts, pauseMs) {
+        var n = Math.max(1, maxAttempts | 0);
+        var pause = pauseMs != null ? pauseMs : 500;
+        var attempt = 0;
+        function tryOnce() {
+          attempt++;
+          return fetchJson(url).catch(function (err) {
+            var msg = (err && err.message) ? String(err.message) : '';
+            var retryable = /HTTP (502|503|504|429)|Bad Gateway|Failed to fetch|NetworkError|network error|load failed/i.test(msg);
+            if (retryable && attempt < n) {
+              return delayPay(pause).then(tryOnce);
+            }
+            throw err;
+          });
         }
-        if (manual) {
-          manual.addEventListener('input', syncManual);
-          manual.addEventListener('change', syncManual);
+        return tryOnce();
+      }
+
+      function removeCcdInjectScript() {
+        var old = document.querySelector('script[data-chillpay-ccd-inject="1"]');
+        if (old && old.parentNode) old.parentNode.removeChild(old);
+      }
+
+      function ccdLangFromUi(code) {
+        var u = (code || 'ENG').toUpperCase();
+        if (u === 'KOR' || u === 'KO') return 'ko';
+        if (u === 'JPN' || u === 'JA') return 'ja';
+        if (u === 'CHN' || u === 'ZH') return 'zh';
+        if (u === 'THA' || u === 'TH') return 'th';
+        return 'en';
+      }
+
+      function getCcdCreateTokenFn() {
+        var c = window.ccdinline;
+        if (!c) return null;
+        if (typeof c.CreatePaymentCreditToken === 'function') return c.CreatePaymentCreditToken;
+        if (c.default && typeof c.default.CreatePaymentCreditToken === 'function') return c.default.CreatePaymentCreditToken;
+        return null;
+      }
+
+      /** ChillPay ccdpayment.js 콜백 (data-callback-event-receiver) */
+      window.pgPayCcdEvent = function (eventId, subEventId, data) {
+        if (eventId === 'CreateTokenSucceed' && data && data.PaymentCreditToken) {
+          var h = document.getElementById('directCreditToken');
+          if (h) h.value = data.PaymentCreditToken;
+          var cont = window.__pgPayContinue;
+          window.__pgPayContinue = null;
+          if (typeof cont === 'function') cont();
+          return;
         }
-        if (!host || !cfg) return;
-        /* 향후 매뉴얼에 맞춰 CCDPayment / ChillPay 등 초기화 연결 */
-        if (window.console && window.console.debug) {
-          window.console.debug('ChillPay CCD ready', cfg.merchantCode, host);
+        if (eventId === 'CreateTokenFailed' || eventId === 'CreateTokenError') {
+          window.__pgPayContinue = null;
+          var btn = document.getElementById('submitBtn');
+          if (btn) btn.disabled = false;
+          var msg = (data && (data.message || data.Message)) ? String(data.message || data.Message) : '';
+          showResult(t('ccdTokenFail') + (msg ? ' ' + msg : ''), true);
         }
+      };
+
+      /**
+       * ChillPay CCD: ccdinline-card-* 슬롯은 폼 밖(#payCreditCardData), 스크립트는 #payForm 안 상단.
+       * ziobiz/NOTI /admin/test-pay 인라인 테스트와 동일한 DOM 관계.
+       */
+      function mountCcdScriptInForm(formEl, cfg) {
+        removeCcdInjectScript();
+        var warn = document.getElementById('ccdConfigWarn');
+        if (!formEl || !cfg || !cfg.ccdScriptUrl) {
+          return Promise.reject(new Error(t('configErr')));
+        }
+        var ak = cfg.apiKey != null ? String(cfg.apiKey).trim() : '';
+        var mc = cfg.merchantCode != null ? String(cfg.merchantCode).trim() : '';
+        if (!ak || !mc) {
+          if (warn) {
+            warn.textContent = t('needCcdConfig');
+            warn.classList.remove('d-none');
+          }
+          return Promise.reject(new Error(t('needCcdConfig')));
+        }
+        if (warn) warn.classList.add('d-none');
+        return new Promise(function (resolve, reject) {
+          var s = document.createElement('script');
+          s.src = cfg.ccdScriptUrl;
+          s.async = false;
+          s.setAttribute('data-merchant-code', mc);
+          s.setAttribute('data-api-key', ak);
+          s.setAttribute('data-lang', ccdLangFromUi(LANG));
+          s.setAttribute('data-callback-event-receiver', 'pgPayCcdEvent');
+          s.setAttribute('data-auto-create-payment-credit-token-on-submit', 'false');
+          s.setAttribute('data-chillpay-ccd-inject', '1');
+          s.onload = function () {
+            /* ChillPay는 document.onreadystatechange 안에서만 u()를 호출한다. API 응답 후 동적 주입이면
+               이미 readyState가 complete라 readystatechange가 다시 안 나와 iframe이 안 생긴다. */
+            try {
+              if (typeof document.onreadystatechange === 'function') {
+                document.onreadystatechange();
+              }
+            } catch (eCcd) {
+              if (window.console && window.console.warn) window.console.warn(eCcd);
+            }
+            resolve();
+          };
+          s.onerror = function () { reject(new Error('CCD script')); };
+          var afterOrder = document.getElementById('orderNo');
+          if (afterOrder && afterOrder.parentNode === formEl) {
+            formEl.insertBefore(s, afterOrder.nextSibling);
+          } else {
+            formEl.insertBefore(s, formEl.firstChild);
+          }
+        });
       }
 
       var checkoutCtx = null;
       var chillCfg = null;
+      var bootCompId = '';
+
+      function applyCheckoutFormDefaults(compId, ctx) {
+        if (!ctx) return;
+        var mn = document.getElementById('merchantNameDisplay');
+        if (mn) {
+          var nm = ctx.merchantName != null ? String(ctx.merchantName).trim() : '';
+          mn.textContent = nm || compId || '—';
+        }
+        var itemEl = document.getElementById('item');
+        if (itemEl && ctx.defaultProductName != null && String(ctx.defaultProductName).trim() !== '') {
+          itemEl.value = String(ctx.defaultProductName).trim();
+        }
+        var amtEl = document.getElementById('amount');
+        if (amtEl) {
+          var defAmt = ctx.defaultCheckoutAmount != null && ctx.defaultCheckoutAmount !== ''
+            ? ctx.defaultCheckoutAmount
+            : ctx.defaultAmountYen;
+          if (defAmt != null && defAmt !== '') {
+            amtEl.value = String(defAmt);
+          }
+        }
+        var curHint = document.getElementById('payAmountCurrencyHint');
+        if (curHint && ctx.checkoutCurrencyCode) {
+          curHint.textContent = '(' + String(ctx.checkoutCurrencyCode).trim() + ')';
+        }
+        applyPayAmountScaleNotice();
+      }
+
+      function applyPayAmountScaleNotice() {
+        var el = document.getElementById('payAmountScaleNotice');
+        if (!el) return;
+        var m = String(typeof urlPayAmountScaleMode !== 'undefined' ? urlPayAmountScaleMode : 'SAME').toUpperCase();
+        if (m === 'MULTIPLY_100') {
+          el.textContent = t('amountScaleMultiply');
+          el.classList.remove('d-none');
+        } else if (m === 'DIVIDE_100') {
+          el.textContent = t('amountScaleDivide');
+          el.classList.remove('d-none');
+        } else {
+          el.textContent = '';
+          el.classList.add('d-none');
+        }
+      }
 
       function boot() {
-        loadExpOptions();
         setLang('ENG');
         var compId = getCompId();
         if (!compId) {
@@ -458,35 +942,74 @@
           document.getElementById('payForm').style.display = 'none';
           return;
         }
+        bootCompId = compId;
+        var mnEarly = document.getElementById('merchantNameDisplay');
+        if (mnEarly) mnEarly.textContent = compId;
 
         var q = 'compId=' + encodeURIComponent(compId);
-        Promise.all([
-          fetchJson(apiUrl('/api/pay/chillpay/checkout-context', q)),
-          fetchJson(apiUrl('/api/pay/chillpay/config', q))
-        ]).then(function (arr) {
-          var ctxRes = arr[0];
-          var cfgRes = arr[1];
-          if (!ctxRes.success || !ctxRes.data) throw new Error(ctxRes.message || t('configErr'));
-          if (!cfgRes.success || !cfgRes.data) throw new Error(cfgRes.message || t('configErr'));
+        fetchJsonWithRetry(apiUrl('/api/pay/chillpay/checkout-context', q), 5, 600).then(function (ctxRes) {
+          if (ctxRes.success !== true || !ctxRes.data) throw new Error(ctxRes.message || t('configErr'));
           checkoutCtx = ctxRes.data;
-          chillCfg = cfgRes.data;
           urlPayFlow = String(checkoutCtx.urlPayFlow || 'INLINE').toUpperCase();
           urlPayFormMode = String(checkoutCtx.urlPayFormMode || 'FULL').toUpperCase();
-          document.getElementById('merchantNameDisplay').textContent = checkoutCtx.merchantName || compId;
-          if (checkoutCtx.defaultProductName) {
-            document.getElementById('item').value = checkoutCtx.defaultProductName;
+          urlPayInlineWidgetKind = String(checkoutCtx.urlPayInlineWidgetKind || 'CHILLPAY_CCD').toUpperCase();
+          urlPayOperationalPgCd = checkoutCtx.urlPayOperationalPgCd != null
+            ? String(checkoutCtx.urlPayOperationalPgCd).trim() : '';
+          urlPayAmountScaleMode = String(checkoutCtx.urlPayAmountScaleMode || 'SAME').toUpperCase();
+          window.__payUrlCardCopy = checkoutCtx.urlPayCardCopy && typeof checkoutCtx.urlPayCardCopy === 'object'
+            ? checkoutCtx.urlPayCardCopy : null;
+          document.getElementById('orderNo').value = buildChillPayOrderNo(compId);
+          if (checkoutCtx.clientIp) {
+            var iph = document.getElementById('clientIpHolder');
+            if (iph) iph.value = checkoutCtx.clientIp;
           }
-          if (checkoutCtx.defaultAmountYen != null && checkoutCtx.defaultAmountYen !== '') {
-            document.getElementById('amount').value = String(checkoutCtx.defaultAmountYen);
-          }
-          document.getElementById('orderNo').value = 'ORD-' + compId + '-' + Date.now();
           applyCheckoutPresentation();
           applyI18n();
+          applyCheckoutHeaderBranding();
+          applyCheckoutFormDefaults(compId, checkoutCtx);
+          applyCcdPayerRow();
           if (urlPayFlow === 'REDIRECT') {
+            applyUnsupportedInlineUi(false, '');
             return Promise.resolve();
           }
-          return loadChillPayScript(chillCfg.ccdScriptUrl).then(function () {
-            tryInitCcd(chillCfg);
+          if (urlPayInlineWidgetKind !== 'CHILLPAY_CCD') {
+            applyUnsupportedInlineUi(true, urlPayOperationalPgCd);
+            return Promise.resolve();
+          }
+          applyUnsupportedInlineUi(false, '');
+          return fetchJsonWithRetry(apiUrl('/api/pay/chillpay/config', q), 5, 600).then(function (cfgRes) {
+            if (cfgRes.success !== true || !cfgRes.data) throw new Error(cfgRes.message || t('configErr'));
+            chillCfg = cfgRes.data;
+            var formEl = document.getElementById('payForm');
+            return mountCcdScriptInForm(formEl, chillCfg).then(function () {
+              return new Promise(function (resolve) {
+                window.setTimeout(function () {
+                  var iframe = document.getElementById('ccdinline-card-number-iframe');
+                  if (!iframe) {
+                    var w = document.getElementById('ccdConfigWarn');
+                    if (w) {
+                      w.textContent = t('ccdIframeMissing');
+                      w.classList.remove('d-none');
+                    }
+                  }
+                  resolve();
+                }, 3500);
+              });
+            }).catch(function (err) {
+              var w = document.getElementById('ccdConfigWarn');
+              if (w) {
+                w.textContent = t('ccdScriptLoadFail') + (err && err.message ? ' ' + err.message : '');
+                w.classList.remove('d-none');
+              }
+              if (window.console && window.console.warn) window.console.warn(err);
+            });
+          }).catch(function (cfgErr) {
+            var w2 = document.getElementById('ccdConfigWarn');
+            if (w2) {
+              w2.textContent = t('configErr') + (cfgErr && cfgErr.message ? ' ' + cfgErr.message : '');
+              w2.classList.remove('d-none');
+            }
+            if (window.console && window.console.warn) window.console.warn(cfgErr);
           });
         }).catch(function (e) {
           var el = document.getElementById('configError');
@@ -495,43 +1018,78 @@
         });
       }
 
+      function postChillPayDirectCredit(fd) {
+        var btn = document.getElementById('submitBtn');
+        fetch(API_BASE + '/api/pay/chillpay/request', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(fd)
+        }).then(function (r) { return r.json(); }).then(function (res) {
+          if (res.success && res.data) {
+            var d = res.data.data;
+            var ord = (d && d.orderNo) ? String(d.orderNo) : (fd.orderNo || '');
+            if (d && d.paymentStatus === 'WaitAuthorize' && d.paymentUrl) {
+              try {
+                sessionStorage.setItem('pg_pay_return_m', fd.compId || '');
+                sessionStorage.setItem('pg_pay_pending_order', ord);
+              } catch (eSt) {}
+              window.location.href = d.paymentUrl;
+              return;
+            }
+            if (d && d.paymentStatus === 'Paid') {
+              try {
+                sessionStorage.removeItem('pg_pay_pending_order');
+              } catch (eR) {}
+              showPayFinished(false, t('payOk') + ' (Paid)', ord, false);
+              return;
+            }
+            var line = ((res.data.message || res.data.status || '') + ' ' + (d ? (d.paymentStatus || '') : '')).trim();
+            showPayFinished(true, line || t('payFail'), ord, false);
+          } else {
+            showPayFinished(true, res.message || t('payFail'), fd.orderNo || '', false);
+          }
+        }).catch(function (err) {
+          showPayFinished(true, (err && err.message) || t('payFail'), fd.orderNo || '', false);
+        }).finally(function () {
+          if (btn) btn.disabled = false;
+        });
+      }
+
       document.getElementById('payForm').addEventListener('submit', function (e) {
         e.preventDefault();
+        var form = document.getElementById('payForm');
         var compId = getCompId();
         var btn = document.getElementById('submitBtn');
-        btn.disabled = true;
         var langUi = LANG;
 
         if (urlPayFlow === 'REDIRECT') {
           showResult(t('redirectModeNotice'), true);
-          btn.disabled = false;
           return;
         }
 
-        var manual = document.getElementById('directCreditTokenManual');
-        var hiddenTok = document.getElementById('directCreditToken');
-        if (manual && manual.value.trim()) hiddenTok.value = manual.value.trim();
+        if (urlPayInlineWidgetKind !== 'CHILLPAY_CCD') {
+          showResult(t('unsupportedInlineSubmit'), true);
+          return;
+        }
 
-        var fn;
-        var ln;
-        var z;
-        var co;
-        var ci;
-        var ad;
-        var phoneVal;
-        var emailVal;
-        if (urlPayFormMode === 'SIMPLE') {
-          fn = '';
-          ln = '-';
-          z = '';
-          co = '';
-          ci = '';
-          ad = '';
-          phoneVal = '';
-          emailVal = '';
-        } else {
-          fn = document.getElementById('firstName').value.trim();
-          ln = document.getElementById('lastName').value.trim();
+        if (form && !form.checkValidity()) {
+          form.reportValidity();
+          return;
+        }
+
+        btn.disabled = true;
+
+        var hiddenTok = document.getElementById('directCreditToken');
+
+        var fn = document.getElementById('firstName').value.trim();
+        var ln = document.getElementById('lastName').value.trim();
+        var z = '';
+        var co = '';
+        var ci = '';
+        var ad = '';
+        var phoneVal = '';
+        var emailVal = '';
+        if (urlPayFormMode !== 'SIMPLE') {
           z = document.getElementById('zipCode').value.trim();
           co = document.getElementById('country').value.trim();
           ci = document.getElementById('city').value.trim();
@@ -540,10 +1098,14 @@
           emailVal = document.getElementById('custEmail').value.trim();
         }
 
+        var amtRaw = parseFloat(String(document.getElementById('amount').value).replace(/,/g, ''));
         var fd = {
           compId: compId,
-          orderNo: document.getElementById('orderNo').value.trim() || ('ORD' + Date.now()),
-          amount: parseInt(document.getElementById('amount').value, 10) || 0,
+          orderNo: (function () {
+            var o = document.getElementById('orderNo').value.trim();
+            return o ? o : buildChillPayOrderNo(getCompId());
+          })(),
+          amount: (typeof amtRaw === 'number' && !isNaN(amtRaw)) ? amtRaw : 0,
           directCreditToken: hiddenTok.value.trim(),
           phoneNumber: phoneVal,
           item: document.getElementById('item').value.trim(),
@@ -554,45 +1116,59 @@
           country: co,
           city: ci,
           addressLine: ad,
-          langCode: langUi
+          langCode: langUi,
+          currency: (checkoutCtx && checkoutCtx.checkoutCurrencyCode)
+            ? String(checkoutCtx.checkoutCurrencyCode).trim()
+            : 'JPY',
+          urlPayIntegrationMode: 'INLINE',
+          urlPayCcdInline: urlPayCcdCardholderOnly()
         };
-        fd.customerId = fd.custEmail || 'guest';
+        fd.customerId = (emailVal && emailVal.length) ? emailVal : fd.orderNo;
 
-        if (!fd.directCreditToken) {
-          showResult(t('needToken'), true);
+        if (!urlPayCcdCardholderOnly() && !fn.length && !ln.length) {
+          showResult(t('needPayerName'), true);
           btn.disabled = false;
           return;
         }
-        if (!(fd.amount >= 1)) {
+        if (!(fd.amount > 0)) {
           showResult(t('needAmount'), true);
           btn.disabled = false;
           return;
         }
 
-        fetch(API_BASE + '/api/pay/chillpay/request', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(fd)
-        }).then(function (r) { return r.json(); }).then(function (res) {
-          if (res.success && res.data) {
-            var d = res.data.data;
-            if (d && d.paymentStatus === 'WaitAuthorize' && d.paymentUrl) {
-              window.location.href = d.paymentUrl;
+        if (fd.directCreditToken) {
+          postChillPayDirectCredit(fd);
+          return;
+        }
+
+        var createTok = getCcdCreateTokenFn();
+        if (createTok) {
+          window.__pgPayContinue = function () {
+            var h = document.getElementById('directCreditToken');
+            fd.directCreditToken = h ? h.value.trim() : '';
+            if (!fd.directCreditToken) {
+              showResult(t('needToken'), true);
+              btn.disabled = false;
               return;
             }
-            if (d && d.paymentStatus === 'Paid') {
-              showResult(t('payOk') + ' (Paid)', false);
-              return;
-            }
-            showResult((res.data.message || res.data.status || '') + ' ' + (d ? (d.paymentStatus || '') : ''), true);
-          } else {
-            showResult(res.message || t('payFail'), true);
+            postChillPayDirectCredit(fd);
+          };
+          var ok = false;
+          try {
+            ok = createTok() === true;
+          } catch (errCcd) {
+            ok = false;
           }
-        }).catch(function (err) {
-          showResult((err && err.message) || t('payFail'), true);
-        }).finally(function () {
-          btn.disabled = false;
-        });
+          if (!ok) {
+            window.__pgPayContinue = null;
+            showResult(t('ccdNotReady'), true);
+            btn.disabled = false;
+          }
+          return;
+        }
+
+        showResult(t('needToken'), true);
+        btn.disabled = false;
       });
 
       boot();

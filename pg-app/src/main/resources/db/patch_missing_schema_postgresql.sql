@@ -126,3 +126,9 @@ ALTER TABLE tb_pg_agency ADD COLUMN IF NOT EXISTS md5_secret_key VARCHAR(255);
 ALTER TABLE tb_pg_agency ADD COLUMN IF NOT EXISTS route_no INTEGER;
 ALTER TABLE tb_pg_agency ADD COLUMN IF NOT EXISTS sandbox_yn VARCHAR(1) DEFAULT 'Y';
 ALTER TABLE tb_pg_agency ADD COLUMN IF NOT EXISTS credentials_extra_json TEXT;
+
+-- V63: 결제통화로직설정(JSON) — db/V63_pay_currency_scale_rules.sql 과 동일
+ALTER TABLE tb_hq_api_config ADD COLUMN IF NOT EXISTS pay_currency_scale_rules_json TEXT;
+
+-- V64: 결제구문설정(JSON) — db/V64_url_pay_card_copy_config.sql 과 동일
+ALTER TABLE tb_hq_api_config ADD COLUMN IF NOT EXISTS url_pay_card_copy_config_json TEXT;

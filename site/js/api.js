@@ -762,6 +762,11 @@
     hqApiConfigSave: function (body) {
       return post('/api/hq/apiConfig/save', body).then(function (r) { return r.data; });
     },
+    hqPayCopyTranslateFromKo: function (body) {
+      return post('/api/hq/payCopyTranslateFromKo', body || {}).then(function (r) {
+        return r && r.data != null ? r.data : {};
+      });
+    },
     hqDomainConfig: function () {
       return get('/api/hq/domainConfig').then(function (r) { return r.data; });
     },

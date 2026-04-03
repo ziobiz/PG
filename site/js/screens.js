@@ -229,7 +229,7 @@
         { id: 'hqPgApiAddBtn', label: 'PG사 연동 추가', cls: 'btn-success' }
       ],
       columnGuideFixedKeys: ['rowNo', '_pgRowAct'],
-      columns: [{ key: '_chk', type: 'checkbox' }, { key: 'rowNo', label: '번호' }, { key: 'pgNm', label: '업체명' }, { key: 'pgCd', label: 'PG코드' }, { key: 'integrationScopeLabel', label: '연동용도', thClass: 'pg-api-mng-scope-th' }, { key: 'endpointsSummary', label: '엔드포인트', thClass: 'pg-api-mng-endpoints-th' }, { key: 'merchantMid', label: 'MID' }, { key: 'hasCredentials', label: '키등록' }, { key: 'routeNo', label: 'Route' }, { key: 'sandboxYn', label: 'Environment' }, { key: 'operationalYn', label: '운영' }, { key: 'useYn', label: '사용' }, { key: 'regDt', label: '등록일' }, { key: '_pgRowAct', type: 'pgApiMngRowActions', label: '관리' }]
+      columns: [{ key: '_chk', type: 'checkbox' }, { key: 'rowNo', label: '번호' }, { key: 'pgNm', label: '결제대행사' }, { key: 'pgCd', label: 'PG코드' }, { key: 'integrationScopeLabel', label: '연동용도', thClass: 'pg-api-mng-scope-th' }, { key: 'endpointsSummary', label: '엔드포인트', thClass: 'pg-api-mng-endpoints-th' }, { key: 'merchantMid', label: 'MID' }, { key: 'hasApiKey', label: 'API' }, { key: 'hasMd5Key', label: 'MD5' }, { key: 'routeNo', label: 'Route' }, { key: 'sandboxYn', label: 'Environment' }, { key: 'operationalYn', label: '운영' }, { key: 'useYn', label: '사용' }, { key: 'regDt', label: '등록일' }, { key: '_pgRowAct', type: 'pgApiMngRowActions', label: '관리' }]
     },
     '/hq/defaultCommission': {
       isForm: true,
@@ -639,9 +639,78 @@
         },
         {
           title: 'URL 결제 폼 설정',
-          notice: '공개 결제 URL(/pay/업체코드 등)에서 보여 줄 입력 화면입니다. 방식(인라인 DirectCredit vs 리다이렉트 호스티드)은 위 「URL 결제형 기본 방식」과 INLINE/REDIRECT 제공 여부로 결정됩니다. 리다이렉트는 ChillPay 호스티드 POST(CheckSum) 서버 연동이 추가로 필요합니다.',
+          notice: '공개 결제 URL(/pay/업체코드 등) 입력 화면입니다. 간편(SIMPLE)은 성명·상품·금액·DirectCreditToken(카드 데이터는 토큰/CCD에 포함)만 받고, 전체(FULL)는 연락처·청구지까지 받습니다. 인라인/리다이렉트는 위 「URL 결제형 기본 방식」과 제공 여부로 결정됩니다.',
           rows: [
             [{ label: 'URL 결제 입력 폼', type: 'select', name: 'urlPayFormMode', options: [{ v: 'FULL', t: '전체 입력 (청구지·성명 분리)' }, { v: 'SIMPLE', t: '간편 입력 (필수 최소)' }], col: 4 }]
+          ]
+        },
+        {
+          title: '결제통화로직설정',
+          notice: '공개 결제 폼 금액은 아래 규칙에 따라 PG(칠리페이 등) API 금액으로 변환됩니다. 가맹점 URL 결제 <strong>운영</strong> PG(pg_cd)와 결제 통화가 일치하는 <strong>첫 번째</strong> 행이 적용됩니다. (예: ×100 — 입력 800 → 전송 80000) 목록을 바꾼 뒤 <strong>목록 저장(폼 반영)</strong> 또는 행별 <strong>수정 적용</strong>으로 숨김 필드를 맞춘 다음, 화면 맨 아래 <strong>저장</strong>으로 서버에 반영하세요.',
+          rows: [
+            [{
+              type: 'customHtml',
+              col: 12,
+              html: '<input type="hidden" name="payCurrencyScaleRulesJson" id="payCurrencyScaleRulesJson" value="">' +
+                '<div id="hqPayCurrencyScaleMount" class="hq-pay-currency-scale-mount">' +
+                '<p class="text-muted small mb-2">결제대행사는 <strong>연동용도 URL결제(Y)</strong>인 PG만 선택할 수 있습니다. 아래에서 추가·수정·삭제한 뒤 <strong>목록 저장(폼 반영)</strong> → 화면 하단 <strong>저장</strong> 순서로 저장합니다.</p>' +
+                '<div class="border rounded p-2 mb-2 bg-light bg-opacity-25">' +
+                '<div class="row g-2 align-items-end">' +
+                '<div class="col-md-3"><label class="form-label small mb-0" for="hqPayScaleDraftPg">결제대행사</label>' +
+                '<select class="form-select form-select-sm" id="hqPayScaleDraftPg"><option value="">선택</option></select></div>' +
+                '<div class="col-md-2"><label class="form-label small mb-0" for="hqPayScaleDraftCur">통화</label>' +
+                '<select class="form-select form-select-sm" id="hqPayScaleDraftCur"></select></div>' +
+                '<div class="col-md-2"><label class="form-label small mb-0" for="hqPayScaleDraftMode">배율</label>' +
+                '<select class="form-select form-select-sm" id="hqPayScaleDraftMode"></select></div>' +
+                '<div class="col-md-5 d-flex flex-wrap gap-2 align-items-end pb-1">' +
+                '<button type="button" class="btn btn-sm btn-primary" id="hqPayCurrencyScaleBtnAdd">추가</button>' +
+                '<button type="button" class="btn btn-sm btn-outline-primary" id="hqPayCurrencyScaleBtnApplyEdit">수정 적용</button>' +
+                '<button type="button" class="btn btn-sm btn-outline-secondary" id="hqPayCurrencyScaleBtnCancelEdit">수정 취소</button>' +
+                '<button type="button" class="btn btn-sm btn-success" id="hqPayCurrencyScaleBtnSyncHidden">목록 저장(폼 반영)</button>' +
+                '</div>' +
+                '<div class="col-12"><p class="small text-primary mb-0 d-none" id="hqPayScaleEditBanner" role="status"></p></div>' +
+                '</div></div>' +
+                '<div class="table-responsive"><table class="table table-sm table-bordered align-middle mb-2">' +
+                '<thead class="table-light"><tr><th class="text-center" style="width:3rem">#</th><th style="min-width:11rem">결제대행사</th><th style="min-width:6rem">통화</th><th style="min-width:7rem">배율</th><th class="text-center" style="width:4.5rem">수정</th><th class="text-center" style="width:4.5rem">삭제</th></tr></thead>' +
+                '<tbody id="hqPayCurrencyScaleTbody"></tbody></table></div>' +
+                '<p class="text-muted small mb-0">이전 방식 호환: <button type="button" class="btn btn-link btn-sm p-0 align-baseline" id="hqPayCurrencyScaleAddRow">빈 행을 바로 목록에 넣기</button></p></div>'
+            }]
+          ]
+        },
+        {
+          title: '결제구문설정',
+          notice: '공개 결제 폼의 <strong>카드 *</strong> 제목·안내 문단 3개를 PG별로 바꿉니다. <strong>브라우저 탭 이름</strong>은 URL 결제 창의 탭 제목(<code>document.title</code>)이며 비우면 기본 «Payment»입니다. URL 결제 연동(<strong>연동용도 URL결제</strong>) PG만 선택할 수 있습니다. 입력 후 <strong>저장</strong>으로 아래 목록에 넣고, 목록에서 <strong>활성</strong>을 켜야 결제 폼에 반영됩니다. <strong>저장(다국어)</strong>은 본사 API가 MyMemory로 프록시하여 ENG·CHN·JPN·THA 초안을 채웁니다. 목록 행의 <strong>수정</strong>을 누른 뒤 같은 버튼으로 내용을 고칠 수 있습니다. 화면 맨 아래 <strong>저장</strong>으로 DB에 반영합니다. 총판 로고가 있으면 결제 폼 상단은 ICOPAY 대신 로고가 나옵니다(별도 연동).',
+          rows: [
+            [{
+              type: 'customHtml',
+              col: 12,
+              html: '<input type="hidden" name="urlPayCardCopyConfigJson" id="urlPayCardCopyConfigJson" value="">' +
+                '<div id="hqPayCardCopyMount" class="hq-pay-card-copy-mount border rounded p-3 mb-2 bg-light bg-opacity-25">' +
+                '<div class="row g-2 align-items-end mb-3">' +
+                '<div class="col-md-3"><label class="form-label small mb-0">결제대행사 (URL결제)</label>' +
+                '<select class="form-select form-select-sm" id="hqPayCardCopyDraftPg"><option value="">선택</option></select></div>' +
+                '<div class="col-md-9"><label class="form-label small mb-0">제목 (한국어) — 결제 폼 «카드 *» 제목</label>' +
+                '<input type="text" class="form-control form-control-sm" id="hqPayCardCopyDraftTitle" maxlength="500" placeholder="예: 카드"></div>' +
+                '<div class="col-12"><label class="form-label small mb-0">내용 1 (한국어)</label>' +
+                '<textarea class="form-control form-control-sm" id="hqPayCardCopyDraftBody1" rows="4" maxlength="4000" placeholder="카드 정보는 위 각 칸 안의 ChillPay 보안 입력(iframe)에서만 입력합니다. 카드 명의(Name on card)도 위 칸에만 입력하면 되며, iframe 밖에서는 값을 읽을 수 없어 하단 이름·성 입력은 표시하지 않습니다. ChillPay가 안전하게 처리하며, 당사 서버로 카드번호 평문이 전달되지 않습니다."></textarea></div>' +
+                '<div class="col-12"><label class="form-label small mb-0">내용 2 (한국어)</label>' +
+                '<textarea class="form-control form-control-sm" id="hqPayCardCopyDraftBody2" rows="4" maxlength="4000" placeholder="카드 입력은 연동된 PG사 보안 위젯(iframe 등)에서 제공합니다. 브랜드별 자릿수·CVV 규칙은 해당 PG가 처리하며, ChillPay는 AMEX 미지원입니다. 다른 PG 연동 시 같은 결제 껍데기 안에서 벤더별 위젯으로 갈아끼우는 형태가 일반적입니다."></textarea></div>' +
+                '<div class="col-12"><label class="form-label small mb-0">내용 3 (한국어)</label>' +
+                '<textarea class="form-control form-control-sm" id="hqPayCardCopyDraftBody3" rows="3" maxlength="4000" placeholder="예: 사용카드 안내(VISA, MASTER 등), 카드 표기와 동일한 명의 입력 안내 등"></textarea></div>' +
+                '<div class="col-12"><label class="form-label small mb-0">브라우저 탭 이름 (한국어)</label>' +
+                '<input type="text" class="form-control form-control-sm" id="hqPayCardCopyDraftTabTitle" maxlength="120" placeholder="비우면 기본 «Payment»"></div>' +
+                '<div class="col-12 d-flex flex-wrap gap-2 align-items-center">' +
+                '<button type="button" class="btn btn-sm btn-primary" id="hqPayCardCopyBtnSave">저장</button>' +
+                '<button type="button" class="btn btn-sm btn-outline-primary" id="hqPayCardCopyBtnSaveI18n">저장(다국어)</button>' +
+                '<button type="button" class="btn btn-sm btn-outline-secondary" id="hqPayCardCopyBtnCancelEdit">수정 취소</button>' +
+                '</div>' +
+                '<div class="col-12"><p class="small text-primary mb-0 d-none" id="hqPayCardCopyEditBanner" role="status"></p></div>' +
+                '</div>' +
+                '<div class="table-responsive"><table class="table table-sm table-bordered align-middle mb-0">' +
+                '<thead class="table-light"><tr><th>PG</th><th style="min-width:7rem">제목(한)</th><th style="min-width:9rem">내용1</th><th style="min-width:9rem">내용2</th><th style="min-width:9rem">내용3</th><th style="min-width:6rem">탭</th><th class="text-center" style="width:4rem">활성</th><th class="text-center" style="width:4rem">수정</th><th class="text-center" style="width:3.5rem">삭제</th></tr></thead>' +
+                '<tbody id="hqPayCardCopyTbody"></tbody></table></div>' +
+                '<p class="text-muted small mt-2 mb-0">이 블록의 <strong>저장</strong>은 목록에만 반영됩니다. 서버(DB) 반영은 화면 맨 아래 <strong>저장</strong>이 필요합니다.</p></div>'
+            }]
           ]
         },
         {
@@ -802,7 +871,7 @@
           title: '결제대행사 설정',
           id: 'pgBindingCard',
           merchantOnly: true,
-          notice: '본사설정 > API연동설정에서 사용(Y)으로 등록된 결제대행사가 목록에 표시됩니다. PG를 고르면 API연동설정의 MID·Route 등이 기본값으로 채워지며, 가맹점 전용 값은 수정·저장하면 됩니다. 실제 결제 운영 PG는 라디오(운영)로 하나만 지정합니다. 등록 화면은 하단 [저장] 시 한꺼번에 반영됩니다.'
+          notice: '본사설정 > API연동설정에서 사용(Y)으로 등록된 결제대행사가 목록에 표시됩니다. PG를 고르면 API연동설정의 MID·Route 등이 기본값으로 채워지며, 가맹점 전용 값은 수정·저장하면 됩니다. 실제 결제 운영 PG는 라디오(운영)로 하나만 지정합니다. 라디오가 켜진 행만 붉은 배경(파스텔)으로 표시됩니다. 등록 화면은 하단 [저장] 시 한꺼번에 반영됩니다.'
         },
         {
           title: '웹결제 사용 / 대표 기본상품정보 (온라인 URL 결제용)',
@@ -811,7 +880,7 @@
           notice: '미사용 선택 시 WEB 결제 시스템이 중지됩니다. 아래 대표 기본상품정보는 온라인 URL 결제 기본값으로 사용됩니다.',
           rows: [
             [{ label: '웹결제 사용여부', type: 'select', name: 'webPaymentUseYn', options: [{ v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }], col: 2 }],
-            [{ label: '상품명', type: 'text', name: 'defaultProductName', col: 2, placeholder: '대표 상품명' }, { label: '상품코드', type: 'text', name: 'defaultProductCode', col: 1 }, { label: '기본금액(원)', type: 'text', name: 'defaultProductAmount', col: 1, placeholder: '0' }, { label: '상품설명', type: 'text', name: 'defaultProductDesc', col: 4 }],
+            [{ label: '상품명', type: 'text', name: 'defaultProductName', col: 2, placeholder: '대표 상품명' }, { label: '상품코드', type: 'text', name: 'defaultProductCode', col: 1 }, { label: '기본금액', type: 'text', name: 'defaultProductAmount', col: 1, placeholder: '0' }, { label: '상품설명', type: 'text', name: 'defaultProductDesc', col: 4 }],
             [{ type: 'customHtml', col: 12, html: '<div class="row mb-2"><div class="col-sm-5"><label class="form-label">결제 URL</label><div class="input-group input-group-sm"><input type="text" class="form-control" id="paymentUrlDisplay" readonly placeholder="가맹점 저장 후 조회"><button type="button" class="btn btn-outline-primary" id="paymentUrlCopyBtn">복사</button></div></div></div>' }]
           ]
         },
@@ -1103,7 +1172,7 @@
           title: '결제대행사 설정',
           id: 'pgBindingCard',
           merchantOnly: true,
-          notice: '본사설정 > API연동설정에서 사용(Y)으로 등록된 결제대행사가 목록에 표시됩니다. PG를 고르면 API연동설정의 MID·Route 등이 기본값으로 채워지며, 가맹점 전용 값은 수정·저장하면 됩니다. 실제 결제 운영 PG는 라디오(운영)로 하나만 지정합니다. 등록 화면은 하단 [저장] 시 한꺼번에 반영됩니다.'
+          notice: '본사설정 > API연동설정에서 사용(Y)으로 등록된 결제대행사가 목록에 표시됩니다. PG를 고르면 API연동설정의 MID·Route 등이 기본값으로 채워지며, 가맹점 전용 값은 수정·저장하면 됩니다. 실제 결제 운영 PG는 라디오(운영)로 하나만 지정합니다. 라디오가 켜진 행만 붉은 배경(파스텔)으로 표시됩니다. 등록 화면은 하단 [저장] 시 한꺼번에 반영됩니다.'
         },
         {
           title: '웹결제 사용 / 대표 기본상품정보 (온라인 URL 결제용)',
@@ -1112,7 +1181,7 @@
           notice: '미사용 선택 시 WEB 결제 시스템이 중지됩니다. 아래 대표 기본상품정보는 온라인 URL 결제 기본값으로 사용됩니다.',
           rows: [
             [{ label: '웹결제 사용여부', type: 'select', name: 'webPaymentUseYn', options: [{ v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }], col: 2 }],
-            [{ label: '상품명', type: 'text', name: 'defaultProductName', col: 2, placeholder: '대표 상품명' }, { label: '상품코드', type: 'text', name: 'defaultProductCode', col: 1 }, { label: '기본금액(원)', type: 'text', name: 'defaultProductAmount', col: 1, placeholder: '0' }, { label: '상품설명', type: 'text', name: 'defaultProductDesc', col: 4 }],
+            [{ label: '상품명', type: 'text', name: 'defaultProductName', col: 2, placeholder: '대표 상품명' }, { label: '상품코드', type: 'text', name: 'defaultProductCode', col: 1 }, { label: '기본금액', type: 'text', name: 'defaultProductAmount', col: 1, placeholder: '0' }, { label: '상품설명', type: 'text', name: 'defaultProductDesc', col: 4 }],
             [{ type: 'customHtml', col: 12, html: '<div class="row mb-2"><div class="col-sm-5"><label class="form-label">결제 URL</label><div class="input-group input-group-sm"><input type="text" class="form-control" id="paymentUrlDisplay" readonly placeholder="가맹점 저장 후 조회"><button type="button" class="btn btn-outline-primary" id="paymentUrlCopyBtn">복사</button></div></div></div>' }]
           ]
         },
@@ -1340,7 +1409,7 @@
           title: '결제대행사 설정',
           id: 'pgBindingCard',
           merchantOnly: true,
-          notice: 'API연동설정(사용 Y) 전체가 목록에 나오며, PG 선택 시 본사에 등록한 MID·Route가 기본 입력됩니다. API KEY·IV는 비우면 본사 연동 자격을 따를 수 있습니다(ChillPay 등). 운영 PG는 라디오로 지정합니다. [추가]로 행을 열고, 업체정보(가맹점)에서는 [저장][삭제][수정]마다 확인창이 두 번 뜹니다.'
+          notice: 'API연동설정(사용 Y) 전체가 목록에 나오며, PG 선택 시 본사에 등록한 MID·Route가 기본 입력됩니다. API KEY·IV는 비우면 본사 연동 자격을 따를 수 있습니다(ChillPay 등). 운영 PG는 라디오로 지정합니다. 라디오가 켜진 행만 붉은 배경(파스텔)으로 표시됩니다. [추가]로 행을 열고, 업체정보(가맹점)에서는 [저장][삭제][수정]마다 확인창이 두 번 뜹니다.'
         },
         {
           title: '웹결제 사용 / 대표 기본상품정보 (온라인 URL 결제용)',
@@ -1349,7 +1418,7 @@
           notice: '미사용 선택 시 WEB 결제 시스템이 중지됩니다. 아래 대표 기본상품정보는 온라인 URL 결제 기본값으로 사용됩니다.',
           rows: [
             [{ label: '웹결제 사용여부', type: 'select', name: 'webPaymentUseYn', options: [{ v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }], col: 2 }],
-            [{ label: '상품명', type: 'text', name: 'defaultProductName', col: 2, placeholder: '대표 상품명' }, { label: '상품코드', type: 'text', name: 'defaultProductCode', col: 1 }, { label: '기본금액(원)', type: 'text', name: 'defaultProductAmount', col: 1, placeholder: '0' }, { label: '상품설명', type: 'text', name: 'defaultProductDesc', col: 4 }],
+            [{ label: '상품명', type: 'text', name: 'defaultProductName', col: 2, placeholder: '대표 상품명' }, { label: '상품코드', type: 'text', name: 'defaultProductCode', col: 1 }, { label: '기본금액', type: 'text', name: 'defaultProductAmount', col: 1, placeholder: '0' }, { label: '상품설명', type: 'text', name: 'defaultProductDesc', col: 4 }],
             [{ type: 'customHtml', col: 12, html: '<div class="row mb-2"><div class="col-sm-5"><label class="form-label">결제 URL</label><div class="input-group input-group-sm"><input type="text" class="form-control" id="paymentUrlDisplay" readonly placeholder="가맹점 선택 후 조회"><button type="button" class="btn btn-outline-primary" id="paymentUrlCopyBtn">복사</button></div></div></div>' }]
           ]
         },

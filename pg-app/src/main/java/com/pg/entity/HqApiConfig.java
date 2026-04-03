@@ -88,6 +88,21 @@ public class HqApiConfig {
     @Column(name = "payment_provider_registry_json", columnDefinition = "TEXT")
     private String paymentProviderRegistryJson;
 
+    /**
+     * 결제통화로직설정 JSON. 예: {@code {"rules":[{"pgCd":"CHILLPAY","currency":"JPY","mode":"MULTIPLY_100"}]}}
+     * mode: SAME | MULTIPLY_100 | DIVIDE_100 — URL 결제 폼 입력 금액 대비 ChillPay 등 API 금액.
+     */
+    @Column(name = "pay_currency_scale_rules_json", columnDefinition = "TEXT")
+    private String payCurrencyScaleRulesJson;
+
+    /**
+     * 결제구문설정 JSON. {@code {"entries":[{"id":"…","pgCd":"CHILLPAY","activeYn":"Y",
+     * "title":{…},"body1":{…},"body2":{…},"body3":{…},"tabTitle":{…}}]}}
+     * {@code tabTitle}: 언어별 브라우저 탭 제목(URL 결제 페이지 {@code document.title}).
+     */
+    @Column(name = "url_pay_card_copy_config_json", columnDefinition = "TEXT")
+    private String urlPayCardCopyConfigJson;
+
     /** 환수금에서 수수료 포함 여부 (Y/N) */
     @Column(name = "recall_include_fee_yn", length = 1)
     private String recallIncludeFeeYn = "N";
@@ -186,6 +201,10 @@ public class HqApiConfig {
     public void setUrlPayFormMode(String urlPayFormMode) { this.urlPayFormMode = urlPayFormMode; }
     public String getPaymentProviderRegistryJson() { return paymentProviderRegistryJson; }
     public void setPaymentProviderRegistryJson(String paymentProviderRegistryJson) { this.paymentProviderRegistryJson = paymentProviderRegistryJson; }
+    public String getPayCurrencyScaleRulesJson() { return payCurrencyScaleRulesJson; }
+    public void setPayCurrencyScaleRulesJson(String payCurrencyScaleRulesJson) { this.payCurrencyScaleRulesJson = payCurrencyScaleRulesJson; }
+    public String getUrlPayCardCopyConfigJson() { return urlPayCardCopyConfigJson; }
+    public void setUrlPayCardCopyConfigJson(String urlPayCardCopyConfigJson) { this.urlPayCardCopyConfigJson = urlPayCardCopyConfigJson; }
     public String getRecallIncludeFeeYn() { return recallIncludeFeeYn; }
     public void setRecallIncludeFeeYn(String recallIncludeFeeYn) { this.recallIncludeFeeYn = recallIncludeFeeYn; }
     public String getSettlementVatApplyYn() { return settlementVatApplyYn; }

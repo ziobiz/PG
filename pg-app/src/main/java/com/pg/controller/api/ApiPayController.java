@@ -3,16 +3,24 @@ package com.pg.controller.api;
 import com.pg.api.ApiResponse;
 import com.pg.dto.ChillPayDirectCreditResponse;
 import com.pg.entity.MerchantDefaultProduct;
+import com.pg.entity.OrgBranding;
+import com.pg.entity.OrgLevel;
 import com.pg.entity.OrgUnit;
 import com.pg.repository.MerchantDefaultProductRepository;
+import com.pg.repository.MerchantProfileRepository;
+import com.pg.repository.OrgBrandingRepository;
 import com.pg.repository.OrgUnitRepository;
 import com.pg.service.ChillPayDirectCreditRecordService;
 import com.pg.service.ChillPayService;
 import com.pg.service.OrgServiceUseService;
+import com.pg.service.PaymentCurrencyScaleService;
+import com.pg.service.UrlPayCardCopyService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import jakarta.servlet.http.HttpServletRequest;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -28,18 +36,30 @@ public class ApiPayController {
     private final ChillPayDirectCreditRecordService chillPayDirectCreditRecordService;
     private final OrgUnitRepository orgUnitRepository;
     private final MerchantDefaultProductRepository merchantDefaultProductRepository;
+    private final MerchantProfileRepository merchantProfileRepository;
     private final OrgServiceUseService orgServiceUseService;
+    private final PaymentCurrencyScaleService paymentCurrencyScaleService;
+    private final UrlPayCardCopyService urlPayCardCopyService;
+    private final OrgBrandingRepository orgBrandingRepository;
 
     public ApiPayController(ChillPayService chillPayService,
                             ChillPayDirectCreditRecordService chillPayDirectCreditRecordService,
                             OrgUnitRepository orgUnitRepository,
                             MerchantDefaultProductRepository merchantDefaultProductRepository,
-                            OrgServiceUseService orgServiceUseService) {
+                            MerchantProfileRepository merchantProfileRepository,
+                            OrgServiceUseService orgServiceUseService,
+                            PaymentCurrencyScaleService paymentCurrencyScaleService,
+                            UrlPayCardCopyService urlPayCardCopyService,
+                            OrgBrandingRepository orgBrandingRepository) {
         this.chillPayService = chillPayService;
         this.chillPayDirectCreditRecordService = chillPayDirectCreditRecordService;
         this.orgUnitRepository = orgUnitRepository;
         this.merchantDefaultProductRepository = merchantDefaultProductRepository;
+        this.merchantProfileRepository = merchantProfileRepository;
         this.orgServiceUseService = orgServiceUseService;
+        this.paymentCurrencyScaleService = paymentCurrencyScaleService;
+        this.urlPayCardCopyService = urlPayCardCopyService;
+        this.orgBrandingRepository = orgBrandingRepository;
     }
 
     private Long resolveMerchantOrgUnitId(Long merchantId, String compId) {
@@ -51,8 +71,8 @@ public class ApiPayController {
     }
 
     /**
-     * ChillPay 결제 페이지용 설정 (CCD 스크립트 URL, Merchant Code, 호스티드 결제 CDN URL, v2 Payment API URL 등).
-     * 프론트엔드에서 ChillPay CCD 스크립트 로드·리다이렉트 연동 안내에 사용.
+     * ChillPay 결제 페이지용 설정 (CCD·DirectCredit·리다이렉트 URL 등).
+     * 가맹점 운영 ChillPay 바인딩의 {@code pg_cd}와 동일한 PG사 API 연동({@code tb_pg_agency}) 행을 따름.
      */
     @GetMapping("/chillpay/config")
     public ResponseEntity<ApiResponse<Map<String, Object>>> chillpayConfig(
@@ -67,13 +87,14 @@ public class ApiPayController {
     }
 
     /**
-     * 공개 URL 결제 페이지(pay.html)용: 가맹점 표시명·기본 상품·금액(JPY 정수),
-     * 본사 설정 기준 {@code urlPayFlow}(INLINE/REDIRECT), {@code urlPayFormMode}(FULL/SIMPLE), ChillPay URL 안내 필드.
+     * 공개 URL 결제 페이지(pay.html)용: 가맹점 표시명·기본 상품·금액 등과,
+     * 본사 {@code urlPayFlow}/{@code urlPayFormMode} 플래그 및 ChillPay 연동 URL(가맹점 결제대행사 {@code pg_cd}의 PG사 API 연동 행 기준).
      */
     @GetMapping("/chillpay/checkout-context")
     public ResponseEntity<ApiResponse<Map<String, Object>>> chillpayCheckoutContext(
             @RequestParam(required = false) Long merchantId,
-            @RequestParam(required = false) String compId) {
+            @RequestParam(required = false) String compId,
+            HttpServletRequest request) {
         Long orgUnitId = resolveMerchantOrgUnitId(merchantId, compId);
         if (orgUnitId == null) {
             return ResponseEntity.ok(ApiResponse.fail("가맹점을 찾을 수 없습니다.", "NOT_FOUND"));
@@ -87,8 +108,20 @@ public class ApiPayController {
             return ResponseEntity.ok(ApiResponse.fail("가맹점을 찾을 수 없습니다.", "NOT_FOUND"));
         }
         Map<String, Object> data = new HashMap<>();
+        data.put("clientIp", getClientIp(request));
+        data.putAll(chillPayService.getUrlPayPresentationForCheckout(orgUnitId));
+        // 본사 URL결제 프레젠테이션 이후에 덮어씀 — 향후 맵에 동일 키가 생겨도 가맹점 표시·기본상품이 유지되도록
         data.put("compId", ou.get().getCode());
         data.put("merchantName", ou.get().getName());
+        merchantProfileRepository.findByOrgUnitId(orgUnitId).ifPresent(mp -> {
+            String bc = mp.getBaseCurrency();
+            if (bc != null && !bc.isBlank()) {
+                String first = bc.split(",")[0].trim();
+                if (!first.isEmpty()) {
+                    data.put("checkoutCurrencyCode", first);
+                }
+            }
+        });
         Optional<MerchantDefaultProduct> dp = merchantDefaultProductRepository.findByOrgUnitId(orgUnitId);
         if (dp.isPresent()) {
             MerchantDefaultProduct p = dp.get();
@@ -96,11 +129,43 @@ public class ApiPayController {
                 data.put("defaultProductName", p.getProductName().trim());
             }
             if (p.getDefaultAmount() != null) {
-                data.put("defaultAmountYen", p.getDefaultAmount().longValue());
+                long amt = p.getDefaultAmount().longValue();
+                data.put("defaultAmountYen", amt);
+                data.put("defaultCheckoutAmount", amt);
             }
         }
-        data.putAll(chillPayService.getUrlPayPresentationForCheckout(orgUnitId));
+        String opPg = chillPayService.resolveUrlPayOperationalPgCd(orgUnitId);
+        Object checkoutCurObj = data.get("checkoutCurrencyCode");
+        String checkoutCur = checkoutCurObj instanceof String ? (String) checkoutCurObj : null;
+        String scaleMode = paymentCurrencyScaleService.resolveModeForUi(opPg,
+                checkoutCur != null && !checkoutCur.isBlank() ? checkoutCur : "");
+        data.put("urlPayAmountScaleMode", scaleMode);
+        urlPayCardCopyService.resolveActiveCopyByPg(opPg).ifPresent(copy -> data.put("urlPayCardCopy", copy));
+        resolveCheckoutHeaderLogoUrl(orgUnitId).ifPresent(u -> data.put("checkoutHeaderLogoUrl", u));
+        data.put("urlPayResultPageUrl", chillPayService.resolveUrlPayResultAbsolute(request, ou.get().getCode()));
         return ResponseEntity.ok(ApiResponse.ok(data));
+    }
+
+    /**
+     * 가맹점 상위 체인에서 첫 {@link OrgLevel#MASTER_DIST} 조직의 로고 URL.
+     */
+    private Optional<String> resolveCheckoutHeaderLogoUrl(Long merchantOrgUnitId) {
+        Long cur = merchantOrgUnitId;
+        while (cur != null) {
+            Optional<OrgUnit> opt = orgUnitRepository.findById(cur);
+            if (opt.isEmpty()) {
+                break;
+            }
+            OrgUnit u = opt.get();
+            if (u.getOrgLevel() == OrgLevel.MASTER_DIST) {
+                return orgBrandingRepository.findByOrgUnitId(u.getId())
+                        .map(OrgBranding::getLogoImageUrl)
+                        .filter(s -> s != null && !s.isBlank())
+                        .map(String::trim);
+            }
+            cur = u.getParentId();
+        }
+        return Optional.empty();
     }
 
     /**
@@ -119,34 +184,41 @@ public class ApiPayController {
         }
         Long merchantOrgUnitId = resolveMerchantOrgUnitId(merchantIdVal, (String) body.get("compId"));
 
-        String directCreditToken = (String) body.get("directCreditToken");
+        /* ziobiz/NOTI /admin/test-pay/submit 과 동일 토큰 키 변형 */
+        String directCreditToken = firstNonBlankStr(body,
+                "directCreditToken", "PaymentCreditToken", "paymentCreditToken", "paymentCredittoken");
         if (directCreditToken == null || directCreditToken.isEmpty()) {
-            return ResponseEntity.ok(ApiResponse.fail("DirectCreditToken이 필요합니다.", "INVALID_TOKEN"));
+            return ResponseEntity.ok(ApiResponse.fail(
+                    "PaymentCreditToken(DirectCreditToken)이 필요합니다. CCD 인라인·MID·API Key를 확인하세요.",
+                    "INVALID_TOKEN"));
         }
 
-        Object amountObj = body.get("amount");
-        Long amount = null;
-        if (amountObj instanceof Number) {
-            amount = ((Number) amountObj).longValue();
-        } else if (amountObj instanceof String) {
-            try {
-                amount = Long.parseLong((String) amountObj);
-            } catch (NumberFormatException ignored) {}
-        }
-        if (amount == null || amount <= 0) {
+        BigDecimal displayAmount = parsePayAmount(body.get("amount"));
+        if (displayAmount == null || displayAmount.compareTo(BigDecimal.ZERO) <= 0) {
             return ResponseEntity.ok(ApiResponse.fail("유효한 결제 금액을 입력하세요.", "INVALID_AMOUNT"));
         }
 
-        String orderNo = str(body, "orderNo");
+        String orderNo = normalizeChillPayOrderNo(str(body, "orderNo"));
         String custEmail = str(body, "custEmail");
+        String fn = str(body, "firstName");
+        String ln = str(body, "lastName");
+        String payerName = ((fn != null ? fn : "") + " " + (ln != null ? ln : "")).trim();
+        boolean urlPayCcdInline = Boolean.TRUE.equals(body.get("urlPayCcdInline"))
+                || "true".equalsIgnoreCase(String.valueOf(body.get("urlPayCcdInline")));
+        if (payerName.isEmpty() && !urlPayCcdInline) {
+            return ResponseEntity.ok(ApiResponse.fail("결제자 성명(이름·성)을 입력하세요.", "INVALID_PAYER_NAME"));
+        }
+
         String customerId = str(body, "customerId");
         if (customerId == null || customerId.isEmpty()) {
-            customerId = (custEmail != null && !custEmail.isEmpty()) ? custEmail : "guest";
+            customerId = (custEmail != null && !custEmail.isEmpty()) ? custEmail
+                    : (!orderNo.isEmpty() ? orderNo : "guest");
         }
         String phoneNumber = str(body, "phoneNumber");
         String description = buildInlineDescription(body);
 
         String langCode = str(body, "langCode");
+        String checkoutCurrencyCode = str(body, "currency");
 
         String ipAddress = getClientIp(request);
 
@@ -155,15 +227,29 @@ public class ApiPayController {
                     "서비스가 중지된 업체입니다. (미사용 또는 상위 조직 미사용)", "ORG_DISABLED"));
         }
 
+        String opPg = merchantOrgUnitId != null ? chillPayService.resolveUrlPayOperationalPgCd(merchantOrgUnitId) : "";
+        BigDecimal pgAmount = paymentCurrencyScaleService.toPgAmount(displayAmount, opPg, checkoutCurrencyCode);
+        if (pgAmount == null || pgAmount.compareTo(BigDecimal.ZERO) <= 0) {
+            return ResponseEntity.ok(ApiResponse.fail("유효한 결제 금액을 입력하세요.", "INVALID_AMOUNT"));
+        }
+
+        String browserReturnUrl = chillPayService.resolveUrlPayResultAbsolute(request, str(body, "compId"));
         try {
             ChillPayDirectCreditResponse res = chillPayService.requestPayment(
-                    orderNo, customerId, amount, directCreditToken,
+                    orderNo, customerId, pgAmount, directCreditToken,
                     phoneNumber, description, ipAddress, custEmail,
-                    merchantOrgUnitId, langCode
+                    merchantOrgUnitId, langCode, checkoutCurrencyCode,
+                    browserReturnUrl
             );
             int routeNo = chillPayService.resolveEffectiveRouteNo(merchantOrgUnitId);
+            String urlPayMode = str(body, "urlPayIntegrationMode");
+            if (urlPayMode == null || urlPayMode.isBlank()) {
+                urlPayMode = "INLINE";
+            }
+            long recordAmt = pgAmount.setScale(0, RoundingMode.HALF_UP).longValue();
             chillPayDirectCreditRecordService.recordAfterDirectCreditResponse(
-                    merchantOrgUnitId, res, amount, orderNo, customerId, routeNo);
+                    merchantOrgUnitId, res, recordAmt, orderNo, customerId, routeNo,
+                    urlPayMode, payerName.isEmpty() ? null : payerName);
             return ResponseEntity.ok(ApiResponse.ok(res));
         } catch (Exception e) {
             return ResponseEntity.ok(ApiResponse.fail(
@@ -192,6 +278,57 @@ public class ApiPayController {
         }
         String s = v.toString().trim();
         return s.isEmpty() ? null : s;
+    }
+
+    private static String firstNonBlankStr(Map<String, Object> body, String... keys) {
+        for (String k : keys) {
+            String v = str(body, k);
+            if (v != null) {
+                return v;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * ChillPay DirectCredit 매뉴얼·NOTI 테스트 페이지: OrderNo 최대 20자.
+     * 초과·허용 외 문자는 제거 후 20자로 자름. 비었으면 {@code O}{@code System.currentTimeMillis()} (14자).
+     */
+    private static String normalizeChillPayOrderNo(String orderNo) {
+        String s = orderNo != null ? orderNo.trim() : "";
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < s.length(); i++) {
+            char ch = s.charAt(i);
+            if ((ch >= 'A' && ch <= 'Z') || (ch >= 'a' && ch <= 'z') || (ch >= '0' && ch <= '9') || ch == '-' || ch == '_') {
+                sb.append(ch);
+            }
+        }
+        String cleaned = sb.toString();
+        if (cleaned.isEmpty()) {
+            cleaned = "O" + System.currentTimeMillis();
+        }
+        return cleaned.length() <= 20 ? cleaned : cleaned.substring(0, 20);
+    }
+
+    private static BigDecimal parsePayAmount(Object amountObj) {
+        if (amountObj == null) {
+            return null;
+        }
+        if (amountObj instanceof BigDecimal bd) {
+            return bd;
+        }
+        if (amountObj instanceof Number n) {
+            return BigDecimal.valueOf(n.doubleValue());
+        }
+        try {
+            String s = amountObj.toString().trim();
+            if (s.isEmpty()) {
+                return null;
+            }
+            return new BigDecimal(s);
+        } catch (NumberFormatException e) {
+            return null;
+        }
     }
 
     /**

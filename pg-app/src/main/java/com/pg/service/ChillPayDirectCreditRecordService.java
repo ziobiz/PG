@@ -17,6 +17,11 @@ import java.util.UUID;
 
 /**
  * ChillPay DirectCredit 동기 응답을 {@link PgTrnsctn}에 반영해 결제내역·정산 파이프라인과 맞춥니다.
+ * <p><b>PCI:</b> 카드번호·유효기간·CVC 등 카드 인증 데이터는 CCD/ChillPay 측에서만 처리하고,
+ * 본 서비스 DB에는 저장하지 않습니다. 전산에는 주문·금액·가맹·ChillPay 거래식별자·결제자 표시명(폼/응답 메타) 등만 적재합니다.
+ * <p><b>URL 결제 인라인:</b> CCD 입력 → DirectCreditToken → 본 API 동기 응답 → 여기서 {@code PgTrnsctn} 생성({@code serviceType}=URL_INLINE 권장).
+ * <p><b>URL 결제 리다이렉트(호스티드):</b> 매뉴얼의 {@code data-*}/폼 POST는 ChillPay 호스티드로 직행하며, 동기 DirectCredit 응답이 없으면
+ * 본 메서드가 아니라 <b>PG 노티 URL</b> 수신 처리로 전산을 맞추는 것이 일반적입니다(별도 노티→거래 적재 연동).
  */
 @Service
 public class ChillPayDirectCreditRecordService {
@@ -47,9 +52,12 @@ public class ChillPayDirectCreditRecordService {
                                                 long requestAmount,
                                                 String requestOrderNo,
                                                 String requestCustomerId,
-                                                int routeNo) {
+                                                int routeNo,
+                                                String urlPayIntegrationMode,
+                                                String payerDisplayName) {
         try {
-            doRecord(merchantOrgUnitId, res, requestAmount, requestOrderNo, requestCustomerId, routeNo);
+            doRecord(merchantOrgUnitId, res, requestAmount, requestOrderNo, requestCustomerId, routeNo,
+                    urlPayIntegrationMode, payerDisplayName);
         } catch (Exception e) {
             log.warn("DirectCredit 거래 적재 실패 (결제 API 응답은 유지): {}", e.getMessage());
         }
@@ -60,7 +68,9 @@ public class ChillPayDirectCreditRecordService {
                           long requestAmount,
                           String requestOrderNo,
                           String requestCustomerId,
-                          int routeNo) {
+                          int routeNo,
+                          String urlPayIntegrationMode,
+                          String payerDisplayName) {
         if (res == null || res.getStatus() != 200 || res.getData() == null) {
             return;
         }
@@ -93,6 +103,7 @@ public class ChillPayDirectCreditRecordService {
         if (customerId == null) {
             customerId = "guest";
         }
+        String custNm = firstNonBlank(trimToMax(payerDisplayName, 200), trimToMax(d.getCustomer(), 200));
 
         long amountVal = d.getAmount() != null ? d.getAmount() : requestAmount;
         if (amountVal <= 0) {
@@ -102,13 +113,16 @@ public class ChillPayDirectCreditRecordService {
         PgTrnsctn t = new PgTrnsctn();
         t.setTrnId(newTrnId());
         t.setMerchantId(merchantId);
-        t.setServiceType("API");
+        t.setServiceType(resolveUrlPayServiceType(urlPayIntegrationMode));
         t.setStatus(paid ? STATUS_PAID : STATUS_AUTH_PENDING);
         t.setCurType("JPY");
         t.setAmtKrw(BigDecimal.valueOf(amountVal));
         t.setPayNo(payNo);
         t.setOrderNo(orderNo);
         t.setCustomerId(customerId);
+        if (custNm != null) {
+            t.setCustomerNm(custNm);
+        }
         t.setVan("CHILLPAY");
         t.setOrigin("URL");
         t.setChillPaymentStatus(psl);
@@ -163,5 +177,31 @@ public class ChillPayDirectCreditRecordService {
             return b.trim();
         }
         return null;
+    }
+
+    /** {@code INLINE}·{@code REDIRECT}·그 외(레거시 {@code API}) */
+    private static String resolveUrlPayServiceType(String mode) {
+        if (mode == null || mode.isBlank()) {
+            return "API";
+        }
+        String u = mode.trim().toUpperCase();
+        if ("INLINE".equals(u)) {
+            return "URL_INLINE";
+        }
+        if ("REDIRECT".equals(u)) {
+            return "URL_REDIRECT";
+        }
+        return "API";
+    }
+
+    private static String trimToMax(String s, int max) {
+        if (s == null) {
+            return null;
+        }
+        String t = s.trim();
+        if (t.isEmpty()) {
+            return null;
+        }
+        return t.length() <= max ? t : t.substring(0, max);
     }
 }

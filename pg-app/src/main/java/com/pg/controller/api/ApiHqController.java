@@ -18,6 +18,7 @@ import com.pg.repository.PgAgencyRepository;
 import com.pg.entity.AppUser;
 import com.pg.service.AuthService;
 import com.pg.service.HolidayPresetService;
+import com.pg.service.HqPayCopyTranslationService;
 import com.pg.service.HqServerManageService;
 import com.pg.service.OrgPagePermissionService;
 import com.pg.service.OrgUnitChangeAuditService;
@@ -60,6 +61,7 @@ public class ApiHqController {
     private final OrgUnitRepository orgUnitRepository;
     private final AuthService authService;
     private final OrgUnitChangeAuditService orgUnitChangeAuditService;
+    private final HqPayCopyTranslationService hqPayCopyTranslationService;
 
     public ApiHqController(CommissionPolicyRepository commissionPolicyRepository,
                            ChargebackFeePolicyRepository chargebackFeePolicyRepository,
@@ -72,7 +74,8 @@ public class ApiHqController {
                            ServerUsageService serverUsageService,
                            OrgUnitRepository orgUnitRepository,
                            AuthService authService,
-                           OrgUnitChangeAuditService orgUnitChangeAuditService) {
+                           OrgUnitChangeAuditService orgUnitChangeAuditService,
+                           HqPayCopyTranslationService hqPayCopyTranslationService) {
         this.commissionPolicyRepository = commissionPolicyRepository;
         this.chargebackFeePolicyRepository = chargebackFeePolicyRepository;
         this.hqApiConfigRepository = hqApiConfigRepository;
@@ -85,6 +88,7 @@ public class ApiHqController {
         this.orgUnitRepository = orgUnitRepository;
         this.authService = authService;
         this.orgUnitChangeAuditService = orgUnitChangeAuditService;
+        this.hqPayCopyTranslationService = hqPayCopyTranslationService;
     }
 
     private static PageResult<Map<String, Object>> emptyPage(int page, int size) {
@@ -277,9 +281,10 @@ public class ApiHqController {
                     m.put("useYn", p.getUseYn());
                     m.put("operationalYn", isPgOperationalYes(p) ? "Y" : "N");
                     m.put("merchantMid", p.getMerchantMid() != null ? p.getMerchantMid() : "");
-                    boolean cred = p.getApiKey() != null && !p.getApiKey().isBlank()
-                            && p.getMd5SecretKey() != null && !p.getMd5SecretKey().isBlank();
-                    m.put("hasCredentials", cred ? "Y" : "N");
+                    boolean hasApi = p.getApiKey() != null && !p.getApiKey().isBlank();
+                    boolean hasMd5 = p.getMd5SecretKey() != null && !p.getMd5SecretKey().isBlank();
+                    m.put("hasApiKey", hasApi ? "Y" : "N");
+                    m.put("hasMd5Key", hasMd5 ? "Y" : "N");
                     m.put("routeNo", p.getRouteNo() != null ? p.getRouteNo() : "");
                     m.put("sandboxYn", p.getSandboxYn() != null ? p.getSandboxYn() : "Y");
                     m.put("credentialsExtraJson", p.getCredentialsExtraJson() != null ? p.getCredentialsExtraJson() : "");
@@ -325,9 +330,10 @@ public class ApiHqController {
                     m.put("integKindLabel", integKindLabel(integKind));
                     m.put("integrationScopeLabel", integrationScopeLabel(p));
                     m.put("hqOperationalYn", isPgOperationalYes(p) ? "Y" : "N");
-                    boolean cred = p.getApiKey() != null && !p.getApiKey().isBlank()
-                            && p.getMd5SecretKey() != null && !p.getMd5SecretKey().isBlank();
-                    m.put("hasCredentials", cred ? "Y" : "N");
+                    boolean hasApi = p.getApiKey() != null && !p.getApiKey().isBlank();
+                    boolean hasMd5 = p.getMd5SecretKey() != null && !p.getMd5SecretKey().isBlank();
+                    m.put("hasApiKey", hasApi ? "Y" : "N");
+                    m.put("hasMd5Key", hasMd5 ? "Y" : "N");
                     return m;
                 })
                 .toList();
@@ -378,7 +384,7 @@ public class ApiHqController {
             String pgNm = hqStr(body, "pgNm");
             String pgCdRaw = hqStr(body, "pgCd");
             if (pgNm == null || pgNm.isBlank() || pgCdRaw == null || pgCdRaw.isBlank()) {
-                return ResponseEntity.ok(ApiResponse.fail("PG사코드와 PG사명은 필수입니다.", "VALIDATION"));
+                return ResponseEntity.ok(ApiResponse.fail("PG코드와 결제대행사는 필수입니다.", "VALIDATION"));
             }
             String pgCd = pgCdRaw.trim().toUpperCase(Locale.ROOT);
             String useYn = "N".equalsIgnoreCase(hqStr(body, "useYn")) ? "N" : "Y";
@@ -1247,6 +1253,8 @@ public class ApiHqController {
         data.put("urlPayRedirectEnabledYn", "Y");
         data.put("urlPayFormMode", "FULL");
         data.put("paymentProviderRegistryJson", "{\n  \"version\": 1,\n  \"vendors\": [\n    {\n      \"vendorCode\": \"CHILLPAY\",\n      \"vendorName\": \"칠리페이\",\n      \"integrationTypes\": [\"API_BROKER\", \"URL_PAY\"],\n      \"flowTypes\": [\"INLINE\", \"REDIRECT\"],\n      \"activeYn\": \"Y\"\n    }\n  ]\n}");
+        data.put("payCurrencyScaleRulesJson", "{\"rules\":[]}");
+        data.put("urlPayCardCopyConfigJson", "{\"entries\":[]}");
         hqApiConfigRepository.findAll().stream().findFirst().ifPresent(c -> {
             if (c.getBaseUrl() != null) data.put("baseUrl", c.getBaseUrl());
             if (c.getAuthType() != null) data.put("authType", c.getAuthType());
@@ -1268,6 +1276,12 @@ public class ApiHqController {
             if (c.getUrlPayRedirectEnabledYn() != null) data.put("urlPayRedirectEnabledYn", c.getUrlPayRedirectEnabledYn());
             if (c.getUrlPayFormMode() != null) data.put("urlPayFormMode", c.getUrlPayFormMode());
             if (c.getPaymentProviderRegistryJson() != null) data.put("paymentProviderRegistryJson", c.getPaymentProviderRegistryJson());
+            if (c.getPayCurrencyScaleRulesJson() != null && !c.getPayCurrencyScaleRulesJson().isBlank()) {
+                data.put("payCurrencyScaleRulesJson", c.getPayCurrencyScaleRulesJson());
+            }
+            if (c.getUrlPayCardCopyConfigJson() != null && !c.getUrlPayCardCopyConfigJson().isBlank()) {
+                data.put("urlPayCardCopyConfigJson", c.getUrlPayCardCopyConfigJson());
+            }
             if (c.getPublicAdminSiteUrl() != null) {
                 data.put("publicAdminSiteUrl", hqHttpsUrlForDisplay(c.getPublicAdminSiteUrl()));
             }
@@ -1309,6 +1323,16 @@ public class ApiHqController {
         String upForm = body.get("urlPayFormMode") != null ? body.get("urlPayFormMode").toString().trim() : "FULL";
         c.setUrlPayFormMode("SIMPLE".equalsIgnoreCase(upForm) ? "SIMPLE" : "FULL");
         c.setPaymentProviderRegistryJson(body.get("paymentProviderRegistryJson") != null ? body.get("paymentProviderRegistryJson").toString().trim() : null);
+        Object scaleRules = body.get("payCurrencyScaleRulesJson");
+        if (scaleRules != null) {
+            String sr = scaleRules.toString().trim();
+            c.setPayCurrencyScaleRulesJson(sr.isEmpty() ? null : sr);
+        }
+        Object cardCopy = body.get("urlPayCardCopyConfigJson");
+        if (cardCopy != null) {
+            String cc = cardCopy.toString().trim();
+            c.setUrlPayCardCopyConfigJson(cc.isEmpty() ? null : cc);
+        }
         if (body.get("publicAdminSiteUrl") != null) {
             c.setPublicAdminSiteUrl(hqHttpsUrlForSave(body.get("publicAdminSiteUrl")));
         }
@@ -1317,6 +1341,25 @@ public class ApiHqController {
         }
         hqApiConfigRepository.save(c);
         return ResponseEntity.ok(ApiResponse.ok(Map.of("success", true, "message", "저장되었습니다.")));
+    }
+
+    /**
+     * 결제구문설정: 한국어 제목·본문 3개를 MyMemory(서버 프록시)로 ENG·CHN·JPN·THA 초안 채움.
+     * 무료 API 한도·품질 제한이 있으며, 운영 정책에 따라 막힐 수 있습니다.
+     */
+    @PostMapping("/payCopyTranslateFromKo")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> payCopyTranslateFromKo(@RequestBody Map<String, Object> body) {
+        Map<String, Object> b = body != null ? body : Map.of();
+        String titleKo = b.get("titleKo") != null ? b.get("titleKo").toString().trim() : "";
+        String body1Ko = b.get("body1Ko") != null ? b.get("body1Ko").toString().trim() : "";
+        String body2Ko = b.get("body2Ko") != null ? b.get("body2Ko").toString().trim() : "";
+        String body3Ko = b.get("body3Ko") != null ? b.get("body3Ko").toString().trim() : "";
+        if (titleKo.isEmpty() || body1Ko.isEmpty() || body2Ko.isEmpty() || body3Ko.isEmpty()) {
+            return ResponseEntity.ok(ApiResponse.fail("titleKo·body1Ko·body2Ko·body3Ko는 모두 필요합니다.", "VALIDATION"));
+        }
+        String tabTitleKo = b.get("tabTitleKo") != null ? b.get("tabTitleKo").toString().trim() : "";
+        Map<String, Object> maps = hqPayCopyTranslationService.translatePayCopyFromKo(titleKo, body1Ko, body2Ko, body3Ko, tabTitleKo);
+        return ResponseEntity.ok(ApiResponse.ok(maps));
     }
 
     /** 도메인·공개 URL (관리자/API 안내용) + 본사·총판 조직별 도메인 행 */
