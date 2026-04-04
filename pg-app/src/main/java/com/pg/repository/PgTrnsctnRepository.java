@@ -9,8 +9,13 @@ import org.springframework.data.repository.query.Param;
 import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 
 public interface PgTrnsctnRepository extends JpaRepository<PgTrnsctn, String>, JpaSpecificationExecutor<PgTrnsctn> {
+
+    Optional<PgTrnsctn> findFirstByChillTransactionIdAndMerchantId(String chillTransactionId, String merchantId);
+
+    Optional<PgTrnsctn> findFirstByMerchantIdAndOrderNoAndOrigin(String merchantId, String orderNo, String origin);
 
     @Query("SELECT t FROM PgTrnsctn t WHERE " +
            "(:merchantId IS NULL OR :merchantId = '' OR t.merchantId = :merchantId) " +

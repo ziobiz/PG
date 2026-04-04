@@ -17,6 +17,7 @@
         { "label": "결제로직설정", "url": "/hq/paymentOrchestration", "menuId": "M0118" },
         { "label": "노티구성설정", "url": "/hq/notifyEnv", "menuId": "M0105" },
         { "label": "노티매핑설정", "url": "/hq/notifyMapping", "menuId": "M0107" },
+        { "label": "전산설정관리", "url": "/hq/ledgerSysSettings", "menuId": "M0119" },
         { "label": "도메인구성설정", "url": "/hq/domainConfig", "menuId": "M0115" },
         { "label": "서버운영관리", "url": "/hq/serverManage", "menuId": "M0116" }
       ]

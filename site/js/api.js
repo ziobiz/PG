@@ -820,6 +820,12 @@
     hqNotifyMappingSave: function (body) {
       return post('/api/hq/notifyMapping/save', body || {}).then(function (r) { return r.data; });
     },
+    hqLedgerSysSettings: function () {
+      return get('/api/hq/ledgerSysSettings').then(function (r) { return r.data; });
+    },
+    hqLedgerSysSettingsSave: function (body) {
+      return post('/api/hq/ledgerSysSettings/save', body || {}).then(function (r) { return r.data; });
+    },
     hqOrgViewColumnRegionalBranches: function () {
       return get('/api/hq/orgViewColumnAllowance/regionalBranches').then(function (r) { return r.data || []; });
     },

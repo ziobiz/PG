@@ -550,6 +550,7 @@
     '/hq/permissionMng': { label: '본사권한설정', parent: '본사설정' },
     '/hq/notifyEnv': { label: '노티구성설정', parent: '본사설정' },
     '/hq/notifyMapping': { label: '노티매핑설정', parent: '본사설정' },
+    '/hq/ledgerSysSettings': { label: '전산설정관리', parent: '본사설정' },
     '/hq/orgViewColumnAllowance': { label: '조직항목설정', parent: '본사설정' },
     '/hq/accountMng': { label: '업체접근설정', parent: '본사설정' },
     '/system/noticeList': { label: '공지사항', parent: '업체관리' },
@@ -1686,6 +1687,20 @@
     profileSel.addEventListener('change', applySelectedProfile);
   }
 
+  /** 결제내역 계열: 사이드 메뉴를 다시 눌렀을 때 목록 새로고침(재조회) */
+  var PAY_LIST_MENU_RECLICK_REFRESH_URLS = ['/calc/payList', '/calc/payNotiList', '/calc/paySuccessList', '/calc/payFailList', '/calc/payRefundList', '/calc/payForceRefundList', '/calc/payCancelList', '/calc/offsetCancList', '/pay/easyPay', '/pay/chatbotPay'];
+
+  function refreshPayListPaneIfMenuRepeated(url, tabId) {
+    if (PAY_LIST_MENU_RECLICK_REFRESH_URLS.indexOf(url) === -1) return;
+    var pane = document.getElementById(tabId);
+    if (!pane) return;
+    setTimeout(function () {
+      loadViewSetting().finally(function () {
+        doSearch(pane, tabId, 1);
+      });
+    }, 0);
+  }
+
   function addTabAndSwitch(url, menuId, label) {
     var tabId = getTabIdFromUrl(url);
     var ul = document.getElementById(TAB_UL);
@@ -1694,6 +1709,7 @@
     var existing = ul.querySelector('[top_tab_url="' + url + '"]');
     if (existing) {
       existing.querySelector('.tab-a').click();
+      refreshPayListPaneIfMenuRepeated(url, tabId);
       return;
     }
 
@@ -7435,6 +7451,52 @@
         });
       }
     }
+    if (url === '/hq/ledgerSysSettings' && !pane._hqLedgerSysBound) {
+      pane._hqLedgerSysBound = true;
+      var dimmLs = document.getElementById('dimm');
+      function fillLedgerSys(d) {
+        if (!d) return;
+        var keys = ['displayTimezone', 'ntpSyncEnabledYn', 'ntpServerList', 'timeSyncIntervalMin', 'serverTimeIso', 'serverZoneId',
+          'smtpHost', 'smtpPort', 'smtpTlsYn', 'smtpAuthYn', 'smtpUsername', 'mailFromAddress', 'mailFromName', 'alertRecipientEmails',
+          'emailOnSyncFailureYn', 'emailDailyDigestYn', 'emailNotifyVoidBatchYn', 'emailNotifyRefundBatchYn', 'memo', 'updatedAt'];
+        keys.forEach(function (k) {
+          var el = pane.querySelector('[name="' + k + '"]');
+          if (el && d[k] != null && d[k] !== undefined) el.value = d[k];
+        });
+        var spw = pane.querySelector('[name="smtpPassword"]');
+        if (spw) spw.value = '';
+        var lab = pane.querySelector('[name="smtpPasswordSetLabel"]');
+        if (lab) lab.value = d.smtpPasswordSet ? '저장됨' : '미설정';
+      }
+      function reloadLedgerSys() {
+        if (dimmLs) dimmLs.style.display = 'flex';
+        window.PG_API.hqLedgerSysSettings().then(fillLedgerSys).catch(function () {}).finally(function () { if (dimmLs) dimmLs.style.display = 'none'; });
+      }
+      reloadLedgerSys();
+      var hqLsSave = pane.querySelector('#hqLedgerSysSettingsSaveBtn');
+      if (hqLsSave && !hqLsSave._hqLsBound) {
+        hqLsSave._hqLsBound = true;
+        hqLsSave.addEventListener('click', function () {
+          var fd = {};
+          ['displayTimezone', 'ntpSyncEnabledYn', 'ntpServerList', 'timeSyncIntervalMin', 'smtpHost', 'smtpPort', 'smtpTlsYn', 'smtpAuthYn',
+            'smtpUsername', 'smtpPassword', 'mailFromAddress', 'mailFromName', 'alertRecipientEmails',
+            'emailOnSyncFailureYn', 'emailDailyDigestYn', 'emailNotifyVoidBatchYn', 'emailNotifyRefundBatchYn', 'memo'].forEach(function (k) {
+            var el = pane.querySelector('[name="' + k + '"]');
+            if (el) fd[k] = el.value;
+          });
+          if (!fd.smtpPassword || !String(fd.smtpPassword).trim()) {
+            delete fd.smtpPassword;
+          }
+          if (dimmLs) dimmLs.style.display = 'flex';
+          window.PG_API.hqLedgerSysSettingsSave(fd).then(function (d) {
+            fillLedgerSys(d);
+            alert('저장되었습니다.');
+          }).catch(function (e) {
+            alert(e && e.message ? e.message : '저장 실패');
+          }).finally(function () { if (dimmLs) dimmLs.style.display = 'none'; });
+        });
+      }
+    }
     if (url === '/hq/accountMng' && !pane._hqAccBound) {
       pane._hqAccBound = true;
       pane.addEventListener('click', function (e) {
@@ -10279,7 +10341,7 @@
         a.style.display = '';
       });
       // 핵심 저장 버튼은 항상 강제 비활성(표시는 유지)
-      ['#compInfoUpdateBtn', '#compDetailSaveBtn', '#compRegSaveBtn', '#hqOrgAllowSaveBtn', '#hqBizdayProfileSaveBtn'].forEach(function (sel) {
+      ['#compInfoUpdateBtn', '#compDetailSaveBtn', '#compRegSaveBtn', '#hqOrgAllowSaveBtn', '#hqBizdayProfileSaveBtn', '#hqLedgerSysSettingsSaveBtn'].forEach(function (sel) {
         var b = pane.querySelector(sel);
         if (!b) return;
         b.disabled = true;

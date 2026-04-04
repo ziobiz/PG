@@ -12,6 +12,8 @@ import com.pg.repository.OrgUnitRepository;
 import com.pg.repository.PgAgencyRepository;
 import com.pg.repository.PgNotifyInboundRepository;
 import jakarta.servlet.http.HttpServletRequest;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -26,15 +28,17 @@ import java.util.regex.Pattern;
 /**
  * 전사 PG 노티 수신 (NOTI 전산노티대상 URL 연동용).
  * <ul>
- *   <li><b>노티 전용 연동</b>: 본문의 MID + 루트(옵션)으로 {@code tb_merchant_pg_binding} 매칭.</li>
- *   <li><b>URL 결제(1:N)</b>: API연동설정에서 연동용도가 <b>URL 결제만</b>인 PG({@code integ_url_pay_yn=Y} 단독)는 공통 MID이므로
+ *   <li><b>노티 연동 PG({@code integ_noti_yn=Y})</b>: 본사설정 API연동설정에서 연동용도가 노티인 결제대행사를 쓰는 가맹점만,
+ *       노티미들웨어가 보내는 {@code MerchantCode}(MID) + {@code RouteNo}(루트)로 {@code tb_merchant_pg_binding} 에서 분기합니다.</li>
+ *   <li><b>URL 결제(1:N)</b>: 연동용도가 <b>URL 결제만</b>인 PG({@code integ_url_pay_yn=Y} 단독)는 공통 MID이므로
  *       동일 MID로 바인딩이 여러 건이면 본문에 <b>업체코드(compId)</b> 또는 {@code icopayCompId=} 가 있어야 합니다.</li>
- *   <li>노티 본문에 업체코드가 있어도, 동일 MID가 전부 MID+루트 분기 가능한 PG(노티/API 등)이면 <b>MID+루트가 우선</b>합니다.</li>
+ *   <li>MID에 노티 연동 바인딩이 있으면 <b>항상 노티용 바인딩만</b>으로 MID+루트를 먼저 해석합니다.</li>
  * </ul>
  */
 @Service
 public class PgNotifyReceiveService {
 
+    private static final Logger log = LoggerFactory.getLogger(PgNotifyReceiveService.class);
     private static final ObjectMapper MAPPER = new ObjectMapper();
     /** ChillPay Description 등에 부가하는 토큰 — 노티 본문 전체에서 재추출 */
     private static final Pattern ICOPAY_COMP_ID = Pattern.compile("icopayCompId=([A-Za-z0-9_.-]+)", Pattern.CASE_INSENSITIVE);
@@ -46,6 +50,7 @@ public class PgNotifyReceiveService {
     private final PgAgencyRepository pgAgencyRepository;
     private final OrgServiceUseService orgServiceUseService;
     private final PgNotifyIngressGuard notifyIngressGuard;
+    private final ChillPayNotifyToTrnsctnService chillPayNotifyToTrnsctnService;
 
     public PgNotifyReceiveService(HqNotifyEnvService hqNotifyEnvService,
                                 PgNotifyInboundRepository inboundRepository,
@@ -53,7 +58,8 @@ public class PgNotifyReceiveService {
                                 OrgUnitRepository orgUnitRepository,
                                 PgAgencyRepository pgAgencyRepository,
                                 OrgServiceUseService orgServiceUseService,
-                                PgNotifyIngressGuard notifyIngressGuard) {
+                                PgNotifyIngressGuard notifyIngressGuard,
+                                ChillPayNotifyToTrnsctnService chillPayNotifyToTrnsctnService) {
         this.hqNotifyEnvService = hqNotifyEnvService;
         this.inboundRepository = inboundRepository;
         this.bindingRepository = bindingRepository;
@@ -61,6 +67,7 @@ public class PgNotifyReceiveService {
         this.pgAgencyRepository = pgAgencyRepository;
         this.orgServiceUseService = orgServiceUseService;
         this.notifyIngressGuard = notifyIngressGuard;
+        this.chillPayNotifyToTrnsctnService = chillPayNotifyToTrnsctnService;
     }
 
     @Transactional
@@ -81,6 +88,11 @@ public class PgNotifyReceiveService {
 
         resolveAndFillInbound(in, parsed);
         inboundRepository.save(in);
+        try {
+            chillPayNotifyToTrnsctnService.recordFromInbound(in);
+        } catch (Exception e) {
+            log.warn("노티→결제내역(pg_trnsctn) 후처리 실패 (수신 응답은 OK 유지): {}", e.getMessage());
+        }
         return env.getNotifyOkResponse() != null ? env.getNotifyOkResponse() : "{\"result\":\"OK\"}";
     }
 
@@ -88,25 +100,25 @@ public class PgNotifyReceiveService {
         boolean hasComp = p.compId != null && !p.compId.trim().isEmpty();
         String compStore = hasComp ? (p.compId.trim().length() > 64 ? p.compId.trim().substring(0, 64) : p.compId.trim()) : null;
 
-        // 1) 노티/API 등: 동일 MID에 대해 전부 MID+루트 분기 가능한 PG이면 compId 없이(또는 있어도) MID+루트 우선
+        // 1) 연동용도「노티」PG 바인딩만: MID(MerchantCode) + 루트(RouteNo)로 가맹점 분기 (노티미들웨어 표준)
         if (p.mid != null && !p.mid.isBlank()) {
             String m = p.mid.trim();
             List<MerchantPgBinding> sameMid = bindingRepository.findByMidOrderByOperationalYnDescIdAsc(m);
-            if (!sameMid.isEmpty()) {
-                boolean allPreferMidRoot = sameMid.stream()
-                        .allMatch(b -> prefersMidRootRouting(loadAgency(b.getPgCd())));
-                if (allPreferMidRoot) {
-                    Optional<MerchantPgBinding> bMid = resolveBinding(p.mid, p.rootNo);
-                    if (bMid.isPresent()) {
-                        if (hasComp) {
-                            in.setPayloadCompId(compStore);
-                        } else {
-                            in.setPayloadCompId(null);
-                        }
-                        applyBindingResolved(in, bMid.get());
-                        return;
+            List<MerchantPgBinding> notiForMid = filterNotiPurposeBindings(sameMid);
+            if (!notiForMid.isEmpty()) {
+                Optional<MerchantPgBinding> bNoti = resolveBindingFromList(notiForMid, p.rootNo);
+                if (bNoti.isPresent()) {
+                    if (hasComp) {
+                        in.setPayloadCompId(compStore);
+                    } else {
+                        in.setPayloadCompId(null);
                     }
+                    applyBindingResolved(in, bNoti.get());
+                    return;
                 }
+                in.setProcessStatus("MERCHANT_UNRESOLVED");
+                in.setErrorMessage("노티 연동 PG(integ_noti_yn=Y) 바인딩은 있으나 MID+루트(RouteNo)와 일치하는 행이 없습니다.");
+                return;
             }
         }
 
@@ -125,7 +137,7 @@ public class PgNotifyReceiveService {
             return;
         }
         List<MerchantPgBinding> sameMidOnly = bindingRepository.findByMidOrderByOperationalYnDescIdAsc(p.mid.trim());
-        Optional<MerchantPgBinding> bindingOpt = resolveBinding(p.mid, p.rootNo);
+        Optional<MerchantPgBinding> bindingOpt = resolveBindingFromList(sameMidOnly, p.rootNo);
         if (bindingOpt.isEmpty()) {
             in.setProcessStatus("MERCHANT_UNRESOLVED");
             in.setErrorMessage("no binding for mid/root");
@@ -215,36 +227,26 @@ public class PgNotifyReceiveService {
         return a != null && yn(a.getIntegUrlPayYn());
     }
 
-    /**
-     * 공통 MID 1:N으로 compId 분기가 필요한지: URL 결제만 켜진 행(신규 권장 스키마).
-     * 노티 등 다른 용도와 같이 켜진 레거시 행은 MID+루트 우선(preferMidRoot)로 처리.
-     */
-    private static boolean isExclusiveUrlPayAgency(PgAgency a) {
-        if (a == null) {
-            return false;
+    /** 본사설정 API연동설정에서 연동용도「노티」가 켜진 결제대행사에 매핑된 가맹점 바인딩만 */
+    private List<MerchantPgBinding> filterNotiPurposeBindings(List<MerchantPgBinding> list) {
+        if (list == null || list.isEmpty()) {
+            return List.of();
         }
-        return yn(a.getIntegUrlPayYn()) && !yn(a.getIntegNotiYn()) && !yn(a.getIntegApiYn()) && !yn(a.getIntegWebChatbotYn());
+        return list.stream()
+                .filter(b -> hasNotiIntegration(loadAgency(b.getPgCd())))
+                .toList();
     }
 
-    /**
-     * 노티 수신에서 동일 MID 묶음 전부가 MID+루트 분기에 적합한지.
-     * 하나라도 “URL 결제만” 전용 행이면 공통 MID 1:N 가능 → false (compId 경로로 가야 함).
-     */
-    private static boolean prefersMidRootRouting(PgAgency a) {
-        return !isExclusiveUrlPayAgency(a);
+    private static boolean hasNotiIntegration(PgAgency a) {
+        return a != null && yn(a.getIntegNotiYn());
     }
 
     private static boolean yn(String v) {
         return v != null && "Y".equalsIgnoreCase(v.trim());
     }
 
-    private Optional<MerchantPgBinding> resolveBinding(String mid, String rootNo) {
-        if (mid == null || mid.isBlank()) {
-            return Optional.empty();
-        }
-        String m = mid.trim();
-        List<MerchantPgBinding> list = bindingRepository.findByMidOrderByOperationalYnDescIdAsc(m);
-        if (list.isEmpty()) {
+    private Optional<MerchantPgBinding> resolveBindingFromList(List<MerchantPgBinding> list, String rootNo) {
+        if (list == null || list.isEmpty()) {
             return Optional.empty();
         }
         if (rootNo == null || rootNo.isBlank()) {

@@ -439,6 +439,46 @@
       ],
       buttons: [{ id: 'hqNotifyMappingSaveBtn', label: '저장', cls: 'btn-primary' }]
     },
+    '/hq/ledgerSysSettings': {
+      isForm: true,
+      formSections: [
+        {
+          title: '시간 및 동기화 설정',
+          notice: 'ziobiz/NOTI 노티미들웨어의 시스템·환경설정(시간·NTP)과 동일 목적입니다. 실제 OS 시각 동기화는 VPS에서 chrony/systemd-timesyncd 등으로 수행하고, 여기 값은 전산 배치·표시·알림 기준으로 사용합니다.',
+          rows: [
+            [{ label: '표준 시간대 (IANA)', type: 'text', name: 'displayTimezone', col: 4, placeholder: '예: Asia/Seoul, Asia/Bangkok' }],
+            [{ label: 'NTP 동기화 사용', type: 'select', name: 'ntpSyncEnabledYn', options: [{ v: 'N', t: '미사용' }, { v: 'Y', t: '사용' }], col: 2 },
+             { label: '동기화 주기(분)', type: 'number', name: 'timeSyncIntervalMin', col: 2, placeholder: '예: 60' }],
+            [{ label: 'NTP 서버 목록', type: 'text', name: 'ntpServerList', col: 8, placeholder: '쉼표 구분, 예: pool.ntp.org, time.google.com' }],
+            [{ label: '서버 기준 시각(조회 시점)', type: 'text', name: 'serverTimeIso', col: 6, readonly: true }],
+            [{ label: '적용 ZoneId', type: 'text', name: 'serverZoneId', col: 4, readonly: true }]
+          ]
+        },
+        {
+          title: '자동화 이메일 설정',
+          notice: '무효·이메일무효·환불 배치 등 NOTI 종합거래 후속 기능 연동 시 알림 발송에 사용합니다. 비밀번호는 저장 시에만 갱신하며, 조회 시에는 설정 여부만 표시됩니다.',
+          rows: [
+            [{ label: 'SMTP 호스트', type: 'text', name: 'smtpHost', col: 3, placeholder: 'smtp.example.com' },
+             { label: 'SMTP 포트', type: 'number', name: 'smtpPort', col: 2, placeholder: '587' },
+             { label: 'TLS', type: 'select', name: 'smtpTlsYn', options: [{ v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }], col: 2 },
+             { label: 'SMTP 인증', type: 'select', name: 'smtpAuthYn', options: [{ v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }], col: 2 }],
+            [{ label: 'SMTP 사용자', type: 'text', name: 'smtpUsername', col: 4 }],
+            [{ label: 'SMTP 비밀번호 (변경 시만 입력)', type: 'password', name: 'smtpPassword', col: 4, placeholder: '비워두면 기존 유지' },
+             { label: '비밀번호 저장됨', type: 'text', name: 'smtpPasswordSetLabel', col: 3, readonly: true }],
+            [{ label: '발신 메일', type: 'text', name: 'mailFromAddress', col: 4, placeholder: 'noreply@example.com' },
+             { label: '발신 표시명', type: 'text', name: 'mailFromName', col: 4 }],
+            [{ label: '알림 수신(쉼표 구분)', type: 'textarea', name: 'alertRecipientEmails', col: 8, rows: 2, placeholder: 'a@x.com, b@x.com' }],
+            [{ label: '동기화 실패 시 메일', type: 'select', name: 'emailOnSyncFailureYn', options: [{ v: 'N', t: '미사용' }, { v: 'Y', t: '사용' }], col: 2 },
+             { label: '일일 요약 메일', type: 'select', name: 'emailDailyDigestYn', options: [{ v: 'N', t: '미사용' }, { v: 'Y', t: '사용' }], col: 2 },
+             { label: '무효 배치 알림(예정)', type: 'select', name: 'emailNotifyVoidBatchYn', options: [{ v: 'N', t: '미사용' }, { v: 'Y', t: '사용' }], col: 2 },
+             { label: '환불 배치 알림(예정)', type: 'select', name: 'emailNotifyRefundBatchYn', options: [{ v: 'N', t: '미사용' }, { v: 'Y', t: '사용' }], col: 2 }],
+            [{ label: '메모', type: 'textarea', name: 'memo', col: 8, rows: 2 }],
+            [{ label: '최종 수정', type: 'text', name: 'updatedAt', col: 4, readonly: true }]
+          ]
+        }
+      ],
+      buttons: [{ id: 'hqLedgerSysSettingsSaveBtn', label: '저장', cls: 'btn-primary' }]
+    },
     '/hq/orgViewColumnAllowance': {
       isForm: true,
       formHtmlId: 'hqOrgViewColumnAllowanceForm',
@@ -1566,7 +1606,7 @@
           { label: '정산주기', type: 'select', name: 'searchCycle', options: CALC_CYCLE_SEARCH_OPTIONS },
           { label: '사업자번호', type: 'text', name: 'searchRegNo' },
           { label: '카드승인번호', type: 'text', name: 'searchCardAprvNo' },
-          { type: 'searchBtn', label: 'Q 검색' }
+          { type: 'searchBtn', label: '새로고침' }
         ]
       ],
       searchRows2: [],
@@ -1578,7 +1618,7 @@
         '정산 주기 및 정산 수수료는 가맹점별로 상이할 수 있습니다.'
       ],
       summary: ['건수', '승인금액', '취소금액', '결제금액', '총수수료', '보류금액', '지급액'],
-      buttons: [{ id: 'reclaimBtn', label: '상신회수', cls: 'btn-warning' }, { id: 'excelDownBtn', label: '엑셀다운로드', cls: 'btn-info' }],
+      buttons: [{ id: 'excelDownBtn', label: '엑셀다운로드', cls: 'btn-info' }],
       /** 참고: 결제내역 UI 2단 헤더 — 정산주기 뒤 PG승인(금액·일시), 보류(금액·일시), 수수료(건·%) */
       headerGroups: [
         { label: '사업자번호', keys: ['compRegNo'] },
