@@ -28,4 +28,10 @@ public interface MerchantPgBindingRepository extends JpaRepository<MerchantPgBin
 
     /** PG사 삭제 전: 가맹점 결제대행사 설정 참조 여부 */
     boolean existsByPgCd(String pgCd);
+
+    @Query("select distinct o.code from MerchantPgBinding b, OrgUnit o where o.id = b.orgUnitId and b.mid is not null and lower(b.mid) like lower(concat('%', :q, '%'))")
+    List<String> findMerchantCodesByMidContaining(@Param("q") String q);
+
+    @Query("select distinct o.code from MerchantPgBinding b, OrgUnit o where o.id = b.orgUnitId and b.pgCd = :pgCd")
+    List<String> findMerchantCodesByPgCd(@Param("pgCd") String pgCd);
 }

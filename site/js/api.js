@@ -301,6 +301,10 @@
     payList: function (params) {
       return get('/api/calc/payList', params).then(function (r) { return r.data; });
     },
+    /** ChillPay Transaction API — Search Payment Transaction (실시간) */
+    chillPayTrSearch: function (params) {
+      return get('/api/calc/chillPayTrSearch', params).then(function (r) { return r.data; });
+    },
 
     seedDev: function () {
       return get('/api/dev/seed');

@@ -496,6 +496,7 @@
             ] }],
             [{ label: '설정 대상 화면', type: 'select', name: 'targetPageUrl', col: 4, options: [
               { v: '/calc/payList', t: '결제내역(통합)' },
+              { v: '/calc/chillPayTrList', t: '통합내역' },
               { v: '/comp/compMngTree', t: '업체관리' },
               { v: '/commission/commisionList', t: '수수료관리' },
               { v: '/calc/calcList', t: '정산·유통망정산내역' },
@@ -1589,24 +1590,50 @@
       searchFormClass: 'pay-mng-search-form',
       searchRows: [
         [
-          { label: '거래인자', type: 'select', name: 'searchTranFactor', options: [{ v: '', t: '전체' }], size: 11 },
+          { label: '거래인자', type: 'select', name: 'searchTranFactor', options: [
+            { v: '', t: '전체' },
+            { v: 'ORDER_NO', t: '주문번호' },
+            { v: 'CUSTOMER_ID', t: '고객ID' },
+            { v: 'TRN_ID', t: '거래번호' },
+            { v: 'AMT', t: '금액' },
+            { v: 'MERCHANT', t: '가맹점' },
+            { v: 'ROUTE', t: '루트' },
+            { v: 'MID', t: 'MID' }
+          ], size: 9 },
+          { type: 'text', name: 'searchTranValue', placeholder: '값', size: 12 },
           { type: 'daterange', from: 'searchFromDate', to: 'searchToDate' },
-          { type: 'quickdate' },
-          { label: '업체명', type: 'select', name: 'searchCompNm', options: [{ v: '', t: '전체' }] },
-          { label: '터미널ID', type: 'text', name: 'searchTmnId' }
+          { type: 'quickdate' }
         ],
         [
-          { label: '결제구분', type: 'select', name: 'searchPayDivCd', options: [{ v: '', t: '전체' }, { v: '10', t: '결제' }, { v: '20', t: '취소' }], size: 11 },
-          { label: '정산구분', type: 'select', name: 'searchPayProcCd', options: [{ v: '', t: '전체' }, { v: '10', t: '정산대기' }, { v: '20', t: '정산완료' }, { v: '30', t: '결제취소' }, { v: '40', t: '정산취소' }], size: 8 },
-          { label: '단계별', type: 'select', name: 'searchStep', options: [{ v: '', t: '출판' }] },
-          { type: 'text', name: 'searchKeyword', placeholder: '검색어', size: 17 }
+          { label: '업체', type: 'select', name: 'searchCompField', options: [
+            { v: '', t: '전체' }, { v: 'NM', t: '업체명' }, { v: 'CODE', t: '업체코드' }
+          ], size: 8 },
+          { type: 'text', name: 'searchCompQ', placeholder: '업체명·코드', size: 11 },
+          { label: 'MID', type: 'text', name: 'searchMid', placeholder: 'MID', size: 11 }
         ],
         [
-          { label: 'PG사', type: 'select', name: 'searchPg', options: [{ v: '', t: '전체' }], size: 11 },
-          { label: '정산주기', type: 'select', name: 'searchCycle', options: CALC_CYCLE_SEARCH_OPTIONS },
-          { label: '사업자번호', type: 'text', name: 'searchRegNo' },
-          { label: '카드승인번호', type: 'text', name: 'searchCardAprvNo' },
-          { type: 'searchBtn', label: '새로고침' }
+          { label: '결제구분', type: 'select', name: 'searchPayDivCd', options: [
+            { v: '', t: '전체' },
+            { v: '10', t: '결제' },
+            { v: '20', t: '취소' },
+            { v: 'FAIL', t: '실패' },
+            { v: '40', t: '자동무효' },
+            { v: '41', t: '이메일무효' },
+            { v: '42', t: '자동환불' },
+            { v: '31', t: '강제환불' }
+          ], size: 11 },
+          { label: '정산구분', type: 'select', name: 'searchPayProcCd', options: [
+            { v: '', t: '전체' }, { v: '10', t: '정산대기' }, { v: '20', t: '정산완료' }, { v: '30', t: '결제취소' }, { v: '40', t: '정산취소' }
+          ], size: 9 },
+          { label: '검색어', type: 'text', name: 'searchKeyword', placeholder: '주문·거래·고객·칠페이 ID 등', size: 20 },
+          { type: 'searchBtn', label: '검색' }
+        ],
+        [
+          { label: '결제대행사', type: 'select', name: 'searchPgCd', options: [{ v: '', t: '전체' }], size: 13 },
+          { label: '전산주기', type: 'select', name: 'searchCycle', options: CALC_CYCLE_SEARCH_OPTIONS, size: 10 },
+          { label: '사업자번호', type: 'text', name: 'searchRegNo', size: 12 },
+          { label: '카드승인번호', type: 'text', name: 'searchCardAprvNo', size: 11 },
+          { label: '피지거래번호', type: 'text', name: 'searchChillTxnId', placeholder: 'TransactionId(칠페이)', size: 14 }
         ]
       ],
       searchRows2: [],
@@ -1618,7 +1645,10 @@
         '정산 주기 및 정산 수수료는 가맹점별로 상이할 수 있습니다.'
       ],
       summary: ['건수', '승인금액', '취소금액', '결제금액', '총수수료', '보류금액', '지급액'],
-      buttons: [{ id: 'excelDownBtn', label: '엑셀다운로드', cls: 'btn-info' }],
+      buttons: [
+        { id: 'payListRefreshBtn', label: '새로고침', cls: 'btn-outline-secondary' },
+        { id: 'excelDownBtn', label: '엑셀다운로드', cls: 'btn-info' }
+      ],
       /** 참고: 결제내역 UI 2단 헤더 — 정산주기 뒤 PG승인(금액·일시), 보류(금액·일시), 수수료(건·%) */
       headerGroups: [
         { label: '사업자번호', keys: ['compRegNo'] },
@@ -1675,6 +1705,71 @@
         { key: 'masterNm', label: '지사' },
         { key: 'branchNm', label: '대리점' },
         { type: 'payActions', label: '후속조치', key: 'payActions' }
+      ],
+      emptyMessage: '조회된 데이터가 없습니다.'
+    },
+    /** ChillPay Transaction API — Search Payment Transaction (실시간, DB 비저장) */
+    '/calc/chillPayTrList': {
+      tableColumnGuide: false,
+      searchFormClass: 'screen-search-form pay-mng-search-form',
+      searchRows: [
+        [
+          { label: '정렬', type: 'select', name: 'searchOrderBy', options: [
+            { v: 'TransactionId', t: 'TransactionId' },
+            { v: 'TransactionDate', t: 'TransactionDate' },
+            { v: 'OrderNo', t: 'OrderNo' },
+            { v: 'PaymentDate', t: 'PaymentDate' },
+            { v: 'Amount', t: 'Amount' },
+            { v: 'Merchant', t: 'Merchant' },
+            { v: 'Customer', t: 'Customer' },
+            { v: 'Status', t: 'Status' }
+          ], size: 12 },
+          { label: '방향', type: 'select', name: 'searchOrderDir', options: [
+            { v: 'DESC', t: 'DESC' },
+            { v: 'ASC', t: 'ASC' }
+          ], size: 7 },
+          { type: 'daterange', from: 'searchFromDate', to: 'searchToDate' },
+          { type: 'quickdate' },
+          { type: 'searchBtn', label: '검색' }
+        ],
+        [
+          { label: '검색어', type: 'text', name: 'searchKeyword', placeholder: 'SearchKeyword', size: 16 },
+          { label: 'MID', type: 'text', name: 'searchMerchantCode', placeholder: 'MerchantCode', size: 12 },
+          { label: '주문번호', type: 'text', name: 'searchOrderNo', size: 12 },
+          { label: '상태', type: 'text', name: 'searchChillStatus', placeholder: 'Paid, WaitAuthorize…', size: 11 },
+          { label: '채널', type: 'text', name: 'searchPaymentChannel', placeholder: 'Appendix B', size: 11 },
+          { label: 'Route', type: 'text', name: 'searchRouteNo', placeholder: '숫자', size: 6 }
+        ]
+      ],
+      noticeList: [
+        'ChillPay API Transaction Services — Search Payment Transaction(실시간)입니다. ICOPAY 내부 DB(pg_trnsctn)가 아니라 칠페이 서버에서 직접 목록을 가져옵니다. ziobiz/NOTI 노티미들웨어의 종합거래·피지거래내역과 유사한 용도로 쓸 수 있습니다.',
+        '자격: 본사 API배포설정 또는 tb_pg_agency(ChillPay)의 MerchantCode·ApiKey·MD5 Secret Key·샌드박스 여부를 사용합니다.',
+        'TransactionDate 범위는 검색 기간(날짜)을 ChillPay 형식(dd/MM/yyyy HH:mm:ss)으로 변환합니다. 문서: ChillPay-API-Transaction-Services-Document-EN_v1.0.6.'
+      ],
+      summary: ['건수'],
+      buttons: [
+        { id: 'payListRefreshBtn', label: '새로고침', cls: 'btn-outline-secondary' },
+        { id: 'excelDownBtn', label: '엑셀다운로드', cls: 'btn-info' }
+      ],
+      columns: [
+        { key: 'rowNo', label: 'No.' },
+        { key: 'transactionId', label: 'TransactionId' },
+        { key: 'transactionDate', label: 'TransactionDate' },
+        { key: 'merchant', label: 'Merchant' },
+        { key: 'customer', label: 'Customer' },
+        { key: 'orderNo', label: 'OrderNo' },
+        { key: 'paymentChannel', label: 'PaymentChannel' },
+        { key: 'paymentDate', label: 'PaymentDate' },
+        { key: 'amount', label: 'Amount' },
+        { key: 'refundAmount', label: 'RefundAmount' },
+        { key: 'fee', label: 'Fee' },
+        { key: 'discount', label: 'Discount' },
+        { key: 'totalAmount', label: 'TotalAmount' },
+        { key: 'currency', label: 'Currency' },
+        { key: 'routeNo', label: 'RouteNo' },
+        { key: 'status', label: 'Status' },
+        { key: 'settled', label: 'Settled' },
+        { key: 'description', label: 'Description' }
       ],
       emptyMessage: '조회된 데이터가 없습니다.'
     },

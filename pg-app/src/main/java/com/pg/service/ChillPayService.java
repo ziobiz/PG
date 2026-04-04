@@ -1,8 +1,11 @@
 package com.pg.service;
 
+import com.pg.api.dto.PageResult;
 import com.pg.config.ChillPayProperties;
 import com.pg.dto.ChillPayDirectCreditRequest;
 import com.pg.dto.ChillPayDirectCreditResponse;
+import com.pg.dto.ChillPayPaymentSearchApiRequest;
+import com.pg.dto.ChillPayPaymentSearchApiResponse;
 import com.pg.entity.HqApiConfig;
 import com.pg.entity.MerchantPgBinding;
 import com.pg.entity.PgAgency;
@@ -22,6 +25,10 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -64,6 +71,10 @@ public class ChillPayService {
      */
     private static final String APPSRV_PAYMENT_V2_SANDBOX = "https://sandbox-appsrv2.chillpay.co/api/v2/Payment/";
     private static final String APPSRV_PAYMENT_V2_PROD = "https://appsrv.chillpay.co/api/v2/Payment/";
+    /** Transaction Services — Search Payment Transaction (Table 1.1~1.3) */
+    private static final String TXN_PAYMENT_SEARCH_SB = "https://sandbox-api-transaction.chillpay.co/api/v1/payment/search";
+    private static final String TXN_PAYMENT_SEARCH_PR = "https://api-transaction.chillpay.co/api/v1/payment/search";
+    private static final DateTimeFormatter CHILLPAY_TXN_DT = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss");
 
     private final ChillPayProperties props;
     private final HqApiConfigRepository hqApiConfigRepository;
@@ -803,5 +814,152 @@ public class ChillPayService {
             url += (url.contains("?") ? "&" : "?") + "m=" + enc;
         }
         return url;
+    }
+
+    /**
+     * ChillPay Transaction API — Search Payment Transaction (실시간 칠페이 결제 거래 목록).
+     * 본사·가맹 {@link #resolveConfig(Long)} 자격(MerchantCode·ApiKey·MD5)으로 호출합니다.
+     *
+     * @param merchantOrgUnitId null이면 본사(HQ) 설정만 사용
+     */
+    public PageResult<Map<String, Object>> searchChillPayPaymentTransactions(
+            Long merchantOrgUnitId,
+            int page,
+            int size,
+            String orderBy,
+            String orderDir,
+            String searchKeyword,
+            String merchantCodeFilter,
+            String paymentChannel,
+            Integer routeNoFilter,
+            String orderNo,
+            String status,
+            LocalDate transactionDateFrom,
+            LocalDate transactionDateTo) {
+
+        if (merchantOrgUnitId != null && !orgServiceUseService.isOrgServiceActive(merchantOrgUnitId)) {
+            throw new IllegalStateException("서비스가 중지된 업체입니다.");
+        }
+        Config cfg = resolveConfig(merchantOrgUnitId);
+        if (cfg.apiKey() == null || cfg.apiKey().isEmpty()) {
+            throw new IllegalStateException("ChillPay API Key가 설정되지 않았습니다.");
+        }
+        if (cfg.md5Key() == null || cfg.md5Key().isEmpty()) {
+            throw new IllegalStateException("ChillPay MD5 Key가 설정되지 않았습니다.");
+        }
+
+        int ps = Math.min(100, Math.max(1, size));
+        int pn = Math.max(1, page);
+
+        ChillPayPaymentSearchApiRequest req = new ChillPayPaymentSearchApiRequest();
+        req.setOrderBy(trimOrDefault(orderBy, "TransactionId"));
+        req.setOrderDir("ASC".equalsIgnoreCase(trimOrEmpty(orderDir)) ? "ASC" : "DESC");
+        req.setPageSize(ps);
+        req.setPageNumber(pn);
+        req.setSearchKeyword(trimOrEmpty(searchKeyword));
+        req.setMerchantCode(trimOrEmpty(merchantCodeFilter));
+        req.setPaymentChannel(trimOrEmpty(paymentChannel));
+        req.setRouteNo(routeNoFilter);
+        req.setOrderNo(trimOrEmpty(orderNo));
+        req.setStatus(trimOrEmpty(status));
+        req.setTransactionDateFrom(transactionDateFrom != null ? transactionDateFrom.atStartOfDay().format(CHILLPAY_TXN_DT) : "");
+        req.setTransactionDateTo(transactionDateTo != null ? transactionDateTo.atTime(23, 59, 59).format(CHILLPAY_TXN_DT) : "");
+        req.setPaymentDateFrom("");
+        req.setPaymentDateTo("");
+
+        req.setChecksum(md5(req.toChecksumPlainString() + cfg.md5Key()));
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        headers.set("CHILLPAY-MerchantCode", cfg.merchantCode());
+        headers.set("CHILLPAY-ApiKey", cfg.apiKey());
+
+        String url = cfg.sandbox() ? TXN_PAYMENT_SEARCH_SB : TXN_PAYMENT_SEARCH_PR;
+        HttpEntity<ChillPayPaymentSearchApiRequest> entity = new HttpEntity<>(req, headers);
+
+        try {
+            ResponseEntity<ChillPayPaymentSearchApiResponse> res = restTemplate.exchange(
+                    url,
+                    HttpMethod.POST,
+                    entity,
+                    ChillPayPaymentSearchApiResponse.class);
+            ChillPayPaymentSearchApiResponse body = res.getBody();
+            if (body == null) {
+                throw new IllegalStateException("ChillPay 응답 본문이 비어 있습니다.");
+            }
+            if (body.getStatus() != null && body.getStatus() != 200) {
+                String msg = body.getMessage() != null ? body.getMessage() : ("상태코드 " + body.getStatus());
+                throw new IllegalStateException(msg);
+            }
+            List<Map<String, Object>> raw = body.getData() != null ? body.getData() : Collections.emptyList();
+            List<Map<String, Object>> list = new ArrayList<>();
+            int startNo = (pn - 1) * ps + 1;
+            for (int i = 0; i < raw.size(); i++) {
+                list.add(wrapChillPayRow(raw.get(i), startNo + i));
+            }
+            long total = body.getTotalRecord() != null ? body.getTotalRecord() : 0L;
+            int totalPages = total <= 0 ? 1 : (int) Math.ceil((double) total / (double) ps);
+
+            PageResult<Map<String, Object>> pr = new PageResult<>();
+            pr.setList(list);
+            pr.setPage(pn);
+            pr.setSize(ps);
+            pr.setTotalElements(total);
+            pr.setTotalPages(totalPages);
+            Map<String, Object> meta = new LinkedHashMap<>();
+            meta.put("chillPayMessage", body.getMessage());
+            meta.put("chillPayStatus", body.getStatus());
+            pr.setMeta(meta);
+            return pr;
+        } catch (IllegalStateException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("ChillPay Search Payment Transaction 실패: {}", e.getMessage());
+            throw new IllegalStateException("ChillPay 거래 검색 API 호출 실패: " + e.getMessage(), e);
+        }
+    }
+
+    private static Map<String, Object> wrapChillPayRow(Map<String, Object> raw, int rowNo) {
+        Map<String, Object> m = new LinkedHashMap<>();
+        if (raw != null) {
+            m.putAll(raw);
+        }
+        m.put("rowNo", rowNo);
+        aliasIfMissing(m, "transactionId", "TransactionId");
+        aliasIfMissing(m, "transactionDate", "TransactionDate");
+        aliasIfMissing(m, "merchant", "Merchant");
+        aliasIfMissing(m, "customer", "Customer");
+        aliasIfMissing(m, "orderNo", "OrderNo");
+        aliasIfMissing(m, "paymentChannel", "PaymentChannel");
+        aliasIfMissing(m, "paymentDate", "PaymentDate");
+        aliasIfMissing(m, "amount", "Amount");
+        aliasIfMissing(m, "refundAmount", "RefundAmount");
+        aliasIfMissing(m, "fee", "Fee");
+        aliasIfMissing(m, "discount", "Discount");
+        aliasIfMissing(m, "totalAmount", "TotalAmount");
+        aliasIfMissing(m, "currency", "Currency");
+        aliasIfMissing(m, "routeNo", "RouteNo");
+        aliasIfMissing(m, "status", "Status");
+        aliasIfMissing(m, "settled", "Settled");
+        aliasIfMissing(m, "description", "Description");
+        return m;
+    }
+
+    private static void aliasIfMissing(Map<String, Object> m, String lowerKey, String pascalKey) {
+        if (m.containsKey(lowerKey)) {
+            return;
+        }
+        if (m.containsKey(pascalKey)) {
+            m.put(lowerKey, m.get(pascalKey));
+        }
+    }
+
+    private static String trimOrEmpty(String s) {
+        return s != null ? s.trim() : "";
+    }
+
+    private static String trimOrDefault(String s, String def) {
+        String t = trimOrEmpty(s);
+        return t.isEmpty() ? def : t;
     }
 }

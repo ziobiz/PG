@@ -37,6 +37,7 @@
       "label": "결제관리",
       "icon": "bi-credit-card",
       "children": [
+        { "label": "통합내역", "url": "/calc/chillPayTrList", "menuId": "M0319" },
         { "label": "결제내역", "url": "/calc/payList", "menuId": "M0301" },
         { "label": "성공내역", "url": "/calc/paySuccessList", "menuId": "M0315" },
         { "label": "실패내역", "url": "/calc/payFailList", "menuId": "M0303" },

@@ -445,6 +445,23 @@ body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Ro
   max-width: none;
 }
 /* 결제관리 검색: 라벨 글자길이와 무관하게 입력칸 시작선/폭을 통일 */
+.screen-search-form.pay-mng-search-form .search-form-row {
+  flex-wrap: wrap;
+  overflow-x: visible;
+  overflow-y: visible;
+  align-items: flex-end;
+  row-gap: 10px;
+}
+.screen-search-form.pay-mng-search-form .search-cell {
+  max-width: 100%;
+}
+/* 퀵날짜·좁은 화면에서 버튼만 다음 줄로 */
+.screen-search-form.pay-mng-search-form .search-cell-input:has(.quick-date) {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 6px;
+  max-width: 100%;
+}
 .screen-search-form.pay-mng-search-form .search-cell--with-label .search-cell-label {
   width: 74px;
   min-width: 74px;
@@ -453,12 +470,14 @@ body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Ro
 .screen-search-form.pay-mng-search-form .search-cell-input select.form-control-sm {
   width: 190px !important;
   min-width: 190px !important;
+  max-width: 100%;
 }
 .screen-search-form.pay-mng-search-form .search-cell-input select[name="searchTranFactor"],
 .screen-search-form.pay-mng-search-form .search-cell-input select[name="searchPayDivCd"],
-.screen-search-form.pay-mng-search-form .search-cell-input select[name="searchPg"] {
+.screen-search-form.pay-mng-search-form .search-cell-input select[name="searchPgCd"] {
   width: 220px !important;
   min-width: 220px !important;
+  max-width: 100%;
 }
 /* 퀵 날짜 버튼: 당일·당월 핑크 톤, 나머지 기존 톤 */
 .quick-date { font-size: var(--app-base-font-size); padding: 4px 8px; }
