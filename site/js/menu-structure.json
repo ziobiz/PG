@@ -10,6 +10,7 @@
         { "label": "차지백설정", "url": "/hq/chargebackPolicy", "menuId": "M0117" },
         { "label": "영업일설정", "url": "/hq/businessDaySetting", "menuId": "M0109" },
         { "label": "본사권한설정", "url": "/hq/permissionMng", "menuId": "M0104" },
+        { "label": "사용자설정", "url": "/hq/userSettings", "menuId": "M0120" },
         { "label": "업체접근설정", "url": "/hq/accountMng", "menuId": "M0106" },
         { "label": "조직항목설정", "url": "/hq/orgViewColumnAllowance", "menuId": "M0108" },
         { "label": "API연동설정", "url": "/hq/pgApiMng", "menuId": "M0101" },
@@ -17,6 +18,7 @@
         { "label": "결제로직설정", "url": "/hq/paymentOrchestration", "menuId": "M0118" },
         { "label": "노티구성설정", "url": "/hq/notifyEnv", "menuId": "M0105" },
         { "label": "노티매핑설정", "url": "/hq/notifyMapping", "menuId": "M0107" },
+        { "label": "노티수령정보", "url": "/hq/notifyInbound", "menuId": "M0121" },
         { "label": "전산설정관리", "url": "/hq/ledgerSysSettings", "menuId": "M0119" },
         { "label": "도메인구성설정", "url": "/hq/domainConfig", "menuId": "M0115" },
         { "label": "서버운영관리", "url": "/hq/serverManage", "menuId": "M0116" }
@@ -41,18 +43,19 @@
         { "label": "결제내역", "url": "/calc/payList", "menuId": "M0301" },
         { "label": "성공내역", "url": "/calc/paySuccessList", "menuId": "M0315" },
         { "label": "실패내역", "url": "/calc/payFailList", "menuId": "M0303" },
-        { "label": "환불내역", "url": "/calc/payRefundList", "menuId": "M0316" },
-        { "label": "강제환불", "url": "/calc/payForceRefundList", "menuId": "M0317" },
         { "label": "취소내역", "url": "/calc/payCancelList", "menuId": "M0318" },
-        { "label": "상계취소내역", "url": "/calc/offsetCancList", "menuId": "M0309" },
+        { "label": "환불내역", "url": "/calc/payRefundList", "menuId": "M0316" },
+        { "label": "강제환불내역", "url": "/calc/payForceRefundList", "menuId": "M0317" },
         { "label": "URL결제내역", "url": "/pay/easyPay", "menuId": "M0310" },
-        { "label": "챗봇결제내역", "url": "/pay/chatbotPay", "menuId": "M0311" }
+        { "label": "챗봇결제내역", "url": "/pay/chatbotPay", "menuId": "M0311" },
+        { "label": "상계취소내역", "url": "/calc/offsetCancList", "menuId": "M0309" }
       ]
     },
     {
       "label": "정산관리",
       "icon": "bi-cash-stack",
       "children": [
+        { "label": "통합정산", "url": "/calc/chillPaySettlementList", "menuId": "M0421" },
         { "label": "유통망정산내역", "url": "/calc/calcList", "menuId": "M0404" },
         { "label": "가맹정산내역", "url": "/calc/calcGmList", "menuId": "M0405" },
         { "label": "수수료내역", "url": "/calc/feeList", "menuId": "M0406" },

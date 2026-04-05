@@ -36,7 +36,7 @@ public class OpenPgNotifyController {
         byte[] buf = req.getInputStream().readAllBytes();
         String body = new String(buf, StandardCharsets.UTF_8);
         try {
-            String resp = receiveService.receiveAndRespond(token, body, req.getContentType(), clientIp(req), req);
+            String resp = receiveService.receiveAndRespond(token, targetCode, body, req.getContentType(), clientIp(req), req);
             MediaType mt = MediaType.TEXT_PLAIN;
             if (resp != null && resp.trim().startsWith("{")) {
                 mt = MediaType.APPLICATION_JSON;

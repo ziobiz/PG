@@ -397,18 +397,6 @@
           ]
         },
         {
-          title: '로그인·OTP 정책 (ziobiz/NOTI 계정관리 대응)',
-          notice: '모든 사용자에 OTP를 요구할지 본사(총본사) 설정에서 통일합니다. OTP 필수 시 로그인·등록 단계에서 OTP 검증을 붙일 수 있습니다(연동 예정). 사용자관리 그리드의 OTP 등록 여부와 연계됩니다.',
-          rows: [
-            [{ label: 'OTP 사용 필수', type: 'select', name: 'otpRequiredYn', options: [{ v: 'Y', t: '예 (전 사용자)' }, { v: 'N', t: '아니오' }], col: 2 },
-             { label: 'OTP 형식 정책', type: 'select', name: 'otpPolicyMode', options: [{ v: 'NOTI', t: 'NOTI 동일' }, { v: 'CUSTOM', t: '커스텀' }], col: 2 },
-             { label: '비밀번호 정책', type: 'select', name: 'passwordPolicyMode', options: [{ v: 'NOTI', t: 'NOTI 동일' }, { v: 'CUSTOM', t: '커스텀' }], col: 2 },
-             { label: '비밀번호찾기 기능', type: 'select', name: 'forgotPasswordEnabledYn', options: [{ v: 'N', t: '미사용' }, { v: 'Y', t: '사용' }], col: 2 }],
-            [{ label: '관리담당 사용자관리 권한', type: 'select', name: 'managerUserControlEnabledYn', options: [{ v: 'N', t: '미사용' }, { v: 'Y', t: '사용' }], col: 2 },
-             { label: '관리담당 비밀번호 초기화', type: 'select', name: 'managerPasswordResetEnabledYn', options: [{ v: 'N', t: '미사용' }, { v: 'Y', t: '사용' }], col: 2 }]
-          ]
-        },
-        {
           title: '총판 노티 대상 생성',
           notice: '[노티자동생성] 시 CALLBACK(서버 노티)·RESULT(브라우저 결과/리다이렉트) URL이 짧은 경로(cb/rs+6자)로 각각 발급됩니다. NOTI 전산노티대상에 유형별로 등록한 뒤, 총판 등록 화면에서 연결합니다. 아래 목록에서 행별 삭제할 수 있습니다.',
           rows: [
@@ -419,25 +407,92 @@
       ],
       buttons: [{ id: 'hqNotifyRegenTokenBtn', label: '토큰 재발급', cls: 'btn-warning' }, { id: 'hqNotifyEnvSaveBtn', label: '저장', cls: 'btn-primary' }]
     },
+    '/hq/userSettings': {
+      isForm: true,
+      formSections: [
+        {
+          title: '로그인·OTP 정책 (ziobiz/NOTI 계정관리 대응)',
+          notice: '모든 사용자에 OTP를 요구할지 본사(총본사) 설정에서 통일합니다. OTP 필수 시 로그인·등록 단계에서 OTP 검증을 붙일 수 있습니다(연동 예정). 사용자관리 그리드의 OTP 등록 여부와 연계됩니다. 저장은 노티·결제환경 설정(tb_hq_notify_env_config)과 동일 API를 사용합니다.',
+          rows: [
+            [{ label: 'OTP 사용 필수', type: 'select', name: 'otpRequiredYn', options: [{ v: 'Y', t: '예 (전 사용자)' }, { v: 'N', t: '아니오' }], col: 2 },
+             { label: 'OTP 형식 정책', type: 'select', name: 'otpPolicyMode', options: [{ v: 'NOTI', t: 'NOTI 동일' }, { v: 'CUSTOM', t: '커스텀' }], col: 2 },
+             { label: '비밀번호 정책', type: 'select', name: 'passwordPolicyMode', options: [{ v: 'NOTI', t: 'NOTI 동일' }, { v: 'CUSTOM', t: '커스텀' }], col: 2 },
+             { label: '비밀번호찾기 기능', type: 'select', name: 'forgotPasswordEnabledYn', options: [{ v: 'N', t: '미사용' }, { v: 'Y', t: '사용' }], col: 2 }],
+            [{ label: '관리담당 사용자관리 권한', type: 'select', name: 'managerUserControlEnabledYn', options: [{ v: 'N', t: '미사용' }, { v: 'Y', t: '사용' }], col: 2 },
+             { label: '관리담당 비밀번호 초기화', type: 'select', name: 'managerPasswordResetEnabledYn', options: [{ v: 'N', t: '미사용' }, { v: 'Y', t: '사용' }], col: 2 }]
+          ]
+        }
+      ],
+      buttons: [{ id: 'hqUserSettingsSaveBtn', label: '저장', cls: 'btn-primary' }]
+    },
     '/hq/notifyMapping': {
       isForm: true,
       formHtmlId: 'hqNotifyMappingForm',
       formSections: [
         {
           title: '노티매핑설정',
-          notice: '각 PG사가 CALLBACK·RESULT(및 Background 등)로 넘기는 노티 파라미터를, 전산의 어느 화면(URL)과 그리드/필드(internalKey)에 반영할지 정의합니다. 결제대행사가 추가되면 JSON의 vendors 배열에 동일 구조로 항목을 추가하면 됩니다. 실제 수신 파싱·저장 로직은 이 정의를 참조해 단계적으로 연동합니다.',
+          notice: '<strong>역할:</strong> 결제대행사(PG)별로 노티 본문의 파라미터(CALLBACK·RESULT·RETURN 등 채널별)를 <strong>VIEW SETTING 카탈로그의 열 key</strong>에 연결합니다. 저장된 값은 <code>pg_trnsctn</code> 등에 반영되며, 결제내역·통합내역 등 그리드에서 해당 열로 노출됩니다. <strong>조직항목설정</strong>에서 허용한 열만 최종 사용자 VIEW SETTING에 나타나므로, 열 정의·허용 목록은 본사설정 → 조직항목설정과 맞추세요. <strong>진행:</strong> PG 목록 동기화 → ①② 카탈로그·화면연결 확인 → ③에서 PG·채널별 매핑(AI·자동 제안 후 수동 수정) → 매핑 적용 → 하단 저장. 노티 URL이 <code>…/pg-notify/{토큰}/{대상코드}</code>이면 대상코드에 따라 CALLBACK/RESULT 매핑이 구분됩니다(대상코드 없음=CALLBACK). <code>hqExt_</code> 추가 열은 수동 매핑 허용됩니다.',
           rows: [
-            [{ label: '매핑 정의 (JSON)', type: 'textarea', name: 'mappingDefinitionJson', col: 6, rows: 22, placeholder: '{ "version": 1, "vendors": [ ... ] }' }],
-            [{ label: '최종 수정일시', type: 'text', name: 'updatedAt', col: 3, readonly: true }]
+            [{
+              type: 'customHtml',
+              col: 12,
+              html: '<div id="hqNotifyMappingUiRoot" class="hq-notify-mapping-ui"></div>' +
+                '<textarea name="mappingDefinitionJson" id="hqNotifyMappingJsonTa" class="d-none" rows="4" autocomplete="off"></textarea>' +
+                '<div class="row g-2 mt-2 align-items-end">' +
+                '<div class="col-md-4"><label class="form-label small mb-0">최종 수정일시</label>' +
+                '<input type="text" name="updatedAt" class="form-control form-control-sm" readonly></div>' +
+                '<div class="col-md-8"><button type="button" class="btn btn-sm btn-outline-secondary" id="hqNotifyMappingToggleJsonBtn">고급: JSON 직접 편집</button></div></div>' +
+                '<div id="hqNotifyMappingJsonEditorWrap" class="d-none mt-2">' +
+                '<label class="form-label small">mappingDefinitionJson</label>' +
+                '<textarea id="hqNotifyMappingJsonVisible" class="form-control font-monospace small" rows="14" spellcheck="false"></textarea></div>'
+            }]
           ]
         },
         {
-          title: '구조 안내',
-          notice: 'vendorCode·vendorName: PG 식별. channels: CALLBACK(서버 노티), RESULT(브라우저 리다이렉트) 등. targetPageUrl·targetPageLabel: 전산 메뉴 경로. fieldMappings: pgField(피지사 파라미터명) → internalKey(결제내역 그리드 키 등). 상세는 저장소 docs/노티매핑설정.md 를 참고하세요.',
+          title: '구조 안내 (v2)',
+          notice: 'version 2: <code>columnCatalogs[]</code>, <code>pageCatalogAssignments[]</code>, <code>vendors[]</code> — channels·fieldMappings, <code>displayMaps</code> (열key → {raw:label}, 결제내역 표시 가공). docs/노티매핑설정.md',
           rows: []
         }
       ],
       buttons: [{ id: 'hqNotifyMappingSaveBtn', label: '저장', cls: 'btn-primary' }]
+    },
+    '/hq/notifyInbound': {
+      isForm: true,
+      formSections: [
+        {
+          title: '노티 수령 정보',
+          notice: '노티미들웨어·PG(칠페이 등)가 본 시스템의 노티 수신 URL(<code>/api/open/pg-notify/…</code>)로 전송한 요청을 저장한 로그입니다. 목록의 채널 열은 수신 경로 정보 표시용입니다. 대상코드·채널은 신규 수신 건부터 채워집니다(V72).',
+          rows: [
+            [{ type: 'customHtml', col: 12, html: '<div class="row g-2 align-items-end mb-2 ni-inbound-toolbar">' +
+              '<div class="col-6 col-md-2"><label class="form-label small mb-0">수신일(부터)</label><input type="date" name="niSearchFrom" class="form-control form-control-sm" autocomplete="off"></div>' +
+              '<div class="col-6 col-md-2"><label class="form-label small mb-0">수신일(까지)</label><input type="date" name="niSearchTo" class="form-control form-control-sm" autocomplete="off"></div>' +
+              '<div class="col-12 col-md-2"><label class="form-label small mb-0">검색 항목</label><select name="niSearchKey" class="form-select form-select-sm">' +
+              '<option value="MID">MID</option><option value="ROUTE">ROUTE</option><option value="MERCHANT">가맹점코드</option><option value="STATUS">처리상태</option>' +
+              '<option value="TXN_ID">승인번호</option><option value="ORDER_NO">orderNo</option></select></div>' +
+              '<div class="col-12 col-md-3"><label class="form-label small mb-0">검색어</label><input type="text" name="niSearchValue" class="form-control form-control-sm" placeholder="부분 일치" autocomplete="off"></div>' +
+              '<div class="col-6 col-md-2"><label class="form-label small mb-0">채널</label><select name="niSearchChannelType" class="form-select form-select-sm">' +
+              '<option value="">전체</option><option value="CALL">CALL (Callback URL)</option><option value="RESULT">RESULT (Result URL)</option><option value="BOTH">BOTH (전체)</option></select></div>' +
+              '<div class="col-6 col-md-1 d-grid"><label class="form-label small mb-0 d-none d-md-block">&nbsp;</label><button type="button" id="hqNotifyInboundSearchBtn" class="btn btn-primary btn-sm">조회</button></div></div>' +
+              '<div class="table-responsive border rounded"><table class="table table-sm table-bordered align-middle mb-0" id="hqNotifyInboundTable">' +
+              '<thead class="table-light"><tr><th class="text-end" style="width:3.5rem">ID</th><th class="text-nowrap" style="width:10rem">수신시각</th><th style="width:4.5rem">채널</th><th style="width:5.5rem">대상코드</th><th>MID</th><th style="width:4rem">투트로</th>' +
+              '<th style="width:6.5rem">승인번호</th><th>가맹점코드</th><th style="width:5.5rem">상태</th><th>오류메시지</th><th>본문 미리보기</th><th class="text-center" style="width:4rem">보기</th></tr></thead>' +
+              '<tbody id="hqNotifyInboundTbody"><tr><td colspan="12" class="text-center text-muted py-4">[조회]를 누르세요.</td></tr></tbody></table></div>' +
+              '<div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mt-2 mb-1">' +
+              '<span class="small text-muted" id="hqNiPagingInfo">—</span>' +
+              '<div class="btn-group"><button type="button" class="btn btn-sm btn-outline-secondary" id="hqNiPrevBtn">이전</button>' +
+              '<button type="button" class="btn btn-sm btn-outline-secondary" id="hqNiNextBtn">다음</button></div></div>' +
+              '<div class="modal fade" id="hqNiDetailModal" tabindex="-1" aria-labelledby="hqNiDetailModalLabel" aria-hidden="true">' +
+              '<div class="modal-dialog modal-xl modal-dialog-scrollable"><div class="modal-content">' +
+              '<div class="modal-header py-2"><h5 class="modal-title" id="hqNiDetailModalLabel">노티 원문</h5>' +
+              '<button type="button" class="btn-close" id="hqNiDetailCloseX" aria-label="닫기"></button></div>' +
+              '<div class="modal-body"><p class="small text-muted mb-2" id="hqNiDetailMeta"></p>' +
+              '<textarea id="hqNiDetailBody" class="form-control font-monospace small" rows="16" readonly spellcheck="false"></textarea></div>' +
+              '<div class="modal-footer py-2 border-top"><button type="button" class="btn btn-secondary btn-sm" id="hqNiDetailCloseBtn">닫기</button></div>' +
+              '</div></div></div>' }]
+          ]
+        }
+      ],
+      buttons: []
     },
     '/hq/ledgerSysSettings': {
       isForm: true,
@@ -485,34 +540,61 @@
       formSections: [
         {
           title: '조직항목설정',
-          notice: '총본사가 각 본사(REGIONAL) 트리마다, 조직 유형·화면별로 VIEW SETTING에서 노출·선택 가능한 열을 지정합니다. 본사·총판·지사·대리점·영업점(동일 설정)·가맹점 네 가지로 나누어 저장합니다. 지사·대리점·영업점과 가맹점에 별도 저장이 없으면 해당 화면의 총판 설정을 그대로 따릅니다. 정책 행이 없으면(불러오기 시 정책 없음) 제한 없이 전 항목 선택 가능합니다. 고정 열(번호·업체명·거래일·Route No 등)은 항상 표시되며 여기 목록에 나오지 않습니다. [불러오기]는 현재 선택한 본사·조직 유형·화면에 대해 서버에 저장된 체크 상태를 가져와 반영합니다(저장 전에 서버 값을 확인할 때 사용).',
+          notice: '총본사가 각 본사(REGIONAL) 트리마다, 조직 유형·화면별로 VIEW SETTING에서 노출·선택 가능한 열을 지정합니다. 본사·총판·지사·대리점·영업점(동일 설정)·가맹점 네 가지로 나누어 저장합니다. 지사·대리점·영업점과 가맹점에 별도 저장이 없으면 해당 화면의 총판 설정을 그대로 따릅니다. 정책 행이 없으면(불러오기 시 정책 없음) 제한 없이 전 항목 선택 가능합니다. 고정 열(번호·업체명·거래일·Route No 등)은 항상 표시되며 여기 목록에 나오지 않습니다. [불러오기]는 현재 선택한 본사·조직 유형·화면에 대해 서버에 저장된 체크 상태를 가져와 반영합니다(저장 전에 서버 값을 확인할 때 사용). 아래 [추가 VIEW 항목]은 화면마다 다르게 본사 전용 열을 등록합니다. 등록된 항목은 해당 화면의 VIEW SETTING에 항상 나타나며, 조직 노출 정책이 적용될 때 자동으로 허용 목록에 포함됩니다.',
           rows: [
-            [{ label: '설정 대상 본사', type: 'select', name: 'regionalOrgCode', col: 4, options: [{ v: '', t: '선택' }], loadRegionalBranches: true }],
-            [{ label: '노출 대상 조직', type: 'select', name: 'viewerScope', col: 4, options: [
-              { v: 'REGIONAL', t: '본사' },
-              { v: 'MASTER_DIST', t: '총판' },
-              { v: 'BRANCH_GROUP', t: '지사·대리점·영업점' },
-              { v: 'MERCHANT', t: '가맹점' }
-            ] }],
-            [{ label: '설정 대상 화면', type: 'select', name: 'targetPageUrl', col: 4, options: [
-              { v: '/calc/payList', t: '결제내역(통합)' },
-              { v: '/calc/chillPayTrList', t: '통합내역' },
-              { v: '/comp/compMngTree', t: '업체관리' },
-              { v: '/commission/commisionList', t: '수수료관리' },
-              { v: '/calc/calcList', t: '정산·유통망정산내역' },
-              { v: '/calc/calcGmList', t: '정산·가맹정산내역' },
-              { v: '/calc/feeList', t: '정산·수수료내역' },
-              { v: '/calc/compPointMngList', t: '정산·환수금관리' },
-              { v: '/calc/balcInfo', t: '정산·잔액·미수금관리' },
-              { v: '/calc/exCalcList', t: '정산·정산실행' },
-              { v: '/calc/settlementReport', t: '정산·정산리포트' },
-              { v: '/calc/collateralList', t: '정산·담보금내역' },
-              { v: '/pay/payHoldList', t: '정산·정산보류내역' }
-            ] }],
+            [
+              { label: '설정 대상 본사', type: 'select', name: 'regionalOrgCode', col: 4, options: [{ v: '', t: '선택' }], loadRegionalBranches: true },
+              { label: '노출 대상 조직', type: 'select', name: 'viewerScope', col: 4, options: [
+                { v: 'REGIONAL', t: '본사' },
+                { v: 'MASTER_DIST', t: '총판' },
+                { v: 'BRANCH_GROUP', t: '지사·대리점·영업점' },
+                { v: 'MERCHANT', t: '가맹점' }
+              ] },
+              { label: '설정 대상 화면', type: 'select', name: 'targetPageUrl', col: 4, options: [
+                /* 결제관리 — 사이드 메뉴(menu-structure·index) 순서·표기와 동일 */
+                { v: '/calc/chillPayTrList', t: '통합내역' },
+                { v: '/calc/payList', t: '결제내역' },
+                { v: '/calc/paySuccessList', t: '성공내역' },
+                { v: '/calc/payFailList', t: '실패내역' },
+                { v: '/calc/payCancelList', t: '취소내역' },
+                { v: '/calc/payRefundList', t: '환불내역' },
+                { v: '/calc/payForceRefundList', t: '강제환불내역' },
+                { v: '/pay/easyPay', t: 'URL결제내역' },
+                { v: '/pay/chatbotPay', t: '챗봇결제내역' },
+                { v: '/calc/offsetCancList', t: '상계취소내역' },
+                { v: '/comp/compMngTree', t: '업체관리' },
+                { v: '/commission/commisionList', t: '수수료관리' },
+                /* 정산관리 — 사이드 메뉴 순서·표기 */
+                { v: '/calc/chillPaySettlementList', t: '통합정산' },
+                { v: '/calc/calcList', t: '유통망정산내역' },
+                { v: '/calc/calcGmList', t: '가맹정산내역' },
+                { v: '/calc/feeList', t: '수수료내역' },
+                { v: '/calc/compPointMngList', t: '환수금관리' },
+                { v: '/calc/balcInfo', t: '잔액/미수금관리' },
+                { v: '/calc/exCalcList', t: '정산실행' },
+                { v: '/calc/settlementReport', t: '정산리포트' },
+                { v: '/calc/collateralList', t: '담보금내역' },
+                { v: '/pay/payHoldList', t: '정산보류내역' }
+              ] }
+            ],
+            [{ type: 'customHtml', col: 12, html: '<div class="card border-secondary mb-3" id="hqViewCustomColCard">' +
+              '<div class="card-header py-2 small fw-semibold">추가 VIEW 항목 (화면별 목록 · 본사 등록)</div>' +
+              '<div class="card-body py-2">' +
+              '<p class="text-muted small mb-2 mb-0">설정 대상 화면을 먼저 선택한 뒤, 표시명을 넣고 [항목 추가]하세요. 목록에서 이름을 바꾸거나 삭제할 수 있습니다. 내부 키는 자동 부여됩니다.</p>' +
+              '<div class="d-flex flex-wrap align-items-end gap-2 mb-2">' +
+              '<div class="flex-grow-1" style="min-width:200px"><label class="form-label small mb-0" for="hqViewCustomColNameInp">표시명</label>' +
+              '<input type="text" class="form-control form-control-sm" id="hqViewCustomColNameInp" maxlength="200" placeholder="예: 비고란" autocomplete="off"></div>' +
+              '<button type="button" class="btn btn-sm btn-success" id="hqViewCustomColAddBtn">항목 추가</button>' +
+              '<button type="button" class="btn btn-sm btn-outline-secondary" id="hqViewCustomColReloadBtn">목록 새로고침</button></div>' +
+              '<div class="table-responsive border rounded"><table class="table table-sm table-hover mb-0">' +
+              '<thead class="table-light"><tr><th style="width:44%">표시명</th><th style="width:36%">내부 키</th><th style="width:12%">수정</th><th style="width:8%">삭제</th></tr></thead>' +
+              '<tbody id="hqViewCustomColTbody"><tr><td colspan="4" class="text-center text-muted small py-2">화면을 선택하세요.</td></tr></tbody></table></div>' +
+              '</div></div>' }],
             [{ type: 'customHtml', col: 12, html: '<div class="mb-2">' +
               '<div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-1">' +
               '<span class="form-label mb-0">선택한 조직 유형에 노출할 열 (VIEW SETTING에서 선택 가능)</span>' +
-              '<div class="btn-group btn-group-sm flex-shrink-0">' +
+              '<div class="btn-group btn-group-sm flex-shrink-0" role="group" aria-label="열 노출 저장·일괄 선택">' +
+              '<button type="button" class="btn btn-primary" id="hqOrgAllowColSaveBtn">저장</button>' +
               '<button type="button" class="btn btn-outline-danger" id="hqOrgAllowColSelectAllBtn">전체선택</button>' +
               '<button type="button" class="btn btn-outline-secondary" id="hqOrgAllowColClearAllBtn">전체해제</button>' +
               '</div></div>' +
@@ -680,9 +762,28 @@
         },
         {
           title: 'URL 결제 폼 설정',
-          notice: '공개 결제 URL(/pay/업체코드 등) 입력 화면입니다. 간편(SIMPLE)은 성명·상품·금액·DirectCreditToken(카드 데이터는 토큰/CCD에 포함)만 받고, 전체(FULL)는 연락처·청구지까지 받습니다. 인라인/리다이렉트는 위 「URL 결제형 기본 방식」과 제공 여부로 결정됩니다.',
+          notice: '공개 결제 URL(/pay/업체코드 등) 입력 화면입니다. 간편(SIMPLE)은 성명·상품·금액·DirectCreditToken(카드 데이터는 토큰/CCD에 포함)만 받고, 전체(FULL)는 연락처·청구지까지 받습니다. <strong>브라우저 탭 이름</strong>·<strong>파비콘</strong>은 이 결제 폼(탭 제목·탭 아이콘) 전용이며, 화면 하단 <strong>저장</strong>으로 DB에 반영됩니다. 인라인/리다이렉트는 위 「URL 결제형 기본 방식」과 제공 여부로 결정됩니다.',
           rows: [
-            [{ label: 'URL 결제 입력 폼', type: 'select', name: 'urlPayFormMode', options: [{ v: 'FULL', t: '전체 입력 (청구지·성명 분리)' }, { v: 'SIMPLE', t: '간편 입력 (필수 최소)' }], col: 4 }]
+            [{ label: 'URL 결제 입력 폼', type: 'select', name: 'urlPayFormMode', options: [{ v: 'FULL', t: '전체 입력 (청구지·성명 분리)' }, { v: 'SIMPLE', t: '간편 입력 (필수 최소)' }], col: 4 }],
+            [{
+              type: 'customHtml',
+              col: 12,
+              html: '<input type="hidden" name="urlPayTabTitleJson" id="urlPayTabTitleJson" value="{}">' +
+                '<div class="row g-2 align-items-end border rounded p-3 bg-light bg-opacity-25">' +
+                '<div class="col-md-6"><label class="form-label small mb-0" for="hqUrlPayFormTabTitleKo">브라우저 탭 이름 (한국어)</label>' +
+                '<input type="text" class="form-control form-control-sm" id="hqUrlPayFormTabTitleKo" maxlength="120" placeholder="비우면 기본 «Payment»">' +
+                '<div class="d-flex flex-wrap gap-2 mt-2">' +
+                '<button type="button" class="btn btn-sm btn-outline-primary" id="hqUrlPayFormTabTitleTranslateBtn">탭 제목 다국어</button>' +
+                '</div><p class="text-muted small mb-0 mt-1">다국어는 숨김 JSON에 저장됩니다. 한국어를 바꾼 뒤 필요 시 다시 「탭 제목 다국어」를 누르세요.</p></div>' +
+                '<div class="col-md-6"><label class="form-label small mb-0">파비콘 (탭 아이콘)</label>' +
+                '<div class="input-group input-group-sm">' +
+                '<input type="text" class="form-control font-monospace small" name="urlPayFaviconUrl" id="hqUrlPayFormFaviconUrl" readonly placeholder="업로드 후 경로가 표시됩니다">' +
+                '<input type="file" class="d-none" id="hqUrlPayFormFaviconFile" accept=".png,.jpg,.jpeg,image/png,image/jpeg">' +
+                '<button type="button" class="btn btn-outline-secondary" id="hqUrlPayFormFaviconBrowse">찾기</button>' +
+                '<button type="button" class="btn btn-outline-primary" id="hqUrlPayFormFaviconUpload">업로드</button>' +
+                '<button type="button" class="btn btn-outline-danger" id="hqUrlPayFormFaviconClear">제거</button></div>' +
+                '<p class="text-muted small mb-0 mt-1">PNG·JPG, 1MB 이하. 서버에서 32×32 PNG로 변환됩니다.</p></div></div>'
+            }]
           ]
         },
         {
@@ -720,7 +821,7 @@
         },
         {
           title: '결제구문설정',
-          notice: '공개 결제 폼의 <strong>카드 *</strong> 제목·안내 문단 3개를 PG별로 바꿉니다. <strong>브라우저 탭 이름</strong>은 URL 결제 창의 탭 제목(<code>document.title</code>)이며 비우면 기본 «Payment»입니다. URL 결제 연동(<strong>연동용도 URL결제</strong>) PG만 선택할 수 있습니다. 입력 후 <strong>저장</strong>으로 아래 목록에 넣고, 목록에서 <strong>활성</strong>을 켜야 결제 폼에 반영됩니다. <strong>저장(다국어)</strong>은 본사 API가 MyMemory로 프록시하여 ENG·CHN·JPN·THA 초안을 채웁니다. 목록 행의 <strong>수정</strong>을 누른 뒤 같은 버튼으로 내용을 고칠 수 있습니다. 화면 맨 아래 <strong>저장</strong>으로 DB에 반영합니다. 총판 로고가 있으면 결제 폼 상단은 ICOPAY 대신 로고가 나옵니다(별도 연동).',
+          notice: '공개 결제 폼의 <strong>카드 *</strong> 제목·안내 문단 3개를 PG별로 바꿉니다. <strong>URL 결제 결과 문구</strong>는 <code>pay-result.html</code> 및 결제 페이지 인라인 완료 카드의 성공/실패 큰 제목·하단 안내를 바꿉니다(비우면 기본 문구). 취소 화면은 실패 문구와 동일 설정을 씁니다. (탭 제목·파비콘은 위 「URL 결제 폼 설정」에서 설정합니다.) URL 결제 연동(<strong>연동용도 URL결제</strong>) PG만 선택할 수 있습니다. 입력 후 <strong>저장</strong>으로 아래 목록에 넣고, 목록에서 <strong>활성</strong>을 켜야 반영됩니다. <strong>저장(다국어)</strong>은 본사 API가 MyMemory로 프록시하여 ENG·CHN·JPN·THA 초안을 채웁니다. 화면 맨 아래 <strong>저장</strong>으로 DB에 반영합니다. 총판 로고가 있으면 결제 폼 상단은 ICOPAY 대신 로고가 나옵니다(별도 연동).',
           rows: [
             [{
               type: 'customHtml',
@@ -738,8 +839,15 @@
                 '<textarea class="form-control form-control-sm" id="hqPayCardCopyDraftBody2" rows="4" maxlength="4000" placeholder="카드 입력은 연동된 PG사 보안 위젯(iframe 등)에서 제공합니다. 브랜드별 자릿수·CVV 규칙은 해당 PG가 처리하며, ChillPay는 AMEX 미지원입니다. 다른 PG 연동 시 같은 결제 껍데기 안에서 벤더별 위젯으로 갈아끼우는 형태가 일반적입니다."></textarea></div>' +
                 '<div class="col-12"><label class="form-label small mb-0">내용 3 (한국어)</label>' +
                 '<textarea class="form-control form-control-sm" id="hqPayCardCopyDraftBody3" rows="3" maxlength="4000" placeholder="예: 사용카드 안내(VISA, MASTER 등), 카드 표기와 동일한 명의 입력 안내 등"></textarea></div>' +
-                '<div class="col-12"><label class="form-label small mb-0">브라우저 탭 이름 (한국어)</label>' +
-                '<input type="text" class="form-control form-control-sm" id="hqPayCardCopyDraftTabTitle" maxlength="120" placeholder="비우면 기본 «Payment»"></div>' +
+                '<div class="col-12 mt-2"><hr class="my-2"><p class="small fw-semibold mb-2">URL 결제 결과 화면 (성공/실패 큰 글씨·하단 안내)</p></div>' +
+                '<div class="col-md-6"><label class="form-label small mb-0">성공 — 안내 제목 (한국어)</label>' +
+                '<textarea class="form-control form-control-sm" id="hqPayCardCopyDraftResultOk1" rows="2" maxlength="500" placeholder="예: 결제가 완료되었습니다."></textarea></div>' +
+                '<div class="col-md-6"><label class="form-label small mb-0">성공 — 하단 안내 (한국어)</label>' +
+                '<textarea class="form-control form-control-sm" id="hqPayCardCopyDraftResultOk2" rows="2" maxlength="2000" placeholder="예: 팝업으로 열렸다면 이 창을 닫아 주세요.…"></textarea></div>' +
+                '<div class="col-md-6"><label class="form-label small mb-0">실패·미완료 — 안내 제목 (한국어)</label>' +
+                '<textarea class="form-control form-control-sm" id="hqPayCardCopyDraftResultFail1" rows="2" maxlength="500" placeholder="예: 결제가 완료되지 않았거나 실패했습니다."></textarea></div>' +
+                '<div class="col-md-6"><label class="form-label small mb-0">실패·미완료 — 하단 안내 (한국어)</label>' +
+                '<textarea class="form-control form-control-sm" id="hqPayCardCopyDraftResultFail2" rows="2" maxlength="2000" placeholder="예: 팝업으로 열렸다면 이 창을 닫아 주세요.…"></textarea></div>' +
                 '<div class="col-12 d-flex flex-wrap gap-2 align-items-center">' +
                 '<button type="button" class="btn btn-sm btn-primary" id="hqPayCardCopyBtnSave">저장</button>' +
                 '<button type="button" class="btn btn-sm btn-outline-primary" id="hqPayCardCopyBtnSaveI18n">저장(다국어)</button>' +
@@ -748,7 +856,10 @@
                 '<div class="col-12"><p class="small text-primary mb-0 d-none" id="hqPayCardCopyEditBanner" role="status"></p></div>' +
                 '</div>' +
                 '<div class="table-responsive"><table class="table table-sm table-bordered align-middle mb-0">' +
-                '<thead class="table-light"><tr><th>PG</th><th style="min-width:7rem">제목(한)</th><th style="min-width:9rem">내용1</th><th style="min-width:9rem">내용2</th><th style="min-width:9rem">내용3</th><th style="min-width:6rem">탭</th><th class="text-center" style="width:4rem">활성</th><th class="text-center" style="width:4rem">수정</th><th class="text-center" style="width:3.5rem">삭제</th></tr></thead>' +
+                '<thead class="table-light"><tr><th>PG</th><th style="min-width:7rem">제목(한)</th><th style="min-width:9rem">내용1</th><th style="min-width:9rem">내용2</th><th style="min-width:9rem">내용3</th>' +
+                '<th style="min-width:7rem" title="URL 결제 결과 — 성공 큰 글씨(한)">성공 제목</th><th style="min-width:8rem" title="URL 결제 결과 — 성공 하단 안내(한)">성공 하단</th>' +
+                '<th style="min-width:7rem" title="URL 결제 결과 — 실패 큰 글씨(한)">실패 제목</th><th style="min-width:8rem" title="URL 결제 결과 — 실패 하단 안내(한)">실패 하단</th>' +
+                '<th class="text-center" style="width:4rem">활성</th><th class="text-center" style="width:4rem">수정</th><th class="text-center" style="width:3.5rem">삭제</th></tr></thead>' +
                 '<tbody id="hqPayCardCopyTbody"></tbody></table></div>' +
                 '<p class="text-muted small mt-2 mb-0">이 블록의 <strong>저장</strong>은 목록에만 반영됩니다. 서버(DB) 반영은 화면 맨 아래 <strong>저장</strong>이 필요합니다.</p></div>'
             }]
@@ -776,7 +887,7 @@
       emptyMessage: '등록된 업체별 접근 규칙이 없습니다.',
       noticeList: [
         '로그인 ID(사용자)별로 접근 가능한 업체코드(본사·총판·가맹점 등)를 지정합니다. 행이 하나라도 있으면 사용자관리 목록·등록·초기화 범위는 <strong>하위 조직 ∩ 여기서 지정한 업체</strong>로만 제한됩니다.',
-        '담당자(ASSISTANT) 계정의 메뉴 권한은 [본사권한설정]의 <strong>담당자 권한그룹별 메뉴</strong>에서 조직 상한 내에서 조정합니다. OTP 정책은 [노티구성설정]을 따릅니다.'
+        '담당자(ASSISTANT) 계정의 메뉴 권한은 [본사권한설정]의 <strong>담당자 권한그룹별 메뉴</strong>에서 조직 상한 내에서 조정합니다. OTP·로그인 정책은 [본사설정 → 사용자설정]을 따릅니다.'
       ],
       searchRows: [[{ type: 'searchBtn', label: '새로고침' }]],
       summary: ['건수'],
@@ -1487,8 +1598,10 @@
     '/commission/commisionList': {
       /** 페이지네이션 행 오른쪽에 [저장] (상단 저장과 동일 동작) */
       paginationTrailingSaveButton: true,
-      /** 인라인 저장은 모든 배분·적용일·처리 열의 td가 필요함 — VIEW SETTING 숨김은 저장 시 값 누락으로 이어짐 */
-      tableColumnGuide: false,
+      /** VIEW SETTING: 조직별 업체명 열만 표시 토글. 요율·건당·합계·적용일·처리 열은 항상 표시(인라인 저장 안정성). */
+      tableColumnGuide: true,
+      tableColumnGuideTwoRow: true,
+      columnGuideFixedKeys: ['rowNo', 'compNm', 'compId', 'hqRate', 'hqPerTxFee', 'regionalRate', 'regionalPerTxFee', 'masterRate', 'masterPerTxFee', 'branchRate', 'branchPerTxFee', 'agencyRate', 'agencyPerTxFee', 'salesOfficeRate', 'salesOfficePerTxFee', 'totalRate', 'totalPerTxFee', 'applyDt'],
       searchRows: [
         [
           { label: '업체선택(조직)', type: 'select', name: 'searchCompDiv', options: [{ v: '', t: '전체' }, { v: 'REGIONAL', t: '본사' }, { v: 'MASTER_DIST', t: '총판' }, { v: 'BRANCH', t: '지사' }, { v: 'AGENCY', t: '대리점' }, { v: 'SALES_OFFICE', t: '영업점' }, { v: 'MERCHANT', t: '가맹점' }] },
@@ -1500,6 +1613,7 @@
       ],
       tableScrollable: true,
       noticeList: [
+        'VIEW SETTING에서 총본사~합계 구간의 업체명 열만 숨김/순서를 바꿀 수 있습니다. 요율·건당·적용일·처리 열은 항상 표시됩니다.',
         '적용시작일을 비우면 저장 시점(서버 시각) 기준으로 적용됩니다.',
         '동일 가맹점에 미래 적용일이 중복되지 않도록 한 번에 한 건만 등록하는 것을 권장합니다.',
         '상위 조직 수수료 정책이 바뀌면 이후 신규 가맹점 등록 시 하위 배분 설정에 반영될 수 있습니다.'
@@ -1523,13 +1637,13 @@
         { key: 'rowNo', label: 'No.' },
         { key: 'compNm', label: '가맹점' },
         { key: 'compId', label: '업체코드' },
-        { key: 'hqNm', label: '업체명' }, { key: 'hqRate', label: '요율%' }, { key: 'hqPerTxFee', label: '건당료' },
-        { key: 'regionalNm', label: '업체명' }, { key: 'regionalRate', label: '요율%' }, { key: 'regionalPerTxFee', label: '건당료' },
-        { key: 'masterNm', label: '업체명' }, { key: 'masterRate', label: '요율%' }, { key: 'masterPerTxFee', label: '건당료' },
-        { key: 'branchNm', label: '업체명' }, { key: 'branchRate', label: '요율%' }, { key: 'branchPerTxFee', label: '건당료' },
-        { key: 'agencyNm', label: '업체명' }, { key: 'agencyRate', label: '요율%' }, { key: 'agencyPerTxFee', label: '건당료' },
-        { key: 'salesOfficeNm', label: '업체명' }, { key: 'salesOfficeRate', label: '요율%' }, { key: 'salesOfficePerTxFee', label: '건당료' },
-        { key: 'totalNm', label: '업체명' }, { key: 'totalRate', label: '요율%' }, { key: 'totalPerTxFee', label: '건당료' },
+        { key: 'hqNm', label: '업체명', columnGuideLabel: '총본사 · 업체명' }, { key: 'hqRate', label: '요율%' }, { key: 'hqPerTxFee', label: '건당료' },
+        { key: 'regionalNm', label: '업체명', columnGuideLabel: '본사 · 업체명' }, { key: 'regionalRate', label: '요율%' }, { key: 'regionalPerTxFee', label: '건당료' },
+        { key: 'masterNm', label: '업체명', columnGuideLabel: '총판 · 업체명' }, { key: 'masterRate', label: '요율%' }, { key: 'masterPerTxFee', label: '건당료' },
+        { key: 'branchNm', label: '업체명', columnGuideLabel: '지사 · 업체명' }, { key: 'branchRate', label: '요율%' }, { key: 'branchPerTxFee', label: '건당료' },
+        { key: 'agencyNm', label: '업체명', columnGuideLabel: '대리점 · 업체명' }, { key: 'agencyRate', label: '요율%' }, { key: 'agencyPerTxFee', label: '건당료' },
+        { key: 'salesOfficeNm', label: '업체명', columnGuideLabel: '영업점 · 업체명' }, { key: 'salesOfficeRate', label: '요율%' }, { key: 'salesOfficePerTxFee', label: '건당료' },
+        { key: 'totalNm', label: '업체명', columnGuideLabel: '합계 · 업체명' }, { key: 'totalRate', label: '요율%' }, { key: 'totalPerTxFee', label: '건당료' },
         { key: 'applyDt', label: '적용시작일' },
         { key: 'inlineActions', type: 'commissionInlineActions', label: '처리' }
       ],
@@ -1585,6 +1699,7 @@
     },
     '/calc/payList': {
       payListVariant: 'INTEGRATED',
+      payListStatusBar: true,
       /** VIEW SETTING: 1행 제목·저장, 2행 컬럼 체크(줄바꿈) */
       tableColumnGuideTwoRow: true,
       searchFormClass: 'pay-mng-search-form',
@@ -1625,7 +1740,7 @@
           { label: '정산구분', type: 'select', name: 'searchPayProcCd', options: [
             { v: '', t: '전체' }, { v: '10', t: '정산대기' }, { v: '20', t: '정산완료' }, { v: '30', t: '결제취소' }, { v: '40', t: '정산취소' }
           ], size: 9 },
-          { label: '검색어', type: 'text', name: 'searchKeyword', placeholder: '주문·거래·고객·칠페이 ID 등', size: 20 },
+          { label: '검색어', type: 'text', name: 'searchKeyword', placeholder: '주문·거래·고객·칠페이 ID 등', size: 22 },
           { type: 'searchBtn', label: '검색' }
         ],
         [
@@ -1639,77 +1754,25 @@
       searchRows2: [],
       searchRows3: [],
       noticeList: [
-        '통합 결제내역: 칠페이 API 동기화·노티 적재·URL직접결제 등 전 출처를 한 그리드에 표시합니다. 앞쪽 컬럼(거래일~Settled)은 칠페이 거래내역 시트 필드와 대응합니다.',
+        '통합 결제내역: 칠페이 API 동기화·노티 적재·URL직접결제 등 전 출처를 한 그리드에 표시합니다. 앞쪽 컬럼(거래일~Settled)은 칠페이 거래내역 시트와 대응합니다.',
         '[후속조치]는 본사설정 > 노티구성설정에서 기능을 켠 경우에만 동작합니다 (NOTI 환경설정과 동일).',
         '취소 건에 대한 정산 수수료 및 부가세는 정산 주기에 따라 반영됩니다.',
-        '정산 주기 및 정산 수수료는 가맹점별로 상이할 수 있습니다.'
+        '정산 주기 및 정산 수수료는 가맹점별로 상이할 수 있습니다.',
+        '상단 첫 줄: 검색·기간·권한 범위 전체 집계(승인 건수·통화별 승인/취소/결제·수수료+부가세·보류·지급). 둘째 줄: 상태별(성공·실패·…) 통화별 금액. 본사·총본사는 통화별 병기, 총판·하위는 기준 통화 한 줄.'
       ],
-      summary: ['건수', '승인금액', '취소금액', '결제금액', '총수수료', '보류금액', '지급액'],
+      summary: [],
       buttons: [
         { id: 'payListRefreshBtn', label: '새로고침', cls: 'btn-outline-secondary' },
         { id: 'excelDownBtn', label: '엑셀다운로드', cls: 'btn-info' }
       ],
-      /** 참고: 결제내역 UI 2단 헤더 — 정산주기 뒤 PG승인(금액·일시), 보류(금액·일시), 수수료(건·%) */
-      headerGroups: [
-        { label: '사업자번호', keys: ['compRegNo'] },
-        { label: 'PG승인', keys: ['pgApproveAmt', 'payAprv'] },
-        { label: '보류', keys: ['holdAmt', 'holdDttm'] },
-        { label: '수수료', keys: ['feeCnt', 'feeRate'] }
-      ],
-      /** 앞쪽 고정 순서: 번호 → 업체명 → 업체코드 → 거래일 → 거래시간 → Route No → TransactionId(칠페이) */
-      columns: [
-        { key: '_chk', type: 'checkbox' },
-        { key: 'rowNo', label: '번호' },
-        { key: 'compNm', label: '업체명' },
-        { key: 'compId', label: '업체코드' },
-        { key: 'trnDate', label: '거래일' },
-        { key: 'trnTime', label: '거래시간' },
-        { key: 'routeNo', label: 'Route No' },
-        { key: 'chillTransactionId', label: 'TransactionId(칠페이)' },
-        { key: 'trnId', label: '거래번호(우리)' },
-        { key: 'chillCustomer', label: 'Customer(칠페이)' },
-        { key: 'orderNo', label: 'OrderNo' },
-        { key: 'paymentChannel', label: 'Payment Channel' },
-        { key: 'payCompletedAt', label: '결제시각' },
-        { key: 'chillAmount', label: 'Amount' },
-        { key: 'icopayAmt', label: 'ICOPAY' },
-        { key: 'chillFeeAmt', label: 'Fee' },
-        { key: 'totalAmt', label: 'TotalAmount' },
-        { key: 'currency', label: 'Currency' },
-        { key: 'chillPaymentStatus', label: 'Status' },
-        { key: 'settledYn', label: 'Settled' },
-        { key: 'compRegNo', label: '사업자번호' },
-        { key: 'payDivNm', label: '구분' },
-        { key: 'payCard', label: '결제카드' },
-        { key: 'cardAprvNo', label: '승인번호' },
-        { key: 'payCardNo', label: '카드번호' },
-        { key: 'instalMonth', label: '할부개월' },
-        { key: 'payMethod', label: '결제수단' },
-        { key: 'corpNm', label: '법인명' },
-        { key: 'pgNm', label: 'PG사' },
-        { key: 'terminalId', label: '단말기' },
-        { key: 'calcCycle', label: '정산주기' },
-        { key: 'pgApproveAmt', label: '금액' },
-        { key: 'payAprv', label: '일시' },
-        { key: 'holdAmt', label: '금액' },
-        { key: 'holdDttm', label: '일시' },
-        { key: 'feeCnt', label: '건' },
-        { key: 'feeRate', label: '%' },
-        { key: 'settleAmt', label: '지급액' },
-        { key: 'calcDt', label: '지급일시' },
-        { key: 'pgApproveNo', label: 'PG승인번호' },
-        { key: 'productNm', label: '구매상품' },
-        { key: 'customerNm', label: '고객명(결제자)' },
-        { key: 'customerTel', label: '휴대폰(결제자)' },
-        { key: 'regionalNm', label: '총판' },
-        { key: 'masterNm', label: '지사' },
-        { key: 'branchNm', label: '대리점' },
-        { type: 'payActions', label: '후속조치', key: 'payActions' }
-      ],
+      /** 2단 헤더·그리드 열: `site/js/pay-list-integrated-catalog.js` → applyPayListIntegratedCatalog (노티 기본 카탈로그와 동일 집합) */
+      headerGroups: [],
+      columns: [],
       emptyMessage: '조회된 데이터가 없습니다.'
     },
     /** ChillPay Transaction API — Search Payment Transaction (실시간, DB 비저장) */
     '/calc/chillPayTrList': {
+      payListStatusBar: true,
       tableColumnGuide: false,
       searchFormClass: 'screen-search-form pay-mng-search-form',
       searchRows: [
@@ -1765,6 +1828,78 @@
         { key: 'fee', label: 'Fee' },
         { key: 'discount', label: 'Discount' },
         { key: 'totalAmount', label: 'TotalAmount' },
+        { key: 'currency', label: 'Currency' },
+        { key: 'routeNo', label: 'RouteNo' },
+        { key: 'status', label: 'Status' },
+        { key: 'settled', label: 'Settled' },
+        { key: 'icopay', label: 'ICOPAY' },
+        { key: 'description', label: 'Description' }
+      ],
+      emptyMessage: '조회된 데이터가 없습니다.'
+    },
+    /** ChillPay Transaction API — 통합정산(결제일·Settled 중심, ICOPAY 정산 DB 비사용) */
+    '/calc/chillPaySettlementList': {
+      payListStatusBar: true,
+      tableColumnGuide: false,
+      searchFormClass: 'screen-search-form pay-mng-search-form',
+      searchRows: [
+        [
+          { label: '정렬', type: 'select', name: 'searchOrderBy', options: [
+            { v: 'Settled', t: 'Settled(정산)' },
+            { v: 'PaymentDate', t: 'PaymentDate' },
+            { v: 'TotalAmount', t: 'TotalAmount' },
+            { v: 'Fee', t: 'Fee' },
+            { v: 'TransactionId', t: 'TransactionId' },
+            { v: 'TransactionDate', t: 'TransactionDate' },
+            { v: 'OrderNo', t: 'OrderNo' },
+            { v: 'Amount', t: 'Amount' },
+            { v: 'Merchant', t: 'Merchant' },
+            { v: 'Customer', t: 'Customer' },
+            { v: 'Status', t: 'Status' }
+          ], size: 12 },
+          { label: '방향', type: 'select', name: 'searchOrderDir', options: [
+            { v: 'DESC', t: 'DESC' },
+            { v: 'ASC', t: 'ASC' }
+          ], size: 7 },
+          { label: '결제일(PaymentDate)', type: 'daterange', from: 'searchFromDate', to: 'searchToDate' },
+          { type: 'quickdate' },
+          { type: 'searchBtn', label: '검색' }
+        ],
+        [
+          { label: '거래일(TransactionDate)', type: 'daterange', from: 'searchTxnFromDate', to: 'searchTxnToDate' },
+          { label: '검색어', type: 'text', name: 'searchKeyword', placeholder: 'SearchKeyword', size: 14 },
+          { label: 'MID', type: 'text', name: 'searchMerchantCode', placeholder: 'MerchantCode', size: 11 },
+          { label: '주문번호', type: 'text', name: 'searchOrderNo', size: 11 },
+          { label: '상태', type: 'text', name: 'searchChillStatus', placeholder: 'Paid…', size: 10 },
+          { label: '채널', type: 'text', name: 'searchPaymentChannel', size: 9 },
+          { label: 'Route', type: 'text', name: 'searchRouteNo', placeholder: '숫자', size: 6 }
+        ]
+      ],
+      noticeList: [
+        '칠페이 Transaction Services — Search Payment Transaction API(v1.0.6)로 조회합니다. ICOPAY 정산 실행·유통망 정산 테이블과 무관하며, 칠페이가 판단한 Settled·수수료·금액 등 원문을 봅니다.',
+        '기본 정렬은 Settled, 기간은 PaymentDate(결제일)입니다. 기간을 비우면 최근 30일 결제일로 조회합니다. 거래일(TransactionDate)은 선택 필터입니다.',
+        '자격: 본사 API배포설정·tb_pg_agency(ChillPay)의 MerchantCode·ApiKey·MD5 Secret Key·샌드박스와 동일합니다.'
+      ],
+      summary: ['건수'],
+      buttons: [
+        { id: 'payListRefreshBtn', label: '새로고침', cls: 'btn-outline-secondary' },
+        { id: 'excelDownBtn', label: '엑셀다운로드', cls: 'btn-info' }
+      ],
+      columns: [
+        { key: 'rowNo', label: 'No.' },
+        { key: 'transactionId', label: 'TransactionId' },
+        { key: 'transactionDate', label: 'TransactionDate' },
+        { key: 'merchant', label: 'Merchant' },
+        { key: 'customer', label: 'Customer' },
+        { key: 'orderNo', label: 'OrderNo' },
+        { key: 'paymentChannel', label: 'PaymentChannel' },
+        { key: 'paymentDate', label: 'PaymentDate' },
+        { key: 'amount', label: 'Amount' },
+        { key: 'refundAmount', label: 'RefundAmount' },
+        { key: 'fee', label: 'Fee' },
+        { key: 'discount', label: 'Discount' },
+        { key: 'totalAmount', label: 'TotalAmount' },
+        { key: 'icopay', label: 'ICOPAY' },
         { key: 'currency', label: 'Currency' },
         { key: 'routeNo', label: 'RouteNo' },
         { key: 'status', label: 'Status' },
@@ -2475,6 +2610,31 @@
     }
   };
 
+  /** 통합 결제내역 `/calc/payList` — VIEW SETTING·그리드 열 단일 정의 (`PG_PAY_LIST_INTEGRATED`, 노티매핑 기본과 동기) */
+  (function applyPayListIntegratedCatalog() {
+    var scr = MENU_SCREENS['/calc/payList'];
+    var P = typeof window !== 'undefined' ? window.PG_PAY_LIST_INTEGRATED : null;
+    if (!scr || !P || !P.columns || !P.headerGroups) {
+      if (typeof console !== 'undefined' && console.warn && scr) {
+        console.warn('PG_PAY_LIST_INTEGRATED missing; include pay-list-integrated-catalog.js before screens.js');
+      }
+      return;
+    }
+    scr.headerGroups = JSON.parse(JSON.stringify(P.headerGroups));
+    scr.columns = P.columns.map(function (c) {
+      var o = { key: c.key, label: c.label };
+      if (c.gridType === 'checkbox') o.type = 'checkbox';
+      else if (c.gridType === 'payActions') {
+        o.type = 'payActions';
+        o.key = 'payActions';
+      }
+      return o;
+    });
+    if (P.columnGuideFixedKeys && P.columnGuideFixedKeys.length) {
+      scr.columnGuideFixedKeys = P.columnGuideFixedKeys.slice();
+    }
+  })();
+
   /** 결제관리: 통합 결제내역과 동일 UI, payListVariant만 다름 (docs/결제관리_기획_NOTI참고.md) */
   (function mergePayListVariants() {
     var base = MENU_SCREENS['/calc/payList'];
@@ -2499,9 +2659,12 @@
     MENU_SCREENS['/calc/paySuccessList'] = cloneWith('SUCCESS', ['성공내역: 통합 결제내역에서 승인 성공(결제) 상태만 간추렸습니다.']);
     MENU_SCREENS['/calc/payFailList'] = cloneWith('FAIL', ['실패내역: 통합 결제내역에서 실패·거절만 간추렸습니다.']);
     MENU_SCREENS['/calc/payRefundList'] = cloneWith('REFUND', ['환불내역: 통합 결제내역에서 환불만 간추렸습니다.']);
-    MENU_SCREENS['/calc/payForceRefundList'] = cloneWith('FORCE_REFUND', ['강제환불: 통합 결제내역에서 강제환불만 간추렸습니다.']);
+    MENU_SCREENS['/calc/payForceRefundList'] = cloneWith('FORCE_REFUND', ['강제환불내역: 통합 결제내역에서 강제환불만 간추렸습니다.']);
     MENU_SCREENS['/calc/payCancelList'] = cloneWith('CANCEL', ['취소내역: 통합 결제내역에서 취소만 간추렸습니다.']);
-    MENU_SCREENS['/calc/offsetCancList'] = cloneWith('OFFSET_CANCEL', ['상계취소내역: 정산 상계 처리용 — 승인 성공(결제)을 제외한 전 건(실패·환불·강제환불·취소·기타)을 한 화면에서 봅니다. 이후 빈도·집계로 상계에 활용합니다.']);
+    MENU_SCREENS['/calc/offsetCancList'] = cloneWith('OFFSET_CANCEL', [
+      '상계취소내역: 정산 상계 처리용 — 승인 성공(결제)을 제외한 전 건(실패·환불·강제환불·취소·기타)을 한 화면에서 봅니다. 이후 빈도·집계로 상계에 활용합니다.',
+      '정산가능시간 이후 환불된 건을 별도 구분·집계하는 로직은 추후 개발 예정입니다.'
+    ]);
     MENU_SCREENS['/pay/easyPay'] = cloneWith('URL_PAY', ['URL결제내역: 가맹점 API연동 노티 외, 플랫폼이 칠페이 결제 API로 발급한 결제수소(URL)로 발생한 전 건(성공·실패·환불·취소 등). 통합 결제내역에도 포함되며, 여기서는 origin=URL 만 조회합니다.']);
     MENU_SCREENS['/pay/chatbotPay'] = cloneWith('CHATBOT_PAY', [
       '챗봇결제내역: 웹 EFO 챗봇 결제 플로우에서 동일 칠페이(URL/카드) API로 생성·적재한 건만 표시합니다. 통합 결제내역에도 포함되며, 여기서는 origin=CHATBOT 만 조회합니다.',
@@ -2689,10 +2852,13 @@
       return fixedKeys.indexOf(c.key) === -1;
     });
     if (cols.length === 0) return '';
+    var escGl = function (s) {
+      return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+    };
     var items = cols.map(function (c) {
       var key = c.key || '';
-      var label = c.label || c.key;
-      return '<label class="column-guide-item column-guide-item--on"><input type="checkbox" class="column-guide-check" data-key="' + key + '" checked> <span class="column-guide-label">' + label + '</span></label>';
+      var label = c.columnGuideLabel || c.label || c.key;
+      return '<label class="column-guide-item column-guide-item--on"><input type="checkbox" class="column-guide-check" data-key="' + escGl(key) + '" checked> <span class="column-guide-label">' + escGl(label) + '</span></label>';
     }).join('');
     var actionsHtml =
       '<button type="button" class="btn btn-xs btn-outline-secondary" id="compMngReleaseColumnsBtn">해제</button>' +
@@ -3049,6 +3215,15 @@
     return '<div class="screen-summary-action-row">' + summaryHtml + buttonsHtml + '</div>';
   }
 
+  /** 결제내역·통합내역: 금액 요약(서버 meta.payListFinancialSummary) + 상태별 통화 요약(meta.payListStatusBar), VIEW SETTING 위 */
+  function renderPayListStatusBarSlot(tabId) {
+    var t = tabId || '';
+    return '<div class="pay-list-summary-stack mb-2 small">' +
+      '<div class="pay-list-financial-summary pay-list-financial-summary--empty border rounded bg-light px-2 py-1 mb-1" id="payListFinancialSummary_' + t + '" role="status" aria-live="polite"></div>' +
+      '<div class="pay-list-status-bar pay-list-status-bar--empty" id="payListStatusBar_' + t + '" role="status" aria-live="polite"></div>' +
+      '</div>';
+  }
+
   /** 유통망정산내역: 승인/취소 × 수수료 4단 중첩 헤더 */
   function buildDistributionListTheadHtml() {
     return (
@@ -3286,14 +3461,15 @@
       '<div class="pagination-view-at-once">' +
       '<span class="pagination-label">한 번에 보기:</span>' +
       '<div class="pagination-size-options">' +
-      '<button type="button" class="pagination-size-opt" data-size="10">10</button>' +
-      '<button type="button" class="pagination-size-opt" data-size="25">25</button>' +
       '<button type="button" class="pagination-size-opt" data-size="50">50</button>' +
-      '<button type="button" class="pagination-size-opt pagination-size-opt--active" data-size="100">100</button>' +
+      '<button type="button" class="pagination-size-opt" data-size="100">100</button>' +
+      '<button type="button" class="pagination-size-opt" data-size="200">200</button>' +
+      '<button type="button" class="pagination-size-opt pagination-size-opt--active" data-size="500">500</button>' +
+      '<button type="button" class="pagination-size-opt" data-size="1000">1000</button>' +
       '</div>' +
       '<span class="pagination-total">건 (총 <span id="totalElementsCount">0</span>건)</span>' +
       '</div>' +
-      '<input type="hidden" id="recordsPerPage" value="100">' +
+      '<input type="hidden" id="recordsPerPage" value="500">' +
       '<input type="hidden" id="pageCnt" value="1">' +
       '<span id="totalPageCount" style="display:none">1</span>' +
       '<div class="pagination-center"><div class="pagination-pages" id="paging_' + (tabId || '') + '"></div></div>' +
@@ -3328,6 +3504,7 @@
         html += renderSearchForm(cfg);
         if (cfg.noticeList && cfg.noticeList.length > 0) html += renderNotice(cfg);
         html += renderSummaryAndActions(cfg);
+        if (cfg.payListStatusBar) html += renderPayListStatusBarSlot(tabId);
         if (cfg.columns && cfg.columns.length > 0) html += renderTableColumnGuide(cfg);
         html += renderTable(cfg, tabId);
         html += renderPagination(tabId, cfg);

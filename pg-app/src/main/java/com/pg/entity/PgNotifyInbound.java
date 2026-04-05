@@ -40,6 +40,14 @@ public class PgNotifyInbound {
     @Column(name = "client_ip", length = 64)
     private String clientIp;
 
+    /** 노티 URL 경로의 대상코드(cb…/rs… 등). 없으면 null */
+    @Column(name = "notify_target_code", length = 64)
+    private String notifyTargetCode;
+
+    /** 본사설정 노티대상의 채널 유형(CALLBACK/RESULT 등). 미등록·레거시는 null */
+    @Column(name = "notify_channel_type", length = 20)
+    private String notifyChannelType;
+
     @Column(name = "process_status", length = 20)
     private String processStatus = "RECEIVED";
 
@@ -72,6 +80,10 @@ public class PgNotifyInbound {
     public void setContentType(String contentType) { this.contentType = contentType; }
     public String getClientIp() { return clientIp; }
     public void setClientIp(String clientIp) { this.clientIp = clientIp; }
+    public String getNotifyTargetCode() { return notifyTargetCode; }
+    public void setNotifyTargetCode(String notifyTargetCode) { this.notifyTargetCode = notifyTargetCode; }
+    public String getNotifyChannelType() { return notifyChannelType; }
+    public void setNotifyChannelType(String notifyChannelType) { this.notifyChannelType = notifyChannelType; }
     public String getProcessStatus() { return processStatus; }
     public void setProcessStatus(String processStatus) { this.processStatus = processStatus; }
     public String getErrorMessage() { return errorMessage; }

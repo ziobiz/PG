@@ -69,10 +69,17 @@ app:
     # *.icopay.co.kr 에 더해 본사·총판 서브(예: jp) 명시 — allow-all-origins: false 운영 시에도 매칭 보장
     allowed-origin-patterns: https://*.icopay.co.kr,https://jp.icopay.co.kr,https://icopay.co.kr,https://www.icopay.co.kr,http://localhost:*,http://127.0.0.1:*,https://*.cafe24.com,http://*.cafe24.com,https://otlpay.cafe24.com,http://otlpay.cafe24.com,https://www.otlpay.cafe24.com,http://www.otlpay.cafe24.com
   # ChillPay (칠리페이) DirectCredit API 연동
+  # 노티매핑 자동 제안: OpenAI 호환 Chat API (환경변수 OPENAI_API_KEY 등). 미설정 시 규칙 기반만 사용.
+  notify-mapping-ai:
+    api-key: ${OPENAI_API_KEY:}
+    base-url: ${OPENAI_BASE_URL:https://api.openai.com/v1}
+    model: ${OPENAI_MODEL:gpt-4o-mini}
+    enabled: ${OPENAI_NOTIFY_MAPPING_ENABLED:true}
   chillpay:
     merchant-code: ${CHILLPAY_MERCHANT_CODE:M035594}
     api-key: ${CHILLPAY_API_KEY:}
     md5-key: ${CHILLPAY_MD5_KEY:}
+    # 본사(HQ) 폴백·tb_pg_agency.route_no 가 있는 다른 경로 등에 사용. 가맹점 바인딩과 매칭된 PG사 행이 있는데 루트가 비면 예외(CHILLPAY_ROUTE_NOT_CONFIGURED)로 막음.
     route-no: ${CHILLPAY_ROUTE_NO:4}
     sandbox: ${CHILLPAY_SANDBOX:true}
   # PG 노티 수신(/api/open/pg-notify/{token}) — ziobiz/NOTI 미들웨어 송신원 보완

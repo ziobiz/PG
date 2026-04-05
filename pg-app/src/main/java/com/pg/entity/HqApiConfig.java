@@ -85,6 +85,20 @@ public class HqApiConfig {
     @Column(name = "url_pay_form_mode", length = 20)
     private String urlPayFormMode = "FULL";
 
+    /**
+     * URL 공개 결제 페이지 탭 제목 — 언어코드→문자열 JSON (예: {@code {"KOR":"…","ENG":"…"}}).
+     * 결제구문설정(PG별) JSON의 구 {@code tabTitle} 은 비어 있을 때만 폴백으로 사용됩니다.
+     */
+    @Column(name = "url_pay_tab_title_json", columnDefinition = "TEXT")
+    private String urlPayTabTitleJson;
+
+    /**
+     * URL 공개 결제 페이지 파비콘 — {@code /uploads/hq/url-pay/…} 경로.
+     * 결제구문 JSON의 구 {@code faviconUrl} 은 비어 있을 때만 폴백.
+     */
+    @Column(name = "url_pay_favicon_url", length = 500)
+    private String urlPayFaviconUrl;
+
     @Column(name = "payment_provider_registry_json", columnDefinition = "TEXT")
     private String paymentProviderRegistryJson;
 
@@ -97,8 +111,9 @@ public class HqApiConfig {
 
     /**
      * 결제구문설정 JSON. {@code {"entries":[{"id":"…","pgCd":"CHILLPAY","activeYn":"Y",
-     * "title":{…},"body1":{…},"body2":{…},"body3":{…},"tabTitle":{…}}]}}
-     * {@code tabTitle}: 언어별 브라우저 탭 제목(URL 결제 페이지 {@code document.title}).
+     * "title":{…},"body1":{…},"body2":{…},"body3":{…},"tabTitle":{…},"faviconUrl":"/uploads/hq/url-pay/…"}]}}
+     * (레거시) {@code tabTitle}/{@code faviconUrl}: 본사 「URL 결제 폼 설정」 전역값이 비어 있을 때만 탭·아이콘 폴백.
+     * {@code resultSuccessMain}/{@code resultSuccessFoot}/{@code resultFailMain}/{@code resultFailFoot}: URL 결제 결과 화면 문구(언어별 맵, 선택).
      */
     @Column(name = "url_pay_card_copy_config_json", columnDefinition = "TEXT")
     private String urlPayCardCopyConfigJson;
@@ -199,6 +214,10 @@ public class HqApiConfig {
     public void setUrlPayRedirectEnabledYn(String urlPayRedirectEnabledYn) { this.urlPayRedirectEnabledYn = urlPayRedirectEnabledYn; }
     public String getUrlPayFormMode() { return urlPayFormMode; }
     public void setUrlPayFormMode(String urlPayFormMode) { this.urlPayFormMode = urlPayFormMode; }
+    public String getUrlPayTabTitleJson() { return urlPayTabTitleJson; }
+    public void setUrlPayTabTitleJson(String urlPayTabTitleJson) { this.urlPayTabTitleJson = urlPayTabTitleJson; }
+    public String getUrlPayFaviconUrl() { return urlPayFaviconUrl; }
+    public void setUrlPayFaviconUrl(String urlPayFaviconUrl) { this.urlPayFaviconUrl = urlPayFaviconUrl; }
     public String getPaymentProviderRegistryJson() { return paymentProviderRegistryJson; }
     public void setPaymentProviderRegistryJson(String paymentProviderRegistryJson) { this.paymentProviderRegistryJson = paymentProviderRegistryJson; }
     public String getPayCurrencyScaleRulesJson() { return payCurrencyScaleRulesJson; }

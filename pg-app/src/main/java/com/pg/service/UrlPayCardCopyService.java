@@ -26,6 +26,18 @@ public class UrlPayCardCopyService {
     public static final String KEY_CARD_BODY3 = "cardBody3";
     /** 브라우저 탭 제목 (다국어 맵) — 공개 URL 결제 페이지 {@code document.title} */
     public static final String KEY_BROWSER_TAB_TITLE = "browserTabTitle";
+    /** 탭 파비콘 URL — 본사 업로드 경로({@code /uploads/hq/url-pay/…})만 허용 */
+    public static final String KEY_FAVICON_URL = "faviconUrl";
+    /** URL 결제 결과(pay-result·인라인 완료 카드) 성공 시 큰 제목 */
+    public static final String KEY_RESULT_SUCCESS_MAIN = "resultSuccessMain";
+    /** URL 결제 결과 성공 시 하단 안내 */
+    public static final String KEY_RESULT_SUCCESS_FOOT = "resultSuccessFoot";
+    /** URL 결제 결과 실패·취소 시 큰 제목 */
+    public static final String KEY_RESULT_FAIL_MAIN = "resultFailMain";
+    /** URL 결제 결과 실패·취소 시 하단 안내 */
+    public static final String KEY_RESULT_FAIL_FOOT = "resultFailFoot";
+
+    private static final String SAFE_FAVICON_PREFIX = "/uploads/hq/url-pay/";
 
     private final HqApiConfigRepository hqApiConfigRepository;
 
@@ -40,10 +52,11 @@ public class UrlPayCardCopyService {
     }
 
     /**
-     * 운영 PG와 일치하는 <strong>활성</strong> 항목 1건의 다국어 맵을 반환.
-     * 키: {@link #KEY_CARD_SECTION}, {@link #KEY_CARD_NOTE}, {@link #KEY_CCD_HINT}, {@link #KEY_CARD_BODY3}, {@link #KEY_BROWSER_TAB_TITLE} — 값은 언어코드→문자열.
+     * 운영 PG와 일치하는 <strong>활성</strong> 항목 1건을 반환.
+     * 키: {@link #KEY_CARD_SECTION}, {@link #KEY_CARD_NOTE}, {@link #KEY_CCD_HINT}, {@link #KEY_CARD_BODY3}, {@link #KEY_BROWSER_TAB_TITLE} — 값은 언어코드→문자열 맵.
+     * {@link #KEY_FAVICON_URL} — 문자열(허용된 업로드 경로만).
      */
-    public Optional<Map<String, Map<String, String>>> resolveActiveCopyByPg(String operationalPgCd) {
+    public Optional<Map<String, Object>> resolveActiveCopyByPg(String operationalPgCd) {
         String pg = operationalPgCd != null ? operationalPgCd.trim().toUpperCase(Locale.ROOT) : "";
         if (pg.isEmpty()) {
             return Optional.empty();
@@ -58,6 +71,7 @@ public class UrlPayCardCopyService {
             if (!entries.isArray()) {
                 return Optional.empty();
             }
+            HqApiConfig hqCfg = hqApiConfigRepository.findAll().stream().findFirst().orElse(null);
             for (JsonNode e : entries) {
                 if (e == null || !e.isObject()) {
                     continue;
@@ -69,12 +83,16 @@ public class UrlPayCardCopyService {
                 if (rowPg.isEmpty() || !pgMatches(rowPg, pg)) {
                     continue;
                 }
-                Map<String, Map<String, String>> out = new LinkedHashMap<>();
+                Map<String, Object> out = new LinkedHashMap<>();
                 out.put(KEY_CARD_SECTION, langMap(e.get("title")));
                 out.put(KEY_CARD_NOTE, langMap(e.get("body1")));
                 out.put(KEY_CCD_HINT, langMap(e.get("body2")));
                 out.put(KEY_CARD_BODY3, langMap(e.get("body3")));
-                out.put(KEY_BROWSER_TAB_TITLE, langMap(e.get("tabTitle")));
+                applyUrlPayChrome(out, hqCfg, e);
+                putLangMapIfNonEmpty(out, KEY_RESULT_SUCCESS_MAIN, e.get("resultSuccessMain"));
+                putLangMapIfNonEmpty(out, KEY_RESULT_SUCCESS_FOOT, e.get("resultSuccessFoot"));
+                putLangMapIfNonEmpty(out, KEY_RESULT_FAIL_MAIN, e.get("resultFailMain"));
+                putLangMapIfNonEmpty(out, KEY_RESULT_FAIL_FOOT, e.get("resultFailFoot"));
                 return Optional.of(out);
             }
         } catch (Exception ignored) {
@@ -115,5 +133,61 @@ public class UrlPayCardCopyService {
             }
         });
         return m;
+    }
+
+    private static String safeFaviconUrl(String raw) {
+        if (raw == null) {
+            return "";
+        }
+        String s = raw.trim();
+        if (s.length() > 500 || s.contains("..") || s.contains("\n") || s.contains("\r")) {
+            return "";
+        }
+        if (!s.startsWith(SAFE_FAVICON_PREFIX)) {
+            return "";
+        }
+        String rest = s.substring(SAFE_FAVICON_PREFIX.length()).trim();
+        if (rest.isEmpty() || rest.contains("/") || rest.contains("\\")) {
+            return "";
+        }
+        return s;
+    }
+
+    private static void putLangMapIfNonEmpty(Map<String, Object> out, String key, JsonNode node) {
+        Map<String, String> m = langMap(node);
+        if (!m.isEmpty()) {
+            out.put(key, m);
+        }
+    }
+
+    /**
+     * 본사 {@link HqApiConfig}의 URL 결제 폼 탭·파비콘을 우선하고, 비어 있으면 결제구문 JSON 행(레거시)을 폴백.
+     */
+    private void applyUrlPayChrome(Map<String, Object> out, HqApiConfig hq, JsonNode entryNode) {
+        Map<String, String> tab = new LinkedHashMap<>();
+        if (hq != null && hq.getUrlPayTabTitleJson() != null && !hq.getUrlPayTabTitleJson().isBlank()) {
+            try {
+                JsonNode n = OM.readTree(hq.getUrlPayTabTitleJson());
+                tab.putAll(langMap(n));
+            } catch (Exception ignored) {
+                // ignore invalid JSON
+            }
+        }
+        if (tab.isEmpty() && entryNode != null) {
+            tab.putAll(langMap(entryNode.get("tabTitle")));
+        }
+        if (!tab.isEmpty()) {
+            out.put(KEY_BROWSER_TAB_TITLE, tab);
+        }
+        String fav = "";
+        if (hq != null && hq.getUrlPayFaviconUrl() != null && !hq.getUrlPayFaviconUrl().isBlank()) {
+            fav = safeFaviconUrl(hq.getUrlPayFaviconUrl().trim());
+        }
+        if (fav.isEmpty() && entryNode != null) {
+            fav = safeFaviconUrl(text(entryNode, "faviconUrl"));
+        }
+        if (!fav.isEmpty()) {
+            out.put(KEY_FAVICON_URL, fav);
+        }
     }
 }

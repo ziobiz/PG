@@ -5,9 +5,10 @@
 - **HEADQUARTERS**일 때 다음 항목은 화면에서 숨깁니다: 사용여부, 로그인ID, 사업형태, 취급물품, 계좌은행, 이체수수료(원), 계좌번호, 예금주, 기준화폐1~3.
 - 구현: `site/js/screens.js` 업체정보조회(`myCompMng`) 필드에 `hideForHeadquarters`, 렌더러에 `comp-info-hide-if-hq`, `app.js`에서 상세 로드 후 `applyCompInfoHeadquartersVisibility` 호출.
 
-## 전산노티·결제환경 — OTP 정책
+## 본사설정 — 사용자설정 — 로그인·OTP 정책
 
-- **OTP 사용 필수** (`otpRequiredYn` Y/N): `tb_hq_notify_env_config.otp_required_yn`, 본사설정 **전산노티·결제환경** 화면 하단 카드에서 저장.
+- 메뉴: **본사설정 → 사용자설정** (`/hq/userSettings`).
+- **OTP 사용 필수** (`otpRequiredYn` Y/N) 등: `tb_hq_notify_env_config` (동일 테이블). UI는 노티구성설정에서 분리되어 이 화면에서만 편집하며, 저장 API는 `POST /api/hq/notifyEnv/save`에 해당 필드만 전달합니다.
 - 로그인/등록 단계의 실제 OTP 검증(TOTP/SMS 등)은 이후 연동 예정이며, 정책 값은 API·DB에 먼저 반영됩니다.
 
 ## 계정·업체접근

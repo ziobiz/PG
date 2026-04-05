@@ -31,12 +31,23 @@ public class HqPayCopyTranslationService {
     private static final String MM_BASE = "https://api.mymemory.translated.net/get";
     private final RestTemplate restTemplate = new RestTemplate();
 
-    public Map<String, Object> translatePayCopyFromKo(String titleKo, String body1Ko, String body2Ko, String body3Ko, String tabTitleKo) {
+    public Map<String, Object> translatePayCopyFromKo(String titleKo, String body1Ko, String body2Ko, String body3Ko,
+                                                        String resultOk1Ko, String resultOk2Ko, String resultFail1Ko, String resultFail2Ko) {
         Map<String, Object> out = new LinkedHashMap<>();
         out.put("title", buildLangMap(titleKo));
         out.put("body1", buildLangMap(body1Ko));
         out.put("body2", buildLangMap(body2Ko));
         out.put("body3", buildLangMap(body3Ko));
+        out.put("resultSuccessMain", buildLangMap(resultOk1Ko != null ? resultOk1Ko : ""));
+        out.put("resultSuccessFoot", buildLangMap(resultOk2Ko != null ? resultOk2Ko : ""));
+        out.put("resultFailMain", buildLangMap(resultFail1Ko != null ? resultFail1Ko : ""));
+        out.put("resultFailFoot", buildLangMap(resultFail2Ko != null ? resultFail2Ko : ""));
+        return out;
+    }
+
+    /** URL 결제 폼 설정 — 브라우저 탭 제목 한 줄 다국어 맵 */
+    public Map<String, Object> translateUrlPayTabTitleFromKo(String tabTitleKo) {
+        Map<String, Object> out = new LinkedHashMap<>();
         out.put("tabTitle", buildLangMap(tabTitleKo != null ? tabTitleKo : ""));
         return out;
     }

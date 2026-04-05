@@ -29,10 +29,22 @@
   - `regionalScopeOrgCode` (string, 선택): 판단에 쓰인 본사 코드
 - 저장 시 서버가 **허용 목록 밖 키는 자동 제거**합니다.
 
+## 본사 추가 VIEW 항목 (화면별)
+
+- **테이블:** `tb_hq_view_custom_column` (`V71_hq_view_custom_column.sql` · `patch_missing_schema_postgresql.sql` V71)
+- **UI:** 본사설정 → **조직항목설정** (`/hq/orgViewColumnAllowance`) — 「설정 대상 화면」 선택 후 **추가 VIEW 항목** 카드에서 표시명으로 등록·수정·삭제. 목록은 화면별로 누적 관리됩니다.
+- **내부 키:** `hqExt_` + UUID(하이픈 제거). 그리드·VIEW SETTING에 동일 키로 노출됩니다(데이터 없으면 빈 칸).
+- **API (총본사·ADMIN):**  
+  `GET /api/hq/orgViewColumnAllowance/customColumns?pageUrl=`  
+  `POST .../customColumns/add` `{ pageUrl, displayName }`  
+  `POST .../customColumns/update` `{ id, displayName }`  
+  `POST .../customColumns/delete` `{ id }`
+- **조직 노출 정책이 있는 경우:** 서버가 저장된 `allowed_keys_json`에 **등록된 추가 항목 키를 자동 병합**합니다. 총판·가맹점 등 하위도 VIEW SETTING에서 해당 열을 쓸 수 있습니다(정책으로 막지 않는 한).
+
 ## 전산 UI
 
-- **본사설정 → 본사별 노출설정** (`/hq/orgViewColumnAllowance`): 본사·화면 선택 후, 해당 본사에 VIEW SETTING으로 **노출할 그리드 열**을 체크해 저장.
-- 지원 화면(초기): **결제내역** (`/calc/payList`), **업체관리** (`/comp/compMngTree`). 추가 시 동일 API에 `pageUrl`만 맞추면 됩니다.
+- **본사설정 → 조직항목설정** (`/hq/orgViewColumnAllowance`): 본사·조직 유형·화면 선택 후, 해당 범위에 VIEW SETTING으로 **노출할 그리드 열**을 체크해 저장. 위 **추가 VIEW 항목**과 함께 사용합니다.
+- 지원 화면(초기): **결제내역** (`/calc/payList`), **업체관리** (`/comp/compMngTree`) 등 드롭다운 목록. 추가 시 동일 API에 `pageUrl`만 맞추면 됩니다.
 
 ## 본사(REGIONAL) 판별
 

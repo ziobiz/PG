@@ -3,11 +3,17 @@ package com.pg.controller.api;
 import com.pg.api.ApiResponse;
 import com.pg.api.dto.PageResult;
 import com.pg.api.dto.PayListSearchRequest;
+import com.pg.entity.AppUser;
+import com.pg.repository.CommissionPolicyRepository;
+import com.pg.repository.OrgUnitRepository;
 import com.pg.service.ChillPayService;
+import com.pg.service.HqNotifyMappingService;
 import com.pg.service.PayListActionService;
 import com.pg.service.PayListService;
+import com.pg.util.PayListStatusBarBuckets;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
@@ -20,20 +26,38 @@ public class ApiCalcController {
     private final PayListService payListService;
     private final PayListActionService payListActionService;
     private final ChillPayService chillPayService;
+    private final HqNotifyMappingService hqNotifyMappingService;
+    private final OrgUnitRepository orgUnitRepository;
+    private final CommissionPolicyRepository commissionPolicyRepository;
 
     public ApiCalcController(PayListService payListService, PayListActionService payListActionService,
-                             ChillPayService chillPayService) {
+                             ChillPayService chillPayService, HqNotifyMappingService hqNotifyMappingService,
+                             OrgUnitRepository orgUnitRepository, CommissionPolicyRepository commissionPolicyRepository) {
         this.payListService = payListService;
         this.payListActionService = payListActionService;
         this.chillPayService = chillPayService;
+        this.hqNotifyMappingService = hqNotifyMappingService;
+        this.orgUnitRepository = orgUnitRepository;
+        this.commissionPolicyRepository = commissionPolicyRepository;
     }
 
     @GetMapping("/payList")
     public ResponseEntity<ApiResponse<PageResult<Map<String, Object>>>> payList(
-            @RequestParam Map<String, String> params) {
+            @RequestParam Map<String, String> params,
+            Authentication authentication) {
         PayListSearchRequest req = PayListSearchRequest.fromParams(params);
-        PageResult<Map<String, Object>> result = payListService.search(req);
+        PageResult<Map<String, Object>> result = payListService.search(req, authentication);
         return ResponseEntity.ok(ApiResponse.ok(result));
+    }
+
+    /**
+     * 노티매핑설정의 columnCatalogs·pageCatalogAssignments 를 반영한 결제내역 계열 그리드 레이아웃.
+     * 탭 제목(catalogDisplayTitle)·열 순서/노출·2단 헤더(headerGroups)에 사용합니다.
+     */
+    @GetMapping("/payListScreenLayout")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> payListScreenLayout(
+            @RequestParam("pageUrl") String pageUrl) {
+        return ResponseEntity.ok(ApiResponse.ok(hqNotifyMappingService.resolvePayListScreenLayout(pageUrl)));
     }
 
     /**
@@ -53,7 +77,8 @@ public class ApiCalcController {
             @RequestParam(required = false) String searchChillStatus,
             @RequestParam(required = false) String searchRouteNo,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate searchFromDate,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate searchToDate) {
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate searchToDate,
+            Authentication authentication) {
         try {
             Integer routeNo = null;
             if (searchRouteNo != null && !searchRouteNo.isBlank()) {
@@ -63,6 +88,11 @@ public class ApiCalcController {
                     routeNo = null;
                 }
             }
+            AppUser user = (authentication != null && authentication.getPrincipal() instanceof AppUser u) ? u : null;
+            boolean multiCurrency = PayListStatusBarBuckets.isMultiCurrencyViewer(
+                    PayListStatusBarBuckets.resolveViewerOrgLevel(user, orgUnitRepository));
+            String primaryCurrency = PayListStatusBarBuckets.resolveViewerPrimaryCurrency(
+                    user, orgUnitRepository, commissionPolicyRepository);
             PageResult<Map<String, Object>> r = chillPayService.searchChillPayPaymentTransactions(
                     null,
                     page,
@@ -76,7 +106,69 @@ public class ApiCalcController {
                     searchOrderNo,
                     searchChillStatus,
                     searchFromDate,
-                    searchToDate);
+                    searchToDate,
+                    multiCurrency,
+                    primaryCurrency);
+            return ResponseEntity.ok(ApiResponse.ok(r));
+        } catch (IllegalStateException e) {
+            return ResponseEntity.ok(ApiResponse.fail(e.getMessage(), "CHILLPAY"));
+        }
+    }
+
+    /**
+     * ChillPay Transaction Services — Search Payment Transaction 을
+     * <strong>PaymentDateFrom/To</strong> 중심으로 호출해 칠페이 정책상 정산·Settled·수수료 등을 조회합니다.
+     * (ICOPAY 내부 정산 실행 로직과 무관)
+     */
+    @GetMapping("/chillPaySettlementSearch")
+    public ResponseEntity<ApiResponse<PageResult<Map<String, Object>>>> chillPaySettlementSearch(
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(required = false) String searchOrderBy,
+            @RequestParam(required = false) String searchOrderDir,
+            @RequestParam(required = false) String searchKeyword,
+            @RequestParam(required = false) String searchMerchantCode,
+            @RequestParam(required = false) String searchPaymentChannel,
+            @RequestParam(required = false) String searchOrderNo,
+            @RequestParam(required = false) String searchChillStatus,
+            @RequestParam(required = false) String searchRouteNo,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate searchFromDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate searchToDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate searchTxnFromDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate searchTxnToDate,
+            Authentication authentication) {
+        try {
+            Integer routeNo = null;
+            if (searchRouteNo != null && !searchRouteNo.isBlank()) {
+                try {
+                    routeNo = Integer.parseInt(searchRouteNo.trim());
+                } catch (NumberFormatException ignored) {
+                    routeNo = null;
+                }
+            }
+            AppUser user = (authentication != null && authentication.getPrincipal() instanceof AppUser u) ? u : null;
+            boolean multiCurrency = PayListStatusBarBuckets.isMultiCurrencyViewer(
+                    PayListStatusBarBuckets.resolveViewerOrgLevel(user, orgUnitRepository));
+            String primaryCurrency = PayListStatusBarBuckets.resolveViewerPrimaryCurrency(
+                    user, orgUnitRepository, commissionPolicyRepository);
+            PageResult<Map<String, Object>> r = chillPayService.searchChillPaySettlementTransactions(
+                    null,
+                    page,
+                    size,
+                    searchOrderBy,
+                    searchOrderDir,
+                    searchKeyword,
+                    searchMerchantCode,
+                    searchPaymentChannel,
+                    routeNo,
+                    searchOrderNo,
+                    searchChillStatus,
+                    searchFromDate,
+                    searchToDate,
+                    searchTxnFromDate,
+                    searchTxnToDate,
+                    multiCurrency,
+                    primaryCurrency);
             return ResponseEntity.ok(ApiResponse.ok(r));
         } catch (IllegalStateException e) {
             return ResponseEntity.ok(ApiResponse.fail(e.getMessage(), "CHILLPAY"));

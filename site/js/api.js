@@ -301,9 +301,17 @@
     payList: function (params) {
       return get('/api/calc/payList', params).then(function (r) { return r.data; });
     },
+    /** 노티매핑 반영: 결제내역 계열 화면별 그리드 레이아웃·표시 제목 */
+    payListScreenLayout: function (pageUrl) {
+      return get('/api/calc/payListScreenLayout', { pageUrl: pageUrl || '' }).then(function (r) { return r.data; });
+    },
     /** ChillPay Transaction API — Search Payment Transaction (실시간) */
     chillPayTrSearch: function (params) {
       return get('/api/calc/chillPayTrSearch', params).then(function (r) { return r.data; });
+    },
+    /** ChillPay 통합정산 — PaymentDate·Settled 중심(동일 Transaction Search API) */
+    chillPaySettlementSearch: function (params) {
+      return get('/api/calc/chillPaySettlementSearch', params).then(function (r) { return r.data; });
     },
 
     seedDev: function () {
@@ -771,6 +779,47 @@
         return r && r.data != null ? r.data : {};
       });
     },
+    /** URL 결제 폼 설정 — 브라우저 탭 제목(한국어) 다국어 초안 */
+    hqUrlPayTabTitleTranslateFromKo: function (body) {
+      return post('/api/hq/urlPayTabTitleTranslateFromKo', body || {}).then(function (r) {
+        return r && r.data != null ? r.data : {};
+      });
+    },
+    /** 본사 URL 결제 폼 결제구문설정용 파비콘 — PNG·JPG, 서버에서 32×32 PNG 저장 */
+    hqUrlPayFaviconUpload: function (file) {
+      if (!file || typeof file.size !== 'number') {
+        return Promise.reject(new Error('업로드할 파일을 선택하세요.'));
+      }
+      var max = 1 * 1024 * 1024;
+      if (file.size > max) {
+        return Promise.reject(new Error('파비콘 이미지는 1MB 이하만 업로드할 수 있습니다.'));
+      }
+      var base = getBaseUrl();
+      var token = getToken();
+      var headers = { 'Accept': 'application/json' };
+      if (token) headers['Authorization'] = 'Bearer ' + token;
+      var uploadOnce = function (uploadFile) {
+        var fd = new FormData();
+        fd.append('file', uploadFile);
+        return fetchTextThenJson(base + '/api/hq/url-pay/favicon-upload', {
+          method: 'POST',
+          headers: headers,
+          body: fd
+        }, 'URL 결제 파비콘 업로드 응답이 JSON이 아닙니다.');
+      };
+      return uploadOnce(file).catch(function (err) {
+        var msg = err && err.message ? String(err.message) : '';
+        if (msg.indexOf('HTTP 413') === -1) return Promise.reject(err);
+        return compressImageForUpload(file, 900 * 1024).then(function (compressed) {
+          return uploadOnce(compressed);
+        }).catch(function (e2) {
+          return Promise.reject(e2 || err);
+        });
+      }).then(function (r) {
+        if (r && r.success === false) throw new Error(r.message || '파비콘 업로드 실패');
+        return r.data || r;
+      });
+    },
     hqDomainConfig: function () {
       return get('/api/hq/domainConfig').then(function (r) { return r.data; });
     },
@@ -821,8 +870,23 @@
     hqNotifyMapping: function () {
       return get('/api/hq/notifyMapping').then(function (r) { return r.data; });
     },
+    hqNotifyMappingDefaults: function () {
+      return get('/api/hq/notifyMapping/defaults').then(function (r) { return r.data; });
+    },
     hqNotifyMappingSave: function (body) {
       return post('/api/hq/notifyMapping/save', body || {}).then(function (r) { return r.data; });
+    },
+    hqNotifyMappingSuggest: function (body) {
+      return post('/api/hq/notifyMapping/suggest', body || {}).then(function (r) { return r.data; });
+    },
+    hqNotifyMappingAiStatus: function () {
+      return get('/api/hq/notifyMapping/aiStatus').then(function (r) { return r.data; });
+    },
+    hqNotifyInboundList: function (params) {
+      return get('/api/hq/notifyInbound', params || {}).then(function (r) { return r.data; });
+    },
+    hqNotifyInboundDetail: function (id) {
+      return get('/api/hq/notifyInbound/' + encodeURIComponent(id)).then(function (r) { return r.data; });
     },
     hqLedgerSysSettings: function () {
       return get('/api/hq/ledgerSysSettings').then(function (r) { return r.data; });
@@ -849,6 +913,18 @@
     },
     hqOrgViewColumnAllowanceDelete: function (body) {
       return post('/api/hq/orgViewColumnAllowance/delete', body || {}).then(function (r) { return r.data; });
+    },
+    hqOrgViewCustomColumns: function (pageUrl) {
+      return get('/api/hq/orgViewColumnAllowance/customColumns', { pageUrl: pageUrl || '' }).then(function (r) { return r.data || []; });
+    },
+    hqOrgViewCustomColumnAdd: function (body) {
+      return post('/api/hq/orgViewColumnAllowance/customColumns/add', body || {}).then(function (r) { return r.data; });
+    },
+    hqOrgViewCustomColumnUpdate: function (body) {
+      return post('/api/hq/orgViewColumnAllowance/customColumns/update', body || {}).then(function (r) { return r.data; });
+    },
+    hqOrgViewCustomColumnDelete: function (body) {
+      return post('/api/hq/orgViewColumnAllowance/customColumns/delete', body || {}).then(function (r) { return r.data; });
     },
 
     payAction: function (trnId, action) {

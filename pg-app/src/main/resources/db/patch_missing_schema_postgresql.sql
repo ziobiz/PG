@@ -174,3 +174,36 @@ ALTER TABLE tb_hq_ledger_sys_settings
     ALTER COLUMN email_daily_digest_yn TYPE VARCHAR(1),
     ALTER COLUMN email_notify_void_batch_yn TYPE VARCHAR(1),
     ALTER COLUMN email_notify_refund_batch_yn TYPE VARCHAR(1);
+
+-- V67: URL 결제 폼 — 브라우저 탭 제목(JSON)·파비콘 경로 (결제구문 PG별 설정과 분리)
+ALTER TABLE tb_hq_api_config
+    ADD COLUMN IF NOT EXISTS url_pay_tab_title_json TEXT;
+ALTER TABLE tb_hq_api_config
+    ADD COLUMN IF NOT EXISTS url_pay_favicon_url VARCHAR(500);
+
+-- V71: 조직항목설정 — 화면별 VIEW SETTING 추가 항목(표시명·내부 키)
+CREATE TABLE IF NOT EXISTS tb_hq_view_custom_column (
+    id              BIGSERIAL PRIMARY KEY,
+    page_url        VARCHAR(256) NOT NULL,
+    column_key      VARCHAR(80) NOT NULL,
+    display_name    VARCHAR(200) NOT NULL,
+    sort_order      INT NOT NULL DEFAULT 0,
+    created_at      TIMESTAMP WITHOUT TIME ZONE,
+    updated_at      TIMESTAMP WITHOUT TIME ZONE,
+    CONSTRAINT uk_hq_view_custom_col_url_key UNIQUE (page_url, column_key)
+);
+CREATE INDEX IF NOT EXISTS idx_hq_view_custom_col_page ON tb_hq_view_custom_column(page_url);
+
+-- V72: 노티 수신 로그 — URL 대상코드·채널(CALLBACK/RESULT)
+ALTER TABLE tb_pg_notify_inbound ADD COLUMN IF NOT EXISTS notify_target_code VARCHAR(64);
+ALTER TABLE tb_pg_notify_inbound ADD COLUMN IF NOT EXISTS notify_channel_type VARCHAR(20);
+
+-- V73: 거래 마스터 금액 — 노티 원문 소수 유지(USD 등), JPA precision=20 scale=8 과 일치 (NULL 행은 NULL 유지)
+ALTER TABLE pg_trnsctn
+  ALTER COLUMN amt_krw TYPE NUMERIC(20, 8) USING amt_krw::NUMERIC(20, 8),
+  ALTER COLUMN icopay_amt TYPE NUMERIC(20, 8) USING icopay_amt::NUMERIC(20, 8),
+  ALTER COLUMN chill_fee_amt TYPE NUMERIC(20, 8) USING chill_fee_amt::NUMERIC(20, 8),
+  ALTER COLUMN total_amt TYPE NUMERIC(20, 8) USING total_amt::NUMERIC(20, 8);
+
+-- V74: 거래 마스터 — 노티 수신 채널(CALLBACK/RESULT). 기존 NOTI 행은 NULL(필터에서 CALL·레거시로 간주)
+ALTER TABLE pg_trnsctn ADD COLUMN IF NOT EXISTS notify_channel_type VARCHAR(20);

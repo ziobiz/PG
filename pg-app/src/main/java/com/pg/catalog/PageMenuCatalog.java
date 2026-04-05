@@ -19,6 +19,7 @@ public final class PageMenuCatalog {
         add(list, "/hq/chargebackPolicy", "M0117", "차지백설정", "본사설정");
         add(list, "/hq/businessDaySetting", "M0109", "영업일설정", "본사설정");
         add(list, "/hq/permissionMng", "M0104", "본사권한설정", "본사설정");
+        add(list, "/hq/userSettings", "M0120", "사용자설정", "본사설정");
         add(list, "/hq/accountMng", "M0106", "업체접근설정", "본사설정");
         add(list, "/hq/orgViewColumnAllowance", "M0108", "조직항목설정", "본사설정");
         add(list, "/hq/pgApiMng", "M0101", "API연동설정", "본사설정");
@@ -26,6 +27,7 @@ public final class PageMenuCatalog {
         add(list, "/hq/paymentOrchestration", "M0118", "결제로직설정", "본사설정");
         add(list, "/hq/notifyEnv", "M0105", "노티구성설정", "본사설정");
         add(list, "/hq/notifyMapping", "M0107", "노티매핑설정", "본사설정");
+        add(list, "/hq/notifyInbound", "M0121", "노티수령정보", "본사설정");
         add(list, "/hq/ledgerSysSettings", "M0119", "전산설정관리", "본사설정");
         add(list, "/hq/domainConfig", "M0115", "도메인구성설정", "본사설정");
         add(list, "/hq/serverManage", "M0116", "서버운영관리", "본사설정");
@@ -39,12 +41,13 @@ public final class PageMenuCatalog {
         add(list, "/calc/payList", "M0301", "결제내역", "결제관리");
         add(list, "/calc/paySuccessList", "M0315", "성공내역", "결제관리");
         add(list, "/calc/payFailList", "M0303", "실패내역", "결제관리");
-        add(list, "/calc/payRefundList", "M0316", "환불내역", "결제관리");
-        add(list, "/calc/payForceRefundList", "M0317", "강제환불", "결제관리");
         add(list, "/calc/payCancelList", "M0318", "취소내역", "결제관리");
-        add(list, "/calc/offsetCancList", "M0309", "상계취소내역", "결제관리");
+        add(list, "/calc/payRefundList", "M0316", "환불내역", "결제관리");
+        add(list, "/calc/payForceRefundList", "M0317", "강제환불내역", "결제관리");
         add(list, "/pay/easyPay", "M0310", "URL결제내역", "결제관리");
         add(list, "/pay/chatbotPay", "M0311", "챗봇결제내역", "결제관리");
+        add(list, "/calc/offsetCancList", "M0309", "상계취소내역", "결제관리");
+        add(list, "/calc/chillPaySettlementList", "M0421", "통합정산", "정산관리");
         add(list, "/calc/calcList", "M0404", "유통망정산내역", "정산관리");
         add(list, "/calc/calcGmList", "M0405", "가맹정산내역", "정산관리");
         add(list, "/calc/feeList", "M0406", "수수료내역", "정산관리");

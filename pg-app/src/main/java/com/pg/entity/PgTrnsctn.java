@@ -27,7 +27,8 @@ public class PgTrnsctn {
     @Column(name = "cur_type", length = 3)
     private String curType = "KRW";
 
-    @Column(name = "amt_krw", precision = 15, scale = 0)
+    /** 거래 금액(노티·동기화 원문 소수 유지 — USD 등). 컬럼명 amt_krw 는 이력 호환. */
+    @Column(name = "amt_krw", precision = 20, scale = 8)
     private BigDecimal amtKrw;
 
     @Column(name = "pay_no", length = 50)
@@ -42,6 +43,10 @@ public class PgTrnsctn {
     /** null·CHILL(동기화), NOTI(전산노티), URL(칠페이 URL 결제), CHATBOT(EFO 웹챗봇·동일 칠페이 API) */
     @Column(name = "origin", length = 20)
     private String origin;
+
+    /** 전산 노티 적재 시 수신 경로. CALLBACK | RESULT | BOTH(양 채널 수신). 기존 행·비노티 출처는 null */
+    @Column(name = "notify_channel_type", length = 20)
+    private String notifyChannelType;
 
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
@@ -67,15 +72,15 @@ public class PgTrnsctn {
     private LocalDateTime paidAt;
 
     /** ChillPay/정산 시트 ICOPAY 금액 */
-    @Column(name = "icopay_amt", precision = 15, scale = 0)
+    @Column(name = "icopay_amt", precision = 20, scale = 8)
     private BigDecimal icopayAmt;
 
     /** ChillPay Fee (PG/대행 수수료 등 원문 금액) */
-    @Column(name = "chill_fee_amt", precision = 15, scale = 0)
+    @Column(name = "chill_fee_amt", precision = 20, scale = 8)
     private BigDecimal chillFeeAmt;
 
     /** ChillPay TotalAmount */
-    @Column(name = "total_amt", precision = 15, scale = 0)
+    @Column(name = "total_amt", precision = 20, scale = 8)
     private BigDecimal totalAmt;
 
     /** ChillPay RouteNo */
@@ -122,6 +127,8 @@ public class PgTrnsctn {
     public void setVan(String van) { this.van = van; }
     public String getOrigin() { return origin; }
     public void setOrigin(String origin) { this.origin = origin; }
+    public String getNotifyChannelType() { return notifyChannelType; }
+    public void setNotifyChannelType(String notifyChannelType) { this.notifyChannelType = notifyChannelType; }
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
 

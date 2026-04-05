@@ -7,6 +7,8 @@ import com.pg.entity.MerchantPgBinding;
 import com.pg.entity.OrgUnit;
 import com.pg.entity.PgAgency;
 import com.pg.entity.PgNotifyInbound;
+import com.pg.entity.HqNotifyTarget;
+import com.pg.repository.HqNotifyTargetRepository;
 import com.pg.repository.MerchantPgBindingRepository;
 import com.pg.repository.OrgUnitRepository;
 import com.pg.repository.PgAgencyRepository;
@@ -21,6 +23,7 @@ import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -51,6 +54,7 @@ public class PgNotifyReceiveService {
     private final OrgServiceUseService orgServiceUseService;
     private final PgNotifyIngressGuard notifyIngressGuard;
     private final ChillPayNotifyToTrnsctnService chillPayNotifyToTrnsctnService;
+    private final HqNotifyTargetRepository hqNotifyTargetRepository;
 
     public PgNotifyReceiveService(HqNotifyEnvService hqNotifyEnvService,
                                 PgNotifyInboundRepository inboundRepository,
@@ -59,7 +63,8 @@ public class PgNotifyReceiveService {
                                 PgAgencyRepository pgAgencyRepository,
                                 OrgServiceUseService orgServiceUseService,
                                 PgNotifyIngressGuard notifyIngressGuard,
-                                ChillPayNotifyToTrnsctnService chillPayNotifyToTrnsctnService) {
+                                ChillPayNotifyToTrnsctnService chillPayNotifyToTrnsctnService,
+                                HqNotifyTargetRepository hqNotifyTargetRepository) {
         this.hqNotifyEnvService = hqNotifyEnvService;
         this.inboundRepository = inboundRepository;
         this.bindingRepository = bindingRepository;
@@ -68,10 +73,14 @@ public class PgNotifyReceiveService {
         this.orgServiceUseService = orgServiceUseService;
         this.notifyIngressGuard = notifyIngressGuard;
         this.chillPayNotifyToTrnsctnService = chillPayNotifyToTrnsctnService;
+        this.hqNotifyTargetRepository = hqNotifyTargetRepository;
     }
 
+    /**
+     * @param notifyTargetCode 노티 URL 경로의 두 번째 세그먼트(cb…/rs… 등). 없으면 CALLBACK 로 간주합니다.
+     */
     @Transactional
-    public String receiveAndRespond(String pathToken, String rawBody, String contentType, String clientIp, HttpServletRequest request) {
+    public String receiveAndRespond(String pathToken, String notifyTargetCode, String rawBody, String contentType, String clientIp, HttpServletRequest request) {
         notifyIngressGuard.assertAllowed(clientIp, rawBody != null ? rawBody : "", request);
         HqNotifyEnvConfig env = hqNotifyEnvService.getOrCreate();
         if (!env.getIngressToken().equals(pathToken)) {
@@ -85,15 +94,42 @@ public class PgNotifyReceiveService {
         in.setRawBody(body.length() > 500_000 ? body.substring(0, 500_000) + "...(truncated)" : body);
         in.setContentType(contentType);
         in.setClientIp(clientIp);
+        String channelType = resolveNotifyChannelType(notifyTargetCode);
+        in.setNotifyChannelType(channelType);
+        in.setNotifyTargetCode(trimNotifyTargetCode(notifyTargetCode));
 
         resolveAndFillInbound(in, parsed);
         inboundRepository.save(in);
         try {
-            chillPayNotifyToTrnsctnService.recordFromInbound(in);
+            chillPayNotifyToTrnsctnService.recordFromInbound(in, channelType);
         } catch (Exception e) {
             log.warn("노티→결제내역(pg_trnsctn) 후처리 실패 (수신 응답은 OK 유지): {}", e.getMessage());
         }
         return env.getNotifyOkResponse() != null ? env.getNotifyOkResponse() : "{\"result\":\"OK\"}";
+    }
+
+    private static String trimNotifyTargetCode(String code) {
+        if (code == null || code.isBlank()) {
+            return null;
+        }
+        String t = code.trim();
+        return t.length() > 64 ? t.substring(0, 64) : t;
+    }
+
+    /** 본사설정 노티 대상 URL의 경로 코드 → CALLBACK/RESULT (미등록 시 CALLBACK) */
+    private String resolveNotifyChannelType(String targetCode) {
+        if (targetCode == null || targetCode.isBlank()) {
+            return "CALLBACK";
+        }
+        Optional<HqNotifyTarget> t = hqNotifyTargetRepository.findByTargetCode(targetCode.trim());
+        if (t.isEmpty()) {
+            return "CALLBACK";
+        }
+        String ct = t.get().getChannelType();
+        if (ct == null || ct.isBlank()) {
+            return "CALLBACK";
+        }
+        return ct.trim().toUpperCase(Locale.ROOT);
     }
 
     private void resolveAndFillInbound(PgNotifyInbound in, ParsedNotify p) {

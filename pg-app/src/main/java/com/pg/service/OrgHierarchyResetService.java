@@ -48,6 +48,7 @@ public class OrgHierarchyResetService {
     private final OrgUnitPagePermissionRepository orgUnitPagePermissionRepository;
     private final DistributionFeeConfigRepository distributionFeeConfigRepository;
     private final OrgViewColumnAllowanceRepository orgViewColumnAllowanceRepository;
+    private final HqViewCustomColumnRepository hqViewCustomColumnRepository;
     private final UserViewSettingRepository userViewSettingRepository;
     private final BalanceDeductionRepository balanceDeductionRepository;
 
@@ -72,6 +73,7 @@ public class OrgHierarchyResetService {
                                     OrgUnitPagePermissionRepository orgUnitPagePermissionRepository,
                                     DistributionFeeConfigRepository distributionFeeConfigRepository,
                                     OrgViewColumnAllowanceRepository orgViewColumnAllowanceRepository,
+                                    HqViewCustomColumnRepository hqViewCustomColumnRepository,
                                     UserViewSettingRepository userViewSettingRepository,
                                     BalanceDeductionRepository balanceDeductionRepository) {
         this.authTokenRepository = authTokenRepository;
@@ -95,6 +97,7 @@ public class OrgHierarchyResetService {
         this.orgUnitPagePermissionRepository = orgUnitPagePermissionRepository;
         this.distributionFeeConfigRepository = distributionFeeConfigRepository;
         this.orgViewColumnAllowanceRepository = orgViewColumnAllowanceRepository;
+        this.hqViewCustomColumnRepository = hqViewCustomColumnRepository;
         this.userViewSettingRepository = userViewSettingRepository;
         this.balanceDeductionRepository = balanceDeductionRepository;
     }
@@ -131,6 +134,7 @@ public class OrgHierarchyResetService {
         noticeRepository.deleteAll();
         orgUnitPagePermissionRepository.deleteAll();
         distributionFeeConfigRepository.deleteAll();
+        hqViewCustomColumnRepository.deleteAll();
         orgViewColumnAllowanceRepository.deleteAll();
         userViewSettingRepository.deleteAll();
 

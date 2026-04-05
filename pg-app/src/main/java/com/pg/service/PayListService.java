@@ -4,6 +4,7 @@ import com.pg.api.dto.PageResult;
 import com.pg.api.dto.PayListItemDto;
 import com.pg.api.dto.PayListRowContext;
 import com.pg.api.dto.PayListSearchRequest;
+import com.pg.entity.AppUser;
 import com.pg.entity.CommissionPolicy;
 import com.pg.entity.DistributionFeeConfig;
 import com.pg.entity.MerchantPgBinding;
@@ -19,25 +20,38 @@ import com.pg.repository.MerchantProfileRepository;
 import com.pg.repository.OrgUnitRepository;
 import com.pg.repository.PgTrnsctnRepository;
 import com.pg.repository.SettlementSettingRepository;
+import com.pg.util.PayListStatusBarBuckets;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
+import jakarta.persistence.Tuple;
+import jakarta.persistence.criteria.CriteriaBuilder;
+import jakarta.persistence.criteria.CriteriaQuery;
+import jakarta.persistence.criteria.Expression;
 import jakarta.persistence.criteria.Predicate;
+import jakarta.persistence.criteria.Root;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.TreeSet;
 import java.util.stream.Collectors;
 
 @Service
@@ -50,6 +64,10 @@ public class PayListService {
     private final DistributionFeeConfigRepository distributionFeeConfigRepository;
     private final CommissionPolicyRepository commissionPolicyRepository;
     private final SettlementSettingRepository settlementSettingRepository;
+    private final HqNotifyMappingService hqNotifyMappingService;
+
+    @PersistenceContext
+    private EntityManager entityManager;
 
     public PayListService(PgTrnsctnRepository trnsctnRepository,
                           OrgUnitRepository orgUnitRepository,
@@ -57,7 +75,8 @@ public class PayListService {
                           MerchantPgBindingRepository merchantPgBindingRepository,
                           DistributionFeeConfigRepository distributionFeeConfigRepository,
                           CommissionPolicyRepository commissionPolicyRepository,
-                          SettlementSettingRepository settlementSettingRepository) {
+                          SettlementSettingRepository settlementSettingRepository,
+                          HqNotifyMappingService hqNotifyMappingService) {
         this.trnsctnRepository = trnsctnRepository;
         this.orgUnitRepository = orgUnitRepository;
         this.merchantProfileRepository = merchantProfileRepository;
@@ -65,31 +84,69 @@ public class PayListService {
         this.distributionFeeConfigRepository = distributionFeeConfigRepository;
         this.commissionPolicyRepository = commissionPolicyRepository;
         this.settlementSettingRepository = settlementSettingRepository;
+        this.hqNotifyMappingService = hqNotifyMappingService;
     }
 
-    public PageResult<Map<String, Object>> search(PayListSearchRequest req) {
+    public PageResult<Map<String, Object>> search(PayListSearchRequest req, Authentication authentication) {
         if (req == null) {
             req = new PayListSearchRequest();
         }
         LocalDateTime from = req.getSearchFromDate() != null ? req.getSearchFromDate().atStartOfDay() : null;
         LocalDateTime to = req.getSearchToDate() != null ? req.getSearchToDate().atTime(LocalTime.MAX) : null;
         int page = Math.max(1, req.getPage());
-        int size = Math.min(100, Math.max(1, req.getSize()));
+        int size = Math.min(1000, Math.max(1, req.getSize()));
         Pageable p = PageRequest.of(page - 1, size, Sort.by(Sort.Direction.DESC, "createdAt"));
         Specification<PgTrnsctn> spec = buildSpecification(req, from, to);
         Page<PgTrnsctn> result = trnsctnRepository.findAll(spec, p);
         List<String> merchantCodes = result.getContent().stream().map(PgTrnsctn::getMerchantId).distinct().collect(Collectors.toList());
+        Map<String, PayListRowContext> ctxByCode = buildPayListRowContextMap(merchantCodes);
 
+        HqNotifyMappingService.DisplayTransformCache displayCache = hqNotifyMappingService.loadDisplayTransformCache();
+        List<Map<String, Object>> list = new ArrayList<>();
+        for (PgTrnsctn t : result.getContent()) {
+            PayListRowContext ctx = ctxByCode.get(t.getMerchantId());
+            Map<String, Object> row = PayListItemDto.from(t, ctx);
+            String pgCd = resolvePgCdForPayListRow(ctx, t);
+            hqNotifyMappingService.applyDisplayTransform(displayCache, pgCd, row);
+            list.add(row);
+        }
+        PageResult<Map<String, Object>> pr = new PageResult<>();
+        pr.setList(list);
+        pr.setPage(result.getNumber() + 1);
+        pr.setSize(result.getSize());
+        pr.setTotalElements(result.getTotalElements());
+        pr.setTotalPages(result.getTotalPages());
+        try {
+            Map<String, Object> bar = computePgTxnStatusBar(req, authentication);
+            Map<String, Object> fin = computePayListFinancialSummary(req, authentication);
+            Map<String, Object> meta = new LinkedHashMap<>();
+            meta.put("payListStatusBar", bar);
+            meta.put("payListFinancialSummary", fin);
+            pr.setMeta(meta);
+        } catch (RuntimeException ignored) {
+            /* 집계 실패 시 목록만 반환 */
+        }
+        return pr;
+    }
+
+    private Map<String, PayListRowContext> buildPayListRowContextMap(Collection<String> merchantCodes) {
+        Map<String, PayListRowContext> ctxByCode = new HashMap<>();
+        if (merchantCodes == null || merchantCodes.isEmpty()) {
+            return ctxByCode;
+        }
+        Set<String> codes = merchantCodes.stream()
+                .filter(Objects::nonNull)
+                .map(String::trim)
+                .filter(s -> !s.isEmpty())
+                .collect(Collectors.toSet());
         Map<String, OrgUnit> ouByCode = new HashMap<>();
         for (OrgUnit ou : orgUnitRepository.findAll()) {
-            if (merchantCodes.contains(ou.getCode())) {
+            if (codes.contains(ou.getCode())) {
                 ouByCode.put(ou.getCode(), ou);
             }
         }
         Optional<CommissionPolicy> defaultPolicy = commissionPolicyRepository.findByScope("DEFAULT");
-
-        Map<String, PayListRowContext> ctxByCode = new HashMap<>();
-        for (String code : merchantCodes) {
+        for (String code : codes) {
             OrgUnit merchant = ouByCode.get(code);
             String compNm = merchant != null ? merchant.getName() : code;
             MerchantProfile profile = merchant != null
@@ -105,17 +162,182 @@ public class PayListService {
             ctxByCode.put(code, new PayListRowContext(compNm, profile, binding, dist, pol, ss,
                     hier[0], hier[1], hier[2]));
         }
+        return ctxByCode;
+    }
 
-        List<Map<String, Object>> list = result.getContent().stream()
-                .map(t -> PayListItemDto.from(t, ctxByCode.get(t.getMerchantId())))
-                .collect(Collectors.toList());
-        PageResult<Map<String, Object>> pr = new PageResult<>();
-        pr.setList(list);
-        pr.setPage(result.getNumber() + 1);
-        pr.setSize(result.getSize());
-        pr.setTotalElements(result.getTotalElements());
-        pr.setTotalPages(result.getTotalPages());
-        return pr;
+    /**
+     * 동일 검색 조건·조직 권한 범위 전체 건 기준 금액 요약(페이지·정렬과 무관). 건수=승인 건수, 금액은 통화별.
+     */
+    private Map<String, Object> computePayListFinancialSummary(PayListSearchRequest req, Authentication authentication) {
+        LocalDateTime from = req.getSearchFromDate() != null ? req.getSearchFromDate().atStartOfDay() : null;
+        LocalDateTime to = req.getSearchToDate() != null ? req.getSearchToDate().atTime(LocalTime.MAX) : null;
+        Specification<PgTrnsctn> spec = buildSpecification(req, from, to);
+        CriteriaBuilder cb = entityManager.getCriteriaBuilder();
+        CriteriaQuery<Tuple> cq = cb.createTupleQuery();
+        Root<PgTrnsctn> root = cq.from(PgTrnsctn.class);
+        cq.multiselect(
+                root.get("merchantId"),
+                root.get("status"),
+                root.get("curType"),
+                root.get("amtKrw"));
+        cq.where(spec.toPredicate(root, cq, cb));
+        List<Tuple> rows = entityManager.createQuery(cq).getResultList();
+
+        Set<String> mcodes = new HashSet<>();
+        for (Tuple tup : rows) {
+            String mid = tup.get(0, String.class);
+            if (mid != null && !mid.isBlank()) {
+                mcodes.add(mid.trim());
+            }
+        }
+        Map<String, PayListRowContext> ctxMap = buildPayListRowContextMap(mcodes);
+
+        AppUser user = (authentication != null && authentication.getPrincipal() instanceof AppUser u) ? u : null;
+        OrgLevel level = PayListStatusBarBuckets.resolveViewerOrgLevel(user, orgUnitRepository);
+        boolean multi = PayListStatusBarBuckets.isMultiCurrencyViewer(level);
+        String primary = PayListStatusBarBuckets.resolveViewerPrimaryCurrency(user, orgUnitRepository, commissionPolicyRepository);
+        String primaryNorm = PayListStatusBarBuckets.normalizeCurrency(primary);
+
+        Map<String, BigDecimal> approve = new HashMap<>();
+        Map<String, BigDecimal> cancel = new HashMap<>();
+        Map<String, BigDecimal> feeVatSum = new HashMap<>();
+        Map<String, BigDecimal> hold = new HashMap<>();
+        Map<String, BigDecimal> payout = new HashMap<>();
+        long successCount = 0;
+
+        for (Tuple tup : rows) {
+            String mid = tup.get(0, String.class);
+            String st = tup.get(1, String.class);
+            String curRaw = tup.get(2, String.class);
+            BigDecimal amt = tup.get(3, BigDecimal.class);
+            if (amt == null) {
+                amt = BigDecimal.ZERO;
+            }
+            String cur = PayListStatusBarBuckets.normalizeCurrency(curRaw);
+            if (!multi && !primaryNorm.equals(cur)) {
+                continue;
+            }
+            PayListRowContext ctx = mid != null ? ctxMap.get(mid.trim()) : null;
+            if ("10".equals(st)) {
+                successCount++;
+                approve.merge(cur, amt, BigDecimal::add);
+                PayListItemDto.ApprovedSettlementParts p = PayListItemDto.approvedSettlementParts(amt, ctx);
+                feeVatSum.merge(cur, p.feeAmt.add(p.feeVat), BigDecimal::add);
+                hold.merge(cur, p.holdAmt, BigDecimal::add);
+                payout.merge(cur, p.settleAmt, BigDecimal::add);
+            } else if (PayListItemDto.isCancelAmountStatus(st)) {
+                cancel.merge(cur, amt, BigDecimal::add);
+            }
+        }
+
+        Set<String> union = new TreeSet<>();
+        union.addAll(approve.keySet());
+        union.addAll(cancel.keySet());
+        List<String> sortedUnion = new ArrayList<>(union);
+        PayListStatusBarBuckets.sortCurrencyCodes(sortedUnion);
+
+        Map<String, String> approvePlain = new LinkedHashMap<>();
+        Map<String, String> cancelPlain = new LinkedHashMap<>();
+        Map<String, String> paymentPlain = new LinkedHashMap<>();
+        for (String c : sortedUnion) {
+            BigDecimal a = approve.getOrDefault(c, BigDecimal.ZERO);
+            BigDecimal k = cancel.getOrDefault(c, BigDecimal.ZERO);
+            approvePlain.put(c, PayListStatusBarBuckets.stripTrailingZeros(a));
+            cancelPlain.put(c, PayListStatusBarBuckets.stripTrailingZeros(k));
+            paymentPlain.put(c, PayListStatusBarBuckets.stripTrailingZeros(a.subtract(k)));
+        }
+
+        List<String> succCurrencies = new ArrayList<>(approve.keySet());
+        PayListStatusBarBuckets.sortCurrencyCodes(succCurrencies);
+        Map<String, String> feePlain = new LinkedHashMap<>();
+        Map<String, String> holdPlain = new LinkedHashMap<>();
+        Map<String, String> payoutPlain = new LinkedHashMap<>();
+        for (String c : succCurrencies) {
+            feePlain.put(c, PayListStatusBarBuckets.stripTrailingZeros(feeVatSum.getOrDefault(c, BigDecimal.ZERO)));
+            holdPlain.put(c, PayListStatusBarBuckets.stripTrailingZeros(hold.getOrDefault(c, BigDecimal.ZERO)));
+            payoutPlain.put(c, PayListStatusBarBuckets.stripTrailingZeros(payout.getOrDefault(c, BigDecimal.ZERO)));
+        }
+
+        Map<String, Object> out = new LinkedHashMap<>();
+        out.put("successCount", successCount);
+        out.put("multiCurrency", multi);
+        out.put("primaryCurrency", primaryNorm);
+        out.put("approveByCurrency", approvePlain);
+        out.put("cancelByCurrency", cancelPlain);
+        out.put("paymentByCurrency", paymentPlain);
+        out.put("feeByCurrency", feePlain);
+        out.put("holdByCurrency", holdPlain);
+        out.put("payoutByCurrency", payoutPlain);
+        return out;
+    }
+
+    /**
+     * 동일 검색 조건 전체 건 기준 상태·통화별 합계(페이지와 무관).
+     */
+    private Map<String, Object> computePgTxnStatusBar(PayListSearchRequest req, Authentication authentication) {
+        LocalDateTime from = req.getSearchFromDate() != null ? req.getSearchFromDate().atStartOfDay() : null;
+        LocalDateTime to = req.getSearchToDate() != null ? req.getSearchToDate().atTime(LocalTime.MAX) : null;
+        Specification<PgTrnsctn> spec = buildSpecification(req, from, to);
+        CriteriaBuilder cb = entityManager.getCriteriaBuilder();
+        CriteriaQuery<Tuple> cq = cb.createTupleQuery();
+        Root<PgTrnsctn> root = cq.from(PgTrnsctn.class);
+        jakarta.persistence.criteria.Path<String> st = root.get("status");
+        Expression<String> curExpr = cb.upper(cb.trim(CriteriaBuilder.Trimspec.BOTH,
+                cb.coalesce(root.get("curType"), cb.literal("KRW"))));
+        Expression<String> bucket = cb.<String>selectCase()
+                .when(cb.equal(st, "10"), cb.literal(PayListStatusBarBuckets.SUCCESS))
+                .when(cb.or(
+                        cb.equal(st, "F0"),
+                        cb.equal(cb.upper(st), "F0"),
+                        cb.equal(st, "99")
+                ), cb.literal(PayListStatusBarBuckets.FAIL))
+                .when(cb.or(
+                        cb.equal(st, "21"), cb.equal(st, "22"),
+                        cb.equal(st, "40"), cb.equal(st, "41"), cb.equal(st, "42")
+                ), cb.literal(PayListStatusBarBuckets.VOID))
+                .when(cb.or(cb.equal(st, "30"), cb.equal(st, "31")), cb.literal(PayListStatusBarBuckets.REFUND))
+                .otherwise(cb.literal(PayListStatusBarBuckets.OTHER));
+        cq.multiselect(bucket, curExpr, cb.count(root),
+                cb.sum(cb.coalesce(root.get("amtKrw"), cb.literal(BigDecimal.ZERO))));
+        cq.where(spec.toPredicate(root, cq, cb));
+        cq.groupBy(bucket, curExpr);
+        List<Tuple> tuples = entityManager.createQuery(cq).getResultList();
+        PayListStatusBarBuckets.MutableRollup roll = new PayListStatusBarBuckets.MutableRollup();
+        for (Tuple t : tuples) {
+            String b = t.get(0, String.class);
+            String c = t.get(1, String.class);
+            Long cnt = t.get(2, Long.class);
+            BigDecimal sum = t.get(3, BigDecimal.class);
+            if (cnt == null) {
+                cnt = 0L;
+            }
+            if (sum == null) {
+                sum = BigDecimal.ZERO;
+            }
+            roll.add(b, c, sum, cnt);
+        }
+        AppUser user = (authentication != null && authentication.getPrincipal() instanceof AppUser u) ? u : null;
+        OrgLevel level = PayListStatusBarBuckets.resolveViewerOrgLevel(user, orgUnitRepository);
+        boolean multi = PayListStatusBarBuckets.isMultiCurrencyViewer(level);
+        String primary = PayListStatusBarBuckets.resolveViewerPrimaryCurrency(user, orgUnitRepository, commissionPolicyRepository);
+        String variant = req.getPayListVariant() == null || req.getPayListVariant().isBlank()
+                ? "INTEGRATED" : req.getPayListVariant().trim().toUpperCase(Locale.ROOT);
+        /* 통합·결제내역(INTEGRATED): 성공·실패·무효·환불·기타 전 구간 + 0건도 표시. 그 외 변형 화면은 건수 있는 버킷만 */
+        boolean showAllBuckets = "INTEGRATED".equals(variant);
+        return roll.toPayload(multi, primary, false, showAllBuckets);
+    }
+
+    private static String resolvePgCdForPayListRow(PayListRowContext ctx, PgTrnsctn t) {
+        if (ctx != null && ctx.getBinding() != null) {
+            String p = ctx.getBinding().getPgCd();
+            if (p != null && !p.isBlank()) {
+                return p.trim();
+            }
+        }
+        if (t != null && t.getVan() != null && !t.getVan().isBlank()) {
+            return t.getVan().trim();
+        }
+        return "";
     }
 
     private MerchantPgBinding pickBinding(OrgUnit merchant) {

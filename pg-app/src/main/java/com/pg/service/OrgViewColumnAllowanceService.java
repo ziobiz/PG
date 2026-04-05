@@ -5,7 +5,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.pg.entity.AppUser;
 import com.pg.entity.OrgLevel;
 import com.pg.entity.OrgUnit;
+import com.pg.entity.HqViewCustomColumn;
 import com.pg.entity.OrgViewColumnAllowance;
+import com.pg.repository.HqViewCustomColumnRepository;
 import com.pg.repository.OrgUnitRepository;
 import com.pg.repository.OrgViewColumnAllowanceRepository;
 import org.springframework.stereotype.Service;
@@ -13,6 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -35,13 +38,16 @@ public class OrgViewColumnAllowanceService {
     private final AuthService authService;
     private final OrgUnitRepository orgUnitRepository;
     private final OrgViewColumnAllowanceRepository allowanceRepository;
+    private final HqViewCustomColumnRepository hqViewCustomColumnRepository;
 
     public OrgViewColumnAllowanceService(AuthService authService,
                                          OrgUnitRepository orgUnitRepository,
-                                         OrgViewColumnAllowanceRepository allowanceRepository) {
+                                         OrgViewColumnAllowanceRepository allowanceRepository,
+                                         HqViewCustomColumnRepository hqViewCustomColumnRepository) {
         this.authService = authService;
         this.orgUnitRepository = orgUnitRepository;
         this.allowanceRepository = allowanceRepository;
+        this.hqViewCustomColumnRepository = hqViewCustomColumnRepository;
     }
 
     public boolean canManageOrgViewAllowance(AppUser user) {
@@ -73,7 +79,20 @@ public class OrgViewColumnAllowanceService {
             row = allowanceRepository.findByRegionalOrgCodeAndPageUrlAndViewerScope(regional.get(), p, SCOPE_MASTER_DIST);
         }
         if (row.isEmpty()) return Optional.empty();
-        return Optional.of(parseJsonArray(row.get().getAllowedKeysJson()));
+        List<String> allowed = parseJsonArray(row.get().getAllowedKeysJson());
+        return Optional.of(mergeCustomColumnKeysForPage(p, allowed));
+    }
+
+    /** 본사 등록 추가 항목 키는 조직 노출 정책이 있을 때 항상 허용 목록에 포함 */
+    public List<String> mergeCustomColumnKeysForPage(String pageUrl, List<String> allowedKeys) {
+        String p = safe(pageUrl);
+        LinkedHashSet<String> merged = new LinkedHashSet<>(allowedKeys != null ? allowedKeys : List.of());
+        if (!p.isEmpty()) {
+            for (HqViewCustomColumn c : hqViewCustomColumnRepository.findByPageUrlOrderBySortOrderAscIdAsc(p)) {
+                merged.add(c.getColumnKey());
+            }
+        }
+        return new ArrayList<>(merged);
     }
 
     /** 로그인 사용자 소속 조직의 OrgLevel → viewer_scope (HEADQUARTERS 등은 null) */

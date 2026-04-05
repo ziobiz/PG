@@ -1252,6 +1252,8 @@ public class ApiHqController {
         data.put("urlPayInlineEnabledYn", "Y");
         data.put("urlPayRedirectEnabledYn", "Y");
         data.put("urlPayFormMode", "FULL");
+        data.put("urlPayTabTitleJson", "{}");
+        data.put("urlPayFaviconUrl", "");
         data.put("paymentProviderRegistryJson", "{\n  \"version\": 1,\n  \"vendors\": [\n    {\n      \"vendorCode\": \"CHILLPAY\",\n      \"vendorName\": \"칠리페이\",\n      \"integrationTypes\": [\"API_BROKER\", \"URL_PAY\"],\n      \"flowTypes\": [\"INLINE\", \"REDIRECT\"],\n      \"activeYn\": \"Y\"\n    }\n  ]\n}");
         data.put("payCurrencyScaleRulesJson", "{\"rules\":[]}");
         data.put("urlPayCardCopyConfigJson", "{\"entries\":[]}");
@@ -1275,6 +1277,12 @@ public class ApiHqController {
             if (c.getUrlPayInlineEnabledYn() != null) data.put("urlPayInlineEnabledYn", c.getUrlPayInlineEnabledYn());
             if (c.getUrlPayRedirectEnabledYn() != null) data.put("urlPayRedirectEnabledYn", c.getUrlPayRedirectEnabledYn());
             if (c.getUrlPayFormMode() != null) data.put("urlPayFormMode", c.getUrlPayFormMode());
+            if (c.getUrlPayTabTitleJson() != null && !c.getUrlPayTabTitleJson().isBlank()) {
+                data.put("urlPayTabTitleJson", c.getUrlPayTabTitleJson());
+            }
+            if (c.getUrlPayFaviconUrl() != null && !c.getUrlPayFaviconUrl().isBlank()) {
+                data.put("urlPayFaviconUrl", c.getUrlPayFaviconUrl());
+            }
             if (c.getPaymentProviderRegistryJson() != null) data.put("paymentProviderRegistryJson", c.getPaymentProviderRegistryJson());
             if (c.getPayCurrencyScaleRulesJson() != null && !c.getPayCurrencyScaleRulesJson().isBlank()) {
                 data.put("payCurrencyScaleRulesJson", c.getPayCurrencyScaleRulesJson());
@@ -1322,6 +1330,16 @@ public class ApiHqController {
         c.setUrlPayRedirectEnabledYn("N".equalsIgnoreCase(String.valueOf(body.getOrDefault("urlPayRedirectEnabledYn", "Y"))) ? "N" : "Y");
         String upForm = body.get("urlPayFormMode") != null ? body.get("urlPayFormMode").toString().trim() : "FULL";
         c.setUrlPayFormMode("SIMPLE".equalsIgnoreCase(upForm) ? "SIMPLE" : "FULL");
+        Object tabTitleJson = body.get("urlPayTabTitleJson");
+        if (tabTitleJson != null) {
+            String tj = tabTitleJson.toString().trim();
+            c.setUrlPayTabTitleJson(tj.isEmpty() || "{}".equals(tj) ? null : tj);
+        }
+        Object favUrl = body.get("urlPayFaviconUrl");
+        if (favUrl != null) {
+            String fv = favUrl.toString().trim();
+            c.setUrlPayFaviconUrl(fv.isEmpty() ? null : fv);
+        }
         c.setPaymentProviderRegistryJson(body.get("paymentProviderRegistryJson") != null ? body.get("paymentProviderRegistryJson").toString().trim() : null);
         Object scaleRules = body.get("payCurrencyScaleRulesJson");
         if (scaleRules != null) {
@@ -1357,8 +1375,22 @@ public class ApiHqController {
         if (titleKo.isEmpty() || body1Ko.isEmpty() || body2Ko.isEmpty() || body3Ko.isEmpty()) {
             return ResponseEntity.ok(ApiResponse.fail("titleKo·body1Ko·body2Ko·body3Ko는 모두 필요합니다.", "VALIDATION"));
         }
+        String resultOk1Ko = b.get("resultOk1Ko") != null ? b.get("resultOk1Ko").toString().trim() : "";
+        String resultOk2Ko = b.get("resultOk2Ko") != null ? b.get("resultOk2Ko").toString().trim() : "";
+        String resultFail1Ko = b.get("resultFail1Ko") != null ? b.get("resultFail1Ko").toString().trim() : "";
+        String resultFail2Ko = b.get("resultFail2Ko") != null ? b.get("resultFail2Ko").toString().trim() : "";
+        Map<String, Object> maps = hqPayCopyTranslationService.translatePayCopyFromKo(
+                titleKo, body1Ko, body2Ko, body3Ko,
+                resultOk1Ko, resultOk2Ko, resultFail1Ko, resultFail2Ko);
+        return ResponseEntity.ok(ApiResponse.ok(maps));
+    }
+
+    /** URL 결제 폼 설정 — 브라우저 탭 제목(한국어) 다국어 초안 */
+    @PostMapping("/urlPayTabTitleTranslateFromKo")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> urlPayTabTitleTranslateFromKo(@RequestBody Map<String, Object> body) {
+        Map<String, Object> b = body != null ? body : Map.of();
         String tabTitleKo = b.get("tabTitleKo") != null ? b.get("tabTitleKo").toString().trim() : "";
-        Map<String, Object> maps = hqPayCopyTranslationService.translatePayCopyFromKo(titleKo, body1Ko, body2Ko, body3Ko, tabTitleKo);
+        Map<String, Object> maps = hqPayCopyTranslationService.translateUrlPayTabTitleFromKo(tabTitleKo);
         return ResponseEntity.ok(ApiResponse.ok(maps));
     }
 

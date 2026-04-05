@@ -381,18 +381,23 @@ public class ApiSettlementController {
             }
             OrgUnit ou = orgUnitRepository.findByCode(compId).orElse(null);
             if (ou == null) continue;
-            long txnAmt = t.getAmtKrw() != null ? t.getAmtKrw().longValue() : 0L;
-            long feeAmt = estimateFeeAmount(txnAmt, compId);
-            long feeVat = hqPolicy.settlementVatApplyYn ? Math.round(feeAmt * 0.1d) : 0L;
-            long recallAmt = hqPolicy.recallIncludeFeeYn ? Math.max(0L, txnAmt + feeAmt + feeVat) : Math.max(0L, txnAmt);
-            long deductAmt = -recallAmt;
+            BigDecimal txnAmtBd = t.getAmtKrw() != null ? t.getAmtKrw() : BigDecimal.ZERO;
+            int recallScale = derivedFeeScale(txnAmtBd);
+            BigDecimal feeAmtBd = estimateFeeAmount(txnAmtBd, compId);
+            BigDecimal feeVatBd = hqPolicy.settlementVatApplyYn
+                    ? feeAmtBd.multiply(BigDecimal.valueOf(0.1)).setScale(recallScale, RoundingMode.HALF_UP)
+                    : BigDecimal.ZERO;
+            BigDecimal recallAmtBd = hqPolicy.recallIncludeFeeYn
+                    ? txnAmtBd.add(feeAmtBd).add(feeVatBd).max(BigDecimal.ZERO)
+                    : txnAmtBd.max(BigDecimal.ZERO);
+            BigDecimal deductAmtBd = recallAmtBd.negate();
             Map<String, Object> m = new HashMap<>();
             m.put("calcDt", t.getCreatedAt() != null ? t.getCreatedAt().toLocalDate().toString() : "");
             m.put("compId", compId);
             m.put("compNm", ou != null ? ou.getName() : compId);
-            m.put("settleAmt", txnAmt);
-            m.put("recallAmt", recallAmt);
-            m.put("deductAmt", deductAmt);
+            m.put("settleAmt", txnAmtBd);
+            m.put("recallAmt", recallAmtBd);
+            m.put("deductAmt", deductAmtBd);
             m.put("status", s);
             m.put("statusNm", switch (s) {
                 case "20" -> "취소";
@@ -439,8 +444,8 @@ public class ApiSettlementController {
                 continue;
             }
             CommissionPolicy pol = resolveCommissionPolicyForMerchant(compId);
-            long amount = t.getAmtKrw() != null ? t.getAmtKrw().longValue() : 0L;
-            BigDecimal amountBd = BigDecimal.valueOf(amount);
+            BigDecimal amountBd = t.getAmtKrw() != null ? t.getAmtKrw() : BigDecimal.ZERO;
+            int feeScale = derivedFeeScale(amountBd);
             String st = t.getStatus() != null ? t.getStatus().trim() : "";
             BigDecimal payRateBd = nz(pol.getPayRate());
             /* 건당·고정 수수료: 통화 단위 소수 첫째 자리(USD·THB 등) — longValue 절삭 방지 */
@@ -452,10 +457,10 @@ public class ApiSettlementController {
             double voidFee = "21".equals(st) ? nz(pol.getVoidFeePerTx()).doubleValue() : 0d;
             double manualVoidFee = "22".equals(st) ? nz(pol.getManualVoidFeePerTx()).doubleValue() : 0d;
             double refundFee = ("30".equals(st) || "31".equals(st)) ? nz(pol.getRefundRate()).doubleValue() : 0d;
-            double payFee = "10".equals(st) ? amountBd.multiply(payRateBd).divide(BigDecimal.valueOf(100), 0, RoundingMode.HALF_UP).doubleValue() : 0d;
-            double usdtFee = "10".equals(st) ? amountBd.multiply(nz(pol.getFeeUsdt())).divide(BigDecimal.valueOf(100), 0, RoundingMode.HALF_UP).doubleValue() : 0d;
-            double fxFee = "10".equals(st) ? amountBd.multiply(nz(pol.getFeeFx())).divide(BigDecimal.valueOf(100), 0, RoundingMode.HALF_UP).doubleValue() : 0d;
-            double fee3dsFee = "10".equals(st) ? amountBd.multiply(nz(pol.getFee3dsRate())).divide(BigDecimal.valueOf(100), 0, RoundingMode.HALF_UP).doubleValue() : 0d;
+            double payFee = "10".equals(st) ? amountBd.multiply(payRateBd).divide(BigDecimal.valueOf(100), feeScale, RoundingMode.HALF_UP).doubleValue() : 0d;
+            double usdtFee = "10".equals(st) ? amountBd.multiply(nz(pol.getFeeUsdt())).divide(BigDecimal.valueOf(100), feeScale, RoundingMode.HALF_UP).doubleValue() : 0d;
+            double fxFee = "10".equals(st) ? amountBd.multiply(nz(pol.getFeeFx())).divide(BigDecimal.valueOf(100), feeScale, RoundingMode.HALF_UP).doubleValue() : 0d;
+            double fee3dsFee = "10".equals(st) ? amountBd.multiply(nz(pol.getFee3dsRate())).divide(BigDecimal.valueOf(100), feeScale, RoundingMode.HALF_UP).doubleValue() : 0d;
             double settlementPerTxFee = nz(pol.getFeeSettlementPerTx()).doubleValue();
             double chargebackFee = 0d;
             if ("30".equals(st) || "31".equals(st)) {
@@ -488,7 +493,10 @@ public class ApiSettlementController {
                     ? CommissionExtraFeeUtil.sumPctOnApprovedAmount(pol, amountBd).doubleValue()
                     : 0d;
             double totalFee = Math.max(0d, perTxFee + usageFee + failFee + cancelFee + voidFee + manualVoidFee + refundFee + payFee + settlementPerTxFee + usdtFee + fxFee + fee3dsFee + chargebackFee + extraFees);
-            long feeVat = hqPolicy.settlementVatApplyYn ? Math.round(totalFee * 0.1d) : 0L;
+            int vatScale = feeScale > 0 ? feeScale : 0;
+            BigDecimal feeVatBd = hqPolicy.settlementVatApplyYn
+                    ? BigDecimal.valueOf(totalFee).multiply(BigDecimal.valueOf(0.1)).setScale(vatScale, RoundingMode.HALF_UP)
+                    : BigDecimal.ZERO;
 
             Map<String, Object> m = new LinkedHashMap<>();
             m.put("compId", compId);
@@ -497,7 +505,7 @@ public class ApiSettlementController {
             m.put("status", t.getStatus());
             m.put("statusNm", payDivName(t.getStatus()));
             m.put("trnDate", t.getCreatedAt() != null ? t.getCreatedAt().toLocalDate().toString() : "");
-            m.put("amount", amount);
+            m.put("amount", amountBd);
             m.put("perTxFee", perTxFee);
             m.put("usageFee", usageFee);
             m.put("failFee", failFee);
@@ -517,7 +525,7 @@ public class ApiSettlementController {
             m.put("chargebackFee", chargebackFee);
             m.put("extraFees", extraFees);
             m.put("totalFee", totalFee);
-            m.put("feeVat", feeVat);
+            m.put("feeVat", feeVatBd);
             m.put("vatAppliedYn", hqPolicy.settlementVatApplyYn ? "Y" : "N");
             all.add(m);
         }
@@ -1144,10 +1152,11 @@ public class ApiSettlementController {
         if (cfg != null) {
             allRate = nz(cfg.getHqRate()).add(nz(cfg.getRegionalRate())).add(nz(cfg.getMasterRate())).add(nz(cfg.getBranchRate())).add(nz(cfg.getAgencyRate()));
         }
-        BigDecimal feeAmt = amount.multiply(allRate).divide(BigDecimal.valueOf(100), 0, RoundingMode.HALF_UP);
-        BigDecimal vatAmt = feeAmt.multiply(BigDecimal.valueOf(0.1)).setScale(0, RoundingMode.HALF_UP);
+        int fs = derivedFeeScale(amount);
+        BigDecimal feeAmt = amount.multiply(allRate).divide(BigDecimal.valueOf(100), fs, RoundingMode.HALF_UP);
+        BigDecimal vatAmt = feeAmt.multiply(BigDecimal.valueOf(0.1)).setScale(fs, RoundingMode.HALF_UP);
         BigDecimal holdRate = BigDecimal.ZERO;
-        BigDecimal holdAmt = amount.multiply(holdRate).divide(BigDecimal.valueOf(100), 0, RoundingMode.HALF_UP);
+        BigDecimal holdAmt = amount.multiply(holdRate).divide(BigDecimal.valueOf(100), fs, RoundingMode.HALF_UP);
         BigDecimal settleAmt = amount.subtract(feeAmt).subtract(vatAmt).subtract(holdAmt);
 
         m.put("merchantNm", merchantNm);
@@ -1164,16 +1173,16 @@ public class ApiSettlementController {
         m.put("corpNm", merchantNm);
         m.put("pgNm", binding != null && binding.getPgCd() != null ? binding.getPgCd() : blank(t.getVan()));
         m.put("terminalId", binding != null ? blank(binding.getMid()) : "-");
-        m.put("amount", amount.longValue());
+        m.put("amount", amount);
         m.put("payNo", blank(t.getPayNo()));
         m.put("feeCnt", 1);
         m.put("feeRate", allRate);
-        m.put("feeAmt", feeAmt.longValue());
-        m.put("feeVat", vatAmt.longValue());
+        m.put("feeAmt", feeAmt);
+        m.put("feeVat", vatAmt);
         m.put("holdRate", holdRate);
-        m.put("holdAmt", holdAmt.longValue());
+        m.put("holdAmt", holdAmt);
         m.put("calcCycle", "-");
-        m.put("settleAmt", settleAmt.longValue());
+        m.put("settleAmt", settleAmt);
         m.put("calcDt", t.getCreatedAt() != null ? t.getCreatedAt().toString().replace("T", " ") : "");
         m.put("approveDt", t.getCreatedAt() != null ? t.getCreatedAt().toString().replace("T", " ") : "");
         m.put("cancelDt", "20".equals(t.getStatus()) ? (t.getCreatedAt() != null ? t.getCreatedAt().toString().replace("T", " ") : "") : "");
@@ -1250,10 +1259,20 @@ public class ApiSettlementController {
         return nz(base);
     }
 
-    private long estimateFeeAmount(long amount, String merchantId) {
-        BigDecimal amt = BigDecimal.valueOf(Math.max(0L, amount));
+    private BigDecimal estimateFeeAmount(BigDecimal amount, String merchantId) {
+        BigDecimal amt = amount != null && amount.compareTo(BigDecimal.ZERO) > 0 ? amount : BigDecimal.ZERO;
+        int scale = derivedFeeScale(amt);
         BigDecimal rate = resolvePayRate(merchantId);
-        return amt.multiply(rate).divide(BigDecimal.valueOf(100), 0, RoundingMode.HALF_UP).longValue();
+        return amt.multiply(rate).divide(BigDecimal.valueOf(100), scale, RoundingMode.HALF_UP);
+    }
+
+    /** 원금에 소수가 있으면 연동 추정 수수료·부가세도 동일 스케일(최소 2, 최대 8). 정수 원금(KRW 등)은 0. */
+    private static int derivedFeeScale(BigDecimal principal) {
+        if (principal == null) {
+            return 0;
+        }
+        int s = principal.scale();
+        return s > 0 ? Math.min(8, Math.max(2, s)) : 0;
     }
 
     private String payDivName(String status) {

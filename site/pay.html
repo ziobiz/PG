@@ -559,6 +559,29 @@
         applyPayAmountScaleNotice();
         updatePayCardSectionTexts();
         applyPayDocumentTitle();
+        applyPayFavicon();
+      }
+
+      function applyPayFavicon() {
+        var c = window.__payUrlCardCopy;
+        var path = (c && c.faviconUrl) ? String(c.faviconUrl).trim() : '';
+        var head = document.head || document.getElementsByTagName('head')[0];
+        if (!head) return;
+        var link = document.querySelector('link[data-pay-favicon="1"]');
+        if (!path) {
+          if (link) link.remove();
+          return;
+        }
+        var href = absPayAssetUrl(path);
+        if (!href) return;
+        if (!link) {
+          link = document.createElement('link');
+          link.setAttribute('data-pay-favicon', '1');
+          link.setAttribute('rel', 'icon');
+          link.setAttribute('type', 'image/png');
+          head.appendChild(link);
+        }
+        link.setAttribute('href', href + (href.indexOf('?') >= 0 ? '&' : '?') + 'v=' + Date.now());
       }
 
       function applyPayDocumentTitle() {
@@ -692,7 +715,19 @@
         var el = document.getElementById('payResult');
         if (!el) return;
         el.style.display = 'block';
-        var titleKey = isCancel ? 'payResultCancelTitle' : (isErr ? 'payResultFailTitle' : 'payResultOkTitle');
+        var c = window.__payUrlCardCopy;
+        var titleText;
+        var footText;
+        if (isCancel) {
+          titleText = (pickLangMap(c && c.resultFailMain) || '').trim() || t('payResultCancelTitle');
+          footText = (pickLangMap(c && c.resultFailFoot) || '').trim() || t('payResultDisclaimer');
+        } else if (isErr) {
+          titleText = (pickLangMap(c && c.resultFailMain) || '').trim() || t('payResultFailTitle');
+          footText = (pickLangMap(c && c.resultFailFoot) || '').trim() || t('payResultDisclaimer');
+        } else {
+          titleText = (pickLangMap(c && c.resultSuccessMain) || '').trim() || t('payResultOkTitle');
+          footText = (pickLangMap(c && c.resultSuccessFoot) || '').trim() || t('payResultDisclaimer');
+        }
         var cls = (isErr || isCancel) ? 'err' : 'ok';
         el.className = cls + ' pay-result-final';
         var msgHtml = escapeHtmlPay(msg != null ? String(msg) : '');
@@ -701,11 +736,11 @@
           ? '<p class="small text-muted mb-3">' + escapeHtmlPay(t('orderNoLabel')) + ': <strong>' + escapeHtmlPay(ord) + '</strong></p>'
           : '';
         el.innerHTML =
-          '<div class="pay-result-title">' + escapeHtmlPay(t(titleKey)) + '</div>' +
+          '<div class="pay-result-title">' + escapeHtmlPay(titleText) + '</div>' +
           '<p class="mb-2">' + msgHtml + '</p>' +
           ordBlock +
           '<button type="button" class="btn btn-primary btn-pay mt-1" id="payResultCloseBtn">' + escapeHtmlPay(t('payResultConfirm')) + '</button>' +
-          '<p class="small text-muted mt-3 mb-0">' + escapeHtmlPay(t('payResultDisclaimer')) + '</p>';
+          '<p class="small text-muted mt-3 mb-0">' + escapeHtmlPay(footText) + '</p>';
         var b = document.getElementById('payResultCloseBtn');
         if (b) {
           b.addEventListener('click', function () {

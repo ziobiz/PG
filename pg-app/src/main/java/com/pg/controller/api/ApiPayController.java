@@ -22,6 +22,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
 
@@ -83,7 +84,11 @@ public class ApiPayController {
             return ResponseEntity.ok(ApiResponse.fail(
                     "서비스가 중지된 업체입니다. (미사용 또는 상위 조직 미사용)", "ORG_DISABLED"));
         }
-        return ResponseEntity.ok(ApiResponse.ok(chillPayService.getConfigForFrontend(orgUnitId)));
+        try {
+            return ResponseEntity.ok(ApiResponse.ok(chillPayService.getConfigForFrontend(orgUnitId)));
+        } catch (IllegalStateException e) {
+            return ResponseEntity.ok(ApiResponse.fail(e.getMessage(), "CHILLPAY_ROUTE_NOT_CONFIGURED"));
+        }
     }
 
     /**
@@ -107,43 +112,81 @@ public class ApiPayController {
         if (ou.isEmpty()) {
             return ResponseEntity.ok(ApiResponse.fail("가맹점을 찾을 수 없습니다.", "NOT_FOUND"));
         }
-        Map<String, Object> data = new HashMap<>();
-        data.put("clientIp", getClientIp(request));
-        data.putAll(chillPayService.getUrlPayPresentationForCheckout(orgUnitId));
-        // 본사 URL결제 프레젠테이션 이후에 덮어씀 — 향후 맵에 동일 키가 생겨도 가맹점 표시·기본상품이 유지되도록
-        data.put("compId", ou.get().getCode());
-        data.put("merchantName", ou.get().getName());
-        merchantProfileRepository.findByOrgUnitId(orgUnitId).ifPresent(mp -> {
-            String bc = mp.getBaseCurrency();
-            if (bc != null && !bc.isBlank()) {
-                String first = bc.split(",")[0].trim();
-                if (!first.isEmpty()) {
-                    data.put("checkoutCurrencyCode", first);
+        try {
+            Map<String, Object> data = new HashMap<>();
+            data.put("clientIp", getClientIp(request));
+            data.putAll(chillPayService.getUrlPayPresentationForCheckout(orgUnitId));
+            // 본사 URL결제 프레젠테이션 이후에 덮어씀 — 향후 맵에 동일 키가 생겨도 가맹점 표시·기본상품이 유지되도록
+            data.put("compId", ou.get().getCode());
+            data.put("merchantName", ou.get().getName());
+            merchantProfileRepository.findByOrgUnitId(orgUnitId).ifPresent(mp -> {
+                String bc = mp.getBaseCurrency();
+                if (bc != null && !bc.isBlank()) {
+                    String first = bc.split(",")[0].trim();
+                    if (!first.isEmpty()) {
+                        data.put("checkoutCurrencyCode", first);
+                    }
+                }
+            });
+            Optional<MerchantDefaultProduct> dp = merchantDefaultProductRepository.findByOrgUnitId(orgUnitId);
+            if (dp.isPresent()) {
+                MerchantDefaultProduct p = dp.get();
+                if (p.getProductName() != null && !p.getProductName().isBlank()) {
+                    data.put("defaultProductName", p.getProductName().trim());
+                }
+                if (p.getDefaultAmount() != null) {
+                    long amt = p.getDefaultAmount().longValue();
+                    data.put("defaultAmountYen", amt);
+                    data.put("defaultCheckoutAmount", amt);
                 }
             }
-        });
-        Optional<MerchantDefaultProduct> dp = merchantDefaultProductRepository.findByOrgUnitId(orgUnitId);
-        if (dp.isPresent()) {
-            MerchantDefaultProduct p = dp.get();
-            if (p.getProductName() != null && !p.getProductName().isBlank()) {
-                data.put("defaultProductName", p.getProductName().trim());
-            }
-            if (p.getDefaultAmount() != null) {
-                long amt = p.getDefaultAmount().longValue();
-                data.put("defaultAmountYen", amt);
-                data.put("defaultCheckoutAmount", amt);
-            }
+            String opPg = chillPayService.resolveUrlPayOperationalPgCd(orgUnitId);
+            Object checkoutCurObj = data.get("checkoutCurrencyCode");
+            String checkoutCur = checkoutCurObj instanceof String ? (String) checkoutCurObj : null;
+            String scaleMode = paymentCurrencyScaleService.resolveModeForUi(opPg,
+                    checkoutCur != null && !checkoutCur.isBlank() ? checkoutCur : "");
+            data.put("urlPayAmountScaleMode", scaleMode);
+            urlPayCardCopyService.resolveActiveCopyByPg(opPg).ifPresent(copy -> data.put("urlPayCardCopy", copy));
+            resolveCheckoutHeaderLogoUrl(orgUnitId).ifPresent(u -> data.put("checkoutHeaderLogoUrl", u));
+            data.put("urlPayResultPageUrl", chillPayService.resolveUrlPayResultAbsolute(request, ou.get().getCode()));
+            return ResponseEntity.ok(ApiResponse.ok(data));
+        } catch (IllegalStateException e) {
+            return ResponseEntity.ok(ApiResponse.fail(e.getMessage(), "CHILLPAY_ROUTE_NOT_CONFIGURED"));
+        }
+    }
+
+    /**
+     * 공개 {@code pay-result.html}용: 활성 결제구문 행의 성공/실패 결과 문구(다국어 맵).
+     * 비어 있으면 페이지 기본 문구를 씁니다.
+     */
+    @GetMapping("/chillpay/url-result-copy")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> urlResultCopy(
+            @RequestParam(required = false) Long merchantId,
+            @RequestParam(required = false) String compId) {
+        Map<String, Object> data = new LinkedHashMap<>();
+        Long orgUnitId = resolveMerchantOrgUnitId(merchantId, compId);
+        if (orgUnitId == null) {
+            return ResponseEntity.ok(ApiResponse.ok(data));
+        }
+        if (!orgServiceUseService.isOrgServiceActive(orgUnitId)) {
+            return ResponseEntity.ok(ApiResponse.ok(data));
         }
         String opPg = chillPayService.resolveUrlPayOperationalPgCd(orgUnitId);
-        Object checkoutCurObj = data.get("checkoutCurrencyCode");
-        String checkoutCur = checkoutCurObj instanceof String ? (String) checkoutCurObj : null;
-        String scaleMode = paymentCurrencyScaleService.resolveModeForUi(opPg,
-                checkoutCur != null && !checkoutCur.isBlank() ? checkoutCur : "");
-        data.put("urlPayAmountScaleMode", scaleMode);
-        urlPayCardCopyService.resolveActiveCopyByPg(opPg).ifPresent(copy -> data.put("urlPayCardCopy", copy));
-        resolveCheckoutHeaderLogoUrl(orgUnitId).ifPresent(u -> data.put("checkoutHeaderLogoUrl", u));
-        data.put("urlPayResultPageUrl", chillPayService.resolveUrlPayResultAbsolute(request, ou.get().getCode()));
+        urlPayCardCopyService.resolveActiveCopyByPg(opPg).ifPresent(copy -> {
+            putResultCopyField(data, copy, UrlPayCardCopyService.KEY_RESULT_SUCCESS_MAIN);
+            putResultCopyField(data, copy, UrlPayCardCopyService.KEY_RESULT_SUCCESS_FOOT);
+            putResultCopyField(data, copy, UrlPayCardCopyService.KEY_RESULT_FAIL_MAIN);
+            putResultCopyField(data, copy, UrlPayCardCopyService.KEY_RESULT_FAIL_FOOT);
+        });
         return ResponseEntity.ok(ApiResponse.ok(data));
+    }
+
+    @SuppressWarnings("unchecked")
+    private static void putResultCopyField(Map<String, Object> target, Map<String, Object> copy, String key) {
+        Object v = copy.get(key);
+        if (v instanceof Map && !((Map<?, ?>) v).isEmpty()) {
+            target.put(key, v);
+        }
     }
 
     /**
@@ -251,6 +294,10 @@ public class ApiPayController {
                     merchantOrgUnitId, res, recordAmt, orderNo, customerId, routeNo,
                     urlPayMode, payerName.isEmpty() ? null : payerName);
             return ResponseEntity.ok(ApiResponse.ok(res));
+        } catch (IllegalStateException e) {
+            String msg = e.getMessage() != null ? e.getMessage() : "결제 요청 처리 중 오류가 발생했습니다.";
+            String code = msg.startsWith("ChillPay 루트(Route)") ? "CHILLPAY_ROUTE_NOT_CONFIGURED" : "PAYMENT_ERROR";
+            return ResponseEntity.ok(ApiResponse.fail(msg, code));
         } catch (Exception e) {
             return ResponseEntity.ok(ApiResponse.fail(
                     e.getMessage() != null ? e.getMessage() : "결제 요청 처리 중 오류가 발생했습니다.",

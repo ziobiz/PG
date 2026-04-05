@@ -8,7 +8,10 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 /**
@@ -51,8 +54,10 @@ public class PayListItemDto {
         row.put("orderNo", orderNoLabel(t));
         row.put("paymentChannel", blank(t.getPaymentChannel()));
         row.put("payCompletedAt", formatDt(t.getPaidAt()));
-        row.put("currency", t.getCurType() != null ? t.getCurType() : "KRW");
+        row.put("currency", resolveCurrencyCodeForDisplay(t, mp));
         row.put("routeNo", routeNoLabel(t, b));
+        /** 그리드 행 상태색·뱃지 — 클라이언트 톤 매핑용(ICOPAY 내부 코드) */
+        row.put("status", t.getStatus() != null ? t.getStatus() : "");
         row.put("chillPaymentStatus", chillStatusLabel(t));
         row.put("settledYn", t.getSettledYn() != null && !t.getSettledYn().isBlank() ? t.getSettledYn().trim() : "N");
 
@@ -77,59 +82,56 @@ public class PayListItemDto {
         row.put("pgNm", b != null && b.getPgCd() != null ? b.getPgCd() : (t.getVan() != null ? t.getVan() : "-"));
         row.put("terminalId", b != null && b.getMid() != null ? b.getMid() : "-");
 
-        long amount = t.getAmtKrw() != null ? t.getAmtKrw().longValue() : 0L;
-        row.put("chillAmount", amount);
+        BigDecimal amtBd = t.getAmtKrw() != null ? t.getAmtKrw() : BigDecimal.ZERO;
+        row.put("chillAmount", amtBd);
         String pgNo = t.getPayNo() != null && !t.getPayNo().isBlank()
                 ? t.getPayNo()
                 : (t.getTrnId() != null ? t.getTrnId() : "-");
-        row.put("pgApproveAmt", amount);
+        row.put("pgApproveAmt", amtBd);
         row.put("pgApproveNo", pgNo);
-        row.put("payAmount", amount);
+        row.put("payAmount", amtBd);
         row.put("paySeq", ourTrn);
         row.put("payAprv", payDtStr);
         row.put("payDttm", payDtStr);
 
         boolean isApprove = "10".equals(t.getStatus());
-        BigDecimal amtBd = t.getAmtKrw() != null ? t.getAmtKrw() : BigDecimal.ZERO;
         BigDecimal totalRate = totalFeeRate(ctx);
         BigDecimal feeAmtBd = BigDecimal.ZERO;
         BigDecimal feeVatBd = BigDecimal.ZERO;
         BigDecimal holdAmtBd = BigDecimal.ZERO;
+        BigDecimal settleAmtBd = BigDecimal.ZERO;
         if (isApprove) {
-            feeAmtBd = amtBd.multiply(totalRate).divide(BigDecimal.valueOf(100), 0, RoundingMode.HALF_UP);
-            feeVatBd = feeAmtBd.multiply(BigDecimal.valueOf(0.1)).setScale(0, RoundingMode.HALF_UP);
-            BigDecimal rollingPct = resolveRollingPct(ctx);
-            if (rollingPct.compareTo(BigDecimal.ZERO) > 0) {
-                holdAmtBd = amtBd.multiply(rollingPct).divide(BigDecimal.valueOf(100), 0, RoundingMode.HALF_UP);
-            }
+            ApprovedSettlementParts p = approvedSettlementParts(amtBd, ctx);
+            feeAmtBd = p.feeAmt;
+            feeVatBd = p.feeVat;
+            holdAmtBd = p.holdAmt;
+            settleAmtBd = p.settleAmt;
         }
-        long feeAmt = feeAmtBd.longValue();
-        long feeVat = feeVatBd.longValue();
-        long holdAmt = holdAmtBd.longValue();
-        long settleAmt = isApprove ? amtBd.subtract(feeAmtBd).subtract(feeVatBd).subtract(holdAmtBd).longValue() : 0L;
 
-        row.put("icopayAmt", longOrEmpty(t.getIcopayAmt()));
-        long chillFeeStored = t.getChillFeeAmt() != null ? t.getChillFeeAmt().longValue() : -1L;
-        row.put("chillFeeAmt", chillFeeStored >= 0 ? chillFeeStored : feeAmt);
-        long totalStored = t.getTotalAmt() != null ? t.getTotalAmt().longValue() : -1L;
-        if (totalStored >= 0) {
-            row.put("totalAmt", totalStored);
+        row.put("icopayAmt", amountJson(t.getIcopayAmt()));
+        if (t.getChillFeeAmt() != null) {
+            row.put("chillFeeAmt", t.getChillFeeAmt());
         } else {
-            long cf = chillFeeStored >= 0 ? chillFeeStored : feeAmt;
-            row.put("totalAmt", amount + cf);
+            row.put("chillFeeAmt", feeAmtBd);
+        }
+        if (t.getTotalAmt() != null) {
+            row.put("totalAmt", t.getTotalAmt());
+        } else {
+            BigDecimal cf = t.getChillFeeAmt() != null ? t.getChillFeeAmt() : feeAmtBd;
+            row.put("totalAmt", amtBd.add(cf));
         }
 
         row.put("feeCnt", isApprove ? 1 : 0);
         row.put("feeRate", totalRate);
-        row.put("feeAmt", feeAmt);
-        row.put("feeVat", feeVat);
+        row.put("feeAmt", feeAmtBd);
+        row.put("feeVat", feeVatBd);
         row.put("holdRate", resolveRollingPct(ctx));
-        row.put("holdAmt", holdAmt);
-        row.put("holdDttm", holdAmt > 0 ? payDtStr : "");
+        row.put("holdAmt", holdAmtBd);
+        row.put("holdDttm", holdAmtBd.compareTo(BigDecimal.ZERO) > 0 ? payDtStr : "");
 
         row.put("calcCycle", ctx != null && ctx.getSettlement() != null && ctx.getSettlement().getCalcCycle() != null
                 ? ctx.getSettlement().getCalcCycle() : "-");
-        row.put("settleAmt", settleAmt);
+        row.put("settleAmt", settleAmtBd);
         row.put("calcDt", payDtStr);
         row.put("approveDt", isApprove ? payDtStr : "");
         row.put("cancelDt", "20".equals(t.getStatus()) ? payDtStr : "");
@@ -146,7 +148,77 @@ public class PayListItemDto {
         row.put("branchNm", ctx != null ? ctx.getBranchNm() : "");
 
         row.put("origin", t.getOrigin() != null ? t.getOrigin() : "CHILL");
+        row.put("notifyChannelType", notifyChannelTypeLabel(t));
         return row;
+    }
+
+    /**
+     * 승인(status=10) 건의 수수료·부가세·보류·예상 지급액 — 그리드 행·목록 상단 집계 공통.
+     */
+    public static final class ApprovedSettlementParts {
+        public final BigDecimal feeAmt;
+        public final BigDecimal feeVat;
+        public final BigDecimal holdAmt;
+        public final BigDecimal settleAmt;
+
+        public ApprovedSettlementParts(BigDecimal feeAmt, BigDecimal feeVat, BigDecimal holdAmt, BigDecimal settleAmt) {
+            this.feeAmt = feeAmt;
+            this.feeVat = feeVat;
+            this.holdAmt = holdAmt;
+            this.settleAmt = settleAmt;
+        }
+    }
+
+    public static ApprovedSettlementParts approvedSettlementParts(BigDecimal amtBd, PayListRowContext ctx) {
+        BigDecimal amt = amtBd != null ? amtBd : BigDecimal.ZERO;
+        int feeScale = derivedFeeScale(amt);
+        BigDecimal totalRate = totalFeeRate(ctx);
+        BigDecimal feeAmtBd = amt.multiply(totalRate).divide(BigDecimal.valueOf(100), feeScale, RoundingMode.HALF_UP);
+        BigDecimal feeVatBd = feeAmtBd.multiply(BigDecimal.valueOf(0.1)).setScale(feeScale, RoundingMode.HALF_UP);
+        BigDecimal holdAmtBd = BigDecimal.ZERO;
+        BigDecimal rollingPct = resolveRollingPct(ctx);
+        if (rollingPct.compareTo(BigDecimal.ZERO) > 0) {
+            holdAmtBd = amt.multiply(rollingPct).divide(BigDecimal.valueOf(100), feeScale, RoundingMode.HALF_UP);
+        }
+        BigDecimal settleAmtBd = amt.subtract(feeAmtBd).subtract(feeVatBd).subtract(holdAmtBd)
+                .setScale(feeScale, RoundingMode.HALF_UP);
+        return new ApprovedSettlementParts(feeAmtBd, feeVatBd, holdAmtBd, settleAmtBd);
+    }
+
+    /** 목록 상단 취소 금액 합산용(결제취소·무효·환불 등) */
+    public static boolean isCancelAmountStatus(String status) {
+        if (status == null || status.isBlank()) {
+            return false;
+        }
+        return switch (status.trim()) {
+            case "20", "21", "22", "30", "31", "40", "41", "42" -> true;
+            default -> false;
+        };
+    }
+
+    /**
+     * NOTI 출처만 수신 채널 표시. ziobiz/NOTI 노티거래내역과 동일: CALL·RESULT·BOTH (DB CALLBACK·CALL → CALL).
+     */
+    private static String notifyChannelTypeLabel(PgTrnsctn t) {
+        String o = t.getOrigin();
+        if (o == null || !"NOTI".equalsIgnoreCase(o.trim())) {
+            return "-";
+        }
+        String ch = t.getNotifyChannelType();
+        if (ch == null || ch.isBlank()) {
+            return "CALL";
+        }
+        String u = ch.trim().toUpperCase(Locale.ROOT);
+        if ("CALL".equals(u) || "CALLBACK".equals(u)) {
+            return "CALL";
+        }
+        if ("RESULT".equals(u)) {
+            return "RESULT";
+        }
+        if ("BOTH".equals(u)) {
+            return "BOTH";
+        }
+        return u;
     }
 
     /** 유통 수수료율(있으면) 또는 결제수수료율 + 정책의 USDT·FX·3DS 율(%) 합 — 승인 건 수수료 추정에 사용 */
@@ -196,8 +268,20 @@ public class PayListItemDto {
         return dt.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME).replace("T", " ");
     }
 
-    private static Object longOrEmpty(BigDecimal v) {
-        return v != null ? v.longValue() : "";
+    /** 노티·DB 소수 금액 그대로 JSON 숫자로 (없으면 빈 문자열) */
+    private static Object amountJson(BigDecimal v) {
+        return v != null ? v : "";
+    }
+
+    /**
+     * 원금에 소수가 있으면 추정 수수료·지급액도 동일 스케일(최소 2, 최대 8)로 맞춤. KRW/JPY 등 정수 원금은 0.
+     */
+    private static int derivedFeeScale(BigDecimal principal) {
+        if (principal == null) {
+            return 0;
+        }
+        int s = principal.scale();
+        return s > 0 ? Math.min(8, Math.max(2, s)) : 0;
     }
 
     /** 칠페이 Customer 컬럼용 — 식별자+표시명 (고객명과 동일 인물, 표기만 시트 형식) */
@@ -245,20 +329,156 @@ public class PayListItemDto {
         return "-";
     }
 
-    /** ChillPay Status 컬럼: 원문 우선, 없으면 내부 코드 매핑 */
-    private static String chillStatusLabel(PgTrnsctn t) {
-        if (t.getChillPaymentStatus() != null && !t.getChillPaymentStatus().isBlank()) {
-            return t.getChillPaymentStatus().trim();
+    /**
+     * 노티 적재 시 {@code cur_type} 이 KRW/410 기본값으로만 남는 경우, 가맹점 {@code baseCurrency}로 표시를 보강합니다.
+     * <ul>
+     *   <li>기준통화가 하나면 그 코드</li>
+     *   <li>KRW·410과 JPY·USD 등이 섞여 있으면 KRW 계열만 제외한 뒤 남은 코드가 하나면 그것</li>
+     *   <li>KRW를 제외한 복수 통화만 있으면 정렬 후 {@code JPY/USD} 형태(행마다 구분 불가 시 노티 Currency 매핑 권장)</li>
+     * </ul>
+     */
+    private static String resolveCurrencyCodeForDisplay(PgTrnsctn t, MerchantProfile mp) {
+        String db = t.getCurType() != null ? t.getCurType().trim().toUpperCase(Locale.ROOT) : "";
+        if (!looksLikeWeakDefaultKrw(db)) {
+            return db.isEmpty() ? "KRW" : db;
         }
-        return switch (t.getStatus() != null ? t.getStatus() : "") {
-            case "10" -> "Paid";
-            case "08" -> "WaitAuthorize";
-            case "20" -> "Cancelled";
-            case "21" -> "Voided";
-            case "22" -> "Manual void";
-            case "30", "31" -> "Refunded";
-            case "F0", "99" -> "Failed";
-            default -> t.getStatus() != null ? t.getStatus() : "-";
+        List<String> bases = parseBaseCurrencyTokens(mp);
+        List<String> nonKrwBases = new ArrayList<>();
+        for (String b : bases) {
+            if (!looksLikeWeakDefaultKrw(b)) {
+                nonKrwBases.add(b);
+            }
+        }
+        if (nonKrwBases.size() == 1) {
+            return nonKrwBases.get(0);
+        }
+        if (nonKrwBases.size() >= 2) {
+            nonKrwBases.sort(String::compareTo);
+            return String.join("/", nonKrwBases);
+        }
+        if (bases.size() == 1) {
+            return bases.get(0);
+        }
+        return db.isEmpty() ? "KRW" : db;
+    }
+
+    private static boolean looksLikeWeakDefaultKrw(String c) {
+        return c == null || c.isEmpty() || "KRW".equals(c) || "410".equals(c);
+    }
+
+    private static List<String> parseBaseCurrencyTokens(MerchantProfile mp) {
+        if (mp == null || mp.getBaseCurrency() == null || mp.getBaseCurrency().isBlank()) {
+            return List.of();
+        }
+        List<String> out = new ArrayList<>();
+        for (String p : mp.getBaseCurrency().split(",")) {
+            String s = p != null ? p.trim().toUpperCase(Locale.ROOT) : "";
+            if (!s.isEmpty()) {
+                out.add(s);
+            }
+        }
+        return out;
+    }
+
+    /**
+     * 결제내역 그리드 Status — 노티 수신 성공이 아니라 {@code chillPaymentStatus}(PaymentStatus) 의미와 동일하게 표시.
+     * 콜백 숫자: 0 성공, 1·3 실패, 2 취소, 4 오류(PG 부록). 무효·환불 등은 ICOPAY 내부 코드(21·30 등) 원문 또는 내부 {@code status}로 노출.
+     */
+    private static String chillStatusLabel(PgTrnsctn t) {
+        String rawStored = t.getChillPaymentStatus() != null ? t.getChillPaymentStatus().trim() : "";
+        if (!rawStored.isEmpty()) {
+            String fromCallback = chillNotiPaymentStatusDigitToKo(rawStored);
+            if (fromCallback != null) {
+                return fromCallback;
+            }
+            String fromIcCode = chillIcPayStatusCodeTokenToKo(rawStored);
+            if (fromIcCode != null) {
+                return fromIcCode;
+            }
+            if (!isBareNumericChillStatus(rawStored)) {
+                if (!isAmbiguousProgressChillDisplay(rawStored) || !hasDefinitiveInternalPayStatus(t.getStatus())) {
+                    return rawStored;
+                }
+                /* DB에 Processing 등만 남고 내부 상태는 이미 승인·취소 등으로 맞춰진 레거시 행 */
+            }
+        }
+        return chillInternalPayStatusToKo(t.getStatus());
+    }
+
+    /** NOTI/콜백 PaymentStatus 한 자리 숫자만 — 다자리 숫자는 null(내부 코드 경로). */
+    private static String chillNotiPaymentStatusDigitToKo(String raw) {
+        if (raw == null || !raw.matches("^[0-4]$")) {
+            return null;
+        }
+        return switch (raw) {
+            case "0" -> "성공";
+            case "1", "3" -> "실패";
+            case "2" -> "취소";
+            case "4" -> "오류";
+            default -> null;
+        };
+    }
+
+    /** DB에 내부 상태 문자열이 그대로 들어간 경우(08·10·21·30 …). */
+    private static String chillIcPayStatusCodeTokenToKo(String raw) {
+        if (raw == null) {
+            return null;
+        }
+        String u = raw.trim().toUpperCase(Locale.ROOT);
+        return switch (u) {
+            case "08" -> "요청";
+            case "10" -> "성공";
+            case "20" -> "취소";
+            case "21" -> "무효";
+            case "22" -> "이메일무효";
+            case "40" -> "자동무효";
+            case "41" -> "이메일무효";
+            case "42" -> "자동환불";
+            case "30" -> "환불";
+            case "31" -> "강제환불";
+            case "99", "F0" -> "실패";
+            default -> null;
+        };
+    }
+
+    private static String chillInternalPayStatusToKo(String st) {
+        return switch (st != null ? st : "") {
+            case "10" -> "성공";
+            case "08" -> "요청";
+            case "20" -> "취소";
+            case "21" -> "무효";
+            case "22" -> "이메일무효";
+            case "30" -> "환불";
+            case "31" -> "강제환불";
+            case "F0", "99", "f0" -> "실패";
+            default -> st != null && !st.isBlank() ? st : "-";
+        };
+    }
+
+    /** PG가 숫자만 넣은 경우(Status/PaymentStatus 코드) — 화면에는 내부 상태 기반 문구로 바꿈 */
+    private static boolean isBareNumericChillStatus(String s) {
+        if (s == null) {
+            return false;
+        }
+        return s.trim().matches("^\\d{1,3}$");
+    }
+
+    private static boolean isAmbiguousProgressChillDisplay(String raw) {
+        if (raw == null) {
+            return false;
+        }
+        String u = raw.trim().toLowerCase(Locale.ROOT);
+        return u.equals("processing") || u.equals("pending") || u.equals("request")
+                || u.equals("waitauthorize") || u.equals("wait_authorize");
+    }
+
+    private static boolean hasDefinitiveInternalPayStatus(String st) {
+        if (st == null) {
+            return false;
+        }
+        return switch (st) {
+            case "10", "20", "21", "22", "30", "31", "40", "41", "42", "99", "F0", "f0" -> true;
+            default -> false;
         };
     }
 
@@ -275,6 +495,9 @@ public class PayListItemDto {
             case "20" -> "취소";
             case "21" -> "무효";
             case "22" -> "수동무효";
+            case "40" -> "자동무효";
+            case "41" -> "이메일무효";
+            case "42" -> "자동환불";
             case "30", "31" -> "환불";
             case "F0", "99" -> "실패";
             default -> status;

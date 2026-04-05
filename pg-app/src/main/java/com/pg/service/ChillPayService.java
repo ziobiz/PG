@@ -9,6 +9,7 @@ import com.pg.dto.ChillPayPaymentSearchApiResponse;
 import com.pg.entity.HqApiConfig;
 import com.pg.entity.MerchantPgBinding;
 import com.pg.entity.PgAgency;
+import com.pg.util.PayListStatusBarBuckets;
 import com.pg.repository.HqApiConfigRepository;
 import com.pg.repository.MerchantPgBindingRepository;
 import com.pg.repository.PgAgencyRepository;
@@ -45,9 +46,13 @@ import java.util.Optional;
  * 가맹점 바인딩을 운영 행 후보 중에서 <strong>최우선</strong>으로 고른 뒤, 그 행에 입력된 엔드포인트·샌드박스·루트를 따른다(다른 PG 코드 URL과 병합하지 않음).
  * <p>
  * <strong>ApiKey·MD5(IV)</strong>는 가맹점 {@code tb_merchant_pg_binding} 행에서 쓴다.
- * <strong>MID·Route</strong>는 가맹점 바인딩 → 동일 {@code pg_cd}의 {@code tb_pg_agency} 순이다.
+ * <strong>MID</strong>는 가맹점 바인딩 → 동일 {@code pg_cd}의 {@code tb_pg_agency} 순이다(자세한 규칙은 {@link #resolveMerchantMidForUrlPay}).
  * 동일 PG 행에 MID가 없을 때 <strong>다른</strong> PG 행·본사 설정에서 가져온 MID를 바인딩 Api-Key와 섞지 않는다(ChillPay 1002 Invalid MerchantCode 방지).
- * {@code pg_cd} 매칭 행이 없을 때만 본사 {@code resolveConfigFromHq}의 MID를 쓴다. Route는 동일 PG 행이 있으나 비어 있으면 {@code application.yml} 기본 route를 쓴다.
+ * {@code pg_cd} 매칭 행이 없을 때만 본사 {@code resolveConfigFromHq}의 MID를 쓴다.
+ * <p><strong>제품 계약 — URL 결제 ChillPay Route 번호:</strong> 반드시 (1) 해당 운영 가맹점 바인딩의 {@code root_no}를 먼저 적용하고, 없을 때만 (2) 동일 {@code pg_cd}의 API연동설정({@code tb_pg_agency}, URL결제 연동 행) {@code route_no}를 쓴다.
+ * 이 (1)→(2) 순서와 의미는 <strong>변경되어서는 안 된다</strong>. 구현은 오직 {@link #resolveChillPayRouteNoUrlPayContract}에만 둔다.
+ * (1)(2)가 모두 비어 있고 매칭 PG사 API 행이 있으면 {@link IllegalStateException} — {@code application.yml} 등으로 끼워 넣지 않는다.
+ * 매칭 PG 행이 없을 때만 본사 폴백 {@code resolveConfigFromHq}의 route(yml·본사 API 설정 등)를 쓴다. 운영 ChillPay 바인딩이 여럿이면 URL결제(Y) 행을 먼저 고르고, 그중에서도 코드가 정확히 {@code CHILLPAY}인 일반 행보다 {@code CHILLPAY_…} 확장 코드(URL LN 등)를 우선한다.
  * 바인딩만 있고 동일 {@code pg_cd}의 PG사 API 행이 없거나 ChillPay가 아니면, 본사 ChillPay 계열 PG 병합·{@code tb_hq_api_config}·yml 순으로 폴백한다.
  */
 @Service
@@ -75,6 +80,8 @@ public class ChillPayService {
     private static final String TXN_PAYMENT_SEARCH_SB = "https://sandbox-api-transaction.chillpay.co/api/v1/payment/search";
     private static final String TXN_PAYMENT_SEARCH_PR = "https://api-transaction.chillpay.co/api/v1/payment/search";
     private static final DateTimeFormatter CHILLPAY_TXN_DT = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss");
+    /** 통합내역 상단 요약: 최대 추가 ChillPay API 호출 페이지 수(페이지당 최대 100건) */
+    private static final int CHILL_STATUS_BAR_MAX_PAGES = 30;
 
     private final ChillPayProperties props;
     private final HqApiConfigRepository hqApiConfigRepository;
@@ -138,9 +145,7 @@ public class ChillPayService {
             }
             return resolveConfigFromHq(globalUrlOv);
         }
-        int routeNo = parseBindingRouteNo(b.getRootNo())
-                .orElseGet(() -> agencyForPgCd.flatMap(a -> Optional.ofNullable(a.getRouteNo()))
-                        .orElseGet(() -> agencyForPgCd.isPresent() ? props.getRouteNo() : hqRef.routeNo()));
+        int routeNo = resolveChillPayRouteNoUrlPayContract(merchantOrgUnitId, b, agencyForPgCd, hqRef.routeNo());
         boolean sandbox = agencyForPgCd
                 .map(a -> a.getSandboxYn() == null || !"N".equalsIgnoreCase(a.getSandboxYn().trim()))
                 .orElse(hqRef.sandbox());
@@ -186,6 +191,45 @@ public class ChillPayService {
         } catch (NumberFormatException e) {
             return Optional.empty();
         }
+    }
+
+    /**
+     * <strong>PRODUCT CONTRACT — URL 결제 ChillPay Route 번호 (순서·의미 변경 금지)</strong>
+     * <p>
+     * 운영으로 선택된 가맹점 바인딩과, 그 {@code pg_cd}에 매칭된 API연동 행({@code tb_pg_agency})이 <strong>있을 때</strong> Route는 아래만 허용된다.
+     * <ol>
+     *   <li><strong>가맹점 우선</strong> — 해당 바인딩 {@code root_no}</li>
+     *   <li><strong>API연동설정</strong> — 동일 {@code pg_cd} 행의 {@code route_no} (URL결제용 연동 행 포함)</li>
+     * </ol>
+     * (1)이 있으면 (2)는 무시한다. (1)(2) 모두 없고 매칭 PG 행이 있으면 예외 — {@code application.yml}·본사 기본 route를 끼워 넣지 않는다.
+     * <p>
+     * 매칭 {@code tb_pg_agency} 행이 <strong>없을 때만</strong> {@code routeNoWhenNoMatchingAgencyRow}(본사 {@code resolveConfigFromHq} 폴백)를 쓴다.
+     */
+    private static int resolveChillPayRouteNoUrlPayContract(
+            Long merchantOrgUnitId,
+            MerchantPgBinding b,
+            Optional<PgAgency> agencyForPgCd,
+            int routeNoWhenNoMatchingAgencyRow) {
+        Optional<Integer> routeFromRoot = parseBindingRouteNo(b.getRootNo());
+        Optional<Integer> routeFromAgency = agencyForPgCd.flatMap(a -> Optional.ofNullable(a.getRouteNo()));
+        if (routeFromRoot.isPresent()) {
+            return routeFromRoot.get();
+        }
+        if (routeFromAgency.isPresent()) {
+            return routeFromAgency.get();
+        }
+        if (agencyForPgCd.isPresent()) {
+            String pgCd = b.getPgCd() != null ? b.getPgCd().trim() : "";
+            log.warn(
+                    "orgUnitId={}: ChillPay Route unset — merchant binding root_no empty and tb_pg_agency.route_no null for pg_cd={}",
+                    merchantOrgUnitId, pgCd);
+            throw new IllegalStateException(
+                    "ChillPay 루트(Route) 번호가 설정되지 않았습니다. 가맹점 등록 > 결제대행사 설정에서 해당 PG("
+                            + pgCd
+                            + ")의 루트번호를 입력하거나, API연동설정에서 동일 결제대행사(pg_cd) 행의 Route 번호를 입력하세요. "
+                            + "(이 경우 application.yml 기본 route로 자동 대체하지 않습니다.)");
+        }
+        return routeNoWhenNoMatchingAgencyRow;
     }
 
     /**
@@ -239,6 +283,7 @@ public class ChillPayService {
                 .min(Comparator
                         .comparing((MerchantPgBinding b) -> Boolean.TRUE.equals(urlPayByPgCd.get(pgCdKey(b))) ? 0 : 1)
                         .thenComparing((MerchantPgBinding b) -> isChillPayFamilyPgCd(b.getPgCd()) ? 0 : 1)
+                        .thenComparing((MerchantPgBinding b) -> genericChillPayPgCd(b.getPgCd()) ? 1 : 0)
                         .thenComparing(b -> b.getSortOrder() != null ? b.getSortOrder() : Integer.MAX_VALUE)
                         .thenComparing(MerchantPgBinding::getId));
     }
@@ -294,7 +339,7 @@ public class ChillPayService {
                 .filter(b -> !webOnly || isWebOrUnsetPayMethod(b.getPayMethod()))
                 .min(Comparator
                         .comparing((MerchantPgBinding b) -> Boolean.TRUE.equals(urlPayByPgCd.get(pgCdKey(b))) ? 0 : 1)
-                        .thenComparing((MerchantPgBinding b) -> "CHILLPAY".equalsIgnoreCase(b.getPgCd().trim()) ? 0 : 1)
+                        .thenComparing((MerchantPgBinding b) -> genericChillPayPgCd(b.getPgCd()) ? 1 : 0)
                         .thenComparing(b -> b.getSortOrder() != null ? b.getSortOrder() : Integer.MAX_VALUE)
                         .thenComparing(MerchantPgBinding::getId));
     }
@@ -331,6 +376,14 @@ public class ChillPayService {
             return true;
         }
         return "WEB".equalsIgnoreCase(payMethod.trim());
+    }
+
+    /** {@code CHILLPAY} 단독 코드(확장 접미 없음) — URL결제 전용 {@code CHILLPAY_…} 행보다 뒤로 미루는 데 사용 */
+    private static boolean genericChillPayPgCd(String pgCd) {
+        if (pgCd == null || pgCd.isBlank()) {
+            return true;
+        }
+        return "CHILLPAY".equalsIgnoreCase(pgCd.trim());
     }
 
     /**
@@ -821,6 +874,7 @@ public class ChillPayService {
      * 본사·가맹 {@link #resolveConfig(Long)} 자격(MerchantCode·ApiKey·MD5)으로 호출합니다.
      *
      * @param merchantOrgUnitId null이면 본사(HQ) 설정만 사용
+     * @param multiCurrency     총본사·본사·총판 true 시 통화별 금액 나열, 지사 이하는 {@code primaryCurrency} 만 집계
      */
     public PageResult<Map<String, Object>> searchChillPayPaymentTransactions(
             Long merchantOrgUnitId,
@@ -835,7 +889,153 @@ public class ChillPayService {
             String orderNo,
             String status,
             LocalDate transactionDateFrom,
-            LocalDate transactionDateTo) {
+            LocalDate transactionDateTo,
+            boolean multiCurrency,
+            String primaryCurrency) {
+
+        int ps = Math.min(100, Math.max(1, size));
+        int pn = Math.max(1, page);
+        PageResult<Map<String, Object>> display = searchChillPayPaymentTransactionsPage(
+                merchantOrgUnitId, pn, ps, orderBy, orderDir, searchKeyword, merchantCodeFilter,
+                paymentChannel, routeNoFilter, orderNo, status, transactionDateFrom, transactionDateTo,
+                null, null);
+
+        PayListStatusBarBuckets.MutableRollup roll = new PayListStatusBarBuckets.MutableRollup();
+        int totalPages = display.getTotalPages();
+        int maxPages = Math.min(Math.max(totalPages, 1), CHILL_STATUS_BAR_MAX_PAGES);
+        for (int p = 1; p <= maxPages; p++) {
+            PageResult<Map<String, Object>> slice = (p == pn)
+                    ? display
+                    : searchChillPayPaymentTransactionsPage(
+                            merchantOrgUnitId, p, display.getSize(), orderBy, orderDir, searchKeyword,
+                            merchantCodeFilter, paymentChannel, routeNoFilter, orderNo, status,
+                            transactionDateFrom, transactionDateTo, null, null);
+            accumulateChillPayRowsIntoRollup(roll, slice.getList());
+        }
+
+        Map<String, Object> meta = display.getMeta() != null ? new LinkedHashMap<>(display.getMeta()) : new LinkedHashMap<>();
+        meta.put("payListStatusBar", roll.toPayload(multiCurrency, primaryCurrency, totalPages > maxPages));
+        display.setMeta(meta);
+        return display;
+    }
+
+    /**
+     * ChillPay Transaction API — 동일 {@code /api/v1/payment/search} 로
+     * <strong>PaymentDate</strong> 구간·정렬을 중심으로 조회합니다.
+     * ICOPAY 정산 테이블이 아니라 칠페이가 내려주는 Settled·Fee·TotalAmount 등 원문을 그대로 표시합니다.
+     * 문서 Table 1.2 OrderBy 에 {@code Settled}·{@code PaymentDate} 등 사용 가능.
+     *
+     * @param paymentDateFrom/to null·둘 다 null 이면 최근 30일(오늘 기준) 결제일 구간
+     * @param transactionDateFrom/to 선택 — 거래생성일 필터(비우면 미전달)
+     */
+    public PageResult<Map<String, Object>> searchChillPaySettlementTransactions(
+            Long merchantOrgUnitId,
+            int page,
+            int size,
+            String orderBy,
+            String orderDir,
+            String searchKeyword,
+            String merchantCodeFilter,
+            String paymentChannel,
+            Integer routeNoFilter,
+            String orderNo,
+            String status,
+            LocalDate paymentDateFrom,
+            LocalDate paymentDateTo,
+            LocalDate transactionDateFrom,
+            LocalDate transactionDateTo,
+            boolean multiCurrency,
+            String primaryCurrency) {
+
+        LocalDate payFrom = paymentDateFrom;
+        LocalDate payTo = paymentDateTo;
+        if (payFrom == null && payTo == null) {
+            payTo = LocalDate.now();
+            payFrom = payTo.minusDays(30);
+        } else if (payFrom == null) {
+            payTo = payTo != null ? payTo : LocalDate.now();
+            payFrom = payTo.minusDays(30);
+        } else if (payTo == null) {
+            payTo = payFrom.plusDays(30);
+        }
+
+        int ps = Math.min(100, Math.max(1, size));
+        int pn = Math.max(1, page);
+        String ob = trimOrDefault(orderBy, "Settled");
+        PageResult<Map<String, Object>> display = searchChillPayPaymentTransactionsPage(
+                merchantOrgUnitId, pn, ps, ob, orderDir, searchKeyword, merchantCodeFilter,
+                paymentChannel, routeNoFilter, orderNo, status,
+                transactionDateFrom, transactionDateTo, payFrom, payTo);
+
+        PayListStatusBarBuckets.MutableRollup roll = new PayListStatusBarBuckets.MutableRollup();
+        int totalPages = display.getTotalPages();
+        int maxPages = Math.min(Math.max(totalPages, 1), CHILL_STATUS_BAR_MAX_PAGES);
+        for (int p = 1; p <= maxPages; p++) {
+            PageResult<Map<String, Object>> slice = (p == pn)
+                    ? display
+                    : searchChillPayPaymentTransactionsPage(
+                            merchantOrgUnitId, p, display.getSize(), ob, orderDir, searchKeyword,
+                            merchantCodeFilter, paymentChannel, routeNoFilter, orderNo, status,
+                            transactionDateFrom, transactionDateTo, payFrom, payTo);
+            accumulateChillPayRowsIntoRollup(roll, slice.getList());
+        }
+
+        Map<String, Object> meta = display.getMeta() != null ? new LinkedHashMap<>(display.getMeta()) : new LinkedHashMap<>();
+        meta.put("payListStatusBar", roll.toPayload(multiCurrency, primaryCurrency, totalPages > maxPages));
+        meta.put("chillPaySettlementMode", true);
+        meta.put("paymentDateFrom", payFrom.toString());
+        meta.put("paymentDateTo", payTo.toString());
+        display.setMeta(meta);
+        return display;
+    }
+
+    private static void accumulateChillPayRowsIntoRollup(PayListStatusBarBuckets.MutableRollup roll,
+                                                         List<Map<String, Object>> rows) {
+        if (rows == null) {
+            return;
+        }
+        for (Map<String, Object> row : rows) {
+            String st = firstNonBlankString(row, "status", "Status");
+            String bucket = PayListStatusBarBuckets.bucketForChillStatus(st);
+            String cur = PayListStatusBarBuckets.normalizeCurrency(firstNonBlankString(row, "currency", "Currency"));
+            Object amtObj = row.containsKey("amount") ? row.get("amount") : row.get("Amount");
+            roll.add(bucket, cur, PayListStatusBarBuckets.parseMoney(amtObj), 1L);
+        }
+    }
+
+    private static String firstNonBlankString(Map<String, Object> row, String... keys) {
+        if (row == null) {
+            return "";
+        }
+        for (String k : keys) {
+            Object v = row.get(k);
+            if (v == null) {
+                continue;
+            }
+            String s = String.valueOf(v).trim();
+            if (!s.isEmpty()) {
+                return s;
+            }
+        }
+        return "";
+    }
+
+    private PageResult<Map<String, Object>> searchChillPayPaymentTransactionsPage(
+            Long merchantOrgUnitId,
+            int page,
+            int size,
+            String orderBy,
+            String orderDir,
+            String searchKeyword,
+            String merchantCodeFilter,
+            String paymentChannel,
+            Integer routeNoFilter,
+            String orderNo,
+            String status,
+            LocalDate transactionDateFrom,
+            LocalDate transactionDateTo,
+            LocalDate paymentDateFrom,
+            LocalDate paymentDateTo) {
 
         if (merchantOrgUnitId != null && !orgServiceUseService.isOrgServiceActive(merchantOrgUnitId)) {
             throw new IllegalStateException("서비스가 중지된 업체입니다.");
@@ -864,8 +1064,8 @@ public class ChillPayService {
         req.setStatus(trimOrEmpty(status));
         req.setTransactionDateFrom(transactionDateFrom != null ? transactionDateFrom.atStartOfDay().format(CHILLPAY_TXN_DT) : "");
         req.setTransactionDateTo(transactionDateTo != null ? transactionDateTo.atTime(23, 59, 59).format(CHILLPAY_TXN_DT) : "");
-        req.setPaymentDateFrom("");
-        req.setPaymentDateTo("");
+        req.setPaymentDateFrom(paymentDateFrom != null ? paymentDateFrom.atStartOfDay().format(CHILLPAY_TXN_DT) : "");
+        req.setPaymentDateTo(paymentDateTo != null ? paymentDateTo.atTime(23, 59, 59).format(CHILLPAY_TXN_DT) : "");
 
         req.setChecksum(md5(req.toChecksumPlainString() + cfg.md5Key()));
 
@@ -941,6 +1141,13 @@ public class ChillPayService {
         aliasIfMissing(m, "routeNo", "RouteNo");
         aliasIfMissing(m, "status", "Status");
         aliasIfMissing(m, "settled", "Settled");
+        if (!m.containsKey("icopay")) {
+            if (m.containsKey("IcoPay")) {
+                m.put("icopay", m.get("IcoPay"));
+            } else if (m.containsKey("Icopay")) {
+                m.put("icopay", m.get("Icopay"));
+            }
+        }
         aliasIfMissing(m, "description", "Description");
         return m;
     }

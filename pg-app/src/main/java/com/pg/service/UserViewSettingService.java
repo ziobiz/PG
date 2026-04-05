@@ -2,7 +2,9 @@ package com.pg.service;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.pg.entity.HqViewCustomColumn;
 import com.pg.entity.UserViewSetting;
+import com.pg.repository.HqViewCustomColumnRepository;
 import com.pg.repository.UserViewSettingRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,11 +24,14 @@ public class UserViewSettingService {
 
     private final UserViewSettingRepository repository;
     private final OrgViewColumnAllowanceService allowanceService;
+    private final HqViewCustomColumnRepository hqViewCustomColumnRepository;
 
     public UserViewSettingService(UserViewSettingRepository repository,
-                                  OrgViewColumnAllowanceService allowanceService) {
+                                  OrgViewColumnAllowanceService allowanceService,
+                                  HqViewCustomColumnRepository hqViewCustomColumnRepository) {
         this.repository = repository;
         this.allowanceService = allowanceService;
+        this.hqViewCustomColumnRepository = hqViewCustomColumnRepository;
     }
 
     public Map<String, Object> get(String username, String pageUrl) {
@@ -60,6 +65,15 @@ public class UserViewSettingService {
             m.put("allowedKeysJson", null);
         }
         allowanceService.resolveRegionalAncestorOrgCode(username).ifPresent(code -> m.put("regionalScopeOrgCode", code));
+        List<Map<String, Object>> customCols = new ArrayList<>();
+        for (HqViewCustomColumn c : hqViewCustomColumnRepository.findByPageUrlOrderBySortOrderAscIdAsc(pageUrl)) {
+            Map<String, Object> row = new LinkedHashMap<>();
+            row.put("id", c.getId());
+            row.put("columnKey", c.getColumnKey());
+            row.put("displayName", c.getDisplayName());
+            customCols.add(row);
+        }
+        m.put("customViewColumns", customCols);
         return m;
     }
 

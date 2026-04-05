@@ -8,6 +8,7 @@ import com.pg.entity.OrgUnit;
 import com.pg.repository.MerchantProfileRepository;
 import com.pg.repository.OrgBrandingRepository;
 import com.pg.repository.OrgUnitRepository;
+import com.pg.util.FaviconImageUtil;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -16,9 +17,6 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
-import javax.imageio.ImageIO;
-import java.awt.*;
-import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -154,7 +152,7 @@ public class ApiOrgBrandingController {
             String fileName = imageType + "_" + UUID.randomUUID().toString().substring(0, 8) + "." + storedExt;
             Path targetPath = basePath.resolve(fileName);
             if ("popcon".equals(imageType)) {
-                saveAsFaviconPng32(file, targetPath);
+                FaviconImageUtil.saveMultipartAsFaviconPng32(file, targetPath);
             } else {
                 Files.copy(file.getInputStream(), targetPath, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
             }
@@ -297,29 +295,6 @@ public class ApiOrgBrandingController {
             s = s.substring(0, 200);
         }
         return s;
-    }
-
-    private static void saveAsFaviconPng32(MultipartFile file, Path targetPath) throws IOException {
-        BufferedImage src = ImageIO.read(file.getInputStream());
-        if (src == null) {
-            throw new IOException("이미지 파일을 읽을 수 없습니다.");
-        }
-        BufferedImage out = new BufferedImage(32, 32, BufferedImage.TYPE_INT_ARGB);
-        Graphics2D g2 = out.createGraphics();
-        try {
-            g2.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BICUBIC);
-            g2.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
-            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-            g2.setComposite(AlphaComposite.Clear);
-            g2.fillRect(0, 0, 32, 32);
-            g2.setComposite(AlphaComposite.SrcOver);
-            g2.drawImage(src, 0, 0, 32, 32, null);
-        } finally {
-            g2.dispose();
-        }
-        if (!ImageIO.write(out, "png", targetPath.toFile())) {
-            throw new IOException("PNG 변환 저장에 실패했습니다.");
-        }
     }
 
     private void deleteUploadedFileIfManaged(String compId, String oldUrl) {
