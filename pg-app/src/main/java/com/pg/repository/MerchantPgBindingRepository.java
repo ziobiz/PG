@@ -22,6 +22,9 @@ public interface MerchantPgBindingRepository extends JpaRepository<MerchantPgBin
 
     List<MerchantPgBinding> findByMidOrderByOperationalYnDescIdAsc(String mid);
 
+    /** 통합내역 등: ChillPay MID 문자열이 DB와 대소문자만 다를 때 */
+    List<MerchantPgBinding> findByMidIgnoreCaseOrderByOperationalYnDescIdAsc(String mid);
+
     boolean existsByOrgUnitIdAndPgCdAndPayMethod(Long orgUnitId, String pgCd, String payMethod);
 
     boolean existsByOrgUnitIdAndPgCdAndPayMethodAndIdNot(Long orgUnitId, String pgCd, String payMethod, Long id);
@@ -34,4 +37,8 @@ public interface MerchantPgBindingRepository extends JpaRepository<MerchantPgBin
 
     @Query("select distinct o.code from MerchantPgBinding b, OrgUnit o where o.id = b.orgUnitId and b.pgCd = :pgCd")
     List<String> findMerchantCodesByPgCd(@Param("pgCd") String pgCd);
+
+    /** 노티 수신 키 수집: 해당 PG 코드(또는 CHILLPAY_… 접두)에 연결된 MID 목록 */
+    @Query("select distinct trim(b.mid) from MerchantPgBinding b where trim(coalesce(b.mid,'')) <> '' and upper(b.pgCd) like upper(concat(:vendorCode, '%'))")
+    List<String> findDistinctMidsByPgCdLikeVendor(@Param("vendorCode") String vendorCode);
 }

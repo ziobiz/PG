@@ -882,6 +882,9 @@
     hqNotifyMappingAiStatus: function () {
       return get('/api/hq/notifyMapping/aiStatus').then(function (r) { return r.data; });
     },
+    hqNotifyMappingInboundKeys: function (vendorCode, limit) {
+      return get('/api/hq/notifyMapping/inboundParamKeys', { vendorCode: vendorCode || '', limit: limit != null ? limit : 120 }).then(function (r) { return r.data; });
+    },
     hqNotifyInboundList: function (params) {
       return get('/api/hq/notifyInbound', params || {}).then(function (r) { return r.data; });
     },

@@ -15,7 +15,15 @@ public interface PgTrnsctnRepository extends JpaRepository<PgTrnsctn, String>, J
 
     Optional<PgTrnsctn> findFirstByChillTransactionIdAndMerchantId(String chillTransactionId, String merchantId);
 
+    /**
+     * 동일 MID·다 가맹점 노티가 잘못된 업체코드로 파싱될 때 — 승인번호(TransactionId)는 칠페이 전역 유일로 보고 기존 행에 병합.
+     */
+    Optional<PgTrnsctn> findFirstByChillTransactionIdOrderByCreatedAtDesc(String chillTransactionId);
+
     Optional<PgTrnsctn> findFirstByMerchantIdAndOrderNoAndOrigin(String merchantId, String orderNo, String origin);
+
+    /** URL 인라인 DirectCredit 직후 적재(origin=URL) 등 — ChillPay RESULT URL(orderNo·transNo) 역추적 */
+    Optional<PgTrnsctn> findFirstByOrderNoAndOriginOrderByCreatedAtDesc(String orderNo, String origin);
 
     @Query("SELECT t FROM PgTrnsctn t WHERE " +
            "(:merchantId IS NULL OR :merchantId = '' OR t.merchantId = :merchantId) " +

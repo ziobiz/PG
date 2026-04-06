@@ -8,6 +8,42 @@
   w.PG_PAY_LIST_INTEGRATED = {
     /** VIEW SETTING 체크 목록에서 제외되는 고정열 (renderTableColumnGuide) */
     columnGuideFixedKeys: ['rowNo', 'compId', 'compNm', 'compDivNm', 'trnDate', 'trnTime', 'routeNo'],
+    /**
+     * 저장 전·초기화 시 결제관리 통합 그리드 VIEW SETTING 기본 체크(고정열 제외).
+     * 목록에 없는 열은 제거하지 않으며 체크만 꺼진 상태로 둡니다.
+     */
+    viewSettingDefaultSelectedKeys: [
+      'chillTransactionId', 'trnId', 'chillCustomer', 'orderNo', 'paymentChannel',
+      'payCompletedAt', 'chillAmount', 'icopayAmt', 'chillFeeAmt', 'totalAmt', 'currency',
+      'chillPaymentStatus', 'settledYn', 'payDivNm', 'cardAprvNo', 'productNm', 'customerNm'
+    ],
+    /**
+     * 조직항목설정: 조직 유형별 허용 열 체크의 기본안(REGIONAL 은 런타임에서 전체 토글열로 확장).
+     * 본사(REGIONAL)=전체, 총판(MASTER_DIST), 지사·대리점·영업점(BRANCH_GROUP), 가맹점(MERCHANT) 순으로 좁아집니다.
+     */
+    orgAllowanceDefaultKeysByScope: {
+      REGIONAL: null,
+      MASTER_DIST: [
+        'chillTransactionId', 'trnId', 'chillCustomer', 'orderNo', 'paymentChannel', 'payCompletedAt',
+        'chillAmount', 'icopayAmt', 'chillFeeAmt', 'totalAmt', 'currency', 'chillPaymentStatus', 'settledYn',
+        'payDivNm', 'cardAprvNo', 'productNm', 'customerNm', 'customerTel', 'regionalNm', 'masterNm', 'branchNm',
+        'compRegNo', 'payCard', 'instalMonth', 'payMethod', 'pgNm', 'pgApproveAmt', 'payAprv',
+        'holdAmt', 'holdDttm', 'feeCnt', 'feeRate', 'settleAmt', 'calcDt', 'pgApproveNo', 'corpNm', 'terminalId', 'calcCycle',
+        'payCardNo'
+      ],
+      BRANCH_GROUP: [
+        'chillTransactionId', 'trnId', 'chillCustomer', 'orderNo', 'paymentChannel', 'payCompletedAt',
+        'chillAmount', 'icopayAmt', 'chillFeeAmt', 'totalAmt', 'currency', 'chillPaymentStatus', 'settledYn',
+        'payDivNm', 'cardAprvNo', 'productNm', 'customerNm', 'customerTel', 'regionalNm', 'masterNm', 'branchNm',
+        'compRegNo', 'payMethod', 'pgNm', 'pgApproveAmt', 'payAprv', 'holdAmt', 'holdDttm', 'feeCnt', 'feeRate',
+        'settleAmt', 'calcDt', 'pgApproveNo'
+      ],
+      MERCHANT: [
+        'chillTransactionId', 'trnId', 'chillCustomer', 'orderNo', 'paymentChannel', 'payCompletedAt',
+        'chillAmount', 'icopayAmt', 'chillFeeAmt', 'totalAmt', 'currency', 'chillPaymentStatus', 'settledYn',
+        'payDivNm', 'cardAprvNo', 'productNm', 'customerNm'
+      ]
+    },
     headerGroups: [
       { label: '사업자번호', keys: ['compRegNo'] },
       { label: 'PG승인', keys: ['pgApproveAmt', 'payAprv'] },
@@ -64,5 +100,53 @@
       { key: 'branchNm', label: '대리점' },
       { key: 'payActions', label: '후속조치', gridType: 'payActions' }
     ]
+  };
+
+  /** 통합내역(/calc/chillPayTrList) VIEW SETTING·조직항목설정 기본안 (고정: 번호·TransactionId·업체·거래일·거래시간·Route) */
+  w.PG_CHILL_PAY_TR_VIEW_DEFAULTS = {
+    viewSettingDefaultSelectedKeys: [
+      'merchant', 'customer', 'orderNo', 'paymentChannel',
+      'payCompletedAt', 'amount', 'fee', 'totalAmount', 'currency', 'status', 'settled', 'icopay'
+    ],
+    orgAllowanceDefaultKeysByScope: {
+      REGIONAL: null,
+      MASTER_DIST: [
+        'merchant', 'customer', 'orderNo', 'paymentChannel', 'payCompletedAt',
+        'amount', 'refundAmount', 'fee', 'discount', 'totalAmount', 'currency', 'status', 'settled', 'icopay', 'description',
+        'transactionDate', 'paymentDate'
+      ],
+      BRANCH_GROUP: [
+        'merchant', 'customer', 'orderNo', 'paymentChannel', 'payCompletedAt',
+        'amount', 'fee', 'totalAmount', 'currency', 'status', 'settled', 'icopay', 'refundAmount',
+        'transactionDate', 'paymentDate'
+      ],
+      MERCHANT: [
+        'merchant', 'customer', 'orderNo', 'paymentChannel', 'payCompletedAt',
+        'amount', 'currency', 'status', 'settled', 'fee', 'totalAmount'
+      ]
+    }
+  };
+
+  /** 통합정산(/calc/chillPaySettlementList) VIEW SETTING·조직항목설정 기본안 (고정: 번호·TransactionId·TransactionDate·Merchant·PaymentDate·RouteNo) */
+  w.PG_CHILL_PAY_SETTLEMENT_VIEW_DEFAULTS = {
+    viewSettingDefaultSelectedKeys: [
+      'customer', 'orderNo', 'paymentChannel',
+      'amount', 'refundAmount', 'fee', 'discount', 'totalAmount', 'icopay', 'currency', 'status', 'settled', 'description'
+    ],
+    orgAllowanceDefaultKeysByScope: {
+      REGIONAL: null,
+      MASTER_DIST: [
+        'customer', 'orderNo', 'paymentChannel',
+        'amount', 'refundAmount', 'fee', 'discount', 'totalAmount', 'icopay', 'currency', 'status', 'settled', 'description'
+      ],
+      BRANCH_GROUP: [
+        'customer', 'orderNo', 'paymentChannel',
+        'amount', 'fee', 'discount', 'totalAmount', 'icopay', 'currency', 'status', 'settled', 'refundAmount', 'description'
+      ],
+      MERCHANT: [
+        'customer', 'orderNo', 'paymentChannel',
+        'amount', 'currency', 'status', 'settled', 'fee', 'totalAmount'
+      ]
+    }
   };
 })(typeof window !== 'undefined' ? window : globalThis);

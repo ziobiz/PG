@@ -6,14 +6,14 @@ alwaysApply: true
 # 테이블 컬럼 리사이즈 (필수)
 
 ## 전제
-- `site/js/table-col-resize.js` 가 `index.html`에서 로드되며, 각 **탭 pane**에 `MutationObserver` + 메뉴 로드 시 `PG_TABLE_COL_RESIZE.refreshIn(pane)` 로 적용된다.
-- **Bootstrap 테이블**은 반드시 `class`에 **`table`** 을 포함한다 (`table table-sm` 등). 그러면 자동으로 헤더 그립이 붙는다.
+- `site/js/table-column-resize.js` 가 `index.html`에서 로드되며, `#contentsMain` 에 `MutationObserver` 가 걸려 있고, 메뉴 로드 시 `PG_TABLE_COL_RESIZE.ensureObserver(pane)` + `refreshIn(pane)` 가 호출된다.
+- **Bootstrap 테이블**은 반드시 `class`에 **`table`** 을 포함한다 (`table table-sm` 등). 그러면 자동으로 헤더 드래그 핸들이 붙는다.
 
 ## 신규 화면·그리드 작성 시
 1. 데이터 그리드는 `<table class="table ...">` + `<thead>`(최소 1행) 구조를 쓴다.
 2. **2단 헤더**(그룹 헤더 + 하위 열): 첫 행에 `rowspan`으로 내려오는 열(예: 체크박스)이 있으면, **마지막 `thead` 행**의 `th`가 본문 열과 순서대로 대응되게 맞춘다(기존 그리드 패턴과 동일).
-3. 리사이즈를 끄고 싶은 예외 테이블만 `class="pg-col-resize-skip"` 를 테이블에 추가한다.
-4. 컬럼 너비는 사용자가 조절할 수 있으므로, 초기 레이아웃은 `th`에 `style="width:…"` 정도로 두면 된다.
+3. 리사이즈를 끄고 싶은 예외 테이블: 테이블에 `class="table-no-col-resize"` 또는 상위에 `table-no-col-resize-wrap`.
+4. `id`가 `grid_*` 인 표는 열 너비가 `localStorage(pg_col_w_<id>)`에 저장된다.
 
 ## 수정 금지
 - `loadContent` 에서 `PG_TABLE_COL_RESIZE.ensureObserver` / `refreshIn` 호출을 제거하지 않는다.

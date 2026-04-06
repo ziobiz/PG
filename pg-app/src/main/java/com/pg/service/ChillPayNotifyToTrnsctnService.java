@@ -2,10 +2,13 @@ package com.pg.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.pg.entity.MerchantPgBinding;
 import com.pg.entity.PgNotifyInbound;
 import com.pg.entity.PgTrnsctn;
+import com.pg.entity.OrgUnit;
 import com.pg.repository.MerchantPgBindingRepository;
+import com.pg.repository.OrgUnitRepository;
 import com.pg.repository.PgTrnsctnRepository;
 import com.pg.util.NotifyAmountParse;
 import com.pg.util.NotifyChannelMerge;
@@ -17,13 +20,19 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * NOTI·칠페이 서버노티(JSON) 수신 후, {@link PgNotifyInbound}가 가맹점까지 해석된 경우
@@ -37,6 +46,8 @@ public class ChillPayNotifyToTrnsctnService {
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
     private static final String ORIGIN_NOTI = "NOTI";
+    private static final String ORIGIN_URL = "URL";
+    private static final String ORIGIN_API = "API";
     private static final String STATUS_PAID = "10";
     private static final String STATUS_AUTH_PENDING = "08";
     private static final String STATUS_CANCEL = "20";
@@ -44,16 +55,21 @@ public class ChillPayNotifyToTrnsctnService {
     private static final String STATUS_FAIL = "99";
 
     private static final DateTimeFormatter PAY_DD_MM = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss", Locale.ENGLISH);
+    /** ChillPay PaymentDescription 등 — 노티 본문에서 업체코드 재추출 ({@link PgNotifyReceiveService} 와 동일) */
+    private static final Pattern ICOPAY_COMP_ID = Pattern.compile("icopayCompId=([A-Za-z0-9_.-]+)", Pattern.CASE_INSENSITIVE);
 
     private final PgTrnsctnRepository pgTrnsctnRepository;
     private final MerchantPgBindingRepository merchantPgBindingRepository;
+    private final OrgUnitRepository orgUnitRepository;
     private final HqNotifyMappingService hqNotifyMappingService;
 
     public ChillPayNotifyToTrnsctnService(PgTrnsctnRepository pgTrnsctnRepository,
                                          MerchantPgBindingRepository merchantPgBindingRepository,
+                                         OrgUnitRepository orgUnitRepository,
                                          HqNotifyMappingService hqNotifyMappingService) {
         this.pgTrnsctnRepository = pgTrnsctnRepository;
         this.merchantPgBindingRepository = merchantPgBindingRepository;
+        this.orgUnitRepository = orgUnitRepository;
         this.hqNotifyMappingService = hqNotifyMappingService;
     }
 
@@ -90,16 +106,7 @@ public class ChillPayNotifyToTrnsctnService {
         if (raw == null || raw.isBlank()) {
             return;
         }
-        String trimmed = raw.trim();
-        if (!trimmed.startsWith("{")) {
-            return;
-        }
-        JsonNode root;
-        try {
-            root = MAPPER.readTree(trimmed);
-        } catch (Exception e) {
-            return;
-        }
+        JsonNode root = resolveNotifyJsonTree(in, raw.trim());
         if (root == null || !root.isObject()) {
             return;
         }
@@ -130,6 +137,9 @@ public class ChillPayNotifyToTrnsctnService {
         }
 
         Optional<PgTrnsctn> existingOpt = findExisting(merchantCode.trim(), chillTxnId, orderNo);
+        boolean mergeByGlobalChill = existingOpt.isPresent() && chillTxnId != null && !chillTxnId.isBlank()
+                && !merchantCode.trim().equalsIgnoreCase(
+                Optional.ofNullable(existingOpt.get().getMerchantId()).orElse("").trim());
         Optional<BigDecimal> amountOpt = resolveAmountFromNotify(root);
         if (!NotifyAmountParse.isPositive(amountOpt)) {
             if (existingOpt.isEmpty()) {
@@ -162,14 +172,20 @@ public class ChillPayNotifyToTrnsctnService {
                 return;
             }
         }
+        /* 잘못 파싱된 노티가 다른 업체로 들어와도 TransactionId 로 병합할 때는 기존 금액 유지(800 vs 80000 이중 적재 방지) */
+        if (mergeByGlobalChill && t.getAmtKrw() != null && t.getAmtKrw().compareTo(BigDecimal.ZERO) > 0) {
+            amountBd = t.getAmtKrw();
+        }
 
-        t.setMerchantId(merchantCode.trim());
-        t.setServiceType("NOTI");
+        if (existingOpt.isEmpty()) {
+            t.setMerchantId(merchantCode.trim());
+            t.setServiceType("NOTI");
+            t.setOrigin(ORIGIN_NOTI);
+        }
         t.setStatus(mergedStatus);
         t.setCurType(firstCurrency(root));
         t.setAmtKrw(amountBd);
         t.setVan("CHILLPAY");
-        t.setOrigin(ORIGIN_NOTI);
         t.setNotifyChannelType(NotifyChannelMerge.mergeStored(t.getNotifyChannelType(), notifyCh));
 
         String payNo = orderNo != null && !orderNo.isBlank() ? orderNo.trim() : (chillTxnId != null ? chillTxnId.trim() : t.getTrnId());
@@ -242,9 +258,117 @@ public class ChillPayNotifyToTrnsctnService {
             t.setSettledYn("N");
         }
 
+        applyMerchantFromIcopayCompInPayload(in, root, raw, t);
+
         pgTrnsctnRepository.save(t);
         log.info("ChillPay 노티 거래 적재 trnId={} merchantId={} orderNo={} chillTxn={} channel={} status={}",
                 t.getTrnId(), t.getMerchantId(), t.getOrderNo(), t.getChillTransactionId(), notifyCh, t.getStatus());
+    }
+
+    /**
+     * JSON 노티는 그대로 파싱하고, ChillPay URL 결제 RESULT 가 {@code orderNo=…&transNo=…} 폼만 보낼 때는
+     * {@link PgNotifyReceiveService} 가 PARSED 로 맞춘 MID·루트를 넣어 합성 JSON 으로 거래 병합합니다.
+     * (수신 로그 {@code raw_body} 는 변경하지 않음.)
+     */
+    private JsonNode resolveNotifyJsonTree(PgNotifyInbound in, String trimmed) {
+        if (trimmed.startsWith("{")) {
+            try {
+                JsonNode r = MAPPER.readTree(trimmed);
+                return r != null && r.isObject() ? r : null;
+            } catch (Exception e) {
+                return null;
+            }
+        }
+        if (!"RESULT".equalsIgnoreCase(String.valueOf(in.getNotifyChannelType()).trim())) {
+            return null;
+        }
+        return buildSyntheticChillPayJsonFromResultForm(trimmed, in);
+    }
+
+    private static JsonNode buildSyntheticChillPayJsonFromResultForm(String formBody, PgNotifyInbound in) {
+        if (formBody == null || formBody.isBlank() || !formBody.contains("=")) {
+            return null;
+        }
+        Map<String, String> lm = new LinkedHashMap<>();
+        parseFormLowerKeys(formBody, lm);
+        String orderNo = getLoose(lm, "orderno", "order_no");
+        String transNo = coalesceNonBlank(
+                getLoose(lm, "transno", "trans_no"),
+                getLoose(lm, "transactionid", "transaction_id"));
+        if ((orderNo == null || orderNo.isBlank()) && (transNo == null || transNo.isBlank())) {
+            return null;
+        }
+        ObjectNode n = MAPPER.createObjectNode();
+        if (orderNo != null && !orderNo.isBlank()) {
+            n.put("OrderNo", orderNo.trim());
+        }
+        if (transNo != null && !transNo.isBlank()) {
+            n.put("TransactionId", transNo.trim());
+        }
+        String resp = getLoose(lm, "respcode", "resp_code");
+        if (resp != null && !resp.isBlank()) {
+            n.put("PaymentStatus", resp.trim());
+        }
+        String st = getLoose(lm, "status");
+        if (st != null && !st.isBlank()) {
+            n.put("Status", st.trim());
+        }
+        if (in.getMid() != null && !in.getMid().isBlank()) {
+            n.put("MerchantCode", in.getMid().trim());
+        }
+        if (in.getRootNo() != null && !in.getRootNo().isBlank()) {
+            n.put("RouteNo", in.getRootNo().trim());
+        }
+        String amt = getLoose(lm, "amount");
+        if (amt != null && !amt.isBlank()) {
+            n.put("Amount", amt.trim());
+        } else {
+            n.put("Amount", "0");
+        }
+        return n;
+    }
+
+    private static void parseFormLowerKeys(String body, Map<String, String> out) {
+        try {
+            for (String pair : body.split("&")) {
+                int i = pair.indexOf('=');
+                if (i <= 0) {
+                    continue;
+                }
+                String k = URLDecoder.decode(pair.substring(0, i).trim(), StandardCharsets.UTF_8)
+                        .toLowerCase(Locale.ROOT);
+                String v = URLDecoder.decode(pair.substring(i + 1).trim(), StandardCharsets.UTF_8);
+                if (!v.isEmpty()) {
+                    out.put(k, v);
+                }
+            }
+        } catch (Exception ignored) {
+            /* ignore */
+        }
+    }
+
+    private static String getLoose(Map<String, String> m, String... keys) {
+        for (String key : keys) {
+            if (key == null) {
+                continue;
+            }
+            String look = key.toLowerCase(Locale.ROOT).replace('-', '_');
+            String v = m.get(look);
+            if (v != null && !v.isBlank()) {
+                return v.trim();
+            }
+        }
+        return null;
+    }
+
+    private static String coalesceNonBlank(String a, String b) {
+        if (a != null && !a.isBlank()) {
+            return a.trim();
+        }
+        if (b != null && !b.isBlank()) {
+            return b.trim();
+        }
+        return null;
     }
 
     private boolean looksLikeChillPayNotify(PgNotifyInbound in, JsonNode root) {
@@ -272,6 +396,57 @@ public class ChillPayNotifyToTrnsctnService {
             }
         }
         return true;
+    }
+
+    /**
+     * 수신 단계에서 MID·노티 바인딩만으로 merchant 가 틀어진 경우에도,
+     * 본문 {@code icopayCompId=} 또는 {@link PgNotifyInbound#getPayloadCompId()} 가 유효 업체면 {@code pg_trnsctn.merchant_id} 를 맞춥니다.
+     */
+    private void applyMerchantFromIcopayCompInPayload(PgNotifyInbound in, JsonNode root, String rawBody, PgTrnsctn t) {
+        if (t == null) {
+            return;
+        }
+        String comp = extractIcopayCompIdFromNotify(root, rawBody);
+        if ((comp == null || comp.isBlank())
+                && in != null && in.getPayloadCompId() != null && !in.getPayloadCompId().isBlank()) {
+            comp = in.getPayloadCompId().trim();
+        }
+        if (comp == null || comp.isBlank()) {
+            return;
+        }
+        Optional<OrgUnit> ou = orgUnitRepository.findByCode(comp.trim());
+        if (ou.isEmpty()) {
+            ou = orgUnitRepository.findByCodeIgnoreCase(comp.trim());
+        }
+        if (ou.isEmpty()) {
+            return;
+        }
+        String code = ou.get().getCode();
+        if (code == null || code.isBlank()) {
+            return;
+        }
+        String normalized = code.trim();
+        String cur = t.getMerchantId() != null ? t.getMerchantId().trim() : "";
+        if (!normalized.equalsIgnoreCase(cur)) {
+            t.setMerchantId(normalized);
+        }
+    }
+
+    private static String extractIcopayCompIdFromNotify(JsonNode root, String rawBody) {
+        String desc = textDeep(root, "PaymentDescription", "paymentDescription");
+        if (desc != null && !desc.isBlank()) {
+            Matcher m = ICOPAY_COMP_ID.matcher(desc);
+            if (m.find()) {
+                return m.group(1).trim();
+            }
+        }
+        if (rawBody != null && !rawBody.isBlank()) {
+            Matcher m = ICOPAY_COMP_ID.matcher(rawBody);
+            if (m.find()) {
+                return m.group(1).trim();
+            }
+        }
+        return null;
     }
 
     /**
@@ -309,13 +484,29 @@ public class ChillPayNotifyToTrnsctnService {
 
     private Optional<PgTrnsctn> findExisting(String merchantId, String chillTxnId, String orderNo) {
         if (chillTxnId != null && !chillTxnId.isBlank()) {
-            Optional<PgTrnsctn> byChill = pgTrnsctnRepository.findFirstByChillTransactionIdAndMerchantId(chillTxnId.trim(), merchantId);
+            String tid = chillTxnId.trim();
+            Optional<PgTrnsctn> byChill = pgTrnsctnRepository.findFirstByChillTransactionIdAndMerchantId(tid, merchantId);
             if (byChill.isPresent()) {
                 return byChill;
             }
+            Optional<PgTrnsctn> byChillGlobal = pgTrnsctnRepository.findFirstByChillTransactionIdOrderByCreatedAtDesc(tid);
+            if (byChillGlobal.isPresent()) {
+                log.info("Chill TransactionId={} 기존 행을 merchant 무관으로 매칭 (노티 merchantId={}, DB merchantId={})",
+                        tid, merchantId, byChillGlobal.get().getMerchantId());
+                return byChillGlobal;
+            }
         }
         if (orderNo != null && !orderNo.isBlank()) {
-            return pgTrnsctnRepository.findFirstByMerchantIdAndOrderNoAndOrigin(merchantId, orderNo.trim(), ORIGIN_NOTI);
+            String on = orderNo.trim();
+            Optional<PgTrnsctn> n = pgTrnsctnRepository.findFirstByMerchantIdAndOrderNoAndOrigin(merchantId, on, ORIGIN_NOTI);
+            if (n.isPresent()) {
+                return n;
+            }
+            n = pgTrnsctnRepository.findFirstByMerchantIdAndOrderNoAndOrigin(merchantId, on, ORIGIN_URL);
+            if (n.isPresent()) {
+                return n;
+            }
+            return pgTrnsctnRepository.findFirstByMerchantIdAndOrderNoAndOrigin(merchantId, on, ORIGIN_API);
         }
         return Optional.empty();
     }

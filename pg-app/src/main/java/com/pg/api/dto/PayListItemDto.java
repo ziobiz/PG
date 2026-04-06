@@ -500,7 +500,32 @@ public class PayListItemDto {
         }
         String st = t.getStatus() != null ? t.getStatus() : "";
         String mapped = legacyVoidStatusFromChillWhenCancel20(st, t.getChillPaymentStatus());
+        if (mapped != null) {
+            return mapped;
+        }
+        mapped = voidDisplayWhenPaidButChillVoided(st, t.getChillPaymentStatus());
         return mapped != null ? mapped : st;
+    }
+
+    /**
+     * 내부 상태가 아직 승인(10)인데 칠페이 표시 필드가 무효·Void 계열이면 그리드 구분·행 색을 무효로 맞춤.
+     */
+    private static String voidDisplayWhenPaidButChillVoided(String status, String chill) {
+        if (!"10".equals(status) || chill == null || chill.isBlank()) {
+            return null;
+        }
+        String ul = chill.trim().toLowerCase(Locale.ROOT);
+        if (VOID_TOKEN_HINT.matcher(ul).find() && !ul.contains("cancel")) {
+            return "21";
+        }
+        if (ul.contains("voided") || ul.contains("emailvoid") || ul.contains("email_void")
+                || (ul.contains("invalid") && !ul.contains("cancel"))) {
+            return "21";
+        }
+        if (ul.contains("무효") && !ul.contains("취소")) {
+            return "21";
+        }
+        return null;
     }
 
     private static boolean isVoidFamilyStatus(String status) {

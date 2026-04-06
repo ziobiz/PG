@@ -431,8 +431,8 @@
       formHtmlId: 'hqNotifyMappingForm',
       formSections: [
         {
-          title: '노티매핑설정',
-          notice: '<strong>역할:</strong> 결제대행사(PG)별로 노티 본문의 파라미터(CALLBACK·RESULT·RETURN 등 채널별)를 <strong>VIEW SETTING 카탈로그의 열 key</strong>에 연결합니다. 저장된 값은 <code>pg_trnsctn</code> 등에 반영되며, 결제내역·통합내역 등 그리드에서 해당 열로 노출됩니다. <strong>조직항목설정</strong>에서 허용한 열만 최종 사용자 VIEW SETTING에 나타나므로, 열 정의·허용 목록은 본사설정 → 조직항목설정과 맞추세요. <strong>진행:</strong> PG 목록 동기화 → ①② 카탈로그·화면연결 확인 → ③에서 PG·채널별 매핑(AI·자동 제안 후 수동 수정) → 매핑 적용 → 하단 저장. 노티 URL이 <code>…/pg-notify/{토큰}/{대상코드}</code>이면 대상코드에 따라 CALLBACK/RESULT 매핑이 구분됩니다(대상코드 없음=CALLBACK). <code>hqExt_</code> 추가 열은 수동 매핑 허용됩니다.',
+          title: '노티매핑설정 (GUI)',
+          notice: '<strong>한눈에:</strong> 아래 표에서 <strong>PG가 보낸 파라미터 이름</strong>마다 <strong>우리 메뉴(그리드)의 항목(열 key)</strong>을 고릅니다. <strong>우리 표시명</strong>을 고치면 카탈로그 라벨이 바뀌고, <strong>저장</strong>하면 결제내역·조직항목설정에서 보이는 열 이름과 맞춰집니다. <strong>AI 잠금</strong>은 자동 제안이 그 줄을 덮어쓰지 못하게 합니다. JSON 구조는 펼치지 않아도 됩니다 — 필요 시 하단 고급 영역·JSON 편집을 사용하세요.',
           rows: [
             [{
               type: 'customHtml',
@@ -442,17 +442,12 @@
                 '<div class="row g-2 mt-2 align-items-end">' +
                 '<div class="col-md-4"><label class="form-label small mb-0">최종 수정일시</label>' +
                 '<input type="text" name="updatedAt" class="form-control form-control-sm" readonly></div>' +
-                '<div class="col-md-8"><button type="button" class="btn btn-sm btn-outline-secondary" id="hqNotifyMappingToggleJsonBtn">고급: JSON 직접 편집</button></div></div>' +
+                '<div class="col-md-8"><button type="button" class="btn btn-sm btn-outline-secondary" id="hqNotifyMappingToggleJsonBtn">전문가용: JSON 직접 편집</button></div></div>' +
                 '<div id="hqNotifyMappingJsonEditorWrap" class="d-none mt-2">' +
                 '<label class="form-label small">mappingDefinitionJson</label>' +
                 '<textarea id="hqNotifyMappingJsonVisible" class="form-control font-monospace small" rows="14" spellcheck="false"></textarea></div>'
             }]
           ]
-        },
-        {
-          title: '구조 안내 (v2)',
-          notice: 'version 2: <code>columnCatalogs[]</code>, <code>pageCatalogAssignments[]</code>, <code>vendors[]</code> — channels·fieldMappings, <code>displayMaps</code> (열key → {raw:label}, 결제내역 표시 가공). docs/노티매핑설정.md',
-          rows: []
         }
       ],
       buttons: [{ id: 'hqNotifyMappingSaveBtn', label: '저장', cls: 'btn-primary' }]
@@ -541,7 +536,7 @@
       formSections: [
         {
           title: '조직항목설정',
-          notice: '총본사가 각 본사(REGIONAL) 트리마다, 조직 유형·화면별로 VIEW SETTING에서 노출·선택 가능한 열을 지정합니다. 본사·총판·지사·대리점·영업점(동일 설정)·가맹점 네 가지로 나누어 저장합니다. 지사·대리점·영업점과 가맹점에 별도 저장이 없으면 해당 화면의 총판 설정을 그대로 따릅니다. 정책 행이 없으면(불러오기 시 정책 없음) 제한 없이 전 항목 선택 가능합니다. 고정 열(번호·업체명·거래일·Route No 등)은 항상 표시되며 여기 목록에 나오지 않습니다. [불러오기]는 현재 선택한 본사·조직 유형·화면에 대해 서버에 저장된 체크 상태를 가져와 반영합니다(저장 전에 서버 값을 확인할 때 사용). 아래 [추가 VIEW 항목]은 화면마다 다르게 본사 전용 열을 등록합니다. 등록된 항목은 해당 화면의 VIEW SETTING에 항상 나타나며, 조직 노출 정책이 적용될 때 자동으로 허용 목록에 포함됩니다.',
+          notice: '총본사가 각 본사(REGIONAL) 트리마다, 조직 유형·화면별로 VIEW SETTING에서 노출·선택 가능한 열을 지정합니다. 본사·총판·지사·대리점·영업점(동일 설정)·가맹점 네 가지로 나누어 저장합니다. 지사·대리점·영업점과 가맹점에 별도 저장이 없으면 해당 화면의 총판 설정을 그대로 따릅니다. <strong>결제관리</strong>(결제내역·분류 화면·URL/챗봇·상계 및 <strong>통합내역</strong>)과 <strong>정산관리</strong>의 <strong>통합정산</strong>은 화면·조직 유형을 바꿀 때 <strong>기본 체크안</strong>이 자동 적용되며(본사=전체 허용, 총판·지사·가맹 순으로 축소), 체크되지 않은 열은 목록에서 제거되지 않고 꺼진 상태로 둡니다. 서버에 이미 저장된 정책이 있으면 [불러오기]·정책 행 클릭 시 그대로 불러옵니다. 고정 열(번호·업체명·거래일·Route No·TransactionId 등)은 항상 표시되며 여기 목록에 나오지 않습니다. [불러오기]는 현재 선택한 본사·조직 유형·화면에 대해 서버에 저장된 체크 상태를 가져와 반영합니다. 아래 [추가 VIEW 항목]은 화면마다 다르게 본사 전용 열을 등록합니다. 등록된 항목은 해당 화면의 VIEW SETTING에 나타나며, 기본 체크안에 포함된 경우에만 조직 설정에서 자동 체크됩니다.',
           rows: [
             [
               { label: '설정 대상 본사', type: 'select', name: 'regionalOrgCode', col: 4, options: [{ v: '', t: '선택' }], loadRegionalBranches: true },
@@ -1624,8 +1619,8 @@
       ],
       summary: ['건수'],
       buttons: [{ id: 'commissionSettingBtn', label: '수수료설정', cls: 'btn-info' }, { id: 'excelBtn', label: '엑셀다운로드', cls: 'btn-info' }, { id: 'commissionInlineTopSaveBtn', label: '저장', cls: 'btn-primary' }],
-      /** 2단 헤더 좁은 컬럼: 한 줄 표시 + site.css .commission-split-grid */
-      tableExtraClass: 'commission-split-grid',
+      /** 2단 헤더 + site.css .commission-split-grid. 가로 스크롤 방지를 위해 열 리사이즈(colgroup) 비활성화 */
+      tableExtraClass: 'commission-split-grid table-no-col-resize',
       headerGroups: [
         { label: '총본사', keys: ['hqNm', 'hqRate', 'hqPerTxFee'] },
         { label: '본사', keys: ['regionalNm', 'regionalRate', 'regionalPerTxFee'] },
@@ -1776,8 +1771,14 @@
     },
     /** ChillPay Transaction API — Search Payment Transaction (실시간, DB 비저장) */
     '/calc/chillPayTrList': {
+      /** ChillPay Transaction API 페이지당 최대 100건 — 초과 요청은 서버에서 잘림 */
+      paginationSizeOptions: [50, 100],
+      paginationDefaultSize: 100,
       payListStatusBar: true,
-      tableColumnGuide: false,
+      tableColumnGuide: true,
+      tableColumnGuideTwoRow: true,
+      /** VIEW SETTING에서 숨길 수 없는 열: 결제내역 통합과 동일한 앞부분(번호·거래ID·업체·거래일시·Route) */
+      columnGuideFixedKeys: ['rowNo', 'transactionId', 'compNm', 'compId', 'trnDate', 'trnTime', 'routeNo'],
       searchFormClass: 'screen-search-form pay-mng-search-form',
       searchRows: [
         [
@@ -1811,7 +1812,8 @@
       noticeList: [
         'ChillPay API Transaction Services — Search Payment Transaction(실시간)입니다. ICOPAY 내부 DB(pg_trnsctn)가 아니라 칠페이 서버에서 직접 목록을 가져옵니다. ziobiz/NOTI 노티미들웨어의 종합거래·피지거래내역과 유사한 용도로 쓸 수 있습니다.',
         '자격: 본사 API배포설정 또는 tb_pg_agency(ChillPay)의 MerchantCode·ApiKey·MD5 Secret Key·샌드박스 여부를 사용합니다.',
-        'TransactionDate 범위는 검색 기간(날짜)을 ChillPay 형식(dd/MM/yyyy HH:mm:ss)으로 변환합니다. 문서: ChillPay-API-Transaction-Services-Document-EN_v1.0.6.'
+        'TransactionDate 범위는 검색 기간(날짜)을 ChillPay 형식(dd/MM/yyyy HH:mm:ss)으로 변환합니다. 문서: ChillPay-API-Transaction-Services-Document-EN_v1.0.6.',
+        '그리드 열 노출은 상단 VIEW SETTING에서 조정합니다(저장 시 사용자별로 유지). 번호·TransactionId·업체명·업체코드·거래일·거래시간( JST·ICT 병기 )·Route는 항상 표시됩니다. 본사설정 → 조직항목설정에서 화면「통합내역」 허용 열을 제한할 수 있습니다.'
       ],
       summary: ['건수'],
       buttons: [
@@ -1821,30 +1823,40 @@
       columns: [
         { key: 'rowNo', label: 'No.' },
         { key: 'transactionId', label: 'TransactionId' },
-        { key: 'transactionDate', label: 'TransactionDate' },
-        { key: 'merchant', label: 'Merchant' },
+        { key: 'compNm', label: '업체명' },
+        { key: 'compId', label: '업체코드' },
+        { key: 'trnDate', label: '거래일' },
+        { key: 'trnTime', label: '거래시간' },
+        { key: 'routeNo', label: 'Route No' },
+        { key: 'merchant', label: 'Merchant(MID)' },
         { key: 'customer', label: 'Customer' },
         { key: 'orderNo', label: 'OrderNo' },
         { key: 'paymentChannel', label: 'PaymentChannel' },
-        { key: 'paymentDate', label: 'PaymentDate' },
+        { key: 'payCompletedAt', label: '결제시각' },
         { key: 'amount', label: 'Amount' },
         { key: 'refundAmount', label: 'RefundAmount' },
         { key: 'fee', label: 'Fee' },
         { key: 'discount', label: 'Discount' },
         { key: 'totalAmount', label: 'TotalAmount' },
         { key: 'currency', label: 'Currency' },
-        { key: 'routeNo', label: 'RouteNo' },
         { key: 'status', label: 'Status' },
         { key: 'settled', label: 'Settled' },
         { key: 'icopay', label: 'ICOPAY' },
-        { key: 'description', label: 'Description' }
+        { key: 'description', label: 'Description' },
+        { key: 'transactionDate', label: 'TransactionDate(원문)' },
+        { key: 'paymentDate', label: 'PaymentDate(원문)' }
       ],
       emptyMessage: '조회된 데이터가 없습니다.'
     },
     /** ChillPay Transaction API — 통합정산(결제일·Settled 중심, ICOPAY 정산 DB 비사용) */
     '/calc/chillPaySettlementList': {
+      paginationSizeOptions: [50, 100],
+      paginationDefaultSize: 100,
       payListStatusBar: true,
-      tableColumnGuide: false,
+      tableColumnGuide: true,
+      tableColumnGuideTwoRow: true,
+      /** VIEW SETTING·조직항목설정 고정열: 번호·거래ID·거래일·MID·결제일·Route */
+      columnGuideFixedKeys: ['rowNo', 'transactionId', 'transactionDate', 'merchant', 'paymentDate', 'routeNo'],
       searchFormClass: 'screen-search-form pay-mng-search-form',
       searchRows: [
         [
@@ -1882,7 +1894,8 @@
       noticeList: [
         '칠페이 Transaction Services — Search Payment Transaction API(v1.0.6)로 조회합니다. ICOPAY 정산 실행·유통망 정산 테이블과 무관하며, 칠페이가 판단한 Settled·수수료·금액 등 원문을 봅니다.',
         '기본 정렬은 Settled, 기간은 PaymentDate(결제일)입니다. 기간을 비우면 최근 30일 결제일로 조회합니다. 거래일(TransactionDate)은 선택 필터입니다.',
-        '자격: 본사 API배포설정·tb_pg_agency(ChillPay)의 MerchantCode·ApiKey·MD5 Secret Key·샌드박스와 동일합니다.'
+        '자격: 본사 API배포설정·tb_pg_agency(ChillPay)의 MerchantCode·ApiKey·MD5 Secret Key·샌드박스와 동일합니다.',
+        '그리드 열 노출은 상단 VIEW SETTING에서 조정합니다(저장 시 사용자별로 유지). 번호·TransactionId·TransactionDate·Merchant·PaymentDate·RouteNo는 항상 표시됩니다. 본사설정 → 조직항목설정에서 화면「통합정산」 허용 열을 제한할 수 있습니다.'
       ],
       summary: ['건수'],
       buttons: [
@@ -3226,9 +3239,9 @@
   /** 결제내역·통합내역: 금액 요약(서버 meta.payListFinancialSummary) + 상태별 통화 요약(meta.payListStatusBar), VIEW SETTING 위 */
   function renderPayListStatusBarSlot(tabId) {
     var t = tabId || '';
-    return '<div class="pay-list-summary-stack mb-2 small">' +
-      '<div class="pay-list-financial-summary pay-list-financial-summary--empty border rounded bg-light px-2 py-1 mb-1" id="payListFinancialSummary_' + t + '" role="status" aria-live="polite"></div>' +
-      '<div class="pay-list-status-bar pay-list-status-bar--empty" id="payListStatusBar_' + t + '" role="status" aria-live="polite"></div>' +
+    return '<div class="pay-list-summary-stack pay-list-aggregate-stack mb-2 small border rounded bg-light px-2 py-2">' +
+      '<div class="pay-list-aggregate-row pay-list-aggregate-row--financial pay-list-financial-summary pay-list-financial-summary--empty" id="payListFinancialSummary_' + t + '" role="status" aria-live="polite"></div>' +
+      '<div class="pay-list-aggregate-row pay-list-aggregate-row--status pay-list-status-bar pay-list-status-bar--empty" id="payListStatusBar_' + t + '" role="status" aria-live="polite"></div>' +
       '</div>';
   }
 
@@ -3471,19 +3484,27 @@
       trailingSave = '<div class="pagination-row-save">' +
         '<button type="button" class="btn btn-sm btn-primary" id="commissionPaginationSaveBtn">저장</button></div>';
     }
+    var sizeOpts = (listCfg && Array.isArray(listCfg.paginationSizeOptions) && listCfg.paginationSizeOptions.length)
+      ? listCfg.paginationSizeOptions.slice()
+      : [50, 100, 200, 500, 1000];
+    var defSize = listCfg && listCfg.paginationDefaultSize != null ? parseInt(listCfg.paginationDefaultSize, 10) : 500;
+    if (isNaN(defSize) || defSize < 1) defSize = 500;
+    if (sizeOpts.indexOf(defSize) === -1) {
+      defSize = sizeOpts[sizeOpts.length - 1] || 500;
+    }
+    var sizeBtns = sizeOpts.map(function (n) {
+      var active = n === defSize ? ' pagination-size-opt--active' : '';
+      return '<button type="button" class="pagination-size-opt' + active + '" data-size="' + n + '">' + n + '</button>';
+    }).join('');
     return '<div class="pagination-row">' +
       '<div class="pagination-view-at-once">' +
       '<span class="pagination-label">한 번에 보기:</span>' +
       '<div class="pagination-size-options">' +
-      '<button type="button" class="pagination-size-opt" data-size="50">50</button>' +
-      '<button type="button" class="pagination-size-opt" data-size="100">100</button>' +
-      '<button type="button" class="pagination-size-opt" data-size="200">200</button>' +
-      '<button type="button" class="pagination-size-opt pagination-size-opt--active" data-size="500">500</button>' +
-      '<button type="button" class="pagination-size-opt" data-size="1000">1000</button>' +
+      sizeBtns +
       '</div>' +
       '<span class="pagination-total">건 (총 <span id="totalElementsCount">0</span>건)</span>' +
       '</div>' +
-      '<input type="hidden" id="recordsPerPage" value="500">' +
+      '<input type="hidden" id="recordsPerPage" value="' + defSize + '">' +
       '<input type="hidden" id="pageCnt" value="1">' +
       '<span id="totalPageCount" style="display:none">1</span>' +
       '<div class="pagination-center"><div class="pagination-pages" id="paging_' + (tabId || '') + '"></div></div>' +
@@ -3525,7 +3546,7 @@
         if (cfg.hasCommissionHistoryTable) {
           html += '<div class="card mt-4 commission-history-card"><div class="card-header py-2 fw-semibold">수수료 변경 히스토리</div><div class="card-body pt-2">' +
             '<p class="text-muted small mb-2" id="commissionHistSubtitle_' + tabId + '">목록에서 가맹점 행을 클릭하면 해당 업체의 변경 이력이 표시됩니다. (최근 변경이 No.1)</p>' +
-            '<div class="table-responsive table-scrollable commission-list-table-wrap"><table class="table table-bordered table-sm table-hover mb-0 commission-split-grid" id="grid_commissionHist_' + tabId + '">' +
+            '<div class="table-responsive table-scrollable commission-list-table-wrap"><table class="table table-bordered table-sm table-hover mb-0 commission-split-grid table-no-col-resize" id="grid_commissionHist_' + tabId + '">' +
             '<thead><tr><th class="text-muted">…</th></tr></thead><tbody><tr><td class="text-center text-muted py-3">조회 전</td></tr></tbody></table></div></div></div>';
         }
       }

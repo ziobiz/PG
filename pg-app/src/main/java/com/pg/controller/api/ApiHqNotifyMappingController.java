@@ -65,9 +65,27 @@ public class ApiHqNotifyMappingController {
             }
             Object useAiRaw = body != null ? body.get("useAi") : null;
             boolean preferAi = useAiRaw == null || Boolean.parseBoolean(String.valueOf(useAiRaw));
+            @SuppressWarnings("unchecked")
+            List<Map<String, Object>> locked = body != null && body.get("lockedFieldMappings") instanceof List
+                    ? (List<Map<String, Object>>) body.get("lockedFieldMappings") : List.of();
             Map<String, Object> m = hqNotifyMappingService.suggestFieldMappingsAiThenHeuristic(
-                    vendor, catalogId, paramNames, sampleJson, preferAi);
+                    vendor, catalogId, paramNames, sampleJson, preferAi, locked);
             return ResponseEntity.ok(ApiResponse.ok(m));
+        } catch (Exception e) {
+            return ResponseEntity.ok(ApiResponse.fail(e.getMessage(), "VALIDATION"));
+        }
+    }
+
+    /**
+     * 수신 노티(tb_pg_notify_inbound) 원문에서 관찰된 파라미터 키 목록 — 노티매핑 마법사에서 PG 선택 후 키 후보 표시용.
+     */
+    @GetMapping("/inboundParamKeys")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> inboundParamKeys(
+            @RequestParam String vendorCode,
+            @RequestParam(required = false) Integer limit) {
+        try {
+            int lim = limit != null ? limit : 120;
+            return ResponseEntity.ok(ApiResponse.ok(hqNotifyMappingService.listObservedInboundParamKeys(vendorCode, lim)));
         } catch (Exception e) {
             return ResponseEntity.ok(ApiResponse.fail(e.getMessage(), "VALIDATION"));
         }

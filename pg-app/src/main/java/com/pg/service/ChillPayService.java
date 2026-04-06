@@ -8,11 +8,14 @@ import com.pg.dto.ChillPayPaymentSearchApiRequest;
 import com.pg.dto.ChillPayPaymentSearchApiResponse;
 import com.pg.entity.HqApiConfig;
 import com.pg.entity.MerchantPgBinding;
+import com.pg.entity.OrgUnit;
 import com.pg.entity.PgAgency;
 import com.pg.util.PayListStatusBarBuckets;
 import com.pg.repository.HqApiConfigRepository;
 import com.pg.repository.MerchantPgBindingRepository;
+import com.pg.repository.OrgUnitRepository;
 import com.pg.repository.PgAgencyRepository;
+import com.pg.repository.PgTrnsctnRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.*;
@@ -28,7 +31,11 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -83,26 +90,40 @@ public class ChillPayService {
     /** 통합내역 상단 요약: 최대 추가 ChillPay API 호출 페이지 수(페이지당 최대 100건) */
     private static final int CHILL_STATUS_BAR_MAX_PAGES = 30;
 
+    private static final ZoneId ZONE_JP = ZoneId.of("Asia/Tokyo");
+    private static final ZoneId ZONE_TH = ZoneId.of("Asia/Bangkok");
+    private static final DateTimeFormatter CHILL_TRN_TIME_DUAL = DateTimeFormatter.ofPattern("HH:mm:ss");
+    private static final DateTimeFormatter CHILL_PAY_COMPLETED_DUAL = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+
     private final ChillPayProperties props;
     private final HqApiConfigRepository hqApiConfigRepository;
     private final MerchantPgBindingRepository merchantPgBindingRepository;
     private final PgAgencyRepository pgAgencyRepository;
+    private final OrgUnitRepository orgUnitRepository;
     private final OrgServiceUseService orgServiceUseService;
+    private final PgTrnsctnRepository pgTrnsctnRepository;
     private final RestTemplate restTemplate = new RestTemplate();
 
     public ChillPayService(ChillPayProperties props, HqApiConfigRepository hqApiConfigRepository,
                           MerchantPgBindingRepository merchantPgBindingRepository,
                           PgAgencyRepository pgAgencyRepository,
-                          OrgServiceUseService orgServiceUseService) {
+                          OrgUnitRepository orgUnitRepository,
+                          OrgServiceUseService orgServiceUseService,
+                          PgTrnsctnRepository pgTrnsctnRepository) {
         this.props = props;
         this.hqApiConfigRepository = hqApiConfigRepository;
         this.merchantPgBindingRepository = merchantPgBindingRepository;
         this.pgAgencyRepository = pgAgencyRepository;
+        this.orgUnitRepository = orgUnitRepository;
         this.orgServiceUseService = orgServiceUseService;
+        this.pgTrnsctnRepository = pgTrnsctnRepository;
     }
 
     /** 가맹점 결제 조합 시 MID·샌드박스 보조 (Route 확정 전에 조회 가능) */
     private record HqFallbackRef(String merchantCode, boolean sandbox) {}
+
+    /** 통합내역: TransactionId → 결제 DB(tb_pg_trnsctn) 역추적 시 가맹점 코드·업체 엔티티 */
+    private record TxnMerchantLookup(String merchantId, Optional<OrgUnit> org) {}
 
     /** DirectCredit·거래 적재 시 Route 표시용 */
     public int resolveEffectiveRouteNo(Long merchantOrgUnitId) {
@@ -1126,7 +1147,7 @@ public class ChillPayService {
      * 본사·가맹 {@link #resolveConfig(Long)} 자격(MerchantCode·ApiKey·MD5)으로 호출합니다.
      *
      * @param merchantOrgUnitId null이면 본사(HQ) 설정만 사용
-     * @param multiCurrency     총본사·본사·총판 true 시 통화별 금액 나열, 지사 이하는 {@code primaryCurrency} 만 집계
+     * @param multiCurrency     총본사·본사 true 시 통화별 금액 나열, 총판·지사 이하는 {@code primaryCurrency} 만 집계
      */
     public PageResult<Map<String, Object>> searchChillPayPaymentTransactions(
             Long merchantOrgUnitId,
@@ -1346,8 +1367,12 @@ public class ChillPayService {
             List<Map<String, Object>> raw = body.getData() != null ? body.getData() : Collections.emptyList();
             List<Map<String, Object>> list = new ArrayList<>();
             int startNo = (pn - 1) * ps + 1;
+            Map<String, Optional<OrgUnit>> orgCache = new HashMap<>();
+            Map<String, TxnMerchantLookup> txnOrgCache = new HashMap<>();
             for (int i = 0; i < raw.size(); i++) {
-                list.add(wrapChillPayRow(raw.get(i), startNo + i));
+                Map<String, Object> row = wrapChillPayRow(raw.get(i), startNo + i);
+                enrichChillPayTrSearchRow(row, orgCache, txnOrgCache);
+                list.add(row);
             }
             long total = body.getTotalRecord() != null ? body.getTotalRecord() : 0L;
             int totalPages = total <= 0 ? 1 : (int) Math.ceil((double) total / (double) ps);
@@ -1380,6 +1405,11 @@ public class ChillPayService {
         aliasIfMissing(m, "transactionId", "TransactionId");
         aliasIfMissing(m, "transactionDate", "TransactionDate");
         aliasIfMissing(m, "merchant", "Merchant");
+        aliasIfMissing(m, "merchant", "MerchantCode");
+        aliasIfMissing(m, "merchant", "merchantCode");
+        aliasIfMissing(m, "merchant", "Mid");
+        aliasIfMissing(m, "merchant", "MID");
+        aliasIfMissing(m, "merchant", "MerchantID");
         aliasIfMissing(m, "customer", "Customer");
         aliasIfMissing(m, "orderNo", "OrderNo");
         aliasIfMissing(m, "paymentChannel", "PaymentChannel");
@@ -1391,6 +1421,9 @@ public class ChillPayService {
         aliasIfMissing(m, "totalAmount", "TotalAmount");
         aliasIfMissing(m, "currency", "Currency");
         aliasIfMissing(m, "routeNo", "RouteNo");
+        aliasIfMissing(m, "routeNo", "Route");
+        aliasIfMissing(m, "routeNo", "RootNo");
+        aliasIfMissing(m, "routeNo", "rootNo");
         aliasIfMissing(m, "status", "Status");
         aliasIfMissing(m, "settled", "Settled");
         if (!m.containsKey("icopay")) {
@@ -1402,6 +1435,266 @@ public class ChillPayService {
         }
         aliasIfMissing(m, "description", "Description");
         return m;
+    }
+
+    /**
+     * 통합내역 그리드: 결제내역과 동일 키(trnDate, trnTime, payCompletedAt) + 업체관리(MID·Route) 매핑(compNm, compId).
+     * API 시각 문자열은 통화별 기준 타임존(JPY→도쿄, 그 외→방콕)으로 해석한 뒤 JST·ICT를 한 컬럼에 병기한다.
+     */
+    private void enrichChillPayTrSearchRow(Map<String, Object> m,
+                                           Map<String, Optional<OrgUnit>> orgCache,
+                                           Map<String, TxnMerchantLookup> txnOrgCache) {
+        enrichChillPayTrRowDatesAndZones(m);
+        enrichChillPayTrRowOrg(m, orgCache, txnOrgCache);
+    }
+
+    private void enrichChillPayTrRowDatesAndZones(Map<String, Object> m) {
+        LocalDateTime tx = parseChillPayApiDateTime(firstNonBlankString(m, "transactionDate", "TransactionDate"));
+        LocalDateTime pay = parseChillPayApiDateTime(firstNonBlankString(m, "paymentDate", "PaymentDate"));
+        ZoneId primary = primaryZoneForChillCurrency(m.get("currency"));
+        if (tx != null) {
+            m.put("trnDate", tx.toLocalDate().format(DateTimeFormatter.ISO_LOCAL_DATE));
+            m.put("trnTime", formatJstAndIctTimeSameCell(tx, primary));
+        } else {
+            m.put("trnDate", "");
+            m.put("trnTime", "");
+        }
+        if (pay != null) {
+            m.put("payCompletedAt", formatJstAndIctDateTimeSameCell(pay, primary));
+        } else {
+            m.put("payCompletedAt", "");
+        }
+    }
+
+    private void enrichChillPayTrRowOrg(Map<String, Object> m,
+                                        Map<String, Optional<OrgUnit>> orgCache,
+                                        Map<String, TxnMerchantLookup> txnOrgCache) {
+        String mid = chillTrMerchantRaw(m);
+        String routeKey = normalizeChillRouteNoKey(chillTrRouteRaw(m));
+        if (mid.isEmpty()) {
+            m.put("compNm", "");
+            m.put("compId", "");
+            m.put("merchantNm", "");
+        } else {
+            String cacheKey = mid + "\0" + routeKey;
+            Optional<OrgUnit> ou = orgCache.computeIfAbsent(cacheKey, k -> resolveOrgUnitForChillMidAndRoute(mid, routeKey));
+            if (ou.isPresent()) {
+                OrgUnit o = ou.get();
+                m.put("compNm", o.getName() != null ? o.getName() : "");
+                m.put("compId", o.getCode() != null ? o.getCode() : "");
+                m.put("merchantNm", o.getName() != null ? o.getName() : mid);
+            } else {
+                m.put("compNm", "");
+                m.put("compId", "");
+                m.put("merchantNm", mid);
+            }
+        }
+        if (isBlankStr(m.get("compId")) || isBlankStr(m.get("compNm"))) {
+            enrichChillPayTrRowOrgFromTxn(m, txnOrgCache);
+        }
+    }
+
+    /**
+     * 1순위(MID·Route→바인딩) 후에도 업체명·코드가 비어 있으면, 결제 DB에 저장된 Chill TransactionId로 역추적한다.
+     */
+    private void enrichChillPayTrRowOrgFromTxn(Map<String, Object> m, Map<String, TxnMerchantLookup> txnOrgCache) {
+        String chillTxn = firstNonBlankString(m, "transactionId", "TransactionId", "Transaction_Id");
+        if (chillTxn.isEmpty()) {
+            return;
+        }
+        String mid = chillTrMerchantRaw(m);
+        String cacheKey = chillTxn.trim() + "\0" + mid;
+        TxnMerchantLookup lk = txnOrgCache.computeIfAbsent(cacheKey, k -> resolveTxnMerchantLookup(chillTxn.trim(), mid));
+        if (lk.merchantId() == null || lk.merchantId().isEmpty()) {
+            return;
+        }
+        if (lk.org().isPresent()) {
+            OrgUnit ou = lk.org().get();
+            if (isBlankStr(m.get("compNm"))) {
+                m.put("compNm", nvl(ou.getName()));
+            }
+            if (isBlankStr(m.get("compId"))) {
+                m.put("compId", nvl(ou.getCode(), lk.merchantId()));
+            }
+            if (isBlankStr(m.get("merchantNm")) || mid.equals(String.valueOf(m.getOrDefault("merchantNm", "")).trim())) {
+                String display = nvl(ou.getName(), lk.merchantId());
+                if (!display.isEmpty()) {
+                    m.put("merchantNm", display);
+                }
+            }
+        } else {
+            if (isBlankStr(m.get("compId"))) {
+                m.put("compId", lk.merchantId());
+            }
+            if (isBlankStr(m.get("merchantNm"))) {
+                m.put("merchantNm", !mid.isEmpty() ? mid : lk.merchantId());
+            }
+        }
+    }
+
+    private TxnMerchantLookup resolveTxnMerchantLookup(String chillTxnId, String mid) {
+        var tOpt = pgTrnsctnRepository.findFirstByChillTransactionIdOrderByCreatedAtDesc(chillTxnId);
+        if (tOpt.isEmpty() && mid != null && !mid.isBlank()) {
+            tOpt = pgTrnsctnRepository.findFirstByChillTransactionIdAndMerchantId(chillTxnId, mid.trim());
+        }
+        if (tOpt.isEmpty()) {
+            return new TxnMerchantLookup("", Optional.empty());
+        }
+        String merId = tOpt.get().getMerchantId();
+        if (merId == null || merId.isBlank()) {
+            return new TxnMerchantLookup("", Optional.empty());
+        }
+        merId = merId.trim();
+        Optional<OrgUnit> ou = orgUnitRepository.findByCode(merId);
+        if (ou.isEmpty()) {
+            ou = orgUnitRepository.findByCodeIgnoreCase(merId);
+        }
+        return new TxnMerchantLookup(merId, ou);
+    }
+
+    private Optional<OrgUnit> resolveOrgUnitForChillMidAndRoute(String mid, String routeKey) {
+        List<MerchantPgBinding> list = merchantPgBindingRepository.findByMidOrderByOperationalYnDescIdAsc(mid);
+        if (list.isEmpty()) {
+            list = merchantPgBindingRepository.findByMidIgnoreCaseOrderByOperationalYnDescIdAsc(mid);
+        }
+        if (list.isEmpty()) {
+            return Optional.empty();
+        }
+        return selectBindingForChillRoute(list, routeKey)
+                .flatMap(binding -> orgUnitRepository.findById(binding.getOrgUnitId()));
+    }
+
+    /**
+     * 노티 {@link PgNotifyReceiveService#resolveBindingFromList} 와 동일: Route 일치 우선, 없으면 root 비어 있는 행, 마지막으로 첫 행.
+     */
+    private static Optional<MerchantPgBinding> selectBindingForChillRoute(List<MerchantPgBinding> list, String routeKey) {
+        if (list == null || list.isEmpty()) {
+            return Optional.empty();
+        }
+        if (routeKey.isEmpty()) {
+            return Optional.of(list.get(0));
+        }
+        Optional<MerchantPgBinding> exact = list.stream()
+                .filter(b -> b.getRootNo() != null && routeKeyEquals(routeKey, b.getRootNo().trim()))
+                .findFirst();
+        if (exact.isPresent()) {
+            return exact;
+        }
+        return list.stream()
+                .filter(b -> b.getRootNo() == null || b.getRootNo().isBlank())
+                .findFirst()
+                .or(() -> Optional.of(list.get(0)));
+    }
+
+    private static boolean routeKeyEquals(String routeKey, String bindingRoot) {
+        if (bindingRoot == null || bindingRoot.isEmpty()) {
+            return false;
+        }
+        if (routeKey.equals(bindingRoot)) {
+            return true;
+        }
+        try {
+            return Integer.parseInt(routeKey) == Integer.parseInt(bindingRoot.trim());
+        } catch (NumberFormatException e) {
+            return false;
+        }
+    }
+
+    /** ChillPay Transaction Search 행에서 Route 번호 원문 (필드명 제각각 대응) */
+    private static Object chillTrRouteRaw(Map<String, Object> m) {
+        if (m == null) {
+            return null;
+        }
+        for (String k : new String[]{
+                "routeNo", "RouteNo", "Route", "route",
+                "rootNo", "RootNo", "ROOT_NO", "RouteNumber", "routeNumber"
+        }) {
+            if (m.containsKey(k) && m.get(k) != null) {
+                return m.get(k);
+            }
+        }
+        return null;
+    }
+
+    private static String chillTrMerchantRaw(Map<String, Object> m) {
+        return firstNonBlankString(m,
+                "merchant", "Merchant", "merchantCode", "MerchantCode",
+                "Mid", "MID", "MerchantID", "merchantID");
+    }
+
+    private static boolean isBlankStr(Object o) {
+        if (o == null) {
+            return true;
+        }
+        return String.valueOf(o).trim().isEmpty();
+    }
+
+    private static String nvl(String s) {
+        return s != null ? s : "";
+    }
+
+    private static String nvl(String s, String fallback) {
+        if (s != null && !s.trim().isEmpty()) {
+            return s.trim();
+        }
+        return fallback != null ? fallback : "";
+    }
+
+    private static String normalizeChillRouteNoKey(Object routeNo) {
+        if (routeNo == null) {
+            return "";
+        }
+        String s = String.valueOf(routeNo).trim();
+        if (s.isEmpty() || "null".equalsIgnoreCase(s)) {
+            return "";
+        }
+        if (s.endsWith(".0") && s.length() > 2) {
+            try {
+                double d = Double.parseDouble(s);
+                if (d == Math.rint(d)) {
+                    return String.valueOf((long) d);
+                }
+            } catch (NumberFormatException ignored) {
+            }
+        }
+        return s;
+    }
+
+    private static LocalDateTime parseChillPayApiDateTime(String raw) {
+        if (raw == null || raw.isEmpty()) {
+            return null;
+        }
+        try {
+            return LocalDateTime.parse(raw.trim(), CHILLPAY_TXN_DT);
+        } catch (DateTimeParseException e) {
+            return null;
+        }
+    }
+
+    private static ZoneId primaryZoneForChillCurrency(Object currencyObj) {
+        if (currencyObj == null) {
+            return ZONE_TH;
+        }
+        String c = String.valueOf(currencyObj).trim().toUpperCase(Locale.ROOT);
+        if ("JPY".equals(c)) {
+            return ZONE_JP;
+        }
+        return ZONE_TH;
+    }
+
+    private static String formatJstAndIctTimeSameCell(LocalDateTime naiveWallClock, ZoneId interpretAsZone) {
+        ZonedDateTime z = naiveWallClock.atZone(interpretAsZone);
+        ZonedDateTime jst = z.withZoneSameInstant(ZONE_JP);
+        ZonedDateTime ict = z.withZoneSameInstant(ZONE_TH);
+        return jst.toLocalTime().format(CHILL_TRN_TIME_DUAL) + " JST · "
+                + ict.toLocalTime().format(CHILL_TRN_TIME_DUAL) + " ICT";
+    }
+
+    private static String formatJstAndIctDateTimeSameCell(LocalDateTime naiveWallClock, ZoneId interpretAsZone) {
+        ZonedDateTime z = naiveWallClock.atZone(interpretAsZone);
+        ZonedDateTime jst = z.withZoneSameInstant(ZONE_JP);
+        ZonedDateTime ict = z.withZoneSameInstant(ZONE_TH);
+        return jst.format(CHILL_PAY_COMPLETED_DUAL) + " JST · " + ict.format(CHILL_PAY_COMPLETED_DUAL) + " ICT";
     }
 
     private static void aliasIfMissing(Map<String, Object> m, String lowerKey, String pascalKey) {

@@ -51,7 +51,7 @@ public class UserListService {
         Sort sort = Sort.by(
                 Order.asc("permissionGroupNm").nullsLast(),
                 Order.asc("username").nullsLast());
-        Pageable p = PageRequest.of(Math.max(0, page - 1), Math.min(100, Math.max(1, size)), sort);
+        Pageable p = PageRequest.of(Math.max(0, page - 1), Math.min(1000, Math.max(1, size)), sort);
         String uid = (searchUserId != null && !searchUserId.isEmpty()) ? searchUserId.trim() : "";
         String nm = (searchUserNm != null && !searchUserNm.isEmpty()) ? searchUserNm.trim() : "";
         String cc = (searchCompId != null && !searchCompId.isEmpty()) ? searchCompId.trim() : "";
@@ -86,7 +86,7 @@ public class UserListService {
                 .map(this::toRow)
                 .filter(row -> allowed.contains(String.valueOf(row.getOrDefault("compId", ""))))
                 .collect(Collectors.toList());
-        int safeSize = Math.min(100, Math.max(1, size));
+        int safeSize = Math.min(1000, Math.max(1, size));
         int safePage = Math.max(1, page);
         int from = Math.min(filtered.size(), (safePage - 1) * safeSize);
         int to = Math.min(filtered.size(), from + safeSize);

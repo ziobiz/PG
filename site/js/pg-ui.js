@@ -56,8 +56,23 @@
    */
   global.PG_UI.resolvePayRowTone = function (row) {
     if (!row || typeof row !== 'object') return 'neutral';
+    var divEarly = String(row.payDivNm || '').trim();
+    if (divEarly.indexOf('무효') >= 0 || divEarly === '자동환불') return 'void';
+    if (divEarly === '환불') return 'refund';
+    if (divEarly === '실패') return 'fail';
+    if (divEarly === '취소') return 'cancel';
+    if (divEarly === '인증대기') return 'pending';
     var st = row.status != null ? String(row.status).trim() : '';
-    if (st === '10') return 'success';
+    if (st === '10') {
+      var labEarly = row.chillPaymentStatus != null ? String(row.chillPaymentStatus).trim() : '';
+      var ulE = labEarly.toLowerCase();
+      if (labEarly && (/^(21|22|40|41|42)$/.test(labEarly) || ulE.indexOf('무효') >= 0 && ulE.indexOf('취소') === -1
+          || /(^|[^a-z0-9_])void([^a-z0-9_]|$)/i.test(ulE) && ulE.indexOf('cancel') === -1
+          || ulE.indexOf('voided') >= 0 || ulE.indexOf('emailvoid') >= 0 || ulE.indexOf('email_void') >= 0)) {
+        return 'void';
+      }
+      return 'success';
+    }
     if (st === '20') {
       var lab0 = row.chillPaymentStatus != null ? String(row.chillPaymentStatus).trim() : '';
       var ul0 = lab0.toLowerCase();

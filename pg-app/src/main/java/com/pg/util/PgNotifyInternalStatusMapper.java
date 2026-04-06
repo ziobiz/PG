@@ -90,7 +90,8 @@ public final class PgNotifyInternalStatusMapper {
             }
         }
         if (!s.isEmpty()) {
-            if ("10".equals(s) || "paid".equals(s) || "success".equals(s)) {
+            if ("10".equals(s) || "paid".equals(s) || "success".equals(s)
+                    || "complete".equals(s) || "completed".equals(s)) {
                 return ST_PAID;
             }
             if ("21".equals(s)) {

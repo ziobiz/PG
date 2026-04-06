@@ -7,13 +7,15 @@ import com.pg.entity.HqNotifyEnvConfig;
 import com.pg.entity.MerchantPgBinding;
 import com.pg.entity.OrgUnit;
 import com.pg.entity.PgAgency;
-import com.pg.entity.PgNotifyInbound;
 import com.pg.entity.HqNotifyTarget;
+import com.pg.entity.PgNotifyInbound;
+import com.pg.entity.PgTrnsctn;
 import com.pg.repository.HqNotifyTargetRepository;
 import com.pg.repository.MerchantPgBindingRepository;
 import com.pg.repository.OrgUnitRepository;
 import com.pg.repository.PgAgencyRepository;
 import com.pg.repository.PgNotifyInboundRepository;
+import com.pg.repository.PgTrnsctnRepository;
 import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,6 +30,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -39,7 +42,8 @@ import java.util.regex.Pattern;
  *       노티미들웨어가 보내는 {@code MerchantCode}(MID) + {@code RouteNo}(루트)로 {@code tb_merchant_pg_binding} 에서 분기합니다.</li>
  *   <li><b>URL 결제(1:N)</b>: 연동용도가 <b>URL 결제만</b>인 PG({@code integ_url_pay_yn=Y} 단독)는 공통 MID이므로
  *       동일 MID로 바인딩이 여러 건이면 본문에 <b>업체코드(compId)</b> 또는 {@code icopayCompId=} 가 있어야 합니다.</li>
- *   <li>MID에 노티 연동 바인딩이 있으면 <b>항상 노티용 바인딩만</b>으로 MID+루트를 먼저 해석합니다.</li>
+ *   <li>MID에 노티 연동 바인딩이 있으면 MID+루트로 노티 바인딩을 먼저 고르지만,
+ *       본문 {@code icopayCompId=} 가 있고 그 업체가 노티 바인딩 업체와 다르면 URL 결제용 업체코드 해석을 우선합니다.</li>
  * </ul>
  */
 @Service
@@ -59,6 +63,7 @@ public class PgNotifyReceiveService {
     private final ChillPayNotifyToTrnsctnService chillPayNotifyToTrnsctnService;
     private final HqNotifyTargetRepository hqNotifyTargetRepository;
     private final ChillPayService chillPayService;
+    private final PgTrnsctnRepository pgTrnsctnRepository;
 
     public PgNotifyReceiveService(HqNotifyEnvService hqNotifyEnvService,
                                 PgNotifyInboundRepository inboundRepository,
@@ -68,7 +73,8 @@ public class PgNotifyReceiveService {
                                 PgNotifyIngressGuard notifyIngressGuard,
                                 ChillPayNotifyToTrnsctnService chillPayNotifyToTrnsctnService,
                                 HqNotifyTargetRepository hqNotifyTargetRepository,
-                                ChillPayService chillPayService) {
+                                ChillPayService chillPayService,
+                                PgTrnsctnRepository pgTrnsctnRepository) {
         this.hqNotifyEnvService = hqNotifyEnvService;
         this.inboundRepository = inboundRepository;
         this.bindingRepository = bindingRepository;
@@ -78,6 +84,7 @@ public class PgNotifyReceiveService {
         this.chillPayNotifyToTrnsctnService = chillPayNotifyToTrnsctnService;
         this.hqNotifyTargetRepository = hqNotifyTargetRepository;
         this.chillPayService = chillPayService;
+        this.pgTrnsctnRepository = pgTrnsctnRepository;
     }
 
     /**
@@ -147,9 +154,12 @@ public class PgNotifyReceiveService {
     }
 
     private String buildPayResultRedirectUrl(HttpServletRequest request, PgNotifyInbound in, String rawBody, String contentType) {
+        String compFromBody = extractIcopayCompIdForPayResultRedirect(rawBody, contentType);
         String compId = firstNonBlank(
-                in.getPayloadCompId() != null ? in.getPayloadCompId().trim() : null,
-                in.getMerchantId() != null ? in.getMerchantId().trim() : null);
+                firstNonBlank(
+                        in.getPayloadCompId() != null ? in.getPayloadCompId().trim() : null,
+                        in.getMerchantId() != null ? in.getMerchantId().trim() : null),
+                compFromBody);
         String base = chillPayService.resolveUrlPayResultAbsolute(request, compId);
         if (base == null || base.isBlank()) {
             return null;
@@ -213,11 +223,44 @@ public class PgNotifyReceiveService {
         Map<String, String> fm = new LinkedHashMap<>();
         parseFormToLowerMap(body, fm);
         r.orderNo = mapGetLoose(fm, "orderno", "order_no");
-        r.transactionId = mapGetLoose(fm, "transactionid", "transaction_id", "transid", "trans_id");
+        r.transactionId = mapGetLoose(fm, "transactionid", "transaction_id", "transid", "trans_id", "transno", "trans_no");
         r.paymentStatus = firstNonBlank(
                 mapGetLoose(fm, "paymentstatus", "payment_status"),
                 mapGetLoose(fm, "status"));
         return r;
+    }
+
+    /**
+     * 브라우저 리다이렉트용 결과 URL에 {@code m=} 을 붙이기 위해, 노티 본문에서 {@code icopayCompId} 를 재추출합니다.
+     * (수신 해석 단계에서 merchant 만 틀어진 경우에도 복귀 페이지·결제 초기화 URL 이 깨지지 않게 함)
+     */
+    private String extractIcopayCompIdForPayResultRedirect(String rawBody, String contentType) {
+        if (rawBody == null || rawBody.isBlank()) {
+            return null;
+        }
+        String body = rawBody.trim();
+        Matcher m0 = ICOPAY_COMP_ID.matcher(body);
+        if (m0.find()) {
+            return m0.group(1).trim();
+        }
+        String ct = contentType != null ? contentType.toLowerCase(Locale.ROOT) : "";
+        if (body.startsWith("{") || ct.contains("json")) {
+            try {
+                JsonNode root = MAPPER.readTree(body);
+                if (root != null && root.isObject()) {
+                    String desc = textDeep(root, "PaymentDescription", "paymentDescription");
+                    if (desc != null && !desc.isBlank()) {
+                        Matcher m1 = ICOPAY_COMP_ID.matcher(desc);
+                        if (m1.find()) {
+                            return m1.group(1).trim();
+                        }
+                    }
+                }
+            } catch (Exception ignored) {
+                /* ignore */
+            }
+        }
+        return null;
     }
 
     private static void parseFormToLowerMap(String body, Map<String, String> map) {
@@ -334,6 +377,26 @@ public class PgNotifyReceiveService {
             if (!notiForMid.isEmpty()) {
                 Optional<MerchantPgBinding> bNoti = resolveBindingFromList(notiForMid, p.rootNo);
                 if (bNoti.isPresent()) {
+                    if (hasComp && compStore != null) {
+                        Optional<OrgUnit> ouComp = orgUnitRepository.findByCode(compStore);
+                        if (ouComp.isPresent()
+                                && !Objects.equals(ouComp.get().getId(), bNoti.get().getOrgUnitId())) {
+                            in.setPayloadCompId(compStore);
+                            resolveUrlPayByCompId(in, p);
+                            if ("PARSED".equalsIgnoreCase(String.valueOf(in.getProcessStatus()).trim())) {
+                                log.info("노티 MID·노티바인딩과 icopayCompId={} 불일치 → URL결제 업체코드 해석 사용", compStore);
+                                return;
+                            }
+                            String failCode = in.getProcessStatus();
+                            String failHint = in.getErrorMessage();
+                            in.setProcessStatus(null);
+                            in.setErrorMessage(null);
+                            in.setOrgUnitId(null);
+                            in.setMerchantId(null);
+                            log.warn("icopayCompId={} URL결제 해석 실패({}/{}) — 노티 바인딩으로 폴백",
+                                    compStore, failCode, failHint);
+                        }
+                    }
                     if (hasComp) {
                         in.setPayloadCompId(compStore);
                     } else {
@@ -357,6 +420,9 @@ public class PgNotifyReceiveService {
 
         // 3) compId 없음 — MID+루트만
         in.setPayloadCompId(null);
+        if (tryResolveUrlPayResultFromPriorTxn(in, p)) {
+            return;
+        }
         if (p.mid == null || p.mid.isBlank()) {
             in.setProcessStatus("MERCHANT_UNRESOLVED");
             in.setErrorMessage("mid missing");
@@ -424,6 +490,100 @@ public class PgNotifyReceiveService {
         in.setMerchantId(ou.getCode());
         /* 노티 수신·적재는 감사 목적이므로 가맹점 프로필 use_yn 으로 차단하지 않음 (결제 API 게이트와 분리). */
         in.setProcessStatus("PARSED");
+    }
+
+    /**
+     * ChillPay URL 결제 RESULT URL이 {@code orderNo=…&transNo=…&respCode=…} 만 보내 MID가 없을 때,
+     * 동일 주문으로 이미 적재된 URL DirectCredit 행({@code origin=URL})으로 가맹점·MID·루트를 보강합니다.
+     * {@code raw_body} 저장 값은 변경하지 않습니다.
+     */
+    private boolean tryResolveUrlPayResultFromPriorTxn(PgNotifyInbound in, ParsedNotify p) {
+        if (in == null || !"RESULT".equalsIgnoreCase(String.valueOf(in.getNotifyChannelType()).trim())) {
+            return false;
+        }
+        String body = in.getRawBody() != null ? in.getRawBody() : "";
+        if (body.isBlank() || body.trim().startsWith("{")) {
+            return false;
+        }
+        String orderNo = firstNonBlank(p.orderNo, extractFormFieldLoose(body, "orderNo", "orderno", "order_no"));
+        if (orderNo == null || orderNo.isBlank()) {
+            return false;
+        }
+        String on = orderNo.trim();
+        Optional<PgTrnsctn> txnOpt = pgTrnsctnRepository.findFirstByOrderNoAndOriginOrderByCreatedAtDesc(on, "URL");
+        if (txnOpt.isEmpty()) {
+            txnOpt = pgTrnsctnRepository.findFirstByOrderNoAndOriginOrderByCreatedAtDesc(on, "API");
+        }
+        if (txnOpt.isEmpty()) {
+            return false;
+        }
+        PgTrnsctn t = txnOpt.get();
+        String merchantCode = t.getMerchantId();
+        if (merchantCode == null || merchantCode.isBlank()) {
+            return false;
+        }
+        Optional<OrgUnit> ouOpt = orgUnitRepository.findByCode(merchantCode.trim());
+        if (ouOpt.isEmpty()) {
+            return false;
+        }
+        OrgUnit ou = ouOpt.get();
+        List<MerchantPgBinding> binds = bindingRepository.findByOrgUnitIdOrderBySortOrderAsc(ou.getId());
+        boolean anyUrlPay = binds.stream().anyMatch(b -> hasUrlPayChannel(loadAgency(b.getPgCd())));
+        if (!anyUrlPay) {
+            return false;
+        }
+        String route = firstNonBlank(p.rootNo, t.getRouteNo());
+        Optional<MerchantPgBinding> chosen = Optional.empty();
+        if (route != null && !route.isBlank()) {
+            String r = route.trim();
+            chosen = binds.stream()
+                    .filter(b -> hasUrlPayChannel(loadAgency(b.getPgCd())))
+                    .filter(b -> b.getRootNo() != null && r.equals(b.getRootNo().trim()))
+                    .findFirst();
+            if (chosen.isEmpty()) {
+                chosen = binds.stream()
+                        .filter(b -> hasUrlPayChannel(loadAgency(b.getPgCd())))
+                        .filter(b -> b.getRootNo() == null || b.getRootNo().isBlank())
+                        .findFirst();
+            }
+        }
+        if (chosen.isEmpty()) {
+            chosen = binds.stream().filter(b -> hasUrlPayChannel(loadAgency(b.getPgCd()))).findFirst();
+        }
+        in.setPayloadCompId(merchantCode.trim());
+        in.setOrgUnitId(ou.getId());
+        in.setMerchantId(merchantCode.trim());
+        chosen.ifPresent(b -> in.setMid(b.getMid()));
+        if (in.getMid() == null || in.getMid().isBlank()) {
+            binds.stream().filter(b -> hasUrlPayChannel(loadAgency(b.getPgCd()))).findFirst()
+                    .ifPresent(b -> in.setMid(b.getMid()));
+        }
+        if (route != null && !route.isBlank()) {
+            in.setRootNo(route.trim());
+        } else if (t.getRouteNo() != null && !t.getRouteNo().isBlank()) {
+            in.setRootNo(t.getRouteNo().trim());
+        }
+        in.setProcessStatus("PARSED");
+        in.setErrorMessage(null);
+        return true;
+    }
+
+    private static String extractFormFieldLoose(String body, String... names) {
+        if (body == null || body.isBlank() || names == null) {
+            return null;
+        }
+        Map<String, String> fm = new LinkedHashMap<>();
+        parseFormToLowerMap(body, fm);
+        for (String n : names) {
+            if (n == null) {
+                continue;
+            }
+            String v = fm.get(n.toLowerCase(Locale.ROOT).replace('-', '_'));
+            if (v != null && !v.isBlank()) {
+                return v.trim();
+            }
+        }
+        return mapGetLoose(fm, names);
     }
 
     private void applyBindingResolved(PgNotifyInbound in, MerchantPgBinding b) {
@@ -601,6 +761,29 @@ public class PgNotifyReceiveService {
                     out.compId = v;
                 }
                 break;
+            case "orderno":
+            case "order_no":
+                if (out.orderNo == null) {
+                    out.orderNo = v;
+                }
+                break;
+            case "transno":
+            case "trans_no":
+                if (out.transNo == null) {
+                    out.transNo = v;
+                }
+                break;
+            case "respcode":
+            case "resp_code":
+                if (out.respCode == null) {
+                    out.respCode = v;
+                }
+                break;
+            case "status":
+                if (out.resultStatus == null) {
+                    out.resultStatus = v;
+                }
+                break;
             default:
                 break;
         }
@@ -610,5 +793,10 @@ public class PgNotifyReceiveService {
         String mid;
         String rootNo;
         String compId;
+        /** ChillPay RESULT URL 등 x-www-form-urlencoded */
+        String orderNo;
+        String transNo;
+        String respCode;
+        String resultStatus;
     }
 }

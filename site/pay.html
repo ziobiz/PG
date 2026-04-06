@@ -490,9 +490,19 @@
         return '';
       }
 
+      /** ChillPay 3DS 복귀 등으로 URL 에서 m 이 빠졌을 때 직전 결제에 쓴 업체코드 */
+      function getStoredReturnMerchantCode() {
+        try {
+          var sm = sessionStorage.getItem('pg_pay_return_m');
+          return sm ? String(sm).trim() : '';
+        } catch (e) {
+          return '';
+        }
+      }
+
       /** 동일 호스트의 가맹점 결제 진입 URL (예: …/pay.html?m=6000000017) */
       function navigateToPayEntry() {
-        var mid = getCompId();
+        var mid = getCompId() || getStoredReturnMerchantCode();
         if (mid) {
           var pth = (window.location.pathname || '').replace(/\/+$/, '');
           if (pth.toLowerCase().indexOf('/pay/') >= 0) {
@@ -751,6 +761,32 @@
       /**
        * DirectCredit 최종 응답 후: 결제 입력 UI 숨김 + 결과 카드 + 확인 시 창 닫기 또는 결제 URL로 복귀.
        */
+      /** WebView 등에서 window.alert 가 막힐 때 confirm·토스트로 동일 안내 후 후속 동작 */
+      function runAfterReturnNotice(alertMsg, fn) {
+        if (fn == null) return;
+        try {
+          window.alert(alertMsg);
+          fn();
+          return;
+        } catch (eA) { /* ignore */ }
+        try {
+          window.confirm(alertMsg);
+          fn();
+          return;
+        } catch (eC) { /* ignore */ }
+        var toast = document.createElement('div');
+        toast.className = 'alert alert-info position-fixed bottom-0 start-50 translate-middle-x mb-3 px-4 py-3 shadow';
+        toast.style.zIndex = '20000';
+        toast.style.maxWidth = '92vw';
+        toast.setAttribute('role', 'status');
+        toast.textContent = alertMsg;
+        document.body.appendChild(toast);
+        window.setTimeout(function () {
+          try { toast.remove(); } catch (eR) { /* ignore */ }
+          fn();
+        }, 2600);
+      }
+
       function showPayFinished(isErr, msg, orderNo, isCancel) {
         hidePayEntryUi();
         var el = document.getElementById('payResult');
@@ -789,11 +825,12 @@
           b.addEventListener('click', function () {
             var alertMsg = isCancel ? t('payResultReturnAlertCancel')
               : (isErr ? t('payResultReturnAlertFail') : t('payResultReturnAlertOk'));
-            try { window.alert(alertMsg); } catch (eA) { /* ignore */ }
-            try { window.close(); } catch (e0) { /* ignore */ }
-            window.setTimeout(function () {
-              navigateToPayEntry();
-            }, 100);
+            runAfterReturnNotice(alertMsg, function () {
+              try { window.close(); } catch (e0) { /* ignore */ }
+              window.setTimeout(function () {
+                navigateToPayEntry();
+              }, 100);
+            });
           });
         }
       }
@@ -1004,7 +1041,7 @@
 
       function boot() {
         setLang('ENG');
-        var compId = getCompId();
+        var compId = getCompId() || getStoredReturnMerchantCode();
         if (!compId) {
           document.getElementById('configError').style.display = 'block';
           document.getElementById('configError').textContent = t('needComp');
@@ -1012,6 +1049,9 @@
           return;
         }
         bootCompId = compId;
+        try {
+          sessionStorage.setItem('pg_pay_return_m', compId);
+        } catch (eStM) { /* ignore */ }
         var mnEarly = document.getElementById('merchantNameDisplay');
         if (mnEarly) mnEarly.textContent = compId;
 

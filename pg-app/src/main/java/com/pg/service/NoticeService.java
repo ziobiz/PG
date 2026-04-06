@@ -44,7 +44,7 @@ public class NoticeService {
     public PageResult<NoticeListDto> search(String title, LocalDate fromDt, LocalDate toDt, int page, int size) {
         LocalDateTime from = fromDt != null ? fromDt.atStartOfDay() : null;
         LocalDateTime to = toDt != null ? toDt.atTime(LocalTime.MAX) : null;
-        Pageable p = PageRequest.of(Math.max(0, page - 1), Math.min(100, Math.max(1, size)), Sort.by(Sort.Direction.DESC, "regDt"));
+        Pageable p = PageRequest.of(Math.max(0, page - 1), Math.min(1000, Math.max(1, size)), Sort.by(Sort.Direction.DESC, "regDt"));
         Page<Notice> result = noticeRepository.search(title, from, to, p);
         List<Notice> content = result.getContent();
         var idSet = content.stream().map(Notice::getOrgUnitId).filter(Objects::nonNull).collect(Collectors.toSet());

@@ -6,7 +6,7 @@
   <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
   <title>Payment result</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link href="css/pay-inline.css?v=26" rel="stylesheet">
+  <link href="css/pay-inline.css?v=27" rel="stylesheet">
 </head>
 <body class="pay-inline-body">
   <div class="pay-shell">
@@ -299,6 +299,12 @@
 
       var p = new URLSearchParams(window.location.search);
       merchantM = getParamLoose(p, ['m', 'M', 'compId', 'compid']);
+      try {
+        if (!merchantM) {
+          var smM = sessionStorage.getItem('pg_pay_return_m');
+          if (smM) merchantM = norm(smM);
+        }
+      } catch (eSmM) { /* ignore */ }
       orderNo = getParamLoose(p, ['OrderNo', 'orderNo', 'orderno']);
       txnId = getParamLoose(p, ['TransactionId', 'transactionId', 'TransId', 'transId']);
       try {
@@ -323,14 +329,24 @@
         });
       });
 
-      function goPayReset() {
+      function resolveResetMerchantM() {
+        if (merchantM) return merchantM;
         try {
-          var u = merchantM
-            ? new URL('pay.html?m=' + encodeURIComponent(merchantM), window.location.href).href
+          var sm = sessionStorage.getItem('pg_pay_return_m');
+          return sm ? norm(sm) : '';
+        } catch (e) {
+          return '';
+        }
+      }
+      function goPayReset() {
+        var mid = resolveResetMerchantM();
+        try {
+          var u = mid
+            ? new URL('pay.html?m=' + encodeURIComponent(mid), window.location.href).href
             : new URL('pay.html', window.location.href).href;
           window.location.href = u;
         } catch (eU) {
-          window.location.href = merchantM ? ('pay.html?m=' + encodeURIComponent(merchantM)) : 'pay.html';
+          window.location.href = mid ? ('pay.html?m=' + encodeURIComponent(mid)) : 'pay.html';
         }
       }
       function returnAlertMessage() {
@@ -338,23 +354,47 @@
         if (kind === 'cancel') return t('returnAlertCancel');
         return t('returnAlertFail');
       }
-      function onConfirm() {
+      function runAfterReturnNotice(alertMsg, fn) {
+        if (fn == null) return;
         try {
-          window.alert(returnAlertMessage());
+          window.alert(alertMsg);
+          fn();
+          return;
         } catch (eA) { /* ignore */ }
         try {
-          sessionStorage.removeItem('pg_pay_pending_txn');
-        } catch (eTx) {}
-        try {
-          sessionStorage.removeItem('pg_pay_pending_order');
-        } catch (eOr) {}
-        /* 1) 팝업 등에서는 창 닫기 시도 → 2) 닫히지 않으면 결제 초기화(동일 호스트 pay.html?m=) */
-        try {
-          window.close();
-        } catch (e4) {}
-        setTimeout(function () {
-          goPayReset();
-        }, 120);
+          window.confirm(alertMsg);
+          fn();
+          return;
+        } catch (eC) { /* ignore */ }
+        var toast = document.createElement('div');
+        toast.className = 'alert alert-info position-fixed bottom-0 start-50 translate-middle-x mb-3 px-4 py-3 shadow';
+        toast.style.zIndex = '20000';
+        toast.style.maxWidth = '92vw';
+        toast.setAttribute('role', 'status');
+        toast.textContent = alertMsg;
+        document.body.appendChild(toast);
+        window.setTimeout(function () {
+          try { toast.remove(); } catch (eR) { /* ignore */ }
+          fn();
+        }, 2600);
+      }
+      function onConfirm() {
+        var msg = returnAlertMessage();
+        runAfterReturnNotice(msg, function () {
+          try {
+            sessionStorage.removeItem('pg_pay_pending_txn');
+          } catch (eTx) { /* ignore */ }
+          try {
+            sessionStorage.removeItem('pg_pay_pending_order');
+          } catch (eOr) { /* ignore */ }
+          /* 1) 팝업 등에서는 창 닫기 시도 → 2) 닫히지 않으면 결제 초기화(동일 호스트 pay.html?m=) */
+          try {
+            window.close();
+          } catch (e4) { /* ignore */ }
+          setTimeout(function () {
+            goPayReset();
+          }, 120);
+        });
       }
 
       function boot() {

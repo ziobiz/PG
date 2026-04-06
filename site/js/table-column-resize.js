@@ -240,6 +240,28 @@
     }
   }
 
+  /**
+   * 탭 pane 등: 그리드가 비동기로 채워질 때 subtree 변경 후 refreshIn(pane)을 다시 호출.
+   * app.js loadContent 에서 ensureObserver(pane) + refreshIn(pane) 패턴과 맞춤.
+   */
+  function ensureObserver(pane) {
+    if (!pane || !pane.querySelectorAll || pane._pgTcObs) {
+      return;
+    }
+    var t = null;
+    var obs = new MutationObserver(function () {
+      if (applying) {
+        return;
+      }
+      clearTimeout(t);
+      t = global.setTimeout(function () {
+        refreshIn(pane);
+      }, 160);
+    });
+    pane._pgTcObs = obs;
+    obs.observe(pane, { childList: true, subtree: true });
+  }
+
   function debounce(fn, ms) {
     var t;
     return function () {
@@ -275,6 +297,7 @@
   global.PG_TABLE_COL_RESIZE = {
     refresh: refreshTable,
     refreshIn: refreshIn,
+    ensureObserver: ensureObserver,
     refreshAll: function () {
       var cm = document.getElementById('contentsMain');
       if (cm) refreshIn(cm);

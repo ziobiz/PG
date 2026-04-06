@@ -8,7 +8,10 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.pg.entity.HqNotifyMappingConfig;
 import com.pg.entity.PgNotifyInbound;
 import com.pg.repository.HqNotifyMappingConfigRepository;
+import com.pg.repository.MerchantPgBindingRepository;
+import com.pg.repository.PgNotifyInboundRepository;
 import org.springframework.core.io.ClassPathResource;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -20,6 +23,8 @@ import com.pg.util.PgNotifyInternalStatusMapper;
 
 import java.io.InputStream;
 import java.math.BigDecimal;
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
@@ -154,12 +159,18 @@ public class HqNotifyMappingService {
 
     private final HqNotifyMappingConfigRepository repository;
     private final NotifyMappingAiService notifyMappingAiService;
+    private final PgNotifyInboundRepository pgNotifyInboundRepository;
+    private final MerchantPgBindingRepository merchantPgBindingRepository;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     public HqNotifyMappingService(HqNotifyMappingConfigRepository repository,
-                                  NotifyMappingAiService notifyMappingAiService) {
+                                  NotifyMappingAiService notifyMappingAiService,
+                                  PgNotifyInboundRepository pgNotifyInboundRepository,
+                                  MerchantPgBindingRepository merchantPgBindingRepository) {
         this.repository = repository;
         this.notifyMappingAiService = notifyMappingAiService;
+        this.pgNotifyInboundRepository = pgNotifyInboundRepository;
+        this.merchantPgBindingRepository = merchantPgBindingRepository;
     }
 
     public boolean isNotifyMappingAiConfigured() {
@@ -168,12 +179,15 @@ public class HqNotifyMappingService {
 
     /**
      * AI(OpenAI 호환)로 1차 매핑 후, 남은 파라미터는 휴리스틱으로 보완. API 키 없으면 전부 휴리스틱.
+     *
+     * @param lockedFieldMappings {@code lockAi=true} 인 행은 AI·휴리스틱이 덮어쓰지 않고 먼저 결과에 포함합니다.
      */
     public Map<String, Object> suggestFieldMappingsAiThenHeuristic(String vendorCode,
                                                                    String catalogId,
                                                                    List<String> paramNames,
                                                                    String sampleJson,
-                                                                   boolean preferAi) {
+                                                                   boolean preferAi,
+                                                                   List<Map<String, Object>> lockedFieldMappings) {
         Map<String, Object> out = new LinkedHashMap<>();
         if (paramNames == null) {
             paramNames = List.of();
@@ -186,6 +200,27 @@ public class HqNotifyMappingService {
         Set<String> usedKeys = new LinkedHashSet<>();
         Set<String> usedPg = new LinkedHashSet<>();
         String source = "heuristic";
+
+        if (lockedFieldMappings != null) {
+            for (Map<String, Object> row : lockedFieldMappings) {
+                if (row == null || !isLockAiRow(row)) {
+                    continue;
+                }
+                String pf = stringVal(row.get("pgField")).trim();
+                String ik = stringVal(row.get("internalKey")).trim();
+                if (pf.isEmpty() || ik.isEmpty()) {
+                    continue;
+                }
+                Map<String, Object> copy = new LinkedHashMap<>();
+                copy.put("pgField", pf);
+                copy.put("internalKey", ik);
+                copy.put("note", stringVal(row.get("note")));
+                copy.put("lockAi", Boolean.TRUE);
+                combined.add(copy);
+                usedKeys.add(ik);
+                usedPg.add(pf);
+            }
+        }
 
         if (preferAi && notifyMappingAiService != null && notifyMappingAiService.isConfigured()) {
             List<Map<String, String>> labels = exportCatalogColumnLabels(catalogId);
@@ -817,13 +852,22 @@ public class HqNotifyMappingService {
         }
 
         String custId = firstNonBlank(byKey, "customerId");
-        if (custId != null) {
+        if (custId == null || custId.isBlank() || "guest".equalsIgnoreCase(custId.trim())) {
+            String fromRawId = extractNotifyCustomerIdRaw(notifyRoot);
+            if (fromRawId != null && !fromRawId.isBlank()) {
+                custId = fromRawId;
+            }
+        }
+        if (custId != null && !custId.isBlank()) {
             t.setCustomerId(truncate(custId, 100));
         } else {
             t.setCustomerId("guest");
         }
         String custNm = firstNonBlank(byKey, "customerNm");
-        if (custNm != null) {
+        if (custNm == null || custNm.isBlank()) {
+            custNm = extractNotifyCustomerNameRaw(notifyRoot);
+        }
+        if (custNm != null && !custNm.isBlank()) {
             t.setCustomerNm(truncate(custNm, 200));
         }
         String pch = firstNonBlank(byKey, "paymentChannel");
@@ -962,6 +1006,84 @@ public class HqNotifyMappingService {
         }
     }
 
+    private static String stringVal(Object o) {
+        return o == null ? "" : String.valueOf(o);
+    }
+
+    private static boolean isLockAiRow(Map<String, Object> row) {
+        Object v = row.get("lockAi");
+        if (v instanceof Boolean b) {
+            return b;
+        }
+        String s = stringVal(v).trim();
+        return "true".equalsIgnoreCase(s) || "1".equals(s);
+    }
+
+    /** application/x-www-form-urlencoded·JSON 혼합 노티 본문에서 파라미터 이름 수집 */
+    public List<String> collectParamNamesFromRawPayload(String rawBody, String contentType) {
+        LinkedHashSet<String> keys = new LinkedHashSet<>();
+        if (rawBody == null || rawBody.isBlank()) {
+            return List.of();
+        }
+        String t = rawBody.trim();
+        String ct = contentType == null ? "" : contentType.toLowerCase(Locale.ROOT);
+        if (ct.contains("json") || t.startsWith("{") || t.startsWith("[")) {
+            keys.addAll(collectJsonParamNames(t));
+        }
+        if (t.contains("=")) {
+            try {
+                for (String part : t.split("&")) {
+                    if (part == null || part.isBlank()) {
+                        continue;
+                    }
+                    int eq = part.indexOf('=');
+                    String name = (eq <= 0) ? part.trim() : part.substring(0, eq).trim();
+                    if (name.isEmpty()) {
+                        continue;
+                    }
+                    keys.add(URLDecoder.decode(name, StandardCharsets.UTF_8).trim());
+                }
+            } catch (Exception ignored) {
+                // ignore
+            }
+        }
+        if (keys.isEmpty()) {
+            keys.addAll(collectJsonParamNames(t));
+        }
+        return new ArrayList<>(keys);
+    }
+
+    /**
+     * 최근 수신 노티 원문에서 관찰된 파라미터 키 — 해당 PG에 연결된 MID가 있으면 그 MID 노티만, 없으면 최근 전체 노티로 폴백.
+     */
+    public Map<String, Object> listObservedInboundParamKeys(String vendorCode, int maxBodies) {
+        Map<String, Object> out = new LinkedHashMap<>();
+        int cap = Math.min(500, Math.max(1, maxBodies));
+        String vc = vendorCode == null ? "" : vendorCode.trim();
+        if (vc.isEmpty()) {
+            out.put("keys", List.of());
+            out.put("source", "empty_vendor");
+            out.put("inboundRowsScanned", 0);
+            return out;
+        }
+        List<String> mids = merchantPgBindingRepository.findDistinctMidsByPgCdLikeVendor(vc);
+        PageRequest pr = PageRequest.of(0, cap);
+        List<PgNotifyInbound> rows = mids.isEmpty()
+                ? pgNotifyInboundRepository.findAllByOrderByIdDesc(pr)
+                : pgNotifyInboundRepository.findByMidInOrderByIdDesc(mids, pr);
+        LinkedHashSet<String> all = new LinkedHashSet<>();
+        for (PgNotifyInbound in : rows) {
+            all.addAll(collectParamNamesFromRawPayload(in.getRawBody(), in.getContentType()));
+        }
+        List<String> sorted = new ArrayList<>(all);
+        Collections.sort(sorted);
+        out.put("keys", sorted);
+        out.put("source", mids.isEmpty() ? "inbound_recent_all" : "inbound_mid_for_vendor");
+        out.put("inboundRowsScanned", rows.size());
+        out.put("midCountUsedForFilter", mids.size());
+        return out;
+    }
+
     /** PG·채널(CALLBACK/RESULT/RETURN)별 저장된 fieldMappings */
     private List<FieldMappingRow> loadFieldMappingsForChannel(String vendorCode, String channelCode) {
         List<FieldMappingRow> list = new ArrayList<>();
@@ -1079,7 +1201,7 @@ public class HqNotifyMappingService {
             case "paymentstatus", "paystatus" -> "chillPaymentStatus";
             case "status" -> "chillPaymentStatus";
             case "paymentchannel", "channel", "channelcode" -> "paymentChannel";
-            case "customerid", "custid" -> "customerId";
+            case "customerid", "custid", "customer" -> "customerId";
             case "customername", "payername", "username" -> "customerNm";
             case "currency", "currencycode" -> "currency";
             case "fee" -> "chillFeeAmt";
@@ -1189,6 +1311,37 @@ public class HqNotifyMappingService {
             return null;
         }
         for (String n : new String[] { "Status", "status" }) {
+            String v = textDeep(notifyRoot, n);
+            if (v != null && !v.isBlank()) {
+                return v.trim();
+            }
+        }
+        return null;
+    }
+
+    /**
+     * 노티 본문에서 CustomerId 계열 — 매핑에 customerId 열이 없어도 결제관리 그리드 chillCustomer·고객명(결제자)에 반영.
+     * {@link ChillPayNotifyToTrnsctnService} 와 동일 후보 키.
+     */
+    private static String extractNotifyCustomerIdRaw(JsonNode notifyRoot) {
+        if (notifyRoot == null || !notifyRoot.isObject()) {
+            return null;
+        }
+        for (String n : new String[] { "CustomerId", "customerId", "Customer", "customer" }) {
+            String v = textDeep(notifyRoot, n);
+            if (v != null && !v.isBlank()) {
+                return v.trim();
+            }
+        }
+        return null;
+    }
+
+    /** 노티 본문 CustomerName 계열 — 고객명(결제자) 컬럼용 */
+    private static String extractNotifyCustomerNameRaw(JsonNode notifyRoot) {
+        if (notifyRoot == null || !notifyRoot.isObject()) {
+            return null;
+        }
+        for (String n : new String[] { "CustomerName", "customerName", "PayerName", "payerName" }) {
             String v = textDeep(notifyRoot, n);
             if (v != null && !v.isBlank()) {
                 return v.trim();
