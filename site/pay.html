@@ -1055,6 +1055,9 @@
 
       function postChillPayDirectCredit(fd) {
         var btn = document.getElementById('submitBtn');
+        try {
+          sessionStorage.removeItem('pg_pay_pending_txn');
+        } catch (eClrTxn) {}
         fetch(API_BASE + '/api/pay/chillpay/request', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -1067,6 +1070,13 @@
               try {
                 sessionStorage.setItem('pg_pay_return_m', fd.compId || '');
                 sessionStorage.setItem('pg_pay_pending_order', ord);
+                var tx0 = d.transactionId != null && d.transactionId !== '' ? String(d.transactionId)
+                  : (d.TransactionId != null && d.TransactionId !== '' ? String(d.TransactionId) : '');
+                if (tx0) {
+                  sessionStorage.setItem('pg_pay_pending_txn', tx0);
+                } else {
+                  sessionStorage.removeItem('pg_pay_pending_txn');
+                }
               } catch (eSt) {}
               window.location.href = d.paymentUrl;
               return;
@@ -1074,6 +1084,7 @@
             if (d && d.paymentStatus === 'Paid') {
               try {
                 sessionStorage.removeItem('pg_pay_pending_order');
+                sessionStorage.removeItem('pg_pay_pending_txn');
               } catch (eR) {}
               showPayFinished(false, t('payOk') + ' (Paid)', ord, false);
               return;

@@ -629,6 +629,7 @@ public class PayListService {
             case "REFUND" -> cb.equal(root.get("status"), "30");
             case "FORCE_REFUND" -> cb.equal(root.get("status"), "31");
             case "CANCEL" -> cb.equal(root.get("status"), "20");
+            case "VOID" -> root.get("status").in("21", "22", "40", "41", "42");
             case "OFFSET_CANCEL" -> cb.or(cb.isNull(root.get("status")), cb.notEqual(root.get("status"), "10"));
             case "URL_PAY" -> cb.equal(root.get("origin"), "URL");
             case "CHATBOT_PAY" -> cb.equal(root.get("origin"), "CHATBOT");

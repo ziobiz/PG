@@ -25,8 +25,9 @@ public class ChillPayDirectCreditResponse {
         private String paymentUrl;     // OTP 확인 페이지 URL
         private String ipAddress;
         private String token;
+        /** ChillPay 응답이 숫자·문자열 어느 쪽이든 수신 (거래번호 UI·sessionStorage 보완용). */
         @JsonAlias({"TransactionId"})
-        private Long transactionId;
+        private String transactionId;
         private String channelCode;
         private String createdDate;
         private String expiredDate;
@@ -66,8 +67,8 @@ public class ChillPayDirectCreditResponse {
         public void setIpAddress(String ipAddress) { this.ipAddress = ipAddress; }
         public String getToken() { return token; }
         public void setToken(String token) { this.token = token; }
-        public Long getTransactionId() { return transactionId; }
-        public void setTransactionId(Long transactionId) { this.transactionId = transactionId; }
+        public String getTransactionId() { return transactionId; }
+        public void setTransactionId(String transactionId) { this.transactionId = transactionId; }
         public String getChannelCode() { return channelCode; }
         public void setChannelCode(String channelCode) { this.channelCode = channelCode; }
         public String getCreatedDate() { return createdDate; }

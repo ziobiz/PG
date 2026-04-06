@@ -2,6 +2,7 @@ package com.pg.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.pg.dto.NotifyReceiveOutcome;
 import com.pg.entity.HqNotifyEnvConfig;
 import com.pg.entity.MerchantPgBinding;
 import com.pg.entity.OrgUnit;
@@ -20,10 +21,13 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.net.URLDecoder;
+import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -55,6 +59,7 @@ public class PgNotifyReceiveService {
     private final PgNotifyIngressGuard notifyIngressGuard;
     private final ChillPayNotifyToTrnsctnService chillPayNotifyToTrnsctnService;
     private final HqNotifyTargetRepository hqNotifyTargetRepository;
+    private final ChillPayService chillPayService;
 
     public PgNotifyReceiveService(HqNotifyEnvService hqNotifyEnvService,
                                 PgNotifyInboundRepository inboundRepository,
@@ -64,7 +69,8 @@ public class PgNotifyReceiveService {
                                 OrgServiceUseService orgServiceUseService,
                                 PgNotifyIngressGuard notifyIngressGuard,
                                 ChillPayNotifyToTrnsctnService chillPayNotifyToTrnsctnService,
-                                HqNotifyTargetRepository hqNotifyTargetRepository) {
+                                HqNotifyTargetRepository hqNotifyTargetRepository,
+                                ChillPayService chillPayService) {
         this.hqNotifyEnvService = hqNotifyEnvService;
         this.inboundRepository = inboundRepository;
         this.bindingRepository = bindingRepository;
@@ -74,13 +80,14 @@ public class PgNotifyReceiveService {
         this.notifyIngressGuard = notifyIngressGuard;
         this.chillPayNotifyToTrnsctnService = chillPayNotifyToTrnsctnService;
         this.hqNotifyTargetRepository = hqNotifyTargetRepository;
+        this.chillPayService = chillPayService;
     }
 
     /**
      * @param notifyTargetCode 노티 URL 경로의 두 번째 세그먼트(cb…/rs… 등). 없으면 CALLBACK 로 간주합니다.
      */
     @Transactional
-    public String receiveAndRespond(String pathToken, String notifyTargetCode, String rawBody, String contentType, String clientIp, HttpServletRequest request) {
+    public NotifyReceiveOutcome receiveAndRespond(String pathToken, String notifyTargetCode, String rawBody, String contentType, String clientIp, HttpServletRequest request) {
         notifyIngressGuard.assertAllowed(clientIp, rawBody != null ? rawBody : "", request);
         HqNotifyEnvConfig env = hqNotifyEnvService.getOrCreate();
         if (!env.getIngressToken().equals(pathToken)) {
@@ -105,7 +112,191 @@ public class PgNotifyReceiveService {
         } catch (Exception e) {
             log.warn("노티→결제내역(pg_trnsctn) 후처리 실패 (수신 응답은 OK 유지): {}", e.getMessage());
         }
-        return env.getNotifyOkResponse() != null ? env.getNotifyOkResponse() : "{\"result\":\"OK\"}";
+        String defaultOk = env.getNotifyOkResponse() != null ? env.getNotifyOkResponse() : "{\"result\":\"OK\"}";
+        if ("RESULT".equalsIgnoreCase(channelType)
+                && request != null
+                && shouldUsePayResultRedirect(request.getMethod(), body, contentType)) {
+            String loc = buildPayResultRedirectUrl(request, in, body, contentType);
+            if (loc != null && !loc.isBlank()) {
+                log.info("pg-notify RESULT → pay-result redirect (targetCode={})", trimNotifyTargetCode(notifyTargetCode));
+                return NotifyReceiveOutcome.redirect(loc);
+            }
+        }
+        return NotifyReceiveOutcome.json(defaultOk);
+    }
+
+    /**
+     * RESULT URL — 브라우저 GET·폼 POST 는 결제 결과 HTML 로 보냄. JSON 본문 POST 는 서버 노티로 간주해 기존처럼 JSON OK 유지.
+     */
+    private static boolean shouldUsePayResultRedirect(String httpMethod, String rawBody, String contentType) {
+        String m = httpMethod != null ? httpMethod.trim().toUpperCase(Locale.ROOT) : "";
+        if ("GET".equals(m)) {
+            return true;
+        }
+        if (!"POST".equals(m) && !"PUT".equals(m)) {
+            return false;
+        }
+        String ct = contentType != null ? contentType.toLowerCase(Locale.ROOT) : "";
+        String b = rawBody != null ? rawBody.trim() : "";
+        if (b.startsWith("{")) {
+            return false;
+        }
+        if (ct.contains("application/x-www-form-urlencoded")) {
+            return true;
+        }
+        return b.contains("=");
+    }
+
+    private String buildPayResultRedirectUrl(HttpServletRequest request, PgNotifyInbound in, String rawBody, String contentType) {
+        String compId = firstNonBlank(
+                in.getPayloadCompId() != null ? in.getPayloadCompId().trim() : null,
+                in.getMerchantId() != null ? in.getMerchantId().trim() : null);
+        String base = chillPayService.resolveUrlPayResultAbsolute(request, compId);
+        if (base == null || base.isBlank()) {
+            return null;
+        }
+        ResultPageParams p = extractChillPayLikeResultParams(rawBody, contentType);
+        StringBuilder q = new StringBuilder();
+        appendUrlQueryParam(q, "OrderNo", p.orderNo);
+        appendUrlQueryParam(q, "TransactionId", p.transactionId);
+        appendUrlQueryParam(q, "PaymentStatus", p.paymentStatus);
+        if (q.length() == 0) {
+            return base;
+        }
+        String sep = base.contains("?") ? "&" : "?";
+        return base + sep + q;
+    }
+
+    private static void appendUrlQueryParam(StringBuilder q, String key, String val) {
+        if (val == null || val.isBlank() || key == null || key.isBlank()) {
+            return;
+        }
+        String v = val.trim();
+        if (v.length() > 512) {
+            v = v.substring(0, 512);
+        }
+        if (q.length() > 0) {
+            q.append('&');
+        }
+        q.append(URLEncoder.encode(key.trim(), StandardCharsets.UTF_8))
+                .append('=')
+                .append(URLEncoder.encode(v, StandardCharsets.UTF_8));
+    }
+
+    private static final class ResultPageParams {
+        String orderNo;
+        String transactionId;
+        String paymentStatus;
+    }
+
+    private ResultPageParams extractChillPayLikeResultParams(String raw, String contentType) {
+        ResultPageParams r = new ResultPageParams();
+        String body = raw != null ? raw.trim() : "";
+        if (body.isEmpty()) {
+            return r;
+        }
+        String ct = contentType != null ? contentType.toLowerCase(Locale.ROOT) : "";
+        if (body.startsWith("{") || ct.contains("json")) {
+            try {
+                JsonNode root = MAPPER.readTree(body);
+                if (root != null && root.isObject()) {
+                    r.orderNo = textDeep(root, "OrderNo", "orderNo");
+                    r.transactionId = textDeep(root, "TransactionId", "transactionId");
+                    r.paymentStatus = firstNonBlank(
+                            textDeep(root, "PaymentStatus", "paymentStatus", "Paymentstatus"),
+                            textDeep(root, "Status", "status"));
+                }
+            } catch (Exception ignored) {
+                /* ignore */
+            }
+            return r;
+        }
+        Map<String, String> fm = new LinkedHashMap<>();
+        parseFormToLowerMap(body, fm);
+        r.orderNo = mapGetLoose(fm, "orderno", "order_no");
+        r.transactionId = mapGetLoose(fm, "transactionid", "transaction_id", "transid", "trans_id");
+        r.paymentStatus = firstNonBlank(
+                mapGetLoose(fm, "paymentstatus", "payment_status"),
+                mapGetLoose(fm, "status"));
+        return r;
+    }
+
+    private static void parseFormToLowerMap(String body, Map<String, String> map) {
+        try {
+            for (String pair : body.split("&")) {
+                int i = pair.indexOf('=');
+                if (i <= 0) {
+                    continue;
+                }
+                String k = URLDecoder.decode(pair.substring(0, i).trim(), StandardCharsets.UTF_8)
+                        .toLowerCase(Locale.ROOT);
+                String v = URLDecoder.decode(pair.substring(i + 1).trim(), StandardCharsets.UTF_8);
+                if (!v.isEmpty()) {
+                    map.put(k, v);
+                }
+            }
+        } catch (Exception ignored) {
+            /* ignore */
+        }
+    }
+
+    private static String mapGetLoose(Map<String, String> m, String... keys) {
+        for (String key : keys) {
+            if (key == null) {
+                continue;
+            }
+            String v = m.get(key.toLowerCase(Locale.ROOT));
+            if (v != null && !v.isBlank()) {
+                return v.trim();
+            }
+        }
+        return null;
+    }
+
+    private static String firstNonBlank(String a, String b) {
+        if (a != null && !a.isBlank()) {
+            return a.trim();
+        }
+        if (b != null && !b.isBlank()) {
+            return b.trim();
+        }
+        return null;
+    }
+
+    private static String textDeep(JsonNode root, String... names) {
+        String t = text(root, names);
+        if (t != null) {
+            return t;
+        }
+        JsonNode d = root.get("data");
+        if (d != null && d.isObject()) {
+            return text(d, names);
+        }
+        return null;
+    }
+
+    private static String text(JsonNode n, String... names) {
+        if (n == null || !n.isObject()) {
+            return null;
+        }
+        for (String c : names) {
+            JsonNode x = n.get(c);
+            if (x != null && !x.isNull()) {
+                if (x.isTextual()) {
+                    String s = x.asText().trim();
+                    if (!s.isEmpty()) {
+                        return s;
+                    }
+                }
+                if (x.isNumber()) {
+                    return x.asText();
+                }
+                if (x.isBoolean()) {
+                    return x.asBoolean() ? "true" : "false";
+                }
+            }
+        }
+        return null;
     }
 
     private static String trimNotifyTargetCode(String code) {
@@ -232,9 +423,9 @@ public class PgNotifyReceiveService {
         }
         in.setOrgUnitId(ou.getId());
         in.setMerchantId(ou.getCode());
-        if (!orgServiceUseService.isOrgServiceActive(ou.getId())) {
+        if (!orgServiceUseService.isOrgEligibleForPgNotifyProcessing(ou.getId())) {
             in.setProcessStatus("MERCHANT_DISABLED");
-            in.setErrorMessage("업체 미사용(서비스 중지) — 노티 미처리");
+            in.setErrorMessage("가맹점 프로필 미사용(use_yn=N) — 노티 미처리");
         } else {
             in.setProcessStatus("PARSED");
         }
@@ -243,9 +434,9 @@ public class PgNotifyReceiveService {
     private void applyBindingResolved(PgNotifyInbound in, MerchantPgBinding b) {
         in.setOrgUnitId(b.getOrgUnitId());
         orgUnitRepository.findById(b.getOrgUnitId()).ifPresent(o -> in.setMerchantId(o.getCode()));
-        if (!orgServiceUseService.isOrgServiceActive(b.getOrgUnitId())) {
+        if (!orgServiceUseService.isOrgEligibleForPgNotifyProcessing(b.getOrgUnitId())) {
             in.setProcessStatus("MERCHANT_DISABLED");
-            in.setErrorMessage("업체 미사용(서비스 중지) — 노티 미처리");
+            in.setErrorMessage("가맹점 프로필 미사용(use_yn=N) — 노티 미처리");
         } else {
             in.setProcessStatus("PARSED");
         }

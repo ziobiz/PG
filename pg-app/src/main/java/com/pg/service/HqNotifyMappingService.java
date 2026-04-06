@@ -16,6 +16,7 @@ import com.pg.entity.PgTrnsctn;
 import com.pg.util.NotifyAmountParse;
 import com.pg.util.NotifyChannelMerge;
 import com.pg.util.NotifyToTxnStatusMerge;
+import com.pg.util.PgNotifyInternalStatusMapper;
 
 import java.io.InputStream;
 import java.math.BigDecimal;
@@ -145,6 +146,7 @@ public class HqNotifyMappingService {
             "/calc/payRefundList",
             "/calc/payForceRefundList",
             "/calc/payCancelList",
+            "/calc/payVoidList",
             "/calc/offsetCancList",
             "/pay/easyPay",
             "/pay/chatbotPay"
@@ -851,7 +853,8 @@ public class HqNotifyMappingService {
         String jsonStatField = extractNotifyStatusCodeField(notifyRoot);
         String payStForInternal = firstNonBlankString(jsonPayStat, mappedPs);
         String statusFieldForInternal = firstNonBlankString(jsonStatField, firstNonBlank(byKey, "status"));
-        String internalComputed = mapInternalStatus(payStForInternal, statusFieldForInternal, vendorCode);
+        String internalComputed = PgNotifyInternalStatusMapper.mapForMappedNotify(
+                payStForInternal, statusFieldForInternal, vendorCode);
         String mergedStatus = NotifyToTxnStatusMerge.merge(t.getStatus(), internalComputed, notifyChannel);
         if (mergedStatus == null || mergedStatus.isBlank()) {
             mergedStatus = "08";
@@ -1307,85 +1310,6 @@ public class HqNotifyMappingService {
                 return LocalDateTime.parse(t, DateTimeFormatter.ofPattern("yyyyMMddHHmmss", Locale.ROOT));
             }
         } catch (DateTimeParseException ignored) {
-        }
-        return null;
-    }
-
-    private static String mapInternalStatus(String paymentStatus, String status, String vendorCode) {
-        String p = paymentStatus != null ? paymentStatus.trim().toLowerCase(Locale.ROOT) : "";
-        String s = status != null ? status.trim().toLowerCase(Locale.ROOT) : "";
-        boolean chill = vendorCode != null && "CHILLPAY".equalsIgnoreCase(vendorCode.trim());
-        if (!p.isEmpty()) {
-            if (p.contains("emailvoid") || p.contains("email_void")
-                    || (p.contains("email") && p.contains("void") && !p.contains("cancel"))) {
-                return "22";
-            }
-            if (p.contains("voided") || p.contains("auto void") || p.contains("autovoid")
-                    || "invalid".equals(p) || p.contains("무효") || p.contains("이메일무효")) {
-                return "21";
-            }
-            boolean completeOk = (p.contains("complete") || p.contains("completed")) && !p.contains("incomplete");
-            if (p.contains("paid") || p.contains("success") || completeOk
-                    || p.contains("authorized") || p.contains("authorised") || p.contains("settled")
-                    || p.contains("captured") || p.contains("approved") || p.contains("confirmed")) {
-                return "10";
-            }
-            /* 칠페이 노티는 완료 건에도 Processing 문자열이 오는 사례가 있어 CHILLPAY 한정으로 승인으로 본다 */
-            if (chill && "processing".equals(p)) {
-                return "10";
-            }
-            if (p.contains("wait") || p.contains("authorize") || p.contains("pending") || p.contains("request")) {
-                return "08";
-            }
-            if (p.contains("cancel") || p.contains("void")) {
-                return "20";
-            }
-            if (p.contains("refund")) {
-                return "30";
-            }
-            if (p.contains("fail") || p.contains("error")) {
-                return "99";
-            }
-            /* 칠페이 콜백 숫자: 0→10, 2→20(취소), 1·3·4→99(실패/오류) */
-            if (chill && p.matches("^\\d+$")) {
-                if ("0".equals(p)) {
-                    return "10";
-                }
-                if ("1".equals(p) || "3".equals(p) || "4".equals(p)) {
-                    return "99";
-                }
-                if ("2".equals(p)) {
-                    return "20";
-                }
-            }
-        }
-        if (!s.isEmpty()) {
-            if ("10".equals(s) || "paid".equals(s) || "success".equals(s)) {
-                return "10";
-            }
-            if ("20".equals(s) || "cancel".equals(s)) {
-                return "20";
-            }
-            if ("30".equals(s) || s.contains("refund")) {
-                return "30";
-            }
-            if ("99".equals(s) || "f0".equals(s) || s.contains("fail")) {
-                return "99";
-            }
-            if ("08".equals(s)) {
-                return "08";
-            }
-            if (chill && s.matches("^\\d+$")) {
-                if ("0".equals(s)) {
-                    return "10";
-                }
-                if ("1".equals(s) || "3".equals(s) || "4".equals(s)) {
-                    return "99";
-                }
-                if ("2".equals(s)) {
-                    return "20";
-                }
-            }
         }
         return null;
     }

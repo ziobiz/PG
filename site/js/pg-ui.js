@@ -58,8 +58,17 @@
     if (!row || typeof row !== 'object') return 'neutral';
     var st = row.status != null ? String(row.status).trim() : '';
     if (st === '10') return 'success';
-    if (st === '20') return 'cancel';
-    if (st === '21' || st === '22') return 'void';
+    if (st === '20') {
+      var lab0 = row.chillPaymentStatus != null ? String(row.chillPaymentStatus).trim() : '';
+      var ul0 = lab0.toLowerCase();
+      if (lab0 && (/^(21|22|40|41|42)$/.test(lab0) || ul0.indexOf('무효') >= 0 && ul0.indexOf('취소') === -1
+          || /(^|[^a-z0-9_])void([^a-z0-9_]|$)/i.test(ul0) && ul0.indexOf('cancel') === -1
+          || ul0.indexOf('emailvoid') >= 0 || ul0.indexOf('email_void') >= 0)) {
+        return 'void';
+      }
+      return 'cancel';
+    }
+    if (st === '21' || st === '22' || st === '40' || st === '41' || st === '42') return 'void';
     if (st === '30' || st === '31') return 'refund';
     if (st === '99' || st === 'F0' || st.toLowerCase() === 'f0') return 'fail';
     if (st === '08') return 'pending';

@@ -67,6 +67,9 @@ public class SecurityConfig {
                     AntPathRequestMatcher.antMatcher("/main"),
                     AntPathRequestMatcher.antMatcher("/index.html"),
                     AntPathRequestMatcher.antMatcher("/login.html"),
+                    /* URL 결제 ChillPay 복귀 — 패턴 *.html 과 무관하게 미인증 허용(로그인 리다이렉트 방지) */
+                    AntPathRequestMatcher.antMatcher("/pay-result.html"),
+                    AntPathRequestMatcher.antMatcher("/pay.html"),
                     AntPathRequestMatcher.antMatcher("/favicon.ico"),
                     AntPathRequestMatcher.antMatcher("/robots.txt"),
                     AntPathRequestMatcher.antMatcher("/pay"),

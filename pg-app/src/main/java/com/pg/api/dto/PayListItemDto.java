@@ -13,6 +13,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.regex.Pattern;
 
 /**
  * 결제내역 그리드 한 행 — 엑셀 템플릿(가맹점 정산형 컬럼) + 칠페이(ChillPay) 동기화 컬럼.
@@ -22,6 +23,8 @@ import java.util.Map;
  * </ul>
  */
 public class PayListItemDto {
+
+    private static final Pattern VOID_TOKEN_HINT = Pattern.compile("(^|[^a-z0-9_])void([^a-z0-9_]|$)", Pattern.CASE_INSENSITIVE);
 
     private static final DateTimeFormatter TRN_DATE = DateTimeFormatter.ISO_LOCAL_DATE;
     private static final DateTimeFormatter TRN_TIME = DateTimeFormatter.ofPattern("HH:mm:ss");
@@ -71,8 +74,9 @@ public class PayListItemDto {
         row.put("compRegDivNm", "-");
         row.put("compRegNo", regNo(mp));
         row.put("settleDiv", "정산");
-        row.put("payDivNm", payDivLabel(t.getStatus()));
-        row.put("payProcNm", payProcLabel(t.getStatus()));
+        String effStatus = effectiveStatusForPayLabels(t);
+        row.put("payDivNm", payDivLabel(effStatus));
+        row.put("payProcNm", payProcLabel(effStatus));
         row.put("payCard", "-");
         row.put("cardAprvNo", blank(t.getApprovalNo()));
         row.put("payCardNo", "-");
@@ -134,8 +138,8 @@ public class PayListItemDto {
         row.put("settleAmt", settleAmtBd);
         row.put("calcDt", payDtStr);
         row.put("approveDt", isApprove ? payDtStr : "");
-        row.put("cancelDt", "20".equals(t.getStatus()) ? payDtStr : "");
-        row.put("payStatus", payStatusLabel(t.getStatus()));
+        row.put("cancelDt", ("20".equals(t.getStatus()) || isVoidFamilyStatus(t.getStatus())) ? payDtStr : "");
+        row.put("payStatus", payStatusLabel(effStatus));
 
         row.put("productNm", mp != null && mp.getProduct() != null ? mp.getProduct() : "-");
         /** 가맹점의 결제 고객(칠페이 customer 등). 가맹 대표자(CEO)와 구분 */
@@ -487,6 +491,52 @@ public class PayListItemDto {
         return mp.getRegNo().contains("|") ? mp.getRegNo().split("\\|", 2)[1] : mp.getRegNo();
     }
 
+    /**
+     * 노티 원문(chillPaymentStatus)은 무효인데 과거 로직이 내부 상태를 취소(20)만 남긴 행 — 표시는 무효 계열로 맞춤.
+     */
+    private static String effectiveStatusForPayLabels(PgTrnsctn t) {
+        if (t == null) {
+            return "";
+        }
+        String st = t.getStatus() != null ? t.getStatus() : "";
+        String mapped = legacyVoidStatusFromChillWhenCancel20(st, t.getChillPaymentStatus());
+        return mapped != null ? mapped : st;
+    }
+
+    private static boolean isVoidFamilyStatus(String status) {
+        if (status == null) {
+            return false;
+        }
+        return switch (status.trim()) {
+            case "21", "22", "40", "41", "42" -> true;
+            default -> false;
+        };
+    }
+
+    /**
+     * @return 무효 계열 내부코드, 또는 매핑 불가 시 null
+     */
+    private static String legacyVoidStatusFromChillWhenCancel20(String status, String chill) {
+        if (!"20".equals(status) || chill == null || chill.isBlank()) {
+            return null;
+        }
+        String u = chill.trim();
+        String ul = u.toLowerCase(Locale.ROOT);
+        if (u.matches("^(21|22|40|41|42)$")) {
+            return u;
+        }
+        if (ul.contains("emailvoid") || ul.contains("email_void")) {
+            return "22";
+        }
+        if (ul.contains("무효") && !ul.contains("취소")) {
+            return "21";
+        }
+        if (VOID_TOKEN_HINT.matcher(ul).find() && !ul.contains("cancel")) {
+            return "21";
+        }
+        return null;
+    }
+
     private static String payDivLabel(String status) {
         if (status == null) return "-";
         return switch (status) {
@@ -494,7 +544,7 @@ public class PayListItemDto {
             case "08" -> "인증대기";
             case "20" -> "취소";
             case "21" -> "무효";
-            case "22" -> "수동무효";
+            case "22" -> "이메일무효";
             case "40" -> "자동무효";
             case "41" -> "이메일무효";
             case "42" -> "자동환불";
@@ -508,6 +558,7 @@ public class PayListItemDto {
         if ("10".equals(status)) return "정산대기";
         if ("08".equals(status)) return "인증대기";
         if ("20".equals(status)) return "결제취소";
+        if (isVoidFamilyStatus(status)) return payDivLabel(status);
         return "정산대기";
     }
 
@@ -515,6 +566,7 @@ public class PayListItemDto {
         if ("10".equals(status)) return "정산대기";
         if ("08".equals(status)) return "인증대기";
         if ("20".equals(status)) return "취소";
+        if (isVoidFamilyStatus(status)) return payDivLabel(status);
         return payDivLabel(status);
     }
 }

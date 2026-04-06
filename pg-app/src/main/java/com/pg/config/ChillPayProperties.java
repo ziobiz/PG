@@ -17,7 +17,7 @@ public class ChillPayProperties {
     private String apiKey;
     /** ChillPay MD5 Secret Key (CheckSum 생성용) */
     private String md5Key;
-    /** Route No (예: 4) */
+    /** Route No — DB에 URL결제 ChillPay 행·본사 API설정 route가 없을 때만 쓰는 최후 폴백 */
     private int routeNo = 4;
     /** Sandbox 사용 여부 */
     private boolean sandbox = true;

@@ -75,6 +75,7 @@
       var kind = 'fail';
       var merchantM = '';
       var orderNo = '';
+      var txnId = '';
 
       var I18N = {
         KOR: {
@@ -83,6 +84,7 @@
           fail: '결제가 완료되지 않았거나 실패했습니다.',
           cancel: '결제가 취소되었습니다.',
           order: '주문번호',
+          txn: '거래번호',
           btn: '확인',
           foot: '팝업으로 열렸다면 이 창을 닫아 주세요. 새 탭이라면 아래 버튼으로 결제 페이지로 돌아가거나 탭을 닫아 주세요.'
         },
@@ -92,6 +94,7 @@
           fail: 'Payment was not completed or has failed.',
           cancel: 'Payment was cancelled.',
           order: 'Order no.',
+          txn: 'Transaction no.',
           btn: 'OK',
           foot: 'If this opened in a popup, close the window. If it is a new tab, use the button below to return to checkout or close the tab.'
         },
@@ -101,6 +104,7 @@
           fail: '支付未完成或失败。',
           cancel: '支付已取消。',
           order: '订单号',
+          txn: '交易号',
           btn: '确定',
           foot: '若为弹窗请关闭本窗口；若为新标签页请使用下方按钮返回结账页或关闭标签。'
         },
@@ -110,6 +114,7 @@
           fail: 'お支払いが完了していないか、失敗しました。',
           cancel: 'お支払いがキャンセルされました。',
           order: '注文番号',
+          txn: '取引番号',
           btn: 'OK',
           foot: 'ポップアップで開いた場合はこのウィンドウを閉じてください。新しいタブの場合は下のボタンで決済ページに戻るか、タブを閉じてください。'
         },
@@ -119,6 +124,7 @@
           fail: 'การชำระเงินไม่สำเร็จหรือล้มเหลว',
           cancel: 'ยกเลิกการชำระเงินแล้ว',
           order: 'หมายเลขคำสั่งซื้อ',
+          txn: 'หมายเลขธุรกรรม',
           btn: 'ตกลง',
           foot: 'หากเปิดเป็นป๊อปอัป ให้ปิดหน้าต่างนี้ หากเป็นแท็บใหม่ ให้ใช้ปุ่มด้านล่างเพื่อกลับไปหน้าชำระเงินหรือปิดแท็บ'
         }
@@ -136,6 +142,23 @@
       function norm(s) {
         return (s == null ? '' : String(s)).trim();
       }
+      /** Query 키 대소문자 불일치(PaymentStatus vs paymentstatus) 대응 */
+      function getParamLoose(p, names) {
+        var lower = {};
+        try {
+          p.forEach(function (val, key) {
+            lower[String(key).toLowerCase()] = val;
+          });
+        } catch (eL) { /* ignore */ }
+        for (var i = 0; i < names.length; i++) {
+          var k = names[i];
+          var direct = p.get(k);
+          if (direct != null && norm(direct) !== '') return norm(direct);
+          var alt = lower[String(k).toLowerCase()];
+          if (alt != null && norm(alt) !== '') return norm(alt);
+        }
+        return '';
+      }
       function pickMap(mapObj) {
         if (!mapObj || typeof mapObj !== 'object') return '';
         if (mapObj[LANG]) return String(mapObj[LANG]);
@@ -144,10 +167,23 @@
         var ks = Object.keys(mapObj);
         return ks.length ? String(mapObj[ks[0]]) : '';
       }
+      /* ChillPay 복귀: PaymentStatus 문자열(Paid) 또는 숫자(10 성공 등) — 서버 노티 내부 코드와 동일 계열 */
       function parseStatus(p) {
-        var raw = norm(p.get('PaymentStatus') || p.get('paymentStatus') || p.get('status') || p.get('Result') || p.get('result'));
+        var raw = getParamLoose(p, [
+          'PaymentStatus', 'paymentStatus', 'Paymentstatus',
+          'Status', 'status',
+          'Result', 'result',
+          'PaymentState', 'paymentState'
+        ]);
         var u = raw.toUpperCase();
-        if (u === 'PAID' || u === 'SUCCESS' || u === 'S' || u === 'OK' || u === 'Y' || p.get('success') === '1') return 'ok';
+        var succFlag = getParamLoose(p, ['success', 'Success']);
+        if (succFlag === '1' || succFlag === 'Y' || succFlag === 'TRUE') return 'ok';
+        if (u === 'PAID' || u === 'SUCCESS' || u === 'S' || u === 'OK' || u === 'Y' || u === 'T') return 'ok';
+        if (u === 'COMPLETE' || u === 'COMPLETED' || u === 'AUTHORIZED' || u === 'CAPTURE' || u === 'CAPTURED') return 'ok';
+        /* ChillPay/ICOPAY 내부 숫자 코드 */
+        if (u === '10') return 'ok';
+        if (u === '20' || u === '21' || u === '22' || u === '2') return 'cancel';
+        if (u === '99' || u === 'F0' || u === '3' || u === '4' || u === '30' || u === '31') return 'fail';
         if (u === 'CANCEL' || u === 'CANCELLED' || u === 'VOID' || u === 'ABORT') return 'cancel';
         if (u === 'FAIL' || u === 'FAILED' || u === 'ERROR' || u === 'N') return 'fail';
         return '';
@@ -197,9 +233,12 @@
           else if (kind === 'cancel') card.classList.add('alert-warning');
           else card.classList.add('alert-danger');
         }
-        if (orderNo && orderRow) {
+        if ((orderNo || txnId) && orderRow) {
           orderRow.style.display = 'block';
-          orderRow.innerHTML = esc(t('order')) + ': <strong>' + esc(orderNo) + '</strong>';
+          var bits = [];
+          if (orderNo) bits.push(esc(t('order')) + ': <strong>' + esc(orderNo) + '</strong>');
+          if (txnId) bits.push(esc(t('txn')) + ': <strong>' + esc(txnId) + '</strong>');
+          orderRow.innerHTML = bits.join('<br>');
         }
       }
       function setLang(code) {
@@ -242,11 +281,15 @@
       }
 
       var p = new URLSearchParams(window.location.search);
-      merchantM = norm(p.get('m'));
-      orderNo = norm(p.get('OrderNo') || p.get('orderNo') || p.get('orderno'));
+      merchantM = getParamLoose(p, ['m', 'M', 'compId', 'compid']);
+      orderNo = getParamLoose(p, ['OrderNo', 'orderNo', 'orderno']);
+      txnId = getParamLoose(p, ['TransactionId', 'transactionId', 'TransId', 'transId']);
       try {
         if (!orderNo) orderNo = norm(sessionStorage.getItem('pg_pay_pending_order'));
       } catch (e3) {}
+      try {
+        if (!txnId) txnId = norm(sessionStorage.getItem('pg_pay_pending_txn'));
+      } catch (e3b) {}
       kind = parseStatus(p);
       if (!kind) kind = 'fail';
 
@@ -264,6 +307,12 @@
       });
 
       function onConfirm() {
+        try {
+          sessionStorage.removeItem('pg_pay_pending_txn');
+        } catch (eTx) {}
+        try {
+          sessionStorage.removeItem('pg_pay_pending_order');
+        } catch (eOr) {}
         try {
           window.close();
         } catch (e4) {}

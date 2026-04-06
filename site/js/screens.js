@@ -213,6 +213,7 @@
   var MENU_SCREENS = {
     '/hq/pgApiMng': {
       emptyMessage: '조회된 데이터가 없습니다.',
+      tableExtraClass: 'hq-pg-api-mng-table',
       searchRows: [[
         { label: 'PG사명', type: 'text', name: 'searchPgNm' },
         { label: '사용여부', type: 'select', name: 'searchUseYn', options: [{ v: '', t: '전체' }, { v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }] },
@@ -229,7 +230,7 @@
         { id: 'hqPgApiAddBtn', label: 'PG사 연동 추가', cls: 'btn-success' }
       ],
       columnGuideFixedKeys: ['rowNo', '_pgRowAct'],
-      columns: [{ key: '_chk', type: 'checkbox' }, { key: 'rowNo', label: '번호' }, { key: 'pgNm', label: '결제대행사' }, { key: 'pgCd', label: 'PG코드' }, { key: 'integrationScopeLabel', label: '연동용도', thClass: 'pg-api-mng-scope-th' }, { key: 'endpointsSummary', label: '엔드포인트', thClass: 'pg-api-mng-endpoints-th' }, { key: 'merchantMid', label: 'MID' }, { key: 'hasApiKey', label: 'API' }, { key: 'hasMd5Key', label: 'MD5' }, { key: 'routeNo', label: 'Route' }, { key: 'sandboxYn', label: 'Environment' }, { key: 'operationalYn', label: '운영' }, { key: 'useYn', label: '사용' }, { key: 'regDt', label: '등록일' }, { key: '_pgRowAct', type: 'pgApiMngRowActions', label: '관리' }]
+      columns: [{ key: '_chk', type: 'checkbox' }, { key: 'rowNo', label: '번호' }, { key: 'pgNm', label: '결제대행사', thClass: 'text-nowrap' }, { key: 'pgCd', label: 'PG코드', thClass: 'text-nowrap' }, { key: 'integrationScopeLabel', label: '연동용도', thClass: 'pg-api-mng-scope-th text-nowrap' }, { key: 'endpointsSummary', label: '엔드포인트', thClass: 'pg-api-mng-endpoints-th' }, { key: 'merchantMid', label: 'MID', thClass: 'text-nowrap' }, { key: 'hasApiKey', label: 'API', thClass: 'text-nowrap' }, { key: 'hasMd5Key', label: 'MD5', thClass: 'text-nowrap' }, { key: 'routeNo', label: 'Rt', thClass: 'text-nowrap', title: 'Route 번호' }, { key: 'sandboxYn', label: '환경', thClass: 'text-nowrap', title: 'Sandbox / Production' }, { key: 'operationalYn', label: '운영', thClass: 'text-nowrap' }, { key: 'useYn', label: '사용', thClass: 'text-nowrap' }, { key: 'regDt', label: '등록일', thClass: 'text-nowrap' }, { key: '_pgRowAct', type: 'pgApiMngRowActions', label: '관리', thClass: 'text-nowrap' }]
     },
     '/hq/defaultCommission': {
       isForm: true,
@@ -557,6 +558,7 @@
                 { v: '/calc/paySuccessList', t: '성공내역' },
                 { v: '/calc/payFailList', t: '실패내역' },
                 { v: '/calc/payCancelList', t: '취소내역' },
+                { v: '/calc/payVoidList', t: '무효내역' },
                 { v: '/calc/payRefundList', t: '환불내역' },
                 { v: '/calc/payForceRefundList', t: '강제환불내역' },
                 { v: '/pay/easyPay', t: 'URL결제내역' },
@@ -1598,10 +1600,10 @@
     '/commission/commisionList': {
       /** 페이지네이션 행 오른쪽에 [저장] (상단 저장과 동일 동작) */
       paginationTrailingSaveButton: true,
-      /** VIEW SETTING: 조직별 업체명 열만 표시 토글. 요율·건당·합계·적용일·처리 열은 항상 표시(인라인 저장 안정성). */
+      /** VIEW SETTING: 본사설정 조직항목설정과 동일 열 집합·키. 고정은 No·가맹점·업체코드만(체크·처리 열은 타입으로 제외). */
       tableColumnGuide: true,
       tableColumnGuideTwoRow: true,
-      columnGuideFixedKeys: ['rowNo', 'compNm', 'compId', 'hqRate', 'hqPerTxFee', 'regionalRate', 'regionalPerTxFee', 'masterRate', 'masterPerTxFee', 'branchRate', 'branchPerTxFee', 'agencyRate', 'agencyPerTxFee', 'salesOfficeRate', 'salesOfficePerTxFee', 'totalRate', 'totalPerTxFee', 'applyDt'],
+      columnGuideFixedKeys: ['rowNo', 'compNm', 'compId'],
       searchRows: [
         [
           { label: '업체선택(조직)', type: 'select', name: 'searchCompDiv', options: [{ v: '', t: '전체' }, { v: 'REGIONAL', t: '본사' }, { v: 'MASTER_DIST', t: '총판' }, { v: 'BRANCH', t: '지사' }, { v: 'AGENCY', t: '대리점' }, { v: 'SALES_OFFICE', t: '영업점' }, { v: 'MERCHANT', t: '가맹점' }] },
@@ -1612,8 +1614,10 @@
         ]
       ],
       tableScrollable: true,
+      /** 가로 스크롤바 제거·표 너비 맞춤 (site.css .commission-list-table-wrap) */
+      tableResponsiveExtraClass: 'commission-list-table-wrap',
       noticeList: [
-        'VIEW SETTING에서 총본사~합계 구간의 업체명 열만 숨김/순서를 바꿀 수 있습니다. 요율·건당·적용일·처리 열은 항상 표시됩니다.',
+        'VIEW SETTING 열 목록은 본사설정 → 조직항목설정(화면: 수수료관리)에서 허용한 키와 동일합니다. 조직항목설정을 바꾼 뒤 새로고침·재조회하면 체크 목록·노출 제한이 반영됩니다.',
         '적용시작일을 비우면 저장 시점(서버 시각) 기준으로 적용됩니다.',
         '동일 가맹점에 미래 적용일이 중복되지 않도록 한 번에 한 건만 등록하는 것을 권장합니다.',
         '상위 조직 수수료 정책이 바뀌면 이후 신규 가맹점 등록 시 하위 배분 설정에 반영될 수 있습니다.'
@@ -2661,6 +2665,10 @@
     MENU_SCREENS['/calc/payRefundList'] = cloneWith('REFUND', ['환불내역: 통합 결제내역에서 환불만 간추렸습니다.']);
     MENU_SCREENS['/calc/payForceRefundList'] = cloneWith('FORCE_REFUND', ['강제환불내역: 통합 결제내역에서 강제환불만 간추렸습니다.']);
     MENU_SCREENS['/calc/payCancelList'] = cloneWith('CANCEL', ['취소내역: 통합 결제내역에서 취소만 간추렸습니다.']);
+    MENU_SCREENS['/calc/payVoidList'] = cloneWith('VOID', [
+      '무효내역: 승인(결제) 완료 후 수동·시스템 무효(내부 21·22·40·41·42)만 표시합니다. 취소(20)와 구분됩니다.',
+      'ziobiz/NOTI 노티거래내역의 무효·이메일무효·자동무효 등과 동일 계열 상태입니다.'
+    ]);
     MENU_SCREENS['/calc/offsetCancList'] = cloneWith('OFFSET_CANCEL', [
       '상계취소내역: 정산 상계 처리용 — 승인 성공(결제)을 제외한 전 건(실패·환불·강제환불·취소·기타)을 한 화면에서 봅니다. 이후 빈도·집계로 상계에 활용합니다.',
       '정산가능시간 이후 환불된 건을 별도 구분·집계하는 로직은 추후 개발 예정입니다.'
@@ -3263,10 +3271,11 @@
 
   function renderTable(cfg, tabId) {
     var cols = cfg.columns || [];
+    var respExtra = cfg.tableResponsiveExtraClass ? (' ' + String(cfg.tableResponsiveExtraClass).trim()) : '';
     if (cfg.distributionThreeRowHeader) {
       var emptyMsg = cfg.emptyMessage || '조회된 데이터가 없습니다.';
       var emptyRow = '<tr><td colspan="' + cols.length + '" class="empty-state-cell text-center text-muted py-4">' + emptyMsg + '</td></tr>';
-      var respClass = 'table-responsive' + (cfg.tableScrollable ? ' table-scrollable' : '');
+      var respClass = 'table-responsive' + (cfg.tableScrollable ? ' table-scrollable' : '') + respExtra;
       var tblExtra = cfg.tableExtraClass ? (' ' + cfg.tableExtraClass) : '';
       return '<div class="' + respClass + '">' +
         '<table class="table table-bordered table-hover table-sm screen-distribution-grid' + tblExtra + '" id="grid_' + (tabId || '') + '">' +
@@ -3275,11 +3284,16 @@
     }
     var ths = cols.map(function (c) {
       if (c.type === 'checkbox') return '<th style="width:40px"><input type="checkbox" class="grid-check-all" title="전체선택"></th>';
-      return '<th>' + (c.label || c.key) + '</th>';
+      var thTitle = c.title ? (' title="' + String(c.title).replace(/&/g, '&amp;').replace(/"/g, '&quot;') + '"') : '';
+      var thClassParts = [];
+      if (c.align === 'center') thClassParts.push('text-center');
+      if (c.thClass) thClassParts.push(String(c.thClass));
+      var thCls = thClassParts.length ? (' class="' + thClassParts.join(' ') + '"') : '';
+      return '<th data-key="' + (c.key || '') + '"' + thCls + thTitle + '>' + (c.label || c.key) + '</th>';
     }).join('');
     var emptyMsg = cfg.emptyMessage || '조회된 데이터가 없습니다.';
     var emptyRow = '<tr><td colspan="' + cols.length + '" class="empty-state-cell text-center text-muted py-4">' + emptyMsg + '</td></tr>';
-    var respClass = 'table-responsive' + (cfg.tableScrollable ? ' table-scrollable' : '');
+    var respClass = 'table-responsive' + (cfg.tableScrollable ? ' table-scrollable' : '') + respExtra;
     var tblExtra = cfg.tableExtraClass ? (' ' + cfg.tableExtraClass) : '';
     var html = '<div class="' + respClass + '"><table class="table table-bordered table-hover table-sm' + tblExtra + '" id="grid_' + (tabId || '') + '"><thead><tr>' + ths + '</tr></thead><tbody>' + emptyRow + '</tbody></table></div>';
     return html;
@@ -3511,7 +3525,7 @@
         if (cfg.hasCommissionHistoryTable) {
           html += '<div class="card mt-4 commission-history-card"><div class="card-header py-2 fw-semibold">수수료 변경 히스토리</div><div class="card-body pt-2">' +
             '<p class="text-muted small mb-2" id="commissionHistSubtitle_' + tabId + '">목록에서 가맹점 행을 클릭하면 해당 업체의 변경 이력이 표시됩니다. (최근 변경이 No.1)</p>' +
-            '<div class="table-responsive table-scrollable"><table class="table table-bordered table-sm table-hover mb-0 commission-split-grid" id="grid_commissionHist_' + tabId + '">' +
+            '<div class="table-responsive table-scrollable commission-list-table-wrap"><table class="table table-bordered table-sm table-hover mb-0 commission-split-grid" id="grid_commissionHist_' + tabId + '">' +
             '<thead><tr><th class="text-muted">…</th></tr></thead><tbody><tr><td class="text-center text-muted py-3">조회 전</td></tr></tbody></table></div></div></div>';
         }
       }

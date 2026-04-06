@@ -44,6 +44,7 @@
         { "label": "성공내역", "url": "/calc/paySuccessList", "menuId": "M0315" },
         { "label": "실패내역", "url": "/calc/payFailList", "menuId": "M0303" },
         { "label": "취소내역", "url": "/calc/payCancelList", "menuId": "M0318" },
+        { "label": "무효내역", "url": "/calc/payVoidList", "menuId": "M0320" },
         { "label": "환불내역", "url": "/calc/payRefundList", "menuId": "M0316" },
         { "label": "강제환불내역", "url": "/calc/payForceRefundList", "menuId": "M0317" },
         { "label": "URL결제내역", "url": "/pay/easyPay", "menuId": "M0310" },

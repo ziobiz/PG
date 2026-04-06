@@ -32,6 +32,10 @@ public final class NotifyToTxnStatusMerge {
             return inc;
         }
         String prev = previous.trim();
+        /* 승인 완료(10) 건에 이어지는 취소·무효·환불·실패 노티는 즉시 반영(피지·노티미들웨어 후속 통지) */
+        if ("10".equals(prev) && isTerminalOutcome(inc)) {
+            return inc;
+        }
         String ch = notifyChannel == null ? "" : notifyChannel.trim().toUpperCase(Locale.ROOT);
         if ("RESULT".equals(ch) && isTerminalOutcome(inc)) {
             return inc;

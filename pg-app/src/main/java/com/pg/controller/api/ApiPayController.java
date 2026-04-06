@@ -21,6 +21,8 @@ import org.springframework.web.bind.annotation.*;
 import jakarta.servlet.http.HttpServletRequest;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -276,22 +278,23 @@ public class ApiPayController {
             return ResponseEntity.ok(ApiResponse.fail("유효한 결제 금액을 입력하세요.", "INVALID_AMOUNT"));
         }
 
-        String browserReturnUrl = chillPayService.resolveUrlPayResultAbsolute(request, str(body, "compId"));
+        String browserReturnUrl = enrichPayResultReturnUrlWithOrderNo(
+                chillPayService.resolveUrlPayResultAbsolute(request, str(body, "compId")), orderNo);
         try {
-            ChillPayDirectCreditResponse res = chillPayService.requestPayment(
+            ChillPayService.ChillPayDirectPaymentResult payResult = chillPayService.requestPayment(
                     orderNo, customerId, pgAmount, directCreditToken,
                     phoneNumber, description, ipAddress, custEmail,
                     merchantOrgUnitId, langCode, checkoutCurrencyCode,
                     browserReturnUrl
             );
-            int routeNo = chillPayService.resolveEffectiveRouteNo(merchantOrgUnitId);
+            ChillPayDirectCreditResponse res = payResult.response();
             String urlPayMode = str(body, "urlPayIntegrationMode");
             if (urlPayMode == null || urlPayMode.isBlank()) {
                 urlPayMode = "INLINE";
             }
             long recordAmt = pgAmount.setScale(0, RoundingMode.HALF_UP).longValue();
             chillPayDirectCreditRecordService.recordAfterDirectCreditResponse(
-                    merchantOrgUnitId, res, recordAmt, orderNo, customerId, routeNo,
+                    merchantOrgUnitId, res, recordAmt, orderNo, customerId, payResult.routeUsed(),
                     urlPayMode, payerName.isEmpty() ? null : payerName);
             return ResponseEntity.ok(ApiResponse.ok(res));
         } catch (IllegalStateException e) {
@@ -303,6 +306,25 @@ public class ApiPayController {
                     e.getMessage() != null ? e.getMessage() : "결제 요청 처리 중 오류가 발생했습니다.",
                     "PAYMENT_ERROR"
             ));
+        }
+    }
+
+    /**
+     * ChillPay ReturnUrl 에 주문번호를 붙여 복귀 시 {@code pay-result.html} 가 URL 만으로도 주문번호를 표시할 수 있게 합니다.
+     * (거래번호는 승인 직전 응답에만 오는 경우가 많아 프론트 {@code sessionStorage} 로 보완합니다.)
+     */
+    private static String enrichPayResultReturnUrlWithOrderNo(String base, String orderNo) {
+        if (base == null || base.isBlank()) {
+            return base;
+        }
+        if (orderNo == null || orderNo.isBlank()) {
+            return base;
+        }
+        try {
+            String enc = URLEncoder.encode(orderNo.trim(), StandardCharsets.UTF_8);
+            return base + (base.contains("?") ? "&" : "?") + "OrderNo=" + enc;
+        } catch (Exception e) {
+            return base;
         }
     }
 

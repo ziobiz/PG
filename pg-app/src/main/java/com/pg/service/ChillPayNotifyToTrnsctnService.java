@@ -10,6 +10,7 @@ import com.pg.repository.PgTrnsctnRepository;
 import com.pg.util.NotifyAmountParse;
 import com.pg.util.NotifyChannelMerge;
 import com.pg.util.NotifyToTxnStatusMerge;
+import com.pg.util.PgNotifyInternalStatusMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -140,7 +141,7 @@ public class ChillPayNotifyToTrnsctnService {
 
         String paymentStatus = textDeep(root, "PaymentStatus", "paymentStatus", "Paymentstatus");
         String statusField = textDeep(root, "Status", "status");
-        String computed = mapInternalStatus(paymentStatus, statusField);
+        String computed = PgNotifyInternalStatusMapper.mapPaymentAndStatus(paymentStatus, statusField, true);
         PgTrnsctn t = existingOpt.orElseGet(() -> {
             PgTrnsctn x = new PgTrnsctn();
             x.setTrnId(newTrnId());
@@ -395,83 +396,6 @@ public class ChillPayNotifyToTrnsctnService {
             return u.length() > 3 ? u.substring(0, 3) : u;
         }
         return "THB";
-    }
-
-    private static String mapInternalStatus(String paymentStatus, String status) {
-        String p = paymentStatus != null ? paymentStatus.trim().toLowerCase(Locale.ROOT) : "";
-        String s = status != null ? status.trim().toLowerCase(Locale.ROOT) : "";
-        if (!p.isEmpty()) {
-            if (p.contains("emailvoid") || p.contains("email_void")
-                    || (p.contains("email") && p.contains("void") && !p.contains("cancel"))) {
-                return "22";
-            }
-            if (p.contains("voided") || p.contains("auto void") || p.contains("autovoid")
-                    || "invalid".equals(p) || p.contains("무효") || p.contains("이메일무효")) {
-                return "21";
-            }
-            boolean completeOk = (p.contains("complete") || p.contains("completed")) && !p.contains("incomplete");
-            if (p.contains("paid") || p.contains("success") || completeOk
-                    || p.contains("authorized") || p.contains("authorised") || p.contains("settled")
-                    || p.contains("captured") || p.contains("approved") || p.contains("confirmed")) {
-                return STATUS_PAID;
-            }
-            if ("processing".equals(p)) {
-                return STATUS_PAID;
-            }
-            if (p.contains("wait") || p.contains("authorize") || p.contains("pending") || p.contains("request")) {
-                return STATUS_AUTH_PENDING;
-            }
-            if (p.contains("cancel") || p.contains("void")) {
-                return STATUS_CANCEL;
-            }
-            if (p.contains("refund")) {
-                return STATUS_REFUND;
-            }
-            if (p.contains("fail") || p.contains("error")) {
-                return STATUS_FAIL;
-            }
-            /* 결제내역·노티 공통: 0 승인, 1·3·4 실패(4=오류), 2만 취소 — 3은 취소 아님 */
-            if (p.matches("^\\d+$")) {
-                if ("0".equals(p)) {
-                    return STATUS_PAID;
-                }
-                if ("1".equals(p) || "3".equals(p) || "4".equals(p)) {
-                    return STATUS_FAIL;
-                }
-                if ("2".equals(p)) {
-                    return STATUS_CANCEL;
-                }
-            }
-        }
-        if (!s.isEmpty()) {
-            if ("10".equals(s) || "paid".equals(s) || "success".equals(s)) {
-                return STATUS_PAID;
-            }
-            if ("20".equals(s) || "cancel".equals(s)) {
-                return STATUS_CANCEL;
-            }
-            if ("30".equals(s) || s.contains("refund")) {
-                return STATUS_REFUND;
-            }
-            if ("99".equals(s) || "f0".equals(s) || s.contains("fail")) {
-                return STATUS_FAIL;
-            }
-            if ("08".equals(s)) {
-                return STATUS_AUTH_PENDING;
-            }
-            if (s.matches("^\\d+$")) {
-                if ("0".equals(s)) {
-                    return STATUS_PAID;
-                }
-                if ("1".equals(s) || "3".equals(s) || "4".equals(s)) {
-                    return STATUS_FAIL;
-                }
-                if ("2".equals(s)) {
-                    return STATUS_CANCEL;
-                }
-            }
-        }
-        return null;
     }
 
     private static LocalDateTime parsePaymentDate(JsonNode root) {

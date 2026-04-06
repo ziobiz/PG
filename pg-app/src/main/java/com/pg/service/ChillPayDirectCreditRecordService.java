@@ -89,8 +89,8 @@ public class ChillPayDirectCreditRecordService {
         String merchantId = resolveMerchantId(merchantOrgUnitId);
         String orderNo = firstNonBlank(d.getOrderNo(), requestOrderNo);
         if (orderNo == null || orderNo.isBlank()) {
-            if (d.getTransactionId() != null) {
-                orderNo = "CP" + d.getTransactionId();
+            if (d.getTransactionId() != null && !d.getTransactionId().isBlank()) {
+                orderNo = "CP" + d.getTransactionId().trim();
             } else {
                 orderNo = "ORD" + System.currentTimeMillis();
             }
@@ -127,8 +127,9 @@ public class ChillPayDirectCreditRecordService {
         t.setOrigin("URL");
         t.setChillPaymentStatus(psl);
         t.setRouteNo(String.valueOf(routeNo));
-        if (d.getTransactionId() != null) {
-            t.setChillTransactionId(String.valueOf(d.getTransactionId()));
+        if (d.getTransactionId() != null && !d.getTransactionId().isBlank()) {
+            String tid = d.getTransactionId().trim();
+            t.setChillTransactionId(tid.length() > 64 ? tid.substring(0, 64) : tid);
         }
         if (d.getChannelCode() != null && !d.getChannelCode().isBlank()) {
             t.setPaymentChannel(d.getChannelCode().trim());

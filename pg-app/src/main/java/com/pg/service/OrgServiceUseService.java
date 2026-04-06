@@ -46,4 +46,20 @@ public class OrgServiceUseService {
                 .map(o -> isOrgServiceActive(o.getId()))
                 .orElse(false);
     }
+
+    /**
+     * PG 노티 수신·적재용: <strong>해당 조직 단일</strong> 프로필의 {@code use_yn} 만 봅니다.
+     * 상위 총판·본사가 관리 목적으로만 미사용(N)인 경우에도, 하위 가맹점에 프로필이 없거나 Y이면 true 입니다.
+     * (신규 결제·정산 게이트는 {@link #isOrgServiceActive} 로 상위 체인을 계속 검사합니다.)
+     */
+    public boolean isOrgEligibleForPgNotifyProcessing(Long orgUnitId) {
+        if (orgUnitId == null) {
+            return false;
+        }
+        Optional<MerchantProfile> mp = merchantProfileRepository.findByOrgUnitId(orgUnitId);
+        if (mp.isPresent() && "N".equalsIgnoreCase(mp.get().getUseYn())) {
+            return false;
+        }
+        return true;
+    }
 }
