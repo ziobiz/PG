@@ -55,7 +55,6 @@ public class PgNotifyReceiveService {
     private final MerchantPgBindingRepository bindingRepository;
     private final OrgUnitRepository orgUnitRepository;
     private final PgAgencyRepository pgAgencyRepository;
-    private final OrgServiceUseService orgServiceUseService;
     private final PgNotifyIngressGuard notifyIngressGuard;
     private final ChillPayNotifyToTrnsctnService chillPayNotifyToTrnsctnService;
     private final HqNotifyTargetRepository hqNotifyTargetRepository;
@@ -66,7 +65,6 @@ public class PgNotifyReceiveService {
                                 MerchantPgBindingRepository bindingRepository,
                                 OrgUnitRepository orgUnitRepository,
                                 PgAgencyRepository pgAgencyRepository,
-                                OrgServiceUseService orgServiceUseService,
                                 PgNotifyIngressGuard notifyIngressGuard,
                                 ChillPayNotifyToTrnsctnService chillPayNotifyToTrnsctnService,
                                 HqNotifyTargetRepository hqNotifyTargetRepository,
@@ -76,7 +74,6 @@ public class PgNotifyReceiveService {
         this.bindingRepository = bindingRepository;
         this.orgUnitRepository = orgUnitRepository;
         this.pgAgencyRepository = pgAgencyRepository;
-        this.orgServiceUseService = orgServiceUseService;
         this.notifyIngressGuard = notifyIngressGuard;
         this.chillPayNotifyToTrnsctnService = chillPayNotifyToTrnsctnService;
         this.hqNotifyTargetRepository = hqNotifyTargetRepository;
@@ -113,12 +110,14 @@ public class PgNotifyReceiveService {
             log.warn("노티→결제내역(pg_trnsctn) 후처리 실패 (수신 응답은 OK 유지): {}", e.getMessage());
         }
         String defaultOk = env.getNotifyOkResponse() != null ? env.getNotifyOkResponse() : "{\"result\":\"OK\"}";
-        if ("RESULT".equalsIgnoreCase(channelType)
+        /* CALLBACK(cb)·RESULT(rs) 모두: 브라우저 GET/폼 POST 는 pay-result 로, JSON POST 는 서버 노티 OK JSON 유지 */
+        if (("RESULT".equalsIgnoreCase(channelType) || "CALLBACK".equalsIgnoreCase(channelType))
                 && request != null
                 && shouldUsePayResultRedirect(request.getMethod(), body, contentType)) {
             String loc = buildPayResultRedirectUrl(request, in, body, contentType);
             if (loc != null && !loc.isBlank()) {
-                log.info("pg-notify RESULT → pay-result redirect (targetCode={})", trimNotifyTargetCode(notifyTargetCode));
+                log.info("pg-notify {} → pay-result redirect (targetCode={})",
+                        channelType, trimNotifyTargetCode(notifyTargetCode));
                 return NotifyReceiveOutcome.redirect(loc);
             }
         }
@@ -126,7 +125,7 @@ public class PgNotifyReceiveService {
     }
 
     /**
-     * RESULT URL — 브라우저 GET·폼 POST 는 결제 결과 HTML 로 보냄. JSON 본문 POST 는 서버 노티로 간주해 기존처럼 JSON OK 유지.
+     * CALLBACK·RESULT URL — 브라우저 GET·폼 POST 는 결제 결과 HTML 로 보냄. JSON 본문 POST 는 서버 노티로 간주해 JSON OK 유지.
      */
     private static boolean shouldUsePayResultRedirect(String httpMethod, String rawBody, String contentType) {
         String m = httpMethod != null ? httpMethod.trim().toUpperCase(Locale.ROOT) : "";
@@ -423,23 +422,14 @@ public class PgNotifyReceiveService {
         }
         in.setOrgUnitId(ou.getId());
         in.setMerchantId(ou.getCode());
-        if (!orgServiceUseService.isOrgEligibleForPgNotifyProcessing(ou.getId())) {
-            in.setProcessStatus("MERCHANT_DISABLED");
-            in.setErrorMessage("가맹점 프로필 미사용(use_yn=N) — 노티 미처리");
-        } else {
-            in.setProcessStatus("PARSED");
-        }
+        /* 노티 수신·적재는 감사 목적이므로 가맹점 프로필 use_yn 으로 차단하지 않음 (결제 API 게이트와 분리). */
+        in.setProcessStatus("PARSED");
     }
 
     private void applyBindingResolved(PgNotifyInbound in, MerchantPgBinding b) {
         in.setOrgUnitId(b.getOrgUnitId());
         orgUnitRepository.findById(b.getOrgUnitId()).ifPresent(o -> in.setMerchantId(o.getCode()));
-        if (!orgServiceUseService.isOrgEligibleForPgNotifyProcessing(b.getOrgUnitId())) {
-            in.setProcessStatus("MERCHANT_DISABLED");
-            in.setErrorMessage("가맹점 프로필 미사용(use_yn=N) — 노티 미처리");
-        } else {
-            in.setProcessStatus("PARSED");
-        }
+        in.setProcessStatus("PARSED");
     }
 
     private PgAgency loadAgency(String pgCd) {

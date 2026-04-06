@@ -140,7 +140,10 @@ public class HqNotifyInboundQueryService {
         String raw = in.getRawBody();
         String payStRaw = extractPaymentStatusRaw(raw);
         String payStLabel = notiAdminTransactionsStatusKo(raw, payStRaw);
-        m.put("processStatus", payStLabel.isEmpty() ? "-" : payStLabel);
+        String payDisp = payStLabel.isEmpty() ? "-" : payStLabel;
+        m.put("processStatus", payDisp);
+        m.put("paymentStatusLabel", payDisp);
+        m.put("parseStatusLabel", parseProcessStatusKo(in.getProcessStatus()));
         m.put("paymentStatusRaw", payStRaw != null ? payStRaw : "");
         m.put("transactionId", extractTransactionIdDisplay(raw));
         if (raw != null && raw.length() > PREVIEW_MAX) {
@@ -175,6 +178,25 @@ public class HqNotifyInboundQueryService {
             return "";
         }
         return s.trim();
+    }
+
+    /** DB {@code process_status} — 목록·상세에서 본문 기반 결제상태와 구분해 표시 */
+    private static String parseProcessStatusKo(String code) {
+        if (code == null || code.isBlank()) {
+            return "—";
+        }
+        String u = code.trim().toUpperCase(Locale.ROOT);
+        return switch (u) {
+            case "PARSED" -> "매핑완료";
+            case "MERCHANT_UNRESOLVED" -> "가맹점미매핑";
+            case "MERCHANT_DISABLED" -> "업체차단(프로필N·구버전)";
+            case "URL_PAY_NEEDS_COMP_ID" -> "URL결제·업체코드필요";
+            case "UNKNOWN_COMP" -> "업체미확인";
+            case "NO_PG_BINDING" -> "바인딩없음";
+            case "COMP_MID_MISMATCH" -> "MID불일치";
+            case "COMP_NOT_URL_PAY_PG" -> "URL결제PG아님";
+            default -> code.trim();
+        };
     }
 
     /** 노티 JSON에서 TransactionId·승인번호 계열 첫 값 */

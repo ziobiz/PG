@@ -22,8 +22,8 @@ import java.util.Map;
  * 외부 시스템(NOTI, ChillPay 등)에서 호출하는 공개 노티 수신 URL.
  * 경로 토큰은 본사설정 노티구성설정에서 확인합니다.
  * <p>
- * RESULT 채널({@code rs…} 대상코드)은 브라우저 GET·폼 POST 시 {@code pay-result.html} 로 303 리다이렉트합니다.
- * JSON 본문 POST(서버 노티)는 기존과 같이 OK JSON 을 반환합니다.
+ * CALLBACK({@code cb…})·RESULT({@code rs…}) 대상코드 모두, 브라우저 GET·폼 POST 시 {@code pay-result.html} 로 303 리다이렉트합니다.
+ * JSON 본문 POST(서버·미들웨어 노티)는 기존과 같이 OK JSON 을 반환합니다.
  */
 @RestController
 @RequestMapping("/api/open/pg-notify")

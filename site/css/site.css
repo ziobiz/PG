@@ -2643,3 +2643,41 @@ body.theme-light .left-side-menu .btn-secondary:hover, body.theme-gray .left-sid
   white-space: nowrap;
   font-size: 0.74rem;
 }
+
+/* 본사설정 > 노티수령정보: 오류메시지 전체 표시(줄바꿈·가로 스크롤은 .table-responsive) */
+#hqNotifyInboundTable .hq-ni-th-error,
+#hqNotifyInboundTable .hq-ni-td-error {
+  vertical-align: top;
+}
+#hqNotifyInboundTable .hq-ni-td-error {
+  line-height: 1.35;
+}
+
+/* ========== 전역: 테이블 헤더 컬럼 리사이즈 (table-col-resize.js) ========== */
+table.pg-cols-resizable {
+  table-layout: fixed;
+  width: 100%;
+}
+table.pg-cols-resizable thead th {
+  position: relative;
+  overflow: hidden;
+}
+table.pg-cols-resizable thead th:has(.pg-col-resize-grip) {
+  padding-right: 10px;
+}
+.pg-col-resize-grip {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 8px;
+  margin-right: -2px;
+  height: 100%;
+  cursor: col-resize;
+  z-index: 3;
+  user-select: none;
+  touch-action: none;
+  background: linear-gradient(to left, rgba(13, 110, 253, 0.35), transparent 70%);
+}
+.pg-col-resize-grip:hover {
+  background: linear-gradient(to left, rgba(13, 110, 253, 0.55), transparent 65%);
+}

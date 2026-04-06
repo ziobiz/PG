@@ -9126,11 +9126,13 @@
               '<td class="small font-monospace">' + escNi(r.notifyTargetCode) + '</td>' +
               '<td class="small font-monospace">' + escNi(r.mid) + '</td>' +
               '<td class="small text-center">' + escNi(r.rootNo) + '</td>' +
-              '<td class="small font-monospace text-truncate" style="max-width:9rem" title="' + escNi(r.transactionId) + '">' + escNi(r.transactionId) + '</td>' +
-              '<td class="small">' + escNi(r.merchantId) + '</td>' +
-              '<td class="small">' + escNi(r.processStatus) + '</td>' +
-              '<td class="small text-truncate" style="max-width:12rem" title="' + escNi(r.errorMessage) + '">' + escNi(r.errorMessage) + '</td>' +
-              '<td class="small text-truncate" style="max-width:14rem" title="' + escNi(r.rawPreview) + '">' + escNi(r.rawPreview) + '</td>' +
+              '<td class="small font-monospace text-truncate" style="max-width:10rem" title="' + escNi(r.transactionId) + '">' + escNi(r.transactionId) + '</td>' +
+              '<td class="small text-truncate" style="max-width:8rem" title="' + escNi(r.merchantId) + '">' + escNi(r.merchantId) + '</td>' +
+              '<td class="small" style="white-space:normal;line-height:1.25">' +
+              '<span class="text-nowrap">결제 ' + escNi(r.paymentStatusLabel != null ? r.paymentStatusLabel : r.processStatus) + '</span>' +
+              '<br><span class="text-muted small text-nowrap">처리 ' + escNi(r.parseStatusLabel != null ? r.parseStatusLabel : '—') + '</span></td>' +
+              '<td class="small hq-ni-td-error" style="white-space:normal;word-break:break-word;min-width:28rem" title="' + escNi(r.errorMessage) + '">' + escNi(r.errorMessage) + '</td>' +
+              '<td class="small text-truncate" style="max-width:18rem" title="' + escNi(r.rawPreview) + '">' + escNi(r.rawPreview) + '</td>' +
               '<td class="text-center small"><button type="button" class="btn btn-sm btn-outline-primary hq-ni-detail" data-id="' + escNi(r.id) + '">본문</button></td></tr>';
           }).join('');
         }
@@ -9175,9 +9177,11 @@
             var metaParts = ['ID=' + (d && d.id != null ? d.id : id)];
             if (d && d.createdAt) metaParts.push('수신 ' + d.createdAt);
             if (d && d.notifyChannelType) metaParts.push(formatNiNotifyChannelDisplay(d.notifyChannelType));
-            if (d && d.processStatus && d.processStatus !== '-') metaParts.push('결제상태 ' + d.processStatus);
+            var payLab = d && (d.paymentStatusLabel != null ? d.paymentStatusLabel : d.processStatus);
+            if (payLab && payLab !== '-') metaParts.push('결제 ' + payLab);
             if (d && d.paymentStatusRaw) metaParts.push('PaymentStatus=' + d.paymentStatusRaw);
-            if (d && d.parseStatus && d.parseStatus !== '-') metaParts.push('수신처리 ' + d.parseStatus);
+            if (d && d.parseStatusLabel && d.parseStatusLabel !== '—') metaParts.push('처리 ' + d.parseStatusLabel);
+            if (d && d.parseStatus && d.parseStatus !== '-') metaParts.push('처리코드 ' + d.parseStatus);
             if (d && d.clientIp) metaParts.push('IP ' + d.clientIp);
             meta.textContent = metaParts.join(' · ');
           }
@@ -12116,8 +12120,13 @@
         pane.classList.add('show', 'active');
         pane.style.display = 'block';
         bindScreenEvents(pane, tabId);
-        if (window.PG_TABLE_COL_RESIZE && typeof window.PG_TABLE_COL_RESIZE.refreshIn === 'function') {
-          window.PG_TABLE_COL_RESIZE.refreshIn(pane);
+        if (window.PG_TABLE_COL_RESIZE) {
+          if (typeof window.PG_TABLE_COL_RESIZE.ensureObserver === 'function') {
+            window.PG_TABLE_COL_RESIZE.ensureObserver(pane);
+          }
+          if (typeof window.PG_TABLE_COL_RESIZE.refreshIn === 'function') {
+            window.PG_TABLE_COL_RESIZE.refreshIn(pane);
+          }
         }
       }
       document.querySelectorAll('#' + TAB_MAIN + ' .tab-pane').forEach(function (p) {

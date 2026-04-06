@@ -331,3 +331,19 @@ body.pay-inline-body {
   font-weight: 600;
   margin-bottom: 0.5rem;
 }
+
+/* pay-result.html · pay.html 최종 결과: 확인 / 결제 초기화 — 가운데 정렬 */
+.pay-result-btn-row {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+}
+
+/* pay-result.html: 확인 / 결제 초기화 — 긴 문구 줄바꿈 */
+.pay-result-confirm-btn {
+  white-space: normal;
+  line-height: 1.25;
+  max-width: 100%;
+  padding-left: 1rem;
+  padding-right: 1rem;
+}
