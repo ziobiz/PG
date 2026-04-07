@@ -1,5 +1,6 @@
 package com.pg.service;
 
+import com.pg.integration.pg.PgVendor;
 import com.pg.dto.ChillPayDirectCreditResponse;
 import com.pg.entity.OrgUnit;
 import com.pg.entity.PgTrnsctn;
@@ -123,7 +124,7 @@ public class ChillPayDirectCreditRecordService {
         if (custNm != null) {
             t.setCustomerNm(custNm);
         }
-        t.setVan("CHILLPAY");
+        t.setVan(PgVendor.CHILLPAY);
         t.setOrigin("URL");
         t.setChillPaymentStatus(psl);
         t.setRouteNo(String.valueOf(routeNo));

@@ -40,7 +40,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 /**
- * 본사설정 API
+ * 본사(HQ) API — 배포설정·API연동/배포 화면에서 저장하는 구성
  * 1. PG사 API 연동  2. 기본 수수료 정책  3. API 구성 세팅  4. 조직별 권한 세팅
  */
 @RestController

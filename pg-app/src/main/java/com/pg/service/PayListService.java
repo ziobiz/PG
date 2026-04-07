@@ -27,6 +27,7 @@ import jakarta.persistence.Tuple;
 import jakarta.persistence.criteria.CriteriaBuilder;
 import jakarta.persistence.criteria.CriteriaQuery;
 import jakarta.persistence.criteria.Expression;
+import jakarta.persistence.criteria.Path;
 import jakarta.persistence.criteria.Predicate;
 import jakarta.persistence.criteria.Root;
 import org.springframework.data.domain.Page;
@@ -51,7 +52,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import java.util.TreeSet;
 import java.util.stream.Collectors;
 
 @Service
@@ -197,9 +197,20 @@ public class PayListService {
         boolean multi = PayListStatusBarBuckets.isMultiCurrencyViewer(level);
         String primary = PayListStatusBarBuckets.resolveViewerPrimaryCurrency(user, orgUnitRepository, commissionPolicyRepository);
         String primaryNorm = PayListStatusBarBuckets.normalizeCurrency(primary);
+        boolean baseCurrencyConfigured = isViewerBaseCurrencyConfigured(user);
+        final List<String> currencyOrder;
+        if (baseCurrencyConfigured) {
+            currencyOrder = resolveViewerDisplayCurrencyOrder(user, multi);
+        } else {
+            currencyOrder = new ArrayList<>(); /* 집계 후 실제 통화 키로 채움 */
+        }
+        Set<String> allowedCur = baseCurrencyConfigured ? new HashSet<>(currencyOrder) : null;
+        boolean effectiveMultiCurrency = multi || !baseCurrencyConfigured;
 
         Map<String, BigDecimal> approve = new HashMap<>();
         Map<String, BigDecimal> cancel = new HashMap<>();
+        Map<String, Long> approveCountByCur = new HashMap<>();
+        Map<String, Long> cancelCountByCur = new HashMap<>();
         Map<String, BigDecimal> feeVatSum = new HashMap<>();
         Map<String, BigDecimal> hold = new HashMap<>();
         Map<String, BigDecimal> payout = new HashMap<>();
@@ -214,45 +225,51 @@ public class PayListService {
                 amt = BigDecimal.ZERO;
             }
             String cur = PayListStatusBarBuckets.normalizeCurrency(curRaw);
-            if (!multi && !primaryNorm.equals(cur)) {
+            if (allowedCur != null && !allowedCur.contains(cur)) {
                 continue;
             }
             PayListRowContext ctx = mid != null ? ctxMap.get(mid.trim()) : null;
             if ("10".equals(st)) {
                 successCount++;
+                approveCountByCur.merge(cur, 1L, Long::sum);
                 approve.merge(cur, amt, BigDecimal::add);
                 PayListItemDto.ApprovedSettlementParts p = PayListItemDto.approvedSettlementParts(amt, ctx);
                 feeVatSum.merge(cur, p.feeAmt.add(p.feeVat), BigDecimal::add);
                 hold.merge(cur, p.holdAmt, BigDecimal::add);
                 payout.merge(cur, p.settleAmt, BigDecimal::add);
             } else if (PayListItemDto.isCancelAmountStatus(st)) {
+                cancelCountByCur.merge(cur, 1L, Long::sum);
                 cancel.merge(cur, amt, BigDecimal::add);
             }
         }
 
-        Set<String> union = new TreeSet<>();
-        union.addAll(approve.keySet());
-        union.addAll(cancel.keySet());
-        List<String> sortedUnion = new ArrayList<>(union);
-        PayListStatusBarBuckets.sortCurrencyCodes(sortedUnion);
-
         Map<String, String> approvePlain = new LinkedHashMap<>();
+        Map<String, Long> approveCountPlain = new LinkedHashMap<>();
         Map<String, String> cancelPlain = new LinkedHashMap<>();
+        Map<String, Long> cancelCountPlain = new LinkedHashMap<>();
         Map<String, String> paymentPlain = new LinkedHashMap<>();
-        for (String c : sortedUnion) {
-            BigDecimal a = approve.getOrDefault(c, BigDecimal.ZERO);
-            BigDecimal k = cancel.getOrDefault(c, BigDecimal.ZERO);
-            approvePlain.put(c, PayListStatusBarBuckets.stripTrailingZeros(a));
-            cancelPlain.put(c, PayListStatusBarBuckets.stripTrailingZeros(k));
-            paymentPlain.put(c, PayListStatusBarBuckets.stripTrailingZeros(a.subtract(k)));
-        }
-
-        List<String> succCurrencies = new ArrayList<>(approve.keySet());
-        PayListStatusBarBuckets.sortCurrencyCodes(succCurrencies);
         Map<String, String> feePlain = new LinkedHashMap<>();
         Map<String, String> holdPlain = new LinkedHashMap<>();
         Map<String, String> payoutPlain = new LinkedHashMap<>();
-        for (String c : succCurrencies) {
+        if (!baseCurrencyConfigured) {
+            Set<String> union = new HashSet<>();
+            union.addAll(approve.keySet());
+            union.addAll(cancel.keySet());
+            union.addAll(feeVatSum.keySet());
+            union.addAll(hold.keySet());
+            union.addAll(payout.keySet());
+            currencyOrder.clear();
+            currencyOrder.addAll(union);
+            PayListStatusBarBuckets.sortCurrencyCodes(currencyOrder);
+        }
+        for (String c : currencyOrder) {
+            BigDecimal a = approve.getOrDefault(c, BigDecimal.ZERO);
+            BigDecimal k = cancel.getOrDefault(c, BigDecimal.ZERO);
+            approvePlain.put(c, PayListStatusBarBuckets.stripTrailingZeros(a));
+            approveCountPlain.put(c, approveCountByCur.getOrDefault(c, 0L));
+            cancelPlain.put(c, PayListStatusBarBuckets.stripTrailingZeros(k));
+            cancelCountPlain.put(c, cancelCountByCur.getOrDefault(c, 0L));
+            paymentPlain.put(c, PayListStatusBarBuckets.stripTrailingZeros(a.subtract(k)));
             feePlain.put(c, PayListStatusBarBuckets.stripTrailingZeros(feeVatSum.getOrDefault(c, BigDecimal.ZERO)));
             holdPlain.put(c, PayListStatusBarBuckets.stripTrailingZeros(hold.getOrDefault(c, BigDecimal.ZERO)));
             payoutPlain.put(c, PayListStatusBarBuckets.stripTrailingZeros(payout.getOrDefault(c, BigDecimal.ZERO)));
@@ -260,15 +277,52 @@ public class PayListService {
 
         Map<String, Object> out = new LinkedHashMap<>();
         out.put("successCount", successCount);
-        out.put("multiCurrency", multi);
+        out.put("multiCurrency", effectiveMultiCurrency);
         out.put("primaryCurrency", primaryNorm);
+        out.put("currencyOrder", new ArrayList<>(currencyOrder));
         out.put("approveByCurrency", approvePlain);
+        out.put("approveCountByCurrency", approveCountPlain);
         out.put("cancelByCurrency", cancelPlain);
+        out.put("cancelCountByCurrency", cancelCountPlain);
         out.put("paymentByCurrency", paymentPlain);
         out.put("feeByCurrency", feePlain);
         out.put("holdByCurrency", holdPlain);
         out.put("payoutByCurrency", payoutPlain);
         return out;
+    }
+
+    /**
+     * 로그인 사용자 소속 조직 {@link MerchantProfile#getBaseCurrency()} 순서.
+     * CSV가 비어 있으면 호출부에서 집계 데이터의 통화 키로 대체한다.
+     */
+    private List<String> resolveViewerDisplayCurrencyOrder(AppUser user, boolean multiCurrencyViewer) {
+        String primary = PayListStatusBarBuckets.resolveViewerPrimaryCurrency(user, orgUnitRepository, commissionPolicyRepository);
+        if (user == null || user.getOrgUnitCode() == null || user.getOrgUnitCode().isBlank()) {
+            return PayListStatusBarBuckets.resolveDisplayCurrencyOrder(multiCurrencyViewer, "", primary);
+        }
+        Optional<OrgUnit> ou = orgUnitRepository.findByCode(user.getOrgUnitCode().trim());
+        if (ou.isEmpty()) {
+            return PayListStatusBarBuckets.resolveDisplayCurrencyOrder(multiCurrencyViewer, "", primary);
+        }
+        String bc = merchantProfileRepository.findByOrgUnitId(ou.get().getId())
+                .map(MerchantProfile::getBaseCurrency)
+                .orElse("");
+        return PayListStatusBarBuckets.resolveDisplayCurrencyOrder(multiCurrencyViewer, bc, primary);
+    }
+
+    /** 소속 조직 프로필에 기준통화(baseCurrency)가 한 글자라도 설정된 경우만 true */
+    private boolean isViewerBaseCurrencyConfigured(AppUser user) {
+        if (user == null || user.getOrgUnitCode() == null || user.getOrgUnitCode().isBlank()) {
+            return false;
+        }
+        Optional<OrgUnit> ou = orgUnitRepository.findByCode(user.getOrgUnitCode().trim());
+        if (ou.isEmpty()) {
+            return false;
+        }
+        String bc = merchantProfileRepository.findByOrgUnitId(ou.get().getId())
+                .map(MerchantProfile::getBaseCurrency)
+                .orElse("");
+        return bc != null && !bc.isBlank();
     }
 
     /**
@@ -296,16 +350,29 @@ public class PayListService {
                         cb.equal(st, "40"), cb.equal(st, "41"), cb.equal(st, "42")
                 ), cb.literal(PayListStatusBarBuckets.VOID))
                 .when(cb.or(cb.equal(st, "30"), cb.equal(st, "31")), cb.literal(PayListStatusBarBuckets.REFUND))
+                .when(cb.equal(st, "20"), cb.literal(PayListStatusBarBuckets.CANCEL))
                 .otherwise(cb.literal(PayListStatusBarBuckets.OTHER));
         cq.multiselect(bucket, curExpr, cb.count(root),
                 cb.sum(cb.coalesce(root.get("amtKrw"), cb.literal(BigDecimal.ZERO))));
         cq.where(spec.toPredicate(root, cq, cb));
         cq.groupBy(bucket, curExpr);
         List<Tuple> tuples = entityManager.createQuery(cq).getResultList();
+        AppUser user = (authentication != null && authentication.getPrincipal() instanceof AppUser u) ? u : null;
+        OrgLevel level = PayListStatusBarBuckets.resolveViewerOrgLevel(user, orgUnitRepository);
+        boolean multi = PayListStatusBarBuckets.isMultiCurrencyViewer(level);
+        String primary = PayListStatusBarBuckets.resolveViewerPrimaryCurrency(user, orgUnitRepository, commissionPolicyRepository);
+        boolean baseCurrencyConfigured = isViewerBaseCurrencyConfigured(user);
+        List<String> displayOrder = baseCurrencyConfigured ? resolveViewerDisplayCurrencyOrder(user, multi) : null;
+        Set<String> allowedCur = displayOrder != null ? new HashSet<>(displayOrder) : null;
+        boolean effectiveMultiCurrency = multi || !baseCurrencyConfigured;
         PayListStatusBarBuckets.MutableRollup roll = new PayListStatusBarBuckets.MutableRollup();
         for (Tuple t : tuples) {
             String b = t.get(0, String.class);
-            String c = t.get(1, String.class);
+            String cRaw = t.get(1, String.class);
+            String c = PayListStatusBarBuckets.normalizeCurrency(cRaw);
+            if (allowedCur != null && !allowedCur.contains(c)) {
+                continue;
+            }
             Long cnt = t.get(2, Long.class);
             BigDecimal sum = t.get(3, BigDecimal.class);
             if (cnt == null) {
@@ -316,15 +383,11 @@ public class PayListService {
             }
             roll.add(b, c, sum, cnt);
         }
-        AppUser user = (authentication != null && authentication.getPrincipal() instanceof AppUser u) ? u : null;
-        OrgLevel level = PayListStatusBarBuckets.resolveViewerOrgLevel(user, orgUnitRepository);
-        boolean multi = PayListStatusBarBuckets.isMultiCurrencyViewer(level);
-        String primary = PayListStatusBarBuckets.resolveViewerPrimaryCurrency(user, orgUnitRepository, commissionPolicyRepository);
         String variant = req.getPayListVariant() == null || req.getPayListVariant().isBlank()
                 ? "INTEGRATED" : req.getPayListVariant().trim().toUpperCase(Locale.ROOT);
-        /* 통합·결제내역(INTEGRATED): 성공·실패·무효·환불·기타 전 구간 + 0건도 표시. 그 외 변형 화면은 건수 있는 버킷만 */
+        /* 통합·결제내역(INTEGRATED): 성공·실패·무효·환불·취소·기타 전 구간 + 0건도 표시. 그 외 변형 화면은 건수 있는 버킷만 */
         boolean showAllBuckets = "INTEGRATED".equals(variant);
-        return roll.toPayload(multi, primary, false, showAllBuckets);
+        return roll.toPayload(effectiveMultiCurrency, primary, false, showAllBuckets, displayOrder);
     }
 
     private static String resolvePgCdForPayListRow(PayListRowContext ctx, PgTrnsctn t) {
@@ -388,6 +451,7 @@ public class PayListService {
                 parts.add(cb.lessThanOrEqualTo(root.get("createdAt"), toDt));
             }
             parts.add(variantPredicate(root, cb, variant));
+            addNotifyChannelPredicate(parts, root, cb, variant, req);
             addPayDivPredicate(parts, root, cb, req.getSearchPayDivCd());
             addPayProcPredicate(parts, root, cb, req.getSearchPayProcCd());
             addTranFactorColumnPredicates(parts, root, cb, req.getSearchTranFactor(), req.getSearchTranValue());
@@ -618,6 +682,49 @@ public class PayListService {
         String pat = "%" + raw.trim().toLowerCase(Locale.ROOT) + "%";
         jakarta.persistence.criteria.Path<String> path = root.get(field);
         parts.add(cb.and(cb.isNotNull(path), cb.like(cb.lower(path), pat)));
+    }
+
+    /**
+     * 통합·노티 결제내역: NOTI 행만 수신 채널로 제한.
+     * 파라미터 없음·ALL = 필터 없음(전체). CALLBACK = CALL·CALLBACK·RETURN·공백.
+     * CHILL·URL 등 비-NOTI 행은 항상 포함.
+     */
+    private void addNotifyChannelPredicate(List<Predicate> parts, Root<PgTrnsctn> root, CriteriaBuilder cb,
+                                           String variant, PayListSearchRequest req) {
+        if (!"INTEGRATED".equals(variant) && !"NOTI".equals(variant)) {
+            return;
+        }
+        String raw = req.getSearchNotifyChannel();
+        if (raw == null || raw.isBlank()) {
+            return;
+        }
+        String mode = raw.trim().toUpperCase(Locale.ROOT);
+        if ("ALL".equals(mode)) {
+            return;
+        }
+        Path<String> origin = root.get("origin");
+        Path<String> chPath = root.get("notifyChannelType");
+        Expression<String> chNorm = cb.upper(cb.trim(cb.coalesce(chPath, cb.literal(""))));
+
+        Predicate notNoti = cb.or(cb.isNull(origin), cb.notEqual(origin, "NOTI"));
+
+        Predicate notiMatch;
+        switch (mode) {
+            case "CALLBACK" -> {
+                Predicate blankCh = cb.equal(chNorm, "");
+                Predicate callFamily = cb.or(
+                        cb.equal(chNorm, "CALLBACK"),
+                        cb.equal(chNorm, "CALL"),
+                        cb.equal(chNorm, "RETURN"));
+                notiMatch = cb.and(cb.equal(origin, "NOTI"), cb.or(blankCh, callFamily));
+            }
+            case "RESULT" -> notiMatch = cb.and(cb.equal(origin, "NOTI"), cb.equal(chNorm, "RESULT"));
+            case "BOTH" -> notiMatch = cb.and(cb.equal(origin, "NOTI"), cb.equal(chNorm, "BOTH"));
+            default -> {
+                return;
+            }
+        }
+        parts.add(cb.or(notNoti, notiMatch));
     }
 
     private Predicate variantPredicate(jakarta.persistence.criteria.Root<PgTrnsctn> root,

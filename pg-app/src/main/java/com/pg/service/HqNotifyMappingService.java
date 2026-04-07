@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.pg.integration.pg.PgVendor;
 import com.pg.entity.HqNotifyMappingConfig;
 import com.pg.entity.PgNotifyInbound;
 import com.pg.repository.HqNotifyMappingConfigRepository;
@@ -16,6 +17,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.pg.entity.PgTrnsctn;
+import com.pg.util.ChillPayNotifyOutcomeAdjust;
 import com.pg.util.NotifyAmountParse;
 import com.pg.util.NotifyChannelMerge;
 import com.pg.util.NotifyToTxnStatusMerge;
@@ -336,8 +338,8 @@ public class HqNotifyMappingService {
             root.set("columnCatalogs", buildDefaultColumnCatalogsArray());
             root.set("pageCatalogAssignments", buildDefaultPageAssignmentsArray());
             ArrayNode vendors = root.putArray("vendors");
-            vendors.add(buildVendor("CHILLPAY", "칠페이", true));
-            vendors.add(buildVendor("JPAY", "제이페이", false));
+            vendors.add(buildVendor(PgVendor.CHILLPAY, "칠페이", true));
+            vendors.add(buildVendor(PgVendor.JPAY, "제이페이", false));
             return objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(root);
         } catch (Exception e) {
             return "{\"version\":2,\"memo\":\"\",\"columnCatalogs\":[],\"pageCatalogAssignments\":[],\"vendors\":[]}";
@@ -814,6 +816,9 @@ public class HqNotifyMappingService {
             BigDecimal prev = t.getAmtKrw();
             if (prev != null && prev.compareTo(BigDecimal.ZERO) > 0) {
                 amountBd = prev;
+            } else if (existingOpt.isPresent()) {
+                /* 기존 행 금액이 비어 있어도 무효·취소 등 후속 노티는 반영(노티거래내역과 동일하게 상태만 갱신) */
+                amountBd = BigDecimal.ZERO;
             } else {
                 return Optional.empty();
             }
@@ -899,6 +904,9 @@ public class HqNotifyMappingService {
         String statusFieldForInternal = firstNonBlankString(jsonStatField, firstNonBlank(byKey, "status"));
         String internalComputed = PgNotifyInternalStatusMapper.mapForMappedNotify(
                 payStForInternal, statusFieldForInternal, vendorCode);
+        String rawPaymentForReclass = firstNonBlankString(jsonPayStat, mappedPs);
+        internalComputed = ChillPayNotifyOutcomeAdjust.reclassifyPaymentStatusTwoAfterPaid(
+                existingOpt, rawPaymentForReclass, internalComputed);
         String mergedStatus = NotifyToTxnStatusMerge.merge(t.getStatus(), internalComputed, notifyChannel);
         if (mergedStatus == null || mergedStatus.isBlank()) {
             mergedStatus = "08";
@@ -1291,12 +1299,16 @@ public class HqNotifyMappingService {
         return null;
     }
 
-    /** 노티 본문 PaymentStatus 계열(칠페이와 동일 후보) — 표시·내부상태 해석에 사용 */
+    /** 노티 본문 PaymentStatus 계열(칠페이·노티미들웨어 공통 후보) — 표시·내부상태 해석에 사용 */
     private static String extractNotifyPaymentStatusText(JsonNode notifyRoot) {
         if (notifyRoot == null || !notifyRoot.isObject()) {
             return null;
         }
-        for (String n : new String[] { "PaymentStatus", "paymentStatus", "Paymentstatus" }) {
+        for (String n : new String[] {
+                "PaymentStatus", "paymentStatus", "Paymentstatus",
+                "PayResult", "payResult", "TxnStatus", "txnStatus",
+                "PaymentResult", "paymentResult", "PayStatus", "payStatus"
+        }) {
             String v = textDeep(notifyRoot, n);
             if (v != null && !v.isBlank()) {
                 return v.trim();
@@ -1310,7 +1322,11 @@ public class HqNotifyMappingService {
         if (notifyRoot == null || !notifyRoot.isObject()) {
             return null;
         }
-        for (String n : new String[] { "Status", "status" }) {
+        for (String n : new String[] {
+                "Status", "status",
+                "ResultCode", "resultCode", "RespCode", "respCode",
+                "ResponseCode", "responseCode"
+        }) {
             String v = textDeep(notifyRoot, n);
             if (v != null && !v.isBlank()) {
                 return v.trim();
@@ -1542,7 +1558,7 @@ public class HqNotifyMappingService {
                         continue;
                     }
                     Map<String, Map<String, String>> fields = parseDisplayMapsObject(v.get("displayMaps"));
-                    if ("CHILLPAY".equals(code)) {
+                    if (PgVendor.CHILLPAY.equals(code)) {
                         Map<String, String> st = fields.get("chillPaymentStatus");
                         if (st == null || st.isEmpty()) {
                             Map<String, Map<String, String>> copy = new LinkedHashMap<>(fields);

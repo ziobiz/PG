@@ -1,5 +1,6 @@
 package com.pg.service;
 
+import com.pg.integration.pg.PgVendor;
 import com.pg.api.dto.PageResult;
 import com.pg.config.ChillPayProperties;
 import com.pg.dto.ChillPayDirectCreditRequest;
@@ -11,6 +12,7 @@ import com.pg.entity.MerchantPgBinding;
 import com.pg.entity.OrgUnit;
 import com.pg.entity.PgAgency;
 import com.pg.util.PayListStatusBarBuckets;
+import com.pg.util.TrnTimeDualZoneDisplay;
 import com.pg.repository.HqApiConfigRepository;
 import com.pg.repository.MerchantPgBindingRepository;
 import com.pg.repository.OrgUnitRepository;
@@ -33,7 +35,6 @@ import java.security.NoSuchAlgorithmException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
-import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
@@ -92,8 +93,6 @@ public class ChillPayService {
 
     private static final ZoneId ZONE_JP = ZoneId.of("Asia/Tokyo");
     private static final ZoneId ZONE_TH = ZoneId.of("Asia/Bangkok");
-    private static final DateTimeFormatter CHILL_TRN_TIME_DUAL = DateTimeFormatter.ofPattern("HH:mm:ss");
-    private static final DateTimeFormatter CHILL_PAY_COMPLETED_DUAL = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
     private final ChillPayProperties props;
     private final HqApiConfigRepository hqApiConfigRepository;
@@ -142,7 +141,7 @@ public class ChillPayService {
         if (bindingOpt.isEmpty()) {
             throw new IllegalStateException(
                     "이 가맹점에 URL 결제로 사용할 ChillPay 계열 결제대행사(운영)가 없습니다. "
-                            + "가맹점 등록에서 웹(WEB) 운영 PG를 지정하고, API연동설정에서 해당 pg_cd 행의 연동용도에 「URL결제」를 반드시 켜야 합니다. "
+                            + "가맹점 등록에서 웹(WEB) 운영 PG를 지정하고, 배포설정 > API연동설정에서 해당 pg_cd 행의 연동용도에 「URL결제」를 반드시 켜야 합니다. "
                             + "(연동용도가 노티만 Y인 PG로는 URL 결제를 진행할 수 없습니다.)");
         }
         MerchantPgBinding b = bindingOpt.get();
@@ -169,7 +168,7 @@ public class ChillPayService {
             String pgc = b.getPgCd() != null ? b.getPgCd().trim() : "";
             throw new IllegalStateException(
                     "ChillPay API Key·MD5(또는 가맹점 IV)가 비어 있습니다. 가맹점 결제대행사 행에 입력하거나, "
-                            + "API연동설정에서 동일 pg_cd(" + pgc + ") 행에 API Key·MD5를 등록하세요. "
+                            + "배포설정 > API연동설정에서 동일 pg_cd(" + pgc + ") 행에 API Key·MD5를 등록하세요. "
                             + "해당 행은 연동용도 「URL결제」가 Y인 행이어야 합니다.");
         }
         HqFallbackRef hqRef = resolveHqFallbackRef();
@@ -178,7 +177,7 @@ public class ChillPayService {
             String pgc = b.getPgCd() != null ? b.getPgCd().trim() : "";
             throw new IllegalStateException(
                     "ChillPay MID(Merchant Code)가 비어 있습니다. 가맹점 등록 > 결제대행사에서 해당 PG(" + pgc + ")의 MID를 입력하거나, "
-                            + "API연동설정 동일 pg_cd 행의 MID를 채워 주세요.");
+                            + "배포설정 > API연동설정 동일 pg_cd 행의 MID를 채워 주세요.");
         }
         int routeNo = resolveChillPayRouteNoUrlPayContract(merchantOrgUnitId, b, agencyForPgCd);
         boolean sandbox = agencyForPgCd
@@ -217,7 +216,7 @@ public class ChillPayService {
     /**
      * {@code tb_pg_agency} 에 바인딩 {@code pg_cd} 와 동일한 행이 없을 때,
      * 사용(Y)·연동용도 URL결제(Y)인 ChillPay 계열 행 중 <strong>일반 {@code CHILLPAY}</strong> 를 우선한다.
-     * (API연동설정에 Route·MID만 CHILLPAY 행에 두고 가맹점 바인딩은 확장 코드만 쓰는 구성을 지원)
+     * (배포설정 &gt; API연동설정에 Route·MID만 CHILLPAY 행에 두고 가맹점 바인딩은 확장 코드만 쓰는 구성을 지원)
      */
     private Optional<PgAgency> findChillPayAgencyFallbackForMissingPgCd(String requestedPgCd) {
         if (requestedPgCd == null || requestedPgCd.isBlank() || !isChillPayFamilyPgCd(requestedPgCd)) {
@@ -241,7 +240,7 @@ public class ChillPayService {
         }
         return candidates.stream()
                 .min(Comparator
-                        .comparing((PgAgency a) -> "CHILLPAY".equalsIgnoreCase(a.getPgCd().trim()) ? 0 : 1)
+                        .comparing((PgAgency a) -> PgVendor.CHILLPAY.equalsIgnoreCase(a.getPgCd().trim()) ? 0 : 1)
                         .thenComparing(PgAgency::getPgCd, String.CASE_INSENSITIVE_ORDER));
     }
 
@@ -300,11 +299,11 @@ public class ChillPayService {
             throw new IllegalStateException(
                     "ChillPay 루트(Route) 번호가 설정되지 않았습니다. 가맹점 등록 > 결제대행사 설정에서 해당 PG("
                             + pgCd
-                            + ")의 루트번호를 입력하거나, API연동설정에서 동일 결제대행사(pg_cd) 행의 Route 번호를 입력하세요.");
+                            + ")의 루트번호를 입력하거나, 배포설정 > API연동설정에서 동일 결제대행사(pg_cd) 행의 Route 번호를 입력하세요.");
         }
         throw new IllegalStateException(
                 "ChillPay 루트(Route) 번호가 설정되지 않았습니다. (1) 가맹점 결제대행사의 루트번호 또는 "
-                        + "(2) API연동설정에서 바인딩과 동일한 pg_cd(" + pgCd + ") 행을 등록하고 Route 번호를 입력하세요. "
+                        + "(2) 배포설정 > API연동설정에서 바인딩과 동일한 pg_cd(" + pgCd + ") 행을 등록하고 Route 번호를 입력하세요. "
                         + "tb_pg_agency에 해당 PG코드가 없으면 행을 추가하세요.");
     }
 
@@ -331,11 +330,7 @@ public class ChillPayService {
     }
 
     public static boolean isChillPayFamilyPgCd(String pgCd) {
-        if (pgCd == null) {
-            return false;
-        }
-        String u = pgCd.trim().toUpperCase(Locale.ROOT);
-        return u.equals("CHILLPAY") || u.startsWith("CHILLPAY");
+        return PgVendor.isChillPayFamily(pgCd);
     }
 
     /**
@@ -392,7 +387,7 @@ public class ChillPayService {
     }
 
     /**
-     * 운영(Y) ChillPay 계열 바인딩 — API연동설정에서 연동용도 URL결제인 {@code pg_cd} 를 최우선, 다음 WEB(또는 결제구분 미입력), 그다음 기타 결제구분.
+     * 운영(Y) ChillPay 계열 바인딩 — 배포설정 &gt; API연동설정에서 연동용도 URL결제인 {@code pg_cd} 를 최우선, 다음 WEB(또는 결제구분 미입력), 그다음 기타 결제구분.
      */
     private Optional<MerchantPgBinding> findOperationalChillPayFamilyBinding(Long orgUnitId) {
         if (orgUnitId == null) {
@@ -464,10 +459,7 @@ public class ChillPayService {
 
     /** {@code CHILLPAY} 단독 코드(확장 접미 없음) — URL결제 전용 {@code CHILLPAY_…} 행보다 뒤로 미루는 데 사용 */
     private static boolean genericChillPayPgCd(String pgCd) {
-        if (pgCd == null || pgCd.isBlank()) {
-            return true;
-        }
-        return "CHILLPAY".equalsIgnoreCase(pgCd.trim());
+        return PgVendor.isChillPayBaseCode(pgCd);
     }
 
     /**
@@ -586,7 +578,7 @@ public class ChillPayService {
     }
 
     /**
-     * 본사 API연동({@code tb_pg_agency}) — ChillPay 계열·사용(Y)·API Key+MD5 가 채워진 행을 {@code CHILLPAY} 코드 우선으로 한 건 선택.
+     * 배포설정 &gt; API연동설정({@code tb_pg_agency}) — ChillPay 계열·사용(Y)·API Key+MD5 가 채워진 행을 {@code CHILLPAY} 코드 우선으로 한 건 선택.
      */
     /**
      * 본사 단독(가맹점 없음) ChillPay 자격 후보. <strong>연동용도 URL결제(Y)</strong>인 행만 — 노티 전용 행으로 URL 결제를 열지 않음.
@@ -599,7 +591,7 @@ public class ChillPayService {
                 .filter(a -> a.getApiKey() != null && !a.getApiKey().isBlank()
                         && a.getMd5SecretKey() != null && !a.getMd5SecretKey().isBlank())
                 .min(Comparator
-                        .comparing((PgAgency a) -> "CHILLPAY".equalsIgnoreCase(a.getPgCd().trim()) ? 0 : 1)
+                        .comparing((PgAgency a) -> PgVendor.CHILLPAY.equalsIgnoreCase(a.getPgCd().trim()) ? 0 : 1)
                         .thenComparing(PgAgency::getPgCd, Comparator.nullsLast(String::compareToIgnoreCase)));
     }
 
@@ -638,7 +630,7 @@ public class ChillPayService {
         if (a.getRouteNo() == null) {
             String pgc = a.getPgCd() != null ? a.getPgCd().trim() : "";
             throw new IllegalStateException(
-                    "ChillPay 루트(Route) 번호가 설정되지 않았습니다. API연동설정에서 해당 ChillPay 행(pg_cd="
+                    "ChillPay 루트(Route) 번호가 설정되지 않았습니다. 배포설정 > API연동설정에서 해당 ChillPay 행(pg_cd="
                             + pgc + ")의 Route 번호를 입력하세요.");
         }
         int routeNo = a.getRouteNo();
@@ -666,16 +658,16 @@ public class ChillPayService {
             String merchantCode = (c.getChillpayMerchantCode() != null && !c.getChillpayMerchantCode().isEmpty()) ? c.getChillpayMerchantCode() : props.getMerchantCode();
             if (c.getChillpayRouteNo() == null) {
                 throw new IllegalStateException(
-                        "ChillPay 루트(Route) 번호가 설정되지 않았습니다. API연동설정(tb_pg_agency)에 ChillPay 행의 Route를 등록하거나, "
-                                + "본사설정 > API배포설정의 ChillPay Route 번호를 입력하세요.");
+                        "ChillPay 루트(Route) 번호가 설정되지 않았습니다. 배포설정 > API연동설정(tb_pg_agency)에 ChillPay 행의 Route를 등록하거나, "
+                                + "배포설정 > API배포설정의 ChillPay Route 번호를 입력하세요.");
             }
             int routeNo = c.getChillpayRouteNo();
             boolean sandbox = !"N".equalsIgnoreCase(c.getChillpaySandbox());
             return new Config(merchantCode, apiKey, md5Key, routeNo, sandbox, urlOv);
         }
         throw new IllegalStateException(
-                "ChillPay 루트(Route) 번호를 설정할 수 없습니다. API연동설정에서 ChillPay 결제대행사(Key·MD5·Route)를 등록하거나, "
-                        + "본사 API배포설정에 ChillPay Route를 입력하세요.");
+                "ChillPay 루트(Route) 번호를 설정할 수 없습니다. 배포설정 > API연동설정에서 ChillPay 결제대행사(Key·MD5·Route)를 등록하거나, "
+                        + "배포설정 > API배포설정에 ChillPay Route를 입력하세요.");
     }
 
     /**
@@ -777,10 +769,10 @@ public class ChillPayService {
 
         Config cfg = resolveConfig(merchantOrgUnitId);
         if (cfg.apiKey() == null || cfg.apiKey().isEmpty()) {
-            throw new IllegalStateException("ChillPay API Key가 설정되지 않았습니다. 본사설정 > API배포설정 또는 가맹점 등록 > 결제대행사 설정에서 ChillPay 정보를 입력하세요.");
+            throw new IllegalStateException("ChillPay API Key가 설정되지 않았습니다. 배포설정 > API배포설정 또는 가맹점 등록 > 결제대행사 설정에서 ChillPay 정보를 입력하세요.");
         }
         if (cfg.md5Key() == null || cfg.md5Key().isEmpty()) {
-            throw new IllegalStateException("ChillPay MD5 Key가 설정되지 않았습니다. 본사설정 > API배포설정 또는 가맹점 등록 > 결제대행사 설정에서 ChillPay 정보를 입력하세요.");
+            throw new IllegalStateException("ChillPay MD5 Key가 설정되지 않았습니다. 배포설정 > API배포설정 또는 가맹점 등록 > 결제대행사 설정에서 ChillPay 정보를 입력하세요.");
         }
 
         ChillPayDirectCreditRequest req = new ChillPayDirectCreditRequest();
@@ -1683,18 +1675,11 @@ public class ChillPayService {
     }
 
     private static String formatJstAndIctTimeSameCell(LocalDateTime naiveWallClock, ZoneId interpretAsZone) {
-        ZonedDateTime z = naiveWallClock.atZone(interpretAsZone);
-        ZonedDateTime jst = z.withZoneSameInstant(ZONE_JP);
-        ZonedDateTime ict = z.withZoneSameInstant(ZONE_TH);
-        return jst.toLocalTime().format(CHILL_TRN_TIME_DUAL) + " JST · "
-                + ict.toLocalTime().format(CHILL_TRN_TIME_DUAL) + " ICT";
+        return TrnTimeDualZoneDisplay.formatDualLineTimeOnly(naiveWallClock, interpretAsZone);
     }
 
     private static String formatJstAndIctDateTimeSameCell(LocalDateTime naiveWallClock, ZoneId interpretAsZone) {
-        ZonedDateTime z = naiveWallClock.atZone(interpretAsZone);
-        ZonedDateTime jst = z.withZoneSameInstant(ZONE_JP);
-        ZonedDateTime ict = z.withZoneSameInstant(ZONE_TH);
-        return jst.format(CHILL_PAY_COMPLETED_DUAL) + " JST · " + ict.format(CHILL_PAY_COMPLETED_DUAL) + " ICT";
+        return TrnTimeDualZoneDisplay.formatDualLineDateTime(naiveWallClock, interpretAsZone);
     }
 
     private static void aliasIfMissing(Map<String, Object> m, String lowerKey, String pascalKey) {

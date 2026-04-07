@@ -27,6 +27,8 @@ public class PayListSearchRequest {
     private String searchRegNo;
     private String searchCardAprvNo;
     private String searchChillTxnId;
+    /** NOTI 수신 경로: CALLBACK(기본)·RESULT·BOTH·ALL(전체). 통합/노티 결제내역만 서버에서 적용 */
+    private String searchNotifyChannel;
     private String payListVariant;
     private int page = 1;
     private int size = 20;
@@ -48,6 +50,7 @@ public class PayListSearchRequest {
         r.searchRegNo = raw.get("searchRegNo");
         r.searchCardAprvNo = raw.get("searchCardAprvNo");
         r.searchChillTxnId = raw.get("searchChillTxnId");
+        r.searchNotifyChannel = raw.get("searchNotifyChannel");
         r.payListVariant = raw.get("payListVariant");
         r.searchFromDate = parseDate(raw.get("searchFromDate"));
         r.searchToDate = parseDate(raw.get("searchToDate"));
@@ -73,6 +76,7 @@ public class PayListSearchRequest {
         put(m, "searchRegNo", searchRegNo);
         put(m, "searchCardAprvNo", searchCardAprvNo);
         put(m, "searchChillTxnId", searchChillTxnId);
+        put(m, "searchNotifyChannel", searchNotifyChannel);
         put(m, "payListVariant", payListVariant);
         m.put("page", String.valueOf(page));
         m.put("size", String.valueOf(size));
@@ -139,6 +143,8 @@ public class PayListSearchRequest {
     public void setSearchCardAprvNo(String searchCardAprvNo) { this.searchCardAprvNo = searchCardAprvNo; }
     public String getSearchChillTxnId() { return searchChillTxnId; }
     public void setSearchChillTxnId(String searchChillTxnId) { this.searchChillTxnId = searchChillTxnId; }
+    public String getSearchNotifyChannel() { return searchNotifyChannel; }
+    public void setSearchNotifyChannel(String searchNotifyChannel) { this.searchNotifyChannel = searchNotifyChannel; }
     public String getPayListVariant() { return payListVariant; }
     public void setPayListVariant(String payListVariant) { this.payListVariant = payListVariant; }
     public int getPage() { return page; }

@@ -1,5 +1,7 @@
 package com.pg.controller.open;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.pg.dto.NotiMiddlewareRelayRequest;
 import com.pg.dto.NotifyReceiveOutcome;
 import com.pg.service.PgNotifyReceiveService;
 import jakarta.servlet.http.HttpServletRequest;
@@ -9,6 +11,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -29,10 +32,56 @@ import java.util.Map;
 @RequestMapping("/api/open/pg-notify")
 public class OpenPgNotifyController {
 
+    private static final ObjectMapper MAPPER = new ObjectMapper();
+
     private final PgNotifyReceiveService receiveService;
 
     public OpenPgNotifyController(PgNotifyReceiveService receiveService) {
         this.receiveService = receiveService;
+    }
+
+    /**
+     * 노티미들웨어 → PG 노티 서버 중계(관리자 무효·취소·환불 등). 본문은 {@link NotiMiddlewareRelayRequest} JSON.
+     * HMAC·IP 는 기존 {@code /api/open/pg-notify/{token}} 과 동일 규칙(원문 JSON 기준).
+     */
+    @PostMapping(value = "/{token}/noti-middleware-relay", consumes = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<?> notiMiddlewareRelay(@PathVariable String token,
+                                                 @RequestBody String rawJson,
+                                                 HttpServletRequest req) {
+        return handleNotiMiddlewareRelay(token, null, rawJson, req);
+    }
+
+    @PostMapping(value = "/{token}/{targetCode}/noti-middleware-relay", consumes = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<?> notiMiddlewareRelayWithTarget(@PathVariable String token,
+                                                           @PathVariable String targetCode,
+                                                           @RequestBody String rawJson,
+                                                           HttpServletRequest req) {
+        return handleNotiMiddlewareRelay(token, targetCode, rawJson, req);
+    }
+
+    private ResponseEntity<?> handleNotiMiddlewareRelay(String token, String targetCode, String rawJson, HttpServletRequest req) {
+        try {
+            NotiMiddlewareRelayRequest relay = MAPPER.readValue(rawJson != null ? rawJson : "{}", NotiMiddlewareRelayRequest.class);
+            NotifyReceiveOutcome out = receiveService.receiveNotiMiddlewareRelay(
+                    token, targetCode, rawJson != null ? rawJson : "", relay, clientIp(req), req);
+            if (out.isRedirect()) {
+                return ResponseEntity.status(HttpStatus.SEE_OTHER)
+                        .location(URI.create(out.redirectLocation()))
+                        .build();
+            }
+            String resp = out.body();
+            MediaType mt = MediaType.TEXT_PLAIN;
+            if (resp != null && resp.trim().startsWith("{")) {
+                mt = MediaType.APPLICATION_JSON;
+            }
+            return ResponseEntity.ok().contentType(mt).body(resp);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().contentType(MediaType.TEXT_PLAIN).body(e.getMessage());
+        } catch (SecurityException e) {
+            return ResponseEntity.status(403).contentType(MediaType.TEXT_PLAIN).body("FORBIDDEN");
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().contentType(MediaType.TEXT_PLAIN).body("BAD_REQUEST");
+        }
     }
 
     @GetMapping("/{token}/{targetCode}")

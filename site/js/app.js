@@ -539,11 +539,11 @@
 
   // 메뉴별 URL → 라벨, parent (브레드크럼/탭 제목용) - FXHJ + 본사설정 + 리스크 통합
   var MENU_INFO = {
-    '/hq/pgApiMng': { label: 'API연동설정', parent: '본사설정' },
+    '/hq/pgApiMng': { label: 'API연동설정', parent: '배포설정' },
     '/hq/defaultCommission': { label: '수수료설정', parent: '본사설정' },
     '/hq/chargebackPolicy': { label: '차지백설정', parent: '본사설정' },
     '/hq/businessDaySetting': { label: '영업일설정', parent: '본사설정' },
-    '/hq/apiConfig': { label: 'API배포설정', parent: '본사설정' },
+    '/hq/apiConfig': { label: 'API배포설정', parent: '배포설정' },
     '/hq/paymentOrchestration': { label: '결제로직설정', parent: '본사설정' },
     '/hq/domainConfig': { label: '도메인구성설정', parent: '본사설정' },
     '/hq/serverManage': { label: '서버운영관리', parent: '본사설정' },
@@ -594,7 +594,11 @@
     '/noti/notiCashReceiptSendMngList': { label: '현금영수증통보 전송관리', parent: '통보관리' },
     '/user/userMng': { label: '사용자관리', parent: '사용자관리' },
     '/set/gridSetMng': { label: '메뉴별항목순서관리', parent: '사용자관리' },
-    '/risk/list': { label: '리스크 현황', parent: '리스크관리' }
+    '/risk/list': { label: '리스크 현황', parent: '리스크관리' },
+    '/deploy/integrationPlan': { label: '연동 진행안', parent: '배포설정' },
+    '/deploy/jpayWorkPlan': { label: 'JPAY 단계 계획', parent: '배포설정' },
+    '/deploy/merchantApiPolicy': { label: '가맹점 API 배포', parent: '배포설정' },
+    '/deploy/launchChecklist': { label: '배포 체크리스트', parent: '배포설정' }
   };
 
   var config = window.SITE_CONFIG;
@@ -1185,7 +1189,7 @@
             return e ? e.value : '';
           };
           var pgCd = sel('pgCd');
-          if (!pgCd) { alert('결제대행사(PG)를 선택하세요. 본사설정 > API연동설정에 먼저 등록해야 목록에 나타납니다.'); return; }
+          if (!pgCd) { alert('결제대행사(PG)를 선택하세요. 배포설정 > API연동설정에 먼저 등록해야 목록에 나타납니다.'); return; }
           var trs = Array.prototype.slice.call(tbody.querySelectorAll('tr'));
           var myIdx = trs.indexOf(tr);
           var formRoot = pane.querySelector('#compDetailForm') || pane.querySelector('#compRegForm');
@@ -2607,7 +2611,7 @@
         '<div class="alert alert-light border hq-nm-intro mb-3">' +
         '<div class="fw-semibold mb-2 text-body">GUI로 설정하는 순서</div>' +
         '<ol class="small mb-0 ps-3 text-body">' +
-        '<li><strong>PG 목록 동기화</strong> — API연동설정에 등록된 결제대행사 줄이 생깁니다.</li>' +
+        '<li><strong>PG 목록 동기화</strong> — 배포설정 > API연동설정에 등록된 결제대행사 줄이 생깁니다.</li>' +
         '<li><strong>매핑 작업 표</strong>에서 PG·채널을 고릅니다. (선택) 실제 수신 노티에서 관찰된 파라미터 이름이 자동으로 붙습니다.</li>' +
         '<li>각 줄마다 <strong>우리 항목(열 key)</strong>을 고르고, 필요하면 <strong>우리 표시명</strong>을 고칩니다. 열 key만 고르면 표시명은 카탈로그 기본으로 자동 채웁니다. <strong>AI 잠금</strong>은 자동 제안이 그 줄을 바꾸지 못하게 합니다.</li>' +
         '<li><strong>표 내용 → 매핑 반영</strong> 후 화면 하단 <strong>저장</strong> — 표시명은 카탈로그에 반영되어 조직항목설정·결제 그리드 열 이름과 같아집니다.</li>' +
@@ -3646,9 +3650,11 @@
       });
     });
     function collectSearchParams(p) {
-      var params = { page: 1, size: 20 };
+      var formUrlP = p.getAttribute('formurl') || '';
+      var payMngDefaultSize = payListSearchUrls.indexOf(formUrlP) !== -1 ? 50 : 20;
+      var params = { page: 1, size: payMngDefaultSize };
       var sizeEl = p.querySelector('#recordsPerPage');
-      if (sizeEl) params.size = Math.max(1, parseInt(sizeEl.value, 10) || 20);
+      if (sizeEl) params.size = Math.max(1, parseInt(sizeEl.value, 10) || payMngDefaultSize);
       p.querySelectorAll('input, select').forEach(function (el) {
         var name = el.name || el.id;
         if (!name) return;
@@ -3834,19 +3840,22 @@
     }
     function payListStatusBarCurrencySortKey(c) {
       var u = String(c || '').toUpperCase();
-      var order = { KRW: 0, JPY: 1, USD: 2, EUR: 3, THB: 4 };
+      /* 기본 나열: JPY → USD → THB → KRW → 기타 */
+      var order = { JPY: 0, USD: 1, THB: 2, KRW: 3, EUR: 4 };
       return order.hasOwnProperty(u) ? order[u] : 40;
     }
     function renderPayListStatusBarHtml(bar) {
       if (!bar || !bar.buckets || !bar.buckets.length) return '';
-      var labels = { SUCCESS: '성공', FAIL: '실패', VOID: '무효', REFUND: '환불', OTHER: '기타' };
+      var labels = { SUCCESS: '성공', FAIL: '실패', VOID: '무효', REFUND: '환불', CANCEL: '취소', OTHER: '기타' };
       var pillCls = {
         SUCCESS: 'pay-list-status-bar__pill pay-list-status-bar__pill--success',
         FAIL: 'pay-list-status-bar__pill pay-list-status-bar__pill--fail',
         VOID: 'pay-list-status-bar__pill pay-list-status-bar__pill--void',
         REFUND: 'pay-list-status-bar__pill pay-list-status-bar__pill--refund',
+        CANCEL: 'pay-list-status-bar__pill pay-list-status-bar__pill--cancel',
         OTHER: 'pay-list-status-bar__pill pay-list-status-bar__pill--other'
       };
+      var barOrder = bar.currencyOrder && bar.currencyOrder.length ? bar.currencyOrder : null;
       var parts = [];
       bar.buckets.forEach(function (b) {
         var label = labels[b.key] || b.key;
@@ -3854,25 +3863,48 @@
         var cnt = b.count != null ? Number(b.count) : 0;
         if (isNaN(cnt)) cnt = 0;
         var am = b.amountsByCurrency || {};
-        var curKeys = Object.keys(am);
-        curKeys.sort(function (a, b2) {
-          var ra = payListStatusBarCurrencySortKey(a);
-          var rb = payListStatusBarCurrencySortKey(b2);
-          if (ra !== rb) return ra - rb;
-          return String(a).localeCompare(String(b2));
-        });
-        var curParts = [];
-        curKeys.forEach(function (ck) {
-          var escC = String(ck).replace(/</g, '&lt;').replace(/&/g, '&amp;');
-          curParts.push('<span class="pay-list-status-bar__cur">' + escC + ' ' +
-            formatPayListStatusAmount(ck, am[ck]) + '</span>');
-        });
-        var amtInner = curParts.length
-          ? ('[' + curParts.join(' <span class="pay-list-status-bar__sep">|</span> ') + ']')
-          : '[—]';
+        var cc = b.countsByCurrency || null;
+        var curKeys = barOrder ? barOrder.slice() : Object.keys(am);
+        if (!barOrder) {
+          curKeys.sort(function (a, b2) {
+            var ra = payListStatusBarCurrencySortKey(a);
+            var rb = payListStatusBarCurrencySortKey(b2);
+            if (ra !== rb) return ra - rb;
+            return String(a).localeCompare(String(b2));
+          });
+        }
+        var amtInner;
+        if (bar.multiCurrency && cc) {
+          var curParts = [];
+          curKeys.forEach(function (ck) {
+            var escC = String(ck).replace(/</g, '&lt;').replace(/&/g, '&amp;');
+            var ncc = Object.prototype.hasOwnProperty.call(cc, ck) ? Number(cc[ck]) : 0;
+            if (isNaN(ncc)) ncc = 0;
+            var per = formatPayListStatusAmount(ck, am[ck]);
+            curParts.push('<span class="pay-list-status-bar__cur">' + escC + ' [' + ncc + '] / ' + per + '</span>');
+          });
+          amtInner = curParts.length
+            ? curParts.join(' <span class="pay-list-status-bar__sep">|</span> ')
+            : '<span class="pay-list-status-bar__dash">—</span>';
+        } else if (bar.multiCurrency) {
+          var curParts2 = [];
+          curKeys.forEach(function (ck) {
+            var escC = String(ck).replace(/</g, '&lt;').replace(/&/g, '&amp;');
+            curParts2.push('<span class="pay-list-status-bar__cur">' + escC + ' ' + formatPayListStatusAmount(ck, am[ck]) + '</span>');
+          });
+          amtInner = curParts2.length
+            ? curParts2.join(' <span class="pay-list-status-bar__sep">|</span> ')
+            : '<span class="pay-list-status-bar__dash">—</span>';
+        } else {
+          var pk = Object.keys(am);
+          var ck0 = pk.length ? pk[0] : String(bar.primaryCurrency || 'KRW');
+          var esc0 = String(ck0).replace(/</g, '&lt;').replace(/&/g, '&amp;');
+          var per0 = formatPayListStatusAmount(ck0, am[ck0]);
+          amtInner = '<span class="pay-list-status-bar__cur">' + esc0 + ' [' + cnt + '] / ' + per0 + '</span>';
+        }
         parts.push(
           '<span class="' + pClass + '">' +
-          '<span class="pay-list-status-bar__lbl">' + label + '</span> [' + cnt + '건] ' +
+          '<span class="pay-list-status-bar__lbl">' + label + '</span> ' +
           '<span class="pay-list-status-bar__amt">' + amtInner + '</span></span>'
         );
       });
@@ -3883,7 +3915,9 @@
     /** 검색 조건 전체 집계: 건수=승인 건수, 금액=통화별(본사·총본사 다통화 / 총판·하위 단일 통화) */
     function renderPayListFinancialSummaryHtml(fin) {
       if (!fin) return '';
-      function fmtMetric(label, map) {
+      var order = fin.currencyOrder && fin.currencyOrder.length ? fin.currencyOrder : null;
+      function orderedKeys(map) {
+        if (order) return order.slice();
         var keys = Object.keys(map || {});
         keys.sort(function (a, b2) {
           var ra = payListStatusBarCurrencySortKey(a);
@@ -3891,6 +3925,10 @@
           if (ra !== rb) return ra - rb;
           return String(a).localeCompare(String(b2));
         });
+        return keys;
+      }
+      function fmtMetricAmountOnly(label, map) {
+        var keys = orderedKeys(map);
         if (!keys.length) return '<span class="pay-list-financial__metric"><span class="pay-list-financial__lbl">' + label + '</span>: —</span>';
         var curParts = keys.map(function (ck) {
           var escC = String(ck).replace(/</g, '&lt;').replace(/&/g, '&amp;');
@@ -3899,14 +3937,27 @@
         return '<span class="pay-list-financial__metric"><span class="pay-list-financial__lbl">' + label + '</span>: [' +
           curParts.join(' <span class="pay-list-status-bar__sep">|</span> ') + ']</span>';
       }
+      function fmtMetricWithCounts(label, amountMap, countMap) {
+        var keys = orderedKeys(amountMap);
+        if (!keys.length) return '<span class="pay-list-financial__metric"><span class="pay-list-financial__lbl">' + label + '</span>: —</span>';
+        var curParts = keys.map(function (ck) {
+          var escC = String(ck).replace(/</g, '&lt;').replace(/&/g, '&amp;');
+          var nc = countMap && Object.prototype.hasOwnProperty.call(countMap, ck) ? Number(countMap[ck]) : 0;
+          if (isNaN(nc)) nc = 0;
+          return '<span class="pay-list-financial__cur">' + escC + ' [' + nc + '] ' +
+            formatPayListStatusAmount(ck, amountMap[ck]) + '</span>';
+        });
+        return '<span class="pay-list-financial__metric"><span class="pay-list-financial__lbl">' + label + '</span>: [' +
+          curParts.join(' <span class="pay-list-status-bar__sep">|</span> ') + ']</span>';
+      }
       var pipe = ' <span class="pay-list-status-bar__pipe" aria-hidden="true">ㅣ</span> ';
       var segs = [];
-      segs.push(fmtMetric('승인금액', fin.approveByCurrency));
-      segs.push(fmtMetric('취소금액', fin.cancelByCurrency));
-      segs.push(fmtMetric('결제금액', fin.paymentByCurrency));
-      segs.push(fmtMetric('총수수료', fin.feeByCurrency));
-      segs.push(fmtMetric('보류금액', fin.holdByCurrency));
-      segs.push(fmtMetric('지급액', fin.payoutByCurrency));
+      segs.push(fmtMetricWithCounts('승인금액', fin.approveByCurrency, fin.approveCountByCurrency));
+      segs.push(fmtMetricWithCounts('취소금액', fin.cancelByCurrency, fin.cancelCountByCurrency));
+      segs.push(fmtMetricAmountOnly('결제금액', fin.paymentByCurrency));
+      segs.push(fmtMetricAmountOnly('총수수료', fin.feeByCurrency));
+      segs.push(fmtMetricAmountOnly('보류금액', fin.holdByCurrency));
+      segs.push(fmtMetricAmountOnly('지급액', fin.payoutByCurrency));
       return '<div class="pay-list-financial-summary__inner">' + segs.join(pipe) + '</div>';
     }
     function updatePayListAggregateBars(pane, tabId, meta) {
@@ -3941,6 +3992,7 @@
       if (p && p.classList) {
         p.classList.toggle('screen-calc-gm-list', url === '/calc/calcGmList' || url === '/settlement/franchiseList');
         p.classList.toggle('screen-pay-list', url === '/calc/payList' || url === '/calc/chillPayTrList' || url === '/calc/chillPaySettlementList' || url === '/calc/payNotiList' || url === '/calc/paySuccessList' || url === '/calc/payFailList' || url === '/calc/payRefundList' || url === '/calc/payForceRefundList' || url === '/calc/payCancelList' || url === '/calc/payVoidList' || url === '/calc/offsetCancList' || url === '/pay/easyPay' || url === '/pay/chatbotPay');
+        p.classList.toggle('screen-comp-mng-tree', url === '/comp/compMngTree');
         p.classList.toggle('screen-distribution-list', url === '/calc/calcList' || url === '/settlement/distributionList');
         p.classList.toggle('screen-user-mng', url === '/user/userMng');
       }
@@ -4203,8 +4255,9 @@
           var prevGroup = null;
           var pageNum = data && data.page != null ? parseInt(data.page, 10) : (params.page || 1);
           if (isNaN(pageNum) || pageNum < 1) pageNum = 1;
-          var pageSize = data && data.size != null ? parseInt(data.size, 10) : 20;
-          if (isNaN(pageSize) || pageSize < 1) pageSize = 20;
+          var pageSizeFallback = payListSearchUrls.indexOf(url) !== -1 ? 50 : 20;
+          var pageSize = data && data.size != null ? parseInt(data.size, 10) : pageSizeFallback;
+          if (isNaN(pageSize) || pageSize < 1) pageSize = pageSizeFallback;
           var rowNoBase = (pageNum - 1) * pageSize;
           list.forEach(function (row, idx) {
             var escAttr = function (s) {
@@ -4404,7 +4457,15 @@
                 } else if (isPayScr) {
                   var payCls = [];
                   if (['pgApproveAmt', 'payAmount', 'feeCnt', 'feeRate', 'feeAmt', 'feeVat', 'holdRate', 'holdAmt', 'settleAmt', 'chillAmount', 'icopayAmt', 'chillFeeAmt', 'totalAmt'].indexOf(c.key) >= 0) payCls.push('text-end');
-                  if (['payAprv', 'holdDttm', 'calcDt', 'payDttm', 'trnDate', 'trnTime', 'payCompletedAt', 'trnId', 'chillTransactionId', 'routeNo', 'notifyChannelType'].indexOf(c.key) >= 0) payCls.push('text-nowrap');
+                  var payDualTimeKeys = ['trnTime', 'payDttm', 'payAprv', 'holdDttm', 'calcDt', 'approveDt', 'cancelDt', 'payCompletedAt'];
+                  if (['payAprv', 'holdDttm', 'calcDt', 'payDttm', 'trnDate', 'trnTime', 'payCompletedAt', 'trnId', 'chillTransactionId', 'routeNo', 'notifyChannelType'].indexOf(c.key) >= 0) {
+                    if (payDualTimeKeys.indexOf(c.key) < 0) {
+                      payCls.push('text-nowrap');
+                    }
+                  }
+                  if (payDualTimeKeys.indexOf(c.key) >= 0) {
+                    payCls.push('pay-grid-time-dual');
+                  }
                   if (['compNm', 'merchantNm', 'compDivCode9', 'chillCustomer', 'productNm'].indexOf(c.key) >= 0) payCls.push('text-start');
                   if (c.key === 'chillPaymentStatus' && url === '/calc/payList') payCls.push('text-center');
                   if (payCls.length) cellClass = ' class="' + payCls.join(' ') + '"';
@@ -4413,9 +4474,11 @@
                   if (['amount', 'fee', 'discount', 'totalAmount', 'refundAmount'].indexOf(c.key) >= 0) trCls.push('text-end');
                   var trNowrap = ['transactionDate', 'paymentDate', 'transactionId', 'orderNo'];
                   if (url === '/calc/chillPayTrList') {
-                    trNowrap = trNowrap.concat(['trnDate', 'trnTime', 'payCompletedAt', 'routeNo', 'compId']);
+                    trNowrap = trNowrap.concat(['trnDate', 'routeNo', 'compId']);
                   }
+                  var trDualTimeKeys = (url === '/calc/chillPayTrList' || url === '/calc/chillPaySettlementList') ? ['trnTime', 'payCompletedAt'] : [];
                   if (trNowrap.indexOf(c.key) >= 0) trCls.push('text-nowrap');
+                  if (trDualTimeKeys.indexOf(c.key) >= 0) trCls.push('pay-grid-time-dual');
                   var trStart = ['merchant', 'customer', 'description', 'paymentChannel'];
                   if (url === '/calc/chillPayTrList') {
                     trStart = ['compNm'].concat(trStart);
@@ -4502,6 +4565,30 @@
                 } else {
                   var cellInner = val;
                   var pgUi = window.PG_UI || {};
+                  function escPayGridLine(s) {
+                    return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                  }
+                  /** JP/TH 이중 시각: 2줄 + JP 줄 파란색(결제관리·통합내역 공통) */
+                  function formatPayGridDualTimeHtml(raw) {
+                    if (raw == null || raw === '') return '';
+                    var s = String(raw);
+                    if (s.indexOf('\n') === -1) return escPayGridLine(s);
+                    var lines = s.split('\n');
+                    if (lines.length === 2 && /^\s*JP\s/.test(lines[0]) && /^\s*TH\s/.test(lines[1])) {
+                      return '<span class="pay-grid-time-line pay-grid-time-line--jp">' + escPayGridLine(lines[0]) + '</span><br>' +
+                        '<span class="pay-grid-time-line pay-grid-time-line--th">' + escPayGridLine(lines[1]) + '</span>';
+                    }
+                    return lines.map(escPayGridLine).join('<br>');
+                  }
+                  var payDualTimeKeys = ['trnTime', 'payDttm', 'payAprv', 'holdDttm', 'calcDt', 'approveDt', 'cancelDt', 'payCompletedAt'];
+                  var chillDualTimeKeys = ['trnTime', 'payCompletedAt'];
+                  if (val && String(val).indexOf('\n') !== -1) {
+                    if (isPayScr && payDualTimeKeys.indexOf(c.key) >= 0) {
+                      cellInner = formatPayGridDualTimeHtml(val);
+                    } else if ((url === '/calc/chillPayTrList' || url === '/calc/chillPaySettlementList') && chillDualTimeKeys.indexOf(c.key) >= 0) {
+                      cellInner = formatPayGridDualTimeHtml(val);
+                    }
+                  }
                   if (url === '/calc/payList' && c.key === 'chillPaymentStatus' && typeof pgUi.payGridStatusBadge === 'function' && typeof pgUi.resolvePayRowTone === 'function') {
                     cellInner = pgUi.payGridStatusBadge(val, pgUi.resolvePayRowTone(row));
                   } else if ((url === '/calc/chillPayTrList' || url === '/calc/chillPaySettlementList') && c.key === 'status' && typeof pgUi.payGridStatusBadge === 'function' && typeof pgUi.resolveChillTrRowTone === 'function') {
@@ -4642,6 +4729,13 @@
             if (String(r.status || '').toUpperCase() === 'HOLD') coll.holdAmt += asNum(r.reserveAmt);
           });
           setSummaryText(p, '담보금액', fmtNum(coll.holdAmt));
+        }
+        if (data && data.size != null && payListSearchUrls.indexOf(url) !== -1) {
+          var rpSync = p.querySelector('#recordsPerPage');
+          if (rpSync) {
+            var nsz = parseInt(data.size, 10);
+            if (!isNaN(nsz) && nsz > 0) rpSync.value = String(nsz);
+          }
         }
         if (window.updatePaging) window.updatePaging(tid, params.page, totalPages, total);
         p.setAttribute('data-last-total-pages', String(totalPages));
@@ -12928,7 +13022,7 @@
       tr.classList.add('org-perm-row', 'org-perm-row--' + p);
       tr.setAttribute('data-perm', p);
     }
-    var ORG_PERM_GROUP_ORDER = ['본사설정', '업체관리', '결제관리', '정산관리', '통보관리', '사용자관리', '리스크관리'];
+    var ORG_PERM_GROUP_ORDER = ['본사설정', '업체관리', '결제관리', '정산관리', '통보관리', '사용자관리', '리스크관리', '배포설정'];
     function buildOrgPermGroups(rows) {
       var by = {};
       (rows || []).forEach(function (row) {
@@ -13073,7 +13167,7 @@
       modeEl.disabled = true;
     }
 
-    var ORG_PERM_GROUP_ORDER = ['본사설정', '업체관리', '결제관리', '정산관리', '통보관리', '사용자관리', '리스크관리'];
+    var ORG_PERM_GROUP_ORDER = ['본사설정', '업체관리', '결제관리', '정산관리', '통보관리', '사용자관리', '리스크관리', '배포설정'];
 
     function escOrgPermHtml(s) {
       return String(s == null ? '' : s)

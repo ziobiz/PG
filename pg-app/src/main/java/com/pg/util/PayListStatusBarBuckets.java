@@ -18,7 +18,7 @@ import java.util.Optional;
 import java.util.TreeMap;
 
 /**
- * 결제내역·통합내역 상단 상태별(성공·실패·무효·환불·기타) 건수·통화별 금액 요약.
+ * 결제내역·통합내역 상단 상태별(성공·실패·무효·환불·취소·기타) 건수·통화별 금액 요약.
  */
 public final class PayListStatusBarBuckets {
 
@@ -26,6 +26,8 @@ public final class PayListStatusBarBuckets {
     public static final String FAIL = "FAIL";
     public static final String VOID = "VOID";
     public static final String REFUND = "REFUND";
+    /** ICOPAY 내부 취소(20) 및 칠페이 취소 계열 — {@link #OTHER} 에서 제외 */
+    public static final String CANCEL = "CANCEL";
     public static final String OTHER = "OTHER";
 
     private PayListStatusBarBuckets() {
@@ -71,6 +73,9 @@ public final class PayListStatusBarBuckets {
         if ("30".equals(s) || "31".equals(s)) {
             return REFUND;
         }
+        if ("20".equals(s)) {
+            return CANCEL;
+        }
         return OTHER;
     }
 
@@ -90,7 +95,7 @@ public final class PayListStatusBarBuckets {
             return SUCCESS;
         }
         if ("2".equals(raw)) {
-            return OTHER;
+            return CANCEL;
         }
         if ("1".equals(raw) || "3".equals(raw) || "4".equals(raw)) {
             return FAIL;
@@ -103,7 +108,7 @@ public final class PayListStatusBarBuckets {
             return REFUND;
         }
         if (low.contains("cancel") || low.contains("cancelled") || low.contains("canceled") || low.contains("취소")) {
-            return OTHER;
+            return CANCEL;
         }
         if (low.contains("fail") || low.contains("error") || low.contains("declin") || low.contains("오류")) {
             return FAIL;
@@ -119,11 +124,68 @@ public final class PayListStatusBarBuckets {
         return OTHER;
     }
 
+    /**
+     * 집계 키 정규화: ISO 4217 숫자(392·840 등)와 {@code JPY (392)} 형태를 알파 코드로 맞춥니다.
+     * 그리드·노티매핑과 동일 계열({@code HqNotifyMappingService} 통화 폴백)입니다.
+     */
+    private static final Map<String, String> ISO4217_NUMERIC_TO_ALPHA = Map.ofEntries(
+            Map.entry("392", "JPY"),
+            Map.entry("410", "KRW"),
+            Map.entry("764", "THB"),
+            Map.entry("840", "USD"),
+            Map.entry("978", "EUR")
+    );
+
     public static String normalizeCurrency(String cur) {
         if (cur == null || cur.isBlank()) {
             return "KRW";
         }
-        return cur.trim().toUpperCase(Locale.ROOT);
+        String s = cur.trim();
+        if (s.matches("(?i)^[A-Za-z]+\\s+\\(\\d+\\)$")) {
+            return s.replaceFirst("(?i)\\s+\\(\\d+\\)$", "").trim().toUpperCase(Locale.ROOT);
+        }
+        String upper = s.toUpperCase(Locale.ROOT);
+        if (upper.matches("\\d+")) {
+            String stripped = upper.replaceFirst("^0+(?!$)", "");
+            return ISO4217_NUMERIC_TO_ALPHA.getOrDefault(stripped, stripped);
+        }
+        return upper;
+    }
+
+    /** 업체 {@code baseCurrency} CSV → 정규화·중복 제거·순서 유지 */
+    public static List<String> parseBaseCurrencyCsv(String baseCurrencyCsv) {
+        if (baseCurrencyCsv == null || baseCurrencyCsv.isBlank()) {
+            return List.of();
+        }
+        List<String> out = new ArrayList<>();
+        for (String p : baseCurrencyCsv.split(",")) {
+            if (p == null || p.isBlank()) {
+                continue;
+            }
+            String n = normalizeCurrency(p.trim());
+            if (!out.contains(n)) {
+                out.add(n);
+            }
+        }
+        return out;
+    }
+
+    /**
+     * 로그인 조직 기준 표시 통화 순서. 총본사·본사는 CSV 전체, 총판·하위는 첫 통화만.
+     * CSV가 비어 있으면 {@code fallbackPrimary}(수수료 정책 등) 한 종류만 사용합니다.
+     */
+    public static List<String> resolveDisplayCurrencyOrder(boolean multiCurrencyViewer,
+                                                           String baseCurrencyCsv,
+                                                           String fallbackPrimary) {
+        String prim = normalizeCurrency(fallbackPrimary != null && !fallbackPrimary.isBlank() ? fallbackPrimary : "KRW");
+        List<String> parsed = parseBaseCurrencyCsv(baseCurrencyCsv);
+        if (parsed.isEmpty()) {
+            return List.of(prim);
+        }
+        if (!multiCurrencyViewer) {
+            return List.of(parsed.get(0));
+        }
+        return List.copyOf(parsed);
     }
 
     public static BigDecimal parseMoney(Object v) {
@@ -154,20 +216,45 @@ public final class PayListStatusBarBuckets {
             Map<String, Map<String, Long>> countByBucketAndCurrency,
             boolean partial,
             boolean showEmptyBuckets) {
+        return buildBarPayload(multiCurrency, primaryCurrency, amountsByBucketCurrency,
+                countByBucketAndCurrency, partial, showEmptyBuckets, null);
+    }
+
+    /**
+     * @param displayCurrencyOrder 다통화일 때 이 순서로만 열을 노출(조직 기준통화). null 이면 집계에 나온 통화를 기존 정렬로 표시.
+     */
+    public static Map<String, Object> buildBarPayload(
+            boolean multiCurrency,
+            String primaryCurrency,
+            Map<String, Map<String, BigDecimal>> amountsByBucketCurrency,
+            Map<String, Map<String, Long>> countByBucketAndCurrency,
+            boolean partial,
+            boolean showEmptyBuckets,
+            List<String> displayCurrencyOrder) {
         String primary = normalizeCurrency(primaryCurrency != null ? primaryCurrency : "KRW");
-        List<String> order = List.of(SUCCESS, FAIL, VOID, REFUND, OTHER);
+        List<String> bucketOrder = List.of(SUCCESS, FAIL, VOID, REFUND, CANCEL, OTHER);
         List<Map<String, Object>> buckets = new ArrayList<>();
-        for (String key : order) {
+        for (String key : bucketOrder) {
             Map<String, BigDecimal> amts = amountsByBucketCurrency.getOrDefault(key, Collections.emptyMap());
             Map<String, Long> cnts = countByBucketAndCurrency.getOrDefault(key, Collections.emptyMap());
             long totalCount;
             Map<String, String> amountsPlain = new LinkedHashMap<>();
+            Map<String, Long> countsByCurForRow = null;
             if (multiCurrency) {
                 totalCount = cnts.values().stream().mapToLong(Long::longValue).sum();
-                List<String> curs = new ArrayList<>(amts.keySet());
-                curs.sort(PayListStatusBarBuckets::currencySort);
+                List<String> curs;
+                if (displayCurrencyOrder != null && !displayCurrencyOrder.isEmpty()) {
+                    curs = new ArrayList<>(displayCurrencyOrder);
+                } else {
+                    curs = new ArrayList<>(amts.keySet());
+                    curs.sort(PayListStatusBarBuckets::currencySort);
+                }
                 for (String c : curs) {
-                    amountsPlain.put(c, stripTrailingZeros(amts.get(c)));
+                    amountsPlain.put(c, stripTrailingZeros(amts.getOrDefault(c, BigDecimal.ZERO)));
+                }
+                countsByCurForRow = new LinkedHashMap<>();
+                for (String c : curs) {
+                    countsByCurForRow.put(c, cnts.getOrDefault(c, 0L));
                 }
             } else {
                 totalCount = cnts.getOrDefault(primary, 0L);
@@ -181,6 +268,9 @@ public final class PayListStatusBarBuckets {
             row.put("key", key);
             row.put("count", totalCount);
             row.put("amountsByCurrency", amountsPlain);
+            if (countsByCurForRow != null) {
+                row.put("countsByCurrency", countsByCurForRow);
+            }
             buckets.add(row);
         }
         Map<String, Object> meta = new LinkedHashMap<>();
@@ -189,6 +279,9 @@ public final class PayListStatusBarBuckets {
         meta.put("buckets", buckets);
         meta.put("partial", partial);
         meta.put("showEmptyBuckets", showEmptyBuckets);
+        if (displayCurrencyOrder != null && !displayCurrencyOrder.isEmpty()) {
+            meta.put("currencyOrder", new ArrayList<>(displayCurrencyOrder));
+        }
         return meta;
     }
 
@@ -196,12 +289,13 @@ public final class PayListStatusBarBuckets {
         if (c == null || c.isBlank()) {
             return 999;
         }
+        /* 기본 나열: JPY → USD → THB → KRW → 기타(알파벳) */
         return switch (c.trim().toUpperCase(Locale.ROOT)) {
-            case "KRW" -> 0;
-            case "JPY" -> 1;
-            case "USD" -> 2;
-            case "EUR" -> 3;
-            case "THB" -> 4;
+            case "JPY" -> 0;
+            case "USD" -> 1;
+            case "THB" -> 2;
+            case "KRW" -> 3;
+            case "EUR" -> 4;
             default -> 40;
         };
     }
@@ -289,7 +383,13 @@ public final class PayListStatusBarBuckets {
         /** @param showEmptyBuckets 통합·결제내역 true = 건수 0 버킷도 표시, 변형 화면 false = 해당 건만 요약 */
         public Map<String, Object> toPayload(boolean multiCurrency, String primaryCurrency, boolean partial,
                                              boolean showEmptyBuckets) {
-            return buildBarPayload(multiCurrency, primaryCurrency, amounts, counts, partial, showEmptyBuckets);
+            return buildBarPayload(multiCurrency, primaryCurrency, amounts, counts, partial, showEmptyBuckets, null);
+        }
+
+        public Map<String, Object> toPayload(boolean multiCurrency, String primaryCurrency, boolean partial,
+                                             boolean showEmptyBuckets, List<String> displayCurrencyOrder) {
+            return buildBarPayload(multiCurrency, primaryCurrency, amounts, counts, partial, showEmptyBuckets,
+                    displayCurrencyOrder);
         }
     }
 }

@@ -2,6 +2,7 @@ package com.pg.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.pg.integration.pg.PgVendor;
 import com.pg.entity.HqApiConfig;
 import com.pg.repository.HqApiConfigRepository;
 import org.springframework.stereotype.Service;
@@ -106,7 +107,7 @@ public class UrlPayCardCopyService {
         if (rowPgUpper.equals(opPgUpper)) {
             return true;
         }
-        return "CHILLPAY".equals(rowPgUpper) && ChillPayService.isChillPayFamilyPgCd(opPgUpper);
+        return PgVendor.CHILLPAY.equals(rowPgUpper) && ChillPayService.isChillPayFamilyPgCd(opPgUpper);
     }
 
     private static String text(JsonNode obj, String field) {

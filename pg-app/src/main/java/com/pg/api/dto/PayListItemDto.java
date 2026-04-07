@@ -7,7 +7,10 @@ import com.pg.entity.PgTrnsctn;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+
+import com.pg.util.TrnTimeDualZoneDisplay;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -27,7 +30,6 @@ public class PayListItemDto {
     private static final Pattern VOID_TOKEN_HINT = Pattern.compile("(^|[^a-z0-9_])void([^a-z0-9_]|$)", Pattern.CASE_INSENSITIVE);
 
     private static final DateTimeFormatter TRN_DATE = DateTimeFormatter.ISO_LOCAL_DATE;
-    private static final DateTimeFormatter TRN_TIME = DateTimeFormatter.ofPattern("HH:mm:ss");
 
     public static Map<String, Object> from(PgTrnsctn t, PayListRowContext ctx) {
         Map<String, Object> row = new HashMap<>();
@@ -36,12 +38,13 @@ public class PayListItemDto {
         MerchantPgBinding b = ctx != null ? ctx.getBinding() : null;
 
         LocalDateTime created = t.getCreatedAt();
+        ZoneId interpret = TrnTimeDualZoneDisplay.interpretAsZoneForCurrency(t.getCurType());
         String payDtStr = created != null
-                ? created.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME).replace("T", " ")
+                ? TrnTimeDualZoneDisplay.formatDualLineDateTime(created, interpret)
                 : "";
         if (created != null) {
             row.put("trnDate", created.toLocalDate().format(TRN_DATE));
-            row.put("trnTime", created.toLocalTime().format(TRN_TIME));
+            row.put("trnTime", TrnTimeDualZoneDisplay.formatDualLineTimeOnly(created, interpret));
         } else {
             row.put("trnDate", "");
             row.put("trnTime", "");
@@ -56,7 +59,9 @@ public class PayListItemDto {
         row.put("chillCustomer", chillCustomerLabel(t));
         row.put("orderNo", orderNoLabel(t));
         row.put("paymentChannel", blank(t.getPaymentChannel()));
-        row.put("payCompletedAt", formatDt(t.getPaidAt()));
+        row.put("payCompletedAt", t.getPaidAt() != null
+                ? TrnTimeDualZoneDisplay.formatDualLineDateTime(t.getPaidAt(), interpret)
+                : "");
         row.put("currency", resolveCurrencyCodeForDisplay(t, mp));
         row.put("routeNo", routeNoLabel(t, b));
         /** 그리드 행 상태색·뱃지 — 클라이언트 톤 매핑용(ICOPAY 내부 코드) */
@@ -267,11 +272,6 @@ public class PayListItemDto {
         return (s == null || s.isBlank()) ? "-" : s;
     }
 
-    private static String formatDt(LocalDateTime dt) {
-        if (dt == null) return "";
-        return dt.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME).replace("T", " ");
-    }
-
     /** 노티·DB 소수 금액 그대로 JSON 숫자로 (없으면 빈 문자열) */
     private static Object amountJson(BigDecimal v) {
         return v != null ? v : "";
@@ -389,7 +389,23 @@ public class PayListItemDto {
      * 콜백 숫자: 0 성공, 1·3 실패, 2 취소, 4 오류(PG 부록). 무효·환불 등은 ICOPAY 내부 코드(21·30 등) 원문 또는 내부 {@code status}로 노출.
      */
     private static String chillStatusLabel(PgTrnsctn t) {
+        /* 내부 status·칠페이문구 조합이 이미 취소·무효·실패 등이면 한 자리 콜백(0=성공) 표기보다 우선 */
+        String effFirst = effectiveStatusForPayLabels(t);
+        if (effFirst != null && !effFirst.isBlank() && hasDefinitiveInternalPayStatus(effFirst)
+                && !"10".equals(effFirst) && !"08".equals(effFirst)) {
+            return chillInternalPayStatusToKo(effFirst);
+        }
         String rawStored = t.getChillPaymentStatus() != null ? t.getChillPaymentStatus().trim() : "";
+        /* NOTI는 PaymentStatus=2가 취소·무효 모두에 쓰일 수 있음 — 내부·유효상태(effective)로 무효를 취소와 구분 */
+        if ("2".equals(rawStored)) {
+            String eff = effectiveStatusForPayLabels(t);
+            if (isVoidFamilyStatus(eff)) {
+                return chillInternalPayStatusToKo(eff);
+            }
+            if ("20".equals(eff)) {
+                return "취소";
+            }
+        }
         if (!rawStored.isEmpty()) {
             String fromCallback = chillNotiPaymentStatusDigitToKo(rawStored);
             if (fromCallback != null) {

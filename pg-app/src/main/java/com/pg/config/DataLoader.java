@@ -1,5 +1,6 @@
 package com.pg.config;
 
+import com.pg.integration.pg.PgVendor;
 import com.pg.catalog.PageMenuCatalog;
 import com.pg.entity.*;
 import com.pg.repository.*;
@@ -151,7 +152,7 @@ public class DataLoader {
                     t.setChillTransactionId(String.valueOf(8_000_000L + i));
                     t.setCustomerId("guest_" + i);
                     t.setCustomerNm("시드고객" + i);
-                    t.setPaymentChannel(i % 3 == 0 ? "CARD" : (i % 3 == 1 ? "BANK" : "CHILLPAY"));
+                    t.setPaymentChannel(i % 3 == 0 ? "CARD" : (i % 3 == 1 ? "BANK" : PgVendor.CHILLPAY));
                     t.setPaidAt(LocalDateTime.now().minusMinutes(i));
                     t.setIcopayAmt(BigDecimal.valueOf(50L + i));
                     t.setChillFeeAmt(BigDecimal.valueOf(30L + i % 5));
@@ -160,7 +161,7 @@ public class DataLoader {
                     t.setChillPaymentStatus("10".equals(t.getStatus()) ? "Paid" : ("20".equals(t.getStatus()) ? "Cancelled" : "WaitAuthorize"));
                     t.setSettledYn(i % 5 == 0 ? "Y" : "N");
                     t.setApprovalNo(String.format("%06d", 100000 + i));
-                    t.setVan("CHILLPAY");
+                    t.setVan(PgVendor.CHILLPAY);
                     trnsctnRepository.save(t);
                 }
             }
@@ -173,13 +174,13 @@ public class DataLoader {
             if (pgAgencyRepository.count() == 0) {
                 String[][] agencies = {
                     {"PG01", "이니시스(INICIS)"}, {"PG02", "다날"}, {"PG03", "KG이니시스"}, {"PG04", "나이스페이"},
-                    {"CHILLPAY", "ChillPay(칠리페이)"}
+                    {PgVendor.CHILLPAY, "ChillPay(칠리페이)"}
                 };
                 for (String[] a : agencies) {
                     PgAgency pa = new PgAgency();
                     pa.setPgCd(a[0]);
                     pa.setPgNm(a[1]);
-                    String ep = "CHILLPAY".equals(a[0]) ? "https://api-directcredit.chillpay.co" : "https://api.example.com/" + a[0].toLowerCase();
+                    String ep = PgVendor.CHILLPAY.equals(a[0]) ? "https://api-directcredit.chillpay.co" : "https://api.example.com/" + a[0].toLowerCase();
                     pa.setApiEndpoint(ep);
                     pa.setEndpointApi(ep);
                     pa.setIntegNotiYn("N");
@@ -189,9 +190,9 @@ public class DataLoader {
                     pa.setUseYn("Y");
                     pgAgencyRepository.save(pa);
                 }
-            } else if (pgAgencyRepository.findByPgCd("CHILLPAY").isEmpty()) {
+            } else if (pgAgencyRepository.findByPgCd(PgVendor.CHILLPAY).isEmpty()) {
                 PgAgency pa = new PgAgency();
-                pa.setPgCd("CHILLPAY");
+                pa.setPgCd(PgVendor.CHILLPAY);
                 pa.setPgNm("ChillPay(칠리페이)");
                 String ep = "https://api-directcredit.chillpay.co";
                 pa.setApiEndpoint(ep);
@@ -439,11 +440,11 @@ public class DataLoader {
                 }
             }
 
-            if (pgAgencyRepository.findByPgCd("CHILLPAY").isPresent()) {
-                if (merchantPgBindingRepository.findByOrgUnitIdOrderBySortOrderAsc(e.getId()).stream().noneMatch(mb -> "CHILLPAY".equals(mb.getPgCd()))) {
+            if (pgAgencyRepository.findByPgCd(PgVendor.CHILLPAY).isPresent()) {
+                if (merchantPgBindingRepository.findByOrgUnitIdOrderBySortOrderAsc(e.getId()).stream().noneMatch(mb -> PgVendor.CHILLPAY.equals(mb.getPgCd()))) {
                     MerchantPgBinding binding = new MerchantPgBinding();
                     binding.setOrgUnitId(e.getId());
-                    binding.setPgCd("CHILLPAY");
+                    binding.setPgCd(PgVendor.CHILLPAY);
                     binding.setActivationYn("Y");
                     binding.setOperationalYn("Y");
                     binding.setPayMethod("WEB");
@@ -454,10 +455,10 @@ public class DataLoader {
                     binding.setSortOrder(1);
                     merchantPgBindingRepository.save(binding);
                 }
-                if (merchantPgBindingRepository.findByOrgUnitIdOrderBySortOrderAsc(e2.getId()).stream().noneMatch(mb -> "CHILLPAY".equals(mb.getPgCd()))) {
+                if (merchantPgBindingRepository.findByOrgUnitIdOrderBySortOrderAsc(e2.getId()).stream().noneMatch(mb -> PgVendor.CHILLPAY.equals(mb.getPgCd()))) {
                     MerchantPgBinding binding2 = new MerchantPgBinding();
                     binding2.setOrgUnitId(e2.getId());
-                    binding2.setPgCd("CHILLPAY");
+                    binding2.setPgCd(PgVendor.CHILLPAY);
                     binding2.setActivationYn("Y");
                     binding2.setOperationalYn("Y");
                     binding2.setPayMethod("WEB");
@@ -587,10 +588,10 @@ public class DataLoader {
             ex.setOrgUnitId(e2.getId());
             merchantCommissionExtraRepository.save(ex);
 
-            if (pgAgencyRepository.findByPgCd("CHILLPAY").isPresent()) {
+            if (pgAgencyRepository.findByPgCd(PgVendor.CHILLPAY).isPresent()) {
                 MerchantPgBinding binding = new MerchantPgBinding();
                 binding.setOrgUnitId(e2.getId());
-                binding.setPgCd("CHILLPAY");
+                binding.setPgCd(PgVendor.CHILLPAY);
                 binding.setActivationYn("Y");
                 binding.setOperationalYn("Y");
                 binding.setPayMethod("WEB");

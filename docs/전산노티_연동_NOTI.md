@@ -36,6 +36,42 @@
 수신 내역은 `tb_pg_notify_inbound` 에 원문·매핑된 `merchant_id`(업체코드)·`process_status` 로 적재됩니다.  
 이후 ChillPay/NOTI 필드에 맞춰 `pg_trnsctn` 자동 반영·중복 제거 등을 확장할 수 있습니다.
 
+## 노티미들웨어 → PG 중계(관리자 무효·취소·환불)
+
+칠페이 노티가 PG 로 직접 오지 않는 경우(예: **관리자 무효**만 노티미들웨어 DB에 반영된 경우)에도 PG 결제내역(`pg_trnsctn`)과 맞추려면, **노티미들웨어 서버**가 아래 URL로 **추가 POST** 하면 됩니다.  
+기존 노티 URL과 **동일**한 `ingressToken`, **동일**한 `app.pg-notify` IP·HMAC 정책을 적용합니다. **HMAC 은 이 JSON 원문** 기준으로 계산합니다.
+
+- **URL**: `POST {공개베이스}/api/open/pg-notify/{ingressToken}/noti-middleware-relay`  
+  - `Content-Type: application/json`
+  - 선택: 경로에 `/{targetCode}` 를 넣을 수 있음 — `POST .../pg-notify/{token}/{cb|rs}/noti-middleware-relay` (채널은 본사설정 노티 대상 코드와 동일)
+
+**요청 본문 예시 (무효)**
+
+```json
+{
+  "eventType": "VOID",
+  "transactionId": "31098397",
+  "merchantCode": "M035594",
+  "routeNo": "1",
+  "orderNo": "20260407172417973120",
+  "compId": "6000000017",
+  "reason": "관리자 무효 요청"
+}
+```
+
+| 필드 | 필수 | 설명 |
+|------|------|------|
+| `eventType` | `internalStatusCode` 없을 때 필수 | `VOID` / `CANCEL` / `REFUND` (대소문자 무시) |
+| `transactionId` | 예 | ChillPay `TransactionId` |
+| `merchantCode` | 예 | MID (`MerchantCode`) |
+| `routeNo` | 아니오 | `RouteNo` |
+| `orderNo` | 아니오 | `OrderNo` |
+| `compId` | 아니오 | 업체코드 — 본문에 `icopayCompId=` 로 넣어 가맹점 매칭 보강 |
+| `reason` | 아니오 | 사유 문구 |
+| `internalStatusCode` | 아니오 | 직접 ICOPAY 코드 지정 시 `21`·`20`·`30` 등 (`eventType` 대신 사용 가능) |
+
+서버는 내부에서 ChillPay 호환 JSON 으로 합성한 뒤, 기존 노티 수신과 동일 파이프로 `pg_trnsctn` 에 반영합니다.
+
 ## 로컬 vs 서버 환경
 
 - **기능 개발·연동 테스트**: 로컬에서 Spring Boot + 관리자(site)로 충분합니다.  

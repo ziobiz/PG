@@ -788,15 +788,39 @@ body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Ro
   text-align: left;
 }
 .pay-list-status-bar--empty { display: none; }
-/* 결제관리 상단: 금액 요약(1행) + 상태별(2행) 단일 카드 */
+/* 결제관리 상단: 금액 요약(1행) + 상태별(2행) — 섹션·제목으로 분리 */
 .pay-list-aggregate-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
   line-height: 1.45;
   font-size: var(--pay-mng-dense-font-size, 12px);
 }
-.pay-list-aggregate-stack .pay-list-aggregate-row--financial:not(.pay-list-financial-summary--empty) {
-  padding-bottom: 8px;
-  margin-bottom: 8px;
+.pay-list-aggregate-section {
+  width: 100%;
+}
+.pay-list-aggregate-heading {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: #64748b;
+  margin-bottom: 6px;
+  line-height: 1.2;
+}
+.pay-list-aggregate-section--financial:has(.pay-list-financial-summary--empty) {
+  display: none;
+}
+.pay-list-aggregate-section--status:has(.pay-list-status-bar--empty) {
+  display: none;
+}
+.pay-list-aggregate-section--financial:not(:has(.pay-list-financial-summary--empty)) {
+  padding-bottom: 10px;
   border-bottom: 1px solid #e2e8f0;
+}
+.pay-list-aggregate-stack .pay-list-aggregate-row--financial:not(.pay-list-financial-summary--empty) {
+  padding-bottom: 0;
+  margin-bottom: 0;
+  border-bottom: none;
 }
 .pay-list-aggregate-stack .pay-list-status-bar {
   padding: 0;
@@ -857,13 +881,18 @@ body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Ro
   background: #ffedd5;
   color: #c2410c;
 }
+/* 환불·기타는 서로 다른 톤(둘 다 회색 단일색이면 구분 어려움) */
 .pay-list-status-bar__pill--refund {
-  background: #f3f4f6;
-  color: #4b5563;
+  background: #dbeafe;
+  color: #1e40af;
+}
+.pay-list-status-bar__pill--cancel {
+  background: #f4f4f5;
+  color: #52525b;
 }
 .pay-list-status-bar__pill--other {
-  background: #f3f4f6;
-  color: #374151;
+  background: #e0e7ff;
+  color: #3730a3;
 }
 .pay-list-status-bar__lbl { font-weight: 700; }
 .pay-list-status-bar__amt { font-weight: 600; }
@@ -883,7 +912,26 @@ body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Ro
   margin-left: 4px;
   align-self: center;
 }
+.pay-list-status-bar__dash {
+  color: #94a3b8;
+  font-weight: 500;
+}
 /* tab-pane.screen-pay-list 는 #contentsMain 내부에 있음(자손 선택자) */
+/* JP/TH 이중 시각(줄바꿈) — nowrap 해제·행 높이 */
+.pay-grid-time-dual {
+  white-space: normal !important;
+  line-height: 1.35;
+  vertical-align: top;
+}
+.pay-grid-time-line--jp {
+  color: #0d6efd;
+  font-weight: 600;
+}
+.pay-grid-time-line--th {
+  color: #1e293b;
+  font-weight: 500;
+}
+
 #contentsMain .screen-pay-list .table thead tr:first-child th {
   background: #eaf4ff;
   color: #275a84;
@@ -1030,6 +1078,47 @@ body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Ro
   font-size: var(--pay-mng-dense-font-size);
 }
 #contentsMain .screen-pay-list .quick-date {
+  font-size: var(--pay-mng-dense-font-size);
+}
+
+/* 업체관리(트리): 결제내역(screen-pay-list)과 동일 밀도 글자 크기 */
+#contentsMain .screen-comp-mng-tree .table thead th,
+#contentsMain .screen-comp-mng-tree .table tbody td {
+  font-size: var(--pay-mng-dense-font-size);
+  line-height: 1.25;
+  padding: 4px 8px;
+  vertical-align: middle !important;
+}
+#contentsMain .screen-comp-mng-tree .comp-mng-search-multiline .form-label,
+#contentsMain .screen-comp-mng-tree .comp-mng-search-multiline .form-control,
+#contentsMain .screen-comp-mng-tree .comp-mng-search-multiline .form-select,
+#contentsMain .screen-comp-mng-tree .screen-search-form.comp-mng-search-multiline .form-label,
+#contentsMain .screen-comp-mng-tree .screen-search-form.comp-mng-search-multiline .form-control,
+#contentsMain .screen-comp-mng-tree .screen-search-form.comp-mng-search-multiline .form-select {
+  font-size: var(--pay-mng-dense-font-size);
+}
+#contentsMain .screen-comp-mng-tree .search-notice,
+#contentsMain .screen-comp-mng-tree .search-notice li {
+  font-size: var(--pay-mng-dense-font-size);
+}
+#contentsMain .screen-comp-mng-tree .table-column-guide,
+#contentsMain .screen-comp-mng-tree .table-column-guide .column-guide-title,
+#contentsMain .screen-comp-mng-tree .table-column-guide .column-guide-label,
+#contentsMain .screen-comp-mng-tree .table-column-guide .btn-xs {
+  font-size: var(--pay-mng-dense-font-size);
+}
+#contentsMain .screen-comp-mng-tree .summary-total-bar,
+#contentsMain .screen-comp-mng-tree .summary-total-item {
+  font-size: var(--pay-mng-dense-font-size);
+}
+#contentsMain .screen-comp-mng-tree .screen-action-buttons .btn {
+  font-size: var(--pay-mng-dense-font-size);
+}
+#contentsMain .screen-comp-mng-tree .pagination-row .pagination-label,
+#contentsMain .screen-comp-mng-tree .pagination-row .pagination-total,
+#contentsMain .screen-comp-mng-tree .pagination-row .pagination-size-opt,
+#contentsMain .screen-comp-mng-tree .pagination-row .pagination-num,
+#contentsMain .screen-comp-mng-tree .pagination-row .pagination-num--current {
   font-size: var(--pay-mng-dense-font-size);
 }
 

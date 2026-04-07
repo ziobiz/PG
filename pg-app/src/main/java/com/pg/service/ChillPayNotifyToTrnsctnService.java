@@ -3,6 +3,8 @@ package com.pg.service;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.pg.integration.pg.PgVendor;
+import com.pg.integration.pg.notify.PgNotifyInboundTxnHandler;
 import com.pg.entity.MerchantPgBinding;
 import com.pg.entity.PgNotifyInbound;
 import com.pg.entity.PgTrnsctn;
@@ -10,6 +12,7 @@ import com.pg.entity.OrgUnit;
 import com.pg.repository.MerchantPgBindingRepository;
 import com.pg.repository.OrgUnitRepository;
 import com.pg.repository.PgTrnsctnRepository;
+import com.pg.util.ChillPayNotifyOutcomeAdjust;
 import com.pg.util.NotifyAmountParse;
 import com.pg.util.NotifyChannelMerge;
 import com.pg.util.NotifyToTxnStatusMerge;
@@ -40,7 +43,7 @@ import java.util.regex.Pattern;
  * {@link PgNotifyReceiveService}에서 끝난 뒤 본 서비스가 본문 필드를 읽어 적재합니다.
  */
 @Service
-public class ChillPayNotifyToTrnsctnService {
+public class ChillPayNotifyToTrnsctnService implements PgNotifyInboundTxnHandler {
 
     private static final Logger log = LoggerFactory.getLogger(ChillPayNotifyToTrnsctnService.class);
     private static final ObjectMapper MAPPER = new ObjectMapper();
@@ -73,42 +76,66 @@ public class ChillPayNotifyToTrnsctnService {
         this.hqNotifyMappingService = hqNotifyMappingService;
     }
 
+    @Override
+    public int order() {
+        return 0;
+    }
+
+    /**
+     * ChillPay 계열 노티 → {@code pg_trnsctn} 적재. ChillPay 형태가 아니면 {@code false} 를 반환해 다음 핸들러로 넘깁니다.
+     */
+    @Override
+    @Transactional
+    public boolean tryRecord(PgNotifyInbound in, String notifyChannel) {
+        try {
+            return doTryRecord(in, notifyChannel);
+        } catch (Exception e) {
+            log.warn("ChillPay 노티→pg_trnsctn 적재 실패 (수신 로그는 유지): {}", e.getMessage());
+            return true;
+        }
+    }
+
     /**
      * 수신 저장은 이미 끝난 {@code in}을 기준으로 시도합니다. 실패해도 예외를 던지지 않습니다.
+     *
+     * @deprecated 내부·테스트 외에는 {@link com.pg.integration.pg.notify.PgNotifyInboundTxnDispatcher} 를 사용하세요.
      */
+    @Deprecated
     @Transactional
     public void recordFromInbound(PgNotifyInbound in) {
-        recordFromInbound(in, "CALLBACK");
+        tryRecord(in, "CALLBACK");
     }
 
     /**
      * @param notifyChannel 노티 수신 URL 경로의 대상 코드로부터 해석된 채널(CALLBACK/RESULT 등).
      *                      {@link HqNotifyMappingService} 의 채널별 fieldMappings 와 대응합니다.
+     * @deprecated 내부·테스트 외에는 {@link com.pg.integration.pg.notify.PgNotifyInboundTxnDispatcher} 를 사용하세요.
      */
+    @Deprecated
     @Transactional
     public void recordFromInbound(PgNotifyInbound in, String notifyChannel) {
-        try {
-            doRecord(in, notifyChannel);
-        } catch (Exception e) {
-            log.warn("ChillPay 노티→pg_trnsctn 적재 실패 (수신 로그는 유지): {}", e.getMessage());
-        }
+        tryRecord(in, notifyChannel);
     }
 
-    private void doRecord(PgNotifyInbound in, String notifyChannel) {
+    private boolean doTryRecord(PgNotifyInbound in, String notifyChannel) {
         if (in == null || !"PARSED".equalsIgnoreCase(String.valueOf(in.getProcessStatus()).trim())) {
-            return;
+            if (in != null) {
+                log.debug("pg_trnsctn 미적재(inbound 로그는 저장됨): processStatus={} mid={} merchantId={} err={}",
+                        in.getProcessStatus(), in.getMid(), in.getMerchantId(), in.getErrorMessage());
+            }
+            return true;
         }
         String merchantCode = in.getMerchantId();
         if (merchantCode == null || merchantCode.isBlank()) {
-            return;
+            return true;
         }
         String raw = in.getRawBody();
         if (raw == null || raw.isBlank()) {
-            return;
+            return true;
         }
         JsonNode root = resolveNotifyJsonTree(in, raw.trim());
         if (root == null || !root.isObject()) {
-            return;
+            return true;
         }
 
         String pgCd = resolvePgCdForInbound(in);
@@ -121,37 +148,44 @@ public class ChillPayNotifyToTrnsctnService {
                 PgTrnsctn t = mapped.get();
                 log.info("노티매핑 적용 거래 적재 trnId={} merchantId={} pgCd={} orderNo={} chillTxn={} status={}",
                         t.getTrnId(), t.getMerchantId(), pgCd, t.getOrderNo(), t.getChillTransactionId(), t.getStatus());
-                return;
+                return true;
             }
         }
 
         if (!looksLikeChillPayNotify(in, root)) {
-            return;
+            return false;
         }
 
         String chillTxnId = textDeep(root, "TransactionId", "transactionId");
         String orderNo = textDeep(root, "OrderNo", "orderNo");
         if ((chillTxnId == null || chillTxnId.isBlank()) && (orderNo == null || orderNo.isBlank())) {
             log.debug("ChillPay 노티에 TransactionId·OrderNo 없음 — 거래 적재 생략");
-            return;
+            return true;
         }
 
         Optional<PgTrnsctn> existingOpt = findExisting(merchantCode.trim(), chillTxnId, orderNo);
         boolean mergeByGlobalChill = existingOpt.isPresent() && chillTxnId != null && !chillTxnId.isBlank()
                 && !merchantCode.trim().equalsIgnoreCase(
                 Optional.ofNullable(existingOpt.get().getMerchantId()).orElse("").trim());
+        String paymentStatus = firstNonBlankDeep(root,
+                "PaymentStatus", "paymentStatus", "Paymentstatus",
+                "PayResult", "payResult", "TxnStatus", "txnStatus", "PaymentResult", "paymentResult");
+        String statusField = firstNonBlankDeep(root,
+                "Status", "status", "ResultCode", "resultCode", "RespCode", "respCode", "ResponseCode", "responseCode");
+        String computed = PgNotifyInternalStatusMapper.mapPaymentAndStatus(paymentStatus, statusField, true);
+        computed = ChillPayNotifyOutcomeAdjust.reclassifyPaymentStatusTwoAfterPaid(existingOpt, paymentStatus, computed);
+
         Optional<BigDecimal> amountOpt = resolveAmountFromNotify(root);
-        if (!NotifyAmountParse.isPositive(amountOpt)) {
-            if (existingOpt.isEmpty()) {
+        if (!NotifyAmountParse.isPositive(amountOpt) && existingOpt.isEmpty()) {
+            boolean allowNewWithoutPositiveAmt = computed != null && (
+                    "10".equals(computed) || "08".equals(computed)
+                            || NotifyToTxnStatusMerge.isTerminalOutcome(computed));
+            if (!allowNewWithoutPositiveAmt) {
                 log.debug("ChillPay 노티 금액 없음 또는 0 — 신규 행 생략 orderNo={} chillTxn={}", orderNo, chillTxnId);
-                return;
+                return true;
             }
-            /* RESULT 실패 등 금액이 비어 있는 노티도 기존 행 상태만 갱신 */
         }
 
-        String paymentStatus = textDeep(root, "PaymentStatus", "paymentStatus", "Paymentstatus");
-        String statusField = textDeep(root, "Status", "status");
-        String computed = PgNotifyInternalStatusMapper.mapPaymentAndStatus(paymentStatus, statusField, true);
         PgTrnsctn t = existingOpt.orElseGet(() -> {
             PgTrnsctn x = new PgTrnsctn();
             x.setTrnId(newTrnId());
@@ -168,8 +202,15 @@ public class ChillPayNotifyToTrnsctnService {
         } else {
             amountBd = t.getAmtKrw() != null ? t.getAmtKrw() : BigDecimal.ZERO;
             if (amountBd.compareTo(BigDecimal.ZERO) <= 0) {
-                log.debug("ChillPay 노티 금액 없음·기존 금액도 없음 — 적재 생략 orderNo={} chillTxn={}", orderNo, chillTxnId);
-                return;
+                /* 금액 누락·0 이라도 승인·대기·터미널(취소·무효·실패 등)이면 행 생성·갱신 허용 */
+                boolean allowZeroAmt = NotifyToTxnStatusMerge.isTerminalOutcome(mergedStatus)
+                        || "10".equals(mergedStatus)
+                        || "08".equals(mergedStatus);
+                if (!allowZeroAmt) {
+                    log.debug("ChillPay 노티 금액 없음·기존 금액도 없음 — 적재 생략 orderNo={} chillTxn={}", orderNo, chillTxnId);
+                    return true;
+                }
+                amountBd = BigDecimal.ZERO;
             }
         }
         /* 잘못 파싱된 노티가 다른 업체로 들어와도 TransactionId 로 병합할 때는 기존 금액 유지(800 vs 80000 이중 적재 방지) */
@@ -185,7 +226,7 @@ public class ChillPayNotifyToTrnsctnService {
         t.setStatus(mergedStatus);
         t.setCurType(firstCurrency(root));
         t.setAmtKrw(amountBd);
-        t.setVan("CHILLPAY");
+        t.setVan(PgVendor.CHILLPAY);
         t.setNotifyChannelType(NotifyChannelMerge.mergeStored(t.getNotifyChannelType(), notifyCh));
 
         String payNo = orderNo != null && !orderNo.isBlank() ? orderNo.trim() : (chillTxnId != null ? chillTxnId.trim() : t.getTrnId());
@@ -236,6 +277,12 @@ public class ChillPayNotifyToTrnsctnService {
         }
 
         String chillPs = paymentStatus != null ? paymentStatus.trim() : (statusField != null ? statusField.trim() : null);
+        /* 승인 숫자(0~4)만 남은 레거시 표기인데 병합 결과가 무효·취소 등이면 DB 표시 필드도 내부코드로 맞춤 */
+        if (mergedStatus != null && NotifyToTxnStatusMerge.isTerminalOutcome(mergedStatus)
+                && !"10".equals(mergedStatus) && !"08".equals(mergedStatus)
+                && chillPs != null && chillPs.matches("^[0-4]$")) {
+            chillPs = mergedStatus;
+        }
         if (chillPs != null && !chillPs.isEmpty()) {
             t.setChillPaymentStatus(chillPs.length() > 50 ? chillPs.substring(0, 50) : chillPs);
         }
@@ -263,12 +310,13 @@ public class ChillPayNotifyToTrnsctnService {
         pgTrnsctnRepository.save(t);
         log.info("ChillPay 노티 거래 적재 trnId={} merchantId={} orderNo={} chillTxn={} channel={} status={}",
                 t.getTrnId(), t.getMerchantId(), t.getOrderNo(), t.getChillTransactionId(), notifyCh, t.getStatus());
+        return true;
     }
 
     /**
-     * JSON 노티는 그대로 파싱하고, ChillPay URL 결제 RESULT 가 {@code orderNo=…&transNo=…} 폼만 보낼 때는
-     * {@link PgNotifyReceiveService} 가 PARSED 로 맞춘 MID·루트를 넣어 합성 JSON 으로 거래 병합합니다.
-     * (수신 로그 {@code raw_body} 는 변경하지 않음.)
+     * JSON 노티는 그대로 파싱하고, {@code application/x-www-form-urlencoded} 본문은
+     * CALLBACK·RESULT 모두 합성 JSON 으로 올립니다. (노티미들웨어가 무효·취소 후속을 CALLBACK 폼으로 보내는 경우 포함)
+     * <p>수신 로그 {@code raw_body} 는 변경하지 않습니다.</p>
      */
     private JsonNode resolveNotifyJsonTree(PgNotifyInbound in, String trimmed) {
         if (trimmed.startsWith("{")) {
@@ -279,10 +327,13 @@ public class ChillPayNotifyToTrnsctnService {
                 return null;
             }
         }
-        if (!"RESULT".equalsIgnoreCase(String.valueOf(in.getNotifyChannelType()).trim())) {
-            return null;
+        if (trimmed.contains("=")) {
+            JsonNode synthetic = buildSyntheticChillPayJsonFromResultForm(trimmed, in);
+            if (synthetic != null) {
+                return synthetic;
+            }
         }
-        return buildSyntheticChillPayJsonFromResultForm(trimmed, in);
+        return null;
     }
 
     private static JsonNode buildSyntheticChillPayJsonFromResultForm(String formBody, PgNotifyInbound in) {
@@ -306,10 +357,14 @@ public class ChillPayNotifyToTrnsctnService {
             n.put("TransactionId", transNo.trim());
         }
         String resp = getLoose(lm, "respcode", "resp_code");
-        if (resp != null && !resp.isBlank()) {
-            n.put("PaymentStatus", resp.trim());
+        String paySt = getLoose(lm, "paymentstatus", "payment_status", "payresult", "pay_result",
+                "txnstatus", "txn_status", "paymentresult", "payment_result");
+        String effPay = coalesceNonBlank(resp, paySt);
+        if (effPay != null && !effPay.isBlank()) {
+            n.put("PaymentStatus", effPay.trim());
         }
-        String st = getLoose(lm, "status");
+        String st = coalesceNonBlank(getLoose(lm, "status"),
+                coalesceNonBlank(getLoose(lm, "resultcode", "result_code"), getLoose(lm, "responsecode", "response_code")));
         if (st != null && !st.isBlank()) {
             n.put("Status", st.trim());
         }
@@ -374,10 +429,14 @@ public class ChillPayNotifyToTrnsctnService {
     private boolean looksLikeChillPayNotify(PgNotifyInbound in, JsonNode root) {
         boolean hasTxnOrOrder = textDeep(root, "TransactionId", "transactionId") != null
                 || textDeep(root, "OrderNo", "orderNo") != null;
+        /* 무효·취소 전용 노티는 Amount 없이 Status·PaymentStatus·응답코드만 오는 경우가 많음(노티거래내역과 동일하게 처리) */
         boolean hasPaySignals = textDeep(root, "PaymentStatus", "paymentStatus") != null
                 || textDeep(root, "PaymentChannel", "paymentChannel") != null
                 || textDeep(root, "Amount", "amount") != null
-                || textDeep(root, "TotalAmount", "totalAmount") != null;
+                || textDeep(root, "TotalAmount", "totalAmount") != null
+                || textDeep(root, "Status", "status") != null
+                || firstNonBlankDeep(root, "PayResult", "payResult", "TxnStatus", "txnStatus") != null
+                || firstNonBlankDeep(root, "ResultCode", "resultCode", "RespCode", "respCode") != null;
         if (!hasTxnOrOrder || !hasPaySignals) {
             return false;
         }
@@ -391,8 +450,8 @@ public class ChillPayNotifyToTrnsctnService {
         String bodyRoute = textDeep(root, "RouteNo", "routeNo");
         if (bodyRoute != null && !bodyRoute.isBlank() && in.getRootNo() != null && !in.getRootNo().isBlank()) {
             if (!bodyRoute.trim().equals(in.getRootNo().trim())) {
-                log.debug("노티 RouteNo와 파싱 root_no 불일치 — ChillPay 거래 적재 생략 body={} inboundRoot={}", bodyRoute, in.getRootNo());
-                return false;
+                log.warn("노티 RouteNo 불일치(수신 root_no={}, 본문 RouteNo={}) — inbound PARSED 기준으로 적재 진행",
+                        in.getRootNo(), bodyRoute);
             }
         }
         return true;
@@ -547,6 +606,17 @@ public class ChillPayNotifyToTrnsctnService {
                 if (x.isBoolean()) {
                     return x.asBoolean() ? "true" : "false";
                 }
+            }
+        }
+        return null;
+    }
+
+    /** {@link #textDeep} 와 동일 탐색이나, 후보 키 중 첫 비어 있지 않은 값 */
+    private static String firstNonBlankDeep(JsonNode root, String... names) {
+        for (String name : names) {
+            String v = textDeep(root, name);
+            if (v != null && !v.isBlank()) {
+                return v;
             }
         }
         return null;

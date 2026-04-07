@@ -2,6 +2,7 @@ package com.pg.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.pg.dto.NotiMiddlewareRelayRequest;
 import com.pg.dto.NotifyReceiveOutcome;
 import com.pg.entity.HqNotifyEnvConfig;
 import com.pg.entity.MerchantPgBinding;
@@ -9,6 +10,7 @@ import com.pg.entity.OrgUnit;
 import com.pg.entity.PgAgency;
 import com.pg.entity.HqNotifyTarget;
 import com.pg.entity.PgNotifyInbound;
+import com.pg.integration.pg.notify.PgNotifyInboundTxnDispatcher;
 import com.pg.entity.PgTrnsctn;
 import com.pg.repository.HqNotifyTargetRepository;
 import com.pg.repository.MerchantPgBindingRepository;
@@ -19,6 +21,7 @@ import com.pg.repository.PgTrnsctnRepository;
 import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -38,7 +41,7 @@ import java.util.regex.Pattern;
 /**
  * 전사 PG 노티 수신 (NOTI 전산노티대상 URL 연동용).
  * <ul>
- *   <li><b>노티 연동 PG({@code integ_noti_yn=Y})</b>: 본사설정 API연동설정에서 연동용도가 노티인 결제대행사를 쓰는 가맹점만,
+ *   <li><b>노티 연동 PG({@code integ_noti_yn=Y})</b>: 배포설정 &gt; API연동설정에서 연동용도가 노티인 결제대행사를 쓰는 가맹점만,
  *       노티미들웨어가 보내는 {@code MerchantCode}(MID) + {@code RouteNo}(루트)로 {@code tb_merchant_pg_binding} 에서 분기합니다.</li>
  *   <li><b>URL 결제(1:N)</b>: 연동용도가 <b>URL 결제만</b>인 PG({@code integ_url_pay_yn=Y} 단독)는 공통 MID이므로
  *       동일 MID로 바인딩이 여러 건이면 본문에 <b>업체코드(compId)</b> 또는 {@code icopayCompId=} 가 있어야 합니다.</li>
@@ -60,7 +63,7 @@ public class PgNotifyReceiveService {
     private final OrgUnitRepository orgUnitRepository;
     private final PgAgencyRepository pgAgencyRepository;
     private final PgNotifyIngressGuard notifyIngressGuard;
-    private final ChillPayNotifyToTrnsctnService chillPayNotifyToTrnsctnService;
+    private final PgNotifyInboundTxnDispatcher pgNotifyInboundTxnDispatcher;
     private final HqNotifyTargetRepository hqNotifyTargetRepository;
     private final ChillPayService chillPayService;
     private final PgTrnsctnRepository pgTrnsctnRepository;
@@ -71,7 +74,7 @@ public class PgNotifyReceiveService {
                                 OrgUnitRepository orgUnitRepository,
                                 PgAgencyRepository pgAgencyRepository,
                                 PgNotifyIngressGuard notifyIngressGuard,
-                                ChillPayNotifyToTrnsctnService chillPayNotifyToTrnsctnService,
+                                PgNotifyInboundTxnDispatcher pgNotifyInboundTxnDispatcher,
                                 HqNotifyTargetRepository hqNotifyTargetRepository,
                                 ChillPayService chillPayService,
                                 PgTrnsctnRepository pgTrnsctnRepository) {
@@ -81,7 +84,7 @@ public class PgNotifyReceiveService {
         this.orgUnitRepository = orgUnitRepository;
         this.pgAgencyRepository = pgAgencyRepository;
         this.notifyIngressGuard = notifyIngressGuard;
-        this.chillPayNotifyToTrnsctnService = chillPayNotifyToTrnsctnService;
+        this.pgNotifyInboundTxnDispatcher = pgNotifyInboundTxnDispatcher;
         this.hqNotifyTargetRepository = hqNotifyTargetRepository;
         this.chillPayService = chillPayService;
         this.pgTrnsctnRepository = pgTrnsctnRepository;
@@ -93,6 +96,102 @@ public class PgNotifyReceiveService {
     @Transactional
     public NotifyReceiveOutcome receiveAndRespond(String pathToken, String notifyTargetCode, String rawBody, String contentType, String clientIp, HttpServletRequest request) {
         notifyIngressGuard.assertAllowed(clientIp, rawBody != null ? rawBody : "", request);
+        return receiveAndRespondCore(pathToken, notifyTargetCode, rawBody, contentType, clientIp, request);
+    }
+
+    /**
+     * 노티미들웨어에서 관리자 무효·취소 등만 처리하고 PG 로는 보내지 않았을 때,
+     * 동일 HMAC·토큰 정책으로 이 메서드에 <strong>중계 JSON</strong>을 POST 하면 ChillPay 형 노티로 합성해 {@code pg_trnsctn} 에 반영합니다.
+     * <p>요청 본문 HMAC 은 클라이언트가 보낸 원문(JSON) 기준입니다.
+     */
+    @Transactional
+    public NotifyReceiveOutcome receiveNotiMiddlewareRelay(String pathToken, String notifyTargetCode,
+                                                           String relayRequestRawJson,
+                                                           NotiMiddlewareRelayRequest relay,
+                                                           String clientIp, HttpServletRequest request) {
+        notifyIngressGuard.assertAllowed(clientIp, relayRequestRawJson != null ? relayRequestRawJson : "", request);
+        validateNotiMiddlewareRelay(relay);
+        String synthetic = buildSyntheticChillPayJsonFromRelay(relay);
+        log.info("노티미들웨어 중계 수신 → 합성 ChillPay 노티 적용 (txnId={}, event={})",
+                relay.getTransactionId(), relay.getEventType());
+        return receiveAndRespondCore(pathToken, notifyTargetCode, synthetic, MediaType.APPLICATION_JSON_VALUE, clientIp, request);
+    }
+
+    private static void validateNotiMiddlewareRelay(NotiMiddlewareRelayRequest r) {
+        if (r == null) {
+            throw new IllegalArgumentException("body required");
+        }
+        if (r.getTransactionId() == null || r.getTransactionId().isBlank()) {
+            throw new IllegalArgumentException("transactionId required");
+        }
+        if (r.getMerchantCode() == null || r.getMerchantCode().isBlank()) {
+            throw new IllegalArgumentException("merchantCode required");
+        }
+        boolean hasEv = r.getEventType() != null && !r.getEventType().isBlank();
+        boolean hasInt = r.getInternalStatusCode() != null && !r.getInternalStatusCode().isBlank();
+        if (!hasEv && !hasInt) {
+            throw new IllegalArgumentException("eventType or internalStatusCode required");
+        }
+    }
+
+    private static String buildSyntheticChillPayJsonFromRelay(NotiMiddlewareRelayRequest r) {
+        String internal;
+        if (r.getInternalStatusCode() != null && !r.getInternalStatusCode().isBlank()) {
+            internal = r.getInternalStatusCode().trim();
+        } else {
+            String ev = r.getEventType() != null ? r.getEventType().trim().toUpperCase(Locale.ROOT) : "";
+            internal = switch (ev) {
+                case "VOID", "INVALID", "VOIDED" -> "21";
+                case "CANCEL", "CANCELLED" -> "20";
+                case "REFUND" -> "30";
+                default -> throw new IllegalArgumentException("unsupported eventType: " + ev);
+            };
+        }
+        String paymentStatusText = switch (internal) {
+            case "21", "22", "40", "41", "42" -> "Voided";
+            case "20" -> "Cancelled";
+            case "30", "31" -> "Refunded";
+            case "99", "F0", "f0" -> "Failed";
+            default -> "Voided";
+        };
+        Map<String, Object> m = new LinkedHashMap<>();
+        m.put("MerchantCode", r.getMerchantCode().trim());
+        m.put("TransactionId", r.getTransactionId().trim());
+        if (r.getOrderNo() != null && !r.getOrderNo().isBlank()) {
+            m.put("OrderNo", r.getOrderNo().trim());
+        }
+        if (r.getRouteNo() != null && !r.getRouteNo().isBlank()) {
+            m.put("RouteNo", r.getRouteNo().trim());
+        }
+        m.put("PaymentStatus", paymentStatusText);
+        m.put("Status", internal);
+        StringBuilder desc = new StringBuilder();
+        if (r.getCompId() != null && !r.getCompId().isBlank()) {
+            desc.append("icopayCompId=").append(r.getCompId().trim());
+        }
+        if (r.getReason() != null && !r.getReason().isBlank()) {
+            if (desc.length() > 0) {
+                desc.append(' ');
+            }
+            desc.append("NOTI_MW_RELAY ").append(r.getReason().trim());
+        } else {
+            if (desc.length() > 0) {
+                desc.append(' ');
+            }
+            desc.append("NOTI_MW_RELAY");
+        }
+        m.put("PaymentDescription", desc.toString());
+        try {
+            return MAPPER.writeValueAsString(m);
+        } catch (Exception e) {
+            throw new IllegalStateException("relay json build failed", e);
+        }
+    }
+
+    /**
+     * 인입 검증(HMAC·IP)은 호출부에서 끝낸 뒤, 본문만 동일 파이프로 넣습니다.
+     */
+    private NotifyReceiveOutcome receiveAndRespondCore(String pathToken, String notifyTargetCode, String rawBody, String contentType, String clientIp, HttpServletRequest request) {
         HqNotifyEnvConfig env = hqNotifyEnvService.getOrCreate();
         if (!env.getIngressToken().equals(pathToken)) {
             throw new SecurityException("invalid notify token");
@@ -112,7 +211,7 @@ public class PgNotifyReceiveService {
         resolveAndFillInbound(in, parsed);
         inboundRepository.save(in);
         try {
-            chillPayNotifyToTrnsctnService.recordFromInbound(in, channelType);
+            pgNotifyInboundTxnDispatcher.dispatch(in, channelType);
         } catch (Exception e) {
             log.warn("노티→결제내역(pg_trnsctn) 후처리 실패 (수신 응답은 OK 유지): {}", e.getMessage());
         }
@@ -604,7 +703,7 @@ public class PgNotifyReceiveService {
         return a != null && yn(a.getIntegUrlPayYn());
     }
 
-    /** 본사설정 API연동설정에서 연동용도「노티」가 켜진 결제대행사에 매핑된 가맹점 바인딩만 */
+    /** 배포설정 &gt; API연동설정에서 연동용도「노티」가 켜진 결제대행사에 매핑된 가맹점 바인딩만 */
     private List<MerchantPgBinding> filterNotiPurposeBindings(List<MerchantPgBinding> list) {
         if (list == null || list.isEmpty()) {
             return List.of();

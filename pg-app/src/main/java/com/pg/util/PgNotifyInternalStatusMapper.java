@@ -1,5 +1,7 @@
 package com.pg.util;
 
+import com.pg.integration.pg.PgVendor;
+
 import java.util.Locale;
 import java.util.regex.Pattern;
 
@@ -64,12 +66,27 @@ public final class PgNotifyInternalStatusMapper {
             }
             if (p.matches("^\\d+$")) {
                 if ("0".equals(p)) {
+                    /*
+                     * ChillPay 콜백에서 PaymentStatus=0 은 통상 승인이나, 무효·취소 후속 노티에서
+                     * 동일하게 0 이 오고 실제 사유는 Status·RespCode·ResultCode(21·2 등)에만 있는 경우가 있다.
+                     * 노티미들웨어는 Status 기준으로 무효를 보여주므로 PG 전산도 Status 우선으로 맞춘다.
+                     */
+                    String fromStatusOnly = mapPaymentAndStatus(null, statusField, processingMapsToPaid);
+                    if (fromStatusOnly != null && !ST_PAID.equals(fromStatusOnly)
+                            && NotifyToTxnStatusMerge.isTerminalOutcome(fromStatusOnly)) {
+                        return fromStatusOnly;
+                    }
                     return ST_PAID;
                 }
                 if ("1".equals(p) || "3".equals(p) || "4".equals(p)) {
                     return ST_FAIL;
                 }
                 if ("2".equals(p)) {
+                    /*
+                     * ChillPay 콜백 숫자 2는 "취소" 원문이다.
+                     * 승인(10) → 2 로 덮어쓰는 경우만 무효(21)로 승격하며,
+                     * 그 판단은 저장 경로에서 기존 거래를 보고 수행한다(ChillPayNotifyOutcomeAdjust).
+                     */
                     return ST_CANCEL;
                 }
                 if ("21".equals(p)) {
@@ -132,6 +149,7 @@ public final class PgNotifyInternalStatusMapper {
                     return ST_FAIL;
                 }
                 if ("2".equals(s)) {
+                    /* 위 PaymentStatus 숫자 2와 동일 규칙 */
                     return ST_CANCEL;
                 }
                 if ("21".equals(s)) {
@@ -156,7 +174,7 @@ public final class PgNotifyInternalStatusMapper {
 
     /** 노티매핑: 벤더가 칠페이 계열일 때만 Processing → 승인. */
     public static String mapForMappedNotify(String paymentStatus, String statusField, String vendorCode) {
-        boolean chill = vendorCode != null && vendorCode.trim().toUpperCase(Locale.ROOT).startsWith("CHILLPAY");
+        boolean chill = PgVendor.isChillPayVendorCode(vendorCode);
         return mapPaymentAndStatus(paymentStatus, statusField, chill);
     }
 }

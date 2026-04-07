@@ -63,6 +63,7 @@
     if (divEarly === '취소') return 'cancel';
     if (divEarly === '인증대기') return 'pending';
     var st = row.status != null ? String(row.status).trim() : '';
+    if (st === '21' || st === '22' || st === '40' || st === '41' || st === '42') return 'void';
     if (st === '10') {
       var labEarly = row.chillPaymentStatus != null ? String(row.chillPaymentStatus).trim() : '';
       var ulE = labEarly.toLowerCase();
@@ -83,7 +84,6 @@
       }
       return 'cancel';
     }
-    if (st === '21' || st === '22' || st === '40' || st === '41' || st === '42') return 'void';
     if (st === '30' || st === '31') return 'refund';
     if (st === '99' || st === 'F0' || st.toLowerCase() === 'f0') return 'fail';
     if (st === '08') return 'pending';

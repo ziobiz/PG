@@ -210,6 +210,57 @@
     '<tbody id="hqBizdayProfileTbody"><tr><td colspan="11" class="text-center text-muted">저장된 설정이 없습니다.</td></tr></tbody></table></div>' +
     '</div></div>';
 
+  /** 배포설정 메뉴 — JPAY·가맹점 API 중계 진행안(정적 문서). 구현 시 이 본문을 참고·갱신합니다. */
+  var DEPLOY_STATIC_HTML = {
+    integrationPlan: '<div class="deploy-static-doc text-muted small">' +
+      '<h5 class="text-dark fw-semibold mb-3">PG 중계·미들웨어 연동 — 총괄 진행안</h5>' +
+      '<p class="mb-2"><strong class="text-body">목표</strong> · PG사와는 1:1(단일 연동 자격), 가맹점에는 1:N으로 우리 API를 제공하고, 결제·3DS·노티 결과를 <strong class="text-body">우리 미들웨어에 적재</strong>한 뒤 가맹점에 통지하는 구조입니다. <strong class="text-body">JPAY(JPY·3DS 계열)를 1차 범위</strong>로 두고 단계적으로 확장합니다.</p>' +
+      '<ul class="mb-3 ps-3">' +
+      '<li class="mb-1"><strong class="text-body">본사설정과의 구분</strong> · 수수료·노티 URL·도메인·권한 등 <em>전사 운영 설정</em>은 <strong class="text-body">본사설정</strong>에 두고, <strong class="text-body">PG API 연동·배포 자격·중계 출시·JPAY·가맹점 API 문서·체크리스트</strong>는 이 <strong class="text-body">배포설정</strong>에서 관리합니다.</li>' +
+      '<li class="mb-1"><strong class="text-body">노티</strong> · PG → 우리 <code>/api/open/pg-notify/…</code> 수신·<code>pg_trnsctn</code> 적재는 기존 파이프를 활용합니다. 가맹점으로의 아웃바운드 노티는 별도 설계(콜백 URL·서명·재시도)로 추가합니다.</li>' +
+      '<li class="mb-1"><strong class="text-body">가맹점 분기</strong> · MID+루트만이 아니라 <strong class="text-body">등록 업체코드 + 결제대행사 MID</strong> 조합으로 바인딩을 찾는 방향(구현 단계에서 수신 본문·바인딩 스키마와 맞춤).</li>' +
+      '</ul>' +
+      '<h6 class="text-body fw-semibold mt-3">권장 단계</h6>' +
+      '<ol class="ps-3 mb-0">' +
+      '<li class="mb-1">사전: JPAY 연동 문서·샌드·계약 범위 확정</li>' +
+      '<li class="mb-1">인바운드: JPAY 노티 필드 매핑(<strong class="text-body">노티매핑설정</strong> 벤더 JPAY) 및 적재 로직</li>' +
+      '<li class="mb-1">아웃바운드: 가맹점 API(결제 세션·3DS 리턴) + 가맹점 웹훅</li>' +
+      '<li class="mb-0">운영: 모니터링·키 로테이션·이 화면 체크리스트 점검</li>' +
+      '</ol></div>',
+    jpayWorkPlan: '<div class="deploy-static-doc text-muted small">' +
+      '<h5 class="text-dark fw-semibold mb-3">JPAY 우선 — 단계별 작업 계획</h5>' +
+      '<p class="mb-2">아래는 구현 시 작업 분해 예시입니다. 실제 일정·담당은 제이페이 제공 스펙에 맞춰 조정합니다.</p>' +
+      '<table class="table table-sm table-bordered bg-white">' +
+      '<thead><tr><th style="width:6rem">단계</th><th>내용</th></tr></thead><tbody>' +
+      '<tr><td class="text-nowrap">P0</td><td>JPAY API·3DS·노티 필드 정의서·샌드 MID/키 수령</td></tr>' +
+      '<tr><td>P1</td><td><code>tb_pg_agency</code> 등에 JPAY 등록, 가맹점 <code>tb_merchant_pg_binding</code> (업체코드·MID) 검증</td></tr>' +
+      '<tr><td>P2</td><td>노티매핑 JSON 벤더 <code>JPAY</code> — CALLBACK/RESULT 필드 매핑·표시값(displayMaps)</td></tr>' +
+      '<tr><td>P3</td><td>수신 적재: 기존 ChillPay 경로와 병행할 JPAY 전용 파서/분기 또는 매핑 우선 적용</td></tr>' +
+      '<tr><td>P4</td><td>가맹점→우리→JPAY 결제 세션·3DS 리턴 URL(우리 도메인) 연동</td></tr>' +
+      '<tr><td>P5</td><td>UAT → 운영 전환, 본 메뉴 <strong class="text-body">배포 체크리스트</strong> 완료</td></tr>' +
+      '</tbody></table>' +
+      '<p class="mt-3 mb-0 small">참고: 기본 노티매핑 템플릿에 JPAY 벤더 슬롯이 이미 포함되어 있습니다. 필드 매핑은 스펙 확정 후 UI에서 채웁니다.</p></div>',
+    merchantApiPolicy: '<div class="deploy-static-doc text-muted small">' +
+      '<h5 class="text-dark fw-semibold mb-3">가맹점 API 배포 — 정책 요약</h5>' +
+      '<ul class="ps-3 mb-3">' +
+      '<li class="mb-1"><strong class="text-body">식별</strong> · 가맹점별 <strong class="text-body">업체코드</strong> + 발급 <strong class="text-body">API Key</strong> + 요청 무결성용 <strong class="text-body">비밀키(HMAC)</strong> (필요 시 암호화용 키·IV 별도)</li>' +
+      '<li class="mb-1"><strong class="text-body">환경</strong> · 운영/스테이징 URL·키 분리, 키 분실 시 폐기·재발급</li>' +
+      '<li class="mb-1"><strong class="text-body">콜백</strong> · 가맹점 HTTPS URL 등록, 우리→가맹점 노티 서명·재시도 정책</li>' +
+      '<li class="mb-1"><strong class="text-body">문서</strong> · OpenAPI·샘플·오류 코드 — 배포 시 버전(<code>/api/v1</code>) 고정</li>' +
+      '</ul>' +
+      '<p class="mb-0 small text-secondary">세부 UI(키 발급 화면 등)는 이후 스프린트에서 배포설정 또는 업체관리와 연동해 추가합니다.</p></div>',
+    launchChecklist: '<div class="deploy-static-doc text-muted small">' +
+      '<h5 class="text-dark fw-semibold mb-3">배포·운영 체크리스트</h5>' +
+      '<ul class="list-unstyled mb-0">' +
+      '<li class="mb-2"><i class="bi bi-check2-square me-1 text-secondary"></i> API·관리자 <strong class="text-body">HTTPS</strong>·공개 URL 베이스 설정</li>' +
+      '<li class="mb-2"><i class="bi bi-check2-square me-1 text-secondary"></i> 전산 노티 URL이 PG/미들웨어에 등록됨 (<code>ingressToken</code> 일치)</li>' +
+      '<li class="mb-2"><i class="bi bi-check2-square me-1 text-secondary"></i> <strong class="text-body">IP 허용·HMAC</strong> 등 <code>app.pg-notify</code> 운영값 반영</li>' +
+      '<li class="mb-2"><i class="bi bi-check2-square me-1 text-secondary"></i> JPAY 샌드에서 승인·취소·무효·3DS 시나리오 검증</li>' +
+      '<li class="mb-2"><i class="bi bi-check2-square me-1 text-secondary"></i> 결제내역·노티수령 로그로 <strong class="text-body">적재·분기</strong> 확인</li>' +
+      '<li class="mb-0"><i class="bi bi-check2-square me-1 text-secondary"></i> 가맹점 콜백·장애 알림·로그 보존 정책</li>' +
+      '</ul></div>'
+  };
+
   var MENU_SCREENS = {
     '/hq/pgApiMng': {
       emptyMessage: '조회된 데이터가 없습니다.',
@@ -381,7 +432,7 @@
       formSections: [
         {
           title: '전산 노티 수신 (NOTI 전산노티대상 연동)',
-          notice: '아래 URL을 ziobiz/NOTI 전산노티대상 설정에 등록하세요. 경로 끝 토큰으로 무단 호출을 막습니다. 운영 배포 후 [공개 URL 베이스]에 https://실제도메인 을 넣으면 안내 URL이 고정됩니다. API연동설정에서 연동용도가 노티(등)인 PG는 노티를 MID+루트로 분기합니다. URL 결제만인 PG는 동일 MID가 여러 가맹점이면 본문에 업체코드(compId) 또는 icopayCompId= 가 필요합니다.',
+          notice: '아래 URL을 ziobiz/NOTI 전산노티대상 설정에 등록하세요. 경로 끝 토큰으로 무단 호출을 막습니다. 운영 배포 후 [공개 URL 베이스]에 https://실제도메인 을 넣으면 안내 URL이 고정됩니다. 배포설정 > API연동설정에서 연동용도가 노티(등)인 PG는 노티를 MID+루트로 분기합니다. URL 결제만인 PG는 동일 MID가 여러 가맹점이면 본문에 업체코드(compId) 또는 icopayCompId= 가 필요합니다.',
           rows: [
             [{ label: '노티 수신 URL', type: 'text', name: 'notifyIngressUrl', col: 6, readonly: true }],
             [{ label: 'Ingress 토큰(참고)', type: 'text', name: 'ingressToken', col: 6, readonly: true }],
@@ -703,7 +754,7 @@
       formSections: [
         {
           title: 'API배포설정',
-          notice: '가맹점에 발급하는 통합 API의 기본 URL·인증·타임아웃입니다. PG사별 MID·API Key·시크릿은 「API연동설정」에서 PG코드 단위로 추가·저장하세요(여 PG 병행).',
+          notice: '가맹점에 발급하는 통합 API의 기본 URL·인증·타임아웃입니다. PG사별 MID·API Key·시크릿은 배포설정 > 「API연동설정」에서 PG코드 단위로 추가·저장하세요(여 PG 병행).',
           rows: [
             [{ label: 'API 기본 URL', type: 'text', name: 'baseUrl', col: 6, placeholder: 'https://api.example.com/v1' }],
             [{ label: '인증방식', type: 'select', name: 'authType', options: [{ v: 'API_KEY', t: 'API Key' }, { v: 'Bearer', t: 'Bearer Token' }, { v: 'BASIC', t: 'Basic' }], col: 2 }, { label: '타임아웃(초)', type: 'text', name: 'timeoutSec', col: 2 }],
@@ -722,7 +773,7 @@
         },
         {
           title: 'ChillPay 레거시 (tb_hq_api_config 호환)',
-          notice: 'API연동설정에 CHILLPAY로 API Key·MD5가 등록되어 있으면 이 블록은 무시됩니다. 기존 DB만 쓰는 환경용입니다.',
+          notice: '배포설정 > API연동설정에 CHILLPAY로 API Key·MD5가 등록되어 있으면 이 블록은 무시됩니다. 기존 DB만 쓰는 환경용입니다.',
           rows: [
             [{ label: 'Merchant Code', type: 'text', name: 'chillpayMerchantCode', col: 2, placeholder: 'M035594' }, { label: 'API Key', type: 'text', name: 'chillpayApiKey', col: 4, placeholder: 'ChillPay에서 발급' }],
             [{ label: 'MD5 Secret Key', type: 'text', name: 'chillpayMd5Key', col: 4, placeholder: 'CheckSum 생성용' }, { label: 'Route No', type: 'text', name: 'chillpayRouteNo', col: 1, placeholder: '4' }, { label: 'Environment', type: 'select', name: 'chillpaySandbox', options: [{ v: 'Y', t: 'Sandbox' }, { v: 'N', t: 'Production' }], col: 1 }]
@@ -1020,7 +1071,7 @@
           title: '결제대행사 설정',
           id: 'pgBindingCard',
           merchantOnly: true,
-          notice: '본사설정 > API연동설정에서 사용(Y)으로 등록된 결제대행사가 목록에 표시됩니다. PG를 고르면 API연동설정의 MID·Route 등이 기본값으로 채워지며, 가맹점 전용 값은 수정·저장하면 됩니다. 실제 결제 운영 PG는 라디오(운영)로 하나만 지정합니다. 라디오가 켜진 행만 붉은 배경(파스텔)으로 표시됩니다. 등록 화면은 하단 [저장] 시 한꺼번에 반영됩니다.'
+          notice: '배포설정 > API연동설정에서 사용(Y)으로 등록된 결제대행사가 목록에 표시됩니다. PG를 고르면 API연동설정의 MID·Route 등이 기본값으로 채워지며, 가맹점 전용 값은 수정·저장하면 됩니다. 실제 결제 운영 PG는 라디오(운영)로 하나만 지정합니다. 라디오가 켜진 행만 붉은 배경(파스텔)으로 표시됩니다. 등록 화면은 하단 [저장] 시 한꺼번에 반영됩니다.'
         },
         {
           title: '웹결제 사용 / 대표 기본상품정보 (온라인 URL 결제용)',
@@ -1321,7 +1372,7 @@
           title: '결제대행사 설정',
           id: 'pgBindingCard',
           merchantOnly: true,
-          notice: '본사설정 > API연동설정에서 사용(Y)으로 등록된 결제대행사가 목록에 표시됩니다. PG를 고르면 API연동설정의 MID·Route 등이 기본값으로 채워지며, 가맹점 전용 값은 수정·저장하면 됩니다. 실제 결제 운영 PG는 라디오(운영)로 하나만 지정합니다. 라디오가 켜진 행만 붉은 배경(파스텔)으로 표시됩니다. 등록 화면은 하단 [저장] 시 한꺼번에 반영됩니다.'
+          notice: '배포설정 > API연동설정에서 사용(Y)으로 등록된 결제대행사가 목록에 표시됩니다. PG를 고르면 API연동설정의 MID·Route 등이 기본값으로 채워지며, 가맹점 전용 값은 수정·저장하면 됩니다. 실제 결제 운영 PG는 라디오(운영)로 하나만 지정합니다. 라디오가 켜진 행만 붉은 배경(파스텔)으로 표시됩니다. 등록 화면은 하단 [저장] 시 한꺼번에 반영됩니다.'
         },
         {
           title: '웹결제 사용 / 대표 기본상품정보 (온라인 URL 결제용)',
@@ -1558,7 +1609,7 @@
           title: '결제대행사 설정',
           id: 'pgBindingCard',
           merchantOnly: true,
-          notice: 'API연동설정(사용 Y) 전체가 목록에 나오며, PG 선택 시 본사에 등록한 MID·Route가 기본 입력됩니다. API KEY·IV는 비우면 본사 연동 자격을 따를 수 있습니다(ChillPay 등). 운영 PG는 라디오로 지정합니다. 라디오가 켜진 행만 붉은 배경(파스텔)으로 표시됩니다. [추가]로 행을 열고, 업체정보(가맹점)에서는 [저장][삭제][수정]마다 확인창이 두 번 뜹니다.'
+          notice: '배포설정 > API연동설정(사용 Y) 전체가 목록에 나오며, PG 선택 시 본사에 등록한 MID·Route가 기본 입력됩니다. API KEY·IV는 비우면 본사 연동 자격을 따를 수 있습니다(ChillPay 등). 운영 PG는 라디오로 지정합니다. 라디오가 켜진 행만 붉은 배경(파스텔)으로 표시됩니다. [추가]로 행을 열고, 업체정보(가맹점)에서는 [저장][삭제][수정]마다 확인창이 두 번 뜹니다.'
         },
         {
           title: '웹결제 사용 / 대표 기본상품정보 (온라인 URL 결제용)',
@@ -1723,7 +1774,13 @@
             { v: '', t: '전체' }, { v: 'NM', t: '업체명' }, { v: 'CODE', t: '업체코드' }
           ], size: 8 },
           { type: 'text', name: 'searchCompQ', placeholder: '업체명·코드', size: 11 },
-          { label: 'MID', type: 'text', name: 'searchMid', placeholder: 'MID', size: 11 }
+          { label: 'MID', type: 'text', name: 'searchMid', placeholder: 'MID', size: 9 },
+          { label: '수신채널', type: 'select', name: 'searchNotifyChannel', options: [
+            { v: 'ALL', t: '전체' },
+            { v: 'CALLBACK', t: 'CALLBACK' },
+            { v: 'RESULT', t: 'RESULT URL' },
+            { v: 'BOTH', t: 'BOTH' }
+          ], size: 10 }
         ],
         [
           { label: '결제구분', type: 'select', name: 'searchPayDivCd', options: [
@@ -1767,13 +1824,16 @@
       /** 2단 헤더·그리드 열: `site/js/pay-list-integrated-catalog.js` → applyPayListIntegratedCatalog (노티 기본 카탈로그와 동일 집합) */
       headerGroups: [],
       columns: [],
-      emptyMessage: '조회된 데이터가 없습니다.'
+      emptyMessage: '조회된 데이터가 없습니다.',
+      /** 결제관리: 한 번에 보기 기본 50 (통합 결제내역·분류·URL/챗봇 등 clone 동일) */
+      paginationSizeOptions: [50, 100, 200, 500, 1000],
+      paginationDefaultSize: 50
     },
     /** ChillPay Transaction API — Search Payment Transaction (실시간, DB 비저장) */
     '/calc/chillPayTrList': {
       /** ChillPay Transaction API 페이지당 최대 100건 — 초과 요청은 서버에서 잘림 */
       paginationSizeOptions: [50, 100],
-      paginationDefaultSize: 100,
+      paginationDefaultSize: 50,
       payListStatusBar: true,
       tableColumnGuide: true,
       tableColumnGuideTwoRow: true,
@@ -1811,7 +1871,7 @@
       ],
       noticeList: [
         'ChillPay API Transaction Services — Search Payment Transaction(실시간)입니다. ICOPAY 내부 DB(pg_trnsctn)가 아니라 칠페이 서버에서 직접 목록을 가져옵니다. ziobiz/NOTI 노티미들웨어의 종합거래·피지거래내역과 유사한 용도로 쓸 수 있습니다.',
-        '자격: 본사 API배포설정 또는 tb_pg_agency(ChillPay)의 MerchantCode·ApiKey·MD5 Secret Key·샌드박스 여부를 사용합니다.',
+        '자격: 배포설정 > API배포설정 또는 tb_pg_agency(ChillPay)의 MerchantCode·ApiKey·MD5 Secret Key·샌드박스 여부를 사용합니다.',
         'TransactionDate 범위는 검색 기간(날짜)을 ChillPay 형식(dd/MM/yyyy HH:mm:ss)으로 변환합니다. 문서: ChillPay-API-Transaction-Services-Document-EN_v1.0.6.',
         '그리드 열 노출은 상단 VIEW SETTING에서 조정합니다(저장 시 사용자별로 유지). 번호·TransactionId·업체명·업체코드·거래일·거래시간( JST·ICT 병기 )·Route는 항상 표시됩니다. 본사설정 → 조직항목설정에서 화면「통합내역」 허용 열을 제한할 수 있습니다.'
       ],
@@ -1894,7 +1954,7 @@
       noticeList: [
         '칠페이 Transaction Services — Search Payment Transaction API(v1.0.6)로 조회합니다. ICOPAY 정산 실행·유통망 정산 테이블과 무관하며, 칠페이가 판단한 Settled·수수료·금액 등 원문을 봅니다.',
         '기본 정렬은 Settled, 기간은 PaymentDate(결제일)입니다. 기간을 비우면 최근 30일 결제일로 조회합니다. 거래일(TransactionDate)은 선택 필터입니다.',
-        '자격: 본사 API배포설정·tb_pg_agency(ChillPay)의 MerchantCode·ApiKey·MD5 Secret Key·샌드박스와 동일합니다.',
+        '자격: 배포설정 > API배포설정·tb_pg_agency(ChillPay)의 MerchantCode·ApiKey·MD5 Secret Key·샌드박스와 동일합니다.',
         '그리드 열 노출은 상단 VIEW SETTING에서 조정합니다(저장 시 사용자별로 유지). 번호·TransactionId·TransactionDate·Merchant·PaymentDate·RouteNo는 항상 표시됩니다. 본사설정 → 조직항목설정에서 화면「통합정산」 허용 열을 제한할 수 있습니다.'
       ],
       summary: ['건수'],
@@ -2624,6 +2684,30 @@
       buttons: [{ id: 'searchBtn', label: '검색', cls: 'btn-primary' }, { id: 'excelBtn', label: '엑셀다운로드', cls: 'btn-info' }],
       columns: [{ key: '_chk', type: 'checkbox' }, { key: 'rowNo', label: '번호' }, { key: 'compNm', label: '업체명' }, { key: 'compId', label: '업체코드' }, { key: 'riskDiv', label: '리스크구분' }, { key: 'riskDesc', label: '내용' }, { key: 'regDt', label: '등록일' }],
       emptyMessage: '조회된 데이터가 없습니다.'
+    },
+    '/deploy/integrationPlan': {
+      hideListGrid: true,
+      staticHtml: DEPLOY_STATIC_HTML.integrationPlan,
+      summary: [],
+      buttons: []
+    },
+    '/deploy/jpayWorkPlan': {
+      hideListGrid: true,
+      staticHtml: DEPLOY_STATIC_HTML.jpayWorkPlan,
+      summary: [],
+      buttons: []
+    },
+    '/deploy/merchantApiPolicy': {
+      hideListGrid: true,
+      staticHtml: DEPLOY_STATIC_HTML.merchantApiPolicy,
+      summary: [],
+      buttons: []
+    },
+    '/deploy/launchChecklist': {
+      hideListGrid: true,
+      staticHtml: DEPLOY_STATIC_HTML.launchChecklist,
+      summary: [],
+      buttons: []
     }
   };
 
@@ -3236,12 +3320,18 @@
     return '<div class="screen-summary-action-row">' + summaryHtml + buttonsHtml + '</div>';
   }
 
-  /** 결제내역·통합내역: 금액 요약(서버 meta.payListFinancialSummary) + 상태별 통화 요약(meta.payListStatusBar), VIEW SETTING 위 */
+  /** 결제내역·통합내역: 금액 요약(서버 meta.payListFinancialSummary) + 상태별 통화 요약(meta.payListStatusBar), VIEW SETTING 위 — 2행 분리 */
   function renderPayListStatusBarSlot(tabId) {
     var t = tabId || '';
     return '<div class="pay-list-summary-stack pay-list-aggregate-stack mb-2 small border rounded bg-light px-2 py-2">' +
+      '<div class="pay-list-aggregate-section pay-list-aggregate-section--financial">' +
+      '<div class="pay-list-aggregate-heading">금액 요약</div>' +
       '<div class="pay-list-aggregate-row pay-list-aggregate-row--financial pay-list-financial-summary pay-list-financial-summary--empty" id="payListFinancialSummary_' + t + '" role="status" aria-live="polite"></div>' +
+      '</div>' +
+      '<div class="pay-list-aggregate-section pay-list-aggregate-section--status">' +
+      '<div class="pay-list-aggregate-heading">상태별</div>' +
       '<div class="pay-list-aggregate-row pay-list-aggregate-row--status pay-list-status-bar pay-list-status-bar--empty" id="payListStatusBar_' + t + '" role="status" aria-live="polite"></div>' +
+      '</div>' +
       '</div>';
   }
 
@@ -3400,7 +3490,7 @@
       '<div class="org-perm-matrix card border-0 shadow-sm mb-3">' +
       '<div class="card-body">' +
       '<p class="text-muted small mb-3">' +
-      '조직 구분(총본사~가맹점)별로 메뉴(URL) 접근 권한을 설정합니다. <strong>총본사</strong>는 DB에 별도 저장이 없을 때 기본으로 <strong>모든 메뉴 전체 권한(삭제·전체)</strong>입니다. 각 대메뉴(본사설정·업체관리 등) 구역 제목 오른쪽 <strong>간편</strong>에서 권한을 고르면 그 구역의 하위 메뉴가 한 번에 동일하게 맞춰집니다. ' +
+      '조직 구분(총본사~가맹점)별로 메뉴(URL) 접근 권한을 설정합니다. <strong>총본사</strong>는 DB에 별도 저장이 없을 때 기본으로 <strong>모든 메뉴 전체 권한(삭제·전체)</strong>입니다. 각 대메뉴(본사설정·업체관리·배포설정 등) 구역 제목 오른쪽 <strong>간편</strong>에서 권한을 고르면 그 구역의 하위 메뉴가 한 번에 동일하게 맞춰집니다. ' +
       '<strong>옵저버</strong>는 조회만, <strong>수정</strong>은 쓰기·수정(삭제·일괄삭제 등 제한), ' +
       '<strong>삭제</strong>는 해당 화면의 삭제·수정·저장 등 모든 작업을 허용합니다. ' +
       '<strong>접근불가</strong>는 메뉴에서 숨깁니다. <strong>업체접근설정</strong>에 등록된 업체와 교집합으로 사용자관리 목록이 제한됩니다. 아래 <strong>담당자 권한그룹별 메뉴</strong>는 조직 최종 권한(상단 개별 조직 권한) 이내에서 관리/운영/정산/기술 담당 계정(ASSISTANT)의 메뉴를 한 단계 더 조입니다.' +
@@ -3533,6 +3623,9 @@
       html += renderSummaryAndActions(cfg);
     } else if (cfg.orgPagePermissionMatrix) {
       html += renderOrgPagePermissionShell(tabId);
+      html += renderSummaryAndActions(cfg);
+    } else if (cfg.staticHtml) {
+      html += cfg.staticHtml;
       html += renderSummaryAndActions(cfg);
     } else {
       if (!cfg.hideListGrid) {

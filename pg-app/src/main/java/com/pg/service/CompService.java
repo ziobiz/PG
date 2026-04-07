@@ -48,6 +48,7 @@ import java.math.BigDecimal;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.Comparator;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
@@ -436,11 +437,13 @@ public class CompService {
                     .collect(Collectors.toList());
         }
         java.util.Map<Long, String> idToSortKey = buildHierarchySortKeys(all);
-        java.util.Map<Long, Integer> idToDepth = buildHierarchyDepth(all);
-        boolean relativeDepth = scopeSubtreeBelowLoginOrg && scopeCompId != null && !scopeCompId.trim().isEmpty() && !filtered.isEmpty();
-        int minDepthFiltered = 0;
-        if (relativeDepth) {
-            minDepthFiltered = filtered.stream().mapToInt(o -> idToDepth.getOrDefault(o.getId(), 0)).min().orElse(0);
+        /* 그리드 들여쓰기: 트리 깊이가 아니라 조직 단계(OrgLevel 코드) 기준. 총판 직속 가맹점이 영업점과 같은 열에 붙는 문제 방지 */
+        int minOrgLevelCodeInFiltered = 1;
+        if (!filtered.isEmpty()) {
+            minOrgLevelCodeInFiltered = filtered.stream()
+                    .mapToInt(o -> o.getOrgLevel() != null ? o.getOrgLevel().getCode() : 99)
+                    .min()
+                    .orElse(1);
         }
         filtered.sort((a, b) -> {
             String ka = idToSortKey.getOrDefault(a.getId(), "z");
@@ -457,8 +460,8 @@ public class CompService {
                 Map<String, Object> row = buildCompListItem(ou);
                 row.put("rowNo", start + i + 1);
                 row.put("parentId", ou.getParentId());
-                int d = idToDepth.getOrDefault(ou.getId(), 0);
-                row.put("depth", relativeDepth ? (d - minDepthFiltered) : d);
+                int levelCode = ou.getOrgLevel() != null ? ou.getOrgLevel().getCode() : 99;
+                row.put("depth", levelCode - minOrgLevelCodeInFiltered);
                 list.add(row);
             }
         }
@@ -2720,52 +2723,94 @@ public class CompService {
         }
     }
 
+    /**
+     * 업체관리 트리 정렬용: 각 조직 노드 기준으로, 그 하위에「영업점(SALES_OFFICE)을 경유한 가맹점」이 하나라도 있으면 true.
+     * 총판·지사 등에 가맹점이 직접 달린 경우(중간에 영업점 없음)는 false.
+     */
+    private java.util.Map<Long, Boolean> computeMerchantUnderSalesOfficeSubtreeFlags(List<OrgUnit> all) {
+        java.util.Map<Long, OrgUnit> byId = all.stream().collect(Collectors.toMap(OrgUnit::getId, o -> o, (x, y) -> x));
+        java.util.Map<Long, Boolean> out = new java.util.HashMap<>();
+        for (OrgUnit m : all) {
+            if (m.getOrgLevel() != OrgLevel.MERCHANT) {
+                continue;
+            }
+            java.util.List<OrgUnit> chain = new java.util.ArrayList<>();
+            OrgUnit cur = m;
+            while (cur != null) {
+                chain.add(cur);
+                Long pid = cur.getParentId();
+                cur = pid != null ? byId.get(pid) : null;
+            }
+            // chain[0]=가맹점, chain[1]=직계상위, … — 앵커(상위 노드)와 가맹점 사이에 영업점이 있으면 앵커 subtree 우선순위 대상
+            for (int i = 1; i < chain.size(); i++) {
+                boolean hasSalesOfficeBetween = false;
+                for (int j = 1; j < i; j++) {
+                    if (chain.get(j).getOrgLevel() == OrgLevel.SALES_OFFICE) {
+                        hasSalesOfficeBetween = true;
+                        break;
+                    }
+                }
+                if (hasSalesOfficeBetween) {
+                    out.put(chain.get(i).getId(), true);
+                }
+            }
+        }
+        return out;
+    }
+
+    private static Comparator<OrgUnit> compTreeSiblingOrder(java.util.Map<Long, Boolean> merchantUnderSo) {
+        return (a, b) -> {
+            boolean fa = Boolean.TRUE.equals(merchantUnderSo.get(a.getId()));
+            boolean fb = Boolean.TRUE.equals(merchantUnderSo.get(b.getId()));
+            int c = Boolean.compare(fb, fa);
+            if (c != 0) {
+                return c;
+            }
+            LocalDateTime ta = a.getCreatedAt();
+            LocalDateTime tb = b.getCreatedAt();
+            if (ta == null && tb != null) {
+                return 1;
+            }
+            if (ta != null && tb == null) {
+                return -1;
+            }
+            if (ta != null) {
+                int t = ta.compareTo(tb);
+                if (t != 0) {
+                    return t;
+                }
+            }
+            int idc = Long.compare(a.getId(), b.getId());
+            if (idc != 0) {
+                return idc;
+            }
+            return (a.getCode() != null ? a.getCode() : "").compareTo(b.getCode() != null ? b.getCode() : "");
+        };
+    }
+
     /** 계층 정렬용 키 생성 (레그 구조: 부모→자식 순) */
     private java.util.Map<Long, String> buildHierarchySortKeys(List<OrgUnit> all) {
+        java.util.Map<Long, Boolean> merchantUnderSo = computeMerchantUnderSalesOfficeSubtreeFlags(all);
+        Comparator<OrgUnit> siblingOrder = compTreeSiblingOrder(merchantUnderSo);
         java.util.Map<Long, java.util.List<OrgUnit>> byParent = all.stream()
                 .filter(o -> o.getParentId() != null)
                 .collect(Collectors.groupingBy(OrgUnit::getParentId));
         java.util.Map<Long, String> result = new java.util.HashMap<>();
         int[] counter = { 0 };
-        for (OrgUnit root : all.stream().filter(o -> o.getParentId() == null)
-                .sorted((a, b) -> (a.getCode() != null ? a.getCode() : "").compareTo(b.getCode() != null ? b.getCode() : "")).toList()) {
-            dfsAssignSortKey(root.getId(), byParent, result, String.valueOf(++counter[0]));
+        for (OrgUnit root : all.stream().filter(o -> o.getParentId() == null).sorted(siblingOrder).toList()) {
+            dfsAssignSortKey(root.getId(), byParent, result, String.valueOf(++counter[0]), siblingOrder);
         }
         return result;
     }
 
     private void dfsAssignSortKey(Long id, java.util.Map<Long, java.util.List<OrgUnit>> byParent,
-            java.util.Map<Long, String> result, String prefix) {
+            java.util.Map<Long, String> result, String prefix, Comparator<OrgUnit> siblingOrder) {
         result.put(id, prefix);
         java.util.List<OrgUnit> children = new java.util.ArrayList<>(byParent.getOrDefault(id, java.util.Collections.emptyList()));
-        children.sort((a, b) -> (a.getCode() != null ? a.getCode() : "").compareTo(b.getCode() != null ? b.getCode() : ""));
+        children.sort(siblingOrder);
         for (int i = 0; i < children.size(); i++) {
-            dfsAssignSortKey(children.get(i).getId(), byParent, result, prefix + "." + (i + 1));
+            dfsAssignSortKey(children.get(i).getId(), byParent, result, prefix + "." + (i + 1), siblingOrder);
         }
-    }
-
-    /** 계층 깊이 (0=루트, 1=1단계 하위, ...) */
-    private java.util.Map<Long, Integer> buildHierarchyDepth(List<OrgUnit> all) {
-        java.util.Map<Long, Integer> depth = new java.util.HashMap<>();
-        for (OrgUnit o : all) {
-            if (o.getParentId() == null) {
-                depth.put(o.getId(), 0);
-            }
-        }
-        boolean changed = true;
-        while (changed) {
-            changed = false;
-            for (OrgUnit o : all) {
-                if (o.getParentId() != null && depth.containsKey(o.getParentId()) && !depth.containsKey(o.getId())) {
-                    depth.put(o.getId(), depth.get(o.getParentId()) + 1);
-                    changed = true;
-                }
-            }
-        }
-        for (OrgUnit o : all) {
-            depth.putIfAbsent(o.getId(), 0);
-        }
-        return depth;
     }
 
     private static String calcCycleToDisplay(String c) {
@@ -2957,7 +3002,7 @@ public class CompService {
             throw new IllegalArgumentException("결제대행사(PG) 코드가 비었습니다.");
         }
         PgAgency agency = pgAgencyRepository.findByPgCd(pc)
-                .orElseThrow(() -> new IllegalArgumentException("등록되지 않은 PG사코드입니다. 본사설정 > API연동설정에서 먼저 등록하세요."));
+                .orElseThrow(() -> new IllegalArgumentException("등록되지 않은 PG사코드입니다. 배포설정 > API연동설정에서 먼저 등록하세요."));
         if (!"Y".equalsIgnoreCase(agency.getUseYn())) {
             throw new IllegalArgumentException("사용 중지된 결제대행사입니다: " + pc);
         }
