@@ -26,6 +26,8 @@ public final class PayListStatusBarBuckets {
     public static final String FAIL = "FAIL";
     public static final String VOID = "VOID";
     public static final String REFUND = "REFUND";
+    /** 내부 상태 31 강제환불 — 통합·기본 화면 상태바에서는 일반 환불(30)에 합산 */
+    public static final String FORCE_REFUND = "FORCE_REFUND";
     /** ICOPAY 내부 취소(20) 및 칠페이 취소 계열 — {@link #OTHER} 에서 제외 */
     public static final String CANCEL = "CANCEL";
     public static final String OTHER = "OTHER";
@@ -70,8 +72,11 @@ public final class PayListStatusBarBuckets {
         if ("21".equals(s) || "22".equals(s) || "40".equals(s) || "41".equals(s) || "42".equals(s)) {
             return VOID;
         }
-        if ("30".equals(s) || "31".equals(s)) {
+        if ("30".equals(s)) {
             return REFUND;
+        }
+        if ("31".equals(s)) {
+            return FORCE_REFUND;
         }
         if ("20".equals(s)) {
             return CANCEL;
@@ -231,10 +236,28 @@ public final class PayListStatusBarBuckets {
             boolean partial,
             boolean showEmptyBuckets,
             List<String> displayCurrencyOrder) {
+        return buildBarPayload(multiCurrency, primaryCurrency, amountsByBucketCurrency,
+                countByBucketAndCurrency, partial, showEmptyBuckets, displayCurrencyOrder, null);
+    }
+
+    /**
+     * @param bucketOrder 노출할 버킷 키 순서. null/빈값이면 성공~기타 6종(강제환불 제외).
+     */
+    public static Map<String, Object> buildBarPayload(
+            boolean multiCurrency,
+            String primaryCurrency,
+            Map<String, Map<String, BigDecimal>> amountsByBucketCurrency,
+            Map<String, Map<String, Long>> countByBucketAndCurrency,
+            boolean partial,
+            boolean showEmptyBuckets,
+            List<String> displayCurrencyOrder,
+            List<String> bucketOrder) {
         String primary = normalizeCurrency(primaryCurrency != null ? primaryCurrency : "KRW");
-        List<String> bucketOrder = List.of(SUCCESS, FAIL, VOID, REFUND, CANCEL, OTHER);
+        List<String> bucketOrderEff = (bucketOrder != null && !bucketOrder.isEmpty())
+                ? bucketOrder
+                : List.of(SUCCESS, FAIL, VOID, REFUND, CANCEL, OTHER);
         List<Map<String, Object>> buckets = new ArrayList<>();
-        for (String key : bucketOrder) {
+        for (String key : bucketOrderEff) {
             Map<String, BigDecimal> amts = amountsByBucketCurrency.getOrDefault(key, Collections.emptyMap());
             Map<String, Long> cnts = countByBucketAndCurrency.getOrDefault(key, Collections.emptyMap());
             long totalCount;
@@ -389,7 +412,37 @@ public final class PayListStatusBarBuckets {
         public Map<String, Object> toPayload(boolean multiCurrency, String primaryCurrency, boolean partial,
                                              boolean showEmptyBuckets, List<String> displayCurrencyOrder) {
             return buildBarPayload(multiCurrency, primaryCurrency, amounts, counts, partial, showEmptyBuckets,
-                    displayCurrencyOrder);
+                    displayCurrencyOrder, null);
+        }
+
+        public Map<String, Object> toPayload(boolean multiCurrency, String primaryCurrency, boolean partial,
+                                             boolean showEmptyBuckets, List<String> displayCurrencyOrder,
+                                             List<String> bucketOrder) {
+            return buildBarPayload(multiCurrency, primaryCurrency, amounts, counts, partial, showEmptyBuckets,
+                    displayCurrencyOrder, bucketOrder);
+        }
+
+        /**
+         * 강제환불(31) 버킷을 일반 환불(30) 표시용 버킷에 합산 — 통합·URL 등 기본 화면용.
+         */
+        public void mergeBucketInto(String fromBucket, String toBucket) {
+            if (fromBucket == null || toBucket == null || fromBucket.equals(toBucket)) {
+                return;
+            }
+            Map<String, BigDecimal> fromAmt = amounts.remove(fromBucket);
+            Map<String, Long> fromCnt = counts.remove(fromBucket);
+            if (fromAmt != null) {
+                Map<String, BigDecimal> toA = amounts.computeIfAbsent(toBucket, k -> new TreeMap<>());
+                for (Map.Entry<String, BigDecimal> e : fromAmt.entrySet()) {
+                    toA.merge(e.getKey(), e.getValue(), BigDecimal::add);
+                }
+            }
+            if (fromCnt != null) {
+                Map<String, Long> toC = counts.computeIfAbsent(toBucket, k -> new TreeMap<>());
+                for (Map.Entry<String, Long> e : fromCnt.entrySet()) {
+                    toC.merge(e.getKey(), e.getValue(), Long::sum);
+                }
+            }
         }
     }
 }

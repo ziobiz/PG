@@ -84,6 +84,7 @@ public class CompService {
     private final PasswordEncoder passwordEncoder;
     private final CompExcelImportService compExcelImportService;
     private final OrgUnitChangeAuditService orgUnitChangeAuditService;
+    private final PayFollowPolicyService payFollowPolicyService;
 
     private static LocalTime parseTime(String s) {
         if (s == null || s.trim().isEmpty()) return null;
@@ -342,7 +343,8 @@ public class CompService {
                        DistributionFeeConfigRepository distributionFeeConfigRepository,
                        UserRepository userRepository, PasswordEncoder passwordEncoder,
                        CompExcelImportService compExcelImportService,
-                       OrgUnitChangeAuditService orgUnitChangeAuditService) {
+                       OrgUnitChangeAuditService orgUnitChangeAuditService,
+                       PayFollowPolicyService payFollowPolicyService) {
         this.orgUnitRepository = orgUnitRepository;
         this.merchantProfileRepository = merchantProfileRepository;
         this.settlementSettingRepository = settlementSettingRepository;
@@ -358,6 +360,35 @@ public class CompService {
         this.passwordEncoder = passwordEncoder;
         this.compExcelImportService = compExcelImportService;
         this.orgUnitChangeAuditService = orgUnitChangeAuditService;
+        this.payFollowPolicyService = payFollowPolicyService;
+    }
+
+    /** 요청값이 있을 때만 가맹점 결제 후속조치 플래그 반영 후 MERCHANT 단계 상한으로 클램프. */
+    private void mergeMerchantPayFollowFromRequest(MerchantProfile mp,
+            String payFollowMerchantUseYn,
+            String payFollowAutoVoidYn,
+            String payFollowEmailVoidYn,
+            String payFollowAutoRefundYn,
+            String payFollowForceRefundYn) {
+        if (mp == null) {
+            return;
+        }
+        if (payFollowMerchantUseYn != null && !payFollowMerchantUseYn.isBlank()) {
+            mp.setPayFollowMerchantUseYn("Y".equalsIgnoreCase(payFollowMerchantUseYn.trim()) ? "Y" : "N");
+        }
+        if (payFollowAutoVoidYn != null && !payFollowAutoVoidYn.isBlank()) {
+            mp.setPayFollowAutoVoidYn("Y".equalsIgnoreCase(payFollowAutoVoidYn.trim()) ? "Y" : "N");
+        }
+        if (payFollowEmailVoidYn != null && !payFollowEmailVoidYn.isBlank()) {
+            mp.setPayFollowEmailVoidYn("Y".equalsIgnoreCase(payFollowEmailVoidYn.trim()) ? "Y" : "N");
+        }
+        if (payFollowAutoRefundYn != null && !payFollowAutoRefundYn.isBlank()) {
+            mp.setPayFollowAutoRefundYn("Y".equalsIgnoreCase(payFollowAutoRefundYn.trim()) ? "Y" : "N");
+        }
+        if (payFollowForceRefundYn != null && !payFollowForceRefundYn.isBlank()) {
+            mp.setPayFollowForceRefundYn("Y".equalsIgnoreCase(payFollowForceRefundYn.trim()) ? "Y" : "N");
+        }
+        payFollowPolicyService.clampMerchantPayFollowToLevelCeiling(mp);
     }
 
     /** scopeCompId: 로그인 사용자의 업체코드(본인 org만 조회, 업체정보조회용) */
@@ -835,6 +866,13 @@ public class CompService {
                             m.put("remark", mp.getRemark());
                             m.put("commissionConfigAllowed", mp.getCommissionConfigAllowed());
                             m.put("webPaymentUseYn", mp.getWebPaymentUseYn() != null ? mp.getWebPaymentUseYn() : "Y");
+                            if (ou.getOrgLevel() == OrgLevel.MERCHANT) {
+                                m.put("payFollowMerchantUseYn", mp.getPayFollowMerchantUseYn());
+                                m.put("payFollowAutoVoidYn", mp.getPayFollowAutoVoidYn());
+                                m.put("payFollowEmailVoidYn", mp.getPayFollowEmailVoidYn());
+                                m.put("payFollowAutoRefundYn", mp.getPayFollowAutoRefundYn());
+                                m.put("payFollowForceRefundYn", mp.getPayFollowForceRefundYn());
+                            }
                             m.put("baseCurrency", mp.getBaseCurrency());
                             m.put("orgUnitId", ou.getId());
                             if ("MASTER_DIST".equalsIgnoreCase(ou.getOrgLevel() != null ? ou.getOrgLevel().name() : "")) {
@@ -1002,7 +1040,9 @@ public class CompService {
                           String voidFeePerTx, String manualVoidFeePerTx, String usageRate,
                           String failFee, String payRate, String refundRate, String rollingPct, String rollingDays,
                           String feeSettlementPerTx, String remittanceTransferFee, String usdtTransferFeeUsd, String feeUsdt, String feeFx,
-                          String fee3dsRate, String chargebackFeePerTx, String chargebackPolicyId) {
+                          String fee3dsRate, String chargebackFeePerTx, String chargebackPolicyId,
+                          String payFollowMerchantUseYn, String payFollowAutoVoidYn, String payFollowEmailVoidYn,
+                          String payFollowAutoRefundYn, String payFollowForceRefundYn) {
         return orgUnitRepository.findByCode(compId != null ? compId : "")
                 .flatMap(ou -> merchantProfileRepository.findByOrgUnitId(ou.getId())
                         .map(mp -> {
@@ -1193,6 +1233,10 @@ public class CompService {
                                     failFee, payRate, refundRate, rollingPct, rollingDays, feeSettlementPerTx, remittanceTransferFee, usdtTransferFeeUsd, feeUsdt, feeFx,
                                     fee3dsRate, chargebackFeePerTx, chargebackPolicyId)) {
                                 mergeCommissionUiIntoRegionalSettings(mp, commissionFollowHq, hqPolicyScope);
+                            }
+                            if (childLevel == OrgLevel.MERCHANT) {
+                                mergeMerchantPayFollowFromRequest(mp, payFollowMerchantUseYn, payFollowAutoVoidYn,
+                                        payFollowEmailVoidYn, payFollowAutoRefundYn, payFollowForceRefundYn);
                             }
                             merchantProfileRepository.save(mp);
                             if (assistantLoginId != null && !assistantLoginId.trim().isEmpty()) {
@@ -1523,7 +1567,7 @@ public class CompService {
                 /* 69–92: notify, commission(+무효·수동무효), fees, regional (24 nulls) */
                 null, null, null, null, null, null, null, null, null, null,
                 null, null, null, null, null, null, null, null, null, null,
-                null, null, null, null, null, null, null);  /* +hqPolicyScope + chargeback */
+                null, null, null, null, null, null, null, null, null, null, null, null);  /* payFollow×5 + regional */
     }
 
     @Transactional
@@ -1581,6 +1625,7 @@ public class CompService {
                 failFee, payRate, refundRate, rollingPct, rollingDays,
                 feeSettlementPerTx, remittanceTransferFee, usdtTransferFeeUsd, feeUsdt, feeFx,
                 null, null, null,
+                null, null, null, null, null,
                 regionalSettings);
     }
 
@@ -1612,6 +1657,8 @@ public class CompService {
                                      String failFee, String payRate, String refundRate, String rollingPct, String rollingDays,
                                      String feeSettlementPerTx, String remittanceTransferFee, String usdtTransferFeeUsd, String feeUsdt, String feeFx,
                                      String fee3dsRate, String chargebackFeePerTx, String chargebackPolicyId,
+                                     String payFollowMerchantUseYn, String payFollowAutoVoidYn, String payFollowEmailVoidYn,
+                                     String payFollowAutoRefundYn, String payFollowForceRefundYn,
                                      String regionalSettings) {
         OrgUnit o = new OrgUnit();
         String compDivVal = compDiv != null ? compDiv.trim() : "AGENCY";
@@ -1702,6 +1749,8 @@ public class CompService {
                     : mp.getBaseCurrency();
             validateMerchantBaseCurrencyAgainstParent(effectiveParentId, chosenCur);
             validateMerchantPolicyCurrencyCompatibility(chosenCur, commissionFollowHq, hqPolicyScope, null);
+            mergeMerchantPayFollowFromRequest(mp, payFollowMerchantUseYn, payFollowAutoVoidYn,
+                    payFollowEmailVoidYn, payFollowAutoRefundYn, payFollowForceRefundYn);
         }
         merchantProfileRepository.save(mp);
 
@@ -2949,8 +2998,8 @@ public class CompService {
                             null, null, null,
                             null, null, null, null,
                             null, null, null, null, null, null, null, null, null, null, null, null,
-                            null, null, null, null, null, null, null, null, null, null,
-                            null, null);
+                            null, null, null, null, null, null, null, null, null, null, null, null, null, null,
+                            null, null, null, null, null, null);
                     if (loginIdVal != null && !loginIdVal.isEmpty() && userRepository.findByUsername(loginIdVal).isEmpty()) {
                         AppUser appUser = new AppUser();
                         appUser.setUsername(loginIdVal);

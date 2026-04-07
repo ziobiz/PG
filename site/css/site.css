@@ -788,7 +788,7 @@ body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Ro
   text-align: left;
 }
 .pay-list-status-bar--empty { display: none; }
-/* 결제관리 상단: 금액 요약(1행) + 상태별(2행) — 섹션·제목으로 분리 */
+/* 결제관리 상단: 전체 집계(1행) + 상태 pill 요약(2행) */
 .pay-list-aggregate-stack {
   display: flex;
   flex-direction: column;
@@ -798,14 +798,6 @@ body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Ro
 }
 .pay-list-aggregate-section {
   width: 100%;
-}
-.pay-list-aggregate-heading {
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.02em;
-  color: #64748b;
-  margin-bottom: 6px;
-  line-height: 1.2;
 }
 .pay-list-aggregate-section--financial:has(.pay-list-financial-summary--empty) {
   display: none;
@@ -847,6 +839,10 @@ body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Ro
   gap: 4px 0;
   justify-content: flex-start;
 }
+/* 첫 집계 줄 첫 글자 ↔ 아래 행 첫 상태 pill 텍스트 세로 라인 정렬 */
+.pay-list-aggregate-stack .pay-list-financial-summary__inner {
+  padding-left: 10px;
+}
 .pay-list-financial__metric { white-space: nowrap; }
 .pay-list-financial__lbl { font-weight: 700; color: #1e293b; }
 .pay-list-financial__cur { font-weight: 600; color: #0f172a; }
@@ -858,6 +854,30 @@ body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Ro
   gap: 8px;
   text-align: left;
 }
+/* 상태바: 1행 성공·실패·무효, 2행 환불·취소·기타 (각 3열) */
+.pay-list-status-bar__inner--grid {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 10px;
+}
+.pay-list-status-bar__row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px 12px;
+  align-items: stretch;
+}
+.pay-list-status-bar__row > .pay-list-status-bar__pill {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  white-space: normal;
+}
+.pay-list-aggregate-stack .pay-list-status-bar__inner--grid {
+  padding-left: 10px;
+}
+.pay-list-status-bar__note-row {
+  margin-top: 2px;
+}
 .pay-list-status-bar__pill {
   display: inline-flex;
   flex-wrap: wrap;
@@ -868,31 +888,46 @@ body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Ro
   font-weight: 600;
   white-space: nowrap;
   max-width: 100%;
+  border: 1px solid transparent;
+  box-sizing: border-box;
 }
 .pay-list-status-bar__pill--success {
   background: #d1fae5;
   color: #047857;
+  border-color: #a7f3d0;
 }
 .pay-list-status-bar__pill--fail {
   background: #fee2e2;
   color: #b91c1c;
+  border-color: #fecaca;
 }
 .pay-list-status-bar__pill--void {
   background: #ffedd5;
   color: #c2410c;
+  border-color: #fed7aa;
 }
-/* 환불·기타는 서로 다른 톤(둘 다 회색 단일색이면 구분 어려움) */
+/* 환불(블루)·기타(앰버)·취소(그레이) 톤 구분 */
 .pay-list-status-bar__pill--refund {
   background: #dbeafe;
   color: #1e40af;
+  border-color: #bfdbfe;
 }
+.pay-list-status-bar__pill--force-refund {
+  background: #ede9fe;
+  color: #5b21b6;
+  border-color: #c4b5fd;
+}
+/* 취소: 어두운 파스텔 그레이(행 바탕·연한 그레이와 구분) */
 .pay-list-status-bar__pill--cancel {
-  background: #f4f4f5;
-  color: #52525b;
+  background: #d4dce6;
+  color: #3d4d5c;
+  border: 1px solid #9aa8b8;
 }
+/* 기타: 취소에 쓰이던 앰버 톤(환불·무효·실패와 구분) */
 .pay-list-status-bar__pill--other {
-  background: #e0e7ff;
-  color: #3730a3;
+  background: #fef3c7;
+  color: #92400e;
+  border: 1px solid #fbbf24;
 }
 .pay-list-status-bar__lbl { font-weight: 700; }
 .pay-list-status-bar__amt { font-weight: 600; }
@@ -957,7 +992,7 @@ body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Ro
 #contentsMain .screen-pay-list .table tbody tr.pay-row-tone--cancel,
 #contentsMain .screen-pay-list .table tbody tr.pay-row-tone--cancel:nth-child(odd),
 #contentsMain .screen-pay-list .table tbody tr.pay-row-tone--cancel:nth-child(even) {
-  background: #f0f1f3 !important;
+  background: linear-gradient(90deg, rgba(148, 163, 184, 0.35) 0, rgba(212, 220, 230, 0.55) 12px, #e8edf3 100%) !important;
 }
 #contentsMain .screen-pay-list .table tbody tr.pay-row-tone--void,
 #contentsMain .screen-pay-list .table tbody tr.pay-row-tone--void:nth-child(odd),
@@ -994,8 +1029,9 @@ body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Ro
   color: #fff;
 }
 .pay-grid-status-badge--cancel {
-  background: #d1d5db;
-  color: #111827;
+  background: #c5ced9;
+  color: #2f3b48;
+  border: 1px solid #a3afbd;
 }
 .pay-grid-status-badge--void {
   background: #f59e0b;
@@ -1136,8 +1172,24 @@ body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Ro
 table.table.pg-table-col-resize-enabled {
   table-layout: fixed;
 }
-#contentsMain .screen-pay-list .table-responsive > .table.pg-table-col-resize-enabled {
-  table-layout: fixed;
+/* 결제관리 통합·분류·통합내역·통합정산: 내용(글자) 너비 우선, 가로 스크롤로 전체 표시 */
+#contentsMain .screen-pay-list .table-responsive > .table.pay-mng-data-grid.pg-table-col-resize-enabled {
+  table-layout: auto;
+  width: max-content;
+  min-width: 100%;
+}
+#contentsMain .screen-pay-list .table.pay-mng-data-grid colgroup.pg-col-resize-group col {
+  width: auto;
+}
+/* 통합내역: 다른 결제 그리드와 동일하게 가로 스크롤(열 압축 방지) */
+#contentsMain .screen-chill-pay-tr-list .table-responsive {
+  display: block;
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+#contentsMain .screen-chill-pay-tr-list .table-responsive > .table.pay-mng-data-grid.pg-table-col-resize-enabled {
+  table-layout: auto;
   width: max-content;
   min-width: 100%;
 }
@@ -1150,11 +1202,12 @@ table.table.pg-table-col-resize-enabled {
 .pg-col-resize-handle {
   position: absolute;
   top: 0;
-  right: 0;
-  width: 10px;
+  right: -4px;
+  width: 16px;
   height: 100%;
+  min-height: 1.5rem;
   cursor: col-resize;
-  z-index: 4;
+  z-index: 12;
   user-select: none;
   touch-action: none;
   margin: 0;
@@ -1164,6 +1217,9 @@ table.table.pg-table-col-resize-enabled {
 .pg-col-resize-handle:hover,
 table.table thead th.pg-th-has-resize:hover .pg-col-resize-handle {
   background: rgba(13, 110, 253, 0.22);
+}
+table.table thead th.pg-th-has-resize {
+  padding-right: 10px;
 }
 colgroup.pg-col-resize-group col {
   min-width: 40px;
@@ -1263,34 +1319,85 @@ colgroup.pg-col-resize-group col {
   overflow-y: hidden;
   padding-top: 0;
 }
-/* 결제내역 등: VIEW SETTING 2행 — 1행 제목+버튼, 2행 컬럼 체크 줄바꿈 */
+/* 결제내역 등: VIEW SETTING 2행 — 1행 VIEW SETTING | 기본·해제·선택·저장, 2행 컬럼 체크 */
 .table-column-guide.table-column-guide--two-row {
   gap: 8px;
 }
-.table-column-guide--two-row .column-guide-top {
+.table-column-guide--two-row .column-guide-top--inline,
+.table-column-guide.table-column-guide--inline-head > .column-guide-top--inline {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  justify-content: space-between;
-  gap: 8px 12px;
+  justify-content: flex-start;
   width: 100%;
   margin-bottom: 0;
 }
-.table-column-guide--two-row .column-guide-top .column-guide-title {
-  margin-bottom: 0;
-  flex: 1 1 auto;
-  min-width: 8em;
-  line-height: 1.4;
+.column-guide-inline-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+  width: 100%;
 }
-.table-column-guide--two-row .column-guide-top .column-guide-actions {
+.column-guide-vbar {
+  color: #cbd5e1;
+  font-weight: 300;
+  font-size: 0.85rem;
+  line-height: 1;
+  user-select: none;
+}
+.table-column-guide--two-row .column-guide-top--inline .column-guide-title,
+.table-column-guide.table-column-guide--inline-head .column-guide-title {
+  margin-bottom: 0;
   flex: 0 0 auto;
-  margin-left: 0;
+  min-width: auto;
+  line-height: 1.35;
+  font-size: 0.8125rem;
+}
+.table-column-guide--two-row .column-guide-actions--inline,
+.table-column-guide.table-column-guide--inline-head .column-guide-actions--inline {
+  flex: 0 1 auto;
+  margin-left: 0 !important;
   display: inline-flex !important;
   flex-direction: row;
-  justify-content: flex-end;
+  justify-content: flex-start;
   align-items: center;
-  gap: 6px;
-  white-space: nowrap;
+  gap: 4px !important;
+  white-space: normal;
+  flex-wrap: wrap;
+}
+.column-guide-actions--inline .btn.btn-xs {
+  padding: 1px 6px !important;
+  font-size: 0.68rem !important;
+  min-height: 20px !important;
+  min-width: 2rem !important;
+}
+/* 헬로: VIEW SETTING 패널 숨김 토글 — 새로고침·엑셀 사이 배치 */
+.btn-view-setting-hello {
+  background-color: #fecaca !important;
+  border-color: #f87171 !important;
+  color: #7f1d1d !important;
+  font-weight: 600;
+}
+.btn-view-setting-hello:hover {
+  background-color: #fca5a5 !important;
+  border-color: #ef4444 !important;
+  color: #450a0a !important;
+}
+.btn-view-setting-hello.btn-view-setting-hello--restore {
+  background-color: #e5e7eb !important;
+  border-color: #d1d5db !important;
+  color: #4b5563 !important;
+}
+.btn-view-setting-hello.btn-view-setting-hello--restore:hover {
+  background-color: #d1d5db !important;
+  border-color: #9ca3af !important;
+}
+/* 업체관리 등 1단 VIEW: 체크 목록만 아래 한 줄(가로 스크롤) */
+.table-column-guide.table-column-guide--inline-head:not(.table-column-guide--two-row) .column-guide-checkboxes .column-guide-list {
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  overflow-y: hidden;
 }
 .table-column-guide--two-row .column-guide-checkboxes {
   width: 100%;
@@ -2415,6 +2522,158 @@ body.theme-light .left-side-menu .btn-secondary:hover, body.theme-gray .left-sid
   text-decoration: underline;
 }
 
+/* 종합거래 환경설정: 결제 후속조치(NOTI) 표 */
+.hq-pay-follow-wrap {
+  max-width: 100%;
+  overflow-x: visible;
+}
+.hq-pay-follow-table {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  table-layout: fixed;
+}
+.hq-pay-follow-table .hq-pay-follow-col-kind {
+  width: 17%;
+}
+.hq-pay-follow-table .hq-pay-follow-col-basis {
+  width: 20%;
+}
+.hq-pay-follow-table .hq-pay-follow-col-use {
+  width: 11%;
+}
+.hq-pay-follow-table .hq-pay-follow-col-val {
+  width: 32%;
+}
+.hq-pay-follow-table .hq-pay-follow-col-ref {
+  width: 12%;
+}
+.hq-pay-follow-table th,
+.hq-pay-follow-table td {
+  vertical-align: middle;
+  font-size: 0.8125rem;
+  padding: 0.4rem 0.35rem;
+}
+.hq-pay-follow-table .hq-pay-follow-col-basis,
+.hq-pay-follow-table td:nth-child(2) {
+  word-break: keep-all;
+  line-break: strict;
+  white-space: normal;
+}
+.hq-pay-follow-table select.form-select-sm {
+  font-size: 0.8125rem;
+  min-width: 0;
+  max-width: 100%;
+}
+.hq-pay-follow-dual-clock {
+  line-height: 1.35;
+}
+.hq-pay-follow-time {
+  min-width: 5.5rem;
+  max-width: 7rem;
+}
+.hq-pay-follow-void-times .hq-pay-follow-time {
+  flex: 0 1 auto;
+}
+
+/* 결제내역 후속조치: 기간 초과 등 비활성 */
+button.pay-follow:disabled,
+button.pay-follow.pay-follow--off {
+  cursor: not-allowed;
+  opacity: 0.55;
+  text-decoration: none;
+}
+
+/* 종합거래 환경설정: 데이터 보관 기간 표 — 가로 스크롤 없이 영역 너비에 맞춤 */
+.hq-data-retention-wrap {
+  max-width: 100%;
+  overflow-x: visible;
+}
+.hq-data-retention-table {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  table-layout: fixed;
+}
+.hq-data-retention-table col:nth-child(1) {
+  width: 17%;
+}
+.hq-data-retention-table col:nth-child(2) {
+  width: 8%;
+}
+.hq-data-retention-table col:nth-child(3) {
+  width: 9%;
+}
+.hq-data-retention-table col:nth-child(4) {
+  width: 9%;
+}
+.hq-data-retention-table col:nth-child(5) {
+  width: 41%;
+}
+.hq-data-retention-table col:nth-child(6) {
+  width: 16%;
+}
+.hq-data-retention-table th,
+.hq-data-retention-table td {
+  vertical-align: middle;
+}
+.hq-data-retention-table thead th {
+  white-space: nowrap;
+  line-height: 1.2;
+}
+.hq-data-retention-table .hq-dr-th-type,
+.hq-data-retention-table td.hq-dr-type-cell {
+  min-width: 0;
+  white-space: nowrap;
+}
+.hq-data-retention-table td.hq-dr-type-cell {
+  overflow: hidden;
+}
+.hq-data-retention-table td.hq-dr-type-cell .hq-dr-label-text {
+  display: inline-block;
+  max-width: calc(100% - 4.25rem);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: bottom;
+}
+.hq-data-retention-table td.hq-dr-type-cell .badge {
+  vertical-align: text-bottom;
+}
+.hq-data-retention-table .hq-dr-th-desc,
+.hq-data-retention-table td.hq-dr-desc-cell {
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.25;
+}
+.hq-data-retention-table .hq-dr-th-narrow {
+  font-size: 0.8125rem;
+}
+.hq-data-retention-table .hq-dr-th-act {
+  font-size: 0.8125rem;
+}
+.hq-data-retention-table td:nth-child(6) .btn-group {
+  flex-wrap: nowrap;
+  justify-content: center;
+  gap: 0;
+  white-space: nowrap;
+}
+.hq-data-retention-table td:nth-child(6) .btn-group .btn {
+  padding-left: 0.35rem;
+  padding-right: 0.35rem;
+}
+.hq-data-retention-table td:nth-child(6) {
+  min-width: 0;
+}
+.hq-data-retention-table .hq-dr-purge,
+.hq-data-retention-table .hq-dr-retain {
+  min-width: 0;
+  width: 100%;
+  max-width: 100%;
+}
+
 /* 수수료설정: 템플릿 목록 행 */
 .hq-default-comm-policy-row:hover {
   background-color: rgba(13, 110, 253, 0.07) !important;
@@ -2426,43 +2685,39 @@ body.theme-light .left-side-menu .btn-secondary:hover, body.theme-gray .left-sid
   cursor: pointer;
 }
 
-/* 수수료설정: 목록 표 — 전체 너비 100% (colgroup 28열) */
+/* 수수료설정: 가맹점 수수료 정책 목록 — 컨테이너 너비에 맞춤(가로 스크롤 없음) */
+.hq-default-comm-policy-scroll.table-responsive {
+  overflow-x: visible;
+}
+.hq-default-comm-policy-scroll {
+  max-width: 100%;
+}
 .hq-default-comm-policy-table {
   width: 100%;
+  max-width: 100%;
+  min-width: 0;
   table-layout: fixed;
 }
 
-/* 선택: 라벨+전체선택 체크 한 줄 */
+/* colgroup 28열 — 비율 합계 100% (table-layout:fixed) */
 .hq-default-comm-policy-table col:nth-child(1) {
-  width: 3%;
+  width: 2.5%;
 }
-
-/* 코드 */
 .hq-default-comm-policy-table col:nth-child(2) {
-  width: 3%;
+  width: 3.5%;
 }
-
-/* 이름(정책명) — 폭 축소 */
 .hq-default-comm-policy-table col:nth-child(3) {
-  width: 8%;
+  width: 10.6%;
 }
-
-/* 차지백 구간정책 */
 .hq-default-comm-policy-table col:nth-child(4) {
-  width: 6%;
+  width: 7.5%;
 }
-
-/* 적용(배포) */
 .hq-default-comm-policy-table col:nth-child(5) {
-  width: 4%;
+  width: 3.5%;
 }
-
-/* 통화 */
 .hq-default-comm-policy-table col:nth-child(6) {
-  width: 3%;
+  width: 2.8%;
 }
-
-/* 수수료 고정 10열: 건당~환불 */
 .hq-default-comm-policy-table col:nth-child(7),
 .hq-default-comm-policy-table col:nth-child(8),
 .hq-default-comm-policy-table col:nth-child(9),
@@ -2473,61 +2728,48 @@ body.theme-light .left-side-menu .btn-secondary:hover, body.theme-gray .left-sid
 .hq-default-comm-policy-table col:nth-child(14),
 .hq-default-comm-policy-table col:nth-child(15),
 .hq-default-comm-policy-table col:nth-child(16) {
-  width: 3%;
+  width: 3.35%;
 }
-
-/* 수수료 % 4열: 결제·USDT·FX·3DS */
 .hq-default-comm-policy-table col:nth-child(17),
 .hq-default-comm-policy-table col:nth-child(18),
 .hq-default-comm-policy-table col:nth-child(19),
 .hq-default-comm-policy-table col:nth-child(20) {
-  width: 2.5%;
+  width: 2.6%;
 }
-
-/* 담보율 2열: 비율·일 */
 .hq-default-comm-policy-table col:nth-child(21),
 .hq-default-comm-policy-table col:nth-child(22) {
   width: 2.5%;
 }
-
-/* 월간 */
 .hq-default-comm-policy-table col:nth-child(23) {
-  width: 3%;
+  width: 2.8%;
 }
-
-/* 기타 4열 */
 .hq-default-comm-policy-table col:nth-child(24),
 .hq-default-comm-policy-table col:nth-child(25),
 .hq-default-comm-policy-table col:nth-child(26),
 .hq-default-comm-policy-table col:nth-child(27) {
-  width: 4%;
+  width: 2.85%;
 }
-
-/* 일지 */
 .hq-default-comm-policy-table col:nth-child(28) {
-  width: 9%;
+  width: 6.5%;
 }
 
-/* 수수료설정: 목록 표 — 셀 가로·세로 가운데 */
 .hq-default-comm-policy-table > thead > tr > th,
 .hq-default-comm-policy-table > tbody > tr > td {
   text-align: center;
   vertical-align: middle;
 }
 
-/* 수수료설정: 목록 표 — 건당 / % / 월간 묶음 */
 .hq-default-comm-policy-table .hq-def-comm-th-chk {
   vertical-align: middle;
-  padding-left: 0.25rem;
-  padding-right: 0.25rem;
+  padding-left: 0.35rem;
+  padding-right: 0.35rem;
 }
 .hq-def-comm-th-chk-inner {
   display: inline-flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 0.2rem;
-  flex-wrap: nowrap;
-  white-space: nowrap;
+  gap: 0.25rem;
 }
 .hq-def-comm-th-chk-label {
   font-size: 0.6875rem;
@@ -2536,27 +2778,28 @@ body.theme-light .left-side-menu .btn-secondary:hover, body.theme-gray .left-sid
 }
 .hq-default-comm-policy-table .hq-def-comm-th-code {
   white-space: nowrap;
-  font-size: 0.75rem;
-  padding-left: 0.2rem;
-  padding-right: 0.2rem;
+  font-size: 0.78rem;
+  padding-left: 0.25rem;
+  padding-right: 0.25rem;
 }
 .hq-default-comm-policy-table td.hq-def-comm-policy-td-code {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   font-size: 0.8125rem;
-  max-width: 0;
 }
 .hq-default-comm-policy-table .hq-def-comm-th-name {
-  white-space: nowrap;
-  font-size: 0.75rem;
+  font-size: 0.78rem;
+  text-align: left;
 }
 .hq-default-comm-policy-table td.hq-def-comm-policy-td-name {
-  max-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  min-width: 0;
+  max-width: none;
+  white-space: normal;
+  word-break: break-word;
+  text-align: left;
   vertical-align: middle;
+  line-height: 1.25;
 }
 .hq-default-comm-policy-table .hq-def-comm-th-cb-zone {
   line-height: 1.25;
@@ -2566,9 +2809,12 @@ body.theme-light .left-side-menu .btn-secondary:hover, body.theme-gray .left-sid
   letter-spacing: -0.02em;
 }
 .hq-default-comm-policy-table .hq-def-comm-th-sub {
-  font-size: 0.64rem;
+  font-size: 0.65rem;
   font-weight: 600;
-  white-space: nowrap;
+  white-space: normal;
+  word-break: keep-all;
+  line-break: strict;
+  hyphens: none;
   padding-top: 0.35rem;
   padding-bottom: 0.35rem;
   line-height: 1.15;
@@ -2576,47 +2822,49 @@ body.theme-light .left-side-menu .btn-secondary:hover, body.theme-gray .left-sid
 .hq-def-comm-policy-td-num {
   text-align: center;
   white-space: nowrap;
-  font-size: 0.68rem;
+  font-size: 0.72rem;
   font-variant-numeric: tabular-nums;
   vertical-align: middle;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding-left: 0.2rem;
+  padding-right: 0.2rem;
 }
 .hq-def-comm-policy-td-cbzone {
   vertical-align: middle;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 8rem;
+  max-width: none;
   white-space: nowrap;
+  font-size: 0.72rem;
 }
 .hq-def-comm-policy-td-extra-slot {
   text-align: center;
   vertical-align: middle;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 11rem;
+  max-width: none;
   white-space: nowrap;
+  font-size: 0.68rem;
+  min-width: 0;
 }
 .hq-default-comm-policy-table .hq-def-comm-th-upd,
 .hq-default-comm-policy-table .hq-def-comm-policy-td-upd {
   white-space: nowrap;
   min-width: 0;
-}
-.hq-default-comm-policy-table {
-  table-layout: fixed;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 0.68rem;
 }
 .hq-default-comm-policy-table th,
 .hq-default-comm-policy-table td {
-  padding: 0.24rem 0.2rem;
-  font-size: 0.66rem;
-  line-height: 1.12;
+  padding: 0.35rem 0.28rem;
+  font-size: 0.74rem;
+  line-height: 1.2;
   word-break: normal;
 }
-.hq-default-comm-policy-table td.hq-def-comm-policy-td-code,
-.hq-default-comm-policy-table td.hq-def-comm-policy-td-name {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 9rem;
-  white-space: nowrap;
-}
+
 .hq-extra-fees-card .card-header .text-muted {
   line-height: 1.35;
 }
@@ -2637,6 +2885,20 @@ body.theme-light .left-side-menu .btn-secondary:hover, body.theme-gray .left-sid
 }
 
 /* 가맹점: 차지백 정책 카드 — 빨강 파스텔톤 배경 */
+/* 차지백설정: 저장된 유형 — 비고 전체 노출(줄바꿈 유지) */
+.hq-chargeback-policy-saved-table th.hq-cb-list-remark-th {
+  min-width: 8rem;
+}
+.hq-chargeback-policy-saved-table td.hq-cb-list-remark {
+  white-space: pre-wrap;
+  word-break: break-word;
+  vertical-align: top;
+  line-height: 1.35;
+}
+.hq-chargeback-policy-saved-table tbody tr > td {
+  vertical-align: top;
+}
+
 #chargebackPolicyCard {
   background: #fff1f3; /* rose-50 */
   border-color: #fecdd3; /* rose-200 */
@@ -2776,6 +3038,7 @@ body.theme-light .left-side-menu .btn-secondary:hover, body.theme-gray .left-sid
 .hq-pg-api-mng-table {
   font-size: var(--pay-mng-dense-font-size);
   table-layout: fixed;
+  width: 100%;
 }
 .hq-pg-api-mng-table thead th {
   padding: 4px 8px;
@@ -2794,10 +3057,51 @@ body.theme-light .left-side-menu .btn-secondary:hover, body.theme-gray .left-sid
   font-size: var(--pay-mng-dense-font-size);
   line-height: 1.25;
   padding: 0.15rem 0.4rem;
+  white-space: nowrap;
 }
-.pg-api-mng-scope-th {
-  width: 7.5rem;
-  min-width: 5.5rem;
+/* 열 너비: 엔드포인트(URL) 상한 · 결제대행사·연동용도·관리 가독성 */
+.hq-pg-api-mng-table thead th[data-key="_chk"] {
+  width: 2.35rem;
+}
+.hq-pg-api-mng-table thead th[data-key="rowNo"] {
+  width: 2.85rem;
+}
+.hq-pg-api-mng-table thead th[data-key="pgNm"] {
+  width: 10.5rem;
+  min-width: 8rem;
+}
+.hq-pg-api-mng-table thead th[data-key="pgCd"] {
+  width: 7rem;
+}
+.hq-pg-api-mng-table thead th[data-key="integrationScopeLabel"] {
+  width: 9.75rem;
+  min-width: 8.25rem;
+}
+.hq-pg-api-mng-table thead th[data-key="merchantMid"] {
+  width: 7.25rem;
+}
+.hq-pg-api-mng-table thead th[data-key="hasApiKey"],
+.hq-pg-api-mng-table thead th[data-key="hasMd5Key"] {
+  width: 2.85rem;
+}
+.hq-pg-api-mng-table thead th[data-key="routeNo"] {
+  width: 2.35rem;
+}
+.hq-pg-api-mng-table thead th[data-key="sandboxYn"] {
+  width: 3.6rem;
+}
+.hq-pg-api-mng-table thead th[data-key="operationalYn"] {
+  width: 3.35rem;
+}
+.hq-pg-api-mng-table thead th[data-key="useYn"] {
+  width: 2.85rem;
+}
+.hq-pg-api-mng-table thead th[data-key="regDt"] {
+  width: 5.75rem;
+}
+.hq-pg-api-mng-table thead th[data-key="_pgRowAct"] {
+  width: 8.75rem;
+  min-width: 8rem;
 }
 .pg-api-mng-scope-cell {
   white-space: nowrap;
@@ -2817,15 +3121,18 @@ body.theme-light .left-side-menu .btn-secondary:hover, body.theme-gray .left-sid
   padding: 0.1em 0.32em;
   line-height: 1.25;
 }
+/* URL 열: 예전 28% 대신 고정 폭 + 말줄임(전체 너비는 나머지 열·여백으로 균형) */
+.hq-pg-api-mng-table thead th[data-key="endpointsSummary"],
 .pg-api-mng-endpoints-th {
-  width: 28%;
-  min-width: 9rem;
+  width: 19rem;
+  max-width: 19rem;
+  min-width: 11rem;
 }
 .pg-api-mng-ep-cell {
-  max-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  max-width: 19rem;
 }
 .pg-api-mng-ep-cell .pg-api-mng-ep-ellipsis {
   display: block;
@@ -2834,6 +3141,9 @@ body.theme-light .left-side-menu .btn-secondary:hover, body.theme-gray .left-sid
   white-space: nowrap;
   font-size: var(--pay-mng-dense-font-size);
   line-height: 1.25;
+}
+.hq-pg-api-mng-table tbody td.pg-api-mng-ep-cell {
+  max-width: 19rem;
 }
 
 /* 본사설정 > 노티수령정보: 오류메시지 전체 표시(줄바꿈·가로 스크롤은 .table-responsive) */

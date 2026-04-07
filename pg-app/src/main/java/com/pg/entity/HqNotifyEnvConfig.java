@@ -37,9 +37,53 @@ public class HqNotifyEnvConfig {
     @Column(name = "force_refund_yn", length = 1)
     private String forceRefundYn = "N";
 
-    /** 자동무효: 거래 후 경과 시간(시간) — 추후 배치 연동용 */
+    /** 자동무효: 레거시(승인 후 N시간) — 미사용, {@link #autoVoidStartMin}/{@link #autoVoidEndMin} 사용 */
     @Column(name = "auto_void_after_hours")
     private Integer autoVoidAfterHours;
+
+    /** 이메일무효: 승인 후 경과 기준(시간) — 레거시, 미사용 */
+    @Column(name = "email_void_after_hours")
+    private Integer emailVoidAfterHours;
+
+    /** 자동무효: 승인일(기준 Zone) 당일 시작 시각(분). NULL이면 0:00 */
+    @Column(name = "auto_void_start_min")
+    private Integer autoVoidStartMin;
+
+    /** 자동무효: 승인일 당일 마감 시각(분). NULL이면 21:00 (일본 동일 시각 +2h → 23:00) */
+    @Column(name = "auto_void_end_min")
+    private Integer autoVoidEndMin;
+
+    /** 이메일무효: 시작 시각(분). NULL이면 auto_void_end_min+1(자동무효 마감 직후) */
+    @Column(name = "email_void_start_min")
+    private Integer emailVoidStartMin;
+
+    /** 이메일무효: 마감 시각(분) */
+    @Column(name = "email_void_end_min")
+    private Integer emailVoidEndMin;
+
+    /** 후속조치 경과 판단 기준 ZoneId (NULL이면 전산 표준시와 동일) */
+    @Column(name = "pay_follow_ref_zone", length = 64)
+    private String payFollowRefZone;
+
+    /** 자동환불: 승인일 기준 경과 일수 */
+    @Column(name = "auto_refund_after_days")
+    private Integer autoRefundAfterDays;
+
+    /** 강제환불: 승인일 기준 경과 일수 */
+    @Column(name = "force_refund_after_days")
+    private Integer forceRefundAfterDays;
+
+    @Column(name = "auto_void_reflect_settlement_yn", length = 1)
+    private String autoVoidReflectSettlementYn = "N";
+
+    @Column(name = "email_void_reflect_settlement_yn", length = 1)
+    private String emailVoidReflectSettlementYn = "N";
+
+    @Column(name = "auto_refund_reflect_settlement_yn", length = 1)
+    private String autoRefundReflectSettlementYn = "N";
+
+    @Column(name = "force_refund_reflect_settlement_yn", length = 1)
+    private String forceRefundReflectSettlementYn = "N";
 
     @Column(name = "notify_ok_response", length = 500)
     private String notifyOkResponse = "{\"result\":\"OK\"}";
@@ -93,6 +137,30 @@ public class HqNotifyEnvConfig {
     public void setForceRefundYn(String forceRefundYn) { this.forceRefundYn = forceRefundYn; }
     public Integer getAutoVoidAfterHours() { return autoVoidAfterHours; }
     public void setAutoVoidAfterHours(Integer autoVoidAfterHours) { this.autoVoidAfterHours = autoVoidAfterHours; }
+    public Integer getEmailVoidAfterHours() { return emailVoidAfterHours; }
+    public void setEmailVoidAfterHours(Integer emailVoidAfterHours) { this.emailVoidAfterHours = emailVoidAfterHours; }
+    public Integer getAutoVoidStartMin() { return autoVoidStartMin; }
+    public void setAutoVoidStartMin(Integer autoVoidStartMin) { this.autoVoidStartMin = autoVoidStartMin; }
+    public Integer getAutoVoidEndMin() { return autoVoidEndMin; }
+    public void setAutoVoidEndMin(Integer autoVoidEndMin) { this.autoVoidEndMin = autoVoidEndMin; }
+    public Integer getEmailVoidStartMin() { return emailVoidStartMin; }
+    public void setEmailVoidStartMin(Integer emailVoidStartMin) { this.emailVoidStartMin = emailVoidStartMin; }
+    public Integer getEmailVoidEndMin() { return emailVoidEndMin; }
+    public void setEmailVoidEndMin(Integer emailVoidEndMin) { this.emailVoidEndMin = emailVoidEndMin; }
+    public String getPayFollowRefZone() { return payFollowRefZone; }
+    public void setPayFollowRefZone(String payFollowRefZone) { this.payFollowRefZone = payFollowRefZone; }
+    public Integer getAutoRefundAfterDays() { return autoRefundAfterDays; }
+    public void setAutoRefundAfterDays(Integer autoRefundAfterDays) { this.autoRefundAfterDays = autoRefundAfterDays; }
+    public Integer getForceRefundAfterDays() { return forceRefundAfterDays; }
+    public void setForceRefundAfterDays(Integer forceRefundAfterDays) { this.forceRefundAfterDays = forceRefundAfterDays; }
+    public String getAutoVoidReflectSettlementYn() { return autoVoidReflectSettlementYn; }
+    public void setAutoVoidReflectSettlementYn(String autoVoidReflectSettlementYn) { this.autoVoidReflectSettlementYn = autoVoidReflectSettlementYn; }
+    public String getEmailVoidReflectSettlementYn() { return emailVoidReflectSettlementYn; }
+    public void setEmailVoidReflectSettlementYn(String emailVoidReflectSettlementYn) { this.emailVoidReflectSettlementYn = emailVoidReflectSettlementYn; }
+    public String getAutoRefundReflectSettlementYn() { return autoRefundReflectSettlementYn; }
+    public void setAutoRefundReflectSettlementYn(String autoRefundReflectSettlementYn) { this.autoRefundReflectSettlementYn = autoRefundReflectSettlementYn; }
+    public String getForceRefundReflectSettlementYn() { return forceRefundReflectSettlementYn; }
+    public void setForceRefundReflectSettlementYn(String forceRefundReflectSettlementYn) { this.forceRefundReflectSettlementYn = forceRefundReflectSettlementYn; }
     public String getNotifyOkResponse() { return notifyOkResponse; }
     public void setNotifyOkResponse(String notifyOkResponse) { this.notifyOkResponse = notifyOkResponse; }
     public String getOtpRequiredYn() { return otpRequiredYn; }

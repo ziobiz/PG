@@ -62,6 +62,9 @@ app:
   serverUsage:
     enabled: true
     collectIntervalMs: 600000
+  # 전산설정관리 데이터 보관: 자동삭제 스케줄(Spring cron). PG 노티 수신·서버일별집계만 연동.
+  dataRetention:
+    purgeCron: "0 0 4 * * *"
   # 관리자 SPA 도메인이 카페24·별도 도메인 등 제각각일 수 있어 기본은 전 Origin 허용(*). API는 Bearer만 사용(쿠키 없음).
   # 보수적으로 쓰려면 allow-all-origins: false 후 allowed-origin-patterns 만 나열.
   cors:

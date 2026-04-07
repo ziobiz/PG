@@ -4,7 +4,7 @@
 개발·문서 URL 표기: **http://localhost:8080** 기준 (워크스페이스 규칙).
 
 - 전사 노티 URL·MID/루트 매핑: **`docs/전산노티_연동_NOTI.md`**
-- 후속조치: **`POST /api/calc/payAction`** + 본사설정 > 전산노티·결제환경
+- 후속조치: **`POST /api/calc/payAction`** + 본사설정 > 전산설정관리 (`/hq/ledgerSysSettings`)
 
 ## 원칙
 

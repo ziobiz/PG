@@ -84,7 +84,7 @@
     }).catch(function (err) {
       var msg = (err && err.message) ? err.message : '';
       if (msg === 'Failed to fetch' || msg.indexOf('NetworkError') !== -1 || msg.indexOf('Load failed') !== -1 || msg === 'Network request failed') {
-        return Promise.reject(new Error('API에 연결하지 못했습니다. 요청: ' + url));
+        return Promise.reject(new Error('API에 연결하지 못했습니다. (' + url + ') 네트워크·호스팅 설정을 확인해 주세요.'));
       }
       return Promise.reject(err);
     });
@@ -161,12 +161,10 @@
           retryOpt._retriedSameOrigin = true;
           return request(retryOpt);
         }
+        var apiRootHint = publicApiRoot();
         return Promise.reject(new Error(
-          'API에 연결하지 못했습니다. 요청: ' + url +
-            ' — 브라우저 F12 Network에서 해당 요청이 빨간색인지 확인하세요. ' +
-            '카페24 등 정적 호스팅이면 응답 헤더 Content-Security-Policy의 connect-src에 https://api.icopay.co.kr 가 허용되는지, ' +
-            'Nginx 앞단이 OPTIONS·POST를 API로 전달하는지, SSL·방화벽을 점검하세요. ' +
-            '(이 메시지는 서버 로그인 검증 전 단계 오류이며, 본사/총판 포털 규칙과는 별개입니다.)'
+          'API에 연결하지 못했습니다. (' + url + ') ' +
+            '인터넷 연결, 정적 호스팅 보안 정책(connect-src에 ' + apiRootHint + ' 허용), 리버스 프록시·SSL·방화벽을 확인해 주세요.'
         ));
       }
       return Promise.reject(err);

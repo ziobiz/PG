@@ -6,6 +6,7 @@ import com.pg.api.dto.LoginResponse;
 import com.pg.entity.AppUser;
 import com.pg.service.AuthService;
 import com.pg.service.OrgPagePermissionService;
+import com.pg.service.PayFollowPolicyService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -21,10 +22,13 @@ public class ApiAuthController {
 
     private final AuthService authService;
     private final OrgPagePermissionService orgPagePermissionService;
+    private final PayFollowPolicyService payFollowPolicyService;
 
-    public ApiAuthController(AuthService authService, OrgPagePermissionService orgPagePermissionService) {
+    public ApiAuthController(AuthService authService, OrgPagePermissionService orgPagePermissionService,
+                             PayFollowPolicyService payFollowPolicyService) {
         this.authService = authService;
         this.orgPagePermissionService = orgPagePermissionService;
+        this.payFollowPolicyService = payFollowPolicyService;
     }
 
     @PostMapping("/login")
@@ -57,6 +61,11 @@ public class ApiAuthController {
             }
             user.put("pagePermissions", orgPagePermissionService.resolvePagePermissionsForUser(u));
             user.put("canWriteNotice", orgPagePermissionService.canWriteNotice(u));
+            var pfa = payFollowPolicyService.allowedActionsForViewer(u);
+            user.put("payFollowAllowed", pfa);
+            Map<String, Object> pfn = new HashMap<>();
+            pfn.put("showForceRefundMenu", Boolean.TRUE.equals(pfa.get("FORCE_REFUND")));
+            user.put("payFollowNav", pfn);
         }
         return ResponseEntity.ok(ApiResponse.ok(user));
     }

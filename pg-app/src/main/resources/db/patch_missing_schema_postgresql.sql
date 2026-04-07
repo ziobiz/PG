@@ -175,6 +175,10 @@ ALTER TABLE tb_hq_ledger_sys_settings
     ALTER COLUMN email_notify_void_batch_yn TYPE VARCHAR(1),
     ALTER COLUMN email_notify_refund_batch_yn TYPE VARCHAR(1);
 
+-- 전산설정관리: 데이터 유형별 보관 기간 JSON — db/V73_hq_ledger_data_retention.sql 과 동일
+ALTER TABLE tb_hq_ledger_sys_settings
+    ADD COLUMN IF NOT EXISTS data_retention_policy_json TEXT;
+
 -- V67: URL 결제 폼 — 브라우저 탭 제목(JSON)·파비콘 경로 (결제구문 PG별 설정과 분리)
 ALTER TABLE tb_hq_api_config
     ADD COLUMN IF NOT EXISTS url_pay_tab_title_json TEXT;
@@ -207,3 +211,25 @@ ALTER TABLE pg_trnsctn
 
 -- V74: 거래 마스터 — 노티 수신 채널(CALLBACK/RESULT). 기존 NOTI 행은 NULL(필터에서 CALL·레거시로 간주)
 ALTER TABLE pg_trnsctn ADD COLUMN IF NOT EXISTS notify_channel_type VARCHAR(20);
+
+-- V78: 전산설정 — 이메일무효(수동무효) 메일 템플릿 (db/V78_hq_ledger_email_void_template.sql 과 동일)
+ALTER TABLE tb_hq_ledger_sys_settings ADD COLUMN IF NOT EXISTS email_void_to VARCHAR(255);
+ALTER TABLE tb_hq_ledger_sys_settings ADD COLUMN IF NOT EXISTS email_void_subject VARCHAR(500);
+ALTER TABLE tb_hq_ledger_sys_settings ADD COLUMN IF NOT EXISTS email_void_body_template TEXT;
+ALTER TABLE tb_hq_ledger_sys_settings ADD COLUMN IF NOT EXISTS email_void_company_name VARCHAR(200);
+ALTER TABLE tb_hq_ledger_sys_settings ADD COLUMN IF NOT EXISTS email_void_contact_name VARCHAR(200);
+
+-- V79: 후속조치 무효·이메일무효 시각 구간(분) — db/V79_pay_follow_void_time_windows.sql 과 동일
+ALTER TABLE tb_hq_notify_env_config ADD COLUMN IF NOT EXISTS auto_void_start_min INTEGER;
+ALTER TABLE tb_hq_notify_env_config ADD COLUMN IF NOT EXISTS auto_void_end_min INTEGER;
+ALTER TABLE tb_hq_notify_env_config ADD COLUMN IF NOT EXISTS email_void_start_min INTEGER;
+ALTER TABLE tb_hq_notify_env_config ADD COLUMN IF NOT EXISTS email_void_end_min INTEGER;
+
+-- V80: 전산설정 — 칠페이 통합내역 동기화·로그 보관 — db/V80_ledger_chillpay_sync_log_retention.sql 과 동일
+ALTER TABLE tb_hq_ledger_sys_settings ADD COLUMN IF NOT EXISTS chillpay_tr_init_sync_months INTEGER NOT NULL DEFAULT 3;
+ALTER TABLE tb_hq_ledger_sys_settings ADD COLUMN IF NOT EXISTS chillpay_tr_recent_sync_days INTEGER NOT NULL DEFAULT 2;
+ALTER TABLE tb_hq_ledger_sys_settings ADD COLUMN IF NOT EXISTS app_log_memory_retention_days INTEGER NOT NULL DEFAULT 30;
+ALTER TABLE tb_hq_ledger_sys_settings ADD COLUMN IF NOT EXISTS app_log_file_retention_days INTEGER NOT NULL DEFAULT 90;
+UPDATE tb_hq_notify_env_config SET auto_refund_after_days = 7 WHERE auto_refund_after_days IS NULL;
+UPDATE tb_hq_notify_env_config SET force_refund_after_days = 0 WHERE force_refund_after_days IS NULL;
+UPDATE tb_hq_notify_env_config SET email_void_end_min = 1439 WHERE email_void_end_min IS NULL OR email_void_end_min <> 1439;

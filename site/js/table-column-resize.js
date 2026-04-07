@@ -19,6 +19,11 @@
     return true;
   }
 
+  /** 결제관리 그리드: 내용 너비 우선 + 드래그는 min-width 로 유지 */
+  function isPayMngDataGrid(table) {
+    return !!(table && table.classList && table.classList.contains('pay-mng-data-grid'));
+  }
+
   function countDataColumns(table) {
     var tr = table.querySelector('tbody tr');
     if (tr && tr.cells && tr.cells.length) {
@@ -69,6 +74,7 @@
   function applyStoredWidths(table, cols) {
     var id = table.id || '';
     if (!id || id.indexOf('grid_') !== 0) return;
+    var payGrid = isPayMngDataGrid(table);
     try {
       var raw = global.localStorage.getItem(STORAGE_PREFIX + id);
       if (!raw) return;
@@ -76,7 +82,14 @@
       if (!Array.isArray(arr) || arr.length !== cols.length) return;
       for (var i = 0; i < arr.length; i++) {
         var w = Number(arr[i]);
-        if (!isNaN(w) && w >= MIN_COL) cols[i].style.width = w + 'px';
+        if (isNaN(w) || w < MIN_COL) continue;
+        if (payGrid) {
+          cols[i].style.width = '';
+          cols[i].style.minWidth = w + 'px';
+        } else {
+          cols[i].style.minWidth = '';
+          cols[i].style.width = w + 'px';
+        }
       }
     } catch (e) { /* ignore */ }
   }
@@ -115,9 +128,17 @@
       var minTotal = MIN_COL * slice.length;
       var totalNew = Math.max(minTotal, totalStart + dx);
       if (totalStart <= 0) return;
+      var payGrid = isPayMngDataGrid(table);
       for (var i = 0; i < slice.length; i++) {
         var ratio = startWs[i] / totalStart;
-        slice[i].style.width = Math.max(MIN_COL, ratio * totalNew) + 'px';
+        var px = Math.max(MIN_COL, ratio * totalNew);
+        if (payGrid) {
+          slice[i].style.width = '';
+          slice[i].style.minWidth = px + 'px';
+        } else {
+          slice[i].style.minWidth = '';
+          slice[i].style.width = px + 'px';
+        }
       }
     }
     function onUp() {
@@ -147,9 +168,12 @@
     th.classList.add('pg-th-has-resize');
     th.appendChild(handle);
     handle.addEventListener('mousedown', function (e) {
+      e.stopPropagation();
+      e.preventDefault();
       bindDrag(table, cols, colStart, span, e);
     });
     handle.addEventListener('touchstart', function (e) {
+      e.stopPropagation();
       bindDrag(table, cols, colStart, span, e);
     }, { passive: false });
   }

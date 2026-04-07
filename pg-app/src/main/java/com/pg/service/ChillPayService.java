@@ -21,6 +21,7 @@ import com.pg.repository.PgTrnsctnRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.*;
+import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
@@ -87,6 +88,12 @@ public class ChillPayService {
     /** Transaction Services — Search Payment Transaction (Table 1.1~1.3) */
     private static final String TXN_PAYMENT_SEARCH_SB = "https://sandbox-api-transaction.chillpay.co/api/v1/payment/search";
     private static final String TXN_PAYMENT_SEARCH_PR = "https://api-transaction.chillpay.co/api/v1/payment/search";
+    /** Transaction Services — Request Void (Table void/request) */
+    private static final String TXN_VOID_REQUEST_SB = "https://sandbox-api-transaction.chillpay.co/api/v1/void/request";
+    private static final String TXN_VOID_REQUEST_PR = "https://api-transaction.chillpay.co/api/v1/void/request";
+    /** Transaction Services — Request Refund (Table refund/request) */
+    private static final String TXN_REFUND_REQUEST_SB = "https://sandbox-api-transaction.chillpay.co/api/v1/refund/request";
+    private static final String TXN_REFUND_REQUEST_PR = "https://api-transaction.chillpay.co/api/v1/refund/request";
     private static final DateTimeFormatter CHILLPAY_TXN_DT = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss");
     /** 통합내역 상단 요약: 최대 추가 ChillPay API 호출 페이지 수(페이지당 최대 100건) */
     private static final int CHILL_STATUS_BAR_MAX_PAGES = 30;
@@ -101,6 +108,7 @@ public class ChillPayService {
     private final OrgUnitRepository orgUnitRepository;
     private final OrgServiceUseService orgServiceUseService;
     private final PgTrnsctnRepository pgTrnsctnRepository;
+    private final PayListService payListService;
     private final RestTemplate restTemplate = new RestTemplate();
 
     public ChillPayService(ChillPayProperties props, HqApiConfigRepository hqApiConfigRepository,
@@ -108,7 +116,8 @@ public class ChillPayService {
                           PgAgencyRepository pgAgencyRepository,
                           OrgUnitRepository orgUnitRepository,
                           OrgServiceUseService orgServiceUseService,
-                          PgTrnsctnRepository pgTrnsctnRepository) {
+                          PgTrnsctnRepository pgTrnsctnRepository,
+                          PayListService payListService) {
         this.props = props;
         this.hqApiConfigRepository = hqApiConfigRepository;
         this.merchantPgBindingRepository = merchantPgBindingRepository;
@@ -116,6 +125,7 @@ public class ChillPayService {
         this.orgUnitRepository = orgUnitRepository;
         this.orgServiceUseService = orgServiceUseService;
         this.pgTrnsctnRepository = pgTrnsctnRepository;
+        this.payListService = payListService;
     }
 
     /** 가맹점 결제 조합 시 MID·샌드박스 보조 (Route 확정 전에 조회 가능) */
@@ -1140,6 +1150,7 @@ public class ChillPayService {
      *
      * @param merchantOrgUnitId null이면 본사(HQ) 설정만 사용
      * @param multiCurrency     총본사·본사 true 시 통화별 금액 나열, 총판·지사 이하는 {@code primaryCurrency} 만 집계
+     * @param authentication    금액 요약(meta.payListFinancialSummary) 통화·기준통화 필터용, null 이면 기본 규칙만 적용
      */
     public PageResult<Map<String, Object>> searchChillPayPaymentTransactions(
             Long merchantOrgUnitId,
@@ -1156,7 +1167,8 @@ public class ChillPayService {
             LocalDate transactionDateFrom,
             LocalDate transactionDateTo,
             boolean multiCurrency,
-            String primaryCurrency) {
+            String primaryCurrency,
+            Authentication authentication) {
 
         int ps = Math.min(100, Math.max(1, size));
         int pn = Math.max(1, page);
@@ -1166,6 +1178,7 @@ public class ChillPayService {
                 null, null);
 
         PayListStatusBarBuckets.MutableRollup roll = new PayListStatusBarBuckets.MutableRollup();
+        List<Map<String, Object>> rowsForFinancial = new ArrayList<>();
         int totalPages = display.getTotalPages();
         int maxPages = Math.min(Math.max(totalPages, 1), CHILL_STATUS_BAR_MAX_PAGES);
         for (int p = 1; p <= maxPages; p++) {
@@ -1176,10 +1189,14 @@ public class ChillPayService {
                             merchantCodeFilter, paymentChannel, routeNoFilter, orderNo, status,
                             transactionDateFrom, transactionDateTo, null, null);
             accumulateChillPayRowsIntoRollup(roll, slice.getList());
+            if (slice.getList() != null) {
+                rowsForFinancial.addAll(slice.getList());
+            }
         }
 
         Map<String, Object> meta = display.getMeta() != null ? new LinkedHashMap<>(display.getMeta()) : new LinkedHashMap<>();
         meta.put("payListStatusBar", roll.toPayload(multiCurrency, primaryCurrency, totalPages > maxPages));
+        meta.put("payListFinancialSummary", payListService.buildChillPayFinancialSummary(rowsForFinancial, authentication));
         display.setMeta(meta);
         return display;
     }
@@ -1210,7 +1227,8 @@ public class ChillPayService {
             LocalDate transactionDateFrom,
             LocalDate transactionDateTo,
             boolean multiCurrency,
-            String primaryCurrency) {
+            String primaryCurrency,
+            Authentication authentication) {
 
         LocalDate payFrom = paymentDateFrom;
         LocalDate payTo = paymentDateTo;
@@ -1233,6 +1251,7 @@ public class ChillPayService {
                 transactionDateFrom, transactionDateTo, payFrom, payTo);
 
         PayListStatusBarBuckets.MutableRollup roll = new PayListStatusBarBuckets.MutableRollup();
+        List<Map<String, Object>> rowsForFinancial = new ArrayList<>();
         int totalPages = display.getTotalPages();
         int maxPages = Math.min(Math.max(totalPages, 1), CHILL_STATUS_BAR_MAX_PAGES);
         for (int p = 1; p <= maxPages; p++) {
@@ -1243,10 +1262,14 @@ public class ChillPayService {
                             merchantCodeFilter, paymentChannel, routeNoFilter, orderNo, status,
                             transactionDateFrom, transactionDateTo, payFrom, payTo);
             accumulateChillPayRowsIntoRollup(roll, slice.getList());
+            if (slice.getList() != null) {
+                rowsForFinancial.addAll(slice.getList());
+            }
         }
 
         Map<String, Object> meta = display.getMeta() != null ? new LinkedHashMap<>(display.getMeta()) : new LinkedHashMap<>();
         meta.put("payListStatusBar", roll.toPayload(multiCurrency, primaryCurrency, totalPages > maxPages));
+        meta.put("payListFinancialSummary", payListService.buildChillPayFinancialSummary(rowsForFinancial, authentication));
         meta.put("chillPaySettlementMode", true);
         meta.put("paymentDateFrom", payFrom.toString());
         meta.put("paymentDateTo", payTo.toString());
@@ -1698,5 +1721,99 @@ public class ChillPayService {
     private static String trimOrDefault(String s, String def) {
         String t = trimOrEmpty(s);
         return t.isEmpty() ? def : t;
+    }
+
+    /**
+     * ChillPay Transaction API — Request Void (미정산).
+     * 문서 §6 Table 6.1–6.2: URL {@code /api/v1/void/request}, 본문 {@code TransactionId}+{@code Checksum},
+     * Checksum = {@code MD5(TransactionId + MD5 Secret Key)}.
+     */
+    public void requestChillPayVoid(long merchantOrgUnitId, long chillPayTransactionId) {
+        postChillPayTxnMutate(merchantOrgUnitId, chillPayTransactionId, false);
+    }
+
+    /**
+     * ChillPay Transaction API — Request Refund (정산 후).
+     * 문서 §7 Table 7.1–7.2: URL {@code /api/v1/refund/request}; 선택 {@code RefundAmount},{@code RequestNote} 미전송 시 전액 환불.
+     * Checksum 은 표 7.2 비고와 같이 {@code TransactionId + MD5 Secret Key} 만 연결 후 MD5 (현재 구현은 전액 환불만).
+     */
+    public void requestChillPayRefund(long merchantOrgUnitId, long chillPayTransactionId) {
+        postChillPayTxnMutate(merchantOrgUnitId, chillPayTransactionId, true);
+    }
+
+    @SuppressWarnings("unchecked")
+    private void postChillPayTxnMutate(long merchantOrgUnitId, long chillPayTransactionId, boolean refund) {
+        Config cfg = resolveConfig(merchantOrgUnitId);
+        if (cfg.apiKey() == null || cfg.apiKey().isEmpty()) {
+            throw new IllegalStateException("ChillPay API Key가 설정되지 않았습니다.");
+        }
+        if (cfg.md5Key() == null || cfg.md5Key().isEmpty()) {
+            throw new IllegalStateException("ChillPay MD5 Key가 설정되지 않았습니다.");
+        }
+        String checksum = md5(String.valueOf(chillPayTransactionId) + cfg.md5Key());
+        Map<String, Object> req = new LinkedHashMap<>();
+        req.put("TransactionId", chillPayTransactionId);
+        req.put("Checksum", checksum);
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        headers.set("CHILLPAY-MerchantCode", cfg.merchantCode());
+        headers.set("CHILLPAY-ApiKey", cfg.apiKey());
+
+        String url = refund
+                ? (cfg.sandbox() ? TXN_REFUND_REQUEST_SB : TXN_REFUND_REQUEST_PR)
+                : (cfg.sandbox() ? TXN_VOID_REQUEST_SB : TXN_VOID_REQUEST_PR);
+        HttpEntity<Map<String, Object>> entity = new HttpEntity<>(req, headers);
+        try {
+            Map<String, Object> body = restTemplate.postForObject(url, entity, Map.class);
+            assertChillPayTxnMutateOk(body);
+        } catch (IllegalStateException e) {
+            throw e;
+        } catch (Exception e) {
+            String msg = e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName();
+            throw new IllegalStateException("ChillPay API 호출 실패: " + msg, e);
+        }
+    }
+
+    private static void assertChillPayTxnMutateOk(Map<String, Object> body) {
+        if (body == null) {
+            throw new IllegalStateException("ChillPay 응답 본문이 비어 있습니다.");
+        }
+        Object st = body.get("status");
+        if (st == null) {
+            st = body.get("Status");
+        }
+        Object cd = body.get("code");
+        if (cd == null) {
+            cd = body.get("Code");
+        }
+        /* 표 6.3·7.3·Appendix C: status 는 string, 코드 200 = Success (JSON 에 숫자로 올 수도 있음) */
+        if (!chillPayTxnResponseSuccessStatus(st) && !chillPayTxnResponseSuccessStatus(cd)) {
+            Object msg = body.get("message");
+            if (msg == null) {
+                msg = body.get("Message");
+            }
+            String m = msg != null ? String.valueOf(msg) : "ChillPay 처리에 실패했습니다.";
+            throw new IllegalStateException(m);
+        }
+    }
+
+    /** ChillPay-API-Transaction-Services-Document-EN v1.0.6 Appendix C — 성공 코드 200 */
+    private static boolean chillPayTxnResponseSuccessStatus(Object o) {
+        if (o == null) {
+            return false;
+        }
+        if (o instanceof Number n) {
+            return n.intValue() == 200;
+        }
+        String s = String.valueOf(o).trim();
+        if ("200".equals(s)) {
+            return true;
+        }
+        try {
+            return Integer.parseInt(s) == 200;
+        } catch (NumberFormatException e) {
+            return false;
+        }
     }
 }

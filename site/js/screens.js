@@ -4,6 +4,149 @@
 (function () {
   'use strict';
 
+  /** 전산설정관리: 표준시 — ziobiz/NOTI 시간·동기화 설정 대응 (신규 기본 Asia/Bangkok) */
+  var HQ_LEDGER_DISPLAY_TZ_OPTIONS = [
+    { v: 'Asia/Bangkok', t: 'Asia/Bangkok — 태국 (기본)' },
+    { v: 'Asia/Seoul', t: 'Asia/Seoul — 대한민국' },
+    { v: 'Asia/Tokyo', t: 'Asia/Tokyo — 일본' },
+    { v: 'Asia/Shanghai', t: 'Asia/Shanghai — 중국' },
+    { v: 'Asia/Ho_Chi_Minh', t: 'Asia/Ho_Chi_Minh — 베트남' },
+    { v: 'Asia/Singapore', t: 'Asia/Singapore — 싱가포르' },
+    { v: 'Asia/Manila', t: 'Asia/Manila — 필리핀' },
+    { v: 'Asia/Jakarta', t: 'Asia/Jakarta — 인도네시아(서)' },
+    { v: 'Asia/Dubai', t: 'Asia/Dubai — UAE' },
+    { v: 'UTC', t: 'UTC' },
+    { v: 'Europe/London', t: 'Europe/London' },
+    { v: 'America/New_York', t: 'America/New_York (미 동부)' },
+    { v: 'America/Los_Angeles', t: 'America/Los_Angeles (미 서부)' }
+  ];
+  /** 결제 후속조치: 승인 시각 기준 경과(시간) — 드롭다운 저장 */
+  var HQ_PAY_FOLLOW_ELAPSED_HOUR_OPTIONS = [
+    { v: '', t: '미설정' },
+    { v: '1', t: '1시간' },
+    { v: '2', t: '2시간' },
+    { v: '3', t: '3시간' },
+    { v: '6', t: '6시간' },
+    { v: '12', t: '12시간' },
+    { v: '18', t: '18시간' },
+    { v: '24', t: '24시간' },
+    { v: '36', t: '36시간' },
+    { v: '48', t: '48시간' },
+    { v: '72', t: '72시간' },
+    { v: '168', t: '168시간 (7일)' }
+  ];
+  /** 후속조치 기준 국가(Zone) — 태국·일본 우선 */
+  var HQ_PAY_FOLLOW_REF_ZONE_OPTIONS = [
+    { v: 'Asia/Bangkok', t: '태국 (Asia/Bangkok)' },
+    { v: 'Asia/Tokyo', t: '일본 (Asia/Tokyo)' },
+    { v: 'Asia/Seoul', t: '대한민국 (Asia/Seoul)' },
+    { v: 'Asia/Shanghai', t: '중국 (Asia/Shanghai)' },
+    { v: 'Asia/Ho_Chi_Minh', t: '베트남 (Asia/Ho_Chi_Minh)' },
+    { v: 'Asia/Singapore', t: '싱가포르 (Asia/Singapore)' },
+    { v: 'Asia/Manila', t: '필리핀 (Asia/Manila)' },
+    { v: 'Asia/Jakarta', t: '인도네시아 (Asia/Jakarta)' },
+    { v: 'Asia/Dubai', t: 'UAE (Asia/Dubai)' },
+    { v: 'UTC', t: 'UTC' },
+    { v: 'Europe/London', t: 'Europe/London' },
+    { v: 'America/New_York', t: '미 동부 (America/New_York)' },
+    { v: 'America/Los_Angeles', t: '미 서부 (America/Los_Angeles)' }
+  ];
+  /** 환불·강제환불: 승인일 기준 경과(일) */
+  var HQ_PAY_FOLLOW_ELAPSED_DAY_OPTIONS = (function () {
+    var a = [{ v: '', t: '미설정' }];
+    var i;
+    for (i = 1; i <= 30; i++) {
+      a.push({ v: String(i), t: String(i) + '일' });
+    }
+    [45, 60, 90].forEach(function (d) {
+      a.push({ v: String(d), t: String(d) + '일' });
+    });
+    return a;
+  })();
+  /** 강제환불 기간(일) — 0이면 메뉴·버튼 비노출 */
+  var HQ_PAY_FOLLOW_FORCE_DAY_OPTIONS = (function () {
+    var a = [{ v: '', t: '미설정' }, { v: '0', t: '0일 (메뉴·버튼 숨김)' }];
+    var i;
+    for (i = 1; i <= 30; i++) {
+      a.push({ v: String(i), t: String(i) + '일' });
+    }
+    [45, 60, 90].forEach(function (d) {
+      a.push({ v: String(d), t: String(d) + '일' });
+    });
+    return a;
+  })();
+
+  /** 전산설정관리 — 결제 후속조치 표 (NOTI 환경설정 대응) */
+  function hqLedgerPayFollowNotiTableHtml() {
+    function escA(s) {
+      return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+    }
+    function optHtml(opts) {
+      return opts.map(function (o) {
+        return '<option value="' + escA(o.v) + '">' + escA(o.t) + '</option>';
+      }).join('');
+    }
+    var ynUse = optHtml([{ v: 'N', t: '미사용' }, { v: 'Y', t: '사용' }]);
+    var ynRef = optHtml([{ v: 'N', t: '미반영' }, { v: 'Y', t: '반영' }]);
+    var zones = optHtml([{ v: '', t: '(전산 표준시와 동일)' }].concat(HQ_PAY_FOLLOW_REF_ZONE_OPTIONS));
+    var days = optHtml(HQ_PAY_FOLLOW_ELAPSED_DAY_OPTIONS);
+    var forceDays = optHtml(HQ_PAY_FOLLOW_FORCE_DAY_OPTIONS);
+    var timeInputCls = 'form-control form-control-sm hq-pay-follow-time';
+    return '<div class="border rounded hq-pay-follow-wrap">' +
+      '<table class="table table-sm table-bordered align-middle mb-0 hq-pay-follow-table">' +
+      '<thead class="table-light"><tr>' +
+      '<th class="hq-pay-follow-col-kind">구분</th>' +
+      '<th class="hq-pay-follow-col-basis">기준</th>' +
+      '<th class="hq-pay-follow-col-use text-center">설정(사용)</th>' +
+      '<th class="hq-pay-follow-col-val">시간·일자 설정</th>' +
+      '<th class="hq-pay-follow-col-ref text-center">정산 반영</th>' +
+      '</tr></thead><tbody>' +
+      '<tr class="hq-pay-follow-row-zone">' +
+      '<td class="fw-semibold">시간 선택 국가</td>' +
+      '<td class="small text-muted">기준 Zone</td>' +
+      '<td class="text-center">—</td>' +
+      '<td><select name="payFollowRefZone" class="form-select form-select-sm">' + zones + '</select>' +
+      '<div class="small text-muted mt-1 hq-pay-follow-dual-clock">' +
+      '<span class="d-block"><strong>TH</strong> <span class="hq-pay-follow-clock-th">—</span></span>' +
+      '<span class="d-block"><strong>JP</strong> <span class="hq-pay-follow-clock-jp">—</span></span>' +
+      '<span class="d-block mt-1 text-wrap"><strong>선택 기준</strong> <span class="hq-pay-follow-clock-sel">—</span></span>' +
+      '</div></td>' +
+      '<td class="text-center text-muted small">—</td></tr>' +
+      '<tr>' +
+      '<td class="fw-semibold">무효 <span class="badge bg-secondary">자동무효</span></td>' +
+      '<td class="small">승인일(기준 Zone) <strong>당일</strong> 구간</td>' +
+      '<td class="text-center"><select name="autoVoidYn" class="form-select form-select-sm hq-pay-follow-sel-use">' + ynUse + '</select></td>' +
+      '<td class="hq-pay-follow-void-times"><div class="d-flex flex-wrap align-items-center gap-1 gap-md-2">' +
+      '<span class="text-nowrap small">시작</span><input type="time" step="60" name="autoVoidStartTime" class="' + timeInputCls + '" title="비우면 0:00 (당일 자정)" />' +
+      '<span class="text-nowrap small">~ 마감</span><input type="time" step="60" name="autoVoidEndTime" class="' + timeInputCls + '" title="비우면 21:00 — 태국·기준 Zone 당일 (JP 동일 시각 +2h → 23:00)" />' +
+      '</div></td>' +
+      '<td class="text-center"><select name="autoVoidReflectSettlementYn" class="form-select form-select-sm hq-pay-follow-sel-ref">' + ynRef + '</select></td></tr>' +
+      '<tr>' +
+      '<td class="fw-semibold">수동무효 <span class="badge bg-secondary">이메일무효</span></td>' +
+      '<td class="small">승인일 당일, 마감 <strong>23:59</strong> 고정(태국 당일 — 일본은 익일 <strong>01:59</strong>까지 동일 구간)</td>' +
+      '<td class="text-center"><select name="emailVoidYn" class="form-select form-select-sm hq-pay-follow-sel-use">' + ynUse + '</select></td>' +
+      '<td class="hq-pay-follow-void-times"><div class="d-flex flex-wrap align-items-center gap-1 gap-md-2">' +
+      '<span class="text-nowrap small">시작</span><input type="time" step="60" name="emailVoidStartTime" class="' + timeInputCls + '" title="비우면 0:00 또는 자동무효 마감 다음 분(가능할 때)" />' +
+      '<span class="text-nowrap small ms-1">~ 마감</span><span class="small text-muted fw-semibold">23:59</span> <span class="small text-muted">(자동, 수정 불가)</span>' +
+      '</div><div class="small text-muted mt-1">시작만 필요 시 지정하세요. 자동무효와 겹치지 않게 하려면 시작을 직접 지정하세요.</div></td>' +
+      '<td class="text-center"><select name="emailVoidReflectSettlementYn" class="form-select form-select-sm hq-pay-follow-sel-ref">' + ynRef + '</select></td></tr>' +
+      '<tr>' +
+      '<td class="fw-semibold">환불 <span class="badge bg-secondary">자동환불</span></td>' +
+      '<td class="small"><strong>태국(Asia/Bangkok)</strong> 기준 결제일 익일 0시부터 <strong>N</strong>일(기본 7)</td>' +
+      '<td class="text-center"><select name="autoRefundYn" class="form-select form-select-sm hq-pay-follow-sel-use">' + ynUse + '</select></td>' +
+      '<td><select name="autoRefundAfterDays" class="form-select form-select-sm hq-pay-follow-sel-days">' + days + '</select></td>' +
+      '<td class="text-center"><select name="autoRefundReflectSettlementYn" class="form-select form-select-sm hq-pay-follow-sel-ref">' + ynRef + '</select></td></tr>' +
+      '<tr>' +
+      '<td class="fw-semibold">강제환불</td>' +
+      '<td class="small"><strong>태국</strong> 기준 일반 환불 종료 <strong>다음날 0시</strong>부터 <strong>M</strong>일(M=0이면 강제환불 메뉴 비노출)</td>' +
+      '<td class="text-center"><select name="forceRefundYn" class="form-select form-select-sm hq-pay-follow-sel-use">' + ynUse + '</select></td>' +
+      '<td><select name="forceRefundAfterDays" class="form-select form-select-sm hq-pay-follow-sel-days">' + forceDays + '</select></td>' +
+      '<td class="text-center"><select name="forceRefundReflectSettlementYn" class="form-select form-select-sm hq-pay-follow-sel-ref">' + ynRef + '</select></td></tr>' +
+      '</tbody></table>' +
+      '<p class="small text-muted px-2 py-2 mb-0">저장은 화면 하단 <strong>[저장]</strong>으로 합니다. <code>tb_hq_notify_env_config</code>에 동기화됩니다. 무효·수동무효는 승인일(「시간 선택 국가」Zone) <strong>당일</strong>입니다. <strong>환불·강제환불</strong>의 일수·익일 0시 계산은 <strong>태국(Asia/Bangkok)</strong> 달력 기준입니다. TH·JP 시계는 참고용입니다.</p>' +
+      '</div>';
+  }
+
   /** 업체관리 목록 검색: OrgLevel.code 와 동일 순서 (총본사 1 … 가맹점 7) */
   var COMP_MNG_SEARCH_COMP_DIV_LEVELS = [
     { v: 'HEADQUARTERS', t: '총본사', ord: 1 },
@@ -264,7 +407,8 @@
   var MENU_SCREENS = {
     '/hq/pgApiMng': {
       emptyMessage: '조회된 데이터가 없습니다.',
-      tableExtraClass: 'hq-pg-api-mng-table',
+      /* 열 너비는 CSS(data-key)로 균형 — col-resize 저장값이 엔드포인트 열만 과도하게 넓히는 것 방지 */
+      tableExtraClass: 'hq-pg-api-mng-table table-no-col-resize',
       searchRows: [[
         { label: 'PG사명', type: 'text', name: 'searchPgNm' },
         { label: '사용여부', type: 'select', name: 'searchUseYn', options: [{ v: '', t: '전체' }, { v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }] },
@@ -321,28 +465,32 @@
         },
         {
           title: '가맹점 수수료 정책',
-          notice: '위 [저장] 후 목록이 갱신됩니다. 수치 열은 총본사~영업점 합계(가맹 적용분) 기준입니다. 체크 후 [수정] 또는 행 클릭으로 폼에 불러옵니다. [신규정책]으로 초기화한 뒤 입력·저장하면 코드가 자동 부여되어 목록에 나타납니다. 체크한 항목만 [선택 정책 삭제]할 수 있습니다(여러 건 가능). 헤더 체크박스로 전체 선택·해제합니다.',
+          notice: '위 [저장] 후 목록이 갱신됩니다. 수치 열은 총본사~영업점 합계(가맹 적용분) 기준입니다. 체크 후 [수정] 또는 행 클릭으로 폼에 불러옵니다. [신규정책]으로 초기화한 뒤 입력·저장하면 코드가 자동 부여되어 목록에 나타납니다. 체크한 항목만 [선택 정책 삭제]할 수 있습니다(여러 건 가능). 표 머리의 체크박스로 전체 선택·해제합니다.',
           rows: [[{
             type: 'customHtml',
             col: 12,
             html: '<div id="hqDefaultCommissionFlash" class="alert alert-dismissible d-none mb-3" role="alert">' +
               '<span data-pg-banner-text></span>' +
               '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="닫기"></button></div>' +
-              '<p class="small text-muted mb-2 mb-md-1">헤더 1행은 <strong>수수료 고정</strong>·<strong>수수료 %</strong>·<strong>담보율</strong>·<strong>기타</strong> 묶음입니다. <strong>수수료 %</strong> 열은 숫자만 표시(단위 % 생략). 결제·USDT·FX·3DS·담보 비율은 승인금액 기준 %입니다.</p>' +
-              '<div class="table-responsive border rounded">' +
+              '<p class="small text-muted mb-2 mb-md-1">헤더 1행은 <strong>수수료 고정</strong>·<strong>수수료 %</strong>·<strong>담보율</strong>·<strong>기타</strong> 묶음입니다. <strong>수수료 %</strong> 열은 숫자만 표시(단위 % 생략). 결제·USDT·FX·3DS·담보 비율은 승인금액 기준 %입니다. 표는 화면 너비에 맞춰 줄바꿈·말줄임으로 표시됩니다.</p>' +
+              '<div class="table-responsive border rounded hq-default-comm-policy-scroll">' +
               '<table class="table table-sm table-hover align-middle mb-0 hq-default-comm-policy-table">' +
               '<colgroup>' +
               '<col class="hq-def-comm-col" /><col class="hq-def-comm-col" /><col class="hq-def-comm-col" /><col class="hq-def-comm-col" /><col class="hq-def-comm-col" /><col class="hq-def-comm-col" />' +
-              '<col class="hq-def-comm-col" /><col class="hq-def-comm-col" /><col class="hq-def-comm-col" /><col class="hq-def-comm-col" /><col class="hq-def-comm-col" /><col class="hq-def-comm-col" /><col class="hq-def-comm-col" /><col class="hq-def-comm-col" />' +
+              '<col class="hq-def-comm-col" /><col class="hq-def-comm-col" /><col class="hq-def-comm-col" /><col class="hq-def-comm-col" /><col class="hq-def-comm-col" /><col class="hq-def-comm-col" /><col class="hq-def-comm-col" /><col class="hq-def-comm-col" /><col class="hq-def-comm-col" /><col class="hq-def-comm-col" />' +
               '<col class="hq-def-comm-col" /><col class="hq-def-comm-col" /><col class="hq-def-comm-col" /><col class="hq-def-comm-col" />' +
               '<col class="hq-def-comm-col" /><col class="hq-def-comm-col" />' +
               '<col class="hq-def-comm-col" />' +
               '<col class="hq-def-comm-col" /><col class="hq-def-comm-col" /><col class="hq-def-comm-col" /><col class="hq-def-comm-col" />' +
-              '<col class="hq-def-comm-col" /><col class="hq-def-comm-col" />' +
+              '<col class="hq-def-comm-col" />' +
               '</colgroup>' +
               '<thead class="table-light">' +
               '<tr>' +
-              '<th rowspan="2" class="text-center align-middle hq-def-comm-th-chk"><span class="hq-def-comm-th-chk-label">선택</span></th>' +
+              '<th rowspan="2" class="text-center align-middle hq-def-comm-th-chk">' +
+              '<div class="hq-def-comm-th-chk-inner flex-column">' +
+              '<input type="checkbox" class="form-check-input m-0" id="hqDefCommSelectAll" title="전체 선택" aria-label="전체 선택" />' +
+              '<span class="hq-def-comm-th-chk-label">선택</span>' +
+              '</div></th>' +
               '<th rowspan="2" class="text-center align-middle hq-def-comm-th-code">코드</th>' +
               '<th rowspan="2" class="text-center align-middle hq-def-comm-th-name">이름</th>' +
               '<th rowspan="2" class="text-center align-middle hq-def-comm-th-cb-zone small">차지백<br>구간정책</th>' +
@@ -353,7 +501,7 @@
               '<th colspan="2" class="text-center align-middle small hq-def-comm-th-group border-start">담보율</th>' +
               '<th rowspan="2" class="text-center align-middle hq-def-comm-th-mon border-start">월간</th>' +
               '<th colspan="4" class="text-center align-middle small hq-def-comm-th-group border-start">기타</th>' +
-              '<th rowspan="2" class="text-center align-middle hq-def-comm-th-upd text-nowrap border-start">일지</th>' +
+              '<th rowspan="2" class="text-center align-middle hq-def-comm-th-upd text-nowrap border-start">일시</th>' +
               '</tr>' +
               '<tr>' +
               '<th class="hq-def-comm-th-sub text-center border-start">건당</th><th class="hq-def-comm-th-sub text-center">실패</th><th class="hq-def-comm-th-sub text-center">정산</th><th class="hq-def-comm-th-sub text-center">송금</th><th class="hq-def-comm-th-sub text-center">U송금</th><th class="hq-def-comm-th-sub text-center">차지백</th><th class="hq-def-comm-th-sub text-center">취소</th><th class="hq-def-comm-th-sub text-center">무효</th><th class="hq-def-comm-th-sub text-center">수무효</th><th class="hq-def-comm-th-sub text-center">환불</th>' +
@@ -389,10 +537,10 @@
           type: 'customHtml',
           col: 12,
           html: '<div id="hqChargebackPolicyFlash" class="alert alert-dismissible d-none mb-3" role="alert"><span data-pg-banner-text></span><button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="닫기"></button></div>' +
-            '<div class="row g-3"><div class="col-12 col-lg-4"><div class="card h-100"><div class="card-header py-2 small fw-semibold">저장된 유형</div><div class="card-body p-2">' +
-            '<div class="table-responsive border rounded" style="max-height:420px;overflow-y:auto"><table class="table table-sm table-hover align-middle mb-0"><thead class="table-light"><tr><th class="text-nowrap">ID</th><th>이름</th><th class="text-nowrap">기준통화</th><th>비고</th></tr></thead><tbody id="hqChargebackPolicyListTbody"><tr><td colspan="4" class="text-muted text-center small">불러오는 중…</td></tr></tbody></table></div>' +
+            '<div class="row g-3"><div class="col-12 col-lg-7"><div class="card h-100"><div class="card-header py-2 small fw-semibold">저장된 유형</div><div class="card-body p-2">' +
+            '<div class="table-responsive border rounded" style="max-height:480px;overflow-y:auto"><table class="table table-sm table-hover align-middle mb-0 hq-chargeback-policy-saved-table"><thead class="table-light"><tr><th class="text-nowrap">ID</th><th>이름</th><th class="text-nowrap">기준통화</th><th class="hq-cb-list-remark-th">비고</th></tr></thead><tbody id="hqChargebackPolicyListTbody"><tr><td colspan="4" class="text-muted text-center small">불러오는 중…</td></tr></tbody></table></div>' +
             '<button type="button" class="btn btn-success btn-sm mt-2 w-100" id="hqChargebackPolicyNewBtn">새 유형</button></div></div></div>' +
-            '<div class="col-12 col-lg-8"><div class="card h-100"><div class="card-header py-2 small fw-semibold">편집</div><div class="card-body p-3">' +
+            '<div class="col-12 col-lg-5"><div class="card h-100"><div class="card-header py-2 small fw-semibold">편집</div><div class="card-body p-2">' +
             '<input type="hidden" id="hqCbPolId" value="" />' +
             '<div class="mb-2"><label class="form-label small mb-0" for="hqCbPolName">이름</label><input type="text" class="form-control form-control-sm" id="hqCbPolName" maxlength="120" placeholder="예: 월간 차지백 단가표" /></div>' +
             '<div class="mb-2"><label class="form-label small mb-0" for="hqCbPolCurrencyCode">기준통화</label><select class="form-select form-select-sm" id="hqCbPolCurrencyCode">' +
@@ -441,14 +589,6 @@
           ]
         },
         {
-          title: '결제 후속조치 (NOTI 환경설정 대응)',
-          notice: '각 기능을 Y로 켠 경우에만 결제내역 그리드의 후속조치 버튼이 API에서 허용됩니다. 자동무효 배치 등은 추후 연동합니다.',
-          rows: [
-            [{ label: '자동무효', type: 'select', name: 'autoVoidYn', options: [{ v: 'N', t: '미사용' }, { v: 'Y', t: '사용' }], col: 2 }, { label: '이메일무효', type: 'select', name: 'emailVoidYn', options: [{ v: 'N', t: '미사용' }, { v: 'Y', t: '사용' }], col: 2 }, { label: '자동환불', type: 'select', name: 'autoRefundYn', options: [{ v: 'N', t: '미사용' }, { v: 'Y', t: '사용' }], col: 2 }, { label: '강제환불', type: 'select', name: 'forceRefundYn', options: [{ v: 'N', t: '미사용' }, { v: 'Y', t: '사용' }], col: 2 }],
-            [{ label: '자동무효 기준(시간, 예정)', type: 'text', name: 'autoVoidAfterHours', col: 2, placeholder: '예: 24' }]
-          ]
-        },
-        {
           title: '총판 노티 대상 생성',
           notice: '[노티자동생성] 시 CALLBACK(서버 노티)·RESULT(브라우저 결과/리다이렉트) URL이 짧은 경로(cb/rs+6자)로 각각 발급됩니다. NOTI 전산노티대상에 유형별로 등록한 뒤, 총판 등록 화면에서 연결합니다. 아래 목록에서 행별 삭제할 수 있습니다.',
           rows: [
@@ -483,7 +623,7 @@
       formSections: [
         {
           title: '노티매핑설정 (GUI)',
-          notice: '<strong>한눈에:</strong> 아래 표에서 <strong>PG가 보낸 파라미터 이름</strong>마다 <strong>우리 메뉴(그리드)의 항목(열 key)</strong>을 고릅니다. <strong>우리 표시명</strong>을 고치면 카탈로그 라벨이 바뀌고, <strong>저장</strong>하면 결제내역·조직항목설정에서 보이는 열 이름과 맞춰집니다. <strong>AI 잠금</strong>은 자동 제안이 그 줄을 덮어쓰지 못하게 합니다. JSON 구조는 펼치지 않아도 됩니다 — 필요 시 하단 고급 영역·JSON 편집을 사용하세요.',
+          notice: '<strong>한눈에:</strong> 아래 표에서 <strong>PG가 보낸 파라미터 이름</strong>마다 <strong>우리 메뉴(그리드)의 항목(열 key)</strong>을 고릅니다. <strong>우리 표시명</strong>을 고치면 카탈로그 라벨이 바뀌고, <strong>저장</strong>하면 결제내역·조직항목설정에서 보이는 열 이름과 맞춰집니다. <strong>AI 잠금</strong>은 자동 제안이 그 줄을 덮어쓰지 못하게 합니다. JSON 구조는 펼치지 않아도 됩니다 — 필요 시 하단 고급 영역·JSON 편집을 사용하세요. <span class="text-muted">이 화면의 API 연결이 안 될 때는 DB <code>tb_hq_notify_mapping.mapping_json</code> 직접 반영 또는 서버에서 <code>POST /api/hq/notifyMapping/save</code>(Bearer)로 동일 저장이 가능합니다. 절차는 저장소 <code>docs/노티매핑설정.md</code> 「관리자 화면(API)으로 구축이 어려울 때」를 참고하세요.</span>',
           rows: [
             [{
               type: 'customHtml',
@@ -546,9 +686,9 @@
       formSections: [
         {
           title: '시간 및 동기화 설정',
-          notice: 'ziobiz/NOTI 노티미들웨어의 시스템·환경설정(시간·NTP)과 동일 목적입니다. 실제 OS 시각 동기화는 VPS에서 chrony/systemd-timesyncd 등으로 수행하고, 여기 값은 전산 배치·표시·알림 기준으로 사용합니다.',
+          notice: 'ziobiz/NOTI 노티미들웨어의 시스템·환경설정(시간·NTP·동기화)과 동일 목적입니다. 실제 OS 시각 동기화는 VPS에서 chrony/systemd-timesyncd 등으로 수행하고, 여기 표준시는 전산 배치·목록 표시·결제 후속조치(무효·이메일무효) 경과 판단의 기준 ZoneId로 사용합니다. 신규·미설정 시 기본은 태국(Asia/Bangkok)입니다.',
           rows: [
-            [{ label: '표준 시간대 (IANA)', type: 'text', name: 'displayTimezone', col: 4, placeholder: '예: Asia/Seoul, Asia/Bangkok' }],
+            [{ label: '표준 시간대 (IANA)', type: 'select', name: 'displayTimezone', col: 5, options: HQ_LEDGER_DISPLAY_TZ_OPTIONS }],
             [{ label: 'NTP 동기화 사용', type: 'select', name: 'ntpSyncEnabledYn', options: [{ v: 'N', t: '미사용' }, { v: 'Y', t: '사용' }], col: 2 },
              { label: '동기화 주기(분)', type: 'number', name: 'timeSyncIntervalMin', col: 2, placeholder: '예: 60' }],
             [{ label: 'NTP 서버 목록', type: 'text', name: 'ntpServerList', col: 8, placeholder: '쉼표 구분, 예: pool.ntp.org, time.google.com' }],
@@ -557,8 +697,36 @@
           ]
         },
         {
+          title: '데이터 보관 기간',
+          notice: '쌓이는 데이터 유형별로 DB·로그·버퍼 보관 목표 일수를 지정합니다. 「자동삭제」를 켠 항목만 매일 새벽 스케줄로 초과분 삭제를 시도합니다(스케줄 대상만 체크 가능). 「정책」 유형은 값만 저장됩니다. 각 행의 [저장]은 표 전체 입력을 한 번에 저장합니다. [수정]은 서버 값으로 다시 불러옵니다. [초기화]는 해당 유형의 저장된 덮어쓰기만 제거합니다.',
+          rows: [
+            [{ type: 'customHtml', col: 12,
+              html: '<div class="border rounded hq-data-retention-wrap"><table class="table table-sm table-bordered align-middle mb-0 hq-data-retention-table">' +
+                '<colgroup><col /><col /><col /><col /><col /><col /></colgroup>' +
+                '<thead class="table-light"><tr><th class="hq-dr-th-type">데이터 유형</th><th class="text-nowrap text-center hq-dr-th-narrow">자동삭제</th><th class="text-nowrap hq-dr-th-narrow">삭제(일)</th><th class="text-nowrap hq-dr-th-narrow">보관(일)</th><th class="hq-dr-th-desc">설명·연동</th><th class="text-nowrap text-center hq-dr-th-act">관리</th></tr></thead>' +
+                '<tbody id="hqDataRetentionTbody"><tr><td colspan="6" class="text-center text-muted py-3">불러오는 중…</td></tr></tbody></table></div>' }]
+          ]
+        },
+        {
+          title: '통합내역(칠페이) 동기화·로그 보관',
+          notice: '통합내역 화면에서 날짜를 비운 채 조회하면 「최근 동기화 범위」일만큼 TransactionDate 구간을 채웁니다. [검색 초기화]는 「피지거래내역 초기화 동기화(개월)」만큼 넓은 구간으로 맞춥니다. 로그 파일 보관(일)은 매일 새벽 데이터 보관 스케줄에서 <code>logs</code> 등의 오래된 .log/.gz 파일 삭제에 반영됩니다. 로그 메모리 보관(일)은 정책 저장용(추후 진단 버퍼 연동 시 사용).',
+          rows: [
+            [{ label: '피지거래내역 초기화 동기화(개월)', type: 'number', name: 'chillpayTrInitSyncMonths', col: 3, placeholder: '기본 3' },
+             { label: '피지거래내역 최근 동기화 범위(일)', type: 'number', name: 'chillpayTrRecentSyncDays', col: 3, placeholder: '기본 2' },
+             { label: '로그 메모리 보관(일)', type: 'number', name: 'appLogMemoryRetentionDays', col: 3, placeholder: '기본 30' },
+             { label: '로그 파일 보관(일)', type: 'number', name: 'appLogFileRetentionDays', col: 3, placeholder: '기본 90' }]
+          ]
+        },
+        {
+          title: '결제 후속조치 (NOTI 환경설정 대응)',
+          notice: '시간 선택 국가(기준 Zone)는 무효·이메일무효에 적용됩니다. 무효 기본은 당일 <strong>0:00~21:00</strong>(마감은 JP 동일 시각 +2h → 23:00). 수동무효는 당일 <strong>23:59</strong> 마감 고정(JP 익일 01:59). 환불·강제환불 일수는 <strong>태국 익일 0시</strong> 기준입니다. 「설정(사용)」이 사용일 때만 시각·일자·정산 반영을 편집할 수 있습니다.',
+          rows: [
+            [{ type: 'customHtml', col: 12, html: hqLedgerPayFollowNotiTableHtml() }]
+          ]
+        },
+        {
           title: '자동화 이메일 설정',
-          notice: '무효·이메일무효·환불 배치 등 NOTI 종합거래 후속 기능 연동 시 알림 발송에 사용합니다. 비밀번호는 저장 시에만 갱신하며, 조회 시에는 설정 여부만 표시됩니다.',
+          notice: 'SMTP는 배치 알림·기타 자동 메일과 「이메일무효」 수동 요청 메일 발송에 공통으로 사용합니다. 아래 「이메일무효(ChillPay 등)」에서 수신처·제목·본문을 지정하면, 결제내역에서 이메일무효 실행 시 치환된 본문이 발송됩니다. 자동무효·자동환불·강제환불은 ChillPay Transaction API(무효/환불 요청)로 처리됩니다. 비밀번호는 저장 시에만 갱신하며, 조회 시에는 설정 여부만 표시됩니다.',
           rows: [
             [{ label: 'SMTP 호스트', type: 'text', name: 'smtpHost', col: 3, placeholder: 'smtp.example.com' },
              { label: 'SMTP 포트', type: 'number', name: 'smtpPort', col: 2, placeholder: '587' },
@@ -575,7 +743,16 @@
              { label: '무효 배치 알림(예정)', type: 'select', name: 'emailNotifyVoidBatchYn', options: [{ v: 'N', t: '미사용' }, { v: 'Y', t: '사용' }], col: 2 },
              { label: '환불 배치 알림(예정)', type: 'select', name: 'emailNotifyRefundBatchYn', options: [{ v: 'N', t: '미사용' }, { v: 'Y', t: '사용' }], col: 2 }],
             [{ label: '메모', type: 'textarea', name: 'memo', col: 8, rows: 2 }],
-            [{ label: '최종 수정', type: 'text', name: 'updatedAt', col: 4, readonly: true }]
+            [{ label: '최종 수정', type: 'text', name: 'updatedAt', col: 4, readonly: true }],
+            [{ type: 'customHtml', col: 12,
+              html: '<hr class="my-2" /><p class="small text-muted mb-2 fw-semibold">이메일무효(수동 VOID 요청 메일)</p>' }],
+            [{ label: '수신 이메일', type: 'text', name: 'emailVoidTo', col: 4, placeholder: '예: help@chillpay.co' },
+             { label: '회사명(본문 치환)', type: 'text', name: 'emailVoidCompanyName', col: 4 },
+             { label: '담당자 성명(본문 치환)', type: 'text', name: 'emailVoidContactName', col: 4 }],
+            [{ label: '메일 제목', type: 'text', name: 'emailVoidSubject', col: 12,
+              placeholder: '{{transNo}} {{orderNo}} {{amount}} {{routeNo}} {{paymentDate}} {{mid}} {{companyName}} {{contactName}}' }],
+            [{ label: '메일 본문', type: 'textarea', name: 'emailVoidBodyTemplate', col: 12, rows: 8,
+              placeholder: '영문 샘플·플레이스홀더는 저장 없이도 서버 기본값이 적용됩니다. 비우면 기본 영문 본문이 사용됩니다.' }]
           ]
         }
       ],
@@ -1055,6 +1232,16 @@
           ]
         },
         {
+          title: '결제 후속조치 (가맹점 관리자)',
+          id: 'payFollowMerchantCard',
+          merchantOnly: true,
+          notice: '관리자 화면의 자동무효·이메일무효·자동환불·강제환불 사용 여부입니다. 전산설정관리(전역) 및 본사권한설정의 조직 단계 상한과 함께 적용됩니다. [기본·종전]은 미설정과 동일(허용으로 해석)입니다.',
+          rows: [
+            [{ label: '후속조치 사용', type: 'select', name: 'payFollowMerchantUseYn', options: [{ v: '', t: '기본·종전과 동일' }, { v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }], col: 2 }],
+            [{ label: '자동무효', type: 'select', name: 'payFollowAutoVoidYn', options: [{ v: '', t: '기본·종전과 동일' }, { v: 'Y', t: '허용' }, { v: 'N', t: '불가' }], col: 2 }, { label: '이메일무효', type: 'select', name: 'payFollowEmailVoidYn', options: [{ v: '', t: '기본·종전과 동일' }, { v: 'Y', t: '허용' }, { v: 'N', t: '불가' }], col: 2 }, { label: '자동환불', type: 'select', name: 'payFollowAutoRefundYn', options: [{ v: '', t: '기본·종전과 동일' }, { v: 'Y', t: '허용' }, { v: 'N', t: '불가' }], col: 2 }, { label: '강제환불', type: 'select', name: 'payFollowForceRefundYn', options: [{ v: '', t: '기본·종전과 동일' }, { v: 'Y', t: '허용' }, { v: 'N', t: '불가' }], col: 2 }]
+          ]
+        },
+        {
           title: '정산방법',
           id: 'calcMethodCard',
           merchantOnly: true,
@@ -1356,6 +1543,16 @@
           ]
         },
         {
+          title: '결제 후속조치 (가맹점 관리자)',
+          id: 'payFollowMerchantCard',
+          merchantOnly: true,
+          notice: '관리자 화면의 자동무효·이메일무효·자동환불·강제환불 사용 여부입니다. 전산설정관리(전역) 및 본사권한설정의 조직 단계 상한과 함께 적용됩니다. [기본·종전]은 미설정과 동일(허용으로 해석)입니다.',
+          rows: [
+            [{ label: '후속조치 사용', type: 'select', name: 'payFollowMerchantUseYn', options: [{ v: '', t: '기본·종전과 동일' }, { v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }], col: 2 }],
+            [{ label: '자동무효', type: 'select', name: 'payFollowAutoVoidYn', options: [{ v: '', t: '기본·종전과 동일' }, { v: 'Y', t: '허용' }, { v: 'N', t: '불가' }], col: 2 }, { label: '이메일무효', type: 'select', name: 'payFollowEmailVoidYn', options: [{ v: '', t: '기본·종전과 동일' }, { v: 'Y', t: '허용' }, { v: 'N', t: '불가' }], col: 2 }, { label: '자동환불', type: 'select', name: 'payFollowAutoRefundYn', options: [{ v: '', t: '기본·종전과 동일' }, { v: 'Y', t: '허용' }, { v: 'N', t: '불가' }], col: 2 }, { label: '강제환불', type: 'select', name: 'payFollowForceRefundYn', options: [{ v: '', t: '기본·종전과 동일' }, { v: 'Y', t: '허용' }, { v: 'N', t: '불가' }], col: 2 }]
+          ]
+        },
+        {
           title: '정산방법',
           id: 'calcMethodCard',
           merchantOnly: true,
@@ -1593,6 +1790,16 @@
           ]
         },
         {
+          title: '결제 후속조치 (가맹점 관리자)',
+          id: 'payFollowMerchantCard',
+          merchantOnly: true,
+          notice: '관리자 화면의 자동무효·이메일무효·자동환불·강제환불 사용 여부입니다. 전산설정관리(전역) 및 본사권한설정의 조직 단계 상한과 함께 적용됩니다. [기본·종전]은 미설정과 동일(허용으로 해석)입니다.',
+          rows: [
+            [{ label: '후속조치 사용', type: 'select', name: 'payFollowMerchantUseYn', options: [{ v: '', t: '기본·종전과 동일' }, { v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }], col: 2 }],
+            [{ label: '자동무효', type: 'select', name: 'payFollowAutoVoidYn', options: [{ v: '', t: '기본·종전과 동일' }, { v: 'Y', t: '허용' }, { v: 'N', t: '불가' }], col: 2 }, { label: '이메일무효', type: 'select', name: 'payFollowEmailVoidYn', options: [{ v: '', t: '기본·종전과 동일' }, { v: 'Y', t: '허용' }, { v: 'N', t: '불가' }], col: 2 }, { label: '자동환불', type: 'select', name: 'payFollowAutoRefundYn', options: [{ v: '', t: '기본·종전과 동일' }, { v: 'Y', t: '허용' }, { v: 'N', t: '불가' }], col: 2 }, { label: '강제환불', type: 'select', name: 'payFollowForceRefundYn', options: [{ v: '', t: '기본·종전과 동일' }, { v: 'Y', t: '허용' }, { v: 'N', t: '불가' }], col: 2 }]
+          ]
+        },
+        {
           title: '정산방법',
           id: 'calcMethodCard',
           merchantOnly: true,
@@ -1750,6 +1957,8 @@
     '/calc/payList': {
       payListVariant: 'INTEGRATED',
       payListStatusBar: true,
+      /** VIEW SETTING: 열 목록은 pay-list-integrated-catalog.js 로 채움 */
+      tableColumnGuide: true,
       /** VIEW SETTING: 1행 제목·저장, 2행 컬럼 체크(줄바꿈) */
       tableColumnGuideTwoRow: true,
       searchFormClass: 'pay-mng-search-form',
@@ -1804,17 +2013,17 @@
           { label: '전산주기', type: 'select', name: 'searchCycle', options: CALC_CYCLE_SEARCH_OPTIONS, size: 10 },
           { label: '사업자번호', type: 'text', name: 'searchRegNo', size: 12 },
           { label: '카드승인번호', type: 'text', name: 'searchCardAprvNo', size: 11 },
-          { label: '피지거래번호', type: 'text', name: 'searchChillTxnId', placeholder: 'TransactionId(칠페이)', size: 14 }
+          { label: '피지거래번호', type: 'text', name: 'searchChillTxnId', placeholder: '승인번호(TransactionId)', size: 14 }
         ]
       ],
       searchRows2: [],
       searchRows3: [],
       noticeList: [
         '통합 결제내역: 칠페이 API 동기화·노티 적재·URL직접결제 등 전 출처를 한 그리드에 표시합니다. 앞쪽 컬럼(거래일~Settled)은 칠페이 거래내역 시트와 대응합니다.',
-        '[후속조치]는 본사설정 > 노티구성설정에서 기능을 켠 경우에만 동작합니다 (NOTI 환경설정과 동일).',
+        '[후속조치]는 본사설정 > 전산설정관리에서 기능을 켠 경우에만 동작합니다 (NOTI 환경설정과 동일).',
         '취소 건에 대한 정산 수수료 및 부가세는 정산 주기에 따라 반영됩니다.',
         '정산 주기 및 정산 수수료는 가맹점별로 상이할 수 있습니다.',
-        '상단 첫 줄: 검색·기간·권한 범위 전체 집계(승인 건수·통화별 승인/취소/결제·수수료+부가세·보류·지급). 둘째 줄: 상태별(성공·실패·…) 통화별 금액. 본사·총본사는 통화별 병기, 총판·하위는 기준 통화 한 줄.'
+        '상단 첫 줄: 검색·기간·권한 범위 전체 집계(승인 건수·통화별 승인/취소/결제·수수료+부가세·보류·지급). 둘째 줄: 성공·실패 등 통화별 금액. 본사·총본사는 통화별 병기, 총판·하위는 기준 통화 한 줄.'
       ],
       summary: [],
       buttons: [
@@ -1843,14 +2052,14 @@
       searchRows: [
         [
           { label: '정렬', type: 'select', name: 'searchOrderBy', options: [
-            { v: 'TransactionId', t: 'TransactionId' },
-            { v: 'TransactionDate', t: 'TransactionDate' },
-            { v: 'OrderNo', t: 'OrderNo' },
+            { v: 'TransactionId', t: '승인번호' },
+            { v: 'TransactionDate', t: '거래일자' },
+            { v: 'OrderNo', t: '주문번호' },
             { v: 'PaymentDate', t: 'PaymentDate' },
-            { v: 'Amount', t: 'Amount' },
+            { v: 'Amount', t: '결제금액' },
             { v: 'Merchant', t: 'Merchant' },
-            { v: 'Customer', t: 'Customer' },
-            { v: 'Status', t: 'Status' }
+            { v: 'Customer', t: '고객' },
+            { v: 'Status', t: '상태' }
           ], size: 12 },
           { label: '방향', type: 'select', name: 'searchOrderDir', options: [
             { v: 'DESC', t: 'DESC' },
@@ -1858,7 +2067,8 @@
           ], size: 7 },
           { type: 'daterange', from: 'searchFromDate', to: 'searchToDate' },
           { type: 'quickdate' },
-          { type: 'searchBtn', label: '검색' }
+          { type: 'searchBtn', label: '검색' },
+          { type: 'button', name: 'searchReset', label: '검색 초기화' }
         ],
         [
           { label: '검색어', type: 'text', name: 'searchKeyword', placeholder: 'SearchKeyword', size: 16 },
@@ -1873,7 +2083,7 @@
         'ChillPay API Transaction Services — Search Payment Transaction(실시간)입니다. ICOPAY 내부 DB(pg_trnsctn)가 아니라 칠페이 서버에서 직접 목록을 가져옵니다. ziobiz/NOTI 노티미들웨어의 종합거래·피지거래내역과 유사한 용도로 쓸 수 있습니다.',
         '자격: 배포설정 > API배포설정 또는 tb_pg_agency(ChillPay)의 MerchantCode·ApiKey·MD5 Secret Key·샌드박스 여부를 사용합니다.',
         'TransactionDate 범위는 검색 기간(날짜)을 ChillPay 형식(dd/MM/yyyy HH:mm:ss)으로 변환합니다. 문서: ChillPay-API-Transaction-Services-Document-EN_v1.0.6.',
-        '그리드 열 노출은 상단 VIEW SETTING에서 조정합니다(저장 시 사용자별로 유지). 번호·TransactionId·업체명·업체코드·거래일·거래시간( JST·ICT 병기 )·Route는 항상 표시됩니다. 본사설정 → 조직항목설정에서 화면「통합내역」 허용 열을 제한할 수 있습니다.'
+        '그리드 열 노출은 상단 VIEW SETTING에서 조정합니다(저장 시 사용자별로 유지). 번호·승인번호·업체명·업체코드·거래일·거래시간( JST·ICT 병기 )·루트는 항상 표시됩니다. 본사설정 → 조직항목설정에서 화면「통합내역」 허용 열을 제한할 수 있습니다.'
       ],
       summary: ['건수'],
       buttons: [
@@ -1882,28 +2092,28 @@
       ],
       columns: [
         { key: 'rowNo', label: 'No.' },
-        { key: 'transactionId', label: 'TransactionId' },
+        { key: 'transactionId', label: '승인번호' },
         { key: 'compNm', label: '업체명' },
         { key: 'compId', label: '업체코드' },
         { key: 'trnDate', label: '거래일' },
         { key: 'trnTime', label: '거래시간' },
-        { key: 'routeNo', label: 'Route No' },
+        { key: 'routeNo', label: '루트' },
         { key: 'merchant', label: 'Merchant(MID)' },
-        { key: 'customer', label: 'Customer' },
-        { key: 'orderNo', label: 'OrderNo' },
+        { key: 'customer', label: '고객' },
+        { key: 'orderNo', label: '주문번호' },
         { key: 'paymentChannel', label: 'PaymentChannel' },
         { key: 'payCompletedAt', label: '결제시각' },
-        { key: 'amount', label: 'Amount' },
+        { key: 'amount', label: '결제금액' },
         { key: 'refundAmount', label: 'RefundAmount' },
-        { key: 'fee', label: 'Fee' },
+        { key: 'fee', label: '수수료' },
         { key: 'discount', label: 'Discount' },
-        { key: 'totalAmount', label: 'TotalAmount' },
-        { key: 'currency', label: 'Currency' },
-        { key: 'status', label: 'Status' },
-        { key: 'settled', label: 'Settled' },
+        { key: 'totalAmount', label: '총금액' },
+        { key: 'currency', label: '통화' },
+        { key: 'status', label: '상태' },
+        { key: 'settled', label: '정산' },
         { key: 'icopay', label: 'ICOPAY' },
         { key: 'description', label: 'Description' },
-        { key: 'transactionDate', label: 'TransactionDate(원문)' },
+        { key: 'transactionDate', label: '거래일자' },
         { key: 'paymentDate', label: 'PaymentDate(원문)' }
       ],
       emptyMessage: '조회된 데이터가 없습니다.'
@@ -1921,17 +2131,17 @@
       searchRows: [
         [
           { label: '정렬', type: 'select', name: 'searchOrderBy', options: [
-            { v: 'Settled', t: 'Settled(정산)' },
+            { v: 'Settled', t: '정산(Settled)' },
             { v: 'PaymentDate', t: 'PaymentDate' },
-            { v: 'TotalAmount', t: 'TotalAmount' },
-            { v: 'Fee', t: 'Fee' },
-            { v: 'TransactionId', t: 'TransactionId' },
-            { v: 'TransactionDate', t: 'TransactionDate' },
-            { v: 'OrderNo', t: 'OrderNo' },
-            { v: 'Amount', t: 'Amount' },
+            { v: 'TotalAmount', t: '총금액' },
+            { v: 'Fee', t: '수수료' },
+            { v: 'TransactionId', t: '승인번호' },
+            { v: 'TransactionDate', t: '거래일자' },
+            { v: 'OrderNo', t: '주문번호' },
+            { v: 'Amount', t: '결제금액' },
             { v: 'Merchant', t: 'Merchant' },
-            { v: 'Customer', t: 'Customer' },
-            { v: 'Status', t: 'Status' }
+            { v: 'Customer', t: '고객' },
+            { v: 'Status', t: '상태' }
           ], size: 12 },
           { label: '방향', type: 'select', name: 'searchOrderDir', options: [
             { v: 'DESC', t: 'DESC' },
@@ -1955,7 +2165,7 @@
         '칠페이 Transaction Services — Search Payment Transaction API(v1.0.6)로 조회합니다. ICOPAY 정산 실행·유통망 정산 테이블과 무관하며, 칠페이가 판단한 Settled·수수료·금액 등 원문을 봅니다.',
         '기본 정렬은 Settled, 기간은 PaymentDate(결제일)입니다. 기간을 비우면 최근 30일 결제일로 조회합니다. 거래일(TransactionDate)은 선택 필터입니다.',
         '자격: 배포설정 > API배포설정·tb_pg_agency(ChillPay)의 MerchantCode·ApiKey·MD5 Secret Key·샌드박스와 동일합니다.',
-        '그리드 열 노출은 상단 VIEW SETTING에서 조정합니다(저장 시 사용자별로 유지). 번호·TransactionId·TransactionDate·Merchant·PaymentDate·RouteNo는 항상 표시됩니다. 본사설정 → 조직항목설정에서 화면「통합정산」 허용 열을 제한할 수 있습니다.'
+        '그리드 열 노출은 상단 VIEW SETTING에서 조정합니다(저장 시 사용자별로 유지). 번호·승인번호·거래일자·Merchant·PaymentDate·루트는 항상 표시됩니다. 본사설정 → 조직항목설정에서 화면「통합정산」 허용 열을 제한할 수 있습니다.'
       ],
       summary: ['건수'],
       buttons: [
@@ -1964,23 +2174,23 @@
       ],
       columns: [
         { key: 'rowNo', label: 'No.' },
-        { key: 'transactionId', label: 'TransactionId' },
-        { key: 'transactionDate', label: 'TransactionDate' },
+        { key: 'transactionId', label: '승인번호' },
+        { key: 'transactionDate', label: '거래일자' },
         { key: 'merchant', label: 'Merchant' },
-        { key: 'customer', label: 'Customer' },
-        { key: 'orderNo', label: 'OrderNo' },
+        { key: 'customer', label: '고객' },
+        { key: 'orderNo', label: '주문번호' },
         { key: 'paymentChannel', label: 'PaymentChannel' },
         { key: 'paymentDate', label: 'PaymentDate' },
-        { key: 'amount', label: 'Amount' },
+        { key: 'amount', label: '결제금액' },
         { key: 'refundAmount', label: 'RefundAmount' },
-        { key: 'fee', label: 'Fee' },
+        { key: 'fee', label: '수수료' },
         { key: 'discount', label: 'Discount' },
-        { key: 'totalAmount', label: 'TotalAmount' },
+        { key: 'totalAmount', label: '총금액' },
         { key: 'icopay', label: 'ICOPAY' },
-        { key: 'currency', label: 'Currency' },
-        { key: 'routeNo', label: 'RouteNo' },
-        { key: 'status', label: 'Status' },
-        { key: 'settled', label: 'Settled' },
+        { key: 'currency', label: '통화' },
+        { key: 'routeNo', label: '루트' },
+        { key: 'status', label: '상태' },
+        { key: 'settled', label: '정산' },
         { key: 'description', label: 'Description' }
       ],
       emptyMessage: '조회된 데이터가 없습니다.'
@@ -2547,6 +2757,16 @@
           ]
         },
         {
+          title: '결제 후속조치 (가맹점 관리자)',
+          id: 'payFollowMerchantCard',
+          merchantOnly: true,
+          notice: '관리자 화면의 자동무효·이메일무효·자동환불·강제환불 사용 여부입니다. 전산설정관리(전역) 및 본사권한설정의 조직 단계 상한과 함께 적용됩니다. [기본·종전]은 미설정과 동일(허용으로 해석)입니다.',
+          rows: [
+            [{ label: '후속조치 사용', type: 'select', name: 'payFollowMerchantUseYn', options: [{ v: '', t: '기본·종전과 동일' }, { v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }], col: 2 }],
+            [{ label: '자동무효', type: 'select', name: 'payFollowAutoVoidYn', options: [{ v: '', t: '기본·종전과 동일' }, { v: 'Y', t: '허용' }, { v: 'N', t: '불가' }], col: 2 }, { label: '이메일무효', type: 'select', name: 'payFollowEmailVoidYn', options: [{ v: '', t: '기본·종전과 동일' }, { v: 'Y', t: '허용' }, { v: 'N', t: '불가' }], col: 2 }, { label: '자동환불', type: 'select', name: 'payFollowAutoRefundYn', options: [{ v: '', t: '기본·종전과 동일' }, { v: 'Y', t: '허용' }, { v: 'N', t: '불가' }], col: 2 }, { label: '강제환불', type: 'select', name: 'payFollowForceRefundYn', options: [{ v: '', t: '기본·종전과 동일' }, { v: 'Y', t: '허용' }, { v: 'N', t: '불가' }], col: 2 }]
+          ]
+        },
+        {
           type: 'pgInfoDisplay',
           title: '결제대행사정보',
           id: 'pgInfoCard',
@@ -2753,11 +2973,14 @@
     MENU_SCREENS['/calc/payNotiList'] = cloneWith('NOTI', [
       '노티내역: 통합 결제내역과 동일한 그리드입니다(칠페이 시트 컬럼·2단 헤더·요약바·후속조치 포함). 조회만 origin=NOTI(전산 노티 적재)로 제한됩니다.',
       'ziobiz/NOTI 종합거래의 노티거래내역과 동일 성격의 데이터입니다.',
-      '[후속조치]는 본사설정 > 노티구성설정에서 기능을 켠 경우에만 동작합니다 (NOTI 환경설정과 동일).',
+      '[후속조치]는 본사설정 > 전산설정관리에서 기능을 켠 경우에만 동작합니다 (NOTI 환경설정과 동일).',
       '취소 건에 대한 정산 수수료 및 부가세는 정산 주기에 따라 반영됩니다.',
       '정산 주기 및 정산 수수료는 가맹점별로 상이할 수 있습니다.'
     ], true);
-    MENU_SCREENS['/calc/paySuccessList'] = cloneWith('SUCCESS', ['성공내역: 통합 결제내역에서 승인 성공(결제) 상태만 간추렸습니다.']);
+    MENU_SCREENS['/calc/paySuccessList'] = cloneWith('SUCCESS', [
+      '성공내역: 통합 결제내역에서 승인 성공(결제) 상태만 간추렸습니다.',
+      '무효·이메일무효·환불·강제환불 등 후속조치는 「결제내역」(/calc/payList)에서만 제공합니다.'
+    ]);
     MENU_SCREENS['/calc/payFailList'] = cloneWith('FAIL', ['실패내역: 통합 결제내역에서 실패·거절만 간추렸습니다.']);
     MENU_SCREENS['/calc/payRefundList'] = cloneWith('REFUND', ['환불내역: 통합 결제내역에서 환불만 간추렸습니다.']);
     MENU_SCREENS['/calc/payForceRefundList'] = cloneWith('FORCE_REFUND', ['강제환불내역: 통합 결제내역에서 강제환불만 간추렸습니다.']);
@@ -2966,26 +3189,31 @@
       return '<label class="column-guide-item column-guide-item--on"><input type="checkbox" class="column-guide-check" data-key="' + escGl(key) + '" checked> <span class="column-guide-label">' + escGl(label) + '</span></label>';
     }).join('');
     var actionsHtml =
-      '<button type="button" class="btn btn-xs btn-outline-secondary" id="compMngReleaseColumnsBtn">해제</button>' +
-      '<button type="button" class="btn btn-xs btn-outline-primary" id="compMngSaveColumnsBtn">저장</button>' +
-      '<button type="button" class="btn btn-xs btn-outline-secondary" id="compMngClearColumnsBtn">초기화</button>';
-    var rootClass = 'table-column-guide mb-3 p-2 border rounded bg-light';
+      '<button type="button" class="btn btn-xs btn-outline-secondary column-guide-action-btn" id="compMngDefaultColumnsBtn">기본</button>' +
+      '<button type="button" class="btn btn-xs btn-outline-secondary column-guide-action-btn" id="compMngReleaseColumnsBtn">해제</button>' +
+      '<button type="button" class="btn btn-xs btn-outline-secondary column-guide-action-btn" id="compMngSelectAllColumnsBtn">선택</button>' +
+      '<button type="button" class="btn btn-xs btn-outline-primary column-guide-action-btn" id="compMngSaveColumnsBtn">저장</button>' +
+      '<button type="button" class="btn btn-xs btn-outline-secondary column-guide-action-btn" id="compMngRestoreColumnsBtn" title="바로 직전에 서버에 저장된 열 구성(또는 화면을 불러온 당시의 저장 상태)으로 되돌립니다.">복원</button>';
+    var headRow =
+      '<div class="column-guide-row column-guide-top column-guide-top--inline">' +
+      '<div class="column-guide-inline-head">' +
+      '<span class="column-guide-title">VIEW SETTING</span>' +
+      '<span class="column-guide-vbar" aria-hidden="true">|</span>' +
+      '<div class="column-guide-actions column-guide-actions--inline">' + actionsHtml + '</div>' +
+      '</div></div>';
+    var rootClass = 'table-column-guide mb-3 p-2 border rounded bg-light table-column-guide--inline-head';
     if (cfg.tableColumnGuideTwoRow === true) {
       return '<div class="' + rootClass + ' table-column-guide--two-row" id="tableColumnGuide">' +
-        '<div class="column-guide-row column-guide-top">' +
-        '<div class="column-guide-title">VIEW SETTING</div>' +
-        '<div class="column-guide-actions">' + actionsHtml + '</div>' +
-        '</div>' +
+        headRow +
         '<div class="column-guide-row column-guide-checkboxes">' +
         '<div class="column-guide-list">' + items + '</div>' +
         '</div>' +
         '</div>';
     }
     return '<div class="' + rootClass + '" id="tableColumnGuide">' +
-      '<div class="column-guide-row column-guide-title">VIEW SETTING</div>' +
-      '<div class="column-guide-row column-guide-body">' +
+      headRow +
+      '<div class="column-guide-row column-guide-checkboxes">' +
       '<div class="column-guide-list">' + items + '</div>' +
-      '<div class="column-guide-actions">' + actionsHtml + '</div>' +
       '</div>' +
       '</div>';
   }
@@ -3295,10 +3523,38 @@
     return html;
   }
 
+  /** VIEW SETTING이 있는 목록: 헬로 버튼을 새로고침·엑셀 사이(또는 엑셀 앞)에 삽입 */
+  function injectViewSettingHelloIntoButtons(btns, cfg) {
+    if (cfg.tableColumnGuide === false || !cfg.columns || cfg.columns.length === 0) return btns;
+    if (!btns || !btns.length) return btns;
+    var out = btns.slice();
+    var refreshIdx = -1;
+    var excelIdx = -1;
+    for (var i = 0; i < out.length; i++) {
+      var b = out[i];
+      if (b && b._viewSettingHello) continue;
+      var id = String(b.id || '');
+      var lab = String(b.label || '');
+      if (refreshIdx < 0 && (id === 'payListRefreshBtn' || lab === '새로고침')) refreshIdx = i;
+      if (excelIdx < 0 && (id === 'excelBtn' || id === 'excelDownBtn' || lab.indexOf('엑셀') !== -1)) excelIdx = i;
+    }
+    var hello = { id: 'viewSettingHelloBtn', label: '헬로', cls: 'btn-view-setting-hello', _viewSettingHello: true };
+    if (refreshIdx >= 0 && excelIdx >= 0 && excelIdx > refreshIdx) {
+      out.splice(excelIdx, 0, hello);
+    } else if (excelIdx >= 0) {
+      out.splice(excelIdx, 0, hello);
+    } else if (refreshIdx >= 0) {
+      out.splice(refreshIdx + 1, 0, hello);
+    } else {
+      out.splice(0, 0, hello);
+    }
+    return out;
+  }
+
   /** 총합(요약) 왼쪽 + 액션 버튼 오른쪽 한 줄 배치 (모든 목록 화면 공통) */
-  function renderSummaryAndActions(cfg) {
+  function renderSummaryAndActions(cfg, tabId) {
     var items = cfg.summary || [];
-    var btns = cfg.buttons || [];
+    var btns = injectViewSettingHelloIntoButtons(cfg.buttons || [], cfg);
     var fmt = cfg.summaryFormat !== undefined ? cfg.summaryFormat : '0';
     var summaryHtml = '';
     if (items.length > 0) {
@@ -3311,8 +3567,10 @@
     var buttonsHtml = '';
     if (btns.length > 0) {
       buttonsHtml = '<div class="screen-action-buttons">';
+      var tid = tabId || '';
       btns.forEach(function (b) {
-        buttonsHtml += '<button type="button" class="btn ' + (b.cls || 'btn-secondary') + ' btn-sm" id="' + (b.id || '') + '">' + (b.label || '') + '</button>';
+        var bid = (b && b._viewSettingHello) ? ('viewSettingHelloBtn_' + tid) : (b.id || '');
+        buttonsHtml += '<button type="button" class="btn ' + (b.cls || 'btn-secondary') + ' btn-sm" id="' + bid + '">' + (b.label || '') + '</button>';
       });
       buttonsHtml += '</div>';
     }
@@ -3320,16 +3578,14 @@
     return '<div class="screen-summary-action-row">' + summaryHtml + buttonsHtml + '</div>';
   }
 
-  /** 결제내역·통합내역: 금액 요약(서버 meta.payListFinancialSummary) + 상태별 통화 요약(meta.payListStatusBar), VIEW SETTING 위 — 2행 분리 */
+  /** 결제내역·통합내역: 서버 meta.payListFinancialSummary + meta.payListStatusBar, VIEW SETTING 위 — 2행 분리 */
   function renderPayListStatusBarSlot(tabId) {
     var t = tabId || '';
     return '<div class="pay-list-summary-stack pay-list-aggregate-stack mb-2 small border rounded bg-light px-2 py-2">' +
       '<div class="pay-list-aggregate-section pay-list-aggregate-section--financial">' +
-      '<div class="pay-list-aggregate-heading">금액 요약</div>' +
       '<div class="pay-list-aggregate-row pay-list-aggregate-row--financial pay-list-financial-summary pay-list-financial-summary--empty" id="payListFinancialSummary_' + t + '" role="status" aria-live="polite"></div>' +
       '</div>' +
       '<div class="pay-list-aggregate-section pay-list-aggregate-section--status">' +
-      '<div class="pay-list-aggregate-heading">상태별</div>' +
       '<div class="pay-list-aggregate-row pay-list-aggregate-row--status pay-list-status-bar pay-list-status-bar--empty" id="payListStatusBar_' + t + '" role="status" aria-live="polite"></div>' +
       '</div>' +
       '</div>';
@@ -3398,7 +3654,8 @@
     var emptyRow = '<tr><td colspan="' + cols.length + '" class="empty-state-cell text-center text-muted py-4">' + emptyMsg + '</td></tr>';
     var respClass = 'table-responsive' + (cfg.tableScrollable ? ' table-scrollable' : '') + respExtra;
     var tblExtra = cfg.tableExtraClass ? (' ' + cfg.tableExtraClass) : '';
-    var html = '<div class="' + respClass + '"><table class="table table-bordered table-hover table-sm' + tblExtra + '" id="grid_' + (tabId || '') + '"><thead><tr>' + ths + '</tr></thead><tbody>' + emptyRow + '</tbody></table></div>';
+    var payMngGridCls = cfg.payListStatusBar ? ' pay-mng-data-grid' : '';
+    var html = '<div class="' + respClass + '"><table class="table table-bordered table-hover table-sm' + tblExtra + payMngGridCls + '" id="grid_' + (tabId || '') + '"><thead><tr>' + ths + '</tr></thead><tbody>' + emptyRow + '</tbody></table></div>';
     return html;
   }
 
@@ -3614,24 +3871,24 @@
     html += '<div class="card"><div class="card-body">';
     if (cfg.isForm && cfg.formSections && cfg.formSections.length > 0) {
       html += renderFormSections(cfg);
-      html += renderSummaryAndActions(cfg);
+      html += renderSummaryAndActions(cfg, tabId);
     } else if (cfg.isForm && cfg.formRows && cfg.formRows.length > 0) {
       html += renderFormRows(cfg);
-      html += renderSummaryAndActions(cfg);
+      html += renderSummaryAndActions(cfg, tabId);
     } else if (cfg.domainConfigScreen) {
       html += renderDomainConfigShell(tabId);
-      html += renderSummaryAndActions(cfg);
+      html += renderSummaryAndActions(cfg, tabId);
     } else if (cfg.orgPagePermissionMatrix) {
       html += renderOrgPagePermissionShell(tabId);
-      html += renderSummaryAndActions(cfg);
+      html += renderSummaryAndActions(cfg, tabId);
     } else if (cfg.staticHtml) {
       html += cfg.staticHtml;
-      html += renderSummaryAndActions(cfg);
+      html += renderSummaryAndActions(cfg, tabId);
     } else {
       if (!cfg.hideListGrid) {
         html += renderSearchForm(cfg);
         if (cfg.noticeList && cfg.noticeList.length > 0) html += renderNotice(cfg);
-        html += renderSummaryAndActions(cfg);
+        html += renderSummaryAndActions(cfg, tabId);
         if (cfg.payListStatusBar) html += renderPayListStatusBarSlot(tabId);
         if (cfg.columns && cfg.columns.length > 0) html += renderTableColumnGuide(cfg);
         html += renderTable(cfg, tabId);

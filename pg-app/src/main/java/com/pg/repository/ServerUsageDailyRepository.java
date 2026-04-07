@@ -9,4 +9,6 @@ import java.util.List;
 public interface ServerUsageDailyRepository extends JpaRepository<ServerUsageDaily, LocalDate> {
 
     List<ServerUsageDaily> findByUsageDateBetweenOrderByUsageDateAsc(LocalDate from, LocalDate to);
+
+    long deleteByUsageDateBefore(LocalDate cutoff);
 }

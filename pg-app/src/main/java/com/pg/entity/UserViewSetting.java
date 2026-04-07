@@ -24,6 +24,10 @@ public class UserViewSetting {
     @Column(name = "selected_keys_json", nullable = false, columnDefinition = "TEXT")
     private String selectedKeysJson;
 
+    /** Y: VIEW SETTING(헬로) 패널 숨김을 기본으로 */
+    @Column(name = "hello_panel_hidden_yn", nullable = false, length = 1)
+    private String helloPanelHiddenYn = "N";
+
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
@@ -41,6 +45,8 @@ public class UserViewSetting {
     public void setPageUrl(String pageUrl) { this.pageUrl = pageUrl; }
     public String getSelectedKeysJson() { return selectedKeysJson; }
     public void setSelectedKeysJson(String selectedKeysJson) { this.selectedKeysJson = selectedKeysJson; }
+    public String getHelloPanelHiddenYn() { return helloPanelHiddenYn; }
+    public void setHelloPanelHiddenYn(String helloPanelHiddenYn) { this.helloPanelHiddenYn = helloPanelHiddenYn; }
     public LocalDateTime getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
 }

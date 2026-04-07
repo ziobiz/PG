@@ -39,6 +39,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.ArrayList;
@@ -65,6 +66,7 @@ public class PayListService {
     private final CommissionPolicyRepository commissionPolicyRepository;
     private final SettlementSettingRepository settlementSettingRepository;
     private final HqNotifyMappingService hqNotifyMappingService;
+    private final PayFollowPolicyService payFollowPolicyService;
 
     @PersistenceContext
     private EntityManager entityManager;
@@ -76,7 +78,8 @@ public class PayListService {
                           DistributionFeeConfigRepository distributionFeeConfigRepository,
                           CommissionPolicyRepository commissionPolicyRepository,
                           SettlementSettingRepository settlementSettingRepository,
-                          HqNotifyMappingService hqNotifyMappingService) {
+                          HqNotifyMappingService hqNotifyMappingService,
+                          PayFollowPolicyService payFollowPolicyService) {
         this.trnsctnRepository = trnsctnRepository;
         this.orgUnitRepository = orgUnitRepository;
         this.merchantProfileRepository = merchantProfileRepository;
@@ -85,29 +88,33 @@ public class PayListService {
         this.commissionPolicyRepository = commissionPolicyRepository;
         this.settlementSettingRepository = settlementSettingRepository;
         this.hqNotifyMappingService = hqNotifyMappingService;
+        this.payFollowPolicyService = payFollowPolicyService;
     }
 
     public PageResult<Map<String, Object>> search(PayListSearchRequest req, Authentication authentication) {
         if (req == null) {
             req = new PayListSearchRequest();
         }
+        applyDefaultPayListSearchDates(req);
         LocalDateTime from = req.getSearchFromDate() != null ? req.getSearchFromDate().atStartOfDay() : null;
         LocalDateTime to = req.getSearchToDate() != null ? req.getSearchToDate().atTime(LocalTime.MAX) : null;
         int page = Math.max(1, req.getPage());
         int size = Math.min(1000, Math.max(1, req.getSize()));
         Pageable p = PageRequest.of(page - 1, size, Sort.by(Sort.Direction.DESC, "createdAt"));
-        Specification<PgTrnsctn> spec = buildSpecification(req, from, to);
+        Specification<PgTrnsctn> spec = buildSpecification(req, from, to, authentication);
         Page<PgTrnsctn> result = trnsctnRepository.findAll(spec, p);
         List<String> merchantCodes = result.getContent().stream().map(PgTrnsctn::getMerchantId).distinct().collect(Collectors.toList());
         Map<String, PayListRowContext> ctxByCode = buildPayListRowContextMap(merchantCodes);
 
         HqNotifyMappingService.DisplayTransformCache displayCache = hqNotifyMappingService.loadDisplayTransformCache();
+        AppUser payListViewer = (authentication != null && authentication.getPrincipal() instanceof AppUser u) ? u : null;
         List<Map<String, Object>> list = new ArrayList<>();
         for (PgTrnsctn t : result.getContent()) {
             PayListRowContext ctx = ctxByCode.get(t.getMerchantId());
             Map<String, Object> row = PayListItemDto.from(t, ctx);
             String pgCd = resolvePgCdForPayListRow(ctx, t);
             hqNotifyMappingService.applyDisplayTransform(displayCache, pgCd, row);
+            row.put("payFollowRow", payFollowPolicyService.payFollowRowEnabled(payListViewer, t));
             list.add(row);
         }
         PageResult<Map<String, Object>> pr = new PageResult<>();
@@ -122,11 +129,22 @@ public class PayListService {
             Map<String, Object> meta = new LinkedHashMap<>();
             meta.put("payListStatusBar", bar);
             meta.put("payListFinancialSummary", fin);
+            meta.put("payFollowAllowed", payFollowPolicyService.allowedActionsForViewer(payListViewer));
             pr.setMeta(meta);
         } catch (RuntimeException ignored) {
             /* 집계 실패 시 목록만 반환 */
         }
         return pr;
+    }
+
+    /** 결제관리 payList: 기간 미입력 시 당일(서버 일자)로 조회·집계 */
+    private static void applyDefaultPayListSearchDates(PayListSearchRequest req) {
+        if (req.getSearchFromDate() != null || req.getSearchToDate() != null) {
+            return;
+        }
+        LocalDate today = LocalDate.now();
+        req.setSearchFromDate(today);
+        req.setSearchToDate(today);
     }
 
     private Map<String, PayListRowContext> buildPayListRowContextMap(Collection<String> merchantCodes) {
@@ -171,7 +189,7 @@ public class PayListService {
     private Map<String, Object> computePayListFinancialSummary(PayListSearchRequest req, Authentication authentication) {
         LocalDateTime from = req.getSearchFromDate() != null ? req.getSearchFromDate().atStartOfDay() : null;
         LocalDateTime to = req.getSearchToDate() != null ? req.getSearchToDate().atTime(LocalTime.MAX) : null;
-        Specification<PgTrnsctn> spec = buildSpecification(req, from, to);
+        Specification<PgTrnsctn> spec = buildSpecification(req, from, to, authentication);
         CriteriaBuilder cb = entityManager.getCriteriaBuilder();
         CriteriaQuery<Tuple> cq = cb.createTupleQuery();
         Root<PgTrnsctn> root = cq.from(PgTrnsctn.class);
@@ -262,6 +280,9 @@ public class PayListService {
             currencyOrder.addAll(union);
             PayListStatusBarBuckets.sortCurrencyCodes(currencyOrder);
         }
+        if (currencyOrder.isEmpty()) {
+            currencyOrder.add(primaryNorm);
+        }
         for (String c : currencyOrder) {
             BigDecimal a = approve.getOrDefault(c, BigDecimal.ZERO);
             BigDecimal k = cancel.getOrDefault(c, BigDecimal.ZERO);
@@ -289,6 +310,155 @@ public class PayListService {
         out.put("holdByCurrency", holdPlain);
         out.put("payoutByCurrency", payoutPlain);
         return out;
+    }
+
+    /**
+     * ChillPay 통합·정산 API 행 목록에 대해 {@link #computePayListFinancialSummary} 와 동일 키의 금액 요약을 만듭니다.
+     * 승인은 Chill {@link PayListStatusBarBuckets#bucketForChillStatus} 의 SUCCESS, 취소 계열은 CANCEL·REFUND·VOID.
+     * 총수수료는 API {@code fee} 합, 보류는 0, 지급액은 {@code settled} 가 양수면 그 값·아니면 {@code amount − fee}(음수는 0).
+     */
+    public Map<String, Object> buildChillPayFinancialSummary(List<Map<String, Object>> rows,
+                                                             Authentication authentication) {
+        List<Map<String, Object>> list = rows != null ? rows : List.of();
+        AppUser user = (authentication != null && authentication.getPrincipal() instanceof AppUser u) ? u : null;
+        OrgLevel level = PayListStatusBarBuckets.resolveViewerOrgLevel(user, orgUnitRepository);
+        boolean multi = PayListStatusBarBuckets.isMultiCurrencyViewer(level);
+        String primary = PayListStatusBarBuckets.resolveViewerPrimaryCurrency(user, orgUnitRepository, commissionPolicyRepository);
+        String primaryNorm = PayListStatusBarBuckets.normalizeCurrency(primary);
+        boolean baseCurrencyConfigured = isViewerBaseCurrencyConfigured(user);
+        final List<String> currencyOrder;
+        if (baseCurrencyConfigured) {
+            currencyOrder = resolveViewerDisplayCurrencyOrder(user, multi);
+        } else {
+            currencyOrder = new ArrayList<>();
+        }
+        Set<String> allowedCur = baseCurrencyConfigured ? new HashSet<>(currencyOrder) : null;
+        boolean effectiveMultiCurrency = multi || !baseCurrencyConfigured;
+
+        Map<String, BigDecimal> approve = new HashMap<>();
+        Map<String, BigDecimal> cancel = new HashMap<>();
+        Map<String, Long> approveCountByCur = new HashMap<>();
+        Map<String, Long> cancelCountByCur = new HashMap<>();
+        Map<String, BigDecimal> feeVatSum = new HashMap<>();
+        Map<String, BigDecimal> hold = new HashMap<>();
+        Map<String, BigDecimal> payout = new HashMap<>();
+        long successCount = 0;
+
+        for (Map<String, Object> row : list) {
+            String st = chillPayRowFirstString(row, "status", "Status");
+            String bucket = PayListStatusBarBuckets.bucketForChillStatus(st);
+            String cur = PayListStatusBarBuckets.normalizeCurrency(chillPayRowFirstString(row, "currency", "Currency"));
+            if (allowedCur != null && !allowedCur.contains(cur)) {
+                continue;
+            }
+            BigDecimal amt = PayListStatusBarBuckets.parseMoney(chillPayRowFirstObject(row, "amount", "Amount"));
+            if (PayListStatusBarBuckets.SUCCESS.equals(bucket)) {
+                successCount++;
+                approveCountByCur.merge(cur, 1L, Long::sum);
+                approve.merge(cur, amt, BigDecimal::add);
+                BigDecimal fee = PayListStatusBarBuckets.parseMoney(chillPayRowFirstObject(row, "fee", "Fee"));
+                feeVatSum.merge(cur, fee, BigDecimal::add);
+                BigDecimal settled = PayListStatusBarBuckets.parseMoney(chillPayRowFirstObject(row, "settled", "Settled"));
+                if (settled.compareTo(BigDecimal.ZERO) > 0) {
+                    payout.merge(cur, settled, BigDecimal::add);
+                } else {
+                    BigDecimal net = amt.subtract(fee);
+                    if (net.compareTo(BigDecimal.ZERO) < 0) {
+                        net = BigDecimal.ZERO;
+                    }
+                    payout.merge(cur, net, BigDecimal::add);
+                }
+            } else if (isChillCancelFinancialBucket(bucket)) {
+                cancelCountByCur.merge(cur, 1L, Long::sum);
+                cancel.merge(cur, amt, BigDecimal::add);
+            }
+        }
+
+        Map<String, String> approvePlain = new LinkedHashMap<>();
+        Map<String, Long> approveCountPlain = new LinkedHashMap<>();
+        Map<String, String> cancelPlain = new LinkedHashMap<>();
+        Map<String, Long> cancelCountPlain = new LinkedHashMap<>();
+        Map<String, String> paymentPlain = new LinkedHashMap<>();
+        Map<String, String> feePlain = new LinkedHashMap<>();
+        Map<String, String> holdPlain = new LinkedHashMap<>();
+        Map<String, String> payoutPlain = new LinkedHashMap<>();
+        if (!baseCurrencyConfigured) {
+            Set<String> union = new HashSet<>();
+            union.addAll(approve.keySet());
+            union.addAll(cancel.keySet());
+            union.addAll(feeVatSum.keySet());
+            union.addAll(hold.keySet());
+            union.addAll(payout.keySet());
+            currencyOrder.clear();
+            currencyOrder.addAll(union);
+            PayListStatusBarBuckets.sortCurrencyCodes(currencyOrder);
+        }
+        if (currencyOrder.isEmpty()) {
+            currencyOrder.add(primaryNorm);
+        }
+        for (String c : currencyOrder) {
+            BigDecimal a = approve.getOrDefault(c, BigDecimal.ZERO);
+            BigDecimal k = cancel.getOrDefault(c, BigDecimal.ZERO);
+            approvePlain.put(c, PayListStatusBarBuckets.stripTrailingZeros(a));
+            approveCountPlain.put(c, approveCountByCur.getOrDefault(c, 0L));
+            cancelPlain.put(c, PayListStatusBarBuckets.stripTrailingZeros(k));
+            cancelCountPlain.put(c, cancelCountByCur.getOrDefault(c, 0L));
+            paymentPlain.put(c, PayListStatusBarBuckets.stripTrailingZeros(a.subtract(k)));
+            feePlain.put(c, PayListStatusBarBuckets.stripTrailingZeros(feeVatSum.getOrDefault(c, BigDecimal.ZERO)));
+            holdPlain.put(c, PayListStatusBarBuckets.stripTrailingZeros(hold.getOrDefault(c, BigDecimal.ZERO)));
+            payoutPlain.put(c, PayListStatusBarBuckets.stripTrailingZeros(payout.getOrDefault(c, BigDecimal.ZERO)));
+        }
+
+        Map<String, Object> out = new LinkedHashMap<>();
+        out.put("successCount", successCount);
+        out.put("multiCurrency", effectiveMultiCurrency);
+        out.put("primaryCurrency", primaryNorm);
+        out.put("currencyOrder", new ArrayList<>(currencyOrder));
+        out.put("approveByCurrency", approvePlain);
+        out.put("approveCountByCurrency", approveCountPlain);
+        out.put("cancelByCurrency", cancelPlain);
+        out.put("cancelCountByCurrency", cancelCountPlain);
+        out.put("paymentByCurrency", paymentPlain);
+        out.put("feeByCurrency", feePlain);
+        out.put("holdByCurrency", holdPlain);
+        out.put("payoutByCurrency", payoutPlain);
+        return out;
+    }
+
+    private static boolean isChillCancelFinancialBucket(String bucket) {
+        return PayListStatusBarBuckets.CANCEL.equals(bucket)
+                || PayListStatusBarBuckets.REFUND.equals(bucket)
+                || PayListStatusBarBuckets.VOID.equals(bucket);
+    }
+
+    private static String chillPayRowFirstString(Map<String, Object> row, String... keys) {
+        if (row == null) {
+            return "";
+        }
+        for (String k : keys) {
+            Object v = row.get(k);
+            if (v == null) {
+                continue;
+            }
+            String s = String.valueOf(v).trim();
+            if (!s.isEmpty()) {
+                return s;
+            }
+        }
+        return "";
+    }
+
+    private static Object chillPayRowFirstObject(Map<String, Object> row, String k1, String k2) {
+        if (row == null) {
+            return null;
+        }
+        if (row.containsKey(k1) && row.get(k1) != null) {
+            return row.get(k1);
+        }
+        if (row.containsKey(k2) && row.get(k2) != null) {
+            return row.get(k2);
+        }
+        return null;
     }
 
     /**
@@ -331,7 +501,7 @@ public class PayListService {
     private Map<String, Object> computePgTxnStatusBar(PayListSearchRequest req, Authentication authentication) {
         LocalDateTime from = req.getSearchFromDate() != null ? req.getSearchFromDate().atStartOfDay() : null;
         LocalDateTime to = req.getSearchToDate() != null ? req.getSearchToDate().atTime(LocalTime.MAX) : null;
-        Specification<PgTrnsctn> spec = buildSpecification(req, from, to);
+        Specification<PgTrnsctn> spec = buildSpecification(req, from, to, authentication);
         CriteriaBuilder cb = entityManager.getCriteriaBuilder();
         CriteriaQuery<Tuple> cq = cb.createTupleQuery();
         Root<PgTrnsctn> root = cq.from(PgTrnsctn.class);
@@ -349,7 +519,8 @@ public class PayListService {
                         cb.equal(st, "21"), cb.equal(st, "22"),
                         cb.equal(st, "40"), cb.equal(st, "41"), cb.equal(st, "42")
                 ), cb.literal(PayListStatusBarBuckets.VOID))
-                .when(cb.or(cb.equal(st, "30"), cb.equal(st, "31")), cb.literal(PayListStatusBarBuckets.REFUND))
+                .when(cb.equal(st, "30"), cb.literal(PayListStatusBarBuckets.REFUND))
+                .when(cb.equal(st, "31"), cb.literal(PayListStatusBarBuckets.FORCE_REFUND))
                 .when(cb.equal(st, "20"), cb.literal(PayListStatusBarBuckets.CANCEL))
                 .otherwise(cb.literal(PayListStatusBarBuckets.OTHER));
         cq.multiselect(bucket, curExpr, cb.count(root),
@@ -385,9 +556,41 @@ public class PayListService {
         }
         String variant = req.getPayListVariant() == null || req.getPayListVariant().isBlank()
                 ? "INTEGRATED" : req.getPayListVariant().trim().toUpperCase(Locale.ROOT);
-        /* 통합·결제내역(INTEGRATED): 성공·실패·무효·환불·취소·기타 전 구간 + 0건도 표시. 그 외 변형 화면은 건수 있는 버킷만 */
-        boolean showAllBuckets = "INTEGRATED".equals(variant);
-        return roll.toPayload(effectiveMultiCurrency, primary, false, showAllBuckets, displayOrder);
+        if ("INTEGRATED".equals(variant) || "NOTI".equals(variant)
+                || "URL_PAY".equals(variant) || "CHATBOT_PAY".equals(variant)
+                || "OFFSET_CANCEL".equals(variant)) {
+            roll.mergeBucketInto(PayListStatusBarBuckets.FORCE_REFUND, PayListStatusBarBuckets.REFUND);
+        }
+        List<String> visibleBuckets = visiblePayListStatusBarBucketsForVariant(variant);
+        return roll.toPayload(effectiveMultiCurrency, primary, false, true, displayOrder, visibleBuckets);
+    }
+
+    /** 화면별로 상태바에 노출할 버킷만(0건도 슬롯 표시). 강제환불은 FORCE_REFUND 화면만. */
+    private static List<String> visiblePayListStatusBarBucketsForVariant(String variant) {
+        if (variant == null || variant.isBlank()) {
+            return List.of(
+                    PayListStatusBarBuckets.SUCCESS,
+                    PayListStatusBarBuckets.FAIL,
+                    PayListStatusBarBuckets.VOID,
+                    PayListStatusBarBuckets.REFUND,
+                    PayListStatusBarBuckets.CANCEL,
+                    PayListStatusBarBuckets.OTHER);
+        }
+        return switch (variant.trim().toUpperCase(Locale.ROOT)) {
+            case "SUCCESS" -> List.of(PayListStatusBarBuckets.SUCCESS);
+            case "FAIL" -> List.of(PayListStatusBarBuckets.FAIL);
+            case "VOID" -> List.of(PayListStatusBarBuckets.VOID);
+            case "REFUND" -> List.of(PayListStatusBarBuckets.REFUND);
+            case "FORCE_REFUND" -> List.of(PayListStatusBarBuckets.FORCE_REFUND);
+            case "CANCEL" -> List.of(PayListStatusBarBuckets.CANCEL);
+            default -> List.of(
+                    PayListStatusBarBuckets.SUCCESS,
+                    PayListStatusBarBuckets.FAIL,
+                    PayListStatusBarBuckets.VOID,
+                    PayListStatusBarBuckets.REFUND,
+                    PayListStatusBarBuckets.CANCEL,
+                    PayListStatusBarBuckets.OTHER);
+        };
     }
 
     private static String resolvePgCdForPayListRow(PayListRowContext ctx, PgTrnsctn t) {
@@ -431,8 +634,9 @@ public class PayListService {
         return new String[] { regional, master, branch };
     }
 
-    private Specification<PgTrnsctn> buildSpecification(PayListSearchRequest req, LocalDateTime fromDt, LocalDateTime toDt) {
-        Set<String> merchantCodes = resolveMerchantFilterCodes(req);
+    private Specification<PgTrnsctn> buildSpecification(PayListSearchRequest req, LocalDateTime fromDt, LocalDateTime toDt,
+                                                        Authentication authentication) {
+        Set<String> merchantCodes = resolveMerchantFilterCodes(req, authentication);
         if (merchantCodes != null && merchantCodes.isEmpty()) {
             return (root, query, cb) -> cb.disjunction();
         }
@@ -466,7 +670,7 @@ public class PayListService {
     /**
      * null = 가맹점 제한 없음, 비어 있지 않은 Set = 해당 코드만, empty Set = 조건 불충족(결과 0건).
      */
-    private Set<String> resolveMerchantFilterCodes(PayListSearchRequest req) {
+    private Set<String> resolveMerchantFilterCodes(PayListSearchRequest req, Authentication authentication) {
         Set<String> mcs = null;
         mcs = intersectCodes(mcs, codesFromCompField(req.getSearchCompField(), req.getSearchCompQ()));
         mcs = intersectCodes(mcs, codesFromRegNo(req.getSearchRegNo()));
@@ -483,7 +687,34 @@ public class PayListService {
                 mcs = intersectCodes(mcs, codesFromMid(tv.trim()));
             }
         }
+        mcs = intersectCodes(mcs, ownMerchantOnlyForPayListVariant(req, authentication));
         return mcs;
+    }
+
+    /**
+     * URL·챗봇·상계취소 화면: 가맹점(MERCHANT) 로그인은 본인 업체 코드만 조회.
+     */
+    private Set<String> ownMerchantOnlyForPayListVariant(PayListSearchRequest req, Authentication authentication) {
+        String raw = req.getPayListVariant();
+        if (raw == null || raw.isBlank()) {
+            return null;
+        }
+        String v = raw.trim().toUpperCase(Locale.ROOT);
+        if (!"URL_PAY".equals(v) && !"CHATBOT_PAY".equals(v) && !"OFFSET_CANCEL".equals(v)) {
+            return null;
+        }
+        if (authentication == null || !(authentication.getPrincipal() instanceof AppUser user)) {
+            return null;
+        }
+        String code = user.getOrgUnitCode();
+        if (code == null || code.isBlank()) {
+            return null;
+        }
+        Optional<OrgUnit> ou = orgUnitRepository.findByCode(code.trim());
+        if (ou.isEmpty() || ou.get().getOrgLevel() != OrgLevel.MERCHANT) {
+            return null;
+        }
+        return Set.of(ou.get().getCode());
     }
 
     private static Set<String> intersectCodes(Set<String> current, Set<String> next) {

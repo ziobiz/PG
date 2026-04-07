@@ -175,6 +175,22 @@ public class MerchantProfile {
     @Column(name = "regional_settings", columnDefinition = "TEXT")
     private String regionalSettings;
 
+    /** 가맹점 관리자 결제 후속조치 사용 (NULL=기존 호환 허용) */
+    @Column(name = "pay_follow_merchant_use_yn", length = 1)
+    private String payFollowMerchantUseYn;
+
+    @Column(name = "pay_follow_auto_void_yn", length = 1)
+    private String payFollowAutoVoidYn;
+
+    @Column(name = "pay_follow_email_void_yn", length = 1)
+    private String payFollowEmailVoidYn;
+
+    @Column(name = "pay_follow_auto_refund_yn", length = 1)
+    private String payFollowAutoRefundYn;
+
+    @Column(name = "pay_follow_force_refund_yn", length = 1)
+    private String payFollowForceRefundYn;
+
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 
@@ -279,6 +295,16 @@ public class MerchantProfile {
     public void setTerminalCountWeb(Integer terminalCountWeb) { this.terminalCountWeb = terminalCountWeb; }
     public String getRegionalSettings() { return regionalSettings; }
     public void setRegionalSettings(String regionalSettings) { this.regionalSettings = regionalSettings; }
+    public String getPayFollowMerchantUseYn() { return payFollowMerchantUseYn; }
+    public void setPayFollowMerchantUseYn(String payFollowMerchantUseYn) { this.payFollowMerchantUseYn = payFollowMerchantUseYn; }
+    public String getPayFollowAutoVoidYn() { return payFollowAutoVoidYn; }
+    public void setPayFollowAutoVoidYn(String payFollowAutoVoidYn) { this.payFollowAutoVoidYn = payFollowAutoVoidYn; }
+    public String getPayFollowEmailVoidYn() { return payFollowEmailVoidYn; }
+    public void setPayFollowEmailVoidYn(String payFollowEmailVoidYn) { this.payFollowEmailVoidYn = payFollowEmailVoidYn; }
+    public String getPayFollowAutoRefundYn() { return payFollowAutoRefundYn; }
+    public void setPayFollowAutoRefundYn(String payFollowAutoRefundYn) { this.payFollowAutoRefundYn = payFollowAutoRefundYn; }
+    public String getPayFollowForceRefundYn() { return payFollowForceRefundYn; }
+    public void setPayFollowForceRefundYn(String payFollowForceRefundYn) { this.payFollowForceRefundYn = payFollowForceRefundYn; }
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
 }

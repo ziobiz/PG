@@ -7,6 +7,7 @@ import com.pg.entity.AppUser;
 import com.pg.repository.CommissionPolicyRepository;
 import com.pg.repository.OrgUnitRepository;
 import com.pg.service.ChillPayService;
+import com.pg.service.HqLedgerSysSettingsService;
 import com.pg.service.HqNotifyMappingService;
 import com.pg.service.PayListActionService;
 import com.pg.service.PayListService;
@@ -14,6 +15,7 @@ import com.pg.util.PayListStatusBarBuckets;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
@@ -29,16 +31,19 @@ public class ApiCalcController {
     private final HqNotifyMappingService hqNotifyMappingService;
     private final OrgUnitRepository orgUnitRepository;
     private final CommissionPolicyRepository commissionPolicyRepository;
+    private final HqLedgerSysSettingsService hqLedgerSysSettingsService;
 
     public ApiCalcController(PayListService payListService, PayListActionService payListActionService,
                              ChillPayService chillPayService, HqNotifyMappingService hqNotifyMappingService,
-                             OrgUnitRepository orgUnitRepository, CommissionPolicyRepository commissionPolicyRepository) {
+                             OrgUnitRepository orgUnitRepository, CommissionPolicyRepository commissionPolicyRepository,
+                             HqLedgerSysSettingsService hqLedgerSysSettingsService) {
         this.payListService = payListService;
         this.payListActionService = payListActionService;
         this.chillPayService = chillPayService;
         this.hqNotifyMappingService = hqNotifyMappingService;
         this.orgUnitRepository = orgUnitRepository;
         this.commissionPolicyRepository = commissionPolicyRepository;
+        this.hqLedgerSysSettingsService = hqLedgerSysSettingsService;
     }
 
     @GetMapping("/payList")
@@ -93,6 +98,15 @@ public class ApiCalcController {
                     PayListStatusBarBuckets.resolveViewerOrgLevel(user, orgUnitRepository));
             String primaryCurrency = PayListStatusBarBuckets.resolveViewerPrimaryCurrency(
                     user, orgUnitRepository, commissionPolicyRepository);
+            LocalDate tFrom = searchFromDate;
+            LocalDate tTo = searchToDate;
+            if (tFrom == null && tTo == null) {
+                var ls = hqLedgerSysSettingsService.getOrCreate();
+                int days = ls.getChillpayTrRecentSyncDays() != null && ls.getChillpayTrRecentSyncDays() > 0
+                        ? ls.getChillpayTrRecentSyncDays() : 2;
+                tTo = LocalDate.now();
+                tFrom = tTo.minusDays(Math.max(1, days) - 1L);
+            }
             PageResult<Map<String, Object>> r = chillPayService.searchChillPayPaymentTransactions(
                     null,
                     page,
@@ -105,10 +119,11 @@ public class ApiCalcController {
                     routeNo,
                     searchOrderNo,
                     searchChillStatus,
-                    searchFromDate,
-                    searchToDate,
+                    tFrom,
+                    tTo,
                     multiCurrency,
-                    primaryCurrency);
+                    primaryCurrency,
+                    authentication);
             return ResponseEntity.ok(ApiResponse.ok(r));
         } catch (IllegalStateException e) {
             return ResponseEntity.ok(ApiResponse.fail(e.getMessage(), "CHILLPAY"));
@@ -168,7 +183,8 @@ public class ApiCalcController {
                     searchTxnFromDate,
                     searchTxnToDate,
                     multiCurrency,
-                    primaryCurrency);
+                    primaryCurrency,
+                    authentication);
             return ResponseEntity.ok(ApiResponse.ok(r));
         } catch (IllegalStateException e) {
             return ResponseEntity.ok(ApiResponse.fail(e.getMessage(), "CHILLPAY"));
@@ -181,7 +197,7 @@ public class ApiCalcController {
         try {
             String trnId = body != null ? body.get("trnId") : null;
             String action = body != null ? body.get("action") : null;
-            payListActionService.apply(trnId, action);
+            payListActionService.apply(SecurityContextHolder.getContext().getAuthentication(), trnId, action);
             return ResponseEntity.ok(ApiResponse.ok(Map.of("message", "처리되었습니다.")));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.ok(ApiResponse.fail(e.getMessage(), "VALIDATION"));

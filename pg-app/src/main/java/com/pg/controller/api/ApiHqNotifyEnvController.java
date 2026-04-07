@@ -11,7 +11,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * 본사설정 — 전산노티 수신 URL·결제 후속(자동무효 등) 환경 (NOTI 환경설정 대응)
+ * 본사설정 — 전산노티 수신 URL 등 (NOTI 환경설정 대응). 결제 후속조치 스위치는 전산설정관리에서 편집·동기화.
  */
 @RestController
 @RequestMapping(value = "/api/hq/notifyEnv", produces = "application/json")

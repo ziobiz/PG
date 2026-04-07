@@ -21,6 +21,7 @@ import com.pg.service.HolidayPresetService;
 import com.pg.service.HqPayCopyTranslationService;
 import com.pg.service.HqServerManageService;
 import com.pg.service.OrgPagePermissionService;
+import com.pg.service.PayFollowPolicyService;
 import com.pg.service.OrgUnitChangeAuditService;
 import com.pg.service.ServerUsageService;
 import com.pg.util.CommissionTierJsonHelper;
@@ -62,6 +63,7 @@ public class ApiHqController {
     private final AuthService authService;
     private final OrgUnitChangeAuditService orgUnitChangeAuditService;
     private final HqPayCopyTranslationService hqPayCopyTranslationService;
+    private final PayFollowPolicyService payFollowPolicyService;
 
     public ApiHqController(CommissionPolicyRepository commissionPolicyRepository,
                            ChargebackFeePolicyRepository chargebackFeePolicyRepository,
@@ -75,7 +77,8 @@ public class ApiHqController {
                            OrgUnitRepository orgUnitRepository,
                            AuthService authService,
                            OrgUnitChangeAuditService orgUnitChangeAuditService,
-                           HqPayCopyTranslationService hqPayCopyTranslationService) {
+                           HqPayCopyTranslationService hqPayCopyTranslationService,
+                           PayFollowPolicyService payFollowPolicyService) {
         this.commissionPolicyRepository = commissionPolicyRepository;
         this.chargebackFeePolicyRepository = chargebackFeePolicyRepository;
         this.hqApiConfigRepository = hqApiConfigRepository;
@@ -89,6 +92,7 @@ public class ApiHqController {
         this.authService = authService;
         this.orgUnitChangeAuditService = orgUnitChangeAuditService;
         this.hqPayCopyTranslationService = hqPayCopyTranslationService;
+        this.payFollowPolicyService = payFollowPolicyService;
     }
 
     private static PageResult<Map<String, Object>> emptyPage(int page, int size) {
@@ -2066,6 +2070,10 @@ public class ApiHqController {
                 matrix.put(orgLv, pages);
             }
             orgPagePermissionService.saveMatrix(matrix);
+            Object payFollowRaw = body != null ? body.get("payFollowLevelCaps") : null;
+            if (payFollowRaw instanceof Map<?, ?> payFollowMap) {
+                payFollowPolicyService.saveLevelCapsFromClient(payFollowMap);
+            }
             return ResponseEntity.ok(ApiResponse.ok(orgPagePermissionService.buildPermissionMngPayload(u)));
         } catch (Exception ex) {
             return ResponseEntity.ok(ApiResponse.fail(ex.getMessage() != null ? ex.getMessage() : "저장 실패", "ERROR"));

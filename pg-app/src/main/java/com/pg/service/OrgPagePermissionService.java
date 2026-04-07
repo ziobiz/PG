@@ -11,6 +11,7 @@ import com.pg.repository.OrgPagePermissionRepository;
 import com.pg.repository.OrgUnitAssistantPagePermissionRepository;
 import com.pg.repository.OrgUnitPagePermissionRepository;
 import com.pg.repository.OrgUnitRepository;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -39,19 +40,22 @@ public class OrgPagePermissionService {
     private final OrgUnitRepository orgUnitRepository;
     private final AuthService authService;
     private final OrgUnitChangeAuditService orgUnitChangeAuditService;
+    private final PayFollowPolicyService payFollowPolicyService;
 
     public OrgPagePermissionService(OrgPagePermissionRepository orgPagePermissionRepository,
                                       OrgUnitPagePermissionRepository orgUnitPagePermissionRepository,
                                       OrgUnitAssistantPagePermissionRepository orgUnitAssistantPagePermissionRepository,
                                       OrgUnitRepository orgUnitRepository,
                                       AuthService authService,
-                                      OrgUnitChangeAuditService orgUnitChangeAuditService) {
+                                      OrgUnitChangeAuditService orgUnitChangeAuditService,
+                                      @Lazy PayFollowPolicyService payFollowPolicyService) {
         this.orgPagePermissionRepository = orgPagePermissionRepository;
         this.orgUnitPagePermissionRepository = orgUnitPagePermissionRepository;
         this.orgUnitAssistantPagePermissionRepository = orgUnitAssistantPagePermissionRepository;
         this.orgUnitRepository = orgUnitRepository;
         this.authService = authService;
         this.orgUnitChangeAuditService = orgUnitChangeAuditService;
+        this.payFollowPolicyService = payFollowPolicyService;
     }
 
     /** ADMIN·미연결 계정: 제한 없음 → null */
@@ -585,6 +589,7 @@ public class OrgPagePermissionService {
                 Map.of("v", P_MODIFY, "t", "수정(쓰기·수정, 삭제 제한)"),
                 Map.of("v", P_DELETE, "t", "삭제(전체)")
         ));
+        payload.put("payFollowLevelCaps", payFollowPolicyService.buildLevelCapsPayload());
         return payload;
     }
 
