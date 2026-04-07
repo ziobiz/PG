@@ -17,6 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.LinkedHashMap;
@@ -288,7 +289,7 @@ public class PayFollowPolicyService {
     }
 
     /**
-     * 수동(이메일)무효: 승인일 당일, 마감은 항상 23:59(고정). 시작은 설정값 또는 자동무효 마감 다음 분(가능할 때).
+     * 수동(이메일)무효: 승인일 당일, 설정한 시작~마감(분). 마감 NULL이면 23:59. 자동무효와 겹치면 시작은 마감 직후로 올림.
      */
     private static boolean withinEmailVoidWindow(PgTrnsctn t, HqNotifyEnvConfig env, ZoneId ref) {
         ZonedDateTime now = ZonedDateTime.now(ref);
@@ -299,21 +300,32 @@ public class PayFollowPolicyService {
         if (!now.toLocalDate().equals(approval.toLocalDate())) {
             return false;
         }
+        int effEnd = resolvedEmailVoidEndMin(env);
         Integer es = env.getEmailVoidStartMin();
         Integer ae = env.getAutoVoidEndMin();
+        int autoEndEff = ae != null ? ae : DEFAULT_AUTO_VOID_END_MIN;
+        boolean autoVoidOn = yn(env.getAutoVoidYn());
         int effStart;
-        if (es != null) {
+        if (autoVoidOn && autoEndEff < EMAIL_VOID_END_MIN_FIXED) {
+            int afterAuto = autoEndEff + 1;
+            effStart = es != null ? Math.max(es, afterAuto) : afterAuto;
+        } else if (es != null) {
             effStart = es;
         } else if (ae != null && ae < EMAIL_VOID_END_MIN_FIXED) {
             effStart = ae + 1;
         } else {
             effStart = 0;
         }
-        if (effStart < 0 || effStart > EMAIL_VOID_END_MIN_FIXED) {
+        if (effStart < 0 || effStart > effEnd) {
             return false;
         }
         int nm = now.getHour() * 60 + now.getMinute();
-        return nm >= effStart && nm <= EMAIL_VOID_END_MIN_FIXED;
+        return nm >= effStart && nm <= effEnd;
+    }
+
+    private static int resolvedEmailVoidEndMin(HqNotifyEnvConfig env) {
+        Integer e = env.getEmailVoidEndMin();
+        return e != null ? e : EMAIL_VOID_END_MIN_FIXED;
     }
 
     /**
@@ -323,9 +335,9 @@ public class PayFollowPolicyService {
     private static boolean withinAutoRefundDays(PgTrnsctn t, HqNotifyEnvConfig env, ZoneId ref) {
         int d = resolvedAutoRefundDays(env);
         if (d <= 0) {
-            return withinRefundOpenEnded(t, ref);
+            return withinRefundOpenEnded(t, env, ref);
         }
-        return withinRefundStyleWindow(t, ref, d);
+        return withinRefundStyleWindow(t, env, ref, d);
     }
 
     /**
@@ -342,7 +354,7 @@ public class PayFollowPolicyService {
         }
         LocalDate payLocal = payZ.toLocalDate();
         int n = resolvedAutoRefundDays(env);
-        ZonedDateTime normalStart = payLocal.plusDays(1).atStartOfDay(ref);
+        ZonedDateTime normalStart = refundWindowStartZdt(payLocal, ref, env);
         ZonedDateTime now = ZonedDateTime.now(ref);
         if (n <= 0) {
             return false;
@@ -353,27 +365,43 @@ public class PayFollowPolicyService {
         return !now.isBefore(forceStart) && now.isBefore(forceEndExclusive);
     }
 
-    private static boolean withinRefundOpenEnded(PgTrnsctn t, ZoneId ref) {
+    private static boolean withinRefundOpenEnded(PgTrnsctn t, HqNotifyEnvConfig env, ZoneId ref) {
         ZonedDateTime az = approvalAtZone(t, ref);
         if (az == null) {
             return false;
         }
         LocalDate paidDate = az.toLocalDate();
-        ZonedDateTime windowStart = paidDate.plusDays(1).atStartOfDay(ref);
+        ZonedDateTime windowStart = refundWindowStartZdt(paidDate, ref, env);
         ZonedDateTime now = ZonedDateTime.now(ref);
         return !now.isBefore(windowStart);
     }
 
-    private static boolean withinRefundStyleWindow(PgTrnsctn t, ZoneId ref, int days) {
+    private static boolean withinRefundStyleWindow(PgTrnsctn t, HqNotifyEnvConfig env, ZoneId ref, int days) {
         ZonedDateTime az = approvalAtZone(t, ref);
         if (az == null) {
             return false;
         }
         LocalDate paidDate = az.toLocalDate();
-        ZonedDateTime windowStart = paidDate.plusDays(1).atStartOfDay(ref);
+        ZonedDateTime windowStart = refundWindowStartZdt(paidDate, ref, env);
         ZonedDateTime windowEndExclusive = windowStart.plusDays(days);
         ZonedDateTime now = ZonedDateTime.now(ref);
         return !now.isBefore(windowStart) && now.isBefore(windowEndExclusive);
+    }
+
+    private static int resolvedRefundWindowStartMin(HqNotifyEnvConfig env) {
+        Integer v = env.getAutoRefundWindowStartMin();
+        if (v == null || v < 0) {
+            return 0;
+        }
+        return Math.min(v, EMAIL_VOID_END_MIN_FIXED);
+    }
+
+    /** 결제일(태국) 익일, 설정한 시각(분)부터. NULL이면 0:00. */
+    private static ZonedDateTime refundWindowStartZdt(LocalDate paidDate, ZoneId zone, HqNotifyEnvConfig env) {
+        int sm = resolvedRefundWindowStartMin(env);
+        LocalDate dayAfter = paidDate.plusDays(1);
+        LocalTime t = LocalTime.ofSecondOfDay(sm * 60L);
+        return ZonedDateTime.of(dayAfter, t, zone);
     }
 
     /** 가맹점 관리자: NULL 컬럼은 기존 호환(허용). 명시 N 만 거부. */
@@ -467,19 +495,19 @@ public class PayFollowPolicyService {
             case EMAIL_VOID -> {
                 if (!withinEmailVoidWindow(t, env, ref)) {
                     throw new IllegalStateException(
-                            "이메일무효는 승인일(기준 Zone) 당일, 설정한 시작 시각부터 당일 23:59까지 가능합니다.");
+                            "이메일무효는 승인일(기준 Zone) 당일, 설정한 시작~마감 시각 안에서만 가능합니다.");
                 }
             }
             case AUTO_REFUND -> {
                 if (!withinAutoRefundDays(t, env, REFUND_DAY_ZONE)) {
                     throw new IllegalStateException(
-                            "자동환불 처리 가능 기간이 아닙니다. (태국 기준 결제일 익일 0시부터 환불 가능 일수 설정 확인)");
+                            "자동환불 처리 가능 기간이 아닙니다. (태국 기준 결제일 익일 설정 시각부터 환불 가능 일수 확인)");
                 }
             }
             case FORCE_REFUND -> {
                 if (!withinForceRefundDays(t, env, REFUND_DAY_ZONE)) {
                     throw new IllegalStateException(
-                            "강제환불 처리 가능 기간이 아닙니다. (태국 기준 일반 환불 종료 다음날 0시부터 강제환불 일수 확인)");
+                            "강제환불 처리 가능 기간이 아닙니다. (태국 기준 일반 환불 종료 시점 다음날 동일 시각부터 강제환불 일수 확인)");
                 }
             }
         }

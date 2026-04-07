@@ -74,9 +74,10 @@ public class HqNotifyEnvService {
         m.put("autoVoidStartTime", formatMinutesToHm(c.getAutoVoidStartMin()));
         m.put("autoVoidEndTime", formatMinutesToHm(c.getAutoVoidEndMin()));
         m.put("emailVoidStartTime", formatMinutesToHm(c.getEmailVoidStartMin()));
-        m.put("emailVoidEndTime", "23:59");
+        m.put("emailVoidEndTime", formatMinutesToHm(c.getEmailVoidEndMin() != null ? c.getEmailVoidEndMin() : EMAIL_VOID_END_MIN_FIXED));
         m.put("payFollowRefZone", nz(c.getPayFollowRefZone()));
         m.put("autoRefundAfterDays", c.getAutoRefundAfterDays() != null ? c.getAutoRefundAfterDays() : 7);
+        m.put("autoRefundWindowStartTime", formatMinutesToHm(c.getAutoRefundWindowStartMin()));
         m.put("forceRefundAfterDays", c.getForceRefundAfterDays() != null ? c.getForceRefundAfterDays() : 0);
         m.put("autoVoidReflectSettlementYn", yn(c.getAutoVoidReflectSettlementYn()));
         m.put("emailVoidReflectSettlementYn", yn(c.getEmailVoidReflectSettlementYn()));
@@ -116,9 +117,10 @@ public class HqNotifyEnvService {
         m.put("autoVoidStartTime", formatMinutesToHm(c.getAutoVoidStartMin()));
         m.put("autoVoidEndTime", formatMinutesToHm(c.getAutoVoidEndMin()));
         m.put("emailVoidStartTime", formatMinutesToHm(c.getEmailVoidStartMin()));
-        m.put("emailVoidEndTime", "23:59");
+        m.put("emailVoidEndTime", formatMinutesToHm(c.getEmailVoidEndMin() != null ? c.getEmailVoidEndMin() : EMAIL_VOID_END_MIN_FIXED));
         m.put("payFollowRefZone", nz(c.getPayFollowRefZone()));
         m.put("autoRefundAfterDays", c.getAutoRefundAfterDays() != null ? c.getAutoRefundAfterDays() : 7);
+        m.put("autoRefundWindowStartTime", formatMinutesToHm(c.getAutoRefundWindowStartMin()));
         m.put("forceRefundAfterDays", c.getForceRefundAfterDays() != null ? c.getForceRefundAfterDays() : 0);
         m.put("autoVoidReflectSettlementYn", yn(c.getAutoVoidReflectSettlementYn()));
         m.put("emailVoidReflectSettlementYn", yn(c.getEmailVoidReflectSettlementYn()));
@@ -158,8 +160,14 @@ public class HqNotifyEnvService {
         if (body.containsKey("emailVoidStartTime")) {
             c.setEmailVoidStartMin(parseHmToMinutes(body.get("emailVoidStartTime")));
         }
+        if (body.containsKey("emailVoidEndTime")) {
+            c.setEmailVoidEndMin(parseHmToMinutes(body.get("emailVoidEndTime")));
+        }
+        if (body.containsKey("autoRefundWindowStartTime")) {
+            c.setAutoRefundWindowStartMin(parseHmToMinutes(body.get("autoRefundWindowStartTime")));
+        }
         if (body.containsKey("autoVoidStartTime") || body.containsKey("autoVoidEndTime")
-                || body.containsKey("emailVoidStartTime")) {
+                || body.containsKey("emailVoidStartTime") || body.containsKey("emailVoidEndTime")) {
             c.setAutoVoidAfterHours(null);
             c.setEmailVoidAfterHours(null);
         }
@@ -216,18 +224,75 @@ public class HqNotifyEnvService {
             }
         }
         if (emailY) {
-            if (es != null && (es < 0 || es > EMAIL_VOID_END_MIN_FIXED)) {
-                throw new IllegalArgumentException("이메일무효 시작 시각이 올바르지 않습니다(0:00~23:59).");
+            int ee = c.getEmailVoidEndMin() != null ? c.getEmailVoidEndMin() : EMAIL_VOID_END_MIN_FIXED;
+            if (ee < 0 || ee > EMAIL_VOID_END_MIN_FIXED) {
+                throw new IllegalArgumentException("이메일무효 마감 시각이 올바르지 않습니다(0:00~23:59).");
+            }
+            int minStart = 0;
+            if (autoY) {
+                int autoEndEff = ae != null ? ae : DEFAULT_AUTO_VOID_END_MIN;
+                if (autoEndEff < EMAIL_VOID_END_MIN_FIXED) {
+                    minStart = autoEndEff + 1;
+                }
+            }
+            if (ee < minStart) {
+                throw new IllegalArgumentException("이메일무효 마감은 자동무효 마감 다음 분 이후(또는 동일)여야 합니다.");
+            }
+            if (es != null) {
+                if (es < 0 || es > EMAIL_VOID_END_MIN_FIXED) {
+                    throw new IllegalArgumentException("이메일무효 시작 시각이 올바르지 않습니다(0:00~23:59).");
+                }
+                if (es > ee) {
+                    throw new IllegalArgumentException("이메일무효 시작은 마감 시각과 같거나 이전이어야 합니다.");
+                }
+                if (autoY) {
+                    int autoEndEff = ae != null ? ae : DEFAULT_AUTO_VOID_END_MIN;
+                    if (autoEndEff < EMAIL_VOID_END_MIN_FIXED && es < autoEndEff + 1) {
+                        throw new IllegalArgumentException(
+                                "이메일무효 시작은 자동무효 마감 다음 분 이후여야 합니다. 자동무효·이메일무효를 함께 쓰는 경우 시작 입력은 비우면 자동무효 직후부터 적용됩니다.");
+                    }
+                }
+            }
+        }
+        boolean refundY = "Y".equalsIgnoreCase(safeTrim(c.getAutoRefundYn()));
+        if (refundY) {
+            Integer wr = c.getAutoRefundWindowStartMin();
+            if (wr != null && (wr < 0 || wr > EMAIL_VOID_END_MIN_FIXED)) {
+                throw new IllegalArgumentException("환불 익일 구간 시작 시각이 올바르지 않습니다(0:00~23:59).");
             }
         }
     }
 
-    /** 수동무효 마감은 항상 당일 23:59(분 단위 고정). */
-    static void normalizeEmailVoidEndFixed(HqNotifyEnvConfig c) {
+    /**
+     * 자동무효·이메일무효 동시 사용 시 DB에 남은 이메일 시작이 자동무효 마감보다 이르면 NULL 로 정리(실제 판단은 마감 직후부터).
+     */
+    static void clampEmailVoidStartWhenAutoVoidEnabled(HqNotifyEnvConfig c) {
         if (c == null) {
             return;
         }
-        if ("Y".equalsIgnoreCase(safeTrim(c.getEmailVoidYn()))) {
+        boolean autoY = "Y".equalsIgnoreCase(safeTrim(c.getAutoVoidYn()));
+        boolean emailY = "Y".equalsIgnoreCase(safeTrim(c.getEmailVoidYn()));
+        if (!autoY || !emailY) {
+            return;
+        }
+        Integer ae = c.getAutoVoidEndMin();
+        int autoEndEff = ae != null ? ae : DEFAULT_AUTO_VOID_END_MIN;
+        if (autoEndEff >= EMAIL_VOID_END_MIN_FIXED) {
+            return;
+        }
+        int floor = autoEndEff + 1;
+        Integer es = c.getEmailVoidStartMin();
+        if (es != null && es < floor) {
+            c.setEmailVoidStartMin(null);
+        }
+    }
+
+    /** 이메일무효 사용 시 마감 미입력이면 23:59 기본값만 채움(저장된 시각은 덮어쓰지 않음). */
+    static void normalizeEmailVoidEndDefault(HqNotifyEnvConfig c) {
+        if (c == null) {
+            return;
+        }
+        if ("Y".equalsIgnoreCase(safeTrim(c.getEmailVoidYn())) && c.getEmailVoidEndMin() == null) {
             c.setEmailVoidEndMin(EMAIL_VOID_END_MIN_FIXED);
         }
     }
@@ -304,12 +369,14 @@ public class HqNotifyEnvService {
                 && !body.containsKey("autoVoidReflectSettlementYn") && !body.containsKey("emailVoidReflectSettlementYn")
                 && !body.containsKey("autoRefundReflectSettlementYn") && !body.containsKey("forceRefundReflectSettlementYn")
                 && !body.containsKey("autoVoidStartTime") && !body.containsKey("autoVoidEndTime")
-                && !body.containsKey("emailVoidStartTime")) {
+                && !body.containsKey("emailVoidStartTime") && !body.containsKey("emailVoidEndTime")
+                && !body.containsKey("autoRefundWindowStartTime")) {
             return;
         }
         HqNotifyEnvConfig c = getOrCreate();
         applyPayFollowActionFields(c, body);
-        normalizeEmailVoidEndFixed(c);
+        normalizeEmailVoidEndDefault(c);
+        clampEmailVoidStartWhenAutoVoidEnabled(c);
         validatePayFollowTimeWindows(c);
         repository.save(c);
     }
@@ -322,7 +389,8 @@ public class HqNotifyEnvService {
             c.setPublicBaseUrl(u.isEmpty() ? null : u);
         }
         applyPayFollowActionFields(c, body);
-        normalizeEmailVoidEndFixed(c);
+        normalizeEmailVoidEndDefault(c);
+        clampEmailVoidStartWhenAutoVoidEnabled(c);
         if (body.get("notifyOkResponse") != null) {
             String r = body.get("notifyOkResponse").toString().trim();
             if (!r.isEmpty()) {
@@ -366,7 +434,8 @@ public class HqNotifyEnvService {
                 || body.containsKey("autoVoidReflectSettlementYn") || body.containsKey("emailVoidReflectSettlementYn")
                 || body.containsKey("autoRefundReflectSettlementYn") || body.containsKey("forceRefundReflectSettlementYn")
                 || body.containsKey("autoVoidStartTime") || body.containsKey("autoVoidEndTime")
-                || body.containsKey("emailVoidStartTime");
+                || body.containsKey("emailVoidStartTime") || body.containsKey("emailVoidEndTime")
+                || body.containsKey("autoRefundWindowStartTime");
     }
 
     @Transactional

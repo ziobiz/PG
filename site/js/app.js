@@ -10040,18 +10040,23 @@
         }
         rowDis('autoVoidYn', ['autoVoidStartTime', 'autoVoidEndTime'], 'autoVoidReflectSettlementYn');
         rowDis('emailVoidYn', ['emailVoidStartTime', 'emailVoidEndTime'], 'emailVoidReflectSettlementYn');
-        rowDis('autoRefundYn', ['autoRefundAfterDays'], 'autoRefundReflectSettlementYn');
+        rowDis('autoRefundYn', ['autoRefundAfterDays', 'autoRefundWindowStartTime'], 'autoRefundReflectSettlementYn');
         rowDis('forceRefundYn', ['forceRefundAfterDays'], 'forceRefundReflectSettlementYn');
         (function syncEmailVoidStartOverride() {
           var autoOn = ynOn('autoVoidYn');
           var emailOn = ynOn('emailVoidYn');
           var esInp = pane.querySelector('[name="emailVoidStartTime"]');
+          var autoEndInp = pane.querySelector('[name="autoVoidEndTime"]');
           if (!esInp) return;
           if (emailOn && autoOn) {
             esInp.disabled = true;
-            esInp.value = '';
+            var endV = autoEndInp && String(autoEndInp.value || '').trim();
+            esInp.title = endV
+              ? '자동무효·이메일무효를 함께 켠 경우: 시작은 지정할 수 없고 자동무효 마감(' + endV + ') 다음 분부터입니다. 마감은 오른쪽 시간으로 설정합니다.'
+              : '자동무효·이메일무효를 함께 켠 경우: 시작 입력은 비활성입니다. 마감은 오른쪽 시간으로 설정합니다.';
           } else if (emailOn) {
             esInp.disabled = false;
+            esInp.title = '비우면 당일 0:00부터. 마감은 오른쪽 시간(비우면 23:59).';
           }
         })();
         updateHqPayFollowClocks(pane);
@@ -10064,7 +10069,7 @@
           'emailOnSyncFailureYn', 'emailDailyDigestYn', 'emailNotifyVoidBatchYn', 'emailNotifyRefundBatchYn', 'memo', 'updatedAt',
           'autoVoidYn', 'emailVoidYn', 'autoRefundYn', 'forceRefundYn',
           'autoVoidStartTime', 'autoVoidEndTime', 'emailVoidStartTime', 'emailVoidEndTime',
-          'payFollowRefZone', 'autoRefundAfterDays', 'forceRefundAfterDays',
+          'payFollowRefZone', 'autoRefundAfterDays', 'autoRefundWindowStartTime', 'forceRefundAfterDays',
           'autoVoidReflectSettlementYn', 'emailVoidReflectSettlementYn', 'autoRefundReflectSettlementYn', 'forceRefundReflectSettlementYn'];
         keys.forEach(function (k) {
           var el = pane.querySelector('[name="' + k + '"]');
@@ -10181,11 +10186,19 @@
           'emailOnSyncFailureYn', 'emailDailyDigestYn', 'emailNotifyVoidBatchYn', 'emailNotifyRefundBatchYn', 'memo',
           'autoVoidYn', 'emailVoidYn', 'autoRefundYn', 'forceRefundYn',
           'autoVoidStartTime', 'autoVoidEndTime', 'emailVoidStartTime', 'emailVoidEndTime',
-          'payFollowRefZone', 'autoRefundAfterDays', 'forceRefundAfterDays',
+          'payFollowRefZone', 'autoRefundAfterDays', 'autoRefundWindowStartTime', 'forceRefundAfterDays',
           'autoVoidReflectSettlementYn', 'emailVoidReflectSettlementYn', 'autoRefundReflectSettlementYn', 'forceRefundReflectSettlementYn'].forEach(function (k) {
           var el = pane.querySelector('[name="' + k + '"]');
           if (el) fd[k] = el.value;
         });
+        (function omitDisabledEmailVoidStart() {
+          var esInp = pane.querySelector('[name="emailVoidStartTime"]');
+          if (esInp && esInp.disabled) delete fd.emailVoidStartTime;
+        })();
+        (function omitDisabledRefundWindowStart() {
+          var w = pane.querySelector('[name="autoRefundWindowStartTime"]');
+          if (w && w.disabled) delete fd.autoRefundWindowStartTime;
+        })();
         if (!fd.smtpPassword || !String(fd.smtpPassword).trim()) {
           delete fd.smtpPassword;
         }
@@ -10200,6 +10213,11 @@
         }).catch(function (e) {
           alert(e && e.message ? e.message : '저장 실패');
         }).finally(function () { if (dimmLs) dimmLs.style.display = 'none'; });
+      }
+      /** 데이터 보관 표: 셀에 줄바꿈·다중 공백이 들어와도 화면에는 한 줄로만 표시 */
+      function hqDataRetentionSingleLine(s) {
+        if (s == null || s === undefined) return '';
+        return String(s).replace(/\r\n|\r|\n/g, ' ').replace(/\s+/g, ' ').trim();
       }
       function renderHqDataRetentionRows(rows) {
         var tb = pane.querySelector('#hqDataRetentionTbody');
@@ -10221,20 +10239,23 @@
           var purge = r.purgeDays != null ? r.purgeDays : retain;
           var autoOn = !!r.autoDeleteEnabled;
           var tr = document.createElement('tr');
+          tr.className = 'hq-dr-data-row';
           tr.setAttribute('data-retention-id', r.id || '');
           tr.setAttribute('data-scheduler', sched ? '1' : '0');
+          var labelOne = hqDataRetentionSingleLine(r.label || r.id || '');
+          var descOne = hqDataRetentionSingleLine(r.description || '');
           var td1 = document.createElement('td');
           td1.className = 'fw-semibold hq-dr-type-cell';
           var spanLbl = document.createElement('span');
           spanLbl.className = 'hq-dr-label-text';
-          spanLbl.textContent = r.label || r.id || '';
+          spanLbl.textContent = labelOne;
           td1.appendChild(spanLbl);
           td1.appendChild(document.createTextNode(' '));
           var badge = document.createElement('span');
           badge.className = 'badge ms-1 flex-shrink-0 ' + (sched ? 'bg-info text-dark' : 'bg-secondary');
           badge.textContent = sched ? '스케줄' : '정책';
           td1.appendChild(badge);
-          td1.setAttribute('title', (r.label || r.id || '') + ' (' + (sched ? '스케줄' : '정책') + ')');
+          td1.setAttribute('title', labelOne + ' (' + (sched ? '스케줄' : '정책') + ')');
           var tdAuto = document.createElement('td');
           tdAuto.className = 'text-center';
           var cb = document.createElement('input');
@@ -10263,8 +10284,8 @@
           tdRetain.appendChild(inpRetain);
           var tdDesc = document.createElement('td');
           tdDesc.className = 'small text-muted hq-dr-desc-cell';
-          tdDesc.textContent = r.description || '';
-          if (r.description) tdDesc.setAttribute('title', r.description);
+          tdDesc.textContent = descOne;
+          if (descOne) tdDesc.setAttribute('title', descOne);
           var tdAct = document.createElement('td');
           tdAct.className = 'text-center hq-dr-act-cell';
           var g = document.createElement('div');
@@ -10335,6 +10356,13 @@
             return;
           }
         });
+        function hqLedgerPayFollowSyncIfNeeded(target) {
+          var t = target;
+          if (!t || !t.name || !pane.contains(t)) return;
+          var payFollowSyncNames = ['autoVoidYn', 'emailVoidYn', 'autoRefundYn', 'forceRefundYn', 'payFollowRefZone', 'displayTimezone',
+            'autoVoidStartTime', 'autoVoidEndTime', 'emailVoidEndTime', 'autoRefundWindowStartTime'];
+          if (payFollowSyncNames.indexOf(t.name) !== -1) syncPayFollowLedgerUi(pane);
+        }
         pane.addEventListener('change', function (e) {
           var cb = e.target.closest && e.target.closest('.hq-dr-auto');
           if (cb && pane.contains(cb)) {
@@ -10344,13 +10372,10 @@
               if (pi) pi.disabled = cb.disabled || !cb.checked;
             }
           }
-          var t = e.target;
-          if (t && t.name && pane.contains(t)) {
-            var payFollowSyncNames = ['autoVoidYn', 'emailVoidYn', 'autoRefundYn', 'forceRefundYn', 'payFollowRefZone', 'displayTimezone'];
-            if (payFollowSyncNames.indexOf(t.name) !== -1) {
-              syncPayFollowLedgerUi(pane);
-            }
-          }
+          hqLedgerPayFollowSyncIfNeeded(e.target);
+        });
+        pane.addEventListener('input', function (e) {
+          hqLedgerPayFollowSyncIfNeeded(e.target);
         });
       }
       reloadLedgerSys();

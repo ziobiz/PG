@@ -57,9 +57,13 @@ public class HqNotifyEnvConfig {
     @Column(name = "email_void_start_min")
     private Integer emailVoidStartMin;
 
-    /** 이메일무효: 마감 시각(분) */
+    /** 이메일무효: 마감 시각(분). NULL이면 23:59 */
     @Column(name = "email_void_end_min")
     private Integer emailVoidEndMin;
+
+    /** 자동환불: 결제 익일(태국) 구간 시작 시각(0~1439분). NULL이면 0:00 */
+    @Column(name = "auto_refund_window_start_min")
+    private Integer autoRefundWindowStartMin;
 
     /** 후속조치 경과 판단 기준 ZoneId (NULL이면 전산 표준시와 동일) */
     @Column(name = "pay_follow_ref_zone", length = 64)
@@ -147,6 +151,8 @@ public class HqNotifyEnvConfig {
     public void setEmailVoidStartMin(Integer emailVoidStartMin) { this.emailVoidStartMin = emailVoidStartMin; }
     public Integer getEmailVoidEndMin() { return emailVoidEndMin; }
     public void setEmailVoidEndMin(Integer emailVoidEndMin) { this.emailVoidEndMin = emailVoidEndMin; }
+    public Integer getAutoRefundWindowStartMin() { return autoRefundWindowStartMin; }
+    public void setAutoRefundWindowStartMin(Integer autoRefundWindowStartMin) { this.autoRefundWindowStartMin = autoRefundWindowStartMin; }
     public String getPayFollowRefZone() { return payFollowRefZone; }
     public void setPayFollowRefZone(String payFollowRefZone) { this.payFollowRefZone = payFollowRefZone; }
     public Integer getAutoRefundAfterDays() { return autoRefundAfterDays; }

@@ -123,27 +123,29 @@
       '<td class="text-center"><select name="autoVoidReflectSettlementYn" class="form-select form-select-sm hq-pay-follow-sel-ref">' + ynRef + '</select></td></tr>' +
       '<tr>' +
       '<td class="fw-semibold">수동무효 <span class="badge bg-secondary">이메일무효</span></td>' +
-      '<td class="small">승인일 당일, 마감 <strong>23:59</strong> 고정(태국 당일 — 일본은 익일 <strong>01:59</strong>까지 동일 구간)</td>' +
+      '<td class="small">승인일(기준 Zone) <strong>당일</strong> 시작~마감(자동무효와 동일 형식)</td>' +
       '<td class="text-center"><select name="emailVoidYn" class="form-select form-select-sm hq-pay-follow-sel-use">' + ynUse + '</select></td>' +
       '<td class="hq-pay-follow-void-times"><div class="d-flex flex-wrap align-items-center gap-1 gap-md-2">' +
-      '<span class="text-nowrap small">시작</span><input type="time" step="60" name="emailVoidStartTime" class="' + timeInputCls + '" title="비우면 0:00 또는 자동무효 마감 다음 분(가능할 때)" />' +
-      '<span class="text-nowrap small ms-1">~ 마감</span><span class="small text-muted fw-semibold">23:59</span> <span class="small text-muted">(자동, 수정 불가)</span>' +
-      '</div><div class="small text-muted mt-1">시작만 필요 시 지정하세요. 자동무효와 겹치지 않게 하려면 시작을 직접 지정하세요.</div></td>' +
+      '<span class="text-nowrap small">시작</span><input type="time" step="60" name="emailVoidStartTime" class="' + timeInputCls + '" />' +
+      '<span class="text-nowrap small">~ 마감</span><input type="time" step="60" name="emailVoidEndTime" class="' + timeInputCls + '" title="비우면 23:59" />' +
+      '</div><div class="small text-muted mt-1">자동무효·이메일무효를 <strong>함께</strong> 켜면 <strong>시작</strong>만 비활성화되고, 실제 시작은 자동무효 마감 다음 분부터입니다. <strong>마감</strong>은 항상 지정 가능합니다(비우면 23:59). 이메일무효만 켜면 시작·마감 모두 설정합니다.</div></td>' +
       '<td class="text-center"><select name="emailVoidReflectSettlementYn" class="form-select form-select-sm hq-pay-follow-sel-ref">' + ynRef + '</select></td></tr>' +
       '<tr>' +
       '<td class="fw-semibold">환불 <span class="badge bg-secondary">자동환불</span></td>' +
-      '<td class="small"><strong>태국(Asia/Bangkok)</strong> 기준 결제일 익일 0시부터 <strong>N</strong>일(기본 7)</td>' +
+      '<td class="small"><strong>태국(Asia/Bangkok)</strong> 기준 결제일 <strong>익일</strong> 지정 시각부터 <strong>N</strong>일(기본 7)</td>' +
       '<td class="text-center"><select name="autoRefundYn" class="form-select form-select-sm hq-pay-follow-sel-use">' + ynUse + '</select></td>' +
-      '<td><select name="autoRefundAfterDays" class="form-select form-select-sm hq-pay-follow-sel-days">' + days + '</select></td>' +
+      '<td><div class="d-flex flex-wrap align-items-center gap-2">' +
+      '<span class="text-nowrap small">익일 시작</span><input type="time" step="60" name="autoRefundWindowStartTime" class="' + timeInputCls + '" title="비우면 0:00" />' +
+      '<select name="autoRefundAfterDays" class="form-select form-select-sm hq-pay-follow-sel-days">' + days + '</select></div></td>' +
       '<td class="text-center"><select name="autoRefundReflectSettlementYn" class="form-select form-select-sm hq-pay-follow-sel-ref">' + ynRef + '</select></td></tr>' +
       '<tr>' +
       '<td class="fw-semibold">강제환불</td>' +
-      '<td class="small"><strong>태국</strong> 기준 일반 환불 종료 <strong>다음날 0시</strong>부터 <strong>M</strong>일(M=0이면 강제환불 메뉴 비노출)</td>' +
+      '<td class="small"><strong>태국</strong> 기준 일반 환불이 끝난 <strong>다음날 동일 시각</strong>부터 <strong>M</strong>일(M=0이면 메뉴 비노출)</td>' +
       '<td class="text-center"><select name="forceRefundYn" class="form-select form-select-sm hq-pay-follow-sel-use">' + ynUse + '</select></td>' +
       '<td><select name="forceRefundAfterDays" class="form-select form-select-sm hq-pay-follow-sel-days">' + forceDays + '</select></td>' +
       '<td class="text-center"><select name="forceRefundReflectSettlementYn" class="form-select form-select-sm hq-pay-follow-sel-ref">' + ynRef + '</select></td></tr>' +
       '</tbody></table>' +
-      '<p class="small text-muted px-2 py-2 mb-0">저장은 화면 하단 <strong>[저장]</strong>으로 합니다. <code>tb_hq_notify_env_config</code>에 동기화됩니다. 무효·수동무효는 승인일(「시간 선택 국가」Zone) <strong>당일</strong>입니다. <strong>환불·강제환불</strong>의 일수·익일 0시 계산은 <strong>태국(Asia/Bangkok)</strong> 달력 기준입니다. TH·JP 시계는 참고용입니다.</p>' +
+      '<p class="small text-muted px-2 py-2 mb-0">저장은 화면 하단 <strong>[저장]</strong>으로 합니다. <code>tb_hq_notify_env_config</code>에 동기화됩니다. 무효·수동무효는 승인일(「시간 선택 국가」Zone) <strong>당일</strong>입니다. <strong>환불</strong>은 태국 기준 결제일 <strong>익일</strong>의 설정 시각부터 일수이며, <strong>강제환불</strong>은 그 일반 환불이 끝난 다음날 같은 시각부터입니다. TH·JP 시계는 참고용입니다.</p>' +
       '</div>';
   }
 
@@ -719,7 +721,7 @@
         },
         {
           title: '결제 후속조치 (NOTI 환경설정 대응)',
-          notice: '시간 선택 국가(기준 Zone)는 무효·이메일무효에 적용됩니다. 무효 기본은 당일 <strong>0:00~21:00</strong>(마감은 JP 동일 시각 +2h → 23:00). 수동무효는 당일 <strong>23:59</strong> 마감 고정(JP 익일 01:59). 환불·강제환불 일수는 <strong>태국 익일 0시</strong> 기준입니다. 「설정(사용)」이 사용일 때만 시각·일자·정산 반영을 편집할 수 있습니다.',
+          notice: '시간 선택 국가(기준 Zone)는 무효·이메일무효에 적용됩니다. 무효 기본은 당일 <strong>0:00~21:00</strong>. 수동무효(이메일)도 당일 <strong>시작~마감</strong>을 지정(마감 비우면 23:59). 환불은 <strong>태국</strong> 기준 결제일 <strong>익일</strong>의 <strong>시작 시각</strong>부터 일수입니다. 「설정(사용)」이 사용일 때만 편집할 수 있습니다.',
           rows: [
             [{ type: 'customHtml', col: 12, html: hqLedgerPayFollowNotiTableHtml() }]
           ]

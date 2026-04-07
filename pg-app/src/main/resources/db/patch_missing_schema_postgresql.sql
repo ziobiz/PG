@@ -232,4 +232,7 @@ ALTER TABLE tb_hq_ledger_sys_settings ADD COLUMN IF NOT EXISTS app_log_memory_re
 ALTER TABLE tb_hq_ledger_sys_settings ADD COLUMN IF NOT EXISTS app_log_file_retention_days INTEGER NOT NULL DEFAULT 90;
 UPDATE tb_hq_notify_env_config SET auto_refund_after_days = 7 WHERE auto_refund_after_days IS NULL;
 UPDATE tb_hq_notify_env_config SET force_refund_after_days = 0 WHERE force_refund_after_days IS NULL;
-UPDATE tb_hq_notify_env_config SET email_void_end_min = 1439 WHERE email_void_end_min IS NULL OR email_void_end_min <> 1439;
+UPDATE tb_hq_notify_env_config SET email_void_end_min = 1439 WHERE email_void_end_min IS NULL;
+
+-- V81: 환불 익일 구간 시작 시각(분) — db/V81_pay_follow_email_void_end_refund_start.sql 과 동일
+ALTER TABLE tb_hq_notify_env_config ADD COLUMN IF NOT EXISTS auto_refund_window_start_min INTEGER;

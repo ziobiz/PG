@@ -2584,34 +2584,45 @@ button.pay-follow.pay-follow--off {
   text-decoration: none;
 }
 
-/* 종합거래 환경설정: 데이터 보관 기간 표 — 가로 스크롤 없이 영역 너비에 맞춤 */
+/* 종합거래 환경설정: 데이터 보관 기간 표 — 한 줄 유지 + 컬럼 최소 너비 확보(좁은 화면은 가로 스크롤) */
 .hq-data-retention-wrap {
   max-width: 100%;
-  overflow-x: visible;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 .hq-data-retention-table {
-  width: 100%;
-  max-width: 100%;
-  min-width: 0;
-  table-layout: fixed;
+  width: max-content;
+  min-width: 100%;
+  max-width: none;
+  table-layout: auto;
 }
+.hq-data-retention-table tbody tr.hq-dr-data-row > td {
+  white-space: nowrap !important;
+  word-break: normal !important;
+  overflow-wrap: normal !important;
+}
+/* col 최소 너비: 유형·설명·관리 버튼이 잘리지 않도록 */
 .hq-data-retention-table col:nth-child(1) {
-  width: 17%;
+  min-width: 24rem;
 }
 .hq-data-retention-table col:nth-child(2) {
-  width: 8%;
+  min-width: 5.5rem;
+  width: 5.5rem;
 }
 .hq-data-retention-table col:nth-child(3) {
-  width: 9%;
+  min-width: 6.5rem;
+  width: 6.5rem;
 }
 .hq-data-retention-table col:nth-child(4) {
-  width: 9%;
+  min-width: 6.5rem;
+  width: 6.5rem;
 }
 .hq-data-retention-table col:nth-child(5) {
-  width: 41%;
+  min-width: 56rem;
 }
 .hq-data-retention-table col:nth-child(6) {
-  width: 16%;
+  min-width: 15rem;
+  width: 15rem;
 }
 .hq-data-retention-table th,
 .hq-data-retention-table td {
@@ -2623,29 +2634,27 @@ button.pay-follow.pay-follow--off {
 }
 .hq-data-retention-table .hq-dr-th-type,
 .hq-data-retention-table td.hq-dr-type-cell {
-  min-width: 0;
   white-space: nowrap;
 }
 .hq-data-retention-table td.hq-dr-type-cell {
-  overflow: hidden;
+  overflow: visible;
 }
 .hq-data-retention-table td.hq-dr-type-cell .hq-dr-label-text {
-  display: inline-block;
-  max-width: calc(100% - 4.25rem);
-  overflow: hidden;
-  text-overflow: ellipsis;
+  display: inline;
+  max-width: none;
+  overflow: visible;
+  text-overflow: clip;
   white-space: nowrap;
-  vertical-align: bottom;
+  vertical-align: baseline;
 }
 .hq-data-retention-table td.hq-dr-type-cell .badge {
   vertical-align: text-bottom;
 }
 .hq-data-retention-table .hq-dr-th-desc,
 .hq-data-retention-table td.hq-dr-desc-cell {
-  min-width: 0;
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  overflow: visible;
+  text-overflow: clip;
   line-height: 1.25;
 }
 .hq-data-retention-table .hq-dr-th-narrow {
@@ -2656,22 +2665,23 @@ button.pay-follow.pay-follow--off {
 }
 .hq-data-retention-table td:nth-child(6) .btn-group {
   flex-wrap: nowrap;
-  justify-content: center;
+  justify-content: flex-start;
   gap: 0;
   white-space: nowrap;
 }
 .hq-data-retention-table td:nth-child(6) .btn-group .btn {
-  padding-left: 0.35rem;
-  padding-right: 0.35rem;
+  padding-left: 0.4rem;
+  padding-right: 0.4rem;
 }
-.hq-data-retention-table td:nth-child(6) {
-  min-width: 0;
+.hq-data-retention-table td:nth-child(6),
+.hq-data-retention-table td.hq-dr-act-cell {
+  min-width: 15rem;
 }
 .hq-data-retention-table .hq-dr-purge,
 .hq-data-retention-table .hq-dr-retain {
-  min-width: 0;
-  width: 100%;
-  max-width: 100%;
+  width: 5.25rem;
+  min-width: 5.25rem;
+  max-width: 6.5rem;
 }
 
 /* 수수료설정: 템플릿 목록 행 */
