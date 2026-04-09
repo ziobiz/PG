@@ -226,9 +226,8 @@ public class PgNotifyReceiveService {
             log.warn("노티→결제내역(pg_trnsctn) 후처리 실패: {}", e.getMessage());
         }
         String defaultOk = env.getNotifyOkResponse() != null ? env.getNotifyOkResponse() : "{\"result\":\"OK\"}";
-        /* CALLBACK(cb)·RESULT(rs) 모두: 브라우저 GET/폼 POST 는 pay-result 로.
-         * JSON POST 는 기본적으로 서버 노티(OK JSON)로 두되, RESULT 이고 본문이 결제결과형 JSON(주문·거래식별자 있음)이면
-         * 피지 노티 서버의 가공 JSON 송부 후에도 브라우저가 결과 페이지로 이동하도록 리다이렉트한다. */
+        /* CALLBACK(cb)·RESULT(rs): 브라우저 GET/폼 POST 는 pay-result 로.
+         * application/json POST 는 결제대행사 서버 노티 → 200 JSON 만(리다이렉트 없음). */
         if (("RESULT".equalsIgnoreCase(channelType) || "CALLBACK".equalsIgnoreCase(channelType))
                 && request != null
                 && shouldUsePayResultRedirect(channelType, request.getMethod(), body, contentType)) {
@@ -315,7 +314,8 @@ public class PgNotifyReceiveService {
 
     /**
      * CALLBACK·RESULT URL — 브라우저 GET·폼 POST 는 결제 결과 HTML 로 보냄.
-     * JSON POST 는 CALLBACK 은 서버 노티(OK JSON) 유지, RESULT 는 결제결과형 JSON 이면 리다이렉트 허용.
+     * {@code application/json} POST 는 결제대행사·NOTI 서버 노티로 간주하고 리다이렉트하지 않음(항상 200 JSON).
+     * 그 외 RESULT + 비표준 JSON(CT 없음 등)만 레거시 브라우저 복귀용 리다이렉트 후보.
      */
     private static boolean shouldUsePayResultRedirect(String notifyChannelType, String httpMethod, String rawBody, String contentType) {
         String ch = notifyChannelType != null ? notifyChannelType.trim().toUpperCase(Locale.ROOT) : "";
@@ -329,6 +329,9 @@ public class PgNotifyReceiveService {
         String ct = contentType != null ? contentType.toLowerCase(Locale.ROOT) : "";
         String b = rawBody != null ? rawBody.trim() : "";
         if (b.startsWith("{")) {
+            if (ct.contains("application/json")) {
+                return false;
+            }
             return "RESULT".equals(ch) && jsonBodyLooksLikePaymentResultForResultRedirect(b);
         }
         if (ct.contains("application/x-www-form-urlencoded")) {
@@ -601,21 +604,8 @@ public class PgNotifyReceiveService {
             }
         }
 
-        /* URL 결제용 공통 MID + 가맹점 복수: 업체코드 없으면 거부(잘못된 가맹 적재 방지). RESULT·기존 URL 주문번호 보강만 예외. */
-        if (p.mid != null && !p.mid.isBlank()) {
-            List<MerchantPgBinding> sameMidAll = bindingRepository.findByMidOrderByOperationalYnDescIdAsc(p.mid.trim());
-            if (urlPaySharedMidRequiresMerchantCode(sameMidAll) && (!hasComp || compStore == null)) {
-                if (tryResolveUrlPayResultFromPriorTxn(in, p)) {
-                    return;
-                }
-                in.setPayloadCompId(null);
-                in.setProcessStatus("URL_PAY_NEEDS_COMP_ID");
-                in.setErrorMessage("URL 결제용 공통 MID 환경에서는 노티에 업체코드(compId, merchantCompCode 등) 또는 icopayCompId= 가 필요합니다.");
-                return;
-            }
-        }
-
         // 1) 연동용도「노티」PG 바인딩만: MID(MerchantCode) + 루트(RouteNo)로 가맹점 분기 (노티미들웨어 표준)
+        /* URL 공통 MID 검사보다 먼저 수행 — 동일 MID에 URL 결제 가맹점이 섞여 있어도 노티 전용 바인딩이면 업체코드 없이 수신 가능해야 함. */
         if (p.mid != null && !p.mid.isBlank()) {
             String m = p.mid.trim();
             List<MerchantPgBinding> sameMid = bindingRepository.findByMidOrderByOperationalYnDescIdAsc(m);
@@ -687,6 +677,20 @@ public class PgNotifyReceiveService {
                     in.setPayloadCompId(null);
                 }
                 applyBindingResolved(in, bNoti.get());
+                return;
+            }
+        }
+
+        /* URL 결제용 공통 MID + (URL 바인딩 기준) 가맹점 복수: 업체코드 없으면 거부. 노티 분기가 처리 못한 경우만. */
+        if (p.mid != null && !p.mid.isBlank()) {
+            List<MerchantPgBinding> sameMidAll = bindingRepository.findByMidOrderByOperationalYnDescIdAsc(p.mid.trim());
+            if (urlPaySharedMidRequiresMerchantCode(sameMidAll) && (!hasComp || compStore == null)) {
+                if (tryResolveUrlPayResultFromPriorTxn(in, p)) {
+                    return;
+                }
+                in.setPayloadCompId(null);
+                in.setProcessStatus("URL_PAY_NEEDS_COMP_ID");
+                in.setErrorMessage("URL 결제용 공통 MID 환경에서는 노티에 업체코드(compId, merchantCompCode 등) 또는 icopayCompId= 가 필요합니다.");
                 return;
             }
         }
@@ -885,18 +889,20 @@ public class PgNotifyReceiveService {
     }
 
     /**
-     * 동일 MID에 URL 결제 연동 바인딩이 하나라도 있고, 서로 다른 가맹점(org_unit_id) 바인딩이 2곳 이상인 경우.
-     * 이 때는 노티에 업체코드가 없으면 분기 불가이므로 {@link #resolveAndFillInbound} 에서 거절한다.
+     * 동일 MID에 URL 결제 연동 바인딩이 하나라도 있고, 그 URL 바인딩들이 서로 다른 가맹점(org_unit_id) 2곳 이상인 경우.
+     * 노티 전용 바인딩만 있는 가맹점은 여기서 제외한다(동일 MID에 URL+노티가 섞여도 노티 수신이 막히지 않게).
      */
     private boolean urlPaySharedMidRequiresMerchantCode(List<MerchantPgBinding> sameMid) {
         if (sameMid == null || sameMid.isEmpty()) {
             return false;
         }
-        boolean anyUrlPay = sameMid.stream().anyMatch(b -> hasUrlPayChannel(loadAgency(b.getPgCd())));
-        if (!anyUrlPay) {
+        List<MerchantPgBinding> urlBinds = sameMid.stream()
+                .filter(b -> hasUrlPayChannel(loadAgency(b.getPgCd())))
+                .toList();
+        if (urlBinds.isEmpty()) {
             return false;
         }
-        return sameMid.stream().map(MerchantPgBinding::getOrgUnitId).distinct().count() > 1;
+        return urlBinds.stream().map(MerchantPgBinding::getOrgUnitId).distinct().count() > 1;
     }
 
     /** 배포설정 &gt; API연동설정에서 연동용도「노티」가 켜진 결제대행사에 매핑된 가맹점 바인딩만 */

@@ -1,5 +1,7 @@
 # 전산 노티 수신 · 결제환경 (NOTI 참고)
 
+**노티(서버→서버 Notify)** 와 **URL 결제(브라우저 결제·결과 페이지)** 는 연동 목적·필수 필드·응답 규칙이 다릅니다. 혼동하지 말 것. 요약·NOTI 재전송 계약은 [NOTI_노티재전송_Cursor개발요청.md](./NOTI_노티재전송_Cursor개발요청.md) 의 「노티 연동 vs URL 결제 연동」절을 참고합니다.
+
 > **무료 HTTPS(NOTI와 동일, Let's Encrypt):** [무료_SSL_NOTI와_동일_LetsEncrypt.md](./무료_SSL_NOTI와_동일_LetsEncrypt.md)
 
 개발·검증 URL은 **http://localhost:8080** 기준입니다.
