@@ -2,7 +2,6 @@ package com.pg.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.pg.dto.NotiMiddlewareRelayRequest;
 import com.pg.dto.NotifyReceiveOutcome;
 import com.pg.entity.HqNotifyEnvConfig;
@@ -22,7 +21,6 @@ import com.pg.repository.PgTrnsctnRepository;
 import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -53,8 +51,6 @@ import java.util.regex.Pattern;
  *       {@code URL_PAY_NEEDS_COMP_ID} 로 거절하거나, 업체코드로 해당 조직의 노티 바인딩만 고릅니다.</li>
  *   <li><b>URL 결제 연동이 있는 공통 MID로 가맹점이 복수</b>이면 업체코드가 없는 노티는 원칙적으로 거절합니다.
  *       단, RESULT 채널에서 동일 {@code orderNo}의 기존 {@code origin=URL} 행으로 가맹점을 보강할 수 있으면 예외입니다.</li>
- *   <li><b>서버-투-서버(JSON/폼, 리다이렉트 미적용)</b>: {@code processStatus≠PARSED} 이면 HTTP 422 + {@code success:false, processed:false};
- *       {@code pg_trnsctn} 후처리 예외 시 503. 성공 시 200 + {@code success:true, processed:true, inboundId} 및 본사설정 {@code notifyOkResponse} 병합.</li>
  * </ul>
  */
 @Service
@@ -218,12 +214,10 @@ public class PgNotifyReceiveService {
 
         resolveAndFillInbound(in, parsed);
         inboundRepository.save(in);
-        boolean dispatchFailed = false;
         try {
             pgNotifyInboundTxnDispatcher.dispatch(in, channelType);
         } catch (Exception e) {
-            dispatchFailed = true;
-            log.warn("노티→결제내역(pg_trnsctn) 후처리 실패: {}", e.getMessage());
+            log.warn("노티→결제내역(pg_trnsctn) 후처리 실패 (수신 응답은 OK 유지): {}", e.getMessage());
         }
         String defaultOk = env.getNotifyOkResponse() != null ? env.getNotifyOkResponse() : "{\"result\":\"OK\"}";
         /* CALLBACK(cb)·RESULT(rs) 모두: 브라우저 GET/폼 POST 는 pay-result 로.
@@ -239,78 +233,7 @@ public class PgNotifyReceiveService {
                 return NotifyReceiveOutcome.redirect(loc);
             }
         }
-        /* 서버-투-서버: 수신 로그는 저장됨. 파싱 실패·후처리 실패는 4xx/5xx + JSON 으로 노티미들웨어 재전송 판별 가능하게 함. */
-        try {
-            boolean inboundParsed = "PARSED".equalsIgnoreCase(String.valueOf(in.getProcessStatus()).trim());
-            if (!inboundParsed) {
-                String code = in.getProcessStatus() != null && !in.getProcessStatus().isBlank()
-                        ? in.getProcessStatus().trim() : "NOT_PARSED";
-                String msg = in.getErrorMessage() != null ? in.getErrorMessage() : "notify not accepted";
-                return NotifyReceiveOutcome.json(buildNotifyApiJsonFailure(in, code, msg, true),
-                        HttpStatus.UNPROCESSABLE_ENTITY);
-            }
-            if (dispatchFailed) {
-                return NotifyReceiveOutcome.json(
-                        buildNotifyApiJsonFailure(in, "PG_TRNSCTN_DISPATCH_FAILED",
-                                "pg_trnsctn post-process failed", true),
-                        HttpStatus.SERVICE_UNAVAILABLE);
-            }
-            return NotifyReceiveOutcome.json(buildNotifyApiJsonSuccess(in, defaultOk), HttpStatus.OK);
-        } catch (Exception e) {
-            log.warn("노티 API 응답 JSON 생성 실패: {}", e.getMessage());
-            return NotifyReceiveOutcome.json(
-                    "{\"success\":false,\"processed\":false,\"retryable\":true,\"errorCode\":\"RESPONSE_BUILD_ERROR\"}",
-                    HttpStatus.INTERNAL_SERVER_ERROR);
-        }
-    }
-
-    private static String buildNotifyApiJsonFailure(PgNotifyInbound in, String errorCode, String message, boolean retryable) {
-        try {
-            ObjectNode n = MAPPER.createObjectNode();
-            n.put("success", false);
-            n.put("processed", false);
-            n.put("retryable", retryable);
-            if (in.getId() != null) {
-                n.put("inboundId", in.getId());
-            }
-            n.put("errorCode", errorCode != null ? errorCode : "ERROR");
-            n.put("message", message != null ? message : "");
-            return MAPPER.writeValueAsString(n);
-        } catch (Exception e) {
-            return "{\"success\":false,\"processed\":false,\"retryable\":true,\"errorCode\":\"JSON_SERIALIZE_ERROR\"}";
-        }
-    }
-
-    private static String buildNotifyApiJsonSuccess(PgNotifyInbound in, String defaultOk) throws Exception {
-        ObjectNode n = MAPPER.createObjectNode();
-        n.put("success", true);
-        n.put("processed", true);
-        n.put("retryable", false);
-        if (in.getId() != null) {
-            n.put("inboundId", in.getId());
-        }
-        String d = defaultOk != null ? defaultOk.trim() : "";
-        if (!d.isEmpty()) {
-            if (d.startsWith("{")) {
-                try {
-                    JsonNode extra = MAPPER.readTree(d);
-                    if (extra.isObject()) {
-                        Iterator<String> it = extra.fieldNames();
-                        while (it.hasNext()) {
-                            String key = it.next();
-                            n.set(key, extra.get(key));
-                        }
-                    } else {
-                        n.put("legacyNotifyOk", d);
-                    }
-                } catch (Exception e) {
-                    n.put("legacyNotifyOk", d);
-                }
-            } else {
-                n.put("result", d);
-            }
-        }
-        return MAPPER.writeValueAsString(n);
+        return NotifyReceiveOutcome.json(defaultOk);
     }
 
     /**

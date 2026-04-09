@@ -51,6 +51,21 @@
             <p class="small text-muted mb-0 mt-1 d-none" id="payAmountScaleNotice" role="status"></p>
           </div>
         </div>
+        <div class="pay-row d-none" id="payFxDisplayCurrencyRow">
+          <label class="pay-row-label mb-0" for="payDisplayCurrencySelect"><span data-i18n="fxDisplayCurrency">Display currency</span></label>
+          <div class="pay-row-value">
+            <select class="form-select form-select-sm pay-input-round" id="payDisplayCurrencySelect" form="payForm">
+              <option value="JPY">JPY</option>
+              <option value="USD">USD</option>
+              <option value="KRW">KRW</option>
+            </select>
+          </div>
+        </div>
+        <div class="pay-row pay-row-static d-none" id="payFxQuoteRow">
+          <div class="pay-row-label"><span data-i18n="fxThbEstimate">ChillPay charge (est.)</span></div>
+          <div class="pay-row-value"><span id="payFxThbEstimateText" class="small text-muted">—</span></div>
+        </div>
+        <p class="small text-muted mb-0 mt-1 d-none px-1" id="payFxRefreshNote" data-i18n="fxRateRefreshNote" role="status"></p>
       </div>
 
       <!-- ChillPay CCD 슬롯은 폼 밖(NOTI /admin/test-pay 와 동일). 스크립트는 #payForm 안 상단에 주입 -->
@@ -231,6 +246,12 @@
       var urlPayOperationalPgCd = '';
       /** checkout-context: SAME | MULTIPLY_100 | DIVIDE_100 — 본사 결제통화로직 */
       var urlPayAmountScaleMode = 'SAME';
+      /** checkout-context: CHECKOUT_CURRENCY | DISPLAY_FX_THB */
+      var urlPayPricingMode = 'CHECKOUT_CURRENCY';
+      var urlPayDisplayFxActive = false;
+      var urlPayDisplayFxRefreshSeconds = 600;
+      var urlPayFxQuote = null;
+      var urlPayFxReloadTimer = null;
       window.__pgPayUnsupportedApplied = false;
       window.__pgPayUnsupportedPgCd = '';
       /** checkout-context urlPayCardCopy — 본사 결제구문설정 */
@@ -272,7 +293,11 @@
           payResultDisclaimer: '팝업으로 연 경우 창을 닫아 주세요. 새 탭이면 아래 버튼으로 결제 페이지로 돌아가거나 탭을 닫아 주세요.',
           payResultReturnAlertOk: '결제가 완료되었습니다. 확인을 누르면 결제 페이지로 돌아갑니다.',
           payResultReturnAlertFail: '결제가 완료되지 않았습니다. 확인을 누르면 결제 페이지로 돌아갑니다.',
-          payResultReturnAlertCancel: '결제가 취소되었습니다. 확인을 누르면 결제 페이지로 돌아갑니다.'
+          payResultReturnAlertCancel: '결제가 취소되었습니다. 확인을 누르면 결제 페이지로 돌아갑니다.',
+          fxDisplayCurrency: '표시 통화',
+          fxThbEstimate: 'ChillPay 청구 예상',
+          fxRateRefreshNote: '태국은행(BOT) 일평균 환율·본사 마진이 적용됩니다. 설정된 주기가 지나면 환율 반영을 위해 이 페이지가 자동으로 새로고침됩니다.',
+          needFxQuote: '환율 견적을 불러오는 중이거나 실패했습니다. 잠시 후 다시 시도하세요.'
         },
         ENG: {
           brandTitle: 'ICOPAY', brandSub: 'Secure checkout', phItem: 'Digital Contents Product',
@@ -310,7 +335,11 @@
           payResultDisclaimer: 'If this opened in a popup, close the window. Otherwise use the button below to return to checkout or close the tab.',
           payResultReturnAlertOk: 'Payment completed. Press OK to return to checkout.',
           payResultReturnAlertFail: 'Payment was not completed. Press OK to return to checkout.',
-          payResultReturnAlertCancel: 'Payment was cancelled. Press OK to return to checkout.'
+          payResultReturnAlertCancel: 'Payment was cancelled. Press OK to return to checkout.',
+          fxDisplayCurrency: 'Display currency',
+          fxThbEstimate: 'ChillPay charge (est.)',
+          fxRateRefreshNote: 'Uses BOT daily average rate and HQ margin. This page auto-refreshes on the configured interval so the rate stays current.',
+          needFxQuote: 'Exchange quote is loading or failed. Please wait and try again.'
         },
         CHN: {
           brandTitle: 'ICOPAY', brandSub: '安全结账', phItem: '商品或服务名称',
@@ -348,7 +377,11 @@
           payResultDisclaimer: 'If this opened in a popup, close the window. Otherwise use the button below to return to checkout or close the tab.',
           payResultReturnAlertOk: '支付已完成。点确定返回结账页。',
           payResultReturnAlertFail: '支付未完成。点确定返回结账页。',
-          payResultReturnAlertCancel: '支付已取消。点确定返回结账页。'
+          payResultReturnAlertCancel: '支付已取消。点确定返回结账页。',
+          fxDisplayCurrency: '显示货币',
+          fxThbEstimate: 'ChillPay 预计扣款',
+          fxRateRefreshNote: '按泰国央行日均价与总部加点。到达设定间隔后页面将自动刷新以更新汇率。',
+          needFxQuote: '汇率报价加载中或失败，请稍后重试。'
         },
         JPN: {
           brandTitle: 'ICOPAY', brandSub: 'セキュア決済', phItem: '商品・サービス名',
@@ -386,7 +419,11 @@
           payResultDisclaimer: 'If this opened in a popup, close the window. Otherwise use the button below to return to checkout or close the tab.',
           payResultReturnAlertOk: 'お支払いが完了しました。OKで決済ページに戻ります。',
           payResultReturnAlertFail: 'お支払いは完了していません。OKで決済ページに戻ります。',
-          payResultReturnAlertCancel: 'お支払いはキャンセルされました。OKで決済ページに戻ります。'
+          payResultReturnAlertCancel: 'お支払いはキャンセルされました。OKで決済ページに戻ります。',
+          fxDisplayCurrency: '表示通貨',
+          fxThbEstimate: 'ChillPay 請求見込み',
+          fxRateRefreshNote: 'タイ中央銀行の日次平均レートと本社マージンを使用します。設定間隔でページが自動更新され、レートが反映されます。',
+          needFxQuote: '為替見積りを読み込み中か、取得に失敗しました。しばらくしてから再度お試しください。'
         },
         THA: {
           brandTitle: 'ICOPAY', brandSub: 'ชำระเงินปลอดภัย', phItem: 'ชื่อสินค้าหรือบริการ',
@@ -424,7 +461,11 @@
           payResultDisclaimer: 'If this opened in a popup, close the window. Otherwise use the button below to return to checkout or close the tab.',
           payResultReturnAlertOk: 'ชำระเงินเรียบร้อยแล้ว กดตกลงเพื่อกลับไปหน้าชำระเงิน',
           payResultReturnAlertFail: 'การชำระเงินยังไม่สำเร็จ กดตกลงเพื่อกลับไปหน้าชำระเงิน',
-          payResultReturnAlertCancel: 'ยกเลิกการชำระเงินแล้ว กดตกลงเพื่อกลับไปหน้าชำระเงิน'
+          payResultReturnAlertCancel: 'ยกเลิกการชำระเงินแล้ว กดตกลงเพื่อกลับไปหน้าชำระเงิน',
+          fxDisplayCurrency: 'สกุลเงินที่แสดง',
+          fxThbEstimate: 'ยอดเรียกเก็บ ChillPay (โดยประมาณ)',
+          fxRateRefreshNote: 'ใช้อัตราเฉลี่ยรายวันของ BOT และมาร์จิ้นสำนักงานใหญ่ หน้าจะรีเฟรชอัตโนมัติตามช่วงเวลาที่ตั้งไว้',
+          needFxQuote: 'กำลังโหลดอัตราแล้วหรือโหลดไม่สำเร็จ โปรดรอแล้วลองอีกครั้ง'
         }
       };
 
@@ -1018,9 +1059,106 @@
         }
         var curHint = document.getElementById('payAmountCurrencyHint');
         if (curHint && ctx.checkoutCurrencyCode) {
-          curHint.textContent = '(' + String(ctx.checkoutCurrencyCode).trim() + ')';
+          if (!urlPayDisplayFxActive) {
+            curHint.textContent = '(' + String(ctx.checkoutCurrencyCode).trim() + ')';
+          }
         }
         applyPayAmountScaleNotice();
+      }
+
+      function updatePayFxCurrencyHint() {
+        var curHint = document.getElementById('payAmountCurrencyHint');
+        var sc = document.getElementById('payDisplayCurrencySelect');
+        if (!curHint || !sc) return;
+        curHint.textContent = '(' + String(sc.value || 'JPY').trim() + ')';
+      }
+
+      function updateFxSettlementEstimateText() {
+        var el = document.getElementById('payFxThbEstimateText');
+        if (!el) return;
+        var spuRaw = urlPayFxQuote && (urlPayFxQuote.settlementPerUnit != null ? urlPayFxQuote.settlementPerUnit : urlPayFxQuote.thbPerUnit);
+        if (!urlPayFxQuote || spuRaw == null) {
+          el.textContent = '—';
+          return;
+        }
+        var amtEl = document.getElementById('amount');
+        var amt = amtEl ? parseFloat(String(amtEl.value).replace(/,/g, '')) : NaN;
+        if (!(amt > 0)) {
+          el.textContent = '—';
+          return;
+        }
+        var tpu = parseFloat(String(spuRaw));
+        var mgn = parseFloat(String(urlPayFxQuote.marginRate != null ? urlPayFxQuote.marginRate : '0'));
+        if (isNaN(tpu) || isNaN(mgn)) {
+          el.textContent = '—';
+          return;
+        }
+        var setCur = urlPayFxQuote.settlementCurrency != null && String(urlPayFxQuote.settlementCurrency).trim() !== ''
+          ? String(urlPayFxQuote.settlementCurrency).trim().toUpperCase() : 'THB';
+        var gross = amt * tpu * (1 + mgn);
+        var intCur = (setCur === 'JPY' || setCur === 'KRW');
+        var shown = intCur ? Math.round(gross) : Math.round(gross * 100) / 100;
+        var extra = urlPayFxQuote.rateDescription ? (' · ' + String(urlPayFxQuote.rateDescription)) : '';
+        el.textContent = (intCur ? String(shown) : shown.toFixed(2)) + ' ' + setCur + extra;
+      }
+
+      function fetchFxQuoteAndScheduleReload(compId) {
+        var sc = document.getElementById('payDisplayCurrencySelect');
+        var cur = sc ? String(sc.value || 'JPY').trim() : 'JPY';
+        var q = 'compId=' + encodeURIComponent(compId) + '&displayCurrency=' + encodeURIComponent(cur);
+        return fetchJsonWithRetry(apiUrl('/api/pay/chillpay/display-fx-quote', q), 4, 700).then(function (res) {
+          if (res.success !== true || !res.data) throw new Error(res.message || t('configErr'));
+          urlPayFxQuote = res.data;
+          updateFxSettlementEstimateText();
+          if (urlPayFxReloadTimer) {
+            try { window.clearTimeout(urlPayFxReloadTimer); } catch (eT) { /* ignore */ }
+          }
+          var sec = parseInt(urlPayDisplayFxRefreshSeconds, 10);
+          if (isNaN(sec) || sec < 1) sec = 600;
+          urlPayFxReloadTimer = window.setTimeout(function () {
+            try { window.location.reload(); } catch (eR) { /* ignore */ }
+          }, sec * 1000);
+        }).catch(function (err) {
+          urlPayFxQuote = null;
+          var fel = document.getElementById('payFxThbEstimateText');
+          if (fel) fel.textContent = (err && err.message) ? String(err.message) : t('configErr');
+        });
+      }
+
+      function initUrlPayDisplayFx(compId) {
+        var rowC = document.getElementById('payFxDisplayCurrencyRow');
+        var rowQ = document.getElementById('payFxQuoteRow');
+        var note = document.getElementById('payFxRefreshNote');
+        if (rowC) rowC.classList.remove('d-none');
+        if (rowQ) rowQ.classList.remove('d-none');
+        if (note) note.classList.remove('d-none');
+        var sc = document.getElementById('payDisplayCurrencySelect');
+        if (sc && checkoutCtx) {
+          var defFx = checkoutCtx.urlPayDisplayFxDefaultDisplayCurrency != null
+            ? String(checkoutCtx.urlPayDisplayFxDefaultDisplayCurrency).trim().toUpperCase() : '';
+          if (defFx === 'USD' || defFx === 'JPY' || defFx === 'KRW') {
+            sc.value = defFx;
+          } else {
+            var cc = String(checkoutCtx.checkoutCurrencyCode || 'JPY').trim().toUpperCase();
+            if (cc === 'USD' || cc === 'KRW') sc.value = cc;
+            else sc.value = 'JPY';
+          }
+        }
+        updatePayFxCurrencyHint();
+        if (sc && !sc._payFxBound) {
+          sc._payFxBound = true;
+          sc.addEventListener('change', function () {
+            updatePayFxCurrencyHint();
+            fetchFxQuoteAndScheduleReload(compId);
+          });
+        }
+        var amtEl = document.getElementById('amount');
+        if (amtEl && !amtEl._payFxAmtBound) {
+          amtEl._payFxAmtBound = true;
+          amtEl.addEventListener('input', function () { updateFxSettlementEstimateText(); });
+        }
+        applyI18n();
+        fetchFxQuoteAndScheduleReload(compId);
       }
 
       function applyPayAmountScaleNotice() {
@@ -1065,6 +1203,10 @@
           urlPayOperationalPgCd = checkoutCtx.urlPayOperationalPgCd != null
             ? String(checkoutCtx.urlPayOperationalPgCd).trim() : '';
           urlPayAmountScaleMode = String(checkoutCtx.urlPayAmountScaleMode || 'SAME').toUpperCase();
+          urlPayPricingMode = String(checkoutCtx.urlPayPricingMode || 'CHECKOUT_CURRENCY').toUpperCase();
+          urlPayDisplayFxActive = checkoutCtx.urlPayDisplayFxActive === true;
+          var _fxSec = parseInt(checkoutCtx.urlPayDisplayFxRefreshSeconds, 10);
+          urlPayDisplayFxRefreshSeconds = (!isNaN(_fxSec) && _fxSec > 0) ? _fxSec : 600;
           window.__payUrlCardCopy = checkoutCtx.urlPayCardCopy && typeof checkoutCtx.urlPayCardCopy === 'object'
             ? checkoutCtx.urlPayCardCopy : null;
           document.getElementById('orderNo').value = buildChillPayOrderNo(compId);
@@ -1076,6 +1218,9 @@
           applyI18n();
           applyCheckoutHeaderBranding();
           applyCheckoutFormDefaults(compId, checkoutCtx);
+          if (urlPayDisplayFxActive && urlPayPricingMode === 'DISPLAY_FX_THB') {
+            initUrlPayDisplayFx(compId);
+          }
           applyCcdPayerRow();
           if (urlPayFlow === 'REDIRECT') {
             applyUnsupportedInlineUi(false, '');
@@ -1245,6 +1390,21 @@
         };
         fd.customerId = (emailVal && emailVal.length) ? emailVal : fd.orderNo;
 
+        if (urlPayDisplayFxActive && urlPayPricingMode === 'DISPLAY_FX_THB') {
+          var scFx = document.getElementById('payDisplayCurrencySelect');
+          fd.urlPayPricingMode = 'DISPLAY_FX_THB';
+          fd.displayCurrency = scFx ? String(scFx.value || 'JPY').trim() : 'JPY';
+          fd.displayAmount = (typeof amtRaw === 'number' && !isNaN(amtRaw)) ? amtRaw : 0;
+          fd.fxQuoteToken = (urlPayFxQuote && urlPayFxQuote.fxQuoteToken) ? String(urlPayFxQuote.fxQuoteToken) : '';
+          var setCode = checkoutCtx && checkoutCtx.urlPaySettlementCurrencyCode
+            ? String(checkoutCtx.urlPaySettlementCurrencyCode).trim().toUpperCase() : '';
+          if (!setCode || ['THB', 'USD', 'JPY', 'KRW'].indexOf(setCode) < 0) {
+            setCode = (urlPayFxQuote && urlPayFxQuote.settlementCurrency)
+              ? String(urlPayFxQuote.settlementCurrency).trim().toUpperCase() : 'THB';
+          }
+          fd.currency = setCode || 'THB';
+        }
+
         if (!urlPayCcdCardholderOnly() && !fn.length && !ln.length) {
           showResult(t('needPayerName'), true);
           btn.disabled = false;
@@ -1254,6 +1414,14 @@
           showResult(t('needAmount'), true);
           btn.disabled = false;
           return;
+        }
+
+        if (urlPayDisplayFxActive && urlPayPricingMode === 'DISPLAY_FX_THB') {
+          if (!urlPayFxQuote || !urlPayFxQuote.fxQuoteToken) {
+            showResult(t('needFxQuote'), true);
+            btn.disabled = false;
+            return;
+          }
         }
 
         if (fd.directCreditToken) {

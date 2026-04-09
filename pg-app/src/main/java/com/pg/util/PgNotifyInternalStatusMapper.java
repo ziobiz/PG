@@ -172,8 +172,18 @@ public final class PgNotifyInternalStatusMapper {
         return null;
     }
 
-    /** 노티매핑: 벤더가 칠페이 계열일 때만 Processing → 승인. */
+    /** 노티매핑: 벤더가 칠페이 계열일 때만 Processing → 승인. JPAY {@code returncode} 00/2 처리. */
     public static String mapForMappedNotify(String paymentStatus, String statusField, String vendorCode) {
+        String vc = vendorCode != null ? vendorCode.trim().toUpperCase(Locale.ROOT) : "";
+        if (PgVendor.JPAY.equals(vc) || vc.startsWith(PgVendor.JPAY + "_")) {
+            String s = statusField != null ? statusField.trim() : "";
+            if ("00".equals(s)) {
+                return ST_PAID;
+            }
+            if ("2".equals(s)) {
+                return ST_FAIL;
+            }
+        }
         boolean chill = PgVendor.isChillPayVendorCode(vendorCode);
         return mapPaymentAndStatus(paymentStatus, statusField, chill);
     }

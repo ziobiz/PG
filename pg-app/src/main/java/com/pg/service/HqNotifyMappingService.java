@@ -339,7 +339,7 @@ public class HqNotifyMappingService {
             root.set("pageCatalogAssignments", buildDefaultPageAssignmentsArray());
             ArrayNode vendors = root.putArray("vendors");
             vendors.add(buildVendor(PgVendor.CHILLPAY, "칠페이", true));
-            vendors.add(buildVendor(PgVendor.JPAY, "제이페이", false));
+            vendors.add(buildJpayVendor());
             return objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(root);
         } catch (Exception e) {
             return "{\"version\":2,\"memo\":\"\",\"columnCatalogs\":[],\"pageCatalogAssignments\":[],\"vendors\":[]}";
@@ -399,6 +399,35 @@ public class HqNotifyMappingService {
             a.add(row);
         }
         return a;
+    }
+
+    private ObjectNode buildJpayVendor() {
+        ObjectNode v = objectMapper.createObjectNode();
+        v.put("vendorCode", PgVendor.JPAY);
+        v.put("vendorName", "제이페이(J-PAY)");
+        ArrayNode channels = v.putArray("channels");
+        ArrayNode cb = objectMapper.createArrayNode();
+        cb.add(mapping("transaction_id", "chillTransactionId", "JPAY transaction_id → 승인번호(그리드)"));
+        cb.add(mapping("orderid", "orderNo", "주문번호 pay_orderid"));
+        cb.add(mapping("amount / true_amount", "chillAmount", "금액"));
+        cb.add(mapping("currency", "currency", "통화"));
+        cb.add(mapping("returncode", "chillPaymentStatus", "00 성공 / 2 실패"));
+        channels.add(buildChannel("CALLBACK", "CALLBACK (서버 노티)", "/calc/payList", "통합 결제내역", cb));
+        ArrayNode rs = objectMapper.createArrayNode();
+        rs.add(mapping("orderID / orderid", "orderNo", "3DS 동기 리턴"));
+        rs.add(mapping("paymentStatus", "chillPaymentStatus", "succeeded 등"));
+        channels.add(buildChannel("RESULT", "RESULT (브라우저 리다이렉트·클라이언트)", "/pay/pay.html", "결제(리다이렉트) 화면", rs));
+        channels.add(buildChannel("RETURN", "RETURN (동기 응답·return_url 등)", "", "", objectMapper.createArrayNode()));
+        ObjectNode dm = objectMapper.createObjectNode();
+        ObjectNode st = dm.putObject("chillPaymentStatus");
+        st.put("00", "JPAY 성공");
+        st.put("2", "JPAY 실패");
+        st.put("succeeded", "3DS 성공");
+        st.put("success", "3DS 성공");
+        st.put("fail", "3DS 실패");
+        st.put("failed", "3DS 실패");
+        v.set("displayMaps", dm);
+        return v;
     }
 
     private ObjectNode buildVendor(String code, String name, boolean chillPaySampleMappings) {
@@ -825,8 +854,16 @@ public class HqNotifyMappingService {
         }
 
         t.setMerchantId(merchant.trim());
-        t.setServiceType("NOTI");
-        t.setOrigin("NOTI");
+        if (existingOpt.isPresent() && ChillPayNotifyOutcomeAdjust.isUrlPayStoredTxn(existingOpt.get())) {
+            PgTrnsctn prevRow = existingOpt.get();
+            String pSt = prevRow.getServiceType();
+            String pOr = prevRow.getOrigin();
+            t.setServiceType(pSt != null && !pSt.isBlank() ? pSt : "NOTI");
+            t.setOrigin(pOr != null && !pOr.isBlank() ? pOr : "NOTI");
+        } else {
+            t.setServiceType("NOTI");
+            t.setOrigin("NOTI");
+        }
         String chStore = notifyChannel == null || notifyChannel.isBlank()
                 ? "CALLBACK" : notifyChannel.trim().toUpperCase(Locale.ROOT);
         t.setNotifyChannelType(NotifyChannelMerge.mergeStored(t.getNotifyChannelType(), chStore));
@@ -1325,7 +1362,8 @@ public class HqNotifyMappingService {
         for (String n : new String[] {
                 "Status", "status",
                 "ResultCode", "resultCode", "RespCode", "respCode",
-                "ResponseCode", "responseCode"
+                "ResponseCode", "responseCode",
+                "returncode", "Returncode"
         }) {
             String v = textDeep(notifyRoot, n);
             if (v != null && !v.isBlank()) {

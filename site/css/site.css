@@ -2584,49 +2584,50 @@ button.pay-follow.pay-follow--off {
   text-decoration: none;
 }
 
-/* 종합거래 환경설정: 데이터 보관 기간 표 — 한 줄 유지 + 컬럼 최소 너비 확보(좁은 화면은 가로 스크롤) */
+/* 종합거래 환경설정: 데이터 보관 기간 표 — 각 데이터 행·헤더를 한 줄로(넘침은 가로 스크롤·설명은 말줄임) */
 .hq-data-retention-wrap {
   max-width: 100%;
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
 }
 .hq-data-retention-table {
-  width: max-content;
-  min-width: 100%;
-  max-width: none;
-  table-layout: auto;
+  width: 100%;
+  min-width: 720px;
+  max-width: 100%;
+  table-layout: fixed;
 }
 .hq-data-retention-table tbody tr.hq-dr-data-row > td {
-  white-space: nowrap !important;
-  word-break: normal !important;
-  overflow-wrap: normal !important;
+  white-space: nowrap;
+  overflow: hidden;
+  vertical-align: middle;
 }
-/* col 최소 너비: 유형·설명·관리 버튼이 잘리지 않도록 */
+.hq-data-retention-table tbody tr.hq-dr-data-row > td.hq-dr-desc-cell {
+  text-overflow: ellipsis;
+}
+/* 열 비율: 후속조치 표(구분·기준·설정·값·반영) 분위기에 맞춤 — 설명열이 가변 */
 .hq-data-retention-table col:nth-child(1) {
-  min-width: 24rem;
+  width: 17%;
 }
 .hq-data-retention-table col:nth-child(2) {
-  min-width: 5.5rem;
-  width: 5.5rem;
+  width: 10%;
 }
 .hq-data-retention-table col:nth-child(3) {
-  min-width: 6.5rem;
-  width: 6.5rem;
+  width: 9%;
 }
 .hq-data-retention-table col:nth-child(4) {
-  min-width: 6.5rem;
-  width: 6.5rem;
+  width: 9%;
 }
 .hq-data-retention-table col:nth-child(5) {
-  min-width: 56rem;
+  width: auto;
 }
 .hq-data-retention-table col:nth-child(6) {
-  min-width: 15rem;
-  width: 15rem;
+  width: 13%;
 }
 .hq-data-retention-table th,
 .hq-data-retention-table td {
   vertical-align: middle;
+  font-size: 0.8125rem;
+  padding: 0.4rem 0.35rem;
 }
 .hq-data-retention-table thead th {
   white-space: nowrap;
@@ -2637,51 +2638,66 @@ button.pay-follow.pay-follow--off {
   white-space: nowrap;
 }
 .hq-data-retention-table td.hq-dr-type-cell {
-  overflow: visible;
+  text-overflow: ellipsis;
 }
 .hq-data-retention-table td.hq-dr-type-cell .hq-dr-label-text {
   display: inline;
-  max-width: none;
-  overflow: visible;
-  text-overflow: clip;
-  white-space: nowrap;
   vertical-align: baseline;
 }
 .hq-data-retention-table td.hq-dr-type-cell .badge {
-  vertical-align: text-bottom;
+  vertical-align: middle;
+}
+/* 빈 상태·로딩 행은 메시지 줄바꿈 허용 */
+.hq-data-retention-table tbody tr:not(.hq-dr-data-row) > td {
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
 }
 .hq-data-retention-table .hq-dr-th-desc,
 .hq-data-retention-table td.hq-dr-desc-cell {
   white-space: nowrap;
-  overflow: visible;
-  text-overflow: clip;
-  line-height: 1.25;
 }
 .hq-data-retention-table .hq-dr-th-narrow {
   font-size: 0.8125rem;
+  white-space: nowrap;
 }
 .hq-data-retention-table .hq-dr-th-act {
   font-size: 0.8125rem;
+  white-space: nowrap;
+}
+.hq-data-retention-table thead .hq-dr-th-type {
+  white-space: nowrap;
+}
+.hq-data-retention-table td:nth-child(6) {
+  overflow: visible;
 }
 .hq-data-retention-table td:nth-child(6) .btn-group {
   flex-wrap: nowrap;
   justify-content: flex-start;
-  gap: 0;
+  gap: 0.15rem;
   white-space: nowrap;
+  max-width: none;
 }
 .hq-data-retention-table td:nth-child(6) .btn-group .btn {
-  padding-left: 0.4rem;
-  padding-right: 0.4rem;
+  padding-left: 0.35rem;
+  padding-right: 0.35rem;
+  font-size: 0.8125rem;
 }
 .hq-data-retention-table td:nth-child(6),
 .hq-data-retention-table td.hq-dr-act-cell {
-  min-width: 15rem;
+  min-width: 0;
 }
 .hq-data-retention-table .hq-dr-purge,
 .hq-data-retention-table .hq-dr-retain {
-  width: 5.25rem;
-  min-width: 5.25rem;
+  font-size: 0.8125rem;
+  min-width: 0;
+  width: 100%;
   max-width: 6.5rem;
+}
+.hq-data-retention-table .hq-dr-auto {
+  width: 1rem;
+  height: 1rem;
+  margin: 0;
 }
 
 /* 수수료설정: 템플릿 목록 행 */
@@ -3130,6 +3146,37 @@ button.pay-follow.pay-follow--off {
   font-weight: 600;
   padding: 0.1em 0.32em;
   line-height: 1.25;
+}
+/* API연동설정 — 연동용도 파스텔 (노티·URL·챗봇·API) */
+.pg-scope-pastel-noti {
+  background-color: #eadcf5 !important;
+  color: #4a2d5c !important;
+  border: 1px solid #d4bee8;
+}
+.pg-scope-pastel-url {
+  background-color: #d6eafc !important;
+  color: #1a4a7a !important;
+  border: 1px solid #b8d4f0;
+}
+.pg-scope-pastel-chatbot {
+  background-color: #d5f2e3 !important;
+  color: #1e5c40 !important;
+  border: 1px solid #aee4c5;
+}
+.pg-scope-pastel-api {
+  background-color: #fdebd5 !important;
+  color: #8b4518 !important;
+  border: 1px solid #f0cfa8;
+}
+.pg-scope-pastel-multi {
+  background-color: #e6e9f0 !important;
+  color: #3d4a5c !important;
+  border: 1px solid #c5cdd9;
+}
+.pg-integ-kind-legend .badge {
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 0.2em 0.45em;
 }
 /* URL 열: 예전 28% 대신 고정 폭 + 말줄임(전체 너비는 나머지 열·여백으로 균형) */
 .hq-pg-api-mng-table thead th[data-key="endpointsSummary"],

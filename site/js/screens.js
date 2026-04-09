@@ -417,7 +417,7 @@
         { type: 'searchBtn', label: '검색' }
       ]],
       noticeList: [
-        '연동 용도(노티·URL결제·웹챗봇·API)와 용도별 엔드포인트를 구분해 저장합니다. 노티=미들웨어 수신 매칭, URL=URL결제 플로우, 챗봇/API=피지사 API 직연동(챗봇·API 동일 PG 연동 URL). API Key·MD5는 목록 미노출. [삭제]는 등록일 오른쪽, 신규는 [PG사 연동 추가]입니다.',
+        '연동 용도(노티·URL·챗봇·API)와 용도별 엔드포인트를 구분해 저장합니다. URL 용도 행은 「URL금액」에서 일반(일반형) / DP(DISPLAY)를 지정할 수 있으며, 본사 URL결제설정(FX JSON)의 해당 PG 금액 모드와 동일합니다. 노티=미들웨어 수신 매칭, URL=공개 URL 결제 플로우, 챗봇/API=PG사 API 직연동(동일 연동 URL). 목록 「연동용도」는 파스텔 색으로 구분됩니다. API Key·MD5는 목록 미노출. [삭제]는 등록일 오른쪽, 신규는 [PG사 연동 추가]입니다.',
         'ChillPay는 PG코드 CHILLPAY, API·URL 엔드포인트는 ChillPayService가 병합 반영합니다. 운영 DB는 db/V35_pg_agency_integration_scope.sql 적용 후 배포하세요.'
       ],
       summary: ['건수'],
@@ -427,7 +427,7 @@
         { id: 'hqPgApiAddBtn', label: 'PG사 연동 추가', cls: 'btn-success' }
       ],
       columnGuideFixedKeys: ['rowNo', '_pgRowAct'],
-      columns: [{ key: '_chk', type: 'checkbox' }, { key: 'rowNo', label: '번호' }, { key: 'pgNm', label: '결제대행사', thClass: 'text-nowrap' }, { key: 'pgCd', label: 'PG코드', thClass: 'text-nowrap' }, { key: 'integrationScopeLabel', label: '연동용도', thClass: 'pg-api-mng-scope-th text-nowrap' }, { key: 'endpointsSummary', label: '엔드포인트', thClass: 'pg-api-mng-endpoints-th' }, { key: 'merchantMid', label: 'MID', thClass: 'text-nowrap' }, { key: 'hasApiKey', label: 'API', thClass: 'text-nowrap' }, { key: 'hasMd5Key', label: 'MD5', thClass: 'text-nowrap' }, { key: 'routeNo', label: 'Rt', thClass: 'text-nowrap', title: 'Route 번호' }, { key: 'sandboxYn', label: '환경', thClass: 'text-nowrap', title: 'Sandbox / Production' }, { key: 'operationalYn', label: '운영', thClass: 'text-nowrap' }, { key: 'useYn', label: '사용', thClass: 'text-nowrap' }, { key: 'regDt', label: '등록일', thClass: 'text-nowrap' }, { key: '_pgRowAct', type: 'pgApiMngRowActions', label: '관리', thClass: 'text-nowrap' }]
+      columns: [{ key: '_chk', type: 'checkbox' }, { key: 'rowNo', label: '번호' }, { key: 'pgNm', label: '결제대행사', thClass: 'text-nowrap' }, { key: 'pgCd', label: 'PG코드', thClass: 'text-nowrap' }, { key: 'integrationScopeLabel', label: '연동용도', thClass: 'pg-api-mng-scope-th text-nowrap' }, { key: 'urlPayAmountModeLabel', label: 'URL금액', thClass: 'text-nowrap', title: 'URL결제: 일반형 / DP(DISPLAY)' }, { key: 'endpointsSummary', label: '엔드포인트', thClass: 'pg-api-mng-endpoints-th' }, { key: 'merchantMid', label: 'MID', thClass: 'text-nowrap' }, { key: 'hasApiKey', label: 'API', thClass: 'text-nowrap' }, { key: 'hasMd5Key', label: 'MD5', thClass: 'text-nowrap' }, { key: 'routeNo', label: 'Rt', thClass: 'text-nowrap', title: 'Route 번호' }, { key: 'sandboxYn', label: '환경', thClass: 'text-nowrap', title: 'Sandbox / Production' }, { key: 'operationalYn', label: '운영', thClass: 'text-nowrap' }, { key: 'useYn', label: '사용', thClass: 'text-nowrap' }, { key: 'regDt', label: '등록일', thClass: 'text-nowrap' }, { key: '_pgRowAct', type: 'pgApiMngRowActions', label: '관리', thClass: 'text-nowrap' }]
     },
     '/hq/defaultCommission': {
       isForm: true,
@@ -703,7 +703,7 @@
           notice: '쌓이는 데이터 유형별로 DB·로그·버퍼 보관 목표 일수를 지정합니다. 「자동삭제」를 켠 항목만 매일 새벽 스케줄로 초과분 삭제를 시도합니다(스케줄 대상만 체크 가능). 「정책」 유형은 값만 저장됩니다. 각 행의 [저장]은 표 전체 입력을 한 번에 저장합니다. [수정]은 서버 값으로 다시 불러옵니다. [초기화]는 해당 유형의 저장된 덮어쓰기만 제거합니다.',
           rows: [
             [{ type: 'customHtml', col: 12,
-              html: '<div class="border rounded hq-data-retention-wrap"><table class="table table-sm table-bordered align-middle mb-0 hq-data-retention-table">' +
+              html: '<div class="table-responsive border rounded hq-data-retention-wrap"><table class="table table-sm table-bordered align-middle mb-0 hq-data-retention-table">' +
                 '<colgroup><col /><col /><col /><col /><col /><col /></colgroup>' +
                 '<thead class="table-light"><tr><th class="hq-dr-th-type">데이터 유형</th><th class="text-nowrap text-center hq-dr-th-narrow">자동삭제</th><th class="text-nowrap hq-dr-th-narrow">삭제(일)</th><th class="text-nowrap hq-dr-th-narrow">보관(일)</th><th class="hq-dr-th-desc">설명·연동</th><th class="text-nowrap text-center hq-dr-th-act">관리</th></tr></thead>' +
                 '<tbody id="hqDataRetentionTbody"><tr><td colspan="6" class="text-center text-muted py-3">불러오는 중…</td></tr></tbody></table></div>' }]
@@ -971,6 +971,44 @@
       ],
       buttons: [{ id: 'hqApiConfigSaveBtn', label: '저장', cls: 'btn-primary' }]
     },
+    '/hq/urlPayDeploy': {
+      isForm: true,
+      formSections: [
+        {
+          title: 'URL결제설정',
+          notice: 'API연동설정에서 <strong>연동용도 URL결제(Y)</strong>인 결제대행사만 아래 표에 나옵니다. DISPLAY 모드에서 <strong>표시 통화</strong>(JPY·USD·KRW)와 <strong>실결제 통화</strong>(THB·USD·JPY·KRW)를 PG별로 정하고, <strong>표시통화별 마진</strong>은 아래 JPY/USD/KRW에 둡니다. 환율 <strong>자동</strong>은 BOT 일평균을 THB 경유로 환산합니다(원화는 BOT에 KRW 행이 있어야 함). <strong>수동</strong>은 「실결제 금액 / 1표시단위」를 직접 입력합니다.',
+          rows: [
+            [{ label: '표시→실결제(FX) 기능', type: 'select', name: '_urlPayFxUiEnabled', options: [{ v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }], col: 2 },
+             { label: '견적 갱신(초)', type: 'text', name: '_urlPayFxUiRefresh', col: 2, placeholder: '600' },
+             { label: '견적 TTL(초)', type: 'text', name: '_urlPayFxUiTtl', col: 2, placeholder: '600' }],
+            [{ label: '마진 JPY(표시)', type: 'text', name: '_urlPayFxUiMarginJpy', col: 2, placeholder: '0' },
+             { label: '마진 USD(표시)', type: 'text', name: '_urlPayFxUiMarginUsd', col: 2, placeholder: '0' },
+             { label: '마진 KRW(표시)', type: 'text', name: '_urlPayFxUiMarginKrw', col: 2, placeholder: '0' }],
+            [{
+              type: 'customHtml',
+              col: 12,
+              html: '<p class="small text-muted mb-2">연동용도 URL결제 PG 목록을 불러옵니다. 저장 시 <code>tb_hq_api_config.url_pay_display_fx_json</code>에 반영됩니다.</p>' +
+                '<div class="table-responsive">' +
+                '<table class="table table-sm table-bordered align-middle mb-2" id="grid_urlPayDeployPg">' +
+                '<thead class="table-light"><tr>' +
+                '<th style="min-width:10rem">결제대행사</th>' +
+                '<th style="min-width:7rem">금액 모드</th>' +
+                '<th style="min-width:5rem">표시 통화</th>' +
+                '<th style="min-width:5rem">실결제</th>' +
+                '<th style="min-width:6rem">FX</th>' +
+                '<th style="min-width:8rem">수동 실결제/1표시</th>' +
+                '<th style="min-width:6rem">마진율</th>' +
+                '</tr></thead><tbody id="hqUrlPayDeployPgTbody"><tr><td colspan="7" class="text-muted text-center py-3 small">목록을 불러오는 중…</td></tr></tbody></table></div>' +
+                '<input type="hidden" name="urlPayDisplayFxJson" id="hqUrlPayDeployFxHidden" value="">'
+            }]
+          ]
+        }
+      ],
+      buttons: [
+        { id: 'hqUrlPayDeployOpenApiLink', label: 'API연동설정', cls: 'btn-outline-secondary' },
+        { id: 'hqUrlPayDeploySaveBtn', label: '저장', cls: 'btn-primary' }
+      ]
+    },
     '/hq/paymentOrchestration': {
       isForm: true,
       formSections: [
@@ -1043,6 +1081,17 @@
                 '<thead class="table-light"><tr><th class="text-center" style="width:3rem">#</th><th style="min-width:11rem">결제대행사</th><th style="min-width:6rem">통화</th><th style="min-width:7rem">배율</th><th class="text-center" style="width:4.5rem">수정</th><th class="text-center" style="width:4.5rem">삭제</th></tr></thead>' +
                 '<tbody id="hqPayCurrencyScaleTbody"></tbody></table></div>' +
                 '<p class="text-muted small mb-0">이전 방식 호환: <button type="button" class="btn btn-link btn-sm p-0 align-baseline" id="hqPayCurrencyScaleAddRow">빈 행을 바로 목록에 넣기</button></p></div>'
+            }]
+          ]
+        },
+        {
+          title: 'URL 표시통화 → 실결제 THB',
+          notice: 'JSON 편집은 <strong>배포설정 &gt; URL결제설정</strong>으로 옮겼습니다. 아래 숨김 필드는 결제로직설정 저장 시 기존 값이 유지되도록 동기화됩니다.',
+          rows: [
+            [{
+              type: 'customHtml',
+              col: 12,
+              html: '<input type="hidden" name="urlPayDisplayFxJson" id="hqPaymentOrchUrlPayDisplayFxHidden" value="">'
             }]
           ]
         },

@@ -74,7 +74,7 @@ public class OpenPgNotifyController {
             if (resp != null && resp.trim().startsWith("{")) {
                 mt = MediaType.APPLICATION_JSON;
             }
-            return ResponseEntity.ok().contentType(mt).body(resp);
+            return ResponseEntity.status(out.responseStatus()).contentType(mt).body(resp);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().contentType(MediaType.TEXT_PLAIN).body(e.getMessage());
         } catch (SecurityException e) {
@@ -128,7 +128,7 @@ public class OpenPgNotifyController {
             if (resp != null && resp.trim().startsWith("{")) {
                 mt = MediaType.APPLICATION_JSON;
             }
-            return ResponseEntity.ok().contentType(mt).body(resp);
+            return ResponseEntity.status(out.responseStatus()).contentType(mt).body(resp);
         } catch (SecurityException e) {
             return ResponseEntity.status(403).contentType(MediaType.TEXT_PLAIN).body("FORBIDDEN");
         }

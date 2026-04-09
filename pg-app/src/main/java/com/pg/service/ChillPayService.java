@@ -109,6 +109,7 @@ public class ChillPayService {
     private final OrgServiceUseService orgServiceUseService;
     private final PgTrnsctnRepository pgTrnsctnRepository;
     private final PayListService payListService;
+    private final UrlPayDisplayFxService urlPayDisplayFxService;
     private final RestTemplate restTemplate = new RestTemplate();
 
     public ChillPayService(ChillPayProperties props, HqApiConfigRepository hqApiConfigRepository,
@@ -117,7 +118,8 @@ public class ChillPayService {
                           OrgUnitRepository orgUnitRepository,
                           OrgServiceUseService orgServiceUseService,
                           PgTrnsctnRepository pgTrnsctnRepository,
-                          PayListService payListService) {
+                          PayListService payListService,
+                          UrlPayDisplayFxService urlPayDisplayFxService) {
         this.props = props;
         this.hqApiConfigRepository = hqApiConfigRepository;
         this.merchantPgBindingRepository = merchantPgBindingRepository;
@@ -126,6 +128,7 @@ public class ChillPayService {
         this.orgServiceUseService = orgServiceUseService;
         this.pgTrnsctnRepository = pgTrnsctnRepository;
         this.payListService = payListService;
+        this.urlPayDisplayFxService = urlPayDisplayFxService;
     }
 
     /** 가맹점 결제 조합 시 MID·샌드박스 보조 (Route 확정 전에 조회 가능) */
@@ -347,6 +350,24 @@ public class ChillPayService {
      * 공개 URL 결제: 웹·운영(Y) PG 바인딩 1건.
      * {@code tb_pg_agency} 에서 연동용도 URL결제(Y)인 {@code pg_cd} 를 먼저 고르고, 그다음 ChillPay 계열 우선.
      */
+    /**
+     * URL 결제 운영 WEB 바인딩의 금액 모드.
+     * {@link UrlPayDisplayFxService#MODE_DISPLAY_FX_THB} 이면 표시통화(JPY/USD)→실결제 THB.
+     */
+    public String resolveUrlPayPricingMode(Long merchantOrgUnitId) {
+        if (merchantOrgUnitId == null) {
+            return "CHECKOUT_CURRENCY";
+        }
+        Optional<MerchantPgBinding> web = findOperationalWebBindingForUrlPay(merchantOrgUnitId);
+        if (web.isEmpty()) {
+            return "CHECKOUT_CURRENCY";
+        }
+        MerchantPgBinding b = web.get();
+        String pgCd = b.getPgCd() != null ? b.getPgCd().trim() : "";
+        String legacy = b.getUrlPayPricingMode() != null ? b.getUrlPayPricingMode().trim() : "";
+        return urlPayDisplayFxService.resolveUrlPayPricingMode(pgCd, legacy);
+    }
+
     public Optional<MerchantPgBinding> findOperationalWebBindingForUrlPay(Long orgUnitId) {
         if (orgUnitId == null) {
             return Optional.empty();
@@ -938,6 +959,7 @@ public class ChillPayService {
         String widgetKind = resolveUrlPayInlineWidgetKind(opPgCd);
         m.put("urlPayOperationalPgCd", opPgCd);
         m.put("urlPayInlineWidgetKind", widgetKind);
+        m.put("urlPayPricingMode", resolveUrlPayPricingMode(merchantOrgUnitId));
         m.put("redirectPaymentPageUrl", cfg.getRedirectPaymentPageUrl());
         m.put("paymentAppsrvV2Url", cfg.getAppsrvPaymentV2Url());
         m.put("ccdScriptUrl", cfg.getCcdScriptUrl());

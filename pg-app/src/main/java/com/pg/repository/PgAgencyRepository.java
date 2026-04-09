@@ -8,6 +8,7 @@ import java.util.Optional;
 
 public interface PgAgencyRepository extends JpaRepository<PgAgency, Long> {
     Optional<PgAgency> findByPgCd(String pgCd);
+    List<PgAgency> findByMerchantMidOrderByIdAsc(String merchantMid);
     List<PgAgency> findByUseYnOrderByPgCdAsc(String useYn);
     List<PgAgency> findAllByOrderByPgCdAsc();
 }

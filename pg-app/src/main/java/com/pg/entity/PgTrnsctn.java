@@ -102,6 +102,10 @@ public class PgTrnsctn {
     @Column(name = "chill_transaction_id", length = 64)
     private String chillTransactionId;
 
+    /** PG중계→가맹점 콜백 마지막 성공 전송 시 내부 {@link #status} 스냅샷 (V83). */
+    @Column(name = "mw_outbound_last_sent_status", length = 8)
+    private String mwOutboundLastSentStatus;
+
     @PrePersist
     protected void onCreate() {
         if (createdAt == null) createdAt = LocalDateTime.now();
@@ -156,4 +160,6 @@ public class PgTrnsctn {
     public void setSettledYn(String settledYn) { this.settledYn = settledYn; }
     public String getChillTransactionId() { return chillTransactionId; }
     public void setChillTransactionId(String chillTransactionId) { this.chillTransactionId = chillTransactionId; }
+    public String getMwOutboundLastSentStatus() { return mwOutboundLastSentStatus; }
+    public void setMwOutboundLastSentStatus(String mwOutboundLastSentStatus) { this.mwOutboundLastSentStatus = mwOutboundLastSentStatus; }
 }

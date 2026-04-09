@@ -26,7 +26,9 @@ import com.pg.service.OrgUnitChangeAuditService;
 import com.pg.service.ServerUsageService;
 import com.pg.util.CommissionTierJsonHelper;
 import com.pg.util.PercentDecimalHelper;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -177,8 +179,8 @@ public class ApiHqController {
         }
         return switch (kind) {
             case "NOTI" -> "노티";
-            case "URL_PAY" -> "URL결제";
-            case "WEB_CHATBOT" -> "웹챗봇";
+            case "URL_PAY" -> "URL";
+            case "WEB_CHATBOT" -> "챗봇";
             case "API" -> "API";
             case "MULTI" -> "복합(레거시)";
             default -> kind;
@@ -247,6 +249,82 @@ public class ApiHqController {
         sb.append(tag).append(':').append(u);
     }
 
+    /**
+     * 본사 {@code url_pay_display_fx_json.pgSettings} 에서 PG코드별 {@code amountMode}(STANDARD|DISPLAY) 맵.
+     * 키는 대문자 PG코드.
+     */
+    private Map<String, String> urlPayAmountModeMapFromHqFxJson() {
+        Map<String, String> map = new HashMap<>();
+        try {
+            String raw = hqApiConfigRepository.findAll().stream()
+                    .findFirst()
+                    .map(HqApiConfig::getUrlPayDisplayFxJson)
+                    .orElse(null);
+            if (raw == null || raw.isBlank()) {
+                return map;
+            }
+            JsonNode root = HQ_OBJECT_MAPPER.readTree(raw);
+            JsonNode pg = root.path("pgSettings");
+            if (!pg.isObject()) {
+                return map;
+            }
+            Iterator<Map.Entry<String, JsonNode>> it = pg.fields();
+            while (it.hasNext()) {
+                Map.Entry<String, JsonNode> e = it.next();
+                String cd = e.getKey() != null ? e.getKey().trim().toUpperCase(Locale.ROOT) : "";
+                if (cd.isEmpty()) {
+                    continue;
+                }
+                JsonNode row = e.getValue();
+                if (row != null && row.isObject()) {
+                    String am = row.path("amountMode").asText("STANDARD").trim().toUpperCase(Locale.ROOT);
+                    map.put(cd, "DISPLAY".equals(am) ? "DISPLAY" : "STANDARD");
+                }
+            }
+        } catch (Exception ignored) {
+            /* 빈 맵 */
+        }
+        return map;
+    }
+
+    private void mergeUrlPayAmountModeIntoDisplayFxJson(String pgCdRaw, String modeRaw) {
+        if (pgCdRaw == null || pgCdRaw.isBlank()) {
+            return;
+        }
+        String pgU = pgCdRaw.trim().toUpperCase(Locale.ROOT);
+        String am = "DISPLAY".equalsIgnoreCase(modeRaw != null ? modeRaw.trim() : "") ? "DISPLAY" : "STANDARD";
+        HqApiConfig c = hqApiConfigRepository.findAll().stream().findFirst().orElse(null);
+        if (c == null) {
+            return;
+        }
+        ObjectNode root;
+        try {
+            String raw = c.getUrlPayDisplayFxJson();
+            if (raw == null || raw.isBlank()) {
+                root = HQ_OBJECT_MAPPER.createObjectNode();
+            } else {
+                JsonNode n = HQ_OBJECT_MAPPER.readTree(raw);
+                root = n.isObject() ? (ObjectNode) n : HQ_OBJECT_MAPPER.createObjectNode();
+            }
+        } catch (Exception e) {
+            root = HQ_OBJECT_MAPPER.createObjectNode();
+        }
+        if (!root.has("pgSettings") || !root.get("pgSettings").isObject()) {
+            root.set("pgSettings", HQ_OBJECT_MAPPER.createObjectNode());
+        }
+        ObjectNode pgSettings = (ObjectNode) root.get("pgSettings");
+        ObjectNode pgRow;
+        if (pgSettings.has(pgU) && pgSettings.get(pgU).isObject()) {
+            pgRow = (ObjectNode) pgSettings.get(pgU);
+        } else {
+            pgRow = HQ_OBJECT_MAPPER.createObjectNode();
+        }
+        pgRow.put("amountMode", am);
+        pgSettings.set(pgU, pgRow);
+        c.setUrlPayDisplayFxJson(root.toString());
+        hqApiConfigRepository.save(c);
+    }
+
     /** 1. PG사 API 연동 - 결제대행사 목록 (가맹점 배포용 결제 모듈) */
     @GetMapping("/pgApiMng")
     public ResponseEntity<ApiResponse<PageResult<Map<String, Object>>>> pgApiMng(
@@ -262,6 +340,7 @@ public class ApiHqController {
                 .toList();
         int start = (page - 1) * size;
         int end = Math.min(start + size, filtered.size());
+        Map<String, String> urlPayAmByPg = urlPayAmountModeMapFromHqFxJson();
         List<Map<String, Object>> list = filtered.subList(start, Math.max(start, end)).stream()
                 .map(p -> {
                     Map<String, Object> m = new HashMap<>();
@@ -281,6 +360,15 @@ public class ApiHqController {
                     m.put("integKindLabel", integKindLabel(integKind));
                     m.put("primaryEndpoint", primaryEndpointForRow(p, integKind));
                     m.put("integrationScopeLabel", integrationScopeLabel(p));
+                    if (ynPg(p.getIntegUrlPayYn())) {
+                        String pgKey = p.getPgCd() != null ? p.getPgCd().trim().toUpperCase(Locale.ROOT) : "";
+                        String upAm = urlPayAmByPg.getOrDefault(pgKey, "STANDARD");
+                        m.put("urlPayAmountMode", upAm);
+                        m.put("urlPayAmountModeLabel", "DISPLAY".equals(upAm) ? "DP" : "일반");
+                    } else {
+                        m.put("urlPayAmountMode", "");
+                        m.put("urlPayAmountModeLabel", "—");
+                    }
                     m.put("endpointsSummary", endpointsSummary(p));
                     m.put("useYn", p.getUseYn());
                     m.put("operationalYn", isPgOperationalYes(p) ? "Y" : "N");
@@ -313,6 +401,7 @@ public class ApiHqController {
     @GetMapping("/pgAgencyList")
     public ResponseEntity<ApiResponse<List<Map<String, Object>>>> pgAgencyList() {
         ensureSingleUseAgencyOperational();
+        Map<String, String> urlPayAmByPg = urlPayAmountModeMapFromHqFxJson();
         List<Map<String, Object>> list = pgAgencyRepository.findByUseYnOrderByPgCdAsc("Y").stream()
                 .map(p -> {
                     Map<String, Object> m = new LinkedHashMap<>();
@@ -333,6 +422,15 @@ public class ApiHqController {
                     m.put("integKind", integKind);
                     m.put("integKindLabel", integKindLabel(integKind));
                     m.put("integrationScopeLabel", integrationScopeLabel(p));
+                    if (ynPg(p.getIntegUrlPayYn())) {
+                        String pgKey = p.getPgCd() != null ? p.getPgCd().trim().toUpperCase(Locale.ROOT) : "";
+                        String upAm = urlPayAmByPg.getOrDefault(pgKey, "STANDARD");
+                        m.put("urlPayAmountMode", upAm);
+                        m.put("urlPayAmountModeLabel", "DISPLAY".equals(upAm) ? "DP" : "일반");
+                    } else {
+                        m.put("urlPayAmountMode", "");
+                        m.put("urlPayAmountModeLabel", "");
+                    }
                     m.put("hqOperationalYn", isPgOperationalYes(p) ? "Y" : "N");
                     boolean hasApi = p.getApiKey() != null && !p.getApiKey().isBlank();
                     boolean hasMd5 = p.getMd5SecretKey() != null && !p.getMd5SecretKey().isBlank();
@@ -383,6 +481,7 @@ public class ApiHqController {
     }
 
     @PostMapping("/pgApiMng/save")
+    @Transactional
     public ResponseEntity<ApiResponse<Map<String, Object>>> pgApiMngSave(@RequestBody Map<String, Object> body) {
         try {
             String pgNm = hqStr(body, "pgNm");
@@ -434,6 +533,9 @@ public class ApiHqController {
                 }
             }
             pgAgencyRepository.save(entity);
+            if (ynPg(entity.getIntegUrlPayYn()) && body.containsKey("urlPayAmountMode")) {
+                mergeUrlPayAmountModeIntoDisplayFxJson(entity.getPgCd(), hqStr(body, "urlPayAmountMode"));
+            }
             ensureSingleUseAgencyOperational();
             Map<String, Object> data = new HashMap<>();
             data.put("message", "저장되었습니다.");
@@ -1261,6 +1363,7 @@ public class ApiHqController {
         data.put("paymentProviderRegistryJson", "{\n  \"version\": 1,\n  \"vendors\": [\n    {\n      \"vendorCode\": \"CHILLPAY\",\n      \"vendorName\": \"칠리페이\",\n      \"integrationTypes\": [\"API_BROKER\", \"URL_PAY\"],\n      \"flowTypes\": [\"INLINE\", \"REDIRECT\"],\n      \"activeYn\": \"Y\"\n    }\n  ]\n}");
         data.put("payCurrencyScaleRulesJson", "{\"rules\":[]}");
         data.put("urlPayCardCopyConfigJson", "{\"entries\":[]}");
+        data.put("urlPayDisplayFxJson", "{\"enabled\":false,\"refreshSeconds\":600,\"quoteTtlSeconds\":600,\"marginByCurrency\":{\"JPY\":0,\"USD\":0,\"KRW\":0},\"pgSettings\":{}}");
         hqApiConfigRepository.findAll().stream().findFirst().ifPresent(c -> {
             if (c.getBaseUrl() != null) data.put("baseUrl", c.getBaseUrl());
             if (c.getAuthType() != null) data.put("authType", c.getAuthType());
@@ -1293,6 +1396,9 @@ public class ApiHqController {
             }
             if (c.getUrlPayCardCopyConfigJson() != null && !c.getUrlPayCardCopyConfigJson().isBlank()) {
                 data.put("urlPayCardCopyConfigJson", c.getUrlPayCardCopyConfigJson());
+            }
+            if (c.getUrlPayDisplayFxJson() != null && !c.getUrlPayDisplayFxJson().isBlank()) {
+                data.put("urlPayDisplayFxJson", c.getUrlPayDisplayFxJson());
             }
             if (c.getPublicAdminSiteUrl() != null) {
                 data.put("publicAdminSiteUrl", hqHttpsUrlForDisplay(c.getPublicAdminSiteUrl()));
@@ -1354,6 +1460,11 @@ public class ApiHqController {
         if (cardCopy != null) {
             String cc = cardCopy.toString().trim();
             c.setUrlPayCardCopyConfigJson(cc.isEmpty() ? null : cc);
+        }
+        Object displayFx = body.get("urlPayDisplayFxJson");
+        if (displayFx != null) {
+            String df = displayFx.toString().trim();
+            c.setUrlPayDisplayFxJson(df.isEmpty() ? null : df);
         }
         if (body.get("publicAdminSiteUrl") != null) {
             c.setPublicAdminSiteUrl(hqHttpsUrlForSave(body.get("publicAdminSiteUrl")));

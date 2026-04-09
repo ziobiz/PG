@@ -24,6 +24,7 @@ public final class PageMenuCatalog {
         add(list, "/hq/orgViewColumnAllowance", "M0108", "조직항목설정", "본사설정");
         add(list, "/hq/pgApiMng", "M0101", "API연동설정", "배포설정");
         add(list, "/hq/apiConfig", "M0103", "API배포설정", "배포설정");
+        add(list, "/hq/urlPayDeploy", "M0122", "URL결제설정", "배포설정");
         add(list, "/hq/paymentOrchestration", "M0118", "결제로직설정", "본사설정");
         add(list, "/hq/notifyEnv", "M0105", "노티구성설정", "본사설정");
         add(list, "/hq/notifyMapping", "M0107", "노티매핑설정", "본사설정");

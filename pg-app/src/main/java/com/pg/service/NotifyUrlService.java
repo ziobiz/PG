@@ -36,12 +36,15 @@ public class NotifyUrlService {
             if (urlType != null && !urlType.trim().isEmpty()) {
                 String ut = urlType.trim().toUpperCase();
                 if ("PAY".equals(ut)) {
-                    if (!"BACKGROUND".equals(n.getUrlType()) && !"RESULT".equals(n.getUrlType())) continue;
+                    if (!"BACKGROUND".equals(n.getUrlType()) && !"RESULT".equals(n.getUrlType())
+                            && !"MIDDLEWARE".equals(n.getUrlType())) continue;
                 } else if (!ut.equals(n.getUrlType())) continue;
             }
             Map<String, Object> m = new HashMap<>();
             m.put("compId", compId);
-            m.put("urlType", "BACKGROUND".equals(n.getUrlType()) ? "URL Background" : "RESULT".equals(n.getUrlType()) ? "URL Result" : n.getUrlType());
+            m.put("urlType", "BACKGROUND".equals(n.getUrlType()) ? "URL Background"
+                    : "RESULT".equals(n.getUrlType()) ? "URL Result"
+                    : "MIDDLEWARE".equals(n.getUrlType()) ? "PG Middleware callback" : n.getUrlType());
             m.put("notiUrl", n.getNotiUrl());
             m.put("useYn", n.getUseYn());
             filtered.add(m);

@@ -65,15 +65,18 @@ public class ChillPayNotifyToTrnsctnService implements PgNotifyInboundTxnHandler
     private final MerchantPgBindingRepository merchantPgBindingRepository;
     private final OrgUnitRepository orgUnitRepository;
     private final HqNotifyMappingService hqNotifyMappingService;
+    private final MerchantOutboundNotifyService merchantOutboundNotifyService;
 
     public ChillPayNotifyToTrnsctnService(PgTrnsctnRepository pgTrnsctnRepository,
                                          MerchantPgBindingRepository merchantPgBindingRepository,
                                          OrgUnitRepository orgUnitRepository,
-                                         HqNotifyMappingService hqNotifyMappingService) {
+                                         HqNotifyMappingService hqNotifyMappingService,
+                                         MerchantOutboundNotifyService merchantOutboundNotifyService) {
         this.pgTrnsctnRepository = pgTrnsctnRepository;
         this.merchantPgBindingRepository = merchantPgBindingRepository;
         this.orgUnitRepository = orgUnitRepository;
         this.hqNotifyMappingService = hqNotifyMappingService;
+        this.merchantOutboundNotifyService = merchantOutboundNotifyService;
     }
 
     @Override
@@ -148,6 +151,7 @@ public class ChillPayNotifyToTrnsctnService implements PgNotifyInboundTxnHandler
                 PgTrnsctn t = mapped.get();
                 log.info("노티매핑 적용 거래 적재 trnId={} merchantId={} pgCd={} orderNo={} chillTxn={} status={}",
                         t.getTrnId(), t.getMerchantId(), pgCd, t.getOrderNo(), t.getChillTransactionId(), t.getStatus());
+                merchantOutboundNotifyService.scheduleAfterTxnCommit(t, in, notifyCh);
                 return true;
             }
         }
@@ -310,6 +314,7 @@ public class ChillPayNotifyToTrnsctnService implements PgNotifyInboundTxnHandler
         pgTrnsctnRepository.save(t);
         log.info("ChillPay 노티 거래 적재 trnId={} merchantId={} orderNo={} chillTxn={} channel={} status={}",
                 t.getTrnId(), t.getMerchantId(), t.getOrderNo(), t.getChillTransactionId(), notifyCh, t.getStatus());
+        merchantOutboundNotifyService.scheduleAfterTxnCommit(t, in, notifyCh);
         return true;
     }
 
@@ -342,7 +347,7 @@ public class ChillPayNotifyToTrnsctnService implements PgNotifyInboundTxnHandler
         }
         Map<String, String> lm = new LinkedHashMap<>();
         parseFormLowerKeys(formBody, lm);
-        String orderNo = getLoose(lm, "orderno", "order_no");
+        String orderNo = getLoose(lm, "orderno", "order_no", "orderid");
         String transNo = coalesceNonBlank(
                 getLoose(lm, "transno", "trans_no"),
                 getLoose(lm, "transactionid", "transaction_id"));
@@ -364,9 +369,16 @@ public class ChillPayNotifyToTrnsctnService implements PgNotifyInboundTxnHandler
             n.put("PaymentStatus", effPay.trim());
         }
         String st = coalesceNonBlank(getLoose(lm, "status"),
-                coalesceNonBlank(getLoose(lm, "resultcode", "result_code"), getLoose(lm, "responsecode", "response_code")));
+                coalesceNonBlank(getLoose(lm, "resultcode", "result_code"),
+                        coalesceNonBlank(getLoose(lm, "returncode", "return_code"),
+                                getLoose(lm, "responsecode", "response_code"))));
         if (st != null && !st.isBlank()) {
             n.put("Status", st.trim());
+        }
+        String retOnly = getLoose(lm, "returncode", "return_code");
+        if (retOnly != null && !retOnly.isBlank() && (st == null || st.isBlank())) {
+            n.put("Status", retOnly.trim());
+            n.put("returncode", retOnly.trim());
         }
         if (in.getMid() != null && !in.getMid().isBlank()) {
             n.put("MerchantCode", in.getMid().trim());
@@ -374,11 +386,15 @@ public class ChillPayNotifyToTrnsctnService implements PgNotifyInboundTxnHandler
         if (in.getRootNo() != null && !in.getRootNo().isBlank()) {
             n.put("RouteNo", in.getRootNo().trim());
         }
-        String amt = getLoose(lm, "amount");
+        String amt = coalesceNonBlank(getLoose(lm, "amount"), getLoose(lm, "true_amount", "trueamount"));
         if (amt != null && !amt.isBlank()) {
             n.put("Amount", amt.trim());
         } else {
             n.put("Amount", "0");
+        }
+        String cur = getLoose(lm, "currency");
+        if (cur != null && !cur.isBlank()) {
+            n.put("Currency", cur.trim());
         }
         return n;
     }

@@ -118,6 +118,13 @@ public class HqApiConfig {
     @Column(name = "url_pay_card_copy_config_json", columnDefinition = "TEXT")
     private String urlPayCardCopyConfigJson;
 
+    /**
+     * URL 결제 「표시통화 → 실결제 THB」 본사 설정 JSON.
+     * 예: {@code {"enabled":true,"refreshSeconds":600,"marginByCurrency":{"JPY":0.01,"USD":0.02}}}
+     */
+    @Column(name = "url_pay_display_fx_json", columnDefinition = "TEXT")
+    private String urlPayDisplayFxJson;
+
     /** 환수금에서 수수료 포함 여부 (Y/N) */
     @Column(name = "recall_include_fee_yn", length = 1)
     private String recallIncludeFeeYn = "N";
@@ -224,6 +231,8 @@ public class HqApiConfig {
     public void setPayCurrencyScaleRulesJson(String payCurrencyScaleRulesJson) { this.payCurrencyScaleRulesJson = payCurrencyScaleRulesJson; }
     public String getUrlPayCardCopyConfigJson() { return urlPayCardCopyConfigJson; }
     public void setUrlPayCardCopyConfigJson(String urlPayCardCopyConfigJson) { this.urlPayCardCopyConfigJson = urlPayCardCopyConfigJson; }
+    public String getUrlPayDisplayFxJson() { return urlPayDisplayFxJson; }
+    public void setUrlPayDisplayFxJson(String urlPayDisplayFxJson) { this.urlPayDisplayFxJson = urlPayDisplayFxJson; }
     public String getRecallIncludeFeeYn() { return recallIncludeFeeYn; }
     public void setRecallIncludeFeeYn(String recallIncludeFeeYn) { this.recallIncludeFeeYn = recallIncludeFeeYn; }
     public String getSettlementVatApplyYn() { return settlementVatApplyYn; }

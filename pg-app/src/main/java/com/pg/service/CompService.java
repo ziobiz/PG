@@ -467,7 +467,21 @@ public class CompService {
                     .filter(o -> matchRegNo(o, regNo))
                     .collect(Collectors.toList());
         }
-        java.util.Map<Long, String> idToSortKey = buildHierarchySortKeys(all);
+        /* 목록 표시: 부모-자식 인접 DFS 대신 상위 조직(가맹점 제외) 전부 → 가맹점 전부(업체코드 순). 트리 접기/펼치기는 그대로 동작 */
+        Comparator<OrgUnit> compListCodeOrder = Comparator
+                .comparing((OrgUnit o) -> o.getCode() != null ? o.getCode().trim() : "", String.CASE_INSENSITIVE_ORDER)
+                .thenComparingLong(OrgUnit::getId);
+        List<OrgUnit> orgRows = filtered.stream()
+                .filter(o -> o.getOrgLevel() != OrgLevel.MERCHANT)
+                .sorted(compListCodeOrder)
+                .collect(Collectors.toCollection(ArrayList::new));
+        List<OrgUnit> merchantRows = filtered.stream()
+                .filter(o -> o.getOrgLevel() == OrgLevel.MERCHANT)
+                .sorted(compListCodeOrder)
+                .collect(Collectors.toCollection(ArrayList::new));
+        filtered.clear();
+        filtered.addAll(orgRows);
+        filtered.addAll(merchantRows);
         /* 그리드 들여쓰기: 트리 깊이가 아니라 조직 단계(OrgLevel 코드) 기준. 총판 직속 가맹점이 영업점과 같은 열에 붙는 문제 방지 */
         int minOrgLevelCodeInFiltered = 1;
         if (!filtered.isEmpty()) {
@@ -476,11 +490,6 @@ public class CompService {
                     .min()
                     .orElse(1);
         }
-        filtered.sort((a, b) -> {
-            String ka = idToSortKey.getOrDefault(a.getId(), "z");
-            String kb = idToSortKey.getOrDefault(b.getId(), "z");
-            return ka.compareTo(kb);
-        });
         int start = (page - 1) * size;
         int end = Math.min(start + size, filtered.size());
         List<Map<String, Object>> list = new ArrayList<>();
@@ -901,6 +910,7 @@ public class CompService {
                                         bm.put("ivKey", b.getIvKey() != null ? b.getIvKey() : "");
                                         bm.put("installmentYn", b.getInstallmentYn() != null ? b.getInstallmentYn() : "N");
                                         bm.put("maxInstallmentMonths", b.getMaxInstallmentMonths() != null ? String.valueOf(b.getMaxInstallmentMonths()) : "");
+                                        bm.put("urlPayPricingMode", b.getUrlPayPricingMode() != null ? b.getUrlPayPricingMode() : "CHECKOUT_CURRENCY");
                                         return bm;
                                     })
                                     .collect(Collectors.toList());
@@ -1016,6 +1026,8 @@ public class CompService {
                                         m.put("notifyUrlBackground", n.getNotiUrl());
                                     } else if ("RESULT".equals(n.getUrlType())) {
                                         m.put("notifyUrlResult", n.getNotiUrl());
+                                    } else if (MERCHANT_NOTIFY_MIDDLEWARE.equals(n.getUrlType())) {
+                                        m.put("middlewareNotifyUrl", n.getNotiUrl());
                                     }
                                 }
                             }
@@ -1036,6 +1048,7 @@ public class CompService {
                           String defaultProductName, String defaultProductCode, String defaultProductAmount, String defaultProductDesc,
                           String notifyUrlBackground, String notifyUrlResult,
                           String notifyUrl1, String notifyUrl2, String notifyUrl3, String notifyUrl4,
+                          String middlewareNotifyUrl, String middlewareNotifySecret,
                           String commissionFollowHq, String hqPolicyScope, String perTxFee, String cancelRate,
                           String voidFeePerTx, String manualVoidFeePerTx, String usageRate,
                           String failFee, String payRate, String refundRate, String rollingPct, String rollingDays,
@@ -1290,6 +1303,7 @@ public class CompService {
                                             new TypeReference<List<Map<String, Object>>>() {});
                                     list = dedupeMerchantPgBindingJsonRows(list);
                                     validateMerchantPgBindingJsonRows(list);
+                                    Map<String, String> prevPgPricingModes = snapshotMerchantPgBindingPricingModes(ou.getId());
                                     merchantPgBindingRepository.deleteByOrgUnitId(ou.getId());
                                     int order = 0;
                                     for (Map<String, Object> m : list) {
@@ -1300,7 +1314,8 @@ public class CompService {
                                         binding.setPgCd(pc);
                                         binding.setActivationYn("Y".equalsIgnoreCase(optStr(m, "activationYn")) ? "Y" : "N");
                                         binding.setOperationalYn("Y".equalsIgnoreCase(optStr(m, "operationalYn")) ? "Y" : "N");
-                                        binding.setPayMethod(optStr(m, "payMethod") != null && !optStr(m, "payMethod").isEmpty() ? optStr(m, "payMethod") : "WEB");
+                                        String pm = optStr(m, "payMethod") != null && !optStr(m, "payMethod").isEmpty() ? optStr(m, "payMethod") : "WEB";
+                                        binding.setPayMethod(pm);
                                         binding.setMid(optStr(m, "mid"));
                                         binding.setRootNo(optStr(m, "rootNo"));
                                         binding.setApiKey(optStr(m, "apiKey"));
@@ -1311,6 +1326,7 @@ public class CompService {
                                             try { binding.setMaxInstallmentMonths(Integer.parseInt(maxMo.trim())); } catch (NumberFormatException ignored) {}
                                         }
                                         binding.setSortOrder(order++);
+                                        applyUrlPayPricingModeFromJsonOrPrevious(binding, pc, pm, optStr(m, "urlPayPricingMode"), prevPgPricingModes);
                                         merchantPgBindingRepository.save(binding);
                                     }
                                 } catch (JsonProcessingException e) {
@@ -1352,7 +1368,10 @@ public class CompService {
                             if (ou.getOrgLevel() == OrgLevel.MERCHANT) {
                                 saveMerchantDefaultProductOrClear(ou.getId(), defaultProductName, defaultProductCode,
                                         defaultProductAmount, defaultProductDesc);
-                                saveMerchantPayNotifyUrls(ou.getId(), notifyUrlBackground, notifyUrlResult);
+                                String[] mwMerge = mergeMiddlewareNotifyParamsIfOmittedOnUpdate(ou.getId(),
+                                        middlewareNotifyUrl, middlewareNotifySecret);
+                                saveMerchantPayNotifyUrls(ou.getId(), notifyUrlBackground, notifyUrlResult,
+                                        mwMerge[0], mwMerge[1]);
                             }
                             persistMerchantAuditDiff(snap, ou, mp, pwdChanged);
                             return true;
@@ -1408,9 +1427,17 @@ public class CompService {
     /**
      * 가맹점 결제통보 URL Background/Result. 기존 행을 지운 뒤 재삽입하여 (org_unit_id, url_type) 중복을 방지.
      */
-    private void saveMerchantPayNotifyUrls(Long orgUnitId, String background, String result) {
+    private static final String MERCHANT_NOTIFY_MIDDLEWARE = "MIDDLEWARE";
+
+    private void saveMerchantPayNotifyUrls(Long orgUnitId, String background, String result,
+                                           String middlewareUrl, String middlewareSecret) {
         String bg = normalizeMerchantPayNotifyUrl(background);
         String rs = normalizeMerchantPayNotifyUrl(result);
+        String mw = normalizeMerchantPayNotifyUrl(middlewareUrl);
+        String sec = middlewareSecret != null ? middlewareSecret.trim() : "";
+        if (sec.length() > 256) {
+            throw new IllegalArgumentException("PG중계 콜백 시크릿은 256자 이하여야 합니다.");
+        }
         final int maxLen = 2048;
         if (bg.length() > maxLen) {
             throw new IllegalArgumentException("URL Background는 " + maxLen + "자 이하여야 합니다. (현재 " + bg.length() + "자)");
@@ -1418,8 +1445,11 @@ public class CompService {
         if (rs.length() > maxLen) {
             throw new IllegalArgumentException("URL Result는 " + maxLen + "자 이하여야 합니다. (현재 " + rs.length() + "자)");
         }
+        if (mw.length() > maxLen) {
+            throw new IllegalArgumentException("PG중계 콜백 URL은 " + maxLen + "자 이하여야 합니다. (현재 " + mw.length() + "자)");
+        }
         merchantNotifyUrlRepository.deleteByOrgUnitIdAndUrlTypeIn(orgUnitId,
-                java.util.List.of("BACKGROUND", "RESULT"));
+                java.util.List.of("BACKGROUND", "RESULT", MERCHANT_NOTIFY_MIDDLEWARE));
         if (!bg.isEmpty()) {
             MerchantNotifyUrl n1 = new MerchantNotifyUrl();
             n1.setOrgUnitId(orgUnitId);
@@ -1436,6 +1466,26 @@ public class CompService {
             n2.setUseYn("Y");
             merchantNotifyUrlRepository.save(n2);
         }
+        if (!mw.isEmpty()) {
+            MerchantNotifyUrl n3 = new MerchantNotifyUrl();
+            n3.setOrgUnitId(orgUnitId);
+            n3.setUrlType(MERCHANT_NOTIFY_MIDDLEWARE);
+            n3.setNotiUrl(mw);
+            n3.setSignSecret(sec.isEmpty() ? null : sec);
+            n3.setUseYn("Y");
+            merchantNotifyUrlRepository.save(n3);
+        }
+    }
+
+    /** 업체 수정 시 null 인 필드는 DB 기존 MIDDLEWARE 행으로 보강(부분 갱신). 둘 다 null 이면 전부 유지. */
+    private String[] mergeMiddlewareNotifyParamsIfOmittedOnUpdate(Long orgUnitId, String reqUrl, String reqSec) {
+        Optional<MerchantNotifyUrl> ex = merchantNotifyUrlRepository.findByOrgUnitIdAndUrlType(orgUnitId, MERCHANT_NOTIFY_MIDDLEWARE);
+        if (reqUrl == null && reqSec == null) {
+            return ex.map(m -> new String[] { m.getNotiUrl(), m.getSignSecret() }).orElse(new String[] { null, null });
+        }
+        String url = reqUrl != null ? reqUrl : ex.map(MerchantNotifyUrl::getNotiUrl).orElse(null);
+        String sec = reqSec != null ? reqSec : ex.map(MerchantNotifyUrl::getSignSecret).orElse(null);
+        return new String[] { url, sec };
     }
 
     /**
@@ -1564,10 +1614,11 @@ public class CompService {
                 null, null, null,
                 /* 65–68 default product */
                 null, null, null, null,
-                /* 69–92: notify, commission(+무효·수동무효), fees, regional (24 nulls) */
+                /* notify 8 + commission block 26 */
+                null, null, null, null, null, null, null, null,
                 null, null, null, null, null, null, null, null, null, null,
                 null, null, null, null, null, null, null, null, null, null,
-                null, null, null, null, null, null, null, null, null, null, null, null);  /* payFollow×5 + regional */
+                null, null, null, null, null, null);
     }
 
     @Transactional
@@ -1593,6 +1644,7 @@ public class CompService {
                                      String defaultProductName, String defaultProductCode, String defaultProductAmount, String defaultProductDesc,
                                      String notifyUrlBackground, String notifyUrlResult,
                                      String notifyUrl1, String notifyUrl2, String notifyUrl3, String notifyUrl4,
+                                     String middlewareNotifyUrl, String middlewareNotifySecret,
                                      String commissionFollowHq, String hqPolicyScope, String perTxFee, String cancelRate,
                                      String voidFeePerTx, String manualVoidFeePerTx, String usageRate,
                                      String failFee, String payRate, String refundRate, String rollingPct, String rollingDays,
@@ -1620,6 +1672,7 @@ public class CompService {
                 defaultProductName, defaultProductCode, defaultProductAmount, defaultProductDesc,
                 notifyUrlBackground, notifyUrlResult,
                 notifyUrl1, notifyUrl2, notifyUrl3, notifyUrl4,
+                middlewareNotifyUrl, middlewareNotifySecret,
                 commissionFollowHq, hqPolicyScope, perTxFee, cancelRate,
                 voidFeePerTx, manualVoidFeePerTx, usageRate,
                 failFee, payRate, refundRate, rollingPct, rollingDays,
@@ -1652,6 +1705,7 @@ public class CompService {
                                      String defaultProductName, String defaultProductCode, String defaultProductAmount, String defaultProductDesc,
                                      String notifyUrlBackground, String notifyUrlResult,
                                      String notifyUrl1, String notifyUrl2, String notifyUrl3, String notifyUrl4,
+                                     String middlewareNotifyUrl, String middlewareNotifySecret,
                                      String commissionFollowHq, String hqPolicyScope, String perTxFee, String cancelRate,
                                      String voidFeePerTx, String manualVoidFeePerTx, String usageRate,
                                      String failFee, String payRate, String refundRate, String rollingPct, String rollingDays,
@@ -1824,6 +1878,12 @@ public class CompService {
                     if (maxMo != null && !maxMo.isEmpty()) {
                         try { binding.setMaxInstallmentMonths(Integer.parseInt(maxMo.trim())); } catch (NumberFormatException ignored) {}
                     }
+                    String upmR = optStr(m, "urlPayPricingMode");
+                    if (upmR != null && "DISPLAY_FX_THB".equalsIgnoreCase(upmR.trim())) {
+                        binding.setUrlPayPricingMode("DISPLAY_FX_THB");
+                    } else {
+                        binding.setUrlPayPricingMode("CHECKOUT_CURRENCY");
+                    }
                     binding.setSortOrder(++order);
                     merchantPgBindingRepository.save(binding);
                 }
@@ -1835,7 +1895,8 @@ public class CompService {
         if ("MERCHANT".equalsIgnoreCase(compDiv)) {
             saveMerchantDefaultProductOrClear(saved.getId(), defaultProductName, defaultProductCode,
                     defaultProductAmount, defaultProductDesc);
-            saveMerchantPayNotifyUrls(saved.getId(), notifyUrlBackground, notifyUrlResult);
+            saveMerchantPayNotifyUrls(saved.getId(), notifyUrlBackground, notifyUrlResult,
+                    middlewareNotifyUrl, middlewareNotifySecret);
         }
         if ("MASTER_DIST".equalsIgnoreCase(compDiv)) {
             saveDistributorNotifyUrls(saved.getId(), notifyUrl1, notifyUrl2, notifyUrl3, notifyUrl4);
@@ -2772,96 +2833,6 @@ public class CompService {
         }
     }
 
-    /**
-     * 업체관리 트리 정렬용: 각 조직 노드 기준으로, 그 하위에「영업점(SALES_OFFICE)을 경유한 가맹점」이 하나라도 있으면 true.
-     * 총판·지사 등에 가맹점이 직접 달린 경우(중간에 영업점 없음)는 false.
-     */
-    private java.util.Map<Long, Boolean> computeMerchantUnderSalesOfficeSubtreeFlags(List<OrgUnit> all) {
-        java.util.Map<Long, OrgUnit> byId = all.stream().collect(Collectors.toMap(OrgUnit::getId, o -> o, (x, y) -> x));
-        java.util.Map<Long, Boolean> out = new java.util.HashMap<>();
-        for (OrgUnit m : all) {
-            if (m.getOrgLevel() != OrgLevel.MERCHANT) {
-                continue;
-            }
-            java.util.List<OrgUnit> chain = new java.util.ArrayList<>();
-            OrgUnit cur = m;
-            while (cur != null) {
-                chain.add(cur);
-                Long pid = cur.getParentId();
-                cur = pid != null ? byId.get(pid) : null;
-            }
-            // chain[0]=가맹점, chain[1]=직계상위, … — 앵커(상위 노드)와 가맹점 사이에 영업점이 있으면 앵커 subtree 우선순위 대상
-            for (int i = 1; i < chain.size(); i++) {
-                boolean hasSalesOfficeBetween = false;
-                for (int j = 1; j < i; j++) {
-                    if (chain.get(j).getOrgLevel() == OrgLevel.SALES_OFFICE) {
-                        hasSalesOfficeBetween = true;
-                        break;
-                    }
-                }
-                if (hasSalesOfficeBetween) {
-                    out.put(chain.get(i).getId(), true);
-                }
-            }
-        }
-        return out;
-    }
-
-    private static Comparator<OrgUnit> compTreeSiblingOrder(java.util.Map<Long, Boolean> merchantUnderSo) {
-        return (a, b) -> {
-            boolean fa = Boolean.TRUE.equals(merchantUnderSo.get(a.getId()));
-            boolean fb = Boolean.TRUE.equals(merchantUnderSo.get(b.getId()));
-            int c = Boolean.compare(fb, fa);
-            if (c != 0) {
-                return c;
-            }
-            LocalDateTime ta = a.getCreatedAt();
-            LocalDateTime tb = b.getCreatedAt();
-            if (ta == null && tb != null) {
-                return 1;
-            }
-            if (ta != null && tb == null) {
-                return -1;
-            }
-            if (ta != null) {
-                int t = ta.compareTo(tb);
-                if (t != 0) {
-                    return t;
-                }
-            }
-            int idc = Long.compare(a.getId(), b.getId());
-            if (idc != 0) {
-                return idc;
-            }
-            return (a.getCode() != null ? a.getCode() : "").compareTo(b.getCode() != null ? b.getCode() : "");
-        };
-    }
-
-    /** 계층 정렬용 키 생성 (레그 구조: 부모→자식 순) */
-    private java.util.Map<Long, String> buildHierarchySortKeys(List<OrgUnit> all) {
-        java.util.Map<Long, Boolean> merchantUnderSo = computeMerchantUnderSalesOfficeSubtreeFlags(all);
-        Comparator<OrgUnit> siblingOrder = compTreeSiblingOrder(merchantUnderSo);
-        java.util.Map<Long, java.util.List<OrgUnit>> byParent = all.stream()
-                .filter(o -> o.getParentId() != null)
-                .collect(Collectors.groupingBy(OrgUnit::getParentId));
-        java.util.Map<Long, String> result = new java.util.HashMap<>();
-        int[] counter = { 0 };
-        for (OrgUnit root : all.stream().filter(o -> o.getParentId() == null).sorted(siblingOrder).toList()) {
-            dfsAssignSortKey(root.getId(), byParent, result, String.valueOf(++counter[0]), siblingOrder);
-        }
-        return result;
-    }
-
-    private void dfsAssignSortKey(Long id, java.util.Map<Long, java.util.List<OrgUnit>> byParent,
-            java.util.Map<Long, String> result, String prefix, Comparator<OrgUnit> siblingOrder) {
-        result.put(id, prefix);
-        java.util.List<OrgUnit> children = new java.util.ArrayList<>(byParent.getOrDefault(id, java.util.Collections.emptyList()));
-        children.sort(siblingOrder);
-        for (int i = 0; i < children.size(); i++) {
-            dfsAssignSortKey(children.get(i).getId(), byParent, result, prefix + "." + (i + 1), siblingOrder);
-        }
-    }
-
     private static String calcCycleToDisplay(String c) {
         if (c == null || c.isEmpty()) return "-";
         String u = c.trim().toUpperCase();
@@ -2997,8 +2968,9 @@ public class CompService {
                             row.get("transferType"), null, null, null, null, null, null, null, null, null,
                             null, null, null,
                             null, null, null, null,
-                            null, null, null, null, null, null, null, null, null, null, null, null,
-                            null, null, null, null, null, null, null, null, null, null, null, null, null, null,
+                            null, null, null, null, null, null, null, null,
+                            null, null, null, null, null, null, null, null, null, null,
+                            null, null, null, null, null, null, null, null, null, null,
                             null, null, null, null, null, null);
                     if (loginIdVal != null && !loginIdVal.isEmpty() && userRepository.findByUsername(loginIdVal).isEmpty()) {
                         AppUser appUser = new AppUser();
@@ -3036,6 +3008,7 @@ public class CompService {
         return "PG=" + nz(b.getPgCd()) + "/" + nz(b.getPayMethod())
                 + " MID=" + nz(b.getMid()) + " 활성=" + nz(b.getActivationYn())
                 + " 운영=" + nz(b.getOperationalYn()) + " Route=" + nz(b.getRootNo())
+                + " URL금액=" + nz(b.getUrlPayPricingMode())
                 + " 할부=" + nz(b.getInstallmentYn());
     }
 
@@ -3102,7 +3075,8 @@ public class CompService {
     public Map<String, Object> saveMerchantPgBinding(String compId, Long bindingId, String pgCd, String payMethod,
                                                      String mid, String rootNo, String apiKey, String ivKey,
                                                      String activationYn, String operationalYn,
-                                                     String installmentYn, String maxInstallmentMonthsStr) {
+                                                     String installmentYn, String maxInstallmentMonthsStr,
+                                                     String urlPayPricingMode) {
         OrgUnit ou = orgUnitRepository.findByCode(compId != null ? compId.trim() : "")
                 .orElseThrow(() -> new IllegalArgumentException("업체를 찾을 수 없습니다."));
         if (ou.getOrgLevel() != OrgLevel.MERCHANT) {
@@ -3163,6 +3137,16 @@ public class CompService {
             }
         }
         binding.setOperationalYn(opY ? "Y" : "N");
+        if (binding.getId() == null) {
+            if (urlPayPricingMode != null && "DISPLAY_FX_THB".equalsIgnoreCase(urlPayPricingMode.trim())) {
+                binding.setUrlPayPricingMode("DISPLAY_FX_THB");
+            } else {
+                binding.setUrlPayPricingMode("CHECKOUT_CURRENCY");
+            }
+        } else if (urlPayPricingMode != null && !urlPayPricingMode.isBlank()) {
+            binding.setUrlPayPricingMode("DISPLAY_FX_THB".equalsIgnoreCase(urlPayPricingMode.trim())
+                    ? "DISPLAY_FX_THB" : "CHECKOUT_CURRENCY");
+        }
         merchantPgBindingRepository.save(binding);
         orgUnitChangeAuditService.appendIfChanged(ou.getId(), nz(ou.getCode()), nz(ou.getName()),
                 "[PG연동] 결제대행(MID)", beforeLine, pgBindingAuditLine(binding));
@@ -3179,6 +3163,7 @@ public class CompService {
         bm.put("ivKey", binding.getIvKey() != null ? binding.getIvKey() : "");
         bm.put("installmentYn", binding.getInstallmentYn());
         bm.put("maxInstallmentMonths", binding.getMaxInstallmentMonths() != null ? String.valueOf(binding.getMaxInstallmentMonths()) : "");
+        bm.put("urlPayPricingMode", binding.getUrlPayPricingMode() != null ? binding.getUrlPayPricingMode() : "CHECKOUT_CURRENCY");
         return bm;
     }
 
@@ -3236,5 +3221,40 @@ public class CompService {
         out.put("profileUpdated", profileUpdated);
         out.put("rootCompId", root.getCode());
         return out;
+    }
+
+    private static String merchantPgBindingStableKey(String pgCd, String payMethod) {
+        String pc = pgCd != null ? pgCd.trim() : "";
+        String pm = payMethod != null && !payMethod.isBlank() ? payMethod.trim() : "WEB";
+        return pc + "\0" + pm;
+    }
+
+    /** 전체 교체 저장 직전: JSON에 urlPayPricingMode가 없을 때 기존 행과 동일 키(pgCd+payMethod)의 모드를 이어 받기 위함 */
+    private Map<String, String> snapshotMerchantPgBindingPricingModes(Long orgUnitId) {
+        Map<String, String> map = new HashMap<>();
+        for (MerchantPgBinding ob : merchantPgBindingRepository.findByOrgUnitIdOrderBySortOrderAsc(orgUnitId)) {
+            String mode = ob.getUrlPayPricingMode();
+            if (mode != null && !mode.isBlank()) {
+                map.put(merchantPgBindingStableKey(ob.getPgCd(), ob.getPayMethod()), mode.trim());
+            }
+        }
+        return map;
+    }
+
+    private void applyUrlPayPricingModeFromJsonOrPrevious(MerchantPgBinding binding, String pgCd, String payMethod,
+                                                          String upmFromJson, Map<String, String> previousModes) {
+        if (upmFromJson != null && !upmFromJson.isBlank()) {
+            binding.setUrlPayPricingMode("DISPLAY_FX_THB".equalsIgnoreCase(upmFromJson.trim())
+                    ? "DISPLAY_FX_THB" : "CHECKOUT_CURRENCY");
+            return;
+        }
+        if (previousModes != null) {
+            String prev = previousModes.get(merchantPgBindingStableKey(pgCd, payMethod));
+            if (prev != null) {
+                binding.setUrlPayPricingMode("DISPLAY_FX_THB".equalsIgnoreCase(prev) ? "DISPLAY_FX_THB" : "CHECKOUT_CURRENCY");
+                return;
+            }
+        }
+        binding.setUrlPayPricingMode("CHECKOUT_CURRENCY");
     }
 }

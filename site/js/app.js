@@ -544,6 +544,7 @@
     '/hq/chargebackPolicy': { label: '차지백설정', parent: '본사설정' },
     '/hq/businessDaySetting': { label: '영업일설정', parent: '본사설정' },
     '/hq/apiConfig': { label: 'API배포설정', parent: '배포설정' },
+    '/hq/urlPayDeploy': { label: 'URL결제설정', parent: '배포설정' },
     '/hq/paymentOrchestration': { label: '결제로직설정', parent: '본사설정' },
     '/hq/domainConfig': { label: '도메인구성설정', parent: '본사설정' },
     '/hq/serverManage': { label: '서버운영관리', parent: '본사설정' },
@@ -1387,6 +1388,15 @@
     var exEl = document.getElementById('pgAgencyEditCredentialsExtra');
     var kindEl = document.getElementById('pgAgencyEditIntegKind');
     var intEpEl = document.getElementById('pgAgencyEditIntegrationEndpoint');
+    var modeWrap = document.getElementById('pgAgencyEditUrlPayAmountModeWrap');
+    var modeSel = document.getElementById('pgAgencyEditUrlPayAmountMode');
+    if (kindEl && !kindEl._pgUrlPayAmBound) {
+      kindEl._pgUrlPayAmBound = true;
+      kindEl.addEventListener('change', function () {
+        var w = document.getElementById('pgAgencyEditUrlPayAmountModeWrap');
+        if (w) w.classList.toggle('d-none', kindEl.value !== 'URL_PAY');
+      });
+    }
     if (!idEl || !cdEl || !nmEl) return;
     idEl.value = preset.id != null ? String(preset.id) : '';
     cdEl.value = preset.pgCd || '';
@@ -1403,6 +1413,11 @@
     if (exEl) exEl.value = preset.credentialsExtraJson != null ? String(preset.credentialsExtraJson) : '';
     if (akEl) akEl.value = '';
     if (mkEl) mkEl.value = '';
+    if (modeSel) {
+      var um = preset.urlPayAmountMode != null ? String(preset.urlPayAmountMode).trim().toUpperCase() : '';
+      modeSel.value = (um === 'DISPLAY') ? 'DISPLAY' : 'STANDARD';
+    }
+    if (modeWrap) modeWrap.classList.toggle('d-none', !(kindEl && kindEl.value === 'URL_PAY'));
     cdEl.readOnly = !!(preset.id);
     var el = document.getElementById('pgAgencyEditModal');
     if (el && window.bootstrap && bootstrap.Modal) {
@@ -4570,16 +4585,22 @@
                 var scopeHtml;
                 if (ik === 'MULTI') {
                   var badges = [];
-                  if (String(row.integNotiYn || '').toUpperCase() === 'Y') badges.push('<span class="badge bg-secondary">노티</span>');
-                  if (String(row.integUrlPayYn || '').toUpperCase() === 'Y') badges.push('<span class="badge bg-primary">URL</span>');
-                  if (String(row.integWebChatbotYn || '').toUpperCase() === 'Y') badges.push('<span class="badge bg-info text-dark">챗봇</span>');
-                  if (String(row.integApiYn || '').toUpperCase() === 'Y') badges.push('<span class="badge bg-success">API</span>');
+                  if (String(row.integNotiYn || '').toUpperCase() === 'Y') badges.push('<span class="badge rounded-pill pg-scope-pastel-noti">노티</span>');
+                  if (String(row.integUrlPayYn || '').toUpperCase() === 'Y') badges.push('<span class="badge rounded-pill pg-scope-pastel-url">URL</span>');
+                  if (String(row.integWebChatbotYn || '').toUpperCase() === 'Y') badges.push('<span class="badge rounded-pill pg-scope-pastel-chatbot">챗봇</span>');
+                  if (String(row.integApiYn || '').toUpperCase() === 'Y') badges.push('<span class="badge rounded-pill pg-scope-pastel-api">API</span>');
                   scopeHtml = badges.length
                     ? ('<span class="pg-api-mng-scope-badges">' + badges.join('') + '</span>')
                     : '<span class="text-muted">—</span>';
                 } else if (row.integKindLabel) {
                   var kl = String(row.integKindLabel);
-                  scopeHtml = '<span class="badge bg-dark">' + escAttr(kl) + '</span>';
+                  var ikSingle = String(row.integKind || '').toUpperCase();
+                  var pastelSingle = 'pg-scope-pastel-multi';
+                  if (ikSingle === 'NOTI') pastelSingle = 'pg-scope-pastel-noti';
+                  else if (ikSingle === 'URL_PAY') pastelSingle = 'pg-scope-pastel-url';
+                  else if (ikSingle === 'WEB_CHATBOT') pastelSingle = 'pg-scope-pastel-chatbot';
+                  else if (ikSingle === 'API') pastelSingle = 'pg-scope-pastel-api';
+                  scopeHtml = '<span class="badge rounded-pill ' + pastelSingle + '">' + escAttr(kl) + '</span>';
                 } else {
                   scopeHtml = '<span class="text-muted">—</span>';
                 }
@@ -11427,7 +11448,7 @@
       var dimm2 = document.getElementById('dimm');
       if (dimm2) dimm2.style.display = 'flex';
       window.PG_API.hqApiConfig().then(function (data) {
-        if (data && (pane.querySelector('[name="baseUrl"]') || pane.querySelector('[name="urlPayPathTemplate"]') || pane.querySelector('[name="paymentProviderRegistryJson"]') || pane.querySelector('[name="payCurrencyScaleRulesJson"]') || pane.querySelector('[name="urlPayCardCopyConfigJson"]') || pane.querySelector('[name="urlPayTabTitleJson"]'))) {
+        if (data && (pane.querySelector('[name="baseUrl"]') || pane.querySelector('[name="urlPayPathTemplate"]') || pane.querySelector('[name="paymentProviderRegistryJson"]') || pane.querySelector('[name="payCurrencyScaleRulesJson"]') || pane.querySelector('[name="urlPayCardCopyConfigJson"]') || pane.querySelector('[name="urlPayTabTitleJson"]') || pane.querySelector('[name="urlPayDisplayFxJson"]'))) {
           ['baseUrl', 'authType', 'timeoutSec', 'memo', 'chillpayMerchantCode', 'chillpayApiKey', 'chillpayMd5Key', 'chillpayRouteNo', 'chillpaySandbox', 'recallIncludeFeeYn', 'settlementVatApplyYn',
             'apiBrokerDefaultFlowType', 'urlPayDefaultFlowType', 'urlPayPathTemplate',
             'apiBrokerInlineEnabledYn', 'apiBrokerRedirectEnabledYn', 'urlPayInlineEnabledYn', 'urlPayRedirectEnabledYn',
@@ -11436,7 +11457,8 @@
             'urlPayFaviconUrl',
             'paymentProviderRegistryJson',
             'payCurrencyScaleRulesJson',
-            'urlPayCardCopyConfigJson'
+            'urlPayCardCopyConfigJson',
+            'urlPayDisplayFxJson'
           ].forEach(function (k) {
             var el = pane.querySelector('[name="' + k + '"]');
             if (el && data[k] != null) el.value = data[k];
@@ -11465,6 +11487,203 @@
           if (typeof window.fnTopMenuMove === 'function') {
             window.fnTopMenuMove('/hq/pgApiMng', 'M0101', 'API연동설정');
           }
+        });
+      }
+    }
+    if (url === '/hq/urlPayDeploy') {
+      var dimmUp = document.getElementById('dimm');
+      var hqSnapDeploy = null;
+      var tbodyUp = pane.querySelector('#hqUrlPayDeployPgTbody');
+      var hiddenUp = pane.querySelector('#hqUrlPayDeployFxHidden');
+      function escUrlPayDep(s) {
+        return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+      }
+      function parseFxObjUrlPayDep(raw) {
+        try {
+          var o = raw ? JSON.parse(raw) : {};
+          return (o && typeof o === 'object') ? o : {};
+        } catch (eFx) {
+          return {};
+        }
+      }
+      function normPgUrlPayDep(cd) {
+        return String(cd || '').trim().toUpperCase();
+      }
+      function renderUrlPayDeployPgTable(urlPayPgs, fxObj) {
+        if (!tbodyUp) return;
+        var pgSet = fxObj.pgSettings && typeof fxObj.pgSettings === 'object' ? fxObj.pgSettings : {};
+        if (!urlPayPgs.length) {
+          tbodyUp.innerHTML = '<tr><td colspan="7" class="text-muted text-center py-3 small">URL결제(Y)로 등록된 PG가 없습니다. API연동설정에서 연동용도를 확인하세요.</td></tr>';
+          return;
+        }
+        var html = '';
+        urlPayPgs.forEach(function (p) {
+          var cd = String(p.pgCd || '').trim();
+          if (!cd) return;
+          var cdU = normPgUrlPayDep(cd);
+          var row = pgSet[cdU] || pgSet[cd] || {};
+          var mode = String(row.amountMode || 'STANDARD').toUpperCase() === 'DISPLAY' ? 'DISPLAY' : 'STANDARD';
+          var disp = String(row.displayCurrency || 'JPY').toUpperCase();
+          if (disp !== 'USD' && disp !== 'KRW') disp = 'JPY';
+          var setc = String(row.settlementCurrency || 'THB').toUpperCase();
+          if (['THB', 'USD', 'JPY', 'KRW'].indexOf(setc) < 0) setc = 'THB';
+          var fxm = String(row.fxMode || 'AUTO').toUpperCase() === 'MANUAL' ? 'MANUAL' : 'AUTO';
+          var manual = '';
+          if (row.manualSettlementPerUnit != null && String(row.manualSettlementPerUnit).trim() !== '') {
+            manual = String(row.manualSettlementPerUnit);
+          } else if (row.manualThbPerUnit != null && String(row.manualThbPerUnit).trim() !== '') {
+            manual = String(row.manualThbPerUnit);
+          }
+          var mrg = row.marginRate != null ? String(row.marginRate) : '';
+          var nm = String(p.pgNm || cd).trim();
+          html += '<tr data-pg-cd="' + escUrlPayDep(cdU) + '">' +
+            '<td class="small">' + escUrlPayDep(nm + ' (' + cd + ')') + '</td>' +
+            '<td><select class="form-select form-select-sm hq-upd-amode" data-pg="' + escUrlPayDep(cdU) + '">' +
+            '<option value="STANDARD"' + (mode === 'STANDARD' ? ' selected' : '') + '>일반형</option>' +
+            '<option value="DISPLAY"' + (mode === 'DISPLAY' ? ' selected' : '') + '>DISPLAY</option></select></td>' +
+            '<td><select class="form-select form-select-sm hq-upd-dcur" data-pg="' + escUrlPayDep(cdU) + '">' +
+            '<option value="JPY"' + (disp === 'JPY' ? ' selected' : '') + '>JPY</option>' +
+            '<option value="USD"' + (disp === 'USD' ? ' selected' : '') + '>USD</option>' +
+            '<option value="KRW"' + (disp === 'KRW' ? ' selected' : '') + '>KRW</option></select></td>' +
+            '<td><select class="form-select form-select-sm hq-upd-scur" data-pg="' + escUrlPayDep(cdU) + '">' +
+            '<option value="THB"' + (setc === 'THB' ? ' selected' : '') + '>THB</option>' +
+            '<option value="USD"' + (setc === 'USD' ? ' selected' : '') + '>USD</option>' +
+            '<option value="JPY"' + (setc === 'JPY' ? ' selected' : '') + '>JPY</option>' +
+            '<option value="KRW"' + (setc === 'KRW' ? ' selected' : '') + '>KRW</option></select></td>' +
+            '<td><select class="form-select form-select-sm hq-upd-fx" data-pg="' + escUrlPayDep(cdU) + '">' +
+            '<option value="AUTO"' + (fxm === 'AUTO' ? ' selected' : '') + '>자동(BOT)</option>' +
+            '<option value="MANUAL"' + (fxm === 'MANUAL' ? ' selected' : '') + '>수동</option></select></td>' +
+            '<td><input type="text" class="form-control form-control-sm font-monospace hq-upd-manual" data-pg="' + escUrlPayDep(cdU) + '" value="' + escUrlPayDep(manual) + '" placeholder="실결제/1표시" autocomplete="off"></td>' +
+            '<td><input type="text" class="form-control form-control-sm font-monospace hq-upd-mrg" data-pg="' + escUrlPayDep(cdU) + '" value="' + escUrlPayDep(mrg) + '" placeholder="PG전체 마진(선택)" autocomplete="off"></td>' +
+            '</tr>';
+        });
+        tbodyUp.innerHTML = html;
+      }
+      function collectUrlPayDeployFxJson() {
+        var o = parseFxObjUrlPayDep(hqSnapDeploy && hqSnapDeploy.urlPayDisplayFxJson);
+        o.marginByCurrency = Object.assign({}, o.marginByCurrency || {});
+        var enEl = pane.querySelector('[name="_urlPayFxUiEnabled"]');
+        o.enabled = enEl && enEl.value === 'Y';
+        var rs = parseInt(String((pane.querySelector('[name="_urlPayFxUiRefresh"]') || {}).value || '600'), 10);
+        var ttl = parseInt(String((pane.querySelector('[name="_urlPayFxUiTtl"]') || {}).value || '600'), 10);
+        o.refreshSeconds = isNaN(rs) ? 600 : Math.max(60, Math.min(3600, rs));
+        o.quoteTtlSeconds = isNaN(ttl) ? 600 : Math.max(120, Math.min(3600, ttl));
+        function parseMargUrlPayDep(el, def) {
+          var t = el ? String(el.value || '').trim() : '';
+          if (!t) return def;
+          var n = parseFloat(t);
+          return isNaN(n) || n < 0 ? def : n;
+        }
+        var mj = pane.querySelector('[name="_urlPayFxUiMarginJpy"]');
+        var mu = pane.querySelector('[name="_urlPayFxUiMarginUsd"]');
+        var mk = pane.querySelector('[name="_urlPayFxUiMarginKrw"]');
+        o.marginByCurrency.JPY = parseMargUrlPayDep(mj, 0);
+        o.marginByCurrency.USD = parseMargUrlPayDep(mu, 0);
+        o.marginByCurrency.KRW = parseMargUrlPayDep(mk, 0);
+        var nextPg = {};
+        tbodyUp.querySelectorAll('tr[data-pg-cd]').forEach(function (tr) {
+          var cdU = tr.getAttribute('data-pg-cd');
+          var am = tr.querySelector('.hq-upd-amode');
+          var dc = tr.querySelector('.hq-upd-dcur');
+          var sc = tr.querySelector('.hq-upd-scur');
+          var fx = tr.querySelector('.hq-upd-fx');
+          var mn = tr.querySelector('.hq-upd-manual');
+          var mr = tr.querySelector('.hq-upd-mrg');
+          var setC = sc && sc.value ? String(sc.value).trim().toUpperCase() : 'THB';
+          if (['THB', 'USD', 'JPY', 'KRW'].indexOf(setC) < 0) setC = 'THB';
+          var manualRaw = mn ? String(mn.value || '').trim() : '';
+          var st = {
+            amountMode: am && am.value ? am.value : 'STANDARD',
+            displayCurrency: dc && dc.value ? dc.value : 'JPY',
+            settlementCurrency: setC,
+            fxMode: fx && fx.value ? fx.value : 'AUTO',
+            manualRaw: manualRaw,
+            marginRate: mr ? String(mr.value || '').trim() : ''
+          };
+          if (st.amountMode === 'STANDARD') {
+            nextPg[cdU] = { amountMode: 'STANDARD', displayCurrency: st.displayCurrency, settlementCurrency: st.settlementCurrency };
+          } else {
+            var rowObj = {
+              amountMode: 'DISPLAY',
+              displayCurrency: st.displayCurrency,
+              settlementCurrency: st.settlementCurrency,
+              fxMode: st.fxMode,
+              marginRate: st.marginRate
+            };
+            if (st.fxMode === 'MANUAL' && manualRaw) {
+              if (st.settlementCurrency === 'THB') {
+                rowObj.manualThbPerUnit = manualRaw;
+              } else {
+                rowObj.manualSettlementPerUnit = manualRaw;
+              }
+            }
+            nextPg[cdU] = rowObj;
+          }
+        });
+        o.pgSettings = nextPg;
+        return JSON.stringify(o);
+      }
+      function applyUrlPayDeployFxToForm(fxObj) {
+        var en = pane.querySelector('[name="_urlPayFxUiEnabled"]');
+        var rs = pane.querySelector('[name="_urlPayFxUiRefresh"]');
+        var ttl = pane.querySelector('[name="_urlPayFxUiTtl"]');
+        var mj = pane.querySelector('[name="_urlPayFxUiMarginJpy"]');
+        var mu = pane.querySelector('[name="_urlPayFxUiMarginUsd"]');
+        var mk = pane.querySelector('[name="_urlPayFxUiMarginKrw"]');
+        if (en) en.value = fxObj.enabled === true ? 'Y' : 'N';
+        if (rs) rs.value = fxObj.refreshSeconds != null ? String(fxObj.refreshSeconds) : '600';
+        if (ttl) ttl.value = fxObj.quoteTtlSeconds != null ? String(fxObj.quoteTtlSeconds) : '600';
+        var mb = fxObj.marginByCurrency || {};
+        if (mj) mj.value = mb.JPY != null ? String(mb.JPY) : '0';
+        if (mu) mu.value = mb.USD != null ? String(mb.USD) : '0';
+        if (mk) mk.value = mb.KRW != null ? String(mb.KRW) : '0';
+      }
+      if (dimmUp) dimmUp.style.display = 'flex';
+      Promise.all([
+        window.PG_API && window.PG_API.hqApiConfig ? window.PG_API.hqApiConfig().catch(function () { return null; }) : Promise.resolve(null),
+        window.PG_API && window.PG_API.pgAgencyList ? window.PG_API.pgAgencyList().catch(function () { return []; }) : Promise.resolve([])
+      ]).then(function (pair) {
+        hqSnapDeploy = pair[0] || {};
+        var list = Array.isArray(pair[1]) ? pair[1] : [];
+        var urlPayPgs = list.filter(function (r) {
+          return String(r.integUrlPayYn || '').toUpperCase() === 'Y' && String(r.useYn || 'Y').toUpperCase() === 'Y';
+        });
+        var fxObj = parseFxObjUrlPayDep(hqSnapDeploy.urlPayDisplayFxJson);
+        applyUrlPayDeployFxToForm(fxObj);
+        renderUrlPayDeployPgTable(urlPayPgs, fxObj);
+        if (hiddenUp) hiddenUp.value = hqSnapDeploy.urlPayDisplayFxJson || '';
+      }).finally(function () { if (dimmUp) dimmUp.style.display = 'none'; });
+      var btnOpenUp = pane.querySelector('#hqUrlPayDeployOpenApiLink');
+      if (btnOpenUp && !btnOpenUp._hqUrlPayDepApiBound) {
+        btnOpenUp._hqUrlPayDepApiBound = true;
+        btnOpenUp.addEventListener('click', function () {
+          if (typeof window.fnTopMenuMove === 'function') {
+            window.fnTopMenuMove('/hq/pgApiMng', 'M0101', 'API연동설정');
+          }
+        });
+      }
+      var saveUp = pane.querySelector('#hqUrlPayDeploySaveBtn');
+      if (saveUp && !saveUp._hqUrlPayDeploySaveBound) {
+        saveUp._hqUrlPayDeploySaveBound = true;
+        saveUp.addEventListener('click', function () {
+          if (!hqSnapDeploy) {
+            alert('설정을 불러온 뒤 다시 시도하세요.');
+            return;
+          }
+          var fd = {};
+          Object.keys(hqSnapDeploy).forEach(function (k) { fd[k] = hqSnapDeploy[k]; });
+          fd.urlPayDisplayFxJson = collectUrlPayDeployFxJson();
+          if (hiddenUp) hiddenUp.value = fd.urlPayDisplayFxJson;
+          var dimmS = document.getElementById('dimm');
+          if (dimmS) dimmS.style.display = 'flex';
+          window.PG_API.hqApiConfigSave(fd).then(function () {
+            alert('저장되었습니다.');
+            return window.PG_API.hqApiConfig();
+          }).then(function (d) {
+            if (d) hqSnapDeploy = d;
+          }).catch(function (e) {
+            alert(e && e.message ? e.message : '저장 실패');
+          }).finally(function () { if (dimmS) dimmS.style.display = 'none'; });
         });
       }
     }
@@ -14283,6 +14502,11 @@
         if (idVal) body.id = idVal;
         if (!body.pgCd || !body.pgNm) { alert('PG코드와 결제대행사는 필수입니다.'); return; }
         if (!body.integKind) { alert('연동 용도를 선택하세요. 용도별로 PG코드를 나누어 등록합니다.'); return; }
+        if (integKind === 'URL_PAY') {
+          var upm = document.getElementById('pgAgencyEditUrlPayAmountMode');
+          body.urlPayAmountMode = upm && upm.value ? String(upm.value).trim().toUpperCase() : 'STANDARD';
+          if (body.urlPayAmountMode !== 'DISPLAY') body.urlPayAmountMode = 'STANDARD';
+        }
         var dimm = document.getElementById('dimm');
         if (dimm) dimm.style.display = 'flex';
         window.PG_API.hqPgApiMngSave(body).then(function () {

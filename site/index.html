@@ -166,6 +166,7 @@
             <ul class="side-nav-second-level">
               <li class="child-li" data-url="/hq/pgApiMng"><a href="#" data-menu_id="M0101">API연동설정</a></li>
               <li class="child-li" data-url="/hq/apiConfig"><a href="#" data-menu_id="M0103">API배포설정</a></li>
+              <li class="child-li" data-url="/hq/urlPayDeploy"><a href="#" data-menu_id="M0122">URL결제설정</a></li>
               <li class="child-li" data-url="/deploy/integrationPlan"><a href="#" data-menu_id="M0901">연동 진행안</a></li>
               <li class="child-li" data-url="/deploy/jpayWorkPlan"><a href="#" data-menu_id="M0902">JPAY 단계 계획</a></li>
               <li class="child-li" data-url="/deploy/merchantApiPolicy"><a href="#" data-menu_id="M0903">가맹점 API 배포</a></li>
@@ -356,16 +357,30 @@
               <label class="form-label">연동 용도 <span class="text-danger">*</span></label>
               <select class="form-select form-select-sm" id="pgAgencyEditIntegKind" title="이 행은 선택한 용도 한 가지만 담당합니다">
                 <option value="">— 선택 —</option>
-                <option value="NOTI">① 노티 처리</option>
-                <option value="URL_PAY">② URL 결제</option>
-                <option value="WEB_CHATBOT">③ 웹챗봇 결제</option>
-                <option value="API">④ API 연동</option>
+                <option value="NOTI">① 노티</option>
+                <option value="URL_PAY">② URL</option>
+                <option value="WEB_CHATBOT">③ 챗봇</option>
+                <option value="API">④ API</option>
               </select>
+              <div class="d-flex flex-wrap gap-1 align-items-center small mt-1 mb-0 pg-integ-kind-legend" aria-hidden="true">
+                <span class="badge rounded-pill pg-scope-pastel-noti">노티</span>
+                <span class="badge rounded-pill pg-scope-pastel-url">URL</span>
+                <span class="badge rounded-pill pg-scope-pastel-chatbot">챗봇</span>
+                <span class="badge rounded-pill pg-scope-pastel-api">API</span>
+              </div>
               <div class="form-text">한 행당 용도 1개. 다른 용도는 PG코드를 달리 해 추가 등록하세요.</div>
             </div>
             <div class="mb-2">
               <label class="form-label">엔드포인트 URL <span class="text-muted small">(선택)</span></label>
               <input type="text" class="form-control form-control-sm" id="pgAgencyEditIntegrationEndpoint" maxlength="512" placeholder="선택한 용도에 맞는 https://…" autocomplete="off">
+            </div>
+            <div class="mb-2 d-none" id="pgAgencyEditUrlPayAmountModeWrap">
+              <label class="form-label">URL 결제 금액 모드</label>
+              <select class="form-select form-select-sm" id="pgAgencyEditUrlPayAmountMode" title="본사 URL결제설정(FX)과 동일 저장소">
+                <option value="STANDARD">일반(일반형)</option>
+                <option value="DISPLAY">DP (DISPLAY)</option>
+              </select>
+              <div class="form-text">표시통화→실결제 FX는 「DP」이고 본사 URL결제설정에서 FX·통화를 맞춥니다. 「일반」은 가맹점 청구통화 그대로 결제합니다.</div>
             </div>
             <div class="mb-2">
               <label class="form-label">구버전 통합 URL <span class="text-muted small">(선택, api_endpoint 호환)</span></label>

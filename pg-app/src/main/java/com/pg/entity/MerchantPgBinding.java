@@ -56,6 +56,14 @@ public class MerchantPgBinding {
     @Column(name = "sort_order")
     private Integer sortOrder;
 
+    /**
+     * URL 공개 결제 금액 모드.
+     * CHECKOUT_CURRENCY: 가맹점 기준 통화로 직접 결제(기존).
+     * DISPLAY_FX_THB: 화면은 JPY/USD 등 표시, 실제 ChillPay 청구는 태국 바트(THB)로 환산.
+     */
+    @Column(name = "url_pay_pricing_mode", nullable = false, length = 32)
+    private String urlPayPricingMode = "CHECKOUT_CURRENCY";
+
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 
@@ -90,6 +98,8 @@ public class MerchantPgBinding {
     public void setMaxInstallmentMonths(Integer maxInstallmentMonths) { this.maxInstallmentMonths = maxInstallmentMonths; }
     public Integer getSortOrder() { return sortOrder; }
     public void setSortOrder(Integer sortOrder) { this.sortOrder = sortOrder; }
+    public String getUrlPayPricingMode() { return urlPayPricingMode; }
+    public void setUrlPayPricingMode(String urlPayPricingMode) { this.urlPayPricingMode = urlPayPricingMode; }
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
 }

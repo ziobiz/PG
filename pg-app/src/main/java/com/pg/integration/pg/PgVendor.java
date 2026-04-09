@@ -13,9 +13,7 @@ public final class PgVendor {
     /** ChillPay 계열 기본 코드 및 {@code van} 저장값. */
     public static final String CHILLPAY = "CHILLPAY";
 
-    /**
-     * JPAY(제이페이) 등 향후 연동용 예약 코드 — 아직 전용 서비스가 없으면 참조만 하고 분기하지 않습니다.
-     */
+    /** JPAY(J-Pay) — {@code JPAY} 또는 {@code JPAY_…} 접두. */
     public static final String JPAY = "JPAY";
 
     private PgVendor() {
@@ -50,5 +48,14 @@ public final class PgVendor {
             return false;
         }
         return vendorCode.trim().toUpperCase(Locale.ROOT).startsWith(CHILLPAY);
+    }
+
+    /** {@code pg_cd}·노티 벤더 코드가 JPAY 계열인지 */
+    public static boolean isJpayFamily(String pgCd) {
+        if (pgCd == null) {
+            return false;
+        }
+        String u = pgCd.trim().toUpperCase(Locale.ROOT);
+        return JPAY.equals(u) || u.startsWith(JPAY + "_");
     }
 }

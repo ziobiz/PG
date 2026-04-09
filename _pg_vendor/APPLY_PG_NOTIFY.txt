@@ -1,0 +1,35 @@
+PG 저장소 — NOTI / _pg_vendor 와 PgNotifyReceiveService 동기화
+===============================================================
+
+목적
+----
+NOTI(노티 미들웨어) 쪽에서 관리하는 벤더 스냅샷
+  _pg_vendor/PgNotifyReceiveService.java
+를 이 PG(monolith) 저장소의 실제 소스에 반영할 때 쓰는 절차입니다.
+
+이 폴더의 역할
+--------------
+- _pg_vendor/PgNotifyReceiveService.java  
+  → 이 PG 프로젝트 기준 최신 스냅샷(미러). NOTI에서 가져가거나, 반대로 NOTI가 갱신한
+    파일을 여기에 둔 뒤 아래 절차로 pg-app 에 복사합니다.
+
+Cursor(PG)에서 적용 방법
+------------------------
+1) pg-app/src/main/java/com/pg/service/PgNotifyReceiveService.java 를 연다.
+2) NOTI 프로젝트의 _pg_vendor/PgNotifyReceiveService.java 전체를 붙여 넣어 교체하거나,
+   diff 도구로 두 파일을 비교해 변경분만 반영한다.
+3) 반드시 다음을 확인한다 (이 PG에서 이미 들어간 로컬 보강):
+   - resolveAndFillInbound() 초반의 주석 블록
+     "0) 등록 업체코드 + 노티 MID 동시 수신 시 … MID 전역 검색보다 우선"
+     NOTI 측 스냅샷에 없으면 통째로 교체 후 이 블록이 사라지므로, diff 시 유지하거나
+     다시 합쳐야 한다.
+4) pg-app 디렉터리에서 빌드:
+     .\gradlew.bat bootJar --no-daemon
+5) 커밋 후 JAR 배포·서버 재시작(운영 절차).
+
+주의
+----
+- GitHub ziobiz/PG main 만 보고 무분별하게 통째로 교체하면, 위 "0) 업체코드+MID" 우선
+  분기가 빠질 수 있다. 반드시 diff 로 검증한다.
+- 이 저장소의 _pg_vendor/PgNotifyReceiveService.java 는 동기화용 참고본이며,
+  런타임에 직접 로드되지 않는다. 실제 실행 코드는 pg-app/.../PgNotifyReceiveService.java 이다.

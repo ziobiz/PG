@@ -217,6 +217,8 @@ public class ApiCompController {
             @RequestParam(required = false) String notifyUrl2,
             @RequestParam(required = false) String notifyUrl3,
             @RequestParam(required = false) String notifyUrl4,
+            @RequestParam(required = false) String middlewareNotifyUrl,
+            @RequestParam(required = false) String middlewareNotifySecret,
             @RequestParam(required = false) String commissionFollowHq,
             @RequestParam(required = false) String hqPolicyScope,
             @RequestParam(required = false) String perTxFee,
@@ -283,6 +285,7 @@ public class ApiCompController {
                 defaultProductName, defaultProductCode, defaultProductAmount, defaultProductDesc,
                 notifyUrlBackground, notifyUrlResult,
                 notifyUrl1, notifyUrl2, notifyUrl3, notifyUrl4,
+                middlewareNotifyUrl, middlewareNotifySecret,
                 commissionFollowHq, hqPolicyScope, perTxFee, cancelRate, voidFeePerTx, manualVoidFeePerTx, usageRate, failFee, payRate, refundRate, rollingPct, rollingDays,
                 feeSettlementPerTx, remittanceTransferFee, usdtTransferFeeUsd, feeUsdt, feeFx, fee3dsRate, chargebackFeePerTx, chargebackPolicyId,
                 payFollowMerchantUseYn, payFollowAutoVoidYn, payFollowEmailVoidYn, payFollowAutoRefundYn, payFollowForceRefundYn,
@@ -364,6 +367,8 @@ public class ApiCompController {
             @RequestParam(required = false) String notifyUrl2,
             @RequestParam(required = false) String notifyUrl3,
             @RequestParam(required = false) String notifyUrl4,
+            @RequestParam(required = false) String middlewareNotifyUrl,
+            @RequestParam(required = false) String middlewareNotifySecret,
             @RequestParam(required = false) String commissionFollowHq,
             @RequestParam(required = false) String hqPolicyScope,
             @RequestParam(required = false) String perTxFee,
@@ -415,6 +420,7 @@ public class ApiCompController {
                     defaultProductName, defaultProductCode, defaultProductAmount, defaultProductDesc,
                     notifyUrlBackground, notifyUrlResult,
                     notifyUrl1, notifyUrl2, notifyUrl3, notifyUrl4,
+                    middlewareNotifyUrl, middlewareNotifySecret,
                     commissionFollowHq, hqPolicyScope, perTxFee, cancelRate, voidFeePerTx, manualVoidFeePerTx, usageRate, failFee, payRate, refundRate, rollingPct, rollingDays,
                     feeSettlementPerTx, remittanceTransferFee, usdtTransferFeeUsd, feeUsdt, feeFx, fee3dsRate, chargebackFeePerTx, chargebackPolicyId,
                     payFollowMerchantUseYn, payFollowAutoVoidYn, payFollowEmailVoidYn, payFollowAutoRefundYn, payFollowForceRefundYn);
@@ -518,8 +524,9 @@ public class ApiCompController {
             String operationalYn = body.get("operationalYn") != null ? body.get("operationalYn").toString() : "N";
             String installmentYn = body.get("installmentYn") != null ? body.get("installmentYn").toString() : "N";
             String maxMo = body.get("maxInstallmentMonths") != null ? body.get("maxInstallmentMonths").toString() : "";
+            String urlPayPricingMode = body.get("urlPayPricingMode") != null ? body.get("urlPayPricingMode").toString() : "";
             Map<String, Object> saved = compService.saveMerchantPgBinding(compId, bindingId, pgCd, payMethod,
-                    mid, rootNo, apiKey, ivKey, activationYn, operationalYn, installmentYn, maxMo);
+                    mid, rootNo, apiKey, ivKey, activationYn, operationalYn, installmentYn, maxMo, urlPayPricingMode);
             return ResponseEntity.ok(ApiResponse.ok(saved));
         } catch (NumberFormatException e) {
             return ResponseEntity.ok(ApiResponse.fail("ID 형식이 올바르지 않습니다.", "VALIDATION"));

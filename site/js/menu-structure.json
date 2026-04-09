@@ -15,6 +15,7 @@
         { "label": "조직항목설정", "url": "/hq/orgViewColumnAllowance", "menuId": "M0108" },
         { "label": "API연동설정", "url": "/hq/pgApiMng", "menuId": "M0101" },
         { "label": "API배포설정", "url": "/hq/apiConfig", "menuId": "M0103" },
+        { "label": "URL결제설정", "url": "/hq/urlPayDeploy", "menuId": "M0122" },
         { "label": "결제로직설정", "url": "/hq/paymentOrchestration", "menuId": "M0118" },
         { "label": "노티구성설정", "url": "/hq/notifyEnv", "menuId": "M0105" },
         { "label": "노티매핑설정", "url": "/hq/notifyMapping", "menuId": "M0107" },

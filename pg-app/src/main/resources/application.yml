@@ -78,6 +78,14 @@ app:
     base-url: ${OPENAI_BASE_URL:https://api.openai.com/v1}
     model: ${OPENAI_MODEL:gpt-4o-mini}
     enabled: ${OPENAI_NOTIFY_MAPPING_ENABLED:true}
+  # 태국은행(BOT) 일평균 환율 API — https://iapi.bot.or.th (api-key 헤더). URL 표시통화→THB 정산용.
+  bot-thailand:
+    base-url: ${BOT_THAILAND_BASE_URL:https://iapi.bot.or.th}
+    daily-avg-path: ${BOT_THAILAND_DAILY_AVG_PATH:/Stat/Stat-ExchangeRate/DAILY_AVG_EXG_RATE_V1/}
+    api-key: ${BOT_THAILAND_API_KEY:}
+  # 표시통화 견적 토큰 HMAC. 비우면 tb_hq_api_config.chillpay_md5_key 를 서명에 사용(운영에서는 전용 값 권장).
+  url-pay-fx:
+    quote-hmac-secret: ${URL_PAY_FX_QUOTE_HMAC_SECRET:}
   chillpay:
     merchant-code: ${CHILLPAY_MERCHANT_CODE:M035594}
     api-key: ${CHILLPAY_API_KEY:}
