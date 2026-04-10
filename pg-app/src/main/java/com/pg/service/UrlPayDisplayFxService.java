@@ -16,6 +16,7 @@ import java.math.RoundingMode;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
 import java.util.Set;
@@ -23,7 +24,7 @@ import java.util.Set;
 /**
  * URL 결제 「표시통화 → 실결제 통화」 본사 설정.
  * <ul>
- *   <li>전역 {@code enabled}, 갱신 주기, 견적 TTL, {@code marginByCurrency} (표시통화 JPY·USD·KRW별 마진)</li>
+ *   <li>전역 {@code enabled}, 갱신 주기, 견적 TTL, {@code marginByCurrency} (표시통화 JPY·USD·KRW·THB별 마진)</li>
  *   <li>PG별 {@code pgSettings}: DISPLAY 시 표시·실결제 통화(THB/USD/JPY/KRW), FX 자동(BOT)·수동, PG 단일 마진 또는 {@code marginByDisplayCurrency}</li>
  *   <li>레거시: {@code pgSettings} 없을 때 가맹점 바인딩 {@code DISPLAY_FX_THB} + 전역 마진, 실결제 THB</li>
  * </ul>
@@ -35,8 +36,11 @@ public class UrlPayDisplayFxService {
     public static final String MODE_DISPLAY_FX_THB = "DISPLAY_FX_THB";
     private static final String CHECKOUT = "CHECKOUT_CURRENCY";
 
-    private static final Set<String> DISPLAY_CURRENCIES = Set.of("JPY", "USD", "KRW");
+    private static final Set<String> DISPLAY_CURRENCIES = Set.of("JPY", "USD", "KRW", "THB");
     private static final Set<String> SETTLEMENT_CURRENCIES = Set.of("THB", "USD", "JPY", "KRW");
+
+    /** 결제 페이지·관리 UI 표시 통화 셀렉트 순서({@link #DISPLAY_CURRENCIES}와 동일 구성). */
+    private static final List<String> DISPLAY_CURRENCY_UI_ORDER = List.of("THB", "JPY", "USD", "KRW");
 
     private static final ObjectMapper OM = new ObjectMapper();
 
@@ -57,6 +61,11 @@ public class UrlPayDisplayFxService {
     public boolean isHqFeatureEnabled() {
         JsonNode cfg = readHqFxJson();
         return cfg.path("enabled").asBoolean(false);
+    }
+
+    /** DISPLAY FX 견적·결제 폼에서 선택 가능한 표시 통화 코드(고정 순서). */
+    public List<String> allowedDisplayCurrencies() {
+        return DISPLAY_CURRENCY_UI_ORDER;
     }
 
     public int refreshSeconds() {
@@ -398,6 +407,13 @@ public class UrlPayDisplayFxService {
         if ("MANUAL".equals(fx)) {
             String set = defaultSettlementForBuild(pgNode);
             return resolveManualSettlementPerUnit(pgNode, set) != null;
+        }
+        /* AUTO: 표시·실결제가 같으면 환율 1:1 — BOT 불필요 */
+        String dispRaw = pgNode.path("displayCurrency").asText("JPY").trim().toUpperCase(Locale.ROOT);
+        String disp = DISPLAY_CURRENCIES.contains(dispRaw) ? dispRaw : "JPY";
+        String set = defaultSettlementForBuild(pgNode);
+        if (disp.equals(set)) {
+            return true;
         }
         return botThailandExchangeRateService.isConfigured();
     }

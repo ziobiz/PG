@@ -13,6 +13,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.Locale;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -33,6 +35,13 @@ public class ChillPayDirectCreditRecordService {
     private static final String STATUS_PAID = "10";
     /** OTP·추가 인증 대기 — 아직 매출 확정 아님 */
     private static final String STATUS_AUTH_PENDING = "08";
+
+    private static final Map<String, String> CHILL_ISO_NUM_TO_ALPHA = Map.of(
+            "392", "JPY",
+            "764", "THB",
+            "840", "USD",
+            "410", "KRW"
+    );
 
     private final PgTrnsctnRepository pgTrnsctnRepository;
     private final OrgUnitRepository orgUnitRepository;
@@ -55,10 +64,11 @@ public class ChillPayDirectCreditRecordService {
                                                 String requestCustomerId,
                                                 int routeNo,
                                                 String urlPayIntegrationMode,
-                                                String payerDisplayName) {
+                                                String payerDisplayName,
+                                                String checkoutCurrencyAlpha) {
         try {
             doRecord(merchantOrgUnitId, res, requestAmount, requestOrderNo, requestCustomerId, routeNo,
-                    urlPayIntegrationMode, payerDisplayName);
+                    urlPayIntegrationMode, payerDisplayName, checkoutCurrencyAlpha);
         } catch (Exception e) {
             log.warn("DirectCredit 거래 적재 실패 (결제 API 응답은 유지): {}", e.getMessage());
         }
@@ -71,7 +81,8 @@ public class ChillPayDirectCreditRecordService {
                           String requestCustomerId,
                           int routeNo,
                           String urlPayIntegrationMode,
-                          String payerDisplayName) {
+                          String payerDisplayName,
+                          String checkoutCurrencyAlpha) {
         if (res == null || res.getStatus() != 200 || res.getData() == null) {
             return;
         }
@@ -116,7 +127,7 @@ public class ChillPayDirectCreditRecordService {
         t.setMerchantId(merchantId);
         t.setServiceType(resolveUrlPayServiceType(urlPayIntegrationMode));
         t.setStatus(paid ? STATUS_PAID : STATUS_AUTH_PENDING);
-        t.setCurType("JPY");
+        t.setCurType(resolveCurTypeForStorage(d.getCurrency(), checkoutCurrencyAlpha));
         t.setAmtKrw(BigDecimal.valueOf(amountVal));
         t.setPayNo(payNo);
         t.setOrderNo(orderNo);
@@ -169,6 +180,36 @@ public class ChillPayDirectCreditRecordService {
         }
         String code = ou.get().getCode();
         return (code != null && !code.isBlank()) ? code.trim() : "UNKNOWN";
+    }
+
+    /**
+     * ChillPay 응답 Currency(문자·ISO 숫자) 우선, 없으면 요청 시 체크아웃 통화. 레거시 호환 기본 JPY.
+     */
+    private static String resolveCurTypeForStorage(String chillPayCurrency, String requestCurrency) {
+        String fromChill = normalizeCurrencyAlpha(chillPayCurrency);
+        if (fromChill != null) {
+            return fromChill;
+        }
+        String fromReq = normalizeCurrencyAlpha(requestCurrency);
+        if (fromReq != null) {
+            return fromReq;
+        }
+        return "JPY";
+    }
+
+    private static String normalizeCurrencyAlpha(String raw) {
+        if (raw == null || raw.isBlank()) {
+            return null;
+        }
+        String u = raw.trim().toUpperCase(Locale.ROOT);
+        if (CHILL_ISO_NUM_TO_ALPHA.containsKey(u)) {
+            return CHILL_ISO_NUM_TO_ALPHA.get(u);
+        }
+        if (u.length() == 3 && Character.isLetter(u.charAt(0)) && Character.isLetter(u.charAt(1))
+                && Character.isLetter(u.charAt(2))) {
+            return u;
+        }
+        return null;
     }
 
     private static String firstNonBlank(String a, String b) {

@@ -320,6 +320,14 @@ public class ApiHqController {
             pgRow = HQ_OBJECT_MAPPER.createObjectNode();
         }
         pgRow.put("amountMode", am);
+        if ("STANDARD".equals(am)) {
+            pgRow.remove("displayCurrency");
+            pgRow.remove("settlementCurrency");
+            pgRow.remove("fxMode");
+            pgRow.remove("manualThbPerUnit");
+            pgRow.remove("manualSettlementPerUnit");
+            pgRow.remove("marginRate");
+        }
         pgSettings.set(pgU, pgRow);
         c.setUrlPayDisplayFxJson(root.toString());
         hqApiConfigRepository.save(c);
@@ -1363,7 +1371,7 @@ public class ApiHqController {
         data.put("paymentProviderRegistryJson", "{\n  \"version\": 1,\n  \"vendors\": [\n    {\n      \"vendorCode\": \"CHILLPAY\",\n      \"vendorName\": \"칠리페이\",\n      \"integrationTypes\": [\"API_BROKER\", \"URL_PAY\"],\n      \"flowTypes\": [\"INLINE\", \"REDIRECT\"],\n      \"activeYn\": \"Y\"\n    }\n  ]\n}");
         data.put("payCurrencyScaleRulesJson", "{\"rules\":[]}");
         data.put("urlPayCardCopyConfigJson", "{\"entries\":[]}");
-        data.put("urlPayDisplayFxJson", "{\"enabled\":false,\"refreshSeconds\":600,\"quoteTtlSeconds\":600,\"marginByCurrency\":{\"JPY\":0,\"USD\":0,\"KRW\":0},\"pgSettings\":{}}");
+        data.put("urlPayDisplayFxJson", "{\"enabled\":false,\"refreshSeconds\":600,\"quoteTtlSeconds\":600,\"marginByCurrency\":{\"JPY\":0,\"USD\":0,\"KRW\":0,\"THB\":0},\"pgSettings\":{}}");
         hqApiConfigRepository.findAll().stream().findFirst().ifPresent(c -> {
             if (c.getBaseUrl() != null) data.put("baseUrl", c.getBaseUrl());
             if (c.getAuthType() != null) data.put("authType", c.getAuthType());

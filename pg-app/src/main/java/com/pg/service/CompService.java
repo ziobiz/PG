@@ -467,21 +467,10 @@ public class CompService {
                     .filter(o -> matchRegNo(o, regNo))
                     .collect(Collectors.toList());
         }
-        /* 목록 표시: 부모-자식 인접 DFS 대신 상위 조직(가맹점 제외) 전부 → 가맹점 전부(업체코드 순). 트리 접기/펼치기는 그대로 동작 */
-        Comparator<OrgUnit> compListCodeOrder = Comparator
-                .comparing((OrgUnit o) -> o.getCode() != null ? o.getCode().trim() : "", String.CASE_INSENSITIVE_ORDER)
-                .thenComparingLong(OrgUnit::getId);
-        List<OrgUnit> orgRows = filtered.stream()
-                .filter(o -> o.getOrgLevel() != OrgLevel.MERCHANT)
-                .sorted(compListCodeOrder)
-                .collect(Collectors.toCollection(ArrayList::new));
-        List<OrgUnit> merchantRows = filtered.stream()
-                .filter(o -> o.getOrgLevel() == OrgLevel.MERCHANT)
-                .sorted(compListCodeOrder)
-                .collect(Collectors.toCollection(ArrayList::new));
+        /* 목록 표시: 조직 트리 전위 순서(부모 직후 자식·가맹점). 형제는 업체코드 순 */
+        List<OrgUnit> ordered = sortFilteredOrgsAsHierarchyTree(filtered);
         filtered.clear();
-        filtered.addAll(orgRows);
-        filtered.addAll(merchantRows);
+        filtered.addAll(ordered);
         /* 그리드 들여쓰기: 트리 깊이가 아니라 조직 단계(OrgLevel 코드) 기준. 총판 직속 가맹점이 영업점과 같은 열에 붙는 문제 방지 */
         int minOrgLevelCodeInFiltered = 1;
         if (!filtered.isEmpty()) {
@@ -513,6 +502,58 @@ public class CompService {
         int totalPages = (size <= 0) ? 1 : (int) Math.ceil((double) Math.max(0, filtered.size()) / size);
         pr.setTotalPages(Math.max(1, totalPages));
         return pr;
+    }
+
+    /**
+     * 업체관리 목록: 필터 결과를 실제 parentId 기준 트리 전위 순으로 정렬.
+     * 가맹점은 상위 영업점·대리점 등 바로 아래에 나오며, 형제 간 순서는 업체코드(동일 시 id).
+     */
+    private List<OrgUnit> sortFilteredOrgsAsHierarchyTree(List<OrgUnit> filtered) {
+        if (filtered == null || filtered.isEmpty()) {
+            return new ArrayList<>();
+        }
+        Set<Long> idSet = filtered.stream().map(OrgUnit::getId).collect(Collectors.toSet());
+        Comparator<OrgUnit> byCode = Comparator
+                .comparing((OrgUnit o) -> o.getCode() != null ? o.getCode().trim() : "", String.CASE_INSENSITIVE_ORDER)
+                .thenComparingLong(OrgUnit::getId);
+        Map<Long, List<OrgUnit>> byParent = new HashMap<>();
+        for (OrgUnit o : filtered) {
+            Long pid = o.getParentId();
+            if (pid != null && idSet.contains(pid)) {
+                byParent.computeIfAbsent(pid, k -> new ArrayList<>()).add(o);
+            }
+        }
+        for (List<OrgUnit> lst : byParent.values()) {
+            lst.sort(byCode);
+        }
+        List<OrgUnit> roots = filtered.stream()
+                .filter(o -> o.getParentId() == null || !idSet.contains(o.getParentId()))
+                .sorted(byCode)
+                .collect(Collectors.toCollection(ArrayList::new));
+        List<OrgUnit> ordered = new ArrayList<>(filtered.size());
+        Set<Long> visited = new HashSet<>();
+        for (OrgUnit r : roots) {
+            appendOrgSubtreePreOrder(r, byParent, ordered, visited);
+        }
+        if (ordered.size() < filtered.size()) {
+            Set<Long> seen = ordered.stream().map(OrgUnit::getId).collect(Collectors.toSet());
+            filtered.stream()
+                    .filter(o -> !seen.contains(o.getId()))
+                    .sorted(byCode)
+                    .forEach(ordered::add);
+        }
+        return ordered;
+    }
+
+    private void appendOrgSubtreePreOrder(OrgUnit node, Map<Long, List<OrgUnit>> byParent,
+                                          List<OrgUnit> out, Set<Long> visited) {
+        if (node == null || !visited.add(node.getId())) {
+            return;
+        }
+        out.add(node);
+        for (OrgUnit c : byParent.getOrDefault(node.getId(), Collections.emptyList())) {
+            appendOrgSubtreePreOrder(c, byParent, out, visited);
+        }
     }
 
     /** 업체변경이력 — 필드 단위 로그 조회 */

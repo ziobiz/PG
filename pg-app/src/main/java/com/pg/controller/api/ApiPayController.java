@@ -3,6 +3,7 @@ package com.pg.controller.api;
 import com.pg.api.ApiResponse;
 import com.pg.dto.ChillPayDirectCreditResponse;
 import com.pg.entity.MerchantDefaultProduct;
+import com.pg.entity.MerchantProfile;
 import com.pg.entity.OrgBranding;
 import com.pg.entity.OrgLevel;
 import com.pg.entity.OrgUnit;
@@ -26,9 +27,12 @@ import java.math.RoundingMode;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 /**
  * 결제 API — ChillPay DirectCredit, JPAY {@code pay_index} 직접 호출 등.
@@ -79,6 +83,59 @@ public class ApiPayController {
             return orgUnitRepository.findByCode(compId.trim()).map(o -> o.getId()).orElse(null);
         }
         return null;
+    }
+
+    /** 가맹점 프로필 {@code base_currency} 첫 토큰(본사 다통화 comma 구분 대응). */
+    private Optional<String> firstProfileBaseCurrencyToken(Long orgUnitId) {
+        if (orgUnitId == null) {
+            return Optional.empty();
+        }
+        return merchantProfileRepository.findByOrgUnitId(orgUnitId)
+                .map(MerchantProfile::getBaseCurrency)
+                .filter(s -> s != null && !s.isBlank())
+                .map(s -> s.split(",")[0].trim())
+                .filter(s -> !s.isEmpty());
+    }
+
+    /**
+     * URL 결제 체크아웃 통화: 가맹점 기준화폐 → (상위 체인) 가장 가까운 총판 기준화폐 → 가장 가까운 본사 기준화폐 첫 값.
+     * 가맹점 레코드만 비어 있고 총판에 THB만 있는 경우에도 THB가 내려가 ChillPay·화면이 엔화로 고정되지 않습니다.
+     */
+    private Optional<String> resolveUrlPayCheckoutCurrencyCode(Long merchantOrgUnitId) {
+        Optional<String> own = firstProfileBaseCurrencyToken(merchantOrgUnitId);
+        if (own.isPresent()) {
+            return own;
+        }
+        Long cur = merchantOrgUnitId;
+        Set<Long> seen = new HashSet<>();
+        while (cur != null && seen.add(cur)) {
+            Optional<OrgUnit> ou = orgUnitRepository.findById(cur);
+            if (ou.isEmpty()) {
+                break;
+            }
+            OrgUnit u = ou.get();
+            if (u.getOrgLevel() == OrgLevel.MASTER_DIST) {
+                Optional<String> distCur = firstProfileBaseCurrencyToken(u.getId());
+                if (distCur.isPresent()) {
+                    return distCur;
+                }
+            }
+            cur = u.getParentId();
+        }
+        cur = merchantOrgUnitId;
+        seen.clear();
+        while (cur != null && seen.add(cur)) {
+            Optional<OrgUnit> ou = orgUnitRepository.findById(cur);
+            if (ou.isEmpty()) {
+                break;
+            }
+            OrgUnit u = ou.get();
+            if (u.getOrgLevel() == OrgLevel.REGIONAL) {
+                return firstProfileBaseCurrencyToken(u.getId());
+            }
+            cur = u.getParentId();
+        }
+        return Optional.empty();
     }
 
     /**
@@ -162,15 +219,8 @@ public class ApiPayController {
             // 본사 URL결제 프레젠테이션 이후에 덮어씀 — 향후 맵에 동일 키가 생겨도 가맹점 표시·기본상품이 유지되도록
             data.put("compId", ou.get().getCode());
             data.put("merchantName", ou.get().getName());
-            merchantProfileRepository.findByOrgUnitId(orgUnitId).ifPresent(mp -> {
-                String bc = mp.getBaseCurrency();
-                if (bc != null && !bc.isBlank()) {
-                    String first = bc.split(",")[0].trim();
-                    if (!first.isEmpty()) {
-                        data.put("checkoutCurrencyCode", first);
-                    }
-                }
-            });
+            resolveUrlPayCheckoutCurrencyCode(orgUnitId).ifPresent(cur ->
+                    data.put("checkoutCurrencyCode", cur.trim().toUpperCase(Locale.ROOT)));
             Optional<MerchantDefaultProduct> dp = merchantDefaultProductRepository.findByOrgUnitId(orgUnitId);
             if (dp.isPresent()) {
                 MerchantDefaultProduct p = dp.get();
@@ -193,6 +243,7 @@ public class ApiPayController {
                 String setCur = urlPayDisplayFxService.settlementCurrencyForPg(opPg);
                 data.put("urlPaySettlementCurrencyCode", setCur);
                 data.put("urlPayDisplayFxDefaultDisplayCurrency", urlPayDisplayFxService.defaultDisplayCurrencyForPg(opPg));
+                data.put("urlPayDisplayFxDisplayCurrencies", urlPayDisplayFxService.allowedDisplayCurrencies());
             } else {
                 data.put("urlPayDisplayFxActive", false);
             }
@@ -216,7 +267,7 @@ public class ApiPayController {
     }
 
     /**
-     * URL 결제 표시통화(JPY/USD)→THB 정산용 견적(BOT 일평균 + 본사 마진). 서명 토큰은 결제 요청 시 재검증됩니다.
+     * URL 결제 표시통화(JPY·USD·KRW·THB 등)→실결제 통화 견적(BOT 일평균 또는 1:1 + 본사 마진). 서명 토큰은 결제 요청 시 재검증됩니다.
      */
     @GetMapping("/chillpay/display-fx-quote")
     public ResponseEntity<ApiResponse<Map<String, Object>>> chillpayDisplayFxQuote(
@@ -408,7 +459,13 @@ public class ApiPayController {
             if (displayAmount == null || displayAmount.compareTo(BigDecimal.ZERO) <= 0) {
                 return ResponseEntity.ok(ApiResponse.fail("유효한 결제 금액을 입력하세요.", "INVALID_AMOUNT"));
             }
-            checkoutCurrencyCode = str(body, "currency");
+            String bodyCur = str(body, "currency");
+            checkoutCurrencyCode = resolveUrlPayCheckoutCurrencyCode(merchantOrgUnitId)
+                    .map(s -> s.trim().toUpperCase(Locale.ROOT))
+                    .orElse(bodyCur != null ? bodyCur.trim().toUpperCase(Locale.ROOT) : null);
+            if (checkoutCurrencyCode == null || checkoutCurrencyCode.isEmpty()) {
+                checkoutCurrencyCode = "JPY";
+            }
             pgAmount = paymentCurrencyScaleService.toPgAmount(displayAmount, opPg, checkoutCurrencyCode);
         }
         if (pgAmount == null || pgAmount.compareTo(BigDecimal.ZERO) <= 0) {
@@ -432,7 +489,7 @@ public class ApiPayController {
             long recordAmt = pgAmount.setScale(0, RoundingMode.HALF_UP).longValue();
             chillPayDirectCreditRecordService.recordAfterDirectCreditResponse(
                     merchantOrgUnitId, res, recordAmt, orderNo, customerId, payResult.routeUsed(),
-                    urlPayMode, payerName.isEmpty() ? null : payerName);
+                    urlPayMode, payerName.isEmpty() ? null : payerName, checkoutCurrencyCode);
             return ResponseEntity.ok(ApiResponse.ok(res));
         } catch (IllegalStateException e) {
             String msg = e.getMessage() != null ? e.getMessage() : "결제 요청 처리 중 오류가 발생했습니다.";

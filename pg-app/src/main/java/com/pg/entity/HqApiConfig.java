@@ -120,7 +120,7 @@ public class HqApiConfig {
 
     /**
      * URL 결제 「표시통화 → 실결제 THB」 본사 설정 JSON.
-     * 예: {@code {"enabled":true,"refreshSeconds":600,"marginByCurrency":{"JPY":0.01,"USD":0.02}}}
+     * 예: {@code {"enabled":true,"refreshSeconds":600,"marginByCurrency":{"JPY":0.01,"USD":0.02,"KRW":0,"THB":0}}}
      */
     @Column(name = "url_pay_display_fx_json", columnDefinition = "TEXT")
     private String urlPayDisplayFxJson;

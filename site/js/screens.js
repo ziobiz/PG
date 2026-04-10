@@ -474,9 +474,9 @@
             html: '<div id="hqDefaultCommissionFlash" class="alert alert-dismissible d-none mb-3" role="alert">' +
               '<span data-pg-banner-text></span>' +
               '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="닫기"></button></div>' +
-              '<p class="small text-muted mb-2 mb-md-1">헤더 1행은 <strong>수수료 고정</strong>·<strong>수수료 %</strong>·<strong>담보율</strong>·<strong>기타</strong> 묶음입니다. <strong>수수료 %</strong> 열은 숫자만 표시(단위 % 생략). 결제·USDT·FX·3DS·담보 비율은 승인금액 기준 %입니다. 표는 화면 너비에 맞춰 줄바꿈·말줄임으로 표시됩니다.</p>' +
+              '<p class="small text-muted mb-2 mb-md-1">헤더 1행은 <strong>수수료 고정</strong>·<strong>수수료 %</strong>·<strong>담보율</strong>·<strong>기타</strong> 묶음입니다. <strong>수수료 %</strong> 열은 숫자만 표시(단위 % 생략). 결제·USDT·FX·3DS·담보 비율은 승인금액 기준 %입니다. 열이 많아 표에 <strong>최소 너비</strong>를 두었으며, 화면이 좁으면 아래 표 영역을 <strong>가로 스크롤</strong>하여 전체 열을 볼 수 있습니다.</p>' +
               '<div class="table-responsive border rounded hq-default-comm-policy-scroll">' +
-              '<table class="table table-sm table-hover align-middle mb-0 hq-default-comm-policy-table">' +
+              '<table class="table table-sm table-hover align-middle mb-0 hq-default-comm-policy-table table-no-col-resize">' +
               '<colgroup>' +
               '<col class="hq-def-comm-col" /><col class="hq-def-comm-col" /><col class="hq-def-comm-col" /><col class="hq-def-comm-col" /><col class="hq-def-comm-col" /><col class="hq-def-comm-col" />' +
               '<col class="hq-def-comm-col" /><col class="hq-def-comm-col" /><col class="hq-def-comm-col" /><col class="hq-def-comm-col" /><col class="hq-def-comm-col" /><col class="hq-def-comm-col" /><col class="hq-def-comm-col" /><col class="hq-def-comm-col" /><col class="hq-def-comm-col" /><col class="hq-def-comm-col" />' +
@@ -976,14 +976,15 @@
       formSections: [
         {
           title: 'URL결제설정',
-          notice: 'API연동설정에서 <strong>연동용도 URL결제(Y)</strong>인 결제대행사만 아래 표에 나옵니다. DISPLAY 모드에서 <strong>표시 통화</strong>(JPY·USD·KRW)와 <strong>실결제 통화</strong>(THB·USD·JPY·KRW)를 PG별로 정하고, <strong>표시통화별 마진</strong>은 아래 JPY/USD/KRW에 둡니다. 환율 <strong>자동</strong>은 BOT 일평균을 THB 경유로 환산합니다(원화는 BOT에 KRW 행이 있어야 함). <strong>수동</strong>은 「실결제 금액 / 1표시단위」를 직접 입력합니다.',
+          notice: '<strong>일반형</strong>은 표시·실결제 통화·FX·수동 환산·행 마진을 쓰지 않으며, 결제는 해당 <strong>총판(조직)에 설정된 통화</strong>로 진행됩니다(이 화면에서 선택 불가). <strong>DISPLAY</strong>일 때만 표시 통화·실결제 통화·FX·수동 실결제/1표시·마진율을 PG별로 설정합니다. 아래 <strong>표시→실결제(FX) 기능</strong>·견적 주기·<strong>마진 JPY/USD/KRW/THB(표시)</strong>는 DISPLAY 모드를 쓰는 PG가 <strong>하나라도 있을 때만</strong> 활성화됩니다. 실결제 통화가 표시와 다를 때는 BOT 일평균(THB 경유)으로 환산하고, <strong>표시=실결제</strong>(예: 둘 다 THB)이면 1:1입니다. <strong>수동</strong>은 「실결제 금액 / 1표시단위」를 직접 입력합니다.',
           rows: [
             [{ label: '표시→실결제(FX) 기능', type: 'select', name: '_urlPayFxUiEnabled', options: [{ v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }], col: 2 },
              { label: '견적 갱신(초)', type: 'text', name: '_urlPayFxUiRefresh', col: 2, placeholder: '600' },
              { label: '견적 TTL(초)', type: 'text', name: '_urlPayFxUiTtl', col: 2, placeholder: '600' }],
             [{ label: '마진 JPY(표시)', type: 'text', name: '_urlPayFxUiMarginJpy', col: 2, placeholder: '0' },
              { label: '마진 USD(표시)', type: 'text', name: '_urlPayFxUiMarginUsd', col: 2, placeholder: '0' },
-             { label: '마진 KRW(표시)', type: 'text', name: '_urlPayFxUiMarginKrw', col: 2, placeholder: '0' }],
+             { label: '마진 KRW(표시)', type: 'text', name: '_urlPayFxUiMarginKrw', col: 2, placeholder: '0' },
+             { label: '마진 THB(표시)', type: 'text', name: '_urlPayFxUiMarginThb', col: 2, placeholder: '0' }],
             [{
               type: 'customHtml',
               col: 12,

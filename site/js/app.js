@@ -8495,8 +8495,8 @@
             : '<td class="hq-def-comm-policy-td-cbzone small"></td>';
           h += '<tr class="hq-default-comm-policy-row' + active + '" data-scope="' + esc + '" style="cursor:pointer" title="클릭하여 이 정책 불러오기">';
           h += '<td class="text-center align-middle hq-def-comm-chk-cell"><input type="checkbox" class="form-check-input hq-def-comm-row-chk m-0 align-middle" data-scope="' + esc + '" aria-label="행 선택"></td>';
-          h += '<td class="font-monospace hq-def-comm-policy-td-code text-nowrap">' + String(shortCode).replace(/&/g, '&amp;').replace(/</g, '&lt;') + '</td><td class="hq-def-comm-policy-td-name small align-middle" title="' + escAttr(rawName) + '">' + nm + '</td>' + cbZoneTd + '<td>' + dep + '</td>';
-          h += '<td class="font-monospace small">' + escH(cur) + '</td>';
+          h += '<td class="font-monospace hq-def-comm-policy-td-code text-nowrap">' + String(shortCode).replace(/&/g, '&amp;').replace(/</g, '&lt;') + '</td><td class="hq-def-comm-policy-td-name small align-middle" title="' + escAttr(rawName) + '">' + nm + '</td>' + cbZoneTd + '<td class="hq-def-comm-policy-td-deploy text-center align-middle">' + dep + '</td>';
+          h += '<td class="font-monospace small hq-def-comm-policy-td-cur text-center align-middle">' + escH(cur) + '</td>';
           h += tdAmt(nzStr(t, 'perTxFee', ''), 'border-start');
           h += tdAmt(nzStr(t, 'failFee', ''));
           h += tdAmt(nzStr(t, 'feeSettlementPerTx', ''));
@@ -11509,11 +11509,66 @@
       function normPgUrlPayDep(cd) {
         return String(cd || '').trim().toUpperCase();
       }
+      function hasAnyUrlPayDeployDisplayMode() {
+        if (!tbodyUp) return false;
+        var sels = tbodyUp.querySelectorAll('.hq-upd-amode');
+        for (var i = 0; i < sels.length; i++) {
+          if (String(sels[i].value || '').toUpperCase() === 'DISPLAY') return true;
+        }
+        return false;
+      }
+      function setUrlPayDeployRowFxControlsEnabled(tr) {
+        var am = tr.querySelector('.hq-upd-amode');
+        var disp = am && String(am.value || '').toUpperCase() === 'DISPLAY';
+        var tip = disp ? '' : '일반형: 총판(조직) 설정 통화로 결제되며 이 항목은 적용되지 않습니다.';
+        ['hq-upd-dcur', 'hq-upd-scur', 'hq-upd-fx'].forEach(function (cls) {
+          var el = tr.querySelector('.' + cls);
+          if (el) {
+            el.disabled = !disp;
+            el.title = tip;
+          }
+        });
+        var mn = tr.querySelector('.hq-upd-manual');
+        var mr = tr.querySelector('.hq-upd-mrg');
+        if (mn) {
+          mn.disabled = !disp;
+          mn.title = tip;
+        }
+        if (mr) {
+          mr.disabled = !disp;
+          mr.title = tip;
+        }
+      }
+      function refreshUrlPayDeployGlobalFxControls() {
+        var on = hasAnyUrlPayDeployDisplayMode();
+        var gTip = on ? '' : 'DISPLAY 모드 PG가 없어 비활성화됩니다. 일반형만 있으면 총판 통화로 결제됩니다.';
+        ['_urlPayFxUiEnabled', '_urlPayFxUiRefresh', '_urlPayFxUiTtl', '_urlPayFxUiMarginJpy', '_urlPayFxUiMarginUsd', '_urlPayFxUiMarginKrw', '_urlPayFxUiMarginThb'].forEach(function (nm) {
+          var el = pane.querySelector('[name="' + nm + '"]');
+          if (el) {
+            el.disabled = !on;
+            el.title = gTip;
+          }
+        });
+      }
+      function bindUrlPayDeployAmountModeChange() {
+        if (!tbodyUp || tbodyUp._hqUrlPayDepAmodeBound) return;
+        tbodyUp._hqUrlPayDepAmodeBound = true;
+        tbodyUp.addEventListener('change', function (ev) {
+          var t = ev.target;
+          if (t && t.classList && t.classList.contains('hq-upd-amode')) {
+            var tr = t.closest('tr');
+            if (tr) setUrlPayDeployRowFxControlsEnabled(tr);
+            refreshUrlPayDeployGlobalFxControls();
+          }
+        });
+      }
       function renderUrlPayDeployPgTable(urlPayPgs, fxObj) {
         if (!tbodyUp) return;
         var pgSet = fxObj.pgSettings && typeof fxObj.pgSettings === 'object' ? fxObj.pgSettings : {};
         if (!urlPayPgs.length) {
           tbodyUp.innerHTML = '<tr><td colspan="7" class="text-muted text-center py-3 small">URL결제(Y)로 등록된 PG가 없습니다. API연동설정에서 연동용도를 확인하세요.</td></tr>';
+          refreshUrlPayDeployGlobalFxControls();
+          bindUrlPayDeployAmountModeChange();
           return;
         }
         var html = '';
@@ -11524,7 +11579,7 @@
           var row = pgSet[cdU] || pgSet[cd] || {};
           var mode = String(row.amountMode || 'STANDARD').toUpperCase() === 'DISPLAY' ? 'DISPLAY' : 'STANDARD';
           var disp = String(row.displayCurrency || 'JPY').toUpperCase();
-          if (disp !== 'USD' && disp !== 'KRW') disp = 'JPY';
+          if (['JPY', 'USD', 'KRW', 'THB'].indexOf(disp) < 0) disp = 'JPY';
           var setc = String(row.settlementCurrency || 'THB').toUpperCase();
           if (['THB', 'USD', 'JPY', 'KRW'].indexOf(setc) < 0) setc = 'THB';
           var fxm = String(row.fxMode || 'AUTO').toUpperCase() === 'MANUAL' ? 'MANUAL' : 'AUTO';
@@ -11542,6 +11597,7 @@
             '<option value="STANDARD"' + (mode === 'STANDARD' ? ' selected' : '') + '>일반형</option>' +
             '<option value="DISPLAY"' + (mode === 'DISPLAY' ? ' selected' : '') + '>DISPLAY</option></select></td>' +
             '<td><select class="form-select form-select-sm hq-upd-dcur" data-pg="' + escUrlPayDep(cdU) + '">' +
+            '<option value="THB"' + (disp === 'THB' ? ' selected' : '') + '>THB</option>' +
             '<option value="JPY"' + (disp === 'JPY' ? ' selected' : '') + '>JPY</option>' +
             '<option value="USD"' + (disp === 'USD' ? ' selected' : '') + '>USD</option>' +
             '<option value="KRW"' + (disp === 'KRW' ? ' selected' : '') + '>KRW</option></select></td>' +
@@ -11558,12 +11614,18 @@
             '</tr>';
         });
         tbodyUp.innerHTML = html;
+        tbodyUp.querySelectorAll('tr[data-pg-cd]').forEach(function (tr) {
+          setUrlPayDeployRowFxControlsEnabled(tr);
+        });
+        refreshUrlPayDeployGlobalFxControls();
+        bindUrlPayDeployAmountModeChange();
       }
       function collectUrlPayDeployFxJson() {
         var o = parseFxObjUrlPayDep(hqSnapDeploy && hqSnapDeploy.urlPayDisplayFxJson);
         o.marginByCurrency = Object.assign({}, o.marginByCurrency || {});
+        var anyDisplay = hasAnyUrlPayDeployDisplayMode();
         var enEl = pane.querySelector('[name="_urlPayFxUiEnabled"]');
-        o.enabled = enEl && enEl.value === 'Y';
+        o.enabled = anyDisplay && enEl && enEl.value === 'Y';
         var rs = parseInt(String((pane.querySelector('[name="_urlPayFxUiRefresh"]') || {}).value || '600'), 10);
         var ttl = parseInt(String((pane.querySelector('[name="_urlPayFxUiTtl"]') || {}).value || '600'), 10);
         o.refreshSeconds = isNaN(rs) ? 600 : Math.max(60, Math.min(3600, rs));
@@ -11577,9 +11639,11 @@
         var mj = pane.querySelector('[name="_urlPayFxUiMarginJpy"]');
         var mu = pane.querySelector('[name="_urlPayFxUiMarginUsd"]');
         var mk = pane.querySelector('[name="_urlPayFxUiMarginKrw"]');
+        var mtb = pane.querySelector('[name="_urlPayFxUiMarginThb"]');
         o.marginByCurrency.JPY = parseMargUrlPayDep(mj, 0);
         o.marginByCurrency.USD = parseMargUrlPayDep(mu, 0);
         o.marginByCurrency.KRW = parseMargUrlPayDep(mk, 0);
+        o.marginByCurrency.THB = parseMargUrlPayDep(mtb, 0);
         var nextPg = {};
         tbodyUp.querySelectorAll('tr[data-pg-cd]').forEach(function (tr) {
           var cdU = tr.getAttribute('data-pg-cd');
@@ -11592,16 +11656,18 @@
           var setC = sc && sc.value ? String(sc.value).trim().toUpperCase() : 'THB';
           if (['THB', 'USD', 'JPY', 'KRW'].indexOf(setC) < 0) setC = 'THB';
           var manualRaw = mn ? String(mn.value || '').trim() : '';
+          var dCur = dc && dc.value ? String(dc.value).trim().toUpperCase() : 'JPY';
+          if (['JPY', 'USD', 'KRW', 'THB'].indexOf(dCur) < 0) dCur = 'JPY';
           var st = {
             amountMode: am && am.value ? am.value : 'STANDARD',
-            displayCurrency: dc && dc.value ? dc.value : 'JPY',
+            displayCurrency: dCur,
             settlementCurrency: setC,
             fxMode: fx && fx.value ? fx.value : 'AUTO',
             manualRaw: manualRaw,
             marginRate: mr ? String(mr.value || '').trim() : ''
           };
           if (st.amountMode === 'STANDARD') {
-            nextPg[cdU] = { amountMode: 'STANDARD', displayCurrency: st.displayCurrency, settlementCurrency: st.settlementCurrency };
+            nextPg[cdU] = { amountMode: 'STANDARD' };
           } else {
             var rowObj = {
               amountMode: 'DISPLAY',
@@ -11630,6 +11696,7 @@
         var mj = pane.querySelector('[name="_urlPayFxUiMarginJpy"]');
         var mu = pane.querySelector('[name="_urlPayFxUiMarginUsd"]');
         var mk = pane.querySelector('[name="_urlPayFxUiMarginKrw"]');
+        var mtb = pane.querySelector('[name="_urlPayFxUiMarginThb"]');
         if (en) en.value = fxObj.enabled === true ? 'Y' : 'N';
         if (rs) rs.value = fxObj.refreshSeconds != null ? String(fxObj.refreshSeconds) : '600';
         if (ttl) ttl.value = fxObj.quoteTtlSeconds != null ? String(fxObj.quoteTtlSeconds) : '600';
@@ -11637,6 +11704,7 @@
         if (mj) mj.value = mb.JPY != null ? String(mb.JPY) : '0';
         if (mu) mu.value = mb.USD != null ? String(mb.USD) : '0';
         if (mk) mk.value = mb.KRW != null ? String(mb.KRW) : '0';
+        if (mtb) mtb.value = mb.THB != null ? String(mb.THB) : '0';
       }
       if (dimmUp) dimmUp.style.display = 'flex';
       Promise.all([

@@ -2711,72 +2711,25 @@ button.pay-follow.pay-follow--off {
   cursor: pointer;
 }
 
-/* 수수료설정: 가맹점 수수료 정책 목록 — 컨테이너 너비에 맞춤(가로 스크롤 없음) */
+/* 수수료설정: 가맹점 수수료 정책 목록 — 최소 너비 확보, 좁은 영역에서는 가로 스크롤 */
 .hq-default-comm-policy-scroll.table-responsive {
-  overflow-x: visible;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  max-width: 100%;
 }
 .hq-default-comm-policy-scroll {
   max-width: 100%;
 }
 .hq-default-comm-policy-table {
   width: 100%;
-  max-width: 100%;
-  min-width: 0;
-  table-layout: fixed;
+  min-width: 76rem;
+  max-width: none;
+  table-layout: auto;
 }
 
-/* colgroup 28열 — 비율 합계 100% (table-layout:fixed) */
-.hq-default-comm-policy-table col:nth-child(1) {
-  width: 2.5%;
-}
-.hq-default-comm-policy-table col:nth-child(2) {
-  width: 3.5%;
-}
-.hq-default-comm-policy-table col:nth-child(3) {
-  width: 10.6%;
-}
-.hq-default-comm-policy-table col:nth-child(4) {
-  width: 7.5%;
-}
-.hq-default-comm-policy-table col:nth-child(5) {
-  width: 3.5%;
-}
-.hq-default-comm-policy-table col:nth-child(6) {
-  width: 2.8%;
-}
-.hq-default-comm-policy-table col:nth-child(7),
-.hq-default-comm-policy-table col:nth-child(8),
-.hq-default-comm-policy-table col:nth-child(9),
-.hq-default-comm-policy-table col:nth-child(10),
-.hq-default-comm-policy-table col:nth-child(11),
-.hq-default-comm-policy-table col:nth-child(12),
-.hq-default-comm-policy-table col:nth-child(13),
-.hq-default-comm-policy-table col:nth-child(14),
-.hq-default-comm-policy-table col:nth-child(15),
-.hq-default-comm-policy-table col:nth-child(16) {
-  width: 3.35%;
-}
-.hq-default-comm-policy-table col:nth-child(17),
-.hq-default-comm-policy-table col:nth-child(18),
-.hq-default-comm-policy-table col:nth-child(19),
-.hq-default-comm-policy-table col:nth-child(20) {
-  width: 2.6%;
-}
-.hq-default-comm-policy-table col:nth-child(21),
-.hq-default-comm-policy-table col:nth-child(22) {
-  width: 2.5%;
-}
-.hq-default-comm-policy-table col:nth-child(23) {
-  width: 2.8%;
-}
-.hq-default-comm-policy-table col:nth-child(24),
-.hq-default-comm-policy-table col:nth-child(25),
-.hq-default-comm-policy-table col:nth-child(26),
-.hq-default-comm-policy-table col:nth-child(27) {
-  width: 2.85%;
-}
-.hq-default-comm-policy-table col:nth-child(28) {
-  width: 6.5%;
+/* colgroup은 자동 배치(고정 % 없음) */
+.hq-default-comm-policy-table col.hq-def-comm-col {
+  width: auto;
 }
 
 .hq-default-comm-policy-table > thead > tr > th,
@@ -2819,8 +2772,8 @@ button.pay-follow.pay-follow--off {
   text-align: left;
 }
 .hq-default-comm-policy-table td.hq-def-comm-policy-td-name {
-  min-width: 0;
-  max-width: none;
+  min-width: 9rem;
+  max-width: 18rem;
   white-space: normal;
   word-break: break-word;
   text-align: left;
@@ -2833,29 +2786,43 @@ button.pay-follow.pay-follow--off {
 .hq-default-comm-policy-table .hq-def-comm-th-group {
   font-weight: 600;
   letter-spacing: -0.02em;
+  white-space: nowrap;
 }
 .hq-default-comm-policy-table .hq-def-comm-th-sub {
-  font-size: 0.65rem;
+  font-size: 0.7rem;
   font-weight: 600;
+  white-space: nowrap;
+  word-break: normal;
+  padding-top: 0.4rem;
+  padding-bottom: 0.4rem;
+  line-height: 1.2;
+  min-width: 2.65rem;
+}
+.hq-default-comm-policy-table thead th[rowspan="2"].hq-def-comm-th-name {
+  min-width: 9rem;
+}
+.hq-default-comm-policy-table thead th[rowspan="2"].hq-def-comm-th-cb-zone {
+  min-width: 4.5rem;
   white-space: normal;
-  word-break: keep-all;
-  line-break: strict;
-  hyphens: none;
-  padding-top: 0.35rem;
-  padding-bottom: 0.35rem;
-  line-height: 1.15;
+}
+.hq-default-comm-policy-table thead th[rowspan="2"].hq-def-comm-th-deploy,
+.hq-default-comm-policy-table thead th[rowspan="2"].hq-def-comm-th-cur {
+  white-space: nowrap;
+  min-width: 3.25rem;
+}
+.hq-default-comm-policy-table thead th[rowspan="2"].hq-def-comm-th-mon {
+  min-width: 3rem;
+  white-space: nowrap;
 }
 .hq-def-comm-policy-td-num {
   text-align: center;
   white-space: nowrap;
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   font-variant-numeric: tabular-nums;
   vertical-align: middle;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  padding-left: 0.2rem;
-  padding-right: 0.2rem;
+  min-width: 2.75rem;
+  padding-left: 0.28rem;
+  padding-right: 0.28rem;
 }
 .hq-def-comm-policy-td-cbzone {
   vertical-align: middle;
@@ -2864,6 +2831,14 @@ button.pay-follow.pay-follow--off {
   max-width: none;
   white-space: nowrap;
   font-size: 0.72rem;
+}
+.hq-def-comm-policy-td-deploy {
+  min-width: 4.25rem;
+  vertical-align: middle;
+}
+.hq-def-comm-policy-td-cur {
+  min-width: 3.35rem;
+  vertical-align: middle;
 }
 .hq-def-comm-policy-td-extra-slot {
   text-align: center;

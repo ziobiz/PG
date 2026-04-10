@@ -55,6 +55,7 @@
           <label class="pay-row-label mb-0" for="payDisplayCurrencySelect"><span data-i18n="fxDisplayCurrency">Display currency</span></label>
           <div class="pay-row-value">
             <select class="form-select form-select-sm pay-input-round" id="payDisplayCurrencySelect" form="payForm">
+              <option value="THB">THB</option>
               <option value="JPY">JPY</option>
               <option value="USD">USD</option>
               <option value="KRW">KRW</option>
@@ -1134,15 +1135,23 @@
         if (note) note.classList.remove('d-none');
         var sc = document.getElementById('payDisplayCurrencySelect');
         if (sc && checkoutCtx) {
+          var allowed = checkoutCtx.urlPayDisplayFxDisplayCurrencies;
+          var codes = Array.isArray(allowed) && allowed.length
+            ? allowed.map(function (c) { return String(c || '').trim().toUpperCase(); }).filter(Boolean)
+            : ['THB', 'JPY', 'USD', 'KRW'];
+          if (codes.length) {
+            sc.innerHTML = codes.map(function (u) {
+              return '<option value="' + u + '">' + u + '</option>';
+            }).join('');
+          }
           var defFx = checkoutCtx.urlPayDisplayFxDefaultDisplayCurrency != null
             ? String(checkoutCtx.urlPayDisplayFxDefaultDisplayCurrency).trim().toUpperCase() : '';
-          if (defFx === 'USD' || defFx === 'JPY' || defFx === 'KRW') {
-            sc.value = defFx;
-          } else {
-            var cc = String(checkoutCtx.checkoutCurrencyCode || 'JPY').trim().toUpperCase();
-            if (cc === 'USD' || cc === 'KRW') sc.value = cc;
-            else sc.value = 'JPY';
+          var pick = codes.indexOf(defFx) >= 0 ? defFx : '';
+          if (!pick) {
+            var cc = String(checkoutCtx.checkoutCurrencyCode || '').trim().toUpperCase();
+            pick = codes.indexOf(cc) >= 0 ? cc : (codes[0] || 'JPY');
           }
+          sc.value = pick;
         }
         updatePayFxCurrencyHint();
         if (sc && !sc._payFxBound) {
