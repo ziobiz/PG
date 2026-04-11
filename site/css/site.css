@@ -3178,10 +3178,15 @@ button.pay-follow.pay-follow--off {
   max-width: 19rem;
 }
 
-/* 본사설정 > 노티수령정보: 오류메시지 전체 표시(줄바꿈·가로 스크롤은 .table-responsive) */
+/* 본사설정 > 노티수령정보: 표 셀 가운데 정렬(table-form-ui), 오류열은 폭 제한·말줄임 */
+#hqNotifyInboundTable > thead > tr > th,
+#hqNotifyInboundTable > tbody > tr > td {
+  text-align: center;
+  vertical-align: middle;
+}
 #hqNotifyInboundTable .hq-ni-th-error,
 #hqNotifyInboundTable .hq-ni-td-error {
-  vertical-align: top;
+  max-width: 11rem;
 }
 #hqNotifyInboundTable .hq-ni-td-error {
   line-height: 1.35;

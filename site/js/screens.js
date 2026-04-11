@@ -650,7 +650,7 @@
       formSections: [
         {
           title: '노티 수령 정보',
-          notice: '노티미들웨어·PG(칠페이 등)가 본 시스템의 노티 수신 URL(<code>/api/open/pg-notify/…</code>)로 전송한 요청을 저장한 로그입니다. 목록의 채널 열은 수신 경로 정보 표시용입니다. 대상코드·채널은 신규 수신 건부터 채워집니다(V72).',
+          notice: '노티미들웨어·PG(칠페이 등)가 본 시스템의 노티 수신 URL(<code>/api/open/pg-notify/…</code>)로 전송한 요청을 저장한 로그입니다. 목록의 채널 열은 수신 경로 정보 표시용입니다. 대상코드·채널은 신규 수신 건부터 채워집니다(V72). <strong>수신성격</strong>은 NOTI가 요청 시 <code>X-Icopay-Notify-Delivery: LIVE|RETRY</code> 또는 <code>X-Noti-Attempt</code>(1=라이브, 2+=재전송) 헤더를 보낼 때만 구분되며, 없으면 「미표시」입니다.',
           rows: [
             [{ type: 'customHtml', col: 12, html: '<div class="row g-2 align-items-end mb-2 ni-inbound-toolbar">' +
               '<div class="col-6 col-md-2"><label class="form-label small mb-0">수신일(부터)</label><input type="date" name="niSearchFrom" class="form-control form-control-sm" autocomplete="off"></div>' +
@@ -663,9 +663,9 @@
               '<option value="">전체</option><option value="CALL">CALL (Callback URL)</option><option value="RESULT">RESULT (Result URL)</option><option value="BOTH">BOTH (전체)</option></select></div>' +
               '<div class="col-6 col-md-1 d-grid"><label class="form-label small mb-0 d-none d-md-block">&nbsp;</label><button type="button" id="hqNotifyInboundSearchBtn" class="btn btn-primary btn-sm">조회</button></div></div>' +
               '<div class="table-responsive border rounded"><table class="table table-sm table-bordered align-middle mb-0" id="hqNotifyInboundTable">' +
-              '<thead class="table-light"><tr><th class="text-end" style="width:3.5rem">ID</th><th class="text-nowrap" style="width:10rem">수신시각</th><th style="width:4.5rem">채널</th><th style="width:5.5rem">대상코드</th><th style="width:7rem">MID</th><th style="width:4rem">루트</th>' +
-              '<th style="width:7rem">승인번호</th><th style="width:7rem">가맹점코드</th><th style="width:7.5rem">결제·처리</th><th class="hq-ni-th-error" style="min-width:28rem">오류메시지</th><th style="min-width:14rem">본문 미리보기</th><th class="text-center" style="width:4rem">보기</th></tr></thead>' +
-              '<tbody id="hqNotifyInboundTbody"><tr><td colspan="12" class="text-center text-muted py-4">[조회]를 누르세요.</td></tr></tbody></table></div>' +
+              '<thead class="table-light"><tr><th style="width:3.5rem">ID</th><th class="text-nowrap" style="width:10rem">수신시각</th><th style="width:4.5rem">채널</th><th style="width:5.5rem">대상코드</th><th style="width:7rem">MID</th><th style="width:4rem">루트</th>' +
+              '<th style="width:7rem">승인번호</th><th style="width:7rem">가맹점코드</th><th style="width:7.5rem">결제·처리</th><th style="width:5.5rem">수신성격</th><th class="hq-ni-th-error" style="width:11rem;max-width:11rem">오류메시지</th><th style="min-width:14rem">본문 미리보기</th><th class="text-center" style="width:4rem">보기</th></tr></thead>' +
+              '<tbody id="hqNotifyInboundTbody"><tr><td colspan="13" class="text-center text-muted py-4">[조회]를 누르세요.</td></tr></tbody></table></div>' +
               '<div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mt-2 mb-1">' +
               '<span class="small text-muted" id="hqNiPagingInfo">—</span>' +
               '<div class="btn-group"><button type="button" class="btn btn-sm btn-outline-secondary" id="hqNiPrevBtn">이전</button>' +

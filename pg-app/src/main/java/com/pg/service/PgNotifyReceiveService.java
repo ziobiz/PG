@@ -19,6 +19,7 @@ import com.pg.repository.OrgUnitRepository;
 import com.pg.repository.PgAgencyRepository;
 import com.pg.repository.PgNotifyInboundRepository;
 import com.pg.repository.PgTrnsctnRepository;
+import com.pg.util.NotifyIngressDeliveryKindResolver;
 import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -215,6 +216,7 @@ public class PgNotifyReceiveService {
         String channelType = resolveNotifyChannelType(notifyTargetCode);
         in.setNotifyChannelType(channelType);
         in.setNotifyTargetCode(trimNotifyTargetCode(notifyTargetCode));
+        in.setIngressDeliveryKind(NotifyIngressDeliveryKindResolver.resolve(request));
 
         resolveAndFillInbound(in, parsed);
         inboundRepository.save(in);

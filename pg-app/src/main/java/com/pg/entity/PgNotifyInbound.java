@@ -48,6 +48,10 @@ public class PgNotifyInbound {
     @Column(name = "notify_channel_type", length = 20)
     private String notifyChannelType;
 
+    /** LIVE=실시간 최초, RETRY=재전송, UNKNOWN=헤더 없음(V83) */
+    @Column(name = "ingress_delivery_kind", length = 16)
+    private String ingressDeliveryKind;
+
     @Column(name = "process_status", length = 20)
     private String processStatus = "RECEIVED";
 
@@ -84,6 +88,8 @@ public class PgNotifyInbound {
     public void setNotifyTargetCode(String notifyTargetCode) { this.notifyTargetCode = notifyTargetCode; }
     public String getNotifyChannelType() { return notifyChannelType; }
     public void setNotifyChannelType(String notifyChannelType) { this.notifyChannelType = notifyChannelType; }
+    public String getIngressDeliveryKind() { return ingressDeliveryKind; }
+    public void setIngressDeliveryKind(String ingressDeliveryKind) { this.ingressDeliveryKind = ingressDeliveryKind; }
     public String getProcessStatus() { return processStatus; }
     public void setProcessStatus(String processStatus) { this.processStatus = processStatus; }
     public String getErrorMessage() { return errorMessage; }

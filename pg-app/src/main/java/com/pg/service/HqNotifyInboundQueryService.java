@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.pg.api.dto.PageResult;
 import com.pg.entity.PgNotifyInbound;
 import com.pg.repository.PgNotifyInboundRepository;
+import com.pg.util.NotifyIngressDeliveryKindResolver;
 import jakarta.persistence.criteria.CriteriaBuilder;
 import jakarta.persistence.criteria.Predicate;
 import jakarta.persistence.criteria.Root;
@@ -132,6 +133,9 @@ public class HqNotifyInboundQueryService {
         m.put("createdAt", in.getCreatedAt() != null ? in.getCreatedAt().toString() : "");
         m.put("notifyTargetCode", blankToDash(in.getNotifyTargetCode()));
         m.put("notifyChannelType", blankToDash(in.getNotifyChannelType()));
+        String idk = ingressDeliveryKindNorm(in.getIngressDeliveryKind());
+        m.put("ingressDeliveryKind", idk);
+        m.put("ingressDeliveryKindLabel", ingressDeliveryKindLabelKo(idk));
         m.put("mid", blankToDash(in.getMid()));
         m.put("rootNo", blankToDash(in.getRootNo()));
         m.put("merchantId", blankToDash(in.getMerchantId()));
@@ -154,8 +158,8 @@ public class HqNotifyInboundQueryService {
             m.put("rawTruncated", false);
         }
         String err = in.getErrorMessage();
-        if (err != null && err.length() > 200) {
-            m.put("errorMessage", err.substring(0, 200) + "…");
+        if (err != null && err.length() > 120) {
+            m.put("errorMessage", err.substring(0, 120) + "…");
         } else {
             m.put("errorMessage", err != null ? err : "");
         }
@@ -178,6 +182,30 @@ public class HqNotifyInboundQueryService {
             return "";
         }
         return s.trim();
+    }
+
+    private static String ingressDeliveryKindNorm(String raw) {
+        if (raw == null || raw.isBlank()) {
+            return NotifyIngressDeliveryKindResolver.UNKNOWN;
+        }
+        String u = raw.trim().toUpperCase(Locale.ROOT);
+        if (NotifyIngressDeliveryKindResolver.LIVE.equals(u)) {
+            return NotifyIngressDeliveryKindResolver.LIVE;
+        }
+        if (NotifyIngressDeliveryKindResolver.RETRY.equals(u)) {
+            return NotifyIngressDeliveryKindResolver.RETRY;
+        }
+        return NotifyIngressDeliveryKindResolver.UNKNOWN;
+    }
+
+    private static String ingressDeliveryKindLabelKo(String code) {
+        if (NotifyIngressDeliveryKindResolver.LIVE.equals(code)) {
+            return "라이브";
+        }
+        if (NotifyIngressDeliveryKindResolver.RETRY.equals(code)) {
+            return "재전송";
+        }
+        return "미표시";
     }
 
     /** DB {@code process_status} — 목록·상세에서 본문 기반 결제상태와 구분해 표시 */

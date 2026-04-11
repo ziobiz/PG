@@ -9919,11 +9919,12 @@
         niTotalPages = (data && data.totalPages) ? Math.max(1, data.totalPages) : 1;
         var list = (data && data.list) ? data.list : [];
         if (list.length === 0) {
-          tbody.innerHTML = '<tr><td colspan="12" class="text-center text-muted py-4">조회된 노티가 없습니다.</td></tr>';
+          tbody.innerHTML = '<tr><td colspan="13" class="text-center text-muted py-4">조회된 노티가 없습니다.</td></tr>';
         } else {
           tbody.innerHTML = list.map(function (r) {
+            var ingLab = r.ingressDeliveryKindLabel != null ? String(r.ingressDeliveryKindLabel) : '미표시';
             return '<tr class="hq-ni-row" data-id="' + escNi(r.id) + '">' +
-              '<td class="text-end small">' + escNi(r.id) + '</td>' +
+              '<td class="small">' + escNi(r.id) + '</td>' +
               '<td class="small text-nowrap">' + escNi(r.createdAt) + '</td>' +
               '<td class="small">' + escNi(formatNiNotifyChannelDisplay(r.notifyChannelType)) + '</td>' +
               '<td class="small font-monospace">' + escNi(r.notifyTargetCode) + '</td>' +
@@ -9934,7 +9935,8 @@
               '<td class="small" style="white-space:normal;line-height:1.25">' +
               '<span class="text-nowrap">결제 ' + escNi(r.paymentStatusLabel != null ? r.paymentStatusLabel : r.processStatus) + '</span>' +
               '<br><span class="text-muted small text-nowrap">처리 ' + escNi(r.parseStatusLabel != null ? r.parseStatusLabel : '—') + '</span></td>' +
-              '<td class="small hq-ni-td-error" style="white-space:normal;word-break:break-word;min-width:28rem" title="' + escNi(r.errorMessage) + '">' + escNi(r.errorMessage) + '</td>' +
+              '<td class="small text-nowrap text-center" title="' + escNi(r.ingressDeliveryKind || '') + '">' + escNi(ingLab) + '</td>' +
+              '<td class="small hq-ni-td-error text-truncate" style="max-width:11rem" title="' + escNi(r.errorMessage) + '">' + escNi(r.errorMessage) + '</td>' +
               '<td class="small text-truncate" style="max-width:18rem" title="' + escNi(r.rawPreview) + '">' + escNi(r.rawPreview) + '</td>' +
               '<td class="text-center small"><button type="button" class="btn btn-sm btn-outline-primary hq-ni-detail" data-id="' + escNi(r.id) + '">본문</button></td></tr>';
           }).join('');
@@ -9986,6 +9988,7 @@
             if (d && d.parseStatusLabel && d.parseStatusLabel !== '—') metaParts.push('처리 ' + d.parseStatusLabel);
             if (d && d.parseStatus && d.parseStatus !== '-') metaParts.push('처리코드 ' + d.parseStatus);
             if (d && d.clientIp) metaParts.push('IP ' + d.clientIp);
+            if (d && d.ingressDeliveryKindLabel) metaParts.push('수신성격 ' + d.ingressDeliveryKindLabel);
             meta.textContent = metaParts.join(' · ');
           }
           if (modalEl && window.bootstrap && bootstrap.Modal) {

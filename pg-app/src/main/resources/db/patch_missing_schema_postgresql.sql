@@ -202,6 +202,9 @@ CREATE INDEX IF NOT EXISTS idx_hq_view_custom_col_page ON tb_hq_view_custom_colu
 ALTER TABLE tb_pg_notify_inbound ADD COLUMN IF NOT EXISTS notify_target_code VARCHAR(64);
 ALTER TABLE tb_pg_notify_inbound ADD COLUMN IF NOT EXISTS notify_channel_type VARCHAR(20);
 
+-- V83: 노티 수령 — LIVE/RETRY 구분 (db/V83_pg_notify_inbound_ingress_delivery_kind.sql 과 동일)
+ALTER TABLE tb_pg_notify_inbound ADD COLUMN IF NOT EXISTS ingress_delivery_kind VARCHAR(16);
+
 -- V73: 거래 마스터 금액 — 노티 원문 소수 유지(USD 등), JPA precision=20 scale=8 과 일치 (NULL 행은 NULL 유지)
 ALTER TABLE pg_trnsctn
   ALTER COLUMN amt_krw TYPE NUMERIC(20, 8) USING amt_krw::NUMERIC(20, 8),
