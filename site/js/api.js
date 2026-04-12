@@ -663,16 +663,20 @@
     settlementRecallMng: function (params) {
       return get('/api/settlement/recallMng', params).then(function (r) { return r.data; });
     },
+    settlementRecoveryList: function (params) {
+      return get('/api/settlement/recoveryList', params).then(function (r) { return r.data; });
+    },
+    settlementReceivableList: function (params) {
+      return get('/api/settlement/receivableList', params).then(function (r) { return r.data; });
+    },
+    settlementReceivableCreate: function (body) {
+      return post('/api/settlement/receivable', body).then(function (r) { return r.data; });
+    },
     settlementBalanceMng: function (params) {
       return get('/api/settlement/balanceMng', params).then(function (r) { return r.data; });
     },
     settlementBalanceDeduct: function (body) {
-      var base = getBaseUrl();
-      return fetch(base + '/api/settlement/balance/deduct', {
-        method: 'POST',
-        headers: authHeaders({ 'Content-Type': 'application/json' }),
-        body: JSON.stringify(body || {})
-      }).then(handleResponse).then(function (r) { return r.data; });
+      return post('/api/settlement/balance/deduct', body).then(function (r) { return r.data; });
     },
     settlementBalanceList: function (params) {
       return get('/api/settlement/balanceList', params).then(function (r) { return r.data; });
@@ -682,6 +686,12 @@
     },
     settlementHoldList: function (params) {
       return get('/api/settlement/holdList', params).then(function (r) { return r.data; });
+    },
+    settlementPayoutHoldList: function (params) {
+      return get('/api/settlement/payoutHoldList', params).then(function (r) { return r.data; });
+    },
+    settlementPayoutHoldRelease: function (body) {
+      return post('/api/settlement/payoutHold/release', body || {}).then(function (r) { return r.data; });
     },
     settlementCollateralList: function (params) {
       return get('/api/settlement/collateralList', params).then(function (r) { return r.data; });
@@ -703,6 +713,12 @@
     },
     settlementReportAccess: function () {
       return get('/api/settlement/report/access', {}).then(function (r) { return r.data; });
+    },
+    settlementReportConfirmedRuns: function (params) {
+      return get('/api/settlement/report/confirmedRuns', params).then(function (r) { return r.data; });
+    },
+    settlementReportConfirmedRunDetail: function (params) {
+      return get('/api/settlement/report/confirmedRunDetail', params).then(function (r) { return r.data; });
     },
     settlementExecuteRun: function (params) {
       var q = (params && typeof params === 'object') ? params : {};
@@ -845,6 +861,33 @@
     },
     hqBusinessDaySettingsSave: function (body) {
       return post('/api/hq/businessDaySettings/save', body || {}).then(function (r) { return r.data || r; });
+    },
+
+    hqSettlementCycleOptions: function () {
+      return get('/api/hq/settlement/cycleOptions').then(function (r) { return r.data || []; });
+    },
+    hqSettlementCycleDefs: function () {
+      return get('/api/hq/settlement/cycleDefs').then(function (r) { return r.data || []; });
+    },
+    hqSettlementSchedulePreview: function (params) {
+      return get('/api/hq/settlement/schedulePreview', params || {}).then(function (r) { return r.data || []; });
+    },
+    hqSettlementMerchantAutoCounts: function () {
+      return get('/api/hq/settlement/merchantAutoCounts').then(function (r) { return r.data || {}; });
+    },
+    hqSettlementCycleDefCreate: function (body) {
+      return post('/api/hq/settlement/cycleDefs', body || {}).then(function (r) { return r.data || r; });
+    },
+    hqSettlementCycleDefUpdate: function (id, body) {
+      return request({ path: '/api/hq/settlement/cycleDefs/' + encodeURIComponent(id), method: 'PUT', body: body || {} })
+        .then(function (r) { return r && r.data != null ? r.data : r; });
+    },
+    hqSettlementCycleDefDelete: function (id) {
+      return del('/api/hq/settlement/cycleDefs/' + encodeURIComponent(id)).then(function (r) { return r.data || r; });
+    },
+    /** 표준 주기(내장 목록) 중 DB에 없는 코드만 INSERT */
+    hqSettlementCycleDefsSeedMissing: function () {
+      return post('/api/hq/settlement/cycleDefs/seedMissing', {}).then(function (r) { return r.data != null ? r.data : r; });
     },
 
     hqNotifyEnv: function () {

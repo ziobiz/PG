@@ -3,14 +3,17 @@ package com.pg.service;
 import com.pg.api.dto.PageResult;
 import com.pg.entity.OrgLevel;
 import com.pg.entity.OrgUnit;
+import com.pg.entity.PgTrnsctn;
 import com.pg.entity.RollingReserve;
 import com.pg.repository.OrgUnitRepository;
+import com.pg.repository.PgTrnsctnRepository;
 import com.pg.repository.RollingReserveRepository;
 import org.springframework.stereotype.Service;
 
 import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -21,13 +24,41 @@ import java.util.stream.Collectors;
 @Service
 public class CollateralLedgerService {
 
+    private static final DateTimeFormatter RELEASED_AT_FMT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+
     private final RollingReserveRepository rollingReserveRepository;
     private final OrgUnitRepository orgUnitRepository;
+    private final PgTrnsctnRepository pgTrnsctnRepository;
 
     public CollateralLedgerService(RollingReserveRepository rollingReserveRepository,
-                                   OrgUnitRepository orgUnitRepository) {
+                                   OrgUnitRepository orgUnitRepository,
+                                   PgTrnsctnRepository pgTrnsctnRepository) {
         this.rollingReserveRepository = rollingReserveRepository;
         this.orgUnitRepository = orgUnitRepository;
+        this.pgTrnsctnRepository = pgTrnsctnRepository;
+    }
+
+    /**
+     * 보류: 영업일 기준으로 산출된 해제 예정일(자정) 문자열. 해지: 실제 정산 반영 시각.
+     */
+    public static String formatReleaseBizDateTime(RollingReserve r) {
+        if (r == null) {
+            return "";
+        }
+        boolean hold = "HOLD".equalsIgnoreCase(r.getStatus() != null ? r.getStatus() : "");
+        if (hold) {
+            if (r.getReleaseDate() == null) {
+                return "";
+            }
+            return r.getReleaseDate() + " 00:00:00 (영업일 기준 예정)";
+        }
+        if (r.getReleasedAt() != null) {
+            return RELEASED_AT_FMT.format(r.getReleasedAt());
+        }
+        if (r.getReleaseDate() != null) {
+            return r.getReleaseDate() + " 00:00:00";
+        }
+        return "";
     }
 
     /**
@@ -134,6 +165,20 @@ public class CollateralLedgerService {
             }
         }
 
+        Set<String> trnIds = new LinkedHashSet<>();
+        for (RollingReserve r : slice) {
+            if (r.getTrnId() != null && !r.getTrnId().isBlank()) {
+                trnIds.add(r.getTrnId().trim());
+            }
+        }
+        Map<String, String> routeByTrn = new HashMap<>();
+        if (!trnIds.isEmpty()) {
+            for (PgTrnsctn t : pgTrnsctnRepository.findAllById(trnIds)) {
+                String rid = t.getTrnId();
+                routeByTrn.put(rid, t.getRouteNo() != null ? t.getRouteNo() : "");
+            }
+        }
+
         List<Map<String, Object>> rows = new ArrayList<>();
         int rowNo = fromIdx + 1;
         for (RollingReserve r : slice) {
@@ -142,13 +187,16 @@ public class CollateralLedgerService {
             String mid = r.getMerchantId();
             m.put("compId", mid);
             m.put("compNm", codeToName.getOrDefault(mid, mid));
-            m.put("trnId", r.getTrnId() != null ? r.getTrnId() : "");
+            String tid = r.getTrnId() != null ? r.getTrnId().trim() : "";
+            m.put("trnId", tid);
+            m.put("routeNo", tid.isEmpty() ? "" : routeByTrn.getOrDefault(tid, ""));
             m.put("reserveAmt", r.getReserveAmt() != null ? r.getReserveAmt().longValue() : 0L);
             m.put("rollingPct", r.getRollingPct() != null ? r.getRollingPct().stripTrailingZeros().toPlainString() : "");
             m.put("holdBusinessDays", r.getHoldBusinessDays() != null ? r.getHoldBusinessDays() : "");
             LocalDate hsd = r.getHoldStartDate() != null ? r.getHoldStartDate() : effectiveHoldStart(r);
             m.put("holdStartDt", hsd != null ? hsd.toString() : "");
             m.put("releaseDt", r.getReleaseDate() != null ? r.getReleaseDate().toString() : "");
+            m.put("releaseBizDtTime", formatReleaseBizDateTime(r));
             boolean hold = "HOLD".equalsIgnoreCase(r.getStatus() != null ? r.getStatus() : "");
             m.put("remainingBizDays", hold ? remainingBusinessDaysAfterUntil(today, r.getReleaseDate()) : 0);
             m.put("status", r.getStatus() != null ? r.getStatus() : "");

@@ -272,6 +272,9 @@ public class SettlementReportService {
         List<SettlementRun> runs = settlementCalcService.listRuns(searchFromDate, searchToDate);
         List<Map<String, Object>> rows = new ArrayList<>();
         for (SettlementRun r : runs) {
+            if ("Y".equalsIgnoreCase(r.getPayoutHoldYn() != null ? r.getPayoutHoldYn() : "")) {
+                continue;
+            }
             String mid = r.getMerchantId();
             if (mid == null || !allowed.contains(mid)) continue;
             OrgUnit ou = orgUnitRepository.findByCode(mid).orElse(null);
@@ -334,6 +337,9 @@ public class SettlementReportService {
         List<SettlementRun> runs = settlementCalcService.listRuns(searchFromDate, searchToDate);
         Map<String, RegionalExeBucket> buckets = new LinkedHashMap<>();
         for (SettlementRun r : runs) {
+            if ("Y".equalsIgnoreCase(r.getPayoutHoldYn() != null ? r.getPayoutHoldYn() : "")) {
+                continue;
+            }
             String mid = r.getMerchantId();
             if (mid == null || !allowedMerchants.contains(mid)) continue;
             OrgUnit merchantOu = orgUnitRepository.findByCode(mid).orElse(null);

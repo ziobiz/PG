@@ -21,6 +21,7 @@
         { "label": "노티매핑설정", "url": "/hq/notifyMapping", "menuId": "M0107" },
         { "label": "노티수령정보", "url": "/hq/notifyInbound", "menuId": "M0121" },
         { "label": "전산설정관리", "url": "/hq/ledgerSysSettings", "menuId": "M0119" },
+        { "label": "정산관리설정", "url": "/hq/settlementAdmin", "menuId": "M0123" },
         { "label": "도메인구성설정", "url": "/hq/domainConfig", "menuId": "M0115" },
         { "label": "서버운영관리", "url": "/hq/serverManage", "menuId": "M0116" }
       ]
@@ -61,13 +62,13 @@
         { "label": "수수료내역", "url": "/calc/feeList", "menuId": "M0406" },
         { "label": "정산실행", "url": "/calc/exCalcList", "menuId": "M0418" },
         { "label": "가맹점정산내역", "url": "/calc/calcGmList", "menuId": "M0405" },
+        { "label": "정산보류내역", "url": "/calc/paySettlementHoldList", "menuId": "M0422" },
         { "label": "유통망정산내역", "url": "/calc/calcList", "menuId": "M0404" },
         { "label": "담보금내역", "url": "/calc/collateralList", "menuId": "M0420" },
         { "label": "환수금관리", "url": "/calc/compPointMngList", "menuId": "M0407" },
         { "label": "미수금관리", "url": "/calc/unpaidMng", "menuId": "M0413" },
-        { "label": "정산보류내역", "url": "/pay/payHoldList", "menuId": "M0312" },
-        { "label": "정산리포트", "url": "/calc/settlementReport", "menuId": "M0419" },
-        { "label": "잔액/미수금관리", "url": "/calc/balcInfo", "menuId": "M0412" }
+        { "label": "보증금내역", "url": "/pay/payHoldList", "menuId": "M0312" },
+        { "label": "정산리포트", "url": "/calc/settlementReport", "menuId": "M0419" }
       ]
     },
     {

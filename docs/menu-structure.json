@@ -33,7 +33,6 @@
         { "label": "유통망정산내역", "url": "/calc/calcList", "menuId": "M0404" },
         { "label": "가맹정산내역", "url": "/calc/calcGmList", "menuId": "M0405" },
         { "label": "환수금관리", "url": "/calc/compPointMngList", "menuId": "M0407" },
-        { "label": "잔액/미수금관리", "url": "/calc/balcInfo", "menuId": "M0412" },
         { "label": "정산실행", "url": "/calc/exCalcList", "menuId": "M0418" },
         { "label": "정산보류내역", "url": "/pay/payHoldList", "menuId": "M0312" }
       ]

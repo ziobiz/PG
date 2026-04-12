@@ -74,9 +74,6 @@ public class SettlementAutoRunService {
             if (!StringUtils.hasText(mid)) {
                 continue;
             }
-            if (alreadyDoneToday.contains(mid)) {
-                continue;
-            }
             Optional<SettlementSetting> ssOpt = settlementSettingRepository.findByOrgUnitId(ou.getId());
             if (ssOpt.isEmpty()) {
                 continue;
@@ -92,16 +89,33 @@ public class SettlementAutoRunService {
                     continue;
                 }
             }
-            LocalTime close = ss.getCalcCloseTime();
-            if (close != null && now.isBefore(close)) {
-                continue;
-            }
+            String c0 = SettlementPeriodResolver.normalizeCalcCycle(cycle);
             if ("Y".equalsIgnoreCase(ss.getCalcExcludeYn() != null ? ss.getCalcExcludeYn().trim() : "")
                     && !BusinessDayCalendar.isBusinessDay(day, Collections.emptySet())) {
                 continue;
             }
+            if (SettlementCycleTiming.isSubDailyScheduleCode(c0)) {
+                if (!SettlementCycleTiming.shouldRunSubDailyNow(now, c0)) {
+                    continue;
+                }
+                allRuns.addAll(settlementCalcService.triggerSubDailyAutoSettlement(mid));
+                continue;
+            }
+            if (SettlementCycleTiming.isRealtimeCode(c0)) {
+                continue;
+            }
+            LocalTime close = ss.getCalcCloseTime();
+            if (close != null && now.isBefore(close)) {
+                continue;
+            }
             SettlementPeriodResolver.PeriodWindow w = SettlementPeriodResolver.resolveAutoPeriodWindow(cycle, day);
             if (w == null) {
+                continue;
+            }
+            if ("D0".equals(c0) && !SettlementCycleTiming.isD0AutoBatchAllowedNow(now)) {
+                continue;
+            }
+            if (alreadyDoneToday.contains(mid)) {
                 continue;
             }
             List<SettlementRun> runs = settlementCalcService.execute(w.fromDate(), w.toDate(), mid);

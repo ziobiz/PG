@@ -12,6 +12,7 @@ import com.pg.entity.OrgUnit;
 import com.pg.repository.MerchantPgBindingRepository;
 import com.pg.repository.OrgUnitRepository;
 import com.pg.repository.PgTrnsctnRepository;
+import com.pg.service.settlement.SettlementArrearsService;
 import com.pg.util.ChillPayNotifyOutcomeAdjust;
 import com.pg.util.NotifyAmountParse;
 import com.pg.util.NotifyChannelMerge;
@@ -66,17 +67,23 @@ public class ChillPayNotifyToTrnsctnService implements PgNotifyInboundTxnHandler
     private final OrgUnitRepository orgUnitRepository;
     private final HqNotifyMappingService hqNotifyMappingService;
     private final MerchantOutboundNotifyService merchantOutboundNotifyService;
+    private final SettlementCalcService settlementCalcService;
+    private final SettlementArrearsService settlementArrearsService;
 
     public ChillPayNotifyToTrnsctnService(PgTrnsctnRepository pgTrnsctnRepository,
                                          MerchantPgBindingRepository merchantPgBindingRepository,
                                          OrgUnitRepository orgUnitRepository,
                                          HqNotifyMappingService hqNotifyMappingService,
-                                         MerchantOutboundNotifyService merchantOutboundNotifyService) {
+                                         MerchantOutboundNotifyService merchantOutboundNotifyService,
+                                         SettlementCalcService settlementCalcService,
+                                         SettlementArrearsService settlementArrearsService) {
         this.pgTrnsctnRepository = pgTrnsctnRepository;
         this.merchantPgBindingRepository = merchantPgBindingRepository;
         this.orgUnitRepository = orgUnitRepository;
         this.hqNotifyMappingService = hqNotifyMappingService;
         this.merchantOutboundNotifyService = merchantOutboundNotifyService;
+        this.settlementCalcService = settlementCalcService;
+        this.settlementArrearsService = settlementArrearsService;
     }
 
     @Override
@@ -149,6 +156,13 @@ public class ChillPayNotifyToTrnsctnService implements PgNotifyInboundTxnHandler
             if (mapped.isPresent()) {
                 pgTrnsctnRepository.save(mapped.get());
                 PgTrnsctn t = mapped.get();
+                if (STATUS_PAID.equals(t.getStatus()) && t.getMerchantId() != null && !t.getMerchantId().isBlank()) {
+                    try {
+                        settlementCalcService.triggerRealtimeAutoSettlementIfDue(t.getMerchantId().trim());
+                    } catch (Exception ex) {
+                        log.warn("실시간 자동정산 트리거 실패 merchantId={}: {}", t.getMerchantId(), ex.getMessage());
+                    }
+                }
                 log.info("노티매핑 적용 거래 적재 trnId={} merchantId={} pgCd={} orderNo={} chillTxn={} status={}",
                         t.getTrnId(), t.getMerchantId(), pgCd, t.getOrderNo(), t.getChillTransactionId(), t.getStatus());
                 merchantOutboundNotifyService.scheduleAfterTxnCommit(t, in, notifyCh);
@@ -195,6 +209,9 @@ public class ChillPayNotifyToTrnsctnService implements PgNotifyInboundTxnHandler
             x.setTrnId(newTrnId());
             return x;
         });
+        String prevStatusSnap = t.getStatus();
+        String prevSettledYnSnap = t.getSettledYn();
+
         String mergedStatus = NotifyToTxnStatusMerge.merge(t.getStatus(), computed, notifyCh);
         if (mergedStatus == null || mergedStatus.isBlank()) {
             mergedStatus = STATUS_AUTH_PENDING;
@@ -312,6 +329,18 @@ public class ChillPayNotifyToTrnsctnService implements PgNotifyInboundTxnHandler
         applyMerchantFromIcopayCompInPayload(in, root, raw, t);
 
         pgTrnsctnRepository.save(t);
+        try {
+            settlementArrearsService.registerPostSettlementRecoveryIfDue(prevStatusSnap, prevSettledYnSnap, t);
+        } catch (Exception ex) {
+            log.warn("환수금 자동등록 실패 trnId={}: {}", t.getTrnId(), ex.getMessage());
+        }
+        if (STATUS_PAID.equals(mergedStatus) && t.getMerchantId() != null && !t.getMerchantId().isBlank()) {
+            try {
+                settlementCalcService.triggerRealtimeAutoSettlementIfDue(t.getMerchantId().trim());
+            } catch (Exception ex) {
+                log.warn("실시간 자동정산 트리거 실패 merchantId={}: {}", t.getMerchantId(), ex.getMessage());
+            }
+        }
         log.info("ChillPay 노티 거래 적재 trnId={} merchantId={} orderNo={} chillTxn={} channel={} status={}",
                 t.getTrnId(), t.getMerchantId(), t.getOrderNo(), t.getChillTransactionId(), notifyCh, t.getStatus());
         merchantOutboundNotifyService.scheduleAfterTxnCommit(t, in, notifyCh);

@@ -3431,3 +3431,10 @@ button.pay-follow.pay-follow--off {
   line-height: 1.35;
 }
 
+/* 정산리포트 > 확정정산 상세: 인쇄 시 표만 약간 키움(브라우저 인쇄 대화상자에서 여백·배율 조정) */
+@media print {
+  .pg-settlement-report-print-root table {
+    font-size: 11pt;
+  }
+}
+

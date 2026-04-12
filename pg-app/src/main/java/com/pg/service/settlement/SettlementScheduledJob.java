@@ -11,7 +11,7 @@ import java.time.ZoneId;
 
 /**
  * {@code app.settlement.autoRunEnabled=true} 일 때만 등록된다.
- * 크론은 {@code app.settlement.autoRunCron} (기본 15분마다). 서버는 {@code Asia/Seoul} 권장.
+ * 크론은 {@code app.settlement.autoRunCron} (기본 매분). M5·H1 등 분·시 단위 타이밍을 맞추려면 매분 실행을 권장합니다. 서버는 {@code Asia/Seoul} 권장.
  */
 @Component
 @ConditionalOnProperty(prefix = "app.settlement", name = "autoRunEnabled", havingValue = "true")
@@ -26,7 +26,7 @@ public class SettlementScheduledJob {
         this.settlementAutoRunService = settlementAutoRunService;
     }
 
-    @Scheduled(cron = "${app.settlement.autoRunCron:0 */15 * * * *}")
+    @Scheduled(cron = "${app.settlement.autoRunCron:0 * * * * *}")
     public void runScheduledSettlements() {
         try {
             LocalDate today = LocalDate.now(SEOUL);

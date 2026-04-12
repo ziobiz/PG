@@ -137,25 +137,25 @@
     }
   };
 
-  /** 통합정산(/calc/chillPaySettlementList) VIEW SETTING·조직항목설정 기본안 (고정: 번호·TransactionId·TransactionDate·Merchant·PaymentDate·RouteNo) */
+  /** 통합정산(/calc/chillPaySettlementList) VIEW SETTING·조직항목설정 기본안 (고정: 번호만. 그 외 표 열은 모두 토글·허용 목록 대상) */
   w.PG_CHILL_PAY_SETTLEMENT_VIEW_DEFAULTS = {
     viewSettingDefaultSelectedKeys: [
-      'customer', 'orderNo', 'paymentChannel',
-      'amount', 'refundAmount', 'fee', 'discount', 'totalAmount', 'icopay', 'currency', 'status', 'settled', 'description'
+      'transactionId', 'transactionDate', 'merchant', 'customer', 'orderNo', 'paymentChannel', 'paymentDate',
+      'amount', 'refundAmount', 'fee', 'discount', 'totalAmount', 'icopay', 'currency', 'routeNo', 'status', 'settled', 'description'
     ],
     orgAllowanceDefaultKeysByScope: {
       REGIONAL: null,
       MASTER_DIST: [
-        'customer', 'orderNo', 'paymentChannel',
-        'amount', 'refundAmount', 'fee', 'discount', 'totalAmount', 'icopay', 'currency', 'status', 'settled', 'description'
+        'transactionId', 'transactionDate', 'merchant', 'customer', 'orderNo', 'paymentChannel', 'paymentDate',
+        'amount', 'refundAmount', 'fee', 'discount', 'totalAmount', 'icopay', 'currency', 'routeNo', 'status', 'settled', 'description'
       ],
       BRANCH_GROUP: [
-        'customer', 'orderNo', 'paymentChannel',
-        'amount', 'fee', 'discount', 'totalAmount', 'icopay', 'currency', 'status', 'settled', 'refundAmount', 'description'
+        'transactionId', 'transactionDate', 'merchant', 'customer', 'orderNo', 'paymentChannel', 'paymentDate',
+        'amount', 'refundAmount', 'fee', 'discount', 'totalAmount', 'icopay', 'currency', 'routeNo', 'status', 'settled', 'description'
       ],
       MERCHANT: [
-        'customer', 'orderNo', 'paymentChannel',
-        'amount', 'currency', 'status', 'settled', 'fee', 'totalAmount'
+        'transactionId', 'transactionDate', 'merchant', 'customer', 'orderNo', 'paymentChannel', 'paymentDate',
+        'amount', 'refundAmount', 'fee', 'discount', 'totalAmount', 'currency', 'routeNo', 'status', 'settled'
       ]
     }
   };
