@@ -15,6 +15,7 @@
     viewSettingDefaultSelectedKeys: [
       'chillTransactionId', 'trnId', 'chillCustomer', 'orderNo', 'paymentChannel',
       'payCompletedAt', 'chillAmount', 'icopayAmt', 'chillFeeAmt', 'totalAmt', 'currency',
+      'regionalBaseCur', 'masterDistBaseCur', 'merchantBaseCur',
       'chillPaymentStatus', 'settledYn', 'payDivNm', 'cardAprvNo', 'productNm', 'customerNm'
     ],
     /**
@@ -25,7 +26,9 @@
       REGIONAL: null,
       MASTER_DIST: [
         'chillTransactionId', 'trnId', 'chillCustomer', 'orderNo', 'paymentChannel', 'payCompletedAt',
-        'chillAmount', 'icopayAmt', 'chillFeeAmt', 'totalAmt', 'currency', 'chillPaymentStatus', 'settledYn',
+        'chillAmount', 'icopayAmt', 'chillFeeAmt', 'totalAmt', 'currency',
+        'regionalBaseCur', 'masterDistBaseCur', 'merchantBaseCur',
+        'chillPaymentStatus', 'settledYn',
         'payDivNm', 'cardAprvNo', 'productNm', 'customerNm', 'customerTel', 'regionalNm', 'masterNm', 'branchNm',
         'compRegNo', 'payCard', 'instalMonth', 'payMethod', 'pgNm', 'pgApproveAmt', 'payAprv',
         'holdAmt', 'holdDttm', 'feeCnt', 'feeRate', 'settleAmt', 'calcDt', 'pgApproveNo', 'corpNm', 'terminalId', 'calcCycle',
@@ -33,14 +36,18 @@
       ],
       BRANCH_GROUP: [
         'chillTransactionId', 'trnId', 'chillCustomer', 'orderNo', 'paymentChannel', 'payCompletedAt',
-        'chillAmount', 'icopayAmt', 'chillFeeAmt', 'totalAmt', 'currency', 'chillPaymentStatus', 'settledYn',
+        'chillAmount', 'icopayAmt', 'chillFeeAmt', 'totalAmt', 'currency',
+        'regionalBaseCur', 'masterDistBaseCur', 'merchantBaseCur',
+        'chillPaymentStatus', 'settledYn',
         'payDivNm', 'cardAprvNo', 'productNm', 'customerNm', 'customerTel', 'regionalNm', 'masterNm', 'branchNm',
         'compRegNo', 'payMethod', 'pgNm', 'pgApproveAmt', 'payAprv', 'holdAmt', 'holdDttm', 'feeCnt', 'feeRate',
         'settleAmt', 'calcDt', 'pgApproveNo'
       ],
       MERCHANT: [
         'chillTransactionId', 'trnId', 'chillCustomer', 'orderNo', 'paymentChannel', 'payCompletedAt',
-        'chillAmount', 'icopayAmt', 'chillFeeAmt', 'totalAmt', 'currency', 'chillPaymentStatus', 'settledYn',
+        'chillAmount', 'icopayAmt', 'chillFeeAmt', 'totalAmt', 'currency',
+        'regionalBaseCur', 'masterDistBaseCur', 'merchantBaseCur',
+        'chillPaymentStatus', 'settledYn',
         'payDivNm', 'cardAprvNo', 'productNm', 'customerNm'
       ]
     },
@@ -70,6 +77,9 @@
       { key: 'chillFeeAmt', label: '수수료' },
       { key: 'totalAmt', label: '총금액' },
       { key: 'currency', label: '통화' },
+      { key: 'regionalBaseCur', label: '본사기준통화' },
+      { key: 'masterDistBaseCur', label: '총판기준통화' },
+      { key: 'merchantBaseCur', label: '가맹기준통화' },
       { key: 'chillPaymentStatus', label: '상태' },
       { key: 'settledYn', label: '정산' },
       { key: 'compRegNo', label: '사업자번호' },

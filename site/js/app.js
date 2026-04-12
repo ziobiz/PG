@@ -3370,6 +3370,11 @@
       }
     }
     var payListSearchUrls = ['/calc/payList', '/calc/chillPayTrList', '/calc/chillPaySettlementList', '/calc/payNotiList', '/calc/paySuccessList', '/calc/payFailList', '/calc/payRefundList', '/calc/payForceRefundList', '/calc/payCancelList', '/calc/payVoidList', '/calc/offsetCancList', '/pay/easyPay', '/pay/chatbotPay'];
+    /** 정산관리 사이드 메뉴 목록: collectSearchParams·그리드 행번호 등에서 기본 size 50 (통합정산은 payListSearchUrls에 포함) */
+    var settlementListDefaultSize50Urls = ['/calc/calcList', '/calc/calcGmList', '/calc/feeList', '/calc/compPointMngList', '/calc/balcInfo', '/calc/exCalcList', '/calc/settlementReport', '/calc/collateralList', '/pay/payHoldList'];
+    function isDefaultListPageSize50(url) {
+      return payListSearchUrls.indexOf(url) !== -1 || settlementListDefaultSize50Urls.indexOf(url) !== -1;
+    }
     function ensurePayListDefaultSearchDates(pane) {
       if (!pane) return;
       var fromEl = pane.querySelector('#searchFromDate');
@@ -3807,7 +3812,7 @@
     });
     function collectSearchParams(p) {
       var formUrlP = p.getAttribute('formurl') || '';
-      var payMngDefaultSize = payListSearchUrls.indexOf(formUrlP) !== -1 ? 50 : 20;
+      var payMngDefaultSize = isDefaultListPageSize50(formUrlP) ? 50 : 20;
       var params = { page: 1, size: payMngDefaultSize };
       var sizeEl = p.querySelector('#recordsPerPage');
       if (sizeEl) params.size = Math.max(1, parseInt(sizeEl.value, 10) || payMngDefaultSize);
@@ -3856,7 +3861,20 @@
       tbody.querySelectorAll('.tree-toggle.expanded, .tree-toggle.collapsed').forEach(function (span) {
         var sid = span.getAttribute('data-id') || '';
         var isExp = expanded.has ? expanded.has(sid) : sid in expanded;
-        span.className = 'tree-toggle ' + (isExp ? 'expanded' : 'collapsed');
+        var dl = span.getAttribute('data-org-level') || '';
+        var ocl = 'tree-org-unknown';
+        if (dl && /^[A-Z][A-Z0-9_]*$/.test(dl)) {
+          ocl = 'tree-org-' + dl;
+        } else {
+          var parts = String(span.className || '').split(/\s+/);
+          for (var pi = 0; pi < parts.length; pi++) {
+            if (parts[pi].indexOf('tree-org-') === 0) {
+              ocl = parts[pi];
+              break;
+            }
+          }
+        }
+        span.className = 'tree-toggle ' + ocl + ' ' + (isExp ? 'expanded' : 'collapsed');
         span.textContent = isExp ? '\u25BC' : '\u25B6';
         span.title = isExp ? '접기' : '펼치기';
       });
@@ -4426,7 +4444,7 @@
           var prevGroup = null;
           var pageNum = data && data.page != null ? parseInt(data.page, 10) : (params.page || 1);
           if (isNaN(pageNum) || pageNum < 1) pageNum = 1;
-          var pageSizeFallback = payListSearchUrls.indexOf(url) !== -1 ? 50 : 20;
+          var pageSizeFallback = isDefaultListPageSize50(url) ? 50 : 20;
           var pageSize = data && data.size != null ? parseInt(data.size, 10) : pageSizeFallback;
           if (isNaN(pageSize) || pageSize < 1) pageSize = pageSizeFallback;
           var rowNoBase = (pageNum - 1) * pageSize;
@@ -4712,10 +4730,20 @@
                   if (isNaN(depth)) depth = 0;
                   var px = 18 + depth * 18;
                   var expanded = p._treeExpanded && p._treeExpanded.has(rowId);
-                  var folderSvg = '<svg class="tree-icon tree-icon-folder" width="16" height="16" viewBox="0 0 24 24"><path fill="currentColor" d="M10 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"/></svg>';
-                  var docSvg = '<svg class="tree-icon tree-icon-doc" width="16" height="16" viewBox="0 0 24 24"><path fill="currentColor" d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6z"/></svg>';
+                  var compDivRaw = row.compDiv != null ? String(row.compDiv).trim() : '';
+                  var orgLevelClass = 'tree-org-unknown';
+                  if (/^[A-Z][A-Z0-9_]*$/.test(compDivRaw)) {
+                    orgLevelClass = 'tree-org-' + compDivRaw;
+                  }
+                  var folderSvg = '<svg class="tree-icon tree-icon-folder ' + orgLevelClass + '" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M10 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"/></svg>';
+                  var docSvg = '<svg class="tree-icon tree-icon-doc ' + orgLevelClass + '" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6z"/></svg>';
                   var icon = hasChildren ? folderSvg : docSvg;
-                  var toggle = hasChildren ? '<span class="tree-toggle ' + (expanded ? 'expanded' : 'collapsed') + '" data-id="' + rowId + '" title="' + (expanded ? '접기' : '펼치기') + '">' + (expanded ? '\u25BC' : '\u25B6') + '</span>' : '<span class="tree-toggle-placeholder"></span>';
+                  var escAttr = function (s) {
+                    return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/"/g, '&quot;');
+                  };
+                  var toggle = hasChildren
+                    ? '<span class="tree-toggle ' + orgLevelClass + ' ' + (expanded ? 'expanded' : 'collapsed') + '" data-id="' + escAttr(rowId) + '" data-org-level="' + escAttr(compDivRaw) + '" title="' + (expanded ? '접기' : '펼치기') + '">' + (expanded ? '\u25BC' : '\u25B6') + '</span>'
+                    : '<span class="tree-toggle-placeholder"></span>';
                   html += '<td class="tree-comp-cell" style="padding-left:' + px + 'px">' + icon + toggle + (val || '') + '</td>';
                 } else if (isCompMngTree && c.key === 'compNm') {
                   html += '<td class="text-start align-middle">' + (val || '') + '</td>';

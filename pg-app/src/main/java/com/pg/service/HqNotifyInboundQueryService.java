@@ -223,6 +223,8 @@ public class HqNotifyInboundQueryService {
             case "NO_PG_BINDING" -> "바인딩없음";
             case "COMP_MID_MISMATCH" -> "MID불일치";
             case "COMP_NOT_URL_PAY_PG" -> "URL결제PG아님";
+            case "BOUND_CURRENCY_MISMATCH" -> "통화불일치(수신경로)";
+            case "INGRESS_ORG_SCOPE_MISMATCH" -> "수신경로업체불일치";
             default -> code.trim();
         };
     }

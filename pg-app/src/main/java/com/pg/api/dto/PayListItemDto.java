@@ -163,6 +163,17 @@ public class PayListItemDto {
         row.put("regionalNm", ctx != null ? ctx.getRegionalNm() : "");
         row.put("masterNm", ctx != null ? ctx.getMasterNm() : "");
         row.put("branchNm", ctx != null ? ctx.getBranchNm() : "");
+        row.put("regionalBaseCur", ctx != null ? ctx.getRegionalBaseCurrency() : "");
+        row.put("masterDistBaseCur", ctx != null ? ctx.getMasterDistBaseCurrency() : "");
+        String merchantBaseCur = ctx != null ? ctx.getMerchantBaseCurrency() : "";
+        if ((merchantBaseCur == null || merchantBaseCur.isBlank()) && mp != null && mp.getBaseCurrency() != null) {
+            String bc = mp.getBaseCurrency().trim();
+            if (!bc.isEmpty()) {
+                int c = bc.indexOf(',');
+                merchantBaseCur = c > 0 ? bc.substring(0, c).trim() : bc;
+            }
+        }
+        row.put("merchantBaseCur", merchantBaseCur != null ? merchantBaseCur : "");
 
         row.put("origin", t.getOrigin() != null ? t.getOrigin() : "CHILL");
         row.put("notifyChannelType", notifyChannelTypeLabel(t));

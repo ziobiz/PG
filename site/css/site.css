@@ -1528,8 +1528,15 @@ colgroup.pg-col-resize-group col {
   vertical-align: middle;
   margin-right: 4px;
 }
-.tree-comp-cell .tree-icon-folder { color: #337ab7; }
-.tree-comp-cell .tree-icon-doc { color: #999; }
+/* 업체관리 트리: 업체구분별 폴더·문서 아이콘 색 (HEADQUARTERS~MERCHANT) */
+.tree-comp-cell .tree-icon.tree-org-HEADQUARTERS { color: #5e35b1; }
+.tree-comp-cell .tree-icon.tree-org-REGIONAL { color: #1565c0; }
+.tree-comp-cell .tree-icon.tree-org-MASTER_DIST { color: #2e7d32; }
+.tree-comp-cell .tree-icon.tree-org-BRANCH { color: #e65100; }
+.tree-comp-cell .tree-icon.tree-org-AGENCY { color: #f57f17; }
+.tree-comp-cell .tree-icon.tree-org-SALES_OFFICE { color: #c2185b; }
+.tree-comp-cell .tree-icon.tree-org-MERCHANT { color: #455a64; }
+.tree-comp-cell .tree-icon.tree-org-unknown { color: #757575; }
 .tree-toggle {
   display: inline-block;
   width: 18px;
@@ -1539,10 +1546,44 @@ colgroup.pg-col-resize-group col {
   user-select: none;
   margin-right: 4px;
 }
+/* 트리 펼침(기본): 업체관리 외 등에서만 사용 시 녹색·회색 */
 .tree-toggle.expanded { color: #198754; }
 .tree-toggle.expanded:hover { color: #157347; }
 .tree-toggle.collapsed { color: #6c757d; }
 .tree-toggle.collapsed:hover { color: #495057; }
+/* 업체관리: 폴더와 동일 톤 — 펼침·접힘(삼각) 모두 해당 구분 색 계열 */
+.tree-comp-cell .tree-toggle.tree-org-HEADQUARTERS.expanded { color: #5e35b1; }
+.tree-comp-cell .tree-toggle.tree-org-HEADQUARTERS.expanded:hover { color: #4527a0; }
+.tree-comp-cell .tree-toggle.tree-org-HEADQUARTERS.collapsed { color: rgba(94, 53, 177, 0.55); }
+.tree-comp-cell .tree-toggle.tree-org-HEADQUARTERS.collapsed:hover { color: rgba(94, 53, 177, 0.85); }
+.tree-comp-cell .tree-toggle.tree-org-REGIONAL.expanded { color: #1565c0; }
+.tree-comp-cell .tree-toggle.tree-org-REGIONAL.expanded:hover { color: #0d47a1; }
+.tree-comp-cell .tree-toggle.tree-org-REGIONAL.collapsed { color: rgba(21, 101, 192, 0.55); }
+.tree-comp-cell .tree-toggle.tree-org-REGIONAL.collapsed:hover { color: rgba(21, 101, 192, 0.88); }
+.tree-comp-cell .tree-toggle.tree-org-MASTER_DIST.expanded { color: #2e7d32; }
+.tree-comp-cell .tree-toggle.tree-org-MASTER_DIST.expanded:hover { color: #1b5e20; }
+.tree-comp-cell .tree-toggle.tree-org-MASTER_DIST.collapsed { color: rgba(46, 125, 50, 0.55); }
+.tree-comp-cell .tree-toggle.tree-org-MASTER_DIST.collapsed:hover { color: rgba(46, 125, 50, 0.88); }
+.tree-comp-cell .tree-toggle.tree-org-BRANCH.expanded { color: #e65100; }
+.tree-comp-cell .tree-toggle.tree-org-BRANCH.expanded:hover { color: #bf360c; }
+.tree-comp-cell .tree-toggle.tree-org-BRANCH.collapsed { color: rgba(230, 81, 0, 0.55); }
+.tree-comp-cell .tree-toggle.tree-org-BRANCH.collapsed:hover { color: rgba(230, 81, 0, 0.88); }
+.tree-comp-cell .tree-toggle.tree-org-AGENCY.expanded { color: #f57f17; }
+.tree-comp-cell .tree-toggle.tree-org-AGENCY.expanded:hover { color: #e65100; }
+.tree-comp-cell .tree-toggle.tree-org-AGENCY.collapsed { color: rgba(245, 127, 23, 0.58); }
+.tree-comp-cell .tree-toggle.tree-org-AGENCY.collapsed:hover { color: rgba(245, 127, 23, 0.9); }
+.tree-comp-cell .tree-toggle.tree-org-SALES_OFFICE.expanded { color: #c2185b; }
+.tree-comp-cell .tree-toggle.tree-org-SALES_OFFICE.expanded:hover { color: #880e4f; }
+.tree-comp-cell .tree-toggle.tree-org-SALES_OFFICE.collapsed { color: rgba(194, 24, 91, 0.55); }
+.tree-comp-cell .tree-toggle.tree-org-SALES_OFFICE.collapsed:hover { color: rgba(194, 24, 91, 0.88); }
+.tree-comp-cell .tree-toggle.tree-org-MERCHANT.expanded { color: #455a64; }
+.tree-comp-cell .tree-toggle.tree-org-MERCHANT.expanded:hover { color: #263238; }
+.tree-comp-cell .tree-toggle.tree-org-MERCHANT.collapsed { color: rgba(69, 90, 100, 0.55); }
+.tree-comp-cell .tree-toggle.tree-org-MERCHANT.collapsed:hover { color: rgba(69, 90, 100, 0.88); }
+.tree-comp-cell .tree-toggle.tree-org-unknown.expanded,
+.tree-comp-cell .tree-toggle.tree-org-unknown.collapsed { color: #757575; }
+.tree-comp-cell .tree-toggle.tree-org-unknown.expanded:hover,
+.tree-comp-cell .tree-toggle.tree-org-unknown.collapsed:hover { color: #424242; }
 .tree-toggle-placeholder {
   display: inline-block;
   width: 18px;

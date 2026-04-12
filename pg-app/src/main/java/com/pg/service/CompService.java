@@ -231,6 +231,34 @@ public class CompService {
         }
     }
 
+    /**
+     * 가맹점 등록·수정 시 기준통화 미입력이면, 상위 조직 체인에서 처음 나오는 기준통화(콤마 목록의 첫 토큰)를 상속합니다.
+     * 총판(MASTER_DIST) 단일 통화 정책과 맞춥니다.
+     */
+    private String resolveInheritedBaseCurrencyForMerchant(Long parentOrgUnitId) {
+        if (parentOrgUnitId == null) {
+            return null;
+        }
+        Long cur = parentOrgUnitId;
+        Set<Long> seen = new HashSet<>();
+        while (cur != null && seen.add(cur)) {
+            OrgUnit ou = orgUnitRepository.findById(cur).orElse(null);
+            if (ou == null) {
+                break;
+            }
+            Optional<MerchantProfile> mp = merchantProfileRepository.findByOrgUnitId(cur);
+            String bc = mp.map(MerchantProfile::getBaseCurrency).orElse("");
+            if (bc != null && !bc.trim().isEmpty()) {
+                String[] parts = bc.split(",\\s*");
+                if (parts.length > 0 && !parts[0].trim().isEmpty()) {
+                    return parts[0].trim();
+                }
+            }
+            cur = ou.getParentId();
+        }
+        return null;
+    }
+
     private static String nzUpper(String v) {
         return v == null ? "" : v.trim().toUpperCase();
     }
@@ -487,9 +515,10 @@ public class CompService {
         List<Map<String, Object>> list = new ArrayList<>();
         if (start < filtered.size()) {
             List<OrgUnit> pageList = filtered.subList(start, end);
+            Map<Long, String> masterDistBaseCurrencyCache = new HashMap<>();
             for (int i = 0; i < pageList.size(); i++) {
                 OrgUnit ou = pageList.get(i);
-                Map<String, Object> row = buildCompListItem(ou);
+                Map<String, Object> row = buildCompListItem(ou, masterDistBaseCurrencyCache);
                 row.put("rowNo", start + i + 1);
                 row.put("parentId", ou.getParentId());
                 int levelCode = ou.getOrgLevel() != null ? ou.getOrgLevel().getCode() : 99;
@@ -1157,6 +1186,13 @@ public class CompService {
                                     validateMasterDistBaseCurrencyAgainstRegionalParent(pid, baseCurrency.trim());
                                 }
                                 mp.setBaseCurrency(baseCurrency.trim());
+                            } else if (childLevel == OrgLevel.MERCHANT
+                                    && (mp.getBaseCurrency() == null || mp.getBaseCurrency().isBlank())) {
+                                Long effPid = parentId != null ? parentId : ou.getParentId();
+                                String inh = resolveInheritedBaseCurrencyForMerchant(effPid);
+                                if (inh != null && !inh.isBlank()) {
+                                    mp.setBaseCurrency(inh);
+                                }
                             }
                             if (siteUrl != null) mp.setSiteUrl(siteUrl.trim());
                             if (siteSummary != null) mp.setSiteSummary(siteSummary.trim());
@@ -1833,6 +1869,13 @@ public class CompService {
                 validateMasterDistBaseCurrencyAgainstRegionalParent(effectiveParentId, baseCurrency.trim());
             }
             mp.setBaseCurrency(baseCurrency.trim());
+        }
+        if ("MERCHANT".equalsIgnoreCase(compDivVal)
+                && (mp.getBaseCurrency() == null || mp.getBaseCurrency().isBlank())) {
+            String inh = resolveInheritedBaseCurrencyForMerchant(effectiveParentId);
+            if (inh != null && !inh.isBlank()) {
+                mp.setBaseCurrency(inh);
+            }
         }
         if (("REGIONAL".equalsIgnoreCase(compDiv) || "MASTER_DIST".equalsIgnoreCase(compDiv))
                 && regionalSettings != null && !regionalSettings.trim().isEmpty()) {
@@ -2660,8 +2703,48 @@ public class CompService {
         return String.join(", ", seen);
     }
 
+    /**
+     * 업체관리 목록 「통화」열: 총판·지사·대리점·영업점·가맹점만 기준통화 표시. 총본사·본사는 비움.
+     */
+    private static boolean compListRowShowsBaseCurrency(OrgLevel lvl) {
+        if (lvl == null) {
+            return false;
+        }
+        return switch (lvl) {
+            case MASTER_DIST, BRANCH, AGENCY, SALES_OFFICE, MERCHANT -> true;
+            case HEADQUARTERS, REGIONAL -> false;
+        };
+    }
+
+    /**
+     * 총판 행: 해당 조직 프로필의 기준통화. 지사·대리점·영업점·가맹: 상위 체인의 가장 가까운 총판과 동일 값.
+     * {@code masterDistBaseCurrencyCache} 키는 통화를 읽어온 조직 ID(총판 org id).
+     */
+    private String resolveCompListBaseCurrencyDisplay(OrgUnit o, Map<Long, String> masterDistBaseCurrencyCache) {
+        OrgLevel lvl = o.getOrgLevel();
+        if (!compListRowShowsBaseCurrency(lvl)) {
+            return "";
+        }
+        Long sourceOrgId;
+        if (lvl == OrgLevel.MASTER_DIST) {
+            sourceOrgId = o.getId();
+        } else {
+            Optional<Long> mid = findNearestMasterDistAncestorId(o.getId());
+            if (mid.isEmpty()) {
+                return "-";
+            }
+            sourceOrgId = mid.get();
+        }
+        return masterDistBaseCurrencyCache.computeIfAbsent(sourceOrgId, id ->
+                merchantProfileRepository.findByOrgUnitId(id)
+                        .map(MerchantProfile::getBaseCurrency)
+                        .filter(bc -> bc != null && !bc.isBlank())
+                        .map(String::trim)
+                        .orElse("-"));
+    }
+
     /** 업체관리 목록용 행 구성 (정산금, 미수금, 대표자명, 연락처, 은행, 계좌번호, 이체수수료, 정산주기, 이체구분 등) */
-    private Map<String, Object> buildCompListItem(OrgUnit o) {
+    private Map<String, Object> buildCompListItem(OrgUnit o, Map<Long, String> masterDistBaseCurrencyCache) {
         Map<String, Object> m = CompListItemDto.from(o);
         m.put("regNo", "-");
         m.put("ceoNm", "-");
@@ -2699,6 +2782,7 @@ public class CompService {
             m.put("terminalCountTerminal", mp.getTerminalCountTerminal() != null ? String.valueOf(mp.getTerminalCountTerminal()) : "-");
             m.put("terminalCountWeb", mp.getTerminalCountWeb() != null ? String.valueOf(mp.getTerminalCountWeb()) : "-");
         });
+        m.put("baseCurrency", resolveCompListBaseCurrencyDisplay(o, masterDistBaseCurrencyCache));
         settlementSettingRepository.findByOrgUnitId(o.getId()).ifPresent(ss -> {
             if (o.getOrgLevel() == OrgLevel.MERCHANT) {
                 m.put("calcCycle", calcCycleToDisplay(ss.getCalcCycle()));

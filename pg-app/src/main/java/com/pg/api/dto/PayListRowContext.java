@@ -20,11 +20,18 @@ public class PayListRowContext {
     private final String regionalNm;
     private final String masterNm;
     private final String branchNm;
+    /** 본사(REGIONAL) 프로필 기준통화(첫 토큰) */
+    private final String regionalBaseCurrency;
+    /** 총판(MASTER_DIST) 프로필 기준통화(첫 토큰) */
+    private final String masterDistBaseCurrency;
+    /** 가맹점(MERCHANT) 프로필 기준통화(첫 토큰) — 상위 총판 귀속 */
+    private final String merchantBaseCurrency;
 
     public PayListRowContext(String compNm, MerchantProfile profile, MerchantPgBinding binding,
                              DistributionFeeConfig distFee, CommissionPolicy policy,
                              SettlementSetting settlement,
-                             String regionalNm, String masterNm, String branchNm) {
+                             String regionalNm, String masterNm, String branchNm,
+                             String regionalBaseCurrency, String masterDistBaseCurrency, String merchantBaseCurrency) {
         this.compNm = compNm;
         this.profile = profile;
         this.binding = binding;
@@ -34,6 +41,9 @@ public class PayListRowContext {
         this.regionalNm = regionalNm != null ? regionalNm : "";
         this.masterNm = masterNm != null ? masterNm : "";
         this.branchNm = branchNm != null ? branchNm : "";
+        this.regionalBaseCurrency = regionalBaseCurrency != null ? regionalBaseCurrency : "";
+        this.masterDistBaseCurrency = masterDistBaseCurrency != null ? masterDistBaseCurrency : "";
+        this.merchantBaseCurrency = merchantBaseCurrency != null ? merchantBaseCurrency : "";
     }
 
     public String getCompNm() { return compNm; }
@@ -45,4 +55,7 @@ public class PayListRowContext {
     public String getRegionalNm() { return regionalNm; }
     public String getMasterNm() { return masterNm; }
     public String getBranchNm() { return branchNm; }
+    public String getRegionalBaseCurrency() { return regionalBaseCurrency; }
+    public String getMasterDistBaseCurrency() { return masterDistBaseCurrency; }
+    public String getMerchantBaseCurrency() { return merchantBaseCurrency; }
 }

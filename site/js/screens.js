@@ -592,7 +592,7 @@
         },
         {
           title: '총판 노티 대상 생성',
-          notice: '먼저 [연결 총판]에서 총판을 선택한 뒤 노티 대상명을 입력하고 [노티자동생성]을 누르세요. CALLBACK·RESULT URL이 발급되며 선택한 총판과 즉시 연결됩니다. 목록의 [연결수정]으로 나중에 연결 총판을 바꿀 수 있습니다. 총판 저장 시 노티 URL 1~4에 동일 주소를 넣어 두면 저장 시 연결이 유지·갱신됩니다.',
+          notice: '먼저 [연결 총판]에서 총판을 선택한 뒤 노티 대상명을 입력하고 [노티자동생성]을 누르세요. CALLBACK·RESULT URL이 발급되며 선택한 총판과 즉시 연결됩니다. 이때 해당 총판 업체 상세의 필수 노티(URL 1·2)도 발급 URL로 자동 반영됩니다(보조 URL 3·4는 유지). 목록의 [연결수정]으로 연결 총판을 바꾸면 동일하게 필수 노티가 갱신됩니다. 총판 저장 시 노티 URL에 동일 주소를 넣어 두면 저장 시 연결이 유지·갱신됩니다.',
           rows: [
             [{ label: '연결 총판', type: 'select', name: 'notifyTargetBoundOrgUnitId', col: 4, options: [{ v: '', t: '선택하세요' }] }],
             [{ label: '노티 대상명', type: 'text', name: 'newNotifyTargetName', col: 2, placeholder: '예: 총판A 수신', button: '노티자동생성', blockExtraClass: 'hq-notify-new-target-name-col' }],
@@ -651,7 +651,7 @@
       formSections: [
         {
           title: '노티 수령 정보',
-          notice: '노티미들웨어·PG(칠페이 등)가 본 시스템의 노티 수신 URL(<code>/api/open/pg-notify/…</code>)로 전송한 요청을 저장한 로그입니다. 목록의 채널 열은 수신 경로 정보 표시용입니다. 대상코드·채널은 신규 수신 건부터 채워집니다(V72). <strong>수신성격</strong>은 NOTI가 요청 시 <code>X-Icopay-Notify-Delivery: LIVE|RETRY</code> 또는 <code>X-Noti-Attempt</code>(1=라이브, 2+=재전송) 헤더를 보낼 때만 구분되며, 없으면 「미표시」입니다.',
+          notice: '노티미들웨어·PG(칠페이 등)가 본 시스템의 노티 수신 URL(<code>/api/open/pg-notify/…</code>)로 전송한 요청을 저장한 로그입니다. 목록의 채널 열은 수신 경로 정보 표시용입니다. 대상코드·채널은 신규 수신 건부터 채워집니다(V72). 노티 대상에 연결 총판이 있으면 동일 MID라도 그 총판 트리 안에서만 분기하며, 총판 기준통화와 본문 통화가 다르면 처리 열에 통화불일치(수신경로)로 격리됩니다. <strong>수신성격</strong>은 NOTI가 요청 시 <code>X-Icopay-Notify-Delivery: LIVE|RETRY</code> 또는 <code>X-Noti-Attempt</code>(1=라이브, 2+=재전송) 헤더를 보낼 때만 구분되며, 없으면 「미표시」입니다.',
           rows: [
             [{ type: 'customHtml', col: 12, html: '<div class="row g-2 align-items-end mb-2 ni-inbound-toolbar">' +
               '<div class="col-6 col-md-2"><label class="form-label small mb-0">수신일(부터)</label><input type="date" name="niSearchFrom" class="form-control form-control-sm" autocomplete="off"></div>' +
@@ -1386,6 +1386,7 @@
         { key: 'compId', label: '업체코드' },
         { key: 'compNm', label: '업체명' },
         { key: 'compDivNm', label: '업체구분' },
+        { key: 'baseCurrency', label: '통화', title: '총판·지사·대리점·영업점·가맹점만 표시. 지사 이하는 소속 총판 기준통화와 동일. 총본사·본사는 비움.' },
         { key: 'siteRoot', label: '루트', title: '결제대행사 설정의 루트번호', align: 'center' },
         { key: 'settlementAmt', label: '정산금' },
         { key: 'receivables', label: '미수금' },
@@ -1531,7 +1532,7 @@
           title: '가맹점 상세 정보',
           id: 'merchantExtraCard',
           merchantOnly: true,
-          notice: '가맹점일 때만 입력합니다.',
+          notice: '가맹점일 때만 입력합니다. 기준 화폐를 비우고 저장하면 상위 총판·본사 프로필의 기준통화를 자동으로 상속합니다(결제내역 VIEW의 본사/총판/가맹 기준통화 열에 반영).',
           rows: [
             [{ label: '사업자형태', type: 'text', name: 'bizNature', col: 2 }, { label: '취급물품', type: 'text', name: 'product', col: 2 }, { label: '대표사이트', type: 'text', name: 'homepage', col: 2, placeholder: 'https://' }, { label: '정산담당자명', type: 'text', name: 'settleName', col: 2 }, { label: '정산담당자연락처', type: 'text', name: 'settleTelNo', col: 2 }]
           ]
@@ -1778,7 +1779,7 @@
           title: '가맹점 상세 정보',
           id: 'merchantExtraCard',
           merchantOnly: true,
-          notice: '가맹점일 때만 입력합니다.',
+          notice: '가맹점일 때만 입력합니다. 기준 화폐를 비우고 저장하면 상위 총판·본사 프로필의 기준통화를 자동으로 상속합니다(결제내역 VIEW의 본사/총판/가맹 기준통화 열에 반영).',
           rows: [
             [{ label: '사업자형태', type: 'text', name: 'bizNature', col: 2 }, { label: '취급물품', type: 'text', name: 'product', col: 2 }, { label: '대표사이트', type: 'text', name: 'homepage', col: 2, placeholder: 'https://' }, { label: '정산담당자명', type: 'text', name: 'settleName', col: 2 }, { label: '정산담당자연락처', type: 'text', name: 'settleTelNo', col: 2 }]
           ]
@@ -2173,8 +2174,8 @@
     },
     /** ChillPay Transaction API — 통합정산(결제일·Settled 중심, ICOPAY 정산 DB 비사용) */
     '/calc/chillPaySettlementList': {
-      paginationSizeOptions: [50, 100],
-      paginationDefaultSize: 100,
+      paginationSizeOptions: [50, 100, 200, 500, 1000],
+      paginationDefaultSize: 50,
       payListStatusBar: true,
       tableColumnGuide: true,
       /** 정산관리: VIEW SETTING은 결제내역과 달리 한 줄(가로 스크롤) */
@@ -2250,6 +2251,8 @@
       emptyMessage: '조회된 데이터가 없습니다.'
     },
     '/calc/calcList': {
+      paginationSizeOptions: [50, 100, 200, 500, 1000],
+      paginationDefaultSize: 50,
       searchFormClass: 'screen-search-form screen-distribution-search',
       tableScrollable: true,
       distributionThreeRowHeader: true,
@@ -2311,6 +2314,8 @@
       ]
     },
     '/calc/calcGmList': {
+      paginationSizeOptions: [50, 100, 200, 500, 1000],
+      paginationDefaultSize: 50,
       searchFormClass: 'pay-mng-search-form',
       payMngDenseGrid: true,
       tableColumnGuideTwoRow: false,
@@ -2374,6 +2379,8 @@
       ]
     },
     '/calc/compPointMngList': {
+      paginationSizeOptions: [50, 100, 200, 500, 1000],
+      paginationDefaultSize: 50,
       tableColumnGuideTwoRow: false,
       notice: '환수금액은 본사 설정(환수금 수수료 포함·VAT)에 따라 원거래금액에, 수수료내역과 동일한 건별 수수료 합산·부가세를 더해 산정합니다.',
       searchRows: [
@@ -2476,6 +2483,8 @@
       columns: [{ key: '_chk', type: 'checkbox' }, { key: 'rowNo', label: '번호' }, { key: 'compNm', label: '업체명' }, { key: 'compId', label: '업체코드' }, { key: 'settleAmt', label: '정산잔액' }, { key: 'deductCnt', label: '미수금' }, { key: 'deductStatus', label: '미수금차감' }]
     },
     '/calc/balcInfo': {
+      paginationSizeOptions: [50, 100, 200, 500, 1000],
+      paginationDefaultSize: 50,
       tableColumnGuideTwoRow: false,
       notice: '로그인 조직 하위 가맹점만 조회됩니다. 차감은 권한이 있는 가맹점에 한합니다.',
       searchRows: [
@@ -2497,6 +2506,8 @@
       ]
     },
     '/calc/exCalcList': {
+      paginationSizeOptions: [50, 100, 200, 500, 1000],
+      paginationDefaultSize: 50,
       tableColumnGuideTwoRow: false,
       notice: '수동 실행: 기간·가맹을 지정해 실행합니다. 서버 스케줄은 정산구분 AUTO인 가맹만, 정산주기(D0~D30·W·WK)·정산마감시간·당일 미실행 조건으로 자동 실행됩니다(app.settlement.autoRunEnabled·VPS 타임존 Asia/Seoul 권장).',
       searchRows: [
@@ -2512,6 +2523,8 @@
       columns: [{ key: '_chk', type: 'checkbox' }, { key: 'rowNo', label: '번호' }, { key: 'compNm', label: '업체명' }, { key: 'compId', label: '업체코드' }, { key: 'calcDt', label: '정산일자' }, { key: 'targetAmt', label: '정산대상금액' }, { key: 'totalFee', label: '공제수수료' }, { key: 'rollingReserveAmt', label: '롤링보류' }, { key: 'payAmount', label: '지급액' }, { key: 'status', label: '상태' }]
     },
     '/calc/settlementReport': {
+      paginationSizeOptions: [50, 100, 200, 500, 1000],
+      paginationDefaultSize: 50,
       tableColumnGuideTwoRow: false,
       noticeList: [
         '[리포트 형식] 가맹점 정산 리포트: 총본사·본사·총판 등이 소속 가맹에 보내는 정산 형식. 본사 지급 리포트: 총본사가 본사(REGIONAL)에 지급할 금액을 본사 단위로 합산(총본사·본사 로그인만 선택 가능).',
@@ -2587,6 +2600,8 @@
       emptyMessage: '조회된 데이터가 없습니다.'
     },
     '/pay/payHoldList': {
+      paginationSizeOptions: [50, 100, 200, 500, 1000],
+      paginationDefaultSize: 50,
       tableColumnGuideTwoRow: false,
       searchRows: [
         [
@@ -2603,6 +2618,8 @@
       columns: [{ key: '_chk', type: 'checkbox' }, { key: 'rowNo', label: '번호' }, { key: 'compNm', label: '업체명' }, { key: 'compId', label: '업체코드' }, { key: 'holdDt', label: '보류일시' }, { key: 'holdAmount', label: '보류금액' }, { key: 'holdReason', label: '보류사유' }]
     },
     '/calc/collateralList': {
+      paginationSizeOptions: [50, 100, 200, 500, 1000],
+      paginationDefaultSize: 50,
       tableColumnGuideTwoRow: false,
       noticeList: [
         '담보금(롤링): 결제(승인) 건별로 정산 실행 시 설정된 비율(%)만큼 예치되며, 보류 영업일(주말 제외·공휴일 미반영) 후 해지일에 정산 실행하면 지급액에 합산됩니다.',

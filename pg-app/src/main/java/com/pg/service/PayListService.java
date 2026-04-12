@@ -160,8 +160,10 @@ public class PayListService {
                 .map(String::trim)
                 .filter(s -> !s.isEmpty())
                 .collect(Collectors.toSet());
+        List<OrgUnit> allUnits = orgUnitRepository.findAll();
+        Map<Long, OrgUnit> byId = allUnits.stream().collect(Collectors.toMap(OrgUnit::getId, u -> u, (a, b) -> a));
         Map<String, OrgUnit> ouByCode = new HashMap<>();
-        for (OrgUnit ou : orgUnitRepository.findAll()) {
+        for (OrgUnit ou : allUnits) {
             if (codes.contains(ou.getCode())) {
                 ouByCode.put(ou.getCode(), ou);
             }
@@ -180,10 +182,49 @@ public class PayListService {
                     ? settlementSettingRepository.findByOrgUnitId(merchant.getId()).orElse(null)
                     : null;
             String[] hier = hierarchyNames(merchant);
+            String[] hbc = hierarchyBaseCurrencies(merchant, byId);
             ctxByCode.put(code, new PayListRowContext(compNm, profile, binding, dist, pol, ss,
-                    hier[0], hier[1], hier[2]));
+                    hier[0], hier[1], hier[2],
+                    hbc[0], hbc[1], hbc[2]));
         }
         return ctxByCode;
+    }
+
+    /** 상위 체인에서 REGIONAL·MASTER_DIST·MERCHANT 각각의 프로필 기준통화(콤마 목록의 첫 토큰) */
+    private String[] hierarchyBaseCurrencies(OrgUnit merchant, Map<Long, OrgUnit> byId) {
+        String regional = "";
+        String master = "";
+        String merch = "";
+        if (merchant == null || byId == null) {
+            return new String[] { regional, master, merch };
+        }
+        OrgUnit cur = merchant;
+        for (int guard = 0; guard < 24 && cur != null; guard++) {
+            Optional<MerchantProfile> pf = merchantProfileRepository.findByOrgUnitId(cur.getId());
+            String bc = pf.map(MerchantProfile::getBaseCurrency).orElse("");
+            if (bc != null && !bc.isBlank()) {
+                String tok = firstCsvCurrencyToken(bc);
+                if (!tok.isEmpty() && cur.getOrgLevel() != null) {
+                    switch (cur.getOrgLevel()) {
+                        case MERCHANT -> merch = tok;
+                        case MASTER_DIST -> master = tok;
+                        case REGIONAL -> regional = tok;
+                        default -> { }
+                    }
+                }
+            }
+            Long pid = cur.getParentId();
+            cur = pid != null ? byId.get(pid) : null;
+        }
+        return new String[] { regional, master, merch };
+    }
+
+    private static String firstCsvCurrencyToken(String bc) {
+        if (bc == null) {
+            return "";
+        }
+        String[] parts = bc.split(",\\s*");
+        return parts.length > 0 ? parts[0].trim() : "";
     }
 
     /**

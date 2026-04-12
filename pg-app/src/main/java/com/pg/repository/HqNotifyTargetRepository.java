@@ -11,6 +11,9 @@ import java.util.Optional;
 
 public interface HqNotifyTargetRepository extends JpaRepository<HqNotifyTarget, Long> {
     List<HqNotifyTarget> findAllByOrderByIdDesc();
+
+    List<HqNotifyTarget> findByTargetNameOrderByIdAsc(String targetName);
+
     Optional<HqNotifyTarget> findByTargetCode(String targetCode);
 
     Optional<HqNotifyTarget> findByTargetUrl(String targetUrl);

@@ -1,9 +1,11 @@
 package com.pg.service;
 
 import com.pg.entity.HqNotifyTarget;
+import com.pg.entity.MerchantNotifyUrl;
 import com.pg.entity.OrgLevel;
 import com.pg.entity.OrgUnit;
 import com.pg.repository.HqNotifyTargetRepository;
+import com.pg.repository.MerchantNotifyUrlRepository;
 import com.pg.repository.OrgUnitRepository;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.stereotype.Service;
@@ -31,12 +33,15 @@ public class HqNotifyTargetService {
     private final HqNotifyTargetRepository repository;
     private final HqNotifyEnvService hqNotifyEnvService;
     private final OrgUnitRepository orgUnitRepository;
+    private final MerchantNotifyUrlRepository merchantNotifyUrlRepository;
 
     public HqNotifyTargetService(HqNotifyTargetRepository repository, HqNotifyEnvService hqNotifyEnvService,
-                                 OrgUnitRepository orgUnitRepository) {
+                                 OrgUnitRepository orgUnitRepository,
+                                 MerchantNotifyUrlRepository merchantNotifyUrlRepository) {
         this.repository = repository;
         this.hqNotifyEnvService = hqNotifyEnvService;
         this.orgUnitRepository = orgUnitRepository;
+        this.merchantNotifyUrlRepository = merchantNotifyUrlRepository;
     }
 
     public List<Map<String, Object>> list() {
@@ -112,6 +117,8 @@ public class HqNotifyTargetService {
         tRs.setOrgUnitId(boundOrgUnitId);
         repository.save(tRs);
 
+        pushRequiredNotifyToDistributor(boundOrgUnitId, tCb.getTargetUrl(), tRs.getTargetUrl());
+
         Map<String, Object> out = new LinkedHashMap<>();
         List<Map<String, Object>> rows = new ArrayList<>();
         rows.add(toMap(tCb));
@@ -162,10 +169,123 @@ public class HqNotifyTargetService {
         if (rows.size() > 1) {
             validateSameNotifyPair(rows);
         }
+        LinkedHashMap<Long, HqNotifyTarget> toSave = new LinkedHashMap<>();
         for (HqNotifyTarget t : rows) {
+            toSave.put(t.getId(), t);
+        }
+        for (HqNotifyTarget t : new ArrayList<>(rows)) {
+            HqNotifyTarget partner = findPairPartner(t);
+            if (partner != null) {
+                toSave.putIfAbsent(partner.getId(), partner);
+            }
+        }
+        for (HqNotifyTarget t : toSave.values()) {
             t.setOrgUnitId(boundOrgUnitId);
             repository.save(t);
         }
+        String[] cbRs = resolveCallbackResultUrls(new ArrayList<>(toSave.values()));
+        pushRequiredNotifyToDistributor(boundOrgUnitId, cbRs[0], cbRs[1]);
+    }
+
+    /**
+     * 연결 총판이 지정된 노티 쌍이면, 해당 총판 조직의 업체 상세 필수 노티(NOTIFY_1·2)를 본사 수신 URL로 맞춥니다.
+     * 보조(NOTIFY_3·4)는 유지합니다.
+     */
+    private void pushRequiredNotifyToDistributor(Long orgUnitId, String callbackUrl, String resultUrl) {
+        if (orgUnitId == null) {
+            return;
+        }
+        String cb = callbackUrl != null ? callbackUrl.trim() : "";
+        String rs = resultUrl != null ? resultUrl.trim() : "";
+        if (cb.isEmpty() || rs.isEmpty()) {
+            return;
+        }
+        String e3 = merchantNotifyUrlRepository.findByOrgUnitIdAndUrlType(orgUnitId, "NOTIFY_3")
+                .map(MerchantNotifyUrl::getNotiUrl).orElse("").trim();
+        String e4 = merchantNotifyUrlRepository.findByOrgUnitIdAndUrlType(orgUnitId, "NOTIFY_4")
+                .map(MerchantNotifyUrl::getNotiUrl).orElse("").trim();
+
+        merchantNotifyUrlRepository.deleteByOrgUnitIdAndUrlTypeIn(orgUnitId, List.of("NOTIFY_1", "NOTIFY_2"));
+        MerchantNotifyUrl n1 = new MerchantNotifyUrl();
+        n1.setOrgUnitId(orgUnitId);
+        n1.setUrlType("NOTIFY_1");
+        n1.setNotiUrl(cb);
+        n1.setUseYn("Y");
+        merchantNotifyUrlRepository.save(n1);
+        MerchantNotifyUrl n2 = new MerchantNotifyUrl();
+        n2.setOrgUnitId(orgUnitId);
+        n2.setUrlType("NOTIFY_2");
+        n2.setNotiUrl(rs);
+        n2.setUseYn("Y");
+        merchantNotifyUrlRepository.save(n2);
+        merchantNotifyUrlRepository.flush();
+        replaceDistributorOrgLinks(orgUnitId, List.of(cb, rs, e3, e4));
+    }
+
+    private HqNotifyTarget findPairPartner(HqNotifyTarget t) {
+        if (t == null) {
+            return null;
+        }
+        String nm = t.getTargetName() != null ? t.getTargetName().trim() : "";
+        if (nm.isEmpty()) {
+            return null;
+        }
+        String suf = pairSuffix(t.getTargetCode());
+        if (suf.isEmpty()) {
+            return null;
+        }
+        String myCh = channelUpper(t);
+        String want;
+        if (CH_CALLBACK.equals(myCh)) {
+            want = CH_RESULT;
+        } else if (CH_RESULT.equals(myCh)) {
+            want = CH_CALLBACK;
+        } else {
+            return null;
+        }
+        for (HqNotifyTarget o : repository.findByTargetNameOrderByIdAsc(nm)) {
+            if (Objects.equals(o.getId(), t.getId())) {
+                continue;
+            }
+            if (!want.equals(channelUpper(o))) {
+                continue;
+            }
+            if (!suf.equals(pairSuffix(o.getTargetCode()))) {
+                continue;
+            }
+            return o;
+        }
+        return null;
+    }
+
+    private String[] resolveCallbackResultUrls(List<HqNotifyTarget> rows) {
+        String cb = null;
+        String rs = null;
+        if (rows != null) {
+            for (HqNotifyTarget t : rows) {
+                if (CH_CALLBACK.equals(channelUpper(t))) {
+                    cb = t.getTargetUrl();
+                }
+                if (CH_RESULT.equals(channelUpper(t))) {
+                    rs = t.getTargetUrl();
+                }
+            }
+            if ((cb == null || rs == null) && !rows.isEmpty()) {
+                for (HqNotifyTarget t : rows) {
+                    HqNotifyTarget p = findPairPartner(t);
+                    if (p == null) {
+                        continue;
+                    }
+                    if (CH_CALLBACK.equals(channelUpper(p)) && cb == null) {
+                        cb = p.getTargetUrl();
+                    }
+                    if (CH_RESULT.equals(channelUpper(p)) && rs == null) {
+                        rs = p.getTargetUrl();
+                    }
+                }
+            }
+        }
+        return new String[] { cb, rs };
     }
 
     private static void validateSameNotifyPair(List<HqNotifyTarget> rows) {
