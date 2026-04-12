@@ -154,11 +154,11 @@
 }
 
 .hq-mon-health-table .table th {
-  font-size: 12px;
+  font-size: var(--app-table-font-size, 11px);
 }
 
 .hq-mon-health-table .table td {
-  font-size: 12px;
+  font-size: var(--app-table-font-size, 11px);
   vertical-align: middle;
 }
 

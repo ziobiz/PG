@@ -1082,6 +1082,8 @@ public class CompService {
                                 m.put("calcExcludeYn", ss.getCalcExcludeYn());
                                 m.put("calcExcludeTarget", ss.getCalcExcludeTarget());
                                 m.put("calcStartTime", ss.getCalcStartTime() != null ? ss.getCalcStartTime().toString() : null);
+                                m.put("feeVatApplyYn", ss.getFeeVatApplyYn());
+                                m.put("feeVatRatePct", ss.getFeeVatRatePct() != null ? ss.getFeeVatRatePct().stripTrailingZeros().toPlainString() : null);
                             });
                             applyCommissionDetailToMap(m, ou);
                             if (ou.getOrgLevel() == OrgLevel.MERCHANT) {
@@ -1694,11 +1696,10 @@ public class CompService {
                 null, null, null,
                 /* 65–68 default product */
                 null, null, null, null,
-                /* notify 8 + commission block 26 */
+                /* notify 8 + commission 17 + 수수료VAT 2 + regionalSettings */
                 null, null, null, null, null, null, null, null,
-                null, null, null, null, null, null, null, null, null, null,
-                null, null, null, null, null, null, null, null, null, null,
-                null, null, null, null, null, null);
+                null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null,
+                null, null, null);
     }
 
     @Transactional
@@ -1729,6 +1730,7 @@ public class CompService {
                                      String voidFeePerTx, String manualVoidFeePerTx, String usageRate,
                                      String failFee, String payRate, String refundRate, String rollingPct, String rollingDays,
                                      String feeSettlementPerTx, String remittanceTransferFee, String usdtTransferFeeUsd, String feeUsdt, String feeFx,
+                                     String feeVatApplyYn, String feeVatRatePct,
                                      String regionalSettings) {
         return registerWithExtra(code, name, compDiv, parentId,
                 compTel, zipCode, addr, addrDetail, addrEtc, addrCountryCd,
@@ -1759,6 +1761,7 @@ public class CompService {
                 feeSettlementPerTx, remittanceTransferFee, usdtTransferFeeUsd, feeUsdt, feeFx,
                 null, null, null,
                 null, null, null, null, null,
+                feeVatApplyYn, feeVatRatePct,
                 regionalSettings);
     }
 
@@ -1793,6 +1796,7 @@ public class CompService {
                                      String fee3dsRate, String chargebackFeePerTx, String chargebackPolicyId,
                                      String payFollowMerchantUseYn, String payFollowAutoVoidYn, String payFollowEmailVoidYn,
                                      String payFollowAutoRefundYn, String payFollowForceRefundYn,
+                                     String feeVatApplyYn, String feeVatRatePct,
                                      String regionalSettings) {
         OrgUnit o = new OrgUnit();
         String compDivVal = compDiv != null ? compDiv.trim() : "AGENCY";
@@ -1934,6 +1938,17 @@ public class CompService {
         if (parseTime(calcStartTime) != null) ss.setCalcStartTime(parseTime(calcStartTime));
         if (calcMinAmt != null && !calcMinAmt.isEmpty()) try { ss.setCalcMinAmt(new BigDecimal(calcMinAmt.trim())); } catch (Exception ignored) {}
         if (parseTime(transferExecTime) != null) ss.setTransferExecTime(parseTime(transferExecTime));
+        if (feeVatApplyYn != null && !feeVatApplyYn.isBlank()) {
+            ss.setFeeVatApplyYn("Y".equalsIgnoreCase(feeVatApplyYn.trim()) ? "Y" : "N");
+        }
+        if (feeVatRatePct != null && !feeVatRatePct.isBlank()) {
+            try {
+                ss.setFeeVatRatePct(new BigDecimal(feeVatRatePct.trim()));
+            } catch (Exception ignored) {
+            }
+        } else if ("N".equalsIgnoreCase(ss.getFeeVatApplyYn() != null ? ss.getFeeVatApplyYn().trim() : "N")) {
+            ss.setFeeVatRatePct(BigDecimal.ZERO);
+        }
         settlementSettingRepository.save(ss);
 
         MerchantCommissionExtra extra = new MerchantCommissionExtra();
@@ -2226,7 +2241,9 @@ public class CompService {
             String transferExecTime,
             String payHoldYn,
             String calcExcludeYn,
-            String calcExcludeTarget) {
+            String calcExcludeTarget,
+            String feeVatApplyYn,
+            String feeVatRatePct) {
         static SettlementAuditSnap of(SettlementSetting s, OrgLevel orgLevel) {
             return new SettlementAuditSnap(
                     s.getWithdrawRestrictType() != null ? s.getWithdrawRestrictType().trim() : "",
@@ -2248,7 +2265,9 @@ public class CompService {
                     s.getTransferExecTime() != null ? s.getTransferExecTime().toString() : "",
                     s.getPayHoldYn() != null ? s.getPayHoldYn().trim() : "",
                     s.getCalcExcludeYn() != null ? s.getCalcExcludeYn().trim() : "",
-                    s.getCalcExcludeTarget() != null ? s.getCalcExcludeTarget().trim() : "");
+                    s.getCalcExcludeTarget() != null ? s.getCalcExcludeTarget().trim() : "",
+                    s.getFeeVatApplyYn() != null ? s.getFeeVatApplyYn().trim() : "",
+                    s.getFeeVatRatePct() != null ? s.getFeeVatRatePct().stripTrailingZeros().toPlainString() : "");
         }
 
         void logDiff(OrgUnit ou, OrgUnitChangeAuditService audit, SettlementAuditSnap after) {
@@ -2285,6 +2304,8 @@ public class CompService {
             audit.appendIfChanged(oid, cid, cnm, p + "지급보류", payHoldYn, after.payHoldYn);
             audit.appendIfChanged(oid, cid, cnm, p + "정산제외", calcExcludeYn, after.calcExcludeYn);
             audit.appendIfChanged(oid, cid, cnm, p + "정산제외대상", calcExcludeTarget, after.calcExcludeTarget);
+            audit.appendIfChanged(oid, cid, cnm, p + "수수료VAT적용", feeVatApplyYn, after.feeVatApplyYn);
+            audit.appendIfChanged(oid, cid, cnm, p + "수수료VAT율(%)", feeVatRatePct, after.feeVatRatePct);
         }
     }
 
@@ -2314,6 +2335,8 @@ public class CompService {
                             m.put("payHoldYn", ss.getPayHoldYn());
                             m.put("calcExcludeYn", ss.getCalcExcludeYn());
                             m.put("calcExcludeTarget", ss.getCalcExcludeTarget());
+                            m.put("feeVatApplyYn", ss.getFeeVatApplyYn());
+                            m.put("feeVatRatePct", ss.getFeeVatRatePct() != null ? ss.getFeeVatRatePct().stripTrailingZeros().toPlainString() : null);
                             return m;
                         }));
     }
@@ -2326,7 +2349,8 @@ public class CompService {
                                          String calcCloseTime, String calcStartTime, Integer transferCycleDays,
                                          String calcProcType, String transferType, String autoTransferMin, String payHoldYn,
                                          String calcExcludeYn, String calcExcludeTarget,
-                                         String calcMinAmt, String transferExecTime) {
+                                         String calcMinAmt, String transferExecTime,
+                                         String feeVatApplyYn, String feeVatRatePct) {
         return orgUnitRepository.findByCode(compId != null ? compId : "")
                 .flatMap(ou -> settlementSettingRepository.findByOrgUnitId(ou.getId())
                         .map(ss -> {
@@ -2360,6 +2384,18 @@ public class CompService {
                             if (payHoldYn != null && !payHoldYn.isEmpty()) ss.setPayHoldYn(payHoldYn);
                             if (calcExcludeYn != null && !calcExcludeYn.isEmpty()) ss.setCalcExcludeYn(calcExcludeYn);
                             if (calcExcludeTarget != null && !calcExcludeTarget.isEmpty()) ss.setCalcExcludeTarget(calcExcludeTarget);
+                            if (feeVatApplyYn != null && !feeVatApplyYn.isBlank()) {
+                                ss.setFeeVatApplyYn("Y".equalsIgnoreCase(feeVatApplyYn.trim()) ? "Y" : "N");
+                            }
+                            if (feeVatRatePct != null && !feeVatRatePct.isBlank()) {
+                                try {
+                                    ss.setFeeVatRatePct(new BigDecimal(feeVatRatePct.trim()));
+                                } catch (Exception ignored) {
+                                }
+                            } else if (feeVatApplyYn != null && !feeVatApplyYn.isBlank()
+                                    && "N".equalsIgnoreCase(feeVatApplyYn.trim())) {
+                                ss.setFeeVatRatePct(BigDecimal.ZERO);
+                            }
                             settlementSettingRepository.save(ss);
                             SettlementAuditSnap afterSnap = SettlementAuditSnap.of(ss, ou.getOrgLevel());
                             beforeSnap.logDiff(ou, orgUnitChangeAuditService, afterSnap);
@@ -2529,7 +2565,7 @@ public class CompService {
                 policy.setFeeFx(PercentDecimalHelper.parsePercentOneDecimal(feeFx));
             }
             if (fee3dsRate != null && !fee3dsRate.trim().isEmpty()) {
-                policy.setFee3dsRate(PercentDecimalHelper.parsePercentOneDecimal(fee3dsRate));
+                policy.setFee3dsRate(PercentDecimalHelper.parseAmountOneDecimal(fee3dsRate));
             }
             if (chargebackFeePerTx != null && !chargebackFeePerTx.trim().isEmpty()) {
                 policy.setChargebackFeePerTx(PercentDecimalHelper.parseAmountOneDecimal(chargebackFeePerTx.trim()));
@@ -2658,7 +2694,7 @@ public class CompService {
         m.put("extraFee4Mode", p.getExtraFee4Mode() != null ? p.getExtraFee4Mode() : "");
         m.put("extraFee4Value", extraFeeValuePlain(p.getExtraFee4Mode(), p.getExtraFee4Value()));
         m.put("chargebackPolicyId", p.getChargebackPolicyId() != null ? String.valueOf(p.getChargebackPolicyId()) : "");
-        m.put("fee3dsRate", p.getFee3dsRate() != null ? PercentDecimalHelper.toPlainOneDecimal(p.getFee3dsRate()) : "");
+        m.put("fee3dsRate", p.getFee3dsRate() != null ? PercentDecimalHelper.toPlainAmountOneDecimal(p.getFee3dsRate()) : "");
         m.put("chargebackFeePerTx", p.getChargebackFeePerTx() != null ? p.getChargebackFeePerTx().toPlainString() : "");
     }
 
@@ -3100,7 +3136,7 @@ public class CompService {
                             null, null, null, null, null, null, null, null,
                             null, null, null, null, null, null, null, null, null, null,
                             null, null, null, null, null, null, null, null, null, null,
-                            null, null, null, null, null, null);
+                            null, null, null, null, null, null, null, null);
                     if (loginIdVal != null && !loginIdVal.isEmpty() && userRepository.findByUsername(loginIdVal).isEmpty()) {
                         AppUser appUser = new AppUser();
                         appUser.setUsername(loginIdVal);

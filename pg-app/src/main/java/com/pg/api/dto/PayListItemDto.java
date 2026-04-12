@@ -11,6 +11,8 @@ import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 
 import com.pg.util.CommissionExtraFeeUtil;
+import com.pg.util.MerchantFeeVatUtil;
+import com.pg.util.PayListStatusBarBuckets;
 import com.pg.util.TrnTimeDualZoneDisplay;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -221,7 +223,7 @@ public class PayListItemDto {
         }
         BigDecimal feeAmtBd = rateFee.add(perTxAmt).add(settlementPerTxAmt).add(extraPctAmt)
                 .setScale(feeScale, RoundingMode.HALF_UP);
-        BigDecimal feeVatBd = feeAmtBd.multiply(BigDecimal.valueOf(0.1)).setScale(feeScale, RoundingMode.HALF_UP);
+        BigDecimal feeVatBd = MerchantFeeVatUtil.vatOnFeeAmount(feeAmtBd, ctx != null ? ctx.getSettlement() : null, feeScale);
         BigDecimal holdAmtBd = BigDecimal.ZERO;
         BigDecimal rollingPct = resolveRollingPct(ctx);
         if (rollingPct.compareTo(BigDecimal.ZERO) > 0) {
@@ -268,7 +270,7 @@ public class PayListItemDto {
         return u;
     }
 
-    /** 유통 수수료율(있으면) 또는 결제수수료율 + 정책의 USDT·FX·3DS 율(%) 합 — 승인 건 수수료 추정에 사용 */
+    /** 유통 수수료율(있으면) 또는 결제수수료율 + 정책의 USDT·FX 율(%) 합 — 승인 건 % 수수료 추정에 사용(3DS는 건당 고정이라 미포함) */
     private static BigDecimal totalFeeRate(PayListRowContext ctx) {
         if (ctx == null) return BigDecimal.ZERO;
         BigDecimal base;
@@ -283,7 +285,7 @@ public class PayListItemDto {
         }
         if (ctx.getPolicy() != null) {
             var p = ctx.getPolicy();
-            base = base.add(nz(p.getFeeUsdt())).add(nz(p.getFeeFx())).add(nz(p.getFee3dsRate()));
+            base = base.add(nz(p.getFeeUsdt())).add(nz(p.getFeeFx()));
         }
         return base;
     }
@@ -381,27 +383,46 @@ public class PayListItemDto {
      */
     private static String resolveCurrencyCodeForDisplay(PgTrnsctn t, MerchantProfile mp) {
         String db = t.getCurType() != null ? t.getCurType().trim().toUpperCase(Locale.ROOT) : "";
+        String assembled;
         if (!looksLikeWeakDefaultKrw(db)) {
-            return db.isEmpty() ? "KRW" : db;
-        }
-        List<String> bases = parseBaseCurrencyTokens(mp);
-        List<String> nonKrwBases = new ArrayList<>();
-        for (String b : bases) {
-            if (!looksLikeWeakDefaultKrw(b)) {
-                nonKrwBases.add(b);
+            assembled = db.isEmpty() ? "KRW" : db;
+        } else {
+            List<String> bases = parseBaseCurrencyTokens(mp);
+            List<String> nonKrwBases = new ArrayList<>();
+            for (String b : bases) {
+                if (!looksLikeWeakDefaultKrw(b)) {
+                    nonKrwBases.add(b);
+                }
+            }
+            if (nonKrwBases.size() == 1) {
+                assembled = nonKrwBases.get(0);
+            } else if (nonKrwBases.size() >= 2) {
+                nonKrwBases.sort(String::compareTo);
+                assembled = String.join("/", nonKrwBases);
+            } else if (bases.size() == 1) {
+                assembled = bases.get(0);
+            } else {
+                assembled = db.isEmpty() ? "KRW" : db;
             }
         }
-        if (nonKrwBases.size() == 1) {
-            return nonKrwBases.get(0);
+        return normalizeDisplayCurrency(assembled);
+    }
+
+    /** ISO 4217 숫자(764 등)·복수 통화 조합을 알파 코드(THB 등)로 표시 */
+    private static String normalizeDisplayCurrency(String assembled) {
+        if (assembled == null || assembled.isBlank()) {
+            return PayListStatusBarBuckets.normalizeCurrency("");
         }
-        if (nonKrwBases.size() >= 2) {
-            nonKrwBases.sort(String::compareTo);
-            return String.join("/", nonKrwBases);
+        if (assembled.contains("/")) {
+            List<String> parts = new ArrayList<>();
+            for (String p : assembled.split("/")) {
+                if (p != null && !p.isBlank()) {
+                    parts.add(PayListStatusBarBuckets.normalizeCurrency(p.trim()));
+                }
+            }
+            return parts.isEmpty() ? "KRW" : String.join("/", parts);
         }
-        if (bases.size() == 1) {
-            return bases.get(0);
-        }
-        return db.isEmpty() ? "KRW" : db;
+        return PayListStatusBarBuckets.normalizeCurrency(assembled);
     }
 
     private static boolean looksLikeWeakDefaultKrw(String c) {
@@ -416,7 +437,7 @@ public class PayListItemDto {
         for (String p : mp.getBaseCurrency().split(",")) {
             String s = p != null ? p.trim().toUpperCase(Locale.ROOT) : "";
             if (!s.isEmpty()) {
-                out.add(s);
+                out.add(PayListStatusBarBuckets.normalizeCurrency(s));
             }
         }
         return out;

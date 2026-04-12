@@ -3,10 +3,10 @@
 :root {
   --table-row-padding-y: 6px;
   --app-base-font-size: 13px;
-  --app-table-font-size: 12px;
-  --app-form-sm-font-size: 12px;
-  /* 결제관리(통합·노티·칠페이 API 등) 그리드·검색·페이지네이션 통일 */
+  /* 결제관리 결제내역(.screen-pay-list) 그리드 기준 — 전역 데이터 테이블과 동일 */
   --pay-mng-dense-font-size: 11px;
+  --app-table-font-size: var(--pay-mng-dense-font-size);
+  --app-form-sm-font-size: 12px;
 }
 body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans KR", sans-serif; font-size: var(--app-base-font-size); }
 
@@ -664,6 +664,10 @@ body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Ro
 
 /* 테이블: 제목·내용 상하좌우 가운데 정렬 (모든 테이블 공통 규칙, Bootstrap text-start/text-end 덮어씀) */
 #contentsMain .table { font-size: var(--app-table-font-size); }
+.tab-pane.tabConDiv .table,
+.modal-body .table {
+  font-size: var(--app-table-font-size);
+}
 #contentsMain .table thead th,
 #contentsMain .table tbody td {
   text-align: center !important;
@@ -841,6 +845,98 @@ body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Ro
 #contentsMain .screen-calc-gm-list .table th[data-key="calcDt"],
 #contentsMain .screen-calc-gm-list .table th[data-key="approveDt"],
 #contentsMain .screen-calc-gm-list .table th[data-key="cancelDt"] { min-width: 138px; }
+
+/* 수수료내역: 가맹정산내역과 유사한 2단 헤더·가로 스크롤·밀도 (tbody는 text-end 등 유틸이 적용되도록 강제 가운데 정렬 제외) */
+#contentsMain .screen-calc-fee-list .summary-total-bar {
+  background: #f8fbff;
+  border: 1px solid #d7e8fb;
+  padding: 8px 12px;
+  font-size: var(--pay-mng-dense-font-size);
+}
+#contentsMain .screen-calc-fee-list [data-summary] {
+  color: #2b5f8d;
+  font-weight: 600;
+}
+#contentsMain .screen-calc-fee-list .pay-mng-search-form .form-label,
+#contentsMain .screen-calc-fee-list .pay-mng-search-form .form-control,
+#contentsMain .screen-calc-fee-list .pay-mng-search-form .form-select,
+#contentsMain .screen-calc-fee-list .screen-search-form.pay-mng-search-form .form-label,
+#contentsMain .screen-calc-fee-list .screen-search-form.pay-mng-search-form .form-control,
+#contentsMain .screen-calc-fee-list .screen-search-form.pay-mng-search-form .form-select {
+  font-size: var(--pay-mng-dense-font-size);
+}
+#contentsMain .screen-calc-fee-list .search-notice,
+#contentsMain .screen-calc-fee-list .search-notice li {
+  font-size: var(--pay-mng-dense-font-size);
+}
+#contentsMain .screen-calc-fee-list .screen-action-buttons .btn {
+  font-size: var(--pay-mng-dense-font-size);
+}
+#contentsMain .screen-calc-fee-list .pagination-row .pagination-label,
+#contentsMain .screen-calc-fee-list .pagination-row .pagination-total,
+#contentsMain .screen-calc-fee-list .pagination-row .pagination-size-opt,
+#contentsMain .screen-calc-fee-list .pagination-row .pagination-num,
+#contentsMain .screen-calc-fee-list .pagination-row .pagination-num--current {
+  font-size: var(--pay-mng-dense-font-size);
+}
+#contentsMain .screen-calc-fee-list .table-responsive {
+  display: block;
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+#contentsMain .screen-calc-fee-list .table-responsive > .table {
+  width: max-content;
+  min-width: 100%;
+  table-layout: auto;
+  margin-bottom: 0;
+}
+#contentsMain .screen-calc-fee-list .table thead tr:first-child th {
+  background: #eaf4ff;
+  color: #275a84;
+  font-weight: 700;
+  border-color: #cfe1f6;
+  text-align: center;
+  white-space: nowrap;
+  font-size: var(--pay-mng-dense-font-size);
+  line-height: 1.25;
+  padding: 4px 8px;
+  vertical-align: middle !important;
+}
+#contentsMain .screen-calc-fee-list .table thead tr:nth-child(2) th {
+  background: #f4f9ff;
+  color: #34668f;
+  border-color: #dbe8f7;
+  text-align: center;
+  white-space: nowrap;
+  font-size: var(--pay-mng-dense-font-size);
+  line-height: 1.25;
+  padding: 4px 8px;
+  vertical-align: middle !important;
+}
+#contentsMain .screen-calc-fee-list .table thead th {
+  white-space: nowrap;
+  font-size: var(--pay-mng-dense-font-size);
+  line-height: 1.25;
+  padding: 4px 8px;
+  vertical-align: middle !important;
+}
+#contentsMain .screen-calc-fee-list .table tbody td {
+  white-space: nowrap;
+  font-size: var(--pay-mng-dense-font-size);
+  line-height: 1.25;
+  padding: 4px 8px;
+  vertical-align: middle !important;
+}
+#contentsMain .screen-calc-fee-list .table .empty-state-cell {
+  white-space: normal;
+}
+#contentsMain .screen-calc-fee-list .table th[data-key="compNm"] { min-width: 150px; }
+#contentsMain .screen-calc-fee-list .table th[data-key="trnId"] { min-width: 200px; }
+#contentsMain .screen-calc-fee-list .table th[data-key="amount"],
+#contentsMain .screen-calc-fee-list .table th[data-key="expectedPayout"],
+#contentsMain .screen-calc-fee-list .table th[data-key="totalFee"],
+#contentsMain .screen-calc-fee-list .table th[data-key="feeVat"] { min-width: 96px; }
 
 /* 결제내역(통합·파생): 참고 UI — 연한 블루 2단 헤더, 요약 숫자 색 구분, 행 줄무늬 */
 .screen-pay-list .summary-total-bar {
@@ -1059,38 +1155,58 @@ body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Ro
   border-color: #dbe8f7;
   text-align: center;
 }
-#contentsMain .screen-pay-list .table tbody tr:nth-child(odd) { background: #fff; }
-#contentsMain .screen-pay-list .table tbody tr:nth-child(even) { background: #eef6fc; }
+#contentsMain .screen-pay-list .table tbody tr:nth-child(odd),
+#contentsMain .screen-calc-fee-list .table tbody tr:nth-child(odd) { background: #fff; }
+#contentsMain .screen-pay-list .table tbody tr:nth-child(even),
+#contentsMain .screen-calc-fee-list .table tbody tr:nth-child(even) { background: #eef6fc; }
 
-/* 결제내역·통합내역 — NOTI 종합거래와 동일 톤: 행 배경 + Status 뱃지 */
+/* 결제내역·통합내역·수수료내역 — NOTI 종합거래와 동일 톤: 행 배경 + Status 뱃지 */
 #contentsMain .screen-pay-list .table tbody tr.pay-row-tone--success,
 #contentsMain .screen-pay-list .table tbody tr.pay-row-tone--success:nth-child(odd),
-#contentsMain .screen-pay-list .table tbody tr.pay-row-tone--success:nth-child(even) {
+#contentsMain .screen-pay-list .table tbody tr.pay-row-tone--success:nth-child(even),
+#contentsMain .screen-calc-fee-list .table tbody tr.pay-row-tone--success,
+#contentsMain .screen-calc-fee-list .table tbody tr.pay-row-tone--success:nth-child(odd),
+#contentsMain .screen-calc-fee-list .table tbody tr.pay-row-tone--success:nth-child(even) {
   background: #e6f7ec !important;
 }
 #contentsMain .screen-pay-list .table tbody tr.pay-row-tone--cancel,
 #contentsMain .screen-pay-list .table tbody tr.pay-row-tone--cancel:nth-child(odd),
-#contentsMain .screen-pay-list .table tbody tr.pay-row-tone--cancel:nth-child(even) {
+#contentsMain .screen-pay-list .table tbody tr.pay-row-tone--cancel:nth-child(even),
+#contentsMain .screen-calc-fee-list .table tbody tr.pay-row-tone--cancel,
+#contentsMain .screen-calc-fee-list .table tbody tr.pay-row-tone--cancel:nth-child(odd),
+#contentsMain .screen-calc-fee-list .table tbody tr.pay-row-tone--cancel:nth-child(even) {
   background: linear-gradient(90deg, rgba(148, 163, 184, 0.35) 0, rgba(212, 220, 230, 0.55) 12px, #e8edf3 100%) !important;
 }
 #contentsMain .screen-pay-list .table tbody tr.pay-row-tone--void,
 #contentsMain .screen-pay-list .table tbody tr.pay-row-tone--void:nth-child(odd),
-#contentsMain .screen-pay-list .table tbody tr.pay-row-tone--void:nth-child(even) {
+#contentsMain .screen-pay-list .table tbody tr.pay-row-tone--void:nth-child(even),
+#contentsMain .screen-calc-fee-list .table tbody tr.pay-row-tone--void,
+#contentsMain .screen-calc-fee-list .table tbody tr.pay-row-tone--void:nth-child(odd),
+#contentsMain .screen-calc-fee-list .table tbody tr.pay-row-tone--void:nth-child(even) {
   background: linear-gradient(90deg, rgba(251, 191, 36, 0.42) 0, rgba(255, 237, 213, 0.95) 14px, #fff7ed 100%) !important;
 }
 #contentsMain .screen-pay-list .table tbody tr.pay-row-tone--refund,
 #contentsMain .screen-pay-list .table tbody tr.pay-row-tone--refund:nth-child(odd),
-#contentsMain .screen-pay-list .table tbody tr.pay-row-tone--refund:nth-child(even) {
+#contentsMain .screen-pay-list .table tbody tr.pay-row-tone--refund:nth-child(even),
+#contentsMain .screen-calc-fee-list .table tbody tr.pay-row-tone--refund,
+#contentsMain .screen-calc-fee-list .table tbody tr.pay-row-tone--refund:nth-child(odd),
+#contentsMain .screen-calc-fee-list .table tbody tr.pay-row-tone--refund:nth-child(even) {
   background: #e8f1fc !important;
 }
 #contentsMain .screen-pay-list .table tbody tr.pay-row-tone--fail,
 #contentsMain .screen-pay-list .table tbody tr.pay-row-tone--fail:nth-child(odd),
-#contentsMain .screen-pay-list .table tbody tr.pay-row-tone--fail:nth-child(even) {
+#contentsMain .screen-pay-list .table tbody tr.pay-row-tone--fail:nth-child(even),
+#contentsMain .screen-calc-fee-list .table tbody tr.pay-row-tone--fail,
+#contentsMain .screen-calc-fee-list .table tbody tr.pay-row-tone--fail:nth-child(odd),
+#contentsMain .screen-calc-fee-list .table tbody tr.pay-row-tone--fail:nth-child(even) {
   background: #fdecef !important;
 }
 #contentsMain .screen-pay-list .table tbody tr.pay-row-tone--pending,
 #contentsMain .screen-pay-list .table tbody tr.pay-row-tone--pending:nth-child(odd),
-#contentsMain .screen-pay-list .table tbody tr.pay-row-tone--pending:nth-child(even) {
+#contentsMain .screen-pay-list .table tbody tr.pay-row-tone--pending:nth-child(even),
+#contentsMain .screen-calc-fee-list .table tbody tr.pay-row-tone--pending,
+#contentsMain .screen-calc-fee-list .table tbody tr.pay-row-tone--pending:nth-child(odd),
+#contentsMain .screen-calc-fee-list .table tbody tr.pay-row-tone--pending:nth-child(even) {
   background: #f5f7fa !important;
 }
 
@@ -1376,7 +1492,7 @@ colgroup.pg-col-resize-group col {
   margin-bottom: 0.75rem;
 }
 .hq-notify-mapping-ui #hqNmWizardCard .table thead th {
-  font-size: 0.78rem;
+  font-size: var(--app-table-font-size);
   vertical-align: middle;
 }
 
@@ -1431,7 +1547,7 @@ colgroup.pg-col-resize-group col {
   flex: 0 0 auto;
   min-width: auto;
   line-height: 1.35;
-  font-size: 0.8125rem;
+  font-size: var(--app-table-font-size);
 }
 .table-column-guide--two-row .column-guide-actions--inline,
 .table-column-guide.table-column-guide--inline-head .column-guide-actions--inline {
@@ -1447,7 +1563,7 @@ colgroup.pg-col-resize-group col {
 }
 .column-guide-actions--inline .btn.btn-xs {
   padding: 1px 6px !important;
-  font-size: 0.68rem !important;
+  font-size: var(--app-table-font-size) !important;
   min-height: 20px !important;
   min-width: 2rem !important;
 }
@@ -2165,7 +2281,7 @@ body.theme-light .left-side-menu .btn-secondary:hover, body.theme-gray .left-sid
   color: #9aa0a6;
 }
 
-/* 수수료관리 2단 헤더: 기본(히스토리 카드 등)은 한 줄. 메인·히스토리 래퍼 안에서는 줄바꿈 허용 → 가로 스크롤 없이 전체 표시 */
+/* 수수료관리 2단 헤더: 기본 그리드. 메인·히스토리 래퍼(.commission-list-table-wrap)는 가로 스크롤 + 한 줄 표시 */
 .commission-split-grid thead th {
   vertical-align: middle;
 }
@@ -2182,10 +2298,10 @@ body.theme-light .left-side-menu .btn-secondary:hover, body.theme-gray .left-sid
   min-width: 4rem;
 }
 
-/* 수수료관리: 밀도 높은 그리드 가독성용 축소 폰트 */
+/* 수수료관리: 결제내역 그리드와 동일 글자 크기(전역 .table 상속) */
 .commission-split-grid th,
 .commission-split-grid td {
-  font-size: 0.66rem;
+  font-size: inherit;
 }
 
 /* 수수료 변경 히스토리: 제목(th)·내용(td) 상하좌우 가운데 정렬 (테이블·폼 UI 규칙) */
@@ -2196,7 +2312,7 @@ body.theme-light .left-side-menu .btn-secondary:hover, body.theme-gray .left-sid
 }
 
 .commission-split-grid .form-control-sm {
-  font-size: 0.66rem;
+  font-size: var(--app-table-font-size);
 }
 
 .commission-inline-cell {
@@ -2216,60 +2332,54 @@ body.theme-light .left-side-menu .btn-secondary:hover, body.theme-gray .left-sid
   height: calc(1.2em + 0.35rem + 2px);
 }
 
-/* 수수료관리·변경 히스토리: 하단 가로 스크롤 없음 — 표는 뷰포트 너비에 맞추고 셀 줄바꿈으로 전체 문구 표시 */
+/* 수수료관리·변경 히스토리: 가로 스크롤 허용, 셀·헤더 한 줄(줄바꿈 없음) */
 #contentsMain .table-responsive.table-scrollable.commission-list-table-wrap {
-  overflow-x: hidden !important;
+  overflow-x: auto;
   -webkit-overflow-scrolling: touch;
   max-width: 100%;
 }
 #contentsMain .commission-list-table-wrap {
-  overflow-x: hidden;
+  overflow-x: auto;
   max-width: 100%;
 }
 #contentsMain .commission-list-table-wrap.table-scrollable {
   overflow-y: auto;
-  overflow-x: hidden;
+  overflow-x: auto;
 }
 #contentsMain .commission-list-table-wrap .commission-split-grid {
-  table-layout: fixed;
-  width: 100%;
-  max-width: 100%;
-  min-width: 0 !important;
+  table-layout: auto;
+  width: max-content;
+  min-width: 100%;
+  max-width: none;
 }
-/* 헤더도 좁은 칸에서 줄바꿈(한 줄 강제 해제) */
 #contentsMain .commission-list-table-wrap .commission-split-grid thead tr:first-child th,
 #contentsMain .commission-list-table-wrap .commission-split-grid thead tr:nth-child(2) th {
-  white-space: normal;
-  word-break: keep-all;
-  overflow-wrap: anywhere;
-  min-width: 0;
+  white-space: nowrap;
+  word-break: normal;
+  overflow-wrap: normal;
   line-height: 1.2;
 }
 #contentsMain .commission-list-table-wrap .commission-split-grid thead th[data-key$="Rate"],
 #contentsMain .commission-list-table-wrap .commission-split-grid thead th[data-key$="PerTxFee"] {
-  min-width: 0;
   padding-left: 0.1rem;
   padding-right: 0.1rem;
 }
 #contentsMain .commission-list-table-wrap .commission-split-grid thead th[data-key$="Nm"] {
-  min-width: 0;
   padding-left: 0.1rem;
   padding-right: 0.1rem;
 }
-/* 본문: 기본 줄바꿈(숫자·이름 모두 영역 안에 표시) */
 #contentsMain .commission-list-table-wrap .commission-split-grid tbody td {
-  white-space: normal;
-  word-break: break-word;
-  overflow-wrap: anywhere;
+  white-space: nowrap;
+  word-break: normal;
+  overflow-wrap: normal;
   vertical-align: middle;
-  min-width: 0;
   padding-left: 0.12rem;
   padding-right: 0.12rem;
 }
 #contentsMain .commission-list-table-wrap .commission-split-grid td.commission-grid-wrapcell {
-  white-space: normal;
-  word-break: break-word;
-  overflow-wrap: anywhere;
+  white-space: nowrap;
+  word-break: normal;
+  overflow-wrap: normal;
   vertical-align: middle;
 }
 #contentsMain .commission-list-table-wrap .commission-split-grid td:has(.grid-row-check) {
@@ -2287,29 +2397,29 @@ body.theme-light .left-side-menu .btn-secondary:hover, body.theme-gray .left-sid
 }
 #contentsMain .commission-list-table-wrap .commission-split-grid .commission-inline-cell .commission-inline-view {
   display: inline-block;
-  max-width: 100%;
-  white-space: normal;
-  word-break: break-word;
+  max-width: none;
+  white-space: nowrap;
+  word-break: normal;
 }
 #contentsMain .commission-list-table-wrap .commission-split-grid td:has(button) .btn-sm {
   padding: 0.08rem 0.2rem;
-  font-size: 0.62rem;
+  font-size: var(--app-table-font-size);
   line-height: 1.2;
 }
 #contentsMain .commission-list-table-wrap .commission-split-grid td:has(button) {
-  white-space: normal;
+  white-space: nowrap;
   text-align: center;
 }
 
-/* 수수료설정 모달: 데이터 표시 글자 크기 축소 */
+/* 수수료설정 모달: 격자·입력 — 결제내역 테이블과 동일 글자 크기 */
 #commissionSettingModal .modal-body .form-label {
-  font-size: 0.68rem;
+  font-size: var(--app-table-font-size);
   margin-bottom: 0.2rem;
 }
 #commissionSettingModal .modal-body .form-control-sm,
 #commissionSettingModal .modal-body .form-select-sm,
 #commissionSettingModal .modal-body .form-control.form-control-sm {
-  font-size: 0.68rem;
+  font-size: var(--app-table-font-size);
 }
 
 /* 본사(REGIONAL) 휴일 미니달력 */
@@ -2365,13 +2475,13 @@ body.theme-light .left-side-menu .btn-secondary:hover, body.theme-gray .left-sid
 }
 #hqNotifyTargetTable thead th.hq-notify-created-th,
 #hqNotifyTargetTable .hq-notify-created-cell {
-  font-size: var(--app-base-font-size);
+  font-size: var(--app-table-font-size);
   white-space: nowrap;
 }
 
 /* 전산노티·결제환경 — 총판 노티 대상 테이블 */
 #hqNotifyTargetTable .hq-notify-url-cell {
-  font-size: var(--app-base-font-size);
+  font-size: var(--app-table-font-size);
   line-height: 1.45;
   vertical-align: middle;
 }
@@ -2380,7 +2490,7 @@ body.theme-light .left-side-menu .btn-secondary:hover, body.theme-gray .left-sid
   white-space: nowrap;
 }
 #hqNotifyTargetTable .hq-notify-url-code {
-  font-size: var(--app-base-font-size);
+  font-size: var(--app-table-font-size);
   word-break: break-all;
   background: transparent;
 }
@@ -2398,7 +2508,7 @@ body.theme-light .left-side-menu .btn-secondary:hover, body.theme-gray .left-sid
   min-width: 132px;
   max-width: 132px;
   text-align: center;
-  font-size: var(--app-base-font-size);
+  font-size: var(--app-table-font-size);
   font-weight: 600;
   white-space: nowrap;
   vertical-align: middle;
@@ -2410,7 +2520,7 @@ body.theme-light .left-side-menu .btn-secondary:hover, body.theme-gray .left-sid
   width: 7.25rem;
   padding: 0.25rem 0.35rem;
   border-radius: 0.35rem;
-  font-size: var(--app-base-font-size);
+  font-size: var(--app-table-font-size);
   font-weight: 700;
   letter-spacing: 0.02em;
   text-align: center;
@@ -2467,12 +2577,16 @@ body.theme-light .left-side-menu .btn-secondary:hover, body.theme-gray .left-sid
 #notifyTargetPickerModal .notify-target-picker-table thead th {
   vertical-align: middle;
 }
+#notifyTargetPickerModal .notify-target-picker-table thead th,
+#notifyTargetPickerModal .notify-target-picker-table tbody td {
+  font-size: var(--app-table-font-size);
+}
 #notifyTargetPickerModal .notify-picker-badge {
   display: inline-block;
   min-width: 6.5rem;
   padding: 0.25rem 0.4rem;
   border-radius: 0.35rem;
-  font-size: var(--app-base-font-size);
+  font-size: var(--app-table-font-size);
   font-weight: 700;
   letter-spacing: 0.02em;
 }
@@ -2676,7 +2790,7 @@ body.theme-light .left-side-menu .btn-secondary:hover, body.theme-gray .left-sid
 .hq-pay-follow-table th,
 .hq-pay-follow-table td {
   vertical-align: middle;
-  font-size: 0.8125rem;
+  font-size: var(--app-table-font-size);
   padding: 0.4rem 0.35rem;
 }
 .hq-pay-follow-table .hq-pay-follow-col-basis,
@@ -2686,7 +2800,7 @@ body.theme-light .left-side-menu .btn-secondary:hover, body.theme-gray .left-sid
   white-space: normal;
 }
 .hq-pay-follow-table select.form-select-sm {
-  font-size: 0.8125rem;
+  font-size: var(--app-table-font-size);
   min-width: 0;
   max-width: 100%;
 }
@@ -2751,7 +2865,7 @@ button.pay-follow.pay-follow--off {
 .hq-data-retention-table th,
 .hq-data-retention-table td {
   vertical-align: middle;
-  font-size: 0.8125rem;
+  font-size: var(--app-table-font-size);
   padding: 0.4rem 0.35rem;
 }
 .hq-data-retention-table thead th {
@@ -2783,11 +2897,11 @@ button.pay-follow.pay-follow--off {
   white-space: nowrap;
 }
 .hq-data-retention-table .hq-dr-th-narrow {
-  font-size: 0.8125rem;
+  font-size: var(--app-table-font-size);
   white-space: nowrap;
 }
 .hq-data-retention-table .hq-dr-th-act {
-  font-size: 0.8125rem;
+  font-size: var(--app-table-font-size);
   white-space: nowrap;
 }
 .hq-data-retention-table thead .hq-dr-th-type {
@@ -2806,7 +2920,7 @@ button.pay-follow.pay-follow--off {
 .hq-data-retention-table td:nth-child(6) .btn-group .btn {
   padding-left: 0.35rem;
   padding-right: 0.35rem;
-  font-size: 0.8125rem;
+  font-size: var(--app-table-font-size);
 }
 .hq-data-retention-table td:nth-child(6),
 .hq-data-retention-table td.hq-dr-act-cell {
@@ -2814,7 +2928,7 @@ button.pay-follow.pay-follow--off {
 }
 .hq-data-retention-table .hq-dr-purge,
 .hq-data-retention-table .hq-dr-retain {
-  font-size: 0.8125rem;
+  font-size: var(--app-table-font-size);
   min-width: 0;
   width: 100%;
   max-width: 6.5rem;
@@ -2876,13 +2990,13 @@ button.pay-follow.pay-follow--off {
   gap: 0.25rem;
 }
 .hq-def-comm-th-chk-label {
-  font-size: 0.6875rem;
+  font-size: var(--app-table-font-size);
   font-weight: 600;
   line-height: 1;
 }
 .hq-default-comm-policy-table .hq-def-comm-th-code {
   white-space: nowrap;
-  font-size: 0.78rem;
+  font-size: var(--app-table-font-size);
   padding-left: 0.25rem;
   padding-right: 0.25rem;
 }
@@ -2890,10 +3004,10 @@ button.pay-follow.pay-follow--off {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  font-size: 0.8125rem;
+  font-size: var(--app-table-font-size);
 }
 .hq-default-comm-policy-table .hq-def-comm-th-name {
-  font-size: 0.78rem;
+  font-size: var(--app-table-font-size);
   text-align: left;
 }
 .hq-default-comm-policy-table td.hq-def-comm-policy-td-name {
@@ -2914,7 +3028,7 @@ button.pay-follow.pay-follow--off {
   white-space: nowrap;
 }
 .hq-default-comm-policy-table .hq-def-comm-th-sub {
-  font-size: 0.7rem;
+  font-size: var(--app-table-font-size);
   font-weight: 600;
   white-space: nowrap;
   word-break: normal;
@@ -2942,7 +3056,7 @@ button.pay-follow.pay-follow--off {
 .hq-def-comm-policy-td-num {
   text-align: center;
   white-space: nowrap;
-  font-size: 0.75rem;
+  font-size: var(--app-table-font-size);
   font-variant-numeric: tabular-nums;
   vertical-align: middle;
   min-width: 2.75rem;
@@ -2955,7 +3069,7 @@ button.pay-follow.pay-follow--off {
   text-overflow: ellipsis;
   max-width: none;
   white-space: nowrap;
-  font-size: 0.72rem;
+  font-size: var(--app-table-font-size);
 }
 .hq-def-comm-policy-td-deploy {
   min-width: 4.25rem;
@@ -2972,7 +3086,7 @@ button.pay-follow.pay-follow--off {
   text-overflow: ellipsis;
   max-width: none;
   white-space: nowrap;
-  font-size: 0.68rem;
+  font-size: var(--app-table-font-size);
   min-width: 0;
 }
 .hq-default-comm-policy-table .hq-def-comm-th-upd,
@@ -2981,13 +3095,13 @@ button.pay-follow.pay-follow--off {
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
-  font-size: 0.68rem;
+  font-size: var(--app-table-font-size);
 }
 .hq-default-comm-policy-table th,
 .hq-default-comm-policy-table td {
   padding: 0.35rem 0.28rem;
-  font-size: 0.74rem;
-  line-height: 1.2;
+  font-size: var(--app-table-font-size);
+  line-height: 1.25;
   word-break: normal;
 }
 
@@ -3003,7 +3117,7 @@ button.pay-follow.pay-follow--off {
 .hq-comm-tier-matrix .hq-tier-cell,
 .hq-extra-tier-table .hq-tier-extra-cell {
   min-width: 3.25rem;
-  font-size: 0.8125rem;
+  font-size: var(--app-table-font-size);
 }
 .hq-comm-tier-matrix th,
 .hq-comm-tier-matrix td {
@@ -3038,14 +3152,14 @@ button.pay-follow.pay-follow--off {
 }
 
 .pg-chargeback-policy-preview-title {
-  font-size: 0.75rem;
+  font-size: var(--app-table-font-size);
   color: #6c757d;
   margin-bottom: 0.375rem;
 }
 
 .pg-chargeback-policy-preview-table th,
 .pg-chargeback-policy-preview-table td {
-  font-size: 0.75rem;
+  font-size: var(--app-table-font-size);
   vertical-align: middle;
   text-align: center;
   background: #fff5f6;

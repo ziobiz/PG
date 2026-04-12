@@ -244,6 +244,8 @@ public class ApiCompController {
             @RequestParam(required = false) String payFollowEmailVoidYn,
             @RequestParam(required = false) String payFollowAutoRefundYn,
             @RequestParam(required = false) String payFollowForceRefundYn,
+            @RequestParam(required = false) String feeVatApplyYn,
+            @RequestParam(required = false) String feeVatRatePct,
             @RequestParam(required = false) String regionalSettings) {
         Long parentIdVal = parentId;
         if (parentIdVal == null && parentComp != null && !parentComp.isEmpty()) {
@@ -289,6 +291,7 @@ public class ApiCompController {
                 commissionFollowHq, hqPolicyScope, perTxFee, cancelRate, voidFeePerTx, manualVoidFeePerTx, usageRate, failFee, payRate, refundRate, rollingPct, rollingDays,
                 feeSettlementPerTx, remittanceTransferFee, usdtTransferFeeUsd, feeUsdt, feeFx, fee3dsRate, chargebackFeePerTx, chargebackPolicyId,
                 payFollowMerchantUseYn, payFollowAutoVoidYn, payFollowEmailVoidYn, payFollowAutoRefundYn, payFollowForceRefundYn,
+                feeVatApplyYn, feeVatRatePct,
                 regionalSettings);
         return ResponseEntity.ok(ApiResponse.ok(Map.of("compId", saved.getCode(), "compNm", saved.getName())));
         } catch (IllegalArgumentException e) {
@@ -651,7 +654,9 @@ public class ApiCompController {
             @RequestParam(required = false) String calcExcludeYn,
             @RequestParam(required = false) String calcExcludeTarget,
             @RequestParam(required = false) String calcMinAmt,
-            @RequestParam(required = false) String transferExecTime) {
+            @RequestParam(required = false) String transferExecTime,
+            @RequestParam(required = false) String feeVatApplyYn,
+            @RequestParam(required = false) String feeVatRatePct) {
         Authentication auth0 = SecurityContextHolder.getContext().getAuthentication();
         if (auth0 != null && auth0.getPrincipal() instanceof AppUser u0) {
             if (!canAccessCompAsViewer(u0, compId)) {
@@ -677,7 +682,8 @@ public class ApiCompController {
                 calcCloseTime, calcStartTime, transferCycleDaysInt,
                 calcProcType, transferType, autoTransferMin, payHoldYn,
                 calcExcludeYn, calcExcludeTarget,
-                calcMinAmt, transferExecTime);
+                calcMinAmt, transferExecTime,
+                feeVatApplyYn, feeVatRatePct);
         return ResponseEntity.ok(ok ? ApiResponse.ok(Map.of("success", true)) : ApiResponse.fail("업체를 찾을 수 없습니다.", "NOT_FOUND"));
     }
 

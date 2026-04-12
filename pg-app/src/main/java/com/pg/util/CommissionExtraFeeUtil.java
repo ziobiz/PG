@@ -40,6 +40,27 @@ public final class CommissionExtraFeeUtil {
         return sum;
     }
 
+    /**
+     * 승인(결제) 1건에 대해 해당 슬롯이 % 모드일 때 적용 금액(정책 통화 기준, scale 절사).
+     * PCT가 아니거나 이름 없으면 0.
+     */
+    public static BigDecimal pctSlotAmountOnApproved(CommissionPolicy p, int slot, BigDecimal approvedTxnAmt, int scale) {
+        return pctSlotAmountOnApproved(p, slot, approvedTxnAmt, scale, RoundingMode.HALF_UP);
+    }
+
+    public static BigDecimal pctSlotAmountOnApproved(CommissionPolicy p, int slot, BigDecimal approvedTxnAmt, int scale, RoundingMode roundingMode) {
+        if (p == null || approvedTxnAmt == null || approvedTxnAmt.signum() <= 0 || slot < 1 || slot > 4) {
+            return BigDecimal.ZERO;
+        }
+        if (!isPctSlot(p, slot)) {
+            return BigDecimal.ZERO;
+        }
+        BigDecimal v = nz(getValue(p, slot));
+        int sc = Math.max(0, scale);
+        RoundingMode rm = roundingMode != null ? roundingMode : RoundingMode.HALF_UP;
+        return approvedTxnAmt.multiply(v).divide(BigDecimal.valueOf(100), sc, rm);
+    }
+
     /** 정산 배치 1회에 더하는 기타 고정 수수료 합(원 단위 절사). */
     public static BigDecimal sumFixedForSettlement(CommissionPolicy p) {
         if (p == null) {

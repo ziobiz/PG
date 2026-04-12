@@ -134,9 +134,22 @@ public final class PayListStatusBarBuckets {
      * 그리드·노티매핑과 동일 계열({@code HqNotifyMappingService} 통화 폴백)입니다.
      */
     private static final Map<String, String> ISO4217_NUMERIC_TO_ALPHA = Map.ofEntries(
+            Map.entry("036", "AUD"),
+            Map.entry("124", "CAD"),
+            Map.entry("156", "CNY"),
+            Map.entry("344", "HKD"),
+            Map.entry("360", "IDR"),
             Map.entry("392", "JPY"),
             Map.entry("410", "KRW"),
+            Map.entry("458", "MYR"),
+            Map.entry("608", "PHP"),
+            Map.entry("702", "SGD"),
+            Map.entry("682", "SAR"),
+            Map.entry("554", "NZD"),
+            Map.entry("756", "CHF"),
             Map.entry("764", "THB"),
+            Map.entry("784", "AED"),
+            Map.entry("826", "GBP"),
             Map.entry("840", "USD"),
             Map.entry("978", "EUR")
     );
@@ -151,8 +164,20 @@ public final class PayListStatusBarBuckets {
         }
         String upper = s.toUpperCase(Locale.ROOT);
         if (upper.matches("\\d+")) {
-            String stripped = upper.replaceFirst("^0+(?!$)", "");
-            return ISO4217_NUMERIC_TO_ALPHA.getOrDefault(stripped, stripped);
+            String key;
+            if (upper.length() < 3) {
+                key = "0".repeat(3 - upper.length()) + upper;
+            } else if (upper.length() == 3) {
+                key = upper;
+            } else {
+                key = upper.replaceFirst("^0+(?!$)", "");
+                if (key.length() > 3) {
+                    key = key.substring(key.length() - 3);
+                } else if (key.length() < 3) {
+                    key = "0".repeat(3 - key.length()) + key;
+                }
+            }
+            return ISO4217_NUMERIC_TO_ALPHA.getOrDefault(key, key);
         }
         return upper;
     }
@@ -312,13 +337,21 @@ public final class PayListStatusBarBuckets {
         if (c == null || c.isBlank()) {
             return 999;
         }
-        /* 기본 나열: JPY → USD → THB → KRW → 기타(알파벳) */
+        /* 기본 나열: 주요 통화 → KRW → 기타(알파벳) */
         return switch (c.trim().toUpperCase(Locale.ROOT)) {
             case "JPY" -> 0;
             case "USD" -> 1;
             case "THB" -> 2;
-            case "KRW" -> 3;
-            case "EUR" -> 4;
+            case "EUR" -> 3;
+            case "GBP" -> 4;
+            case "SGD" -> 5;
+            case "HKD" -> 6;
+            case "CNY" -> 7;
+            case "MYR" -> 8;
+            case "CHF" -> 9;
+            case "AUD" -> 10;
+            case "NZD" -> 11;
+            case "KRW" -> 12;
             default -> 40;
         };
     }
@@ -353,15 +386,28 @@ public final class PayListStatusBarBuckets {
     public static String resolveViewerPrimaryCurrency(AppUser user,
                                                       OrgUnitRepository orgUnitRepository,
                                                       CommissionPolicyRepository commissionPolicyRepository) {
+        return resolveViewerPrimaryCurrency(user, orgUnitRepository, commissionPolicyRepository, null);
+    }
+
+    /**
+     * @param hqPayDisplayCurrencyAlpha 본사 전산설정 결제 통화(알파). 수수료 정책 등으로 통화가 없을 때 폴백. null·공백이면 KRW.
+     */
+    public static String resolveViewerPrimaryCurrency(AppUser user,
+                                                      OrgUnitRepository orgUnitRepository,
+                                                      CommissionPolicyRepository commissionPolicyRepository,
+                                                      String hqPayDisplayCurrencyAlpha) {
+        String fallback = normalizeCurrency(
+                hqPayDisplayCurrencyAlpha != null && !hqPayDisplayCurrencyAlpha.isBlank()
+                        ? hqPayDisplayCurrencyAlpha : "KRW");
         if (commissionPolicyRepository == null) {
-            return "KRW";
+            return fallback;
         }
         if (user == null) {
             return commissionPolicyRepository.findByScope("DEFAULT")
                     .map(CommissionPolicy::getCurrencyCode)
                     .filter(s -> s != null && !s.isBlank())
                     .map(s -> s.trim().toUpperCase(Locale.ROOT))
-                    .orElse("KRW");
+                    .orElse(fallback);
         }
         String code = user.getOrgUnitCode();
         if (code == null || code.isBlank()) {
@@ -369,11 +415,11 @@ public final class PayListStatusBarBuckets {
                     .map(CommissionPolicy::getCurrencyCode)
                     .filter(s -> s != null && !s.isBlank())
                     .map(s -> s.trim().toUpperCase(Locale.ROOT))
-                    .orElse("KRW");
+                    .orElse(fallback);
         }
         Optional<OrgUnit> ou = orgUnitRepository != null ? orgUnitRepository.findByCode(code.trim()) : Optional.empty();
         if (ou.isEmpty()) {
-            return "KRW";
+            return fallback;
         }
         String comp = ou.get().getCode();
         return commissionPolicyRepository.findByScope(comp)
@@ -384,7 +430,7 @@ public final class PayListStatusBarBuckets {
                         .map(CommissionPolicy::getCurrencyCode)
                         .filter(s -> s != null && !s.isBlank())
                         .map(s -> s.trim().toUpperCase(Locale.ROOT)))
-                .orElse("KRW");
+                .orElse(fallback);
     }
 
     /** 집계용: 버킷 → 통화 → 합계·건수 */

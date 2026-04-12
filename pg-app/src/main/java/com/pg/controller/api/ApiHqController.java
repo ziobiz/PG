@@ -745,7 +745,7 @@ public class ApiHqController {
             data.put("rollingDays", p.getRollingDays() != null ? p.getRollingDays() : 180);
             data.put("currencyCode", p.getCurrencyCode() != null && !p.getCurrencyCode().isBlank() ? p.getCurrencyCode() : "KRW");
             data.put("policyRemark", p.getPolicyRemark() != null ? p.getPolicyRemark() : "");
-            data.put("fee3dsRate", p.getFee3dsRate() != null ? PercentDecimalHelper.toPlainOneDecimal(p.getFee3dsRate()) : "0");
+            data.put("fee3dsRate", p.getFee3dsRate() != null ? PercentDecimalHelper.toPlainAmountOneDecimal(p.getFee3dsRate()) : "0.0");
             data.put("chargebackFeePerTx", p.getChargebackFeePerTx() != null ? PercentDecimalHelper.toPlainAmountOneDecimal(p.getChargebackFeePerTx()) : "0.0");
             data.put("chargebackPolicyId", p.getChargebackPolicyId() != null ? p.getChargebackPolicyId() : "");
             putExtraFeeScalarsOnMap(data, p);
@@ -760,7 +760,7 @@ public class ApiHqController {
             data.put("rollingPct", "5"); data.put("rollingDays", 180);
             data.put("currencyCode", "KRW");
             data.put("policyRemark", "");
-            data.put("fee3dsRate", "0");
+            data.put("fee3dsRate", "0.0");
             data.put("chargebackFeePerTx", "0.0");
             data.put("chargebackPolicyId", "");
             putExtraFeeScalarsOnMap(data, null);
@@ -802,7 +802,7 @@ public class ApiHqController {
         data.put("deployedTemplateScopes", deployedScopes);
         String deployedScope = deployedScopes.isEmpty() ? "" : deployedScopes.get(0);
         data.put("deployedTemplateScope", deployedScope);
-        data.put("memo", "조직별 격자: 총본사~영업점은 배분(결제율·건당)에 반영됩니다. 가맹 열은 위 6단계 합계(가맹점 적용분)로 표시·저장됩니다. 가맹점이 본사설정을 따르면 이 합계가 기준이 되고, 업체관리 수수료에서 수정 시 그 값이 우선합니다. 결제·USDT·FX·3DS는 승인금액 기준 %. 건당·고정액은 통화 단위(소수 첫째 자리). 차지백 구간정책·롤링은 격자 외 필드입니다.");
+        data.put("memo", "조직별 격자: 총본사~영업점은 배분(결제율·건당)에 반영됩니다. 가맹 열은 위 6단계 합계(가맹점 적용분)로 표시·저장됩니다. 가맹점이 본사설정을 따르면 이 합계가 기준이 되고, 업체관리 수수료에서 수정 시 그 값이 우선합니다. 결제·USDT·FX는 승인금액 기준 %, 3DS는 정책통화 기준 건당 고정(건). 건당·고정액은 통화 단위(소수 첫째 자리). 차지백 구간정책·롤링은 격자 외 필드입니다.");
         return ResponseEntity.ok(ApiResponse.ok(data));
     }
 
@@ -957,7 +957,7 @@ public class ApiHqController {
         m.put("rollingDays", p.getRollingDays() != null ? p.getRollingDays() : 180);
         m.put("currencyCode", p.getCurrencyCode() != null && !p.getCurrencyCode().isBlank() ? p.getCurrencyCode() : "KRW");
         m.put("policyRemark", p.getPolicyRemark() != null ? p.getPolicyRemark() : "");
-        m.put("fee3dsRate", p.getFee3dsRate() != null ? PercentDecimalHelper.toPlainOneDecimal(p.getFee3dsRate()) : "0");
+        m.put("fee3dsRate", p.getFee3dsRate() != null ? PercentDecimalHelper.toPlainAmountOneDecimal(p.getFee3dsRate()) : "0.0");
         m.put("chargebackFeePerTx", p.getChargebackFeePerTx() != null ? PercentDecimalHelper.toPlainAmountOneDecimal(p.getChargebackFeePerTx()) : "0.0");
         m.put("chargebackPolicyId", p.getChargebackPolicyId() != null ? p.getChargebackPolicyId() : "");
         putExtraFeeScalarsOnMap(m, p);

@@ -18,6 +18,7 @@ import com.pg.repository.DistributionFeeConfigRepository;
 import com.pg.repository.MerchantCommissionExtraRepository;
 import com.pg.repository.MerchantProfileRepository;
 import com.pg.repository.OrgUnitRepository;
+import com.pg.util.PayListStatusBarBuckets;
 import com.pg.util.PercentDecimalHelper;
 import org.springframework.data.domain.Sort;
 import org.springframework.security.core.Authentication;
@@ -152,6 +153,16 @@ public class CommissionService {
             m.put("rollingPct", policy.getRollingPct());
             m.put("rollingDays", policy.getRollingDays());
         }
+        {
+            String polCur = "-";
+            if (policy != null) {
+                String cc = policy.getCurrencyCode();
+                if (cc != null && !cc.isBlank()) {
+                    polCur = PayListStatusBarBuckets.normalizeCurrency(cc.trim());
+                }
+            }
+            m.put("policyCur", polCur);
+        }
         merchantCommissionExtraRepository.findByOrgUnitId(merchant.getId()).ifPresent(ex -> {
             m.put("feeAccountActivation", ex.getFeeAccountActivation());
             m.put("feeAnnual", ex.getFeeAnnual());
@@ -176,7 +187,7 @@ public class CommissionService {
             }
         }
 
-        m.put("totalNm", "");
+        m.put("totalNm", resolveMerchantBaseCurrencyDisplay(merchant));
         putTotals(m);
         LocalDate apply = null;
         if (m.get("applyStartDate") instanceof LocalDate d) {
@@ -579,7 +590,10 @@ public class CommissionService {
                 if (rs == null || rs.isBlank()) return;
                 try {
                     Map<String, Object> obj = MAPPER.readValue(rs, new TypeReference<>() {});
-                    if (obj.get("hqPolicyScope") != null) m.put("hqPolicyScope", String.valueOf(obj.get("hqPolicyScope")));
+                    if (obj.containsKey("hqPolicyScope")) {
+                        Object hs = obj.get("hqPolicyScope");
+                        m.put("hqPolicyScope", hs == null ? "" : String.valueOf(hs).trim());
+                    }
                     if (obj.get("holdRate") != null) m.put("holdRate", obj.get("holdRate"));
                     if (obj.get("holdDays") != null) m.put("holdDays", obj.get("holdDays"));
                     if (obj.get("commissionFollowHq") != null) m.put("commissionFollowHq", String.valueOf(obj.get("commissionFollowHq")));
@@ -629,7 +643,7 @@ public class CommissionService {
             if (body.get("rollingDays") != null && !body.get("rollingDays").toString().isEmpty()) {
                 policy.setRollingDays(Integer.parseInt(body.get("rollingDays").toString()));
             }
-            setPct(policy::setFee3dsRate, body.get("fee3dsRate"));
+            setAmtOne(policy::setFee3dsRate, body.get("fee3dsRate"));
             setAmtOne(policy::setFeeSettlementPerTx, body.get("feeSettlementPerTx"));
             setAmtOne(policy::setRemittanceTransferFee, body.get("remittanceTransferFee"));
             setAmtOne(policy::setUsdtTransferFeeUsd, body.get("usdtTransferFeeUsd"));
@@ -803,6 +817,7 @@ public class CommissionService {
                 LocalDateTime start = h.getCreatedAt();
                 LocalDateTime end = asc.get(idx + 1).getCreatedAt();
                 Map<String, Object> snapBody = parseHistorySnapshotMap(h);
+                ensureTotalNmCurrencyIfBlank(snapBody, ou);
                 refreshAncestorNamesByCode(snapBody);
                 String by = h.getChangedBy() != null ? h.getChangedBy() : "";
                 allRows.add(historyRowShell(start, end, by, snapBody));
@@ -823,6 +838,32 @@ public class CommissionService {
         pr.setTotalElements(total);
         pr.setTotalPages((int) Math.ceil((double) Math.max(0, total) / sz));
         return pr;
+    }
+
+    /** 합계 열 표시용: 가맹점 기준 통화(프로필 미설정 시 "-"). */
+    private String resolveMerchantBaseCurrencyDisplay(OrgUnit merchant) {
+        if (merchant == null || merchant.getId() == null) {
+            return "-";
+        }
+        return merchantProfileRepository.findByOrgUnitId(merchant.getId())
+                .map(MerchantProfile::getBaseCurrency)
+                .map(s -> s != null ? s.trim() : "")
+                .filter(s -> !s.isEmpty())
+                .orElse("-");
+    }
+
+    /**
+     * 과거 스냅샷 JSON에 totalNm(통화)이 없을 때 표시용으로 보강한다.
+     */
+    private void ensureTotalNmCurrencyIfBlank(Map<String, Object> snapBody, OrgUnit merchant) {
+        if (snapBody == null || merchant == null) {
+            return;
+        }
+        Object cur = snapBody.get("totalNm");
+        String s = cur != null ? String.valueOf(cur).trim() : "";
+        if (s.isEmpty()) {
+            snapBody.put("totalNm", resolveMerchantBaseCurrencyDisplay(merchant));
+        }
     }
 
     private static Map<String, Object> historyRowShell(LocalDateTime start, LocalDateTime end, String changedBy, Map<String, Object> body) {

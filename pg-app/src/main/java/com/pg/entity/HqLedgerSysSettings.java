@@ -104,6 +104,18 @@ public class HqLedgerSysSettings {
     @Column(name = "app_log_file_retention_days", nullable = false)
     private Integer appLogFileRetentionDays = 90;
 
+    /** 수수료내역 등 금액 소수 자릿수(0~8, 기본 2) */
+    @Column(name = "fee_list_decimal_places", nullable = false)
+    private Integer feeListDecimalPlaces = 2;
+
+    /** CEILING=절상, HALF_UP=반올림, DOWN=그대로(버림) */
+    @Column(name = "fee_list_round_mode", nullable = false, length = 16)
+    private String feeListRoundMode = "CEILING";
+
+    /** 결제 통화 ISO 4217 숫자(3자리, 예 764=THB). 집계·표시 폴백 기준 */
+    @Column(name = "pay_display_currency_iso_num", nullable = false, length = 3)
+    private String payDisplayCurrencyIsoNum = "764";
+
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 
@@ -185,6 +197,12 @@ public class HqLedgerSysSettings {
     public void setAppLogMemoryRetentionDays(Integer appLogMemoryRetentionDays) { this.appLogMemoryRetentionDays = appLogMemoryRetentionDays; }
     public Integer getAppLogFileRetentionDays() { return appLogFileRetentionDays; }
     public void setAppLogFileRetentionDays(Integer appLogFileRetentionDays) { this.appLogFileRetentionDays = appLogFileRetentionDays; }
+    public Integer getFeeListDecimalPlaces() { return feeListDecimalPlaces; }
+    public void setFeeListDecimalPlaces(Integer feeListDecimalPlaces) { this.feeListDecimalPlaces = feeListDecimalPlaces; }
+    public String getFeeListRoundMode() { return feeListRoundMode; }
+    public void setFeeListRoundMode(String feeListRoundMode) { this.feeListRoundMode = feeListRoundMode; }
+    public String getPayDisplayCurrencyIsoNum() { return payDisplayCurrencyIsoNum; }
+    public void setPayDisplayCurrencyIsoNum(String payDisplayCurrencyIsoNum) { this.payDisplayCurrencyIsoNum = payDisplayCurrencyIsoNum; }
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
     public LocalDateTime getUpdatedAt() { return updatedAt; }

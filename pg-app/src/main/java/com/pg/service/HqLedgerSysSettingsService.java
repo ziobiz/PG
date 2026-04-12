@@ -3,6 +3,7 @@ package com.pg.service;
 import com.pg.catalog.DataRetentionCatalog;
 import com.pg.entity.HqLedgerSysSettings;
 import com.pg.repository.HqLedgerSysSettingsRepository;
+import com.pg.util.PayDisplayCurrency;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -77,6 +78,16 @@ public class HqLedgerSysSettingsService {
         m.put("chillpayTrRecentSyncDays", ledgerIntOr(s.getChillpayTrRecentSyncDays(), 2));
         m.put("appLogMemoryRetentionDays", ledgerIntOr(s.getAppLogMemoryRetentionDays(), 30));
         m.put("appLogFileRetentionDays", ledgerIntOr(s.getAppLogFileRetentionDays(), 90));
+        m.put("feeListDecimalPlaces", ledgerIntOr(s.getFeeListDecimalPlaces(), 2));
+        {
+            String rm = s.getFeeListRoundMode();
+            m.put("feeListRoundMode", rm != null && !rm.isBlank() ? rm.trim().toUpperCase() : "CEILING");
+        }
+        {
+            String num = PayDisplayCurrency.normalizeIsoNum(s.getPayDisplayCurrencyIsoNum());
+            m.put("payDisplayCurrencyIsoNum", num);
+            m.put("payDisplayCurrencyCode", PayDisplayCurrency.alphaFromIsoNum(num));
+        }
         m.putAll(hqNotifyEnvService.payFollowActionsSlice());
         if (s.getUpdatedAt() != null) {
             m.put("updatedAt", s.getUpdatedAt().toString());
@@ -139,6 +150,29 @@ public class HqLedgerSysSettingsService {
         }
         if (body.containsKey("appLogFileRetentionDays")) {
             s.setAppLogFileRetentionDays(clampInt(body.get("appLogFileRetentionDays"), 90, 1, 3650));
+        }
+        if (body.containsKey("feeListDecimalPlaces")) {
+            s.setFeeListDecimalPlaces(clampInt(body.get("feeListDecimalPlaces"), 2, 0, 8));
+        }
+        if (body.containsKey("feeListRoundMode")) {
+            String rm = trimToNull(body.get("feeListRoundMode"));
+            if (rm != null) {
+                String u = rm.toUpperCase();
+                if ("CEILING".equals(u) || "HALF_UP".equals(u) || "DOWN".equals(u)) {
+                    s.setFeeListRoundMode(u);
+                }
+            }
+        }
+        if (body.containsKey("payDisplayCurrencyIsoNum")) {
+            String raw = trimToNull(body.get("payDisplayCurrencyIsoNum"));
+            if (raw == null) {
+                s.setPayDisplayCurrencyIsoNum(PayDisplayCurrency.DEFAULT_ISO_NUM);
+            } else {
+                String n = PayDisplayCurrency.normalizeIsoNum(raw);
+                if (PayDisplayCurrency.isKnownIsoNum(n)) {
+                    s.setPayDisplayCurrencyIsoNum(n);
+                }
+            }
         }
         if (body.containsKey("dataRetentionPolicyJson")) {
             Object dr = body.get("dataRetentionPolicyJson");

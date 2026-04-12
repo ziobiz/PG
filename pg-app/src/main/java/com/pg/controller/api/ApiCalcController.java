@@ -12,6 +12,7 @@ import com.pg.service.HqNotifyMappingService;
 import com.pg.service.OrgAccessService;
 import com.pg.service.PayListActionService;
 import com.pg.service.PayListService;
+import com.pg.util.PayDisplayCurrency;
 import com.pg.util.PayListStatusBarBuckets;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
@@ -134,8 +135,9 @@ public class ApiCalcController {
             AppUser user = (authentication != null && authentication.getPrincipal() instanceof AppUser u) ? u : null;
             boolean multiCurrency = PayListStatusBarBuckets.isMultiCurrencyViewer(
                     PayListStatusBarBuckets.resolveViewerOrgLevel(user, orgUnitRepository));
+            String ledgerCur = PayDisplayCurrency.alphaFromSettings(hqLedgerSysSettingsService.getOrCreate());
             String primaryCurrency = PayListStatusBarBuckets.resolveViewerPrimaryCurrency(
-                    user, orgUnitRepository, commissionPolicyRepository);
+                    user, orgUnitRepository, commissionPolicyRepository, ledgerCur);
             String merchantFilter = resolveChillPayMerchantCodeFilter(authentication, searchMerchantCode);
             if ("__NONE__".equals(merchantFilter)) {
                 return ResponseEntity.ok(ApiResponse.ok(emptyChillPayPage(page, size)));
@@ -206,8 +208,9 @@ public class ApiCalcController {
             AppUser user = (authentication != null && authentication.getPrincipal() instanceof AppUser u) ? u : null;
             boolean multiCurrency = PayListStatusBarBuckets.isMultiCurrencyViewer(
                     PayListStatusBarBuckets.resolveViewerOrgLevel(user, orgUnitRepository));
+            String ledgerCur = PayDisplayCurrency.alphaFromSettings(hqLedgerSysSettingsService.getOrCreate());
             String primaryCurrency = PayListStatusBarBuckets.resolveViewerPrimaryCurrency(
-                    user, orgUnitRepository, commissionPolicyRepository);
+                    user, orgUnitRepository, commissionPolicyRepository, ledgerCur);
             String merchantFilter = resolveChillPayMerchantCodeFilter(authentication, searchMerchantCode);
             if ("__NONE__".equals(merchantFilter)) {
                 return ResponseEntity.ok(ApiResponse.ok(emptyChillPayPage(page, size)));

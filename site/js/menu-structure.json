@@ -58,16 +58,16 @@
       "icon": "bi-cash-stack",
       "children": [
         { "label": "통합정산", "url": "/calc/chillPaySettlementList", "menuId": "M0421" },
-        { "label": "유통망정산내역", "url": "/calc/calcList", "menuId": "M0404" },
-        { "label": "가맹정산내역", "url": "/calc/calcGmList", "menuId": "M0405" },
         { "label": "수수료내역", "url": "/calc/feeList", "menuId": "M0406" },
-        { "label": "환수금관리", "url": "/calc/compPointMngList", "menuId": "M0407" },
-        { "label": "잔액내역", "url": "/calc/balanceList", "menuId": "M0412" },
-        { "label": "미수금관리", "url": "/calc/unpaidMng", "menuId": "M0413" },
         { "label": "정산실행", "url": "/calc/exCalcList", "menuId": "M0418" },
-        { "label": "정산리포트", "url": "/calc/settlementReport", "menuId": "M0419" },
+        { "label": "가맹점정산내역", "url": "/calc/calcGmList", "menuId": "M0405" },
+        { "label": "유통망정산내역", "url": "/calc/calcList", "menuId": "M0404" },
         { "label": "담보금내역", "url": "/calc/collateralList", "menuId": "M0420" },
-        { "label": "정산보류내역", "url": "/pay/payHoldList", "menuId": "M0312" }
+        { "label": "환수금관리", "url": "/calc/compPointMngList", "menuId": "M0407" },
+        { "label": "미수금관리", "url": "/calc/unpaidMng", "menuId": "M0413" },
+        { "label": "정산보류내역", "url": "/pay/payHoldList", "menuId": "M0312" },
+        { "label": "정산리포트", "url": "/calc/settlementReport", "menuId": "M0419" },
+        { "label": "잔액/미수금관리", "url": "/calc/balcInfo", "menuId": "M0412" }
       ]
     },
     {

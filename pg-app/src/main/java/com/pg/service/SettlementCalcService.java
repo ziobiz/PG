@@ -17,6 +17,7 @@ import com.pg.entity.SettlementSetting;
 import com.pg.util.BusinessDayCalendar;
 import com.pg.util.ChargebackTierResolver;
 import com.pg.util.CommissionExtraFeeUtil;
+import com.pg.util.MerchantFeeVatUtil;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -36,7 +37,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
- * 정산 수학 로직: 결제 데이터 → 수수료 차감(건당·정산·차지백·실패·취소·무효·수동무효·환불·이용·결제·USDT·FX·3DS %·롤링) → 롤링(담보금 N% N일 보류) → 지급액
+ * 정산 수학 로직: 결제 데이터 → 수수료 차감(건당·정산·차지백·실패·취소·무효·수동무효·환불·이용·결제·USDT·FX %·3DS 건당 고정·롤링) → 롤링(담보금 N% N일 보류) → 지급액
  */
 @Service
 public class SettlementCalcService {
@@ -273,27 +274,40 @@ public class SettlementCalcService {
 
         BigDecimal feeUsdtBd = policy.getFeeUsdt() != null ? policy.getFeeUsdt() : BigDecimal.ZERO;
         BigDecimal feeFxBd = policy.getFeeFx() != null ? policy.getFeeFx() : BigDecimal.ZERO;
-        BigDecimal fee3dsBd = policy.getFee3dsRate() != null ? policy.getFee3dsRate() : BigDecimal.ZERO;
-        BigDecimal extraRateOnApprove = feeUsdtBd.add(feeFxBd).add(fee3dsBd);
-        BigDecimal feeUsdtFx3dsSum = BigDecimal.ZERO;
+        BigDecimal fee3dsFixedPerTx = policy.getFee3dsRate() != null ? policy.getFee3dsRate() : BigDecimal.ZERO;
+        BigDecimal extraRateOnApprove = feeUsdtBd.add(feeFxBd);
+        BigDecimal feeUsdtFxPctSum = BigDecimal.ZERO;
+        BigDecimal fee3dsFixedSum = BigDecimal.ZERO;
         BigDecimal feeExtraPctSum = BigDecimal.ZERO;
         for (PgTrnsctn t : txList) {
             String st = t.getStatus() != null ? t.getStatus().trim() : "";
             if (!"10".equals(st)) continue;
             BigDecimal amt = t.getAmtKrw() != null ? t.getAmtKrw() : BigDecimal.ZERO;
-            if (extraRateOnApprove.signum() > 0) {
-                feeUsdtFx3dsSum = feeUsdtFx3dsSum.add(
+            if (extraRateOnApprove.signum() > 0 && amt.signum() > 0) {
+                feeUsdtFxPctSum = feeUsdtFxPctSum.add(
                         amt.multiply(extraRateOnApprove).divide(BigDecimal.valueOf(100), 0, RoundingMode.HALF_UP));
+            }
+            if (fee3dsFixedPerTx.signum() > 0 && amt.signum() > 0) {
+                fee3dsFixedSum = fee3dsFixedSum.add(fee3dsFixedPerTx);
             }
             feeExtraPctSum = feeExtraPctSum.add(CommissionExtraFeeUtil.sumPctOnApprovedAmount(policy, amt));
         }
+        fee3dsFixedSum = fee3dsFixedSum.setScale(0, RoundingMode.HALF_UP);
 
         BigDecimal feeExtraFix = CommissionExtraFeeUtil.sumFixedForSettlement(policy);
 
         BigDecimal totalFee = feePerTx.add(feePayRate).add(feeCancelRate).add(feeVoidPerTx).add(feeManualVoidPerTx).add(feeRefundRate).add(feeUsage)
-                .add(feeFailTotal).add(feeSettlementTotal).add(feeChargebackTotal).add(feeUsdtFx3dsSum)
+                .add(feeFailTotal).add(feeSettlementTotal).add(feeChargebackTotal).add(feeUsdtFxPctSum).add(fee3dsFixedSum)
                 .add(feeExtraPctSum).add(feeExtraFix)
                 .setScale(0, RoundingMode.HALF_UP);
+
+        SettlementSetting feeVatSs = null;
+        if (merchantId != null && !merchantId.isBlank()) {
+            feeVatSs = orgUnitRepository.findByCode(merchantId.trim())
+                    .flatMap(ou -> settlementSettingRepository.findByOrgUnitId(ou.getId()))
+                    .orElse(null);
+        }
+        BigDecimal feeVatAmt = MerchantFeeVatUtil.vatOnFeeAmount(totalFee, feeVatSs, 0);
 
         BigDecimal rollingReserveAmt = BigDecimal.ZERO;
         if (rollingDays > 0 && rollingPct.compareTo(BigDecimal.ZERO) > 0) {
@@ -317,7 +331,7 @@ public class SettlementCalcService {
             }
         }
 
-        BigDecimal payAmt = netSales.subtract(totalFee).subtract(rollingReserveAmt).add(releasedFromReserve).setScale(0, RoundingMode.HALF_UP);
+        BigDecimal payAmt = netSales.subtract(totalFee).subtract(feeVatAmt).subtract(rollingReserveAmt).add(releasedFromReserve).setScale(0, RoundingMode.HALF_UP);
         if (payAmt.compareTo(BigDecimal.ZERO) < 0) payAmt = BigDecimal.ZERO;
 
         SettlementRun run = new SettlementRun();

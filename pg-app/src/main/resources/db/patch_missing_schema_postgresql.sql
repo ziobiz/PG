@@ -243,3 +243,6 @@ ALTER TABLE tb_hq_notify_env_config ADD COLUMN IF NOT EXISTS auto_refund_window_
 -- V84: 노티 수신 대상 ↔ 총판 조직 — db/V84_hq_notify_target_org_unit.sql (FK는 운영에서 DO 블록으로 적용 권장)
 ALTER TABLE tb_hq_notify_target ADD COLUMN IF NOT EXISTS org_unit_id BIGINT;
 CREATE INDEX IF NOT EXISTS idx_hq_notify_target_org_unit_id ON tb_hq_notify_target (org_unit_id);
+
+-- V87: 전산설정 — 결제 통화(ISO 4217 숫자) — db/V87_hq_ledger_pay_display_currency.sql 과 동일
+ALTER TABLE tb_hq_ledger_sys_settings ADD COLUMN IF NOT EXISTS pay_display_currency_iso_num VARCHAR(3) NOT NULL DEFAULT '764';

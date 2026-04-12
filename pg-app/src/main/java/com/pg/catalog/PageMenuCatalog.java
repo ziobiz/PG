@@ -51,9 +51,10 @@ public final class PageMenuCatalog {
         add(list, "/calc/offsetCancList", "M0309", "상계취소내역", "결제관리");
         add(list, "/calc/chillPaySettlementList", "M0421", "통합정산", "정산관리");
         add(list, "/calc/calcList", "M0404", "유통망정산내역", "정산관리");
-        add(list, "/calc/calcGmList", "M0405", "가맹정산내역", "정산관리");
+        add(list, "/calc/calcGmList", "M0405", "가맹점정산내역", "정산관리");
         add(list, "/calc/feeList", "M0406", "수수료내역", "정산관리");
         add(list, "/calc/compPointMngList", "M0407", "환수금관리", "정산관리");
+        add(list, "/calc/unpaidMng", "M0413", "미수금관리", "정산관리");
         add(list, "/calc/balcInfo", "M0412", "잔액/미수금관리", "정산관리");
         add(list, "/calc/exCalcList", "M0418", "정산실행", "정산관리");
         add(list, "/calc/settlementReport", "M0419", "정산리포트", "정산관리");

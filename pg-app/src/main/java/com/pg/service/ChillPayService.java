@@ -1219,6 +1219,7 @@ public class ChillPayService {
         Map<String, Object> meta = display.getMeta() != null ? new LinkedHashMap<>(display.getMeta()) : new LinkedHashMap<>();
         meta.put("payListStatusBar", roll.toPayload(multiCurrency, primaryCurrency, totalPages > maxPages));
         meta.put("payListFinancialSummary", payListService.buildChillPayFinancialSummary(rowsForFinancial, authentication));
+        payListService.putHqLedgerPayDisplayCurrencyMeta(meta);
         display.setMeta(meta);
         return display;
     }
@@ -1292,6 +1293,7 @@ public class ChillPayService {
         Map<String, Object> meta = display.getMeta() != null ? new LinkedHashMap<>(display.getMeta()) : new LinkedHashMap<>();
         meta.put("payListStatusBar", roll.toPayload(multiCurrency, primaryCurrency, totalPages > maxPages));
         meta.put("payListFinancialSummary", payListService.buildChillPayFinancialSummary(rowsForFinancial, authentication));
+        payListService.putHqLedgerPayDisplayCurrencyMeta(meta);
         meta.put("chillPaySettlementMode", true);
         meta.put("paymentDateFrom", payFrom.toString());
         meta.put("paymentDateTo", payTo.toString());

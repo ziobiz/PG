@@ -7,8 +7,8 @@
   <title>PG 통합관리자</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
-  <link href="css/site.css?v=61" rel="stylesheet">
-  <link href="css/hq-server-monitor.css?v=4" rel="stylesheet">
+  <link href="css/site.css?v=64" rel="stylesheet">
+  <link href="css/hq-server-monitor.css?v=5" rel="stylesheet">
   <script src="js/config.js?v=6"></script>
   <script>
     (function () {
@@ -124,15 +124,16 @@
             <a href="javascript:void(0)" class="side-nav-link" aria-expanded="false"><i class="bi bi-cash-stack"></i><span> 정산관리 </span><span class="menu-arrow"></span></a>
             <ul class="side-nav-second-level">
               <li class="child-li" data-url="/calc/chillPaySettlementList"><a href="#" data-menu_id="M0421">통합정산</a></li>
-              <li class="child-li" data-url="/calc/calcList"><a href="#" data-menu_id="M0404">유통망정산내역</a></li>
-              <li class="child-li" data-url="/calc/calcGmList"><a href="#" data-menu_id="M0405">가맹정산내역</a></li>
               <li class="child-li" data-url="/calc/feeList"><a href="#" data-menu_id="M0406">수수료내역</a></li>
-              <li class="child-li" data-url="/calc/compPointMngList"><a href="#" data-menu_id="M0407">환수금관리</a></li>
-              <li class="child-li" data-url="/calc/balcInfo"><a href="#" data-menu_id="M0412">잔액/미수금관리</a></li>
               <li class="child-li" data-url="/calc/exCalcList"><a href="#" data-menu_id="M0418">정산실행</a></li>
-              <li class="child-li" data-url="/calc/settlementReport"><a href="#" data-menu_id="M0419">정산리포트</a></li>
+              <li class="child-li" data-url="/calc/calcGmList"><a href="#" data-menu_id="M0405">가맹점정산내역</a></li>
+              <li class="child-li" data-url="/calc/calcList"><a href="#" data-menu_id="M0404">유통망정산내역</a></li>
               <li class="child-li" data-url="/calc/collateralList"><a href="#" data-menu_id="M0420">담보금내역</a></li>
+              <li class="child-li" data-url="/calc/compPointMngList"><a href="#" data-menu_id="M0407">환수금관리</a></li>
+              <li class="child-li" data-url="/calc/unpaidMng"><a href="#" data-menu_id="M0413">미수금관리</a></li>
               <li class="child-li" data-url="/pay/payHoldList"><a href="#" data-menu_id="M0312">정산보류내역</a></li>
+              <li class="child-li" data-url="/calc/settlementReport"><a href="#" data-menu_id="M0419">정산리포트</a></li>
+              <li class="child-li" data-url="/calc/balcInfo"><a href="#" data-menu_id="M0412">잔액/미수금관리</a></li>
             </ul>
           </li>
           <!-- 통보관리 (FXHJ 동일) -->
@@ -303,9 +304,9 @@
               <div class="col-md-4"><label class="form-label">보유기간(일)</label><input type="text" class="form-control form-control-sm" id="commissionHoldDaysView" readonly></div>
             </div>
             <h6 class="mt-2 border-bottom pb-1">차지백 정책</h6>
-            <p class="text-muted small mb-2">3DS·차지백은 결제·정산 수수료 정책과 연동됩니다. 구간 정책은 본사설정 &gt; 차지백설정에서 등록합니다.</p>
+            <p class="text-muted small mb-2">3DS는 정책통화 기준 건당 고정 과금이며, 차지백은 구간 정책과 연동됩니다. 구간 정책은 본사설정 &gt; 차지백설정에서 등록합니다.</p>
             <div class="row mb-2">
-              <div class="col-md-3"><label class="form-label">3DS 수수료율(%)</label><input type="text" class="form-control form-control-sm" name="fee3dsRate" id="commissionFee3dsRate"></div>
+              <div class="col-md-3"><label class="form-label">3DS 고정(건)</label><input type="text" class="form-control form-control-sm" name="fee3dsRate" id="commissionFee3dsRate"></div>
               <div class="col-md-3"><label class="form-label">차지백 수수료(건)</label><input type="text" class="form-control form-control-sm" name="chargebackFeePerTx" id="commissionChargebackFeePerTx"></div>
               <div class="col-md-6"><label class="form-label">차지백 구간정책</label><select class="form-control form-control-sm" name="chargebackPolicyId" id="commissionChargebackPolicyId"><option value="">(미사용) 건당 차지백만</option></select></div>
             </div>
@@ -526,8 +527,8 @@
 <script src="js/pg-ui.js?v=2"></script>
 <script src="js/pay-list-integrated-catalog.js?v=5"></script>
 <script src="js/table-column-resize.js?v=3"></script>
-<script src="js/screens.js?v=118"></script>
-<script src="js/app.js?v=135"></script>
+<script src="js/screens.js?v=130"></script>
+<script src="js/app.js?v=145"></script>
   <script>
     (function () {
       var user = null;

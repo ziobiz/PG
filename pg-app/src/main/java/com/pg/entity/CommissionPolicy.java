@@ -97,8 +97,8 @@ public class CommissionPolicy {
     @Column(name = "policy_remark", columnDefinition = "TEXT")
     private String policyRemark;
 
-    /** 3-D Secure 등 추가 인증 건당/건별 수수료율(%) */
-    @Column(name = "fee_3ds_rate", precision = 5, scale = 2)
+    /** 3-D Secure 등 추가 인증 건당 고정 수수료({@link #currencyCode} 단위, 컬럼명 fee_3ds_rate 유지) */
+    @Column(name = "fee_3ds_rate", precision = 12, scale = 1)
     private BigDecimal fee3dsRate = BigDecimal.ZERO;
 
     /** 차지백 건당 수수료({@link #currencyCode} 단위) */

@@ -20,6 +20,7 @@ import com.pg.repository.MerchantProfileRepository;
 import com.pg.repository.OrgUnitRepository;
 import com.pg.repository.PgTrnsctnRepository;
 import com.pg.repository.SettlementSettingRepository;
+import com.pg.util.PayDisplayCurrency;
 import com.pg.util.PayListStatusBarBuckets;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
@@ -68,6 +69,7 @@ public class PayListService {
     private final HqNotifyMappingService hqNotifyMappingService;
     private final PayFollowPolicyService payFollowPolicyService;
     private final OrgAccessService orgAccessService;
+    private final HqLedgerSysSettingsService hqLedgerSysSettingsService;
 
     @PersistenceContext
     private EntityManager entityManager;
@@ -81,7 +83,8 @@ public class PayListService {
                           SettlementSettingRepository settlementSettingRepository,
                           HqNotifyMappingService hqNotifyMappingService,
                           PayFollowPolicyService payFollowPolicyService,
-                          OrgAccessService orgAccessService) {
+                          OrgAccessService orgAccessService,
+                          HqLedgerSysSettingsService hqLedgerSysSettingsService) {
         this.trnsctnRepository = trnsctnRepository;
         this.orgUnitRepository = orgUnitRepository;
         this.merchantProfileRepository = merchantProfileRepository;
@@ -92,6 +95,22 @@ public class PayListService {
         this.hqNotifyMappingService = hqNotifyMappingService;
         this.payFollowPolicyService = payFollowPolicyService;
         this.orgAccessService = orgAccessService;
+        this.hqLedgerSysSettingsService = hqLedgerSysSettingsService;
+    }
+
+    /** 결제 목록 meta: 전산설정 기준 결제 통화(ISO 숫자·알파) — UI 폴백·표시 연동 */
+    public void putHqLedgerPayDisplayCurrencyMeta(Map<String, Object> meta) {
+        if (meta == null) {
+            return;
+        }
+        var ls = hqLedgerSysSettingsService.getOrCreate();
+        String num = PayDisplayCurrency.normalizeIsoNum(ls.getPayDisplayCurrencyIsoNum());
+        meta.put("hqPayDisplayCurrencyIsoNum", num);
+        meta.put("hqPayDisplayCurrencyCode", PayDisplayCurrency.alphaFromIsoNum(num));
+    }
+
+    private String hqLedgerPayDisplayCurrencyAlpha() {
+        return PayDisplayCurrency.alphaFromSettings(hqLedgerSysSettingsService.getOrCreate());
     }
 
     public PageResult<Map<String, Object>> search(PayListSearchRequest req, Authentication authentication) {
@@ -133,6 +152,7 @@ public class PayListService {
             meta.put("payListStatusBar", bar);
             meta.put("payListFinancialSummary", fin);
             meta.put("payFollowAllowed", payFollowPolicyService.allowedActionsForViewer(payListViewer));
+            putHqLedgerPayDisplayCurrencyMeta(meta);
             pr.setMeta(meta);
         } catch (RuntimeException ignored) {
             /* 집계 실패 시 목록만 반환 */
@@ -150,7 +170,8 @@ public class PayListService {
         req.setSearchToDate(today);
     }
 
-    private Map<String, PayListRowContext> buildPayListRowContextMap(Collection<String> merchantCodes) {
+    /** 결제·수수료 목록 등에서 가맹점 코드 집합에 대해 컨텍스트를 한 번에 구성한다. */
+    public Map<String, PayListRowContext> buildPayListRowContextMap(Collection<String> merchantCodes) {
         Map<String, PayListRowContext> ctxByCode = new HashMap<>();
         if (merchantCodes == null || merchantCodes.isEmpty()) {
             return ctxByCode;
@@ -267,7 +288,8 @@ public class PayListService {
         AppUser user = (authentication != null && authentication.getPrincipal() instanceof AppUser u) ? u : null;
         OrgLevel level = PayListStatusBarBuckets.resolveViewerOrgLevel(user, orgUnitRepository);
         boolean multi = PayListStatusBarBuckets.isMultiCurrencyViewer(level);
-        String primary = PayListStatusBarBuckets.resolveViewerPrimaryCurrency(user, orgUnitRepository, commissionPolicyRepository);
+        String primary = PayListStatusBarBuckets.resolveViewerPrimaryCurrency(user, orgUnitRepository, commissionPolicyRepository,
+                hqLedgerPayDisplayCurrencyAlpha());
         String primaryNorm = PayListStatusBarBuckets.normalizeCurrency(primary);
         boolean baseCurrencyConfigured = isViewerBaseCurrencyConfigured(user);
         final List<String> currencyOrder;
@@ -377,7 +399,8 @@ public class PayListService {
         AppUser user = (authentication != null && authentication.getPrincipal() instanceof AppUser u) ? u : null;
         OrgLevel level = PayListStatusBarBuckets.resolveViewerOrgLevel(user, orgUnitRepository);
         boolean multi = PayListStatusBarBuckets.isMultiCurrencyViewer(level);
-        String primary = PayListStatusBarBuckets.resolveViewerPrimaryCurrency(user, orgUnitRepository, commissionPolicyRepository);
+        String primary = PayListStatusBarBuckets.resolveViewerPrimaryCurrency(user, orgUnitRepository, commissionPolicyRepository,
+                hqLedgerPayDisplayCurrencyAlpha());
         String primaryNorm = PayListStatusBarBuckets.normalizeCurrency(primary);
         boolean baseCurrencyConfigured = isViewerBaseCurrencyConfigured(user);
         final List<String> currencyOrder;
@@ -520,7 +543,8 @@ public class PayListService {
      * CSV가 비어 있으면 호출부에서 집계 데이터의 통화 키로 대체한다.
      */
     private List<String> resolveViewerDisplayCurrencyOrder(AppUser user, boolean multiCurrencyViewer) {
-        String primary = PayListStatusBarBuckets.resolveViewerPrimaryCurrency(user, orgUnitRepository, commissionPolicyRepository);
+        String primary = PayListStatusBarBuckets.resolveViewerPrimaryCurrency(user, orgUnitRepository, commissionPolicyRepository,
+                hqLedgerPayDisplayCurrencyAlpha());
         if (user == null || user.getOrgUnitCode() == null || user.getOrgUnitCode().isBlank()) {
             return PayListStatusBarBuckets.resolveDisplayCurrencyOrder(multiCurrencyViewer, "", primary);
         }
@@ -585,7 +609,8 @@ public class PayListService {
         AppUser user = (authentication != null && authentication.getPrincipal() instanceof AppUser u) ? u : null;
         OrgLevel level = PayListStatusBarBuckets.resolveViewerOrgLevel(user, orgUnitRepository);
         boolean multi = PayListStatusBarBuckets.isMultiCurrencyViewer(level);
-        String primary = PayListStatusBarBuckets.resolveViewerPrimaryCurrency(user, orgUnitRepository, commissionPolicyRepository);
+        String primary = PayListStatusBarBuckets.resolveViewerPrimaryCurrency(user, orgUnitRepository, commissionPolicyRepository,
+                hqLedgerPayDisplayCurrencyAlpha());
         boolean baseCurrencyConfigured = isViewerBaseCurrencyConfigured(user);
         List<String> displayOrder = baseCurrencyConfigured ? resolveViewerDisplayCurrencyOrder(user, multi) : null;
         Set<String> allowedCur = displayOrder != null ? new HashSet<>(displayOrder) : null;

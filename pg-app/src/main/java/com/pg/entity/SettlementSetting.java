@@ -94,6 +94,14 @@ public class SettlementSetting {
     @Column(name = "transfer_exec_time")
     private LocalTime transferExecTime;
 
+    /** 수수료 부가세(VAT) 적용 여부 — Y일 때 fee_vat_rate_pct 로 수수료 합에 부가세 산정 */
+    @Column(name = "fee_vat_apply_yn", length = 1, nullable = false)
+    private String feeVatApplyYn = "N";
+
+    /** 수수료 부가세율(%) — 10이면 수수료의 10% */
+    @Column(name = "fee_vat_rate_pct", precision = 7, scale = 4, nullable = false)
+    private BigDecimal feeVatRatePct = BigDecimal.ZERO;
+
     /** 지급보류 여부 */
     @Column(name = "pay_hold_yn", length = 1)
     private String payHoldYn = "N";
@@ -198,6 +206,10 @@ public class SettlementSetting {
     public void setCalcMinAmt(BigDecimal calcMinAmt) { this.calcMinAmt = calcMinAmt; }
     public LocalTime getTransferExecTime() { return transferExecTime; }
     public void setTransferExecTime(LocalTime transferExecTime) { this.transferExecTime = transferExecTime; }
+    public String getFeeVatApplyYn() { return feeVatApplyYn; }
+    public void setFeeVatApplyYn(String feeVatApplyYn) { this.feeVatApplyYn = feeVatApplyYn; }
+    public BigDecimal getFeeVatRatePct() { return feeVatRatePct; }
+    public void setFeeVatRatePct(BigDecimal feeVatRatePct) { this.feeVatRatePct = feeVatRatePct; }
     public String getPayHoldYn() { return payHoldYn; }
     public void setPayHoldYn(String payHoldYn) { this.payHoldYn = payHoldYn; }
     public String getCalcExcludeDates() { return calcExcludeDates; }

@@ -30,7 +30,7 @@ public final class CommissionTierJsonHelper {
     public static final List<String> ROW_KEYS = List.of(
             "payRate", "perTxFee", "failFee", "cancelRate", "voidFeePerTx", "manualVoidFeePerTx",
             "refundRate", "feeSettlementPerTx", "remittanceTransferFee", "usdtTransferFeeUsd",
-            "feeUsdt", "feeFx", "usageRate", "fee3dsRate", "chargebackFeePerTx");
+            "fee3dsRate", "feeUsdt", "feeFx", "usageRate", "chargebackFeePerTx");
 
     private CommissionTierJsonHelper() {
     }
@@ -130,7 +130,7 @@ public final class CommissionTierJsonHelper {
             case "feeUsdt" -> p.getFeeUsdt() != null ? PercentDecimalHelper.toPlainOneDecimal(p.getFeeUsdt()) : "";
             case "feeFx" -> p.getFeeFx() != null ? PercentDecimalHelper.toPlainOneDecimal(p.getFeeFx()) : "";
             case "usageRate" -> p.getUsageRate() != null ? PercentDecimalHelper.toPlainAmountOneDecimal(p.getUsageRate()) : "";
-            case "fee3dsRate" -> p.getFee3dsRate() != null ? PercentDecimalHelper.toPlainOneDecimal(p.getFee3dsRate()) : "";
+            case "fee3dsRate" -> p.getFee3dsRate() != null ? PercentDecimalHelper.toPlainAmountOneDecimal(p.getFee3dsRate()) : "";
             case "chargebackFeePerTx" -> p.getChargebackFeePerTx() != null ? PercentDecimalHelper.toPlainAmountOneDecimal(p.getChargebackFeePerTx()) : "";
             default -> "";
         };
@@ -157,7 +157,7 @@ public final class CommissionTierJsonHelper {
             p.setFeeUsdt(sumLevels(rows, "feeUsdt", true));
             p.setFeeFx(sumLevels(rows, "feeFx", true));
             p.setUsageRate(sumLevels(rows, "usageRate", false));
-            p.setFee3dsRate(sumLevels(rows, "fee3dsRate", true));
+            p.setFee3dsRate(sumLevels(rows, "fee3dsRate", false));
             p.setChargebackFeePerTx(sumLevels(rows, "chargebackFeePerTx", false));
         }
         JsonNode extras = root.get("extras");
@@ -195,7 +195,7 @@ public final class CommissionTierJsonHelper {
 
     private static boolean isPctRowKey(String rowKey) {
         return switch (rowKey) {
-            case "payRate", "feeUsdt", "feeFx", "fee3dsRate" -> true;
+            case "payRate", "feeUsdt", "feeFx" -> true;
             default -> false;
         };
     }
