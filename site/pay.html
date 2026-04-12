@@ -1148,8 +1148,9 @@
             ? String(checkoutCtx.urlPayDisplayFxDefaultDisplayCurrency).trim().toUpperCase() : '';
           var pick = codes.indexOf(defFx) >= 0 ? defFx : '';
           if (!pick) {
-            var cc = String(checkoutCtx.checkoutCurrencyCode || '').trim().toUpperCase();
-            pick = codes.indexOf(cc) >= 0 ? cc : (codes[0] || 'JPY');
+            // checkoutCurrencyCode 는 가맹·상위 총판 기준화폐(태국이면 THB)로 내려오며 「표시 통화」와 다릅니다.
+            // DISPLAY_FX_THB 에서 이 값을 기본 표시통화로 쓰면 본사에 JPY를 넣어도 페이지가 바트로 열립니다.
+            pick = codes.indexOf('JPY') >= 0 ? 'JPY' : (codes[0] || 'JPY');
           }
           sc.value = pick;
         }

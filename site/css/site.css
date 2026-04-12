@@ -210,9 +210,25 @@ body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Ro
   background: #e8e8e8;
   border-bottom: 1px solid #ddd;
   flex-shrink: 0;
+  position: relative;
+  z-index: 40;
 }
-.header-top-right { display: flex; align-items: center; flex-wrap: wrap; gap: 16px 20px; }
-.header-top-info { font-size: var(--app-base-font-size); color: #333; font-weight: 500; }
+.header-top-right {
+  display: flex;
+  align-items: center;
+  flex-wrap: nowrap;
+  gap: 16px 20px;
+  min-width: 0;
+  max-width: 100%;
+  /* 드롭다운(관리자 메뉴)이 flex 안에서 가로 막대처럼 깨지지 않도록 가로 스크롤·클립 미사용 */
+  overflow-x: visible;
+  overflow-y: visible;
+}
+.header-user.dropdown {
+  position: relative;
+  flex-shrink: 0;
+}
+.header-top-info { font-size: var(--app-base-font-size); color: #333; font-weight: 500; white-space: nowrap; flex-shrink: 0; }
 .header-user-link { display: flex; align-items: center; gap: 8px; color: #333; text-decoration: none; }
 .header-user-link:hover { color: #111; }
 .header-user-icon { font-size: 1.5rem; color: #555; }
@@ -238,6 +254,9 @@ body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Ro
   background: #4a4a4a;
   border-bottom: 1px solid #333;
   flex-shrink: 0;
+  flex-wrap: nowrap;
+  min-width: 0;
+  overflow: hidden;
 }
 .content-tabs {
   list-style: none;
@@ -264,6 +283,7 @@ body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Ro
   font-size: var(--app-base-font-size);
   text-decoration: none;
   display: inline-block;
+  white-space: nowrap;
 }
 .content-tabs .tab-close-button {
   margin: 0 4px;
@@ -717,51 +737,110 @@ body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Ro
   background-color: #d6e9ff !important;
 }
 
-/* 가맹점정산내역: 2단 헤더/합계바를 스크린샷 톤으로 보정 */
-.screen-calc-gm-list .summary-total-bar {
+/* 가맹점정산내역: 결제내역(screen-pay-list)과 동일 글자·한 줄 셀 + 가로 스크롤 */
+#contentsMain .screen-calc-gm-list .summary-total-bar {
   background: #f8fbff;
   border: 1px solid #d7e8fb;
   padding: 8px 12px;
+  font-size: var(--pay-mng-dense-font-size);
 }
-.screen-calc-gm-list [data-summary] {
+#contentsMain .screen-calc-gm-list [data-summary] {
   color: #2b5f8d;
   font-weight: 600;
 }
-.screen-calc-gm-list #contentsMain .table thead tr:first-child th {
+#contentsMain .screen-calc-gm-list .pay-mng-search-form .form-label,
+#contentsMain .screen-calc-gm-list .pay-mng-search-form .form-control,
+#contentsMain .screen-calc-gm-list .pay-mng-search-form .form-select,
+#contentsMain .screen-calc-gm-list .screen-search-form.pay-mng-search-form .form-label,
+#contentsMain .screen-calc-gm-list .screen-search-form.pay-mng-search-form .form-control,
+#contentsMain .screen-calc-gm-list .screen-search-form.pay-mng-search-form .form-select {
+  font-size: var(--pay-mng-dense-font-size);
+}
+#contentsMain .screen-calc-gm-list .search-notice,
+#contentsMain .screen-calc-gm-list .search-notice li {
+  font-size: var(--pay-mng-dense-font-size);
+}
+#contentsMain .screen-calc-gm-list .screen-action-buttons .btn {
+  font-size: var(--pay-mng-dense-font-size);
+}
+#contentsMain .screen-calc-gm-list .pagination-row .pagination-label,
+#contentsMain .screen-calc-gm-list .pagination-row .pagination-total,
+#contentsMain .screen-calc-gm-list .pagination-row .pagination-size-opt,
+#contentsMain .screen-calc-gm-list .pagination-row .pagination-num,
+#contentsMain .screen-calc-gm-list .pagination-row .pagination-num--current {
+  font-size: var(--pay-mng-dense-font-size);
+}
+#contentsMain .screen-calc-gm-list .quick-date {
+  font-size: var(--pay-mng-dense-font-size);
+}
+#contentsMain .screen-calc-gm-list .table-responsive {
+  display: block;
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+#contentsMain .screen-calc-gm-list .table-responsive > .table {
+  width: max-content;
+  min-width: 100%;
+  table-layout: auto;
+  margin-bottom: 0;
+}
+#contentsMain .screen-calc-gm-list .table thead tr:first-child th {
   background: #eaf4ff;
   color: #275a84;
   font-weight: 700;
   border-color: #cfe1f6;
   text-align: center;
+  white-space: nowrap;
+  font-size: var(--pay-mng-dense-font-size);
+  line-height: 1.25;
+  padding: 4px 8px;
+  vertical-align: middle !important;
 }
-.screen-calc-gm-list #contentsMain .table thead tr:nth-child(2) th {
+#contentsMain .screen-calc-gm-list .table thead tr:nth-child(2) th {
   background: #f4f9ff;
   color: #34668f;
   border-color: #dbe8f7;
   text-align: center;
-}
-.screen-calc-gm-list #contentsMain .table th,
-.screen-calc-gm-list #contentsMain .table td {
   white-space: nowrap;
-  font-size: var(--app-table-font-size);
+  font-size: var(--pay-mng-dense-font-size);
+  line-height: 1.25;
+  padding: 4px 8px;
+  vertical-align: middle !important;
 }
-.screen-calc-gm-list #contentsMain .table th[data-key="merchantNm"] { min-width: 150px; }
-.screen-calc-gm-list #contentsMain .table th[data-key="compId"] { min-width: 105px; }
-.screen-calc-gm-list #contentsMain .table th[data-key="bizType"] { min-width: 82px; }
-.screen-calc-gm-list #contentsMain .table th[data-key="bizNo"] { min-width: 120px; }
-.screen-calc-gm-list #contentsMain .table th[data-key="cardAprvNo"] { min-width: 120px; }
-.screen-calc-gm-list #contentsMain .table th[data-key="terminalId"] { min-width: 110px; }
-.screen-calc-gm-list #contentsMain .table th[data-key="amount"],
-.screen-calc-gm-list #contentsMain .table th[data-key="feeAmt"],
-.screen-calc-gm-list #contentsMain .table th[data-key="feeVat"],
-.screen-calc-gm-list #contentsMain .table th[data-key="holdAmt"],
-.screen-calc-gm-list #contentsMain .table th[data-key="settleAmt"] { min-width: 96px; text-align: center !important; }
-.screen-calc-gm-list #contentsMain .table th[data-key="feeCnt"],
-.screen-calc-gm-list #contentsMain .table th[data-key="feeRate"],
-.screen-calc-gm-list #contentsMain .table th[data-key="holdRate"] { min-width: 78px; text-align: center !important; }
-.screen-calc-gm-list #contentsMain .table th[data-key="calcDt"],
-.screen-calc-gm-list #contentsMain .table th[data-key="approveDt"],
-.screen-calc-gm-list #contentsMain .table th[data-key="cancelDt"] { min-width: 138px; }
+#contentsMain .screen-calc-gm-list .table thead th,
+#contentsMain .screen-calc-gm-list .table tbody td {
+  white-space: nowrap;
+  font-size: var(--pay-mng-dense-font-size);
+  line-height: 1.25;
+  padding: 4px 8px;
+  vertical-align: middle !important;
+  text-align: center !important;
+}
+#contentsMain .screen-calc-gm-list .table .empty-state-cell {
+  white-space: normal;
+}
+#contentsMain .screen-calc-gm-list .table th[data-key="compNm"] { min-width: 150px; }
+#contentsMain .screen-calc-gm-list .table th[data-key="compId"] { min-width: 105px; }
+#contentsMain .screen-calc-gm-list .table th[data-key="trnId"] { min-width: 200px; }
+#contentsMain .screen-calc-gm-list .table th[data-key="perTxFeeAmt"],
+#contentsMain .screen-calc-gm-list .table th[data-key="settlementPerTxFeeAmt"],
+#contentsMain .screen-calc-gm-list .table th[data-key="extraFeesAmt"] { min-width: 88px; text-align: center !important; }
+#contentsMain .screen-calc-gm-list .table th[data-key="bizType"] { min-width: 82px; }
+#contentsMain .screen-calc-gm-list .table th[data-key="bizNo"] { min-width: 120px; }
+#contentsMain .screen-calc-gm-list .table th[data-key="cardAprvNo"] { min-width: 120px; }
+#contentsMain .screen-calc-gm-list .table th[data-key="terminalId"] { min-width: 110px; }
+#contentsMain .screen-calc-gm-list .table th[data-key="amount"],
+#contentsMain .screen-calc-gm-list .table th[data-key="feeAmt"],
+#contentsMain .screen-calc-gm-list .table th[data-key="feeVat"],
+#contentsMain .screen-calc-gm-list .table th[data-key="holdAmt"],
+#contentsMain .screen-calc-gm-list .table th[data-key="settleAmt"] { min-width: 96px; text-align: center !important; }
+#contentsMain .screen-calc-gm-list .table th[data-key="feeCnt"],
+#contentsMain .screen-calc-gm-list .table th[data-key="feeRate"],
+#contentsMain .screen-calc-gm-list .table th[data-key="holdRate"] { min-width: 78px; text-align: center !important; }
+#contentsMain .screen-calc-gm-list .table th[data-key="calcDt"],
+#contentsMain .screen-calc-gm-list .table th[data-key="approveDt"],
+#contentsMain .screen-calc-gm-list .table th[data-key="cancelDt"] { min-width: 138px; }
 
 /* 결제내역(통합·파생): 참고 UI — 연한 블루 2단 헤더, 요약 숫자 색 구분, 행 줄무늬 */
 .screen-pay-list .summary-total-bar {
@@ -2242,6 +2321,11 @@ body.theme-light .left-side-menu .btn-secondary:hover, body.theme-gray .left-sid
 }
 #hqNotifyTargetTable thead th.hq-notify-target-name-th {
   min-width: 156px;
+}
+#hqNotifyTargetTable thead th.hq-notify-created-th,
+#hqNotifyTargetTable .hq-notify-created-cell {
+  font-size: var(--app-base-font-size);
+  white-space: nowrap;
 }
 
 /* 전산노티·결제환경 — 총판 노티 대상 테이블 */

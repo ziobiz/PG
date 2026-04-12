@@ -10,6 +10,7 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 
+import com.pg.util.CommissionExtraFeeUtil;
 import com.pg.util.TrnTimeDualZoneDisplay;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -115,6 +116,13 @@ public class PayListItemDto {
             feeVatBd = p.feeVat;
             holdAmtBd = p.holdAmt;
             settleAmtBd = p.settleAmt;
+            row.put("perTxFeeAmt", p.perTxAmt);
+            row.put("settlementPerTxFeeAmt", p.settlementPerTxAmt);
+            row.put("extraFeesAmt", p.extraPctAmt);
+        } else {
+            row.put("perTxFeeAmt", BigDecimal.ZERO);
+            row.put("settlementPerTxFeeAmt", BigDecimal.ZERO);
+            row.put("extraFeesAmt", BigDecimal.ZERO);
         }
 
         row.put("icopayAmt", amountJson(t.getIcopayAmt()));
@@ -169,12 +177,20 @@ public class PayListItemDto {
         public final BigDecimal feeVat;
         public final BigDecimal holdAmt;
         public final BigDecimal settleAmt;
+        /** 건당·정산건당·기타(%) 부가 항목 — 가맹정산·집계 표시용 */
+        public final BigDecimal perTxAmt;
+        public final BigDecimal settlementPerTxAmt;
+        public final BigDecimal extraPctAmt;
 
-        public ApprovedSettlementParts(BigDecimal feeAmt, BigDecimal feeVat, BigDecimal holdAmt, BigDecimal settleAmt) {
+        public ApprovedSettlementParts(BigDecimal feeAmt, BigDecimal feeVat, BigDecimal holdAmt, BigDecimal settleAmt,
+                                        BigDecimal perTxAmt, BigDecimal settlementPerTxAmt, BigDecimal extraPctAmt) {
             this.feeAmt = feeAmt;
             this.feeVat = feeVat;
             this.holdAmt = holdAmt;
             this.settleAmt = settleAmt;
+            this.perTxAmt = perTxAmt != null ? perTxAmt : BigDecimal.ZERO;
+            this.settlementPerTxAmt = settlementPerTxAmt != null ? settlementPerTxAmt : BigDecimal.ZERO;
+            this.extraPctAmt = extraPctAmt != null ? extraPctAmt : BigDecimal.ZERO;
         }
     }
 
@@ -182,7 +198,18 @@ public class PayListItemDto {
         BigDecimal amt = amtBd != null ? amtBd : BigDecimal.ZERO;
         int feeScale = derivedFeeScale(amt);
         BigDecimal totalRate = totalFeeRate(ctx);
-        BigDecimal feeAmtBd = amt.multiply(totalRate).divide(BigDecimal.valueOf(100), feeScale, RoundingMode.HALF_UP);
+        BigDecimal rateFee = amt.multiply(totalRate).divide(BigDecimal.valueOf(100), feeScale, RoundingMode.HALF_UP);
+        BigDecimal perTxAmt = BigDecimal.ZERO;
+        BigDecimal settlementPerTxAmt = BigDecimal.ZERO;
+        BigDecimal extraPctAmt = BigDecimal.ZERO;
+        if (ctx != null && ctx.getPolicy() != null) {
+            var p = ctx.getPolicy();
+            perTxAmt = nz(p.getPerTxFee());
+            settlementPerTxAmt = nz(p.getFeeSettlementPerTx());
+            extraPctAmt = CommissionExtraFeeUtil.sumPctOnApprovedAmount(p, amt);
+        }
+        BigDecimal feeAmtBd = rateFee.add(perTxAmt).add(settlementPerTxAmt).add(extraPctAmt)
+                .setScale(feeScale, RoundingMode.HALF_UP);
         BigDecimal feeVatBd = feeAmtBd.multiply(BigDecimal.valueOf(0.1)).setScale(feeScale, RoundingMode.HALF_UP);
         BigDecimal holdAmtBd = BigDecimal.ZERO;
         BigDecimal rollingPct = resolveRollingPct(ctx);
@@ -191,7 +218,7 @@ public class PayListItemDto {
         }
         BigDecimal settleAmtBd = amt.subtract(feeAmtBd).subtract(feeVatBd).subtract(holdAmtBd)
                 .setScale(feeScale, RoundingMode.HALF_UP);
-        return new ApprovedSettlementParts(feeAmtBd, feeVatBd, holdAmtBd, settleAmtBd);
+        return new ApprovedSettlementParts(feeAmtBd, feeVatBd, holdAmtBd, settleAmtBd, perTxAmt, settlementPerTxAmt, extraPctAmt);
     }
 
     /** 목록 상단 취소 금액 합산용(결제취소·무효·환불 등) */

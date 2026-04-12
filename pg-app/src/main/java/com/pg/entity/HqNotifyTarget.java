@@ -31,6 +31,10 @@ public class HqNotifyTarget {
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 
+    /** 총판 등: tb_merchant_notify_url 에 동일 URL로 저장된 조직 */
+    @Column(name = "org_unit_id")
+    private Long orgUnitId;
+
     @PrePersist
     protected void onCreate() {
         if (createdAt == null) createdAt = LocalDateTime.now();
@@ -50,5 +54,7 @@ public class HqNotifyTarget {
     public void setUseYn(String useYn) { this.useYn = useYn; }
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
+    public Long getOrgUnitId() { return orgUnitId; }
+    public void setOrgUnitId(Long orgUnitId) { this.orgUnitId = orgUnitId; }
 }
 

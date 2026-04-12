@@ -48,6 +48,7 @@ public class PayFollowPolicyService {
     private final OrgUnitRepository orgUnitRepository;
     private final MerchantProfileRepository merchantProfileRepository;
     private final PgTrnsctnRepository trnsctnRepository;
+    private final OrgAccessService orgAccessService;
 
     public PayFollowPolicyService(HqNotifyEnvService hqNotifyEnvService,
                                   HqLedgerSysSettingsRepository ledgerSysSettingsRepository,
@@ -55,7 +56,8 @@ public class PayFollowPolicyService {
                                   AuthService authService,
                                   OrgUnitRepository orgUnitRepository,
                                   MerchantProfileRepository merchantProfileRepository,
-                                  PgTrnsctnRepository trnsctnRepository) {
+                                  PgTrnsctnRepository trnsctnRepository,
+                                  OrgAccessService orgAccessService) {
         this.hqNotifyEnvService = hqNotifyEnvService;
         this.ledgerSysSettingsRepository = ledgerSysSettingsRepository;
         this.capRepository = capRepository;
@@ -63,6 +65,7 @@ public class PayFollowPolicyService {
         this.orgUnitRepository = orgUnitRepository;
         this.merchantProfileRepository = merchantProfileRepository;
         this.trnsctnRepository = trnsctnRepository;
+        this.orgAccessService = orgAccessService;
     }
 
     /** 본사권한설정 화면용: 단계별 Y/N (항상 7단계 키) */
@@ -481,6 +484,13 @@ public class PayFollowPolicyService {
                 };
                 if (!ok) {
                     throw new IllegalStateException("가맹점 정보에서 해당 후속조치가 허용되지 않습니다.");
+                }
+            } else {
+                String viewerComp = org.get("compId") != null ? org.get("compId").toString().trim() : "";
+                String merchantId = t.getMerchantId() != null ? t.getMerchantId().trim() : "";
+                if (viewerComp.isEmpty() || merchantId.isEmpty()
+                        || !orgAccessService.isTargetUnderViewerOrg(viewerComp, merchantId)) {
+                    throw new IllegalStateException("소속 업체 및 하위 가맹점 거래만 후속조치할 수 있습니다.");
                 }
             }
         }

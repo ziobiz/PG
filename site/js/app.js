@@ -4636,7 +4636,7 @@
                 var isPayScr = url === '/calc/payList' || url === '/calc/payNotiList' || url === '/calc/paySuccessList' || url === '/calc/payFailList' || url === '/calc/payRefundList' || url === '/calc/payForceRefundList' || url === '/calc/payCancelList' || url === '/calc/payVoidList' || url === '/calc/offsetCancList' || url === '/pay/easyPay' || url === '/pay/chatbotPay';
                 if (url === '/calc/calcGmList' || url === '/settlement/franchiseList') {
                   var gmCls = [];
-                  if (['amount', 'feeCnt', 'feeRate', 'feeAmt', 'feeVat', 'holdRate', 'holdAmt', 'settleAmt'].indexOf(c.key) >= 0) gmCls.push('text-end');
+                  if (['amount', 'feeCnt', 'feeRate', 'feeAmt', 'feeVat', 'holdRate', 'holdAmt', 'settleAmt', 'perTxFeeAmt', 'settlementPerTxFeeAmt', 'extraFeesAmt'].indexOf(c.key) >= 0) gmCls.push('text-end');
                   if (['calcDt', 'approveDt', 'cancelDt'].indexOf(c.key) >= 0) gmCls.push('text-nowrap');
                   if (['compNm', 'merchantNm'].indexOf(c.key) >= 0) gmCls.push('text-start');
                   if (gmCls.length) cellClass = ' class="' + gmCls.join(' ') + '"';
@@ -4691,6 +4691,14 @@
                   var feeCls = [];
                   if (['amount', 'perTxFee', 'usageFee', 'failFee', 'cancelFee', 'voidFee', 'manualVoidFee', 'refundFee', 'payFeeRate', 'payFee', 'usdtFeeRate', 'usdtFee', 'fxFeeRate', 'fxFee', 'fee3dsRate', 'fee3dsFee', 'settlementPerTxFee', 'chargebackFee', 'extraFees', 'totalFee', 'feeVat'].indexOf(c.key) >= 0) feeCls.push('text-end');
                   if (feeCls.length) cellClass = ' class="' + feeCls.join(' ') + '"';
+                } else if (url === '/calc/compPointMngList' || url === '/settlement/recallMng') {
+                  var recCls = [];
+                  if (['settleAmt', 'recallAmt', 'deductAmt'].indexOf(c.key) >= 0) recCls.push('text-end');
+                  if (recCls.length) cellClass = ' class="' + recCls.join(' ') + '"';
+                } else if (url === '/calc/balcInfo' || url === '/settlement/balanceMng') {
+                  var balCls = [];
+                  if (['balcAmount', 'unpaidAmount', 'deductedAmount', 'remainAmount'].indexOf(c.key) >= 0) balCls.push('text-end');
+                  if (balCls.length) cellClass = ' class="' + balCls.join(' ') + '"';
                 }
                 if (isCompMngTree && c.key === 'rowNo') {
                   html += '<td' + cellClass + '>' + (val || '') + '</td>';
@@ -4736,6 +4744,14 @@
                     feeShow = (val != null && val !== '') ? String(val) : '0';
                   }
                   html += '<td' + cellClass + '>' + feeShow + '</td>';
+                } else if (url === '/calc/compPointMngList' || url === '/settlement/recallMng') {
+                  var recShow = val;
+                  if (['settleAmt', 'recallAmt', 'deductAmt'].indexOf(c.key) >= 0) recShow = fmtNum(row[c.key]);
+                  html += '<td' + cellClass + '>' + recShow + '</td>';
+                } else if (url === '/calc/balcInfo' || url === '/settlement/balanceMng') {
+                  var balShow = val;
+                  if (['balcAmount', 'unpaidAmount', 'deductedAmount', 'remainAmount'].indexOf(c.key) >= 0) balShow = fmtNum(row[c.key]);
+                  html += '<td' + cellClass + '>' + balShow + '</td>';
                 } else if (url === '/commission/commisionList') {
                   var cClickEditable = ['hqRate', 'regionalRate', 'masterRate', 'branchRate', 'agencyRate', 'salesOfficeRate', 'totalRate', 'hqPerTxFee', 'regionalPerTxFee', 'masterPerTxFee', 'branchPerTxFee', 'agencyPerTxFee', 'salesOfficePerTxFee', 'totalPerTxFee'];
                   if (cClickEditable.indexOf(c.key) >= 0) {
@@ -9191,6 +9207,23 @@
           no += 1;
           var rs = g.length;
           var name = (g[0] && g[0].targetName) ? g[0].targetName : '';
+          var createdTimes = g.map(function (x) { return x.createdAt ? String(x.createdAt) : ''; }).filter(Boolean);
+          createdTimes.sort();
+          var createdDisp = createdTimes.length ? escNt(createdTimes[0]) : '—';
+          var boundDisp = '—';
+          var b0 = g[0];
+          if (b0 && (b0.boundOrgUnitCode || b0.boundOrgUnitName)) {
+            boundDisp = escNt((b0.boundOrgUnitCode || '').trim());
+            if (b0.boundOrgUnitName) {
+              boundDisp += '<br><span class="text-muted small">' + escNt(String(b0.boundOrgUnitName).substring(0, 48)) + '</span>';
+            }
+          }
+          var bindIds = g.map(function (gg) { return gg.id != null ? String(gg.id) : ''; }).filter(function (s) { return s !== ''; });
+          var bindIdsAttr = bindIds.length ? bindIds.join(',') : '';
+          var bindBtn = bindIdsAttr
+            ? '<div class="mt-1"><button type="button" class="btn btn-xs btn-outline-primary hq-notify-pair-bind-open" data-bind-ids="' + escNt(bindIdsAttr) + '">연결수정</button></div>'
+            : '';
+          var boundCellInner = ((boundDisp === '—') ? '<span class="text-muted">—</span>' : boundDisp) + bindBtn;
           g.forEach(function (t, i) {
             var id = t.id != null ? String(t.id) : '';
             var ch = shortNotifyChannel(t);
@@ -9198,7 +9231,9 @@
             html += '<tr>';
             if (i === 0) {
               html += '<td class="text-center align-middle" rowspan="' + rs + '">' + no + '</td>';
+              html += '<td class="text-center align-middle text-nowrap hq-notify-created-cell" rowspan="' + rs + '">' + createdDisp + '</td>';
               html += '<td class="align-middle" rowspan="' + rs + '">' + escNt(name) + '</td>';
+              html += '<td class="text-center align-middle hq-notify-bound-org-cell" rowspan="' + rs + '">' + boundCellInner + '</td>';
             }
             var urlCls = ch === 'RESULT' ? 'hq-notify-url-cell--result' : 'hq-notify-url-cell--callback';
             html += '<td class="hq-notify-url-cell align-middle ' + urlCls + '"><code class="hq-notify-url-code">' + escNt(url) + '</code></td>';
@@ -9212,6 +9247,94 @@
           });
         });
         tbody.innerHTML = html;
+      }
+      function fillMasterDistSelect(options) {
+        var sel = pane.querySelector('[name="notifyTargetBoundOrgUnitId"]');
+        if (!sel) return;
+        var cur = sel.value || '';
+        var arr = Array.isArray(options) ? options : [];
+        var html = '<option value="">선택하세요</option>';
+        arr.forEach(function (o) {
+          var id = o.id != null ? String(o.id) : '';
+          if (!id) return;
+          var code = o.code != null ? String(o.code) : '';
+          var nm = o.name != null ? String(o.name) : '';
+          var lab = (code ? code + ' — ' : '') + nm;
+          html += '<option value="' + escNt(id) + '">' + escNt(lab) + '</option>';
+        });
+        sel.innerHTML = html;
+        if (cur) {
+          var has = false;
+          for (var qi = 0; qi < sel.options.length; qi++) {
+            if (sel.options[qi].value === cur) { has = true; break; }
+          }
+          if (has) sel.value = cur;
+        }
+      }
+      function ensureHqNotifyPairBindModal() {
+        if (document.getElementById('hqNotifyPairBindModal')) return;
+        var wrap = document.createElement('div');
+        wrap.innerHTML = '<div class="modal fade" id="hqNotifyPairBindModal" tabindex="-1" aria-hidden="true">' +
+          '<div class="modal-dialog modal-dialog-centered">' +
+          '<div class="modal-content">' +
+          '<div class="modal-header"><h5 class="modal-title">연결 총판</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="닫기"></button></div>' +
+          '<div class="modal-body">' +
+          '<input type="hidden" id="hqNotifyPairBindIds" value="">' +
+          '<label class="form-label" for="hqNotifyPairBindOrgSelect">총판 선택</label>' +
+          '<select class="form-select form-select-sm" id="hqNotifyPairBindOrgSelect"></select>' +
+          '<p class="text-muted small mb-0 mt-2">CALLBACK·RESULT 쌍에 동일 연결이 반영됩니다.</p>' +
+          '</div>' +
+          '<div class="modal-footer">' +
+          '<button type="button" class="btn btn-primary btn-sm" id="hqNotifyPairBindSaveBtn">저장</button>' +
+          '<button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">취소</button>' +
+          '</div></div></div></div>';
+        document.body.appendChild(wrap.firstElementChild);
+        document.getElementById('hqNotifyPairBindSaveBtn').addEventListener('click', function () {
+          var idsCsv = (document.getElementById('hqNotifyPairBindIds') || {}).value || '';
+          var arr = idsCsv.split(',').map(function (x) { return parseInt(String(x).trim(), 10); }).filter(function (n) { return !isNaN(n) && n > 0; });
+          var sel = document.getElementById('hqNotifyPairBindOrgSelect');
+          var oid = sel && sel.value ? String(sel.value).trim() : '';
+          if (!arr.length) { alert('대상이 없습니다.'); return; }
+          if (!oid) { alert('연결 총판을 선택하세요.'); return; }
+          if (!window.PG_API || !window.PG_API.hqNotifyTargetsBindBoundOrg) { alert('API를 사용할 수 없습니다.'); return; }
+          if (dimmN) dimmN.style.display = 'flex';
+          window.PG_API.hqNotifyTargetsBindBoundOrg(arr, oid).then(function () {
+            var modalEl = document.getElementById('hqNotifyPairBindModal');
+            if (modalEl && window.bootstrap && window.bootstrap.Modal) {
+              var inst = window.bootstrap.Modal.getInstance(modalEl) || new window.bootstrap.Modal(modalEl);
+              inst.hide();
+            }
+            return window.PG_API.hqNotifyTargets();
+          }).then(function (list) {
+            fillNotifyTargets(list);
+            alert('연결되었습니다.');
+          }).catch(function (e) { alert(e && e.message ? e.message : '연결 실패'); }).finally(function () { if (dimmN) dimmN.style.display = 'none'; });
+        });
+      }
+      function openHqNotifyPairBindModal(idsCsv) {
+        ensureHqNotifyPairBindModal();
+        var hid = document.getElementById('hqNotifyPairBindIds');
+        if (hid) hid.value = idsCsv || '';
+        if (!window.PG_API || !window.PG_API.hqNotifyMasterDistOptions) return;
+        window.PG_API.hqNotifyMasterDistOptions().then(function (opts) {
+          var modalSel = document.getElementById('hqNotifyPairBindOrgSelect');
+          if (!modalSel) return;
+          var html = '<option value="">선택하세요</option>';
+          (opts || []).forEach(function (o) {
+            var oid = o.id != null ? String(o.id) : '';
+            if (!oid) return;
+            var code = o.code != null ? String(o.code) : '';
+            var nm = o.name != null ? String(o.name) : '';
+            var lab = (code ? code + ' — ' : '') + nm;
+            html += '<option value="' + escNt(oid) + '">' + escNt(lab) + '</option>';
+          });
+          modalSel.innerHTML = html;
+          var modalEl = document.getElementById('hqNotifyPairBindModal');
+          if (modalEl && window.bootstrap && window.bootstrap.Modal) {
+            var m = window.bootstrap.Modal.getInstance(modalEl) || new window.bootstrap.Modal(modalEl);
+            m.show();
+          }
+        }).catch(function () { alert('총판 목록을 불러오지 못했습니다.'); });
       }
       function fillNotifyTargets(list) {
         var arr = Array.isArray(list) ? list : [];
@@ -9238,10 +9361,12 @@
       if (dimmN) dimmN.style.display = 'flex';
       Promise.all([
         window.PG_API.hqNotifyEnv(),
-        window.PG_API.hqNotifyTargets()
+        window.PG_API.hqNotifyTargets(),
+        window.PG_API.hqNotifyMasterDistOptions ? window.PG_API.hqNotifyMasterDistOptions() : Promise.resolve([])
       ]).then(function (res) {
         fillNotifyEnv(res[0]);
         fillNotifyTargets(res[1]);
+        fillMasterDistSelect(res[2]);
       }).catch(function () {}).finally(function () { if (dimmN) dimmN.style.display = 'none'; });
       var hqNotifySave = pane.querySelector('#hqNotifyEnvSaveBtn');
       if (hqNotifySave && !hqNotifySave._hqNeBound) {
@@ -9269,14 +9394,18 @@
       if (createBtn && !createBtn._bound) {
         createBtn._bound = true;
         createBtn.addEventListener('click', function () {
+          var orgSel = pane.querySelector('[name="notifyTargetBoundOrgUnitId"]');
+          var boundId = orgSel && orgSel.value ? String(orgSel.value).trim() : '';
+          if (!boundId) { alert('연결 총판을 선택하세요.'); return; }
           var nameEl = pane.querySelector('[name="newNotifyTargetName"]');
           var name = nameEl && nameEl.value ? String(nameEl.value).trim() : '';
           if (!name) { alert('노티 대상명을 입력하세요.'); return; }
           if (dimmN) dimmN.style.display = 'flex';
-          window.PG_API.hqNotifyTargetCreate(name).then(function () {
+          window.PG_API.hqNotifyTargetCreate(name, boundId).then(function () {
             return window.PG_API.hqNotifyTargets();
           }).then(function (list) {
             fillNotifyTargets(list);
+            if (nameEl) nameEl.value = '';
             alert('CALLBACK·RESULT 노티 URL이 자동 생성되었습니다. 아래 목록에서 확인하세요.');
           }).catch(function (e) { alert(e && e.message ? e.message : '노티 자동생성 실패'); }).finally(function () { if (dimmN) dimmN.style.display = 'none'; });
         });
@@ -9284,6 +9413,12 @@
       if (!pane._hqNotifyTargetTableActionDelegated) {
         pane._hqNotifyTargetTableActionDelegated = true;
         pane.addEventListener('click', function (ev) {
+          var bindOpen = ev.target && ev.target.closest ? ev.target.closest('.hq-notify-pair-bind-open') : null;
+          if (bindOpen && pane.contains(bindOpen)) {
+            var csv = bindOpen.getAttribute('data-bind-ids') || '';
+            openHqNotifyPairBindModal(csv);
+            return;
+          }
           var copyB = ev.target && ev.target.closest ? ev.target.closest('.hq-notify-copy-url') : null;
           if (copyB && pane.contains(copyB)) {
             var u = copyB.getAttribute('data-url') || '';

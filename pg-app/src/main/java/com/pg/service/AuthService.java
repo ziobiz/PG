@@ -79,29 +79,11 @@ public class AuthService {
         res.setUserId(user.getUsername());
         res.setUserNm(user.getName() != null ? user.getName() : user.getUsername());
         res.setRole(user.getRole());
-        merchantProfileRepository.findByLoginId(username)
-                .map(mp -> orgUnitRepository.findById(mp.getOrgUnitId()))
-                .filter(Optional::isPresent)
-                .map(Optional::get)
-                .ifPresent(ou -> {
-                    res.setOrgUnitId(ou.getId());
-                    res.setCompId(ou.getCode());
-                    res.setOrgLevel(ou.getOrgLevel() != null ? ou.getOrgLevel().name() : null);
-                });
-        if (res.getCompId() == null) {
-            resolveOrgUnitForLoginId(username).ifPresent(ou -> {
-                res.setOrgUnitId(ou.getId());
-                res.setCompId(ou.getCode());
-                res.setOrgLevel(ou.getOrgLevel() != null ? ou.getOrgLevel().name() : null);
-            });
-        }
-        if (res.getCompId() == null && "ADMIN".equalsIgnoreCase(user.getRole())) {
-            firstHeadquartersOrg().ifPresent(headquarters -> {
-                res.setOrgUnitId(headquarters.getId());
-                res.setCompId(headquarters.getCode());
-                res.setOrgLevel(headquarters.getOrgLevel() != null ? headquarters.getOrgLevel().name() : null);
-            });
-        }
+        resolveOrgUnitForLoginId(username).ifPresent(ou -> {
+            res.setOrgUnitId(ou.getId());
+            res.setCompId(ou.getCode());
+            res.setOrgLevel(ou.getOrgLevel() != null ? ou.getOrgLevel().name() : null);
+        });
         res.setMustChangePassword("Y".equalsIgnoreCase(user.getPasswordMustChangeYn()));
         res.setPagePermissions(orgPagePermissionService.resolvePagePermissionsForUser(user));
         res.setCanWriteNotice(orgPagePermissionService.canWriteNotice(user));
@@ -155,21 +137,28 @@ public class AuthService {
 
     /**
      * 로그인ID로 소속 {@link OrgUnit} 조회.
-     * 우선순위: 가맹점 프로필(로그인ID) → 사용자(tb_user)의 org_unit_code → ADMIN이면 총본사 1건.
+     * 우선순위: 사용자(tb_user)의 org_unit_code(유효한 조직 행이 있을 때) → 가맹점 프로필(로그인ID) → ADMIN이면 총본사 1건.
+     * 본사·총판 등 조직 계정은 org_unit_code가 권한·데이터 범위의 기준이 되므로, 가맹점 프로필보다 앞에 둡니다.
      */
     public Optional<OrgUnit> resolveOrgUnitForLoginId(String loginId) {
         if (loginId == null || loginId.isBlank()) return Optional.empty();
         String id = loginId.trim();
+        Optional<AppUser> userOpt = userRepository.findByUsername(id);
+        if (userOpt.isPresent()) {
+            AppUser u = userOpt.get();
+            if (u.getOrgUnitCode() != null && !u.getOrgUnitCode().isBlank()) {
+                Optional<OrgUnit> fromUserCode = orgUnitRepository.findByCode(u.getOrgUnitCode().trim());
+                if (fromUserCode.isPresent()) {
+                    return fromUserCode;
+                }
+            }
+        }
         Optional<OrgUnit> fromMp = merchantProfileRepository.findByLoginId(id)
                 .flatMap(mp -> orgUnitRepository.findById(mp.getOrgUnitId()));
-        if (fromMp.isPresent()) return fromMp;
-        Optional<AppUser> userOpt = userRepository.findByUsername(id);
-        if (userOpt.isEmpty()) return Optional.empty();
-        AppUser u = userOpt.get();
-        if (u.getOrgUnitCode() != null && !u.getOrgUnitCode().isBlank()) {
-            return orgUnitRepository.findByCode(u.getOrgUnitCode().trim());
+        if (fromMp.isPresent()) {
+            return fromMp;
         }
-        if ("ADMIN".equalsIgnoreCase(u.getRole())) {
+        if (userOpt.isPresent() && "ADMIN".equalsIgnoreCase(userOpt.get().getRole())) {
             return firstHeadquartersOrg();
         }
         return Optional.empty();

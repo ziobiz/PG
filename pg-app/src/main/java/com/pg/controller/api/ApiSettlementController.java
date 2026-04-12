@@ -2,6 +2,8 @@ package com.pg.controller.api;
 
 import com.pg.api.ApiResponse;
 import com.pg.api.dto.PageResult;
+import com.pg.api.dto.PayListItemDto;
+import com.pg.api.dto.PayListRowContext;
 import com.pg.entity.AppUser;
 import com.pg.entity.BalanceDeduction;
 import com.pg.entity.ChargebackFeePolicy;
@@ -28,9 +30,11 @@ import com.pg.repository.BalanceDeductionRepository;
 import com.pg.repository.SettlementSettingRepository;
 import com.pg.service.AuthService;
 import com.pg.service.CollateralLedgerService;
+import com.pg.service.OrgAccessService;
+import com.pg.service.PayListService;
 import com.pg.service.SettlementCalcService;
 import com.pg.service.SettlementReportService;
-import com.pg.util.BusinessDayCalendar;
+import com.pg.service.settlement.SettlementAutoRunService;
 import com.pg.util.ChargebackTierResolver;
 import com.pg.util.CommissionExtraFeeUtil;
 import com.pg.util.PercentDecimalHelper;
@@ -44,9 +48,8 @@ import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
-import java.time.temporal.ChronoUnit;
-import java.time.temporal.TemporalAdjusters;
 import java.time.YearMonth;
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -71,6 +74,11 @@ public class ApiSettlementController {
     private final AuthService authService;
     private final SettlementReportService settlementReportService;
     private final CollateralLedgerService collateralLedgerService;
+    private final PayListService payListService;
+    private final OrgAccessService orgAccessService;
+    private final SettlementAutoRunService settlementAutoRunService;
+
+    private static final ZoneId SEOUL = ZoneId.of("Asia/Seoul");
 
     public ApiSettlementController(SettlementCalcService settlementCalcService,
                                    OrgUnitRepository orgUnitRepository,
@@ -85,7 +93,10 @@ public class ApiSettlementController {
                                    HqApiConfigRepository hqApiConfigRepository,
                                    AuthService authService,
                                    SettlementReportService settlementReportService,
-                                   CollateralLedgerService collateralLedgerService) {
+                                   CollateralLedgerService collateralLedgerService,
+                                   PayListService payListService,
+                                   OrgAccessService orgAccessService,
+                                   SettlementAutoRunService settlementAutoRunService) {
         this.settlementCalcService = settlementCalcService;
         this.orgUnitRepository = orgUnitRepository;
         this.distributionFeeConfigRepository = distributionFeeConfigRepository;
@@ -100,6 +111,9 @@ public class ApiSettlementController {
         this.authService = authService;
         this.settlementReportService = settlementReportService;
         this.collateralLedgerService = collateralLedgerService;
+        this.payListService = payListService;
+        this.orgAccessService = orgAccessService;
+        this.settlementAutoRunService = settlementAutoRunService;
     }
 
     private static PageResult<Map<String, Object>> emptyPage(int page, int size) {
@@ -322,20 +336,35 @@ public class ApiSettlementController {
 
     @GetMapping("/franchiseList")
     public ResponseEntity<ApiResponse<PageResult<Map<String, Object>>>> franchiseList(
+            Authentication authentication,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate searchFromDate,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate searchToDate,
             @RequestParam(required = false) String searchCompNm,
             @RequestParam(required = false) String searchCompId,
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "20") int size) {
+        Set<String> allowedMerchants = orgAccessService.visibleMerchantCompCodes(authentication);
+        if (allowedMerchants != null && allowedMerchants.isEmpty()) {
+            return ResponseEntity.ok(ApiResponse.ok(emptyPage(page, size)));
+        }
         LocalDate fromDate = searchFromDate != null ? searchFromDate : LocalDate.now().minusMonths(1);
         LocalDate toDate = searchToDate != null ? searchToDate : LocalDate.now();
         LocalDateTime fromDt = fromDate.atStartOfDay();
         LocalDateTime toDt = toDate.atTime(LocalTime.MAX);
         List<PgTrnsctn> txList = pgTrnsctnRepository.findForSettlement(null, fromDt, toDt);
+        FeePolicy hqPolicy = resolveHqFeePolicy();
+        Map<String, Long> monthCbCountCache = new HashMap<>();
+        Map<Long, List<ChargebackFeeTier>> tiersByPolicyId = new HashMap<>();
         List<Map<String, Object>> allRows = new ArrayList<>();
         for (PgTrnsctn t : txList) {
-            Map<String, Object> row = toFranchiseRow(t);
+            String mid = t.getMerchantId();
+            if (mid == null || mid.isBlank()) {
+                continue;
+            }
+            if (allowedMerchants != null && !allowedMerchants.contains(mid.trim())) {
+                continue;
+            }
+            Map<String, Object> row = toFranchiseRow(t, hqPolicy, monthCbCountCache, tiersByPolicyId);
             if (searchCompId != null && !searchCompId.isBlank()) {
                 String compId = String.valueOf(row.getOrDefault("compId", ""));
                 if (!compId.contains(searchCompId.trim())) continue;
@@ -360,41 +389,55 @@ public class ApiSettlementController {
 
     @GetMapping("/recallMng")
     public ResponseEntity<ApiResponse<PageResult<Map<String, Object>>>> recallMng(
+            Authentication authentication,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate searchFromDate,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate searchToDate,
             @RequestParam(required = false) String searchCompId,
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "20") int size) {
+        Set<String> allowedMerchants = orgAccessService.visibleMerchantCompCodes(authentication);
+        if (allowedMerchants != null && allowedMerchants.isEmpty()) {
+            return ResponseEntity.ok(ApiResponse.ok(emptyPage(page, size)));
+        }
         List<Map<String, Object>> all = new ArrayList<>();
         LocalDate fromDate = searchFromDate != null ? searchFromDate : LocalDate.now().minusMonths(1);
         LocalDate toDate = searchToDate != null ? searchToDate : LocalDate.now();
         LocalDateTime fromDt = fromDate.atStartOfDay();
         LocalDateTime toDt = toDate.atTime(LocalTime.MAX);
         FeePolicy hqPolicy = resolveHqFeePolicy();
+        Map<String, Long> monthCbCountCache = new HashMap<>();
+        Map<Long, List<ChargebackFeeTier>> tiersByPolicyId = new HashMap<>();
         for (PgTrnsctn t : pgTrnsctnRepository.findForSettlement(null, fromDt, toDt)) {
             String s = t.getStatus() != null ? t.getStatus().trim() : "";
             boolean recallTarget = "20".equals(s) || "21".equals(s) || "22".equals(s) || "30".equals(s) || "31".equals(s);
             if (!recallTarget) continue;
             String compId = t.getMerchantId();
-            if (searchCompId != null && !searchCompId.isBlank() && (compId == null || !compId.contains(searchCompId.trim()))) {
+            if (compId == null || compId.isBlank()) {
+                continue;
+            }
+            if (allowedMerchants != null && !allowedMerchants.contains(compId.trim())) {
+                continue;
+            }
+            if (searchCompId != null && !searchCompId.isBlank() && !compId.contains(searchCompId.trim())) {
                 continue;
             }
             OrgUnit ou = orgUnitRepository.findByCode(compId).orElse(null);
             if (ou == null) continue;
             BigDecimal txnAmtBd = t.getAmtKrw() != null ? t.getAmtKrw() : BigDecimal.ZERO;
-            int recallScale = derivedFeeScale(txnAmtBd);
-            BigDecimal feeAmtBd = estimateFeeAmount(txnAmtBd, compId);
-            BigDecimal feeVatBd = hqPolicy.settlementVatApplyYn
-                    ? feeAmtBd.multiply(BigDecimal.valueOf(0.1)).setScale(recallScale, RoundingMode.HALF_UP)
-                    : BigDecimal.ZERO;
+            int amtScale = derivedFeeScale(txnAmtBd);
+            CommissionPolicy pol = resolveCommissionPolicyForMerchant(compId);
+            FeeListTxnBreakdown br = computeFeeListTxnBreakdown(t, compId, pol, hqPolicy, monthCbCountCache, tiersByPolicyId);
+            BigDecimal feeAmtBd = BigDecimal.valueOf(br.totalFee()).setScale(amtScale > 0 ? amtScale : 0, RoundingMode.HALF_UP);
+            BigDecimal feeVatBd = br.feeVatBd();
             BigDecimal recallAmtBd = hqPolicy.recallIncludeFeeYn
                     ? txnAmtBd.add(feeAmtBd).add(feeVatBd).max(BigDecimal.ZERO)
                     : txnAmtBd.max(BigDecimal.ZERO);
             BigDecimal deductAmtBd = recallAmtBd.negate();
             Map<String, Object> m = new HashMap<>();
+            m.put("trnId", t.getTrnId());
             m.put("calcDt", t.getCreatedAt() != null ? t.getCreatedAt().toLocalDate().toString() : "");
             m.put("compId", compId);
-            m.put("compNm", ou != null ? ou.getName() : compId);
+            m.put("compNm", ou.getName() != null ? ou.getName() : compId);
             m.put("settleAmt", txnAmtBd);
             m.put("recallAmt", recallAmtBd);
             m.put("deductAmt", deductAmtBd);
@@ -415,15 +458,95 @@ public class ApiSettlementController {
         return ResponseEntity.ok(ApiResponse.ok(pageOf(all, page, size)));
     }
 
+    /**
+     * 수수료내역(/feeList)과 동일한 건별 수수료 항목 합산 + VAT.
+     * 환수금(회수) 시 수수료 포함 여부에 쓰인다.
+     */
+    private record FeeListTxnBreakdown(
+            double perTxFee, double usageFee, double failFee, double cancelFee, double voidFee,
+            double manualVoidFee, double refundFee, double payFee, double usdtFee, double fxFee,
+            double fee3dsFee, double settlementPerTxFee, double chargebackFee, double extraFees,
+            double totalFee,
+            BigDecimal feeVatBd
+    ) {}
+
+    private FeeListTxnBreakdown computeFeeListTxnBreakdown(
+            PgTrnsctn t,
+            String compId,
+            CommissionPolicy pol,
+            FeePolicy hqPolicy,
+            Map<String, Long> monthCbCountCache,
+            Map<Long, List<ChargebackFeeTier>> tiersByPolicyId) {
+        BigDecimal amountBd = t.getAmtKrw() != null ? t.getAmtKrw() : BigDecimal.ZERO;
+        int feeScale = derivedFeeScale(amountBd);
+        String st = t.getStatus() != null ? t.getStatus().trim() : "";
+        BigDecimal payRateBd = nz(pol.getPayRate());
+        double perTxFee = nz(pol.getPerTxFee()).doubleValue();
+        double usageFee = 0d;
+        double failFee = ("F0".equals(st) || "99".equals(st)) ? nz(pol.getFailFee()).doubleValue() : 0d;
+        double cancelFee = "20".equals(st) ? nz(pol.getCancelRate()).doubleValue() : 0d;
+        double voidFee = "21".equals(st) ? nz(pol.getVoidFeePerTx()).doubleValue() : 0d;
+        double manualVoidFee = "22".equals(st) ? nz(pol.getManualVoidFeePerTx()).doubleValue() : 0d;
+        double refundFee = ("30".equals(st) || "31".equals(st)) ? nz(pol.getRefundRate()).doubleValue() : 0d;
+        double payFee = "10".equals(st) ? amountBd.multiply(payRateBd).divide(BigDecimal.valueOf(100), feeScale, RoundingMode.HALF_UP).doubleValue() : 0d;
+        double usdtFee = "10".equals(st) ? amountBd.multiply(nz(pol.getFeeUsdt())).divide(BigDecimal.valueOf(100), feeScale, RoundingMode.HALF_UP).doubleValue() : 0d;
+        double fxFee = "10".equals(st) ? amountBd.multiply(nz(pol.getFeeFx())).divide(BigDecimal.valueOf(100), feeScale, RoundingMode.HALF_UP).doubleValue() : 0d;
+        double fee3dsFee = "10".equals(st) ? amountBd.multiply(nz(pol.getFee3dsRate())).divide(BigDecimal.valueOf(100), feeScale, RoundingMode.HALF_UP).doubleValue() : 0d;
+        double settlementPerTxFee = nz(pol.getFeeSettlementPerTx()).doubleValue();
+        double chargebackFee = 0d;
+        if ("30".equals(st) || "31".equals(st)) {
+            LocalDate cbDay = t.getCreatedAt() != null ? t.getCreatedAt().toLocalDate() : LocalDate.now();
+            YearMonth ymcb = YearMonth.from(cbDay);
+            String ck = compId + "|" + ymcb;
+            long monthCbCount = monthCbCountCache.computeIfAbsent(ck, k -> {
+                LocalDateTime ms = ymcb.atDay(1).atStartOfDay();
+                LocalDateTime me = ymcb.plusMonths(1).atDay(1).atStartOfDay();
+                return pgTrnsctnRepository.countByMerchantIdAndStatusInAndCreatedAtGreaterThanEqualAndCreatedAtLessThan(
+                        compId, CHARGEBACK_STATUSES, ms, me);
+            });
+            int mc = (int) Math.min(monthCbCount, Integer.MAX_VALUE);
+            Long cpid = pol.getChargebackPolicyId();
+            if (cpid != null) {
+                List<ChargebackFeeTier> tiers = tiersByPolicyId.computeIfAbsent(cpid, id ->
+                        chargebackFeePolicyRepository.findByIdWithTiers(id)
+                                .map(ChargebackFeePolicy::getTiers)
+                                .orElse(Collections.emptyList()));
+                if (!tiers.isEmpty()) {
+                    chargebackFee = ChargebackTierResolver.feePerCaseForMonthlyCount(mc, tiers).doubleValue();
+                } else {
+                    chargebackFee = nz(pol.getChargebackFeePerTx()).doubleValue();
+                }
+            } else {
+                chargebackFee = nz(pol.getChargebackFeePerTx()).doubleValue();
+            }
+        }
+        double extraFees = "10".equals(st)
+                ? CommissionExtraFeeUtil.sumPctOnApprovedAmount(pol, amountBd).doubleValue()
+                : 0d;
+        double totalFee = Math.max(0d, perTxFee + usageFee + failFee + cancelFee + voidFee + manualVoidFee + refundFee
+                + payFee + settlementPerTxFee + usdtFee + fxFee + fee3dsFee + chargebackFee + extraFees);
+        int vatScale = feeScale > 0 ? feeScale : 0;
+        BigDecimal feeVatBd = hqPolicy.settlementVatApplyYn
+                ? BigDecimal.valueOf(totalFee).multiply(BigDecimal.valueOf(0.1)).setScale(vatScale, RoundingMode.HALF_UP)
+                : BigDecimal.ZERO;
+        return new FeeListTxnBreakdown(perTxFee, usageFee, failFee, cancelFee, voidFee, manualVoidFee, refundFee,
+                payFee, usdtFee, fxFee, fee3dsFee, settlementPerTxFee, chargebackFee, extraFees, totalFee, feeVatBd);
+    }
+
     /** 수수료내역: 가맹점 거래 1건마다 본사 기본정책의 모든 수수료 항목 계산 표시 */
     @GetMapping("/feeList")
     public ResponseEntity<ApiResponse<PageResult<Map<String, Object>>>> feeList(
+            Authentication authentication,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate searchFromDate,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate searchToDate,
             @RequestParam(required = false) String searchCompId,
             @RequestParam(required = false) String searchCompNm,
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "20") int size) {
+        Set<String> allowedMerchants = orgAccessService.visibleMerchantCompCodes(authentication);
+        if (allowedMerchants != null && allowedMerchants.isEmpty()) {
+            return ResponseEntity.ok(ApiResponse.ok(emptyPage(page, size)));
+        }
         LocalDate fromDate = searchFromDate != null ? searchFromDate : LocalDate.now().minusMonths(1);
         LocalDate toDate = searchToDate != null ? searchToDate : LocalDate.now();
         LocalDateTime fromDt = fromDate.atStartOfDay();
@@ -434,7 +557,13 @@ public class ApiSettlementController {
         List<Map<String, Object>> all = new ArrayList<>();
         for (PgTrnsctn t : pgTrnsctnRepository.findForSettlement(null, fromDt, toDt)) {
             String compId = t.getMerchantId();
-            if (searchCompId != null && !searchCompId.isBlank() && (compId == null || !compId.contains(searchCompId.trim()))) {
+            if (compId == null || compId.isBlank()) {
+                continue;
+            }
+            if (allowedMerchants != null && !allowedMerchants.contains(compId.trim())) {
+                continue;
+            }
+            if (searchCompId != null && !searchCompId.isBlank() && !compId.contains(searchCompId.trim())) {
                 continue;
             }
             OrgUnit ou = orgUnitRepository.findByCode(compId).orElse(null);
@@ -445,58 +574,8 @@ public class ApiSettlementController {
             }
             CommissionPolicy pol = resolveCommissionPolicyForMerchant(compId);
             BigDecimal amountBd = t.getAmtKrw() != null ? t.getAmtKrw() : BigDecimal.ZERO;
-            int feeScale = derivedFeeScale(amountBd);
-            String st = t.getStatus() != null ? t.getStatus().trim() : "";
             BigDecimal payRateBd = nz(pol.getPayRate());
-            /* 건당·고정 수수료: 통화 단위 소수 첫째 자리(USD·THB 등) — longValue 절삭 방지 */
-            double perTxFee = nz(pol.getPerTxFee()).doubleValue();
-            /* 월간이용료는 정책 고정액·월 1회(정산 실행 시 합산). 거래 건별 비율 산정 아님 → 건별 0 */
-            double usageFee = 0d;
-            double failFee = ("F0".equals(st) || "99".equals(st)) ? nz(pol.getFailFee()).doubleValue() : 0d;
-            double cancelFee = "20".equals(st) ? nz(pol.getCancelRate()).doubleValue() : 0d;
-            double voidFee = "21".equals(st) ? nz(pol.getVoidFeePerTx()).doubleValue() : 0d;
-            double manualVoidFee = "22".equals(st) ? nz(pol.getManualVoidFeePerTx()).doubleValue() : 0d;
-            double refundFee = ("30".equals(st) || "31".equals(st)) ? nz(pol.getRefundRate()).doubleValue() : 0d;
-            double payFee = "10".equals(st) ? amountBd.multiply(payRateBd).divide(BigDecimal.valueOf(100), feeScale, RoundingMode.HALF_UP).doubleValue() : 0d;
-            double usdtFee = "10".equals(st) ? amountBd.multiply(nz(pol.getFeeUsdt())).divide(BigDecimal.valueOf(100), feeScale, RoundingMode.HALF_UP).doubleValue() : 0d;
-            double fxFee = "10".equals(st) ? amountBd.multiply(nz(pol.getFeeFx())).divide(BigDecimal.valueOf(100), feeScale, RoundingMode.HALF_UP).doubleValue() : 0d;
-            double fee3dsFee = "10".equals(st) ? amountBd.multiply(nz(pol.getFee3dsRate())).divide(BigDecimal.valueOf(100), feeScale, RoundingMode.HALF_UP).doubleValue() : 0d;
-            double settlementPerTxFee = nz(pol.getFeeSettlementPerTx()).doubleValue();
-            double chargebackFee = 0d;
-            if ("30".equals(st) || "31".equals(st)) {
-                LocalDate cbDay = t.getCreatedAt() != null ? t.getCreatedAt().toLocalDate() : LocalDate.now();
-                YearMonth ymcb = YearMonth.from(cbDay);
-                String ck = compId + "|" + ymcb;
-                long monthCbCount = monthCbCountCache.computeIfAbsent(ck, k -> {
-                    LocalDateTime ms = ymcb.atDay(1).atStartOfDay();
-                    LocalDateTime me = ymcb.plusMonths(1).atDay(1).atStartOfDay();
-                    return pgTrnsctnRepository.countByMerchantIdAndStatusInAndCreatedAtGreaterThanEqualAndCreatedAtLessThan(
-                            compId, CHARGEBACK_STATUSES, ms, me);
-                });
-                int mc = (int) Math.min(monthCbCount, Integer.MAX_VALUE);
-                Long cpid = pol.getChargebackPolicyId();
-                if (cpid != null) {
-                    List<ChargebackFeeTier> tiers = tiersByPolicyId.computeIfAbsent(cpid, id ->
-                            chargebackFeePolicyRepository.findByIdWithTiers(id)
-                                    .map(ChargebackFeePolicy::getTiers)
-                                    .orElse(Collections.emptyList()));
-                    if (!tiers.isEmpty()) {
-                        chargebackFee = ChargebackTierResolver.feePerCaseForMonthlyCount(mc, tiers).doubleValue();
-                    } else {
-                        chargebackFee = nz(pol.getChargebackFeePerTx()).doubleValue();
-                    }
-                } else {
-                    chargebackFee = nz(pol.getChargebackFeePerTx()).doubleValue();
-                }
-            }
-            double extraFees = "10".equals(st)
-                    ? CommissionExtraFeeUtil.sumPctOnApprovedAmount(pol, amountBd).doubleValue()
-                    : 0d;
-            double totalFee = Math.max(0d, perTxFee + usageFee + failFee + cancelFee + voidFee + manualVoidFee + refundFee + payFee + settlementPerTxFee + usdtFee + fxFee + fee3dsFee + chargebackFee + extraFees);
-            int vatScale = feeScale > 0 ? feeScale : 0;
-            BigDecimal feeVatBd = hqPolicy.settlementVatApplyYn
-                    ? BigDecimal.valueOf(totalFee).multiply(BigDecimal.valueOf(0.1)).setScale(vatScale, RoundingMode.HALF_UP)
-                    : BigDecimal.ZERO;
+            FeeListTxnBreakdown br = computeFeeListTxnBreakdown(t, compId, pol, hqPolicy, monthCbCountCache, tiersByPolicyId);
 
             Map<String, Object> m = new LinkedHashMap<>();
             m.put("compId", compId);
@@ -506,26 +585,26 @@ public class ApiSettlementController {
             m.put("statusNm", payDivName(t.getStatus()));
             m.put("trnDate", t.getCreatedAt() != null ? t.getCreatedAt().toLocalDate().toString() : "");
             m.put("amount", amountBd);
-            m.put("perTxFee", perTxFee);
-            m.put("usageFee", usageFee);
-            m.put("failFee", failFee);
-            m.put("cancelFee", cancelFee);
-            m.put("voidFee", voidFee);
-            m.put("manualVoidFee", manualVoidFee);
-            m.put("refundFee", refundFee);
+            m.put("perTxFee", br.perTxFee());
+            m.put("usageFee", br.usageFee());
+            m.put("failFee", br.failFee());
+            m.put("cancelFee", br.cancelFee());
+            m.put("voidFee", br.voidFee());
+            m.put("manualVoidFee", br.manualVoidFee());
+            m.put("refundFee", br.refundFee());
             m.put("payFeeRate", PercentDecimalHelper.toPlainOneDecimal(payRateBd));
-            m.put("payFee", payFee);
+            m.put("payFee", br.payFee());
             m.put("usdtFeeRate", PercentDecimalHelper.toPlainOneDecimal(nz(pol.getFeeUsdt())));
-            m.put("usdtFee", usdtFee);
+            m.put("usdtFee", br.usdtFee());
             m.put("fxFeeRate", PercentDecimalHelper.toPlainOneDecimal(nz(pol.getFeeFx())));
-            m.put("fxFee", fxFee);
+            m.put("fxFee", br.fxFee());
             m.put("fee3dsRate", PercentDecimalHelper.toPlainOneDecimal(nz(pol.getFee3dsRate())));
-            m.put("fee3dsFee", fee3dsFee);
-            m.put("settlementPerTxFee", settlementPerTxFee);
-            m.put("chargebackFee", chargebackFee);
-            m.put("extraFees", extraFees);
-            m.put("totalFee", totalFee);
-            m.put("feeVat", feeVatBd);
+            m.put("fee3dsFee", br.fee3dsFee());
+            m.put("settlementPerTxFee", br.settlementPerTxFee());
+            m.put("chargebackFee", br.chargebackFee());
+            m.put("extraFees", br.extraFees());
+            m.put("totalFee", br.totalFee());
+            m.put("feeVat", br.feeVatBd());
             m.put("vatAppliedYn", hqPolicy.settlementVatApplyYn ? "Y" : "N");
             all.add(m);
         }
@@ -535,13 +614,14 @@ public class ApiSettlementController {
 
     @GetMapping("/balanceMng")
     public ResponseEntity<ApiResponse<PageResult<Map<String, Object>>>> balanceMng(
+            Authentication authentication,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate searchFromDate,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate searchToDate,
             @RequestParam(required = false) String searchCompId,
             @RequestParam(required = false) String searchCompNm,
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "20") int size) {
-        return ResponseEntity.ok(ApiResponse.ok(balanceListCore(searchCompId, searchCompNm, page, size, true)));
+        return ResponseEntity.ok(ApiResponse.ok(balanceListCore(authentication, searchCompId, searchCompNm, page, size, true)));
     }
 
     /** 잔액/미수금관리 수동 차감(선택 차감/직접입력 공용) */
@@ -565,6 +645,14 @@ public class ApiSettlementController {
         if (orgUnitRepository.findByCode(compId).isEmpty()) {
             return ResponseEntity.ok(ApiResponse.fail("존재하지 않는 업체코드입니다.", "NOT_FOUND"));
         }
+        boolean admin = authentication != null && authentication.getPrincipal() instanceof AppUser au
+                && "ADMIN".equalsIgnoreCase(au.getRole());
+        if (!admin) {
+            Set<String> vis = orgAccessService.visibleMerchantCompCodes(authentication);
+            if (vis.isEmpty() || !vis.contains(compId.trim())) {
+                return ResponseEntity.ok(ApiResponse.fail("선택한 가맹점에 대한 차감 권한이 없습니다.", "FORBIDDEN"));
+            }
+        }
         String username = (authentication != null && authentication.getPrincipal() instanceof AppUser u)
                 ? u.getUsername() : "";
         String memo = body.get("memo") != null ? String.valueOf(body.get("memo")).trim() : "";
@@ -584,11 +672,12 @@ public class ApiSettlementController {
 
     @GetMapping("/balanceList")
     public ResponseEntity<ApiResponse<PageResult<Map<String, Object>>>> balanceList(
+            Authentication authentication,
             @RequestParam(required = false) String searchCompId,
             @RequestParam(required = false) String searchCompNm,
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "20") int size) {
-        return ResponseEntity.ok(ApiResponse.ok(balanceListCore(searchCompId, searchCompNm, page, size, false)));
+        return ResponseEntity.ok(ApiResponse.ok(balanceListCore(authentication, searchCompId, searchCompNm, page, size, false)));
     }
 
     @GetMapping("/unpaidMng")
@@ -693,110 +782,11 @@ public class ApiSettlementController {
             return ResponseEntity.ok(ApiResponse.ok(list));
         }
 
-        /* 기간 미지정 시: calcCycle 기준 자동 실행 */
-        LocalDate today = LocalDate.now();
-        Set<String> alreadyDoneToday = settlementCalcService.listRuns(today, today).stream()
-                .map(SettlementRun::getMerchantId)
-                .filter(Objects::nonNull)
-                .collect(Collectors.toSet());
-        List<SettlementRun> allRuns = new ArrayList<>();
-
-        List<OrgUnit> merchants = orgUnitRepository.findAll().stream()
-                .filter(ou -> ou.getOrgLevel() == OrgLevel.MERCHANT)
-                .filter(ou -> merchantId == null || merchantId.isBlank() || merchantId.trim().equalsIgnoreCase(ou.getCode()))
-                .toList();
-
-        for (OrgUnit ou : merchants) {
-            String mid = ou.getCode();
-            if (mid == null || mid.isBlank()) continue;
-            if (alreadyDoneToday.contains(mid)) continue;
-            Optional<SettlementSetting> ssOpt = settlementSettingRepository.findByOrgUnitId(ou.getId());
-            if (ssOpt.isEmpty()) continue;
-            PeriodWindow w = resolveAutoPeriodWindow(ssOpt.get().getCalcCycle(), today);
-            if (w == null) continue;
-            List<SettlementRun> runs = settlementCalcService.execute(w.fromDate(), w.toDate(), mid);
-            if (!runs.isEmpty()) {
-                allRuns.addAll(runs);
-            }
-        }
+        /* 기간 미지정 시: calcCycle·AUTO·마감시간 등과 동일 규칙으로 자동 실행(스케줄 배치와 공유) */
+        LocalDate today = LocalDate.now(SEOUL);
+        List<SettlementRun> allRuns = settlementAutoRunService.runDueSettlements(today, merchantId, true);
         List<Map<String, Object>> list = allRuns.stream().map(this::toMap).collect(Collectors.toList());
         return ResponseEntity.ok(ApiResponse.ok(list));
-    }
-
-    private record PeriodWindow(LocalDate fromDate, LocalDate toDate) {}
-
-    private static String normalizeCalcCycle(String raw) {
-        if (raw == null) return "";
-        String u = raw.trim().toUpperCase(Locale.ROOT);
-        return u.replace("+", "");
-    }
-
-    private static LocalDate nextBusinessDayOrSame(LocalDate d) {
-        LocalDate cur = d;
-        while (!BusinessDayCalendar.isBusinessDay(cur, Collections.emptySet())) {
-            cur = cur.plusDays(1);
-        }
-        return cur;
-    }
-
-    private static boolean isBiWeeklyAnchor(LocalDate monday) {
-        LocalDate epochMonday = LocalDate.of(1970, 1, 5);
-        long weeks = ChronoUnit.WEEKS.between(epochMonday, monday);
-        return weeks % 2 == 0;
-    }
-
-    private static PeriodWindow resolveAutoPeriodWindow(String calcCycle, LocalDate today) {
-        String c = normalizeCalcCycle(calcCycle);
-        if (c.isEmpty() || "NONE".equals(c)) return null;
-
-        LocalDate thisMonday = today.with(TemporalAdjusters.previousOrSame(java.time.DayOfWeek.MONDAY));
-
-        /* W+D (예: W7): 주(월~일) 집계 + D일 후 도래, 지급일만 영업일 보정 */
-        if (c.matches("W\\d+")) {
-            int d = Integer.parseInt(c.substring(1));
-            for (int k = 0; k <= 16; k++) {
-                LocalDate start = thisMonday.minusWeeks(k);
-                LocalDate end = start.plusDays(6);
-                LocalDate base = end.plusDays(d);
-                LocalDate settle = nextBusinessDayOrSame(base);
-                if (settle.equals(today)) {
-                    return new PeriodWindow(start, end);
-                }
-            }
-            return null;
-        }
-
-        /* WK+1W / WK+1WT: 1주(월~일) 집계 */
-        if ("WK1W".equals(c) || "WK1WT".equals(c)) {
-            int deltaToWednesday = "WK1W".equals(c) ? 3 : 10; // 다음주 수요일 / 다다음주 수요일
-            for (int k = 0; k <= 16; k++) {
-                LocalDate start = thisMonday.minusWeeks(k);
-                LocalDate end = start.plusDays(6);
-                LocalDate base = end.plusDays(deltaToWednesday);
-                LocalDate settle = nextBusinessDayOrSame(base);
-                if (settle.equals(today)) {
-                    return new PeriodWindow(start, end);
-                }
-            }
-            return null;
-        }
-
-        /* WK+2W / WK+2WT: 2주(14일) 집계, 2주 간격 anchor(월요일) 고정 */
-        if ("WK2W".equals(c) || "WK2WT".equals(c)) {
-            int deltaToWednesday = "WK2W".equals(c) ? 3 : 10; // 2주 구간 종료 후 다음주/다다음주 수요일
-            for (int k = 0; k <= 24; k++) {
-                LocalDate start = thisMonday.minusWeeks(k);
-                if (!isBiWeeklyAnchor(start)) continue;
-                LocalDate end = start.plusDays(13);
-                LocalDate base = end.plusDays(deltaToWednesday);
-                LocalDate settle = nextBusinessDayOrSame(base);
-                if (settle.equals(today)) {
-                    return new PeriodWindow(start, end);
-                }
-            }
-            return null;
-        }
-        return null;
     }
 
     private Map<String, Object> toMap(SettlementRun r) {
@@ -1055,7 +1045,17 @@ public class ApiSettlementController {
         try { return Long.parseLong(String.valueOf(v)); } catch (Exception e) { return 0L; }
     }
 
-    private PageResult<Map<String, Object>> balanceListCore(String searchCompId, String searchCompNm, int page, int size, boolean combined) {
+    private PageResult<Map<String, Object>> balanceListCore(
+            Authentication authentication,
+            String searchCompId,
+            String searchCompNm,
+            int page,
+            int size,
+            boolean combined) {
+        Set<String> allowedMerchants = orgAccessService.visibleMerchantCompCodes(authentication);
+        if (allowedMerchants != null && allowedMerchants.isEmpty()) {
+            return emptyPage(page, size);
+        }
         List<Map<String, Object>> all = new ArrayList<>();
         List<SettlementRun> runs = settlementCalcService.listRuns(LocalDate.now().minusMonths(6), LocalDate.now());
         Map<String, Long> holdByMerchant = new HashMap<>();
@@ -1090,6 +1090,9 @@ public class ApiSettlementController {
         merchants.addAll(unpaidByMerchant.keySet());
         merchants.addAll(deductedByMerchant.keySet());
         for (String compId : merchants) {
+            if (allowedMerchants != null && !allowedMerchants.contains(compId.trim())) {
+                continue;
+            }
             OrgUnit ou = orgUnitRepository.findByCode(compId).orElse(null);
             String compNm = ou != null ? ou.getName() : compId;
             if (searchCompId != null && !searchCompId.isBlank() && (compId == null || !compId.contains(searchCompId.trim()))) continue;
@@ -1136,82 +1139,117 @@ public class ApiSettlementController {
         return pr;
     }
 
-    private Map<String, Object> toFranchiseRow(PgTrnsctn t) {
-        Map<String, Object> m = new HashMap<>();
+    /**
+     * 가맹정산내역: 결제내역과 동일한 수수료·보류·지급액 추정(승인 건은 비율+건당+정산건당+기타% 합산).
+     * 승인 외 상태는 수수료내역(/feeList)과 동일한 건별 항목 합산을 오버레이합니다.
+     */
+    private Map<String, Object> toFranchiseRow(PgTrnsctn t, FeePolicy hqPolicy,
+                                                Map<String, Long> monthCbCountCache,
+                                                Map<Long, List<ChargebackFeeTier>> tiersByPolicyId) {
         String compId = t.getMerchantId();
-        OrgUnit merchant = orgUnitRepository.findByCode(compId).orElse(null);
-        String merchantNm = merchant != null ? merchant.getName() : compId;
-        MerchantProfile mp = merchant != null ? merchantProfileRepository.findByOrgUnitId(merchant.getId()).orElse(null) : null;
-        MerchantPgBinding binding = merchant != null
-                ? merchantPgBindingRepository.findByOrgUnitIdOrderBySortOrderAsc(merchant.getId()).stream().findFirst().orElse(null)
-                : null;
-
-        BigDecimal amount = t.getAmtKrw() != null ? t.getAmtKrw() : BigDecimal.ZERO;
-        DistributionFeeConfig cfg = distributionFeeConfigRepository.findByCompId(compId).orElse(null);
-        BigDecimal allRate = BigDecimal.ZERO;
-        if (cfg != null) {
-            allRate = nz(cfg.getHqRate()).add(nz(cfg.getRegionalRate())).add(nz(cfg.getMasterRate())).add(nz(cfg.getBranchRate())).add(nz(cfg.getAgencyRate()));
+        if (compId == null || compId.isBlank()) {
+            return new LinkedHashMap<>();
         }
-        int fs = derivedFeeScale(amount);
-        BigDecimal feeAmt = amount.multiply(allRate).divide(BigDecimal.valueOf(100), fs, RoundingMode.HALF_UP);
-        BigDecimal vatAmt = feeAmt.multiply(BigDecimal.valueOf(0.1)).setScale(fs, RoundingMode.HALF_UP);
-        BigDecimal holdRate = BigDecimal.ZERO;
-        BigDecimal holdAmt = amount.multiply(holdRate).divide(BigDecimal.valueOf(100), fs, RoundingMode.HALF_UP);
-        BigDecimal settleAmt = amount.subtract(feeAmt).subtract(vatAmt).subtract(holdAmt);
-
-        m.put("merchantNm", merchantNm);
-        m.put("compNm", merchantNm);
-        m.put("compId", compId);
-        m.put("bizType", "-");
-        m.put("bizNo", regNo(mp != null ? mp.getRegNo() : null));
-        m.put("payDivNm", payDivLabel(t.getStatus()));
-        m.put("payCard", "-");
-        m.put("cardAprvNo", blank(t.getApprovalNo()));
-        m.put("payCardNo", "-");
-        m.put("instalMonth", "0");
-        m.put("payMethod", binding != null && binding.getPayMethod() != null ? binding.getPayMethod() : "CARD");
-        m.put("corpNm", merchantNm);
-        m.put("pgNm", binding != null && binding.getPgCd() != null ? binding.getPgCd() : blank(t.getVan()));
-        m.put("terminalId", binding != null ? blank(binding.getMid()) : "-");
-        m.put("amount", amount);
-        m.put("payNo", blank(t.getPayNo()));
-        m.put("feeCnt", 1);
-        m.put("feeRate", allRate);
-        m.put("feeAmt", feeAmt);
-        m.put("feeVat", vatAmt);
-        m.put("holdRate", holdRate);
-        m.put("holdAmt", holdAmt);
-        m.put("calcCycle", "-");
-        m.put("settleAmt", settleAmt);
-        m.put("calcDt", t.getCreatedAt() != null ? t.getCreatedAt().toString().replace("T", " ") : "");
-        m.put("approveDt", t.getCreatedAt() != null ? t.getCreatedAt().toString().replace("T", " ") : "");
-        m.put("cancelDt", "20".equals(t.getStatus()) ? (t.getCreatedAt() != null ? t.getCreatedAt().toString().replace("T", " ") : "") : "");
-        m.put("payStatus", "20".equals(t.getStatus()) ? "취소" : "정산대기");
-        m.put("productNm", mp != null ? blank(mp.getProduct()) : "-");
-        m.put("customerNm", payerCustomerName(t));
-        m.put("customerTel", "-");
-
-        String regional = "", master = "", branch = "";
-        OrgUnit cur = merchant;
-        for (int i = 0; i < 8 && cur != null; i++) {
-            if (cur.getOrgLevel() != null) {
-                switch (cur.getOrgLevel()) {
-                    case MASTER_DIST -> regional = cur.getName();
-                    case BRANCH -> master = cur.getName();
-                    case AGENCY, SALES_OFFICE -> branch = cur.getName();
-                    default -> {}
-                }
+        PayListRowContext ctx = payListService.buildPayListRowContextForMerchant(compId.trim());
+        Map<String, Object> row = new LinkedHashMap<>(PayListItemDto.from(t, ctx));
+        BigDecimal amt = t.getAmtKrw() != null ? t.getAmtKrw() : BigDecimal.ZERO;
+        row.put("amount", amt);
+        Object reg = row.get("compRegNo");
+        row.put("bizNo", reg != null && !String.valueOf(reg).isBlank() ? String.valueOf(reg) : "-");
+        String biz = "-";
+        if (ctx != null && ctx.getProfile() != null) {
+            MerchantProfile mp = ctx.getProfile();
+            if (mp.getBizType() != null && !mp.getBizType().isBlank()) {
+                biz = mp.getBizType().trim();
+            } else if (mp.getIndustry() != null && !mp.getIndustry().isBlank()) {
+                biz = mp.getIndustry().trim();
             }
-            cur = cur.getParentId() != null ? orgUnitRepository.findById(cur.getParentId()).orElse(null) : null;
         }
-        m.put("regionalNm", regional);
-        m.put("masterNm", master);
-        m.put("branchNm", branch);
-        return m;
+        row.put("bizType", biz);
+        Object pgNo = row.get("pgApproveNo");
+        row.put("payNo", pgNo != null ? pgNo : "-");
+        if (!"10".equals(t.getStatus() != null ? t.getStatus().trim() : "")) {
+            applyNonApproveFranchiseFeeOverlay(row, t, hqPolicy, monthCbCountCache, tiersByPolicyId);
+        }
+        return row;
+    }
+
+    /** 수수료내역 API와 동일한 건별 추정치로 가맹정산 그리드 수수료·지급액 열을 채움 */
+    private void applyNonApproveFranchiseFeeOverlay(Map<String, Object> row, PgTrnsctn t, FeePolicy hqPolicy,
+                                                    Map<String, Long> monthCbCountCache,
+                                                    Map<Long, List<ChargebackFeeTier>> tiersByPolicyId) {
+        String compId = t.getMerchantId();
+        CommissionPolicy pol = resolveCommissionPolicyForMerchant(compId);
+        BigDecimal amountBd = t.getAmtKrw() != null ? t.getAmtKrw() : BigDecimal.ZERO;
+        int feeScale = derivedFeeScale(amountBd);
+        String st = t.getStatus() != null ? t.getStatus().trim() : "";
+        BigDecimal payRateBd = nz(pol.getPayRate());
+        double perTxFee = nz(pol.getPerTxFee()).doubleValue();
+        double usageFee = 0d;
+        double failFee = ("F0".equals(st) || "99".equals(st)) ? nz(pol.getFailFee()).doubleValue() : 0d;
+        double cancelFee = "20".equals(st) ? nz(pol.getCancelRate()).doubleValue() : 0d;
+        double voidFee = "21".equals(st) ? nz(pol.getVoidFeePerTx()).doubleValue() : 0d;
+        double manualVoidFee = "22".equals(st) ? nz(pol.getManualVoidFeePerTx()).doubleValue() : 0d;
+        double refundFee = ("30".equals(st) || "31".equals(st)) ? nz(pol.getRefundRate()).doubleValue() : 0d;
+        double payFee = "10".equals(st) ? amountBd.multiply(payRateBd).divide(BigDecimal.valueOf(100), feeScale, RoundingMode.HALF_UP).doubleValue() : 0d;
+        double usdtFee = "10".equals(st) ? amountBd.multiply(nz(pol.getFeeUsdt())).divide(BigDecimal.valueOf(100), feeScale, RoundingMode.HALF_UP).doubleValue() : 0d;
+        double fxFee = "10".equals(st) ? amountBd.multiply(nz(pol.getFeeFx())).divide(BigDecimal.valueOf(100), feeScale, RoundingMode.HALF_UP).doubleValue() : 0d;
+        double fee3dsFee = "10".equals(st) ? amountBd.multiply(nz(pol.getFee3dsRate())).divide(BigDecimal.valueOf(100), feeScale, RoundingMode.HALF_UP).doubleValue() : 0d;
+        double settlementPerTxFee = nz(pol.getFeeSettlementPerTx()).doubleValue();
+        double chargebackFee = 0d;
+        if ("30".equals(st) || "31".equals(st)) {
+            LocalDate cbDay = t.getCreatedAt() != null ? t.getCreatedAt().toLocalDate() : LocalDate.now();
+            YearMonth ymcb = YearMonth.from(cbDay);
+            String ck = compId + "|" + ymcb;
+            long monthCbCount = monthCbCountCache.computeIfAbsent(ck, k -> {
+                LocalDateTime ms = ymcb.atDay(1).atStartOfDay();
+                LocalDateTime me = ymcb.plusMonths(1).atDay(1).atStartOfDay();
+                return pgTrnsctnRepository.countByMerchantIdAndStatusInAndCreatedAtGreaterThanEqualAndCreatedAtLessThan(
+                        compId, CHARGEBACK_STATUSES, ms, me);
+            });
+            int mc = (int) Math.min(monthCbCount, Integer.MAX_VALUE);
+            Long cpid = pol.getChargebackPolicyId();
+            if (cpid != null) {
+                List<ChargebackFeeTier> tiers = tiersByPolicyId.computeIfAbsent(cpid, id ->
+                        chargebackFeePolicyRepository.findByIdWithTiers(id)
+                                .map(ChargebackFeePolicy::getTiers)
+                                .orElse(Collections.emptyList()));
+                if (!tiers.isEmpty()) {
+                    chargebackFee = ChargebackTierResolver.feePerCaseForMonthlyCount(mc, tiers).doubleValue();
+                } else {
+                    chargebackFee = nz(pol.getChargebackFeePerTx()).doubleValue();
+                }
+            } else {
+                chargebackFee = nz(pol.getChargebackFeePerTx()).doubleValue();
+            }
+        }
+        double extraFees = "10".equals(st)
+                ? CommissionExtraFeeUtil.sumPctOnApprovedAmount(pol, amountBd).doubleValue()
+                : 0d;
+        double totalFee = Math.max(0d, perTxFee + usageFee + failFee + cancelFee + voidFee + manualVoidFee + refundFee + payFee + settlementPerTxFee + usdtFee + fxFee + fee3dsFee + chargebackFee + extraFees);
+        int vatScale = feeScale > 0 ? feeScale : 0;
+        BigDecimal feeAmtBd = BigDecimal.valueOf(totalFee).setScale(feeScale, RoundingMode.HALF_UP);
+        BigDecimal feeVatBd = hqPolicy.settlementVatApplyYn
+                ? feeAmtBd.multiply(BigDecimal.valueOf(0.1)).setScale(vatScale, RoundingMode.HALF_UP)
+                : BigDecimal.ZERO;
+        row.put("feeCnt", totalFee > 0 ? 1 : 0);
+        row.put("feeAmt", feeAmtBd);
+        row.put("feeVat", feeVatBd);
+        row.put("holdRate", BigDecimal.ZERO);
+        row.put("holdAmt", BigDecimal.ZERO);
+        BigDecimal settleAmtBd = amountBd.subtract(feeAmtBd).subtract(feeVatBd).setScale(feeScale, RoundingMode.HALF_UP);
+        row.put("settleAmt", settleAmtBd);
+        if (amountBd.signum() > 0 && feeAmtBd.signum() > 0) {
+            row.put("feeRate", feeAmtBd.multiply(BigDecimal.valueOf(100)).divide(amountBd, 4, RoundingMode.HALF_UP));
+        } else {
+            row.put("feeRate", BigDecimal.ZERO);
+        }
+        row.put("perTxFeeAmt", BigDecimal.valueOf(perTxFee).setScale(feeScale, RoundingMode.HALF_UP));
+        row.put("settlementPerTxFeeAmt", BigDecimal.valueOf(settlementPerTxFee).setScale(feeScale, RoundingMode.HALF_UP));
+        row.put("extraFeesAmt", BigDecimal.valueOf(extraFees).setScale(feeScale, RoundingMode.HALF_UP));
     }
 
     private BigDecimal nz(BigDecimal v) { return v != null ? v : BigDecimal.ZERO; }
-    private String blank(String s) { return (s == null || s.isBlank()) ? "-" : s; }
 
     /** 가맹점별 수수료 정책(없으면 DEFAULT). 수수료내역·정산 표시에 사용 */
     private CommissionPolicy resolveCommissionPolicyForMerchant(String merchantId) {
@@ -1230,7 +1268,7 @@ public class ApiSettlementController {
             boolean recallIncludeFeeYn, boolean settlementVatApplyYn
     ) {}
 
-    /** 회수관리 등: VAT·회수 시 수수료 포함 여부. 수수료 금액 추정은 가맹 정책의 결제율만 사용 */
+    /** 회수관리 등: VAT·회수 시 수수료 포함 여부(본사 설정). 환수 시 수수료 금액은 수수료내역과 동일한 건별 합산. */
     private FeePolicy resolveHqFeePolicy() {
         CommissionPolicy p = commissionPolicyRepository.findByScope("DEFAULT").orElseGet(CommissionPolicy::new);
         HqApiConfig c = hqApiConfigRepository.findAll().stream().findFirst().orElse(null);
@@ -1242,28 +1280,6 @@ public class ApiSettlementController {
                 nz(p.getFeeSettlementPerTx()), nz(p.getFeeUsdt()), nz(p.getFeeFx()),
                 recallIncludeFeeYn, settlementVatApplyYn
         );
-    }
-
-    private BigDecimal resolvePayRate(String merchantId) {
-        CommissionPolicy merchant = merchantId != null ? commissionPolicyRepository.findByScope(merchantId).orElse(null) : null;
-        BigDecimal base = merchant != null && merchant.getPayRate() != null
-                ? merchant.getPayRate()
-                : commissionPolicyRepository.findByScope("DEFAULT").map(CommissionPolicy::getPayRate).orElse(BigDecimal.ZERO);
-        OrgUnit ou = merchantId != null ? orgUnitRepository.findByCode(merchantId).orElse(null) : null;
-        if (ou == null) return nz(base);
-        SettlementSetting ss = settlementSettingRepository.findByOrgUnitId(ou.getId()).orElse(null);
-        if (ss != null && "N".equalsIgnoreCase(ss.getHoldRateFollowHq() != null ? ss.getHoldRateFollowHq().trim() : "")
-                && ss.getHoldRate() != null) {
-            return nz(base);
-        }
-        return nz(base);
-    }
-
-    private BigDecimal estimateFeeAmount(BigDecimal amount, String merchantId) {
-        BigDecimal amt = amount != null && amount.compareTo(BigDecimal.ZERO) > 0 ? amount : BigDecimal.ZERO;
-        int scale = derivedFeeScale(amt);
-        BigDecimal rate = resolvePayRate(merchantId);
-        return amt.multiply(rate).divide(BigDecimal.valueOf(100), scale, RoundingMode.HALF_UP);
     }
 
     /** 원금에 소수가 있으면 연동 추정 수수료·부가세도 동일 스케일(최소 2, 최대 8). 정수 원금(KRW 등)은 0. */
@@ -1279,20 +1295,6 @@ public class ApiSettlementController {
         return payDivLabel(status);
     }
 
-    /** 가맹점 정산 행의 고객명 = 거래의 결제 고객(가맹 대표자와 구분) */
-    private String payerCustomerName(PgTrnsctn t) {
-        if (t.getCustomerNm() != null && !t.getCustomerNm().isBlank()) {
-            return t.getCustomerNm().trim();
-        }
-        if (t.getCustomerId() != null && !t.getCustomerId().isBlank()) {
-            return t.getCustomerId().trim();
-        }
-        return "-";
-    }
-    private String regNo(String regNo) {
-        if (regNo == null) return "-";
-        return regNo.contains("|") ? regNo.split("\\|", 2)[1] : regNo;
-    }
     private String payDivLabel(String status) {
         if (status == null) return "-";
         return switch (status) {

@@ -859,8 +859,21 @@
     hqNotifyTargets: function () {
       return get('/api/hq/notifyEnv/targets').then(function (r) { return r.data || []; });
     },
-    hqNotifyTargetCreate: function (targetName) {
-      return post('/api/hq/notifyEnv/targets/create', { targetName: targetName || '' }).then(function (r) { return r.data || r; });
+    hqNotifyMasterDistOptions: function () {
+      return get('/api/hq/notifyEnv/targets/masterDistOptions').then(function (r) { return r.data || []; });
+    },
+    hqNotifyTargetCreate: function (targetName, boundOrgUnitId) {
+      var body = { targetName: targetName || '' };
+      if (boundOrgUnitId != null && String(boundOrgUnitId).trim() !== '') {
+        body.boundOrgUnitId = String(boundOrgUnitId).trim();
+      }
+      return post('/api/hq/notifyEnv/targets/create', body).then(function (r) { return r.data || r; });
+    },
+    hqNotifyTargetsBindBoundOrg: function (targetIds, boundOrgUnitId) {
+      return post('/api/hq/notifyEnv/targets/bindBoundOrg', {
+        targetIds: targetIds,
+        boundOrgUnitId: boundOrgUnitId != null ? String(boundOrgUnitId).trim() : ''
+      }).then(function (r) { return r.data || r; });
     },
     hqNotifyTargetDelete: function (id) {
       return del('/api/hq/notifyEnv/targets/' + encodeURIComponent(id)).then(function (r) { return r.data || r; });

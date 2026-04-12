@@ -85,6 +85,7 @@ public class CompService {
     private final CompExcelImportService compExcelImportService;
     private final OrgUnitChangeAuditService orgUnitChangeAuditService;
     private final PayFollowPolicyService payFollowPolicyService;
+    private final HqNotifyTargetService hqNotifyTargetService;
 
     private static LocalTime parseTime(String s) {
         if (s == null || s.trim().isEmpty()) return null;
@@ -344,7 +345,8 @@ public class CompService {
                        UserRepository userRepository, PasswordEncoder passwordEncoder,
                        CompExcelImportService compExcelImportService,
                        OrgUnitChangeAuditService orgUnitChangeAuditService,
-                       PayFollowPolicyService payFollowPolicyService) {
+                       PayFollowPolicyService payFollowPolicyService,
+                       HqNotifyTargetService hqNotifyTargetService) {
         this.orgUnitRepository = orgUnitRepository;
         this.merchantProfileRepository = merchantProfileRepository;
         this.settlementSettingRepository = settlementSettingRepository;
@@ -361,6 +363,7 @@ public class CompService {
         this.compExcelImportService = compExcelImportService;
         this.orgUnitChangeAuditService = orgUnitChangeAuditService;
         this.payFollowPolicyService = payFollowPolicyService;
+        this.hqNotifyTargetService = hqNotifyTargetService;
     }
 
     /** 요청값이 있을 때만 가맹점 결제 후속조치 플래그 반영 후 MERCHANT 단계 상한으로 클램프. */
@@ -2804,6 +2807,7 @@ public class CompService {
                 merchantNotifyUrlRepository.save(n);
             }
         }
+        hqNotifyTargetService.replaceDistributorOrgLinks(orgUnitId, java.util.List.of(n1, n2, n3, n4));
     }
 
     /** 해당 조직의 모든 하위 조직 ID 수집 (대리점→영업점→가맹점 등 전체 하위 트리) */

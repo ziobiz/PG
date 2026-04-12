@@ -592,10 +592,11 @@
         },
         {
           title: '총판 노티 대상 생성',
-          notice: '[노티자동생성] 시 CALLBACK(서버 노티)·RESULT(브라우저 결과/리다이렉트) URL이 짧은 경로(cb/rs+6자)로 각각 발급됩니다. NOTI 전산노티대상에 유형별로 등록한 뒤, 총판 등록 화면에서 연결합니다. 아래 목록에서 행별 삭제할 수 있습니다.',
+          notice: '먼저 [연결 총판]에서 총판을 선택한 뒤 노티 대상명을 입력하고 [노티자동생성]을 누르세요. CALLBACK·RESULT URL이 발급되며 선택한 총판과 즉시 연결됩니다. 목록의 [연결수정]으로 나중에 연결 총판을 바꿀 수 있습니다. 총판 저장 시 노티 URL 1~4에 동일 주소를 넣어 두면 저장 시 연결이 유지·갱신됩니다.',
           rows: [
+            [{ label: '연결 총판', type: 'select', name: 'notifyTargetBoundOrgUnitId', col: 4, options: [{ v: '', t: '선택하세요' }] }],
             [{ label: '노티 대상명', type: 'text', name: 'newNotifyTargetName', col: 2, placeholder: '예: 총판A 수신', button: '노티자동생성', blockExtraClass: 'hq-notify-new-target-name-col' }],
-            [{ type: 'customHtml', col: 12, html: '<div class="table-responsive hq-notify-target-table-wrap"><table class="table table-sm table-bordered align-middle mb-1" id="hqNotifyTargetTable"><thead class="table-light"><tr><th class="text-center" style="width:52px">No.</th><th class="hq-notify-target-name-th">노티 대상명</th><th>노티 주소</th><th class="text-center" style="width:88px">복사</th><th class="hq-notify-channel-th text-center" style="width:132px;min-width:132px">노티 성격</th><th class="text-center" style="width:100px">삭제</th></tr></thead><tbody id="hqNotifyTargetTbody"></tbody></table><p class="text-muted small mb-0 d-none" id="hqNotifyTargetEmpty">등록된 노티 대상이 없습니다.</p></div>' }]
+            [{ type: 'customHtml', col: 12, html: '<div class="table-responsive hq-notify-target-table-wrap table-no-col-resize-wrap"><table class="table table-sm table-bordered align-middle mb-1 table-no-col-resize" id="hqNotifyTargetTable"><thead class="table-light"><tr><th class="text-center" style="width:52px">No.</th><th class="text-center hq-notify-created-th" style="width:9.5rem;min-width:9rem">생성일시</th><th class="hq-notify-target-name-th">노티 대상명</th><th class="text-center hq-notify-bound-org-th" style="width:8rem;min-width:7rem">연결 총판</th><th>노티 주소</th><th class="text-center" style="width:88px">복사</th><th class="hq-notify-channel-th text-center" style="width:132px;min-width:132px">노티 성격</th><th class="text-center" style="width:100px">삭제</th></tr></thead><tbody id="hqNotifyTargetTbody"></tbody></table><p class="text-muted small mb-0 d-none" id="hqNotifyTargetEmpty">등록된 노티 대상이 없습니다.</p></div>' }]
           ]
         }
       ],
@@ -1518,7 +1519,7 @@
           title: '상세정보',
           id: 'distributorExtraCard',
           masterDistOnly: true,
-          notice: '총판일 때만 입력합니다. 총판은 1가지 화폐만 지정할 수 있습니다. 노티 대상은 본사설정 > 노티구성설정의 [총판 노티 대상 생성]에서 먼저 등록합니다. 왼쪽 [노티 쌍 선택]·[보조 쌍 선택]으로 URL을 한 번에 채우거나, 각 칸에서 드롭다운·[노티선택]을 사용하세요. URL 1=CALLBACK, 2=RESULT(필수). URL 3·4는 보조입니다.',
+          notice: '총판일 때만 입력합니다. 총판은 1가지 화폐만 지정할 수 있습니다. 노티 대상은 본사설정 > 노티구성설정의 [총판 노티 대상 생성]에서 먼저 등록합니다. 왼쪽 [노티 쌍 선택]·[보조 쌍 선택]으로 URL을 한 번에 채우거나, 각 칸에서 드롭다운·[노티선택]을 사용하세요. URL 1=CALLBACK, 2=RESULT(필수). URL 3·4는 보조입니다. 업체 저장 시 선택한 본사 수신 URL(cb…/rs…)이 이 총판과 자동 연결되며, 그 URL로 유입되는 노티만 이 총판 트리로 분기됩니다.',
           rows: [
             [{ label: '기준 화폐*', type: 'select', name: 'baseCurrency', options: [{ v: '', t: '선택' }, { v: 'KRW', t: 'KRW (원)' }, { v: 'USD', t: 'USD (달러)' }, { v: 'JPY', t: 'JPY (엔)' }, { v: 'THB', t: 'THB (바트)' }, { v: 'EUR', t: 'EUR (유로)' }], col: 2 }, { label: '사이트개요', type: 'text', name: 'siteSummary', col: 2, placeholder: '사이트개요' }, { label: '취급물품', type: 'text', name: 'product', col: 2 }, { label: '대표사이트', type: 'text', name: 'homepage', col: 2, placeholder: 'https://' }],
             [{ label: '정산담당자명', type: 'text', name: 'settleName', col: 2 }, { label: '정산담당자연락처', type: 'text', name: 'settleTelNo', col: 2, placeholder: '010-0000-0000' }, { label: '정산형태', type: 'select', name: 'settleType', options: [{ v: '', t: '선택' }, { v: 'M', t: '가맹점별' }, { v: 'G', t: '총판' }], col: 1 }, { label: '요율(%)', type: 'text', name: 'commissionRate', col: 1, placeholder: '요율' }, { label: '사용한도', type: 'text', name: 'limitAmt', col: 2, placeholder: '사용한도' }],
@@ -1765,7 +1766,7 @@
           title: '상세정보',
           id: 'distributorExtraCard',
           masterDistOnly: true,
-          notice: '총판일 때만 입력합니다. 총판은 1가지 화폐만 지정할 수 있습니다. 노티 대상은 본사설정 > 노티구성설정의 [총판 노티 대상 생성]에서 먼저 등록합니다. 왼쪽 [노티 쌍 선택]·[보조 쌍 선택]으로 URL을 한 번에 채우거나, 각 칸에서 드롭다운·[노티선택]을 사용하세요. URL 1=CALLBACK, 2=RESULT(필수). URL 3·4는 보조입니다.',
+          notice: '총판일 때만 입력합니다. 총판은 1가지 화폐만 지정할 수 있습니다. 노티 대상은 본사설정 > 노티구성설정의 [총판 노티 대상 생성]에서 먼저 등록합니다. 왼쪽 [노티 쌍 선택]·[보조 쌍 선택]으로 URL을 한 번에 채우거나, 각 칸에서 드롭다운·[노티선택]을 사용하세요. URL 1=CALLBACK, 2=RESULT(필수). URL 3·4는 보조입니다. 업체 저장 시 선택한 본사 수신 URL(cb…/rs…)이 이 총판과 자동 연결되며, 그 URL로 유입되는 노티만 이 총판 트리로 분기됩니다.',
           rows: [
             [{ label: '기준 화폐*', type: 'select', name: 'baseCurrency', options: [{ v: '', t: '선택' }, { v: 'KRW', t: 'KRW (원)' }, { v: 'USD', t: 'USD (달러)' }, { v: 'JPY', t: 'JPY (엔)' }, { v: 'THB', t: 'THB (바트)' }, { v: 'EUR', t: 'EUR (유로)' }], col: 2 }, { label: '사이트개요', type: 'text', name: 'siteSummary', col: 2, placeholder: '사이트개요' }, { label: '취급물품', type: 'text', name: 'product', col: 2 }, { label: '대표사이트', type: 'text', name: 'homepage', col: 2, placeholder: 'https://' }],
             [{ label: '정산담당자명', type: 'text', name: 'settleName', col: 2 }, { label: '정산담당자연락처', type: 'text', name: 'settleTelNo', col: 2, placeholder: '010-0000-0000' }, { label: '정산형태', type: 'select', name: 'settleType', options: [{ v: '', t: '선택' }, { v: 'M', t: '가맹점별' }, { v: 'G', t: '총판' }], col: 1 }, { label: '요율(%)', type: 'text', name: 'commissionRate', col: 1, placeholder: '요율' }, { label: '사용한도', type: 'text', name: 'limitAmt', col: 2, placeholder: '사용한도' }],
@@ -2176,7 +2177,8 @@
       paginationDefaultSize: 100,
       payListStatusBar: true,
       tableColumnGuide: true,
-      tableColumnGuideTwoRow: true,
+      /** 정산관리: VIEW SETTING은 결제내역과 달리 한 줄(가로 스크롤) */
+      tableColumnGuideTwoRow: false,
       /** VIEW SETTING·조직항목설정 고정열: 번호·거래ID·거래일·MID·결제일·Route */
       columnGuideFixedKeys: ['rowNo', 'transactionId', 'transactionDate', 'merchant', 'paymentDate', 'routeNo'],
       searchFormClass: 'screen-search-form pay-mng-search-form',
@@ -2251,6 +2253,7 @@
       searchFormClass: 'screen-search-form screen-distribution-search',
       tableScrollable: true,
       distributionThreeRowHeader: true,
+      tableColumnGuideTwoRow: false,
       searchRows: [
         [
           { label: '조회기준', type: 'select', name: 'searchDateType', options: [
@@ -2308,6 +2311,9 @@
       ]
     },
     '/calc/calcGmList': {
+      searchFormClass: 'pay-mng-search-form',
+      payMngDenseGrid: true,
+      tableColumnGuideTwoRow: false,
       searchRows: [
         [
           { label: '정산일자', type: 'daterange', from: 'searchFromDate', to: 'searchToDate', col: 5 },
@@ -2324,13 +2330,14 @@
       headerGroups: [
         { label: '사업자번호', keys: ['bizNo'] },
         { label: 'PG승인', keys: ['amount', 'payNo'] },
-        { label: '수수료', keys: ['feeCnt', 'feeRate', 'feeAmt', 'feeVat', 'holdRate', 'holdAmt'] }
+        { label: '수수료', keys: ['feeCnt', 'feeRate', 'feeAmt', 'feeVat', 'holdRate', 'holdAmt', 'perTxFeeAmt', 'settlementPerTxFeeAmt', 'extraFeesAmt'] }
       ],
       columns: [
         { key: '_chk', type: 'checkbox' },
         { key: 'rowNo', label: '번호' },
         { key: 'compNm', label: '업체명' },
         { key: 'compId', label: '업체코드' },
+        { key: 'trnId', label: '거래ID' },
         { key: 'bizNo', label: '사업자번호' },
         { key: 'payDivNm', label: '구분' },
         { key: 'payCard', label: '결제카드' },
@@ -2349,6 +2356,9 @@
         { key: 'feeVat', label: '수수료(부가세)' },
         { key: 'holdRate', label: '보류율(%)' },
         { key: 'holdAmt', label: '보류금액' },
+        { key: 'perTxFeeAmt', label: '건당수수료' },
+        { key: 'settlementPerTxFeeAmt', label: '정산건당' },
+        { key: 'extraFeesAmt', label: '기타(%)수수료' },
         { key: 'calcCycle', label: '정산주기' },
         { key: 'settleAmt', label: '정산금액' },
         { key: 'calcDt', label: '정산일시' },
@@ -2364,6 +2374,8 @@
       ]
     },
     '/calc/compPointMngList': {
+      tableColumnGuideTwoRow: false,
+      notice: '환수금액은 본사 설정(환수금 수수료 포함·VAT)에 따라 원거래금액에, 수수료내역과 동일한 건별 수수료 합산·부가세를 더해 산정합니다.',
       searchRows: [
         [
           { label: '업체코드', type: 'text', name: 'searchCompId' },
@@ -2379,6 +2391,7 @@
         { key: 'rowNo', label: '번호' },
         { key: 'compNm', label: '업체명' },
         { key: 'compId', label: '업체코드' },
+        { key: 'trnId', label: '거래ID' },
         { key: 'calcDt', label: '발생일자' },
         { key: 'statusNm', label: '처리구분' },
         { key: 'settleAmt', label: '원거래금액' },
@@ -2389,7 +2402,8 @@
       ]
     },
     '/calc/feeList': {
-      notice: '거래 건별로 추정한 수수료입니다. 월간이용료·기타 고정 수수료는 정산 배치당 1회라 이 화면 행에는 0으로 보입니다. 기타 % 수수료는 승인 건만 [기타(%)]에 반영됩니다.',
+      tableColumnGuideTwoRow: false,
+      notice: '거래 건별로 추정한 수수료입니다. 월간이용료·기타 고정 수수료는 정산 배치당 1회라 이 화면 행에는 0으로 보입니다. 기타 % 수수료는 승인 건만 [기타(%)]에 반영됩니다. 본사·총판 등은 로그인 조직 하위 가맹점만 조회됩니다.',
       searchRows: [
         [
           { label: '업체코드', type: 'text', name: 'searchCompId' },
@@ -2462,6 +2476,8 @@
       columns: [{ key: '_chk', type: 'checkbox' }, { key: 'rowNo', label: '번호' }, { key: 'compNm', label: '업체명' }, { key: 'compId', label: '업체코드' }, { key: 'settleAmt', label: '정산잔액' }, { key: 'deductCnt', label: '미수금' }, { key: 'deductStatus', label: '미수금차감' }]
     },
     '/calc/balcInfo': {
+      tableColumnGuideTwoRow: false,
+      notice: '로그인 조직 하위 가맹점만 조회됩니다. 차감은 권한이 있는 가맹점에 한합니다.',
       searchRows: [
         [
           { label: '업체코드', type: 'text', name: 'searchCompId' },
@@ -2481,6 +2497,8 @@
       ]
     },
     '/calc/exCalcList': {
+      tableColumnGuideTwoRow: false,
+      notice: '수동 실행: 기간·가맹을 지정해 실행합니다. 서버 스케줄은 정산구분 AUTO인 가맹만, 정산주기(D0~D30·W·WK)·정산마감시간·당일 미실행 조건으로 자동 실행됩니다(app.settlement.autoRunEnabled·VPS 타임존 Asia/Seoul 권장).',
       searchRows: [
         [
           { label: '정산기간', type: 'daterange', from: 'searchFromDate', to: 'searchToDate' },
@@ -2494,6 +2512,7 @@
       columns: [{ key: '_chk', type: 'checkbox' }, { key: 'rowNo', label: '번호' }, { key: 'compNm', label: '업체명' }, { key: 'compId', label: '업체코드' }, { key: 'calcDt', label: '정산일자' }, { key: 'targetAmt', label: '정산대상금액' }, { key: 'totalFee', label: '공제수수료' }, { key: 'rollingReserveAmt', label: '롤링보류' }, { key: 'payAmount', label: '지급액' }, { key: 'status', label: '상태' }]
     },
     '/calc/settlementReport': {
+      tableColumnGuideTwoRow: false,
       noticeList: [
         '[리포트 형식] 가맹점 정산 리포트: 총본사·본사·총판 등이 소속 가맹에 보내는 정산 형식. 본사 지급 리포트: 총본사가 본사(REGIONAL)에 지급할 금액을 본사 단위로 합산(총본사·본사 로그인만 선택 가능).',
         '[하위 구분] 정산집계·정산실시·정산집계표. 예치·Processing·건당요금·+7영업일은 백엔드 상수이며 응답 meta에 안내가 있습니다.'
@@ -2568,6 +2587,7 @@
       emptyMessage: '조회된 데이터가 없습니다.'
     },
     '/pay/payHoldList': {
+      tableColumnGuideTwoRow: false,
       searchRows: [
         [
           { label: '조회일자', type: 'daterange', from: 'searchFromDate', to: 'searchToDate', col: 5 },
@@ -2583,6 +2603,7 @@
       columns: [{ key: '_chk', type: 'checkbox' }, { key: 'rowNo', label: '번호' }, { key: 'compNm', label: '업체명' }, { key: 'compId', label: '업체코드' }, { key: 'holdDt', label: '보류일시' }, { key: 'holdAmount', label: '보류금액' }, { key: 'holdReason', label: '보류사유' }]
     },
     '/calc/collateralList': {
+      tableColumnGuideTwoRow: false,
       noticeList: [
         '담보금(롤링): 결제(승인) 건별로 정산 실행 시 설정된 비율(%)만큼 예치되며, 보류 영업일(주말 제외·공휴일 미반영) 후 해지일에 정산 실행하면 지급액에 합산됩니다.',
         '비율·보류 일수: 본사설정 수수료정책의 롤링(담보금) 또는 가맹점 정산설정에서 「보류율 본사정책 따름=N」일 때 개별 보류율·일수를 사용합니다.'
@@ -2909,6 +2930,7 @@
       emptyMessage: '조회된 데이터가 없습니다.'
     },
     '/settlement/holdList': {
+      tableColumnGuideTwoRow: false,
       searchRows: [[{ label: '조회일자', type: 'daterange', from: 'searchFromDate', to: 'searchToDate' }, { type: 'quickdate' }, { type: 'searchBtn' }]],
       summary: ['건수'],
       buttons: [{ id: 'searchBtn', label: '검색', cls: 'btn-primary' }, { id: 'excelBtn', label: '엑셀다운로드', cls: 'btn-info' }],
@@ -3061,6 +3083,9 @@
         fr.columns = JSON.parse(JSON.stringify(gm.columns));
         fr.headerGroups = gm.headerGroups ? JSON.parse(JSON.stringify(gm.headerGroups)) : fr.headerGroups;
         fr.summary = gm.summary ? gm.summary.slice() : fr.summary;
+        fr.searchFormClass = gm.searchFormClass || fr.searchFormClass;
+        fr.payMngDenseGrid = !!gm.payMngDenseGrid;
+        fr.tableColumnGuideTwoRow = gm.tableColumnGuideTwoRow;
       }
       var cl = MENU_SCREENS['/calc/calcList'];
       var dist = MENU_SCREENS['/settlement/distributionList'];
@@ -3073,6 +3098,7 @@
         dist.searchFormClass = cl.searchFormClass || dist.searchFormClass;
         dist.tableScrollable = cl.tableScrollable;
         dist.buttons = cl.buttons ? JSON.parse(JSON.stringify(cl.buttons)) : dist.buttons;
+        dist.tableColumnGuideTwoRow = cl.tableColumnGuideTwoRow;
       }
       var ex = MENU_SCREENS['/settlement/execute'];
       var exc = MENU_SCREENS['/calc/exCalcList'];
@@ -3089,6 +3115,18 @@
         rcs.columns = JSON.parse(JSON.stringify(rc.columns || []));
         rcs.searchRows = JSON.parse(JSON.stringify(rc.searchRows || []));
         rcs.summary = (rc.summary || []).slice();
+        if (rc.notice) rcs.notice = rc.notice;
+        rcs.tableColumnGuideTwoRow = rc.tableColumnGuideTwoRow;
+      }
+      var bal = MENU_SCREENS['/calc/balcInfo'];
+      var bals = MENU_SCREENS['/settlement/balanceMng'];
+      if (bal && bals) {
+        bals.columns = JSON.parse(JSON.stringify(bal.columns || []));
+        bals.searchRows = JSON.parse(JSON.stringify(bal.searchRows || []));
+        bals.summary = (bal.summary || []).slice();
+        bals.buttons = bal.buttons ? JSON.parse(JSON.stringify(bal.buttons)) : bals.buttons;
+        if (bal.notice) bals.notice = bal.notice;
+        bals.tableColumnGuideTwoRow = bal.tableColumnGuideTwoRow;
       }
       var sr = MENU_SCREENS['/calc/settlementReport'];
       if (sr && !MENU_SCREENS['/settlement/settlementReport']) {
@@ -3706,7 +3744,7 @@
     var emptyRow = '<tr><td colspan="' + cols.length + '" class="empty-state-cell text-center text-muted py-4">' + emptyMsg + '</td></tr>';
     var respClass = 'table-responsive' + (cfg.tableScrollable ? ' table-scrollable' : '') + respExtra;
     var tblExtra = cfg.tableExtraClass ? (' ' + cfg.tableExtraClass) : '';
-    var payMngGridCls = cfg.payListStatusBar ? ' pay-mng-data-grid' : '';
+    var payMngGridCls = (cfg.payListStatusBar || cfg.payMngDenseGrid) ? ' pay-mng-data-grid' : '';
     var html = '<div class="' + respClass + '"><table class="table table-bordered table-hover table-sm' + tblExtra + payMngGridCls + '" id="grid_' + (tabId || '') + '"><thead><tr>' + ths + '</tr></thead><tbody>' + emptyRow + '</tbody></table></div>';
     return html;
   }

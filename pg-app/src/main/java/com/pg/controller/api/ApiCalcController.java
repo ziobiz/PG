@@ -9,6 +9,7 @@ import com.pg.repository.OrgUnitRepository;
 import com.pg.service.ChillPayService;
 import com.pg.service.HqLedgerSysSettingsService;
 import com.pg.service.HqNotifyMappingService;
+import com.pg.service.OrgAccessService;
 import com.pg.service.PayListActionService;
 import com.pg.service.PayListService;
 import com.pg.util.PayListStatusBarBuckets;
@@ -19,7 +20,9 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.Map;
+import java.util.Set;
 
 @RestController
 @RequestMapping(value = "/api/calc", produces = "application/json")
@@ -32,11 +35,13 @@ public class ApiCalcController {
     private final OrgUnitRepository orgUnitRepository;
     private final CommissionPolicyRepository commissionPolicyRepository;
     private final HqLedgerSysSettingsService hqLedgerSysSettingsService;
+    private final OrgAccessService orgAccessService;
 
     public ApiCalcController(PayListService payListService, PayListActionService payListActionService,
                              ChillPayService chillPayService, HqNotifyMappingService hqNotifyMappingService,
                              OrgUnitRepository orgUnitRepository, CommissionPolicyRepository commissionPolicyRepository,
-                             HqLedgerSysSettingsService hqLedgerSysSettingsService) {
+                             HqLedgerSysSettingsService hqLedgerSysSettingsService,
+                             OrgAccessService orgAccessService) {
         this.payListService = payListService;
         this.payListActionService = payListActionService;
         this.chillPayService = chillPayService;
@@ -44,6 +49,39 @@ public class ApiCalcController {
         this.orgUnitRepository = orgUnitRepository;
         this.commissionPolicyRepository = commissionPolicyRepository;
         this.hqLedgerSysSettingsService = hqLedgerSysSettingsService;
+        this.orgAccessService = orgAccessService;
+    }
+
+    private static PageResult<Map<String, Object>> emptyChillPayPage(int page, int size) {
+        PageResult<Map<String, Object>> pr = new PageResult<>();
+        pr.setList(new ArrayList<>());
+        pr.setPage(page);
+        pr.setSize(size);
+        pr.setTotalElements(0);
+        pr.setTotalPages(1);
+        return pr;
+    }
+
+    /**
+     * 칠페이 API는 가맹점 코드 1건 위주 — 비관리자는 허용 범위와 교차 적용.
+     * 하위 가맹이 여러 곳이면 통합내역에서 가맹점 코드를 지정해 검색해야 합니다.
+     */
+    private String resolveChillPayMerchantCodeFilter(Authentication authentication, String requested) {
+        Set<String> allowed = orgAccessService.visibleMerchantCompCodes(authentication);
+        if (allowed == null) {
+            return requested;
+        }
+        if (allowed.isEmpty()) {
+            return "__NONE__";
+        }
+        String req = requested != null ? requested.trim() : "";
+        if (!req.isEmpty()) {
+            return allowed.contains(req) ? req : "__NONE__";
+        }
+        if (allowed.size() == 1) {
+            return allowed.iterator().next();
+        }
+        return "__NONE__";
     }
 
     @GetMapping("/payList")
@@ -98,6 +136,10 @@ public class ApiCalcController {
                     PayListStatusBarBuckets.resolveViewerOrgLevel(user, orgUnitRepository));
             String primaryCurrency = PayListStatusBarBuckets.resolveViewerPrimaryCurrency(
                     user, orgUnitRepository, commissionPolicyRepository);
+            String merchantFilter = resolveChillPayMerchantCodeFilter(authentication, searchMerchantCode);
+            if ("__NONE__".equals(merchantFilter)) {
+                return ResponseEntity.ok(ApiResponse.ok(emptyChillPayPage(page, size)));
+            }
             LocalDate tFrom = searchFromDate;
             LocalDate tTo = searchToDate;
             if (tFrom == null && tTo == null) {
@@ -114,7 +156,7 @@ public class ApiCalcController {
                     searchOrderBy,
                     searchOrderDir,
                     searchKeyword,
-                    searchMerchantCode,
+                    merchantFilter,
                     searchPaymentChannel,
                     routeNo,
                     searchOrderNo,
@@ -166,6 +208,10 @@ public class ApiCalcController {
                     PayListStatusBarBuckets.resolveViewerOrgLevel(user, orgUnitRepository));
             String primaryCurrency = PayListStatusBarBuckets.resolveViewerPrimaryCurrency(
                     user, orgUnitRepository, commissionPolicyRepository);
+            String merchantFilter = resolveChillPayMerchantCodeFilter(authentication, searchMerchantCode);
+            if ("__NONE__".equals(merchantFilter)) {
+                return ResponseEntity.ok(ApiResponse.ok(emptyChillPayPage(page, size)));
+            }
             PageResult<Map<String, Object>> r = chillPayService.searchChillPaySettlementTransactions(
                     null,
                     page,
@@ -173,7 +219,7 @@ public class ApiCalcController {
                     searchOrderBy,
                     searchOrderDir,
                     searchKeyword,
-                    searchMerchantCode,
+                    merchantFilter,
                     searchPaymentChannel,
                     routeNo,
                     searchOrderNo,

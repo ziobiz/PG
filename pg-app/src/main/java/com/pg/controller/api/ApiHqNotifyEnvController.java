@@ -7,6 +7,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -51,13 +52,61 @@ public class ApiHqNotifyEnvController {
         return ResponseEntity.ok(ApiResponse.ok(hqNotifyTargetService.list()));
     }
 
+    @GetMapping("/targets/masterDistOptions")
+    public ResponseEntity<ApiResponse<List<Map<String, Object>>>> masterDistOptions() {
+        return ResponseEntity.ok(ApiResponse.ok(hqNotifyTargetService.listMasterDistNotifyLinkOptions()));
+    }
+
     @PostMapping("/targets/create")
     public ResponseEntity<ApiResponse<Map<String, Object>>> createTarget(@RequestBody Map<String, Object> body, HttpServletRequest req) {
         try {
             String targetName = body.get("targetName") != null ? String.valueOf(body.get("targetName")) : "";
-            return ResponseEntity.ok(ApiResponse.ok(hqNotifyTargetService.createPair(targetName, req)));
+            Long boundOrgUnitId = parseOptionalLong(body.get("boundOrgUnitId"));
+            if (boundOrgUnitId == null) {
+                boundOrgUnitId = parseOptionalLong(body.get("orgUnitId"));
+            }
+            return ResponseEntity.ok(ApiResponse.ok(hqNotifyTargetService.createPair(targetName, boundOrgUnitId, req)));
         } catch (Exception e) {
             return ResponseEntity.ok(ApiResponse.fail(e.getMessage(), "VALIDATION"));
+        }
+    }
+
+    @PostMapping("/targets/bindBoundOrg")
+    @SuppressWarnings("unchecked")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> bindBoundOrg(@RequestBody Map<String, Object> body) {
+        try {
+            Object raw = body.get("targetIds");
+            if (!(raw instanceof List<?> list) || list.isEmpty()) {
+                return ResponseEntity.ok(ApiResponse.fail("targetIds가 필요합니다.", "VALIDATION"));
+            }
+            List<Long> ids = new ArrayList<>();
+            for (Object o : list) {
+                Long v = parseOptionalLong(o);
+                if (v == null) {
+                    throw new IllegalArgumentException("targetIds에 유효하지 않은 값이 있습니다.");
+                }
+                ids.add(v);
+            }
+            Long bid = parseOptionalLong(body.get("boundOrgUnitId"));
+            hqNotifyTargetService.bindBoundOrgToTargets(ids, bid);
+            return ResponseEntity.ok(ApiResponse.ok(Map.of("message", "연결되었습니다.")));
+        } catch (Exception e) {
+            return ResponseEntity.ok(ApiResponse.fail(e.getMessage(), "VALIDATION"));
+        }
+    }
+
+    private static Long parseOptionalLong(Object raw) {
+        if (raw == null) {
+            return null;
+        }
+        String s = String.valueOf(raw).trim();
+        if (s.isEmpty()) {
+            return null;
+        }
+        try {
+            return Long.parseLong(s);
+        } catch (NumberFormatException e) {
+            return null;
         }
     }
 

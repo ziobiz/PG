@@ -67,6 +67,7 @@ public class PayListService {
     private final SettlementSettingRepository settlementSettingRepository;
     private final HqNotifyMappingService hqNotifyMappingService;
     private final PayFollowPolicyService payFollowPolicyService;
+    private final OrgAccessService orgAccessService;
 
     @PersistenceContext
     private EntityManager entityManager;
@@ -79,7 +80,8 @@ public class PayListService {
                           CommissionPolicyRepository commissionPolicyRepository,
                           SettlementSettingRepository settlementSettingRepository,
                           HqNotifyMappingService hqNotifyMappingService,
-                          PayFollowPolicyService payFollowPolicyService) {
+                          PayFollowPolicyService payFollowPolicyService,
+                          OrgAccessService orgAccessService) {
         this.trnsctnRepository = trnsctnRepository;
         this.orgUnitRepository = orgUnitRepository;
         this.merchantProfileRepository = merchantProfileRepository;
@@ -89,6 +91,7 @@ public class PayListService {
         this.settlementSettingRepository = settlementSettingRepository;
         this.hqNotifyMappingService = hqNotifyMappingService;
         this.payFollowPolicyService = payFollowPolicyService;
+        this.orgAccessService = orgAccessService;
     }
 
     public PageResult<Map<String, Object>> search(PayListSearchRequest req, Authentication authentication) {
@@ -181,6 +184,16 @@ public class PayListService {
                     hier[0], hier[1], hier[2]));
         }
         return ctxByCode;
+    }
+
+    /**
+     * 가맹정산내역 등 단일 가맹점 코드에 대한 결제내역과 동일한 {@link PayListRowContext}(수수료·보류·상위조직명).
+     */
+    public PayListRowContext buildPayListRowContextForMerchant(String merchantCode) {
+        if (merchantCode == null || merchantCode.isBlank()) {
+            return null;
+        }
+        return buildPayListRowContextMap(List.of(merchantCode.trim())).get(merchantCode.trim());
     }
 
     /**
@@ -688,6 +701,7 @@ public class PayListService {
             }
         }
         mcs = intersectCodes(mcs, ownMerchantOnlyForPayListVariant(req, authentication));
+        mcs = intersectCodes(mcs, orgAccessService.visibleMerchantCompCodes(authentication));
         return mcs;
     }
 

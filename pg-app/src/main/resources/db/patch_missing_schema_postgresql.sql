@@ -239,3 +239,7 @@ UPDATE tb_hq_notify_env_config SET email_void_end_min = 1439 WHERE email_void_en
 
 -- V81: 환불 익일 구간 시작 시각(분) — db/V81_pay_follow_email_void_end_refund_start.sql 과 동일
 ALTER TABLE tb_hq_notify_env_config ADD COLUMN IF NOT EXISTS auto_refund_window_start_min INTEGER;
+
+-- V84: 노티 수신 대상 ↔ 총판 조직 — db/V84_hq_notify_target_org_unit.sql (FK는 운영에서 DO 블록으로 적용 권장)
+ALTER TABLE tb_hq_notify_target ADD COLUMN IF NOT EXISTS org_unit_id BIGINT;
+CREATE INDEX IF NOT EXISTS idx_hq_notify_target_org_unit_id ON tb_hq_notify_target (org_unit_id);
