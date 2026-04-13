@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 
 public interface SettlementRunRepository extends JpaRepository<SettlementRun, Long> {
@@ -14,6 +15,8 @@ public interface SettlementRunRepository extends JpaRepository<SettlementRun, Lo
     List<SettlementRun> findByCalcDtBetweenOrderByMerchantId(LocalDate from, LocalDate to);
 
     List<SettlementRun> findByCalcDtAndMerchantId(LocalDate calcDt, String merchantId);
+
+    boolean existsByMerchantIdAndCalcDtAndPeriodEndAt(String merchantId, LocalDate calcDt, LocalDateTime periodEndAt);
 
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("delete from SettlementRun r where r.merchantId = :merchantId and r.calcDt = :calcDt")

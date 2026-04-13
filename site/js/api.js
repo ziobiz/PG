@@ -866,6 +866,23 @@
     hqSettlementCycleOptions: function () {
       return get('/api/hq/settlement/cycleOptions').then(function (r) { return r.data || []; });
     },
+    /** 병합 표준 전체(미사용 N 포함) — 총판별 허용 주기 설정 슬롯용 */
+    hqSettlementCycleOptionsCatalog: function () {
+      return get('/api/hq/settlement/cycleOptionsCatalog').then(function (r) { return r.data || []; });
+    },
+    /** 가맹 상위(parent) 조직 기준 정산주기 셀렉트용: options, defaultCalcCycle, scoped */
+    hqSettlementCycleOptionsScoped: function (params) {
+      return get('/api/hq/settlement/cycleOptionsScoped', params || {}).then(function (r) { return r.data || {}; });
+    },
+    hqMasterDistOrgOptions: function () {
+      return get('/api/hq/settlement/masterDistOrgOptions').then(function (r) { return r.data || []; });
+    },
+    hqMasterDistCalcCycleConfigGet: function (orgUnitId) {
+      return get('/api/hq/settlement/masterDistCalcCycleConfig', { orgUnitId: orgUnitId }).then(function (r) { return r.data || {}; });
+    },
+    hqMasterDistCalcCycleConfigSave: function (body) {
+      return post('/api/hq/settlement/masterDistCalcCycleConfig', body || {}).then(function (r) { return r.data != null ? r.data : r; });
+    },
     hqSettlementCycleDefs: function () {
       return get('/api/hq/settlement/cycleDefs').then(function (r) { return r.data || []; });
     },

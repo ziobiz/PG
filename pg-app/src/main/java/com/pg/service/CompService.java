@@ -28,6 +28,7 @@ import com.pg.repository.ChargebackFeePolicyRepository;
 import com.pg.repository.DistributionFeeConfigRepository;
 import com.pg.repository.UserRepository;
 import com.pg.entity.OrgUnitChangeLog;
+import com.pg.service.settlement.SettlementPeriodResolver;
 import com.pg.util.CommissionTierJsonHelper;
 import com.pg.util.PercentDecimalHelper;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -86,6 +87,7 @@ public class CompService {
     private final OrgUnitChangeAuditService orgUnitChangeAuditService;
     private final PayFollowPolicyService payFollowPolicyService;
     private final HqNotifyTargetService hqNotifyTargetService;
+    private final MasterDistSettlementCycleConfigService masterDistSettlementCycleConfigService;
 
     private static LocalTime parseTime(String s) {
         if (s == null || s.trim().isEmpty()) return null;
@@ -374,7 +376,8 @@ public class CompService {
                        CompExcelImportService compExcelImportService,
                        OrgUnitChangeAuditService orgUnitChangeAuditService,
                        PayFollowPolicyService payFollowPolicyService,
-                       HqNotifyTargetService hqNotifyTargetService) {
+                       HqNotifyTargetService hqNotifyTargetService,
+                       MasterDistSettlementCycleConfigService masterDistSettlementCycleConfigService) {
         this.orgUnitRepository = orgUnitRepository;
         this.merchantProfileRepository = merchantProfileRepository;
         this.settlementSettingRepository = settlementSettingRepository;
@@ -392,6 +395,7 @@ public class CompService {
         this.orgUnitChangeAuditService = orgUnitChangeAuditService;
         this.payFollowPolicyService = payFollowPolicyService;
         this.hqNotifyTargetService = hqNotifyTargetService;
+        this.masterDistSettlementCycleConfigService = masterDistSettlementCycleConfigService;
     }
 
     /** 요청값이 있을 때만 가맹점 결제 후속조치 플래그 반영 후 MERCHANT 단계 상한으로 클램프. */
@@ -1903,7 +1907,16 @@ public class CompService {
         ss.setOrgUnitId(saved.getId());
         /** 정산주기(calcCycle)는 가맹점에만 부여. 총본사~영업점은 미사용(null). */
         if (childLevel == OrgLevel.MERCHANT) {
-            ss.setCalcCycle(calcCycle != null && !calcCycle.isEmpty() ? calcCycle : "D7");
+            String effCycle = calcCycle != null ? calcCycle.trim() : "";
+            if (effCycle.isEmpty()) {
+                effCycle = masterDistSettlementCycleConfigService.findNearestMasterDistOrgId(effectiveParentId)
+                        .flatMap(masterDistSettlementCycleConfigService::getDefaultCycleCode)
+                        .orElse("D7");
+            } else {
+                masterDistSettlementCycleConfigService.validateMerchantCalcCycle(effectiveParentId, effCycle);
+                effCycle = SettlementPeriodResolver.normalizeCalcCycle(effCycle);
+            }
+            ss.setCalcCycle(effCycle);
         } else {
             ss.setCalcCycle(null);
         }
@@ -2369,7 +2382,11 @@ public class CompService {
                             }
                             if (holdDays != null) ss.setHoldDays(holdDays);
                             if (ou.getOrgLevel() == OrgLevel.MERCHANT) {
-                                if (calcCycle != null && !calcCycle.isEmpty()) ss.setCalcCycle(calcCycle);
+                                if (calcCycle != null && !calcCycle.isEmpty()) {
+                                    masterDistSettlementCycleConfigService.validateMerchantCalcCycle(
+                                            ou.getParentId(), calcCycle);
+                                    ss.setCalcCycle(SettlementPeriodResolver.normalizeCalcCycle(calcCycle.trim()));
+                                }
                             } else {
                                 ss.setCalcCycle(null);
                             }
@@ -3000,15 +3017,29 @@ public class CompService {
 
     private static String calcCycleToDisplay(String c) {
         if (c == null || c.isEmpty()) return "-";
-        String u = c.trim().toUpperCase();
+        String u = SettlementPeriodResolver.normalizeCalcCycle(c);
         return switch (u) {
             case "NONE" -> "정산안함";
             case "RT", "REALTIME" -> "실시간";
-            case "M5" -> "5분";
-            case "M10" -> "10분";
-            case "H1" -> "1시간";
-            case "H2" -> "2시간";
-            case "H4" -> "4시간";
+            case "T0" -> "T0";
+            case "M5" -> "5분 마감";
+            case "M10" -> "10분 마감";
+            case "M30" -> "30분 마감";
+            case "H1" -> "1시간(H1)";
+            case "H2" -> "2시간(H2)";
+            case "H4" -> "4시간(H4)";
+            case "H6" -> "6시간(H6)";
+            case "H8" -> "8시간(H8)";
+            case "H12" -> "12시간(H12)";
+            case "TM5" -> "TM5(당일합산)";
+            case "TM10" -> "TM10(당일합산)";
+            case "TM30" -> "TM30(당일합산)";
+            case "TH1" -> "TH1(당일합산)";
+            case "TH2" -> "TH2(당일합산)";
+            case "TH4" -> "TH4(당일합산)";
+            case "TH6" -> "TH6(당일합산)";
+            case "TH8" -> "TH8(당일합산)";
+            case "TH12" -> "TH12(당일합산)";
             case "W3" -> "W+3";
             case "W5" -> "W+5";
             case "W7" -> "W+7";
@@ -3018,6 +3049,8 @@ public class CompService {
             case "WK2W" -> "WK+2W";
             case "WK1WT" -> "WK+1WT";
             case "WK2WT" -> "WK+2WT";
+            case "WK1WM" -> "WK+1WM";
+            case "WK2WM" -> "WK+2WM";
             case "WEEKLY" -> "Weekly(구)";
             case "WEEKLY2" -> "Weekly2(구)";
             default -> {

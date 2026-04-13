@@ -158,7 +158,7 @@ public class ChillPayNotifyToTrnsctnService implements PgNotifyInboundTxnHandler
                 PgTrnsctn t = mapped.get();
                 if (STATUS_PAID.equals(t.getStatus()) && t.getMerchantId() != null && !t.getMerchantId().isBlank()) {
                     try {
-                        settlementCalcService.triggerRealtimeAutoSettlementIfDue(t.getMerchantId().trim());
+                        settlementCalcService.triggerRealtimeAutoSettlementIfDue(t.getMerchantId().trim(), t);
                     } catch (Exception ex) {
                         log.warn("실시간 자동정산 트리거 실패 merchantId={}: {}", t.getMerchantId(), ex.getMessage());
                     }
@@ -336,7 +336,7 @@ public class ChillPayNotifyToTrnsctnService implements PgNotifyInboundTxnHandler
         }
         if (STATUS_PAID.equals(mergedStatus) && t.getMerchantId() != null && !t.getMerchantId().isBlank()) {
             try {
-                settlementCalcService.triggerRealtimeAutoSettlementIfDue(t.getMerchantId().trim());
+                settlementCalcService.triggerRealtimeAutoSettlementIfDue(t.getMerchantId().trim(), t);
             } catch (Exception ex) {
                 log.warn("실시간 자동정산 트리거 실패 merchantId={}: {}", t.getMerchantId(), ex.getMessage());
             }

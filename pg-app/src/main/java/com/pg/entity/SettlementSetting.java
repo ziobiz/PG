@@ -62,7 +62,7 @@ public class SettlementSetting {
     @Column(name = "hold_days")
     private Integer holdDays;
 
-    /** 정산주기 코드: RT,M5,M10,H1… / D1…D30 / W3,W5… / WK1W,WK2W,WK1WT,WK2WT 등 */
+    /** 정산주기 코드: RT,T0 / M5,M10,M30 / TM5,TM10,TM30(T0식 당일합산+격자) / H1..H12 / TH1..TH12 / D0~D90 / W+N / WK 등 */
     @Column(name = "calc_cycle", length = 64)
     private String calcCycle;
 

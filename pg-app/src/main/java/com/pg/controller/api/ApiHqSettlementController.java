@@ -3,8 +3,10 @@ package com.pg.controller.api;
 import com.pg.api.ApiResponse;
 import com.pg.entity.AppUser;
 import com.pg.entity.HqSettlementCycleDef;
+import com.pg.entity.MasterDistSettlementCycleConfig;
 import com.pg.service.AuthService;
 import com.pg.service.HqSettlementCycleAdminService;
+import com.pg.service.MasterDistSettlementCycleConfigService;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -12,6 +14,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -25,11 +28,14 @@ import java.util.Map;
 public class ApiHqSettlementController {
 
     private final HqSettlementCycleAdminService hqSettlementCycleAdminService;
+    private final MasterDistSettlementCycleConfigService masterDistSettlementCycleConfigService;
     private final AuthService authService;
 
     public ApiHqSettlementController(HqSettlementCycleAdminService hqSettlementCycleAdminService,
+                                     MasterDistSettlementCycleConfigService masterDistSettlementCycleConfigService,
                                      AuthService authService) {
         this.hqSettlementCycleAdminService = hqSettlementCycleAdminService;
+        this.masterDistSettlementCycleConfigService = masterDistSettlementCycleConfigService;
         this.authService = authService;
     }
 
@@ -48,6 +54,75 @@ public class ApiHqSettlementController {
     @GetMapping("/cycleOptions")
     public ResponseEntity<ApiResponse<List<Map<String, Object>>>> cycleOptions() {
         return ResponseEntity.ok(ApiResponse.ok(hqSettlementCycleAdminService.listActiveSelectOptions()));
+    }
+
+    /** 총판별 가맹 정산주기 설정 등 — 병합 표준 전체(미사용 N 포함), 순서 동일 */
+    @GetMapping("/cycleOptionsCatalog")
+    public ResponseEntity<ApiResponse<List<Map<String, Object>>>> cycleOptionsCatalog() {
+        return ResponseEntity.ok(ApiResponse.ok(hqSettlementCycleAdminService.listCatalogSelectOptions()));
+    }
+
+    /**
+     * 가맹점 상위 조직(parent) 기준: 동일 총판 산하에 총판별 정산주기 설정이 있으면 해당 코드만(본사 활성 목록과 동일 순서), 대표 기본값 포함.
+     */
+    @GetMapping("/cycleOptionsScoped")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> cycleOptionsScoped(
+            @RequestParam(required = false) Long parentOrgUnitId) {
+        return ResponseEntity.ok(ApiResponse.ok(
+                masterDistSettlementCycleConfigService.buildScopedCycleOptionsForMerchantParent(parentOrgUnitId)));
+    }
+
+    @GetMapping("/masterDistOrgOptions")
+    public ResponseEntity<ApiResponse<List<Map<String, Object>>>> masterDistOrgOptions() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (!canManageSettlementSettings(auth)) {
+            return ResponseEntity.ok(ApiResponse.fail("총본사(HEADQUARTERS) 또는 시스템 관리자만 조회할 수 있습니다.", "FORBIDDEN"));
+        }
+        return ResponseEntity.ok(ApiResponse.ok(masterDistSettlementCycleConfigService.listMasterDistOrgOptions()));
+    }
+
+    @GetMapping("/masterDistCalcCycleConfig")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> masterDistCalcCycleGet(
+            @RequestParam long orgUnitId) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (!canManageSettlementSettings(auth)) {
+            return ResponseEntity.ok(ApiResponse.fail("총본사(HEADQUARTERS) 또는 시스템 관리자만 조회할 수 있습니다.", "FORBIDDEN"));
+        }
+        return masterDistSettlementCycleConfigService.findByMasterDistOrgId(orgUnitId)
+                .map(c -> ResponseEntity.ok(ApiResponse.ok(masterDistSettlementCycleConfigService.toApiMap(c))))
+                .orElseGet(() -> ResponseEntity.ok(ApiResponse.ok(Map.of(
+                        "orgUnitId", orgUnitId,
+                        "slots", List.of(null, null, null, null, null),
+                        "defaultSlot", 0))));
+    }
+
+    @PostMapping("/masterDistCalcCycleConfig")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> masterDistCalcCycleSave(@RequestBody Map<String, Object> body) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (!canManageSettlementSettings(auth)) {
+            return ResponseEntity.ok(ApiResponse.fail("총본사(HEADQUARTERS) 또는 시스템 관리자만 저장할 수 있습니다.", "FORBIDDEN"));
+        }
+        try {
+            if (body == null || body.get("orgUnitId") == null) {
+                return ResponseEntity.ok(ApiResponse.fail("orgUnitId가 필요합니다.", "VALIDATION"));
+            }
+            long orgUnitId = Long.parseLong(String.valueOf(body.get("orgUnitId")).trim());
+            int defaultSlot = 0;
+            if (body.get("defaultSlot") != null) {
+                defaultSlot = Integer.parseInt(String.valueOf(body.get("defaultSlot")).trim());
+            }
+            @SuppressWarnings("unchecked")
+            List<Object> rawSlots = body.get("slots") instanceof List<?> l ? (List<Object>) l : new ArrayList<>();
+            List<String> slots = new ArrayList<>();
+            for (Object o : rawSlots) {
+                slots.add(o != null ? String.valueOf(o).trim() : "");
+            }
+            MasterDistSettlementCycleConfig saved =
+                    masterDistSettlementCycleConfigService.saveForMasterDist(orgUnitId, slots, defaultSlot);
+            return ResponseEntity.ok(ApiResponse.ok(masterDistSettlementCycleConfigService.toApiMap(saved)));
+        } catch (Exception e) {
+            return ResponseEntity.ok(ApiResponse.fail(e.getMessage(), "VALIDATION"));
+        }
     }
 
     @GetMapping("/cycleDefs")

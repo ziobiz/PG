@@ -264,13 +264,26 @@
   var CALC_CYCLE_OPTIONS = [
     { v: '', t: '선택' },
     { v: 'NONE', t: '정산안함' },
-    { v: 'RT', t: '실시간' },
-    { v: 'T0', t: 'T0' },
-    { v: 'M5', t: '5분' },
-    { v: 'M10', t: '10분' },
-    { v: 'H1', t: '1시간' },
-    { v: 'H2', t: '2시간' },
-    { v: 'H4', t: '4시간' },
+    { v: 'RT', t: '실시간(건당)' },
+    { v: 'T0', t: 'T0(당일합산)' },
+    { v: 'TM5', t: 'TM5(당일합산·5분격자)' },
+    { v: 'TM10', t: 'TM10(당일합산·10분격자)' },
+    { v: 'TM30', t: 'TM30(당일합산·30분격자)' },
+    { v: 'M5', t: '5분 마감' },
+    { v: 'M10', t: '10분 마감' },
+    { v: 'M30', t: '30분 마감' },
+    { v: 'H1', t: '1시간(H1)' },
+    { v: 'TH1', t: 'TH1(당일합산·1시간격자)' },
+    { v: 'H2', t: '2시간(H2)' },
+    { v: 'TH2', t: 'TH2(당일합산·2시간격자)' },
+    { v: 'H4', t: '4시간(H4)' },
+    { v: 'TH4', t: 'TH4(당일합산·4시간격자)' },
+    { v: 'H6', t: '6시간(H6)' },
+    { v: 'TH6', t: 'TH6(당일합산·6시간격자)' },
+    { v: 'H8', t: '8시간(H8)' },
+    { v: 'TH8', t: 'TH8(당일합산·8시간격자)' },
+    { v: 'H12', t: '12시간(H12)' },
+    { v: 'TH12', t: 'TH12(당일합산·12시간격자)' },
     { v: 'D0', t: 'D+0' },
     { v: 'D1', t: 'D+1' },
     { v: 'D2', t: 'D+2' },
@@ -289,7 +302,9 @@
     { v: 'WK1W', t: 'WK+1W' },
     { v: 'WK2W', t: 'WK+2W' },
     { v: 'WK1WT', t: 'WK+1WT' },
-    { v: 'WK2WT', t: 'WK+2WT' }
+    { v: 'WK2WT', t: 'WK+2WT' },
+    { v: 'WK1WM', t: 'WK+1WM' },
+    { v: 'WK2WM', t: 'WK+2WM' }
   ];
   var CALC_CYCLE_SEARCH_OPTIONS = [{ v: '', t: '전체' }].concat(CALC_CYCLE_OPTIONS.filter(function (o) { return o.v !== ''; }));
 
@@ -297,13 +312,25 @@
   var HQ_SETTLEMENT_ADMIN_HTML = ''
     + '<div class="hq-settlement-admin">'
     + '<div class="card mb-3"><div class="card-header fw-semibold">정산관리 안내</div><div class="card-body small">'
-    + '<p class="mb-2">정산실행(배치·수동)은 가맹 <strong>정산주기·정산구분 AUTO·마감시간</strong>과 동일 규칙을 사용합니다. 자동 배치 크론은 기본 <strong>매분</strong>(<code>app.settlement.autoRunCron</code>)이며, M5·H1 등 분·시 타이밍을 맞추기 위함입니다. 아래 <strong>정산일정 미리보기</strong>는 각 정산주기 코드가 어느 <strong>달력일(정산일)</strong>에 실행되는지와 그때의 <strong>집계 기간(from~to)</strong>을 보여 줍니다. <strong>자동가맹</strong> 열은 해당 주기로 <strong>자동 정산</strong>이 설정된 가맹점 수입니다.</p>'
-    + '<ul class="mb-0 ps-3"><li><strong>D+N</strong>: <strong>정산일·자동실행은 달력 당일</strong> 기준(정산마감 이후·당일 새벽 배치)이며, <strong>집계 기준일</strong> 하루는 정산일에서 N을 <strong>역산</strong>해 정합니다. <strong>D1~D30</strong>은 N이 <strong>영업일</strong>(주말 제외), <strong>D31~D90</strong>은 <strong>달력일</strong> 역산입니다. D0은 집계·정산일이 같은 당일이며, <strong>자동 배치는 당일 00:00~23:50(서울)</strong> 구간에서만 실행됩니다(마감시간이 있으면 그 이후~23:50). ‘하루 전’이 아니라 <strong>당일 정산 + 집계 기준일</strong> 관계입니다. (N=0~90, 저장 시 + 생략)</li>'
-    + '<li><strong>W+N</strong>: 직전 주(월~일)를 한 구간으로 묶고, 그 주가 끝난 뒤 <strong>N영업일째</strong> 되는 날이 정산일일 때 실행됩니다. (N=1~28)</li>'
-    + '<li><strong>WK1W / WK2W / WK1WT / WK2WT</strong>: 전주·격주 기반 확장 주기입니다. 세부는 서버 <code>SettlementPeriodResolver</code>와 동일합니다.</li>'
-    + '<li><strong>RT·T0</strong>: 정산구분 AUTO이면 <strong>승인(결제완료) 직후</strong> 당일 00:00~현재까지 재집계해 정산일 당일 행을 갱신합니다.</li>'
-    + '<li><strong>M5·M10</strong>: 자동 배치가 돌 때 <strong>N분 격자 시작 정각</strong>(M5→0·5·10분, M10→0·10·20분)에 당일 누적을 재집계합니다.</li>'
-    + '<li><strong>H1·H2·H4</strong>: 자동 배치가 돌 때 <strong>격자 시작 정각</strong>(H1 매시 HH:00, H2 짝수 시 00분, H4 0·4·8시 00분)에 당일 누적을 재집계합니다.</li></ul>'
+    + '<p class="mb-2">정산실행(배치·수동)은 가맹 <strong>정산주기·정산구분 AUTO·마감시간</strong>과 동일 규칙을 사용합니다. 자동 배치 크론은 기본 <strong>매분</strong>(<code>app.settlement.autoRunCron</code>)이며, H1·H2·H4·H6·H8·H12 등 <strong>시간 마감</strong> 격자의 정각(HH:00)을 맞추기 위함입니다. 아래 <strong>정산일정 미리보기</strong>는 각 정산주기 코드가 어느 <strong>달력일(정산일)</strong>에 실행되는지와 그때의 <strong>집계 기간(from~to)</strong>을 보여 줍니다. <strong>자동가맹</strong> 열은 해당 주기로 <strong>자동 정산</strong>이 설정된 가맹점 수입니다.</p>'
+    + '<ul class="mb-0 ps-3"><li><strong>D+N</strong>: <strong>정산일·자동실행은 달력 당일</strong> 기준(정산마감 이후·당일 새벽 배치)이며, <strong>집계 기준일</strong> 하루는 정산일에서 N을 <strong>역산</strong>해 정합니다. <strong>D1~D30</strong>은 N이 <strong>영업일</strong>(주말 제외), <strong>D31~D90</strong>은 <strong>달력일</strong> 역산입니다. D0은 집계·정산일이 같은 당일이며, <strong>자동 배치는 당일 00:00~23:50(서울)</strong> 구간에서만 실행됩니다(마감시간이 있으면 그 이후~23:50). ‘하루 전’이 아니라 <strong>당일 정산 + 집계 기준일</strong> 관계입니다. (N=0~90, 저장 시 + 생략) 집계 구간은 <strong>합산 1건</strong>의 정산 실행으로 마감합니다.</li>'
+    + '<li><strong>W+N</strong>: 직전 주(월~일)를 한 구간으로 묶고, 그 주가 끝난 뒤 <strong>N영업일째</strong> 되는 날이 정산일일 때 실행됩니다. (N=1~28) 집계 구간은 <strong>합산 1건</strong>으로 마감합니다.</li>'
+    + '<li><strong>WK 계열</strong> — 집계 구간은 <strong>합산 1건</strong>입니다. 정산일은 마감 다음날부터 세는 <strong>영업일</strong> 기준이며(주말 제외·공휴일 집합은 현재 비어 있음), 그날이 비영업일이면 다음 영업일로 맞춥니다.<br>'
+    + '<span class="text-body">WK+1W</span> → 마감 후 영업일 3일째. <span class="text-body">WK+1WT</span> → 마감 후 영업일 10일째.<br>'
+    + '<span class="text-body">WK+2W</span> → 격주 2주 마감 후 영업일 3일째. <span class="text-body">WK+2WT</span> → 격주 2주 마감 후 영업일 10일째.<br>'
+    + '<span class="text-body">WK+1WM</span> (저장 WK1WM): 1주(월~일) 마감 후 영업일 30일째 정산. '
+    + '<span class="text-body">WK+2WM</span> (저장 WK2WM): 격주 2주 마감 후 영업일 30일째 정산.</li>'
+    + '<li><strong>RT</strong>: 정산구분 AUTO이면 <strong>승인 노티마다</strong> 해당 건만 집계한 정산 실행 1건(건당 마감). <strong>T0</strong>: 승인 노티마다 <strong>당일 00:00~현재</strong> 전체를 재집계해 당일 행 1건으로 갱신.</li>'
+    + '<li><strong>TM5·TM10·TM30·TH1·…·TH12</strong>: M/H와 <strong>같은 격자 시각</strong>에 배치되나, <strong>T0와 같이</strong> 당일 0시~현재 전체를 재집계해 당일 행 <strong>1건</strong>(TM05 저장값은 TM5로 통일).</li>'
+    + '<li><strong>M5·M10·M30</strong>: N분 <strong>격자</strong> 정각마다 <strong>직전 N분</strong> 구간의 거래를 합산해 정산 실행 <strong>1건</strong>(RT로 이미 정산된 승인은 제외).</li>'
+    + '<li><strong>H1·H2·H4·H6·H8·H12</strong>: N시간 격자 정각(HH:00)마다 <strong>직전 N시간</strong> 구간을 합산해 정산 실행 1건. 구 1D·2D·4D·6D·8D·12D 저장값은 서버에서 H 코드로 처리합니다.</li></ul>'
+    + '</div></div>'
+    + '<div class="card mb-3"><div class="card-header fw-semibold">총판별 가맹 정산주기 (최대 5건·대표)</div><div class="card-body">'
+    + '<p class="small text-muted mb-3">총판(MASTER_DIST)마다 가맹점 등록 시 선택 가능한 정산주기를 최대 5개로 제한합니다. <strong>대표</strong>는 신규 가맹 시 셀렉트 기본값입니다. 아래 슬롯 목록은 본사 <strong>표준 병합 전체</strong>(미사용 N 포함)에서 고릅니다. 목록 순서는 정산주기관리와 동일합니다. 미설정 총판이거나 본사 직속 등 총판이 없으면 가맹 화면은 기존처럼 <strong>사용(Y)만</strong> 노출됩니다.</p>'
+    + '<div class="row g-2 align-items-end mb-2">'
+    + '<div class="col-12 col-md-5"><label class="form-label small mb-0">총판</label><select id="hqMdCycleOrgSel" class="form-select form-select-sm"><option value="">불러오는 중…</option></select></div>'
+    + '<div class="col-auto d-grid"><button type="button" class="btn btn-primary btn-sm" id="hqMdCycleSaveBtn">저장</button></div></div>'
+    + '<div class="table-responsive table-no-col-resize-wrap"><table class="table table-sm table-bordered align-middle mb-0 table-no-col-resize"><thead class="table-light"><tr><th style="width:3.5rem">#</th><th>정산주기</th><th style="width:5rem">대표</th></tr></thead><tbody id="hqMdCycleTbody"></tbody></table></div>'
     + '</div></div>'
     + '<div class="card mb-3"><div class="card-header fw-semibold">정산주기관리 (DB 등록)</div><div class="card-body">'
     + '<div class="row g-2 align-items-end mb-2">'
@@ -311,7 +338,8 @@
     + '<option value="D">D+N (일)</option><option value="W">W+N (주)</option><option value="WK">WK 코드</option></select></div>'
     + '<div class="col-6 col-md-2" id="hqStOffsetWrap"><label class="form-label small mb-0">N</label><input type="number" id="hqStAddOffset" class="form-control form-control-sm" min="0" max="90" placeholder="예: 12"></div>'
     + '<div class="col-12 col-md-3 d-none" id="hqStWkWrap"><label class="form-label small mb-0">WK 코드</label><select id="hqStWkKey" class="form-select form-select-sm">'
-    + '<option value="WK1W">WK1W</option><option value="WK2W">WK2W</option><option value="WK1WT">WK1WT</option><option value="WK2WT">WK2WT</option></select></div>'
+    + '<option value="WK1W">WK1W</option><option value="WK2W">WK2W</option><option value="WK1WT">WK1WT</option><option value="WK2WT">WK2WT</option>'
+    + '<option value="WK1WM">WK1WM</option><option value="WK2WM">WK2WM</option></select></div>'
     + '<div class="col-6 col-md-2"><label class="form-label small mb-0">표시명</label><input type="text" id="hqStAddLabel" class="form-control form-control-sm" placeholder="예: D+12"></div>'
     + '<div class="col-6 col-md-1"><label class="form-label small mb-0">순서</label><input type="number" id="hqStAddSort" class="form-control form-control-sm" value="100"></div>'
     + '<div class="col-6 col-md-2"><label class="form-label small mb-0">사용</label><select id="hqStAddActive" class="form-select form-select-sm"><option value="Y">Y</option><option value="N">N</option></select></div>'
@@ -355,7 +383,7 @@
     { v: 'EVE_HOLIDAY_18', t: '공휴일 전날 18시 이후' },
     { v: 'NONE', t: '미사용' }
   ];
-  var CALC_METHOD_MERCHANT_NOTICE = '정산주기는 가맹점 전용입니다. 정산안함: 정산 배치로 정산금을 쌓지 않습니다(이미 NONE으로 결제된 건은 주기 변경 후에도 정산금 미적립). 시간대(RT·M5 등): 결제승인일시 기준 이후 정산. D+N: 정산일(달력 당일) 기준으로 정산마감·설정 시각 이후에 집계하며, 집계 기준일은 정산일에서 N(영업일·달력일 규칙)을 역산한 하루입니다. D+0 자동은 당일 00:00~23:50(서울)만 실행됩니다. 정산마감·정산자동개시·이체시간은 D+·이체 연동 시 사용합니다. 이체및송금: 수동(정산이체 화면), 자동(이체주기 분마다 자동이체최소+이체수수료 합 이상이면 출금, 수동 병행 가능), 자동(수동불가), 임의출금(다중출금), 사용안함(해당 업체는 정산실행 등으로만 정산금 처리). 이체주기(분)는 자동·자동(수동불가)에만 적용되며 미수금이면 출금하지 않습니다. 지급보류: 보류 시 정산은 주기대로, 출금만 제한. 정산제외: 당일(D+0) 계열에서 주말·공휴일·수단별 제외·익영업일 개시시간을 쓸 수 있으며, D+1~3은 영업일 정산만(제외 설정 미적용).';
+  var CALC_METHOD_MERCHANT_NOTICE = '정산주기는 가맹점 전용입니다. 정산안함: 정산 배치로 정산금을 쌓지 않습니다(이미 NONE으로 결제된 건은 주기 변경 후에도 정산금 미적립). RT: 승인 노티마다 해당 건만 집계한 정산 실행 1건(건당). T0: 승인 노티마다 당일 00:00~현재 전체 재집계(당일 1행). TM5·TM10·TM30·TH1·TH2·TH4·TH6·TH8·TH12: M/H와 같은 격자 시각에 배치되나 T0처럼 당일 0시~현재 합산 1행 재집계. M5·M10·M30·H1·H2·H4·H6·H8·H12: 격자마다 직전 구간을 합산해 정산 실행 1건(구 1D~12D는 H와 동일). D+N·W·WK: 정산일에 정해진 집계 구간을 합산해 정산 실행 1건. WK: WK+1W는 마감 후 영업일 3일째, WK+1WT는 10일째, WK+2W는 격주 2주 마감 후 3일째, WK+2WT는 격주 2주 마감 후 10일째, WK+1WM(WK1WM)은 1주(월~일) 마감 후 30일째, WK+2WM(WK2WM)은 격주 2주 마감 후 30일째 정산(주말 제외·그날 비영업이면 다음 영업일). D+N: 정산일(달력 당일) 기준으로 정산마감·설정 시각 이후에 집계하며, 집계 기준일은 정산일에서 N(영업일·달력일 규칙)을 역산한 하루입니다. D+0 자동은 당일 00:00~23:50(서울)만 실행됩니다. 정산마감·정산자동개시·이체시간은 D+·이체 연동 시 사용합니다. 이체및송금: 수동(정산이체 화면), 자동(이체주기 분마다 자동이체최소+이체수수료 합 이상이면 출금, 수동 병행 가능), 자동(수동불가), 임의출금(다중출금), 사용안함(해당 업체는 정산실행 등으로만 정산금 처리). 이체주기(분)는 자동·자동(수동불가)에만 적용되며 미수금이면 출금하지 않습니다. 지급보류: 보류 시 정산은 주기대로, 출금만 제한. 정산제외: 당일(D+0) 계열에서 주말·공휴일·수단별 제외·익영업일 개시시간을 쓸 수 있으며, D+1~3은 영업일 정산만(제외 설정 미적용).';
 
   /** 본사 영업일·휴일: 연간 미니달력 + 공휴일 프리셋 (hq-holiday-calendar.js) */
   var HQ_HOLIDAY_UI_HTML = '<div class="col-12"><div class="hq-holiday-ui-wrap border rounded p-2 bg-light mt-1" data-hq-calendar-readonly="true">' +
@@ -2616,7 +2644,7 @@
       paginationDefaultSize: 25,
       /* 수수료내역과 동일: VIEW SETTING 행·컬럼 체크 행 간격(gap) 및 2행 가이드 */
       tableColumnGuideTwoRow: true,
-      notice: '수동 실행: 기간·가맹을 지정해 실행합니다. 서버 스케줄은 정산구분 AUTO인 가맹만 실행합니다. D+N(정산일 당일·마감 후·새벽 배치, 집계 기준일은 역산—D1~D30 영업일·D31~달력)·W·WK는 정산마감시간·당일 미실행 조건으로 일·주 창을 집계하고, RT는 승인 노티 직후 당일 누적 갱신, M5·M10·H1·H2·H4는 배치 타이밍(분·시 격자 시작 정각)에 맞춰 당일 누적을 갱신합니다(app.settlement.autoRunEnabled·기본 매분 크론·VPS 타임존 Asia/Seoul 권장). 목록의 정산주기·정산방법·루트는 가맹 정산설정·PG연동(MID·루트)에서 가져옵니다. 정산대상기간은 조회·실행에 사용한 기간(또는 정산일만)으로 표시됩니다.',
+      notice: '수동 실행: 기간·가맹을 지정해 실행합니다. 서버 스케줄은 정산구분 AUTO인 가맹만 실행합니다. D+N·W·WK는 정산일에 집계 구간을 합산해 정산 실행 1건, RT는 승인 노티마다 건당, T0는 승인 노티마다 당일 00:00~현재 전체 재집계(당일 1행), TM·TH는 격자 시각마다 당일 0시~현재 합산 1행 재집계, M5·M10·M30은 N분 격자마다 직전 N분 합산 1건, H1·H2·H4·H6·H8·H12는 격자 정각마다 직전 N시간 합산 1건입니다(app.settlement.autoRunEnabled·VPS 타임존 Asia/Seoul 권장). 목록의 정산주기·정산방법·루트는 가맹 정산설정·PG연동(MID·루트)에서 가져옵니다. 정산대상기간은 조회·실행에 사용한 기간(또는 정산일만)으로 표시됩니다.',
       searchRows: [
         [
           { label: '정산기간', type: 'daterange', from: 'searchFromDate', to: 'searchToDate' },

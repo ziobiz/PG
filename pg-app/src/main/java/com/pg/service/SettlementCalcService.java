@@ -15,6 +15,7 @@ import com.pg.repository.OrgUnitRepository;
 import com.pg.entity.OrgUnit;
 import com.pg.entity.SettlementSetting;
 import com.pg.service.settlement.SettlementArrearsService;
+import com.pg.service.settlement.SettlementCycleTiming;
 import com.pg.service.settlement.SettlementPeriodResolver;
 import com.pg.util.BusinessDayCalendar;
 import com.pg.util.ChargebackTierResolver;
@@ -106,7 +107,7 @@ public class SettlementCalcService {
         LocalDate calcDt = toDate;
         for (String mid : merchantIds) {
             List<PgTrnsctn> txList = list.stream().filter(t -> mid.equals(t.getMerchantId())).collect(Collectors.toList());
-            SettlementRun run = calcOne(mid, calcDt, txList, Optional.empty());
+            SettlementRun run = calcOne(mid, calcDt, txList, Optional.empty(), false, true);
             if (run != null) {
                 run.setPeriodFrom(fromDate);
                 run.setPeriodTo(toDate);
@@ -132,7 +133,7 @@ public class SettlementCalcService {
         }
         candidates.removeAll(done);
         for (String mid : candidates) {
-            SettlementRun run = calcOne(mid, calcDt, Collections.emptyList(), Optional.empty());
+            SettlementRun run = calcOne(mid, calcDt, Collections.emptyList(), Optional.empty(), false, true);
             if (run != null) {
                 run.setPeriodFrom(calcDt);
                 run.setPeriodTo(calcDt);
@@ -145,10 +146,12 @@ public class SettlementCalcService {
     }
 
     /**
-     * 실시간(RT·T0) 자동정산: 승인 반영 직후 당일 00:00~현재 시각까지 재집계하여 정산일=당일 행을 갱신합니다.
+     * 실시간 자동정산: RT는 승인 건마다 정산 실행 1건(건당), T0는 당일 00:00~현재 전체 재집계(1행).
+     *
+     * @param paidTxn 승인 직후 노티에서 넘기는 거래. RT일 때 필수(없으면 스킵). T0는 무시 가능.
      */
     @Transactional
-    public List<SettlementRun> triggerRealtimeAutoSettlementIfDue(String merchantId) {
+    public List<SettlementRun> triggerRealtimeAutoSettlementIfDue(String merchantId, PgTrnsctn paidTxn) {
         if (merchantId == null || merchantId.isBlank()) {
             return List.of();
         }
@@ -166,14 +169,31 @@ public class SettlementCalcService {
             return List.of();
         }
         String c0 = SettlementPeriodResolver.normalizeCalcCycle(ss.getCalcCycle());
-        if (!"RT".equals(c0) && !"T0".equals(c0)) {
+        if (!SettlementCycleTiming.isRealtimeCode(c0)) {
             return List.of();
         }
-        return recalcTodayIntradayAuto(mid);
+        if (SettlementCycleTiming.isRtPerTransactionCode(c0)) {
+            if (paidTxn == null) {
+                return List.of();
+            }
+            return appendRtPerTransactionSettlement(mid, paidTxn);
+        }
+        if (SettlementCycleTiming.isT0RollingIntradayCode(c0)) {
+            return recalcTodayIntradayAuto(mid);
+        }
+        return List.of();
     }
 
     /**
-     * 분·시간(M5·M10·H1·H2·H4) 자동정산 배치 타이밍에서 당일 누적을 재집계합니다.
+     * 거래 객체 없이 호출. RT 주기 가맹은 스킵되므로, RT는 {@link #triggerRealtimeAutoSettlementIfDue(String, PgTrnsctn)} 로 호출합니다.
+     */
+    @Transactional
+    public List<SettlementRun> triggerRealtimeAutoSettlementIfDue(String merchantId) {
+        return triggerRealtimeAutoSettlementIfDue(merchantId, null);
+    }
+
+    /**
+     * N분·N시간 마감: M/H는 격자마다 직전 구간 합산 1건, TM/TH는 격자 시각마다 T0와 같이 당일 0시~현재 전체 재집계 1건.
      */
     @Transactional
     public List<SettlementRun> triggerSubDailyAutoSettlement(String merchantId) {
@@ -194,32 +214,130 @@ public class SettlementCalcService {
             return List.of();
         }
         String c0 = SettlementPeriodResolver.normalizeCalcCycle(ss.getCalcCycle());
-        if (!"M5".equals(c0) && !"M10".equals(c0) && !"H1".equals(c0) && !"H2".equals(c0) && !"H4".equals(c0)) {
+        if (!SettlementCycleTiming.isSubDailyScheduleCode(c0)) {
             return List.of();
         }
-        return recalcTodayIntradayAuto(mid);
+        if (SettlementCycleTiming.isRollingIntradayGridCode(c0)) {
+            return recalcTodayIntradayAuto(mid);
+        }
+        return appendSubDailyGridAggregateSettlement(mid, c0);
+    }
+
+    /**
+     * 직전 격자 구간 [start,end) 내 거래 합산 1건. RT로 이미 settled Y 인 승인은 제외. 동일 슬롯 중복 실행 방지.
+     */
+    private List<SettlementRun> appendSubDailyGridAggregateSettlement(String merchantId, String cycleNorm) {
+        String mid = merchantId.trim();
+        LocalDateTime nowMin = LocalDateTime.now(SEOUL).withSecond(0).withNano(0);
+        String plainGrid = SettlementCycleTiming.toPlainGridClosingCode(cycleNorm);
+        SettlementCycleTiming.SubDailyClosedSlot slot = SettlementCycleTiming.closedSubDailySlot(nowMin, plainGrid);
+        if (slot == null) {
+            return List.of();
+        }
+        LocalDate calcDt = slot.endExclusive().toLocalDate();
+        if (settlementRunRepository.existsByMerchantIdAndCalcDtAndPeriodEndAt(mid, calcDt, slot.endExclusive())) {
+            return List.of();
+        }
+        LocalDateTime qFrom = slot.startInclusive();
+        LocalDateTime qTo = slot.endExclusive().minusNanos(1);
+        List<PgTrnsctn> list = trnsctnRepository.findForSettlement(mid, qFrom, qTo).stream()
+                .filter(this::includeTxnInSubDailyAggregate)
+                .collect(Collectors.toList());
+        boolean releaseRolling = settlementRunRepository.findByCalcDtAndMerchantId(calcDt, mid).isEmpty();
+        if (list.isEmpty()) {
+            if (!releaseRolling) {
+                return List.of();
+            }
+            List<RollingReserve> maturing = rollingReserveRepository.findByMerchantIdAndStatusAndReleaseDateLessThanEqual(
+                    mid, "HOLD", calcDt);
+            if (maturing.isEmpty()) {
+                return List.of();
+            }
+        }
+        boolean chargeMonthly = shouldChargeMonthlyUsageOnIntradayRun(mid, calcDt);
+        List<SettlementRun> results = new ArrayList<>();
+        SettlementRun run = calcOne(mid, calcDt, list, Optional.of(chargeMonthly), false, releaseRolling);
+        if (run != null) {
+            run.setPeriodFrom(slot.startInclusive().toLocalDate());
+            run.setPeriodTo(slot.endExclusive().toLocalDate());
+            run.setPeriodEndAt(slot.endExclusive());
+            settlementRunRepository.save(run);
+            settlementArrearsService.applyArrearsToSettledRun(run);
+            results.add(run);
+        }
+        appendReleaseOnlyMerchants(calcDt, mid, results);
+        return results;
+    }
+
+    /** M/H 격자 합산: 승인은 RT 등으로 이미 정산 반영된 건 제외, 그 외 상태는 구간 내 그대로 포함 */
+    private boolean includeTxnInSubDailyAggregate(PgTrnsctn t) {
+        if (t == null) {
+            return false;
+        }
+        String st = t.getStatus() != null ? t.getStatus().trim() : "";
+        if ("10".equals(st)) {
+            String sy = t.getSettledYn();
+            return sy == null || sy.isBlank() || !"Y".equalsIgnoreCase(sy.trim());
+        }
+        return true;
+    }
+
+    /** 월간 이용료 등: 당월 이전일까지 정산 실행이 없고 당일 첫 실행일 때만 부과 */
+    private boolean shouldChargeMonthlyUsageOnIntradayRun(String mid, LocalDate today) {
+        boolean hadSameDayRun = !settlementRunRepository.findByCalcDtAndMerchantId(today, mid).isEmpty();
+        YearMonth ym = YearMonth.from(today);
+        LocalDate monthStart = ym.atDay(1);
+        LocalDate priorEnd = today.minusDays(1);
+        long priorRunsInMonthBeforeToday = 0;
+        if (!priorEnd.isBefore(monthStart)) {
+            priorRunsInMonthBeforeToday = settlementRunRepository.countByMerchantIdAndCalcDtBetween(mid, monthStart, priorEnd);
+        }
+        CommissionPolicy pol = getPolicy(mid);
+        BigDecimal usageRate = pol != null && pol.getUsageRate() != null ? pol.getUsageRate() : BigDecimal.ZERO;
+        return usageRate.compareTo(BigDecimal.ZERO) > 0 && priorRunsInMonthBeforeToday == 0 && !hadSameDayRun;
+    }
+
+    /**
+     * RT: 승인 1건만 담아 정산 실행 행을 추가(당일 다건). 이미 정산 반영된 건은 스킵.
+     */
+    private List<SettlementRun> appendRtPerTransactionSettlement(String mid, PgTrnsctn txn) {
+        if (txn == null || txn.getMerchantId() == null || !mid.equals(txn.getMerchantId().trim())) {
+            return List.of();
+        }
+        String st = txn.getStatus() != null ? txn.getStatus().trim() : "";
+        if (!"10".equals(st)) {
+            return List.of();
+        }
+        if ("Y".equalsIgnoreCase(String.valueOf(txn.getSettledYn()).trim())) {
+            return List.of();
+        }
+        LocalDate today = LocalDate.now(SEOUL);
+        boolean chargeMonthlyUsage = shouldChargeMonthlyUsageOnIntradayRun(mid, today);
+        List<SettlementRun> results = new ArrayList<>();
+        SettlementRun run = calcOne(mid, today, List.of(txn), Optional.of(chargeMonthlyUsage), true, true);
+        if (run != null) {
+            run.setPeriodFrom(today);
+            run.setPeriodTo(today);
+            LocalDateTime endAt = txn.getCreatedAt() != null ? txn.getCreatedAt() : LocalDateTime.now(SEOUL);
+            run.setPeriodEndAt(endAt);
+            settlementRunRepository.save(run);
+            settlementArrearsService.applyArrearsToSettledRun(run);
+            results.add(run);
+        }
+        appendReleaseOnlyMerchants(today, mid, results);
+        return results;
     }
 
     private List<SettlementRun> recalcTodayIntradayAuto(String merchantId) {
         String mid = merchantId.trim();
         LocalDate today = LocalDate.now(SEOUL);
-        boolean hadSameDayRun = !settlementRunRepository.findByCalcDtAndMerchantId(today, mid).isEmpty();
-        YearMonth ym = YearMonth.from(today);
-        LocalDate monthStart = ym.atDay(1);
-        LocalDate priorEnd = today.minusDays(1);
-        long priorDaysInMonth = 0;
-        if (!priorEnd.isBefore(monthStart)) {
-            priorDaysInMonth = settlementRunRepository.countByMerchantIdAndCalcDtBetween(mid, monthStart, priorEnd);
-        }
-        CommissionPolicy pol = getPolicy(mid);
-        BigDecimal usageRate = pol != null && pol.getUsageRate() != null ? pol.getUsageRate() : BigDecimal.ZERO;
-        boolean chargeMonthlyUsage = usageRate.compareTo(BigDecimal.ZERO) > 0 && priorDaysInMonth == 0 && !hadSameDayRun;
+        boolean chargeMonthlyUsage = shouldChargeMonthlyUsageOnIntradayRun(mid, today);
         settlementRunRepository.deleteByMerchantIdAndCalcDt(mid, today);
         LocalDateTime from = today.atStartOfDay();
         LocalDateTime to = LocalDateTime.now(SEOUL);
         List<PgTrnsctn> list = trnsctnRepository.findForSettlement(mid, from, to);
         List<SettlementRun> results = new ArrayList<>();
-        SettlementRun run = calcOne(mid, today, list, Optional.of(chargeMonthlyUsage));
+        SettlementRun run = calcOne(mid, today, list, Optional.of(chargeMonthlyUsage), false, true);
         if (run != null) {
             run.setPeriodFrom(today);
             run.setPeriodTo(today);
@@ -232,8 +350,14 @@ public class SettlementCalcService {
         return results;
     }
 
+    /**
+     * @param markEveryIncludedTxnSettled true면 배치에 포함된 모든 거래에 settled Y(건당 마감·중복 방지).
+     * @param releaseRollingReservesDue     true일 때만 calcDt 기준 만기 담보 해지를 이번 실행에 반영(건당 연속 호출 시 1회만).
+     */
     private SettlementRun calcOne(String merchantId, LocalDate calcDt, List<PgTrnsctn> txList,
-                                   Optional<Boolean> chargeMonthlyUsageOverride) {
+                                   Optional<Boolean> chargeMonthlyUsageOverride,
+                                   boolean markEveryIncludedTxnSettled,
+                                   boolean releaseRollingReservesDue) {
         if (merchantId != null && !orgServiceUseService.isOrgServiceActiveByCompCode(merchantId)) {
             return null;
         }
@@ -291,19 +415,21 @@ public class SettlementCalcService {
         BigDecimal netSales = approveAmt.subtract(cancelAmt).subtract(voidAmt).subtract(manualVoidAmt);
 
         /* 해지일이 도래한 담보금(롤링) → 이번 정산 지급액에 합산 후 RELEASED 처리 */
-        List<RollingReserve> maturing = rollingReserveRepository.findByMerchantIdAndStatusAndReleaseDateLessThanEqual(
-                merchantId, "HOLD", calcDt);
         BigDecimal releasedFromReserve = BigDecimal.ZERO;
         LocalDateTime releaseStamp = LocalDateTime.now();
-        if (!maturing.isEmpty()) {
-            for (RollingReserve rr : maturing) {
-                if (rr.getReserveAmt() != null) {
-                    releasedFromReserve = releasedFromReserve.add(rr.getReserveAmt());
+        if (releaseRollingReservesDue) {
+            List<RollingReserve> maturing = rollingReserveRepository.findByMerchantIdAndStatusAndReleaseDateLessThanEqual(
+                    merchantId, "HOLD", calcDt);
+            if (!maturing.isEmpty()) {
+                for (RollingReserve rr : maturing) {
+                    if (rr.getReserveAmt() != null) {
+                        releasedFromReserve = releasedFromReserve.add(rr.getReserveAmt());
+                    }
+                    rr.setStatus("RELEASED");
+                    rr.setReleasedAt(releaseStamp);
                 }
-                rr.setStatus("RELEASED");
-                rr.setReleasedAt(releaseStamp);
+                rollingReserveRepository.saveAll(maturing);
             }
-            rollingReserveRepository.saveAll(maturing);
         }
 
         if (txList.isEmpty() && releasedFromReserve.compareTo(BigDecimal.ZERO) <= 0) {
@@ -456,15 +582,24 @@ public class SettlementCalcService {
         BigDecimal payAmt = netSales.subtract(totalFee).subtract(feeVatAmt).subtract(rollingReserveAmt).add(releasedFromReserve).setScale(0, RoundingMode.HALF_UP);
         if (payAmt.compareTo(BigDecimal.ZERO) < 0) payAmt = BigDecimal.ZERO;
 
-        /* 이번 정산에 포함된 승인(10) 건은 settled Y — 정산 후 환불 시 환수금 자동 등록 기준 */
-        List<PgTrnsctn> approvedInBatch = txList.stream()
-                .filter(t -> t.getStatus() != null && "10".equals(t.getStatus().trim()))
-                .collect(Collectors.toList());
-        for (PgTrnsctn t : approvedInBatch) {
-            t.setSettledYn("Y");
-        }
-        if (!approvedInBatch.isEmpty()) {
-            trnsctnRepository.saveAll(approvedInBatch);
+        /* 건당 마감: 포함된 모든 거래 settled Y. 당일 합산(T0) 등: 승인(10)만 Y — 정산 후 환불 시 환수금 자동 등록 기준 */
+        if (markEveryIncludedTxnSettled) {
+            for (PgTrnsctn t : txList) {
+                t.setSettledYn("Y");
+            }
+            if (!txList.isEmpty()) {
+                trnsctnRepository.saveAll(txList);
+            }
+        } else {
+            List<PgTrnsctn> approvedInBatch = txList.stream()
+                    .filter(t -> t.getStatus() != null && "10".equals(t.getStatus().trim()))
+                    .collect(Collectors.toList());
+            for (PgTrnsctn t : approvedInBatch) {
+                t.setSettledYn("Y");
+            }
+            if (!approvedInBatch.isEmpty()) {
+                trnsctnRepository.saveAll(approvedInBatch);
+            }
         }
 
         SettlementRun run = new SettlementRun();
