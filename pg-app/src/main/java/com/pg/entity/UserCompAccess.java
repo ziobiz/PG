@@ -4,7 +4,7 @@ import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
 /**
- * 본사설정 계정관리: 사용자(로그인ID)가 접근 가능한 업체코드(본사·총판·가맹 등) 허용 목록
+ * 본사설정 계정관리: 사용자(로그인ID)가 사용자관리 등에서 접근 가능한 업체코드(정확히 일치, 하위 자동 포함 없음) 허용 목록
  */
 @Entity
 @Table(name = "tb_user_comp_access", uniqueConstraints = @UniqueConstraint(columnNames = {"username", "comp_code"}))

@@ -10,6 +10,7 @@ import com.pg.dto.ChillPayPaymentSearchApiResponse;
 import com.pg.entity.HqApiConfig;
 import com.pg.entity.MerchantPgBinding;
 import com.pg.entity.OrgUnit;
+import com.pg.entity.PgTrnsctn;
 import com.pg.entity.PgAgency;
 import com.pg.util.PayListStatusBarBuckets;
 import com.pg.util.TrnTimeDualZoneDisplay;
@@ -1537,14 +1538,13 @@ public class ChillPayService {
      * 1순위(MID·Route→바인딩) 후에도 업체명·코드가 비어 있으면, 결제 DB에 저장된 Chill TransactionId로 역추적한다.
      */
     private void enrichChillPayTrRowOrgFromTxn(Map<String, Object> m, Map<String, TxnMerchantLookup> txnOrgCache) {
-        String chillTxn = firstNonBlankString(m, "transactionId", "TransactionId", "Transaction_Id");
-        if (chillTxn.isEmpty()) {
-            return;
-        }
+        String chillTxn = firstNonBlankString(m,
+                "transactionId", "TransactionId", "Transaction_Id", "transaction_id",
+                "chillTransactionId", "ChillTransactionId", "CHILL_TRANSACTION_ID");
         String mid = chillTrMerchantRaw(m);
-        String cacheKey = chillTxn.trim() + "\0" + mid;
-        TxnMerchantLookup lk = txnOrgCache.computeIfAbsent(cacheKey, k -> resolveTxnMerchantLookup(chillTxn.trim(), mid));
-        if (lk.merchantId() == null || lk.merchantId().isEmpty()) {
+        String cacheKey = chillTxn.trim() + "\0" + mid + "\0" + firstNonBlankString(m, "orderNo", "OrderNo");
+        TxnMerchantLookup lk = txnOrgCache.computeIfAbsent(cacheKey, k -> resolveTxnMerchantLookup(chillTxn.trim(), mid, m));
+        if ((lk.merchantId() == null || lk.merchantId().isBlank()) && lk.org().isEmpty()) {
             return;
         }
         if (lk.org().isPresent()) {
@@ -1571,10 +1571,32 @@ public class ChillPayService {
         }
     }
 
-    private TxnMerchantLookup resolveTxnMerchantLookup(String chillTxnId, String mid) {
-        var tOpt = pgTrnsctnRepository.findFirstByChillTransactionIdOrderByCreatedAtDesc(chillTxnId);
-        if (tOpt.isEmpty() && mid != null && !mid.isBlank()) {
-            tOpt = pgTrnsctnRepository.findFirstByChillTransactionIdAndMerchantId(chillTxnId, mid.trim());
+    /**
+     * 통합내역 행 보강: Chill 승인번호(TransactionId) 정규화 후 pg_trnsctn 조회, 실패 시 주문번호+가맹(MID)으로 NOTI·URL 등 origin 순 조회.
+     */
+    private TxnMerchantLookup resolveTxnMerchantLookup(String chillTxnId, String mid, Map<String, Object> row) {
+        Optional<PgTrnsctn> tOpt = Optional.empty();
+        String norm = normalizeChillTxnIdForDbLookup(chillTxnId);
+        if (!norm.isEmpty()) {
+            tOpt = pgTrnsctnRepository.findFirstByChillTransactionIdOrderByCreatedAtDesc(norm);
+            if (tOpt.isEmpty() && chillTxnId != null && !chillTxnId.isBlank() && !chillTxnId.trim().equals(norm)) {
+                tOpt = pgTrnsctnRepository.findFirstByChillTransactionIdOrderByCreatedAtDesc(chillTxnId.trim());
+            }
+            if (tOpt.isEmpty() && mid != null && !mid.isBlank()) {
+                tOpt = pgTrnsctnRepository.findFirstByChillTransactionIdAndMerchantId(norm, mid.trim());
+            }
+        }
+        if (tOpt.isEmpty() && row != null) {
+            String orderNo = firstNonBlankString(row, "orderNo", "OrderNo", "order_no");
+            String mer = mid != null && !mid.isBlank() ? mid.trim() : chillTrMerchantRaw(row);
+            if (!orderNo.isEmpty() && !mer.isEmpty()) {
+                for (String origin : List.of("NOTI", "URL", "API", "CHATBOT")) {
+                    tOpt = pgTrnsctnRepository.findFirstByMerchantIdAndOrderNoAndOrigin(mer, orderNo, origin);
+                    if (tOpt.isPresent()) {
+                        break;
+                    }
+                }
+            }
         }
         if (tOpt.isEmpty()) {
             return new TxnMerchantLookup("", Optional.empty());
@@ -1589,6 +1611,35 @@ public class ChillPayService {
             ou = orgUnitRepository.findByCodeIgnoreCase(merId);
         }
         return new TxnMerchantLookup(merId, ou);
+    }
+
+    /** JSON 숫자·과학적 표기 등과 DB varchar 저장값을 맞추기 위한 Chill TransactionId 정규화(최대 64자). */
+    private static String normalizeChillTxnIdForDbLookup(String raw) {
+        if (raw == null) {
+            return "";
+        }
+        String s = raw.trim();
+        if (s.isEmpty() || "null".equalsIgnoreCase(s)) {
+            return "";
+        }
+        try {
+            if (s.matches("[-+]?[0-9]*\\.?[0-9]+([eE][-+]?[0-9]+)?")) {
+                BigDecimal bd = new BigDecimal(s);
+                s = bd.stripTrailingZeros().toPlainString();
+            }
+        } catch (Exception ignored) {
+            // keep s
+        }
+        if (s.endsWith(".0")) {
+            int dot = s.indexOf('.');
+            if (dot > 0 && "0".equals(s.substring(dot + 1))) {
+                s = s.substring(0, dot);
+            }
+        }
+        if (s.length() > 64) {
+            s = s.substring(0, 64);
+        }
+        return s;
     }
 
     private Optional<OrgUnit> resolveOrgUnitForChillMidAndRoute(String mid, String routeKey) {

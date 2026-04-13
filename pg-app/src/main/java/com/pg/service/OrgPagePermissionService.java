@@ -201,6 +201,9 @@ public class OrgPagePermissionService {
         for (PageMenuCatalog.PageMenuItem item : PageMenuCatalog.items()) {
             String url = item.pageUrl();
             String p = byUrl.get(url);
+            if (p == null && "/calc/unpaidMng".equals(url)) {
+                p = defaultUnpaidMngPermissionForOrgLevel(orgLevel);
+            }
             if (p == null && OrgLevel.MERCHANT.name().equals(orgLevel)) {
                 if ("/system/noticeList".equals(url) || "/comp/myCompMng".equals(url)) {
                     p = P_OBSERVER;
@@ -209,6 +212,42 @@ public class OrgPagePermissionService {
             out.put(url, p != null ? p : P_DELETE);
         }
         return out;
+    }
+
+    /**
+     * 단계(tb_org_page_permission)에 행이 없을 때 미수금관리 URL 기본값.
+     * 총본사·본사·총판은 등록·대손 등 쓰기 가능(DELETE), 그 외(지사·대리점·영업점 등)는 조회만(OBSERVER).
+     * 저장된 단계/조직별 권한이 있으면 그 값이 우선합니다.
+     */
+    private static String defaultUnpaidMngPermissionForOrgLevel(String orgLevel) {
+        if (orgLevel == null || orgLevel.isBlank()) {
+            return P_OBSERVER;
+        }
+        String ol = orgLevel.trim().toUpperCase(Locale.ROOT);
+        if (OrgLevel.HEADQUARTERS.name().equals(ol) || OrgLevel.REGIONAL.name().equals(ol) || OrgLevel.MASTER_DIST.name().equals(ol)) {
+            return P_DELETE;
+        }
+        return P_OBSERVER;
+    }
+
+    /**
+     * 미수금 수동 등록·대손·취소 등 쓰기 API — 「미수금관리」(/calc/unpaidMng) 화면 권한이 MODIFY 이상일 때만 허용.
+     * ADMIN 은 항상 허용. 본사권한설정에서 해당 URL을 OBSERVER/NONE 으로 내리면 동일 계정은 API에서도 차단됩니다.
+     */
+    public boolean canManuallyManageMerchantReceivable(AppUser user) {
+        if (user == null) {
+            return false;
+        }
+        if ("ADMIN".equalsIgnoreCase(user.getRole())) {
+            return true;
+        }
+        Map<String, String> m = resolvePagePermissionsForUser(user);
+        if (m == null) {
+            return false;
+        }
+        String raw = m.get("/calc/unpaidMng");
+        String p = normalizePerm(raw != null ? raw : P_NONE);
+        return P_MODIFY.equals(p) || P_DELETE.equals(p);
     }
 
     /**
@@ -441,13 +480,36 @@ public class OrgPagePermissionService {
             return payload;
         }
         if (reg || md) {
-            payload.put("matrix", new LinkedHashMap<>());
-            payload.put("orgLevels", new ArrayList<>());
+            // 단일 조직만 보이더라도 개별 조직·적용방식 패널은 표시 (편집은 canSaveOrgUnit=false 로 제한)
+            caps.put("showOrgUnitPanel", true);
             String compId = String.valueOf(orgMap.getOrDefault("compId", "")).trim();
             List<Map<String, Object>> all = listAllOrgUnitsForPermissionAdmin();
             List<Map<String, Object>> one = all.stream()
                     .filter(m -> compId.equals(String.valueOf(m.getOrDefault("code", "")).trim()))
                     .toList();
+            if (one.isEmpty()) {
+                Object ouIdObj = orgMap.get("orgUnitId");
+                if (ouIdObj != null) {
+                    try {
+                        long ouId = Long.parseLong(ouIdObj.toString().trim());
+                        one = all.stream()
+                                .filter(m -> {
+                                    Object ido = m.get("id");
+                                    if (ido == null) {
+                                        return false;
+                                    }
+                                    try {
+                                        return ouId == Long.parseLong(ido.toString().trim());
+                                    } catch (NumberFormatException e) {
+                                        return false;
+                                    }
+                                })
+                                .toList();
+                    } catch (NumberFormatException ignored) {
+                        one = List.of();
+                    }
+                }
+            }
             payload.put("orgUnits", one);
         }
         payload.put("uiCaps", caps);

@@ -37,6 +37,16 @@ if [[ ! -f "$JAR" ]]; then
   exit 1
 fi
 
+# 업로드 중단·ASCII FTP 등으로 JAR가 깨지면: Invalid or corrupt jarfile / 기동·종료 시 CNF
+if command -v unzip >/dev/null 2>&1; then
+  if ! unzip -t "$JAR" >/dev/null 2>&1; then
+    echo "오류: JAR가 손상되었거나 불완전합니다: $JAR"
+    echo "  → PC에서 bootJar 산출물 크기와 서버 ls -l 용량을 비교하고, FTP는 반드시 바이너리 모드로 다시 업로드하세요."
+    echo "  → 확인: unzip -t $JAR"
+    exit 1
+  fi
+fi
+
 if [[ -z "$DB_PASSWORD" || "$DB_PASSWORD" == "비밀번호" ]]; then
   echo "오류: restart-pg-app.sh 안의 DB_PASSWORD 를 실제 DB 비밀번호로 바꾸세요."
   exit 1

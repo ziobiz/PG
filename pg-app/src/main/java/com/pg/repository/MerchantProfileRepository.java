@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -17,5 +18,7 @@ public interface MerchantProfileRepository extends JpaRepository<MerchantProfile
 
     @Query("select mp.orgUnitId from MerchantProfile mp where mp.regNo is not null and lower(mp.regNo) like lower(concat('%', :q, '%'))")
     List<Long> findOrgUnitIdsByRegNoContainingIgnoreCase(@Param("q") String q);
+
+    List<MerchantProfile> findByOrgUnitIdIn(Collection<Long> orgUnitIds);
 }
 

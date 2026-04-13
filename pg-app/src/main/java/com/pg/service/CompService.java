@@ -452,6 +452,8 @@ public class CompService {
         String cNm = (compNm != null && !compNm.trim().isEmpty()) ? compNm.trim() : null;
         String cDiv = (compDiv != null && !compDiv.trim().isEmpty()) ? compDiv.trim() : null;
         List<OrgUnit> all = orgUnitRepository.findAll();
+        Map<Long, OrgUnit> allById = all.stream()
+                .collect(Collectors.toMap(OrgUnit::getId, ou -> ou, (a, b) -> a));
         List<OrgUnit> scoped;
         if (scopeCompId == null || scopeCompId.trim().isEmpty()) {
             scoped = all;
@@ -527,6 +529,9 @@ public class CompService {
                 row.put("parentId", ou.getParentId());
                 int levelCode = ou.getOrgLevel() != null ? ou.getOrgLevel().getCode() : 99;
                 row.put("depth", levelCode - minOrgLevelCodeInFiltered);
+                if (ou.getOrgLevel() == OrgLevel.MERCHANT) {
+                    row.put("merchantTreeFolderTone", resolveMerchantTreeFolderTone(ou, allById));
+                }
                 list.add(row);
             }
         }
@@ -590,6 +595,49 @@ public class CompService {
         for (OrgUnit c : byParent.getOrDefault(node.getId(), Collections.emptyList())) {
             appendOrgSubtreePreOrder(c, byParent, out, visited);
         }
+    }
+
+    /**
+     * 업체관리 트리: 가맹점 행 톤 — 가맹점에서 상위로 올라가며 만나는 첫 영업 조직 단계.
+     * (예: 총판→지사→가맹점이면 지사 톤, 총판→가맹점이면 총판 톤)
+     * {@code DIRECT}=총판, {@code BRANCH}=지사, {@code AGENCY}=대리점, {@code SALES}=영업점,
+     * {@code REGIONAL}=본사, {@code HEADQUARTERS}=총본사, 그 외 {@code OTHER}.
+     */
+    private static String resolveMerchantTreeFolderTone(OrgUnit merchant, Map<Long, OrgUnit> byId) {
+        if (merchant == null || merchant.getOrgLevel() != OrgLevel.MERCHANT) {
+            return "";
+        }
+        Long curId = merchant.getParentId();
+        for (int i = 0; i < 64 && curId != null; i++) {
+            OrgUnit anc = byId.get(curId);
+            if (anc == null) {
+                return "OTHER";
+            }
+            OrgLevel lv = anc.getOrgLevel();
+            if (lv == null) {
+                curId = anc.getParentId();
+                continue;
+            }
+            switch (lv) {
+                case MASTER_DIST:
+                    return "DIRECT";
+                case BRANCH:
+                    return "BRANCH";
+                case AGENCY:
+                    return "AGENCY";
+                case SALES_OFFICE:
+                    return "SALES";
+                case REGIONAL:
+                    return "REGIONAL";
+                case HEADQUARTERS:
+                    return "HEADQUARTERS";
+                case MERCHANT:
+                default:
+                    curId = anc.getParentId();
+                    break;
+            }
+        }
+        return "OTHER";
     }
 
     /** 업체변경이력 — 필드 단위 로그 조회 */

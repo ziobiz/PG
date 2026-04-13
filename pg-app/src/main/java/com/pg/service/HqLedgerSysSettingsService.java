@@ -3,6 +3,7 @@ package com.pg.service;
 import com.pg.catalog.DataRetentionCatalog;
 import com.pg.entity.HqLedgerSysSettings;
 import com.pg.repository.HqLedgerSysSettingsRepository;
+import com.pg.util.FeeCurrencyRoundResolver;
 import com.pg.util.PayDisplayCurrency;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -83,10 +84,12 @@ public class HqLedgerSysSettingsService {
             String rm = s.getFeeListRoundMode();
             m.put("feeListRoundMode", rm != null && !rm.isBlank() ? rm.trim().toUpperCase() : "CEILING");
         }
+        m.put("feeCurrencyFormats", FeeCurrencyRoundResolver.buildDisplayRows(s));
         {
             String num = PayDisplayCurrency.normalizeIsoNum(s.getPayDisplayCurrencyIsoNum());
             m.put("payDisplayCurrencyIsoNum", num);
             m.put("payDisplayCurrencyCode", PayDisplayCurrency.alphaFromIsoNum(num));
+            m.put("payDisplayCurrencyCatalog", PayDisplayCurrency.catalogRows());
         }
         m.putAll(hqNotifyEnvService.payFollowActionsSlice());
         if (s.getUpdatedAt() != null) {
@@ -155,23 +158,27 @@ public class HqLedgerSysSettingsService {
             s.setFeeListDecimalPlaces(clampInt(body.get("feeListDecimalPlaces"), 2, 0, 8));
         }
         if (body.containsKey("feeListRoundMode")) {
-            String rm = trimToNull(body.get("feeListRoundMode"));
-            if (rm != null) {
-                String u = rm.toUpperCase();
-                if ("CEILING".equals(u) || "HALF_UP".equals(u) || "DOWN".equals(u)) {
-                    s.setFeeListRoundMode(u);
+            Integer dpCur = s.getFeeListDecimalPlaces();
+            if (dpCur == null || dpCur != 0) {
+                String rm = trimToNull(body.get("feeListRoundMode"));
+                if (rm != null) {
+                    String u = rm.toUpperCase();
+                    if ("CEILING".equals(u) || "HALF_UP".equals(u) || "DOWN".equals(u)) {
+                        s.setFeeListRoundMode(u);
+                    }
                 }
             }
         }
-        if (body.containsKey("payDisplayCurrencyIsoNum")) {
-            String raw = trimToNull(body.get("payDisplayCurrencyIsoNum"));
-            if (raw == null) {
-                s.setPayDisplayCurrencyIsoNum(PayDisplayCurrency.DEFAULT_ISO_NUM);
+        if (s.getFeeListDecimalPlaces() != null && s.getFeeListDecimalPlaces() == 0) {
+            s.setFeeListRoundMode("DOWN");
+        }
+        /* payDisplayCurrencyIsoNum: 전역 표시 기준 통화 — 전산설정 UI·본 API 저장 본문으로는 변경하지 않음(DB·배포 스키마로만 관리). */
+        if (body.containsKey("feeCurrencyFormatJson")) {
+            Object fc = body.get("feeCurrencyFormatJson");
+            if (fc == null || String.valueOf(fc).isBlank()) {
+                s.setFeeCurrencyFormatJson(FeeCurrencyRoundResolver.normalizePolicyJson(null, s));
             } else {
-                String n = PayDisplayCurrency.normalizeIsoNum(raw);
-                if (PayDisplayCurrency.isKnownIsoNum(n)) {
-                    s.setPayDisplayCurrencyIsoNum(n);
-                }
+                s.setFeeCurrencyFormatJson(FeeCurrencyRoundResolver.normalizePolicyJson(String.valueOf(fc), s));
             }
         }
         if (body.containsKey("dataRetentionPolicyJson")) {

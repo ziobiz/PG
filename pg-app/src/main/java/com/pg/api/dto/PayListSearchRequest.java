@@ -29,6 +29,10 @@ public class PayListSearchRequest {
     private String searchChillTxnId;
     /** NOTI 수신 경로: CALLBACK(기본)·RESULT·BOTH·ALL(전체). 통합/노티 결제내역만 서버에서 적용 */
     private String searchNotifyChannel;
+    /** 목록 정렬 방향: ASC / 그 외 DESC(기본). 정렬 키는 {@link #searchOrderBy} 없으면 createdAt */
+    private String searchOrderDir;
+    /** 정렬 속성(화면 확장용): createdAt·paidAt·trnId·amtKrw·merchantId·orderNo·status 등 엔티티 필드명 */
+    private String searchOrderBy;
     private String payListVariant;
     private int page = 1;
     private int size = 20;
@@ -51,6 +55,8 @@ public class PayListSearchRequest {
         r.searchCardAprvNo = raw.get("searchCardAprvNo");
         r.searchChillTxnId = raw.get("searchChillTxnId");
         r.searchNotifyChannel = raw.get("searchNotifyChannel");
+        r.searchOrderDir = raw.get("searchOrderDir");
+        r.searchOrderBy = raw.get("searchOrderBy");
         r.payListVariant = raw.get("payListVariant");
         r.searchFromDate = parseDate(raw.get("searchFromDate"));
         r.searchToDate = parseDate(raw.get("searchToDate"));
@@ -77,6 +83,8 @@ public class PayListSearchRequest {
         put(m, "searchCardAprvNo", searchCardAprvNo);
         put(m, "searchChillTxnId", searchChillTxnId);
         put(m, "searchNotifyChannel", searchNotifyChannel);
+        put(m, "searchOrderDir", searchOrderDir);
+        put(m, "searchOrderBy", searchOrderBy);
         put(m, "payListVariant", payListVariant);
         m.put("page", String.valueOf(page));
         m.put("size", String.valueOf(size));
@@ -145,6 +153,10 @@ public class PayListSearchRequest {
     public void setSearchChillTxnId(String searchChillTxnId) { this.searchChillTxnId = searchChillTxnId; }
     public String getSearchNotifyChannel() { return searchNotifyChannel; }
     public void setSearchNotifyChannel(String searchNotifyChannel) { this.searchNotifyChannel = searchNotifyChannel; }
+    public String getSearchOrderDir() { return searchOrderDir; }
+    public void setSearchOrderDir(String searchOrderDir) { this.searchOrderDir = searchOrderDir; }
+    public String getSearchOrderBy() { return searchOrderBy; }
+    public void setSearchOrderBy(String searchOrderBy) { this.searchOrderBy = searchOrderBy; }
     public String getPayListVariant() { return payListVariant; }
     public void setPayListVariant(String payListVariant) { this.payListVariant = payListVariant; }
     public int getPage() { return page; }

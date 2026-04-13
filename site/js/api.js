@@ -179,6 +179,10 @@
     return request({ path: path, method: 'POST', body: body || {} });
   }
 
+  function put(path, body) {
+    return request({ path: path, method: 'PUT', body: body || {} });
+  }
+
   function del(path) {
     return request({ path: path, method: 'DELETE' });
   }
@@ -968,6 +972,9 @@
     hqLedgerSysSettingsSave: function (body) {
       return post('/api/hq/ledgerSysSettings/save', body || {}).then(function (r) { return r.data; });
     },
+    hqLedgerSysSettingsResetOperationalData: function () {
+      return post('/api/hq/ledgerSysSettings/resetOperationalData', {}).then(function (r) { return r.data; });
+    },
     hqOrgViewColumnRegionalBranches: function () {
       return get('/api/hq/orgViewColumnAllowance/regionalBranches').then(function (r) { return r.data || []; });
     },
@@ -1028,12 +1035,17 @@
           totalElements: list.length,
           totalPages: 1,
           page: 1,
-          size: list.length || 20
+          size: list.length || 20,
+          users: Array.isArray(d.users) ? d.users : [],
+          comps: Array.isArray(d.comps) ? d.comps : []
         };
       });
     },
     hqAccountAccessAdd: function (body) {
       return post('/api/hq/accountAccess/add', body || {}).then(function (r) { return r.data || r; });
+    },
+    hqAccountAccessUpdate: function (id, body) {
+      return put('/api/hq/accountAccess/' + encodeURIComponent(id), body || {}).then(function (r) { return r.data || r; });
     },
     hqAccountAccessDelete: function (id) {
       return del('/api/hq/accountAccess/' + encodeURIComponent(id)).then(function (r) { return r.data || r; });

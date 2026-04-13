@@ -7,6 +7,8 @@
   --pay-mng-dense-font-size: 11px;
   --app-table-font-size: var(--pay-mng-dense-font-size);
   --app-form-sm-font-size: 12px;
+  /* VIEW SETTING 패널(.table-column-guide) 전용 글자 크기 */
+  --view-setting-font-size: 10px;
 }
 body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans KR", sans-serif; font-size: var(--app-base-font-size); }
 
@@ -31,7 +33,7 @@ body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Ro
 }
 .wrapper { display: flex; flex-direction: column; min-height: 100vh; }
 /* 세로로 메뉴가 길면 사이드바 내부 스크롤 대신 본 행 전체를 스크롤 */
-.wrapper-body { display: flex; flex-direction: row; flex: 1; min-height: 0; min-width: 0; overflow-x: hidden; overflow-y: auto; align-items: stretch; }
+.wrapper-body { display: flex; flex-direction: row; flex: 1; min-height: 0; min-width: 0; overflow-x: hidden; overflow-y: auto; align-items: stretch; scrollbar-gutter: stable; }
 
 /* ========== 좌측 사이드바: layout/left-side-menu.html 구조 (로고 → 접기 → 메뉴) ========== */
 .left-side-menu {
@@ -399,7 +401,7 @@ body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Ro
 .page-title-box .breadcrumb-item.navi { font-weight: 600; color: #333; }
 .page-title-box .page-title.empty-title { display: none; }
 #contentsMain { flex: 1; min-height: 0; overflow: hidden; }
-.tab-pane.tabConDiv { height: 100%; min-height: 0; display: none; padding: 0; overflow-y: auto; font-size: var(--app-base-font-size); }
+.tab-pane.tabConDiv { height: 100%; min-height: 0; display: none; padding: 0; overflow-y: auto; scrollbar-gutter: stable; font-size: var(--app-base-font-size); }
 .tab-pane.tabConDiv.show.active { display: block; }
 
 /* 목록 화면 통일 간격: 검색 줄·알림·요약·테이블 구분 (결제내역·결제실패 등 전체) */
@@ -621,6 +623,12 @@ body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Ro
   margin-left: auto;
 }
 .screen-summary-action-row .screen-action-buttons .btn { margin: 0; }
+/* 목록 정렬 순서: 내림차순·오름차순 각각 메뉴 버튼(새로고침 왼쪽) */
+.screen-list-sort-dir-menu .screen-list-sort-dir-btn {
+  font-size: 0.8125rem;
+  line-height: 1.25;
+  white-space: nowrap;
+}
 
 /* 예전 구조 호환: .screen-action-row 사용처도 동일하게 오른쪽 정렬 */
 .screen-action-row {
@@ -739,6 +747,17 @@ body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Ro
 #contentsMain .table.table-hover:not(.org-perm-table) > tbody > tr.table-active:hover,
 #contentsMain .table.table-hover:not(.org-perm-table) > tbody > tr.table-active:hover > td {
   background-color: #d6e9ff !important;
+}
+
+/*
+ * 본사권한설정(org-perm): tbody 첫 행이 colspan 그룹 헤더라 열 리사이즈가 1열로 오인 → 표 붕괴 방지.
+ * (table-no-col-resize + table-no-col-resize-wrap 로 스크립트 제외, 과거 세션 잔여 fixed 대비)
+ */
+#contentsMain .org-perm-table.table-no-col-resize,
+.tab-pane.tabConDiv .org-perm-table.table-no-col-resize {
+  table-layout: auto !important;
+  width: 100%;
+  min-width: 100%;
 }
 
 /* 가맹점정산내역: 결제내역(screen-pay-list)과 동일 글자·한 줄 셀 + 가로 스크롤 */
@@ -885,6 +904,12 @@ body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Ro
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
 }
+/* 수수료내역: table-scrollable 공통(60vh·세로 overflow)보다 우선 — 한 페이지(25·50 등) 행이 잘리지 않고 내부 세로 스크롤 없음. 가로만 유지 */
+#contentsMain .screen-calc-fee-list .table-responsive.table-scrollable {
+  max-height: none;
+  overflow-y: visible;
+  overflow-x: auto;
+}
 #contentsMain .screen-calc-fee-list .table-responsive > .table {
   width: max-content;
   min-width: 100%;
@@ -935,6 +960,7 @@ body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Ro
 #contentsMain .screen-calc-fee-list .table th[data-key="trnId"] { min-width: 200px; }
 #contentsMain .screen-calc-fee-list .table th[data-key="amount"],
 #contentsMain .screen-calc-fee-list .table th[data-key="expectedPayout"],
+#contentsMain .screen-calc-fee-list .table th[data-key="settlementAmt"],
 #contentsMain .screen-calc-fee-list .table th[data-key="totalFee"],
 #contentsMain .screen-calc-fee-list .table th[data-key="feeVat"] { min-width: 96px; }
 
@@ -1288,12 +1314,6 @@ body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Ro
 #contentsMain .screen-pay-list .search-notice li {
   font-size: var(--pay-mng-dense-font-size);
 }
-#contentsMain .screen-pay-list .table-column-guide,
-#contentsMain .screen-pay-list .table-column-guide .column-guide-title,
-#contentsMain .screen-pay-list .table-column-guide .column-guide-label,
-#contentsMain .screen-pay-list .table-column-guide .btn-xs {
-  font-size: var(--pay-mng-dense-font-size);
-}
 #contentsMain .screen-pay-list .summary-total-bar,
 #contentsMain .screen-pay-list .summary-total-item {
   font-size: var(--pay-mng-dense-font-size);
@@ -1332,12 +1352,6 @@ body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Ro
 #contentsMain .screen-comp-mng-tree .search-notice li {
   font-size: var(--pay-mng-dense-font-size);
 }
-#contentsMain .screen-comp-mng-tree .table-column-guide,
-#contentsMain .screen-comp-mng-tree .table-column-guide .column-guide-title,
-#contentsMain .screen-comp-mng-tree .table-column-guide .column-guide-label,
-#contentsMain .screen-comp-mng-tree .table-column-guide .btn-xs {
-  font-size: var(--pay-mng-dense-font-size);
-}
 #contentsMain .screen-comp-mng-tree .summary-total-bar,
 #contentsMain .screen-comp-mng-tree .summary-total-item {
   font-size: var(--pay-mng-dense-font-size);
@@ -1367,14 +1381,11 @@ body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Ro
 table.table.pg-table-col-resize-enabled {
   table-layout: fixed;
 }
-/* 결제관리 통합·분류·통합내역·통합정산: 내용(글자) 너비 우선, 가로 스크롤로 전체 표시 */
+/* 결제관리 통합·분류·통합내역·통합정산: 리사이즈 시 col 너비 적용을 위해 fixed(가로 스크롤은 유지) */
 #contentsMain .screen-pay-list .table-responsive > .table.pay-mng-data-grid.pg-table-col-resize-enabled {
-  table-layout: auto;
+  table-layout: fixed;
   width: max-content;
   min-width: 100%;
-}
-#contentsMain .screen-pay-list .table.pay-mng-data-grid colgroup.pg-col-resize-group col {
-  width: auto;
 }
 /* 통합내역: 다른 결제 그리드와 동일하게 가로 스크롤(열 압축 방지) */
 #contentsMain .screen-chill-pay-tr-list .table-responsive {
@@ -1384,9 +1395,14 @@ table.table.pg-table-col-resize-enabled {
   -webkit-overflow-scrolling: touch;
 }
 #contentsMain .screen-chill-pay-tr-list .table-responsive > .table.pay-mng-data-grid.pg-table-col-resize-enabled {
-  table-layout: auto;
+  table-layout: fixed;
   width: max-content;
   min-width: 100%;
+}
+/* 가맹정산·수수료내역 등 동일 pay-mng 그리드: 상위 .table-responsive > .table 의 auto 를 덮어씀 */
+#contentsMain .screen-calc-gm-list .table-responsive > .table.pay-mng-data-grid.pg-table-col-resize-enabled,
+#contentsMain .screen-calc-fee-list .table-responsive > .table.pay-mng-data-grid.pg-table-col-resize-enabled {
+  table-layout: fixed;
 }
 #contentsMain table.table thead th.pg-th-has-resize,
 .tab-pane.tabConDiv table.table thead th.pg-th-has-resize,
@@ -1422,16 +1438,69 @@ colgroup.pg-col-resize-group col {
 
 /* 데이터 없음 메시지: 항상 가운데 (공공사항, 업체정보조회, 업체관리 포함) */
 #contentsMain .table-responsive .table { min-width: 100%; }
-/* 업체관리 등 컬럼 많은 테이블: 가로 스크롤, 컬럼 최소 너비 보장 */
-#contentsMain .table-responsive .table[id^="grid_comp_compMngTree"] { table-layout: auto; min-width: 1400px; }
-#contentsMain .table-responsive .table[id^="grid_comp_compMngTree"] th,
-#contentsMain .table-responsive .table[id^="grid_comp_compMngTree"] td { white-space: nowrap; min-width: 70px; }
+/* 업체관리 상단 그리드(.comp-mng-tree-grid): 리사이즈 적용 전 auto → 적용 후 fixed(table-column-resize.js) */
+#contentsMain .table-responsive .table.comp-mng-tree-grid[id^="grid_comp_compMngTree"] {
+  table-layout: auto;
+  width: auto;
+  min-width: 100%;
+}
+#contentsMain .table-responsive .table.comp-mng-tree-grid[id^="grid_comp_compMngTree"].pg-table-col-resize-enabled {
+  table-layout: fixed;
+  width: 100%;
+}
+#contentsMain .table-responsive .table[id^="grid_comp_compMngTree"] th {
+  white-space: nowrap;
+  min-width: 0;
+}
+#contentsMain .table-responsive .table[id^="grid_comp_compMngTree"] td {
+  white-space: normal;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  min-width: 0;
+  vertical-align: middle;
+}
+#contentsMain .table-responsive .table[id^="grid_comp_compMngTree"] .pg-comp-grid-clamp {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+  line-height: 1.35;
+  max-width: 100%;
+}
+/* 업체코드 조직도 셀: td 는 표 셀로 유지, 내부 래퍼로 아이콘·펼침·코드 한 줄 정렬 */
+#contentsMain .table-responsive .table[id^="grid_comp_compMngTree"] td.tree-comp-cell {
+  text-align: left !important;
+  vertical-align: middle;
+}
+#contentsMain .table-responsive .table[id^="grid_comp_compMngTree"] td.tree-comp-cell .tree-comp-cell-inner {
+  display: flex;
+  align-items: center;
+  flex-wrap: nowrap;
+  gap: 0;
+  width: 100%;
+  min-width: 0;
+}
+#contentsMain .table-responsive .table[id^="grid_comp_compMngTree"] td.tree-comp-cell .pg-comp-grid-clamp {
+  display: block;
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap !important;
+  -webkit-line-clamp: unset;
+  line-clamp: unset;
+  -webkit-box-orient: unset;
+  text-align: left;
+}
 #contentsMain .table-responsive .table[id^="grid_comp_compMngTree"] th:nth-child(1),
-#contentsMain .table-responsive .table[id^="grid_comp_compMngTree"] td:nth-child(1) { min-width: 40px; }
+#contentsMain .table-responsive .table[id^="grid_comp_compMngTree"] td:nth-child(1) { min-width: 40px; width: 40px; }
+#contentsMain .table-responsive .table[id^="grid_comp_compMngTree"] th:nth-child(2),
+#contentsMain .table-responsive .table[id^="grid_comp_compMngTree"] td:nth-child(2) { width: 48px; }
 #contentsMain .table-responsive .table[id^="grid_comp_compMngTree"] th:nth-child(4),
 #contentsMain .table-responsive .table[id^="grid_comp_compMngTree"] td:nth-child(4),
 #contentsMain .table-responsive .table[id^="grid_comp_compMngTree"] th:nth-child(5),
-#contentsMain .table-responsive .table[id^="grid_comp_compMngTree"] td:nth-child(5) { min-width: 90px; }
+#contentsMain .table-responsive .table[id^="grid_comp_compMngTree"] td:nth-child(5) { min-width: 0; }
 /* 업체관리: 한 줄 흰색, 한 줄 파스텔 블루 교차 + 칸 구분선 제거 */
 #contentsMain .table-responsive .table[id^="grid_comp_compMngTree"] tbody tr:nth-child(odd) { background: #fff; }
 #contentsMain .table-responsive .table[id^="grid_comp_compMngTree"] tbody tr:nth-child(even) { background: #E6F7FF; }
@@ -1442,6 +1511,9 @@ colgroup.pg-col-resize-group col {
   table-layout: auto;
   min-width: 1280px;
   font-size: var(--app-table-font-size);
+}
+.screen-distribution-list .screen-distribution-grid.table.pg-table-col-resize-enabled {
+  table-layout: fixed;
 }
 .screen-distribution-list .screen-distribution-grid thead th {
   vertical-align: middle;
@@ -1496,11 +1568,20 @@ colgroup.pg-col-resize-group col {
   vertical-align: middle;
 }
 
-/* 업체관리 VIEW SETTING: 항목 한 줄 좌측 정렬 + 우측 액션 고정 */
-.table-column-guide { font-size: var(--app-table-font-size); display: flex; flex-direction: column; align-items: stretch; justify-content: center; }
+/* VIEW SETTING: 본문·제목·체크·버튼 글자 — 전역 10px */
+#contentsMain .table-column-guide,
+#contentsMain .table-column-guide .column-guide-title,
+#contentsMain .table-column-guide .column-guide-label,
+#contentsMain .table-column-guide .column-guide-item,
+#contentsMain .table-column-guide .btn-xs {
+  font-size: var(--view-setting-font-size);
+}
+
+/* 업체관리 VIEW SETTING: 1행 제목·액션, 2행 컬럼 체크(줄바꿈) — 결제내역과 동일 레이아웃 */
+.table-column-guide { font-size: var(--view-setting-font-size); display: flex; flex-direction: column; align-items: stretch; justify-content: center; }
 .table-column-guide .column-guide-row { margin-bottom: 4px; }
 .table-column-guide .column-guide-row:last-child { margin-bottom: 0; }
-.table-column-guide .column-guide-title { font-weight: 600; color: #495057; font-size: var(--app-table-font-size); padding-left: 0; margin-bottom: 2px; }
+.table-column-guide .column-guide-title { font-weight: 600; color: #495057; font-size: var(--view-setting-font-size); padding-left: 0; margin-bottom: 2px; }
 .table-column-guide .column-guide-body { display: flex; flex-wrap: nowrap; align-items: stretch; gap: 10px; width: 100%; }
 .table-column-guide .column-guide-list {
   flex: 1 1 auto;
@@ -1537,7 +1618,7 @@ colgroup.pg-col-resize-group col {
 .column-guide-vbar {
   color: #cbd5e1;
   font-weight: 300;
-  font-size: 0.85rem;
+  font-size: var(--view-setting-font-size);
   line-height: 1;
   user-select: none;
 }
@@ -1547,7 +1628,7 @@ colgroup.pg-col-resize-group col {
   flex: 0 0 auto;
   min-width: auto;
   line-height: 1.35;
-  font-size: var(--app-table-font-size);
+  font-size: var(--view-setting-font-size);
 }
 .table-column-guide--two-row .column-guide-actions--inline,
 .table-column-guide.table-column-guide--inline-head .column-guide-actions--inline {
@@ -1563,16 +1644,17 @@ colgroup.pg-col-resize-group col {
 }
 .column-guide-actions--inline .btn.btn-xs {
   padding: 1px 6px !important;
-  font-size: var(--app-table-font-size) !important;
+  font-size: var(--view-setting-font-size) !important;
   min-height: 20px !important;
   min-width: 2rem !important;
 }
-/* 헬로: VIEW SETTING 패널 숨김 토글 — 새로고침·엑셀 사이 배치 */
+/* 헬로: 안내(파스텔)·VIEW SETTING 공통 숨김 토글 — 새로고침·엑셀 사이(글자 크기 VIEW SETTING과 동일) */
 .btn-view-setting-hello {
   background-color: #fecaca !important;
   border-color: #f87171 !important;
   color: #7f1d1d !important;
   font-weight: 600;
+  font-size: var(--view-setting-font-size) !important;
 }
 .btn-view-setting-hello:hover {
   background-color: #fca5a5 !important;
@@ -1587,12 +1669,6 @@ colgroup.pg-col-resize-group col {
 .btn-view-setting-hello.btn-view-setting-hello--restore:hover {
   background-color: #d1d5db !important;
   border-color: #9ca3af !important;
-}
-/* 업체관리 등 1단 VIEW: 체크 목록만 아래 한 줄(가로 스크롤) */
-.table-column-guide.table-column-guide--inline-head:not(.table-column-guide--two-row) .column-guide-checkboxes .column-guide-list {
-  flex-wrap: nowrap;
-  overflow-x: auto;
-  overflow-y: hidden;
 }
 .table-column-guide--two-row .column-guide-checkboxes {
   width: 100%;
@@ -1613,6 +1689,7 @@ colgroup.pg-col-resize-group col {
   word-break: break-word;
   overflow-wrap: anywhere;
   line-height: 1.35;
+  font-size: var(--view-setting-font-size);
 }
 .table-column-guide .column-guide-actions {
   flex: 0 0 auto !important;
@@ -1631,11 +1708,11 @@ colgroup.pg-col-resize-group col {
   flex: 0 0 auto !important;
   min-width: 44px;
   white-space: nowrap !important;
+  font-size: var(--view-setting-font-size) !important;
 }
-.table-column-guide:not(.table-column-guide--two-row) .column-guide-item { margin: 0; font-weight: 500; cursor: pointer; white-space: nowrap; font-size: var(--app-table-font-size); display: inline-flex; align-items: center; }
-.table-column-guide.table-column-guide--two-row .column-guide-item { margin: 0; font-weight: 500; cursor: pointer; white-space: normal; font-size: var(--app-table-font-size); display: inline-flex; align-items: flex-start; max-width: 100%; }
+.table-column-guide .column-guide-item { margin: 0; font-weight: 500; cursor: pointer; white-space: normal; font-size: var(--view-setting-font-size); display: inline-flex; align-items: flex-start; max-width: 100%; }
 .table-column-guide .column-guide-item input { margin-right: 3px; }
-.table-column-guide .btn.btn-xs { font-size: var(--app-form-sm-font-size); padding: 2px 6px; width: 100%; min-height: 24px; }
+.table-column-guide .btn.btn-xs { font-size: var(--view-setting-font-size); padding: 2px 6px; width: 100%; min-height: 24px; }
 /* 업체관리 트리: 데이터 셀도 가운데 정렬(통일 정책) */
 .tree-toggle-cell { white-space: nowrap; }
 .tree-comp-cell { white-space: nowrap; text-align: center !important; }
@@ -1652,6 +1729,14 @@ colgroup.pg-col-resize-group col {
 .tree-comp-cell .tree-icon.tree-org-AGENCY { color: #f57f17; }
 .tree-comp-cell .tree-icon.tree-org-SALES_OFFICE { color: #c2185b; }
 .tree-comp-cell .tree-icon.tree-org-MERCHANT { color: #455a64; }
+/* 가맹점: 상위 첫 조직 단계별 폴더·문서 아이콘 파스텔 (서버 merchantTreeFolderTone) */
+.tree-comp-cell .tree-icon.tree-org-MERCHANT.tree-merch-folder--direct { color: #81c784; }
+.tree-comp-cell .tree-icon.tree-org-MERCHANT.tree-merch-folder--branch { color: #ffb74d; }
+.tree-comp-cell .tree-icon.tree-org-MERCHANT.tree-merch-folder--agency { color: #ffcc80; }
+.tree-comp-cell .tree-icon.tree-org-MERCHANT.tree-merch-folder--sales { color: #f48fb1; }
+.tree-comp-cell .tree-icon.tree-org-MERCHANT.tree-merch-folder--regional { color: #64b5f6; }
+.tree-comp-cell .tree-icon.tree-org-MERCHANT.tree-merch-folder--headquarters { color: #ba68c8; }
+.tree-comp-cell .tree-icon.tree-org-MERCHANT.tree-merch-folder--other { color: #b0bec5; }
 .tree-comp-cell .tree-icon.tree-org-unknown { color: #757575; }
 .tree-toggle {
   display: inline-block;
@@ -1696,6 +1781,35 @@ colgroup.pg-col-resize-group col {
 .tree-comp-cell .tree-toggle.tree-org-MERCHANT.expanded:hover { color: #263238; }
 .tree-comp-cell .tree-toggle.tree-org-MERCHANT.collapsed { color: rgba(69, 90, 100, 0.55); }
 .tree-comp-cell .tree-toggle.tree-org-MERCHANT.collapsed:hover { color: rgba(69, 90, 100, 0.88); }
+/* 가맹점 + 소속 톤: 펼침 삼각색을 아이콘과 동일 계열로 */
+.tree-comp-cell .tree-toggle.tree-org-MERCHANT.tree-merch-folder--direct.expanded,
+.tree-comp-cell .tree-toggle.tree-org-MERCHANT.tree-merch-folder--direct.expanded:hover { color: #66bb6a; }
+.tree-comp-cell .tree-toggle.tree-org-MERCHANT.tree-merch-folder--direct.collapsed { color: rgba(102, 187, 106, 0.55); }
+.tree-comp-cell .tree-toggle.tree-org-MERCHANT.tree-merch-folder--direct.collapsed:hover { color: rgba(102, 187, 106, 0.9); }
+.tree-comp-cell .tree-toggle.tree-org-MERCHANT.tree-merch-folder--branch.expanded,
+.tree-comp-cell .tree-toggle.tree-org-MERCHANT.tree-merch-folder--branch.expanded:hover { color: #ffa726; }
+.tree-comp-cell .tree-toggle.tree-org-MERCHANT.tree-merch-folder--branch.collapsed { color: rgba(255, 167, 38, 0.55); }
+.tree-comp-cell .tree-toggle.tree-org-MERCHANT.tree-merch-folder--branch.collapsed:hover { color: rgba(255, 167, 38, 0.92); }
+.tree-comp-cell .tree-toggle.tree-org-MERCHANT.tree-merch-folder--agency.expanded,
+.tree-comp-cell .tree-toggle.tree-org-MERCHANT.tree-merch-folder--agency.expanded:hover { color: #ffb74d; }
+.tree-comp-cell .tree-toggle.tree-org-MERCHANT.tree-merch-folder--agency.collapsed { color: rgba(255, 183, 77, 0.58); }
+.tree-comp-cell .tree-toggle.tree-org-MERCHANT.tree-merch-folder--agency.collapsed:hover { color: rgba(255, 183, 77, 0.92); }
+.tree-comp-cell .tree-toggle.tree-org-MERCHANT.tree-merch-folder--sales.expanded,
+.tree-comp-cell .tree-toggle.tree-org-MERCHANT.tree-merch-folder--sales.expanded:hover { color: #ec407a; }
+.tree-comp-cell .tree-toggle.tree-org-MERCHANT.tree-merch-folder--sales.collapsed { color: rgba(236, 64, 122, 0.55); }
+.tree-comp-cell .tree-toggle.tree-org-MERCHANT.tree-merch-folder--sales.collapsed:hover { color: rgba(236, 64, 122, 0.9); }
+.tree-comp-cell .tree-toggle.tree-org-MERCHANT.tree-merch-folder--regional.expanded,
+.tree-comp-cell .tree-toggle.tree-org-MERCHANT.tree-merch-folder--regional.expanded:hover { color: #42a5f5; }
+.tree-comp-cell .tree-toggle.tree-org-MERCHANT.tree-merch-folder--regional.collapsed { color: rgba(66, 165, 245, 0.55); }
+.tree-comp-cell .tree-toggle.tree-org-MERCHANT.tree-merch-folder--regional.collapsed:hover { color: rgba(66, 165, 245, 0.92); }
+.tree-comp-cell .tree-toggle.tree-org-MERCHANT.tree-merch-folder--headquarters.expanded,
+.tree-comp-cell .tree-toggle.tree-org-MERCHANT.tree-merch-folder--headquarters.expanded:hover { color: #ab47bc; }
+.tree-comp-cell .tree-toggle.tree-org-MERCHANT.tree-merch-folder--headquarters.collapsed { color: rgba(171, 71, 188, 0.55); }
+.tree-comp-cell .tree-toggle.tree-org-MERCHANT.tree-merch-folder--headquarters.collapsed:hover { color: rgba(171, 71, 188, 0.9); }
+.tree-comp-cell .tree-toggle.tree-org-MERCHANT.tree-merch-folder--other.expanded,
+.tree-comp-cell .tree-toggle.tree-org-MERCHANT.tree-merch-folder--other.expanded:hover { color: #90a4ae; }
+.tree-comp-cell .tree-toggle.tree-org-MERCHANT.tree-merch-folder--other.collapsed { color: rgba(144, 164, 174, 0.55); }
+.tree-comp-cell .tree-toggle.tree-org-MERCHANT.tree-merch-folder--other.collapsed:hover { color: rgba(144, 164, 174, 0.9); }
 .tree-comp-cell .tree-toggle.tree-org-unknown.expanded,
 .tree-comp-cell .tree-toggle.tree-org-unknown.collapsed { color: #757575; }
 .tree-comp-cell .tree-toggle.tree-org-unknown.expanded:hover,
@@ -1863,9 +1977,10 @@ td.empty-state-cell {
   background: rgba(179, 217, 242, 0.5);
   border-bottom-color: #b3d9f2;
 }
-/* 결제대행사 설정: 복수 추가 테이블 */
+/* 결제대행사 설정: 복수 추가 테이블 (가로 스크롤바 없음 — 카드 너비 안에 표시) */
 .pg-binding-list-wrap {
-  overflow-x: auto;
+  overflow-x: visible;
+  max-width: 100%;
 }
 .pg-binding-table { font-size: var(--app-table-font-size); }
 .pg-binding-table th, .pg-binding-table td { vertical-align: middle; }
@@ -2279,6 +2394,13 @@ body.theme-light .left-side-menu .btn-secondary:hover, body.theme-gray .left-sid
 }
 .column-guide-item--off .column-guide-label {
   color: #9aa0a6;
+}
+
+/* 본사설정 조직항목설정: VIEW SETTING과 동일 클래스명 — 글자 10px 통일(Bootstrap .small 무력화) */
+#hqOrgAllowColumnChecks .column-guide-item,
+#hqOrgAllowColumnChecks .column-guide-label,
+#hqOrgAllowColumnChecks .column-guide-label.small {
+  font-size: var(--view-setting-font-size) !important;
 }
 
 /* 수수료관리 2단 헤더: 기본 그리드. 메인·히스토리 래퍼(.commission-list-table-wrap)는 가로 스크롤 + 한 줄 표시 */
@@ -2823,44 +2945,50 @@ button.pay-follow.pay-follow--off {
   text-decoration: none;
 }
 
-/* 종합거래 환경설정: 데이터 보관 기간 표 — 각 데이터 행·헤더를 한 줄로(넘침은 가로 스크롤·설명은 말줄임) */
-.hq-data-retention-wrap {
-  max-width: 100%;
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
-}
+/* 종합거래 환경설정: 데이터 보관 기간 표 — 수수료·정산 통화 표와 동일 래핑(border rounded + table-sm), 열 비율 고정 */
 .hq-data-retention-table {
   width: 100%;
-  min-width: 720px;
-  max-width: 100%;
   table-layout: fixed;
+}
+.hq-data-retention-table thead th:nth-child(1) {
+  width: 18%;
+}
+.hq-data-retention-table thead th:nth-child(2) {
+  width: 9%;
+}
+.hq-data-retention-table thead th:nth-child(3) {
+  width: 9%;
+}
+.hq-data-retention-table thead th:nth-child(4) {
+  width: 9%;
+}
+.hq-data-retention-table thead th:nth-child(5) {
+  width: 37%;
+}
+.hq-data-retention-table thead th:nth-child(6) {
+  width: 18%;
 }
 .hq-data-retention-table tbody tr.hq-dr-data-row > td {
   white-space: nowrap;
   overflow: hidden;
   vertical-align: middle;
 }
+.hq-data-retention-table tbody tr.hq-dr-data-row > td.hq-dr-type-cell,
 .hq-data-retention-table tbody tr.hq-dr-data-row > td.hq-dr-desc-cell {
-  text-overflow: ellipsis;
+  white-space: normal;
+  overflow: hidden;
+  vertical-align: top;
 }
-/* 열 비율: 후속조치 표(구분·기준·설정·값·반영) 분위기에 맞춤 — 설명열이 가변 */
-.hq-data-retention-table col:nth-child(1) {
-  width: 17%;
-}
-.hq-data-retention-table col:nth-child(2) {
-  width: 10%;
-}
-.hq-data-retention-table col:nth-child(3) {
-  width: 9%;
-}
-.hq-data-retention-table col:nth-child(4) {
-  width: 9%;
-}
-.hq-data-retention-table col:nth-child(5) {
-  width: auto;
-}
-.hq-data-retention-table col:nth-child(6) {
-  width: 13%;
+.hq-data-retention-table .hq-dr-cell-clamp-2 {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  white-space: normal;
+  line-height: 1.35;
 }
 .hq-data-retention-table th,
 .hq-data-retention-table td {
@@ -2872,15 +3000,7 @@ button.pay-follow.pay-follow--off {
   white-space: nowrap;
   line-height: 1.2;
 }
-.hq-data-retention-table .hq-dr-th-type,
-.hq-data-retention-table td.hq-dr-type-cell {
-  white-space: nowrap;
-}
-.hq-data-retention-table td.hq-dr-type-cell {
-  text-overflow: ellipsis;
-}
 .hq-data-retention-table td.hq-dr-type-cell .hq-dr-label-text {
-  display: inline;
   vertical-align: baseline;
 }
 .hq-data-retention-table td.hq-dr-type-cell .badge {
@@ -2892,8 +3012,7 @@ button.pay-follow.pay-follow--off {
   overflow: visible;
   text-overflow: clip;
 }
-.hq-data-retention-table .hq-dr-th-desc,
-.hq-data-retention-table td.hq-dr-desc-cell {
+.hq-data-retention-table .hq-dr-th-desc {
   white-space: nowrap;
 }
 .hq-data-retention-table .hq-dr-th-narrow {
@@ -2910,14 +3029,12 @@ button.pay-follow.pay-follow--off {
 .hq-data-retention-table td:nth-child(6) {
   overflow: visible;
 }
-.hq-data-retention-table td:nth-child(6) .btn-group {
-  flex-wrap: nowrap;
-  justify-content: flex-start;
-  gap: 0.15rem;
-  white-space: nowrap;
-  max-width: none;
+.hq-data-retention-table td:nth-child(6) .hq-dr-act-btns {
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.25rem;
 }
-.hq-data-retention-table td:nth-child(6) .btn-group .btn {
+.hq-data-retention-table td:nth-child(6) .hq-dr-act-btns .btn {
   padding-left: 0.35rem;
   padding-right: 0.35rem;
   font-size: var(--app-table-font-size);
@@ -3184,6 +3301,14 @@ button.pay-follow.pay-follow--off {
 }
 
 /* 첨부파일: 테이블 가로 폭 */
+/* 업체관리 그리드: 정산구분 가독성(수동=기본, 자동·펌뱅킹만 색 구분) */
+#contentsMain .screen-comp-mng-tree .pg-calc-proc--auto {
+  color: #0b5ed7;
+}
+#contentsMain .screen-comp-mng-tree .pg-calc-proc--fumbanking {
+  color: #b45309;
+}
+
 .attach-section {
   width: 100%;
   max-width: 100%;
@@ -3229,8 +3354,9 @@ button.pay-follow.pay-follow--off {
   margin-bottom: 0.5rem;
 }
 .attach-section .attach-toolbar .attach-display-name {
-  flex: 1 1 0;
-  min-width: 6rem;
+  flex: 1 1 auto;
+  min-width: 8rem;
+  width: 0;
 }
 .attach-section .attach-toolbar .attach-file-pick {
   flex: 0 1 auto;

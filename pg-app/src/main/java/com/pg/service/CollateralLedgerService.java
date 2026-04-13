@@ -96,6 +96,7 @@ public class CollateralLedgerService {
             String searchCompId,
             String searchCompNm,
             String searchStatus,
+            String searchOrderDir,
             int page,
             int size) {
         if (page < 1) page = 1;
@@ -151,7 +152,10 @@ public class CollateralLedgerService {
             filtered.add(r);
         }
 
-        filtered.sort(Comparator.comparing(RollingReserve::getCreatedAt, Comparator.nullsLast(Comparator.naturalOrder())).reversed());
+        boolean asc = searchOrderDir != null && "ASC".equalsIgnoreCase(searchOrderDir.trim());
+        filtered.sort(asc
+                ? Comparator.comparing(RollingReserve::getCreatedAt, Comparator.nullsLast(Comparator.naturalOrder()))
+                : Comparator.comparing(RollingReserve::getCreatedAt, Comparator.nullsLast(Comparator.naturalOrder())).reversed());
 
         int total = filtered.size();
         int fromIdx = Math.max(0, (page - 1) * size);

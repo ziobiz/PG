@@ -306,3 +306,6 @@ CREATE INDEX IF NOT EXISTS idx_merchant_receivable_merchant_status ON tb_merchan
 ALTER TABLE tb_settlement_run ADD COLUMN IF NOT EXISTS payout_hold_yn VARCHAR(1) NOT NULL DEFAULT 'N';
 ALTER TABLE tb_settlement_run ADD COLUMN IF NOT EXISTS payout_hold_remark VARCHAR(800);
 CREATE INDEX IF NOT EXISTS idx_settlement_run_payout_hold ON tb_settlement_run (payout_hold_yn, calc_dt);
+
+-- V95: 전산설정 — 통화별 수수료·정산 소수 처리(JSON) — db/V95_hq_ledger_fee_currency_format.sql 과 동일
+ALTER TABLE tb_hq_ledger_sys_settings ADD COLUMN IF NOT EXISTS fee_currency_format_json TEXT;

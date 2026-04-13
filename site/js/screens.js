@@ -5,22 +5,6 @@
   'use strict';
 
   /** 전산설정관리: 표준시 — ziobiz/NOTI 시간·동기화 설정 대응 (신규 기본 Asia/Bangkok) */
-  /** 전산설정관리: 결제 통화(ISO 4217 숫자) — 집계·상태바 폴백 등 본사 기준 */
-  var HQ_LEDGER_PAY_DISPLAY_CURRENCY_OPTIONS = [
-    { v: '764', t: '764 — THB (태국 바트)' },
-    { v: '840', t: '840 — USD (미국 달러)' },
-    { v: '978', t: '978 — EUR (유로)' },
-    { v: '392', t: '392 — JPY (일본 엔)' },
-    { v: '826', t: '826 — GBP (영국 파운드)' },
-    { v: '036', t: '036 — AUD (호주 달러)' },
-    { v: '554', t: '554 — NZD (뉴질랜드 달러)' },
-    { v: '344', t: '344 — HKD (홍콩 달러)' },
-    { v: '702', t: '702 — SGD (싱가포르 달러)' },
-    { v: '756', t: '756 — CHF (스위스 프랑)' },
-    { v: '458', t: '458 — MYR (말레이시아 링깃)' },
-    { v: '156', t: '156 — CNY (중국 위안)' }
-  ];
-
   var HQ_LEDGER_DISPLAY_TZ_OPTIONS = [
     { v: 'Asia/Bangkok', t: 'Asia/Bangkok — 태국 (기본)' },
     { v: 'Asia/Seoul', t: 'Asia/Seoul — 대한민국' },
@@ -717,7 +701,7 @@
       formSections: [
         {
           title: '노티매핑설정 (GUI)',
-          notice: '<strong>한눈에:</strong> 아래 표에서 <strong>PG가 보낸 파라미터 이름</strong>마다 <strong>우리 메뉴(그리드)의 항목(열 key)</strong>을 고릅니다. <strong>우리 표시명</strong>을 고치면 카탈로그 라벨이 바뀌고, <strong>저장</strong>하면 결제내역·조직항목설정에서 보이는 열 이름과 맞춰집니다. <strong>AI 잠금</strong>은 자동 제안이 그 줄을 덮어쓰지 못하게 합니다. JSON 구조는 펼치지 않아도 됩니다 — 필요 시 하단 고급 영역·JSON 편집을 사용하세요. <span class="text-muted">이 화면의 API 연결이 안 될 때는 DB <code>tb_hq_notify_mapping.mapping_json</code> 직접 반영 또는 서버에서 <code>POST /api/hq/notifyMapping/save</code>(Bearer)로 동일 저장이 가능합니다. 절차는 저장소 <code>docs/노티매핑설정.md</code> 「관리자 화면(API)으로 구축이 어려울 때」를 참고하세요.</span>',
+          notice: '<strong>한눈에:</strong> <strong>결제대행사</strong>를 고른 뒤 <strong>CALLBACK / RESULT</strong> 채널에서 PG 파라미터 이름을 <strong>우리 항목(열 key)</strong>에 맞춥니다(예: <code>customId</code> → 내부 열). 수신 이력이 있으면 키가 자동으로 붙고, CHILL 계열은 일반 파라미터 묶음도 자동 보강됩니다. <strong>저장</strong> 시 결제내역·조직항목설정 열 이름과 동기화됩니다. <span class="text-danger">API 연결 오류(CSP·connect-src)</span>가 나면 <code>&lt;html data-pg-api-base=&quot;same-origin&quot;&gt;</code> 로 현재 호스트의 <code>/api</code>를 쓰거나, 정적 호스트 CSP에 <code>https://api.icopay.co.kr</code>를 허용하세요. DB·Bearer 저장은 <code>docs/노티매핑설정.md</code> 참고.</span>',
           rows: [
             [{
               type: 'customHtml',
@@ -758,10 +742,25 @@
               '<thead class="table-light"><tr><th style="width:3.5rem">ID</th><th class="text-nowrap" style="width:10rem">수신시각</th><th style="width:4.5rem">채널</th><th style="width:5.5rem">대상코드</th><th style="width:7rem">MID</th><th style="width:4rem">루트</th>' +
               '<th style="width:7rem">승인번호</th><th style="width:7rem">가맹점코드</th><th style="width:7.5rem">결제·처리</th><th style="width:5.5rem">수신성격</th><th class="hq-ni-th-error" style="width:11rem;max-width:11rem">오류메시지</th><th style="min-width:14rem">본문 미리보기</th><th class="text-center" style="width:4rem">보기</th></tr></thead>' +
               '<tbody id="hqNotifyInboundTbody"><tr><td colspan="13" class="text-center text-muted py-4">[조회]를 누르세요.</td></tr></tbody></table></div>' +
-              '<div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mt-2 mb-1">' +
-              '<span class="small text-muted" id="hqNiPagingInfo">—</span>' +
-              '<div class="btn-group"><button type="button" class="btn btn-sm btn-outline-secondary" id="hqNiPrevBtn">이전</button>' +
-              '<button type="button" class="btn btn-sm btn-outline-secondary" id="hqNiNextBtn">다음</button></div></div>' +
+              '<div class="pagination-row mt-2">' +
+              '<div class="pagination-view-at-once">' +
+              '<span class="pagination-label">한 번에 보기:</span>' +
+              '<div class="pagination-size-options">' +
+              '<button type="button" class="pagination-size-opt pagination-size-opt--active" data-size="25">25</button>' +
+              '<button type="button" class="pagination-size-opt" data-size="50">50</button>' +
+              '<button type="button" class="pagination-size-opt" data-size="100">100</button>' +
+              '<button type="button" class="pagination-size-opt" data-size="200">200</button>' +
+              '<button type="button" class="pagination-size-opt" data-size="400">400</button>' +
+              '<button type="button" class="pagination-size-opt" data-size="500">500</button>' +
+              '<button type="button" class="pagination-size-opt" data-size="1000">1000</button>' +
+              '</div>' +
+              '<span class="pagination-total">건 (총 <span id="totalElementsCount">0</span>건)</span>' +
+              '</div>' +
+              '<input type="hidden" id="recordsPerPage" value="25">' +
+              '<input type="hidden" id="pageCnt" value="1">' +
+              '<span id="totalPageCount" style="display:none">1</span>' +
+              '<div class="pagination-center"><div class="pagination-pages" id="paging_hq_notifyInbound"></div></div>' +
+              '</div>' +
               '<div class="modal fade" id="hqNiDetailModal" tabindex="-1" aria-labelledby="hqNiDetailModalLabel" aria-hidden="true">' +
               '<div class="modal-dialog modal-xl modal-dialog-scrollable"><div class="modal-content">' +
               '<div class="modal-header py-2"><h5 class="modal-title" id="hqNiDetailModalLabel">노티 원문</h5>' +
@@ -792,13 +791,19 @@
         },
         {
           title: '데이터 보관 기간',
-          notice: '쌓이는 데이터 유형별로 DB·로그·버퍼 보관 목표 일수를 지정합니다. 「자동삭제」를 켠 항목만 매일 새벽 스케줄로 초과분 삭제를 시도합니다(스케줄 대상만 체크 가능). 「정책」 유형은 값만 저장됩니다. 각 행의 [저장]은 표 전체 입력을 한 번에 저장합니다. [수정]은 서버 값으로 다시 불러옵니다. [초기화]는 해당 유형의 저장된 덮어쓰기만 제거합니다.',
+          notice: '쌓이는 데이터 유형별로 DB·로그·버퍼 보관 목표 일수를 지정합니다. 표에는 업체정보(등록)·업체관리·정산관리·가맹점 정산내역(수수료내역)·정산 리포트 등 모듈별 유형이 포함됩니다. 「자동삭제」를 켠 항목만 매일 새벽 스케줄로 초과분 삭제를 시도합니다(스케줄 대상만 체크 가능). 그 외 유형은 보관 목표(일)만 저장됩니다. 아래 표는 하단 「수수료·정산 로직」과 같은 테이블 래핑(둥근 테두리·작은 표 스타일)을 사용합니다. 상단 「전체 데이터 초기화」는 보관 일수와 별도로, 등록된 조직·가맹 프로필(tb_org_unit·tb_merchant_profile)만 남기고 거래·정산·노티·수수료 정책 등 운영 데이터를 비웁니다(복구 불가, 총본사·시스템 관리자만).',
           rows: [
             [{ type: 'customHtml', col: 12,
-              html: '<div class="table-responsive border rounded hq-data-retention-wrap"><table class="table table-sm table-bordered align-middle mb-0 hq-data-retention-table">' +
-                '<colgroup><col /><col /><col /><col /><col /><col /></colgroup>' +
-                '<thead class="table-light"><tr><th class="hq-dr-th-type">데이터 유형</th><th class="text-nowrap text-center hq-dr-th-narrow">자동삭제</th><th class="text-nowrap hq-dr-th-narrow">삭제(일)</th><th class="text-nowrap hq-dr-th-narrow">보관(일)</th><th class="hq-dr-th-desc">설명·연동</th><th class="text-nowrap text-center hq-dr-th-act">관리</th></tr></thead>' +
-                '<tbody id="hqDataRetentionTbody"><tr><td colspan="6" class="text-center text-muted py-3">불러오는 중…</td></tr></tbody></table></div>' }]
+              html: '<div class="d-flex flex-wrap align-items-start justify-content-between gap-3 border border-danger-subtle rounded p-3 mb-2 bg-body-secondary">' +
+                '<div class="flex-grow-1 small">' +
+                '<div class="fw-semibold text-danger mb-1">전체 데이터 초기화</div>' +
+                '<p class="mb-0 text-muted">버튼 클릭 후 <strong>이중 확인</strong>(브라우저 확인창 두 번, 각각 <strong>확인·취소</strong>)을 거칩니다. 첫 안내: 「데이터 초기화가 됩니다. 전체 데이터를 초기화합니다. 단, 등록된 업체 정보는 유지됩니다.」 등록된 <strong>조직·가맹 프로필</strong> 행만 유지하고 운영 데이터를 삭제합니다. 본사 전산·노티·PG 연동 등 HQ 전역 설정과 로그인 계정은 유지됩니다. <strong class="text-danger">복구할 수 없습니다.</strong></p></div>' +
+                '<button type="button" class="btn btn-danger btn-sm flex-shrink-0 align-self-center" id="hqLedgerOperationalDataResetBtn">전체 데이터 초기화…</button></div>' }],
+            [{ type: 'customHtml', col: 12,
+              html: '<div class="border rounded"><table class="table table-sm table-bordered align-middle mb-0 w-100 hq-data-retention-table">' +
+                '<thead class="table-light"><tr><th>데이터 유형</th><th class="text-center text-nowrap">자동삭제</th><th class="text-nowrap text-center">삭제(일)</th><th class="text-nowrap text-center">보관(일)</th><th>설명·연동</th><th class="text-center text-nowrap">관리</th></tr></thead>' +
+                '<tbody id="hqDataRetentionTbody"><tr><td colspan="6" class="text-center text-muted py-3">불러오는 중…</td></tr></tbody></table></div>' +
+                '<p class="small text-muted mb-0 mt-1">각 행 <strong>[저장]</strong>은 표에 입력한 보관 값 전체를 한 번에 서버에 반영합니다. <strong>[수정]</strong>은 저장하지 않은 변경을 버리고 서버 값으로 다시 불러옵니다. <strong>[초기화]</strong>는 해당 데이터 유형의 저장된 덮어쓰기만 제거합니다.</p>' }]
           ]
         },
         {
@@ -813,22 +818,33 @@
         },
         {
           title: '수수료·정산 로직 (수수료내역)',
-          notice: '수수료내역·회수관리·가맹정산(비승인 오버레이) 금액에 적용됩니다. 지정한 소수 자릿수까지 계산한 뒤, 그 다음 자리부터 아래 방식으로 처리합니다. 신규·미설정 시 소수 둘째 자리까지이며 셋째 자리는 절상(CEILING)입니다.',
+          notice: '통화별 표는 결제·정산 통화(알파 코드)마다 소수 자릿수·잘리는 자리 처리를 지정합니다. 소수 자릿수가 0이면 금액은 정수만 의미하므로 「잘리는 자리 처리」는 비활성화되며 저장 시 그대로(버림, DOWN)로 통일됩니다. 목록 API는 행의 결제통화·거래통화에 맞춰 이 설정을 적용합니다. JSON에 없는 통화는 아래 「기본(통화 미지정)」값을 따릅니다. 조직항목설정 VIEW SETTING의 통화 열은 가맹 정책통화·거래통화를 표시하며, 총판 하위 가맹이 쓰는 모든 통화가 데이터에 존재하면 각 행에 그대로 나타납니다.',
           rows: [
+            [{ type: 'customHtml', col: 12, html: '<p class="small text-muted mb-1"><strong>기본(통화 미지정)</strong> — 아래 표에 없는 통화·미매핑 행에 사용됩니다.</p>' }],
             [{ label: '소수 자릿수', type: 'select', name: 'feeListDecimalPlaces', col: 2,
               options: [{ v: '0', t: '0' }, { v: '1', t: '1' }, { v: '2', t: '2' }, { v: '3', t: '3' }, { v: '4', t: '4' }, { v: '5', t: '5' }, { v: '6', t: '6' }, { v: '7', t: '7' }, { v: '8', t: '8' }] },
              { label: '잘리는 자리 처리', type: 'select', name: 'feeListRoundMode', col: 3,
-              options: [{ v: 'CEILING', t: '절상' }, { v: 'HALF_UP', t: '반올림' }, { v: 'DOWN', t: '그대로(버림)' }] }]
+              options: [{ v: 'CEILING', t: '절상' }, { v: 'HALF_UP', t: '반올림' }, { v: 'DOWN', t: '그대로(버림)' }] }],
+            [{ type: 'customHtml', col: 12,
+              html: '<div class="border rounded"><table class="table table-sm table-bordered align-middle mb-0 w-100">' +
+                '<thead class="table-light"><tr><th>기준통화</th><th class="text-center text-nowrap">소수 자릿수</th><th class="text-nowrap">잘리는 자리 처리</th><th class="text-center text-nowrap">관리</th></tr></thead>' +
+                '<tbody id="hqFeeCurrencyFormatTbody"><tr><td colspan="4" class="text-center text-muted py-3">불러오는 중…</td></tr></tbody></table></div>' +
+                '<p class="small text-muted mb-0 mt-1">통화별 <strong>소수·잘리는 자리</strong>는 기본 잠금입니다. <strong>[수정]</strong>으로 연속 확인 후 편집 모드로 연 다음 변경하세요. 서버 반영은 관리 열 <strong>[저장]</strong>(연속 확인) 또는 화면 하단 <strong>저장</strong>으로 합니다. <strong>[취소]</strong>는 해당 통화 행의 미저장 변경만 되돌립니다. <strong>[전역값]</strong>은 편집 모드에서만 사용할 수 있으며, 위 기본(통화 미지정) 소수·처리를 해당 행에 복사합니다(복사 후에도 [저장] 필요).</p>' }]
           ]
         },
         {
           title: '결제 통화 (전역 표시 기준)',
-          notice: 'ISO 4217 숫자코드로 저장합니다. 수수료 정책·조직 기준통화 등으로 통화가 정해지지 않을 때 결제내역·통합내역 상단 집계(단일통화 뷰)·칠페이 목록 meta의 기본 통화 폴백으로 사용됩니다. API 응답에는 <code>hqPayDisplayCurrencyCode</code>(알파)가 함께 내려갑니다. 신규·미설정 시 764(THB)입니다.',
+          notice: '위 두 필드는 DB에 저장된 전역 기준(ISO 숫자·그에 대응하는 알파)만 보여 주며 이 화면에서는 변경할 수 없습니다. 아래 표는 서버에 정의된 지원 ISO 4217 숫자와 표시 통화(알파) 매핑 전체를 노출합니다(목록에 없는 숫자는 저장 시 기본값으로 정규화될 수 있습니다). 수수료 정책·조직 기준통화 등으로 통화가 정해지지 않을 때 결제내역·통합내역 상단 집계(단일통화 뷰)·칠페이 목록 meta의 기본 통화 폴백으로 전역 기준이 사용됩니다. API에는 <code>payDisplayCurrencyIsoNum</code>·<code>payDisplayCurrencyCode</code>·<code>payDisplayCurrencyCatalog</code>가 포함됩니다.',
           rows: [
-            [{ label: '결제 통화 (ISO 숫자)', type: 'select', name: 'payDisplayCurrencyIsoNum', col: 4,
-              options: HQ_LEDGER_PAY_DISPLAY_CURRENCY_OPTIONS },
-             { label: '표시 통화(알파)', type: 'text', name: 'payDisplayCurrencyCode', col: 2, readonly: true,
-               placeholder: '저장 후 서버 계산' }]
+            [{ label: '결제 통화 (ISO 숫자)', type: 'text', name: 'payDisplayCurrencyIsoNum', col: 3, readonly: true,
+               placeholder: '조회 시 서버 값' },
+             { label: '표시 통화(알파)', type: 'text', name: 'payDisplayCurrencyCode', col: 3, readonly: true,
+               placeholder: 'ISO 숫자 기준 자동' }],
+            [{ type: 'customHtml', col: 12,
+              html: '<p class="small text-muted mb-1">지원 ISO 숫자 ↔ 표시 통화(알파) — 읽기 전용</p>' +
+                '<div class="border rounded"><table class="table table-sm table-bordered align-middle mb-0 w-100" id="grid_hqPayDisplayCurrencyCatalog">' +
+                '<thead class="table-light"><tr><th>ISO 4217 숫자</th><th>표시 통화(알파)</th><th class="text-center text-nowrap">전역 기준</th></tr></thead>' +
+                '<tbody id="hqPayDisplayCurrencyCatalogTbody"><tr><td colspan="3" class="text-center text-muted py-3">불러오는 중…</td></tr></tbody></table></div>' }]
           ]
         },
         {
@@ -1174,7 +1190,7 @@
               col: 12,
               html: '<input type="hidden" name="payCurrencyScaleRulesJson" id="payCurrencyScaleRulesJson" value="">' +
                 '<div id="hqPayCurrencyScaleMount" class="hq-pay-currency-scale-mount">' +
-                '<p class="text-muted small mb-2">결제대행사는 <strong>연동용도 URL결제(Y)</strong>인 PG만 선택할 수 있습니다. 아래에서 추가·수정·삭제한 뒤 <strong>목록 저장(폼 반영)</strong> → 화면 하단 <strong>저장</strong> 순서로 저장합니다.</p>' +
+                '<p class="text-muted small mb-2">결제대행사는 <strong>연동용도 URL결제(Y)</strong>인 PG만 선택할 수 있습니다. 목록·선택 상자 옆의 <strong>연동용도</strong>는 API연동설정의 노티·URL결제·챗봇·API 연동 여부를 나타냅니다. 아래에서 추가·수정·삭제한 뒤 <strong>목록 저장(폼 반영)</strong> → 화면 하단 <strong>저장</strong> 순서로 저장합니다.</p>' +
                 '<div class="border rounded p-2 mb-2 bg-light bg-opacity-25">' +
                 '<div class="row g-2 align-items-end">' +
                 '<div class="col-md-3"><label class="form-label small mb-0" for="hqPayScaleDraftPg">결제대행사</label>' +
@@ -1192,7 +1208,7 @@
                 '<div class="col-12"><p class="small text-primary mb-0 d-none" id="hqPayScaleEditBanner" role="status"></p></div>' +
                 '</div></div>' +
                 '<div class="table-responsive"><table class="table table-sm table-bordered align-middle mb-2">' +
-                '<thead class="table-light"><tr><th class="text-center" style="width:3rem">#</th><th style="min-width:11rem">결제대행사</th><th style="min-width:6rem">통화</th><th style="min-width:7rem">배율</th><th class="text-center" style="width:4.5rem">수정</th><th class="text-center" style="width:4.5rem">삭제</th></tr></thead>' +
+                '<thead class="table-light"><tr><th class="text-center" style="width:3rem">#</th><th style="min-width:11rem">결제대행사</th><th style="min-width:9rem">연동용도</th><th style="min-width:6rem">통화</th><th style="min-width:7rem">배율</th><th class="text-center" style="width:4.5rem">수정</th><th class="text-center" style="width:4.5rem">삭제</th></tr></thead>' +
                 '<tbody id="hqPayCurrencyScaleTbody"></tbody></table></div>' +
                 '<p class="text-muted small mb-0">이전 방식 호환: <button type="button" class="btn btn-link btn-sm p-0 align-baseline" id="hqPayCurrencyScaleAddRow">빈 행을 바로 목록에 넣기</button></p></div>'
             }]
@@ -1276,14 +1292,17 @@
     '/hq/accountMng': {
       emptyMessage: '등록된 업체별 접근 규칙이 없습니다.',
       noticeList: [
-        '로그인 ID(사용자)별로 접근 가능한 업체코드(본사·총판·가맹점 등)를 지정합니다. 행이 하나라도 있으면 사용자관리 목록·등록·초기화 범위는 <strong>하위 조직 ∩ 여기서 지정한 업체</strong>로만 제한됩니다.',
-        '담당자(ASSISTANT) 계정의 메뉴 권한은 [본사권한설정]의 <strong>담당자 권한그룹별 메뉴</strong>에서 조직 상한 내에서 조정합니다. OTP·로그인 정책은 [본사설정 → 사용자설정]을 따릅니다.'
+        '<strong>총본사·본사·총판</strong> 소속 로그인 ID만 등록할 수 있고, <strong>허용 업체코드</strong>는 <strong>전 업체 코드</strong> 중에서 선택합니다. 허용 업체를 고른 뒤 사용자 ID를 선택하면, 그 사용자는 사용자관리 등에서 <strong>지정한 업체 코드에만</strong> 접근할 수 있으며(하위 가맹점을 자동으로 넓혀 주지 않음), 상위 조직 권한으로 이미 볼 수 있는 범위와는 별개로 여기서는 <strong>명시한 코드</strong>만큼만 열어 줍니다.',
+        '행이 하나라도 있으면 사용자관리 목록·등록·초기화 범위는 <strong>하위 조직 ∩ 여기서 지정한 업체</strong>로만 제한됩니다. 담당자(ASSISTANT) 메뉴는 [본사권한설정]의 담당자 권한그룹별 메뉴에서 조정하고, OTP·로그인 정책은 [사용자설정]을 따릅니다.',
+        '목록 <strong>수정</strong>·<strong>삭제</strong>, 상단 <strong>저장</strong>·<strong>삭제</strong>(행 체크), 추가·수정 창의 <strong>저장</strong>으로 적용합니다.'
       ],
       searchRows: [[{ type: 'searchBtn', label: '새로고침' }]],
       summary: ['건수'],
       buttons: [
         { id: 'searchBtn', label: '새로고침', cls: 'btn-primary' },
-        { id: 'hqAccountAccessAddBtn', label: '접근권한 추가', cls: 'btn-success' }
+        { id: 'hqAccountAccessAddBtn', label: '접근권한 추가', cls: 'btn-success' },
+        { id: 'hqAccountAccessSaveBtn', label: '저장', cls: 'btn-primary' },
+        { id: 'hqAccountAccessBulkDelBtn', label: '삭제', cls: 'btn-outline-danger' }
       ],
       columns: [
         { key: '_chk', type: 'checkbox' },
@@ -1292,7 +1311,7 @@
         { key: 'compCode', label: '업체코드' },
         { key: 'username', label: '사용자ID' },
         { key: 'regDt', label: '등록일시' },
-        { key: 'id', type: 'accountAccessDelete', label: '삭제' }
+        { key: 'id', type: 'accountAccessActions', label: '관리' }
       ]
     },
     '/system/noticeList': {
@@ -1471,6 +1490,8 @@
       compInfoDetailButtons: [{ id: 'compInfoUpdateBtn', label: '수정 저장', cls: 'btn-primary' }]
     },
     '/comp/compMngTree': {
+      /** 상단 그리드: `table.table` + `id^=grid_` → table-column-resize.js 가 thead 에 드래그 핸들 부착·너비 localStorage 저장 */
+      compMngTreeGrid: true,
       searchFormClass: 'comp-mng-search-multiline',
       searchRows: [
         [
@@ -2021,7 +2042,6 @@
       paginationTrailingSaveButton: true,
       /** VIEW SETTING: 본사설정 조직항목설정과 동일 열 집합·키. 고정은 No·가맹점·업체코드만(체크·처리 열은 타입으로 제외). */
       tableColumnGuide: true,
-      tableColumnGuideTwoRow: true,
       columnGuideFixedKeys: ['rowNo', 'compNm', 'compId'],
       searchRows: [
         [
@@ -2123,12 +2143,11 @@
       ]
     },
     '/calc/payList': {
+      listSortDirAnchor: 'refresh',
       payListVariant: 'INTEGRATED',
       payListStatusBar: true,
       /** VIEW SETTING: 열 목록은 pay-list-integrated-catalog.js 로 채움 */
       tableColumnGuide: true,
-      /** VIEW SETTING: 1행 제목·저장, 2행 컬럼 체크(줄바꿈) */
-      tableColumnGuideTwoRow: true,
       searchFormClass: 'pay-mng-search-form',
       searchRows: [
         [
@@ -2188,6 +2207,7 @@
       searchRows3: [],
       noticeList: [
         '통합 결제내역: 칠페이 API 동기화·노티 적재·URL직접결제 등 전 출처를 한 그리드에 표시합니다. 앞쪽 컬럼(거래일~Settled)은 칠페이 거래내역 시트와 대응합니다.',
+        '[순서] 내림차순·오름차순은 상단 [새로고침] 왼쪽 메뉴에서 고르며, 누르는 즉시 목록을 다시 조회합니다.',
         '[후속조치]는 본사설정 > 전산설정관리에서 기능을 켠 경우에만 동작합니다 (NOTI 환경설정과 동일).',
         '취소 건에 대한 정산 수수료 및 부가세는 정산 주기에 따라 반영됩니다.',
         '정산 주기 및 정산 수수료는 가맹점별로 상이할 수 있습니다.',
@@ -2208,12 +2228,12 @@
     },
     /** ChillPay Transaction API — Search Payment Transaction (실시간, DB 비저장) */
     '/calc/chillPayTrList': {
+      listSortDirAnchor: 'refresh',
       /** ChillPay Transaction API 페이지당 최대 100건 — 초과 요청은 서버에서 잘림 */
       paginationSizeOptions: [50, 100],
       paginationDefaultSize: 50,
       payListStatusBar: true,
       tableColumnGuide: true,
-      tableColumnGuideTwoRow: true,
       /** VIEW SETTING에서 숨길 수 없는 열: 결제내역 통합과 동일한 앞부분(번호·거래ID·업체·거래일시·Route) */
       columnGuideFixedKeys: ['rowNo', 'transactionId', 'compNm', 'compId', 'trnDate', 'trnTime', 'routeNo'],
       searchFormClass: 'screen-search-form pay-mng-search-form',
@@ -2229,10 +2249,6 @@
             { v: 'Customer', t: '고객' },
             { v: 'Status', t: '상태' }
           ], size: 12 },
-          { label: '방향', type: 'select', name: 'searchOrderDir', options: [
-            { v: 'DESC', t: 'DESC' },
-            { v: 'ASC', t: 'ASC' }
-          ], size: 7 },
           { type: 'daterange', from: 'searchFromDate', to: 'searchToDate' },
           { type: 'quickdate' },
           { type: 'searchBtn', label: '검색' },
@@ -2250,8 +2266,8 @@
       noticeList: [
         'ChillPay API Transaction Services — Search Payment Transaction(실시간)입니다. ICOPAY 내부 DB(pg_trnsctn)가 아니라 칠페이 서버에서 직접 목록을 가져옵니다. ziobiz/NOTI 노티미들웨어의 종합거래·피지거래내역과 유사한 용도로 쓸 수 있습니다.',
         '자격: 배포설정 > API배포설정 또는 tb_pg_agency(ChillPay)의 MerchantCode·ApiKey·MD5 Secret Key·샌드박스 여부를 사용합니다.',
-        'TransactionDate 범위는 검색 기간(날짜)을 ChillPay 형식(dd/MM/yyyy HH:mm:ss)으로 변환합니다. 문서: ChillPay-API-Transaction-Services-Document-EN_v1.0.6.',
-        '그리드 열 노출은 상단 VIEW SETTING에서 조정합니다(저장 시 사용자별로 유지). 번호·승인번호·업체명·업체코드·거래일·거래시간( JST·ICT 병기 )·루트는 항상 표시됩니다. 본사설정 → 조직항목설정에서 화면「통합내역」 허용 열을 제한할 수 있습니다.'
+        '순서(내림차순·오름차순)는 [새로고침] 왼쪽 메뉴에서 고르며, 누르는 즉시 다시 조회됩니다(기본 내림차순). TransactionDate 범위는 검색 기간(날짜)을 ChillPay 형식(dd/MM/yyyy HH:mm:ss)으로 변환합니다. 문서: ChillPay-API-Transaction-Services-Document-EN_v1.0.6.',
+        '그리드 열 노출은 상단 VIEW SETTING에서 조정합니다(저장 시 사용자별로 유지). 번호·승인번호·업체명·업체코드·거래일·거래시간(JST·ICT 병기)·루트는 그리드에 항상 표시되며 VIEW SETTING 목록에는 나오지 않습니다. 본사설정 → 조직항목설정에서 화면「통합내역」 허용 열을 제한할 수 있습니다.'
       ],
       summary: ['건수'],
       buttons: [
@@ -2288,12 +2304,12 @@
     },
     /** ChillPay Transaction API — 통합정산(결제일·Settled 중심, ICOPAY 정산 DB 비사용) */
     '/calc/chillPaySettlementList': {
+      /** 상단 액션: [새로고침] 왼쪽에 순서 메뉴(내림차순·오름차순) */
+      listSortDirAnchor: 'refresh',
       paginationSizeOptions: [25, 50, 100, 200, 500, 1000],
       paginationDefaultSize: 25,
       payListStatusBar: true,
       tableColumnGuide: true,
-      /** 정산관리: VIEW SETTING은 결제내역과 달리 한 줄(가로 스크롤) */
-      tableColumnGuideTwoRow: false,
       /** VIEW SETTING·조직항목설정 고정열: 번호만(나머지 표 열은 모두 토글 가능 — 수수료내역·통합내역과 동일 개념) */
       columnGuideFixedKeys: ['rowNo'],
       searchFormClass: 'screen-search-form pay-mng-search-form',
@@ -2312,10 +2328,6 @@
             { v: 'Customer', t: '고객' },
             { v: 'Status', t: '상태' }
           ], size: 12 },
-          { label: '방향', type: 'select', name: 'searchOrderDir', options: [
-            { v: 'DESC', t: 'DESC' },
-            { v: 'ASC', t: 'ASC' }
-          ], size: 7 },
           { label: '결제일(PaymentDate)', type: 'daterange', from: 'searchFromDate', to: 'searchToDate' },
           { type: 'quickdate' },
           { type: 'searchBtn', label: '검색' }
@@ -2332,7 +2344,7 @@
       ],
       noticeList: [
         '칠페이 Transaction Services — Search Payment Transaction API(v1.0.6)로 조회합니다. ICOPAY 정산 실행·유통망 정산 테이블과 무관하며, 칠페이가 판단한 Settled·수수료·금액 등 원문을 봅니다.',
-        '기본 정렬은 Settled, 기간은 PaymentDate(결제일)입니다. 기간을 비우면 최근 30일 결제일로 조회합니다. 거래일(TransactionDate)은 선택 필터입니다.',
+        '기본 정렬 키는 Settled, 기간은 PaymentDate(결제일)입니다. 내림차순·오름차순은 상단 [새로고침] 왼쪽 메뉴에서 고르며, 통합정산 화면에서는 [새로고침]으로 반영합니다. 기간을 비우면 최근 30일 결제일로 조회합니다. 거래일(TransactionDate)은 선택 필터입니다.',
         '자격: 배포설정 > API배포설정·tb_pg_agency(ChillPay)의 MerchantCode·ApiKey·MD5 Secret Key·샌드박스와 동일합니다.',
         '그리드 열 노출은 상단 VIEW SETTING에서 조정합니다(저장 시 사용자별로 유지). 번호(No.)만 항상 표시되며, 승인번호·거래일자·Merchant·고객·주문번호·PaymentChannel·PaymentDate·결제금액·수수료·Discount·총금액·RefundAmount·통화·루트·상태·정산·ICOPAY·Description 등 나머지 열은 VIEW SETTING 항목으로 켜고 끌 수 있습니다. 본사설정 → 조직항목설정에서 화면「통합정산」 허용 열을 제한할 수 있습니다.'
       ],
@@ -2370,7 +2382,6 @@
       searchFormClass: 'screen-search-form screen-distribution-search',
       tableScrollable: true,
       distributionThreeRowHeader: true,
-      tableColumnGuideTwoRow: false,
       searchRows: [
         [
           { label: '조회기준', type: 'select', name: 'searchDateType', options: [
@@ -2381,6 +2392,7 @@
           { type: 'quickdate', quickdateLabels: ['오늘', '전일', '금주', '전주'], quickdateRanges: ['day', 'prevDay', 'weekCal', 'prevWeekCal'] },
           { label: '업체구분', type: 'select', name: 'searchCompDiv', options: [
             { v: '', t: '전체(단계별 합산)' },
+            { v: 'HEADQUARTERS', t: '총본사' },
             { v: 'REGIONAL', t: '본사' },
             { v: 'MASTER_DIST', t: '총판' },
             { v: 'BRANCH', t: '지사' },
@@ -2395,9 +2407,9 @@
         ]
       ],
       noticeList: [
-        '유통망 정산: 로그인 소속 조직부터 그 하위(영업점)까지만 조회됩니다. 가맹점 단위 행은 표시되지 않으며, 하위 가맹 정산액이 조직 행에 합산됩니다.',
-        '업체구분을 선택하면 해당 단계(예: 대리점) 조직만 한 행으로 보입니다. 조회기준·승인일자는 추후 거래일 기준 필터와 연동 예정이며, 현재는 정산일(calc_dt) 기준입니다.',
-        '표시 금액은 정산실행 시 저장된 가맹 지급액·유통 수수료 분배(설정 비율)를 바탕으로 합니다. 가맹점별 실행 한 줄은 가맹점정산내역 화면에서 확인할 수 있습니다.'
+        '유통망 정산: 로그인 소속 조직·그 하위 가맹만 조회됩니다(가맹점정산내역과 동일한 범위). 가맹점 단위 행은 없으며, 하위 가맹 정산액이 조직 행에 합산됩니다. 총본사(HEADQUARTERS) 단계 행도 포함됩니다.',
+        '각 조직 행의 승인·취소 수수료 합계는 해당 행 조직 단계에 대응하는 구간만 합산합니다(예: 본사·총본사에만 비율이 있으면 총판 행 수수료는 0에 가깝게 나옵니다). 업체구분을 선택하면 해당 단계만 한 행으로 보입니다.',
+        '조회기준·승인일자는 추후 거래일 기준 필터와 연동 예정이며, 현재는 정산일(calc_dt) 기준입니다. 가맹 지급액·유통 수수료 분배는 가맹점별 배분 설정(tb_distribution_fee_config) 비율을 바탕으로 합니다. 가맹점별 실행 한 줄은 가맹점정산내역에서 확인할 수 있습니다.'
       ],
       summary: ['Total', '정산금액', '수수료', '지급액'],
       buttons: [
@@ -2408,6 +2420,7 @@
         { key: 'rowNo', label: 'No.' },
         { key: 'settleMonth', label: '정산월' },
         { key: 'orgDivNm', label: '구분' },
+        { key: 'hqNm', label: '총본사' },
         { key: 'regionalNm', label: '본사' },
         { key: 'masterNm', label: '총판' },
         { key: 'branchNm', label: '지사' },
@@ -2431,9 +2444,9 @@
     '/calc/calcGmList': {
       paginationSizeOptions: [25, 50, 100, 200, 500, 1000],
       paginationDefaultSize: 25,
+      columnGuideFixedKeys: ['rowNo', 'compNm', 'compId', 'curType'],
       searchFormClass: 'pay-mng-search-form',
       payMngDenseGrid: true,
-      tableColumnGuideTwoRow: false,
       noticeList: [
         '한 행은 정산실행이 저장한 가맹점 정산 결과입니다. 금액·공제수수료(feeAmt)·보류액·정산금액은 실행 시 저장값이며, 수수료(건)·부가세·건당·정산건당·기타(%)·보유율은 해당 실행의 집계 구간(정산대상기간·당일 누적 마감시각) 거래를 수수료내역과 동일한 건별 규칙으로 보조 계산합니다. 신규 실행부터 period가 저장되며, 그 이전 행은 정산일 하루 창으로 재조회합니다.',
         '본사·총판·지사·대리점·영업점 등 유통 구간 수익·수수료 분배는 유통망정산내역에서 동일 정산 실행분을 조직 단위로 집계합니다.'
@@ -2453,7 +2466,7 @@
       buttons: [{ id: 'searchBtn', label: '검색', cls: 'btn-primary' }, { id: 'excelBtn', label: '엑셀다운로드', cls: 'btn-info' }],
       headerGroups: [
         { label: '사업자번호', keys: ['bizNo'] },
-        { label: 'PG승인', keys: ['amount', 'payNo'] },
+        { label: 'PG승인', keys: ['curType', 'amount', 'payNo'] },
         { label: '수수료', keys: ['feeCnt', 'feeRate', 'feeAmt', 'feeVat', 'holdRate', 'holdAmt', 'perTxFeeAmt', 'settlementPerTxFeeAmt', 'extraFeesAmt'] }
       ],
       columns: [
@@ -2461,6 +2474,7 @@
         { key: 'rowNo', label: '번호' },
         { key: 'compNm', label: '업체명' },
         { key: 'compId', label: '업체코드' },
+        { key: 'curType', label: '통화' },
         { key: 'trnId', label: '거래ID' },
         { key: 'bizNo', label: '사업자번호' },
         { key: 'payDivNm', label: '구분' },
@@ -2499,10 +2513,10 @@
       ]
     },
     '/calc/compPointMngList': {
+      columnGuideFixedKeys: ['rowNo', 'compNm', 'compId', 'curType'],
       paginationSizeOptions: [25, 50, 100, 200, 500, 1000],
       paginationDefaultSize: 25,
-      tableColumnGuideTwoRow: false,
-      notice: '정산에 반영된 승인 건(settled) 이후 취소·환불·무효 등이 노티되면 자동으로 등록됩니다. 환수금액은 본사 설정(환수금 수수료 포함) 및 수수료내역과 동일한 건별 산식입니다. 다음 정산 지급액에서 환수금(FIFO) 후 미수금(FIFO) 순으로 차감됩니다. 거래별 후보 목록은 /settlement/recallMng(회수·거래기준) 화면을 사용하세요.',
+      notice: '「환수금」은 정산이 반영된 뒤(승인 건이 settled 등으로 정산에 올라간 이후) 같은 거래가 환불·취소·무효·차지백 등으로 바뀔 때 정산에서 거둬야 할 금액이 자동으로 잡히는 내역입니다. 금액은 전산설정(환수금 수수료 포함) 및 수수료내역과 동일한 건별 산식입니다. 다음 정산 지급액에서는 환수금(FIFO)을 먼저 차감한 뒤 미수금(FIFO)을 차감합니다. 거래별 산출·검증은 「회수·거래기준」(/settlement/recallMng) 화면을 참고하세요.',
       searchRows: [
         [
           { label: '업체코드', type: 'text', name: 'searchCompId' },
@@ -2516,6 +2530,7 @@
         { key: 'rowNo', label: '번호' },
         { key: 'compNm', label: '업체명' },
         { key: 'compId', label: '업체코드' },
+        { key: 'curType', label: '통화' },
         { key: 'trnId', label: '거래ID' },
         { key: 'reasonCode', label: '사유코드' },
         { key: 'recallAmount', label: '환수금액' },
@@ -2534,16 +2549,15 @@
       searchFormClass: 'pay-mng-search-form',
       payMngDenseGrid: true,
       tableScrollable: true,
-      tableColumnGuideTwoRow: true,
       /** VIEW SETTING·그리드: 번호·업체·업체코드·거래일만 고정. 거래시간·루트·승인번호·거래번호(우리)는 토글 */
-      columnGuideFixedKeys: ['rowNo', 'compNm', 'compId', 'trnDate'],
+      columnGuideFixedKeys: ['rowNo', 'compNm', 'compId', 'trnDate', 'curType'],
       viewSettingDefaultSelectedKeys: [
-        'trnTime', 'routeNo', 'chillTransactionId', 'trnId', 'statusNm', 'amount', 'payCur', 'policyCur',
+        'trnTime', 'routeNo', 'chillTransactionId', 'trnId', 'statusNm', 'amount', 'payCur', 'curType', 'policyCur',
         'txnFixedFeesSum', 'pctFeesSum', 'usdtFee', 'fxFee', 'fee3dsFee', 'rollingPctPlain', 'rollingDays', 'rollingHoldEst',
         'failFee', 'cancelFee', 'voidFee', 'manualVoidFee', 'refundFee', 'chargebackFee',
-        'totalFee', 'feeVat', 'expectedPayout', 'vatAppliedYn'
+        'totalFee', 'feeVat', 'expectedPayout', 'settlementAmt', 'vatAppliedYn'
       ],
-      notice: '앞쪽 열 순서(업체·거래일·거래시간·루트·승인번호·거래번호)는 통합 결제내역 기본과 같습니다. 건당수수료 열은 거래 성공 시 과금되는 성공(건당) 고정액만 표시합니다. 기타수수료: USDT·FX는 승인금액 대비 %(「결제(%)」 합계에 포함), 3DS는 정책통화 기준 건당 고정(합계 열에는 미포함·별도 열). 세 항목은 결제·건당 등과 별도로 동시 과금될 수 있습니다. 금액이 없으면 USDT·FX·3DS 열은 — 입니다. 정산 수수료는 정산 실행 시 1회 과금되며, 송금(이체) 수수료는 그 이후 송금 처리 시 과금되어 정산리포트에 정산 수수료·송금 수수료로 각각 표시됩니다. 이 화면의 총수수료·지급예상에는 정산·송금 건당액이 포함되지 않습니다. 결제(성공): 건당·%(승인 시 부과) 열, 담보(롤링%·추정액), 지급예상액. 실패·취소·무효·환불 등은 상태별 수수료 규칙을 따르며, 무효·환불 계열은 성공 건과 동일한 건당·%가 추가로 과금될 수 있습니다(이중 과금). 담보 추정은 승인 건에만 표시됩니다. 본사·총판 등은 로그인 조직 하위 가맹점만 조회됩니다.',
+      notice: '앞쪽 열 순서(업체·거래일·거래시간·루트·승인번호·거래번호)는 통합 결제내역 기본과 같습니다. 건당수수료 열은 거래 성공 시 과금되는 성공(건당) 고정액만 표시합니다. 기타수수료: USDT·FX는 승인금액 대비 %(「결제(%)」 합계에 포함), 3DS는 정책통화 기준 건당 고정(합계 열에는 미포함·별도 열). 세 항목은 결제·건당 등과 별도로 동시 과금될 수 있습니다. 금액이 없으면 USDT·FX·3DS 열은 — 입니다. 정산 수수료는 정산 실행 시 1회 과금되며, 송금(이체) 수수료는 그 이후 송금 처리 시 과금되어 정산리포트에 정산 수수료·송금 수수료로 각각 표시됩니다. 이 화면의 총수수료·지급예상에는 정산·송금 건당액이 포함되지 않습니다. 결제(성공): 건당·%(승인 시 부과) 열, 담보(롤링%·추정액), 지급예상액, 정산액(지급예상−담보추정). 실패·취소·무효·환불 등은 상태별 수수료 규칙을 따르며, 무효·환불 계열은 성공 건과 동일한 건당·%가 추가로 과금될 수 있습니다(이중 과금). 차감(취소·환불·무효·실패 등): 지급예상액은 0, 총수수료·부가세는 과금액(양수), 정산액은 −(총수수료+부가세)입니다. 담보 추정은 승인 건에만 표시됩니다. 본사·총판 등은 로그인 조직 하위 가맹점만 조회됩니다.',
       searchRows: [
         [
           { label: '업체코드', type: 'text', name: 'searchCompId' },
@@ -2553,7 +2567,7 @@
           { type: 'searchBtn' }
         ]
       ],
-      summary: ['건수', '총수수료', '부가세', '지급예상합'],
+      summary: ['건수', '총수수료', '부가세', '지급예상합', '정산액합'],
       buttons: [{ id: 'searchBtn', label: '검색', cls: 'btn-primary' }, { id: 'excelBtn', label: '엑셀다운로드', cls: 'btn-info' }],
       headerGroups: [
         { label: '거래', keys: ['trnDate', 'trnTime', 'routeNo', 'chillTransactionId', 'trnId'] },
@@ -2561,7 +2575,7 @@
         { label: '기타수수료', keys: ['usdtFee', 'fxFee', 'fee3dsFee'] },
         { label: '담보(롤링)', keys: ['rollingPctPlain', 'rollingDays', 'rollingHoldEst'] },
         { label: '실패·취소·무효·환불·차지백', keys: ['failFee', 'cancelFee', 'voidFee', 'manualVoidFee', 'refundFee', 'chargebackFee'] },
-        { label: '차감·지급', keys: ['totalFee', 'feeVat', 'expectedPayout'] }
+        { label: '차감·지급', keys: ['totalFee', 'feeVat', 'expectedPayout', 'settlementAmt'] }
       ],
       columns: [
         { key: '_chk', type: 'checkbox' },
@@ -2576,6 +2590,7 @@
         { key: 'statusNm', label: '상태' },
         { key: 'amount', label: '결제금액' },
         { key: 'payCur', label: '결제통화' },
+        { key: 'curType', label: '통화' },
         { key: 'policyCur', label: '정책통화' },
         { key: 'txnFixedFeesSum', label: '건당수수료' },
         { key: 'pctFeesSum', label: '결제(%)' },
@@ -2594,6 +2609,7 @@
         { key: 'totalFee', label: '총수수료' },
         { key: 'feeVat', label: '부가세' },
         { key: 'expectedPayout', label: '지급예상액' },
+        { key: 'settlementAmt', label: '정산액', columnGuideLabel: '정산액' },
         { key: 'vatAppliedYn', label: 'VAT' }
       ]
     },
@@ -2611,7 +2627,11 @@
       columns: [{ key: '_chk', type: 'checkbox' }, { key: 'rowNo', label: '번호' }, { key: 'compNm', label: '업체명' }, { key: 'compId', label: '업체코드' }, { key: 'condition', label: '검색조건' }, { key: 'chargeType', label: '거래구분' }, { key: 'payMethod', label: '결제수단' }, { key: 'chargeNm', label: '거래명칭' }, { key: 'chargeAmt', label: '충전내역' }, { key: 'sumChargeAmt', label: '충전내역합계' }]
     },
     '/calc/unpaidMng': {
-      notice: '미수금은 관리자가 POST /api/settlement/receivable 로 등록합니다(차지백·과태료 등 reason_code). 정산 지급액에서 환수금 차감 후 FIFO로 반영됩니다. 대손·취소는 각각 writeOff·cancel API를 사용하세요.',
+      noticeList: [
+        '「미수금」은 해당 정산 주기에 지급해야 할 금액이 부족하거나(정산금 부족), 차지백·과태료 등으로 정산 시 부족분이 생겼을 때 가맹점에 부과되는 금액입니다. 정산 실행 시 지급액에서 환수금(FIFO)을 먼저 차감한 뒤 미수금(FIFO)이 차감됩니다.',
+        '「미수금등록」은 총본사·본사·총판 조직 단계의 기본 권한(미수금관리 화면: 수정 이상)으로 가능하며, 지사·대리점·영업점 등은 기본 조회만입니다. 필요 시 본사권한설정에서 조직·단계별로 「미수금관리」(/calc/unpaidMng) 권한을 MODIFY/DELETE 로 올려 수동 등록을 허용할 수 있습니다.',
+        '수동 등록은 API POST /api/settlement/receivable (사유코드 reason_code 로 구분)과 동일하며, 대손·등록 취소는 서버 writeOff·cancel API를 사용합니다.'
+      ],
       searchRows: [
         [
           { label: '업체코드', type: 'text', name: 'searchCompId' },
@@ -2630,6 +2650,7 @@
         { key: 'rowNo', label: '번호' },
         { key: 'compNm', label: '업체명' },
         { key: 'compId', label: '업체코드' },
+        { key: 'curType', label: '통화' },
         { key: 'title', label: '제목' },
         { key: 'totalAmount', label: '총액' },
         { key: 'deductCnt', label: '잔여' },
@@ -2642,8 +2663,6 @@
     '/calc/exCalcList': {
       paginationSizeOptions: [25, 50, 100, 200, 500, 1000],
       paginationDefaultSize: 25,
-      /* 수수료내역과 동일: VIEW SETTING 행·컬럼 체크 행 간격(gap) 및 2행 가이드 */
-      tableColumnGuideTwoRow: true,
       notice: '수동 실행: 기간·가맹을 지정해 실행합니다. 서버 스케줄은 정산구분 AUTO인 가맹만 실행합니다. D+N·W·WK는 정산일에 집계 구간을 합산해 정산 실행 1건, RT는 승인 노티마다 건당, T0는 승인 노티마다 당일 00:00~현재 전체 재집계(당일 1행), TM·TH는 격자 시각마다 당일 0시~현재 합산 1행 재집계, M5·M10·M30은 N분 격자마다 직전 N분 합산 1건, H1·H2·H4·H6·H8·H12는 격자 정각마다 직전 N시간 합산 1건입니다(app.settlement.autoRunEnabled·VPS 타임존 Asia/Seoul 권장). 목록의 정산주기·정산방법·루트는 가맹 정산설정·PG연동(MID·루트)에서 가져옵니다. 정산대상기간은 조회·실행에 사용한 기간(또는 정산일만)으로 표시됩니다.',
       searchRows: [
         [
@@ -2655,12 +2674,12 @@
       ],
       summary: [],
       buttons: [{ id: 'searchBtn', label: '검색', cls: 'btn-primary' }, { id: 'exCalcBtn', label: '정산실행', cls: 'btn-warning' }, { id: 'excelBtn', label: '엑셀다운로드', cls: 'btn-info' }],
-      columns: [{ key: '_chk', type: 'checkbox' }, { key: 'rowNo', label: '번호' }, { key: 'compNm', label: '업체명' }, { key: 'compId', label: '업체코드' }, { key: 'calcDt', label: '정산일자' }, { key: 'calcCycle', label: '정산주기' }, { key: 'calcMethod', label: '정산방법' }, { key: 'targetPeriodText', label: '정산대상기간' }, { key: 'pgRootNo', label: '루트' }, { key: 'targetAmt', label: '정산대상금액' }, { key: 'totalFee', label: '공제수수료' }, { key: 'rollingReserveAmt', label: '롤링보류' }, { key: 'payAmount', label: '지급액' }, { key: 'status', label: '상태' }]
+      columnGuideFixedKeys: ['rowNo', 'compNm', 'compId', 'curType'],
+      columns: [{ key: '_chk', type: 'checkbox' }, { key: 'rowNo', label: '번호' }, { key: 'compNm', label: '업체명' }, { key: 'compId', label: '업체코드' }, { key: 'curType', label: '통화' }, { key: 'calcDt', label: '정산일자' }, { key: 'calcCycle', label: '정산주기' }, { key: 'calcMethod', label: '정산방법' }, { key: 'targetPeriodText', label: '정산대상기간', thClass: 'text-nowrap' }, { key: 'pgRootNo', label: '루트' }, { key: 'targetAmt', label: '정산대상금액' }, { key: 'totalFee', label: '공제수수료' }, { key: 'rollingReserveAmt', label: '롤링보류' }, { key: 'payAmount', label: '지급액' }, { key: 'status', label: '상태' }]
     },
     '/calc/settlementReport': {
       paginationSizeOptions: [25, 50, 100, 200, 500, 1000],
       paginationDefaultSize: 25,
-      tableColumnGuideTwoRow: false,
       noticeList: [
         '[리포트 형식] 가맹점 정산 리포트: 총본사·본사·총판 등이 소속 가맹에 보내는 정산 형식. 본사 지급 리포트: 총본사가 본사(REGIONAL)에 지급할 금액을 본사 단위로 합산(총본사·본사 로그인만 선택 가능).',
         '[하위 구분] 정산집계·정산실시·정산집계표·확정정산(리포트). 확정정산은 정산 실행이 CALCULATED(확정)이고 가맹점정산내역에 올라온 건만 목록으로 보이며, 행을 더블클릭하면 가맹 전달용 요약(거래 구간 집계 + 실행 금액)을 한 화면에서 봅니다.',
@@ -2746,7 +2765,6 @@
     '/calc/collateralList': {
       paginationSizeOptions: [25, 50, 100, 200, 500, 1000],
       paginationDefaultSize: 25,
-      tableColumnGuideTwoRow: false,
       columnGuideFixedKeys: ['rowNo', 'compNm', 'compId'],
       viewSettingDefaultSelectedKeys: [
         'trnId', 'reserveAmt', 'rollingPct', 'holdBusinessDays', 'holdStartDt',
@@ -3067,17 +3085,17 @@
       searchRows: [[{ label: '조회일자', type: 'daterange', from: 'searchFromDate', to: 'searchToDate' }, { type: 'quickdate' }, { type: 'searchBtn' }]],
       summary: ['건수'],
       buttons: [{ id: 'searchBtn', label: '검색', cls: 'btn-primary' }, { id: 'excelBtn', label: '엑셀다운로드', cls: 'btn-info' }],
-      columns: [{ key: '_chk', type: 'checkbox' }, { key: 'rowNo', label: '번호' }, { key: 'compNm', label: '업체명' }, { key: 'compId', label: '업체코드' }, { key: 'calcDt', label: '정산일자' }, { key: 'settleAmt', label: '정산잔액' }, { key: 'recallAmt', label: '미수금' }, { key: 'deductAmt', label: '미수금 차감' }],
+      columnGuideFixedKeys: ['rowNo', 'compNm', 'compId', 'curType'],
+      columns: [{ key: '_chk', type: 'checkbox' }, { key: 'rowNo', label: '번호' }, { key: 'compNm', label: '업체명' }, { key: 'compId', label: '업체코드' }, { key: 'curType', label: '통화' }, { key: 'calcDt', label: '정산일자' }, { key: 'settleAmt', label: '정산잔액' }, { key: 'recallAmt', label: '미수금' }, { key: 'deductAmt', label: '미수금 차감' }],
       emptyMessage: '조회된 데이터가 없습니다.'
     },
     '/settlement/execute': {
       paginationSizeOptions: [25, 50, 100, 200, 500, 1000],
       paginationDefaultSize: 25,
-      tableColumnGuideTwoRow: true,
       searchRows: [[{ label: '정산대상일', type: 'daterange', from: 'searchFromDate', to: 'searchToDate' }, { type: 'searchBtn' }]],
       summary: [],
       buttons: [{ id: 'searchBtn', label: '조회', cls: 'btn-primary' }, { id: 'executeBtn', label: '정산실행', cls: 'btn-danger' }],
-      columns: [{ key: '_chk', type: 'checkbox' }, { key: 'rowNo', label: '번호' }, { key: 'compNm', label: '업체명' }, { key: 'compId', label: '업체코드' }, { key: 'calcDt', label: '정산일' }, { key: 'calcCycle', label: '정산주기' }, { key: 'calcMethod', label: '정산방법' }, { key: 'targetPeriodText', label: '정산대상기간' }, { key: 'pgRootNo', label: '루트' }, { key: 'targetAmt', label: '정산대상금액' }, { key: 'totalFee', label: '공제수수료' }, { key: 'rollingReserveAmt', label: '롤링보류' }, { key: 'payAmount', label: '지급액' }, { key: 'status', label: '상태' }],
+      columns: [{ key: '_chk', type: 'checkbox' }, { key: 'rowNo', label: '번호' }, { key: 'compNm', label: '업체명' }, { key: 'compId', label: '업체코드' }, { key: 'calcDt', label: '정산일' }, { key: 'calcCycle', label: '정산주기' }, { key: 'calcMethod', label: '정산방법' }, { key: 'targetPeriodText', label: '정산대상기간', thClass: 'text-nowrap' }, { key: 'pgRootNo', label: '루트' }, { key: 'targetAmt', label: '정산대상금액' }, { key: 'totalFee', label: '공제수수료' }, { key: 'rollingReserveAmt', label: '롤링보류' }, { key: 'payAmount', label: '지급액' }, { key: 'status', label: '상태' }],
       emptyMessage: '조회된 데이터가 없습니다.'
     },
     '/notify/payUrlMng': {
@@ -3262,7 +3280,6 @@
         fr.summary = gm.summary ? gm.summary.slice() : fr.summary;
         fr.searchFormClass = gm.searchFormClass || fr.searchFormClass;
         fr.payMngDenseGrid = !!gm.payMngDenseGrid;
-        fr.tableColumnGuideTwoRow = gm.tableColumnGuideTwoRow;
         if (gm.paginationSizeOptions) fr.paginationSizeOptions = gm.paginationSizeOptions.slice();
         if (gm.paginationDefaultSize != null) fr.paginationDefaultSize = gm.paginationDefaultSize;
         if (gm.noticeList && gm.noticeList.length) fr.noticeList = gm.noticeList.slice();
@@ -3278,7 +3295,6 @@
         dist.searchFormClass = cl.searchFormClass || dist.searchFormClass;
         dist.tableScrollable = cl.tableScrollable;
         dist.buttons = cl.buttons ? JSON.parse(JSON.stringify(cl.buttons)) : dist.buttons;
-        dist.tableColumnGuideTwoRow = cl.tableColumnGuideTwoRow;
         if (cl.paginationSizeOptions) dist.paginationSizeOptions = cl.paginationSizeOptions.slice();
         if (cl.paginationDefaultSize != null) dist.paginationDefaultSize = cl.paginationDefaultSize;
       }
@@ -3286,7 +3302,6 @@
       var exc = MENU_SCREENS['/calc/exCalcList'];
       if (ex && exc && ex.columns && ex.columns.length) {
         exc.columns = JSON.parse(JSON.stringify(ex.columns));
-        if (ex.tableColumnGuideTwoRow != null) exc.tableColumnGuideTwoRow = !!ex.tableColumnGuideTwoRow;
       }
       var fee = MENU_SCREENS['/calc/feeList'];
       if (fee && !MENU_SCREENS['/settlement/feeList']) {
@@ -3299,7 +3314,6 @@
         rcs.searchRows = JSON.parse(JSON.stringify(rc.searchRows || []));
         rcs.summary = (rc.summary || []).slice();
         if (rc.notice) rcs.notice = rc.notice;
-        rcs.tableColumnGuideTwoRow = rc.tableColumnGuideTwoRow;
         if (rc.paginationSizeOptions) rcs.paginationSizeOptions = rc.paginationSizeOptions.slice();
         if (rc.paginationDefaultSize != null) rcs.paginationDefaultSize = rc.paginationDefaultSize;
       }
@@ -3331,7 +3345,6 @@
         phs.buttons = ph.buttons ? JSON.parse(JSON.stringify(ph.buttons)) : phs.buttons;
         phs.searchFormClass = ph.searchFormClass || phs.searchFormClass;
         phs.payMngDenseGrid = !!ph.payMngDenseGrid;
-        phs.tableColumnGuideTwoRow = ph.tableColumnGuideTwoRow;
         if (ph.paginationSizeOptions) phs.paginationSizeOptions = ph.paginationSizeOptions.slice();
         if (ph.paginationDefaultSize != null) phs.paginationDefaultSize = ph.paginationDefaultSize;
       }
@@ -3346,7 +3359,6 @@
         dst.buttons = src.buttons ? JSON.parse(JSON.stringify(src.buttons)) : dst.buttons;
         dst.searchFormClass = src.searchFormClass || dst.searchFormClass;
         dst.payMngDenseGrid = !!src.payMngDenseGrid;
-        dst.tableColumnGuideTwoRow = src.tableColumnGuideTwoRow;
         if (src.paginationSizeOptions) dst.paginationSizeOptions = src.paginationSizeOptions.slice();
         if (src.paginationDefaultSize != null) dst.paginationDefaultSize = src.paginationDefaultSize;
         if (src.columnGuideFixedKeys) dst.columnGuideFixedKeys = src.columnGuideFixedKeys.slice();
@@ -3383,10 +3395,30 @@
     return '<div class="search-cell' + (hasLabel ? ' search-cell--with-label' : '') + '">' + content + '</div>';
   }
 
+  /** 목록 API용 searchOrderDir — 기본 내림차순; 숨김값 + 내림차순·오름차순 각각 버튼 메뉴(결제관리는 새로고침 왼쪽·클릭 즉시 조회는 app.js) */
+  function buildListSortDirSelectHtml(tabId) {
+    var tid = tabId || '';
+    var sid = tid ? ('searchOrderDir_' + tid.replace(/[^a-zA-Z0-9_-]/g, '_')) : 'searchOrderDir';
+    return (
+      '<div class="screen-list-sort-dir-wrap d-inline-flex align-items-center gap-2 flex-shrink-0">' +
+      '<input type="hidden" name="searchOrderDir" class="screen-list-sort-dir-hidden" id="' + sid + '_val" value="DESC">' +
+      '<div class="d-inline-flex align-items-center gap-2 screen-list-sort-dir-menu" role="toolbar" aria-label="정렬 순서">' +
+      '<button type="button" class="btn btn-sm btn-secondary screen-list-sort-dir-btn" data-search-order-dir="DESC">내림차순</button>' +
+      '<button type="button" class="btn btn-sm btn-outline-secondary screen-list-sort-dir-btn" data-search-order-dir="ASC">오름차순</button>' +
+      '</div></div>'
+    );
+  }
+  function toolbarHasSearchBtnForSort(btns) {
+    return (btns || []).some(function (b) { return b && String(b.id || '') === 'searchBtn'; });
+  }
+  function toolbarHasRefreshBtnForSort(btns) {
+    return (btns || []).some(function (b) { return b && String(b.id || '') === 'payListRefreshBtn'; });
+  }
+
   var INPUT_SCALE = 1.3;
   var DATE_SCALE = 1.4;
 
-  function renderSearchCell(field) {
+  function renderSearchCell(field, cfg, tabId) {
     var inner = '';
     var ch = field.size != null ? field.size : autoCh(field);
     var sz = sizeStyle(Math.ceil(ch * INPUT_SCALE));
@@ -3419,7 +3451,11 @@
     if (field.type === 'searchBtn') {
       var btnLabel = field.label || '검색';
       var iconHtml = field.noIcon ? '' : '<i class="bi bi-search"></i> ';
-      inner = '<div class="search-cell-input search-cell-input--right"><button type="button" class="btn btn-primary btn-sm screen-search-btn">' + iconHtml + btnLabel + '</button></div>';
+      var ccfg = cfg || {};
+      var addInlineSort = ccfg.listSortDirToolbar !== false && !ccfg._listToolbarShowsSortDir;
+      inner = '<div class="search-cell-input search-cell-input--right d-flex align-items-center flex-wrap gap-2 justify-content-end">';
+      if (addInlineSort) inner += buildListSortDirSelectHtml(tabId);
+      inner += '<button type="button" class="btn btn-primary btn-sm screen-search-btn">' + iconHtml + btnLabel + '</button></div>';
       return wrapSearchCell(inner, false);
     }
     if (field.type === 'button' && field.name === 'searchReset') {
@@ -3443,22 +3479,31 @@
     return '';
   }
 
-  function renderSearchRow(row) {
+  function renderSearchRow(row, cfg, tabId) {
     var cells = Array.isArray(row) ? row : (row ? [row] : []);
     if (cells.length === 0) return '';
-    var html = cells.map(renderSearchCell).filter(Boolean).join('');
+    var html = cells.map(function (cell) { return renderSearchCell(cell, cfg, tabId); }).filter(Boolean).join('');
     return html ? '<div class="search-form-row">' + html + '</div>' : '';
   }
 
-  function renderSearchForm(cfg) {
+  function renderSearchForm(cfg, tabId) {
     var rows = cfg.searchRows || [];
     var rows2 = cfg.searchRows2 || [];
     var rows3 = cfg.searchRows3 || [];
+    cfg._listToolbarHasSearchBtn = (cfg.buttons || []).some(function (b) { return b && String(b.id || '') === 'searchBtn'; });
+    cfg._listToolbarShowsSortDir = false;
+    if (cfg.listSortDirToolbar !== false) {
+      var tbb = cfg.buttons || [];
+      var hSearchBar = tbb.some(function (x) { return x && String(x.id || '') === 'searchBtn'; });
+      var hRefreshBar = tbb.some(function (x) { return x && String(x.id || '') === 'payListRefreshBtn'; });
+      if (cfg.listSortDirAnchor === 'refresh' && hRefreshBar) cfg._listToolbarShowsSortDir = true;
+      else if (cfg.listSortDirAnchor !== 'refresh' && hSearchBar) cfg._listToolbarShowsSortDir = true;
+    }
     var formClass = 'screen-search-form' + (cfg.searchFormClass ? ' ' + cfg.searchFormClass : '');
     var html = '<form id="screenSearchForm" class="' + formClass + '" onsubmit="return false;">';
-    rows.forEach(function (r) { html += renderSearchRow(r); });
-    rows2.forEach(function (r) { html += renderSearchRow(r); });
-    rows3.forEach(function (r) { html += renderSearchRow(r); });
+    rows.forEach(function (r) { html += renderSearchRow(r, cfg, tabId); });
+    rows2.forEach(function (r) { html += renderSearchRow(r, cfg, tabId); });
+    rows3.forEach(function (r) { html += renderSearchRow(r, cfg, tabId); });
     html += '</form>';
     return html;
   }
@@ -3470,7 +3515,7 @@
     var items = list.map(function (t) { return '<li>' + t + '</li>'; }).join('');
     var noticeHtml = list.length > 0 ? '<ul class="mb-0">' + items + '</ul>' : '';
     var btnHtml = refBtn ? '<button type="button" class="btn btn-sm ' + (refBtn.cls || 'btn-success') + ' ms-2" id="' + (refBtn.id || 'noticeRefBtn') + '">' + (refBtn.label || '참고') + '</button>' : '';
-    return '<div class="search-notice mb-2 d-flex align-items-center flex-wrap">' + (list.length > 0 ? '<div class="search-notice-text flex-grow-1">' + noticeHtml + '</div>' : '') + btnHtml + '</div>';
+    return '<div class="search-notice pg-hello-toggle-zone mb-2 d-flex align-items-center flex-wrap">' + (list.length > 0 ? '<div class="search-notice-text flex-grow-1">' + noticeHtml + '</div>' : '') + btnHtml + '</div>';
   }
 
   function renderTableColumnGuide(cfg) {
@@ -3479,7 +3524,7 @@
     var defaultFixed = ['rowNo', 'compId', 'compNm', 'compDivNm', 'trnDate', 'trnTime', 'routeNo'];
     var fixedKeys = (cfg.columnGuideFixedKeys && cfg.columnGuideFixedKeys.length) ? cfg.columnGuideFixedKeys : defaultFixed;
     var cols = cfg.columns.filter(function (c) {
-      if (c.type === 'checkbox' || c.type === 'payActions' || c.type === 'commissionInlineActions' || c.type === 'accountAccessDelete' || c.type === 'userResetPassword' || c.type === 'userDelete') return false;
+      if (c.type === 'checkbox' || c.type === 'payActions' || c.type === 'commissionInlineActions' || c.type === 'accountAccessActions' || c.type === 'accountAccessDelete' || c.type === 'userResetPassword' || c.type === 'userDelete') return false;
       return fixedKeys.indexOf(c.key) === -1;
     });
     if (cols.length === 0) return '';
@@ -3504,15 +3549,7 @@
       '<span class="column-guide-vbar" aria-hidden="true">|</span>' +
       '<div class="column-guide-actions column-guide-actions--inline">' + actionsHtml + '</div>' +
       '</div></div>';
-    var rootClass = 'table-column-guide mb-3 p-2 border rounded bg-light table-column-guide--inline-head';
-    if (cfg.tableColumnGuideTwoRow === true) {
-      return '<div class="' + rootClass + ' table-column-guide--two-row" id="tableColumnGuide">' +
-        headRow +
-        '<div class="column-guide-row column-guide-checkboxes">' +
-        '<div class="column-guide-list">' + items + '</div>' +
-        '</div>' +
-        '</div>';
-    }
+    var rootClass = 'table-column-guide pg-hello-toggle-zone mb-3 p-2 border rounded bg-light table-column-guide--inline-head table-column-guide--two-row';
     return '<div class="' + rootClass + '" id="tableColumnGuide">' +
       headRow +
       '<div class="column-guide-row column-guide-checkboxes">' +
@@ -3628,8 +3665,8 @@
           '</label>' +
           '<button type="button" class="btn btn-primary btn-sm" data-attach-add>추가</button>' +
           '</div>' +
-          '<div class="table-responsive attach-table-wrap">' +
-          '<table class="table table-sm table-bordered mb-0 w-100" data-attach-table>' +
+          '<div class="table-responsive attach-table-wrap table-no-col-resize-wrap">' +
+          '<table class="table table-sm table-bordered mb-0 w-100 table-no-col-resize" data-attach-table>' +
           '<thead><tr><th style="width:56px">No.</th><th>파일이름</th><th>첨부된 파일</th><th style="width:80px">수정</th><th style="width:80px">삭제</th></tr></thead>' +
           '<tbody><tr data-empty-row><td colspan="5" class="text-center text-muted py-2">첨부된 파일이 없습니다.</td></tr></tbody>' +
           '</table></div>' +
@@ -3827,9 +3864,12 @@
     return html;
   }
 
-  /** VIEW SETTING이 있는 목록: 헬로 버튼을 새로고침·엑셀 사이(또는 엑셀 앞)에 삽입 */
+  /**
+   * 헬로: 모든 목록(액션 바가 있을 때)에 삽입 — 클릭 시 안내(파스텔)·VIEW SETTING만 함께 숨김/표시(집계 바는 유지).
+   * VIEW SETTING이 없는 화면은 `.pg-hello-toggle-zone`(안내 박스 등)만 토글됩니다.
+   */
   function injectViewSettingHelloIntoButtons(btns, cfg) {
-    if (cfg.tableColumnGuide === false || !cfg.columns || cfg.columns.length === 0) return btns;
+    if (!cfg || cfg.hideListGrid) return btns || [];
     if (!btns || !btns.length) return btns;
     var out = btns.slice();
     var refreshIdx = -1;
@@ -3869,10 +3909,33 @@
       summaryHtml += '</div>';
     }
     var buttonsHtml = '';
+    var sortToolbarEnabled = cfg.listSortDirToolbar !== false;
+    var anchorSort = cfg.listSortDirAnchor;
+    var hasTbSearchSort = toolbarHasSearchBtnForSort(btns);
+    var hasTbRefreshSort = toolbarHasRefreshBtnForSort(btns);
+    var toolbarSortHtml = '';
+    if (sortToolbarEnabled) {
+      if (anchorSort === 'refresh' && hasTbRefreshSort) {
+        toolbarSortHtml = buildListSortDirSelectHtml(tabId);
+      } else if (anchorSort !== 'refresh' && hasTbSearchSort) {
+        toolbarSortHtml = buildListSortDirSelectHtml(tabId);
+      }
+    }
     if (btns.length > 0) {
       buttonsHtml = '<div class="screen-action-buttons">';
       var tid = tabId || '';
+      var sortPlaced = false;
       btns.forEach(function (b) {
+        if (toolbarSortHtml && !sortPlaced) {
+          var bid0 = String(b && b.id || '');
+          if (anchorSort === 'refresh' && bid0 === 'payListRefreshBtn') {
+            buttonsHtml += toolbarSortHtml;
+            sortPlaced = true;
+          } else if (anchorSort !== 'refresh' && bid0 === 'searchBtn') {
+            buttonsHtml += toolbarSortHtml;
+            sortPlaced = true;
+          }
+        }
         var bid = (b && b._viewSettingHello) ? ('viewSettingHelloBtn_' + tid) : (b.id || '');
         buttonsHtml += '<button type="button" class="btn ' + (b.cls || 'btn-secondary') + ' btn-sm" id="' + bid + '">' + (b.label || '') + '</button>';
       });
@@ -3902,6 +3965,7 @@
       '<th rowspan="3" data-key="rowNo" class="text-nowrap">No.</th>' +
       '<th rowspan="3" data-key="settleMonth" class="text-nowrap">정산월</th>' +
       '<th rowspan="3" data-key="orgDivNm" class="text-nowrap">구분</th>' +
+      '<th rowspan="3" data-key="hqNm" class="text-nowrap">총본사</th>' +
       '<th rowspan="3" data-key="regionalNm" class="text-nowrap">본사</th>' +
       '<th rowspan="3" data-key="masterNm" class="text-nowrap">총판</th>' +
       '<th rowspan="3" data-key="branchNm" class="text-nowrap">지사</th>' +
@@ -3959,7 +4023,9 @@
     var respClass = 'table-responsive' + (cfg.tableScrollable ? ' table-scrollable' : '') + respExtra;
     var tblExtra = cfg.tableExtraClass ? (' ' + cfg.tableExtraClass) : '';
     var payMngGridCls = (cfg.payListStatusBar || cfg.payMngDenseGrid) ? ' pay-mng-data-grid' : '';
-    var html = '<div class="' + respClass + '"><table class="table table-bordered table-hover table-sm' + tblExtra + payMngGridCls + '" id="grid_' + (tabId || '') + '"><thead><tr>' + ths + '</tr></thead><tbody>' + emptyRow + '</tbody></table></div>';
+    var noColResizeCls = cfg.tableNoColResize ? ' table-no-col-resize' : '';
+    var compMngTreeCls = cfg.compMngTreeGrid ? ' comp-mng-tree-grid' : '';
+    var html = '<div class="' + respClass + '"><table class="table table-bordered table-hover table-sm' + tblExtra + payMngGridCls + noColResizeCls + compMngTreeCls + '" id="grid_' + (tabId || '') + '"><thead><tr>' + ths + '</tr></thead><tbody>' + emptyRow + '</tbody></table></div>';
     return html;
   }
 
@@ -4064,8 +4130,8 @@
       '<span><i class="org-perm-legend-delete" aria-hidden="true"></i>삭제(전체)</span>' +
       '</div>' +
       '<ul class="nav nav-pills flex-wrap gap-1 mb-3 org-perm-level-tabs" id="orgPermTabs_' + tabId + '" role="tablist"></ul>' +
-      '<div class="table-responsive org-perm-table-wrap">' +
-      '<table class="table table-sm table-bordered align-middle mb-0 org-perm-table" id="orgPermTable_' + tabId + '">' +
+      '<div class="table-responsive org-perm-table-wrap table-no-col-resize-wrap">' +
+      '<table class="table table-sm table-bordered align-middle mb-0 org-perm-table table-no-col-resize" id="orgPermTable_' + tabId + '">' +
       '<thead><tr><th class="text-center text-nowrap org-perm-th-no" style="width:3.25rem">No.</th><th style="width:13%">메뉴ID</th><th>화면</th><th style="width:24%">권한</th></tr></thead>' +
       '<tbody id="orgPermTbody_' + tabId + '"><tr><td colspan="4" class="text-center text-muted py-4">불러오는 중…</td></tr></tbody>' +
       '</table></div>' +
@@ -4107,8 +4173,8 @@
       '<button type="button" class="btn btn-sm btn-primary w-100" id="hqOrgUnitPermissionSaveBtn_' + tabId + '" disabled>설정저장</button>' +
       '</div></div>' +
       '<p class="small mb-2" id="orgPermUnitHint_' + tabId + '">조직을 선택하면 적용 방식과 권한 표가 채워집니다.</p>' +
-      '<div class="table-responsive org-perm-table-wrap">' +
-      '<table class="table table-sm table-bordered align-middle mb-0 org-perm-table" id="orgPermUnitTable_' + tabId + '">' +
+      '<div class="table-responsive org-perm-table-wrap table-no-col-resize-wrap">' +
+      '<table class="table table-sm table-bordered align-middle mb-0 org-perm-table table-no-col-resize" id="orgPermUnitTable_' + tabId + '">' +
       '<thead><tr><th class="text-center text-nowrap org-perm-th-no" style="width:3.25rem">No.</th><th style="width:13%">메뉴ID</th><th>화면</th><th style="width:24%">권한</th></tr></thead>' +
       '<tbody id="orgPermUnitTbody_' + tabId + '"><tr><td colspan="4" class="text-center text-muted py-4">조직을 선택하세요.</td></tr></tbody>' +
       '</table></div></div></div>' +
@@ -4118,8 +4184,8 @@
       '<p class="text-muted small mb-2" id="orgPermAssistHint_' + tabId + '">위에서 조직을 선택하면, 해당 조직에 <strong>접근 가능한 메뉴</strong>만 표시됩니다. ' +
       '값을 <strong>조직 기본(상한)</strong>으로 두면 담당자에게도 조직과 동일한 권한이 적용됩니다. 본사·총판·총본사는 자기 조직만 저장할 수 있습니다.</p>' +
       '<ul class="nav nav-pills flex-wrap gap-1 mb-2 org-perm-assist-role-tabs" id="orgPermAssistRoleTabs_' + tabId + '" role="tablist"></ul>' +
-      '<div class="table-responsive org-perm-table-wrap">' +
-      '<table class="table table-sm table-bordered align-middle mb-0 org-perm-table" id="orgPermAssistTable_' + tabId + '">' +
+      '<div class="table-responsive org-perm-table-wrap table-no-col-resize-wrap">' +
+      '<table class="table table-sm table-bordered align-middle mb-0 org-perm-table table-no-col-resize" id="orgPermAssistTable_' + tabId + '">' +
       '<thead><tr><th class="text-center text-nowrap org-perm-th-no" style="width:3.25rem">No.</th><th style="width:13%">메뉴ID</th><th>화면</th><th style="width:28%">담당자 권한</th></tr></thead>' +
       '<tbody id="orgPermAssistTbody_' + tabId + '"><tr><td colspan="4" class="text-center text-muted py-3">조직을 선택하세요.</td></tr></tbody>' +
       '</table></div>' +
@@ -4190,7 +4256,7 @@
       html += renderSummaryAndActions(cfg, tabId);
     } else {
       if (!cfg.hideListGrid) {
-        html += renderSearchForm(cfg);
+        html += renderSearchForm(cfg, tabId);
         if (cfg.noticeList && cfg.noticeList.length > 0) html += renderNotice(cfg);
         html += renderSummaryAndActions(cfg, tabId);
         if (cfg.payListStatusBar) html += renderPayListStatusBarSlot(tabId);

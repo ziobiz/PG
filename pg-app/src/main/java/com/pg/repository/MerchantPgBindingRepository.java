@@ -6,11 +6,15 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
 public interface MerchantPgBindingRepository extends JpaRepository<MerchantPgBinding, Long> {
     List<MerchantPgBinding> findByOrgUnitIdOrderBySortOrderAsc(Long orgUnitId);
+
+    @Query("SELECT b FROM MerchantPgBinding b WHERE b.orgUnitId IN :ids ORDER BY b.orgUnitId ASC, b.sortOrder ASC")
+    List<MerchantPgBinding> findByOrgUnitIdInOrderByOrgUnitIdAscSortOrderAsc(@Param("ids") Collection<Long> ids);
 
     /** 삭제 후 즉시 flush — 재삽입 시 (org_unit_id, pg_cd, pay_method) 유니크 충돌 방지 */
     @Modifying(clearAutomatically = true, flushAutomatically = true)

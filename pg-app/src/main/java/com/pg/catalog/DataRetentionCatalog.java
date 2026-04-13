@@ -47,16 +47,46 @@ public final class DataRetentionCatalog {
                     2555,
                     false),
             new Entry(
+                    "MERCHANT_REGISTRATION",
+                    "업체정보(등록)",
+                    "tb_merchant_profile 등 가맹·법인 최초 등록·신청 단계 마스터. 자동삭제 미연동(법적·계약 보존 — 보관 목표 일수만 정책 저장).",
+                    2555,
+                    false),
+            new Entry(
+                    "MERCHANT_MANAGEMENT",
+                    "업체관리",
+                    "tb_org_unit, tb_merchant_pg_binding, tb_merchant_notify_url, 권한·VIEW 설정 등 가맹 운영 데이터. 자동삭제 미연동.",
+                    2555,
+                    false),
+            new Entry(
                     "SETTLEMENT_RUN",
                     "정산 실행 이력",
                     "tb_settlement_run. 정산 배치 실행 기록. 자동삭제 미연동.",
                     365,
                     false),
             new Entry(
+                    "SETTLEMENT_MANAGEMENT",
+                    "정산관리",
+                    "tb_settlement_setting, tb_rolling_reserve, tb_settlement_recovery, tb_merchant_receivable 등 정산 설정·잔액·회수·미수. 자동삭제 미연동.",
+                    2555,
+                    false),
+            new Entry(
                     "COMMISSION_HISTORY",
                     "수수료·정산 연동 이력",
                     "tb_commission_history. 자동삭제 미연동.",
                     365,
+                    false),
+            new Entry(
+                    "MERCHANT_SETTLEMENT_LIST",
+                    "가맹점 정산내역(수수료내역)",
+                    "정산관리 수수료내역·가맹 단위 정산 명세에 해당하는 조회·집계 근거(거래·정책·통화별 라운딩 산출 등). 「결제 거래 내역」과 연계되나 화면·감사 관점의 보관 목표는 별도 표기. 자동삭제 미연동.",
+                    2555,
+                    false),
+            new Entry(
+                    "SETTLEMENT_REPORT_DATA",
+                    "정산 리포트",
+                    "통합정산·정산리포트(집계·요약·실행·명세 등) 조회·산출·저장 데이터. 「정산 실행 이력(tb_settlement_run)」과 구분 — 리포트·집계 결과물 보관 목표. 자동삭제 미연동.",
+                    1825,
                     false),
             new Entry(
                     "SERVER_USAGE_DAILY",

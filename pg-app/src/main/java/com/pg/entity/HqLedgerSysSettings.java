@@ -69,7 +69,7 @@ public class HqLedgerSysSettings {
     private String memo;
 
     /**
-     * 데이터 유형별 보관 일수. JSON 객체 {@code { "PG_NOTIFY_INBOUND": 90, ... }} — 키는 {@link com.pg.catalog.DataRetentionCatalog} id.
+     * 데이터 유형별 보관 일수. JSON 객체 {@code { "PG_NOTIFY_INBOUND": 90, "MERCHANT_REGISTRATION": 2555, ... }} — 키는 {@link com.pg.catalog.DataRetentionCatalog} id.
      */
     @Column(name = "data_retention_policy_json", columnDefinition = "TEXT")
     private String dataRetentionPolicyJson;
@@ -111,6 +111,13 @@ public class HqLedgerSysSettings {
     /** CEILING=절상, HALF_UP=반올림, DOWN=그대로(버림) */
     @Column(name = "fee_list_round_mode", nullable = false, length = 16)
     private String feeListRoundMode = "CEILING";
+
+    /**
+     * 통화별 수수료·정산 금액 소수 처리(JSON 배열).
+     * 미설정 시 {@link com.pg.util.FeeCurrencyRoundResolver} 가 전역 fee_list_* 로 폴백합니다.
+     */
+    @Column(name = "fee_currency_format_json", columnDefinition = "TEXT")
+    private String feeCurrencyFormatJson;
 
     /** 결제 통화 ISO 4217 숫자(3자리, 예 764=THB). 집계·표시 폴백 기준 */
     @Column(name = "pay_display_currency_iso_num", nullable = false, length = 3)
@@ -201,6 +208,8 @@ public class HqLedgerSysSettings {
     public void setFeeListDecimalPlaces(Integer feeListDecimalPlaces) { this.feeListDecimalPlaces = feeListDecimalPlaces; }
     public String getFeeListRoundMode() { return feeListRoundMode; }
     public void setFeeListRoundMode(String feeListRoundMode) { this.feeListRoundMode = feeListRoundMode; }
+    public String getFeeCurrencyFormatJson() { return feeCurrencyFormatJson; }
+    public void setFeeCurrencyFormatJson(String feeCurrencyFormatJson) { this.feeCurrencyFormatJson = feeCurrencyFormatJson; }
     public String getPayDisplayCurrencyIsoNum() { return payDisplayCurrencyIsoNum; }
     public void setPayDisplayCurrencyIsoNum(String payDisplayCurrencyIsoNum) { this.payDisplayCurrencyIsoNum = payDisplayCurrencyIsoNum; }
     public LocalDateTime getCreatedAt() { return createdAt; }

@@ -37,13 +37,17 @@ import com.pg.repository.SettlementSettingRepository;
 import com.pg.service.AuthService;
 import com.pg.service.CollateralLedgerService;
 import com.pg.service.OrgAccessService;
+import com.pg.service.OrgPagePermissionService;
 import com.pg.service.PayListService;
 import com.pg.service.SettlementCalcService;
 import com.pg.service.SettlementReportService;
 import com.pg.service.settlement.FeeListTxnBreakdownCalculator;
 import com.pg.service.settlement.SettlementArrearsService;
 import com.pg.service.settlement.SettlementAutoRunService;
+import com.pg.service.settlement.SettlementCycleTiming;
+import com.pg.service.settlement.SettlementPeriodResolver;
 import com.pg.util.CommissionExtraFeeUtil;
+import com.pg.util.FeeCurrencyRoundResolver;
 import com.pg.util.FeeListRoundingPolicy;
 import com.pg.util.MerchantFeeVatUtil;
 import com.pg.util.PercentDecimalHelper;
@@ -63,6 +67,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -98,6 +103,7 @@ public class ApiSettlementController {
     private final SettlementRecoveryRepository settlementRecoveryRepository;
     private final MerchantReceivableRepository merchantReceivableRepository;
     private final SettlementArrearsService settlementArrearsService;
+    private final OrgPagePermissionService orgPagePermissionService;
 
     private static final ZoneId SEOUL = ZoneId.of("Asia/Seoul");
 
@@ -123,7 +129,8 @@ public class ApiSettlementController {
                                    FeeListTxnBreakdownCalculator feeListTxnBreakdownCalculator,
                                    SettlementRecoveryRepository settlementRecoveryRepository,
                                    MerchantReceivableRepository merchantReceivableRepository,
-                                   SettlementArrearsService settlementArrearsService) {
+                                   SettlementArrearsService settlementArrearsService,
+                                   OrgPagePermissionService orgPagePermissionService) {
         this.settlementCalcService = settlementCalcService;
         this.settlementRunRepository = settlementRunRepository;
         this.orgUnitRepository = orgUnitRepository;
@@ -147,12 +154,31 @@ public class ApiSettlementController {
         this.settlementRecoveryRepository = settlementRecoveryRepository;
         this.merchantReceivableRepository = merchantReceivableRepository;
         this.settlementArrearsService = settlementArrearsService;
+        this.orgPagePermissionService = orgPagePermissionService;
     }
 
-    private FeeListRoundingPolicy resolveFeeListRoundingPolicy() {
+    private FeeCurrencyRoundResolver resolveFeeCurrencyRoundResolver() {
         return hqLedgerSysSettingsRepository.findFirstByOrderByIdAsc()
-                .map(FeeListRoundingPolicy::fromSettings)
-                .orElseGet(FeeListRoundingPolicy::defaults);
+                .map(FeeCurrencyRoundResolver::from)
+                .orElseGet(() -> FeeCurrencyRoundResolver.from(null));
+    }
+
+    private void attachFeeCurrencyMeta(PageResult<Map<String, Object>> pr) {
+        if (pr == null) {
+            return;
+        }
+        Map<String, Object> meta = pr.getMeta() != null ? new LinkedHashMap<>(pr.getMeta()) : new LinkedHashMap<>();
+        meta.put("feeCurrencyFormatByCur", resolveFeeCurrencyRoundResolver().toClientByCurrencyMap());
+        pr.setMeta(meta);
+    }
+
+    private String resolveMerchantStatementCurrency(String compId) {
+        if (compId == null || compId.isBlank()) {
+            return "KRW";
+        }
+        CommissionPolicy pol = resolveCommissionPolicyForMerchant(compId.trim());
+        String c = pol.getCurrencyCode();
+        return c != null && !c.isBlank() ? c.trim().toUpperCase(Locale.ROOT) : "KRW";
     }
 
     private static BigDecimal feeListMoney(double x, FeeListRoundingPolicy rp) {
@@ -167,6 +193,17 @@ public class ApiSettlementController {
         pr.setTotalElements(0);
         pr.setTotalPages(1);
         return pr;
+    }
+
+    /** 화면 {@code searchOrderDir}: ASC 만 오름차순, 그 외·null 은 내림차순(기본) */
+    private static Sort.Direction sortDirectionFromSearchOrderDir(String searchOrderDir) {
+        return (searchOrderDir != null && "ASC".equalsIgnoreCase(searchOrderDir.trim()))
+                ? Sort.Direction.ASC : Sort.Direction.DESC;
+    }
+
+    private static Comparator<Map<String, Object>> mapRowsCalcDtPrimaryComparator(String searchOrderDir) {
+        Comparator<Map<String, Object>> primary = Comparator.comparing(m -> String.valueOf(m.getOrDefault("calcDt", "")));
+        return sortDirectionFromSearchOrderDir(searchOrderDir) == Sort.Direction.DESC ? primary.reversed() : primary;
     }
 
     /**
@@ -265,10 +302,11 @@ public class ApiSettlementController {
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate searchToDate,
             @RequestParam(required = false) String searchCompNm,
             @RequestParam(required = false) String searchCompId,
+            @RequestParam(required = false) String searchOrderDir,
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "20") int size) {
         return ResponseEntity.ok(ApiResponse.ok(
-                buildConfirmedSettlementReportPage(authentication, searchFromDate, searchToDate, searchCompNm, searchCompId, page, size)));
+                buildConfirmedSettlementReportPage(authentication, searchFromDate, searchToDate, searchCompNm, searchCompId, searchOrderDir, page, size)));
     }
 
     /**
@@ -320,8 +358,9 @@ public class ApiSettlementController {
     }
 
     /**
-     * 유통망 정산: 로그인 소속 조직부터 하위(영업점)까지만. 가맹점 단위 행은 없음 — 하위 가맹 정산을 조직 행으로 합산.
-     * searchCompDiv: REGIONAL/MASTER_DIST/BRANCH/AGENCY/SALES_OFFICE — 비우면 경로상 본사~영업점 각 단계별로 모두 집계(행이 여러 단계로 나뉨).
+     * 유통망 정산: 로그인 소속 조직·하위 가맹(가맹점정산내역과 동일한 {@link OrgAccessService#visibleMerchantCompCodes} 범위)만.
+     * 집계 행마다 해당 조직 단계에 매핑되는 수수료 구간만 합산(본사 행에 총판 구간 금액을 섞지 않음). 총본사(HEADQUARTERS) 단계 포함.
+     * searchCompDiv: HEADQUARTERS/REGIONAL/MASTER_DIST/BRANCH/AGENCY/SALES_OFFICE — 비우면 경로상 각 단계별로 모두 집계.
      */
     @GetMapping("/distributionList")
     public ResponseEntity<ApiResponse<PageResult<Map<String, Object>>>> distributionList(
@@ -331,6 +370,7 @@ public class ApiSettlementController {
             @RequestParam(required = false) String searchCompDiv,
             @RequestParam(required = false) String searchCompId,
             @RequestParam(required = false) String searchCompNm,
+            @RequestParam(required = false) String searchOrderDir,
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "20") int size) {
         String username = null;
@@ -355,6 +395,11 @@ public class ApiSettlementController {
         userSubtree.add(userOrg.getId());
         userSubtree.addAll(collectDescendantOrgIds(userOrg.getId(), allOrgs));
 
+        Set<String> allowedMerchantCodes = orgAccessService.visibleMerchantCompCodes(authentication);
+        if (allowedMerchantCodes != null && allowedMerchantCodes.isEmpty()) {
+            return ResponseEntity.ok(ApiResponse.ok(emptyPage(page, size)));
+        }
+
         String levelFilter = searchCompDiv != null ? searchCompDiv.trim() : "";
 
         List<SettlementRun> list = settlementCalcService.listRuns(searchFromDate, searchToDate);
@@ -367,7 +412,15 @@ public class ApiSettlementController {
             if (merchant == null || merchant.getOrgLevel() != OrgLevel.MERCHANT) {
                 continue;
             }
-            if (!userSubtree.contains(merchant.getId())) {
+            String mid = r.getMerchantId() != null ? r.getMerchantId().trim() : "";
+            if (mid.isEmpty()) {
+                continue;
+            }
+            if (allowedMerchantCodes != null) {
+                if (!allowedMerchantCodes.contains(mid)) {
+                    continue;
+                }
+            } else if (!userSubtree.contains(merchant.getId())) {
                 continue;
             }
             Map<String, Object> dr = toDistributionRow(r);
@@ -387,7 +440,7 @@ public class ApiSettlementController {
                 String key = Objects.requireNonNullElse(rollupOrgCode, "") + "|" + runCalcDt;
                 DistributionAgg agg = aggMap.computeIfAbsent(key,
                         k -> new DistributionAgg(runCalcDt, rollupOrgCode));
-                agg.merge(r, dr);
+                agg.merge(r, dr, cur.getOrgLevel());
                 cur = parentOrg(cur.getParentId(), idToOu);
             }
         }
@@ -414,10 +467,8 @@ public class ApiSettlementController {
             allRows.add(toAggregatedDistributionRow(rowOrg, agg, idToOu));
         }
 
-        allRows.sort(
-                Comparator.<Map<String, Object>, String>comparing(m -> String.valueOf(m.getOrDefault("calcDt", "")))
-                        .reversed()
-                        .thenComparing(m -> String.valueOf(m.getOrDefault("compId", ""))));
+        allRows.sort(mapRowsCalcDtPrimaryComparator(searchOrderDir)
+                .thenComparing(m -> String.valueOf(m.getOrDefault("compId", ""))));
 
         int from = Math.max(0, (page - 1) * size);
         int to = Math.min(allRows.size(), from + Math.max(1, size));
@@ -445,6 +496,7 @@ public class ApiSettlementController {
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate searchToDate,
             @RequestParam(required = false) String searchCompNm,
             @RequestParam(required = false) String searchCompId,
+            @RequestParam(required = false) String searchOrderDir,
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "20") int size) {
         Set<String> allowedMerchants = orgAccessService.visibleMerchantCompCodes(authentication);
@@ -481,11 +533,9 @@ public class ApiSettlementController {
             }
             allRows.add(row);
         }
-        allRows.sort(
-                Comparator.<Map<String, Object>, String>comparing(m -> String.valueOf(m.getOrDefault("calcDt", "")))
-                        .reversed()
-                        .thenComparing(m -> String.valueOf(m.getOrDefault("compId", "")))
-                        .thenComparing(m -> String.valueOf(m.getOrDefault("trnId", ""))));
+        allRows.sort(mapRowsCalcDtPrimaryComparator(searchOrderDir)
+                .thenComparing(m -> String.valueOf(m.getOrDefault("compId", "")))
+                .thenComparing(m -> String.valueOf(m.getOrDefault("trnId", ""))));
 
         int from = Math.max(0, (page - 1) * size);
         int to = Math.min(allRows.size(), from + Math.max(1, size));
@@ -499,6 +549,7 @@ public class ApiSettlementController {
         pr.setSize(size);
         pr.setTotalElements(allRows.size());
         pr.setTotalPages(Math.max(1, (int) Math.ceil((double) allRows.size() / Math.max(1, size))));
+        attachFeeCurrencyMeta(pr);
         return ResponseEntity.ok(ApiResponse.ok(pr));
     }
 
@@ -512,10 +563,11 @@ public class ApiSettlementController {
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate searchToDate,
             @RequestParam(required = false) String searchCompNm,
             @RequestParam(required = false) String searchCompId,
+            @RequestParam(required = false) String searchOrderDir,
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "20") int size) {
         return ResponseEntity.ok(ApiResponse.ok(
-                buildPayoutHoldListPage(authentication, searchFromDate, searchToDate, searchCompNm, searchCompId, page, size)));
+                buildPayoutHoldListPage(authentication, searchFromDate, searchToDate, searchCompNm, searchCompId, searchOrderDir, page, size)));
     }
 
     /**
@@ -528,10 +580,11 @@ public class ApiSettlementController {
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate searchToDate,
             @RequestParam(required = false) String searchCompNm,
             @RequestParam(required = false) String searchCompId,
+            @RequestParam(required = false) String searchOrderDir,
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "20") int size) {
         return ResponseEntity.ok(ApiResponse.ok(
-                buildPayoutHoldListPage(authentication, searchFromDate, searchToDate, searchCompNm, searchCompId, page, size)));
+                buildPayoutHoldListPage(authentication, searchFromDate, searchToDate, searchCompNm, searchCompId, searchOrderDir, page, size)));
     }
 
     private PageResult<Map<String, Object>> buildPayoutHoldListPage(
@@ -540,6 +593,7 @@ public class ApiSettlementController {
             LocalDate searchToDate,
             String searchCompNm,
             String searchCompId,
+            String searchOrderDir,
             int page,
             int size) {
         Set<String> allowedMerchants = orgAccessService.visibleMerchantCompCodes(authentication);
@@ -576,11 +630,9 @@ public class ApiSettlementController {
             }
             allRows.add(row);
         }
-        allRows.sort(
-                Comparator.<Map<String, Object>, String>comparing(m -> String.valueOf(m.getOrDefault("calcDt", "")))
-                        .reversed()
-                        .thenComparing(m -> String.valueOf(m.getOrDefault("compId", "")))
-                        .thenComparing(m -> String.valueOf(m.getOrDefault("trnId", ""))));
+        allRows.sort(mapRowsCalcDtPrimaryComparator(searchOrderDir)
+                .thenComparing(m -> String.valueOf(m.getOrDefault("compId", "")))
+                .thenComparing(m -> String.valueOf(m.getOrDefault("trnId", ""))));
 
         int from = Math.max(0, (page - 1) * size);
         int to = Math.min(allRows.size(), from + Math.max(1, size));
@@ -594,6 +646,7 @@ public class ApiSettlementController {
         pr.setSize(size);
         pr.setTotalElements(allRows.size());
         pr.setTotalPages(Math.max(1, (int) Math.ceil((double) allRows.size() / Math.max(1, size))));
+        attachFeeCurrencyMeta(pr);
         return pr;
     }
 
@@ -674,6 +727,7 @@ public class ApiSettlementController {
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate searchFromDate,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate searchToDate,
             @RequestParam(required = false) String searchCompId,
+            @RequestParam(required = false) String searchOrderDir,
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "20") int size) {
         Set<String> allowedMerchants = orgAccessService.visibleMerchantCompCodes(authentication);
@@ -686,7 +740,7 @@ public class ApiSettlementController {
         LocalDateTime fromDt = fromDate.atStartOfDay();
         LocalDateTime toDt = toDate.atTime(LocalTime.MAX);
         FeePolicy hqPolicy = resolveHqFeePolicy();
-        FeeListRoundingPolicy feeListRp = resolveFeeListRoundingPolicy();
+        FeeCurrencyRoundResolver feeResolver = resolveFeeCurrencyRoundResolver();
         Map<String, Long> monthCbCountCache = new HashMap<>();
         Map<Long, List<ChargebackFeeTier>> tiersByPolicyId = new HashMap<>();
         for (PgTrnsctn t : pgTrnsctnRepository.findForSettlement(null, fromDt, toDt)) {
@@ -708,6 +762,8 @@ public class ApiSettlementController {
             SettlementSetting feeVatSs = settlementSettingRepository.findByOrgUnitId(ou.getId()).orElse(null);
             BigDecimal txnAmtBd = t.getAmtKrw() != null ? t.getAmtKrw() : BigDecimal.ZERO;
             CommissionPolicy pol = resolveCommissionPolicyForMerchant(compId);
+            String rowCur = t.getCurType() != null && !t.getCurType().isBlank() ? t.getCurType().trim() : "KRW";
+            FeeListRoundingPolicy feeListRp = feeResolver.forCurrency(rowCur);
             FeeListTxnBreakdownCalculator.FeeListTxnBreakdown br = feeListTxnBreakdownCalculator.computeFeeListTxnBreakdown(
                     t, compId, pol, monthCbCountCache, tiersByPolicyId, feeVatSs, feeListRp);
             BigDecimal feeAmtBd = FeeListRoundingPolicy.round(BigDecimal.valueOf(br.totalFee()), feeListRp);
@@ -724,6 +780,7 @@ public class ApiSettlementController {
             m.put("settleAmt", txnAmtBd);
             m.put("recallAmt", recallAmtBd);
             m.put("deductAmt", deductAmtBd);
+            m.put("curType", rowCur);
             m.put("status", s);
             m.put("statusNm", switch (s) {
                 case "20" -> "취소";
@@ -737,8 +794,10 @@ public class ApiSettlementController {
             m.put("vatAppliedYn", br.feeVatBd().signum() > 0 ? "Y" : "N");
             all.add(m);
         }
-        all.sort(Comparator.comparing((Map<String, Object> m) -> String.valueOf(m.getOrDefault("calcDt", ""))).reversed());
-        return ResponseEntity.ok(ApiResponse.ok(pageOf(all, page, size)));
+        all.sort(mapRowsCalcDtPrimaryComparator(searchOrderDir));
+        PageResult<Map<String, Object>> prRecall = pageOf(all, page, size);
+        attachFeeCurrencyMeta(prRecall);
+        return ResponseEntity.ok(ApiResponse.ok(prRecall));
     }
 
     /** 환수금관리: 정산 후 환불 등으로 자동 등록된 환수 대기·차감 내역 */
@@ -746,6 +805,7 @@ public class ApiSettlementController {
     public ResponseEntity<ApiResponse<PageResult<Map<String, Object>>>> recoveryList(
             Authentication authentication,
             @RequestParam(required = false) String searchCompId,
+            @RequestParam(required = false) String searchOrderDir,
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "20") int size) {
         Set<String> allowedMerchants = orgAccessService.visibleMerchantCompCodes(authentication);
@@ -765,7 +825,7 @@ public class ApiSettlementController {
         };
         int p = Math.max(1, page);
         int s = Math.max(1, size);
-        Pageable pageable = PageRequest.of(p - 1, s, Sort.by(Sort.Direction.DESC, "id"));
+        Pageable pageable = PageRequest.of(p - 1, s, Sort.by(sortDirectionFromSearchOrderDir(searchOrderDir), "id"));
         Page<SettlementRecovery> slice = settlementRecoveryRepository.findAll(spec, pageable);
         List<Map<String, Object>> rows = new ArrayList<>();
         for (SettlementRecovery r : slice.getContent()) {
@@ -775,6 +835,7 @@ public class ApiSettlementController {
             m.put("id", r.getId());
             m.put("compId", compId);
             m.put("compNm", ou != null ? ou.getName() : compId);
+            m.put("curType", resolveMerchantStatementCurrency(compId));
             m.put("trnId", r.getTrnId());
             m.put("recallAmount", r.getRecallAmount() != null ? r.getRecallAmount() : 0L);
             m.put("remainingAmount", r.getRemainingAmount() != null ? r.getRemainingAmount() : 0L);
@@ -793,6 +854,7 @@ public class ApiSettlementController {
         pr.setSize(s);
         pr.setTotalElements(slice.getTotalElements());
         pr.setTotalPages(Math.max(1, slice.getTotalPages()));
+        attachFeeCurrencyMeta(pr);
         return ResponseEntity.ok(ApiResponse.ok(pr));
     }
 
@@ -801,14 +863,16 @@ public class ApiSettlementController {
     public ResponseEntity<ApiResponse<PageResult<Map<String, Object>>>> receivableList(
             Authentication authentication,
             @RequestParam(required = false) String searchCompId,
+            @RequestParam(required = false) String searchOrderDir,
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "20") int size) {
-        return ResponseEntity.ok(ApiResponse.ok(receivableListCore(authentication, searchCompId, page, size)));
+        return ResponseEntity.ok(ApiResponse.ok(receivableListCore(authentication, searchCompId, searchOrderDir, page, size)));
     }
 
     private PageResult<Map<String, Object>> receivableListCore(
             Authentication authentication,
             String searchCompId,
+            String searchOrderDir,
             int page,
             int size) {
         Set<String> allowedMerchants = orgAccessService.visibleMerchantCompCodes(authentication);
@@ -828,7 +892,7 @@ public class ApiSettlementController {
         };
         int p = Math.max(1, page);
         int s = Math.max(1, size);
-        Pageable pageable = PageRequest.of(p - 1, s, Sort.by(Sort.Direction.DESC, "id"));
+        Pageable pageable = PageRequest.of(p - 1, s, Sort.by(sortDirectionFromSearchOrderDir(searchOrderDir), "id"));
         Page<MerchantReceivable> slice = merchantReceivableRepository.findAll(spec, pageable);
         List<Map<String, Object>> rows = new ArrayList<>();
         for (MerchantReceivable r : slice.getContent()) {
@@ -838,6 +902,7 @@ public class ApiSettlementController {
             m.put("id", r.getId());
             m.put("compId", compId);
             m.put("compNm", ou != null ? ou.getName() : compId);
+            m.put("curType", resolveMerchantStatementCurrency(compId));
             m.put("title", r.getTitle() != null ? r.getTitle() : "");
             m.put("totalAmount", r.getTotalAmount() != null ? r.getTotalAmount() : 0L);
             m.put("remainingAmount", r.getRemainingAmount() != null ? r.getRemainingAmount() : 0L);
@@ -855,6 +920,7 @@ public class ApiSettlementController {
         pr.setSize(s);
         pr.setTotalElements(slice.getTotalElements());
         pr.setTotalPages(Math.max(1, slice.getTotalPages()));
+        attachFeeCurrencyMeta(pr);
         return pr;
     }
 
@@ -882,6 +948,11 @@ public class ApiSettlementController {
         boolean admin = authentication != null && authentication.getPrincipal() instanceof AppUser au
                 && "ADMIN".equalsIgnoreCase(au.getRole());
         if (!admin) {
+            if (authentication.getPrincipal() instanceof AppUser actor
+                    && !orgPagePermissionService.canManuallyManageMerchantReceivable(actor)) {
+                return ResponseEntity.ok(ApiResponse.fail(
+                        "미수금 수동 등록은 본사권한설정에서 「미수금관리」화면 권한이 수정(M) 이상인 계정만 가능합니다.", "FORBIDDEN"));
+            }
             Set<String> vis = orgAccessService.visibleMerchantCompCodes(authentication);
             if (vis.isEmpty() || !vis.contains(compId.trim())) {
                 return ResponseEntity.ok(ApiResponse.fail("선택한 가맹점에 대한 등록 권한이 없습니다.", "FORBIDDEN"));
@@ -913,6 +984,11 @@ public class ApiSettlementController {
         if (r == null) {
             return ResponseEntity.ok(ApiResponse.fail("미수금을 찾을 수 없습니다.", "NOT_FOUND"));
         }
+        if (authentication != null && authentication.getPrincipal() instanceof AppUser actorW
+                && !orgPagePermissionService.canManuallyManageMerchantReceivable(actorW)) {
+            return ResponseEntity.ok(ApiResponse.fail(
+                    "미수금 처리는 본사권한설정에서 「미수금관리」화면 권한이 수정(M) 이상인 계정만 가능합니다.", "FORBIDDEN"));
+        }
         if (!canAccessReceivable(authentication, r.getMerchantId())) {
             return ResponseEntity.ok(ApiResponse.fail("권한이 없습니다.", "FORBIDDEN"));
         }
@@ -927,6 +1003,11 @@ public class ApiSettlementController {
         MerchantReceivable r = merchantReceivableRepository.findById(id).orElse(null);
         if (r == null) {
             return ResponseEntity.ok(ApiResponse.fail("미수금을 찾을 수 없습니다.", "NOT_FOUND"));
+        }
+        if (authentication != null && authentication.getPrincipal() instanceof AppUser actorC
+                && !orgPagePermissionService.canManuallyManageMerchantReceivable(actorC)) {
+            return ResponseEntity.ok(ApiResponse.fail(
+                    "미수금 처리는 본사권한설정에서 「미수금관리」화면 권한이 수정(M) 이상인 계정만 가능합니다.", "FORBIDDEN"));
         }
         if (!canAccessReceivable(authentication, r.getMerchantId())) {
             return ResponseEntity.ok(ApiResponse.fail("권한이 없습니다.", "FORBIDDEN"));
@@ -959,8 +1040,9 @@ public class ApiSettlementController {
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate searchToDate,
             @RequestParam(required = false) String searchCompId,
             @RequestParam(required = false) String searchCompNm,
+            @RequestParam(required = false) String searchOrderDir,
             @RequestParam(defaultValue = "1") int page,
-            @RequestParam(defaultValue = "20") int size) {
+            @RequestParam(defaultValue = "25") int size) {
         Set<String> allowedMerchants = orgAccessService.visibleMerchantCompCodes(authentication);
         if (allowedMerchants != null && allowedMerchants.isEmpty()) {
             return ResponseEntity.ok(ApiResponse.ok(emptyPage(page, size)));
@@ -1015,10 +1097,12 @@ public class ApiSettlementController {
 
         int pageSize = Math.min(500, Math.max(1, size));
         int pageOneBased = Math.max(1, page);
-        Pageable pageable = PageRequest.of(pageOneBased - 1, pageSize, Sort.by(Sort.Direction.DESC, "createdAt"));
+        Pageable pageable = PageRequest.of(pageOneBased - 1, pageSize,
+                Sort.by(sortDirectionFromSearchOrderDir(searchOrderDir), "createdAt")
+                        .and(Sort.by(sortDirectionFromSearchOrderDir(searchOrderDir), "trnId")));
         Page<PgTrnsctn> slice = pgTrnsctnRepository.findAll(spec, pageable);
 
-        FeeListRoundingPolicy feeListRp = resolveFeeListRoundingPolicy();
+        FeeCurrencyRoundResolver feeResolver = resolveFeeCurrencyRoundResolver();
         Map<String, Long> monthCbCountCache = new HashMap<>();
         Map<Long, List<ChargebackFeeTier>> tiersByPolicyId = new HashMap<>();
 
@@ -1039,7 +1123,7 @@ public class ApiSettlementController {
             if (t.getMerchantId() == null || t.getMerchantId().isBlank()) {
                 continue;
             }
-            rows.add(buildFeeListRowMap(t, monthCbCountCache, tiersByPolicyId, ctxByMerchant, polCache, feeListRp));
+            rows.add(buildFeeListRowMap(t, monthCbCountCache, tiersByPolicyId, ctxByMerchant, polCache, feeResolver));
         }
 
         PageResult<Map<String, Object>> pr = new PageResult<>();
@@ -1048,6 +1132,7 @@ public class ApiSettlementController {
         pr.setSize(slice.getSize());
         pr.setTotalElements(slice.getTotalElements());
         pr.setTotalPages(Math.max(1, slice.getTotalPages()));
+        attachFeeCurrencyMeta(pr);
         return ResponseEntity.ok(ApiResponse.ok(pr));
     }
 
@@ -1058,28 +1143,74 @@ public class ApiSettlementController {
         return raw.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_");
     }
 
+    /**
+     * 수수료내역 가맹점 차감 행 — 취소·무효·환불·실패 등.
+     * 지급예상액은 0, 총수수료·부가세는 과금액(양수), 정산액은 −(총수수료+부가세).
+     */
+    private static boolean isFeeListMerchantDeductionStatus(String st) {
+        if (st == null || st.isBlank()) {
+            return false;
+        }
+        return switch (st.trim()) {
+            case "20", "21", "22", "30", "31", "40", "41", "42", "F0", "99" -> true;
+            default -> false;
+        };
+    }
+
     private Map<String, Object> buildFeeListRowMap(PgTrnsctn t,
                                                    Map<String, Long> monthCbCountCache,
                                                    Map<Long, List<ChargebackFeeTier>> tiersByPolicyId,
                                                    Map<String, PayListRowContext> ctxByMerchant,
                                                    Map<String, CommissionPolicy> polCache,
-                                                   FeeListRoundingPolicy feeListRp) {
+                                                   FeeCurrencyRoundResolver feeResolver) {
         String compId = t.getMerchantId().trim();
         PayListRowContext payCtx = ctxByMerchant.get(compId);
         SettlementSetting feeVatSs = payCtx != null ? payCtx.getSettlement() : null;
         CommissionPolicy pol = polCache.computeIfAbsent(compId, this::resolveCommissionPolicyForMerchant);
+        Map<String, Object> payRow = PayListItemDto.from(t, payCtx);
+        Object payCurDisp = payRow.get("currency");
+        String payCurKey = payCurDisp != null && !String.valueOf(payCurDisp).isBlank()
+                ? String.valueOf(payCurDisp).trim()
+                : (t.getCurType() != null && !t.getCurType().isBlank() ? t.getCurType().trim() : "KRW");
+        FeeListRoundingPolicy feeListRp = feeResolver.forCurrency(payCurKey);
         BigDecimal amountBd = t.getAmtKrw() != null ? t.getAmtKrw() : BigDecimal.ZERO;
         BigDecimal payRateBd = nz(pol.getPayRate());
         FeeListTxnBreakdownCalculator.FeeListTxnBreakdown br = feeListTxnBreakdownCalculator.computeFeeListTxnBreakdown(
                 t, compId, pol, monthCbCountCache, tiersByPolicyId, feeVatSs, feeListRp);
-        BigDecimal totalFeeBd = FeeListRoundingPolicy.round(BigDecimal.valueOf(br.totalFee()), feeListRp);
-        BigDecimal feeVatOut = FeeListRoundingPolicy.round(br.feeVatBd(), feeListRp);
-        BigDecimal expectedPayoutBd = FeeListRoundingPolicy.round(amountBd.subtract(totalFeeBd).subtract(feeVatOut), feeListRp);
-        double extraFeesSum = br.extraFee1() + br.extraFee2() + br.extraFee3() + br.extraFee4();
         String stRow = t.getStatus() != null ? t.getStatus().trim() : "";
+        BigDecimal totalFeeMag = FeeListRoundingPolicy.round(BigDecimal.valueOf(br.totalFee()), feeListRp);
+        BigDecimal feeVatMag = FeeListRoundingPolicy.round(br.feeVatBd(), feeListRp);
+        final BigDecimal totalFeeBd;
+        final BigDecimal feeVatOut;
+        final BigDecimal expectedPayoutBd;
+        if ("10".equals(stRow)) {
+            totalFeeBd = totalFeeMag;
+            feeVatOut = feeVatMag;
+            expectedPayoutBd = FeeListRoundingPolicy.round(amountBd.subtract(totalFeeBd).subtract(feeVatOut), feeListRp);
+        } else if (isFeeListMerchantDeductionStatus(stRow)) {
+            /* 차감 행: 지급예상 0. 총수수료·부가세는 과금 규모(양수), 정산액만 가맹 차감(음수). */
+            expectedPayoutBd = FeeListRoundingPolicy.round(BigDecimal.ZERO, feeListRp);
+            totalFeeBd = totalFeeMag;
+            feeVatOut = feeVatMag;
+        } else {
+            totalFeeBd = totalFeeMag;
+            feeVatOut = feeVatMag;
+            expectedPayoutBd = FeeListRoundingPolicy.round(amountBd.subtract(totalFeeBd).subtract(feeVatOut), feeListRp);
+        }
+        BigDecimal rollingHoldEstBd = FeeListRoundingPolicy.round(BigDecimal.valueOf(br.rollingHoldEst()), feeListRp);
+        final BigDecimal settlementAmtBd;
+        if ("10".equals(stRow)) {
+            settlementAmtBd = FeeListRoundingPolicy.round(expectedPayoutBd.subtract(rollingHoldEstBd), feeListRp);
+        } else if (isFeeListMerchantDeductionStatus(stRow)) {
+            settlementAmtBd = FeeListRoundingPolicy.round(totalFeeMag.add(feeVatMag).negate(), feeListRp);
+        } else {
+            settlementAmtBd = FeeListRoundingPolicy.round(expectedPayoutBd.subtract(rollingHoldEstBd), feeListRp);
+        }
+        double extraFeesSum = br.extraFee1() + br.extraFee2() + br.extraFee3() + br.extraFee4();
         double txnFixedFeesSum;
         double pctFeesSum;
-        if ("10".equals(stRow) || "21".equals(stRow) || "22".equals(stRow) || "30".equals(stRow) || "31".equals(stRow)) {
+        if ("10".equals(stRow) || "21".equals(stRow) || "22".equals(stRow) || "30".equals(stRow) || "31".equals(stRow)
+                || "40".equals(stRow) || "41".equals(stRow) || "42".equals(stRow)) {
             txnFixedFeesSum = br.perTxFee();
             pctFeesSum = br.payFee() + br.usdtFee() + br.fxFee() + extraFeesSum;
         } else {
@@ -1087,7 +1218,6 @@ public class ApiSettlementController {
             pctFeesSum = 0d;
         }
 
-        Map<String, Object> payRow = PayListItemDto.from(t, payCtx);
         Map<String, Object> m = new LinkedHashMap<>();
         m.put("compNm", payRow.get("compNm"));
         m.put("compId", payRow.get("compId"));
@@ -1101,10 +1231,8 @@ public class ApiSettlementController {
         m.put("payDivNm", payRow.get("payDivNm"));
         m.put("chillPaymentStatus", payRow.get("chillPaymentStatus"));
         m.put("amount", amountBd);
-        Object payCurDisp = payRow.get("currency");
-        m.put("payCur", payCurDisp != null && !String.valueOf(payCurDisp).isBlank()
-                ? String.valueOf(payCurDisp).trim()
-                : (t.getCurType() != null && !t.getCurType().isBlank() ? t.getCurType().trim() : "KRW"));
+        m.put("payCur", payCurKey);
+        m.put("curType", payCurKey);
         m.put("policyCur", pol.getCurrencyCode() != null && !pol.getCurrencyCode().isBlank() ? pol.getCurrencyCode().trim() : "KRW");
         m.put("txnFixedFeesSum", feeListMoney(txnFixedFeesSum, feeListRp).doubleValue());
         m.put("pctFeesSum", feeListMoney(pctFeesSum, feeListRp).doubleValue());
@@ -1129,7 +1257,7 @@ public class ApiSettlementController {
         m.put("chargebackFee", feeListMoney(br.chargebackFee(), feeListRp).doubleValue());
         m.put("rollingPctPlain", br.rollingPctPlain());
         m.put("rollingDays", br.rollingDays());
-        m.put("rollingHoldEst", feeListMoney(br.rollingHoldEst(), feeListRp).doubleValue());
+        m.put("rollingHoldEst", rollingHoldEstBd.doubleValue());
         m.put("extraFee1", feeListMoney(br.extraFee1(), feeListRp).doubleValue());
         m.put("extraFee2", feeListMoney(br.extraFee2(), feeListRp).doubleValue());
         m.put("extraFee3", feeListMoney(br.extraFee3(), feeListRp).doubleValue());
@@ -1138,6 +1266,7 @@ public class ApiSettlementController {
         m.put("totalFee", totalFeeBd.doubleValue());
         m.put("feeVat", feeVatOut.doubleValue());
         m.put("expectedPayout", expectedPayoutBd.doubleValue());
+        m.put("settlementAmt", settlementAmtBd.doubleValue());
         m.put("vatAppliedYn", br.feeVatBd().signum() > 0 ? "Y" : "N");
         return m;
     }
@@ -1149,9 +1278,10 @@ public class ApiSettlementController {
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate searchToDate,
             @RequestParam(required = false) String searchCompId,
             @RequestParam(required = false) String searchCompNm,
+            @RequestParam(required = false) String searchOrderDir,
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "20") int size) {
-        return ResponseEntity.ok(ApiResponse.ok(balanceListCore(authentication, searchCompId, searchCompNm, page, size, true)));
+        return ResponseEntity.ok(ApiResponse.ok(balanceListCore(authentication, searchCompId, searchCompNm, searchOrderDir, page, size, true)));
     }
 
     /** 잔액/미수금관리 수동 차감(선택 차감/직접입력 공용) */
@@ -1205,9 +1335,10 @@ public class ApiSettlementController {
             Authentication authentication,
             @RequestParam(required = false) String searchCompId,
             @RequestParam(required = false) String searchCompNm,
+            @RequestParam(required = false) String searchOrderDir,
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "20") int size) {
-        return ResponseEntity.ok(ApiResponse.ok(balanceListCore(authentication, searchCompId, searchCompNm, page, size, false)));
+        return ResponseEntity.ok(ApiResponse.ok(balanceListCore(authentication, searchCompId, searchCompNm, searchOrderDir, page, size, false)));
     }
 
     @GetMapping("/unpaidMng")
@@ -1215,9 +1346,10 @@ public class ApiSettlementController {
             Authentication authentication,
             @RequestParam(required = false) String searchCompId,
             @RequestParam(required = false) String searchCompNm,
+            @RequestParam(required = false) String searchOrderDir,
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "20") int size) {
-        PageResult<Map<String, Object>> pr = receivableListCore(authentication, searchCompId, page, size);
+        PageResult<Map<String, Object>> pr = receivableListCore(authentication, searchCompId, searchOrderDir, page, size);
         /* 화면 호환: settleAmt·deductCnt = 잔여 미수금, deductStatus = 상태. 업체명 검색은 클라이언트 필터 또는 compId 검색 사용 */
         for (Map<String, Object> m : pr.getList()) {
             long rem = asLong(m.get("remainingAmount"));
@@ -1239,19 +1371,29 @@ public class ApiSettlementController {
             @RequestParam(required = false) String searchCompId,
             @RequestParam(required = false) String searchCompNm,
             @RequestParam(required = false) String searchStatus,
+            @RequestParam(required = false) String searchOrderDir,
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "20") int size) {
         return ResponseEntity.ok(ApiResponse.ok(
-                collateralLedgerService.search(searchFromDate, searchToDate, searchCompId, searchCompNm, searchStatus, page, size)));
+                collateralLedgerService.search(searchFromDate, searchToDate, searchCompId, searchCompNm, searchStatus, searchOrderDir, page, size)));
     }
 
     @GetMapping("/execute")
     public ResponseEntity<ApiResponse<PageResult<Map<String, Object>>>> executeList(
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate searchFromDate,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate searchToDate,
+            @RequestParam(required = false) String searchOrderDir,
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "20") int size) {
-        List<SettlementRun> list = settlementCalcService.listRuns(searchFromDate, searchToDate);
+        List<SettlementRun> list = new ArrayList<>(settlementCalcService.listRuns(searchFromDate, searchToDate));
+        Sort.Direction sd = sortDirectionFromSearchOrderDir(searchOrderDir);
+        Comparator<SettlementRun> byDt = Comparator.comparing(SettlementRun::getCalcDt, Comparator.nullsLast(Comparator.naturalOrder()));
+        Comparator<SettlementRun> byId = Comparator.comparing(SettlementRun::getId, Comparator.nullsLast(Comparator.naturalOrder()));
+        if (sd == Sort.Direction.DESC) {
+            list.sort(byDt.reversed().thenComparing(byId.reversed()));
+        } else {
+            list.sort(byDt.thenComparing(byId));
+        }
         int from = (page - 1) * size;
         int to = Math.min(from + size, list.size());
         List<Map<String, Object>> rows = list.subList(from, to).stream()
@@ -1263,6 +1405,7 @@ public class ApiSettlementController {
         pr.setSize(size);
         pr.setTotalElements(list.size());
         pr.setTotalPages(size > 0 ? (int) Math.ceil((double) list.size() / size) : 1);
+        attachFeeCurrencyMeta(pr);
         return ResponseEntity.ok(ApiResponse.ok(pr));
     }
 
@@ -1289,7 +1432,7 @@ public class ApiSettlementController {
 
     /**
      * 정산실행 그리드용 행 맵. {@link SettlementRun#getPeriodFrom()}/{@link SettlementRun#getPeriodTo()} 가 있으면
-     * targetPeriodText·period* 키에 반영되며, 없으면 조회·실행에 넘긴 queryFrom/queryTo 또는 정산일로 표시합니다.
+     * period* 키에 반영합니다. {@code targetPeriodText}는 정산주기 RT면 거래번호·승인번호·마감시각 한 줄, 그 외에는 기간·마감 문구 또는 조회 기간·정산일입니다.
      */
     private Map<String, Object> toMap(SettlementRun r, LocalDate queryFrom, LocalDate queryTo) {
         Map<String, Object> m = new HashMap<>();
@@ -1298,6 +1441,7 @@ public class ApiSettlementController {
         m.put("compId", mid);
         OrgUnit ouExec = mid != null ? orgUnitRepository.findByCode(mid).orElse(null) : null;
         m.put("compNm", ouExec != null ? ouExec.getName() : (mid != null ? mid : "-"));
+        m.put("curType", resolveMerchantStatementCurrency(mid));
         m.put("targetAmt", r.getApproveAmt() != null && r.getCancelAmt() != null ? r.getApproveAmt().subtract(r.getCancelAmt()).toString() : "0");
         m.put("status", r.getStatus());
         m.put("payAmount", r.getPayAmt() != null ? r.getPayAmt().longValue() : 0);
@@ -1305,14 +1449,18 @@ public class ApiSettlementController {
         m.put("cancelAmt", r.getCancelAmt() != null ? r.getCancelAmt().longValue() : 0);
         m.put("totalFee", r.getTotalFee() != null ? r.getTotalFee().longValue() : 0);
         m.put("rollingReserveAmt", r.getRollingReserveAmt() != null ? r.getRollingReserveAmt().longValue() : 0);
+        String calcCycleRaw = "";
         if (ouExec != null) {
-            settlementSettingRepository.findByOrgUnitId(ouExec.getId()).ifPresentOrElse(ss -> {
-                m.put("calcCycle", ss.getCalcCycle() != null ? ss.getCalcCycle() : "");
+            Optional<SettlementSetting> ssOpt = settlementSettingRepository.findByOrgUnitId(ouExec.getId());
+            if (ssOpt.isPresent()) {
+                SettlementSetting ss = ssOpt.get();
+                calcCycleRaw = ss.getCalcCycle() != null ? ss.getCalcCycle() : "";
+                m.put("calcCycle", calcCycleRaw);
                 m.put("calcMethod", labelCalcProcType(ss.getCalcProcType()));
-            }, () -> {
+            } else {
                 m.put("calcCycle", "");
                 m.put("calcMethod", "");
-            });
+            }
             m.put("pgRootNo", resolveMerchantPgRootNo(ouExec.getId()));
         } else {
             m.put("calcCycle", "");
@@ -1322,7 +1470,7 @@ public class ApiSettlementController {
         m.put("periodFrom", r.getPeriodFrom() != null ? r.getPeriodFrom().toString() : null);
         m.put("periodTo", r.getPeriodTo() != null ? r.getPeriodTo().toString() : null);
         m.put("periodEndAt", r.getPeriodEndAt() != null ? DateTimeFormatter.ISO_LOCAL_DATE_TIME.format(r.getPeriodEndAt()) : null);
-        m.put("targetPeriodText", buildSettlementTargetPeriodLabel(r, queryFrom, queryTo));
+        m.put("targetPeriodText", buildSettlementTargetPeriodLabel(r, queryFrom, queryTo, calcCycleRaw));
         return m;
     }
 
@@ -1338,7 +1486,104 @@ public class ApiSettlementController {
         };
     }
 
-    private static String buildSettlementTargetPeriodLabel(SettlementRun r, LocalDate queryFrom, LocalDate queryTo) {
+    /**
+     * 정산대상기간 표시. RT(건당)는 수수료내역과 맞춰 거래번호·승인번호·마감시각 한 줄만 사용하고,
+     * {@code yyyy-MM-dd ~ yyyy-MM-dd · 마감 …} 형식은 쓰지 않습니다.
+     */
+    private String buildSettlementTargetPeriodLabel(SettlementRun r, LocalDate queryFrom, LocalDate queryTo, String calcCycleRaw) {
+        String norm = SettlementPeriodResolver.normalizeCalcCycle(calcCycleRaw != null ? calcCycleRaw : "");
+        if (SettlementCycleTiming.isRtPerTransactionCode(norm)
+                && r.getPeriodFrom() != null
+                && r.getPeriodTo() != null
+                && r.getPeriodFrom().equals(r.getPeriodTo())
+                && r.getPeriodEndAt() != null) {
+            return buildRtSettlementTargetPeriodLine(r);
+        }
+        return buildSettlementTargetPeriodLabelLegacy(r, queryFrom, queryTo);
+    }
+
+    private String buildRtSettlementTargetPeriodLine(SettlementRun r) {
+        LocalDateTime closeAt = r.getPeriodEndAt();
+        Optional<PgTrnsctn> txOpt = resolvePgTxnForRtRun(r);
+        if (txOpt.isEmpty()) {
+            return formatRtPeriodLine("-", "-", closeAt);
+        }
+        PgTrnsctn t = txOpt.get();
+        String trn = blankToDash(t.getTrnId());
+        String appr = firstNonBlank(t.getApprovalNo(), t.getChillTransactionId());
+        return formatRtPeriodLine(trn, appr, closeAt);
+    }
+
+    private static String firstNonBlank(String a, String b) {
+        if (a != null && !a.isBlank()) {
+            return a.trim();
+        }
+        if (b != null && !b.isBlank()) {
+            return b.trim();
+        }
+        return "-";
+    }
+
+    private static String blankToDash(String s) {
+        if (s == null || s.isBlank()) {
+            return "-";
+        }
+        return s.trim();
+    }
+
+    private static String formatRtPeriodLine(String trnId, String approvalLabel, LocalDateTime closeAt) {
+        String closeStr = closeAt != null
+                ? DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss").format(closeAt)
+                : "-";
+        return "거래번호 " + trnId + " / 승인번호 " + approvalLabel + " / 마감 " + closeStr;
+    }
+
+    /**
+     * RT 건당 실행 행에 대응하는 승인 거래 1건을 찾습니다(마감 시각·금액으로 근접 매칭).
+     */
+    private Optional<PgTrnsctn> resolvePgTxnForRtRun(SettlementRun r) {
+        if (r.getMerchantId() == null || r.getMerchantId().isBlank() || r.getPeriodEndAt() == null) {
+            return Optional.empty();
+        }
+        String mid = r.getMerchantId().trim();
+        LocalDateTime end = r.getPeriodEndAt();
+        LocalDateTime winStart = end.minusSeconds(5);
+        LocalDateTime winEnd = end.plusSeconds(5);
+        List<PgTrnsctn> inWin = pgTrnsctnRepository.findForSettlement(mid, winStart, winEnd);
+        List<PgTrnsctn> candidates = inWin.stream()
+                .filter(t -> "10".equals(t.getStatus() != null ? t.getStatus().trim() : ""))
+                .filter(t -> "Y".equalsIgnoreCase(String.valueOf(t.getSettledYn()).trim()))
+                .toList();
+        if (candidates.isEmpty()) {
+            return Optional.empty();
+        }
+        Optional<PgTrnsctn> exactTime = candidates.stream()
+                .filter(t -> t.getCreatedAt() != null && t.getCreatedAt().equals(end))
+                .findFirst();
+        if (exactTime.isPresent()) {
+            return exactTime;
+        }
+        BigDecimal ap = r.getApproveAmt();
+        if (ap != null && ap.signum() > 0) {
+            Optional<PgTrnsctn> byAmt = candidates.stream()
+                    .filter(t -> {
+                        BigDecimal amt = t.getAmtKrw() != null ? t.getAmtKrw() : BigDecimal.ZERO;
+                        return amt.compareTo(ap) == 0;
+                    })
+                    .findFirst();
+            if (byAmt.isPresent()) {
+                return byAmt;
+            }
+        }
+        return candidates.stream().min(Comparator.comparingLong(t -> {
+            if (t.getCreatedAt() == null) {
+                return Long.MAX_VALUE;
+            }
+            return Math.abs(Duration.between(t.getCreatedAt(), end).toNanos());
+        }));
+    }
+
+    private static String buildSettlementTargetPeriodLabelLegacy(SettlementRun r, LocalDate queryFrom, LocalDate queryTo) {
         if (r.getPeriodFrom() != null && r.getPeriodTo() != null) {
             String base = r.getPeriodFrom() + " ~ " + r.getPeriodTo();
             if (r.getPeriodEndAt() != null) {
@@ -1389,7 +1634,7 @@ public class ApiSettlementController {
         LocalDateTime toDt = r.resolvePeriodEndAt();
         List<PgTrnsctn> txs = pgTrnsctnRepository.findForSettlement(compId.trim(), fromDt, toDt);
 
-        FeeListRoundingPolicy feeListRp = resolveFeeListRoundingPolicy();
+        FeeCurrencyRoundResolver feeResolver = resolveFeeCurrencyRoundResolver();
         Map<String, Long> monthCbCountCache = new HashMap<>();
         Map<Long, List<ChargebackFeeTier>> tiersByPolicyId = new HashMap<>();
         CommissionPolicy pol = resolveCommissionPolicyForMerchant(compId);
@@ -1401,6 +1646,8 @@ public class ApiSettlementController {
         int feeCnt = 0;
         BigDecimal sumExtra = BigDecimal.ZERO;
         for (PgTrnsctn t : txs) {
+            String rowCur = t.getCurType() != null && !t.getCurType().isBlank() ? t.getCurType().trim() : "KRW";
+            FeeListRoundingPolicy feeListRp = feeResolver.forCurrency(rowCur);
             FeeListTxnBreakdownCalculator.FeeListTxnBreakdown br = feeListTxnBreakdownCalculator.computeFeeListTxnBreakdown(
                     t, compId, pol, monthCbCountCache, tiersByPolicyId, feeVatSs, feeListRp);
             BigDecimal totalFeeBd = FeeListRoundingPolicy.round(BigDecimal.valueOf(br.totalFee()), feeListRp);
@@ -1470,6 +1717,7 @@ public class ApiSettlementController {
         OrgUnit ou = compId.isEmpty() ? null : orgUnitRepository.findByCode(compId).orElse(null);
         row.put("compId", compId);
         row.put("compNm", ou != null ? ou.getName() : (compId.isEmpty() ? "-" : compId));
+        row.put("curType", resolveMerchantStatementCurrency(compId));
         String bizNo = "-";
         if (ou != null) {
             Optional<MerchantProfile> mpOpt = merchantProfileRepository.findByOrgUnitId(ou.getId());
@@ -1571,6 +1819,7 @@ public class ApiSettlementController {
         BigDecimal masterRate = cfg != null && cfg.getMasterRate() != null ? cfg.getMasterRate() : BigDecimal.ZERO;
         BigDecimal branchRate = cfg != null && cfg.getBranchRate() != null ? cfg.getBranchRate() : BigDecimal.ZERO;
         BigDecimal agencyRate = cfg != null && cfg.getAgencyRate() != null ? cfg.getAgencyRate() : BigDecimal.ZERO;
+        BigDecimal salesOfficeRate = cfg != null && cfg.getSalesOfficeRate() != null ? cfg.getSalesOfficeRate() : BigDecimal.ZERO;
         m.put("calcDt", r.getCalcDt() != null ? r.getCalcDt().toString() : "");
         m.put("compId", compId);
         OrgUnit merchantOu = orgUnitRepository.findByCode(compId).orElse(null);
@@ -1586,6 +1835,7 @@ public class ApiSettlementController {
         m.put("masterFee", pct(settleAmt, masterRate));
         m.put("branchFee", pct(settleAmt, branchRate));
         m.put("agencyFee", pct(settleAmt, agencyRate));
+        m.put("salesOfficeFee", pct(settleAmt, salesOfficeRate));
         String hq = "", regional = "", master = "", branch = "", agency = "";
         OrgUnit cur = orgUnitRepository.findByCode(compId).orElse(null);
         for (int i = 0; i < 8 && cur != null; i++) {
@@ -1637,13 +1887,20 @@ public class ApiSettlementController {
             this.rowOrgCode = rowOrgCode;
         }
 
-        void merge(SettlementRun r, Map<String, Object> dr) {
+        void merge(SettlementRun r, Map<String, Object> dr, OrgLevel rollupLevel) {
+            if (rollupLevel == null) {
+                return;
+            }
             settleAmt += asLongStatic(dr.get("settleAmt"));
-            hqFee += asLongStatic(dr.get("hqFee"));
-            regionalFee += asLongStatic(dr.get("regionalFee"));
-            masterFee += asLongStatic(dr.get("masterFee"));
-            branchFee += asLongStatic(dr.get("branchFee"));
-            agencyFee += asLongStatic(dr.get("agencyFee"));
+            long slice = feeSliceForRollup(dr, rollupLevel);
+            switch (rollupLevel) {
+                case HEADQUARTERS -> hqFee += slice;
+                case REGIONAL -> regionalFee += slice;
+                case MASTER_DIST -> masterFee += slice;
+                case BRANCH -> branchFee += slice;
+                case AGENCY, SALES_OFFICE -> agencyFee += slice;
+                default -> { }
+            }
             runCnt++;
             BigDecimal ap = r.getApproveAmt() != null ? r.getApproveAmt() : BigDecimal.ZERO;
             BigDecimal ca = r.getCancelAmt() != null ? r.getCancelAmt() : BigDecimal.ZERO;
@@ -1652,7 +1909,7 @@ public class ApiSettlementController {
             if (ca.signum() > 0) {
                 cancelRunCnt++;
             }
-            long feeSum = feeSumFromDr(dr);
+            long feeSum = slice;
             BigDecimal denom = ap.add(ca);
             if (denom.signum() == 0) {
                 aprvFeeSum += feeSum;
@@ -1662,9 +1919,17 @@ public class ApiSettlementController {
             }
         }
 
-        private static long feeSumFromDr(Map<String, Object> dr) {
-            return asLongStatic(dr.get("hqFee")) + asLongStatic(dr.get("regionalFee")) + asLongStatic(dr.get("masterFee"))
-                    + asLongStatic(dr.get("branchFee")) + asLongStatic(dr.get("agencyFee"));
+        /** 유통망 행(rollup) 조직 단계에 해당하는 수수료 구간만 합산 — 타 단계 금액을 같은 행에 섞지 않음 */
+        private static long feeSliceForRollup(Map<String, Object> dr, OrgLevel rollupLevel) {
+            return switch (rollupLevel) {
+                case HEADQUARTERS -> asLongStatic(dr.get("hqFee"));
+                case REGIONAL -> asLongStatic(dr.get("regionalFee"));
+                case MASTER_DIST -> asLongStatic(dr.get("masterFee"));
+                case BRANCH -> asLongStatic(dr.get("branchFee"));
+                case AGENCY -> asLongStatic(dr.get("agencyFee"));
+                case SALES_OFFICE -> asLongStatic(dr.get("salesOfficeFee"));
+                default -> 0L;
+            };
         }
 
         private static long asLongStatic(Object v) {
@@ -1680,7 +1945,7 @@ public class ApiSettlementController {
 
     private static boolean isDistributionRollupLevel(OrgLevel l) {
         if (l == null) return false;
-        return l == OrgLevel.REGIONAL || l == OrgLevel.MASTER_DIST || l == OrgLevel.BRANCH
+        return l == OrgLevel.HEADQUARTERS || l == OrgLevel.REGIONAL || l == OrgLevel.MASTER_DIST || l == OrgLevel.BRANCH
                 || l == OrgLevel.AGENCY || l == OrgLevel.SALES_OFFICE;
     }
 
@@ -1804,6 +2069,7 @@ public class ApiSettlementController {
             Authentication authentication,
             String searchCompId,
             String searchCompNm,
+            String searchOrderDir,
             int page,
             int size,
             boolean combined) {
@@ -1875,7 +2141,11 @@ public class ApiSettlementController {
             }
             all.add(m);
         }
-        all.sort(Comparator.comparing((Map<String, Object> m) -> String.valueOf(m.getOrDefault("compId", ""))));
+        Comparator<Map<String, Object>> byComp = Comparator.comparing(m -> String.valueOf(m.getOrDefault("compId", "")));
+        if (sortDirectionFromSearchOrderDir(searchOrderDir) == Sort.Direction.DESC) {
+            byComp = byComp.reversed();
+        }
+        all.sort(byComp);
         return pageOf(all, page, size);
     }
 
@@ -1942,6 +2212,7 @@ public class ApiSettlementController {
             LocalDate searchToDate,
             String searchCompNm,
             String searchCompId,
+            String searchOrderDir,
             int page,
             int size) {
         Set<String> allowedMerchants = orgAccessService.visibleMerchantCompCodes(authentication);
@@ -1983,11 +2254,9 @@ public class ApiSettlementController {
             }
             allRows.add(row);
         }
-        allRows.sort(
-                Comparator.<Map<String, Object>, String>comparing(m -> String.valueOf(m.getOrDefault("calcDt", "")))
-                        .reversed()
-                        .thenComparing(m -> String.valueOf(m.getOrDefault("compId", "")))
-                        .thenComparing(m -> String.valueOf(m.getOrDefault("settlementRunId", ""))));
+        allRows.sort(mapRowsCalcDtPrimaryComparator(searchOrderDir)
+                .thenComparing(m -> String.valueOf(m.getOrDefault("compId", "")))
+                .thenComparing(m -> String.valueOf(m.getOrDefault("settlementRunId", ""))));
 
         int from = Math.max(0, (page - 1) * size);
         int to = Math.min(allRows.size(), from + Math.max(1, size));
@@ -2007,7 +2276,15 @@ public class ApiSettlementController {
 
     private Map<String, Object> toConfirmedSettlementReportListRow(SettlementRun r, LocalDate queryFrom, LocalDate queryTo) {
         Map<String, Object> row = toFranchiseSettlementRunRow(r);
-        row.put("targetPeriodText", buildSettlementTargetPeriodLabel(r, queryFrom, queryTo));
+        String calcCycleRep = "";
+        String midRep = r.getMerchantId();
+        if (midRep != null && !midRep.isBlank()) {
+            calcCycleRep = orgUnitRepository.findByCode(midRep.trim())
+                    .flatMap(ou -> settlementSettingRepository.findByOrgUnitId(ou.getId()))
+                    .map(ss -> ss.getCalcCycle() != null ? ss.getCalcCycle() : "")
+                    .orElse("");
+        }
+        row.put("targetPeriodText", buildSettlementTargetPeriodLabel(r, queryFrom, queryTo, calcCycleRep));
         row.put("reportRowKind", "CONFIRMED_SETTLEMENT");
         BigDecimal ap = nz(r.getApproveAmt());
         BigDecimal ca = nz(r.getCancelAmt());
@@ -2098,6 +2375,9 @@ public class ApiSettlementController {
             case "20" -> "취소";
             case "21" -> "무효";
             case "22" -> "수동무효";
+            case "40" -> "자동무효";
+            case "41" -> "이메일무효";
+            case "42" -> "자동환불";
             case "30", "31" -> "환불";
             case "F0", "99" -> "실패";
             default -> status;

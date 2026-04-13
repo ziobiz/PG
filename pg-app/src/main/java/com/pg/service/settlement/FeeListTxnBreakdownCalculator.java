@@ -141,13 +141,14 @@ public class FeeListTxnBreakdownCalculator {
             failFee = nz(pol.getFailFee()).doubleValue();
         } else if ("20".equals(st)) {
             cancelFee = nz(pol.getCancelRate()).doubleValue();
-        } else if ("21".equals(st) || "22".equals(st) || "30".equals(st) || "31".equals(st)) {
-            if ("21".equals(st)) {
+        } else if ("21".equals(st) || "22".equals(st) || "30".equals(st) || "31".equals(st)
+                || "40".equals(st) || "41".equals(st) || "42".equals(st)) {
+            if ("21".equals(st) || "40".equals(st)) {
                 voidFee = nz(pol.getVoidFeePerTx()).doubleValue();
-            } else if ("22".equals(st)) {
+            } else if ("22".equals(st) || "41".equals(st)) {
                 manualVoidFee = nz(pol.getManualVoidFeePerTx()).doubleValue();
             }
-            if ("30".equals(st) || "31".equals(st)) {
+            if ("30".equals(st) || "31".equals(st) || "42".equals(st)) {
                 refundFee = nz(pol.getRefundRate()).doubleValue();
                 chargebackFee = resolveChargebackFee(t, compId, pol, st, monthCbCountCache, tiersByPolicyId);
             }
@@ -188,11 +189,11 @@ public class FeeListTxnBreakdownCalculator {
             totalFee = Math.max(0d, failFee);
         } else if ("20".equals(st)) {
             totalFee = Math.max(0d, cancelFee);
-        } else if ("21".equals(st)) {
+        } else if ("21".equals(st) || "40".equals(st)) {
             totalFee = Math.max(0d, voidFee + successFeesSeparate);
-        } else if ("22".equals(st)) {
+        } else if ("22".equals(st) || "41".equals(st)) {
             totalFee = Math.max(0d, manualVoidFee + successFeesSeparate);
-        } else if ("30".equals(st) || "31".equals(st)) {
+        } else if ("30".equals(st) || "31".equals(st) || "42".equals(st)) {
             totalFee = Math.max(0d, refundFee + chargebackFee + successFeesSeparate);
         } else {
             totalFee = 0d;

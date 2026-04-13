@@ -25,4 +25,7 @@ public interface OrgUnitRepository extends JpaRepository<OrgUnit, Long> {
 
     @Query("SELECT o FROM OrgUnit o WHERE o.orgLevel = :lvl AND LOWER(o.code) LIKE LOWER(CONCAT('%', :q, '%'))")
     List<OrgUnit> findByOrgLevelAndCodeContainingIgnoreCase(@Param("lvl") OrgLevel lvl, @Param("q") String q);
+
+    @Query("SELECT o FROM OrgUnit o WHERE o.code IN :codes")
+    List<OrgUnit> findByCodeIn(@Param("codes") Collection<String> codes);
 }

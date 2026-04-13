@@ -2,8 +2,10 @@ package com.pg.util;
 
 import com.pg.entity.HqLedgerSysSettings;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
@@ -86,5 +88,19 @@ public final class PayDisplayCurrency {
             return alphaFromIsoNum(null);
         }
         return alpha.trim().toUpperCase(Locale.ROOT);
+    }
+
+    /**
+     * 전산설정·API 노출용: 서버에 정의된 ISO 숫자 → 알파 매핑 전체(순서 고정).
+     */
+    public static List<Map<String, String>> catalogRows() {
+        List<Map<String, String>> rows = new ArrayList<>(ISO_NUM_TO_ALPHA.size());
+        for (Map.Entry<String, String> e : ISO_NUM_TO_ALPHA.entrySet()) {
+            Map<String, String> row = new LinkedHashMap<>();
+            row.put("isoNum", e.getKey());
+            row.put("alpha", e.getValue());
+            rows.add(row);
+        }
+        return Collections.unmodifiableList(rows);
     }
 }

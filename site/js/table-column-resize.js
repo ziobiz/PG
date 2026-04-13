@@ -10,11 +10,68 @@
   var MIN_COL = 40;
   var STORAGE_PREFIX = 'pg_col_w_';
   var applying = false;
+  /** 동일 root 에 refreshIn 이 짧은 간격으로 여러 번 오면(페이지네이션·MutationObserver·finally) 한 번으로 합쳐 떨림 방지 */
+  var refreshDebounceTimers = new WeakMap();
+  var REFRESH_DEBOUNCE_MS = 50;
+
+  /** MutationObserver 가 colgroup·핸들만 보고 refreshIn 을 반복 호출하면 화면이 떨림 → 해당 뮤테이션은 무시 */
+  function mutationDomNodeIsColResizeUi(node) {
+    if (!node) {
+      return true;
+    }
+    if (node.nodeType !== 1) {
+      return true;
+    }
+    var el = node;
+    if (el.classList && el.classList.contains('pg-col-resize-handle')) {
+      return true;
+    }
+    if (el.tagName === 'COLGROUP' && el.classList && el.classList.contains('pg-col-resize-group')) {
+      return true;
+    }
+    if (el.tagName === 'COL' && el.parentElement && el.parentElement.classList &&
+        el.parentElement.classList.contains('pg-col-resize-group')) {
+      return true;
+    }
+    return false;
+  }
+
+  function mutationRecordIsOnlyColResizeChildList(m) {
+    if (!m || m.type !== 'childList') {
+      return false;
+    }
+    var i;
+    for (i = 0; i < m.addedNodes.length; i++) {
+      if (!mutationDomNodeIsColResizeUi(m.addedNodes[i])) {
+        return false;
+      }
+    }
+    for (i = 0; i < m.removedNodes.length; i++) {
+      if (!mutationDomNodeIsColResizeUi(m.removedNodes[i])) {
+        return false;
+      }
+    }
+    return m.addedNodes.length + m.removedNodes.length > 0;
+  }
+
+  function mutationRecordsAllColResizeOnly(records) {
+    if (!records || !records.length) {
+      return false;
+    }
+    var r;
+    for (r = 0; r < records.length; r++) {
+      if (!mutationRecordIsOnlyColResizeChildList(records[r])) {
+        return false;
+      }
+    }
+    return true;
+  }
 
   function eligibleTable(t) {
     if (!t || t.tagName !== 'TABLE') return false;
     if (!t.classList || !t.classList.contains('table')) return false;
     if (t.classList.contains('table-no-col-resize')) return false;
+    if (t.classList.contains('org-perm-table')) return false;
     if (t.closest && t.closest('.table-no-col-resize-wrap')) return false;
     return true;
   }
@@ -94,6 +151,81 @@
     } catch (e) { /* ignore */ }
   }
 
+  /** localStorage 등으로 아직 너비가 없는 <col> 만 채움 (fixed 레이아웃에서 균등분할 → 셀 겹침 방지) */
+  function colNeedsAutoSeed(col, payGrid) {
+    var w = col.style && String(col.style.width || '').trim();
+    var m = col.style && String(col.style.minWidth || '').trim();
+    if (payGrid) {
+      return !m || m === 'auto';
+    }
+    return !w || w === 'auto';
+  }
+
+  function seedMissingColWidthsFromDom(table, cols, n) {
+    var payGrid = isPayMngDataGrid(table);
+    var tr = table.querySelector('tbody tr');
+    var useBody = !!(tr && tr.cells && tr.cells.length === n);
+    if (useBody) {
+      var c0 = tr.cells[0];
+      if (c0 && c0.classList && c0.classList.contains('empty-state-cell')) {
+        useBody = false;
+      }
+    }
+    if (useBody) {
+      for (var i = 0; i < n; i++) {
+        if (!colNeedsAutoSeed(cols[i], payGrid)) {
+          continue;
+        }
+        var cell = tr.cells[i];
+        if (!cell) {
+          continue;
+        }
+        var px = Math.max(MIN_COL, Math.round(cell.getBoundingClientRect().width));
+        if (payGrid) {
+          cols[i].style.width = '';
+          cols[i].style.minWidth = px + 'px';
+        } else {
+          cols[i].style.minWidth = '';
+          cols[i].style.width = px + 'px';
+        }
+      }
+      return;
+    }
+    var thead = table.querySelector('thead');
+    if (!thead || !thead.rows.length) {
+      return;
+    }
+    var lastRow = thead.rows[thead.rows.length - 1];
+    var idx = 0;
+    for (var j = 0; j < lastRow.cells.length && idx < n; j++) {
+      var th = lastRow.cells[j];
+      var cs = parseInt(th.colSpan, 10) || 1;
+      var rw = Math.max(MIN_COL * cs, Math.round(th.getBoundingClientRect().width));
+      var per = Math.max(MIN_COL, Math.round(rw / cs));
+      for (var k = 0; k < cs && idx < n; k++) {
+        if (colNeedsAutoSeed(cols[idx], payGrid)) {
+          if (payGrid) {
+            cols[idx].style.width = '';
+            cols[idx].style.minWidth = per + 'px';
+          } else {
+            cols[idx].style.minWidth = '';
+            cols[idx].style.width = per + 'px';
+          }
+        }
+        idx++;
+      }
+    }
+    for (var u = 0; u < n; u++) {
+      if (colNeedsAutoSeed(cols[u], payGrid)) {
+        if (payGrid) {
+          cols[u].style.minWidth = MIN_COL + 'px';
+        } else {
+          cols[u].style.width = MIN_COL + 'px';
+        }
+      }
+    }
+  }
+
   function saveWidths(table, cols) {
     var id = table.id || '';
     if (!id || id.indexOf('grid_') !== 0) return;
@@ -121,6 +253,29 @@
     var totalStart = startWs.reduce(function (a, b) {
       return a + b;
     }, 0);
+    /* table-layout:auto 등으로 <col> 박스가 0이면 tbody 셀 너비로 초기값 보정 */
+    if (totalStart <= 0 || startWs.some(function (w) {
+      return !w || w < 1;
+    })) {
+      var trBody = table.querySelector('tbody tr');
+      if (trBody && trBody.cells && trBody.cells.length > startIdx) {
+        for (var fi = 0; fi < slice.length; fi++) {
+          var cell = trBody.cells[startIdx + fi];
+          if (cell) {
+            startWs[fi] = Math.max(MIN_COL, cell.getBoundingClientRect().width);
+          }
+        }
+      }
+      totalStart = startWs.reduce(function (a, b) {
+        return a + b;
+      }, 0);
+    }
+    if (totalStart <= 0) {
+      for (var u = 0; u < slice.length; u++) {
+        startWs[u] = MIN_COL;
+      }
+      totalStart = MIN_COL * slice.length;
+    }
 
     function onMove(ev) {
       var x = ev.pageX || (ev.touches && ev.touches[0] && ev.touches[0].pageX) || 0;
@@ -142,20 +297,20 @@
       }
     }
     function onUp() {
-      document.removeEventListener('mousemove', onMove);
-      document.removeEventListener('mouseup', onUp);
-      document.removeEventListener('touchmove', onMove);
-      document.removeEventListener('touchend', onUp);
+      document.removeEventListener('mousemove', onMove, true);
+      document.removeEventListener('mouseup', onUp, true);
+      document.removeEventListener('touchmove', onMove, true);
+      document.removeEventListener('touchend', onUp, true);
       document.body.style.cursor = '';
       document.body.style.userSelect = '';
       saveWidths(table, cols);
     }
     document.body.style.cursor = 'col-resize';
     document.body.style.userSelect = 'none';
-    document.addEventListener('mousemove', onMove);
-    document.addEventListener('mouseup', onUp);
-    document.addEventListener('touchmove', onMove, { passive: false });
-    document.addEventListener('touchend', onUp);
+    document.addEventListener('mousemove', onMove, true);
+    document.addEventListener('mouseup', onUp, true);
+    document.addEventListener('touchmove', onMove, { passive: false, capture: true });
+    document.addEventListener('touchend', onUp, true);
   }
 
   function attachHandle(table, th, cols, colStart, span) {
@@ -247,12 +402,26 @@
     var cols = getCols(table);
     if (cols.length !== n) return;
 
-    table.classList.add('pg-table-col-resize-enabled');
     applyStoredWidths(table, cols);
-    attachHandles(table, cols, n);
+    /* fixed 적용 전에 셀 너비를 읽어 <col>에 넣지 않으면 열이 과도하게 압축되어 nowrap 셀이 겹쳐 보임 */
+    function applyFixedAndHandles() {
+      applying = true;
+      try {
+        seedMissingColWidthsFromDom(table, cols, n);
+        table.classList.add('pg-table-col-resize-enabled');
+        attachHandles(table, cols, n);
+      } finally {
+        applying = false;
+      }
+    }
+    if (typeof global.requestAnimationFrame === 'function') {
+      global.requestAnimationFrame(applyFixedAndHandles);
+    } else {
+      applyFixedAndHandles();
+    }
   }
 
-  function refreshIn(root) {
+  function refreshInCore(root) {
     if (!root || !root.querySelectorAll) return;
     applying = true;
     try {
@@ -264,6 +433,28 @@
     }
   }
 
+  function refreshInSync(root) {
+    if (!root || !root.querySelectorAll) return;
+    var prev = refreshDebounceTimers.get(root);
+    if (prev) {
+      clearTimeout(prev);
+      refreshDebounceTimers.delete(root);
+    }
+    refreshInCore(root);
+  }
+
+  function refreshIn(root) {
+    if (!root || !root.querySelectorAll) return;
+    var prev = refreshDebounceTimers.get(root);
+    if (prev) {
+      clearTimeout(prev);
+    }
+    refreshDebounceTimers.set(root, global.setTimeout(function () {
+      refreshDebounceTimers.delete(root);
+      refreshInCore(root);
+    }, REFRESH_DEBOUNCE_MS));
+  }
+
   /**
    * 탭 pane 등: 그리드가 비동기로 채워질 때 subtree 변경 후 refreshIn(pane)을 다시 호출.
    * app.js loadContent 에서 ensureObserver(pane) + refreshIn(pane) 패턴과 맞춤.
@@ -272,15 +463,14 @@
     if (!pane || !pane.querySelectorAll || pane._pgTcObs) {
       return;
     }
-    var t = null;
-    var obs = new MutationObserver(function () {
+    var obs = new MutationObserver(function (records) {
       if (applying) {
         return;
       }
-      clearTimeout(t);
-      t = global.setTimeout(function () {
-        refreshIn(pane);
-      }, 160);
+      if (mutationRecordsAllColResizeOnly(records)) {
+        return;
+      }
+      refreshIn(pane);
     });
     pane._pgTcObs = obs;
     obs.observe(pane, { childList: true, subtree: true });
@@ -300,33 +490,45 @@
   var scheduleContentsRefresh = debounce(function () {
     if (applying) return;
     var cm = document.getElementById('contentsMain');
-    if (cm) refreshIn(cm);
+    if (!cm) return;
+    var active = cm.querySelector('.tab-pane.tabConDiv.show.active') || cm.querySelector('.tab-pane.show.active');
+    if (active && typeof active.querySelectorAll === 'function') {
+      refreshIn(active);
+    } else {
+      refreshIn(cm);
+    }
   }, 120);
 
   function initObservers() {
     var cm = document.getElementById('contentsMain');
     if (cm && typeof MutationObserver !== 'undefined') {
-      var mo = new MutationObserver(function () {
-        if (applying) return;
+      var mo = new MutationObserver(function (records) {
+        if (applying) {
+          return;
+        }
+        if (mutationRecordsAllColResizeOnly(records)) {
+          return;
+        }
         scheduleContentsRefresh();
       });
       mo.observe(cm, { childList: true, subtree: true });
     }
     document.addEventListener('shown.bs.modal', function (ev) {
       var m = ev.target;
-      if (m && m.querySelectorAll) refreshIn(m);
+      if (m && m.querySelectorAll) refreshInSync(m);
     });
   }
 
   global.PG_TABLE_COL_RESIZE = {
     refresh: refreshTable,
     refreshIn: refreshIn,
+    refreshInSync: refreshInSync,
     ensureObserver: ensureObserver,
     refreshAll: function () {
       var cm = document.getElementById('contentsMain');
-      if (cm) refreshIn(cm);
+      if (cm) refreshInSync(cm);
       document.querySelectorAll('.modal.show').forEach(function (m) {
-        refreshIn(m);
+        refreshInSync(m);
       });
     }
   };

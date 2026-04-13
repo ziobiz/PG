@@ -139,13 +139,15 @@ public class UserListService {
     }
 
     /**
-     * [계정·업체접근]에 행이 있으면, 하위 조직 허용 집합과 교집합만 사용자관리에 노출합니다.
+     * [계정·업체접근]에 행이 있으면, (로그인자 기준) 하위 조직 허용 집합과
+     * 지정한 업체코드(정확히 일치)의 교집합만 사용자관리에 노출합니다. 지정 코드의 하위 조직은 자동으로 붙지 않습니다.
      */
     public Set<String> resolveAllowedCompCodesWithAccess(String scopeCompCode, String accessUsername, boolean actorIsAdmin) {
         Set<String> allowed = resolveAllowedCompCodes(scopeCompCode);
         return intersectWithAccountCompanyAccess(allowed, accessUsername, actorIsAdmin);
     }
 
+    /** {@code allowed} 내 코드 중, 계정에 명시된 업체코드와 정확히 일치하는 것만 남깁니다(하위 확장 없음). */
     private Set<String> intersectWithAccountCompanyAccess(Set<String> allowed, String accessUsername, boolean actorIsAdmin) {
         if (actorIsAdmin || accessUsername == null || accessUsername.isBlank() || allowed.isEmpty()) {
             return allowed;

@@ -54,7 +54,9 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Service
 public class PayListService {
@@ -113,6 +115,30 @@ public class PayListService {
         return PayDisplayCurrency.alphaFromSettings(hqLedgerSysSettingsService.getOrCreate());
     }
 
+    private static String resolvePayListJpaSortProperty(String raw) {
+        if (raw == null || raw.isBlank()) {
+            return "createdAt";
+        }
+        return switch (raw.trim().toLowerCase(Locale.ROOT)) {
+            case "createdat", "created_at" -> "createdAt";
+            case "paidat", "paid_at" -> "paidAt";
+            case "trnid", "trn_id" -> "trnId";
+            case "amtkrw", "amt_krw" -> "amtKrw";
+            case "merchantid", "merchant_id" -> "merchantId";
+            case "orderno", "order_no" -> "orderNo";
+            case "status" -> "status";
+            case "curtype", "cur_type" -> "curType";
+            default -> "createdAt";
+        };
+    }
+
+    private static Pageable payListPageable(int page, int size, PayListSearchRequest req) {
+        Sort.Direction dir = req.getSearchOrderDir() != null && "ASC".equalsIgnoreCase(req.getSearchOrderDir().trim())
+                ? Sort.Direction.ASC : Sort.Direction.DESC;
+        String prop = resolvePayListJpaSortProperty(req.getSearchOrderBy());
+        return PageRequest.of(page - 1, size, Sort.by(dir, prop).and(Sort.by(dir, "trnId")));
+    }
+
     public PageResult<Map<String, Object>> search(PayListSearchRequest req, Authentication authentication) {
         if (req == null) {
             req = new PayListSearchRequest();
@@ -122,7 +148,7 @@ public class PayListService {
         LocalDateTime to = req.getSearchToDate() != null ? req.getSearchToDate().atTime(LocalTime.MAX) : null;
         int page = Math.max(1, req.getPage());
         int size = Math.min(1000, Math.max(1, req.getSize()));
-        Pageable p = PageRequest.of(page - 1, size, Sort.by(Sort.Direction.DESC, "createdAt"));
+        Pageable p = payListPageable(page, size, req);
         Specification<PgTrnsctn> spec = buildSpecification(req, from, to, authentication);
         Page<PgTrnsctn> result = trnsctnRepository.findAll(spec, p);
         List<String> merchantCodes = result.getContent().stream().map(PgTrnsctn::getMerchantId).distinct().collect(Collectors.toList());
@@ -181,29 +207,81 @@ public class PayListService {
                 .map(String::trim)
                 .filter(s -> !s.isEmpty())
                 .collect(Collectors.toSet());
-        List<OrgUnit> allUnits = orgUnitRepository.findAll();
-        Map<Long, OrgUnit> byId = allUnits.stream().collect(Collectors.toMap(OrgUnit::getId, u -> u, (a, b) -> a));
-        Map<String, OrgUnit> ouByCode = new HashMap<>();
-        for (OrgUnit ou : allUnits) {
-            if (codes.contains(ou.getCode())) {
-                ouByCode.put(ou.getCode(), ou);
+        if (codes.isEmpty()) {
+            return ctxByCode;
+        }
+
+        List<OrgUnit> merchants = orgUnitRepository.findByCodeIn(codes);
+        Map<String, OrgUnit> ouByCode = merchants.stream()
+                .collect(Collectors.toMap(OrgUnit::getCode, Function.identity(), (a, b) -> a));
+
+        Map<Long, OrgUnit> byId = new HashMap<>();
+        for (OrgUnit m : merchants) {
+            byId.put(m.getId(), m);
+        }
+        Set<Long> frontier = new HashSet<>();
+        for (OrgUnit m : merchants) {
+            Long pid = m.getParentId();
+            if (pid != null && !byId.containsKey(pid)) {
+                frontier.add(pid);
             }
         }
+        while (!frontier.isEmpty()) {
+            List<OrgUnit> batch = orgUnitRepository.findAllById(frontier);
+            if (batch.isEmpty()) {
+                break;
+            }
+            frontier.clear();
+            for (OrgUnit p : batch) {
+                byId.put(p.getId(), p);
+                Long pid = p.getParentId();
+                if (pid != null && !byId.containsKey(pid)) {
+                    frontier.add(pid);
+                }
+            }
+        }
+
+        Map<Long, MerchantProfile> profileByOrgId = new HashMap<>();
+        if (!byId.isEmpty()) {
+            for (MerchantProfile mp : merchantProfileRepository.findByOrgUnitIdIn(byId.keySet())) {
+                profileByOrgId.putIfAbsent(mp.getOrgUnitId(), mp);
+            }
+        }
+
+        Set<Long> merchantOrgIds = merchants.stream().map(OrgUnit::getId).collect(Collectors.toSet());
+        Map<Long, List<MerchantPgBinding>> bindingsByOrgId = new HashMap<>();
+        if (!merchantOrgIds.isEmpty()) {
+            for (MerchantPgBinding b : merchantPgBindingRepository.findByOrgUnitIdInOrderByOrgUnitIdAscSortOrderAsc(merchantOrgIds)) {
+                bindingsByOrgId.computeIfAbsent(b.getOrgUnitId(), k -> new ArrayList<>()).add(b);
+            }
+        }
+
+        Map<String, DistributionFeeConfig> distByCompId = distributionFeeConfigRepository.findByCompIdIn(codes).stream()
+                .collect(Collectors.toMap(DistributionFeeConfig::getCompId, d -> d, (a, b) -> a));
+
         Optional<CommissionPolicy> defaultPolicy = commissionPolicyRepository.findByScope("DEFAULT");
+        Map<String, CommissionPolicy> policyByScope = new HashMap<>();
+        for (CommissionPolicy p : commissionPolicyRepository.findByScopeIn(codes)) {
+            policyByScope.put(p.getScope(), p);
+        }
+
+        Map<Long, SettlementSetting> settlementByOrgId = new HashMap<>();
+        if (!merchantOrgIds.isEmpty()) {
+            for (SettlementSetting ss : settlementSettingRepository.findByOrgUnitIdIn(merchantOrgIds)) {
+                settlementByOrgId.putIfAbsent(ss.getOrgUnitId(), ss);
+            }
+        }
+
         for (String code : codes) {
             OrgUnit merchant = ouByCode.get(code);
             String compNm = merchant != null ? merchant.getName() : code;
-            MerchantProfile profile = merchant != null
-                    ? merchantProfileRepository.findByOrgUnitId(merchant.getId()).orElse(null)
-                    : null;
-            MerchantPgBinding binding = pickBinding(merchant);
-            DistributionFeeConfig dist = distributionFeeConfigRepository.findByCompId(code).orElse(null);
-            CommissionPolicy pol = commissionPolicyRepository.findByScope(code).or(() -> defaultPolicy).orElse(null);
-            SettlementSetting ss = merchant != null
-                    ? settlementSettingRepository.findByOrgUnitId(merchant.getId()).orElse(null)
-                    : null;
-            String[] hier = hierarchyNames(merchant);
-            String[] hbc = hierarchyBaseCurrencies(merchant, byId);
+            MerchantProfile profile = merchant != null ? profileByOrgId.get(merchant.getId()) : null;
+            MerchantPgBinding binding = pickBindingFromList(merchant == null ? null : bindingsByOrgId.get(merchant.getId()));
+            DistributionFeeConfig dist = distByCompId.get(code);
+            CommissionPolicy pol = Optional.ofNullable(policyByScope.get(code)).or(() -> defaultPolicy).orElse(null);
+            SettlementSetting ss = merchant == null ? null : settlementByOrgId.get(merchant.getId());
+            String[] hier = hierarchyNames(merchant, byId);
+            String[] hbc = hierarchyBaseCurrencies(merchant, byId, profileByOrgId);
             ctxByCode.put(code, new PayListRowContext(compNm, profile, binding, dist, pol, ss,
                     hier[0], hier[1], hier[2],
                     hbc[0], hbc[1], hbc[2]));
@@ -212,17 +290,18 @@ public class PayListService {
     }
 
     /** 상위 체인에서 REGIONAL·MASTER_DIST·MERCHANT 각각의 프로필 기준통화(콤마 목록의 첫 토큰) */
-    private String[] hierarchyBaseCurrencies(OrgUnit merchant, Map<Long, OrgUnit> byId) {
+    private String[] hierarchyBaseCurrencies(OrgUnit merchant, Map<Long, OrgUnit> byId,
+                                             Map<Long, MerchantProfile> profileByOrgId) {
         String regional = "";
         String master = "";
         String merch = "";
-        if (merchant == null || byId == null) {
+        if (merchant == null || byId == null || profileByOrgId == null) {
             return new String[] { regional, master, merch };
         }
         OrgUnit cur = merchant;
         for (int guard = 0; guard < 24 && cur != null; guard++) {
-            Optional<MerchantProfile> pf = merchantProfileRepository.findByOrgUnitId(cur.getId());
-            String bc = pf.map(MerchantProfile::getBaseCurrency).orElse("");
+            MerchantProfile pf = profileByOrgId.get(cur.getId());
+            String bc = pf != null && pf.getBaseCurrency() != null ? pf.getBaseCurrency() : "";
             if (bc != null && !bc.isBlank()) {
                 String tok = firstCsvCurrencyToken(bc);
                 if (!tok.isEmpty() && cur.getOrgLevel() != null) {
@@ -266,23 +345,21 @@ public class PayListService {
         LocalDateTime to = req.getSearchToDate() != null ? req.getSearchToDate().atTime(LocalTime.MAX) : null;
         Specification<PgTrnsctn> spec = buildSpecification(req, from, to, authentication);
         CriteriaBuilder cb = entityManager.getCriteriaBuilder();
-        CriteriaQuery<Tuple> cq = cb.createTupleQuery();
-        Root<PgTrnsctn> root = cq.from(PgTrnsctn.class);
-        cq.multiselect(
-                root.get("merchantId"),
-                root.get("status"),
-                root.get("curType"),
-                root.get("amtKrw"));
-        cq.where(spec.toPredicate(root, cq, cb));
-        List<Tuple> rows = entityManager.createQuery(cq).getResultList();
 
         Set<String> mcodes = new HashSet<>();
-        for (Tuple tup : rows) {
-            String mid = tup.get(0, String.class);
-            if (mid != null && !mid.isBlank()) {
-                mcodes.add(mid.trim());
-            }
+        CriteriaQuery<String> cqMids = cb.createQuery(String.class);
+        Root<PgTrnsctn> rootMids = cqMids.from(PgTrnsctn.class);
+        cqMids.select(rootMids.get("merchantId"));
+        cqMids.where(spec.toPredicate(rootMids, cqMids, cb));
+        cqMids.distinct(true);
+        try (Stream<String> midStream = entityManager.createQuery(cqMids).getResultStream()) {
+            midStream.forEach(mid -> {
+                if (mid != null && !mid.isBlank()) {
+                    mcodes.add(mid.trim());
+                }
+            });
         }
+
         Map<String, PayListRowContext> ctxMap = buildPayListRowContextMap(mcodes);
 
         AppUser user = (authentication != null && authentication.getPrincipal() instanceof AppUser u) ? u : null;
@@ -308,34 +385,45 @@ public class PayListService {
         Map<String, BigDecimal> feeVatSum = new HashMap<>();
         Map<String, BigDecimal> hold = new HashMap<>();
         Map<String, BigDecimal> payout = new HashMap<>();
-        long successCount = 0;
+        long[] successCount = { 0 };
 
-        for (Tuple tup : rows) {
-            String mid = tup.get(0, String.class);
-            String st = tup.get(1, String.class);
-            String curRaw = tup.get(2, String.class);
-            BigDecimal amt = tup.get(3, BigDecimal.class);
-            if (amt == null) {
-                amt = BigDecimal.ZERO;
-            }
-            String cur = PayListStatusBarBuckets.normalizeCurrency(curRaw);
-            if (allowedCur != null && !allowedCur.contains(cur)) {
-                continue;
-            }
-            PayListRowContext ctx = mid != null ? ctxMap.get(mid.trim()) : null;
-            if ("10".equals(st)) {
-                successCount++;
-                approveCountByCur.merge(cur, 1L, Long::sum);
-                approve.merge(cur, amt, BigDecimal::add);
-                PayListItemDto.ApprovedSettlementParts p = PayListItemDto.approvedSettlementParts(amt, ctx);
-                feeVatSum.merge(cur, p.feeAmt.add(p.feeVat), BigDecimal::add);
-                hold.merge(cur, p.holdAmt, BigDecimal::add);
-                payout.merge(cur, p.settleAmt, BigDecimal::add);
-            } else if (PayListItemDto.isCancelAmountStatus(st)) {
-                cancelCountByCur.merge(cur, 1L, Long::sum);
-                cancel.merge(cur, amt, BigDecimal::add);
-            }
+        CriteriaQuery<Tuple> cqRows = cb.createTupleQuery();
+        Root<PgTrnsctn> root = cqRows.from(PgTrnsctn.class);
+        cqRows.multiselect(
+                root.get("merchantId"),
+                root.get("status"),
+                root.get("curType"),
+                root.get("amtKrw"));
+        cqRows.where(spec.toPredicate(root, cqRows, cb));
+        try (Stream<Tuple> rowStream = entityManager.createQuery(cqRows).getResultStream()) {
+            rowStream.forEach(tup -> {
+                String mid = tup.get(0, String.class);
+                String st = tup.get(1, String.class);
+                String curRaw = tup.get(2, String.class);
+                BigDecimal amt = tup.get(3, BigDecimal.class);
+                if (amt == null) {
+                    amt = BigDecimal.ZERO;
+                }
+                String cur = PayListStatusBarBuckets.normalizeCurrency(curRaw);
+                if (allowedCur != null && !allowedCur.contains(cur)) {
+                    return;
+                }
+                PayListRowContext ctx = mid != null ? ctxMap.get(mid.trim()) : null;
+                if ("10".equals(st)) {
+                    successCount[0]++;
+                    approveCountByCur.merge(cur, 1L, Long::sum);
+                    approve.merge(cur, amt, BigDecimal::add);
+                    PayListItemDto.ApprovedSettlementParts p = PayListItemDto.approvedSettlementParts(amt, ctx);
+                    feeVatSum.merge(cur, p.feeAmt.add(p.feeVat), BigDecimal::add);
+                    hold.merge(cur, p.holdAmt, BigDecimal::add);
+                    payout.merge(cur, p.settleAmt, BigDecimal::add);
+                } else if (PayListItemDto.isCancelAmountStatus(st)) {
+                    cancelCountByCur.merge(cur, 1L, Long::sum);
+                    cancel.merge(cur, amt, BigDecimal::add);
+                }
+            });
         }
+        long successCountVal = successCount[0];
 
         Map<String, String> approvePlain = new LinkedHashMap<>();
         Map<String, Long> approveCountPlain = new LinkedHashMap<>();
@@ -373,7 +461,7 @@ public class PayListService {
         }
 
         Map<String, Object> out = new LinkedHashMap<>();
-        out.put("successCount", successCount);
+        out.put("successCount", successCountVal);
         out.put("multiCurrency", effectiveMultiCurrency);
         out.put("primaryCurrency", primaryNorm);
         out.put("currencyOrder", new ArrayList<>(currencyOrder));
@@ -685,17 +773,17 @@ public class PayListService {
         return "";
     }
 
-    private MerchantPgBinding pickBinding(OrgUnit merchant) {
-        if (merchant == null) return null;
-        List<MerchantPgBinding> list = merchantPgBindingRepository.findByOrgUnitIdOrderBySortOrderAsc(merchant.getId());
-        if (list.isEmpty()) return null;
+    private static MerchantPgBinding pickBindingFromList(List<MerchantPgBinding> list) {
+        if (list == null || list.isEmpty()) {
+            return null;
+        }
         return list.stream().filter(b -> "Y".equalsIgnoreCase(String.valueOf(b.getOperationalYn()).trim()))
                 .findFirst()
                 .orElse(list.get(0));
     }
 
     /** [0]=총판, [1]=지사, [2]=대리점(영업점) */
-    private String[] hierarchyNames(OrgUnit merchant) {
+    private String[] hierarchyNames(OrgUnit merchant, Map<Long, OrgUnit> byId) {
         String regional = "", master = "", branch = "";
         OrgUnit cur = merchant;
         for (int i = 0; i < 8 && cur != null; i++) {
@@ -708,7 +796,7 @@ public class PayListService {
                 }
             }
             Long pid = cur.getParentId();
-            cur = pid != null ? orgUnitRepository.findById(pid).orElse(null) : null;
+            cur = (pid != null && byId != null) ? byId.get(pid) : null;
         }
         return new String[] { regional, master, branch };
     }

@@ -26,6 +26,13 @@
   if (forceApi) {
     window.PG_API_BASE = forceApi.replace(/\/$/, '');
     if (typeof localStorage !== 'undefined') localStorage.setItem('pg_api_base', window.PG_API_BASE);
+  } else if (fromHtml && String(fromHtml).trim().toLowerCase() === 'same-origin') {
+    try {
+      var ogSame = (window.location.origin || '').replace(/\/$/, '').trim();
+      window.PG_API_BASE = ogSame || PG_PUBLIC_ICOPAY_API;
+    } catch (exSo) {
+      window.PG_API_BASE = PG_PUBLIC_ICOPAY_API;
+    }
   } else if (fromHtml) {
     window.PG_API_BASE = fromHtml.replace(/\/$/, '');
   } else if (savedApi !== null && savedApi !== '') {
@@ -57,6 +64,24 @@
       var originBase = (window.location.origin || '').replace(/\/$/, '');
       if (originBase) window.PG_API_BASE = originBase;
     } catch (e) { /* ignore */ }
+  }
+
+  /**
+   * 통합 배포(관리자·API 동일 호스트, /api 프록시): 기본을 api 서브도메인으로 두면
+   * 브라우저 CSP(connect-src)에 걸리는 경우가 많아, icopay 관리자 호스트는 현재 origin을 쓴다.
+   * API만 별도 도메인으로 둘 때는 ?api=, localStorage pg_api_base, 또는
+   * <html data-pg-api-base="https://api.icopay.co.kr"> 로 명시한다.
+   */
+  if (!forceApi && !String(fromHtml || '').trim()) {
+    var savedTrim = String(savedApi != null ? savedApi : '').trim();
+    if (!savedTrim && host && host !== 'localhost' && host !== '127.0.0.1' && host !== 'api.icopay.co.kr') {
+      if (host === 'icopay.co.kr' || /\.icopay\.co\.kr$/i.test(host)) {
+        try {
+          var ogIcopayAdmin = (window.location.origin || '').replace(/\/$/, '');
+          if (ogIcopayAdmin) window.PG_API_BASE = ogIcopayAdmin;
+        } catch (eIca) { /* ignore */ }
+      }
+    }
   }
 
   /**

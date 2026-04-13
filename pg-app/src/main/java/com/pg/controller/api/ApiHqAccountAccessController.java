@@ -37,6 +37,18 @@ public class ApiHqAccountAccessController {
         }
     }
 
+    @PutMapping("/{id}")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> update(@PathVariable long id, @RequestBody Map<String, Object> body) {
+        try {
+            String username = body.get("username") != null ? body.get("username").toString() : "";
+            String compCode = body.get("compCode") != null ? body.get("compCode").toString() : "";
+            hqAccountAccessService.update(id, username, compCode);
+            return ResponseEntity.ok(ApiResponse.ok(hqAccountAccessService.listAll()));
+        } catch (Exception e) {
+            return ResponseEntity.ok(ApiResponse.fail(e.getMessage(), "ERROR"));
+        }
+    }
+
     @DeleteMapping("/{id}")
     public ResponseEntity<ApiResponse<Map<String, Object>>> delete(@PathVariable long id) {
         try {
