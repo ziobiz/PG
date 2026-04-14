@@ -154,6 +154,21 @@
     try { window._pgCalcCycleOptsCache = null; } catch (e0) { /* ignore */ }
     try { window._pgCalcCycleOptsScopedCache = {}; } catch (e0b) { /* ignore */ }
   }
+  /** SettlementPeriodResolver.normalizeCalcCycle 과 동일(총판 슬롯·셀렉트 value 매칭). */
+  function pgNormCalcCycleCode(raw) {
+    if (raw == null) return '';
+    var u = String(raw).trim().toUpperCase().replace(/\+/g, '');
+    if (u === 'TM05') u = 'TM5';
+    switch (u) {
+      case '1D': return 'H1';
+      case '2D': return 'H2';
+      case '4D': return 'H4';
+      case '6D': return 'H6';
+      case '8D': return 'H8';
+      case '12D': return 'H12';
+      default: return u;
+    }
+  }
   /** 상위 조직(parent) 변경 시 총판별 정산주기 스코프 캐시만 비움(동일 parentId라도 본사 설정 반영 재조회) */
   function pgClearCalcCycleScopedCache() {
     try { window._pgCalcCycleOptsScopedCache = {}; } catch (e) { /* ignore */ }
@@ -7211,12 +7226,21 @@
           fd.regionalSettings = JSON.stringify(regionalSettings);
         }
         if (fd.compDiv === 'MASTER_DIST') {
-          var n1 = String(fd.notifyUrl1 || '').trim();
-          var n2 = String(fd.notifyUrl2 || '').trim();
-          var hasBackup = !!(String(fd.notifyUrl3 || '').trim() || String(fd.notifyUrl4 || '').trim());
-          if (!n1) { alert('총판은 노티 CALLBACK(URL 1)을 입력해야 합니다.'); return; }
-          if (!n2) { alert('총판은 노티 RESULT(URL 2)를 입력해야 합니다.'); return; }
-          if (hasBackup && (!n1 || !n2)) { alert('노티 URL 3·4(보조)를 쓰려면 URL 1·2(CALLBACK·RESULT)가 모두 필요합니다.'); return; }
+          var n1elR = form.querySelector('[name="notifyUrl1"]');
+          var mdMandatoryLockedR = n1elR && n1elR.disabled;
+          var n1r = String(fd.notifyUrl1 || '').trim();
+          var n2r = String(fd.notifyUrl2 || '').trim();
+          var hasBackupR = !!(String(fd.notifyUrl3 || '').trim() || String(fd.notifyUrl4 || '').trim());
+          if (!mdMandatoryLockedR) {
+            if (!n1r) { alert('총판은 노티 CALLBACK(URL 1)을 입력해야 합니다.'); return; }
+            if (!n2r) { alert('총판은 노티 RESULT(URL 2)를 입력해야 합니다.'); return; }
+          }
+          if (hasBackupR && (!n1r || !n2r)) {
+            alert(mdMandatoryLockedR
+              ? '보조 노티(URL 3·4)를 쓰려면 본사 노티구성설정에서 이 총판에 필수 노티(URL 1·2)가 연결되어 있어야 합니다.'
+              : '노티 URL 3·4(보조)를 쓰려면 URL 1·2(CALLBACK·RESULT)가 모두 필요합니다.');
+            return;
+          }
         }
         var dimm = document.getElementById('dimm');
         if (dimm) dimm.style.display = 'flex';
@@ -9153,12 +9177,21 @@
           }
           var compDivVal = form.querySelector('[name="compDiv"]') ? form.querySelector('[name="compDiv"]').value : '';
           if (compDivVal === 'MASTER_DIST') {
+            var n1elD = form.querySelector('[name="notifyUrl1"]');
+            var mdMandatoryLockedD = n1elD && n1elD.disabled;
             var dn1 = String(fd.notifyUrl1 || '').trim();
             var dn2 = String(fd.notifyUrl2 || '').trim();
             var dHasBackup = !!(String(fd.notifyUrl3 || '').trim() || String(fd.notifyUrl4 || '').trim());
-            if (!dn1) { alert('총판은 노티 CALLBACK(URL 1)을 입력해야 합니다.'); return; }
-            if (!dn2) { alert('총판은 노티 RESULT(URL 2)를 입력해야 합니다.'); return; }
-            if (dHasBackup && (!dn1 || !dn2)) { alert('노티 URL 3·4(보조)를 쓰려면 URL 1·2(CALLBACK·RESULT)가 모두 필요합니다.'); return; }
+            if (!mdMandatoryLockedD) {
+              if (!dn1) { alert('총판은 노티 CALLBACK(URL 1)을 입력해야 합니다.'); return; }
+              if (!dn2) { alert('총판은 노티 RESULT(URL 2)를 입력해야 합니다.'); return; }
+            }
+            if (dHasBackup && (!dn1 || !dn2)) {
+              alert(mdMandatoryLockedD
+                ? '보조 노티(URL 3·4)를 쓰려면 본사 노티구성설정에서 이 총판에 필수 노티(URL 1·2)가 연결되어 있어야 합니다.'
+                : '노티 URL 3·4(보조)를 쓰려면 URL 1·2(CALLBACK·RESULT)가 모두 필요합니다.');
+              return;
+            }
           }
           if (compDivVal === 'HEADQUARTERS' || compDivVal === 'REGIONAL' || compDivVal === 'MASTER_DIST') {
             if (compDivVal === 'REGIONAL') {
@@ -11373,13 +11406,21 @@
         var fullOpts = [];
         function slotSelectHtml(selectedVal) {
           var s = selectedVal ? String(selectedVal) : '';
+          var selNorm = pgNormCalcCycleCode(s);
           var h = '<option value="">(미지정)</option>';
+          var matched = false;
           (fullOpts || []).forEach(function (o) {
             var val = o.v != null ? String(o.v) : '';
             if (val === '') return;
             var lab = o.t != null ? String(o.t) : val;
-            h += '<option value="' + escHqStAttr(val) + '"' + (val === s ? ' selected' : '') + '>' + escHqSt(lab) + '</option>';
+            var isSel = selNorm !== '' && pgNormCalcCycleCode(val) === selNorm;
+            if (isSel) matched = true;
+            h += '<option value="' + escHqStAttr(val) + '"' + (isSel ? ' selected' : '') + '>' + escHqSt(lab) + '</option>';
           });
+          if (selNorm !== '' && !matched) {
+            h += '<option value="' + escHqStAttr(selNorm) + '" selected title="본사 정산주기 병합 목록에 없거나 비활성인 코드입니다. 저장값은 유지됩니다.">' +
+              escHqSt(selNorm + ' (저장값)') + '</option>';
+          }
           return h;
         }
         function renderRows(slots, defaultSlot) {
@@ -11401,6 +11442,7 @@
           }
           window.PG_API.hqMasterDistCalcCycleConfigGet(orgId).then(function (data) {
             var slots = data.slots || [];
+            while (slots.length < 10) slots.push(null);
             renderRows(slots, data.defaultSlot != null ? data.defaultSlot : 0);
           }).catch(function (e) { alert(e && e.message ? e.message : '조회 실패'); });
         }
@@ -11433,6 +11475,7 @@
           var defaultSlot = defEl ? parseInt(defEl.value, 10) : 0;
           window.PG_API.hqMasterDistCalcCycleConfigSave({ orgUnitId: parseInt(orgId, 10), slots: slots, defaultSlot: defaultSlot }).then(function () {
             pgInvalidateCalcCycleOptionsCache();
+            loadConfig(orgId);
             alert('저장되었습니다.');
           }).catch(function (e) {
             alert(e && e.message ? e.message : '저장 실패');

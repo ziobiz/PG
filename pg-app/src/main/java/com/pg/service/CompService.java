@@ -1584,6 +1584,7 @@ public class CompService {
         }
         merchantNotifyUrlRepository.deleteByOrgUnitIdAndUrlTypeIn(orgUnitId,
                 java.util.List.of("BACKGROUND", "RESULT", MERCHANT_NOTIFY_MIDDLEWARE));
+        merchantNotifyUrlRepository.flush();
         if (!bg.isEmpty()) {
             MerchantNotifyUrl n1 = new MerchantNotifyUrl();
             n1.setOrgUnitId(orgUnitId);
@@ -2060,6 +2061,7 @@ public class CompService {
                     defaultProductAmount, defaultProductDesc);
             saveMerchantPayNotifyUrls(saved.getId(), notifyUrlBackground, notifyUrlResult,
                     middlewareNotifyUrl, middlewareNotifySecret);
+            copyNotifyUrlSlotsFromNearestMasterDistToMerchant(saved.getId(), effectiveParentId);
         }
         if ("MASTER_DIST".equalsIgnoreCase(compDiv)) {
             saveDistributorNotifyUrls(saved.getId(), notifyUrl1, notifyUrl2, notifyUrl3, notifyUrl4);
@@ -2960,10 +2962,50 @@ public class CompService {
                 .map(mp -> mp.getRegNo() != null && mp.getRegNo().contains(regNo.trim())).orElse(true);
     }
 
-    /** 총판 노티 URL 4개 저장 (NOTIFY_1~4). 본사/총판 생성 시 총본사 설정에서 설정 */
+    /**
+     * 상위 체인의 총판(MASTER_DIST)에 저장된 NOTIFY_1~4를 신규 가맹 조직에 복사합니다(노티 분기·동일 URL 정책).
+     */
+    private void copyNotifyUrlSlotsFromNearestMasterDistToMerchant(Long merchantOrgUnitId, Long startParentOrgUnitId) {
+        if (merchantOrgUnitId == null || startParentOrgUnitId == null) {
+            return;
+        }
+        java.util.Optional<Long> md = masterDistSettlementCycleConfigService.findNearestMasterDistOrgId(startParentOrgUnitId);
+        if (md.isEmpty()) {
+            return;
+        }
+        for (MerchantNotifyUrl u : merchantNotifyUrlRepository.findByOrgUnitIdOrderByUrlTypeAsc(md.get())) {
+            String t = u.getUrlType();
+            if (t == null) {
+                continue;
+            }
+            if (!("NOTIFY_1".equals(t) || "NOTIFY_2".equals(t) || "NOTIFY_3".equals(t) || "NOTIFY_4".equals(t))) {
+                continue;
+            }
+            if (u.getNotiUrl() == null || u.getNotiUrl().isBlank()) {
+                continue;
+            }
+            MerchantNotifyUrl n = new MerchantNotifyUrl();
+            n.setOrgUnitId(merchantOrgUnitId);
+            n.setUrlType(t);
+            n.setNotiUrl(u.getNotiUrl().trim());
+            n.setUseYn("Y");
+            merchantNotifyUrlRepository.save(n);
+        }
+        merchantNotifyUrlRepository.flush();
+    }
+
+    /** 총판 노티 URL 4개 저장 (NOTIFY_1~4). 필수 1·2는 본사 노티구성(tb_hq_notify_target) 연동 시 서버가 고정합니다. */
     private void saveDistributorNotifyUrls(Long orgUnitId, String url1, String url2, String url3, String url4) {
-        String n1 = url1 != null ? url1.trim() : "";
-        String n2 = url2 != null ? url2.trim() : "";
+        String[] hqPair = hqNotifyTargetService.resolveMandatoryNotifyPairUrls(orgUnitId);
+        String n1;
+        String n2;
+        if (hqPair[0] != null && !hqPair[0].isBlank() && hqPair[1] != null && !hqPair[1].isBlank()) {
+            n1 = hqPair[0].trim();
+            n2 = hqPair[1].trim();
+        } else {
+            n1 = url1 != null ? url1.trim() : "";
+            n2 = url2 != null ? url2.trim() : "";
+        }
         String n3 = url3 != null ? url3.trim() : "";
         String n4 = url4 != null ? url4.trim() : "";
         boolean hasAny = !n1.isEmpty() || !n2.isEmpty() || !n3.isEmpty() || !n4.isEmpty();
@@ -2981,6 +3023,7 @@ public class CompService {
         }
         merchantNotifyUrlRepository.deleteByOrgUnitIdAndUrlTypeIn(orgUnitId,
                 java.util.List.of("NOTIFY_1", "NOTIFY_2", "NOTIFY_3", "NOTIFY_4"));
+        merchantNotifyUrlRepository.flush();
         String[] urls = { n1, n2, n3, n4 };
         for (int i = 0; i < 4; i++) {
             if (urls[i] != null && !urls[i].trim().isEmpty()) {

@@ -493,6 +493,21 @@ public class MasterDistSettlementCycleConfigService {
 
         }
 
+        /* 이미 이 총판에 저장된 코드는 병합 정의에서 빠져도 유지·재저장 가능(표시 누락 방지). */
+        configRepository.findByOrgUnitId(masterDistOrgUnitId).ifPresent(ex -> {
+
+            for (String legacy : slotValuesRaw(ex)) {
+
+                if (legacy != null && !legacy.isBlank()) {
+
+                    catalogNorm.add(SettlementPeriodResolver.normalizeCalcCycle(legacy.trim()));
+
+                }
+
+            }
+
+        });
+
         int nonEmpty = 0;
 
         for (int i = 0; i < MAX_DISTINCT_SLOTS; i++) {
@@ -533,7 +548,7 @@ public class MasterDistSettlementCycleConfigService {
 
         if (defaultSlotIndex < 0 || defaultSlotIndex >= MAX_DISTINCT_SLOTS) {
 
-            throw new IllegalArgumentException("대표 슬롯은 1~" + MAX_DISTINCT_SLOTS + "번 중 하나여야 합니다.");
+            throw new IllegalArgumentException("대표 슬롯은 표의 " + MAX_DISTINCT_SLOTS + "칸 중 하나(내부 인덱스 0~" + (MAX_DISTINCT_SLOTS - 1) + ")를 선택해야 합니다.");
 
         }
 

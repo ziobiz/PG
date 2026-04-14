@@ -49,6 +49,18 @@ public class HqNotifyTargetService {
     }
 
     /** 노티 자동생성 시 선택용: 총판(MASTER_DIST) 조직 목록 */
+    /**
+     * {@code tb_hq_notify_target.org_unit_id} 가 총판으로 연결된 행에서 CALLBACK·RESULT URL 쌍을 찾습니다.
+     * 없거나 한쪽만 있으면 null 요소가 포함될 수 있습니다.
+     */
+    public String[] resolveMandatoryNotifyPairUrls(Long boundOrgUnitId) {
+        if (boundOrgUnitId == null) {
+            return new String[] { null, null };
+        }
+        List<HqNotifyTarget> rows = repository.findByOrgUnitIdOrderByIdAsc(boundOrgUnitId);
+        return resolveCallbackResultUrls(rows);
+    }
+
     public List<Map<String, Object>> listMasterDistNotifyLinkOptions() {
         return orgUnitRepository.findByOrgLevelOrderByCodeAsc(OrgLevel.MASTER_DIST).stream()
                 .filter(o -> o.getStatus() == null || "ACTIVE".equalsIgnoreCase(o.getStatus()))
@@ -206,6 +218,7 @@ public class HqNotifyTargetService {
                 .map(MerchantNotifyUrl::getNotiUrl).orElse("").trim();
 
         merchantNotifyUrlRepository.deleteByOrgUnitIdAndUrlTypeIn(orgUnitId, List.of("NOTIFY_1", "NOTIFY_2"));
+        merchantNotifyUrlRepository.flush();
         MerchantNotifyUrl n1 = new MerchantNotifyUrl();
         n1.setOrgUnitId(orgUnitId);
         n1.setUrlType("NOTIFY_1");

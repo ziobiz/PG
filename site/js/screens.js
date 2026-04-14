@@ -1666,11 +1666,11 @@
           title: '상세정보',
           id: 'distributorExtraCard',
           masterDistOnly: true,
-          notice: '총판일 때만 입력합니다. 총판은 1가지 화폐만 지정할 수 있습니다. 노티 대상은 본사설정 > 노티구성설정의 [총판 노티 대상 생성]에서 먼저 등록합니다. 왼쪽 [노티 쌍 선택]·[보조 쌍 선택]으로 URL을 한 번에 채우거나, 각 칸에서 드롭다운·[노티선택]을 사용하세요. URL 1=CALLBACK, 2=RESULT(필수). URL 3·4는 보조입니다. 업체 저장 시 선택한 본사 수신 URL(cb…/rs…)이 이 총판과 자동 연결되며, 그 URL로 유입되는 노티만 이 총판 트리로 분기됩니다.',
+          notice: '총판일 때만 입력합니다. 총판은 1가지 화폐만 지정할 수 있습니다. 필수 노티(URL 1·2)는 본사설정 > 노티구성설정에서 이 총판에 노티 대상을 연결하면 자동 반영되며 화면에서 수정할 수 없습니다. 보조(URL 3·4)는 [보조 쌍 선택] 또는 드롭다운으로 추가할 수 있습니다. 연결된 본사 수신 URL로 유입되는 노티가 이 총판 트리로 분기됩니다.',
           rows: [
             [{ label: '기준 화폐*', type: 'select', name: 'baseCurrency', options: [{ v: '', t: '선택' }, { v: 'KRW', t: 'KRW (원)' }, { v: 'USD', t: 'USD (달러)' }, { v: 'JPY', t: 'JPY (엔)' }, { v: 'THB', t: 'THB (바트)' }, { v: 'EUR', t: 'EUR (유로)' }], col: 2 }, { label: '사이트개요', type: 'text', name: 'siteSummary', col: 2, placeholder: '사이트개요' }, { label: '취급물품', type: 'text', name: 'product', col: 2 }, { label: '대표사이트', type: 'text', name: 'homepage', col: 2, placeholder: 'https://' }],
             [{ label: '정산담당자명', type: 'text', name: 'settleName', col: 2 }, { label: '정산담당자연락처', type: 'text', name: 'settleTelNo', col: 2, placeholder: '010-0000-0000' }, { label: '정산형태', type: 'select', name: 'settleType', options: [{ v: '', t: '선택' }, { v: 'M', t: '가맹점별' }, { v: 'G', t: '총판' }], col: 1 }, { label: '요율(%)', type: 'text', name: 'commissionRate', col: 1, placeholder: '요율' }, { label: '사용한도', type: 'text', name: 'limitAmt', col: 2, placeholder: '사용한도' }],
-            [{ type: 'notifyPairButton', col: 2, pairLabel: '필수 노티', buttonText: '노티 쌍 선택', callbackField: 'notifyUrl1', resultField: 'notifyUrl2', hint: 'CALLBACK→URL1, RESULT→URL2 동시 설정', titleHint: '본사설정 > 노티구성설정에서 [노티자동생성]으로 등록한 쌍을 고릅니다.' }, { label: '노티 CALLBACK (URL 1)*', type: 'select', name: 'notifyUrl1', col: 5, loadNotifyTargets: true, button: '노티선택' }, { label: '노티 RESULT (URL 2)*', type: 'select', name: 'notifyUrl2', col: 5, loadNotifyTargets: true, button: '노티선택' }],
+            [{ type: 'notifyPairButton', col: 2, pairLabel: '필수 노티', buttonText: '노티 쌍 선택', callbackField: 'notifyUrl1', resultField: 'notifyUrl2', hint: '본사 노티구성에서 연결 시 자동 입력됩니다.', titleHint: '본사설정 > 노티구성설정에서 총판에 노티 대상을 연결하세요.', readonly: true }, { label: '노티 CALLBACK (URL 1)*', type: 'select', name: 'notifyUrl1', col: 5, loadNotifyTargets: true, button: '노티선택', readonly: true }, { label: '노티 RESULT (URL 2)*', type: 'select', name: 'notifyUrl2', col: 5, loadNotifyTargets: true, button: '노티선택', readonly: true }],
             [{ type: 'notifyPairButton', col: 2, pairLabel: '보조 노티', buttonText: '보조 쌍 선택', callbackField: 'notifyUrl3', resultField: 'notifyUrl4', hint: 'URL 3·4를 같은 쌍으로 채웁니다.', titleHint: '보조 노티 URL 3·4를 한 번에 설정합니다.' }, { label: '노티 URL 3(보조)', type: 'select', name: 'notifyUrl3', col: 5, loadNotifyTargets: true, button: '노티선택' }, { label: '노티 URL 4(보조)', type: 'select', name: 'notifyUrl4', col: 5, loadNotifyTargets: true, button: '노티선택' }]
           ]
         },
@@ -1913,11 +1913,11 @@
           title: '상세정보',
           id: 'distributorExtraCard',
           masterDistOnly: true,
-          notice: '총판일 때만 입력합니다. 총판은 1가지 화폐만 지정할 수 있습니다. 노티 대상은 본사설정 > 노티구성설정의 [총판 노티 대상 생성]에서 먼저 등록합니다. 왼쪽 [노티 쌍 선택]·[보조 쌍 선택]으로 URL을 한 번에 채우거나, 각 칸에서 드롭다운·[노티선택]을 사용하세요. URL 1=CALLBACK, 2=RESULT(필수). URL 3·4는 보조입니다. 업체 저장 시 선택한 본사 수신 URL(cb…/rs…)이 이 총판과 자동 연결되며, 그 URL로 유입되는 노티만 이 총판 트리로 분기됩니다.',
+          notice: '총판일 때만 입력합니다. 총판은 1가지 화폐만 지정할 수 있습니다. 필수 노티(URL 1·2)는 본사설정 > 노티구성설정에서 이 총판에 노티 대상을 연결하면 자동 반영되며 화면에서 수정할 수 없습니다. 보조(URL 3·4)는 [보조 쌍 선택] 또는 드롭다운으로 추가할 수 있습니다. 연결된 본사 수신 URL로 유입되는 노티가 이 총판 트리로 분기됩니다.',
           rows: [
             [{ label: '기준 화폐*', type: 'select', name: 'baseCurrency', options: [{ v: '', t: '선택' }, { v: 'KRW', t: 'KRW (원)' }, { v: 'USD', t: 'USD (달러)' }, { v: 'JPY', t: 'JPY (엔)' }, { v: 'THB', t: 'THB (바트)' }, { v: 'EUR', t: 'EUR (유로)' }], col: 2 }, { label: '사이트개요', type: 'text', name: 'siteSummary', col: 2, placeholder: '사이트개요' }, { label: '취급물품', type: 'text', name: 'product', col: 2 }, { label: '대표사이트', type: 'text', name: 'homepage', col: 2, placeholder: 'https://' }],
             [{ label: '정산담당자명', type: 'text', name: 'settleName', col: 2 }, { label: '정산담당자연락처', type: 'text', name: 'settleTelNo', col: 2, placeholder: '010-0000-0000' }, { label: '정산형태', type: 'select', name: 'settleType', options: [{ v: '', t: '선택' }, { v: 'M', t: '가맹점별' }, { v: 'G', t: '총판' }], col: 1 }, { label: '요율(%)', type: 'text', name: 'commissionRate', col: 1, placeholder: '요율' }, { label: '사용한도', type: 'text', name: 'limitAmt', col: 2, placeholder: '사용한도' }],
-            [{ type: 'notifyPairButton', col: 2, pairLabel: '필수 노티', buttonText: '노티 쌍 선택', callbackField: 'notifyUrl1', resultField: 'notifyUrl2', hint: 'CALLBACK→URL1, RESULT→URL2 동시 설정', titleHint: '본사설정 > 노티구성설정에서 [노티자동생성]으로 등록한 쌍을 고릅니다.' }, { label: '노티 CALLBACK (URL 1)*', type: 'select', name: 'notifyUrl1', col: 5, loadNotifyTargets: true, button: '노티선택' }, { label: '노티 RESULT (URL 2)*', type: 'select', name: 'notifyUrl2', col: 5, loadNotifyTargets: true, button: '노티선택' }],
+            [{ type: 'notifyPairButton', col: 2, pairLabel: '필수 노티', buttonText: '노티 쌍 선택', callbackField: 'notifyUrl1', resultField: 'notifyUrl2', hint: '본사 노티구성에서 연결 시 자동 입력됩니다.', titleHint: '본사설정 > 노티구성설정에서 총판에 노티 대상을 연결하세요.', readonly: true }, { label: '노티 CALLBACK (URL 1)*', type: 'select', name: 'notifyUrl1', col: 5, loadNotifyTargets: true, button: '노티선택', readonly: true }, { label: '노티 RESULT (URL 2)*', type: 'select', name: 'notifyUrl2', col: 5, loadNotifyTargets: true, button: '노티선택', readonly: true }],
             [{ type: 'notifyPairButton', col: 2, pairLabel: '보조 노티', buttonText: '보조 쌍 선택', callbackField: 'notifyUrl3', resultField: 'notifyUrl4', hint: 'URL 3·4를 같은 쌍으로 채웁니다.', titleHint: '보조 노티 URL 3·4를 한 번에 설정합니다.' }, { label: '노티 URL 3(보조)', type: 'select', name: 'notifyUrl3', col: 5, loadNotifyTargets: true, button: '노티선택' }, { label: '노티 URL 4(보조)', type: 'select', name: 'notifyUrl4', col: 5, loadNotifyTargets: true, button: '노티선택' }]
           ]
         },
@@ -3589,9 +3589,10 @@
       var btnTxt = f.buttonText != null ? String(f.buttonText) : 'CALLBACK+RESULT 선택';
       var hintTxt = f.hint != null ? String(f.hint) : '';
       var titleAttr = f.titleHint ? ' title="' + String(f.titleHint).replace(/"/g, '&quot;') + '"' : '';
+      var pairBtnDis = f.readonly ? ' disabled' : '';
       return '<div class="col-sm-' + colPair + ' form-field-block comp-notify-pair-inline">' +
         '<label class="form-label comp-notify-pair-inline-label">' + pairLab + '</label>' +
-        '<button type="button" class="btn btn-outline-primary btn-sm w-100 comp-notify-pair-inline-btn"' + titleAttr +
+        '<button type="button" class="btn btn-outline-primary btn-sm w-100 comp-notify-pair-inline-btn"' + titleAttr + pairBtnDis +
         ' data-action="노티쌍선택" data-callback-field="' + cbF + '" data-result-field="' + rsF + '">' + btnTxt + '</button>' +
         (hintTxt ? '<p class="text-muted small mb-0 mt-1 comp-notify-pair-inline-hint">' + hintTxt + '</p>' : '') +
         '</div>';
@@ -3693,7 +3694,8 @@
     }
     var inpWrap = inp;
     if (f.button) {
-      inpWrap = '<div class="form-input-with-btn"><span class="form-input-wrap">' + inp + '</span><button type="button" class="btn btn-outline-secondary btn-sm" data-field="' + name + '" data-action="' + f.button + '">' + f.button + '</button></div>';
+      var sideBtnDis = f.readonly ? ' disabled' : '';
+      inpWrap = '<div class="form-input-with-btn"><span class="form-input-wrap">' + inp + '</span><button type="button" class="btn btn-outline-secondary btn-sm"' + sideBtnDis + ' data-field="' + name + '" data-action="' + f.button + '">' + f.button + '</button></div>';
     }
     if (f.smsButton) {
       var smsCls = 'btn-outline-primary';

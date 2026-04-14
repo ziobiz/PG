@@ -12,6 +12,9 @@ import java.util.Optional;
 public interface HqNotifyTargetRepository extends JpaRepository<HqNotifyTarget, Long> {
     List<HqNotifyTarget> findAllByOrderByIdDesc();
 
+    /** 총판 조직에 연결된 본사 노티 수신 URL 행(필수 CALLBACK·RESULT 판별용). */
+    List<HqNotifyTarget> findByOrgUnitIdOrderByIdAsc(Long orgUnitId);
+
     List<HqNotifyTarget> findByTargetNameOrderByIdAsc(String targetName);
 
     Optional<HqNotifyTarget> findByTargetCode(String targetCode);
