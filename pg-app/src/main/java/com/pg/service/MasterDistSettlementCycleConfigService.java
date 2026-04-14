@@ -40,6 +40,26 @@ public class MasterDistSettlementCycleConfigService {
 
 
 
+    /**
+
+     * 본사 직속 가맹·총판에 허용 주기가 아직 없을 때: 활성(Y) 정의에 있는 코드만 셀렉트·저장 허용(순서 고정).
+
+     */
+
+    private static final List<String> MERCHANT_FALLBACK_CYCLE_NORMS = List.of(
+
+            "NONE", "RT", "T0", "D0", "D1", "D2", "D3", "D7", "W3", "W7", "M30", "H1", "M5", "M10", "H12");
+
+
+
+    private static Set<String> merchantFallbackAllowNormSet() {
+
+        return Set.copyOf(MERCHANT_FALLBACK_CYCLE_NORMS);
+
+    }
+
+
+
     private final MasterDistSettlementCycleConfigRepository configRepository;
 
     private final OrgUnitRepository orgUnitRepository;
@@ -116,15 +136,35 @@ public class MasterDistSettlementCycleConfigService {
 
 
 
-    /** 상위 체인 기준 총판 설정이 있으면 허용 코드 집합(정규화). 없거나 미설정이면 empty. */
+    /**
+
+     * 가맹 정산주기 저장 검증·API와 동일한 허용 코드(정규화).
+
+     * 총판에 슬롯이 있으면 그 코드만, 없거나 본사 직속이면 본사 필수 정산주기 코드만.
+
+     */
 
     public Set<String> allowedCodesForMerchantParent(Long merchantParentOrgUnitId) {
 
-        Optional<Long> md = findNearestMasterDistOrgId(merchantParentOrgUnitId);
+        return effectiveMerchantCalcCycleAllowedNorms(merchantParentOrgUnitId);
+
+    }
+
+
+
+    public Set<String> effectiveMerchantCalcCycleAllowedNorms(Long startOrgUnitId) {
+
+        if (startOrgUnitId == null) {
+
+            return merchantFallbackAllowNormSet();
+
+        }
+
+        Optional<Long> md = findNearestMasterDistOrgId(startOrgUnitId);
 
         if (md.isEmpty()) {
 
-            return Set.of();
+            return merchantFallbackAllowNormSet();
 
         }
 
@@ -132,11 +172,19 @@ public class MasterDistSettlementCycleConfigService {
 
         if (cfgOpt.isEmpty()) {
 
-            return Set.of();
+            return merchantFallbackAllowNormSet();
 
         }
 
-        return allowedCodesFromEntity(cfgOpt.get());
+        Set<String> fromCfg = allowedCodesFromEntity(cfgOpt.get());
+
+        if (fromCfg.isEmpty()) {
+
+            return merchantFallbackAllowNormSet();
+
+        }
+
+        return fromCfg;
 
     }
 
@@ -276,31 +324,45 @@ public class MasterDistSettlementCycleConfigService {
 
     /**
 
-     * 가맹 조직 트리 상 임의 노드 ID(가맹 본인·직계 상위 등)로 총판을 찾아 허용 주기만 반환.
+     * 가맹 정산주기 셀렉트 옵션. 총판 허용 슬롯이 있으면 그 코드만(슬롯 순·활성 Y),
+
+     * 본사 직속·총판 미설정·슬롯 비어 있으면 본사 필수 코드만(활성 Y).
 
      *
 
-     * @param startOrgUnitId 가맹 orgUnitId 권장(상위까지 총판 탐색). null이면 전체 활성 목록.
+     * @param startOrgUnitId 가맹 orgUnitId 권장(상위로 총판 탐색). null이면 필수 코드만.
 
-     * @param ensureCycleCode 가맹에 이미 저장된 주기가 허용 목록에 없을 때 목록에 합칠 코드(정규화 전 원문)
+     * @param ensureCycleCode 저장값이 목록에 없으면 병합 카탈로그 행을 한 줄 덧붙이고 {@code orphanSavedCycleYn}=Y.
 
      */
 
     public Map<String, Object> buildScopedCycleOptionsForMerchantParent(Long startOrgUnitId, String ensureCycleCode) {
 
-        List<Map<String, Object>> all = hqSettlementCycleAdminService.listActiveSelectOptions();
+        List<Map<String, Object>> active = hqSettlementCycleAdminService.listActiveSelectOptions();
+
+        List<Map<String, Object>> catalog = hqSettlementCycleAdminService.listCatalogSelectOptions();
 
         Map<String, Object> out = new LinkedHashMap<>();
 
-        out.put("scoped", false);
+        out.put("scoped", true);
 
         out.put("defaultCalcCycle", null);
 
         out.put("orphanSavedCycleYn", "N");
 
-        out.put("options", all);
+        String ensureNorm = ensureCycleCode != null && !ensureCycleCode.isBlank()
+
+                ? SettlementPeriodResolver.normalizeCalcCycle(ensureCycleCode.trim()) : "";
 
         if (startOrgUnitId == null) {
+
+            List<Map<String, Object>> opts = buildMandatoryMerchantActiveOptions(active);
+
+            appendEnsureIfNotInOptions(opts, catalog, ensureNorm, out);
+
+            out.put("options", opts);
+
+            out.put("scopeHint", "조직 기준 미지정: 필수 정산주기만 표시합니다.");
 
             return out;
 
@@ -310,53 +372,43 @@ public class MasterDistSettlementCycleConfigService {
 
         if (md.isEmpty()) {
 
+            List<Map<String, Object>> opts = buildMandatoryMerchantActiveOptions(active);
+
+            appendEnsureIfNotInOptions(opts, catalog, ensureNorm, out);
+
+            out.put("options", opts);
+
+            out.put("scopeHint", "본사 직속 가맹: 필수 정산주기만 선택할 수 있습니다.");
+
             return out;
 
         }
 
         Optional<MasterDistSettlementCycleConfig> cfgOpt = findByMasterDistOrgId(md.get());
 
-        if (cfgOpt.isEmpty()) {
+        MasterDistSettlementCycleConfig cfg = cfgOpt.orElse(null);
 
-            return out;
+        Set<String> allowedFromCfg = cfg != null ? allowedCodesFromEntity(cfg) : Set.of();
 
-        }
+        List<Map<String, Object>> filtered;
 
-        MasterDistSettlementCycleConfig cfg = cfgOpt.get();
+        if (cfg != null && !allowedFromCfg.isEmpty()) {
 
-        Set<String> allowed = allowedCodesFromEntity(cfg);
+            filtered = buildMasterDistSlotOrderedActiveOptions(cfg, active);
 
-        if (allowed.isEmpty()) {
+            defaultCodeFromEntity(cfg).ifPresent(d -> out.put("defaultCalcCycle", d));
 
-            return out;
+        } else {
 
-        }
+            filtered = buildMandatoryMerchantActiveOptions(active);
 
-        List<Map<String, Object>> catalog = hqSettlementCycleAdminService.listCatalogSelectOptions();
-
-        List<Map<String, Object>> filtered = filterCatalogByAllowed(catalog, allowed);
-
-        String ensureNorm = ensureCycleCode != null && !ensureCycleCode.isBlank()
-
-                ? SettlementPeriodResolver.normalizeCalcCycle(ensureCycleCode.trim()) : "";
-
-        if (!ensureNorm.isEmpty() && !allowed.contains(ensureNorm)) {
-
-            appendCatalogRowForCode(catalog, ensureNorm).ifPresent(row -> {
-
-                filtered.add(row);
-
-                out.put("orphanSavedCycleYn", "Y");
-
-            });
+            out.put("scopeHint", "총판 허용 주기가 없어 필수 정산주기만 표시합니다.");
 
         }
+
+        appendEnsureIfNotInOptions(filtered, catalog, ensureNorm, out);
 
         out.put("options", filtered);
-
-        out.put("scoped", true);
-
-        defaultCodeFromEntity(cfg).ifPresent(d -> out.put("defaultCalcCycle", d));
 
         orgUnitRepository.findById(md.get()).ifPresent(ou -> {
 
@@ -382,33 +434,177 @@ public class MasterDistSettlementCycleConfigService {
 
 
 
-    private static List<Map<String, Object>> filterCatalogByAllowed(List<Map<String, Object>> catalog, Set<String> allowed) {
+    private static void appendFirstBlankPlaceholder(List<Map<String, Object>> active, List<Map<String, Object>> out) {
 
-        List<Map<String, Object>> filtered = new ArrayList<>();
+        for (Map<String, Object> row : active) {
 
-        for (Map<String, Object> row : catalog) {
-
-            String v = row.get("v") != null ? String.valueOf(row.get("v")).trim() : "";
-
-            if (v.isEmpty()) {
-
-                filtered.add(row);
+            if (row == null) {
 
                 continue;
 
             }
 
-            String norm = SettlementPeriodResolver.normalizeCalcCycle(v);
+            String v = row.get("v") != null ? String.valueOf(row.get("v")).trim() : "";
 
-            if (allowed.contains(norm)) {
+            if (v.isEmpty()) {
 
-                filtered.add(row);
+                out.add(new LinkedHashMap<>(row));
+
+                return;
 
             }
 
         }
 
-        return filtered;
+    }
+
+
+
+    private static Optional<Map<String, Object>> findActiveOptionRow(List<Map<String, Object>> active, String norm) {
+
+        for (Map<String, Object> row : active) {
+
+            if (row == null) {
+
+                continue;
+
+            }
+
+            String v = row.get("v") != null ? String.valueOf(row.get("v")).trim() : "";
+
+            if (v.isEmpty()) {
+
+                continue;
+
+            }
+
+            if (SettlementPeriodResolver.normalizeCalcCycle(v).equals(norm)) {
+
+                return Optional.of(row);
+
+            }
+
+        }
+
+        return Optional.empty();
+
+    }
+
+
+
+    private static boolean optionsContainNorm(List<Map<String, Object>> opts, String norm) {
+
+        for (Map<String, Object> row : opts) {
+
+            if (row == null) {
+
+                continue;
+
+            }
+
+            String v = row.get("v") != null ? String.valueOf(row.get("v")).trim() : "";
+
+            if (v.isEmpty()) {
+
+                continue;
+
+            }
+
+            if (SettlementPeriodResolver.normalizeCalcCycle(v).equals(norm)) {
+
+                return true;
+
+            }
+
+        }
+
+        return false;
+
+    }
+
+
+
+    private static List<Map<String, Object>> buildMandatoryMerchantActiveOptions(List<Map<String, Object>> active) {
+
+        List<Map<String, Object>> out = new ArrayList<>();
+
+        appendFirstBlankPlaceholder(active, out);
+
+        for (String norm : MERCHANT_FALLBACK_CYCLE_NORMS) {
+
+            findActiveOptionRow(active, norm).ifPresent(r -> out.add(new LinkedHashMap<>(r)));
+
+        }
+
+        return out;
+
+    }
+
+
+
+    private List<Map<String, Object>> buildMasterDistSlotOrderedActiveOptions(MasterDistSettlementCycleConfig cfg,
+
+                                                                              List<Map<String, Object>> active) {
+
+        List<Map<String, Object>> out = new ArrayList<>();
+
+        appendFirstBlankPlaceholder(active, out);
+
+        LinkedHashSet<String> seen = new LinkedHashSet<>();
+
+        for (String raw : slotValuesRaw(cfg)) {
+
+            if (raw == null || raw.isBlank()) {
+
+                continue;
+
+            }
+
+            String norm = SettlementPeriodResolver.normalizeCalcCycle(raw.trim());
+
+            if (!seen.add(norm)) {
+
+                continue;
+
+            }
+
+            findActiveOptionRow(active, norm).ifPresent(r -> out.add(new LinkedHashMap<>(r)));
+
+        }
+
+        return out;
+
+    }
+
+
+
+    private void appendEnsureIfNotInOptions(List<Map<String, Object>> opts,
+
+                                            List<Map<String, Object>> catalog,
+
+                                            String ensureNorm,
+
+                                            Map<String, Object> out) {
+
+        if (ensureNorm == null || ensureNorm.isEmpty()) {
+
+            return;
+
+        }
+
+        if (optionsContainNorm(opts, ensureNorm)) {
+
+            return;
+
+        }
+
+        appendCatalogRowForCode(catalog, ensureNorm).ifPresent(row -> {
+
+            opts.add(row);
+
+            out.put("orphanSavedCycleYn", "Y");
+
+        });
 
     }
 
@@ -451,17 +647,11 @@ public class MasterDistSettlementCycleConfigService {
 
         String code = SettlementPeriodResolver.normalizeCalcCycle(calcCycleRaw.trim());
 
-        Set<String> allowed = allowedCodesForMerchantParent(startOrgUnitId);
-
-        if (allowed.isEmpty()) {
-
-            return;
-
-        }
+        Set<String> allowed = effectiveMerchantCalcCycleAllowedNorms(startOrgUnitId);
 
         if (!allowed.contains(code)) {
 
-            throw new IllegalArgumentException("해당 총판에서 허용한 정산주기만 선택할 수 있습니다: " + code);
+            throw new IllegalArgumentException("선택할 수 없는 정산주기입니다: " + code);
 
         }
 

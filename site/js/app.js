@@ -272,7 +272,7 @@
             var parts = nonEmpty.map(function (o) {
               return String(o.v || '') + ': ' + pgMerchantCalcCycleOptionLabel(o);
             });
-            var who = mdNm || mdId || '소속 총판';
+            var who = mdNm || mdId || (pack && pack.scopeHint ? String(pack.scopeHint).trim() : '') || '소속 총판';
             var hint = '「' + who + '」총판 설정: 선택 가능 ' + parts.length + '종' + (parts.length ? ' (' + parts.join(', ') + ')' : '');
             if (def) hint += ' · 대표(기본 선택): ' + def;
             sel.title = hint;

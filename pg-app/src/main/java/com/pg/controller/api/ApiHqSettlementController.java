@@ -63,9 +63,10 @@ public class ApiHqSettlementController {
     }
 
     /**
-     * 가맹 조직 트리 임의 노드 기준(권장: 가맹 {@code fromOrgUnitId}): 상위로 총판을 찾아 허용 주기만(정산주기관리 병합 순서).
+     * 가맹 조직 트리 임의 노드 기준(권장: 가맹 {@code fromOrgUnitId}): 총판 허용 슬롯만(슬롯 순),
+     * 본사 직속·총판 미설정이면 본사 필수 정산주기만(활성 Y).
      * {@code parentOrgUnitId} 는 하위 호환용 별칭({@code fromOrgUnitId} 가 없을 때만 사용).
-     * {@code ensureCycleCode} 가 허용 목록에 없으면(과거 저장값) 병합 카탈로그 행을 한 줄 덧붙이고 {@code orphanSavedCycleYn}=Y.
+     * {@code ensureCycleCode} 가 목록에 없으면(과거 저장값) 병합 카탈로그 행을 한 줄 덧붙이고 {@code orphanSavedCycleYn}=Y.
      */
     @GetMapping("/cycleOptionsScoped")
     public ResponseEntity<ApiResponse<Map<String, Object>>> cycleOptionsScoped(
