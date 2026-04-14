@@ -1418,7 +1418,7 @@ public class ApiSettlementController {
         if (fromDate != null || toDate != null) {
             LocalDate runFrom = fromDate != null ? fromDate : LocalDate.now().minusDays(1);
             LocalDate runTo = toDate != null ? toDate : LocalDate.now();
-            List<SettlementRun> runs = settlementCalcService.execute(runFrom, runTo, merchantId);
+            List<SettlementRun> runs = settlementCalcService.execute(runFrom, runTo, merchantId, true);
             List<Map<String, Object>> list = runs.stream().map(r -> toMap(r, runFrom, runTo)).collect(Collectors.toList());
             return ResponseEntity.ok(ApiResponse.ok(list));
         }
@@ -1432,7 +1432,8 @@ public class ApiSettlementController {
 
     /**
      * 정산실행 그리드용 행 맵. {@link SettlementRun#getPeriodFrom()}/{@link SettlementRun#getPeriodTo()} 가 있으면
-     * period* 키에 반영합니다. {@code targetPeriodText}는 정산주기 RT면 거래번호·승인번호·마감시각 한 줄, 그 외에는 기간·마감 문구 또는 조회 기간·정산일입니다.
+     * period* 키에 반영합니다. {@code targetPeriodText}: RT는 거래번호·승인번호·마감(초 단위) 한 줄,
+     * 그 외는 {@code yyyy-MM-dd HH:mm:ss ~ yyyy-MM-dd HH:mm:ss} 집계 구간(격자·당일누적은 시각 포함).
      */
     private Map<String, Object> toMap(SettlementRun r, LocalDate queryFrom, LocalDate queryTo) {
         Map<String, Object> m = new HashMap<>();
@@ -1486,9 +1487,10 @@ public class ApiSettlementController {
         };
     }
 
+    private static final DateTimeFormatter SETTLEMENT_TARGET_PERIOD_DT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+
     /**
-     * 정산대상기간 표시. RT(건당)는 수수료내역과 맞춰 거래번호·승인번호·마감시각 한 줄만 사용하고,
-     * {@code yyyy-MM-dd ~ yyyy-MM-dd · 마감 …} 형식은 쓰지 않습니다.
+     * 정산대상기간 표시. RT(건당)만 거래번호·승인번호·마감 한 줄, 그 외는 날짜+시각 구간.
      */
     private String buildSettlementTargetPeriodLabel(SettlementRun r, LocalDate queryFrom, LocalDate queryTo, String calcCycleRaw) {
         String norm = SettlementPeriodResolver.normalizeCalcCycle(calcCycleRaw != null ? calcCycleRaw : "");
@@ -1499,7 +1501,7 @@ public class ApiSettlementController {
                 && r.getPeriodEndAt() != null) {
             return buildRtSettlementTargetPeriodLine(r);
         }
-        return buildSettlementTargetPeriodLabelLegacy(r, queryFrom, queryTo);
+        return buildSettlementTargetPeriodLabelNonRt(r, queryFrom, queryTo, norm);
     }
 
     private String buildRtSettlementTargetPeriodLine(SettlementRun r) {
@@ -1583,19 +1585,44 @@ public class ApiSettlementController {
         }));
     }
 
-    private static String buildSettlementTargetPeriodLabelLegacy(SettlementRun r, LocalDate queryFrom, LocalDate queryTo) {
+    /**
+     * 비-RT: 집계 구간을 {@code yyyy-MM-dd HH:mm:ss ~ yyyy-MM-dd HH:mm:ss} 로 표시.
+     * M5·H1 등 격자(당일 누적 TM/TH 제외)는 {@code period_end_at}(배타 상한)에서 시작 시각을 역산하고,
+     * 상한은 사용자 표기용으로 1나노초 전까지로 잘라 초 단위로 보입니다.
+     */
+    private static String buildSettlementTargetPeriodLabelNonRt(SettlementRun r, LocalDate queryFrom, LocalDate queryTo,
+                                                                  String calcCycleNorm) {
         if (r.getPeriodFrom() != null && r.getPeriodTo() != null) {
-            String base = r.getPeriodFrom() + " ~ " + r.getPeriodTo();
+            LocalDateTime startDt;
+            LocalDateTime endDt;
             if (r.getPeriodEndAt() != null) {
-                return base + " · 마감 " + DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm").format(r.getPeriodEndAt());
+                LocalDateTime endExclusive = r.getPeriodEndAt();
+                LocalDateTime inferredStart = SettlementCycleTiming.subDailySlotStartInclusiveFromEndExclusive(
+                        endExclusive, calcCycleNorm != null ? calcCycleNorm : "");
+                if (inferredStart != null) {
+                    startDt = inferredStart.withNano(0);
+                    LocalDateTime endInclusive = endExclusive.minusNanos(1).withNano(0);
+                    endDt = endInclusive;
+                } else {
+                    startDt = r.getPeriodFrom().atStartOfDay();
+                    endDt = endExclusive.withNano(0);
+                }
+                return SETTLEMENT_TARGET_PERIOD_DT.format(startDt) + " ~ " + SETTLEMENT_TARGET_PERIOD_DT.format(endDt);
             }
-            return base;
+            startDt = r.getPeriodFrom().atStartOfDay();
+            endDt = r.getPeriodTo().atTime(23, 59, 59);
+            return SETTLEMENT_TARGET_PERIOD_DT.format(startDt) + " ~ " + SETTLEMENT_TARGET_PERIOD_DT.format(endDt);
         }
         if (queryFrom != null && queryTo != null) {
-            return queryFrom + " ~ " + queryTo;
+            LocalDateTime qf = queryFrom.atStartOfDay();
+            LocalDateTime qt = queryTo.atTime(23, 59, 59);
+            return SETTLEMENT_TARGET_PERIOD_DT.format(qf) + " ~ " + SETTLEMENT_TARGET_PERIOD_DT.format(qt);
         }
         if (r.getCalcDt() != null) {
-            return "정산일 " + r.getCalcDt();
+            LocalDate d = r.getCalcDt();
+            LocalDateTime startDt = d.atStartOfDay();
+            LocalDateTime endDt = d.atTime(23, 59, 59);
+            return SETTLEMENT_TARGET_PERIOD_DT.format(startDt) + " ~ " + SETTLEMENT_TARGET_PERIOD_DT.format(endDt);
         }
         return "";
     }
@@ -1856,6 +1883,7 @@ public class ApiSettlementController {
         m.put("masterNm", master);
         m.put("branchNm", branch);
         m.put("agencyNm", agency);
+        m.put("curType", resolveMerchantStatementCurrency(compId));
         return m;
     }
 
@@ -1881,6 +1909,8 @@ public class ApiSettlementController {
         long cancelRunCnt;
         long aprvFeeSum;
         long canFeeSum;
+        /** 집계 행에 합쳐인 가맹 실행들의 정책·거래 통화(알파) */
+        private final java.util.TreeSet<String> curTypes = new java.util.TreeSet<>();
 
         DistributionAgg(LocalDate calcDt, String rowOrgCode) {
             this.calcDt = calcDt;
@@ -1890,6 +1920,13 @@ public class ApiSettlementController {
         void merge(SettlementRun r, Map<String, Object> dr, OrgLevel rollupLevel) {
             if (rollupLevel == null) {
                 return;
+            }
+            Object rawCur = dr != null ? dr.get("curType") : null;
+            if (rawCur != null) {
+                String c = String.valueOf(rawCur).trim().toUpperCase(Locale.ROOT);
+                if (!c.isEmpty()) {
+                    curTypes.add(c);
+                }
             }
             settleAmt += asLongStatic(dr.get("settleAmt"));
             long slice = feeSliceForRollup(dr, rollupLevel);
@@ -1977,6 +2014,13 @@ public class ApiSettlementController {
         m.put("compId", rowOrg.getCode());
         m.put("compNm", rowOrg.getName());
         m.put("orgDivNm", rowOrg.getOrgLevel() != null ? rowOrg.getOrgLevel().getNameKo() : "");
+        if (agg.curTypes.isEmpty()) {
+            m.put("curType", "");
+        } else if (agg.curTypes.size() == 1) {
+            m.put("curType", agg.curTypes.first());
+        } else {
+            m.put("curType", String.join("/", agg.curTypes));
+        }
         m.put("settleAmt", agg.settleAmt);
         m.put("hqFee", agg.hqFee);
         m.put("regionalFee", agg.regionalFee);

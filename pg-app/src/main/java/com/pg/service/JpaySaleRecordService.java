@@ -30,11 +30,14 @@ public class JpaySaleRecordService {
 
     private final PgTrnsctnRepository pgTrnsctnRepository;
     private final OrgUnitRepository orgUnitRepository;
+    private final SettlementCalcService settlementCalcService;
 
     public JpaySaleRecordService(PgTrnsctnRepository pgTrnsctnRepository,
-                                 OrgUnitRepository orgUnitRepository) {
+                                 OrgUnitRepository orgUnitRepository,
+                                 SettlementCalcService settlementCalcService) {
         this.pgTrnsctnRepository = pgTrnsctnRepository;
         this.orgUnitRepository = orgUnitRepository;
+        this.settlementCalcService = settlementCalcService;
     }
 
     @Transactional
@@ -134,6 +137,13 @@ public class JpaySaleRecordService {
             }
             /* status==1 (3DS): pending 유지 */
             pgTrnsctnRepository.save(t);
+            if (status == 0 && t.getMerchantId() != null && !t.getMerchantId().isBlank()) {
+                try {
+                    settlementCalcService.triggerRealtimeAutoSettlementIfDue(t.getMerchantId().trim(), t);
+                } catch (Exception rtEx) {
+                    log.warn("실시간 자동정산 트리거 실패 merchantId={}: {}", t.getMerchantId(), rtEx.getMessage());
+                }
+            }
         } catch (Exception e) {
             log.warn("JPAY 동기 응답 반영 실패: {}", e.getMessage());
         }

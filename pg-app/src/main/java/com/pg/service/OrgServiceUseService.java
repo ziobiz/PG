@@ -42,9 +42,12 @@ public class OrgServiceUseService {
 
     public boolean isOrgServiceActiveByCompCode(String compCode) {
         if (compCode == null || compCode.isBlank()) return false;
-        return orgUnitRepository.findByCode(compCode.trim())
-                .map(o -> isOrgServiceActive(o.getId()))
-                .orElse(false);
+        String t = compCode.trim();
+        Optional<OrgUnit> ou = orgUnitRepository.findByCode(t);
+        if (ou.isEmpty()) {
+            ou = orgUnitRepository.findByCodeIgnoreCase(t);
+        }
+        return ou.map(o -> isOrgServiceActive(o.getId())).orElse(false);
     }
 
     /**

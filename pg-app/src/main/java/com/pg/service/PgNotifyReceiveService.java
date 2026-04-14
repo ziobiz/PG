@@ -1326,6 +1326,63 @@ public class PgNotifyReceiveService {
         }
     }
 
+    /**
+     * 본사 「노티수령정보」에서 과거 수신 건을 다시 파싱·MID/가맹 분기한 뒤 {@code pg_trnsctn} 적재 파이프라인을 실행합니다.
+     * 바인딩·노티대상·총판 통화 설정을 고친 뒤 결제내역에 반영할 때 사용합니다.
+     *
+     * @return 처리 후 {@code processStatus}, {@code merchantId}, dispatch 성공 여부 등
+     */
+    @Transactional
+    public Map<String, Object> replayInboundProcessing(long inboundId) {
+        PgNotifyInbound in = inboundRepository.findById(inboundId)
+                .orElseThrow(() -> new IllegalArgumentException("수신 로그를 찾을 수 없습니다: " + inboundId));
+        String body = in.getRawBody() != null ? in.getRawBody() : "";
+        if (body.isBlank()) {
+            throw new IllegalArgumentException("저장된 원문(raw_body)이 비어 있습니다.");
+        }
+        if (body.contains("...(truncated)")) {
+            throw new IllegalArgumentException("원문이 길이 제한으로 잘린 건은 재처리할 수 없습니다.");
+        }
+        String contentType = in.getContentType() != null ? in.getContentType() : "";
+        ParsedNotify parsed = parsePayload(body, contentType);
+        in.setMid(parsed.mid);
+        in.setRootNo(parsed.rootNo);
+        in.setPayloadCompId(null);
+        in.setOrgUnitId(null);
+        in.setMerchantId(null);
+        in.setProcessStatus("RECEIVED");
+        in.setErrorMessage(null);
+        resolveAndFillInbound(in, parsed, body, contentType);
+        inboundRepository.save(in);
+        String channelType = in.getNotifyChannelType() != null && !in.getNotifyChannelType().isBlank()
+                ? in.getNotifyChannelType().trim()
+                : resolveNotifyChannelType(in.getNotifyTargetCode());
+        if (channelType == null || channelType.isBlank()) {
+            channelType = "CALLBACK";
+        }
+        boolean dispatchFailed = false;
+        String dispatchError = null;
+        try {
+            pgNotifyInboundTxnDispatcher.dispatch(in, channelType);
+        } catch (Exception e) {
+            dispatchFailed = true;
+            dispatchError = e.getMessage();
+            log.warn("노티 재처리 dispatch 실패 inboundId={}: {}", inboundId, e.getMessage());
+        }
+        inboundRepository.save(in);
+        Map<String, Object> m = new LinkedHashMap<>();
+        m.put("inboundId", in.getId());
+        m.put("processStatus", in.getProcessStatus());
+        m.put("errorMessage", in.getErrorMessage());
+        m.put("merchantId", in.getMerchantId());
+        m.put("orgUnitId", in.getOrgUnitId());
+        m.put("mid", in.getMid());
+        m.put("rootNo", in.getRootNo());
+        m.put("dispatchFailed", dispatchFailed);
+        m.put("dispatchError", dispatchError);
+        return m;
+    }
+
     private static class ParsedNotify {
         String mid;
         String rootNo;

@@ -137,7 +137,7 @@
     }
   };
 
-  /** 통합정산(/calc/chillPaySettlementList) VIEW SETTING·조직항목설정 기본안 (고정: 번호만. 그 외 표 열은 모두 토글·허용 목록 대상) */
+  /** 통합정산(/calc/chillPaySettlementList) VIEW SETTING·조직항목설정 기본안 (고정열: 번호만 — 통화 포함 나머지는 토글·허용 목록) */
   w.PG_CHILL_PAY_SETTLEMENT_VIEW_DEFAULTS = {
     viewSettingDefaultSelectedKeys: [
       'transactionId', 'transactionDate', 'merchant', 'customer', 'orderNo', 'paymentChannel', 'paymentDate',

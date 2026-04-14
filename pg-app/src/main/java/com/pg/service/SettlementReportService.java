@@ -1,10 +1,12 @@
 package com.pg.service;
 
 import com.pg.api.dto.PageResult;
+import com.pg.entity.CommissionPolicy;
 import com.pg.entity.OrgLevel;
 import com.pg.entity.OrgUnit;
 import com.pg.entity.PgTrnsctn;
 import com.pg.entity.SettlementRun;
+import com.pg.repository.CommissionPolicyRepository;
 import com.pg.repository.OrgUnitRepository;
 import com.pg.repository.PgTrnsctnRepository;
 import org.springframework.stereotype.Service;
@@ -40,13 +42,28 @@ public class SettlementReportService {
     private final OrgUnitRepository orgUnitRepository;
     private final PgTrnsctnRepository pgTrnsctnRepository;
     private final SettlementCalcService settlementCalcService;
+    private final CommissionPolicyRepository commissionPolicyRepository;
 
     public SettlementReportService(OrgUnitRepository orgUnitRepository,
                                    PgTrnsctnRepository pgTrnsctnRepository,
-                                   SettlementCalcService settlementCalcService) {
+                                   SettlementCalcService settlementCalcService,
+                                   CommissionPolicyRepository commissionPolicyRepository) {
         this.orgUnitRepository = orgUnitRepository;
         this.pgTrnsctnRepository = pgTrnsctnRepository;
         this.settlementCalcService = settlementCalcService;
+        this.commissionPolicyRepository = commissionPolicyRepository;
+    }
+
+    /** 가맹 정산·리포트 표시용 통화(수수료 정책 통화코드, 없으면 KRW) */
+    private String resolveStatementCurrency(String compId) {
+        if (compId == null || compId.isBlank()) {
+            return "KRW";
+        }
+        return commissionPolicyRepository.findByScope(compId.trim())
+                .map(CommissionPolicy::getCurrencyCode)
+                .filter(c -> c != null && !c.isBlank())
+                .map(c -> c.trim().toUpperCase(Locale.ROOT))
+                .orElse("KRW");
     }
 
     public Map<String, Object> reportMeta() {
@@ -283,6 +300,7 @@ public class SettlementReportService {
             m.put("calcDt", calcDt != null ? calcDt.toString() : "");
             m.put("compId", mid);
             m.put("compNm", ou != null ? ou.getName() : mid);
+            m.put("curType", resolveStatementCurrency(mid));
             BigDecimal ap = nz(r.getApproveAmt());
             BigDecimal ca = nz(r.getCancelAmt());
             BigDecimal net = ap.subtract(ca);
@@ -352,7 +370,7 @@ public class SettlementReportService {
             if (calcDt == null) continue;
             String key = calcDt + "|" + regional.getCode();
             RegionalExeBucket b = buckets.computeIfAbsent(key, k -> new RegionalExeBucket(calcDt, regional.getCode()));
-            b.add(r);
+            b.add(r, resolveStatementCurrency(mid));
         }
 
         List<Map<String, Object>> rows = buckets.values().stream()
@@ -398,6 +416,8 @@ public class SettlementReportService {
         Map<String, Object> one = new LinkedHashMap<>();
         one.put("periodFrom", fromD.toString());
         one.put("periodTo", toD.toString());
+        String ctDisp = curType != null && !curType.isBlank() ? curType.trim().toUpperCase(Locale.ROOT) : "전체";
+        one.put("curType", ctDisp);
         one.put("grossPay", sumGross);
         one.put("refundAmt", sumRefund);
         one.put("netPay", sumNet);
@@ -579,14 +599,18 @@ public class SettlementReportService {
         long rollingSum;
         int runCount;
         boolean allCalculated = true;
+        private final TreeSet<String> curTypes = new TreeSet<>();
 
         RegionalExeBucket(LocalDate calcDt, String regionalCode) {
             this.calcDt = calcDt;
             this.regionalCode = regionalCode;
         }
 
-        void add(SettlementRun r) {
+        void add(SettlementRun r, String stmtCurAlpha) {
             runCount++;
+            if (stmtCurAlpha != null && !stmtCurAlpha.isBlank()) {
+                curTypes.add(stmtCurAlpha.trim().toUpperCase(Locale.ROOT));
+            }
             approveAmtSum += nz(r.getApproveAmt()).longValue();
             cancelAmtSum += nz(r.getCancelAmt()).longValue();
             payAmountSum += r.getPayAmt() != null ? r.getPayAmt().longValue() : 0L;
@@ -611,6 +635,13 @@ public class SettlementReportService {
         m.put("compId", b.regionalCode);
         m.put("compNm", reg != null ? reg.getName() : b.regionalCode);
         m.put("batchRunCnt", b.runCount);
+        if (b.curTypes.isEmpty()) {
+            m.put("curType", "");
+        } else if (b.curTypes.size() == 1) {
+            m.put("curType", b.curTypes.first());
+        } else {
+            m.put("curType", String.join("/", b.curTypes));
+        }
         m.put("approveAmt", b.approveAmtSum);
         m.put("cancelAmt", b.cancelAmtSum);
         m.put("netPay", net);

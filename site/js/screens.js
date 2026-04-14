@@ -189,7 +189,7 @@
       { k: 'refundRate', t: '환불수수료', u: '(건)' },
       { k: 'feeSettlementPerTx', t: '정산수수료', u: '(건)' },
       { k: 'remittanceTransferFee', t: '송금수수료', u: '(건)' },
-      { k: 'usdtTransferFeeUsd', t: 'USDT 송금수수료', u: '(USD)' },
+      { k: 'usdtTransferFeeUsd', t: 'USDT 송금수수료', u: '(건)' },
       { k: 'fee3dsRate', t: '3DS 고정', u: '(건)' },
       { k: 'feeUsdt', t: 'USDT수수료율', u: '%' },
       { k: 'feeFx', t: 'FX수수료율', u: '%' },
@@ -244,51 +244,51 @@
       extraRow(1) + extraRow(2) + extraRow(3) + extraRow(4) + '</tbody></table></div></div>';
   }
 
-  /** 정산주기 저장값(v)·화면표시(t) — 가맹점 정산방법·결제내역 검색 공통 */
+  /** 정산주기: v·t 모두 코드 명(본사 API 로드 시 동일). 설명은 API의 d·option title */
   var CALC_CYCLE_OPTIONS = [
     { v: '', t: '선택' },
-    { v: 'NONE', t: '정산안함' },
-    { v: 'RT', t: '실시간(건당)' },
-    { v: 'T0', t: '당일합산(승인 시 재집계)' },
-    { v: 'TM5', t: '당일합산·5분 격자' },
-    { v: 'TM10', t: '당일합산·10분 격자' },
-    { v: 'TM30', t: '당일합산·30분 격자' },
-    { v: 'M5', t: '5분 마감' },
-    { v: 'M10', t: '10분 마감' },
-    { v: 'M30', t: '30분 마감' },
-    { v: 'H1', t: '1시간(H1)' },
-    { v: 'TH1', t: '당일합산·1시간 격자' },
-    { v: 'H2', t: '2시간(H2)' },
-    { v: 'TH2', t: '당일합산·2시간 격자' },
-    { v: 'H4', t: '4시간(H4)' },
-    { v: 'TH4', t: '당일합산·4시간 격자' },
-    { v: 'H6', t: '6시간(H6)' },
-    { v: 'TH6', t: '당일합산·6시간 격자' },
-    { v: 'H8', t: '8시간(H8)' },
-    { v: 'TH8', t: '당일합산·8시간 격자' },
-    { v: 'H12', t: '12시간(H12)' },
-    { v: 'TH12', t: '당일합산·12시간 격자' },
-    { v: 'D0', t: 'D+0' },
-    { v: 'D1', t: 'D+1' },
-    { v: 'D2', t: 'D+2' },
-    { v: 'D3', t: 'D+3' },
-    { v: 'D5', t: 'D+5' },
-    { v: 'D7', t: 'D+7' },
-    { v: 'D10', t: 'D+10' },
-    { v: 'D15', t: 'D+15' },
-    { v: 'D20', t: 'D+20' },
-    { v: 'D30', t: 'D+30' },
-    { v: 'W3', t: 'W+3' },
-    { v: 'W5', t: 'W+5' },
-    { v: 'W7', t: 'W+7' },
-    { v: 'W10', t: 'W+10' },
-    { v: 'W14', t: 'W+14' },
-    { v: 'WK1W', t: 'WK+1W' },
-    { v: 'WK2W', t: 'WK+2W' },
-    { v: 'WK1WT', t: 'WK+1WT' },
-    { v: 'WK2WT', t: 'WK+2WT' },
-    { v: 'WK1WM', t: 'WK+1WM' },
-    { v: 'WK2WM', t: 'WK+2WM' }
+    { v: 'NONE', t: 'NONE' },
+    { v: 'RT', t: 'RT' },
+    { v: 'T0', t: 'T0' },
+    { v: 'TM5', t: 'TM5' },
+    { v: 'TM10', t: 'TM10' },
+    { v: 'TM30', t: 'TM30' },
+    { v: 'M5', t: 'M5' },
+    { v: 'M10', t: 'M10' },
+    { v: 'M30', t: 'M30' },
+    { v: 'H1', t: 'H1' },
+    { v: 'TH1', t: 'TH1' },
+    { v: 'H2', t: 'H2' },
+    { v: 'TH2', t: 'TH2' },
+    { v: 'H4', t: 'H4' },
+    { v: 'TH4', t: 'TH4' },
+    { v: 'H6', t: 'H6' },
+    { v: 'TH6', t: 'TH6' },
+    { v: 'H8', t: 'H8' },
+    { v: 'TH8', t: 'TH8' },
+    { v: 'H12', t: 'H12' },
+    { v: 'TH12', t: 'TH12' },
+    { v: 'D0', t: 'D0' },
+    { v: 'D1', t: 'D1' },
+    { v: 'D2', t: 'D2' },
+    { v: 'D3', t: 'D3' },
+    { v: 'D5', t: 'D5' },
+    { v: 'D7', t: 'D7' },
+    { v: 'D10', t: 'D10' },
+    { v: 'D15', t: 'D15' },
+    { v: 'D20', t: 'D20' },
+    { v: 'D30', t: 'D30' },
+    { v: 'W3', t: 'W3' },
+    { v: 'W5', t: 'W5' },
+    { v: 'W7', t: 'W7' },
+    { v: 'W10', t: 'W10' },
+    { v: 'W14', t: 'W14' },
+    { v: 'WK1W', t: 'WK1W' },
+    { v: 'WK2W', t: 'WK2W' },
+    { v: 'WK1WT', t: 'WK1WT' },
+    { v: 'WK2WT', t: 'WK2WT' },
+    { v: 'WK1WM', t: 'WK1WM' },
+    { v: 'WK2WM', t: 'WK2WM' }
   ];
   var CALC_CYCLE_SEARCH_OPTIONS = [{ v: '', t: '전체' }].concat(CALC_CYCLE_OPTIONS.filter(function (o) { return o.v !== ''; }));
 
@@ -331,7 +331,7 @@
     + '<div class="col-6 col-md-2 d-grid"><button type="button" class="btn btn-primary btn-sm" id="hqStAddBtn">추가</button></div>'
     + '<div class="col-12 col-md-auto d-grid align-self-end"><button type="button" class="btn btn-outline-secondary btn-sm" id="hqStSeedMissingBtn" title="내장 표준 코드가 DB에 없을 때만 삽입합니다">표준주기 DB복원</button></div></div>'
     + '<p class="small text-muted mb-1">표준 주기(시스템) — 설명은 DB 행으로 덮어쓸 수 있습니다. DB가 비었을 때는 <strong>표준주기 DB복원</strong>으로 내장 목록과 동일한 행을 한 번에 넣을 수 있습니다.</p>'
-    + '<div class="table-responsive mb-4 table-no-col-resize-wrap"><table class="table table-sm table-bordered align-middle mb-0 table-no-col-resize"><thead class="table-light"><tr><th>코드</th><th>표시</th><th>설명</th><th>순서</th><th>사용</th><th class="text-end">자동가맹</th></tr></thead><tbody id="hqStBuiltTbody"></tbody></table></div>'
+    + '<div class="table-responsive mb-4 table-no-col-resize-wrap"><table class="table table-sm table-bordered align-middle mb-0 table-no-col-resize"><thead class="table-light"><tr><th>코드</th><th>설명</th><th>순서</th><th>사용</th><th class="text-end">자동가맹</th></tr></thead><tbody id="hqStBuiltTbody"></tbody></table></div>'
     + '<p class="small text-muted mb-1">DB 등록 주기 — 저장·삭제(본사·관리자만)</p>'
     + '<div class="table-responsive table-no-col-resize-wrap"><table class="table table-sm table-bordered align-middle mb-0 table-no-col-resize"><thead class="table-light"><tr><th>ID</th><th>코드</th><th>표시명</th><th>설명</th><th>순서</th><th>사용</th><th class="text-end" style="width:9rem">작업</th></tr></thead><tbody id="hqStExtraTbody"></tbody></table></div>'
     + '</div></div>'
@@ -726,7 +726,7 @@
       formSections: [
         {
           title: '노티 수령 정보',
-          notice: '노티미들웨어·PG(칠페이 등)가 본 시스템의 노티 수신 URL(<code>/api/open/pg-notify/…</code>)로 전송한 요청을 저장한 로그입니다. 목록의 채널 열은 수신 경로 정보 표시용입니다. 대상코드·채널은 신규 수신 건부터 채워집니다(V72). 노티 대상에 연결 총판이 있으면 동일 MID라도 그 총판 트리 안에서만 분기하며, 총판 기준통화와 본문 통화가 다르면 처리 열에 통화불일치(수신경로)로 격리됩니다. <strong>수신성격</strong>은 NOTI가 요청 시 <code>X-Icopay-Notify-Delivery: LIVE|RETRY</code> 또는 <code>X-Noti-Attempt</code>(1=라이브, 2+=재전송) 헤더를 보낼 때만 구분되며, 없으면 「미표시」입니다.',
+          notice: '노티미들웨어·PG(칠페이 등)가 본 시스템의 노티 수신 URL(<code>/api/open/pg-notify/…</code>)로 전송한 요청을 저장한 로그입니다. 목록의 채널 열은 수신 경로 정보 표시용입니다. 대상코드·채널은 신규 수신 건부터 채워집니다(V72). 노티 대상에 연결 총판이 있으면 동일 MID라도 그 총판 트리 안에서만 분기하며, 총판 기준통화와 본문 통화가 다르면 처리 열에 통화불일치(수신경로)로 격리됩니다. <strong>수신성격</strong>은 NOTI가 요청 시 <code>X-Icopay-Notify-Delivery: LIVE|RETRY</code> 또는 <code>X-Noti-Attempt</code>(1=라이브, 2+=재전송) 헤더를 보낼 때만 구분되며, 없으면 「미표시」입니다. 바인딩·매핑을 고친 뒤 과거 건을 결제내역에 붙이려면 본문 보기 모달의 <strong>결제내역 재반영</strong>을 사용하세요(원문이 잘린 건은 불가).',
           rows: [
             [{ type: 'customHtml', col: 12, html: '<div class="row g-2 align-items-end mb-2 ni-inbound-toolbar">' +
               '<div class="col-6 col-md-2"><label class="form-label small mb-0">수신일(부터)</label><input type="date" name="niSearchFrom" class="form-control form-control-sm" autocomplete="off"></div>' +
@@ -767,7 +767,9 @@
               '<button type="button" class="btn-close" id="hqNiDetailCloseX" aria-label="닫기"></button></div>' +
               '<div class="modal-body"><p class="small text-muted mb-2" id="hqNiDetailMeta"></p>' +
               '<textarea id="hqNiDetailBody" class="form-control font-monospace small" rows="16" readonly spellcheck="false"></textarea></div>' +
-              '<div class="modal-footer py-2 border-top"><button type="button" class="btn btn-secondary btn-sm" id="hqNiDetailCloseBtn">닫기</button></div>' +
+              '<div class="modal-footer py-2 border-top d-flex gap-2 justify-content-end flex-wrap">' +
+              '<button type="button" class="btn btn-primary btn-sm" id="hqNiReplayBtn">결제내역 재반영</button>' +
+              '<button type="button" class="btn btn-secondary btn-sm" id="hqNiDetailCloseBtn">닫기</button></div>' +
               '</div></div></div>' }]
           ]
         }
@@ -1416,7 +1418,7 @@
             [{ label: '결제수수료율(%)', type: 'text', name: 'payRate', col: 2, customOnly: true }, { label: '실패수수료(건)', type: 'text', name: 'failFee', col: 2, customOnly: true }, { label: '취소수수료(건)', type: 'text', name: 'cancelRate', col: 2, customOnly: true }],
             [{ label: '무효수수료(건)', type: 'text', name: 'voidFeePerTx', col: 2, customOnly: true, placeholder: '거래 21' }, { label: '수무효수수료(건)', type: 'text', name: 'manualVoidFeePerTx', col: 2, customOnly: true, placeholder: '거래 22' }, { label: '환불수수료(건)', type: 'text', name: 'refundRate', col: 2, customOnly: true }],
             [{ label: '월간이용료(월 1회·고정)', type: 'text', name: 'usageRate', col: 2, customOnly: true, placeholder: '통화코드 단위 금액' }, { label: '비고', type: 'text', name: 'commissionMemo', col: 2, customOnly: true }],
-            [{ label: '정산수수료(건)', type: 'text', name: 'feeSettlementPerTx', col: 2, customOnly: true }, { label: '송금수수료', type: 'text', name: 'remittanceTransferFee', col: 2, customOnly: true }, { label: 'USDT 송금수수료(USD)', type: 'text', name: 'usdtTransferFeeUsd', col: 2, customOnly: true }, { label: 'USDT수수료율(%)', type: 'text', name: 'feeUsdt', col: 2, customOnly: true }, { label: 'FX수수료율(%)', type: 'text', name: 'feeFx', col: 2, customOnly: true }, { label: '3DS 고정(건)', type: 'text', name: 'fee3dsRate', col: 2, customOnly: true }]
+            [{ label: '정산수수료(건)', type: 'text', name: 'feeSettlementPerTx', col: 2, customOnly: true }, { label: '송금수수료', type: 'text', name: 'remittanceTransferFee', col: 2, customOnly: true }, { label: 'USDT 송금수수료(건)', type: 'text', name: 'usdtTransferFeeUsd', col: 2, customOnly: true }, { label: 'USDT수수료율(%)', type: 'text', name: 'feeUsdt', col: 2, customOnly: true }, { label: 'FX수수료율(%)', type: 'text', name: 'feeFx', col: 2, customOnly: true }, { label: '3DS 고정(건)', type: 'text', name: 'fee3dsRate', col: 2, customOnly: true }]
           ]
         },
         {
@@ -1730,7 +1732,7 @@
             [{ label: '결제수수료율(%)', type: 'text', name: 'payRate', col: 2, customOnly: true }, { label: '실패수수료(건)', type: 'text', name: 'failFee', col: 2, customOnly: true }, { label: '취소수수료(건)', type: 'text', name: 'cancelRate', col: 2, customOnly: true }],
             [{ label: '무효수수료(건)', type: 'text', name: 'voidFeePerTx', col: 2, customOnly: true, placeholder: '거래 21' }, { label: '수무효수수료(건)', type: 'text', name: 'manualVoidFeePerTx', col: 2, customOnly: true, placeholder: '거래 22' }, { label: '환불수수료(건)', type: 'text', name: 'refundRate', col: 2, customOnly: true }],
             [{ label: '월간이용료(월 1회·고정)', type: 'text', name: 'usageRate', col: 2, customOnly: true, placeholder: '통화코드 단위 금액' }, { label: '비고', type: 'text', name: 'commissionMemo', col: 2, customOnly: true }],
-            [{ label: '정산수수료(건)', type: 'text', name: 'feeSettlementPerTx', col: 2, customOnly: true }, { label: '송금수수료', type: 'text', name: 'remittanceTransferFee', col: 2, customOnly: true }, { label: 'USDT 송금수수료(USD)', type: 'text', name: 'usdtTransferFeeUsd', col: 2, customOnly: true }, { label: 'USDT수수료율(%)', type: 'text', name: 'feeUsdt', col: 2, customOnly: true }, { label: 'FX수수료율(%)', type: 'text', name: 'feeFx', col: 2, customOnly: true }, { label: '3DS 고정(건)', type: 'text', name: 'fee3dsRate', col: 2, customOnly: true }]
+            [{ label: '정산수수료(건)', type: 'text', name: 'feeSettlementPerTx', col: 2, customOnly: true }, { label: '송금수수료', type: 'text', name: 'remittanceTransferFee', col: 2, customOnly: true }, { label: 'USDT 송금수수료(건)', type: 'text', name: 'usdtTransferFeeUsd', col: 2, customOnly: true }, { label: 'USDT수수료율(%)', type: 'text', name: 'feeUsdt', col: 2, customOnly: true }, { label: 'FX수수료율(%)', type: 'text', name: 'feeFx', col: 2, customOnly: true }, { label: '3DS 고정(건)', type: 'text', name: 'fee3dsRate', col: 2, customOnly: true }]
           ]
         },
         {
@@ -1977,7 +1979,7 @@
             [{ label: '결제수수료율(%)', type: 'text', name: 'payRate', col: 2, customOnly: true }, { label: '실패수수료(건)', type: 'text', name: 'failFee', col: 2, customOnly: true }, { label: '취소수수료(건)', type: 'text', name: 'cancelRate', col: 2, customOnly: true }],
             [{ label: '무효수수료(건)', type: 'text', name: 'voidFeePerTx', col: 2, customOnly: true, placeholder: '거래 21' }, { label: '수무효수수료(건)', type: 'text', name: 'manualVoidFeePerTx', col: 2, customOnly: true, placeholder: '거래 22' }, { label: '환불수수료(건)', type: 'text', name: 'refundRate', col: 2, customOnly: true }],
             [{ label: '월간이용료(월 1회·고정)', type: 'text', name: 'usageRate', col: 2, customOnly: true, placeholder: '통화코드 단위 금액' }, { label: '비고', type: 'text', name: 'commissionMemo', col: 2, customOnly: true }],
-            [{ label: '정산수수료(건)', type: 'text', name: 'feeSettlementPerTx', col: 2, customOnly: true }, { label: '송금수수료', type: 'text', name: 'remittanceTransferFee', col: 2, customOnly: true }, { label: 'USDT 송금수수료(USD)', type: 'text', name: 'usdtTransferFeeUsd', col: 2, customOnly: true }, { label: 'USDT수수료율(%)', type: 'text', name: 'feeUsdt', col: 2, customOnly: true }, { label: 'FX수수료율(%)', type: 'text', name: 'feeFx', col: 2, customOnly: true }, { label: '3DS 고정(건)', type: 'text', name: 'fee3dsRate', col: 2, customOnly: true }]
+            [{ label: '정산수수료(건)', type: 'text', name: 'feeSettlementPerTx', col: 2, customOnly: true }, { label: '송금수수료', type: 'text', name: 'remittanceTransferFee', col: 2, customOnly: true }, { label: 'USDT 송금수수료(건)', type: 'text', name: 'usdtTransferFeeUsd', col: 2, customOnly: true }, { label: 'USDT수수료율(%)', type: 'text', name: 'feeUsdt', col: 2, customOnly: true }, { label: 'FX수수료율(%)', type: 'text', name: 'feeFx', col: 2, customOnly: true }, { label: '3DS 고정(건)', type: 'text', name: 'fee3dsRate', col: 2, customOnly: true }]
           ]
         },
         {
@@ -2236,7 +2238,7 @@
       columns: [],
       emptyMessage: '조회된 데이터가 없습니다.',
       /** 결제관리: 한 번에 보기 기본 50 (통합 결제내역·분류·URL/챗봇 등 clone 동일) */
-      paginationSizeOptions: [50, 100, 200, 500, 1000],
+      paginationSizeOptions: [50, 100, 300, 400, 500],
       paginationDefaultSize: 50
     },
     /** ChillPay Transaction API — Search Payment Transaction (실시간, DB 비저장) */
@@ -2319,11 +2321,11 @@
     '/calc/chillPaySettlementList': {
       /** 상단 액션: [새로고침] 왼쪽에 순서 메뉴(내림차순·오름차순) */
       listSortDirAnchor: 'refresh',
-      paginationSizeOptions: [25, 50, 100, 200, 500, 1000],
-      paginationDefaultSize: 25,
+      paginationSizeOptions: [50, 100, 300, 400, 500],
+      paginationDefaultSize: 50,
       payListStatusBar: true,
       tableColumnGuide: true,
-      /** VIEW SETTING·조직항목설정 고정열: 번호만(나머지 표 열은 모두 토글 가능 — 수수료내역·통합내역과 동일 개념) */
+      /** VIEW SETTING·조직항목설정 고정열: 번호만. 통화 포함 그 외 열은 VIEW SETTING에서 켜고 끔 */
       columnGuideFixedKeys: ['rowNo'],
       searchFormClass: 'screen-search-form pay-mng-search-form',
       searchRows: [
@@ -2359,7 +2361,7 @@
         '칠페이 Transaction Services — Search Payment Transaction API(v1.0.6)로 조회합니다. ICOPAY 정산 실행·유통망 정산 테이블과 무관하며, 칠페이가 판단한 Settled·수수료·금액 등 원문을 봅니다.',
         '기본 정렬 키는 Settled, 기간은 PaymentDate(결제일)입니다. 내림차순·오름차순은 상단 [새로고침] 왼쪽 메뉴에서 고르며, 통합정산 화면에서는 [새로고침]으로 반영합니다. 기간을 비우면 최근 30일 결제일로 조회합니다. 거래일(TransactionDate)은 선택 필터입니다.',
         '자격: 배포설정 > API배포설정·tb_pg_agency(ChillPay)의 MerchantCode·ApiKey·MD5 Secret Key·샌드박스와 동일합니다.',
-        '그리드 열 노출은 상단 VIEW SETTING에서 조정합니다(저장 시 사용자별로 유지). 번호(No.)만 항상 표시되며, 승인번호·거래일자·Merchant·고객·주문번호·PaymentChannel·PaymentDate·결제금액·수수료·Discount·총금액·RefundAmount·통화·루트·상태·정산·ICOPAY·Description 등 나머지 열은 VIEW SETTING 항목으로 켜고 끌 수 있습니다. 본사설정 → 조직항목설정에서 화면「통합정산」 허용 열을 제한할 수 있습니다.'
+        '그리드 열 노출은 상단 VIEW SETTING에서 조정합니다(저장 시 사용자별로 유지). 번호(No.)만 항상 표시되며, 통화·승인번호·거래일자·Merchant·고객·주문번호·PaymentChannel·PaymentDate·결제금액·수수료·Discount·총금액·RefundAmount·루트·상태·정산·ICOPAY·Description 등은 VIEW SETTING에서 켜고 끌 수 있습니다. 본사설정 → 조직항목설정에서 화면「통합정산」 허용 열을 제한할 수 있습니다.'
       ],
       summary: ['건수'],
       buttons: [
@@ -2390,8 +2392,9 @@
       emptyMessage: '조회된 데이터가 없습니다.'
     },
     '/calc/calcList': {
-      paginationSizeOptions: [25, 50, 100, 200, 500, 1000],
-      paginationDefaultSize: 25,
+      listSortDirAnchor: 'refresh',
+      paginationSizeOptions: [50, 100, 300, 400, 500],
+      paginationDefaultSize: 50,
       searchFormClass: 'screen-search-form screen-distribution-search',
       tableScrollable: true,
       distributionThreeRowHeader: true,
@@ -2426,6 +2429,7 @@
       ],
       summary: ['Total', '정산금액', '수수료', '지급액'],
       buttons: [
+        { id: 'payListRefreshBtn', label: '새로고침', cls: 'btn-outline-secondary' },
         { id: 'printBtn', label: '인쇄설정', cls: 'btn-success' },
         { id: 'excelBtn', label: '엑셀다운로드', cls: 'btn-info' }
       ],
@@ -2439,6 +2443,7 @@
         { key: 'branchNm', label: '지사' },
         { key: 'agencyNm', label: '대리점' },
         { key: 'compId', label: '업체코드' },
+        { key: 'curType', label: '통화' },
         { key: 'aprvCnt', label: '승인건수' },
         { key: 'aprvAmt', label: '승인금액' },
         { key: 'aprvFeeCnt', label: '승인수수료건' },
@@ -2455,13 +2460,14 @@
       ]
     },
     '/calc/calcGmList': {
-      paginationSizeOptions: [25, 50, 100, 200, 500, 1000],
-      paginationDefaultSize: 25,
+      listSortDirAnchor: 'refresh',
+      paginationSizeOptions: [50, 100, 300, 400, 500],
+      paginationDefaultSize: 50,
       columnGuideFixedKeys: ['rowNo', 'compNm', 'compId', 'curType'],
       searchFormClass: 'pay-mng-search-form',
       payMngDenseGrid: true,
       noticeList: [
-        '한 행은 정산실행이 저장한 가맹점 정산 결과입니다. 금액·공제수수료(feeAmt)·보류액·정산금액은 실행 시 저장값이며, 수수료(건)·부가세·건당·정산건당·기타(%)·보유율은 해당 실행의 집계 구간(정산대상기간·당일 누적 마감시각) 거래를 수수료내역과 동일한 건별 규칙으로 보조 계산합니다. 신규 실행부터 period가 저장되며, 그 이전 행은 정산일 하루 창으로 재조회합니다.',
+        '한 행은 정산실행이 저장한 가맹점 정산 결과입니다. 금액·공제수수료(feeAmt)·보류액·정산금액은 실행 시 저장값이며, 수수료(건)·부가세·건당·정산건당·기타(%)·보유율은 해당 실행의 집계 구간(정산대상기간·당일 누적 마감시각) 거래를 수수료내역과 동일한 건별 규칙으로 보조 계산합니다. 신규 실행부터 period가 저장되며, 그 이전 행은 정산일 하루 창으로 재조회합니다. 정산대상기간: RT는 거래번호·승인번호·마감(초) 한 줄, 그 외는 yyyy-MM-dd HH:mm:ss ~ 동일 형식(일 단위는 00:00:00~23:59:59, 분·시 격자는 구간 시각).',
         '본사·총판·지사·대리점·영업점 등 유통 구간 수익·수수료 분배는 유통망정산내역에서 동일 정산 실행분을 조직 단위로 집계합니다.'
       ],
       searchRows: [
@@ -2476,7 +2482,11 @@
         ]
       ],
       summary: ['건수', '금액', '수수료금액', '수수료부가세', '보류금액', '정산금액'],
-      buttons: [{ id: 'searchBtn', label: '검색', cls: 'btn-primary' }, { id: 'excelBtn', label: '엑셀다운로드', cls: 'btn-info' }],
+      buttons: [
+        { id: 'payListRefreshBtn', label: '새로고침', cls: 'btn-outline-secondary' },
+        { id: 'searchBtn', label: '검색', cls: 'btn-primary' },
+        { id: 'excelBtn', label: '엑셀다운로드', cls: 'btn-info' }
+      ],
       headerGroups: [
         { label: '사업자번호', keys: ['bizNo'] },
         { label: 'PG승인', keys: ['curType', 'amount', 'payNo'] },
@@ -2526,9 +2536,10 @@
       ]
     },
     '/calc/compPointMngList': {
+      listSortDirAnchor: 'refresh',
       columnGuideFixedKeys: ['rowNo', 'compNm', 'compId', 'curType'],
-      paginationSizeOptions: [25, 50, 100, 200, 500, 1000],
-      paginationDefaultSize: 25,
+      paginationSizeOptions: [50, 100, 300, 400, 500],
+      paginationDefaultSize: 50,
       notice: '「환수금」은 정산이 반영된 뒤(승인 건이 settled 등으로 정산에 올라간 이후) 같은 거래가 환불·취소·무효·차지백 등으로 바뀔 때 정산에서 거둬야 할 금액이 자동으로 잡히는 내역입니다. 금액은 전산설정(환수금 수수료 포함) 및 수수료내역과 동일한 건별 산식입니다. 다음 정산 지급액에서는 환수금(FIFO)을 먼저 차감한 뒤 미수금(FIFO)을 차감합니다. 거래별 산출·검증은 「회수·거래기준」(/settlement/recallMng) 화면을 참고하세요.',
       searchRows: [
         [
@@ -2537,7 +2548,11 @@
         ]
       ],
       summary: ['건수', '환수금액', '잔여'],
-      buttons: [{ id: 'searchBtn', label: '검색', cls: 'btn-primary' }, { id: 'excelBtn', label: '엑셀다운로드', cls: 'btn-info' }],
+      buttons: [
+        { id: 'payListRefreshBtn', label: '새로고침', cls: 'btn-outline-secondary' },
+        { id: 'searchBtn', label: '검색', cls: 'btn-primary' },
+        { id: 'excelBtn', label: '엑셀다운로드', cls: 'btn-info' }
+      ],
       columns: [
         { key: '_chk', type: 'checkbox' },
         { key: 'rowNo', label: '번호' },
@@ -2557,8 +2572,9 @@
       ]
     },
     '/calc/feeList': {
-      paginationSizeOptions: [25, 50, 100, 200, 500, 1000],
-      paginationDefaultSize: 25,
+      listSortDirAnchor: 'refresh',
+      paginationSizeOptions: [50, 100, 300, 400, 500],
+      paginationDefaultSize: 50,
       searchFormClass: 'pay-mng-search-form',
       payMngDenseGrid: true,
       tableScrollable: true,
@@ -2581,7 +2597,11 @@
         ]
       ],
       summary: ['건수', '총수수료', '부가세', '지급예상합', '정산액합'],
-      buttons: [{ id: 'searchBtn', label: '검색', cls: 'btn-primary' }, { id: 'excelBtn', label: '엑셀다운로드', cls: 'btn-info' }],
+      buttons: [
+        { id: 'payListRefreshBtn', label: '새로고침', cls: 'btn-outline-secondary' },
+        { id: 'searchBtn', label: '검색', cls: 'btn-primary' },
+        { id: 'excelBtn', label: '엑셀다운로드', cls: 'btn-info' }
+      ],
       headerGroups: [
         { label: '거래', keys: ['trnDate', 'trnTime', 'routeNo', 'chillTransactionId', 'trnId'] },
         { label: '승인 / 결제수수료(%)', keys: ['txnFixedFeesSum', 'pctFeesSum'] },
@@ -2627,6 +2647,7 @@
       ]
     },
     '/calc/balanceList': {
+      listSortDirAnchor: 'refresh',
       searchRows: [
         [
           { label: '업체코드', type: 'text', name: 'searchCompId' },
@@ -2636,10 +2657,16 @@
         ]
       ],
       summary: ['건수', '충전내역합계'],
-      buttons: [{ id: 'searchBtn', label: '검색', cls: 'btn-primary' }, { id: 'excelBtn', label: '엑셀다운로드', cls: 'btn-info' }, { id: 'chargeBtn', label: '충전실행', cls: 'btn-success' }],
+      buttons: [
+        { id: 'payListRefreshBtn', label: '새로고침', cls: 'btn-outline-secondary' },
+        { id: 'searchBtn', label: '검색', cls: 'btn-primary' },
+        { id: 'excelBtn', label: '엑셀다운로드', cls: 'btn-info' },
+        { id: 'chargeBtn', label: '충전실행', cls: 'btn-success' }
+      ],
       columns: [{ key: '_chk', type: 'checkbox' }, { key: 'rowNo', label: '번호' }, { key: 'compNm', label: '업체명' }, { key: 'compId', label: '업체코드' }, { key: 'condition', label: '검색조건' }, { key: 'chargeType', label: '거래구분' }, { key: 'payMethod', label: '결제수단' }, { key: 'chargeNm', label: '거래명칭' }, { key: 'chargeAmt', label: '충전내역' }, { key: 'sumChargeAmt', label: '충전내역합계' }]
     },
     '/calc/unpaidMng': {
+      listSortDirAnchor: 'refresh',
       noticeList: [
         '「미수금」은 해당 정산 주기에 지급해야 할 금액이 부족하거나(정산금 부족), 차지백·과태료 등으로 정산 시 부족분이 생겼을 때 가맹점에 부과되는 금액입니다. 정산 실행 시 지급액에서 환수금(FIFO)을 먼저 차감한 뒤 미수금(FIFO)이 차감됩니다.',
         '「미수금등록」은 총본사·본사·총판 조직 단계의 기본 권한(미수금관리 화면: 수정 이상)으로 가능하며, 지사·대리점·영업점 등은 기본 조회만입니다. 필요 시 본사권한설정에서 조직·단계별로 「미수금관리」(/calc/unpaidMng) 권한을 MODIFY/DELETE 로 올려 수동 등록을 허용할 수 있습니다.',
@@ -2654,6 +2681,7 @@
       ],
       summary: ['건수', '잔액합계', '미수금합계'],
       buttons: [
+        { id: 'payListRefreshBtn', label: '새로고침', cls: 'btn-outline-secondary' },
         { id: 'searchBtn', label: '검색', cls: 'btn-primary' },
         { id: 'receivableRegBtn', label: '미수금등록', cls: 'btn-warning' },
         { id: 'excelBtn', label: '엑셀다운로드', cls: 'btn-info' }
@@ -2674,9 +2702,10 @@
       ]
     },
     '/calc/exCalcList': {
-      paginationSizeOptions: [25, 50, 100, 200, 500, 1000],
-      paginationDefaultSize: 25,
-      notice: '수동 실행: 기간·가맹을 지정해 실행합니다. 서버 스케줄은 정산구분 AUTO인 가맹만 실행합니다. D+N·W·WK는 정산일에 집계 구간을 합산해 정산 실행 1건, RT는 승인 노티마다 건당, T0는 승인 노티마다 당일 00:00~현재 전체 재집계(당일 1행), TM·TH는 격자 시각마다 당일 0시~현재 합산 1행 재집계, M5·M10·M30은 N분 격자마다 직전 N분 합산 1건, H1·H2·H4·H6·H8·H12는 격자 정각마다 직전 N시간 합산 1건입니다(app.settlement.autoRunEnabled·VPS 타임존 Asia/Seoul 권장). 목록의 정산주기·정산방법·루트는 가맹 정산설정·PG연동(MID·루트)에서 가져옵니다. 정산대상기간은 조회·실행에 사용한 기간(또는 정산일만)으로 표시됩니다.',
+      listSortDirAnchor: 'refresh',
+      paginationSizeOptions: [50, 100, 300, 400, 500],
+      paginationDefaultSize: 50,
+      notice: '「정산실행」버튼(수동): 기간·가맹을 지정해 실행합니다. 정산로직상 정산구분이 <strong>자동(AUTO)</strong>인 가맹은 수동 실행에서 제외되며, D+N·W+N·WK 등 달력 주기 가맹은 <strong>기간 종료일(정산일)</strong>이 해당 주기의 실행일일 때만 집계됩니다(미도래일에는 실행되지 않음). 정산마감시각·정산제외 영업일·D0 시간대는 자동 배치와 동일합니다. RT·T0·격자(M/H/TM/TH) 수동 가맹은 조회 기간 내 거래가 있을 때만 해당 기간으로 집계합니다. 서버 스케줄(자동)은 정산구분 AUTO 가맹만 대상입니다. 목록의 정산주기·정산방법·루트는 가맹 정산설정·PG연동에서 가져옵니다.',
       searchRows: [
         [
           { label: '정산기간', type: 'daterange', from: 'searchFromDate', to: 'searchToDate' },
@@ -2686,13 +2715,19 @@
         ]
       ],
       summary: [],
-      buttons: [{ id: 'searchBtn', label: '검색', cls: 'btn-primary' }, { id: 'exCalcBtn', label: '정산실행', cls: 'btn-warning' }, { id: 'excelBtn', label: '엑셀다운로드', cls: 'btn-info' }],
+      buttons: [
+        { id: 'payListRefreshBtn', label: '새로고침', cls: 'btn-outline-secondary' },
+        { id: 'searchBtn', label: '검색', cls: 'btn-primary' },
+        { id: 'exCalcBtn', label: '정산실행', cls: 'btn-warning' },
+        { id: 'excelBtn', label: '엑셀다운로드', cls: 'btn-info' }
+      ],
       columnGuideFixedKeys: ['rowNo', 'compNm', 'compId', 'curType'],
       columns: [{ key: '_chk', type: 'checkbox' }, { key: 'rowNo', label: '번호' }, { key: 'compNm', label: '업체명' }, { key: 'compId', label: '업체코드' }, { key: 'curType', label: '통화' }, { key: 'calcDt', label: '정산일자' }, { key: 'calcCycle', label: '정산주기' }, { key: 'calcMethod', label: '정산방법' }, { key: 'targetPeriodText', label: '정산대상기간', thClass: 'text-nowrap' }, { key: 'pgRootNo', label: '루트' }, { key: 'targetAmt', label: '정산대상금액' }, { key: 'totalFee', label: '공제수수료' }, { key: 'rollingReserveAmt', label: '롤링보류' }, { key: 'payAmount', label: '지급액' }, { key: 'status', label: '상태' }]
     },
     '/calc/settlementReport': {
-      paginationSizeOptions: [25, 50, 100, 200, 500, 1000],
-      paginationDefaultSize: 25,
+      listSortDirAnchor: 'refresh',
+      paginationSizeOptions: [50, 100, 300, 400, 500],
+      paginationDefaultSize: 50,
       noticeList: [
         '[리포트 형식] 가맹점 정산 리포트: 총본사·본사·총판 등이 소속 가맹에 보내는 정산 형식. 본사 지급 리포트: 총본사가 본사(REGIONAL)에 지급할 금액을 본사 단위로 합산(총본사·본사 로그인만 선택 가능).',
         '[하위 구분] 정산집계·정산실시·정산집계표·확정정산(리포트). 확정정산은 정산 실행이 CALCULATED(확정)이고 가맹점정산내역에 올라온 건만 목록으로 보이며, 행을 더블클릭하면 가맹 전달용 요약(거래 구간 집계 + 실행 금액)을 한 화면에서 봅니다.',
@@ -2714,7 +2749,11 @@
         ]
       ],
       summary: ['건수', '결제액', '환불', '순액', '정산금'],
-      buttons: [{ id: 'searchBtn', label: '검색', cls: 'btn-primary' }, { id: 'excelBtn', label: '엑셀다운로드', cls: 'btn-info' }],
+      buttons: [
+        { id: 'payListRefreshBtn', label: '새로고침', cls: 'btn-outline-secondary' },
+        { id: 'searchBtn', label: '검색', cls: 'btn-primary' },
+        { id: 'excelBtn', label: '엑셀다운로드', cls: 'btn-info' }
+      ],
       columns: [],
       columnsBySub: {
         AGG: [
@@ -2727,7 +2766,7 @@
         ],
         EXE: [
           { key: '_chk', type: 'checkbox' }, { key: 'rowNo', label: '번호' },
-          { key: 'calcDt', label: '정산일' }, { key: 'compNm', label: '가맹점명' }, { key: 'compId', label: '가맹코드' },
+          { key: 'calcDt', label: '정산일' }, { key: 'compNm', label: '가맹점명' }, { key: 'compId', label: '가맹코드' }, { key: 'curType', label: '통화' },
           { key: 'approveAmt', label: '승인합' }, { key: 'cancelAmt', label: '취소합' }, { key: 'netPay', label: '순액' },
           { key: 'depositAmt', label: '예치(10%)' }, { key: 'processingFeeTotal', label: 'Processing(5.6%)' },
           { key: 'payAmount', label: '지급액(배치)' }, { key: 'totalFee', label: '공제수수료' }, { key: 'rollingReserveAmt', label: '롤링보류' },
@@ -2735,14 +2774,14 @@
         ],
         SUM: [
           { key: '_chk', type: 'checkbox' }, { key: 'rowNo', label: '번호' },
-          { key: 'periodFrom', label: '기간FROM' }, { key: 'periodTo', label: '기간TO' },
+          { key: 'periodFrom', label: '기간FROM' }, { key: 'periodTo', label: '기간TO' }, { key: 'curType', label: '통화' },
           { key: 'grossPay', label: '결제액합' }, { key: 'refundAmt', label: '환불합' }, { key: 'netPay', label: '순결제합' },
           { key: 'depositAmt', label: '예치합' }, { key: 'processingFeeTotal', label: 'Processing합' }, { key: 'txnFeeTotal', label: '건당수수료합' },
           { key: 'settlementAmt', label: '정산금합(추정)' }, { key: 'approveCnt', label: '승인건' }, { key: 'refundCnt', label: '환불건' }, { key: 'rowCount', label: '집계행수' }
         ],
         RST: [
           { key: '_chk', type: 'checkbox' }, { key: 'rowNo', label: '번호' },
-          { key: 'calcDt', label: '정산일시' }, { key: 'compNm', label: '가맹점명' }, { key: 'compId', label: '가맹코드' },
+          { key: 'calcDt', label: '정산일시' }, { key: 'compNm', label: '가맹점명' }, { key: 'compId', label: '가맹코드' }, { key: 'curType', label: '통화' },
           { key: 'targetPeriodText', label: '정산대상기간' }, { key: 'calcCycle', label: '정산주기' },
           { key: 'approveAmt', label: '승인(매출)합' }, { key: 'cancelAmt', label: '취소합' }, { key: 'netPay', label: '순액' },
           { key: 'feeAmt', label: '공제수수료' }, { key: 'holdAmt', label: '롤링보류' }, { key: 'payAmount', label: '지급액' },
@@ -2760,14 +2799,14 @@
         ],
         EXE: [
           { key: '_chk', type: 'checkbox' }, { key: 'rowNo', label: '번호' },
-          { key: 'calcDt', label: '정산일' }, { key: 'regionalCompId', label: '본사코드' }, { key: 'regionalNm', label: '본사명' },
+          { key: 'calcDt', label: '정산일' }, { key: 'regionalCompId', label: '본사코드' }, { key: 'regionalNm', label: '본사명' }, { key: 'curType', label: '통화' },
           { key: 'batchRunCnt', label: '배치건수' }, { key: 'approveAmt', label: '승인합' }, { key: 'cancelAmt', label: '취소합' }, { key: 'netPay', label: '순액' },
           { key: 'payAmount', label: '지급액합' }, { key: 'totalFee', label: '공제수수료합' }, { key: 'rollingReserveAmt', label: '롤링보류합' },
           { key: 'settlementDueDt', label: '지급예정일(+7영업일)' }, { key: 'settledYn', label: '완료' }, { key: 'status', label: '상태' }
         ],
         SUM: [
           { key: '_chk', type: 'checkbox' }, { key: 'rowNo', label: '번호' },
-          { key: 'periodFrom', label: '기간FROM' }, { key: 'periodTo', label: '기간TO' },
+          { key: 'periodFrom', label: '기간FROM' }, { key: 'periodTo', label: '기간TO' }, { key: 'curType', label: '통화' },
           { key: 'grossPay', label: '결제액합' }, { key: 'refundAmt', label: '환불합' }, { key: 'netPay', label: '순결제합' },
           { key: 'depositAmt', label: '예치합' }, { key: 'processingFeeTotal', label: 'Processing합' }, { key: 'txnFeeTotal', label: '건당수수료합' },
           { key: 'settlementAmt', label: '지급액합(추정)' }, { key: 'approveCnt', label: '승인건' }, { key: 'refundCnt', label: '환불건' }, { key: 'rowCount', label: '집계행수' }
@@ -2776,9 +2815,10 @@
       emptyMessage: '조회된 데이터가 없습니다.'
     },
     '/calc/collateralList': {
-      paginationSizeOptions: [25, 50, 100, 200, 500, 1000],
-      paginationDefaultSize: 25,
-      columnGuideFixedKeys: ['rowNo', 'compNm', 'compId'],
+      listSortDirAnchor: 'refresh',
+      paginationSizeOptions: [50, 100, 300, 400, 500],
+      paginationDefaultSize: 50,
+      columnGuideFixedKeys: ['rowNo', 'compNm', 'compId', 'curType'],
       viewSettingDefaultSelectedKeys: [
         'trnId', 'reserveAmt', 'rollingPct', 'holdBusinessDays', 'holdStartDt',
         'releaseBizDtTime', 'remainingBizDays', 'routeNo', 'statusNm', 'releasedAt', 'settlementNote'
@@ -2801,12 +2841,17 @@
         ]
       ],
       summary: ['건수', '담보금액'],
-      buttons: [{ id: 'searchBtn', label: '검색', cls: 'btn-primary' }, { id: 'excelBtn', label: '엑셀다운로드', cls: 'btn-info' }],
+      buttons: [
+        { id: 'payListRefreshBtn', label: '새로고침', cls: 'btn-outline-secondary' },
+        { id: 'searchBtn', label: '검색', cls: 'btn-primary' },
+        { id: 'excelBtn', label: '엑셀다운로드', cls: 'btn-info' }
+      ],
       columns: [
         { key: '_chk', type: 'checkbox' },
         { key: 'rowNo', label: '번호' },
         { key: 'compNm', label: '업체명' },
         { key: 'compId', label: '업체코드' },
+        { key: 'curType', label: '통화' },
         { key: 'trnId', label: '거래ID' },
         { key: 'reserveAmt', label: '담보금액' },
         { key: 'rollingPct', label: '적용비율(%)' },
@@ -3003,7 +3048,7 @@
             [{ label: '결제수수료율(%)', type: 'text', name: 'payRate', col: 2, customOnly: true }, { label: '실패수수료(건)', type: 'text', name: 'failFee', col: 2, customOnly: true }, { label: '취소수수료(건)', type: 'text', name: 'cancelRate', col: 2, customOnly: true }],
             [{ label: '무효수수료(건)', type: 'text', name: 'voidFeePerTx', col: 2, customOnly: true, placeholder: '거래 21' }, { label: '수무효수수료(건)', type: 'text', name: 'manualVoidFeePerTx', col: 2, customOnly: true, placeholder: '거래 22' }, { label: '환불수수료(건)', type: 'text', name: 'refundRate', col: 2, customOnly: true }],
             [{ label: '월간이용료(월 1회·고정)', type: 'text', name: 'usageRate', col: 2, customOnly: true, placeholder: '통화코드 단위 금액' }, { label: '비고', type: 'text', name: 'commissionMemo', col: 2, customOnly: true }],
-            [{ label: '정산수수료(건)', type: 'text', name: 'feeSettlementPerTx', col: 2, customOnly: true }, { label: '송금수수료', type: 'text', name: 'remittanceTransferFee', col: 2, customOnly: true }, { label: 'USDT 송금수수료(USD)', type: 'text', name: 'usdtTransferFeeUsd', col: 2, customOnly: true }, { label: 'USDT수수료율(%)', type: 'text', name: 'feeUsdt', col: 2, customOnly: true }, { label: 'FX수수료율(%)', type: 'text', name: 'feeFx', col: 2, customOnly: true }, { label: '3DS 고정(건)', type: 'text', name: 'fee3dsRate', col: 2, customOnly: true }]
+            [{ label: '정산수수료(건)', type: 'text', name: 'feeSettlementPerTx', col: 2, customOnly: true }, { label: '송금수수료', type: 'text', name: 'remittanceTransferFee', col: 2, customOnly: true }, { label: 'USDT 송금수수료(건)', type: 'text', name: 'usdtTransferFeeUsd', col: 2, customOnly: true }, { label: 'USDT수수료율(%)', type: 'text', name: 'feeUsdt', col: 2, customOnly: true }, { label: 'FX수수료율(%)', type: 'text', name: 'feeFx', col: 2, customOnly: true }, { label: '3DS 고정(건)', type: 'text', name: 'fee3dsRate', col: 2, customOnly: true }]
           ]
         },
         {
@@ -3081,34 +3126,55 @@
       emptyMessage: '조회된 데이터가 없습니다.'
     },
     '/settlement/distributionList': {
+      listSortDirAnchor: 'refresh',
       searchRows: [[{ label: '정산일자', type: 'daterange', from: 'searchFromDate', to: 'searchToDate' }, { type: 'quickdate' }, { type: 'searchBtn' }]],
       summary: ['건수', '정산금액', '수수료', '지급액'],
-      buttons: [{ id: 'searchBtn', label: '검색', cls: 'btn-primary' }, { id: 'excelBtn', label: '엑셀다운로드', cls: 'btn-info' }],
+      buttons: [
+        { id: 'payListRefreshBtn', label: '새로고침', cls: 'btn-outline-secondary' },
+        { id: 'searchBtn', label: '검색', cls: 'btn-primary' },
+        { id: 'excelBtn', label: '엑셀다운로드', cls: 'btn-info' }
+      ],
       columns: [],
       emptyMessage: '조회된 데이터가 없습니다.'
     },
     '/settlement/franchiseList': {
+      listSortDirAnchor: 'refresh',
       searchRows: [[{ label: '정산일자', type: 'daterange', from: 'searchFromDate', to: 'searchToDate' }, { type: 'quickdate' }, { type: 'searchBtn' }]],
       summary: ['건수', '금액', '수수료금액', '수수료부가세', '보류금액', '정산금액'],
-      buttons: [{ id: 'searchBtn', label: '검색', cls: 'btn-primary' }, { id: 'excelBtn', label: '엑셀다운로드', cls: 'btn-info' }],
+      buttons: [
+        { id: 'payListRefreshBtn', label: '새로고침', cls: 'btn-outline-secondary' },
+        { id: 'searchBtn', label: '검색', cls: 'btn-primary' },
+        { id: 'excelBtn', label: '엑셀다운로드', cls: 'btn-info' }
+      ],
       columns: [],
       emptyMessage: '조회된 데이터가 없습니다.'
     },
     '/settlement/recallMng': {
+      listSortDirAnchor: 'refresh',
       searchRows: [[{ label: '조회일자', type: 'daterange', from: 'searchFromDate', to: 'searchToDate' }, { type: 'quickdate' }, { type: 'searchBtn' }]],
       summary: ['건수'],
-      buttons: [{ id: 'searchBtn', label: '검색', cls: 'btn-primary' }, { id: 'excelBtn', label: '엑셀다운로드', cls: 'btn-info' }],
+      buttons: [
+        { id: 'payListRefreshBtn', label: '새로고침', cls: 'btn-outline-secondary' },
+        { id: 'searchBtn', label: '검색', cls: 'btn-primary' },
+        { id: 'excelBtn', label: '엑셀다운로드', cls: 'btn-info' }
+      ],
       columnGuideFixedKeys: ['rowNo', 'compNm', 'compId', 'curType'],
       columns: [{ key: '_chk', type: 'checkbox' }, { key: 'rowNo', label: '번호' }, { key: 'compNm', label: '업체명' }, { key: 'compId', label: '업체코드' }, { key: 'curType', label: '통화' }, { key: 'calcDt', label: '정산일자' }, { key: 'settleAmt', label: '정산잔액' }, { key: 'recallAmt', label: '미수금' }, { key: 'deductAmt', label: '미수금 차감' }],
       emptyMessage: '조회된 데이터가 없습니다.'
     },
     '/settlement/execute': {
-      paginationSizeOptions: [25, 50, 100, 200, 500, 1000],
-      paginationDefaultSize: 25,
+      listSortDirAnchor: 'refresh',
+      paginationSizeOptions: [50, 100, 300, 400, 500],
+      paginationDefaultSize: 50,
       searchRows: [[{ label: '정산대상일', type: 'daterange', from: 'searchFromDate', to: 'searchToDate' }, { type: 'searchBtn' }]],
       summary: [],
-      buttons: [{ id: 'searchBtn', label: '조회', cls: 'btn-primary' }, { id: 'executeBtn', label: '정산실행', cls: 'btn-danger' }],
-      columns: [{ key: '_chk', type: 'checkbox' }, { key: 'rowNo', label: '번호' }, { key: 'compNm', label: '업체명' }, { key: 'compId', label: '업체코드' }, { key: 'calcDt', label: '정산일' }, { key: 'calcCycle', label: '정산주기' }, { key: 'calcMethod', label: '정산방법' }, { key: 'targetPeriodText', label: '정산대상기간', thClass: 'text-nowrap' }, { key: 'pgRootNo', label: '루트' }, { key: 'targetAmt', label: '정산대상금액' }, { key: 'totalFee', label: '공제수수료' }, { key: 'rollingReserveAmt', label: '롤링보류' }, { key: 'payAmount', label: '지급액' }, { key: 'status', label: '상태' }],
+      buttons: [
+        { id: 'payListRefreshBtn', label: '새로고침', cls: 'btn-outline-secondary' },
+        { id: 'searchBtn', label: '조회', cls: 'btn-primary' },
+        { id: 'executeBtn', label: '정산실행', cls: 'btn-danger' }
+      ],
+      columnGuideFixedKeys: ['rowNo', 'compNm', 'compId', 'curType'],
+      columns: [{ key: '_chk', type: 'checkbox' }, { key: 'rowNo', label: '번호' }, { key: 'compNm', label: '업체명' }, { key: 'compId', label: '업체코드' }, { key: 'curType', label: '통화' }, { key: 'calcDt', label: '정산일' }, { key: 'calcCycle', label: '정산주기' }, { key: 'calcMethod', label: '정산방법' }, { key: 'targetPeriodText', label: '정산대상기간', thClass: 'text-nowrap' }, { key: 'pgRootNo', label: '루트' }, { key: 'targetAmt', label: '정산대상금액' }, { key: 'totalFee', label: '공제수수료' }, { key: 'rollingReserveAmt', label: '롤링보류' }, { key: 'payAmount', label: '지급액' }, { key: 'status', label: '상태' }],
       emptyMessage: '조회된 데이터가 없습니다.'
     },
     '/notify/payUrlMng': {
@@ -3296,6 +3362,8 @@
         if (gm.paginationSizeOptions) fr.paginationSizeOptions = gm.paginationSizeOptions.slice();
         if (gm.paginationDefaultSize != null) fr.paginationDefaultSize = gm.paginationDefaultSize;
         if (gm.noticeList && gm.noticeList.length) fr.noticeList = gm.noticeList.slice();
+        if (gm.buttons) fr.buttons = JSON.parse(JSON.stringify(gm.buttons));
+        if (gm.listSortDirAnchor) fr.listSortDirAnchor = gm.listSortDirAnchor;
       }
       var cl = MENU_SCREENS['/calc/calcList'];
       var dist = MENU_SCREENS['/settlement/distributionList'];
@@ -3308,6 +3376,7 @@
         dist.searchFormClass = cl.searchFormClass || dist.searchFormClass;
         dist.tableScrollable = cl.tableScrollable;
         dist.buttons = cl.buttons ? JSON.parse(JSON.stringify(cl.buttons)) : dist.buttons;
+        if (cl.listSortDirAnchor) dist.listSortDirAnchor = cl.listSortDirAnchor;
         if (cl.paginationSizeOptions) dist.paginationSizeOptions = cl.paginationSizeOptions.slice();
         if (cl.paginationDefaultSize != null) dist.paginationDefaultSize = cl.paginationDefaultSize;
       }
@@ -3327,6 +3396,8 @@
         rcs.searchRows = JSON.parse(JSON.stringify(rc.searchRows || []));
         rcs.summary = (rc.summary || []).slice();
         if (rc.notice) rcs.notice = rc.notice;
+        if (rc.buttons) rcs.buttons = JSON.parse(JSON.stringify(rc.buttons));
+        if (rc.listSortDirAnchor) rcs.listSortDirAnchor = rc.listSortDirAnchor;
         if (rc.paginationSizeOptions) rcs.paginationSizeOptions = rc.paginationSizeOptions.slice();
         if (rc.paginationDefaultSize != null) rcs.paginationDefaultSize = rc.paginationDefaultSize;
       }
@@ -3360,6 +3431,7 @@
         phs.payMngDenseGrid = !!ph.payMngDenseGrid;
         if (ph.paginationSizeOptions) phs.paginationSizeOptions = ph.paginationSizeOptions.slice();
         if (ph.paginationDefaultSize != null) phs.paginationDefaultSize = ph.paginationDefaultSize;
+        if (ph.listSortDirAnchor) phs.listSortDirAnchor = ph.listSortDirAnchor;
       }
       var phl = MENU_SCREENS['/pay/payHoldList'];
       var hl = MENU_SCREENS['/settlement/holdList'];
@@ -3376,6 +3448,7 @@
         if (src.paginationDefaultSize != null) dst.paginationDefaultSize = src.paginationDefaultSize;
         if (src.columnGuideFixedKeys) dst.columnGuideFixedKeys = src.columnGuideFixedKeys.slice();
         if (src.viewSettingDefaultSelectedKeys) dst.viewSettingDefaultSelectedKeys = src.viewSettingDefaultSelectedKeys.slice();
+        if (src.listSortDirAnchor) dst.listSortDirAnchor = src.listSortDirAnchor;
       }
       syncPayoutHoldScreenFromGm(ph, phl);
       syncPayoutHoldScreenFromGm(ph, hl);
@@ -3408,7 +3481,7 @@
     return '<div class="search-cell' + (hasLabel ? ' search-cell--with-label' : '') + '">' + content + '</div>';
   }
 
-  /** 목록 API용 searchOrderDir — 기본 내림차순; 숨김값 + 내림차순·오름차순 각각 버튼 메뉴(결제관리는 새로고침 왼쪽·클릭 즉시 조회는 app.js) */
+  /** 목록 API용 searchOrderDir — 기본 내림차순; 액션줄에서는 [새로고침][내림차순][오름차순] 순(결제·정산 목록, app.js 클릭 즉시 조회) */
   function buildListSortDirSelectHtml(tabId) {
     var tid = tabId || '';
     var sid = tid ? ('searchOrderDir_' + tid.replace(/[^a-zA-Z0-9_-]/g, '_')) : 'searchOrderDir';
@@ -3944,9 +4017,13 @@
         if (toolbarSortHtml && !sortPlaced) {
           var bid0 = String(b && b.id || '');
           if (anchorSort === 'refresh' && bid0 === 'payListRefreshBtn') {
+            var bidRf = (b && b._viewSettingHello) ? ('viewSettingHelloBtn_' + tid) : (b.id || '');
+            buttonsHtml += '<button type="button" class="btn ' + (b.cls || 'btn-secondary') + ' btn-sm" id="' + bidRf + '">' + (b.label || '') + '</button>';
             buttonsHtml += toolbarSortHtml;
             sortPlaced = true;
-          } else if (anchorSort !== 'refresh' && bid0 === 'searchBtn') {
+            return;
+          }
+          if (anchorSort !== 'refresh' && bid0 === 'searchBtn') {
             buttonsHtml += toolbarSortHtml;
             sortPlaced = true;
           }
@@ -3986,6 +4063,7 @@
       '<th rowspan="3" data-key="branchNm" class="text-nowrap">지사</th>' +
       '<th rowspan="3" data-key="agencyNm" class="text-nowrap">대리점</th>' +
       '<th rowspan="3" data-key="compId" class="text-nowrap">업체코드</th>' +
+      '<th rowspan="3" data-key="curType" class="text-nowrap text-center">통화</th>' +
       '<th colspan="6" class="dist-th-group text-center">승인</th>' +
       '<th colspan="6" class="dist-th-group text-center">취소</th>' +
       '<th rowspan="3" data-key="settleAmt" class="text-nowrap">정산금액</th>' +

@@ -1,10 +1,12 @@
 package com.pg.service;
 
 import com.pg.api.dto.PageResult;
+import com.pg.entity.CommissionPolicy;
 import com.pg.entity.OrgLevel;
 import com.pg.entity.OrgUnit;
 import com.pg.entity.PgTrnsctn;
 import com.pg.entity.RollingReserve;
+import com.pg.repository.CommissionPolicyRepository;
 import com.pg.repository.OrgUnitRepository;
 import com.pg.repository.PgTrnsctnRepository;
 import com.pg.repository.RollingReserveRepository;
@@ -29,13 +31,27 @@ public class CollateralLedgerService {
     private final RollingReserveRepository rollingReserveRepository;
     private final OrgUnitRepository orgUnitRepository;
     private final PgTrnsctnRepository pgTrnsctnRepository;
+    private final CommissionPolicyRepository commissionPolicyRepository;
 
     public CollateralLedgerService(RollingReserveRepository rollingReserveRepository,
                                    OrgUnitRepository orgUnitRepository,
-                                   PgTrnsctnRepository pgTrnsctnRepository) {
+                                   PgTrnsctnRepository pgTrnsctnRepository,
+                                   CommissionPolicyRepository commissionPolicyRepository) {
         this.rollingReserveRepository = rollingReserveRepository;
         this.orgUnitRepository = orgUnitRepository;
         this.pgTrnsctnRepository = pgTrnsctnRepository;
+        this.commissionPolicyRepository = commissionPolicyRepository;
+    }
+
+    private String resolveStatementCurrency(String compId) {
+        if (compId == null || compId.isBlank()) {
+            return "KRW";
+        }
+        return commissionPolicyRepository.findByScope(compId.trim())
+                .map(CommissionPolicy::getCurrencyCode)
+                .filter(c -> c != null && !c.isBlank())
+                .map(c -> c.trim().toUpperCase(Locale.ROOT))
+                .orElse("KRW");
     }
 
     /**
@@ -176,10 +192,13 @@ public class CollateralLedgerService {
             }
         }
         Map<String, String> routeByTrn = new HashMap<>();
+        Map<String, String> curByTrn = new HashMap<>();
         if (!trnIds.isEmpty()) {
             for (PgTrnsctn t : pgTrnsctnRepository.findAllById(trnIds)) {
                 String rid = t.getTrnId();
                 routeByTrn.put(rid, t.getRouteNo() != null ? t.getRouteNo() : "");
+                String cty = t.getCurType();
+                curByTrn.put(rid, cty != null && !cty.isBlank() ? cty.trim().toUpperCase(Locale.ROOT) : "");
             }
         }
 
@@ -194,6 +213,11 @@ public class CollateralLedgerService {
             String tid = r.getTrnId() != null ? r.getTrnId().trim() : "";
             m.put("trnId", tid);
             m.put("routeNo", tid.isEmpty() ? "" : routeByTrn.getOrDefault(tid, ""));
+            String curCell = tid.isEmpty() ? "" : curByTrn.getOrDefault(tid, "");
+            if (curCell == null || curCell.isBlank()) {
+                curCell = resolveStatementCurrency(mid);
+            }
+            m.put("curType", curCell);
             m.put("reserveAmt", r.getReserveAmt() != null ? r.getReserveAmt().longValue() : 0L);
             m.put("rollingPct", r.getRollingPct() != null ? r.getRollingPct().stripTrailingZeros().toPlainString() : "");
             m.put("holdBusinessDays", r.getHoldBusinessDays() != null ? r.getHoldBusinessDays() : "");

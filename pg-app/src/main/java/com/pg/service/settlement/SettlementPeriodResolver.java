@@ -45,6 +45,7 @@ public final class SettlementPeriodResolver {
             case "6D" -> "H6";
             case "8D" -> "H8";
             case "12D" -> "H12";
+            case "REALTIME" -> "RT";
             default -> u;
         };
     }

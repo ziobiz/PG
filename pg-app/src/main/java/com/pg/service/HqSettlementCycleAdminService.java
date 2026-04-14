@@ -85,7 +85,10 @@ public class HqSettlementCycleAdminService {
         this.settlementSettingRepository = settlementSettingRepository;
     }
 
-    /** 셀렉트 박스용 — 사용(Y)만, 빈 값·NONE 포함 */
+    /**
+     * 셀렉트 박스용 — 사용(Y)만, 빈 값·NONE 포함.
+     * 옵션 {@code v}·{@code t}는 비어 있지 않으면 정규화된 <strong>정산주기 코드</strong>로 통일한다(가맹·검색 공통).
+     */
     public List<Map<String, Object>> listActiveSelectOptions() {
         return listMergedDefinitions().stream()
                 .filter(m -> "Y".equals(String.valueOf(m.getOrDefault("activeYn", "Y"))))
@@ -93,8 +96,18 @@ public class HqSettlementCycleAdminService {
                         .thenComparing(m -> String.valueOf(m.get("cycleCode"))))
                 .map(m -> {
                     Map<String, Object> o = new LinkedHashMap<>();
-                    o.put("v", m.get("cycleCode"));
-                    o.put("t", m.get("displayLabel"));
+                    Object codeObj = m.get("cycleCode");
+                    String codeRaw = codeObj != null ? String.valueOf(codeObj).trim() : "";
+                    if (!StringUtils.hasText(codeRaw)) {
+                        o.put("v", codeObj);
+                        Object dl = m.get("displayLabel");
+                        o.put("t", dl != null ? String.valueOf(dl) : "선택");
+                    } else {
+                        String norm = SettlementPeriodResolver.normalizeCalcCycle(codeRaw);
+                        String key = StringUtils.hasText(norm) ? norm : codeRaw;
+                        o.put("v", key);
+                        o.put("t", key);
+                    }
                     o.put("d", m.get("description"));
                     return o;
                 })
@@ -104,29 +117,27 @@ public class HqSettlementCycleAdminService {
     /**
      * 총판별 허용 주기 설정 등 관리용 — 병합 정의 전체(미사용 N 포함).
      * <strong>순서</strong>는 {@link #listMergedDefinitions()}와 동일(정산주기관리 화면의 표준주기·DB등록 표 행 순서).
-     * <strong>표시(t)</strong>는 코드 + 표시명(표의 코드·표시 열과 동일한 정보)이며 비활성 시 접미 (미사용).
-     * 가맹 셀렉트용 {@link #listActiveSelectOptions()}는 사용(Y)만·sortOrder 정렬을 유지한다.
+     * <strong>표시(t)</strong>는 정산주기 코드(정규화)이며, 비활성 시 접미 {@code (미사용)}.
+     * 가맹 셀렉트용 {@link #listActiveSelectOptions()}와 동일하게 코드명으로 통일한다.
      */
     public List<Map<String, Object>> listCatalogSelectOptions() {
         return listMergedDefinitions().stream()
                 .map(m -> {
                     Map<String, Object> o = new LinkedHashMap<>();
-                    o.put("v", m.get("cycleCode"));
                     String code = m.get("cycleCode") != null ? String.valueOf(m.get("cycleCode")).trim() : "";
-                    String label = m.get("displayLabel") != null ? String.valueOf(m.get("displayLabel")).trim() : "";
-                    if (label.isEmpty()) {
-                        label = code;
-                    }
-                    if (StringUtils.hasText(code) && !"Y".equals(String.valueOf(m.getOrDefault("activeYn", "Y")))) {
-                        label = label + " (미사용)";
-                    }
                     String t;
                     if (!StringUtils.hasText(code)) {
-                        t = label;
-                    } else if (label.equalsIgnoreCase(code)) {
-                        t = code;
+                        o.put("v", m.get("cycleCode"));
+                        String label = m.get("displayLabel") != null ? String.valueOf(m.get("displayLabel")).trim() : "";
+                        t = label.isEmpty() ? "선택" : label;
                     } else {
-                        t = code + " — " + label;
+                        String norm = SettlementPeriodResolver.normalizeCalcCycle(code);
+                        String key = StringUtils.hasText(norm) ? norm : code;
+                        o.put("v", key);
+                        t = key;
+                        if (!"Y".equals(String.valueOf(m.getOrDefault("activeYn", "Y")))) {
+                            t = t + " (미사용)";
+                        }
                     }
                     o.put("t", t);
                     o.put("d", m.get("description"));

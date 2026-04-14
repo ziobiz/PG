@@ -28,6 +28,7 @@ import com.pg.repository.ChargebackFeePolicyRepository;
 import com.pg.repository.DistributionFeeConfigRepository;
 import com.pg.repository.UserRepository;
 import com.pg.entity.OrgUnitChangeLog;
+import com.pg.service.settlement.SettlementCycleTiming;
 import com.pg.service.settlement.SettlementPeriodResolver;
 import com.pg.util.CommissionTierJsonHelper;
 import com.pg.util.PercentDecimalHelper;
@@ -1975,6 +1976,19 @@ public class CompService {
         } else {
             applyLegacySettlementFields(ss, transferType);
         }
+        /* RT·T0 실시간 주기는 노티 직후 자동정산(calcProcType=AUTO) 전제 — 등록 폼 기본값 MANUAL이면 실시간이 동작하지 않음 */
+        if (childLevel == OrgLevel.MERCHANT) {
+            String normRt = SettlementPeriodResolver.normalizeCalcCycle(ss.getCalcCycle());
+            if (SettlementCycleTiming.isRealtimeCode(normRt)) {
+                String proc = ss.getCalcProcType() != null ? ss.getCalcProcType().trim() : "";
+                if (proc.isEmpty() || "MANUAL".equalsIgnoreCase(proc)) {
+                    ss.setCalcProcType("AUTO");
+                    if (ss.getTransferType() == null || ss.getTransferType().isBlank()) {
+                        ss.setTransferType("MANUAL");
+                    }
+                }
+            }
+        }
         if (withdrawRestrictType != null && !withdrawRestrictType.isBlank()) {
             ss.setWithdrawRestrictType(withdrawRestrictType.trim());
         }
@@ -1991,13 +2005,19 @@ public class CompService {
             }
             if (holdDays != null) ss.setHoldDays(holdDays);
         }
-        if (parseTime(calcCloseTime) != null) ss.setCalcCloseTime(parseTime(calcCloseTime));
+        if (childLevel == OrgLevel.MERCHANT
+                && SettlementCycleTiming.isRtPerTransactionCode(SettlementPeriodResolver.normalizeCalcCycle(ss.getCalcCycle()))) {
+            ss.setCalcCloseTime(null);
+            ss.setCalcStartTime(null);
+        } else {
+            if (parseTime(calcCloseTime) != null) ss.setCalcCloseTime(parseTime(calcCloseTime));
+            if (parseTime(calcStartTime) != null) ss.setCalcStartTime(parseTime(calcStartTime));
+        }
         if (transferCycleDays != null) ss.setTransferCycleDays(transferCycleDays);
         if (autoTransferMin != null && !autoTransferMin.isEmpty()) try { ss.setAutoTransferMin(new BigDecimal(autoTransferMin.trim())); } catch (Exception ignored) {}
         if (payHoldYn != null && !payHoldYn.isEmpty()) ss.setPayHoldYn(payHoldYn);
         if (calcExcludeYn != null && !calcExcludeYn.isEmpty()) ss.setCalcExcludeYn(calcExcludeYn);
         if (calcExcludeTarget != null && !calcExcludeTarget.isEmpty()) ss.setCalcExcludeTarget(calcExcludeTarget);
-        if (parseTime(calcStartTime) != null) ss.setCalcStartTime(parseTime(calcStartTime));
         if (calcMinAmt != null && !calcMinAmt.isEmpty()) try { ss.setCalcMinAmt(new BigDecimal(calcMinAmt.trim())); } catch (Exception ignored) {}
         if (parseTime(transferExecTime) != null) ss.setTransferExecTime(parseTime(transferExecTime));
         if (feeVatApplyYn != null && !feeVatApplyYn.isBlank()) {
@@ -2440,8 +2460,15 @@ public class CompService {
                             } else {
                                 ss.setCalcCycle(null);
                             }
-                            if (parseTime(calcCloseTime) != null) ss.setCalcCloseTime(parseTime(calcCloseTime));
-                            if (parseTime(calcStartTime) != null) ss.setCalcStartTime(parseTime(calcStartTime));
+                            if (ou.getOrgLevel() == OrgLevel.MERCHANT
+                                    && SettlementCycleTiming.isRtPerTransactionCode(
+                                            SettlementPeriodResolver.normalizeCalcCycle(ss.getCalcCycle()))) {
+                                ss.setCalcCloseTime(null);
+                                ss.setCalcStartTime(null);
+                            } else {
+                                if (parseTime(calcCloseTime) != null) ss.setCalcCloseTime(parseTime(calcCloseTime));
+                                if (parseTime(calcStartTime) != null) ss.setCalcStartTime(parseTime(calcStartTime));
+                            }
                             if (transferCycleDays != null) ss.setTransferCycleDays(transferCycleDays);
                             if (calcProcType != null && !calcProcType.isEmpty()) ss.setCalcProcType(calcProcType.trim());
                             if (transferType != null && !transferType.isEmpty()) ss.setTransferType(transferType.trim());
@@ -2462,6 +2489,15 @@ public class CompService {
                             } else if (feeVatApplyYn != null && !feeVatApplyYn.isBlank()
                                     && "N".equalsIgnoreCase(feeVatApplyYn.trim())) {
                                 ss.setFeeVatRatePct(BigDecimal.ZERO);
+                            }
+                            if (ou.getOrgLevel() == OrgLevel.MERCHANT) {
+                                String normRt = SettlementPeriodResolver.normalizeCalcCycle(ss.getCalcCycle());
+                                if (SettlementCycleTiming.isRealtimeCode(normRt)) {
+                                    String proc = ss.getCalcProcType() != null ? ss.getCalcProcType().trim() : "";
+                                    if (proc.isEmpty() || "MANUAL".equalsIgnoreCase(proc)) {
+                                        ss.setCalcProcType("AUTO");
+                                    }
+                                }
                             }
                             settlementSettingRepository.save(ss);
                             SettlementAuditSnap afterSnap = SettlementAuditSnap.of(ss, ou.getOrgLevel());
@@ -2897,7 +2933,13 @@ public class CompService {
             m.put("transferCycleHours", ss.getTransferCycleDays() != null ? String.valueOf(ss.getTransferCycleDays()) : "-");
             m.put("calcExcludeYn", ss.getCalcExcludeYn() != null ? ss.getCalcExcludeYn() : "-");
             m.put("calcExcludeTarget", calcExcludeTargetToDisplay(ss.getCalcExcludeTarget()));
-            m.put("calcStartTime", ss.getCalcStartTime() != null ? ss.getCalcStartTime().toString() : "-");
+            if (o.getOrgLevel() == OrgLevel.MERCHANT
+                    && SettlementCycleTiming.isRtPerTransactionCode(
+                            SettlementPeriodResolver.normalizeCalcCycle(ss.getCalcCycle()))) {
+                m.put("calcStartTime", "즉시");
+            } else {
+                m.put("calcStartTime", ss.getCalcStartTime() != null ? ss.getCalcStartTime().toString() : "-");
+            }
             m.put("payHoldYn", payHoldYnToDisplay(ss.getPayHoldYn()));
         });
         return m;
@@ -3106,49 +3148,11 @@ public class CompService {
         }
     }
 
+    /** 목록·엑셀 등: 정산주기는 저장 코드(정규화) 그대로 표기 */
     private static String calcCycleToDisplay(String c) {
         if (c == null || c.isEmpty()) return "-";
-        String u = SettlementPeriodResolver.normalizeCalcCycle(c);
-        return switch (u) {
-            case "NONE" -> "정산안함";
-            case "RT", "REALTIME" -> "실시간";
-            case "T0" -> "T0";
-            case "M5" -> "5분 마감";
-            case "M10" -> "10분 마감";
-            case "M30" -> "30분 마감";
-            case "H1" -> "1시간(H1)";
-            case "H2" -> "2시간(H2)";
-            case "H4" -> "4시간(H4)";
-            case "H6" -> "6시간(H6)";
-            case "H8" -> "8시간(H8)";
-            case "H12" -> "12시간(H12)";
-            case "TM5" -> "TM5(당일합산)";
-            case "TM10" -> "TM10(당일합산)";
-            case "TM30" -> "TM30(당일합산)";
-            case "TH1" -> "TH1(당일합산)";
-            case "TH2" -> "TH2(당일합산)";
-            case "TH4" -> "TH4(당일합산)";
-            case "TH6" -> "TH6(당일합산)";
-            case "TH8" -> "TH8(당일합산)";
-            case "TH12" -> "TH12(당일합산)";
-            case "W3" -> "W+3";
-            case "W5" -> "W+5";
-            case "W7" -> "W+7";
-            case "W10" -> "W+10";
-            case "W14" -> "W+14";
-            case "WK1W" -> "WK+1W";
-            case "WK2W" -> "WK+2W";
-            case "WK1WT" -> "WK+1WT";
-            case "WK2WT" -> "WK+2WT";
-            case "WK1WM" -> "WK+1WM";
-            case "WK2WM" -> "WK+2WM";
-            case "WEEKLY" -> "Weekly(구)";
-            case "WEEKLY2" -> "Weekly2(구)";
-            default -> {
-                if (u.matches("D\\d+")) yield "D+" + u.substring(1);
-                yield c;
-            }
-        };
+        String norm = SettlementPeriodResolver.normalizeCalcCycle(c);
+        return norm != null && !norm.isEmpty() ? norm : c.trim();
     }
 
     /** 정산구분(수동·자동·펌뱅킹) */

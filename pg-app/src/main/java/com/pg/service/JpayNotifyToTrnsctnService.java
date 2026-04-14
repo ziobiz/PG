@@ -38,10 +38,14 @@ public class JpayNotifyToTrnsctnService implements PgNotifyInboundTxnHandler {
 
     private final PgTrnsctnRepository pgTrnsctnRepository;
     private final PgAgencyRepository pgAgencyRepository;
+    private final SettlementCalcService settlementCalcService;
+
     public JpayNotifyToTrnsctnService(PgTrnsctnRepository pgTrnsctnRepository,
-                                      PgAgencyRepository pgAgencyRepository) {
+                                      PgAgencyRepository pgAgencyRepository,
+                                      SettlementCalcService settlementCalcService) {
         this.pgTrnsctnRepository = pgTrnsctnRepository;
         this.pgAgencyRepository = pgAgencyRepository;
+        this.settlementCalcService = settlementCalcService;
     }
 
     @Override
@@ -169,6 +173,13 @@ public class JpayNotifyToTrnsctnService implements PgNotifyInboundTxnHandler {
         }
 
         pgTrnsctnRepository.save(t);
+        if (ST_PAID.equals(merged) && t.getMerchantId() != null && !t.getMerchantId().isBlank()) {
+            try {
+                settlementCalcService.triggerRealtimeAutoSettlementIfDue(t.getMerchantId().trim(), t);
+            } catch (Exception rtEx) {
+                log.warn("실시간 자동정산 트리거 실패 merchantId={}: {}", t.getMerchantId(), rtEx.getMessage());
+            }
+        }
         log.info("JPAY 노티 반영 trnId={} merchantId={} orderNo={} returncode={}", t.getTrnId(), merchantId, on, ret);
         return true;
     }

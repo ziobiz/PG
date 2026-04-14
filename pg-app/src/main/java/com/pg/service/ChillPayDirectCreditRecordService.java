@@ -45,11 +45,14 @@ public class ChillPayDirectCreditRecordService {
 
     private final PgTrnsctnRepository pgTrnsctnRepository;
     private final OrgUnitRepository orgUnitRepository;
+    private final SettlementCalcService settlementCalcService;
 
     public ChillPayDirectCreditRecordService(PgTrnsctnRepository pgTrnsctnRepository,
-                                            OrgUnitRepository orgUnitRepository) {
+                                            OrgUnitRepository orgUnitRepository,
+                                            SettlementCalcService settlementCalcService) {
         this.pgTrnsctnRepository = pgTrnsctnRepository;
         this.orgUnitRepository = orgUnitRepository;
+        this.settlementCalcService = settlementCalcService;
     }
 
     /**
@@ -162,6 +165,13 @@ public class ChillPayDirectCreditRecordService {
         }
         t.setSettledYn("N");
         pgTrnsctnRepository.save(t);
+        if (paid && merchantId != null && !merchantId.isBlank() && !"UNKNOWN".equalsIgnoreCase(merchantId.trim())) {
+            try {
+                settlementCalcService.triggerRealtimeAutoSettlementIfDue(merchantId.trim(), t);
+            } catch (Exception ex) {
+                log.warn("실시간 자동정산 트리거 실패 merchantId={}: {}", merchantId, ex.getMessage());
+            }
+        }
         log.info("DirectCredit 거래 적재 trnId={} merchantId={} orderNo={} status={}", t.getTrnId(), merchantId, orderNo, t.getStatus());
     }
 

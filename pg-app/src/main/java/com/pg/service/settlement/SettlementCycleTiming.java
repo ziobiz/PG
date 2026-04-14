@@ -172,5 +172,39 @@ public final class SettlementCycleTiming {
         return new SubDailyClosedSlot(end.minusHours(hourBlock), end);
     }
 
+    /**
+     * 저장된 격자 집계 상한({@code endExclusive})과 주기(M5·H1 등, TM/TH는 격자 코드로 환산)로
+     * 집계 시작 시각(startInclusive)을 복원합니다. RT·T0·TM/TH 당일 누적 격자는 null.
+     */
+    public static LocalDateTime subDailySlotStartInclusiveFromEndExclusive(LocalDateTime endExclusive, String normalizedCycle) {
+        if (endExclusive == null || normalizedCycle == null || normalizedCycle.isBlank()) {
+            return null;
+        }
+        String c = normalize(normalizedCycle);
+        if (isRollingIntradayGridCode(c)) {
+            return null;
+        }
+        if (!isSubDailyScheduleCode(c)) {
+            return null;
+        }
+        LocalDateTime end = endExclusive.withSecond(0).withNano(0);
+        String grid = toPlainGridClosingCode(c);
+        Integer stepMin = MINUTE_GRID_STEP.get(grid);
+        if (stepMin != null) {
+            if (end.getMinute() % stepMin != 0) {
+                return null;
+            }
+            return end.minusMinutes(stepMin);
+        }
+        Integer hourBlock = HOUR_BLOCK_MOD.get(grid);
+        if (hourBlock == null) {
+            return null;
+        }
+        if (end.getMinute() != 0 || end.getHour() % hourBlock != 0) {
+            return null;
+        }
+        return end.minusHours(hourBlock);
+    }
+
     public record SubDailyClosedSlot(LocalDateTime startInclusive, LocalDateTime endExclusive) {}
 }

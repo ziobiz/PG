@@ -984,6 +984,9 @@
     hqNotifyInboundDetail: function (id) {
       return get('/api/hq/notifyInbound/' + encodeURIComponent(id)).then(function (r) { return r.data; });
     },
+    hqNotifyInboundReplay: function (id) {
+      return post('/api/hq/notifyInbound/' + encodeURIComponent(id) + '/replay', {}).then(function (r) { return r.data; });
+    },
     hqLedgerSysSettings: function () {
       return get('/api/hq/ledgerSysSettings').then(function (r) { return r.data; });
     },

@@ -12,6 +12,7 @@ import com.pg.repository.RollingReserveRepository;
 import com.pg.repository.SettlementRunRepository;
 import com.pg.repository.SettlementSettingRepository;
 import com.pg.repository.OrgUnitRepository;
+import com.pg.entity.OrgLevel;
 import com.pg.entity.OrgUnit;
 import com.pg.entity.SettlementSetting;
 import com.pg.service.settlement.SettlementArrearsService;
@@ -35,19 +36,26 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Locale;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 /**
  * 정산 수학 로직: 결제 데이터 → 수수료 차감(건당·정산·차지백·실패·취소·무효·수동무효·환불·이용·결제·USDT·FX %·3DS 건당 고정·롤링) → 롤링(담보금 N% N일 보류) → 지급액
+ * <p><b>정산로직(수동 「정산실행」)</b>: {@link #execute(LocalDate, LocalDate, String, boolean)} {@code manualExecuteRules=true} 일 때
+ * 정산구분 {@code AUTO} 가맹은 제외하고, {@code D*}·{@code W+N}·{@code WK*} 는 {@link SettlementPeriodResolver#resolveAutoPeriodWindow} 로
+ * 정산일(기간 종료일)이 주기상 실행일일 때만 집계합니다. 마감시각·정산제외 영업일·{@code D0} 시간대는 자동 배치와 동일합니다.</p>
  */
 @Service
 public class SettlementCalcService {
 
     private static final ZoneId SEOUL = ZoneId.of("Asia/Seoul");
     private static final List<String> CHARGEBACK_STATUSES = List.of("30", "31");
+    private static final Pattern D_CYCLE = Pattern.compile("^D\\d{1,2}$", Pattern.CASE_INSENSITIVE);
 
     private final PgTrnsctnRepository trnsctnRepository;
     private final CommissionPolicyRepository commissionPolicyRepository;
@@ -95,36 +103,169 @@ public class SettlementCalcService {
 
     /**
      * 정산 실행: 기간 내 거래 합산 → 수수료 차감 → 롤링 보류 → 지급액 계산 및 저장
+     * (자동 배치·레거시 호출용 — 수동 화면 버튼은 {@link #execute(LocalDate, LocalDate, String, boolean)} {@code true} 사용)
      */
     @Transactional
     public List<SettlementRun> execute(LocalDate fromDate, LocalDate toDate, String merchantId) {
+        return execute(fromDate, toDate, merchantId, false);
+    }
+
+    /**
+     * 정산 실행.
+     *
+     * @param manualExecuteRules {@code true}: 정산관리 「정산실행」 수동 버튼 — 정산로직(자동 가맹 제외·주기·마감·영업일) 적용
+     */
+    @Transactional
+    public List<SettlementRun> execute(LocalDate fromDate, LocalDate toDate, String merchantId, boolean manualExecuteRules) {
         LocalDateTime from = fromDate.atStartOfDay();
         LocalDateTime to = toDate.atTime(LocalTime.MAX);
         List<PgTrnsctn> list = trnsctnRepository.findForSettlement(merchantId, from, to);
-        List<String> merchantIds = list.stream().map(PgTrnsctn::getMerchantId).distinct().collect(Collectors.toList());
         List<SettlementRun> results = new ArrayList<>();
-        /* 정산 기준일: 기간 종료일(해지일 비교·롤링 해지일 계산에 사용) */
         LocalDate calcDt = toDate;
-        for (String mid : merchantIds) {
-            List<PgTrnsctn> txList = list.stream().filter(t -> mid.equals(t.getMerchantId())).collect(Collectors.toList());
-            SettlementRun run = calcOne(mid, calcDt, txList, Optional.empty(), false, true);
+        if (!manualExecuteRules) {
+            List<String> merchantIds = list.stream().map(PgTrnsctn::getMerchantId).distinct().collect(Collectors.toList());
+            for (String mid : merchantIds) {
+                List<PgTrnsctn> txList = list.stream().filter(t -> mid.equals(t.getMerchantId())).collect(Collectors.toList());
+                SettlementRun run = calcOne(mid, calcDt, txList, Optional.empty(), false, true);
+                if (run != null) {
+                    run.setPeriodFrom(fromDate);
+                    run.setPeriodTo(toDate);
+                    run.setPeriodEndAt(null);
+                    settlementRunRepository.save(run);
+                    settlementArrearsService.applyArrearsToSettledRun(run);
+                    results.add(run);
+                }
+            }
+            appendReleaseOnlyMerchants(calcDt, merchantId, results, false);
+            return results;
+        }
+
+        LocalTime nowSeoul = LocalTime.now(SEOUL);
+        Map<String, List<PgTrnsctn>> byMid = list.stream()
+                .filter(t -> t.getMerchantId() != null && !t.getMerchantId().isBlank())
+                .collect(Collectors.groupingBy(t -> t.getMerchantId().trim()));
+
+        for (ManualExecuteRow row : buildManualExecuteRows(fromDate, toDate, merchantId, calcDt, nowSeoul, byMid)) {
+            SettlementRun run = calcOne(row.mid(), calcDt, row.txList(), Optional.empty(), false, true);
             if (run != null) {
-                run.setPeriodFrom(fromDate);
-                run.setPeriodTo(toDate);
+                run.setPeriodFrom(row.periodFrom());
+                run.setPeriodTo(row.periodTo());
                 run.setPeriodEndAt(null);
                 settlementRunRepository.save(run);
                 settlementArrearsService.applyArrearsToSettledRun(run);
                 results.add(run);
             }
         }
-        appendReleaseOnlyMerchants(calcDt, merchantId, results);
+        appendReleaseOnlyMerchants(calcDt, merchantId, results, true);
         return results;
+    }
+
+    private record ManualExecuteRow(String mid, List<PgTrnsctn> txList, LocalDate periodFrom, LocalDate periodTo) {}
+
+    /**
+     * 정산로직: 수동 실행 대상 가맹만 행으로 구성 (AUTO 제외, 달력 주기 미도래 제외, 마감·영업일·D0 시간대).
+     */
+    private List<ManualExecuteRow> buildManualExecuteRows(LocalDate fromDate,
+                                                          LocalDate toDate,
+                                                          String merchantIdFilter,
+                                                          LocalDate calcDt,
+                                                          LocalTime nowSeoul,
+                                                          Map<String, List<PgTrnsctn>> txsInSearchRangeByMid) {
+        List<ManualExecuteRow> rows = new ArrayList<>();
+        List<OrgUnit> merchants = orgUnitRepository.findAll().stream()
+                .filter(ou -> ou.getOrgLevel() == OrgLevel.MERCHANT)
+                .filter(ou -> merchantIdFilter == null || merchantIdFilter.isBlank()
+                        || merchantIdFilter.trim().equalsIgnoreCase(String.valueOf(ou.getCode()).trim()))
+                .toList();
+        for (OrgUnit ou : merchants) {
+            String mid = ou.getCode();
+            if (mid == null || mid.isBlank()) {
+                continue;
+            }
+            Optional<SettlementSetting> ssOpt = settlementSettingRepository.findByOrgUnitId(ou.getId());
+            if (ssOpt.isEmpty()) {
+                continue;
+            }
+            SettlementSetting ss = ssOpt.get();
+            if ("AUTO".equalsIgnoreCase(String.valueOf(ss.getCalcProcType()).trim())) {
+                continue;
+            }
+            String cycleRaw = ss.getCalcCycle();
+            if (cycleRaw == null || cycleRaw.isBlank() || "NONE".equalsIgnoreCase(cycleRaw.trim())) {
+                continue;
+            }
+            if ("Y".equalsIgnoreCase(String.valueOf(ss.getCalcExcludeYn()).trim())
+                    && !BusinessDayCalendar.isBusinessDay(calcDt, Collections.emptySet())) {
+                continue;
+            }
+            LocalTime close = ss.getCalcCloseTime();
+            if (close != null && nowSeoul.isBefore(close)) {
+                continue;
+            }
+            String c0 = SettlementPeriodResolver.normalizeCalcCycle(cycleRaw);
+            if ("D0".equals(c0) && !SettlementCycleTiming.isD0AutoBatchAllowedNow(nowSeoul)) {
+                continue;
+            }
+            SettlementPeriodResolver.PeriodWindow w = SettlementPeriodResolver.resolveAutoPeriodWindow(cycleRaw, calcDt);
+            if (w != null) {
+                LocalDateTime qFrom = w.fromDate().atStartOfDay();
+                LocalDateTime qTo = w.toDate().atTime(LocalTime.MAX);
+                List<PgTrnsctn> txList = trnsctnRepository.findForSettlement(mid, qFrom, qTo);
+                rows.add(new ManualExecuteRow(mid, txList, w.fromDate(), w.toDate()));
+                continue;
+            }
+            if (isCalendarCycleExclusiveToResolver(c0)) {
+                /* W7 등: 오늘(정산일)이 해당 주기의 실행일이 아니면 수동 실행에서 제외 */
+                continue;
+            }
+            if (SettlementCycleTiming.isRealtimeCode(c0)
+                    || SettlementCycleTiming.isSubDailyScheduleCode(c0)
+                    || SettlementCycleTiming.isRollingIntradayGridCode(c0)) {
+                List<PgTrnsctn> txs = txsInSearchRangeByMid.getOrDefault(mid.trim(), List.of());
+                if (txs.isEmpty()) {
+                    continue;
+                }
+                rows.add(new ManualExecuteRow(mid, txs, fromDate, toDate));
+                continue;
+            }
+            List<PgTrnsctn> txs = txsInSearchRangeByMid.getOrDefault(mid.trim(), List.of());
+            if (!txs.isEmpty()) {
+                rows.add(new ManualExecuteRow(mid, txs, fromDate, toDate));
+            }
+        }
+        return rows;
+    }
+
+    /** {@link SettlementPeriodResolver#resolveAutoPeriodWindow} 로만 스케줄되는 주기(미도래 시 null). RT·격자 등은 false. */
+    private static boolean isCalendarCycleExclusiveToResolver(String normalizedCycle) {
+        if (normalizedCycle == null || normalizedCycle.isBlank()) {
+            return false;
+        }
+        String c = normalizedCycle.trim().toUpperCase(Locale.ROOT);
+        if ("RT".equals(c) || "T0".equals(c)) {
+            return false;
+        }
+        if (SettlementCycleTiming.isSubDailyScheduleCode(c) || SettlementCycleTiming.isRollingIntradayGridCode(c)) {
+            return false;
+        }
+        if (c.matches("W\\d+")) {
+            return true;
+        }
+        if (c.startsWith("WK")) {
+            return true;
+        }
+        return D_CYCLE.matcher(c).matches();
     }
 
     /**
      * 기간 내 거래는 없으나, 종료일 기준 해지 대상 담보가 있는 가맹은 지급액에 반환만 하는 정산 행 생성.
      */
     private void appendReleaseOnlyMerchants(LocalDate calcDt, String merchantIdFilter, List<SettlementRun> results) {
+        appendReleaseOnlyMerchants(calcDt, merchantIdFilter, results, false);
+    }
+
+    private void appendReleaseOnlyMerchants(LocalDate calcDt, String merchantIdFilter, List<SettlementRun> results,
+                                            boolean skipAutoProcMerchants) {
         Set<String> done = results.stream().map(SettlementRun::getMerchantId).collect(Collectors.toCollection(LinkedHashSet::new));
         List<RollingReserve> due = rollingReserveRepository.findByStatusAndReleaseDateLessThanEqual("HOLD", calcDt);
         Set<String> candidates = due.stream().map(RollingReserve::getMerchantId).collect(Collectors.toCollection(LinkedHashSet::new));
@@ -133,6 +274,9 @@ public class SettlementCalcService {
         }
         candidates.removeAll(done);
         for (String mid : candidates) {
+            if (skipAutoProcMerchants && isMerchantAutoCalcProc(mid)) {
+                continue;
+            }
             SettlementRun run = calcOne(mid, calcDt, Collections.emptyList(), Optional.empty(), false, true);
             if (run != null) {
                 run.setPeriodFrom(calcDt);
@@ -145,6 +289,20 @@ public class SettlementCalcService {
         }
     }
 
+    private boolean isMerchantAutoCalcProc(String merchantId) {
+        if (merchantId == null || merchantId.isBlank()) {
+            return false;
+        }
+        String m = merchantId.trim();
+        Optional<OrgUnit> ou = orgUnitRepository.findByCode(m);
+        if (ou.isEmpty()) {
+            ou = orgUnitRepository.findByCodeIgnoreCase(m);
+        }
+        return ou.flatMap(o -> settlementSettingRepository.findByOrgUnitId(o.getId()))
+                .map(ss -> "AUTO".equalsIgnoreCase(String.valueOf(ss.getCalcProcType()).trim()))
+                .orElse(false);
+    }
+
     /**
      * 실시간 자동정산: RT는 승인 건마다 정산 실행 1건(건당), T0는 당일 00:00~현재 전체 재집계(1행).
      *
@@ -155,11 +313,17 @@ public class SettlementCalcService {
         if (merchantId == null || merchantId.isBlank()) {
             return List.of();
         }
-        String mid = merchantId.trim();
-        Optional<OrgUnit> ou = orgUnitRepository.findByCode(mid);
+        String midRaw = merchantId.trim();
+        Optional<OrgUnit> ou = orgUnitRepository.findByCode(midRaw);
+        if (ou.isEmpty()) {
+            ou = orgUnitRepository.findByCodeIgnoreCase(midRaw);
+        }
         if (ou.isEmpty()) {
             return List.of();
         }
+        String mid = ou.get().getCode() != null && !ou.get().getCode().isBlank()
+                ? ou.get().getCode().trim()
+                : midRaw;
         Optional<SettlementSetting> ssOpt = settlementSettingRepository.findByOrgUnitId(ou.get().getId());
         if (ssOpt.isEmpty()) {
             return List.of();
@@ -200,11 +364,17 @@ public class SettlementCalcService {
         if (merchantId == null || merchantId.isBlank()) {
             return List.of();
         }
-        String mid = merchantId.trim();
-        Optional<OrgUnit> ou = orgUnitRepository.findByCode(mid);
+        String midRaw = merchantId.trim();
+        Optional<OrgUnit> ou = orgUnitRepository.findByCode(midRaw);
+        if (ou.isEmpty()) {
+            ou = orgUnitRepository.findByCodeIgnoreCase(midRaw);
+        }
         if (ou.isEmpty()) {
             return List.of();
         }
+        String mid = ou.get().getCode() != null && !ou.get().getCode().isBlank()
+                ? ou.get().getCode().trim()
+                : midRaw;
         Optional<SettlementSetting> ssOpt = settlementSettingRepository.findByOrgUnitId(ou.get().getId());
         if (ssOpt.isEmpty()) {
             return List.of();
@@ -301,7 +471,8 @@ public class SettlementCalcService {
      * RT: 승인 1건만 담아 정산 실행 행을 추가(당일 다건). 이미 정산 반영된 건은 스킵.
      */
     private List<SettlementRun> appendRtPerTransactionSettlement(String mid, PgTrnsctn txn) {
-        if (txn == null || txn.getMerchantId() == null || !mid.equals(txn.getMerchantId().trim())) {
+        if (txn == null || txn.getMerchantId() == null
+                || !mid.equalsIgnoreCase(txn.getMerchantId().trim())) {
             return List.of();
         }
         String st = txn.getStatus() != null ? txn.getStatus().trim() : "";
