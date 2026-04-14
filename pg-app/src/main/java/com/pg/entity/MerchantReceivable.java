@@ -1,6 +1,7 @@
 package com.pg.entity;
 
 import jakarta.persistence.*;
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 /**
@@ -20,14 +21,14 @@ public class MerchantReceivable {
     @Column(name = "title", length = 200)
     private String title;
 
-    @Column(name = "total_amount", nullable = false)
-    private Long totalAmount;
+    @Column(name = "total_amount", nullable = false, precision = 21, scale = 8)
+    private BigDecimal totalAmount = BigDecimal.ZERO;
 
-    @Column(name = "remaining_amount", nullable = false)
-    private Long remainingAmount;
+    @Column(name = "remaining_amount", nullable = false, precision = 21, scale = 8)
+    private BigDecimal remainingAmount = BigDecimal.ZERO;
 
-    @Column(name = "applied_amount", nullable = false)
-    private Long appliedAmount = 0L;
+    @Column(name = "applied_amount", nullable = false, precision = 21, scale = 8)
+    private BigDecimal appliedAmount = BigDecimal.ZERO;
 
     @Column(name = "status", nullable = false, length = 20)
     private String status = "PENDING";
@@ -57,12 +58,12 @@ public class MerchantReceivable {
     public void setMerchantId(String merchantId) { this.merchantId = merchantId; }
     public String getTitle() { return title; }
     public void setTitle(String title) { this.title = title; }
-    public Long getTotalAmount() { return totalAmount; }
-    public void setTotalAmount(Long totalAmount) { this.totalAmount = totalAmount; }
-    public Long getRemainingAmount() { return remainingAmount; }
-    public void setRemainingAmount(Long remainingAmount) { this.remainingAmount = remainingAmount; }
-    public Long getAppliedAmount() { return appliedAmount; }
-    public void setAppliedAmount(Long appliedAmount) { this.appliedAmount = appliedAmount; }
+    public BigDecimal getTotalAmount() { return totalAmount; }
+    public void setTotalAmount(BigDecimal totalAmount) { this.totalAmount = totalAmount; }
+    public BigDecimal getRemainingAmount() { return remainingAmount; }
+    public void setRemainingAmount(BigDecimal remainingAmount) { this.remainingAmount = remainingAmount; }
+    public BigDecimal getAppliedAmount() { return appliedAmount; }
+    public void setAppliedAmount(BigDecimal appliedAmount) { this.appliedAmount = appliedAmount; }
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }
     public String getReasonCode() { return reasonCode; }

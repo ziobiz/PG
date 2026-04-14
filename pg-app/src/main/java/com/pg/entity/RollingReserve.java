@@ -22,7 +22,7 @@ public class RollingReserve {
     @Column(name = "merchant_id", nullable = false, length = 50)
     private String merchantId;
 
-    @Column(name = "reserve_amt", precision = 15, scale = 0)
+    @Column(name = "reserve_amt", precision = 21, scale = 8)
     private BigDecimal reserveAmt = BigDecimal.ZERO;
 
     @Column(name = "rolling_pct", precision = 5, scale = 2)

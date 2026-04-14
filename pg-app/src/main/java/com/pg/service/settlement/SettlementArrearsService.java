@@ -17,12 +17,13 @@ import com.pg.repository.OrgUnitRepository;
 import com.pg.repository.SettlementRecoveryRepository;
 import com.pg.repository.SettlementRunRepository;
 import com.pg.repository.SettlementSettingRepository;
+import com.pg.util.FeeCurrencyRoundResolver;
 import com.pg.util.FeeListRoundingPolicy;
+import com.pg.util.PayDisplayCurrency;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -68,9 +69,10 @@ public class SettlementArrearsService {
         this.hqLedgerSysSettingsRepository = hqLedgerSysSettingsRepository;
     }
 
-    private FeeListRoundingPolicy feeListRoundingPolicy() {
+    /** 정산관리·수수료내역과 동일: 전산설정 기준통화 + 통화별 소수 규칙 */
+    private FeeListRoundingPolicy settlementLedgerRoundPolicy() {
         return hqLedgerSysSettingsRepository.findFirstByOrderByIdAsc()
-                .map(FeeListRoundingPolicy::fromSettings)
+                .map(s -> FeeCurrencyRoundResolver.from(s).forCurrency(PayDisplayCurrency.alphaFromSettings(s)))
                 .orElseGet(FeeListRoundingPolicy::defaults);
     }
 
@@ -112,7 +114,7 @@ public class SettlementArrearsService {
                 .orElseGet(() -> commissionPolicyRepository.findByScope("DEFAULT").orElseGet(CommissionPolicy::new));
         OrgUnit ou = orgUnitRepository.findByCode(mid).orElse(null);
         SettlementSetting feeVatSs = ou != null ? settlementSettingRepository.findByOrgUnitId(ou.getId()).orElse(null) : null;
-        FeeListRoundingPolicy rp = feeListRoundingPolicy();
+        FeeListRoundingPolicy rp = settlementLedgerRoundPolicy();
         Map<String, Long> monthCbCountCache = new HashMap<>();
         Map<Long, List<ChargebackFeeTier>> tiersByPolicyId = new HashMap<>();
         FeeListTxnBreakdownCalculator.FeeListTxnBreakdown br = feeListTxnBreakdownCalculator.computeFeeListTxnBreakdown(
@@ -125,8 +127,8 @@ public class SettlementArrearsService {
         BigDecimal recallBd = recallInc
                 ? txnAmtBd.add(feeAmtBd).add(feeVatBd).max(BigDecimal.ZERO)
                 : txnAmtBd.max(BigDecimal.ZERO);
-        long recall = Math.max(0, recallBd.setScale(0, RoundingMode.HALF_UP).longValue());
-        if (recall <= 0) {
+        BigDecimal recall = FeeListRoundingPolicy.round(recallBd.max(BigDecimal.ZERO), rp);
+        if (recall.signum() <= 0) {
             return;
         }
         SettlementRecovery r = new SettlementRecovery();
@@ -134,7 +136,7 @@ public class SettlementArrearsService {
         r.setTrnId(tid.length() > 20 ? tid.substring(0, 20) : tid);
         r.setRecallAmount(recall);
         r.setRemainingAmount(recall);
-        r.setAppliedAmount(0L);
+        r.setAppliedAmount(BigDecimal.ZERO);
         r.setStatus("PENDING");
         r.setReasonCode(REASON_POST_SETTLE_REFUND);
         r.setFeeIncludedYn(recallInc ? "Y" : "N");
@@ -151,53 +153,53 @@ public class SettlementArrearsService {
         if (run == null || run.getId() == null) {
             return;
         }
-        BigDecimal payBd = run.getPayAmt() != null ? run.getPayAmt() : BigDecimal.ZERO;
-        long payLong = payBd.longValue();
-        if (payLong <= 0) {
+        FeeListRoundingPolicy rp = settlementLedgerRoundPolicy();
+        BigDecimal payBd = FeeListRoundingPolicy.round(run.getPayAmt() != null ? run.getPayAmt() : BigDecimal.ZERO, rp);
+        if (payBd.signum() <= 0) {
             return;
         }
         String mid = run.getMerchantId();
         if (mid == null || mid.isBlank()) {
             return;
         }
-        long takeR = applyFifoRecoveries(mid.trim(), run.getId(), payLong);
-        payLong = Math.max(0, payLong - takeR);
-        long takeM = applyFifoReceivables(mid.trim(), run.getId(), payLong);
-        payLong = Math.max(0, payLong - takeM);
-        run.setPayAmt(BigDecimal.valueOf(payLong));
+        BigDecimal takeR = applyFifoRecoveries(mid.trim(), run.getId(), payBd);
+        BigDecimal payAfterR = payBd.subtract(takeR).max(BigDecimal.ZERO);
+        BigDecimal takeM = applyFifoReceivables(mid.trim(), run.getId(), payAfterR);
+        BigDecimal payFinal = FeeListRoundingPolicy.round(payAfterR.subtract(takeM).max(BigDecimal.ZERO), rp);
+        run.setPayAmt(payFinal);
         settlementRunRepository.save(run);
     }
 
-    private long applyFifoRecoveries(String merchantId, Long settlementRunId, long cap) {
-        if (cap <= 0) {
-            return 0;
+    private BigDecimal applyFifoRecoveries(String merchantId, Long settlementRunId, BigDecimal cap) {
+        if (cap == null || cap.signum() <= 0) {
+            return BigDecimal.ZERO;
         }
         List<SettlementRecovery> rows = settlementRecoveryRepository.findByMerchantIdAndStatusInOrderByIdAsc(merchantId, OPEN_RECOVERY);
-        long used = 0;
+        BigDecimal used = BigDecimal.ZERO;
         List<SettlementRecovery> dirty = new ArrayList<>();
         for (SettlementRecovery r : rows) {
-            long rem = r.getRemainingAmount() != null ? r.getRemainingAmount() : 0L;
-            if (rem <= 0) {
+            BigDecimal rem = r.getRemainingAmount() != null ? r.getRemainingAmount() : BigDecimal.ZERO;
+            if (rem.signum() <= 0) {
                 continue;
             }
-            long room = cap - used;
-            if (room <= 0) {
+            BigDecimal room = cap.subtract(used);
+            if (room.signum() <= 0) {
                 break;
             }
-            long take = Math.min(rem, room);
-            if (take <= 0) {
+            BigDecimal take = rem.min(room);
+            if (take.signum() <= 0) {
                 continue;
             }
-            r.setRemainingAmount(rem - take);
-            r.setAppliedAmount((r.getAppliedAmount() != null ? r.getAppliedAmount() : 0L) + take);
+            r.setRemainingAmount(rem.subtract(take));
+            r.setAppliedAmount(nzBd(r.getAppliedAmount()).add(take));
             r.setLastAppliedSettlementRunId(settlementRunId);
-            if (r.getRemainingAmount() == 0) {
+            if (r.getRemainingAmount().signum() == 0) {
                 r.setStatus("CLOSED");
             } else {
                 r.setStatus("PARTIAL");
             }
             dirty.add(r);
-            used += take;
+            used = used.add(take);
         }
         if (!dirty.isEmpty()) {
             settlementRecoveryRepository.saveAll(dirty);
@@ -205,35 +207,35 @@ public class SettlementArrearsService {
         return used;
     }
 
-    private long applyFifoReceivables(String merchantId, Long settlementRunId, long cap) {
-        if (cap <= 0) {
-            return 0;
+    private BigDecimal applyFifoReceivables(String merchantId, Long settlementRunId, BigDecimal cap) {
+        if (cap == null || cap.signum() <= 0) {
+            return BigDecimal.ZERO;
         }
         List<MerchantReceivable> rows = merchantReceivableRepository.findByMerchantIdAndStatusInOrderByIdAsc(merchantId, OPEN_RECEIVABLE);
-        long used = 0;
+        BigDecimal used = BigDecimal.ZERO;
         List<MerchantReceivable> dirty = new ArrayList<>();
         for (MerchantReceivable r : rows) {
-            long rem = r.getRemainingAmount() != null ? r.getRemainingAmount() : 0L;
-            if (rem <= 0) {
+            BigDecimal rem = r.getRemainingAmount() != null ? r.getRemainingAmount() : BigDecimal.ZERO;
+            if (rem.signum() <= 0) {
                 continue;
             }
-            long room = cap - used;
-            if (room <= 0) {
+            BigDecimal room = cap.subtract(used);
+            if (room.signum() <= 0) {
                 break;
             }
-            long take = Math.min(rem, room);
-            if (take <= 0) {
+            BigDecimal take = rem.min(room);
+            if (take.signum() <= 0) {
                 continue;
             }
-            r.setRemainingAmount(rem - take);
-            r.setAppliedAmount((r.getAppliedAmount() != null ? r.getAppliedAmount() : 0L) + take);
-            if (r.getRemainingAmount() == 0) {
+            r.setRemainingAmount(rem.subtract(take));
+            r.setAppliedAmount(nzBd(r.getAppliedAmount()).add(take));
+            if (r.getRemainingAmount().signum() == 0) {
                 r.setStatus("CLOSED");
             } else {
                 r.setStatus("PARTIAL");
             }
             dirty.add(r);
-            used += take;
+            used = used.add(take);
         }
         if (!dirty.isEmpty()) {
             merchantReceivableRepository.saveAll(dirty);
@@ -241,17 +243,23 @@ public class SettlementArrearsService {
         return used;
     }
 
+    private static BigDecimal nzBd(BigDecimal v) {
+        return v != null ? v : BigDecimal.ZERO;
+    }
+
     @Transactional
-    public MerchantReceivable createReceivable(String merchantId, long amount, String title, String reasonCode, String memo, String createdBy) {
-        if (merchantId == null || merchantId.isBlank() || amount <= 0) {
+    public MerchantReceivable createReceivable(String merchantId, BigDecimal amount, String title, String reasonCode, String memo, String createdBy) {
+        if (merchantId == null || merchantId.isBlank() || amount == null || amount.signum() <= 0) {
             throw new IllegalArgumentException("merchantId·amount");
         }
+        FeeListRoundingPolicy rp = settlementLedgerRoundPolicy();
+        BigDecimal amt = FeeListRoundingPolicy.round(amount, rp);
         MerchantReceivable r = new MerchantReceivable();
         r.setMerchantId(merchantId.trim());
         r.setTitle(title != null && !title.isBlank() ? title.trim() : "미수금");
-        r.setTotalAmount(amount);
-        r.setRemainingAmount(amount);
-        r.setAppliedAmount(0L);
+        r.setTotalAmount(amt);
+        r.setRemainingAmount(amt);
+        r.setAppliedAmount(BigDecimal.ZERO);
         r.setStatus("PENDING");
         r.setReasonCode(reasonCode != null && !reasonCode.isBlank() ? reasonCode.trim() : "MANUAL");
         r.setMemo(memo);
@@ -266,7 +274,7 @@ public class SettlementArrearsService {
             return;
         }
         r.setStatus("WRITE_OFF");
-        r.setRemainingAmount(0L);
+        r.setRemainingAmount(BigDecimal.ZERO);
         merchantReceivableRepository.save(r);
     }
 
@@ -277,7 +285,7 @@ public class SettlementArrearsService {
             throw new IllegalStateException("대기 상태만 취소할 수 있습니다.");
         }
         r.setStatus("CANCELLED");
-        r.setRemainingAmount(0L);
+        r.setRemainingAmount(BigDecimal.ZERO);
         merchantReceivableRepository.save(r);
     }
 

@@ -849,6 +849,11 @@ body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Ro
   vertical-align: middle !important;
   text-align: center !important;
 }
+/* 가맹점정산내역: 집계구간 거래 보조 분해 열(실행 저장값 amount·feeAmt·feeRate·feeVat·holdAmt·settleAmt 와 구분) */
+#contentsMain .screen-calc-gm-list .table tbody td.pg-franchise-fee-aux {
+  color: #6b7785 !important;
+  font-weight: 400;
+}
 #contentsMain .screen-calc-gm-list .table .empty-state-cell {
   white-space: normal;
 }

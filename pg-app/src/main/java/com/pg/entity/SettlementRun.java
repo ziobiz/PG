@@ -36,23 +36,23 @@ public class SettlementRun {
     private String merchantId;
 
     /** 정산대상 승인합계 */
-    @Column(name = "approve_amt", precision = 15, scale = 0)
+    @Column(name = "approve_amt", precision = 21, scale = 8)
     private BigDecimal approveAmt = BigDecimal.ZERO;
 
     /** 취소합계 */
-    @Column(name = "cancel_amt", precision = 15, scale = 0)
+    @Column(name = "cancel_amt", precision = 21, scale = 8)
     private BigDecimal cancelAmt = BigDecimal.ZERO;
 
     /** 공제 수수료 합계 (건당+결제수수료+취소수수료+실패+환불 등) */
-    @Column(name = "total_fee", precision = 15, scale = 0)
+    @Column(name = "total_fee", precision = 21, scale = 8)
     private BigDecimal totalFee = BigDecimal.ZERO;
 
     /** 롤링(담보금) 보류액 */
-    @Column(name = "rolling_reserve_amt", precision = 15, scale = 0)
+    @Column(name = "rolling_reserve_amt", precision = 21, scale = 8)
     private BigDecimal rollingReserveAmt = BigDecimal.ZERO;
 
     /** 지급액 = 승인 - 취소 - 수수료 - 롤링보류 */
-    @Column(name = "pay_amt", precision = 15, scale = 0)
+    @Column(name = "pay_amt", precision = 21, scale = 8)
     private BigDecimal payAmt = BigDecimal.ZERO;
 
     @Column(name = "status", length = 20)

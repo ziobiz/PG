@@ -4,6 +4,8 @@ import com.pg.api.ApiResponse;
 import com.pg.api.dto.PageResult;
 import com.pg.api.dto.PayListSearchRequest;
 import com.pg.entity.AppUser;
+import com.pg.entity.OrgLevel;
+import com.pg.entity.OrgUnit;
 import com.pg.repository.CommissionPolicyRepository;
 import com.pg.repository.OrgUnitRepository;
 import com.pg.service.ChillPayService;
@@ -22,6 +24,8 @@ import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
@@ -83,6 +87,29 @@ public class ApiCalcController {
             return allowed.iterator().next();
         }
         return "__NONE__";
+    }
+
+    /**
+     * 통합정산 상단 「상태」그룹 → 칠페이 Search API 의 Status(단일 문자열)에 대응.
+     * 세부(환불 vs 강제환불·성공 제외 등)는 ChillPayService 에서 ICOPAY DB로 보조 필터합니다.
+     */
+    private static String chillPayApiStatusFromSearchGroup(String searchStatusGroup) {
+        if (searchStatusGroup == null || searchStatusGroup.isBlank()) {
+            return "";
+        }
+        String g = searchStatusGroup.trim().toUpperCase(Locale.ROOT);
+        if ("ALL".equals(g) || "EXCLUDE_SUCCESS".equals(g)) {
+            return "";
+        }
+        return switch (g) {
+            case "SUCCESS" -> "Paid";
+            case "FAIL" -> "Failed";
+            case "CANCEL" -> "Cancelled";
+            case "VOID" -> "Voided";
+            case "MANUAL_VOID" -> "EmailVoid";
+            case "REFUND", "FORCE_REFUND" -> "Refunded";
+            default -> "";
+        };
     }
 
     @GetMapping("/payList")
@@ -191,53 +218,141 @@ public class ApiCalcController {
             @RequestParam(required = false) String searchOrderNo,
             @RequestParam(required = false) String searchChillStatus,
             @RequestParam(required = false) String searchRouteNo,
+            @RequestParam(required = false) String searchFieldType,
+            @RequestParam(required = false) String searchStatusGroup,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate searchFromDate,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate searchToDate,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate searchTxnFromDate,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate searchTxnToDate,
             Authentication authentication) {
         try {
-            Integer routeNo = null;
-            if (searchRouteNo != null && !searchRouteNo.isBlank()) {
-                try {
-                    routeNo = Integer.parseInt(searchRouteNo.trim());
-                } catch (NumberFormatException ignored) {
-                    routeNo = null;
-                }
-            }
             AppUser user = (authentication != null && authentication.getPrincipal() instanceof AppUser u) ? u : null;
             boolean multiCurrency = PayListStatusBarBuckets.isMultiCurrencyViewer(
                     PayListStatusBarBuckets.resolveViewerOrgLevel(user, orgUnitRepository));
             String ledgerCur = PayDisplayCurrency.alphaFromSettings(hqLedgerSysSettingsService.getOrCreate());
             String primaryCurrency = PayListStatusBarBuckets.resolveViewerPrimaryCurrency(
                     user, orgUnitRepository, commissionPolicyRepository, ledgerCur);
-            String merchantFilter = resolveChillPayMerchantCodeFilter(authentication, searchMerchantCode);
+
+            boolean unified = searchFieldType != null && !searchFieldType.isBlank();
+            String ft = unified ? searchFieldType.trim().toUpperCase(Locale.ROOT) : "";
+            String kw = searchKeyword != null ? searchKeyword.trim() : "";
+            String sg = searchStatusGroup != null ? searchStatusGroup.trim().toUpperCase(Locale.ROOT) : "ALL";
+            if (sg.isEmpty()) {
+                sg = "ALL";
+            }
+            if (unified && "COMP_NM".equals(ft) && kw.isEmpty()) {
+                ft = "ALL";
+            }
+
+            String sk = "";
+            String smc = unified ? "" : (searchMerchantCode != null ? searchMerchantCode.trim() : "");
+            String spc = unified ? "" : (searchPaymentChannel != null ? searchPaymentChannel.trim() : "");
+            String son = unified ? "" : (searchOrderNo != null ? searchOrderNo.trim() : "");
+            String scs = unified ? "" : (searchChillStatus != null ? searchChillStatus.trim() : "");
+            String srn = unified ? "" : (searchRouteNo != null ? searchRouteNo.trim() : "");
+
+            if (unified) {
+                switch (ft) {
+                    case "ALL" -> sk = kw;
+                    case "COMP_NM" -> { /* 아래에서 업체코드로 치환 */ }
+                    case "COMP_ID", "MID" -> smc = kw;
+                    case "ORDER_NO" -> son = kw;
+                    case "APPROVAL_NO" -> sk = kw;
+                    case "ROUTE" -> srn = kw;
+                    case "CURRENCY" -> sk = kw;
+                    case "STATUS" -> scs = kw;
+                    case "AMOUNT" -> sk = kw;
+                    default -> {
+                    }
+                }
+                if ("COMP_NM".equals(ft) && !kw.isEmpty()) {
+                    Set<String> allowed = orgAccessService.visibleMerchantCompCodes(authentication);
+                    Set<String> nm = new HashSet<>();
+                    for (OrgUnit ou : orgUnitRepository.findByOrgLevelAndNameContainingIgnoreCase(OrgLevel.MERCHANT, kw)) {
+                        if (ou.getCode() == null || ou.getCode().isBlank()) {
+                            continue;
+                        }
+                        String code = ou.getCode().trim();
+                        if (allowed == null || allowed.contains(code)) {
+                            nm.add(code);
+                        }
+                    }
+                    if (nm.isEmpty()) {
+                        return ResponseEntity.ok(ApiResponse.ok(emptyChillPayPage(page, size)));
+                    }
+                    if (nm.size() > 1) {
+                        PageResult<Map<String, Object>> empty = emptyChillPayPage(page, size);
+                        Map<String, Object> meta = new java.util.LinkedHashMap<>();
+                        meta.put("searchNote", "업체명이 여러 건과 일치합니다. 업체코드·MID로 좁혀 주세요.");
+                        empty.setMeta(meta);
+                        return ResponseEntity.ok(ApiResponse.ok(empty));
+                    }
+                    smc = nm.iterator().next();
+                }
+                String fromGroup = chillPayApiStatusFromSearchGroup(sg);
+                if (!fromGroup.isEmpty()) {
+                    scs = fromGroup;
+                } else if ("STATUS".equals(ft) && !kw.isEmpty()) {
+                    scs = kw;
+                }
+            } else {
+                sk = searchKeyword != null ? searchKeyword.trim() : "";
+                smc = searchMerchantCode != null ? searchMerchantCode.trim() : "";
+                spc = searchPaymentChannel != null ? searchPaymentChannel.trim() : "";
+                son = searchOrderNo != null ? searchOrderNo.trim() : "";
+                scs = searchChillStatus != null ? searchChillStatus.trim() : "";
+                srn = searchRouteNo != null ? searchRouteNo.trim() : "";
+            }
+
+            Integer routeNo = null;
+            if (srn != null && !srn.isBlank()) {
+                try {
+                    routeNo = Integer.parseInt(srn.trim());
+                } catch (NumberFormatException ignored) {
+                    routeNo = null;
+                }
+            }
+
+            String merchantFilter = resolveChillPayMerchantCodeFilter(authentication,
+                    smc != null && !smc.isEmpty() ? smc : null);
             if ("__NONE__".equals(merchantFilter)) {
                 return ResponseEntity.ok(ApiResponse.ok(emptyChillPayPage(page, size)));
             }
+            String icopayPost = unified && needsChillSettlementIcopayPostFilter(sg) ? sg : null;
             PageResult<Map<String, Object>> r = chillPayService.searchChillPaySettlementTransactions(
                     null,
                     page,
                     size,
                     searchOrderBy,
                     searchOrderDir,
-                    searchKeyword,
+                    sk,
                     merchantFilter,
-                    searchPaymentChannel,
+                    spc,
                     routeNo,
-                    searchOrderNo,
-                    searchChillStatus,
+                    son,
+                    scs,
                     searchFromDate,
                     searchToDate,
                     searchTxnFromDate,
                     searchTxnToDate,
                     multiCurrency,
                     primaryCurrency,
-                    authentication);
+                    authentication,
+                    icopayPost);
             return ResponseEntity.ok(ApiResponse.ok(r));
         } catch (IllegalStateException e) {
             return ResponseEntity.ok(ApiResponse.fail(e.getMessage(), "CHILLPAY"));
         }
+    }
+
+    private static boolean needsChillSettlementIcopayPostFilter(String sg) {
+        if (sg == null || sg.isEmpty() || "ALL".equals(sg)) {
+            return false;
+        }
+        return switch (sg) {
+            case "REFUND", "FORCE_REFUND", "VOID", "MANUAL_VOID", "EXCLUDE_SUCCESS" -> true;
+            default -> false;
+        };
     }
 
     /** 결제내역 후속조치: 자동무효·이메일무효·자동환불·강제환불 (본사 환경설정 Y 일 때만) */

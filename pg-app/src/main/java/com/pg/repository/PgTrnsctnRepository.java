@@ -46,4 +46,7 @@ public interface PgTrnsctnRepository extends JpaRepository<PgTrnsctn, String>, J
             Collection<String> statuses,
             LocalDateTime createdAtGreaterThanEqual,
             LocalDateTime createdAtLessThan);
+
+    /** 통합정산 등: 칠페이 승인번호 다건으로 최신 내부 상태 조회 */
+    List<PgTrnsctn> findAllByChillTransactionIdIn(Collection<String> chillTransactionIds);
 }

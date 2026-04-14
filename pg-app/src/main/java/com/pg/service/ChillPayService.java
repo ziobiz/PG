@@ -43,12 +43,14 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 
 /**
  * ChillPay DirectCredit API 연동 서비스.
@@ -1252,7 +1254,8 @@ public class ChillPayService {
             LocalDate transactionDateTo,
             boolean multiCurrency,
             String primaryCurrency,
-            Authentication authentication) {
+            Authentication authentication,
+            String icopaySettlementStatusGroup) {
 
         LocalDate payFrom = paymentDateFrom;
         LocalDate payTo = paymentDateTo;
@@ -1274,20 +1277,35 @@ public class ChillPayService {
                 paymentChannel, routeNoFilter, orderNo, status,
                 transactionDateFrom, transactionDateTo, payFrom, payTo);
 
+        String postGroup = icopaySettlementStatusGroup != null
+                ? icopaySettlementStatusGroup.trim().toUpperCase(Locale.ROOT) : "";
+        boolean postFilter = needsIcopaySettlementPostFilter(postGroup);
+        if (postFilter) {
+            Map<String, String> icopayByChill = loadLatestIcopayStatusByChillTxnIds(display.getList());
+            display.setList(filterSettlementRowsByIcopayStatusGroup(display.getList(), postGroup, icopayByChill));
+        }
+
         PayListStatusBarBuckets.MutableRollup roll = new PayListStatusBarBuckets.MutableRollup();
         List<Map<String, Object>> rowsForFinancial = new ArrayList<>();
         int totalPages = display.getTotalPages();
         int maxPages = Math.min(Math.max(totalPages, 1), CHILL_STATUS_BAR_MAX_PAGES);
-        for (int p = 1; p <= maxPages; p++) {
-            PageResult<Map<String, Object>> slice = (p == pn)
-                    ? display
-                    : searchChillPayPaymentTransactionsPage(
-                            merchantOrgUnitId, p, display.getSize(), ob, orderDir, searchKeyword,
-                            merchantCodeFilter, paymentChannel, routeNoFilter, orderNo, status,
-                            transactionDateFrom, transactionDateTo, payFrom, payTo);
-            accumulateChillPayRowsIntoRollup(roll, slice.getList());
-            if (slice.getList() != null) {
-                rowsForFinancial.addAll(slice.getList());
+        if (postFilter) {
+            accumulateChillPayRowsIntoRollup(roll, display.getList());
+            if (display.getList() != null) {
+                rowsForFinancial.addAll(display.getList());
+            }
+        } else {
+            for (int p = 1; p <= maxPages; p++) {
+                PageResult<Map<String, Object>> slice = (p == pn)
+                        ? display
+                        : searchChillPayPaymentTransactionsPage(
+                                merchantOrgUnitId, p, display.getSize(), ob, orderDir, searchKeyword,
+                                merchantCodeFilter, paymentChannel, routeNoFilter, orderNo, status,
+                                transactionDateFrom, transactionDateTo, payFrom, payTo);
+                accumulateChillPayRowsIntoRollup(roll, slice.getList());
+                if (slice.getList() != null) {
+                    rowsForFinancial.addAll(slice.getList());
+                }
             }
         }
 
@@ -1298,8 +1316,125 @@ public class ChillPayService {
         meta.put("chillPaySettlementMode", true);
         meta.put("paymentDateFrom", payFrom.toString());
         meta.put("paymentDateTo", payTo.toString());
+        if (postFilter) {
+            meta.put("chillPaySettlementPostFiltered", true);
+            meta.put("chillPaySettlementPostFilterNote",
+                    "상단 요약·건수는 ICOPAY 보조 필터(환불/강제환불 구분·성공 제외 등) 적용 시 현재 페이지 결과만 반영됩니다.");
+        }
         display.setMeta(meta);
         return display;
+    }
+
+    private static boolean needsIcopaySettlementPostFilter(String g) {
+        if (g == null || g.isEmpty() || "ALL".equals(g)) {
+            return false;
+        }
+        return switch (g) {
+            case "REFUND", "FORCE_REFUND", "VOID", "MANUAL_VOID", "EXCLUDE_SUCCESS" -> true;
+            default -> false;
+        };
+    }
+
+    private Map<String, String> loadLatestIcopayStatusByChillTxnIds(List<Map<String, Object>> rows) {
+        if (rows == null || rows.isEmpty()) {
+            return Collections.emptyMap();
+        }
+        Set<String> qids = new HashSet<>();
+        for (Map<String, Object> row : rows) {
+            String raw = firstNonBlankString(row,
+                    "transactionId", "TransactionId", "Transaction_Id", "transaction_id").trim();
+            if (raw.isEmpty()) {
+                continue;
+            }
+            qids.add(raw);
+            String n = normalizeChillTxnIdForDbLookup(raw);
+            if (!n.isEmpty() && !n.equalsIgnoreCase(raw)) {
+                qids.add(n);
+            }
+        }
+        if (qids.isEmpty()) {
+            return Collections.emptyMap();
+        }
+        List<PgTrnsctn> list = pgTrnsctnRepository.findAllByChillTransactionIdIn(qids);
+        Map<String, PgTrnsctn> best = new HashMap<>();
+        for (PgTrnsctn t : list) {
+            if (t.getChillTransactionId() == null || t.getChillTransactionId().isBlank()) {
+                continue;
+            }
+            String key = normalizeChillTxnIdForDbLookup(t.getChillTransactionId());
+            if (key.isEmpty()) {
+                key = t.getChillTransactionId().trim();
+            }
+            PgTrnsctn prev = best.get(key);
+            if (prev == null || (t.getCreatedAt() != null && prev.getCreatedAt() != null
+                    && t.getCreatedAt().isAfter(prev.getCreatedAt()))) {
+                best.put(key, t);
+            }
+        }
+        Map<String, String> out = new HashMap<>();
+        for (PgTrnsctn t : best.values()) {
+            if (t.getChillTransactionId() == null || t.getChillTransactionId().isBlank()) {
+                continue;
+            }
+            String rawId = t.getChillTransactionId().trim();
+            String st = t.getStatus() != null ? t.getStatus().trim() : "";
+            out.put(rawId, st);
+            String nk = normalizeChillTxnIdForDbLookup(rawId);
+            if (!nk.isEmpty() && !nk.equalsIgnoreCase(rawId)) {
+                out.put(nk, st);
+            }
+        }
+        return out;
+    }
+
+    private static List<Map<String, Object>> filterSettlementRowsByIcopayStatusGroup(
+            List<Map<String, Object>> rows,
+            String group,
+            Map<String, String> icopayStatusByNormChillId) {
+        if (rows == null || rows.isEmpty()) {
+            return rows == null ? Collections.emptyList() : rows;
+        }
+        List<Map<String, Object>> out = new ArrayList<>();
+        for (Map<String, Object> row : rows) {
+            String raw = firstNonBlankString(row,
+                    "transactionId", "TransactionId", "Transaction_Id", "transaction_id").trim();
+            String key = raw.isEmpty() ? "" : normalizeChillTxnIdForDbLookup(raw);
+            String ist = "";
+            if (!key.isEmpty()) {
+                ist = icopayStatusByNormChillId.getOrDefault(key, "");
+            }
+            if (ist.isEmpty() && !raw.isEmpty()) {
+                ist = icopayStatusByNormChillId.getOrDefault(raw, "");
+            }
+            String chillSt = firstNonBlankString(row, "status", "Status");
+            if (passesIcopaySettlementGroupFilter(group, ist, chillSt)) {
+                out.add(row);
+            }
+        }
+        return out;
+    }
+
+    private static boolean passesIcopaySettlementGroupFilter(String group, String icopayStatus, String chillSt) {
+        String low = chillSt != null ? chillSt.toLowerCase(Locale.ROOT) : "";
+        return switch (group) {
+            case "REFUND" -> "30".equals(icopayStatus) || "42".equals(icopayStatus)
+                    || (icopayStatus.isEmpty() && low.contains("refund") && !low.contains("force"));
+            case "FORCE_REFUND" -> "31".equals(icopayStatus);
+            case "VOID" -> "21".equals(icopayStatus) || "40".equals(icopayStatus)
+                    || (icopayStatus.isEmpty() && low.contains("void") && !low.contains("email"));
+            case "MANUAL_VOID" -> "22".equals(icopayStatus) || "41".equals(icopayStatus)
+                    || (icopayStatus.isEmpty() && low.contains("email"));
+            case "EXCLUDE_SUCCESS" -> {
+                if ("10".equals(icopayStatus)) {
+                    yield false;
+                }
+                if (!icopayStatus.isEmpty()) {
+                    yield true;
+                }
+                yield !PayListStatusBarBuckets.SUCCESS.equals(PayListStatusBarBuckets.bucketForChillStatus(chillSt));
+            }
+            default -> true;
+        };
     }
 
     private static void accumulateChillPayRowsIntoRollup(PayListStatusBarBuckets.MutableRollup roll,

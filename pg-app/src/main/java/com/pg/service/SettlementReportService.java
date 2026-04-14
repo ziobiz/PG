@@ -7,8 +7,12 @@ import com.pg.entity.OrgUnit;
 import com.pg.entity.PgTrnsctn;
 import com.pg.entity.SettlementRun;
 import com.pg.repository.CommissionPolicyRepository;
+import com.pg.repository.HqLedgerSysSettingsRepository;
 import com.pg.repository.OrgUnitRepository;
 import com.pg.repository.PgTrnsctnRepository;
+import com.pg.util.FeeCurrencyRoundResolver;
+import com.pg.util.FeeListRoundingPolicy;
+import com.pg.util.PayDisplayCurrency;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -43,15 +47,39 @@ public class SettlementReportService {
     private final PgTrnsctnRepository pgTrnsctnRepository;
     private final SettlementCalcService settlementCalcService;
     private final CommissionPolicyRepository commissionPolicyRepository;
+    private final HqLedgerSysSettingsRepository hqLedgerSysSettingsRepository;
 
     public SettlementReportService(OrgUnitRepository orgUnitRepository,
                                    PgTrnsctnRepository pgTrnsctnRepository,
                                    SettlementCalcService settlementCalcService,
-                                   CommissionPolicyRepository commissionPolicyRepository) {
+                                   CommissionPolicyRepository commissionPolicyRepository,
+                                   HqLedgerSysSettingsRepository hqLedgerSysSettingsRepository) {
         this.orgUnitRepository = orgUnitRepository;
         this.pgTrnsctnRepository = pgTrnsctnRepository;
         this.settlementCalcService = settlementCalcService;
         this.commissionPolicyRepository = commissionPolicyRepository;
+        this.hqLedgerSysSettingsRepository = hqLedgerSysSettingsRepository;
+    }
+
+    private FeeListRoundingPolicy settlementLedgerRoundPolicy() {
+        return hqLedgerSysSettingsRepository.findFirstByOrderByIdAsc()
+                .map(s -> FeeCurrencyRoundResolver.from(s).forCurrency(PayDisplayCurrency.alphaFromSettings(s)))
+                .orElseGet(FeeListRoundingPolicy::defaults);
+    }
+
+    private static double settlementMoneyDouble(BigDecimal bd, FeeListRoundingPolicy rp) {
+        if (bd == null) {
+            return 0d;
+        }
+        return FeeListRoundingPolicy.round(bd, rp).doubleValue();
+    }
+
+    private static double settlementPctDisplay(BigDecimal net, BigDecimal rate, FeeListRoundingPolicy rp) {
+        if (net == null || rate == null || rp == null || net.signum() <= 0) {
+            return 0d;
+        }
+        return FeeListRoundingPolicy.round(
+                net.multiply(rate).setScale(8, RoundingMode.HALF_UP), rp).doubleValue();
     }
 
     /** 가맹 정산·리포트 표시용 통화(수수료 정책 통화코드, 없으면 KRW) */
@@ -301,20 +329,21 @@ public class SettlementReportService {
             m.put("compId", mid);
             m.put("compNm", ou != null ? ou.getName() : mid);
             m.put("curType", resolveStatementCurrency(mid));
+            FeeListRoundingPolicy rp = settlementLedgerRoundPolicy();
             BigDecimal ap = nz(r.getApproveAmt());
             BigDecimal ca = nz(r.getCancelAmt());
             BigDecimal net = ap.subtract(ca);
-            m.put("approveAmt", ap.longValue());
-            m.put("cancelAmt", ca.longValue());
-            m.put("netPay", net.longValue());
-            m.put("depositAmt", pct(net, DEPOSIT_PCT));
-            m.put("processingFeeTotal", pct(net, PROC_PCT_TOTAL));
-            m.put("processingFeePg", pct(net, PROC_PCT_PG));
-            m.put("processingFeeFile", pct(net, PROC_PCT_FILE));
-            m.put("processingFeeOnline", pct(net, PROC_PCT_ONLINE));
-            m.put("payAmount", r.getPayAmt() != null ? r.getPayAmt().longValue() : 0L);
-            m.put("totalFee", r.getTotalFee() != null ? r.getTotalFee().longValue() : 0L);
-            m.put("rollingReserveAmt", r.getRollingReserveAmt() != null ? r.getRollingReserveAmt().longValue() : 0L);
+            m.put("approveAmt", settlementMoneyDouble(ap, rp));
+            m.put("cancelAmt", settlementMoneyDouble(ca, rp));
+            m.put("netPay", settlementMoneyDouble(net, rp));
+            m.put("depositAmt", settlementPctDisplay(net, DEPOSIT_PCT, rp));
+            m.put("processingFeeTotal", settlementPctDisplay(net, PROC_PCT_TOTAL, rp));
+            m.put("processingFeePg", settlementPctDisplay(net, PROC_PCT_PG, rp));
+            m.put("processingFeeFile", settlementPctDisplay(net, PROC_PCT_FILE, rp));
+            m.put("processingFeeOnline", settlementPctDisplay(net, PROC_PCT_ONLINE, rp));
+            m.put("payAmount", settlementMoneyDouble(r.getPayAmt(), rp));
+            m.put("totalFee", settlementMoneyDouble(r.getTotalFee(), rp));
+            m.put("rollingReserveAmt", settlementMoneyDouble(r.getRollingReserveAmt(), rp));
             m.put("status", r.getStatus());
             m.put("settlementDueDt", calcDt != null ? addBusinessDays(calcDt, 7).toString() : "");
             m.put("settledYn", "CALCULATED".equalsIgnoreCase(String.valueOf(r.getStatus())) ? "Y" : "N");
@@ -370,7 +399,7 @@ public class SettlementReportService {
             if (calcDt == null) continue;
             String key = calcDt + "|" + regional.getCode();
             RegionalExeBucket b = buckets.computeIfAbsent(key, k -> new RegionalExeBucket(calcDt, regional.getCode()));
-            b.add(r, resolveStatementCurrency(mid));
+            b.add(r, resolveStatementCurrency(mid), settlementLedgerRoundPolicy());
         }
 
         List<Map<String, Object>> rows = buckets.values().stream()
@@ -592,11 +621,11 @@ public class SettlementReportService {
     private static final class RegionalExeBucket {
         final LocalDate calcDt;
         final String regionalCode;
-        long approveAmtSum;
-        long cancelAmtSum;
-        long payAmountSum;
-        long totalFeeSum;
-        long rollingSum;
+        BigDecimal approveAmtSum = BigDecimal.ZERO;
+        BigDecimal cancelAmtSum = BigDecimal.ZERO;
+        BigDecimal payAmountSum = BigDecimal.ZERO;
+        BigDecimal totalFeeSum = BigDecimal.ZERO;
+        BigDecimal rollingSum = BigDecimal.ZERO;
         int runCount;
         boolean allCalculated = true;
         private final TreeSet<String> curTypes = new TreeSet<>();
@@ -606,16 +635,16 @@ public class SettlementReportService {
             this.regionalCode = regionalCode;
         }
 
-        void add(SettlementRun r, String stmtCurAlpha) {
+        void add(SettlementRun r, String stmtCurAlpha, FeeListRoundingPolicy rp) {
             runCount++;
             if (stmtCurAlpha != null && !stmtCurAlpha.isBlank()) {
                 curTypes.add(stmtCurAlpha.trim().toUpperCase(Locale.ROOT));
             }
-            approveAmtSum += nz(r.getApproveAmt()).longValue();
-            cancelAmtSum += nz(r.getCancelAmt()).longValue();
-            payAmountSum += r.getPayAmt() != null ? r.getPayAmt().longValue() : 0L;
-            totalFeeSum += r.getTotalFee() != null ? r.getTotalFee().longValue() : 0L;
-            rollingSum += r.getRollingReserveAmt() != null ? r.getRollingReserveAmt().longValue() : 0L;
+            approveAmtSum = approveAmtSum.add(FeeListRoundingPolicy.round(nz(r.getApproveAmt()), rp));
+            cancelAmtSum = cancelAmtSum.add(FeeListRoundingPolicy.round(nz(r.getCancelAmt()), rp));
+            payAmountSum = payAmountSum.add(FeeListRoundingPolicy.round(r.getPayAmt() != null ? r.getPayAmt() : BigDecimal.ZERO, rp));
+            totalFeeSum = totalFeeSum.add(FeeListRoundingPolicy.round(r.getTotalFee() != null ? r.getTotalFee() : BigDecimal.ZERO, rp));
+            rollingSum = rollingSum.add(FeeListRoundingPolicy.round(r.getRollingReserveAmt() != null ? r.getRollingReserveAmt() : BigDecimal.ZERO, rp));
             if (!"CALCULATED".equalsIgnoreCase(String.valueOf(r.getStatus()))) {
                 allCalculated = false;
             }
@@ -623,10 +652,9 @@ public class SettlementReportService {
     }
 
     private Map<String, Object> toRegionalExecuteRow(RegionalExeBucket b) {
+        FeeListRoundingPolicy rp = settlementLedgerRoundPolicy();
         OrgUnit reg = orgUnitRepository.findByCode(b.regionalCode).orElse(null);
-        BigDecimal netBd = BigDecimal.valueOf(b.approveAmtSum).subtract(BigDecimal.valueOf(b.cancelAmtSum));
-        long net = Math.max(netBd.longValue(), 0L);
-        BigDecimal netPos = BigDecimal.valueOf(net);
+        BigDecimal netBd = b.approveAmtSum.subtract(b.cancelAmtSum).max(BigDecimal.ZERO);
 
         Map<String, Object> m = new LinkedHashMap<>();
         m.put("calcDt", b.calcDt.toString());
@@ -642,17 +670,17 @@ public class SettlementReportService {
         } else {
             m.put("curType", String.join("/", b.curTypes));
         }
-        m.put("approveAmt", b.approveAmtSum);
-        m.put("cancelAmt", b.cancelAmtSum);
-        m.put("netPay", net);
-        m.put("depositAmt", pct(netPos, DEPOSIT_PCT));
-        m.put("processingFeeTotal", pct(netPos, PROC_PCT_TOTAL));
-        m.put("processingFeePg", pct(netPos, PROC_PCT_PG));
-        m.put("processingFeeFile", pct(netPos, PROC_PCT_FILE));
-        m.put("processingFeeOnline", pct(netPos, PROC_PCT_ONLINE));
-        m.put("payAmount", b.payAmountSum);
-        m.put("totalFee", b.totalFeeSum);
-        m.put("rollingReserveAmt", b.rollingSum);
+        m.put("approveAmt", settlementMoneyDouble(b.approveAmtSum, rp));
+        m.put("cancelAmt", settlementMoneyDouble(b.cancelAmtSum, rp));
+        m.put("netPay", settlementMoneyDouble(netBd, rp));
+        m.put("depositAmt", settlementPctDisplay(netBd, DEPOSIT_PCT, rp));
+        m.put("processingFeeTotal", settlementPctDisplay(netBd, PROC_PCT_TOTAL, rp));
+        m.put("processingFeePg", settlementPctDisplay(netBd, PROC_PCT_PG, rp));
+        m.put("processingFeeFile", settlementPctDisplay(netBd, PROC_PCT_FILE, rp));
+        m.put("processingFeeOnline", settlementPctDisplay(netBd, PROC_PCT_ONLINE, rp));
+        m.put("payAmount", settlementMoneyDouble(b.payAmountSum, rp));
+        m.put("totalFee", settlementMoneyDouble(b.totalFeeSum, rp));
+        m.put("rollingReserveAmt", settlementMoneyDouble(b.rollingSum, rp));
         m.put("status", b.allCalculated ? "CALCULATED" : "PENDING");
         m.put("settlementDueDt", addBusinessDays(b.calcDt, 7).toString());
         m.put("settledYn", b.allCalculated ? "Y" : "N");

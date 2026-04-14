@@ -2319,7 +2319,7 @@
     },
     /** ChillPay Transaction API — 통합정산(결제일·Settled 중심, ICOPAY 정산 DB 비사용) */
     '/calc/chillPaySettlementList': {
-      /** 상단 액션: [새로고침] 왼쪽에 순서 메뉴(내림차순·오름차순) */
+      /** 상단 액션: [새로고침] 왼쪽에 내림차순·오름차순(칠페이 OrderDir) */
       listSortDirAnchor: 'refresh',
       paginationSizeOptions: [50, 100, 300, 400, 500],
       paginationDefaultSize: 50,
@@ -2330,36 +2330,40 @@
       searchFormClass: 'screen-search-form pay-mng-search-form',
       searchRows: [
         [
-          { label: '정렬', type: 'select', name: 'searchOrderBy', options: [
-            { v: 'Settled', t: '정산(Settled)' },
-            { v: 'PaymentDate', t: 'PaymentDate' },
-            { v: 'TotalAmount', t: '총금액' },
-            { v: 'Fee', t: '수수료' },
-            { v: 'TransactionId', t: '승인번호' },
-            { v: 'TransactionDate', t: '거래일자' },
-            { v: 'OrderNo', t: '주문번호' },
-            { v: 'Amount', t: '결제금액' },
-            { v: 'Merchant', t: 'Merchant' },
-            { v: 'Customer', t: '고객' },
-            { v: 'Status', t: '상태' }
-          ], size: 12 },
-          { label: '결제일(PaymentDate)', type: 'daterange', from: 'searchFromDate', to: 'searchToDate' },
-          { type: 'quickdate' },
-          { type: 'searchBtn', label: '검색' }
+          { label: '', type: 'daterange', from: 'searchFromDate', to: 'searchToDate' },
+          { type: 'quickdate' }
         ],
         [
-          { label: '거래일(TransactionDate)', type: 'daterange', from: 'searchTxnFromDate', to: 'searchTxnToDate' },
-          { label: '검색어', type: 'text', name: 'searchKeyword', placeholder: 'SearchKeyword', size: 14 },
-          { label: 'MID', type: 'text', name: 'searchMerchantCode', placeholder: 'MerchantCode', size: 11 },
-          { label: '주문번호', type: 'text', name: 'searchOrderNo', size: 11 },
-          { label: '상태', type: 'text', name: 'searchChillStatus', placeholder: 'Paid…', size: 10 },
-          { label: '채널', type: 'text', name: 'searchPaymentChannel', size: 9 },
-          { label: 'Route', type: 'text', name: 'searchRouteNo', placeholder: '숫자', size: 6 }
+          { label: '검색구분', type: 'select', name: 'searchFieldType', options: [
+            { v: 'ALL', t: '전체' },
+            { v: 'COMP_NM', t: '업체명' },
+            { v: 'COMP_ID', t: '업체코드' },
+            { v: 'APPROVAL_NO', t: '승인번호' },
+            { v: 'ORDER_NO', t: '주문번호' },
+            { v: 'MID', t: 'MID' },
+            { v: 'ROUTE', t: '루트' },
+            { v: 'CURRENCY', t: '통화' },
+            { v: 'STATUS', t: '상태' },
+            { v: 'AMOUNT', t: '금액' }
+          ], size: 11 },
+          { label: '검색어', type: 'text', name: 'searchKeyword', placeholder: '검색어', size: 22 },
+          { label: '상태그룹', type: 'select', name: 'searchStatusGroup', options: [
+            { v: 'ALL', t: '전체' },
+            { v: 'SUCCESS', t: '성공' },
+            { v: 'FAIL', t: '실패' },
+            { v: 'CANCEL', t: '취소' },
+            { v: 'VOID', t: '무효' },
+            { v: 'MANUAL_VOID', t: '수동무효' },
+            { v: 'REFUND', t: '환불' },
+            { v: 'FORCE_REFUND', t: '강제환불' },
+            { v: 'EXCLUDE_SUCCESS', t: '성공제외' }
+          ], size: 11 },
+          { type: 'searchBtn', label: '검색' }
         ]
       ],
       noticeList: [
         '칠페이 Transaction Services — Search Payment Transaction API(v1.0.6)로 조회합니다. ICOPAY 정산 실행·유통망 정산 테이블과 무관하며, 칠페이가 판단한 Settled·수수료·금액 등 원문을 봅니다.',
-        '기본 정렬 키는 Settled, 기간은 PaymentDate(결제일)입니다. 내림차순·오름차순은 상단 [새로고침] 왼쪽 메뉴에서 고르며, 통합정산 화면에서는 [새로고침]으로 반영합니다. 기간을 비우면 최근 30일 결제일로 조회합니다. 거래일(TransactionDate)은 선택 필터입니다.',
+        '칠페이 API 정렬 키는 Settled(기본)·PaymentDate 등이며, 상단 [새로고침] 왼쪽에서 내림차순·오름차순(OrderDir)을 고릅니다. 첫째 줄에서 결제일 구간·빠른기간을 정한 뒤, 둘째 줄에서 검색구분·검색어·상태그룹을 맞추고 [검색]을 누릅니다. 「전체」는 해당 항목으로 좁히지 않습니다. 환불/강제환불·성공제외 등은 칠페이 API에 더해 ICOPAY 거래 상태로 보조 필터하며, 이때 상단 요약은 안내 문구대로 현재 페이지만 반영될 수 있습니다. 기간을 비우면 최근 30일 결제일로 조회합니다.',
         '자격: 배포설정 > API배포설정·tb_pg_agency(ChillPay)의 MerchantCode·ApiKey·MD5 Secret Key·샌드박스와 동일합니다.',
         '그리드 열 노출은 상단 VIEW SETTING에서 조정합니다(저장 시 사용자별로 유지). 번호(No.)만 항상 표시되며, 통화·승인번호·거래일자·Merchant·고객·주문번호·PaymentChannel·PaymentDate·결제금액·수수료·Discount·총금액·RefundAmount·루트·상태·정산·ICOPAY·Description 등은 VIEW SETTING에서 켜고 끌 수 있습니다. 본사설정 → 조직항목설정에서 화면「통합정산」 허용 열을 제한할 수 있습니다.'
       ],
@@ -2464,21 +2468,33 @@
       paginationSizeOptions: [50, 100, 300, 400, 500],
       paginationDefaultSize: 50,
       columnGuideFixedKeys: ['rowNo', 'compNm', 'compId', 'curType'],
-      searchFormClass: 'pay-mng-search-form',
+      /** 검색 폼은 정산실행과 동일: `screen-search-form`만( pay-mng-search-form 미부여 ) */
       payMngDenseGrid: true,
       noticeList: [
-        '한 행은 정산실행이 저장한 가맹점 정산 결과입니다. 금액·공제수수료(feeAmt)·보류액·정산금액은 실행 시 저장값이며, 수수료(건)·부가세·건당·정산건당·기타(%)·보유율은 해당 실행의 집계 구간(정산대상기간·당일 누적 마감시각) 거래를 수수료내역과 동일한 건별 규칙으로 보조 계산합니다. 신규 실행부터 period가 저장되며, 그 이전 행은 정산일 하루 창으로 재조회합니다. 정산대상기간: RT는 거래번호·승인번호·마감(초) 한 줄, 그 외는 yyyy-MM-dd HH:mm:ss ~ 동일 형식(일 단위는 00:00:00~23:59:59, 분·시 격자는 구간 시각).',
+        '한 행은 정산실행이 저장한 가맹점 정산 결과입니다. 검색은 정산실행과 동일하게 상단 한 줄(정산일 구간·빠른기간·검색구분·검색어). 「전체」는 해당 필드로 좁히지 않으며, 검색어가 있을 때만 전체 컬럼 OR 검색입니다.',
+        '금액·공제수수료(feeAmt)·보류액·정산금액은 실행 시 저장값이며, 수수료(건)·부가세·건당·정산건당·기타(%)·보유율은 해당 실행의 집계 구간(정산대상기간·당일 누적 마감시각) 거래를 수수료내역과 동일한 건별 규칙으로 보조 계산합니다. 신규 실행부터 period가 저장되며, 그 이전 행은 정산일 하루 창으로 재조회합니다. 정산대상기간: RT는 거래번호·승인번호·마감(초) 한 줄, 그 외는 yyyy-MM-dd HH:mm:ss ~ 동일 형식(일 단위는 00:00:00~23:59:59, 분·시 격자는 구간 시각).',
+        '수수료(건)·보류율·건당수수료·정산건당·기타(%)수수료 열은 보조 참고용 분해이며, 글자색이 연한 회색으로 표시됩니다. 수수료(%), 수수료(금액), 수수료(부가세), 보류금액, 금액, 정산금액 등은 실행 저장값 기준입니다.',
         '본사·총판·지사·대리점·영업점 등 유통 구간 수익·수수료 분배는 유통망정산내역에서 동일 정산 실행분을 조직 단위로 집계합니다.'
       ],
       searchRows: [
         [
-          { label: '정산일자', type: 'daterange', from: 'searchFromDate', to: 'searchToDate', col: 5 },
-          { type: 'quickdate' }
-        ],
-        [
-          { label: '가맹점코드', type: 'text', name: 'searchCompId' },
-          { label: '업체명', type: 'text', name: 'searchCompNm' },
-          { type: 'searchBtn' }
+          { label: '정산기간', type: 'daterange', from: 'searchFromDate', to: 'searchToDate' },
+          { type: 'quickdate' },
+          { label: '검색구분', type: 'select', name: 'searchFieldType', options: [
+            { v: 'ALL', t: '전체' },
+            { v: 'CALC_CYCLE', t: '정산주기' },
+            { v: 'CALC_METHOD', t: '정산방법' },
+            { v: 'COMP_NM', t: '업체명' },
+            { v: 'COMP_ID', t: '업체코드' },
+            { v: 'APPROVAL_NO', t: '승인번호' },
+            { v: 'MID', t: 'MID' },
+            { v: 'ROUTE', t: '루트' },
+            { v: 'CURRENCY', t: '통화' },
+            { v: 'STATUS', t: '상태' },
+            { v: 'AMOUNT', t: '금액' }
+          ], size: 10 },
+          { label: '검색어', type: 'text', name: 'searchKeyword', placeholder: '검색어', size: 16 },
+          { type: 'searchBtn', label: '검색' }
         ]
       ],
       summary: ['건수', '금액', '수수료금액', '수수료부가세', '보류금액', '정산금액'],
@@ -2586,14 +2602,38 @@
         'failFee', 'cancelFee', 'voidFee', 'manualVoidFee', 'refundFee', 'chargebackFee',
         'totalFee', 'feeVat', 'expectedPayout', 'settlementAmt', 'vatAppliedYn'
       ],
-      notice: '앞쪽 열 순서(업체·거래일·거래시간·루트·승인번호·거래번호)는 통합 결제내역 기본과 같습니다. 건당수수료 열은 거래 성공 시 과금되는 성공(건당) 고정액만 표시합니다. 기타수수료: USDT·FX는 승인금액 대비 %(「결제(%)」 합계에 포함), 3DS는 정책통화 기준 건당 고정(합계 열에는 미포함·별도 열). 세 항목은 결제·건당 등과 별도로 동시 과금될 수 있습니다. 금액이 없으면 USDT·FX·3DS 열은 — 입니다. 정산 수수료는 정산 실행 시 1회 과금되며, 송금(이체) 수수료는 그 이후 송금 처리 시 과금되어 정산리포트에 정산 수수료·송금 수수료로 각각 표시됩니다. 이 화면의 총수수료·지급예상에는 정산·송금 건당액이 포함되지 않습니다. 결제(성공): 건당·%(승인 시 부과) 열, 담보(롤링%·추정액), 지급예상액, 정산액(지급예상−담보추정). 실패·취소·무효·환불 등은 상태별 수수료 규칙을 따르며, 무효·환불 계열은 성공 건과 동일한 건당·%가 추가로 과금될 수 있습니다(이중 과금). 차감(취소·환불·무효·실패 등): 지급예상액은 0, 총수수료·부가세는 과금액(양수), 정산액은 −(총수수료+부가세)입니다. 담보 추정은 승인 건에만 표시됩니다. 본사·총판 등은 로그인 조직 하위 가맹점만 조회됩니다.',
+      notice: '검색: 첫 줄에서 거래일·빠른기간을 정한 뒤, 둘째 줄에서 검색구분·검색어·상태그룹을 맞추고 오른쪽 [검색]을 누릅니다. 「전체」는 해당 조건으로 좁히지 않습니다. 앞쪽 열 순서(업체·거래일·거래시간·루트·승인번호·거래번호)는 통합 결제내역 기본과 같습니다. 건당수수료 열은 거래 성공 시 과금되는 성공(건당) 고정액만 표시합니다. 기타수수료: USDT·FX는 승인금액 대비 %(「결제(%)」 합계에 포함), 3DS는 정책통화 기준 건당 고정(합계 열에는 미포함·별도 열). 세 항목은 결제·건당 등과 별도로 동시 과금될 수 있습니다. 금액이 없으면 USDT·FX·3DS 열은 — 입니다. 정산 수수료는 정산 실행 시 1회 과금되며, 송금(이체) 수수료는 그 이후 송금 처리 시 과금되어 정산리포트에 정산 수수료·송금 수수료로 각각 표시됩니다. 이 화면의 총수수료·지급예상에는 정산·송금 건당액이 포함되지 않습니다. 결제(성공): 건당·%(승인 시 부과) 열, 담보(롤링%·추정액), 지급예상액, 정산액(지급예상−담보추정). 실패·취소·무효·환불 등은 상태별 수수료 규칙을 따르며, 무효·환불 계열은 성공 건과 동일한 건당·%가 추가로 과금될 수 있습니다(이중 과금). 차감(취소·환불·무효·실패 등): 지급예상액은 0, 총수수료·부가세는 과금액(양수), 정산액은 −(총수수료+부가세)입니다. 담보 추정은 승인 건에만 표시됩니다. 본사·총판 등은 로그인 조직 하위 가맹점만 조회됩니다.',
       searchRows: [
         [
-          { label: '업체코드', type: 'text', name: 'searchCompId' },
-          { label: '업체명', type: 'text', name: 'searchCompNm' },
           { label: '거래일자', type: 'daterange', from: 'searchFromDate', to: 'searchToDate' },
-          { type: 'quickdate' },
-          { type: 'searchBtn' }
+          { type: 'quickdate' }
+        ],
+        [
+          { label: '검색구분', type: 'select', name: 'searchFieldType', options: [
+            { v: 'ALL', t: '전체' },
+            { v: 'COMP_NM', t: '업체명' },
+            { v: 'COMP_ID', t: '업체코드' },
+            { v: 'APPROVAL_NO', t: '승인번호' },
+            { v: 'ORDER_NO', t: '주문번호' },
+            { v: 'MID', t: 'MID' },
+            { v: 'ROUTE', t: '루트' },
+            { v: 'CURRENCY', t: '통화' },
+            { v: 'STATUS', t: '상태' },
+            { v: 'AMOUNT', t: '금액' }
+          ], size: 11 },
+          { label: '검색어', type: 'text', name: 'searchKeyword', placeholder: '검색어', size: 22 },
+          { label: '상태그룹', type: 'select', name: 'searchStatusGroup', options: [
+            { v: 'ALL', t: '전체' },
+            { v: 'SUCCESS', t: '성공' },
+            { v: 'FAIL', t: '실패' },
+            { v: 'CANCEL', t: '취소' },
+            { v: 'VOID', t: '무효' },
+            { v: 'MANUAL_VOID', t: '수동무효' },
+            { v: 'REFUND', t: '환불' },
+            { v: 'FORCE_REFUND', t: '강제환불' },
+            { v: 'EXCLUDE_SUCCESS', t: '성공제외' }
+          ], size: 11 },
+          { type: 'searchBtn', label: '검색' }
         ]
       ],
       summary: ['건수', '총수수료', '부가세', '지급예상합', '정산액합'],
@@ -2705,13 +2745,26 @@
       listSortDirAnchor: 'refresh',
       paginationSizeOptions: [50, 100, 300, 400, 500],
       paginationDefaultSize: 50,
-      notice: '「정산실행」버튼(수동): 기간·가맹을 지정해 실행합니다. 정산로직상 정산구분이 <strong>자동(AUTO)</strong>인 가맹은 수동 실행에서 제외되며, D+N·W+N·WK 등 달력 주기 가맹은 <strong>기간 종료일(정산일)</strong>이 해당 주기의 실행일일 때만 집계됩니다(미도래일에는 실행되지 않음). 정산마감시각·정산제외 영업일·D0 시간대는 자동 배치와 동일합니다. RT·T0·격자(M/H/TM/TH) 수동 가맹은 조회 기간 내 거래가 있을 때만 해당 기간으로 집계합니다. 서버 스케줄(자동)은 정산구분 AUTO 가맹만 대상입니다. 목록의 정산주기·정산방법·루트는 가맹 정산설정·PG연동에서 가져옵니다.',
+      notice: '「정산실행」버튼(수동): 기간·가맹을 지정해 실행합니다. 검색: 상단 한 줄에서 정산기간·빠른기간·검색구분·검색어를 지정한 뒤 [검색]으로 좁힙니다. 「전체」는 해당 조건으로 좁히지 않습니다(검색어가 있을 때만 전체 컬럼 OR 검색). 정산로직상 정산구분이 <strong>자동(AUTO)</strong>인 가맹은 수동 실행에서 제외되며, D+N·W+N·WK 등 달력 주기 가맹은 <strong>기간 종료일(정산일)</strong>이 해당 주기의 실행일일 때만 집계됩니다(미도래일에는 실행되지 않음). 정산마감시각·정산제외 영업일·D0 시간대는 자동 배치와 동일합니다. RT·T0·격자(M/H/TM/TH) 수동 가맹은 조회 기간 내 거래가 있을 때만 해당 기간으로 집계합니다. 서버 스케줄(자동)은 정산구분 AUTO 가맹만 대상입니다. 목록의 정산주기·정산방법·루트는 가맹 정산설정·PG연동에서 가져옵니다.',
       searchRows: [
         [
           { label: '정산기간', type: 'daterange', from: 'searchFromDate', to: 'searchToDate' },
           { type: 'quickdate' },
-          { label: '업체코드', type: 'text', name: 'searchCompId', placeholder: '가맹점 코드' },
-          { type: 'searchBtn' }
+          { label: '검색구분', type: 'select', name: 'searchFieldType', options: [
+            { v: 'ALL', t: '전체' },
+            { v: 'CALC_CYCLE', t: '정산주기' },
+            { v: 'CALC_METHOD', t: '정산방법' },
+            { v: 'COMP_NM', t: '업체명' },
+            { v: 'COMP_ID', t: '업체코드' },
+            { v: 'APPROVAL_NO', t: '승인번호' },
+            { v: 'MID', t: 'MID' },
+            { v: 'ROUTE', t: '루트' },
+            { v: 'CURRENCY', t: '통화' },
+            { v: 'STATUS', t: '상태' },
+            { v: 'AMOUNT', t: '금액' }
+          ], size: 10 },
+          { label: '검색어', type: 'text', name: 'searchKeyword', placeholder: '검색어', size: 16 },
+          { type: 'searchBtn', label: '검색' }
         ]
       ],
       summary: [],
@@ -3166,7 +3219,8 @@
       listSortDirAnchor: 'refresh',
       paginationSizeOptions: [50, 100, 300, 400, 500],
       paginationDefaultSize: 50,
-      searchRows: [[{ label: '정산대상일', type: 'daterange', from: 'searchFromDate', to: 'searchToDate' }, { type: 'searchBtn' }]],
+      /** searchRows는 아래 init에서 `/calc/exCalcList`와 동기화 */
+      searchRows: [],
       summary: [],
       buttons: [
         { id: 'payListRefreshBtn', label: '새로고침', cls: 'btn-outline-secondary' },
@@ -3364,6 +3418,9 @@
         if (gm.noticeList && gm.noticeList.length) fr.noticeList = gm.noticeList.slice();
         if (gm.buttons) fr.buttons = JSON.parse(JSON.stringify(gm.buttons));
         if (gm.listSortDirAnchor) fr.listSortDirAnchor = gm.listSortDirAnchor;
+        if (gm.searchRows && gm.searchRows.length) {
+          fr.searchRows = JSON.parse(JSON.stringify(gm.searchRows));
+        }
       }
       var cl = MENU_SCREENS['/calc/calcList'];
       var dist = MENU_SCREENS['/settlement/distributionList'];
@@ -3384,6 +3441,17 @@
       var exc = MENU_SCREENS['/calc/exCalcList'];
       if (ex && exc && ex.columns && ex.columns.length) {
         exc.columns = JSON.parse(JSON.stringify(ex.columns));
+      }
+      if (ex && exc && exc.searchRows && exc.searchRows.length) {
+        ex.searchRows = JSON.parse(JSON.stringify(exc.searchRows));
+        if (ex.searchRows && ex.searchRows[0] && ex.searchRows[0][0]) {
+          ex.searchRows[0][0].label = '정산대상일';
+        }
+        (ex.searchRows || []).forEach(function (row) {
+          (row || []).forEach(function (cell) {
+            if (cell && cell.type === 'searchBtn') cell.label = '조회';
+          });
+        });
       }
       var fee = MENU_SCREENS['/calc/feeList'];
       if (fee && !MENU_SCREENS['/settlement/feeList']) {

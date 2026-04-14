@@ -127,4 +127,38 @@ public final class CommissionExtraFeeUtil {
             default -> null;
         };
     }
+
+    /**
+     * 정산 실행 등: HQ 수수료·정산 소수 규칙({@code FeeListRoundingPolicy})으로 기타 % 수수료 합산.
+     */
+    public static BigDecimal sumPctOnApprovedAmount(CommissionPolicy p, BigDecimal approvedTxnAmt, FeeListRoundingPolicy rp) {
+        if (p == null || approvedTxnAmt == null || approvedTxnAmt.signum() <= 0 || rp == null) {
+            return BigDecimal.ZERO;
+        }
+        BigDecimal sum = BigDecimal.ZERO;
+        int sc = rp.decimalPlaces();
+        RoundingMode rm = rp.roundMode();
+        for (int i = 1; i <= 4; i++) {
+            if (!isPctSlot(p, i)) {
+                continue;
+            }
+            sum = sum.add(pctSlotAmountOnApproved(p, i, approvedTxnAmt, sc, rm));
+        }
+        return sum;
+    }
+
+    /** 정산 배치 1회 고정 기타 수수료 합 — 마지막만 {@link FeeListRoundingPolicy#round} 적용 */
+    public static BigDecimal sumFixedForSettlementRounded(CommissionPolicy p, FeeListRoundingPolicy rp) {
+        if (p == null) {
+            return BigDecimal.ZERO;
+        }
+        BigDecimal sum = BigDecimal.ZERO;
+        for (int i = 1; i <= 4; i++) {
+            if (!isFixSlot(p, i)) {
+                continue;
+            }
+            sum = sum.add(nz(getValue(p, i)));
+        }
+        return FeeListRoundingPolicy.round(sum, rp != null ? rp : FeeListRoundingPolicy.defaults());
+    }
 }

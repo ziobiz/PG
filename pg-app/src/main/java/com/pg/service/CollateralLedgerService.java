@@ -7,11 +7,16 @@ import com.pg.entity.OrgUnit;
 import com.pg.entity.PgTrnsctn;
 import com.pg.entity.RollingReserve;
 import com.pg.repository.CommissionPolicyRepository;
+import com.pg.repository.HqLedgerSysSettingsRepository;
 import com.pg.repository.OrgUnitRepository;
 import com.pg.repository.PgTrnsctnRepository;
 import com.pg.repository.RollingReserveRepository;
+import com.pg.util.FeeCurrencyRoundResolver;
+import com.pg.util.FeeListRoundingPolicy;
+import com.pg.util.PayDisplayCurrency;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -32,15 +37,24 @@ public class CollateralLedgerService {
     private final OrgUnitRepository orgUnitRepository;
     private final PgTrnsctnRepository pgTrnsctnRepository;
     private final CommissionPolicyRepository commissionPolicyRepository;
+    private final HqLedgerSysSettingsRepository hqLedgerSysSettingsRepository;
 
     public CollateralLedgerService(RollingReserveRepository rollingReserveRepository,
                                    OrgUnitRepository orgUnitRepository,
                                    PgTrnsctnRepository pgTrnsctnRepository,
-                                   CommissionPolicyRepository commissionPolicyRepository) {
+                                   CommissionPolicyRepository commissionPolicyRepository,
+                                   HqLedgerSysSettingsRepository hqLedgerSysSettingsRepository) {
         this.rollingReserveRepository = rollingReserveRepository;
         this.orgUnitRepository = orgUnitRepository;
         this.pgTrnsctnRepository = pgTrnsctnRepository;
         this.commissionPolicyRepository = commissionPolicyRepository;
+        this.hqLedgerSysSettingsRepository = hqLedgerSysSettingsRepository;
+    }
+
+    private FeeListRoundingPolicy settlementLedgerRoundPolicy() {
+        return hqLedgerSysSettingsRepository.findFirstByOrderByIdAsc()
+                .map(s -> FeeCurrencyRoundResolver.from(s).forCurrency(PayDisplayCurrency.alphaFromSettings(s)))
+                .orElseGet(FeeListRoundingPolicy::defaults);
     }
 
     private String resolveStatementCurrency(String compId) {
@@ -204,6 +218,7 @@ public class CollateralLedgerService {
 
         List<Map<String, Object>> rows = new ArrayList<>();
         int rowNo = fromIdx + 1;
+        FeeListRoundingPolicy rp = settlementLedgerRoundPolicy();
         for (RollingReserve r : slice) {
             Map<String, Object> m = new LinkedHashMap<>();
             m.put("rowNo", rowNo++);
@@ -218,7 +233,7 @@ public class CollateralLedgerService {
                 curCell = resolveStatementCurrency(mid);
             }
             m.put("curType", curCell);
-            m.put("reserveAmt", r.getReserveAmt() != null ? r.getReserveAmt().longValue() : 0L);
+            m.put("reserveAmt", FeeListRoundingPolicy.round(r.getReserveAmt() != null ? r.getReserveAmt() : BigDecimal.ZERO, rp).doubleValue());
             m.put("rollingPct", r.getRollingPct() != null ? r.getRollingPct().stripTrailingZeros().toPlainString() : "");
             m.put("holdBusinessDays", r.getHoldBusinessDays() != null ? r.getHoldBusinessDays() : "");
             LocalDate hsd = r.getHoldStartDate() != null ? r.getHoldStartDate() : effectiveHoldStart(r);

@@ -5216,6 +5216,15 @@
                   if (['calcDt', 'approveDt', 'cancelDt'].indexOf(c.key) >= 0) gmCls.push('text-nowrap');
                   if (['compNm', 'merchantNm', 'payoutHoldRemark'].indexOf(c.key) >= 0) gmCls.push('text-start');
                   if (c.key === 'payoutHoldRemark') gmCls.push('small', 'text-break');
+                  /** 가맹점정산내역: 집계구간 거래 보조 분해 열만 톤 다운(실행 저장값과 구분) */
+                  if ((url === '/calc/calcGmList' || url === '/settlement/franchiseList')
+                      && ['feeCnt', 'holdRate', 'perTxFeeAmt', 'settlementPerTxFeeAmt', 'extraFeesAmt'].indexOf(c.key) >= 0) {
+                    gmCls.push('pg-franchise-fee-aux');
+                  }
+                  /** 가맹점정산내역: 정산금액(settleAmt) 강조 */
+                  if ((url === '/calc/calcGmList' || url === '/settlement/franchiseList') && c.key === 'settleAmt') {
+                    gmCls.push('text-danger', 'fw-semibold');
+                  }
                   if (gmCls.length) cellClass = ' class="' + gmCls.join(' ') + '"';
                 } else if (url === '/commission/commisionList') {
                   var commCls = [];
@@ -15434,11 +15443,20 @@
       btn.addEventListener('click', function () {
         var fromEl = pane.querySelector('#searchFromDate');
         var toEl = pane.querySelector('#searchToDate');
-        var compIdEl = pane.querySelector('input[name="searchCompId"]');
+        var ftEl = pane.querySelector('[name="searchFieldType"]');
+        var kwEl = pane.querySelector('[name="searchKeyword"]');
+        var legacyComp = pane.querySelector('input[name="searchCompId"]');
         var fromDate = fromEl && fromEl.value ? fromEl.value : '';
         var toDate = toEl && toEl.value ? toEl.value : '';
         if (!fromDate || !toDate) { alert('정산대상일(시작일~종료일)을 입력하세요.'); return; }
-        var merchantId = compIdEl && compIdEl.value ? compIdEl.value.trim() : '';
+        var ft = ftEl && ftEl.value ? String(ftEl.value).trim() : '';
+        var kw = kwEl && kwEl.value ? String(kwEl.value).trim() : '';
+        var merchantId = '';
+        if ((ft === 'COMP_ID' || ft === 'MID') && kw) {
+          merchantId = kw;
+        } else if (legacyComp && legacyComp.value) {
+          merchantId = String(legacyComp.value).trim();
+        }
         var dimm4 = document.getElementById('dimm');
         if (dimm4) dimm4.style.display = 'flex';
         var runParams = { fromDate: fromDate, toDate: toDate };

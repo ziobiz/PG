@@ -21,7 +21,10 @@ import com.pg.service.settlement.SettlementPeriodResolver;
 import com.pg.util.BusinessDayCalendar;
 import com.pg.util.ChargebackTierResolver;
 import com.pg.util.CommissionExtraFeeUtil;
+import com.pg.util.FeeCurrencyRoundResolver;
+import com.pg.util.FeeListRoundingPolicy;
 import com.pg.util.MerchantFeeVatUtil;
+import com.pg.util.PayDisplayCurrency;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -66,6 +69,7 @@ public class SettlementCalcService {
     private final OrgUnitRepository orgUnitRepository;
     private final OrgServiceUseService orgServiceUseService;
     private final SettlementArrearsService settlementArrearsService;
+    private final HqLedgerSysSettingsService hqLedgerSysSettingsService;
 
     public SettlementCalcService(PgTrnsctnRepository trnsctnRepository,
                                  CommissionPolicyRepository commissionPolicyRepository,
@@ -75,7 +79,8 @@ public class SettlementCalcService {
                                  SettlementSettingRepository settlementSettingRepository,
                                  OrgUnitRepository orgUnitRepository,
                                  OrgServiceUseService orgServiceUseService,
-                                 SettlementArrearsService settlementArrearsService) {
+                                 SettlementArrearsService settlementArrearsService,
+                                 HqLedgerSysSettingsService hqLedgerSysSettingsService) {
         this.trnsctnRepository = trnsctnRepository;
         this.commissionPolicyRepository = commissionPolicyRepository;
         this.chargebackFeePolicyRepository = chargebackFeePolicyRepository;
@@ -85,6 +90,7 @@ public class SettlementCalcService {
         this.orgUnitRepository = orgUnitRepository;
         this.orgServiceUseService = orgServiceUseService;
         this.settlementArrearsService = settlementArrearsService;
+        this.hqLedgerSysSettingsService = hqLedgerSysSettingsService;
     }
 
     public List<SettlementRun> listRuns(LocalDate fromDate, LocalDate toDate) {
@@ -583,8 +589,6 @@ public class SettlementCalcService {
                 failCnt++;
             }
         }
-        BigDecimal netSales = approveAmt.subtract(cancelAmt).subtract(voidAmt).subtract(manualVoidAmt);
-
         /* 해지일이 도래한 담보금(롤링) → 이번 정산 지급액에 합산 후 RELEASED 처리 */
         BigDecimal releasedFromReserve = BigDecimal.ZERO;
         LocalDateTime releaseStamp = LocalDateTime.now();
@@ -607,6 +611,17 @@ public class SettlementCalcService {
             return null;
         }
 
+        var ledgerSys = hqLedgerSysSettingsService.getOrCreate();
+        FeeListRoundingPolicy lr = FeeCurrencyRoundResolver.from(ledgerSys)
+                .forCurrency(PayDisplayCurrency.alphaFromSettings(ledgerSys));
+        releasedFromReserve = FeeListRoundingPolicy.round(releasedFromReserve, lr);
+
+        BigDecimal approveRounded = FeeListRoundingPolicy.round(approveAmt, lr);
+        BigDecimal cancelRounded = FeeListRoundingPolicy.round(cancelAmt, lr);
+        BigDecimal voidRounded = FeeListRoundingPolicy.round(voidAmt, lr);
+        BigDecimal manualVoidRounded = FeeListRoundingPolicy.round(manualVoidAmt, lr);
+        BigDecimal netSales = approveRounded.subtract(cancelRounded).subtract(voidRounded).subtract(manualVoidRounded);
+
         BigDecimal perTxFee = policy.getPerTxFee() != null ? policy.getPerTxFee() : BigDecimal.ZERO;
         BigDecimal cancelRate = policy.getCancelRate() != null ? policy.getCancelRate() : BigDecimal.ZERO;
         BigDecimal voidFeePerTx = policy.getVoidFeePerTx() != null ? policy.getVoidFeePerTx() : BigDecimal.ZERO;
@@ -627,13 +642,13 @@ public class SettlementCalcService {
         BigDecimal rollingPct = rollingPctRef[0];
         int rollingDays = rollingDaysRef[0];
 
-        BigDecimal feePerTx = perTxFee.multiply(BigDecimal.valueOf(txCount)).setScale(0, RoundingMode.HALF_UP);
-        BigDecimal feePayRate = approveAmt.multiply(payRate).divide(BigDecimal.valueOf(100), 0, RoundingMode.HALF_UP);
+        BigDecimal feePerTx = FeeListRoundingPolicy.round(perTxFee.multiply(BigDecimal.valueOf(txCount)), lr);
+        BigDecimal feePayRate = lrPctOf(approveAmt, payRate, lr);
         /* 취소·무효·수동무효·환불: 건당 고정액 × 해당 건수 */
-        BigDecimal feeCancelRate = cancelRate.multiply(BigDecimal.valueOf(cancelCnt)).setScale(0, RoundingMode.HALF_UP);
-        BigDecimal feeVoidPerTx = voidFeePerTx.multiply(BigDecimal.valueOf(voidCnt)).setScale(0, RoundingMode.HALF_UP);
-        BigDecimal feeManualVoidPerTx = manualVoidFeePerTx.multiply(BigDecimal.valueOf(manualVoidCnt)).setScale(0, RoundingMode.HALF_UP);
-        BigDecimal feeRefundRate = refundRate.multiply(BigDecimal.valueOf(refundCnt)).setScale(0, RoundingMode.HALF_UP);
+        BigDecimal feeCancelRate = FeeListRoundingPolicy.round(cancelRate.multiply(BigDecimal.valueOf(cancelCnt)), lr);
+        BigDecimal feeVoidPerTx = FeeListRoundingPolicy.round(voidFeePerTx.multiply(BigDecimal.valueOf(voidCnt)), lr);
+        BigDecimal feeManualVoidPerTx = FeeListRoundingPolicy.round(manualVoidFeePerTx.multiply(BigDecimal.valueOf(manualVoidCnt)), lr);
+        BigDecimal feeRefundRate = FeeListRoundingPolicy.round(refundRate.multiply(BigDecimal.valueOf(refundCnt)), lr);
         YearMonth ym = YearMonth.from(calcDt);
         LocalDate monthStart = ym.atDay(1);
         LocalDate monthEnd = ym.atEndOfMonth();
@@ -645,11 +660,11 @@ public class SettlementCalcService {
             chargeMonthlyUsage = runsAlreadyThisMonth == 0;
         }
         chargeMonthlyUsage = chargeMonthlyUsage && usageRate.compareTo(BigDecimal.ZERO) > 0;
-        BigDecimal feeUsage = chargeMonthlyUsage ? usageRate.setScale(0, RoundingMode.HALF_UP) : BigDecimal.ZERO;
-        BigDecimal feeFailTotal = failFee.multiply(BigDecimal.valueOf(failCnt)).setScale(0, RoundingMode.HALF_UP);
+        BigDecimal feeUsage = chargeMonthlyUsage ? FeeListRoundingPolicy.round(usageRate, lr) : BigDecimal.ZERO;
+        BigDecimal feeFailTotal = FeeListRoundingPolicy.round(failFee.multiply(BigDecimal.valueOf(failCnt)), lr);
 
         BigDecimal feeSettlementPerTxBd = policy.getFeeSettlementPerTx() != null ? policy.getFeeSettlementPerTx() : BigDecimal.ZERO;
-        BigDecimal feeSettlementTotal = feeSettlementPerTxBd.multiply(BigDecimal.valueOf(txCount)).setScale(0, RoundingMode.HALF_UP);
+        BigDecimal feeSettlementTotal = FeeListRoundingPolicy.round(feeSettlementPerTxBd.multiply(BigDecimal.valueOf(txCount)), lr);
 
         long chargebackBatchCnt = txList.stream()
                 .map(PgTrnsctn::getStatus)
@@ -676,7 +691,7 @@ public class SettlementCalcService {
             } else {
                 perCase = policy.getChargebackFeePerTx() != null ? policy.getChargebackFeePerTx() : BigDecimal.ZERO;
             }
-            feeChargebackTotal = perCase.multiply(BigDecimal.valueOf(chargebackBatchCnt)).setScale(0, RoundingMode.HALF_UP);
+            feeChargebackTotal = FeeListRoundingPolicy.round(perCase.multiply(BigDecimal.valueOf(chargebackBatchCnt)), lr);
         }
 
         BigDecimal feeUsdtBd = policy.getFeeUsdt() != null ? policy.getFeeUsdt() : BigDecimal.ZERO;
@@ -691,22 +706,22 @@ public class SettlementCalcService {
             if (!"10".equals(st)) continue;
             BigDecimal amt = t.getAmtKrw() != null ? t.getAmtKrw() : BigDecimal.ZERO;
             if (extraRateOnApprove.signum() > 0 && amt.signum() > 0) {
-                feeUsdtFxPctSum = feeUsdtFxPctSum.add(
-                        amt.multiply(extraRateOnApprove).divide(BigDecimal.valueOf(100), 0, RoundingMode.HALF_UP));
+                feeUsdtFxPctSum = feeUsdtFxPctSum.add(lrPctOf(amt, extraRateOnApprove, lr));
             }
             if (fee3dsFixedPerTx.signum() > 0 && amt.signum() > 0) {
-                fee3dsFixedSum = fee3dsFixedSum.add(fee3dsFixedPerTx);
+                fee3dsFixedSum = fee3dsFixedSum.add(FeeListRoundingPolicy.round(fee3dsFixedPerTx, lr));
             }
-            feeExtraPctSum = feeExtraPctSum.add(CommissionExtraFeeUtil.sumPctOnApprovedAmount(policy, amt));
+            feeExtraPctSum = feeExtraPctSum.add(CommissionExtraFeeUtil.sumPctOnApprovedAmount(policy, amt, lr));
         }
-        fee3dsFixedSum = fee3dsFixedSum.setScale(0, RoundingMode.HALF_UP);
+        fee3dsFixedSum = FeeListRoundingPolicy.round(fee3dsFixedSum, lr);
 
-        BigDecimal feeExtraFix = CommissionExtraFeeUtil.sumFixedForSettlement(policy);
+        BigDecimal feeExtraFix = CommissionExtraFeeUtil.sumFixedForSettlementRounded(policy, lr);
 
-        BigDecimal totalFee = feePerTx.add(feePayRate).add(feeCancelRate).add(feeVoidPerTx).add(feeManualVoidPerTx).add(feeRefundRate).add(feeUsage)
-                .add(feeFailTotal).add(feeSettlementTotal).add(feeChargebackTotal).add(feeUsdtFxPctSum).add(fee3dsFixedSum)
-                .add(feeExtraPctSum).add(feeExtraFix)
-                .setScale(0, RoundingMode.HALF_UP);
+        BigDecimal totalFee = FeeListRoundingPolicy.round(
+                feePerTx.add(feePayRate).add(feeCancelRate).add(feeVoidPerTx).add(feeManualVoidPerTx).add(feeRefundRate).add(feeUsage)
+                        .add(feeFailTotal).add(feeSettlementTotal).add(feeChargebackTotal).add(feeUsdtFxPctSum).add(fee3dsFixedSum)
+                        .add(feeExtraPctSum).add(feeExtraFix),
+                lr);
 
         SettlementSetting feeVatSs = null;
         if (merchantId != null && !merchantId.isBlank()) {
@@ -714,14 +729,17 @@ public class SettlementCalcService {
                     .flatMap(ou -> settlementSettingRepository.findByOrgUnitId(ou.getId()))
                     .orElse(null);
         }
-        BigDecimal feeVatAmt = MerchantFeeVatUtil.vatOnFeeAmount(totalFee, feeVatSs, 0);
+        BigDecimal feeVatAmt = MerchantFeeVatUtil.vatOnFeeAmount(totalFee, feeVatSs, lr.decimalPlaces());
 
         BigDecimal rollingReserveAmt = BigDecimal.ZERO;
         if (rollingDays > 0 && rollingPct.compareTo(BigDecimal.ZERO) > 0) {
             for (PgTrnsctn t : txList) {
-                if (!"10".equals(t.getStatus())) continue;
+                String stRolling = t.getStatus() != null ? t.getStatus().trim() : "";
+                if (!"10".equals(stRolling)) {
+                    continue;
+                }
                 BigDecimal amt = t.getAmtKrw() != null ? t.getAmtKrw() : BigDecimal.ZERO;
-                BigDecimal reserve = amt.multiply(rollingPct).divide(BigDecimal.valueOf(100), 0, RoundingMode.HALF_UP);
+                BigDecimal reserve = lrPctOf(amt, rollingPct, lr);
                 if (reserve.compareTo(BigDecimal.ZERO) <= 0) {
                     continue;
                 }
@@ -749,9 +767,13 @@ public class SettlementCalcService {
                 rollingReserveRepository.save(rr);
             }
         }
+        rollingReserveAmt = FeeListRoundingPolicy.round(rollingReserveAmt, lr);
 
-        BigDecimal payAmt = netSales.subtract(totalFee).subtract(feeVatAmt).subtract(rollingReserveAmt).add(releasedFromReserve).setScale(0, RoundingMode.HALF_UP);
-        if (payAmt.compareTo(BigDecimal.ZERO) < 0) payAmt = BigDecimal.ZERO;
+        BigDecimal payAmt = FeeListRoundingPolicy.round(
+                netSales.subtract(totalFee).subtract(feeVatAmt).subtract(rollingReserveAmt).add(releasedFromReserve), lr);
+        if (payAmt.compareTo(BigDecimal.ZERO) < 0) {
+            payAmt = FeeListRoundingPolicy.round(BigDecimal.ZERO, lr);
+        }
 
         /* 건당 마감: 포함된 모든 거래 settled Y. 당일 합산(T0) 등: 승인(10)만 Y — 정산 후 환불 시 환수금 자동 등록 기준 */
         if (markEveryIncludedTxnSettled) {
@@ -776,14 +798,23 @@ public class SettlementCalcService {
         SettlementRun run = new SettlementRun();
         run.setCalcDt(calcDt);
         run.setMerchantId(merchantId);
-        run.setApproveAmt(approveAmt);
-        run.setCancelAmt(cancelAmt);
+        run.setApproveAmt(approveRounded);
+        run.setCancelAmt(cancelRounded);
         run.setTotalFee(totalFee);
         run.setRollingReserveAmt(rollingReserveAmt);
         run.setPayAmt(payAmt);
         run.setStatus("CALCULATED");
         applyPayoutHoldStagingIfDue(run, merchantId);
         return run;
+    }
+
+    /** HQ 수수료·정산(기준통화) 스케일로 {@code base × pct ÷ 100} 반올림 */
+    private static BigDecimal lrPctOf(BigDecimal base, BigDecimal pctHundred, FeeListRoundingPolicy lr) {
+        if (base == null || pctHundred == null || lr == null || pctHundred.signum() == 0) {
+            return BigDecimal.ZERO;
+        }
+        return FeeListRoundingPolicy.round(
+                base.multiply(pctHundred).divide(BigDecimal.valueOf(100), 16, RoundingMode.HALF_UP), lr);
     }
 
     /**
