@@ -2432,7 +2432,7 @@ public class CompService {
                             if (ou.getOrgLevel() == OrgLevel.MERCHANT) {
                                 if (calcCycle != null && !calcCycle.isEmpty()) {
                                     masterDistSettlementCycleConfigService.validateMerchantCalcCycle(
-                                            ou.getParentId(), calcCycle);
+                                            ou.getId(), calcCycle);
                                     ss.setCalcCycle(SettlementPeriodResolver.normalizeCalcCycle(calcCycle.trim()));
                                 }
                             } else {

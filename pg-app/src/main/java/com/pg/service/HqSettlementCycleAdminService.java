@@ -25,7 +25,7 @@ public class HqSettlementCycleAdminService {
             new BuiltInRow("", "선택", "저장 시 실제 정산주기를 고릅니다.", 0, true),
             new BuiltInRow("NONE", "정산안함", "자동 정산 배치에서 제외됩니다.", 1, true),
             new BuiltInRow("RT", "실시간", "정산구분 AUTO일 때 승인(결제완료) 노티마다 해당 건만 집계한 정산 실행 1건을 추가합니다(건당 마감, 당일 0시~현재 합산 1행으로 바꾸지 않음).", 2, true),
-            new BuiltInRow("T0", "T0", "정산구분 AUTO일 때 승인 노티마다 당일 00:00~현재까지 전체를 재집계하여 정산일 당일 행 1건으로 갱신합니다(당일 누적 표시).", 3, true),
+            new BuiltInRow("T0", "당일합산(승인 시 재집계)", "정산구분 AUTO일 때 승인 노티마다 당일 00:00~현재까지 전체를 재집계하여 정산일 당일 행 1건으로 갱신합니다(당일 누적 표시).", 3, true),
             new BuiltInRow("M5", "5분 마감", "5분 격자 정각마다 직전 5분 구간의 거래를 합산해 정산 실행 1건으로 마감합니다(RT로 이미 정산된 승인은 제외).", 4, true),
             new BuiltInRow("M10", "10분 마감", "10분 격자마다 직전 10분 구간을 합산해 정산 실행 1건.", 5, true),
             new BuiltInRow("M30", "30분 마감", "30분 격자마다 직전 30분 구간을 합산해 정산 실행 1건.", 6, true),
@@ -35,15 +35,15 @@ public class HqSettlementCycleAdminService {
             new BuiltInRow("H6", "6시간(H6)", "0·6·12·18시 00분에 직전 6시간 구간을 합산해 정산 실행 1건.", 10, true),
             new BuiltInRow("H8", "8시간(H8)", "0·8·16시 00분에 직전 8시간 구간을 합산해 정산 실행 1건.", 11, true),
             new BuiltInRow("H12", "12시간(H12)", "0·12시 00분에 직전 12시간 구간을 합산해 정산 실행 1건.", 12, true),
-            new BuiltInRow("TM5", "TM5", "M5와 동일한 5분 격자 시각에 배치되나, T0처럼 당일 00:00~현재 전체를 재집계해 정산일 당일 행 1건으로 갱신합니다. 저장값 TM05는 TM5로 통일됩니다.", 120, true),
-            new BuiltInRow("TM10", "TM10", "M10과 동일 격자, 당일 0시~현재 합산 1행 재집계(T0식).", 121, true),
-            new BuiltInRow("TM30", "TM30", "M30과 동일 격자, 당일 0시~현재 합산 1행 재집계(T0식).", 122, true),
-            new BuiltInRow("TH1", "TH1", "H1과 동일 격자, 당일 0시~현재 합산 1행 재집계(T0식).", 123, true),
-            new BuiltInRow("TH2", "TH2", "H2와 동일 격자, 당일 0시~현재 합산 1행 재집계(T0식).", 124, true),
-            new BuiltInRow("TH4", "TH4", "H4와 동일 격자, 당일 0시~현재 합산 1행 재집계(T0식).", 125, true),
-            new BuiltInRow("TH6", "TH6", "H6와 동일 격자, 당일 0시~현재 합산 1행 재집계(T0식).", 126, true),
-            new BuiltInRow("TH8", "TH8", "H8와 동일 격자, 당일 0시~현재 합산 1행 재집계(T0식).", 127, true),
-            new BuiltInRow("TH12", "TH12", "H12와 동일 격자, 당일 0시~현재 합산 1행 재집계(T0식).", 128, true),
+            new BuiltInRow("TM5", "당일합산·5분 격자", "M5와 동일한 5분 격자 시각에 배치되나, T0처럼 당일 00:00~현재 전체를 재집계해 정산일 당일 행 1건으로 갱신합니다. 저장값 TM05는 TM5로 통일됩니다.", 120, true),
+            new BuiltInRow("TM10", "당일합산·10분 격자", "M10과 동일 격자, 당일 0시~현재 합산 1행 재집계(T0식).", 121, true),
+            new BuiltInRow("TM30", "당일합산·30분 격자", "M30과 동일 격자, 당일 0시~현재 합산 1행 재집계(T0식).", 122, true),
+            new BuiltInRow("TH1", "당일합산·1시간 격자", "H1과 동일 격자, 당일 0시~현재 합산 1행 재집계(T0식).", 123, true),
+            new BuiltInRow("TH2", "당일합산·2시간 격자", "H2와 동일 격자, 당일 0시~현재 합산 1행 재집계(T0식).", 124, true),
+            new BuiltInRow("TH4", "당일합산·4시간 격자", "H4와 동일 격자, 당일 0시~현재 합산 1행 재집계(T0식).", 125, true),
+            new BuiltInRow("TH6", "당일합산·6시간 격자", "H6와 동일 격자, 당일 0시~현재 합산 1행 재집계(T0식).", 126, true),
+            new BuiltInRow("TH8", "당일합산·8시간 격자", "H8와 동일 격자, 당일 0시~현재 합산 1행 재집계(T0식).", 127, true),
+            new BuiltInRow("TH12", "당일합산·12시간 격자", "H12와 동일 격자, 당일 0시~현재 합산 1행 재집계(T0식).", 128, true),
             new BuiltInRow("D0", "D+0", "정산일(달력 당일)에 집계 구간(당일 0시~24시) 거래를 합산해 정산 실행 1건. 자동 배치는 서울 기준 당일 00:00~23:50 구간에서만 실행되며, 정산마감시간이 있으면 그 이후부터 위 구간 안에서만 실행됩니다.", 13, true),
             new BuiltInRow("D1", "D+1", "정산일 당일에 집계 기준일(정산일에서 1영업일 역산한 하루) 구간을 합산해 정산 실행 1건. ‘전일’이 아니라 정산일·집계기준일 관계입니다.", 14, true),
             new BuiltInRow("D2", "D+2", "정산일 당일에 집계 기준일(정산일에서 2영업일 역산한 하루) 구간을 합산해 정산 실행 1건.", 15, true),
@@ -102,13 +102,13 @@ public class HqSettlementCycleAdminService {
     }
 
     /**
-     * 총판별 허용 주기 설정 등 관리용 — 병합 정의 전체(미사용 N 포함). 표시명에 (미사용) 접미.
-     * 가맹 셀렉트용 {@link #listActiveSelectOptions()}와 동일한 v·t·d 형식.
+     * 총판별 허용 주기 설정 등 관리용 — 병합 정의 전체(미사용 N 포함).
+     * <strong>순서</strong>는 {@link #listMergedDefinitions()}와 동일(정산주기관리 화면의 표준주기·DB등록 표 행 순서).
+     * <strong>표시(t)</strong>는 코드 + 표시명(표의 코드·표시 열과 동일한 정보)이며 비활성 시 접미 (미사용).
+     * 가맹 셀렉트용 {@link #listActiveSelectOptions()}는 사용(Y)만·sortOrder 정렬을 유지한다.
      */
     public List<Map<String, Object>> listCatalogSelectOptions() {
         return listMergedDefinitions().stream()
-                .sorted(Comparator.<Map<String, Object>, Integer>comparing(m -> (Integer) m.get("sortOrder"))
-                        .thenComparing(m -> String.valueOf(m.get("cycleCode"))))
                 .map(m -> {
                     Map<String, Object> o = new LinkedHashMap<>();
                     o.put("v", m.get("cycleCode"));
@@ -120,7 +120,15 @@ public class HqSettlementCycleAdminService {
                     if (StringUtils.hasText(code) && !"Y".equals(String.valueOf(m.getOrDefault("activeYn", "Y")))) {
                         label = label + " (미사용)";
                     }
-                    o.put("t", label);
+                    String t;
+                    if (!StringUtils.hasText(code)) {
+                        t = label;
+                    } else if (label.equalsIgnoreCase(code)) {
+                        t = code;
+                    } else {
+                        t = code + " — " + label;
+                    }
+                    o.put("t", t);
                     o.put("d", m.get("description"));
                     return o;
                 })

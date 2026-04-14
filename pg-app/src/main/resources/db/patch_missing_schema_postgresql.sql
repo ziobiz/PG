@@ -309,3 +309,14 @@ CREATE INDEX IF NOT EXISTS idx_settlement_run_payout_hold ON tb_settlement_run (
 
 -- V95: 전산설정 — 통화별 수수료·정산 소수 처리(JSON) — db/V95_hq_ledger_fee_currency_format.sql 과 동일
 ALTER TABLE tb_hq_ledger_sys_settings ADD COLUMN IF NOT EXISTS fee_currency_format_json TEXT;
+
+-- V96: 헬로 타임라인 — db/V96_hq_ledger_hello_timeline.sql 과 동일
+ALTER TABLE tb_hq_ledger_sys_settings ADD COLUMN IF NOT EXISTS hello_timeline_enabled_yn VARCHAR(1) NOT NULL DEFAULT 'N';
+ALTER TABLE tb_hq_ledger_sys_settings ADD COLUMN IF NOT EXISTS hello_timeline_duration_min INTEGER NOT NULL DEFAULT 10;
+
+-- V97: 총판별 정산주기 슬롯 10개 — db/V97_master_dist_settlement_cycle_slots_10.sql 과 동일
+ALTER TABLE tb_master_dist_settlement_cycle_config ADD COLUMN IF NOT EXISTS cycle_code_6 VARCHAR(64);
+ALTER TABLE tb_master_dist_settlement_cycle_config ADD COLUMN IF NOT EXISTS cycle_code_7 VARCHAR(64);
+ALTER TABLE tb_master_dist_settlement_cycle_config ADD COLUMN IF NOT EXISTS cycle_code_8 VARCHAR(64);
+ALTER TABLE tb_master_dist_settlement_cycle_config ADD COLUMN IF NOT EXISTS cycle_code_9 VARCHAR(64);
+ALTER TABLE tb_master_dist_settlement_cycle_config ADD COLUMN IF NOT EXISTS cycle_code_10 VARCHAR(64);

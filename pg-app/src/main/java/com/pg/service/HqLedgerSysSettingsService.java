@@ -91,6 +91,15 @@ public class HqLedgerSysSettingsService {
             m.put("payDisplayCurrencyCode", PayDisplayCurrency.alphaFromIsoNum(num));
             m.put("payDisplayCurrencyCatalog", PayDisplayCurrency.catalogRows());
         }
+        m.put("helloTimelineEnabledYn", yn(s.getHelloTimelineEnabledYn()));
+        {
+            int hm = s.getHelloTimelineDurationMin() != null && s.getHelloTimelineDurationMin() > 0
+                    ? s.getHelloTimelineDurationMin() : 10;
+            if (hm > 1440) {
+                hm = 1440;
+            }
+            m.put("helloTimelineDurationMin", hm);
+        }
         m.putAll(hqNotifyEnvService.payFollowActionsSlice());
         if (s.getUpdatedAt() != null) {
             m.put("updatedAt", s.getUpdatedAt().toString());
@@ -181,6 +190,10 @@ public class HqLedgerSysSettingsService {
                 s.setFeeCurrencyFormatJson(FeeCurrencyRoundResolver.normalizePolicyJson(String.valueOf(fc), s));
             }
         }
+        s.setHelloTimelineEnabledYn(parseYn(body.get("helloTimelineEnabledYn"), s.getHelloTimelineEnabledYn()));
+        if (body.containsKey("helloTimelineDurationMin")) {
+            s.setHelloTimelineDurationMin(clampInt(body.get("helloTimelineDurationMin"), 10, 1, 1440));
+        }
         if (body.containsKey("dataRetentionPolicyJson")) {
             Object dr = body.get("dataRetentionPolicyJson");
             if (dr == null) {
@@ -195,6 +208,24 @@ public class HqLedgerSysSettingsService {
         HqLedgerSysSettings saved = repository.save(s);
         hqNotifyEnvService.mergePayFollowActionsFromBody(body);
         return saved;
+    }
+
+    /**
+     * 헬로 타임라인만 저장합니다. 요청 본문의 다른 키는 무시하며, 전산설정의 나머지 필드는 변경하지 않습니다.
+     */
+    @Transactional
+    public HqLedgerSysSettings saveHelloTimelineFromBody(Map<String, Object> body) {
+        HqLedgerSysSettings s = getOrCreate();
+        if (body == null) {
+            return repository.save(s);
+        }
+        if (body.containsKey("helloTimelineEnabledYn")) {
+            s.setHelloTimelineEnabledYn(parseYn(body.get("helloTimelineEnabledYn"), s.getHelloTimelineEnabledYn()));
+        }
+        if (body.containsKey("helloTimelineDurationMin")) {
+            s.setHelloTimelineDurationMin(clampInt(body.get("helloTimelineDurationMin"), 10, 1, 1440));
+        }
+        return repository.save(s);
     }
 
     private static List<Map<String, Object>> buildDataRetentionRows(HqLedgerSysSettings s) {

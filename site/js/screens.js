@@ -249,25 +249,25 @@
     { v: '', t: '선택' },
     { v: 'NONE', t: '정산안함' },
     { v: 'RT', t: '실시간(건당)' },
-    { v: 'T0', t: 'T0(당일합산)' },
-    { v: 'TM5', t: 'TM5(당일합산·5분격자)' },
-    { v: 'TM10', t: 'TM10(당일합산·10분격자)' },
-    { v: 'TM30', t: 'TM30(당일합산·30분격자)' },
+    { v: 'T0', t: '당일합산(승인 시 재집계)' },
+    { v: 'TM5', t: '당일합산·5분 격자' },
+    { v: 'TM10', t: '당일합산·10분 격자' },
+    { v: 'TM30', t: '당일합산·30분 격자' },
     { v: 'M5', t: '5분 마감' },
     { v: 'M10', t: '10분 마감' },
     { v: 'M30', t: '30분 마감' },
     { v: 'H1', t: '1시간(H1)' },
-    { v: 'TH1', t: 'TH1(당일합산·1시간격자)' },
+    { v: 'TH1', t: '당일합산·1시간 격자' },
     { v: 'H2', t: '2시간(H2)' },
-    { v: 'TH2', t: 'TH2(당일합산·2시간격자)' },
+    { v: 'TH2', t: '당일합산·2시간 격자' },
     { v: 'H4', t: '4시간(H4)' },
-    { v: 'TH4', t: 'TH4(당일합산·4시간격자)' },
+    { v: 'TH4', t: '당일합산·4시간 격자' },
     { v: 'H6', t: '6시간(H6)' },
-    { v: 'TH6', t: 'TH6(당일합산·6시간격자)' },
+    { v: 'TH6', t: '당일합산·6시간 격자' },
     { v: 'H8', t: '8시간(H8)' },
-    { v: 'TH8', t: 'TH8(당일합산·8시간격자)' },
+    { v: 'TH8', t: '당일합산·8시간 격자' },
     { v: 'H12', t: '12시간(H12)' },
-    { v: 'TH12', t: 'TH12(당일합산·12시간격자)' },
+    { v: 'TH12', t: '당일합산·12시간 격자' },
     { v: 'D0', t: 'D+0' },
     { v: 'D1', t: 'D+1' },
     { v: 'D2', t: 'D+2' },
@@ -309,8 +309,8 @@
     + '<li><strong>M5·M10·M30</strong>: N분 <strong>격자</strong> 정각마다 <strong>직전 N분</strong> 구간의 거래를 합산해 정산 실행 <strong>1건</strong>(RT로 이미 정산된 승인은 제외).</li>'
     + '<li><strong>H1·H2·H4·H6·H8·H12</strong>: N시간 격자 정각(HH:00)마다 <strong>직전 N시간</strong> 구간을 합산해 정산 실행 1건. 구 1D·2D·4D·6D·8D·12D 저장값은 서버에서 H 코드로 처리합니다.</li></ul>'
     + '</div></div>'
-    + '<div class="card mb-3"><div class="card-header fw-semibold">총판별 가맹 정산주기 (최대 5건·대표)</div><div class="card-body">'
-    + '<p class="small text-muted mb-3">총판(MASTER_DIST)마다 가맹점 등록 시 선택 가능한 정산주기를 최대 5개로 제한합니다. <strong>대표</strong>는 신규 가맹 시 셀렉트 기본값입니다. 아래 슬롯 목록은 본사 <strong>표준 병합 전체</strong>(미사용 N 포함)에서 고릅니다. 목록 순서는 정산주기관리와 동일합니다. 미설정 총판이거나 본사 직속 등 총판이 없으면 가맹 화면은 기존처럼 <strong>사용(Y)만</strong> 노출됩니다.</p>'
+    + '<div class="card mb-3"><div class="card-header fw-semibold">총판별 가맹 정산주기 (최대 10건·대표)</div><div class="card-body">'
+    + '<p class="small text-muted mb-3">총판(MASTER_DIST)마다 가맹점 등록 시 선택 가능한 정산주기를 최대 10개까지 지정합니다. <strong>대표</strong>는 신규 가맹 시 셀렉트 기본값입니다. 아래 슬롯 셀렉트는 본사 <strong>표준 병합 전체</strong>(미사용 N 포함)이며, <strong>코드·행 순서</strong>는 위 정산주기관리의 <strong>표준 주기(시스템)</strong>·DB등록 표와 동일합니다. 미설정 총판이거나 상위에 총판이 없으면 가맹 화면은 기존처럼 <strong>사용(Y)만</strong> 노출됩니다.</p>'
     + '<div class="row g-2 align-items-end mb-2">'
     + '<div class="col-12 col-md-5"><label class="form-label small mb-0">총판</label><select id="hqMdCycleOrgSel" class="form-select form-select-sm"><option value="">불러오는 중…</option></select></div>'
     + '<div class="col-auto d-grid"><button type="button" class="btn btn-primary btn-sm" id="hqMdCycleSaveBtn">저장</button></div></div>'
@@ -367,7 +367,7 @@
     { v: 'EVE_HOLIDAY_18', t: '공휴일 전날 18시 이후' },
     { v: 'NONE', t: '미사용' }
   ];
-  var CALC_METHOD_MERCHANT_NOTICE = '정산주기는 가맹점 전용입니다. 정산안함: 정산 배치로 정산금을 쌓지 않습니다(이미 NONE으로 결제된 건은 주기 변경 후에도 정산금 미적립). RT: 승인 노티마다 해당 건만 집계한 정산 실행 1건(건당). T0: 승인 노티마다 당일 00:00~현재 전체 재집계(당일 1행). TM5·TM10·TM30·TH1·TH2·TH4·TH6·TH8·TH12: M/H와 같은 격자 시각에 배치되나 T0처럼 당일 0시~현재 합산 1행 재집계. M5·M10·M30·H1·H2·H4·H6·H8·H12: 격자마다 직전 구간을 합산해 정산 실행 1건(구 1D~12D는 H와 동일). D+N·W·WK: 정산일에 정해진 집계 구간을 합산해 정산 실행 1건. WK: WK+1W는 마감 후 영업일 3일째, WK+1WT는 10일째, WK+2W는 격주 2주 마감 후 3일째, WK+2WT는 격주 2주 마감 후 10일째, WK+1WM(WK1WM)은 1주(월~일) 마감 후 30일째, WK+2WM(WK2WM)은 격주 2주 마감 후 30일째 정산(주말 제외·그날 비영업이면 다음 영업일). D+N: 정산일(달력 당일) 기준으로 정산마감·설정 시각 이후에 집계하며, 집계 기준일은 정산일에서 N(영업일·달력일 규칙)을 역산한 하루입니다. D+0 자동은 당일 00:00~23:50(서울)만 실행됩니다. 정산마감·정산자동개시·이체시간은 D+·이체 연동 시 사용합니다. 이체및송금: 수동(정산이체 화면), 자동(이체주기 분마다 자동이체최소+이체수수료 합 이상이면 출금, 수동 병행 가능), 자동(수동불가), 임의출금(다중출금), 사용안함(해당 업체는 정산실행 등으로만 정산금 처리). 이체주기(분)는 자동·자동(수동불가)에만 적용되며 미수금이면 출금하지 않습니다. 지급보류: 보류 시 정산은 주기대로, 출금만 제한. 정산제외: 당일(D+0) 계열에서 주말·공휴일·수단별 제외·익영업일 개시시간을 쓸 수 있으며, D+1~3은 영업일 정산만(제외 설정 미적용).';
+  var CALC_METHOD_MERCHANT_NOTICE = '가맹점의 상위 조직에 총판이 있고 [본사설정 > 정산관리설정]에서 해당 총판별 허용 정산주기(최대 5)와 대표 주기를 지정한 경우, 상위를 선택하면 정산주기 셀렉트가 그 범위로 바뀌고 대표 주기가 기본 선택됩니다(미설정 총판·본사 직속 등은 기존처럼 사용(Y) 주기 전체). 정산주기는 가맹점 전용입니다. 정산안함: 정산 배치로 정산금을 쌓지 않습니다(이미 NONE으로 결제된 건은 주기 변경 후에도 정산금 미적립). RT: 승인 노티마다 해당 건만 집계한 정산 실행 1건(건당). T0: 승인 노티마다 당일 00:00~현재 전체 재집계(당일 1행). TM5·TM10·TM30·TH1·TH2·TH4·TH6·TH8·TH12: M/H와 같은 격자 시각에 배치되나 T0처럼 당일 0시~현재 합산 1행 재집계. M5·M10·M30·H1·H2·H4·H6·H8·H12: 격자마다 직전 구간을 합산해 정산 실행 1건(구 1D~12D는 H와 동일). D+N·W·WK: 정산일에 정해진 집계 구간을 합산해 정산 실행 1건. WK: WK+1W는 마감 후 영업일 3일째, WK+1WT는 10일째, WK+2W는 격주 2주 마감 후 3일째, WK+2WT는 격주 2주 마감 후 10일째, WK+1WM(WK1WM)은 1주(월~일) 마감 후 30일째, WK+2WM(WK2WM)은 격주 2주 마감 후 30일째 정산(주말 제외·그날 비영업이면 다음 영업일). D+N: 정산일(달력 당일) 기준으로 정산마감·설정 시각 이후에 집계하며, 집계 기준일은 정산일에서 N(영업일·달력일 규칙)을 역산한 하루입니다. D+0 자동은 당일 00:00~23:50(서울)만 실행됩니다. 정산마감·정산자동개시·이체시간은 D+·이체 연동 시 사용합니다. 이체및송금: 수동(정산이체 화면), 자동(이체주기 분마다 자동이체최소+이체수수료 합 이상이면 출금, 수동 병행 가능), 자동(수동불가), 임의출금(다중출금), 사용안함(해당 업체는 정산실행 등으로만 정산금 처리). 이체주기(분)는 자동·자동(수동불가)에만 적용되며 미수금이면 출금하지 않습니다. 지급보류: 보류 시 정산은 주기대로, 출금만 제한. 정산제외: 당일(D+0) 계열에서 주말·공휴일·수단별 제외·익영업일 개시시간을 쓸 수 있으며, D+1~3은 영업일 정산만(제외 설정 미적용).';
 
   /** 본사 영업일·휴일: 연간 미니달력 + 공휴일 프리셋 (hq-holiday-calendar.js) */
   var HQ_HOLIDAY_UI_HTML = '<div class="col-12"><div class="hq-holiday-ui-wrap border rounded p-2 bg-light mt-1" data-hq-calendar-readonly="true">' +
@@ -787,6 +787,19 @@
             [{ label: 'NTP 서버 목록', type: 'text', name: 'ntpServerList', col: 8, placeholder: '쉼표 구분, 예: pool.ntp.org, time.google.com' }],
             [{ label: '서버 기준 시각(조회 시점)', type: 'text', name: 'serverTimeIso', col: 6, readonly: true }],
             [{ label: '적용 ZoneId', type: 'text', name: 'serverZoneId', col: 4, readonly: true }]
+          ]
+        },
+        {
+          title: '헬로 타임라인',
+          notice: '「사용」이면 헬로(안내·VIEW SETTING 영역) 표시가 로그인 브라우저(sessionStorage)에서 전 페이지에 동기화됩니다. 한 페이지에서 헬로를 켜면 설정한 분(기본 10분) 동안 모든 목록 화면에서 동일하게 표시되며, 시간이 지나면 전 페이지에서 자동으로 숨김(비활성)으로 돌아갑니다. 「비사용」이면 기존과 같이 페이지(탭)마다 헬로를 따로 토글합니다.',
+          rows: [
+            [{ label: '헬로 타임라인', type: 'select', name: 'helloTimelineEnabledYn', options: [{ v: 'N', t: '비사용' }, { v: 'Y', t: '사용' }], col: 2 },
+             { label: '유지 시간(분)', type: 'number', name: 'helloTimelineDurationMin', col: 2, placeholder: '기본 10', title: '1~1440(24시간). 사용일 때만 적용됩니다.' }],
+            [{ type: 'customHtml', col: 12,
+              html: '<div class="d-flex flex-wrap justify-content-end align-items-center gap-2 mt-1">' +
+                '<button type="button" class="btn btn-outline-secondary btn-sm" id="hqLedgerHelloTimelineReloadBtn">다시 불러오기</button>' +
+                '<button type="button" class="btn btn-primary btn-sm" id="hqLedgerHelloTimelineSaveBtn">헬로 타임라인 저장</button></div>' +
+                '<p class="small text-muted mb-0 mt-1">다른 전산설정 항목은 건드리지 않고, 위 두 값만 서버에 반영합니다. 하단 「저장」은 화면 전체를 저장합니다.</p>' }]
           ]
         },
         {

@@ -8,9 +8,9 @@
   <title>PG 통합관리자</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
-  <link href="css/site.css?v=69" rel="stylesheet">
+  <link href="css/site.css?v=70" rel="stylesheet">
   <link href="css/hq-server-monitor.css?v=5" rel="stylesheet">
-  <script src="js/config.js?v=8"></script>
+  <script src="js/config.js?v=9"></script>
   <script>
     (function () {
       var h = (window.location && window.location.hostname) ? window.location.hostname : '';
@@ -30,11 +30,23 @@
       var bad = !b || /^https?:\/\/(localhost|127\.0\.0\.1)(:|\/|$)/i.test(b);
       if (bad) {
         try { localStorage.removeItem('pg_api_base'); } catch (e) {}
-        window.PG_API_BASE = api;
+        var adminIcopay = h && h !== 'api.icopay.co.kr' && h !== 'localhost' && h !== '127.0.0.1'
+          && (h === 'icopay.co.kr' || /\.icopay\.co\.kr$/i.test(h));
+        try {
+          var ogBad = (window.location.origin || '').replace(/\/$/, '');
+          if (adminIcopay && ogBad) {
+            window.PG_API_BASE = ogBad;
+            try { localStorage.setItem('pg_api_base', ogBad); } catch (eLs) {}
+          } else {
+            window.PG_API_BASE = api;
+          }
+        } catch (eFix) {
+          window.PG_API_BASE = api;
+        }
       }
     })();
   </script>
-  <script src="js/api.js?v=22"></script>
+  <script src="js/api.js?v=23"></script>
   <script src="js/hq-holiday-calendar.js?v=2"></script>
   <script src="//t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
 </head>
@@ -540,7 +552,7 @@
 <script src="js/pay-list-integrated-catalog.js?v=6"></script>
 <script src="js/table-column-resize.js?v=3"></script>
 <script src="js/screens.js?v=139"></script>
-<script src="js/app.js?v=152"></script>
+<script src="js/app.js?v=155"></script>
   <script>
     (function () {
       var user = null;

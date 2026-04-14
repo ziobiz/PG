@@ -5,7 +5,7 @@ import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
 /**
- * 총판(MASTER_DIST)별 가맹점 등록 시 선택 가능한 정산주기(최대 5) 및 대표(기본) 슬롯.
+ * 총판(MASTER_DIST)별 가맹점 등록 시 선택 가능한 정산주기(최대 10) 및 대표(기본) 슬롯(0~9).
  */
 @Entity
 @Table(name = "tb_master_dist_settlement_cycle_config")
@@ -33,7 +33,22 @@ public class MasterDistSettlementCycleConfig {
     @Column(name = "cycle_code_5", length = 64)
     private String cycleCode5;
 
-    /** 대표 정산주기: cycle_code_(1+default_slot) 가 비어 있지 않아야 함 (0~4). */
+    @Column(name = "cycle_code_6", length = 64)
+    private String cycleCode6;
+
+    @Column(name = "cycle_code_7", length = 64)
+    private String cycleCode7;
+
+    @Column(name = "cycle_code_8", length = 64)
+    private String cycleCode8;
+
+    @Column(name = "cycle_code_9", length = 64)
+    private String cycleCode9;
+
+    @Column(name = "cycle_code_10", length = 64)
+    private String cycleCode10;
+
+    /** 대표 정산주기: 지정 슬롯(0~9)에 코드가 있어야 함. */
     @Column(name = "default_slot", nullable = false)
     private int defaultSlot;
 
@@ -109,6 +124,46 @@ public class MasterDistSettlementCycleConfig {
 
     public void setCycleCode5(String cycleCode5) {
         this.cycleCode5 = cycleCode5;
+    }
+
+    public String getCycleCode6() {
+        return cycleCode6;
+    }
+
+    public void setCycleCode6(String cycleCode6) {
+        this.cycleCode6 = cycleCode6;
+    }
+
+    public String getCycleCode7() {
+        return cycleCode7;
+    }
+
+    public void setCycleCode7(String cycleCode7) {
+        this.cycleCode7 = cycleCode7;
+    }
+
+    public String getCycleCode8() {
+        return cycleCode8;
+    }
+
+    public void setCycleCode8(String cycleCode8) {
+        this.cycleCode8 = cycleCode8;
+    }
+
+    public String getCycleCode9() {
+        return cycleCode9;
+    }
+
+    public void setCycleCode9(String cycleCode9) {
+        this.cycleCode9 = cycleCode9;
+    }
+
+    public String getCycleCode10() {
+        return cycleCode10;
+    }
+
+    public void setCycleCode10(String cycleCode10) {
+        this.cycleCode10 = cycleCode10;
     }
 
     public int getDefaultSlot() {

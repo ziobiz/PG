@@ -123,6 +123,14 @@ public class HqLedgerSysSettings {
     @Column(name = "pay_display_currency_iso_num", nullable = false, length = 3)
     private String payDisplayCurrencyIsoNum = "764";
 
+    /** Y: 헬로(안내·VIEW SETTING) 표시를 전역 타임라인(분)으로 동기. N: 페이지별 토글(기존). */
+    @Column(name = "hello_timeline_enabled_yn", nullable = false, length = 1)
+    private String helloTimelineEnabledYn = "N";
+
+    /** hello_timeline_enabled_yn=Y 일 때 활성 유지 분(기본 10, 1~1440). */
+    @Column(name = "hello_timeline_duration_min", nullable = false)
+    private Integer helloTimelineDurationMin = 10;
+
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 
@@ -212,6 +220,10 @@ public class HqLedgerSysSettings {
     public void setFeeCurrencyFormatJson(String feeCurrencyFormatJson) { this.feeCurrencyFormatJson = feeCurrencyFormatJson; }
     public String getPayDisplayCurrencyIsoNum() { return payDisplayCurrencyIsoNum; }
     public void setPayDisplayCurrencyIsoNum(String payDisplayCurrencyIsoNum) { this.payDisplayCurrencyIsoNum = payDisplayCurrencyIsoNum; }
+    public String getHelloTimelineEnabledYn() { return helloTimelineEnabledYn; }
+    public void setHelloTimelineEnabledYn(String helloTimelineEnabledYn) { this.helloTimelineEnabledYn = helloTimelineEnabledYn; }
+    public Integer getHelloTimelineDurationMin() { return helloTimelineDurationMin; }
+    public void setHelloTimelineDurationMin(Integer helloTimelineDurationMin) { this.helloTimelineDurationMin = helloTimelineDurationMin; }
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
     public LocalDateTime getUpdatedAt() { return updatedAt; }

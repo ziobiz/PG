@@ -57,6 +57,17 @@ public class ApiHqLedgerSysSettingsController {
         }
     }
 
+    /** 헬로 타임라인(사용 여부·유지 분)만 저장 — 전산설정 나머지는 그대로 둡니다. */
+    @PostMapping("/saveHelloTimeline")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> saveHelloTimeline(@RequestBody Map<String, Object> body) {
+        try {
+            var s = service.saveHelloTimelineFromBody(body);
+            return ResponseEntity.ok(ApiResponse.ok(service.toMap(s)));
+        } catch (Exception e) {
+            return ResponseEntity.ok(ApiResponse.fail(e.getMessage(), "ERROR"));
+        }
+    }
+
     /**
      * 등록 조직·가맹 프로필(tb_org_unit, tb_merchant_profile)만 남기고 운영 데이터를 삭제합니다.
      */

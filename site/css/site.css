@@ -1321,6 +1321,10 @@ body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Ro
 #contentsMain .screen-pay-list .screen-action-buttons .btn {
   font-size: var(--pay-mng-dense-font-size);
 }
+#contentsMain .screen-pay-list .pagination-row {
+  position: relative;
+  z-index: 2;
+}
 #contentsMain .screen-pay-list .pagination-row .pagination-label,
 #contentsMain .screen-pay-list .pagination-row .pagination-total,
 #contentsMain .screen-pay-list .pagination-row .pagination-size-opt,

@@ -69,16 +69,33 @@
   /**
    * 통합 배포(관리자·API 동일 호스트, /api 프록시): 기본을 api 서브도메인으로 두면
    * 브라우저 CSP(connect-src)에 걸리는 경우가 많아, icopay 관리자 호스트는 현재 origin을 쓴다.
+   * localStorage에 예전에 저장된 https://api.icopay.co.kr 만 남아 있어도 동일하게 맞춘다.
    * API만 별도 도메인으로 둘 때는 ?api=, localStorage pg_api_base, 또는
    * <html data-pg-api-base="https://api.icopay.co.kr"> 로 명시한다.
    */
   if (!forceApi && !String(fromHtml || '').trim()) {
     var savedTrim = String(savedApi != null ? savedApi : '').trim();
-    if (!savedTrim && host && host !== 'localhost' && host !== '127.0.0.1' && host !== 'api.icopay.co.kr') {
-      if (host === 'icopay.co.kr' || /\.icopay\.co\.kr$/i.test(host)) {
+    var onIcopayAdminHost = host && host !== 'localhost' && host !== '127.0.0.1' && host !== 'api.icopay.co.kr'
+        && (host === 'icopay.co.kr' || /\.icopay\.co\.kr$/i.test(host));
+    if (onIcopayAdminHost) {
+      var savedPointsToApiSub = false;
+      if (savedTrim) {
+        try {
+          var parsedSaved = new URL(savedTrim);
+          savedPointsToApiSub = String(parsedSaved.hostname || '').toLowerCase() === 'api.icopay.co.kr';
+        } catch (ignoreSavedUrl) { /* ignore */ }
+      }
+      if (!savedTrim || savedPointsToApiSub) {
         try {
           var ogIcopayAdmin = (window.location.origin || '').replace(/\/$/, '');
-          if (ogIcopayAdmin) window.PG_API_BASE = ogIcopayAdmin;
+          if (ogIcopayAdmin) {
+            window.PG_API_BASE = ogIcopayAdmin;
+            if (typeof localStorage !== 'undefined') {
+              try {
+                localStorage.setItem('pg_api_base', ogIcopayAdmin);
+              } catch (eLsFix) { /* ignore */ }
+            }
+          }
         } catch (eIca) { /* ignore */ }
       }
     }

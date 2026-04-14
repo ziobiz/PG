@@ -14,6 +14,12 @@
     return p.replace(/\/$/, '').trim() || 'https://api.icopay.co.kr';
   }
 
+  /** icopay.co.kr / *.icopay.co.kr 관리자 정적( api 서브도메인 제외 ) — CSP상 api 직접 호출을 피할 때 config.js 와 동일 판별 */
+  function isIcopayAdminPageHost(h) {
+    if (!h || h === 'localhost' || h === '127.0.0.1' || h === 'api.icopay.co.kr') return false;
+    return h === 'icopay.co.kr' || /\.icopay\.co\.kr$/i.test(h);
+  }
+
   /**
    * 절대 URL만 반환. base 가 비면 상대 경로 /api 가 "현재 페이지 호스트"로 나가 카페24 등에서 전부 실패함.
    */
@@ -23,7 +29,17 @@
     if (b && !/^https?:\/\//i.test(b)) {
       b = '';
     }
-    if (b) return b;
+    if (b) {
+      try {
+        var pageH = window.location && window.location.hostname;
+        var bu = new URL(b);
+        if (isIcopayAdminPageHost(pageH) && String(bu.hostname || '').toLowerCase() === 'api.icopay.co.kr') {
+          var og = (window.location.origin || '').replace(/\/$/, '').trim();
+          if (og) return og;
+        }
+      } catch (eBaseNorm) { /* ignore */ }
+      return b;
+    }
     try {
       var h = window.location && window.location.hostname;
       if (h === 'api.icopay.co.kr' || h === 'localhost' || h === '127.0.0.1') {
@@ -971,6 +987,9 @@
     },
     hqLedgerSysSettingsSave: function (body) {
       return post('/api/hq/ledgerSysSettings/save', body || {}).then(function (r) { return r.data; });
+    },
+    hqLedgerSysSettingsSaveHelloTimeline: function (body) {
+      return post('/api/hq/ledgerSysSettings/saveHelloTimeline', body || {}).then(function (r) { return r.data; });
     },
     hqLedgerSysSettingsResetOperationalData: function () {
       return post('/api/hq/ledgerSysSettings/resetOperationalData', {}).then(function (r) { return r.data; });

@@ -56,20 +56,25 @@ public class ApiHqSettlementController {
         return ResponseEntity.ok(ApiResponse.ok(hqSettlementCycleAdminService.listActiveSelectOptions()));
     }
 
-    /** 총판별 가맹 정산주기 설정 등 — 병합 표준 전체(미사용 N 포함), 순서 동일 */
+    /** 총판별 가맹 정산주기 설정 등 — 병합 표준 전체(미사용 N 포함), 순서·코드표시는 정산주기관리 병합 표와 동일 */
     @GetMapping("/cycleOptionsCatalog")
     public ResponseEntity<ApiResponse<List<Map<String, Object>>>> cycleOptionsCatalog() {
         return ResponseEntity.ok(ApiResponse.ok(hqSettlementCycleAdminService.listCatalogSelectOptions()));
     }
 
     /**
-     * 가맹점 상위 조직(parent) 기준: 동일 총판 산하에 총판별 정산주기 설정이 있으면 해당 코드만(본사 활성 목록과 동일 순서), 대표 기본값 포함.
+     * 가맹 조직 트리 임의 노드 기준(권장: 가맹 {@code fromOrgUnitId}): 상위로 총판을 찾아 허용 주기만(정산주기관리 병합 순서).
+     * {@code parentOrgUnitId} 는 하위 호환용 별칭({@code fromOrgUnitId} 가 없을 때만 사용).
+     * {@code ensureCycleCode} 가 허용 목록에 없으면(과거 저장값) 병합 카탈로그 행을 한 줄 덧붙이고 {@code orphanSavedCycleYn}=Y.
      */
     @GetMapping("/cycleOptionsScoped")
     public ResponseEntity<ApiResponse<Map<String, Object>>> cycleOptionsScoped(
-            @RequestParam(required = false) Long parentOrgUnitId) {
+            @RequestParam(required = false) Long parentOrgUnitId,
+            @RequestParam(required = false) Long fromOrgUnitId,
+            @RequestParam(required = false) String ensureCycleCode) {
+        Long start = fromOrgUnitId != null ? fromOrgUnitId : parentOrgUnitId;
         return ResponseEntity.ok(ApiResponse.ok(
-                masterDistSettlementCycleConfigService.buildScopedCycleOptionsForMerchantParent(parentOrgUnitId)));
+                masterDistSettlementCycleConfigService.buildScopedCycleOptionsForMerchantParent(start, ensureCycleCode)));
     }
 
     @GetMapping("/masterDistOrgOptions")
@@ -92,7 +97,7 @@ public class ApiHqSettlementController {
                 .map(c -> ResponseEntity.ok(ApiResponse.ok(masterDistSettlementCycleConfigService.toApiMap(c))))
                 .orElseGet(() -> ResponseEntity.ok(ApiResponse.ok(Map.of(
                         "orgUnitId", orgUnitId,
-                        "slots", List.of(null, null, null, null, null),
+                        "slots", List.of(null, null, null, null, null, null, null, null, null, null),
                         "defaultSlot", 0))));
     }
 
