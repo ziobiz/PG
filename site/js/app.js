@@ -11471,8 +11471,18 @@
           }
           var slots = [];
           tbody.querySelectorAll('.hq-md-slot').forEach(function (s) { slots.push(s.value || ''); });
+          var distinctNorm = {};
+          slots.forEach(function (v) {
+            var n = pgNormCalcCycleCode(v || '');
+            if (n) distinctNorm[n] = true;
+          });
+          if (Object.keys(distinctNorm).length < 2) {
+            alert('서로 다른 정산주기는 최소 2개 이상 선택해야 합니다.');
+            return;
+          }
           var defEl = tbody.querySelector('input[name="hqMdDefaultSlot"]:checked');
           var defaultSlot = defEl ? parseInt(defEl.value, 10) : 0;
+          if (!isFinite(defaultSlot) || defaultSlot < 0 || defaultSlot > 9) defaultSlot = 0;
           window.PG_API.hqMasterDistCalcCycleConfigSave({ orgUnitId: parseInt(orgId, 10), slots: slots, defaultSlot: defaultSlot }).then(function () {
             pgInvalidateCalcCycleOptionsCache();
             loadConfig(orgId);

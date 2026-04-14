@@ -95,10 +95,17 @@ public class ApiHqSettlementController {
         }
         return masterDistSettlementCycleConfigService.findByMasterDistOrgId(orgUnitId)
                 .map(c -> ResponseEntity.ok(ApiResponse.ok(masterDistSettlementCycleConfigService.toApiMap(c))))
-                .orElseGet(() -> ResponseEntity.ok(ApiResponse.ok(Map.of(
-                        "orgUnitId", orgUnitId,
-                        "slots", List.of(null, null, null, null, null, null, null, null, null, null),
-                        "defaultSlot", 0))));
+                .orElseGet(() -> {
+                    Map<String, Object> empty = new LinkedHashMap<>();
+                    empty.put("orgUnitId", orgUnitId);
+                    List<String> slots = new ArrayList<>(10);
+                    for (int i = 0; i < 10; i++) {
+                        slots.add(null);
+                    }
+                    empty.put("slots", slots);
+                    empty.put("defaultSlot", 0);
+                    return ResponseEntity.ok(ApiResponse.ok(empty));
+                });
     }
 
     @PostMapping("/masterDistCalcCycleConfig")
@@ -111,11 +118,8 @@ public class ApiHqSettlementController {
             if (body == null || body.get("orgUnitId") == null) {
                 return ResponseEntity.ok(ApiResponse.fail("orgUnitId가 필요합니다.", "VALIDATION"));
             }
-            long orgUnitId = Long.parseLong(String.valueOf(body.get("orgUnitId")).trim());
-            int defaultSlot = 0;
-            if (body.get("defaultSlot") != null) {
-                defaultSlot = Integer.parseInt(String.valueOf(body.get("defaultSlot")).trim());
-            }
+            long orgUnitId = parseRequestLong(body.get("orgUnitId"), "orgUnitId");
+            int defaultSlot = parseRequestInt(body.get("defaultSlot"), 0, "defaultSlot");
             @SuppressWarnings("unchecked")
             List<Object> rawSlots = body.get("slots") instanceof List<?> l ? (List<Object>) l : new ArrayList<>();
             List<String> slots = new ArrayList<>();
@@ -126,7 +130,54 @@ public class ApiHqSettlementController {
                     masterDistSettlementCycleConfigService.saveForMasterDist(orgUnitId, slots, defaultSlot);
             return ResponseEntity.ok(ApiResponse.ok(masterDistSettlementCycleConfigService.toApiMap(saved)));
         } catch (Exception e) {
-            return ResponseEntity.ok(ApiResponse.fail(e.getMessage(), "VALIDATION"));
+            String msg = e.getMessage();
+            if (msg == null || msg.isBlank()) {
+                msg = "총판 정산주기 저장 중 오류가 발생했습니다. (" + e.getClass().getSimpleName() + ")";
+            }
+            return ResponseEntity.ok(ApiResponse.fail(msg, "VALIDATION"));
+        }
+    }
+
+    /** JSON Map 값이 Integer/Long/Double 등일 때 안전하게 long 변환(예: 11.0 문자열 방지). */
+    private static long parseRequestLong(Object raw, String fieldName) {
+        if (raw == null) {
+            throw new IllegalArgumentException(fieldName + "가 필요합니다.");
+        }
+        if (raw instanceof Number n) {
+            return n.longValue();
+        }
+        String s = String.valueOf(raw).trim();
+        if (s.isEmpty()) {
+            throw new IllegalArgumentException(fieldName + "가 비어 있습니다.");
+        }
+        try {
+            if (s.contains("e") || s.contains("E") || s.indexOf('.') >= 0) {
+                return (long) Double.parseDouble(s);
+            }
+            return Long.parseLong(s);
+        } catch (NumberFormatException e) {
+            throw new IllegalArgumentException(fieldName + " 숫자 형식이 올바르지 않습니다: " + s);
+        }
+    }
+
+    private static int parseRequestInt(Object raw, int defaultVal, String fieldName) {
+        if (raw == null) {
+            return defaultVal;
+        }
+        if (raw instanceof Number n) {
+            return n.intValue();
+        }
+        String s = String.valueOf(raw).trim();
+        if (s.isEmpty()) {
+            return defaultVal;
+        }
+        try {
+            if (s.contains("e") || s.contains("E") || s.indexOf('.') >= 0) {
+                return (int) Double.parseDouble(s);
+            }
+            return Integer.parseInt(s);
+        } catch (NumberFormatException e) {
+            throw new IllegalArgumentException(fieldName + " 숫자 형식이 올바르지 않습니다: " + s);
         }
     }
 

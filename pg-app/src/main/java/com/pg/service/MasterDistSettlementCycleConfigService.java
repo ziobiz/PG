@@ -174,9 +174,35 @@ public class MasterDistSettlementCycleConfigService {
 
     private static List<String> slotValuesRaw(MasterDistSettlementCycleConfig c) {
 
-        return List.of(c.getCycleCode1(), c.getCycleCode2(), c.getCycleCode3(), c.getCycleCode4(), c.getCycleCode5(),
+        if (c == null) {
 
-                c.getCycleCode6(), c.getCycleCode7(), c.getCycleCode8(), c.getCycleCode9(), c.getCycleCode10());
+            return new ArrayList<>(Collections.nCopies(MAX_DISTINCT_SLOTS, null));
+
+        }
+
+        List<String> out = new ArrayList<>(MAX_DISTINCT_SLOTS);
+
+        out.add(c.getCycleCode1());
+
+        out.add(c.getCycleCode2());
+
+        out.add(c.getCycleCode3());
+
+        out.add(c.getCycleCode4());
+
+        out.add(c.getCycleCode5());
+
+        out.add(c.getCycleCode6());
+
+        out.add(c.getCycleCode7());
+
+        out.add(c.getCycleCode8());
+
+        out.add(c.getCycleCode9());
+
+        out.add(c.getCycleCode10());
+
+        return out;
 
     }
 
@@ -483,6 +509,12 @@ public class MasterDistSettlementCycleConfigService {
 
         for (Map<String, Object> row : hqSettlementCycleAdminService.listMergedDefinitions()) {
 
+            if (row == null) {
+
+                continue;
+
+            }
+
             String v = row.get("cycleCode") != null ? String.valueOf(row.get("cycleCode")).trim() : "";
 
             if (!v.isEmpty()) {
@@ -540,9 +572,9 @@ public class MasterDistSettlementCycleConfigService {
 
         }
 
-        if (nonEmpty == 0) {
+        if (nonEmpty < 2) {
 
-            throw new IllegalArgumentException("최소 1개 정산주기를 지정하세요.");
+            throw new IllegalArgumentException("서로 다른 정산주기는 최소 2개 이상 지정하세요.");
 
         }
 

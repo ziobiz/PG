@@ -152,7 +152,9 @@
           ));
         }
         if (data.success === false) {
-          var failMsg = data.message || '요청 처리에 실패했습니다.';
+          var failMsg = (data.message != null && String(data.message).trim() !== '')
+            ? String(data.message).trim()
+            : ('요청 처리에 실패했습니다.' + (data.errorCode ? ' [' + data.errorCode + ']' : ''));
           var failErr = new Error(failMsg);
           if (data.errorCode) failErr.errorCode = data.errorCode;
           return Promise.reject(failErr);

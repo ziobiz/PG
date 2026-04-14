@@ -310,7 +310,7 @@
     + '<li><strong>H1·H2·H4·H6·H8·H12</strong>: N시간 격자 정각(HH:00)마다 <strong>직전 N시간</strong> 구간을 합산해 정산 실행 1건. 구 1D·2D·4D·6D·8D·12D 저장값은 서버에서 H 코드로 처리합니다.</li></ul>'
     + '</div></div>'
     + '<div class="card mb-3"><div class="card-header fw-semibold">총판별 가맹 정산주기 (최대 10건·대표)</div><div class="card-body">'
-    + '<p class="small text-muted mb-3">총판(MASTER_DIST)마다 가맹점 등록 시 선택 가능한 정산주기를 최대 10개까지 지정합니다. <strong>대표</strong>는 신규 가맹 시 셀렉트 기본값입니다. 아래 슬롯 셀렉트는 본사 <strong>표준 병합 전체</strong>(미사용 N 포함)이며, <strong>코드·행 순서</strong>는 위 정산주기관리의 <strong>표준 주기(시스템)</strong>·DB등록 표와 동일합니다. 미설정 총판이거나 상위에 총판이 없으면 가맹 화면은 기존처럼 <strong>사용(Y)만</strong> 노출됩니다.</p>'
+    + '<p class="small text-muted mb-3">총판(MASTER_DIST)마다 가맹점 등록 시 선택 가능한 정산주기를 최대 10개까지 지정합니다(2개·5개처럼 일부만 채워도 됩니다). <strong>서로 다른 주기는 최소 2개</strong> 필요하며, <strong>대표</strong>는 신규 가맹 시 셀렉트 기본값입니다. 아래 슬롯 셀렉트는 본사 <strong>표준 병합 전체</strong>(미사용 N 포함)이며, <strong>코드·행 순서</strong>는 위 정산주기관리의 <strong>표준 주기(시스템)</strong>·DB등록 표와 동일합니다. 미설정 총판이거나 상위에 총판이 없으면 가맹 화면은 기존처럼 <strong>사용(Y)만</strong> 노출됩니다.</p>'
     + '<div class="row g-2 align-items-end mb-2">'
     + '<div class="col-12 col-md-5"><label class="form-label small mb-0">총판</label><select id="hqMdCycleOrgSel" class="form-select form-select-sm"><option value="">불러오는 중…</option></select></div>'
     + '<div class="col-auto d-grid"><button type="button" class="btn btn-primary btn-sm" id="hqMdCycleSaveBtn">저장</button></div></div>'
