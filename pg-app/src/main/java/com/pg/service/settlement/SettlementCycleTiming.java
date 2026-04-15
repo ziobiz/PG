@@ -97,6 +97,39 @@ public final class SettlementCycleTiming {
         return MINUTE_GRID_STEP.containsKey(g) || HOUR_BLOCK_MOD.containsKey(g);
     }
 
+    /**
+     * 가맹점정산내역·배분·정산실시 리포트 등에 포함할 정산 실행 행인지.
+     * <ul>
+     *   <li>RT: 건당 마감 행은 항상 포함.</li>
+     *   <li>M5·H1 등 격자 마감: 자동 배치가 저장한 행만({@code periodEndAt} ≠ null). 수동 실행으로 생긴 미마감 집계는 제외.</li>
+     *   <li>T0·TM·TH: 당일 누적 재집계 행만({@code periodEndAt} 기록된 행).</li>
+     *   <li>일·주·달 등 그 외 주기: 기존과 동일하게 포함.</li>
+     * </ul>
+     * 정산실행(목록) 화면은 이 필터를 쓰지 않고 전체 실행 이력을 보여줍니다.
+     *
+     * @param periodEndAt        {@link com.pg.entity.SettlementRun#getPeriodEndAt()} (격자·누적 마감 시각)
+     * @param normalizedCalcCycle {@link SettlementPeriodResolver#normalizeCalcCycle(String)} 결과
+     */
+    public static boolean isMerchantStatementSettlementRunVisible(LocalDateTime periodEndAt, String normalizedCalcCycle) {
+        String c = normalize(normalizedCalcCycle != null ? normalizedCalcCycle : "");
+        if (c.isBlank()) {
+            return true;
+        }
+        if ("NONE".equals(c)) {
+            return false;
+        }
+        if (isRtPerTransactionCode(c)) {
+            return true;
+        }
+        if (isT0RollingIntradayCode(c) || isRollingIntradayGridCode(c)) {
+            return periodEndAt != null;
+        }
+        if (isSubDailyScheduleCode(c)) {
+            return periodEndAt != null;
+        }
+        return true;
+    }
+
     /** M5·M10·M30: 해당 N분 격자의 시작 분(0,5,10… / 0,10… / 0,30) */
     public static boolean isMinuteClosingGridNow(LocalTime now, String normalized) {
         String c = normalize(normalized);

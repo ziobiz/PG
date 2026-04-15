@@ -528,8 +528,13 @@ public class ApiCompController {
             String installmentYn = body.get("installmentYn") != null ? body.get("installmentYn").toString() : "N";
             String maxMo = body.get("maxInstallmentMonths") != null ? body.get("maxInstallmentMonths").toString() : "";
             String urlPayPricingMode = body.get("urlPayPricingMode") != null ? body.get("urlPayPricingMode").toString() : "";
+            boolean extPresent = body.containsKey("extSettleMode");
+            String extMode = body.get("extSettleMode") != null ? body.get("extSettleMode").toString() : "";
+            String extLag = body.get("extSettleLag") != null ? body.get("extSettleLag").toString() : "";
+            String extBt = body.get("extSettleBatchTime") != null ? body.get("extSettleBatchTime").toString() : "";
             Map<String, Object> saved = compService.saveMerchantPgBinding(compId, bindingId, pgCd, payMethod,
-                    mid, rootNo, apiKey, ivKey, activationYn, operationalYn, installmentYn, maxMo, urlPayPricingMode);
+                    mid, rootNo, apiKey, ivKey, activationYn, operationalYn, installmentYn, maxMo, urlPayPricingMode,
+                    extPresent, extMode, extLag, extBt);
             return ResponseEntity.ok(ApiResponse.ok(saved));
         } catch (NumberFormatException e) {
             return ResponseEntity.ok(ApiResponse.fail("ID 형식이 올바르지 않습니다.", "VALIDATION"));

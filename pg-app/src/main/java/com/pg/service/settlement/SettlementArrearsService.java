@@ -4,7 +4,9 @@ import com.pg.entity.ChargebackFeeTier;
 import com.pg.entity.CommissionPolicy;
 import com.pg.entity.HqApiConfig;
 import com.pg.entity.MerchantReceivable;
+import com.pg.entity.MerchantReceivableRecoveryRequest;
 import com.pg.entity.OrgUnit;
+import com.pg.entity.OrgLevel;
 import com.pg.entity.PgTrnsctn;
 import com.pg.entity.SettlementRun;
 import com.pg.entity.SettlementRecovery;
@@ -12,6 +14,7 @@ import com.pg.entity.SettlementSetting;
 import com.pg.repository.CommissionPolicyRepository;
 import com.pg.repository.HqApiConfigRepository;
 import com.pg.repository.HqLedgerSysSettingsRepository;
+import com.pg.repository.MerchantReceivableRecoveryRequestRepository;
 import com.pg.repository.MerchantReceivableRepository;
 import com.pg.repository.OrgUnitRepository;
 import com.pg.repository.SettlementRecoveryRepository;
@@ -28,12 +31,16 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 /**
- * 환수금(정산 후 환불 등 자동)·미수금(수동) 등록 및 정산 지급액에서의 FIFO 차감.
+ * 환수금(정산 후 환불 등 자동)·미수금(수동·정산 지급부족 자동) 등록 및 정산 지급액에서의 FIFO 차감.
  */
 @Service
 public class SettlementArrearsService {
+
+    /** 정산 실행 지급액이 음수일 때 자동 등록되는 미수금(다음 정산 지급액에서 FIFO 차감) */
+    public static final String REASON_AUTO_SETTLEMENT_DEFICIT = "AUTO_SETTLEMENT_DEFICIT";
 
     private static final String REASON_POST_SETTLE_REFUND = "POST_SETTLE_REFUND";
     private static final List<String> OPEN_RECOVERY = List.of("PENDING", "PARTIAL");
@@ -41,6 +48,7 @@ public class SettlementArrearsService {
 
     private final SettlementRecoveryRepository settlementRecoveryRepository;
     private final MerchantReceivableRepository merchantReceivableRepository;
+    private final MerchantReceivableRecoveryRequestRepository merchantReceivableRecoveryRequestRepository;
     private final SettlementRunRepository settlementRunRepository;
     private final FeeListTxnBreakdownCalculator feeListTxnBreakdownCalculator;
     private final CommissionPolicyRepository commissionPolicyRepository;
@@ -51,6 +59,7 @@ public class SettlementArrearsService {
 
     public SettlementArrearsService(SettlementRecoveryRepository settlementRecoveryRepository,
                                   MerchantReceivableRepository merchantReceivableRepository,
+                                  MerchantReceivableRecoveryRequestRepository merchantReceivableRecoveryRequestRepository,
                                   SettlementRunRepository settlementRunRepository,
                                   FeeListTxnBreakdownCalculator feeListTxnBreakdownCalculator,
                                   CommissionPolicyRepository commissionPolicyRepository,
@@ -60,6 +69,7 @@ public class SettlementArrearsService {
                                   HqLedgerSysSettingsRepository hqLedgerSysSettingsRepository) {
         this.settlementRecoveryRepository = settlementRecoveryRepository;
         this.merchantReceivableRepository = merchantReceivableRepository;
+        this.merchantReceivableRecoveryRequestRepository = merchantReceivableRecoveryRequestRepository;
         this.settlementRunRepository = settlementRunRepository;
         this.feeListTxnBreakdownCalculator = feeListTxnBreakdownCalculator;
         this.commissionPolicyRepository = commissionPolicyRepository;
@@ -67,6 +77,53 @@ public class SettlementArrearsService {
         this.settlementSettingRepository = settlementSettingRepository;
         this.hqApiConfigRepository = hqApiConfigRepository;
         this.hqLedgerSysSettingsRepository = hqLedgerSysSettingsRepository;
+    }
+
+    /** 가맹 정산설정이 MANUAL이면 미수금은 「환수처리」 요청이 있을 때만 정산에서 차감합니다. */
+    public boolean isManualReceivableRecovery(String merchantId) {
+        if (merchantId == null || merchantId.isBlank()) {
+            return false;
+        }
+        Optional<OrgUnit> ou = orgUnitRepository.findByCode(merchantId.trim());
+        if (ou.isEmpty() || ou.get().getOrgLevel() != OrgLevel.MERCHANT) {
+            return false;
+        }
+        return settlementSettingRepository.findByOrgUnitId(ou.get().getId())
+                .map(ss -> "MANUAL".equalsIgnoreCase(String.valueOf(ss.getReceivableRecoveryMode() != null ? ss.getReceivableRecoveryMode() : "").trim()))
+                .orElse(false);
+    }
+
+    /**
+     * 수동 가맹만: 미수금 건에 대해 다음 정산 마감에서 차감되도록 요청을 등록합니다.
+     */
+    @Transactional
+    public void requestManualReceivableRecovery(long receivableId, String requestedBy) {
+        MerchantReceivable r = merchantReceivableRepository.findById(receivableId)
+                .orElseThrow(() -> new IllegalArgumentException("미수금 건을 찾을 수 없습니다."));
+        String mid = r.getMerchantId() != null ? r.getMerchantId().trim() : "";
+        if (mid.isBlank()) {
+            throw new IllegalArgumentException("가맹점 코드가 없습니다.");
+        }
+        if (!isManualReceivableRecovery(mid)) {
+            throw new IllegalStateException("해당 가맹점은 자동 미수금 환수 모드입니다. 본사설정에서 수동으로 변경한 뒤 이용하세요.");
+        }
+        BigDecimal rem = r.getRemainingAmount() != null ? r.getRemainingAmount() : BigDecimal.ZERO;
+        if (rem.signum() <= 0) {
+            throw new IllegalStateException("차감할 잔여 미수금이 없습니다.");
+        }
+        if (!"PENDING".equals(r.getStatus()) && !"PARTIAL".equals(r.getStatus())) {
+            throw new IllegalStateException("대기·부분차감 상태만 환수처리할 수 있습니다.");
+        }
+        if (merchantReceivableRecoveryRequestRepository.existsByMerchantReceivableIdAndStatus(
+                receivableId, MerchantReceivableRecoveryRequest.STATUS_PENDING)) {
+            throw new IllegalStateException("이미 환수처리 요청이 등록되어 있습니다.");
+        }
+        MerchantReceivableRecoveryRequest req = new MerchantReceivableRecoveryRequest();
+        req.setMerchantReceivableId(receivableId);
+        req.setMerchantId(mid);
+        req.setStatus(MerchantReceivableRecoveryRequest.STATUS_PENDING);
+        req.setRequestedBy(requestedBy);
+        merchantReceivableRecoveryRequestRepository.save(req);
     }
 
     /** 정산관리·수수료내역과 동일: 전산설정 기준통화 + 통화별 소수 규칙 */
@@ -147,6 +204,7 @@ public class SettlementArrearsService {
 
     /**
      * 정산 실행 저장 직후: 지급액에서 환수금 FIFO, 이어서 미수금 FIFO 차감.
+     * 지급액이 음수면 그대로 두고, 동액을 미수금({@link #REASON_AUTO_SETTLEMENT_DEFICIT})으로 자동 등록한다.
      */
     @Transactional
     public void applyArrearsToSettledRun(SettlementRun run) {
@@ -155,19 +213,59 @@ public class SettlementArrearsService {
         }
         FeeListRoundingPolicy rp = settlementLedgerRoundPolicy();
         BigDecimal payBd = FeeListRoundingPolicy.round(run.getPayAmt() != null ? run.getPayAmt() : BigDecimal.ZERO, rp);
-        if (payBd.signum() <= 0) {
-            return;
-        }
         String mid = run.getMerchantId();
         if (mid == null || mid.isBlank()) {
             return;
         }
-        BigDecimal takeR = applyFifoRecoveries(mid.trim(), run.getId(), payBd);
+        String midTrim = mid.trim();
+        if (payBd.signum() < 0) {
+            registerAutoDeficitReceivableIfNeeded(run, payBd.abs(), rp, midTrim);
+            run.setReceivableAppliedAmt(BigDecimal.ZERO);
+            settlementRunRepository.save(run);
+            return;
+        }
+        if (payBd.signum() == 0) {
+            run.setReceivableAppliedAmt(BigDecimal.ZERO);
+            settlementRunRepository.save(run);
+            return;
+        }
+        BigDecimal takeR = applyFifoRecoveries(midTrim, run.getId(), payBd);
         BigDecimal payAfterR = payBd.subtract(takeR).max(BigDecimal.ZERO);
-        BigDecimal takeM = applyFifoReceivables(mid.trim(), run.getId(), payAfterR);
+        BigDecimal takeM;
+        if (isManualReceivableRecovery(midTrim)) {
+            takeM = applyManualReceivableRecoveryRequests(midTrim, run.getId(), payAfterR, rp);
+        } else {
+            takeM = applyFifoReceivables(midTrim, payAfterR, rp);
+        }
+        run.setReceivableAppliedAmt(takeM != null ? takeM : BigDecimal.ZERO);
         BigDecimal payFinal = FeeListRoundingPolicy.round(payAfterR.subtract(takeM).max(BigDecimal.ZERO), rp);
         run.setPayAmt(payFinal);
         settlementRunRepository.save(run);
+    }
+
+    /**
+     * 정산 지급액 음수분을 미수금으로 1회 등록. memo에 settlement_run_id를 두어 동일 실행 재처리 시 중복 방지.
+     */
+    private void registerAutoDeficitReceivableIfNeeded(SettlementRun run, BigDecimal debtPositive, FeeListRoundingPolicy rp, String merchantId) {
+        if (debtPositive == null || debtPositive.signum() <= 0) {
+            return;
+        }
+        String memoKey = "AUTO_DEFICIT:" + run.getId();
+        if (merchantReceivableRepository.existsByMerchantIdAndReasonCodeAndMemo(merchantId, REASON_AUTO_SETTLEMENT_DEFICIT, memoKey)) {
+            return;
+        }
+        BigDecimal amt = FeeListRoundingPolicy.round(debtPositive, rp);
+        MerchantReceivable r = new MerchantReceivable();
+        r.setMerchantId(merchantId);
+        r.setTitle("정산 지급부족(자동)");
+        r.setTotalAmount(amt);
+        r.setRemainingAmount(amt);
+        r.setAppliedAmount(BigDecimal.ZERO);
+        r.setStatus("PENDING");
+        r.setReasonCode(REASON_AUTO_SETTLEMENT_DEFICIT);
+        r.setMemo(memoKey);
+        r.setCreatedBy("SYSTEM");
+        merchantReceivableRepository.save(r);
     }
 
     private BigDecimal applyFifoRecoveries(String merchantId, Long settlementRunId, BigDecimal cap) {
@@ -207,11 +305,74 @@ public class SettlementArrearsService {
         return used;
     }
 
-    private BigDecimal applyFifoReceivables(String merchantId, Long settlementRunId, BigDecimal cap) {
+    private BigDecimal applyFifoReceivables(String merchantId, BigDecimal cap, FeeListRoundingPolicy rp) {
         if (cap == null || cap.signum() <= 0) {
             return BigDecimal.ZERO;
         }
         List<MerchantReceivable> rows = merchantReceivableRepository.findByMerchantIdAndStatusInOrderByIdAsc(merchantId, OPEN_RECEIVABLE);
+        return applyReceivableTakes(rows, cap, rp);
+    }
+
+    private BigDecimal applyManualReceivableRecoveryRequests(
+            String merchantId, Long settlementRunId, BigDecimal cap, FeeListRoundingPolicy rp) {
+        if (cap == null || cap.signum() <= 0) {
+            return BigDecimal.ZERO;
+        }
+        List<MerchantReceivableRecoveryRequest> pending =
+                merchantReceivableRecoveryRequestRepository.findByMerchantIdAndStatusOrderByIdAsc(
+                        merchantId, MerchantReceivableRecoveryRequest.STATUS_PENDING);
+        BigDecimal used = BigDecimal.ZERO;
+        List<MerchantReceivable> dirtyRecv = new ArrayList<>();
+        List<MerchantReceivableRecoveryRequest> dirtyReq = new ArrayList<>();
+        for (MerchantReceivableRecoveryRequest req : pending) {
+            BigDecimal room = cap.subtract(used);
+            if (room.signum() <= 0) {
+                break;
+            }
+            MerchantReceivable r = merchantReceivableRepository.findById(req.getMerchantReceivableId()).orElse(null);
+            if (r == null || !midTrimEq(r.getMerchantId(), merchantId)) {
+                req.setStatus(MerchantReceivableRecoveryRequest.STATUS_CANCELLED);
+                dirtyReq.add(req);
+                continue;
+            }
+            BigDecimal rem = r.getRemainingAmount() != null ? r.getRemainingAmount() : BigDecimal.ZERO;
+            if (rem.signum() <= 0) {
+                req.setStatus(MerchantReceivableRecoveryRequest.STATUS_APPLIED);
+                req.setAppliedSettlementRunId(settlementRunId);
+                dirtyReq.add(req);
+                continue;
+            }
+            BigDecimal take = FeeListRoundingPolicy.round(rem.min(room), rp);
+            if (take.signum() <= 0) {
+                continue;
+            }
+            r.setRemainingAmount(rem.subtract(take));
+            r.setAppliedAmount(nzBd(r.getAppliedAmount()).add(take));
+            if (r.getRemainingAmount().signum() == 0) {
+                r.setStatus("CLOSED");
+            } else {
+                r.setStatus("PARTIAL");
+            }
+            dirtyRecv.add(r);
+            used = used.add(take);
+            req.setStatus(MerchantReceivableRecoveryRequest.STATUS_APPLIED);
+            req.setAppliedSettlementRunId(settlementRunId);
+            dirtyReq.add(req);
+        }
+        if (!dirtyRecv.isEmpty()) {
+            merchantReceivableRepository.saveAll(dirtyRecv);
+        }
+        if (!dirtyReq.isEmpty()) {
+            merchantReceivableRecoveryRequestRepository.saveAll(dirtyReq);
+        }
+        return used;
+    }
+
+    private static boolean midTrimEq(String a, String merchantId) {
+        return a != null && merchantId != null && a.trim().equalsIgnoreCase(merchantId.trim());
+    }
+
+    private BigDecimal applyReceivableTakes(List<MerchantReceivable> rows, BigDecimal cap, FeeListRoundingPolicy rp) {
         BigDecimal used = BigDecimal.ZERO;
         List<MerchantReceivable> dirty = new ArrayList<>();
         for (MerchantReceivable r : rows) {
@@ -223,7 +384,7 @@ public class SettlementArrearsService {
             if (room.signum() <= 0) {
                 break;
             }
-            BigDecimal take = rem.min(room);
+            BigDecimal take = FeeListRoundingPolicy.round(rem.min(room), rp);
             if (take.signum() <= 0) {
                 continue;
             }

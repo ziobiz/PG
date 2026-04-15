@@ -99,6 +99,36 @@ public class SettlementCalcService {
         return settlementRunRepository.findByCalcDtBetweenOrderByMerchantId(fromDate, toDate);
     }
 
+    /**
+     * 가맹점정산내역·유통 배분·정산실시 리포트에 올릴 실행 행인지(주기 마감·건당 규칙).
+     * {@link SettlementCycleTiming#isMerchantStatementSettlementRunVisible}
+     */
+    public boolean isMerchantStatementVisibleSettlementRun(SettlementRun r) {
+        if (r == null) {
+            return false;
+        }
+        String mid = r.getMerchantId();
+        if (mid == null || mid.isBlank()) {
+            return false;
+        }
+        Optional<OrgUnit> ou = orgUnitRepository.findByCode(mid.trim());
+        if (ou.isEmpty()) {
+            ou = orgUnitRepository.findByCodeIgnoreCase(mid.trim());
+        }
+        if (ou.isEmpty()) {
+            return true;
+        }
+        Optional<SettlementSetting> ssOpt = settlementSettingRepository.findByOrgUnitId(ou.get().getId());
+        String cycleRaw;
+        if (r.getCalcCycleSnapshot() != null && !r.getCalcCycleSnapshot().isBlank()) {
+            cycleRaw = r.getCalcCycleSnapshot().trim();
+        } else {
+            cycleRaw = ssOpt.map(SettlementSetting::getCalcCycle).orElse("");
+        }
+        return SettlementCycleTiming.isMerchantStatementSettlementRunVisible(
+                r.getPeriodEndAt(), SettlementPeriodResolver.normalizeCalcCycle(cycleRaw));
+    }
+
     public CommissionPolicy getPolicy(String merchantId) {
         if (merchantId != null && !merchantId.isEmpty()) {
             return commissionPolicyRepository.findByScope(merchantId)
@@ -287,7 +317,8 @@ public class SettlementCalcService {
             if (run != null) {
                 run.setPeriodFrom(calcDt);
                 run.setPeriodTo(calcDt);
-                run.setPeriodEndAt(null);
+                /* 가맹점정산내역 필터: N분·당일누적 주기는 period_end_at 필수 — 해지만 행도 마감일 끝으로 표시 */
+                run.setPeriodEndAt(calcDt.atTime(LocalTime.MAX));
                 settlementRunRepository.save(run);
                 settlementArrearsService.applyArrearsToSettledRun(run);
                 results.add(run);
@@ -771,9 +802,7 @@ public class SettlementCalcService {
 
         BigDecimal payAmt = FeeListRoundingPolicy.round(
                 netSales.subtract(totalFee).subtract(feeVatAmt).subtract(rollingReserveAmt).add(releasedFromReserve), lr);
-        if (payAmt.compareTo(BigDecimal.ZERO) < 0) {
-            payAmt = FeeListRoundingPolicy.round(BigDecimal.ZERO, lr);
-        }
+        /* 음수 지급액은 0으로 올리지 않음. 절대액은 {@link SettlementArrearsService#applyArrearsToSettledRun} 에서 미수금 자동 등록 */
 
         /* 건당 마감: 포함된 모든 거래 settled Y. 당일 합산(T0) 등: 승인(10)만 Y — 정산 후 환불 시 환수금 자동 등록 기준 */
         if (markEveryIncludedTxnSettled) {
@@ -804,8 +833,27 @@ public class SettlementCalcService {
         run.setRollingReserveAmt(rollingReserveAmt);
         run.setPayAmt(payAmt);
         run.setStatus("CALCULATED");
+        applyCalcCycleSnapshotToRun(run, merchantId);
         applyPayoutHoldStagingIfDue(run, merchantId);
         return run;
+    }
+
+    /** 실행 저장 시점 가맹 정산주기(정규화) — 이후 가맹 설정이 바뀌어도 행 단위로 표시 유지 */
+    private void applyCalcCycleSnapshotToRun(SettlementRun run, String merchantId) {
+        if (run == null || merchantId == null || merchantId.isBlank()) {
+            return;
+        }
+        String m = merchantId.trim();
+        Optional<OrgUnit> ou = orgUnitRepository.findByCode(m);
+        if (ou.isEmpty()) {
+            ou = orgUnitRepository.findByCodeIgnoreCase(m);
+        }
+        String snap = ou.flatMap(o -> settlementSettingRepository.findByOrgUnitId(o.getId()))
+                .map(ss -> ss.getCalcCycle() != null && !ss.getCalcCycle().isBlank()
+                        ? SettlementPeriodResolver.normalizeCalcCycle(ss.getCalcCycle().trim())
+                        : "")
+                .orElse("");
+        run.setCalcCycleSnapshot(snap.isEmpty() ? null : snap);
     }
 
     /** HQ 수수료·정산(기준통화) 스케일로 {@code base × pct ÷ 100} 반올림 */

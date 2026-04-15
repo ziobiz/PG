@@ -479,7 +479,9 @@ public class PayListService {
     /**
      * ChillPay 통합·정산 API 행 목록에 대해 {@link #computePayListFinancialSummary} 와 동일 키의 금액 요약을 만듭니다.
      * 승인은 Chill {@link PayListStatusBarBuckets#bucketForChillStatus} 의 SUCCESS, 취소 계열은 CANCEL·REFUND·VOID.
-     * 총수수료는 API {@code fee} 합, 보류는 0, 지급액은 {@code settled} 가 양수면 그 값·아니면 {@code amount − fee}(음수는 0).
+     * 매출 금액은 {@code amount} 우선, 없으면 정산 API의 {@code settleAmount}/{@code netAmount}.
+     * 총수수료는 API {@code fee} 합, 보류는 0, 지급액은 {@code netAmount}·{@code settleAmount} 우선,
+     * 그다음 숫자형 {@code settled}·아니면 {@code amount − fee}(음수는 0).
      */
     public Map<String, Object> buildChillPayFinancialSummary(List<Map<String, Object>> rows,
                                                              Authentication authentication) {
@@ -516,23 +518,15 @@ public class PayListService {
             if (allowedCur != null && !allowedCur.contains(cur)) {
                 continue;
             }
-            BigDecimal amt = PayListStatusBarBuckets.parseMoney(chillPayRowFirstObject(row, "amount", "Amount"));
+            BigDecimal amt = chillPayRowApproveBasisAmount(row);
             if (PayListStatusBarBuckets.SUCCESS.equals(bucket)) {
                 successCount++;
                 approveCountByCur.merge(cur, 1L, Long::sum);
                 approve.merge(cur, amt, BigDecimal::add);
-                BigDecimal fee = PayListStatusBarBuckets.parseMoney(chillPayRowFirstObject(row, "fee", "Fee"));
+                BigDecimal fee = chillPayRowFeeBasis(row);
                 feeVatSum.merge(cur, fee, BigDecimal::add);
-                BigDecimal settled = PayListStatusBarBuckets.parseMoney(chillPayRowFirstObject(row, "settled", "Settled"));
-                if (settled.compareTo(BigDecimal.ZERO) > 0) {
-                    payout.merge(cur, settled, BigDecimal::add);
-                } else {
-                    BigDecimal net = amt.subtract(fee);
-                    if (net.compareTo(BigDecimal.ZERO) < 0) {
-                        net = BigDecimal.ZERO;
-                    }
-                    payout.merge(cur, net, BigDecimal::add);
-                }
+                BigDecimal payoutLine = chillPayRowPreferredPayout(row, amt, fee);
+                payout.merge(cur, payoutLine, BigDecimal::add);
             } else if (isChillCancelFinancialBucket(bucket)) {
                 cancelCountByCur.merge(cur, 1L, Long::sum);
                 cancel.merge(cur, amt, BigDecimal::add);
@@ -594,6 +588,47 @@ public class PayListService {
         return PayListStatusBarBuckets.CANCEL.equals(bucket)
                 || PayListStatusBarBuckets.REFUND.equals(bucket)
                 || PayListStatusBarBuckets.VOID.equals(bucket);
+    }
+
+    /** 결제 검색: amount. 정산 검색: amount 없을 때 settleAmount → netAmount. */
+    private static BigDecimal chillPayRowApproveBasisAmount(Map<String, Object> row) {
+        BigDecimal pay = PayListStatusBarBuckets.parseMoney(chillPayRowFirstObject(row, "amount", "Amount"));
+        if (pay.compareTo(BigDecimal.ZERO) > 0) {
+            return pay;
+        }
+        BigDecimal settle = PayListStatusBarBuckets.parseMoney(chillPayRowFirstObject(row, "settleAmount", "SettleAmount"));
+        if (settle.compareTo(BigDecimal.ZERO) > 0) {
+            return settle;
+        }
+        return PayListStatusBarBuckets.parseMoney(chillPayRowFirstObject(row, "netAmount", "NetAmount"));
+    }
+
+    private static BigDecimal chillPayRowFeeBasis(Map<String, Object> row) {
+        BigDecimal fee = PayListStatusBarBuckets.parseMoney(chillPayRowFirstObject(row, "fee", "Fee"));
+        if (fee.compareTo(BigDecimal.ZERO) > 0) {
+            return fee;
+        }
+        BigDecimal svc = PayListStatusBarBuckets.parseMoney(chillPayRowFirstObject(row, "serviceAmount", "ServiceAmount"));
+        BigDecimal vat = PayListStatusBarBuckets.parseMoney(chillPayRowFirstObject(row, "serviceVAT", "ServiceVAT"));
+        BigDecimal wht = PayListStatusBarBuckets.parseMoney(chillPayRowFirstObject(row, "serviceWHT", "ServiceWHT"));
+        return svc.add(vat).add(wht);
+    }
+
+    private static BigDecimal chillPayRowPreferredPayout(Map<String, Object> row, BigDecimal amt, BigDecimal fee) {
+        BigDecimal netAmt = PayListStatusBarBuckets.parseMoney(chillPayRowFirstObject(row, "netAmount", "NetAmount"));
+        if (netAmt.compareTo(BigDecimal.ZERO) > 0) {
+            return netAmt;
+        }
+        BigDecimal settleAmt = PayListStatusBarBuckets.parseMoney(chillPayRowFirstObject(row, "settleAmount", "SettleAmount"));
+        if (settleAmt.compareTo(BigDecimal.ZERO) > 0) {
+            return settleAmt;
+        }
+        BigDecimal settledMoney = PayListStatusBarBuckets.parseMoney(chillPayRowFirstObject(row, "settled", "Settled"));
+        if (settledMoney.compareTo(BigDecimal.ZERO) > 0) {
+            return settledMoney;
+        }
+        BigDecimal net = amt.subtract(fee);
+        return net.compareTo(BigDecimal.ZERO) < 0 ? BigDecimal.ZERO : net;
     }
 
     private static String chillPayRowFirstString(Map<String, Object> row, String... keys) {

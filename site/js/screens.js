@@ -344,6 +344,21 @@
     + '</div></div>'
     + '</div>';
 
+  /** 본사설정 — 환수/미수금 (가맹별 AUTO·MANUAL) */
+  var HQ_RECEIVABLE_RECOVERY_HTML = ''
+    + '<div class="hq-receivable-recovery p-2">'
+    + '<div class="card mb-3"><div class="card-header fw-semibold">환수 / 미수금 설정</div><div class="card-body small">'
+    + '<p class="text-muted mb-3">기본은 <strong>자동(AUTO)</strong>입니다. 가맹을 <strong>수동(MANUAL)</strong>으로 바꾸면 미수금은 「미수금관리」에서 <strong>환수처리</strong>를 요청한 건만 다음 정산 마감 시 지급액에서 차감됩니다. 자동 가맹은 정산 시 잔여 미수금을 FIFO로 차감합니다.</p>'
+    + '<div class="row g-2 align-items-end mb-3">'
+    + '<div class="col-12 col-md-5"><label class="form-label small mb-0">가맹점</label><select id="hqRecvMerchSel" class="form-select form-select-sm"><option value="">선택…</option></select></div>'
+    + '<div class="col-6 col-md-2"><label class="form-label small mb-0">모드</label><select id="hqRecvModeSel" class="form-select form-select-sm">'
+    + '<option value="AUTO">자동</option><option value="MANUAL">수동</option></select></div>'
+    + '<div class="col-auto d-grid"><button type="button" class="btn btn-primary btn-sm" id="hqRecvSaveBtn">저장</button></div></div>'
+    + '<p class="small fw-semibold mb-1">수동으로 설정된 가맹</p>'
+    + '<div class="table-responsive"><table class="table table-sm table-bordered align-middle mb-0">'
+    + '<thead class="table-light"><tr><th>업체코드</th><th>업체명</th><th>모드</th></tr></thead><tbody id="hqRecvManualTbody"></tbody></table></div>'
+    + '</div></div></div>';
+
   /** 정산구분: 정산 마감 후 개시 방식 (수동/자동/펌뱅킹) */
   var CALC_PROC_OPTIONS = [
     { v: 'MANUAL', t: '수동' },
@@ -478,6 +493,10 @@
   var MENU_SCREENS = {
     '/hq/pgApiMng': {
       emptyMessage: '조회된 데이터가 없습니다.',
+      paginationSizeOptions: [25, 50, 100, 150, 200],
+      paginationDefaultSize: 50,
+      /* 열이 많아 좁은 화면에서는 가로 스크롤로 전체 열 확인 */
+      tableResponsiveExtraClass: 'hq-pg-api-mng-scroll',
       /* 열 너비는 CSS(data-key)로 균형 — col-resize 저장값이 엔드포인트 열만 과도하게 넓히는 것 방지 */
       tableExtraClass: 'hq-pg-api-mng-table table-no-col-resize',
       searchRows: [[
@@ -487,6 +506,7 @@
       ]],
       noticeList: [
         '연동 용도(노티·URL·챗봇·API)와 용도별 엔드포인트를 구분해 저장합니다. URL 용도 행은 「URL금액」에서 일반(일반형) / DP(DISPLAY)를 지정할 수 있으며, 본사 URL결제설정(FX JSON)의 해당 PG 금액 모드와 동일합니다. 노티=미들웨어 수신 매칭, URL=공개 URL 결제 플로우, 챗봇/API=PG사 API 직연동(동일 연동 URL). 목록 「연동용도」는 파스텔 색으로 구분됩니다. API Key·MD5는 목록 미노출. [삭제]는 등록일 오른쪽, 신규는 [PG사 연동 추가]입니다.',
+        '통합정산 「예정(ICOPAY)」열: PG사 연동 편집에서 T+N(주말 제외 영업일·결제와 동일 시각) 또는 D+N(달력+N일·일괄 시각)을 저장합니다. OFF면 예정일을 채우지 않습니다. D는 일괄 시각(HH:mm) 필수.',
         'ChillPay는 PG코드 CHILLPAY, API·URL 엔드포인트는 ChillPayService가 병합 반영합니다. 운영 DB는 db/V35_pg_agency_integration_scope.sql 적용 후 배포하세요.'
       ],
       summary: ['건수'],
@@ -496,7 +516,7 @@
         { id: 'hqPgApiAddBtn', label: 'PG사 연동 추가', cls: 'btn-success' }
       ],
       columnGuideFixedKeys: ['rowNo', '_pgRowAct'],
-      columns: [{ key: '_chk', type: 'checkbox' }, { key: 'rowNo', label: '번호' }, { key: 'pgNm', label: '결제대행사', thClass: 'text-nowrap' }, { key: 'pgCd', label: 'PG코드', thClass: 'text-nowrap' }, { key: 'integrationScopeLabel', label: '연동용도', thClass: 'pg-api-mng-scope-th text-nowrap' }, { key: 'urlPayAmountModeLabel', label: 'URL금액', thClass: 'text-nowrap', title: 'URL결제: 일반형 / DP(DISPLAY)' }, { key: 'endpointsSummary', label: '엔드포인트', thClass: 'pg-api-mng-endpoints-th' }, { key: 'merchantMid', label: 'MID', thClass: 'text-nowrap' }, { key: 'hasApiKey', label: 'API', thClass: 'text-nowrap' }, { key: 'hasMd5Key', label: 'MD5', thClass: 'text-nowrap' }, { key: 'routeNo', label: 'Rt', thClass: 'text-nowrap', title: 'Route 번호' }, { key: 'sandboxYn', label: '환경', thClass: 'text-nowrap', title: 'Sandbox / Production' }, { key: 'operationalYn', label: '운영', thClass: 'text-nowrap' }, { key: 'useYn', label: '사용', thClass: 'text-nowrap' }, { key: 'regDt', label: '등록일', thClass: 'text-nowrap' }, { key: '_pgRowAct', type: 'pgApiMngRowActions', label: '관리', thClass: 'text-nowrap' }]
+      columns: [{ key: '_chk', type: 'checkbox' }, { key: 'rowNo', label: '번호' }, { key: 'pgNm', label: '결제대행사', thClass: 'text-nowrap' }, { key: 'pgCd', label: 'PG코드', thClass: 'text-nowrap' }, { key: 'integrationScopeLabel', label: '연동용도', thClass: 'pg-api-mng-scope-th text-nowrap' }, { key: 'urlPayAmountModeLabel', label: 'URL금액', thClass: 'text-nowrap', title: 'URL결제: 일반형 / DP(DISPLAY)' }, { key: 'endpointsSummary', label: '엔드포인트', thClass: 'pg-api-mng-endpoints-th' }, { key: 'merchantMid', label: 'MID', thClass: 'text-nowrap' }, { key: 'hasApiKey', label: 'API', thClass: 'text-nowrap' }, { key: 'hasMd5Key', label: 'MD5', thClass: 'text-nowrap' }, { key: 'routeNo', label: 'Rt', thClass: 'text-nowrap', title: 'Route 번호' }, { key: 'sandboxYn', label: '환경', thClass: 'text-nowrap', title: 'Sandbox / Production' }, { key: 'extSettleMode', label: '예정', thClass: 'text-nowrap', title: '통합정산 ICOPAY 예정: OFF/T/D' }, { key: 'extSettleLag', label: 'N', thClass: 'text-nowrap' }, { key: 'extSettleBatchTime', label: 'D시각', thClass: 'text-nowrap' }, { key: 'operationalYn', label: '운영', thClass: 'text-nowrap' }, { key: 'useYn', label: '사용', thClass: 'text-nowrap' }, { key: 'regDt', label: '등록일', thClass: 'text-nowrap' }, { key: '_pgRowAct', type: 'pgApiMngRowActions', label: '관리', thClass: 'text-nowrap' }]
     },
     '/hq/defaultCommission': {
       isForm: true,
@@ -634,6 +654,12 @@
       summary: [],
       buttons: [],
       staticHtml: HQ_SETTLEMENT_ADMIN_HTML
+    },
+    '/hq/receivableRecoverySettings': {
+      hideListGrid: true,
+      summary: [],
+      buttons: [],
+      staticHtml: HQ_RECEIVABLE_RECOVERY_HTML
     },
     '/hq/businessDaySetting': {
       isForm: true,
@@ -2282,7 +2308,7 @@
         'ChillPay API Transaction Services — Search Payment Transaction(실시간)입니다. ICOPAY 내부 DB(pg_trnsctn)가 아니라 칠페이 서버에서 직접 목록을 가져옵니다. ziobiz/NOTI 노티미들웨어의 종합거래·피지거래내역과 유사한 용도로 쓸 수 있습니다.',
         '자격: 배포설정 > API배포설정 또는 tb_pg_agency(ChillPay)의 MerchantCode·ApiKey·MD5 Secret Key·샌드박스 여부를 사용합니다.',
         '순서(내림차순·오름차순)는 [새로고침] 왼쪽 메뉴에서 고르며, 누르는 즉시 다시 조회됩니다(기본 내림차순). TransactionDate 범위는 검색 기간(날짜)을 ChillPay 형식(dd/MM/yyyy HH:mm:ss)으로 변환합니다. 문서: ChillPay-API-Transaction-Services-Document-EN_v1.0.6.',
-        '그리드 열 노출은 상단 VIEW SETTING에서 조정합니다(저장 시 사용자별로 유지). 번호·승인번호·업체명·업체코드·거래일·거래시간(JST·ICT 병기)·루트는 그리드에 항상 표시되며 VIEW SETTING 목록에는 나오지 않습니다. 본사설정 → 조직항목설정에서 화면「통합내역」 허용 열을 제한할 수 있습니다.'
+        '그리드 열 노출은 상단 VIEW SETTING에서 조정합니다(저장 시 사용자별로 유지). 번호·승인번호·업체명·업체코드·거래일·거래시간(JP·TH 두 줄)·루트는 그리드에 항상 표시되며 VIEW SETTING 목록에는 나오지 않습니다. 거래일은 yyyy년 M월 d일 형식입니다. 본사설정 → 조직항목설정에서 화면「통합내역」 허용 열을 제한할 수 있습니다.'
       ],
       summary: ['건수'],
       buttons: [
@@ -2317,7 +2343,7 @@
       ],
       emptyMessage: '조회된 데이터가 없습니다.'
     },
-    /** ChillPay Transaction API — 통합정산(결제일·Settled 중심, ICOPAY 정산 DB 비사용) */
+    /** ChillPay Transaction API — 통합정산(Search Settlement Transaction, ICOPAY 정산 DB 비사용) */
     '/calc/chillPaySettlementList': {
       /** 상단 액션: [새로고침] 왼쪽에 내림차순·오름차순(칠페이 OrderDir) */
       listSortDirAnchor: 'refresh',
@@ -2362,10 +2388,12 @@
         ]
       ],
       noticeList: [
-        '칠페이 Transaction Services — Search Payment Transaction API(v1.0.6)로 조회합니다. ICOPAY 정산 실행·유통망 정산 테이블과 무관하며, 칠페이가 판단한 Settled·수수료·금액 등 원문을 봅니다.',
-        '칠페이 API 정렬 키는 Settled(기본)·PaymentDate 등이며, 상단 [새로고침] 왼쪽에서 내림차순·오름차순(OrderDir)을 고릅니다. 첫째 줄에서 결제일 구간·빠른기간을 정한 뒤, 둘째 줄에서 검색구분·검색어·상태그룹을 맞추고 [검색]을 누릅니다. 「전체」는 해당 항목으로 좁히지 않습니다. 환불/강제환불·성공제외 등은 칠페이 API에 더해 ICOPAY 거래 상태로 보조 필터하며, 이때 상단 요약은 안내 문구대로 현재 페이지만 반영될 수 있습니다. 기간을 비우면 최근 30일 결제일로 조회합니다.',
+        '「예정(ICOPAY)」열은 배포설정 API연동설정(tb_pg_agency)의 T+N(주말 제외 영업일·결제와 동일 시각) 또는 D+N(달력+N일·일괄 시각)으로 계산합니다. OFF·MID 미매칭이면 비웁니다. 가맹 업체정보의 결제대행사 행에서 예정모드를 비우면 연동 기본을 따르고, OFF/T/D로 덮어쓸 수 있습니다.',
+        '칠페이 Transaction Services — Search Settlement Transaction API(/api/v1/settlement/search, 문서 v1.0.6 Table 2.2~2.3)로 조회합니다. 통합내역은 결제 검색(/api/v1/payment/search)·승인/취소 중심 필드이고, 통합정산은 **정산 검색**·지급액·순액·서비스비·이체일 등 **정산 원문**이 다릅니다. ICOPAY 정산 실행·유통망 정산 테이블과 무관합니다.',
+        '「정산(이체)」열의 값은 ChillPay 필드 Settled를 **정산완료 / 미정산**으로 바꾼 것입니다. Settled=false 는 “칠페이가 가맹점에 정산대금 **이체를 마쳤다**”는 뜻이 아니라, 아직 이체 전(또는 해당 주기 미지급)인 경우가 많습니다. **샌드박스**·테스트 거래는 전부 false 인 경우도 흔합니다. ICOPAY 노티(tb_pg_trnsctn)로 보강되는 것은 **결제 상태** 열이며, ChillPay 정산 이체와 동일하지 않습니다.',
+        '칠페이 정산 API 정렬 키는 통합내역과 같이 TransactionId(기본)·PaymentDate 등 문서 표를 따릅니다. 통합내역(결제 검색)과 동일하게 POJO·헤더·MD5 Checksum 규칙으로 호출합니다. 조회 응답 meta에 chillPaySandbox·chillPayTxnApiEnv(SANDBOX/PRODUCTION)가 포함되어 실제 호출 환경을 확인할 수 있습니다. 상단 [새로고침] 왼쪽에서 내림차순·오름차순(OrderDir)을 고릅니다. 첫째 줄에서 결제일 구간·빠른기간을 정한 뒤, 둘째 줄에서 검색구분·검색어·상태그룹을 맞추고 [검색]을 누릅니다. 「전체」는 해당 항목으로 좁히지 않습니다. 성공/실패/취소 등 상태그룹은 정산 API의 Settled(True/False)와 다르므로, 칠페이 응답에 결제 Status가 없을 때는 ICOPAY 노티 적재 건(tb_pg_trnsctn)으로 상태를 보강한 뒤 보조 필터합니다. 이때 상단 요약은 안내 문구대로 현재 페이지만 반영될 수 있습니다. 기간을 비우면 최근 30일 결제일로 조회합니다.',
         '자격: 배포설정 > API배포설정·tb_pg_agency(ChillPay)의 MerchantCode·ApiKey·MD5 Secret Key·샌드박스와 동일합니다.',
-        '그리드 열 노출은 상단 VIEW SETTING에서 조정합니다(저장 시 사용자별로 유지). 번호(No.)만 항상 표시되며, 통화·승인번호·거래일자·Merchant·고객·주문번호·PaymentChannel·PaymentDate·결제금액·수수료·Discount·총금액·RefundAmount·루트·상태·정산·ICOPAY·Description 등은 VIEW SETTING에서 켜고 끌 수 있습니다. 본사설정 → 조직항목설정에서 화면「통합정산」 허용 열을 제한할 수 있습니다.'
+        '그리드 열 노출은 상단 VIEW SETTING에서 조정합니다(저장 시 사용자별로 유지). 번호(No.)만 항상 표시됩니다. 거래일·거래시간·결제시각은 통합내역과 같이 거래일은 년·월·일 표기, 거래시간·결제시각은 JP(일본)·TH(태국) 두 줄로 표시합니다. SettleAmount·NetAmount·정산(이체)·이체일·컷오프·서비스료·환율·통화·승인번호·Merchant·고객·주문번호·PaymentChannel·결제금액·수수료·ICOPAY·Description·칠페이 원문 일시 등은 VIEW SETTING에서 켜고 끌 수 있습니다. 본사설정 → 조직항목설정에서 화면「통합정산」 허용 열을 제한할 수 있습니다.'
       ],
       summary: ['건수'],
       buttons: [
@@ -2375,12 +2403,20 @@
       columns: [
         { key: 'rowNo', label: 'No.' },
         { key: 'transactionId', label: '승인번호' },
-        { key: 'transactionDate', label: '거래일자' },
+        { key: 'trnDate', label: '거래일' },
+        { key: 'trnTime', label: '거래시간' },
+        { key: 'routeNo', label: '루트' },
         { key: 'merchant', label: 'Merchant' },
         { key: 'customer', label: '고객' },
         { key: 'orderNo', label: '주문번호' },
         { key: 'paymentChannel', label: 'PaymentChannel' },
-        { key: 'paymentDate', label: 'PaymentDate' },
+        { key: 'payCompletedAt', label: '결제시각' },
+        { key: 'settleAmount', label: '정산금액(Settle)' },
+        { key: 'netAmount', label: '순액(Net)' },
+        { key: 'exchangeRate', label: '환율' },
+        { key: 'serviceAmount', label: '서비스료' },
+        { key: 'serviceVAT', label: '서비스 VAT' },
+        { key: 'serviceWHT', label: '서비스 WHT' },
         { key: 'amount', label: '결제금액' },
         { key: 'refundAmount', label: 'RefundAmount' },
         { key: 'fee', label: '수수료' },
@@ -2388,10 +2424,15 @@
         { key: 'totalAmount', label: '총금액' },
         { key: 'icopay', label: 'ICOPAY' },
         { key: 'currency', label: '통화' },
-        { key: 'routeNo', label: '루트' },
-        { key: 'status', label: '상태' },
-        { key: 'settled', label: '정산' },
-        { key: 'description', label: 'Description' }
+        { key: 'status', label: '상태(ICOPAY 보강)' },
+        { key: 'settled', label: '정산(이체)' },
+        { key: 'transferDate', label: '이체일(Transfer)' },
+        { key: 'icopayExpectedSettleAt', label: '예정(ICOPAY)', columnGuideLabel: 'API연동 T+N(영업일·동일시각) 또는 D+N(달력·일괄시각). 칠페이 이체일과 별개.' },
+        { key: 'icopayExpectedSettleRule', label: '예정규칙', columnGuideLabel: '적용 규칙 출처(연동기본/가맹 덮어쓰기 등).' },
+        { key: 'cutOffTime', label: '컷오프' },
+        { key: 'description', label: 'Description' },
+        { key: 'transactionDate', label: '거래일자(원문)' },
+        { key: 'paymentDate', label: 'PaymentDate(원문)' }
       ],
       emptyMessage: '조회된 데이터가 없습니다.'
     },
@@ -2474,7 +2515,8 @@
         '한 행은 정산실행이 저장한 가맹점 정산 결과입니다. 검색은 정산실행과 동일하게 상단 한 줄(정산일 구간·빠른기간·검색구분·검색어). 「전체」는 해당 필드로 좁히지 않으며, 검색어가 있을 때만 전체 컬럼 OR 검색입니다.',
         '금액·공제수수료(feeAmt)·보류액·정산금액은 실행 시 저장값이며, 수수료(건)·부가세·건당·정산건당·기타(%)·보유율은 해당 실행의 집계 구간(정산대상기간·당일 누적 마감시각) 거래를 수수료내역과 동일한 건별 규칙으로 보조 계산합니다. 신규 실행부터 period가 저장되며, 그 이전 행은 정산일 하루 창으로 재조회합니다. 정산대상기간: RT는 거래번호·승인번호·마감(초) 한 줄, 그 외는 yyyy-MM-dd HH:mm:ss ~ 동일 형식(일 단위는 00:00:00~23:59:59, 분·시 격자는 구간 시각).',
         '수수료(건)·보류율·건당수수료·정산건당·기타(%)수수료 열은 보조 참고용 분해이며, 글자색이 연한 회색으로 표시됩니다. 수수료(%), 수수료(금액), 수수료(부가세), 보류금액, 금액, 정산금액 등은 실행 저장값 기준입니다.',
-        '본사·총판·지사·대리점·영업점 등 유통 구간 수익·수수료 분배는 유통망정산내역에서 동일 정산 실행분을 조직 단위로 집계합니다.'
+        '본사·총판·지사·대리점·영업점 등 유통 구간 수익·수수료 분배는 유통망정산내역에서 동일 정산 실행분을 조직 단위로 집계합니다.',
+        '미수금 차감: 「미수금차감」은 해당 정산 실행에서 지급액에 반영된 미수금 회수액입니다. 「미수금처리」는 수동 가맹은 환수처리·처리중·완료(확정), 자동 가맹은 자동화중·완료로 표시됩니다. 수동/자동 전환은 본사설정 「환수/미수금설정」입니다.'
       ],
       searchRows: [
         [
@@ -2497,7 +2539,7 @@
           { type: 'searchBtn', label: '검색' }
         ]
       ],
-      summary: ['건수', '금액', '수수료금액', '수수료부가세', '보류금액', '정산금액'],
+      summary: ['건수', '금액', '수수료금액', '수수료부가세', '보류금액', '미수금', '정산금액'],
       buttons: [
         { id: 'payListRefreshBtn', label: '새로고침', cls: 'btn-outline-secondary' },
         { id: 'searchBtn', label: '검색', cls: 'btn-primary' },
@@ -2537,6 +2579,10 @@
         { key: 'settlementPerTxFeeAmt', label: '정산건당' },
         { key: 'extraFeesAmt', label: '기타(%)수수료' },
         { key: 'calcCycle', label: '정산주기' },
+        { key: 'receivableAmt', label: '미수금', columnGuideLabel: '정산 지급부족 시 해당 실행에 자동 등록된 미수금(발생액)' },
+        { key: 'receivableDeductAmt', label: '미수금차감', columnGuideLabel: '해당 정산 실행 지급액에서 미수금으로 차감된 금액' },
+        { key: 'receivableProcessNm', label: '미수금처리', columnGuideLabel: '수동: 환수처리·처리중·완료 / 자동: 자동화중·완료' },
+        { key: 'receivableRecoveryMode', label: '환수모드' },
         { key: 'settleAmt', label: '정산금액' },
         { key: 'calcDt', label: '정산일시' },
         { key: 'approveDt', label: '승인일시' },
@@ -2711,7 +2757,8 @@
       noticeList: [
         '「미수금」은 해당 정산 주기에 지급해야 할 금액이 부족하거나(정산금 부족), 차지백·과태료 등으로 정산 시 부족분이 생겼을 때 가맹점에 부과되는 금액입니다. 정산 실행 시 지급액에서 환수금(FIFO)을 먼저 차감한 뒤 미수금(FIFO)이 차감됩니다.',
         '「미수금등록」은 총본사·본사·총판 조직 단계의 기본 권한(미수금관리 화면: 수정 이상)으로 가능하며, 지사·대리점·영업점 등은 기본 조회만입니다. 필요 시 본사권한설정에서 조직·단계별로 「미수금관리」(/calc/unpaidMng) 권한을 MODIFY/DELETE 로 올려 수동 등록을 허용할 수 있습니다.',
-        '수동 등록은 API POST /api/settlement/receivable (사유코드 reason_code 로 구분)과 동일하며, 대손·등록 취소는 서버 writeOff·cancel API를 사용합니다.'
+        '수동 등록은 API POST /api/settlement/receivable (사유코드 reason_code 로 구분)과 동일하며, 대손·등록 취소는 서버 writeOff·cancel API를 사용합니다.',
+        '가맹이 본사설정 「환수/미수금설정」에서 수동(MANUAL)인 경우에만 행의 [환수처리]로 다음 정산 마감 반영을 요청할 수 있습니다. 자동(AUTO) 가맹은 정산 시 미수금이 FIFO로 차감됩니다.'
       ],
       searchRows: [
         [
@@ -2738,6 +2785,9 @@
         { key: 'deductCnt', label: '잔여' },
         { key: 'appliedAmount', label: '정산차감누적' },
         { key: 'deductStatus', label: '상태' },
+        { key: 'receivableRecoveryMode', label: '환수모드' },
+        { key: 'receivablePhaseNm', label: '미수금처리' },
+        { key: 'receivableRecoveryAct', label: '환수' },
         { key: 'reasonCode', label: '사유코드' },
         { key: 'createdAt', label: '등록일시' }
       ]
@@ -2776,7 +2826,7 @@
         { id: 'excelBtn', label: '엑셀다운로드', cls: 'btn-info' }
       ],
       columnGuideFixedKeys: ['rowNo', 'compNm', 'compId', 'curType'],
-      columns: [{ key: '_chk', type: 'checkbox' }, { key: 'rowNo', label: '번호' }, { key: 'compNm', label: '업체명' }, { key: 'compId', label: '업체코드' }, { key: 'curType', label: '통화' }, { key: 'calcDt', label: '정산일자' }, { key: 'calcCycle', label: '정산주기' }, { key: 'calcMethod', label: '정산방법' }, { key: 'targetPeriodText', label: '정산대상기간', thClass: 'text-nowrap' }, { key: 'pgRootNo', label: '루트' }, { key: 'targetAmt', label: '정산대상금액' }, { key: 'totalFee', label: '공제수수료' }, { key: 'rollingReserveAmt', label: '롤링보류' }, { key: 'payAmount', label: '지급액' }, { key: 'status', label: '상태' }]
+      columns: [{ key: '_chk', type: 'checkbox' }, { key: 'rowNo', label: '번호' }, { key: 'compNm', label: '업체명' }, { key: 'compId', label: '업체코드' }, { key: 'curType', label: '통화' }, { key: 'calcDt', label: '정산일자' }, { key: 'calcCycle', label: '정산주기' }, { key: 'calcMethod', label: '정산방법' }, { key: 'targetPeriodText', label: '정산대상기간', thClass: 'text-nowrap' }, { key: 'pgRootNo', label: '루트' }, { key: 'targetAmt', label: '정산대상금액' }, { key: 'totalFee', label: '공제수수료' }, { key: 'rollingReserveAmt', label: '롤링보류' }, { key: 'receivableAmt', label: '미수금', columnGuideLabel: '정산 지급부족 시 해당 실행에 자동 등록된 미수금(발생액)' }, { key: 'payAmount', label: '지급액' }, { key: 'status', label: '상태' }]
     },
     '/calc/settlementReport': {
       listSortDirAnchor: 'refresh',
@@ -3194,7 +3244,7 @@
     '/settlement/franchiseList': {
       listSortDirAnchor: 'refresh',
       searchRows: [[{ label: '정산일자', type: 'daterange', from: 'searchFromDate', to: 'searchToDate' }, { type: 'quickdate' }, { type: 'searchBtn' }]],
-      summary: ['건수', '금액', '수수료금액', '수수료부가세', '보류금액', '정산금액'],
+      summary: ['건수', '금액', '수수료금액', '수수료부가세', '보류금액', '미수금', '정산금액'],
       buttons: [
         { id: 'payListRefreshBtn', label: '새로고침', cls: 'btn-outline-secondary' },
         { id: 'searchBtn', label: '검색', cls: 'btn-primary' },
@@ -3229,7 +3279,7 @@
         { id: 'executeBtn', label: '정산실행', cls: 'btn-danger' }
       ],
       columnGuideFixedKeys: ['rowNo', 'compNm', 'compId', 'curType'],
-      columns: [{ key: '_chk', type: 'checkbox' }, { key: 'rowNo', label: '번호' }, { key: 'compNm', label: '업체명' }, { key: 'compId', label: '업체코드' }, { key: 'curType', label: '통화' }, { key: 'calcDt', label: '정산일' }, { key: 'calcCycle', label: '정산주기' }, { key: 'calcMethod', label: '정산방법' }, { key: 'targetPeriodText', label: '정산대상기간', thClass: 'text-nowrap' }, { key: 'pgRootNo', label: '루트' }, { key: 'targetAmt', label: '정산대상금액' }, { key: 'totalFee', label: '공제수수료' }, { key: 'rollingReserveAmt', label: '롤링보류' }, { key: 'payAmount', label: '지급액' }, { key: 'status', label: '상태' }],
+      columns: [{ key: '_chk', type: 'checkbox' }, { key: 'rowNo', label: '번호' }, { key: 'compNm', label: '업체명' }, { key: 'compId', label: '업체코드' }, { key: 'curType', label: '통화' }, { key: 'calcDt', label: '정산일' }, { key: 'calcCycle', label: '정산주기' }, { key: 'calcMethod', label: '정산방법' }, { key: 'targetPeriodText', label: '정산대상기간', thClass: 'text-nowrap' }, { key: 'pgRootNo', label: '루트' }, { key: 'targetAmt', label: '정산대상금액' }, { key: 'totalFee', label: '공제수수료' }, { key: 'rollingReserveAmt', label: '롤링보류' }, { key: 'receivableAmt', label: '미수금', columnGuideLabel: '정산 지급부족 시 해당 실행에 자동 등록된 미수금(발생액)' }, { key: 'payAmount', label: '지급액' }, { key: 'status', label: '상태' }],
       emptyMessage: '조회된 데이터가 없습니다.'
     },
     '/notify/payUrlMng': {
@@ -3910,7 +3960,8 @@
           '<div class="row mb-2"><div class="col-sm-8"><label class="form-label">로그인 안내 호스트</label><input type="text" class="form-control form-control-sm" name="brandHost" id="brandingBrandHost" placeholder="예: api.example.com (선택)"></div></div>';
       } else if (sec.type === 'pgBindingList') {
         html += '<div class="pg-binding-list-wrap"><table class="table table-sm table-bordered pg-binding-table"><thead><tr>' +
-          '<th>운영</th><th>착신화</th><th>결제대행사</th><th>결제구분</th><th>MID</th><th>루트번호</th><th>API KEY</th><th>IV KEY</th><th>할부</th><th>최대할부</th><th style="min-width:200px">작업</th></tr></thead><tbody id="pgBindingTbody"></tbody></table>' +
+          '<th>운영</th><th>착신화</th><th>결제대행사</th><th>결제구분</th><th>MID</th><th>루트번호</th><th>API KEY</th><th>IV KEY</th><th>할부</th><th>최대할부</th>' +
+          '<th title="비우면 연동(tb_pg_agency) 기본">예정모드</th><th>N</th><th>D시각</th><th style="min-width:200px">작업</th></tr></thead><tbody id="pgBindingTbody"></tbody></table>' +
           '<button type="button" class="btn btn-outline-primary btn-sm mt-2" id="pgBindingAddBtn">+ 결제대행사 추가</button>' +
           '<input type="hidden" name="pgBindings" id="pgBindingsHidden" value="[]"></div>';
       } else if (sec.type === 'pgInfoDisplay') {

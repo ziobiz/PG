@@ -106,6 +106,12 @@ public class SettlementSetting {
     @Column(name = "pay_hold_yn", length = 1)
     private String payHoldYn = "N";
 
+    /**
+     * 미수금 환수: AUTO(기본, 정산 시 FIFO 자동 차감) / MANUAL(「환수처리」 요청 후 다음 정산 마감 시만 차감).
+     */
+    @Column(name = "receivable_recovery_mode", length = 16, nullable = false)
+    private String receivableRecoveryMode = "AUTO";
+
     /** 정산제외일 (쉼표 구분 문자열) */
     @Column(name = "calc_exclude_dates", length = 200)
     private String calcExcludeDates;
@@ -212,6 +218,8 @@ public class SettlementSetting {
     public void setFeeVatRatePct(BigDecimal feeVatRatePct) { this.feeVatRatePct = feeVatRatePct; }
     public String getPayHoldYn() { return payHoldYn; }
     public void setPayHoldYn(String payHoldYn) { this.payHoldYn = payHoldYn; }
+    public String getReceivableRecoveryMode() { return receivableRecoveryMode; }
+    public void setReceivableRecoveryMode(String receivableRecoveryMode) { this.receivableRecoveryMode = receivableRecoveryMode; }
     public String getCalcExcludeDates() { return calcExcludeDates; }
     public void setCalcExcludeDates(String calcExcludeDates) { this.calcExcludeDates = calcExcludeDates; }
     public LocalTime getCalcStartTime() { return calcStartTime; }

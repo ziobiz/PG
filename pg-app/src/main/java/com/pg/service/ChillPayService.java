@@ -7,6 +7,10 @@ import com.pg.dto.ChillPayDirectCreditRequest;
 import com.pg.dto.ChillPayDirectCreditResponse;
 import com.pg.dto.ChillPayPaymentSearchApiRequest;
 import com.pg.dto.ChillPayPaymentSearchApiResponse;
+import com.pg.dto.ChillPaySettlementSearchApiRequest;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.pg.entity.HqApiConfig;
 import com.pg.entity.MerchantPgBinding;
 import com.pg.entity.OrgUnit;
@@ -24,6 +28,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.http.*;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 
 import jakarta.servlet.http.HttpServletRequest;
@@ -91,6 +96,9 @@ public class ChillPayService {
     /** Transaction Services — Search Payment Transaction (Table 1.1~1.3) */
     private static final String TXN_PAYMENT_SEARCH_SB = "https://sandbox-api-transaction.chillpay.co/api/v1/payment/search";
     private static final String TXN_PAYMENT_SEARCH_PR = "https://api-transaction.chillpay.co/api/v1/payment/search";
+    /** Transaction Services — Search Settlement Transaction (Table 2.1~2.3) */
+    private static final String TXN_SETTLEMENT_SEARCH_SB = "https://sandbox-api-transaction.chillpay.co/api/v1/settlement/search";
+    private static final String TXN_SETTLEMENT_SEARCH_PR = "https://api-transaction.chillpay.co/api/v1/settlement/search";
     /** Transaction Services — Request Void (Table void/request) */
     private static final String TXN_VOID_REQUEST_SB = "https://sandbox-api-transaction.chillpay.co/api/v1/void/request";
     private static final String TXN_VOID_REQUEST_PR = "https://api-transaction.chillpay.co/api/v1/void/request";
@@ -98,11 +106,18 @@ public class ChillPayService {
     private static final String TXN_REFUND_REQUEST_SB = "https://sandbox-api-transaction.chillpay.co/api/v1/refund/request";
     private static final String TXN_REFUND_REQUEST_PR = "https://api-transaction.chillpay.co/api/v1/refund/request";
     private static final DateTimeFormatter CHILLPAY_TXN_DT = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss");
+    /** 통합내역·통합정산 그리드 거래일 표시(년·월·일 한글) */
+    private static final DateTimeFormatter CHILL_TRN_DATE_DISPLAY_KR =
+            DateTimeFormatter.ofPattern("yyyy년 M월 d일", Locale.KOREAN);
     /** 통합내역 상단 요약: 최대 추가 ChillPay API 호출 페이지 수(페이지당 최대 100건) */
     private static final int CHILL_STATUS_BAR_MAX_PAGES = 30;
 
     private static final ZoneId ZONE_JP = ZoneId.of("Asia/Tokyo");
     private static final ZoneId ZONE_TH = ZoneId.of("Asia/Bangkok");
+
+    /** ChillPay 문서 예시처럼 JSON 에 명시적 {@code null} 필드를 포함한다(기본 Jackson 은 null 키를 생략함). */
+    private static final ObjectMapper CHILLPAY_SETTLEMENT_JSON = new ObjectMapper()
+            .setSerializationInclusion(JsonInclude.Include.ALWAYS);
 
     private final ChillPayProperties props;
     private final HqApiConfigRepository hqApiConfigRepository;
@@ -113,6 +128,7 @@ public class ChillPayService {
     private final PgTrnsctnRepository pgTrnsctnRepository;
     private final PayListService payListService;
     private final UrlPayDisplayFxService urlPayDisplayFxService;
+    private final PgExtSettlementExpectedService pgExtSettlementExpectedService;
     private final RestTemplate restTemplate = new RestTemplate();
 
     public ChillPayService(ChillPayProperties props, HqApiConfigRepository hqApiConfigRepository,
@@ -122,7 +138,8 @@ public class ChillPayService {
                           OrgServiceUseService orgServiceUseService,
                           PgTrnsctnRepository pgTrnsctnRepository,
                           PayListService payListService,
-                          UrlPayDisplayFxService urlPayDisplayFxService) {
+                          UrlPayDisplayFxService urlPayDisplayFxService,
+                          PgExtSettlementExpectedService pgExtSettlementExpectedService) {
         this.props = props;
         this.hqApiConfigRepository = hqApiConfigRepository;
         this.merchantPgBindingRepository = merchantPgBindingRepository;
@@ -132,6 +149,7 @@ public class ChillPayService {
         this.pgTrnsctnRepository = pgTrnsctnRepository;
         this.payListService = payListService;
         this.urlPayDisplayFxService = urlPayDisplayFxService;
+        this.pgExtSettlementExpectedService = pgExtSettlementExpectedService;
     }
 
     /** 가맹점 결제 조합 시 MID·샌드박스 보조 (Route 확정 전에 조회 가능) */
@@ -347,6 +365,43 @@ public class ChillPayService {
 
     public static boolean isChillPayFamilyPgCd(String pgCd) {
         return PgVendor.isChillPayFamily(pgCd);
+    }
+
+    /**
+     * 통합내역·통합정산(Transaction Services) 호출 시 {@code merchantOrgUnitId} 가 비어 있으면
+     * 본사 {@link #resolveConfigFromHq} 만 타서, 결제(통합결제)와 달리 {@code tb_pg_agency.sandbox_yn} 이 Y 로 남은
+     * 본사 행 때문에 샌드박스 URL로 프로덕션 자격이 섞이는 문제가 생길 수 있다.
+     * 검색 필터의 가맹점 코드(업체코드) 또는 ChillPay MID 로 {@link OrgUnit} id 를 보강하면
+     * 결제와 동일하게 {@link #resolveConfig(Long)}(가맹점 바인딩 + 동일 pg_cd 행)을 쓴다.
+     */
+    private Long resolveMerchantOrgUnitIdForChillPayTxnApi(Long merchantOrgUnitId, String merchantCodeFilter) {
+        if (merchantOrgUnitId != null) {
+            return merchantOrgUnitId;
+        }
+        if (merchantCodeFilter == null || merchantCodeFilter.isBlank() || "__NONE__".equals(merchantCodeFilter)) {
+            return null;
+        }
+        String token = merchantCodeFilter.trim();
+        Optional<OrgUnit> byCode = orgUnitRepository.findByCodeIgnoreCase(token);
+        if (byCode.isPresent()) {
+            return byCode.get().getId();
+        }
+        List<MerchantPgBinding> byMid = merchantPgBindingRepository.findByMidIgnoreCaseOrderByOperationalYnDescIdAsc(token);
+        if (byMid.isEmpty()) {
+            return null;
+        }
+        for (MerchantPgBinding b : byMid) {
+            if (b.getOperationalYn() != null && "Y".equalsIgnoreCase(b.getOperationalYn().trim())
+                    && isChillPayFamilyPgCd(b.getPgCd())) {
+                return b.getOrgUnitId();
+            }
+        }
+        for (MerchantPgBinding b : byMid) {
+            if (isChillPayFamilyPgCd(b.getPgCd())) {
+                return b.getOrgUnitId();
+            }
+        }
+        return byMid.get(0).getOrgUnitId();
     }
 
     /**
@@ -1173,7 +1228,8 @@ public class ChillPayService {
      * ChillPay Transaction API — Search Payment Transaction (실시간 칠페이 결제 거래 목록).
      * 본사·가맹 {@link #resolveConfig(Long)} 자격(MerchantCode·ApiKey·MD5)으로 호출합니다.
      *
-     * @param merchantOrgUnitId null이면 본사(HQ) 설정만 사용
+     * @param merchantOrgUnitId null 이면 {@code merchantCodeFilter}(업체코드 또는 MID)로 가맹점을 역매핑해
+     *                          통합결제와 동일한 바인딩 설정을 쓰고, 둘 다 없으면 본사(HQ) 설정만 사용
      * @param multiCurrency     총본사·본사 true 시 통화별 금액 나열, 총판·지사 이하는 {@code primaryCurrency} 만 집계
      * @param authentication    금액 요약(meta.payListFinancialSummary) 통화·기준통화 필터용, null 이면 기본 규칙만 적용
      */
@@ -1195,10 +1251,11 @@ public class ChillPayService {
             String primaryCurrency,
             Authentication authentication) {
 
+        Long effectiveMerchantOrgUnitId = resolveMerchantOrgUnitIdForChillPayTxnApi(merchantOrgUnitId, merchantCodeFilter);
         int ps = Math.min(100, Math.max(1, size));
         int pn = Math.max(1, page);
         PageResult<Map<String, Object>> display = searchChillPayPaymentTransactionsPage(
-                merchantOrgUnitId, pn, ps, orderBy, orderDir, searchKeyword, merchantCodeFilter,
+                effectiveMerchantOrgUnitId, pn, ps, orderBy, orderDir, searchKeyword, merchantCodeFilter,
                 paymentChannel, routeNoFilter, orderNo, status, transactionDateFrom, transactionDateTo,
                 null, null);
 
@@ -1210,7 +1267,7 @@ public class ChillPayService {
             PageResult<Map<String, Object>> slice = (p == pn)
                     ? display
                     : searchChillPayPaymentTransactionsPage(
-                            merchantOrgUnitId, p, display.getSize(), orderBy, orderDir, searchKeyword,
+                            effectiveMerchantOrgUnitId, p, display.getSize(), orderBy, orderDir, searchKeyword,
                             merchantCodeFilter, paymentChannel, routeNoFilter, orderNo, status,
                             transactionDateFrom, transactionDateTo, null, null);
             accumulateChillPayRowsIntoRollup(roll, slice.getList());
@@ -1228,10 +1285,9 @@ public class ChillPayService {
     }
 
     /**
-     * ChillPay Transaction API — 동일 {@code /api/v1/payment/search} 로
-     * <strong>PaymentDate</strong> 구간·정렬을 중심으로 조회합니다.
-     * ICOPAY 정산 테이블이 아니라 칠페이가 내려주는 Settled·Fee·TotalAmount 등 원문을 그대로 표시합니다.
-     * 문서 Table 1.2 OrderBy 에 {@code Settled}·{@code PaymentDate} 등 사용 가능.
+     * ChillPay Transaction API — {@code /api/v1/settlement/search}(Search Settlement Transaction)로 조회합니다.
+     * 문서 Table 2.3: 정산지급액·순액·환율·서비스비·이체일·컷오프·정산이체 여부 등 정산 중심 필드를 반환합니다.
+     * 결제 상태 문자열은 응답에 없을 수 있어, 동일 승인번호가 ICOPAY {@code tb_pg_trnsctn}에 있으면 보강합니다.
      *
      * @param paymentDateFrom/to null·둘 다 null 이면 최근 30일(오늘 기준) 결제일 구간
      * @param transactionDateFrom/to 선택 — 거래생성일 필터(비우면 미전달)
@@ -1269,11 +1325,12 @@ public class ChillPayService {
             payTo = payFrom.plusDays(30);
         }
 
+        Long effectiveMerchantOrgUnitId = resolveMerchantOrgUnitIdForChillPayTxnApi(merchantOrgUnitId, merchantCodeFilter);
         int ps = Math.min(100, Math.max(1, size));
         int pn = Math.max(1, page);
-        String ob = trimOrDefault(orderBy, "Settled");
-        PageResult<Map<String, Object>> display = searchChillPayPaymentTransactionsPage(
-                merchantOrgUnitId, pn, ps, ob, orderDir, searchKeyword, merchantCodeFilter,
+        String ob = normalizeChillPaySettlementOrderBy(orderBy);
+        PageResult<Map<String, Object>> display = searchChillPaySettlementTransactionsPage(
+                effectiveMerchantOrgUnitId, pn, ps, ob, orderDir, searchKeyword, merchantCodeFilter,
                 paymentChannel, routeNoFilter, orderNo, status,
                 transactionDateFrom, transactionDateTo, payFrom, payTo);
 
@@ -1284,6 +1341,8 @@ public class ChillPayService {
             Map<String, String> icopayByChill = loadLatestIcopayStatusByChillTxnIds(display.getList());
             display.setList(filterSettlementRowsByIcopayStatusGroup(display.getList(), postGroup, icopayByChill));
         }
+
+        pgExtSettlementExpectedService.enrichChillPaySettlementRows(display.getList());
 
         PayListStatusBarBuckets.MutableRollup roll = new PayListStatusBarBuckets.MutableRollup();
         List<Map<String, Object>> rowsForFinancial = new ArrayList<>();
@@ -1298,8 +1357,8 @@ public class ChillPayService {
             for (int p = 1; p <= maxPages; p++) {
                 PageResult<Map<String, Object>> slice = (p == pn)
                         ? display
-                        : searchChillPayPaymentTransactionsPage(
-                                merchantOrgUnitId, p, display.getSize(), ob, orderDir, searchKeyword,
+                        : searchChillPaySettlementTransactionsPage(
+                                effectiveMerchantOrgUnitId, p, display.getSize(), ob, orderDir, searchKeyword,
                                 merchantCodeFilter, paymentChannel, routeNoFilter, orderNo, status,
                                 transactionDateFrom, transactionDateTo, payFrom, payTo);
                 accumulateChillPayRowsIntoRollup(roll, slice.getList());
@@ -1314,6 +1373,10 @@ public class ChillPayService {
         meta.put("payListFinancialSummary", payListService.buildChillPayFinancialSummary(rowsForFinancial, authentication));
         payListService.putHqLedgerPayDisplayCurrencyMeta(meta);
         meta.put("chillPaySettlementMode", true);
+        meta.put("chillPaySettlementApi", "SearchSettlementTransaction");
+        meta.put("icopayExpectedSettleHelp",
+                "예정(ICOPAY) 열은 배포설정 API연동설정(tb_pg_agency)의 T+N(주말 제외 영업일·결제와 동일 시각) 또는 "
+                        + "D+N(달력일+N일·일괄 시각)으로 계산합니다. OFF·가맹 덮어쓰기 OFF·MID 미매칭이면 비웁니다.");
         meta.put("paymentDateFrom", payFrom.toString());
         meta.put("paymentDateTo", payTo.toString());
         if (postFilter) {
@@ -1446,8 +1509,17 @@ public class ChillPayService {
             String st = firstNonBlankString(row, "status", "Status");
             String bucket = PayListStatusBarBuckets.bucketForChillStatus(st);
             String cur = PayListStatusBarBuckets.normalizeCurrency(firstNonBlankString(row, "currency", "Currency"));
-            Object amtObj = row.containsKey("amount") ? row.get("amount") : row.get("Amount");
-            roll.add(bucket, cur, PayListStatusBarBuckets.parseMoney(amtObj), 1L);
+            BigDecimal lineAmt = PayListStatusBarBuckets.parseMoney(row.containsKey("amount") ? row.get("amount") : null);
+            if (lineAmt.compareTo(BigDecimal.ZERO) == 0) {
+                lineAmt = PayListStatusBarBuckets.parseMoney(row.get("Amount"));
+            }
+            if (lineAmt.compareTo(BigDecimal.ZERO) == 0) {
+                lineAmt = PayListStatusBarBuckets.parseMoney(row.get("settleAmount"));
+            }
+            if (lineAmt.compareTo(BigDecimal.ZERO) == 0) {
+                lineAmt = PayListStatusBarBuckets.parseMoney(row.get("netAmount"));
+            }
+            roll.add(bucket, cur, lineAmt, 1L);
         }
     }
 
@@ -1466,6 +1538,101 @@ public class ChillPayService {
             }
         }
         return "";
+    }
+
+    /**
+     * 통합내역(Search Payment Transaction)과 동일한 필드·형식으로 {@link ChillPayPaymentSearchApiRequest} 를 채운다.
+     * 10번째 체크섬 슬롯은 결제 API에서는 {@code Status}, 정산 검색에서는 {@code Settled} 값(동일 문자열)이 들어간다.
+     */
+    private static void populateChillPayPaymentSearchRequest(
+            ChillPayPaymentSearchApiRequest req,
+            int pageSize,
+            int pageNumber,
+            String orderBy,
+            String orderDir,
+            String searchKeyword,
+            String merchantCodeFilter,
+            String paymentChannel,
+            Integer routeNoFilter,
+            String orderNo,
+            String statusOrSettledSlot10,
+            LocalDate transactionDateFrom,
+            LocalDate transactionDateTo,
+            LocalDate paymentDateFrom,
+            LocalDate paymentDateTo) {
+        req.setOrderBy(trimOrDefault(orderBy, "TransactionId"));
+        req.setOrderDir("ASC".equalsIgnoreCase(trimOrEmpty(orderDir)) ? "ASC" : "DESC");
+        req.setPageSize(pageSize);
+        req.setPageNumber(pageNumber);
+        req.setSearchKeyword(trimOrEmpty(searchKeyword));
+        req.setMerchantCode(trimOrEmpty(merchantCodeFilter));
+        req.setPaymentChannel(trimOrEmpty(paymentChannel));
+        req.setRouteNo(routeNoFilter);
+        req.setOrderNo(trimOrEmpty(orderNo));
+        req.setStatus(trimOrEmpty(statusOrSettledSlot10));
+        req.setTransactionDateFrom(transactionDateFrom != null ? transactionDateFrom.atStartOfDay().format(CHILLPAY_TXN_DT) : "");
+        req.setTransactionDateTo(transactionDateTo != null ? transactionDateTo.atTime(23, 59, 59).format(CHILLPAY_TXN_DT) : "");
+        req.setPaymentDateFrom(paymentDateFrom != null ? paymentDateFrom.atStartOfDay().format(CHILLPAY_TXN_DT) : "");
+        req.setPaymentDateTo(paymentDateTo != null ? paymentDateTo.atTime(23, 59, 59).format(CHILLPAY_TXN_DT) : "");
+    }
+
+    /**
+     * 통합정산 UI는 정렬을 안 보내는 경우가 많다. ChillPay Transaction Services 기본값과 같이 {@code TransactionId} 를 쓴다.
+     */
+    private static String normalizeChillPaySettlementOrderBy(String orderBy) {
+        if (orderBy == null || orderBy.isBlank()) {
+            return "TransactionId";
+        }
+        return orderBy.trim();
+    }
+
+    private static String nullIfBlank(String s) {
+        if (s == null || s.isBlank()) {
+            return null;
+        }
+        return s.trim();
+    }
+
+    /**
+     * Table 2.2 본문 + {@link ChillPaySettlementSearchApiRequest#toChecksumPlainString()} 18필드 MD5.
+     * 날짜 문자열은 통합내역(결제 검색)과 동일하게 {@code LocalDate#atStartOfDay()} / {@code atTime(23,59,59)} 로 만든다.
+     * 미사용 문자열 필드는 ChillPay 문서 예시처럼 {@code null}(JSON 에 명시)로 둔다.
+     * {@code merchantCodeForWire} 는 보통 헤더 CHILLPAY-MerchantCode 와 동일한 ChillPay MID — 업체코드 등은 SearchKeyword 로만 넘긴다.
+     */
+    private static void populateChillPaySettlementSearchWireRequest(
+            ChillPaySettlementSearchApiRequest req,
+            int pageSize,
+            int pageNumber,
+            String orderBy,
+            String orderDir,
+            String searchKeywordForWire,
+            String merchantCodeForWire,
+            String paymentChannel,
+            Integer routeNoFilter,
+            String orderNo,
+            String settledToken,
+            LocalDate transactionDateFrom,
+            LocalDate transactionDateTo,
+            LocalDate paymentDateFrom,
+            LocalDate paymentDateTo) {
+        req.setOrderBy(trimOrDefault(orderBy, "TransactionId"));
+        req.setOrderDir("ASC".equalsIgnoreCase(trimOrEmpty(orderDir)) ? "ASC" : "DESC");
+        req.setPageSize(pageSize);
+        req.setPageNumber(pageNumber);
+        req.setSearchKeyword(nullIfBlank(searchKeywordForWire));
+        req.setMerchantCode(nullIfBlank(merchantCodeForWire));
+        req.setPaymentChannel(nullIfBlank(paymentChannel));
+        req.setRouteNo(routeNoFilter);
+        req.setOrderNo(nullIfBlank(orderNo));
+        req.setSettled(nullIfBlank(settledToken));
+        req.setTransactionDateFrom(transactionDateFrom != null ? transactionDateFrom.atStartOfDay().format(CHILLPAY_TXN_DT) : null);
+        req.setTransactionDateTo(transactionDateTo != null ? transactionDateTo.atTime(23, 59, 59).format(CHILLPAY_TXN_DT) : null);
+        req.setPaymentDateFrom(paymentDateFrom != null ? paymentDateFrom.atStartOfDay().format(CHILLPAY_TXN_DT) : null);
+        req.setPaymentDateTo(paymentDateTo != null ? paymentDateTo.atTime(23, 59, 59).format(CHILLPAY_TXN_DT) : null);
+        req.setTransferDateFrom(null);
+        req.setTransferDateTo(null);
+        req.setCutOffTimeDateFrom(null);
+        req.setCutOffTimeDateTo(null);
     }
 
     private PageResult<Map<String, Object>> searchChillPayPaymentTransactionsPage(
@@ -1500,20 +1667,9 @@ public class ChillPayService {
         int pn = Math.max(1, page);
 
         ChillPayPaymentSearchApiRequest req = new ChillPayPaymentSearchApiRequest();
-        req.setOrderBy(trimOrDefault(orderBy, "TransactionId"));
-        req.setOrderDir("ASC".equalsIgnoreCase(trimOrEmpty(orderDir)) ? "ASC" : "DESC");
-        req.setPageSize(ps);
-        req.setPageNumber(pn);
-        req.setSearchKeyword(trimOrEmpty(searchKeyword));
-        req.setMerchantCode(trimOrEmpty(merchantCodeFilter));
-        req.setPaymentChannel(trimOrEmpty(paymentChannel));
-        req.setRouteNo(routeNoFilter);
-        req.setOrderNo(trimOrEmpty(orderNo));
-        req.setStatus(trimOrEmpty(status));
-        req.setTransactionDateFrom(transactionDateFrom != null ? transactionDateFrom.atStartOfDay().format(CHILLPAY_TXN_DT) : "");
-        req.setTransactionDateTo(transactionDateTo != null ? transactionDateTo.atTime(23, 59, 59).format(CHILLPAY_TXN_DT) : "");
-        req.setPaymentDateFrom(paymentDateFrom != null ? paymentDateFrom.atStartOfDay().format(CHILLPAY_TXN_DT) : "");
-        req.setPaymentDateTo(paymentDateTo != null ? paymentDateTo.atTime(23, 59, 59).format(CHILLPAY_TXN_DT) : "");
+        populateChillPayPaymentSearchRequest(req, ps, pn, orderBy, orderDir, searchKeyword, merchantCodeFilter,
+                paymentChannel, routeNoFilter, orderNo, trimOrEmpty(status),
+                transactionDateFrom, transactionDateTo, paymentDateFrom, paymentDateTo);
 
         req.setChecksum(md5(req.toChecksumPlainString() + cfg.md5Key()));
 
@@ -1561,6 +1717,9 @@ public class ChillPayService {
             Map<String, Object> meta = new LinkedHashMap<>();
             meta.put("chillPayMessage", body.getMessage());
             meta.put("chillPayStatus", body.getStatus());
+            meta.put("chillPaySandbox", cfg.sandbox());
+            meta.put("chillPayTxnApiEnv", cfg.sandbox() ? "SANDBOX" : "PRODUCTION");
+            meta.put("chillPayPaymentSearchUrl", url);
             pr.setMeta(meta);
             return pr;
         } catch (IllegalStateException e) {
@@ -1568,6 +1727,327 @@ public class ChillPayService {
         } catch (Exception e) {
             log.error("ChillPay Search Payment Transaction 실패: {}", e.getMessage());
             throw new IllegalStateException("ChillPay 거래 검색 API 호출 실패: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * 칠페이 정산 검색이 {@code 3001 Search Failed} 만 반환하는 경우(엔드포인트·계정 조합), 동일 필터로
+     * {@link #searchChillPayPaymentTransactionsPage} 를 호출해 목록을 채운다. 통합내역과 동일 API다.
+     */
+    private PageResult<Map<String, Object>> chillPaySettlementSearchFallbackToPaymentSearch(
+            Long merchantOrgUnitId,
+            int page,
+            int size,
+            String orderBy,
+            String orderDir,
+            String searchKeyword,
+            String merchantCodeFilter,
+            String paymentChannel,
+            Integer routeNoFilter,
+            String orderNo,
+            String status,
+            LocalDate transactionDateFrom,
+            LocalDate transactionDateTo,
+            LocalDate paymentDateFrom,
+            LocalDate paymentDateTo,
+            String attemptedSettlementUrl) {
+        log.warn("ChillPay /settlement/search returned 3001 — falling back to /payment/search (same filters as 통합내역)");
+        PageResult<Map<String, Object>> fb = searchChillPayPaymentTransactionsPage(
+                merchantOrgUnitId, page, size, orderBy, orderDir, searchKeyword, merchantCodeFilter,
+                paymentChannel, routeNoFilter, orderNo, status,
+                transactionDateFrom, transactionDateTo, paymentDateFrom, paymentDateTo);
+        List<Map<String, Object>> rows = fb.getList();
+        if (rows != null) {
+            for (Map<String, Object> row : rows) {
+                applyChillSettlementSearchAliases(row);
+            }
+            enrichSettlementRowsTxnStatusForChillGrid(rows);
+        }
+        Map<String, Object> meta = fb.getMeta() != null ? new LinkedHashMap<>(fb.getMeta()) : new LinkedHashMap<>();
+        meta.put("chillPaySettlementFallback", Boolean.TRUE);
+        meta.put("chillPaySettlementFallbackNote",
+                "칠페이 정산 검색(/settlement/search)이 3001을 반환하여, 동일 조건의 결제 거래 검색(/payment/search) 결과로 표시했습니다. "
+                        + "이체일(TransferDate)·컷오프·정산금액(Settle)·순액(Net)·이체 관련 원문은 결제 검색 응답에 없어 비어 있을 수 있습니다. "
+                        + "해당 값은 칠페이 정산 API가 200으로 정상 응답할 때만 채울 수 있습니다.");
+        /** 결제 검색으로는 내려오지 않는 칠페이 정산 전용 필드(참고·UI 툴팁 등). */
+        meta.put("chillPaySettlementFallbackUnsettledApiFields",
+                List.of(
+                        "TransferDate", "CutOffTime", "SettleAmount", "NetAmount",
+                        "ExchangeRate", "ServiceAmount", "ServiceVAT", "ServiceWHT"));
+        meta.put("chillPaySettlementSearchUrl", attemptedSettlementUrl);
+        meta.put("chillPaySettlementApi", "payment_search_fallback_after_3001");
+        fb.setMeta(meta);
+        return fb;
+    }
+
+    /**
+     * ChillPay Search Settlement Transaction — {@code /api/v1/settlement/search}.
+     * 문서 Table 2.2: {@link ChillPaySettlementSearchApiRequest} + 18필드 {@link ChillPaySettlementSearchApiRequest#toChecksumPlainString()} + MD5.
+     * 결제 검색과 달리 이체·컷오프 필드가 포함된다. 본문 {@code MerchantCode} 는 헤더 MID 와 맞추고 업체코드 필터는 SearchKeyword 로 합친다.
+     */
+    private PageResult<Map<String, Object>> searchChillPaySettlementTransactionsPage(
+            Long merchantOrgUnitId,
+            int page,
+            int size,
+            String orderBy,
+            String orderDir,
+            String searchKeyword,
+            String merchantCodeFilter,
+            String paymentChannel,
+            Integer routeNoFilter,
+            String orderNo,
+            String status,
+            LocalDate transactionDateFrom,
+            LocalDate transactionDateTo,
+            LocalDate paymentDateFrom,
+            LocalDate paymentDateTo) {
+
+        if (merchantOrgUnitId != null && !orgServiceUseService.isOrgServiceActive(merchantOrgUnitId)) {
+            throw new IllegalStateException("서비스가 중지된 업체입니다.");
+        }
+        Config cfg = resolveConfig(merchantOrgUnitId);
+        if (cfg.apiKey() == null || cfg.apiKey().isEmpty()) {
+            throw new IllegalStateException("ChillPay API Key가 설정되지 않았습니다.");
+        }
+        if (cfg.md5Key() == null || cfg.md5Key().isEmpty()) {
+            throw new IllegalStateException("ChillPay MD5 Key가 설정되지 않았습니다.");
+        }
+
+        int ps = Math.min(100, Math.max(1, size));
+        int pn = Math.max(1, page);
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        headers.set("CHILLPAY-MerchantCode", cfg.merchantCode());
+        headers.set("CHILLPAY-ApiKey", cfg.apiKey());
+
+        String url = cfg.sandbox() ? TXN_SETTLEMENT_SEARCH_SB : TXN_SETTLEMENT_SEARCH_PR;
+
+        String headerMid = trimOrEmpty(cfg.merchantCode());
+        String userMc = trimOrEmpty(merchantCodeFilter);
+        String kwIn = trimOrEmpty(searchKeyword);
+        String kwWire = kwIn;
+        if (!userMc.isEmpty() && !userMc.equalsIgnoreCase(headerMid)) {
+            kwWire = kwIn.isEmpty() ? userMc : (userMc + " " + kwIn).trim();
+        }
+        String orderByEff = normalizeChillPaySettlementOrderBy(orderBy);
+
+        ChillPaySettlementSearchApiRequest wire = new ChillPaySettlementSearchApiRequest();
+        String settledSlot10 = settledFilterTokenForSettlementSearch(status);
+        populateChillPaySettlementSearchWireRequest(wire, ps, pn, orderByEff, orderDir, kwWire, headerMid,
+                paymentChannel, routeNoFilter, orderNo, settledSlot10,
+                transactionDateFrom, transactionDateTo, paymentDateFrom, paymentDateTo);
+        wire.setChecksum(md5(wire.toChecksumPlainString() + cfg.md5Key()));
+        final String jsonPayload;
+        try {
+            jsonPayload = CHILLPAY_SETTLEMENT_JSON.writeValueAsString(wire);
+        } catch (JsonProcessingException e) {
+            throw new IllegalStateException("ChillPay 정산 검색 요청 JSON 직렬화 실패", e);
+        }
+        HttpEntity<String> entity = new HttpEntity<>(jsonPayload, headers);
+
+        ChillPayPaymentSearchApiResponse body;
+        try {
+            ResponseEntity<ChillPayPaymentSearchApiResponse> res = restTemplate.exchange(
+                    url,
+                    HttpMethod.POST,
+                    entity,
+                    ChillPayPaymentSearchApiResponse.class);
+            body = res.getBody();
+        } catch (HttpClientErrorException ex) {
+            String detail = ex.getResponseBodyAsString(StandardCharsets.UTF_8);
+            log.error("ChillPay Search Settlement Transaction HTTP {}: {}", ex.getStatusCode(), detail);
+            if (HttpStatus.BAD_REQUEST.equals(ex.getStatusCode()) && detail != null && detail.contains("\"status\":3001")) {
+                return chillPaySettlementSearchFallbackToPaymentSearch(
+                        merchantOrgUnitId, page, size, orderByEff, orderDir, searchKeyword, merchantCodeFilter,
+                        paymentChannel, routeNoFilter, orderNo, status,
+                        transactionDateFrom, transactionDateTo, paymentDateFrom, paymentDateTo, url);
+            }
+            throw new IllegalStateException("ChillPay 정산 검색 API 호출 실패: " + ex.getStatusCode() + " " + detail, ex);
+        } catch (IllegalStateException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("ChillPay Search Settlement Transaction 실패: {}", e.getMessage());
+            throw new IllegalStateException("ChillPay 정산 검색 API 호출 실패: " + e.getMessage(), e);
+        }
+        if (body == null) {
+            throw new IllegalStateException("ChillPay 응답 본문이 비어 있습니다.");
+        }
+        if (body.getStatus() != null && body.getStatus() != 200) {
+            if (Integer.valueOf(3001).equals(body.getStatus())) {
+                return chillPaySettlementSearchFallbackToPaymentSearch(
+                        merchantOrgUnitId, page, size, orderByEff, orderDir, searchKeyword, merchantCodeFilter,
+                        paymentChannel, routeNoFilter, orderNo, status,
+                        transactionDateFrom, transactionDateTo, paymentDateFrom, paymentDateTo, url);
+            }
+            String msg = body.getMessage() != null ? body.getMessage() : ("상태코드 " + body.getStatus());
+            throw new IllegalStateException(msg);
+        }
+        List<Map<String, Object>> raw = body.getData() != null ? body.getData() : Collections.emptyList();
+        List<Map<String, Object>> list = new ArrayList<>();
+        int startNo = (pn - 1) * ps + 1;
+        Map<String, Optional<OrgUnit>> orgCache = new HashMap<>();
+        Map<String, TxnMerchantLookup> txnOrgCache = new HashMap<>();
+        for (int i = 0; i < raw.size(); i++) {
+            Map<String, Object> row = wrapChillPayRow(raw.get(i), startNo + i);
+            applyChillSettlementSearchAliases(row);
+            enrichChillPayTrSearchRow(row, orgCache, txnOrgCache);
+            list.add(row);
+        }
+        enrichSettlementRowsTxnStatusForChillGrid(list);
+
+        long total = body.getTotalRecord() != null ? body.getTotalRecord() : 0L;
+        int totalPages = total <= 0 ? 1 : (int) Math.ceil((double) total / (double) ps);
+
+        PageResult<Map<String, Object>> pr = new PageResult<>();
+        pr.setList(list);
+        pr.setPage(pn);
+        pr.setSize(ps);
+        pr.setTotalElements(total);
+        pr.setTotalPages(totalPages);
+        Map<String, Object> meta = new LinkedHashMap<>();
+        meta.put("chillPayMessage", body.getMessage());
+        meta.put("chillPayStatus", body.getStatus());
+        meta.put("chillPaySandbox", cfg.sandbox());
+        meta.put("chillPayTxnApiEnv", cfg.sandbox() ? "SANDBOX" : "PRODUCTION");
+        meta.put("chillPaySettlementSearchUrl", url);
+        meta.put("chillPaySettlementChecksumNote",
+                "SearchSettlementTransaction: Table 2.2 @JsonPropertyOrder + 18-field MD5; JSON via ObjectMapper(ALWAYS) with explicit nulls; MerchantCode=header MID; default OrderBy=TransactionId");
+        pr.setMeta(meta);
+        return pr;
+    }
+
+    /**
+     * 결제 검색용 Status 문자열은 정산 API Checksum의 Settled 와 무관하므로 비웁니다.
+     * ChillPay 문서: Settled 필터 시 Checksum 에 True/False.
+     */
+    private static String settledFilterTokenForSettlementSearch(String status) {
+        if (status == null || status.isBlank()) {
+            return "";
+        }
+        String t = status.trim().toLowerCase(Locale.ROOT);
+        if ("true".equals(t) || "y".equals(t) || "1".equals(t)) {
+            return "True";
+        }
+        if ("false".equals(t) || "n".equals(t) || "0".equals(t)) {
+            return "False";
+        }
+        return "";
+    }
+
+    private static void applyChillSettlementSearchAliases(Map<String, Object> m) {
+        aliasIfMissing(m, "netAmount", "NetAmount");
+        aliasIfMissing(m, "settleAmount", "SettleAmount");
+        aliasIfMissing(m, "exchangeRate", "ExchangeRate");
+        aliasIfMissing(m, "serviceAmount", "ServiceAmount");
+        aliasIfMissing(m, "serviceVAT", "ServiceVAT");
+        aliasIfMissing(m, "serviceWHT", "ServiceWHT");
+        aliasIfMissing(m, "transferDate", "TransferDate");
+        aliasIfMissing(m, "cutOffTime", "CutOffTime");
+        Object rawSettled = m.get("Settled");
+        if (rawSettled == null) {
+            rawSettled = m.get("settled");
+        }
+        m.put("settled", formatChillSettledDisplay(rawSettled));
+        /* 그리드·엑셀이 Pascal 키를 읽으면 false 그대로 노출되므로 원문 키는 제거한다. */
+        m.remove("Settled");
+    }
+
+    /**
+     * ChillPay 정산 API {@code Settled}: 칠페이 측 정산대금 **이체(지급) 완료** 여부(문서상 boolean).
+     * ICOPAY 내부 정산 배치·정산실행 완료와는 별개이며, 샌드박스·주기 전에는 대부분 false 가 정상인 경우가 많다.
+     */
+    private static String formatChillSettledDisplay(Object settledRaw) {
+        if (settledRaw == null) {
+            return "";
+        }
+        if (settledRaw instanceof Boolean b) {
+            return b ? "정산완료" : "미정산";
+        }
+        if (settledRaw instanceof Number n) {
+            int v = n.intValue();
+            if (v != 0) {
+                return "정산완료";
+            }
+            return "미정산";
+        }
+        String t = String.valueOf(settledRaw).trim().toLowerCase(Locale.ROOT);
+        if ("true".equals(t) || "y".equals(t) || "1".equals(t) || "yes".equals(t)) {
+            return "정산완료";
+        }
+        if ("false".equals(t) || "n".equals(t) || "0".equals(t) || "no".equals(t)) {
+            return "미정산";
+        }
+        return String.valueOf(settledRaw).trim();
+    }
+
+    /**
+     * 정산 검색 API 응답에는 결제 Status 가 없을 수 있음 — ICOPAY 노티 적재 건이 있으면 동일 승인번호로 보강.
+     */
+    private void enrichSettlementRowsTxnStatusForChillGrid(List<Map<String, Object>> rows) {
+        if (rows == null || rows.isEmpty()) {
+            return;
+        }
+        Set<String> qids = new HashSet<>();
+        for (Map<String, Object> row : rows) {
+            if (!firstNonBlankString(row, "status", "Status").isEmpty()) {
+                continue;
+            }
+            String raw = firstNonBlankString(row, "transactionId", "TransactionId").trim();
+            if (raw.isEmpty()) {
+                continue;
+            }
+            qids.add(raw);
+            String n = normalizeChillTxnIdForDbLookup(raw);
+            if (!n.isEmpty() && !n.equalsIgnoreCase(raw)) {
+                qids.add(n);
+            }
+        }
+        if (qids.isEmpty()) {
+            return;
+        }
+        List<PgTrnsctn> list = pgTrnsctnRepository.findAllByChillTransactionIdIn(qids);
+        Map<String, PgTrnsctn> best = new HashMap<>();
+        for (PgTrnsctn t : list) {
+            if (t.getChillTransactionId() == null || t.getChillTransactionId().isBlank()) {
+                continue;
+            }
+            String key = normalizeChillTxnIdForDbLookup(t.getChillTransactionId().trim());
+            if (key.isEmpty()) {
+                key = t.getChillTransactionId().trim();
+            }
+            PgTrnsctn prev = best.get(key);
+            if (prev == null || (t.getCreatedAt() != null && prev.getCreatedAt() != null
+                    && t.getCreatedAt().isAfter(prev.getCreatedAt()))) {
+                best.put(key, t);
+            }
+        }
+        Map<String, String> byRaw = new HashMap<>();
+        for (PgTrnsctn t : best.values()) {
+            if (t.getChillTransactionId() == null || t.getChillTransactionId().isBlank()) {
+                continue;
+            }
+            String rid = t.getChillTransactionId().trim();
+            String st = t.getStatus() != null ? t.getStatus().trim() : "";
+            byRaw.put(rid, st);
+            String nk = normalizeChillTxnIdForDbLookup(rid);
+            if (!nk.isEmpty() && !nk.equalsIgnoreCase(rid)) {
+                byRaw.putIfAbsent(nk, st);
+            }
+        }
+        for (Map<String, Object> row : rows) {
+            if (!firstNonBlankString(row, "status", "Status").isEmpty()) {
+                continue;
+            }
+            String raw = firstNonBlankString(row, "transactionId", "TransactionId").trim();
+            if (raw.isEmpty()) {
+                continue;
+            }
+            String nk = normalizeChillTxnIdForDbLookup(raw);
+            String st = byRaw.getOrDefault(raw, nk.isEmpty() ? "" : byRaw.getOrDefault(nk, ""));
+            if (!st.isEmpty()) {
+                row.put("status", st);
+            }
         }
     }
 
@@ -1613,8 +2093,9 @@ public class ChillPayService {
     }
 
     /**
-     * 통합내역 그리드: 결제내역과 동일 키(trnDate, trnTime, payCompletedAt) + 업체관리(MID·Route) 매핑(compNm, compId).
-     * API 시각 문자열은 통화별 기준 타임존(JPY→도쿄, 그 외→방콕)으로 해석한 뒤 JST·ICT를 한 컬럼에 병기한다.
+     * 통합내역·통합정산 그리드: 결제내역과 동일 키(trnDate, trnTime, payCompletedAt) + 업체관리(MID·Route) 매핑(compNm, compId).
+     * API 시각 문자열은 통화별 기준 타임존(JPY→도쿄, 그 외→방콕)으로 해석한다.
+     * {@code trnDate}는 {@code yyyy년 M월 d일}, {@code trnTime}은 시각만 JP/TH 두 줄, {@code payCompletedAt}은 일시 JP/TH 두 줄.
      */
     private void enrichChillPayTrSearchRow(Map<String, Object> m,
                                            Map<String, Optional<OrgUnit>> orgCache,
@@ -1628,7 +2109,7 @@ public class ChillPayService {
         LocalDateTime pay = parseChillPayApiDateTime(firstNonBlankString(m, "paymentDate", "PaymentDate"));
         ZoneId primary = primaryZoneForChillCurrency(m.get("currency"));
         if (tx != null) {
-            m.put("trnDate", tx.toLocalDate().format(DateTimeFormatter.ISO_LOCAL_DATE));
+            m.put("trnDate", tx.toLocalDate().format(CHILL_TRN_DATE_DISPLAY_KR));
             m.put("trnTime", formatJstAndIctTimeSameCell(tx, primary));
         } else {
             m.put("trnDate", "");

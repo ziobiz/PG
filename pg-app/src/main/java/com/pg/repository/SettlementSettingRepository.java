@@ -5,7 +5,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 
 import java.util.Collection;
-import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -13,6 +12,8 @@ public interface SettlementSettingRepository extends JpaRepository<SettlementSet
     Optional<SettlementSetting> findByOrgUnitId(Long orgUnitId);
 
     List<SettlementSetting> findByOrgUnitIdIn(Collection<Long> orgUnitIds);
+
+    List<SettlementSetting> findByReceivableRecoveryModeIgnoreCase(String receivableRecoveryMode);
 
     List<SettlementSetting> findByCalcCycle(String calcCycle);
 

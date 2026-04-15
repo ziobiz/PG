@@ -140,22 +140,27 @@
   /** 통합정산(/calc/chillPaySettlementList) VIEW SETTING·조직항목설정 기본안 (고정열: 번호만 — 통화 포함 나머지는 토글·허용 목록) */
   w.PG_CHILL_PAY_SETTLEMENT_VIEW_DEFAULTS = {
     viewSettingDefaultSelectedKeys: [
-      'transactionId', 'transactionDate', 'merchant', 'customer', 'orderNo', 'paymentChannel', 'paymentDate',
-      'amount', 'refundAmount', 'fee', 'discount', 'totalAmount', 'icopay', 'currency', 'routeNo', 'status', 'settled', 'description'
+      'transactionId', 'trnDate', 'trnTime', 'routeNo', 'merchant', 'customer', 'orderNo', 'paymentChannel', 'payCompletedAt',
+      'settleAmount', 'netAmount', 'settled', 'transferDate', 'icopayExpectedSettleAt', 'cutOffTime', 'exchangeRate', 'serviceAmount', 'serviceVAT', 'serviceWHT',
+      'amount', 'fee', 'currency', 'status', 'icopay', 'description'
     ],
     orgAllowanceDefaultKeysByScope: {
       REGIONAL: null,
       MASTER_DIST: [
-        'transactionId', 'transactionDate', 'merchant', 'customer', 'orderNo', 'paymentChannel', 'paymentDate',
-        'amount', 'refundAmount', 'fee', 'discount', 'totalAmount', 'icopay', 'currency', 'routeNo', 'status', 'settled', 'description'
+        'transactionId', 'trnDate', 'trnTime', 'routeNo', 'merchant', 'customer', 'orderNo', 'paymentChannel', 'payCompletedAt',
+        'settleAmount', 'netAmount', 'settled', 'transferDate', 'icopayExpectedSettleAt', 'cutOffTime', 'exchangeRate', 'serviceAmount', 'serviceVAT', 'serviceWHT',
+        'amount', 'refundAmount', 'fee', 'discount', 'totalAmount', 'icopay', 'currency', 'status', 'description',
+        'transactionDate', 'paymentDate'
       ],
       BRANCH_GROUP: [
-        'transactionId', 'transactionDate', 'merchant', 'customer', 'orderNo', 'paymentChannel', 'paymentDate',
-        'amount', 'refundAmount', 'fee', 'discount', 'totalAmount', 'icopay', 'currency', 'routeNo', 'status', 'settled', 'description'
+        'transactionId', 'trnDate', 'trnTime', 'routeNo', 'merchant', 'customer', 'orderNo', 'paymentChannel', 'payCompletedAt',
+        'settleAmount', 'netAmount', 'settled', 'transferDate', 'icopayExpectedSettleAt', 'cutOffTime', 'exchangeRate', 'serviceAmount', 'serviceVAT', 'serviceWHT',
+        'amount', 'refundAmount', 'fee', 'discount', 'totalAmount', 'icopay', 'currency', 'status', 'description',
+        'transactionDate', 'paymentDate'
       ],
       MERCHANT: [
-        'transactionId', 'transactionDate', 'merchant', 'customer', 'orderNo', 'paymentChannel', 'paymentDate',
-        'amount', 'refundAmount', 'fee', 'discount', 'totalAmount', 'currency', 'routeNo', 'status', 'settled'
+        'transactionId', 'trnDate', 'trnTime', 'routeNo', 'merchant', 'customer', 'orderNo', 'paymentChannel', 'payCompletedAt',
+        'settleAmount', 'netAmount', 'settled', 'transferDate', 'icopayExpectedSettleAt', 'cutOffTime', 'amount', 'fee', 'currency', 'status'
       ]
     }
   };

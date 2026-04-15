@@ -31,6 +31,7 @@ public final class PageMenuCatalog {
         add(list, "/hq/notifyInbound", "M0121", "노티수령정보", "본사설정");
         add(list, "/hq/ledgerSysSettings", "M0119", "전산설정관리", "본사설정");
         add(list, "/hq/settlementAdmin", "M0123", "정산관리설정", "본사설정");
+        add(list, "/hq/receivableRecoverySettings", "M0124", "환수/미수금설정", "본사설정");
         add(list, "/hq/domainConfig", "M0115", "도메인구성설정", "본사설정");
         add(list, "/hq/serverManage", "M0116", "서버운영관리", "본사설정");
         add(list, "/system/noticeList", "M0201", "공지사항", "업체관리");

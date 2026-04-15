@@ -5,7 +5,7 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 /**
- * 미수금(관리자 등록·차지백 등). 다음 정산 지급액에서 환수금 차감 후 FIFO로 차감.
+ * 미수금(관리자 등록·정산 지급부족 자동 등). 다음 정산 지급액에서 환수금 차감 후 FIFO로 차감.
  */
 @Entity
 @Table(name = "tb_merchant_receivable")

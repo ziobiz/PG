@@ -12,6 +12,7 @@ import com.pg.entity.CommissionPolicy;
 import com.pg.entity.DistributionFeeConfig;
 import com.pg.entity.HqApiConfig;
 import com.pg.entity.MerchantReceivable;
+import com.pg.entity.MerchantReceivableRecoveryRequest;
 import com.pg.entity.MerchantProfile;
 import com.pg.entity.MerchantPgBinding;
 import com.pg.entity.OrgLevel;
@@ -23,6 +24,7 @@ import com.pg.entity.SettlementSetting;
 import com.pg.repository.DistributionFeeConfigRepository;
 import com.pg.repository.HqApiConfigRepository;
 import com.pg.repository.MerchantPgBindingRepository;
+import com.pg.repository.MerchantReceivableRecoveryRequestRepository;
 import com.pg.repository.MerchantReceivableRepository;
 import com.pg.repository.MerchantProfileRepository;
 import com.pg.repository.OrgUnitRepository;
@@ -77,6 +79,7 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -106,6 +109,7 @@ public class ApiSettlementController {
     private final FeeListTxnBreakdownCalculator feeListTxnBreakdownCalculator;
     private final SettlementRecoveryRepository settlementRecoveryRepository;
     private final MerchantReceivableRepository merchantReceivableRepository;
+    private final MerchantReceivableRecoveryRequestRepository merchantReceivableRecoveryRequestRepository;
     private final SettlementArrearsService settlementArrearsService;
     private final OrgPagePermissionService orgPagePermissionService;
 
@@ -133,6 +137,7 @@ public class ApiSettlementController {
                                    FeeListTxnBreakdownCalculator feeListTxnBreakdownCalculator,
                                    SettlementRecoveryRepository settlementRecoveryRepository,
                                    MerchantReceivableRepository merchantReceivableRepository,
+                                   MerchantReceivableRecoveryRequestRepository merchantReceivableRecoveryRequestRepository,
                                    SettlementArrearsService settlementArrearsService,
                                    OrgPagePermissionService orgPagePermissionService) {
         this.settlementCalcService = settlementCalcService;
@@ -157,6 +162,7 @@ public class ApiSettlementController {
         this.feeListTxnBreakdownCalculator = feeListTxnBreakdownCalculator;
         this.settlementRecoveryRepository = settlementRecoveryRepository;
         this.merchantReceivableRepository = merchantReceivableRepository;
+        this.merchantReceivableRecoveryRequestRepository = merchantReceivableRecoveryRequestRepository;
         this.settlementArrearsService = settlementArrearsService;
         this.orgPagePermissionService = orgPagePermissionService;
     }
@@ -364,7 +370,8 @@ public class ApiSettlementController {
         LocalDate qFrom = r.getPeriodFrom() != null ? r.getPeriodFrom() : r.getCalcDt();
         LocalDate qTo = r.getPeriodTo() != null ? r.getPeriodTo() : r.getCalcDt();
         Map<String, Object> payload = new LinkedHashMap<>();
-        payload.put("listRow", toConfirmedSettlementReportListRow(r, qFrom, qTo));
+        Map<Long, BigDecimal> detailDeficit = indexAutoDeficitTotalsByRunId(Collections.singletonList(r));
+        payload.put("listRow", toConfirmedSettlementReportListRow(r, qFrom, qTo, detailDeficit));
         List<PgTrnsctn> txs = pgTrnsctnRepository.findForSettlement(mid, r.resolvePeriodStartAt(), r.resolvePeriodEndAt());
         payload.put("txBreakdown", buildSettlementReportTxBreakdown(txs));
         payload.put("runTotals", buildSettlementRunTotalsForReport(r));
@@ -432,6 +439,9 @@ public class ApiSettlementController {
         Map<String, DistributionAgg> aggMap = new LinkedHashMap<>();
         for (SettlementRun r : list) {
             if ("Y".equalsIgnoreCase(r.getPayoutHoldYn() != null ? r.getPayoutHoldYn() : "")) {
+                continue;
+            }
+            if (!settlementCalcService.isMerchantStatementVisibleSettlementRun(r)) {
                 continue;
             }
             OrgUnit merchant = orgUnitRepository.findByCode(r.getMerchantId()).orElse(null);
@@ -513,6 +523,7 @@ public class ApiSettlementController {
 
     /**
      * 가맹점정산내역: 정산일({@code calc_dt}) 구간의 정산실행 결과({@link SettlementRun})를 행으로 반환합니다.
+     * M5·H1·TM·TH 등은 주기 마감({@code period_end_at} 기록)된 실행만 표시하고, RT는 건별 표시합니다.
      * 본사·총판·지사·대리점·영업점 등 유통 구간 수익은 {@link #distributionList} 에서 동일 실행분을 집계합니다.
      */
     @GetMapping("/franchiseList")
@@ -534,6 +545,7 @@ public class ApiSettlementController {
         LocalDate fromDate = searchFromDate != null ? searchFromDate : LocalDate.now().minusMonths(1);
         LocalDate toDate = searchToDate != null ? searchToDate : LocalDate.now();
         List<SettlementRun> runs = settlementCalcService.listRuns(fromDate, toDate);
+        Map<Long, BigDecimal> autoDeficitByRun = indexAutoDeficitTotalsByRunId(runs);
         String effFt = "ALL";
         String effKw = "";
         if (searchFieldType != null && !searchFieldType.isBlank()) {
@@ -563,7 +575,10 @@ public class ApiSettlementController {
             if (allowedMerchants != null && !allowedMerchants.contains(mid.trim())) {
                 continue;
             }
-            Map<String, Object> row = toFranchiseSettlementRunRow(r, fromDate, toDate);
+            if (!settlementCalcService.isMerchantStatementVisibleSettlementRun(r)) {
+                continue;
+            }
+            Map<String, Object> row = toFranchiseSettlementRunRow(r, fromDate, toDate, autoDeficitByRun);
             if (!franchiseListRowMatches(row, effFtFinal, effKwFinal)) {
                 continue;
             }
@@ -664,6 +679,7 @@ public class ApiSettlementController {
         final String effFtFinal = effFt;
         final String effKwFinal = effKw;
         List<SettlementRun> runs = settlementCalcService.listRuns(fromDate, toDate);
+        Map<Long, BigDecimal> autoDeficitByRun = indexAutoDeficitTotalsByRunId(runs);
         List<Map<String, Object>> allRows = new ArrayList<>();
         for (SettlementRun r : runs) {
             String mid = r.getMerchantId();
@@ -676,7 +692,7 @@ public class ApiSettlementController {
             if (allowedMerchants != null && !allowedMerchants.contains(mid.trim())) {
                 continue;
             }
-            Map<String, Object> row = toFranchiseSettlementRunRow(r, fromDate, toDate);
+            Map<String, Object> row = toFranchiseSettlementRunRow(r, fromDate, toDate, autoDeficitByRun);
             if (!franchiseListRowMatches(row, effFtFinal, effKwFinal)) {
                 continue;
             }
@@ -949,6 +965,14 @@ public class ApiSettlementController {
         Page<MerchantReceivable> slice = merchantReceivableRepository.findAll(spec, pageable);
         List<Map<String, Object>> rows = new ArrayList<>();
         FeeListRoundingPolicy srpRcv = resolveSettlementLedgerRoundPolicy();
+        List<Long> recvIds = slice.getContent().stream().map(MerchantReceivable::getId).filter(Objects::nonNull).toList();
+        Set<Long> pendingByReceivableId = new HashSet<>();
+        if (!recvIds.isEmpty()) {
+            for (MerchantReceivableRecoveryRequest q : merchantReceivableRecoveryRequestRepository.findByMerchantReceivableIdInAndStatus(
+                    recvIds, MerchantReceivableRecoveryRequest.STATUS_PENDING)) {
+                pendingByReceivableId.add(q.getMerchantReceivableId());
+            }
+        }
         for (MerchantReceivable r : slice.getContent()) {
             String compId = r.getMerchantId();
             OrgUnit ou = compId != null ? orgUnitRepository.findByCode(compId).orElse(null) : null;
@@ -966,6 +990,11 @@ public class ApiSettlementController {
             m.put("memo", r.getMemo() != null ? r.getMemo() : "");
             m.put("createdBy", r.getCreatedBy() != null ? r.getCreatedBy() : "");
             m.put("createdAt", r.getCreatedAt() != null ? DateTimeFormatter.ISO_LOCAL_DATE_TIME.format(r.getCreatedAt()) : "");
+            String recvMode = resolveReceivableRecoveryModeForMerchantCode(compId);
+            m.put("receivableRecoveryMode", recvMode);
+            boolean pend = r.getId() != null && pendingByReceivableId.contains(r.getId());
+            m.put("recoveryPendingYn", pend ? "Y" : "N");
+            m.put("receivablePhaseNm", receivableListRowPhaseNm(recvMode, r, pend));
             rows.add(m);
         }
         PageResult<Map<String, Object>> pr = new PageResult<>();
@@ -1073,6 +1102,84 @@ public class ApiSettlementController {
         } catch (IllegalStateException e) {
             return ResponseEntity.ok(ApiResponse.fail(e.getMessage(), "VALIDATION"));
         }
+    }
+
+    /**
+     * 수동 미수금 환수 가맹만: 해당 미수금 건을 다음 정산 마감 시 지급액에서 차감하도록 요청합니다.
+     */
+    @PostMapping("/receivable/{id}/recoveryRequest")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> receivableRecoveryRequest(
+            Authentication authentication,
+            @PathVariable long id) {
+        MerchantReceivable r = merchantReceivableRepository.findById(id).orElse(null);
+        if (r == null) {
+            return ResponseEntity.ok(ApiResponse.fail("미수금을 찾을 수 없습니다.", "NOT_FOUND"));
+        }
+        if (authentication != null && authentication.getPrincipal() instanceof AppUser actorR
+                && !orgPagePermissionService.canManuallyManageMerchantReceivable(actorR)) {
+            return ResponseEntity.ok(ApiResponse.fail(
+                    "미수금 처리는 본사권한설정에서 「미수금관리」화면 권한이 수정(M) 이상인 계정만 가능합니다.", "FORBIDDEN"));
+        }
+        if (!canAccessReceivable(authentication, r.getMerchantId())) {
+            return ResponseEntity.ok(ApiResponse.fail("권한이 없습니다.", "FORBIDDEN"));
+        }
+        String username = (authentication != null && authentication.getPrincipal() instanceof AppUser u)
+                ? u.getUsername() : "";
+        try {
+            settlementArrearsService.requestManualReceivableRecovery(id, username);
+            return ResponseEntity.ok(ApiResponse.ok(Map.of("success", true, "id", id, "message", "다음 정산 마감 시 환수 반영됩니다.")));
+        } catch (IllegalArgumentException | IllegalStateException e) {
+            return ResponseEntity.ok(ApiResponse.fail(e.getMessage(), "VALIDATION"));
+        }
+    }
+
+    /** 가맹 미수금 환수 모드: 미설정·null 은 AUTO */
+    private String resolveReceivableRecoveryModeForMerchantCode(String compId) {
+        if (compId == null || compId.isBlank()) {
+            return "AUTO";
+        }
+        return orgUnitRepository.findByCode(compId.trim())
+                .filter(ou -> ou.getOrgLevel() == OrgLevel.MERCHANT)
+                .flatMap(ou -> settlementSettingRepository.findByOrgUnitId(ou.getId()))
+                .map(ss -> {
+                    String m = ss.getReceivableRecoveryMode();
+                    return (m != null && m.trim().equalsIgnoreCase("MANUAL")) ? "MANUAL" : "AUTO";
+                })
+                .orElse("AUTO");
+    }
+
+    private static String receivableListRowPhaseNm(String recoveryMode, MerchantReceivable r, boolean pendingRequest) {
+        String st = r.getStatus() != null ? r.getStatus().trim() : "";
+        BigDecimal rem = r.getRemainingAmount() != null ? r.getRemainingAmount() : BigDecimal.ZERO;
+        boolean open = "PENDING".equals(st) || "PARTIAL".equals(st);
+        if ("MANUAL".equalsIgnoreCase(recoveryMode)) {
+            if (pendingRequest) {
+                return "환수처리";
+            }
+            if (open && rem.signum() > 0) {
+                return "미요청";
+            }
+            return "-";
+        }
+        if (open && rem.signum() > 0) {
+            return "자동화중";
+        }
+        return "-";
+    }
+
+    private static String franchiseReceivableProcessNm(String recoveryMode, BigDecimal appliedAmt, String runStatus) {
+        BigDecimal a = appliedAmt != null ? appliedAmt : BigDecimal.ZERO;
+        if (a.signum() <= 0) {
+            return "-";
+        }
+        boolean calculated = runStatus != null && "CALCULATED".equalsIgnoreCase(runStatus.trim());
+        if (calculated) {
+            return "완료";
+        }
+        if (recoveryMode != null && recoveryMode.trim().equalsIgnoreCase("MANUAL")) {
+            return "처리중";
+        }
+        return "자동화중";
     }
 
     private boolean canAccessReceivable(Authentication authentication, String merchantId) {
@@ -1340,7 +1447,7 @@ public class ApiSettlementController {
      */
     /**
      * 가맹점정산내역(및 동일 행 맵) — 정산실행과 동일한 검색구분·검색어 규칙.
-     * 그리드 키는 {@link #toFranchiseSettlementRunRow} 기준({@code payStatus}, 금액은 amount·feeAmt 등).
+     * 그리드 키는 {@link #toFranchiseSettlementRunRow} 기준({@code payStatus}, 금액은 amount·feeAmt·receivableAmt 등).
      */
     private static boolean franchiseListRowMatches(Map<String, Object> row, String fieldType, String keyword) {
         String ft = fieldType == null || fieldType.isBlank() ? "ALL" : fieldType.trim().toUpperCase(Locale.ROOT);
@@ -1368,7 +1475,11 @@ public class ApiSettlementController {
                     || executeListMoneyNorm(row.get("amount")).contains(kNorm)
                     || executeListMoneyNorm(row.get("feeAmt")).contains(kNorm)
                     || executeListMoneyNorm(row.get("holdAmt")).contains(kNorm)
-                    || executeListMoneyNorm(row.get("settleAmt")).contains(kNorm);
+                    || executeListMoneyNorm(row.get("receivableAmt")).contains(kNorm)
+                    || executeListMoneyNorm(row.get("receivableDeductAmt")).contains(kNorm)
+                    || executeListMoneyNorm(row.get("settleAmt")).contains(kNorm)
+                    || executeListCellLower(row, "receivableProcessNm").contains(kLow)
+                    || executeListCellLower(row, "receivableRecoveryMode").contains(kLow);
             case "CALC_CYCLE" -> executeListCellLower(row, "calcCycle").contains(kLow);
             case "CALC_METHOD" -> executeListCellLower(row, "calcMethod").contains(kLow);
             case "COMP_NM" -> executeListCellLower(row, "compNm").contains(kLow);
@@ -1384,6 +1495,8 @@ public class ApiSettlementController {
             case "AMOUNT" -> executeListMoneyNorm(row.get("amount")).contains(kNorm)
                     || executeListMoneyNorm(row.get("feeAmt")).contains(kNorm)
                     || executeListMoneyNorm(row.get("holdAmt")).contains(kNorm)
+                    || executeListMoneyNorm(row.get("receivableAmt")).contains(kNorm)
+                    || executeListMoneyNorm(row.get("receivableDeductAmt")).contains(kNorm)
                     || executeListMoneyNorm(row.get("settleAmt")).contains(kNorm);
             default -> true;
         };
@@ -1414,7 +1527,8 @@ public class ApiSettlementController {
                     || executeListMoneyNorm(row.get("approveAmt")).contains(kNorm)
                     || executeListMoneyNorm(row.get("cancelAmt")).contains(kNorm)
                     || executeListMoneyNorm(row.get("totalFee")).contains(kNorm)
-                    || executeListMoneyNorm(row.get("rollingReserveAmt")).contains(kNorm);
+                    || executeListMoneyNorm(row.get("rollingReserveAmt")).contains(kNorm)
+                    || executeListMoneyNorm(row.get("receivableAmt")).contains(kNorm);
             case "CALC_CYCLE" -> executeListCellLower(row, "calcCycle").contains(kLow);
             case "CALC_METHOD" -> executeListCellLower(row, "calcMethod").contains(kLow);
             case "COMP_NM" -> executeListCellLower(row, "compNm").contains(kLow);
@@ -1428,7 +1542,8 @@ public class ApiSettlementController {
                     || executeListMoneyNorm(row.get("approveAmt")).contains(kNorm)
                     || executeListMoneyNorm(row.get("cancelAmt")).contains(kNorm)
                     || executeListMoneyNorm(row.get("totalFee")).contains(kNorm)
-                    || executeListMoneyNorm(row.get("rollingReserveAmt")).contains(kNorm);
+                    || executeListMoneyNorm(row.get("rollingReserveAmt")).contains(kNorm)
+                    || executeListMoneyNorm(row.get("receivableAmt")).contains(kNorm);
             default -> true;
         };
     }
@@ -1703,6 +1818,7 @@ public class ApiSettlementController {
                 return mid == null || mid.isBlank() || !allowedMerchants.contains(mid.trim());
             });
         }
+        Map<Long, BigDecimal> autoDeficitByRun = indexAutoDeficitTotalsByRunId(raw);
 
         String effFt = "ALL";
         String effKw = "";
@@ -1721,7 +1837,7 @@ public class ApiSettlementController {
 
         List<Map<String, Object>> mapped = new ArrayList<>();
         for (SettlementRun r : raw) {
-            mapped.add(toMap(r, searchFromDate, searchToDate));
+            mapped.add(toMap(r, searchFromDate, searchToDate, autoDeficitByRun));
         }
         List<Map<String, Object>> filtered = mapped.stream()
                 .filter(m -> executeListRowMatches(m, effFtFinal, effKwFinal))
@@ -1766,23 +1882,65 @@ public class ApiSettlementController {
             LocalDate runFrom = fromDate != null ? fromDate : LocalDate.now().minusDays(1);
             LocalDate runTo = toDate != null ? toDate : LocalDate.now();
             List<SettlementRun> runs = settlementCalcService.execute(runFrom, runTo, merchantId, true);
-            List<Map<String, Object>> list = runs.stream().map(r -> toMap(r, runFrom, runTo)).collect(Collectors.toList());
+            Map<Long, BigDecimal> autoDef = indexAutoDeficitTotalsByRunId(runs);
+            List<Map<String, Object>> list = runs.stream().map(r -> toMap(r, runFrom, runTo, autoDef)).collect(Collectors.toList());
             return ResponseEntity.ok(ApiResponse.ok(list));
         }
 
         /* 기간 미지정 시: calcCycle·AUTO·마감시간 등과 동일 규칙으로 자동 실행(스케줄 배치와 공유) */
         LocalDate today = LocalDate.now(SEOUL);
         List<SettlementRun> allRuns = settlementAutoRunService.runDueSettlements(today, merchantId, true);
-        List<Map<String, Object>> list = allRuns.stream().map(r -> toMap(r, null, null)).collect(Collectors.toList());
+        Map<Long, BigDecimal> autoDefAll = indexAutoDeficitTotalsByRunId(allRuns);
+        List<Map<String, Object>> list = allRuns.stream().map(r -> toMap(r, null, null, autoDefAll)).collect(Collectors.toList());
         return ResponseEntity.ok(ApiResponse.ok(list));
+    }
+
+    /**
+     * 정산 실행 행에 저장된 정산주기(스냅샷). 없으면 빈 문자열.
+     * 화면 표시는 {@link #resolveRunCalcCycleForExecuteDisplay}: 스냅샷이 있으면 그대로(변경 후에도 과거 행 유지), 없으면 가맹 현재 설정.
+     */
+    private static String resolveRunCalcCycleRaw(SettlementRun r) {
+        if (r == null) {
+            return "";
+        }
+        String s = r.getCalcCycleSnapshot();
+        return s != null && !s.isBlank() ? s.trim() : "";
+    }
+
+    /**
+     * 정산실행·가맹점정산내역 그리드: 스냅샷이 있으면 그대로, 없으면 가맹 현재 {@code calc_cycle}(구데이터·DB 미패치 대비).
+     */
+    private String resolveRunCalcCycleForExecuteDisplay(SettlementRun r, OrgUnit ouExec) {
+        String snap = resolveRunCalcCycleRaw(r);
+        if (!snap.isEmpty()) {
+            return snap;
+        }
+        if (r == null || r.getMerchantId() == null || r.getMerchantId().isBlank()) {
+            return "";
+        }
+        OrgUnit ou = ouExec;
+        if (ou == null) {
+            String m = r.getMerchantId().trim();
+            ou = orgUnitRepository.findByCode(m).orElse(null);
+            if (ou == null) {
+                ou = orgUnitRepository.findByCodeIgnoreCase(m).orElse(null);
+            }
+        }
+        if (ou == null) {
+            return "";
+        }
+        return settlementSettingRepository.findByOrgUnitId(ou.getId())
+                .map(ss -> ss.getCalcCycle() != null ? ss.getCalcCycle().trim() : "")
+                .orElse("");
     }
 
     /**
      * 정산실행 그리드용 행 맵. {@link SettlementRun#getPeriodFrom()}/{@link SettlementRun#getPeriodTo()} 가 있으면
      * period* 키에 반영합니다. {@code targetPeriodText}: RT는 거래번호·승인번호·마감(초 단위) 한 줄,
      * 그 외는 {@code yyyy-MM-dd HH:mm:ss ~ yyyy-MM-dd HH:mm:ss} 집계 구간(격자·당일누적은 시각 포함).
+     * {@code receivableAmt}: 지급부족 자동 미수금({@code AUTO_DEFICIT:runId}) 발생액, 없으면 0.
      */
-    private Map<String, Object> toMap(SettlementRun r, LocalDate queryFrom, LocalDate queryTo) {
+    private Map<String, Object> toMap(SettlementRun r, LocalDate queryFrom, LocalDate queryTo, Map<Long, BigDecimal> autoDeficitTotalByRunId) {
         Map<String, Object> m = new HashMap<>();
         m.put("calcDt", r.getCalcDt() != null ? r.getCalcDt().toString() : null);
         String mid = r.getMerchantId();
@@ -1794,26 +1952,33 @@ public class ApiSettlementController {
         m.put("targetAmt", r.getApproveAmt() != null && r.getCancelAmt() != null
                 ? FeeListRoundingPolicy.round(r.getApproveAmt().subtract(r.getCancelAmt()), srp).toPlainString() : "0");
         m.put("status", r.getStatus());
-        m.put("payAmount", settlementMoneyDouble(r.getPayAmt(), srp));
         m.put("approveAmt", settlementMoneyDouble(r.getApproveAmt(), srp));
         m.put("cancelAmt", settlementMoneyDouble(r.getCancelAmt(), srp));
         m.put("totalFee", settlementMoneyDouble(r.getTotalFee(), srp));
         m.put("rollingReserveAmt", settlementMoneyDouble(r.getRollingReserveAmt(), srp));
-        String calcCycleRaw = "";
+        Long runIdForRecv = r.getId();
+        BigDecimal receivableBd = BigDecimal.ZERO;
+        if (runIdForRecv != null) {
+            if (autoDeficitTotalByRunId != null) {
+                receivableBd = nz(autoDeficitTotalByRunId.get(runIdForRecv));
+            } else if (mid != null && !mid.isBlank()) {
+                String memoKey = "AUTO_DEFICIT:" + runIdForRecv;
+                Optional<MerchantReceivable> recOpt = merchantReceivableRepository.findByMerchantIdAndReasonCodeAndMemo(
+                        mid.trim(), SettlementArrearsService.REASON_AUTO_SETTLEMENT_DEFICIT, memoKey);
+                if (recOpt.isPresent() && recOpt.get().getTotalAmount() != null) {
+                    receivableBd = recOpt.get().getTotalAmount();
+                }
+            }
+        }
+        m.put("receivableAmt", settlementMoneyDouble(receivableBd, srp));
+        m.put("payAmount", settlementMoneyDouble(r.getPayAmt(), srp));
+        String calcCycleRaw = resolveRunCalcCycleForExecuteDisplay(r, ouExec);
+        m.put("calcCycle", calcCycleRaw);
         if (ouExec != null) {
             Optional<SettlementSetting> ssOpt = settlementSettingRepository.findByOrgUnitId(ouExec.getId());
-            if (ssOpt.isPresent()) {
-                SettlementSetting ss = ssOpt.get();
-                calcCycleRaw = ss.getCalcCycle() != null ? ss.getCalcCycle() : "";
-                m.put("calcCycle", calcCycleRaw);
-                m.put("calcMethod", labelCalcProcType(ss.getCalcProcType()));
-            } else {
-                m.put("calcCycle", "");
-                m.put("calcMethod", "");
-            }
+            m.put("calcMethod", ssOpt.map(ss -> labelCalcProcType(ss.getCalcProcType())).orElse(""));
             m.put("pgRootNo", resolveMerchantPgRootNo(ouExec.getId()));
         } else {
-            m.put("calcCycle", "");
             m.put("calcMethod", "");
             m.put("pgRootNo", "-");
         }
@@ -1936,8 +2101,8 @@ public class ApiSettlementController {
 
     /**
      * 비-RT: 집계 구간을 {@code yyyy-MM-dd HH:mm:ss ~ yyyy-MM-dd HH:mm:ss} 로 표시.
-     * M5·H1 등 격자(당일 누적 TM/TH 제외)는 {@code period_end_at}(배타 상한)에서 시작 시각을 역산하고,
-     * 상한은 사용자 표기용으로 1나노초 전까지로 잘라 초 단위로 보입니다.
+     * M5·H1 등 격자(당일 누적 TM/TH 제외)는 반개구간 {@code [start, end)} 를
+     * {@code start ~ end} 로 보이게 하며, 끝 시각은 DB의 {@code period_end_at}(배타 상한)과 동일한 정각(예 M5: 00:05:00)입니다.
      */
     private static String buildSettlementTargetPeriodLabelNonRt(SettlementRun r, LocalDate queryFrom, LocalDate queryTo,
                                                                   String calcCycleNorm) {
@@ -1949,12 +2114,12 @@ public class ApiSettlementController {
                 LocalDateTime inferredStart = SettlementCycleTiming.subDailySlotStartInclusiveFromEndExclusive(
                         endExclusive, calcCycleNorm != null ? calcCycleNorm : "");
                 if (inferredStart != null) {
-                    startDt = inferredStart.withNano(0);
-                    LocalDateTime endInclusive = endExclusive.minusNanos(1).withNano(0);
-                    endDt = endInclusive;
+                    startDt = inferredStart.truncatedTo(ChronoUnit.SECONDS);
+                    /* 격자: 00:00~00:05 구간은 "00:00:00 ~ 00:05:00" (끝은 배타 상한 표기) */
+                    endDt = endExclusive.truncatedTo(ChronoUnit.SECONDS);
                 } else {
                     startDt = r.getPeriodFrom().atStartOfDay();
-                    endDt = endExclusive.withNano(0);
+                    endDt = endExclusive.truncatedTo(ChronoUnit.SECONDS);
                 }
                 return SETTLEMENT_TARGET_PERIOD_DT.format(startDt) + " ~ " + SETTLEMENT_TARGET_PERIOD_DT.format(endDt);
             }
@@ -2085,13 +2250,56 @@ public class ApiSettlementController {
     }
 
     /**
+     * 정산 지급부족으로 자동 생성된 미수금({@code AUTO_DEFICIT:{runId}}) 원금을 실행 ID 기준으로 한 번에 조회합니다.
+     */
+    private Map<Long, BigDecimal> indexAutoDeficitTotalsByRunId(List<SettlementRun> runs) {
+        if (runs == null || runs.isEmpty()) {
+            return Collections.emptyMap();
+        }
+        List<String> memos = new ArrayList<>();
+        for (SettlementRun run : runs) {
+            if (run.getId() != null) {
+                memos.add("AUTO_DEFICIT:" + run.getId());
+            }
+        }
+        if (memos.isEmpty()) {
+            return Collections.emptyMap();
+        }
+        List<MerchantReceivable> found = merchantReceivableRepository.findByReasonCodeAndMemoIn(
+                SettlementArrearsService.REASON_AUTO_SETTLEMENT_DEFICIT, memos);
+        Map<Long, BigDecimal> out = new HashMap<>();
+        for (MerchantReceivable mr : found) {
+            if (mr == null || mr.getMemo() == null) {
+                continue;
+            }
+            String memo = mr.getMemo().trim();
+            if (!memo.startsWith("AUTO_DEFICIT:")) {
+                continue;
+            }
+            try {
+                long rid = Long.parseLong(memo.substring("AUTO_DEFICIT:".length()).trim());
+                if (mr.getTotalAmount() != null) {
+                    out.put(rid, mr.getTotalAmount());
+                }
+            } catch (NumberFormatException ignored) {
+            }
+        }
+        return out;
+    }
+
+    /**
      * 가맹점정산 그리드와 동일 키로 {@link SettlementRun} 한 건을 매핑합니다.
      * 금액·공제수수료·보류액·지급액은 실행 저장값이며, 건수·부가세·건당·정산건당·기타%·보유율은 동일 집계 구간 거래로
      * 수수료내역·정산실행(calcOne) 규칙에 맞춰 채웁니다.
      *
      * @param queryFrom queryTo 목록 조회 구간(정산대상기간 문구·검색용, null이면 라벨만 생략 가능)
+     * @param autoDeficitTotalByRunId {@code AUTO_DEFICIT:{runId}} 미수금의 원금(total). null이면 행마다 DB 조회
      */
-    private Map<String, Object> toFranchiseSettlementRunRow(SettlementRun r, LocalDate queryFrom, LocalDate queryTo) {
+    private Map<String, Object> toFranchiseSettlementRunRow(
+            SettlementRun r,
+            LocalDate queryFrom,
+            LocalDate queryTo,
+            Map<Long, BigDecimal> autoDeficitTotalByRunId) {
         Map<String, Object> row = new LinkedHashMap<>();
         String compId = r.getMerchantId() != null ? r.getMerchantId().trim() : "";
         OrgUnit ou = compId.isEmpty() ? null : orgUnitRepository.findByCode(compId).orElse(null);
@@ -2127,26 +2335,41 @@ public class ApiSettlementController {
             row.put("feeRate", BigDecimal.ZERO);
         }
         applyFranchiseSettlementFeeBreakdown(r, row, compId);
-        String calcCycleRaw = "";
+        String calcCycleRaw = resolveRunCalcCycleForExecuteDisplay(r, ou);
+        row.put("calcCycle", calcCycleRaw);
+        String receivableRecoveryMode = "AUTO";
         if (ou != null) {
             Optional<SettlementSetting> ssOpt = settlementSettingRepository.findByOrgUnitId(ou.getId());
-            if (ssOpt.isPresent()) {
-                SettlementSetting ss = ssOpt.get();
-                calcCycleRaw = ss.getCalcCycle() != null ? ss.getCalcCycle() : "";
-                row.put("calcCycle", calcCycleRaw);
-                row.put("calcMethod", labelCalcProcType(ss.getCalcProcType()));
-            } else {
-                row.put("calcCycle", "");
-                row.put("calcMethod", "");
-            }
+            receivableRecoveryMode = ssOpt.map(ss -> {
+                String m = ss.getReceivableRecoveryMode();
+                return (m != null && m.trim().equalsIgnoreCase("MANUAL")) ? "MANUAL" : "AUTO";
+            }).orElse("AUTO");
+            row.put("calcMethod", ssOpt.map(ss -> labelCalcProcType(ss.getCalcProcType())).orElse(""));
             row.put("pgRootNo", resolveMerchantPgRootNo(ou.getId()));
         } else {
-            row.put("calcCycle", "");
             row.put("calcMethod", "");
             row.put("pgRootNo", "-");
         }
         row.put("targetPeriodText", buildSettlementTargetPeriodLabel(r, queryFrom, queryTo, calcCycleRaw));
         Long runId = r.getId();
+        BigDecimal receivableBd = BigDecimal.ZERO;
+        if (runId != null) {
+            if (autoDeficitTotalByRunId != null) {
+                receivableBd = nz(autoDeficitTotalByRunId.get(runId));
+            } else if (!compId.isBlank()) {
+                String memoKey = "AUTO_DEFICIT:" + runId;
+                Optional<MerchantReceivable> recOpt = merchantReceivableRepository.findByMerchantIdAndReasonCodeAndMemo(
+                        compId, SettlementArrearsService.REASON_AUTO_SETTLEMENT_DEFICIT, memoKey);
+                if (recOpt.isPresent() && recOpt.get().getTotalAmount() != null) {
+                    receivableBd = recOpt.get().getTotalAmount();
+                }
+            }
+        }
+        row.put("receivableAmt", settlementMoneyDouble(receivableBd, ledgerRp));
+        BigDecimal recvAppliedBd = nz(r.getReceivableAppliedAmt());
+        row.put("receivableDeductAmt", settlementMoneyDouble(recvAppliedBd, ledgerRp));
+        row.put("receivableProcessNm", franchiseReceivableProcessNm(receivableRecoveryMode, recvAppliedBd, r.getStatus()));
+        row.put("receivableRecoveryMode", receivableRecoveryMode);
         row.put("trnId", runId != null ? "RUN-" + runId : "-");
         row.put("payDivNm", "정산실행");
         row.put("payNo", runId != null ? String.valueOf(runId) : "-");
@@ -2163,7 +2386,9 @@ public class ApiSettlementController {
         row.put("customerTel", "-");
         row.put("approveDt", "-");
         row.put("cancelDt", "-");
-        row.put("payStatus", r.getStatus() != null ? r.getStatus() : "-");
+        String runStatusStr = r.getStatus() != null ? r.getStatus() : "-";
+        row.put("payStatus", runStatusStr);
+        row.put("status", runStatusStr);
         String regionalNm = "";
         String masterNm = "";
         String branchNm = "";
@@ -2501,6 +2726,9 @@ public class ApiSettlementController {
         for (SettlementRun r : runs) {
             String compId = r.getMerchantId();
             if (compId == null || compId.isBlank()) continue;
+            if (!settlementCalcService.isMerchantStatementVisibleSettlementRun(r)) {
+                continue;
+            }
             OrgUnit ou = orgUnitRepository.findByCode(compId).orElse(null);
             if (ou == null) continue;
             SettlementSetting ss = settlementSettingRepository.findByOrgUnitId(ou.getId()).orElse(null);
@@ -2640,6 +2868,7 @@ public class ApiSettlementController {
         LocalDate fromDate = searchFromDate != null ? searchFromDate : LocalDate.now().minusMonths(1);
         LocalDate toDate = searchToDate != null ? searchToDate : LocalDate.now();
         List<SettlementRun> runs = settlementCalcService.listRuns(fromDate, toDate);
+        Map<Long, BigDecimal> autoDeficitByRun = indexAutoDeficitTotalsByRunId(runs);
         List<Map<String, Object>> allRows = new ArrayList<>();
         for (SettlementRun r : runs) {
             if (!"CALCULATED".equalsIgnoreCase(String.valueOf(r.getStatus()))) {
@@ -2655,7 +2884,10 @@ public class ApiSettlementController {
             if (allowedMerchants != null && !allowedMerchants.contains(mid.trim())) {
                 continue;
             }
-            Map<String, Object> row = toConfirmedSettlementReportListRow(r, fromDate, toDate);
+            if (!settlementCalcService.isMerchantStatementVisibleSettlementRun(r)) {
+                continue;
+            }
+            Map<String, Object> row = toConfirmedSettlementReportListRow(r, fromDate, toDate, autoDeficitByRun);
             if (searchCompId != null && !searchCompId.isBlank()) {
                 String compId = String.valueOf(row.getOrDefault("compId", ""));
                 if (!compId.contains(searchCompId.trim())) {
@@ -2690,17 +2922,9 @@ public class ApiSettlementController {
         return pr;
     }
 
-    private Map<String, Object> toConfirmedSettlementReportListRow(SettlementRun r, LocalDate queryFrom, LocalDate queryTo) {
-        Map<String, Object> row = toFranchiseSettlementRunRow(r, queryFrom, queryTo);
-        String calcCycleRep = "";
-        String midRep = r.getMerchantId();
-        if (midRep != null && !midRep.isBlank()) {
-            calcCycleRep = orgUnitRepository.findByCode(midRep.trim())
-                    .flatMap(ou -> settlementSettingRepository.findByOrgUnitId(ou.getId()))
-                    .map(ss -> ss.getCalcCycle() != null ? ss.getCalcCycle() : "")
-                    .orElse("");
-        }
-        row.put("targetPeriodText", buildSettlementTargetPeriodLabel(r, queryFrom, queryTo, calcCycleRep));
+    private Map<String, Object> toConfirmedSettlementReportListRow(
+            SettlementRun r, LocalDate queryFrom, LocalDate queryTo, Map<Long, BigDecimal> autoDeficitTotalByRunId) {
+        Map<String, Object> row = toFranchiseSettlementRunRow(r, queryFrom, queryTo, autoDeficitTotalByRunId);
         row.put("reportRowKind", "CONFIRMED_SETTLEMENT");
         FeeListRoundingPolicy rp = resolveSettlementLedgerRoundPolicy();
         BigDecimal ap = nz(r.getApproveAmt());

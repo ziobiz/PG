@@ -4,6 +4,11 @@ import com.pg.api.ApiResponse;
 import com.pg.entity.AppUser;
 import com.pg.entity.HqSettlementCycleDef;
 import com.pg.entity.MasterDistSettlementCycleConfig;
+import com.pg.entity.OrgLevel;
+import com.pg.entity.OrgUnit;
+import com.pg.entity.SettlementSetting;
+import com.pg.repository.OrgUnitRepository;
+import com.pg.repository.SettlementSettingRepository;
 import com.pg.service.AuthService;
 import com.pg.service.HqSettlementCycleAdminService;
 import com.pg.service.MasterDistSettlementCycleConfigService;
@@ -15,6 +20,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -30,13 +36,19 @@ public class ApiHqSettlementController {
     private final HqSettlementCycleAdminService hqSettlementCycleAdminService;
     private final MasterDistSettlementCycleConfigService masterDistSettlementCycleConfigService;
     private final AuthService authService;
+    private final OrgUnitRepository orgUnitRepository;
+    private final SettlementSettingRepository settlementSettingRepository;
 
     public ApiHqSettlementController(HqSettlementCycleAdminService hqSettlementCycleAdminService,
                                      MasterDistSettlementCycleConfigService masterDistSettlementCycleConfigService,
-                                     AuthService authService) {
+                                     AuthService authService,
+                                     OrgUnitRepository orgUnitRepository,
+                                     SettlementSettingRepository settlementSettingRepository) {
         this.hqSettlementCycleAdminService = hqSettlementCycleAdminService;
         this.masterDistSettlementCycleConfigService = masterDistSettlementCycleConfigService;
         this.authService = authService;
+        this.orgUnitRepository = orgUnitRepository;
+        this.settlementSettingRepository = settlementSettingRepository;
     }
 
     private boolean canManageSettlementSettings(Authentication auth) {
@@ -197,6 +209,78 @@ public class ApiHqSettlementController {
     @GetMapping("/merchantAutoCounts")
     public ResponseEntity<ApiResponse<Map<String, Long>>> merchantAutoCounts() {
         return ResponseEntity.ok(ApiResponse.ok(hqSettlementCycleAdminService.autoMerchantCountByCycle()));
+    }
+
+    /**
+     * 본사설정 — 환수/미수금: 가맹별 자동(AUTO, 기본) / 수동(MANUAL, 「환수처리」 후 다음 정산 마감 시만 차감).
+     */
+    @GetMapping("/receivableRecoverySettings")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> receivableRecoverySettingsGet() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (!canManageSettlementSettings(auth)) {
+            return ResponseEntity.ok(ApiResponse.fail("총본사(HEADQUARTERS) 또는 시스템 관리자만 조회할 수 있습니다.", "FORBIDDEN"));
+        }
+        Map<String, Object> out = new LinkedHashMap<>();
+        out.put("defaultMode", "AUTO");
+        List<Map<String, Object>> merchantOptions = new ArrayList<>();
+        for (OrgUnit ou : orgUnitRepository.findByOrgLevelOrderByCodeAsc(OrgLevel.MERCHANT)) {
+            if (ou == null || ou.getCode() == null || ou.getCode().isBlank()) {
+                continue;
+            }
+            Map<String, Object> row = new LinkedHashMap<>();
+            row.put("orgUnitId", ou.getId());
+            row.put("compId", ou.getCode().trim());
+            row.put("compNm", ou.getName() != null ? ou.getName() : ou.getCode().trim());
+            merchantOptions.add(row);
+        }
+        out.put("merchantOptions", merchantOptions);
+        List<Map<String, Object>> manualMerchants = new ArrayList<>();
+        for (SettlementSetting ss : settlementSettingRepository.findByReceivableRecoveryModeIgnoreCase("MANUAL")) {
+            OrgUnit ou = orgUnitRepository.findById(ss.getOrgUnitId()).orElse(null);
+            if (ou == null || ou.getOrgLevel() != OrgLevel.MERCHANT) {
+                continue;
+            }
+            Map<String, Object> m = new LinkedHashMap<>();
+            m.put("orgUnitId", ou.getId());
+            m.put("compId", ou.getCode());
+            m.put("compNm", ou.getName() != null ? ou.getName() : ou.getCode());
+            m.put("receivableRecoveryMode", "MANUAL");
+            manualMerchants.add(m);
+        }
+        manualMerchants.sort(Comparator.comparing(o -> String.valueOf(o.getOrDefault("compId", "")).toLowerCase(Locale.ROOT)));
+        out.put("manualMerchants", manualMerchants);
+        return ResponseEntity.ok(ApiResponse.ok(out));
+    }
+
+    @PostMapping("/receivableRecoverySettings")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> receivableRecoverySettingsSave(@RequestBody Map<String, Object> body) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (!canManageSettlementSettings(auth)) {
+            return ResponseEntity.ok(ApiResponse.fail("총본사(HEADQUARTERS) 또는 시스템 관리자만 저장할 수 있습니다.", "FORBIDDEN"));
+        }
+        if (body == null) {
+            return ResponseEntity.ok(ApiResponse.fail("요청 본문이 없습니다.", "VALIDATION"));
+        }
+        String compId = body.get("compId") != null ? String.valueOf(body.get("compId")).trim() : "";
+        if (compId.isBlank()) {
+            return ResponseEntity.ok(ApiResponse.fail("가맹점 코드(compId)는 필수입니다.", "VALIDATION"));
+        }
+        String mode = body.get("mode") != null ? String.valueOf(body.get("mode")).trim().toUpperCase(Locale.ROOT) : "";
+        if (!"AUTO".equals(mode) && !"MANUAL".equals(mode)) {
+            return ResponseEntity.ok(ApiResponse.fail("mode는 AUTO 또는 MANUAL 이어야 합니다.", "VALIDATION"));
+        }
+        OrgUnit ou = orgUnitRepository.findByCode(compId).orElse(null);
+        if (ou == null || ou.getOrgLevel() != OrgLevel.MERCHANT) {
+            return ResponseEntity.ok(ApiResponse.fail("가맹점(MERCHANT) 코드를 찾을 수 없습니다.", "NOT_FOUND"));
+        }
+        SettlementSetting ss = settlementSettingRepository.findByOrgUnitId(ou.getId())
+                .orElse(null);
+        if (ss == null) {
+            return ResponseEntity.ok(ApiResponse.fail("해당 가맹의 정산설정이 없습니다. 업체 등록·정산설정을 먼저 완료하세요.", "NOT_FOUND"));
+        }
+        ss.setReceivableRecoveryMode(mode);
+        settlementSettingRepository.save(ss);
+        return ResponseEntity.ok(ApiResponse.ok(Map.of("success", true, "compId", compId, "mode", mode)));
     }
 
     @PostMapping("/cycleDefs")

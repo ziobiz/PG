@@ -202,9 +202,10 @@ public class ApiCalcController {
     }
 
     /**
-     * ChillPay Transaction Services — Search Payment Transaction 을
-     * <strong>PaymentDateFrom/To</strong> 중심으로 호출해 칠페이 정책상 정산·Settled·수수료 등을 조회합니다.
-     * (ICOPAY 내부 정산 실행 로직과 무관)
+     * ChillPay Transaction Services — <strong>Search Settlement Transaction</strong>
+     * ({@code /api/v1/settlement/search}, v1.0.6 Table 2.2) 를
+     * <strong>PaymentDateFrom/To</strong> 중심으로 호출합니다.
+     * (ICOPAY 내부 정산 실행·유통망 정산 테이블과 무관)
      */
     @GetMapping("/chillPaySettlementSearch")
     public ResponseEntity<ApiResponse<PageResult<Map<String, Object>>>> chillPaySettlementSearch(

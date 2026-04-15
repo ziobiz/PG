@@ -51,3 +51,6 @@ CREATE INDEX IF NOT EXISTS idx_merchant_receivable_merchant_status ON tb_merchan
 ALTER TABLE tb_settlement_run ADD COLUMN IF NOT EXISTS payout_hold_yn VARCHAR(1) NOT NULL DEFAULT 'N';
 ALTER TABLE tb_settlement_run ADD COLUMN IF NOT EXISTS payout_hold_remark VARCHAR(800);
 CREATE INDEX IF NOT EXISTS idx_settlement_run_payout_hold ON tb_settlement_run (payout_hold_yn, calc_dt);
+
+-- 정산 실행 행 — 실행 시점 정산주기(가맹 설정 변경 후에도 과거 행 표시용)
+ALTER TABLE tb_settlement_run ADD COLUMN IF NOT EXISTS calc_cycle_snapshot VARCHAR(64);

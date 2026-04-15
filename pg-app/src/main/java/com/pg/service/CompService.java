@@ -1037,6 +1037,9 @@ public class CompService {
                                         bm.put("installmentYn", b.getInstallmentYn() != null ? b.getInstallmentYn() : "N");
                                         bm.put("maxInstallmentMonths", b.getMaxInstallmentMonths() != null ? String.valueOf(b.getMaxInstallmentMonths()) : "");
                                         bm.put("urlPayPricingMode", b.getUrlPayPricingMode() != null ? b.getUrlPayPricingMode() : "CHECKOUT_CURRENCY");
+                                        bm.put("extSettleMode", b.getExtSettleMode() != null ? b.getExtSettleMode() : "");
+                                        bm.put("extSettleLag", b.getExtSettleLag() != null ? String.valueOf(b.getExtSettleLag()) : "");
+                                        bm.put("extSettleBatchTime", b.getExtSettleBatchTime() != null ? b.getExtSettleBatchTime().toString() : "");
                                         return bm;
                                     })
                                     .collect(Collectors.toList());
@@ -1462,6 +1465,7 @@ public class CompService {
                                         }
                                         binding.setSortOrder(order++);
                                         applyUrlPayPricingModeFromJsonOrPrevious(binding, pc, pm, optStr(m, "urlPayPricingMode"), prevPgPricingModes);
+                                        applyExtSettlementFromJsonMap(binding, m);
                                         merchantPgBindingRepository.save(binding);
                                     }
                                 } catch (JsonProcessingException e) {
@@ -2069,6 +2073,7 @@ public class CompService {
                         binding.setUrlPayPricingMode("CHECKOUT_CURRENCY");
                     }
                     binding.setSortOrder(++order);
+                    applyExtSettlementFromJsonMap(binding, m);
                     merchantPgBindingRepository.save(binding);
                 }
             } catch (JsonProcessingException e) {
@@ -3302,7 +3307,8 @@ public class CompService {
                 + " MID=" + nz(b.getMid()) + " 활성=" + nz(b.getActivationYn())
                 + " 운영=" + nz(b.getOperationalYn()) + " Route=" + nz(b.getRootNo())
                 + " URL금액=" + nz(b.getUrlPayPricingMode())
-                + " 할부=" + nz(b.getInstallmentYn());
+                + " 할부=" + nz(b.getInstallmentYn())
+                + " extSettle=" + nz(b.getExtSettleMode());
     }
 
     private static final ObjectMapper PG_BINDINGS_OBJECT_MAPPER = new ObjectMapper();
@@ -3336,6 +3342,13 @@ public class CompService {
         }
     }
 
+    private void applyExtSettlementFromJsonMap(MerchantPgBinding binding, Map<String, Object> m) {
+        if (m != null && m.containsKey("extSettleMode")) {
+            applyMerchantPgBindingExtSettlementFields(binding,
+                    optStr(m, "extSettleMode"), optStr(m, "extSettleLag"), optStr(m, "extSettleBatchTime"));
+        }
+    }
+
     /**
      * DB 유니크 (org_unit_id, pg_cd, pay_method) 에 맞춤. JSON에 동일 조합이 중복되면 뒤쪽 행이 앞을 덮어쓴다.
      */
@@ -3364,12 +3377,62 @@ public class CompService {
         return out;
     }
 
+    /**
+     * 가맹 PG 정산예정 덮어쓰기. {@code extSettleMode} 빈 값·{@code INHERIT} → 연동(tb_pg_agency) 기본 따름(DB null).
+     * {@code OFF} → 이 MID는 예정일 미표시. {@code T}/{@code D} → N(1~10), D는 일괄시각 필수.
+     */
+    private void applyMerchantPgBindingExtSettlementFields(MerchantPgBinding binding, String modeRaw, String lagStr, String batchHm) {
+        String m0 = modeRaw != null ? modeRaw.trim().toUpperCase(Locale.ROOT) : "";
+        if (m0.isEmpty() || "INHERIT".equals(m0)) {
+            binding.setExtSettleMode(null);
+            binding.setExtSettleLag(null);
+            binding.setExtSettleBatchTime(null);
+            return;
+        }
+        if ("OFF".equals(m0)) {
+            binding.setExtSettleMode("OFF");
+            binding.setExtSettleLag(null);
+            binding.setExtSettleBatchTime(null);
+            return;
+        }
+        if (!"T".equals(m0) && !"D".equals(m0)) {
+            throw new IllegalArgumentException("PG 정산예정 모드는 INHERIT, OFF, T, D 중 하나입니다.");
+        }
+        if (lagStr == null || lagStr.isBlank()) {
+            throw new IllegalArgumentException("PG 정산예정: T/D 모드일 때 N(1~10)이 필요합니다.");
+        }
+        int lag;
+        try {
+            lag = Integer.parseInt(lagStr.trim());
+        } catch (NumberFormatException e) {
+            throw new IllegalArgumentException("PG 정산예정 N은 1~10 정수입니다.");
+        }
+        if (lag < 1 || lag > 10) {
+            throw new IllegalArgumentException("PG 정산예정 N은 1~10만 허용됩니다.");
+        }
+        if ("D".equals(m0)) {
+            LocalTime bt = parseTime(batchHm != null ? batchHm : "");
+            if (bt == null) {
+                throw new IllegalArgumentException("D 모드는 일괄 정산 시각(HH:mm)이 필요합니다.");
+            }
+            binding.setExtSettleMode("D");
+            binding.setExtSettleLag(lag);
+            binding.setExtSettleBatchTime(bt);
+        } else {
+            binding.setExtSettleMode("T");
+            binding.setExtSettleLag(lag);
+            binding.setExtSettleBatchTime(null);
+        }
+    }
+
     /** 가맹점 결제대행사 1건 저장 (업체정보 상세에서 행 단위 저장) */
     public Map<String, Object> saveMerchantPgBinding(String compId, Long bindingId, String pgCd, String payMethod,
                                                      String mid, String rootNo, String apiKey, String ivKey,
                                                      String activationYn, String operationalYn,
                                                      String installmentYn, String maxInstallmentMonthsStr,
-                                                     String urlPayPricingMode) {
+                                                     String urlPayPricingMode,
+                                                     boolean extSettlementFieldsPresent,
+                                                     String extSettleMode, String extSettleLagStr, String extSettleBatchHm) {
         OrgUnit ou = orgUnitRepository.findByCode(compId != null ? compId.trim() : "")
                 .orElseThrow(() -> new IllegalArgumentException("업체를 찾을 수 없습니다."));
         if (ou.getOrgLevel() != OrgLevel.MERCHANT) {
@@ -3440,6 +3503,9 @@ public class CompService {
             binding.setUrlPayPricingMode("DISPLAY_FX_THB".equalsIgnoreCase(urlPayPricingMode.trim())
                     ? "DISPLAY_FX_THB" : "CHECKOUT_CURRENCY");
         }
+        if (extSettlementFieldsPresent) {
+            applyMerchantPgBindingExtSettlementFields(binding, extSettleMode, extSettleLagStr, extSettleBatchHm);
+        }
         merchantPgBindingRepository.save(binding);
         orgUnitChangeAuditService.appendIfChanged(ou.getId(), nz(ou.getCode()), nz(ou.getName()),
                 "[PG연동] 결제대행(MID)", beforeLine, pgBindingAuditLine(binding));
@@ -3457,6 +3523,9 @@ public class CompService {
         bm.put("installmentYn", binding.getInstallmentYn());
         bm.put("maxInstallmentMonths", binding.getMaxInstallmentMonths() != null ? String.valueOf(binding.getMaxInstallmentMonths()) : "");
         bm.put("urlPayPricingMode", binding.getUrlPayPricingMode() != null ? binding.getUrlPayPricingMode() : "CHECKOUT_CURRENCY");
+        bm.put("extSettleMode", binding.getExtSettleMode() != null ? binding.getExtSettleMode() : "");
+        bm.put("extSettleLag", binding.getExtSettleLag() != null ? String.valueOf(binding.getExtSettleLag()) : "");
+        bm.put("extSettleBatchTime", binding.getExtSettleBatchTime() != null ? binding.getExtSettleBatchTime().toString() : "");
         return bm;
     }
 

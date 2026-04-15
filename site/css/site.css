@@ -1407,14 +1407,16 @@ table.table.pg-table-col-resize-enabled {
   width: max-content;
   min-width: 100%;
 }
-/* 통합내역: 다른 결제 그리드와 동일하게 가로 스크롤(열 압축 방지) */
-#contentsMain .screen-chill-pay-tr-list .table-responsive {
+/* 통합내역·통합정산: 다른 결제 그리드와 동일하게 가로 스크롤(열 압축 방지) */
+#contentsMain .screen-chill-pay-tr-list .table-responsive,
+#contentsMain .screen-chill-pay-settlement-list .table-responsive {
   display: block;
   width: 100%;
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
 }
-#contentsMain .screen-chill-pay-tr-list .table-responsive > .table.pay-mng-data-grid.pg-table-col-resize-enabled {
+#contentsMain .screen-chill-pay-tr-list .table-responsive > .table.pay-mng-data-grid.pg-table-col-resize-enabled,
+#contentsMain .screen-chill-pay-settlement-list .table-responsive > .table.pay-mng-data-grid.pg-table-col-resize-enabled {
   table-layout: fixed;
   width: max-content;
   min-width: 100%;
@@ -3457,6 +3459,16 @@ button.pay-follow.pay-follow--off {
   cursor: not-allowed;
 }
 
+/* 본사 API연동설정: 가로 스크롤 + 최소 너비로 열 다발·헤더 줄바꿈 방지 */
+.hq-pg-api-mng-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  max-width: 100%;
+}
+.hq-pg-api-mng-scroll .hq-pg-api-mng-table {
+  min-width: 1240px;
+}
+
 /* 본사 API연동설정: 테이블 글자 크기 = 결제관리 거래내역(#contentsMain .screen-pay-list .table)과 동일 */
 .hq-pg-api-mng-table {
   font-size: var(--pay-mng-dense-font-size);
@@ -3468,6 +3480,7 @@ button.pay-follow.pay-follow--off {
   font-size: var(--pay-mng-dense-font-size);
   vertical-align: middle;
   line-height: 1.25;
+  white-space: nowrap;
 }
 .hq-pg-api-mng-table tbody td {
   padding: 4px 8px;
@@ -3500,8 +3513,24 @@ button.pay-follow.pay-follow--off {
   width: 9.75rem;
   min-width: 8.25rem;
 }
+.hq-pg-api-mng-table thead th[data-key="urlPayAmountModeLabel"] {
+  width: 5.25rem;
+  min-width: 4.5rem;
+}
 .hq-pg-api-mng-table thead th[data-key="merchantMid"] {
   width: 7.25rem;
+}
+.hq-pg-api-mng-table thead th[data-key="extSettleMode"] {
+  width: 3.75rem;
+  min-width: 3.25rem;
+}
+.hq-pg-api-mng-table thead th[data-key="extSettleLag"] {
+  width: 2.75rem;
+  min-width: 2.25rem;
+}
+.hq-pg-api-mng-table thead th[data-key="extSettleBatchTime"] {
+  width: 4.25rem;
+  min-width: 3.75rem;
 }
 .hq-pg-api-mng-table thead th[data-key="hasApiKey"],
 .hq-pg-api-mng-table thead th[data-key="hasMd5Key"] {

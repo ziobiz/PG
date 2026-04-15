@@ -320,6 +320,9 @@ public class SettlementReportService {
             if ("Y".equalsIgnoreCase(r.getPayoutHoldYn() != null ? r.getPayoutHoldYn() : "")) {
                 continue;
             }
+            if (!settlementCalcService.isMerchantStatementVisibleSettlementRun(r)) {
+                continue;
+            }
             String mid = r.getMerchantId();
             if (mid == null || !allowed.contains(mid)) continue;
             OrgUnit ou = orgUnitRepository.findByCode(mid).orElse(null);
@@ -385,6 +388,9 @@ public class SettlementReportService {
         Map<String, RegionalExeBucket> buckets = new LinkedHashMap<>();
         for (SettlementRun r : runs) {
             if ("Y".equalsIgnoreCase(r.getPayoutHoldYn() != null ? r.getPayoutHoldYn() : "")) {
+                continue;
+            }
+            if (!settlementCalcService.isMerchantStatementVisibleSettlementRun(r)) {
                 continue;
             }
             String mid = r.getMerchantId();

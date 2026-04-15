@@ -329,7 +329,7 @@
     chillPayTrSearch: function (params) {
       return get('/api/calc/chillPayTrSearch', params).then(function (r) { return r.data; });
     },
-    /** ChillPay 통합정산 — PaymentDate·Settled 중심(동일 Transaction Search API) */
+    /** ChillPay 통합정산 — Search Settlement Transaction(/api/v1/settlement/search) */
     chillPaySettlementSearch: function (params) {
       return get('/api/calc/chillPaySettlementSearch', params).then(function (r) { return r.data; });
     },
@@ -694,6 +694,9 @@
     settlementReceivableCreate: function (body) {
       return post('/api/settlement/receivable', body).then(function (r) { return r.data; });
     },
+    settlementReceivableRecoveryRequest: function (id) {
+      return post('/api/settlement/receivable/' + encodeURIComponent(id) + '/recoveryRequest', {}).then(function (r) { return r.data; });
+    },
     settlementBalanceMng: function (params) {
       return get('/api/settlement/balanceMng', params).then(function (r) { return r.data; });
     },
@@ -927,6 +930,12 @@
     /** 표준 주기(내장 목록) 중 DB에 없는 코드만 INSERT */
     hqSettlementCycleDefsSeedMissing: function () {
       return post('/api/hq/settlement/cycleDefs/seedMissing', {}).then(function (r) { return r.data != null ? r.data : r; });
+    },
+    hqReceivableRecoverySettingsGet: function () {
+      return get('/api/hq/settlement/receivableRecoverySettings').then(function (r) { return r.data; });
+    },
+    hqReceivableRecoverySettingsSave: function (body) {
+      return post('/api/hq/settlement/receivableRecoverySettings', body || {}).then(function (r) { return r.data != null ? r.data : r; });
     },
 
     hqNotifyEnv: function () {

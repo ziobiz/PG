@@ -2,6 +2,7 @@ package com.pg.entity;
 
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 
 /**
  * 가맹점-결제대행사 연결. 가맹점이 사용할 결제대행사별 MID, API KEY, IV 등 연동 정보.
@@ -64,6 +65,16 @@ public class MerchantPgBinding {
     @Column(name = "url_pay_pricing_mode", nullable = false, length = 32)
     private String urlPayPricingMode = "CHECKOUT_CURRENCY";
 
+    /** {@code null}: {@code tb_pg_agency} 기본 따름. {@code OFF}/{@code T}/{@code D}: 가맹 MID별 덮어쓰기 */
+    @Column(name = "ext_settle_mode", length = 8)
+    private String extSettleMode;
+
+    @Column(name = "ext_settle_lag")
+    private Integer extSettleLag;
+
+    @Column(name = "ext_settle_batch_time")
+    private LocalTime extSettleBatchTime;
+
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 
@@ -100,6 +111,12 @@ public class MerchantPgBinding {
     public void setSortOrder(Integer sortOrder) { this.sortOrder = sortOrder; }
     public String getUrlPayPricingMode() { return urlPayPricingMode; }
     public void setUrlPayPricingMode(String urlPayPricingMode) { this.urlPayPricingMode = urlPayPricingMode; }
+    public String getExtSettleMode() { return extSettleMode; }
+    public void setExtSettleMode(String extSettleMode) { this.extSettleMode = extSettleMode; }
+    public Integer getExtSettleLag() { return extSettleLag; }
+    public void setExtSettleLag(Integer extSettleLag) { this.extSettleLag = extSettleLag; }
+    public LocalTime getExtSettleBatchTime() { return extSettleBatchTime; }
+    public void setExtSettleBatchTime(LocalTime extSettleBatchTime) { this.extSettleBatchTime = extSettleBatchTime; }
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
 }

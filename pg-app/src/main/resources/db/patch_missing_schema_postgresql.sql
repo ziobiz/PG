@@ -307,6 +307,8 @@ ALTER TABLE tb_settlement_run ADD COLUMN IF NOT EXISTS payout_hold_yn VARCHAR(1)
 ALTER TABLE tb_settlement_run ADD COLUMN IF NOT EXISTS payout_hold_remark VARCHAR(800);
 CREATE INDEX IF NOT EXISTS idx_settlement_run_payout_hold ON tb_settlement_run (payout_hold_yn, calc_dt);
 
+ALTER TABLE tb_settlement_run ADD COLUMN IF NOT EXISTS calc_cycle_snapshot VARCHAR(64);
+
 -- V95: 전산설정 — 통화별 수수료·정산 소수 처리(JSON) — db/V95_hq_ledger_fee_currency_format.sql 과 동일
 ALTER TABLE tb_hq_ledger_sys_settings ADD COLUMN IF NOT EXISTS fee_currency_format_json TEXT;
 
@@ -320,3 +322,31 @@ ALTER TABLE tb_master_dist_settlement_cycle_config ADD COLUMN IF NOT EXISTS cycl
 ALTER TABLE tb_master_dist_settlement_cycle_config ADD COLUMN IF NOT EXISTS cycle_code_8 VARCHAR(64);
 ALTER TABLE tb_master_dist_settlement_cycle_config ADD COLUMN IF NOT EXISTS cycle_code_9 VARCHAR(64);
 ALTER TABLE tb_master_dist_settlement_cycle_config ADD COLUMN IF NOT EXISTS cycle_code_10 VARCHAR(64);
+
+-- V98: 미수금 수동 환수 — db/V98_receivable_recovery_manual.sql 과 동일
+ALTER TABLE tb_settlement_setting ADD COLUMN IF NOT EXISTS receivable_recovery_mode VARCHAR(16) NOT NULL DEFAULT 'AUTO';
+ALTER TABLE tb_settlement_run ADD COLUMN IF NOT EXISTS receivable_applied_amt NUMERIC(21, 8);
+CREATE TABLE IF NOT EXISTS tb_merchant_receivable_recovery_req (
+    id                          BIGSERIAL PRIMARY KEY,
+    merchant_receivable_id      BIGINT NOT NULL,
+    merchant_id                 VARCHAR(50) NOT NULL,
+    status                      VARCHAR(20) NOT NULL DEFAULT 'PENDING',
+    requested_at                TIMESTAMP WITHOUT TIME ZONE,
+    requested_by                VARCHAR(100),
+    applied_settlement_run_id   BIGINT
+);
+CREATE UNIQUE INDEX IF NOT EXISTS uk_mrr_req_one_pending_per_recv
+    ON tb_merchant_receivable_recovery_req (merchant_receivable_id)
+    WHERE status = 'PENDING';
+CREATE INDEX IF NOT EXISTS idx_mrr_req_merchant_status
+    ON tb_merchant_receivable_recovery_req (merchant_id, status);
+
+-- V99: 통합정산 예정일(T/D) — db/V99_pg_ext_settlement_expected.sql 과 동일
+ALTER TABLE tb_pg_agency
+    ADD COLUMN IF NOT EXISTS ext_settle_mode VARCHAR(8) NOT NULL DEFAULT 'OFF',
+    ADD COLUMN IF NOT EXISTS ext_settle_lag INTEGER NULL,
+    ADD COLUMN IF NOT EXISTS ext_settle_batch_time TIME WITHOUT TIME ZONE NULL;
+ALTER TABLE tb_merchant_pg_binding
+    ADD COLUMN IF NOT EXISTS ext_settle_mode VARCHAR(8) NULL,
+    ADD COLUMN IF NOT EXISTS ext_settle_lag INTEGER NULL,
+    ADD COLUMN IF NOT EXISTS ext_settle_batch_time TIME WITHOUT TIME ZONE NULL;

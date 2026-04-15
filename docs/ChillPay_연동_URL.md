@@ -53,7 +53,7 @@ Manual §2.3. 리다이렉트와 별도로, 백엔드에서 폼 인코딩 POST�
 
 - Method: POST, `Content-Type: application/json`, 헤더 `CHILLPAY-MerchantCode`, `CHILLPAY-ApiKey`, 본문 필드 및 Checksum 순서는 `ChillPay-API-Transaction-Services-Document-EN_v1.0.6` Table 1.2~1.3.
 - **통합내역** 화면: `TransactionDate` 구간 위주.
-- **통합정산** 화면: 동일 API에 `PaymentDateFrom`/`PaymentDateTo` 및 정렬 `Settled` 등을 사용해 칠페이 정책상 정산·Settled·수수료 필드를 조회(ICOPAY 내부 정산 배치와 별개).
+- **통합정산** 화면: `POST /api/v1/settlement/search`(Search Settlement Transaction)로 조회하며, 요청 JSON 키는 문서 표기대로 PascalCase(`OrderBy`, `RouteNo` 등)입니다. `PaymentDateFrom`/`PaymentDateTo` 구간·정렬 등은 v1.0.6 Table 2.2~2.3을 따릅니다(ICOPAY 내부 정산 배치와 별개).
 
 ## 7. CheckSum
 

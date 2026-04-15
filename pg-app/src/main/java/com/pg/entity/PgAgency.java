@@ -2,6 +2,7 @@ package com.pg.entity;
 
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 
 /**
  * 결제대행사 - 총본사에서 여러 국가 PG사 API로 구축한 결제 모듈.
@@ -81,6 +82,20 @@ public class PgAgency {
     @Column(name = "credentials_extra_json", columnDefinition = "TEXT")
     private String credentialsExtraJson;
 
+    /**
+     * PG↔ICOPAY 통합정산 예정일 규칙: {@code OFF}(미사용), {@code T}(T+N 영업일·결제와 동일 시각), {@code D}(D+N 달력일·일괄 시각).
+     */
+    @Column(name = "ext_settle_mode", nullable = false, length = 8)
+    private String extSettleMode = "OFF";
+
+    /** N (1~10). {@code OFF}이면 무시 */
+    @Column(name = "ext_settle_lag")
+    private Integer extSettleLag;
+
+    /** {@code D} 모드: 정산일 당일의 정산 시각. {@code T} 모드에서는 무시 */
+    @Column(name = "ext_settle_batch_time")
+    private LocalTime extSettleBatchTime;
+
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 
@@ -148,6 +163,12 @@ public class PgAgency {
     public void setSandboxYn(String sandboxYn) { this.sandboxYn = sandboxYn; }
     public String getCredentialsExtraJson() { return credentialsExtraJson; }
     public void setCredentialsExtraJson(String credentialsExtraJson) { this.credentialsExtraJson = credentialsExtraJson; }
+    public String getExtSettleMode() { return extSettleMode; }
+    public void setExtSettleMode(String extSettleMode) { this.extSettleMode = extSettleMode; }
+    public Integer getExtSettleLag() { return extSettleLag; }
+    public void setExtSettleLag(Integer extSettleLag) { this.extSettleLag = extSettleLag; }
+    public LocalTime getExtSettleBatchTime() { return extSettleBatchTime; }
+    public void setExtSettleBatchTime(LocalTime extSettleBatchTime) { this.extSettleBatchTime = extSettleBatchTime; }
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
 }

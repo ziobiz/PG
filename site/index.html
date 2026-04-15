@@ -434,6 +434,27 @@
               <textarea class="form-control form-control-sm font-monospace" id="pgAgencyEditCredentialsExtra" rows="3" placeholder='{"custom":"…"}'></textarea>
               <div class="form-text">해당 PG 전용 확장 파라미터(선택).</div>
             </div>
+            <div class="mb-2 border-top pt-2">
+              <label class="form-label mb-1">통합정산 예정일(우리↔PG)</label>
+              <div class="row g-2 align-items-end">
+                <div class="col-6 col-md-4">
+                  <select class="form-select form-select-sm" id="pgAgencyEditExtSettleMode" title="OFF=미사용, T+N=영업일·결제와 동일 시각, D+N=달력+N일·일괄 시각">
+                    <option value="OFF">사용안함</option>
+                    <option value="T">T+N (영업일·동일시각)</option>
+                    <option value="D">D+N (달력·일괄시각)</option>
+                  </select>
+                </div>
+                <div class="col-6 col-md-2">
+                  <label class="form-label form-label-sm text-muted mb-0">N(1~10)</label>
+                  <input type="number" class="form-control form-control-sm" id="pgAgencyEditExtSettleLag" min="1" max="10" step="1" placeholder="">
+                </div>
+                <div class="col-12 col-md-4">
+                  <label class="form-label form-label-sm text-muted mb-0">D모드 일괄시각</label>
+                  <input type="time" class="form-control form-control-sm" id="pgAgencyEditExtSettleBatchTime" step="60">
+                </div>
+              </div>
+              <div class="form-text" id="pgAgencyEditExtSettleHint">OFF면 통합정산에 ICOPAY 예정일을 채우지 않습니다. T는 주말 제외 영업일 기준입니다.</div>
+            </div>
             <div class="mb-2">
               <label class="form-label">사용여부</label>
               <select class="form-select form-select-sm" id="pgAgencyEditUseYn">

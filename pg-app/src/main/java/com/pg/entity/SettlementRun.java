@@ -32,6 +32,13 @@ public class SettlementRun {
     @Column(name = "period_end_at")
     private LocalDateTime periodEndAt;
 
+    /**
+     * 실행 시점 가맹 정산주기 스냅샷(정규화 코드). 가맹 설정 변경 후에도 과거 실행 행 표시에 사용.
+     * null이면 구버전 데이터(당시 주기 불명)로, 화면에서는 현재 설정으로 덮어쓰지 않음.
+     */
+    @Column(name = "calc_cycle_snapshot", length = 64)
+    private String calcCycleSnapshot;
+
     @Column(name = "merchant_id", nullable = false, length = 50)
     private String merchantId;
 
@@ -54,6 +61,10 @@ public class SettlementRun {
     /** 지급액 = 승인 - 취소 - 수수료 - 롤링보류 */
     @Column(name = "pay_amt", precision = 21, scale = 8)
     private BigDecimal payAmt = BigDecimal.ZERO;
+
+    /** 해당 정산 실행에서 미수금 FIFO로 차감된 합계(가맹점정산내역 표시) */
+    @Column(name = "receivable_applied_amt", precision = 21, scale = 8)
+    private BigDecimal receivableAppliedAmt;
 
     @Column(name = "status", length = 20)
     private String status = "PENDING";
@@ -86,6 +97,9 @@ public class SettlementRun {
     public void setPeriodTo(LocalDate periodTo) { this.periodTo = periodTo; }
     public LocalDateTime getPeriodEndAt() { return periodEndAt; }
     public void setPeriodEndAt(LocalDateTime periodEndAt) { this.periodEndAt = periodEndAt; }
+
+    public String getCalcCycleSnapshot() { return calcCycleSnapshot; }
+    public void setCalcCycleSnapshot(String calcCycleSnapshot) { this.calcCycleSnapshot = calcCycleSnapshot; }
 
     /** 거래 조회용 하한 시각(구버전 행은 정산일 0시) */
     public LocalDateTime resolvePeriodStartAt() {
@@ -120,6 +134,8 @@ public class SettlementRun {
     public void setRollingReserveAmt(BigDecimal rollingReserveAmt) { this.rollingReserveAmt = rollingReserveAmt; }
     public BigDecimal getPayAmt() { return payAmt; }
     public void setPayAmt(BigDecimal payAmt) { this.payAmt = payAmt; }
+    public BigDecimal getReceivableAppliedAmt() { return receivableAppliedAmt; }
+    public void setReceivableAppliedAmt(BigDecimal receivableAppliedAmt) { this.receivableAppliedAmt = receivableAppliedAmt; }
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }
     public String getPayoutHoldYn() { return payoutHoldYn; }

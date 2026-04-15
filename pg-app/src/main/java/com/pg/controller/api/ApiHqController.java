@@ -37,6 +37,8 @@ import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.time.LocalDateTime;
 import java.util.*;
@@ -388,6 +390,9 @@ public class ApiHqController {
                     m.put("routeNo", p.getRouteNo() != null ? p.getRouteNo() : "");
                     m.put("sandboxYn", p.getSandboxYn() != null ? p.getSandboxYn() : "Y");
                     m.put("credentialsExtraJson", p.getCredentialsExtraJson() != null ? p.getCredentialsExtraJson() : "");
+                    m.put("extSettleMode", p.getExtSettleMode() != null ? p.getExtSettleMode() : "OFF");
+                    m.put("extSettleLag", p.getExtSettleLag() != null ? p.getExtSettleLag() : "");
+                    m.put("extSettleBatchTime", p.getExtSettleBatchTime() != null ? p.getExtSettleBatchTime().toString() : "");
                     m.put("regDt", p.getCreatedAt() != null ? p.getCreatedAt().toString().substring(0, 10) : null);
                     return m;
                 })
@@ -534,6 +539,7 @@ public class ApiHqController {
                 applyPgAgencyCredentialFields(entity, body, false);
                 applyPgAgencyIntegrationScope(entity, body, false);
             }
+            applyPgAgencyExtSettlementFields(entity, body, !isNew);
             if ("Y".equalsIgnoreCase(entity.getUseYn())) {
                 if (!ynPg(entity.getIntegNotiYn()) && !ynPg(entity.getIntegUrlPayYn())
                         && !ynPg(entity.getIntegWebChatbotYn()) && !ynPg(entity.getIntegApiYn())) {
@@ -590,6 +596,66 @@ public class ApiHqController {
     private static String hqStr(Map<String, Object> body, String key) {
         Object v = body.get(key);
         return v == null ? null : v.toString();
+    }
+
+    private static LocalTime hqParseHm(String s) {
+        if (s == null || s.isBlank()) {
+            return null;
+        }
+        try {
+            String t = s.trim();
+            if (t.matches("\\d{1,2}:\\d{2}")) {
+                return LocalTime.parse(t, DateTimeFormatter.ofPattern("H:mm"));
+            }
+            if (t.matches("\\d{1,2}:\\d{2}:\\d{2}")) {
+                return LocalTime.parse(t, DateTimeFormatter.ofPattern("H:mm:ss"));
+            }
+            return LocalTime.parse(t);
+        } catch (DateTimeParseException e) {
+            return null;
+        }
+    }
+
+    /**
+     * 통합정산 예정일: OFF(미사용) / T+N(영업일·결제 동일 시각) / D+N(달력+N일·일괄 시각). 수정 시 본문에 extSettleMode 가 없으면 기존 값 유지.
+     */
+    private static void applyPgAgencyExtSettlementFields(PgAgency entity, Map<String, Object> body, boolean isUpdate) {
+        if (isUpdate && !body.containsKey("extSettleMode")) {
+            return;
+        }
+        String mode = hqStr(body, "extSettleMode");
+        if (mode == null || mode.isBlank()) {
+            mode = "OFF";
+        }
+        mode = mode.trim().toUpperCase(Locale.ROOT);
+        if (!"OFF".equals(mode) && !"T".equals(mode) && !"D".equals(mode)) {
+            throw new IllegalArgumentException("통합정산 예정일: 모드는 OFF, T, D 중 하나입니다.");
+        }
+        Integer lag = null;
+        String lagStr = hqStr(body, "extSettleLag");
+        if (lagStr != null && !lagStr.isBlank()) {
+            try {
+                lag = Integer.parseInt(lagStr.trim());
+            } catch (NumberFormatException e) {
+                throw new IllegalArgumentException("통합정산 예정일 N은 정수입니다.");
+            }
+        }
+        LocalTime batch = hqParseHm(hqStr(body, "extSettleBatchTime"));
+        if ("OFF".equals(mode)) {
+            entity.setExtSettleMode("OFF");
+            entity.setExtSettleLag(null);
+            entity.setExtSettleBatchTime(null);
+            return;
+        }
+        if (lag == null || lag < 1 || lag > 10) {
+            throw new IllegalArgumentException("T/D 모드일 때 N(1~10)이 필요합니다.");
+        }
+        if ("D".equals(mode) && batch == null) {
+            throw new IllegalArgumentException("D 모드는 정산 일괄 시각(HH:mm)이 필요합니다.");
+        }
+        entity.setExtSettleMode(mode);
+        entity.setExtSettleLag(lag);
+        entity.setExtSettleBatchTime("D".equals(mode) ? batch : null);
     }
 
     /**
