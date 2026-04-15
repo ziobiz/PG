@@ -4848,7 +4848,7 @@
           /** 체크·No·가맹점·업체코드·처리(인라인 저장)만 항상 표시. 나머지는 VIEW SETTING·조직항목설정과 동일 키로 토글 */
           fixedKeys = ['_chk', 'rowNo', 'compNm', 'compId', 'inlineActions'];
         } else if (url === '/calc/feeList' || url === '/settlement/feeList') {
-          /** 체크·번호·업체·거래일·통화 고정. 거래시간·루트·승인번호·거래번호(우리) 등은 VIEW SETTING과 동일하게 토글 */
+          /** 체크·번호·업체·거래일·통화 고정. 정산주기·거래시간·루트·승인번호·거래번호(우리) 등은 VIEW SETTING과 동일하게 토글 */
           fixedKeys = ['_chk', 'rowNo', 'compNm', 'compId', 'trnDate', 'curType'];
         } else if (url === '/calc/calcList' || url === '/settlement/distributionList') {
           fixedKeys = ['rowNo', 'settleMonth', 'orgDivNm', 'hqNm', 'regionalNm', 'masterNm', 'branchNm', 'agencyNm', 'compId', 'curType'];
@@ -5287,7 +5287,8 @@
                   if (['payCur', 'policyCur', 'curType', 'vatAppliedYn'].indexOf(c.key) >= 0) feeCls.push('text-center');
                   if (c.key === 'statusNm') feeCls.push('text-center');
                   if (c.key === 'trnTime') feeCls.push('pay-grid-time-dual');
-                  if (['trnDate', 'trnId', 'chillTransactionId', 'routeNo'].indexOf(c.key) >= 0) feeCls.push('text-nowrap');
+                  if (['trnDate', 'trnId', 'chillTransactionId', 'routeNo', 'calcCycle'].indexOf(c.key) >= 0) feeCls.push('text-nowrap');
+                  if (c.key === 'calcCycle') feeCls.push('text-center');
                   if (feeCls.length) cellClass = ' class="' + feeCls.join(' ') + '"';
                 } else if (url === '/calc/compPointMngList') {
                   var recCls2 = [];
@@ -5391,6 +5392,8 @@
                     feeShow = (val != null && val !== '') ? String(val) : '0';
                   } else if (c.key === 'rollingDays') {
                     feeShow = (val != null && val !== '') ? String(val) : '0';
+                  } else if (c.key === 'calcCycle') {
+                    feeShow = (val != null && String(val).trim() !== '') ? String(val).trim() : '—';
                   }
                   var feeTdInner = feeShow;
                   if (c.key === 'trnTime' && val && String(val).indexOf('\n') !== -1) {

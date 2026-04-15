@@ -1518,6 +1518,11 @@ public class ApiSettlementController {
         Map<String, Object> m = new LinkedHashMap<>();
         m.put("compNm", payRow.get("compNm"));
         m.put("compId", payRow.get("compId"));
+        if (feeVatSs != null && feeVatSs.getCalcCycle() != null && !feeVatSs.getCalcCycle().isBlank()) {
+            m.put("calcCycle", feeVatSs.getCalcCycle().trim());
+        } else {
+            m.put("calcCycle", "");
+        }
         m.put("trnDate", payRow.get("trnDate"));
         m.put("trnTime", payRow.get("trnTime"));
         m.put("routeNo", payRow.get("routeNo"));

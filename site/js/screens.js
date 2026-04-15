@@ -2594,10 +2594,10 @@
       searchFormClass: 'pay-mng-search-form',
       payMngDenseGrid: true,
       tableScrollable: true,
-      /** VIEW SETTING·그리드: 번호·업체·업체코드·거래일만 고정. 거래시간·루트·승인번호·거래번호(우리)는 토글 */
+      /** VIEW SETTING·그리드: 체크·번호·업체명·업체코드·거래일·통화 고정. 정산주기·거래시간·루트·승인번호·거래번호(우리) 등은 토글 */
       columnGuideFixedKeys: ['rowNo', 'compNm', 'compId', 'trnDate', 'curType'],
       viewSettingDefaultSelectedKeys: [
-        'trnTime', 'routeNo', 'chillTransactionId', 'trnId', 'statusNm', 'amount', 'payCur', 'curType', 'policyCur',
+        'trnTime', 'routeNo', 'chillTransactionId', 'trnId', 'statusNm', 'amount', 'payCur', 'curType', 'policyCur', 'calcCycle',
         'txnFixedFeesSum', 'pctFeesSum', 'usdtFee', 'fxFee', 'fee3dsFee', 'rollingPctPlain', 'rollingDays', 'rollingHoldEst',
         'failFee', 'cancelFee', 'voidFee', 'manualVoidFee', 'refundFee', 'chargebackFee',
         'totalFee', 'feeVat', 'expectedPayout', 'settlementAmt', 'vatAppliedYn'
@@ -2655,6 +2655,7 @@
         { key: 'rowNo', label: '번호' },
         { key: 'compNm', label: '업체명' },
         { key: 'compId', label: '업체코드' },
+        { key: 'calcCycle', label: '정산주기', columnGuideLabel: '가맹 정산설정 정산주기' },
         { key: 'trnDate', label: '거래일' },
         { key: 'trnTime', label: '거래시간' },
         { key: 'routeNo', label: '루트' },
