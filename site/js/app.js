@@ -4722,32 +4722,6 @@
       el.classList.remove('pay-list-status-bar--empty');
       el.innerHTML = renderPayListStatusBarHtml(bar, meta);
     }
-    /** 통합정산: 칠페이 /settlement/search 3001 시 /payment/search 대체(meta.chillPaySettlementFallback) 안내 */
-    function updateChillPaySettlementFallbackBanner(pane, tabId, meta) {
-      var stack = pane && pane.querySelector && pane.querySelector('.pay-list-summary-stack');
-      var wid = 'chillPaySettlementFallbackWrap_' + (tabId || '');
-      var wrap = pane && pane.querySelector && pane.querySelector('#' + wid);
-      var on = meta && meta.chillPaySettlementFallback === true;
-      var note = on && meta.chillPaySettlementFallbackNote ? String(meta.chillPaySettlementFallbackNote) : '';
-      if (!on) {
-        if (wrap && wrap.parentNode) wrap.parentNode.removeChild(wrap);
-        return;
-      }
-      if (!stack) return;
-      function escHtml(s) {
-        return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-      }
-      var inner = '<div class="alert alert-warning py-2 px-3 mb-0 small" role="status">' + escHtml(note) + '</div>';
-      if (wrap) {
-        wrap.innerHTML = inner;
-      } else {
-        var div = document.createElement('div');
-        div.className = 'pay-list-aggregate-section pay-list-aggregate-section--chillpay-fallback';
-        div.id = wid;
-        div.innerHTML = inner;
-        stack.appendChild(div);
-      }
-    }
     function doSearch(p, tid, pageOverride) {
       var url = p.getAttribute('formurl') || '';
       var api = window.PG_API;
@@ -5543,6 +5517,24 @@
                   var recShow = val;
                   if (['settleAmt', 'recallAmt', 'deductAmt'].indexOf(c.key) >= 0) recShow = fmtNum(row[c.key]);
                   html += '<td' + cellClass + '>' + recShow + '</td>';
+                } else if (url === '/calc/exCalcList' || url === '/settlement/execute'
+                    || url === '/calc/calcGmList' || url === '/settlement/franchiseList') {
+                  var execMoneyKeys = (url === '/calc/exCalcList' || url === '/settlement/execute')
+                    ? ['targetAmt', 'totalFee', 'rollingReserveAmt', 'receivableAmt', 'payAmount', 'approveAmt', 'cancelAmt']
+                    : ['amount', 'feeAmt', 'feeVat', 'holdAmt', 'receivableAmt', 'receivableDeductAmt', 'settleAmt',
+                      'perTxFeeAmt', 'settlementPerTxFeeAmt', 'extraFeesAmt'];
+                  var innerExec = val;
+                  if (execMoneyKeys.indexOf(c.key) >= 0 && row[c.key] !== undefined && row[c.key] !== null && String(row[c.key]).trim() !== '') {
+                    var exCurG = row.curType != null && String(row.curType).trim() !== '' ? String(row.curType).trim() : 'KRW';
+                    var exNumG = Number(row[c.key]);
+                    if (!isNaN(exNumG)) {
+                      innerExec = fmtLedgerAmount(row[c.key], exCurG, feeFmtByCur);
+                      if (exNumG < 0 && (c.key === 'payAmount' || c.key === 'settleAmt')) {
+                        innerExec = '<span class="text-danger fw-semibold">' + innerExec + '</span>';
+                      }
+                    }
+                  }
+                  html += '<td' + cellClass + '>' + innerExec + '</td>';
                 } else if (url === '/commission/commisionList') {
                   var cClickEditable = ['hqRate', 'regionalRate', 'masterRate', 'branchRate', 'agencyRate', 'salesOfficeRate', 'totalRate', 'hqPerTxFee', 'regionalPerTxFee', 'masterPerTxFee', 'branchPerTxFee', 'agencyPerTxFee', 'salesOfficePerTxFee', 'totalPerTxFee'];
                   if (cClickEditable.indexOf(c.key) >= 0) {
@@ -5712,9 +5704,6 @@
         }
         if (url === '/calc/chillPayTrList' || url === '/calc/chillPaySettlementList') {
           setSummaryText(p, '건수', String(total));
-        }
-        if (url === '/calc/chillPaySettlementList') {
-          updateChillPaySettlementFallbackBanner(p, tid, data && data.meta ? data.meta : null);
         }
         if (PG_PAY_LIST_SEARCH_URLS.indexOf(url) !== -1) {
           updatePayListAggregateBars(p, tid, data && data.meta ? data.meta : null);
@@ -6405,7 +6394,14 @@
             h += '<tr><th class="bg-light">순액</th><td class="text-end">' + fmtNum(run.netPay) + '</td></tr>';
             h += '<tr><th class="bg-light">공제수수료</th><td class="text-end">' + fmtNum(run.totalFee) + '</td></tr>';
             h += '<tr><th class="bg-light">롤링보류</th><td class="text-end">' + fmtNum(run.rollingReserveAmt) + '</td></tr>';
-            h += '<tr><th class="bg-light">지급액</th><td class="text-end fw-semibold text-primary">' + fmtNum(run.payAmount) + '</td></tr>';
+            var payN = Number(run.payAmount);
+            var payCell = fmtNum(run.payAmount);
+            if (!isNaN(payN) && payN < 0) {
+              payCell = '<span class="text-danger fw-semibold">' + payCell + '</span>';
+            } else {
+              payCell = '<span class="text-primary fw-semibold">' + payCell + '</span>';
+            }
+            h += '<tr><th class="bg-light">지급액</th><td class="text-end">' + payCell + '</td></tr>';
             h += '<tr><th class="bg-light">상태</th><td class="text-end">' + esc(run.status) + '</td></tr>';
             h += '</tbody></table></div></div>';
             h += '<p class="small text-muted mb-0">가맹점 전달용 요약입니다. 세부 수수료·보류 해제 일정은 수수료내역·담보금내역에서 확인하세요.</p>';
@@ -11522,6 +11518,14 @@
         }
         return 0;
       }
+      /** 정산주기관리 표 — 건별: RT·T0 + TM·TH(당일 누적 재집계). 그 외(M/H·D·W·WK 등): 누계 */
+      function hqSettlementCycleAggModeLabel(cycleCode) {
+        var c = String(cycleCode || '').trim().toUpperCase();
+        if (!c) return '—';
+        if (c === 'RT' || c === 'T0') return '건별';
+        if (c.length >= 2 && (c.substring(0, 2) === 'TM' || c.substring(0, 2) === 'TH')) return '건별';
+        return '누계';
+      }
       function renderHqSettlementGrids(rows, counts) {
         var bt = pane.querySelector('#hqStBuiltTbody');
         var et = pane.querySelector('#hqStExtraTbody');
@@ -11534,6 +11538,7 @@
           var cnt = resolveCount(counts, r.cycleCode);
           if (r.builtIn) {
             tr.innerHTML = '<td>' + escHqSt(r.cycleCode) + '</td><td class="small">' + escHqSt(r.description) + '</td>' +
+              '<td class="text-center text-nowrap small">' + escHqSt(hqSettlementCycleAggModeLabel(r.cycleCode)) + '</td>' +
               '<td class="text-end">' + escHqSt(String(r.sortOrder != null ? r.sortOrder : '')) + '</td>' +
               '<td class="text-center">' + escHqSt(r.activeYn) + '</td><td class="text-end">' + cnt + '</td>';
             bt.appendChild(tr);
@@ -11543,6 +11548,7 @@
             tr.innerHTML = '<td>' + escHqSt(id) + '</td><td>' + escHqSt(r.cycleCode) + '</td>' +
               '<td><input type="text" class="form-control form-control-sm hq-st-inp" data-k="displayLabel" value="' + escHqStAttr(r.displayLabel) + '"></td>' +
               '<td><input type="text" class="form-control form-control-sm hq-st-inp" data-k="description" value="' + escHqStAttr(r.description) + '"></td>' +
+              '<td class="text-center text-nowrap small">' + escHqSt(hqSettlementCycleAggModeLabel(r.cycleCode)) + '</td>' +
               '<td style="width:4.5rem"><input type="number" class="form-control form-control-sm hq-st-inp" data-k="sortOrder" value="' + escHqStAttr(String(r.sortOrder != null ? r.sortOrder : 0)) + '"></td>' +
               '<td style="width:4rem"><select class="form-select form-select-sm hq-st-inp" data-k="activeYn">' +
               '<option value="Y"' + (String(r.activeYn).toUpperCase() !== 'N' ? ' selected' : '') + '>Y</option>' +
@@ -12545,6 +12551,49 @@
             if (dimmLs) dimmLs.style.display = 'flex';
             window.PG_API.hqLedgerSysSettingsResetOperationalData().then(function () {
               alert('운영 데이터 초기화가 완료되었습니다.');
+              reloadLedgerSys();
+            }).catch(function (err) {
+              alert(err && err.message ? err.message : '초기화에 실패했습니다.');
+            }).finally(function () { if (dimmLs) dimmLs.style.display = 'none'; });
+            return;
+          }
+          var sttlPart = e.target.closest('.hq-ledger-sttl-reset-part');
+          if (sttlPart && pane.contains(sttlPart)) {
+            if (typeof dc !== 'function') return;
+            var sc0 = (sttlPart.getAttribute('data-sttl-scope') || '').trim();
+            if (!sc0) return;
+            var partNm = { RECEIVABLES: '미수금·요청', RECOVERY: '환수금', ROLLING: '담보(롤링)', DEDUCTIONS: '공제로그', RUNS: '정산실행+연동 일괄' }[sc0] || sc0;
+            if (!dc(
+              '정산 데이터 일부만 삭제합니다.\n\n범위: ' + partNm + '\n수수료내역·거래·본사 정산 설정은 유지됩니다.\n\n[확인]으로 다음 안내로 진행합니다.',
+              '마지막 확인입니다.\n\n복구할 수 없습니다. 실행하시겠습니까?')) return;
+            if (dimmLs) dimmLs.style.display = 'flex';
+            window.PG_API.hqLedgerSysSettingsResetSettlementData({ scope: sc0 }).then(function (resp) {
+              var d = resp && resp.data ? resp.data : {};
+              var parts = [];
+              if (d.deletedReceivableRecoveryRequests != null) parts.push('미수요청 ' + d.deletedReceivableRecoveryRequests);
+              if (d.deletedReceivables != null) parts.push('미수 ' + d.deletedReceivables);
+              if (d.deletedSettlementRecoveries != null) parts.push('환수 ' + d.deletedSettlementRecoveries);
+              if (d.deletedRollingReserves != null) parts.push('담보 ' + d.deletedRollingReserves);
+              if (d.deletedBalanceDeductions != null) parts.push('공제 ' + d.deletedBalanceDeductions);
+              if (d.deletedSettlementRuns != null) parts.push('실행 ' + d.deletedSettlementRuns);
+              if (d.transactionsSettlementFlagCleared != null) parts.push('settled해제 ' + d.transactionsSettlementFlagCleared);
+              alert('정산 데이터 초기화가 완료되었습니다.' + (parts.length ? '\n' + parts.join(', ') : ''));
+              reloadLedgerSys();
+            }).catch(function (err) {
+              alert(err && err.message ? err.message : '초기화에 실패했습니다.');
+            }).finally(function () { if (dimmLs) dimmLs.style.display = 'none'; });
+            return;
+          }
+          if (e.target.closest('#hqLedgerSettlementDataResetBtn')) {
+            if (typeof dc !== 'function') return;
+            if (!dc(
+              '정산 운영 데이터를 삭제합니다.\n\n범위: 전체(ALL)\n유지: 수수료내역(tb_commission_history), 거래(pg_trnsctn), 본사·가맹 정산 설정, 칠페이 통합정산 원문.\n삭제: 정산실행·미수·환수·담보·공제·보류/유통/리포트 근거 행, 거래의 정산반영 플래그(settled_yn)만 N.\n\n[확인]으로 다음 안내로 진행합니다.',
+              '마지막 확인입니다.\n\n복구할 수 없습니다. 실행하시겠습니까?')) return;
+            if (dimmLs) dimmLs.style.display = 'flex';
+            window.PG_API.hqLedgerSysSettingsResetSettlementData({ scope: 'ALL' }).then(function (resp) {
+              var d = resp && resp.data ? resp.data : {};
+              var sum = '실행 ' + (d.deletedSettlementRuns != null ? d.deletedSettlementRuns : '-') + '건, settled 해제 ' + (d.transactionsSettlementFlagCleared != null ? d.transactionsSettlementFlagCleared : '-') + '건';
+              alert('정산 데이터 초기화가 완료되었습니다.\n' + sum);
               reloadLedgerSys();
             }).catch(function (err) {
               alert(err && err.message ? err.message : '초기화에 실패했습니다.');

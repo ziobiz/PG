@@ -106,6 +106,9 @@ public class ChillPayService {
     private static final String TXN_REFUND_REQUEST_SB = "https://sandbox-api-transaction.chillpay.co/api/v1/refund/request";
     private static final String TXN_REFUND_REQUEST_PR = "https://api-transaction.chillpay.co/api/v1/refund/request";
     private static final DateTimeFormatter CHILLPAY_TXN_DT = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss");
+    /** {@link PgExtSettlementExpectedService} 가 통합정산 행에 넣는 {@code icopayExpectedSettleAt} 표기 */
+    private static final DateTimeFormatter ICO_EXPECTED_SETTLE_AT_DT =
+            DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm", Locale.ROOT);
     /** 통합내역·통합정산 그리드 거래일 표시(년·월·일 한글) */
     private static final DateTimeFormatter CHILL_TRN_DATE_DISPLAY_KR =
             DateTimeFormatter.ofPattern("yyyy년 M월 d일", Locale.KOREAN);
@@ -1343,6 +1346,7 @@ public class ChillPayService {
         }
 
         pgExtSettlementExpectedService.enrichChillPaySettlementRows(display.getList());
+        applyIcopayIntegratedSettlementSettledDisplayRules(display.getList());
 
         PayListStatusBarBuckets.MutableRollup roll = new PayListStatusBarBuckets.MutableRollup();
         List<Map<String, Object>> rowsForFinancial = new ArrayList<>();
@@ -1376,7 +1380,9 @@ public class ChillPayService {
         meta.put("chillPaySettlementApi", "SearchSettlementTransaction");
         meta.put("icopayExpectedSettleHelp",
                 "예정(ICOPAY) 열은 배포설정 API연동설정(tb_pg_agency)의 T+N(주말 제외 영업일·결제와 동일 시각) 또는 "
-                        + "D+N(달력일+N일·일괄 시각)으로 계산합니다. OFF·가맹 덮어쓰기 OFF·MID 미매칭이면 비웁니다.");
+                        + "D+N(달력일+N일·일괄 시각)으로 계산합니다. OFF·가맹 덮어쓰기 OFF·MID 미매칭이면 비웁니다. "
+                        + "정산(이체) 열은 승인 성공 건만 ChillPay Settled 문구를 보이며, 실패·취소·환불·무효는 비웁니다. "
+                        + "예정일이 채워진 경우 서울 기준 예정 시각 이전에는 미정산으로 표시합니다.");
         meta.put("paymentDateFrom", payFrom.toString());
         meta.put("paymentDateTo", payTo.toString());
         if (postFilter) {
@@ -1765,10 +1771,6 @@ public class ChillPayService {
         }
         Map<String, Object> meta = fb.getMeta() != null ? new LinkedHashMap<>(fb.getMeta()) : new LinkedHashMap<>();
         meta.put("chillPaySettlementFallback", Boolean.TRUE);
-        meta.put("chillPaySettlementFallbackNote",
-                "칠페이 정산 검색(/settlement/search)이 3001을 반환하여, 동일 조건의 결제 거래 검색(/payment/search) 결과로 표시했습니다. "
-                        + "이체일(TransferDate)·컷오프·정산금액(Settle)·순액(Net)·이체 관련 원문은 결제 검색 응답에 없어 비어 있을 수 있습니다. "
-                        + "해당 값은 칠페이 정산 API가 200으로 정상 응답할 때만 채울 수 있습니다.");
         /** 결제 검색으로는 내려오지 않는 칠페이 정산 전용 필드(참고·UI 툴팁 등). */
         meta.put("chillPaySettlementFallbackUnsettledApiFields",
                 List.of(
@@ -1979,6 +1981,42 @@ public class ChillPayService {
             return "미정산";
         }
         return String.valueOf(settledRaw).trim();
+    }
+
+    /**
+     * 통합정산 「정산(이체)」열: <strong>승인 성공</strong> 건만 ChillPay {@code Settled} 문구를 보이고,
+     * 실패·취소·환불·무효 등은 비웁니다. {@code icopayExpectedSettleAt}(예정 ICOPAY)이 있으면 서울 기준 그 시각
+     * <strong>이전</strong>에는 아직 정산으로 보이지 않도록 {@code 미정산}으로 둡니다(도래 후에는 ChillPay 값 유지).
+     */
+    private static void applyIcopayIntegratedSettlementSettledDisplayRules(List<Map<String, Object>> rows) {
+        if (rows == null || rows.isEmpty()) {
+            return;
+        }
+        ZoneId seoul = ZoneId.of("Asia/Seoul");
+        LocalDateTime now = LocalDateTime.now(seoul).withSecond(0).withNano(0);
+        for (Map<String, Object> row : rows) {
+            if (row == null) {
+                continue;
+            }
+            String st = firstNonBlankString(row, "status", "Status");
+            String bucket = PayListStatusBarBuckets.bucketForChillStatus(st);
+            if (!PayListStatusBarBuckets.SUCCESS.equals(bucket)) {
+                row.put("settled", "");
+                continue;
+            }
+            String expectedStr = firstNonBlankString(row, "icopayExpectedSettleAt");
+            if (expectedStr.isEmpty()) {
+                continue;
+            }
+            try {
+                LocalDateTime expectedAt = LocalDateTime.parse(expectedStr.trim(), ICO_EXPECTED_SETTLE_AT_DT);
+                if (now.isBefore(expectedAt)) {
+                    row.put("settled", "미정산");
+                }
+            } catch (DateTimeParseException ignored) {
+                // 예정일 파싱 실패 시 ChillPay 표기 유지
+            }
+        }
     }
 
     /**

@@ -1008,6 +1008,9 @@
     hqLedgerSysSettingsResetOperationalData: function () {
       return post('/api/hq/ledgerSysSettings/resetOperationalData', {}).then(function (r) { return r.data; });
     },
+    hqLedgerSysSettingsResetSettlementData: function (body) {
+      return post('/api/hq/ledgerSysSettings/resetSettlementData', body || {});
+    },
     hqOrgViewColumnRegionalBranches: function () {
       return get('/api/hq/orgViewColumnAllowance/regionalBranches').then(function (r) { return r.data || []; });
     },

@@ -58,7 +58,12 @@ public class SettlementRun {
     @Column(name = "rolling_reserve_amt", precision = 21, scale = 8)
     private BigDecimal rollingReserveAmt = BigDecimal.ZERO;
 
-    /** 지급액 = 승인 - 취소 - 수수료 - 롤링보류 */
+    /**
+     * 지급액(정산 직후·환수/미수금 차감 전 원칙): 순매출 − 공제수수료 − 수수료부가세 − 롤링보류(신규) + 만기 담보 환급.
+     * 수수료·담보가 순매출을 초과하면 음수가 될 수 있으며 0으로 끌어올리지 않습니다.
+     * 그 경우 {@link com.pg.service.settlement.SettlementArrearsService} 가 동액을 미수금으로 등록하고,
+     * 이후 정산에서는 환수금 FIFO 후 미수금 FIFO로 차감합니다(가맹 환수모드 MANUAL이면 「환수처리」 후 차기 마감에서 차감).
+     */
     @Column(name = "pay_amt", precision = 21, scale = 8)
     private BigDecimal payAmt = BigDecimal.ZERO;
 

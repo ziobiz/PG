@@ -203,8 +203,9 @@ public class SettlementArrearsService {
     }
 
     /**
-     * 정산 실행 저장 직후: 지급액에서 환수금 FIFO, 이어서 미수금 FIFO 차감.
-     * 지급액이 음수면 그대로 두고, 동액을 미수금({@link #REASON_AUTO_SETTLEMENT_DEFICIT})으로 자동 등록한다.
+     * 정산 실행 저장 직후: 지급액이 양수일 때만 환수금 FIFO, 이어서 미수금 FIFO 차감 후 지급액을 갱신(차감 후 음수는 0으로 상한).
+     * 지급액이 이미 음수(순매출 대비 수수료·담보 초과)면 지급액은 그대로 두고, 절댓값 동액을 미수금({@link #REASON_AUTO_SETTLEMENT_DEFICIT})으로 1회 등록한다.
+     * AUTO 환수모드 가맹은 차기 정산에서 미수금을 FIFO로 차감하고, MANUAL은 「환수처리」 후 차기 마감에서만 차감한다.
      */
     @Transactional
     public void applyArrearsToSettledRun(SettlementRun run) {

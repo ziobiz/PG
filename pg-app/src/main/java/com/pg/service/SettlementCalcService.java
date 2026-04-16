@@ -25,6 +25,8 @@ import com.pg.util.FeeCurrencyRoundResolver;
 import com.pg.util.FeeListRoundingPolicy;
 import com.pg.util.MerchantFeeVatUtil;
 import com.pg.util.PayDisplayCurrency;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -55,6 +57,8 @@ import java.util.stream.Collectors;
  */
 @Service
 public class SettlementCalcService {
+
+    private static final Logger log = LoggerFactory.getLogger(SettlementCalcService.class);
 
     private static final ZoneId SEOUL = ZoneId.of("Asia/Seoul");
     private static final List<String> CHARGEBACK_STATUSES = List.of("30", "31");
@@ -162,7 +166,7 @@ public class SettlementCalcService {
             List<String> merchantIds = list.stream().map(PgTrnsctn::getMerchantId).distinct().collect(Collectors.toList());
             for (String mid : merchantIds) {
                 List<PgTrnsctn> txList = list.stream().filter(t -> mid.equals(t.getMerchantId())).collect(Collectors.toList());
-                SettlementRun run = calcOne(mid, calcDt, txList, Optional.empty(), false, true);
+                SettlementRun run = calcOne(mid, calcDt, txList, Optional.empty(), false, true, Optional.empty());
                 if (run != null) {
                     run.setPeriodFrom(fromDate);
                     run.setPeriodTo(toDate);
@@ -182,7 +186,7 @@ public class SettlementCalcService {
                 .collect(Collectors.groupingBy(t -> t.getMerchantId().trim()));
 
         for (ManualExecuteRow row : buildManualExecuteRows(fromDate, toDate, merchantId, calcDt, nowSeoul, byMid)) {
-            SettlementRun run = calcOne(row.mid(), calcDt, row.txList(), Optional.empty(), false, true);
+            SettlementRun run = calcOne(row.mid(), calcDt, row.txList(), Optional.empty(), false, true, Optional.empty());
             if (run != null) {
                 run.setPeriodFrom(row.periodFrom());
                 run.setPeriodTo(row.periodTo());
@@ -306,19 +310,23 @@ public class SettlementCalcService {
         List<RollingReserve> due = rollingReserveRepository.findByStatusAndReleaseDateLessThanEqual("HOLD", calcDt);
         Set<String> candidates = due.stream().map(RollingReserve::getMerchantId).collect(Collectors.toCollection(LinkedHashSet::new));
         if (merchantIdFilter != null && !merchantIdFilter.isBlank()) {
-            candidates.removeIf(m -> !merchantIdFilter.trim().equals(m));
+            String f = merchantIdFilter.trim();
+            candidates.removeIf(m -> m == null || !f.equalsIgnoreCase(m.trim()));
         }
         candidates.removeAll(done);
         for (String mid : candidates) {
             if (skipAutoProcMerchants && isMerchantAutoCalcProc(mid)) {
                 continue;
             }
-            SettlementRun run = calcOne(mid, calcDt, Collections.emptyList(), Optional.empty(), false, true);
+            SettlementRun run = calcOne(mid, calcDt, Collections.emptyList(), Optional.empty(), false, true, Optional.empty());
             if (run != null) {
                 run.setPeriodFrom(calcDt);
                 run.setPeriodTo(calcDt);
-                /* 가맹점정산내역 필터: N분·당일누적 주기는 period_end_at 필수 — 해지만 행도 마감일 끝으로 표시 */
-                run.setPeriodEndAt(calcDt.atTime(LocalTime.MAX));
+                /*
+                 * LocalTime.MAX 는 초≠0 이라 H/M 격자 마감 복원이 불가해 하루 전체로 오인됨.
+                 * 격자·표시 일관: 익일 00:00 을 배타 상한으로 두면 H12 등에서 12:00~24:00 구간으로 복원 가능.
+                 */
+                run.setPeriodEndAt(calcDt.plusDays(1).atStartOfDay());
                 settlementRunRepository.save(run);
                 settlementArrearsService.applyArrearsToSettledRun(run);
                 results.add(run);
@@ -441,8 +449,11 @@ public class SettlementCalcService {
         if (slot == null) {
             return List.of();
         }
-        LocalDate calcDt = slot.endExclusive().toLocalDate();
-        if (settlementRunRepository.existsByMerchantIdAndCalcDtAndPeriodEndAt(mid, calcDt, slot.endExclusive())) {
+        /* 정산일(calc_dt): 격자 구간 시작일 — H12면 자정·정오 마감 두 건이 동일 달력일에 나란히 보이도록 함 */
+        LocalDate gridAnchorCalcDt = slot.startInclusive().toLocalDate();
+        /* 담보 해지 조회: 격자가 끝나는 달력일 기준(자정 마감 건은 익일 0시까지 구간) */
+        LocalDate reserveReleaseCutoffDt = slot.endExclusive().toLocalDate();
+        if (settlementRunRepository.existsByMerchantIdAndCalcDtAndPeriodEndAt(mid, gridAnchorCalcDt, slot.endExclusive())) {
             return List.of();
         }
         LocalDateTime qFrom = slot.startInclusive();
@@ -450,20 +461,21 @@ public class SettlementCalcService {
         List<PgTrnsctn> list = trnsctnRepository.findForSettlement(mid, qFrom, qTo).stream()
                 .filter(this::includeTxnInSubDailyAggregate)
                 .collect(Collectors.toList());
-        boolean releaseRolling = settlementRunRepository.findByCalcDtAndMerchantId(calcDt, mid).isEmpty();
+        boolean releaseRolling = settlementRunRepository.findByCalcDtAndMerchantId(gridAnchorCalcDt, mid).isEmpty();
         if (list.isEmpty()) {
             if (!releaseRolling) {
                 return List.of();
             }
             List<RollingReserve> maturing = rollingReserveRepository.findByMerchantIdAndStatusAndReleaseDateLessThanEqual(
-                    mid, "HOLD", calcDt);
+                    mid, "HOLD", reserveReleaseCutoffDt);
             if (maturing.isEmpty()) {
                 return List.of();
             }
         }
-        boolean chargeMonthly = shouldChargeMonthlyUsageOnIntradayRun(mid, calcDt);
+        boolean chargeMonthly = shouldChargeMonthlyUsageOnIntradayRun(mid, gridAnchorCalcDt);
         List<SettlementRun> results = new ArrayList<>();
-        SettlementRun run = calcOne(mid, calcDt, list, Optional.of(chargeMonthly), false, releaseRolling);
+        SettlementRun run = calcOne(mid, gridAnchorCalcDt, list, Optional.of(chargeMonthly), false, releaseRolling,
+                Optional.of(reserveReleaseCutoffDt));
         if (run != null) {
             run.setPeriodFrom(slot.startInclusive().toLocalDate());
             run.setPeriodTo(slot.endExclusive().toLocalDate());
@@ -472,7 +484,7 @@ public class SettlementCalcService {
             settlementArrearsService.applyArrearsToSettledRun(run);
             results.add(run);
         }
-        appendReleaseOnlyMerchants(calcDt, mid, results);
+        appendReleaseOnlyMerchants(gridAnchorCalcDt, mid, results);
         return results;
     }
 
@@ -522,7 +534,7 @@ public class SettlementCalcService {
         LocalDate today = LocalDate.now(SEOUL);
         boolean chargeMonthlyUsage = shouldChargeMonthlyUsageOnIntradayRun(mid, today);
         List<SettlementRun> results = new ArrayList<>();
-        SettlementRun run = calcOne(mid, today, List.of(txn), Optional.of(chargeMonthlyUsage), true, true);
+        SettlementRun run = calcOne(mid, today, List.of(txn), Optional.of(chargeMonthlyUsage), true, true, Optional.empty());
         if (run != null) {
             run.setPeriodFrom(today);
             run.setPeriodTo(today);
@@ -537,7 +549,27 @@ public class SettlementCalcService {
     }
 
     private List<SettlementRun> recalcTodayIntradayAuto(String merchantId) {
-        String mid = merchantId.trim();
+        String midRaw = merchantId.trim();
+        Optional<OrgUnit> ouRecalc = orgUnitRepository.findByCode(midRaw);
+        if (ouRecalc.isEmpty()) {
+            ouRecalc = orgUnitRepository.findByCodeIgnoreCase(midRaw);
+        }
+        if (ouRecalc.isEmpty()) {
+            return List.of();
+        }
+        String mid = ouRecalc.get().getCode() != null && !ouRecalc.get().getCode().isBlank()
+                ? ouRecalc.get().getCode().trim()
+                : midRaw;
+        Optional<SettlementSetting> ssRecalc = settlementSettingRepository.findByOrgUnitId(ouRecalc.get().getId());
+        if (ssRecalc.isEmpty()) {
+            return List.of();
+        }
+        String cRecalc = SettlementPeriodResolver.normalizeCalcCycle(ssRecalc.get().getCalcCycle());
+        if (!SettlementCycleTiming.isT0RollingIntradayCode(cRecalc)
+                && !SettlementCycleTiming.isRollingIntradayGridCode(cRecalc)) {
+            log.warn("recalcTodayIntradayAuto skipped: merchant {} cycle {} is not T0 or TM/TH rolling grid", mid, cRecalc);
+            return List.of();
+        }
         LocalDate today = LocalDate.now(SEOUL);
         boolean chargeMonthlyUsage = shouldChargeMonthlyUsageOnIntradayRun(mid, today);
         settlementRunRepository.deleteByMerchantIdAndCalcDt(mid, today);
@@ -545,11 +577,11 @@ public class SettlementCalcService {
         LocalDateTime to = LocalDateTime.now(SEOUL);
         List<PgTrnsctn> list = trnsctnRepository.findForSettlement(mid, from, to);
         List<SettlementRun> results = new ArrayList<>();
-        SettlementRun run = calcOne(mid, today, list, Optional.of(chargeMonthlyUsage), false, true);
+        SettlementRun run = calcOne(mid, today, list, Optional.of(chargeMonthlyUsage), false, true, Optional.empty());
         if (run != null) {
             run.setPeriodFrom(today);
             run.setPeriodTo(today);
-            run.setPeriodEndAt(LocalDateTime.now(SEOUL));
+            run.setPeriodEndAt(LocalDateTime.now(SEOUL).withSecond(0).withNano(0));
             settlementRunRepository.save(run);
             settlementArrearsService.applyArrearsToSettledRun(run);
             results.add(run);
@@ -560,12 +592,15 @@ public class SettlementCalcService {
 
     /**
      * @param markEveryIncludedTxnSettled true면 배치에 포함된 모든 거래에 settled Y(건당 마감·중복 방지).
-     * @param releaseRollingReservesDue     true일 때만 calcDt 기준 만기 담보 해지를 이번 실행에 반영(건당 연속 호출 시 1회만).
+     * @param releaseRollingReservesDue     true일 때만 만기 담보 해지를 이번 실행에 반영(건당 연속 호출 시 1회만).
+     * @param rollingReserveReleaseCutoffOverride 비어 있지 않으면 담보 해지 조회 시 {@code release_date <=} 에 이 날짜를 씀
+     *        (N시간 격자가 자정에 끝날 때 {@code calc_dt} 는 구간 시작일·해지 판정은 구간 종료일을 쓰기 위함).
      */
     private SettlementRun calcOne(String merchantId, LocalDate calcDt, List<PgTrnsctn> txList,
                                    Optional<Boolean> chargeMonthlyUsageOverride,
                                    boolean markEveryIncludedTxnSettled,
-                                   boolean releaseRollingReservesDue) {
+                                   boolean releaseRollingReservesDue,
+                                   Optional<LocalDate> rollingReserveReleaseCutoffOverride) {
         if (merchantId != null && !orgServiceUseService.isOrgServiceActiveByCompCode(merchantId)) {
             return null;
         }
@@ -624,8 +659,9 @@ public class SettlementCalcService {
         BigDecimal releasedFromReserve = BigDecimal.ZERO;
         LocalDateTime releaseStamp = LocalDateTime.now();
         if (releaseRollingReservesDue) {
+            LocalDate rollingCutoff = rollingReserveReleaseCutoffOverride.orElse(calcDt);
             List<RollingReserve> maturing = rollingReserveRepository.findByMerchantIdAndStatusAndReleaseDateLessThanEqual(
-                    merchantId, "HOLD", calcDt);
+                    merchantId, "HOLD", rollingCutoff);
             if (!maturing.isEmpty()) {
                 for (RollingReserve rr : maturing) {
                     if (rr.getReserveAmt() != null) {

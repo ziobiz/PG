@@ -1167,19 +1167,37 @@ public class ApiSettlementController {
         return "-";
     }
 
-    private static String franchiseReceivableProcessNm(String recoveryMode, BigDecimal appliedAmt, String runStatus) {
+    /**
+     * @param deficitReceivableAmt 해당 실행에 연결된 지급부족 자동미수({@code AUTO_DEFICIT:runId}) 발생액, 없으면 0
+     * @param payAmt 정산 실행 저장 지급액(음수 가능)
+     */
+    private static String franchiseReceivableProcessNm(
+            String recoveryMode,
+            BigDecimal appliedAmt,
+            String runStatus,
+            BigDecimal deficitReceivableAmt,
+            BigDecimal payAmt) {
         BigDecimal a = appliedAmt != null ? appliedAmt : BigDecimal.ZERO;
-        if (a.signum() <= 0) {
-            return "-";
+        BigDecimal def = deficitReceivableAmt != null ? deficitReceivableAmt : BigDecimal.ZERO;
+        BigDecimal pay = payAmt != null ? payAmt : BigDecimal.ZERO;
+        if (a.signum() > 0) {
+            boolean calculated = runStatus != null && "CALCULATED".equalsIgnoreCase(runStatus.trim());
+            if (calculated) {
+                return "완료";
+            }
+            if (recoveryMode != null && recoveryMode.trim().equalsIgnoreCase("MANUAL")) {
+                return "처리중";
+            }
+            return "자동화중";
         }
-        boolean calculated = runStatus != null && "CALCULATED".equalsIgnoreCase(runStatus.trim());
-        if (calculated) {
-            return "완료";
+        /* 지급액이 음수여서 자동 미수금만 등록된 행: 차기 정산에서의 회수 방식 안내 */
+        if (pay.signum() < 0 && def.signum() > 0) {
+            if (recoveryMode != null && recoveryMode.trim().equalsIgnoreCase("MANUAL")) {
+                return "환수처리·차기마감";
+            }
+            return "차기정산자동";
         }
-        if (recoveryMode != null && recoveryMode.trim().equalsIgnoreCase("MANUAL")) {
-            return "처리중";
-        }
-        return "자동화중";
+        return "-";
     }
 
     private boolean canAccessReceivable(Authentication authentication, String merchantId) {
@@ -1985,7 +2003,8 @@ public class ApiSettlementController {
         m.put("periodFrom", r.getPeriodFrom() != null ? r.getPeriodFrom().toString() : null);
         m.put("periodTo", r.getPeriodTo() != null ? r.getPeriodTo().toString() : null);
         m.put("periodEndAt", r.getPeriodEndAt() != null ? DateTimeFormatter.ISO_LOCAL_DATE_TIME.format(r.getPeriodEndAt()) : null);
-        m.put("targetPeriodText", buildSettlementTargetPeriodLabel(r, queryFrom, queryTo, calcCycleRaw));
+        m.put("calcCycleSnapshot", resolveRunCalcCycleRaw(r));
+        m.put("targetPeriodText", buildSettlementTargetPeriodLabel(r, ouExec, queryFrom, queryTo));
         return m;
     }
 
@@ -2005,9 +2024,13 @@ public class ApiSettlementController {
 
     /**
      * 정산대상기간 표시. RT(건당)만 거래번호·승인번호·마감 한 줄, 그 외는 날짜+시각 구간.
+     * 격자(H/M) 복원에는 실행 시점 주기({@link #resolveRunCalcCycleRaw})를 우선 사용합니다(스냅샷 없으면 현재 표시 주기).
      */
-    private String buildSettlementTargetPeriodLabel(SettlementRun r, LocalDate queryFrom, LocalDate queryTo, String calcCycleRaw) {
-        String norm = SettlementPeriodResolver.normalizeCalcCycle(calcCycleRaw != null ? calcCycleRaw : "");
+    private String buildSettlementTargetPeriodLabel(SettlementRun r, OrgUnit ouExec, LocalDate queryFrom, LocalDate queryTo) {
+        String snap = resolveRunCalcCycleRaw(r);
+        String display = resolveRunCalcCycleForExecuteDisplay(r, ouExec);
+        String labelCycleRaw = !snap.isEmpty() ? snap : display;
+        String norm = SettlementPeriodResolver.normalizeCalcCycle(labelCycleRaw != null ? labelCycleRaw : "");
         if (SettlementCycleTiming.isRtPerTransactionCode(norm)
                 && r.getPeriodFrom() != null
                 && r.getPeriodTo() != null
@@ -2015,7 +2038,7 @@ public class ApiSettlementController {
                 && r.getPeriodEndAt() != null) {
             return buildRtSettlementTargetPeriodLine(r);
         }
-        return buildSettlementTargetPeriodLabelNonRt(r, queryFrom, queryTo, norm);
+        return buildSettlementTargetPeriodLabelNonRt(r, queryFrom, queryTo, norm, labelCycleRaw);
     }
 
     private String buildRtSettlementTargetPeriodLine(SettlementRun r) {
@@ -2105,7 +2128,7 @@ public class ApiSettlementController {
      * {@code start ~ end} 로 보이게 하며, 끝 시각은 DB의 {@code period_end_at}(배타 상한)과 동일한 정각(예 M5: 00:05:00)입니다.
      */
     private static String buildSettlementTargetPeriodLabelNonRt(SettlementRun r, LocalDate queryFrom, LocalDate queryTo,
-                                                                  String calcCycleNorm) {
+                                                                  String calcCycleNorm, String labelCycleRaw) {
         if (r.getPeriodFrom() != null && r.getPeriodTo() != null) {
             LocalDateTime startDt;
             LocalDateTime endDt;
@@ -2120,10 +2143,28 @@ public class ApiSettlementController {
                 } else {
                     startDt = r.getPeriodFrom().atStartOfDay();
                     endDt = endExclusive.truncatedTo(ChronoUnit.SECONDS);
+                    /*
+                     * H/M 격자인데 period_end_at이 정각이 아니면 격자 복원이 불가(대개 TH/T0식 당일 누적·구데이터).
+                     * 표시 주기가 H12인데 이 모양이면 실제 저장 주기는 TH12였거나 스냅샷이 비어 현재 설정만 본 경우가 많음.
+                     */
+                    boolean looksLikeRollingSubDaily = SettlementCycleTiming.isSubDailyScheduleCode(calcCycleNorm)
+                            && !SettlementCycleTiming.isRollingIntradayGridCode(calcCycleNorm)
+                            && r.getPeriodFrom().equals(r.getPeriodTo())
+                            && !SettlementCycleTiming.isSubDailyGridAlignedPeriodEnd(endExclusive, calcCycleNorm);
+                    if (looksLikeRollingSubDaily) {
+                        String tail = (labelCycleRaw != null && labelCycleRaw.toUpperCase(Locale.ROOT).startsWith("TH"))
+                                ? " (당일누적·TH)"
+                                : " (당일누적·TH/T0식 또는 비정각 마감)";
+                        return SETTLEMENT_TARGET_PERIOD_DT.format(startDt) + " ~ " + SETTLEMENT_TARGET_PERIOD_DT.format(endDt) + tail;
+                    }
                 }
                 return SETTLEMENT_TARGET_PERIOD_DT.format(startDt) + " ~ " + SETTLEMENT_TARGET_PERIOD_DT.format(endDt);
             }
             startDt = r.getPeriodFrom().atStartOfDay();
+            if (SettlementCycleTiming.isPlainSubDailyGridClosingCode(calcCycleNorm)) {
+                return SETTLEMENT_TARGET_PERIOD_DT.format(startDt)
+                        + " ~ (미기록) — M/H 격자(H12 등)는 마감시각(period_end_at)이 있어야 12시간·N분 단위 구간으로 표시됩니다.";
+            }
             endDt = r.getPeriodTo().atTime(23, 59, 59);
             return SETTLEMENT_TARGET_PERIOD_DT.format(startDt) + " ~ " + SETTLEMENT_TARGET_PERIOD_DT.format(endDt);
         }
@@ -2337,6 +2378,7 @@ public class ApiSettlementController {
         applyFranchiseSettlementFeeBreakdown(r, row, compId);
         String calcCycleRaw = resolveRunCalcCycleForExecuteDisplay(r, ou);
         row.put("calcCycle", calcCycleRaw);
+        row.put("calcCycleSnapshot", resolveRunCalcCycleRaw(r));
         String receivableRecoveryMode = "AUTO";
         if (ou != null) {
             Optional<SettlementSetting> ssOpt = settlementSettingRepository.findByOrgUnitId(ou.getId());
@@ -2350,7 +2392,7 @@ public class ApiSettlementController {
             row.put("calcMethod", "");
             row.put("pgRootNo", "-");
         }
-        row.put("targetPeriodText", buildSettlementTargetPeriodLabel(r, queryFrom, queryTo, calcCycleRaw));
+        row.put("targetPeriodText", buildSettlementTargetPeriodLabel(r, ou, queryFrom, queryTo));
         Long runId = r.getId();
         BigDecimal receivableBd = BigDecimal.ZERO;
         if (runId != null) {
@@ -2368,7 +2410,8 @@ public class ApiSettlementController {
         row.put("receivableAmt", settlementMoneyDouble(receivableBd, ledgerRp));
         BigDecimal recvAppliedBd = nz(r.getReceivableAppliedAmt());
         row.put("receivableDeductAmt", settlementMoneyDouble(recvAppliedBd, ledgerRp));
-        row.put("receivableProcessNm", franchiseReceivableProcessNm(receivableRecoveryMode, recvAppliedBd, r.getStatus()));
+        row.put("receivableProcessNm", franchiseReceivableProcessNm(
+                receivableRecoveryMode, recvAppliedBd, r.getStatus(), receivableBd, r.getPayAmt()));
         row.put("receivableRecoveryMode", receivableRecoveryMode);
         row.put("trnId", runId != null ? "RUN-" + runId : "-");
         row.put("payDivNm", "정산실행");

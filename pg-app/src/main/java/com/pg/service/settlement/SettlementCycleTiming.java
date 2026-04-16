@@ -8,6 +8,7 @@ import java.util.Set;
 
 /**
  * 자동정산 주기별 실행 판별.
+ * <p>주기·격자·스케줄 전제 요약: 저장소 {@code docs/정산주기_전체_명세.md}.</p>
  * <ul>
  *   <li>RT: 승인 노티 직후 해당 건만 집계한 정산 실행 1건(건당 마감, 당일 누적 합산 없음).</li>
  *   <li>T0: 승인 노티 직후 당일 00:00~현재까지 전체 재집계(당일 1행 갱신, 기존과 동일).</li>
@@ -95,6 +96,20 @@ public final class SettlementCycleTiming {
         }
         String g = toPlainGridClosingCode(normalized);
         return MINUTE_GRID_STEP.containsKey(g) || HOUR_BLOCK_MOD.containsKey(g);
+    }
+
+    /**
+     * M5·H12 등 “격자 직전 구간 합산” 주기. (당일 누적 TM/TH·T0 제외)
+     */
+    public static boolean isPlainSubDailyGridClosingCode(String normalized) {
+        if (normalized == null || normalized.isBlank()) {
+            return false;
+        }
+        String c = normalize(normalized);
+        if (isRollingIntradayGridCode(c) || isT0RollingIntradayCode(c)) {
+            return false;
+        }
+        return isSubDailyScheduleCode(c);
     }
 
     /**
@@ -209,6 +224,36 @@ public final class SettlementCycleTiming {
      * 저장된 격자 집계 상한({@code endExclusive})과 주기(M5·H1 등, TM/TH는 격자 코드로 환산)로
      * 집계 시작 시각(startInclusive)을 복원합니다. RT·T0·TM/TH 당일 누적 격자는 null.
      */
+    /**
+     * M/H 격자 마감 시각(배타 상한)인지. TM/TH/T0 등 당일 누적 주기는 true(검사 생략·라벨에서 별도 처리).
+     */
+    public static boolean isSubDailyGridAlignedPeriodEnd(LocalDateTime endExclusive, String normalizedCycle) {
+        if (endExclusive == null || normalizedCycle == null || normalizedCycle.isBlank()) {
+            return false;
+        }
+        String c = normalize(normalizedCycle);
+        if (isRollingIntradayGridCode(c) || isT0RollingIntradayCode(c)) {
+            return true;
+        }
+        if (!isSubDailyScheduleCode(c)) {
+            return false;
+        }
+        String g = toPlainGridClosingCode(c);
+        LocalDateTime e = endExclusive.withNano(0);
+        if (e.getSecond() != 0) {
+            return false;
+        }
+        Integer sm = MINUTE_GRID_STEP.get(g);
+        if (sm != null) {
+            return e.getMinute() % sm == 0;
+        }
+        Integer hb = HOUR_BLOCK_MOD.get(g);
+        if (hb != null) {
+            return e.getMinute() == 0 && e.getHour() % hb == 0;
+        }
+        return false;
+    }
+
     public static LocalDateTime subDailySlotStartInclusiveFromEndExclusive(LocalDateTime endExclusive, String normalizedCycle) {
         if (endExclusive == null || normalizedCycle == null || normalizedCycle.isBlank()) {
             return null;

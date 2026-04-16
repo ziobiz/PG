@@ -13,6 +13,7 @@ import java.util.regex.Pattern;
 
 /**
  * 가맹 정산주기(calc_cycle)에 따른 정산 대상 기간(from~to).
+ * <p>주기 전체(정규화·RT/T0·격자·달력) 요약: 저장소 {@code docs/정산주기_전체_명세.md}.</p>
  * {@code W7}, {@code WK1W} 등 주간 규칙과 {@code D0}~{@code D90} 일자 오프셋을 해석한다.
  * <p>{@code WK+1W}/{@code WK+1WT}: 1주(월~일) 마감 후 각각 영업일 3·10일째 정산.
  * {@code WK+2W}/{@code WK+2WT}: 격주 2주 마감 후 각각 영업일 3·10일째.

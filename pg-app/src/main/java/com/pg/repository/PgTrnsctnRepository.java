@@ -3,6 +3,7 @@ package com.pg.repository;
 import com.pg.entity.PgTrnsctn;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -49,4 +50,9 @@ public interface PgTrnsctnRepository extends JpaRepository<PgTrnsctn, String>, J
 
     /** 통합정산 등: 칠페이 승인번호 다건으로 최신 내부 상태 조회 */
     List<PgTrnsctn> findAllByChillTransactionIdIn(Collection<String> chillTransactionIds);
+
+    /** 정산 데이터 초기화: 정산 실행 삭제 후 거래의 정산 반영 플래그만 해제(거래·수수료내역 행은 유지). */
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("UPDATE PgTrnsctn t SET t.settledYn = 'N'")
+    int clearAllSettlementFlagsOnTransactions();
 }
