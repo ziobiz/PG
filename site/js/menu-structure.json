@@ -91,6 +91,13 @@
       ]
     },
     {
+      "label": "운영관리",
+      "icon": "bi-sliders2",
+      "children": [
+        { "label": "운영관리", "url": "/ops/opsMng", "menuId": "M0601" }
+      ]
+    },
+    {
       "label": "리스크관리",
       "icon": "bi-shield-exclamation",
       "children": [

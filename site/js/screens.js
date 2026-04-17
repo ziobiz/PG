@@ -490,6 +490,11 @@
       '</ul></div>'
   };
 
+  /** 운영관리: 최상위 메뉴 플레이스홀더(하위 화면 추후 연동) */
+  var OPS_MANAGEMENT_PLACEHOLDER_HTML = '<div class="ops-admin-placeholder text-muted small">' +
+    '<p class="mb-2"><strong class="text-body">운영관리</strong> 그룹입니다. 운영 배치·점검·장애 대응 등 전용 화면을 여기에 둘 수 있습니다.</p>' +
+    '<p class="mb-0">현재는 메뉴만 제공하며, 세부 기능은 이후 버전에서 연동합니다.</p></div>';
+
   var MENU_SCREENS = {
     '/hq/pgApiMng': {
       emptyMessage: '조회된 데이터가 없습니다.',
@@ -3338,6 +3343,12 @@
       buttons: [{ id: 'searchBtn', label: '검색', cls: 'btn-primary' }, { id: 'excelBtn', label: '엑셀다운로드', cls: 'btn-info' }],
       columns: [{ key: '_chk', type: 'checkbox' }, { key: 'rowNo', label: '번호' }, { key: 'compNm', label: '업체명' }, { key: 'compId', label: '업체코드' }, { key: 'riskDiv', label: '리스크구분' }, { key: 'riskDesc', label: '내용' }, { key: 'regDt', label: '등록일' }],
       emptyMessage: '조회된 데이터가 없습니다.'
+    },
+    '/ops/opsMng': {
+      hideListGrid: true,
+      staticHtml: OPS_MANAGEMENT_PLACEHOLDER_HTML,
+      summary: [],
+      buttons: []
     },
     '/deploy/integrationPlan': {
       hideListGrid: true,

@@ -1028,6 +1028,7 @@
     '/noti/notiCashReceiptSendMngList': { label: '현금영수증통보 전송관리', parent: '통보관리' },
     '/user/userMng': { label: '사용자관리', parent: '사용자관리' },
     '/set/gridSetMng': { label: '메뉴별항목순서관리', parent: '사용자관리' },
+    '/ops/opsMng': { label: '운영관리', parent: '운영관리' },
     '/risk/list': { label: '리스크 현황', parent: '리스크관리' },
     '/deploy/integrationPlan': { label: '연동 진행안', parent: '배포설정' },
     '/deploy/jpayWorkPlan': { label: 'JPAY 단계 계획', parent: '배포설정' },
@@ -16313,7 +16314,7 @@
       tr.classList.add('org-perm-row', 'org-perm-row--' + p);
       tr.setAttribute('data-perm', p);
     }
-    var ORG_PERM_GROUP_ORDER = ['본사설정', '업체관리', '결제관리', '정산관리', '통보관리', '사용자관리', '리스크관리', '배포설정'];
+    var ORG_PERM_GROUP_ORDER = ['본사설정', '업체관리', '결제관리', '정산관리', '통보관리', '사용자관리', '운영관리', '리스크관리', '배포설정'];
     function buildOrgPermGroups(rows) {
       var by = {};
       (rows || []).forEach(function (row) {
@@ -16458,7 +16459,7 @@
       modeEl.disabled = true;
     }
 
-    var ORG_PERM_GROUP_ORDER = ['본사설정', '업체관리', '결제관리', '정산관리', '통보관리', '사용자관리', '리스크관리', '배포설정'];
+    var ORG_PERM_GROUP_ORDER = ['본사설정', '업체관리', '결제관리', '정산관리', '통보관리', '사용자관리', '운영관리', '리스크관리', '배포설정'];
 
     function escOrgPermHtml(s) {
       return String(s == null ? '' : s)

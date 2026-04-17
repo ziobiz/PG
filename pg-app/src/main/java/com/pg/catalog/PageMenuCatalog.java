@@ -68,6 +68,7 @@ public final class PageMenuCatalog {
         add(list, "/noti/notiCashReceiptSendMngList", "M0806", "현금영수증통보 전송관리", "통보관리");
         add(list, "/user/userMng", "M0502", "사용자관리", "사용자관리");
         add(list, "/set/gridSetMng", "M0505", "메뉴별항목순서관리", "사용자관리");
+        add(list, "/ops/opsMng", "M0601", "운영관리", "운영관리");
         add(list, "/risk/list", "M0701", "리스크 현황", "리스크관리");
         add(list, "/deploy/integrationPlan", "M0901", "연동 진행안", "배포설정");
         add(list, "/deploy/jpayWorkPlan", "M0902", "JPAY 단계 계획", "배포설정");
