@@ -52,8 +52,9 @@ import java.util.stream.Collectors;
 /**
  * 정산 수학 로직: 결제 데이터 → 수수료 차감(건당·정산·차지백·실패·취소·무효·수동무효·환불·이용·결제·USDT·FX %·3DS 건당 고정·롤링) → 롤링(담보금 N% N일 보류) → 지급액
  * <p><b>정산로직(수동 「정산실행」)</b>: {@link #execute(LocalDate, LocalDate, String, boolean)} {@code manualExecuteRules=true} 일 때
- * 정산구분 {@code AUTO} 가맹은 제외하고, {@code D*}·{@code W+N}·{@code WK*} 는 {@link SettlementPeriodResolver#resolveAutoPeriodWindow} 로
- * 정산일(기간 종료일)이 주기상 실행일일 때만 집계합니다. 마감시각·정산제외 영업일·{@code D0} 시간대는 자동 배치와 동일합니다.</p>
+ * 정산구분 {@code AUTO}·{@code MANUAL} 가맹 모두 동일 규칙으로 집계합니다. {@code D*}·{@code W+N}·{@code WK*} 는
+ * {@link SettlementPeriodResolver#resolveAutoPeriodWindow} 로 정산일(기간 종료일)이 주기상 실행일일 때만 집계합니다.
+ * 마감시각·정산제외 영업일·{@code D0} 시간대·격자 슬롯은 자동 배치와 동일합니다.</p>
  */
 @Service
 public class SettlementCalcService {
@@ -156,7 +157,7 @@ public class SettlementCalcService {
     /**
      * 정산 실행.
      *
-     * @param manualExecuteRules {@code true}: 정산관리 「정산실행」 수동 버튼 — 정산로직(자동 가맹 제외·주기·마감·영업일) 적용
+     * @param manualExecuteRules {@code true}: 정산관리 「정산실행」 버튼 — 정산로직(AUTO·MANUAL 공통, 주기·마감·영업일·격자) 적용
      */
     @Transactional
     public List<SettlementRun> execute(LocalDate fromDate, LocalDate toDate, String merchantId, boolean manualExecuteRules) {
@@ -201,7 +202,7 @@ public class SettlementCalcService {
                 results.add(run);
             }
         }
-        appendReleaseOnlyMerchants(calcDt, merchantId, results, true);
+        appendReleaseOnlyMerchants(calcDt, merchantId, results, false);
         flushPendingCalcCycleIfNeeded(results);
         return results;
     }
@@ -215,10 +216,11 @@ public class SettlementCalcService {
     private record ManualExecuteRow(String mid, List<PgTrnsctn> txList, LocalDate periodFrom, LocalDate periodTo) {}
 
     /**
-     * 정산로직: 수동 실행 대상 가맹만 행으로 구성 (AUTO 제외, 달력 주기 미도래 제외, 마감·영업일·D0 시간대).
+     * 정산로직: 「정산실행」 대상 가맹 행 구성 (AUTO·MANUAL 공통, 달력 주기 미도래 제외, 마감·영업일·D0·격자).
      */
     /**
      * 수동 「정산실행」: 격자 주기(M5·H1·TM 등)는 당일 기준 격자 구간이 끝난 뒤에만 허용.
+     * 단일 가맹 지정 시 사전 검증 — AUTO·MANUAL 동일.
      */
     public Optional<String> validateManualSettlementExecuteWindow(String merchantCompId, LocalDate runTo) {
         if (merchantCompId == null || merchantCompId.isBlank() || runTo == null) {
@@ -233,9 +235,6 @@ public class SettlementCalcService {
             return Optional.empty();
         }
         SettlementSetting ss = ssOpt.get();
-        if (!"MANUAL".equalsIgnoreCase(String.valueOf(ss.getCalcProcType()).trim())) {
-            return Optional.empty();
-        }
         String cycleRaw = ss.getCalcCycle();
         if (cycleRaw == null || cycleRaw.isBlank() || "NONE".equalsIgnoreCase(cycleRaw.trim())) {
             return Optional.empty();
@@ -273,9 +272,6 @@ public class SettlementCalcService {
                 continue;
             }
             SettlementSetting ss = ssOpt.get();
-            if ("AUTO".equalsIgnoreCase(String.valueOf(ss.getCalcProcType()).trim())) {
-                continue;
-            }
             String cycleRaw = ss.getCalcCycle();
             if (cycleRaw == null || cycleRaw.isBlank() || "NONE".equalsIgnoreCase(cycleRaw.trim())) {
                 continue;

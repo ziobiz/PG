@@ -1466,6 +1466,29 @@ public class ApiSettlementController {
         }
     }
 
+    /** 정산실행 목록: {@code searchCalcProcType} — 빈값·ALL 은 필터 없음, AUTO·MANUAL 만 허용. */
+    private static String normalizeExecuteListCalcProcFilter(String raw) {
+        if (raw == null || raw.isBlank()) {
+            return "";
+        }
+        String u = raw.trim().toUpperCase(Locale.ROOT);
+        if ("ALL".equals(u)) {
+            return "";
+        }
+        if ("AUTO".equals(u) || "MANUAL".equals(u)) {
+            return u;
+        }
+        return "";
+    }
+
+    private static boolean executeListRowMatchesCalcProc(Map<String, Object> row, String wantUpper) {
+        if (wantUpper == null || wantUpper.isEmpty()) {
+            return true;
+        }
+        String code = String.valueOf(row.getOrDefault("calcProcType", "")).trim().toUpperCase(Locale.ROOT);
+        return wantUpper.equals(code);
+    }
+
     private static String executeListCellLower(Map<String, Object> row, String key) {
         Object v = row.get(key);
         return v == null ? "" : String.valueOf(v).toLowerCase(Locale.ROOT);
@@ -2067,6 +2090,7 @@ public class ApiSettlementController {
             @RequestParam(required = false) String searchCompId,
             @RequestParam(required = false) String searchFieldType,
             @RequestParam(required = false) String searchKeyword,
+            @RequestParam(required = false) String searchCalcProcType,
             @RequestParam(required = false) String searchOrderDir,
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "20") int size) {
@@ -2098,12 +2122,16 @@ public class ApiSettlementController {
         }
         final String effFtFinal = effFt;
         final String effKwFinal = effKw;
+        final String calcProcWant = normalizeExecuteListCalcProcFilter(searchCalcProcType);
 
         List<Map<String, Object>> mapped = new ArrayList<>();
         for (SettlementRun r : raw) {
             mapped.add(toMap(r, searchFromDate, searchToDate, autoDeficitByRun));
         }
-        List<Map<String, Object>> filtered = mapped.stream()
+        List<Map<String, Object>> mappedForKeyword = calcProcWant.isEmpty()
+                ? mapped
+                : mapped.stream().filter(m -> executeListRowMatchesCalcProc(m, calcProcWant)).collect(Collectors.toList());
+        List<Map<String, Object>> filtered = mappedForKeyword.stream()
                 .filter(m -> executeListRowMatches(m, effFtFinal, effKwFinal))
                 .collect(Collectors.toList());
 
@@ -2261,9 +2289,14 @@ public class ApiSettlementController {
         m.put("calcCycle", calcCycleRaw);
         if (ouExec != null) {
             m.put("calcMethod", ssOptExec.map(ss -> labelCalcProcType(ss.getCalcProcType())).orElse(""));
+            m.put("calcProcType", ssOptExec.map(ss -> {
+                String v = ss.getCalcProcType();
+                return v != null && !v.isBlank() ? v.trim().toUpperCase(Locale.ROOT) : "";
+            }).orElse(""));
             m.put("pgRootNo", resolveMerchantPgRootNo(ouExec.getId()));
         } else {
             m.put("calcMethod", "");
+            m.put("calcProcType", "");
             m.put("pgRootNo", "-");
         }
         m.put("periodFrom", r.getPeriodFrom() != null ? r.getPeriodFrom().toString() : null);
