@@ -108,6 +108,13 @@ public class SettlementAutoRunService {
             if (close != null && now.isBefore(close)) {
                 continue;
             }
+            /* D1+·주간 등: 화면·저장 규칙과 동일하게 정산개시시간 이전에는 달력 자동정산 미실행(RT·격자·D0는 미사용) */
+            if (SettlementCycleTiming.isCalcStartTimeApplicableForAuto(c0)) {
+                LocalTime start = ss.getCalcStartTime();
+                if (start != null && now.isBefore(start)) {
+                    continue;
+                }
+            }
             SettlementPeriodResolver.PeriodWindow w = SettlementPeriodResolver.resolveAutoPeriodWindow(cycle, day);
             if (w == null) {
                 continue;

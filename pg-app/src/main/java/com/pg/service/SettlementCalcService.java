@@ -74,6 +74,7 @@ public class SettlementCalcService {
     private final OrgServiceUseService orgServiceUseService;
     private final SettlementArrearsService settlementArrearsService;
     private final HqLedgerSysSettingsService hqLedgerSysSettingsService;
+    private final SettlementCalcCycleTransitionService settlementCalcCycleTransitionService;
 
     public SettlementCalcService(PgTrnsctnRepository trnsctnRepository,
                                  CommissionPolicyRepository commissionPolicyRepository,
@@ -84,7 +85,8 @@ public class SettlementCalcService {
                                  OrgUnitRepository orgUnitRepository,
                                  OrgServiceUseService orgServiceUseService,
                                  SettlementArrearsService settlementArrearsService,
-                                 HqLedgerSysSettingsService hqLedgerSysSettingsService) {
+                                 HqLedgerSysSettingsService hqLedgerSysSettingsService,
+                                 SettlementCalcCycleTransitionService settlementCalcCycleTransitionService) {
         this.trnsctnRepository = trnsctnRepository;
         this.commissionPolicyRepository = commissionPolicyRepository;
         this.chargebackFeePolicyRepository = chargebackFeePolicyRepository;
@@ -95,6 +97,7 @@ public class SettlementCalcService {
         this.orgServiceUseService = orgServiceUseService;
         this.settlementArrearsService = settlementArrearsService;
         this.hqLedgerSysSettingsService = hqLedgerSysSettingsService;
+        this.settlementCalcCycleTransitionService = settlementCalcCycleTransitionService;
     }
 
     public List<SettlementRun> listRuns(LocalDate fromDate, LocalDate toDate) {
@@ -177,6 +180,7 @@ public class SettlementCalcService {
                 }
             }
             appendReleaseOnlyMerchants(calcDt, merchantId, results, false);
+            flushPendingCalcCycleIfNeeded(results);
             return results;
         }
 
@@ -185,7 +189,8 @@ public class SettlementCalcService {
                 .filter(t -> t.getMerchantId() != null && !t.getMerchantId().isBlank())
                 .collect(Collectors.groupingBy(t -> t.getMerchantId().trim()));
 
-        for (ManualExecuteRow row : buildManualExecuteRows(fromDate, toDate, merchantId, calcDt, nowSeoul, byMid)) {
+        for (ManualExecuteRow row : buildManualExecuteRows(fromDate, toDate, merchantId, calcDt, nowSeoul, byMid,
+                LocalDate.now(SEOUL))) {
             SettlementRun run = calcOne(row.mid(), calcDt, row.txList(), Optional.empty(), false, true, Optional.empty());
             if (run != null) {
                 run.setPeriodFrom(row.periodFrom());
@@ -197,7 +202,14 @@ public class SettlementCalcService {
             }
         }
         appendReleaseOnlyMerchants(calcDt, merchantId, results, true);
+        flushPendingCalcCycleIfNeeded(results);
         return results;
+    }
+
+    private void flushPendingCalcCycleIfNeeded(List<SettlementRun> results) {
+        if (results != null && !results.isEmpty()) {
+            settlementCalcCycleTransitionService.tryApplyPendingAfterRuns(results, "");
+        }
     }
 
     private record ManualExecuteRow(String mid, List<PgTrnsctn> txList, LocalDate periodFrom, LocalDate periodTo) {}
@@ -205,12 +217,46 @@ public class SettlementCalcService {
     /**
      * 정산로직: 수동 실행 대상 가맹만 행으로 구성 (AUTO 제외, 달력 주기 미도래 제외, 마감·영업일·D0 시간대).
      */
+    /**
+     * 수동 「정산실행」: 격자 주기(M5·H1·TM 등)는 당일 기준 격자 구간이 끝난 뒤에만 허용.
+     */
+    public Optional<String> validateManualSettlementExecuteWindow(String merchantCompId, LocalDate runTo) {
+        if (merchantCompId == null || merchantCompId.isBlank() || runTo == null) {
+            return Optional.empty();
+        }
+        Optional<OrgUnit> ouOpt = orgUnitRepository.findByCodeIgnoreCase(merchantCompId.trim());
+        if (ouOpt.isEmpty() || ouOpt.get().getOrgLevel() != OrgLevel.MERCHANT) {
+            return Optional.empty();
+        }
+        Optional<SettlementSetting> ssOpt = settlementSettingRepository.findByOrgUnitId(ouOpt.get().getId());
+        if (ssOpt.isEmpty()) {
+            return Optional.empty();
+        }
+        SettlementSetting ss = ssOpt.get();
+        if (!"MANUAL".equalsIgnoreCase(String.valueOf(ss.getCalcProcType()).trim())) {
+            return Optional.empty();
+        }
+        String cycleRaw = ss.getCalcCycle();
+        if (cycleRaw == null || cycleRaw.isBlank() || "NONE".equalsIgnoreCase(cycleRaw.trim())) {
+            return Optional.empty();
+        }
+        String c0 = SettlementPeriodResolver.normalizeCalcCycle(cycleRaw);
+        LocalDate todaySeoul = LocalDate.now(SEOUL);
+        LocalTime nowSeoul = LocalTime.now(SEOUL);
+        if (!SettlementCycleTiming.isManualIntradayGridSlotElapsed(nowSeoul, runTo, todaySeoul, c0)) {
+            return Optional.of("정산주기(" + c0 + ")는 수동 실행 시 격자 구간이 끝난 뒤에만 가능합니다. "
+                    + "(예: H1·H2 등은 해당 시간 블록이 끝난 정각 이후, M5 등은 N분 경계 이후)");
+        }
+        return Optional.empty();
+    }
+
     private List<ManualExecuteRow> buildManualExecuteRows(LocalDate fromDate,
                                                           LocalDate toDate,
                                                           String merchantIdFilter,
                                                           LocalDate calcDt,
                                                           LocalTime nowSeoul,
-                                                          Map<String, List<PgTrnsctn>> txsInSearchRangeByMid) {
+                                                          Map<String, List<PgTrnsctn>> txsInSearchRangeByMid,
+                                                          LocalDate todaySeoul) {
         List<ManualExecuteRow> rows = new ArrayList<>();
         List<OrgUnit> merchants = orgUnitRepository.findAll().stream()
                 .filter(ou -> ou.getOrgLevel() == OrgLevel.MERCHANT)
@@ -261,6 +307,10 @@ public class SettlementCalcService {
             if (SettlementCycleTiming.isRealtimeCode(c0)
                     || SettlementCycleTiming.isSubDailyScheduleCode(c0)
                     || SettlementCycleTiming.isRollingIntradayGridCode(c0)) {
+                if ((SettlementCycleTiming.isSubDailyScheduleCode(c0) || SettlementCycleTiming.isRollingIntradayGridCode(c0))
+                        && !SettlementCycleTiming.isManualIntradayGridSlotElapsed(nowSeoul, calcDt, todaySeoul, c0)) {
+                    continue;
+                }
                 List<PgTrnsctn> txs = txsInSearchRangeByMid.getOrDefault(mid.trim(), List.of());
                 if (txs.isEmpty()) {
                     continue;
@@ -432,10 +482,14 @@ public class SettlementCalcService {
         if (!SettlementCycleTiming.isSubDailyScheduleCode(c0)) {
             return List.of();
         }
+        List<SettlementRun> subOut;
         if (SettlementCycleTiming.isRollingIntradayGridCode(c0)) {
-            return recalcTodayIntradayAuto(mid);
+            subOut = recalcTodayIntradayAuto(mid);
+        } else {
+            subOut = appendSubDailyGridAggregateSettlement(mid, c0);
         }
-        return appendSubDailyGridAggregateSettlement(mid, c0);
+        flushPendingCalcCycleIfNeeded(subOut);
+        return subOut;
     }
 
     /**
@@ -871,7 +925,22 @@ public class SettlementCalcService {
         run.setStatus("CALCULATED");
         applyCalcCycleSnapshotToRun(run, merchantId);
         applyPayoutHoldStagingIfDue(run, merchantId);
+        applySettlementPublishDefaultStaging(run);
         return run;
+    }
+
+    /**
+     * 정산결과 단계: 지급보류 적치 가맹은 HOLD, 그 외는 배포 전 PENDING.
+     */
+    private void applySettlementPublishDefaultStaging(SettlementRun run) {
+        if (run == null) {
+            return;
+        }
+        if ("Y".equalsIgnoreCase(String.valueOf(run.getPayoutHoldYn()).trim())) {
+            run.setSettlementPublishSts("HOLD");
+        } else {
+            run.setSettlementPublishSts("PENDING");
+        }
     }
 
     /** 실행 저장 시점 가맹 정산주기(정규화) — 이후 가맹 설정이 바뀌어도 행 단위로 표시 유지 */

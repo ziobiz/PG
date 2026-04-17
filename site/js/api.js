@@ -727,6 +727,15 @@
     settlementExecute: function (params) {
       return get('/api/settlement/execute', params).then(function (r) { return r.data; });
     },
+    settlementResultList: function (params) {
+      return get('/api/settlement/result/list', params).then(function (r) { return r.data; });
+    },
+    settlementResultDistribute: function (body) {
+      return post('/api/settlement/result/distribute', body || {}).then(function (r) { return r.data; });
+    },
+    settlementResultHold: function (body) {
+      return post('/api/settlement/result/hold', body || {}).then(function (r) { return r.data; });
+    },
     settlementReportAggregate: function (params) {
       return get('/api/settlement/report/aggregate', params).then(function (r) { return r.data; });
     },
@@ -748,13 +757,12 @@
     settlementExecuteRun: function (params) {
       var q = (params && typeof params === 'object') ? params : {};
       var path = '/api/settlement/execute/run';
-      if (q.fromDate || q.toDate || q.merchantId) {
-        var arr = [];
-        if (q.fromDate) arr.push('fromDate=' + encodeURIComponent(q.fromDate));
-        if (q.toDate) arr.push('toDate=' + encodeURIComponent(q.toDate));
-        if (q.merchantId) arr.push('merchantId=' + encodeURIComponent(q.merchantId));
-        path += (path.indexOf('?') >= 0 ? '&' : '?') + arr.join('&');
-      }
+      var arr = [];
+      if (q.fromDate) arr.push('fromDate=' + encodeURIComponent(q.fromDate));
+      if (q.toDate) arr.push('toDate=' + encodeURIComponent(q.toDate));
+      if (q.merchantId) arr.push('merchantId=' + encodeURIComponent(q.merchantId));
+      if (q.reconcile !== false) arr.push('reconcile=true');
+      if (arr.length) path += (path.indexOf('?') >= 0 ? '&' : '?') + arr.join('&');
       return request({ path: path, method: 'POST' }).then(function (r) { return r.data; });
     },
 
@@ -913,6 +921,9 @@
     },
     hqSettlementSchedulePreview: function (params) {
       return get('/api/hq/settlement/schedulePreview', params || {}).then(function (r) { return r.data || []; });
+    },
+    hqSettlementCalcCycleChangeHistory: function (params) {
+      return get('/api/hq/settlement/calcCycleChangeHistory', params || {}).then(function (r) { return r.data || []; });
     },
     hqSettlementMerchantAutoCounts: function () {
       return get('/api/hq/settlement/merchantAutoCounts').then(function (r) { return r.data || {}; });

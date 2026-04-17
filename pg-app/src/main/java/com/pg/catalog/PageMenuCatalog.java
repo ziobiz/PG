@@ -59,6 +59,8 @@ public final class PageMenuCatalog {
         add(list, "/calc/compPointMngList", "M0407", "환수금관리", "정산관리");
         add(list, "/calc/unpaidMng", "M0413", "미수금관리", "정산관리");
         add(list, "/calc/exCalcList", "M0418", "정산실행", "정산관리");
+        add(list, "/settlement/settlementResultDistribute", "M0423", "정산배포(대기)", "정산관리");
+        add(list, "/settlement/settlementResultHold", "M0424", "정산대기(홀딩)", "정산관리");
         add(list, "/calc/settlementReport", "M0419", "정산리포트", "정산관리");
         add(list, "/calc/collateralList", "M0420", "담보금내역", "정산관리");
         add(list, "/pay/payHoldList", "M0312", "보증금내역", "정산관리");

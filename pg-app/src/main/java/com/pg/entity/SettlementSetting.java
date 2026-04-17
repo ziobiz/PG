@@ -2,6 +2,7 @@ package com.pg.entity;
 
 import jakarta.persistence.*;
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 
 /**
@@ -65,6 +66,16 @@ public class SettlementSetting {
     /** 정산주기 코드: RT,T0 / M5,M10,M30 / TM5,TM10,TM30(T0식 당일합산+격자) / H1..H12 / TH1..TH12 / D0~D90 / W+N / WK 등 */
     @Column(name = "calc_cycle", length = 64)
     private String calcCycle;
+
+    /**
+     * 예약된 다음 정산주기(전환 모드 NEXT_AFTER_RUN). 비어 있으면 없음.
+     * 이 값이 있을 때는 {@link #calcCycle}을 당분간 유지하고, 정산 실행이 한 번 성공한 뒤 새 주기로 승격합니다.
+     */
+    @Column(name = "pending_calc_cycle", length = 64)
+    private String pendingCalcCycle;
+
+    @Column(name = "pending_calc_cycle_at")
+    private LocalDateTime pendingCalcCycleAt;
 
     /** 정산 마감시간 */
     @Column(name = "calc_close_time")
@@ -198,6 +209,10 @@ public class SettlementSetting {
     public void setHoldDays(Integer holdDays) { this.holdDays = holdDays; }
     public String getCalcCycle() { return calcCycle; }
     public void setCalcCycle(String calcCycle) { this.calcCycle = calcCycle; }
+    public String getPendingCalcCycle() { return pendingCalcCycle; }
+    public void setPendingCalcCycle(String pendingCalcCycle) { this.pendingCalcCycle = pendingCalcCycle; }
+    public LocalDateTime getPendingCalcCycleAt() { return pendingCalcCycleAt; }
+    public void setPendingCalcCycleAt(LocalDateTime pendingCalcCycleAt) { this.pendingCalcCycleAt = pendingCalcCycleAt; }
     public LocalTime getCalcCloseTime() { return calcCloseTime; }
     public void setCalcCloseTime(LocalTime calcCloseTime) { this.calcCloseTime = calcCloseTime; }
     public String getCalcProcType() { return calcProcType; }

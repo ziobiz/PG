@@ -62,6 +62,8 @@
         { "label": "통합정산", "url": "/calc/chillPaySettlementList", "menuId": "M0421" },
         { "label": "수수료내역", "url": "/calc/feeList", "menuId": "M0406" },
         { "label": "정산실행", "url": "/calc/exCalcList", "menuId": "M0418" },
+        { "label": "정산배포(대기)", "url": "/settlement/settlementResultDistribute", "menuId": "M0423" },
+        { "label": "정산대기(홀딩)", "url": "/settlement/settlementResultHold", "menuId": "M0424" },
         { "label": "가맹점정산내역", "url": "/calc/calcGmList", "menuId": "M0405" },
         { "label": "정산보류내역", "url": "/calc/paySettlementHoldList", "menuId": "M0422" },
         { "label": "유통망정산내역", "url": "/calc/calcList", "menuId": "M0404" },

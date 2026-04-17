@@ -661,9 +661,13 @@ public class ApiCompController {
             @RequestParam(required = false) String calcMinAmt,
             @RequestParam(required = false) String transferExecTime,
             @RequestParam(required = false) String feeVatApplyYn,
-            @RequestParam(required = false) String feeVatRatePct) {
+            @RequestParam(required = false) String feeVatRatePct,
+            @RequestParam(required = false) String calcCycleTransitionMode,
+            @RequestParam(required = false) String calcCycleChangeRemark) {
         Authentication auth0 = SecurityContextHolder.getContext().getAuthentication();
+        String actor = "";
         if (auth0 != null && auth0.getPrincipal() instanceof AppUser u0) {
+            actor = u0.getUsername() != null ? u0.getUsername().trim() : "";
             if (!canAccessCompAsViewer(u0, compId)) {
                 return ResponseEntity.ok(ApiResponse.fail("저장 권한이 없습니다.", "FORBIDDEN"));
             }
@@ -688,7 +692,8 @@ public class ApiCompController {
                 calcProcType, transferType, autoTransferMin, payHoldYn,
                 calcExcludeYn, calcExcludeTarget,
                 calcMinAmt, transferExecTime,
-                feeVatApplyYn, feeVatRatePct);
+                feeVatApplyYn, feeVatRatePct,
+                calcCycleTransitionMode, calcCycleChangeRemark, actor);
         return ResponseEntity.ok(ok ? ApiResponse.ok(Map.of("success", true)) : ApiResponse.fail("업체를 찾을 수 없습니다.", "NOT_FOUND"));
     }
 

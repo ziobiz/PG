@@ -3,6 +3,7 @@ package com.pg.service;
 import com.pg.entity.HqSettlementCycleDef;
 import com.pg.repository.HqSettlementCycleDefRepository;
 import com.pg.repository.SettlementSettingRepository;
+import com.pg.service.settlement.SettlementCycleTiming;
 import com.pg.service.settlement.SettlementPeriodResolver;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,49 +23,49 @@ public class HqSettlementCycleAdminService {
     public record BuiltInRow(String cycleCode, String displayLabel, String description, int sortOrder, boolean builtInMarker) {}
 
     private static final List<BuiltInRow> BUILT_INS = List.of(
-            new BuiltInRow("", "선택", "저장 시 실제 정산주기를 고릅니다.", 0, true),
-            new BuiltInRow("NONE", "정산안함", "자동 정산 배치에서 제외됩니다.", 1, true),
-            new BuiltInRow("RT", "실시간", "정산구분 AUTO일 때 승인(결제완료) 노티마다 해당 건만 집계한 정산 실행 1건을 추가합니다(건당 마감, 당일 0시~현재 합산 1행으로 바꾸지 않음).", 2, true),
-            new BuiltInRow("T0", "당일합산(승인 시 재집계)", "정산구분 AUTO일 때 승인 노티마다 당일 00:00~현재까지 전체를 재집계하여 정산일 당일 행 1건으로 갱신합니다(당일 누적 표시).", 3, true),
-            new BuiltInRow("M5", "5분 마감", "5분 격자 정각마다 직전 5분 구간의 거래를 합산해 정산 실행 1건으로 마감합니다(RT로 이미 정산된 승인은 제외).", 4, true),
-            new BuiltInRow("M10", "10분 마감", "10분 격자마다 직전 10분 구간을 합산해 정산 실행 1건.", 5, true),
-            new BuiltInRow("M30", "30분 마감", "30분 격자마다 직전 30분 구간을 합산해 정산 실행 1건.", 6, true),
-            new BuiltInRow("H1", "1시간(H1)", "매시 정각(HH:00)에 직전 1시간 구간을 합산해 정산 실행 1건. AUTO 배치는 매분 크론에서 격자 정각에만 실행됩니다.", 7, true),
-            new BuiltInRow("H2", "2시간(H2)", "0·2·4…시 00분에 직전 2시간 구간을 합산해 정산 실행 1건.", 8, true),
-            new BuiltInRow("H4", "4시간(H4)", "0·4·8…시 00분에 직전 4시간 구간을 합산해 정산 실행 1건.", 9, true),
-            new BuiltInRow("H6", "6시간(H6)", "0·6·12·18시 00분에 직전 6시간 구간을 합산해 정산 실행 1건.", 10, true),
-            new BuiltInRow("H8", "8시간(H8)", "0·8·16시 00분에 직전 8시간 구간을 합산해 정산 실행 1건.", 11, true),
-            new BuiltInRow("H12", "12시간(H12)", "0·12시 00분에 직전 12시간 구간을 합산해 정산 실행 1건.", 12, true),
-            new BuiltInRow("TM5", "당일합산·5분 격자", "M5와 동일한 5분 격자 시각에 배치되나, T0처럼 당일 00:00~현재 전체를 재집계해 정산일 당일 행 1건으로 갱신합니다. 저장값 TM05는 TM5로 통일됩니다.", 120, true),
-            new BuiltInRow("TM10", "당일합산·10분 격자", "M10과 동일 격자, 당일 0시~현재 합산 1행 재집계(T0식).", 121, true),
-            new BuiltInRow("TM30", "당일합산·30분 격자", "M30과 동일 격자, 당일 0시~현재 합산 1행 재집계(T0식).", 122, true),
-            new BuiltInRow("TH1", "당일합산·1시간 격자", "H1과 동일 격자, 당일 0시~현재 합산 1행 재집계(T0식).", 123, true),
-            new BuiltInRow("TH2", "당일합산·2시간 격자", "H2와 동일 격자, 당일 0시~현재 합산 1행 재집계(T0식).", 124, true),
-            new BuiltInRow("TH4", "당일합산·4시간 격자", "H4와 동일 격자, 당일 0시~현재 합산 1행 재집계(T0식).", 125, true),
-            new BuiltInRow("TH6", "당일합산·6시간 격자", "H6와 동일 격자, 당일 0시~현재 합산 1행 재집계(T0식).", 126, true),
-            new BuiltInRow("TH8", "당일합산·8시간 격자", "H8와 동일 격자, 당일 0시~현재 합산 1행 재집계(T0식).", 127, true),
-            new BuiltInRow("TH12", "당일합산·12시간 격자", "H12와 동일 격자, 당일 0시~현재 합산 1행 재집계(T0식).", 128, true),
-            new BuiltInRow("D0", "D+0", "정산일(달력 당일)에 집계 구간(당일 0시~24시) 거래를 합산해 정산 실행 1건. 자동 배치는 서울 기준 당일 00:00~23:50 구간에서만 실행되며, 정산마감시간이 있으면 그 이후부터 위 구간 안에서만 실행됩니다.", 13, true),
-            new BuiltInRow("D1", "D+1", "정산일 당일에 집계 기준일(정산일에서 1영업일 역산한 하루) 구간을 합산해 정산 실행 1건. ‘전일’이 아니라 정산일·집계기준일 관계입니다.", 14, true),
-            new BuiltInRow("D2", "D+2", "정산일 당일에 집계 기준일(정산일에서 2영업일 역산한 하루) 구간을 합산해 정산 실행 1건.", 15, true),
-            new BuiltInRow("D3", "D+3", "정산일 당일에 집계 기준일(정산일에서 3영업일 역산한 하루) 구간을 합산해 정산 실행 1건.", 16, true),
-            new BuiltInRow("D5", "D+5", "정산일 당일에 집계 기준일(정산일에서 5영업일 역산한 하루) 구간을 합산해 정산 실행 1건.", 17, true),
-            new BuiltInRow("D7", "D+7", "정산일 당일에 집계 기준일(정산일에서 7영업일 역산한 하루) 구간을 합산해 정산 실행 1건.", 18, true),
-            new BuiltInRow("D10", "D+10", "정산일 당일에 집계 기준일(정산일에서 10영업일 역산한 하루) 구간을 합산해 정산 실행 1건.", 19, true),
-            new BuiltInRow("D15", "D+15", "정산일 당일에 집계 기준일(정산일에서 15영업일 역산한 하루) 구간을 합산해 정산 실행 1건.", 20, true),
-            new BuiltInRow("D20", "D+20", "정산일 당일에 집계 기준일(정산일에서 20영업일 역산한 하루) 구간을 합산해 정산 실행 1건.", 21, true),
-            new BuiltInRow("D30", "D+30", "정산일 당일에 집계 기준일(정산일에서 30영업일 역산한 하루) 구간을 합산해 정산 실행 1건.", 22, true),
-            new BuiltInRow("W3", "W+3", "직전 주(월~일) 집계 구간이 정산일에 마감될 때 구간 전체를 합산해 정산 실행 1건(주 종료 후 3영업일째 정산일 규칙).", 30, true),
-            new BuiltInRow("W5", "W+5", "전주 집계 구간 + 5영업일 오프셋으로 정산일이 정해지면 해당 구간을 합산해 정산 실행 1건.", 31, true),
-            new BuiltInRow("W7", "W+7", "전주 집계 구간 + 7영업일 오프셋으로 정산일이 정해지면 해당 구간을 합산해 정산 실행 1건.", 32, true),
-            new BuiltInRow("W10", "W+10", "전주 집계 구간 + 10영업일 오프셋으로 정산일이 정해지면 해당 구간을 합산해 정산 실행 1건.", 33, true),
-            new BuiltInRow("W14", "W+14", "전주 집계 구간 + 14영업일 오프셋으로 정산일이 정해지면 해당 구간을 합산해 정산 실행 1건.", 34, true),
-            new BuiltInRow("WK1W", "WK+1W", "WK+1W → 마감 후 영업일 3일째", 40, true),
-            new BuiltInRow("WK2W", "WK+2W", "WK+2W → 격주 2주 마감 후 영업일 3일째", 41, true),
-            new BuiltInRow("WK1WT", "WK+1WT", "WK+1WT → 마감 후 영업일 10일째", 42, true),
-            new BuiltInRow("WK2WT", "WK+2WT", "WK+2WT → 격주 2주 마감 후 영업일 10일째", 43, true),
-            new BuiltInRow("WK1WM", "WK+1WM", "WK+1WM (WK1WM): 1주(월~일) 마감 후 영업일 30일째 정산", 44, true),
-            new BuiltInRow("WK2WM", "WK+2WM", "WK+2WM (WK2WM): 격주 2주 마감 후 영업일 30일째 정산", 45, true)
+            new BuiltInRow("", "선택", "주기 선택.", 0, true),
+            new BuiltInRow("NONE", "정산안함", "자동 배치 제외.", 1, true),
+            new BuiltInRow("RT", "실시간", "건별 1회.", 2, true),
+            new BuiltInRow("T0", "당일합산(승인 시 재집계)", "당일 합산 1행.", 3, true),
+            new BuiltInRow("M5", "5분 마감", "5분마다 1회.", 4, true),
+            new BuiltInRow("M10", "10분 마감", "10분마다 1회.", 5, true),
+            new BuiltInRow("M30", "30분 마감", "30분마다 1회.", 6, true),
+            new BuiltInRow("H1", "1시간(H1)", "1시간마다, 하루 24회.", 7, true),
+            new BuiltInRow("H2", "2시간(H2)", "2시간마다, 하루 12회.", 8, true),
+            new BuiltInRow("H4", "4시간(H4)", "4시간마다, 하루 6회.", 9, true),
+            new BuiltInRow("H6", "6시간(H6)", "6시간마다, 하루 4회.", 10, true),
+            new BuiltInRow("H8", "8시간(H8)", "8시간마다, 하루 3회.", 11, true),
+            new BuiltInRow("H12", "12시간(H12)", "12시간마다, 하루 2회.", 12, true),
+            new BuiltInRow("TM5", "당일합산·5분 격자", "당일 누적, 5분 격자.", 120, true),
+            new BuiltInRow("TM10", "당일합산·10분 격자", "당일 누적, 10분 격자.", 121, true),
+            new BuiltInRow("TM30", "당일합산·30분 격자", "당일 누적, 30분 격자.", 122, true),
+            new BuiltInRow("TH1", "당일합산·1시간 격자", "당일 누적, 1시간 격자.", 123, true),
+            new BuiltInRow("TH2", "당일합산·2시간 격자", "당일 누적, 2시간 격자.", 124, true),
+            new BuiltInRow("TH4", "당일합산·4시간 격자", "당일 누적, 4시간 격자.", 125, true),
+            new BuiltInRow("TH6", "당일합산·6시간 격자", "당일 누적, 6시간 격자.", 126, true),
+            new BuiltInRow("TH8", "당일합산·8시간 격자", "당일 누적, 8시간 격자.", 127, true),
+            new BuiltInRow("TH12", "당일합산·12시간 격자", "당일 누적, 12시간 격자.", 128, true),
+            new BuiltInRow("D0", "D+0", "하루 1회.", 13, true),
+            new BuiltInRow("D1", "D+1", "영업일+1, 하루 1회.", 14, true),
+            new BuiltInRow("D2", "D+2", "영업일+2, 하루 1회.", 15, true),
+            new BuiltInRow("D3", "D+3", "영업일+3, 하루 1회.", 16, true),
+            new BuiltInRow("D5", "D+5", "영업일+5, 하루 1회.", 17, true),
+            new BuiltInRow("D7", "D+7", "영업일+7, 하루 1회.", 18, true),
+            new BuiltInRow("D10", "D+10", "영업일+10, 하루 1회.", 19, true),
+            new BuiltInRow("D15", "D+15", "영업일+15, 하루 1회.", 20, true),
+            new BuiltInRow("D20", "D+20", "영업일+20, 하루 1회.", 21, true),
+            new BuiltInRow("D30", "D+30", "영업일+30, 하루 1회.", 22, true),
+            new BuiltInRow("W3", "W+3", "주 단위, 하루 1회.", 30, true),
+            new BuiltInRow("W5", "W+5", "주 단위, 하루 1회.", 31, true),
+            new BuiltInRow("W7", "W+7", "주 단위, 하루 1회.", 32, true),
+            new BuiltInRow("W10", "W+10", "주 단위, 하루 1회.", 33, true),
+            new BuiltInRow("W14", "W+14", "주 단위, 하루 1회.", 34, true),
+            new BuiltInRow("WK1W", "WK+1W", "주 마감 후 3영업일.", 40, true),
+            new BuiltInRow("WK2W", "WK+2W", "2주 마감 후 3영업일.", 41, true),
+            new BuiltInRow("WK1WT", "WK+1WT", "주 마감 후 10영업일.", 42, true),
+            new BuiltInRow("WK2WT", "WK+2WT", "2주 마감 후 10영업일.", 43, true),
+            new BuiltInRow("WK1WM", "WK+1WM", "주 마감 후 30영업일.", 44, true),
+            new BuiltInRow("WK2WM", "WK+2WM", "2주 마감 후 30영업일.", 45, true)
     );
 
     private static final Pattern P_D = Pattern.compile("^D(\\d{1,3})$", Pattern.CASE_INSENSITIVE);
@@ -209,6 +210,18 @@ public class HqSettlementCycleAdminService {
         return b != null ? b : "";
     }
 
+    /** RT·T0 제외: M/H·TM/TH 등 일중 격자 — {@link SettlementPeriodResolver#resolveAutoPeriodWindow} 가 null 인 코드 */
+    private static boolean isIntradaySchedulePreviewCode(String normalized) {
+        if (!StringUtils.hasText(normalized)) {
+            return false;
+        }
+        String n = SettlementPeriodResolver.normalizeCalcCycle(normalized);
+        if ("RT".equals(n) || "T0".equals(n)) {
+            return false;
+        }
+        return SettlementCycleTiming.isSubDailyScheduleCode(n);
+    }
+
     public Map<String, Long> autoMerchantCountByCycle() {
         Map<String, Long> map = new HashMap<>();
         for (Object[] row : settlementSettingRepository.countAutoMerchantsByCalcCycleNative()) {
@@ -237,14 +250,25 @@ public class HqSettlementCycleAdminService {
         List<Map<String, Object>> rows = new ArrayList<>();
         for (LocalDate d = f; !d.isAfter(t); d = d.plusDays(1)) {
             for (String code : codes) {
+                String norm = SettlementPeriodResolver.normalizeCalcCycle(code);
                 SettlementPeriodResolver.PeriodWindow w = SettlementPeriodResolver.resolveAutoPeriodWindow(code, d);
                 if (w != null) {
                     Map<String, Object> row = new LinkedHashMap<>();
                     row.put("settleDate", d.toString());
-                    row.put("cycleCode", code);
+                    row.put("cycleCode", norm);
                     row.put("periodFrom", w.fromDate().toString());
                     row.put("periodTo", w.toDate().toString());
-                    row.put("autoMerchantCount", cnt.getOrDefault(SettlementPeriodResolver.normalizeCalcCycle(code), 0L));
+                    row.put("periodNote", "");
+                    row.put("autoMerchantCount", cnt.getOrDefault(norm, 0L));
+                    rows.add(row);
+                } else if (isIntradaySchedulePreviewCode(norm)) {
+                    Map<String, Object> row = new LinkedHashMap<>();
+                    row.put("settleDate", d.toString());
+                    row.put("cycleCode", norm);
+                    row.put("periodFrom", d.toString());
+                    row.put("periodTo", d.toString());
+                    row.put("periodNote", "일중 격자·당일 자동.");
+                    row.put("autoMerchantCount", cnt.getOrDefault(norm, 0L));
                     rows.add(row);
                 }
             }

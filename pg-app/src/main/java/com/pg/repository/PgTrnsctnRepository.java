@@ -26,9 +26,11 @@ public interface PgTrnsctnRepository extends JpaRepository<PgTrnsctn, String>, J
     /** URL 인라인 DirectCredit 직후 적재(origin=URL) 등 — ChillPay RESULT URL(orderNo·transNo) 역추적 */
     Optional<PgTrnsctn> findFirstByOrderNoAndOriginOrderByCreatedAtDesc(String orderNo, String origin);
 
+    /** 정산·수수료 집계: 결제일시 = COALESCE(paidAt, createdAt) — 리포트 {@link #findForReportRange} 와 동일 기준 */
     @Query("SELECT t FROM PgTrnsctn t WHERE " +
            "(:merchantId IS NULL OR :merchantId = '' OR t.merchantId = :merchantId) " +
-           "AND t.createdAt >= :fromDt AND t.createdAt <= :toDt ORDER BY t.createdAt ASC")
+           "AND COALESCE(t.paidAt, t.createdAt) >= :fromDt AND COALESCE(t.paidAt, t.createdAt) <= :toDt " +
+           "ORDER BY COALESCE(t.paidAt, t.createdAt) ASC")
     List<PgTrnsctn> findForSettlement(@Param("merchantId") String merchantId,
                                       @Param("fromDt") LocalDateTime fromDt,
                                       @Param("toDt") LocalDateTime toDt);

@@ -12,6 +12,7 @@ import com.pg.repository.SettlementSettingRepository;
 import com.pg.service.AuthService;
 import com.pg.service.HqSettlementCycleAdminService;
 import com.pg.service.MasterDistSettlementCycleConfigService;
+import com.pg.service.SettlementCalcCycleTransitionService;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -38,17 +39,20 @@ public class ApiHqSettlementController {
     private final AuthService authService;
     private final OrgUnitRepository orgUnitRepository;
     private final SettlementSettingRepository settlementSettingRepository;
+    private final SettlementCalcCycleTransitionService settlementCalcCycleTransitionService;
 
     public ApiHqSettlementController(HqSettlementCycleAdminService hqSettlementCycleAdminService,
                                      MasterDistSettlementCycleConfigService masterDistSettlementCycleConfigService,
                                      AuthService authService,
                                      OrgUnitRepository orgUnitRepository,
-                                     SettlementSettingRepository settlementSettingRepository) {
+                                     SettlementSettingRepository settlementSettingRepository,
+                                     SettlementCalcCycleTransitionService settlementCalcCycleTransitionService) {
         this.hqSettlementCycleAdminService = hqSettlementCycleAdminService;
         this.masterDistSettlementCycleConfigService = masterDistSettlementCycleConfigService;
         this.authService = authService;
         this.orgUnitRepository = orgUnitRepository;
         this.settlementSettingRepository = settlementSettingRepository;
+        this.settlementCalcCycleTransitionService = settlementCalcCycleTransitionService;
     }
 
     private boolean canManageSettlementSettings(Authentication auth) {
@@ -209,6 +213,19 @@ public class ApiHqSettlementController {
     @GetMapping("/merchantAutoCounts")
     public ResponseEntity<ApiResponse<Map<String, Long>>> merchantAutoCounts() {
         return ResponseEntity.ok(ApiResponse.ok(hqSettlementCycleAdminService.autoMerchantCountByCycle()));
+    }
+
+    /** 가맹 정산주기 변경 이력(즉시 적용·다음 정산 후·예약 적용 완료) */
+    @GetMapping("/calcCycleChangeHistory")
+    public ResponseEntity<ApiResponse<List<Map<String, Object>>>> calcCycleChangeHistory(
+            @RequestParam(required = false) String merchantCode,
+            @RequestParam(required = false, defaultValue = "100") Integer limit) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (!canManageSettlementSettings(auth)) {
+            return ResponseEntity.ok(ApiResponse.fail("총본사(HEADQUARTERS) 또는 시스템 관리자만 조회할 수 있습니다.", "FORBIDDEN"));
+        }
+        return ResponseEntity.ok(ApiResponse.ok(
+                settlementCalcCycleTransitionService.listHistory(merchantCode, limit != null ? limit : 100)));
     }
 
     /**

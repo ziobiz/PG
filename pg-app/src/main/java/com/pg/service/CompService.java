@@ -35,6 +35,8 @@ import com.pg.util.PercentDecimalHelper;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -89,6 +91,7 @@ public class CompService {
     private final PayFollowPolicyService payFollowPolicyService;
     private final HqNotifyTargetService hqNotifyTargetService;
     private final MasterDistSettlementCycleConfigService masterDistSettlementCycleConfigService;
+    private final SettlementCalcCycleTransitionService settlementCalcCycleTransitionService;
 
     private static LocalTime parseTime(String s) {
         if (s == null || s.trim().isEmpty()) return null;
@@ -98,6 +101,28 @@ public class CompService {
             if (t.matches("\\d{1,2}:\\d{2}:\\d{2}")) return LocalTime.parse(t, DateTimeFormatter.ofPattern("H:mm:ss"));
             return LocalTime.parse(t);
         } catch (DateTimeParseException e) { return null; }
+    }
+
+    /**
+     * 가맹 정산설정: 마감·개시 시각 반영. RT는 둘 다 비움.
+     * 수동이거나 D0·실시간·분·시 격자(TM/TH 포함) 주기는 정산개시시간을 저장하지 않는다.
+     */
+    private void applyMerchantSettlementCloseStartFromForm(SettlementSetting ss, String calcCloseTime, String calcStartTime) {
+        String norm = SettlementPeriodResolver.normalizeCalcCycle(ss.getCalcCycle());
+        if (SettlementCycleTiming.isRtPerTransactionCode(norm)) {
+            ss.setCalcCloseTime(null);
+            ss.setCalcStartTime(null);
+            return;
+        }
+        if (parseTime(calcCloseTime) != null) {
+            ss.setCalcCloseTime(parseTime(calcCloseTime));
+        }
+        String proc = ss.getCalcProcType() != null ? ss.getCalcProcType().trim() : "";
+        if ("MANUAL".equalsIgnoreCase(proc) || !SettlementCycleTiming.isCalcStartTimeApplicableForAuto(norm)) {
+            ss.setCalcStartTime(null);
+        } else if (parseTime(calcStartTime) != null) {
+            ss.setCalcStartTime(parseTime(calcStartTime));
+        }
     }
 
     /**
@@ -378,7 +403,8 @@ public class CompService {
                        OrgUnitChangeAuditService orgUnitChangeAuditService,
                        PayFollowPolicyService payFollowPolicyService,
                        HqNotifyTargetService hqNotifyTargetService,
-                       MasterDistSettlementCycleConfigService masterDistSettlementCycleConfigService) {
+                       MasterDistSettlementCycleConfigService masterDistSettlementCycleConfigService,
+                       SettlementCalcCycleTransitionService settlementCalcCycleTransitionService) {
         this.orgUnitRepository = orgUnitRepository;
         this.merchantProfileRepository = merchantProfileRepository;
         this.settlementSettingRepository = settlementSettingRepository;
@@ -397,6 +423,15 @@ public class CompService {
         this.payFollowPolicyService = payFollowPolicyService;
         this.hqNotifyTargetService = hqNotifyTargetService;
         this.masterDistSettlementCycleConfigService = masterDistSettlementCycleConfigService;
+        this.settlementCalcCycleTransitionService = settlementCalcCycleTransitionService;
+    }
+
+    private static String resolveActorUsernameFallback() {
+        Authentication a = SecurityContextHolder.getContext().getAuthentication();
+        if (a != null && a.getPrincipal() instanceof AppUser u) {
+            return u.getUsername() != null ? u.getUsername().trim() : "";
+        }
+        return "";
     }
 
     /** 요청값이 있을 때만 가맹점 결제 후속조치 플래그 반영 후 MERCHANT 단계 상한으로 클램프. */
@@ -1114,8 +1149,16 @@ public class CompService {
                             settlementSettingRepository.findByOrgUnitId(ou.getId()).ifPresent(ss -> {
                                 if (ou.getOrgLevel() == OrgLevel.MERCHANT) {
                                     m.put("calcCycle", ss.getCalcCycle());
+                                    m.put("pendingCalcCycle", ss.getPendingCalcCycle());
+                                    m.put("pendingCalcCycleAt", ss.getPendingCalcCycleAt() != null ? ss.getPendingCalcCycleAt().toString() : null);
+                                    String pend = ss.getPendingCalcCycle();
+                                    m.put("calcCycleTransitionMode",
+                                            (pend != null && !pend.isBlank()) ? "NEXT_AFTER_RUN" : "IMMEDIATE");
                                 } else {
                                     m.put("calcCycle", null);
+                                    m.put("pendingCalcCycle", null);
+                                    m.put("pendingCalcCycleAt", null);
+                                    m.put("calcCycleTransitionMode", "IMMEDIATE");
                                 }
                                 m.put("calcProcType", ss.getCalcProcType());
                                 m.put("transferType", ss.getTransferType());
@@ -1137,7 +1180,13 @@ public class CompService {
                                 m.put("payHoldYn", ss.getPayHoldYn());
                                 m.put("calcExcludeYn", ss.getCalcExcludeYn());
                                 m.put("calcExcludeTarget", ss.getCalcExcludeTarget());
-                                m.put("calcStartTime", ss.getCalcStartTime() != null ? ss.getCalcStartTime().toString() : null);
+                                String normSt = SettlementPeriodResolver.normalizeCalcCycle(ss.getCalcCycle());
+                                String procSt = ss.getCalcProcType() != null ? ss.getCalcProcType().trim() : "";
+                                if ("MANUAL".equalsIgnoreCase(procSt) || !SettlementCycleTiming.isCalcStartTimeApplicableForAuto(normSt)) {
+                                    m.put("calcStartTime", null);
+                                } else {
+                                    m.put("calcStartTime", ss.getCalcStartTime() != null ? ss.getCalcStartTime().toString() : null);
+                                }
                                 m.put("feeVatApplyYn", ss.getFeeVatApplyYn());
                                 m.put("feeVatRatePct", ss.getFeeVatRatePct() != null ? ss.getFeeVatRatePct().stripTrailingZeros().toPlainString() : null);
                             });
@@ -2009,13 +2058,8 @@ public class CompService {
             }
             if (holdDays != null) ss.setHoldDays(holdDays);
         }
-        if (childLevel == OrgLevel.MERCHANT
-                && SettlementCycleTiming.isRtPerTransactionCode(SettlementPeriodResolver.normalizeCalcCycle(ss.getCalcCycle()))) {
-            ss.setCalcCloseTime(null);
-            ss.setCalcStartTime(null);
-        } else {
-            if (parseTime(calcCloseTime) != null) ss.setCalcCloseTime(parseTime(calcCloseTime));
-            if (parseTime(calcStartTime) != null) ss.setCalcStartTime(parseTime(calcStartTime));
+        if (childLevel == OrgLevel.MERCHANT) {
+            applyMerchantSettlementCloseStartFromForm(ss, calcCloseTime, calcStartTime);
         }
         if (transferCycleDays != null) ss.setTransferCycleDays(transferCycleDays);
         if (autoTransferMin != null && !autoTransferMin.isEmpty()) try { ss.setAutoTransferMin(new BigDecimal(autoTransferMin.trim())); } catch (Exception ignored) {}
@@ -2413,10 +2457,31 @@ public class CompService {
                             m.put("holdRate", ss.getHoldRate() != null ? PercentDecimalHelper.toPlainOneDecimal(ss.getHoldRate()) : null);
                             m.put("holdDays", ss.getHoldDays());
                             m.put("calcCycle", ou.getOrgLevel() == OrgLevel.MERCHANT ? ss.getCalcCycle() : null);
+                            if (ou.getOrgLevel() == OrgLevel.MERCHANT) {
+                                m.put("pendingCalcCycle", ss.getPendingCalcCycle());
+                                m.put("pendingCalcCycleAt", ss.getPendingCalcCycleAt() != null ? ss.getPendingCalcCycleAt().toString() : null);
+                                String pend = ss.getPendingCalcCycle();
+                                m.put("calcCycleTransitionMode",
+                                        (pend != null && !pend.isBlank()) ? "NEXT_AFTER_RUN" : "IMMEDIATE");
+                            } else {
+                                m.put("pendingCalcCycle", null);
+                                m.put("pendingCalcCycleAt", null);
+                                m.put("calcCycleTransitionMode", "IMMEDIATE");
+                            }
                             m.put("calcProcType", ss.getCalcProcType());
                             m.put("transferType", ss.getTransferType());
                             m.put("calcCloseTime", ss.getCalcCloseTime() != null ? ss.getCalcCloseTime().toString() : null);
-                            m.put("calcStartTime", ss.getCalcStartTime() != null ? ss.getCalcStartTime().toString() : null);
+                            if (ou.getOrgLevel() == OrgLevel.MERCHANT) {
+                                String normGs = SettlementPeriodResolver.normalizeCalcCycle(ss.getCalcCycle());
+                                String procGs = ss.getCalcProcType() != null ? ss.getCalcProcType().trim() : "";
+                                if ("MANUAL".equalsIgnoreCase(procGs) || !SettlementCycleTiming.isCalcStartTimeApplicableForAuto(normGs)) {
+                                    m.put("calcStartTime", null);
+                                } else {
+                                    m.put("calcStartTime", ss.getCalcStartTime() != null ? ss.getCalcStartTime().toString() : null);
+                                }
+                            } else {
+                                m.put("calcStartTime", ss.getCalcStartTime() != null ? ss.getCalcStartTime().toString() : null);
+                            }
                             m.put("transferExecTime", ss.getTransferExecTime() != null ? ss.getTransferExecTime().toString() : null);
                             m.put("autoTransferMin", ss.getAutoTransferMin());
                             m.put("calcMinAmt", ss.getCalcMinAmt());
@@ -2438,7 +2503,9 @@ public class CompService {
                                          String calcProcType, String transferType, String autoTransferMin, String payHoldYn,
                                          String calcExcludeYn, String calcExcludeTarget,
                                          String calcMinAmt, String transferExecTime,
-                                         String feeVatApplyYn, String feeVatRatePct) {
+                                         String feeVatApplyYn, String feeVatRatePct,
+                                         String calcCycleTransitionMode, String calcCycleChangeRemark,
+                                         String actorUsername) {
         return orgUnitRepository.findByCode(compId != null ? compId : "")
                 .flatMap(ou -> settlementSettingRepository.findByOrgUnitId(ou.getId())
                         .map(ss -> {
@@ -2460,19 +2527,36 @@ public class CompService {
                                 if (calcCycle != null && !calcCycle.isEmpty()) {
                                     masterDistSettlementCycleConfigService.validateMerchantCalcCycle(
                                             ou.getId(), calcCycle);
-                                    ss.setCalcCycle(SettlementPeriodResolver.normalizeCalcCycle(calcCycle.trim()));
+                                    String newNorm = SettlementPeriodResolver.normalizeCalcCycle(calcCycle.trim());
+                                    String oldNorm = ss.getCalcCycle() != null
+                                            ? SettlementPeriodResolver.normalizeCalcCycle(ss.getCalcCycle().trim())
+                                            : "";
+                                    boolean cycleChanged = !newNorm.equals(oldNorm);
+                                    String modeRaw = calcCycleTransitionMode != null ? calcCycleTransitionMode.trim() : "";
+                                    String mode = "NEXT_AFTER_RUN".equalsIgnoreCase(modeRaw)
+                                            ? SettlementCalcCycleTransitionService.MODE_NEXT_AFTER_RUN
+                                            : SettlementCalcCycleTransitionService.MODE_IMMEDIATE;
+                                    String actor = (actorUsername != null && !actorUsername.isBlank())
+                                            ? actorUsername.trim()
+                                            : resolveActorUsernameFallback();
+                                    String remark = calcCycleChangeRemark != null ? calcCycleChangeRemark.trim() : "";
+                                    if (cycleChanged) {
+                                        if (SettlementCalcCycleTransitionService.MODE_NEXT_AFTER_RUN.equals(mode)) {
+                                            ss.setPendingCalcCycle(newNorm);
+                                            ss.setPendingCalcCycleAt(LocalDateTime.now());
+                                            settlementCalcCycleTransitionService.logChange(ou, oldNorm, newNorm, mode, remark, actor);
+                                        } else {
+                                            ss.setCalcCycle(newNorm);
+                                            ss.setPendingCalcCycle(null);
+                                            ss.setPendingCalcCycleAt(null);
+                                            settlementCalcCycleTransitionService.logChange(ou, oldNorm, newNorm, mode, remark, actor);
+                                        }
+                                    }
                                 }
                             } else {
                                 ss.setCalcCycle(null);
-                            }
-                            if (ou.getOrgLevel() == OrgLevel.MERCHANT
-                                    && SettlementCycleTiming.isRtPerTransactionCode(
-                                            SettlementPeriodResolver.normalizeCalcCycle(ss.getCalcCycle()))) {
-                                ss.setCalcCloseTime(null);
-                                ss.setCalcStartTime(null);
-                            } else {
-                                if (parseTime(calcCloseTime) != null) ss.setCalcCloseTime(parseTime(calcCloseTime));
-                                if (parseTime(calcStartTime) != null) ss.setCalcStartTime(parseTime(calcStartTime));
+                                ss.setPendingCalcCycle(null);
+                                ss.setPendingCalcCycleAt(null);
                             }
                             if (transferCycleDays != null) ss.setTransferCycleDays(transferCycleDays);
                             if (calcProcType != null && !calcProcType.isEmpty()) ss.setCalcProcType(calcProcType.trim());
@@ -2503,6 +2587,7 @@ public class CompService {
                                         ss.setCalcProcType("AUTO");
                                     }
                                 }
+                                applyMerchantSettlementCloseStartFromForm(ss, calcCloseTime, calcStartTime);
                             }
                             settlementSettingRepository.save(ss);
                             SettlementAuditSnap afterSnap = SettlementAuditSnap.of(ss, ou.getOrgLevel());
@@ -2938,12 +3023,14 @@ public class CompService {
             m.put("transferCycleHours", ss.getTransferCycleDays() != null ? String.valueOf(ss.getTransferCycleDays()) : "-");
             m.put("calcExcludeYn", ss.getCalcExcludeYn() != null ? ss.getCalcExcludeYn() : "-");
             m.put("calcExcludeTarget", calcExcludeTargetToDisplay(ss.getCalcExcludeTarget()));
-            if (o.getOrgLevel() == OrgLevel.MERCHANT
-                    && SettlementCycleTiming.isRtPerTransactionCode(
-                            SettlementPeriodResolver.normalizeCalcCycle(ss.getCalcCycle()))) {
-                m.put("calcStartTime", "즉시");
-            } else {
-                m.put("calcStartTime", ss.getCalcStartTime() != null ? ss.getCalcStartTime().toString() : "-");
+            if (o.getOrgLevel() == OrgLevel.MERCHANT) {
+                String norm = SettlementPeriodResolver.normalizeCalcCycle(ss.getCalcCycle());
+                String proc = ss.getCalcProcType() != null ? ss.getCalcProcType().trim() : "";
+                if ("MANUAL".equalsIgnoreCase(proc) || !SettlementCycleTiming.isCalcStartTimeApplicableForAuto(norm)) {
+                    m.put("calcStartTime", "-");
+                } else {
+                    m.put("calcStartTime", ss.getCalcStartTime() != null ? ss.getCalcStartTime().toString() : "-");
+                }
             }
             m.put("payHoldYn", payHoldYnToDisplay(ss.getPayHoldYn()));
         });

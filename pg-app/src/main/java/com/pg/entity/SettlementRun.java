@@ -59,7 +59,7 @@ public class SettlementRun {
     private BigDecimal rollingReserveAmt = BigDecimal.ZERO;
 
     /**
-     * 지급액(정산 직후·환수/미수금 차감 전 원칙): 순매출 − 공제수수료 − 수수료부가세 − 롤링보류(신규) + 만기 담보 환급.
+     * 지급액(정산 직후·환수/미수금 차감 전 원칙): 순매출 − 수수료(공제) − 수수료부가세 − 담보금(롤링보류 신규) + 만기 담보 환급.
      * 수수료·담보가 순매출을 초과하면 음수가 될 수 있으며 0으로 끌어올리지 않습니다.
      * 그 경우 {@link com.pg.service.settlement.SettlementArrearsService} 가 동액을 미수금으로 등록하고,
      * 이후 정산에서는 환수금 FIFO 후 미수금 FIFO로 차감합니다(가맹 환수모드 MANUAL이면 「환수처리」 후 차기 마감에서 차감).
@@ -83,6 +83,13 @@ public class SettlementRun {
 
     @Column(name = "payout_hold_remark", length = 800)
     private String payoutHoldRemark;
+
+    /**
+     * 정산결과(배포 게이트): PENDING=가맹점정산내역 미반영, DISTRIBUTED=반영(가맹·유통·확정리포트 대상),
+     * HOLD=정산대기(홀딩·가맹 내역 제외).
+     */
+    @Column(name = "settlement_publish_sts", nullable = false, length = 20)
+    private String settlementPublishSts = "PENDING";
 
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
@@ -147,6 +154,10 @@ public class SettlementRun {
     public void setPayoutHoldYn(String payoutHoldYn) { this.payoutHoldYn = payoutHoldYn; }
     public String getPayoutHoldRemark() { return payoutHoldRemark; }
     public void setPayoutHoldRemark(String payoutHoldRemark) { this.payoutHoldRemark = payoutHoldRemark; }
+    public String getSettlementPublishSts() { return settlementPublishSts; }
+    public void setSettlementPublishSts(String settlementPublishSts) {
+        this.settlementPublishSts = settlementPublishSts != null ? settlementPublishSts : "PENDING";
+    }
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
 }

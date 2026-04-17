@@ -1,5 +1,6 @@
 package com.pg.service.settlement;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.Locale;
@@ -87,6 +88,68 @@ public final class SettlementCycleTiming {
             return "H" + c.substring(2);
         }
         return c;
+    }
+
+    /**
+     * 자동 정산에서 「정산개시시간」이 의미를 갖는 주기인지.
+     * RT·T0·M/H 격자·TM/TH 격자·D0 는 격자·노티·당일 배치 규칙으로 실행되므로 개시시간을 쓰지 않는다(D1+·W·WK 만 적용).
+     * 달력 자동 배치는 {@link com.pg.service.settlement.SettlementAutoRunService} 에서 마감시각 다음에,
+     * 이 메서드가 true일 때만 개시시각을 추가로 검사한다.
+     */
+    public static boolean isCalcStartTimeApplicableForAuto(String normalized) {
+        if (normalized == null || normalized.isBlank()) {
+            return false;
+        }
+        String c = normalize(normalized);
+        if ("NONE".equals(c)) {
+            return false;
+        }
+        if (isRealtimeCode(c)) {
+            return false;
+        }
+        if ("D0".equals(c)) {
+            return false;
+        }
+        return !isSubDailyScheduleCode(c);
+    }
+
+    /**
+     * 수동 정산: M5·H1·TM5 등 격자(분·시) 주기는 당일 현재 시각이 직전 격자 구간을 넘긴 뒤에만 실행 허용.
+     * (예: H1은 정각 이후, 00:39에는 불가.) 과거 정산일(runTo 가 오늘이 아님)은 통과.
+     */
+    public static boolean isManualIntradayGridSlotElapsed(LocalTime nowSeoul,
+                                                          LocalDate calcDt,
+                                                          LocalDate todaySeoul,
+                                                          String normalized) {
+        if (nowSeoul == null || calcDt == null || todaySeoul == null) {
+            return true;
+        }
+        String c = normalize(normalized);
+        if (isRtPerTransactionCode(c)) {
+            return true;
+        }
+        if (!calcDt.equals(todaySeoul)) {
+            return true;
+        }
+        String g = toPlainGridClosingCode(c);
+        Integer sm = MINUTE_GRID_STEP.get(g);
+        int stepMin;
+        if (sm != null) {
+            stepMin = sm;
+        } else {
+            Integer hb = HOUR_BLOCK_MOD.get(g);
+            if (hb == null) {
+                /* T0·D1+ 등 분·시 격자가 아님 */
+                return true;
+            }
+            stepMin = hb * 60;
+        }
+        int nowMin = nowSeoul.getHour() * 60 + nowSeoul.getMinute();
+        int ceiled = ((nowMin + stepMin - 1) / stepMin) * stepMin;
+        if (ceiled == 0) {
+            ceiled = stepMin;
+        }
+        return nowMin >= ceiled;
     }
 
     /** N분·N시간 마감(M·H 및 동일 격자의 TM·TH) — 매분 크론에서 격자 정각에만 실행 */

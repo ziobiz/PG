@@ -296,18 +296,13 @@
   var HQ_SETTLEMENT_ADMIN_HTML = ''
     + '<div class="hq-settlement-admin">'
     + '<div class="card mb-3"><div class="card-header fw-semibold">정산관리 안내</div><div class="card-body small">'
-    + '<p class="mb-2">정산실행(배치·수동)은 가맹 <strong>정산주기·정산구분 AUTO·마감시간</strong>과 동일 규칙을 사용합니다. 자동 배치 크론은 기본 <strong>매분</strong>(<code>app.settlement.autoRunCron</code>)이며, H1·H2·H4·H6·H8·H12 등 <strong>시간 마감</strong> 격자의 정각(HH:00)을 맞추기 위함입니다. 아래 <strong>정산일정 미리보기</strong>는 각 정산주기 코드가 어느 <strong>달력일(정산일)</strong>에 실행되는지와 그때의 <strong>집계 기간(from~to)</strong>을 보여 줍니다. <strong>자동가맹</strong> 열은 해당 주기로 <strong>자동 정산</strong>이 설정된 가맹점 수입니다.</p>'
-    + '<ul class="mb-0 ps-3"><li><strong>D+N</strong>: <strong>정산일·자동실행은 달력 당일</strong> 기준(정산마감 이후·당일 새벽 배치)이며, <strong>집계 기준일</strong> 하루는 정산일에서 N을 <strong>역산</strong>해 정합니다. <strong>D1~D30</strong>은 N이 <strong>영업일</strong>(주말 제외), <strong>D31~D90</strong>은 <strong>달력일</strong> 역산입니다. D0은 집계·정산일이 같은 당일이며, <strong>자동 배치는 당일 00:00~23:50(서울)</strong> 구간에서만 실행됩니다(마감시간이 있으면 그 이후~23:50). ‘하루 전’이 아니라 <strong>당일 정산 + 집계 기준일</strong> 관계입니다. (N=0~90, 저장 시 + 생략) 집계 구간은 <strong>합산 1건</strong>의 정산 실행으로 마감합니다.</li>'
-    + '<li><strong>W+N</strong>: 직전 주(월~일)를 한 구간으로 묶고, 그 주가 끝난 뒤 <strong>N영업일째</strong> 되는 날이 정산일일 때 실행됩니다. (N=1~28) 집계 구간은 <strong>합산 1건</strong>으로 마감합니다.</li>'
-    + '<li><strong>WK 계열</strong> — 집계 구간은 <strong>합산 1건</strong>입니다. 정산일은 마감 다음날부터 세는 <strong>영업일</strong> 기준이며(주말 제외·공휴일 집합은 현재 비어 있음), 그날이 비영업일이면 다음 영업일로 맞춥니다.<br>'
-    + '<span class="text-body">WK+1W</span> → 마감 후 영업일 3일째. <span class="text-body">WK+1WT</span> → 마감 후 영업일 10일째.<br>'
-    + '<span class="text-body">WK+2W</span> → 격주 2주 마감 후 영업일 3일째. <span class="text-body">WK+2WT</span> → 격주 2주 마감 후 영업일 10일째.<br>'
-    + '<span class="text-body">WK+1WM</span> (저장 WK1WM): 1주(월~일) 마감 후 영업일 30일째 정산. '
-    + '<span class="text-body">WK+2WM</span> (저장 WK2WM): 격주 2주 마감 후 영업일 30일째 정산.</li>'
-    + '<li><strong>RT</strong>: 정산구분 AUTO이면 <strong>승인 노티마다</strong> 해당 건만 집계한 정산 실행 1건(건당 마감). <strong>T0</strong>: 승인 노티마다 <strong>당일 00:00~현재</strong> 전체를 재집계해 당일 행 1건으로 갱신.</li>'
-    + '<li><strong>TM5·TM10·TM30·TH1·…·TH12</strong>: M/H와 <strong>같은 격자 시각</strong>에 배치되나, <strong>T0와 같이</strong> 당일 0시~현재 전체를 재집계해 당일 행 <strong>1건</strong>(TM05 저장값은 TM5로 통일).</li>'
-    + '<li><strong>M5·M10·M30</strong>: N분 <strong>격자</strong> 정각마다 <strong>직전 N분</strong> 구간의 거래를 합산해 정산 실행 <strong>1건</strong>(RT로 이미 정산된 승인은 제외).</li>'
-    + '<li><strong>H1·H2·H4·H6·H8·H12</strong>: N시간 격자 정각(HH:00)마다 <strong>직전 N시간</strong> 구간을 합산해 정산 실행 1건. 구 1D·2D·4D·6D·8D·12D 저장값은 서버에서 H 코드로 처리합니다.</li></ul>'
+    + '<p class="mb-2">배치·수동 정산은 가맹 <strong>정산주기·AUTO·마감</strong>과 동일합니다. 표는 <strong>정산일</strong>과 <strong>집계기간(from~to)</strong>, <strong>자동가맹</strong> 수 요약입니다.</p>'
+    + '<ul class="mb-0 ps-3">'
+    + '<li><strong>D+N · W+N</strong>: 일·주 단위, 실행마다 <strong>1건</strong>.</li>'
+    + '<li><strong>WK</strong>: 주(또는 격주) 마감 뒤 <strong>영업일 3·10·30일째</strong> 등, <strong>1건</strong>.</li>'
+    + '<li><strong>RT</strong>: <strong>건별</strong>. <strong>T0 · TM · TH</strong>: <strong>당일 합산</strong> 갱신.</li>'
+    + '<li><strong>M5·M10·M30</strong>: <strong>분마다</strong>. <strong>H1~H12</strong>: <strong>시간마다</strong>(예: H1 하루 24회).</li>'
+    + '</ul>'
     + '</div></div>'
     + '<div class="card mb-3"><div class="card-header fw-semibold">총판별 가맹 정산주기 (최대 10건·대표)</div><div class="card-body">'
     + '<p class="small text-muted mb-3">총판(MASTER_DIST)마다 가맹점 등록 시 선택 가능한 정산주기를 최대 10개까지 지정합니다(2개·5개처럼 일부만 채워도 됩니다). <strong>서로 다른 주기는 최소 2개</strong> 필요하며, <strong>대표</strong>는 신규 가맹 시 셀렉트 기본값입니다. 아래 슬롯 셀렉트는 본사 <strong>표준 병합 전체</strong>(미사용 N 포함)이며, <strong>코드·행 순서</strong>는 위 정산주기관리의 <strong>표준 주기(시스템)</strong>·DB등록 표와 동일합니다. 미설정 총판이거나 상위에 총판이 없으면 가맹 화면은 기존처럼 <strong>사용(Y)만</strong> 노출됩니다.</p>'
@@ -340,7 +335,19 @@
     + '<div class="col-6 col-md-2"><label class="form-label small mb-0">시작일</label><input type="date" id="hqStFrom" class="form-control form-control-sm"></div>'
     + '<div class="col-6 col-md-2"><label class="form-label small mb-0">종료일</label><input type="date" id="hqStTo" class="form-control form-control-sm"></div>'
     + '<div class="col-6 col-md-2 d-grid"><button type="button" class="btn btn-outline-primary btn-sm" id="hqStSchedBtn">조회</button></div></div>'
-    + '<div class="table-responsive table-no-col-resize-wrap"><table class="table table-sm table-bordered align-middle mb-0 table-no-col-resize"><thead class="table-light"><tr><th>정산일</th><th>주기</th><th>대상 from</th><th>대상 to</th><th class="text-end">자동가맹</th></tr></thead><tbody id="hqStSchedTbody"></tbody></table></div>'
+    + '<div class="table-responsive table-no-col-resize-wrap"><table class="table table-sm table-bordered align-middle mb-0 table-no-col-resize"><thead class="table-light"><tr><th>정산일</th><th>주기</th><th>대상 from</th><th>대상 to</th><th>비고</th><th class="text-end">자동가맹</th></tr></thead><tbody id="hqStSchedTbody"></tbody></table></div>'
+    + '<p class="small text-muted mb-0 mt-2">일중(M·H·TM·TH)는 당일 행·비고는 요약입니다. 상세는 서버 집계 규칙과 동일합니다.</p>'
+    + '</div></div>'
+    + '<div class="card mb-3"><div class="card-header fw-semibold d-flex flex-wrap align-items-center justify-content-between gap-2">'
+    + '<span>가맹 정산주기 변경 이력</span>'
+    + '<div class="d-flex flex-wrap align-items-end gap-2">'
+    + '<div><label class="form-label small mb-0" for="hqStHistMerch">가맹점</label>'
+    + '<select id="hqStHistMerch" class="form-select form-select-sm" style="min-width:12rem;max-width:32rem">'
+    + '<option value="">전체 (업체 미선택)</option></select></div>'
+    + '<button type="button" class="btn btn-outline-secondary btn-sm" id="hqStHistBtn">조회</button></div></div>'
+    + '<div class="card-body p-0">'
+    + '<div class="table-responsive table-no-col-resize-wrap"><table class="table table-sm table-bordered align-middle mb-0 table-no-col-resize">'
+    + '<thead class="table-light"><tr><th class="text-nowrap">일시</th><th class="text-nowrap">가맹점 (업체번호 / 이름)</th><th>이전</th><th>변경</th><th>방식</th><th>작업자</th><th>비고</th></tr></thead><tbody id="hqStHistTbody"><tr><td colspan="7" class="text-muted text-center">조회 중…</td></tr></tbody></table></div>'
     + '</div></div>'
     + '</div>';
 
@@ -382,7 +389,12 @@
     { v: 'EVE_HOLIDAY_18', t: '공휴일 전날 18시 이후' },
     { v: 'NONE', t: '미사용' }
   ];
-  var CALC_METHOD_MERCHANT_NOTICE = '가맹점의 상위 조직에 총판이 있고 [본사설정 > 정산관리설정]에서 해당 총판별 허용 정산주기(최대 5)와 대표 주기를 지정한 경우, 상위를 선택하면 정산주기 셀렉트가 그 범위로 바뀌고 대표 주기가 기본 선택됩니다(미설정 총판·본사 직속 등은 기존처럼 사용(Y) 주기 전체). 정산주기는 가맹점 전용입니다. 정산안함: 정산 배치로 정산금을 쌓지 않습니다(이미 NONE으로 결제된 건은 주기 변경 후에도 정산금 미적립). RT: 승인 노티마다 해당 건만 집계한 정산 실행 1건(건당). T0: 승인 노티마다 당일 00:00~현재 전체 재집계(당일 1행). TM5·TM10·TM30·TH1·TH2·TH4·TH6·TH8·TH12: M/H와 같은 격자 시각에 배치되나 T0처럼 당일 0시~현재 합산 1행 재집계. M5·M10·M30·H1·H2·H4·H6·H8·H12: 격자마다 직전 구간을 합산해 정산 실행 1건(구 1D~12D는 H와 동일). D+N·W·WK: 정산일에 정해진 집계 구간을 합산해 정산 실행 1건. WK: WK+1W는 마감 후 영업일 3일째, WK+1WT는 10일째, WK+2W는 격주 2주 마감 후 3일째, WK+2WT는 격주 2주 마감 후 10일째, WK+1WM(WK1WM)은 1주(월~일) 마감 후 30일째, WK+2WM(WK2WM)은 격주 2주 마감 후 30일째 정산(주말 제외·그날 비영업이면 다음 영업일). D+N: 정산일(달력 당일) 기준으로 정산마감·설정 시각 이후에 집계하며, 집계 기준일은 정산일에서 N(영업일·달력일 규칙)을 역산한 하루입니다. D+0 자동은 당일 00:00~23:50(서울)만 실행됩니다. 정산마감·정산자동개시·이체시간은 D+·이체 연동 시 사용합니다. 이체및송금: 수동(정산이체 화면), 자동(이체주기 분마다 자동이체최소+이체수수료 합 이상이면 출금, 수동 병행 가능), 자동(수동불가), 임의출금(다중출금), 사용안함(해당 업체는 정산실행 등으로만 정산금 처리). 이체주기(분)는 자동·자동(수동불가)에만 적용되며 미수금이면 출금하지 않습니다. 지급보류: 보류 시 정산은 주기대로, 출금만 제한. 정산제외: 당일(D+0) 계열에서 주말·공휴일·수단별 제외·익영업일 개시시간을 쓸 수 있으며, D+1~3은 영업일 정산만(제외 설정 미적용).';
+  var CALC_METHOD_MERCHANT_NOTICE = '총판이 허용·대표 주기를 쓰면 가맹 정산주기 셀렉트가 그 범위로 바뀝니다. '
+    + '정산안함: 배치 적립 없음. '
+    + 'RT·건별 / T0·TM·TH·당일합산 / M5·M10·M30·분마다 / H1~H12·시간마다 / D·W·WK·실행마다 1건. '
+    + 'D0 자동: 당일 23:50(서울)까지. '
+    + '이체및송금: 수동·자동·자동(수동불가)·임의출금·사용안함. 이체주기(분)는 자동 계열만. '
+    + '지급보류: 정산은 진행, 출금만 제한. 정산제외: D0 등 휴일 제외 등(세부는 설정 화면).';
 
   /** 본사 영업일·휴일: 연간 미니달력 + 공휴일 프리셋 (hq-holiday-calendar.js) */
   var HQ_HOLIDAY_UI_HTML = '<div class="col-12"><div class="hq-holiday-ui-wrap border rounded p-2 bg-light mt-1" data-hq-calendar-readonly="true">' +
@@ -1492,6 +1504,8 @@
           notice: CALC_METHOD_MERCHANT_NOTICE,
           rows: [
             [{ label: '정산주기', type: 'select', name: 'calcCycle', options: CALC_CYCLE_OPTIONS, col: 1 }, { label: '정산마감시간', type: 'time', name: 'calcCloseTime', col: 1 }, { label: '정산자동개시시간', type: 'time', name: 'calcStartTime', col: 1 }],
+            [{ label: '정산주기 적용', type: 'select', name: 'calcCycleTransitionMode', options: [{ v: 'IMMEDIATE', t: '즉시 적용' }, { v: 'NEXT_AFTER_RUN', t: '다음 정산 실행 후(예약)' }], col: 2 }, { label: '변경 비고', type: 'text', name: 'calcCycleChangeRemark', col: 3, placeholder: '선택' }],
+            [{ type: 'customHtml', col: 12, html: '<div data-pg="calcCyclePendingBanner" class="alert alert-warning py-2 px-3 small d-none mb-0"></div>' }],
             [{ label: '정산구분', type: 'select', name: 'calcProcType', options: CALC_PROC_OPTIONS, col: 1 }, { label: '이체및송금구분', type: 'select', name: 'transferType', options: TRANSFER_REMIT_OPTIONS, col: 1 }, { label: '이체주기(분)', type: 'text', name: 'transferCycleDays', col: 1, placeholder: '예: 5, 60' }, { label: '이체시간', type: 'time', name: 'transferExecTime', col: 1 }],
             [{ label: '정산제외여부', type: 'select', name: 'calcExcludeYn', options: [{ v: 'N', t: '미사용' }, { v: 'Y', t: '사용' }], col: 1 }, { label: '정산제외대상', type: 'select', name: 'calcExcludeTarget', options: [{ v: 'NONE', t: '해당없음' }, { v: 'WEB', t: 'WEB' }, { v: 'OFFLINE', t: '오프라인' }, { v: 'BOTH', t: 'WEB+오프라인' }], col: 1 }, { label: '지급보류', type: 'select', name: 'payHoldYn', options: [{ v: 'N', t: '지급' }, { v: 'Y', t: '보류' }], col: 1 }],
             [{ label: '정산최소금액', type: 'text', name: 'calcMinAmt', col: 1, placeholder: '미만 시 다음 주기' }, { label: '이체및송금최소금액', type: 'text', name: 'autoTransferMin', col: 1, placeholder: '펌뱅킹 최소' }, { label: 'VAT', type: 'select', name: 'feeVatApplyYn', options: [{ v: 'N', t: '미사용' }, { v: 'Y', t: '사용' }], col: 1 }, { label: 'VAT율(%)', type: 'text', name: 'feeVatRatePct', col: 1, placeholder: '수수료 대비 %', feeVatRateOnly: true }]
@@ -1806,6 +1820,8 @@
           notice: CALC_METHOD_MERCHANT_NOTICE,
           rows: [
             [{ label: '정산주기', type: 'select', name: 'calcCycle', options: CALC_CYCLE_OPTIONS, col: 1 }, { label: '정산마감시간', type: 'time', name: 'calcCloseTime', col: 1 }, { label: '정산자동개시시간', type: 'time', name: 'calcStartTime', col: 1 }],
+            [{ label: '정산주기 적용', type: 'select', name: 'calcCycleTransitionMode', options: [{ v: 'IMMEDIATE', t: '즉시 적용' }, { v: 'NEXT_AFTER_RUN', t: '다음 정산 실행 후(예약)' }], col: 2 }, { label: '변경 비고', type: 'text', name: 'calcCycleChangeRemark', col: 3, placeholder: '선택' }],
+            [{ type: 'customHtml', col: 12, html: '<div data-pg="calcCyclePendingBanner" class="alert alert-warning py-2 px-3 small d-none mb-0"></div>' }],
             [{ label: '정산구분', type: 'select', name: 'calcProcType', options: CALC_PROC_OPTIONS, col: 1 }, { label: '이체및송금구분', type: 'select', name: 'transferType', options: TRANSFER_REMIT_OPTIONS, col: 1 }, { label: '이체주기(분)', type: 'text', name: 'transferCycleDays', col: 1, placeholder: '예: 5, 60' }, { label: '이체시간', type: 'time', name: 'transferExecTime', col: 1 }],
             [{ label: '정산제외여부', type: 'select', name: 'calcExcludeYn', options: [{ v: 'N', t: '미사용' }, { v: 'Y', t: '사용' }], col: 1 }, { label: '정산제외대상', type: 'select', name: 'calcExcludeTarget', options: [{ v: 'NONE', t: '해당없음' }, { v: 'WEB', t: 'WEB' }, { v: 'OFFLINE', t: '오프라인' }, { v: 'BOTH', t: 'WEB+오프라인' }], col: 1 }, { label: '지급보류', type: 'select', name: 'payHoldYn', options: [{ v: 'N', t: '지급' }, { v: 'Y', t: '보류' }], col: 1 }],
             [{ label: '정산최소금액', type: 'text', name: 'calcMinAmt', col: 1, placeholder: '미만 시 다음 주기' }, { label: '이체및송금최소금액', type: 'text', name: 'autoTransferMin', col: 1, placeholder: '펌뱅킹 최소' }, { label: 'VAT', type: 'select', name: 'feeVatApplyYn', options: [{ v: 'N', t: '미사용' }, { v: 'Y', t: '사용' }], col: 1 }, { label: 'VAT율(%)', type: 'text', name: 'feeVatRatePct', col: 1, placeholder: '수수료 대비 %', feeVatRateOnly: true }]
@@ -2053,6 +2069,8 @@
           notice: CALC_METHOD_MERCHANT_NOTICE,
           rows: [
             [{ label: '정산주기', type: 'select', name: 'calcCycle', options: CALC_CYCLE_OPTIONS, col: 1 }, { label: '정산마감시간', type: 'time', name: 'calcCloseTime', col: 1 }, { label: '정산자동개시시간', type: 'time', name: 'calcStartTime', col: 1 }],
+            [{ label: '정산주기 적용', type: 'select', name: 'calcCycleTransitionMode', options: [{ v: 'IMMEDIATE', t: '즉시 적용' }, { v: 'NEXT_AFTER_RUN', t: '다음 정산 실행 후(예약)' }], col: 2 }, { label: '변경 비고', type: 'text', name: 'calcCycleChangeRemark', col: 3, placeholder: '선택' }],
+            [{ type: 'customHtml', col: 12, html: '<div data-pg="calcCyclePendingBanner" class="alert alert-warning py-2 px-3 small d-none mb-0"></div>' }],
             [{ label: '정산구분', type: 'select', name: 'calcProcType', options: CALC_PROC_OPTIONS, col: 1 }, { label: '이체및송금구분', type: 'select', name: 'transferType', options: TRANSFER_REMIT_OPTIONS, col: 1 }, { label: '이체주기(분)', type: 'text', name: 'transferCycleDays', col: 1, placeholder: '예: 5, 60' }, { label: '이체시간', type: 'time', name: 'transferExecTime', col: 1 }],
             [{ label: '정산제외여부', type: 'select', name: 'calcExcludeYn', options: [{ v: 'N', t: '미사용' }, { v: 'Y', t: '사용' }], col: 1 }, { label: '정산제외대상', type: 'select', name: 'calcExcludeTarget', options: [{ v: 'NONE', t: '해당없음' }, { v: 'WEB', t: 'WEB' }, { v: 'OFFLINE', t: '오프라인' }, { v: 'BOTH', t: 'WEB+오프라인' }], col: 1 }, { label: '지급보류', type: 'select', name: 'payHoldYn', options: [{ v: 'N', t: '지급' }, { v: 'Y', t: '보류' }], col: 1 }],
             [{ label: '정산최소금액', type: 'text', name: 'calcMinAmt', col: 1, placeholder: '미만 시 다음 주기' }, { label: '이체및송금최소금액', type: 'text', name: 'autoTransferMin', col: 1, placeholder: '펌뱅킹 최소' }, { label: 'VAT', type: 'select', name: 'feeVatApplyYn', options: [{ v: 'N', t: '미사용' }, { v: 'Y', t: '사용' }], col: 1 }, { label: 'VAT율(%)', type: 'text', name: 'feeVatRatePct', col: 1, placeholder: '수수료 대비 %', feeVatRateOnly: true }]
@@ -2532,7 +2550,7 @@
       payMngDenseGrid: true,
       noticeList: [
         '한 행은 정산실행이 저장한 가맹점 정산 결과입니다. 검색은 정산실행과 동일하게 상단 한 줄(정산일 구간·빠른기간·검색구분·검색어). 「전체」는 해당 필드로 좁히지 않으며, 검색어가 있을 때만 전체 컬럼 OR 검색입니다.',
-        '금액·공제수수료(feeAmt)·보류액·정산금액은 실행 시 저장값이며, 수수료(건)·부가세·건당·정산건당·기타(%)·보유율은 해당 실행의 집계 구간(정산대상기간·당일 누적 마감시각) 거래를 수수료내역과 동일한 건별 규칙으로 보조 계산합니다. 신규 실행부터 period가 저장되며, 그 이전 행은 정산일 하루 창으로 재조회합니다. 정산대상기간: RT는 거래번호·승인번호·마감(초) 한 줄, 그 외는 yyyy-MM-dd HH:mm:ss ~ 동일 형식(일 단위는 00:00:00~23:59:59, 분·시 격자는 구간 시각).',
+        '금액·수수료(feeAmt)·담보금(holdAmt 등)·정산금액은 실행 시 저장값이며, 수수료(건)·부가세·건당·정산건당·기타(%)·보유율은 해당 실행의 집계 구간(정산대상기간·당일 누적 마감시각) 거래를 수수료내역과 동일한 건별 규칙으로 보조 계산합니다. 신규 실행부터 period가 저장되며, 그 이전 행은 정산일 하루 창으로 재조회합니다. 정산대상기간: RT는 거래번호·승인번호·마감(초) 한 줄, 그 외는 yyyy-MM-dd HH:mm:ss ~ 동일 형식(일 단위는 00:00:00~23:59:59, 분·시 격자는 구간 시각).',
         '수수료(건)·보류율·건당수수료·정산건당·기타(%)수수료 열은 보조 참고용 분해이며, 글자색이 연한 회색으로 표시됩니다. 수수료(%), 수수료(금액), 수수료(부가세), 보류금액, 금액, 정산금액 등은 실행 저장값 기준입니다.',
         '본사·총판·지사·대리점·영업점 등 유통 구간 수익·수수료 분배는 유통망정산내역에서 동일 정산 실행분을 조직 단위로 집계합니다.',
         '미수금 차감: 「미수금차감」은 해당 정산 실행에서 지급액에 반영된 미수금 회수액입니다. 「미수금처리」는 수동 가맹은 환수처리·처리중·완료(확정), 자동 가맹은 자동화중·완료로 표시됩니다. 수동/자동 전환은 본사설정 「환수/미수금설정」입니다.',
@@ -2553,6 +2571,8 @@
             { v: 'ROUTE', t: '루트' },
             { v: 'CURRENCY', t: '통화' },
             { v: 'STATUS', t: '상태' },
+            { v: 'SETTLEMENT_PUBLISH_STS', t: '배포상태' },
+            { v: 'PAYOUT_HOLD_YN', t: '지급보류' },
             { v: 'AMOUNT', t: '금액' }
           ], size: 10 },
           { label: '검색어', type: 'text', name: 'searchKeyword', placeholder: '검색어', size: 16 },
@@ -2599,6 +2619,13 @@
         { key: 'settlementPerTxFeeAmt', label: '정산건당' },
         { key: 'extraFeesAmt', label: '기타(%)수수료' },
         { key: 'calcCycle', label: '정산주기' },
+        { key: 'calcMethod', label: '정산방법' },
+        { key: 'pgRootNo', label: '루트' },
+        { key: 'targetPeriodText', label: '정산대상기간', thClass: 'text-nowrap', columnGuideLabel: '해당 실행의 집계 구간 요약.' },
+        { key: 'cadenceGuideKr', label: '노출주기 안내', thClass: 'text-nowrap', columnGuideLabel: '주기별 노출 요약.' },
+        { key: 'settlementPublishSts', label: '배포상태', columnGuideLabel: 'PENDING·DISTRIBUTED·HOLD — 가맹점정산내역 반영 전 단계.' },
+        { key: 'payoutHoldYn', label: '지급보류', columnGuideLabel: 'Y면 지급보류 가맹; 배포가 HOLD로 잡힐 수 있음.' },
+        { key: 'settlementRunId', label: '실행ID', columnGuideLabel: '정산 실행 PK(tb_settlement_run). 추적용.' },
         { key: 'receivableAmt', label: '미수금', columnGuideLabel: '정산 지급부족 시 해당 실행에 자동 등록된 미수금(발생액)' },
         { key: 'receivableDeductAmt', label: '미수금차감', columnGuideLabel: '해당 정산 실행 지급액에서 미수금으로 차감된 금액' },
         { key: 'receivableProcessNm', label: '미수금처리', columnGuideLabel: '차감 발생 시 완료·처리중·자동화중; 지급부족만 등록된 행은 차기정산자동 또는 환수처리·차기마감' },
@@ -2607,7 +2634,7 @@
         { key: 'calcDt', label: '정산일시' },
         { key: 'approveDt', label: '승인일시' },
         { key: 'cancelDt', label: '취소일시' },
-        { key: 'payStatus', label: '지급상태' },
+        { key: 'payStatus', label: '확정여부', columnGuideLabel: 'CALCULATED=확정, PENDING=미확정.' },
         { key: 'productNm', label: '구매상품' },
         { key: 'customerNm', label: '고객명(결제자)' },
         { key: 'customerTel', label: '휴대폰(결제자)' },
@@ -2775,7 +2802,7 @@
     '/calc/unpaidMng': {
       listSortDirAnchor: 'refresh',
       noticeList: [
-        '「미수금」은 해당 정산 주기에 지급해야 할 금액이 부족하거나(정산금 부족), 차지백·과태료 등으로 정산 시 부족분이 생겼을 때 가맹점에 부과되는 금액입니다. 정산 실행 시 지급액에서 환수금(FIFO)을 먼저 차감한 뒤 미수금(FIFO)이 차감됩니다.',
+        '「미수금」은 해당 정산 주기에 지급해야 할 금액이 부족하거나(정산금 부족), 차지백·과태료 등으로 정산 시 부족분이 생겼을 때 가맹점에 부과되는 금액입니다. 정산 실행 시 지급액에서 환수금(FIFO)을 먼저 차감한 뒤 미수금(FIFO)이 차감됩니다. 정산 지급액이 음수로 확정되면 부족분이 자동 미수로 등록되며(사유코드 AUTO_SETTLEMENT_DEFICIT, 메모에 실행ID), 차기 정산에서 양(+) 지급이 나올 때 FIFO로 먼저 처리됩니다.',
         '「미수금등록」은 총본사·본사·총판 조직 단계의 기본 권한(미수금관리 화면: 수정 이상)으로 가능하며, 지사·대리점·영업점 등은 기본 조회만입니다. 필요 시 본사권한설정에서 조직·단계별로 「미수금관리」(/calc/unpaidMng) 권한을 MODIFY/DELETE 로 올려 수동 등록을 허용할 수 있습니다.',
         '수동 등록은 API POST /api/settlement/receivable (사유코드 reason_code 로 구분)과 동일하며, 대손·등록 취소는 서버 writeOff·cancel API를 사용합니다.',
         '가맹이 본사설정 「환수/미수금설정」에서 수동(MANUAL)인 경우에만 행의 [환수처리]로 다음 정산 마감 반영을 요청할 수 있습니다. 자동(AUTO) 가맹은 정산 시 미수금이 FIFO로 차감됩니다.'
@@ -2809,6 +2836,7 @@
         { key: 'receivablePhaseNm', label: '미수금처리' },
         { key: 'receivableRecoveryAct', label: '환수' },
         { key: 'reasonCode', label: '사유코드' },
+        { key: 'memo', label: '메모', thClass: 'text-nowrap', columnGuideLabel: '정산 지급부족 자동 건은 AUTO_DEFICIT:정산실행ID 로 해당 정산 실행과 연결됩니다.' },
         { key: 'createdAt', label: '등록일시' }
       ]
     },
@@ -2816,7 +2844,7 @@
       listSortDirAnchor: 'refresh',
       paginationSizeOptions: [50, 100, 300, 400, 500],
       paginationDefaultSize: 50,
-      notice: '「정산실행」버튼(수동): 기간·가맹을 지정해 실행합니다. 검색: 상단 한 줄에서 정산기간·빠른기간·검색구분·검색어를 지정한 뒤 [검색]으로 좁힙니다. 「전체」는 해당 조건으로 좁히지 않습니다(검색어가 있을 때만 전체 컬럼 OR 검색). 정산로직상 정산구분이 <strong>자동(AUTO)</strong>인 가맹은 수동 실행에서 제외되며, D+N·W+N·WK 등 달력 주기 가맹은 <strong>기간 종료일(정산일)</strong>이 해당 주기의 실행일일 때만 집계됩니다(미도래일에는 실행되지 않음). 정산마감시각·정산제외 영업일·D0 시간대는 자동 배치와 동일합니다. RT·T0·격자(M/H/TM/TH) 수동 가맹은 조회 기간 내 거래가 있을 때만 해당 기간으로 집계합니다. 서버 스케줄(자동)은 정산구분 AUTO 가맹만 대상입니다. 목록의 정산주기·정산방법·루트는 가맹 정산설정·PG연동에서 가져옵니다. <strong>지급액</strong>은 순매출에서 공제수수료·수수료부가세·롤링보류(신규)를 뺀 값으로, 수수료·담보가 매출을 넘으면 <strong>음수</strong>로 표시됩니다(0으로 보정하지 않음). 그 경우 동액이 「미수금」에 자동 등록되며, 환수모드 <strong>AUTO</strong> 가맹은 다음 정산 마감 시 지급액에서 FIFO로 차감되고, <strong>MANUAL</strong> 가맹은 「미수금관리」에서 환수처리 후 차기 마감·정산에서 차감됩니다.',
+      notice: '목록은 <strong>정산일(calc_dt)</strong>이 정산기간 안에 드는 실행만 보여 줍니다. 처음 열 때 기간이 비어 있으면 <strong>오늘 포함 최근 14일</strong>로 채워집니다(과거 하루만 남겨 두면 그날 데이터만 보일 수 있음). 「정산실행」버튼(수동): 기간·가맹을 지정해 실행합니다. 검색: 상단 한 줄에서 정산기간·빠른기간·검색구분·검색어를 지정한 뒤 [검색]으로 좁힙니다. 「전체」는 해당 조건으로 좁히지 않습니다(검색어가 있을 때만 전체 컬럼 OR 검색). 정산로직상 정산구분이 <strong>자동(AUTO)</strong>인 가맹은 수동 실행에서 제외되며, D+N·W+N·WK 등 달력 주기 가맹은 <strong>기간 종료일(정산일)</strong>이 해당 주기의 실행일일 때만 집계됩니다(미도래일에는 실행되지 않음). 정산마감시각·정산제외 영업일·D0 시간대는 자동 배치와 동일합니다. RT·T0·격자(M/H/TM/TH) 수동 가맹은 조회 기간 내 거래가 있을 때만 해당 기간으로 집계합니다. <strong>H1·M 등 시간 격자</strong>는 한 구간(동일 정산 슬롯) 안에서 매출·취소·공제가 <strong>± 함께</strong> 집계되어 한 행의 지급액이 됩니다. 서버 스케줄(자동)은 정산구분 AUTO 가맹만 대상입니다. 목록의 정산주기·정산방법·루트는 가맹 정산설정·PG연동에서 가져옵니다. <strong>지급액</strong>은 순매출에서 수수료·수수료부가세·담보금(신규)를 뺀 값으로, 수수료·담보가 매출을 넘으면 <strong>음수</strong>로 표시됩니다(0으로 보정하지 않음). 그 경우 부족분 동액이 「미수금관리」에 1건 자동 등록되며(사유코드·메모로 실행과 연결), 본 목록의 <strong>미수금</strong> 열과 맞춰 볼 수 있습니다. 환수모드 <strong>AUTO</strong> 가맹은 다음 정산에서 양(+) 지급액에 환수금·미수금이 FIFO로 먼저 반영되고, <strong>MANUAL</strong> 가맹은 「미수금관리」에서 환수처리 후 차기 마감·정산에서 차감됩니다.',
       searchRows: [
         [
           { label: '정산기간', type: 'daterange', from: 'searchFromDate', to: 'searchToDate' },
@@ -2832,6 +2860,8 @@
             { v: 'ROUTE', t: '루트' },
             { v: 'CURRENCY', t: '통화' },
             { v: 'STATUS', t: '상태' },
+            { v: 'SETTLEMENT_PUBLISH_STS', t: '배포상태' },
+            { v: 'PAYOUT_HOLD_YN', t: '지급보류' },
             { v: 'AMOUNT', t: '금액' }
           ], size: 10 },
           { label: '검색어', type: 'text', name: 'searchKeyword', placeholder: '검색어', size: 16 },
@@ -2846,7 +2876,69 @@
         { id: 'excelBtn', label: '엑셀다운로드', cls: 'btn-info' }
       ],
       columnGuideFixedKeys: ['rowNo', 'compNm', 'compId', 'curType'],
-      columns: [{ key: '_chk', type: 'checkbox' }, { key: 'rowNo', label: '번호' }, { key: 'compNm', label: '업체명' }, { key: 'compId', label: '업체코드' }, { key: 'curType', label: '통화' }, { key: 'calcDt', label: '정산일자' }, { key: 'calcCycle', label: '정산주기' }, { key: 'calcMethod', label: '정산방법' }, { key: 'targetPeriodText', label: '정산대상기간', thClass: 'text-nowrap' }, { key: 'pgRootNo', label: '루트' }, { key: 'targetAmt', label: '정산대상금액' }, { key: 'totalFee', label: '공제수수료' }, { key: 'rollingReserveAmt', label: '롤링보류' }, { key: 'receivableAmt', label: '미수금', columnGuideLabel: '정산 지급부족 시 해당 실행에 자동 등록된 미수금(발생액)' }, { key: 'payAmount', label: '지급액', columnGuideLabel: '순매출−수수료−부가세−롤링보류(신규)+만기담보; 부족 시 음수·미수금 자동등록' }, { key: 'status', label: '상태' }]
+      columns: [{ key: '_chk', type: 'checkbox' }, { key: 'rowNo', label: '번호' }, { key: 'compNm', label: '업체명' }, { key: 'compId', label: '업체코드' }, { key: 'curType', label: '통화' }, { key: 'calcDt', label: '정산일자' }, { key: 'calcCycle', label: '정산주기' }, { key: 'cadenceGuideKr', label: '노출주기 안내', thClass: 'text-nowrap', columnGuideLabel: '주기별 노출 요약.' }, { key: 'settlementPublishSts', label: '배포상태', columnGuideLabel: 'PENDING·DISTRIBUTED·HOLD — 가맹점정산내역 반영 전 단계.' }, { key: 'payoutHoldYn', label: '지급보류', columnGuideLabel: 'Y면 지급보류 가맹; 배포가 HOLD로 잡힐 수 있음.' }, { key: 'settlementRunId', label: '실행ID', columnGuideLabel: '정산 실행 PK(tb_settlement_run). 추적용.' }, { key: 'calcMethod', label: '정산방법' }, { key: 'targetPeriodText', label: '정산대상기간', thClass: 'text-nowrap' }, { key: 'pgRootNo', label: '루트' }, { key: 'targetAmt', label: '결제액' }, { key: 'totalFee', label: '수수료' }, { key: 'rollingReserveAmt', label: '담보금' }, { key: 'receivableAmt', label: '미수금', columnGuideLabel: '정산 지급부족 시 해당 실행에 자동 등록된 미수금(발생액)' }, { key: 'payAmount', label: '지급액', columnGuideLabel: '0으로 보정하지 않음; 부족 시 음수·미수금 자동등록.' }, { key: 'status', label: '확정여부', columnGuideLabel: 'CALCULATED=확정, PENDING=미확정.' }]
+    },
+    '/settlement/settlementResultDistribute': {
+      listSortDirAnchor: 'refresh',
+      paginationSizeOptions: [50, 100, 300, 400, 500],
+      paginationDefaultSize: 50,
+      notice: '<strong>정산배포(대기)</strong>: <code>PENDING</code> 만 표시. <strong>노출주기 안내</strong> 열에 주기별 짧은 요약이 붙습니다. 체크 후 <strong>정산배포</strong> → 가맹·유통 반영(<code>DISTRIBUTED</code>), <strong>선택 홀딩</strong> → <code>HOLD</code>.',
+      searchRows: [
+        [
+          { type: 'customHtml', html: '<input type="hidden" name="searchPublishTab" id="searchPublishTab" value="PENDING">', col: 12 },
+          { label: '정산기간', type: 'daterange', from: 'searchFromDate', to: 'searchToDate' },
+          { type: 'quickdate' },
+          { label: '검색구분', type: 'select', name: 'searchFieldType', options: [
+            { v: 'ALL', t: '전체' },
+            { v: 'COMP_NM', t: '업체명' },
+            { v: 'COMP_ID', t: '업체코드' },
+            { v: 'SETTLEMENT_PUBLISH_STS', t: '배포상태' },
+            { v: 'PAYOUT_HOLD_YN', t: '지급보류' }
+          ], size: 8 },
+          { label: '검색어', type: 'text', name: 'searchKeyword', placeholder: '검색어', size: 14 },
+          { type: 'searchBtn', label: '검색' }
+        ]
+      ],
+      summary: [],
+      buttons: [
+        { id: 'payListRefreshBtn', label: '새로고침', cls: 'btn-outline-secondary' },
+        { id: 'searchBtn', label: '검색', cls: 'btn-primary' },
+        { id: 'settlementPublishDistributeBtn', label: '정산배포', cls: 'btn-success' },
+        { id: 'settlementPublishHoldBtn', label: '선택 홀딩', cls: 'btn-warning' },
+        { id: 'excelBtn', label: '엑셀다운로드', cls: 'btn-info' }
+      ],
+      columnGuideFixedKeys: ['rowNo', 'compNm', 'compId', 'curType'],
+      columns: [{ key: '_chk', type: 'checkbox' }, { key: 'rowNo', label: '번호' }, { key: 'compNm', label: '업체명' }, { key: 'compId', label: '업체코드' }, { key: 'curType', label: '통화' }, { key: 'calcDt', label: '정산일자' }, { key: 'calcCycle', label: '정산주기' }, { key: 'cadenceGuideKr', label: '노출주기 안내', thClass: 'text-nowrap' }, { key: 'settlementPublishSts', label: '배포상태' }, { key: 'payoutHoldYn', label: '지급보류' }, { key: 'settlementRunId', label: '실행ID', columnGuideLabel: '정산 실행 PK.' }, { key: 'calcMethod', label: '정산방법' }, { key: 'targetPeriodText', label: '정산대상기간', thClass: 'text-nowrap' }, { key: 'pgRootNo', label: '루트' }, { key: 'targetAmt', label: '결제액' }, { key: 'totalFee', label: '수수료' }, { key: 'rollingReserveAmt', label: '담보금' }, { key: 'receivableAmt', label: '미수금' }, { key: 'payAmount', label: '지급액', columnGuideLabel: '0으로 보정하지 않음; 음수 가능.' }, { key: 'status', label: '확정여부', columnGuideLabel: 'CALCULATED=확정, PENDING=미확정.' }]
+    },
+    '/settlement/settlementResultHold': {
+      listSortDirAnchor: 'refresh',
+      paginationSizeOptions: [50, 100, 300, 400, 500],
+      paginationDefaultSize: 50,
+      notice: '<strong>정산대기(홀딩)</strong>: <code>HOLD</code> — 가맹 정산내역에 안 나감. 해제·배포는 「정산보류내역」 등 운영 절차. 노출 주기 요약은 <strong>정산배포(대기)</strong>와 같습니다.',
+      searchRows: [
+        [
+          { type: 'customHtml', html: '<input type="hidden" name="searchPublishTab" id="searchPublishTab" value="HOLD">', col: 12 },
+          { label: '정산기간', type: 'daterange', from: 'searchFromDate', to: 'searchToDate' },
+          { type: 'quickdate' },
+          { label: '검색구분', type: 'select', name: 'searchFieldType', options: [
+            { v: 'ALL', t: '전체' },
+            { v: 'COMP_NM', t: '업체명' },
+            { v: 'COMP_ID', t: '업체코드' },
+            { v: 'SETTLEMENT_PUBLISH_STS', t: '배포상태' },
+            { v: 'PAYOUT_HOLD_YN', t: '지급보류' }
+          ], size: 8 },
+          { label: '검색어', type: 'text', name: 'searchKeyword', placeholder: '검색어', size: 14 },
+          { type: 'searchBtn', label: '검색' }
+        ]
+      ],
+      summary: [],
+      buttons: [
+        { id: 'payListRefreshBtn', label: '새로고침', cls: 'btn-outline-secondary' },
+        { id: 'searchBtn', label: '검색', cls: 'btn-primary' },
+        { id: 'excelBtn', label: '엑셀다운로드', cls: 'btn-info' }
+      ],
+      columnGuideFixedKeys: ['rowNo', 'compNm', 'compId', 'curType'],
+      columns: [{ key: '_chk', type: 'checkbox' }, { key: 'rowNo', label: '번호' }, { key: 'compNm', label: '업체명' }, { key: 'compId', label: '업체코드' }, { key: 'curType', label: '통화' }, { key: 'calcDt', label: '정산일자' }, { key: 'calcCycle', label: '정산주기' }, { key: 'cadenceGuideKr', label: '노출주기 안내', thClass: 'text-nowrap' }, { key: 'settlementPublishSts', label: '배포상태' }, { key: 'payoutHoldYn', label: '지급보류' }, { key: 'settlementRunId', label: '실행ID', columnGuideLabel: '정산 실행 PK.' }, { key: 'calcMethod', label: '정산방법' }, { key: 'targetPeriodText', label: '정산대상기간', thClass: 'text-nowrap' }, { key: 'pgRootNo', label: '루트' }, { key: 'targetAmt', label: '결제액' }, { key: 'totalFee', label: '수수료' }, { key: 'rollingReserveAmt', label: '담보금' }, { key: 'receivableAmt', label: '미수금' }, { key: 'payAmount', label: '지급액', columnGuideLabel: '0으로 보정하지 않음; 음수 가능.' }, { key: 'status', label: '확정여부', columnGuideLabel: 'CALCULATED=확정, PENDING=미확정.' }]
     },
     '/calc/settlementReport': {
       listSortDirAnchor: 'refresh',
@@ -2893,7 +2985,7 @@
           { key: 'calcDt', label: '정산일' }, { key: 'compNm', label: '가맹점명' }, { key: 'compId', label: '가맹코드' }, { key: 'curType', label: '통화' },
           { key: 'approveAmt', label: '승인합' }, { key: 'cancelAmt', label: '취소합' }, { key: 'netPay', label: '순액' },
           { key: 'depositAmt', label: '예치(10%)' }, { key: 'processingFeeTotal', label: 'Processing(5.6%)' },
-          { key: 'payAmount', label: '지급액(배치)' }, { key: 'totalFee', label: '공제수수료' }, { key: 'rollingReserveAmt', label: '롤링보류' },
+          { key: 'payAmount', label: '지급액(배치)' }, { key: 'totalFee', label: '수수료' }, { key: 'rollingReserveAmt', label: '담보금' },
           { key: 'settlementDueDt', label: '지급예정일(+7영업일)' }, { key: 'settledYn', label: '완료' }, { key: 'status', label: '상태' }
         ],
         SUM: [
@@ -2908,7 +3000,7 @@
           { key: 'calcDt', label: '정산일시' }, { key: 'compNm', label: '가맹점명' }, { key: 'compId', label: '가맹코드' }, { key: 'curType', label: '통화' },
           { key: 'targetPeriodText', label: '정산대상기간' }, { key: 'calcCycle', label: '정산주기' },
           { key: 'approveAmt', label: '승인(매출)합' }, { key: 'cancelAmt', label: '취소합' }, { key: 'netPay', label: '순액' },
-          { key: 'feeAmt', label: '공제수수료' }, { key: 'holdAmt', label: '롤링보류' }, { key: 'payAmount', label: '지급액' },
+          { key: 'feeAmt', label: '수수료' }, { key: 'holdAmt', label: '담보금' }, { key: 'payAmount', label: '지급액' },
           { key: 'payStatus', label: '상태' }
         ]
       },
@@ -2925,7 +3017,7 @@
           { key: '_chk', type: 'checkbox' }, { key: 'rowNo', label: '번호' },
           { key: 'calcDt', label: '정산일' }, { key: 'regionalCompId', label: '본사코드' }, { key: 'regionalNm', label: '본사명' }, { key: 'curType', label: '통화' },
           { key: 'batchRunCnt', label: '배치건수' }, { key: 'approveAmt', label: '승인합' }, { key: 'cancelAmt', label: '취소합' }, { key: 'netPay', label: '순액' },
-          { key: 'payAmount', label: '지급액합' }, { key: 'totalFee', label: '공제수수료합' }, { key: 'rollingReserveAmt', label: '롤링보류합' },
+          { key: 'payAmount', label: '지급액합' }, { key: 'totalFee', label: '수수료합' }, { key: 'rollingReserveAmt', label: '담보금합' },
           { key: 'settlementDueDt', label: '지급예정일(+7영업일)' }, { key: 'settledYn', label: '완료' }, { key: 'status', label: '상태' }
         ],
         SUM: [
@@ -3299,7 +3391,7 @@
         { id: 'executeBtn', label: '정산실행', cls: 'btn-danger' }
       ],
       columnGuideFixedKeys: ['rowNo', 'compNm', 'compId', 'curType'],
-      columns: [{ key: '_chk', type: 'checkbox' }, { key: 'rowNo', label: '번호' }, { key: 'compNm', label: '업체명' }, { key: 'compId', label: '업체코드' }, { key: 'curType', label: '통화' }, { key: 'calcDt', label: '정산일' }, { key: 'calcCycle', label: '정산주기' }, { key: 'calcMethod', label: '정산방법' }, { key: 'targetPeriodText', label: '정산대상기간', thClass: 'text-nowrap' }, { key: 'pgRootNo', label: '루트' }, { key: 'targetAmt', label: '정산대상금액' }, { key: 'totalFee', label: '공제수수료' }, { key: 'rollingReserveAmt', label: '롤링보류' }, { key: 'receivableAmt', label: '미수금', columnGuideLabel: '정산 지급부족 시 해당 실행에 자동 등록된 미수금(발생액)' }, { key: 'payAmount', label: '지급액', columnGuideLabel: '순매출−수수료−부가세−롤링보류(신규)+만기담보; 부족 시 음수·미수금 자동등록' }, { key: 'status', label: '상태' }],
+      columns: [{ key: '_chk', type: 'checkbox' }, { key: 'rowNo', label: '번호' }, { key: 'compNm', label: '업체명' }, { key: 'compId', label: '업체코드' }, { key: 'curType', label: '통화' }, { key: 'calcDt', label: '정산일' }, { key: 'calcCycle', label: '정산주기' }, { key: 'cadenceGuideKr', label: '노출주기 안내', thClass: 'text-nowrap', columnGuideLabel: '주기별 노출 요약.' }, { key: 'settlementPublishSts', label: '배포상태', columnGuideLabel: 'PENDING·DISTRIBUTED·HOLD — 가맹점정산내역 반영 전 단계.' }, { key: 'payoutHoldYn', label: '지급보류', columnGuideLabel: 'Y면 지급보류 가맹; 배포가 HOLD로 잡힐 수 있음.' }, { key: 'settlementRunId', label: '실행ID', columnGuideLabel: '정산 실행 PK(tb_settlement_run). 추적용.' }, { key: 'calcMethod', label: '정산방법' }, { key: 'targetPeriodText', label: '정산대상기간', thClass: 'text-nowrap' }, { key: 'pgRootNo', label: '루트' }, { key: 'targetAmt', label: '결제액' }, { key: 'totalFee', label: '수수료' }, { key: 'rollingReserveAmt', label: '담보금' }, { key: 'receivableAmt', label: '미수금', columnGuideLabel: '정산 지급부족 시 해당 실행에 자동 등록된 미수금(발생액)' }, { key: 'payAmount', label: '지급액', columnGuideLabel: '0으로 보정하지 않음; 부족 시 음수·미수금 자동등록.' }, { key: 'status', label: '확정여부', columnGuideLabel: 'CALCULATED=확정, PENDING=미확정.' }],
       emptyMessage: '조회된 데이터가 없습니다.'
     },
     '/notify/payUrlMng': {
@@ -3518,6 +3610,9 @@
       var exc = MENU_SCREENS['/calc/exCalcList'];
       if (ex && exc && ex.columns && ex.columns.length) {
         exc.columns = JSON.parse(JSON.stringify(ex.columns));
+        (exc.columns || []).forEach(function (col) {
+          if (col && col.key === 'calcDt') col.label = '정산일자';
+        });
       }
       if (ex && exc && exc.searchRows && exc.searchRows.length) {
         ex.searchRows = JSON.parse(JSON.stringify(exc.searchRows));
