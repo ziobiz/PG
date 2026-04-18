@@ -80,10 +80,63 @@ public class HqSettlementCycleAdminService {
     private final HqSettlementCycleDefRepository cycleDefRepository;
     private final SettlementSettingRepository settlementSettingRepository;
 
+    /** {@link #activeNormalizedCycleCodes()} TTL (밀리초). 본사 주기 저장 시 {@link #invalidateActiveSettlementCycleCache()} 로 즉시 반영. */
+    private static final long ACTIVE_CYCLE_CACHE_TTL_MS = 60_000L;
+    private volatile Set<String> activeNormalizedCycleCodesCache = Set.of();
+    private volatile long activeNormalizedCycleCodesCacheAtMillis;
+
     public HqSettlementCycleAdminService(HqSettlementCycleDefRepository cycleDefRepository,
                                          SettlementSettingRepository settlementSettingRepository) {
         this.cycleDefRepository = cycleDefRepository;
         this.settlementSettingRepository = settlementSettingRepository;
+    }
+
+    /**
+     * 본사 정산주기관리(표준+DB 병합)에서 <strong>사용(Y)</strong>인 정산주기 코드(정규화) 집합.
+     * 자동 배치·실시간 노티·수동 정산 실행 대상 판별에 사용한다.
+     */
+    public Set<String> activeNormalizedCycleCodes() {
+        long now = System.currentTimeMillis();
+        Set<String> snap = activeNormalizedCycleCodesCache;
+        long at = activeNormalizedCycleCodesCacheAtMillis;
+        if (!snap.isEmpty() && at > 0 && now - at < ACTIVE_CYCLE_CACHE_TTL_MS) {
+            return snap;
+        }
+        synchronized (this) {
+            snap = activeNormalizedCycleCodesCache;
+            at = activeNormalizedCycleCodesCacheAtMillis;
+            if (!snap.isEmpty() && at > 0 && now - at < ACTIVE_CYCLE_CACHE_TTL_MS) {
+                return snap;
+            }
+            Set<String> built = listMergedDefinitions().stream()
+                    .filter(m -> "Y".equals(String.valueOf(m.getOrDefault("activeYn", "Y"))))
+                    .map(m -> SettlementPeriodResolver.normalizeCalcCycle(
+                            String.valueOf(m.getOrDefault("cycleCode", "")).trim()))
+                    .filter(StringUtils::hasText)
+                    .filter(c -> !"NONE".equalsIgnoreCase(c))
+                    .collect(Collectors.toUnmodifiableSet());
+            activeNormalizedCycleCodesCache = built;
+            activeNormalizedCycleCodesCacheAtMillis = System.currentTimeMillis();
+            return built;
+        }
+    }
+
+    public boolean isActiveSettlementCycle(String calcCycleRaw) {
+        if (!StringUtils.hasText(calcCycleRaw)) {
+            return false;
+        }
+        String norm = SettlementPeriodResolver.normalizeCalcCycle(calcCycleRaw.trim());
+        if (norm.isEmpty() || "NONE".equalsIgnoreCase(norm)) {
+            return false;
+        }
+        return activeNormalizedCycleCodes().contains(norm);
+    }
+
+    public void invalidateActiveSettlementCycleCache() {
+        synchronized (this) {
+            activeNormalizedCycleCodesCache = Set.of();
+            activeNormalizedCycleCodesCacheAtMillis = 0L;
+        }
     }
 
     /**
@@ -293,7 +346,9 @@ public class HqSettlementCycleAdminService {
         e.setDescription(description != null ? description.trim() : "");
         e.setSortOrder(sortOrder);
         e.setActiveYn("N".equalsIgnoreCase(activeYn != null ? activeYn.trim() : "") ? "N" : "Y");
-        return cycleDefRepository.save(e);
+        HqSettlementCycleDef saved = cycleDefRepository.save(e);
+        invalidateActiveSettlementCycleCache();
+        return saved;
     }
 
     @Transactional
@@ -313,6 +368,7 @@ public class HqSettlementCycleAdminService {
             e.setActiveYn("N".equalsIgnoreCase(activeYn.trim()) ? "N" : "Y");
         }
         cycleDefRepository.save(e);
+        invalidateActiveSettlementCycleCache();
     }
 
     @Transactional
@@ -321,6 +377,7 @@ public class HqSettlementCycleAdminService {
             throw new IllegalArgumentException("삭제할 행이 없습니다.");
         }
         cycleDefRepository.deleteById(id);
+        invalidateActiveSettlementCycleCache();
     }
 
     /**
@@ -351,6 +408,9 @@ public class HqSettlementCycleAdminService {
             e.setActiveYn("Y");
             cycleDefRepository.save(e);
             added++;
+        }
+        if (added > 0) {
+            invalidateActiveSettlementCycleCache();
         }
         return added;
     }

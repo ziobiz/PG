@@ -1,6 +1,7 @@
 package com.pg.entity;
 
 import jakarta.persistence.*;
+
 import java.time.LocalDateTime;
 
 /**
@@ -131,6 +132,34 @@ public class HqLedgerSysSettings {
     @Column(name = "hello_timeline_duration_min", nullable = false)
     private Integer helloTimelineDurationMin = 10;
 
+    /**
+     * {@link com.pg.service.settlement.SettlementScheduledJob} tick 본문 허용 모드(① {@code app.settlement.autoRunEnabled} 와 AND).
+     * ACTIVE: 매 tick 실행 시도. INACTIVE: DB 에서 배치 본문 끔. AUTO: 이번 tick 에 실행 대상 AUTO 가맹이 있을 때만.
+     * RT 건별 정산은 이 스위치와 무관.
+     */
+    @Column(name = "settlement_auto_batch_mode", nullable = false, length = 16)
+    private String settlementAutoBatchMode = "INACTIVE";
+
+    /** 무효(거래 21·40) 순매출 반영: GENERAL / REVENUE / HYBRID */
+    @Column(name = "void_settlement_mode", nullable = false, length = 16)
+    private String voidSettlementMode = "GENERAL";
+
+    /** 수동무효(22·41) */
+    @Column(name = "manual_void_settlement_mode", nullable = false, length = 16)
+    private String manualVoidSettlementMode = "GENERAL";
+
+    /** 환불(30·42) */
+    @Column(name = "refund_settlement_mode", nullable = false, length = 16)
+    private String refundSettlementMode = "GENERAL";
+
+    /** 강제환불(31) — 차지백 수수료 대상 */
+    @Column(name = "force_refund_settlement_mode", nullable = false, length = 16)
+    private String forceRefundSettlementMode = "GENERAL";
+
+    /** 미수금 환수 기본(AUTO/MANUAL). 신규 가맹 정산설정 초기값·본사 일괄 동기화 기준. */
+    @Column(name = "receivable_recovery_default_mode", nullable = false, length = 16)
+    private String receivableRecoveryDefaultMode = "AUTO";
+
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 
@@ -224,6 +253,26 @@ public class HqLedgerSysSettings {
     public void setHelloTimelineEnabledYn(String helloTimelineEnabledYn) { this.helloTimelineEnabledYn = helloTimelineEnabledYn; }
     public Integer getHelloTimelineDurationMin() { return helloTimelineDurationMin; }
     public void setHelloTimelineDurationMin(Integer helloTimelineDurationMin) { this.helloTimelineDurationMin = helloTimelineDurationMin; }
+    public String getSettlementAutoBatchMode() { return settlementAutoBatchMode; }
+    public void setSettlementAutoBatchMode(String settlementAutoBatchMode) {
+        this.settlementAutoBatchMode = settlementAutoBatchMode;
+    }
+    public String getVoidSettlementMode() { return voidSettlementMode; }
+    public void setVoidSettlementMode(String voidSettlementMode) { this.voidSettlementMode = voidSettlementMode; }
+    public String getManualVoidSettlementMode() { return manualVoidSettlementMode; }
+    public void setManualVoidSettlementMode(String manualVoidSettlementMode) {
+        this.manualVoidSettlementMode = manualVoidSettlementMode;
+    }
+    public String getRefundSettlementMode() { return refundSettlementMode; }
+    public void setRefundSettlementMode(String refundSettlementMode) { this.refundSettlementMode = refundSettlementMode; }
+    public String getForceRefundSettlementMode() { return forceRefundSettlementMode; }
+    public void setForceRefundSettlementMode(String forceRefundSettlementMode) {
+        this.forceRefundSettlementMode = forceRefundSettlementMode;
+    }
+    public String getReceivableRecoveryDefaultMode() { return receivableRecoveryDefaultMode; }
+    public void setReceivableRecoveryDefaultMode(String receivableRecoveryDefaultMode) {
+        this.receivableRecoveryDefaultMode = receivableRecoveryDefaultMode;
+    }
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
     public LocalDateTime getUpdatedAt() { return updatedAt; }

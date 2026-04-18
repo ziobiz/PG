@@ -65,7 +65,8 @@ app:
   # 전산설정관리 데이터 보관: 자동삭제 스케줄(Spring cron). PG 노티 수신·서버일별집계만 연동.
   dataRetention:
     purgeCron: "0 0 4 * * *"
-  # 정산 자동 실행: 정산구분 AUTO + 정산주기(calc_cycle). M/H·TM/TH 격자는 매분 크론으로 분·시 정각 타이밍을 맞추는 것을 권장. TM·TH는 격자 시각마다 T0식 당일 0시~현재 합산 1행 재집계. 운영 VPS는 JVM -Duser.timezone=Asia/Seoul 권장.
+  # 정산 자동 실행: true일 때만 SettlementScheduledJob Bean 등록. tick 본문은 본사 DB settlement_auto_batch_mode(ACTIVE/INACTIVE/AUTO) 와 AND.
+  # 크론 zone=Asia/Seoul(코드 고정). M/H/TM/TH는 격자 정각·T0는 매 tick 당일 재집계·RT는 노티만. 매분 크론 권장.
   settlement:
     autoRunEnabled: ${APP_SETTLEMENT_AUTO_RUN:false}
     autoRunCron: "${APP_SETTLEMENT_AUTO_CRON:0 * * * * *}"

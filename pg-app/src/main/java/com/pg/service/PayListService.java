@@ -43,6 +43,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -156,10 +157,11 @@ public class PayListService {
 
         HqNotifyMappingService.DisplayTransformCache displayCache = hqNotifyMappingService.loadDisplayTransformCache();
         AppUser payListViewer = (authentication != null && authentication.getPrincipal() instanceof AppUser u) ? u : null;
+        ZoneId ledgerTz = hqLedgerSysSettingsService.resolveLedgerDisplayZoneId();
         List<Map<String, Object>> list = new ArrayList<>();
         for (PgTrnsctn t : result.getContent()) {
             PayListRowContext ctx = ctxByCode.get(t.getMerchantId());
-            Map<String, Object> row = PayListItemDto.from(t, ctx);
+            Map<String, Object> row = PayListItemDto.from(t, ctx, ledgerTz);
             String pgCd = resolvePgCdForPayListRow(ctx, t);
             hqNotifyMappingService.applyDisplayTransform(displayCache, pgCd, row);
             row.put("payFollowRow", payFollowPolicyService.payFollowRowEnabled(payListViewer, t));
@@ -184,6 +186,56 @@ public class PayListService {
             /* 집계 실패 시 목록만 반환 */
         }
         return pr;
+    }
+
+    /**
+     * 정산 집계와 동일한 기간 창으로 {@link PgTrnsctnRepository#findForSettlement} 거래를 읽어
+     * 결제내역 그리드와 동일한 행 맵을 구성한다(노티 매핑 display 변환 포함).
+     */
+    public static final class SettlementWindowPayRows {
+        private final List<Map<String, Object>> rows;
+        private final boolean truncated;
+
+        public SettlementWindowPayRows(List<Map<String, Object>> rows, boolean truncated) {
+            this.rows = rows;
+            this.truncated = truncated;
+        }
+
+        public List<Map<String, Object>> getRows() {
+            return rows;
+        }
+
+        public boolean isTruncated() {
+            return truncated;
+        }
+    }
+
+    public SettlementWindowPayRows listRowsForSettlementWindow(String merchantId,
+                                                               LocalDateTime fromDt,
+                                                               LocalDateTime toDt,
+                                                               int maxRows) {
+        if (merchantId == null || merchantId.isBlank()) {
+            return new SettlementWindowPayRows(List.of(), false);
+        }
+        int cap = Math.max(1, Math.min(maxRows, 5000));
+        List<PgTrnsctn> full = trnsctnRepository.findForSettlement(merchantId.trim(), fromDt, toDt);
+        boolean truncated = full.size() > cap;
+        List<PgTrnsctn> txs = truncated ? new ArrayList<>(full.subList(0, cap)) : full;
+        List<String> codes = txs.stream().map(PgTrnsctn::getMerchantId).filter(Objects::nonNull).distinct().collect(Collectors.toList());
+        Map<String, PayListRowContext> ctxByCode = buildPayListRowContextMap(codes);
+        HqNotifyMappingService.DisplayTransformCache displayCache = hqNotifyMappingService.loadDisplayTransformCache();
+        ZoneId ledgerTz = hqLedgerSysSettingsService.resolveLedgerDisplayZoneId();
+        List<Map<String, Object>> list = new ArrayList<>(txs.size());
+        for (PgTrnsctn t : txs) {
+            PayListRowContext base = ctxByCode.get(t.getMerchantId());
+            PayListRowContext ctx = base != null ? base.withOmitSettlementFeeFromApprovedTxnBreakdown(true) : null;
+            Map<String, Object> row = PayListItemDto.from(t, ctx, ledgerTz);
+            String pgCd = resolvePgCdForPayListRow(ctx, t);
+            hqNotifyMappingService.applyDisplayTransform(displayCache, pgCd, row);
+            row.put("payFollowRow", Boolean.FALSE);
+            list.add(row);
+        }
+        return new SettlementWindowPayRows(list, truncated);
     }
 
     /** 결제관리 payList: 기간 미입력 시 당일(서버 일자)로 조회·집계 */
@@ -785,6 +837,12 @@ public class PayListService {
             case "REFUND" -> List.of(PayListStatusBarBuckets.REFUND);
             case "FORCE_REFUND" -> List.of(PayListStatusBarBuckets.FORCE_REFUND);
             case "CANCEL" -> List.of(PayListStatusBarBuckets.CANCEL);
+            case "OFFSET_CANCEL" -> List.of(
+                    PayListStatusBarBuckets.VOID,
+                    PayListStatusBarBuckets.REFUND,
+                    PayListStatusBarBuckets.FORCE_REFUND,
+                    PayListStatusBarBuckets.CANCEL,
+                    PayListStatusBarBuckets.OTHER);
             default -> List.of(
                     PayListStatusBarBuckets.SUCCESS,
                     PayListStatusBarBuckets.FAIL,
@@ -1171,7 +1229,9 @@ public class PayListService {
             case "FORCE_REFUND" -> cb.equal(root.get("status"), "31");
             case "CANCEL" -> cb.equal(root.get("status"), "20");
             case "VOID" -> root.get("status").in("21", "22", "40", "41", "42");
-            case "OFFSET_CANCEL" -> cb.or(cb.isNull(root.get("status")), cb.notEqual(root.get("status"), "10"));
+            case "OFFSET_CANCEL" -> cb.and(
+                    cb.equal(cb.upper(cb.trim(cb.coalesce(root.get("settledYn"), cb.literal("N")))), "Y"),
+                    root.get("status").in("20", "21", "22", "30", "31", "40", "41", "42"));
             case "URL_PAY" -> cb.equal(root.get("origin"), "URL");
             case "CHATBOT_PAY" -> cb.equal(root.get("origin"), "CHATBOT");
             case "NOTI" -> cb.equal(root.get("origin"), "NOTI");

@@ -61,7 +61,10 @@ public class CommissionPolicy {
     @Column(name = "manual_void_fee_per_tx", precision = 12, scale = 0)
     private BigDecimal manualVoidFeePerTx = BigDecimal.ZERO;
 
-    /** D형: 건당 정산수수료 */
+    /**
+     * 정산 수수료 금액({@link #currencyCode} 단위). DB 컬럼명은 호환을 위해 fee_settlement_per_tx 유지.
+     * 정산 실행(calcOne)에서는 실행당 1회만 합산합니다(거래 건수를 곱하지 않음).
+     */
     @Column(name = "fee_settlement_per_tx", precision = 12, scale = 0)
     private BigDecimal feeSettlementPerTx = BigDecimal.ZERO;
 
@@ -105,9 +108,22 @@ public class CommissionPolicy {
     @Column(name = "chargeback_fee_per_tx", precision = 12, scale = 1)
     private BigDecimal chargebackFeePerTx = BigDecimal.ZERO;
 
-    /** 선택 시 월간 환불·강제환불(30/31) 건수로 구간별 건당 차지백 단가 적용. null 이면 위 건당 금액만 사용 */
+    /** 선택 시 월간 강제환불(31) 건수로 구간별 건당 차지백 단가 적용. null 이면 위 건당 금액만 사용 */
     @Column(name = "chargeback_policy_id")
     private Long chargebackPolicyId;
+
+    /** null·FOLLOW 시 본사 {@code tb_hq_ledger_sys_settings} 기본 */
+    @Column(name = "void_settlement_mode", length = 16)
+    private String voidSettlementMode;
+
+    @Column(name = "manual_void_settlement_mode", length = 16)
+    private String manualVoidSettlementMode;
+
+    @Column(name = "refund_settlement_mode", length = 16)
+    private String refundSettlementMode;
+
+    @Column(name = "force_refund_settlement_mode", length = 16)
+    private String forceRefundSettlementMode;
 
     @Column(name = "extra_fee_1_name", length = 64)
     private String extraFee1Name;
@@ -208,6 +224,19 @@ public class CommissionPolicy {
     public void setChargebackFeePerTx(BigDecimal chargebackFeePerTx) { this.chargebackFeePerTx = chargebackFeePerTx != null ? chargebackFeePerTx : BigDecimal.ZERO; }
     public Long getChargebackPolicyId() { return chargebackPolicyId; }
     public void setChargebackPolicyId(Long chargebackPolicyId) { this.chargebackPolicyId = chargebackPolicyId; }
+
+    public String getVoidSettlementMode() { return voidSettlementMode; }
+    public void setVoidSettlementMode(String voidSettlementMode) { this.voidSettlementMode = voidSettlementMode; }
+    public String getManualVoidSettlementMode() { return manualVoidSettlementMode; }
+    public void setManualVoidSettlementMode(String manualVoidSettlementMode) {
+        this.manualVoidSettlementMode = manualVoidSettlementMode;
+    }
+    public String getRefundSettlementMode() { return refundSettlementMode; }
+    public void setRefundSettlementMode(String refundSettlementMode) { this.refundSettlementMode = refundSettlementMode; }
+    public String getForceRefundSettlementMode() { return forceRefundSettlementMode; }
+    public void setForceRefundSettlementMode(String forceRefundSettlementMode) {
+        this.forceRefundSettlementMode = forceRefundSettlementMode;
+    }
 
     public String getExtraFee1Name() { return extraFee1Name; }
     public void setExtraFee1Name(String extraFee1Name) { this.extraFee1Name = extraFee1Name; }

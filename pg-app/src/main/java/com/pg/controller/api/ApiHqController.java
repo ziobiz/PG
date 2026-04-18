@@ -26,6 +26,7 @@ import com.pg.service.OrgUnitChangeAuditService;
 import com.pg.service.ServerUsageService;
 import com.pg.util.CommissionTierJsonHelper;
 import com.pg.util.PercentDecimalHelper;
+import com.pg.util.VoidRefundSettlementModeUtil;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -814,6 +815,10 @@ public class ApiHqController {
             data.put("fee3dsRate", p.getFee3dsRate() != null ? PercentDecimalHelper.toPlainAmountOneDecimal(p.getFee3dsRate()) : "0.0");
             data.put("chargebackFeePerTx", p.getChargebackFeePerTx() != null ? PercentDecimalHelper.toPlainAmountOneDecimal(p.getChargebackFeePerTx()) : "0.0");
             data.put("chargebackPolicyId", p.getChargebackPolicyId() != null ? p.getChargebackPolicyId() : "");
+            data.put("voidSettlementMode", policySettlementModeForApi(p.getVoidSettlementMode()));
+            data.put("manualVoidSettlementMode", policySettlementModeForApi(p.getManualVoidSettlementMode()));
+            data.put("refundSettlementMode", policySettlementModeForApi(p.getRefundSettlementMode()));
+            data.put("forceRefundSettlementMode", policySettlementModeForApi(p.getForceRefundSettlementMode()));
             putExtraFeeScalarsOnMap(data, p);
             data.put("tierCommission", tierMapForPolicy(p));
             CommissionTierJsonHelper.applyTierJsonSumsToDisplayMap(data, p);
@@ -829,6 +834,10 @@ public class ApiHqController {
             data.put("fee3dsRate", "0.0");
             data.put("chargebackFeePerTx", "0.0");
             data.put("chargebackPolicyId", "");
+            data.put("voidSettlementMode", VoidRefundSettlementModeUtil.GENERAL);
+            data.put("manualVoidSettlementMode", VoidRefundSettlementModeUtil.GENERAL);
+            data.put("refundSettlementMode", VoidRefundSettlementModeUtil.GENERAL);
+            data.put("forceRefundSettlementMode", VoidRefundSettlementModeUtil.GENERAL);
             putExtraFeeScalarsOnMap(data, null);
             data.put("tierCommission", Map.of("rows", Map.of(), "extras", List.of()));
         }
@@ -925,6 +934,18 @@ public class ApiHqController {
         p.setCurrencyCode(cc != null && !cc.isBlank() ? cc.trim().toUpperCase(Locale.ROOT) : "KRW");
         p.setPolicyRemark(hqStr(body, "policyRemark"));
         p.setChargebackPolicyId(parseOptionalPolicyLong(body.get("chargebackPolicyId")));
+        if (body.containsKey("voidSettlementMode")) {
+            p.setVoidSettlementMode(parseSettlementModeFromCommissionBody(body.get("voidSettlementMode")));
+        }
+        if (body.containsKey("manualVoidSettlementMode")) {
+            p.setManualVoidSettlementMode(parseSettlementModeFromCommissionBody(body.get("manualVoidSettlementMode")));
+        }
+        if (body.containsKey("refundSettlementMode")) {
+            p.setRefundSettlementMode(parseSettlementModeFromCommissionBody(body.get("refundSettlementMode")));
+        }
+        if (body.containsKey("forceRefundSettlementMode")) {
+            p.setForceRefundSettlementMode(parseSettlementModeFromCommissionBody(body.get("forceRefundSettlementMode")));
+        }
         commissionPolicyRepository.save(p);
         /* 배포(Y): 가맹점 등록 시 동일 통화 기준으로 선택 가능한 정책으로 취급. 여러 템플릿을 동시에 배포할 수 있으며,
            다른 템플릿을 자동 미배포로 바꾸지 않고 DEFAULT에 덮어쓰지도 않는다. */
@@ -1026,6 +1047,10 @@ public class ApiHqController {
         m.put("fee3dsRate", p.getFee3dsRate() != null ? PercentDecimalHelper.toPlainAmountOneDecimal(p.getFee3dsRate()) : "0.0");
         m.put("chargebackFeePerTx", p.getChargebackFeePerTx() != null ? PercentDecimalHelper.toPlainAmountOneDecimal(p.getChargebackFeePerTx()) : "0.0");
         m.put("chargebackPolicyId", p.getChargebackPolicyId() != null ? p.getChargebackPolicyId() : "");
+        m.put("voidSettlementMode", policySettlementModeForApi(p.getVoidSettlementMode()));
+        m.put("manualVoidSettlementMode", policySettlementModeForApi(p.getManualVoidSettlementMode()));
+        m.put("refundSettlementMode", policySettlementModeForApi(p.getRefundSettlementMode()));
+        m.put("forceRefundSettlementMode", policySettlementModeForApi(p.getForceRefundSettlementMode()));
         putExtraFeeScalarsOnMap(m, p);
         m.put("tierCommission", tierMapForPolicy(p));
         CommissionTierJsonHelper.applyTierJsonSumsToDisplayMap(m, p);
@@ -1228,6 +1253,24 @@ public class ApiHqController {
         }
     }
 
+    private static String policySettlementModeForApi(String v) {
+        if (v == null || v.isBlank()) {
+            return VoidRefundSettlementModeUtil.GENERAL;
+        }
+        return VoidRefundSettlementModeUtil.normalize(v.trim());
+    }
+
+    private static String parseSettlementModeFromCommissionBody(Object o) {
+        if (o == null) {
+            return null;
+        }
+        String s = o.toString().trim();
+        if (s.isEmpty() || "FOLLOW".equalsIgnoreCase(s)) {
+            return null;
+        }
+        return VoidRefundSettlementModeUtil.normalize(s);
+    }
+
     private static void copyPolicyValues(CommissionPolicy src, CommissionPolicy dst) {
         dst.setPerTxFee(src.getPerTxFee());
         dst.setUsageRate(src.getUsageRate());
@@ -1249,6 +1292,10 @@ public class ApiHqController {
         dst.setFee3dsRate(src.getFee3dsRate());
         dst.setChargebackFeePerTx(src.getChargebackFeePerTx());
         dst.setChargebackPolicyId(src.getChargebackPolicyId());
+        dst.setVoidSettlementMode(src.getVoidSettlementMode());
+        dst.setManualVoidSettlementMode(src.getManualVoidSettlementMode());
+        dst.setRefundSettlementMode(src.getRefundSettlementMode());
+        dst.setForceRefundSettlementMode(src.getForceRefundSettlementMode());
         dst.setExtraFee1Name(src.getExtraFee1Name());
         dst.setExtraFee1Mode(src.getExtraFee1Mode());
         dst.setExtraFee1Value(src.getExtraFee1Value());

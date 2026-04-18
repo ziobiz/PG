@@ -54,7 +54,7 @@ public class SettlementRunFeeReconciliationService {
     public Map<String, Object> reconcile(SettlementRun run) {
         Map<String, Object> out = new LinkedHashMap<>();
         List<String> notes = new ArrayList<>();
-        notes.add("건당·정산건당·차지백 월집계 등은 정산 집계와 표시 단위가 달라 소액 차이가 날 수 있습니다.");
+        notes.add("건당·차지백 월집계 등은 정산 집계와 표시 단위가 달라 소액 차이가 날 수 있습니다. 정산수수료·송금수수료는 실행당 1회입니다.");
         if (run == null || run.getMerchantId() == null || run.getMerchantId().isBlank()) {
             out.put("skipped", true);
             out.put("reason", "no_merchant");
@@ -83,20 +83,43 @@ public class SettlementRunFeeReconciliationService {
 
         List<PgTrnsctn> txs = pgTrnsctnRepository.findForSettlement(mid, run.resolvePeriodStartAt(), run.resolvePeriodEndAt());
 
-        BigDecimal sumLines = BigDecimal.ZERO;
-        for (PgTrnsctn t : txs) {
-            String rowCur = t.getCurType() != null && !t.getCurType().isBlank() ? t.getCurType().trim() : "KRW";
-            FeeListRoundingPolicy rowRp = feeResolver.forCurrency(rowCur);
-            FeeListTxnBreakdownCalculator.FeeListTxnBreakdown br = feeListTxnBreakdownCalculator.computeFeeListTxnBreakdown(
-                    t, mid, pol, monthCbCountCache, tiersByPolicyId, feeVatSs, rowRp);
-            BigDecimal rowTotal = FeeListRoundingPolicy.round(BigDecimal.valueOf(br.totalFee()), rowRp);
-            BigDecimal rowSettle = FeeListRoundingPolicy.round(BigDecimal.valueOf(br.settlementPerTxFee()), rowRp);
-            sumLines = sumLines.add(rowTotal).add(rowSettle);
+        boolean legacyRun = run.getSettlementBatchFeeAmt() == null && run.getRemittanceFeeAmt() == null;
+        BigDecimal sumLines;
+        BigDecimal runFee;
+        if (legacyRun) {
+            BigDecimal acc = BigDecimal.ZERO;
+            for (PgTrnsctn t : txs) {
+                String rowCur = t.getCurType() != null && !t.getCurType().isBlank() ? t.getCurType().trim() : "KRW";
+                FeeListRoundingPolicy rowRp = feeResolver.forCurrency(rowCur);
+                FeeListTxnBreakdownCalculator.FeeListTxnBreakdown br = feeListTxnBreakdownCalculator.computeFeeListTxnBreakdown(
+                        t, mid, pol, monthCbCountCache, tiersByPolicyId, feeVatSs, rowRp);
+                BigDecimal rowTotal = FeeListRoundingPolicy.round(BigDecimal.valueOf(br.totalFee()), rowRp);
+                BigDecimal rowSettle = FeeListRoundingPolicy.round(BigDecimal.valueOf(br.settlementPerTxFee()), rowRp);
+                acc = acc.add(rowTotal).add(rowSettle);
+            }
+            sumLines = FeeListRoundingPolicy.round(acc, ledgerRp);
+            runFee = FeeListRoundingPolicy.round(run.getTotalFee() != null ? run.getTotalFee() : BigDecimal.ZERO, ledgerRp);
+        } else {
+            BigDecimal sumTxnFees = BigDecimal.ZERO;
+            for (PgTrnsctn t : txs) {
+                String rowCur = t.getCurType() != null && !t.getCurType().isBlank() ? t.getCurType().trim() : "KRW";
+                FeeListRoundingPolicy rowRp = feeResolver.forCurrency(rowCur);
+                FeeListTxnBreakdownCalculator.FeeListTxnBreakdown br = feeListTxnBreakdownCalculator.computeFeeListTxnBreakdown(
+                        t, mid, pol, monthCbCountCache, tiersByPolicyId, feeVatSs, rowRp);
+                BigDecimal rowTotal = FeeListRoundingPolicy.round(BigDecimal.valueOf(br.totalFee()), rowRp);
+                sumTxnFees = sumTxnFees.add(rowTotal);
+            }
+            sumTxnFees = FeeListRoundingPolicy.round(sumTxnFees, ledgerRp);
+            BigDecimal policySettleOnce = FeeListRoundingPolicy.round(
+                    pol.getFeeSettlementPerTx() != null ? pol.getFeeSettlementPerTx() : BigDecimal.ZERO, ledgerRp);
+            BigDecimal policyRemitOnce = FeeListRoundingPolicy.round(
+                    pol.getRemittanceTransferFee() != null ? pol.getRemittanceTransferFee() : BigDecimal.ZERO, ledgerRp);
+            sumLines = FeeListRoundingPolicy.round(sumTxnFees.add(policySettleOnce).add(policyRemitOnce), ledgerRp);
+            BigDecimal runTxnFee = FeeListRoundingPolicy.round(run.getTotalFee() != null ? run.getTotalFee() : BigDecimal.ZERO, ledgerRp);
+            BigDecimal runSettle = FeeListRoundingPolicy.round(run.getSettlementBatchFeeAmt(), ledgerRp);
+            BigDecimal runRemit = FeeListRoundingPolicy.round(run.getRemittanceFeeAmt(), ledgerRp);
+            runFee = FeeListRoundingPolicy.round(runTxnFee.add(runSettle).add(runRemit), ledgerRp);
         }
-        sumLines = FeeListRoundingPolicy.round(sumLines, ledgerRp);
-
-        BigDecimal runFee = run.getTotalFee() != null ? run.getTotalFee() : BigDecimal.ZERO;
-        runFee = FeeListRoundingPolicy.round(runFee, ledgerRp);
         BigDecimal diff = runFee.subtract(sumLines).abs();
 
         int scale = Math.max(0, ledgerRp.decimalPlaces());
@@ -109,7 +132,7 @@ public class SettlementRunFeeReconciliationService {
             BigDecimal usageRounded = FeeListRoundingPolicy.round(usageRate, ledgerRp);
             if (diff.subtract(usageRounded).abs().compareTo(eps) <= 0) {
                 usageExplains = true;
-                notes.add("차이가 월 이용료(usage) 근처입니다. 집계 total_fee에는 포함되나 건별 합에는 없습니다.");
+                notes.add("차이가 월 이용료(usage) 근처입니다. 집계 거래수수료(total_fee)에는 포함되나 건별 합에는 없습니다.");
             }
         }
 

@@ -25,6 +25,7 @@ import com.pg.util.FeeCurrencyRoundResolver;
 import com.pg.util.FeeListRoundingPolicy;
 import com.pg.util.MerchantFeeVatUtil;
 import com.pg.util.PayDisplayCurrency;
+import com.pg.util.VoidRefundSettlementModeUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -50,7 +51,8 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 /**
- * 정산 수학 로직: 결제 데이터 → 수수료 차감(건당·정산·차지백·실패·취소·무효·수동무효·환불·이용·결제·USDT·FX %·3DS 건당 고정·롤링) → 롤링(담보금 N% N일 보류) → 지급액
+ * 정산 수학 로직: 결제 데이터 → 거래 수수료 차감(건당·차지백·실패·취소·무효·수동무효·환불·이용·결제·USDT·FX %·3DS·기타)
+ * → 정산수수료·송금수수료는 실행당 1회 별도 공제 → 롤링(담보금) → 지급액
  * <p><b>정산로직(수동 「정산실행」)</b>: {@link #execute(LocalDate, LocalDate, String, boolean)} {@code manualExecuteRules=true} 일 때
  * 정산구분 {@code AUTO}·{@code MANUAL} 가맹 모두 동일 규칙으로 집계합니다. {@code D*}·{@code W+N}·{@code WK*} 는
  * {@link SettlementPeriodResolver#resolveAutoPeriodWindow} 로 정산일(기간 종료일)이 주기상 실행일일 때만 집계합니다.
@@ -61,8 +63,8 @@ public class SettlementCalcService {
 
     private static final Logger log = LoggerFactory.getLogger(SettlementCalcService.class);
 
-    private static final ZoneId SEOUL = ZoneId.of("Asia/Seoul");
-    private static final List<String> CHARGEBACK_STATUSES = List.of("30", "31");
+    /** 차지백 구간·건당 수수료: 강제환불(31)만 집계 */
+    private static final List<String> CHARGEBACK_STATUSES = List.of("31");
     private static final Pattern D_CYCLE = Pattern.compile("^D\\d{1,2}$", Pattern.CASE_INSENSITIVE);
 
     private final PgTrnsctnRepository trnsctnRepository;
@@ -76,6 +78,10 @@ public class SettlementCalcService {
     private final SettlementArrearsService settlementArrearsService;
     private final HqLedgerSysSettingsService hqLedgerSysSettingsService;
     private final SettlementCalcCycleTransitionService settlementCalcCycleTransitionService;
+    private final HqSettlementCycleAdminService hqSettlementCycleAdminService;
+    private final MasterDistSettlementCronZoneService masterDistSettlementCronZoneService;
+    private final VoidRefundSettlementModeResolutionService voidRefundSettlementModeResolutionService;
+    private final CommissionService commissionService;
 
     public SettlementCalcService(PgTrnsctnRepository trnsctnRepository,
                                  CommissionPolicyRepository commissionPolicyRepository,
@@ -87,7 +93,11 @@ public class SettlementCalcService {
                                  OrgServiceUseService orgServiceUseService,
                                  SettlementArrearsService settlementArrearsService,
                                  HqLedgerSysSettingsService hqLedgerSysSettingsService,
-                                 SettlementCalcCycleTransitionService settlementCalcCycleTransitionService) {
+                                 SettlementCalcCycleTransitionService settlementCalcCycleTransitionService,
+                                 HqSettlementCycleAdminService hqSettlementCycleAdminService,
+                                 MasterDistSettlementCronZoneService masterDistSettlementCronZoneService,
+                                 VoidRefundSettlementModeResolutionService voidRefundSettlementModeResolutionService,
+                                 CommissionService commissionService) {
         this.trnsctnRepository = trnsctnRepository;
         this.commissionPolicyRepository = commissionPolicyRepository;
         this.chargebackFeePolicyRepository = chargebackFeePolicyRepository;
@@ -99,6 +109,10 @@ public class SettlementCalcService {
         this.settlementArrearsService = settlementArrearsService;
         this.hqLedgerSysSettingsService = hqLedgerSysSettingsService;
         this.settlementCalcCycleTransitionService = settlementCalcCycleTransitionService;
+        this.hqSettlementCycleAdminService = hqSettlementCycleAdminService;
+        this.masterDistSettlementCronZoneService = masterDistSettlementCronZoneService;
+        this.voidRefundSettlementModeResolutionService = voidRefundSettlementModeResolutionService;
+        this.commissionService = commissionService;
     }
 
     public List<SettlementRun> listRuns(LocalDate fromDate, LocalDate toDate) {
@@ -139,8 +153,7 @@ public class SettlementCalcService {
 
     public CommissionPolicy getPolicy(String merchantId) {
         if (merchantId != null && !merchantId.isEmpty()) {
-            return commissionPolicyRepository.findByScope(merchantId)
-                    .orElseGet(() -> commissionPolicyRepository.findByScope("DEFAULT").orElse(null));
+            return commissionService.resolveCommissionPolicyForSettlement(merchantId.trim());
         }
         return commissionPolicyRepository.findByScope("DEFAULT").orElse(null);
     }
@@ -185,13 +198,11 @@ public class SettlementCalcService {
             return results;
         }
 
-        LocalTime nowSeoul = LocalTime.now(SEOUL);
         Map<String, List<PgTrnsctn>> byMid = list.stream()
                 .filter(t -> t.getMerchantId() != null && !t.getMerchantId().isBlank())
                 .collect(Collectors.groupingBy(t -> t.getMerchantId().trim()));
 
-        for (ManualExecuteRow row : buildManualExecuteRows(fromDate, toDate, merchantId, calcDt, nowSeoul, byMid,
-                LocalDate.now(SEOUL))) {
+        for (ManualExecuteRow row : buildManualExecuteRows(fromDate, toDate, merchantId, calcDt, byMid)) {
             SettlementRun run = calcOne(row.mid(), calcDt, row.txList(), Optional.empty(), false, true, Optional.empty());
             if (run != null) {
                 run.setPeriodFrom(row.periodFrom());
@@ -240,9 +251,13 @@ public class SettlementCalcService {
             return Optional.empty();
         }
         String c0 = SettlementPeriodResolver.normalizeCalcCycle(cycleRaw);
-        LocalDate todaySeoul = LocalDate.now(SEOUL);
-        LocalTime nowSeoul = LocalTime.now(SEOUL);
-        if (!SettlementCycleTiming.isManualIntradayGridSlotElapsed(nowSeoul, runTo, todaySeoul, c0)) {
+        if (!hqSettlementCycleAdminService.isActiveSettlementCycle(cycleRaw)) {
+            return Optional.of("본사 정산주기관리(DB)에서 사용이 아닌(N) 정산주기입니다: " + c0);
+        }
+        ZoneId z = masterDistSettlementCronZoneService.resolveSettlementCronZoneForOrgUnitId(ouOpt.get().getId());
+        LocalDate todayZ = LocalDate.now(z);
+        LocalTime nowZ = LocalTime.now(z);
+        if (!SettlementCycleTiming.isManualIntradayGridSlotElapsed(nowZ, runTo, todayZ, c0)) {
             return Optional.of("정산주기(" + c0 + ")는 수동 실행 시 격자 구간이 끝난 뒤에만 가능합니다. "
                     + "(예: H1·H2 등은 해당 시간 블록이 끝난 정각 이후, M5 등은 N분 경계 이후)");
         }
@@ -253,9 +268,7 @@ public class SettlementCalcService {
                                                           LocalDate toDate,
                                                           String merchantIdFilter,
                                                           LocalDate calcDt,
-                                                          LocalTime nowSeoul,
-                                                          Map<String, List<PgTrnsctn>> txsInSearchRangeByMid,
-                                                          LocalDate todaySeoul) {
+                                                          Map<String, List<PgTrnsctn>> txsInSearchRangeByMid) {
         List<ManualExecuteRow> rows = new ArrayList<>();
         List<OrgUnit> merchants = orgUnitRepository.findAll().stream()
                 .filter(ou -> ou.getOrgLevel() == OrgLevel.MERCHANT)
@@ -267,6 +280,9 @@ public class SettlementCalcService {
             if (mid == null || mid.isBlank()) {
                 continue;
             }
+            ZoneId cronZ = masterDistSettlementCronZoneService.resolveSettlementCronZoneForOrgUnitId(ou.getId());
+            LocalDate merchantToday = LocalDate.now(cronZ);
+            LocalTime merchantNow = LocalTime.now(cronZ);
             Optional<SettlementSetting> ssOpt = settlementSettingRepository.findByOrgUnitId(ou.getId());
             if (ssOpt.isEmpty()) {
                 continue;
@@ -276,16 +292,19 @@ public class SettlementCalcService {
             if (cycleRaw == null || cycleRaw.isBlank() || "NONE".equalsIgnoreCase(cycleRaw.trim())) {
                 continue;
             }
+            if (!hqSettlementCycleAdminService.isActiveSettlementCycle(cycleRaw)) {
+                continue;
+            }
             if ("Y".equalsIgnoreCase(String.valueOf(ss.getCalcExcludeYn()).trim())
                     && !BusinessDayCalendar.isBusinessDay(calcDt, Collections.emptySet())) {
                 continue;
             }
             LocalTime close = ss.getCalcCloseTime();
-            if (close != null && nowSeoul.isBefore(close)) {
+            if (close != null && merchantNow.isBefore(close)) {
                 continue;
             }
             String c0 = SettlementPeriodResolver.normalizeCalcCycle(cycleRaw);
-            if ("D0".equals(c0) && !SettlementCycleTiming.isD0AutoBatchAllowedNow(nowSeoul)) {
+            if ("D0".equals(c0) && !SettlementCycleTiming.isD0AutoBatchAllowedNow(merchantNow)) {
                 continue;
             }
             SettlementPeriodResolver.PeriodWindow w = SettlementPeriodResolver.resolveAutoPeriodWindow(cycleRaw, calcDt);
@@ -304,7 +323,7 @@ public class SettlementCalcService {
                     || SettlementCycleTiming.isSubDailyScheduleCode(c0)
                     || SettlementCycleTiming.isRollingIntradayGridCode(c0)) {
                 if ((SettlementCycleTiming.isSubDailyScheduleCode(c0) || SettlementCycleTiming.isRollingIntradayGridCode(c0))
-                        && !SettlementCycleTiming.isManualIntradayGridSlotElapsed(nowSeoul, calcDt, todaySeoul, c0)) {
+                        && !SettlementCycleTiming.isManualIntradayGridSlotElapsed(merchantNow, calcDt, merchantToday, c0)) {
                     continue;
                 }
                 List<PgTrnsctn> txs = txsInSearchRangeByMid.getOrDefault(mid.trim(), List.of());
@@ -424,6 +443,9 @@ public class SettlementCalcService {
             return List.of();
         }
         String c0 = SettlementPeriodResolver.normalizeCalcCycle(ss.getCalcCycle());
+        if (!hqSettlementCycleAdminService.isActiveSettlementCycle(ss.getCalcCycle())) {
+            return List.of();
+        }
         if (!SettlementCycleTiming.isRealtimeCode(c0)) {
             return List.of();
         }
@@ -475,6 +497,9 @@ public class SettlementCalcService {
             return List.of();
         }
         String c0 = SettlementPeriodResolver.normalizeCalcCycle(ss.getCalcCycle());
+        if (!hqSettlementCycleAdminService.isActiveSettlementCycle(ss.getCalcCycle())) {
+            return List.of();
+        }
         if (!SettlementCycleTiming.isSubDailyScheduleCode(c0)) {
             return List.of();
         }
@@ -493,7 +518,8 @@ public class SettlementCalcService {
      */
     private List<SettlementRun> appendSubDailyGridAggregateSettlement(String merchantId, String cycleNorm) {
         String mid = merchantId.trim();
-        LocalDateTime nowMin = LocalDateTime.now(SEOUL).withSecond(0).withNano(0);
+        ZoneId z = masterDistSettlementCronZoneService.resolveSettlementCronZoneForMerchantCode(mid);
+        LocalDateTime nowMin = LocalDateTime.now(z).withSecond(0).withNano(0);
         String plainGrid = SettlementCycleTiming.toPlainGridClosingCode(cycleNorm);
         SettlementCycleTiming.SubDailyClosedSlot slot = SettlementCycleTiming.closedSubDailySlot(nowMin, plainGrid);
         if (slot == null) {
@@ -581,14 +607,15 @@ public class SettlementCalcService {
         if ("Y".equalsIgnoreCase(String.valueOf(txn.getSettledYn()).trim())) {
             return List.of();
         }
-        LocalDate today = LocalDate.now(SEOUL);
+        ZoneId z = masterDistSettlementCronZoneService.resolveSettlementCronZoneForMerchantCode(mid);
+        LocalDate today = LocalDate.now(z);
         boolean chargeMonthlyUsage = shouldChargeMonthlyUsageOnIntradayRun(mid, today);
         List<SettlementRun> results = new ArrayList<>();
         SettlementRun run = calcOne(mid, today, List.of(txn), Optional.of(chargeMonthlyUsage), true, true, Optional.empty());
         if (run != null) {
             run.setPeriodFrom(today);
             run.setPeriodTo(today);
-            LocalDateTime endAt = txn.getCreatedAt() != null ? txn.getCreatedAt() : LocalDateTime.now(SEOUL);
+            LocalDateTime endAt = txn.getCreatedAt() != null ? txn.getCreatedAt() : LocalDateTime.now(z);
             run.setPeriodEndAt(endAt);
             settlementRunRepository.save(run);
             settlementArrearsService.applyArrearsToSettledRun(run);
@@ -620,18 +647,19 @@ public class SettlementCalcService {
             log.warn("recalcTodayIntradayAuto skipped: merchant {} cycle {} is not T0 or TM/TH rolling grid", mid, cRecalc);
             return List.of();
         }
-        LocalDate today = LocalDate.now(SEOUL);
+        ZoneId z = masterDistSettlementCronZoneService.resolveSettlementCronZoneForOrgUnitId(ouRecalc.get().getId());
+        LocalDate today = LocalDate.now(z);
         boolean chargeMonthlyUsage = shouldChargeMonthlyUsageOnIntradayRun(mid, today);
         settlementRunRepository.deleteByMerchantIdAndCalcDt(mid, today);
         LocalDateTime from = today.atStartOfDay();
-        LocalDateTime to = LocalDateTime.now(SEOUL);
+        LocalDateTime to = LocalDateTime.now(z);
         List<PgTrnsctn> list = trnsctnRepository.findForSettlement(mid, from, to);
         List<SettlementRun> results = new ArrayList<>();
         SettlementRun run = calcOne(mid, today, list, Optional.of(chargeMonthlyUsage), false, true, Optional.empty());
         if (run != null) {
             run.setPeriodFrom(today);
             run.setPeriodTo(today);
-            run.setPeriodEndAt(LocalDateTime.now(SEOUL).withSecond(0).withNano(0));
+            run.setPeriodEndAt(LocalDateTime.now(z).withSecond(0).withNano(0));
             settlementRunRepository.save(run);
             settlementArrearsService.applyArrearsToSettledRun(run);
             results.add(run);
@@ -671,16 +699,25 @@ public class SettlementCalcService {
             policy.setRollingPct(BigDecimal.ZERO);
             policy.setRollingDays(0);
         }
+        var ledgerSys = hqLedgerSysSettingsService.getOrCreate();
+        FeeListRoundingPolicy lr = FeeCurrencyRoundResolver.from(ledgerSys)
+                .forCurrency(PayDisplayCurrency.alphaFromSettings(ledgerSys));
+        String voidSettleMode = voidRefundSettlementModeResolutionService.resolveVoidSettlementMode(merchantId);
+        String manualVoidSettleMode = voidRefundSettlementModeResolutionService.resolveManualVoidSettlementMode(merchantId);
+        String refundSettleMode = voidRefundSettlementModeResolutionService.resolveRefundSettlementMode(merchantId);
+        String forceRefundSettleMode = voidRefundSettlementModeResolutionService.resolveForceRefundSettlementMode(merchantId);
         BigDecimal approveAmt = BigDecimal.ZERO;
         BigDecimal cancelAmt = BigDecimal.ZERO;
         BigDecimal voidAmt = BigDecimal.ZERO;
         BigDecimal manualVoidAmt = BigDecimal.ZERO;
-        BigDecimal refundAmt = BigDecimal.ZERO;
+        BigDecimal refundNormalAmt = BigDecimal.ZERO;
+        BigDecimal forceRefundAmt = BigDecimal.ZERO;
         int payCnt = 0;
         int cancelCnt = 0;
         int voidCnt = 0;
         int manualVoidCnt = 0;
-        int refundCnt = 0;
+        int refundNormalCnt = 0;
+        int forceRefundCnt = 0;
         int failCnt = 0;
         int txCount = txList.size();
         for (PgTrnsctn t : txList) {
@@ -692,15 +729,18 @@ public class SettlementCalcService {
             } else if ("20".equals(st)) {
                 cancelAmt = cancelAmt.add(amt);
                 cancelCnt++;
-            } else if ("21".equals(st)) {
+            } else if ("21".equals(st) || "40".equals(st)) {
                 voidAmt = voidAmt.add(amt);
                 voidCnt++;
-            } else if ("22".equals(st)) {
+            } else if ("22".equals(st) || "41".equals(st)) {
                 manualVoidAmt = manualVoidAmt.add(amt);
                 manualVoidCnt++;
-            } else if ("30".equals(st) || "31".equals(st)) {
-                refundAmt = refundAmt.add(amt);
-                refundCnt++;
+            } else if ("30".equals(st) || "42".equals(st)) {
+                refundNormalAmt = refundNormalAmt.add(amt);
+                refundNormalCnt++;
+            } else if ("31".equals(st)) {
+                forceRefundAmt = forceRefundAmt.add(amt);
+                forceRefundCnt++;
             } else if ("F0".equals(st) || "99".equals(st)) {
                 failCnt++;
             }
@@ -728,16 +768,27 @@ public class SettlementCalcService {
             return null;
         }
 
-        var ledgerSys = hqLedgerSysSettingsService.getOrCreate();
-        FeeListRoundingPolicy lr = FeeCurrencyRoundResolver.from(ledgerSys)
-                .forCurrency(PayDisplayCurrency.alphaFromSettings(ledgerSys));
         releasedFromReserve = FeeListRoundingPolicy.round(releasedFromReserve, lr);
 
         BigDecimal approveRounded = FeeListRoundingPolicy.round(approveAmt, lr);
         BigDecimal cancelRounded = FeeListRoundingPolicy.round(cancelAmt, lr);
         BigDecimal voidRounded = FeeListRoundingPolicy.round(voidAmt, lr);
         BigDecimal manualVoidRounded = FeeListRoundingPolicy.round(manualVoidAmt, lr);
-        BigDecimal netSales = approveRounded.subtract(cancelRounded).subtract(voidRounded).subtract(manualVoidRounded);
+        BigDecimal refundNormalRounded = FeeListRoundingPolicy.round(refundNormalAmt, lr);
+        BigDecimal forceRefundRounded = FeeListRoundingPolicy.round(forceRefundAmt, lr);
+        BigDecimal netSales = approveRounded.subtract(cancelRounded);
+        if (VoidRefundSettlementModeUtil.subtractVoidAmountFromNet(voidSettleMode)) {
+            netSales = netSales.subtract(voidRounded);
+        }
+        if (VoidRefundSettlementModeUtil.subtractManualVoidAmountFromNet(manualVoidSettleMode)) {
+            netSales = netSales.subtract(manualVoidRounded);
+        }
+        if (VoidRefundSettlementModeUtil.subtractRefundAmountFromNet(refundSettleMode)) {
+            netSales = netSales.subtract(refundNormalRounded);
+        }
+        if (VoidRefundSettlementModeUtil.subtractForceRefundAmountFromNet(forceRefundSettleMode)) {
+            netSales = netSales.subtract(forceRefundRounded);
+        }
 
         BigDecimal perTxFee = policy.getPerTxFee() != null ? policy.getPerTxFee() : BigDecimal.ZERO;
         BigDecimal cancelRate = policy.getCancelRate() != null ? policy.getCancelRate() : BigDecimal.ZERO;
@@ -759,13 +810,14 @@ public class SettlementCalcService {
         BigDecimal rollingPct = rollingPctRef[0];
         int rollingDays = rollingDaysRef[0];
 
-        BigDecimal feePerTx = FeeListRoundingPolicy.round(perTxFee.multiply(BigDecimal.valueOf(txCount)), lr);
+        /* 결제수수료(건당): 승인(10) 건만 — 실패·취소 등에는 결제 건당을 붙이지 않음 */
+        BigDecimal feePerTx = FeeListRoundingPolicy.round(perTxFee.multiply(BigDecimal.valueOf(payCnt)), lr);
         BigDecimal feePayRate = lrPctOf(approveAmt, payRate, lr);
         /* 취소·무효·수동무효·환불: 건당 고정액 × 해당 건수 */
         BigDecimal feeCancelRate = FeeListRoundingPolicy.round(cancelRate.multiply(BigDecimal.valueOf(cancelCnt)), lr);
         BigDecimal feeVoidPerTx = FeeListRoundingPolicy.round(voidFeePerTx.multiply(BigDecimal.valueOf(voidCnt)), lr);
         BigDecimal feeManualVoidPerTx = FeeListRoundingPolicy.round(manualVoidFeePerTx.multiply(BigDecimal.valueOf(manualVoidCnt)), lr);
-        BigDecimal feeRefundRate = FeeListRoundingPolicy.round(refundRate.multiply(BigDecimal.valueOf(refundCnt)), lr);
+        BigDecimal feeRefundRate = FeeListRoundingPolicy.round(refundRate.multiply(BigDecimal.valueOf(refundNormalCnt)), lr);
         YearMonth ym = YearMonth.from(calcDt);
         LocalDate monthStart = ym.atDay(1);
         LocalDate monthEnd = ym.atEndOfMonth();
@@ -781,14 +833,12 @@ public class SettlementCalcService {
         BigDecimal feeFailTotal = FeeListRoundingPolicy.round(failFee.multiply(BigDecimal.valueOf(failCnt)), lr);
 
         BigDecimal feeSettlementPerTxBd = policy.getFeeSettlementPerTx() != null ? policy.getFeeSettlementPerTx() : BigDecimal.ZERO;
-        BigDecimal feeSettlementTotal = FeeListRoundingPolicy.round(feeSettlementPerTxBd.multiply(BigDecimal.valueOf(txCount)), lr);
+        /* 정산수수료: 정산 실행 1회당 1회(거래 건수와 무관). 담보 해지 전용 실행 등 거래 0건이어도 실행이 있으면 동일. */
+        BigDecimal settlementBatchFeeAmt = FeeListRoundingPolicy.round(feeSettlementPerTxBd, lr);
+        BigDecimal remittanceFeeAmt = FeeListRoundingPolicy.round(
+                policy.getRemittanceTransferFee() != null ? policy.getRemittanceTransferFee() : BigDecimal.ZERO, lr);
 
-        long chargebackBatchCnt = txList.stream()
-                .map(PgTrnsctn::getStatus)
-                .filter(Objects::nonNull)
-                .map(String::trim)
-                .filter(st -> "30".equals(st) || "31".equals(st))
-                .count();
+        long chargebackBatchCnt = forceRefundCnt;
         BigDecimal feeChargebackTotal = BigDecimal.ZERO;
         if (chargebackBatchCnt > 0) {
             BigDecimal perCase;
@@ -834,9 +884,10 @@ public class SettlementCalcService {
 
         BigDecimal feeExtraFix = CommissionExtraFeeUtil.sumFixedForSettlementRounded(policy, lr);
 
-        BigDecimal totalFee = FeeListRoundingPolicy.round(
+        /* total_fee 컬럼: 거래 집계 기반 수수료만(정산 1회당·송금 1회당은 별도 컬럼). */
+        BigDecimal totalFeeTxnOnly = FeeListRoundingPolicy.round(
                 feePerTx.add(feePayRate).add(feeCancelRate).add(feeVoidPerTx).add(feeManualVoidPerTx).add(feeRefundRate).add(feeUsage)
-                        .add(feeFailTotal).add(feeSettlementTotal).add(feeChargebackTotal).add(feeUsdtFxPctSum).add(fee3dsFixedSum)
+                        .add(feeFailTotal).add(feeChargebackTotal).add(feeUsdtFxPctSum).add(fee3dsFixedSum)
                         .add(feeExtraPctSum).add(feeExtraFix),
                 lr);
 
@@ -846,7 +897,8 @@ public class SettlementCalcService {
                     .flatMap(ou -> settlementSettingRepository.findByOrgUnitId(ou.getId()))
                     .orElse(null);
         }
-        BigDecimal feeVatAmt = MerchantFeeVatUtil.vatOnFeeAmount(totalFee, feeVatSs, lr.decimalPlaces());
+        BigDecimal feeBaseForVat = totalFeeTxnOnly.add(settlementBatchFeeAmt).add(remittanceFeeAmt);
+        BigDecimal feeVatAmt = MerchantFeeVatUtil.vatOnFeeAmount(feeBaseForVat, feeVatSs, lr.decimalPlaces());
 
         BigDecimal rollingReserveAmt = BigDecimal.ZERO;
         if (rollingDays > 0 && rollingPct.compareTo(BigDecimal.ZERO) > 0) {
@@ -887,7 +939,8 @@ public class SettlementCalcService {
         rollingReserveAmt = FeeListRoundingPolicy.round(rollingReserveAmt, lr);
 
         BigDecimal payAmt = FeeListRoundingPolicy.round(
-                netSales.subtract(totalFee).subtract(feeVatAmt).subtract(rollingReserveAmt).add(releasedFromReserve), lr);
+                netSales.subtract(totalFeeTxnOnly).subtract(settlementBatchFeeAmt).subtract(remittanceFeeAmt)
+                        .subtract(feeVatAmt).subtract(rollingReserveAmt).add(releasedFromReserve), lr);
         /* 음수 지급액은 0으로 올리지 않음. 절대액은 {@link SettlementArrearsService#applyArrearsToSettledRun} 에서 미수금 자동 등록 */
 
         /* 건당 마감: 포함된 모든 거래 settled Y. 당일 합산(T0) 등: 승인(10)만 Y — 정산 후 환불 시 환수금 자동 등록 기준 */
@@ -913,9 +966,12 @@ public class SettlementCalcService {
         SettlementRun run = new SettlementRun();
         run.setCalcDt(calcDt);
         run.setMerchantId(merchantId);
+        run.setIncludedTxnCnt(txCount);
         run.setApproveAmt(approveRounded);
         run.setCancelAmt(cancelRounded);
-        run.setTotalFee(totalFee);
+        run.setTotalFee(totalFeeTxnOnly);
+        run.setSettlementBatchFeeAmt(settlementBatchFeeAmt);
+        run.setRemittanceFeeAmt(remittanceFeeAmt);
         run.setRollingReserveAmt(rollingReserveAmt);
         run.setPayAmt(payAmt);
         run.setStatus("CALCULATED");

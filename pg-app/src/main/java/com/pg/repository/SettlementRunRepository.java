@@ -16,6 +16,8 @@ public interface SettlementRunRepository extends JpaRepository<SettlementRun, Lo
 
     List<SettlementRun> findByCalcDtAndMerchantId(LocalDate calcDt, String merchantId);
 
+    boolean existsByMerchantIdAndCalcDt(String merchantId, LocalDate calcDt);
+
     boolean existsByMerchantIdAndCalcDtAndPeriodEndAt(String merchantId, LocalDate calcDt, LocalDateTime periodEndAt);
 
     /**

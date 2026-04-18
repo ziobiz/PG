@@ -2,9 +2,13 @@ package com.pg.service;
 
 import com.pg.catalog.DataRetentionCatalog;
 import com.pg.entity.HqLedgerSysSettings;
+import com.pg.entity.OrgLevel;
 import com.pg.repository.HqLedgerSysSettingsRepository;
+import com.pg.repository.SettlementSettingRepository;
 import com.pg.util.FeeCurrencyRoundResolver;
 import com.pg.util.PayDisplayCurrency;
+import com.pg.util.ReceivableRecoveryModeUtil;
+import com.pg.util.VoidRefundSettlementModeUtil;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -14,6 +18,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 /**
@@ -22,14 +27,22 @@ import java.util.Map;
 @Service
 public class HqLedgerSysSettingsService {
 
+    public static final String SETTLEMENT_AUTO_BATCH_ACTIVE = "ACTIVE";
+    public static final String SETTLEMENT_AUTO_BATCH_INACTIVE = "INACTIVE";
+    public static final String SETTLEMENT_AUTO_BATCH_AUTO = "AUTO";
+
     private static final DateTimeFormatter ISO = DateTimeFormatter.ISO_OFFSET_DATE_TIME;
 
     private final HqLedgerSysSettingsRepository repository;
     private final HqNotifyEnvService hqNotifyEnvService;
+    private final SettlementSettingRepository settlementSettingRepository;
 
-    public HqLedgerSysSettingsService(HqLedgerSysSettingsRepository repository, HqNotifyEnvService hqNotifyEnvService) {
+    public HqLedgerSysSettingsService(HqLedgerSysSettingsRepository repository,
+                                      HqNotifyEnvService hqNotifyEnvService,
+                                      SettlementSettingRepository settlementSettingRepository) {
         this.repository = repository;
         this.hqNotifyEnvService = hqNotifyEnvService;
+        this.settlementSettingRepository = settlementSettingRepository;
     }
 
     @Transactional
@@ -38,8 +51,81 @@ public class HqLedgerSysSettingsService {
             HqLedgerSysSettings x = new HqLedgerSysSettings();
             x.setId(1L);
             x.setDisplayTimezone("Asia/Bangkok");
+            x.setSettlementAutoBatchMode(SETTLEMENT_AUTO_BATCH_INACTIVE);
             return repository.save(x);
         });
+    }
+
+    /**
+     * 스케줄 tick 본문을 DB 만으로 허용할지(① JVM 은 호출 측에서 AND).
+     *
+     * @param peekDueThisTick {@link com.pg.service.settlement.SettlementAutoRunService#peekAnyDueAutoWorkThisTick()} 결과
+     */
+    public boolean isSettlementAutoBatchDbTickAllowed(boolean peekDueThisTick) {
+        String mode = normalizeSettlementAutoBatchMode(
+                repository.findFirstByOrderByIdAsc().map(HqLedgerSysSettings::getSettlementAutoBatchMode).orElse(null));
+        if (SETTLEMENT_AUTO_BATCH_INACTIVE.equals(mode)) {
+            return false;
+        }
+        if (SETTLEMENT_AUTO_BATCH_ACTIVE.equals(mode)) {
+            return true;
+        }
+        if (SETTLEMENT_AUTO_BATCH_AUTO.equals(mode)) {
+            return peekDueThisTick;
+        }
+        return false;
+    }
+
+    public static String normalizeSettlementAutoBatchMode(String raw) {
+        if (raw == null || raw.isBlank()) {
+            return SETTLEMENT_AUTO_BATCH_INACTIVE;
+        }
+        String u = raw.trim().toUpperCase(Locale.ROOT);
+        if (SETTLEMENT_AUTO_BATCH_ACTIVE.equals(u) || SETTLEMENT_AUTO_BATCH_INACTIVE.equals(u) || SETTLEMENT_AUTO_BATCH_AUTO.equals(u)) {
+            return u;
+        }
+        return SETTLEMENT_AUTO_BATCH_INACTIVE;
+    }
+
+    @Transactional
+    public HqLedgerSysSettings updateSettlementAutoBatchMode(String mode) {
+        HqLedgerSysSettings s = getOrCreate();
+        s.setSettlementAutoBatchMode(normalizeSettlementAutoBatchMode(mode));
+        return repository.save(s);
+    }
+
+    @Transactional
+    public HqLedgerSysSettings updateVoidRefundSettlementModes(Map<String, Object> body) {
+        HqLedgerSysSettings s = getOrCreate();
+        if (body != null) {
+            if (body.containsKey("voidSettlementMode")) {
+                s.setVoidSettlementMode(VoidRefundSettlementModeUtil.normalize(String.valueOf(body.get("voidSettlementMode"))));
+            }
+            if (body.containsKey("manualVoidSettlementMode")) {
+                s.setManualVoidSettlementMode(VoidRefundSettlementModeUtil.normalize(String.valueOf(body.get("manualVoidSettlementMode"))));
+            }
+            if (body.containsKey("refundSettlementMode")) {
+                s.setRefundSettlementMode(VoidRefundSettlementModeUtil.normalize(String.valueOf(body.get("refundSettlementMode"))));
+            }
+            if (body.containsKey("forceRefundSettlementMode")) {
+                s.setForceRefundSettlementMode(VoidRefundSettlementModeUtil.normalize(String.valueOf(body.get("forceRefundSettlementMode"))));
+            }
+            if (body.containsKey("receivableRecoveryDefaultMode")) {
+                s.setReceivableRecoveryDefaultMode(
+                        ReceivableRecoveryModeUtil.normalize(String.valueOf(body.get("receivableRecoveryDefaultMode"))));
+            }
+        }
+        return repository.save(s);
+    }
+
+    /**
+     * 본사 기본 미수금 환수 모드를 가맹에 반영합니다.
+     * {@code receivable_recovery_override_yn = 'Y'} 인 가맹(개별 우선)은 제외합니다.
+     */
+    @Transactional
+    public int applyReceivableRecoveryDefaultToAllMerchants(String normalizedMode) {
+        return settlementSettingRepository.updateReceivableRecoveryModeForMerchantsInheriting(
+                ReceivableRecoveryModeUtil.normalize(normalizedMode), OrgLevel.MERCHANT);
     }
 
     public Map<String, Object> toMap(HqLedgerSysSettings s) {
@@ -93,6 +179,18 @@ public class HqLedgerSysSettingsService {
         }
         m.put("helloTimelineEnabledYn", yn(s.getHelloTimelineEnabledYn()));
         {
+            String mode = normalizeSettlementAutoBatchMode(s.getSettlementAutoBatchMode());
+            m.put("settlementAutoBatchMode", mode);
+            /* 구 API·화면: 배치를 DB 에서 완전히 끈 것만 N */
+            boolean legacyOn = SETTLEMENT_AUTO_BATCH_ACTIVE.equals(mode) || SETTLEMENT_AUTO_BATCH_AUTO.equals(mode);
+            m.put("settlementAutoBatchEnabledYn", legacyOn ? "Y" : "N");
+        }
+        m.put("voidSettlementMode", VoidRefundSettlementModeUtil.normalize(s.getVoidSettlementMode()));
+        m.put("manualVoidSettlementMode", VoidRefundSettlementModeUtil.normalize(s.getManualVoidSettlementMode()));
+        m.put("refundSettlementMode", VoidRefundSettlementModeUtil.normalize(s.getRefundSettlementMode()));
+        m.put("forceRefundSettlementMode", VoidRefundSettlementModeUtil.normalize(s.getForceRefundSettlementMode()));
+        m.put("receivableRecoveryDefaultMode", ReceivableRecoveryModeUtil.normalize(s.getReceivableRecoveryDefaultMode()));
+        {
             int hm = s.getHelloTimelineDurationMin() != null && s.getHelloTimelineDurationMin() > 0
                     ? s.getHelloTimelineDurationMin() : 10;
             if (hm > 1440) {
@@ -107,13 +205,7 @@ public class HqLedgerSysSettingsService {
             m.put("updatedAt", "");
         }
         m.put("dataRetentionRows", buildDataRetentionRows(s));
-        ZoneId z;
-        try {
-            String tz = s.getDisplayTimezone();
-            z = (tz != null && !tz.isBlank()) ? ZoneId.of(tz.trim()) : ZoneId.systemDefault();
-        } catch (Exception e) {
-            z = ZoneId.systemDefault();
-        }
+        ZoneId z = resolveDisplayZoneIdFromSettings(s);
         m.put("serverTimeIso", ZonedDateTime.now(z).format(ISO));
         m.put("serverZoneId", z.getId());
         return m;
@@ -313,5 +405,29 @@ public class HqLedgerSysSettingsService {
         } catch (NumberFormatException e) {
             return defaultVal;
         }
+    }
+
+    /**
+     * 전산설정 표준시간대({@code display_timezone}) — naive 적재·그리드 표시의 기본 벽시계.
+     * 미설정·파싱 실패 시 {@code Asia/Bangkok}.
+     */
+    public static ZoneId resolveDisplayZoneIdFromSettings(HqLedgerSysSettings s) {
+        if (s == null) {
+            return ZoneId.of("Asia/Bangkok");
+        }
+        try {
+            String tz = s.getDisplayTimezone();
+            if (tz == null || tz.isBlank()) {
+                return ZoneId.of("Asia/Bangkok");
+            }
+            return ZoneId.of(tz.trim());
+        } catch (Exception e) {
+            return ZoneId.of("Asia/Bangkok");
+        }
+    }
+
+    /** 단일 행 전산설정을 열어 표준 시간대를 반환합니다. */
+    public ZoneId resolveLedgerDisplayZoneId() {
+        return resolveDisplayZoneIdFromSettings(getOrCreate());
     }
 }

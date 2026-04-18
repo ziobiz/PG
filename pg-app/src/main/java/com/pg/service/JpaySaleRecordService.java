@@ -12,6 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -31,13 +32,16 @@ public class JpaySaleRecordService {
     private final PgTrnsctnRepository pgTrnsctnRepository;
     private final OrgUnitRepository orgUnitRepository;
     private final SettlementCalcService settlementCalcService;
+    private final HqLedgerSysSettingsService hqLedgerSysSettingsService;
 
     public JpaySaleRecordService(PgTrnsctnRepository pgTrnsctnRepository,
                                  OrgUnitRepository orgUnitRepository,
-                                 SettlementCalcService settlementCalcService) {
+                                 SettlementCalcService settlementCalcService,
+                                 HqLedgerSysSettingsService hqLedgerSysSettingsService) {
         this.pgTrnsctnRepository = pgTrnsctnRepository;
         this.orgUnitRepository = orgUnitRepository;
         this.settlementCalcService = settlementCalcService;
+        this.hqLedgerSysSettingsService = hqLedgerSysSettingsService;
     }
 
     @Transactional
@@ -126,7 +130,8 @@ public class JpaySaleRecordService {
             PgTrnsctn t = ex.get();
             if (status == 0) {
                 t.setStatus(ST_PAID);
-                t.setPaidAt(LocalDateTime.now());
+                ZoneId wall = hqLedgerSysSettingsService.resolveLedgerDisplayZoneId();
+                t.setPaidAt(LocalDateTime.now(wall));
                 String m = msg != null ? msg.trim() : "OK";
                 t.setChillPaymentStatus(truncate(m, 50));
             } else if (status == 2) {

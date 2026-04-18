@@ -3,7 +3,6 @@ package com.pg.api.dto;
 import com.pg.entity.MerchantProfile;
 import com.pg.entity.MerchantPgBinding;
 import com.pg.entity.PgTrnsctn;
-
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;
@@ -34,20 +33,28 @@ public class PayListItemDto {
 
     private static final DateTimeFormatter TRN_DATE = DateTimeFormatter.ISO_LOCAL_DATE;
 
+    /**
+     * 결제내역 그리드 시각: {@code ledgerNaiveWallClockZone} 은 본사 전산설정 표준시간대({@code display_timezone})와 동일하게 두고,
+     * naive {@code paid_at}/{@code created_at} 을 그 벽시계로 해석한 뒤 {@code JP}(UTC+9)·{@code TH}(UTC+7) 두 줄로 표시합니다.
+     */
     public static Map<String, Object> from(PgTrnsctn t, PayListRowContext ctx) {
+        return from(t, ctx, ZoneId.of("Asia/Bangkok"));
+    }
+
+    public static Map<String, Object> from(PgTrnsctn t, PayListRowContext ctx, ZoneId ledgerNaiveWallClockZone) {
         Map<String, Object> row = new HashMap<>();
         String compNm = ctx != null && ctx.getCompNm() != null ? ctx.getCompNm() : t.getMerchantId();
         MerchantProfile mp = ctx != null ? ctx.getProfile() : null;
         MerchantPgBinding b = ctx != null ? ctx.getBinding() : null;
 
-        LocalDateTime created = t.getCreatedAt();
-        ZoneId interpret = TrnTimeDualZoneDisplay.interpretAsZoneForCurrency(t.getCurType());
-        String payDtStr = created != null
-                ? TrnTimeDualZoneDisplay.formatDualLineDateTime(created, interpret)
+        LocalDateTime txnClock = t.getPaidAt() != null ? t.getPaidAt() : t.getCreatedAt();
+        ZoneId interpret = ledgerNaiveWallClockZone != null ? ledgerNaiveWallClockZone : ZoneId.of("Asia/Bangkok");
+        String payDtStr = txnClock != null
+                ? TrnTimeDualZoneDisplay.formatDualLineDateTime(txnClock, interpret)
                 : "";
-        if (created != null) {
-            row.put("trnDate", created.toLocalDate().format(TRN_DATE));
-            row.put("trnTime", TrnTimeDualZoneDisplay.formatDualLineTimeOnly(created, interpret));
+        if (txnClock != null) {
+            row.put("trnDate", txnClock.toLocalDate().format(TRN_DATE));
+            row.put("trnTime", TrnTimeDualZoneDisplay.formatDualLineTimeOnly(txnClock, interpret));
         } else {
             row.put("trnDate", "");
             row.put("trnTime", "");
@@ -86,7 +93,7 @@ public class PayListItemDto {
         row.put("payDivNm", payDivLabel(effStatus));
         row.put("payProcNm", payProcLabel(effStatus));
         row.put("payCard", "-");
-        row.put("cardAprvNo", blank(t.getApprovalNo()));
+        row.put("cardAprvNo", resolveApprovalNoForDisplay(t));
         row.put("payCardNo", "-");
         row.put("instalMonth", b != null && b.getMaxInstallmentMonths() != null ? String.valueOf(b.getMaxInstallmentMonths()) : "0");
         row.put("payMethod", b != null && b.getPayMethod() != null ? b.getPayMethod() : "카드");
@@ -112,6 +119,7 @@ public class PayListItemDto {
         BigDecimal feeVatBd = BigDecimal.ZERO;
         BigDecimal holdAmtBd = BigDecimal.ZERO;
         BigDecimal settleAmtBd = BigDecimal.ZERO;
+        int feeScaleExec = derivedFeeScale(amtBd);
         if (isApprove) {
             ApprovedSettlementParts p = approvedSettlementParts(amtBd, ctx);
             feeAmtBd = p.feeAmt;
@@ -121,10 +129,34 @@ public class PayListItemDto {
             row.put("perTxFeeAmt", p.perTxAmt);
             row.put("settlementPerTxFeeAmt", p.settlementPerTxAmt);
             row.put("extraFeesAmt", p.extraPctAmt);
+            BigDecimal ratePortion = p.feeAmt.subtract(p.perTxAmt).subtract(p.settlementPerTxAmt).subtract(p.extraPctAmt)
+                    .setScale(feeScaleExec, RoundingMode.HALF_UP);
+            if (ratePortion.compareTo(BigDecimal.ZERO) < 0) {
+                ratePortion = BigDecimal.ZERO;
+            }
+            row.put("feeAmtPayRateOnly", ratePortion);
+            row.put("settlementExecGrossAmt", amtBd);
+            row.put("settlementExecMdrAmt", ratePortion);
+            row.put("settlementExecMdrRatePct", totalRate);
+            row.put("settlementExecFixedAmt", p.perTxAmt);
+            row.put("settlementExecSettlementAmt", p.settlementPerTxAmt);
+            row.put("settlementExecCollateralAmt", holdAmtBd);
+            row.put("settlementExecOtherAmt", p.extraPctAmt.add(feeVatBd).setScale(feeScaleExec, RoundingMode.HALF_UP));
+            row.put("settlementExecExpectedPayout", settleAmtBd);
         } else {
             row.put("perTxFeeAmt", BigDecimal.ZERO);
             row.put("settlementPerTxFeeAmt", BigDecimal.ZERO);
             row.put("extraFeesAmt", BigDecimal.ZERO);
+            row.put("feeAmtPayRateOnly", BigDecimal.ZERO);
+            /* 비승인: 시도 금액은 매출이 아님 — 정산실행 상세 매출 열은 null(화면에서 —). 건당 과금은 고정 열에만. */
+            row.put("settlementExecGrossAmt", null);
+            row.put("settlementExecMdrAmt", BigDecimal.ZERO);
+            row.put("settlementExecMdrRatePct", BigDecimal.ZERO);
+            row.put("settlementExecFixedAmt", settlementExecOtherFeeEstimate(t, ctx, feeScaleExec));
+            row.put("settlementExecSettlementAmt", BigDecimal.ZERO);
+            row.put("settlementExecCollateralAmt", BigDecimal.ZERO);
+            row.put("settlementExecOtherAmt", BigDecimal.ZERO);
+            row.put("settlementExecExpectedPayout", null);
         }
 
         row.put("icopayAmt", amountJson(t.getIcopayAmt()));
@@ -218,7 +250,10 @@ public class PayListItemDto {
         if (ctx != null && ctx.getPolicy() != null) {
             var p = ctx.getPolicy();
             perTxAmt = nz(p.getPerTxFee());
-            settlementPerTxAmt = nz(p.getFeeSettlementPerTx());
+            /* fee_settlement_per_tx 는 정산 실행당 1회(tb_settlement_run.settlement_batch_fee_amt) — 건별 상세에서는 제외 */
+            if (!ctx.isOmitSettlementFeeFromApprovedTxnBreakdown()) {
+                settlementPerTxAmt = nz(p.getFeeSettlementPerTx());
+            }
             extraPctAmt = CommissionExtraFeeUtil.sumPctOnApprovedAmount(p, amt);
         }
         BigDecimal feeAmtBd = rateFee.add(perTxAmt).add(settlementPerTxAmt).add(extraPctAmt)
@@ -308,8 +343,47 @@ public class PayListItemDto {
         return v != null ? v : BigDecimal.ZERO;
     }
 
+    /**
+     * 정산실행 상세 표 「기타」열: 취소·무효·환불·강제환불·실패 등 건당(또는 건당 고정) 추정 수수료.
+     * 승인(10) 건은 별도로 extra+VAT 를 넣으므로 여기서는 호출하지 않습니다.
+     */
+    private static BigDecimal settlementExecOtherFeeEstimate(PgTrnsctn t, PayListRowContext ctx, int feeScale) {
+        if (ctx == null || ctx.getPolicy() == null || t.getStatus() == null) {
+            return BigDecimal.ZERO;
+        }
+        var p = ctx.getPolicy();
+        String st = t.getStatus().trim();
+        String stU = st.toUpperCase(Locale.ROOT);
+        BigDecimal v = switch (stU) {
+            case "20" -> nz(p.getCancelRate());
+            case "21", "40" -> nz(p.getVoidFeePerTx());
+            case "22", "41" -> nz(p.getManualVoidFeePerTx());
+            case "30", "42" -> nz(p.getRefundRate());
+            case "31" -> nz(p.getChargebackFeePerTx());
+            case "99", "F0" -> nz(p.getFailFee());
+            default -> BigDecimal.ZERO;
+        };
+        return v.setScale(feeScale, RoundingMode.HALF_UP);
+    }
+
     private static String blank(String s) {
         return (s == null || s.isBlank()) ? "-" : s;
+    }
+
+    /**
+     * 카드사 승인번호가 없으면 칠페이 TransactionId·PG 승인(대체) 번호를 표시합니다.
+     */
+    private static String resolveApprovalNoForDisplay(PgTrnsctn t) {
+        if (t.getApprovalNo() != null && !t.getApprovalNo().isBlank()) {
+            return t.getApprovalNo().trim();
+        }
+        if (t.getChillTransactionId() != null && !t.getChillTransactionId().isBlank()) {
+            return t.getChillTransactionId().trim();
+        }
+        if (t.getPayNo() != null && !t.getPayNo().isBlank()) {
+            return t.getPayNo().trim();
+        }
+        return "-";
     }
 
     /** 노티·DB 소수 금액 그대로 JSON 숫자로 (없으면 빈 문자열) */

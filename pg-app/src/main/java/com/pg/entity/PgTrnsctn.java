@@ -3,6 +3,7 @@ package com.pg.entity;
 import jakarta.persistence.*;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 
 /**
  * 거래 마스터 (PG_TRNSCTN 스타일) - 목록/조회용 핵심 컬럼
@@ -108,7 +109,9 @@ public class PgTrnsctn {
 
     @PrePersist
     protected void onCreate() {
-        if (createdAt == null) createdAt = LocalDateTime.now();
+        if (createdAt == null) {
+            createdAt = LocalDateTime.now(ZoneId.of("Asia/Bangkok"));
+        }
     }
 
     public String getTrnId() { return trnId; }

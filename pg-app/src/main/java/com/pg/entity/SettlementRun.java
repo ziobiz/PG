@@ -50,16 +50,35 @@ public class SettlementRun {
     @Column(name = "cancel_amt", precision = 21, scale = 8)
     private BigDecimal cancelAmt = BigDecimal.ZERO;
 
-    /** 공제 수수료 합계 (건당+결제수수료+취소수수료+실패+환불 등) */
+    /**
+     * 거래 집계 기반 공제 수수료 합계(건당·결제%·취소·무효·환불·실패·차지백·USDT/FX·3DS·기타 등).
+     * 정산 실행당 1회 정산수수료·송금수수료는 {@link #settlementBatchFeeAmt}, {@link #remittanceFeeAmt} 에 별도 저장합니다.
+     */
     @Column(name = "total_fee", precision = 21, scale = 8)
     private BigDecimal totalFee = BigDecimal.ZERO;
+
+    /**
+     * 이번 정산 실행에 집계에 포함된 거래({@code pg_trnsctn}) 건수.
+     * 구버전 행은 null일 수 있습니다.
+     */
+    @Column(name = "included_txn_cnt")
+    private Integer includedTxnCnt;
+
+    /** 정산 실행당 1회 정산수수료(정책 {@code fee_settlement_per_tx} 금액). 스키마 이전 행은 null. */
+    @Column(name = "settlement_batch_fee_amt", precision = 21, scale = 8)
+    private BigDecimal settlementBatchFeeAmt;
+
+    /** 정산 실행당 1회 송금 이체 수수료. 스키마 이전 행은 null. */
+    @Column(name = "remittance_fee_amt", precision = 21, scale = 8)
+    private BigDecimal remittanceFeeAmt;
 
     /** 롤링(담보금) 보류액 */
     @Column(name = "rolling_reserve_amt", precision = 21, scale = 8)
     private BigDecimal rollingReserveAmt = BigDecimal.ZERO;
 
     /**
-     * 지급액(정산 직후·환수/미수금 차감 전 원칙): 순매출 − 수수료(공제) − 수수료부가세 − 담보금(롤링보류 신규) + 만기 담보 환급.
+     * 지급액(정산 직후·환수/미수금 차감 전 원칙): 순매출 − 거래수수료({@link #totalFee}) − 정산수수료(1회) − 송금수수료(1회)
+     * − 수수료부가세(위 합에 대한 부가세) − 담보금(롤링보류 신규) + 만기 담보 환급.
      * 수수료·담보가 순매출을 초과하면 음수가 될 수 있으며 0으로 끌어올리지 않습니다.
      * 그 경우 {@link com.pg.service.settlement.SettlementArrearsService} 가 동액을 미수금으로 등록하고,
      * 이후 정산에서는 환수금 FIFO 후 미수금 FIFO로 차감합니다(가맹 환수모드 MANUAL이면 「환수처리」 후 차기 마감에서 차감).
@@ -142,6 +161,12 @@ public class SettlementRun {
     public void setCancelAmt(BigDecimal cancelAmt) { this.cancelAmt = cancelAmt; }
     public BigDecimal getTotalFee() { return totalFee; }
     public void setTotalFee(BigDecimal totalFee) { this.totalFee = totalFee; }
+    public Integer getIncludedTxnCnt() { return includedTxnCnt; }
+    public void setIncludedTxnCnt(Integer includedTxnCnt) { this.includedTxnCnt = includedTxnCnt; }
+    public BigDecimal getSettlementBatchFeeAmt() { return settlementBatchFeeAmt; }
+    public void setSettlementBatchFeeAmt(BigDecimal settlementBatchFeeAmt) { this.settlementBatchFeeAmt = settlementBatchFeeAmt; }
+    public BigDecimal getRemittanceFeeAmt() { return remittanceFeeAmt; }
+    public void setRemittanceFeeAmt(BigDecimal remittanceFeeAmt) { this.remittanceFeeAmt = remittanceFeeAmt; }
     public BigDecimal getRollingReserveAmt() { return rollingReserveAmt; }
     public void setRollingReserveAmt(BigDecimal rollingReserveAmt) { this.rollingReserveAmt = rollingReserveAmt; }
     public BigDecimal getPayAmt() { return payAmt; }

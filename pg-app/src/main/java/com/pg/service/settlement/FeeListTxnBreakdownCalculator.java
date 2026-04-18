@@ -7,11 +7,13 @@ import com.pg.entity.PgTrnsctn;
 import com.pg.entity.SettlementSetting;
 import com.pg.repository.ChargebackFeePolicyRepository;
 import com.pg.repository.PgTrnsctnRepository;
+import com.pg.service.VoidRefundSettlementModeResolutionService;
 import com.pg.util.ChargebackTierResolver;
 import com.pg.util.CommissionExtraFeeUtil;
 import com.pg.util.FeeListRoundingPolicy;
 import com.pg.util.MerchantFeeVatUtil;
 import com.pg.util.PercentDecimalHelper;
+import com.pg.util.VoidRefundSettlementModeUtil;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
@@ -25,19 +27,24 @@ import java.util.Map;
 
 /**
  * 수수료내역·환수금액 산정 등에서 공유하는 거래 1건 수수료 분해.
+ * 승인(10)에는 건당(perTx)과 결제% 등이 붙고, 실패(99/F0)에는 실패 고정만, 취소(20)에는 취소 고정만 붙는다.
+ * 무효·환불 등은 순매출 반영 모드(GENERAL/REVENUE/HYBRID)에 따라 결제측 부가(건당·% 등)를 합산할지 정한다.
  */
 @Component
 public class FeeListTxnBreakdownCalculator {
 
-    private static final List<String> CHARGEBACK_STATUSES = List.of("30", "31");
+    private static final List<String> CHARGEBACK_STATUSES = List.of("31");
 
     private final ChargebackFeePolicyRepository chargebackFeePolicyRepository;
     private final PgTrnsctnRepository pgTrnsctnRepository;
+    private final VoidRefundSettlementModeResolutionService voidRefundSettlementModeResolutionService;
 
     public FeeListTxnBreakdownCalculator(ChargebackFeePolicyRepository chargebackFeePolicyRepository,
-                                         PgTrnsctnRepository pgTrnsctnRepository) {
+                                         PgTrnsctnRepository pgTrnsctnRepository,
+                                         VoidRefundSettlementModeResolutionService voidRefundSettlementModeResolutionService) {
         this.chargebackFeePolicyRepository = chargebackFeePolicyRepository;
         this.pgTrnsctnRepository = pgTrnsctnRepository;
+        this.voidRefundSettlementModeResolutionService = voidRefundSettlementModeResolutionService;
     }
 
     public record FeeListTxnBreakdown(
@@ -75,7 +82,7 @@ public class FeeListTxnBreakdownCalculator {
             String st,
             Map<String, Long> monthCbCountCache,
             Map<Long, List<ChargebackFeeTier>> tiersByPolicyId) {
-        if (!"30".equals(st) && !"31".equals(st)) {
+        if (!"31".equals(st)) {
             return 0d;
         }
         LocalDate cbDay = t.getCreatedAt() != null ? t.getCreatedAt().toLocalDate() : LocalDate.now();
@@ -114,6 +121,10 @@ public class FeeListTxnBreakdownCalculator {
         int feeScale = rp.decimalPlaces();
         RoundingMode feeRm = rp.roundMode();
         String st = t.getStatus() != null ? t.getStatus().trim() : "";
+        String voidMode = voidRefundSettlementModeResolutionService.resolveVoidSettlementMode(compId);
+        String manualVoidMode = voidRefundSettlementModeResolutionService.resolveManualVoidSettlementMode(compId);
+        String refundMode = voidRefundSettlementModeResolutionService.resolveRefundSettlementMode(compId);
+        String forceRefundMode = voidRefundSettlementModeResolutionService.resolveForceRefundSettlementMode(compId);
         double perTxFee = nz(pol.getPerTxFee()).doubleValue();
         double settlementPerTxFee = nz(pol.getFeeSettlementPerTx()).doubleValue();
         double usdtRemitUsd = nz(pol.getUsdtTransferFeeUsd()).doubleValue();
@@ -148,8 +159,9 @@ public class FeeListTxnBreakdownCalculator {
             } else if ("22".equals(st) || "41".equals(st)) {
                 manualVoidFee = nz(pol.getManualVoidFeePerTx()).doubleValue();
             }
-            if ("30".equals(st) || "31".equals(st) || "42".equals(st)) {
+            if ("30".equals(st) || "42".equals(st)) {
                 refundFee = nz(pol.getRefundRate()).doubleValue();
+            } else if ("31".equals(st)) {
                 chargebackFee = resolveChargebackFee(t, compId, pol, st, monthCbCountCache, tiersByPolicyId);
             }
             if (amountBd.signum() > 0) {
@@ -180,6 +192,7 @@ public class FeeListTxnBreakdownCalculator {
             }
         }
 
+        /* 승인(10): 건당+결제% 등. 실패/취소: 해당 고정만. 무효·환불: 모드에 따라 결제측 부가(perTx·% 등) 포함 여부 */
         double totalFee;
         if ("10".equals(st)) {
             totalFee = Math.max(0d, perTxFee + usageFee + failFee + cancelFee + voidFee + manualVoidFee + refundFee
@@ -190,11 +203,17 @@ public class FeeListTxnBreakdownCalculator {
         } else if ("20".equals(st)) {
             totalFee = Math.max(0d, cancelFee);
         } else if ("21".equals(st) || "40".equals(st)) {
-            totalFee = Math.max(0d, voidFee + successFeesSeparate);
+            boolean addPaySide = VoidRefundSettlementModeUtil.subtractVoidAmountFromNet(voidMode);
+            totalFee = Math.max(0d, voidFee + (addPaySide ? successFeesSeparate : 0d));
         } else if ("22".equals(st) || "41".equals(st)) {
-            totalFee = Math.max(0d, manualVoidFee + successFeesSeparate);
-        } else if ("30".equals(st) || "31".equals(st) || "42".equals(st)) {
-            totalFee = Math.max(0d, refundFee + chargebackFee + successFeesSeparate);
+            boolean addPaySide = VoidRefundSettlementModeUtil.subtractManualVoidAmountFromNet(manualVoidMode);
+            totalFee = Math.max(0d, manualVoidFee + (addPaySide ? successFeesSeparate : 0d));
+        } else if ("30".equals(st) || "42".equals(st)) {
+            boolean addPaySide = VoidRefundSettlementModeUtil.subtractRefundAmountFromNet(refundMode);
+            totalFee = Math.max(0d, refundFee + (addPaySide ? successFeesSeparate : 0d));
+        } else if ("31".equals(st)) {
+            boolean addPaySide = VoidRefundSettlementModeUtil.subtractForceRefundAmountFromNet(forceRefundMode);
+            totalFee = Math.max(0d, chargebackFee + (addPaySide ? successFeesSeparate : 0d));
         } else {
             totalFee = 0d;
         }

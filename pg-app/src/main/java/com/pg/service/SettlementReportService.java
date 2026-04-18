@@ -48,17 +48,20 @@ public class SettlementReportService {
     private final SettlementCalcService settlementCalcService;
     private final CommissionPolicyRepository commissionPolicyRepository;
     private final HqLedgerSysSettingsRepository hqLedgerSysSettingsRepository;
+    private final ReceivableRecoveryModeService receivableRecoveryModeService;
 
     public SettlementReportService(OrgUnitRepository orgUnitRepository,
                                    PgTrnsctnRepository pgTrnsctnRepository,
                                    SettlementCalcService settlementCalcService,
                                    CommissionPolicyRepository commissionPolicyRepository,
-                                   HqLedgerSysSettingsRepository hqLedgerSysSettingsRepository) {
+                                   HqLedgerSysSettingsRepository hqLedgerSysSettingsRepository,
+                                   ReceivableRecoveryModeService receivableRecoveryModeService) {
         this.orgUnitRepository = orgUnitRepository;
         this.pgTrnsctnRepository = pgTrnsctnRepository;
         this.settlementCalcService = settlementCalcService;
         this.commissionPolicyRepository = commissionPolicyRepository;
         this.hqLedgerSysSettingsRepository = hqLedgerSysSettingsRepository;
+        this.receivableRecoveryModeService = receivableRecoveryModeService;
     }
 
     private FeeListRoundingPolicy settlementLedgerRoundPolicy() {
@@ -347,9 +350,19 @@ public class SettlementReportService {
             m.put("payAmount", settlementMoneyDouble(r.getPayAmt(), rp));
             m.put("totalFee", settlementMoneyDouble(r.getTotalFee(), rp));
             m.put("rollingReserveAmt", settlementMoneyDouble(r.getRollingReserveAmt(), rp));
+            m.put("settlementBatchFee", r.getSettlementBatchFeeAmt() != null
+                    ? settlementMoneyDouble(r.getSettlementBatchFeeAmt(), rp) : null);
+            m.put("remittanceFee", r.getRemittanceFeeAmt() != null
+                    ? settlementMoneyDouble(r.getRemittanceFeeAmt(), rp) : null);
+            m.put("txnCnt", r.getIncludedTxnCnt());
             m.put("status", r.getStatus());
             m.put("settlementDueDt", calcDt != null ? addBusinessDays(calcDt, 7).toString() : "");
             m.put("settledYn", "CALCULATED".equalsIgnoreCase(String.valueOf(r.getStatus())) ? "Y" : "N");
+            boolean manualRecv = receivableRecoveryModeService.isManualForMerchantCode(mid);
+            m.put("receivableRecoveryMode", manualRecv ? "MANUAL" : "AUTO");
+            m.put("receivableRecoveryModeKr", manualRecv ? "수동(환수처리 후 차감)" : "자동(차기정산 FIFO)");
+            m.put("receivableAppliedAmt", settlementMoneyDouble(
+                    r.getReceivableAppliedAmt() != null ? r.getReceivableAppliedAmt() : BigDecimal.ZERO, rp));
             rows.add(m);
         }
         rows.sort(Comparator
@@ -634,6 +647,7 @@ public class SettlementReportService {
         BigDecimal rollingSum = BigDecimal.ZERO;
         int runCount;
         boolean allCalculated = true;
+        BigDecimal receivableAppliedSum = BigDecimal.ZERO;
         private final TreeSet<String> curTypes = new TreeSet<>();
 
         RegionalExeBucket(LocalDate calcDt, String regionalCode) {
@@ -651,6 +665,8 @@ public class SettlementReportService {
             payAmountSum = payAmountSum.add(FeeListRoundingPolicy.round(r.getPayAmt() != null ? r.getPayAmt() : BigDecimal.ZERO, rp));
             totalFeeSum = totalFeeSum.add(FeeListRoundingPolicy.round(r.getTotalFee() != null ? r.getTotalFee() : BigDecimal.ZERO, rp));
             rollingSum = rollingSum.add(FeeListRoundingPolicy.round(r.getRollingReserveAmt() != null ? r.getRollingReserveAmt() : BigDecimal.ZERO, rp));
+            receivableAppliedSum = receivableAppliedSum.add(FeeListRoundingPolicy.round(
+                    r.getReceivableAppliedAmt() != null ? r.getReceivableAppliedAmt() : BigDecimal.ZERO, rp));
             if (!"CALCULATED".equalsIgnoreCase(String.valueOf(r.getStatus()))) {
                 allCalculated = false;
             }
@@ -690,6 +706,9 @@ public class SettlementReportService {
         m.put("status", b.allCalculated ? "CALCULATED" : "PENDING");
         m.put("settlementDueDt", addBusinessDays(b.calcDt, 7).toString());
         m.put("settledYn", b.allCalculated ? "Y" : "N");
+        m.put("receivableRecoveryMode", "");
+        m.put("receivableRecoveryModeKr", "본사합산(가맹 혼합)");
+        m.put("receivableAppliedAmt", settlementMoneyDouble(b.receivableAppliedSum, rp));
         return m;
     }
 

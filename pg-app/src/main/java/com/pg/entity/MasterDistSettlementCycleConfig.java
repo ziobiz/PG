@@ -52,6 +52,13 @@ public class MasterDistSettlementCycleConfig {
     @Column(name = "default_slot", nullable = false)
     private int defaultSlot;
 
+    /**
+     * 정산 자동 배치 시각 기준(격자 M/H·TM/TH, T0 당일, 마감시각 등) — 영업일 프로필(휴일)과 별도.
+     * IANA 예: Asia/Seoul, Asia/Bangkok, Asia/Tokyo, UTC
+     */
+    @Column(name = "settlement_cron_zone_id", nullable = false, length = 64)
+    private String settlementCronZoneId = "Asia/Seoul";
+
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 
@@ -172,6 +179,14 @@ public class MasterDistSettlementCycleConfig {
 
     public void setDefaultSlot(int defaultSlot) {
         this.defaultSlot = defaultSlot;
+    }
+
+    public String getSettlementCronZoneId() {
+        return settlementCronZoneId;
+    }
+
+    public void setSettlementCronZoneId(String settlementCronZoneId) {
+        this.settlementCronZoneId = settlementCronZoneId;
     }
 
     public LocalDateTime getCreatedAt() {

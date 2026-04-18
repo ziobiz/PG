@@ -115,9 +115,6 @@ public class ChillPayService {
     /** 통합내역 상단 요약: 최대 추가 ChillPay API 호출 페이지 수(페이지당 최대 100건) */
     private static final int CHILL_STATUS_BAR_MAX_PAGES = 30;
 
-    private static final ZoneId ZONE_JP = ZoneId.of("Asia/Tokyo");
-    private static final ZoneId ZONE_TH = ZoneId.of("Asia/Bangkok");
-
     /** ChillPay 문서 예시처럼 JSON 에 명시적 {@code null} 필드를 포함한다(기본 Jackson 은 null 키를 생략함). */
     private static final ObjectMapper CHILLPAY_SETTLEMENT_JSON = new ObjectMapper()
             .setSerializationInclusion(JsonInclude.Include.ALWAYS);
@@ -132,6 +129,7 @@ public class ChillPayService {
     private final PayListService payListService;
     private final UrlPayDisplayFxService urlPayDisplayFxService;
     private final PgExtSettlementExpectedService pgExtSettlementExpectedService;
+    private final HqLedgerSysSettingsService hqLedgerSysSettingsService;
     private final RestTemplate restTemplate = new RestTemplate();
 
     public ChillPayService(ChillPayProperties props, HqApiConfigRepository hqApiConfigRepository,
@@ -142,7 +140,8 @@ public class ChillPayService {
                           PgTrnsctnRepository pgTrnsctnRepository,
                           PayListService payListService,
                           UrlPayDisplayFxService urlPayDisplayFxService,
-                          PgExtSettlementExpectedService pgExtSettlementExpectedService) {
+                          PgExtSettlementExpectedService pgExtSettlementExpectedService,
+                          HqLedgerSysSettingsService hqLedgerSysSettingsService) {
         this.props = props;
         this.hqApiConfigRepository = hqApiConfigRepository;
         this.merchantPgBindingRepository = merchantPgBindingRepository;
@@ -153,6 +152,7 @@ public class ChillPayService {
         this.payListService = payListService;
         this.urlPayDisplayFxService = urlPayDisplayFxService;
         this.pgExtSettlementExpectedService = pgExtSettlementExpectedService;
+        this.hqLedgerSysSettingsService = hqLedgerSysSettingsService;
     }
 
     /** 가맹점 결제 조합 시 MID·샌드박스 보조 (Route 확정 전에 조회 가능) */
@@ -2132,8 +2132,8 @@ public class ChillPayService {
 
     /**
      * 통합내역·통합정산 그리드: 결제내역과 동일 키(trnDate, trnTime, payCompletedAt) + 업체관리(MID·Route) 매핑(compNm, compId).
-     * API 시각 문자열은 통화별 기준 타임존(JPY→도쿄, 그 외→방콕)으로 해석한다.
-     * {@code trnDate}는 {@code yyyy년 M월 d일}, {@code trnTime}은 시각만 JP/TH 두 줄, {@code payCompletedAt}은 일시 JP/TH 두 줄.
+     * API naive 시각은 본사 전산설정 표준시간대({@code display_timezone})로 해석합니다.
+     * {@code trnDate}는 {@code yyyy년 M월 d일}, {@code trnTime}은 시각만 표준+JP 두 줄, {@code payCompletedAt}은 일시 두 줄.
      */
     private void enrichChillPayTrSearchRow(Map<String, Object> m,
                                            Map<String, Optional<OrgUnit>> orgCache,
@@ -2145,7 +2145,7 @@ public class ChillPayService {
     private void enrichChillPayTrRowDatesAndZones(Map<String, Object> m) {
         LocalDateTime tx = parseChillPayApiDateTime(firstNonBlankString(m, "transactionDate", "TransactionDate"));
         LocalDateTime pay = parseChillPayApiDateTime(firstNonBlankString(m, "paymentDate", "PaymentDate"));
-        ZoneId primary = primaryZoneForChillCurrency(m.get("currency"));
+        ZoneId primary = hqLedgerSysSettingsService.resolveLedgerDisplayZoneId();
         if (tx != null) {
             m.put("trnDate", tx.toLocalDate().format(CHILL_TRN_DATE_DISPLAY_KR));
             m.put("trnTime", formatJstAndIctTimeSameCell(tx, primary));
@@ -2413,17 +2413,6 @@ public class ChillPayService {
         } catch (DateTimeParseException e) {
             return null;
         }
-    }
-
-    private static ZoneId primaryZoneForChillCurrency(Object currencyObj) {
-        if (currencyObj == null) {
-            return ZONE_TH;
-        }
-        String c = String.valueOf(currencyObj).trim().toUpperCase(Locale.ROOT);
-        if ("JPY".equals(c)) {
-            return ZONE_JP;
-        }
-        return ZONE_TH;
     }
 
     private static String formatJstAndIctTimeSameCell(LocalDateTime naiveWallClock, ZoneId interpretAsZone) {

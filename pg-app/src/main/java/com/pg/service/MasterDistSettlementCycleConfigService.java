@@ -807,6 +807,9 @@ public class MasterDistSettlementCycleConfigService {
         entity.setCycleCode10(cleaned.get(9));
 
         entity.setDefaultSlot(defaultSlotIndex);
+        if (entity.getSettlementCronZoneId() == null || entity.getSettlementCronZoneId().isBlank()) {
+            entity.setSettlementCronZoneId(MasterDistSettlementCronZoneService.DEFAULT_SETTLEMENT_CRON_ZONE.getId());
+        }
 
         return configRepository.save(entity);
 
@@ -825,6 +828,9 @@ public class MasterDistSettlementCycleConfigService {
         m.put("defaultSlot", c.getDefaultSlot());
 
         defaultCodeFromEntity(c).ifPresent(x -> m.put("defaultCalcCycle", x));
+        String z = c.getSettlementCronZoneId();
+        m.put("settlementCronZoneId", z != null && !z.isBlank() ? z.trim()
+                : MasterDistSettlementCronZoneService.DEFAULT_SETTLEMENT_CRON_ZONE.getId());
 
         return m;
 

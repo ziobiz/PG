@@ -18,6 +18,7 @@ import java.math.BigDecimal;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.LinkedHashMap;
 import java.util.Locale;
 import java.util.Map;
@@ -39,13 +40,16 @@ public class JpayNotifyToTrnsctnService implements PgNotifyInboundTxnHandler {
     private final PgTrnsctnRepository pgTrnsctnRepository;
     private final PgAgencyRepository pgAgencyRepository;
     private final SettlementCalcService settlementCalcService;
+    private final HqLedgerSysSettingsService hqLedgerSysSettingsService;
 
     public JpayNotifyToTrnsctnService(PgTrnsctnRepository pgTrnsctnRepository,
                                       PgAgencyRepository pgAgencyRepository,
-                                      SettlementCalcService settlementCalcService) {
+                                      SettlementCalcService settlementCalcService,
+                                      HqLedgerSysSettingsService hqLedgerSysSettingsService) {
         this.pgTrnsctnRepository = pgTrnsctnRepository;
         this.pgAgencyRepository = pgAgencyRepository;
         this.settlementCalcService = settlementCalcService;
+        this.hqLedgerSysSettingsService = hqLedgerSysSettingsService;
     }
 
     @Override
@@ -156,7 +160,8 @@ public class JpayNotifyToTrnsctnService implements PgNotifyInboundTxnHandler {
         t.setStatus(merged);
         t.setChillPaymentStatus(ok ? "JPAY_OK" : ("JPAY_FAIL " + ret).trim());
         if (ST_PAID.equals(merged)) {
-            t.setPaidAt(LocalDateTime.now());
+            ZoneId wall = hqLedgerSysSettingsService.resolveLedgerDisplayZoneId();
+            t.setPaidAt(LocalDateTime.now(wall));
         } else {
             t.setPaidAt(null);
         }

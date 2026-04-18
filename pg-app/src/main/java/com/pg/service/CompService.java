@@ -7,6 +7,8 @@ import com.pg.entity.OrgUnit;
 import com.pg.entity.MerchantProfile;
 import com.pg.repository.OrgUnitRepository;
 import com.pg.repository.MerchantProfileRepository;
+import com.pg.entity.HqLedgerSysSettings;
+import com.pg.repository.HqLedgerSysSettingsRepository;
 import com.pg.repository.SettlementSettingRepository;
 import com.pg.repository.MerchantCommissionExtraRepository;
 import com.pg.entity.SettlementSetting;
@@ -32,6 +34,8 @@ import com.pg.service.settlement.SettlementCycleTiming;
 import com.pg.service.settlement.SettlementPeriodResolver;
 import com.pg.util.CommissionTierJsonHelper;
 import com.pg.util.PercentDecimalHelper;
+import com.pg.util.ReceivableRecoveryModeUtil;
+import com.pg.util.VoidRefundSettlementModeUtil;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -92,6 +96,7 @@ public class CompService {
     private final HqNotifyTargetService hqNotifyTargetService;
     private final MasterDistSettlementCycleConfigService masterDistSettlementCycleConfigService;
     private final SettlementCalcCycleTransitionService settlementCalcCycleTransitionService;
+    private final HqLedgerSysSettingsRepository hqLedgerSysSettingsRepository;
 
     private static LocalTime parseTime(String s) {
         if (s == null || s.trim().isEmpty()) return null;
@@ -404,7 +409,8 @@ public class CompService {
                        PayFollowPolicyService payFollowPolicyService,
                        HqNotifyTargetService hqNotifyTargetService,
                        MasterDistSettlementCycleConfigService masterDistSettlementCycleConfigService,
-                       SettlementCalcCycleTransitionService settlementCalcCycleTransitionService) {
+                       SettlementCalcCycleTransitionService settlementCalcCycleTransitionService,
+                       HqLedgerSysSettingsRepository hqLedgerSysSettingsRepository) {
         this.orgUnitRepository = orgUnitRepository;
         this.merchantProfileRepository = merchantProfileRepository;
         this.settlementSettingRepository = settlementSettingRepository;
@@ -424,6 +430,7 @@ public class CompService {
         this.hqNotifyTargetService = hqNotifyTargetService;
         this.masterDistSettlementCycleConfigService = masterDistSettlementCycleConfigService;
         this.settlementCalcCycleTransitionService = settlementCalcCycleTransitionService;
+        this.hqLedgerSysSettingsRepository = hqLedgerSysSettingsRepository;
     }
 
     private static String resolveActorUsernameFallback() {
@@ -1192,6 +1199,10 @@ public class CompService {
                             });
                             applyCommissionDetailToMap(m, ou);
                             if (ou.getOrgLevel() == OrgLevel.MERCHANT) {
+                                settlementSettingRepository.findByOrgUnitId(ou.getId()).ifPresent(ssM ->
+                                        applyMerchantVoidRefundModesDetailFromSettlement(ssM, m));
+                            }
+                            if (ou.getOrgLevel() == OrgLevel.MERCHANT) {
                                 merchantDefaultProductRepository.findByOrgUnitId(ou.getId()).ifPresent(dp -> {
                                     if (dp.getProductName() != null) m.put("defaultProductName", dp.getProductName());
                                     if (dp.getProductCode() != null) m.put("defaultProductCode", dp.getProductCode());
@@ -1234,6 +1245,7 @@ public class CompService {
                           String failFee, String payRate, String refundRate, String rollingPct, String rollingDays,
                           String feeSettlementPerTx, String remittanceTransferFee, String usdtTransferFeeUsd, String feeUsdt, String feeFx,
                           String fee3dsRate, String chargebackFeePerTx, String chargebackPolicyId,
+                          String voidSettlementMode, String manualVoidSettlementMode, String refundSettlementMode, String forceRefundSettlementMode,
                           String payFollowMerchantUseYn, String payFollowAutoVoidYn, String payFollowEmailVoidYn,
                           String payFollowAutoRefundYn, String payFollowForceRefundYn) {
         return orgUnitRepository.findByCode(compId != null ? compId : "")
@@ -1431,7 +1443,7 @@ public class CompService {
                             if (usesCommissionPolicyForCompDiv(effDivForCommission)
                                     && !allCommissionParamsAbsent(commissionFollowHq, hqPolicyScope, perTxFee, cancelRate, voidFeePerTx, manualVoidFeePerTx, usageRate,
                                     failFee, payRate, refundRate, rollingPct, rollingDays, feeSettlementPerTx, remittanceTransferFee, usdtTransferFeeUsd, feeUsdt, feeFx,
-                                    fee3dsRate, chargebackFeePerTx, chargebackPolicyId)) {
+                                    fee3dsRate, chargebackFeePerTx, chargebackPolicyId, voidSettlementMode, manualVoidSettlementMode, refundSettlementMode, forceRefundSettlementMode)) {
                                 mergeCommissionUiIntoRegionalSettings(mp, commissionFollowHq, hqPolicyScope);
                             }
                             if (childLevel == OrgLevel.MERCHANT) {
@@ -1544,10 +1556,11 @@ public class CompService {
                             if (usesCommissionPolicyForCompDiv(effDivForCommission)
                                     && !allCommissionParamsAbsent(commissionFollowHq, hqPolicyScope, perTxFee, cancelRate, voidFeePerTx, manualVoidFeePerTx, usageRate,
                                     failFee, payRate, refundRate, rollingPct, rollingDays, feeSettlementPerTx, remittanceTransferFee, usdtTransferFeeUsd, feeUsdt, feeFx,
-                                    fee3dsRate, chargebackFeePerTx, chargebackPolicyId)) {
+                                    fee3dsRate, chargebackFeePerTx, chargebackPolicyId, voidSettlementMode, manualVoidSettlementMode, refundSettlementMode, forceRefundSettlementMode)) {
                                 applyCommissionPolicyForOrgCode(ou.getCode(), effDivForCommission, commissionFollowHq, hqPolicyScope,
                                         perTxFee, cancelRate, voidFeePerTx, manualVoidFeePerTx, usageRate, failFee, payRate, refundRate, rollingPct, rollingDays,
-                                        feeSettlementPerTx, remittanceTransferFee, usdtTransferFeeUsd, feeUsdt, feeFx, fee3dsRate, chargebackFeePerTx, chargebackPolicyId);
+                                        feeSettlementPerTx, remittanceTransferFee, usdtTransferFeeUsd, feeUsdt, feeFx, fee3dsRate, chargebackFeePerTx, chargebackPolicyId,
+                                        voidSettlementMode, manualVoidSettlementMode, refundSettlementMode, forceRefundSettlementMode);
                                 if ("MERCHANT".equalsIgnoreCase(effDivForCommission)) {
                                     applyMerchantIndependentChargebackPolicy(ou.getCode(), chargebackPolicyId);
                                 }
@@ -1867,6 +1880,7 @@ public class CompService {
                 failFee, payRate, refundRate, rollingPct, rollingDays,
                 feeSettlementPerTx, remittanceTransferFee, usdtTransferFeeUsd, feeUsdt, feeFx,
                 null, null, null,
+                null, null, null, null,
                 null, null, null, null, null,
                 feeVatApplyYn, feeVatRatePct,
                 regionalSettings);
@@ -1901,6 +1915,7 @@ public class CompService {
                                      String failFee, String payRate, String refundRate, String rollingPct, String rollingDays,
                                      String feeSettlementPerTx, String remittanceTransferFee, String usdtTransferFeeUsd, String feeUsdt, String feeFx,
                                      String fee3dsRate, String chargebackFeePerTx, String chargebackPolicyId,
+                                     String voidSettlementMode, String manualVoidSettlementMode, String refundSettlementMode, String forceRefundSettlementMode,
                                      String payFollowMerchantUseYn, String payFollowAutoVoidYn, String payFollowEmailVoidYn,
                                      String payFollowAutoRefundYn, String payFollowForceRefundYn,
                                      String feeVatApplyYn, String feeVatRatePct,
@@ -2079,6 +2094,15 @@ public class CompService {
         } else if ("N".equalsIgnoreCase(ss.getFeeVatApplyYn() != null ? ss.getFeeVatApplyYn().trim() : "N")) {
             ss.setFeeVatRatePct(BigDecimal.ZERO);
         }
+        if (childLevel == OrgLevel.MERCHANT) {
+            String defRecv = hqLedgerSysSettingsRepository.findFirstByOrderByIdAsc()
+                    .map(HqLedgerSysSettings::getReceivableRecoveryDefaultMode)
+                    .map(ReceivableRecoveryModeUtil::normalize)
+                    .orElse(ReceivableRecoveryModeUtil.AUTO);
+            ss.setReceivableRecoveryMode(defRecv);
+        }
+        /* 신규 조직: 총판/본사 기본 따름 — 가맹은 HQ 미수금설정에서만 개별 오버라이드 */
+        ss.setReceivableRecoveryOverrideYn("N");
         settlementSettingRepository.save(ss);
 
         MerchantCommissionExtra extra = new MerchantCommissionExtra();
@@ -2139,7 +2163,8 @@ public class CompService {
         if (usesCommissionPolicyForCompDiv(compDivVal)) {
             applyCommissionPolicyForOrgCode(saved.getCode(), compDivVal, commissionFollowHq, hqPolicyScope,
                     perTxFee, cancelRate, voidFeePerTx, manualVoidFeePerTx, usageRate, failFee, payRate, refundRate, rollingPct, rollingDays,
-                    feeSettlementPerTx, remittanceTransferFee, usdtTransferFeeUsd, feeUsdt, feeFx, fee3dsRate, chargebackFeePerTx, chargebackPolicyId);
+                    feeSettlementPerTx, remittanceTransferFee, usdtTransferFeeUsd, feeUsdt, feeFx, fee3dsRate, chargebackFeePerTx, chargebackPolicyId,
+                    voidSettlementMode, manualVoidSettlementMode, refundSettlementMode, forceRefundSettlementMode);
             if ("MERCHANT".equalsIgnoreCase(compDivVal)) {
                 applyMerchantIndependentChargebackPolicy(saved.getCode(), chargebackPolicyId);
             }
@@ -2671,14 +2696,17 @@ public class CompService {
                                                      String failFee, String payRate, String refundRate,
                                                      String rollingPct, String rollingDays,
                                                      String feeSettlementPerTx, String remittanceTransferFee, String usdtTransferFeeUsd, String feeUsdt, String feeFx,
-                                                     String fee3dsRate, String chargebackFeePerTx, String chargebackPolicyId) {
+                                                     String fee3dsRate, String chargebackFeePerTx, String chargebackPolicyId,
+                                                     String voidSettlementMode, String manualVoidSettlementMode, String refundSettlementMode, String forceRefundSettlementMode) {
         return commissionFollowHq == null && hqPolicyScope == null && perTxFee == null && cancelRate == null
                 && voidFeePerTx == null && manualVoidFeePerTx == null
                 && usageRate == null && failFee == null && payRate == null && refundRate == null
                 && rollingPct == null && rollingDays == null && feeSettlementPerTx == null
                 && remittanceTransferFee == null && usdtTransferFeeUsd == null
                 && feeUsdt == null && feeFx == null
-                && fee3dsRate == null && chargebackFeePerTx == null && chargebackPolicyId == null;
+                && fee3dsRate == null && chargebackFeePerTx == null && chargebackPolicyId == null
+                && voidSettlementMode == null && manualVoidSettlementMode == null && refundSettlementMode == null
+                && forceRefundSettlementMode == null;
     }
 
     private void mergeCommissionUiIntoRegionalSettings(MerchantProfile mp, String commissionFollowHq, String hqPolicyScope) {
@@ -2703,7 +2731,8 @@ public class CompService {
                                                  String failFee, String payRate, String refundRate,
                                                  String rollingPct, String rollingDays,
                                                  String feeSettlementPerTx, String remittanceTransferFee, String usdtTransferFeeUsd, String feeUsdt, String feeFx,
-                                                 String fee3dsRate, String chargebackFeePerTx, String chargebackPolicyId) {
+                                                 String fee3dsRate, String chargebackFeePerTx, String chargebackPolicyId,
+                                                 String voidSettlementMode, String manualVoidSettlementMode, String refundSettlementMode, String forceRefundSettlementMode) {
         if (!usesCommissionPolicyForCompDiv(compDiv) || compCode == null || compCode.isBlank()) {
             return;
         }
@@ -2774,6 +2803,22 @@ public class CompService {
                     }
                 }
             }
+            if (voidSettlementMode != null) {
+                String t = voidSettlementMode.trim();
+                policy.setVoidSettlementMode(t.isEmpty() || "FOLLOW".equalsIgnoreCase(t) ? null : VoidRefundSettlementModeUtil.normalize(t));
+            }
+            if (manualVoidSettlementMode != null) {
+                String t = manualVoidSettlementMode.trim();
+                policy.setManualVoidSettlementMode(t.isEmpty() || "FOLLOW".equalsIgnoreCase(t) ? null : VoidRefundSettlementModeUtil.normalize(t));
+            }
+            if (refundSettlementMode != null) {
+                String t = refundSettlementMode.trim();
+                policy.setRefundSettlementMode(t.isEmpty() || "FOLLOW".equalsIgnoreCase(t) ? null : VoidRefundSettlementModeUtil.normalize(t));
+            }
+            if (forceRefundSettlementMode != null) {
+                String t = forceRefundSettlementMode.trim();
+                policy.setForceRefundSettlementMode(t.isEmpty() || "FOLLOW".equalsIgnoreCase(t) ? null : VoidRefundSettlementModeUtil.normalize(t));
+            }
             commissionPolicyRepository.save(policy);
         } else {
             String srcScope = (hqPolicyScope != null && !hqPolicyScope.trim().isEmpty()) ? hqPolicyScope.trim() : "DEFAULT";
@@ -2800,6 +2845,10 @@ public class CompService {
                 policy.setFee3dsRate(src.getFee3dsRate());
                 policy.setChargebackFeePerTx(src.getChargebackFeePerTx());
                 policy.setChargebackPolicyId(src.getChargebackPolicyId());
+                policy.setVoidSettlementMode(src.getVoidSettlementMode());
+                policy.setManualVoidSettlementMode(src.getManualVoidSettlementMode());
+                policy.setRefundSettlementMode(src.getRefundSettlementMode());
+                policy.setForceRefundSettlementMode(src.getForceRefundSettlementMode());
                 policy.setExtraFee1Name(src.getExtraFee1Name());
                 policy.setExtraFee1Mode(src.getExtraFee1Mode());
                 policy.setExtraFee1Value(src.getExtraFee1Value());
@@ -2817,6 +2866,60 @@ public class CompService {
                 applyDistributionFromCommissionPolicyTemplate(src, compCode.trim());
             });
         }
+        orgUnitRepository.findByCode(compCode.trim()).ifPresent(ouSync ->
+                settlementSettingRepository.findByOrgUnitId(ouSync.getId()).ifPresent(ssSync ->
+                        syncVoidRefundSettlementModesToSettlementSetting(ouSync, ssSync, compDiv,
+                                "N".equalsIgnoreCase(commissionFollowHq != null ? commissionFollowHq.trim() : ""))));
+    }
+
+    /**
+     * 정산 실행 시 사용하는 무효·환불 방식(tb_settlement_setting)을 수수료정책 저장 결과와 맞춥니다.
+     */
+    private void syncVoidRefundSettlementModesToSettlementSetting(OrgUnit ou, SettlementSetting ss, String compDiv,
+                                                                  boolean customCommission) {
+        String div = compDiv != null ? compDiv.trim().toUpperCase(Locale.ROOT) : "";
+        String code = ou.getCode() != null ? ou.getCode().trim() : "";
+        if (code.isEmpty()) {
+            return;
+        }
+        if ("MERCHANT".equals(div)) {
+            commissionPolicyRepository.findByScope(code).ifPresent(p -> {
+                boolean any = !VoidRefundSettlementModeResolutionService.isBlankOrFollow(p.getVoidSettlementMode())
+                        || !VoidRefundSettlementModeResolutionService.isBlankOrFollow(p.getManualVoidSettlementMode())
+                        || !VoidRefundSettlementModeResolutionService.isBlankOrFollow(p.getRefundSettlementMode())
+                        || !VoidRefundSettlementModeResolutionService.isBlankOrFollow(p.getForceRefundSettlementMode());
+                if (customCommission && any) {
+                    ss.setVoidRefundSettlementOverrideYn("Y");
+                    ss.setVoidSettlementMode(VoidRefundSettlementModeResolutionService.upperOrNull(p.getVoidSettlementMode()));
+                    ss.setManualVoidSettlementMode(VoidRefundSettlementModeResolutionService.upperOrNull(p.getManualVoidSettlementMode()));
+                    ss.setRefundSettlementMode(VoidRefundSettlementModeResolutionService.upperOrNull(p.getRefundSettlementMode()));
+                    ss.setForceRefundSettlementMode(VoidRefundSettlementModeResolutionService.upperOrNull(p.getForceRefundSettlementMode()));
+                } else {
+                    ss.setVoidRefundSettlementOverrideYn("N");
+                    ss.setVoidSettlementMode(null);
+                    ss.setManualVoidSettlementMode(null);
+                    ss.setRefundSettlementMode(null);
+                    ss.setForceRefundSettlementMode(null);
+                }
+                settlementSettingRepository.save(ss);
+            });
+        } else if ("MASTER_DIST".equals(div) || "REGIONAL".equals(div)) {
+            commissionPolicyRepository.findByScope(code).ifPresent(p -> {
+                ss.setVoidRefundSettlementOverrideYn("N");
+                ss.setVoidSettlementMode(normalizeVoidModeOrNull(p.getVoidSettlementMode()));
+                ss.setManualVoidSettlementMode(normalizeVoidModeOrNull(p.getManualVoidSettlementMode()));
+                ss.setRefundSettlementMode(normalizeVoidModeOrNull(p.getRefundSettlementMode()));
+                ss.setForceRefundSettlementMode(normalizeVoidModeOrNull(p.getForceRefundSettlementMode()));
+                settlementSettingRepository.save(ss);
+            });
+        }
+    }
+
+    private static String normalizeVoidModeOrNull(String raw) {
+        if (VoidRefundSettlementModeResolutionService.isBlankOrFollow(raw)) {
+            return null;
+        }
+        return VoidRefundSettlementModeUtil.normalize(raw);
     }
 
     /** 본사 템플릿 격자의 결제율·건당 열 → 가맹점 배분(tb_distribution_fee_config) */
@@ -2835,6 +2938,21 @@ public class CompService {
         });
         CommissionTierJsonHelper.applyTierJsonToDistribution(json, df);
         distributionFeeConfigRepository.save(df);
+    }
+
+    /** 가맹 상세: 무효·환불 정산 방식은 tb_settlement_setting 상속 플래그에 맞춰 셀렉트 표시(FOLLOW=총판·본사 따름). */
+    private static void applyMerchantVoidRefundModesDetailFromSettlement(SettlementSetting ss, Map<String, Object> m) {
+        if (VoidRefundSettlementModeResolutionService.merchantOverridesVoidRefund(ss)) {
+            m.put("voidSettlementMode", VoidRefundSettlementModeResolutionService.modeForDetailForm(ss.getVoidSettlementMode()));
+            m.put("manualVoidSettlementMode", VoidRefundSettlementModeResolutionService.modeForDetailForm(ss.getManualVoidSettlementMode()));
+            m.put("refundSettlementMode", VoidRefundSettlementModeResolutionService.modeForDetailForm(ss.getRefundSettlementMode()));
+            m.put("forceRefundSettlementMode", VoidRefundSettlementModeResolutionService.modeForDetailForm(ss.getForceRefundSettlementMode()));
+        } else {
+            m.put("voidSettlementMode", "FOLLOW");
+            m.put("manualVoidSettlementMode", "FOLLOW");
+            m.put("refundSettlementMode", "FOLLOW");
+            m.put("forceRefundSettlementMode", "FOLLOW");
+        }
     }
 
     private void applyCommissionDetailToMap(Map<String, Object> m, OrgUnit ou) {
@@ -2889,6 +3007,17 @@ public class CompService {
         m.put("chargebackPolicyId", p.getChargebackPolicyId() != null ? String.valueOf(p.getChargebackPolicyId()) : "");
         m.put("fee3dsRate", p.getFee3dsRate() != null ? PercentDecimalHelper.toPlainAmountOneDecimal(p.getFee3dsRate()) : "");
         m.put("chargebackFeePerTx", p.getChargebackFeePerTx() != null ? p.getChargebackFeePerTx().toPlainString() : "");
+        m.put("voidSettlementMode", commissionSettlementModeForDetail(p.getVoidSettlementMode()));
+        m.put("manualVoidSettlementMode", commissionSettlementModeForDetail(p.getManualVoidSettlementMode()));
+        m.put("refundSettlementMode", commissionSettlementModeForDetail(p.getRefundSettlementMode()));
+        m.put("forceRefundSettlementMode", commissionSettlementModeForDetail(p.getForceRefundSettlementMode()));
+    }
+
+    private static String commissionSettlementModeForDetail(String v) {
+        if (v == null || v.isBlank()) {
+            return "FOLLOW";
+        }
+        return VoidRefundSettlementModeUtil.normalize(v.trim());
     }
 
     private static String extraFeeValuePlain(String mode, BigDecimal v) {
@@ -3356,6 +3485,7 @@ public class CompService {
                             null, null, null, null, null, null, null, null,
                             null, null, null, null, null, null, null, null, null, null,
                             null, null, null, null, null, null, null, null, null, null,
+                            null, null, null, null,
                             null, null, null, null, null, null, null, null);
                     if (loginIdVal != null && !loginIdVal.isEmpty() && userRepository.findByUsername(loginIdVal).isEmpty()) {
                         AppUser appUser = new AppUser();

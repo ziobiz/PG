@@ -13,6 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
@@ -46,13 +47,16 @@ public class ChillPayDirectCreditRecordService {
     private final PgTrnsctnRepository pgTrnsctnRepository;
     private final OrgUnitRepository orgUnitRepository;
     private final SettlementCalcService settlementCalcService;
+    private final HqLedgerSysSettingsService hqLedgerSysSettingsService;
 
     public ChillPayDirectCreditRecordService(PgTrnsctnRepository pgTrnsctnRepository,
                                             OrgUnitRepository orgUnitRepository,
-                                            SettlementCalcService settlementCalcService) {
+                                            SettlementCalcService settlementCalcService,
+                                            HqLedgerSysSettingsService hqLedgerSysSettingsService) {
         this.pgTrnsctnRepository = pgTrnsctnRepository;
         this.orgUnitRepository = orgUnitRepository;
         this.settlementCalcService = settlementCalcService;
+        this.hqLedgerSysSettingsService = hqLedgerSysSettingsService;
     }
 
     /**
@@ -161,7 +165,7 @@ public class ChillPayDirectCreditRecordService {
             t.setIcopayAmt(BigDecimal.valueOf(d.getIcopay()));
         }
         if (paid) {
-            t.setPaidAt(LocalDateTime.now());
+            t.setPaidAt(LocalDateTime.now(hqLedgerSysSettingsService.resolveLedgerDisplayZoneId()));
         }
         t.setSettledYn("N");
         pgTrnsctnRepository.save(t);

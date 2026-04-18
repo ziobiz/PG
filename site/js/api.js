@@ -727,6 +727,9 @@
     settlementExecute: function (params) {
       return get('/api/settlement/execute', params).then(function (r) { return r.data; });
     },
+    settlementExecuteRunTransactions: function (params) {
+      return get('/api/settlement/execute/runTransactions', params || {}).then(function (r) { return r.data; });
+    },
     settlementResultList: function (params) {
       return get('/api/settlement/result/list', params).then(function (r) { return r.data; });
     },
@@ -910,6 +913,13 @@
     hqMasterDistOrgOptions: function () {
       return get('/api/hq/settlement/masterDistOrgOptions').then(function (r) { return r.data || []; });
     },
+    /** 총판별 영업일 표시 + 정산 크론 Zone — { rows, presets } */
+    hqMasterDistBizCronZoneGet: function () {
+      return get('/api/hq/settlement/masterDistBizCronZone', {}).then(function (r) { return r.data || {}; });
+    },
+    hqMasterDistSettlementCronZoneSave: function (body) {
+      return post('/api/hq/settlement/masterDistSettlementCronZone', body || {}).then(function (r) { return r.data != null ? r.data : r; });
+    },
     hqMasterDistCalcCycleConfigGet: function (orgUnitId) {
       return get('/api/hq/settlement/masterDistCalcCycleConfig', { orgUnitId: orgUnitId }).then(function (r) { return r.data || {}; });
     },
@@ -927,6 +937,18 @@
     },
     hqSettlementMerchantAutoCounts: function () {
       return get('/api/hq/settlement/merchantAutoCounts').then(function (r) { return r.data || {}; });
+    },
+    hqSettlementAutoBatchGet: function () {
+      return get('/api/hq/settlement/autoBatch').then(function (r) { return r.data || {}; });
+    },
+    hqSettlementAutoBatchSave: function (body) {
+      return post('/api/hq/settlement/autoBatch', body || {}).then(function (r) { return r.data != null ? r.data : r; });
+    },
+    hqVoidRefundSettlementModesGet: function () {
+      return get('/api/hq/settlement/voidRefundSettlementModes').then(function (r) { return r.data != null ? r.data : r; });
+    },
+    hqVoidRefundSettlementModesSave: function (body) {
+      return post('/api/hq/settlement/voidRefundSettlementModes', body || {}).then(function (r) { return r.data != null ? r.data : r; });
     },
     hqSettlementCycleDefCreate: function (body) {
       return post('/api/hq/settlement/cycleDefs', body || {}).then(function (r) { return r.data || r; });

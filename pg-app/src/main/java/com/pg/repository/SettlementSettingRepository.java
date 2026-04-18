@@ -1,8 +1,11 @@
 package com.pg.repository;
 
 import com.pg.entity.SettlementSetting;
+import com.pg.entity.OrgLevel;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.util.Collection;
 import java.util.List;
@@ -30,4 +33,9 @@ public interface SettlementSettingRepository extends JpaRepository<SettlementSet
             GROUP BY ss.calc_cycle
             """, nativeQuery = true)
     List<Object[]> countAutoMerchantsByCalcCycleNative();
+
+    /** 가맹만, 개별 오버라이드(Y)가 아닌 행만 본사 동기화 대상 */
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("update SettlementSetting s set s.receivableRecoveryMode = :mode where (s.receivableRecoveryOverrideYn is null or s.receivableRecoveryOverrideYn <> 'Y') and s.orgUnitId in (select ou.id from OrgUnit ou where ou.orgLevel = :ml)")
+    int updateReceivableRecoveryModeForMerchantsInheriting(@Param("mode") String mode, @Param("ml") OrgLevel merchantLevel);
 }

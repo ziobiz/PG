@@ -3354,6 +3354,23 @@ button.pay-follow.pay-follow--off {
   overflow: hidden;
   text-overflow: ellipsis;
 }
+
+/* 가맹점 등록: 무효·환불 정산(안내) — 파스텔 노랑 톤 */
+.comp-reg-form .card.pg-comp-reg-void-refund-panel {
+  border-color: #f3dfa8;
+  background: linear-gradient(180deg, #fffdf7 0%, #fff8e0 100%);
+  box-shadow: 0 1px 2px rgba(200, 170, 50, 0.07);
+}
+.comp-reg-form .card.pg-comp-reg-void-refund-panel > .card-header {
+  background: #fff3c4;
+  border-bottom-color: #f0e0a8;
+  color: #5c4d1a;
+  font-weight: 600;
+}
+.comp-reg-form .card.pg-comp-reg-void-refund-panel > .card-body {
+  background: transparent;
+}
+
 .attach-field-block > .form-label:empty {
   display: none;
   margin: 0;

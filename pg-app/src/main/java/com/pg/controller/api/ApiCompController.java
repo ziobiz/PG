@@ -239,6 +239,10 @@ public class ApiCompController {
             @RequestParam(required = false) String fee3dsRate,
             @RequestParam(required = false) String chargebackFeePerTx,
             @RequestParam(required = false) String chargebackPolicyId,
+            @RequestParam(required = false) String voidSettlementMode,
+            @RequestParam(required = false) String manualVoidSettlementMode,
+            @RequestParam(required = false) String refundSettlementMode,
+            @RequestParam(required = false) String forceRefundSettlementMode,
             @RequestParam(required = false) String payFollowMerchantUseYn,
             @RequestParam(required = false) String payFollowAutoVoidYn,
             @RequestParam(required = false) String payFollowEmailVoidYn,
@@ -290,6 +294,7 @@ public class ApiCompController {
                 middlewareNotifyUrl, middlewareNotifySecret,
                 commissionFollowHq, hqPolicyScope, perTxFee, cancelRate, voidFeePerTx, manualVoidFeePerTx, usageRate, failFee, payRate, refundRate, rollingPct, rollingDays,
                 feeSettlementPerTx, remittanceTransferFee, usdtTransferFeeUsd, feeUsdt, feeFx, fee3dsRate, chargebackFeePerTx, chargebackPolicyId,
+                voidSettlementMode, manualVoidSettlementMode, refundSettlementMode, forceRefundSettlementMode,
                 payFollowMerchantUseYn, payFollowAutoVoidYn, payFollowEmailVoidYn, payFollowAutoRefundYn, payFollowForceRefundYn,
                 feeVatApplyYn, feeVatRatePct,
                 regionalSettings);
@@ -392,6 +397,10 @@ public class ApiCompController {
             @RequestParam(required = false) String fee3dsRate,
             @RequestParam(required = false) String chargebackFeePerTx,
             @RequestParam(required = false) String chargebackPolicyId,
+            @RequestParam(required = false) String voidSettlementMode,
+            @RequestParam(required = false) String manualVoidSettlementMode,
+            @RequestParam(required = false) String refundSettlementMode,
+            @RequestParam(required = false) String forceRefundSettlementMode,
             @RequestParam(required = false) String payFollowMerchantUseYn,
             @RequestParam(required = false) String payFollowAutoVoidYn,
             @RequestParam(required = false) String payFollowEmailVoidYn,
@@ -426,6 +435,7 @@ public class ApiCompController {
                     middlewareNotifyUrl, middlewareNotifySecret,
                     commissionFollowHq, hqPolicyScope, perTxFee, cancelRate, voidFeePerTx, manualVoidFeePerTx, usageRate, failFee, payRate, refundRate, rollingPct, rollingDays,
                     feeSettlementPerTx, remittanceTransferFee, usdtTransferFeeUsd, feeUsdt, feeFx, fee3dsRate, chargebackFeePerTx, chargebackPolicyId,
+                    voidSettlementMode, manualVoidSettlementMode, refundSettlementMode, forceRefundSettlementMode,
                     payFollowMerchantUseYn, payFollowAutoVoidYn, payFollowEmailVoidYn, payFollowAutoRefundYn, payFollowForceRefundYn);
             return ResponseEntity.ok(ok ? ApiResponse.ok(Map.of("success", true, "message", "저장되었습니다."))
                     : ApiResponse.fail("업체를 찾을 수 없습니다.", "NOT_FOUND"));

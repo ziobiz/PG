@@ -27,6 +27,7 @@ import java.math.BigDecimal;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.LinkedHashMap;
@@ -69,6 +70,7 @@ public class ChillPayNotifyToTrnsctnService implements PgNotifyInboundTxnHandler
     private final MerchantOutboundNotifyService merchantOutboundNotifyService;
     private final SettlementCalcService settlementCalcService;
     private final SettlementArrearsService settlementArrearsService;
+    private final HqLedgerSysSettingsService hqLedgerSysSettingsService;
 
     public ChillPayNotifyToTrnsctnService(PgTrnsctnRepository pgTrnsctnRepository,
                                          MerchantPgBindingRepository merchantPgBindingRepository,
@@ -76,7 +78,8 @@ public class ChillPayNotifyToTrnsctnService implements PgNotifyInboundTxnHandler
                                          HqNotifyMappingService hqNotifyMappingService,
                                          MerchantOutboundNotifyService merchantOutboundNotifyService,
                                          SettlementCalcService settlementCalcService,
-                                         SettlementArrearsService settlementArrearsService) {
+                                         SettlementArrearsService settlementArrearsService,
+                                         HqLedgerSysSettingsService hqLedgerSysSettingsService) {
         this.pgTrnsctnRepository = pgTrnsctnRepository;
         this.merchantPgBindingRepository = merchantPgBindingRepository;
         this.orgUnitRepository = orgUnitRepository;
@@ -84,6 +87,7 @@ public class ChillPayNotifyToTrnsctnService implements PgNotifyInboundTxnHandler
         this.merchantOutboundNotifyService = merchantOutboundNotifyService;
         this.settlementCalcService = settlementCalcService;
         this.settlementArrearsService = settlementArrearsService;
+        this.hqLedgerSysSettingsService = hqLedgerSysSettingsService;
     }
 
     @Override
@@ -317,7 +321,7 @@ public class ChillPayNotifyToTrnsctnService implements PgNotifyInboundTxnHandler
 
         if (STATUS_PAID.equals(mergedStatus)) {
             LocalDateTime paid = parsePaymentDate(root);
-            t.setPaidAt(paid != null ? paid : LocalDateTime.now());
+            t.setPaidAt(paid != null ? paid : LocalDateTime.now(hqLedgerSysSettingsService.resolveLedgerDisplayZoneId()));
         } else {
             t.setPaidAt(null);
         }

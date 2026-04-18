@@ -45,8 +45,8 @@ public final class SettlementCycleTiming {
     }
 
     /**
-     * 결제 반영 직후 {@link com.pg.service.SettlementCalcService#triggerRealtimeAutoSettlementIfDue} 대상.
-     * (RT·T0 — M5/M10/M30은 분 격자 배치)
+     * RT·T0 계열(건당/당일 누적). RT는 노티만, T0는 노티 + {@link com.pg.service.settlement.SettlementScheduledJob} 매 tick 재집계.
+     * (M5/M10/M30·H1 등 격자는 {@link #isSubDailyScheduleCode})
      */
     public static boolean isRealtimeCode(String normalized) {
         if (normalized == null) {

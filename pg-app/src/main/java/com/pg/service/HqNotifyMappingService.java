@@ -163,16 +163,19 @@ public class HqNotifyMappingService {
     private final NotifyMappingAiService notifyMappingAiService;
     private final PgNotifyInboundRepository pgNotifyInboundRepository;
     private final MerchantPgBindingRepository merchantPgBindingRepository;
+    private final HqLedgerSysSettingsService hqLedgerSysSettingsService;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     public HqNotifyMappingService(HqNotifyMappingConfigRepository repository,
                                   NotifyMappingAiService notifyMappingAiService,
                                   PgNotifyInboundRepository pgNotifyInboundRepository,
-                                  MerchantPgBindingRepository merchantPgBindingRepository) {
+                                  MerchantPgBindingRepository merchantPgBindingRepository,
+                                  HqLedgerSysSettingsService hqLedgerSysSettingsService) {
         this.repository = repository;
         this.notifyMappingAiService = notifyMappingAiService;
         this.pgNotifyInboundRepository = pgNotifyInboundRepository;
         this.merchantPgBindingRepository = merchantPgBindingRepository;
+        this.hqLedgerSysSettingsService = hqLedgerSysSettingsService;
     }
 
     public boolean isNotifyMappingAiConfigured() {
@@ -956,7 +959,7 @@ public class HqNotifyMappingService {
         }
         if ("10".equals(mergedStatus)) {
             LocalDateTime paid = parsePaymentDate(firstNonBlank(byKey, "payCompletedAt", "paidAt", "paymentDate"));
-            t.setPaidAt(paid != null ? paid : LocalDateTime.now());
+            t.setPaidAt(paid != null ? paid : LocalDateTime.now(hqLedgerSysSettingsService.resolveLedgerDisplayZoneId()));
         } else {
             t.setPaidAt(null);
         }

@@ -105,10 +105,9 @@ public class CommissionService {
         int end = Math.min(start + size, total);
         List<OrgUnit> pageList = start < total ? filtered.subList(start, end) : new ArrayList<>();
 
-        Optional<CommissionPolicy> defaultPolicy = commissionPolicyRepository.findByScope("DEFAULT");
         List<Map<String, Object>> list = new ArrayList<>();
         for (OrgUnit ou : pageList) {
-            Map<String, Object> m = buildCommissionRow(ou, defaultPolicy);
+            Map<String, Object> m = buildCommissionRow(ou);
             syncNamesFromCurrentOrgTree(m, ou, orgById);
             list.add(m);
         }
@@ -122,7 +121,7 @@ public class CommissionService {
         return pr;
     }
 
-    private Map<String, Object> buildCommissionRow(OrgUnit merchant, Optional<CommissionPolicy> defaultPolicy) {
+    private Map<String, Object> buildCommissionRow(OrgUnit merchant) {
         Map<String, Object> m = new HashMap<>();
         String mc = normCompCode(merchant);
         m.put("id", merchant.getId());
@@ -136,12 +135,7 @@ public class CommissionService {
         refreshAncestorNamesByCode(m);
 
         String effectiveScope = resolveMerchantHqScopeForDisplay(merchant);
-        CommissionPolicy policy = commissionPolicyRepository.findByScope(mc)
-                .or(() -> merchant.getCode() != null && !mc.equals(merchant.getCode())
-                        ? commissionPolicyRepository.findByScope(merchant.getCode()) : Optional.empty())
-                .or(() -> effectiveScope != null && !effectiveScope.isBlank() ? commissionPolicyRepository.findByScope(effectiveScope) : Optional.empty())
-                .or(() -> defaultPolicy)
-                .orElse(null);
+        CommissionPolicy policy = resolveCommissionPolicyForSettlement(mc);
         if (policy != null) {
             m.put("cmsnRate", policy.getPayRate());
             m.put("perTxFee", policy.getPerTxFee());
@@ -150,6 +144,9 @@ public class CommissionService {
             m.put("manualVoidFeePerTx", policy.getManualVoidFeePerTx());
             m.put("payRate", policy.getPayRate());
             m.put("refundRate", policy.getRefundRate());
+            m.put("feeSettlementPerTx", policy.getFeeSettlementPerTx());
+            m.put("remittanceTransferFee", policy.getRemittanceTransferFee());
+            m.put("usdtTransferFeeUsd", policy.getUsdtTransferFeeUsd());
             m.put("rollingPct", policy.getRollingPct());
             m.put("rollingDays", policy.getRollingDays());
         }
@@ -239,6 +236,51 @@ public class CommissionService {
         } catch (Exception e) {
             return "DEFAULT";
         }
+    }
+
+    /**
+     * 정산 집계·정산료·수수료내역 건별 합산에 쓰는 수수료정책.
+     * <p>본사정책 따름(Y)이면 {@code hqPolicyScope}(비면 DEFAULT)에 해당하는 <b>배포 템플릿</b> 행을 사용합니다.
+     * 가맹 스코프({@code tb_commission_policy.scope=가맹코드}) 행이 남아 있어도 본사 목록과 동일한 값이 오도록,
+     * 직접입력(N)일 때만 가맹 스코프를 봅니다.</p>
+     */
+    public CommissionPolicy resolveCommissionPolicyForSettlement(String merchantCode) {
+        String mc = merchantCode != null ? merchantCode.trim() : "";
+        if (mc.isEmpty()) {
+            return commissionPolicyRepository.findByScope("DEFAULT").orElseGet(CommissionPolicy::new);
+        }
+        Optional<OrgUnit> ouOpt = resolveOrgByCode(mc);
+        if (ouOpt.isEmpty() || ouOpt.get().getOrgLevel() != OrgLevel.MERCHANT) {
+            return commissionPolicyRepository.findByScope("DEFAULT").orElseGet(CommissionPolicy::new);
+        }
+        OrgUnit merchant = ouOpt.get();
+        boolean followHq = true;
+        String hqScope = "";
+        Optional<MerchantProfile> mpOpt = merchantProfileRepository.findByOrgUnitId(merchant.getId());
+        if (mpOpt.isPresent()) {
+            String rs = mpOpt.get().getRegionalSettings();
+            if (rs != null && !rs.isBlank()) {
+                try {
+                    Map<String, Object> obj = MAPPER.readValue(rs, new TypeReference<>() {});
+                    String follow = obj.get("commissionFollowHq") != null ? String.valueOf(obj.get("commissionFollowHq")).trim() : "Y";
+                    followHq = !"N".equalsIgnoreCase(follow);
+                    hqScope = obj.get("hqPolicyScope") != null ? String.valueOf(obj.get("hqPolicyScope")).trim() : "";
+                } catch (Exception ignored) {
+                    followHq = true;
+                    hqScope = "";
+                }
+            }
+        }
+        if (!followHq) {
+            return commissionPolicyRepository.findByScope(normCompCode(merchant))
+                    .or(() -> commissionPolicyRepository.findByScope(mc))
+                    .or(() -> commissionPolicyRepository.findByScope("DEFAULT"))
+                    .orElseGet(CommissionPolicy::new);
+        }
+        String templateScope = hqScope.isEmpty() ? "DEFAULT" : hqScope;
+        return commissionPolicyRepository.findByScope(templateScope)
+                .or(() -> commissionPolicyRepository.findByScope("DEFAULT"))
+                .orElseGet(CommissionPolicy::new);
     }
 
     private void applyDistributionToMap(Map<String, Object> m, DistributionFeeConfig df) {
@@ -710,8 +752,7 @@ public class CommissionService {
             }
             distributionFeeConfigRepository.save(df);
 
-            Optional<CommissionPolicy> defaultPolicy = commissionPolicyRepository.findByScope("DEFAULT");
-            Map<String, Object> snap = buildCommissionRow(ou, defaultPolicy);
+            Map<String, Object> snap = buildCommissionRow(ou);
             snap.put("compNm", ou.getName());
             snap.put("compId", merchantCode);
 
@@ -787,9 +828,8 @@ public class CommissionService {
         Map<Long, OrgUnit> orgById = allOrgs.stream()
                 .filter(o -> o.getId() != null)
                 .collect(Collectors.toMap(OrgUnit::getId, o -> o, (a, b) -> a));
-        Optional<CommissionPolicy> defaultPolicy = commissionPolicyRepository.findByScope("DEFAULT");
 
-        Map<String, Object> live = new LinkedHashMap<>(buildCommissionRow(ou, defaultPolicy));
+        Map<String, Object> live = new LinkedHashMap<>(buildCommissionRow(ou));
         syncNamesFromCurrentOrgTree(live, ou, orgById);
         refreshAncestorNamesByCode(live);
 

@@ -117,6 +117,9 @@ echo "   첫 기동은 DB·JPA 때문에 약 1분 걸릴 수 있습니다."
 echo "   완료 전에 이 스크립트를 다시 실행하지 마세요."
 export DB_HOST DB_USER DB_PASSWORD
 export SPRING_PROFILES_ACTIVE=prod
+# 정산 자동 배치 tick(매 분 등). 기본 켜짐. 끄려면 실행 전: export APP_SETTLEMENT_AUTO_RUN=false
+# (관리자 화면 ①). 본사 DB ② 허용과 함께 켜져 있어야 AUTO 가맹 H1 등이 돌아감.
+export APP_SETTLEMENT_AUTO_RUN="${APP_SETTLEMENT_AUTO_RUN:-true}"
 nohup java -jar "$JAR" --spring.profiles.active=prod --server.port=8080 >>"$LOG_FILE" 2>&1 &
 echo "   로그: tail -f $LOG_FILE"
 echo "   성공 한 줄: grep 'Started PgAppApplication' $LOG_FILE | tail -1"

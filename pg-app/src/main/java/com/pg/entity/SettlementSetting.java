@@ -123,6 +123,36 @@ public class SettlementSetting {
     @Column(name = "receivable_recovery_mode", length = 16, nullable = false)
     private String receivableRecoveryMode = "AUTO";
 
+    /**
+     * Y: 가맹점은 이 열({@link #receivableRecoveryMode})을 그대로 사용(개별 우선).
+     * N: 가맹점은 소속 총판(MASTER_DIST) 정산설정의 동일 열을 따르고, 총판이 없으면 본사 기본(tb_hq_ledger_sys_settings).
+     * 총판 조직 행은 항상 N으로 두며 총판 값이 하위 가맹 기본이 된다.
+     */
+    @Column(name = "receivable_recovery_override_yn", length = 1, nullable = false)
+    private String receivableRecoveryOverrideYn = "N";
+
+    /**
+     * 무효(21·40) 정산 반영 방식(GENERAL/REVENUE/HYBRID). NULL이면 총판은 본사 기본, 가맹은(오버라이드 N) 총판·본사 상속.
+     */
+    @Column(name = "void_settlement_mode", length = 20)
+    private String voidSettlementMode;
+
+    @Column(name = "manual_void_settlement_mode", length = 20)
+    private String manualVoidSettlementMode;
+
+    @Column(name = "refund_settlement_mode", length = 20)
+    private String refundSettlementMode;
+
+    @Column(name = "force_refund_settlement_mode", length = 20)
+    private String forceRefundSettlementMode;
+
+    /**
+     * Y: 가맹은 위 네 열을 우선(비어 있는 항목만 총판·본사 상속).
+     * N: 가맹은 소속 총판(MASTER_DIST) 동일 열 → NULL이면 본사(tb_hq_ledger_sys_settings).
+     */
+    @Column(name = "void_refund_settlement_override_yn", length = 1, nullable = false)
+    private String voidRefundSettlementOverrideYn = "N";
+
     /** 정산제외일 (쉼표 구분 문자열) */
     @Column(name = "calc_exclude_dates", length = 200)
     private String calcExcludeDates;
@@ -235,6 +265,22 @@ public class SettlementSetting {
     public void setPayHoldYn(String payHoldYn) { this.payHoldYn = payHoldYn; }
     public String getReceivableRecoveryMode() { return receivableRecoveryMode; }
     public void setReceivableRecoveryMode(String receivableRecoveryMode) { this.receivableRecoveryMode = receivableRecoveryMode; }
+    public String getReceivableRecoveryOverrideYn() { return receivableRecoveryOverrideYn; }
+    public void setReceivableRecoveryOverrideYn(String receivableRecoveryOverrideYn) {
+        this.receivableRecoveryOverrideYn = receivableRecoveryOverrideYn;
+    }
+    public String getVoidSettlementMode() { return voidSettlementMode; }
+    public void setVoidSettlementMode(String voidSettlementMode) { this.voidSettlementMode = voidSettlementMode; }
+    public String getManualVoidSettlementMode() { return manualVoidSettlementMode; }
+    public void setManualVoidSettlementMode(String manualVoidSettlementMode) { this.manualVoidSettlementMode = manualVoidSettlementMode; }
+    public String getRefundSettlementMode() { return refundSettlementMode; }
+    public void setRefundSettlementMode(String refundSettlementMode) { this.refundSettlementMode = refundSettlementMode; }
+    public String getForceRefundSettlementMode() { return forceRefundSettlementMode; }
+    public void setForceRefundSettlementMode(String forceRefundSettlementMode) { this.forceRefundSettlementMode = forceRefundSettlementMode; }
+    public String getVoidRefundSettlementOverrideYn() { return voidRefundSettlementOverrideYn; }
+    public void setVoidRefundSettlementOverrideYn(String voidRefundSettlementOverrideYn) {
+        this.voidRefundSettlementOverrideYn = voidRefundSettlementOverrideYn;
+    }
     public String getCalcExcludeDates() { return calcExcludeDates; }
     public void setCalcExcludeDates(String calcExcludeDates) { this.calcExcludeDates = calcExcludeDates; }
     public LocalTime getCalcStartTime() { return calcStartTime; }

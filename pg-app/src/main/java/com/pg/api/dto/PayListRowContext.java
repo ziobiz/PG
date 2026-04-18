@@ -26,12 +26,28 @@ public class PayListRowContext {
     private final String masterDistBaseCurrency;
     /** 가맹점(MERCHANT) 프로필 기준통화(첫 토큰) — 상위 총판 귀속 */
     private final String merchantBaseCurrency;
+    /**
+     * {@code true}: 승인 건 수수료 분해에서 정책의 {@code fee_settlement_per_tx} 금액을 넣지 않음.
+     * 해당 금액은 정산 실행(tb_settlement_run)당 1회({@code settlement_batch_fee_amt})로만 부과되며,
+     * 정산실행 상세 거래 목록은 건별이므로 여기서는 제외한다.
+     */
+    private final boolean omitSettlementFeeFromApprovedTxnBreakdown;
 
     public PayListRowContext(String compNm, MerchantProfile profile, MerchantPgBinding binding,
                              DistributionFeeConfig distFee, CommissionPolicy policy,
                              SettlementSetting settlement,
                              String regionalNm, String masterNm, String branchNm,
                              String regionalBaseCurrency, String masterDistBaseCurrency, String merchantBaseCurrency) {
+        this(compNm, profile, binding, distFee, policy, settlement, regionalNm, masterNm, branchNm,
+                regionalBaseCurrency, masterDistBaseCurrency, merchantBaseCurrency, false);
+    }
+
+    public PayListRowContext(String compNm, MerchantProfile profile, MerchantPgBinding binding,
+                             DistributionFeeConfig distFee, CommissionPolicy policy,
+                             SettlementSetting settlement,
+                             String regionalNm, String masterNm, String branchNm,
+                             String regionalBaseCurrency, String masterDistBaseCurrency, String merchantBaseCurrency,
+                             boolean omitSettlementFeeFromApprovedTxnBreakdown) {
         this.compNm = compNm;
         this.profile = profile;
         this.binding = binding;
@@ -44,6 +60,16 @@ public class PayListRowContext {
         this.regionalBaseCurrency = regionalBaseCurrency != null ? regionalBaseCurrency : "";
         this.masterDistBaseCurrency = masterDistBaseCurrency != null ? masterDistBaseCurrency : "";
         this.merchantBaseCurrency = merchantBaseCurrency != null ? merchantBaseCurrency : "";
+        this.omitSettlementFeeFromApprovedTxnBreakdown = omitSettlementFeeFromApprovedTxnBreakdown;
+    }
+
+    /** 정산실행 상세 등 — 건별 행에 정산 실행당 1회 정산료를 반복 넣지 않을 때 사용 */
+    public PayListRowContext withOmitSettlementFeeFromApprovedTxnBreakdown(boolean omit) {
+        if (omit == this.omitSettlementFeeFromApprovedTxnBreakdown) {
+            return this;
+        }
+        return new PayListRowContext(compNm, profile, binding, distFee, policy, settlement,
+                regionalNm, masterNm, branchNm, regionalBaseCurrency, masterDistBaseCurrency, merchantBaseCurrency, omit);
     }
 
     public String getCompNm() { return compNm; }
@@ -58,4 +84,8 @@ public class PayListRowContext {
     public String getRegionalBaseCurrency() { return regionalBaseCurrency; }
     public String getMasterDistBaseCurrency() { return masterDistBaseCurrency; }
     public String getMerchantBaseCurrency() { return merchantBaseCurrency; }
+
+    public boolean isOmitSettlementFeeFromApprovedTxnBreakdown() {
+        return omitSettlementFeeFromApprovedTxnBreakdown;
+    }
 }
