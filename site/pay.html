@@ -8,7 +8,7 @@
   <title>Payment</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;600&display=swap" rel="stylesheet">
-  <link href="css/pay-inline.css?v=26" rel="stylesheet">
+  <link href="css/pay-inline.css?v=30" rel="stylesheet">
 </head>
 <body class="pay-inline-body">
   <div class="pay-shell">
@@ -22,10 +22,10 @@
       </div>
 
       <div class="pay-lang" role="group" aria-label="Language">
-        <button type="button" data-lang="KOR">KOR</button>
-        <button type="button" class="active" data-lang="ENG">ENG</button>
-        <button type="button" data-lang="CHN">CHN</button>
         <button type="button" data-lang="JPN">JPN</button>
+        <button type="button" data-lang="KOR">KOR</button>
+        <button type="button" data-lang="ENG">ENG</button>
+        <button type="button" data-lang="CHN">CHN</button>
         <button type="button" data-lang="THA">THA</button>
       </div>
 
@@ -53,20 +53,20 @@
         </div>
         <div class="pay-row d-none" id="payFxDisplayCurrencyRow">
           <label class="pay-row-label mb-0" for="payDisplayCurrencySelect"><span data-i18n="fxDisplayCurrency">Display currency</span></label>
-          <div class="pay-row-value">
+          <div class="pay-row-value d-flex flex-wrap align-items-center gap-2">
             <select class="form-select form-select-sm pay-input-round" id="payDisplayCurrencySelect" form="payForm">
               <option value="THB">THB</option>
               <option value="JPY">JPY</option>
               <option value="USD">USD</option>
               <option value="KRW">KRW</option>
             </select>
+            <span id="payFxDisplayCurrencyStatic" class="d-none fw-medium" aria-live="polite"></span>
           </div>
         </div>
         <div class="pay-row pay-row-static d-none" id="payFxQuoteRow">
-          <div class="pay-row-label"><span data-i18n="fxThbEstimate">ChillPay charge (est.)</span></div>
-          <div class="pay-row-value"><span id="payFxThbEstimateText" class="small text-muted">—</span></div>
+          <div class="pay-row-label"><span data-i18n="fxThbEstimate">청구예상 금액</span></div>
+          <div class="pay-row-value"><span id="payFxThbEstimateText" class="pay-fx-estimate-amount fw-semibold text-primary">—</span></div>
         </div>
-        <p class="small text-muted mb-0 mt-1 d-none px-1" id="payFxRefreshNote" data-i18n="fxRateRefreshNote" role="status"></p>
       </div>
 
       <!-- ChillPay CCD 슬롯은 폼 밖(NOTI /admin/test-pay 와 동일). 스크립트는 #payForm 안 상단에 주입 -->
@@ -250,7 +250,51 @@
         return base + (p.charAt(0) === '/' ? p : '/' + p);
       }
 
-      var LANG = 'ENG';
+      /** URL 결제 공통: ?lang= 우선, 없으면 브라우저 언어(선호 목록) → KOR/JPN/CHN/THA/ENG */
+      function mapBrowserLocaleToUrlPayLang(tag) {
+        if (!tag) return null;
+        var s = String(tag).trim().toLowerCase();
+        if (!s) return null;
+        if (s.indexOf('ko') === 0) return 'KOR';
+        if (s.indexOf('ja') === 0) return 'JPN';
+        if (s.indexOf('zh') === 0 || s === 'zh-hant' || s.indexOf('zh-tw') === 0 || s.indexOf('zh-hk') === 0) return 'CHN';
+        if (s.indexOf('th') === 0) return 'THA';
+        if (s.indexOf('en') === 0) return 'ENG';
+        return null;
+      }
+      function detectBrowserUrlPayLang() {
+        var list = [];
+        try {
+          if (navigator.languages && navigator.languages.length) {
+            for (var li = 0; li < navigator.languages.length; li++) {
+              list.push(navigator.languages[li]);
+            }
+          }
+        } catch (e1) { /* ignore */ }
+        try {
+          if (navigator.language) list.push(navigator.language);
+        } catch (e2) { /* ignore */ }
+        for (var i = 0; i < list.length; i++) {
+          var hit = mapBrowserLocaleToUrlPayLang(list[i]);
+          if (hit) return hit;
+        }
+        return 'ENG';
+      }
+      function resolveInitialUrlPayLang() {
+        try {
+          var p = new URLSearchParams(window.location.search);
+          var raw = (p.get('lang') || p.get('LANG') || '').trim().toUpperCase();
+          if (raw === 'KO' || raw === 'KR') raw = 'KOR';
+          if (raw === 'JA' || raw === 'JP') raw = 'JPN';
+          if (raw === 'ZH' || raw === 'CN') raw = 'CHN';
+          if (raw === 'TH') raw = 'THA';
+          if (raw === 'EN') raw = 'ENG';
+          if (raw === 'KOR' || raw === 'ENG' || raw === 'CHN' || raw === 'JPN' || raw === 'THA') return raw;
+        } catch (eQ) { /* ignore */ }
+        return detectBrowserUrlPayLang();
+      }
+
+      var LANG = resolveInitialUrlPayLang();
       /** 본사 checkout-context: urlPayFlow INLINE|REDIRECT, urlPayFormMode FULL|SIMPLE */
       var urlPayFlow = 'INLINE';
       var urlPayFormMode = 'FULL';
@@ -261,6 +305,8 @@
       var urlPayAmountScaleMode = 'SAME';
       /** checkout-context: CHECKOUT_CURRENCY | DISPLAY_FX_THB */
       var urlPayPricingMode = 'CHECKOUT_CURRENCY';
+      /** DISPLAY_FX_THB 이면서 본사 amountMode BLIND: 표시통화·청구예상 행만 숨김(견적·결제는 동일). */
+      var urlPayFxUiBlind = false;
       var urlPayDisplayFxActive = false;
       var urlPayDisplayFxRefreshSeconds = 600;
       var urlPayFxQuote = null;
@@ -308,8 +354,7 @@
           payResultReturnAlertFail: '결제가 완료되지 않았습니다. 확인을 누르면 결제 페이지로 돌아갑니다.',
           payResultReturnAlertCancel: '결제가 취소되었습니다. 확인을 누르면 결제 페이지로 돌아갑니다.',
           fxDisplayCurrency: '표시 통화',
-          fxThbEstimate: 'ChillPay 청구 예상',
-          fxRateRefreshNote: '태국은행(BOT) 일평균 환율·본사 마진이 적용됩니다. 설정된 주기가 지나면 환율 반영을 위해 이 페이지가 자동으로 새로고침됩니다.',
+          fxThbEstimate: '청구예상 금액',
           needFxQuote: '환율 견적을 불러오는 중이거나 실패했습니다. 잠시 후 다시 시도하세요.'
         },
         ENG: {
@@ -350,8 +395,7 @@
           payResultReturnAlertFail: 'Payment was not completed. Press OK to return to checkout.',
           payResultReturnAlertCancel: 'Payment was cancelled. Press OK to return to checkout.',
           fxDisplayCurrency: 'Display currency',
-          fxThbEstimate: 'ChillPay charge (est.)',
-          fxRateRefreshNote: 'Uses BOT daily average rate and HQ margin. This page auto-refreshes on the configured interval so the rate stays current.',
+          fxThbEstimate: 'Estimated charge',
           needFxQuote: 'Exchange quote is loading or failed. Please wait and try again.'
         },
         CHN: {
@@ -392,8 +436,7 @@
           payResultReturnAlertFail: '支付未完成。点确定返回结账页。',
           payResultReturnAlertCancel: '支付已取消。点确定返回结账页。',
           fxDisplayCurrency: '显示货币',
-          fxThbEstimate: 'ChillPay 预计扣款',
-          fxRateRefreshNote: '按泰国央行日均价与总部加点。到达设定间隔后页面将自动刷新以更新汇率。',
+          fxThbEstimate: '预计扣款金额',
           needFxQuote: '汇率报价加载中或失败，请稍后重试。'
         },
         JPN: {
@@ -434,8 +477,7 @@
           payResultReturnAlertFail: 'お支払いは完了していません。OKで決済ページに戻ります。',
           payResultReturnAlertCancel: 'お支払いはキャンセルされました。OKで決済ページに戻ります。',
           fxDisplayCurrency: '表示通貨',
-          fxThbEstimate: 'ChillPay 請求見込み',
-          fxRateRefreshNote: 'タイ中央銀行の日次平均レートと本社マージンを使用します。設定間隔でページが自動更新され、レートが反映されます。',
+          fxThbEstimate: '請求見込金額',
           needFxQuote: '為替見積りを読み込み中か、取得に失敗しました。しばらくしてから再度お試しください。'
         },
         THA: {
@@ -476,8 +518,7 @@
           payResultReturnAlertFail: 'การชำระเงินยังไม่สำเร็จ กดตกลงเพื่อกลับไปหน้าชำระเงิน',
           payResultReturnAlertCancel: 'ยกเลิกการชำระเงินแล้ว กดตกลงเพื่อกลับไปหน้าชำระเงิน',
           fxDisplayCurrency: 'สกุลเงินที่แสดง',
-          fxThbEstimate: 'ยอดเรียกเก็บ ChillPay (โดยประมาณ)',
-          fxRateRefreshNote: 'ใช้อัตราเฉลี่ยรายวันของ BOT และมาร์จิ้นสำนักงานใหญ่ หน้าจะรีเฟรชอัตโนมัติตามช่วงเวลาที่ตั้งไว้',
+          fxThbEstimate: 'ยอดเรียกเก็บโดยประมาณ',
           needFxQuote: 'กำลังโหลดอัตราแล้วหรือโหลดไม่สำเร็จ โปรดรอแล้วลองอีกครั้ง'
         }
       };
@@ -564,9 +605,12 @@
             return;
           }
           try {
-            window.location.href = new URL('pay.html?m=' + encodeURIComponent(mid), window.location.href).href;
+            window.location.href = new URL(
+              'pay.html?m=' + encodeURIComponent(mid) + '&lang=' + encodeURIComponent(LANG),
+              window.location.href
+            ).href;
           } catch (e1) {
-            window.location.href = 'pay.html?m=' + encodeURIComponent(mid);
+            window.location.href = 'pay.html?m=' + encodeURIComponent(mid) + '&lang=' + encodeURIComponent(LANG);
           }
           return;
         }
@@ -779,6 +823,10 @@
         document.querySelectorAll('.pay-lang button').forEach(function (b) {
           b.classList.toggle('active', b.getAttribute('data-lang') === code);
         });
+        try {
+          var hl = { KOR: 'ko', ENG: 'en', CHN: 'zh', JPN: 'ja', THA: 'th' };
+          document.documentElement.setAttribute('lang', hl[code] || 'en');
+        } catch (eHtml) { /* ignore */ }
         applyI18n();
         if (bootCompId && checkoutCtx) {
           applyCheckoutFormDefaults(bootCompId, checkoutCtx);
@@ -1050,6 +1098,36 @@
       var chillCfg = null;
       var bootCompId = '';
 
+      /** DISPLAY_FX_THB 견적용 표시 통화: 멀티면 셀렉트, 고정이면 본사 설정 표시 통화만. */
+      function payFxResolvedDisplayCurrency() {
+        if (!checkoutCtx) return 'JPY';
+        if (checkoutCtx.urlPayDisplayFxDisplayCurrencyMulti === true) {
+          var sc = document.getElementById('payDisplayCurrencySelect');
+          if (sc && !sc.classList.contains('d-none')) {
+            return String(sc.value || checkoutCtx.urlPayDisplayFxDefaultDisplayCurrency || 'JPY').trim().toUpperCase();
+          }
+        }
+        return checkoutCtx.urlPayDisplayFxDefaultDisplayCurrency != null
+          ? String(checkoutCtx.urlPayDisplayFxDefaultDisplayCurrency).trim().toUpperCase() : 'JPY';
+      }
+
+      /** 금액 라벨 (JPY) 힌트에서 표시 통화 코드 추출 후, 엔화일 때만 입력란·힌트에 붉은 톤 적용 */
+      function syncPayAmountYenAccent() {
+        var h = document.getElementById('payAmountCurrencyHint');
+        var cur = 'JPY';
+        if (h && h.textContent) {
+          var m = /\(([A-Za-z]{3})\)/.exec(String(h.textContent));
+          if (m) cur = m[1].toUpperCase();
+        }
+        var jpy = cur === 'JPY';
+        var amt = document.getElementById('amount');
+        if (amt) amt.classList.toggle('pay-amount-jpy-accent', jpy);
+        if (h) {
+          h.classList.toggle('pay-amount-jpy-accent', jpy);
+          h.classList.toggle('text-muted', !jpy);
+        }
+      }
+
       function applyCheckoutFormDefaults(compId, ctx) {
         if (!ctx) return;
         var mn = document.getElementById('merchantNameDisplay');
@@ -1071,19 +1149,32 @@
           }
         }
         var curHint = document.getElementById('payAmountCurrencyHint');
-        if (curHint && ctx.checkoutCurrencyCode) {
-          if (!urlPayDisplayFxActive) {
+        if (curHint) {
+          if (!urlPayDisplayFxActive && ctx.checkoutCurrencyCode) {
             curHint.textContent = '(' + String(ctx.checkoutCurrencyCode).trim() + ')';
+          } else if (urlPayDisplayFxActive && String(urlPayPricingMode || '').toUpperCase() === 'DISPLAY_FX_THB') {
+            var dispDef = ctx.urlPayDisplayFxDefaultDisplayCurrency != null
+              ? String(ctx.urlPayDisplayFxDefaultDisplayCurrency).trim().toUpperCase() : 'JPY';
+            curHint.textContent = '(' + (dispDef || 'JPY') + ')';
           }
         }
         applyPayAmountScaleNotice();
+        syncPayAmountYenAccent();
       }
 
       function updatePayFxCurrencyHint() {
         var curHint = document.getElementById('payAmountCurrencyHint');
-        var sc = document.getElementById('payDisplayCurrencySelect');
-        if (!curHint || !sc) return;
-        curHint.textContent = '(' + String(sc.value || 'JPY').trim() + ')';
+        if (!curHint) return;
+        curHint.textContent = '(' + payFxResolvedDisplayCurrency() + ')';
+        syncPayAmountYenAccent();
+      }
+
+      /** 실결제 통화 표시용(JPY/KRW는 정수, 그 외는 소수 둘째 반올림·정수면 .00 생략). */
+      function payFxFormatSettleAmount(n, intSet) {
+        if (!isFinite(n)) return String(n);
+        if (intSet) return String(Math.round(n));
+        var r = Math.round(n * 100) / 100;
+        return (Math.abs(r - Math.round(r)) < 1e-6) ? String(Math.round(r)) : r.toFixed(2);
       }
 
       function updateFxSettlementEstimateText() {
@@ -1109,15 +1200,14 @@
         var setCur = urlPayFxQuote.settlementCurrency != null && String(urlPayFxQuote.settlementCurrency).trim() !== ''
           ? String(urlPayFxQuote.settlementCurrency).trim().toUpperCase() : 'THB';
         var gross = amt * tpu * (1 + mgn);
-        var intCur = (setCur === 'JPY' || setCur === 'KRW');
-        var shown = intCur ? Math.round(gross) : Math.round(gross * 100) / 100;
-        var extra = urlPayFxQuote.rateDescription ? (' · ' + String(urlPayFxQuote.rateDescription)) : '';
-        el.textContent = (intCur ? String(shown) : shown.toFixed(2)) + ' ' + setCur + extra;
+        var intSet = (setCur === 'JPY' || setCur === 'KRW');
+        var shown = intSet ? Math.round(gross) : Math.round(gross * 100) / 100;
+        var grossStr = payFxFormatSettleAmount(shown, intSet);
+        el.textContent = grossStr + ' ' + setCur;
       }
 
       function fetchFxQuoteAndScheduleReload(compId) {
-        var sc = document.getElementById('payDisplayCurrencySelect');
-        var cur = sc ? String(sc.value || 'JPY').trim() : 'JPY';
+        var cur = payFxResolvedDisplayCurrency();
         var q = 'compId=' + encodeURIComponent(compId) + '&displayCurrency=' + encodeURIComponent(cur);
         return fetchJsonWithRetry(apiUrl('/api/pay/chillpay/display-fx-quote', q), 4, 700).then(function (res) {
           if (res.success !== true || !res.data) throw new Error(res.message || t('configErr'));
@@ -1141,16 +1231,16 @@
       function initUrlPayDisplayFx(compId) {
         var rowC = document.getElementById('payFxDisplayCurrencyRow');
         var rowQ = document.getElementById('payFxQuoteRow');
-        var note = document.getElementById('payFxRefreshNote');
-        if (rowC) rowC.classList.remove('d-none');
-        if (rowQ) rowQ.classList.remove('d-none');
-        if (note) note.classList.remove('d-none');
+        var hideFxRows = urlPayFxUiBlind === true;
+        if (rowC && !hideFxRows) rowC.classList.remove('d-none');
+        if (rowQ && !hideFxRows) rowQ.classList.remove('d-none');
         var sc = document.getElementById('payDisplayCurrencySelect');
+        var stFx = document.getElementById('payFxDisplayCurrencyStatic');
         if (sc && checkoutCtx) {
           var allowed = checkoutCtx.urlPayDisplayFxDisplayCurrencies;
           var codes = Array.isArray(allowed) && allowed.length
             ? allowed.map(function (c) { return String(c || '').trim().toUpperCase(); }).filter(Boolean)
-            : ['THB', 'JPY', 'USD', 'KRW'];
+            : ['THB', 'JPY', 'USD', 'KRW', 'SGD', 'HKD', 'CNY'];
           if (codes.length) {
             sc.innerHTML = codes.map(function (u) {
               return '<option value="' + u + '">' + u + '</option>';
@@ -1160,11 +1250,20 @@
             ? String(checkoutCtx.urlPayDisplayFxDefaultDisplayCurrency).trim().toUpperCase() : '';
           var pick = codes.indexOf(defFx) >= 0 ? defFx : '';
           if (!pick) {
-            // checkoutCurrencyCode 는 가맹·상위 총판 기준화폐(태국이면 THB)로 내려오며 「표시 통화」와 다릅니다.
-            // DISPLAY_FX_THB 에서 이 값을 기본 표시통화로 쓰면 본사에 JPY를 넣어도 페이지가 바트로 열립니다.
             pick = codes.indexOf('JPY') >= 0 ? 'JPY' : (codes[0] || 'JPY');
           }
           sc.value = pick;
+          var multi = checkoutCtx.urlPayDisplayFxDisplayCurrencyMulti === true;
+          if (multi) {
+            sc.classList.remove('d-none');
+            if (stFx) stFx.classList.add('d-none');
+          } else {
+            sc.classList.add('d-none');
+            if (stFx) {
+              stFx.textContent = pick;
+              stFx.classList.remove('d-none');
+            }
+          }
         }
         updatePayFxCurrencyHint();
         if (sc && !sc._payFxBound) {
@@ -1183,15 +1282,36 @@
         fetchFxQuoteAndScheduleReload(compId);
       }
 
+      /** 활성 PG 결제구문의 금액 하단 안내(통합 문구, 다국어 맵) */
+      function pickCardCopyAmountScaleNoticeText() {
+        var c = window.__payUrlCardCopy;
+        if (!c || typeof c !== 'object') return '';
+        var map = c.amountScaleNotice;
+        if (!map || typeof map !== 'object') return '';
+        if (map[LANG] != null && String(map[LANG]).trim()) return String(map[LANG]).trim();
+        if (map.KOR != null && String(map.KOR).trim()) return String(map.KOR).trim();
+        if (map.ENG != null && String(map.ENG).trim()) return String(map.ENG).trim();
+        var ks = Object.keys(map);
+        return ks.length && map[ks[0]] != null ? String(map[ks[0]]).trim() : '';
+      }
+
       function applyPayAmountScaleNotice() {
         var el = document.getElementById('payAmountScaleNotice');
         if (!el) return;
+        var c = window.__payUrlCardCopy;
         var m = String(typeof urlPayAmountScaleMode !== 'undefined' ? urlPayAmountScaleMode : 'SAME').toUpperCase();
+        if (c && c.amountScaleNoticeShow === false) {
+          el.textContent = '';
+          el.classList.add('d-none');
+          return;
+        }
         if (m === 'MULTIPLY_100') {
-          el.textContent = t('amountScaleMultiply');
+          var sm = pickCardCopyAmountScaleNoticeText();
+          el.textContent = sm || t('amountScaleMultiply');
           el.classList.remove('d-none');
         } else if (m === 'DIVIDE_100') {
-          el.textContent = t('amountScaleDivide');
+          var sd = pickCardCopyAmountScaleNoticeText();
+          el.textContent = sd || t('amountScaleDivide');
           el.classList.remove('d-none');
         } else {
           el.textContent = '';
@@ -1200,7 +1320,6 @@
       }
 
       function boot() {
-        setLang('ENG');
         var compId = getCompId() || getStoredReturnMerchantCode();
         if (!compId) {
           document.getElementById('configError').style.display = 'block';
@@ -1226,6 +1345,7 @@
             ? String(checkoutCtx.urlPayOperationalPgCd).trim() : '';
           urlPayAmountScaleMode = String(checkoutCtx.urlPayAmountScaleMode || 'SAME').toUpperCase();
           urlPayPricingMode = String(checkoutCtx.urlPayPricingMode || 'CHECKOUT_CURRENCY').toUpperCase();
+          urlPayFxUiBlind = checkoutCtx.urlPayFxUiBlind === true;
           urlPayDisplayFxActive = checkoutCtx.urlPayDisplayFxActive === true;
           var _fxSec = parseInt(checkoutCtx.urlPayDisplayFxRefreshSeconds, 10);
           urlPayDisplayFxRefreshSeconds = (!isNaN(_fxSec) && _fxSec > 0) ? _fxSec : 600;
@@ -1385,14 +1505,16 @@
           emailVal = document.getElementById('custEmail').value.trim();
         }
 
-        var amtRaw = parseFloat(String(document.getElementById('amount').value).replace(/,/g, ''));
+        var amtStr = String(document.getElementById('amount').value || '').replace(/,/g, '').trim();
+        var amtRaw = parseFloat(amtStr);
         var fd = {
           compId: compId,
           orderNo: (function () {
             var o = document.getElementById('orderNo').value.trim();
             return o ? o : buildChillPayOrderNo(getCompId());
           })(),
-          amount: (typeof amtRaw === 'number' && !isNaN(amtRaw)) ? amtRaw : 0,
+          /* 문자열로 전송 → 서버 Map 역직렬화 시 Double 손실 방지(특히 DISPLAY_FX 소수·큰 금액) */
+          amount: (amtStr && !isNaN(amtRaw)) ? amtStr : '0',
           directCreditToken: hiddenTok.value.trim(),
           phoneNumber: phoneVal,
           item: document.getElementById('item').value.trim(),
@@ -1413,14 +1535,13 @@
         fd.customerId = (emailVal && emailVal.length) ? emailVal : fd.orderNo;
 
         if (urlPayDisplayFxActive && urlPayPricingMode === 'DISPLAY_FX_THB') {
-          var scFx = document.getElementById('payDisplayCurrencySelect');
           fd.urlPayPricingMode = 'DISPLAY_FX_THB';
-          fd.displayCurrency = scFx ? String(scFx.value || 'JPY').trim() : 'JPY';
-          fd.displayAmount = (typeof amtRaw === 'number' && !isNaN(amtRaw)) ? amtRaw : 0;
+          fd.displayCurrency = payFxResolvedDisplayCurrency();
+          fd.displayAmount = (amtStr && !isNaN(amtRaw)) ? amtStr : '0';
           fd.fxQuoteToken = (urlPayFxQuote && urlPayFxQuote.fxQuoteToken) ? String(urlPayFxQuote.fxQuoteToken) : '';
           var setCode = checkoutCtx && checkoutCtx.urlPaySettlementCurrencyCode
             ? String(checkoutCtx.urlPaySettlementCurrencyCode).trim().toUpperCase() : '';
-          if (!setCode || ['THB', 'USD', 'JPY', 'KRW'].indexOf(setCode) < 0) {
+          if (!setCode || ['THB', 'USD', 'JPY', 'KRW', 'SGD', 'HKD', 'CNY'].indexOf(setCode) < 0) {
             setCode = (urlPayFxQuote && urlPayFxQuote.settlementCurrency)
               ? String(urlPayFxQuote.settlementCurrency).trim().toUpperCase() : 'THB';
           }
@@ -1432,7 +1553,7 @@
           btn.disabled = false;
           return;
         }
-        if (!(fd.amount > 0)) {
+        if (!(Number(fd.amount) > 0)) {
           showResult(t('needAmount'), true);
           btn.disabled = false;
           return;
@@ -1481,6 +1602,7 @@
         btn.disabled = false;
       });
 
+      setLang(LANG);
       boot();
     })();
   </script>

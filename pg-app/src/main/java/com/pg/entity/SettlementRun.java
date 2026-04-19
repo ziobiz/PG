@@ -77,14 +77,33 @@ public class SettlementRun {
     private BigDecimal rollingReserveAmt = BigDecimal.ZERO;
 
     /**
-     * 지급액(정산 직후·환수/미수금 차감 전 원칙): 순매출 − 거래수수료({@link #totalFee}) − 정산수수료(1회) − 송금수수료(1회)
+     * 지급액(정산 직후·환수/미수금 차감 전 원칙): 순매출 − 거래수수료({@link #totalFee}) − 정산수수료(1회)
      * − 수수료부가세(위 합에 대한 부가세) − 담보금(롤링보류 신규) + 만기 담보 환급.
+     * 송금 이체 수수료는 지급액·부가세 계산에 포함하지 않으며 {@link #remittanceFeeAmt} 는 0으로 둡니다.
      * 수수료·담보가 순매출을 초과하면 음수가 될 수 있으며 0으로 끌어올리지 않습니다.
      * 그 경우 {@link com.pg.service.settlement.SettlementArrearsService} 가 동액을 미수금으로 등록하고,
      * 이후 정산에서는 환수금 FIFO 후 미수금 FIFO로 차감합니다(가맹 환수모드 MANUAL이면 「환수처리」 후 차기 마감에서 차감).
      */
     @Column(name = "pay_amt", precision = 21, scale = 8)
     private BigDecimal payAmt = BigDecimal.ZERO;
+
+    /**
+     * 유통 단계별 분배 스냅샷(최종 지급액 × {@code tb_distribution_fee_config} 요율 %).
+     * {@link com.pg.service.settlement.SettlementArrearsService#applyArrearsToSettledRun} 확정 시 기록되며,
+     * 유통망정산 집계 시 재계산 대신 이 값을 우선 사용합니다(구데이터는 null → 조회 시 계산).
+     */
+    @Column(name = "dist_hq_fee_amt", precision = 21, scale = 8)
+    private BigDecimal distHqFeeAmt;
+    @Column(name = "dist_regional_fee_amt", precision = 21, scale = 8)
+    private BigDecimal distRegionalFeeAmt;
+    @Column(name = "dist_master_fee_amt", precision = 21, scale = 8)
+    private BigDecimal distMasterFeeAmt;
+    @Column(name = "dist_branch_fee_amt", precision = 21, scale = 8)
+    private BigDecimal distBranchFeeAmt;
+    @Column(name = "dist_agency_fee_amt", precision = 21, scale = 8)
+    private BigDecimal distAgencyFeeAmt;
+    @Column(name = "dist_sales_office_fee_amt", precision = 21, scale = 8)
+    private BigDecimal distSalesOfficeFeeAmt;
 
     /** 해당 정산 실행에서 미수금 FIFO로 차감된 합계(가맹점정산내역 표시) */
     @Column(name = "receivable_applied_amt", precision = 21, scale = 8)
@@ -105,7 +124,7 @@ public class SettlementRun {
 
     /**
      * 정산결과(배포 게이트): PENDING=가맹점정산내역 미반영, DISTRIBUTED=반영(가맹·유통·확정리포트 대상),
-     * HOLD=정산대기(홀딩·가맹 내역 제외).
+     * HOLD=정산대기(가맹 내역 제외).
      */
     @Column(name = "settlement_publish_sts", nullable = false, length = 20)
     private String settlementPublishSts = "PENDING";
@@ -171,6 +190,18 @@ public class SettlementRun {
     public void setRollingReserveAmt(BigDecimal rollingReserveAmt) { this.rollingReserveAmt = rollingReserveAmt; }
     public BigDecimal getPayAmt() { return payAmt; }
     public void setPayAmt(BigDecimal payAmt) { this.payAmt = payAmt; }
+    public BigDecimal getDistHqFeeAmt() { return distHqFeeAmt; }
+    public void setDistHqFeeAmt(BigDecimal distHqFeeAmt) { this.distHqFeeAmt = distHqFeeAmt; }
+    public BigDecimal getDistRegionalFeeAmt() { return distRegionalFeeAmt; }
+    public void setDistRegionalFeeAmt(BigDecimal distRegionalFeeAmt) { this.distRegionalFeeAmt = distRegionalFeeAmt; }
+    public BigDecimal getDistMasterFeeAmt() { return distMasterFeeAmt; }
+    public void setDistMasterFeeAmt(BigDecimal distMasterFeeAmt) { this.distMasterFeeAmt = distMasterFeeAmt; }
+    public BigDecimal getDistBranchFeeAmt() { return distBranchFeeAmt; }
+    public void setDistBranchFeeAmt(BigDecimal distBranchFeeAmt) { this.distBranchFeeAmt = distBranchFeeAmt; }
+    public BigDecimal getDistAgencyFeeAmt() { return distAgencyFeeAmt; }
+    public void setDistAgencyFeeAmt(BigDecimal distAgencyFeeAmt) { this.distAgencyFeeAmt = distAgencyFeeAmt; }
+    public BigDecimal getDistSalesOfficeFeeAmt() { return distSalesOfficeFeeAmt; }
+    public void setDistSalesOfficeFeeAmt(BigDecimal distSalesOfficeFeeAmt) { this.distSalesOfficeFeeAmt = distSalesOfficeFeeAmt; }
     public BigDecimal getReceivableAppliedAmt() { return receivableAppliedAmt; }
     public void setReceivableAppliedAmt(BigDecimal receivableAppliedAmt) { this.receivableAppliedAmt = receivableAppliedAmt; }
     public String getStatus() { return status; }

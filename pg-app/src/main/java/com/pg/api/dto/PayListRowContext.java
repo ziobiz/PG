@@ -33,13 +33,16 @@ public class PayListRowContext {
      */
     private final boolean omitSettlementFeeFromApprovedTxnBreakdown;
 
+    /** null이면 레거시 JP/TH 고정 2줄 표시. */
+    private final TxnDualLineSpec txnDualLineSpec;
+
     public PayListRowContext(String compNm, MerchantProfile profile, MerchantPgBinding binding,
                              DistributionFeeConfig distFee, CommissionPolicy policy,
                              SettlementSetting settlement,
                              String regionalNm, String masterNm, String branchNm,
                              String regionalBaseCurrency, String masterDistBaseCurrency, String merchantBaseCurrency) {
         this(compNm, profile, binding, distFee, policy, settlement, regionalNm, masterNm, branchNm,
-                regionalBaseCurrency, masterDistBaseCurrency, merchantBaseCurrency, false);
+                regionalBaseCurrency, masterDistBaseCurrency, merchantBaseCurrency, false, null);
     }
 
     public PayListRowContext(String compNm, MerchantProfile profile, MerchantPgBinding binding,
@@ -48,6 +51,18 @@ public class PayListRowContext {
                              String regionalNm, String masterNm, String branchNm,
                              String regionalBaseCurrency, String masterDistBaseCurrency, String merchantBaseCurrency,
                              boolean omitSettlementFeeFromApprovedTxnBreakdown) {
+        this(compNm, profile, binding, distFee, policy, settlement, regionalNm, masterNm, branchNm,
+                regionalBaseCurrency, masterDistBaseCurrency, merchantBaseCurrency,
+                omitSettlementFeeFromApprovedTxnBreakdown, null);
+    }
+
+    public PayListRowContext(String compNm, MerchantProfile profile, MerchantPgBinding binding,
+                             DistributionFeeConfig distFee, CommissionPolicy policy,
+                             SettlementSetting settlement,
+                             String regionalNm, String masterNm, String branchNm,
+                             String regionalBaseCurrency, String masterDistBaseCurrency, String merchantBaseCurrency,
+                             boolean omitSettlementFeeFromApprovedTxnBreakdown,
+                             TxnDualLineSpec txnDualLineSpec) {
         this.compNm = compNm;
         this.profile = profile;
         this.binding = binding;
@@ -61,6 +76,7 @@ public class PayListRowContext {
         this.masterDistBaseCurrency = masterDistBaseCurrency != null ? masterDistBaseCurrency : "";
         this.merchantBaseCurrency = merchantBaseCurrency != null ? merchantBaseCurrency : "";
         this.omitSettlementFeeFromApprovedTxnBreakdown = omitSettlementFeeFromApprovedTxnBreakdown;
+        this.txnDualLineSpec = txnDualLineSpec;
     }
 
     /** 정산실행 상세 등 — 건별 행에 정산 실행당 1회 정산료를 반복 넣지 않을 때 사용 */
@@ -69,7 +85,12 @@ public class PayListRowContext {
             return this;
         }
         return new PayListRowContext(compNm, profile, binding, distFee, policy, settlement,
-                regionalNm, masterNm, branchNm, regionalBaseCurrency, masterDistBaseCurrency, merchantBaseCurrency, omit);
+                regionalNm, masterNm, branchNm, regionalBaseCurrency, masterDistBaseCurrency, merchantBaseCurrency, omit,
+                txnDualLineSpec);
+    }
+
+    public TxnDualLineSpec getTxnDualLineSpec() {
+        return txnDualLineSpec;
     }
 
     public String getCompNm() { return compNm; }

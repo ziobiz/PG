@@ -85,6 +85,7 @@ public class ApiPublicOrgBrandingController {
             m.put("logoImageUrl", b.getLogoImageUrl() != null ? b.getLogoImageUrl() : "");
             m.put("firstLogoImageUrl", b.getFirstLogoImageUrl() != null ? b.getFirstLogoImageUrl() : "");
             m.put("popconImageUrl", b.getPopconImageUrl() != null ? b.getPopconImageUrl() : "");
+            m.put("urlPayImageUrl", b.getUrlPayImageUrl() != null ? b.getUrlPayImageUrl() : "");
             m.put("theme", b.getTheme() != null ? b.getTheme() : "DEFAULT");
             m.put("brandHost", b.getBrandHost() != null ? b.getBrandHost() : "");
             m.put("siteName", b.getSiteName() != null ? b.getSiteName() : "");
@@ -116,6 +117,7 @@ public class ApiPublicOrgBrandingController {
         empty.put("logoImageUrl", "");
         empty.put("firstLogoImageUrl", "");
         empty.put("popconImageUrl", "");
+        empty.put("urlPayImageUrl", "");
         empty.put("theme", "DEFAULT");
         empty.put("brandHost", "");
         empty.put("siteName", "");

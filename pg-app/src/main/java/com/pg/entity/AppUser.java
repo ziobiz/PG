@@ -60,6 +60,21 @@ public class AppUser {
     @Column(name = "password_must_change_yn", nullable = false, length = 1)
     private String passwordMustChangeYn = "N";
 
+    /** Google OTP 등록 후 저장되는 Base32 시크릿(미등록 시 null) */
+    @Column(name = "otp_secret", length = 128)
+    private String otpSecret;
+
+    /** OTP 등록 진행 중(이메일 인증 후·앱 등록 전) 임시 시크릿 */
+    @Column(name = "otp_pending_secret", length = 128)
+    private String otpPendingSecret;
+
+    /** 이메일로 발송한 6자리 인증코드의 SHA-256(hex) */
+    @Column(name = "otp_setup_code_hash", length = 128)
+    private String otpSetupCodeHash;
+
+    @Column(name = "otp_setup_expires_at")
+    private LocalDateTime otpSetupExpiresAt;
+
     /** 사용자 유형: REPRESENTATIVE / ASSISTANT */
     @Column(name = "user_type", length = 20)
     private String userType = "REPRESENTATIVE";
@@ -110,6 +125,14 @@ public class AppUser {
     public void setOtpRegisteredYn(String otpRegisteredYn) { this.otpRegisteredYn = otpRegisteredYn; }
     public String getPasswordMustChangeYn() { return passwordMustChangeYn; }
     public void setPasswordMustChangeYn(String passwordMustChangeYn) { this.passwordMustChangeYn = passwordMustChangeYn; }
+    public String getOtpSecret() { return otpSecret; }
+    public void setOtpSecret(String otpSecret) { this.otpSecret = otpSecret; }
+    public String getOtpPendingSecret() { return otpPendingSecret; }
+    public void setOtpPendingSecret(String otpPendingSecret) { this.otpPendingSecret = otpPendingSecret; }
+    public String getOtpSetupCodeHash() { return otpSetupCodeHash; }
+    public void setOtpSetupCodeHash(String otpSetupCodeHash) { this.otpSetupCodeHash = otpSetupCodeHash; }
+    public LocalDateTime getOtpSetupExpiresAt() { return otpSetupExpiresAt; }
+    public void setOtpSetupExpiresAt(LocalDateTime otpSetupExpiresAt) { this.otpSetupExpiresAt = otpSetupExpiresAt; }
     public String getUserType() { return userType; }
     public void setUserType(String userType) { this.userType = userType; }
     public String getAssistantRoleType() { return assistantRoleType; }

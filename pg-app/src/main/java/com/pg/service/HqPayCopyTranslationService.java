@@ -32,7 +32,8 @@ public class HqPayCopyTranslationService {
     private final RestTemplate restTemplate = new RestTemplate();
 
     public Map<String, Object> translatePayCopyFromKo(String titleKo, String body1Ko, String body2Ko, String body3Ko,
-                                                        String resultOk1Ko, String resultOk2Ko, String resultFail1Ko, String resultFail2Ko) {
+                                                        String resultOk1Ko, String resultOk2Ko, String resultFail1Ko, String resultFail2Ko,
+                                                        String amountScaleNoticeKo) {
         Map<String, Object> out = new LinkedHashMap<>();
         out.put("title", buildLangMap(titleKo));
         out.put("body1", buildLangMap(body1Ko));
@@ -42,6 +43,7 @@ public class HqPayCopyTranslationService {
         out.put("resultSuccessFoot", buildLangMap(resultOk2Ko != null ? resultOk2Ko : ""));
         out.put("resultFailMain", buildLangMap(resultFail1Ko != null ? resultFail1Ko : ""));
         out.put("resultFailFoot", buildLangMap(resultFail2Ko != null ? resultFail2Ko : ""));
+        out.put("amountScaleNotice", buildLangMap(amountScaleNoticeKo != null ? amountScaleNoticeKo : ""));
         return out;
     }
 

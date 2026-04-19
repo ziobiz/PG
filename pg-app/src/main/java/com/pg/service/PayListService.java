@@ -4,6 +4,7 @@ import com.pg.api.dto.PageResult;
 import com.pg.api.dto.PayListItemDto;
 import com.pg.api.dto.PayListRowContext;
 import com.pg.api.dto.PayListSearchRequest;
+import com.pg.api.dto.TxnDualLineSpec;
 import com.pg.entity.AppUser;
 import com.pg.entity.CommissionPolicy;
 import com.pg.entity.DistributionFeeConfig;
@@ -73,6 +74,7 @@ public class PayListService {
     private final PayFollowPolicyService payFollowPolicyService;
     private final OrgAccessService orgAccessService;
     private final HqLedgerSysSettingsService hqLedgerSysSettingsService;
+    private final MasterDistSettlementCronZoneService masterDistSettlementCronZoneService;
 
     @PersistenceContext
     private EntityManager entityManager;
@@ -87,7 +89,8 @@ public class PayListService {
                           HqNotifyMappingService hqNotifyMappingService,
                           PayFollowPolicyService payFollowPolicyService,
                           OrgAccessService orgAccessService,
-                          HqLedgerSysSettingsService hqLedgerSysSettingsService) {
+                          HqLedgerSysSettingsService hqLedgerSysSettingsService,
+                          MasterDistSettlementCronZoneService masterDistSettlementCronZoneService) {
         this.trnsctnRepository = trnsctnRepository;
         this.orgUnitRepository = orgUnitRepository;
         this.merchantProfileRepository = merchantProfileRepository;
@@ -99,6 +102,7 @@ public class PayListService {
         this.payFollowPolicyService = payFollowPolicyService;
         this.orgAccessService = orgAccessService;
         this.hqLedgerSysSettingsService = hqLedgerSysSettingsService;
+        this.masterDistSettlementCronZoneService = masterDistSettlementCronZoneService;
     }
 
     /** 결제 목록 meta: 전산설정 기준 결제 통화(ISO 숫자·알파) — UI 폴백·표시 연동 */
@@ -334,9 +338,14 @@ public class PayListService {
             SettlementSetting ss = merchant == null ? null : settlementByOrgId.get(merchant.getId());
             String[] hier = hierarchyNames(merchant, byId);
             String[] hbc = hierarchyBaseCurrencies(merchant, byId, profileByOrgId);
+            TxnDualLineSpec dual = null;
+            if (merchant != null) {
+                dual = masterDistSettlementCronZoneService.resolveTxnDualLineSpecForOrgUnitId(merchant.getId())
+                        .orElse(null);
+            }
             ctxByCode.put(code, new PayListRowContext(compNm, profile, binding, dist, pol, ss,
                     hier[0], hier[1], hier[2],
-                    hbc[0], hbc[1], hbc[2]));
+                    hbc[0], hbc[1], hbc[2], false, dual));
         }
         return ctxByCode;
     }

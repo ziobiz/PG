@@ -149,6 +149,36 @@
       '</div>';
   }
 
+  /** 전산설정 — 조직 단계별 결제 후속조치(4종) 허용 상한 */
+  function hqLedgerPayFollowLevelCapsTableHtml() {
+    function escA(s) {
+      return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+    }
+    var fields = [
+      { k: 'autoVoid', t: '자동무효' },
+      { k: 'emailVoid', t: '이메일무효' },
+      { k: 'autoRefund', t: '자동환불' },
+      { k: 'forceRefund', t: '강제환불' }
+    ];
+    var thead = '<tr><th class="text-nowrap">조직 단계</th>' +
+      fields.map(function (f) { return '<th class="text-center text-nowrap">' + escA(f.t) + '</th>'; }).join('') + '</tr>';
+    var rows = COMP_MNG_SEARCH_COMP_DIV_LEVELS.map(function (L) {
+      var cells = fields.map(function (f) {
+        return '<td class="text-center"><select class="form-select form-select-sm hq-pf-cap-sel" name="pfCap_' + escA(L.v) + '_' + escA(f.k) + '">' +
+          '<option value="N">미사용</option><option value="Y">사용</option></select></td>';
+      }).join('');
+      return '<tr data-pf-cap-level="' + escA(L.v) + '"><td class="fw-semibold text-nowrap">' + escA(L.t) + '</td>' + cells + '</tr>';
+    }).join('');
+    return '<div class="border rounded mt-3 hq-pay-follow-cap-wrap">' +
+      '<div class="d-flex flex-wrap align-items-center justify-content-between gap-2 px-2 py-2 border-bottom bg-light">' +
+      '<span class="fw-semibold">조직 단계별 후속조치 기능 허용</span>' +
+      '<button type="button" class="btn btn-primary btn-sm" id="hqLedgerPayFollowLevelCapsSaveBtn">단계별 허용 저장</button></div>' +
+      '<p class="small text-muted px-2 pt-2 mb-1">총본사가 단계마다 사용할 수 있는 네 가지 후속조치를 제한합니다. 전역 NOTI 설정이 꺼져 있으면 해당 기능은 동작하지 않습니다. <strong>가맹점</strong>은 등록 시 개별 선택과 함께 적용되며(미선택 시 미사용), 이 표는 단계별 상한입니다.</p>' +
+      '<table class="table table-sm table-bordered align-middle mb-0 w-100" id="grid_hqPayFollowLevelCaps">' +
+      '<thead class="table-light">' + thead + '</thead><tbody>' + rows + '</tbody></table>' +
+      '<p class="small text-muted px-2 py-2 mb-0"><strong>[단계별 허용 저장]</strong>으로만 반영됩니다(하단 전체 저장과 별도). 총본사·시스템 관리자만 변경할 수 있습니다.</p></div>';
+  }
+
   /** 업체관리 목록 검색: OrgLevel.code 와 동일 순서 (총본사 1 … 가맹점 7) */
   var COMP_MNG_SEARCH_COMP_DIV_LEVELS = [
     { v: 'HEADQUARTERS', t: '총본사', ord: 1 },
@@ -338,9 +368,9 @@
     + '<div class="text-muted" id="hqStAutoBatchHint"></div></div>'
     + '</div></div>'
     + '<div class="card mb-3" id="hqMdBizCronCard"><div class="card-header fw-semibold">총판별 기준 영업일 및 정산 크론 기준</div><div class="card-body">'
-    + '<p class="small text-muted mb-2"><strong>현재영업일</strong> 열은 총판 업체등록 시 저장된 영업일·휴일(프로필명·기준국가 등)을 보여 주며, 비어 있으면 상위 본사(REGIONAL) 설정을 참고해 표시할 수 있습니다. <strong>정산 크론 기준</strong>은 격자·마감·D0 등 시각을 어느 Zone에서 볼지만 정합니다. <strong>정산 크론 셀렉트만 바꿔서는 저장되지 않습니다.</strong> 행의 <strong>저장</strong>을 눌러 주세요.</p>'
+    + '<p class="small text-muted mb-2"><strong>현재영업일</strong> 열은 총판 업체등록 시 저장된 영업일·휴일(프로필명·기준국가 등)을 보여 주며, 비어 있으면 상위 본사(REGIONAL) 설정을 참고해 표시할 수 있습니다. <strong>거래시간(1줄)</strong>은 결제·통합내역 그리드의 첫 번째 시각 줄입니다. <strong>정산 크론(2줄)</strong>은 격자·마감·D0 및 두 번째 시각 줄에 쓰는 Zone입니다. <strong>셀렉트만 바꿔서는 저장되지 않습니다.</strong> 행의 <strong>저장</strong>을 눌러 주세요.</p>'
     + '<div class="d-flex flex-wrap align-items-center gap-2 mb-2"><button type="button" class="btn btn-outline-secondary btn-sm" id="hqMdBizCronRefreshBtn">목록 새로고침</button><span class="small text-muted">저장 후 서버 값을 다시 보려면 새로고침을 누르세요.</span></div>'
-    + '<div class="table-responsive table-no-col-resize-wrap"><table class="table table-sm table-bordered align-middle mb-0 table-no-col-resize"><thead class="table-light"><tr><th>총판</th><th class="text-nowrap">현재영업일</th><th style="min-width:14rem">정산 크론 기준</th><th class="text-end text-nowrap" style="width:5.5rem">저장</th></tr></thead><tbody id="hqMdBizCronTbody"><tr><td colspan="4" class="text-muted text-center">불러오는 중…</td></tr></tbody></table></div>'
+    + '<div class="table-responsive table-no-col-resize-wrap"><table class="table table-sm table-bordered align-middle mb-0 table-no-col-resize"><thead class="table-light"><tr><th>총판</th><th class="text-nowrap">현재영업일</th><th style="min-width:9rem">거래시간(1줄)</th><th style="min-width:14rem">정산 크론(2줄)</th><th class="text-end text-nowrap" style="width:5.5rem">저장</th></tr></thead><tbody id="hqMdBizCronTbody"><tr><td colspan="5" class="text-muted text-center">불러오는 중…</td></tr></tbody></table></div>'
     + '<p class="small text-muted mb-0 mt-2" id="hqMdBizCronHint"></p>'
     + '</div></div>'
     + '<div class="card mb-3"><div class="card-header fw-semibold">총판별 가맹 정산주기 (최대 10건·대표)</div><div class="card-body">'
@@ -562,13 +592,16 @@
       '<p class="mt-3 mb-0 small">참고: 기본 노티매핑 템플릿에 JPAY 벤더 슬롯이 이미 포함되어 있습니다. 필드 매핑은 스펙 확정 후 UI에서 채웁니다.</p></div>',
     merchantApiPolicy: '<div class="deploy-static-doc text-muted small">' +
       '<h5 class="text-dark fw-semibold mb-3">가맹점 API 배포 — 정책 요약</h5>' +
+      '<div class="mb-3">' +
+      '<button type="button" class="btn btn-primary btn-sm" id="merchantPolicyOpenKitBtn">가맹점 API 연동키트 화면 열기</button>' +
+      '<span class="small text-secondary ms-2">배포설정 메뉴와 동일 화면입니다. 메뉴에 안 보이면 이 버튼으로 이동하세요.</span></div>' +
       '<ul class="ps-3 mb-3">' +
       '<li class="mb-1"><strong class="text-body">식별</strong> · 가맹점별 <strong class="text-body">업체코드</strong> + 발급 <strong class="text-body">API Key</strong> + 요청 무결성용 <strong class="text-body">비밀키(HMAC)</strong> (필요 시 암호화용 키·IV 별도)</li>' +
       '<li class="mb-1"><strong class="text-body">환경</strong> · 운영/스테이징 URL·키 분리, 키 분실 시 폐기·재발급</li>' +
       '<li class="mb-1"><strong class="text-body">콜백</strong> · 가맹점 HTTPS URL 등록, 우리→가맹점 노티 서명·재시도 정책</li>' +
-      '<li class="mb-1"><strong class="text-body">문서</strong> · OpenAPI·샘플·오류 코드 — 배포 시 버전(<code>/api/v1</code>) 고정</li>' +
+      '<li class="mb-1"><strong class="text-body">문서</strong> · OpenAPI·샘플·오류 코드 — 배포 시 브로커 베이스(<code>/api/middleware/v1/pg/{pg}</code>) 고정</li>' +
       '</ul>' +
-      '<p class="mb-0 small text-secondary">세부 UI(키 발급 화면 등)는 이후 스프린트에서 배포설정 또는 업체관리와 연동해 추가합니다.</p></div>',
+      '<p class="mb-0 small text-secondary">실제 키 발급·엔드포인트·시크릿 강제는 배포설정 <strong class="text-body">「가맹점 API 생성」</strong>(<code>/hq/merchantApiGenerate</code>) 화면에서 수행합니다.</p></div>',
     launchChecklist: '<div class="deploy-static-doc text-muted small">' +
       '<h5 class="text-dark fw-semibold mb-3">배포·운영 체크리스트</h5>' +
       '<ul class="list-unstyled mb-0">' +
@@ -586,7 +619,105 @@
     '<p class="mb-2"><strong class="text-body">운영관리</strong> 그룹입니다. 운영 배치·점검·장애 대응 등 전용 화면을 여기에 둘 수 있습니다.</p>' +
     '<p class="mb-0">현재는 메뉴만 제공하며, 세부 기능은 이후 버전에서 연동합니다.</p></div>';
 
+  var API_MERCHANT_DEPLOY_REG_HTML = '<div class="api-merchant-deploy-reg text-body">' +
+    '<h5 class="fw-semibold mb-2">1. API 가맹점 등록</h5>' +
+    '<div class="alert alert-light border small mb-3">' +
+    '<p class="fw-semibold text-dark mb-2">순서</p>' +
+    '<ol class="mb-2 ps-3">' +
+    '<li class="mb-1"><strong>API연동설정</strong>에서 PG사 연동 추가 후, 연동용도에 <strong>API</strong>를 켭니다.</li>' +
+    '<li class="mb-1"><strong>업체등록</strong>에서 조직을 <strong>가맹점</strong>으로 등록하고, 결제대행사에서 아래 목록의 PG 중 하나를 선택·저장합니다.</li>' +
+    '<li class="mb-1">콜백·결과 URL은 <strong>업체정보</strong> 또는 <strong>통보관리</strong> 메뉴에서 등록합니다.</li>' +
+    '<li class="mb-0">등록이 끝나면 <strong>2. 가맹점 API 생성</strong>에서 MID·엔드포인트·연동 JSON을 발급합니다.</li></ol>' +
+    '<p class="small text-muted mb-0">이 표는 API연동설정 DB를 읽어, 연동용도에 API가 포함된 행만 보여 줍니다.</p></div>' +
+    '<div class="d-flex flex-wrap gap-2 mb-3">' +
+    '<button type="button" class="btn btn-primary btn-sm" id="apiMerchRegBtnPgApi">API연동설정</button>' +
+    '<button type="button" class="btn btn-outline-primary btn-sm" id="apiMerchRegBtnCompReg">업체등록</button>' +
+    '<button type="button" class="btn btn-outline-secondary btn-sm" id="apiMerchRegBtnCompTree">업체관리</button>' +
+    '<button type="button" class="btn btn-success btn-sm" id="apiMerchRegBtnNextGen">2. 가맹점 API 생성</button></div>' +
+    '<label class="form-label small fw-semibold mb-1">연동용도에 API가 켜진 결제대행사</label>' +
+    '<div class="table-no-col-resize-wrap border rounded mb-2">' +
+    '<table class="table table-sm table-bordered align-middle mb-0 w-100 table-no-col-resize">' +
+    '<thead class="table-light"><tr><th class="text-nowrap">PG코드</th><th>결제대행사명</th><th class="text-nowrap">연동용도</th><th class="text-nowrap">본사 MID</th><th class="text-center text-nowrap">본사운영</th></tr></thead>' +
+    '<tbody id="apiMerchRegPgTbody"><tr><td colspan="5" class="text-center text-muted py-3">불러오는 중…</td></tr></tbody></table></div>' +
+    '<p class="small text-muted mb-0">가맹 전용 MID·키는 업체 저장 시 가맹 바인딩에 들어갑니다. 본사 행과 다를 수 있습니다.</p></div>';
+
+  var MERCHANT_API_GENERATE_HTML = '<div class="merchant-deploy-kit text-body">' +
+    '<h5 class="fw-semibold mb-2">2. 가맹점 API 생성</h5>' +
+    '<div class="alert alert-info small mb-3 py-3 merchant-deploy-plain-help" role="region" aria-label="화면 안내">' +
+    '<p class="fw-semibold text-dark mb-2">이 화면은 뭘 하나요?</p>' +
+    '<p class="mb-3 mb-md-2">결제를 여기서 승인하는 곳이 <strong>아닙니다</strong>. ' +
+    '다른 서버(가맹·브로커)에 넣을 <strong>연동 설정 글자 묶음(JSON)</strong>을 받아 가거나, ' +
+    '그 서버들이 쓰는 <strong>비밀번호(브로커 시크릿)</strong>를 새로 뽑거나, 보안을 더 켜 두는 곳입니다.</p>' +
+    '<p class="fw-semibold text-dark mb-1">많은 경우 이 순서만 하면 됩니다</p>' +
+    '<ol class="mb-3 ps-3">' +
+    '<li class="mb-1"><strong>업체명</strong>에 가맹 이름 일부를 넣고 <strong>가맹점 검색</strong>을 누릅니다. ' +
+    '(이미 <strong>업체코드</strong>를 알면 검색 없이 코드만 입력해도 됩니다.)</li>' +
+    '<li class="mb-1">표에서 해당 가맹 줄의 <strong>선택</strong>을 누릅니다. 위쪽 <strong>업체코드</strong> 칸이 채워집니다.</li>' +
+    '<li class="mb-1"><strong>PG 범위</strong>에서 실제 붙일 결제사(PG) 하나를 고릅니다. 잘 모르겠으면 일단 <strong>전체 PG</strong>로 받아 보고, 담당자에게 물어도 됩니다.</li>' +
+    '<li class="mb-0"><strong>연동 키트 JSON</strong>을 누릅니다. 맨 아래 <strong>회색 큰 칸</strong>에 나오는 글 전체를 복사해, 서버·연동 담당자에게 보내거나 설정에 넣습니다.</li>' +
+    '</ol>' +
+    '<p class="fw-semibold text-dark mb-1">아래 두 가지는 꼭 구분하세요</p>' +
+    '<ul class="mb-3 ps-3">' +
+    '<li class="mb-1"><strong>연동 키트 JSON</strong> — 지금 서버에 저장된 연동 정보를 <strong>읽기만</strong> 합니다. 가맹이나 PG가 망가지지는 않습니다.</li>' +
+    '<li class="mb-1"><strong>브로커 시크릿 재발급</strong> — 누르는 순간 예전 비밀번호는 쓸 수 없게 됩니다. ' +
+    '유출·도용이 의심될 때나, 담당자가 교체하라고 했을 때만 누르세요. 브로커 서버 설정도 <strong>같은 날</strong> 맞춰 바꿔야 결제가 끊기지 않습니다.</li>' +
+    '</ul>' +
+    '<p class="fw-semibold text-dark mb-1">입력 칸은 이렇게 읽으면 됩니다</p>' +
+    '<ul class="mb-3 ps-3">' +
+    '<li class="mb-1"><strong>업체코드</strong> — 그 가맹을 시스템에서 부른 번호(M000… 같은 것). 목록 없이 직접 쳐도 됩니다.</li>' +
+    '<li class="mb-1"><strong>업체명</strong> — 사람이 부르는 상호 일부. 검색용입니다.</li>' +
+    '<li class="mb-1"><strong>PG 범위</strong> — 방금 말한 JSON·시크릿·강제 저장이 <strong>어느 PG 줄</strong>에 적용될지 고르는 것입니다.</li>' +
+    '</ul>' +
+    '<p class="fw-semibold text-dark mb-1">강제(시크릿 헤더 필수)란?</p>' +
+    '<p class="mb-2">체크하면 외부에서 우리 미들웨어를 부를 때 <strong>비밀번호 헤더를 반드시</strong> 붙이게 합니다. ' +
+    '보안을 올리는 설정이라, 개발·연동 담당과 말 맞춘 뒤 <strong>강제여부 저장</strong>을 누르는 것이 안전합니다.</p>' +
+    '<p class="fw-semibold text-dark mb-1">표에 아무도 안 나올 때</p>' +
+    '<p class="mb-0 text-muted">검색어를 줄이거나 바꿔 보세요. 그래도 0건이면, 지금 로그인한 계정으로는 그 가맹이 안 보이는 것입니다(상위 조직·권한). 본사 관리자에게 조회 범위를 물어보세요.</p>' +
+    '</div>' +
+    '<details class="merchant-deploy-help small mb-3 p-2 border rounded bg-light">' +
+    '<summary class="fw-semibold text-secondary">개발자용 한 줄(접기)</summary>' +
+    '<p class="mb-1 mt-2">키트에는 바인딩·공개 API 베이스·노티 URL·브로커 등이 JSON으로 포함됩니다. ' +
+    '강제 시 헤더 <code>X-Icopay-Merchant-Broker-Secret</code> 없이 <code>/api/middleware/v1/pg/...</code> 호출이 막힙니다. ' +
+    '신규 PG는 본사 PG 연동 설정에 올라오면 PG 범위 목록에 자동 반영됩니다.</p>' +
+    '</details>' +
+    '<div id="merchantGenKitSummary" class="alert alert-secondary small mb-3 py-2 d-none" role="status" aria-live="polite"></div>' +
+    '<div class="row g-2 mb-3">' +
+    '<div class="col-md-4"><label class="form-label small mb-0">업체코드 (직접 입력)</label>' +
+    '<input type="text" class="form-control form-control-sm" id="merchantDeployCompId" autocomplete="off" placeholder="예: M000123"></div>' +
+    '<div class="col-md-4"><label class="form-label small mb-0">업체명 (검색)</label>' +
+    '<input type="text" class="form-control form-control-sm" id="merchantDeploySearchCompNm" autocomplete="off"></div>' +
+    '<div class="col-md-4"><label class="form-label small mb-0">PG 범위 (키트·시크릿)</label>' +
+    '<select class="form-control form-control-sm" id="merchantDeployVendorScope"></select></div></div>' +
+    '<div class="d-flex flex-wrap gap-2 align-items-center mb-3">' +
+    '<button type="button" class="btn btn-primary btn-sm" id="merchantDeploySearchBtn">가맹점 검색</button>' +
+    '<button type="button" class="btn btn-outline-primary btn-sm" id="merchantDeployLoadKitBtn">연동 패키지 생성(JSON)</button>' +
+    '<button type="button" class="btn btn-warning btn-sm" id="merchantDeployRotateSecretBtn">브로커 시크릿 재발급</button>' +
+    '<label class="small mb-0 ms-1 d-flex align-items-center gap-1"><input type="checkbox" id="merchantDeployEnforceYn" checked> ' +
+    '<span>강제(시크릿 헤더 필수)</span></label>' +
+    '<button type="button" class="btn btn-outline-secondary btn-sm" id="merchantDeployEnforceBtn">강제여부 저장</button></div>' +
+    '<div class="merchant-deploy-table-wrap table-no-col-resize-wrap border rounded mb-2">' +
+    '<table class="table table-sm table-bordered align-middle merchant-deploy-merchant-table table-no-col-resize w-100 mb-0" id="merchantDeployMerchantGrid">' +
+    '<colgroup><col class="merchant-deploy-col-act" /><col class="merchant-deploy-col-code" /><col /><col class="merchant-deploy-col-cur" /></colgroup>' +
+    '<thead class="table-light"><tr><th class="text-center text-nowrap">선택</th><th class="text-nowrap">업체코드</th><th>업체명</th><th class="text-nowrap">기준통화</th></tr></thead>' +
+    '<tbody><tr><td colspan="4" class="text-center text-muted py-3">로딩 중…</td></tr></tbody></table></div>' +
+    '<p class="small text-muted mb-2" id="merchantDeployPageInfo"></p>' +
+    '<label class="form-label small">응답 / 키트 (JSON)</label>' +
+    '<pre id="merchantDeployKitJson" class="bg-light p-3 small mb-0" style="max-height:520px;overflow:auto;border:1px solid #dee2e6;white-space:pre-wrap;">' +
+    '업체를 고른 뒤 「연동 패키지 생성(JSON)」을 누르면 요약과 JSON이 채워집니다.</pre></div>';
+
   var MENU_SCREENS = {
+    '/hq/apiMerchantDeployReg': {
+      hideListGrid: true,
+      staticHtml: API_MERCHANT_DEPLOY_REG_HTML,
+      summary: [],
+      buttons: []
+    },
+    '/hq/merchantApiGenerate': {
+      hideListGrid: true,
+      staticHtml: MERCHANT_API_GENERATE_HTML,
+      summary: [],
+      buttons: []
+    },
     '/hq/pgApiMng': {
       emptyMessage: '조회된 데이터가 없습니다.',
       paginationSizeOptions: [25, 50, 100, 150, 200],
@@ -601,7 +732,7 @@
         { type: 'searchBtn', label: '검색' }
       ]],
       noticeList: [
-        '연동 용도(노티·URL·챗봇·API)와 용도별 엔드포인트를 구분해 저장합니다. URL 용도 행은 「URL금액」에서 일반(일반형) / DP(DISPLAY)를 지정할 수 있으며, 본사 URL결제설정(FX JSON)의 해당 PG 금액 모드와 동일합니다. 노티=미들웨어 수신 매칭, URL=공개 URL 결제 플로우, 챗봇/API=PG사 API 직연동(동일 연동 URL). 목록 「연동용도」는 파스텔 색으로 구분됩니다. API Key·MD5는 목록 미노출. [삭제]는 등록일 오른쪽, 신규는 [PG사 연동 추가]입니다.',
+        '연동 용도(노티·URL·챗봇·API)와 용도별 엔드포인트를 구분해 저장합니다. URL 용도 행은 「URL금액」에서 일반(일반형) / DP(DISPLAY) / BLIND를 지정할 수 있으며, 본사 URL결제설정(FX JSON)의 해당 PG 금액 모드와 동일합니다. 노티=미들웨어 수신 매칭, URL=공개 URL 결제 플로우, 챗봇/API=PG사 API 직연동(동일 연동 URL). 목록 「연동용도」는 파스텔 색으로 구분됩니다. API Key·MD5는 목록 미노출. [삭제]는 등록일 오른쪽, 신규는 [PG사 연동 추가]입니다.',
         '통합정산 「예정(ICOPAY)」열: PG사 연동 편집에서 T+N(주말 제외 영업일·결제와 동일 시각) 또는 D+N(달력+N일·일괄 시각)을 저장합니다. OFF면 예정일을 채우지 않습니다. D는 일괄 시각(HH:mm) 필수.',
         'ChillPay는 PG코드 CHILLPAY, API·URL 엔드포인트는 ChillPayService가 병합 반영합니다. 운영 DB는 db/V35_pg_agency_integration_scope.sql 적용 후 배포하세요.'
       ],
@@ -612,7 +743,7 @@
         { id: 'hqPgApiAddBtn', label: 'PG사 연동 추가', cls: 'btn-success' }
       ],
       columnGuideFixedKeys: ['rowNo', '_pgRowAct'],
-      columns: [{ key: '_chk', type: 'checkbox' }, { key: 'rowNo', label: '번호' }, { key: 'pgNm', label: '결제대행사', thClass: 'text-nowrap' }, { key: 'pgCd', label: 'PG코드', thClass: 'text-nowrap' }, { key: 'integrationScopeLabel', label: '연동용도', thClass: 'pg-api-mng-scope-th text-nowrap' }, { key: 'urlPayAmountModeLabel', label: 'URL금액', thClass: 'text-nowrap', title: 'URL결제: 일반형 / DP(DISPLAY)' }, { key: 'endpointsSummary', label: '엔드포인트', thClass: 'pg-api-mng-endpoints-th' }, { key: 'merchantMid', label: 'MID', thClass: 'text-nowrap' }, { key: 'hasApiKey', label: 'API', thClass: 'text-nowrap' }, { key: 'hasMd5Key', label: 'MD5', thClass: 'text-nowrap' }, { key: 'routeNo', label: 'Rt', thClass: 'text-nowrap', title: 'Route 번호' }, { key: 'sandboxYn', label: '환경', thClass: 'text-nowrap', title: 'Sandbox / Production' }, { key: 'extSettleMode', label: '예정', thClass: 'text-nowrap', title: '통합정산 ICOPAY 예정: OFF/T/D' }, { key: 'extSettleLag', label: 'N', thClass: 'text-nowrap' }, { key: 'extSettleBatchTime', label: 'D시각', thClass: 'text-nowrap' }, { key: 'operationalYn', label: '운영', thClass: 'text-nowrap' }, { key: 'useYn', label: '사용', thClass: 'text-nowrap' }, { key: 'regDt', label: '등록일', thClass: 'text-nowrap' }, { key: '_pgRowAct', type: 'pgApiMngRowActions', label: '관리', thClass: 'text-nowrap' }]
+      columns: [{ key: '_chk', type: 'checkbox' }, { key: 'rowNo', label: '번호' }, { key: 'pgNm', label: '결제대행사', thClass: 'text-nowrap' }, { key: 'pgCd', label: 'PG코드', thClass: 'text-nowrap' }, { key: 'integrationScopeLabel', label: '연동용도', thClass: 'pg-api-mng-scope-th text-nowrap' }, { key: 'urlPayAmountModeLabel', label: 'URL금액', thClass: 'text-nowrap', title: 'URL결제: 일반형 / DP(DISPLAY) / BLIND' }, { key: 'endpointsSummary', label: '엔드포인트', thClass: 'pg-api-mng-endpoints-th' }, { key: 'merchantMid', label: 'MID', thClass: 'text-nowrap' }, { key: 'hasApiKey', label: 'API', thClass: 'text-nowrap' }, { key: 'hasMd5Key', label: 'MD5', thClass: 'text-nowrap' }, { key: 'routeNo', label: 'RT', thClass: 'text-nowrap', title: 'Route 번호' }, { key: 'sandboxYn', label: '환경', thClass: 'text-nowrap', title: 'Sandbox / Production' }, { key: 'extSettleMode', label: '예정', thClass: 'text-nowrap', title: '통합정산 ICOPAY 예정: OFF/T/D' }, { key: 'extSettleLag', label: 'N', thClass: 'text-nowrap' }, { key: 'extSettleBatchTime', label: 'D시각', thClass: 'text-nowrap' }, { key: 'operationalYn', label: '운영', thClass: 'text-nowrap' }, { key: 'useYn', label: '사용', thClass: 'text-nowrap' }, { key: 'regDt', label: '등록일', thClass: 'text-nowrap' }, { key: '_pgRowAct', type: 'pgApiMngRowActions', label: '관리', thClass: 'text-nowrap' }]
     },
     '/hq/defaultCommission': {
       isForm: true,
@@ -1000,9 +1131,9 @@
         },
         {
           title: '결제 후속조치 (NOTI 환경설정 대응)',
-          notice: '시간 선택 국가(기준 Zone)는 무효·이메일무효에 적용됩니다. 무효 기본은 당일 <strong>0:00~21:00</strong>. 수동무효(이메일)도 당일 <strong>시작~마감</strong>을 지정(마감 비우면 23:59). 환불은 <strong>태국</strong> 기준 결제일 <strong>익일</strong>의 <strong>시작 시각</strong>부터 일수입니다. 「설정(사용)」이 사용일 때만 편집할 수 있습니다.',
+          notice: '시간 선택 국가(기준 Zone)는 무효·이메일무효에 적용됩니다. 무효 기본은 당일 <strong>0:00~21:00</strong>. 수동무효(이메일)도 당일 <strong>시작~마감</strong>을 지정(마감 비우면 23:59). 환불은 <strong>태국</strong> 기준 결제일 <strong>익일</strong>의 <strong>시작 시각</strong>부터 일수입니다. 「설정(사용)」이 사용일 때만 편집할 수 있습니다. 아래 표에서 <strong>본사·총판</strong> 등 조직 단계별로 동일 네 기능의 허용 여부를 둡니다.',
           rows: [
-            [{ type: 'customHtml', col: 12, html: hqLedgerPayFollowNotiTableHtml() }]
+            [{ type: 'customHtml', col: 12, html: hqLedgerPayFollowNotiTableHtml() + hqLedgerPayFollowLevelCapsTableHtml() }]
           ]
         },
         {
@@ -1033,7 +1164,13 @@
             [{ label: '메일 제목', type: 'text', name: 'emailVoidSubject', col: 12,
               placeholder: '{{transNo}} {{orderNo}} {{amount}} {{routeNo}} {{paymentDate}} {{mid}} {{companyName}} {{contactName}}' }],
             [{ label: '메일 본문', type: 'textarea', name: 'emailVoidBodyTemplate', col: 12, rows: 8,
-              placeholder: '영문 샘플·플레이스홀더는 저장 없이도 서버 기본값이 적용됩니다. 비우면 기본 영문 본문이 사용됩니다.' }]
+              placeholder: '영문 샘플·플레이스홀더는 저장 없이도 서버 기본값이 적용됩니다. 비우면 기본 영문 본문이 사용됩니다.' }],
+            [{ label: '테스트 수신 이메일', type: 'text', name: 'emailVoidTestRecipient', col: 5,
+              placeholder: '예: ziobizm@gmail.com', title: '실제 PG 수신처가 아닌, 본인 확인용 주소입니다. SMTP·템플릿으로 샘플 본문이 발송됩니다.' },
+             { type: 'customHtml', col: 7,
+              html: '<div class="d-flex flex-wrap align-items-end gap-2 mt-1 mt-md-0">' +
+                '<button type="button" class="btn btn-primary btn-sm" id="hqLedgerVoidEmailTestBtn">테스트 메일 발송</button>' +
+                '<span class="small text-muted">제목에 [TEST]가 붙고, 본문 상단에 안내 문구가 추가됩니다. 결과는 <strong>운영관리 → 메일로그</strong>에 기록됩니다.</span></div>' }]
           ]
         }
       ],
@@ -1080,7 +1217,6 @@
                 { v: '/calc/collateralList', t: '담보금내역' },
                 { v: '/calc/compPointMngList', t: '환수금관리' },
                 { v: '/calc/unpaidMng', t: '미수금관리' },
-                { v: '/pay/payHoldList', t: '보증금내역' },
                 { v: '/calc/settlementReport', t: '정산리포트' }
               ] }
             ],
@@ -1256,15 +1392,19 @@
       formSections: [
         {
           title: 'URL결제설정',
-          notice: '<strong>일반형</strong>은 표시·실결제 통화·FX·수동 환산·행 마진을 쓰지 않으며, 결제는 해당 <strong>총판(조직)에 설정된 통화</strong>로 진행됩니다(이 화면에서 선택 불가). <strong>DISPLAY</strong>일 때만 표시 통화·실결제 통화·FX·수동 실결제/1표시·마진율을 PG별로 설정합니다. 아래 <strong>표시→실결제(FX) 기능</strong>·견적 주기·<strong>마진 JPY/USD/KRW/THB(표시)</strong>는 DISPLAY 모드를 쓰는 PG가 <strong>하나라도 있을 때만</strong> 활성화됩니다. 실결제 통화가 표시와 다를 때는 BOT 일평균(THB 경유)으로 환산하고, <strong>표시=실결제</strong>(예: 둘 다 THB)이면 1:1입니다. <strong>수동</strong>은 「실결제 금액 / 1표시단위」를 직접 입력합니다.',
+          notice: '<strong>일반형</strong>은 표시·실결제 통화·FX·수동 환산·행 마진을 쓰지 않으며, 결제는 해당 <strong>총판(조직)에 설정된 통화</strong>로 진행됩니다(이 화면에서 선택 불가). <strong>DISPLAY</strong>·<strong>BLIND</strong>일 때 표시 통화·<strong>표시 선택(고정/멀티)</strong>·실결제 통화·FX를 PG별로 설정합니다(BLIND는 공개 결제창에서 표시 통화·청구예상 금액 두 줄만 숨기고, 견적·실결제는 DISPLAY와 동일). <strong>FX 자동(BOT)</strong>이면 아래 <strong>표시통화별 마진(7종)</strong>만 마진으로 쓰이고, 행의 <strong>수동 실결제/1표시</strong>·<strong>PG별 마진율</strong>은 비활성입니다. <strong>FX 수동</strong>이면 해당 행에서 실결제/1표시와 마진율을 직접 입력합니다. <strong>고정</strong>이면 공개 결제 페이지에는 왼쪽 <strong>표시 통화</strong>만 노출되고(셀렉트 없음), <strong>멀티</strong>이면 고객이 표시 통화를 고를 수 있는 셀렉트가 나옵니다(멀티 시 선택지는 본사 전역 순서이며, JSON에서 <code>displayCurrencies</code> 배열로 줄일 수 있음). 아래 <strong>표시→실결제(FX) 기능</strong>·견적 주기·<strong>BOT 환율 기준일</strong>·<strong>마진(표시통화별)</strong>은 DISPLAY·BLIND 모드를 쓰는 PG가 <strong>하나라도 있을 때만</strong> 활성화됩니다. BOT는 방콕 달력일당·모드당 <strong>서버에서 1회만</strong> 조회합니다. 실결제 통화가 표시와 다를 때는 BOT 일평균(THB 경유)으로 환산하고, <strong>표시=실결제</strong>이면 1:1입니다.',
           rows: [
             [{ label: '표시→실결제(FX) 기능', type: 'select', name: '_urlPayFxUiEnabled', options: [{ v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }], col: 2 },
              { label: '견적 갱신(초)', type: 'text', name: '_urlPayFxUiRefresh', col: 2, placeholder: '600' },
              { label: '견적 TTL(초)', type: 'text', name: '_urlPayFxUiTtl', col: 2, placeholder: '600' }],
+            [{ label: 'BOT 환율 기준일', type: 'select', name: '_urlPayFxUiBotRateAsOf', options: [{ v: 'PREVIOUS_DAY_CLOSE', t: '전일 종가(방콕)' }, { v: 'LATEST_BOT_PERIOD', t: '당일·최신 고시일' }], col: 4 }],
             [{ label: '마진 JPY(표시)', type: 'text', name: '_urlPayFxUiMarginJpy', col: 2, placeholder: '0' },
              { label: '마진 USD(표시)', type: 'text', name: '_urlPayFxUiMarginUsd', col: 2, placeholder: '0' },
              { label: '마진 KRW(표시)', type: 'text', name: '_urlPayFxUiMarginKrw', col: 2, placeholder: '0' },
              { label: '마진 THB(표시)', type: 'text', name: '_urlPayFxUiMarginThb', col: 2, placeholder: '0' }],
+            [{ label: '마진 SGD(표시)', type: 'text', name: '_urlPayFxUiMarginSgd', col: 2, placeholder: '0' },
+             { label: '마진 HKD(표시)', type: 'text', name: '_urlPayFxUiMarginHkd', col: 2, placeholder: '0' },
+             { label: '마진 CNY(표시)', type: 'text', name: '_urlPayFxUiMarginCny', col: 2, placeholder: '0' }],
             [{
               type: 'customHtml',
               col: 12,
@@ -1275,11 +1415,12 @@
                 '<th style="min-width:10rem">결제대행사</th>' +
                 '<th style="min-width:7rem">금액 모드</th>' +
                 '<th style="min-width:5rem">표시 통화</th>' +
+                '<th style="min-width:7rem">표시 선택</th>' +
                 '<th style="min-width:5rem">실결제</th>' +
                 '<th style="min-width:6rem">FX</th>' +
                 '<th style="min-width:8rem">수동 실결제/1표시</th>' +
                 '<th style="min-width:6rem">마진율</th>' +
-                '</tr></thead><tbody id="hqUrlPayDeployPgTbody"><tr><td colspan="7" class="text-muted text-center py-3 small">목록을 불러오는 중…</td></tr></tbody></table></div>' +
+                '</tr></thead><tbody id="hqUrlPayDeployPgTbody"><tr><td colspan="8" class="text-muted text-center py-3 small">목록을 불러오는 중…</td></tr></tbody></table></div>' +
                 '<input type="hidden" name="urlPayDisplayFxJson" id="hqUrlPayDeployFxHidden" value="">'
             }]
           ]
@@ -1366,8 +1507,18 @@
           ]
         },
         {
+          title: 'BOT(태국은행) 일평균 환율 API',
+          notice: 'URL 표시통화→THB 등에 쓰는 BOT Stat-ExchangeRate 호출값입니다. 칸을 비우면 서버 application.yml·환경변수(BOT_THAILAND_*)를 따릅니다. (A) 레거시 iAPI: Base https://iapi.bot.or.th, Path /Stat/Stat-ExchangeRate/DAILY_AVG_EXG_RATE_V1/, 헤더 이름 api-key. (B) API 포털 v2: Base https://gateway.api.bot.or.th/Stat-ExchangeRate/v2, Path /DAILY_AVG_EXG_RATE/, 헤더 이름 Authorization(값=구독 Client ID).',
+          rows: [
+            [{ label: 'API 키(Client ID)', type: 'text', name: 'botThailandApiKey', col: 6, placeholder: '비우면 BOT_THAILAND_API_KEY' },
+             { label: '인증 헤더 이름', type: 'text', name: 'botThailandApiKeyHeader', col: 3, placeholder: 'api-key 또는 Authorization' }],
+            [{ label: 'Base URL', type: 'text', name: 'botThailandBaseUrl', col: 6, placeholder: 'https://iapi.bot.or.th' },
+             { label: '일평균 경로', type: 'text', name: 'botThailandDailyAvgPath', col: 6, placeholder: '/Stat/Stat-ExchangeRate/DAILY_AVG_EXG_RATE_V1/' }]
+          ]
+        },
+        {
           title: 'URL 표시통화 → 실결제 THB',
-          notice: 'JSON 편집은 <strong>배포설정 &gt; URL결제설정</strong>으로 옮겼습니다. 아래 숨김 필드는 결제로직설정 저장 시 기존 값이 유지되도록 동기화됩니다.',
+          notice: 'JSON 편집은 <strong>본사설정 &gt; URL결제설정</strong>에서 합니다. 아래 숨김 필드는 결제로직설정 저장 시 기존 값이 유지되도록 동기화됩니다.',
           rows: [
             [{
               type: 'customHtml',
@@ -1378,7 +1529,7 @@
         },
         {
           title: '결제구문설정',
-          notice: '공개 결제 폼의 <strong>카드 *</strong> 제목·안내 문단 3개를 PG별로 바꿉니다. <strong>URL 결제 결과 문구</strong>는 <code>pay-result.html</code> 및 결제 페이지 인라인 완료 카드의 성공/실패 큰 제목·하단 안내를 바꿉니다(비우면 기본 문구). 취소 화면은 실패 문구와 동일 설정을 씁니다. (탭 제목·파비콘은 위 「URL 결제 폼 설정」에서 설정합니다.) URL 결제 연동(<strong>연동용도 URL결제</strong>) PG만 선택할 수 있습니다. 입력 후 <strong>저장</strong>으로 아래 목록에 넣고, 목록에서 <strong>활성</strong>을 켜야 반영됩니다. <strong>저장(다국어)</strong>은 본사 API가 MyMemory로 프록시하여 ENG·CHN·JPN·THA 초안을 채웁니다. 화면 맨 아래 <strong>저장</strong>으로 DB에 반영합니다. 총판 로고가 있으면 결제 폼 상단은 ICOPAY 대신 로고가 나옵니다(별도 연동).',
+          notice: '공개 결제 폼의 <strong>카드 *</strong> 제목·안내 문단과 <strong>결제 금액</strong> 입력란 아래 통화(×100/÷100) 안내는 <strong>PG(결제대행사)별</strong>로 함께 저장됩니다. 금액 안내는 「내용 1」 위에서 노출 여부·문구를 넣습니다(비우면 페이지 기본 다국어 문구). <strong>URL 결제 결과 문구</strong>는 <code>pay-result.html</code> 및 결제 페이지 인라인 완료 카드의 성공/실패 큰 제목·하단 안내를 바꿉니다(비우면 기본 문구). 취소 화면은 실패 문구와 동일 설정을 씁니다. (탭 제목·파비콘은 위 「URL 결제 폼 설정」에서 설정합니다.) URL 결제 연동(<strong>연동용도 URL결제</strong>) PG만 선택할 수 있습니다. 입력 후 <strong>저장</strong>으로 아래 목록에 넣고, 목록에서 <strong>활성</strong>을 켜야 반영됩니다. <strong>저장(다국어)</strong>은 본사 API가 MyMemory로 프록시하여 ENG·CHN·JPN·THA 초안을 채웁니다. 화면 맨 아래 <strong>저장</strong>으로 DB에 반영합니다. 총판 로고가 있으면 결제 폼 상단은 ICOPAY 대신 로고가 나옵니다(별도 연동).',
           rows: [
             [{
               type: 'customHtml',
@@ -1390,6 +1541,12 @@
                 '<select class="form-select form-select-sm" id="hqPayCardCopyDraftPg"><option value="">선택</option></select></div>' +
                 '<div class="col-md-9"><label class="form-label small mb-0">제목 (한국어) — 결제 폼 «카드 *» 제목</label>' +
                 '<input type="text" class="form-control form-control-sm" id="hqPayCardCopyDraftTitle" maxlength="500" placeholder="예: 카드"></div>' +
+                '<div class="col-12 border-top pt-2 mt-1"><p class="small fw-semibold mb-2">결제 금액 하단 안내 (통화 스케일·PG별)</p>' +
+                '<div class="form-check mb-2">' +
+                '<input class="form-check-input" type="checkbox" id="hqPayCardCopyDraftAmtShow" checked>' +
+                '<label class="form-check-label small" for="hqPayCardCopyDraftAmtShow">금액 입력란 아래 안내 문구 노출</label></div>' +
+                '<label class="form-label small mb-0" for="hqPayCardCopyDraftAmtNotice">안내 문구 (한국어, 비우면 페이지 기본 ×100/÷100 문구)</label>' +
+                '<textarea class="form-control form-control-sm" id="hqPayCardCopyDraftAmtNotice" rows="2" maxlength="2000" placeholder="예: 본사 「결제통화로직설정」에 따라 입력 금액과 결제 대행사로 전달되는 금액의 관계를 안내합니다."></textarea></div>' +
                 '<div class="col-12"><label class="form-label small mb-0">내용 1 (한국어)</label>' +
                 '<textarea class="form-control form-control-sm" id="hqPayCardCopyDraftBody1" rows="4" maxlength="4000" placeholder="카드 정보는 위 각 칸 안의 ChillPay 보안 입력(iframe)에서만 입력합니다. 카드 명의(Name on card)도 위 칸에만 입력하면 되며, iframe 밖에서는 값을 읽을 수 없어 하단 이름·성 입력은 표시하지 않습니다. ChillPay가 안전하게 처리하며, 당사 서버로 카드번호 평문이 전달되지 않습니다."></textarea></div>' +
                 '<div class="col-12"><label class="form-label small mb-0">내용 2 (한국어)</label>' +
@@ -1412,11 +1569,13 @@
                 '</div>' +
                 '<div class="col-12"><p class="small text-primary mb-0 d-none" id="hqPayCardCopyEditBanner" role="status"></p></div>' +
                 '</div>' +
-                '<div class="table-responsive"><table class="table table-sm table-bordered align-middle mb-0">' +
-                '<thead class="table-light"><tr><th>PG</th><th style="min-width:7rem">제목(한)</th><th style="min-width:9rem">내용1</th><th style="min-width:9rem">내용2</th><th style="min-width:9rem">내용3</th>' +
-                '<th style="min-width:7rem" title="URL 결제 결과 — 성공 큰 글씨(한)">성공 제목</th><th style="min-width:8rem" title="URL 결제 결과 — 성공 하단 안내(한)">성공 하단</th>' +
-                '<th style="min-width:7rem" title="URL 결제 결과 — 실패 큰 글씨(한)">실패 제목</th><th style="min-width:8rem" title="URL 결제 결과 — 실패 하단 안내(한)">실패 하단</th>' +
-                '<th class="text-center" style="width:4rem">활성</th><th class="text-center" style="width:4rem">수정</th><th class="text-center" style="width:3.5rem">삭제</th></tr></thead>' +
+                '<div class="hq-pay-card-copy-grid-wrap w-100">' +
+                '<table class="table table-sm table-bordered align-middle mb-0 hq-pay-card-copy-grid table-no-col-resize">' +
+                '<colgroup><col class="hq-pay-card-copy-col-pg"><col><col><col><col><col><col><col><col><col><col style="width:3.25rem"><col style="width:3.25rem"><col style="width:3.25rem"></colgroup>' +
+                '<thead class="table-light"><tr><th scope="col">PG</th><th scope="col" title="한국어 제목">제목(한)</th><th scope="col" title="결제 금액 하단 안내">금액안내</th><th scope="col">내용1</th><th scope="col">내용2</th><th scope="col">내용3</th>' +
+                '<th scope="col" title="URL 결제 결과 — 성공 큰 글씨(한)">성공 제목</th><th scope="col" title="URL 결제 결과 — 성공 하단 안내(한)">성공 하단</th>' +
+                '<th scope="col" title="URL 결제 결과 — 실패 큰 글씨(한)">실패 제목</th><th scope="col" title="URL 결제 결과 — 실패 하단 안내(한)">실패 하단</th>' +
+                '<th class="text-center" scope="col">활성</th><th class="text-center" scope="col">수정</th><th class="text-center" scope="col">삭제</th></tr></thead>' +
                 '<tbody id="hqPayCardCopyTbody"></tbody></table></div>' +
                 '<p class="text-muted small mt-2 mb-0">이 블록의 <strong>저장</strong>은 목록에만 반영됩니다. 서버(DB) 반영은 화면 맨 아래 <strong>저장</strong>이 필요합니다.</p></div>'
             }]
@@ -1688,7 +1847,7 @@
       ],
       noticeList: ['기본 조회는 업체사용상태가 사용인 업체만 표시합니다. 미사용·전체는 셀렉트에서 선택하세요. 조직별 화면 권한(옵저버·수정 등)은 사용/미사용과 관계없이 동일하게 적용됩니다. 미사용으로 바꾼 조직은 결제·정산·노티가 중단되며, 사용으로 되돌리면 복구됩니다. 상위를 미사용으로 두면 하위 프로필도 함께 미사용 처리됩니다.', '엑셀등록: [SAMPLE]으로 서식 있는 xlsx(헤더 색·표선·가운데 정렬)를 받아 예시 행을 수정·추가한 뒤 [엑셀등록]에 업로드하세요.'],
       summary: ['건수'],
-      buttons: [{ id: 'seedBtn', label: '시드 생성', cls: 'btn-outline-warning' }, { id: 'excelBtn', label: '엑셀다운로드', cls: 'btn-info' }, { id: 'excelSampleBtn', label: 'SAMPLE', cls: 'btn-outline-secondary' }, { id: 'excelRegBtn', label: '엑셀등록', cls: 'btn-outline-success' }, { id: 'compRegBtn', label: '등록', cls: 'btn-danger' }],
+      buttons: [{ id: 'excelBtn', label: '엑셀다운로드', cls: 'btn-info' }, { id: 'excelSampleBtn', label: 'SAMPLE', cls: 'btn-outline-secondary' }, { id: 'excelRegBtn', label: '엑셀등록', cls: 'btn-outline-success' }, { id: 'compRegBtn', label: '등록', cls: 'btn-danger' }],
       tableColumnGuide: true,
       columns: [
         { key: '_chk', type: 'checkbox' },
@@ -2628,6 +2787,13 @@
       listSortDirAnchor: 'refresh',
       paginationSizeOptions: [50, 100, 300, 400, 500],
       paginationDefaultSize: 50,
+      /** VIEW SETTING: 번호·업체코드 고정, 나머지 열은 저장값에 따라 표 헤더·본문 동기 */
+      columnGuideFixedKeys: ['rowNo', 'compId'],
+      viewSettingDefaultSelectedKeys: [
+        'settleMonth', 'orgDivNm', 'hqNm', 'regionalNm', 'masterNm', 'branchNm', 'agencyNm', 'salesOfficeNm', 'curType',
+        'aprvCnt', 'aprvAmt', 'aprvFeePct', 'aprvFeeSum', 'aprvFeeVat',
+        'canCnt', 'canAmt', 'canFeePct', 'canFeeSum', 'canFeeVat', 'settleAmt'
+      ],
       searchFormClass: 'screen-search-form screen-distribution-search',
       tableScrollable: true,
       distributionThreeRowHeader: true,
@@ -2658,6 +2824,8 @@
       noticeList: [
         '유통망 정산: 로그인 소속 조직·그 하위 가맹만 조회됩니다(가맹점정산내역과 동일한 범위). 가맹점 단위 행은 없으며, 하위 가맹 정산액이 조직 행에 합산됩니다. 총본사(HEADQUARTERS) 단계 행도 포함됩니다.',
         '각 조직 행의 승인·취소 수수료 합계는 해당 행 조직 단계에 대응하는 구간만 합산합니다(예: 본사·총본사에만 비율이 있으면 총판 행 수수료는 0에 가깝게 나옵니다). 업체구분을 선택하면 해당 단계만 한 행으로 보입니다.',
+        '「포함거래건」은 정산 실행에 저장된 집계 구간 결제 건수(tb_settlement_run.included_txn_cnt)의 합입니다. 구버전(null) 실행은 건수 1로 보정합니다. 「취소발생실행」은 해당 실행에 취소 합계 금액이 0보다 큰 정산 실행 개수입니다(결제 건수와 다릅니다).',
+        '동일 조직·정산일이라도 정산서 통화(열 통화)가 다르면 행이 나뉩니다. 승인수수료%·합계는 그 행의 유통 단계 분배액만으로 승인·취소 금액에 비례 배분한 값입니다(가맹 전체 PG 수수료 비율과 다를 수 있음).',
         '조회기준·승인일자는 추후 거래일 기준 필터와 연동 예정이며, 현재는 정산일(calc_dt) 기준입니다. 가맹 지급액·유통 수수료 분배는 가맹점별 배분 설정(tb_distribution_fee_config) 비율을 바탕으로 합니다. 가맹점별 실행 한 줄은 가맹점정산내역에서 확인할 수 있습니다.'
       ],
       summary: ['Total', '정산금액', '수수료', '지급액'],
@@ -2675,18 +2843,19 @@
         { key: 'masterNm', label: '총판' },
         { key: 'branchNm', label: '지사' },
         { key: 'agencyNm', label: '대리점' },
+        { key: 'salesOfficeNm', label: '영업점' },
         { key: 'compId', label: '업체코드' },
         { key: 'curType', label: '통화' },
-        { key: 'aprvCnt', label: '승인건수' },
+        { key: 'aprvCnt', label: '포함거래건' },
         { key: 'aprvAmt', label: '승인금액' },
-        { key: 'aprvFeeCnt', label: '승인수수료건' },
-        { key: 'aprvFeePct', label: '승인수수료%' },
+        { key: 'aprvFeeCnt', label: '포함거래건' },
+        { key: 'aprvFeePct', label: '유통분배/승인%' },
         { key: 'aprvFeeSum', label: '승인수수료합계' },
         { key: 'aprvFeeVat', label: '승인부가세' },
-        { key: 'canCnt', label: '취소건수' },
+        { key: 'canCnt', label: '취소발생실행' },
         { key: 'canAmt', label: '취소금액' },
-        { key: 'canFeeCnt', label: '취소수수료건' },
-        { key: 'canFeePct', label: '취소수수료%' },
+        { key: 'canFeeCnt', label: '취소발생실행' },
+        { key: 'canFeePct', label: '유통분배/취소%' },
         { key: 'canFeeSum', label: '취소수수료합계' },
         { key: 'canFeeVat', label: '취소부가세' },
         { key: 'settleAmt', label: '정산금액' }
@@ -2762,12 +2931,11 @@
         { key: 'payNo', label: '번호' },
         { key: 'feeCnt', label: '수수료(건)' },
         { key: 'feeRate', label: '수수료(%)' },
-        { key: 'feeAmt', label: '수수료(금액)', columnGuideLabel: '거래 집계 기반(정산 1회당·송금 1회당 제외). 정산료·송금수수료는 별도 열.' },
+        { key: 'feeAmt', label: '수수료(금액)', columnGuideLabel: '거래 집계 기반(정산 1회당 제외). 정산료는 별도 열.' },
         { key: 'feeVat', label: '수수료(부가세)' },
         { key: 'holdRate', label: '보류율(%)' },
         { key: 'holdAmt', label: '보류금액' },
         { key: 'settlementBatchFee', label: '정산료', thClass: 'text-end', columnGuideLabel: '정산 실행당 1회 정산수수료.' },
-        { key: 'remittanceFee', label: '송금수수료', thClass: 'text-end', columnGuideLabel: '정산 실행당 1회 송금 이체 수수료.' },
         { key: 'perTxFeeAmt', label: '건당수수료' },
         { key: 'settlementPerTxFeeAmt', label: '정산건당' },
         { key: 'extraFeesAmt', label: '기타(%)수수료' },
@@ -3040,13 +3208,15 @@
         { id: 'excelBtn', label: '엑셀다운로드', cls: 'btn-info' }
       ],
       columnGuideFixedKeys: ['rowNo', 'compNm', 'compId'],
-      columns: [{ key: '_chk', type: 'checkbox' }, { key: 'rowNo', label: '번호' }, { key: 'compNm', label: '업체명' }, { key: 'compId', label: '업체코드' }, { key: 'curType', label: '통화' }, { key: 'txnCnt', label: '건수', thClass: 'text-center text-nowrap', columnGuideLabel: '이번 정산 실행에 집계에 포함된 거래 건수. 컬럼 도입 이전 실행 행은 비어 있을 수 있습니다.' }, { key: 'settlementBatchFee', label: '정산료', thClass: 'text-end', columnGuideLabel: '정산 실행당 1회 정산수수료.' }, { key: 'remittanceFee', label: '송금수수료', thClass: 'text-end', columnGuideLabel: '정산 실행당 1회 송금 이체 수수료.' }, { key: 'cadenceGuideKr', label: '노출주기 안내', thClass: 'text-nowrap', columnGuideLabel: '주기별 노출 요약.' }, { key: 'settlementPublishSts', label: '배포상태', columnGuideLabel: 'PENDING·DISTRIBUTED·HOLD — 가맹점정산내역 반영 전 단계.' }, { key: 'payoutHoldYn', label: '지급보류', columnGuideLabel: 'Y면 지급보류 가맹; 배포가 HOLD로 잡힐 수 있음.' }, { key: 'settlementRunId', label: '실행ID', columnGuideLabel: '정산 실행 PK(tb_settlement_run). 추적용.' }, { key: 'receivableAmt', label: '미수금', columnGuideLabel: '정산 지급부족 시 해당 실행에 자동 등록된 미수금(발생액)' }, { key: 'pgRootNo', label: '루트' }, { key: 'calcDt', label: '정산일자' }, { key: 'calcCycle', label: '정산주기' }, { key: 'calcMethod', label: '정산방법' }, { key: 'targetPeriodText', label: '정산대상기간', thClass: 'pay-grid-time-dual text-start small' }, { key: 'targetAmt', label: '결제액' }, { key: 'totalFee', label: '수수료', columnGuideLabel: '거래 집계만. 정산수수료·송금수수료는 정산료·송금수수료 열.' }, { key: 'rollingReserveAmt', label: '담보금' }, { key: 'payAmount', label: '지급액', columnGuideLabel: '0으로 보정하지 않음; 부족 시 음수·미수금 자동등록.' }, { key: 'status', label: '확정여부', columnGuideLabel: 'CALCULATED=확정, PENDING=미확정.' }]
+      columns: [{ key: '_chk', type: 'checkbox' }, { key: 'rowNo', label: '번호' }, { key: 'compNm', label: '업체명' }, { key: 'compId', label: '업체코드' }, { key: 'curType', label: '통화' }, { key: 'txnCnt', label: '건수', thClass: 'text-center text-nowrap', columnGuideLabel: '이번 정산 실행에 집계에 포함된 거래 건수. 컬럼 도입 이전 실행 행은 비어 있을 수 있습니다.' }, { key: 'settlementBatchFee', label: '정산료', thClass: 'text-end', columnGuideLabel: '정산 실행당 1회 정산수수료.' }, { key: 'cadenceGuideKr', label: '노출주기 안내', thClass: 'text-nowrap', columnGuideLabel: '주기별 노출 요약.' }, { key: 'settlementPublishSts', label: '배포상태', columnGuideLabel: 'PENDING·DISTRIBUTED·HOLD — 가맹점정산내역 반영 전 단계.' }, { key: 'payoutHoldYn', label: '지급보류', columnGuideLabel: 'Y면 지급보류 가맹; 배포가 HOLD로 잡힐 수 있음.' }, { key: 'settlementRunId', label: '실행ID', columnGuideLabel: '정산 실행 PK(tb_settlement_run). 추적용.' }, { key: 'receivableAmt', label: '미수금', columnGuideLabel: '정산 지급부족 시 해당 실행에 자동 등록된 미수금(발생액)' }, { key: 'pgRootNo', label: '루트' }, { key: 'calcDt', label: '정산일자' }, { key: 'calcCycle', label: '정산주기' }, { key: 'calcMethod', label: '정산방법' }, { key: 'targetPeriodText', label: '정산대상기간', thClass: 'pay-grid-time-dual text-start small' }, { key: 'targetAmt', label: '결제액' }, { key: 'totalFee', label: '수수료', columnGuideLabel: '거래 집계만. 정산 실행당 1회 정산수수료는 정산료 열.' }, { key: 'rollingReserveAmt', label: '담보금' }, { key: 'payAmount', label: '지급액', columnGuideLabel: '0으로 보정하지 않음; 부족 시 음수·미수금 자동등록.' }, { key: 'status', label: '확정여부', columnGuideLabel: 'CALCULATED=확정, PENDING=미확정.' }]
     },
     '/settlement/settlementResultDistribute': {
       listSortDirAnchor: 'refresh',
       paginationSizeOptions: [50, 100, 300, 400, 500],
       paginationDefaultSize: 50,
-      notice: '<strong>정산배포(대기)</strong>: <code>PENDING</code> 만 표시. 처음 열 때 정산기간이 비어 있으면 <strong>최근 1년</strong>으로 채워져, 오래 남은 배포 대기도 첫 화면에서 찾기 쉽습니다. <strong>노출주기 안내</strong> 열에 주기별 짧은 요약이 붙습니다. 체크 후 <strong>정산배포</strong> → 가맹·유통 반영(<code>DISTRIBUTED</code>), <strong>선택 홀딩</strong> → <code>HOLD</code>.',
+      hasSettlementExecuteDetailTable: true,
+      settlementExecuteDetailUiVariant: 'publishDay',
+      notice: '<strong>정산배포</strong>: <code>PENDING</code> 만 표시. 과거 DB가 V101 백필로 전부 <code>DISTRIBUTED</code>였다면 운영 DB에 <code>db/V111_settlement_publish_pending_reopen.sql</code> 적용 후 목록이 채워집니다. 처음 열 때 정산기간이 비어 있으면 <strong>최근 1년</strong>입니다. 행 <strong>클릭</strong> 시 정산일 당일 해당 가맹 전체 거래를 아래에 표시합니다. 체크 후 <strong>정산배포</strong> → <code>DISTRIBUTED</code>, <strong>선택 홀딩</strong> → <code>HOLD</code>.',
       searchRows: [
         [
           { type: 'customHtml', html: '<input type="hidden" name="searchPublishTab" id="searchPublishTab" value="PENDING">', col: 12 },
@@ -3072,13 +3242,13 @@
         { id: 'excelBtn', label: '엑셀다운로드', cls: 'btn-info' }
       ],
       columnGuideFixedKeys: ['rowNo', 'compNm', 'compId', 'curType'],
-      columns: [{ key: '_chk', type: 'checkbox' }, { key: 'rowNo', label: '번호' }, { key: 'compNm', label: '업체명' }, { key: 'compId', label: '업체코드' }, { key: 'curType', label: '통화' }, { key: 'calcDt', label: '정산일자' }, { key: 'calcCycle', label: '정산주기' }, { key: 'cadenceGuideKr', label: '노출주기 안내', thClass: 'text-nowrap' }, { key: 'settlementPublishSts', label: '배포상태' }, { key: 'payoutHoldYn', label: '지급보류' }, { key: 'settlementRunId', label: '실행ID', columnGuideLabel: '정산 실행 PK.' }, { key: 'calcMethod', label: '정산방법' }, { key: 'targetPeriodText', label: '정산대상기간', thClass: 'pay-grid-time-dual text-start small' }, { key: 'txnCnt', label: '건수', thClass: 'text-center text-nowrap', columnGuideLabel: '이번 정산 실행에 집계에 포함된 거래 건수. 컬럼 도입 이전 실행 행은 비어 있을 수 있습니다.' }, { key: 'pgRootNo', label: '루트' }, { key: 'targetAmt', label: '결제액' }, { key: 'totalFee', label: '수수료', columnGuideLabel: '거래 집계만. 정산수수료·송금수수료는 정산료·송금수수료 열.' }, { key: 'rollingReserveAmt', label: '담보금' }, { key: 'settlementBatchFee', label: '정산료', thClass: 'text-end', columnGuideLabel: '정산 실행당 1회 정산수수료.' }, { key: 'remittanceFee', label: '송금수수료', thClass: 'text-end', columnGuideLabel: '정산 실행당 1회 송금 이체 수수료.' }, { key: 'receivableAmt', label: '미수금' }, { key: 'payAmount', label: '지급액', columnGuideLabel: '0으로 보정하지 않음; 음수 가능.' }, { key: 'status', label: '확정여부', columnGuideLabel: 'CALCULATED=확정, PENDING=미확정.' }]
+      columns: [{ key: '_chk', type: 'checkbox' }, { key: 'rowNo', label: '번호' }, { key: 'compNm', label: '업체명' }, { key: 'compId', label: '업체코드' }, { key: 'curType', label: '통화' }, { key: 'calcDt', label: '정산일자' }, { key: 'calcCycle', label: '정산주기' }, { key: 'cadenceGuideKr', label: '노출주기 안내', thClass: 'text-nowrap' }, { key: 'settlementPublishSts', label: '배포상태' }, { key: 'payoutHoldYn', label: '지급보류' }, { key: 'settlementRunId', label: '실행ID', columnGuideLabel: '정산 실행 PK.' }, { key: 'calcMethod', label: '정산방법' }, { key: 'targetPeriodText', label: '정산대상기간', thClass: 'pay-grid-time-dual text-start small' }, { key: 'txnCnt', label: '건수', thClass: 'text-center text-nowrap', columnGuideLabel: '이번 정산 실행에 집계에 포함된 거래 건수. 컬럼 도입 이전 실행 행은 비어 있을 수 있습니다.' }, { key: 'pgRootNo', label: '루트' }, { key: 'targetAmt', label: '결제액' }, { key: 'totalFee', label: '수수료', columnGuideLabel: '거래 집계만. 정산 실행당 1회 정산수수료는 정산료 열.' }, { key: 'rollingReserveAmt', label: '담보금' }, { key: 'settlementBatchFee', label: '정산료', thClass: 'text-end', columnGuideLabel: '정산 실행당 1회 정산수수료.' }, { key: 'receivableAmt', label: '미수금' }, { key: 'payAmount', label: '지급액', columnGuideLabel: '0으로 보정하지 않음; 음수 가능.' }, { key: 'status', label: '확정여부', columnGuideLabel: 'CALCULATED=확정, PENDING=미확정.' }]
     },
     '/settlement/settlementResultHold': {
       listSortDirAnchor: 'refresh',
       paginationSizeOptions: [50, 100, 300, 400, 500],
       paginationDefaultSize: 50,
-      notice: '<strong>정산대기(홀딩)</strong>: <code>HOLD</code> — 가맹 정산내역에 안 나감. 처음 열 때 정산기간이 비어 있으면 <strong>최근 1년</strong>입니다. 해제·배포는 「정산보류내역」 등 운영 절차. 노출 주기 요약은 <strong>정산배포(대기)</strong>와 같습니다.',
+      notice: '<strong>정산대기</strong>: <code>HOLD</code> — 가맹 정산내역에 안 나감. 처음 열 때 정산기간이 비어 있으면 <strong>최근 1년</strong>입니다. 해제·배포는 「정산보류내역」 등 운영 절차. 노출 주기 요약은 <strong>정산배포</strong>와 같습니다.',
       searchRows: [
         [
           { type: 'customHtml', html: '<input type="hidden" name="searchPublishTab" id="searchPublishTab" value="HOLD">', col: 12 },
@@ -3102,7 +3272,7 @@
         { id: 'excelBtn', label: '엑셀다운로드', cls: 'btn-info' }
       ],
       columnGuideFixedKeys: ['rowNo', 'compNm', 'compId', 'curType'],
-      columns: [{ key: '_chk', type: 'checkbox' }, { key: 'rowNo', label: '번호' }, { key: 'compNm', label: '업체명' }, { key: 'compId', label: '업체코드' }, { key: 'curType', label: '통화' }, { key: 'calcDt', label: '정산일자' }, { key: 'calcCycle', label: '정산주기' }, { key: 'cadenceGuideKr', label: '노출주기 안내', thClass: 'text-nowrap' }, { key: 'settlementPublishSts', label: '배포상태' }, { key: 'payoutHoldYn', label: '지급보류' }, { key: 'settlementRunId', label: '실행ID', columnGuideLabel: '정산 실행 PK.' }, { key: 'calcMethod', label: '정산방법' }, { key: 'targetPeriodText', label: '정산대상기간', thClass: 'pay-grid-time-dual text-start small' }, { key: 'txnCnt', label: '건수', thClass: 'text-center text-nowrap', columnGuideLabel: '이번 정산 실행에 집계에 포함된 거래 건수. 컬럼 도입 이전 실행 행은 비어 있을 수 있습니다.' }, { key: 'pgRootNo', label: '루트' }, { key: 'targetAmt', label: '결제액' }, { key: 'totalFee', label: '수수료', columnGuideLabel: '거래 집계만. 정산수수료·송금수수료는 정산료·송금수수료 열.' }, { key: 'rollingReserveAmt', label: '담보금' }, { key: 'settlementBatchFee', label: '정산료', thClass: 'text-end', columnGuideLabel: '정산 실행당 1회 정산수수료.' }, { key: 'remittanceFee', label: '송금수수료', thClass: 'text-end', columnGuideLabel: '정산 실행당 1회 송금 이체 수수료.' }, { key: 'receivableAmt', label: '미수금' }, { key: 'payAmount', label: '지급액', columnGuideLabel: '0으로 보정하지 않음; 음수 가능.' }, { key: 'status', label: '확정여부', columnGuideLabel: 'CALCULATED=확정, PENDING=미확정.' }]
+      columns: [{ key: '_chk', type: 'checkbox' }, { key: 'rowNo', label: '번호' }, { key: 'compNm', label: '업체명' }, { key: 'compId', label: '업체코드' }, { key: 'curType', label: '통화' }, { key: 'calcDt', label: '정산일자' }, { key: 'calcCycle', label: '정산주기' }, { key: 'cadenceGuideKr', label: '노출주기 안내', thClass: 'text-nowrap' }, { key: 'settlementPublishSts', label: '배포상태' }, { key: 'payoutHoldYn', label: '지급보류' }, { key: 'settlementRunId', label: '실행ID', columnGuideLabel: '정산 실행 PK.' }, { key: 'calcMethod', label: '정산방법' }, { key: 'targetPeriodText', label: '정산대상기간', thClass: 'pay-grid-time-dual text-start small' }, { key: 'txnCnt', label: '건수', thClass: 'text-center text-nowrap', columnGuideLabel: '이번 정산 실행에 집계에 포함된 거래 건수. 컬럼 도입 이전 실행 행은 비어 있을 수 있습니다.' }, { key: 'pgRootNo', label: '루트' }, { key: 'targetAmt', label: '결제액' }, { key: 'totalFee', label: '수수료', columnGuideLabel: '거래 집계만. 정산 실행당 1회 정산수수료는 정산료 열.' }, { key: 'rollingReserveAmt', label: '담보금' }, { key: 'settlementBatchFee', label: '정산료', thClass: 'text-end', columnGuideLabel: '정산 실행당 1회 정산수수료.' }, { key: 'receivableAmt', label: '미수금' }, { key: 'payAmount', label: '지급액', columnGuideLabel: '0으로 보정하지 않음; 음수 가능.' }, { key: 'status', label: '확정여부', columnGuideLabel: 'CALCULATED=확정, PENDING=미확정.' }]
     },
     '/calc/settlementReport': {
       listSortDirAnchor: 'refresh',
@@ -3150,8 +3320,8 @@
           { key: 'txnCnt', label: '건수', thClass: 'text-center text-nowrap' },
           { key: 'approveAmt', label: '승인합' }, { key: 'cancelAmt', label: '취소합' }, { key: 'netPay', label: '순액' },
           { key: 'depositAmt', label: '예치(10%)' }, { key: 'processingFeeTotal', label: 'Processing(5.6%)' },
-          { key: 'payAmount', label: '지급액(배치)' }, { key: 'totalFee', label: '수수료', columnGuideLabel: '거래 집계만. 정산·송금 1회당은 정산료·송금수수료 열.' }, { key: 'rollingReserveAmt', label: '담보금' },
-          { key: 'settlementBatchFee', label: '정산료', thClass: 'text-end' }, { key: 'remittanceFee', label: '송금수수료', thClass: 'text-end' },
+          { key: 'payAmount', label: '지급액(배치)' }, { key: 'totalFee', label: '수수료', columnGuideLabel: '거래 집계만. 정산 실행당 1회 정산수수료는 정산료 열.' }, { key: 'rollingReserveAmt', label: '담보금' },
+          { key: 'settlementBatchFee', label: '정산료', thClass: 'text-end' },
           { key: 'receivableRecoveryModeKr', label: '미수금처리', thClass: 'text-nowrap small', columnGuideLabel: '자동=차기정산 FIFO, 수동=환수처리 후 차감. 본사합산 행은 가맹 혼합.' },
           { key: 'receivableAppliedAmt', label: '미수금차감', thClass: 'text-end', columnGuideLabel: '해당 정산 실행에서 미수금으로 차감된 합계.' },
           { key: 'settlementDueDt', label: '지급예정일(+7영업일)' }, { key: 'settledYn', label: '완료' }, { key: 'status', label: '상태' }
@@ -3572,7 +3742,7 @@
         { id: 'executeBtn', label: '정산실행', cls: 'btn-danger' }
       ],
       columnGuideFixedKeys: ['rowNo', 'compNm', 'compId'],
-      columns: [{ key: '_chk', type: 'checkbox' }, { key: 'rowNo', label: '번호' }, { key: 'compNm', label: '업체명' }, { key: 'compId', label: '업체코드' }, { key: 'curType', label: '통화' }, { key: 'txnCnt', label: '건수', thClass: 'text-center text-nowrap', columnGuideLabel: '이번 정산 실행에 집계에 포함된 거래 건수. 컬럼 도입 이전 실행 행은 비어 있을 수 있습니다.' }, { key: 'settlementBatchFee', label: '정산료', thClass: 'text-end', columnGuideLabel: '정산 실행당 1회 정산수수료.' }, { key: 'remittanceFee', label: '송금수수료', thClass: 'text-end', columnGuideLabel: '정산 실행당 1회 송금 이체 수수료.' }, { key: 'cadenceGuideKr', label: '노출주기 안내', thClass: 'text-nowrap', columnGuideLabel: '주기별 노출 요약.' }, { key: 'settlementPublishSts', label: '배포상태', columnGuideLabel: 'PENDING·DISTRIBUTED·HOLD — 가맹점정산내역 반영 전 단계.' }, { key: 'payoutHoldYn', label: '지급보류', columnGuideLabel: 'Y면 지급보류 가맹; 배포가 HOLD로 잡힐 수 있음.' }, { key: 'settlementRunId', label: '실행ID', columnGuideLabel: '정산 실행 PK(tb_settlement_run). 추적용.' }, { key: 'receivableAmt', label: '미수금', columnGuideLabel: '정산 지급부족 시 해당 실행에 자동 등록된 미수금(발생액)' }, { key: 'pgRootNo', label: '루트' }, { key: 'calcDt', label: '정산일자' }, { key: 'calcCycle', label: '정산주기' }, { key: 'calcMethod', label: '정산방법' }, { key: 'targetPeriodText', label: '정산대상기간', thClass: 'pay-grid-time-dual text-start small' }, { key: 'targetAmt', label: '결제액' }, { key: 'totalFee', label: '수수료', columnGuideLabel: '거래 집계만. 정산수수료·송금수수료는 정산료·송금수수료 열.' }, { key: 'rollingReserveAmt', label: '담보금' }, { key: 'payAmount', label: '지급액', columnGuideLabel: '0으로 보정하지 않음; 부족 시 음수·미수금 자동등록.' }, { key: 'status', label: '확정여부', columnGuideLabel: 'CALCULATED=확정, PENDING=미확정.' }],
+      columns: [{ key: '_chk', type: 'checkbox' }, { key: 'rowNo', label: '번호' }, { key: 'compNm', label: '업체명' }, { key: 'compId', label: '업체코드' }, { key: 'curType', label: '통화' }, { key: 'txnCnt', label: '건수', thClass: 'text-center text-nowrap', columnGuideLabel: '이번 정산 실행에 집계에 포함된 거래 건수. 컬럼 도입 이전 실행 행은 비어 있을 수 있습니다.' }, { key: 'settlementBatchFee', label: '정산료', thClass: 'text-end', columnGuideLabel: '정산 실행당 1회 정산수수료.' }, { key: 'cadenceGuideKr', label: '노출주기 안내', thClass: 'text-nowrap', columnGuideLabel: '주기별 노출 요약.' }, { key: 'settlementPublishSts', label: '배포상태', columnGuideLabel: 'PENDING·DISTRIBUTED·HOLD — 가맹점정산내역 반영 전 단계.' }, { key: 'payoutHoldYn', label: '지급보류', columnGuideLabel: 'Y면 지급보류 가맹; 배포가 HOLD로 잡힐 수 있음.' }, { key: 'settlementRunId', label: '실행ID', columnGuideLabel: '정산 실행 PK(tb_settlement_run). 추적용.' }, { key: 'receivableAmt', label: '미수금', columnGuideLabel: '정산 지급부족 시 해당 실행에 자동 등록된 미수금(발생액)' }, { key: 'pgRootNo', label: '루트' }, { key: 'calcDt', label: '정산일자' }, { key: 'calcCycle', label: '정산주기' }, { key: 'calcMethod', label: '정산방법' }, { key: 'targetPeriodText', label: '정산대상기간', thClass: 'pay-grid-time-dual text-start small' }, { key: 'targetAmt', label: '결제액' }, { key: 'totalFee', label: '수수료', columnGuideLabel: '거래 집계만. 정산 실행당 1회 정산수수료는 정산료 열.' }, { key: 'rollingReserveAmt', label: '담보금' }, { key: 'payAmount', label: '지급액', columnGuideLabel: '0으로 보정하지 않음; 부족 시 음수·미수금 자동등록.' }, { key: 'status', label: '확정여부', columnGuideLabel: 'CALCULATED=확정, PENDING=미확정.' }],
       emptyMessage: '조회된 데이터가 없습니다.'
     },
     '/notify/payUrlMng': {
@@ -3622,6 +3792,32 @@
       staticHtml: OPS_MANAGEMENT_PLACEHOLDER_HTML,
       summary: [],
       buttons: []
+    },
+    '/ops/mailLog': {
+      emptyMessage: '조회된 데이터가 없습니다.',
+      searchRows: [[
+        { label: '구분', type: 'select', name: 'searchMailKind', col: 2,
+          options: [{ v: '', t: '전체' }, { v: 'VOID_TEST', t: 'VOID 테스트' }, { v: 'VOID_TXN', t: '이메일무효(거래)' }] },
+        { label: '상태', type: 'select', name: 'searchMailStatus', col: 2,
+          options: [{ v: '', t: '전체' }, { v: 'SUCCESS', t: '성공' }, { v: 'FAIL', t: '실패' }] },
+        { label: '등록일', type: 'daterange', from: 'searchFromDate', to: 'searchToDate' },
+        { type: 'quickdate' },
+        { type: 'searchBtn', label: 'Q 검색' }
+      ]],
+      summary: ['건수'],
+      buttons: [{ id: 'searchBtn', label: '검색', cls: 'btn-primary' }],
+      columns: [
+        { key: 'rowNo', label: '번호' },
+        { key: 'createdAt', label: '일시' },
+        { key: 'mailKind', label: '구분' },
+        { key: 'status', label: '상태' },
+        { key: 'toAddress', label: '수신' },
+        { key: 'subject', label: '제목' },
+        { key: 'errorMessage', label: '오류' },
+        { key: 'bodyPreview', label: '본문 미리보기' },
+        { key: 'pgTrnId', label: '거래번호' },
+        { key: 'actorUsername', label: '실행자' }
+      ]
     },
     '/deploy/integrationPlan': {
       hideListGrid: true,
@@ -3727,28 +3923,40 @@
         var ph = JSON.parse(JSON.stringify(gm));
         ph.noticeList = [
           '정산방법에서 지급보류가 「보류」인 가맹점은 정산 실행 시 결과가 가맹점정산내역·유통망정산 집계에 나타나지 않고 이 화면에만 적치됩니다. 정산 금액·수수료 등은 이미 계산·저장된 값입니다.',
-          '행을 선택한 뒤 [선택 해제]를 누르면 더블 확인 후 해당 건만 가맹점정산내역(및 유통 집계)에 표시됩니다. 가맹점 설정의 지급보류는 그대로이며, 이후 신규 정산 건은 다시 이 목록에 쌓일 수 있습니다.'
+          '「보류해제」열의 [Y→N 해제]로 한 건만 바로 해제하거나, 체크 후 [선택 건 지급보류 해제]로 여러 건을 한 번에 처리할 수 있습니다. 더블 확인 후 실행 행의 지급보류(Y)가 N으로 바뀌며 가맹점정산내역(및 유통 집계)에 반영됩니다. 가맹점 설정의 지급보류는 그대로이며, 이후 신규 정산 건은 다시 이 목록에 쌓일 수 있습니다.',
+          '결제 건별 롤링 예치(담보)는 「담보금내역」(/calc/collateralList)에서 확인하세요.'
         ];
         var baseBtns = gm.buttons ? JSON.parse(JSON.stringify(gm.buttons)) : [
           { id: 'searchBtn', label: '검색', cls: 'btn-primary' },
           { id: 'excelBtn', label: '엑셀다운로드', cls: 'btn-info' }
         ];
-        ph.buttons = baseBtns.concat([{ id: 'payoutHoldReleaseBtn', label: '선택 해제', cls: 'btn-warning' }]);
+        ph.buttons = baseBtns.concat([{ id: 'payoutHoldReleaseBtn', label: '선택 건 지급보류 해제', cls: 'btn-warning' }]);
+        var phCols = ph.columns || [];
+        var yIdxPh = -1;
+        for (var ypi = 0; ypi < phCols.length; ypi++) {
+          if (phCols[ypi] && phCols[ypi].key === 'payoutHoldYn') { yIdxPh = ypi; break; }
+        }
+        var relColPh = {
+          key: '_payoutHoldRelease',
+          label: '보류해제',
+          type: 'payoutHoldReleaseBtn',
+          thClass: 'text-center text-nowrap',
+          columnGuideLabel: '클릭 시 이 실행 건만 지급보류 Y→N 해제(가맹점정산내역·유통 반영). 가맹 설정의 지급보류는 변경되지 않습니다.'
+        };
+        if (yIdxPh >= 0) {
+          var phCols2 = phCols.slice();
+          phCols2.splice(yIdxPh + 1, 0, relColPh);
+          ph.columns = phCols2;
+        } else {
+          ph.columns = phCols.concat([relColPh]);
+        }
+        if (ph.columnGuideFixedKeys && ph.columnGuideFixedKeys.indexOf('_payoutHoldRelease') === -1) {
+          ph.columnGuideFixedKeys = ph.columnGuideFixedKeys.concat(['_payoutHoldRelease']);
+        }
         return ph;
-      }
-      function buildBh() {
-        var bh = buildPh();
-        bh.noticeList = [
-          '보증금내역: 정산방법의 지급보류가 「보류」인 가맹점은 정산 실행 시 결과가 가맹점정산내역이 아닌 이 화면에만 적치됩니다. 그리드·비고는 가맹점정산내역과 동일합니다.',
-          '행 선택 후 [선택 해제]는 더블 확인 뒤 해당 건만 가맹점정산내역·유통 집계에 반영합니다. 가맹점의 지급보류 설정은 그대로이며, 이후 신규 정산은 다시 적치될 수 있습니다.',
-          '결제 건별 롤링 예치(담보)는 「담보금내역」에서 확인하세요.'
-        ];
-        return bh;
       }
       MENU_SCREENS['/calc/paySettlementHoldList'] = buildPh();
       MENU_SCREENS['/settlement/paySettlementHoldList'] = buildPh();
-      MENU_SCREENS['/pay/payHoldList'] = buildBh();
-      MENU_SCREENS['/settlement/holdList'] = JSON.parse(JSON.stringify(buildBh()));
     } catch (ePh) { /* ignore */ }
   })();
 
@@ -3783,6 +3991,12 @@
         dist.searchFormClass = cl.searchFormClass || dist.searchFormClass;
         dist.tableScrollable = cl.tableScrollable;
         dist.buttons = cl.buttons ? JSON.parse(JSON.stringify(cl.buttons)) : dist.buttons;
+        if (cl.columnGuideFixedKeys && cl.columnGuideFixedKeys.length) {
+          dist.columnGuideFixedKeys = cl.columnGuideFixedKeys.slice();
+        }
+        if (cl.viewSettingDefaultSelectedKeys && cl.viewSettingDefaultSelectedKeys.length) {
+          dist.viewSettingDefaultSelectedKeys = cl.viewSettingDefaultSelectedKeys.slice();
+        }
         if (cl.listSortDirAnchor) dist.listSortDirAnchor = cl.listSortDirAnchor;
         if (cl.paginationSizeOptions) dist.paginationSizeOptions = cl.paginationSizeOptions.slice();
         if (cl.paginationDefaultSize != null) dist.paginationDefaultSize = cl.paginationDefaultSize;
@@ -3871,25 +4085,6 @@
         if (ph.paginationDefaultSize != null) phs.paginationDefaultSize = ph.paginationDefaultSize;
         if (ph.listSortDirAnchor) phs.listSortDirAnchor = ph.listSortDirAnchor;
       }
-      var phl = MENU_SCREENS['/pay/payHoldList'];
-      var hl = MENU_SCREENS['/settlement/holdList'];
-      function syncPayoutHoldScreenFromGm(src, dst) {
-        if (!src || !dst || !src.columns || !src.columns.length) return;
-        dst.columns = JSON.parse(JSON.stringify(src.columns));
-        dst.headerGroups = src.headerGroups ? JSON.parse(JSON.stringify(src.headerGroups)) : dst.headerGroups;
-        dst.summary = src.summary ? src.summary.slice() : dst.summary;
-        dst.searchRows = src.searchRows ? JSON.parse(JSON.stringify(src.searchRows)) : dst.searchRows;
-        dst.buttons = src.buttons ? JSON.parse(JSON.stringify(src.buttons)) : dst.buttons;
-        dst.searchFormClass = src.searchFormClass || dst.searchFormClass;
-        dst.payMngDenseGrid = !!src.payMngDenseGrid;
-        if (src.paginationSizeOptions) dst.paginationSizeOptions = src.paginationSizeOptions.slice();
-        if (src.paginationDefaultSize != null) dst.paginationDefaultSize = src.paginationDefaultSize;
-        if (src.columnGuideFixedKeys) dst.columnGuideFixedKeys = src.columnGuideFixedKeys.slice();
-        if (src.viewSettingDefaultSelectedKeys) dst.viewSettingDefaultSelectedKeys = src.viewSettingDefaultSelectedKeys.slice();
-        if (src.listSortDirAnchor) dst.listSortDirAnchor = src.listSortDirAnchor;
-      }
-      syncPayoutHoldScreenFromGm(ph, phl);
-      syncPayoutHoldScreenFromGm(ph, hl);
     } catch (e) { /* ignore */ }
   })();
 
@@ -3961,6 +4156,10 @@
         btns += '<button type="button" class="btn btn-outline-primary btn-sm mr-1 quick-date' + cls + '" data-range="' + (ranges[i] || '') + '">' + lbl + '</button>';
       }
       inner = '<div class="search-cell-input">' + btns + '</div>';
+      return wrapSearchCell(inner, false);
+    }
+    if (field.type === 'customHtml') {
+      inner = '<div class="search-cell-input search-cell-input--custom-html">' + (field.html || '') + '</div>';
       return wrapSearchCell(inner, false);
     }
     if (field.type === 'compMngSearchActions') {
@@ -4260,7 +4459,7 @@
       html += '<div' + cardId + ' class="' + cardClass + '"><div class="card-header">' + (sec.title || '') + '</div><div class="card-body">';
       if (sec.notice) html += '<p class="text-muted small mb-2">' + sec.notice + '</p>';
       if (sec.type === 'branding') {
-        html += '<p class="text-danger small mb-2">메인이미지는 5MB, 로고/파비콘 이미지는 1MB까지 업로드 가능합니다. 파비콘은 PNG/JPG 업로드 시 32x32 PNG로 자동 변환되어 적용됩니다.</p>' +
+        html += '<p class="text-danger small mb-2">메인이미지는 5MB, 로고·URL결제·파비콘 이미지는 1MB까지 업로드 가능합니다. 파비콘은 PNG/JPG 업로드 시 32x32 PNG로 자동 변환되어 적용됩니다.</p>' +
           '<div class="row mb-2"><div class="col-sm-6"><label class="form-label">메인이미지</label><div class="input-group input-group-sm">' +
           '<input type="text" class="form-control form-control-sm" name="mainImageUrl" id="brandingMainImageUrl" readonly placeholder="업로드 파일명">' +
           '<input type="file" class="d-none" id="brandingMainImageFile" accept="image/png,image/jpeg,image/jpg">' +
@@ -4273,6 +4472,11 @@
           '<input type="text" class="form-control form-control-sm" name="logoImageUrl" id="brandingLogoImageUrl" readonly placeholder="업로드 파일명">' +
           '<input type="file" class="d-none" id="brandingLogoImageFile" accept="image/png,image/jpeg,image/jpg">' +
           '<button type="button" class="btn btn-outline-secondary" id="brandingLogoImageBrowse">Browse</button><button type="button" class="btn btn-outline-danger" id="brandingLogoImageDelete">삭제</button></div></div></div>' +
+          '<div class="row mb-2"><div class="col-sm-6"><label class="form-label">URL결제이미지(공개 결제 페이지 상단)</label><div class="input-group input-group-sm">' +
+          '<input type="text" class="form-control form-control-sm" name="urlPayImageUrl" id="brandingUrlPayImageUrl" readonly placeholder="업로드 파일명">' +
+          '<input type="file" class="d-none" id="brandingUrlPayImageFile" accept="image/png,image/jpeg,image/jpg">' +
+          '<button type="button" class="btn btn-outline-secondary" id="brandingUrlPayImageBrowse">Browse</button><button type="button" class="btn btn-outline-danger" id="brandingUrlPayImageDelete">삭제</button></div>' +
+          '<div class="form-text text-muted small">비우면 URL 결제 상단에는 「로그인 후 로고」가 표시됩니다. 총판(상위) 브랜딩이 가맹점 결제 URL에 적용됩니다.</div></div></div>' +
           '<div class="row mb-2"><div class="col-sm-6"><label class="form-label">파비콘 이미지</label><div class="input-group input-group-sm">' +
           '<input type="text" class="form-control form-control-sm" name="popconImageUrl" id="brandingPopconImageUrl" readonly placeholder="업로드 파일명">' +
           '<input type="file" class="d-none" id="brandingPopconImageFile" accept="image/png,image/jpeg,image/jpg">' +
@@ -4504,43 +4708,114 @@
       '</div>';
   }
 
-  /** 유통망정산내역: 승인/취소 × 수수료 4단 중첩 헤더 */
+  /** 유통망정산내역: VIEW SETTING으로 필터된 열 순서에 맞춘 승인/취소·수수료 중첩 헤더 */
+  function buildDistributionListTheadHtmlFromCols(cols) {
+    function esc(s) {
+      return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+    }
+    function thKeyLabel(key, rowspan, cls) {
+      var col = (cols || []).filter(function (x) { return x && x.key === key; })[0];
+      var lab = col ? (col.label || key) : key;
+      var rs = rowspan > 1 ? ' rowspan="' + rowspan + '"' : '';
+      var c = cls ? String(cls) : 'text-nowrap';
+      return '<th data-key="' + esc(key) + '"' + rs + ' class="' + esc(c) + '">' + esc(lab) + '</th>';
+    }
+    var APRV_MAIN = ['aprvCnt', 'aprvAmt'];
+    var APRV_FEE = ['aprvFeeCnt', 'aprvFeePct', 'aprvFeeSum', 'aprvFeeVat'];
+    var CAN_MAIN = ['canCnt', 'canAmt'];
+    var CAN_FEE = ['canFeeCnt', 'canFeePct', 'canFeeSum', 'canFeeVat'];
+    var LEADING_META = {
+      rowNo: 1, settleMonth: 1, orgDivNm: 1, hqNm: 1, regionalNm: 1, masterNm: 1, branchNm: 1, agencyNm: 1, salesOfficeNm: 1, compId: 1, curType: 1
+    };
+    if (!cols || !cols.length) {
+      return '<tr><th class="text-nowrap">—</th></tr>';
+    }
+    var keys = cols.map(function (c) { return c.key; });
+    function has(k) { return keys.indexOf(k) >= 0; }
+    var leading = [];
+    cols.forEach(function (c) {
+      if (c && c.key && LEADING_META[c.key]) leading.push(c.key);
+    });
+    var aprvM = APRV_MAIN.filter(has);
+    var aprvF = APRV_FEE.filter(has);
+    var canM = CAN_MAIN.filter(has);
+    var canF = CAN_FEE.filter(has);
+    var hasSettle = has('settleAmt');
+    var aprvBlock = aprvM.length + aprvF.length > 0;
+    var canBlock = canM.length + canF.length > 0;
+    var aprvDeep = aprvM.length > 0 && aprvF.length > 0;
+    var canDeep = canM.length > 0 && canF.length > 0;
+    var useSubRows = aprvDeep || canDeep;
+    var refCl = MENU_SCREENS['/calc/calcList'];
+    var canonicalKeys = (refCl && refCl.columns ? refCl.columns : []).map(function (x) { return x.key; }).join('\u0001');
+    var currentKeys = cols.map(function (x) { return x.key; }).join('\u0001');
+    /** 열 구성·순서가 기본과 다르면 1행 헤더(본문 열 순서와 정확히 일치) */
+    var forceFlatHeader = canonicalKeys !== currentKeys;
+
+    function appendAprv(r1, r2, r3) {
+      if (!aprvBlock) return;
+      if (aprvM.length > 0 && aprvF.length === 0) {
+        aprvM.forEach(function (k) { r1.push(thKeyLabel(k, 3, 'text-nowrap')); });
+        return;
+      }
+      if (aprvF.length > 0 && aprvM.length === 0) {
+        aprvF.forEach(function (k) { r1.push(thKeyLabel(k, 3, 'text-nowrap dist-th-fee-sub')); });
+        return;
+      }
+      if (aprvDeep) {
+        r1.push('<th colspan="' + (aprvM.length + aprvF.length) + '" class="dist-th-group text-center">승인</th>');
+        aprvM.forEach(function (k) { r2.push(thKeyLabel(k, 2, 'text-nowrap')); });
+        r2.push('<th colspan="' + aprvF.length + '" class="dist-th-fee text-center text-nowrap">수수료</th>');
+        aprvF.forEach(function (k) { r3.push(thKeyLabel(k, 1, 'text-nowrap dist-th-fee-sub')); });
+      }
+    }
+    function appendCan(r1, r2, r3) {
+      if (!canBlock) return;
+      if (canM.length > 0 && canF.length === 0) {
+        canM.forEach(function (k) { r1.push(thKeyLabel(k, 3, 'text-nowrap')); });
+        return;
+      }
+      if (canF.length > 0 && canM.length === 0) {
+        canF.forEach(function (k) { r1.push(thKeyLabel(k, 3, 'text-nowrap dist-th-fee-sub')); });
+        return;
+      }
+      if (canDeep) {
+        r1.push('<th colspan="' + (canM.length + canF.length) + '" class="dist-th-group text-center">취소</th>');
+        canM.forEach(function (k) { r2.push(thKeyLabel(k, 2, 'text-nowrap')); });
+        r2.push('<th colspan="' + canF.length + '" class="dist-th-fee text-center text-nowrap">수수료</th>');
+        canF.forEach(function (k) { r3.push(thKeyLabel(k, 1, 'text-nowrap dist-th-fee-sub')); });
+      }
+    }
+
+    if (!useSubRows || forceFlatHeader) {
+      var flat = [];
+      cols.forEach(function (c) {
+        if (!c || !c.key) return;
+        var k = c.key;
+        var lcls = k === 'curType' ? 'text-nowrap text-center' : 'text-nowrap';
+        if (APRV_FEE.indexOf(k) >= 0 || CAN_FEE.indexOf(k) >= 0) lcls += ' dist-th-fee-sub';
+        flat.push(thKeyLabel(k, 1, lcls));
+      });
+      return '<tr>' + flat.join('') + '</tr>';
+    }
+
+    var row1 = [];
+    var row2 = [];
+    var row3 = [];
+    leading.forEach(function (k) {
+      var lcls2 = k === 'curType' ? 'text-nowrap text-center' : 'text-nowrap';
+      row1.push(thKeyLabel(k, 3, lcls2));
+    });
+    appendAprv(row1, row2, row3);
+    appendCan(row1, row2, row3);
+    if (hasSettle) row1.push(thKeyLabel('settleAmt', 3, 'text-nowrap'));
+    return '<tr>' + row1.join('') + '</tr><tr>' + row2.join('') + '</tr><tr>' + row3.join('') + '</tr>';
+  }
+
+  /** @deprecated 초기 빈 그리드용 — 전체 열 기준(실조회 시에는 FromCols 사용) */
   function buildDistributionListTheadHtml() {
-    return (
-      '<tr>' +
-      '<th rowspan="3" data-key="rowNo" class="text-nowrap">No.</th>' +
-      '<th rowspan="3" data-key="settleMonth" class="text-nowrap">정산월</th>' +
-      '<th rowspan="3" data-key="orgDivNm" class="text-nowrap">구분</th>' +
-      '<th rowspan="3" data-key="hqNm" class="text-nowrap">총본사</th>' +
-      '<th rowspan="3" data-key="regionalNm" class="text-nowrap">본사</th>' +
-      '<th rowspan="3" data-key="masterNm" class="text-nowrap">총판</th>' +
-      '<th rowspan="3" data-key="branchNm" class="text-nowrap">지사</th>' +
-      '<th rowspan="3" data-key="agencyNm" class="text-nowrap">대리점</th>' +
-      '<th rowspan="3" data-key="compId" class="text-nowrap">업체코드</th>' +
-      '<th rowspan="3" data-key="curType" class="text-nowrap text-center">통화</th>' +
-      '<th colspan="6" class="dist-th-group text-center">승인</th>' +
-      '<th colspan="6" class="dist-th-group text-center">취소</th>' +
-      '<th rowspan="3" data-key="settleAmt" class="text-nowrap">정산금액</th>' +
-      '</tr>' +
-      '<tr>' +
-      '<th rowspan="2" data-key="aprvCnt" class="text-nowrap">건수</th>' +
-      '<th rowspan="2" data-key="aprvAmt" class="text-nowrap">금액</th>' +
-      '<th colspan="4" class="dist-th-fee text-center text-nowrap">수수료</th>' +
-      '<th rowspan="2" data-key="canCnt" class="text-nowrap">건수</th>' +
-      '<th rowspan="2" data-key="canAmt" class="text-nowrap">금액</th>' +
-      '<th colspan="4" class="dist-th-fee text-center text-nowrap">수수료</th>' +
-      '</tr>' +
-      '<tr>' +
-      '<th data-key="aprvFeeCnt" class="text-nowrap dist-th-fee-sub">건</th>' +
-      '<th data-key="aprvFeePct" class="text-nowrap dist-th-fee-sub">%</th>' +
-      '<th data-key="aprvFeeSum" class="text-nowrap dist-th-fee-sub">합계</th>' +
-      '<th data-key="aprvFeeVat" class="text-nowrap dist-th-fee-sub">부가세</th>' +
-      '<th data-key="canFeeCnt" class="text-nowrap dist-th-fee-sub">건</th>' +
-      '<th data-key="canFeePct" class="text-nowrap dist-th-fee-sub">%</th>' +
-      '<th data-key="canFeeSum" class="text-nowrap dist-th-fee-sub">합계</th>' +
-      '<th data-key="canFeeVat" class="text-nowrap dist-th-fee-sub">부가세</th>' +
-      '</tr>'
-    );
+    var cl = MENU_SCREENS['/calc/calcList'];
+    return buildDistributionListTheadHtmlFromCols(cl && cl.columns ? cl.columns : []);
   }
 
   function renderTable(cfg, tabId) {
@@ -4553,7 +4828,7 @@
       var tblExtra = cfg.tableExtraClass ? (' ' + cfg.tableExtraClass) : '';
       return '<div class="' + respClass + '">' +
         '<table class="table table-bordered table-hover table-sm screen-distribution-grid' + tblExtra + '" id="grid_' + (tabId || '') + '">' +
-        '<thead>' + buildDistributionListTheadHtml() + '</thead>' +
+        '<thead>' + buildDistributionListTheadHtmlFromCols(cols) + '</thead>' +
         '<tbody>' + emptyRow + '</tbody></table></div>';
     }
     var ths = cols.map(function (c) {
@@ -4609,8 +4884,9 @@
       '<div class="card-body">' +
       '<p class="text-muted small mb-3">업체명에서 <strong>본사</strong> 또는 <strong>총판</strong>만 선택할 수 있습니다. 선택 후 설정 이름·URL을 입력하고 [설정저장]하면 하단 목록에 반영됩니다. ' +
       'URL에 스킴이 없으면 <strong>https://</strong> 가 자동으로 붙습니다. ' +
-      '<strong>본사</strong> 관리자 URL 호스트로 접속하면 <strong>그 본사 조직에 직접 소속된 계정만</strong> 로그인됩니다(하위 총판·가맹점 계정은 본사 서브도메인에서 불가). ' +
-      '<strong>총판</strong> URL은 총판·지사·대리점·영업점·가맹점 계정만 허용되며 총본사·본사 계정은 로그인할 수 없습니다. 브랜딩은 각각 도메인구성설정 조직 기준으로 적용됩니다.</p>' +
+      '<strong>본사</strong> 관리자 URL: <strong>총본사·해당 본사</strong> 소속 계정만 로그인됩니다(하위 총판·가맹 등은 불가). ' +
+      '<strong>총판</strong> URL: <strong>총본사·이 총판을 소속 트리에 두는 본사·해당 총판 및 그 하위</strong>만 로그인됩니다(다른 총판·다른 본사 트리는 불가). ' +
+      '브랜딩(로그인 화면 등)은 접속한 URL에 매칭된 본사·총판 조직의 설정을 따릅니다.</p>' +
       '<div class="row g-2 align-items-end mb-2 org-perm-unit-control-row">' +
       '<div class="col-lg-3 col-md-6">' +
       '<label class="form-label small mb-1">업체명</label>' +
@@ -4817,10 +5093,19 @@
             '<thead><tr><th class="text-muted">…</th></tr></thead><tbody><tr><td class="text-center text-muted py-3">조회 전</td></tr></tbody></table></div></div></div>';
         }
         if (cfg.hasSettlementExecuteDetailTable) {
+          var pubDayDetail = cfg.settlementExecuteDetailUiVariant === 'publishDay';
+          var settleDetailTitle = pubDayDetail ? '정산배포 · 당일 거래 내역' : '정산실행상세 · 정산 대상 거래';
+          var settleDetailMetaHint = pubDayDetail
+            ? '목록 행을 클릭하면 정산일 기준 당일 00:00~24:00 가맹 전체 거래를 표시합니다.'
+            : '상단 목록 행을 더블클릭하면 표시됩니다.';
+          var settleDetailHintP = pubDayDetail
+            ? '정산배포 목록에서 한 행을 <strong>클릭</strong>하면, 해당 실행의 <strong>정산일(calc_dt) 달력 하루</strong> 동안 해당 가맹의 <strong>전체 결제 거래</strong>를 승인일시 오름차순으로 불러옵니다(최대 2,500건·초과 시 상한 안내). 격자 정산의 집계 구간(H1 등)과 범위가 다를 수 있습니다.'
+            : '정산실행 목록에서 한 행을 <strong>더블클릭</strong>하면, 해당 실행에 저장된 집계 건수(<code>included_txn_cnt</code>)가 있으면 그 건수만큼만, 같은 기간·정렬(승인일시 오름차순)으로 표시합니다. 상단 메타의 <strong>대상 매출액</strong>은 이 실행 집계 구간(예: H1 한 시간)에 대한 <strong>승인 매출 합</strong>(정산 실행 저장값)이며, 아래 표시 행의 단순 합이 아닙니다.';
+          var settleDetailEmpty = pubDayDetail ? '목록에서 행을 클릭하세요.' : '정산실행 행을 더블클릭하세요.';
           html += '<div class="card mt-4 screen-pay-list" id="settlementExecuteDetailCard_' + tabId + '"><div class="card-header py-2 fw-semibold d-flex flex-wrap justify-content-between align-items-center gap-2">' +
-            '<span>정산실행상세 · 정산 대상 거래</span>' +
-            '<span class="small text-muted fw-normal" id="settlementExecuteDetailMeta_' + tabId + '">상단 목록 행을 더블클릭하면 표시됩니다.</span></div><div class="card-body pt-2">' +
-            '<p class="text-muted small mb-2" id="settlementExecuteDetailHint_' + tabId + '">정산실행 목록에서 한 행을 <strong>더블클릭</strong>하면, 해당 실행에 저장된 집계 건수(<code>included_txn_cnt</code>)가 있으면 그 건수만큼만, 같은 기간·정렬(승인일시 오름차순)으로 표시합니다. 상단 메타의 <strong>대상 매출액</strong>은 이 실행 집계 구간(예: H1 한 시간)에 대한 <strong>승인 매출 합</strong>(정산 실행 저장값)이며, 아래 표시 행의 단순 합이 아닙니다.</p>' +
+            '<span>' + settleDetailTitle + '</span>' +
+            '<span class="small text-muted fw-normal" id="settlementExecuteDetailMeta_' + tabId + '">' + settleDetailMetaHint + '</span></div><div class="card-body pt-2">' +
+            '<p class="text-muted small mb-2" id="settlementExecuteDetailHint_' + tabId + '">' + settleDetailHintP + '</p>' +
             '<div class="table-responsive table-scrollable"><table class="table table-sm table-bordered table-hover align-middle mb-0 pay-mng-data-grid" id="grid_settlementExecuteDetail_' + tabId + '">' +
             '<thead>' +
             '<tr>' +
@@ -4832,18 +5117,17 @@
             '<th rowspan="2" class="text-nowrap">상태</th>' +
             '<th rowspan="2" class="text-nowrap">구분</th>' +
             '<th rowspan="2" class="text-end text-nowrap">매출</th>' +
-            '<th colspan="5" class="text-center text-nowrap">수수료(세부)</th>' +
+            '<th colspan="4" class="text-center text-nowrap">수수료(세부)</th>' +
             '<th rowspan="2" class="text-end text-nowrap">예상지급</th>' +
             '<th rowspan="2" class="text-nowrap">통화</th>' +
             '</tr>' +
             '<tr>' +
             '<th class="text-end text-nowrap small" title="건당(고정) 수수료">고정</th>' +
             '<th class="text-end text-nowrap small" title="매출 대비 % 수수료(MDR)">MDR</th>' +
-            '<th class="text-end text-nowrap small" title="정산 실행당 1회 정산료는 목록 행·상단 메타에만 반영되며, 거래 행의 이 열에는 건별로 넣지 않습니다(0 또는 —).">정산</th>' +
             '<th class="text-end text-nowrap small">담보</th>' +
             '<th class="text-end text-nowrap small" title="승인: 기타%·수수료VAT 합 / 그 외: 무효·환불·수동무효·강제환불·실패 등 건당 수수료">기타</th>' +
             '</tr>' +
-            '</thead><tbody><tr><td colspan="15" class="text-center text-muted py-4">정산실행 행을 더블클릭하세요.</td></tr></tbody></table></div></div></div>';
+            '</thead><tbody><tr><td colspan="14" class="text-center text-muted py-4">' + settleDetailEmpty + '</td></tr></tbody></table></div></div></div>';
         }
       }
       if (cfg.hasSelectedTable) {
@@ -4866,6 +5150,7 @@
     getScreenHtml: getScreenHtml,
     getMenuScreens: function () { return MENU_SCREENS; },
     buildDistributionListTheadHtml: buildDistributionListTheadHtml,
+    buildDistributionListTheadHtmlFromCols: buildDistributionListTheadHtmlFromCols,
     getCompMngSearchCompDivOptions: getCompMngSearchCompDivOptions
   };
 })();

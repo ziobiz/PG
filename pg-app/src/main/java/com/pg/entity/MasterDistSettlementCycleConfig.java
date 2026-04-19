@@ -59,6 +59,13 @@ public class MasterDistSettlementCycleConfig {
     @Column(name = "settlement_cron_zone_id", nullable = false, length = 64)
     private String settlementCronZoneId = "Asia/Seoul";
 
+    /**
+     * 거래시간 그리드 1줄 프리셋(KR, JP, USA, TH, SG, HK, CH). null이면 JP로 간주.
+     * 2줄은 {@link #settlementCronZoneId} 기준.
+     */
+    @Column(name = "txn_time_display_preset", length = 16)
+    private String txnTimeDisplayPreset;
+
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 
@@ -187,6 +194,14 @@ public class MasterDistSettlementCycleConfig {
 
     public void setSettlementCronZoneId(String settlementCronZoneId) {
         this.settlementCronZoneId = settlementCronZoneId;
+    }
+
+    public String getTxnTimeDisplayPreset() {
+        return txnTimeDisplayPreset;
+    }
+
+    public void setTxnTimeDisplayPreset(String txnTimeDisplayPreset) {
+        this.txnTimeDisplayPreset = txnTimeDisplayPreset;
     }
 
     public LocalDateTime getCreatedAt() {

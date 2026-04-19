@@ -34,6 +34,10 @@ public class OrgBranding {
     @Column(name = "popcon_image_url", length = 500)
     private String popconImageUrl;
 
+    /** URL 결제 페이지 상단 이미지 — 미설정 시 {@link #logoImageUrl} 로 폴백 */
+    @Column(name = "url_pay_image_url", length = 500)
+    private String urlPayImageUrl;
+
     /** 배경테마: DEFAULT(현재), LIGHT(흰배경/검정글씨), DARK(어두운배경/흰글씨), PASTEL_1~5 */
     @Column(name = "theme", length = 20)
     private String theme = "DEFAULT";
@@ -67,6 +71,8 @@ public class OrgBranding {
     public void setFirstLogoImageUrl(String firstLogoImageUrl) { this.firstLogoImageUrl = firstLogoImageUrl; }
     public String getPopconImageUrl() { return popconImageUrl; }
     public void setPopconImageUrl(String popconImageUrl) { this.popconImageUrl = popconImageUrl; }
+    public String getUrlPayImageUrl() { return urlPayImageUrl; }
+    public void setUrlPayImageUrl(String urlPayImageUrl) { this.urlPayImageUrl = urlPayImageUrl; }
     public String getTheme() { return theme; }
     public void setTheme(String theme) { this.theme = theme != null ? theme : "DEFAULT"; }
     public String getBrandHost() { return brandHost; }

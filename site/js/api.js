@@ -310,6 +310,17 @@
       });
     },
 
+    /** Google OTP 등록 — 이메일 인증번호는 서버에서 ziobizm@gmail.com 으로만 발송 */
+    otpEnrollRequestEmail: function () {
+      return post('/api/auth/otp/enroll/request-email', {});
+    },
+    otpEnrollVerifyEmail: function (emailCode) {
+      return post('/api/auth/otp/enroll/verify-email', { emailCode: emailCode || '' });
+    },
+    otpEnrollActivate: function (totpCode) {
+      return post('/api/auth/otp/enroll/activate', { totpCode: totpCode || '' });
+    },
+
     noticeList: function (params) {
       return get('/api/system/notice', params).then(function (r) { return r.data; });
     },
@@ -332,10 +343,6 @@
     /** ChillPay 통합정산 — Search Settlement Transaction(/api/v1/settlement/search) */
     chillPaySettlementSearch: function (params) {
       return get('/api/calc/chillPaySettlementSearch', params).then(function (r) { return r.data; });
-    },
-
-    seedDev: function () {
-      return get('/api/dev/seed');
     },
 
     /** TEMP_REMOVE_AFTER_DEV — 임시: 선택 조직+하위 프로필 미사용(N). ADMIN + comp-dev-tree-remove */
@@ -709,9 +716,6 @@
     settlementUnpaidMng: function (params) {
       return get('/api/settlement/unpaidMng', params).then(function (r) { return r.data; });
     },
-    settlementHoldList: function (params) {
-      return get('/api/settlement/holdList', params).then(function (r) { return r.data; });
-    },
     settlementPayoutHoldList: function (params) {
       return get('/api/settlement/payoutHoldList', params).then(function (r) { return r.data; });
     },
@@ -793,6 +797,21 @@
     },
     hqPgApiMngOperationalSave: function (body) {
       return post('/api/hq/pgApiMng/operational', body).then(function (r) { return r.data; });
+    },
+    hqMerchantApiDeploymentVendors: function () {
+      return get('/api/hq/merchant-api-deployment/vendors').then(function (r) { return r.data; });
+    },
+    hqMerchantApiDeploymentMerchants: function (params) {
+      return get('/api/hq/merchant-api-deployment/merchants', params || {}).then(function (r) { return r.data; });
+    },
+    hqMerchantApiDeploymentKit: function (params) {
+      return get('/api/hq/merchant-api-deployment/kit', params || {}).then(function (r) { return r.data; });
+    },
+    hqMerchantApiDeploymentRotate: function (body) {
+      return post('/api/hq/merchant-api-deployment/credential/rotate', body || {}).then(function (r) { return r.data; });
+    },
+    hqMerchantApiDeploymentEnforce: function (body) {
+      return post('/api/hq/merchant-api-deployment/credential/enforce', body || {}).then(function (r) { return r.data; });
     },
     hqDefaultCommission: function () {
       return get('/api/hq/defaultCommission').then(function (r) { return r.data; });
@@ -913,7 +932,7 @@
     hqMasterDistOrgOptions: function () {
       return get('/api/hq/settlement/masterDistOrgOptions').then(function (r) { return r.data || []; });
     },
-    /** 총판별 영업일 표시 + 정산 크론 Zone — { rows, presets } */
+    /** 총판별 영업일 표시 + 정산 크론 Zone + 거래시간(1줄) 프리셋 — { rows, presets, txnTimePresets } */
     hqMasterDistBizCronZoneGet: function () {
       return get('/api/hq/settlement/masterDistBizCronZone', {}).then(function (r) { return r.data || {}; });
     },
@@ -1038,11 +1057,26 @@
     hqLedgerSysSettingsSaveHelloTimeline: function (body) {
       return post('/api/hq/ledgerSysSettings/saveHelloTimeline', body || {}).then(function (r) { return r.data; });
     },
+    hqLedgerSysSettingsSavePayFollowLevelCaps: function (body) {
+      return post('/api/hq/ledgerSysSettings/savePayFollowLevelCaps', body || {}).then(function (r) { return r.data; });
+    },
     hqLedgerSysSettingsResetOperationalData: function () {
       return post('/api/hq/ledgerSysSettings/resetOperationalData', {}).then(function (r) { return r.data; });
     },
     hqLedgerSysSettingsResetSettlementData: function (body) {
-      return post('/api/hq/ledgerSysSettings/resetSettlementData', body || {});
+      return post('/api/hq/ledgerSysSettings/resetSettlementData', body || {}).then(function (r) { return r.data; });
+    },
+    hqLedgerSysSettingsTestVoidEmail: function (body) {
+      return post('/api/hq/ledgerSysSettings/testVoidEmail', body || {}).then(function (r) { return r.data; });
+    },
+    opsMailLogList: function (params) {
+      var p = params || {};
+      var q = { page: p.page || 1, size: p.size || 20 };
+      if (p.searchMailKind) q.mailKind = p.searchMailKind;
+      if (p.searchMailStatus) q.status = p.searchMailStatus;
+      if (p.searchFromDate) q.fromDate = p.searchFromDate;
+      if (p.searchToDate) q.toDate = p.searchToDate;
+      return get('/api/ops/mailLog', q).then(function (r) { return r.data; });
     },
     hqOrgViewColumnRegionalBranches: function () {
       return get('/api/hq/orgViewColumnAllowance/regionalBranches').then(function (r) { return r.data || []; });
@@ -1150,7 +1184,9 @@
       if (file.size > max) {
         var typeNm = imageType === 'main'
           ? '메인이미지'
-          : (imageType === 'popcon' ? '팝콘이미지' : (imageType === 'first' ? '첫화면 로고이미지' : '로고이미지'));
+          : (imageType === 'popcon' ? '팝콘이미지'
+            : (imageType === 'first' ? '첫화면 로고이미지'
+              : (imageType === 'urlPay' ? 'URL결제이미지' : '로고이미지')));
         var maxMb = imageType === 'main' ? '5MB' : '1MB';
         return Promise.reject(new Error(typeNm + '는 ' + maxMb + ' 이하만 업로드할 수 있습니다.'));
       }

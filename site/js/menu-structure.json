@@ -15,8 +15,8 @@
         { "label": "조직항목설정", "url": "/hq/orgViewColumnAllowance", "menuId": "M0108" },
         { "label": "API연동설정", "url": "/hq/pgApiMng", "menuId": "M0101" },
         { "label": "API배포설정", "url": "/hq/apiConfig", "menuId": "M0103" },
-        { "label": "URL결제설정", "url": "/hq/urlPayDeploy", "menuId": "M0122" },
         { "label": "결제로직설정", "url": "/hq/paymentOrchestration", "menuId": "M0118" },
+        { "label": "URL결제설정", "url": "/hq/urlPayDeploy", "menuId": "M0122" },
         { "label": "노티구성설정", "url": "/hq/notifyEnv", "menuId": "M0105" },
         { "label": "노티매핑설정", "url": "/hq/notifyMapping", "menuId": "M0107" },
         { "label": "노티수령정보", "url": "/hq/notifyInbound", "menuId": "M0121" },
@@ -62,15 +62,14 @@
         { "label": "통합정산", "url": "/calc/chillPaySettlementList", "menuId": "M0421" },
         { "label": "수수료내역", "url": "/calc/feeList", "menuId": "M0406" },
         { "label": "정산실행", "url": "/calc/exCalcList", "menuId": "M0418" },
-        { "label": "정산배포(대기)", "url": "/settlement/settlementResultDistribute", "menuId": "M0423" },
-        { "label": "정산대기(홀딩)", "url": "/settlement/settlementResultHold", "menuId": "M0424" },
+        { "label": "정산배포", "url": "/settlement/settlementResultDistribute", "menuId": "M0423" },
+        { "label": "정산대기", "url": "/settlement/settlementResultHold", "menuId": "M0424" },
         { "label": "가맹점정산내역", "url": "/calc/calcGmList", "menuId": "M0405" },
         { "label": "정산보류내역", "url": "/calc/paySettlementHoldList", "menuId": "M0422" },
         { "label": "유통망정산내역", "url": "/calc/calcList", "menuId": "M0404" },
         { "label": "담보금내역", "url": "/calc/collateralList", "menuId": "M0420" },
         { "label": "환수금관리", "url": "/calc/compPointMngList", "menuId": "M0407" },
         { "label": "미수금관리", "url": "/calc/unpaidMng", "menuId": "M0413" },
-        { "label": "보증금내역", "url": "/pay/payHoldList", "menuId": "M0312" },
         { "label": "정산리포트", "url": "/calc/settlementReport", "menuId": "M0419" }
       ]
     },
@@ -96,7 +95,8 @@
       "label": "운영관리",
       "icon": "bi-sliders2",
       "children": [
-        { "label": "운영관리", "url": "/ops/opsMng", "menuId": "M0601" }
+        { "label": "운영관리", "url": "/ops/opsMng", "menuId": "M0601" },
+        { "label": "메일로그", "url": "/ops/mailLog", "menuId": "M0602" }
       ]
     },
     {

@@ -35,12 +35,11 @@
     .login-panel { padding: 18px 16px; flex: 1; }
     .login-panel .logo-top { max-height: 42px; max-width: 170px; margin: 0 0 18px; object-fit: contain; display: block; }
     .login-panel .form-control { background: #e8f4fd; }
-    .notice-section { font-size: 12px; color: #856404; background: #fff3cd; padding: 12px; margin: 0 24px 24px; border-radius: 4px; }
-    .notice-title { font-weight: 700; margin-bottom: 8px; }
-    .notice-section p { margin: 0 0 4px; }
-    .otp-notice { font-size: 12px; color: #0c5460; background: #d1ecf1; padding: 10px; border-radius: 4px; margin-bottom: 16px; }
-    .otp-notice p { margin: 0 0 4px; }
-    .login-host-note { font-size: 11px; color: #334155; background: #eef2ff; border: 1px solid #c7d2fe; border-radius: 4px; padding: 6px 8px; margin-top: 8px; }
+    .notice-section { font-size: 12px; color: #664d03; background: linear-gradient(180deg, #fffbeb 0%, #fef3c7 100%); border: 1px solid #fde68a; padding: 14px 14px 12px; margin: 0 24px 24px; border-radius: 8px; line-height: 1.55; box-shadow: 0 1px 2px rgba(0,0,0,0.04); }
+    .notice-title { font-size: 13px; font-weight: 700; margin: 0 0 10px; letter-spacing: -0.02em; color: #713f12; }
+    .notice-section p { margin: 0 0 8px; }
+    .notice-section p:last-child { margin-bottom: 0; }
+    .login-host-note { font-size: 11px; color: #334155; background: #eef2ff; border: 1px solid #c7d2fe; border-radius: 4px; padding: 6px 8px; margin-top: 0; }
     .login-popcon { position: fixed; right: 14px; bottom: 14px; z-index: 1200; max-width: 220px; background: #fff; border: 1px solid #e5e7eb; border-radius: 8px; box-shadow: 0 8px 20px rgba(0,0,0,0.18); overflow: hidden; }
     .login-popcon img { display: block; width: 100%; height: auto; }
     .login-popcon .btn-close-wrap { position: absolute; top: 6px; right: 6px; }
@@ -73,15 +72,13 @@
       <div class="main-bg" id="loginMainBg"></div>
       <div class="main-overlay"></div>
       <img class="main-logo d-none" id="loginMainLogo" alt="Logo" src="">
-      <div class="main-text" id="loginMainText"></div>
+      <div class="main-text d-none" id="loginMainText" aria-hidden="true"></div>
     </div>
     <div class="login-panel-wrap">
       <div class="login-panel">
         <img class="logo-top" id="loginPanelLogo" src="" alt="Logo" style="display:none">
         <h5 class="mb-3 d-none" id="loginPanelTitle"></h5>
-        <div class="otp-notice">
-          <p>알림톡 혹은 문자로 GOOGLE OTP 키값을 전송하였습니다</p>
-          <p>GOOGLE OTP앱으로 키값을 등록 후 다시 로그인하시기 바랍니다.</p>
+        <div class="mb-3">
           <div class="login-host-note d-none" id="loginHostNote"></div>
         </div>
         <form id="loginForm" onsubmit="return false;">
@@ -99,7 +96,11 @@
             <button type="button" class="btn btn-outline-secondary btn-sm w-100 mb-2" id="forcePwOpenThisScreen">이 화면에서 새 비밀번호 설정하기</button>
           </div>
           <div id="forcePwChangeBlock" class="d-none">
-            <p class="small text-danger mb-2">임시 비밀번호(초기화 후 <strong>아이디+1!</strong>)로 로그인하셨습니다. 새 비밀번호(8자 이상)를 설정한 뒤 입장합니다.</p>
+            <p class="small text-danger mb-2">임시 비밀번호(초기화 후 <strong>아이디+1!</strong>)로 로그인하셨습니다. 아래 항목을 입력한 뒤 입장합니다.</p>
+            <div class="mb-2">
+              <label for="forceOldPwd" class="form-label">기존 비밀번호</label>
+              <input type="password" class="form-control" id="forceOldPwd" autocomplete="current-password">
+            </div>
             <div class="mb-2">
               <label for="forceNewPwd1" class="form-label">새 비밀번호</label>
               <input type="password" class="form-control" id="forceNewPwd1" autocomplete="new-password">
@@ -127,10 +128,10 @@
           <p class="mt-2 mb-0"><button type="button" class="btn btn-link p-0" id="openChangePwModal">초기비밀번호 변경</button></p>
         </form>
       </div>
-      <section class="notice-section">
-        <h3 class="notice-title">※ 사칭 피해 주의 안내 ※</h3>
+      <section class="notice-section" role="note" aria-labelledby="loginFraudNoticeTitle">
+        <h3 class="notice-title" id="loginFraudNoticeTitle">사칭 피해 주의 안내</h3>
         <p>최근 본사나 PG사를 사칭해 금전적 요구를 하는 사례가 발생하고 있습니다.</p>
-        <p>저희는 결제 관련 금전 요청을 하지 않으니, 의심스러운 연락을 받으신 경우 고객센터 또는 계약된 영업지사를 확인해주시기 바랍니다.</p>
+        <p class="mb-0">저희는 결제와 관련한 금전을 별도로 요청하지 않습니다. 의심스러운 연락을 받으셨다면 <strong>고객센터</strong> 또는 <strong>계약된 영업지사</strong>로 사실 여부를 반드시 확인해 주시기 바랍니다.</p>
       </section>
     </div>
   </div>
@@ -149,11 +150,11 @@
             <input type="password" class="form-control" id="modalOldPassword" name="oldPassword">
           </div>
           <div class="mb-2">
-            <label for="modalNewPassword" class="form-label">변경 비밀번호</label>
+            <label for="modalNewPassword" class="form-label">새 비밀번호</label>
             <input type="password" class="form-control" id="modalNewPassword" name="newPassword">
           </div>
           <div class="mb-2">
-            <label for="modalNewPasswordConfirm" class="form-label">변경 비밀번호 확인</label>
+            <label for="modalNewPasswordConfirm" class="form-label">새 비밀번호 확인</label>
             <input type="password" class="form-control" id="modalNewPasswordConfirm" name="newPasswordConfirm">
           </div>
         </div>
@@ -277,11 +278,6 @@
             var payload = res && res.data !== undefined ? res.data : res;
             if (payload && payload.matched && payload.compId) {
               compId = String(payload.compId);
-              if (payload.compNm) {
-                var mt = document.getElementById('loginMainText');
-                if (mt) mt.textContent = String(payload.compNm);
-                try { document.title = String(payload.compNm) + ' · 로그인'; } catch (e1) {}
-              }
               if (payload.branding && typeof payload.branding === 'object') {
                 applyBranding(payload.branding);
               }
@@ -357,6 +353,8 @@
           if (resData.pagePermissions) u.pagePermissions = resData.pagePermissions;
           if (resData.canWriteNotice !== undefined) u.canWriteNotice = !!resData.canWriteNotice;
           if (resData.brandingCompId) u.brandingCompId = resData.brandingCompId;
+          if (resData.mustSetupOtp !== undefined) u.mustSetupOtp = !!resData.mustSetupOtp;
+          if (resData.otpRegisteredYn !== undefined) u.otpRegisteredYn = String(resData.otpRegisteredYn);
           api.setAuth(resData.token, u);
         }
         window.location.replace((origin || '') + '/index.html');
@@ -384,6 +382,7 @@
                   document.getElementById('forcePwPopupNotice').classList.remove('d-none');
                 } else {
                   document.getElementById('forcePwChangeBlock').classList.remove('d-none');
+                  document.getElementById('forceOldPwd').value = '';
                   document.getElementById('forceNewPwd1').value = '';
                   document.getElementById('forceNewPwd2').value = '';
                 }
@@ -403,8 +402,11 @@
 
       document.getElementById('forcePwChangeSubmit').addEventListener('click', function () {
         if (!loginPending) return;
+        var oldP = document.getElementById('forceOldPwd').value;
         var n1 = document.getElementById('forceNewPwd1').value;
         var n2 = document.getElementById('forceNewPwd2').value;
+        if (!oldP) { alert('기존 비밀번호를 입력하세요.'); return; }
+        if (oldP !== loginPending.userPwd) { alert('기존 비밀번호가 로그인 시 입력한 값과 일치하지 않습니다.'); return; }
         if (!n1 || n1.length < 8) { alert('새 비밀번호는 8자 이상 입력하세요.'); return; }
         if (n1 !== n2) { alert('새 비밀번호 확인이 일치하지 않습니다.'); return; }
         var api = window.PG_API;
@@ -413,8 +415,10 @@
         if (p.data.role) u.role = p.data.role;
         if (p.data.pagePermissions) u.pagePermissions = p.data.pagePermissions;
         if (p.data.brandingCompId) u.brandingCompId = p.data.brandingCompId;
+        if (p.data.mustSetupOtp !== undefined) u.mustSetupOtp = !!p.data.mustSetupOtp;
+        if (p.data.otpRegisteredYn !== undefined) u.otpRegisteredYn = String(p.data.otpRegisteredYn);
         api.setAuth(p.data.token, u);
-        api.authChangePassword(p.userPwd, n1, n2).then(function () {
+        api.authChangePassword(oldP, n1, n2).then(function () {
           loginPending = null;
           try { window.__pgLoginPending = null; } catch (e) {}
           finishLogin(p.data, p.userId);
@@ -435,6 +439,7 @@
       document.getElementById('forcePwOpenThisScreen').addEventListener('click', function () {
         document.getElementById('forcePwPopupNotice').classList.add('d-none');
         document.getElementById('forcePwChangeBlock').classList.remove('d-none');
+        document.getElementById('forceOldPwd').value = '';
         document.getElementById('forceNewPwd1').value = '';
         document.getElementById('forceNewPwd2').value = '';
       });

@@ -16,7 +16,8 @@
       'chillTransactionId', 'trnId', 'chillCustomer', 'orderNo', 'paymentChannel',
       'payCompletedAt', 'chillAmount', 'icopayAmt', 'chillFeeAmt', 'totalAmt', 'currency',
       'regionalBaseCur', 'masterDistBaseCur', 'merchantBaseCur',
-      'chillPaymentStatus', 'settledYn', 'payDivNm', 'cardAprvNo', 'productNm', 'customerNm'
+      'chillPaymentStatus', 'settledYn', 'payDivNm', 'cardAprvNo', 'productNm', 'customerNm',
+      'payActions'
     ],
     /**
      * 조직항목설정: 조직 유형별 허용 열 체크의 기본안(REGIONAL 은 런타임에서 전체 토글열로 확장).
@@ -32,7 +33,7 @@
         'payDivNm', 'cardAprvNo', 'productNm', 'customerNm', 'customerTel', 'regionalNm', 'masterNm', 'branchNm',
         'compRegNo', 'payCard', 'instalMonth', 'payMethod', 'pgNm', 'pgApproveAmt', 'payAprv',
         'holdAmt', 'holdDttm', 'feeCnt', 'feeRate', 'settleAmt', 'calcDt', 'pgApproveNo', 'corpNm', 'terminalId', 'calcCycle',
-        'payCardNo'
+        'payCardNo', 'payActions'
       ],
       BRANCH_GROUP: [
         'chillTransactionId', 'trnId', 'chillCustomer', 'orderNo', 'paymentChannel', 'payCompletedAt',
@@ -48,7 +49,7 @@
         'chillAmount', 'icopayAmt', 'chillFeeAmt', 'totalAmt', 'currency',
         'regionalBaseCur', 'masterDistBaseCur', 'merchantBaseCur',
         'chillPaymentStatus', 'settledYn',
-        'payDivNm', 'cardAprvNo', 'productNm', 'customerNm'
+        'payDivNm', 'cardAprvNo', 'productNm', 'customerNm', 'payActions'
       ]
     },
     headerGroups: [

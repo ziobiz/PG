@@ -3,8 +3,13 @@ package com.pg.service.settlement;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 /**
@@ -242,6 +247,79 @@ public final class SettlementCycleTiming {
             return isHourBlockClosingGridNow(now, g);
         }
         return false;
+    }
+
+    /**
+     * M5·H1 등 <strong>직전 구간 합산</strong> 격자의 마감 시각(구간 상한, 초·나노=0)인지.
+     * {@code plainGrid} 는 {@link #toPlainGridClosingCode(String)} 결과(M5·H12 등)를 권장.
+     */
+    public static boolean isPlainSubDailyGridEndWallClock(LocalDateTime end, String plainGrid) {
+        if (end == null || plainGrid == null || plainGrid.isBlank()) {
+            return false;
+        }
+        if (end.getSecond() != 0 || end.getNano() != 0) {
+            return false;
+        }
+        String g = normalize(plainGrid);
+        g = toPlainGridClosingCode(g);
+        Integer sm = MINUTE_GRID_STEP.get(g);
+        if (sm != null) {
+            return end.getMinute() % sm == 0;
+        }
+        Integer hb = HOUR_BLOCK_MOD.get(g);
+        return hb != null && end.getMinute() == 0 && end.getHour() % hb == 0;
+    }
+
+    /**
+     * {@code nowMin} 분 단위 시각 <strong>직전</strong>의 격자 마감 시각(직전 구간의 endExclusive).
+     * {@code nowMin} 이 격자 정각이면, 그 정각에 막 끝난 구간의 상한은 포함하지 않고 그 이전 마감만 반환한다.
+     */
+    public static Optional<LocalDateTime> previousPlainSubDailyGridEndExclusive(LocalDateTime nowMin, String plainGrid) {
+        if (nowMin == null || plainGrid == null || plainGrid.isBlank()) {
+            return Optional.empty();
+        }
+        String g = normalize(plainGrid);
+        g = toPlainGridClosingCode(g);
+        if (!MINUTE_GRID_STEP.containsKey(g) && !HOUR_BLOCK_MOD.containsKey(g)) {
+            return Optional.empty();
+        }
+        LocalDateTime c = nowMin.truncatedTo(ChronoUnit.MINUTES).minusMinutes(1);
+        for (int i = 0; i < 4320; i++) {
+            if (isPlainSubDailyGridEndWallClock(c, g)) {
+                return Optional.of(c);
+            }
+            c = c.minusMinutes(1);
+        }
+        return Optional.empty();
+    }
+
+    /**
+     * {@code nowMin} 이전의 격자 마감 시각 중, {@code nowMin} 과의 분 차가 {@code graceMinutes} 이하인 것만
+     * <strong>시간 오름차순</strong>으로 반환한다. 서버 다운 등으로 격자 정각 tick 을 놓친 경우 자동 보강(catch-up)에 사용.
+     */
+    public static List<LocalDateTime> listMissedPlainSubDailyGridEndsInGrace(LocalDateTime nowMin, String plainGrid, int graceMinutes) {
+        if (graceMinutes <= 0 || nowMin == null || plainGrid == null || plainGrid.isBlank()) {
+            return List.of();
+        }
+        String g = normalize(plainGrid);
+        g = toPlainGridClosingCode(g);
+        if (!MINUTE_GRID_STEP.containsKey(g) && !HOUR_BLOCK_MOD.containsKey(g)) {
+            return List.of();
+        }
+        LocalDateTime nowTrunc = nowMin.truncatedTo(ChronoUnit.MINUTES);
+        List<LocalDateTime> newestFirst = new ArrayList<>();
+        Optional<LocalDateTime> p = previousPlainSubDailyGridEndExclusive(nowTrunc, g);
+        while (p.isPresent()) {
+            LocalDateTime end = p.get();
+            long mins = ChronoUnit.MINUTES.between(end, nowTrunc);
+            if (mins > graceMinutes) {
+                break;
+            }
+            newestFirst.add(end);
+            p = previousPlainSubDailyGridEndExclusive(end, g);
+        }
+        Collections.reverse(newestFirst);
+        return newestFirst;
     }
 
     /**

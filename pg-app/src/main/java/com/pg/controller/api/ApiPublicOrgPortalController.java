@@ -57,6 +57,7 @@ public class ApiPublicOrgPortalController {
         branding.put("logoImageUrl", "");
         branding.put("firstLogoImageUrl", "");
         branding.put("popconImageUrl", "");
+        branding.put("urlPayImageUrl", "");
         branding.put("theme", "DEFAULT");
         branding.put("brandHost", "");
         branding.put("siteName", "");
@@ -65,6 +66,7 @@ public class ApiPublicOrgPortalController {
             branding.put("logoImageUrl", b.getLogoImageUrl() != null ? b.getLogoImageUrl() : "");
             branding.put("firstLogoImageUrl", b.getFirstLogoImageUrl() != null ? b.getFirstLogoImageUrl() : "");
             branding.put("popconImageUrl", b.getPopconImageUrl() != null ? b.getPopconImageUrl() : "");
+            branding.put("urlPayImageUrl", b.getUrlPayImageUrl() != null ? b.getUrlPayImageUrl() : "");
             branding.put("theme", b.getTheme() != null ? b.getTheme() : "DEFAULT");
             branding.put("brandHost", b.getBrandHost() != null ? b.getBrandHost() : "");
             branding.put("siteName", b.getSiteName() != null ? b.getSiteName() : "");

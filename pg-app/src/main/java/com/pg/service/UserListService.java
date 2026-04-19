@@ -17,6 +17,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.domain.Sort.Order;
 import org.springframework.stereotype.Service;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -71,7 +72,11 @@ public class UserListService {
                                                         String searchUseStatus, int page, int size, String scopeCompCode,
                                                         String accessUsername, boolean actorIsAdmin) {
         if (scopeCompCode == null || scopeCompCode.isBlank()) {
-            return search(searchUserId, searchUserNm, searchCompId, searchUseStatus, page, size);
+            if (actorIsAdmin) {
+                return search(searchUserId, searchUserNm, searchCompId, searchUseStatus, page, size);
+            }
+            // 상위·타 조직 사용자는 볼 수 없음: 소속 업체코드가 없으면 목록 비움(ADMIN 만 전체)
+            return emptyUserListPage(page, size);
         }
         Set<String> allowed0 = collectSelfAndDescendantCodes(scopeCompCode.trim());
         if (allowed0.isEmpty()) {
@@ -96,6 +101,18 @@ public class UserListService {
         pr.setSize(safeSize);
         pr.setTotalElements(filtered.size());
         pr.setTotalPages(Math.max(1, (int) Math.ceil((double) filtered.size() / safeSize)));
+        return pr;
+    }
+
+    private static PageResult<Map<String, Object>> emptyUserListPage(int page, int size) {
+        int safeSize = Math.min(1000, Math.max(1, size));
+        int safePage = Math.max(1, page);
+        PageResult<Map<String, Object>> pr = new PageResult<>();
+        pr.setList(Collections.emptyList());
+        pr.setPage(safePage);
+        pr.setSize(safeSize);
+        pr.setTotalElements(0);
+        pr.setTotalPages(1);
         return pr;
     }
 
@@ -185,9 +202,16 @@ public class UserListService {
         boolean resetEnabled = cfg != null && "Y".equalsIgnoreCase(cfg.getManagerPasswordResetEnabledYn());
         boolean managerRole = isManagerRole(actor);
         boolean canManage = featureEnabled && managerRole;
+        boolean resetActor = isStrictManagerForPasswordOtpReset(actor);
+        String canReset;
+        if ("ADMIN".equalsIgnoreCase(safeTrim(actor.getRole()))) {
+            canReset = "Y";
+        } else {
+            canReset = (resetActor && resetEnabled) ? "Y" : "N";
+        }
         Map<String, Object> out = new LinkedHashMap<>();
         out.put("canManageUsers", canManage ? "Y" : "N");
-        out.put("canResetPassword", (canManage && resetEnabled) ? "Y" : "N");
+        out.put("canResetPassword", canReset);
         return out;
     }
 
@@ -198,7 +222,7 @@ public class UserListService {
     public void createUserScoped(AppUser actor, Set<String> allowedCompCodes, String scopeCompCode,
                                  String username, String name, String password, String mobile,
                                  String compId, String role, String userType, String assistantRoleType, String parentUsername) {
-        requireManage(actor, false);
+        requireManage(actor);
         String uid = safeTrim(username);
         if (uid.isEmpty()) throw new IllegalArgumentException("사용자ID를 입력하세요.");
         if (userRepository.findByUsername(uid).isPresent()) throw new IllegalArgumentException("이미 존재하는 사용자ID입니다.");
@@ -249,7 +273,7 @@ public class UserListService {
 
     public void updateUserScoped(AppUser actor, Set<String> allowedCompCodes, Long targetId,
                                  String mobile, String userStatus, String inactiveReason, String assistantRoleType) {
-        requireManage(actor, false);
+        requireManage(actor);
         AppUser target = userRepository.findById(targetId)
                 .orElseThrow(() -> new IllegalArgumentException("수정할 사용자를 찾을 수 없습니다."));
         if (!allowedCompCodes.isEmpty() && !allowedCompCodes.contains(safeTrim(target.getOrgUnitCode()))) {
@@ -265,11 +289,11 @@ public class UserListService {
     }
 
     public Map<String, Object> resetPasswordScoped(AppUser actor, Set<String> allowedCompCodes, Long targetId) {
-        requireManage(actor, true);
+        requireResetPrivilege(actor);
         AppUser target = userRepository.findById(targetId)
                 .orElseThrow(() -> new IllegalArgumentException("비밀번호를 초기화할 사용자를 찾을 수 없습니다."));
         if (!allowedCompCodes.isEmpty() && !allowedCompCodes.contains(safeTrim(target.getOrgUnitCode()))) {
-            throw new IllegalArgumentException("본인 또는 하위 조직 사용자만 초기화할 수 있습니다.");
+            throw new IllegalArgumentException("본인·동일 조직·하위 조직 사용자만 초기화할 수 있습니다. 상위 조직 사용자는 대상이 아닙니다.");
         }
         String uid = target.getUsername() != null ? target.getUsername().trim() : "";
         if (uid.isEmpty()) {
@@ -279,6 +303,10 @@ public class UserListService {
         target.setPassword(passwordEncoder.encode(tempPassword));
         target.setPasswordMustChangeYn("Y");
         target.setOtpRegisteredYn("N");
+        target.setOtpSecret(null);
+        target.setOtpPendingSecret(null);
+        target.setOtpSetupCodeHash(null);
+        target.setOtpSetupExpiresAt(null);
         userRepository.save(target);
         Map<String, Object> out = new LinkedHashMap<>();
         out.put("userId", target.getUsername());
@@ -287,13 +315,17 @@ public class UserListService {
     }
 
     public void resetOtpScoped(AppUser actor, Set<String> allowedCompCodes, Long targetId) {
-        requireManage(actor, true);
+        requireResetPrivilege(actor);
         AppUser target = userRepository.findById(targetId)
                 .orElseThrow(() -> new IllegalArgumentException("OTP를 초기화할 사용자를 찾을 수 없습니다."));
         if (!allowedCompCodes.isEmpty() && !allowedCompCodes.contains(safeTrim(target.getOrgUnitCode()))) {
-            throw new IllegalArgumentException("본인 또는 하위 조직 사용자만 초기화할 수 있습니다.");
+            throw new IllegalArgumentException("본인·동일 조직·하위 조직 사용자만 초기화할 수 있습니다. 상위 조직 사용자는 대상이 아닙니다.");
         }
         target.setOtpRegisteredYn("N");
+        target.setOtpSecret(null);
+        target.setOtpPendingSecret(null);
+        target.setOtpSetupCodeHash(null);
+        target.setOtpSetupExpiresAt(null);
         userRepository.save(target);
     }
 
@@ -317,12 +349,37 @@ public class UserListService {
         }
     }
 
-    private void requireManage(AppUser actor, boolean needReset) {
+    private void requireManage(AppUser actor) {
         Map<String, Object> cap = managementCapability(actor);
         boolean canManage = "Y".equals(String.valueOf(cap.get("canManageUsers")));
-        boolean canReset = "Y".equals(String.valueOf(cap.get("canResetPassword")));
         if (!canManage) throw new IllegalArgumentException("총본사 환경설정에서 사용자관리 권한이 비활성화되어 있습니다.");
-        if (needReset && !canReset) throw new IllegalArgumentException("총본사 환경설정에서 비밀번호 초기화가 비활성화되어 있습니다.");
+    }
+
+    /**
+     * 비밀번호·OTP 초기화: 시스템 ADMIN 또는 보조아이디 역할이 {@code MANAGER}(관리담당)인 사용자만.
+     * (운영/정산/기술 담당 등 다른 assistant_role_type 은 초기화 불가)
+     */
+    private void requireResetPrivilege(AppUser actor) {
+        if (!isStrictManagerForPasswordOtpReset(actor)) {
+            throw new IllegalArgumentException("비밀번호·OTP 초기화는 관리담당(MANAGER) 권한이 있는 사용자만 가능합니다.");
+        }
+        if ("ADMIN".equalsIgnoreCase(safeTrim(actor.getRole()))) {
+            return;
+        }
+        HqNotifyEnvConfig cfg = hqNotifyEnvConfigRepository.findFirstByOrderByIdAsc().orElse(null);
+        if (cfg == null || !"Y".equalsIgnoreCase(cfg.getManagerPasswordResetEnabledYn())) {
+            throw new IllegalArgumentException("총본사 환경설정에서 비밀번호 초기화가 비활성화되어 있습니다.");
+        }
+    }
+
+    private boolean isStrictManagerForPasswordOtpReset(AppUser actor) {
+        if (actor == null) {
+            return false;
+        }
+        if ("ADMIN".equalsIgnoreCase(safeTrim(actor.getRole()))) {
+            return true;
+        }
+        return "MANAGER".equalsIgnoreCase(safeTrim(actor.getAssistantRoleType()));
     }
 
     private boolean isManagerRole(AppUser actor) {

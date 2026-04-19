@@ -2,6 +2,7 @@ package com.pg.dto;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 
 import java.math.BigDecimal;
 
@@ -15,27 +16,45 @@ import java.math.BigDecimal;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class ChillPayDirectCreditRequest {
 
+    @JsonProperty("OrderNo")
     private String OrderNo;
+    @JsonProperty("CustomerId")
     private String CustomerId;
+    @JsonProperty("Amount")
+    @JsonSerialize(using = ChillPayAmountSerializer.class)
     private BigDecimal Amount;
+    @JsonProperty("PhoneNumber")
     private String PhoneNumber;
+    @JsonProperty("Description")
     private String Description;
+    @JsonProperty("ChannelCode")
     private String ChannelCode = "creditcard";
+    @JsonProperty("Currency")
     private String Currency = "392";   // 392=JPY (소수점 없음)
+    @JsonProperty("LangCode")
     private String LangCode = "EN";
+    @JsonProperty("RouteNo")
     private Integer RouteNo;
+    @JsonProperty("IPAddress")
     private String IPAddress;
+    @JsonProperty("TokenType")
     private String TokenType = "DT";  // DT: PaymentCreditToken, CT: PaymentCreditToken+CreditToken
+    @JsonProperty("CreditToken")
     private String CreditToken;
     @JsonProperty("DirectCreditToken")
     private String DirectCreditToken;
+    @JsonProperty("CreditMonth")
     private Integer CreditMonth;
+    @JsonProperty("ShopID")
     private String ShopID;
+    @JsonProperty("CustEmail")
     private String CustEmail;
+    @JsonProperty("SaveCard")
     private String SaveCard = "N";
+    @JsonProperty("CheckSum")
     private String CheckSum;
     /**
-     * ChillPay 호스티드(OTP/3DS) 완료 후 브라우저 복귀 URL. 매뉴얼에 따라 JSON 필드명은 ReturnUrl.
+     * ChillPay 호스티드(OTP/3DS) 완료 후 브라우저 복귀 URL. 매뉴얼 JSON 필드명은 ReturnUrl.
      * CheckSum 연결 문자열(Table 1.3)에는 포함하지 않습니다(옵션 필드).
      */
     @JsonProperty("ReturnUrl")

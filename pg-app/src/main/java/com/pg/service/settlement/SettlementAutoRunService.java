@@ -12,10 +12,12 @@ import com.pg.service.MasterDistSettlementCronZoneService;
 import com.pg.service.SettlementCalcService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.ZoneId;
 import java.util.ArrayList;
@@ -33,13 +35,19 @@ import com.pg.util.BusinessDayCalendar;
  *   <li>T0: 매 tick(통상 매분) {@link SettlementCalcService#triggerRealtimeAutoSettlementIfDue(String)} 당일 누적 재집계.</li>
  *   <li>RT: 스케줄 미실행 — 승인 노티에서만 건별 정산.</li>
  *   <li>D+·W·WK 등: 마감·영업일·당일 1회 등 기존 {@link SettlementCalcService#execute}.</li>
+ *   <li>M/H 직전구간 격자: 정각 tick 을 서버 장애로 놓친 경우, JVM 설정 {@code app.settlement.autoRunSubDailyMissedGraceMinutes}(기본 30분) 이내
+ *       누락 슬롯을 매 tick 보강({@link SettlementCalcService#catchUpMissedPlainSubDailyGridSlots}).</li>
  * </ul>
  * 수동 기간 실행은 {@link SettlementCalcService#execute}를 직접 쓰면 된다.
+ * 본사 화면 「정산실행」기간 미지정 호출은 {@link SettlementCalcService} 경유로 동일 규칙의 즉시 보강에 사용할 수 있다.
  */
 @Service
 public class SettlementAutoRunService {
 
     private static final Logger log = LoggerFactory.getLogger(SettlementAutoRunService.class);
+
+    /** 0이면 격자 누락 보강 비활성. 상한은 과도한 역산 방지. */
+    private static final int MISSED_SUB_DAILY_GRACE_CAP = 1440;
 
     private final SettlementCalcService settlementCalcService;
     private final OrgUnitRepository orgUnitRepository;
@@ -47,19 +55,28 @@ public class SettlementAutoRunService {
     private final HqSettlementCycleAdminService hqSettlementCycleAdminService;
     private final MasterDistSettlementCronZoneService masterDistSettlementCronZoneService;
     private final SettlementRunRepository settlementRunRepository;
+    private final int autoRunSubDailyMissedGraceMinutes;
 
     public SettlementAutoRunService(SettlementCalcService settlementCalcService,
                                     OrgUnitRepository orgUnitRepository,
                                     SettlementSettingRepository settlementSettingRepository,
                                     HqSettlementCycleAdminService hqSettlementCycleAdminService,
                                     MasterDistSettlementCronZoneService masterDistSettlementCronZoneService,
-                                    SettlementRunRepository settlementRunRepository) {
+                                    SettlementRunRepository settlementRunRepository,
+                                    @Value("${app.settlement.autoRunSubDailyMissedGraceMinutes:30}") int autoRunSubDailyMissedGraceMinutes) {
         this.settlementCalcService = settlementCalcService;
         this.orgUnitRepository = orgUnitRepository;
         this.settlementSettingRepository = settlementSettingRepository;
         this.hqSettlementCycleAdminService = hqSettlementCycleAdminService;
         this.masterDistSettlementCronZoneService = masterDistSettlementCronZoneService;
         this.settlementRunRepository = settlementRunRepository;
+        int g = autoRunSubDailyMissedGraceMinutes;
+        if (g < 0) {
+            g = 0;
+        } else if (g > MISSED_SUB_DAILY_GRACE_CAP) {
+            g = MISSED_SUB_DAILY_GRACE_CAP;
+        }
+        this.autoRunSubDailyMissedGraceMinutes = g;
     }
 
     /**
@@ -84,72 +101,80 @@ public class SettlementAutoRunService {
             if (!StringUtils.hasText(mid)) {
                 continue;
             }
-            ZoneId cronZone = masterDistSettlementCronZoneService.resolveSettlementCronZoneForOrgUnitId(ou.getId());
-            LocalDate merchantToday = todayOverride != null ? todayOverride : LocalDate.now(cronZone);
-            LocalTime merchantNow = LocalTime.now(cronZone);
-            Optional<SettlementSetting> ssOpt = settlementSettingRepository.findByOrgUnitId(ou.getId());
-            if (ssOpt.isEmpty()) {
-                continue;
-            }
-            SettlementSetting ss = ssOpt.get();
-            String cycle = ss.getCalcCycle();
-            if (!StringUtils.hasText(cycle) || "NONE".equalsIgnoreCase(cycle.trim())) {
-                continue;
-            }
-            if (requireAutoProcType) {
-                String proc = ss.getCalcProcType() != null ? ss.getCalcProcType().trim() : "MANUAL";
-                if (!"AUTO".equalsIgnoreCase(proc)) {
+            try {
+                ZoneId cronZone = masterDistSettlementCronZoneService.resolveSettlementCronZoneForOrgUnitId(ou.getId());
+                LocalDate merchantToday = todayOverride != null ? todayOverride : LocalDate.now(cronZone);
+                LocalTime merchantNow = LocalTime.now(cronZone);
+                Optional<SettlementSetting> ssOpt = settlementSettingRepository.findByOrgUnitId(ou.getId());
+                if (ssOpt.isEmpty()) {
                     continue;
                 }
-            }
-            String c0 = SettlementPeriodResolver.normalizeCalcCycle(cycle);
-            if (!activeCycles.contains(c0)) {
-                continue;
-            }
-            if ("Y".equalsIgnoreCase(ss.getCalcExcludeYn() != null ? ss.getCalcExcludeYn().trim() : "")
-                    && !BusinessDayCalendar.isBusinessDay(merchantToday, Collections.emptySet())) {
-                continue;
-            }
-            if (SettlementCycleTiming.isSubDailyScheduleCode(c0)) {
-                if (!SettlementCycleTiming.shouldRunSubDailyNow(merchantNow, c0)) {
+                SettlementSetting ss = ssOpt.get();
+                String cycle = ss.getCalcCycle();
+                if (!StringUtils.hasText(cycle) || "NONE".equalsIgnoreCase(cycle.trim())) {
                     continue;
                 }
-                allRuns.addAll(settlementCalcService.triggerSubDailyAutoSettlement(mid));
-                continue;
-            }
-            /* RT: 승인 노티 건별만 — 스케줄에서는 건너뜀 */
-            if (SettlementCycleTiming.isRtPerTransactionCode(c0)) {
-                continue;
-            }
-            /* T0: 당일 0시~현재 누적 1행 — 노티 외에도 매 tick(통상 매분) 재집계해 롤링·합산 유지 */
-            if (SettlementCycleTiming.isT0RollingIntradayCode(c0)) {
-                allRuns.addAll(settlementCalcService.triggerRealtimeAutoSettlementIfDue(mid));
-                continue;
-            }
-            LocalTime close = ss.getCalcCloseTime();
-            if (close != null && merchantNow.isBefore(close)) {
-                continue;
-            }
-            /* D1+·주간 등: 화면·저장 규칙과 동일하게 정산개시시간 이전에는 달력 자동정산 미실행(RT·격자·D0는 미사용) */
-            if (SettlementCycleTiming.isCalcStartTimeApplicableForAuto(c0)) {
-                LocalTime start = ss.getCalcStartTime();
-                if (start != null && merchantNow.isBefore(start)) {
+                if (requireAutoProcType) {
+                    String proc = ss.getCalcProcType() != null ? ss.getCalcProcType().trim() : "MANUAL";
+                    if (!"AUTO".equalsIgnoreCase(proc)) {
+                        continue;
+                    }
+                }
+                String c0 = SettlementPeriodResolver.normalizeCalcCycle(cycle);
+                if (!activeCycles.contains(c0)) {
                     continue;
                 }
-            }
-            SettlementPeriodResolver.PeriodWindow w = SettlementPeriodResolver.resolveAutoPeriodWindow(cycle, merchantToday);
-            if (w == null) {
-                continue;
-            }
-            if ("D0".equals(c0) && !SettlementCycleTiming.isD0AutoBatchAllowedNow(merchantNow)) {
-                continue;
-            }
-            if (settlementRunRepository.existsByMerchantIdAndCalcDt(mid, merchantToday)) {
-                continue;
-            }
-            List<SettlementRun> runs = settlementCalcService.execute(w.fromDate(), w.toDate(), mid);
-            if (!runs.isEmpty()) {
-                allRuns.addAll(runs);
+                if ("Y".equalsIgnoreCase(ss.getCalcExcludeYn() != null ? ss.getCalcExcludeYn().trim() : "")
+                        && !BusinessDayCalendar.isBusinessDay(merchantToday, Collections.emptySet())) {
+                    continue;
+                }
+                if (SettlementCycleTiming.isSubDailyScheduleCode(c0)) {
+                    if (autoRunSubDailyMissedGraceMinutes > 0
+                            && SettlementCycleTiming.isPlainSubDailyGridClosingCode(c0)) {
+                        allRuns.addAll(settlementCalcService.catchUpMissedPlainSubDailyGridSlots(
+                                mid, c0, autoRunSubDailyMissedGraceMinutes));
+                    }
+                    if (SettlementCycleTiming.shouldRunSubDailyNow(merchantNow, c0)) {
+                        allRuns.addAll(settlementCalcService.triggerSubDailyAutoSettlement(mid));
+                    }
+                    continue;
+                }
+                /* RT: 승인 노티 건별만 — 스케줄에서는 건너뜀 */
+                if (SettlementCycleTiming.isRtPerTransactionCode(c0)) {
+                    continue;
+                }
+                /* T0: 당일 0시~현재 누적 1행 — 노티 외에도 매 tick(통상 매분) 재집계해 롤링·합산 유지 */
+                if (SettlementCycleTiming.isT0RollingIntradayCode(c0)) {
+                    allRuns.addAll(settlementCalcService.triggerRealtimeAutoSettlementIfDue(mid));
+                    continue;
+                }
+                LocalTime close = ss.getCalcCloseTime();
+                if (close != null && merchantNow.isBefore(close)) {
+                    continue;
+                }
+                /* D1+·주간 등: 화면·저장 규칙과 동일하게 정산개시시간 이전에는 달력 자동정산 미실행(RT·격자·D0는 미사용) */
+                if (SettlementCycleTiming.isCalcStartTimeApplicableForAuto(c0)) {
+                    LocalTime start = ss.getCalcStartTime();
+                    if (start != null && merchantNow.isBefore(start)) {
+                        continue;
+                    }
+                }
+                SettlementPeriodResolver.PeriodWindow w = SettlementPeriodResolver.resolveAutoPeriodWindow(cycle, merchantToday);
+                if (w == null) {
+                    continue;
+                }
+                if ("D0".equals(c0) && !SettlementCycleTiming.isD0AutoBatchAllowedNow(merchantNow)) {
+                    continue;
+                }
+                if (settlementRunRepository.existsByMerchantIdAndCalcDt(mid, merchantToday)) {
+                    continue;
+                }
+                List<SettlementRun> runs = settlementCalcService.execute(w.fromDate(), w.toDate(), mid);
+                if (!runs.isEmpty()) {
+                    allRuns.addAll(runs);
+                }
+            } catch (Exception ex) {
+                log.warn("Settlement auto-run merchant failed mid={}: {}", mid, ex.getMessage(), ex);
             }
         }
         if (!allRuns.isEmpty()) {
@@ -201,6 +226,11 @@ public class SettlementAutoRunService {
                 if (SettlementCycleTiming.shouldRunSubDailyNow(merchantNow, c0)) {
                     return true;
                 }
+                if (autoRunSubDailyMissedGraceMinutes > 0
+                        && SettlementCycleTiming.isPlainSubDailyGridClosingCode(c0)
+                        && merchantHasMissedPlainSubDailyCatchUp(mid, c0, cronZone)) {
+                    return true;
+                }
                 continue;
             }
             if (SettlementCycleTiming.isRtPerTransactionCode(c0)) {
@@ -227,6 +257,26 @@ public class SettlementAutoRunService {
                 continue;
             }
             if (!settlementRunRepository.existsByMerchantIdAndCalcDt(mid, merchantToday)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * M/H 격자: grace 이내에 periodEndAt 이 비어 있는(미실행) 마감 시각이 하나라도 있으면 true.
+     */
+    private boolean merchantHasMissedPlainSubDailyCatchUp(String mid, String c0, ZoneId cronZone) {
+        LocalDateTime nowMin = LocalDateTime.now(cronZone).withSecond(0).withNano(0);
+        String plainGrid = SettlementCycleTiming.toPlainGridClosingCode(c0);
+        for (LocalDateTime endExclusive : SettlementCycleTiming.listMissedPlainSubDailyGridEndsInGrace(
+                nowMin, plainGrid, autoRunSubDailyMissedGraceMinutes)) {
+            LocalDateTime startInclusive = SettlementCycleTiming.subDailySlotStartInclusiveFromEndExclusive(endExclusive, c0);
+            if (startInclusive == null) {
+                continue;
+            }
+            LocalDate gridAnchorCalcDt = startInclusive.toLocalDate();
+            if (!settlementRunRepository.existsByMerchantIdAndCalcDtAndPeriodEndAt(mid, gridAnchorCalcDt, endExclusive)) {
                 return true;
             }
         }

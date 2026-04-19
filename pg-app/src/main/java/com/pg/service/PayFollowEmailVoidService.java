@@ -6,6 +6,7 @@ import com.pg.repository.HqLedgerSysSettingsRepository;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
 /**
@@ -31,27 +32,84 @@ public class PayFollowEmailVoidService {
 
     private final HqLedgerSysSettingsRepository ledgerSysSettingsRepository;
     private final LedgerSmtpMailService ledgerSmtpMailService;
+    private final MailSendLogService mailSendLogService;
 
     public PayFollowEmailVoidService(HqLedgerSysSettingsRepository ledgerSysSettingsRepository,
-                                     LedgerSmtpMailService ledgerSmtpMailService) {
+                                     LedgerSmtpMailService ledgerSmtpMailService,
+                                     MailSendLogService mailSendLogService) {
         this.ledgerSysSettingsRepository = ledgerSysSettingsRepository;
         this.ledgerSmtpMailService = ledgerSmtpMailService;
+        this.mailSendLogService = mailSendLogService;
     }
 
     public void sendVoidRequestMail(PgTrnsctn t) {
-        HqLedgerSysSettings s = ledgerSysSettingsRepository.findFirstByOrderByIdAsc().orElse(null);
-        if (s == null) {
-            throw new IllegalStateException("전산설정을 찾을 수 없습니다.");
-        }
+        sendVoidRequestMail(t, null);
+    }
+
+    public void sendVoidRequestMail(PgTrnsctn t, String actorUsername) {
+        HqLedgerSysSettings s = ledgerSysSettingsRepository.findFirstByOrderByIdAsc()
+                .orElseThrow(() -> new IllegalStateException("전산설정을 찾을 수 없습니다."));
         String to = firstNonBlank(s.getEmailVoidTo(), DEFAULT_TO);
         String subjTpl = firstNonBlank(s.getEmailVoidSubject(), DEFAULT_SUBJECT);
         String bodyTpl = firstNonBlank(s.getEmailVoidBodyTemplate(), DEFAULT_BODY);
         String subject = replacePlaceholders(subjTpl, t, s);
         String body = replacePlaceholders(bodyTpl, t, s);
-        ledgerSmtpMailService.sendPlainText(s, to, subject, body);
+        try {
+            ledgerSmtpMailService.sendPlainText(s, to, subject, body);
+            mailSendLogService.append(MailSendLogService.KIND_VOID_TXN, MailSendLogService.STATUS_SUCCESS,
+                    to, subject, body, null, t != null ? t.getTrnId() : null, actorUsername);
+        } catch (Exception e) {
+            String msg = e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName();
+            mailSendLogService.append(MailSendLogService.KIND_VOID_TXN, MailSendLogService.STATUS_FAIL,
+                    to, subject, body, msg, t != null ? t.getTrnId() : null, actorUsername);
+            throw e;
+        }
     }
 
-    private static String replacePlaceholders(String tpl, PgTrnsctn t, HqLedgerSysSettings s) {
+    /**
+     * 전산설정과 동일한 템플릿·SMTP로 테스트 수신처에 샘플 치환 본문을 발송합니다. 제목에 {@code [TEST]} 접두를 붙입니다.
+     */
+    public void sendVoidTestMail(String testRecipientEmail, String actorUsername) {
+        if (testRecipientEmail == null || testRecipientEmail.isBlank()) {
+            throw new IllegalArgumentException("테스트 수신 이메일을 입력하세요.");
+        }
+        HqLedgerSysSettings s = ledgerSysSettingsRepository.findFirstByOrderByIdAsc()
+                .orElseThrow(() -> new IllegalStateException("전산설정을 찾을 수 없습니다."));
+        PgTrnsctn sample = sampleTxnForVoidTemplate();
+        String to = testRecipientEmail.trim();
+        String subjTpl = firstNonBlank(s.getEmailVoidSubject(), DEFAULT_SUBJECT);
+        String bodyTpl = firstNonBlank(s.getEmailVoidBodyTemplate(), DEFAULT_BODY);
+        String subject = "[TEST] " + replacePlaceholders(subjTpl, sample, s);
+        String body = replacePlaceholders(bodyTpl, sample, s);
+        String prodTo = firstNonBlank(s.getEmailVoidTo(), DEFAULT_TO);
+        String header = "(This is a test message from PG admin — void request template preview. "
+                + "Production sends go to " + prodTo + ".)\n\n";
+        String fullBody = header + body;
+        try {
+            ledgerSmtpMailService.sendPlainText(s, to, subject, fullBody);
+            mailSendLogService.append(MailSendLogService.KIND_VOID_TEST, MailSendLogService.STATUS_SUCCESS,
+                    to, subject, fullBody, null, null, actorUsername);
+        } catch (Exception e) {
+            String msg = e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName();
+            mailSendLogService.append(MailSendLogService.KIND_VOID_TEST, MailSendLogService.STATUS_FAIL,
+                    to, subject, fullBody, msg, null, actorUsername);
+            throw e;
+        }
+    }
+
+    private static PgTrnsctn sampleTxnForVoidTemplate() {
+        PgTrnsctn t = new PgTrnsctn();
+        t.setTrnId("TEST-TRN");
+        t.setChillTransactionId("123456789");
+        t.setOrderNo("SAMPLE-ORDER-001");
+        t.setTotalAmt(new BigDecimal("99.00"));
+        t.setRouteNo("ROUTE-SAMPLE");
+        t.setPaidAt(LocalDateTime.of(2026, 4, 19, 14, 30, 0));
+        t.setMerchantId("ICOPAY-DEMO-MID");
+        return t;
+    }
+
+    static String replacePlaceholders(String tpl, PgTrnsctn t, HqLedgerSysSettings s) {
         if (tpl == null) {
             return "";
         }

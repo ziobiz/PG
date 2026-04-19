@@ -831,6 +831,7 @@ public class MasterDistSettlementCycleConfigService {
         String z = c.getSettlementCronZoneId();
         m.put("settlementCronZoneId", z != null && !z.isBlank() ? z.trim()
                 : MasterDistSettlementCronZoneService.DEFAULT_SETTLEMENT_CRON_ZONE.getId());
+        m.put("txnTimeDisplayPreset", MasterDistSettlementCronZoneService.normalizeTxnTimePresetCode(c.getTxnTimeDisplayPreset()));
 
         return m;
 

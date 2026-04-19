@@ -138,4 +138,35 @@
     if (!inner) inner = '—';
     return '<span class="pay-grid-status-badge pay-grid-status-badge--' + t + '">' + inner + '</span>';
   };
+
+  /**
+   * 내부 결제 상태 코드 → 화면 표기 (PayListItemDto.chillInternalPayStatusToKo / chillIcPayStatusCodeTokenToKo 와 동일 계열).
+   * 알 수 없는 값은 원문 그대로 반환(빈 값은 '—').
+   */
+  global.PG_UI.internalPayStatusToKo = function (st) {
+    var s = st == null ? '' : String(st).trim();
+    if (!s) return '—';
+    if (/^[0-4]$/.test(s)) {
+      if (s === '0') return '성공';
+      if (s === '1' || s === '3') return '실패';
+      if (s === '2') return '취소';
+      if (s === '4') return '오류';
+    }
+    switch (s) {
+      case '10': return '성공';
+      case '08': return '요청';
+      case '20': return '취소';
+      case '21': return '무효';
+      case '22': return '이메일무효';
+      case '30': return '환불';
+      case '31': return '강제환불';
+      case '40': return '자동무효';
+      case '41': return '이메일무효';
+      case '42': return '자동환불';
+      case '99':
+      case 'F0':
+      case 'f0': return '실패';
+      default: return s;
+    }
+  };
 })(typeof window !== 'undefined' ? window : this);

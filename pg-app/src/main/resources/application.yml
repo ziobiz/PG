@@ -70,6 +70,8 @@ app:
   settlement:
     autoRunEnabled: ${APP_SETTLEMENT_AUTO_RUN:false}
     autoRunCron: "${APP_SETTLEMENT_AUTO_CRON:0 * * * * *}"
+    # M/H 직전구간 격자: 정각 tick 을 놓친 경우, 최근 N분 이내 누락 슬롯을 매분 tick 에서 보강(0이면 비활성, 최대 1440).
+    autoRunSubDailyMissedGraceMinutes: ${APP_SETTLEMENT_SUB_DAILY_MISSED_GRACE_MINUTES:30}
   # 관리자 SPA 도메인이 카페24·별도 도메인 등 제각각일 수 있어 기본은 전 Origin 허용(*). API는 Bearer만 사용(쿠키 없음).
   # 보수적으로 쓰려면 allow-all-origins: false 후 allowed-origin-patterns 만 나열.
   cors:
@@ -83,11 +85,14 @@ app:
     base-url: ${OPENAI_BASE_URL:https://api.openai.com/v1}
     model: ${OPENAI_MODEL:gpt-4o-mini}
     enabled: ${OPENAI_NOTIFY_MAPPING_ENABLED:true}
-  # 태국은행(BOT) 일평균 환율 API — https://iapi.bot.or.th (api-key 헤더). URL 표시통화→THB 정산용.
+  # 태국은행(BOT) 일평균 환율 — URL 표시통화→실결제 정산용.
+  # (A) 레거시 iAPI: base https://iapi.bot.or.th path /Stat/Stat-ExchangeRate/DAILY_AVG_EXG_RATE_V1/ 헤더 api-key
+  # (B) API 포털 Stat-ExchangeRate v2(OpenAPI servers): base https://gateway.api.bot.or.th/Stat-ExchangeRate/v2 path /DAILY_AVG_EXG_RATE/ 헤더 Authorization=구독 Client ID
   bot-thailand:
     base-url: ${BOT_THAILAND_BASE_URL:https://iapi.bot.or.th}
     daily-avg-path: ${BOT_THAILAND_DAILY_AVG_PATH:/Stat/Stat-ExchangeRate/DAILY_AVG_EXG_RATE_V1/}
     api-key: ${BOT_THAILAND_API_KEY:}
+    api-key-header: ${BOT_THAILAND_API_KEY_HEADER:api-key}
   # 표시통화 견적 토큰 HMAC. 비우면 tb_hq_api_config.chillpay_md5_key 를 서명에 사용(운영에서는 전용 값 권장).
   url-pay-fx:
     quote-hmac-secret: ${URL_PAY_FX_QUOTE_HMAC_SECRET:}

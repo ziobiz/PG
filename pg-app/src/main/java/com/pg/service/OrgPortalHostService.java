@@ -15,7 +15,7 @@ import java.util.Set;
 
 /**
  * 본사(REGIONAL)·총판(MASTER_DIST) 도메인구성의 관리자(웹) URL 호스트와 동일 호스트에서의 로그인 허용 범위 판별.
- * 실제 허용 규칙(본사=직속만, 총판=하위·총본사/본사 제외)은 {@link AuthService} 에서 적용.
+ * 실제 허용 규칙은 {@link AuthService#loginHostAllowedForUser} 에서 적용한다.
  */
 @Service
 public class OrgPortalHostService {
@@ -78,6 +78,29 @@ public class OrgPortalHostService {
                 break;
             }
             curId = cur.getParentId();
+        }
+        return false;
+    }
+
+    /**
+     * {@code descendantOrgUnitId} 가 {@code ancestorOrgUnitId} 이거나, 상위로 거슬러 올라가며 그 조상 중 하나가 ancestor 인지.
+     * (총판 포털에 로그인하는 본사 계정: 본사 조직이 해당 총판 트리 상단에 있는지 판별할 때 사용)
+     */
+    public boolean orgIsSelfOrUnderAncestor(Long ancestorOrgUnitId, Long descendantOrgUnitId) {
+        if (ancestorOrgUnitId == null || descendantOrgUnitId == null) {
+            return false;
+        }
+        Long cur = descendantOrgUnitId;
+        Set<Long> seen = new HashSet<>();
+        while (cur != null && seen.add(cur)) {
+            if (ancestorOrgUnitId.equals(cur)) {
+                return true;
+            }
+            OrgUnit o = orgUnitRepository.findById(cur).orElse(null);
+            if (o == null) {
+                break;
+            }
+            cur = o.getParentId();
         }
         return false;
     }

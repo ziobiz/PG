@@ -709,6 +709,61 @@ body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Ro
 #contentsMain .card-body { padding: 16px 20px; }
 #contentsMain .table thead th { background: #d9edf7; border: 1px solid #bce8f1; font-weight: 600; color: #31708f; padding: 8px 10px; }
 #contentsMain .table td { padding: var(--table-row-padding-y) 10px; border-color: #ddd; }
+
+/* 결제로직설정 — 결제구문 블록·표가 카드 본문 너비를 꽉 채움(열 리사이즈 스크립트 미적용 표는 table-no-col-resize) */
+#contentsMain .comp-reg-form .hq-pay-card-copy-mount,
+.tab-pane.tabConDiv .comp-reg-form .hq-pay-card-copy-mount {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+/* 결제로직설정 — 결제구문 목록: 줄바꿈·단어 줄림, 가로 스크롤 없이 영역 안에 맞춤 */
+#contentsMain .hq-pay-card-copy-mount .hq-pay-card-copy-grid-wrap,
+.tab-pane.tabConDiv .hq-pay-card-copy-mount .hq-pay-card-copy-grid-wrap {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: visible;
+}
+#contentsMain .hq-pay-card-copy-mount table.hq-pay-card-copy-grid,
+.tab-pane.tabConDiv .hq-pay-card-copy-mount table.hq-pay-card-copy-grid {
+  table-layout: fixed;
+  width: 100%;
+}
+#contentsMain .hq-pay-card-copy-mount table.hq-pay-card-copy-grid col.hq-pay-card-copy-col-pg,
+.tab-pane.tabConDiv .hq-pay-card-copy-mount table.hq-pay-card-copy-grid col.hq-pay-card-copy-col-pg {
+  width: 9.5rem;
+}
+#contentsMain .hq-pay-card-copy-mount table.hq-pay-card-copy-grid > tbody > tr > td:first-child,
+.tab-pane.tabConDiv .hq-pay-card-copy-mount table.hq-pay-card-copy-grid > tbody > tr > td:first-child {
+  word-break: break-all;
+}
+#contentsMain .hq-pay-card-copy-mount .hq-pay-card-copy-preview,
+.tab-pane.tabConDiv .hq-pay-card-copy-mount .hq-pay-card-copy-preview {
+  white-space: pre-wrap;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  line-height: 1.35;
+}
+#contentsMain .hq-pay-card-copy-mount table.hq-pay-card-copy-grid > thead > tr > th:nth-last-child(n+4),
+.tab-pane.tabConDiv .hq-pay-card-copy-mount table.hq-pay-card-copy-grid > thead > tr > th:nth-last-child(n+4) {
+  text-align: left !important;
+}
+#contentsMain .hq-pay-card-copy-mount table.hq-pay-card-copy-grid > tbody > tr > td,
+.tab-pane.tabConDiv .hq-pay-card-copy-mount table.hq-pay-card-copy-grid > tbody > tr > td {
+  text-align: left !important;
+  vertical-align: top !important;
+}
+#contentsMain .hq-pay-card-copy-mount table.hq-pay-card-copy-grid > tbody > tr > td:nth-last-child(-n+3),
+.tab-pane.tabConDiv .hq-pay-card-copy-mount table.hq-pay-card-copy-grid > tbody > tr > td:nth-last-child(-n+3) {
+  text-align: center !important;
+  vertical-align: middle !important;
+}
+#contentsMain .hq-pay-card-copy-mount table.hq-pay-card-copy-grid > thead > tr > th:nth-last-child(-n+3),
+.tab-pane.tabConDiv .hq-pay-card-copy-mount table.hq-pay-card-copy-grid > thead > tr > th:nth-last-child(-n+3) {
+  text-align: center !important;
+  vertical-align: middle !important;
+}
+
 /* 과거 버전에서 삽입된 행 리사이즈 줄(점선) — 더 이상 생성하지 않음; 남아 있으면 숨김 */
 #contentsMain .table-row-resize-handle { display: none !important; }
 #contentsMain .table-bordered th { border-color: #bce8f1; }
@@ -1179,6 +1234,14 @@ body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Ro
   font-weight: 600;
 }
 .pay-grid-time-line--th {
+  color: #1e293b;
+  font-weight: 500;
+}
+.pay-grid-time-line--line1 {
+  color: #0d6efd;
+  font-weight: 600;
+}
+.pay-grid-time-line--line2 {
   color: #1e293b;
   font-weight: 500;
 }
@@ -3665,5 +3728,39 @@ button.pay-follow.pay-follow--off {
   .pg-settlement-report-print-root table {
     font-size: 11pt;
   }
+}
+
+/* 배포설정 > 가맹점 API 연동키트: table-responsive 제거 표 — 가로 스크롤 없음, 헤더 정렬 */
+.merchant-deploy-kit .merchant-deploy-table-wrap {
+  overflow-x: visible;
+  max-width: 100%;
+}
+.merchant-deploy-kit .merchant-deploy-merchant-table {
+  table-layout: fixed;
+}
+.merchant-deploy-kit .merchant-deploy-merchant-table thead th {
+  vertical-align: middle;
+}
+.merchant-deploy-kit .merchant-deploy-col-act {
+  width: 5.5rem;
+}
+.merchant-deploy-kit .merchant-deploy-col-code {
+  width: 9rem;
+}
+.merchant-deploy-kit .merchant-deploy-col-cur {
+  width: 5.5rem;
+}
+.merchant-deploy-kit .merchant-deploy-merchant-table tbody td:nth-child(3) {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.merchant-deploy-kit .merchant-deploy-help summary {
+  cursor: pointer;
+  user-select: none;
+}
+.merchant-deploy-kit .merchant-deploy-plain-help ol,
+.merchant-deploy-kit .merchant-deploy-plain-help ul {
+  line-height: 1.55;
 }
 

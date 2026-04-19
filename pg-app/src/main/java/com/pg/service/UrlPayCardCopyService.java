@@ -37,6 +37,10 @@ public class UrlPayCardCopyService {
     public static final String KEY_RESULT_FAIL_MAIN = "resultFailMain";
     /** URL 결제 결과 실패·취소 시 하단 안내 */
     public static final String KEY_RESULT_FAIL_FOOT = "resultFailFoot";
+    /** 결제 금액 입력란 하단 통화 스케일 안내(×100/÷100) — 언어코드→문자열 맵, PG별 */
+    public static final String KEY_AMOUNT_SCALE_NOTICE = "amountScaleNotice";
+    /** 금액 하단 안내 노출 여부 — checkout JSON에 boolean {@code amountScaleNoticeShow} 로도 내려감 */
+    public static final String KEY_AMOUNT_SCALE_NOTICE_SHOW_YN = "amountScaleNoticeShowYn";
 
     private static final String SAFE_FAVICON_PREFIX = "/uploads/hq/url-pay/";
 
@@ -56,6 +60,8 @@ public class UrlPayCardCopyService {
      * 운영 PG와 일치하는 <strong>활성</strong> 항목 1건을 반환.
      * 키: {@link #KEY_CARD_SECTION}, {@link #KEY_CARD_NOTE}, {@link #KEY_CCD_HINT}, {@link #KEY_CARD_BODY3}, {@link #KEY_BROWSER_TAB_TITLE} — 값은 언어코드→문자열 맵.
      * {@link #KEY_FAVICON_URL} — 문자열(허용된 업로드 경로만).
+     * {@link #KEY_AMOUNT_SCALE_NOTICE} — 금액 하단 안내(맵). 비어 있으면 키 생략, 페이지 기본 I18N.
+     * {@code amountScaleNoticeShow} — {@code amountScaleNoticeShowYn} 이 N이 아니면 true(기본).
      */
     public Optional<Map<String, Object>> resolveActiveCopyByPg(String operationalPgCd) {
         String pg = operationalPgCd != null ? operationalPgCd.trim().toUpperCase(Locale.ROOT) : "";
@@ -94,6 +100,13 @@ public class UrlPayCardCopyService {
                 putLangMapIfNonEmpty(out, KEY_RESULT_SUCCESS_FOOT, e.get("resultSuccessFoot"));
                 putLangMapIfNonEmpty(out, KEY_RESULT_FAIL_MAIN, e.get("resultFailMain"));
                 putLangMapIfNonEmpty(out, KEY_RESULT_FAIL_FOOT, e.get("resultFailFoot"));
+                String amtShowYn = text(e, KEY_AMOUNT_SCALE_NOTICE_SHOW_YN);
+                boolean showAmt = !"N".equalsIgnoreCase(amtShowYn.trim());
+                out.put("amountScaleNoticeShow", showAmt);
+                Map<String, String> amtMap = langMap(e.get(KEY_AMOUNT_SCALE_NOTICE));
+                if (!amtMap.isEmpty()) {
+                    out.put(KEY_AMOUNT_SCALE_NOTICE, amtMap);
+                }
                 return Optional.of(out);
             }
         } catch (Exception ignored) {

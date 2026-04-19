@@ -378,7 +378,7 @@ public class ApiSettlementController {
             return ResponseEntity.ok(ApiResponse.fail("가맹점 코드가 없습니다.", "VALIDATION"));
         }
         Set<String> allowedMerchants = orgAccessService.visibleMerchantCompCodes(authentication);
-        if (allowedMerchants != null && !allowedMerchants.contains(mid)) {
+        if (!allowedMerchantsContains(allowedMerchants, mid)) {
             return ResponseEntity.ok(ApiResponse.fail("조회 권한이 없습니다.", "FORBIDDEN"));
         }
         if ("Y".equalsIgnoreCase(r.getPayoutHoldYn() != null ? r.getPayoutHoldYn() : "")) {
@@ -499,7 +499,12 @@ public class ApiSettlementController {
                 }
                 final LocalDate runCalcDt = r.getCalcDt();
                 final String rollupOrgCode = cur.getCode();
-                String key = Objects.requireNonNullElse(rollupOrgCode, "") + "|" + runCalcDt;
+                String curKey = String.valueOf(dr.getOrDefault("curType", "")).trim().toUpperCase(Locale.ROOT);
+                if (curKey.isEmpty()) {
+                    curKey = "_";
+                }
+                /* 통화별로 분리하지 않으면 KRW·USD 등이 한 행에 합산되어 금액·%가 왜곡됩니다. */
+                String key = Objects.requireNonNullElse(rollupOrgCode, "") + "|" + runCalcDt + "|" + curKey;
                 DistributionAgg agg = aggMap.computeIfAbsent(key,
                         k -> new DistributionAgg(runCalcDt, rollupOrgCode));
                 agg.merge(r, dr, cur.getOrgLevel());
@@ -530,7 +535,8 @@ public class ApiSettlementController {
         }
 
         allRows.sort(mapRowsCalcDtPrimaryComparator(searchOrderDir)
-                .thenComparing(m -> String.valueOf(m.getOrDefault("compId", ""))));
+                .thenComparing(m -> String.valueOf(m.getOrDefault("compId", "")))
+                .thenComparing(m -> String.valueOf(m.getOrDefault("curType", ""))));
 
         int from = Math.max(0, (page - 1) * size);
         int to = Math.min(allRows.size(), from + Math.max(1, size));
@@ -601,7 +607,7 @@ public class ApiSettlementController {
             if (!isDistributedForMerchantStatementView(r)) {
                 continue;
             }
-            if (allowedMerchants != null && !allowedMerchants.contains(mid.trim())) {
+            if (!allowedMerchantsContains(allowedMerchants, mid.trim())) {
                 continue;
             }
             if (!settlementCalcService.isMerchantStatementVisibleSettlementRun(r)) {
@@ -634,7 +640,7 @@ public class ApiSettlementController {
     }
 
     /**
-     * 보증금(지급보류 적치) 내역 — 지급보류(Y) 가맹점의 정산 실행 행만(가맹점정산내역과 동일 컬럼 + 비고).
+     * 지급보류 적치 내역(정산보류내역 화면) — 지급보류(Y) 가맹점의 정산 실행 행만(가맹점정산내역과 동일 컬럼 + 비고).
      */
     @GetMapping("/payoutHoldList")
     public ResponseEntity<ApiResponse<PageResult<Map<String, Object>>>> payoutHoldList(
@@ -654,7 +660,7 @@ public class ApiSettlementController {
     }
 
     /**
-     * 레거시 경로 — {@link #payoutHoldList} 와 동일(보증금내역 화면·클라이언트 호환). 롤링 담보는 {@link #collateralList} 사용.
+     * 레거시 경로 — {@link #payoutHoldList} 와 동일 API. 외부·구클라이언트 호환용. 롤링 담보는 {@link #collateralList} 사용.
      */
     @GetMapping("/holdList")
     public ResponseEntity<ApiResponse<PageResult<Map<String, Object>>>> holdList(
@@ -718,7 +724,7 @@ public class ApiSettlementController {
             if (!"Y".equalsIgnoreCase(r.getPayoutHoldYn() != null ? r.getPayoutHoldYn() : "")) {
                 continue;
             }
-            if (allowedMerchants != null && !allowedMerchants.contains(mid.trim())) {
+            if (!allowedMerchantsContains(allowedMerchants, mid.trim())) {
                 continue;
             }
             Map<String, Object> row = toFranchiseSettlementRunRow(r, fromDate, toDate, autoDeficitByRun);
@@ -799,7 +805,7 @@ public class ApiSettlementController {
             if (mid.isEmpty()) {
                 continue;
             }
-            if (allowedMerchants != null && !allowedMerchants.contains(mid)) {
+            if (!allowedMerchantsContains(allowedMerchants, mid)) {
                 return ResponseEntity.ok(ApiResponse.fail("해당 정산 건에 대한 권한이 없습니다: " + id, "FORBIDDEN"));
             }
             if (!"Y".equalsIgnoreCase(r.getPayoutHoldYn() != null ? r.getPayoutHoldYn() : "")) {
@@ -849,7 +855,7 @@ public class ApiSettlementController {
             if (compId == null || compId.isBlank()) {
                 continue;
             }
-            if (allowedMerchants != null && !allowedMerchants.contains(compId.trim())) {
+            if (!allowedMerchantsContains(allowedMerchants, compId.trim())) {
                 continue;
             }
             if (searchCompId != null && !searchCompId.isBlank() && !compId.contains(searchCompId.trim())) {
@@ -866,9 +872,12 @@ public class ApiSettlementController {
                     t, compId, pol, monthCbCountCache, tiersByPolicyId, feeVatSs, feeListRp);
             BigDecimal feeAmtBd = FeeListRoundingPolicy.round(BigDecimal.valueOf(br.totalFee()), feeListRp);
             BigDecimal feeVatBd = br.feeVatBd();
-            BigDecimal recallAmtBd = hqPolicy.recallIncludeFeeYn
-                    ? txnAmtBd.add(feeAmtBd).add(feeVatBd).max(BigDecimal.ZERO)
-                    : txnAmtBd.max(BigDecimal.ZERO);
+            boolean incFees = SettlementArrearsService.recallAmountIncludesFeeComponents(
+                    hqPolicy.recallIncludeFeeYn, feeAmtBd, feeVatBd);
+            BigDecimal recallAmtBd = txnAmtBd.max(BigDecimal.ZERO);
+            if (incFees) {
+                recallAmtBd = recallAmtBd.add(feeAmtBd).add(feeVatBd);
+            }
             BigDecimal deductAmtBd = recallAmtBd.negate();
             Map<String, Object> m = new HashMap<>();
             m.put("trnId", t.getTrnId());
@@ -888,7 +897,7 @@ public class ApiSettlementController {
                 case "31" -> "강제환불";
                 default -> s;
             });
-            m.put("feeIncludedYn", hqPolicy.recallIncludeFeeYn ? "Y" : "N");
+            m.put("feeIncludedYn", incFees ? "Y" : "N");
             m.put("vatAppliedYn", br.feeVatBd().signum() > 0 ? "Y" : "N");
             all.add(m);
         }
@@ -1306,7 +1315,7 @@ public class ApiSettlementController {
                     continue;
                 }
                 String code = ou.getCode().trim();
-                if (allowedMerchants == null || allowedMerchants.contains(code)) {
+                if (allowedMerchantsContains(allowedMerchants, code)) {
                     nm.add(code);
                 }
             }
@@ -1952,7 +1961,7 @@ public class ApiSettlementController {
     }
 
     /**
-     * 정산결과: 정산배포(대기) / 정산대기 화면. {@code publishTab}=PENDING|HOLD.
+     * 정산결과: 정산배포 / 정산대기 화면. {@code publishTab}=PENDING|HOLD.
      * 행은 정산실행과 동일 맵 + 주기 안내({@code cadenceGuideKr})·배포상태.
      */
     @GetMapping("/result/list")
@@ -1990,7 +1999,7 @@ public class ApiSettlementController {
         if (allowedMerchants != null) {
             raw.removeIf(r -> {
                 String mid = r.getMerchantId();
-                return mid == null || mid.isBlank() || !allowedMerchants.contains(mid.trim());
+                return mid == null || mid.isBlank() || !allowedMerchantsContains(allowedMerchants, mid.trim());
             });
         }
         Map<Long, BigDecimal> autoDeficitByRun = indexAutoDeficitTotalsByRunId(raw);
@@ -2105,17 +2114,20 @@ public class ApiSettlementController {
             if (mid.isEmpty()) {
                 continue;
             }
-            if (allowedMerchants != null && !allowedMerchants.contains(mid)) {
+            if (!allowedMerchantsContains(allowedMerchants, mid)) {
                 return ResponseEntity.ok(ApiResponse.fail("해당 정산 건에 대한 권한이 없습니다: " + id, "FORBIDDEN"));
             }
+            String publishStsRaw = r.getSettlementPublishSts();
+            String publishStsNorm = publishStsRaw != null ? publishStsRaw.trim().toUpperCase(Locale.ROOT) : "";
+            boolean publishOpen = publishStsNorm.isEmpty() || "PENDING".equals(publishStsNorm);
             if (distribute) {
-                if (!"PENDING".equalsIgnoreCase(String.valueOf(r.getSettlementPublishSts()).trim())) {
+                if (!publishOpen) {
                     continue;
                 }
                 r.setSettlementPublishSts("DISTRIBUTED");
                 r.setPayoutHoldYn("N");
             } else {
-                if (!"PENDING".equalsIgnoreCase(String.valueOf(r.getSettlementPublishSts()).trim())) {
+                if (!publishOpen) {
                     continue;
                 }
                 r.setSettlementPublishSts("HOLD");
@@ -2174,7 +2186,7 @@ public class ApiSettlementController {
         if (allowedMerchants != null) {
             raw.removeIf(r -> {
                 String mid = r.getMerchantId();
-                return mid == null || mid.isBlank() || !allowedMerchants.contains(mid.trim());
+                return mid == null || mid.isBlank() || !allowedMerchantsContains(allowedMerchants, mid.trim());
             });
         }
         Map<Long, BigDecimal> autoDeficitByRun = indexAutoDeficitTotalsByRunId(raw);
@@ -2253,14 +2265,38 @@ public class ApiSettlementController {
 
     private static final int SETTLEMENT_EXECUTE_RUN_TX_MAX = 2500;
 
+    /** {@code allowedMerchants} 가 null 이면 전체 허용(ADMIN). 코드 대소문자 불일치 허용. */
+    private static boolean allowedMerchantsContains(Set<String> allowedMerchants, String merchantId) {
+        if (allowedMerchants == null) {
+            return true;
+        }
+        if (allowedMerchants.isEmpty()) {
+            return false;
+        }
+        if (merchantId == null || merchantId.isBlank()) {
+            return false;
+        }
+        String m = merchantId.trim();
+        for (String c : allowedMerchants) {
+            if (c != null && m.equalsIgnoreCase(c.trim())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     /**
      * 정산 실행 한 건에 대해, 집계에 사용한 거래 구간과 동일하게 조회한 거래 목록(결제내역 그리드와 동일 필드).
      * 대량 방지를 위해 최대 {@value #SETTLEMENT_EXECUTE_RUN_TX_MAX}건까지 반환하며 초과 시 {@code truncated=true}.
+     *
+     * @param txnScope 비어 있거나 {@code RUN_WINDOW}(기본): 실행 저장 집계 구간.
+     *                 {@code MERCHANT_CALC_DAY}: 해당 실행의 정산일(calc_dt) 달력일 00:00~말일 해당 가맹 전체 거래(정산배포 화면용).
      */
     @GetMapping("/execute/runTransactions")
     public ResponseEntity<ApiResponse<Map<String, Object>>> executeRunTransactions(
             Authentication authentication,
-            @RequestParam long settlementRunId) {
+            @RequestParam long settlementRunId,
+            @RequestParam(required = false) String txnScope) {
         Set<String> allowedMerchants = orgAccessService.visibleMerchantCompCodes(authentication);
         if (allowedMerchants != null && allowedMerchants.isEmpty()) {
             return ResponseEntity.ok(ApiResponse.fail("조회 가능한 가맹점이 없습니다.", "FORBIDDEN"));
@@ -2275,22 +2311,33 @@ public class ApiSettlementController {
             return ResponseEntity.ok(ApiResponse.fail("가맹점 코드가 없습니다.", "VALIDATION"));
         }
         String midTrim = mid.trim();
-        if (allowedMerchants != null && !allowedMerchants.contains(midTrim)) {
+        if (!allowedMerchantsContains(allowedMerchants, midTrim)) {
             return ResponseEntity.ok(ApiResponse.fail("해당 정산 실행에 대한 조회 권한이 없습니다.", "FORBIDDEN"));
         }
-        LocalDateTime fromAt = r.resolvePeriodStartAt();
-        LocalDateTime toAt = r.resolvePeriodEndAt();
+        String scope = txnScope != null ? txnScope.trim().toUpperCase(Locale.ROOT) : "";
+        boolean merchantCalcDay = "MERCHANT_CALC_DAY".equals(scope);
+        LocalDateTime fromAt;
+        LocalDateTime toAt;
+        if (merchantCalcDay) {
+            LocalDate cd = r.getCalcDt() != null ? r.getCalcDt() : LocalDate.now();
+            fromAt = cd.atStartOfDay();
+            toAt = cd.atTime(LocalTime.MAX);
+        } else {
+            fromAt = r.resolvePeriodStartAt();
+            toAt = r.resolvePeriodEndAt();
+        }
         PayListService.SettlementWindowPayRows sw = payListService.listRowsForSettlementWindow(
                 midTrim, fromAt, toAt, SETTLEMENT_EXECUTE_RUN_TX_MAX);
         List<Map<String, Object>> rows = new ArrayList<>(sw.getRows());
         Integer inc = r.getIncludedTxnCnt();
-        boolean cappedToIncluded = inc != null && inc > 0 && rows.size() > inc;
+        boolean cappedToIncluded = !merchantCalcDay && inc != null && inc > 0 && rows.size() > inc;
         if (cappedToIncluded) {
             rows = new ArrayList<>(rows.subList(0, inc));
         }
         Map<String, Object> payload = new LinkedHashMap<>();
         payload.put("settlementRunId", settlementRunId);
         payload.put("merchantId", midTrim);
+        payload.put("txnScope", merchantCalcDay ? "MERCHANT_CALC_DAY" : "RUN_WINDOW");
         payload.put("includedTxnCnt", r.getIncludedTxnCnt());
         payload.put("periodFromAt", fromAt.toString());
         payload.put("periodToAt", toAt.toString());
@@ -2417,8 +2464,7 @@ public class ApiSettlementController {
         m.put("rollingReserveAmt", settlementMoneyDouble(r.getRollingReserveAmt(), srp));
         m.put("settlementBatchFee", r.getSettlementBatchFeeAmt() != null
                 ? settlementMoneyDouble(r.getSettlementBatchFeeAmt(), srp) : null);
-        m.put("remittanceFee", r.getRemittanceFeeAmt() != null
-                ? settlementMoneyDouble(r.getRemittanceFeeAmt(), srp) : null);
+        m.put("remittanceFee", null);
         Long runIdForRecv = r.getId();
         BigDecimal receivableBd = BigDecimal.ZERO;
         if (runIdForRecv != null) {
@@ -2715,20 +2761,13 @@ public class ApiSettlementController {
                     nz(pol.getFeeSettlementPerTx()).multiply(BigDecimal.valueOf(txs.size())), ledgerRp);
             row.put("settlementPerTxFeeAmt", settlementMoneyDouble(settlePerTxTotalLegacy, ledgerRp));
         }
-        if (r.getRemittanceFeeAmt() != null) {
-            row.put("remittanceFee", settlementMoneyDouble(r.getRemittanceFeeAmt(), ledgerRp));
-        } else {
-            row.put("remittanceFee", null);
-        }
+        row.put("remittanceFee", null);
 
         row.put("extraFeesAmt", settlementMoneyDouble(sumExtra, ledgerRp));
 
         BigDecimal vatFeeBase = nz(r.getTotalFee());
         if (r.getSettlementBatchFeeAmt() != null) {
             vatFeeBase = vatFeeBase.add(nz(r.getSettlementBatchFeeAmt()));
-        }
-        if (r.getRemittanceFeeAmt() != null) {
-            vatFeeBase = vatFeeBase.add(nz(r.getRemittanceFeeAmt()));
         }
         BigDecimal feeVat = MerchantFeeVatUtil.vatOnFeeAmount(vatFeeBase, feeVatSs, ledgerRp.decimalPlaces());
         row.put("feeVat", settlementMoneyDouble(feeVat, ledgerRp));
@@ -2980,13 +3019,23 @@ public class ApiSettlementController {
         m.put("masterRate", masterRate);
         m.put("branchRate", branchRate);
         m.put("agencyRate", agencyRate);
-        m.put("hqFee", settlementPctFeeDouble(settleAmt, hqRate, ledgerRp));
-        m.put("regionalFee", settlementPctFeeDouble(settleAmt, regionalRate, ledgerRp));
-        m.put("masterFee", settlementPctFeeDouble(settleAmt, masterRate, ledgerRp));
-        m.put("branchFee", settlementPctFeeDouble(settleAmt, branchRate, ledgerRp));
-        m.put("agencyFee", settlementPctFeeDouble(settleAmt, agencyRate, ledgerRp));
-        m.put("salesOfficeFee", settlementPctFeeDouble(settleAmt, salesOfficeRate, ledgerRp));
-        String hq = "", regional = "", master = "", branch = "", agency = "";
+        m.put("salesOfficeRate", salesOfficeRate);
+        if (r.getDistHqFeeAmt() != null) {
+            m.put("hqFee", settlementMoneyDouble(r.getDistHqFeeAmt(), ledgerRp));
+            m.put("regionalFee", settlementMoneyDouble(r.getDistRegionalFeeAmt(), ledgerRp));
+            m.put("masterFee", settlementMoneyDouble(r.getDistMasterFeeAmt(), ledgerRp));
+            m.put("branchFee", settlementMoneyDouble(r.getDistBranchFeeAmt(), ledgerRp));
+            m.put("agencyFee", settlementMoneyDouble(r.getDistAgencyFeeAmt(), ledgerRp));
+            m.put("salesOfficeFee", settlementMoneyDouble(r.getDistSalesOfficeFeeAmt(), ledgerRp));
+        } else {
+            m.put("hqFee", settlementPctFeeDouble(settleAmt, hqRate, ledgerRp));
+            m.put("regionalFee", settlementPctFeeDouble(settleAmt, regionalRate, ledgerRp));
+            m.put("masterFee", settlementPctFeeDouble(settleAmt, masterRate, ledgerRp));
+            m.put("branchFee", settlementPctFeeDouble(settleAmt, branchRate, ledgerRp));
+            m.put("agencyFee", settlementPctFeeDouble(settleAmt, agencyRate, ledgerRp));
+            m.put("salesOfficeFee", settlementPctFeeDouble(settleAmt, salesOfficeRate, ledgerRp));
+        }
+        String hq = "", regional = "", master = "", branch = "", agency = "", salesOffice = "";
         OrgUnit cur = orgUnitRepository.findByCode(compId).orElse(null);
         for (int i = 0; i < 8 && cur != null; i++) {
             if (cur.getOrgLevel() != null) {
@@ -2995,7 +3044,8 @@ public class ApiSettlementController {
                     case REGIONAL -> regional = cur.getName();
                     case MASTER_DIST -> master = cur.getName();
                     case BRANCH -> branch = cur.getName();
-                    case AGENCY, SALES_OFFICE -> agency = cur.getName();
+                    case AGENCY -> agency = cur.getName();
+                    case SALES_OFFICE -> salesOffice = cur.getName();
                     default -> {}
                 }
             }
@@ -3006,6 +3056,7 @@ public class ApiSettlementController {
         m.put("masterNm", master);
         m.put("branchNm", branch);
         m.put("agencyNm", agency);
+        m.put("salesOfficeNm", salesOffice);
         m.put("curType", resolveMerchantStatementCurrency(compId));
         return m;
     }
@@ -3019,8 +3070,13 @@ public class ApiSettlementController {
         BigDecimal masterFee = BigDecimal.ZERO;
         BigDecimal branchFee = BigDecimal.ZERO;
         BigDecimal agencyFee = BigDecimal.ZERO;
-        /** 가맹 정산 건수(승인 건수 표시용) */
+        BigDecimal salesOfficeFee = BigDecimal.ZERO;
+        /** 병합된 가맹 정산 실행 행 수 */
         long runCnt;
+        /** {@link SettlementRun#getIncludedTxnCnt()} 합(구간 내 결제 건수). null 실행은 {@link #runsMissingTxnCnt}에서 보정 */
+        long includedTxnCntSum;
+        /** included_txn_cnt 가 null 인 실행 수(건수는 실행 1건당 1로 가산) */
+        int runsMissingTxnCnt;
         BigDecimal approveAmtSum = BigDecimal.ZERO;
         BigDecimal cancelAmtSum = BigDecimal.ZERO;
         /** 취소 금액이 있는 가맹 건수 */
@@ -3053,10 +3109,17 @@ public class ApiSettlementController {
                 case REGIONAL -> regionalFee = regionalFee.add(slice);
                 case MASTER_DIST -> masterFee = masterFee.add(slice);
                 case BRANCH -> branchFee = branchFee.add(slice);
-                case AGENCY, SALES_OFFICE -> agencyFee = agencyFee.add(slice);
+                case AGENCY -> agencyFee = agencyFee.add(slice);
+                case SALES_OFFICE -> salesOfficeFee = salesOfficeFee.add(slice);
                 default -> { }
             }
             runCnt++;
+            Integer incTxn = r.getIncludedTxnCnt();
+            if (incTxn != null) {
+                includedTxnCntSum += incTxn.intValue();
+            } else {
+                runsMissingTxnCnt++;
+            }
             BigDecimal ap = r.getApproveAmt() != null ? r.getApproveAmt() : BigDecimal.ZERO;
             BigDecimal ca = r.getCancelAmt() != null ? r.getCancelAmt() : BigDecimal.ZERO;
             approveAmtSum = approveAmtSum.add(ap);
@@ -3150,18 +3213,22 @@ public class ApiSettlementController {
         m.put("masterFee", settlementMoneyDouble(agg.masterFee, rp));
         m.put("branchFee", settlementMoneyDouble(agg.branchFee, rp));
         m.put("agencyFee", settlementMoneyDouble(agg.agencyFee, rp));
+        m.put("salesOfficeFee", settlementMoneyDouble(agg.salesOfficeFee, rp));
         m.put("hqRate", BigDecimal.ZERO);
         m.put("regionalRate", BigDecimal.ZERO);
         m.put("masterRate", BigDecimal.ZERO);
         m.put("branchRate", BigDecimal.ZERO);
         m.put("agencyRate", BigDecimal.ZERO);
+        m.put("salesOfficeRate", BigDecimal.ZERO);
         fillHierarchyColumnsFrom(rowOrg, m, idToOu);
 
         BigDecimal apAmt = agg.approveAmtSum;
         BigDecimal caAmt = agg.cancelAmtSum;
-        m.put("aprvCnt", agg.runCnt);
+        long aprvCntDisplay = agg.includedTxnCntSum + agg.runsMissingTxnCnt;
+        m.put("aprvCnt", aprvCntDisplay);
         m.put("aprvAmt", settlementMoneyDouble(apAmt, rp));
-        m.put("aprvFeeCnt", agg.runCnt);
+        m.put("aprvFeeCnt", aprvCntDisplay);
+        m.put("settlementRunCnt", agg.runCnt);
         m.put("aprvFeePct", feePctStringBd(agg.aprvFeeSum, apAmt));
         m.put("aprvFeeSum", settlementMoneyDouble(agg.aprvFeeSum, rp));
         m.put("aprvFeeVat", settlementMoneyDouble(vatFromFeeBd(agg.aprvFeeSum, rp), rp));
@@ -3194,7 +3261,7 @@ public class ApiSettlementController {
 
     /** 본사~영업점 컬럼: 행 조직(rowOrg)은 해당 단계 칸에, 나머지는 상위 조직만 채움 */
     private void fillHierarchyColumnsFrom(OrgUnit rowOrg, Map<String, Object> m, Map<Long, OrgUnit> idToOu) {
-        String hq = "", regional = "", master = "", branch = "", agency = "";
+        String hq = "", regional = "", master = "", branch = "", agency = "", salesOffice = "";
         OrgUnit cur = parentOrg(rowOrg.getParentId(), idToOu);
         for (int i = 0; i < 16 && cur != null; i++) {
             if (cur.getOrgLevel() != null) {
@@ -3203,7 +3270,8 @@ public class ApiSettlementController {
                     case REGIONAL -> regional = nzName(regional, cur.getName());
                     case MASTER_DIST -> master = nzName(master, cur.getName());
                     case BRANCH -> branch = nzName(branch, cur.getName());
-                    case AGENCY, SALES_OFFICE -> agency = nzName(agency, cur.getName());
+                    case AGENCY -> agency = nzName(agency, cur.getName());
+                    case SALES_OFFICE -> salesOffice = nzName(salesOffice, cur.getName());
                     default -> { }
                 }
             }
@@ -3215,7 +3283,8 @@ public class ApiSettlementController {
                 case REGIONAL -> regional = rowOrg.getName() != null ? rowOrg.getName() : regional;
                 case MASTER_DIST -> master = rowOrg.getName() != null ? rowOrg.getName() : master;
                 case BRANCH -> branch = rowOrg.getName() != null ? rowOrg.getName() : branch;
-                case AGENCY, SALES_OFFICE -> agency = rowOrg.getName() != null ? rowOrg.getName() : agency;
+                case AGENCY -> agency = rowOrg.getName() != null ? rowOrg.getName() : agency;
+                case SALES_OFFICE -> salesOffice = rowOrg.getName() != null ? rowOrg.getName() : salesOffice;
                 default -> { }
             }
         }
@@ -3224,6 +3293,7 @@ public class ApiSettlementController {
         m.put("masterNm", master);
         m.put("branchNm", branch);
         m.put("agencyNm", agency);
+        m.put("salesOfficeNm", salesOffice);
     }
 
     private static String nzName(String existing, String name) {
@@ -3288,7 +3358,7 @@ public class ApiSettlementController {
         merchants.addAll(unpaidByMerchant.keySet());
         merchants.addAll(deductedByMerchant.keySet());
         for (String compId : merchants) {
-            if (allowedMerchants != null && !allowedMerchants.contains(compId.trim())) {
+            if (!allowedMerchantsContains(allowedMerchants, compId.trim())) {
                 continue;
             }
             OrgUnit ou = orgUnitRepository.findByCode(compId).orElse(null);
@@ -3355,7 +3425,7 @@ public class ApiSettlementController {
             boolean recallIncludeFeeYn, boolean settlementVatApplyYn
     ) {}
 
-    /** 회수관리 등: VAT·회수 시 수수료 포함 여부(본사 설정). 환수 시 수수료 금액은 수수료내역과 동일한 건별 합산. */
+    /** 회수관리 등: VAT·회수 시 수수료 포함(본사 설정 + 건별 수수료가 있으면 무조건 포함). 환수액은 수수료내역과 동일한 건별 합산. */
     private FeePolicy resolveHqFeePolicy() {
         CommissionPolicy p = commissionPolicyRepository.findByScope("DEFAULT").orElseGet(CommissionPolicy::new);
         HqApiConfig c = hqApiConfigRepository.findAll().stream().findFirst().orElse(null);
@@ -3412,7 +3482,7 @@ public class ApiSettlementController {
             if (!isDistributedForMerchantStatementView(r)) {
                 continue;
             }
-            if (allowedMerchants != null && !allowedMerchants.contains(mid.trim())) {
+            if (!allowedMerchantsContains(allowedMerchants, mid.trim())) {
                 continue;
             }
             if (!settlementCalcService.isMerchantStatementVisibleSettlementRun(r)) {
@@ -3533,8 +3603,7 @@ public class ApiSettlementController {
         m.put("rollingReserveAmt", settlementMoneyDouble(r.getRollingReserveAmt(), rp));
         m.put("settlementBatchFee", r.getSettlementBatchFeeAmt() != null
                 ? settlementMoneyDouble(r.getSettlementBatchFeeAmt(), rp) : null);
-        m.put("remittanceFee", r.getRemittanceFeeAmt() != null
-                ? settlementMoneyDouble(r.getRemittanceFeeAmt(), rp) : null);
+        m.put("remittanceFee", null);
         m.put("payAmount", settlementMoneyDouble(r.getPayAmt(), rp));
         m.put("status", r.getStatus());
         m.put("settlementRunId", r.getId());

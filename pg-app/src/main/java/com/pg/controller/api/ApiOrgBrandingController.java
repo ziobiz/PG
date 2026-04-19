@@ -68,6 +68,7 @@ public class ApiOrgBrandingController {
             empty.put("logoImageUrl", "");
             empty.put("firstLogoImageUrl", "");
             empty.put("popconImageUrl", "");
+            empty.put("urlPayImageUrl", "");
             empty.put("theme", "DEFAULT");
             empty.put("brandHost", "");
             empty.put("siteName", "");
@@ -85,6 +86,7 @@ public class ApiOrgBrandingController {
                             m.put("logoImageUrl", b.getLogoImageUrl() != null ? b.getLogoImageUrl() : "");
                             m.put("firstLogoImageUrl", b.getFirstLogoImageUrl() != null ? b.getFirstLogoImageUrl() : "");
                             m.put("popconImageUrl", b.getPopconImageUrl() != null ? b.getPopconImageUrl() : "");
+                            m.put("urlPayImageUrl", b.getUrlPayImageUrl() != null ? b.getUrlPayImageUrl() : "");
                             m.put("theme", b.getTheme() != null ? b.getTheme() : "DEFAULT");
                             m.put("brandHost", b.getBrandHost() != null ? b.getBrandHost() : "");
                             m.put("siteName", b.getSiteName() != null ? b.getSiteName() : "");
@@ -98,6 +100,7 @@ public class ApiOrgBrandingController {
                     empty.put("logoImageUrl", "");
                     empty.put("firstLogoImageUrl", "");
                     empty.put("popconImageUrl", "");
+                    empty.put("urlPayImageUrl", "");
                     empty.put("theme", "DEFAULT");
                     empty.put("brandHost", "");
                     empty.put("siteName", "");
@@ -124,8 +127,9 @@ public class ApiOrgBrandingController {
         if (!isBrandingEditable(ou)) {
             return ResponseEntity.ok(ApiResponse.fail("브랜딩(배경/로고) 변경권한이 없습니다.", "FORBIDDEN"));
         }
-        if (!"main".equals(imageType) && !"logo".equals(imageType) && !"first".equals(imageType) && !"popcon".equals(imageType)) {
-            return ResponseEntity.ok(ApiResponse.fail("imageType은 main, logo, first 또는 popcon이어야 합니다.", "INVALID"));
+        if (!"main".equals(imageType) && !"logo".equals(imageType) && !"first".equals(imageType) && !"popcon".equals(imageType)
+                && !"urlPay".equals(imageType)) {
+            return ResponseEntity.ok(ApiResponse.fail("imageType은 main, logo, first, popcon 또는 urlPay이어야 합니다.", "INVALID"));
         }
         long maxBytes = "main".equals(imageType)
                 ? MAIN_IMAGE_MAX_BYTES
@@ -137,6 +141,7 @@ public class ApiOrgBrandingController {
             if ("logo".equals(imageType)) sizeMsg = "로고이미지는 1MB 이하여야 합니다.";
             if ("first".equals(imageType)) sizeMsg = "첫화면 로고이미지는 1MB 이하여야 합니다.";
             if ("popcon".equals(imageType)) sizeMsg = "파비콘 이미지는 1MB 이하여야 합니다.";
+            if ("urlPay".equals(imageType)) sizeMsg = "URL결제 이미지는 1MB 이하여야 합니다.";
             return ResponseEntity.ok(ApiResponse.fail(
                     sizeMsg,
                     "SIZE_EXCEEDED"));
@@ -170,6 +175,8 @@ public class ApiOrgBrandingController {
                 b.setLogoImageUrl(url);
             } else if ("first".equals(imageType)) {
                 b.setFirstLogoImageUrl(url);
+            } else if ("urlPay".equals(imageType)) {
+                b.setUrlPayImageUrl(url);
             } else {
                 b.setPopconImageUrl(url);
             }
@@ -246,8 +253,9 @@ public class ApiOrgBrandingController {
         if (!isBrandingEditable(ou)) {
             return ResponseEntity.ok(ApiResponse.fail("브랜딩(배경/로고) 변경권한이 없습니다.", "FORBIDDEN"));
         }
-        if (!"main".equals(imageType) && !"logo".equals(imageType) && !"first".equals(imageType) && !"popcon".equals(imageType)) {
-            return ResponseEntity.ok(ApiResponse.fail("imageType은 main, logo, first 또는 popcon이어야 합니다.", "INVALID"));
+        if (!"main".equals(imageType) && !"logo".equals(imageType) && !"first".equals(imageType) && !"popcon".equals(imageType)
+                && !"urlPay".equals(imageType)) {
+            return ResponseEntity.ok(ApiResponse.fail("imageType은 main, logo, first, popcon 또는 urlPay이어야 합니다.", "INVALID"));
         }
         OrgBranding b = brandingRepository.findByOrgUnitId(ou.getId())
                 .orElseGet(() -> {
@@ -265,6 +273,9 @@ public class ApiOrgBrandingController {
         } else if ("first".equals(imageType)) {
             oldUrl = b.getFirstLogoImageUrl();
             b.setFirstLogoImageUrl(null);
+        } else if ("urlPay".equals(imageType)) {
+            oldUrl = b.getUrlPayImageUrl();
+            b.setUrlPayImageUrl(null);
         } else {
             oldUrl = b.getPopconImageUrl();
             b.setPopconImageUrl(null);

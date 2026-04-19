@@ -347,3 +347,24 @@ body.pay-inline-body {
   padding-left: 1rem;
   padding-right: 1rem;
 }
+
+/* pay.html DISPLAY_FX 견적: 청구예상 금액만(Bootstrap text-primary) */
+#payFxThbEstimateText.pay-fx-estimate-amount {
+  font-size: 1.0625rem;
+  letter-spacing: 0.02em;
+}
+
+/* 표시 통화가 JPY일 때: 고객 입력 금액(엔) · 통화 힌트 — 은은한 붉은 톤 */
+#amount.pay-amount-jpy-accent {
+  color: #b83232;
+  font-weight: 600;
+  border-color: rgba(184, 50, 50, 0.42);
+}
+#amount.pay-amount-jpy-accent:focus {
+  border-color: rgba(184, 50, 50, 0.72);
+  box-shadow: 0 0 0 0.2rem rgba(184, 50, 50, 0.14);
+}
+#payAmountCurrencyHint.pay-amount-jpy-accent {
+  color: #b83232 !important;
+  font-weight: 600;
+}

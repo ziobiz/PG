@@ -55,6 +55,7 @@ public class SettlementArrearsService {
     private final HqApiConfigRepository hqApiConfigRepository;
     private final HqLedgerSysSettingsRepository hqLedgerSysSettingsRepository;
     private final ReceivableRecoveryModeService receivableRecoveryModeService;
+    private final DistributionFeeSnapshotApplier distributionFeeSnapshotApplier;
 
     public SettlementArrearsService(SettlementRecoveryRepository settlementRecoveryRepository,
                                   MerchantReceivableRepository merchantReceivableRepository,
@@ -66,7 +67,8 @@ public class SettlementArrearsService {
                                   SettlementSettingRepository settlementSettingRepository,
                                   HqApiConfigRepository hqApiConfigRepository,
                                   HqLedgerSysSettingsRepository hqLedgerSysSettingsRepository,
-                                  ReceivableRecoveryModeService receivableRecoveryModeService) {
+                                  ReceivableRecoveryModeService receivableRecoveryModeService,
+                                  DistributionFeeSnapshotApplier distributionFeeSnapshotApplier) {
         this.settlementRecoveryRepository = settlementRecoveryRepository;
         this.merchantReceivableRepository = merchantReceivableRepository;
         this.merchantReceivableRecoveryRequestRepository = merchantReceivableRecoveryRequestRepository;
@@ -78,6 +80,12 @@ public class SettlementArrearsService {
         this.hqApiConfigRepository = hqApiConfigRepository;
         this.hqLedgerSysSettingsRepository = hqLedgerSysSettingsRepository;
         this.receivableRecoveryModeService = receivableRecoveryModeService;
+        this.distributionFeeSnapshotApplier = distributionFeeSnapshotApplier;
+    }
+
+    private void saveSettlementRunWithOrgFeeSnapshot(SettlementRun run) {
+        distributionFeeSnapshotApplier.stampOrgDistributionFees(run);
+        settlementRunRepository.save(run);
     }
 
     /** 유효 미수금 환수 모드가 MANUAL이면 미수금은 「환수처리」 요청이 있을 때만 정산에서 차감합니다. */
@@ -136,6 +144,17 @@ public class SettlementArrearsService {
     }
 
     /**
+     * 본사 「환수 시 수수료 포함」이 N이어도, 수수료내역과 동일한 건별 합산에 무효·환불 모드(HYBRID 등)로
+     * 수수료가 산출되면 환수금에 반드시 포함합니다.
+     */
+    public static boolean recallAmountIncludesFeeComponents(
+            boolean recallIncludeFeeFromHq, BigDecimal feeAmtRounded, BigDecimal feeVatBd) {
+        return recallIncludeFeeFromHq
+                || (feeAmtRounded != null && feeAmtRounded.signum() != 0)
+                || (feeVatBd != null && feeVatBd.signum() != 0);
+    }
+
+    /**
      * 승인(10)이 정산 반영(settled Y)된 뒤 취소·환불 등으로 바뀐 경우 자동 환수금 행을 만듭니다.
      */
     @Transactional
@@ -172,9 +191,11 @@ public class SettlementArrearsService {
         BigDecimal txnAmtBd = saved.getAmtKrw() != null ? saved.getAmtKrw() : BigDecimal.ZERO;
         HqApiConfig c = hqApiConfigRepository.findAll().stream().findFirst().orElse(null);
         boolean recallInc = c != null && "Y".equalsIgnoreCase(c.getRecallIncludeFeeYn());
-        BigDecimal recallBd = recallInc
-                ? txnAmtBd.add(feeAmtBd).add(feeVatBd).max(BigDecimal.ZERO)
-                : txnAmtBd.max(BigDecimal.ZERO);
+        boolean incFees = recallAmountIncludesFeeComponents(recallInc, feeAmtBd, feeVatBd);
+        BigDecimal recallBd = txnAmtBd.max(BigDecimal.ZERO);
+        if (incFees) {
+            recallBd = recallBd.add(feeAmtBd).add(feeVatBd);
+        }
         BigDecimal recall = FeeListRoundingPolicy.round(recallBd.max(BigDecimal.ZERO), rp);
         if (recall.signum() <= 0) {
             return;
@@ -187,7 +208,7 @@ public class SettlementArrearsService {
         r.setAppliedAmount(BigDecimal.ZERO);
         r.setStatus("PENDING");
         r.setReasonCode(REASON_POST_SETTLE_REFUND);
-        r.setFeeIncludedYn(recallInc ? "Y" : "N");
+        r.setFeeIncludedYn(incFees ? "Y" : "N");
         r.setVatAppliedYn(br.feeVatBd().signum() > 0 ? "Y" : "N");
         r.setMemo("정산 반영 후 후속 상태(" + newSt + ")");
         settlementRecoveryRepository.save(r);
@@ -213,12 +234,12 @@ public class SettlementArrearsService {
         if (payBd.signum() < 0) {
             registerAutoDeficitReceivableIfNeeded(run, payBd.abs(), rp, midTrim);
             run.setReceivableAppliedAmt(BigDecimal.ZERO);
-            settlementRunRepository.save(run);
+            saveSettlementRunWithOrgFeeSnapshot(run);
             return;
         }
         if (payBd.signum() == 0) {
             run.setReceivableAppliedAmt(BigDecimal.ZERO);
-            settlementRunRepository.save(run);
+            saveSettlementRunWithOrgFeeSnapshot(run);
             return;
         }
         BigDecimal takeR = applyFifoRecoveries(midTrim, run.getId(), payBd);
@@ -232,7 +253,7 @@ public class SettlementArrearsService {
         run.setReceivableAppliedAmt(takeM != null ? takeM : BigDecimal.ZERO);
         BigDecimal payFinal = FeeListRoundingPolicy.round(payAfterR.subtract(takeM).max(BigDecimal.ZERO), rp);
         run.setPayAmt(payFinal);
-        settlementRunRepository.save(run);
+        saveSettlementRunWithOrgFeeSnapshot(run);
     }
 
     /**

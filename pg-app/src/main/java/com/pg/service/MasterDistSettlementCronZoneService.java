@@ -2,6 +2,7 @@ package com.pg.service;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.pg.api.dto.TxnDualLineSpec;
 import com.pg.entity.MasterDistSettlementCycleConfig;
 import com.pg.entity.MerchantProfile;
 import com.pg.entity.OrgLevel;
@@ -58,6 +59,123 @@ public class MasterDistSettlementCronZoneService {
         addOpt(out, "CN", "Asia/Shanghai", "중국(상하이)");
         addOpt(out, "GLOBAL", "UTC", "세계 표준(UTC)");
         return out;
+    }
+
+    /** 정산관리설정: 거래시간 1줄 프리셋(KR/JP/USA/TH/SG/HK/CH). 2줄은 정산 크론 Zone 자동. */
+    public static List<Map<String, String>> txnTimeDisplayPresetOptions() {
+        List<Map<String, String>> out = new ArrayList<>();
+        addTxnPreset(out, "KR", "KR (한국)");
+        addTxnPreset(out, "JP", "JP (일본)");
+        addTxnPreset(out, "USA", "USA (뉴욕)");
+        addTxnPreset(out, "TH", "TH (태국)");
+        addTxnPreset(out, "SG", "SG (싱가포르)");
+        addTxnPreset(out, "HK", "HK (홍콩)");
+        addTxnPreset(out, "CH", "CH (중국)");
+        return out;
+    }
+
+    private static void addTxnPreset(List<Map<String, String>> out, String presetCode, String label) {
+        Map<String, String> m = new LinkedHashMap<>();
+        m.put("presetCode", presetCode);
+        m.put("label", label);
+        out.add(m);
+    }
+
+    /** DB·요청값 정규화. null/빈값 → JP. */
+    public static String normalizeTxnTimePresetCode(String raw) {
+        if (raw == null || raw.isBlank()) {
+            return "JP";
+        }
+        String u = raw.trim().toUpperCase(Locale.ROOT);
+        if ("US".equals(u)) {
+            u = "USA";
+        }
+        return switch (u) {
+            case "KR", "JP", "USA", "TH", "SG", "HK", "CH" -> u;
+            default -> "JP";
+        };
+    }
+
+    public static ZoneId presetCodeToZoneId(String presetCode) {
+        String p = normalizeTxnTimePresetCode(presetCode);
+        return switch (p) {
+            case "KR" -> ZoneId.of("Asia/Seoul");
+            case "JP" -> ZoneId.of("Asia/Tokyo");
+            case "USA" -> ZoneId.of("America/New_York");
+            case "TH" -> ZoneId.of("Asia/Bangkok");
+            case "SG" -> ZoneId.of("Asia/Singapore");
+            case "HK" -> ZoneId.of("Asia/Hong_Kong");
+            case "CH" -> ZoneId.of("Asia/Shanghai");
+            default -> ZoneId.of("Asia/Tokyo");
+        };
+    }
+
+    /** 정산 크론 ZoneId → 그리드 2줄 접두 태그(대표 IANA 매핑). */
+    public static String zoneIdToShortTag(ZoneId zoneId) {
+        if (zoneId == null) {
+            return "KR";
+        }
+        String id = zoneId.getId();
+        if ("Asia/Seoul".equals(id)) {
+            return "KR";
+        }
+        if ("Asia/Tokyo".equals(id)) {
+            return "JP";
+        }
+        if ("Asia/Bangkok".equals(id)) {
+            return "TH";
+        }
+        if ("America/New_York".equals(id)) {
+            return "USA";
+        }
+        if ("Asia/Singapore".equals(id)) {
+            return "SG";
+        }
+        if ("Asia/Hong_Kong".equals(id)) {
+            return "HK";
+        }
+        if ("Asia/Shanghai".equals(id)) {
+            return "CH";
+        }
+        if ("UTC".equals(id)) {
+            return "UTC";
+        }
+        int slash = id.lastIndexOf('/');
+        String tail = slash >= 0 ? id.substring(slash + 1) : id;
+        if (tail.length() > 4) {
+            tail = tail.substring(0, 4);
+        }
+        return tail.toUpperCase(Locale.ROOT);
+    }
+
+    /**
+     * 총판 {@code tb_master_dist_settlement_cycle_config} 행이 있을 때만 반환.
+     * 1줄=프리셋, 2줄=정산 크론 Zone(태그는 {@link #zoneIdToShortTag}).
+     */
+    public Optional<TxnDualLineSpec> resolveTxnDualLineSpecForOrgUnitId(long orgUnitIdFromAnyLevel) {
+        Optional<Long> md = findNearestMasterDistOrgId(orgUnitIdFromAnyLevel);
+        if (md.isEmpty()) {
+            return Optional.empty();
+        }
+        Optional<MasterDistSettlementCycleConfig> cfgOpt = configRepository.findByOrgUnitId(md.get());
+        if (cfgOpt.isEmpty()) {
+            return Optional.empty();
+        }
+        MasterDistSettlementCycleConfig cfg = cfgOpt.get();
+        String preset = normalizeTxnTimePresetCode(cfg.getTxnTimeDisplayPreset());
+        ZoneId z1 = presetCodeToZoneId(preset);
+        String zCronStr = cfg.getSettlementCronZoneId();
+        if (!StringUtils.hasText(zCronStr)) {
+            zCronStr = DEFAULT_SETTLEMENT_CRON_ZONE.getId();
+        }
+        ZoneId z2;
+        try {
+            z2 = ZoneId.of(zCronStr.trim());
+        } catch (Exception e) {
+            z2 = DEFAULT_SETTLEMENT_CRON_ZONE;
+        }
+        String tag2 = zoneIdToShortTag(z2);
+        return Optional.of(new TxnDualLineSpec(preset, z1, tag2, z2));
     }
 
     private static void addOpt(List<Map<String, String>> out, String code, String zoneId, String label) {
@@ -166,11 +284,14 @@ public class MasterDistSettlementCronZoneService {
             row.put("holidayProfileName", str(disp.get("holidayProfileName")));
             row.put("businessCountryCode", resolveHolidayCountryToken(disp));
             row.put("currentBusinessDaySummary", formatCurrentBusinessDaySummary(eff));
-            String zone = configRepository.findByOrgUnitId(ou.getId())
-                    .map(MasterDistSettlementCycleConfig::getSettlementCronZoneId)
+            Optional<MasterDistSettlementCycleConfig> cfgRow = configRepository.findByOrgUnitId(ou.getId());
+            String zone = cfgRow.map(MasterDistSettlementCycleConfig::getSettlementCronZoneId)
                     .filter(StringUtils::hasText)
                     .orElse(DEFAULT_SETTLEMENT_CRON_ZONE.getId());
             row.put("settlementCronZoneId", zone);
+            row.put("txnTimeDisplayPreset", cfgRow
+                    .map(c -> normalizeTxnTimePresetCode(c.getTxnTimeDisplayPreset()))
+                    .orElse("JP"));
             out.add(row);
         }
         return out;
@@ -282,7 +403,8 @@ public class MasterDistSettlementCronZoneService {
     }
 
     @Transactional
-    public Map<String, Object> saveSettlementCronZoneOnly(long masterDistOrgUnitId, String zoneOrPreset) {
+    public Map<String, Object> saveSettlementCronZoneOnly(long masterDistOrgUnitId, String zoneOrPreset,
+                                                           boolean updateTxnTimePreset, String txnTimePresetRaw) {
         OrgUnit ou = orgUnitRepository.findById(masterDistOrgUnitId)
                 .orElseThrow(() -> new IllegalArgumentException("조직을 찾을 수 없습니다."));
         if (ou.getOrgLevel() != OrgLevel.MASTER_DIST) {
@@ -298,10 +420,14 @@ public class MasterDistSettlementCronZoneService {
                     return n;
                 });
         entity.setSettlementCronZoneId(z);
+        if (updateTxnTimePreset) {
+            entity.setTxnTimeDisplayPreset(normalizeTxnTimePresetCode(txnTimePresetRaw));
+        }
         MasterDistSettlementCycleConfig saved = configRepository.save(entity);
         Map<String, Object> m = new LinkedHashMap<>();
         m.put("orgUnitId", saved.getOrgUnitId());
         m.put("settlementCronZoneId", saved.getSettlementCronZoneId());
+        m.put("txnTimeDisplayPreset", normalizeTxnTimePresetCode(saved.getTxnTimeDisplayPreset()));
         return m;
     }
 

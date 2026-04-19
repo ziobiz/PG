@@ -123,10 +123,20 @@ public class PayFollowPolicyService {
         if (v instanceof Boolean b) {
             return b ? "Y" : "N";
         }
-        if (v != null && "true".equalsIgnoreCase(v.toString().trim())) {
+        if (v == null) {
+            return "N";
+        }
+        String s = v.toString().trim();
+        if ("Y".equalsIgnoreCase(s) || "1".equals(s) || "yes".equalsIgnoreCase(s)) {
             return "Y";
         }
-        if (v != null && "false".equalsIgnoreCase(v.toString().trim())) {
+        if ("N".equalsIgnoreCase(s) || "0".equals(s) || "no".equalsIgnoreCase(s)) {
+            return "N";
+        }
+        if ("true".equalsIgnoreCase(s)) {
+            return "Y";
+        }
+        if ("false".equalsIgnoreCase(s)) {
             return "N";
         }
         return "N";

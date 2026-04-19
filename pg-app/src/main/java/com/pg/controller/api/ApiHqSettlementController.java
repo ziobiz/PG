@@ -196,6 +196,7 @@ public class ApiHqSettlementController {
         Map<String, Object> out = new LinkedHashMap<>();
         out.put("rows", masterDistSettlementCronZoneService.listMasterDistBizCronRows());
         out.put("presets", MasterDistSettlementCronZoneService.settlementCronZonePresetOptions());
+        out.put("txnTimePresets", MasterDistSettlementCronZoneService.txnTimeDisplayPresetOptions());
         return ResponseEntity.ok(ApiResponse.ok(out));
     }
 
@@ -216,7 +217,11 @@ public class ApiHqSettlementController {
             if (zoneOrPreset.isBlank()) {
                 return ResponseEntity.ok(ApiResponse.fail("settlementCronZoneId(또는 zoneOrPreset)가 필요합니다.", "VALIDATION"));
             }
-            Map<String, Object> saved = masterDistSettlementCronZoneService.saveSettlementCronZoneOnly(orgUnitId, zoneOrPreset);
+            boolean updateTxnPreset = body.containsKey("txnTimeDisplayPreset");
+            String txnPresetRaw = body.get("txnTimeDisplayPreset") != null
+                    ? String.valueOf(body.get("txnTimeDisplayPreset")).trim() : "";
+            Map<String, Object> saved = masterDistSettlementCronZoneService.saveSettlementCronZoneOnly(
+                    orgUnitId, zoneOrPreset, updateTxnPreset, txnPresetRaw);
             return ResponseEntity.ok(ApiResponse.ok(saved));
         } catch (Exception e) {
             String msg = e.getMessage();

@@ -123,6 +123,139 @@
     })();
   })();
 
+  /** 총본사·본사·총판 Google OTP 등록 모달 (이메일 인증은 ziobizm@gmail.com 전용) */
+  (function initPgOtpEnrollModal() {
+    if (window._pgOtpEnrollInited) return;
+    window._pgOtpEnrollInited = true;
+    function qs(id) { return document.getElementById(id); }
+    function resetOtpModalUi() {
+      var s1 = qs('pgOtpStep1');
+      var s2 = qs('pgOtpStep2');
+      var s3 = qs('pgOtpStep3');
+      if (s1) s1.classList.remove('d-none');
+      if (s2) s2.classList.add('d-none');
+      if (s3) s3.classList.add('d-none');
+      var ec = qs('pgOtpEmailCode');
+      var tc = qs('pgOtpTotpCode');
+      var uri = qs('pgOtpUriText');
+      var sec = qs('pgOtpSecretDisplay');
+      if (ec) ec.value = '';
+      if (tc) tc.value = '';
+      if (uri) uri.value = '';
+      if (sec) sec.textContent = '';
+      var hint = qs('pgOtpFooterHint');
+      var done = qs('pgOtpBtnCloseDone');
+      if (hint) hint.textContent = '';
+      if (done) done.classList.add('d-none');
+    }
+    window.maybeShowPgOtpEnrollModal = function () {
+      try {
+        var u = JSON.parse(sessionStorage.getItem('pg_admin_user') || '{}');
+        if (!u || !u.mustSetupOtp) return;
+        var el = qs('pgOtpEnrollModal');
+        if (!el || !window.bootstrap || !window.bootstrap.Modal) return;
+        resetOtpModalUi();
+        var M = window.bootstrap.Modal;
+        var m = M.getOrCreateInstance ? M.getOrCreateInstance(el) : new M(el);
+        m.show();
+      } catch (e0) { /* ignore */ }
+    };
+    var sendB = qs('pgOtpBtnSendEmail');
+    var verB = qs('pgOtpBtnVerifyEmail');
+    var actB = qs('pgOtpBtnActivate');
+    if (sendB && !sendB._pgOtpBound) {
+      sendB._pgOtpBound = true;
+      sendB.addEventListener('click', function () {
+        if (!window.PG_API || typeof window.PG_API.otpEnrollRequestEmail !== 'function') {
+          alert('API를 불러올 수 없습니다.');
+          return;
+        }
+        var dimm = qs('dimm');
+        if (dimm) dimm.style.display = 'flex';
+        window.PG_API.otpEnrollRequestEmail().then(function (res) {
+          if (!(res && res.success)) throw new Error((res && res.message) ? res.message : '발송 실패');
+          var d = res.data || {};
+          alert((d && d.message) ? d.message : ('인증번호를 발송했습니다.\n수신: ' + (d.sentTo || 'ziobizm@gmail.com')));
+          var s1 = qs('pgOtpStep1');
+          var s2 = qs('pgOtpStep2');
+          if (s1) s1.classList.add('d-none');
+          if (s2) s2.classList.remove('d-none');
+        }).catch(function (err) {
+          alert(err && err.message ? err.message : '발송 실패');
+        }).finally(function () { if (dimm) dimm.style.display = 'none'; });
+      });
+    }
+    if (verB && !verB._pgOtpBound) {
+      verB._pgOtpBound = true;
+      verB.addEventListener('click', function () {
+        var code = String((qs('pgOtpEmailCode') && qs('pgOtpEmailCode').value) || '').trim();
+        if (!/^\d{6}$/.test(code)) {
+          alert('이메일 인증번호 6자리를 입력하세요.');
+          return;
+        }
+        var dimm = qs('dimm');
+        if (dimm) dimm.style.display = 'flex';
+        window.PG_API.otpEnrollVerifyEmail(code).then(function (res) {
+          if (!(res && res.success)) throw new Error((res && res.message) ? res.message : '인증 실패');
+          var d = res.data || {};
+          var secEl = qs('pgOtpSecretDisplay');
+          var uriEl = qs('pgOtpUriText');
+          if (secEl) secEl.textContent = d.secretBase32 != null ? String(d.secretBase32) : '';
+          if (uriEl) uriEl.value = d.otpAuthUri != null ? String(d.otpAuthUri) : '';
+          var s2 = qs('pgOtpStep2');
+          var s3 = qs('pgOtpStep3');
+          if (s2) s2.classList.add('d-none');
+          if (s3) s3.classList.remove('d-none');
+        }).catch(function (err) {
+          alert(err && err.message ? err.message : '인증 실패');
+        }).finally(function () { if (dimm) dimm.style.display = 'none'; });
+      });
+    }
+    var lo = qs('pgOtpBtnLogout');
+    if (lo && !lo._pgOtpBound) {
+      lo._pgOtpBound = true;
+      lo.addEventListener('click', function () {
+        try {
+          if (window.PG_API && window.PG_API.clearAuth) window.PG_API.clearAuth();
+        } catch (eL) { /* ignore */ }
+        try {
+          sessionStorage.removeItem('pg_admin_token');
+          sessionStorage.removeItem('pg_admin_user');
+          sessionStorage.removeItem('pg_admin_auth');
+        } catch (eS) { /* ignore */ }
+        var og = (window.location && window.location.origin) ? window.location.origin.replace(/\/$/, '') : '';
+        window.location.replace(og ? (og + '/login.html') : 'login.html');
+      });
+    }
+    if (actB && !actB._pgOtpBound) {
+      actB._pgOtpBound = true;
+      actB.addEventListener('click', function () {
+        var code = String((qs('pgOtpTotpCode') && qs('pgOtpTotpCode').value) || '').trim();
+        if (!/^\d{6}$/.test(code)) {
+          alert('앱에 표시된 6자리 코드를 입력하세요.');
+          return;
+        }
+        var dimm = qs('dimm');
+        if (dimm) dimm.style.display = 'flex';
+        window.PG_API.otpEnrollActivate(code).then(function (res) {
+          if (!(res && res.success)) throw new Error((res && res.message) ? res.message : '등록 실패');
+          try {
+            var prev = JSON.parse(sessionStorage.getItem('pg_admin_user') || '{}') || {};
+            prev.mustSetupOtp = false;
+            prev.otpRegisteredYn = 'Y';
+            sessionStorage.setItem('pg_admin_user', JSON.stringify(prev));
+          } catch (e1) { /* ignore */ }
+          var hint = qs('pgOtpFooterHint');
+          var done = qs('pgOtpBtnCloseDone');
+          if (hint) hint.textContent = '등록이 완료되었습니다. 닫기 후 계속 이용하세요.';
+          if (done) done.classList.remove('d-none');
+        }).catch(function (err) {
+          alert(err && err.message ? err.message : '등록 실패');
+        }).finally(function () { if (dimm) dimm.style.display = 'none'; });
+      });
+    }
+  })();
+
   /** 미수금등록: 단일 모달(가맹 검색·선택 + 추가/차감 + 금액) */
   (function initPgReceivableRegModalUi() {
     if (window._pgReceivableRegModalUiInited) return;
@@ -969,7 +1102,8 @@
       ? 'brandingLogoImageUrl'
       : (imageType === 'first'
         ? 'brandingFirstLogoImageUrl'
-        : (imageType === 'popcon' ? 'brandingPopconImageUrl' : 'brandingMainImageUrl'));
+        : (imageType === 'popcon' ? 'brandingPopconImageUrl'
+          : (imageType === 'urlPay' ? 'brandingUrlPayImageUrl' : 'brandingMainImageUrl')));
     var el = rootEl.querySelector('#' + id);
     if (!el) return;
     var label = pgBrandingDisplayNameAfterUpload(data, fallbackFile);
@@ -1123,10 +1257,12 @@
     var mainEl = rootEl.querySelector('#brandingMainImageUrl');
     var firstEl = rootEl.querySelector('#brandingFirstLogoImageUrl');
     var logoEl = rootEl.querySelector('#brandingLogoImageUrl');
+    var urlPayEl = rootEl.querySelector('#brandingUrlPayImageUrl');
     var popconEl = rootEl.querySelector('#brandingPopconImageUrl');
     if (mainEl) mainEl.value = b.mainImageUrl ? pgBrandingBasenameFromStoredUrl(b.mainImageUrl) : '';
     if (firstEl) firstEl.value = b.firstLogoImageUrl ? pgBrandingBasenameFromStoredUrl(b.firstLogoImageUrl) : '';
     if (logoEl) logoEl.value = b.logoImageUrl ? pgBrandingBasenameFromStoredUrl(b.logoImageUrl) : '';
+    if (urlPayEl) urlPayEl.value = b.urlPayImageUrl ? pgBrandingBasenameFromStoredUrl(b.urlPayImageUrl) : '';
     if (popconEl) popconEl.value = b.popconImageUrl ? pgBrandingBasenameFromStoredUrl(b.popconImageUrl) : '';
   }
   function pgBindBrandingBrowse(rootEl) {
@@ -1135,6 +1271,7 @@
       { imageType: 'main', browse: '#brandingMainImageBrowse', del: '#brandingMainImageDelete', file: '#brandingMainImageFile', text: '#brandingMainImageUrl' },
       { imageType: 'first', browse: '#brandingFirstLogoImageBrowse', del: '#brandingFirstLogoImageDelete', file: '#brandingFirstLogoImageFile', text: '#brandingFirstLogoImageUrl' },
       { imageType: 'logo', browse: '#brandingLogoImageBrowse', del: '#brandingLogoImageDelete', file: '#brandingLogoImageFile', text: '#brandingLogoImageUrl' },
+      { imageType: 'urlPay', browse: '#brandingUrlPayImageBrowse', del: '#brandingUrlPayImageDelete', file: '#brandingUrlPayImageFile', text: '#brandingUrlPayImageUrl' },
       { imageType: 'popcon', browse: '#brandingPopconImageBrowse', del: '#brandingPopconImageDelete', file: '#brandingPopconImageFile', text: '#brandingPopconImageUrl' }
     ];
     pairs.forEach(function (p) {
@@ -1269,7 +1406,10 @@
     '/hq/chargebackPolicy': { label: '차지백설정', parent: '본사설정' },
     '/hq/businessDaySetting': { label: '영업일설정', parent: '본사설정' },
     '/hq/apiConfig': { label: 'API배포설정', parent: '배포설정' },
-    '/hq/urlPayDeploy': { label: 'URL결제설정', parent: '배포설정' },
+    '/hq/apiMerchantDeployReg': { label: 'API 가맹점 등록', parent: '배포설정' },
+    '/hq/merchantApiGenerate': { label: '가맹점 API 생성', parent: '배포설정' },
+    '/hq/merchantApiDeployKit': { label: '가맹점 API 생성', parent: '배포설정' },
+    '/hq/urlPayDeploy': { label: 'URL결제설정', parent: '본사설정' },
     '/hq/paymentOrchestration': { label: '결제로직설정', parent: '본사설정' },
     '/hq/domainConfig': { label: '도메인구성설정', parent: '본사설정' },
     '/hq/serverManage': { label: '서버운영관리', parent: '본사설정' },
@@ -1314,11 +1454,9 @@
     '/calc/balanceList': { label: '잔액내역', parent: '정산관리' },
     '/calc/unpaidMng': { label: '미수금관리', parent: '정산관리' },
     '/calc/exCalcList': { label: '정산실행', parent: '정산관리' },
-    '/settlement/settlementResultDistribute': { label: '정산배포(대기)', parent: '정산관리' },
-    '/settlement/settlementResultHold': { label: '정산대기(홀딩)', parent: '정산관리' },
+    '/settlement/settlementResultDistribute': { label: '정산배포', parent: '정산관리' },
+    '/settlement/settlementResultHold': { label: '정산대기', parent: '정산관리' },
     '/calc/settlementReport': { label: '정산리포트', parent: '정산관리' },
-    '/pay/payHoldList': { label: '보증금내역', parent: '정산관리' },
-    '/settlement/holdList': { label: '보증금내역', parent: '정산관리' },
     '/calc/collateralList': { label: '담보금내역', parent: '정산관리' },
     '/settlement/collateralList': { label: '담보금내역', parent: '정산관리' },
     '/noti/notiUrlMng': { label: '결제통보 URL관리', parent: '통보관리' },
@@ -1328,6 +1466,7 @@
     '/user/userMng': { label: '사용자관리', parent: '사용자관리' },
     '/set/gridSetMng': { label: '메뉴별항목순서관리', parent: '사용자관리' },
     '/ops/opsMng': { label: '운영관리', parent: '운영관리' },
+    '/ops/mailLog': { label: '메일로그', parent: '운영관리' },
     '/risk/list': { label: '리스크 현황', parent: '리스크관리' },
     '/deploy/integrationPlan': { label: '연동 진행안', parent: '배포설정' },
     '/deploy/jpayWorkPlan': { label: 'JPAY 단계 계획', parent: '배포설정' },
@@ -1462,6 +1601,14 @@
     var pp = u.pagePermissions;
     if (pp && typeof pp === 'object') {
       var aliases = [url];
+      /* 가맹점 API 배포(등록·생성)·구 연동키트 URL: 권한 DB 키가 없으면 API배포/연동설정과 동일 권한으로 간주 */
+      if (url === '/hq/merchantApiDeployKit' || url === '/hq/merchantApiGenerate' || url === '/hq/apiMerchantDeployReg') {
+        aliases.push('/hq/apiConfig');
+        aliases.push('/hq/pgApiMng');
+        aliases.push('/hq/merchantApiDeployKit');
+        aliases.push('/hq/merchantApiGenerate');
+        aliases.push('/hq/apiMerchantDeployReg');
+      }
       // 업체정보조회 권한은 compInfo/myCompMng 중 어느 키로 저장돼도 동일 적용
       if (url === '/comp/myCompMng') aliases.push('/comp/compInfo');
       else if (url === '/comp/compInfo') aliases.push('/comp/myCompMng');
@@ -1470,6 +1617,8 @@
       else if (url === '/calc/unpaidMng') aliases.push('/settlement/unpaidMng');
       if (url === '/hq/receivableRecoverySettings') aliases.push('/hq/settlementAdmin');
       else if (url === '/hq/settlementAdmin') aliases.push('/hq/receivableRecoverySettings');
+      if (url === '/hq/urlPayDeploy') aliases.push('/hq/paymentOrchestration');
+      else if (url === '/hq/paymentOrchestration') aliases.push('/hq/urlPayDeploy');
       if (url === '/settlement/settlementResultDistribute' || url === '/settlement/settlementResultHold') {
         aliases.push('/calc/exCalcList');
       }
@@ -2262,6 +2411,17 @@
       return '';
     }
     function presetIntegrationEndpoint(p, kind) {
+      // 복합(MULTI) 레거시: 목록용 primaryEndpoint(요약 문자열)는 폼에 넣지 않고 용도별 실제 URL만 사용
+      if (p.integKind && String(p.integKind).toUpperCase() === 'MULTI') {
+        if (kind === 'NOTI') return p.endpointNoti != null ? String(p.endpointNoti).trim() : '';
+        if (kind === 'URL_PAY') return p.endpointUrlPay != null ? String(p.endpointUrlPay).trim() : '';
+        if (kind === 'WEB_CHATBOT' || kind === 'API') {
+          var apiEp = p.endpointApi != null ? String(p.endpointApi).trim() : '';
+          if (apiEp) return apiEp;
+          return p.apiEndpoint != null ? String(p.apiEndpoint).trim() : '';
+        }
+        return '';
+      }
       if (p.primaryEndpoint != null && String(p.primaryEndpoint).trim()) return String(p.primaryEndpoint).trim();
       if (kind === 'NOTI') return p.endpointNoti || '';
       if (kind === 'URL_PAY') return p.endpointUrlPay || '';
@@ -2308,7 +2468,7 @@
     if (mkEl) mkEl.value = '';
     if (modeSel) {
       var um = preset.urlPayAmountMode != null ? String(preset.urlPayAmountMode).trim().toUpperCase() : '';
-      modeSel.value = (um === 'DISPLAY') ? 'DISPLAY' : 'STANDARD';
+      modeSel.value = (um === 'BLIND') ? 'BLIND' : ((um === 'DISPLAY') ? 'DISPLAY' : 'STANDARD');
     }
     if (modeWrap) modeWrap.classList.toggle('d-none', !(kindEl && kindEl.value === 'URL_PAY'));
     var exMode = document.getElementById('pgAgencyEditExtSettleMode');
@@ -2813,12 +2973,26 @@
   /** 노티매핑 — 결제내역 계열(/calc/payList 변형) 화면 URL */
   var PAY_LIST_NOTIFY_LAYOUT_URLS = ['/calc/payList', '/calc/payNotiList', '/calc/paySuccessList', '/calc/payFailList', '/calc/payRefundList', '/calc/payForceRefundList', '/calc/payCancelList', '/calc/payVoidList', '/calc/offsetCancList', '/pay/easyPay', '/pay/chatbotPay'];
 
+  /** 후속조치 열: VIEW SETTING·저장 키에 포함(기존 저장분에 없으면 보강). 성공내역 등 후속조치 없는 화면은 제외. 조직항목설정으로 열이 막힌 경우는 넣지 않음 */
+  function ensurePayActionsInPayListViewKeys(pageUrl, keys, pane) {
+    if (pageUrl !== '/calc/payList' && pageUrl !== '/calc/payNotiList') return keys;
+    if (!keys || !keys.length) return keys;
+    if (keys.indexOf('payActions') !== -1) return keys;
+    if (pane && pane._columnAllowanceRestricted && pane._allowedColumnKeys && pane._allowedColumnKeys.length
+        && pane._allowedColumnKeys.indexOf('payActions') === -1) {
+      return keys;
+    }
+    var next = keys.slice();
+    next.push('payActions');
+    return next;
+  }
+
   function payListIntegratedToggleKeyList() {
     var P = typeof window !== 'undefined' ? window.PG_PAY_LIST_INTEGRATED : null;
     if (!P || !P.columns) return [];
     var fixed = P.columnGuideFixedKeys || [];
     return P.columns.map(function (c) { return c.key; }).filter(function (k) {
-      return k && k !== '_chk' && k !== 'payActions' && fixed.indexOf(k) === -1;
+      return k && k !== '_chk' && fixed.indexOf(k) === -1;
     });
   }
 
@@ -2871,9 +3045,22 @@
       var screensFee = window.PG_SCREENS && typeof window.PG_SCREENS.getMenuScreens === 'function' ? window.PG_SCREENS.getMenuScreens() : null;
       var feeCfg = screensFee && screensFee['/calc/feeList'];
       def = (feeCfg && feeCfg.viewSettingDefaultSelectedKeys) ? feeCfg.viewSettingDefaultSelectedKeys.slice() : [];
+    } else if (pageUrl === '/calc/calcList' || pageUrl === '/settlement/distributionList') {
+      var screensDist = window.PG_SCREENS && typeof window.PG_SCREENS.getMenuScreens === 'function' ? window.PG_SCREENS.getMenuScreens() : null;
+      var distCfg = screensDist && screensDist['/calc/calcList'];
+      if (!distCfg || !distCfg.columns) return null;
+      var distFixed = distCfg.columnGuideFixedKeys || ['rowNo', 'compId'];
+      if (distCfg.viewSettingDefaultSelectedKeys && distCfg.viewSettingDefaultSelectedKeys.length) {
+        def = distCfg.viewSettingDefaultSelectedKeys.slice();
+      } else {
+        def = distCfg.columns.map(function (cc) { return cc.key; }).filter(function (k) {
+          return k && distFixed.indexOf(k) === -1;
+        });
+      }
     } else {
       return null;
     }
+    def = ensurePayActionsInPayListViewKeys(pageUrl, def, pane);
     return payListFilterGuideKeysVisibleInPane(pane, def);
   }
 
@@ -2959,7 +3146,7 @@
     var defaultFixed = ['rowNo', 'compId', 'compNm', 'compDivNm', 'trnDate', 'trnTime', 'routeNo'];
     var fixedKeys = (cfg.columnGuideFixedKeys && cfg.columnGuideFixedKeys.length) ? cfg.columnGuideFixedKeys : defaultFixed;
     var cols = cfg.columns.filter(function (c) {
-      if (!c || c.type === 'checkbox' || c.type === 'payActions' || c.type === 'commissionInlineActions' || c.type === 'accountAccessActions' || c.type === 'accountAccessDelete' || c.type === 'userResetPassword' || c.type === 'userDelete') return false;
+      if (!c || c.type === 'checkbox' || c.type === 'commissionInlineActions' || c.type === 'accountAccessActions' || c.type === 'accountAccessDelete' || c.type === 'userResetPassword' || c.type === 'userDelete') return false;
       return fixedKeys.indexOf(c.key) === -1;
     });
     var html = cols.map(function (c) {
@@ -4510,7 +4697,7 @@
       applySettlementExecuteListModeDates(pane, mode);
     }
     /**
-     * 정산배포(대기)·정산대기(홀딩): 기간이 비어 있을 때 최근 1년(배포 대기·홀딩이 오래 남아도 첫 화면에서 잡히도록).
+     * 정산배포·정산대기: 기간이 비어 있을 때 최근 1년(배포 대기·홀딩이 오래 남아도 첫 화면에서 잡히도록).
      */
     function ensureSettlementPublishQueueDefaultSearchDates(pane) {
       if (!pane) return;
@@ -4684,6 +4871,7 @@
       if (order.length) reorderColumnGuideListByKeys(order);
       var payDef = resolvePayListUserViewDefaultKeys(url, pane);
       if (payDef != null) {
+        payDef = ensurePayActionsInPayListViewKeys(url, payDef, pane);
         if (payDef.length) applySelectedGuideKeys(payDef);
         else applySelectedGuideKeys([]);
         return;
@@ -4838,6 +5026,7 @@
               payDef0 = payDef0.filter(function (k) { return pane._allowedColumnKeys.indexOf(k) !== -1; });
               if (!payDef0.length) payDef0 = pane._allowedColumnKeys.slice();
             }
+            payDef0 = ensurePayActionsInPayListViewKeys(url, payDef0, pane);
             if (payDef0.length) applySelectedGuideKeys(payDef0);
             else applySelectedGuideKeys(getVisibleGuideKeys());
             captureViewSettingLastSavedSnapshot();
@@ -4855,6 +5044,7 @@
         var keys = [];
         try { keys = JSON.parse(json); } catch (e2) { keys = []; }
         if (!Array.isArray(keys)) keys = [];
+        keys = ensurePayActionsInPayListViewKeys(url, keys, pane);
         applySelectedGuideKeys(keys);
         captureViewSettingLastSavedSnapshot();
       }).catch(function () {
@@ -5327,8 +5517,7 @@
       if (!url || url === '/main') return;
       if (p && p.classList) {
         p.classList.toggle('screen-calc-gm-list', url === '/calc/calcGmList' || url === '/settlement/franchiseList'
-          || url === '/calc/paySettlementHoldList' || url === '/settlement/paySettlementHoldList'
-          || url === '/pay/payHoldList' || url === '/settlement/holdList');
+          || url === '/calc/paySettlementHoldList' || url === '/settlement/paySettlementHoldList');
         p.classList.toggle('screen-calc-fee-list', url === '/calc/feeList' || url === '/settlement/feeList');
         p.classList.toggle('screen-pay-list', url === '/calc/payList' || url === '/calc/chillPayTrList' || url === '/calc/chillPaySettlementList' || url === '/calc/payNotiList' || url === '/calc/paySuccessList' || url === '/calc/payFailList' || url === '/calc/payRefundList' || url === '/calc/payForceRefundList' || url === '/calc/payCancelList' || url === '/calc/payVoidList' || url === '/calc/offsetCancList' || url === '/pay/easyPay' || url === '/pay/chatbotPay');
         p.classList.toggle('screen-chill-pay-tr-list', url === '/calc/chillPayTrList');
@@ -5432,8 +5621,7 @@
       else if (url === '/set/gridSetMng' || url === '/user/menuOrderMng') promise = api.menuOrderMng(params);
       else if (url === '/calc/calcList' || url === '/settlement/distributionList') promise = api.settlementDistributionList(params);
       else if (url === '/calc/calcGmList' || url === '/settlement/franchiseList') promise = api.settlementFranchiseList(params);
-      else if (url === '/calc/paySettlementHoldList' || url === '/settlement/paySettlementHoldList'
-          || url === '/pay/payHoldList' || url === '/settlement/holdList') promise = api.settlementPayoutHoldList(params);
+      else if (url === '/calc/paySettlementHoldList' || url === '/settlement/paySettlementHoldList') promise = api.settlementPayoutHoldList(params);
       else if (url === '/calc/feeList' || url === '/settlement/feeList') promise = api.settlementFeeList(params);
       else if (url === '/calc/compPointMngList') promise = api.settlementRecoveryList(params);
       else if (url === '/settlement/recallMng') promise = api.settlementRecallMng(params);
@@ -5441,7 +5629,14 @@
       else if (url === '/calc/unpaidMng' || url === '/settlement/unpaidMng') promise = api.settlementUnpaidMng(params);
       else if (url === '/calc/collateralList' || url === '/settlement/collateralList') promise = api.settlementCollateralList(params);
       else if (url === '/calc/exCalcList' || url === '/settlement/execute') promise = api.settlementExecute(params);
-      else if (url === '/settlement/settlementResultDistribute' || url === '/settlement/settlementResultHold') promise = api.settlementResultList(params);
+      else if (url === '/settlement/settlementResultDistribute' || url === '/settlement/settlementResultHold') {
+        if (url === '/settlement/settlementResultDistribute' && (params.searchPublishTab == null || String(params.searchPublishTab).trim() === '')) {
+          params.searchPublishTab = 'PENDING';
+        } else if (url === '/settlement/settlementResultHold' && (params.searchPublishTab == null || String(params.searchPublishTab).trim() === '')) {
+          params.searchPublishTab = 'HOLD';
+        }
+        promise = api.settlementResultList(params);
+      }
       else if (url === '/calc/settlementReport' || url === '/settlement/settlementReport') {
         var sub = params.searchReportSub || 'AGG';
         var repKindFetch = params.searchReportKind || 'MERCHANT_STMT';
@@ -5458,6 +5653,7 @@
       else if (url === '/hq/permissionMng') promise = api.hqPermissionMng(params);
       else if (url === '/hq/accountMng') promise = api.hqAccountAccessList(params);
       else if (url === '/risk/list') promise = Promise.resolve({ list: [], totalElements: 0, totalPages: 1, page: params.page || 1, size: params.size || 20 });
+      else if (url === '/ops/mailLog') promise = api.opsMailLogList(params);
       if (!promise) {
         if (dimm) dimm.style.display = 'none';
         p._lastGridList = [];
@@ -5520,7 +5716,8 @@
           /** 체크·번호·업체·거래일·통화 고정. 정산주기·거래시간·루트·승인번호·거래번호(우리) 등은 VIEW SETTING과 동일하게 토글 */
           fixedKeys = ['_chk', 'rowNo', 'compNm', 'compId', 'trnDate', 'curType'];
         } else if (url === '/calc/calcList' || url === '/settlement/distributionList') {
-          fixedKeys = ['rowNo', 'settleMonth', 'orgDivNm', 'hqNm', 'regionalNm', 'masterNm', 'branchNm', 'agencyNm', 'compId', 'curType'];
+          /** VIEW SETTING 반영: 고정은 번호·업체코드만(나머지는 선택 여부로 표시) */
+          fixedKeys = ['rowNo', 'compId'];
         } else if (url === '/calc/settlementReport' || url === '/settlement/settlementReport') {
           fixedKeys = ['_chk', 'rowNo', 'curType'];
         } else if (url === '/calc/collateralList' || url === '/settlement/collateralList') {
@@ -5529,10 +5726,12 @@
             || url === '/calc/exCalcList' || url === '/settlement/execute'
             || url === '/settlement/settlementResultDistribute' || url === '/settlement/settlementResultHold'
             || url === '/calc/paySettlementHoldList' || url === '/settlement/paySettlementHoldList'
-            || url === '/pay/payHoldList' || url === '/settlement/holdList'
             || url === '/calc/unpaidMng' || url === '/settlement/unpaidMng'
             || url === '/calc/compPointMngList' || url === '/settlement/recallMng') {
           fixedKeys = ['_chk', 'rowNo', 'compNm', 'compId', 'curType'];
+          if (url === '/calc/paySettlementHoldList' || url === '/settlement/paySettlementHoldList') {
+            fixedKeys.push('_payoutHoldRelease');
+          }
         }
         var restrictCols = p._columnAllowanceRestricted === true;
         var allowKeys = p._allowedColumnKeys;
@@ -5579,8 +5778,8 @@
         p._lastGridList = list;
         p._lastGridCols = cols;
         var thead = p.querySelector('#grid_' + tid + ' thead');
-        if (thead && cfg.distributionThreeRowHeader && window.PG_SCREENS && typeof window.PG_SCREENS.buildDistributionListTheadHtml === 'function') {
-          thead.innerHTML = window.PG_SCREENS.buildDistributionListTheadHtml();
+        if (thead && cfg.distributionThreeRowHeader && window.PG_SCREENS && typeof window.PG_SCREENS.buildDistributionListTheadHtmlFromCols === 'function') {
+          thead.innerHTML = window.PG_SCREENS.buildDistributionListTheadHtmlFromCols(cols);
         } else if (thead) {
           var groups = cfg.headerGroups || [];
           if (!groups.length) {
@@ -5888,10 +6087,9 @@
                 var cellClass = '';
                 var isPayScr = url === '/calc/payList' || url === '/calc/payNotiList' || url === '/calc/paySuccessList' || url === '/calc/payFailList' || url === '/calc/payRefundList' || url === '/calc/payForceRefundList' || url === '/calc/payCancelList' || url === '/calc/payVoidList' || url === '/calc/offsetCancList' || url === '/pay/easyPay' || url === '/pay/chatbotPay';
                 if (url === '/calc/calcGmList' || url === '/settlement/franchiseList'
-                    || url === '/calc/paySettlementHoldList' || url === '/settlement/paySettlementHoldList'
-                    || url === '/pay/payHoldList' || url === '/settlement/holdList') {
+                    || url === '/calc/paySettlementHoldList' || url === '/settlement/paySettlementHoldList') {
                   var gmCls = [];
-                  if (['amount', 'feeCnt', 'feeRate', 'feeAmt', 'feeVat', 'holdRate', 'holdAmt', 'settlementBatchFee', 'remittanceFee', 'receivableAmt', 'receivableDeductAmt', 'settleAmt', 'perTxFeeAmt', 'settlementPerTxFeeAmt', 'extraFeesAmt'].indexOf(c.key) >= 0) gmCls.push('text-end');
+                  if (['amount', 'feeCnt', 'feeRate', 'feeAmt', 'feeVat', 'holdRate', 'holdAmt', 'settlementBatchFee', 'receivableAmt', 'receivableDeductAmt', 'settleAmt', 'perTxFeeAmt', 'settlementPerTxFeeAmt', 'extraFeesAmt'].indexOf(c.key) >= 0) gmCls.push('text-end');
                   if (['receivableProcessNm', 'receivableRecoveryMode'].indexOf(c.key) >= 0) gmCls.push('text-center', 'text-nowrap');
                   if (c.key === 'curType') gmCls.push('text-center', 'text-nowrap');
                   if (['calcDt', 'approveDt', 'cancelDt'].indexOf(c.key) >= 0) gmCls.push('text-nowrap');
@@ -5954,7 +6152,7 @@
                 } else if (url === '/calc/calcList' || url === '/settlement/distributionList') {
                   var distCls = [];
                   if (['aprvCnt', 'aprvAmt', 'aprvFeeCnt', 'aprvFeePct', 'aprvFeeSum', 'aprvFeeVat', 'canCnt', 'canAmt', 'canFeeCnt', 'canFeePct', 'canFeeSum', 'canFeeVat', 'settleAmt'].indexOf(c.key) >= 0) distCls.push('text-end');
-                  if (['settleMonth', 'orgDivNm', 'hqNm', 'regionalNm', 'masterNm', 'branchNm', 'agencyNm', 'compId'].indexOf(c.key) >= 0) distCls.push('text-nowrap');
+                  if (['settleMonth', 'orgDivNm', 'hqNm', 'regionalNm', 'masterNm', 'branchNm', 'agencyNm', 'salesOfficeNm', 'compId'].indexOf(c.key) >= 0) distCls.push('text-nowrap');
                   if (c.key === 'curType') distCls.push('text-center', 'text-nowrap');
                   if (distCls.length) cellClass = ' class="' + distCls.join(' ') + '"';
                 } else if (url === '/calc/collateralList' || url === '/settlement/collateralList') {
@@ -5990,10 +6188,11 @@
                 } else if (url === '/calc/exCalcList' || url === '/settlement/execute'
                     || url === '/settlement/settlementResultDistribute' || url === '/settlement/settlementResultHold') {
                   var exCalcCls = [];
-                  if (['targetAmt', 'totalFee', 'rollingReserveAmt', 'settlementBatchFee', 'remittanceFee', 'receivableAmt', 'payAmount', 'approveAmt', 'cancelAmt'].indexOf(c.key) >= 0) exCalcCls.push('text-end');
+                  if (['targetAmt', 'totalFee', 'rollingReserveAmt', 'settlementBatchFee', 'receivableAmt', 'payAmount', 'approveAmt', 'cancelAmt'].indexOf(c.key) >= 0) exCalcCls.push('text-end');
                   if (c.key === 'targetPeriodText') exCalcCls.push('pay-grid-time-dual', 'text-start', 'small');
                   else if (c.key === 'cadenceGuideKr') exCalcCls.push('text-nowrap', 'text-start', 'small');
                   if (c.key === 'settlementPublishSts' || c.key === 'payoutHoldYn') exCalcCls.push('text-center', 'text-nowrap');
+                  if (c.key === '_payoutHoldRelease' || c.type === 'payoutHoldReleaseBtn') exCalcCls.push('text-center', 'text-nowrap');
                   if (c.key === 'settlementRunId' || c.key === 'txnCnt' || c.key === 'pgRootNo' || c.key === 'calcMethod' || c.key === 'calcCycle') exCalcCls.push('text-center', 'text-nowrap', 'small');
                   if (c.key === 'calcDt') exCalcCls.push('text-nowrap');
                   if (c.key === 'curType') exCalcCls.push('text-center', 'text-nowrap');
@@ -6002,7 +6201,7 @@
                   var repCls = [];
                   if (c.key === 'curType') repCls.push('text-center', 'text-nowrap');
                   if (['grossPay', 'refundAmt', 'netPay', 'depositAmt', 'processingFeeTotal', 'txnFeeTotal', 'settlementAmt',
-                    'approveAmt', 'cancelAmt', 'payAmount', 'totalFee', 'rollingReserveAmt', 'settlementBatchFee', 'remittanceFee', 'feeAmt', 'holdAmt',
+                    'approveAmt', 'cancelAmt', 'payAmount', 'totalFee', 'rollingReserveAmt', 'settlementBatchFee', 'feeAmt', 'holdAmt',
                     'receivableAppliedAmt'].indexOf(c.key) >= 0) {
                     repCls.push('text-end');
                   }
@@ -6118,9 +6317,9 @@
                       return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
                     }
                     var feeTimeLines = String(val).split('\n');
-                    if (feeTimeLines.length === 2 && /^\s*JP\s/.test(feeTimeLines[0]) && /^\s*TH\s/.test(feeTimeLines[1])) {
-                      feeTdInner = '<span class="pay-grid-time-line pay-grid-time-line--jp">' + escFeeGridLine(feeTimeLines[0]) + '</span><br>' +
-                        '<span class="pay-grid-time-line pay-grid-time-line--th">' + escFeeGridLine(feeTimeLines[1]) + '</span>';
+                    if (feeTimeLines.length === 2 && /^\s*[A-Z]{2,4}\s+\d/.test(feeTimeLines[0]) && /^\s*[A-Z]{2,4}\s+\d/.test(feeTimeLines[1])) {
+                      feeTdInner = '<span class="pay-grid-time-line pay-grid-time-line--line1">' + escFeeGridLine(feeTimeLines[0]) + '</span><br>' +
+                        '<span class="pay-grid-time-line pay-grid-time-line--line2">' + escFeeGridLine(feeTimeLines[1]) + '</span>';
                     } else {
                       feeTdInner = feeTimeLines.map(escFeeGridLine).join('<br>');
                     }
@@ -6145,8 +6344,8 @@
                     || url === '/calc/calcGmList' || url === '/settlement/franchiseList') {
                   var execMoneyKeys = (url === '/calc/exCalcList' || url === '/settlement/execute'
                       || url === '/settlement/settlementResultDistribute' || url === '/settlement/settlementResultHold')
-                    ? ['targetAmt', 'totalFee', 'rollingReserveAmt', 'settlementBatchFee', 'remittanceFee', 'receivableAmt', 'payAmount', 'approveAmt', 'cancelAmt']
-                    : ['amount', 'feeAmt', 'feeVat', 'holdAmt', 'settlementBatchFee', 'remittanceFee', 'receivableAmt', 'receivableDeductAmt', 'settleAmt',
+                    ? ['targetAmt', 'totalFee', 'rollingReserveAmt', 'settlementBatchFee', 'receivableAmt', 'payAmount', 'approveAmt', 'cancelAmt']
+                    : ['amount', 'feeAmt', 'feeVat', 'holdAmt', 'settlementBatchFee', 'receivableAmt', 'receivableDeductAmt', 'settleAmt',
                       'perTxFeeAmt', 'settlementPerTxFeeAmt', 'extraFeesAmt'];
                   var innerExec = val;
                   var execRunUrls = url === '/calc/exCalcList' || url === '/settlement/execute'
@@ -6156,17 +6355,34 @@
                     var stU = String(val || '').trim().toUpperCase();
                     if (stU === 'CALCULATED') innerExec = '확정';
                     else if (stU === 'PENDING') innerExec = '미확정';
+                  } else if (c.key === 'settlementPublishSts' && (url === '/calc/exCalcList' || url === '/settlement/execute')) {
+                    var psShown = String(val == null ? '' : val).trim();
+                    if (!psShown) psShown = '—';
+                    var psU2 = psShown.toUpperCase();
+                    var psCls2 = '';
+                    if (psU2 === 'PENDING') psCls2 = 'text-primary fw-semibold';
+                    else if (psU2 === 'DISTRIBUTED') psCls2 = 'text-success fw-semibold';
+                    else if (psU2 === 'HOLD') psCls2 = 'text-danger fw-semibold';
+                    innerExec = psCls2
+                      ? ('<span class="' + psCls2 + '">' + escHtmlBody(psShown) + '</span>')
+                      : escHtmlBody(psShown);
+                  } else if ((c.key === '_payoutHoldRelease' || c.type === 'payoutHoldReleaseBtn')
+                      && (url === '/calc/paySettlementHoldList' || url === '/settlement/paySettlementHoldList')) {
+                    var ridOne = row.settlementRunId != null && row.settlementRunId !== '' ? Number(row.settlementRunId) : NaN;
+                    if (isNaN(ridOne) || ridOne <= 0) {
+                      innerExec = '<span class="text-muted small">—</span>';
+                    } else {
+                      innerExec = '<button type="button" class="btn btn-sm btn-outline-warning text-nowrap pg-payout-hold-row-release-btn" title="이 실행 건만 지급보류 Y→N 해제" data-settlement-run-id="' + escAttr(String(ridOne)) + '">Y→N 해제</button>';
+                    }
                   } else if ((execRunUrls || execFranchiseUrls) && c.key === 'targetPeriodText' && val != null && String(val).indexOf('\n') !== -1) {
                     function escExPeriodLine(ln) {
                       return String(ln).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
                     }
-                    innerExec = String(val).split('\n').map(function (line) {
+                    innerExec = String(val).split('\n').map(function (line, idx) {
                       var trimL = line.replace(/^\s+/, '');
-                      if (/^JP\s/.test(trimL)) {
-                        return '<span class="pay-grid-time-line pay-grid-time-line--jp">' + escExPeriodLine(line) + '</span>';
-                      }
-                      if (/^TH\s/.test(trimL)) {
-                        return '<span class="pay-grid-time-line pay-grid-time-line--th">' + escExPeriodLine(line) + '</span>';
+                      if (/^[A-Z]{2,4}\s/.test(trimL)) {
+                        var cls = idx === 0 ? 'pay-grid-time-line--line1' : 'pay-grid-time-line--line2';
+                        return '<span class="pay-grid-time-line ' + cls + '">' + escExPeriodLine(line) + '</span>';
                       }
                       return escExPeriodLine(line);
                     }).join('<br>');
@@ -6182,6 +6398,8 @@
                       innerExec = fmtLedgerAmount(exNumG, exCurG, feeFmtByCur);
                       if (exNumG < 0 && (c.key === 'payAmount' || c.key === 'settleAmt')) {
                         innerExec = '<span class="text-danger fw-semibold">' + innerExec + '</span>';
+                      } else if (exNumG > 0 && c.key === 'payAmount' && (url === '/calc/exCalcList' || url === '/settlement/execute')) {
+                        innerExec = '<span class="text-primary fw-semibold">' + innerExec + '</span>';
                       }
                     }
                   }
@@ -6216,9 +6434,9 @@
                     var s = String(raw);
                     if (s.indexOf('\n') === -1) return escPayGridLine(s);
                     var lines = s.split('\n');
-                    if (lines.length === 2 && /^\s*JP\s/.test(lines[0]) && /^\s*TH\s/.test(lines[1])) {
-                      return '<span class="pay-grid-time-line pay-grid-time-line--jp">' + escPayGridLine(lines[0]) + '</span><br>' +
-                        '<span class="pay-grid-time-line pay-grid-time-line--th">' + escPayGridLine(lines[1]) + '</span>';
+                    if (lines.length === 2 && /^\s*[A-Z]{2,4}\s+\d/.test(lines[0]) && /^\s*[A-Z]{2,4}\s+\d/.test(lines[1])) {
+                      return '<span class="pay-grid-time-line pay-grid-time-line--line1">' + escPayGridLine(lines[0]) + '</span><br>' +
+                        '<span class="pay-grid-time-line pay-grid-time-line--line2">' + escPayGridLine(lines[1]) + '</span>';
                     }
                     return lines.map(escPayGridLine).join('<br>');
                   }
@@ -6269,8 +6487,7 @@
         var cntEl = p.querySelector('#summary_건수, .summary-count, [data-summary="건수"]');
         if (cntEl) cntEl.textContent = (cntEl.id === 'summary_건수' ? '건수: ' : '') + total;
         if (url === '/calc/calcGmList' || url === '/settlement/franchiseList'
-            || url === '/calc/paySettlementHoldList' || url === '/settlement/paySettlementHoldList'
-            || url === '/pay/payHoldList' || url === '/settlement/holdList') {
+            || url === '/calc/paySettlementHoldList' || url === '/settlement/paySettlementHoldList') {
           var sum = { amount: 0, feeAmt: 0, feeVat: 0, holdAmt: 0, receivableAmt: 0, settleAmt: 0 };
           list.forEach(function (r) {
             sum.amount += asNum(r.amount);
@@ -6291,7 +6508,8 @@
           var distSum = { settleAmt: 0, feeSum: 0 };
           list.forEach(function (r) {
             distSum.settleAmt += asNum(r.settleAmt);
-            distSum.feeSum += asNum(r.hqFee) + asNum(r.regionalFee) + asNum(r.masterFee) + asNum(r.branchFee) + asNum(r.agencyFee);
+            distSum.feeSum += asNum(r.hqFee) + asNum(r.regionalFee) + asNum(r.masterFee) + asNum(r.branchFee)
+              + asNum(r.agencyFee) + asNum(r.salesOfficeFee);
           });
           setSummaryText(p, 'Total', String(total));
           setSummaryText(p, '정산금액', fmtNum(distSum.settleAmt));
@@ -6524,8 +6742,7 @@
     pane.querySelectorAll('#payoutHoldReleaseBtn').forEach(function (btn) {
       btn.addEventListener('click', function () {
         var fuH = pane.getAttribute('formurl') || '';
-        if (fuH !== '/calc/paySettlementHoldList' && fuH !== '/settlement/paySettlementHoldList'
-            && fuH !== '/pay/payHoldList' && fuH !== '/settlement/holdList') return;
+        if (fuH !== '/calc/paySettlementHoldList' && fuH !== '/settlement/paySettlementHoldList') return;
         var grid = pane.querySelector('#grid_' + tabId);
         if (!grid) return;
         var checked = grid.querySelectorAll('tbody .grid-row-check:checked');
@@ -6547,7 +6764,7 @@
           return;
         }
         if (!window.pgDoubleConfirm || !window.pgDoubleConfirm(
-          '선택한 ' + ids.length + '건을 가맹점정산내역(및 유통 집계)에 반영(해제)합니다.\n가맹점의 지급보류 설정은 그대로입니다. 계속할까요?',
+          '선택한 ' + ids.length + '건: 실행 행의 지급보류(Y)를 해제(N)합니다.\n가맹점정산내역·유통 집계에 반영되며, 가맹점 설정의 지급보류는 그대로입니다. 계속할까요?',
           '정말 해제합니다. 서버에 반영됩니다.'
         )) return;
         if (!window.PG_API || !window.PG_API.settlementPayoutHoldRelease) {
@@ -6566,6 +6783,39 @@
           .finally(function () { if (dimmPh) dimmPh.style.display = 'none'; });
       });
     });
+    if (!pane._pgPayoutHoldRowReleaseDelegate) {
+      pane._pgPayoutHoldRowReleaseDelegate = true;
+      pane.addEventListener('click', function (ev) {
+        var b = ev.target && ev.target.closest ? ev.target.closest('.pg-payout-hold-row-release-btn') : null;
+        if (!b || !pane.contains(b)) return;
+        var fuPr = pane.getAttribute('formurl') || '';
+        if (fuPr !== '/calc/paySettlementHoldList' && fuPr !== '/settlement/paySettlementHoldList') return;
+        ev.preventDefault();
+        var sid = b.getAttribute('data-settlement-run-id') || '';
+        var rid = parseInt(sid, 10);
+        if (isNaN(rid) || rid <= 0) {
+          window.alert('정산 실행 ID가 없습니다.');
+          return;
+        }
+        if (!window.pgDoubleConfirm || !window.pgDoubleConfirm(
+          '실행 ID ' + rid + ' 건: 지급보류(Y)를 해제(N)합니다.\n가맹점정산내역·유통 집계에 반영되며, 가맹점 설정의 지급보류는 그대로입니다. 계속할까요?',
+          '정말 해제합니다. 서버에 반영됩니다.')) return;
+        if (!window.PG_API || !window.PG_API.settlementPayoutHoldRelease) {
+          window.alert('API 미구성');
+          return;
+        }
+        var dimmRw = document.getElementById('dimm');
+        if (dimmRw) dimmRw.style.display = 'flex';
+        window.PG_API.settlementPayoutHoldRelease({ settlementRunIds: [rid] })
+          .then(function (d) {
+            var n2 = (d && d.releasedCount != null) ? d.releasedCount : 0;
+            window.alert('처리 완료: ' + n2 + '건 해제되었습니다.');
+            doSearch(pane, tabId, 1);
+          })
+          .catch(function (e) { window.alert((e && e.message) ? e.message : '해제 요청 실패'); })
+          .finally(function () { if (dimmRw) dimmRw.style.display = 'none'; });
+      });
+    }
     function readSettlementRunIdsFromCheckedRows() {
       var gridSr = pane.querySelector('#grid_' + tabId);
       if (!gridSr) return [];
@@ -6992,7 +7242,7 @@
     var autoSearchUrls = ['/system/noticeList', '/calc/payList', '/calc/chillPayTrList', '/calc/chillPaySettlementList', '/calc/payNotiList', '/calc/paySuccessList', '/calc/payFailList', '/calc/payRefundList', '/calc/payForceRefundList', '/calc/payCancelList', '/calc/payVoidList', '/calc/offsetCancList', '/pay/easyPay', '/pay/chatbotPay',
       '/comp/compMngTree', '/comp/compInfoHistList', '/commission/commisionList',
       '/user/userMng', '/set/gridSetMng',
-      '/calc/calcList', '/calc/calcGmList', '/calc/paySettlementHoldList', '/settlement/paySettlementHoldList', '/settlement/franchiseList', '/calc/feeList', '/settlement/feeList', '/calc/compPointMngList', '/settlement/recallMng', '/calc/balanceList', '/calc/unpaidMng', '/calc/exCalcList', '/settlement/execute', '/settlement/settlementResultDistribute', '/settlement/settlementResultHold', '/pay/payHoldList', '/settlement/holdList', '/calc/collateralList', '/settlement/collateralList',
+      '/calc/calcList', '/calc/calcGmList', '/calc/paySettlementHoldList', '/settlement/paySettlementHoldList', '/settlement/franchiseList', '/calc/feeList', '/settlement/feeList', '/calc/compPointMngList', '/settlement/recallMng', '/calc/balanceList', '/calc/unpaidMng', '/calc/exCalcList', '/settlement/execute', '/settlement/settlementResultDistribute', '/settlement/settlementResultHold', '/calc/collateralList', '/settlement/collateralList',
       '/noti/notiUrlMng', '/noti/notiSendMngList', '/noti/notiCashReceiptUrlMng', '/noti/notiCashReceiptSendMngList',
       '/hq/pgApiMng', '/hq/permissionMng', '/hq/accountMng', '/risk/list'];
     function applySettlementReportAccessThenSearch() {
@@ -7139,9 +7389,9 @@
               periodHtml = '-';
             } else if (periodRaw.indexOf('\n') !== -1) {
               var pLines = periodRaw.split('\n');
-              if (pLines.length === 2 && /^\s*JP\s/.test(pLines[0]) && /^\s*TH\s/.test(pLines[1])) {
-                periodHtml = '<span class="pay-grid-time-line pay-grid-time-line--jp">' + esc(pLines[0]) + '</span><br>' +
-                  '<span class="pay-grid-time-line pay-grid-time-line--th">' + esc(pLines[1]) + '</span>';
+              if (pLines.length === 2 && /^\s*[A-Z]{2,4}\s+\d/.test(pLines[0]) && /^\s*[A-Z]{2,4}\s+\d/.test(pLines[1])) {
+                periodHtml = '<span class="pay-grid-time-line pay-grid-time-line--line1">' + esc(pLines[0]) + '</span><br>' +
+                  '<span class="pay-grid-time-line pay-grid-time-line--line2">' + esc(pLines[1]) + '</span>';
               } else {
                 periodHtml = periodRaw.split('\n').map(function (ln) { return esc(ln); }).join('<br>');
               }
@@ -7197,9 +7447,10 @@
           .finally(function () { if (dimmR) dimmR.style.display = 'none'; });
       });
     }
-    if ((url === '/calc/exCalcList' || url === '/settlement/execute') && !pane._settlementExecuteRunTxnDbl) {
-      pane._settlementExecuteRunTxnDbl = true;
-      pane.addEventListener('dblclick', function (e) {
+    if ((url === '/calc/exCalcList' || url === '/settlement/execute' || url === '/settlement/settlementResultDistribute') && !pane._settlementExecuteRunTxnUi) {
+      pane._settlementExecuteRunTxnUi = true;
+      var publishDayTxnMode = url === '/settlement/settlementResultDistribute';
+      function onSettlementRunTxnInteract(e) {
         var tr = e.target && e.target.closest ? e.target.closest('#grid_' + tabId + ' tbody tr[data-row-idx]') : null;
         if (!tr || !pane.contains(tr) || tr.querySelector('.empty-state-cell')) return;
         if (e.target && e.target.closest && e.target.closest('.grid-row-check, .grid-check-all, input, button, a, label')) return;
@@ -7225,7 +7476,7 @@
           return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
         }
         if (detailTbody) {
-          detailTbody.innerHTML = '<tr><td colspan="15" class="text-center text-muted py-4">불러오는 중…</td></tr>';
+          detailTbody.innerHTML = '<tr><td colspan="14" class="text-center text-muted py-4">불러오는 중…</td></tr>';
         }
         if (metaEl) metaEl.textContent = '불러오는 중…';
         pane.querySelectorAll('#grid_' + tabId + ' tbody tr.table-active').forEach(function (x) { x.classList.remove('table-active'); });
@@ -7237,7 +7488,8 @@
         var dimmEx = document.getElementById('dimm');
         if (dimmEx) dimmEx.style.display = 'flex';
         var runRowForMeta = row;
-        window.PG_API.settlementExecuteRunTransactions({ settlementRunId: rid })
+        var apiParams = publishDayTxnMode ? { settlementRunId: rid, txnScope: 'MERCHANT_CALC_DAY' } : { settlementRunId: rid };
+        window.PG_API.settlementExecuteRunTransactions(apiParams)
           .then(function (payload) {
             var rows = (payload && payload.list) ? payload.list : [];
             var savedCnt = payload && payload.includedTxnCnt != null ? payload.includedTxnCnt : null;
@@ -7278,7 +7530,6 @@
                 }
               }
             }
-            var settleLabel = totalExpected < 0 ? '미수금' : '정산확정';
             var sepMeta = ' \uFF5C ';
             if (metaEl) {
               var parts = [];
@@ -7286,24 +7537,36 @@
               if (savedCnt != null && String(savedCnt) !== '') parts.push('저장 건수 ' + savedCnt);
               if (cappedInc) parts.push('실행 집계 건수에 맞춤');
               if (trunc) parts.push('상한 초과(일부만 표시)');
-              var rb = payload && payload.runSettlementBatchFeeAmt != null ? Number(payload.runSettlementBatchFeeAmt) : 0;
-              var rr = payload && payload.runRemittanceFeeAmt != null ? Number(payload.runRemittanceFeeAmt) : 0;
-              if (isFinite(rb) && rb !== 0) parts.push('실행당 정산료 1회 ' + fmtMetaAmt(rb));
-              if (isFinite(rr) && rr !== 0) parts.push('실행당 송금수수료 1회 ' + fmtMetaAmt(rr));
+              if (publishDayTxnMode) parts.push('조회: 정산일 당일 전체');
               var tailMeta = escBody(parts.join(' · '));
-              var posNegClass = totalExpected < 0 ? 'text-danger' : 'text-primary';
+              var rbMeta = payload && payload.runSettlementBatchFeeAmt != null ? Number(payload.runSettlementBatchFeeAmt) : NaN;
+              if (!isFinite(rbMeta) && runRowForMeta && runRowForMeta.settlementBatchFee != null && String(runRowForMeta.settlementBatchFee).trim() !== '') {
+                rbMeta = Number(String(runRowForMeta.settlementBatchFee).replace(/,/g, ''));
+              }
+              if (!isFinite(rbMeta)) rbMeta = 0;
+              var recvMeta = NaN;
+              if (runRowForMeta && runRowForMeta.receivableAmt != null && String(runRowForMeta.receivableAmt).trim() !== '') {
+                recvMeta = Number(String(runRowForMeta.receivableAmt).replace(/,/g, ''));
+              }
+              if (!isFinite(recvMeta)) recvMeta = 0;
+              if (recvMeta === 0 && totalExpected < 0) {
+                recvMeta = totalExpected;
+              }
+              function metaDangerSeg(label, amtStr) {
+                return '<span class="text-danger fw-semibold">' + escBody(label) + ' <strong>' + amtStr + '</strong></span>';
+              }
               metaEl.innerHTML =
-                '<span class="text-nowrap">' +
+                '<span class="text-wrap settlement-exec-detail-meta">' +
                 '대상 매출액 <strong>' + fmtMetaAmt(periodSales) + '</strong>' + sepMeta +
+                metaDangerSeg('정산료 1회', fmtMetaAmt(rbMeta)) + sepMeta +
+                metaDangerSeg('미수금', fmtMetaAmt(recvMeta)) + sepMeta +
                 '예상지급액 <strong>' + fmtMetaAmt(totalExpected) + '</strong>' + sepMeta +
-                '<span class="' + posNegClass + ' fw-semibold">' + escBody(settleLabel) + '</span> ' +
-                '<strong class="' + posNegClass + '">' + fmtMetaAmt(totalExpected) + '</strong>' + sepMeta +
                 '<span class="text-muted">' + tailMeta + '</span>' +
                 '</span>';
             }
             if (!detailTbody) return;
             if (!rows.length) {
-              detailTbody.innerHTML = '<tr><td colspan="15" class="text-center text-muted py-4">해당 구간 거래가 없습니다.</td></tr>';
+              detailTbody.innerHTML = '<tr><td colspan="14" class="text-center text-muted py-4">해당 구간 거래가 없습니다.</td></tr>';
               return;
             }
             function fmtAmtCell(v) {
@@ -7318,9 +7581,9 @@
               var tTimeHtml;
               if (tTime.indexOf('\n') !== -1) {
                 var tLines = tTime.split('\n');
-                if (tLines.length === 2 && /^\s*JP\s/.test(tLines[0]) && /^\s*TH\s/.test(tLines[1])) {
-                  tTimeHtml = '<span class="pay-grid-time-line pay-grid-time-line--jp">' + escBody(tLines[0]) + '</span><br>' +
-                    '<span class="pay-grid-time-line pay-grid-time-line--th">' + escBody(tLines[1]) + '</span>';
+                if (tLines.length === 2 && /^\s*[A-Z]{2,4}\s+\d/.test(tLines[0]) && /^\s*[A-Z]{2,4}\s+\d/.test(tLines[1])) {
+                  tTimeHtml = '<span class="pay-grid-time-line pay-grid-time-line--line1">' + escBody(tLines[0]) + '</span><br>' +
+                    '<span class="pay-grid-time-line pay-grid-time-line--line2">' + escBody(tLines[1]) + '</span>';
                 } else {
                   tTimeHtml = escBody(tTime).replace(/\n/g, '<br>');
                 }
@@ -7338,7 +7601,11 @@
               h += '<td class="pay-grid-time-dual text-start small">' + tTimeHtml + '</td>';
               h += '<td class="text-nowrap"><span class="pg-comp-grid-clamp" title="' + escHtml(rw.orderNo != null ? String(rw.orderNo) : '') + '">' + escBody(rw.orderNo != null ? String(rw.orderNo) : '') + '</span></td>';
               h += '<td class="text-nowrap small">' + escBody(rw.cardAprvNo != null ? String(rw.cardAprvNo) : '') + '</td>';
-              h += '<td class="text-nowrap small">' + escBody(rw.status != null ? String(rw.status) : '') + '</td>';
+              var stDisp = (typeof window.PG_UI !== 'undefined' && window.PG_UI && typeof window.PG_UI.internalPayStatusToKo === 'function')
+                ? window.PG_UI.internalPayStatusToKo(st)
+                : (st || '—');
+              var stTitle = st ? ('코드: ' + st) : '';
+              h += '<td class="text-nowrap small"' + (stTitle ? ' title="' + escHtml(stTitle) + '"' : '') + '>' + escBody(stDisp) + '</td>';
               h += '<td class="text-nowrap small">' + escBody(rw.payDivNm != null ? String(rw.payDivNm) : '') + '</td>';
               var grossCell = '—';
               if (isAp) {
@@ -7360,7 +7627,6 @@
               var mdrTitle = isAp && mdrRate != null && String(mdrRate) !== '' ? '요율 ' + String(mdrRate) + '%' : '';
               h += '<td class="text-end text-nowrap small"' + (mdrTitle ? ' title="' + escHtml(mdrTitle) + '"' : '') + '>' +
                 (isAp ? fmtAmtCell(rw.settlementExecMdrAmt) : '—') + '</td>';
-              h += '<td class="text-end text-nowrap small">' + (isAp ? fmtAmtCell(rw.settlementExecSettlementAmt) : '—') + '</td>';
               h += '<td class="text-end text-nowrap small">' + (isAp ? fmtAmtCell(rw.settlementExecCollateralAmt) : '—') + '</td>';
               h += '<td class="text-end text-nowrap small">' +
                 (isAp ? (rw.settlementExecOtherAmt != null ? fmtAmtCell(rw.settlementExecOtherAmt) : fmtAmtCell(0)) : '—') + '</td>';
@@ -7394,13 +7660,18 @@
             if (metaEl) metaEl.textContent = '';
             if (detailTbody) {
               var em = (err && err.message) ? escBody(err.message) : '조회 실패';
-              detailTbody.innerHTML = '<tr><td colspan="15" class="text-center text-danger py-4">' + em + '</td></tr>';
+              detailTbody.innerHTML = '<tr><td colspan="14" class="text-center text-danger py-4">' + em + '</td></tr>';
             } else {
               window.alert((err && err.message) ? err.message : '조회 실패');
             }
           })
           .finally(function () { if (dimmEx) dimmEx.style.display = 'none'; });
-      });
+      }
+      if (publishDayTxnMode) {
+        pane.addEventListener('click', onSettlementRunTxnInteract);
+      } else {
+        pane.addEventListener('dblclick', onSettlementRunTxnInteract);
+      }
     }
     if (url === '/commission/commisionList' && commissionSignal) {
       pane.addEventListener('click', function (e) {
@@ -8489,6 +8760,7 @@
         var mainFile = form.querySelector('#brandingMainImageFile');
         var firstFile = form.querySelector('#brandingFirstLogoImageFile');
         var logoFile = form.querySelector('#brandingLogoImageFile');
+        var urlPayFile = form.querySelector('#brandingUrlPayImageFile');
         var popconFile = form.querySelector('#brandingPopconImageFile');
         var themeEl = form.querySelector('#brandingTheme');
         var hostEl = form.querySelector('#brandingBrandHost');
@@ -8531,6 +8803,15 @@
               chain = chain.then(function () {
                 return window.PG_API.orgBrandingUpload(compId, 'first', _regFirstF).then(function (data) {
                   pgBrandingSetImageDisplayInput(form, 'first', data, _regFirstF);
+                  return data;
+                });
+              });
+            }
+            if (urlPayFile && urlPayFile.files && urlPayFile.files[0]) {
+              var _regUrlPayF = urlPayFile.files[0];
+              chain = chain.then(function () {
+                return window.PG_API.orgBrandingUpload(compId, 'urlPay', _regUrlPayF).then(function (data) {
+                  pgBrandingSetImageDisplayInput(form, 'urlPay', data, _regUrlPayF);
                   return data;
                 });
               });
@@ -9257,22 +9538,25 @@
       var mainBrowse = pane.querySelector('#brandingMainImageBrowse');
       var firstBrowse = pane.querySelector('#brandingFirstLogoImageBrowse');
       var logoBrowse = pane.querySelector('#brandingLogoImageBrowse');
+      var urlPayBrowse = pane.querySelector('#brandingUrlPayImageBrowse');
       var popconBrowse = pane.querySelector('#brandingPopconImageBrowse');
       var mainDelete = pane.querySelector('#brandingMainImageDelete');
       var firstDelete = pane.querySelector('#brandingFirstLogoImageDelete');
       var logoDelete = pane.querySelector('#brandingLogoImageDelete');
+      var urlPayDelete = pane.querySelector('#brandingUrlPayImageDelete');
       var popconDelete = pane.querySelector('#brandingPopconImageDelete');
       var mainFile = pane.querySelector('#brandingMainImageFile');
       var firstFile = pane.querySelector('#brandingFirstLogoImageFile');
       var logoFile = pane.querySelector('#brandingLogoImageFile');
+      var urlPayFile = pane.querySelector('#brandingUrlPayImageFile');
       var popconFile = pane.querySelector('#brandingPopconImageFile');
       var themeSel = pane.querySelector('#brandingTheme');
-      [mainBrowse, firstBrowse, logoBrowse, popconBrowse, mainDelete, firstDelete, logoDelete, popconDelete].forEach(function (btn) {
+      [mainBrowse, firstBrowse, logoBrowse, urlPayBrowse, popconBrowse, mainDelete, firstDelete, logoDelete, urlPayDelete, popconDelete].forEach(function (btn) {
         if (!btn) return;
         btn.style.display = allowed ? '' : 'none';
         btn.disabled = !allowed;
       });
-      [mainFile, firstFile, logoFile, popconFile, themeSel].forEach(function (el) {
+      [mainFile, firstFile, logoFile, urlPayFile, popconFile, themeSel].forEach(function (el) {
         if (!el) return;
         el.disabled = !allowed;
       });
@@ -9939,6 +10223,7 @@
             var mainFile = form.querySelector('#brandingMainImageFile');
             var firstFile = form.querySelector('#brandingFirstLogoImageFile');
             var logoFile = form.querySelector('#brandingLogoImageFile');
+            var urlPayFile = form.querySelector('#brandingUrlPayImageFile');
             var popconFile = form.querySelector('#brandingPopconImageFile');
             var themeEl = form.querySelector('#brandingTheme');
             var hostEl = form.querySelector('#brandingBrandHost');
@@ -9976,6 +10261,15 @@
               chain = chain.then(function () {
                 return window.PG_API.orgBrandingUpload(compId, 'first', _myFirstF).then(function (data) {
                   pgBrandingSetImageDisplayInput(form, 'first', data, _myFirstF);
+                  return data;
+                });
+              });
+            }
+            if (urlPayFile && urlPayFile.files && urlPayFile.files[0]) {
+              var _myUrlPayF = urlPayFile.files[0];
+              chain = chain.then(function () {
+                return window.PG_API.orgBrandingUpload(compId, 'urlPay', _myUrlPayF).then(function (data) {
+                  pgBrandingSetImageDisplayInput(form, 'urlPay', data, _myUrlPayF);
                   return data;
                 });
               });
@@ -10625,6 +10919,7 @@
           var mainFile = form.querySelector('#brandingMainImageFile');
           var firstFile = form.querySelector('#brandingFirstLogoImageFile');
           var logoFile = form.querySelector('#brandingLogoImageFile');
+          var urlPayFile = form.querySelector('#brandingUrlPayImageFile');
           var popconFile = form.querySelector('#brandingPopconImageFile');
           var themeEl = form.querySelector('#brandingTheme');
           var hostEl = form.querySelector('#brandingBrandHost');
@@ -10680,6 +10975,15 @@
                 chain = chain.then(function () {
                   return window.PG_API.orgBrandingUpload(compId, 'first', _detFirstF).then(function (data) {
                     pgBrandingSetImageDisplayInput(form, 'first', data, _detFirstF);
+                    return data;
+                  });
+                });
+              }
+              if (urlPayFile && urlPayFile.files && urlPayFile.files[0]) {
+                var _detUrlPayF = urlPayFile.files[0];
+                chain = chain.then(function () {
+                  return window.PG_API.orgBrandingUpload(compId, 'urlPay', _detUrlPayF).then(function (data) {
+                    pgBrandingSetImageDisplayInput(form, 'urlPay', data, _detUrlPayF);
                     return data;
                   });
                 });
@@ -11990,11 +12294,10 @@
         '/calc/feeList': '수수료내역',
         '/calc/compPointMngList': '환수금관리',
         '/calc/exCalcList': '정산실행',
-        '/settlement/settlementResultDistribute': '정산배포(대기)',
-        '/settlement/settlementResultHold': '정산대기(홀딩)',
+        '/settlement/settlementResultDistribute': '정산배포',
+        '/settlement/settlementResultHold': '정산대기',
         '/calc/settlementReport': '정산리포트',
-        '/calc/collateralList': '담보금내역',
-        '/pay/payHoldList': '보증금내역'
+        '/calc/collateralList': '담보금내역'
       };
       var hqOrgAllowScopeLabels = { REGIONAL: '본사', MASTER_DIST: '총판', BRANCH_GROUP: '지사·대리점·영업점', MERCHANT: '가맹점' };
       function pageUrlVal() {
@@ -13039,6 +13342,7 @@
         var refreshBtn = pane.querySelector('#hqMdBizCronRefreshBtn');
         if (!tbody || !window.PG_API.hqMasterDistBizCronZoneGet || !window.PG_API.hqMasterDistSettlementCronZoneSave) return;
         var presetOpts = [];
+        var txnPresetOpts = [];
         function buildSelect(currentZone) {
           var cur = currentZone ? String(currentZone).trim() : '';
           var h = '';
@@ -13055,6 +13359,17 @@
           }
           return h;
         }
+        function buildTxnSelect(currentCode) {
+          var cur = currentCode ? String(currentCode).trim().toUpperCase() : 'JP';
+          var h = '';
+          (txnPresetOpts || []).forEach(function (p) {
+            var code = p.presetCode != null ? String(p.presetCode) : '';
+            if (!code) return;
+            var lab = p.label != null ? String(p.label) : code;
+            h += '<option value="' + escHqStAttr(code) + '"' + (cur === code ? ' selected' : '') + '>' + escHqSt(lab) + '</option>';
+          });
+          return h;
+        }
         function bizDayCell(r) {
           var sum = r.currentBusinessDaySummary != null ? String(r.currentBusinessDaySummary).trim() : '';
           if (sum) return escHqSt(sum);
@@ -13067,70 +13382,90 @@
         }
         function syncCronSaveBtnState(tr) {
           if (!tr) return;
-          var sel = tr.querySelector('.hq-md-cron-zone');
+          var selZ = tr.querySelector('.hq-md-cron-zone');
+          var selT = tr.querySelector('.hq-md-txn-preset');
           var btn = tr.querySelector('.hq-md-cron-row-save');
-          if (!sel || !btn) return;
-          var saved = String(tr.getAttribute('data-saved-zone') || '').trim();
-          var cur = String(sel.value || '').trim();
-          btn.disabled = !cur || cur === saved;
+          if (!selZ || !selT || !btn) return;
+          var savedZ = String(tr.getAttribute('data-saved-zone') || '').trim();
+          var savedT = String(tr.getAttribute('data-saved-txn') || '').trim();
+          var curZ = String(selZ.value || '').trim();
+          var curT = String(selT.value || '').trim();
+          btn.disabled = !curZ || (curZ === savedZ && curT === savedT);
         }
         function loadMdBizCronTable() {
           window.PG_API.hqMasterDistBizCronZoneGet().then(function (pack) {
             presetOpts = (pack && pack.presets) ? pack.presets : [];
+            txnPresetOpts = (pack && pack.txnTimePresets) ? pack.txnTimePresets : [];
             var rows = (pack && pack.rows) ? pack.rows : [];
             tbody.innerHTML = '';
             if (!rows.length) {
-              tbody.innerHTML = '<tr><td colspan="4" class="text-muted text-center">등록된 총판이 없습니다.</td></tr>';
+              tbody.innerHTML = '<tr><td colspan="5" class="text-muted text-center">등록된 총판이 없습니다.</td></tr>';
               return;
             }
             rows.forEach(function (r) {
               var tr = document.createElement('tr');
               var oid = r.orgUnitId != null ? String(r.orgUnitId) : '';
               var z = r.settlementCronZoneId != null ? String(r.settlementCronZoneId).trim() : '';
+              var tnx = r.txnTimeDisplayPreset != null ? String(r.txnTimeDisplayPreset).trim() : 'JP';
               var label = (r.compId || '') + (r.compNm ? (' · ' + r.compNm) : '');
               tr.setAttribute('data-org-id', oid);
               tr.setAttribute('data-saved-zone', z);
+              tr.setAttribute('data-saved-txn', tnx);
               tr.innerHTML = '<td class="small text-nowrap">' + escHqSt(label) + '</td><td class="small">' + bizDayCell(r) + '</td>' +
+                '<td><select class="form-select form-select-sm hq-md-txn-preset" data-org-id="' + escHqStAttr(oid) + '">' +
+                buildTxnSelect(tnx) + '</select></td>' +
                 '<td><select class="form-select form-select-sm hq-md-cron-zone" data-org-id="' + escHqStAttr(oid) + '">' +
                 buildSelect(z) + '</select></td>' +
-                '<td class="text-end text-nowrap"><button type="button" class="btn btn-sm btn-primary hq-md-cron-row-save" title="선택한 정산 크론 기준을 DB에 저장">저장</button></td>';
+                '<td class="text-end text-nowrap"><button type="button" class="btn btn-sm btn-primary hq-md-cron-row-save" title="거래시간·정산 크론 설정을 DB에 저장">저장</button></td>';
               tbody.appendChild(tr);
               syncCronSaveBtnState(tr);
             });
             if (hint) hint.textContent = '';
           }).catch(function (e) {
-            tbody.innerHTML = '<tr><td colspan="4" class="text-danger text-center">' + escHqSt(e && e.message ? e.message : '조회 실패') + '</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="5" class="text-danger text-center">' + escHqSt(e && e.message ? e.message : '조회 실패') + '</td></tr>';
           });
         }
         if (!tbody._hqMdBizCronEventsBound) {
           tbody._hqMdBizCronEventsBound = true;
           tbody.addEventListener('change', function (ev) {
-            var sel = ev.target && ev.target.closest ? ev.target.closest('.hq-md-cron-zone') : null;
-            if (!sel) return;
-            syncCronSaveBtnState(sel.closest('tr'));
+            var t = (ev.target && ev.target.closest) ? (ev.target.closest('.hq-md-cron-zone') || ev.target.closest('.hq-md-txn-preset')) : null;
+            if (!t) return;
+            syncCronSaveBtnState(t.closest('tr'));
           });
           tbody.addEventListener('click', function (ev) {
             var btn = ev.target && ev.target.closest ? ev.target.closest('.hq-md-cron-row-save') : null;
             if (!btn || btn.disabled) return;
             var tr = btn.closest('tr');
             var sel = tr && tr.querySelector('.hq-md-cron-zone');
-            if (!tr || !sel) return;
+            var selTxn = tr && tr.querySelector('.hq-md-txn-preset');
+            if (!tr || !sel || !selTxn) return;
             var orgId = sel.getAttribute('data-org-id');
             var z = String(sel.value || '').trim();
-            if (!orgId || !z) return;
+            var txn = String(selTxn.value || '').trim();
+            if (!orgId || !z || !txn) return;
             btn.disabled = true;
-            window.PG_API.hqMasterDistSettlementCronZoneSave({ orgUnitId: parseInt(orgId, 10), settlementCronZoneId: z })
+            window.PG_API.hqMasterDistSettlementCronZoneSave({
+              orgUnitId: parseInt(orgId, 10),
+              settlementCronZoneId: z,
+              txnTimeDisplayPreset: txn
+            })
               .then(function (saved) {
                 var nz = saved && saved.settlementCronZoneId != null ? String(saved.settlementCronZoneId).trim() : z;
+                var nt = saved && saved.txnTimeDisplayPreset != null ? String(saved.txnTimeDisplayPreset).trim() : txn;
                 tr.setAttribute('data-saved-zone', nz);
+                tr.setAttribute('data-saved-txn', nt);
                 if (String(sel.value || '').trim() !== nz) {
                   sel.innerHTML = buildSelect(nz);
                   sel.value = nz;
                 }
+                if (String(selTxn.value || '').trim() !== nt) {
+                  selTxn.innerHTML = buildTxnSelect(nt);
+                  selTxn.value = nt;
+                }
                 syncCronSaveBtnState(tr);
                 if (hint) {
                   var cid = (tr.querySelector('td') && tr.querySelector('td').textContent) ? String(tr.querySelector('td').textContent).trim() : '';
-                  hint.textContent = cid ? ('저장되었습니다: ' + cid + ' → ' + nz) : ('저장되었습니다: ' + nz);
+                  hint.textContent = cid ? ('저장되었습니다: ' + cid + ' · 거래시간 ' + nt + ' · 크론 ' + nz) : ('저장되었습니다: ' + nt + ' / ' + nz);
                 }
               })
               .catch(function (e) {
@@ -13563,6 +13898,61 @@
         updateHqPayFollowClocks(pane);
       }
       /** 소수 자릿수가 0이면 「잘리는 자리 처리」는 의미 없음 — 선택 비활성·DOWN 고정 표시 */
+      function ledgerMayEditPayFollowLevelCaps() {
+        try {
+          var u = JSON.parse(sessionStorage.getItem('pg_admin_user') || '{}');
+          var ol = String(u.orgLevel || '').trim().toUpperCase();
+          var role = String(u.role || '').trim().toUpperCase();
+          return ol === 'HEADQUARTERS' || role === 'ADMIN';
+        } catch (ePf) {
+          return false;
+        }
+      }
+      var PAY_FOLLOW_CAP_LEVELS = ['HEADQUARTERS', 'REGIONAL', 'MASTER_DIST', 'BRANCH', 'AGENCY', 'SALES_OFFICE', 'MERCHANT'];
+      var PAY_FOLLOW_CAP_FIELDS = ['autoVoid', 'emailVoid', 'autoRefund', 'forceRefund'];
+      function fillPayFollowLevelCaps(caps) {
+        PAY_FOLLOW_CAP_LEVELS.forEach(function (lv) {
+          var node = caps && caps[lv];
+          PAY_FOLLOW_CAP_FIELDS.forEach(function (k) {
+            var el = pane.querySelector('[name="pfCap_' + lv + '_' + k + '"]');
+            if (!el) return;
+            var raw = node ? node[k] : null;
+            var on = raw === true || String(raw).toLowerCase() === 'true' || String(raw).toUpperCase() === 'Y';
+            el.value = on ? 'Y' : 'N';
+          });
+        });
+      }
+      function collectPayFollowLevelCapsForSave() {
+        var out = {};
+        PAY_FOLLOW_CAP_LEVELS.forEach(function (lv) {
+          var sub = {};
+          PAY_FOLLOW_CAP_FIELDS.forEach(function (k) {
+            var el = pane.querySelector('[name="pfCap_' + lv + '_' + k + '"]');
+            sub[k] = !!(el && String(el.value).toUpperCase() === 'Y');
+          });
+          out[lv] = sub;
+        });
+        return { payFollowLevelCaps: out };
+      }
+      function syncPayFollowLevelCapsAuthUi() {
+        var ok = ledgerMayEditPayFollowLevelCaps();
+        pane.querySelectorAll('.hq-pf-cap-sel').forEach(function (el) {
+          el.disabled = !ok;
+        });
+        var b = pane.querySelector('#hqLedgerPayFollowLevelCapsSaveBtn');
+        if (b) {
+          b.disabled = !ok;
+          if (!ok) {
+            b.classList.add('btn-secondary');
+            b.classList.remove('btn-primary');
+            b.title = '총본사 또는 시스템 관리자만 저장할 수 있습니다.';
+          } else {
+            b.classList.add('btn-primary');
+            b.classList.remove('btn-secondary');
+            b.removeAttribute('title');
+          }
+        }
+      }
       function syncLedgerFeeDecimalRoundUi() {
         var glDp = pane.querySelector('[name="feeListDecimalPlaces"]');
         var glRm = pane.querySelector('[name="feeListRoundMode"]');
@@ -13699,6 +14089,8 @@
         renderHqFeeCurrencyRows(d.feeCurrencyFormats);
         renderHqPayDisplayCurrencyCatalog(d.payDisplayCurrencyCatalog, d.payDisplayCurrencyIsoNum);
         syncPayFollowLedgerUi(pane);
+        fillPayFollowLevelCaps(d.payFollowLevelCaps);
+        syncPayFollowLevelCapsAuthUi();
         syncHelloTimelineLedgerFields();
       }
       function syncHelloTimelineLedgerFields() {
@@ -14090,6 +14482,28 @@
             }).finally(function () { if (dimmLs) dimmLs.style.display = 'none'; });
             return;
           }
+          if (e.target.closest('#hqLedgerPayFollowLevelCapsSaveBtn')) {
+            e.preventDefault();
+            if (!ledgerMayEditPayFollowLevelCaps()) {
+              alert('총본사 또는 시스템 관리자만 저장할 수 있습니다.');
+              return;
+            }
+            if (typeof dc !== 'function' || !dc(
+              '조직 단계별 후속조치 허용을 저장하시겠습니까?',
+              '각 단계의 자동무효·이메일무효·자동환불·강제환불 사용 상한이 서버에 반영됩니다. 계속하시겠습니까?')) return;
+            if (!window.PG_API || !window.PG_API.hqLedgerSysSettingsSavePayFollowLevelCaps) {
+              alert('API를 사용할 수 없습니다.');
+              return;
+            }
+            if (dimmLs) dimmLs.style.display = 'flex';
+            window.PG_API.hqLedgerSysSettingsSavePayFollowLevelCaps(collectPayFollowLevelCapsForSave()).then(function (d) {
+              fillLedgerSys(d);
+              alert('단계별 허용이 저장되었습니다.');
+            }).catch(function (err) {
+              alert(err && err.message ? err.message : '저장 실패');
+            }).finally(function () { if (dimmLs) dimmLs.style.display = 'none'; });
+            return;
+          }
           if (e.target.closest('#hqLedgerHelloTimelineReloadBtn')) {
             e.preventDefault();
             if (typeof dc !== 'function' || !dc('헬로 타임라인을 서버 저장값으로 되돌릴까요?', '이 항목만 서버에서 다시 읽어 옵니다. 다른 입력란은 그대로입니다. 계속하시겠습니까?')) return;
@@ -14108,6 +14522,29 @@
               });
               syncHelloTimelineLedgerFields();
             }).catch(function () {}).finally(function () { if (dimmLs) dimmLs.style.display = 'none'; });
+            return;
+          }
+          if (e.target.closest('#hqLedgerVoidEmailTestBtn')) {
+            e.preventDefault();
+            var testInp = pane.querySelector('[name="emailVoidTestRecipient"]');
+            var testTo = testInp && String(testInp.value || '').trim();
+            if (!testTo) {
+              alert('테스트 수신 이메일을 입력하세요.');
+              return;
+            }
+            if (!window.PG_API || !window.PG_API.hqLedgerSysSettingsTestVoidEmail) {
+              alert('테스트 메일 API를 사용할 수 없습니다.');
+              return;
+            }
+            if (typeof dc !== 'function' || !dc(
+              '테스트 메일을 발송하시겠습니까?',
+              '서버에 이미 저장된 전산설정(SMTP·이메일무효 템플릿)으로 발송됩니다. 화면에만 입력하고 저장하지 않은 값은 반영되지 않습니다. 계속하시겠습니까?')) return;
+            if (dimmLs) dimmLs.style.display = 'flex';
+            window.PG_API.hqLedgerSysSettingsTestVoidEmail({ testRecipientEmail: testTo }).then(function () {
+              alert('테스트 메일을 발송했습니다. 운영관리 → 메일로그에서 결과를 확인할 수 있습니다.');
+            }).catch(function (err) {
+              alert(err && err.message ? err.message : '발송 실패');
+            }).finally(function () { if (dimmLs) dimmLs.style.display = 'none'; });
             return;
           }
           if (e.target.closest('.hq-fcf-row-edit')) {
@@ -15049,6 +15486,8 @@
       var draftResultOk2 = pane.querySelector('#hqPayCardCopyDraftResultOk2');
       var draftResultFail1 = pane.querySelector('#hqPayCardCopyDraftResultFail1');
       var draftResultFail2 = pane.querySelector('#hqPayCardCopyDraftResultFail2');
+      var draftAmtShow = pane.querySelector('#hqPayCardCopyDraftAmtShow');
+      var draftAmtNotice = pane.querySelector('#hqPayCardCopyDraftAmtNotice');
       var btnSave = pane.querySelector('#hqPayCardCopyBtnSave');
       var btnSaveI18n = pane.querySelector('#hqPayCardCopyBtnSaveI18n');
       var btnCancelEdit = pane.querySelector('#hqPayCardCopyBtnCancelEdit');
@@ -15086,7 +15525,9 @@
               resultSuccessMain: normLangMap(raw.resultSuccessMain),
               resultSuccessFoot: normLangMap(raw.resultSuccessFoot),
               resultFailMain: normLangMap(raw.resultFailMain),
-              resultFailFoot: normLangMap(raw.resultFailFoot)
+              resultFailFoot: normLangMap(raw.resultFailFoot),
+              amountScaleNoticeShowYn: String(raw.amountScaleNoticeShowYn || 'Y').toUpperCase() === 'N' ? 'N' : 'Y',
+              amountScaleNotice: normLangMap(raw.amountScaleNotice)
             };
           });
         } catch (e0) {
@@ -15111,6 +15552,8 @@
           if (mapHasAny(e.resultSuccessFoot)) o.resultSuccessFoot = e.resultSuccessFoot;
           if (mapHasAny(e.resultFailMain)) o.resultFailMain = e.resultFailMain;
           if (mapHasAny(e.resultFailFoot)) o.resultFailFoot = e.resultFailFoot;
+          o.amountScaleNoticeShowYn = e.amountScaleNoticeShowYn || 'Y';
+          if (mapHasAny(e.amountScaleNotice)) o.amountScaleNotice = e.amountScaleNotice;
           return o;
         });
         hidden.value = JSON.stringify({ entries: slim });
@@ -15129,11 +15572,12 @@
           if (String(e.pgCd || '').trim() === p) e.activeYn = 'N';
         });
       }
-      function fillAllTranslations(titleKo, b1Ko, b2Ko, b3Ko, rOk1Ko, rOk2Ko, rFail1Ko, rFail2Ko) {
+      function fillAllTranslations(titleKo, b1Ko, b2Ko, b3Ko, rOk1Ko, rOk2Ko, rFail1Ko, rFail2Ko, amountScaleNoticeKo) {
         var ro1 = rOk1Ko != null ? String(rOk1Ko).trim() : '';
         var ro2 = rOk2Ko != null ? String(rOk2Ko).trim() : '';
         var rf1 = rFail1Ko != null ? String(rFail1Ko).trim() : '';
         var rf2 = rFail2Ko != null ? String(rFail2Ko).trim() : '';
+        var amtKo = amountScaleNoticeKo != null ? String(amountScaleNoticeKo).trim() : '';
         if (window.PG_API && typeof window.PG_API.hqPayCopyTranslateFromKo === 'function') {
           return window.PG_API.hqPayCopyTranslateFromKo({
             titleKo: titleKo,
@@ -15143,7 +15587,8 @@
             resultOk1Ko: ro1,
             resultOk2Ko: ro2,
             resultFail1Ko: rf1,
-            resultFail2Ko: rf2
+            resultFail2Ko: rf2,
+            amountScaleNoticeKo: amtKo
           }).then(function (data) {
             return {
               title: (data && data.title) ? data.title : { KOR: titleKo },
@@ -15153,7 +15598,8 @@
               resultSuccessMain: (data && data.resultSuccessMain && typeof data.resultSuccessMain === 'object') ? data.resultSuccessMain : (ro1 ? { KOR: ro1 } : {}),
               resultSuccessFoot: (data && data.resultSuccessFoot && typeof data.resultSuccessFoot === 'object') ? data.resultSuccessFoot : (ro2 ? { KOR: ro2 } : {}),
               resultFailMain: (data && data.resultFailMain && typeof data.resultFailMain === 'object') ? data.resultFailMain : (rf1 ? { KOR: rf1 } : {}),
-              resultFailFoot: (data && data.resultFailFoot && typeof data.resultFailFoot === 'object') ? data.resultFailFoot : (rf2 ? { KOR: rf2 } : {})
+              resultFailFoot: (data && data.resultFailFoot && typeof data.resultFailFoot === 'object') ? data.resultFailFoot : (rf2 ? { KOR: rf2 } : {}),
+              amountScaleNotice: (data && data.amountScaleNotice && typeof data.amountScaleNotice === 'object') ? data.amountScaleNotice : (amtKo ? { KOR: amtKo } : {})
             };
           });
         }
@@ -15165,7 +15611,8 @@
           resultSuccessMain: ro1 ? { KOR: ro1 } : {},
           resultSuccessFoot: ro2 ? { KOR: ro2 } : {},
           resultFailMain: rf1 ? { KOR: rf1 } : {},
-          resultFailFoot: rf2 ? { KOR: rf2 } : {}
+          resultFailFoot: rf2 ? { KOR: rf2 } : {},
+          amountScaleNotice: amtKo ? { KOR: amtKo } : {}
         });
       }
       function findEntry(id) {
@@ -15185,30 +15632,32 @@
         state.editingId = null;
         updateEditBanner();
       }
-      function cellPreview(txt, maxLen) {
-        var s = pickKo(typeof txt === 'object' && txt ? txt : {}).trim();
-        if (!s) return '<span class="text-muted small">—</span>';
-        var show = s.length > maxLen ? s.slice(0, maxLen) + '…' : s;
-        return '<span class="small d-inline-block text-truncate hq-pay-card-copy-preview" style="max-width:11rem" title="' + escA(s) + '">' + escA(show) + '</span>';
+      function cellPreview(txt) {
+        var s = pickKo(typeof txt === 'object' && txt ? txt : '');
+        if (!String(s).trim()) return '<span class="text-muted small">—</span>';
+        var body = escA(String(s)).replace(/\r\n|\r|\n/g, '<br>');
+        return '<div class="small hq-pay-card-copy-preview" title="' + escA(String(s)) + '">' + body + '</div>';
       }
       function renderTable() {
         var html = '';
         if (!state.entries.length) {
-          html = '<tr><td colspan="12" class="text-muted text-center py-3 small">등록된 결제구문이 없습니다. 위에서 입력 후 「저장」으로 목록에 추가하세요.</td></tr>';
+          html = '<tr><td colspan="13" class="text-muted text-center py-3 small">등록된 결제구문이 없습니다. 위에서 입력 후 「저장」으로 목록에 추가하세요.</td></tr>';
         } else {
           state.entries.forEach(function (en) {
             var canAct = entryHasKoreanBody(en);
             var checked = String(en.activeYn || '').toUpperCase() === 'Y';
+            var amtOff = String(en.amountScaleNoticeShowYn || 'Y').toUpperCase() === 'N';
             html += '<tr data-card-copy-id="' + escA(en.id) + '">' +
               '<td class="small font-monospace">' + escA(en.pgCd || '') + '</td>' +
-              '<td class="align-top">' + cellPreview(en.title, 36) + '</td>' +
-              '<td class="align-top">' + cellPreview(en.body1, 48) + '</td>' +
-              '<td class="align-top">' + cellPreview(en.body2, 48) + '</td>' +
-              '<td class="align-top">' + cellPreview(en.body3, 48) + '</td>' +
-              '<td class="align-top">' + cellPreview(en.resultSuccessMain, 32) + '</td>' +
-              '<td class="align-top">' + cellPreview(en.resultSuccessFoot, 36) + '</td>' +
-              '<td class="align-top">' + cellPreview(en.resultFailMain, 32) + '</td>' +
-              '<td class="align-top">' + cellPreview(en.resultFailFoot, 36) + '</td>' +
+              '<td class="align-top">' + cellPreview(en.title) + '</td>' +
+              '<td class="align-top small">' + (amtOff ? '<span class="text-muted">숨김</span> ' : '') + cellPreview(en.amountScaleNotice) + '</td>' +
+              '<td class="align-top">' + cellPreview(en.body1) + '</td>' +
+              '<td class="align-top">' + cellPreview(en.body2) + '</td>' +
+              '<td class="align-top">' + cellPreview(en.body3) + '</td>' +
+              '<td class="align-top">' + cellPreview(en.resultSuccessMain) + '</td>' +
+              '<td class="align-top">' + cellPreview(en.resultSuccessFoot) + '</td>' +
+              '<td class="align-top">' + cellPreview(en.resultFailMain) + '</td>' +
+              '<td class="align-top">' + cellPreview(en.resultFailFoot) + '</td>' +
               '<td class="text-center align-middle"><input type="checkbox" class="form-check-input hq-pay-card-copy-active"' +
               (checked ? ' checked' : '') + (!canAct ? ' disabled' : '') + ' title="활성"></td>' +
               '<td class="text-center align-middle"><button type="button" class="btn btn-sm btn-outline-primary hq-pay-card-copy-edit">수정</button></td>' +
@@ -15232,6 +15681,8 @@
             if (draftResultOk2) draftResultOk2.value = pickKo(en.resultSuccessFoot);
             if (draftResultFail1) draftResultFail1.value = pickKo(en.resultFailMain);
             if (draftResultFail2) draftResultFail2.value = pickKo(en.resultFailFoot);
+            if (draftAmtShow) draftAmtShow.checked = String(en.amountScaleNoticeShowYn || 'Y').toUpperCase() !== 'N';
+            if (draftAmtNotice) draftAmtNotice.value = pickKo(en.amountScaleNotice);
             updateEditBanner();
           });
         });
@@ -15278,7 +15729,9 @@
           resultOk1Ko: draftResultOk1 ? String(draftResultOk1.value || '').trim() : '',
           resultOk2Ko: draftResultOk2 ? String(draftResultOk2.value || '').trim() : '',
           resultFail1Ko: draftResultFail1 ? String(draftResultFail1.value || '').trim() : '',
-          resultFail2Ko: draftResultFail2 ? String(draftResultFail2.value || '').trim() : ''
+          resultFail2Ko: draftResultFail2 ? String(draftResultFail2.value || '').trim() : '',
+          amtShow: draftAmtShow ? !!draftAmtShow.checked : true,
+          amtNoticeKo: draftAmtNotice ? String(draftAmtNotice.value || '').trim() : ''
         };
       }
       function validateDraft(d) {
@@ -15305,7 +15758,9 @@
           resultSuccessMain: maps.resultSuccessMain && typeof maps.resultSuccessMain === 'object' ? maps.resultSuccessMain : {},
           resultSuccessFoot: maps.resultSuccessFoot && typeof maps.resultSuccessFoot === 'object' ? maps.resultSuccessFoot : {},
           resultFailMain: maps.resultFailMain && typeof maps.resultFailMain === 'object' ? maps.resultFailMain : {},
-          resultFailFoot: maps.resultFailFoot && typeof maps.resultFailFoot === 'object' ? maps.resultFailFoot : {}
+          resultFailFoot: maps.resultFailFoot && typeof maps.resultFailFoot === 'object' ? maps.resultFailFoot : {},
+          amountScaleNoticeShowYn: d.amtShow ? 'Y' : 'N',
+          amountScaleNotice: mapHasAny(maps.amountScaleNotice) ? maps.amountScaleNotice : (d.amtNoticeKo ? { KOR: d.amtNoticeKo } : {})
         });
         clearEditing();
         draftTitle.value = '';
@@ -15316,6 +15771,8 @@
         if (draftResultOk2) draftResultOk2.value = '';
         if (draftResultFail1) draftResultFail1.value = '';
         if (draftResultFail2) draftResultFail2.value = '';
+        if (draftAmtShow) draftAmtShow.checked = true;
+        if (draftAmtNotice) draftAmtNotice.value = '';
         renderTable();
       }
       function setEntryLangKo(en, prop, koreanText) {
@@ -15344,6 +15801,13 @@
         setEntryLangKo(en, 'resultSuccessFoot', d.resultOk2Ko);
         setEntryLangKo(en, 'resultFailMain', d.resultFail1Ko);
         setEntryLangKo(en, 'resultFailFoot', d.resultFail2Ko);
+        en.amountScaleNoticeShowYn = d.amtShow ? 'Y' : 'N';
+        if (d.amtNoticeKo) {
+          if (!en.amountScaleNotice) en.amountScaleNotice = {};
+          en.amountScaleNotice.KOR = d.amtNoticeKo;
+        } else {
+          delete en.amountScaleNotice;
+        }
       }
       function doSaveKo() {
         var d = readDraft();
@@ -15364,6 +15828,8 @@
           if (draftResultOk2) draftResultOk2.value = '';
           if (draftResultFail1) draftResultFail1.value = '';
           if (draftResultFail2) draftResultFail2.value = '';
+          if (draftAmtShow) draftAmtShow.checked = true;
+          if (draftAmtNotice) draftAmtNotice.value = '';
           writeHidden();
           renderTable();
           alert('목록이 갱신되었습니다. 서버 반영은 화면 하단 「저장」을 누르세요.');
@@ -15377,7 +15843,8 @@
           resultSuccessMain: d.resultOk1Ko ? { KOR: d.resultOk1Ko } : {},
           resultSuccessFoot: d.resultOk2Ko ? { KOR: d.resultOk2Ko } : {},
           resultFailMain: d.resultFail1Ko ? { KOR: d.resultFail1Ko } : {},
-          resultFailFoot: d.resultFail2Ko ? { KOR: d.resultFail2Ko } : {}
+          resultFailFoot: d.resultFail2Ko ? { KOR: d.resultFail2Ko } : {},
+          amountScaleNotice: d.amtNoticeKo ? { KOR: d.amtNoticeKo } : {}
         });
       }
       function doSaveI18n() {
@@ -15385,7 +15852,7 @@
         if (!validateDraft(d)) return;
         var dimm = document.getElementById('dimm');
         if (dimm) dimm.style.display = 'flex';
-        fillAllTranslations(d.titleKo, d.b1, d.b2, d.b3, d.resultOk1Ko, d.resultOk2Ko, d.resultFail1Ko, d.resultFail2Ko).then(function (maps) {
+        fillAllTranslations(d.titleKo, d.b1, d.b2, d.b3, d.resultOk1Ko, d.resultOk2Ko, d.resultFail1Ko, d.resultFail2Ko, d.amtNoticeKo).then(function (maps) {
           if (state.editingId) {
             var en = findEntry(state.editingId);
             if (!en) {
@@ -15401,6 +15868,8 @@
             en.resultSuccessFoot = maps.resultSuccessFoot && typeof maps.resultSuccessFoot === 'object' ? maps.resultSuccessFoot : {};
             en.resultFailMain = maps.resultFailMain && typeof maps.resultFailMain === 'object' ? maps.resultFailMain : {};
             en.resultFailFoot = maps.resultFailFoot && typeof maps.resultFailFoot === 'object' ? maps.resultFailFoot : {};
+            en.amountScaleNoticeShowYn = d.amtShow ? 'Y' : 'N';
+            en.amountScaleNotice = mapHasAny(maps.amountScaleNotice) ? maps.amountScaleNotice : (d.amtNoticeKo ? { KOR: d.amtNoticeKo } : {});
             clearEditing();
             draftTitle.value = '';
             draftB1.value = '';
@@ -15410,6 +15879,8 @@
             if (draftResultOk2) draftResultOk2.value = '';
             if (draftResultFail1) draftResultFail1.value = '';
             if (draftResultFail2) draftResultFail2.value = '';
+            if (draftAmtShow) draftAmtShow.checked = true;
+            if (draftAmtNotice) draftAmtNotice.value = '';
             writeHidden();
             renderTable();
             alert('목록이 갱신되었습니다(다국어). 서버 반영은 화면 하단 「저장」을 누르세요.');
@@ -15430,6 +15901,8 @@
             if (draftResultOk2) draftResultOk2.value = '';
             if (draftResultFail1) draftResultFail1.value = '';
             if (draftResultFail2) draftResultFail2.value = '';
+            if (draftAmtShow) draftAmtShow.checked = true;
+            if (draftAmtNotice) draftAmtNotice.value = '';
             writeHidden();
             renderTable();
           } else {
@@ -15441,7 +15914,8 @@
               resultSuccessMain: d.resultOk1Ko ? { KOR: d.resultOk1Ko } : {},
               resultSuccessFoot: d.resultOk2Ko ? { KOR: d.resultOk2Ko } : {},
               resultFailMain: d.resultFail1Ko ? { KOR: d.resultFail1Ko } : {},
-              resultFailFoot: d.resultFail2Ko ? { KOR: d.resultFail2Ko } : {}
+              resultFailFoot: d.resultFail2Ko ? { KOR: d.resultFail2Ko } : {},
+              amountScaleNotice: d.amtNoticeKo ? { KOR: d.amtNoticeKo } : {}
             });
           }
         }).finally(function () { if (dimm) dimm.style.display = 'none'; });
@@ -15477,6 +15951,8 @@
           if (draftResultOk2) draftResultOk2.value = '';
           if (draftResultFail1) draftResultFail1.value = '';
           if (draftResultFail2) draftResultFail2.value = '';
+          if (draftAmtShow) draftAmtShow.checked = true;
+          if (draftAmtNotice) draftAmtNotice.value = '';
         });
       }
       loadUrlPayPgOptions().then(function () {
@@ -15498,7 +15974,7 @@
       var dimm2 = document.getElementById('dimm');
       if (dimm2) dimm2.style.display = 'flex';
       window.PG_API.hqApiConfig().then(function (data) {
-        if (data && (pane.querySelector('[name="baseUrl"]') || pane.querySelector('[name="urlPayPathTemplate"]') || pane.querySelector('[name="paymentProviderRegistryJson"]') || pane.querySelector('[name="payCurrencyScaleRulesJson"]') || pane.querySelector('[name="urlPayCardCopyConfigJson"]') || pane.querySelector('[name="urlPayTabTitleJson"]') || pane.querySelector('[name="urlPayDisplayFxJson"]'))) {
+        if (data && (pane.querySelector('[name="baseUrl"]') || pane.querySelector('[name="urlPayPathTemplate"]') || pane.querySelector('[name="paymentProviderRegistryJson"]') || pane.querySelector('[name="payCurrencyScaleRulesJson"]') || pane.querySelector('[name="urlPayCardCopyConfigJson"]') || pane.querySelector('[name="urlPayTabTitleJson"]') || pane.querySelector('[name="urlPayDisplayFxJson"]') || pane.querySelector('[name="botThailandApiKey"]'))) {
           ['baseUrl', 'authType', 'timeoutSec', 'memo', 'chillpayMerchantCode', 'chillpayApiKey', 'chillpayMd5Key', 'chillpayRouteNo', 'chillpaySandbox', 'recallIncludeFeeYn', 'settlementVatApplyYn',
             'apiBrokerDefaultFlowType', 'urlPayDefaultFlowType', 'urlPayPathTemplate',
             'apiBrokerInlineEnabledYn', 'apiBrokerRedirectEnabledYn', 'urlPayInlineEnabledYn', 'urlPayRedirectEnabledYn',
@@ -15508,7 +15984,8 @@
             'paymentProviderRegistryJson',
             'payCurrencyScaleRulesJson',
             'urlPayCardCopyConfigJson',
-            'urlPayDisplayFxJson'
+            'urlPayDisplayFxJson',
+            'botThailandApiKey', 'botThailandBaseUrl', 'botThailandDailyAvgPath', 'botThailandApiKeyHeader'
           ].forEach(function (k) {
             var el = pane.querySelector('[name="' + k + '"]');
             if (el && data[k] != null) el.value = data[k];
@@ -15545,6 +16022,14 @@
       var hqSnapDeploy = null;
       var tbodyUp = pane.querySelector('#hqUrlPayDeployPgTbody');
       var hiddenUp = pane.querySelector('#hqUrlPayDeployFxHidden');
+      var URL_PAY_FX_CCYS = ['THB', 'JPY', 'USD', 'KRW', 'SGD', 'HKD', 'CNY'];
+      function buildUrlPayDepCurOptions(selected, fallback) {
+        var s = String(selected || '').trim().toUpperCase();
+        if (URL_PAY_FX_CCYS.indexOf(s) < 0) s = fallback || 'JPY';
+        return URL_PAY_FX_CCYS.map(function (c) {
+          return '<option value="' + c + '"' + (s === c ? ' selected' : '') + '>' + c + '</option>';
+        }).join('');
+      }
       function escUrlPayDep(s) {
         return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
       }
@@ -15563,15 +16048,21 @@
         if (!tbodyUp) return false;
         var sels = tbodyUp.querySelectorAll('.hq-upd-amode');
         for (var i = 0; i < sels.length; i++) {
-          if (String(sels[i].value || '').toUpperCase() === 'DISPLAY') return true;
+          var v = String(sels[i].value || '').toUpperCase();
+          if (v === 'DISPLAY' || v === 'BLIND') return true;
         }
         return false;
       }
       function setUrlPayDeployRowFxControlsEnabled(tr) {
         var am = tr.querySelector('.hq-upd-amode');
-        var disp = am && String(am.value || '').toUpperCase() === 'DISPLAY';
+        var amv = am && String(am.value || '').toUpperCase();
+        var disp = amv === 'DISPLAY' || amv === 'BLIND';
+        var fxEl = tr.querySelector('.hq-upd-fx');
+        var fxManual = fxEl && String(fxEl.value || '').toUpperCase() === 'MANUAL';
         var tip = disp ? '' : '일반형: 총판(조직) 설정 통화로 결제되며 이 항목은 적용되지 않습니다.';
-        ['hq-upd-dcur', 'hq-upd-scur', 'hq-upd-fx'].forEach(function (cls) {
+        var tipManualOff = '자동(BOT)이면 BOT·표시/실결제 통화로 실결제/1표시가 정해지므로 이 칸은 사용하지 않습니다. 수동 환율·행 마진을 쓰려면 FX에서 「수동」을 선택하세요.';
+        var tipMarginAutoOff = '자동(BOT)이면 위 표시통화별 마진(JPY·USD·… 7종)만 적용됩니다. PG별 마진율은 FX 「수동」일 때만 입력합니다.';
+        ['hq-upd-dcur', 'hq-upd-dcmod', 'hq-upd-scur', 'hq-upd-fx'].forEach(function (cls) {
           var el = tr.querySelector('.' + cls);
           if (el) {
             el.disabled = !disp;
@@ -15581,18 +16072,20 @@
         var mn = tr.querySelector('.hq-upd-manual');
         var mr = tr.querySelector('.hq-upd-mrg');
         if (mn) {
-          mn.disabled = !disp;
-          mn.title = tip;
+          mn.disabled = !disp || !fxManual;
+          mn.title = !disp ? tip : (!fxManual ? tipManualOff : '');
         }
         if (mr) {
-          mr.disabled = !disp;
-          mr.title = tip;
+          mr.disabled = !disp || !fxManual;
+          mr.title = !disp ? tip : (!fxManual ? tipMarginAutoOff : '');
         }
       }
       function refreshUrlPayDeployGlobalFxControls() {
         var on = hasAnyUrlPayDeployDisplayMode();
         var gTip = on ? '' : 'DISPLAY 모드 PG가 없어 비활성화됩니다. 일반형만 있으면 총판 통화로 결제됩니다.';
-        ['_urlPayFxUiEnabled', '_urlPayFxUiRefresh', '_urlPayFxUiTtl', '_urlPayFxUiMarginJpy', '_urlPayFxUiMarginUsd', '_urlPayFxUiMarginKrw', '_urlPayFxUiMarginThb'].forEach(function (nm) {
+        ['_urlPayFxUiEnabled', '_urlPayFxUiRefresh', '_urlPayFxUiTtl', '_urlPayFxUiBotRateAsOf',
+          '_urlPayFxUiMarginJpy', '_urlPayFxUiMarginUsd', '_urlPayFxUiMarginKrw', '_urlPayFxUiMarginThb',
+          '_urlPayFxUiMarginSgd', '_urlPayFxUiMarginHkd', '_urlPayFxUiMarginCny'].forEach(function (nm) {
           var el = pane.querySelector('[name="' + nm + '"]');
           if (el) {
             el.disabled = !on;
@@ -15605,7 +16098,7 @@
         tbodyUp._hqUrlPayDepAmodeBound = true;
         tbodyUp.addEventListener('change', function (ev) {
           var t = ev.target;
-          if (t && t.classList && t.classList.contains('hq-upd-amode')) {
+          if (t && t.classList && (t.classList.contains('hq-upd-amode') || t.classList.contains('hq-upd-fx'))) {
             var tr = t.closest('tr');
             if (tr) setUrlPayDeployRowFxControlsEnabled(tr);
             refreshUrlPayDeployGlobalFxControls();
@@ -15616,7 +16109,7 @@
         if (!tbodyUp) return;
         var pgSet = fxObj.pgSettings && typeof fxObj.pgSettings === 'object' ? fxObj.pgSettings : {};
         if (!urlPayPgs.length) {
-          tbodyUp.innerHTML = '<tr><td colspan="7" class="text-muted text-center py-3 small">URL결제(Y)로 등록된 PG가 없습니다. API연동설정에서 연동용도를 확인하세요.</td></tr>';
+          tbodyUp.innerHTML = '<tr><td colspan="8" class="text-muted text-center py-3 small">URL결제(Y)로 등록된 PG가 없습니다. API연동설정에서 연동용도를 확인하세요.</td></tr>';
           refreshUrlPayDeployGlobalFxControls();
           bindUrlPayDeployAmountModeChange();
           return;
@@ -15627,12 +16120,14 @@
           if (!cd) return;
           var cdU = normPgUrlPayDep(cd);
           var row = pgSet[cdU] || pgSet[cd] || {};
-          var mode = String(row.amountMode || 'STANDARD').toUpperCase() === 'DISPLAY' ? 'DISPLAY' : 'STANDARD';
+          var rawAm = String(row.amountMode || 'STANDARD').toUpperCase();
+          var mode = (rawAm === 'DISPLAY' || rawAm === 'BLIND') ? rawAm : 'STANDARD';
           var disp = String(row.displayCurrency || 'JPY').toUpperCase();
-          if (['JPY', 'USD', 'KRW', 'THB'].indexOf(disp) < 0) disp = 'JPY';
+          if (URL_PAY_FX_CCYS.indexOf(disp) < 0) disp = 'JPY';
           var setc = String(row.settlementCurrency || 'THB').toUpperCase();
-          if (['THB', 'USD', 'JPY', 'KRW'].indexOf(setc) < 0) setc = 'THB';
+          if (URL_PAY_FX_CCYS.indexOf(setc) < 0) setc = 'THB';
           var fxm = String(row.fxMode || 'AUTO').toUpperCase() === 'MANUAL' ? 'MANUAL' : 'AUTO';
+          var dcm = String(row.displayCurrencyMode || 'FIXED').trim().toUpperCase() === 'MULTI' ? 'MULTI' : 'FIXED';
           var manual = '';
           if (row.manualSettlementPerUnit != null && String(row.manualSettlementPerUnit).trim() !== '') {
             manual = String(row.manualSettlementPerUnit);
@@ -15645,17 +16140,15 @@
             '<td class="small">' + escUrlPayDep(nm + ' (' + cd + ')') + '</td>' +
             '<td><select class="form-select form-select-sm hq-upd-amode" data-pg="' + escUrlPayDep(cdU) + '">' +
             '<option value="STANDARD"' + (mode === 'STANDARD' ? ' selected' : '') + '>일반형</option>' +
-            '<option value="DISPLAY"' + (mode === 'DISPLAY' ? ' selected' : '') + '>DISPLAY</option></select></td>' +
+            '<option value="DISPLAY"' + (mode === 'DISPLAY' ? ' selected' : '') + '>DISPLAY</option>' +
+            '<option value="BLIND"' + (mode === 'BLIND' ? ' selected' : '') + '>BLIND</option></select></td>' +
             '<td><select class="form-select form-select-sm hq-upd-dcur" data-pg="' + escUrlPayDep(cdU) + '">' +
-            '<option value="THB"' + (disp === 'THB' ? ' selected' : '') + '>THB</option>' +
-            '<option value="JPY"' + (disp === 'JPY' ? ' selected' : '') + '>JPY</option>' +
-            '<option value="USD"' + (disp === 'USD' ? ' selected' : '') + '>USD</option>' +
-            '<option value="KRW"' + (disp === 'KRW' ? ' selected' : '') + '>KRW</option></select></td>' +
+            buildUrlPayDepCurOptions(disp, 'JPY') + '</select></td>' +
+            '<td><select class="form-select form-select-sm hq-upd-dcmod" data-pg="' + escUrlPayDep(cdU) + '">' +
+            '<option value="FIXED"' + (dcm === 'FIXED' ? ' selected' : '') + '>고정</option>' +
+            '<option value="MULTI"' + (dcm === 'MULTI' ? ' selected' : '') + '>멀티</option></select></td>' +
             '<td><select class="form-select form-select-sm hq-upd-scur" data-pg="' + escUrlPayDep(cdU) + '">' +
-            '<option value="THB"' + (setc === 'THB' ? ' selected' : '') + '>THB</option>' +
-            '<option value="USD"' + (setc === 'USD' ? ' selected' : '') + '>USD</option>' +
-            '<option value="JPY"' + (setc === 'JPY' ? ' selected' : '') + '>JPY</option>' +
-            '<option value="KRW"' + (setc === 'KRW' ? ' selected' : '') + '>KRW</option></select></td>' +
+            buildUrlPayDepCurOptions(setc, 'THB') + '</select></td>' +
             '<td><select class="form-select form-select-sm hq-upd-fx" data-pg="' + escUrlPayDep(cdU) + '">' +
             '<option value="AUTO"' + (fxm === 'AUTO' ? ' selected' : '') + '>자동(BOT)</option>' +
             '<option value="MANUAL"' + (fxm === 'MANUAL' ? ' selected' : '') + '>수동</option></select></td>' +
@@ -15690,27 +16183,39 @@
         var mu = pane.querySelector('[name="_urlPayFxUiMarginUsd"]');
         var mk = pane.querySelector('[name="_urlPayFxUiMarginKrw"]');
         var mtb = pane.querySelector('[name="_urlPayFxUiMarginThb"]');
+        var ms = pane.querySelector('[name="_urlPayFxUiMarginSgd"]');
+        var mh = pane.querySelector('[name="_urlPayFxUiMarginHkd"]');
+        var mc = pane.querySelector('[name="_urlPayFxUiMarginCny"]');
+        var botAs = pane.querySelector('[name="_urlPayFxUiBotRateAsOf"]');
         o.marginByCurrency.JPY = parseMargUrlPayDep(mj, 0);
         o.marginByCurrency.USD = parseMargUrlPayDep(mu, 0);
         o.marginByCurrency.KRW = parseMargUrlPayDep(mk, 0);
         o.marginByCurrency.THB = parseMargUrlPayDep(mtb, 0);
+        o.marginByCurrency.SGD = parseMargUrlPayDep(ms, 0);
+        o.marginByCurrency.HKD = parseMargUrlPayDep(mh, 0);
+        o.marginByCurrency.CNY = parseMargUrlPayDep(mc, 0);
+        var botV = botAs && String(botAs.value || '').trim().toUpperCase();
+        o.botRateAsOf = (botV === 'LATEST_BOT_PERIOD') ? 'LATEST_BOT_PERIOD' : 'PREVIOUS_DAY_CLOSE';
         var nextPg = {};
         tbodyUp.querySelectorAll('tr[data-pg-cd]').forEach(function (tr) {
           var cdU = tr.getAttribute('data-pg-cd');
           var am = tr.querySelector('.hq-upd-amode');
           var dc = tr.querySelector('.hq-upd-dcur');
+          var dcmEl = tr.querySelector('.hq-upd-dcmod');
           var sc = tr.querySelector('.hq-upd-scur');
           var fx = tr.querySelector('.hq-upd-fx');
           var mn = tr.querySelector('.hq-upd-manual');
           var mr = tr.querySelector('.hq-upd-mrg');
           var setC = sc && sc.value ? String(sc.value).trim().toUpperCase() : 'THB';
-          if (['THB', 'USD', 'JPY', 'KRW'].indexOf(setC) < 0) setC = 'THB';
+          if (URL_PAY_FX_CCYS.indexOf(setC) < 0) setC = 'THB';
           var manualRaw = mn ? String(mn.value || '').trim() : '';
           var dCur = dc && dc.value ? String(dc.value).trim().toUpperCase() : 'JPY';
-          if (['JPY', 'USD', 'KRW', 'THB'].indexOf(dCur) < 0) dCur = 'JPY';
+          if (URL_PAY_FX_CCYS.indexOf(dCur) < 0) dCur = 'JPY';
+          var dcMod = dcmEl && String(dcmEl.value || '').trim().toUpperCase() === 'MULTI' ? 'MULTI' : 'FIXED';
           var st = {
             amountMode: am && am.value ? am.value : 'STANDARD',
             displayCurrency: dCur,
+            displayCurrencyMode: dcMod,
             settlementCurrency: setC,
             fxMode: fx && fx.value ? fx.value : 'AUTO',
             manualRaw: manualRaw,
@@ -15719,18 +16224,22 @@
           if (st.amountMode === 'STANDARD') {
             nextPg[cdU] = { amountMode: 'STANDARD' };
           } else {
+            var amSaved = (st.amountMode === 'BLIND') ? 'BLIND' : 'DISPLAY';
             var rowObj = {
-              amountMode: 'DISPLAY',
+              amountMode: amSaved,
               displayCurrency: st.displayCurrency,
+              displayCurrencyMode: st.displayCurrencyMode,
               settlementCurrency: st.settlementCurrency,
-              fxMode: st.fxMode,
-              marginRate: st.marginRate
+              fxMode: st.fxMode
             };
-            if (st.fxMode === 'MANUAL' && manualRaw) {
-              if (st.settlementCurrency === 'THB') {
-                rowObj.manualThbPerUnit = manualRaw;
-              } else {
-                rowObj.manualSettlementPerUnit = manualRaw;
+            if (st.fxMode === 'MANUAL') {
+              rowObj.marginRate = st.marginRate;
+              if (manualRaw) {
+                if (st.settlementCurrency === 'THB') {
+                  rowObj.manualThbPerUnit = manualRaw;
+                } else {
+                  rowObj.manualSettlementPerUnit = manualRaw;
+                }
               }
             }
             nextPg[cdU] = rowObj;
@@ -15747,6 +16256,10 @@
         var mu = pane.querySelector('[name="_urlPayFxUiMarginUsd"]');
         var mk = pane.querySelector('[name="_urlPayFxUiMarginKrw"]');
         var mtb = pane.querySelector('[name="_urlPayFxUiMarginThb"]');
+        var ms = pane.querySelector('[name="_urlPayFxUiMarginSgd"]');
+        var mh = pane.querySelector('[name="_urlPayFxUiMarginHkd"]');
+        var mc = pane.querySelector('[name="_urlPayFxUiMarginCny"]');
+        var botAs = pane.querySelector('[name="_urlPayFxUiBotRateAsOf"]');
         if (en) en.value = fxObj.enabled === true ? 'Y' : 'N';
         if (rs) rs.value = fxObj.refreshSeconds != null ? String(fxObj.refreshSeconds) : '600';
         if (ttl) ttl.value = fxObj.quoteTtlSeconds != null ? String(fxObj.quoteTtlSeconds) : '600';
@@ -15755,6 +16268,13 @@
         if (mu) mu.value = mb.USD != null ? String(mb.USD) : '0';
         if (mk) mk.value = mb.KRW != null ? String(mb.KRW) : '0';
         if (mtb) mtb.value = mb.THB != null ? String(mb.THB) : '0';
+        if (ms) ms.value = mb.SGD != null ? String(mb.SGD) : '0';
+        if (mh) mh.value = mb.HKD != null ? String(mb.HKD) : '0';
+        if (mc) mc.value = mb.CNY != null ? String(mb.CNY) : '0';
+        if (botAs) {
+          var br = String(fxObj.botRateAsOf || '').trim().toUpperCase();
+          botAs.value = (br === 'LATEST_BOT_PERIOD' || br === 'LATEST' || br === 'TODAY') ? 'LATEST_BOT_PERIOD' : 'PREVIOUS_DAY_CLOSE';
+        }
       }
       if (dimmUp) dimmUp.style.display = 'flex';
       Promise.all([
@@ -17238,7 +17758,11 @@
           merchantMid: row.merchantMid || '',
           routeNo: row.routeNo,
           sandboxYn: row.sandboxYn || 'Y',
-          credentialsExtraJson: row.credentialsExtraJson || ''
+          credentialsExtraJson: row.credentialsExtraJson || '',
+          urlPayAmountMode: row.urlPayAmountMode,
+          extSettleMode: row.extSettleMode,
+          extSettleLag: row.extSettleLag,
+          extSettleBatchTime: row.extSettleBatchTime
         });
       }
       pane.addEventListener('click', function (e) {
@@ -17384,11 +17908,204 @@
     if (exCalcBtn && (url === '/calc/exCalcList' || url === '/settlement/execute')) bindSettlementExecuteRun(exCalcBtn);
     var executeBtn = pane.querySelector('#executeBtn');
     if (executeBtn && (url === '/calc/exCalcList' || url === '/settlement/execute')) bindSettlementExecuteRun(executeBtn);
+    if (url === '/deploy/merchantApiPolicy' && !pane._merchantPolicyOpenKitBtnBound) {
+      pane._merchantPolicyOpenKitBtnBound = true;
+      var kitJump = pane.querySelector('#merchantPolicyOpenKitBtn');
+      if (kitJump && typeof window.fnTopMenuMove === 'function') {
+        kitJump.addEventListener('click', function () {
+          window.fnTopMenuMove('/hq/merchantApiGenerate', 'M0905', '가맹점 API 생성');
+        });
+      }
+    }
+    if ((url === '/hq/merchantApiGenerate' || url === '/hq/merchantApiDeployKit') && !pane._merchantApiDeployKitBound) {
+      pane._merchantApiDeployKitBound = true;
+      initMerchantApiDeployKit(pane);
+    }
+    if (url === '/hq/apiMerchantDeployReg' && !pane._apiMerchRegBound) {
+      pane._apiMerchRegBound = true;
+      initApiMerchantDeployReg(pane);
+    }
     pane._pgRunListSearch = doSearch;
     bindPagingEvents(pane, tabId);
     if (url === '/calc/exCalcList' || url === '/settlement/execute') {
       syncSettlementExecuteRecentModeUi(pane);
     }
+  }
+
+  /** 배포설정 — 1. API 가맹점 등록: API연동설정(PG·연동용도 API) 안내 및 이동 */
+  function initApiMerchantDeployReg(pane) {
+    if (!pane || !window.PG_API) return;
+    var tbody = pane.querySelector('#apiMerchRegPgTbody');
+    function esc(s) {
+      return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+    }
+    function renderPgRows() {
+      if (!tbody) return;
+      window.PG_API.hqPgApiMng({ searchUseYn: 'Y', page: 1, size: 500 }).then(function (pr) {
+        var list = pr && pr.list ? pr.list : [];
+        var apiRows = list.filter(function (r) {
+          return r && String(r.integApiYn || '').toUpperCase() === 'Y';
+        });
+        if (!apiRows.length) {
+          tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted py-3">API연동설정에서 연동용도에 <strong>API</strong>를 켠 결제대행사가 없습니다. 먼저 <strong>PG사 연동 추가</strong> 후 저장하세요.</td></tr>';
+          return;
+        }
+        tbody.innerHTML = apiRows.map(function (r) {
+          var op = r.hqOperationalYn === 'Y' || r.operationalYn === 'Y' ? 'Y' : 'N';
+          return '<tr><td class="text-nowrap"><code>' + esc(r.pgCd || '') + '</code></td><td>' + esc(r.pgNm || '') + '</td>' +
+            '<td class="text-nowrap">' + esc(r.integrationScopeLabel || '') + '</td><td class="text-nowrap">' + esc(r.merchantMid || '') + '</td>' +
+            '<td class="text-center small">' + esc(op) + '</td></tr>';
+        }).join('');
+      }).catch(function (e) {
+        if (tbody) tbody.innerHTML = '<tr><td colspan="5" class="text-center text-danger py-3">' + esc(e && e.message ? e.message : '목록 조회 실패') + '</td></tr>';
+      });
+    }
+    if (!pane._apiMerchRegNavBound) {
+      pane._apiMerchRegNavBound = true;
+      var move = typeof window.fnTopMenuMove === 'function' ? window.fnTopMenuMove : null;
+      var bPg = pane.querySelector('#apiMerchRegBtnPgApi');
+      if (bPg) bPg.addEventListener('click', function () { if (move) move('/hq/pgApiMng', 'M0101', 'API연동설정'); });
+      var bReg = pane.querySelector('#apiMerchRegBtnCompReg');
+      if (bReg) bReg.addEventListener('click', function () { if (move) move('/comp/compReg', 'M0208', '업체등록'); });
+      var bTree = pane.querySelector('#apiMerchRegBtnCompTree');
+      if (bTree) bTree.addEventListener('click', function () { if (move) move('/comp/compMngTree', 'M0209', '업체관리'); });
+      var bNext = pane.querySelector('#apiMerchRegBtnNextGen');
+      if (bNext) bNext.addEventListener('click', function () { if (move) move('/hq/merchantApiGenerate', 'M0905', '가맹점 API 생성'); });
+    }
+    renderPgRows();
+  }
+
+  /** 배포설정 — 2. 가맹점 API 생성 (연동 JSON·브로커 시크릿) */
+  function initMerchantApiDeployKit(pane) {
+    if (!pane || !window.PG_API) return;
+    var gridEl = pane.querySelector('#merchantDeployMerchantGrid tbody');
+    var kitPre = pane.querySelector('#merchantDeployKitJson');
+    var vendorSel = pane.querySelector('#merchantDeployVendorScope');
+    var compInput = pane.querySelector('#merchantDeployCompId');
+    function esc(s) {
+      return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+    }
+    function renderMerchantRows(pr) {
+      if (!gridEl) return;
+      var list = pr && pr.list ? pr.list : [];
+      if (!list.length) {
+        gridEl.innerHTML = '<tr><td colspan="4" class="text-center text-muted">조회된 가맹점이 없습니다.</td></tr>';
+        return;
+      }
+      gridEl.innerHTML = list.map(function (row) {
+        var cid = row.compId != null ? String(row.compId) : '';
+        var cnm = row.compNm != null ? String(row.compNm) : '';
+        return '<tr><td><button type="button" class="btn btn-sm btn-outline-primary merchant-deploy-pick" data-comp-id="' + esc(cid) + '">선택</button></td>' +
+          '<td class="text-nowrap">' + esc(cid) + '</td><td>' + esc(cnm) + '</td>' +
+          '<td class="small text-muted">' + (row.baseCurrency || '') + '</td></tr>';
+      }).join('');
+      gridEl.querySelectorAll('.merchant-deploy-pick').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          var id = btn.getAttribute('data-comp-id') || '';
+          if (compInput) compInput.value = id;
+          loadKit();
+        });
+      });
+    }
+    function loadMerchants(page) {
+      var p = page && page > 0 ? page : 1;
+      var q1 = compInput && compInput.value ? String(compInput.value).trim() : '';
+      var qnmEl = pane.querySelector('#merchantDeploySearchCompNm');
+      var qnm = qnmEl && qnmEl.value ? String(qnmEl.value).trim() : '';
+      window.PG_API.hqMerchantApiDeploymentMerchants({ searchCompId: q1, searchCompNm: qnm, page: p, size: 25 }).then(function (pr) {
+        renderMerchantRows(pr);
+        var tp = pr && pr.totalPages != null ? pr.totalPages : 1;
+        var te = pr && pr.totalElements != null ? pr.totalElements : 0;
+        var pgEl = pane.querySelector('#merchantDeployPageInfo');
+        if (pgEl) pgEl.textContent = '페이지 ' + p + ' / ' + tp + ' (총 ' + te + '건)';
+        pane._merchantDeployListPage = p;
+      }).catch(function (e) {
+        alert(e && e.message ? e.message : '목록 조회 실패');
+      });
+    }
+    function fillKitSummary(kit) {
+      var sumEl = pane.querySelector('#merchantGenKitSummary');
+      if (!sumEl || !kit) return;
+      sumEl.classList.remove('d-none');
+      var binds = kit.merchantPgBindings || [];
+      var bindLi = binds.length
+        ? binds.map(function (b) {
+          return '<li><code>' + esc(b.pgCd || '') + '</code> · MID <strong>' + esc(String(b.mid || '')) + '</strong> · 활성 ' + esc(String(b.activationYn || '')) + '</li>';
+        }).join('')
+        : '<li class="text-muted">가맹 PG 바인딩이 없습니다. 업체정보에서 결제대행사를 저장하세요.</li>';
+      sumEl.innerHTML =
+        '<div class="fw-semibold mb-2">' + esc(kit.merchantName || '') + ' <span class="text-muted fw-normal">(' + esc(kit.compId || '') + ')</span></div>' +
+        '<ul class="mb-0 ps-3 small">' +
+        '<li>공개 API 베이스: <code>' + esc(kit.publicApiBaseUrl || '') + '</code></li>' +
+        (kit.baseCurrency ? '<li>기준통화: <strong>' + esc(kit.baseCurrency) + '</strong></li>' : '') +
+        '<li class="mb-0 mt-1">가맹 PG 바인딩</li><ul class="mb-0 ps-3">' + bindLi + '</ul>' +
+        '<li class="mt-2 mb-0">아래 JSON 전체를 복사해 가맹·개발 담당에게 전달하세요.</li></ul>';
+    }
+    function loadKit() {
+      var cid = compInput && compInput.value ? String(compInput.value).trim() : '';
+      if (!cid) { alert('업체코드를 입력하거나 목록에서 선택하세요.'); return; }
+      var vs = vendorSel && vendorSel.value ? String(vendorSel.value).trim() : 'ALL';
+      window.PG_API.hqMerchantApiDeploymentKit({ compId: cid, vendorScope: vs }).then(function (kit) {
+        fillKitSummary(kit);
+        if (kitPre) kitPre.textContent = JSON.stringify(kit, null, 2);
+      }).catch(function (e) {
+        alert(e && e.message ? e.message : '키트 조회 실패');
+      });
+    }
+    function fillVendorOptions() {
+      if (!vendorSel) return;
+      window.PG_API.hqMerchantApiDeploymentVendors().then(function (list) {
+        var opts = '<option value="ALL">전체 PG(문서용)</option>';
+        (list || []).forEach(function (v) {
+          var sc = v.vendorScope || '';
+          opts += '<option value="' + esc(sc) + '">' + esc(v.displayNameKr || sc) + '</option>';
+        });
+        vendorSel.innerHTML = opts;
+      }).catch(function () { vendorSel.innerHTML = '<option value="ALL">ALL</option>'; });
+    }
+    var searchBtn = pane.querySelector('#merchantDeploySearchBtn');
+    if (searchBtn && !searchBtn._mdepBound) {
+      searchBtn._mdepBound = true;
+      searchBtn.addEventListener('click', function () { loadMerchants(1); });
+    }
+    var kitBtn = pane.querySelector('#merchantDeployLoadKitBtn');
+    if (kitBtn && !kitBtn._mdepBound) {
+      kitBtn._mdepBound = true;
+      kitBtn.addEventListener('click', function () { loadKit(); });
+    }
+    var rotBtn = pane.querySelector('#merchantDeployRotateSecretBtn');
+    if (rotBtn && !rotBtn._mdepBound) {
+      rotBtn._mdepBound = true;
+      rotBtn.addEventListener('click', function () {
+        var cid = compInput && compInput.value ? String(compInput.value).trim() : '';
+        if (!cid) { alert('업체코드를 입력하세요.'); return; }
+        var vs = vendorSel && vendorSel.value ? String(vendorSel.value).trim() : 'CHILLPAY';
+        if (!window.pgDoubleConfirm || !window.pgDoubleConfirm(
+          '기존 브로커 시크릿을 폐기하고 새 시크릿을 발급합니다. 계속할까요?',
+          '가맹점 서버에 이미 배포된 키는 즉시 무효가 됩니다. 정말 진행할까요?'
+        )) return;
+        window.PG_API.hqMerchantApiDeploymentRotate({ compId: cid, vendorScope: vs }).then(function (r) {
+          alert((r && r.message) ? r.message : '발급되었습니다. JSON에 brokerSecretPlain 이 표시됩니다.');
+          if (kitPre) kitPre.textContent = JSON.stringify(r, null, 2);
+        }).catch(function (e) { alert(e && e.message ? e.message : '발급 실패'); });
+      });
+    }
+    var enfBtn = pane.querySelector('#merchantDeployEnforceBtn');
+    if (enfBtn && !enfBtn._mdepBound) {
+      enfBtn._mdepBound = true;
+      enfBtn.addEventListener('click', function () {
+        var cid = compInput && compInput.value ? String(compInput.value).trim() : '';
+        var vs = vendorSel && vendorSel.value ? String(vendorSel.value).trim() : 'CHILLPAY';
+        if (!cid) { alert('업체코드를 입력하세요.'); return; }
+        var on = !!(pane.querySelector('#merchantDeployEnforceYn') && pane.querySelector('#merchantDeployEnforceYn').checked);
+        window.PG_API.hqMerchantApiDeploymentEnforce({ compId: cid, vendorScope: vs, enforceYn: on ? 'Y' : 'N' }).then(function (r) {
+          alert('강제 여부가 저장되었습니다: ' + (r && r.enforceYn ? r.enforceYn : ''));
+          loadKit();
+        }).catch(function (e) { alert(e && e.message ? e.message : '저장 실패'); });
+      });
+    }
+    fillVendorOptions();
+    loadMerchants(1);
   }
 
   /** 결제관리 목록(통합·분류·URL·챗봇·칠페이 통합내역·통합정산 등) */
@@ -17410,8 +18127,7 @@
     '/calc/settlementReport', '/settlement/settlementReport',
     '/calc/collateralList', '/settlement/collateralList',
     '/calc/balanceList', '/settlement/balanceList',
-    '/calc/unpaidMng', '/settlement/unpaidMng',
-    '/pay/payHoldList', '/settlement/holdList'
+    '/calc/unpaidMng', '/settlement/unpaidMng'
   ];
   /** 결제·정산 목록: 한 번에 최대 표시하는 페이지 번호 개수(1~N, 다음 구간은 &gt;) */
   var PG_PAY_SETTLE_PAGE_NUM_BLOCK = 20;
@@ -17602,6 +18318,12 @@
         if (url === '/hq/receivableRecoverySettings') {
           pane._hqRecvRecoveryBound = false;
         }
+        if (url === '/hq/merchantApiDeployKit' || url === '/hq/merchantApiGenerate') {
+          pane._merchantApiDeployKitBound = false;
+        }
+        if (url === '/hq/apiMerchantDeployReg') {
+          pane._apiMerchRegBound = false;
+        }
         pane.innerHTML = window.PG_SCREENS.getScreenHtml(url, tabId);
         pane.classList.toggle('screen-chill-pay-tr-list', url === '/calc/chillPayTrList');
         pane.classList.toggle('screen-chill-pay-settlement-list', url === '/calc/chillPaySettlementList');
@@ -17758,6 +18480,8 @@
         if (d.orgUnitId !== undefined) prev.orgUnitId = d.orgUnitId;
         if (d.role !== undefined) prev.role = d.role;
         if (d.canWriteNotice !== undefined) prev.canWriteNotice = !!d.canWriteNotice;
+        if (d.mustSetupOtp !== undefined) prev.mustSetupOtp = !!d.mustSetupOtp;
+        if (d.otpRegisteredYn !== undefined) prev.otpRegisteredYn = d.otpRegisteredYn;
         sessionStorage.setItem('pg_admin_user', JSON.stringify(prev));
         syncAllNoticeWriteButtons();
       } catch (e) {}
@@ -17814,7 +18538,7 @@
         a.style.display = '';
       });
       // 핵심 저장 버튼은 항상 강제 비활성(표시는 유지)
-      ['#compInfoUpdateBtn', '#compDetailSaveBtn', '#compRegSaveBtn', '#hqOrgAllowSaveBtn', '#hqBizdayProfileSaveBtn', '#hqLedgerSysSettingsSaveBtn', '#hqLedgerHelloTimelineSaveBtn'].forEach(function (sel) {
+      ['#compInfoUpdateBtn', '#compDetailSaveBtn', '#compRegSaveBtn', '#hqOrgAllowSaveBtn', '#hqBizdayProfileSaveBtn', '#hqLedgerSysSettingsSaveBtn', '#hqLedgerHelloTimelineSaveBtn', '#hqLedgerPayFollowLevelCapsSaveBtn'].forEach(function (sel) {
         var b = pane.querySelector(sel);
         if (!b) return;
         b.disabled = true;
@@ -18498,6 +19222,9 @@
       applyAdminOnlyMenuItems();
       applyMenuVisibilityByPagePermissions();
       redirectIfActiveMenuForbidden();
+      if (typeof window.maybeShowPgOtpEnrollModal === 'function') {
+        window.maybeShowPgOtpEnrollModal();
+      }
     });
     setTableRowPaddingY(getTableRowPaddingY());
     var ul = document.getElementById(TAB_UL);
@@ -18664,7 +19391,7 @@
         if (integKind === 'URL_PAY') {
           var upm = document.getElementById('pgAgencyEditUrlPayAmountMode');
           body.urlPayAmountMode = upm && upm.value ? String(upm.value).trim().toUpperCase() : 'STANDARD';
-          if (body.urlPayAmountMode !== 'DISPLAY') body.urlPayAmountMode = 'STANDARD';
+          if (body.urlPayAmountMode !== 'DISPLAY' && body.urlPayAmountMode !== 'BLIND') body.urlPayAmountMode = 'STANDARD';
         }
         var exMode0 = document.getElementById('pgAgencyEditExtSettleMode');
         var exLag0 = document.getElementById('pgAgencyEditExtSettleLag');

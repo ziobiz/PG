@@ -18,6 +18,7 @@ import com.pg.service.OrgServiceUseService;
 import com.pg.service.PaymentCurrencyScaleService;
 import com.pg.service.UrlPayCardCopyService;
 import com.pg.service.UrlPayDisplayFxService;
+import com.pg.util.ChillPayDirectCreditUtil;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -243,9 +244,12 @@ public class ApiPayController {
                 String setCur = urlPayDisplayFxService.settlementCurrencyForPg(opPg);
                 data.put("urlPaySettlementCurrencyCode", setCur);
                 data.put("urlPayDisplayFxDefaultDisplayCurrency", urlPayDisplayFxService.defaultDisplayCurrencyForPg(opPg));
-                data.put("urlPayDisplayFxDisplayCurrencies", urlPayDisplayFxService.allowedDisplayCurrencies());
+                data.put("urlPayDisplayFxDisplayCurrencyMulti", urlPayDisplayFxService.isDisplayCurrencyMultiForPg(opPg));
+                data.put("urlPayDisplayFxDisplayCurrencies", urlPayDisplayFxService.allowedDisplayCurrenciesForCheckout(opPg));
+                data.put("urlPayFxUiBlind", urlPayDisplayFxService.isUrlPayFxUiBlind(opPg));
             } else {
                 data.put("urlPayDisplayFxActive", false);
+                data.put("urlPayFxUiBlind", false);
             }
             Object checkoutCurObj = data.get("checkoutCurrencyCode");
             String checkoutCur = checkoutCurObj instanceof String ? (String) checkoutCurObj : null;
@@ -292,7 +296,7 @@ public class ApiPayController {
         Optional<UrlPayDisplayFxService.QuoteResult> q = urlPayDisplayFxService.buildQuote(compId.trim(), cur, opPgQ);
         if (q.isEmpty()) {
             return ResponseEntity.ok(ApiResponse.fail(
-                    "환율 견적을 만들 수 없습니다. 배포설정 「URL결제설정」에서 해당 PG의 FX(자동: BOT API 키, 수동: THB/표시단위)와 DISPLAY 설정을 확인하세요.",
+                    "환율 견적을 만들 수 없습니다. 본사설정 「URL결제설정」에서 해당 PG의 FX(자동: BOT API 키, 수동: THB/표시단위)와 DISPLAY 설정을 확인하세요.",
                     "DISPLAY_FX_RATE_UNAVAILABLE"));
         }
         UrlPayDisplayFxService.QuoteResult r = q.get();
@@ -347,7 +351,8 @@ public class ApiPayController {
     }
 
     /**
-     * 가맹점 상위 체인에서 첫 {@link OrgLevel#MASTER_DIST} 조직의 로고 URL.
+     * 가맹점 상위 체인에서 첫 {@link OrgLevel#MASTER_DIST} 조직의 URL결제 상단 이미지.
+     * {@code url_pay_image_url} 이 있으면 우선, 없으면 기존 로그인 후 로고({@code logo_image_url})를 사용합니다.
      */
     private Optional<String> resolveCheckoutHeaderLogoUrl(Long merchantOrgUnitId) {
         Long cur = merchantOrgUnitId;
@@ -358,10 +363,17 @@ public class ApiPayController {
             }
             OrgUnit u = opt.get();
             if (u.getOrgLevel() == OrgLevel.MASTER_DIST) {
-                return orgBrandingRepository.findByOrgUnitId(u.getId())
-                        .map(OrgBranding::getLogoImageUrl)
-                        .filter(s -> s != null && !s.isBlank())
-                        .map(String::trim);
+                return orgBrandingRepository.findByOrgUnitId(u.getId()).flatMap(b -> {
+                    String up = b.getUrlPayImageUrl();
+                    if (up != null && !up.isBlank()) {
+                        return Optional.of(up.trim());
+                    }
+                    String lg = b.getLogoImageUrl();
+                    if (lg != null && !lg.isBlank()) {
+                        return Optional.of(lg.trim());
+                    }
+                    return Optional.empty();
+                });
             }
             cur = u.getParentId();
         }
@@ -393,7 +405,7 @@ public class ApiPayController {
                     "INVALID_TOKEN"));
         }
 
-        String orderNo = normalizeChillPayOrderNo(str(body, "orderNo"));
+        String orderNo = ChillPayDirectCreditUtil.normalizeOrderNo(str(body, "orderNo"));
         String custEmail = str(body, "custEmail");
         String fn = str(body, "firstName");
         String ln = str(body, "lastName");
@@ -449,7 +461,8 @@ public class ApiPayController {
                 UrlPayDisplayFxService.FxComputedSettlement fx =
                         urlPayDisplayFxService.computeSettlementFromQuote(compId0, dispCur, dispAmt, fxTok, opPg);
                 checkoutCurrencyCode = fx.settlementCurrency();
-                pgAmount = paymentCurrencyScaleService.toPgAmount(fx.amount(), opPg, checkoutCurrencyCode);
+                /* 견적 금액은 이미 실결제 통화 주단위. 결제통화로직(×100 등)은 “폼 입력→PG”용이라 이중 적용 시 THB 체크섬 불일치 유발 */
+                pgAmount = fx.amount();
             } catch (IllegalArgumentException ex) {
                 String code = ex.getMessage() != null ? ex.getMessage() : "INVALID_FX_QUOTE";
                 return ResponseEntity.ok(ApiResponse.fail("환율 견적이 유효하지 않거나 만료되었습니다. 페이지를 새로고침한 뒤 다시 시도하세요.", code));
@@ -486,7 +499,7 @@ public class ApiPayController {
             if (urlPayMode == null || urlPayMode.isBlank()) {
                 urlPayMode = "INLINE";
             }
-            long recordAmt = pgAmount.setScale(0, RoundingMode.HALF_UP).longValue();
+            long recordAmt = chillPayWireAmountLong(pgAmount, checkoutCurrencyCode);
             chillPayDirectCreditRecordService.recordAfterDirectCreditResponse(
                     merchantOrgUnitId, res, recordAmt, orderNo, customerId, payResult.routeUsed(),
                     urlPayMode, payerName.isEmpty() ? null : payerName, checkoutCurrencyCode);
@@ -553,24 +566,16 @@ public class ApiPayController {
         return null;
     }
 
-    /**
-     * ChillPay DirectCredit 매뉴얼·NOTI 테스트 페이지: OrderNo 최대 20자.
-     * 초과·허용 외 문자는 제거 후 20자로 자름. 비었으면 {@code O}{@code System.currentTimeMillis()} (14자).
-     */
-    private static String normalizeChillPayOrderNo(String orderNo) {
-        String s = orderNo != null ? orderNo.trim() : "";
-        StringBuilder sb = new StringBuilder();
-        for (int i = 0; i < s.length(); i++) {
-            char ch = s.charAt(i);
-            if ((ch >= 'A' && ch <= 'Z') || (ch >= 'a' && ch <= 'z') || (ch >= '0' && ch <= '9') || ch == '-' || ch == '_') {
-                sb.append(ch);
-            }
+    /** ChillPay 요청 본문 Amount 정수(392·410=주단위 정수, 그 외=주단위×100) — 적재용 보조 */
+    private static long chillPayWireAmountLong(BigDecimal majorUnits, String checkoutCurrencyCode) {
+        if (majorUnits == null) {
+            return 0;
         }
-        String cleaned = sb.toString();
-        if (cleaned.isEmpty()) {
-            cleaned = "O" + System.currentTimeMillis();
+        String num = ChillPayService.toChillPayCurrencyNumeric(checkoutCurrencyCode);
+        if ("392".equals(num) || "410".equals(num)) {
+            return majorUnits.setScale(0, RoundingMode.HALF_UP).longValue();
         }
-        return cleaned.length() <= 20 ? cleaned : cleaned.substring(0, 20);
+        return majorUnits.multiply(new BigDecimal("100")).setScale(0, RoundingMode.HALF_UP).longValue();
     }
 
     private static BigDecimal parsePayAmount(Object amountObj) {

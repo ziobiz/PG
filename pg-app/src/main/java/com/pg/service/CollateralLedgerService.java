@@ -6,11 +6,15 @@ import com.pg.entity.OrgLevel;
 import com.pg.entity.OrgUnit;
 import com.pg.entity.PgTrnsctn;
 import com.pg.entity.RollingReserve;
+import com.pg.entity.SettlementSetting;
 import com.pg.repository.CommissionPolicyRepository;
 import com.pg.repository.HqLedgerSysSettingsRepository;
 import com.pg.repository.OrgUnitRepository;
 import com.pg.repository.PgTrnsctnRepository;
 import com.pg.repository.RollingReserveRepository;
+import com.pg.repository.SettlementSettingRepository;
+import com.pg.service.settlement.SettlementCycleTiming;
+import com.pg.service.settlement.SettlementPeriodResolver;
 import com.pg.util.FeeCurrencyRoundResolver;
 import com.pg.util.FeeListRoundingPolicy;
 import com.pg.util.PayDisplayCurrency;
@@ -20,6 +24,7 @@ import java.math.BigDecimal;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -38,17 +43,20 @@ public class CollateralLedgerService {
     private final PgTrnsctnRepository pgTrnsctnRepository;
     private final CommissionPolicyRepository commissionPolicyRepository;
     private final HqLedgerSysSettingsRepository hqLedgerSysSettingsRepository;
+    private final SettlementSettingRepository settlementSettingRepository;
 
     public CollateralLedgerService(RollingReserveRepository rollingReserveRepository,
                                    OrgUnitRepository orgUnitRepository,
                                    PgTrnsctnRepository pgTrnsctnRepository,
                                    CommissionPolicyRepository commissionPolicyRepository,
-                                   HqLedgerSysSettingsRepository hqLedgerSysSettingsRepository) {
+                                   HqLedgerSysSettingsRepository hqLedgerSysSettingsRepository,
+                                   SettlementSettingRepository settlementSettingRepository) {
         this.rollingReserveRepository = rollingReserveRepository;
         this.orgUnitRepository = orgUnitRepository;
         this.pgTrnsctnRepository = pgTrnsctnRepository;
         this.commissionPolicyRepository = commissionPolicyRepository;
         this.hqLedgerSysSettingsRepository = hqLedgerSysSettingsRepository;
+        this.settlementSettingRepository = settlementSettingRepository;
     }
 
     private FeeListRoundingPolicy settlementLedgerRoundPolicy() {
@@ -69,9 +77,12 @@ public class CollateralLedgerService {
     }
 
     /**
-     * 보류: 영업일 기준으로 산출된 해제 예정일(자정) 문자열. 해지: 실제 정산 반영 시각.
+     * 보류: {@code release_date}는 적용일 기준 영업일 보류일수({@link com.pg.util.BusinessDayCalendar})로 이미 산출됨.
+     * 정산주기가 {@link SettlementCycleTiming#isCalcStartTimeApplicableForAuto(String)} true인 경우(예: D1~D30·주간 등)
+     * 에만 시각을 가맹 {@link SettlementSetting#getCalcStartTime()} 으로 표시하고, D0·RT·T0·분·시 격자 등은 00:00 예정 유지.
+     * 해지(RELEASED): 실제 정산 반영 시각({@code released_at}).
      */
-    public static String formatReleaseBizDateTime(RollingReserve r) {
+    private String formatReleaseBizDateTime(RollingReserve r, SettlementSetting merchantSetting) {
         if (r == null) {
             return "";
         }
@@ -80,7 +91,16 @@ public class CollateralLedgerService {
             if (r.getReleaseDate() == null) {
                 return "";
             }
-            return r.getReleaseDate() + " 00:00:00 (영업일 기준 예정)";
+            String cycleNorm = "";
+            if (merchantSetting != null && merchantSetting.getCalcCycle() != null) {
+                cycleNorm = SettlementPeriodResolver.normalizeCalcCycle(merchantSetting.getCalcCycle());
+            }
+            LocalTime start = merchantSetting != null ? merchantSetting.getCalcStartTime() : null;
+            boolean useCalcStart = start != null && SettlementCycleTiming.isCalcStartTimeApplicableForAuto(cycleNorm);
+            if (!useCalcStart) {
+                return r.getReleaseDate() + " 00:00:00 (영업일 기준 예정)";
+            }
+            return r.getReleaseDate() + " " + start + " (영업일·정산개시시각 기준 예정)";
         }
         if (r.getReleasedAt() != null) {
             return RELEASED_AT_FMT.format(r.getReleasedAt());
@@ -193,9 +213,22 @@ public class CollateralLedgerService {
         List<RollingReserve> slice = fromIdx < total ? filtered.subList(fromIdx, toIdx) : List.of();
 
         Map<String, String> codeToName = new HashMap<>();
+        Map<String, SettlementSetting> settingByMid = new HashMap<>();
         for (RollingReserve r : slice) {
-            if (!codeToName.containsKey(r.getMerchantId())) {
-                orgUnitRepository.findByCode(r.getMerchantId()).ifPresent(o -> codeToName.put(r.getMerchantId(), o.getName()));
+            String midKey = r.getMerchantId() != null ? r.getMerchantId().trim() : "";
+            if (midKey.isEmpty()) {
+                continue;
+            }
+            if (!codeToName.containsKey(midKey)) {
+                orgUnitRepository.findByCode(midKey)
+                        .or(() -> orgUnitRepository.findByCodeIgnoreCase(midKey))
+                        .ifPresent(o -> codeToName.put(midKey, o.getName()));
+            }
+            if (!settingByMid.containsKey(midKey)) {
+                orgUnitRepository.findByCode(midKey)
+                        .or(() -> orgUnitRepository.findByCodeIgnoreCase(midKey))
+                        .flatMap(ou -> settlementSettingRepository.findByOrgUnitId(ou.getId()))
+                        .ifPresent(ss -> settingByMid.put(midKey, ss));
             }
         }
 
@@ -224,7 +257,8 @@ public class CollateralLedgerService {
             m.put("rowNo", rowNo++);
             String mid = r.getMerchantId();
             m.put("compId", mid);
-            m.put("compNm", codeToName.getOrDefault(mid, mid));
+            String midTrim = mid != null ? mid.trim() : "";
+            m.put("compNm", codeToName.getOrDefault(midTrim, mid));
             String tid = r.getTrnId() != null ? r.getTrnId().trim() : "";
             m.put("trnId", tid);
             m.put("routeNo", tid.isEmpty() ? "" : routeByTrn.getOrDefault(tid, ""));
@@ -239,7 +273,7 @@ public class CollateralLedgerService {
             LocalDate hsd = r.getHoldStartDate() != null ? r.getHoldStartDate() : effectiveHoldStart(r);
             m.put("holdStartDt", hsd != null ? hsd.toString() : "");
             m.put("releaseDt", r.getReleaseDate() != null ? r.getReleaseDate().toString() : "");
-            m.put("releaseBizDtTime", formatReleaseBizDateTime(r));
+            m.put("releaseBizDtTime", formatReleaseBizDateTime(r, settingByMid.get(midTrim)));
             boolean hold = "HOLD".equalsIgnoreCase(r.getStatus() != null ? r.getStatus() : "");
             m.put("remainingBizDays", hold ? remainingBusinessDaysAfterUntil(today, r.getReleaseDate()) : 0);
             m.put("status", r.getStatus() != null ? r.getStatus() : "");

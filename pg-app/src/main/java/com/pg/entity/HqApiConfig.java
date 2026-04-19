@@ -111,6 +111,7 @@ public class HqApiConfig {
 
     /**
      * 결제구문설정 JSON. {@code {"entries":[{"id":"…","pgCd":"CHILLPAY","activeYn":"Y",
+     * "amountScaleNoticeShowYn":"Y","amountScaleNotice":{…},
      * "title":{…},"body1":{…},"body2":{…},"body3":{…},"tabTitle":{…},"faviconUrl":"/uploads/hq/url-pay/…"}]}}
      * (레거시) {@code tabTitle}/{@code faviconUrl}: 본사 「URL 결제 폼 설정」 전역값이 비어 있을 때만 탭·아이콘 폴백.
      * {@code resultSuccessMain}/{@code resultSuccessFoot}/{@code resultFailMain}/{@code resultFailFoot}: URL 결제 결과 화면 문구(언어별 맵, 선택).
@@ -124,6 +125,22 @@ public class HqApiConfig {
      */
     @Column(name = "url_pay_display_fx_json", columnDefinition = "TEXT")
     private String urlPayDisplayFxJson;
+
+    /** BOT 일평균 환율 API 키(포털 Client ID 등). 비우면 환경변수·yml */
+    @Column(name = "bot_thailand_api_key", length = 512)
+    private String botThailandApiKey;
+
+    /** BOT API Base URL(끝 슬래시 없이). 비우면 환경변수·yml */
+    @Column(name = "bot_thailand_base_url", length = 512)
+    private String botThailandBaseUrl;
+
+    /** 일평균 경로(앞 슬래시 포함 권장). 비우면 환경변수·yml */
+    @Column(name = "bot_thailand_daily_avg_path", length = 255)
+    private String botThailandDailyAvgPath;
+
+    /** 인증 헤더 이름: Authorization(api 포털 v2) 또는 api-key(iAPI). 비우면 환경변수·yml */
+    @Column(name = "bot_thailand_api_key_header", length = 64)
+    private String botThailandApiKeyHeader;
 
     /** 환수금에서 수수료 포함 여부 (Y/N) */
     @Column(name = "recall_include_fee_yn", length = 1)
@@ -233,6 +250,14 @@ public class HqApiConfig {
     public void setUrlPayCardCopyConfigJson(String urlPayCardCopyConfigJson) { this.urlPayCardCopyConfigJson = urlPayCardCopyConfigJson; }
     public String getUrlPayDisplayFxJson() { return urlPayDisplayFxJson; }
     public void setUrlPayDisplayFxJson(String urlPayDisplayFxJson) { this.urlPayDisplayFxJson = urlPayDisplayFxJson; }
+    public String getBotThailandApiKey() { return botThailandApiKey; }
+    public void setBotThailandApiKey(String botThailandApiKey) { this.botThailandApiKey = botThailandApiKey; }
+    public String getBotThailandBaseUrl() { return botThailandBaseUrl; }
+    public void setBotThailandBaseUrl(String botThailandBaseUrl) { this.botThailandBaseUrl = botThailandBaseUrl; }
+    public String getBotThailandDailyAvgPath() { return botThailandDailyAvgPath; }
+    public void setBotThailandDailyAvgPath(String botThailandDailyAvgPath) { this.botThailandDailyAvgPath = botThailandDailyAvgPath; }
+    public String getBotThailandApiKeyHeader() { return botThailandApiKeyHeader; }
+    public void setBotThailandApiKeyHeader(String botThailandApiKeyHeader) { this.botThailandApiKeyHeader = botThailandApiKeyHeader; }
     public String getRecallIncludeFeeYn() { return recallIncludeFeeYn; }
     public void setRecallIncludeFeeYn(String recallIncludeFeeYn) { this.recallIncludeFeeYn = recallIncludeFeeYn; }
     public String getSettlementVatApplyYn() { return settlementVatApplyYn; }

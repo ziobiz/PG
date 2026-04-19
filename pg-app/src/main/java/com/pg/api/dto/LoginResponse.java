@@ -14,6 +14,10 @@ public class LoginResponse {
     private String brandingCompId;
     /** 비밀번호 초기화 등으로 임시 비번 사용 중이면 true — 클라이언트에서 변경 유도 */
     private boolean mustChangePassword;
+    /** 총본사·본사·총판 등 Google OTP 미등록 시 true — 로그인 후 등록 유도 */
+    private boolean mustSetupOtp;
+    /** OTP 등록 여부 Y/N */
+    private String otpRegisteredYn = "N";
     /** 조직별 메뉴 권한(URL→NONE/OBSERVER/MODIFY/DELETE). ADMIN이면 null(무제한) */
     private Map<String, String> pagePermissions;
     /** 공지사항 등록 가능(총본사·본사·총판 + 화면 권한 MODIFY 이상) */
@@ -37,6 +41,10 @@ public class LoginResponse {
     public void setBrandingCompId(String brandingCompId) { this.brandingCompId = brandingCompId; }
     public boolean isMustChangePassword() { return mustChangePassword; }
     public void setMustChangePassword(boolean mustChangePassword) { this.mustChangePassword = mustChangePassword; }
+    public boolean isMustSetupOtp() { return mustSetupOtp; }
+    public void setMustSetupOtp(boolean mustSetupOtp) { this.mustSetupOtp = mustSetupOtp; }
+    public String getOtpRegisteredYn() { return otpRegisteredYn; }
+    public void setOtpRegisteredYn(String otpRegisteredYn) { this.otpRegisteredYn = otpRegisteredYn; }
     public Map<String, String> getPagePermissions() { return pagePermissions; }
     public void setPagePermissions(Map<String, String> pagePermissions) { this.pagePermissions = pagePermissions; }
     public boolean isCanWriteNotice() { return canWriteNotice; }

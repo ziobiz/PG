@@ -9,9 +9,10 @@ import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 
 /**
- * 거래·정산 시각을 <strong>JP(UTC+9)</strong> 한 줄과 <strong>TH(UTC+7)</strong> 한 줄로 표시합니다.
- * {@code naiveInterpretZone}은 naive {@link LocalDateTime}의 벽시계(전산설정 {@code display_timezone} 등)로,
- * 그 순간의 {@link Instant}를 구한 뒤 JP·TH는 <strong>고정 오프셋</strong>으로만 표시합니다(DST 없음).
+ * 거래·정산 시각 2줄 표시.
+ * <p>레거시: {@link #formatDualLineTimeOnly} 등은 JP(UTC+9)·TH(UTC+7) 고정 오프셋.</p>
+ * <p>총판 설정: {@link #formatConfigurableDualLineTimeOnly} 등은 태그·{@link ZoneId} 두 줄(동일 Zone이면 1줄).</p>
+ * {@code naiveInterpretZone}은 naive {@link LocalDateTime}의 벽시계(전산설정 {@code display_timezone} 등)로 Instant를 구합니다.
  */
 public final class TrnTimeDualZoneDisplay {
 
@@ -63,5 +64,45 @@ public final class TrnTimeDualZoneDisplay {
         ZonedDateTime sTh = ZonedDateTime.ofInstant(si, DISPLAY_TH);
         ZonedDateTime eTh = ZonedDateTime.ofInstant(ei, DISPLAY_TH);
         return "JP " + sJp.format(DT) + " ~ " + eJp.format(DT) + "\n" + "TH " + sTh.format(DT) + " ~ " + eTh.format(DT);
+    }
+
+    /** 총판 설정 2줄(시각만). 동일 {@link ZoneId}·동일 태그면 1줄. */
+    public static String formatConfigurableDualLineTimeOnly(LocalDateTime naiveWallClock, ZoneId naiveInterpretZone,
+                                                            String tag1, ZoneId display1, String tag2, ZoneId display2) {
+        if (naiveWallClock == null) {
+            return "";
+        }
+        ZoneId z = naiveInterpretZone != null ? naiveInterpretZone : ZoneId.of("Asia/Bangkok");
+        ZoneId d1 = display1 != null ? display1 : ZoneId.of("Asia/Tokyo");
+        ZoneId d2 = display2 != null ? display2 : ZoneId.of("Asia/Bangkok");
+        String t1 = tag1 != null && !tag1.isBlank() ? tag1.trim() : "JP";
+        String t2 = tag2 != null && !tag2.isBlank() ? tag2.trim() : "TH";
+        Instant instant = naiveWallClock.atZone(z).toInstant();
+        if (d1.equals(d2) && t1.equalsIgnoreCase(t2)) {
+            return t1 + " " + TIME.format(LocalTime.ofInstant(instant, d1));
+        }
+        LocalTime lt1 = LocalTime.ofInstant(instant, d1);
+        LocalTime lt2 = LocalTime.ofInstant(instant, d2);
+        return t1 + " " + TIME.format(lt1) + "\n" + t2 + " " + TIME.format(lt2);
+    }
+
+    public static String formatConfigurableDualLineDateTime(LocalDateTime naiveWallClock, ZoneId naiveInterpretZone,
+                                                              String tag1, ZoneId display1, String tag2, ZoneId display2) {
+        if (naiveWallClock == null) {
+            return "";
+        }
+        ZoneId z = naiveInterpretZone != null ? naiveInterpretZone : ZoneId.of("Asia/Bangkok");
+        ZoneId d1 = display1 != null ? display1 : ZoneId.of("Asia/Tokyo");
+        ZoneId d2 = display2 != null ? display2 : ZoneId.of("Asia/Bangkok");
+        String t1 = tag1 != null && !tag1.isBlank() ? tag1.trim() : "JP";
+        String t2 = tag2 != null && !tag2.isBlank() ? tag2.trim() : "TH";
+        Instant instant = naiveWallClock.atZone(z).toInstant();
+        if (d1.equals(d2) && t1.equalsIgnoreCase(t2)) {
+            ZonedDateTime z1 = ZonedDateTime.ofInstant(instant, d1);
+            return t1 + " " + z1.format(DT);
+        }
+        ZonedDateTime z1 = ZonedDateTime.ofInstant(instant, d1);
+        ZonedDateTime z2 = ZonedDateTime.ofInstant(instant, d2);
+        return t1 + " " + z1.format(DT) + "\n" + t2 + " " + z2.format(DT);
     }
 }

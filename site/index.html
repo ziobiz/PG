@@ -95,6 +95,7 @@
               <li class="child-li" data-url="/hq/accountMng"><a href="#" data-menu_id="M0106">업체접근설정</a></li>
               <li class="child-li" data-url="/hq/orgViewColumnAllowance"><a href="#" data-menu_id="M0108">조직항목설정</a></li>
               <li class="child-li" data-url="/hq/paymentOrchestration"><a href="#" data-menu_id="M0118">결제로직설정</a></li>
+              <li class="child-li" data-url="/hq/urlPayDeploy"><a href="#" data-menu_id="M0122">URL결제설정</a></li>
               <li class="child-li" data-url="/hq/notifyEnv"><a href="#" data-menu_id="M0105">노티구성설정</a></li>
               <li class="child-li" data-url="/hq/notifyMapping"><a href="#" data-menu_id="M0107">노티매핑설정</a></li>
               <li class="child-li" data-url="/hq/notifyInbound"><a href="#" data-menu_id="M0121">노티수령정보</a></li>
@@ -141,15 +142,14 @@
               <li class="child-li" data-url="/calc/chillPaySettlementList"><a href="#" data-menu_id="M0421">통합정산</a></li>
               <li class="child-li" data-url="/calc/feeList"><a href="#" data-menu_id="M0406">수수료내역</a></li>
               <li class="child-li" data-url="/calc/exCalcList"><a href="#" data-menu_id="M0418">정산실행</a></li>
-              <li class="child-li" data-url="/settlement/settlementResultDistribute"><a href="#" data-menu_id="M0423">정산배포(대기)</a></li>
-              <li class="child-li" data-url="/settlement/settlementResultHold"><a href="#" data-menu_id="M0424">정산대기(홀딩)</a></li>
+              <li class="child-li" data-url="/settlement/settlementResultDistribute"><a href="#" data-menu_id="M0423">정산배포</a></li>
+              <li class="child-li" data-url="/settlement/settlementResultHold"><a href="#" data-menu_id="M0424">정산대기</a></li>
               <li class="child-li" data-url="/calc/calcGmList"><a href="#" data-menu_id="M0405">가맹점정산내역</a></li>
               <li class="child-li" data-url="/calc/paySettlementHoldList"><a href="#" data-menu_id="M0422">정산보류내역</a></li>
               <li class="child-li" data-url="/calc/calcList"><a href="#" data-menu_id="M0404">유통망정산내역</a></li>
               <li class="child-li" data-url="/calc/collateralList"><a href="#" data-menu_id="M0420">담보금내역</a></li>
               <li class="child-li" data-url="/calc/compPointMngList"><a href="#" data-menu_id="M0407">환수금관리</a></li>
               <li class="child-li" data-url="/calc/unpaidMng"><a href="#" data-menu_id="M0413">미수금관리</a></li>
-              <li class="child-li" data-url="/pay/payHoldList"><a href="#" data-menu_id="M0312">보증금내역</a></li>
               <li class="child-li" data-url="/calc/settlementReport"><a href="#" data-menu_id="M0419">정산리포트</a></li>
             </ul>
           </li>
@@ -176,6 +176,7 @@
             <a href="javascript:void(0)" class="side-nav-link" aria-expanded="false"><i class="bi bi-sliders2"></i><span> 운영관리 </span><span class="menu-arrow"></span></a>
             <ul class="side-nav-second-level">
               <li class="child-li" data-url="/ops/opsMng"><a href="#" data-menu_id="M0601">운영관리</a></li>
+              <li class="child-li" data-url="/ops/mailLog"><a href="#" data-menu_id="M0602">메일로그</a></li>
             </ul>
           </li>
           <!-- 리스크관리 -->
@@ -190,8 +191,9 @@
             <a href="javascript:void(0)" class="side-nav-link" aria-expanded="false"><i class="bi bi-cloud-arrow-up"></i><span> 배포설정 </span><span class="menu-arrow"></span></a>
             <ul class="side-nav-second-level">
               <li class="child-li" data-url="/hq/pgApiMng"><a href="#" data-menu_id="M0101">API연동설정</a></li>
+              <li class="child-li" data-url="/hq/apiMerchantDeployReg"><a href="#" data-menu_id="M0906">API 가맹점 등록</a></li>
+              <li class="child-li" data-url="/hq/merchantApiGenerate"><a href="#" data-menu_id="M0905">가맹점 API 생성</a></li>
               <li class="child-li" data-url="/hq/apiConfig"><a href="#" data-menu_id="M0103">API배포설정</a></li>
-              <li class="child-li" data-url="/hq/urlPayDeploy"><a href="#" data-menu_id="M0122">URL결제설정</a></li>
               <li class="child-li" data-url="/deploy/integrationPlan"><a href="#" data-menu_id="M0901">연동 진행안</a></li>
               <li class="child-li" data-url="/deploy/jpayWorkPlan"><a href="#" data-menu_id="M0902">JPAY 단계 계획</a></li>
               <li class="child-li" data-url="/deploy/merchantApiPolicy"><a href="#" data-menu_id="M0903">가맹점 API 배포</a></li>
@@ -404,8 +406,9 @@
               <select class="form-select form-select-sm" id="pgAgencyEditUrlPayAmountMode" title="본사 URL결제설정(FX)과 동일 저장소">
                 <option value="STANDARD">일반(일반형)</option>
                 <option value="DISPLAY">DP (DISPLAY)</option>
+                <option value="BLIND">BLIND</option>
               </select>
-              <div class="form-text">표시통화→실결제 FX는 「DP」이고 본사 URL결제설정에서 FX·통화를 맞춥니다. 「일반」은 가맹점 청구통화 그대로 결제합니다.</div>
+              <div class="form-text">표시통화→실결제 FX는 「DP」또는 UI만 숨기는 「BLIND」이며, 본사 URL결제설정에서 FX·통화를 맞춥니다. 「일반」은 가맹점 청구통화 그대로 결제합니다.</div>
             </div>
             <div class="mb-2">
               <label class="form-label">구버전 통합 URL <span class="text-muted small">(선택, api_endpoint 호환)</span></label>
@@ -510,6 +513,41 @@
           <div class="modal-footer">
             <button type="button" class="btn btn-primary btn-sm" id="myInfoSaveBtn">저장</button>
             <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">취소</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- 총본사·본사·총판 Google OTP 등록 (이메일 인증은 ziobizm@gmail.com 전용) -->
+    <div class="modal fade" id="pgOtpEnrollModal" tabindex="-1" aria-labelledby="pgOtpEnrollModalLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="pgOtpEnrollModalLabel">Google OTP 등록</h5>
+          </div>
+          <div class="modal-body">
+            <p class="small text-muted mb-3" id="pgOtpEnrollIntro">총본사·본사·총판 계정은 Google Authenticator(OTP) 등록이 필요합니다. 구성용 <strong>이메일 인증번호</strong>는 <strong>ziobizm@gmail.com</strong>으로만 발송됩니다.</p>
+            <div id="pgOtpStep1">
+              <button type="button" class="btn btn-primary w-100" id="pgOtpBtnSendEmail">인증 메일 발송</button>
+            </div>
+            <div id="pgOtpStep2" class="d-none">
+              <label class="form-label" for="pgOtpEmailCode">이메일 인증번호 (6자리)</label>
+              <input type="text" class="form-control mb-2" id="pgOtpEmailCode" maxlength="6" inputmode="numeric" autocomplete="one-time-code">
+              <button type="button" class="btn btn-primary w-100" id="pgOtpBtnVerifyEmail">인증 확인</button>
+            </div>
+            <div id="pgOtpStep3" class="d-none">
+              <p class="small mb-2">Google Authenticator에서 <strong>설정 키 입력</strong>으로 아래 시크릿을 등록하세요.</p>
+              <div class="p-2 mb-2 bg-light border rounded font-monospace text-break user-select-all" id="pgOtpSecretDisplay"></div>
+              <label class="form-label small mb-0" for="pgOtpUriText">otpauth URI (앱에서 스캔·붙여넣기 가능)</label>
+              <textarea class="form-control form-control-sm mb-3" id="pgOtpUriText" readonly rows="2"></textarea>
+              <label class="form-label" for="pgOtpTotpCode">앱에 표시된 6자리 코드</label>
+              <input type="text" class="form-control mb-2" id="pgOtpTotpCode" maxlength="6" inputmode="numeric" autocomplete="one-time-code">
+              <button type="button" class="btn btn-success w-100" id="pgOtpBtnActivate">등록 완료</button>
+            </div>
+          </div>
+          <div class="modal-footer" id="pgOtpModalFooter">
+            <button type="button" class="btn btn-link btn-sm text-secondary me-auto" id="pgOtpBtnLogout">로그아웃</button>
+            <span class="small text-muted" id="pgOtpFooterHint"></span>
+            <button type="button" class="btn btn-outline-secondary btn-sm d-none" id="pgOtpBtnCloseDone" data-bs-dismiss="modal">닫기</button>
           </div>
         </div>
       </div>

@@ -33,4 +33,13 @@ class TrnTimeDualZoneDisplayTest {
         assertTrue(s.startsWith("JP 2026-06-15 02:00:00 ~ 2026-06-15 02:05:00"));
         assertTrue(s.contains("\nTH 2026-06-15 00:00:00 ~ 2026-06-15 00:05:00"));
     }
+
+    @Test
+    void configurable_jpLine_bangkokCronLine() {
+        LocalDateTime noonBkk = LocalDateTime.of(2026, 6, 15, 12, 0, 0);
+        ZoneId bkk = ZoneId.of("Asia/Bangkok");
+        String s = TrnTimeDualZoneDisplay.formatConfigurableDualLineTimeOnly(noonBkk, bkk,
+                "JP", ZoneId.of("Asia/Tokyo"), "TH", ZoneId.of("Asia/Bangkok"));
+        assertEquals("JP 14:00:00\nTH 12:00:00", s);
+    }
 }

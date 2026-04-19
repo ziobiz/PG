@@ -253,7 +253,7 @@ public class ApiHqController {
     }
 
     /**
-     * 본사 {@code url_pay_display_fx_json.pgSettings} 에서 PG코드별 {@code amountMode}(STANDARD|DISPLAY) 맵.
+     * 본사 {@code url_pay_display_fx_json.pgSettings} 에서 PG코드별 {@code amountMode}(STANDARD|DISPLAY|BLIND) 맵.
      * 키는 대문자 PG코드.
      */
     private Map<String, String> urlPayAmountModeMapFromHqFxJson() {
@@ -281,7 +281,13 @@ public class ApiHqController {
                 JsonNode row = e.getValue();
                 if (row != null && row.isObject()) {
                     String am = row.path("amountMode").asText("STANDARD").trim().toUpperCase(Locale.ROOT);
-                    map.put(cd, "DISPLAY".equals(am) ? "DISPLAY" : "STANDARD");
+                    if ("BLIND".equals(am)) {
+                        map.put(cd, "BLIND");
+                    } else if ("DISPLAY".equals(am)) {
+                        map.put(cd, "DISPLAY");
+                    } else {
+                        map.put(cd, "STANDARD");
+                    }
                 }
             }
         } catch (Exception ignored) {
@@ -290,12 +296,23 @@ public class ApiHqController {
         return map;
     }
 
+    private static String urlPayAmountModeListLabel(String upAm) {
+        if ("BLIND".equals(upAm)) {
+            return "BLIND";
+        }
+        if ("DISPLAY".equals(upAm)) {
+            return "DP";
+        }
+        return "일반";
+    }
+
     private void mergeUrlPayAmountModeIntoDisplayFxJson(String pgCdRaw, String modeRaw) {
         if (pgCdRaw == null || pgCdRaw.isBlank()) {
             return;
         }
         String pgU = pgCdRaw.trim().toUpperCase(Locale.ROOT);
-        String am = "DISPLAY".equalsIgnoreCase(modeRaw != null ? modeRaw.trim() : "") ? "DISPLAY" : "STANDARD";
+        String modeTrim = modeRaw != null ? modeRaw.trim().toUpperCase(Locale.ROOT) : "";
+        String am = "BLIND".equals(modeTrim) ? "BLIND" : ("DISPLAY".equals(modeTrim) ? "DISPLAY" : "STANDARD");
         HqApiConfig c = hqApiConfigRepository.findAll().stream().findFirst().orElse(null);
         if (c == null) {
             return;
@@ -375,7 +392,7 @@ public class ApiHqController {
                         String pgKey = p.getPgCd() != null ? p.getPgCd().trim().toUpperCase(Locale.ROOT) : "";
                         String upAm = urlPayAmByPg.getOrDefault(pgKey, "STANDARD");
                         m.put("urlPayAmountMode", upAm);
-                        m.put("urlPayAmountModeLabel", "DISPLAY".equals(upAm) ? "DP" : "일반");
+                        m.put("urlPayAmountModeLabel", urlPayAmountModeListLabel(upAm));
                     } else {
                         m.put("urlPayAmountMode", "");
                         m.put("urlPayAmountModeLabel", "—");
@@ -440,7 +457,7 @@ public class ApiHqController {
                         String pgKey = p.getPgCd() != null ? p.getPgCd().trim().toUpperCase(Locale.ROOT) : "";
                         String upAm = urlPayAmByPg.getOrDefault(pgKey, "STANDARD");
                         m.put("urlPayAmountMode", upAm);
-                        m.put("urlPayAmountModeLabel", "DISPLAY".equals(upAm) ? "DP" : "일반");
+                        m.put("urlPayAmountModeLabel", urlPayAmountModeListLabel(upAm));
                     } else {
                         m.put("urlPayAmountMode", "");
                         m.put("urlPayAmountModeLabel", "");
@@ -1484,7 +1501,11 @@ public class ApiHqController {
         data.put("paymentProviderRegistryJson", "{\n  \"version\": 1,\n  \"vendors\": [\n    {\n      \"vendorCode\": \"CHILLPAY\",\n      \"vendorName\": \"칠리페이\",\n      \"integrationTypes\": [\"API_BROKER\", \"URL_PAY\"],\n      \"flowTypes\": [\"INLINE\", \"REDIRECT\"],\n      \"activeYn\": \"Y\"\n    }\n  ]\n}");
         data.put("payCurrencyScaleRulesJson", "{\"rules\":[]}");
         data.put("urlPayCardCopyConfigJson", "{\"entries\":[]}");
-        data.put("urlPayDisplayFxJson", "{\"enabled\":false,\"refreshSeconds\":600,\"quoteTtlSeconds\":600,\"marginByCurrency\":{\"JPY\":0,\"USD\":0,\"KRW\":0,\"THB\":0},\"pgSettings\":{}}");
+        data.put("urlPayDisplayFxJson", "{\"enabled\":false,\"refreshSeconds\":600,\"quoteTtlSeconds\":600,\"botRateAsOf\":\"PREVIOUS_DAY_CLOSE\",\"marginByCurrency\":{\"JPY\":0,\"USD\":0,\"KRW\":0,\"THB\":0,\"SGD\":0,\"HKD\":0,\"CNY\":0},\"pgSettings\":{}}");
+        data.put("botThailandApiKey", "");
+        data.put("botThailandBaseUrl", "");
+        data.put("botThailandDailyAvgPath", "");
+        data.put("botThailandApiKeyHeader", "");
         hqApiConfigRepository.findAll().stream().findFirst().ifPresent(c -> {
             if (c.getBaseUrl() != null) data.put("baseUrl", c.getBaseUrl());
             if (c.getAuthType() != null) data.put("authType", c.getAuthType());
@@ -1520,6 +1541,18 @@ public class ApiHqController {
             }
             if (c.getUrlPayDisplayFxJson() != null && !c.getUrlPayDisplayFxJson().isBlank()) {
                 data.put("urlPayDisplayFxJson", c.getUrlPayDisplayFxJson());
+            }
+            if (c.getBotThailandApiKey() != null) {
+                data.put("botThailandApiKey", c.getBotThailandApiKey());
+            }
+            if (c.getBotThailandBaseUrl() != null && !c.getBotThailandBaseUrl().isBlank()) {
+                data.put("botThailandBaseUrl", c.getBotThailandBaseUrl());
+            }
+            if (c.getBotThailandDailyAvgPath() != null && !c.getBotThailandDailyAvgPath().isBlank()) {
+                data.put("botThailandDailyAvgPath", c.getBotThailandDailyAvgPath());
+            }
+            if (c.getBotThailandApiKeyHeader() != null && !c.getBotThailandApiKeyHeader().isBlank()) {
+                data.put("botThailandApiKeyHeader", c.getBotThailandApiKeyHeader());
             }
             if (c.getPublicAdminSiteUrl() != null) {
                 data.put("publicAdminSiteUrl", hqHttpsUrlForDisplay(c.getPublicAdminSiteUrl()));
@@ -1587,6 +1620,26 @@ public class ApiHqController {
             String df = displayFx.toString().trim();
             c.setUrlPayDisplayFxJson(df.isEmpty() ? null : df);
         }
+        if (body.containsKey("botThailandApiKey")) {
+            Object v = body.get("botThailandApiKey");
+            String s = v == null ? "" : v.toString().trim();
+            c.setBotThailandApiKey(s.isEmpty() ? null : s);
+        }
+        if (body.containsKey("botThailandBaseUrl")) {
+            Object v = body.get("botThailandBaseUrl");
+            String s = v == null ? "" : v.toString().trim();
+            c.setBotThailandBaseUrl(s.isEmpty() ? null : s.replaceAll("/+$", ""));
+        }
+        if (body.containsKey("botThailandDailyAvgPath")) {
+            Object v = body.get("botThailandDailyAvgPath");
+            String s = v == null ? "" : v.toString().trim();
+            c.setBotThailandDailyAvgPath(s.isEmpty() ? null : s);
+        }
+        if (body.containsKey("botThailandApiKeyHeader")) {
+            Object v = body.get("botThailandApiKeyHeader");
+            String s = v == null ? "" : v.toString().trim();
+            c.setBotThailandApiKeyHeader(s.isEmpty() ? null : s);
+        }
         if (body.get("publicAdminSiteUrl") != null) {
             c.setPublicAdminSiteUrl(hqHttpsUrlForSave(body.get("publicAdminSiteUrl")));
         }
@@ -1615,9 +1668,11 @@ public class ApiHqController {
         String resultOk2Ko = b.get("resultOk2Ko") != null ? b.get("resultOk2Ko").toString().trim() : "";
         String resultFail1Ko = b.get("resultFail1Ko") != null ? b.get("resultFail1Ko").toString().trim() : "";
         String resultFail2Ko = b.get("resultFail2Ko") != null ? b.get("resultFail2Ko").toString().trim() : "";
+        String amountScaleNoticeKo = b.get("amountScaleNoticeKo") != null ? b.get("amountScaleNoticeKo").toString().trim() : "";
         Map<String, Object> maps = hqPayCopyTranslationService.translatePayCopyFromKo(
                 titleKo, body1Ko, body2Ko, body3Ko,
-                resultOk1Ko, resultOk2Ko, resultFail1Ko, resultFail2Ko);
+                resultOk1Ko, resultOk2Ko, resultFail1Ko, resultFail2Ko,
+                amountScaleNoticeKo);
         return ResponseEntity.ok(ApiResponse.ok(maps));
     }
 

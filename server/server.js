@@ -50,7 +50,6 @@ var apiStubs = [
   '/api/calc/calcGmList',
   '/api/calc/compPointMngList',
   '/api/calc/exCalcList',
-  '/api/pay/payHoldList',
   '/api/noti/notiUrlMng',
   '/api/noti/notiSendMngList',
   '/api/noti/notiCashReceiptUrlMng',

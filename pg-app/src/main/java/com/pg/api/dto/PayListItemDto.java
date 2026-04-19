@@ -35,7 +35,8 @@ public class PayListItemDto {
 
     /**
      * 결제내역 그리드 시각: {@code ledgerNaiveWallClockZone} 은 본사 전산설정 표준시간대({@code display_timezone})와 동일하게 두고,
-     * naive {@code paid_at}/{@code created_at} 을 그 벽시계로 해석한 뒤 {@code JP}(UTC+9)·{@code TH}(UTC+7) 두 줄로 표시합니다.
+     * naive {@code paid_at}/{@code created_at} 을 그 벽시계로 해석합니다.
+     * 총판 {@code tb_master_dist_settlement_cycle_config} 행이 있으면 1줄=거래시간 프리셋·2줄=정산 크론 Zone, 없으면 JP·TH 고정 2줄.
      */
     public static Map<String, Object> from(PgTrnsctn t, PayListRowContext ctx) {
         return from(t, ctx, ZoneId.of("Asia/Bangkok"));
@@ -49,12 +50,19 @@ public class PayListItemDto {
 
         LocalDateTime txnClock = t.getPaidAt() != null ? t.getPaidAt() : t.getCreatedAt();
         ZoneId interpret = ledgerNaiveWallClockZone != null ? ledgerNaiveWallClockZone : ZoneId.of("Asia/Bangkok");
+        TxnDualLineSpec dual = ctx != null ? ctx.getTxnDualLineSpec() : null;
         String payDtStr = txnClock != null
-                ? TrnTimeDualZoneDisplay.formatDualLineDateTime(txnClock, interpret)
+                ? (dual != null
+                ? TrnTimeDualZoneDisplay.formatConfigurableDualLineDateTime(txnClock, interpret,
+                dual.tag1(), dual.displayZone1(), dual.tag2(), dual.displayZone2())
+                : TrnTimeDualZoneDisplay.formatDualLineDateTime(txnClock, interpret))
                 : "";
         if (txnClock != null) {
             row.put("trnDate", txnClock.toLocalDate().format(TRN_DATE));
-            row.put("trnTime", TrnTimeDualZoneDisplay.formatDualLineTimeOnly(txnClock, interpret));
+            row.put("trnTime", dual != null
+                    ? TrnTimeDualZoneDisplay.formatConfigurableDualLineTimeOnly(txnClock, interpret,
+                    dual.tag1(), dual.displayZone1(), dual.tag2(), dual.displayZone2())
+                    : TrnTimeDualZoneDisplay.formatDualLineTimeOnly(txnClock, interpret));
         } else {
             row.put("trnDate", "");
             row.put("trnTime", "");
@@ -70,7 +78,10 @@ public class PayListItemDto {
         row.put("orderNo", orderNoLabel(t));
         row.put("paymentChannel", blank(t.getPaymentChannel()));
         row.put("payCompletedAt", t.getPaidAt() != null
-                ? TrnTimeDualZoneDisplay.formatDualLineDateTime(t.getPaidAt(), interpret)
+                ? (dual != null
+                ? TrnTimeDualZoneDisplay.formatConfigurableDualLineDateTime(t.getPaidAt(), interpret,
+                dual.tag1(), dual.displayZone1(), dual.tag2(), dual.displayZone2())
+                : TrnTimeDualZoneDisplay.formatDualLineDateTime(t.getPaidAt(), interpret))
                 : "");
         row.put("currency", resolveCurrencyCodeForDisplay(t, mp));
         row.put("routeNo", routeNoLabel(t, b));

@@ -133,6 +133,9 @@ ALTER TABLE tb_hq_api_config ADD COLUMN IF NOT EXISTS pay_currency_scale_rules_j
 -- V64: 결제구문설정(JSON) — db/V64_url_pay_card_copy_config.sql 과 동일
 ALTER TABLE tb_hq_api_config ADD COLUMN IF NOT EXISTS url_pay_card_copy_config_json TEXT;
 
+-- V113: URL 결제 금액 하단 통화스케일 안내 — db/V113_url_pay_amount_scale_notice_json.sql 과 동일
+ALTER TABLE tb_hq_api_config ADD COLUMN IF NOT EXISTS url_pay_amount_scale_notice_json TEXT;
+
 -- V65: 전산설정관리 — db/V65_hq_ledger_sys_settings.sql 과 동일
 CREATE TABLE IF NOT EXISTS tb_hq_ledger_sys_settings (
     id                      BIGINT PRIMARY KEY,

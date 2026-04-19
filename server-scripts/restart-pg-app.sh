@@ -29,6 +29,11 @@ DB_HOST="localhost"
 DB_USER="pgadmin"
 # PostgreSQL SCRAM: 비밀번호 없으면 기동 실패합니다. 반드시 실제 값으로 변경.
 DB_PASSWORD="line2025!@"
+# 태국은행 환율(URL DISPLAY·FX 자동): 포털「Average Exchange Rate」v2 구독 시 예시(주석 해제 후 값 입력)
+# export BOT_THAILAND_BASE_URL='https://gateway.api.bot.or.th/Stat-ExchangeRate/v2'
+# export BOT_THAILAND_DAILY_AVG_PATH='/DAILY_AVG_EXG_RATE/'
+# export BOT_THAILAND_API_KEY='포털_앱_구독_Client_ID'
+# export BOT_THAILAND_API_KEY_HEADER='Authorization'
 # ───────────────────────────────────────────────────────────────
 
 if [[ ! -f "$JAR" ]]; then

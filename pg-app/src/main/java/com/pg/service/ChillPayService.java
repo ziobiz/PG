@@ -11,11 +11,14 @@ import com.pg.dto.ChillPaySettlementSearchApiRequest;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.pg.api.dto.TxnDualLineSpec;
 import com.pg.entity.HqApiConfig;
 import com.pg.entity.MerchantPgBinding;
+import com.pg.entity.OrgLevel;
 import com.pg.entity.OrgUnit;
 import com.pg.entity.PgTrnsctn;
 import com.pg.entity.PgAgency;
+import com.pg.util.ChillPayDirectCreditUtil;
 import com.pg.util.PayListStatusBarBuckets;
 import com.pg.util.TrnTimeDualZoneDisplay;
 import com.pg.repository.HqApiConfigRepository;
@@ -34,6 +37,7 @@ import org.springframework.web.client.RestTemplate;
 import jakarta.servlet.http.HttpServletRequest;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.net.URI;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
@@ -130,6 +134,7 @@ public class ChillPayService {
     private final UrlPayDisplayFxService urlPayDisplayFxService;
     private final PgExtSettlementExpectedService pgExtSettlementExpectedService;
     private final HqLedgerSysSettingsService hqLedgerSysSettingsService;
+    private final MasterDistSettlementCronZoneService masterDistSettlementCronZoneService;
     private final RestTemplate restTemplate = new RestTemplate();
 
     public ChillPayService(ChillPayProperties props, HqApiConfigRepository hqApiConfigRepository,
@@ -141,7 +146,8 @@ public class ChillPayService {
                           PayListService payListService,
                           UrlPayDisplayFxService urlPayDisplayFxService,
                           PgExtSettlementExpectedService pgExtSettlementExpectedService,
-                          HqLedgerSysSettingsService hqLedgerSysSettingsService) {
+                          HqLedgerSysSettingsService hqLedgerSysSettingsService,
+                          MasterDistSettlementCronZoneService masterDistSettlementCronZoneService) {
         this.props = props;
         this.hqApiConfigRepository = hqApiConfigRepository;
         this.merchantPgBindingRepository = merchantPgBindingRepository;
@@ -153,6 +159,7 @@ public class ChillPayService {
         this.urlPayDisplayFxService = urlPayDisplayFxService;
         this.pgExtSettlementExpectedService = pgExtSettlementExpectedService;
         this.hqLedgerSysSettingsService = hqLedgerSysSettingsService;
+        this.masterDistSettlementCronZoneService = masterDistSettlementCronZoneService;
     }
 
     /** 가맹점 결제 조합 시 MID·샌드박스 보조 (Route 확정 전에 조회 가능) */
@@ -446,6 +453,12 @@ public class ChillPayService {
                 })
                 .min(Comparator
                         .comparing((MerchantPgBinding b) -> isChillPayFamilyPgCd(b.getPgCd()) ? 0 : 1)
+                        /* 본사 URL결제설정 DISPLAY + pgSettings 가 맞는 바인딩을, 일반형 URL PG보다 우선 */
+                        .thenComparingInt((MerchantPgBinding b) -> UrlPayDisplayFxService.MODE_DISPLAY_FX_THB.equalsIgnoreCase(
+                                urlPayDisplayFxService.resolveUrlPayPricingMode(
+                                        b.getPgCd() != null ? b.getPgCd().trim() : "",
+                                        b.getUrlPayPricingMode() != null ? b.getUrlPayPricingMode().trim() : ""))
+                                ? 0 : 1)
                         .thenComparing((MerchantPgBinding b) -> genericChillPayPgCd(b.getPgCd()) ? 1 : 0)
                         .thenComparing(b -> b.getSortOrder() != null ? b.getSortOrder() : Integer.MAX_VALUE)
                         .thenComparing(MerchantPgBinding::getId));
@@ -796,8 +809,8 @@ public class ChillPayService {
         Config {
             urlOv = urlOv != null ? urlOv : ChillPayAgencyUrlOverrides.empty();
             merchantCode = merchantCode != null ? merchantCode.trim() : null;
-            apiKey = apiKey != null ? apiKey.trim() : null;
-            md5Key = md5Key != null ? md5Key.trim() : null;
+            apiKey = apiKey != null ? apiKey.replace("\uFEFF", "").trim() : null;
+            md5Key = md5Key != null ? md5Key.replace("\uFEFF", "").trim() : null;
         }
 
         String getCcdScriptUrl() {
@@ -868,14 +881,15 @@ public class ChillPayService {
         }
 
         ChillPayDirectCreditRequest req = new ChillPayDirectCreditRequest();
-        req.setOrderNo(orderNo != null ? orderNo : "ORD" + System.currentTimeMillis());
+        req.setOrderNo(ChillPayDirectCreditUtil.normalizeOrderNo(
+                orderNo != null ? orderNo : "ORD" + System.currentTimeMillis()));
         req.setCustomerId(customerId != null ? customerId : "guest");
-        req.setAmount(amount != null ? amount : BigDecimal.ZERO);
+        req.setAmount(normalizeChillPayRequestAmount(amount, checkoutCurrencyCode));
         req.setDirectCreditToken(directCreditToken);
         /* NOTI /admin/test-pay/submit: PhoneNumber 기본값 */
         String phone = (phoneNumber != null && !phoneNumber.isBlank()) ? phoneNumber.trim() : "0911111111";
         req.setPhoneNumber(phone);
-        req.setDescription(description != null ? description : "");
+        req.setDescription(truncateChillPayDirectCreditDescription(description));
         req.setRouteNo(cfg.routeNo());
         req.setIPAddress(ipAddress != null ? ipAddress : "127.0.0.1");
         /* NOTI /admin/test-pay/submit: CustEmail 기본값 */
@@ -926,7 +940,33 @@ public class ChillPayService {
      * NOTI 테스트 설정·ChillPay Table 1.3 의 Currency 문자열 코드(392=JPY, 764=THB 등).
      * 알파벳 통화(JPY, THB, …)는 숫자로 치환하고, 이미 숫자만이면 그대로 둔다.
      */
-    static String toChillPayCurrencyNumeric(String checkoutCurrencyCode) {
+    /**
+     * ChillPay 매뉴얼(결제 응답 Amount 등): 정수 금액의 <strong>마지막 2자리가 소수</strong>(예 THB {@code 55025} → 550.25).
+     * JPY(392)·KRW(410)는 소수 단위 없이 정수만(엔·원 단위). 그 외 통화는 금액×100 후 정수로 보내 체크섬·게이트와 맞춤.
+     */
+    private static BigDecimal normalizeChillPayRequestAmount(BigDecimal amount, String checkoutCurrencyCode) {
+        if (amount == null) {
+            return BigDecimal.ZERO;
+        }
+        String num = toChillPayCurrencyNumeric(checkoutCurrencyCode);
+        if ("392".equals(num) || "410".equals(num)) {
+            return amount.setScale(0, RoundingMode.HALF_UP).stripTrailingZeros();
+        }
+        return amount.multiply(new BigDecimal("100")).setScale(0, RoundingMode.HALF_UP).stripTrailingZeros();
+    }
+
+    /** DirectCredit Description 상한(과도한 길이 시 칠리페이 측 검증·저장 불일치 방지). */
+    private static final int CHILLPAY_DIRECT_CREDIT_DESCRIPTION_MAX = 255;
+
+    private static String truncateChillPayDirectCreditDescription(String description) {
+        String s = description != null ? description : "";
+        if (s.length() <= CHILLPAY_DIRECT_CREDIT_DESCRIPTION_MAX) {
+            return s;
+        }
+        return s.substring(0, CHILLPAY_DIRECT_CREDIT_DESCRIPTION_MAX);
+    }
+
+    public static String toChillPayCurrencyNumeric(String checkoutCurrencyCode) {
         if (checkoutCurrencyCode == null || checkoutCurrencyCode.isBlank()) {
             return "392";
         }
@@ -939,6 +979,8 @@ public class ChillPayService {
             case "THB" -> "764";
             case "USD" -> "840";
             case "KRW", "KOR", "WON" -> "410";
+            case "SGD" -> "702";
+            case "HKD" -> "344";
             case "CNY", "RMB" -> "156";
             case "EUR" -> "978";
             case "GBP" -> "826";
@@ -2138,26 +2180,47 @@ public class ChillPayService {
     private void enrichChillPayTrSearchRow(Map<String, Object> m,
                                            Map<String, Optional<OrgUnit>> orgCache,
                                            Map<String, TxnMerchantLookup> txnOrgCache) {
-        enrichChillPayTrRowDatesAndZones(m);
         enrichChillPayTrRowOrg(m, orgCache, txnOrgCache);
+        enrichChillPayTrRowDatesAndZones(m);
     }
 
     private void enrichChillPayTrRowDatesAndZones(Map<String, Object> m) {
         LocalDateTime tx = parseChillPayApiDateTime(firstNonBlankString(m, "transactionDate", "TransactionDate"));
         LocalDateTime pay = parseChillPayApiDateTime(firstNonBlankString(m, "paymentDate", "PaymentDate"));
         ZoneId primary = hqLedgerSysSettingsService.resolveLedgerDisplayZoneId();
+        Optional<TxnDualLineSpec> dualOpt = resolveTxnDualLineForChillRow(m);
         if (tx != null) {
             m.put("trnDate", tx.toLocalDate().format(CHILL_TRN_DATE_DISPLAY_KR));
-            m.put("trnTime", formatJstAndIctTimeSameCell(tx, primary));
+            m.put("trnTime", dualOpt.map(d -> TrnTimeDualZoneDisplay.formatConfigurableDualLineTimeOnly(tx, primary,
+                            d.tag1(), d.displayZone1(), d.tag2(), d.displayZone2()))
+                    .orElseGet(() -> formatJstAndIctTimeSameCell(tx, primary)));
         } else {
             m.put("trnDate", "");
             m.put("trnTime", "");
         }
         if (pay != null) {
-            m.put("payCompletedAt", formatJstAndIctDateTimeSameCell(pay, primary));
+            m.put("payCompletedAt", dualOpt.map(d -> TrnTimeDualZoneDisplay.formatConfigurableDualLineDateTime(pay, primary,
+                            d.tag1(), d.displayZone1(), d.tag2(), d.displayZone2()))
+                    .orElseGet(() -> formatJstAndIctDateTimeSameCell(pay, primary)));
         } else {
             m.put("payCompletedAt", "");
         }
+    }
+
+    private Optional<TxnDualLineSpec> resolveTxnDualLineForChillRow(Map<String, Object> m) {
+        String compId = firstNonBlankString(m, "compId", "merchant", "Merchant", "MerchantCode", "merchantCode", "MID", "Mid");
+        if (compId == null || compId.isBlank()) {
+            return Optional.empty();
+        }
+        String c = compId.trim();
+        Optional<OrgUnit> ou = orgUnitRepository.findByCode(c);
+        if (ou.isEmpty()) {
+            ou = orgUnitRepository.findByCodeIgnoreCase(c);
+        }
+        if (ou.isEmpty() || ou.get().getOrgLevel() != OrgLevel.MERCHANT) {
+            return Optional.empty();
+        }
+        return masterDistSettlementCronZoneService.resolveTxnDualLineSpecForOrgUnitId(ou.get().getId());
     }
 
     private void enrichChillPayTrRowOrg(Map<String, Object> m,

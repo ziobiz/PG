@@ -84,7 +84,11 @@ public class AuthService {
             res.setCompId(ou.getCode());
             res.setOrgLevel(ou.getOrgLevel() != null ? ou.getOrgLevel().name() : null);
         });
-        res.setMustChangePassword("Y".equalsIgnoreCase(user.getPasswordMustChangeYn()));
+        boolean mustChange = "Y".equalsIgnoreCase(user.getPasswordMustChangeYn())
+                || isInitialTempPassword(user.getUsername(), password);
+        res.setMustChangePassword(mustChange);
+        res.setMustSetupOtp(requiresOtpEnrollment(user));
+        res.setOtpRegisteredYn("Y".equalsIgnoreCase(user.getOtpRegisteredYn()) ? "Y" : "N");
         res.setPagePermissions(orgPagePermissionService.resolvePagePermissionsForUser(user));
         res.setCanWriteNotice(orgPagePermissionService.canWriteNotice(user));
         if (clientHost != null && !clientHost.isBlank()) {
@@ -194,12 +198,13 @@ public class AuthService {
     }
 
     /**
-     * 호스트별 로그인 허용:
+     * 호스트별 로그인 허용(도메인구성 — 관리자 웹 URL 호스트 기준):
      * <ul>
-     *   <li>본사(REGIONAL) 포털: 그 본사 조직에 <strong>직접</strong> 소속된 계정만 (하위 총판·가맹점 계정 불가).</li>
-     *   <li>총판(MASTER_DIST) 포털: 총판 및 그 하위(지사·대리점·영업점·가맹점)만. 총본사·본사 소속 불가.</li>
-     *   <li>그 외 포털: 기존처럼 포털 루트 하위 서브트리.</li>
-     *   <li>포털 미매칭(예: api.icopay.co.kr): 사용자 소속 조직의 관리자 URL 호스트와 비교(미설정이면 통과).</li>
+     *   <li><strong>본사(REGIONAL) 포털</strong>: 총본사(HEADQUARTERS) 또는 <strong>그 본사 조직에 직접 소속</strong>된 계정만.
+     *       총판·가맹 등 하위 조직 계정은 불가.</li>
+     *   <li><strong>총판(MASTER_DIST) 포털</strong>: 총본사·<strong>이 총판을 트리 안에 두는 본사(REGIONAL)</strong>·해당 총판 및 그 하위(지사·대리점·영업점·가맹점)만.
+     *       다른 총판 소속·다른 본사 트리는 불가.</li>
+     *   <li>포털 미매칭: 사용자 소속 조직의 관리자 URL 호스트와 비교(미설정이면 통과).</li>
      * </ul>
      * ADMIN·clientHost 미전달은 검사 생략.
      */
@@ -222,12 +227,20 @@ public class AuthService {
             }
             OrgUnit userOu = userOuOpt.get();
             if (portal.getOrgLevel() == OrgLevel.REGIONAL) {
+                if (userOu.getOrgLevel() == OrgLevel.HEADQUARTERS) {
+                    return true;
+                }
                 return userOu.getId() != null && portal.getId() != null && userOu.getId().equals(portal.getId());
             }
             if (portal.getOrgLevel() == OrgLevel.MASTER_DIST) {
-                OrgLevel ul = userOu.getOrgLevel();
-                if (ul == OrgLevel.HEADQUARTERS || ul == OrgLevel.REGIONAL) {
-                    return false;
+                if (userOu.getOrgLevel() == OrgLevel.HEADQUARTERS) {
+                    return true;
+                }
+                if (userOu.getOrgLevel() == OrgLevel.REGIONAL
+                        && userOu.getId() != null
+                        && portal.getId() != null
+                        && orgPortalHostService.orgIsSelfOrUnderAncestor(userOu.getId(), portal.getId())) {
+                    return true;
                 }
                 return orgPortalHostService.userOrgBelongsToPortalSubtree(userOu, portal);
             }
@@ -275,5 +288,46 @@ public class AuthService {
         return orgUnitRepository.findAll().stream()
                 .filter(unit -> unit.getOrgLevel() == OrgLevel.HEADQUARTERS)
                 .min(Comparator.comparing(OrgUnit::getCode, Comparator.nullsFirst(String::compareTo)));
+    }
+
+    /**
+     * 로그인 시 입력한 비밀번호가 초기 패턴(로그인ID + "1!")과 동일한지(평문 기준).
+     * DB의 password_must_change_yn 과 무관하게 최초 임시 비번이면 변경 절차를 태웁니다.
+     */
+    public boolean isInitialTempPassword(String username, String plainPassword) {
+        if (username == null || plainPassword == null) {
+            return false;
+        }
+        String u = username.trim();
+        String p = plainPassword.trim();
+        if (u.isEmpty() || p.isEmpty()) {
+            return false;
+        }
+        return (u + "1!").equals(p);
+    }
+
+    /**
+     * 총본사·본사·총판 소속이며 아직 Google OTP를 등록하지 않은 경우 true.
+     * 로그인 ID {@code admin}(시스템 시드 계정)만 OTP 없이 접속 가능하도록 예외.
+     */
+    public boolean requiresOtpEnrollment(AppUser user) {
+        if (user == null) {
+            return false;
+        }
+        if ("admin".equalsIgnoreCase(user.getUsername())) {
+            return false;
+        }
+        if ("Y".equalsIgnoreCase(user.getOtpRegisteredYn())) {
+            return false;
+        }
+        Optional<OrgUnit> ouOpt = resolveOrgUnitForLoginId(user.getUsername());
+        if (ouOpt.isEmpty()) {
+            return false;
+        }
+        OrgLevel lvl = ouOpt.get().getOrgLevel();
+        if (lvl == null) {
+            return false;
+        }
+        return lvl == OrgLevel.HEADQUARTERS || lvl == OrgLevel.REGIONAL || lvl == OrgLevel.MASTER_DIST;
     }
 }

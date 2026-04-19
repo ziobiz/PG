@@ -66,7 +66,8 @@ public class PayListActionService {
                 .orElseThrow(() -> new IllegalArgumentException("거래를 찾을 수 없습니다."));
 
         switch (action) {
-            case EMAIL_VOID -> payFollowEmailVoidService.sendVoidRequestMail(t);
+            case EMAIL_VOID -> payFollowEmailVoidService.sendVoidRequestMail(t,
+                    user != null ? user.getUsername() : null);
             case AUTO_VOID -> {
                 long ouId = resolveMerchantOrgUnitId(t);
                 long chillTxn = parseChillPayTransactionId(t);
