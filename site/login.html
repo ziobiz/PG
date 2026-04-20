@@ -32,11 +32,12 @@
       white-space: pre-line;
     }
     .login-panel-wrap { width: 360px; min-width: 360px; flex-shrink: 0; display: flex; flex-direction: column; background: #fff; overflow-y: auto; }
+    .login-panel-wrap.login-otp-flow { width: 100%; max-width: 440px; min-width: 320px; }
     .login-panel { padding: 18px 16px; flex: 1; }
     .login-panel .logo-top { max-height: 42px; max-width: 170px; margin: 0 0 18px; object-fit: contain; display: block; }
     .login-panel .form-control { background: #e8f4fd; }
-    .notice-section { font-size: 12px; color: #664d03; background: linear-gradient(180deg, #fffbeb 0%, #fef3c7 100%); border: 1px solid #fde68a; padding: 14px 14px 12px; margin: 0 24px 24px; border-radius: 8px; line-height: 1.55; box-shadow: 0 1px 2px rgba(0,0,0,0.04); }
-    .notice-title { font-size: 13px; font-weight: 700; margin: 0 0 10px; letter-spacing: -0.02em; color: #713f12; }
+    .notice-section { font-size: 12px; color: #495057; background: linear-gradient(180deg, #f8f9fa 0%, #e9ecef 100%); border: 1px solid #dee2e6; padding: 12px 14px; margin: 0 0 16px; border-radius: 8px; line-height: 1.55; box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06); }
+    .notice-title { font-size: 13px; font-weight: 700; margin: 0 0 8px; letter-spacing: -0.02em; color: #343a40; }
     .notice-section p { margin: 0 0 8px; }
     .notice-section p:last-child { margin-bottom: 0; }
     .login-host-note { font-size: 11px; color: #334155; background: #eef2ff; border: 1px solid #c7d2fe; border-radius: 4px; padding: 6px 8px; margin-top: 0; }
@@ -60,8 +61,21 @@
 <body class="theme-default">
   <script>
     (function(){
+      var origin = window.location.origin || '';
+      try {
+        var tok = sessionStorage.getItem('pg_admin_token');
+        var pendingOtp = sessionStorage.getItem('pg_pending_otp_on_login') === '1';
+        if (tok && pendingOtp) {
+          var raw = sessionStorage.getItem('pg_admin_user');
+          var need = false;
+          if (raw) {
+            try { need = !!(JSON.parse(raw).mustSetupOtp); } catch (e1) { need = true; }
+          } else { need = true; }
+          if (need) return;
+          sessionStorage.removeItem('pg_pending_otp_on_login');
+        }
+      } catch (e0) { /* ignore */ }
       if (sessionStorage.getItem('pg_admin_auth') || sessionStorage.getItem('pg_admin_token')) {
-        var origin = window.location.origin || '';
         window.location.replace(origin ? (origin + '/index.html') : 'index.html');
         return;
       }
@@ -76,11 +90,17 @@
     </div>
     <div class="login-panel-wrap">
       <div class="login-panel">
+        <div id="loginPanelInitial">
         <img class="logo-top" id="loginPanelLogo" src="" alt="Logo" style="display:none">
         <h5 class="mb-3 d-none" id="loginPanelTitle"></h5>
         <div class="mb-3">
           <div class="login-host-note d-none" id="loginHostNote"></div>
         </div>
+        <section class="notice-section" role="note" aria-labelledby="loginFraudNoticeTitle">
+          <h3 class="notice-title" id="loginFraudNoticeTitle">사칭 피해 주의 안내</h3>
+          <p>최근 본사나 PG사를 사칭해 금전적 요구를 하는 사례가 발생하고 있습니다.</p>
+          <p class="mb-0">저희는 결제와 관련한 금전을 별도로 요청하지 않습니다. 의심스러운 연락을 받으셨다면 <strong>고객센터</strong> 또는 <strong>계약된 영업지사</strong>로 사실 여부를 반드시 확인해 주시기 바랍니다.</p>
+        </section>
         <form id="loginForm" onsubmit="return false;">
           <div class="mb-3">
             <label for="userId" class="form-label">아이디</label>
@@ -90,17 +110,13 @@
             <label for="userPwd" class="form-label">비밀번호</label>
             <input type="password" class="form-control" id="userPwd" name="userPwd" autocomplete="current-password">
           </div>
-          <div id="forcePwPopupNotice" class="d-none">
-            <p class="small text-danger mb-2">임시 비밀번호(초기화 후 <strong>아이디+1!</strong>)로 로그인하셨습니다. <strong>새로 연 창</strong>에서 새 비밀번호(8자 이상)를 설정한 뒤 입장합니다.</p>
-            <p class="small text-muted mb-2">팝업이 보이지 않으면 브라우저에서 팝업 허용 후 다시 로그인해 주세요.</p>
-            <button type="button" class="btn btn-outline-secondary btn-sm w-100 mb-2" id="forcePwOpenThisScreen">이 화면에서 새 비밀번호 설정하기</button>
+          <div id="loginTotpMfaBlock" class="mb-3 d-none">
+            <label for="loginTotpMfaCode" class="form-label">Google OTP (6자리)</label>
+            <input type="text" class="form-control" id="loginTotpMfaCode" maxlength="6" inputmode="numeric" autocomplete="one-time-code" placeholder="인증 앱 코드">
+            <p class="small text-muted mt-1 mb-0">총본사·본사·총판(및 등록된 시스템 관리자) 계정은 로그인 시 OTP가 필요합니다.</p>
           </div>
-          <div id="forcePwChangeBlock" class="d-none">
-            <p class="small text-danger mb-2">임시 비밀번호(초기화 후 <strong>아이디+1!</strong>)로 로그인하셨습니다. 아래 항목을 입력한 뒤 입장합니다.</p>
-            <div class="mb-2">
-              <label for="forceOldPwd" class="form-label">기존 비밀번호</label>
-              <input type="password" class="form-control" id="forceOldPwd" autocomplete="current-password">
-            </div>
+          <div id="forcePwChangeBlock" class="d-none rounded border px-3 py-3 mb-3" style="background:#f1f3f5;border-color:#dee2e6!important;">
+            <p class="small text-secondary mb-2">보안 정책에 따라 <strong>새 비밀번호</strong>를 설정해야 합니다. 방금 입력하신 비밀번호는 확인용으로만 사용되며, 아래에 새 비밀번호(8자 이상)를 입력해 주세요.</p>
             <div class="mb-2">
               <label for="forceNewPwd1" class="form-label">새 비밀번호</label>
               <input type="password" class="form-control" id="forceNewPwd1" autocomplete="new-password">
@@ -109,8 +125,8 @@
               <label for="forceNewPwd2" class="form-label">새 비밀번호 확인</label>
               <input type="password" class="form-control" id="forceNewPwd2" autocomplete="new-password">
             </div>
-            <button type="button" class="btn btn-warning w-100 mb-2" id="forcePwChangeSubmit">비밀번호 설정 후 입장</button>
-            <button type="button" class="btn btn-outline-secondary btn-sm w-100" id="forcePwChangeCancel">로그인 화면으로</button>
+            <button type="button" class="btn btn-primary w-100 mb-2" id="forcePwChangeSubmit">비밀번호 설정 후 입장</button>
+            <button type="button" class="btn btn-outline-secondary btn-sm w-100" id="forcePwChangeCancel">취소</button>
           </div>
           <div class="mb-3 d-none">
             <label for="changePassword" class="form-label">변경 비밀번호</label>
@@ -125,42 +141,32 @@
             <input type="text" class="form-control" id="otpNo" name="otpNo">
           </div>
           <button type="submit" class="btn btn-primary w-100" id="loginBtn">로그인</button>
-          <p class="mt-2 mb-0"><button type="button" class="btn btn-link p-0" id="openChangePwModal">초기비밀번호 변경</button></p>
         </form>
-      </div>
-      <section class="notice-section" role="note" aria-labelledby="loginFraudNoticeTitle">
-        <h3 class="notice-title" id="loginFraudNoticeTitle">사칭 피해 주의 안내</h3>
-        <p>최근 본사나 PG사를 사칭해 금전적 요구를 하는 사례가 발생하고 있습니다.</p>
-        <p class="mb-0">저희는 결제와 관련한 금전을 별도로 요청하지 않습니다. 의심스러운 연락을 받으셨다면 <strong>고객센터</strong> 또는 <strong>계약된 영업지사</strong>로 사실 여부를 반드시 확인해 주시기 바랍니다.</p>
-      </section>
-    </div>
-  </div>
-
-  <div class="modal fade" id="pwChangeModal" tabindex="-1" data-bs-backdrop="static">
-    <div class="modal-dialog modal-dialog-centered">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title">초기비밀번호 변경</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
         </div>
-        <div class="modal-body">
-          <p class="text-muted small">4자 이상, 아이디+1!, 초기화된 비밀번호와 동일한 비밀번호는 사용불가</p>
-          <div class="mb-2">
-            <label for="modalOldPassword" class="form-label">기존비밀번호</label>
-            <input type="password" class="form-control" id="modalOldPassword" name="oldPassword">
+        <div id="loginOtpBlock" class="d-none border rounded p-3 mb-2" style="background:#fafbfc;border-color:#dee2e6!important;">
+          <h5 class="mb-2">Google OTP 등록</h5>
+          <p class="small text-muted mb-3" id="loginOtpIntro">아이디·비밀번호 확인 후 이 화면에서 Google Authenticator(OTP)를 등록합니다. 구성용 <strong>이메일 인증번호</strong>는 서버에 설정된 수신처로 발송됩니다.</p>
+          <div id="loginOtpStep1">
+            <button type="button" class="btn btn-primary w-100" id="loginOtpBtnSendEmail">인증 메일 발송</button>
           </div>
-          <div class="mb-2">
-            <label for="modalNewPassword" class="form-label">새 비밀번호</label>
-            <input type="password" class="form-control" id="modalNewPassword" name="newPassword">
+          <div id="loginOtpStep2" class="d-none">
+            <label class="form-label" for="loginOtpEmailCode">이메일 인증번호 (6자리)</label>
+            <input type="text" class="form-control mb-2" id="loginOtpEmailCode" maxlength="6" inputmode="numeric" autocomplete="one-time-code">
+            <button type="button" class="btn btn-primary w-100" id="loginOtpBtnVerifyEmail">인증 확인</button>
           </div>
-          <div class="mb-2">
-            <label for="modalNewPasswordConfirm" class="form-label">새 비밀번호 확인</label>
-            <input type="password" class="form-control" id="modalNewPasswordConfirm" name="newPasswordConfirm">
+          <div id="loginOtpStep3" class="d-none">
+            <p class="small mb-2">Google Authenticator에서 <strong>설정 키 입력</strong>으로 아래 시크릿을 등록하세요.</p>
+            <div class="p-2 mb-2 bg-light border rounded font-monospace text-break user-select-all" id="loginOtpSecretDisplay"></div>
+            <label class="form-label small mb-0" for="loginOtpUriText">otpauth URI (앱에서 스캔·붙여넣기 가능)</label>
+            <textarea class="form-control form-control-sm mb-3" id="loginOtpUriText" readonly rows="2"></textarea>
+            <label class="form-label" for="loginOtpTotpCode">앱에 표시된 6자리 코드</label>
+            <input type="text" class="form-control mb-2" id="loginOtpTotpCode" maxlength="6" inputmode="numeric" autocomplete="one-time-code">
+            <button type="button" class="btn btn-success w-100" id="loginOtpBtnActivate">등록 완료</button>
           </div>
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">닫기</button>
-          <button type="button" class="btn btn-primary" id="btnSavePassword">저장</button>
+          <p class="small text-muted mt-2 mb-0" id="loginOtpFooterHint"></p>
+          <div class="d-flex align-items-center justify-content-between mt-3">
+            <button type="button" class="btn btn-link btn-sm text-secondary p-0" id="loginOtpBtnLogout">로그아웃</button>
+          </div>
         </div>
       </div>
     </div>
@@ -203,8 +209,7 @@
       }
     })();
   </script>
-  <script src="js/api.js?v=12"></script>
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="js/api.js?v=13"></script>
   <script>
     (function () {
       var origin = window.location.origin || '';
@@ -295,46 +300,107 @@
       applyPortalAndBranding();
 
       var AUTH_KEY = 'pg_admin_auth';
-      if (sessionStorage.getItem(AUTH_KEY) || sessionStorage.getItem('pg_admin_token')) {
-        window.location.replace((origin || '') + '/index.html');
-        return;
+      var existingTok = sessionStorage.getItem('pg_admin_token');
+      if (sessionStorage.getItem(AUTH_KEY) || existingTok) {
+        if (existingTok && sessionStorage.getItem('pg_pending_otp_on_login') === '1') {
+          var needResume = false;
+          try {
+            var rawR = sessionStorage.getItem('pg_admin_user');
+            if (rawR) needResume = !!(JSON.parse(rawR).mustSetupOtp);
+            else needResume = true;
+          } catch (eR) { needResume = true; }
+          if (!needResume) {
+            try { sessionStorage.removeItem('pg_pending_otp_on_login'); } catch (eR2) {}
+            window.location.replace((origin || '') + '/index.html');
+            return;
+          }
+        } else {
+          window.location.replace((origin || '') + '/index.html');
+          return;
+        }
       }
 
-      document.getElementById('openChangePwModal').addEventListener('click', function () {
-        var modal = new bootstrap.Modal(document.getElementById('pwChangeModal'));
-        modal.show();
-      });
+      function resetLoginOtpSteps() {
+        var s1 = document.getElementById('loginOtpStep1');
+        var s2 = document.getElementById('loginOtpStep2');
+        var s3 = document.getElementById('loginOtpStep3');
+        if (s1) s1.classList.remove('d-none');
+        if (s2) s2.classList.add('d-none');
+        if (s3) s3.classList.add('d-none');
+        var ec = document.getElementById('loginOtpEmailCode');
+        var tc = document.getElementById('loginOtpTotpCode');
+        var uri = document.getElementById('loginOtpUriText');
+        var sec = document.getElementById('loginOtpSecretDisplay');
+        var hint = document.getElementById('loginOtpFooterHint');
+        if (ec) ec.value = '';
+        if (tc) tc.value = '';
+        if (uri) uri.value = '';
+        if (sec) sec.textContent = '';
+        if (hint) hint.textContent = '';
+      }
+
+      function beginOtpOnLogin(resData) {
+        var api = window.PG_API;
+        if (!api || !api.setAuth) { alert('API 미구성'); return; }
+        var u = { loginId: resData.userId, userId: resData.userId, userNm: resData.userNm || '관리자', orgUnitId: resData.orgUnitId, compId: resData.compId, orgLevel: resData.orgLevel };
+        if (resData.role) u.role = resData.role;
+        if (resData.pagePermissions) u.pagePermissions = resData.pagePermissions;
+        if (resData.canWriteNotice !== undefined) u.canWriteNotice = !!resData.canWriteNotice;
+        if (resData.brandingCompId) u.brandingCompId = resData.brandingCompId;
+        if (resData.mustSetupOtp !== undefined) u.mustSetupOtp = !!resData.mustSetupOtp;
+        if (resData.otpRegisteredYn !== undefined) u.otpRegisteredYn = String(resData.otpRegisteredYn);
+        api.setAuth(resData.token, u);
+        try { sessionStorage.setItem('pg_pending_otp_on_login', '1'); } catch (eP) {}
+        var init = document.getElementById('loginPanelInitial');
+        var otpB = document.getElementById('loginOtpBlock');
+        var wrap = document.querySelector('.login-panel-wrap');
+        if (init) init.classList.add('d-none');
+        if (otpB) otpB.classList.remove('d-none');
+        if (wrap) wrap.classList.add('login-otp-flow');
+        resetLoginOtpSteps();
+      }
+
+      function logoutFromLoginOtp() {
+        try { sessionStorage.removeItem('pg_pending_otp_on_login'); } catch (eL) {}
+        try { if (window.PG_API && window.PG_API.clearAuth) window.PG_API.clearAuth(); } catch (eC) {}
+        var init = document.getElementById('loginPanelInitial');
+        var otpB = document.getElementById('loginOtpBlock');
+        var wrap = document.querySelector('.login-panel-wrap');
+        if (init) init.classList.remove('d-none');
+        if (otpB) otpB.classList.add('d-none');
+        if (wrap) wrap.classList.remove('login-otp-flow');
+        resetLoginOtpSteps();
+      }
+
+      function finishLoginAfterOtp() {
+        try {
+          var prev = JSON.parse(sessionStorage.getItem('pg_admin_user') || '{}') || {};
+          prev.mustSetupOtp = false;
+          prev.otpRegisteredYn = 'Y';
+          sessionStorage.setItem('pg_admin_user', JSON.stringify(prev));
+          sessionStorage.removeItem('pg_pending_otp_on_login');
+        } catch (eF) { /* ignore */ }
+        window.location.replace((origin || '') + '/index.html');
+      }
+
+      function resumeOtpOnLoginIfNeeded() {
+        try {
+          if (sessionStorage.getItem('pg_pending_otp_on_login') !== '1') return;
+          var raw = sessionStorage.getItem('pg_admin_user');
+          if (!raw) return;
+          var u = JSON.parse(raw);
+          if (!u || !u.mustSetupOtp) return;
+          var init = document.getElementById('loginPanelInitial');
+          var otpB = document.getElementById('loginOtpBlock');
+          var wrap = document.querySelector('.login-panel-wrap');
+          if (init) init.classList.add('d-none');
+          if (otpB) otpB.classList.remove('d-none');
+          if (wrap) wrap.classList.add('login-otp-flow');
+          resetLoginOtpSteps();
+        } catch (eRes) { /* ignore */ }
+      }
 
       var loginPending = null;
-      document.getElementById('btnSavePassword').addEventListener('click', function () {
-        var userId = document.getElementById('userId').value.trim();
-        var oldPwd = document.getElementById('modalOldPassword').value;
-        var newPwd = document.getElementById('modalNewPassword').value;
-        var newPwd2 = document.getElementById('modalNewPasswordConfirm').value;
-        if (!userId) { alert('상단에 로그인 아이디를 입력하세요.'); return; }
-        if (!oldPwd || !newPwd) { alert('기존·변경 비밀번호를 입력하세요.'); return; }
-        if (newPwd.length < 8) { alert('새 비밀번호는 8자 이상이어야 합니다.'); return; }
-        if (newPwd !== newPwd2) { alert('새 비밀번호 확인이 일치하지 않습니다.'); return; }
-        var api = window.PG_API;
-        if (!api || !api.login || !api.authChangePassword) { alert('API를 불러올 수 없습니다.'); return; }
-        api.login(userId, oldPwd).then(function (res) {
-          if (!(res && res.success && res.data && res.data.token)) throw new Error((res && res.message) || '로그인에 실패했습니다.');
-          var d = res.data;
-          api.setAuth(d.token, { loginId: d.userId, userId: d.userId, userNm: d.userNm || userId, orgUnitId: d.orgUnitId, compId: d.compId, orgLevel: d.orgLevel });
-          return api.authChangePassword(oldPwd, newPwd, newPwd2);
-        }).then(function () {
-          alert('비밀번호가 변경되었습니다. 새 비밀번호로 로그인하세요.');
-          try {
-            var m = bootstrap.Modal.getInstance(document.getElementById('pwChangeModal'));
-            if (m) m.hide();
-          } catch (e) {}
-          document.getElementById('userPwd').value = '';
-          document.getElementById('modalOldPassword').value = '';
-          document.getElementById('modalNewPassword').value = '';
-          document.getElementById('modalNewPasswordConfirm').value = '';
-          api.clearAuth();
-        }).catch(function (err) { alert(err && err.message ? err.message : '변경 실패'); });
-      });
 
       document.getElementById('loginForm').addEventListener('submit', function () {
         var userId = document.getElementById('userId').value.trim();
@@ -362,35 +428,53 @@
 
       function doLogin(userId, pwd) {
         var api = window.PG_API;
+        var mfaBlock = document.getElementById('loginTotpMfaBlock');
+        var totpField = document.getElementById('loginTotpMfaCode');
+        var totpVal = totpField && totpField.value ? String(totpField.value).trim() : '';
         if (api && api.login) {
-          api.login(userId, pwd).then(function (res) {
+          api.login(userId, pwd, totpVal || undefined).then(function (res) {
+            if (mfaBlock) mfaBlock.classList.add('d-none');
+            if (totpField) totpField.value = '';
             if (res && res.success && res.data && res.data.token) {
               var d = res.data;
               if (d.mustChangePassword) {
                 loginPending = { userId: userId, userPwd: pwd, data: d };
-                window.__pgLoginPending = loginPending;
-                var popW = 440;
-                var popH = 560;
-                var left = Math.max(0, (window.screen.width - popW) / 2);
-                var top = Math.max(0, (window.screen.height - popH) / 2);
-                var feat = 'width=' + popW + ',height=' + popH + ',left=' + left + ',top=' + top + ',scrollbars=yes,resizable=yes';
-                var pop = window.open((origin || '') + '/login-force-password.html', 'pgForcePwChange', feat);
-                document.getElementById('loginForm').classList.add('d-none');
-                document.getElementById('forcePwPopupNotice').classList.add('d-none');
-                document.getElementById('forcePwChangeBlock').classList.add('d-none');
-                if (pop) {
-                  document.getElementById('forcePwPopupNotice').classList.remove('d-none');
-                } else {
-                  document.getElementById('forcePwChangeBlock').classList.remove('d-none');
-                  document.getElementById('forceOldPwd').value = '';
-                  document.getElementById('forceNewPwd1').value = '';
-                  document.getElementById('forceNewPwd2').value = '';
-                }
+                try { window.__pgLoginPending = loginPending; } catch (e) {}
+                document.getElementById('forceNewPwd1').value = '';
+                document.getElementById('forceNewPwd2').value = '';
+                document.getElementById('forcePwChangeBlock').classList.remove('d-none');
+                document.getElementById('loginBtn').classList.add('d-none');
+                try {
+                  document.getElementById('forcePwChangeBlock').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                } catch (eScroll) {}
+                return;
+              }
+              if (d.mustSetupOtp) {
+                beginOtpOnLogin(d);
                 return;
               }
               finishLogin(d, userId);
             } else { alert(res && res.message ? res.message : '로그인에 실패했습니다.'); }
           }).catch(function (err) {
+            var ec = err && err.errorCode ? String(err.errorCode) : '';
+            if (ec === 'OTP_REQUIRED') {
+              if (mfaBlock) mfaBlock.classList.remove('d-none');
+              if (totpField) {
+                totpField.value = '';
+                try { totpField.focus(); } catch (ef) {}
+              }
+              alert('Google Authenticator의 6자리 코드를 입력한 뒤 다시 로그인을 눌러 주세요.');
+              return;
+            }
+            if (ec === 'OTP_INVALID') {
+              if (mfaBlock) mfaBlock.classList.remove('d-none');
+              if (totpField) {
+                totpField.value = '';
+                try { totpField.focus(); } catch (ef2) {}
+              }
+              alert(err.message || 'OTP 코드가 올바르지 않습니다.');
+              return;
+            }
             alert(err && err.message ? err.message : '로그인 요청이 실패했습니다. API 서버를 확인하세요.');
           });
         } else {
@@ -402,11 +486,10 @@
 
       document.getElementById('forcePwChangeSubmit').addEventListener('click', function () {
         if (!loginPending) return;
-        var oldP = document.getElementById('forceOldPwd').value;
+        var oldP = loginPending.userPwd;
         var n1 = document.getElementById('forceNewPwd1').value;
         var n2 = document.getElementById('forceNewPwd2').value;
-        if (!oldP) { alert('기존 비밀번호를 입력하세요.'); return; }
-        if (oldP !== loginPending.userPwd) { alert('기존 비밀번호가 로그인 시 입력한 값과 일치하지 않습니다.'); return; }
+        if (!oldP) { alert('로그인 비밀번호 정보가 없습니다. 취소 후 다시 로그인해 주세요.'); return; }
         if (!n1 || n1.length < 8) { alert('새 비밀번호는 8자 이상 입력하세요.'); return; }
         if (n1 !== n2) { alert('새 비밀번호 확인이 일치하지 않습니다.'); return; }
         var api = window.PG_API;
@@ -421,7 +504,13 @@
         api.authChangePassword(oldP, n1, n2).then(function () {
           loginPending = null;
           try { window.__pgLoginPending = null; } catch (e) {}
-          finishLogin(p.data, p.userId);
+          document.getElementById('forcePwChangeBlock').classList.add('d-none');
+          document.getElementById('loginBtn').classList.remove('d-none');
+          if (p.data.mustSetupOtp) {
+            beginOtpOnLogin(p.data);
+          } else {
+            finishLogin(p.data, p.userId);
+          }
         }).catch(function (err) {
           alert(err && err.message ? err.message : '비밀번호 변경 실패');
           try { api.clearAuth(); } catch (e) {}
@@ -432,17 +521,85 @@
         try { window.__pgLoginPending = null; } catch (e) {}
         try { window.PG_API && window.PG_API.clearAuth(); } catch (e) {}
         document.getElementById('forcePwChangeBlock').classList.add('d-none');
-        document.getElementById('forcePwPopupNotice').classList.add('d-none');
-        document.getElementById('loginForm').classList.remove('d-none');
-      });
-
-      document.getElementById('forcePwOpenThisScreen').addEventListener('click', function () {
-        document.getElementById('forcePwPopupNotice').classList.add('d-none');
-        document.getElementById('forcePwChangeBlock').classList.remove('d-none');
-        document.getElementById('forceOldPwd').value = '';
+        document.getElementById('loginBtn').classList.remove('d-none');
         document.getElementById('forceNewPwd1').value = '';
         document.getElementById('forceNewPwd2').value = '';
       });
+
+      var loginOtpSend = document.getElementById('loginOtpBtnSendEmail');
+      if (loginOtpSend && !loginOtpSend._bound) {
+        loginOtpSend._bound = true;
+        loginOtpSend.addEventListener('click', function () {
+          if (!window.PG_API || typeof window.PG_API.otpEnrollRequestEmail !== 'function') {
+            alert('API를 불러올 수 없습니다.');
+            return;
+          }
+          window.PG_API.otpEnrollRequestEmail().then(function (res) {
+            if (!(res && res.success)) throw new Error((res && res.message) ? res.message : '발송 실패');
+            var dd = res.data || {};
+            alert((dd && dd.message) ? dd.message : ('인증번호를 발송했습니다.\n수신: ' + (dd.sentTo || '')));
+            var s1 = document.getElementById('loginOtpStep1');
+            var s2 = document.getElementById('loginOtpStep2');
+            if (s1) s1.classList.add('d-none');
+            if (s2) s2.classList.remove('d-none');
+          }).catch(function (err) {
+            alert(err && err.message ? err.message : '발송 실패');
+          });
+        });
+      }
+      var loginOtpVer = document.getElementById('loginOtpBtnVerifyEmail');
+      if (loginOtpVer && !loginOtpVer._bound) {
+        loginOtpVer._bound = true;
+        loginOtpVer.addEventListener('click', function () {
+          var code = String((document.getElementById('loginOtpEmailCode') && document.getElementById('loginOtpEmailCode').value) || '').trim();
+          if (!/^\d{6}$/.test(code)) {
+            alert('이메일 인증번호 6자리를 입력하세요.');
+            return;
+          }
+          window.PG_API.otpEnrollVerifyEmail(code).then(function (res) {
+            if (!(res && res.success)) throw new Error((res && res.message) ? res.message : '인증 실패');
+            var d2 = res.data || {};
+            var secEl = document.getElementById('loginOtpSecretDisplay');
+            var uriEl = document.getElementById('loginOtpUriText');
+            if (secEl) secEl.textContent = d2.secretBase32 != null ? String(d2.secretBase32) : '';
+            if (uriEl) uriEl.value = d2.otpAuthUri != null ? String(d2.otpAuthUri) : '';
+            var s2b = document.getElementById('loginOtpStep2');
+            var s3b = document.getElementById('loginOtpStep3');
+            if (s2b) s2b.classList.add('d-none');
+            if (s3b) s3b.classList.remove('d-none');
+          }).catch(function (err) {
+            alert(err && err.message ? err.message : '인증 실패');
+          });
+        });
+      }
+      var loginOtpAct = document.getElementById('loginOtpBtnActivate');
+      if (loginOtpAct && !loginOtpAct._bound) {
+        loginOtpAct._bound = true;
+        loginOtpAct.addEventListener('click', function () {
+          var code = String((document.getElementById('loginOtpTotpCode') && document.getElementById('loginOtpTotpCode').value) || '').trim();
+          if (!/^\d{6}$/.test(code)) {
+            alert('앱에 표시된 6자리 코드를 입력하세요.');
+            return;
+          }
+          window.PG_API.otpEnrollActivate(code).then(function (res) {
+            if (!(res && res.success)) throw new Error((res && res.message) ? res.message : '등록 실패');
+            var hint = document.getElementById('loginOtpFooterHint');
+            if (hint) hint.textContent = '등록이 완료되었습니다. 잠시 후 메인으로 이동합니다.';
+            setTimeout(function () { finishLoginAfterOtp(); }, 600);
+          }).catch(function (err) {
+            alert(err && err.message ? err.message : '등록 실패');
+          });
+        });
+      }
+      var loginOtpLo = document.getElementById('loginOtpBtnLogout');
+      if (loginOtpLo && !loginOtpLo._bound) {
+        loginOtpLo._bound = true;
+        loginOtpLo.addEventListener('click', function () {
+          logoutFromLoginOtp();
+        });
+      }
+
+      resumeOtpOnLoginIfNeeded();
     })();
   </script>
 </body>

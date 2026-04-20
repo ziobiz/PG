@@ -21,8 +21,6 @@ import java.util.Objects;
 @Service
 public class OrgUnitChangeAuditService {
 
-    private static final int MAX_VAL_LEN = 2000;
-
     private final OrgUnitChangeLogRepository orgUnitChangeLogRepository;
 
     public OrgUnitChangeAuditService(OrgUnitChangeLogRepository orgUnitChangeLogRepository) {
@@ -45,17 +43,6 @@ public class OrgUnitChangeAuditService {
         return s == null ? "" : s.trim();
     }
 
-    private static String shorten(String s) {
-        if (s == null) {
-            return "";
-        }
-        String t = s.trim();
-        if (t.length() > MAX_VAL_LEN) {
-            return t.substring(0, MAX_VAL_LEN) + "…";
-        }
-        return t;
-    }
-
     /**
      * 별도 트랜잭션으로 기록 — 호출부 트랜잭션 롤백과 무관하게 이력 남김을 방지하려면 호출부에서만 사용하지 말고
      * 일반적으로는 호출 서비스의 트랜잭션에 참여한다.
@@ -71,8 +58,8 @@ public class OrgUnitChangeAuditService {
         e.setCompId(compId != null ? compId.trim() : "");
         e.setCompNm(compNm != null ? compNm.trim() : "");
         e.setFieldLabel(fieldLabel != null ? fieldLabel : "");
-        e.setValueBefore(shorten(before));
-        e.setValueAfter(shorten(after));
+        e.setValueBefore(before != null ? before : "");
+        e.setValueAfter(after != null ? after : "");
         e.setChangedBy(currentActor());
         orgUnitChangeLogRepository.save(e);
     }
@@ -87,8 +74,12 @@ public class OrgUnitChangeAuditService {
             if (r.getChangedBy() == null || r.getChangedBy().isBlank()) {
                 r.setChangedBy(actor);
             }
-            r.setValueBefore(shorten(r.getValueBefore()));
-            r.setValueAfter(shorten(r.getValueAfter()));
+            if (r.getValueBefore() == null) {
+                r.setValueBefore("");
+            }
+            if (r.getValueAfter() == null) {
+                r.setValueAfter("");
+            }
         }
         orgUnitChangeLogRepository.saveAll(rows);
     }

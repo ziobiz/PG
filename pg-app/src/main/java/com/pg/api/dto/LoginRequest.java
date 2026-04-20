@@ -3,6 +3,8 @@ package com.pg.api.dto;
 public class LoginRequest {
     private String username;
     private String password;
+    /** Google Authenticator 6자리 — 총본사·본사·총판·ADMIN(등록 완료) 로그인 시 필수 */
+    private String totpCode;
     /** 브라우저 location.host — 조직에 관리자(웹) URL이 있으면 호스트 일치 시에만 로그인 허용 */
     private String clientHost;
 
@@ -10,6 +12,8 @@ public class LoginRequest {
     public void setUsername(String username) { this.username = username; }
     public String getPassword() { return password; }
     public void setPassword(String password) { this.password = password; }
+    public String getTotpCode() { return totpCode; }
+    public void setTotpCode(String totpCode) { this.totpCode = totpCode; }
     public String getClientHost() { return clientHost; }
     public void setClientHost(String clientHost) { this.clientHost = clientHost; }
 }

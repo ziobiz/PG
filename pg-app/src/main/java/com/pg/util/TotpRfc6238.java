@@ -51,6 +51,20 @@ public final class TotpRfc6238 {
         return hotp(key, tc);
     }
 
+    /**
+     * 현재 30초 창의 TOTP 6자리(테스트·연동용). {@link #verify(String, String, int)} 와 동일 창 기준.
+     */
+    public static String currentTotpCode(String base32Secret) {
+        try {
+            byte[] key = decodeBase32(base32Secret);
+            long now = Instant.now().getEpochSecond();
+            long currentWindow = now / PERIOD_SECONDS;
+            return String.format(Locale.US, "%06d", hotp(key, currentWindow));
+        } catch (Exception e) {
+            throw new IllegalStateException("TOTP 계산 실패", e);
+        }
+    }
+
     public static boolean verify(String base32Secret, String sixDigitCode, int driftSteps) {
         if (sixDigitCode == null || sixDigitCode.length() < 6) {
             return false;

@@ -1,5 +1,6 @@
 package com.pg.service;
 
+import com.pg.api.dto.LoginAttempt;
 import com.pg.api.dto.LoginResponse;
 import com.pg.entity.AppUser;
 import com.pg.entity.AuthToken;
@@ -9,6 +10,7 @@ import com.pg.repository.AuthTokenRepository;
 import com.pg.repository.MerchantProfileRepository;
 import com.pg.repository.OrgUnitRepository;
 import com.pg.repository.UserRepository;
+import com.pg.util.TotpRfc6238;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -57,16 +59,41 @@ public class AuthService {
 
     @Transactional
     public Optional<LoginResponse> login(String username, String password, String clientHost) {
-        Optional<AppUser> userOpt = userRepository.findByUsername(username);
-        if (userOpt.isEmpty()) return Optional.empty();
+        LoginAttempt a = loginAttempt(username, password, clientHost, null);
+        return a.isSuccess() ? Optional.of(a.getResponse()) : Optional.empty();
+    }
+
+    /**
+     * 웹 로그인 — 총본사·본사·총판·ADMIN(OTP 등록 완료)은 비밀번호 후 TOTP 6자리 필수.
+     */
+    @Transactional
+    public LoginAttempt loginAttempt(String username, String password, String clientHost, String totpCode) {
+        if (username == null || username.isBlank() || password == null) {
+            return LoginAttempt.badCredentials();
+        }
+        Optional<AppUser> userOpt = userRepository.findByUsername(username.trim());
+        if (userOpt.isEmpty()) {
+            return LoginAttempt.badCredentials();
+        }
         AppUser user = userOpt.get();
-        if (!user.isEnabled() || !passwordEncoder.matches(password, user.getPassword()))
-            return Optional.empty();
+        if (!user.isEnabled() || !passwordEncoder.matches(password, user.getPassword())) {
+            return LoginAttempt.badCredentials();
+        }
         String ust = user.getUserStatus();
-        if (ust != null && !ust.isBlank() && !"ACTIVE".equalsIgnoreCase(ust.trim()))
-            return Optional.empty();
+        if (ust != null && !ust.isBlank() && !"ACTIVE".equalsIgnoreCase(ust.trim())) {
+            return LoginAttempt.badCredentials();
+        }
         if (!loginHostAllowedForUser(user, clientHost)) {
-            return Optional.empty();
+            return LoginAttempt.badCredentials();
+        }
+        if (requiresTotpSecondFactorAtLogin(user)) {
+            String code = totpCode != null ? totpCode.trim() : "";
+            if (code.isEmpty()) {
+                return LoginAttempt.otpRequired();
+            }
+            if (!TotpRfc6238.verify(user.getOtpSecret(), code, 2)) {
+                return LoginAttempt.otpInvalid();
+            }
         }
         String token = UUID.randomUUID().toString().replace("-", "");
         AuthToken at = new AuthToken();
@@ -79,7 +106,7 @@ public class AuthService {
         res.setUserId(user.getUsername());
         res.setUserNm(user.getName() != null ? user.getName() : user.getUsername());
         res.setRole(user.getRole());
-        resolveOrgUnitForLoginId(username).ifPresent(ou -> {
+        resolveOrgUnitForLoginId(username.trim()).ifPresent(ou -> {
             res.setOrgUnitId(ou.getId());
             res.setCompId(ou.getCode());
             res.setOrgLevel(ou.getOrgLevel() != null ? ou.getOrgLevel().name() : null);
@@ -88,7 +115,7 @@ public class AuthService {
                 || isInitialTempPassword(user.getUsername(), password);
         res.setMustChangePassword(mustChange);
         res.setMustSetupOtp(requiresOtpEnrollment(user));
-        res.setOtpRegisteredYn("Y".equalsIgnoreCase(user.getOtpRegisteredYn()) ? "Y" : "N");
+        res.setOtpRegisteredYn(isOtpFullyEnrolled(user) ? "Y" : "N");
         res.setPagePermissions(orgPagePermissionService.resolvePagePermissionsForUser(user));
         res.setCanWriteNotice(orgPagePermissionService.canWriteNotice(user));
         if (clientHost != null && !clientHost.isBlank()) {
@@ -98,7 +125,7 @@ public class AuthService {
                 }
             });
         }
-        return Optional.of(res);
+        return LoginAttempt.success(res);
     }
 
     public Optional<AppUser> validateToken(String token) {
@@ -307,18 +334,57 @@ public class AuthService {
     }
 
     /**
-     * 총본사·본사·총판 소속이며 아직 Google OTP를 등록하지 않은 경우 true.
-     * 로그인 ID {@code admin}(시스템 시드 계정)만 OTP 없이 접속 가능하도록 예외.
+     * {@code otp_registered_yn=Y} 이고 {@code otp_secret} 이 비어 있지 않을 때만 등록 완료.
+     * 과거 시드처럼 Y 만 있고 시크릿이 없으면 미등록으로 본다.
+     */
+    public boolean isOtpFullyEnrolled(AppUser user) {
+        if (user == null) {
+            return false;
+        }
+        return "Y".equalsIgnoreCase(user.getOtpRegisteredYn())
+                && user.getOtpSecret() != null
+                && !user.getOtpSecret().isBlank();
+    }
+
+    /**
+     * Google OTP 미등록 시 로그인 후 등록을 유도하는 경우 true.
+     * <ul>
+     *   <li>{@code ADMIN} 역할: 소속 조직이 없어도 등록·테스트 가능(시드 {@code admin} 포함).</li>
+     *   <li>그 외: 총본사·본사·총판(HEADQUARTERS / REGIONAL / MASTER_DIST) 소속만 해당.</li>
+     * </ul>
+     * {@link #isOtpFullyEnrolled(AppUser)} 이면 false.
      */
     public boolean requiresOtpEnrollment(AppUser user) {
         if (user == null) {
             return false;
         }
-        if ("admin".equalsIgnoreCase(user.getUsername())) {
+        if (isOtpFullyEnrolled(user)) {
             return false;
         }
-        if ("Y".equalsIgnoreCase(user.getOtpRegisteredYn())) {
+        if ("ADMIN".equalsIgnoreCase(user.getRole())) {
+            return true;
+        }
+        Optional<OrgUnit> ouOpt = resolveOrgUnitForLoginId(user.getUsername());
+        if (ouOpt.isEmpty()) {
             return false;
+        }
+        OrgLevel lvl = ouOpt.get().getOrgLevel();
+        if (lvl == null) {
+            return false;
+        }
+        return lvl == OrgLevel.HEADQUARTERS || lvl == OrgLevel.REGIONAL || lvl == OrgLevel.MASTER_DIST;
+    }
+
+    /**
+     * 로그인 시점 Google OTP(TOTP) 2단계 인증 대상 여부.
+     * OTP 앱 등록이 완료된 총본사·본사·총판 소속 및 ADMIN 만 해당.
+     */
+    public boolean requiresTotpSecondFactorAtLogin(AppUser user) {
+        if (user == null || !isOtpFullyEnrolled(user)) {
+            return false;
+        }
+        if ("ADMIN".equalsIgnoreCase(user.getRole())) {
+            return true;
         }
         Optional<OrgUnit> ouOpt = resolveOrgUnitForLoginId(user.getUsername());
         if (ouOpt.isEmpty()) {

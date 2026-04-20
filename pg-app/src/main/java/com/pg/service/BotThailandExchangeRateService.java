@@ -22,6 +22,7 @@ import java.time.LocalDate;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
@@ -232,6 +233,125 @@ public class BotThailandExchangeRateService {
         }
     }
 
+    /**
+     * BOT iAPI·게이트웨이 v2 등에서 통화 영문명 필드 키가 버전마다 달라 여러 키·스캔으로 읽는다.
+     */
+    private static String botRowCurrencyNameUpper(JsonNode row) {
+        String[] keys = {
+                "currency_name_eng",
+                "currency_name_ENG",
+                "Currency_Name_ENG",
+                "curr_name_en",
+                "descr_eng",
+                "DESCRIPTION_ENG"
+        };
+        for (String k : keys) {
+            JsonNode v = row.get(k);
+            if (v != null && !v.isNull()) {
+                String t = v.asText("").trim();
+                if (!t.isBlank()) {
+                    return t.toUpperCase(Locale.ROOT);
+                }
+            }
+        }
+        Iterator<String> it = row.fieldNames();
+        while (it.hasNext()) {
+            String fn = it.next();
+            if (fn == null) {
+                continue;
+            }
+            String fl = fn.toLowerCase(Locale.ROOT);
+            if (fl.contains("currency")
+                    && (fl.contains("name") || fl.contains("descr"))
+                    && fl.contains("eng")) {
+                JsonNode v = row.get(fn);
+                if (v != null && !v.isNull()) {
+                    String t = v.asText("").trim();
+                    if (!t.isBlank()) {
+                        return t.toUpperCase(Locale.ROOT);
+                    }
+                }
+            }
+        }
+        return "";
+    }
+
+    /** {@code mid_rate} 외 숫자/별칭 필드(포털 v2·레거시 iAPI). */
+    private static String botRowMidText(JsonNode row) {
+        String[] keys = {"mid_rate", "MID_RATE", "Middle_Rate", "middle_rate", "avg_mid_rate", "rate"};
+        for (String k : keys) {
+            if (!row.has(k)) {
+                continue;
+            }
+            JsonNode v = row.get(k);
+            if (v == null || v.isNull()) {
+                continue;
+            }
+            if (v.isNumber()) {
+                return v.decimalValue().stripTrailingZeros().toPlainString();
+            }
+            String t = v.asText("").trim();
+            if (!t.isBlank()) {
+                return t;
+            }
+        }
+        Iterator<String> it = row.fieldNames();
+        while (it.hasNext()) {
+            String fn = it.next();
+            if (fn == null) {
+                continue;
+            }
+            String fl = fn.toLowerCase(Locale.ROOT);
+            if (fl.contains("mid") && fl.contains("rate")) {
+                JsonNode v = row.get(fn);
+                if (v != null && !v.isNull()) {
+                    if (v.isNumber()) {
+                        return v.decimalValue().stripTrailingZeros().toPlainString();
+                    }
+                    String t = v.asText("").trim();
+                    if (!t.isBlank()) {
+                        return t;
+                    }
+                }
+            }
+        }
+        return "";
+    }
+
+    /**
+     * 일평균 표의 대한민국 원 행(북한 원화·명시적 배제 문자열 제외).
+     */
+    private static boolean isKrwBotRow(String n) {
+        if (n == null || n.isBlank()) {
+            return false;
+        }
+        String u = n.toUpperCase(Locale.ROOT);
+        if (u.contains("NORTH KOREA")
+                || u.contains("NORTH KOREAN")
+                || u.contains("D.P.R.K")
+                || u.contains("DPRK")
+                || u.contains("N.KOREA")
+                || u.contains("N. KOREA")) {
+            return false;
+        }
+        if (u.contains("KRW")) {
+            return true;
+        }
+        if (u.contains("S.KOREA") || u.contains("S. KOREA") || u.contains("SOUTH KOREA")) {
+            return true;
+        }
+        if (u.contains("REP.OF KOREA")
+                || u.contains("REP. OF KOREA")
+                || u.contains("REP OF KOREA")
+                || u.contains("REPUBLIC OF KOREA")) {
+            return true;
+        }
+        if (u.contains("KOREAN WON")) {
+            return true;
+        }
+        return u.contains("WON") && (u.contains("KOREA") || u.contains("KOREAN"));
+    }
+
     private static Optional<BotDailyRates> buildDailyRatesForPeriod(List<JsonNode> rows, String targetPeriod) {
         BigDecimal bestJpy = null;
         int bestJpyPri = -1;
@@ -249,8 +369,8 @@ public class BotThailandExchangeRateService {
             if (!targetPeriod.equals(row.path("period").asText("").trim())) {
                 continue;
             }
-            String name = row.path("currency_name_eng").asText("").toUpperCase(Locale.ROOT);
-            String mid = row.path("mid_rate").asText("").trim();
+            String name = botRowCurrencyNameUpper(row);
+            String mid = botRowMidText(row);
             if (mid.isEmpty()) {
                 continue;
             }
@@ -276,8 +396,7 @@ public class BotThailandExchangeRateService {
                     bestUsd = perOne;
                 }
             }
-            if (name.contains("KRW")
-                    || (name.contains("WON") && (name.contains("KOREA") || name.contains("KOREAN")))) {
+            if (isKrwBotRow(name)) {
                 int pri = botKrwRowPriority(name);
                 BigDecimal perOne = botThbPerOneKrw(name, rate);
                 if (pri > bestKrwPri) {
@@ -437,14 +556,21 @@ public class BotThailandExchangeRateService {
     }
 
     private static boolean isBotKrwQuotedPer1000(String n) {
-        return n.contains("1000") && (n.contains("KRW") || n.contains("WON"));
+        if (!isKrwBotRow(n) || !n.contains("1000")) {
+            return false;
+        }
+        /* BOT: 「#REP. OF KOREA (1000)」 등 원화 단위가 명에만 있고 KRW/WON 문자가 없을 수 있음 */
+        return n.contains("KRW")
+                || n.contains("WON")
+                || n.contains("KOREA")
+                || n.contains("KOREAN");
     }
 
     private static boolean isBotKrwQuotedPer100(String n) {
         if (isBotKrwQuotedPer1000(n)) {
             return false;
         }
-        if (!(n.contains("KRW") || (n.contains("WON") && (n.contains("KOREA") || n.contains("KOREAN"))))) {
+        if (!isKrwBotRow(n)) {
             return false;
         }
         return n.contains("KRW100") || (n.contains("100") && (n.contains("KRW") || n.contains("WON")));
@@ -461,7 +587,7 @@ public class BotThailandExchangeRateService {
     }
 
     private static int botKrwRowPriority(String n) {
-        if (!(n.contains("KRW") || (n.contains("WON") && (n.contains("KOREA") || n.contains("KOREAN"))))) {
+        if (!isKrwBotRow(n)) {
             return 0;
         }
         if (n.contains("KRW100") || n.contains("1000")) {

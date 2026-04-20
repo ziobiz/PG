@@ -1,6 +1,7 @@
 package com.pg.controller.api;
 
 import com.pg.api.ApiResponse;
+import com.pg.api.dto.LoginAttempt;
 import com.pg.api.dto.LoginRequest;
 import com.pg.api.dto.LoginResponse;
 import com.pg.entity.AppUser;
@@ -45,9 +46,15 @@ public class ApiAuthController {
             return ResponseEntity.ok(ApiResponse.fail("아이디와 비밀번호를 입력하세요.", "INVALID_INPUT"));
         }
         String ch = req.getClientHost() != null ? req.getClientHost().trim() : null;
-        return authService.login(req.getUsername().trim(), req.getPassword(), ch)
-                .map(res -> ResponseEntity.ok(ApiResponse.ok(res)))
-                .orElseGet(() -> ResponseEntity.ok(ApiResponse.fail("아이디 또는 비밀번호가 올바르지 않습니다.", "AUTH_FAIL")));
+        String totp = req.getTotpCode() != null ? String.valueOf(req.getTotpCode()).trim() : "";
+        LoginAttempt attempt = authService.loginAttempt(req.getUsername().trim(), req.getPassword(), ch,
+                totp.isEmpty() ? null : totp);
+        return switch (attempt.getKind()) {
+            case SUCCESS -> ResponseEntity.ok(ApiResponse.ok(attempt.getResponse()));
+            case BAD_CREDENTIALS -> ResponseEntity.ok(ApiResponse.fail("아이디 또는 비밀번호가 올바르지 않습니다.", "AUTH_FAIL"));
+            case OTP_REQUIRED -> ResponseEntity.ok(ApiResponse.fail("Google Authenticator의 6자리 코드를 입력하세요.", "OTP_REQUIRED"));
+            case OTP_INVALID -> ResponseEntity.ok(ApiResponse.fail("OTP 코드가 올바르지 않습니다.", "OTP_INVALID"));
+        };
     }
 
     /** 현재 로그인 사용자 정보 (업체정보조회 필터·권한 판단용) */
@@ -61,7 +68,7 @@ public class ApiAuthController {
             user.put("userId", fresh.getUsername());
             user.put("userNm", fresh.getName() != null ? fresh.getName() : fresh.getUsername());
             user.put("role", fresh.getRole());
-            user.put("otpRegisteredYn", "Y".equalsIgnoreCase(fresh.getOtpRegisteredYn()) ? "Y" : "N");
+            user.put("otpRegisteredYn", authService.isOtpFullyEnrolled(fresh) ? "Y" : "N");
             user.put("mustSetupOtp", authService.requiresOtpEnrollment(fresh));
             Map<String, Object> org = authService.getOrgInfo(fresh.getUsername());
             if (org != null) {

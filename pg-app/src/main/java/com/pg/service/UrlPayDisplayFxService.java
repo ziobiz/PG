@@ -180,8 +180,9 @@ public class UrlPayDisplayFxService {
     }
 
     /**
-     * 공개 결제창(pay.html)에서 표시 통화·청구예상 금액 행을 숨길지.
-     * amountMode 가 BLIND 일 때만 true (기능은 DISPLAY 와 동일).
+     * 공개 결제창(pay.html)에서 BLIND 모드인지.
+     * {@code true}이면 고객에게 실결제 통화로의 환산(청구예상) 노출을 줄이기 위한 플래그로 쓰이며,
+     * <strong>결제 방식 멀티</strong>일 때는 프런트에서 표시 통화 행은 유지하고 청구예상 행만 숨깁니다.
      */
     public boolean isUrlPayFxUiBlind(String operationalPgCd) {
         JsonNode pgNode = pgSettingsNode(normalizePgCd(operationalPgCd));

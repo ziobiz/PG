@@ -41,7 +41,9 @@ public class DataLoader {
                 admin.setEnabled(true);
                 admin.setOrgUnitCode("0000000000");
                 admin.setPermissionGroupNm("시스템관리자");
-                admin.setOtpRegisteredYn("Y");
+                admin.setOtpRegisteredYn("N");
+                admin.setOtpSecret(null);
+                admin.setOtpPendingSecret(null);
                 userRepository.save(admin);
             } else if (java.util.Arrays.stream(env.getActiveProfiles()).anyMatch("dev"::equals)) {
                 AppUser admin = adminOpt.get();
@@ -53,7 +55,10 @@ public class DataLoader {
                 if (admin.getPermissionGroupNm() == null || admin.getPermissionGroupNm().isBlank()) {
                     admin.setPermissionGroupNm("시스템관리자");
                 }
-                admin.setOtpRegisteredYn("Y");
+                /* dev: Google OTP 등록 플로우를 시험할 수 있도록 미등록 상태로 둠(운영 DB는 이 분기 미실행) */
+                admin.setOtpRegisteredYn("N");
+                admin.setOtpSecret(null);
+                admin.setOtpPendingSecret(null);
                 userRepository.save(admin);
             }
         };

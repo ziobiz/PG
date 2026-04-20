@@ -123,7 +123,7 @@
     })();
   })();
 
-  /** 총본사·본사·총판 Google OTP 등록 모달 (이메일 인증은 ziobizm@gmail.com 전용) */
+  /** ADMIN·총본사·본사·총판 Google OTP 등록 모달 (이메일 인증은 ziobizm@gmail.com 전용) */
   (function initPgOtpEnrollModal() {
     if (window._pgOtpEnrollInited) return;
     window._pgOtpEnrollInited = true;
@@ -16062,13 +16062,27 @@
         var tip = disp ? '' : '일반형: 총판(조직) 설정 통화로 결제되며 이 항목은 적용되지 않습니다.';
         var tipManualOff = '자동(BOT)이면 BOT·표시/실결제 통화로 실결제/1표시가 정해지므로 이 칸은 사용하지 않습니다. 수동 환율·행 마진을 쓰려면 FX에서 「수동」을 선택하세요.';
         var tipMarginAutoOff = '자동(BOT)이면 위 표시통화별 마진(JPY·USD·… 7종)만 적용됩니다. PG별 마진율은 FX 「수동」일 때만 입력합니다.';
-        ['hq-upd-dcur', 'hq-upd-dcmod', 'hq-upd-scur', 'hq-upd-fx'].forEach(function (cls) {
+        var tipDcurMulti = '결제 방식이 멀티일 때는 공개 결제 페이지에서 고객이 표시 통화를 고릅니다. 이 표의 표시 통화 칸은 사용하지 않습니다.';
+        ['hq-upd-dcmod', 'hq-upd-scur', 'hq-upd-fx'].forEach(function (cls) {
           var el = tr.querySelector('.' + cls);
           if (el) {
             el.disabled = !disp;
             el.title = tip;
           }
         });
+        var dcmEl = tr.querySelector('.hq-upd-dcmod');
+        var dcur = tr.querySelector('.hq-upd-dcur');
+        var multi = dcmEl && String(dcmEl.value || '').trim().toUpperCase() === 'MULTI';
+        if (dcur) {
+          dcur.disabled = !disp || multi;
+          if (!disp) {
+            dcur.title = tip;
+          } else if (multi) {
+            dcur.title = tipDcurMulti;
+          } else {
+            dcur.title = '';
+          }
+        }
         var mn = tr.querySelector('.hq-upd-manual');
         var mr = tr.querySelector('.hq-upd-mrg');
         if (mn) {
@@ -16098,7 +16112,7 @@
         tbodyUp._hqUrlPayDepAmodeBound = true;
         tbodyUp.addEventListener('change', function (ev) {
           var t = ev.target;
-          if (t && t.classList && (t.classList.contains('hq-upd-amode') || t.classList.contains('hq-upd-fx'))) {
+          if (t && t.classList && (t.classList.contains('hq-upd-amode') || t.classList.contains('hq-upd-fx') || t.classList.contains('hq-upd-dcmod'))) {
             var tr = t.closest('tr');
             if (tr) setUrlPayDeployRowFxControlsEnabled(tr);
             refreshUrlPayDeployGlobalFxControls();
@@ -16142,11 +16156,11 @@
             '<option value="STANDARD"' + (mode === 'STANDARD' ? ' selected' : '') + '>일반형</option>' +
             '<option value="DISPLAY"' + (mode === 'DISPLAY' ? ' selected' : '') + '>DISPLAY</option>' +
             '<option value="BLIND"' + (mode === 'BLIND' ? ' selected' : '') + '>BLIND</option></select></td>' +
-            '<td><select class="form-select form-select-sm hq-upd-dcur" data-pg="' + escUrlPayDep(cdU) + '">' +
-            buildUrlPayDepCurOptions(disp, 'JPY') + '</select></td>' +
             '<td><select class="form-select form-select-sm hq-upd-dcmod" data-pg="' + escUrlPayDep(cdU) + '">' +
             '<option value="FIXED"' + (dcm === 'FIXED' ? ' selected' : '') + '>고정</option>' +
             '<option value="MULTI"' + (dcm === 'MULTI' ? ' selected' : '') + '>멀티</option></select></td>' +
+            '<td><select class="form-select form-select-sm hq-upd-dcur" data-pg="' + escUrlPayDep(cdU) + '">' +
+            buildUrlPayDepCurOptions(disp, 'JPY') + '</select></td>' +
             '<td><select class="form-select form-select-sm hq-upd-scur" data-pg="' + escUrlPayDep(cdU) + '">' +
             buildUrlPayDepCurOptions(setc, 'THB') + '</select></td>' +
             '<td><select class="form-select form-select-sm hq-upd-fx" data-pg="' + escUrlPayDep(cdU) + '">' +
@@ -17960,17 +17974,32 @@
         if (tbody) tbody.innerHTML = '<tr><td colspan="5" class="text-center text-danger py-3">' + esc(e && e.message ? e.message : '목록 조회 실패') + '</td></tr>';
       });
     }
-    if (!pane._apiMerchRegNavBound) {
-      pane._apiMerchRegNavBound = true;
-      var move = typeof window.fnTopMenuMove === 'function' ? window.fnTopMenuMove : null;
-      var bPg = pane.querySelector('#apiMerchRegBtnPgApi');
-      if (bPg) bPg.addEventListener('click', function () { if (move) move('/hq/pgApiMng', 'M0101', 'API연동설정'); });
-      var bReg = pane.querySelector('#apiMerchRegBtnCompReg');
-      if (bReg) bReg.addEventListener('click', function () { if (move) move('/comp/compReg', 'M0208', '업체등록'); });
-      var bTree = pane.querySelector('#apiMerchRegBtnCompTree');
-      if (bTree) bTree.addEventListener('click', function () { if (move) move('/comp/compMngTree', 'M0209', '업체관리'); });
-      var bNext = pane.querySelector('#apiMerchRegBtnNextGen');
-      if (bNext) bNext.addEventListener('click', function () { if (move) move('/hq/merchantApiGenerate', 'M0905', '가맹점 API 생성'); });
+    function goApiMerchRegMenu(u, mid, lab) {
+      if (typeof window.fnTopMenuMove === 'function') {
+        window.fnTopMenuMove(u, mid, lab);
+      } else {
+        alert('메뉴 이동을 초기화하지 못했습니다. 페이지를 새로고침한 뒤 다시 시도해 주세요.');
+      }
+    }
+    var bPg = pane.querySelector('#apiMerchRegBtnPgApi');
+    if (bPg && !bPg._apiMerchNavBound) {
+      bPg._apiMerchNavBound = true;
+      bPg.addEventListener('click', function () { goApiMerchRegMenu('/hq/pgApiMng', 'M0101', 'API연동설정'); });
+    }
+    var bReg = pane.querySelector('#apiMerchRegBtnCompReg');
+    if (bReg && !bReg._apiMerchNavBound) {
+      bReg._apiMerchNavBound = true;
+      bReg.addEventListener('click', function () { goApiMerchRegMenu('/comp/compReg', 'M0208', '업체등록'); });
+    }
+    var bTree = pane.querySelector('#apiMerchRegBtnCompTree');
+    if (bTree && !bTree._apiMerchNavBound) {
+      bTree._apiMerchNavBound = true;
+      bTree.addEventListener('click', function () { goApiMerchRegMenu('/comp/compMngTree', 'M0209', '업체관리'); });
+    }
+    var bNext = pane.querySelector('#apiMerchRegBtnNextGen');
+    if (bNext && !bNext._apiMerchNavBound) {
+      bNext._apiMerchNavBound = true;
+      bNext.addEventListener('click', function () { goApiMerchRegMenu('/hq/merchantApiGenerate', 'M0905', '가맹점 API 생성'); });
     }
     renderPgRows();
   }

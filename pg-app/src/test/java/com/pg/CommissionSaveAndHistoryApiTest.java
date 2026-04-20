@@ -11,6 +11,8 @@ import com.pg.repository.MerchantCommissionExtraRepository;
 import com.pg.repository.MerchantProfileRepository;
 import com.pg.repository.OrgUnitRepository;
 import com.pg.repository.SettlementSettingRepository;
+import com.pg.repository.UserRepository;
+import com.pg.util.TotpRfc6238;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -48,6 +50,8 @@ class CommissionSaveAndHistoryApiTest {
     SettlementSettingRepository settlementSettingRepository;
     @Autowired
     MerchantCommissionExtraRepository merchantCommissionExtraRepository;
+    @Autowired
+    UserRepository userRepository;
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -93,13 +97,27 @@ class CommissionSaveAndHistoryApiTest {
     }
 
     private String loginToken() throws Exception {
+        String body = "{\"username\":\"admin\",\"password\":\"admin1!\"}";
         MvcResult login = mockMvc.perform(post("/api/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"username\":\"admin\",\"password\":\"admin1!\"}"))
+                        .content(body))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.success").value(true))
                 .andReturn();
         JsonNode root = objectMapper.readTree(login.getResponse().getContentAsString());
+        if (!root.path("success").asBoolean() && "OTP_REQUIRED".equals(root.path("errorCode").asText())) {
+            var admin = userRepository.findByUsername("admin").orElseThrow();
+            if (admin.getOtpSecret() != null && !admin.getOtpSecret().isBlank()) {
+                String code = TotpRfc6238.currentTotpCode(admin.getOtpSecret());
+                body = "{\"username\":\"admin\",\"password\":\"admin1!\",\"totpCode\":\"" + code + "\"}";
+                login = mockMvc.perform(post("/api/auth/login")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(body))
+                        .andExpect(status().isOk())
+                        .andReturn();
+                root = objectMapper.readTree(login.getResponse().getContentAsString());
+            }
+        }
+        assertThat(root.path("success").asBoolean()).isTrue();
         String token = root.path("data").path("token").asText(null);
         assertThat(token).isNotBlank();
         return token;

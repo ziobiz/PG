@@ -305,7 +305,7 @@
       var urlPayAmountScaleMode = 'SAME';
       /** checkout-context: CHECKOUT_CURRENCY | DISPLAY_FX_THB */
       var urlPayPricingMode = 'CHECKOUT_CURRENCY';
-      /** DISPLAY_FX_THB 이면서 본사 amountMode BLIND: 표시통화·청구예상 행만 숨김(견적·결제는 동일). */
+      /** DISPLAY_FX_THB 이면서 본사 amountMode BLIND: 고정은 표시통화·청구예상 행 숨김, 멀티는 청구예상만 숨김(견적·결제는 동일). */
       var urlPayFxUiBlind = false;
       var urlPayDisplayFxActive = false;
       var urlPayDisplayFxRefreshSeconds = 600;
@@ -1102,6 +1102,10 @@
       function payFxResolvedDisplayCurrency() {
         if (!checkoutCtx) return 'JPY';
         if (checkoutCtx.urlPayDisplayFxDisplayCurrencyMulti === true) {
+          if (!window.__pgPayFxDisplaySelectSynced) {
+            return checkoutCtx.urlPayDisplayFxDefaultDisplayCurrency != null
+              ? String(checkoutCtx.urlPayDisplayFxDefaultDisplayCurrency).trim().toUpperCase() : 'JPY';
+          }
           var sc = document.getElementById('payDisplayCurrencySelect');
           if (sc && !sc.classList.contains('d-none')) {
             return String(sc.value || checkoutCtx.urlPayDisplayFxDefaultDisplayCurrency || 'JPY').trim().toUpperCase();
@@ -1153,9 +1157,7 @@
           if (!urlPayDisplayFxActive && ctx.checkoutCurrencyCode) {
             curHint.textContent = '(' + String(ctx.checkoutCurrencyCode).trim() + ')';
           } else if (urlPayDisplayFxActive && String(urlPayPricingMode || '').toUpperCase() === 'DISPLAY_FX_THB') {
-            var dispDef = ctx.urlPayDisplayFxDefaultDisplayCurrency != null
-              ? String(ctx.urlPayDisplayFxDefaultDisplayCurrency).trim().toUpperCase() : 'JPY';
-            curHint.textContent = '(' + (dispDef || 'JPY') + ')';
+            updatePayFxCurrencyHint();
           }
         }
         applyPayAmountScaleNotice();
@@ -1229,11 +1231,19 @@
       }
 
       function initUrlPayDisplayFx(compId) {
+        window.__pgPayFxDisplaySelectSynced = false;
         var rowC = document.getElementById('payFxDisplayCurrencyRow');
         var rowQ = document.getElementById('payFxQuoteRow');
-        var hideFxRows = urlPayFxUiBlind === true;
-        if (rowC && !hideFxRows) rowC.classList.remove('d-none');
-        if (rowQ && !hideFxRows) rowQ.classList.remove('d-none');
+        var blind = urlPayFxUiBlind === true;
+        var multi = checkoutCtx && checkoutCtx.urlPayDisplayFxDisplayCurrencyMulti === true;
+        if (rowC) {
+          if (blind && !multi) rowC.classList.add('d-none');
+          else rowC.classList.remove('d-none');
+        }
+        if (rowQ) {
+          if (blind) rowQ.classList.add('d-none');
+          else rowQ.classList.remove('d-none');
+        }
         var sc = document.getElementById('payDisplayCurrencySelect');
         var stFx = document.getElementById('payFxDisplayCurrencyStatic');
         if (sc && checkoutCtx) {
@@ -1265,6 +1275,7 @@
             }
           }
         }
+        window.__pgPayFxDisplaySelectSynced = true;
         updatePayFxCurrencyHint();
         if (sc && !sc._payFxBound) {
           sc._payFxBound = true;

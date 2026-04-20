@@ -814,17 +814,6 @@ public class CompService {
         return t;
     }
 
-    private static String shortenForLog(String s) {
-        if (s == null) {
-            return "";
-        }
-        String t = s.trim();
-        if (t.length() > 2000) {
-            return t.substring(0, 2000) + "…";
-        }
-        return t;
-    }
-
     private void addOrgChangeRow(List<OrgUnitChangeLog> rows, Long orgUnitId, String compId, String compNm, String by,
                                  String label, String valueBefore, String valueAfter) {
         OrgUnitChangeLog e = new OrgUnitChangeLog();
@@ -843,7 +832,7 @@ public class CompService {
         if (Objects.equals(nz(before), nz(after))) {
             return;
         }
-        addOrgChangeRow(rows, orgUnitId, compId, compNm, by, label, shortenForLog(before), shortenForLog(after));
+        addOrgChangeRow(rows, orgUnitId, compId, compNm, by, label, before, after);
     }
 
     private void addDiffYn(List<OrgUnitChangeLog> rows, Long orgUnitId, String compId, String compNm, String by,
@@ -908,7 +897,7 @@ public class CompService {
         addDiff(rows, oid, compId, compNm, by, p + "사이트개요", snap.siteSummary(), nz(mp.getSiteSummary()));
         if (!Objects.equals(nz(snap.regionalSettings()), nz(mp.getRegionalSettings()))) {
             addOrgChangeRow(rows, oid, compId, compNm, by, p + "본사/지역설정(JSON)",
-                    shortenForLog(snap.regionalSettings()), shortenForLog(mp.getRegionalSettings()));
+                    snap.regionalSettings(), mp.getRegionalSettings());
         }
         if (pwdChanged) {
             addOrgChangeRow(rows, oid, compId, compNm, by, p + "대표비밀번호", "(유지)", "(변경됨)");

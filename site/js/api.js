@@ -284,12 +284,16 @@
     clearAuth: clearAuth,
     getBaseUrl: getBaseUrl,
 
-    login: function (username, password) {
+    login: function (username, password, totpCode) {
       var ch = '';
       try {
         if (typeof location !== 'undefined' && location.host) ch = location.host;
       } catch (e) {}
-      return post('/api/auth/login', { username: username, password: password, clientHost: ch });
+      var body = { username: username, password: password, clientHost: ch };
+      if (totpCode != null && String(totpCode).trim() !== '') {
+        body.totpCode = String(totpCode).trim();
+      }
+      return post('/api/auth/login', body);
     },
 
     /** 현재 토큰 기준 사용자·소속 업체 (업체정보조회 등) */

@@ -58,6 +58,9 @@ public class UrlPayCardCopyService {
 
     /**
      * 운영 PG와 일치하는 <strong>활성</strong> 항목 1건을 반환.
+     * <p>운영 {@code pg_cd}가 {@code CHILLPAY BL JP THB} 등 확장 코드일 때, 목록 앞쪽의 범용 {@code CHILLPAY} 행이
+     * 먼저 매칭되지 않도록 <strong>행 {@code pgCd} 와 운영 코드가 완전히 같을 때를 최우선</strong>하고,
+     * 없을 때만 {@code CHILLPAY} 단독 행·ChillPay 계열 폴백({@link #pgMatchesLoose})을 쓴다.</p>
      * 키: {@link #KEY_CARD_SECTION}, {@link #KEY_CARD_NOTE}, {@link #KEY_CCD_HINT}, {@link #KEY_CARD_BODY3}, {@link #KEY_BROWSER_TAB_TITLE} — 값은 언어코드→문자열 맵.
      * {@link #KEY_FAVICON_URL} — 문자열(허용된 업로드 경로만).
      * {@link #KEY_AMOUNT_SCALE_NOTICE} — 금액 하단 안내(맵). 비어 있으면 키 생략, 페이지 기본 I18N.
@@ -79,44 +82,67 @@ public class UrlPayCardCopyService {
                 return Optional.empty();
             }
             HqApiConfig hqCfg = hqApiConfigRepository.findAll().stream().findFirst().orElse(null);
-            for (JsonNode e : entries) {
-                if (e == null || !e.isObject()) {
-                    continue;
-                }
-                if (!"Y".equalsIgnoreCase(text(e, "activeYn"))) {
-                    continue;
-                }
-                String rowPg = text(e, "pgCd").toUpperCase(Locale.ROOT);
-                if (rowPg.isEmpty() || !pgMatches(rowPg, pg)) {
-                    continue;
-                }
-                Map<String, Object> out = new LinkedHashMap<>();
-                out.put(KEY_CARD_SECTION, langMap(e.get("title")));
-                out.put(KEY_CARD_NOTE, langMap(e.get("body1")));
-                out.put(KEY_CCD_HINT, langMap(e.get("body2")));
-                out.put(KEY_CARD_BODY3, langMap(e.get("body3")));
-                applyUrlPayChrome(out, hqCfg, e);
-                putLangMapIfNonEmpty(out, KEY_RESULT_SUCCESS_MAIN, e.get("resultSuccessMain"));
-                putLangMapIfNonEmpty(out, KEY_RESULT_SUCCESS_FOOT, e.get("resultSuccessFoot"));
-                putLangMapIfNonEmpty(out, KEY_RESULT_FAIL_MAIN, e.get("resultFailMain"));
-                putLangMapIfNonEmpty(out, KEY_RESULT_FAIL_FOOT, e.get("resultFailFoot"));
-                String amtShowYn = text(e, KEY_AMOUNT_SCALE_NOTICE_SHOW_YN);
-                boolean showAmt = !"N".equalsIgnoreCase(amtShowYn.trim());
-                out.put("amountScaleNoticeShow", showAmt);
-                Map<String, String> amtMap = langMap(e.get(KEY_AMOUNT_SCALE_NOTICE));
-                if (!amtMap.isEmpty()) {
-                    out.put(KEY_AMOUNT_SCALE_NOTICE, amtMap);
-                }
-                return Optional.of(out);
+            Optional<Map<String, Object>> exact = pickActiveCopy(entries, pg, hqCfg, true);
+            if (exact.isPresent()) {
+                return exact;
             }
+            return pickActiveCopy(entries, pg, hqCfg, false);
         } catch (Exception ignored) {
             return Optional.empty();
+        }
+    }
+
+    /**
+     * @param exactOnly {@code true} 이면 행 {@code pgCd} 가 운영 PG와 <strong>문자열 동일</strong>할 때만 매칭.
+     */
+    private Optional<Map<String, Object>> pickActiveCopy(
+            JsonNode entries, String opPgUpper, HqApiConfig hqCfg, boolean exactOnly) {
+        for (JsonNode e : entries) {
+            if (e == null || !e.isObject()) {
+                continue;
+            }
+            if (!"Y".equalsIgnoreCase(text(e, "activeYn"))) {
+                continue;
+            }
+            String rowPg = text(e, "pgCd").toUpperCase(Locale.ROOT);
+            if (rowPg.isEmpty()) {
+                continue;
+            }
+            if (exactOnly) {
+                if (!rowPg.equals(opPgUpper)) {
+                    continue;
+                }
+            } else if (!pgMatchesLoose(rowPg, opPgUpper)) {
+                continue;
+            }
+            return Optional.of(buildActiveCopyMap(e, hqCfg));
         }
         return Optional.empty();
     }
 
-    /** 행 pg_cd 와 운영 PG 코드 일치, 또는 행이 CHILLPAY 이고 운영이 ChillPay 계열인 경우 */
-    private static boolean pgMatches(String rowPgUpper, String opPgUpper) {
+    private Map<String, Object> buildActiveCopyMap(JsonNode e, HqApiConfig hqCfg) {
+        Map<String, Object> out = new LinkedHashMap<>();
+        out.put(KEY_CARD_SECTION, langMap(e.get("title")));
+        out.put(KEY_CARD_NOTE, langMap(e.get("body1")));
+        out.put(KEY_CCD_HINT, langMap(e.get("body2")));
+        out.put(KEY_CARD_BODY3, langMap(e.get("body3")));
+        applyUrlPayChrome(out, hqCfg, e);
+        putLangMapIfNonEmpty(out, KEY_RESULT_SUCCESS_MAIN, e.get("resultSuccessMain"));
+        putLangMapIfNonEmpty(out, KEY_RESULT_SUCCESS_FOOT, e.get("resultSuccessFoot"));
+        putLangMapIfNonEmpty(out, KEY_RESULT_FAIL_MAIN, e.get("resultFailMain"));
+        putLangMapIfNonEmpty(out, KEY_RESULT_FAIL_FOOT, e.get("resultFailFoot"));
+        String amtShowYn = text(e, KEY_AMOUNT_SCALE_NOTICE_SHOW_YN);
+        boolean showAmt = !"N".equalsIgnoreCase(amtShowYn.trim());
+        out.put("amountScaleNoticeShow", showAmt);
+        Map<String, String> amtMap = langMap(e.get(KEY_AMOUNT_SCALE_NOTICE));
+        if (!amtMap.isEmpty()) {
+            out.put(KEY_AMOUNT_SCALE_NOTICE, amtMap);
+        }
+        return out;
+    }
+
+    /** 정확 일치 또는 행이 CHILLPAY 단독이고 운영이 ChillPay 계열인 경우(레거시 폴백). */
+    private static boolean pgMatchesLoose(String rowPgUpper, String opPgUpper) {
         if (rowPgUpper.equals(opPgUpper)) {
             return true;
         }

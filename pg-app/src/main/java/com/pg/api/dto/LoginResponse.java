@@ -14,7 +14,7 @@ public class LoginResponse {
     private String brandingCompId;
     /** 비밀번호 초기화 등으로 임시 비번 사용 중이면 true — 클라이언트에서 변경 유도 */
     private boolean mustChangePassword;
-    /** 총본사·본사·총판 등 Google OTP 미등록 시 true — 로그인 후 등록 유도 */
+    /** ADMIN·총본사·본사·총판 등 Google OTP 미등록 시 true — 로그인 후 등록 유도 */
     private boolean mustSetupOtp;
     /** OTP 등록 여부 Y/N */
     private String otpRegisteredYn = "N";
