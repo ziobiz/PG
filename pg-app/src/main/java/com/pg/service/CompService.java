@@ -97,6 +97,7 @@ public class CompService {
     private final MasterDistSettlementCycleConfigService masterDistSettlementCycleConfigService;
     private final SettlementCalcCycleTransitionService settlementCalcCycleTransitionService;
     private final HqLedgerSysSettingsRepository hqLedgerSysSettingsRepository;
+    private final ChillPayService chillPayService;
 
     private static LocalTime parseTime(String s) {
         if (s == null || s.trim().isEmpty()) return null;
@@ -410,7 +411,8 @@ public class CompService {
                        HqNotifyTargetService hqNotifyTargetService,
                        MasterDistSettlementCycleConfigService masterDistSettlementCycleConfigService,
                        SettlementCalcCycleTransitionService settlementCalcCycleTransitionService,
-                       HqLedgerSysSettingsRepository hqLedgerSysSettingsRepository) {
+                       HqLedgerSysSettingsRepository hqLedgerSysSettingsRepository,
+                       ChillPayService chillPayService) {
         this.orgUnitRepository = orgUnitRepository;
         this.merchantProfileRepository = merchantProfileRepository;
         this.settlementSettingRepository = settlementSettingRepository;
@@ -431,6 +433,7 @@ public class CompService {
         this.masterDistSettlementCycleConfigService = masterDistSettlementCycleConfigService;
         this.settlementCalcCycleTransitionService = settlementCalcCycleTransitionService;
         this.hqLedgerSysSettingsRepository = hqLedgerSysSettingsRepository;
+        this.chillPayService = chillPayService;
     }
 
     private static String resolveActorUsernameFallback() {
@@ -1075,6 +1078,12 @@ public class CompService {
                                     })
                                     .collect(Collectors.toList());
                             m.put("pgBindings", pgBindings);
+                            if (ou.getOrgLevel() == OrgLevel.MERCHANT) {
+                                if (syncMerchantWebPaymentUseYnIfNoUrlPayBinding(ou.getId(), mp)) {
+                                    merchantProfileRepository.save(mp);
+                                }
+                                m.put("webPaymentUseYn", mp.getWebPaymentUseYn() != null ? mp.getWebPaymentUseYn() : "Y");
+                            }
                             Map<String, Object> ownRegionalSettings = parseRegionalSettings(mp.getRegionalSettings());
                             if (!ownRegionalSettings.isEmpty()) {
                                 m.putAll(ownRegionalSettings);
@@ -1521,6 +1530,9 @@ public class CompService {
                                 } catch (JsonProcessingException e) {
                                     throw new IllegalArgumentException("결제대행사(JSON) 형식이 올바르지 않습니다.", e);
                                 }
+                            }
+                            if (ou.getOrgLevel() == OrgLevel.MERCHANT && syncMerchantWebPaymentUseYnIfNoUrlPayBinding(ou.getId(), mp)) {
+                                merchantProfileRepository.save(mp);
                             }
                             if ("MERCHANT".equalsIgnoreCase(effDivForCommission)) {
                                 String chosenCur = (baseCurrency != null && !baseCurrency.trim().isEmpty())
@@ -2139,6 +2151,9 @@ public class CompService {
         }
 
         if ("MERCHANT".equalsIgnoreCase(compDiv)) {
+            if (syncMerchantWebPaymentUseYnIfNoUrlPayBinding(saved.getId(), mp)) {
+                merchantProfileRepository.save(mp);
+            }
             saveMerchantDefaultProductOrClear(saved.getId(), defaultProductName, defaultProductCode,
                     defaultProductAmount, defaultProductDesc);
             saveMerchantPayNotifyUrls(saved.getId(), notifyUrlBackground, notifyUrlResult,
@@ -3587,6 +3602,25 @@ public class CompService {
      * 가맹 PG 정산예정 덮어쓰기. {@code extSettleMode} 빈 값·{@code INHERIT} → 연동(tb_pg_agency) 기본 따름(DB null).
      * {@code OFF} → 이 MID는 예정일 미표시. {@code T}/{@code D} → N(1~10), D는 일괄시각 필수.
      */
+    /**
+     * URL 결제(연동용도 URL결제) 운영 WEB 바인딩이 없으면 {@link MerchantProfile#getWebPaymentUseYn()} 을 미사용(N)으로 맞춘다.
+     * @return 프로필의 웹결제여부 값이 바뀌었으면 true (호출측에서 {@link MerchantProfileRepository#save} 권장)
+     */
+    private boolean syncMerchantWebPaymentUseYnIfNoUrlPayBinding(Long merchantOrgUnitId, MerchantProfile mp) {
+        if (merchantOrgUnitId == null || mp == null) {
+            return false;
+        }
+        if (chillPayService.findOperationalWebBindingForUrlPay(merchantOrgUnitId).isPresent()) {
+            return false;
+        }
+        String cur = mp.getWebPaymentUseYn();
+        if (cur == null || !"N".equalsIgnoreCase(cur.trim())) {
+            mp.setWebPaymentUseYn("N");
+            return true;
+        }
+        return false;
+    }
+
     private void applyMerchantPgBindingExtSettlementFields(MerchantPgBinding binding, String modeRaw, String lagStr, String batchHm) {
         String m0 = modeRaw != null ? modeRaw.trim().toUpperCase(Locale.ROOT) : "";
         if (m0.isEmpty() || "INHERIT".equals(m0)) {
@@ -3732,6 +3766,11 @@ public class CompService {
         bm.put("extSettleMode", binding.getExtSettleMode() != null ? binding.getExtSettleMode() : "");
         bm.put("extSettleLag", binding.getExtSettleLag() != null ? String.valueOf(binding.getExtSettleLag()) : "");
         bm.put("extSettleBatchTime", binding.getExtSettleBatchTime() != null ? binding.getExtSettleBatchTime().toString() : "");
+        merchantProfileRepository.findByOrgUnitId(ou.getId()).ifPresent(mp -> {
+            if (syncMerchantWebPaymentUseYnIfNoUrlPayBinding(ou.getId(), mp)) {
+                merchantProfileRepository.save(mp);
+            }
+        });
         return bm;
     }
 
@@ -3748,6 +3787,11 @@ public class CompService {
         orgUnitChangeAuditService.appendIfChanged(ou.getId(), nz(ou.getCode()), nz(ou.getName()),
                 "[PG연동] 결제대행 삭제", line, "(삭제)");
         merchantPgBindingRepository.delete(b);
+        merchantProfileRepository.findByOrgUnitId(ou.getId()).ifPresent(mp -> {
+            if (syncMerchantWebPaymentUseYnIfNoUrlPayBinding(ou.getId(), mp)) {
+                merchantProfileRepository.save(mp);
+            }
+        });
     }
 
     /**

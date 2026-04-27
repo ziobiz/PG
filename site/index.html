@@ -8,7 +8,7 @@
   <title>PG 통합관리자</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
-  <link href="css/site.css?v=70" rel="stylesheet">
+  <link href="css/site.css?v=71" rel="stylesheet">
   <link href="css/hq-server-monitor.css?v=5" rel="stylesheet">
   <script src="js/config.js?v=9"></script>
   <script>
@@ -96,9 +96,9 @@
               <li class="child-li" data-url="/hq/orgViewColumnAllowance"><a href="#" data-menu_id="M0108">조직항목설정</a></li>
               <li class="child-li" data-url="/hq/paymentOrchestration"><a href="#" data-menu_id="M0118">결제로직설정</a></li>
               <li class="child-li" data-url="/hq/urlPayDeploy"><a href="#" data-menu_id="M0122">URL결제설정</a></li>
-              <li class="child-li" data-url="/hq/notifyEnv"><a href="#" data-menu_id="M0105">노티구성설정</a></li>
-              <li class="child-li" data-url="/hq/notifyMapping"><a href="#" data-menu_id="M0107">노티매핑설정</a></li>
-              <li class="child-li" data-url="/hq/notifyInbound"><a href="#" data-menu_id="M0121">노티수령정보</a></li>
+              <li class="child-li" data-url="/hq/notifyEnv"><a href="#" data-menu_id="M0105" data-pg-ui-t="노티구성설정">노티구성설정</a></li>
+              <li class="child-li" data-url="/hq/notifyMapping"><a href="#" data-menu_id="M0107" data-pg-ui-t="노티매핑설정">노티매핑설정</a></li>
+              <li class="child-li" data-url="/hq/notifyInbound"><a href="#" data-menu_id="M0121" data-pg-ui-t="노티수령정보">노티수령정보</a></li>
               <li class="child-li" data-url="/hq/ledgerSysSettings"><a href="#" data-menu_id="M0119">전산설정관리</a></li>
               <li class="child-li" data-url="/hq/settlementAdmin"><a href="#" data-menu_id="M0123">정산관리설정</a></li>
               <li class="child-li" data-url="/hq/receivableRecoverySettings"><a href="#" data-menu_id="M0124">환수/미수금설정</a></li>
@@ -208,8 +208,16 @@
       <!-- 헤더: 참고 이미지 - 우측만 접속IP·접속시간·사용자(아이콘+ID+이름)·전체닫기 -->
       <header class="header-top">
         <div class="header-top-right">
-          <span class="header-top-info">접속 IP: <span id="headerClientIp">-</span></span>
-          <span class="header-top-info">접속시간: <span id="headerAccessTime">-</span></span>
+          <div class="pg-pay-lang-inline flex-shrink-0" id="pgPayListLangDropdown" role="group" aria-label="그리드 및 화면 언어" title="그리드 및 화면 언어">
+            <span class="pg-pay-lang-label">언어</span>
+            <button type="button" class="pg-pay-lang-chip" data-pg-pay-locale="JP">JP</button>
+            <button type="button" class="pg-pay-lang-chip" data-pg-pay-locale="KO">KR</button>
+            <button type="button" class="pg-pay-lang-chip" data-pg-pay-locale="EN">EN</button>
+            <button type="button" class="pg-pay-lang-chip" data-pg-pay-locale="CH">CH</button>
+            <button type="button" class="pg-pay-lang-chip" data-pg-pay-locale="TH">TH</button>
+          </div>
+          <span class="header-top-info"><span id="pgShellLabelIp">접속 IP:</span> <span id="headerClientIp">-</span></span>
+          <span class="header-top-info"><span id="pgShellLabelTime">접속시간:</span> <span id="headerAccessTime">-</span></span>
           <div class="header-user dropdown">
             <a href="#" class="header-user-link dropdown-toggle" data-bs-toggle="dropdown" data-bs-display="static" data-bs-auto-close="true" role="button" aria-expanded="false" aria-haspopup="true">
               <span class="header-user-icon"><i class="bi bi-person-circle"></i></span>
@@ -248,8 +256,8 @@
               <div class="tab-pane tabConDiv show active" id="main" formurl="/main">
                 <div class="card">
                   <div class="card-body text-center">
-                    <p class="text-muted mb-0">좌측 메뉴에서 화면을 선택하세요. 메뉴 클릭 시 해당 탭이 열립니다.</p>
-                    <p class="text-muted small mt-2 mb-0">결제내역 그리드 기본 노출 항목에 <strong>Route No</strong>(PG 라우트)가 포함됩니다. 세부 컬럼은 결제내역 화면의 VIEW SETTING에서 조정할 수 있습니다.</p>
+                    <p class="text-muted mb-0" id="pgShellMainHint1">좌측 메뉴에서 화면을 선택하세요. 메뉴 클릭 시 해당 탭이 열립니다.</p>
+                    <p class="text-muted small mt-2 mb-0" id="pgShellMainHint2">결제내역 그리드 기본 노출 항목에 <strong>Route No</strong>(PG 라우트)가 포함됩니다. 세부 컬럼은 결제내역 화면의 VIEW SETTING에서 조정할 수 있습니다.</p>
                     <div class="page-footer">Copyright © 2023 ICOPAY Service by Ontheline Co., Ltd.</div>
                   </div>
                 </div>
@@ -265,25 +273,25 @@
       <div class="modal-dialog modal-lg modal-dialog-scrollable">
         <div class="modal-content">
           <div class="modal-header">
-            <h5 class="modal-title" id="parentCompSearchModalLabel">상위업체 검색</h5>
-            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="닫기"></button>
+            <h5 class="modal-title" id="parentCompSearchModalLabel" data-pg-ui-t="상위업체 검색">상위업체 검색</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" data-pg-ui-aria-label="닫기" aria-label="닫기"></button>
           </div>
           <div class="modal-body">
             <div class="row mb-3">
               <div class="col-md-8">
-                <input type="text" class="form-control form-control-sm" id="parentCompSearchKeyword" placeholder="업체코드 또는 업체명">
+                <input type="text" class="form-control form-control-sm" id="parentCompSearchKeyword" data-pg-ui-placeholder="업체코드 또는 업체명" placeholder="업체코드 또는 업체명">
               </div>
               <div class="col-md-4">
-                <button type="button" class="btn btn-primary btn-sm" id="parentCompSearchBtn">검색</button>
+                <button type="button" class="btn btn-primary btn-sm" id="parentCompSearchBtn" data-pg-ui-t="검색">검색</button>
               </div>
             </div>
             <div class="table-responsive">
               <table class="table table-sm table-hover">
-                <thead><tr><th>선택</th><th>업체코드</th><th>업체명</th><th>구분</th></tr></thead>
+                <thead><tr><th data-pg-ui-t="선택">선택</th><th data-pg-ui-t="업체코드">업체코드</th><th data-pg-ui-t="업체명">업체명</th><th data-pg-ui-t="구분">구분</th></tr></thead>
                 <tbody id="parentCompSearchTbody"></tbody>
               </table>
             </div>
-            <p class="text-muted small mb-0">행을 클릭하면 해당 업체가 상위업체로 선택됩니다.</p>
+            <p class="text-muted small mb-0" data-pg-ui-t="행을 클릭하면 해당 업체가 상위업체로 선택됩니다.">행을 클릭하면 해당 업체가 상위업체로 선택됩니다.</p>
           </div>
         </div>
       </div>
@@ -293,69 +301,69 @@
       <div class="modal-dialog modal-xl modal-dialog-scrollable">
         <div class="modal-content">
           <div class="modal-header">
-            <h5 class="modal-title" id="commissionSettingModalLabel">수수료 설정 (배분·정책)</h5>
-            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="닫기"></button>
+            <h5 class="modal-title" id="commissionSettingModalLabel" data-pg-ui-t="수수료 설정 (배분·정책)">수수료 설정 (배분·정책)</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" data-pg-ui-aria-label="닫기" aria-label="닫기"></button>
           </div>
           <div class="modal-body">
             <input type="hidden" id="commissionSettingCompId" value="">
-            <p class="text-muted small">조직 단계별 <strong>요율%</strong>·<strong>건당료</strong>(건당 수수료)는 수수료관리 그리드(총본사~영업점)와 동일합니다.</p>
+            <p class="text-muted small" data-pg-ui-t="조직 단계별 요율%·건당료(건당 수수료)는 수수료관리 그리드(총본사~영업점)와 동일합니다.">조직 단계별 요율%·건당료(건당 수수료)는 수수료관리 그리드(총본사~영업점)와 동일합니다.</p>
             <div class="row mb-2">
-              <div class="col-md-3"><label class="form-label">건당 수수료(원)</label><input type="text" class="form-control form-control-sm" name="perTxFee" id="commissionPerTxFee"></div>
-              <div class="col-md-3"><label class="form-label">취소 수수료(건)</label><input type="text" class="form-control form-control-sm" name="cancelRate" id="commissionCancelRate"></div>
-              <div class="col-md-3"><label class="form-label">무효 수수료(건)</label><input type="text" class="form-control form-control-sm" name="voidFeePerTx" id="commissionVoidFeePerTx" title="거래 상태 21"></div>
-              <div class="col-md-3"><label class="form-label">수동무효 수수료(건)</label><input type="text" class="form-control form-control-sm" name="manualVoidFeePerTx" id="commissionManualVoidFeePerTx" title="거래 상태 22"></div>
+              <div class="col-md-3"><label class="form-label" data-pg-ui-t="건당 수수료(원)">건당 수수료(원)</label><input type="text" class="form-control form-control-sm" name="perTxFee" id="commissionPerTxFee"></div>
+              <div class="col-md-3"><label class="form-label" data-pg-ui-t="취소 수수료(건)">취소 수수료(건)</label><input type="text" class="form-control form-control-sm" name="cancelRate" id="commissionCancelRate"></div>
+              <div class="col-md-3"><label class="form-label" data-pg-ui-t="무효 수수료(건)">무효 수수료(건)</label><input type="text" class="form-control form-control-sm" name="voidFeePerTx" id="commissionVoidFeePerTx" data-pg-ui-title="거래 상태 21" title="거래 상태 21"></div>
+              <div class="col-md-3"><label class="form-label" data-pg-ui-t="수동무효 수수료(건)">수동무효 수수료(건)</label><input type="text" class="form-control form-control-sm" name="manualVoidFeePerTx" id="commissionManualVoidFeePerTx" data-pg-ui-title="거래 상태 22" title="거래 상태 22"></div>
             </div>
             <div class="row mb-2">
-              <div class="col-md-3"><label class="form-label">실패 수수료(건)</label><input type="text" class="form-control form-control-sm" name="failFee" id="commissionFailFee"></div>
-              <div class="col-md-3"><label class="form-label">정산 수수료(건)</label><input type="text" class="form-control form-control-sm" name="feeSettlementPerTx" id="commissionFeeSettlementPerTx"></div>
-              <div class="col-md-3"><label class="form-label">송금 수수료(건)</label><input type="text" class="form-control form-control-sm" name="remittanceTransferFee" id="commissionRemittanceTransferFee"></div>
-              <div class="col-md-3"><label class="form-label">USDT 송금수수료(건)</label><input type="text" class="form-control form-control-sm" name="usdtTransferFeeUsd" id="commissionUsdtTransferFeeUsd"></div>
+              <div class="col-md-3"><label class="form-label" data-pg-ui-t="실패 수수료(건)">실패 수수료(건)</label><input type="text" class="form-control form-control-sm" name="failFee" id="commissionFailFee"></div>
+              <div class="col-md-3"><label class="form-label" data-pg-ui-t="정산 수수료(건)">정산 수수료(건)</label><input type="text" class="form-control form-control-sm" name="feeSettlementPerTx" id="commissionFeeSettlementPerTx"></div>
+              <div class="col-md-3"><label class="form-label" data-pg-ui-t="송금 수수료(건)">송금 수수료(건)</label><input type="text" class="form-control form-control-sm" name="remittanceTransferFee" id="commissionRemittanceTransferFee"></div>
+              <div class="col-md-3"><label class="form-label" data-pg-ui-t="USDT 송금수수료(건)">USDT 송금수수료(건)</label><input type="text" class="form-control form-control-sm" name="usdtTransferFeeUsd" id="commissionUsdtTransferFeeUsd"></div>
             </div>
             <div class="row mb-2">
-              <div class="col-md-3"><label class="form-label">결제 수수료율(%)</label><input type="text" class="form-control form-control-sm" name="payRate" id="commissionPayRate"></div>
-              <div class="col-md-3"><label class="form-label">적용시작일</label><input type="date" class="form-control form-control-sm" name="applyStartDate" id="commissionApplyStartDate"></div>
-              <div class="col-md-3"><label class="form-label">환불 수수료(건)</label><input type="text" class="form-control form-control-sm" name="refundRate" id="commissionRefundRate"></div>
-              <div class="col-md-3"><label class="form-label">롤링 비율(%)</label><input type="text" class="form-control form-control-sm" name="rollingPct" id="commissionRollingPct"></div>
-              <div class="col-md-3"><label class="form-label">롤링 일수</label><input type="text" class="form-control form-control-sm" name="rollingDays" id="commissionRollingDays"></div>
-              <div class="col-md-3"><label class="form-label">USDT 수수료율(%)</label><input type="text" class="form-control form-control-sm" name="feeUsdt" id="commissionFeeUsdt"></div>
-              <div class="col-md-3"><label class="form-label">FX 수수료율(%)</label><input type="text" class="form-control form-control-sm" name="feeFx" id="commissionFeeFx"></div>
+              <div class="col-md-3"><label class="form-label" data-pg-ui-t="결제 수수료율(%)">결제 수수료율(%)</label><input type="text" class="form-control form-control-sm" name="payRate" id="commissionPayRate"></div>
+              <div class="col-md-3"><label class="form-label" data-pg-ui-t="적용시작일">적용시작일</label><input type="date" lang="en-CA" class="form-control form-control-sm" name="applyStartDate" id="commissionApplyStartDate"></div>
+              <div class="col-md-3"><label class="form-label" data-pg-ui-t="환불 수수료(건)">환불 수수료(건)</label><input type="text" class="form-control form-control-sm" name="refundRate" id="commissionRefundRate"></div>
+              <div class="col-md-3"><label class="form-label" data-pg-ui-t="롤링 비율(%)">롤링 비율(%)</label><input type="text" class="form-control form-control-sm" name="rollingPct" id="commissionRollingPct"></div>
+              <div class="col-md-3"><label class="form-label" data-pg-ui-t="롤링 일수">롤링 일수</label><input type="text" class="form-control form-control-sm" name="rollingDays" id="commissionRollingDays"></div>
+              <div class="col-md-3"><label class="form-label" data-pg-ui-t="USDT 수수료율(%)">USDT 수수료율(%)</label><input type="text" class="form-control form-control-sm" name="feeUsdt" id="commissionFeeUsdt"></div>
+              <div class="col-md-3"><label class="form-label" data-pg-ui-t="FX 수수료율(%)">FX 수수료율(%)</label><input type="text" class="form-control form-control-sm" name="feeFx" id="commissionFeeFx"></div>
             </div>
             <div class="row mb-2">
-              <div class="col-md-4"><label class="form-label">A형 연회비(원)</label><input type="text" class="form-control form-control-sm" name="feeAnnual" id="commissionFeeAnnual"></div>
+              <div class="col-md-4"><label class="form-label" data-pg-ui-t="A형 연회비(원)">A형 연회비(원)</label><input type="text" class="form-control form-control-sm" name="feeAnnual" id="commissionFeeAnnual"></div>
             </div>
-            <h6 class="mt-2 border-bottom pb-1">가맹점 등록 기준값(참고)</h6>
+            <h6 class="mt-2 border-bottom pb-1" data-pg-ui-t="가맹점 등록 기준값(참고)">가맹점 등록 기준값(참고)</h6>
             <div class="row mb-2">
-              <div class="col-md-4"><label class="form-label">수수료정책 Scope</label><input type="text" class="form-control form-control-sm" id="commissionHqPolicyScopeView" readonly></div>
-              <div class="col-md-4"><label class="form-label">보유율(%)</label><input type="text" class="form-control form-control-sm" id="commissionHoldRateView" readonly></div>
-              <div class="col-md-4"><label class="form-label">보유기간(일)</label><input type="text" class="form-control form-control-sm" id="commissionHoldDaysView" readonly></div>
+              <div class="col-md-4"><label class="form-label" data-pg-ui-t="수수료정책 Scope">수수료정책 Scope</label><input type="text" class="form-control form-control-sm" id="commissionHqPolicyScopeView" readonly></div>
+              <div class="col-md-4"><label class="form-label" data-pg-ui-t="보유율(%)">보유율(%)</label><input type="text" class="form-control form-control-sm" id="commissionHoldRateView" readonly></div>
+              <div class="col-md-4"><label class="form-label" data-pg-ui-t="보유기간(일)">보유기간(일)</label><input type="text" class="form-control form-control-sm" id="commissionHoldDaysView" readonly></div>
             </div>
-            <h6 class="mt-2 border-bottom pb-1">차지백 정책</h6>
-            <p class="text-muted small mb-2">3DS는 정책통화 기준 건당 고정 과금이며, 차지백은 구간 정책과 연동됩니다. 구간 정책은 본사설정 &gt; 차지백설정에서 등록합니다.</p>
+            <h6 class="mt-2 border-bottom pb-1" data-pg-ui-t="차지백 정책">차지백 정책</h6>
+            <p class="text-muted small mb-2" data-pg-ui-t="3DS는 정책통화 기준 건당 고정 과금이며, 차지백은 구간 정책과 연동됩니다. 구간 정책은 본사설정의 차지백설정 화면에서 등록합니다.">3DS는 정책통화 기준 건당 고정 과금이며, 차지백은 구간 정책과 연동됩니다. 구간 정책은 본사설정의 차지백설정 화면에서 등록합니다.</p>
             <div class="row mb-2">
-              <div class="col-md-3"><label class="form-label">3DS 고정(건)</label><input type="text" class="form-control form-control-sm" name="fee3dsRate" id="commissionFee3dsRate"></div>
-              <div class="col-md-3"><label class="form-label">차지백 수수료(건)</label><input type="text" class="form-control form-control-sm" name="chargebackFeePerTx" id="commissionChargebackFeePerTx"></div>
-              <div class="col-md-6"><label class="form-label">차지백 구간정책</label><select class="form-control form-control-sm" name="chargebackPolicyId" id="commissionChargebackPolicyId"><option value="">(미사용) 건당 차지백만</option></select></div>
+              <div class="col-md-3"><label class="form-label" data-pg-ui-t="3DS 고정(건)">3DS 고정(건)</label><input type="text" class="form-control form-control-sm" name="fee3dsRate" id="commissionFee3dsRate"></div>
+              <div class="col-md-3"><label class="form-label" data-pg-ui-t="차지백 수수료(건)">차지백 수수료(건)</label><input type="text" class="form-control form-control-sm" name="chargebackFeePerTx" id="commissionChargebackFeePerTx"></div>
+              <div class="col-md-6"><label class="form-label" data-pg-ui-t="차지백 구간정책">차지백 구간정책</label><select class="form-control form-control-sm" name="chargebackPolicyId" id="commissionChargebackPolicyId"><option value="" data-pg-ui-t="(미사용) 건당 차지백만">(미사용) 건당 차지백만</option></select></div>
             </div>
-            <h6 class="mt-2 border-bottom pb-1">단계별 수수료율(%)</h6>
+            <h6 class="mt-2 border-bottom pb-1" data-pg-ui-t="단계별 수수료율(%)">단계별 수수료율(%)</h6>
             <div class="row mb-1 g-1">
-              <div class="col-6 col-md-2"><label class="form-label small mb-0">총본사 %</label><input type="text" class="form-control form-control-sm" name="hqRate" id="commissionHqRate"></div>
-              <div class="col-6 col-md-2"><label class="form-label small mb-0">본사 %</label><input type="text" class="form-control form-control-sm" name="regionalRate" id="commissionRegionalRate"></div>
-              <div class="col-6 col-md-2"><label class="form-label small mb-0">총판 %</label><input type="text" class="form-control form-control-sm" name="masterRate" id="commissionMasterRate"></div>
-              <div class="col-6 col-md-2"><label class="form-label small mb-0">지사 %</label><input type="text" class="form-control form-control-sm" name="branchRate" id="commissionBranchRate"></div>
-              <div class="col-6 col-md-2"><label class="form-label small mb-0">대리점 %</label><input type="text" class="form-control form-control-sm" name="agencyRate" id="commissionAgencyRate"></div>
-              <div class="col-6 col-md-2"><label class="form-label small mb-0">영업점 %</label><input type="text" class="form-control form-control-sm" name="salesOfficeRate" id="commissionSalesOfficeRate"></div>
+              <div class="col-6 col-md-2"><label class="form-label small mb-0" data-pg-ui-t="총본사 %">총본사 %</label><input type="text" class="form-control form-control-sm" name="hqRate" id="commissionHqRate"></div>
+              <div class="col-6 col-md-2"><label class="form-label small mb-0" data-pg-ui-t="본사 %">본사 %</label><input type="text" class="form-control form-control-sm" name="regionalRate" id="commissionRegionalRate"></div>
+              <div class="col-6 col-md-2"><label class="form-label small mb-0" data-pg-ui-t="총판 %">총판 %</label><input type="text" class="form-control form-control-sm" name="masterRate" id="commissionMasterRate"></div>
+              <div class="col-6 col-md-2"><label class="form-label small mb-0" data-pg-ui-t="지사 %">지사 %</label><input type="text" class="form-control form-control-sm" name="branchRate" id="commissionBranchRate"></div>
+              <div class="col-6 col-md-2"><label class="form-label small mb-0" data-pg-ui-t="대리점 %">대리점 %</label><input type="text" class="form-control form-control-sm" name="agencyRate" id="commissionAgencyRate"></div>
+              <div class="col-6 col-md-2"><label class="form-label small mb-0" data-pg-ui-t="영업점 %">영업점 %</label><input type="text" class="form-control form-control-sm" name="salesOfficeRate" id="commissionSalesOfficeRate"></div>
             </div>
-            <h6 class="mt-3 border-bottom pb-1">단계별 건당수수료</h6>
+            <h6 class="mt-3 border-bottom pb-1" data-pg-ui-t="단계별 건당수수료">단계별 건당수수료</h6>
             <div class="row mb-2 g-1">
-              <div class="col-6 col-md-2"><label class="form-label small mb-0">총본사</label><input type="text" class="form-control form-control-sm" name="hqPerTxFee" id="commissionHqPerTxFee"></div>
-              <div class="col-6 col-md-2"><label class="form-label small mb-0">본사</label><input type="text" class="form-control form-control-sm" name="regionalPerTxFee" id="commissionRegionalPerTxFee"></div>
-              <div class="col-6 col-md-2"><label class="form-label small mb-0">총판</label><input type="text" class="form-control form-control-sm" name="masterPerTxFee" id="commissionMasterPerTxFee"></div>
-              <div class="col-6 col-md-2"><label class="form-label small mb-0">지사</label><input type="text" class="form-control form-control-sm" name="branchPerTxFee" id="commissionBranchPerTxFee"></div>
-              <div class="col-6 col-md-2"><label class="form-label small mb-0">대리점</label><input type="text" class="form-control form-control-sm" name="agencyPerTxFee" id="commissionAgencyPerTxFee"></div>
-              <div class="col-6 col-md-2"><label class="form-label small mb-0">영업점</label><input type="text" class="form-control form-control-sm" name="salesOfficePerTxFee" id="commissionSalesOfficePerTxFee"></div>
+              <div class="col-6 col-md-2"><label class="form-label small mb-0" data-pg-ui-t="총본사">총본사</label><input type="text" class="form-control form-control-sm" name="hqPerTxFee" id="commissionHqPerTxFee"></div>
+              <div class="col-6 col-md-2"><label class="form-label small mb-0" data-pg-ui-t="본사">본사</label><input type="text" class="form-control form-control-sm" name="regionalPerTxFee" id="commissionRegionalPerTxFee"></div>
+              <div class="col-6 col-md-2"><label class="form-label small mb-0" data-pg-ui-t="총판">총판</label><input type="text" class="form-control form-control-sm" name="masterPerTxFee" id="commissionMasterPerTxFee"></div>
+              <div class="col-6 col-md-2"><label class="form-label small mb-0" data-pg-ui-t="지사">지사</label><input type="text" class="form-control form-control-sm" name="branchPerTxFee" id="commissionBranchPerTxFee"></div>
+              <div class="col-6 col-md-2"><label class="form-label small mb-0" data-pg-ui-t="대리점">대리점</label><input type="text" class="form-control form-control-sm" name="agencyPerTxFee" id="commissionAgencyPerTxFee"></div>
+              <div class="col-6 col-md-2"><label class="form-label small mb-0" data-pg-ui-t="영업점">영업점</label><input type="text" class="form-control form-control-sm" name="salesOfficePerTxFee" id="commissionSalesOfficePerTxFee"></div>
             </div>
             <div class="mt-3">
-              <button type="button" class="btn btn-primary btn-sm" id="commissionSettingSaveBtn">저장</button>
+              <button type="button" class="btn btn-primary btn-sm" id="commissionSettingSaveBtn" data-pg-ui-t="저장">저장</button>
             </div>
           </div>
         </div>
@@ -366,119 +374,119 @@
       <div class="modal-dialog modal-xl modal-dialog-scrollable">
         <div class="modal-content">
           <div class="modal-header">
-            <h5 class="modal-title" id="pgAgencyEditModalLabel">PG사 연동</h5>
-            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="닫기"></button>
+            <h5 class="modal-title" id="pgAgencyEditModalLabel" data-pg-ui-t="PG사 연동">PG사 연동</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" data-pg-ui-aria-label="닫기" aria-label="닫기"></button>
           </div>
           <div class="modal-body">
             <input type="hidden" id="pgAgencyEditId" value="">
             <div class="mb-2">
-              <label class="form-label">PG사코드 <span class="text-danger">*</span></label>
-              <input type="text" class="form-control form-control-sm" id="pgAgencyEditPgCd" maxlength="20" placeholder="예 CHILLPAY_API, CHILLPAY_URL">
-              <div class="form-text">신규만 입력·수정 시 변경 불가. <strong>용도마다 PG코드를 나누어</strong> 등록하면 가맹점 결제대행사 선택 시 구분됩니다. ChillPay 계열은 <code>CHILLPAY</code>로 시작하는 코드가 URL·자격 병합에 함께 쓰입니다.</div>
+              <label class="form-label"><span data-pg-ui-t="PG사코드">PG사코드</span> <span class="text-danger">*</span></label>
+              <input type="text" class="form-control form-control-sm" id="pgAgencyEditPgCd" maxlength="20" data-pg-ui-placeholder="예 CHILLPAY_API, CHILLPAY_URL" placeholder="예 CHILLPAY_API, CHILLPAY_URL">
+              <div class="form-text"><span data-pg-ui-t="신규만 입력·수정 시 변경 불가. 용도마다 PG코드를 나누어 등록하면 가맹점 결제대행사 선택 시 구분됩니다. ChillPay 계열은 CHILLPAY로 시작하는 코드가 URL·자격 병합에 함께 쓰입니다.">신규만 입력·수정 시 변경 불가. 용도마다 PG코드를 나누어 등록하면 가맹점 결제대행사 선택 시 구분됩니다. ChillPay 계열은 CHILLPAY로 시작하는 코드가 URL·자격 병합에 함께 쓰입니다.</span></div>
             </div>
             <div class="mb-2">
-              <label class="form-label">결제대행사 <span class="text-danger">*</span></label>
-              <input type="text" class="form-control form-control-sm" id="pgAgencyEditPgNm" maxlength="100" placeholder="표시 이름 (예 ChillPay · API)">
+              <label class="form-label"><span data-pg-ui-t="결제대행사">결제대행사</span> <span class="text-danger">*</span></label>
+              <input type="text" class="form-control form-control-sm" id="pgAgencyEditPgNm" maxlength="100" data-pg-ui-placeholder="표시 이름 (예 ChillPay · API)" placeholder="표시 이름 (예 ChillPay · API)">
             </div>
             <div class="mb-2">
-              <label class="form-label">연동 용도 <span class="text-danger">*</span></label>
-              <select class="form-select form-select-sm" id="pgAgencyEditIntegKind" title="이 행은 선택한 용도 한 가지만 담당합니다">
-                <option value="">— 선택 —</option>
-                <option value="NOTI">① 노티</option>
-                <option value="URL_PAY">② URL</option>
-                <option value="WEB_CHATBOT">③ 챗봇</option>
-                <option value="API">④ API</option>
+              <label class="form-label"><span data-pg-ui-t="연동 용도">연동 용도</span> <span class="text-danger">*</span></label>
+              <select class="form-select form-select-sm" id="pgAgencyEditIntegKind" data-pg-ui-title="이 행은 선택한 용도 한 가지만 담당합니다" title="이 행은 선택한 용도 한 가지만 담당합니다">
+                <option value="" data-pg-ui-t="— 선택 —">— 선택 —</option>
+                <option value="NOTI" data-pg-ui-t="① 노티">① 노티</option>
+                <option value="URL_PAY" data-pg-ui-t="② URL">② URL</option>
+                <option value="WEB_CHATBOT" data-pg-ui-t="③ 챗봇">③ 챗봇</option>
+                <option value="API" data-pg-ui-t="④ API">④ API</option>
               </select>
               <div class="d-flex flex-wrap gap-1 align-items-center small mt-1 mb-0 pg-integ-kind-legend" aria-hidden="true">
-                <span class="badge rounded-pill pg-scope-pastel-noti">노티</span>
+                <span class="badge rounded-pill pg-scope-pastel-noti" data-pg-ui-t="노티">노티</span>
                 <span class="badge rounded-pill pg-scope-pastel-url">URL</span>
-                <span class="badge rounded-pill pg-scope-pastel-chatbot">챗봇</span>
+                <span class="badge rounded-pill pg-scope-pastel-chatbot" data-pg-ui-t="챗봇">챗봇</span>
                 <span class="badge rounded-pill pg-scope-pastel-api">API</span>
               </div>
-              <div class="form-text">한 행당 용도 1개. 다른 용도는 PG코드를 달리 해 추가 등록하세요.</div>
+              <div class="form-text"><span data-pg-ui-t="한 행당 용도 1개. 다른 용도는 PG코드를 달리 해 추가 등록하세요.">한 행당 용도 1개. 다른 용도는 PG코드를 달리 해 추가 등록하세요.</span></div>
             </div>
             <div class="mb-2">
-              <label class="form-label">엔드포인트 URL <span class="text-muted small">(선택)</span></label>
-              <input type="text" class="form-control form-control-sm" id="pgAgencyEditIntegrationEndpoint" maxlength="512" placeholder="선택한 용도에 맞는 https://…" autocomplete="off">
+              <label class="form-label"><span data-pg-ui-t="엔드포인트 URL">엔드포인트 URL</span> <span class="text-muted small" data-pg-ui-t="(선택)">(선택)</span></label>
+              <input type="text" class="form-control form-control-sm" id="pgAgencyEditIntegrationEndpoint" maxlength="512" data-pg-ui-placeholder="선택한 용도에 맞는 https://…" placeholder="선택한 용도에 맞는 https://…" autocomplete="off">
             </div>
             <div class="mb-2 d-none" id="pgAgencyEditUrlPayAmountModeWrap">
-              <label class="form-label">URL 결제 금액 모드</label>
-              <select class="form-select form-select-sm" id="pgAgencyEditUrlPayAmountMode" title="본사 URL결제설정(FX)과 동일 저장소">
-                <option value="STANDARD">일반(일반형)</option>
-                <option value="DISPLAY">DP (DISPLAY)</option>
-                <option value="BLIND">BLIND</option>
+              <label class="form-label" data-pg-ui-t="URL 결제 금액 모드">URL 결제 금액 모드</label>
+              <select class="form-select form-select-sm" id="pgAgencyEditUrlPayAmountMode" data-pg-ui-title="본사 URL결제설정(FX)과 동일 저장소" title="본사 URL결제설정(FX)과 동일 저장소">
+                <option value="STANDARD" data-pg-ui-t="일반(일반형)">일반(일반형)</option>
+                <option value="DISPLAY" data-pg-ui-t="DP (DISPLAY)">DP (DISPLAY)</option>
+                <option value="BLIND" data-pg-ui-t="BLIND">BLIND</option>
               </select>
-              <div class="form-text">표시통화→실결제 FX는 「DP」또는 UI만 숨기는 「BLIND」이며, 본사 URL결제설정에서 FX·통화를 맞춥니다. 「일반」은 가맹점 청구통화 그대로 결제합니다.</div>
+              <div class="form-text"><span data-pg-ui-t="표시통화→실결제 FX는 「DP」또는 UI만 숨기는 「BLIND」이며, 본사 URL결제설정에서 FX·통화를 맞춥니다. 「일반」은 가맹점 청구통화 그대로 결제합니다.">표시통화→실결제 FX는 「DP」또는 UI만 숨기는 「BLIND」이며, 본사 URL결제설정에서 FX·통화를 맞춥니다. 「일반」은 가맹점 청구통화 그대로 결제합니다.</span></div>
             </div>
             <div class="mb-2">
-              <label class="form-label">구버전 통합 URL <span class="text-muted small">(선택, api_endpoint 호환)</span></label>
-              <input type="text" class="form-control form-control-sm" id="pgAgencyEditEndpoint" maxlength="255" placeholder="기존 api_endpoint" autocomplete="off">
-              <div class="form-text">ChillPay 등: <code>CHILLPAY</code>로 시작하는 사용(Y) 행들의 엔드포인트·이 필드가 URL 설정에 병합됩니다.</div>
+              <label class="form-label"><span data-pg-ui-t="구버전 통합 URL">구버전 통합 URL</span> <span class="text-muted small" data-pg-ui-t="(선택, api_endpoint 호환)">(선택, api_endpoint 호환)</span></label>
+              <input type="text" class="form-control form-control-sm" id="pgAgencyEditEndpoint" maxlength="255" data-pg-ui-placeholder="기존 api_endpoint" placeholder="기존 api_endpoint" autocomplete="off">
+              <div class="form-text"><span data-pg-ui-t="ChillPay 등: CHILLPAY로 시작하는 사용(Y) 행들의 엔드포인트·이 필드가 URL 설정에 병합됩니다.">ChillPay 등: CHILLPAY로 시작하는 사용(Y) 행들의 엔드포인트·이 필드가 URL 설정에 병합됩니다.</span></div>
             </div>
             <hr class="my-3">
-            <p class="small text-muted mb-2">아래는 PG사별 연동 자격입니다. ChillPay는 MID·API Key·MD5·Route·<strong>Environment</strong> (Sandbox / Production)을 입력하세요. 수정 시 API Key·MD5는 <strong>바꿀 때만</strong> 입력(비우면 기존 유지).</p>
+            <p class="small text-muted mb-2"><span data-pg-ui-t="아래는 PG사별 연동 자격입니다. ChillPay는 MID·API Key·MD5·Route·Environment (Sandbox / Production)을 입력하세요. 수정 시 API Key·MD5는 바꿀 때만 입력(비우면 기존 유지).">아래는 PG사별 연동 자격입니다. ChillPay는 MID·API Key·MD5·Route·Environment (Sandbox / Production)을 입력하세요. 수정 시 API Key·MD5는 바꿀 때만 입력(비우면 기존 유지).</span></p>
             <div class="row g-2">
               <div class="col-md-6 mb-2">
-                <label class="form-label">MID / Merchant Code</label>
-                <input type="text" class="form-control form-control-sm" id="pgAgencyEditMid" maxlength="100" placeholder="예 M035594" autocomplete="off">
+                <label class="form-label" data-pg-ui-t="MID / Merchant Code">MID / Merchant Code</label>
+                <input type="text" class="form-control form-control-sm" id="pgAgencyEditMid" maxlength="100" data-pg-ui-placeholder="예 M035594" placeholder="예 M035594" autocomplete="off">
               </div>
               <div class="col-md-3 mb-2">
-                <label class="form-label">Route No</label>
+                <label class="form-label" data-pg-ui-t="Route No">Route No</label>
                 <input type="text" class="form-control form-control-sm" id="pgAgencyEditRouteNo" inputmode="numeric" placeholder="4" autocomplete="off">
               </div>
               <div class="col-md-3 mb-2">
-                <label class="form-label">Environment</label>
-                <select class="form-select form-select-sm" id="pgAgencyEditSandboxYn" title="Environment: Sandbox=테스트, Production=LIVE(본상품)">
+                <label class="form-label" data-pg-ui-t="Environment">Environment</label>
+                <select class="form-select form-select-sm" id="pgAgencyEditSandboxYn" data-pg-ui-title="Environment: Sandbox=테스트, Production=LIVE(본상품)" title="Environment: Sandbox=테스트, Production=LIVE(본상품)">
                   <option value="Y">Sandbox</option>
                   <option value="N">Production</option>
                 </select>
               </div>
             </div>
             <div class="mb-2">
-              <label class="form-label">API Key</label>
-              <input type="password" class="form-control form-control-sm" id="pgAgencyEditApiKey" maxlength="512" placeholder="신규 또는 변경 시 입력" autocomplete="new-password">
+              <label class="form-label" data-pg-ui-t="API Key">API Key</label>
+              <input type="password" class="form-control form-control-sm" id="pgAgencyEditApiKey" maxlength="512" data-pg-ui-placeholder="신규 또는 변경 시 입력" placeholder="신규 또는 변경 시 입력" autocomplete="new-password">
             </div>
             <div class="mb-2">
-              <label class="form-label">MD5 / 서명 시크릿</label>
-              <input type="password" class="form-control form-control-sm" id="pgAgencyEditMd5Key" maxlength="255" placeholder="신규 또는 변경 시 입력" autocomplete="new-password">
+              <label class="form-label" data-pg-ui-t="MD5 / 서명 시크릿">MD5 / 서명 시크릿</label>
+              <input type="password" class="form-control form-control-sm" id="pgAgencyEditMd5Key" maxlength="255" data-pg-ui-placeholder="신규 또는 변경 시 입력" placeholder="신규 또는 변경 시 입력" autocomplete="new-password">
             </div>
             <div class="mb-2">
-              <label class="form-label">추가 설정(JSON)</label>
+              <label class="form-label" data-pg-ui-t="추가 설정(JSON)">추가 설정(JSON)</label>
               <textarea class="form-control form-control-sm font-monospace" id="pgAgencyEditCredentialsExtra" rows="3" placeholder='{"custom":"…"}'></textarea>
-              <div class="form-text">해당 PG 전용 확장 파라미터(선택).</div>
+              <div class="form-text"><span data-pg-ui-t="해당 PG 전용 확장 파라미터(선택).">해당 PG 전용 확장 파라미터(선택).</span></div>
             </div>
             <div class="mb-2 border-top pt-2">
-              <label class="form-label mb-1">통합정산 예정일(우리↔PG)</label>
+              <label class="form-label mb-1" data-pg-ui-t="통합정산 예정일(우리↔PG)">통합정산 예정일(우리↔PG)</label>
               <div class="row g-2 align-items-end">
                 <div class="col-6 col-md-4">
-                  <select class="form-select form-select-sm" id="pgAgencyEditExtSettleMode" title="OFF=미사용, T+N=영업일·결제와 동일 시각, D+N=달력+N일·일괄 시각">
-                    <option value="OFF">사용안함</option>
-                    <option value="T">T+N (영업일·동일시각)</option>
-                    <option value="D">D+N (달력·일괄시각)</option>
+                  <select class="form-select form-select-sm" id="pgAgencyEditExtSettleMode" data-pg-ui-title="OFF=미사용, T+N=영업일·결제와 동일 시각, D+N=달력+N일·일괄 시각" title="OFF=미사용, T+N=영업일·결제와 동일 시각, D+N=달력+N일·일괄 시각">
+                    <option value="OFF" data-pg-ui-t="사용안함">사용안함</option>
+                    <option value="T" data-pg-ui-t="T+N (영업일·동일시각)">T+N (영업일·동일시각)</option>
+                    <option value="D" data-pg-ui-t="D+N (달력·일괄시각)">D+N (달력·일괄시각)</option>
                   </select>
                 </div>
                 <div class="col-6 col-md-2">
-                  <label class="form-label form-label-sm text-muted mb-0">N(1~10)</label>
+                  <label class="form-label form-label-sm text-muted mb-0" data-pg-ui-t="N(1~10)">N(1~10)</label>
                   <input type="number" class="form-control form-control-sm" id="pgAgencyEditExtSettleLag" min="1" max="10" step="1" placeholder="">
                 </div>
                 <div class="col-12 col-md-4">
-                  <label class="form-label form-label-sm text-muted mb-0">D모드 일괄시각</label>
+                  <label class="form-label form-label-sm text-muted mb-0" data-pg-ui-t="D모드 일괄시각">D모드 일괄시각</label>
                   <input type="time" class="form-control form-control-sm" id="pgAgencyEditExtSettleBatchTime" step="60">
                 </div>
               </div>
               <div class="form-text" id="pgAgencyEditExtSettleHint">OFF면 통합정산에 ICOPAY 예정일을 채우지 않습니다. T는 주말 제외 영업일 기준입니다.</div>
             </div>
             <div class="mb-2">
-              <label class="form-label">사용여부</label>
+              <label class="form-label" data-pg-ui-t="사용여부">사용여부</label>
               <select class="form-select form-select-sm" id="pgAgencyEditUseYn">
-                <option value="Y">사용</option>
-                <option value="N">미사용</option>
+                <option value="Y" data-pg-ui-t="사용">사용</option>
+                <option value="N" data-pg-ui-t="미사용">미사용</option>
               </select>
             </div>
           </div>
           <div class="modal-footer">
-            <button type="button" class="btn btn-primary btn-sm" id="pgAgencyEditSaveBtn">저장</button>
-            <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">닫기</button>
+            <button type="button" class="btn btn-primary btn-sm" id="pgAgencyEditSaveBtn" data-pg-ui-t="저장">저장</button>
+            <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal" data-pg-ui-t="닫기">닫기</button>
           </div>
         </div>
       </div>
@@ -579,31 +587,31 @@
         <div class="modal-content">
           <div class="modal-header">
             <h5 class="modal-title"><span id="pgHqAccountAccessModalTitle">접근권한 추가</span></h5>
-            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="닫기"></button>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" data-pg-ui-aria-label="닫기" aria-label="닫기"></button>
           </div>
           <div class="modal-body">
             <input type="hidden" id="pgHqAccountAccessEditId" value="">
-            <p class="text-muted small mb-3">먼저 <strong>사용자 ID</strong>를 고릅니다(목록은 <strong>총본사·본사·총판</strong> 소속만). 이어서 <strong>허용 업체코드</strong>를 선택합니다(전 업체). 저장 후 사용자관리 등에서는 <strong>지정한 업체 코드와만</strong> 교집합됩니다. 저장 시 서버에서 검증합니다.</p>
+            <p class="text-muted small mb-3" data-pg-ui-t="먼저 사용자 ID를 고릅니다(목록은 총본사·본사·총판 소속만). 이어서 허용 업체코드를 선택합니다(전 업체). 저장 후 사용자관리 등에서는 지정한 업체 코드와만 교집합됩니다. 저장 시 서버에서 검증합니다.">먼저 사용자 ID를 고릅니다(목록은 총본사·본사·총판 소속만). 이어서 허용 업체코드를 선택합니다(전 업체). 저장 후 사용자관리 등에서는 지정한 업체 코드와만 교집합됩니다. 저장 시 서버에서 검증합니다.</p>
             <table class="table table-bordered table-sm align-middle mb-0">
               <tbody>
                 <tr>
-                  <th scope="row" class="text-nowrap bg-light" style="width: 11rem">사용자 ID (로그인 ID)</th>
+                  <th scope="row" class="text-nowrap bg-light" style="width: 11rem" data-pg-ui-t="사용자 ID (로그인 ID)">사용자 ID (로그인 ID)</th>
                   <td>
-                    <select class="form-select form-select-sm" id="pgHqAccountAccessUsername" aria-label="사용자 ID"></select>
+                    <select class="form-select form-select-sm" id="pgHqAccountAccessUsername" data-pg-ui-aria-label="사용자 ID" aria-label="사용자 ID"></select>
                   </td>
                 </tr>
                 <tr>
-                  <th scope="row" class="text-nowrap bg-light">허용 업체코드</th>
+                  <th scope="row" class="text-nowrap bg-light" data-pg-ui-t="허용 업체코드">허용 업체코드</th>
                   <td>
-                    <select class="form-select form-select-sm" id="pgHqAccountAccessCompSelect" aria-label="허용 업체코드" disabled></select>
+                    <select class="form-select form-select-sm" id="pgHqAccountAccessCompSelect" data-pg-ui-aria-label="허용 업체코드" aria-label="허용 업체코드" disabled></select>
                   </td>
                 </tr>
               </tbody>
             </table>
           </div>
           <div class="modal-footer">
-            <button type="button" class="btn btn-success btn-sm" id="pgHqAccountAccessAddSubmitBtn">저장</button>
-            <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">취소</button>
+            <button type="button" class="btn btn-success btn-sm" id="pgHqAccountAccessAddSubmitBtn" data-pg-ui-t="저장">저장</button>
+            <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal" data-pg-ui-t="취소">취소</button>
           </div>
         </div>
       </div>
@@ -620,22 +628,42 @@
 <script src="js/pg-ui.js?v=2"></script>
 <script src="js/pay-list-integrated-catalog.js?v=6"></script>
 <script src="js/table-column-resize.js?v=3"></script>
-<script src="js/screens.js?v=139"></script>
-<script src="js/app.js?v=155"></script>
+<script src="js/pg-ui-string-map.js?v=13"></script>
+  <script src="js/pg-ui-i18n.js?v=27"></script>
+  <script src="js/screens.js?v=156"></script>
+  <script src="js/pg-pay-list-i18n.js?v=14"></script>
+  <script src="js/app.js?v=181"></script>
+<script src="js/pg-admin-shell-i18n.js?v=4"></script>
   <script>
     (function () {
       var user = null;
       try { user = JSON.parse(sessionStorage.getItem('pg_admin_user') || '{}'); } catch (e) {}
+      function pgShellUiT(s) {
+        if (s == null || s === '') return '';
+        if (window.PG_UI_I18N && typeof window.PG_UI_I18N.t === 'function') return String(window.PG_UI_I18N.t(String(s)));
+        return String(s);
+      }
       function applyHeaderUserDisplay(u) {
         var userDisplay = document.getElementById('headerUserDisplay');
         if (!userDisplay) return;
         var compNm = (u && u.compNm) ? String(u.compNm).trim() : '';
-        var userNm = (u && u.userNm) ? String(u.userNm).trim() : '';
-        if (!compNm && !userNm) userDisplay.textContent = '';
-        else if (!compNm) userDisplay.textContent = userNm;
-        else if (!userNm) userDisplay.textContent = compNm;
-        else userDisplay.textContent = compNm + ' | ' + userNm;
+        var userNmRaw = (u && u.userNm) ? String(u.userNm).trim() : '';
+        var userNmDisp = userNmRaw;
+        if (userNmRaw === '관리자' || userNmRaw === 'PG 통합관리자') userNmDisp = pgShellUiT(userNmRaw);
+        var permRaw = (u && u.permissionGroupNm) ? String(u.permissionGroupNm).trim() : '';
+        var permDisp = permRaw ? pgShellUiT(permRaw) : '';
+        var parts = [];
+        if (compNm) parts.push(compNm);
+        if (userNmDisp) parts.push(userNmDisp);
+        if (permDisp) parts.push(permDisp);
+        userDisplay.textContent = parts.join(' | ');
       }
+      window.PG_refreshHeaderUserDisplay = function () {
+        try {
+          var u0 = JSON.parse(sessionStorage.getItem('pg_admin_user') || '{}');
+          applyHeaderUserDisplay(u0);
+        } catch (eHdr) {}
+      };
       function applySidebarLogo(url) {
         var img = document.getElementById('sidebar-logo-img');
         var text = document.getElementById('sidebar-logo-text');
@@ -918,6 +946,9 @@
           var mainTab = ul.querySelector('[top_tab_url="/main"]');
           if (mainTab) mainTab.querySelector('.tab-a').click();
         });
+      }
+      if (window.PG_PAY_LIST_I18N && typeof window.PG_PAY_LIST_I18N.init === 'function') {
+        window.PG_PAY_LIST_I18N.init();
       }
     })();
   </script>

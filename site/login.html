@@ -111,9 +111,9 @@
             <input type="password" class="form-control" id="userPwd" name="userPwd" autocomplete="current-password">
           </div>
           <div id="loginTotpMfaBlock" class="mb-3 d-none">
-            <label for="loginTotpMfaCode" class="form-label">Google OTP (6자리)</label>
-            <input type="text" class="form-control" id="loginTotpMfaCode" maxlength="6" inputmode="numeric" autocomplete="one-time-code" placeholder="인증 앱 코드">
-            <p class="small text-muted mt-1 mb-0">총본사·본사·총판(및 등록된 시스템 관리자) 계정은 로그인 시 OTP가 필요합니다.</p>
+            <label for="loginTotpMfaCode" class="form-label">OTP</label>
+            <input type="text" class="form-control" id="loginTotpMfaCode" maxlength="6" inputmode="numeric" autocomplete="one-time-code" aria-describedby="loginTotpMfaHint">
+            <div id="loginTotpMfaHint" class="small mt-2 mb-0 d-none" role="status"></div>
           </div>
           <div id="forcePwChangeBlock" class="d-none rounded border px-3 py-3 mb-3" style="background:#f1f3f5;border-color:#dee2e6!important;">
             <p class="small text-secondary mb-2">보안 정책에 따라 <strong>새 비밀번호</strong>를 설정해야 합니다. 방금 입력하신 비밀번호는 확인용으로만 사용되며, 아래에 새 비밀번호(8자 이상)를 입력해 주세요.</p>
@@ -343,6 +343,7 @@
         var api = window.PG_API;
         if (!api || !api.setAuth) { alert('API 미구성'); return; }
         var u = { loginId: resData.userId, userId: resData.userId, userNm: resData.userNm || '관리자', orgUnitId: resData.orgUnitId, compId: resData.compId, orgLevel: resData.orgLevel };
+        if (resData.permissionGroupNm !== undefined && resData.permissionGroupNm !== null) u.permissionGroupNm = String(resData.permissionGroupNm);
         if (resData.role) u.role = resData.role;
         if (resData.pagePermissions) u.pagePermissions = resData.pagePermissions;
         if (resData.canWriteNotice !== undefined) u.canWriteNotice = !!resData.canWriteNotice;
@@ -402,6 +403,53 @@
 
       var loginPending = null;
 
+      function getLoginTotpMfaHintEl() {
+        return document.getElementById('loginTotpMfaHint');
+      }
+
+      function setLoginTotpMfaHint(text, variant) {
+        var el = getLoginTotpMfaHintEl();
+        if (!el) return;
+        el.textContent = text || '';
+        el.classList.remove('d-none', 'text-danger', 'text-info');
+        if (!text) {
+          el.classList.add('d-none');
+          return;
+        }
+        el.classList.add(variant === 'danger' ? 'text-danger' : 'text-info');
+      }
+
+      function clearLoginTotpMfaHint() {
+        setLoginTotpMfaHint('', '');
+      }
+
+      function bindTotpMfaAutoSubmitOnce() {
+        var totpField = document.getElementById('loginTotpMfaCode');
+        if (!totpField || totpField._pgTotpAutoBound) return;
+        totpField._pgTotpAutoBound = true;
+        totpField.addEventListener('input', function () {
+          var hintEl = getLoginTotpMfaHintEl();
+          if (hintEl && !hintEl.classList.contains('d-none') && hintEl.classList.contains('text-danger')) {
+            clearLoginTotpMfaHint();
+          }
+          var digits = String(totpField.value || '').replace(/\D/g, '').slice(0, 6);
+          if (totpField.value !== digits) totpField.value = digits;
+          var mfaBlock = document.getElementById('loginTotpMfaBlock');
+          if (!mfaBlock || mfaBlock.classList.contains('d-none')) return;
+          if (digits.length !== 6) return;
+          clearTimeout(totpField._pgTotpAutoSubTimer);
+          totpField._pgTotpAutoSubTimer = setTimeout(function () {
+            var form = document.getElementById('loginForm');
+            if (form && typeof form.requestSubmit === 'function') form.requestSubmit();
+            else {
+              var btn = document.getElementById('loginBtn');
+              if (btn) btn.click();
+            }
+          }, 250);
+        });
+      }
+      bindTotpMfaAutoSubmitOnce();
+
       document.getElementById('loginForm').addEventListener('submit', function () {
         var userId = document.getElementById('userId').value.trim();
         var userPwd = document.getElementById('userPwd').value;
@@ -415,6 +463,7 @@
         var api = window.PG_API;
         if (api && api.setAuth) {
           var u = { loginId: resData.userId, userId: resData.userId, userNm: resData.userNm || '관리자', orgUnitId: resData.orgUnitId, compId: resData.compId, orgLevel: resData.orgLevel };
+          if (resData.permissionGroupNm !== undefined && resData.permissionGroupNm !== null) u.permissionGroupNm = String(resData.permissionGroupNm);
           if (resData.role) u.role = resData.role;
           if (resData.pagePermissions) u.pagePermissions = resData.pagePermissions;
           if (resData.canWriteNotice !== undefined) u.canWriteNotice = !!resData.canWriteNotice;
@@ -433,6 +482,7 @@
         var totpVal = totpField && totpField.value ? String(totpField.value).trim() : '';
         if (api && api.login) {
           api.login(userId, pwd, totpVal || undefined).then(function (res) {
+            clearLoginTotpMfaHint();
             if (mfaBlock) mfaBlock.classList.add('d-none');
             if (totpField) totpField.value = '';
             if (res && res.success && res.data && res.data.token) {
@@ -463,7 +513,10 @@
                 totpField.value = '';
                 try { totpField.focus(); } catch (ef) {}
               }
-              alert('Google Authenticator의 6자리 코드를 입력한 뒤 다시 로그인을 눌러 주세요.');
+              clearLoginTotpMfaHint();
+              try {
+                if (mfaBlock) mfaBlock.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+              } catch (eSc) {}
               return;
             }
             if (ec === 'OTP_INVALID') {
@@ -472,9 +525,15 @@
                 totpField.value = '';
                 try { totpField.focus(); } catch (ef2) {}
               }
-              alert(err.message || 'OTP 코드가 올바르지 않습니다.');
+              setLoginTotpMfaHint(err.message || 'OTP 코드가 올바르지 않습니다. 다시 입력해 주세요.', 'danger');
+              try {
+                if (mfaBlock) mfaBlock.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+              } catch (eSc2) {}
               return;
             }
+            if (mfaBlock) mfaBlock.classList.add('d-none');
+            if (totpField) totpField.value = '';
+            clearLoginTotpMfaHint();
             alert(err && err.message ? err.message : '로그인 요청이 실패했습니다. API 서버를 확인하세요.');
           });
         } else {
@@ -495,6 +554,7 @@
         var api = window.PG_API;
         var p = loginPending;
         var u = { loginId: p.data.userId, userId: p.data.userId, userNm: p.data.userNm || p.userId, orgUnitId: p.data.orgUnitId, compId: p.data.compId, orgLevel: p.data.orgLevel };
+        if (p.data.permissionGroupNm !== undefined && p.data.permissionGroupNm !== null) u.permissionGroupNm = String(p.data.permissionGroupNm);
         if (p.data.role) u.role = p.data.role;
         if (p.data.pagePermissions) u.pagePermissions = p.data.pagePermissions;
         if (p.data.brandingCompId) u.brandingCompId = p.data.brandingCompId;

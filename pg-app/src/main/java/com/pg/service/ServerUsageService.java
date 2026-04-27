@@ -228,9 +228,9 @@ public class ServerUsageService {
                                                     List<String> labels, List<Double> trafficGb, List<Double> memPeak) {
         Map<String, Object> s = new LinkedHashMap<>();
         String grainLabel = switch (grain) {
-            case "weekly" -> "주간";
-            case "monthly" -> "월간";
-            default -> "일간";
+            case "weekly" -> "weekly";
+            case "monthly" -> "monthly";
+            default -> "daily";
         };
         s.put("grainLabel", grainLabel);
         s.put("daysInChart", labels.size());

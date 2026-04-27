@@ -185,6 +185,20 @@ public class ApiPayController {
             return ResponseEntity.ok(ApiResponse.fail(
                     "서비스가 중지된 업체입니다. (미사용 또는 상위 조직 미사용)", "ORG_DISABLED"));
         }
+        if (orgUnitId != null) {
+            Optional<MerchantProfile> profCfg = merchantProfileRepository.findByOrgUnitId(orgUnitId);
+            if (profCfg.isPresent()) {
+                String wpy = profCfg.get().getWebPaymentUseYn();
+                if (wpy != null && "N".equalsIgnoreCase(wpy.trim())) {
+                    return ResponseEntity.ok(ApiResponse.fail(
+                            "이 가맹점은 웹결제(URL 결제)가 미사용으로 설정되어 있습니다.", "WEB_PAYMENT_DISABLED"));
+                }
+            }
+            if (chillPayService.findOperationalWebBindingForUrlPay(orgUnitId).isEmpty()) {
+                return ResponseEntity.ok(ApiResponse.fail(
+                        "URL 결제를 처리할 결제대행사(운영·연동용도 URL결제)가 없습니다.", "URL_PAYMENT_PG_MISSING"));
+            }
+        }
         try {
             return ResponseEntity.ok(ApiResponse.ok(chillPayService.getConfigForFrontend(orgUnitId)));
         } catch (IllegalStateException e) {
@@ -208,6 +222,18 @@ public class ApiPayController {
         if (!orgServiceUseService.isOrgServiceActive(orgUnitId)) {
             return ResponseEntity.ok(ApiResponse.fail(
                     "서비스가 중지된 업체입니다. (미사용 또는 상위 조직 미사용)", "ORG_DISABLED"));
+        }
+        Optional<MerchantProfile> profCtx = merchantProfileRepository.findByOrgUnitId(orgUnitId);
+        if (profCtx.isPresent()) {
+            String wpy = profCtx.get().getWebPaymentUseYn();
+            if (wpy != null && "N".equalsIgnoreCase(wpy.trim())) {
+                return ResponseEntity.ok(ApiResponse.fail(
+                        "이 가맹점은 웹결제(URL 결제)가 미사용으로 설정되어 있습니다.", "WEB_PAYMENT_DISABLED"));
+            }
+        }
+        if (chillPayService.findOperationalWebBindingForUrlPay(orgUnitId).isEmpty()) {
+            return ResponseEntity.ok(ApiResponse.fail(
+                    "URL 결제를 처리할 결제대행사(운영·연동용도 URL결제)가 없습니다.", "URL_PAYMENT_PG_MISSING"));
         }
         Optional<OrgUnit> ou = orgUnitRepository.findById(orgUnitId);
         if (ou.isEmpty()) {

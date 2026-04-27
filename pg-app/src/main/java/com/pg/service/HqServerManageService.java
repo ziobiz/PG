@@ -26,6 +26,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Base64;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -62,6 +63,50 @@ public class HqServerManageService {
     private static final double LOAD_MULT = 2;
     private static final int SSL_DAYS_WARN = 30;
     private static final int SSL_DAYS_DANGER = 14;
+
+    /* Admin UI i18n keys (site/js/pg-ui-i18n.js STATIC) — health rows & alerts */
+    private static final String HK_L_SYS_MEM = "hqSrv.health.lbl.sysMem";
+    private static final String HK_L_JVM_HEAP = "hqSrv.health.lbl.jvmHeap";
+    private static final String HK_L_LOAD_AVG = "hqSrv.health.lbl.loadAvg";
+    private static final String HK_L_DISK = "hqSrv.health.lbl.diskAppPath";
+    private static final String HK_L_SSL = "hqSrv.health.lbl.sslCert";
+    private static final String HK_L_CONTRACT_DISK = "hqSrv.health.lbl.contractDisk";
+    private static final String HK_L_CONTRACT_TRAFFIC = "hqSrv.health.lbl.contractTraffic";
+    private static final String HK_L_DB_TABLES = "hqSrv.health.lbl.dbTables";
+    private static final String HK_C_SYS_MEM = "hqSrv.health.criteria.sysMem";
+    private static final String HK_C_JVM_HEAP = "hqSrv.health.criteria.jvmHeap";
+    private static final String HK_C_LOAD = "hqSrv.health.criteria.loadAvg";
+    private static final String HK_C_DISK = "hqSrv.health.criteria.disk";
+    private static final String HK_C_SSL = "hqSrv.health.criteria.ssl";
+    private static final String HK_C_CONTRACT_DISK = "hqSrv.health.criteria.contractDisk";
+    private static final String HK_C_CONTRACT_TRAFFIC = "hqSrv.health.criteria.contractTraffic";
+    private static final String HK_C_DB_TABLES = "hqSrv.health.criteria.dbTables";
+    private static final String HK_V_SYS_MEM = "hqSrv.health.value.sysMem";
+    private static final String HK_V_JVM_HEAP = "hqSrv.health.value.jvmHeap";
+    private static final String HK_V_LOAD = "hqSrv.health.value.loadAvg";
+    private static final String HK_V_DISK_PCT = "hqSrv.health.value.diskPct";
+    private static final String HK_V_SSL_DAYS = "hqSrv.health.value.sslDays";
+    private static final String HK_V_SSL_NA = "hqSrv.health.value.sslNa";
+    private static final String HK_V_SSL_ERR = "hqSrv.health.value.sslErr";
+    private static final String HK_V_CONTRACT_DISK = "hqSrv.health.value.contractDisk";
+    private static final String HK_V_CONTRACT_TRAFFIC = "hqSrv.health.value.contractTraffic";
+    private static final String HK_V_CONTRACT_TRAFFIC_SUGGEST = "hqSrv.health.value.contractTrafficSuggested";
+    private static final String HK_V_CONTRACT_TRAFFIC_EMPTY = "hqSrv.health.value.contractTrafficEmpty";
+    private static final String HK_V_DB_TABLES = "hqSrv.health.value.dbTables";
+    private static final String HK_V_DB_FAIL = "hqSrv.health.value.dbFail";
+    private static final String HK_V_DASH = "hqSrv.health.value.dash";
+    private static final String HK_ALERT_HOSTING_EXPIRED = "hqSrv.alert.hostingContractExpired";
+    private static final String HK_ALERT_HOSTING_SOON = "hqSrv.alert.hostingContractEndingSoon";
+    private static final String HK_ALERT_SYS_MEM = "hqSrv.alert.systemMemoryHigh";
+    private static final String HK_ALERT_JVM_HEAP = "hqSrv.alert.jvmHeapHigh";
+    private static final String HK_ALERT_LOAD = "hqSrv.alert.loadAverageHigh";
+    private static final String HK_ALERT_DISK = "hqSrv.alert.diskUsageHigh";
+    private static final String HK_ALERT_CONTRACT_DISK = "hqSrv.alert.contractDiskHigh";
+    private static final String HK_ALERT_CONTRACT_TRAFFIC = "hqSrv.alert.contractTrafficHigh";
+    private static final String HK_ALERT_SSL_DANGER = "hqSrv.alert.sslExpiresCritical";
+    private static final String HK_ALERT_SSL_WARN = "hqSrv.alert.sslExpiresSoon";
+    private static final String HK_ALERT_SSL_READ = "hqSrv.alert.sslReadFailed";
+    private static final String HK_ALERT_DB_META = "hqSrv.alert.dbMetaFailed";
 
     private final HqApiConfigRepository hqApiConfigRepository;
     private final ServerUsageDailyRepository serverUsageDailyRepository;
@@ -140,12 +185,12 @@ public class HqServerManageService {
         return d;
     }
 
-    /** 운영 안내(카페24 DNS·다중 SAN·캐시 등) — UI 표시용 */
+    /** 운영 안내 — UI는 pg-ui-i18n 키로 번역 */
     private Map<String, Object> buildSslOpsGuide() {
         Map<String, Object> g = new LinkedHashMap<>();
-        g.put("dnsProviderNote", "권한 네임서버(예: 카페24)에 서브도메인별 A 레코드가 VPS 공인 IP를 가리키는지 확인하세요. 일부 ISP DNS는 전파 전 예전(프록시) IP를 캐시할 수 있어, 접속 PC에서 8.8.8.8 등으로 조회해 비교할 수 있습니다.");
-        g.put("leSanNote", "Let’s Encrypt는 한 장의 인증서(SAN)에 여러 호스트명을 넣을 수 있습니다. 서브도메인을 추가하면 certbot --nginx -d … 로 재발급하고, Nginx에 해당 server_name 과 동일 ssl_certificate 경로를 맞춥니다.");
-        g.put("cloudflareNote", "Cloudflare 프록시(주황 구름)를 쓰는 동안에는 원본 인증서 검증(Full strict) 오류(526 등)가 날 수 있습니다. DNS 전용(회색 구름)이거나 카페24 직접 A 레코드로 통일하는 편이 단순합니다.");
+        g.put("dnsK", "hqSrv.sslOps.dns");
+        g.put("leSanK", "hqSrv.sslOps.leSan");
+        g.put("cloudflareK", "hqSrv.sslOps.cloudflare");
         return g;
     }
 
@@ -175,16 +220,15 @@ public class HqServerManageService {
 
         List<Map<String, Object>> configuredRows = new ArrayList<>();
         List<Map<String, Object>> missing = new ArrayList<>();
-        addLinkageRow(configuredRows, missing, sanLower, hostFromUrl(publicAdminSiteUrl), "전사 관리자(웹) 공개 URL");
-        addLinkageRow(configuredRows, missing, sanLower, hostFromUrl(publicApiBaseUrl), "전사 API 공개 베이스 URL");
+        addLinkageRow(configuredRows, missing, sanLower, hostFromUrl(publicAdminSiteUrl), "GLOBAL_ADMIN", "");
+        addLinkageRow(configuredRows, missing, sanLower, hostFromUrl(publicApiBaseUrl), "GLOBAL_API", "");
         if (orgDomainRows != null) {
             for (Map<String, Object> row : orgDomainRows) {
                 String orgName = row.get("name") != null ? String.valueOf(row.get("name")) : "";
-                String srcBase = orgName.isBlank() ? "조직" : ("조직: " + orgName);
                 addLinkageRow(configuredRows, missing, sanLower, hostFromUrl(strObj(row.get("orgDomainAdminUrl"))),
-                        srcBase + " · 관리자 URL");
+                        "ORG_ADMIN", orgName);
                 addLinkageRow(configuredRows, missing, sanLower, hostFromUrl(strObj(row.get("orgDomainApiUrl"))),
-                        srcBase + " · API URL");
+                        "ORG_API", orgName);
             }
         }
         out.put("configuredHostRows", configuredRows);
@@ -213,7 +257,7 @@ public class HqServerManageService {
     }
 
     private static void addLinkageRow(List<Map<String, Object>> configuredRows, List<Map<String, Object>> missing,
-                                      Set<String> sanLower, String host, String source) {
+                                      Set<String> sanLower, String host, String sourceKind, String orgLabel) {
         if (host == null || host.isBlank()) {
             return;
         }
@@ -222,13 +266,19 @@ public class HqServerManageService {
         boolean ok = sanLower.contains(hLower);
         Map<String, Object> row = new LinkedHashMap<>();
         row.put("hostname", hn);
-        row.put("source", source);
+        row.put("sourceKind", sourceKind);
+        if (orgLabel != null && !orgLabel.isBlank()) {
+            row.put("orgLabel", orgLabel.trim());
+        }
         row.put("inCertificate", ok);
         configuredRows.add(row);
         if (!ok) {
             Map<String, Object> m = new LinkedHashMap<>();
             m.put("hostname", hn);
-            m.put("source", source);
+            m.put("sourceKind", sourceKind);
+            if (orgLabel != null && !orgLabel.isBlank()) {
+                m.put("orgLabel", orgLabel.trim());
+            }
             missing.add(m);
         }
     }
@@ -490,15 +540,15 @@ public class HqServerManageService {
                                             Optional<HqApiConfig> cfgOpt, Map<String, Object> db,
                                             Integer suggestedTrafficUsedMb) {
         Map<String, Object> h = new LinkedHashMap<>();
-        List<String> alerts = new ArrayList<>();
+        List<Object> alerts = new ArrayList<>();
         List<Map<String, Object>> rows = new ArrayList<>();
 
         cfgOpt.flatMap(x -> Optional.ofNullable(x.getServerManageContractEnd())).ifPresent(end -> {
             long days = ChronoUnit.DAYS.between(LocalDate.now(), end);
             if (days < 0) {
-                alerts.add("호스팅 약정 종료일이 지났습니다. (" + end + ")");
+                alerts.add(alertTuple(HK_ALERT_HOSTING_EXPIRED, end));
             } else if (days <= 14) {
-                alerts.add("호스팅 약정 종료 " + days + "일 전입니다.");
+                alerts.add(alertTuple(HK_ALERT_HOSTING_SOON, days));
             }
         });
 
@@ -507,74 +557,79 @@ public class HqServerManageService {
         double sysMemPct = totalMb > 0 ? Math.round(((totalMb - availMb) * 1000.0 / totalMb)) / 10.0 : 0;
         String sysStatus = sysMemPct >= SYS_MEM_PCT_DANGER ? "danger" : sysMemPct >= SYS_MEM_PCT_WARN ? "warn" : "ok";
         if (sysMemPct >= SYS_MEM_PCT_DANGER) {
-            alerts.add("시스템 메모리 사용률이 " + SYS_MEM_PCT_DANGER + "% 이상입니다.");
+            alerts.add(alertTuple(HK_ALERT_SYS_MEM, (int) SYS_MEM_PCT_DANGER));
         }
-        rows.add(rowMetric("sys_mem", "시스템 메모리",
-                String.format(Locale.ROOT, "주의: 사용률 %.0f%% 이상 · 위험: %.0f%% 이상 (그 미만은 양호, RAM)", SYS_MEM_PCT_WARN, SYS_MEM_PCT_DANGER),
-                sysMemPct + "% (가용 " + availMb + " / 총 " + totalMb + " MB)", sysStatus));
+        rows.add(rowMetric("sys_mem", sysStatus, HK_L_SYS_MEM, List.of(),
+                HK_C_SYS_MEM, List.of((int) SYS_MEM_PCT_WARN, (int) SYS_MEM_PCT_DANGER),
+                HK_V_SYS_MEM, List.of(sysMemPct + "%", availMb, totalMb)));
 
         double heapPct = jvm.get("heapUsedPct") instanceof Number ? ((Number) jvm.get("heapUsedPct")).doubleValue() : 0;
         long heapMaxB = toLong(jvm.get("heapMaxMb")) * 1024L * 1024L;
         boolean heapDanger = heapMaxB >= HEAP_FRAC_MIN_TOTAL_BYTES && heapPct >= HEAP_PCT_DANGER;
         String heapStatus = heapDanger ? "danger" : heapPct >= HEAP_PCT_WARN ? "warn" : "ok";
         if (heapDanger) {
-            alerts.add("JVM 힙 사용률이 " + (int) HEAP_PCT_DANGER + "% 이상입니다.");
+            alerts.add(alertTuple(HK_ALERT_JVM_HEAP, (int) HEAP_PCT_DANGER));
         }
-        rows.add(rowMetric("jvm_heap", "JVM 힙",
-                String.format(Locale.ROOT, "주의: 사용률 %.0f%% 이상 · 위험: %.0f%% 이상 (최대힙 ≥%dMB일 때만 위험 판정)",
-                        HEAP_PCT_WARN, HEAP_PCT_DANGER, (int) (HEAP_FRAC_MIN_TOTAL_BYTES / (1024 * 1024))),
-                jvm.get("heapUsedMb") + " / " + jvm.get("heapMaxMb") + " MB (" + heapPct + "%)", heapStatus));
+        rows.add(rowMetric("jvm_heap", heapStatus, HK_L_JVM_HEAP, List.of(),
+                HK_C_JVM_HEAP, List.of((int) HEAP_PCT_WARN, (int) HEAP_PCT_DANGER, (int) (HEAP_FRAC_MIN_TOTAL_BYTES / (1024 * 1024))),
+                HK_V_JVM_HEAP, List.of(jvm.get("heapUsedMb"), jvm.get("heapMaxMb"), heapPct)));
 
         Double load = jvm.get("systemLoadAverage") instanceof Number ? ((Number) jvm.get("systemLoadAverage")).doubleValue() : null;
         int cpuN = jvm.get("cpuCount") instanceof Number ? ((Number) jvm.get("cpuCount")).intValue() : 1;
         boolean loadDanger = load != null && load >= 0 && load > cpuN * LOAD_MULT;
         String loadStatus = load == null || load < 0 ? "ok" : loadDanger ? "danger" : load > cpuN ? "warn" : "ok";
         if (loadDanger) {
-            alerts.add("시스템 부하(1분 평균)가 CPU 코어 수의 " + (int) LOAD_MULT + "배를 넘었습니다.");
+            alerts.add(alertTuple(HK_ALERT_LOAD, (int) LOAD_MULT));
         }
-        String loadStr = load == null || load < 0 ? "—" : String.valueOf(load);
-        rows.add(rowMetric("load_avg", "Load average (1m)",
-                String.format(Locale.ROOT, "주의: 1분 평균 > CPU 코어(%d) · 위험: > 코어×%.0f (%.0f) · 없음/N/A는 양호", cpuN, LOAD_MULT, cpuN * LOAD_MULT),
-                loadStr, loadStatus));
+        boolean loadDash = load == null || load < 0;
+        rows.add(rowMetric("load_avg", loadStatus, HK_L_LOAD_AVG, List.of(),
+                HK_C_LOAD, List.of(cpuN, (int) LOAD_MULT, cpuN * LOAD_MULT),
+                loadDash ? HK_V_DASH : HK_V_LOAD, loadDash ? List.of() : List.of(loadStr(load))));
 
         String diskStatus = "ok";
-        String diskVal = "—";
+        String diskValKey = HK_V_DASH;
+        List<Object> diskValArgs = List.of();
         if (Boolean.TRUE.equals(disk.get("ok"))) {
             double dPct = disk.get("usedPct") instanceof Number ? ((Number) disk.get("usedPct")).doubleValue() : 0;
-            diskVal = dPct + "%";
+            diskValKey = HK_V_DISK_PCT;
+            diskValArgs = List.of(dPct + "%");
             diskStatus = dPct >= DISK_PCT_DANGER ? "danger" : dPct >= DISK_PCT_WARN ? "warn" : "ok";
             if (dPct >= DISK_PCT_DANGER) {
-                alerts.add("디스크 사용률이 " + DISK_PCT_DANGER + "% 이상입니다.");
+                alerts.add(alertTuple(HK_ALERT_DISK, (int) DISK_PCT_DANGER));
             }
         } else {
             diskStatus = "warn";
         }
-        rows.add(rowMetric("disk", "디스크 (앱 기준 경로)",
-                String.format(Locale.ROOT, "주의: 사용률 %.0f%% 이상 · 위험: %.0f%% 이상 (그 미만은 양호)", DISK_PCT_WARN, DISK_PCT_DANGER),
-                diskVal, diskStatus));
+        rows.add(rowMetric("disk", diskStatus, HK_L_DISK, List.of(),
+                HK_C_DISK, List.of((int) DISK_PCT_WARN, (int) DISK_PCT_DANGER),
+                diskValKey, diskValArgs));
 
         String sslStatus = "ok";
-        String sslVal = "—";
+        String sslValKey = HK_V_DASH;
+        List<Object> sslValArgs = List.of();
         if ("OK".equals(ssl.get("status"))) {
             long days = ssl.get("daysRemaining") instanceof Number ? ((Number) ssl.get("daysRemaining")).longValue() : 999;
-            sslVal = "만료까지 약 " + days + "일";
+            sslValKey = HK_V_SSL_DAYS;
+            sslValArgs = List.of(days);
             sslStatus = days < SSL_DAYS_DANGER ? "danger" : days < SSL_DAYS_WARN ? "warn" : "ok";
             if (days < SSL_DAYS_DANGER) {
-                alerts.add("SSL 인증서 만료가 " + SSL_DAYS_DANGER + "일 이내입니다.");
+                alerts.add(alertTuple(HK_ALERT_SSL_DANGER, SSL_DAYS_DANGER));
             } else if (days < SSL_DAYS_WARN) {
-                alerts.add("SSL 인증서 만료가 " + SSL_DAYS_WARN + "일 이내입니다.");
+                alerts.add(alertTuple(HK_ALERT_SSL_WARN, SSL_DAYS_WARN));
             }
         } else if ("N/A".equals(ssl.get("status"))) {
             sslStatus = "warn";
-            sslVal = "인증서 없음/미설정";
+            sslValKey = HK_V_SSL_NA;
+            sslValArgs = List.of();
         } else if ("ERROR".equals(ssl.get("status"))) {
             sslStatus = "danger";
-            sslVal = String.valueOf(ssl.getOrDefault("detail", "오류"));
-            alerts.add("SSL 인증서를 읽지 못했습니다.");
+            sslValKey = HK_V_SSL_ERR;
+            sslValArgs = List.of(String.valueOf(ssl.getOrDefault("detail", "")));
+            alerts.add(alertTuple(HK_ALERT_SSL_READ));
         }
-        rows.add(rowMetric("ssl", "SSL 인증서",
-                String.format(Locale.ROOT, "주의: 만료 잔여 %.0f일 미만 · 위험: %.0f일 미만", (double) SSL_DAYS_WARN, (double) SSL_DAYS_DANGER),
-                sslVal, sslStatus));
+        rows.add(rowMetric("ssl", sslStatus, HK_L_SSL, List.of(),
+                HK_C_SSL, List.of(SSL_DAYS_WARN, SSL_DAYS_DANGER),
+                sslValKey, sslValArgs));
 
         HqApiConfig cfg = cfgOpt.orElse(null);
         Integer contractDiskMb = cfg != null ? cfg.getServerManageContractDiskMb() : null;
@@ -585,54 +640,61 @@ public class HqServerManageService {
             String cDiskStatus = pctContract >= DISK_PCT_DANGER ? "danger" : pctContract >= DISK_PCT_WARN ? "warn" : "ok";
             String quotaDiskGb = formatGbFromMb(contractDiskMb);
             if (pctContract >= DISK_PCT_DANGER) {
-                alerts.add("약정 디스크(" + quotaDiskGb + ") 대비 사용률이 " + (int) DISK_PCT_DANGER + "% 이상입니다.");
+                alerts.add(alertTuple(HK_ALERT_CONTRACT_DISK, quotaDiskGb, (int) DISK_PCT_DANGER));
             }
-            rows.add(rowMetric("contract_disk", "약정 디스크",
-                    String.format(Locale.ROOT, "앱 경로 디스크 사용량 ÷ 약정 %s · 주의: %.0f%% 이상 · 위험: %.0f%% 이상%s",
-                            quotaDiskGb, DISK_PCT_WARN, DISK_PCT_DANGER, contractPeriodNote(cfg)),
-                    String.format(Locale.ROOT, "약정 %s 중 약 %s 사용 (%.1f%%)", quotaDiskGb, formatGbFromMb(usedMb), pctContract),
-                    cDiskStatus));
+            rows.add(rowMetric("contract_disk", cDiskStatus, HK_L_CONTRACT_DISK, List.of(),
+                    HK_C_CONTRACT_DISK, List.of(quotaDiskGb, (int) DISK_PCT_WARN, (int) DISK_PCT_DANGER, contractPeriodSuffix(cfg)),
+                    HK_V_CONTRACT_DISK, List.of(quotaDiskGb, formatGbFromMb(usedMb), pctContract)));
         }
 
         Integer contractTrafficMb = cfg != null ? cfg.getServerManageContractTrafficMb() : null;
         Integer trafficUsedMb = cfg != null ? cfg.getServerManageTrafficUsedMb() : null;
         if (contractTrafficMb != null && contractTrafficMb > 0) {
             String quotaTrGb = formatGbFromMb(contractTrafficMb);
-            String trafficCriteria = String.format(Locale.ROOT,
-                    "약정 %s 대비 사용률 · 주의 ≥%.0f%% · 위험 ≥%.0f%%%s (저장값 또는 앱 수집 합산)",
-                    quotaTrGb, DISK_PCT_WARN, DISK_PCT_DANGER, contractPeriodNote(cfg));
+            List<Object> trafficCritArgs = new ArrayList<>();
+            trafficCritArgs.add(quotaTrGb);
+            trafficCritArgs.add((int) DISK_PCT_WARN);
+            trafficCritArgs.add((int) DISK_PCT_DANGER);
+            trafficCritArgs.add(contractPeriodSuffix(cfg));
             if (trafficUsedMb == null) {
-                String val;
                 if (suggestedTrafficUsedMb != null && suggestedTrafficUsedMb > 0) {
-                    val = "DB 미저장 — 앱 수집(약정기간 내 일별 합) 약 " + formatGbFromMb(suggestedTrafficUsedMb)
-                            + " · 호스팅 패널과 다를 수 있음. 폼에 반영된 뒤 [저장]하면 비율 판정에 쓰입니다.";
+                    rows.add(rowMetric("contract_traffic", "warn", HK_L_CONTRACT_TRAFFIC, List.of(),
+                            HK_C_CONTRACT_TRAFFIC, trafficCritArgs,
+                            HK_V_CONTRACT_TRAFFIC_SUGGEST, List.of(formatGbFromMb(suggestedTrafficUsedMb))));
                 } else {
-                    val = "DB 미저장 — 호스팅 패널 누적(GB)을 입력하거나, 일별 수집이 쌓이면 추정이 표시됩니다.";
+                    rows.add(rowMetric("contract_traffic", "warn", HK_L_CONTRACT_TRAFFIC, List.of(),
+                            HK_C_CONTRACT_TRAFFIC, trafficCritArgs,
+                            HK_V_CONTRACT_TRAFFIC_EMPTY, List.of()));
                 }
-                rows.add(rowMetric("contract_traffic", "약정 트래픽", trafficCriteria, val, "warn"));
             } else {
                 double pctT = Math.round((trafficUsedMb * 1000.0 / contractTrafficMb)) / 10.0;
                 String tStatus = pctT >= DISK_PCT_DANGER ? "danger" : pctT >= DISK_PCT_WARN ? "warn" : "ok";
                 if (pctT >= DISK_PCT_DANGER) {
-                    alerts.add("약정 트래픽(" + quotaTrGb + ") 대비 사용이 " + (int) DISK_PCT_DANGER + "% 이상입니다.");
+                    alerts.add(alertTuple(HK_ALERT_CONTRACT_TRAFFIC, quotaTrGb, (int) DISK_PCT_DANGER));
                 }
-                rows.add(rowMetric("contract_traffic", "약정 트래픽", trafficCriteria,
-                        String.format(Locale.ROOT, "%s / %s (%.1f%%)", formatGbFromMb(trafficUsedMb), quotaTrGb, pctT),
-                        tStatus));
+                rows.add(rowMetric("contract_traffic", tStatus, HK_L_CONTRACT_TRAFFIC, List.of(),
+                        HK_C_CONTRACT_TRAFFIC, trafficCritArgs,
+                        HK_V_CONTRACT_TRAFFIC, List.of(formatGbFromMb(trafficUsedMb), quotaTrGb, pctT)));
             }
         }
 
         if (db != null) {
             boolean dbOk = Boolean.TRUE.equals(db.get("ok"));
             Object tc = db.get("tableCountInSchema");
-            String dbVal = dbOk && tc != null ? String.valueOf(tc) : "—";
             if (!dbOk) {
-                alerts.add("DB 메타 조회 실패: " + db.getOrDefault("error", ""));
+                alerts.add(alertTuple(HK_ALERT_DB_META, String.valueOf(db.getOrDefault("error", ""))));
+                rows.add(rowMetric("db_tables", "danger", HK_L_DB_TABLES, List.of(),
+                        HK_C_DB_TABLES, List.of(),
+                        HK_V_DB_FAIL, List.of(String.valueOf(db.getOrDefault("error", "")))));
+            } else if (tc != null) {
+                rows.add(rowMetric("db_tables", "ok", HK_L_DB_TABLES, List.of(),
+                        HK_C_DB_TABLES, List.of(),
+                        HK_V_DB_TABLES, List.of(tc)));
+            } else {
+                rows.add(rowMetric("db_tables", "ok", HK_L_DB_TABLES, List.of(),
+                        HK_C_DB_TABLES, List.of(),
+                        HK_V_DASH, List.of()));
             }
-            rows.add(rowMetric("db_tables", "DB 테이블 수",
-                    "JDBC 연결 기준 public 스키마 BASE TABLE 개수",
-                    dbVal,
-                    dbOk ? "ok" : "danger"));
         }
 
         h.put("alerts", alerts);
@@ -641,7 +703,19 @@ public class HqServerManageService {
         return h;
     }
 
-    private static String contractPeriodNote(HqApiConfig cfg) {
+    private static String loadStr(Double load) {
+        return load == null ? "" : String.valueOf(load);
+    }
+
+    private static Map<String, Object> alertTuple(String key, Object... args) {
+        Map<String, Object> m = new LinkedHashMap<>();
+        m.put("k", key);
+        m.put("a", args.length == 0 ? List.of() : Arrays.asList(args));
+        return m;
+    }
+
+    /** Locale-neutral suffix for criteria templates (dates only; leading " · ") */
+    private static String contractPeriodSuffix(HqApiConfig cfg) {
         if (cfg == null) {
             return "";
         }
@@ -652,7 +726,7 @@ public class HqServerManageService {
         }
         String a = s != null ? s.toString() : "?";
         String b = e != null ? e.toString() : "?";
-        return " · 약정기간 " + a + " ~ " + b;
+        return " · " + a + " ~ " + b;
     }
 
     /** 표시용 MB → GB (저장은 MB 유지) */
@@ -677,13 +751,19 @@ public class HqServerManageService {
         return w == 1 ? "warn" : "ok";
     }
 
-    private static Map<String, Object> rowMetric(String id, String label, String criteria, String value, String status) {
+    private static Map<String, Object> rowMetric(String id, String status,
+            String labelKey, List<Object> labelArgs,
+            String criteriaKey, List<Object> criteriaArgs,
+            String valueKey, List<Object> valueArgs) {
         Map<String, Object> m = new LinkedHashMap<>();
         m.put("id", id);
-        m.put("label", label);
-        m.put("criteria", criteria);
-        m.put("value", value);
         m.put("status", status);
+        m.put("lK", labelKey);
+        m.put("lA", labelArgs == null ? List.of() : labelArgs);
+        m.put("cK", criteriaKey);
+        m.put("cA", criteriaArgs == null ? List.of() : criteriaArgs);
+        m.put("vK", valueKey);
+        m.put("vA", valueArgs == null ? List.of() : valueArgs);
         return m;
     }
 

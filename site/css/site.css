@@ -231,6 +231,54 @@ body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Ro
   flex-shrink: 0;
 }
 .header-top-info { font-size: var(--app-base-font-size); color: #333; font-weight: 500; white-space: nowrap; flex-shrink: 0; }
+
+/* 상단 헤더: 접속 IP 오른쪽 인라인 언어 (JP KR EN CH TH — KR=한국어 KO) */
+.pg-pay-lang-inline {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: nowrap;
+  gap: 4px 10px;
+  padding: 4px 14px;
+  border: 1px solid #b6d4fe;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.65);
+  font-size: var(--app-base-font-size);
+  color: #0f172a;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
+}
+.pg-pay-lang-label {
+  font-weight: 600;
+  color: #334155;
+  margin-right: 2px;
+  user-select: none;
+}
+.pg-pay-lang-inline .pg-pay-lang-chip {
+  border: 0;
+  background: transparent;
+  padding: 2px 2px;
+  margin: 0;
+  font-size: inherit;
+  font-weight: 500;
+  color: #1e293b;
+  cursor: pointer;
+  line-height: 1.25;
+  border-radius: 4px;
+}
+.pg-pay-lang-inline .pg-pay-lang-chip:hover {
+  background: rgba(37, 99, 235, 0.12);
+  color: #1d4ed8;
+}
+.pg-pay-lang-inline .pg-pay-lang-chip:focus-visible {
+  outline: 2px solid #3b82f6;
+  outline-offset: 1px;
+}
+.pg-pay-lang-inline .pg-pay-lang-chip--active {
+  font-weight: 700;
+  color: #1d4ed8;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
 .header-user-link { display: flex; align-items: center; gap: 8px; color: #333; text-decoration: none; }
 .header-user-link:hover { color: #111; }
 .header-user-icon { font-size: 1.5rem; color: #555; }
@@ -1313,6 +1361,15 @@ body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Ro
 #contentsMain .screen-calc-fee-list .table tbody tr.pay-row-tone--pending:nth-child(even) {
   background: #f5f7fa !important;
 }
+/* 기타(인증대기 등): 상단 집계 OTHER·pill--other와 동일 앰버 톤 */
+#contentsMain .screen-pay-list .table tbody tr.pay-row-tone--other,
+#contentsMain .screen-pay-list .table tbody tr.pay-row-tone--other:nth-child(odd),
+#contentsMain .screen-pay-list .table tbody tr.pay-row-tone--other:nth-child(even),
+#contentsMain .screen-calc-fee-list .table tbody tr.pay-row-tone--other,
+#contentsMain .screen-calc-fee-list .table tbody tr.pay-row-tone--other:nth-child(odd),
+#contentsMain .screen-calc-fee-list .table tbody tr.pay-row-tone--other:nth-child(even) {
+  background: linear-gradient(90deg, rgba(251, 191, 36, 0.38) 0, rgba(254, 243, 199, 0.92) 14px, #fffbeb 100%) !important;
+}
 
 .pay-grid-status-badge {
   display: inline-block;
@@ -1347,6 +1404,11 @@ body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Ro
 .pay-grid-status-badge--pending {
   background: #94a3b8;
   color: #fff;
+}
+.pay-grid-status-badge--other {
+  background: #fbbf24;
+  color: #78350f;
+  border: 1px solid #d97706;
 }
 .pay-grid-status-badge--neutral {
   background: #e5e7eb;

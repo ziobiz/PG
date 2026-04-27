@@ -272,16 +272,21 @@ public class CollateralLedgerService {
             m.put("holdBusinessDays", r.getHoldBusinessDays() != null ? r.getHoldBusinessDays() : "");
             LocalDate hsd = r.getHoldStartDate() != null ? r.getHoldStartDate() : effectiveHoldStart(r);
             m.put("holdStartDt", hsd != null ? hsd.toString() : "");
-            m.put("releaseDt", r.getReleaseDate() != null ? r.getReleaseDate().toString() : "");
+            LocalDate releaseDate = r.getReleaseDate();
+            String releaseDateStr = releaseDate != null ? releaseDate.toString() : "";
+            String settlementNoteDateParam = releaseDate != null ? releaseDateStr : "-";
+            m.put("releaseDt", releaseDateStr);
             m.put("releaseBizDtTime", formatReleaseBizDateTime(r, settingByMid.get(midTrim)));
             boolean hold = "HOLD".equalsIgnoreCase(r.getStatus() != null ? r.getStatus() : "");
-            m.put("remainingBizDays", hold ? remainingBusinessDaysAfterUntil(today, r.getReleaseDate()) : 0);
+            m.put("remainingBizDays", hold ? remainingBusinessDaysAfterUntil(today, releaseDate) : 0);
             m.put("status", r.getStatus() != null ? r.getStatus() : "");
             m.put("statusNm", hold ? "보류" : "해지(정산반영)");
             LocalDateTime ra = r.getReleasedAt();
             m.put("releasedAt", ra != null ? ra.toString() : "");
+            m.put("settlementNoteTpl", hold ? "HOLD_AFTER_RELEASE" : "REFLECTED_ON_SETTLEMENT");
+            m.put("settlementNoteDate", settlementNoteDateParam);
             m.put("settlementNote", hold
-                    ? "해지일(" + (r.getReleaseDate() != null ? r.getReleaseDate() : "-") + ") 이후 정산 실행 시 지급액에 합산"
+                    ? "해지일(" + settlementNoteDateParam + ") 이후 정산 실행 시 지급액에 합산"
                     : "정산 실행 시 지급액에 반영됨");
             rows.add(m);
         }

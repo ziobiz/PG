@@ -242,13 +242,13 @@ public class PayListService {
         return new SettlementWindowPayRows(list, truncated);
     }
 
-    /** 결제관리 payList: 기간 미입력 시 당일(서버 일자)로 조회·집계 */
+    /** 결제관리 payList: 기간 미입력 시 전일~당일(서버 일자)로 조회·집계 */
     private static void applyDefaultPayListSearchDates(PayListSearchRequest req) {
         if (req.getSearchFromDate() != null || req.getSearchToDate() != null) {
             return;
         }
         LocalDate today = LocalDate.now();
-        req.setSearchFromDate(today);
+        req.setSearchFromDate(today.minusDays(1));
         req.setSearchToDate(today);
     }
 
@@ -911,6 +911,9 @@ public class PayListService {
         }
         String variant = req.getPayListVariant() == null || req.getPayListVariant().isBlank()
                 ? "INTEGRATED" : req.getPayListVariant().trim().toUpperCase(Locale.ROOT);
+        String fieldType = req.getSearchFieldType() != null ? req.getSearchFieldType().trim().toUpperCase(Locale.ROOT) : "";
+        boolean unified = !fieldType.isEmpty();
+        String unifiedKw = req.getSearchKeyword() != null ? req.getSearchKeyword().trim() : "";
         final Set<String> mcsFinal = merchantCodes;
         return (root, query, cb) -> {
             List<Predicate> parts = new ArrayList<>();
@@ -929,9 +932,13 @@ public class PayListService {
             addPayProcPredicate(parts, root, cb, req.getSearchPayProcCd());
             addTranFactorColumnPredicates(parts, root, cb, req.getSearchTranFactor(), req.getSearchTranValue());
             addPgAgencyPredicate(parts, root, cb, req.getSearchPgCd());
-            addKeywordPredicate(parts, root, cb, req.getSearchKeyword());
-            addLike(parts, root, cb, "chillTransactionId", req.getSearchChillTxnId());
-            addLike(parts, root, cb, "approvalNo", req.getSearchCardAprvNo());
+            if (unified) {
+                addUnifiedFieldPredicate(parts, root, cb, fieldType, unifiedKw);
+            } else {
+                addKeywordPredicate(parts, root, cb, req.getSearchKeyword());
+                addLike(parts, root, cb, "chillTransactionId", req.getSearchChillTxnId());
+                addLike(parts, root, cb, "approvalNo", req.getSearchCardAprvNo());
+            }
             return cb.and(parts.toArray(Predicate[]::new));
         };
     }
@@ -941,6 +948,16 @@ public class PayListService {
      */
     private Set<String> resolveMerchantFilterCodes(PayListSearchRequest req, Authentication authentication) {
         Set<String> mcs = null;
+        String ft = req.getSearchFieldType() != null ? req.getSearchFieldType().trim().toUpperCase(Locale.ROOT) : "";
+        String kw = req.getSearchKeyword() != null ? req.getSearchKeyword().trim() : "";
+        if (!ft.isEmpty() && !kw.isEmpty()) {
+            switch (ft) {
+                case "COMP_NM" -> mcs = intersectCodes(mcs, codesFromCompField("NM", kw));
+                case "COMP_ID" -> mcs = intersectCodes(mcs, codesFromCompField("CODE", kw));
+                case "MID" -> mcs = intersectCodes(mcs, codesFromMid(kw));
+                default -> { }
+            }
+        }
         mcs = intersectCodes(mcs, codesFromCompField(req.getSearchCompField(), req.getSearchCompQ()));
         mcs = intersectCodes(mcs, codesFromRegNo(req.getSearchRegNo()));
         mcs = intersectCodes(mcs, codesFromCalcCycle(req.getSearchCycle()));
@@ -959,6 +976,43 @@ public class PayListService {
         mcs = intersectCodes(mcs, ownMerchantOnlyForPayListVariant(req, authentication));
         mcs = intersectCodes(mcs, orgAccessService.visibleMerchantCompCodes(authentication));
         return mcs;
+    }
+
+    private void addUnifiedFieldPredicate(List<Predicate> parts, Root<PgTrnsctn> root, CriteriaBuilder cb,
+                                         String fieldType, String kw) {
+        if (fieldType == null || fieldType.isBlank()) {
+            return;
+        }
+        String ft = fieldType.trim().toUpperCase(Locale.ROOT);
+        String v = kw != null ? kw.trim() : "";
+        if ("ALL".equals(ft) || v.isEmpty()) {
+            if (!v.isEmpty()) {
+                addKeywordPredicate(parts, root, cb, v);
+            }
+            return;
+        }
+        switch (ft) {
+            case "CUSTOMER_ID" -> addLike(parts, root, cb, "customerId", v);
+            case "APPROVAL_NO" -> addLike(parts, root, cb, "chillTransactionId", v);
+            case "ORDER_NO" -> addLike(parts, root, cb, "orderNo", v);
+            case "ROUTE" -> addLike(parts, root, cb, "routeNo", v);
+            case "CURRENCY" -> addLike(parts, root, cb, "curType", v);
+            case "STATUS" -> addLike(parts, root, cb, "status", v);
+            case "AMOUNT" -> {
+                try {
+                    String digits = v.replace(",", "").trim();
+                    BigDecimal amt = new BigDecimal(digits);
+                    parts.add(cb.equal(root.get("amtKrw"), amt));
+                } catch (Exception ignored) {
+                    parts.add(cb.disjunction());
+                }
+            }
+            case "COMP_NM", "COMP_ID", "MID" -> {
+                /* 가맹 필터는 resolveMerchantFilterCodes에서 처리 */
+            }
+            default -> {
+            }
+        }
     }
 
     /**

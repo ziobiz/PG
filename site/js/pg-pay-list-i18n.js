@@ -1,0 +1,1064 @@
+/**
+ * 통합 결제내역(/calc/payList) 및 동일 그리드 변형 — 그리드·액션바 다국어 (ziobiz/NOTI 스타일: KO JP EN CH TH).
+ * localStorage 키: pg_pay_list_ui_locale
+ */
+(function (w) {
+  'use strict';
+
+  var STORAGE_KEY = 'pg_pay_list_ui_locale';
+  var LOCALES = ['KO', 'JP', 'EN', 'CH', 'TH'];
+
+  var UI = {
+    search: { KO: '검색', EN: 'Search', JP: '検索', CH: '搜索', TH: 'ค้นหา' },
+    refresh: { KO: '새로고침', EN: 'Refresh', JP: '再読込', CH: '刷新', TH: 'รีเฟรช' },
+    excel: { KO: '엑셀다운로드', EN: 'Excel download', JP: 'Excel取得', CH: 'Excel下载', TH: 'ดาวน์โหลด Excel' },
+    selectAll: { KO: '전체선택', EN: 'Select all', JP: '全選択', CH: '全选', TH: 'เลือกทั้งหมด' },
+    empty: { KO: '조회된 데이터가 없습니다.', EN: 'No records found.', JP: '該当データがありません。', CH: '没有查询到数据。', TH: 'ไม่พบข้อมูล' },
+    searchReset: { KO: '검색 초기화', EN: 'Reset search', JP: '検索リセット', CH: '重置搜索', TH: 'รีเซ็ตการค้นหา' },
+    sortDesc: { KO: '내림차순', EN: 'Descending', JP: '降順', CH: '降序', TH: 'จากมากไปน้อย' },
+    sortAsc: { KO: '오름차순', EN: 'Ascending', JP: '昇順', CH: '升序', TH: 'จากน้อยไปมาก' },
+    sortToolbarAria: { KO: '정렬 순서', EN: 'Sort order', JP: '並び順', CH: '排序', TH: 'ลำดับการเรียง' },
+    helloBtn: { KO: '헬로', EN: 'Hello', JP: 'Hello', CH: '提示', TH: 'Hello' },
+    receivableReg: { KO: '미수금등록', EN: 'Register receivable', JP: '未収金登録', CH: '登记应收', TH: 'ลงทะเบียนลูกหนี้' },
+    printSetup: { KO: '인쇄설정', EN: 'Print setup', JP: '印刷設定', CH: '打印设置', TH: 'ตั้งค่าพิมพ์' },
+    cgTitle: { KO: 'VIEW SETTING', EN: 'VIEW SETTING', JP: 'VIEW SETTING', CH: 'VIEW SETTING', TH: 'VIEW SETTING' },
+    cgDefault: { KO: '기본', EN: 'Default', JP: '既定', CH: '默认', TH: 'ค่าเริ่มต้น' },
+    cgRelease: { KO: '해제', EN: 'Clear', JP: '解除', CH: '清除', TH: 'ยกเลิก' },
+    cgSelectAllCols: { KO: '선택', EN: 'Select all', JP: '全選択', CH: '全选', TH: 'เลือกทั้งหมด' },
+    cgSave: { KO: '저장', EN: 'Save', JP: '保存', CH: '保存', TH: 'บันทึก' },
+    cgRestore: { KO: '복원', EN: 'Restore', JP: '復元', CH: '恢复', TH: 'คืนค่า' },
+    cgRestoreTip: {
+      KO: '바로 직전에 서버에 저장된 열 구성(또는 화면을 불러온 당시의 저장 상태)으로 되돌립니다.',
+      EN: 'Restores the column layout last saved on the server (or when the screen was loaded).',
+      JP: '直前にサーバーへ保存した列構成(または画面読み込み時の保存状態)に戻します。',
+      CH: '恢复为上次在服务器保存的列布局（或打开本页时的保存状态）。',
+      TH: 'คืนค่าเป็นการจัดคอลัมน์ที่บันทึกไว้ล่าสุดบนเซิร์ฟเวอร์ (หรือตอนโหลดหน้าจอ)'
+    },
+    userAdd: { KO: '추가', EN: 'Add', JP: '追加', CH: '添加', TH: 'เพิ่ม' },
+    hqPgApiOpSave: { KO: '운영 저장', EN: 'Save operational', JP: '運用を保存', CH: '保存运营', TH: 'บันทึกการทำงาน' },
+    hqPgApiAdd: { KO: 'PG사 연동 추가', EN: 'Add PG linkage', JP: 'PG連携を追加', CH: '添加 PG 对接', TH: 'เพิ่มการเชื่อม PG' }
+  };
+
+  /** 공통 옵션·검색필드 라벨·placeholder (name 기준) */
+  var OPT0 = { KO: '전체', EN: 'All', JP: 'すべて', CH: '全部', TH: 'ทั้งหมด' };
+  var LBL = {
+    searchTranFactor: { KO: '거래인자', EN: 'Search by', JP: '検索項目', CH: '查询维度', TH: 'ค้นหาตาม' },
+    searchCompField: { KO: '업체', EN: 'Company', JP: '加盟店', CH: '商户', TH: 'ร้านค้า' },
+    searchMid: { KO: 'MID', EN: 'MID', JP: 'MID', CH: 'MID', TH: 'MID' },
+    searchNotifyChannel: { KO: '수신채널', EN: 'Notify channel', JP: '受信チャネル', CH: '通知渠道', TH: 'ช่องทางแจ้งเตือน' },
+    searchPayDivCd: { KO: '상태구분', EN: 'Status type', JP: '状態区分', CH: '状态区分', TH: 'ประเภทสถานะ' },
+    searchPayProcCd: { KO: '정산구분', EN: 'Settlement status', JP: '精算区分', CH: '结算状态', TH: 'สถานะการชำระบัญชี' },
+    searchKeyword: { KO: '검색어', EN: 'Keyword', JP: '検索語', CH: '关键词', TH: 'คำค้น' },
+    searchPgCd: { KO: '결제대행사', EN: 'PG / acquirer', JP: '決済代行', CH: '支付机构', TH: 'ผู้ให้บริการชำระเงิน' },
+    searchCycle: { KO: '정산주기', EN: 'Settlement cycle', JP: '精算サイクル', CH: '结算周期', TH: 'รอบการชำระบัญชี' },
+    searchRegNo: { KO: '사업자번호', EN: 'Business reg. no.', JP: '事業者番号', CH: '营业执照号', TH: 'เลขทะเบียน' },
+    searchCardAprvNo: { KO: '카드승인번호', EN: 'Card approval no.', JP: 'カード承認番号', CH: '卡授权号', TH: 'เลขอนุมัติบัตร' },
+    searchChillTxnId: { KO: '피지거래번호', EN: 'ChillPay txn ID', JP: 'ChillPay取引ID', CH: 'ChillPay 交易号', TH: 'รหัสธุรกรรม ChillPay' },
+    'searchMid:label': { KO: 'MID', EN: 'MID', JP: 'MID', CH: 'MID', TH: 'MID' },
+    searchOrderBy: { KO: '정렬', EN: 'Sort by', JP: '並び替え', CH: '排序', TH: 'เรียงตาม' },
+    searchMerchantCode: { KO: 'MID', EN: 'MID', JP: 'MID', CH: 'MID', TH: 'MID' },
+    searchOrderNo: { KO: '주문번호', EN: 'Order no.', JP: '注文番号', CH: '订单号', TH: 'เลขคำสั่งซื้อ' },
+    searchChillStatus: { KO: '상태', EN: 'Status', JP: '状態', CH: '状态', TH: 'สถานะ' },
+    searchPaymentChannel: { KO: '채널', EN: 'Channel', JP: 'チャネル', CH: '渠道', TH: 'ช่องทาง' },
+    searchRouteNo: { KO: 'Route', EN: 'Route', JP: 'ルート', CH: '路由', TH: 'Route' },
+    searchFieldType: { KO: '검색구분', EN: 'Search field', JP: '検索区分', CH: '搜索字段', TH: 'ฟิลด์ค้นหา' },
+    searchStatusGroup: { KO: '상태그룹', EN: 'Status group', JP: '状態グループ', CH: '状态分组', TH: 'กลุ่มสถานะ' },
+    'drLbl:정산기간': { KO: '정산기간', EN: 'Settlement period', JP: '精算期間', CH: '结算期间', TH: 'ช่วงการชำระบัญชี' },
+    searchDateType: { KO: '조회기준', EN: 'Search basis', JP: '照会基準', CH: '查询依据', TH: 'เกณฑ์การค้นหา' },
+    searchCompDiv: { KO: '업체구분', EN: 'Org type', JP: '組織区分', CH: '组织类型', TH: 'ประเภทองค์กร' },
+    'searchCompId:label': { KO: '업체코드', EN: 'Company code', JP: '加盟店コード', CH: '商户代码', TH: 'รหัสร้าน' },
+    'searchCompNm:label': { KO: '업체명', EN: 'Company name', JP: '加盟店名', CH: '商户名称', TH: 'ชื่อร้าน' },
+    searchCompId: { KO: '업체코드', EN: 'Company code', JP: '加盟店コード', CH: '商户代码', TH: 'รหัสร้าน' },
+    searchCompNm: { KO: '업체명', EN: 'Company name', JP: '加盟店名', CH: '商户名称', TH: 'ชื่อร้าน' },
+    'drLbl:기간': { KO: '기간', EN: 'Period', JP: '期間', CH: '期间', TH: 'ช่วงเวลา' },
+    'drLbl:적용일(담보)': { KO: '적용일(담보)', EN: 'As-of date (collateral)', JP: '適用日（担保）', CH: '适用日（保证金）', TH: 'วันที่มีผล (หลักประกัน)' },
+    'drLbl:결제일자': { KO: '결제일자', EN: 'Payment date', JP: '決済日', CH: '支付日期', TH: 'วันที่ชำระ' },
+    'drLbl:전송일자': { KO: '전송일자', EN: 'Send date', JP: '送信日', CH: '发送日期', TH: 'วันที่ส่ง' },
+    searchStatus: { KO: '상태', EN: 'Status', JP: '状態', CH: '状态', TH: 'สถานะ' },
+    searchReportKind: { KO: '리포트 형식', EN: 'Report format', JP: 'レポート形式', CH: '报表格式', TH: 'รูปแบบรายงาน' },
+    searchReportSub: { KO: '리포트구분', EN: 'Report type', JP: 'レポート区分', CH: '报表类别', TH: 'ประเภทรายงาน' },
+    searchMasterId: { KO: '총판(상위)코드', EN: 'Master dist. code', JP: '総販（上位）コード', CH: '总代代码', TH: 'รหัสตัวแทนหลัก' },
+    searchRegionalId: { KO: '본사코드', EN: 'Regional HQ code', JP: '本社コード', CH: '本部代码', TH: 'รหัสสำนักงานใหญ่' },
+    searchCurType: { KO: '통화', EN: 'Currency', JP: '通貨', CH: '币种', TH: 'สกุลเงิน' },
+    searchUserId: { KO: '사용자 ID', EN: 'User ID', JP: 'ユーザーID', CH: '用户ID', TH: 'รหัสผู้ใช้' },
+    'searchUserId:label': { KO: '사용자 ID', EN: 'User ID', JP: 'ユーザーID', CH: '用户ID', TH: 'รหัสผู้ใช้' },
+    searchUserNm: { KO: '사용자명', EN: 'User name', JP: 'ユーザー名', CH: '用户名', TH: 'ชื่อผู้ใช้' },
+    'searchUserNm:label': { KO: '사용자명', EN: 'User name', JP: 'ユーザー名', CH: '用户名', TH: 'ชื่อผู้ใช้' },
+    searchUseStatus: { KO: '사용여부', EN: 'Status', JP: '使用状態', CH: '使用状态', TH: 'สถานะการใช้งาน' },
+    'searchPgNm:label': { KO: 'PG사명', EN: 'PG name', JP: 'PG社名', CH: 'PG 名称', TH: 'ชื่อ PG' },
+    searchUseYn: { KO: '사용여부', EN: 'In use', JP: '使用状態', CH: '使用状态', TH: 'สถานะการใช้งาน' }
+  };
+  var PH = {
+    searchTranValue: { KO: '값', EN: 'Value', JP: '値', CH: '值', TH: 'ค่า' },
+    searchCompQ: { KO: '업체명·코드', EN: 'Name or code', JP: '店名・コード', CH: '名称或代码', TH: 'ชื่อหรือรหัส' },
+    searchMid: { KO: 'MID', EN: 'MID', JP: 'MID', CH: 'MID', TH: 'MID' },
+    searchKeyword: { KO: '주문·거래·고객·칠페이 ID 등', EN: 'Order, txn, customer, ChillPay ID…', JP: '注文・取引・顧客・ChillPay ID 等', CH: '订单、交易、客户、ChillPay ID 等', TH: 'คำสั่งซื้อ ธุรกรรม ลูกค้า ChillPay ID ฯลฯ' },
+    searchKeywordShort: { KO: '검색어', EN: 'Keyword', JP: '検索語', CH: '关键词', TH: 'คำค้น' },
+    searchChillTxnId: { KO: '승인번호(TransactionId)', EN: 'Approval no. (TransactionId)', JP: '承認番号(TransactionId)', CH: '授权号(TransactionId)', TH: 'เลขอนุมัติ (TransactionId)' },
+    searchMerchantCode: { KO: 'MerchantCode', EN: 'MerchantCode', JP: 'MerchantCode', CH: 'MerchantCode', TH: 'MerchantCode' },
+    searchChillStatus: { KO: 'Paid, WaitAuthorize…', EN: 'Paid, WaitAuthorize…', JP: 'Paid, WaitAuthorize…', CH: 'Paid, WaitAuthorize…', TH: 'Paid, WaitAuthorize…' },
+    searchPaymentChannel: { KO: 'Appendix B', EN: 'Appendix B', JP: 'Appendix B', CH: 'Appendix B', TH: 'Appendix B' },
+    searchRouteNo: { KO: '숫자', EN: 'Number', JP: '数値', CH: '数字', TH: 'ตัวเลข' },
+    searchKeywordEnPh: { KO: 'SearchKeyword', EN: 'SearchKeyword', JP: 'SearchKeyword', CH: 'SearchKeyword', TH: 'SearchKeyword' },
+    searchSettlementReportCompPh: { KO: '가맹점 코드', EN: 'Merchant code', JP: '加盟店コード', CH: '商户代码', TH: 'รหัสร้านค้า' },
+    searchMasterId: { KO: '총판 조직 코드', EN: 'Master dist. org code', JP: '総販組織コード', CH: '总代组织代码', TH: 'รหัสองค์กรตัวแทนหลัก' },
+    searchRegionalId: { KO: '본사 지급 리포트 시 필터', EN: 'Filter for HQ payout report', JP: '本社支払レポート用フィルタ', CH: '本部拨付报表筛选', TH: 'ตัวกรองรายงานจ่ายสำนักงานใหญ่' }
+  };
+
+  function optMap(base) {
+    var o = { KO: OPT0.KO, EN: OPT0.EN, JP: OPT0.JP, CH: OPT0.CH, TH: OPT0.TH };
+    if (base) {
+      ['EN', 'JP', 'CH', 'TH'].forEach(function (k) {
+        if (base[k]) o[k] = base[k];
+      });
+    }
+    return o;
+  }
+  var OPT = {
+    'searchTranFactor|ORDER_NO': optMap({ EN: 'Order no.', JP: '注文番号', CH: '订单号', TH: 'เลขคำสั่งซื้อ' }),
+    'searchTranFactor|CUSTOMER_ID': optMap({ EN: 'Customer ID', JP: '顧客ID', CH: '客户ID', TH: 'รหัสลูกค้า' }),
+    'searchTranFactor|TRN_ID': optMap({ EN: 'Txn ID', JP: '取引ID', CH: '交易ID', TH: 'รหัสธุรกรรม' }),
+    'searchTranFactor|AMT': optMap({ EN: 'Amount', JP: '金額', CH: '金额', TH: 'จำนวนเงิน' }),
+    'searchTranFactor|MERCHANT': optMap({ EN: 'Merchant', JP: '加盟店', CH: '商户', TH: 'ร้านค้า' }),
+    'searchTranFactor|ROUTE': optMap({ EN: 'Route', JP: 'ルート', CH: '路由', TH: 'Route' }),
+    'searchTranFactor|MID': optMap({ EN: 'MID', JP: 'MID', CH: 'MID', TH: 'MID' }),
+    'searchCompField|NM': optMap({ EN: 'Name', JP: '店名', CH: '名称', TH: 'ชื่อ' }),
+    'searchCompField|CODE': optMap({ EN: 'Code', JP: 'コード', CH: '代码', TH: 'รหัส' }),
+    'searchPayDivCd|10': optMap({ EN: 'Success', JP: '成功', CH: '成功', TH: 'สำเร็จ' }),
+    'searchPayDivCd|20': optMap({ EN: 'Cancel', JP: '取消', CH: '取消', TH: 'ยกเลิก' }),
+    'searchPayDivCd|FAIL': optMap({ EN: 'Fail', JP: '失敗', CH: '失败', TH: 'ล้มเหลว' }),
+    'searchPayDivCd|40': optMap({ EN: 'Auto void', JP: '自動無効', CH: '自动作废', TH: 'โมฆะอัตโนมัติ' }),
+    'searchPayDivCd|41': optMap({ EN: 'Email void', JP: 'メール無効', CH: '邮件作废', TH: 'โมฆะทางอีเมล' }),
+    'searchPayDivCd|42': optMap({ EN: 'Auto refund', JP: '自動返金', CH: '自动退款', TH: 'คืนเงินอัตโนมัติ' }),
+    'searchPayDivCd|31': optMap({ EN: 'Force refund', JP: '強制返金', CH: '强制退款', TH: 'บังคับคืนเงิน' }),
+    'searchPayProcCd|10': optMap({ EN: 'Pending settlement', JP: '精算待ち', CH: '待结算', TH: 'รอชำระบัญชี' }),
+    'searchPayProcCd|20': optMap({ EN: 'Settled', JP: '精算済', CH: '已结算', TH: 'ชำระแล้ว' }),
+    'searchPayProcCd|30': optMap({ EN: 'Payment cancelled', JP: '決済取消', CH: '支付取消', TH: 'ยกเลิกการชำระ' }),
+    'searchPayProcCd|40': optMap({ EN: 'Settlement cancelled', JP: '精算取消', CH: '结算取消', TH: 'ยกเลิกการหักบัญชี' }),
+    'searchNotifyChannel|ALL': optMap({ EN: 'All', JP: 'すべて', CH: '全部', TH: 'ทั้งหมด' }),
+    'searchNotifyChannel|CALLBACK': optMap({ EN: 'CALLBACK', JP: 'CALLBACK', CH: 'CALLBACK', TH: 'CALLBACK' }),
+    'searchNotifyChannel|RESULT': optMap({ EN: 'RESULT URL', JP: 'RESULT URL', CH: 'RESULT URL', TH: 'RESULT URL' }),
+    'searchNotifyChannel|BOTH': optMap({ EN: 'BOTH', JP: 'BOTH', CH: 'BOTH', TH: 'BOTH' }),
+    'searchOrderBy|TransactionId': optMap({ EN: 'Auth / Txn ID', JP: '承認／取引ID', CH: '授权/交易ID', TH: 'รหัสอนุมัติ' }),
+    'searchOrderBy|TransactionDate': optMap({ EN: 'Txn date', JP: '取引日', CH: '交易日期', TH: 'วันที่ทำรายการ' }),
+    'searchOrderBy|OrderNo': optMap({ EN: 'Order no.', JP: '注文番号', CH: '订单号', TH: 'เลขคำสั่งซื้อ' }),
+    'searchOrderBy|PaymentDate': optMap({ EN: 'PaymentDate', JP: 'PaymentDate', CH: 'PaymentDate', TH: 'PaymentDate' }),
+    'searchOrderBy|Amount': optMap({ EN: 'Amount', JP: '金額', CH: '金额', TH: 'จำนวนเงิน' }),
+    'searchOrderBy|Merchant': optMap({ EN: 'Merchant', JP: 'Merchant', CH: 'Merchant', TH: 'Merchant' }),
+    'searchOrderBy|Customer': optMap({ EN: 'Customer', JP: '顧客', CH: '客户', TH: 'ลูกค้า' }),
+    'searchOrderBy|Status': optMap({ EN: 'Status', JP: '状態', CH: '状态', TH: 'สถานะ' }),
+    'searchFieldType|COMP_NM': optMap({ EN: 'Merchant name', JP: '加盟店名', CH: '商户名称', TH: 'ชื่อร้านค้า' }),
+    'searchFieldType|COMP_ID': optMap({ EN: 'Merchant code', JP: '加盟店コード', CH: '商户代码', TH: 'รหัสร้านค้า' }),
+    'searchFieldType|APPROVAL_NO': optMap({ EN: 'Approval no.', JP: '承認番号', CH: '授权号', TH: 'เลขอนุมัติ' }),
+    'searchFieldType|ORDER_NO': optMap({ EN: 'Order no.', JP: '注文番号', CH: '订单号', TH: 'เลขคำสั่งซื้อ' }),
+    'searchFieldType|MID': optMap({ EN: 'MID', JP: 'MID', CH: 'MID', TH: 'MID' }),
+    'searchFieldType|ROUTE': optMap({ EN: 'Route', JP: 'ルート', CH: '路由', TH: 'Route' }),
+    'searchFieldType|CURRENCY': optMap({ EN: 'Currency', JP: '通貨', CH: '币种', TH: 'สกุลเงิน' }),
+    'searchFieldType|STATUS': optMap({ EN: 'Status', JP: '状態', CH: '状态', TH: 'สถานะ' }),
+    'searchFieldType|AMOUNT': optMap({ EN: 'Amount', JP: '金額', CH: '金额', TH: 'จำนวนเงิน' }),
+    'searchFieldType|CUSTOMER_ID': optMap({ EN: 'Customer ID', JP: '顧客ID', CH: '客户ID', TH: 'รหัสลูกค้า' }),
+    'searchStatusGroup|SUCCESS': optMap({ EN: 'Success', JP: '成功', CH: '成功', TH: 'สำเร็จ' }),
+    'searchStatusGroup|FAIL': optMap({ EN: 'Fail', JP: '失敗', CH: '失败', TH: 'ล้มเหลว' }),
+    'searchStatusGroup|CANCEL': optMap({ EN: 'Cancel', JP: '取消', CH: '取消', TH: 'ยกเลิก' }),
+    'searchStatusGroup|VOID': optMap({ EN: 'Void', JP: '無効', CH: '作废', TH: 'โมฆะ' }),
+    'searchStatusGroup|MANUAL_VOID': optMap({ EN: 'Manual void', JP: '手動無効', CH: '手动作废', TH: 'โมฆะด้วยมือ' }),
+    'searchStatusGroup|REFUND': optMap({ EN: 'Refund', JP: '返金', CH: '退款', TH: 'คืนเงิน' }),
+    'searchStatusGroup|FORCE_REFUND': optMap({ EN: 'Force refund', JP: '強制返金', CH: '强制退款', TH: 'บังคับคืนเงิน' }),
+    'searchStatusGroup|EXCLUDE_SUCCESS': optMap({ EN: 'Exclude success', JP: '成功除く', CH: '不含成功', TH: 'ยกเว้นสำเร็จ' }),
+    'searchFieldType|ALL': optMap(),
+    'searchStatusGroup|ALL': optMap(),
+    'searchDateType|APPROVE': optMap({ EN: 'Approval date', JP: '承認日', CH: '授权日期', TH: 'วันที่อนุมัติ' }),
+    'searchDateType|SETTLE': optMap({ EN: 'Settlement date', JP: '精算日', CH: '结算日', TH: 'วันที่ชำระ' }),
+    'searchCompDiv|': optMap({ EN: 'All (by tier)', JP: 'すべて（段階別合算）', CH: '全部（按级汇总）', TH: 'ทั้งหมด (รวมตามระดับ)' }),
+    'searchCompDiv|HEADQUARTERS': optMap({ EN: 'Root HQ', JP: '総本部', CH: '总总部', TH: 'สำนักงานใหญ่สุด' }),
+    'searchCompDiv|REGIONAL': optMap({ EN: 'Regional HQ', JP: '本社', CH: '本部', TH: 'สำนักงานใหญ่' }),
+    'searchCompDiv|MASTER_DIST': optMap({ EN: 'Master dist.', JP: '総販', CH: '总代', TH: 'ตัวแทนหลัก' }),
+    'searchCompDiv|BRANCH': optMap({ EN: 'Branch', JP: '支社', CH: '分公司', TH: 'สาขา' }),
+    'searchCompDiv|AGENCY': optMap({ EN: 'Agency', JP: '代理店', CH: '代理', TH: 'ตัวแทน' }),
+    'searchCompDiv|SALES_OFFICE': optMap({ EN: 'Sales office', JP: '営業店', CH: '营业所', TH: 'จุดขาย' }),
+    'searchStatus|': optMap(),
+    'searchStatus|HOLD': optMap({ EN: 'On hold', JP: '保留中', CH: '暂扣', TH: 'พักอยู่' }),
+    'searchStatus|RELEASED': optMap({ EN: 'Released', JP: '解放済', CH: '已释放', TH: 'ปลดแล้ว' }),
+    'searchReportKind|MERCHANT_STMT': optMap({ EN: 'Merchant settlement report', JP: '加盟店精算レポート', CH: '商户结算报表', TH: 'รายงานชำระร้านค้า' }),
+    'searchReportKind|REGIONAL_PAYOUT': optMap({ EN: 'HQ → regional payout report', JP: '本社支払レポート（総本部→本社）', CH: '总部→本部拨付报表', TH: 'รายงานจ่าย HQ→สำนักงานใหญ่' }),
+    'searchReportSub|AGG': optMap({ EN: 'Settlement aggregate', JP: '精算集計', CH: '结算汇总', TH: 'สรุปการชำระ' }),
+    'searchReportSub|EXE': optMap({ EN: 'Settlement runs', JP: '精算実行', CH: '结算执行', TH: 'รันชำระบัญชี' }),
+    'searchReportSub|SUM': optMap({ EN: 'Summary sheet', JP: '精算集計表', CH: '结算汇总表', TH: 'แผ่นสรุป' }),
+    'searchReportSub|RST': optMap({ EN: 'Confirmed settlement (report)', JP: '確定精算（レポート）', CH: '已确认结算（报表）', TH: 'ชำระที่ยืนยัน (รายงาน)' }),
+    'searchUseStatus|': optMap(),
+    'searchUseStatus|ACTIVE': optMap({ EN: 'Active', JP: '使用中', CH: '使用中', TH: 'ใช้งาน' }),
+    'searchUseStatus|INACTIVE': optMap({ EN: 'Inactive', JP: '未使用', CH: '未使用', TH: 'ไม่ใช้งาน' }),
+    'searchUseStatus|SUSPENDED': optMap({ EN: 'Suspended', JP: '永久停止', CH: '永久停用', TH: 'ระงับถาวร' }),
+    'searchMailKind|': optMap(),
+    'searchMailKind|VOID_TEST': optMap({ EN: 'VOID test', JP: 'VOIDテスト', CH: 'VOID 测试', TH: 'ทดสอบ VOID' }),
+    'searchMailKind|VOID_TXN': optMap({ EN: 'Email void (txn)', JP: 'メール無効（取引）', CH: '邮件作废（交易）', TH: 'อีเมลโมฆะ (ธุรกรรม)' }),
+    'searchMailStatus|': optMap(),
+    'searchMailStatus|SUCCESS': optMap({ EN: 'Success', JP: '成功', CH: '成功', TH: 'สำเร็จ' }),
+    'searchMailStatus|FAIL': optMap({ EN: 'Fail', JP: '失敗', CH: '失败', TH: 'ล้มเหลว' }),
+    'searchUseYn|': optMap(),
+    'searchUseYn|Y': optMap({ EN: 'Active', JP: '使用', CH: '使用', TH: 'ใช้งาน' }),
+    'searchUseYn|N': optMap({ EN: 'Inactive', JP: '未使用', CH: '未使用', TH: 'ไม่ใช้งาน' })
+  };
+
+  var QD = {
+    day: optMap({ EN: 'Today', JP: '当日', CH: '今天', TH: 'วันนี้' }),
+    month: optMap({ EN: 'This month', JP: '当月', CH: '本月', TH: 'เดือนนี้' }),
+    prevDay: optMap({ EN: 'Prev. day', JP: '前日', CH: '昨天', TH: 'เมื่อวาน' }),
+    week: optMap({ EN: '1 week', JP: '1週', CH: '1周', TH: '1 สัปดาห์' }),
+    week2: optMap({ EN: '2 weeks', JP: '2週', CH: '2周', TH: '2 สัปดาห์' }),
+    prevMonth: optMap({ EN: 'Prev. month', JP: '前月', CH: '上月', TH: 'เดือนก่อน' }),
+    weekCal: optMap({ EN: 'This week', JP: '今週', CH: '本周', TH: 'สัปดาห์นี้' }),
+    prevWeekCal: optMap({ EN: 'Last week', JP: '先週', CH: '上周', TH: 'สัปดาห์ที่แล้ว' })
+  };
+
+  var PAY_FOLLOW = {
+    AUTO_VOID: { KO: '무효처리', EN: 'Auto void', JP: '自動無効', CH: '自动作废', TH: 'โมฆะอัตโนมัติ' },
+    EMAIL_VOID: { KO: '이메일무효', EN: 'Email void', JP: 'メール無効', CH: '邮件作废', TH: 'โมฆะทางอีเมล' },
+    AUTO_REFUND: { KO: '환불처리', EN: 'Auto refund', JP: '自動返金', CH: '自动退款', TH: 'คืนเงินอัตโนมัติ' },
+    FORCE_REFUND: { KO: '강제환불', EN: 'Force refund', JP: '強制返金', CH: '强制退款', TH: 'บังคับคืนเงิน' }
+  };
+
+  /** setSummaryText 등에서 쓰는 한글 키 → 로케일 라벨 (값은 그대로 두고 접두만 번역) */
+  var SUMMARY_LBL = {
+    건수: { KO: '건수', EN: 'Count', JP: '件数', CH: '笔数', TH: 'จำนวนรายการ' },
+    금액: { KO: '금액', EN: 'Amount', JP: '金額', CH: '金额', TH: 'จำนวนเงิน' },
+    수수료금액: { KO: '수수료금액', EN: 'Fee amount', JP: '手数料金額', CH: '手续费金额', TH: 'ยอดค่าธรรมเนียม' },
+    수수료부가세: { KO: '수수료부가세', EN: 'Fee VAT', JP: '手数料消費税', CH: '手续费增值税', TH: 'VAT ค่าธรรมเนียม' },
+    보류금액: { KO: '보류금액', EN: 'Hold amount', JP: '保留金額', CH: '暂扣金额', TH: 'ยอดพักรอ' },
+    미수금: { KO: '미수금', EN: 'Receivable', JP: '未収金', CH: '应收', TH: 'ลูกหนี้' },
+    정산금액: { KO: '정산금액', EN: 'Settlement amount', JP: '精算金額', CH: '结算金额', TH: 'ยอดชำระบัญชี' },
+    Total: { KO: 'Total', EN: 'Total', JP: '合計', CH: '合计', TH: 'รวม' },
+    수수료: { KO: '수수료', EN: 'Fee', JP: '手数料', CH: '手续费', TH: 'ค่าธรรมเนียม' },
+    지급액: { KO: '지급액', EN: 'Payout', JP: '支払額', CH: '拨付金额', TH: 'ยอดจ่าย' },
+    총수수료: { KO: '총수수료', EN: 'Total fees', JP: '手数料合計', CH: '手续费合计', TH: 'ค่าธรรมเนียมรวม' },
+    부가세: { KO: '부가세', EN: 'VAT', JP: '消費税', CH: '增值税', TH: 'VAT' },
+    지급예상합: { KO: '지급예상합', EN: 'Expected payout', JP: '支払予定合計', CH: '预计拨付合计', TH: 'ยอดจ่ายโดยประมาณ' },
+    정산액합: { KO: '정산액합', EN: 'Settlement total', JP: '精算額合計', CH: '结算额合计', TH: 'ยอดชำระบัญชีรวม' },
+    환수금액: { KO: '환수금액', EN: 'Recovery', JP: '回収金額', CH: '回收金额', TH: 'ยอดกู้คืน' },
+    잔여: { KO: '잔여', EN: 'Remaining', JP: '残高', CH: '剩余', TH: 'คงเหลือ' },
+    결제액: { KO: '결제액', EN: 'Payment', JP: '決済額', CH: '支付金额', TH: 'ยอดชำระ' },
+    환불: { KO: '환불', EN: 'Refund', JP: '返金', CH: '退款', TH: 'คืนเงิน' },
+    순액: { KO: '순액', EN: 'Net', JP: '純額', CH: '净额', TH: 'สุทธิ' },
+    정산금: { KO: '정산금', EN: 'Settlement', JP: '精算金', CH: '结算款', TH: 'เงินชำระบัญชี' },
+    승인금액: { KO: '승인금액', EN: 'Approved amount', JP: '承認金額', CH: '授权金额', TH: 'ยอดอนุมัติ' },
+    취소금액: { KO: '취소금액', EN: 'Cancelled amount', JP: '取消金額', CH: '取消金额', TH: 'ยอดยกเลิก' },
+    결제금액: { KO: '결제금액', EN: 'Payment amount', JP: '決済金額', CH: '支付金额', TH: 'ยอดชำระเงิน' },
+    담보금액: { KO: '담보금액', EN: 'Collateral amount', JP: '担保金額', CH: '担保金额', TH: 'ยอดหลักประกัน' },
+    잔액합계: { KO: '잔액합계', EN: 'Balance total', JP: '残高合計', CH: '余额合计', TH: 'ยอดคงเหลือรวม' },
+    미수금합계: { KO: '미수금합계', EN: 'Receivable total', JP: '未収金合計', CH: '应收合计', TH: 'ยอดลูกหนี้รวม' }
+  };
+
+  function packN(ko, en, jp, ch, th) {
+    return { KO: ko, EN: en, JP: jp, CH: ch, TH: th };
+  }
+  /** 화면별 안내 문단 (인덱스 = noticeList 순서) */
+  var NOTICES = {
+    '/calc/payList': [
+      packN('통합 결제내역: 칠페이 API 동기화·노티 적재·URL직접결제 등 전 출처를 한 그리드에 표시합니다. 앞쪽 컬럼(거래일~Settled)은 칠페이 거래내역 시트와 대응합니다.', 'Integrated payment history shows all sources (ChillPay API sync, inbound notify, URL pay, etc.) in one grid. Leading columns align with the ChillPay transaction sheet.', '統合決済履歴は、ChillPay API 同期・ノティ取込・URL 直決済など全ソースを一つのグリッドに表示します。先頭列は ChillPay 取引シートに対応します。', '综合支付历史在一个表格中展示所有来源（ChillPay API 同步、入账通知、URL 支付等）。前列与 ChillPay 交易表对应。', 'ประวัติการชำระเงินรวมแสดงทุกแหล่ง (ซิงค์ ChillPay API, แจ้งเวียน, URL ฯลฯ) ในตารางเดียว คอลัมน์หน้าสอดคล้องกับชีต ChillPay'),
+      packN('[순서] 내림차순·오름차순은 상단 [새로고침] 왼쪽 메뉴에서 고르며, 누르는 즉시 목록을 다시 조회합니다.', '[Sort] Choose Descending/Ascending in the menu left of [Refresh]; the list reloads immediately.', '[並び順][再読込]左のメニューで降順・昇順を選ぶと、すぐに一覧を再取得します。', '[排序] 在顶部 [刷新] 左侧菜单选择升/降序，点击后立即重新查询。', '[เรียงลำดับ] เลือกจาก/มากไปน้อยทางเมนูซ้ายของ [รีเฟรช] แล้วรายการจะโหลดใหม่ทันที'),
+      packN('[후속조치]는 본사설정 > 전산설정관리에서 기능을 켠 경우에만 동작합니다 (NOTI 환경설정과 동일).', '[Follow-up] actions run only when enabled in HQ Settings > Ledger system settings (same as NOTI).', '[後続対応]は本社設定＞全算設定で有効化した場合のみ動作します（NOTI と同様）。', '[后续处理] 仅在「本社设置 > 账务系统设置」开启时生效（与 NOTI 相同）。', '[ดำเนินการต่อ] ทำงานเมื่อเปิดในตั้งค่าระบบบัญชีเท่านั้น (เหมือน NOTI)'),
+      packN('취소 건에 대한 정산 수수료 및 부가세는 정산 주기에 따라 반영됩니다.', 'Settlement fees and VAT for cancelled items follow the settlement cycle.', '取消取引の精算手数料・消費税は精算サイクルに従って反映されます。', '取消交易的结算手续费与增值税按结算周期反映。', 'ค่าธรรมเนียมและ VAT ของรายการยกเลิกสะท้อนตามรอบชำระบัญชี'),
+      packN('정산 주기 및 정산 수수료는 가맹점별로 상이할 수 있습니다.', 'Settlement cycle and fees may differ per merchant.', '精算サイクル・手数料は加盟店ごとに異なる場合があります。', '结算周期与手续费可能因商户而异。', 'รอบและค่าธรรมเนียมอาจต่างกันในแต่ละร้าน'),
+      packN('상단 첫 줄: 검색·기간·권한 범위 전체 집계(승인 건수·통화별 승인/취소/결제·수수료+부가세·보류·지급). 둘째 줄: 성공·실패 등 통화별 금액. 본사·총본사는 통화별 병기, 총판·하위는 기준 통화 한 줄.', 'Top row: aggregates for the search scope (approval counts, per-currency approve/cancel/pay, fee+VAT, hold, payout). Second row: per-currency success/fail amounts. HQ shows multiple currencies; distributors see one base line.', '上段: 検索・期間・権限範囲の集計。下段: 通貨別の成功・失敗など。本社は複数通貨、下位は基準通貨一行。', '首行：按搜索与权限汇总。次行：各币种成功/失败等金额。总部多币种，下级一行本位币。', 'แถวบน: สรุปตามช่วงและสิทธิ์ แถวล่าง: ยอดตามสกุลเงิน สำนักงานใหญ่หลายสกุล ลูกข่ายหนึ่งบรรทัด')
+    ],
+    '/calc/payNotiList': [
+      packN('노티내역: 통합 결제내역과 동일한 그리드입니다(칠페이 시트 컬럼·2단 헤더·요약바·후속조치 포함). 조회만 origin=NOTI(전산 노티 적재)로 제한됩니다.', 'Notify list uses the same grid as integrated payments; data is limited to origin=NOTI.', 'ノティ履歴は統合決済と同一グリッド。origin=NOTI のみ。', '通知列表与综合支付相同表格，仅 origin=NOTI。', 'รายการแจ้งเตือน: กริดเดียวกับรวม จำกัด origin=NOTI'),
+      packN('ziobiz/NOTI 종합거래의 노티거래내역과 동일 성격의 데이터입니다.', 'Same nature as ziobiz/NOTI consolidated notify transactions.', 'ziobiz/NOTI 総合取引のノティ取引と同種。', '与 ziobiz/NOTI 综合交易的入账数据同类。', 'ลักษณะเดียวกับธุรกรรมแจ้งเตือน NOTI'),
+      packN('[후속조치]는 본사설정 > 전산설정관리에서 기능을 켠 경우에만 동작합니다 (NOTI 환경설정과 동일).', '[Follow-up] only when enabled in ledger settings (NOTI parity).', '[後続対応]は全算設定で有効時のみ（NOTI と同様）。', '[后续处理] 需账务设置开启（同 NOTI）。', '[ดำเนินการต่อ] เมื่อเปิดในการตั้งค่า (NOTI)'),
+      packN('취소 건에 대한 정산 수수료 및 부가세는 정산 주기에 따라 반영됩니다.', 'Fees/VAT for cancels follow the settlement cycle.', '取消の手数料・税は精算サイクルに従います。', '取消相关费用按结算周期。', 'ค่าธรรมเนียมยกเลิกตามรอบ'),
+      packN('정산 주기 및 정산 수수료는 가맹점별로 상이할 수 있습니다.', 'Cycle and fees may differ per merchant.', 'サイクル・手数料は店舗により異なります。', '周期与手续费因商户而异。', 'รอบและค่าธรรมเนียมต่างกันได้')
+    ],
+    '/calc/paySuccessList': [
+      packN('성공내역: 통합 결제내역에서 승인 성공(결제) 상태만 간추렸습니다.', 'Success list: approved (paid) rows only.', '成功のみ抽出。', '仅成功（已支付）记录。', 'เฉพาะรายการสำเร็จ'),
+      packN('무효·이메일무효·환불·강제환불 등 후속조치는 「결제내역」(/calc/payList)에서만 제공합니다.', 'Void/refund follow-ups are only on /calc/payList.', '無効・返金の後続は「決済履歴」のみ。', '后续处理仅在「支付历史」。', 'ดำเนินการต่อเฉพาะที่ /calc/payList')
+    ],
+    '/calc/payFailList': [packN('실패내역: 통합 결제내역에서 실패·거절만 간추렸습니다.', 'Failed/rejected rows only.', '失敗・拒否のみ。', '仅失败/拒绝。', 'เฉพาะล้มเหลว/ปฏิเสธ')],
+    '/calc/payRefundList': [packN('환불내역: 통합 결제내역에서 환불만 간추렸습니다.', 'Refunds only.', '返金のみ。', '仅退款。', 'เฉพาะคืนเงิน')],
+    '/calc/payForceRefundList': [packN('강제환불내역: 통합 결제내역에서 강제환불만 간추렸습니다.', 'Force-refund rows only.', '強制返金のみ。', '仅强制退款。', 'บังคับคืนเงินเท่านั้น')],
+    '/calc/payCancelList': [packN('취소내역: 통합 결제내역에서 취소만 간추렸습니다.', 'Cancellations only.', '取消のみ。', '仅取消。', 'เฉพาะยกเลิก')],
+    '/calc/payVoidList': [
+      packN('무효내역: 승인(결제) 완료 후 수동·시스템 무효(내부 21·22·40·41·42)만 표시합니다. 취소(20)와 구분됩니다.', 'Void list: manual/system void states after approval; distinct from cancel (20).', '無効: 承認後の無効系。取消(20)と区別。', '作废：批准后无效类，与取消(20)区分。', 'โมฆะหลังอนุมัติ แยกจากยกเลิก'),
+      packN('ziobiz/NOTI 노티거래내역의 무효·이메일무효·자동무효 등과 동일 계열 상태입니다.', 'Same state family as ziobiz/NOTI void flows.', 'NOTI 無効系と同系列。', '与 NOTI 作废类状态同族。', 'สายสถานะโมฆะ NOTI')
+    ],
+    '/calc/offsetCancList': [
+      packN('상계취소내역: 가맹 정산에 이미 반영된 건(settled=Y)이 이후 취소·무효·환불·강제환불(내부 20·21·22·30·31·40·41·42)로 바뀐 경우만 표시합니다. 정산 전 실패(F0·99) 등은 제외됩니다.', 'Offset-cancel: rows already settled then later cancelled/void/refunded.', '相殺取消: 精算反映後に状態変化したもののみ。', '已结算后又取消/作废/退款的冲销场景。', 'หักบัญชีแล้วเปลี่ยนสถานะ'),
+      packN('동일 조건으로 노티 반영 시 「환수금관리」에 POST_SETTLE_REFUND 자동 등록이 되며, 차기 정산 지급액에서 FIFO 차감됩니다(전산설정·가맹 환수모드와 동일).', 'Under the same rules, POST_SETTLE_REFUND may post to recovery; next payout deducts FIFO.', '同条件で回収管理へ連携し次回精算で FIFO 減算。', '同条件下记入回收管理，下次结算 FIFO 扣减。', 'ลงทะเบียนกู้คืน หัก FIFO รอบถัดไป')
+    ],
+    '/pay/easyPay': [packN('URL결제내역: 가맹점 API연동 노티 외, 플랫폼이 칠페이 결제 API로 발급한 결제수소(URL)로 발생한 전 건(성공·실패·환불·취소 등). 통합 결제내역에도 포함되며, 여기서는 origin=URL 만 조회합니다.', 'URL pay: all URL-harness transactions; this screen filters origin=URL.', 'URL 決済: origin=URL のみ。', 'URL 支付：此处仅 origin=URL。', 'URL: กรอง origin=URL')],
+    '/pay/chatbotPay': [
+      packN('챗봇결제내역: 웹 EFO 챗봇 결제 플로우에서 동일 칠페이(URL/카드) API로 생성·적재한 건만 표시합니다. 통합 결제내역에도 포함되며, 여기서는 origin=CHATBOT 만 조회합니다.', 'Chatbot pay: origin=CHATBOT only.', 'チャットボット決済: origin=CHATBOT。', '聊天机器人支付：仅 origin=CHATBOT。', 'แชทบอท: origin=CHATBOT'),
+      packN('URL결제내역과 동일 API(/api/calc/payList)·그리드를 사용하며 payListVariant=CHATBOT_PAY 로 구분합니다.', 'Same API/grid as URL pay with payListVariant=CHATBOT_PAY.', 'URL 決済と同一 API。', '与 URL 支付相同 API。', 'API เดียวกับ URL')
+    ],
+    '/calc/chillPayTrList': [
+      packN('ChillPay API Transaction Services — Search Payment Transaction(실시간)입니다. ICOPAY 내부 DB(pg_trnsctn)가 아니라 칠페이 서버에서 직접 목록을 가져옵니다. ziobiz/NOTI 노티미들웨어의 종합거래·피지거래내역과 유사한 용도로 쓸 수 있습니다.', 'ChillPay API — live search; data comes from ChillPay, not ICOPAY pg_trnsctn. Similar use case to ziobiz/NOTI consolidated / ChillPay views.', 'ChillPay API からリアルタイム取得。ICOPAY DB ではありません。', 'ChillPay 接口实时查询，数据来自 ChillPay 服务器。', 'ดึงจาก ChillPay แบบเรียลไทม์ ไม่ใช่ DB ICOPAY'),
+      packN('자격: 배포설정 > API배포설정 또는 tb_pg_agency(ChillPay)의 MerchantCode·ApiKey·MD5 Secret Key·샌드박스 여부를 사용합니다.', 'Credentials: deploy settings / tb_pg_agency (MerchantCode, ApiKey, MD5 secret, sandbox).', '認証情報は API 配備設定／tb_pg_agency を使用。', '凭据来自部署配置与 tb_pg_agency。', 'ใช้รหัสจากการตั้งค่า API'),
+      packN('순서(내림차순·오름차순)는 [새로고침] 왼쪽 메뉴에서 고르며, 누르는 즉시 다시 조회됩니다(기본 내림차순). TransactionDate 범위는 검색 기간(날짜)을 ChillPay 형식(dd/MM/yyyy HH:mm:ss)으로 변환합니다. 문서: ChillPay-API-Transaction-Services-Document-EN_v1.0.6.', 'Sort order is next to [Refresh]. Default DESC. Date range is converted to ChillPay format per API doc v1.0.6.', '並び順は[再読込]左。期間は ChillPay 形式に変換。', '排序在刷新旁，日期按文档转 ChillPay 格式。', 'เรียงลำดับข้างรีเฟรช'),
+      packN('그리드 열 노출은 상단 VIEW SETTING에서 조정합니다(저장 시 사용자별로 유지). 번호·승인번호·업체명·업체코드·거래일·거래시간(JP·TH 두 줄)·루트는 그리드에 항상 표시되며 VIEW SETTING 목록에는 나오지 않습니다. 거래일은 yyyy년 M월 d일 형식입니다. 본사설정 → 조직항목설정에서 화면「통합내역」 허용 열을 제한할 수 있습니다.', 'Columns via VIEW SETTING (per user). Fixed leading columns are always visible. Org column allowance in HQ settings.', '列は VIEW SETTING。固定列は常時表示。', '列通过 VIEW SETTING 调整，前列固定。', 'คอลัมน์ตั้งค่า VIEW')
+    ],
+    '/calc/chillPaySettlementList': [
+      packN('「예정(ICOPAY)」열은 배포설정 API연동설정(tb_pg_agency)의 T+N(주말 제외 영업일·결제와 동일 시각) 또는 D+N(달력+N일·일괄 시각)으로 계산합니다. OFF·MID 미매칭이면 비웁니다. 가맹 업체정보의 결제대행사 행에서 예정모드를 비우면 연동 기본을 따르고, OFF/T/D로 덮어쓸 수 있습니다.', 'Expected (ICOPAY) uses T+N / D+N from tb_pg_agency; empty when OFF or MID mismatch.', '「予定(ICOPAY)」は T+N/D+N で算出。', '「预计(ICOPAY)」按 T+N/D+N 计算。', 'คาดการณ์ ICOPAY ตาม T+N/D+N'),
+      packN('칠페이 Transaction Services — Search Settlement Transaction API로 조회합니다. 통합내역은 결제 검색 중심이고, 통합정산은 정산 검색·지급액·순액·서비스비·이체일 등 정산 원문이 다릅니다. ICOPAY 정산 실행·유통망 정산 테이블과 무관합니다.', 'Settlement search API returns settlement-centric fields; unrelated to ICOPAY settlement run tables.', '精算検索 API。決済検索とは異なる項目。', '结算查询 API，字段与支付查询不同。', 'API ค้นหาเซตเทิลเมนต์'),
+      packN('「정산(이체)」열은 승인 성공 건에만 ChillPay Settled를 정산완료 / 미정산으로 보입니다. 실패·취소·환불·무효 등은 칸을 비웁니다.', 'Settled column only for successful approvals; others blank.', '「精算」列は成功時のみ。', '「结算」列仅成功时显示。', 'คอลัมน์ Settled เฉพาะสำเร็จ'),
+      packN('칠페이 정산 API 정렬 키는 통합내역과 같이 TransactionId(기본)·PaymentDate 등 문서 표를 따릅니다. 상단 [새로고침] 왼쪽에서 내림차순·오름차순(OrderDir)을 고릅니다.', 'Sort keys per ChillPay doc; order next to Refresh.', '並び順はドキュメント準拠。', '排序遵循文档。', 'เรียงตามเอกสาร ChillPay'),
+      packN('자격: 배포설정 > API배포설정·tb_pg_agency(ChillPay)의 MerchantCode·ApiKey·MD5 Secret Key·샌드박스와 동일합니다.', 'Same credentials as ChillPay payment search.', '認証は決済検索と同じ。', '凭据与支付查询相同。', 'ข้อมูลยืนยันเหมือนการค้นหาชำระเงิน')
+    ],
+    '/calc/collateralList': [
+      packN('담보금(롤링): 결제(승인) 건별로 정산 실행 시 설정된 비율(%)만큼 예치되며, 보류 영업일(주말 제외·공휴일 미반영) 후 해지일에 정산 실행하면 지급액에 합산됩니다.', 'Rolling collateral: per approved payment, a settlement run withholds the configured %; after the hold business days (weekends excluded; holidays not applied), a run on/after the release date adds it to payout.', '担保金（ローリング）: 決済（承認）ごとに精算実行で設定した率(%)を預かり、保留営業日（土日除く・祝日は未反映）経過後の解放日に精算実行すると支払額に合算されます。', '滚动保证金：每笔批准支付在结算执行时按设定比例(%)暂扣；经过保留营业日（不含周末·不含节假日）后，在解放日及之后的结算执行并入拨付额。', 'หลักประกัน(โรลลิง): ต่อรายการอนุมัติ หักตาม % ที่ตั้งตอนรันชำระ หลังวันทำการพัก (ไม่นับสุดสัปดาห์·ไม่นับวันหยุด) เมื่อรันชำระในวันปลดหรือหลัง รวมในยอดจ่าย'),
+      packN('비율·보류 일수: 본사설정 수수료정책의 롤링(담보금) 또는 가맹점 정산설정에서 「보류율 본사정책 따름=N」일 때 개별 보류율·일수를 사용합니다.', 'Rate / hold days: when merchant settlement has “follow HQ hold policy = N”, use per-merchant hold rate and days from HQ fee policy rolling (collateral) or merchant settlement settings.', '率・保留日数: 本社設定の手数料政策のローリング（担保金）、または加盟店精算設定で「保留率本社政策従う=N」のとき、個別の保留率・日数を使用します。', '比例与保留天数：当商户结算设置「留存率跟随总部政策=N」时，使用总部手续费政策中的滚动（保证金）或商户结算里的个别留存率与天数。', 'อัตรา/วันพัก: เมื่อตั้งค่าชำระร้านค้า「อัตราพักตาม HQ=N」 ใช้อัตราและวันพักรายร้านจากนโยบายค่าธรรมเนียม HQ หรือการตั้งค่าชำระ'),
+      packN('해제일시·남은일자는 영업일 기준입니다. 루트는 해당 거래의 결제 루트(route_no)입니다.', 'Release time and remaining days are business-day based. Route is the payment route_no for that transaction.', '解放日時・残日数は営業日基準です。ルートは当該取引の決済ルート(route_no)です。', '解除日时间与剩余天数按营业日计。路由为该笔支付的 route_no。', 'เวลาปลดและวันที่เหลือคิดตามวันทำการ Route คือ route_no ของรายการนั้น')
+    ],
+    '/settlement/collateralList': [
+      packN('담보금(롤링): 결제(승인) 건별로 정산 실행 시 설정된 비율(%)만큼 예치되며, 보류 영업일(주말 제외·공휴일 미반영) 후 해지일에 정산 실행하면 지급액에 합산됩니다.', 'Rolling collateral: per approved payment, a settlement run withholds the configured %; after the hold business days (weekends excluded; holidays not applied), a run on/after the release date adds it to payout.', '担保金（ローリング）: 決済（承認）ごとに精算実行で設定した率(%)を預かり、保留営業日（土日除く・祝日は未反映）経過後の解放日に精算実行すると支払額に合算されます。', '滚动保证金：每笔批准支付在结算执行时按设定比例(%)暂扣；经过保留营业日（不含周末·不含节假日）后，在解放日及之后的结算执行并入拨付额。', 'หลักประกัน(โรลลิง): ต่อรายการอนุมัติ หักตาม % ที่ตั้งตอนรันชำระ หลังวันทำการพัก (ไม่นับสุดสัปดาห์·ไม่นับวันหยุด) เมื่อรันชำระในวันปลดหรือหลัง รวมในยอดจ่าย'),
+      packN('비율·보류 일수: 본사설정 수수료정책의 롤링(담보금) 또는 가맹점 정산설정에서 「보류율 본사정책 따름=N」일 때 개별 보류율·일수를 사용합니다.', 'Rate / hold days: when merchant settlement has “follow HQ hold policy = N”, use per-merchant hold rate and days from HQ fee policy rolling (collateral) or merchant settlement settings.', '率・保留日数: 本社設定の手数料政策のローリング（担保金）、または加盟店精算設定で「保留率本社政策従う=N」のとき、個別の保留率・日数を使用します。', '比例与保留天数：当商户结算设置「留存率跟随总部政策=N」时，使用总部手续费政策中的滚动（保证金）或商户结算里的个别留存率与天数。', 'อัตรา/วันพัก: เมื่อตั้งค่าชำระร้านค้า「อัตราพักตาม HQ=N」 ใช้อัตราและวันพักรายร้านจากนโยบายค่าธรรมเนียม HQ หรือการตั้งค่าชำระ'),
+      packN('해제일시·남은일자는 영업일 기준입니다. 루트는 해당 거래의 결제 루트(route_no)입니다.', 'Release time and remaining days are business-day based. Route is the payment route_no for that transaction.', '解放日時・残日数は営業日基準です。ルートは当該取引の決済ルート(route_no)です。', '解除日时间与剩余天数按营业日计。路由为该笔支付的 route_no。', 'เวลาปลดและวันที่เหลือคิดตามวันทำการ Route คือ route_no ของรายการนั้น')
+    ],
+    '/calc/unpaidMng': [
+      packN('「미수금」은 해당 정산 주기에 지급해야 할 금액이 부족하거나(정산금 부족), 차지백·과태료 등으로 정산 시 부족분이 생겼을 때 가맹점에 부과되는 금액입니다. 정산 실행 시 지급액에서 환수금(FIFO)을 먼저 차감한 뒤 미수금(FIFO)이 차감됩니다. 정산 지급액이 음수로 확정되면 부족분이 자동 미수로 등록되며(사유코드 AUTO_SETTLEMENT_DEFICIT, 메모에 실행ID), 차기 정산에서 양(+) 지급이 나올 때 FIFO로 먼저 처리됩니다.', 'Receivables are amounts charged to a merchant when payout for a cycle is short (e.g. short settlement, chargebacks, penalties). On a settlement run, recovery (FIFO) is deducted from payout first, then receivables (FIFO). If payout is finalized negative, the shortfall is auto-posted as receivable (reason AUTO_SETTLEMENT_DEFICIT, memo links the run id) and cleared FIFO when a later run has positive payout.', '「未収金」は、当該精算サイクルで支払うべき金額が不足する場合（精算金不足）、チャージバック・罰金などで精算時に不足が生じたときに加盟店へ課される金額です。精算実行時は支払額から回収金(FIFO)を先に差し引いた後、未収金(FIFO)を差し引きます。支払額が負で確定すると不足額が自動未収として登録され（理由コード AUTO_SETTLEMENT_DEFICIT、メモに実行ID）、次回以降プラスの支払が出たときに FIFO で先に処理されます。', '未收金指：结算周期内应付不足、拒付或罚款等产生的商户欠款。结算执行时先从拨付额扣回款(FIFO)，再扣未收(FIFO)。若拨付额为负，差额自动登记为未收（原因码 AUTO_SETTLEMENT_DEFICIT，备注含执行 ID），待后续正拨付时按 FIFO 冲减。', 'ลูกหนี้คือยอดที่เรียกเก็บจากร้านเมื่อจ่ายรอบชำระไม่พอ (เช่น ยอดชำระขาด ชาร์จแบ็ก ค่าปรับ) ตอนรันชำระหักกู้คืน FIFO จากยอดจ่ายก่อน แล้วจึงหักลูกหนี้ FIFO หากยอดจ่ายติดลบ ระบบลงทะเบียนลูกหนี้อัตโนมัติ (รหัส AUTO_SETTLEMENT_DEFICIT, เมโมผูก run ID) และหัก FIFO เมื่อรอบถัดไปมียอดจ่ายเป็นบวก'),
+      packN('「미수금등록」은 총본사·본사·총판 조직 단계의 기본 권한(미수금관리 화면: 수정 이상)으로 가능하며, 지사·대리점·영업점 등은 기본 조회만입니다. 필요 시 본사권한설정에서 조직·단계별로 「미수금관리」(/calc/unpaidMng) 권한을 MODIFY/DELETE 로 올려 수동 등록을 허용할 수 있습니다.', 'Registering receivables is allowed by default at root HQ / HQ / master-distributor org levels (Receivables screen: MODIFY or higher); branches, agencies, and sales offices are view-only by default. Raise org-level permission for 「Receivables」(/calc/unpaidMng) to MODIFY/DELETE in HQ permissions if manual entry is needed.', '「未収金登録」は、総本部・本社・総販の組織段階の既定権限（未収管理画面：修正以上）で可能であり、支社・代理店・営業店などは既定では参照のみです。必要に応じて本社権限設定で組織・段階ごとに「未収管理」(/calc/unpaidMng) を MODIFY/DELETE に上げ、手動登録を許可できます。', '登记未收默认开放给总总部、总部、总代层级（应收管理：需修改级以上）；分公司、代理、营业点默认只读。可在总部权限中把「应收管理」(/calc/unpaidMng) 提到 MODIFY/DELETE 以允许手工登记。', 'การลงทะเบียนลูกหนี้เปิดให้ระดับสำนักงานใหญ่สุด/สำนักงานใหญ่/ตัวแทนหลักเป็นค่าเริ่มต้น (หน้าลูกหนี้: ต้อง MODIFY ขึ้นไป) สาขา/ตัวแทน/จุดขายอ่านอย่างเดียว ปรับสิทธิ์องค์กรเป็น MODIFY/DELETE สำหรับ /calc/unpaidMng ได้ในการตั้งค่า HQ'),
+      packN('「미수금등록」은 한 창에서 가맹 검색·선택 후 <strong>추가</strong>(신규 미수금) 또는 <strong>차감</strong>(잔여 미수금 FIFO 감소)과 금액·메모를 입력합니다. 목록 행을 더블클릭하면 해당 업체가 선택된 채로 열립니다. API는 POST /api/settlement/receivable 의 direction=ADD|DEDUCT 와 동일하며, 대손·등록 취소는 writeOff·cancel API를 사용합니다.', 'In one window, search and pick a merchant, then choose **Add** (new receivable) or **Deduct** (reduce open balance FIFO) and enter amount and memo. Double-click a grid row to open with that merchant selected. Same as POST /api/settlement/receivable with direction=ADD|DEDUCT; write-offs and cancellations use writeOff/cancel APIs.', '「未収金登録」は一画面で加盟店を検索・選択し、<strong>追加</strong>（新規未収）または<strong>控除</strong>（残高未収をFIFOで減額）および金額・メモを入力します。一覧行をダブルクリックするとその加盟店が選択された状態で開きます。APIは POST /api/settlement/receivable の direction=ADD|DEDUCT と同じで、貸倒・登録取消は writeOff・cancel API を使用します。', '在同一窗口搜索并选择商户，选<strong>增加</strong>（新增应收）或<strong>扣减</strong>（按 FIFO 减少未收余额），填写金额与备注。双击表格行会以该商户打开。与 POST /api/settlement/receivable direction=ADD|DEDUCT 一致；核销与取消用 writeOff/cancel API。', 'ค้นหาและเลือกร้านในหน้าต่างเดียว จากนั้นเลือก<strong>เพิ่ม</strong>(ลูกหนี้ใหม่) หรือ<strong>หัก</strong>(ลดยอดคงค้าง FIFO) พร้อมจำนวนและเมโม ดับเบิลคลิกแถวตารางเพื่อเปิดพร้อมร้านนั้น เหมือน POST /api/settlement/receivable direction=ADD|DEDUCT; writeOff/cancel สำหรับตัดหนี้/ยกเลิก'),
+      packN('가맹이 본사설정 「환수/미수금설정」에서 수동(MANUAL)인 경우에만 행의 [환수처리]로 다음 정산 마감 반영을 요청할 수 있습니다. 자동(AUTO) 가맹은 정산 시 미수금이 FIFO로 차감됩니다.', 'Only merchants set to manual recovery in HQ 「Recovery / receivables」can use row **[Request recovery]** to ask for deduction on the next settlement close. AUTO merchants have receivables deducted FIFO during settlement.', '加盟店が本社設定「回収・未収設定」で手動(MANUAL)のときのみ、行の［回収処理］で次回精算締め時の反映を依頼できます。自動(AUTO)の加盟店は精算時に未収金を FIFO で控除します。', '仅当商户在总部「回款/应收」设为手动(MANUAL)时，才可用行的【回款处理】请求在下次结算关账时扣减。自动(AUTO)商户在结算时按 FIFO 扣减应收。', 'ร้านที่ตั้งเป็น MANUAL ใน HQ 「กู้คืน/ลูกหนี้」เท่านั้นที่กด [ดำเนินการกู้คืน] ในแถวเพื่อขอหักรอบปิดชำระถัดไป ร้าน AUTO ระบบหักลูกหนี้ FIFO ตอนชำระ')
+    ],
+    '/settlement/unpaidMng': [
+      packN('「미수금」은 해당 정산 주기에 지급해야 할 금액이 부족하거나(정산금 부족), 차지백·과태료 등으로 정산 시 부족분이 생겼을 때 가맹점에 부과되는 금액입니다. 정산 실행 시 지급액에서 환수금(FIFO)을 먼저 차감한 뒤 미수금(FIFO)이 차감됩니다. 정산 지급액이 음수로 확정되면 부족분이 자동 미수로 등록되며(사유코드 AUTO_SETTLEMENT_DEFICIT, 메모에 실행ID), 차기 정산에서 양(+) 지급이 나올 때 FIFO로 먼저 처리됩니다.', 'Receivables are amounts charged to a merchant when payout for a cycle is short (e.g. short settlement, chargebacks, penalties). On a settlement run, recovery (FIFO) is deducted from payout first, then receivables (FIFO). If payout is finalized negative, the shortfall is auto-posted as receivable (reason AUTO_SETTLEMENT_DEFICIT, memo links the run id) and cleared FIFO when a later run has positive payout.', '「未収金」は、当該精算サイクルで支払うべき金額が不足する場合（精算金不足）、チャージバック・罰金などで精算時に不足が生じたときに加盟店へ課される金額です。精算実行時は支払額から回収金(FIFO)を先に差し引いた後、未収金(FIFO)を差し引きます。支払額が負で確定すると不足額が自動未収として登録され（理由コード AUTO_SETTLEMENT_DEFICIT、メモに実行ID）、次回以降プラスの支払が出たときに FIFO で先に処理されます。', '未收金指：结算周期内应付不足、拒付或罚款等产生的商户欠款。结算执行时先从拨付额扣回款(FIFO)，再扣未收(FIFO)。若拨付额为负，差额自动登记为未收（原因码 AUTO_SETTLEMENT_DEFICIT，备注含执行 ID），待后续正拨付时按 FIFO 冲减。', 'ลูกหนี้คือยอดที่เรียกเก็บจากร้านเมื่อจ่ายรอบชำระไม่พอ (เช่น ยอดชำระขาด ชาร์จแบ็ก ค่าปรับ) ตอนรันชำระหักกู้คืน FIFO จากยอดจ่ายก่อน แล้วจึงหักลูกหนี้ FIFO หากยอดจ่ายติดลบ ระบบลงทะเบียนลูกหนี้อัตโนมัติ (รหัส AUTO_SETTLEMENT_DEFICIT, เมโมผูก run ID) และหัก FIFO เมื่อรอบถัดไปมียอดจ่ายเป็นบวก'),
+      packN('「미수금등록」은 총본사·본사·총판 조직 단계의 기본 권한(미수금관리 화면: 수정 이상)으로 가능하며, 지사·대리점·영업점 등은 기본 조회만입니다. 필요 시 본사권한설정에서 조직·단계별로 「미수금관리」(/calc/unpaidMng) 권한을 MODIFY/DELETE 로 올려 수동 등록을 허용할 수 있습니다.', 'Registering receivables is allowed by default at root HQ / HQ / master-distributor org levels (Receivables screen: MODIFY or higher); branches, agencies, and sales offices are view-only by default. Raise org-level permission for 「Receivables」(/calc/unpaidMng) to MODIFY/DELETE in HQ permissions if manual entry is needed.', '「未収金登録」は、総本部・本社・総販の組織段階の既定権限（未収管理画面：修正以上）で可能であり、支社・代理店・営業店などは既定では参照のみです。必要に応じて本社権限設定で組織・段階ごとに「未収管理」(/calc/unpaidMng) を MODIFY/DELETE に上げ、手動登録を許可できます。', '登记未收默认开放给总总部、总部、总代层级（应收管理：需修改级以上）；分公司、代理、营业点默认只读。可在总部权限中把「应收管理」(/calc/unpaidMng) 提到 MODIFY/DELETE 以允许手工登记。', 'การลงทะเบียนลูกหนี้เปิดให้ระดับสำนักงานใหญ่สุด/สำนักงานใหญ่/ตัวแทนหลักเป็นค่าเริ่มต้น (หน้าลูกหนี้: ต้อง MODIFY ขึ้นไป) สาขา/ตัวแทน/จุดขายอ่านอย่างเดียว ปรับสิทธิ์องค์กรเป็น MODIFY/DELETE สำหรับ /calc/unpaidMng ได้ในการตั้งค่า HQ'),
+      packN('「미수금등록」은 한 창에서 가맹 검색·선택 후 <strong>추가</strong>(신규 미수금) 또는 <strong>차감</strong>(잔여 미수금 FIFO 감소)과 금액·메모를 입력합니다. 목록 행을 더블클릭하면 해당 업체가 선택된 채로 열립니다. API는 POST /api/settlement/receivable 의 direction=ADD|DEDUCT 와 동일하며, 대손·등록 취소는 writeOff·cancel API를 사용합니다.', 'In one window, search and pick a merchant, then choose **Add** (new receivable) or **Deduct** (reduce open balance FIFO) and enter amount and memo. Double-click a grid row to open with that merchant selected. Same as POST /api/settlement/receivable with direction=ADD|DEDUCT; write-offs and cancellations use writeOff/cancel APIs.', '「未収金登録」は一画面で加盟店を検索・選択し、<strong>追加</strong>（新規未収）または<strong>控除</strong>（残高未収をFIFOで減額）および金額・メモを入力します。一覧行をダブルクリックするとその加盟店が選択された状態で開きます。APIは POST /api/settlement/receivable の direction=ADD|DEDUCT と同じで、貸倒・登録取消は writeOff・cancel API を使用します。', '在同一窗口搜索并选择商户，选<strong>增加</strong>（新增应收）或<strong>扣减</strong>（按 FIFO 减少未收余额），填写金额与备注。双击表格行会以该商户打开。与 POST /api/settlement/receivable direction=ADD|DEDUCT 一致；核销与取消用 writeOff/cancel API。', 'ค้นหาและเลือกร้านในหน้าต่างเดียว จากนั้นเลือก<strong>เพิ่ม</strong>(ลูกหนี้ใหม่) หรือ<strong>หัก</strong>(ลดยอดคงค้าง FIFO) พร้อมจำนวนและเมโม ดับเบิลคลิกแถวตารางเพื่อเปิดพร้อมร้านนั้น เหมือน POST /api/settlement/receivable direction=ADD|DEDUCT; writeOff/cancel สำหรับตัดหนี้/ยกเลิก'),
+      packN('가맹이 본사설정 「환수/미수금설정」에서 수동(MANUAL)인 경우에만 행의 [환수처리]로 다음 정산 마감 반영을 요청할 수 있습니다. 자동(AUTO) 가맹은 정산 시 미수금이 FIFO로 차감됩니다.', 'Only merchants set to manual recovery in HQ 「Recovery / receivables」can use row **[Request recovery]** to ask for deduction on the next settlement close. AUTO merchants have receivables deducted FIFO during settlement.', '加盟店が本社設定「回収・未収設定」で手動(MANUAL)のときのみ、行の［回収処理］で次回精算締め時の反映を依頼できます。自動(AUTO)の加盟店は精算時に未収金を FIFO で控除します。', '仅当商户在总部「回款/应收」设为手动(MANUAL)时，才可用行的【回款处理】请求在下次结算关账时扣减。自动(AUTO)商户在结算时按 FIFO 扣减应收。', 'ร้านที่ตั้งเป็น MANUAL ใน HQ 「กู้คืน/ลูกหนี้」เท่านั้นที่กด [ดำเนินการกู้คืน] ในแถวเพื่อขอหักรอบปิดชำระถัดไป ร้าน AUTO ระบบหักลูกหนี้ FIFO ตอนชำระ')
+    ],
+    '/hq/pgApiMng': [
+      packN('연동 용도(노티·URL·챗봇·API)와 용도별 엔드포인트를 구분해 저장합니다. URL 용도 행은 「URL금액」에서 일반(일반형) / DP(DISPLAY) / BLIND를 지정할 수 있으며, 본사 URL결제설정(FX JSON)의 해당 PG 금액 모드와 동일합니다. 노티=미들웨어 수신 매칭, URL=공개 URL 결제 플로우, 챗봇/API=PG사 API 직연동(동일 연동 URL). 목록 「연동용도」는 파스텔 색으로 구분됩니다. API Key·MD5는 목록 미노출. [삭제]는 등록일 오른쪽, 신규는 [PG사 연동 추가]입니다.', 'Integration kinds (notify, URL, chatbot, API) and per-kind endpoints are stored separately. For URL rows, set Normal / DP (DISPLAY) / BLIND under “URL amount”; this matches HQ URL pay FX JSON per PG. Notify = middleware inbound match; URL = public URL pay; Chatbot/API = direct PG API (same URL). Scope badges use pastel colors. API key / MD5 are hidden in the list. Delete sits right of reg. date; use “Add PG linkage” for new.', '連携用途（ノティ・URL・チャットボット・API）と用途別エンドポイントを分けて保存します。URL行は「URL金額」で標準／DP(DISPLAY)／BLINDを指定でき、本社URL決済設定(FX JSON)の当該PGモードと一致します。ノティ=ミドルウェア受信、URL=公開URL決済、チャットボット／API=PG API直連携。一覧の用途はパステル色。API Key・MD5は一覧非表示。削除は登録日の右、新規は「PG連携を追加」。', '按用途（通知、URL、聊天机器人、API）及各自端点分别保存。URL 行可在「URL 金额」指定标准／DP(DISPLAY)／BLIND，与总部 URL 支付 FX JSON 中该 PG 的模式一致。通知=中间件入账匹配；URL=公开 URL 支付；聊天机器人/API=直连 PG API。列表用途用浅色区分。列表不显示 API Key/MD5。删除在注册日期右侧，新增用「添加 PG 对接」。', 'บันทึกแยกตามประเภท (แจ้งเตือน URL แชทบอท API) และ endpoint ต่อประเภท แถว URL ตั้งค่า มาตรฐาน/DP/BLIND ที่คอลัมน์ URL ตรงกับ FX JSON ของ HQ แจ้งเตือน=จับคู่ middleware URL=จ่ายสาธารณะ แชทบอท/API=เชื่อม API โดยตรง ไม่แสดง API Key/MD5 ในรายการ ลบอยู่ขวาวันที่ ลงทะเบียน ใหม่ใช้ปุ่มเพิ่มการเชื่อม PG'),
+      packN('통합정산 「예정(ICOPAY)」열: PG사 연동 편집에서 T+N(주말 제외 영업일·결제와 동일 시각) 또는 D+N(달력+N일·일괄 시각)을 저장합니다. OFF면 예정일을 채우지 않습니다. D는 일괄 시각(HH:mm) 필수.', '“Expected (ICOPAY)” uses T+N (business days, same time as payment) or D+N (calendar days + batch time) from the PG linkage editor. OFF leaves the date empty. D requires batch time (HH:mm).', '統合精算の「予定(ICOPAY)」列は、PG連携編集で T+N（営業日・決済と同時刻）または D+N（暦日+N・一括時刻）を保存します。OFF は予定日を空にします。D は一括時刻(HH:mm)が必須です。', '「预计(ICOPAY)」列在 PG 对接编辑中保存 T+N（营业日、与支付同时刻）或 D+N（自然日+N、批量时刻）。OFF 不填预计日。D 必须填写批量时刻(HH:mm)。', 'คอลัมน์คาด(ICOPAY) ใช้ T+N (วันทำการ เวลาเดียวกับการชำระ) หรือ D+N (ปฏิทิน+N เวลารวม) จากแก้ไขการเชื่อม PG ถ้า OFF ไม่เติมวันที่ D ต้องมีเวลารวม HH:mm'),
+      packN('ChillPay는 PG코드 CHILLPAY, API·URL 엔드포인트는 ChillPayService가 병합 반영합니다. 운영 DB는 db/V35_pg_agency_integration_scope.sql 적용 후 배포하세요.', 'ChillPay expects PG codes starting with CHILLPAY; ChillPayService merges API/URL endpoints. Apply db/V35_pg_agency_integration_scope.sql to the production DB before deploy.', 'ChillPay は PGコード CHILLPAY、API/URL エンドポイントは ChillPayService がマージ反映します。本番 DB には db/V35_pg_agency_integration_scope.sql を適用してからデプロイしてください。', 'ChillPay 要求 PG 代码以 CHILLPAY 开头；API/URL 端点由 ChillPayService 合并。生产库请先执行 db/V35_pg_agency_integration_scope.sql 再部署。', 'ChillPay ใช้รหัส PG ขึ้นต้น CHILLPAY ChillPayService รวม endpoint API/URL ใช้สคริปต์ db/V35_pg_agency_integration_scope.sql กับ DB ก่อน deploy')
+    ],
+    '/calc/compPointMngList': [
+      packN('「환수금」은 정산이 반영된 뒤(승인 건이 settled 등으로 정산에 올라간 이후) 같은 거래가 환불·취소·무효·차지백 등으로 바뀔 때 정산에서 거둬야 할 금액이 자동으로 잡히는 내역입니다. 금액은 전산설정(환수금 수수료 포함) 및 수수료내역과 동일한 건별 산식입니다. 다음 정산 지급액에서는 환수금(FIFO)을 먼저 차감한 뒤 미수금(FIFO)을 차감합니다. 거래별 산출·검증은 「회수·거래기준」(/settlement/recallMng) 화면을 참고하세요.', 'Recovery rows are created when a transaction was already reflected in settlement (e.g. settled) and later changes to refund, cancel, void, chargeback, etc. Amounts follow ledger settings (whether fees are included in recovery) and the same per-txn rules as fee history. On the next payout, recovery (FIFO) is deducted first, then receivables (FIFO). For per-txn calculation and checks, use the “Recovery by transaction” screen (/settlement/recallMng).', '「回収金」は、精算反映後（承認取引が settled 等で精算に載った後）に同一取引が返金・取消・無効・チャージバック等へ変わったとき、精算で回収すべき金額が自動計上される明細です。金額は全算設定（回収金に手数料を含むか）および手数料一覧と同じ件別計算式です。次回の支払額からは回収金(FIFO)を先に差し引いた後、未収金(FIFO)を差し引きます。取引別の算出・照合は「回収・取引基準」(/settlement/recallMng) を参照してください。', '「回款」指：交易已参与结算（如 settled）之后又变为退款、取消、作废、拒付等时，系统自动生成的应从结算侧收回的金额。金额按账务设置（回款是否含手续费）及与手续费明细相同的逐笔规则计算。下次拨付时先按 FIFO 扣回款，再扣应收。逐笔计算与核对请使用「回款·按交易」(/settlement/recallMng) 画面。', 'รายการกู้คืนเกิดเมื่อธุรกรรมถูกสะท้อนชำระแล้ว (เช่น settled) ต่อมาเปลี่ยนเป็นคืนเงิน·ยกเลิก·โมฆะ·ชาร์จแบ็ก ฯลฯ ยอดคิดตามการตั้งค่า (รวมค่าธรรมเนียมหรือไม่) และกฎรายรายการเดียวกับประวัติค่าธรรมเนียม รอบถัดไปหักกู้คืน FIFO แล้วจึงหักลูกหนี้ FIFO ตรวจรายรายการที่ /settlement/recallMng')
+    ],
+    '/settlement/recallMng': [
+      packN('「환수금」은 정산이 반영된 뒤(승인 건이 settled 등으로 정산에 올라간 이후) 같은 거래가 환불·취소·무효·차지백 등으로 바뀔 때 정산에서 거둬야 할 금액이 자동으로 잡히는 내역입니다. 금액은 전산설정(환수금 수수료 포함) 및 수수료내역과 동일한 건별 산식입니다. 다음 정산 지급액에서는 환수금(FIFO)을 먼저 차감한 뒤 미수금(FIFO)을 차감합니다. 거래별 산출·검증은 「회수·거래기준」(/settlement/recallMng) 화면을 참고하세요.', 'Recovery rows are created when a transaction was already reflected in settlement (e.g. settled) and later changes to refund, cancel, void, chargeback, etc. Amounts follow ledger settings (whether fees are included in recovery) and the same per-txn rules as fee history. On the next payout, recovery (FIFO) is deducted first, then receivables (FIFO). For per-txn calculation and checks, use the “Recovery by transaction” screen (/settlement/recallMng).', '「回収金」は、精算反映後（承認取引が settled 等で精算に載った後）に同一取引が返金・取消・無効・チャージバック等へ変わったとき、精算で回収すべき金額が自動計上される明細です。金額は全算設定（回収金に手数料を含むか）および手数料一覧と同じ件別計算式です。次回の支払額からは回収金(FIFO)を先に差し引いた後、未収金(FIFO)を差し引きます。取引別の算出・照合は「回収・取引基準」(/settlement/recallMng) を参照してください。', '「回款」指：交易已参与结算（如 settled）之后又变为退款、取消、作废、拒付等时，系统自动生成的应从结算侧收回的金额。金额按账务设置（回款是否含手续费）及与手续费明细相同的逐笔规则计算。下次拨付时先按 FIFO 扣回款，再扣应收。逐笔计算与核对请使用「回款·按交易」(/settlement/recallMng) 画面。', 'รายการกู้คืนเกิดเมื่อธุรกรรมถูกสะท้อนชำระแล้ว (เช่น settled) ต่อมาเปลี่ยนเป็นคืนเงิน·ยกเลิก·โมฆะ·ชาร์จแบ็ก ฯลฯ ยอดคิดตามการตั้งค่า (รวมค่าธรรมเนียมหรือไม่) และกฎรายรายการเดียวกับประวัติค่าธรรมเนียม รอบถัดไปหักกู้คืน FIFO แล้วจึงหักลูกหนี้ FIFO ตรวจรายรายการที่ /settlement/recallMng')
+    ],
+    '/calc/settlementReport': [
+      packN('[리포트 형식] 가맹점 정산 리포트: 총본사·본사·총판 등이 소속 가맹에 보내는 정산 형식. 본사 지급 리포트: 총본사가 본사(REGIONAL)에 지급할 금액을 본사 단위로 합산(총본사·본사 로그인만 선택 가능).', '[Report format] Merchant report: settlement layout sent to merchants under your org tree. HQ payout report: amounts the root HQ pays to each REGIONAL (H) company, aggregated per regional org (selectable only when logged in as root HQ or regional HQ).', '[レポート形式] 加盟店精算：組織配下の加盟店向けの精算体裁。本社支払：総本部が本社(REGIONAL)へ支払う金額を本社単位で集計（総本部・本社ログイン時のみ選択可）。', '[报表格式] 商户结算报表：向隶属商户下发的结算版式。本部拨付报表：总总部按本部(REGIONAL)汇总应付金额（仅总总部/本部登录可选）。', '[รูปแบบรายงาน] รายงานร้าน: รูปแบบชำระที่ส่งให้ร้านในโครงสร้างองค์กร รายงานจ่าย HQ: ยอดที่สำนักงานใหญ่สุดจ่ายให้แต่ละ REGIONAL รวมตามรหัส本社 (เลือกได้เมื่อล็อกอินเป็น HQ รากหรือ HQ ภูมิภาคเท่านั้น)'),
+      packN('[하위 구분] 정산집계·정산실시·정산집계표·확정정산(리포트). 확정정산은 정산 실행이 CALCULATED(확정)이고 가맹점정산내역에 올라온 건만 목록으로 보이며, 행을 더블클릭하면 가맹 전달용 요약(거래 구간 집계 + 실행 금액)을 한 화면에서 봅니다.', '[Sub-type] Aggregate, runs, summary sheet, confirmed (report). Confirmed lists runs that are CALCULATED and posted to merchant settlement history; double-click a row for a merchant-facing summary (txn-range totals + run amounts).', '[下位区分] 集計・実行・集計表・確定精算（レポート）。確定は実行がCALCULATEDかつ加盟店精算履歴に載った行のみ。行ダブルクリックで加盟店向け要約（取引区間集計＋実行金額）を表示。', '[子类型] 结算汇总、执行、汇总表、已确认（报表）。已确认仅列出执行为 CALCULATED 且已进入商户结算明细的行；双击行可查看面向商户的摘要（交易区间汇总 + 执行金额）。', '[ประเภทย่อย] สรุป / รัน / แผ่นสรุป / ยืนยันแล้ว รายการยืนยันเฉพาะรันที่ CALCULATED และโพสต์ในประวัติชำระร้าน ดับเบิลคลิกแถวเพื่อสรุปส่งร้าน (ยอดช่วงธุรกรรม + ยอดรัน)'),
+      packN('정산집계·실시·집계표의 예치·Processing·건당요금·+7영업일은 백엔드 상수이며 응답 meta에 안내가 있습니다.', 'Deposit %, Processing %, per-txn fee, and +7 business days in aggregate/run/summary views are backend constants; see API response meta for notes.', '集計・実行・集計表の預かり・Processing・件当・+7営業日はバックエンド定数で、応答metaに案内があります。', '汇总、执行、汇总表中的暂扣、Processing、按笔费用、+7 营业日为后端常量，说明见接口 meta。', 'ค่าคงที่ฝั่งเซิร์ฟเวอร์ (เงินประกัน %, Processing, ค่าธรรมเนียมต่อราย, +7 วันทำการ) ดูรายละเอียดใน meta ของ API')
+    ],
+    '/settlement/settlementReport': [
+      packN('[리포트 형식] 가맹점 정산 리포트: 총본사·본사·총판 등이 소속 가맹에 보내는 정산 형식. 본사 지급 리포트: 총본사가 본사(REGIONAL)에 지급할 금액을 본사 단위로 합산(총본사·본사 로그인만 선택 가능).', '[Report format] Merchant report: settlement layout sent to merchants under your org tree. HQ payout report: amounts the root HQ pays to each REGIONAL (H) company, aggregated per regional org (selectable only when logged in as root HQ or regional HQ).', '[レポート形式] 加盟店精算：組織配下の加盟店向けの精算体裁。本社支払：総本部が本社(REGIONAL)へ支払う金額を本社単位で集計（総本部・本社ログイン時のみ選択可）。', '[报表格式] 商户结算报表：向隶属商户下发的结算版式。本部拨付报表：总总部按本部(REGIONAL)汇总应付金额（仅总总部/本部登录可选）。', '[รูปแบบรายงาน] รายงานร้าน: รูปแบบชำระที่ส่งให้ร้านในโครงสร้างองค์กร รายงานจ่าย HQ: ยอดที่สำนักงานใหญ่สุดจ่ายให้แต่ละ REGIONAL รวมตามรหัส本社 (เลือกได้เมื่อล็อกอินเป็น HQ รากหรือ HQ ภูมิภาคเท่านั้น)'),
+      packN('[하위 구분] 정산집계·정산실시·정산집계표·확정정산(리포트). 확정정산은 정산 실행이 CALCULATED(확정)이고 가맹점정산내역에 올라온 건만 목록으로 보이며, 행을 더블클릭하면 가맹 전달용 요약(거래 구간 집계 + 실행 금액)을 한 화면에서 봅니다.', '[Sub-type] Aggregate, runs, summary sheet, confirmed (report). Confirmed lists runs that are CALCULATED and posted to merchant settlement history; double-click a row for a merchant-facing summary (txn-range totals + run amounts).', '[下位区分] 集計・実行・集計表・確定精算（レポート）。確定は実行がCALCULATEDかつ加盟店精算履歴に載った行のみ。行ダブルクリックで加盟店向け要約（取引区間集計＋実行金額）を表示。', '[子类型] 结算汇总、执行、汇总表、已确认（报表）。已确认仅列出执行为 CALCULATED 且已进入商户结算明细的行；双击行可查看面向商户的摘要（交易区间汇总 + 执行金额）。', '[ประเภทย่อย] สรุป / รัน / แผ่นสรุป / ยืนยันแล้ว รายการยืนยันเฉพาะรันที่ CALCULATED และโพสต์ในประวัติชำระร้าน ดับเบิลคลิกแถวเพื่อสรุปส่งร้าน (ยอดช่วงธุรกรรม + ยอดรัน)'),
+      packN('정산집계·실시·집계표의 예치·Processing·건당요금·+7영업일은 백엔드 상수이며 응답 meta에 안내가 있습니다.', 'Deposit %, Processing %, per-txn fee, and +7 business days in aggregate/run/summary views are backend constants; see API response meta for notes.', '集計・実行・集計表の預かり・Processing・件当・+7営業日はバックエンド定数で、応答metaに案内があります。', '汇总、执行、汇总表中的暂扣、Processing、按笔费用、+7 营业日为后端常量，说明见接口 meta。', 'ค่าคงที่ฝั่งเซิร์ฟเวอร์ (เงินประกัน %, Processing, ค่าธรรมเนียมต่อราย, +7 วันทำการ) ดูรายละเอียดใน meta ของ API')
+    ]
+  };
+
+  /** 2단 헤더 그룹 라벨 — keys 시그니처로 매칭 */
+  var HG = {
+    'compRegNo': { KO: '사업자번호', EN: 'Business reg. no.', JP: '事業者番号', CH: '营业执照号', TH: 'เลขทะเบียนธุรกิจ' },
+    'pgApproveAmt,payAprv': { KO: 'PG승인', EN: 'PG approval', JP: 'PG承認', CH: 'PG授权', TH: 'อนุมัติ PG' },
+    'holdAmt,holdDttm': { KO: '보류', EN: 'Hold', JP: '保留', CH: '暂扣', TH: 'พักรอ' },
+    'feeCnt,feeRate': { KO: '수수료', EN: 'Fee', JP: '手数料', CH: '手续费', TH: 'ค่าธรรมเนียม' }
+  };
+
+  /** 열 키별 비한국어(및 명시 KO). 비어 있으면 카탈로그 스냅샷(한국어) 유지 */
+  var COL = {
+    _chk: { EN: 'Sel', JP: '選択', CH: '选', TH: 'เลือก' },
+    rowNo: { EN: 'No.', JP: '番号', CH: '序号', TH: 'ลำดับ' },
+    compNm: { EN: 'Merchant name', JP: '加盟店名', CH: '商户名称', TH: 'ชื่อร้านค้า' },
+    compId: { EN: 'Merchant code', JP: '加盟店コード', CH: '商户代码', TH: 'รหัสร้านค้า' },
+    trnDate: { EN: 'Txn date', JP: '取引日', CH: '交易日期', TH: 'วันที่ทำรายการ' },
+    trnTime: { EN: 'Txn time', JP: '取引時刻', CH: '交易时间', TH: 'เวลาทำรายการ' },
+    routeNo: { EN: 'Route', JP: 'ルート', CH: '路由', TH: 'Route' },
+    chillTransactionId: { EN: 'Auth / Txn ID', JP: '承認／取引ID', CH: '授权/交易ID', TH: 'รหัสอนุมัติ/ธุรกรรม' },
+    trnId: { EN: 'Our txn no.', JP: '自社取引番号', CH: '内部交易号', TH: 'เลขธุรกรรมภายใน' },
+    chillCustomer: { EN: 'Customer', JP: '顧客', CH: '客户', TH: 'ลูกค้า' },
+    orderNo: { EN: 'Order no.', JP: '注文番号', CH: '订单号', TH: 'เลขคำสั่งซื้อ' },
+    paymentChannel: { EN: 'Payment channel', JP: '決済チャネル', CH: '支付渠道', TH: 'ช่องทางชำระเงิน' },
+    payCompletedAt: { EN: 'Paid at', JP: '決済日時', CH: '支付完成时间', TH: 'เวลาชำระเงิน' },
+    chillAmount: { EN: 'Payment amount', JP: '決済金額', CH: '支付金额', TH: 'ยอดชำระ' },
+    icopayAmt: { EN: 'ICOPAY', JP: 'ICOPAY', CH: 'ICOPAY', TH: 'ICOPAY' },
+    chillFeeAmt: { EN: 'Fee', JP: '手数料', CH: '手续费', TH: 'ค่าธรรมเนียม' },
+    totalAmt: { EN: 'Total', JP: '合計', CH: '合计', TH: 'รวม' },
+    currency: { EN: 'Currency', JP: '通貨', CH: '币种', TH: 'สกุลเงิน' },
+    regionalBaseCur: { EN: 'HQ base ccy', JP: '本社基準通貨', CH: '总部基准货币', TH: 'สกุลฐานสำนักงานใหญ่' },
+    masterDistBaseCur: { EN: 'Dist. base ccy', JP: '総販基準通貨', CH: '总代基准货币', TH: 'สกุลฐานตัวแทนหลัก' },
+    merchantBaseCur: { EN: 'Merchant base ccy', JP: '加盟店基準通貨', CH: '商户基准货币', TH: 'สกุลฐานร้านค้า' },
+    chillPaymentStatus: { EN: 'Status', JP: '状態', CH: '状态', TH: 'สถานะ' },
+    settledYn: { EN: 'Settlement', JP: '精算', CH: '结算', TH: 'การชำระบัญชี' },
+    compRegNo: { EN: 'Business no.', JP: '事業者番号', CH: '注册号', TH: 'เลขทะเบียน' },
+    payDivNm: { EN: 'Type', JP: '区分', CH: '类型', TH: 'ประเภท' },
+    payCard: { EN: 'Card', JP: '決済カード', CH: '支付卡', TH: 'บัตร' },
+    cardAprvNo: { EN: 'Card auth no.', JP: 'カード承認番号', CH: '卡授权号', TH: 'เลขอนุมัติบัตร' },
+    payCardNo: { EN: 'Card no.', JP: 'カード番号', CH: '卡号', TH: 'เลขบัตร' },
+    instalMonth: { EN: 'Installment', JP: '分割回数', CH: '分期月数', TH: 'งวดผ่อน' },
+    payMethod: { EN: 'Pay method', JP: '決済手段', CH: '支付方式', TH: 'วิธีชำระ' },
+    corpNm: { EN: 'Corporate name', JP: '法人名', CH: '法人名称', TH: 'ชื่อนิติบุคคล' },
+    pgNm: { EN: 'PG', JP: 'PG', CH: 'PG', TH: 'PG' },
+    terminalId: { EN: 'Terminal', JP: '端末', CH: '终端', TH: 'เทอร์มินัล' },
+    calcCycle: { EN: 'Settle cycle', JP: '精算周期', CH: '结算周期', TH: 'รอบชำระ' },
+    pgApproveAmt: { EN: 'Amount', JP: '金額', CH: '金额', TH: 'จำนวนเงิน' },
+    payAprv: { EN: 'Time', JP: '日時', CH: '时间', TH: 'เวลา' },
+    holdAmt: { EN: 'Amount', JP: '金額', CH: '金额', TH: 'จำนวนเงิน' },
+    holdDttm: { EN: 'Time', JP: '日時', CH: '时间', TH: 'เวลา' },
+    feeCnt: { EN: 'Cnt', JP: '件', CH: '笔数', TH: 'จำนวน' },
+    feeRate: { EN: '%', JP: '%', CH: '%', TH: '%' },
+    settleAmt: { EN: 'Payout', JP: '支払額', CH: '拨付金额', TH: 'ยอดจ่าย' },
+    calcDt: { EN: 'Payout at', JP: '支払日時', CH: '拨付时间', TH: 'เวลาจ่าย' },
+    pgApproveNo: { EN: 'PG approval no.', JP: 'PG承認番号', CH: 'PG授权号', TH: 'เลขอนุมัติ PG' },
+    productNm: { EN: 'Product', JP: '購入商品', CH: '商品', TH: 'สินค้า' },
+    customerNm: { EN: 'Payer name', JP: '顧客名', CH: '付款人姓名', TH: 'ชื่อผู้ชำระ' },
+    customerTel: { EN: 'Payer mobile', JP: '携帯', CH: '付款人手机', TH: 'มือถือผู้ชำระ' },
+    regionalNm: { EN: 'Distributor', JP: '総販', CH: '总代', TH: 'ตัวแทนหลัก' },
+    masterNm: { EN: 'Branch', JP: '支社', CH: '分公司', TH: 'สาขา' },
+    branchNm: { EN: 'Agency', JP: '代理店', CH: '代理', TH: 'ตัวแทน' },
+    payActions: { EN: 'Follow-up', JP: '後続対応', CH: '后续处理', TH: 'ดำเนินการต่อ' }
+  };
+
+  var CHILL_TR_COL = Object.assign({}, COL, {
+    transactionId: COL.chillTransactionId,
+    merchant: { EN: 'Merchant (MID)', JP: 'Merchant(MID)', CH: 'Merchant(MID)', TH: 'Merchant (MID)' },
+    customer: COL.chillCustomer,
+    amount: { EN: 'Amount', JP: '金額', CH: '金额', TH: 'จำนวนเงิน' },
+    refundAmount: { EN: 'Refund amount', JP: '返金額', CH: '退款金额', TH: 'ยอดคืน' },
+    fee: COL.chillFeeAmt,
+    discount: { EN: 'Discount', JP: '値引', CH: '折扣', TH: 'ส่วนลด' },
+    totalAmount: COL.totalAmt,
+    status: COL.chillPaymentStatus,
+    settled: COL.settledYn,
+    icopay: COL.icopayAmt,
+    description: { EN: 'Description', JP: '説明', CH: '说明', TH: 'รายละเอียด' },
+    transactionDate: { EN: 'Txn date (raw)', JP: '取引日(原文)', CH: '交易日期(原文)', TH: 'วันที่ทำรายการ (ดิบ)' },
+    paymentDate: { EN: 'PaymentDate (raw)', JP: 'PaymentDate(原文)', CH: 'PaymentDate(原文)', TH: 'PaymentDate (ดิบ)' }
+  });
+
+  var CHILL_ST_COL = Object.assign({}, CHILL_TR_COL, {
+    settleAmount: { EN: 'Settle amount', JP: '精算金額(Settle)', CH: '结算金额(Settle)', TH: 'ยอดชำระ Settle' },
+    netAmount: { EN: 'Net amount', JP: '純額(Net)', CH: '净额(Net)', TH: 'สุทธิ Net' },
+    exchangeRate: { EN: 'FX rate', JP: '為替レート', CH: '汇率', TH: 'อัตราแลกเปลี่ยน' },
+    serviceAmount: { EN: 'Service fee', JP: 'サービス料', CH: '服务费', TH: 'ค่าบริการ' },
+    serviceVAT: { EN: 'Service VAT', JP: 'サービス VAT', CH: '服务增值税', TH: 'VAT บริการ' },
+    serviceWHT: { EN: 'Service WHT', JP: 'サービス WHT', CH: '服务预提税', TH: 'WHT บริการ' },
+    transferDate: { EN: 'Transfer date', JP: '振込日', CH: '转账日', TH: 'วันโอน' },
+    icopayExpectedSettleAt: { EN: 'Expected (ICOPAY)', JP: '予定(ICOPAY)', CH: '预计(ICOPAY)', TH: 'คาด (ICOPAY)' },
+    icopayExpectedSettleRule: { EN: 'Expected rule', JP: '予定規則', CH: '预计规则', TH: 'กฎการคาดการณ์' },
+    cutOffTime: { EN: 'Cut-off', JP: 'カットオフ', CH: '截止时间', TH: 'เวลาตัดรอบ' }
+  });
+
+  function tRow(row, loc, fallback) {
+    if (!row) return fallback;
+    if (loc === 'KO') return fallback;
+    var v = row[loc];
+    if (v != null && String(v).trim() !== '') return v;
+    return fallback;
+  }
+
+  function ensureCatalogKoSnapshot() {
+    var P = w.PG_PAY_LIST_INTEGRATED;
+    if (!P || !P.columns) return;
+    if (P._i18nKoSnap) return;
+    P._i18nKoSnap = {
+      cols: P.columns.map(function (c) { return { key: c.key, label: c.label }; }),
+      hg: JSON.parse(JSON.stringify(P.headerGroups || []))
+    };
+  }
+
+  function restoreCatalogFromKoSnap() {
+    var P = w.PG_PAY_LIST_INTEGRATED;
+    var snap = P && P._i18nKoSnap;
+    if (!snap || !snap.cols) return;
+    var byKey = {};
+    snap.cols.forEach(function (x) { if (x && x.key) byKey[x.key] = x.label; });
+    P.columns.forEach(function (c) {
+      if (c && c.key && byKey[c.key] != null) c.label = byKey[c.key];
+    });
+    P.headerGroups = JSON.parse(JSON.stringify(snap.hg || []));
+  }
+
+  function applyCatalogLocale(loc) {
+    var P = w.PG_PAY_LIST_INTEGRATED;
+    if (!P || !P.columns) return;
+    ensureCatalogKoSnapshot();
+    if (loc === 'KO') {
+      restoreCatalogFromKoSnap();
+      return;
+    }
+    var snap = P._i18nKoSnap;
+    var byKey = {};
+    snap.cols.forEach(function (x) { if (x && x.key) byKey[x.key] = x.label; });
+    P.columns.forEach(function (c) {
+      if (!c || !c.key) return;
+      var row = COL[c.key];
+      c.label = tRow(row, loc, byKey[c.key] != null ? byKey[c.key] : c.label);
+    });
+    (P.headerGroups || []).forEach(function (g, i) {
+      var sig = (g.keys || []).join(',');
+      var row = HG[sig];
+      var koLab = (snap.hg[i] && snap.hg[i].label) || g.label;
+      g.label = tRow(row, loc, koLab);
+    });
+  }
+
+  function ensureChillColSnap(scr) {
+    if (!scr || !scr.columns || scr._i18nColSnap) return;
+    scr._i18nColSnap = {
+      cols: scr.columns.map(function (c) { return { key: c.key, label: c.label }; }),
+      hg: JSON.parse(JSON.stringify(scr.headerGroups || []))
+    };
+  }
+
+  function restoreChillColSnap(scr) {
+    var snap = scr && scr._i18nColSnap;
+    if (!snap || !scr || !scr.columns) return;
+    var byKey = {};
+    snap.cols.forEach(function (x) { if (x && x.key) byKey[x.key] = x.label; });
+    scr.columns.forEach(function (c) {
+      if (c && c.key && byKey[c.key] != null) c.label = byKey[c.key];
+    });
+    scr.headerGroups = JSON.parse(JSON.stringify(snap.hg || []));
+  }
+
+  function applyChillListCatalogLocale(loc) {
+    var screens = w.PG_SCREENS && w.PG_SCREENS.getMenuScreens ? w.PG_SCREENS.getMenuScreens() : null;
+    if (!screens) return;
+    [['/calc/chillPayTrList', CHILL_TR_COL], ['/calc/chillPaySettlementList', CHILL_ST_COL]].forEach(function (pair) {
+      var url = pair[0];
+      var cmap = pair[1];
+      var scr = screens[url];
+      if (!scr || !scr.columns) return;
+      ensureChillColSnap(scr);
+      if (loc === 'KO') {
+        restoreChillColSnap(scr);
+        return;
+      }
+      var snap = scr._i18nColSnap;
+      var byKey = {};
+      snap.cols.forEach(function (x) { if (x && x.key) byKey[x.key] = x.label; });
+      scr.columns.forEach(function (c) {
+        if (!c || !c.key) return;
+        var row = cmap[c.key];
+        c.label = tRow(row, loc, byKey[c.key] != null ? byKey[c.key] : c.label);
+      });
+      (scr.headerGroups || []).forEach(function (g, i) {
+        var sig = (g.keys || []).join(',');
+        var row = HG[sig];
+        var koLab = (snap.hg[i] && snap.hg[i].label) || g.label;
+        g.label = tRow(row, loc, koLab);
+      });
+    });
+  }
+
+  var _screenSnap = null;
+
+  function deepClone(o) {
+    try {
+      return JSON.parse(JSON.stringify(o));
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function ensureScreenSnap() {
+    if (_screenSnap) return;
+    var screens = w.PG_SCREENS && w.PG_SCREENS.getMenuScreens ? w.PG_SCREENS.getMenuScreens() : null;
+    if (!screens) return;
+    var urls = w.PG_SCREENS.getPayListIntegratedSyncUrls ? w.PG_SCREENS.getPayListIntegratedSyncUrls() : [];
+    _screenSnap = { urls: urls, buttons: {}, empty: {}, scrKo: {} };
+    urls.forEach(function (u) {
+      var scr = screens[u];
+      if (!scr) return;
+      if (scr.emptyMessage != null) _screenSnap.empty[u] = scr.emptyMessage;
+      _screenSnap.buttons[u] = (scr.buttons || []).map(function (b) {
+        return { id: b && b.id, label: b && b.label };
+      });
+      _screenSnap.scrKo[u] = {
+        searchRows: deepClone(scr.searchRows),
+        searchRows2: scr.searchRows2 ? deepClone(scr.searchRows2) : null,
+        searchRows3: scr.searchRows3 ? deepClone(scr.searchRows3) : null,
+        noticeList: scr.noticeList ? scr.noticeList.slice() : null,
+        summary: scr.summary ? scr.summary.slice() : null
+      };
+    });
+  }
+
+  function pickNoticeLine(pack, loc) {
+    if (!pack) return '';
+    if (loc === 'KO') return pack.KO != null ? String(pack.KO) : '';
+    var v = pack[loc];
+    if (v != null && String(v).trim() !== '') return String(v);
+    if (pack.EN != null && String(pack.EN).trim() !== '') return String(pack.EN);
+    return pack.KO != null ? String(pack.KO) : '';
+  }
+
+  function walkSearchRowsApplyLocale(rows, snapRows, loc) {
+    if (!rows || !snapRows || rows.length !== snapRows.length || loc === 'KO') return;
+    for (var r = 0; r < rows.length; r++) {
+      var row = rows[r];
+      var srow = snapRows[r];
+      if (!row || !srow || row.length !== srow.length) continue;
+      for (var c = 0; c < row.length; c++) {
+        var cell = row[c];
+        var scell = srow[c];
+        if (!cell || !scell) continue;
+        if (cell.type === 'searchBtn') {
+          if (cell._i18nOrigSearchLbl == null) cell._i18nOrigSearchLbl = scell.label != null ? scell.label : '검색';
+          cell.label = UI.search[loc] || cell.label;
+        } else if (cell.type === 'searchReset' || (cell.type === 'button' && cell.name === 'searchReset')) {
+          cell.label = UI.searchReset[loc] || cell.label;
+        } else if (cell.type === 'select' && cell.name) {
+          var nm = cell.name;
+          var lbRow = LBL[nm];
+          if (lbRow) cell.label = lbRow[loc] || lbRow.EN || scell.label;
+          (cell.options || []).forEach(function (opt) {
+            var k = nm + '|' + (opt.v != null ? String(opt.v) : '');
+            var om = OPT[k];
+            var snapOpt = (scell.options || []).filter(function (x) { return x && String(x.v) === String(opt.v); })[0];
+            var fb = snapOpt ? snapOpt.t : opt.t;
+            opt.t = om ? (om[loc] || om.EN || fb) : fb;
+          });
+        } else if (cell.type === 'text' && cell.name) {
+          var lr = LBL[cell.name];
+          if (lr) cell.label = lr[loc] || lr.EN || scell.label;
+          var phKeyWalk = cell.i18nPhKey || scell.i18nPhKey || cell.name;
+          var pr = PH[phKeyWalk];
+          if (pr) cell.placeholder = pr[loc] || pr.EN || scell.placeholder;
+        } else if (cell.type === 'daterange') {
+          var drKey = scell.label ? ('drLbl:' + scell.label) : null;
+          var dr = drKey ? LBL[drKey] : null;
+          if (dr) cell.label = dr[loc] || dr.EN || scell.label;
+        } else if (cell.type === 'checkbox' && cell.name) {
+          var ck = LBL['cb:' + cell.name];
+          if (ck) cell.label = ck[loc] || ck.EN || scell.label;
+        }
+      }
+    }
+  }
+
+  function applyMenuScreensSearchAndNoticesLocale(loc) {
+    if (!_screenSnap) ensureScreenSnap();
+    var screens = w.PG_SCREENS && w.PG_SCREENS.getMenuScreens ? w.PG_SCREENS.getMenuScreens() : null;
+    if (!screens || !_screenSnap || !_screenSnap.urls) return;
+    _screenSnap.urls.forEach(function (u) {
+      var scr = screens[u];
+      var snap = _screenSnap.scrKo[u];
+      if (!scr || !snap) return;
+      if (loc === 'KO') {
+        if (snap.searchRows) scr.searchRows = deepClone(snap.searchRows);
+        if (snap.searchRows2 != null) scr.searchRows2 = deepClone(snap.searchRows2);
+        if (snap.searchRows3 != null) scr.searchRows3 = deepClone(snap.searchRows3);
+        if (snap.noticeList) scr.noticeList = snap.noticeList.slice();
+        return;
+      }
+      walkSearchRowsApplyLocale(scr.searchRows, snap.searchRows, loc);
+      if (scr.searchRows2 && snap.searchRows2) walkSearchRowsApplyLocale(scr.searchRows2, snap.searchRows2, loc);
+      if (scr.searchRows3 && snap.searchRows3) walkSearchRowsApplyLocale(scr.searchRows3, snap.searchRows3, loc);
+      if (scr.noticeList && snap.noticeList) {
+        var packs = NOTICES[u];
+        for (var i = 0; i < scr.noticeList.length; i++) {
+          var pk = packs && packs[i];
+          scr.noticeList[i] = pk ? pickNoticeLine(pk, loc) : snap.noticeList[i];
+        }
+      }
+    });
+  }
+
+  function patchCalcCycleSearchOptionAll(loc) {
+    var arr = w.PG_CALC_CYCLE_SEARCH_OPTIONS;
+    if (!arr || !arr.length) return;
+    var o0 = arr[0];
+    if (!o0) return;
+    if (loc === 'KO') {
+      if (o0._i18nOrigT != null) o0.t = o0._i18nOrigT;
+      return;
+    }
+    if (o0._i18nOrigT == null) o0._i18nOrigT = o0.t != null ? o0.t : '전체';
+    o0.t = OPT0[loc] || OPT0.EN || o0._i18nOrigT;
+  }
+
+  function applyScreenChromeLocale(loc) {
+    var screens = w.PG_SCREENS && w.PG_SCREENS.getMenuScreens ? w.PG_SCREENS.getMenuScreens() : null;
+    if (!screens) return;
+    if (!_screenSnap) ensureScreenSnap();
+    var urls = _screenSnap.urls || [];
+    urls.forEach(function (u) {
+      var scr = screens[u];
+      if (!scr) return;
+      if (loc === 'KO') {
+        scr.emptyMessage = _screenSnap.empty[u] != null ? _screenSnap.empty[u] : scr.emptyMessage;
+        var snapB = _screenSnap.buttons[u];
+        if (snapB && snapB.length && scr.buttons) {
+          var snapMap = {};
+          snapB.forEach(function (x) {
+            if (x && x.id) snapMap[String(x.id)] = x.label;
+          });
+          scr.buttons.forEach(function (b) {
+            if (!b || !b.id) return;
+            var id = String(b.id);
+            if (snapMap[id] != null) b.label = snapMap[id];
+          });
+        }
+        return;
+      }
+      scr.emptyMessage = UI.empty[loc] || scr.emptyMessage;
+      (scr.buttons || []).forEach(function (b) {
+        if (!b || !b.id) return;
+        var id = String(b.id);
+        if (id === 'payListRefreshBtn') b.label = UI.refresh[loc] || b.label;
+        else if (id === 'excelDownBtn' || id === 'excelBtn') b.label = UI.excel[loc] || b.label;
+        else if (id === 'searchBtn') b.label = UI.search[loc] || b.label;
+        else if (id === 'receivableRegBtn') b.label = UI.receivableReg[loc] || UI.receivableReg.EN || b.label;
+        else if (id === 'hqPgApiOperationalSaveBtn') b.label = UI.hqPgApiOpSave[loc] || UI.hqPgApiOpSave.EN || b.label;
+        else if (id === 'hqPgApiAddBtn') b.label = UI.hqPgApiAdd[loc] || UI.hqPgApiAdd.EN || b.label;
+      });
+    });
+  }
+
+  /** 통합 결제 그리드 + 유통망 정산 검색칸 등 동일 DOM i18n 훅 */
+  function isPayMngDomPaneUrl(url) {
+    if (!url) return false;
+    var integrated = w.PG_SCREENS && w.PG_SCREENS.getPayListIntegratedSyncUrls ? w.PG_SCREENS.getPayListIntegratedSyncUrls() : [];
+    if (integrated.indexOf(url) !== -1) return true;
+    return url === '/calc/calcList' || url === '/settlement/distributionList'
+      || url === '/calc/collateralList' || url === '/settlement/collateralList'
+      || url === '/calc/compPointMngList' || url === '/settlement/recallMng'
+      || url === '/calc/unpaidMng' || url === '/settlement/unpaidMng'
+      || url === '/calc/settlementReport' || url === '/settlement/settlementReport'
+      || url === '/noti/notiCashReceiptSendMngList' || url === '/notify/cashReceiptSendMng'
+      || url === '/noti/notiSendMngList' || url === '/notify/paySendMng'
+      || url === '/user/userMng'
+      || url === '/ops/mailLog' || url === '/ops/opsMng'
+      || url === '/hq/pgApiMng';
+  }
+
+  function refreshOpenPayListTheads(loc) {
+    var screens = w.PG_SCREENS && w.PG_SCREENS.getMenuScreens ? w.PG_SCREENS.getMenuScreens() : null;
+    var build = w.PG_SCREENS && w.PG_SCREENS.buildStandardDataGridTheadHtml;
+    if (!screens || !build) return;
+    var urls = w.PG_SCREENS.getPayListIntegratedSyncUrls ? w.PG_SCREENS.getPayListIntegratedSyncUrls() : [];
+    var selTitle = (loc === 'KO' ? UI.selectAll.KO : (UI.selectAll[loc] || UI.selectAll.EN));
+    document.querySelectorAll('.tab-pane.tabConDiv[formurl]').forEach(function (pane) {
+      var url = pane.getAttribute('formurl');
+      if (!url || urls.indexOf(url) === -1) return;
+      var cfg = screens[url];
+      if (!cfg) return;
+      var tid = pane.id;
+      var thead = pane.querySelector('#grid_' + tid + ' thead');
+      if (!thead || !pane._lastGridCols || !pane._lastGridCols.length) return;
+      thead.innerHTML = build(pane._lastGridCols, cfg.headerGroups || [], { selectAllTitle: selTitle });
+      if (w.PG_TABLE_COL_RESIZE && typeof w.PG_TABLE_COL_RESIZE.refreshInSync === 'function') {
+        w.PG_TABLE_COL_RESIZE.refreshInSync(pane);
+      } else if (w.PG_TABLE_COL_RESIZE && typeof w.PG_TABLE_COL_RESIZE.refreshIn === 'function') {
+        w.PG_TABLE_COL_RESIZE.refreshIn(pane);
+      }
+    });
+  }
+
+  function refreshOpenPayListPaneChrome(loc) {
+    var sLab = UI.search[loc] || UI.search.KO;
+    var rLab = UI.refresh[loc] || UI.refresh.KO;
+    var eLab = UI.excel[loc] || UI.excel.KO;
+    var pLab = UI.printSetup[loc] || UI.printSetup.KO;
+    document.querySelectorAll('.tab-pane.tabConDiv[formurl]').forEach(function (pane) {
+      var url = pane.getAttribute('formurl');
+      if (!url || !isPayMngDomPaneUrl(url)) return;
+      var rf = pane.querySelector('#payListRefreshBtn');
+      if (rf) rf.textContent = rLab;
+      var ex = pane.querySelector('#excelDownBtn');
+      if (!ex) ex = pane.querySelector('#excelBtn');
+      if (ex) ex.textContent = eLab;
+      var pr = pane.querySelector('#printBtn');
+      if (pr) pr.textContent = pLab;
+      var tbSearch = pane.querySelector('#searchBtn');
+      if (tbSearch) tbSearch.textContent = sLab;
+      var recvReg = pane.querySelector('#receivableRegBtn');
+      if (recvReg) recvReg.textContent = (UI.receivableReg[loc] || UI.receivableReg.EN || UI.receivableReg.KO);
+      if (url === '/user/userMng') {
+        var addB = pane.querySelector('#addBtn');
+        if (addB) addB.textContent = lblText(UI.userAdd, loc, addB.textContent);
+        var saveUB = pane.querySelector('#saveBtn');
+        if (saveUB) saveUB.textContent = lblText(UI.cgSave, loc, saveUB.textContent);
+      }
+      if (url === '/hq/pgApiMng') {
+        var hqOpSave = pane.querySelector('#hqPgApiOperationalSaveBtn');
+        if (hqOpSave) hqOpSave.textContent = lblText(UI.hqPgApiOpSave, loc, hqOpSave.textContent);
+        var hqPgAdd = pane.querySelector('#hqPgApiAddBtn');
+        if (hqPgAdd) hqPgAdd.textContent = lblText(UI.hqPgApiAdd, loc, hqPgAdd.textContent);
+      }
+      var inlineSearch = pane.querySelector('.screen-search-btn');
+      if (inlineSearch) {
+        inlineSearch.innerHTML = '<i class="bi bi-search"></i> ' + sLab;
+      }
+      var emptyCell = pane.querySelector('#grid_' + pane.id + ' tbody .empty-state-cell');
+      if (emptyCell) emptyCell.textContent = UI.empty[loc] || UI.empty.KO;
+    });
+  }
+
+  function lblText(row, loc, fallback) {
+    if (!row) return fallback;
+    if (loc === 'KO') return fallback;
+    return row[loc] || row.EN || fallback;
+  }
+
+  function refreshOpenPayMngDomI18n(loc) {
+    var screens = w.PG_SCREENS && w.PG_SCREENS.getMenuScreens ? w.PG_SCREENS.getMenuScreens() : null;
+    if (!screens) return;
+    document.querySelectorAll('.tab-pane.tabConDiv[formurl]').forEach(function (pane) {
+      var url = pane.getAttribute('formurl');
+      if (!url || !isPayMngDomPaneUrl(url)) return;
+      var cfg = screens[url];
+      pane.querySelectorAll('[data-pg-i18n-lbl]').forEach(function (el) {
+        var k = el.getAttribute('data-pg-i18n-lbl');
+        if (!k) return;
+        var row = LBL[k];
+        if (row) el.textContent = lblText(row, loc, el.textContent);
+      });
+      pane.querySelectorAll('[data-pg-i18n-ph]').forEach(function (el) {
+        var k = el.getAttribute('data-pg-i18n-ph');
+        if (!k) return;
+        var row = PH[k];
+        if (row) el.setAttribute('placeholder', lblText(row, loc, el.getAttribute('placeholder') || ''));
+      });
+      pane.querySelectorAll('option[data-pg-i18n-opt]').forEach(function (el) {
+        var k = el.getAttribute('data-pg-i18n-opt');
+        if (!k) return;
+        var row = OPT[k];
+        if (row) el.textContent = lblText(row, loc, el.textContent);
+      });
+      pane.querySelectorAll('[data-pg-i18n-qd]').forEach(function (el) {
+        var k = el.getAttribute('data-pg-i18n-qd');
+        if (!k) return;
+        var row = QD[k];
+        if (row) el.textContent = lblText(row, loc, el.textContent);
+      });
+      pane.querySelectorAll('[data-pg-i18n-reset="1"]').forEach(function (el) {
+        el.textContent = lblText(UI.searchReset, loc, el.textContent);
+      });
+      pane.querySelectorAll('[data-pg-i18n-sort="DESC"]').forEach(function (el) {
+        el.textContent = lblText(UI.sortDesc, loc, el.textContent);
+      });
+      pane.querySelectorAll('[data-pg-i18n-sort="ASC"]').forEach(function (el) {
+        el.textContent = lblText(UI.sortAsc, loc, el.textContent);
+      });
+      pane.querySelectorAll('[data-pg-i18n-aria="sortToolbar"]').forEach(function (el) {
+        el.setAttribute('aria-label', lblText(UI.sortToolbarAria, loc, el.getAttribute('aria-label') || ''));
+      });
+      var cgMap = {
+        default: UI.cgDefault,
+        release: UI.cgRelease,
+        selectAllCols: UI.cgSelectAllCols,
+        save: UI.cgSave,
+        restore: UI.cgRestore,
+        viewSettingTitle: UI.cgTitle
+      };
+      pane.querySelectorAll('[data-pg-i18n-cg-act]').forEach(function (el) {
+        var act = el.getAttribute('data-pg-i18n-cg-act');
+        var row = act ? cgMap[act] : null;
+        if (row) el.textContent = lblText(row, loc, el.textContent);
+      });
+      pane.querySelectorAll('[data-pg-i18n-cg-title="restoreTip"]').forEach(function (el) {
+        el.setAttribute('title', lblText(UI.cgRestoreTip, loc, el.getAttribute('title') || ''));
+      });
+      var packs = NOTICES[url];
+      pane.querySelectorAll('[data-pg-notice-idx]').forEach(function (el) {
+        var idx = parseInt(el.getAttribute('data-pg-notice-idx'), 10);
+        if (isNaN(idx) || !packs || !packs[idx]) return;
+        el.textContent = pickNoticeLine(packs[idx], loc);
+      });
+      pane.querySelectorAll('.summary-total-item[data-pg-summary-key]').forEach(function (el) {
+        var key = el.getAttribute('data-pg-summary-key');
+        if (!key) return;
+        var raw = el.textContent || '';
+        var colon = raw.indexOf(':');
+        var rest = colon >= 0 ? raw.slice(colon + 1).trim() : '';
+        el.textContent = formatSummaryLine(key, rest);
+      });
+      pane.querySelectorAll('.pay-follow[data-pg-pay-follow]').forEach(function (el) {
+        var act = el.getAttribute('data-pg-pay-follow');
+        if (!act) return;
+        var row = PAY_FOLLOW[act];
+        if (row) el.textContent = lblText(row, loc, el.textContent);
+      });
+      var tid = pane.id || '';
+      var hello = pane.querySelector('#viewSettingHelloBtn_' + tid);
+      if (hello) hello.textContent = lblText(UI.helloBtn, loc, hello.textContent);
+      if (cfg && cfg.columns) {
+        pane.querySelectorAll('.column-guide-item').forEach(function (item) {
+          var cb = item.querySelector('.column-guide-check');
+          var sp = item.querySelector('.column-guide-label');
+          var k = cb ? cb.getAttribute('data-key') : '';
+          if (!k || !sp) return;
+          var col = cfg.columns.filter(function (cc) { return cc && cc.key === k; })[0];
+          if (col && col.label) {
+            sp.textContent = w.PG_UI_I18N && typeof w.PG_UI_I18N.t === 'function' ? w.PG_UI_I18N.t(String(col.label)) : col.label;
+          }
+        });
+      }
+      if (url === '/hq/pgApiMng' && pane._lastGridCols && pane._lastGridCols.length) {
+        var buildTh2 = w.PG_SCREENS && w.PG_SCREENS.buildStandardDataGridTheadHtml;
+        if (typeof buildTh2 === 'function' && cfg) {
+          var theadPg2 = pane.querySelector('#grid_' + tid + ' thead');
+          if (theadPg2) {
+            var selT3 = (loc === 'KO' ? UI.selectAll.KO : (UI.selectAll[loc] || UI.selectAll.EN));
+            theadPg2.innerHTML = buildTh2(pane._lastGridCols, cfg.headerGroups || [], { selectAllTitle: selT3 });
+            if (w.PG_TABLE_COL_RESIZE && typeof w.PG_TABLE_COL_RESIZE.refreshInSync === 'function') {
+              try { w.PG_TABLE_COL_RESIZE.refreshInSync(pane); } catch (eRs2) {}
+            } else if (w.PG_TABLE_COL_RESIZE && typeof w.PG_TABLE_COL_RESIZE.refreshIn === 'function') {
+              try { w.PG_TABLE_COL_RESIZE.refreshIn(pane); } catch (eR3) {}
+            }
+          }
+        }
+        var tbOnly = pane.querySelector('#grid_' + tid + ' tbody');
+        if (tbOnly && w.PG_UI_I18N && typeof w.PG_UI_I18N.applyDom === 'function') {
+          try { w.PG_UI_I18N.applyDom(tbOnly); } catch (eTbD) {}
+        }
+      }
+    });
+    if (typeof w.PG_refreshPayListAggregateBarsDom === 'function') {
+      try { w.PG_refreshPayListAggregateBarsDom(); } catch (eAgg) {}
+    }
+    document.querySelectorAll('.tab-pane.tabConDiv[formurl]').forEach(function (pane) {
+      if (w.PG_UI_I18N && typeof w.PG_UI_I18N.syncDateInputLangUnder === 'function') {
+        try { w.PG_UI_I18N.syncDateInputLangUnder(pane); } catch (ePanDt) {}
+      }
+    });
+  }
+
+  function normalizeLocale(x) {
+    var u = String(x || '').toUpperCase().trim();
+    if (u === 'JA') return 'JP';
+    if (u === 'ZH' || u === 'ZH-CN' || u === 'ZH_CN') return 'CH';
+    if (LOCALES.indexOf(u) !== -1) return u;
+    return 'KO';
+  }
+
+  function getLocale() {
+    try {
+      var s = localStorage.getItem(STORAGE_KEY);
+      return normalizeLocale(s || 'KO');
+    } catch (e) {
+      return 'KO';
+    }
+  }
+
+  function formatSummaryLine(key, text) {
+    var loc = getLocale();
+    if (loc === 'KO') return key + ': ' + text;
+    var row = SUMMARY_LBL[key];
+    var lab = row ? (row[loc] || row.EN || key) : key;
+    return lab + ': ' + text;
+  }
+
+  function summaryCountPrefix() {
+    var loc = getLocale();
+    if (loc === 'KO') return '건수: ';
+    var row = SUMMARY_LBL['건수'];
+    return (row && (row[loc] || row.EN) ? (row[loc] || row.EN) : '건수') + ': ';
+  }
+
+  function optionAllText() {
+    var loc = getLocale();
+    return OPT0[loc] || OPT0.KO;
+  }
+
+  function payFollowLabel(act) {
+    var loc = getLocale();
+    var row = PAY_FOLLOW[act];
+    if (!row) return '';
+    return loc === 'KO' ? row.KO : (row[loc] || row.EN || row.KO);
+  }
+
+  function setLocale(loc, opts) {
+    loc = normalizeLocale(loc);
+    opts = opts || {};
+    try {
+      localStorage.setItem(STORAGE_KEY, loc);
+    } catch (e1) {}
+    try {
+      if (typeof document !== 'undefined' && document.documentElement) {
+        var langMap = { KO: 'ko', EN: 'en', JP: 'ja', CH: 'zh-Hans', TH: 'th' };
+        document.documentElement.setAttribute('lang', langMap[loc] || 'ko');
+      }
+    } catch (eLang) {}
+    applyCatalogLocale(loc);
+    if (w.PG_SCREENS && typeof w.PG_SCREENS.syncPayListIntegratedScreenLabelsFromCatalog === 'function') {
+      w.PG_SCREENS.syncPayListIntegratedScreenLabelsFromCatalog();
+    }
+    applyChillListCatalogLocale(loc);
+    applyMenuScreensSearchAndNoticesLocale(loc);
+    applyScreenChromeLocale(loc);
+    patchCalcCycleSearchOptionAll(loc);
+    refreshOpenPayListTheads(loc);
+    refreshOpenPayListPaneChrome(loc);
+    refreshOpenPayMngDomI18n(loc);
+    if (!opts.silent) {
+      try {
+        w.dispatchEvent(new CustomEvent('pg-pay-list-locale-changed', { detail: { locale: loc } }));
+      } catch (e2) {}
+    }
+    if (w.PG_ADMIN_SHELL_I18N && typeof w.PG_ADMIN_SHELL_I18N.apply === 'function') {
+      try {
+        w.PG_ADMIN_SHELL_I18N.apply(loc);
+      } catch (eSh) {}
+    }
+    if (w.PG_APP_REFRESH_LOCALE_PANES && typeof w.PG_APP_REFRESH_LOCALE_PANES === 'function') {
+      try {
+        w.PG_APP_REFRESH_LOCALE_PANES();
+      } catch (eRf) {}
+    }
+    var recvModal = typeof document !== 'undefined' ? document.getElementById('pgReceivableRegModal') : null;
+    if (recvModal && w.PG_UI_I18N && typeof w.PG_UI_I18N.applyDom === 'function') {
+      try { w.PG_UI_I18N.applyDom(recvModal); } catch (eRecvLoc) {}
+    }
+    var pgAgModal = typeof document !== 'undefined' ? document.getElementById('pgAgencyEditModal') : null;
+    if (pgAgModal && w.PG_UI_I18N && typeof w.PG_UI_I18N.applyDom === 'function') {
+      try { w.PG_UI_I18N.applyDom(pgAgModal); } catch (ePgAgLoc) {}
+    }
+    updateLangDropdownUi(loc);
+  }
+
+  function updateLangDropdownUi(loc) {
+    loc = normalizeLocale(loc);
+    var root = document.getElementById('pgPayListLangDropdown');
+    if (!root) return;
+    root.querySelectorAll('[data-pg-pay-locale]').forEach(function (el) {
+      var v = normalizeLocale(el.getAttribute('data-pg-pay-locale'));
+      el.classList.toggle('pg-pay-lang-chip--active', v === loc);
+    });
+  }
+
+  function bindLangDropdownOnce() {
+    var root = document.getElementById('pgPayListLangDropdown');
+    if (!root || root._pgI18nBound) return;
+    root._pgI18nBound = true;
+    root.querySelectorAll('[data-pg-pay-locale]').forEach(function (el) {
+      el.addEventListener('click', function (e) {
+        e.preventDefault();
+        var v = normalizeLocale(el.getAttribute('data-pg-pay-locale'));
+        setLocale(v, {});
+      });
+      el.addEventListener('keydown', function (e) {
+        if (e.key !== 'Enter' && e.key !== ' ') return;
+        e.preventDefault();
+        var v2 = normalizeLocale(el.getAttribute('data-pg-pay-locale'));
+        setLocale(v2, {});
+      });
+    });
+  }
+
+  function init() {
+    bindLangDropdownOnce();
+    ensureCatalogKoSnapshot();
+    ensureScreenSnap();
+    var loc = getLocale();
+    setLocale(loc, { silent: true });
+  }
+
+  w.PG_PAY_LIST_I18N = {
+    LOCALES: LOCALES.slice(),
+    STORAGE_KEY: STORAGE_KEY,
+    getLocale: getLocale,
+    setLocale: setLocale,
+    init: init,
+    formatSummaryLine: formatSummaryLine,
+    summaryCountPrefix: summaryCountPrefix,
+    optionAllText: optionAllText,
+    payFollowLabel: payFollowLabel,
+    refreshOpenPayMngDomI18n: refreshOpenPayMngDomI18n,
+    refreshOpenPayListPaneChrome: refreshOpenPayListPaneChrome,
+    isPayMngDomPaneUrl: isPayMngDomPaneUrl
+  };
+})(typeof window !== 'undefined' ? window : globalThis);

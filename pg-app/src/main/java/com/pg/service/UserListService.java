@@ -220,14 +220,14 @@ public class UserListService {
      * (ADMIN 등 scopeCompCode 가 비어 있으면 기존처럼 본문 compId 검증은 저장소 정책에 따름)
      */
     public void createUserScoped(AppUser actor, Set<String> allowedCompCodes, String scopeCompCode,
-                                 String username, String name, String password, String mobile,
+                                 String username, String name, String mobile,
                                  String compId, String role, String userType, String assistantRoleType, String parentUsername) {
         requireManage(actor);
         String uid = safeTrim(username);
         if (uid.isEmpty()) throw new IllegalArgumentException("사용자ID를 입력하세요.");
         if (userRepository.findByUsername(uid).isPresent()) throw new IllegalArgumentException("이미 존재하는 사용자ID입니다.");
-        String pwd = safeTrim(password);
-        if (pwd.length() < 8) throw new IllegalArgumentException("비밀번호는 8자 이상이어야 합니다.");
+        /* 신규: 클라이언트에서 비밀번호를 받지 않음. 항상 로그인ID + "1!" 로 초기화(비밀번호 초기화와 동일 규칙). 첫 로그인 시 변경. */
+        String pwd = uid + "1!";
         String code = safeTrim(compId);
         if (scopeCompCode != null && !scopeCompCode.isBlank()) {
             if (!code.equalsIgnoreCase(scopeCompCode.trim())) {
@@ -240,6 +240,7 @@ public class UserListService {
         u.setUsername(uid);
         u.setName(safeTrim(name));
         u.setPassword(passwordEncoder.encode(pwd));
+        u.setPasswordMustChangeYn("Y");
         u.setOrgUnitCode(code);
         u.setMobile(safeTrim(mobile));
         u.setRole(normalizeRole(role));
@@ -443,6 +444,7 @@ public class UserListService {
         row.put("permissionGroupNm", u.getPermissionGroupNm() != null ? u.getPermissionGroupNm() : "");
         row.put("assistantRoleType", u.getAssistantRoleType() != null ? u.getAssistantRoleType() : "MANAGER");
         row.put("otpRegisteredYn", "Y".equalsIgnoreCase(u.getOtpRegisteredYn()) ? "Y" : "N");
+        row.put("passwordMustChangeYn", "Y".equalsIgnoreCase(u.getPasswordMustChangeYn()) ? "Y" : "N");
         row.put("useYn", u.isEnabled() ? "Y" : "N");
         return row;
     }

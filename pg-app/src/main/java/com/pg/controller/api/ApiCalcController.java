@@ -147,36 +147,65 @@ public class ApiCalcController {
             @RequestParam(required = false) String searchOrderNo,
             @RequestParam(required = false) String searchChillStatus,
             @RequestParam(required = false) String searchRouteNo,
+            @RequestParam(required = false) String searchFieldType,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate searchFromDate,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate searchToDate,
             Authentication authentication) {
         try {
-            Integer routeNo = null;
-            if (searchRouteNo != null && !searchRouteNo.isBlank()) {
-                try {
-                    routeNo = Integer.parseInt(searchRouteNo.trim());
-                } catch (NumberFormatException ignored) {
-                    routeNo = null;
-                }
-            }
             AppUser user = (authentication != null && authentication.getPrincipal() instanceof AppUser u) ? u : null;
             boolean multiCurrency = PayListStatusBarBuckets.isMultiCurrencyViewer(
                     PayListStatusBarBuckets.resolveViewerOrgLevel(user, orgUnitRepository));
             String ledgerCur = PayDisplayCurrency.alphaFromSettings(hqLedgerSysSettingsService.getOrCreate());
             String primaryCurrency = PayListStatusBarBuckets.resolveViewerPrimaryCurrency(
                     user, orgUnitRepository, commissionPolicyRepository, ledgerCur);
-            String merchantFilter = resolveChillPayMerchantCodeFilter(authentication, searchMerchantCode);
+
+            String sftRaw = searchFieldType;
+            boolean unified = false;
+            String ft = "";
+            if (sftRaw != null && !sftRaw.isBlank()) {
+                unified = true;
+                ft = sftRaw.trim().toUpperCase(Locale.ROOT);
+            }
+            String kw = searchKeyword != null ? searchKeyword.trim() : "";
+            String sk = unified ? "" : (searchKeyword != null ? searchKeyword.trim() : "");
+            String smc = unified ? "" : (searchMerchantCode != null ? searchMerchantCode.trim() : "");
+            String spc = unified ? "" : (searchPaymentChannel != null ? searchPaymentChannel.trim() : "");
+            String son = unified ? "" : (searchOrderNo != null ? searchOrderNo.trim() : "");
+            String scs = unified ? "" : (searchChillStatus != null ? searchChillStatus.trim() : "");
+            String srn = unified ? "" : (searchRouteNo != null ? searchRouteNo.trim() : "");
+
+            if (unified) {
+                switch (ft) {
+                    case "ALL" -> sk = kw;
+                    case "MID", "COMP_ID" -> smc = kw;
+                    case "ORDER_NO" -> son = kw;
+                    case "APPROVAL_NO" -> sk = kw;
+                    case "ROUTE" -> srn = kw;
+                    case "STATUS" -> scs = kw;
+                    case "CUSTOMER_ID", "AMOUNT", "CURRENCY", "COMP_NM" -> sk = kw;
+                    default -> sk = kw;
+                }
+            }
+
+            Integer routeNo = null;
+            if (srn != null && !srn.isBlank()) {
+                try {
+                    routeNo = Integer.parseInt(srn.trim());
+                } catch (NumberFormatException ignored) {
+                    routeNo = null;
+                }
+            }
+
+            String merchantFilter = resolveChillPayMerchantCodeFilter(authentication,
+                    smc != null && !smc.isEmpty() ? smc : null);
             if ("__NONE__".equals(merchantFilter)) {
                 return ResponseEntity.ok(ApiResponse.ok(emptyChillPayPage(page, size)));
             }
             LocalDate tFrom = searchFromDate;
             LocalDate tTo = searchToDate;
             if (tFrom == null && tTo == null) {
-                var ls = hqLedgerSysSettingsService.getOrCreate();
-                int days = ls.getChillpayTrRecentSyncDays() != null && ls.getChillpayTrRecentSyncDays() > 0
-                        ? ls.getChillpayTrRecentSyncDays() : 2;
                 tTo = LocalDate.now();
-                tFrom = tTo.minusDays(Math.max(1, days) - 1L);
+                tFrom = tTo.minusDays(1);
             }
             PageResult<Map<String, Object>> r = chillPayService.searchChillPayPaymentTransactions(
                     null,
@@ -184,12 +213,12 @@ public class ApiCalcController {
                     size,
                     searchOrderBy,
                     searchOrderDir,
-                    searchKeyword,
+                    sk,
                     merchantFilter,
-                    searchPaymentChannel,
+                    spc,
                     routeNo,
-                    searchOrderNo,
-                    searchChillStatus,
+                    son,
+                    scs,
                     tFrom,
                     tTo,
                     multiCurrency,
@@ -234,8 +263,13 @@ public class ApiCalcController {
             String primaryCurrency = PayListStatusBarBuckets.resolveViewerPrimaryCurrency(
                     user, orgUnitRepository, commissionPolicyRepository, ledgerCur);
 
-            boolean unified = searchFieldType != null && !searchFieldType.isBlank();
-            String ft = unified ? searchFieldType.trim().toUpperCase(Locale.ROOT) : "";
+            String sftRaw = searchFieldType;
+            boolean unified = false;
+            String ft = "";
+            if (sftRaw != null && !sftRaw.isBlank()) {
+                unified = true;
+                ft = sftRaw.trim().toUpperCase(Locale.ROOT);
+            }
             String kw = searchKeyword != null ? searchKeyword.trim() : "";
             String sg = searchStatusGroup != null ? searchStatusGroup.trim().toUpperCase(Locale.ROOT) : "ALL";
             if (sg.isEmpty()) {

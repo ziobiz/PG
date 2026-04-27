@@ -27,7 +27,8 @@ import java.util.Set;
  * <ul>
  *   <li>전역 {@code enabled}, 갱신 주기, 견적 TTL, {@code botRateAsOf}({@code PREVIOUS_DAY_CLOSE}|{@code LATEST_BOT_PERIOD}), {@code marginByCurrency}</li>
  *   <li>PG별 {@code pgSettings}: DISPLAY 시 표시·실결제 통화, {@code displayCurrencyMode}({@value #DISPLAY_CURRENCY_MODE_FIXED}|{@value #DISPLAY_CURRENCY_MODE_MULTI}),
- *       멀티 시 선택지는 {@code displayCurrencies} 배열 또는 전역 순서, FX 자동(BOT)·수동, 마진</li>
+ *       멀티 시 선택지는 {@code displayCurrencies} 배열 또는 전역 순서, FX 자동(BOT)·수동, 마진.
+ *       수동(THB 정산) 시 표시통화별 환산은 {@code manualThbPerByDisplayCurrency} JSON 객체(예: 키 KRW·JPY)로 지정 가능</li>
  *   <li>레거시: {@code pgSettings} 없을 때 가맹점 바인딩 {@code DISPLAY_FX_THB} + 전역 마진, 실결제 THB</li>
  * </ul>
  * 청구: {@code 실결제금액 = 표시금액 × (실결제/1표시단위) × (1+마진)} (실결제 통화별 소수는 ChillPay DirectCredit·일반 URL 결제와 동일: JPY/KRW 정수, 그 외 소수 둘째 HALF_UP).
@@ -282,7 +283,7 @@ public class UrlPayDisplayFxService {
         String period;
         String rateDesc;
         if ("MANUAL".equals(fxMode)) {
-            settlementPerUnit = resolveManualSettlementPerUnit(pgNode, settlement);
+            settlementPerUnit = resolveManualSettlementPerUnit(pgNode, settlement, cur);
             if (settlementPerUnit == null) {
                 return Optional.empty();
             }
@@ -499,7 +500,25 @@ public class UrlPayDisplayFxService {
         return BotRateAsOfMode.PREVIOUS_DAY_CLOSE;
     }
 
-    private static BigDecimal resolveManualSettlementPerUnit(JsonNode pgNode, String settlement) {
+    /**
+     * 수동 FX: {@code manualSettlementPerUnit} 우선, 실결제 THB일 때는
+     * 표시통화별 {@code manualThbPerByDisplayCurrency}{@code .JPY}/{@code .KRW}/… 가 있으면 우선,
+     * 없으면 레거시 {@code manualThbPerUnit}(THB/1표시단위, 단일 통화 안내용).
+     */
+    private static BigDecimal resolveManualSettlementPerUnit(JsonNode pgNode, String settlement, String displayCurrency) {
+        if (pgNode == null || pgNode.isMissingNode()) {
+            return null;
+        }
+        String disp = displayCurrency != null ? displayCurrency.trim().toUpperCase(Locale.ROOT) : "";
+        if ("THB".equals(settlement) && disp.length() == 3) {
+            JsonNode byDisp = pgNode.path("manualThbPerByDisplayCurrency");
+            if (byDisp != null && byDisp.isObject() && byDisp.has(disp)) {
+                BigDecimal v = parsePositiveDecimal(byDisp.get(disp).asText(""));
+                if (v != null) {
+                    return v;
+                }
+            }
+        }
         BigDecimal ms = parsePositiveDecimal(pgNode.path("manualSettlementPerUnit").asText(""));
         if (ms != null) {
             return ms;

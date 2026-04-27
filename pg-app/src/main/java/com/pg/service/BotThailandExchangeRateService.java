@@ -337,6 +337,10 @@ public class BotThailandExchangeRateService {
         if (u.contains("KRW")) {
             return true;
         }
+        /* ISO 4217 numeric — 일부 BOT 응답은 명칭 없이 숫자 코드만 제공 */
+        if (u.equals("410") || u.contains(" 410 ") || u.startsWith("410 ") || u.endsWith(" 410")) {
+            return true;
+        }
         if (u.contains("S.KOREA") || u.contains("S. KOREA") || u.contains("SOUTH KOREA")) {
             return true;
         }
@@ -350,6 +354,49 @@ public class BotThailandExchangeRateService {
             return true;
         }
         return u.contains("WON") && (u.contains("KOREA") || u.contains("KOREAN"));
+    }
+
+    /**
+     * BOT 게이트웨이 v2 등: 통화명이 비어 있고 {@code currency_id}·ISO 필드만 있는 행을 위해 명칭과 병합한 탐색 문자열.
+     */
+    private static String botRowLabelUpper(JsonNode row) {
+        String name = botRowCurrencyNameUpper(row);
+        String extra = botRowIsoAndCodeHints(row);
+        String u = (name + " " + extra).trim().toUpperCase(Locale.ROOT);
+        return u;
+    }
+
+    private static String botRowIsoAndCodeHints(JsonNode row) {
+        String[] keys = {
+                "currency_id",
+                "currencyId",
+                "CURR_CODE",
+                "curr_code",
+                "CURRENCY_CODE",
+                "currency_code",
+                "Currency_Code",
+                "iso_code",
+                "ISOCode",
+                "iso_currency_code",
+                "eng_currency_Code",
+                "ENG_CURRENCY_CODE",
+        };
+        StringBuilder sb = new StringBuilder();
+        for (String k : keys) {
+            JsonNode v = row.get(k);
+            if (v == null || v.isNull()) {
+                continue;
+            }
+            String t = v.asText("").trim();
+            if (t.isBlank()) {
+                continue;
+            }
+            if (sb.length() > 0) {
+                sb.append(' ');
+            }
+            sb.append(t);
+        }
+        return sb.toString();
     }
 
     private static Optional<BotDailyRates> buildDailyRatesForPeriod(List<JsonNode> rows, String targetPeriod) {
@@ -369,7 +416,7 @@ public class BotThailandExchangeRateService {
             if (!targetPeriod.equals(row.path("period").asText("").trim())) {
                 continue;
             }
-            String name = botRowCurrencyNameUpper(row);
+            String probe = botRowLabelUpper(row);
             String mid = botRowMidText(row);
             if (mid.isEmpty()) {
                 continue;
@@ -380,49 +427,49 @@ public class BotThailandExchangeRateService {
             } catch (NumberFormatException e) {
                 continue;
             }
-            if (name.contains("JPY") || name.contains("YEN")) {
-                int pri = botJpyRowPriority(name);
-                BigDecimal perOne = botThbPerOneJpy(name, rate);
+            if (probe.contains("JPY") || probe.contains("YEN")) {
+                int pri = botJpyRowPriority(probe);
+                BigDecimal perOne = botThbPerOneJpy(probe, rate);
                 if (pri > bestJpyPri) {
                     bestJpyPri = pri;
                     bestJpy = perOne;
                 }
             }
-            if (isUsdRow(name)) {
-                int pri = botUsdRowPriority(name);
-                BigDecimal perOne = botThbPerOneMajor(name, rate, "USD");
+            if (isUsdRow(probe)) {
+                int pri = botUsdRowPriority(probe);
+                BigDecimal perOne = botThbPerOneMajor(probe, rate, "USD");
                 if (pri > bestUsdPri) {
                     bestUsdPri = pri;
                     bestUsd = perOne;
                 }
             }
-            if (isKrwBotRow(name)) {
-                int pri = botKrwRowPriority(name);
-                BigDecimal perOne = botThbPerOneKrw(name, rate);
+            if (isKrwBotRow(probe)) {
+                int pri = botKrwRowPriority(probe);
+                BigDecimal perOne = botThbPerOneKrw(probe, rate);
                 if (pri > bestKrwPri) {
                     bestKrwPri = pri;
                     bestKrw = perOne;
                 }
             }
-            if (isSgdRow(name)) {
-                int pri = botMajorRowPriority(name, "SGD", "SINGAPORE");
-                BigDecimal perOne = botThbPerOneMajor(name, rate, "SGD");
+            if (isSgdRow(probe)) {
+                int pri = botMajorRowPriority(probe, "SGD", "SINGAPORE");
+                BigDecimal perOne = botThbPerOneMajor(probe, rate, "SGD");
                 if (pri > bestSgdPri) {
                     bestSgdPri = pri;
                     bestSgd = perOne;
                 }
             }
-            if (isHkdRow(name)) {
-                int pri = botMajorRowPriority(name, "HKD", "HONG KONG");
-                BigDecimal perOne = botThbPerOneMajor(name, rate, "HKD");
+            if (isHkdRow(probe)) {
+                int pri = botMajorRowPriority(probe, "HKD", "HONG KONG");
+                BigDecimal perOne = botThbPerOneMajor(probe, rate, "HKD");
                 if (pri > bestHkdPri) {
                     bestHkdPri = pri;
                     bestHkd = perOne;
                 }
             }
-            if (isCnyRow(name)) {
-                int pri = botCnyRowPriority(name);
-                BigDecimal perOne = botThbPerOneMajor(name, rate, "CNY");
+            if (isCnyRow(probe)) {
+                int pri = botCnyRowPriority(probe);
+                BigDecimal perOne = botThbPerOneMajor(probe, rate, "CNY");
                 if (pri > bestCnyPri) {
                     bestCnyPri = pri;
                     bestCny = perOne;

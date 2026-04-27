@@ -106,6 +106,8 @@ public class AuthService {
         res.setUserId(user.getUsername());
         res.setUserNm(user.getName() != null ? user.getName() : user.getUsername());
         res.setRole(user.getRole());
+        String pgn = user.getPermissionGroupNm();
+        res.setPermissionGroupNm(pgn != null && !pgn.isBlank() ? pgn.trim() : "");
         resolveOrgUnitForLoginId(username.trim()).ifPresent(ou -> {
             res.setOrgUnitId(ou.getId());
             res.setCompId(ou.getCode());

@@ -1,8 +1,29 @@
 /**
- * PG 솔루션 - 23개 메뉴별 화면 HTML 템플릿 (fxhj 구조: 검색폼 + 요약 + 버튼 + 그리드 + 페이지네이션)
+ * PG admin — per-menu screen HTML (search form, summary, buttons, grid, pagination).
+ * User-visible Korean is wrapped with L() and/or data-pg-ui-t for PG_UI_I18N.applyDom after render.
  */
 (function () {
   'use strict';
+
+  function L(s) {
+    if (s == null || s === '') return s;
+    if (typeof s !== 'string') return s;
+    if (window.PG_UI_I18N && typeof window.PG_UI_I18N.t === 'function') return window.PG_UI_I18N.t(s);
+    return s;
+  }
+  function escUi(s) {
+    return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+  }
+
+  /** 가맹/업체정보조회·업체정보조회: 무효·환불 안내(HTML은 STATIC의 L 결과) */
+  function merchantVoidRefundGuideHtml() {
+    return '<p class="small text-muted mb-3 mb-md-2">' + L('무효·환불 정산 방식 카드 안내') + '</p>';
+  }
+  /** 동일 id(paymentUrlDisplay) — 화면별 placeholder 키만 다름 */
+  function merchantPaymentUrlRowHtml(placeholderKo) {
+    var ph = placeholderKo || '가맹점 저장 후 조회';
+    return '<div class="row mb-2"><div class="col-sm-5"><label class="form-label">' + escUi(L('결제 URL')) + '</label><div class="input-group input-group-sm"><input type="text" class="form-control" id="paymentUrlDisplay" readonly placeholder="' + escUi(L(String(ph))) + '"><button type="button" class="btn btn-outline-primary" id="paymentUrlCopyBtn">' + escUi(L('복사')) + '</button></div></div></div>';
+  }
 
   /** 전산설정관리: 표준시 — ziobiz/NOTI 시간·동기화 설정 대응 (신규 기본 Asia/Bangkok) */
   var HQ_LEDGER_DISPLAY_TZ_OPTIONS = [
@@ -83,7 +104,7 @@
     }
     function optHtml(opts) {
       return opts.map(function (o) {
-        return '<option value="' + escA(o.v) + '">' + escA(o.t) + '</option>';
+        return '<option value="' + escA(o.v) + '">' + escA(L(String(o.t != null ? o.t : ''))) + '</option>';
       }).join('');
     }
     var ynUse = optHtml([{ v: 'N', t: '미사용' }, { v: 'Y', t: '사용' }]);
@@ -95,57 +116,57 @@
     return '<div class="border rounded hq-pay-follow-wrap">' +
       '<table class="table table-sm table-bordered align-middle mb-0 hq-pay-follow-table">' +
       '<thead class="table-light"><tr>' +
-      '<th class="hq-pay-follow-col-kind">구분</th>' +
-      '<th class="hq-pay-follow-col-basis">기준</th>' +
-      '<th class="hq-pay-follow-col-use text-center">설정(사용)</th>' +
-      '<th class="hq-pay-follow-col-val">시간·일자 설정</th>' +
-      '<th class="hq-pay-follow-col-ref text-center">정산 반영</th>' +
+      '<th class="hq-pay-follow-col-kind">' + escA(L('구분')) + '</th>' +
+      '<th class="hq-pay-follow-col-basis">' + escA(L('기준')) + '</th>' +
+      '<th class="hq-pay-follow-col-use text-center">' + escA(L('설정(사용)')) + '</th>' +
+      '<th class="hq-pay-follow-col-val">' + escA(L('시간·일자 설정')) + '</th>' +
+      '<th class="hq-pay-follow-col-ref text-center">' + escA(L('정산 반영')) + '</th>' +
       '</tr></thead><tbody>' +
       '<tr class="hq-pay-follow-row-zone">' +
-      '<td class="fw-semibold">시간 선택 국가</td>' +
-      '<td class="small text-muted">기준 Zone</td>' +
+      '<td class="fw-semibold">' + escA(L('시간 선택 국가')) + '</td>' +
+      '<td class="small text-muted">' + escA(L('기준 Zone')) + '</td>' +
       '<td class="text-center">—</td>' +
       '<td><select name="payFollowRefZone" class="form-select form-select-sm">' + zones + '</select>' +
       '<div class="small text-muted mt-1 hq-pay-follow-dual-clock">' +
       '<span class="d-block"><strong>TH</strong> <span class="hq-pay-follow-clock-th">—</span></span>' +
       '<span class="d-block"><strong>JP</strong> <span class="hq-pay-follow-clock-jp">—</span></span>' +
-      '<span class="d-block mt-1 text-wrap"><strong>선택 기준</strong> <span class="hq-pay-follow-clock-sel">—</span></span>' +
+      '<span class="d-block mt-1 text-wrap"><strong>' + escA(L('선택 기준')) + '</strong> <span class="hq-pay-follow-clock-sel">—</span></span>' +
       '</div></td>' +
       '<td class="text-center text-muted small">—</td></tr>' +
       '<tr>' +
-      '<td class="fw-semibold">무효 <span class="badge bg-secondary">자동무효</span></td>' +
-      '<td class="small">승인일(기준 Zone) <strong>당일</strong> 구간</td>' +
+      '<td class="fw-semibold">' + escA(L('무효')) + ' <span class="badge bg-secondary">' + escA(L('자동무효')) + '</span></td>' +
+      '<td class="small">' + escA(L('승인일(기준 Zone) 당일 구간')) + '</td>' +
       '<td class="text-center"><select name="autoVoidYn" class="form-select form-select-sm hq-pay-follow-sel-use">' + ynUse + '</select></td>' +
       '<td class="hq-pay-follow-void-times"><div class="d-flex flex-wrap align-items-center gap-1 gap-md-2">' +
-      '<span class="text-nowrap small">시작</span><input type="time" step="60" name="autoVoidStartTime" class="' + timeInputCls + '" title="비우면 0:00 (당일 자정)" />' +
-      '<span class="text-nowrap small">~ 마감</span><input type="time" step="60" name="autoVoidEndTime" class="' + timeInputCls + '" title="비우면 21:00 — 태국·기준 Zone 당일 (JP 동일 시각 +2h → 23:00)" />' +
+      '<span class="text-nowrap small">' + escA(L('시작')) + '</span><input type="time" step="60" name="autoVoidStartTime" class="' + timeInputCls + '" title="' + escA(L('비우면 0:00 (당일 자정)')) + '" />' +
+      '<span class="text-nowrap small">' + escA(L('~ 마감')) + '</span><input type="time" step="60" name="autoVoidEndTime" class="' + timeInputCls + '" title="' + escA(L('비우면 21:00 — 태국·기준 Zone 당일 (JP 동일 시각 +2h → 23:00)')) + '" />' +
       '</div></td>' +
       '<td class="text-center"><select name="autoVoidReflectSettlementYn" class="form-select form-select-sm hq-pay-follow-sel-ref">' + ynRef + '</select></td></tr>' +
       '<tr>' +
-      '<td class="fw-semibold">수동무효 <span class="badge bg-secondary">이메일무효</span></td>' +
-      '<td class="small">승인일(기준 Zone) <strong>당일</strong> 시작~마감(자동무효와 동일 형식)</td>' +
+      '<td class="fw-semibold">' + escA(L('수동무효')) + ' <span class="badge bg-secondary">' + escA(L('이메일무효')) + '</span></td>' +
+      '<td class="small">' + escA(L('승인일(기준 Zone) 당일 시작~마감(자동무효와 동일 형식)')) + '</td>' +
       '<td class="text-center"><select name="emailVoidYn" class="form-select form-select-sm hq-pay-follow-sel-use">' + ynUse + '</select></td>' +
       '<td class="hq-pay-follow-void-times"><div class="d-flex flex-wrap align-items-center gap-1 gap-md-2">' +
-      '<span class="text-nowrap small">시작</span><input type="time" step="60" name="emailVoidStartTime" class="' + timeInputCls + '" />' +
-      '<span class="text-nowrap small">~ 마감</span><input type="time" step="60" name="emailVoidEndTime" class="' + timeInputCls + '" title="비우면 23:59" />' +
-      '</div><div class="small text-muted mt-1">자동무효·이메일무효를 <strong>함께</strong> 켜면 <strong>시작</strong>만 비활성화되고, 실제 시작은 자동무효 마감 다음 분부터입니다. <strong>마감</strong>은 항상 지정 가능합니다(비우면 23:59). 이메일무효만 켜면 시작·마감 모두 설정합니다.</div></td>' +
+      '<span class="text-nowrap small">' + escA(L('시작')) + '</span><input type="time" step="60" name="emailVoidStartTime" class="' + timeInputCls + '" />' +
+      '<span class="text-nowrap small">' + escA(L('~ 마감')) + '</span><input type="time" step="60" name="emailVoidEndTime" class="' + timeInputCls + '" title="' + escA(L('비우면 23:59')) + '" />' +
+      '</div><div class="small text-muted mt-1">' + escA(L('자동무효·이메일무효를 함께 켜면 시작만 비활성화되고, 실제 시작은 자동무효 마감 다음 분부터입니다. 마감은 항상 지정 가능합니다(비우면 23:59). 이메일무효만 켜면 시작·마감 모두 설정합니다.')) + '</div></td>' +
       '<td class="text-center"><select name="emailVoidReflectSettlementYn" class="form-select form-select-sm hq-pay-follow-sel-ref">' + ynRef + '</select></td></tr>' +
       '<tr>' +
-      '<td class="fw-semibold">환불 <span class="badge bg-secondary">자동환불</span></td>' +
-      '<td class="small"><strong>태국(Asia/Bangkok)</strong> 기준 결제일 <strong>익일</strong> 지정 시각부터 <strong>N</strong>일(기본 7)</td>' +
+      '<td class="fw-semibold">' + escA(L('환불')) + ' <span class="badge bg-secondary">' + escA(L('자동환불')) + '</span></td>' +
+      '<td class="small">' + escA(L('태국(Asia/Bangkok) 기준 결제일 익일 지정 시각부터 N일(기본 7)')) + '</td>' +
       '<td class="text-center"><select name="autoRefundYn" class="form-select form-select-sm hq-pay-follow-sel-use">' + ynUse + '</select></td>' +
       '<td><div class="d-flex flex-wrap align-items-center gap-2">' +
-      '<span class="text-nowrap small">익일 시작</span><input type="time" step="60" name="autoRefundWindowStartTime" class="' + timeInputCls + '" title="비우면 0:00" />' +
+      '<span class="text-nowrap small">' + escA(L('익일 시작')) + '</span><input type="time" step="60" name="autoRefundWindowStartTime" class="' + timeInputCls + '" title="' + escA(L('비우면 0:00')) + '" />' +
       '<select name="autoRefundAfterDays" class="form-select form-select-sm hq-pay-follow-sel-days">' + days + '</select></div></td>' +
       '<td class="text-center"><select name="autoRefundReflectSettlementYn" class="form-select form-select-sm hq-pay-follow-sel-ref">' + ynRef + '</select></td></tr>' +
       '<tr>' +
-      '<td class="fw-semibold">강제환불</td>' +
-      '<td class="small"><strong>태국</strong> 기준 일반 환불이 끝난 <strong>다음날 동일 시각</strong>부터 <strong>M</strong>일(M=0이면 메뉴 비노출)</td>' +
+      '<td class="fw-semibold">' + escA(L('강제환불')) + '</td>' +
+      '<td class="small">' + escA(L('태국 기준 일반 환불이 끝난 다음날 동일 시각부터 M일(M=0이면 메뉴 비노출)')) + '</td>' +
       '<td class="text-center"><select name="forceRefundYn" class="form-select form-select-sm hq-pay-follow-sel-use">' + ynUse + '</select></td>' +
       '<td><select name="forceRefundAfterDays" class="form-select form-select-sm hq-pay-follow-sel-days">' + forceDays + '</select></td>' +
       '<td class="text-center"><select name="forceRefundReflectSettlementYn" class="form-select form-select-sm hq-pay-follow-sel-ref">' + ynRef + '</select></td></tr>' +
       '</tbody></table>' +
-      '<p class="small text-muted px-2 py-2 mb-0">저장은 화면 하단 <strong>[저장]</strong>으로 합니다. <code>tb_hq_notify_env_config</code>에 동기화됩니다. 무효·수동무효는 승인일(「시간 선택 국가」Zone) <strong>당일</strong>입니다. <strong>환불</strong>은 태국 기준 결제일 <strong>익일</strong>의 설정 시각부터 일수이며, <strong>강제환불</strong>은 그 일반 환불이 끝난 다음날 같은 시각부터입니다. TH·JP 시계는 참고용입니다.</p>' +
+      '<p class="small text-muted px-2 py-2 mb-0">' + escA(L('저장은 화면 하단 [저장]으로 합니다.')) + ' <code>tb_hq_notify_env_config</code> ' + escA(L('테이블에 동기화됩니다. 무효·수동무효는 승인일(「시간 선택 국가」Zone) 당일입니다. 환불은 태국 기준 결제일 익일의 설정 시각부터 일수이며, 강제환불은 그 일반 환불이 끝난 다음날 같은 시각부터입니다. TH·JP 시계는 참고용입니다.')) + '</p>' +
       '</div>';
   }
 
@@ -160,23 +181,23 @@
       { k: 'autoRefund', t: '자동환불' },
       { k: 'forceRefund', t: '강제환불' }
     ];
-    var thead = '<tr><th class="text-nowrap">조직 단계</th>' +
-      fields.map(function (f) { return '<th class="text-center text-nowrap">' + escA(f.t) + '</th>'; }).join('') + '</tr>';
-    var rows = COMP_MNG_SEARCH_COMP_DIV_LEVELS.map(function (L) {
+    var thead = '<tr><th class="text-nowrap">' + escA(L('조직 단계')) + '</th>' +
+      fields.map(function (f) { return '<th class="text-center text-nowrap">' + escA(L(String(f.t))) + '</th>'; }).join('') + '</tr>';
+    var rows = COMP_MNG_SEARCH_COMP_DIV_LEVELS.map(function (lev) {
       var cells = fields.map(function (f) {
-        return '<td class="text-center"><select class="form-select form-select-sm hq-pf-cap-sel" name="pfCap_' + escA(L.v) + '_' + escA(f.k) + '">' +
-          '<option value="N">미사용</option><option value="Y">사용</option></select></td>';
+        return '<td class="text-center"><select class="form-select form-select-sm hq-pf-cap-sel" name="pfCap_' + escA(lev.v) + '_' + escA(f.k) + '">' +
+          '<option value="N">' + escA(L('미사용')) + '</option><option value="Y">' + escA(L('사용')) + '</option></select></td>';
       }).join('');
-      return '<tr data-pf-cap-level="' + escA(L.v) + '"><td class="fw-semibold text-nowrap">' + escA(L.t) + '</td>' + cells + '</tr>';
+      return '<tr data-pf-cap-level="' + escA(lev.v) + '"><td class="fw-semibold text-nowrap">' + escA(L(String(lev.t))) + '</td>' + cells + '</tr>';
     }).join('');
     return '<div class="border rounded mt-3 hq-pay-follow-cap-wrap">' +
       '<div class="d-flex flex-wrap align-items-center justify-content-between gap-2 px-2 py-2 border-bottom bg-light">' +
-      '<span class="fw-semibold">조직 단계별 후속조치 기능 허용</span>' +
-      '<button type="button" class="btn btn-primary btn-sm" id="hqLedgerPayFollowLevelCapsSaveBtn">단계별 허용 저장</button></div>' +
-      '<p class="small text-muted px-2 pt-2 mb-1">총본사가 단계마다 사용할 수 있는 네 가지 후속조치를 제한합니다. 전역 NOTI 설정이 꺼져 있으면 해당 기능은 동작하지 않습니다. <strong>가맹점</strong>은 등록 시 개별 선택과 함께 적용되며(미선택 시 미사용), 이 표는 단계별 상한입니다.</p>' +
+      '<span class="fw-semibold">' + escA(L('조직 단계별 후속조치 기능 허용')) + '</span>' +
+      '<button type="button" class="btn btn-primary btn-sm" id="hqLedgerPayFollowLevelCapsSaveBtn">' + escA(L('단계별 허용 저장')) + '</button></div>' +
+      '<p class="small text-muted px-2 pt-2 mb-1">' + escA(L('총본사가 단계마다 사용할 수 있는 네 가지 후속조치를 제한합니다. 전역 NOTI 설정이 꺼져 있으면 해당 기능은 동작하지 않습니다. 가맹점은 등록 시 개별 선택과 함께 적용되며(미선택 시 미사용), 이 표는 단계별 상한입니다.')) + '</p>' +
       '<table class="table table-sm table-bordered align-middle mb-0 w-100" id="grid_hqPayFollowLevelCaps">' +
       '<thead class="table-light">' + thead + '</thead><tbody>' + rows + '</tbody></table>' +
-      '<p class="small text-muted px-2 py-2 mb-0"><strong>[단계별 허용 저장]</strong>으로만 반영됩니다(하단 전체 저장과 별도). 총본사·시스템 관리자만 변경할 수 있습니다.</p></div>';
+      '<p class="small text-muted px-2 py-2 mb-0">' + escA(L('[단계별 허용 저장]으로만 반영됩니다(하단 전체 저장과 별도). 총본사·시스템 관리자만 변경할 수 있습니다.')) + '</p></div>';
   }
 
   /** 업체관리 목록 검색: OrgLevel.code 와 동일 순서 (총본사 1 … 가맹점 7) */
@@ -200,7 +221,7 @@
 
   /** 수수료설정: 조직 단계별(총본사~가맹) 수수료 격자 — 가맹 열은 총본사~영업점 합계(읽기 전용) */
   function hqDefaultCommissionTierMatrixHtml() {
-    var L = [
+    var tierLevels = [
       { k: 'hq', t: '총본사' },
       { k: 'regional', t: '본사' },
       { k: 'master', t: '총판' },
@@ -226,26 +247,26 @@
       { k: 'usageRate', t: '월간이용료', u: '월' },
       { k: 'chargebackFeePerTx', t: '차지백수수료', u: '(건)' }
     ];
-    var th = L.map(function (x) {
-      return '<th class="text-center align-middle small text-nowrap">' + x.t + '</th>';
+    var th = tierLevels.map(function (x) {
+      return '<th class="text-center align-middle small text-nowrap">' + escUi(L(String(x.t))) + '</th>';
     }).join('');
     var trb = '';
     R.forEach(function (r, idx) {
-      var tds = L.map(function (lv) {
+      var tds = tierLevels.map(function (lv) {
         var ro = lv.k === 'merchant' ? ' readonly tabindex="-1" class="form-control form-control-sm hq-tier-cell text-center bg-light"' : ' class="form-control form-control-sm hq-tier-cell text-center"';
         return '<td class="p-1"><input type="text"' + ro + ' data-fee="' + r.k + '" data-level="' + lv.k + '" autocomplete="off" /></td>';
       }).join('');
-      trb += '<tr><td class="text-center small text-muted">' + (idx + 1) + '</td><td class="small text-start ps-2">' + r.t + '</td><td class="small text-center text-muted">' + r.u + '</td>' + tds + '</tr>';
+      trb += '<tr><td class="text-center small text-muted">' + (idx + 1) + '</td><td class="small text-start ps-2">' + escUi(L(String(r.t))) + '</td><td class="small text-center text-muted">' + escUi(L(String(r.u))) + '</td>' + tds + '</tr>';
     });
     return '<div class="table-responsive border rounded mb-3 hq-comm-tier-wrap">' +
       '<table class="table table-sm table-bordered align-middle mb-0 hq-comm-tier-matrix">' +
       '<thead class="table-light"><tr><th class="text-center align-middle" style="width:2.25rem">#</th>' +
-      '<th class="text-center align-middle small" style="min-width:6.5rem">내용</th><th class="text-center align-middle small" style="width:2.75rem">단위</th>' + th + '</tr></thead><tbody>' + trb + '</tbody></table></div>';
+      '<th class="text-center align-middle small" style="min-width:6.5rem">' + escUi(L('내용')) + '</th><th class="text-center align-middle small" style="width:2.75rem">' + escUi(L('단위')) + '</th>' + th + '</tr></thead><tbody>' + trb + '</tbody></table></div>';
   }
 
   /** 수수료설정: 기타(비고) 수수료 4슬롯 — 가맹 열은 총본사~영업점 합계(읽기 전용) */
   function hqDefaultExtraFeesCardHtml() {
-    var L = [
+    var tierLevels = [
       { k: 'hq', t: '총본사' },
       { k: 'regional', t: '본사' },
       { k: 'master', t: '총판' },
@@ -254,21 +275,21 @@
       { k: 'salesOffice', t: '영업점' },
       { k: 'merchant', t: '가맹점' }
     ];
-    var th = '<th class="text-center small">유형</th><th class="text-center small" style="min-width:6rem">수수료명</th>' +
-      L.map(function (x) { return '<th class="text-center small text-nowrap">' + x.t + '</th>'; }).join('');
+    var th = '<th class="text-center small">' + escUi(L('유형')) + '</th><th class="text-center small" style="min-width:6rem">' + escUi(L('수수료명')) + '</th>' +
+      tierLevels.map(function (x) { return '<th class="text-center small text-nowrap">' + escUi(L(String(x.t))) + '</th>'; }).join('');
     function extraRow(i) {
-      var tds = L.map(function (lv) {
+      var tds = tierLevels.map(function (lv) {
         var ro = lv.k === 'merchant' ? ' readonly tabindex="-1" class="form-control form-control-sm hq-tier-extra-cell text-center bg-light"' : ' class="form-control form-control-sm hq-tier-extra-cell text-center"';
         return '<td class="p-1"><input type="text"' + ro + ' data-slot="' + i + '" data-level="' + lv.k + '" autocomplete="off" /></td>';
       }).join('');
       return '<tr><td class="p-1 align-middle"><select name="extraFee' + i + 'Mode" class="form-select form-select-sm">' +
-        '<option value="">—</option><option value="PCT">%</option><option value="FIX">고정</option></select></td>' +
-        '<td class="p-1 align-middle"><input type="text" name="extraFee' + i + 'Name" class="form-control form-control-sm" maxlength="64" placeholder="이름" autocomplete="off" /></td>' + tds + '</tr>';
+        '<option value="">—</option><option value="PCT">%</option><option value="FIX">' + escUi(L('고정')) + '</option></select></td>' +
+        '<td class="p-1 align-middle"><input type="text" name="extraFee' + i + 'Name" class="form-control form-control-sm" maxlength="64" placeholder="' + escUi(L('이름')) + '" autocomplete="off" /></td>' + tds + '</tr>';
     }
     return '<div class="card border mb-3 hq-extra-fees-card">' +
       '<div class="card-header py-2 px-3 bg-light">' +
-      '<strong class="small d-block mb-1">기타 수수료 (비고 · 최대 4건)</strong>' +
-      '<span class="text-muted small">이름·유형·조직별 값을 넣은 슬롯만 반영됩니다. 가맹 열은 총본사~영업점 합계로 표시·저장됩니다.</span></div>' +
+      '<strong class="small d-block mb-1">' + escUi(L('기타 수수료 (비고 · 최대 4건)')) + '</strong>' +
+      '<span class="text-muted small">' + escUi(L('이름·유형·조직별 값을 넣은 슬롯만 반영됩니다. 가맹 열은 총본사~영업점 합계로 표시·저장됩니다.')) + '</span></div>' +
       '<div class="card-body py-2 px-3 table-responsive"><table class="table table-sm table-bordered align-middle mb-0 hq-extra-tier-table">' +
       '<thead class="table-light"><tr>' + th + '</tr></thead><tbody>' +
       extraRow(1) + extraRow(2) + extraRow(3) + extraRow(4) + '</tbody></table></div></div>';
@@ -332,149 +353,151 @@
     window.PG_VOID_REFUND_SETTLE_MODE_OPTIONS = VOID_REFUND_SETTLE_MODE_OPTIONS;
   }
 
-  /** 본사설정 > 정산관리설정 — 정산주기·일정 미리보기 UI */
-  var HQ_SETTLEMENT_ADMIN_HTML = ''
+  /** 본사설정 > 정산관리설정 — 정산주기·일정 미리보기 UI (getScreenHtml 呼び出し時に L 適用) */
+  function hqSettlementAdminStaticHtml() {
+    return ''
     + '<div class="hq-settlement-admin">'
-    + '<div class="card mb-3"><div class="card-header fw-semibold">정산관리 안내</div><div class="card-body small">'
-    + '<p class="mb-2">배치·수동 정산은 가맹 <strong>정산주기·AUTO·마감</strong>과 동일합니다. 표는 <strong>정산일</strong>과 <strong>집계기간(from~to)</strong>, <strong>자동가맹</strong> 수 요약입니다.</p>'
+    + '<div class="card mb-3"><div class="card-header fw-semibold">' + escUi(L('정산관리 안내')) + '</div><div class="card-body small">'
+    + '<p class="mb-2">' + L('배치·수동 정산은 가맹 정산주기·AUTO·마감과 동일합니다. 표는 정산일과 집계기간(from~to), 자동가맹 수 요약입니다.') + '</p>'
     + '<ul class="mb-0 ps-3">'
-    + '<li><strong>D+N · W+N</strong>: 일·주 단위, 실행마다 <strong>1건</strong>.</li>'
-    + '<li><strong>WK</strong>: 주(또는 격주) 마감 뒤 <strong>영업일 3·10·30일째</strong> 등, <strong>1건</strong>.</li>'
-    + '<li><strong>RT</strong>: <strong>건별</strong>. <strong>T0 · TM · TH</strong>: <strong>당일 합산</strong> 갱신.</li>'
-    + '<li><strong>M5·M10·M30</strong>: <strong>분마다</strong>. <strong>H1~H12</strong>: <strong>시간마다</strong>(예: H1 하루 24회).</li>'
-    + '<li><strong>무효·환불 정산(본사 기본·총판별)</strong>은 <strong>본사설정 → 환수/미수금설정</strong>에서 설정합니다.</li>'
+    + '<li>' + L('D+N · W+N: 일·주 단위, 실행마다 1건.') + '</li>'
+    + '<li>' + L('WK: 주(또는 격주) 마감 뒤 영업일 3·10·30일째 등, 1건.') + '</li>'
+    + '<li>' + L('RT: 건별. T0 · TM · TH: 당일 합산 갱신.') + '</li>'
+    + '<li>' + L('M5·M10·M30: 분마다. H1~H12: 시간마다(예: H1 하루 24회).') + '</li>'
+    + '<li>' + L('무효·환불 정산(본사 기본·총판별)은 본사설정 → 환수/미수금설정에서 설정합니다.') + '</li>'
     + '</ul>'
     + '</div></div>'
-    + '<div class="card mb-3" id="hqStAutoBatchCard"><div class="card-header fw-semibold">자동 정산 배치 (총 스위치)</div><div class="card-body">'
-    + '<p class="small text-muted mb-2">가맹 <strong>정산구분 AUTO</strong>·<strong>정산주기</strong>와는 별개입니다. <strong>① 서버 타이머</strong>가 켜져 있고 <strong>② 본사 DB 모드</strong>가 허용일 때만 스케줄 tick 이 본문을 실행합니다. <strong>RT</strong> 건별 정산은 이 스위치와 무관합니다.</p>'
-    + '<ol class="small text-muted mb-3 ps-3"><li class="mb-1"><strong>① 서버(Java)</strong> — 서버가 <strong>시작될 때</strong> 읽는 설정으로, <strong>주기적으로 정산을 돌릴 타이머</strong>를 켤지 말지 정합니다. 이 관리자 화면에서는 <strong>상태만 표시</strong>합니다.</li>'
-    + '<li><strong>② 본사 DB</strong> — <strong>활성</strong>(항상 tick 본문 시도)·<strong>비활성</strong>(tick 본문 끔)·<strong>자동</strong>(이번 주기에 돌릴 AUTO 가맹이 있을 때만) 중 하나를 저장합니다.</li></ol>'
+    + '<div class="card mb-3" id="hqStAutoBatchCard"><div class="card-header fw-semibold">' + escUi(L('자동 정산 배치 (총 스위치)')) + '</div><div class="card-body">'
+    + '<p class="small text-muted mb-2">' + L('가맹 정산구분 AUTO·정산주기와는 별개입니다. ① 서버 타이머가 켜져 있고 ② 본사 DB 모드가 허용일 때만 스케줄 tick 이 본문을 실행합니다. RT 건별 정산은 이 스위치와 무관합니다.') + '</p>'
+    + '<ol class="small text-muted mb-3 ps-3"><li class="mb-1">' + L('① 서버(Java) — 서버가 시작될 때 읽는 설정으로, 주기적으로 정산을 돌릴 타이머를 켤지 말지 정합니다. 이 관리자 화면에서는 상태만 표시합니다.') + '</li>'
+    + '<li>' + L('② 본사 DB — 활성(항상 tick 본문 시도)·비활성(tick 본문 끔)·자동(이번 주기에 돌릴 AUTO 가맹이 있을 때만) 중 하나를 저장합니다.') + '</li></ol>'
     + '<div class="border rounded p-3 mb-2 bg-light">'
     + '<div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-1">'
-    + '<span class="fw-semibold small">① 서버 — 자동 정산 타이머</span>'
-    + '<span id="hqStAutoBatchJvmBadge" class="badge rounded-pill text-bg-secondary">확인 중…</span></div>'
-    + '<p class="small text-muted mb-0" id="hqStAutoBatchJvmNote">서버에서 응답을 불러오는 중입니다.</p></div>'
+    + '<span class="fw-semibold small">' + escUi(L('① 서버 — 자동 정산 타이머')) + '</span>'
+    + '<span id="hqStAutoBatchJvmBadge" class="badge rounded-pill text-bg-secondary">' + escUi(L('확인 중…')) + '</span></div>'
+    + '<p class="small text-muted mb-0" id="hqStAutoBatchJvmNote">' + escUi(L('서버에서 응답을 불러오는 중입니다.')) + '</p></div>'
     + '<div class="border rounded p-3 mb-2">'
     + '<div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-1">'
-    + '<span class="fw-semibold small">② 본사 DB — 배치 모드</span>'
+    + '<span class="fw-semibold small">' + escUi(L('② 본사 DB — 배치 모드')) + '</span>'
     + '<div class="d-flex flex-wrap align-items-center gap-2">'
     + '<select id="hqStAutoBatchYnSel" class="form-select form-select-sm" style="max-width:14rem">'
-    + '<option value="ACTIVE">활성 (항상)</option><option value="AUTO">자동 (대상 있을 때만)</option><option value="INACTIVE">비활성</option></select>'
-    + '<button type="button" class="btn btn-primary btn-sm" id="hqStAutoBatchSaveBtn">저장</button></div></div>'
-    + '<p class="small text-muted mb-0">②가 비활성이면 ①이 켜져 있어도 tick 본문은 실행되지 않습니다. 자동은 이번 주기에 실행할 AUTO 가맹이 없으면 스킵합니다.</p></div>'
+    + '<option value="ACTIVE">' + escUi(L('활성 (항상)')) + '</option><option value="AUTO">' + escUi(L('자동 (대상 있을 때만)')) + '</option><option value="INACTIVE">' + escUi(L('비활성')) + '</option></select>'
+    + '<button type="button" class="btn btn-primary btn-sm" id="hqStAutoBatchSaveBtn">' + escUi(L('저장')) + '</button></div></div>'
+    + '<p class="small text-muted mb-0">' + L('②가 비활성이면 ①이 켜져 있어도 tick 본문은 실행되지 않습니다. 자동은 이번 주기에 실행할 AUTO 가맹이 없으면 스킵합니다.') + '</p></div>'
     + '<div class="alert alert-secondary mb-0 py-2 px-3 small" id="hqStAutoBatchResultAlert" role="status">'
-    + '<div class="fw-semibold mb-1">현재 자동 배치</div>'
-    + '<div id="hqStAutoBatchEffectiveCell" class="mb-1">—</div>'
+    + '<div class="fw-semibold mb-1">' + escUi(L('현재 자동 배치')) + '</div>'
+    + '<div id="hqStAutoBatchEffectiveCell" class="mb-1">\u2014</div>'
     + '<div class="text-muted" id="hqStAutoBatchHint"></div></div>'
     + '</div></div>'
-    + '<div class="card mb-3" id="hqMdBizCronCard"><div class="card-header fw-semibold">총판별 기준 영업일 및 정산 크론 기준</div><div class="card-body">'
-    + '<p class="small text-muted mb-2"><strong>현재영업일</strong> 열은 총판 업체등록 시 저장된 영업일·휴일(프로필명·기준국가 등)을 보여 주며, 비어 있으면 상위 본사(REGIONAL) 설정을 참고해 표시할 수 있습니다. <strong>거래시간(1줄)</strong>은 결제·통합내역 그리드의 첫 번째 시각 줄입니다. <strong>정산 크론(2줄)</strong>은 격자·마감·D0 및 두 번째 시각 줄에 쓰는 Zone입니다. <strong>셀렉트만 바꿔서는 저장되지 않습니다.</strong> 행의 <strong>저장</strong>을 눌러 주세요.</p>'
-    + '<div class="d-flex flex-wrap align-items-center gap-2 mb-2"><button type="button" class="btn btn-outline-secondary btn-sm" id="hqMdBizCronRefreshBtn">목록 새로고침</button><span class="small text-muted">저장 후 서버 값을 다시 보려면 새로고침을 누르세요.</span></div>'
-    + '<div class="table-responsive table-no-col-resize-wrap"><table class="table table-sm table-bordered align-middle mb-0 table-no-col-resize"><thead class="table-light"><tr><th>총판</th><th class="text-nowrap">현재영업일</th><th style="min-width:9rem">거래시간(1줄)</th><th style="min-width:14rem">정산 크론(2줄)</th><th class="text-end text-nowrap" style="width:5.5rem">저장</th></tr></thead><tbody id="hqMdBizCronTbody"><tr><td colspan="5" class="text-muted text-center">불러오는 중…</td></tr></tbody></table></div>'
+    + '<div class="card mb-3" id="hqMdBizCronCard"><div class="card-header fw-semibold">' + escUi(L('총판별 기준 영업일 및 정산 크론 기준')) + '</div><div class="card-body">'
+    + '<p class="small text-muted mb-2">' + L('현재영업일 열은 총판 업체등록 시 저장된 영업일·휴일(프로필명·기준국가 등)을 보여 주며, 비어 있으면 상위 본사(REGIONAL) 설정을 참고해 표시할 수 있습니다. 거래시간(1줄)은 결제·통합내역 그리드의 첫 번째 시각 줄입니다. 정산 크론(2줄)은 격자·마감·D0 및 두 번째 시각 줄에 쓰는 Zone입니다. 셀렉트만 바꿔서는 저장되지 않습니다. 행의 저장을 눌러 주세요.') + '</p>'
+    + '<div class="d-flex flex-wrap align-items-center gap-2 mb-2"><button type="button" class="btn btn-outline-secondary btn-sm" id="hqMdBizCronRefreshBtn">' + escUi(L('목록 새로고침')) + '</button><span class="small text-muted">' + escUi(L('저장 후 서버 값을 다시 보려면 새로고침을 누르세요.')) + '</span></div>'
+    + '<div class="table-responsive table-no-col-resize-wrap"><table class="table table-sm table-bordered align-middle mb-0 table-no-col-resize"><thead class="table-light"><tr><th data-pg-ui-t="총판">총판</th><th class="text-nowrap" data-pg-ui-t="현재영업일">현재영업일</th><th style="min-width:9rem" data-pg-ui-t="거래시간(1줄)">거래시간(1줄)</th><th style="min-width:14rem" data-pg-ui-t="정산 크론(2줄)">정산 크론(2줄)</th><th class="text-end text-nowrap" style="width:5.5rem" data-pg-ui-t="저장">저장</th></tr></thead><tbody id="hqMdBizCronTbody"><tr><td colspan="5" class="text-muted text-center">' + escUi(L('불러오는 중…')) + '</td></tr></tbody></table></div>'
     + '<p class="small text-muted mb-0 mt-2" id="hqMdBizCronHint"></p>'
     + '</div></div>'
-    + '<div class="card mb-3"><div class="card-header fw-semibold">총판별 가맹 정산주기 (최대 10건·대표)</div><div class="card-body">'
-    + '<p class="small text-muted mb-3">총판(MASTER_DIST)마다 가맹점 등록 시 선택 가능한 정산주기를 최대 10개까지 지정합니다(2개·5개처럼 일부만 채워도 됩니다). <strong>서로 다른 주기는 최소 2개</strong> 필요하며, <strong>대표</strong>는 신규 가맹 시 셀렉트 기본값입니다. 아래 슬롯 셀렉트는 본사 <strong>표준 병합 전체</strong>(미사용 N 포함)이며, <strong>코드·행 순서</strong>는 위 정산주기관리의 <strong>표준 주기(시스템)</strong>·DB등록 표와 동일합니다. 미설정 총판이거나 상위에 총판이 없으면 가맹 화면은 기존처럼 <strong>사용(Y)만</strong> 노출됩니다.</p>'
+    + '<div class="card mb-3"><div class="card-header fw-semibold">' + escUi(L('총판별 가맹 정산주기 (최대 10건·대표)')) + '</div><div class="card-body">'
+    + '<p class="small text-muted mb-3">' + L('총판(MASTER_DIST)마다 가맹점 등록 시 선택 가능한 정산주기를 최대 10개까지 지정합니다(2개·5개처럼 일부만 채워도 됩니다). 서로 다른 주기는 최소 2개 필요하며, 대표는 신규 가맹 시 셀렉트 기본값입니다. 아래 슬롯 셀렉트는 본사 표준 병합 전체(미사용 N 포함)이며, 코드·행 순서는 위 정산주기관리의 표준 주기(시스템)·DB등록 표와 동일합니다. 미설정 총판이거나 상위에 총판이 없으면 가맹 화면은 기존처럼 사용(Y)만 노출됩니다.') + '</p>'
     + '<div class="row g-2 align-items-end mb-2">'
-    + '<div class="col-12 col-md-5"><label class="form-label small mb-0">총판</label><select id="hqMdCycleOrgSel" class="form-select form-select-sm"><option value="">불러오는 중…</option></select></div>'
-    + '<div class="col-auto d-grid"><button type="button" class="btn btn-primary btn-sm" id="hqMdCycleSaveBtn">저장</button></div></div>'
-    + '<div class="table-responsive table-no-col-resize-wrap"><table class="table table-sm table-bordered align-middle mb-0 table-no-col-resize"><thead class="table-light"><tr><th style="width:3.5rem">#</th><th>정산주기</th><th style="width:5rem">대표</th></tr></thead><tbody id="hqMdCycleTbody"></tbody></table></div>'
+    + '<div class="col-12 col-md-5"><label class="form-label small mb-0" data-pg-ui-t="총판">총판</label><select id="hqMdCycleOrgSel" class="form-select form-select-sm"><option value="">' + escUi(L('불러오는 중…')) + '</option></select></div>'
+    + '<div class="col-auto d-grid"><button type="button" class="btn btn-primary btn-sm" id="hqMdCycleSaveBtn">' + escUi(L('저장')) + '</button></div></div>'
+    + '<div class="table-responsive table-no-col-resize-wrap"><table class="table table-sm table-bordered align-middle mb-0 table-no-col-resize"><thead class="table-light"><tr><th style="width:3.5rem">#</th><th data-pg-ui-t="정산주기">정산주기</th><th style="width:5rem" data-pg-ui-t="대표">대표</th></tr></thead><tbody id="hqMdCycleTbody"></tbody></table></div>'
     + '</div></div>'
-    + '<div class="card mb-3"><div class="card-header fw-semibold">정산주기관리 (DB 등록)</div><div class="card-body">'
+    + '<div class="card mb-3"><div class="card-header fw-semibold">' + escUi(L('정산주기관리 (DB 등록)')) + '</div><div class="card-body">'
     + '<div class="row g-2 align-items-end mb-2">'
-    + '<div class="col-6 col-md-2"><label class="form-label small mb-0">유형</label><select id="hqStAddFamily" class="form-select form-select-sm">'
-    + '<option value="D">D+N (일)</option><option value="W">W+N (주)</option><option value="WK">WK 코드</option></select></div>'
-    + '<div class="col-6 col-md-2" id="hqStOffsetWrap"><label class="form-label small mb-0">N</label><input type="number" id="hqStAddOffset" class="form-control form-control-sm" min="0" max="90" placeholder="예: 12"></div>'
-    + '<div class="col-12 col-md-3 d-none" id="hqStWkWrap"><label class="form-label small mb-0">WK 코드</label><select id="hqStWkKey" class="form-select form-select-sm">'
+    + '<div class="col-6 col-md-2"><label class="form-label small mb-0" data-pg-ui-t="유형">유형</label><select id="hqStAddFamily" class="form-select form-select-sm">'
+    + '<option value="D">' + escUi(L('D+N (일)')) + '</option><option value="W">' + escUi(L('W+N (주)')) + '</option><option value="WK">' + escUi(L('WK 코드')) + '</option></select></div>'
+    + '<div class="col-6 col-md-2" id="hqStOffsetWrap"><label class="form-label small mb-0">N</label><input type="number" id="hqStAddOffset" class="form-control form-control-sm" min="0" max="90" data-pg-ui-placeholder="예: 12" placeholder="' + escUi(L('예: 12')) + '"></div>'
+    + '<div class="col-12 col-md-3 d-none" id="hqStWkWrap"><label class="form-label small mb-0" data-pg-ui-t="WK 코드">WK 코드</label><select id="hqStWkKey" class="form-select form-select-sm">'
     + '<option value="WK1W">WK1W</option><option value="WK2W">WK2W</option><option value="WK1WT">WK1WT</option><option value="WK2WT">WK2WT</option>'
     + '<option value="WK1WM">WK1WM</option><option value="WK2WM">WK2WM</option></select></div>'
-    + '<div class="col-6 col-md-2"><label class="form-label small mb-0">표시명</label><input type="text" id="hqStAddLabel" class="form-control form-control-sm" placeholder="예: D+12"></div>'
-    + '<div class="col-6 col-md-1"><label class="form-label small mb-0">순서</label><input type="number" id="hqStAddSort" class="form-control form-control-sm" value="100"></div>'
-    + '<div class="col-6 col-md-2"><label class="form-label small mb-0">사용</label><select id="hqStAddActive" class="form-select form-select-sm"><option value="Y">Y</option><option value="N">N</option></select></div>'
-    + '<div class="col-12 col-md-3"><label class="form-label small mb-0">설명</label><input type="text" id="hqStAddDesc" class="form-control form-control-sm" placeholder="내부 안내용"></div>'
-    + '<div class="col-6 col-md-2 d-grid"><button type="button" class="btn btn-primary btn-sm" id="hqStAddBtn">추가</button></div>'
-    + '<div class="col-12 col-md-auto d-grid align-self-end"><button type="button" class="btn btn-outline-secondary btn-sm" id="hqStSeedMissingBtn" title="내장 표준 코드가 DB에 없을 때만 삽입합니다">표준주기 DB복원</button></div></div>'
-    + '<p class="small text-muted mb-1">표준 주기(시스템) — 설명은 DB 행으로 덮어쓸 수 있습니다. DB가 비었을 때는 <strong>표준주기 DB복원</strong>으로 내장 목록과 동일한 행을 한 번에 넣을 수 있습니다.</p>'
-    + '<div class="table-responsive mb-4 table-no-col-resize-wrap"><table class="table table-sm table-bordered align-middle mb-0 table-no-col-resize"><thead class="table-light"><tr><th>코드</th><th>설명</th><th class="text-nowrap" title="RT·T0 및 TM·TH(당일 누적 재집계)">방식</th><th>순서</th><th>사용</th><th class="text-end">자동가맹</th></tr></thead><tbody id="hqStBuiltTbody"></tbody></table></div>'
-    + '<p class="small text-muted mb-1">DB 등록 주기 — 저장·삭제(본사·관리자만)</p>'
-    + '<div class="table-responsive table-no-col-resize-wrap"><table class="table table-sm table-bordered align-middle mb-0 table-no-col-resize"><thead class="table-light"><tr><th>ID</th><th>코드</th><th>표시명</th><th>설명</th><th class="text-nowrap" title="RT·T0 및 TM·TH(당일 누적 재집계)">방식</th><th>순서</th><th>사용</th><th class="text-end" style="width:9rem">작업</th></tr></thead><tbody id="hqStExtraTbody"></tbody></table></div>'
+    + '<div class="col-6 col-md-2"><label class="form-label small mb-0" data-pg-ui-t="표시명">표시명</label><input type="text" id="hqStAddLabel" class="form-control form-control-sm" data-pg-ui-placeholder="예: D+12" placeholder="' + escUi(L('예: D+12')) + '"></div>'
+    + '<div class="col-6 col-md-1"><label class="form-label small mb-0" data-pg-ui-t="순서">순서</label><input type="number" id="hqStAddSort" class="form-control form-control-sm" value="100"></div>'
+    + '<div class="col-6 col-md-2"><label class="form-label small mb-0" data-pg-ui-t="사용">사용</label><select id="hqStAddActive" class="form-select form-select-sm"><option value="Y">Y</option><option value="N">N</option></select></div>'
+    + '<div class="col-12 col-md-3"><label class="form-label small mb-0" data-pg-ui-t="설명">설명</label><input type="text" id="hqStAddDesc" class="form-control form-control-sm" data-pg-ui-placeholder="내부 안내용" placeholder="' + escUi(L('내부 안내용')) + '"></div>'
+    + '<div class="col-6 col-md-2 d-grid"><button type="button" class="btn btn-primary btn-sm" id="hqStAddBtn">' + escUi(L('추가')) + '</button></div>'
+    + '<div class="col-12 col-md-auto d-grid align-self-end"><button type="button" class="btn btn-outline-secondary btn-sm" id="hqStSeedMissingBtn" data-pg-ui-title="내장 표준 코드가 DB에 없을 때만 삽입합니다" title="' + escUi(L('내장 표준 코드가 DB에 없을 때만 삽입합니다')) + '">' + escUi(L('표준주기 DB복원')) + '</button></div></div>'
+    + '<p class="small text-muted mb-1">' + L('표준 주기(시스템) — 설명은 DB 행으로 덮어쓸 수 있습니다. DB가 비었을 때는 표준주기 DB복원으로 내장 목록과 동일한 행을 한 번에 넣을 수 있습니다.') + '</p>'
+    + '<div class="table-responsive mb-4 table-no-col-resize-wrap"><table class="table table-sm table-bordered align-middle mb-0 table-no-col-resize"><thead class="table-light"><tr><th data-pg-ui-t="코드">코드</th><th data-pg-ui-t="설명">설명</th><th class="text-nowrap"  data-pg-ui-title="RT·T0 및 TM·TH(당일 누적 재집계)" title="' + escUi(L('RT·T0 및 TM·TH(당일 누적 재집계)')) + '" data-pg-ui-t="방식">방식</th><th data-pg-ui-t="순서">순서</th><th data-pg-ui-t="사용">사용</th><th class="text-end" data-pg-ui-t="자동가맹">자동가맹</th></tr></thead><tbody id="hqStBuiltTbody"></tbody></table></div>'
+    + '<p class="small text-muted mb-1">' + escUi(L('DB 등록 주기 — 저장·삭제(본사·관리자만)')) + '</p>'
+    + '<div class="table-responsive table-no-col-resize-wrap"><table class="table table-sm table-bordered align-middle mb-0 table-no-col-resize"><thead class="table-light"><tr><th>ID</th><th data-pg-ui-t="코드">코드</th><th data-pg-ui-t="표시명">표시명</th><th data-pg-ui-t="설명">설명</th><th class="text-nowrap"  data-pg-ui-title="RT·T0 및 TM·TH(당일 누적 재집계)" title="' + escUi(L('RT·T0 및 TM·TH(당일 누적 재집계)')) + '" data-pg-ui-t="방식">방식</th><th data-pg-ui-t="순서">순서</th><th data-pg-ui-t="사용">사용</th><th class="text-end" style="width:9rem" data-pg-ui-t="작업">작업</th></tr></thead><tbody id="hqStExtraTbody"></tbody></table></div>'
     + '</div></div>'
-    + '<div class="card mb-3"><div class="card-header fw-semibold">정산일정 미리보기</div><div class="card-body">'
+    + '<div class="card mb-3"><div class="card-header fw-semibold">' + escUi(L('정산일정 미리보기')) + '</div><div class="card-body">'
     + '<div class="row g-2 align-items-end mb-2">'
-    + '<div class="col-6 col-md-2"><label class="form-label small mb-0">시작일</label><input type="date" id="hqStFrom" class="form-control form-control-sm"></div>'
-    + '<div class="col-6 col-md-2"><label class="form-label small mb-0">종료일</label><input type="date" id="hqStTo" class="form-control form-control-sm"></div>'
-    + '<div class="col-6 col-md-2 d-grid"><button type="button" class="btn btn-outline-primary btn-sm" id="hqStSchedBtn">조회</button></div></div>'
-    + '<div class="table-responsive table-no-col-resize-wrap"><table class="table table-sm table-bordered align-middle mb-0 table-no-col-resize"><thead class="table-light"><tr><th>정산일</th><th>주기</th><th>대상 from</th><th>대상 to</th><th>비고</th><th class="text-end">자동가맹</th></tr></thead><tbody id="hqStSchedTbody"></tbody></table></div>'
-    + '<p class="small text-muted mb-0 mt-2">일중(M·H·TM·TH)는 당일 행·비고는 요약입니다. 상세는 서버 집계 규칙과 동일합니다.</p>'
+    + '<div class="col-6 col-md-2"><label class="form-label small mb-0" data-pg-ui-t="시작일">시작일</label><input type="date" lang="en-CA" id="hqStFrom" class="form-control form-control-sm"></div>'
+    + '<div class="col-6 col-md-2"><label class="form-label small mb-0" data-pg-ui-t="종료일">종료일</label><input type="date" lang="en-CA" id="hqStTo" class="form-control form-control-sm"></div>'
+    + '<div class="col-6 col-md-2 d-grid"><button type="button" class="btn btn-outline-primary btn-sm" id="hqStSchedBtn">' + escUi(L('조회')) + '</button></div></div>'
+    + '<div class="table-responsive table-no-col-resize-wrap"><table class="table table-sm table-bordered align-middle mb-0 table-no-col-resize"><thead class="table-light"><tr><th data-pg-ui-t="정산일">정산일</th><th data-pg-ui-t="주기">주기</th><th data-pg-ui-t="대상 from">대상 from</th><th data-pg-ui-t="대상 to">대상 to</th><th data-pg-ui-t="비고">비고</th><th class="text-end" data-pg-ui-t="자동가맹">자동가맹</th></tr></thead><tbody id="hqStSchedTbody"></tbody></table></div>'
+    + '<p class="small text-muted mb-0 mt-2">' + L('일중(M·H·TM·TH)는 당일 행·비고는 요약입니다. 상세는 서버 집계 규칙과 동일합니다.') + '</p>'
     + '</div></div>'
     + '<div class="card mb-3"><div class="card-header fw-semibold d-flex flex-wrap align-items-center justify-content-between gap-2">'
-    + '<span>가맹 정산주기 변경 이력</span>'
+    + '<span data-pg-ui-t="가맹 정산주기 변경 이력">가맹 정산주기 변경 이력</span>'
     + '<div class="d-flex flex-wrap align-items-end gap-2">'
-    + '<div><label class="form-label small mb-0" for="hqStHistMerch">가맹점</label>'
+    + '<div><label class="form-label small mb-0" for="hqStHistMerch" data-pg-ui-t="가맹점">가맹점</label>'
     + '<select id="hqStHistMerch" class="form-select form-select-sm" style="min-width:12rem;max-width:32rem">'
-    + '<option value="">전체 (업체 미선택)</option></select></div>'
-    + '<button type="button" class="btn btn-outline-secondary btn-sm" id="hqStHistBtn">조회</button></div></div>'
+    + '<option value="">' + escUi(L('전체 (업체 미선택)')) + '</option></select></div>'
+    + '<button type="button" class="btn btn-outline-secondary btn-sm" id="hqStHistBtn">' + escUi(L('조회')) + '</button></div></div>'
     + '<div class="card-body p-0">'
     + '<div class="table-responsive table-no-col-resize-wrap"><table class="table table-sm table-bordered align-middle mb-0 table-no-col-resize">'
-    + '<thead class="table-light"><tr><th class="text-nowrap">일시</th><th class="text-nowrap">가맹점 (업체번호 / 이름)</th><th>이전</th><th>변경</th><th>방식</th><th>작업자</th><th>비고</th></tr></thead><tbody id="hqStHistTbody"><tr><td colspan="7" class="text-muted text-center">조회 중…</td></tr></tbody></table></div>'
+    + '<thead class="table-light"><tr><th class="text-nowrap" data-pg-ui-t="일시">일시</th><th class="text-nowrap" data-pg-ui-t="가맹점 (업체번호 / 이름)">가맹점 (업체번호 / 이름)</th><th data-pg-ui-t="이전">이전</th><th data-pg-ui-t="변경">변경</th><th data-pg-ui-t="방식">방식</th><th data-pg-ui-t="작업자">작업자</th><th data-pg-ui-t="비고">비고</th></tr></thead><tbody id="hqStHistTbody"><tr><td colspan="7" class="text-muted text-center">' + escUi(L('조회 중…')) + '</td></tr></tbody></table></div>'
     + '</div></div>'
     + '</div>';
-
-  /** 본사설정 — 환수/미수금 (본사 기본 무효·환불·미수금 + 총판·가맹) */
-  var HQ_RECEIVABLE_RECOVERY_HTML = ''
+  }
+  /** 본사설정 — 환수/미수금 (본사 기본 무효·환불·미수금 + 총판·가맹) — getScreenHtml 呼び出し時に L 適用 */
+  function hqReceivableRecoveryStaticHtml() {
+    return ''
     + '<div class="hq-receivable-recovery p-2">'
-    + '<div class="card mb-3" id="hqStVoidRefundModesCard"><div class="card-header fw-semibold">무효·환불 정산 방식 (본사 기본)</div><div class="card-body">'
-    + '<p class="small text-muted mb-3">거래 <strong>21·40 무효</strong>, <strong>22·41 수동무효</strong>, <strong>30·42 환불·자동환불</strong>, <strong>31 강제환불</strong> 각각에 대해 순매출 반영 방식을 둡니다. <strong>31 강제환불</strong>만 <strong>차지백 수수료</strong>(구간 정책 또는 건당)가 부과되며, 30·42는 환불 건당 수수료만 적용됩니다. 가맹이 본사정책 따름이면 템플릿에 저장된 값이 복사됩니다. 가맹 직접입력에서 「본사 따름」을 선택하면 이 본사 기본을 사용합니다.</p>'
+    + '<div class="card mb-3" id="hqStVoidRefundModesCard"><div class="card-header fw-semibold">' + escUi(L('무효·환불 정산 방식 (본사 기본)')) + '</div><div class="card-body">'
+    + '<p class="small text-muted mb-3">' + L('거래 21·40 무효, 22·41 수동무효, 30·42 환불·자동환불, 31 강제환불 각각에 대해 순매출 반영 방식을 둡니다. 31 강제환불만 차지백 수수료(구간 정책 또는 건당)가 부과되며, 30·42는 환불 건당 수수료만 적용됩니다. 가맹이 본사정책 따름이면 템플릿에 저장된 값이 복사됩니다. 가맹 직접입력에서 「본사 따름」을 선택하면 이 본사 기본을 사용합니다.') + '</p>'
     + '<div class="row g-2 align-items-end">'
-    + '<div class="col-12 col-md-6"><label class="form-label small mb-0" for="hqStModeVoid">무효 (21·40)</label><select id="hqStModeVoid" class="form-select form-select-sm"></select></div>'
-    + '<div class="col-12 col-md-6"><label class="form-label small mb-0" for="hqStModeManualVoid">수동무효 (22·41)</label><select id="hqStModeManualVoid" class="form-select form-select-sm"></select></div>'
-    + '<div class="col-12 col-md-6"><label class="form-label small mb-0" for="hqStModeRefund">환불 (30·42)</label><select id="hqStModeRefund" class="form-select form-select-sm"></select></div>'
-    + '<div class="col-12 col-md-6"><label class="form-label small mb-0" for="hqStModeForceRefund">강제환불 (31)</label><select id="hqStModeForceRefund" class="form-select form-select-sm"></select></div>'
-    + '<div class="col-12"><button type="button" class="btn btn-primary btn-sm" id="hqStVoidRefundSaveBtn">저장</button></div></div></div></div>'
-    + '<div class="card mb-3" id="hqVoidRefundMdCard"><div class="card-header fw-semibold">무효·환불 정산 방식 (총판별)</div><div class="card-body">'
-    + '<p class="small text-muted mb-3">총판(MASTER_DIST)마다 무효·수동무효·환불·강제환불 순매출 반영 방식을 둡니다. <strong>비우면 본사 기본</strong>과 동일합니다. 가맹점등록의 수수료정책에서 「총판·본사 따름」이면 여기 저장된 총판 값(없으면 본사)을 따르고, 가맹에서 모드를 고르면 <strong>가맹이 우선</strong>합니다.</p>'
+    + '<div class="col-12 col-md-6"><label class="form-label small mb-0" for="hqStModeVoid" data-pg-ui-t="무효 (21·40)">무효 (21·40)</label><select id="hqStModeVoid" class="form-select form-select-sm"></select></div>'
+    + '<div class="col-12 col-md-6"><label class="form-label small mb-0" for="hqStModeManualVoid" data-pg-ui-t="수동무효 (22·41)">수동무효 (22·41)</label><select id="hqStModeManualVoid" class="form-select form-select-sm"></select></div>'
+    + '<div class="col-12 col-md-6"><label class="form-label small mb-0" for="hqStModeRefund" data-pg-ui-t="환불 (30·42)">환불 (30·42)</label><select id="hqStModeRefund" class="form-select form-select-sm"></select></div>'
+    + '<div class="col-12 col-md-6"><label class="form-label small mb-0" for="hqStModeForceRefund" data-pg-ui-t="강제환불 (31)">강제환불 (31)</label><select id="hqStModeForceRefund" class="form-select form-select-sm"></select></div>'
+    + '<div class="col-12"><button type="button" class="btn btn-primary btn-sm" id="hqStVoidRefundSaveBtn">' + escUi(L('저장')) + '</button></div></div></div></div>'
+    + '<div class="card mb-3" id="hqVoidRefundMdCard"><div class="card-header fw-semibold">' + escUi(L('무효·환불 정산 방식 (총판별)')) + '</div><div class="card-body">'
+    + '<p class="small text-muted mb-3">' + L('총판(MASTER_DIST)마다 무효·수동무효·환불·강제환불 순매출 반영 방식을 둡니다. 비우면 본사 기본과 동일합니다. 가맹점등록의 수수료정책에서 「총판·본사 따름」이면 여기 저장된 총판 값(없으면 본사)을 따르고, 가맹에서 모드를 고르면 가맹이 우선합니다.') + '</p>'
     + '<div class="row g-2 align-items-end mb-2">'
-    + '<div class="col-12 col-md-5"><label class="form-label small mb-0">총판</label><select id="hqVoidRefundMdSel" class="form-select form-select-sm"><option value="">선택…</option></select></div></div>'
+    + '<div class="col-12 col-md-5"><label class="form-label small mb-0" data-pg-ui-t="총판">총판</label><select id="hqVoidRefundMdSel" class="form-select form-select-sm"><option value="">' + escUi(L('선택…')) + '</option></select></div></div>'
     + '<div class="row g-2 align-items-end">'
-    + '<div class="col-12 col-md-6"><label class="form-label small mb-0" for="hqVoidMdModeVoid">무효 (21·40)</label><select id="hqVoidMdModeVoid" class="form-select form-select-sm"></select></div>'
-    + '<div class="col-12 col-md-6"><label class="form-label small mb-0" for="hqVoidMdModeManualVoid">수동무효 (22·41)</label><select id="hqVoidMdModeManualVoid" class="form-select form-select-sm"></select></div>'
-    + '<div class="col-12 col-md-6"><label class="form-label small mb-0" for="hqVoidMdModeRefund">환불 (30·42)</label><select id="hqVoidMdModeRefund" class="form-select form-select-sm"></select></div>'
-    + '<div class="col-12 col-md-6"><label class="form-label small mb-0" for="hqVoidMdModeForceRefund">강제환불 (31)</label><select id="hqVoidMdModeForceRefund" class="form-select form-select-sm"></select></div>'
-    + '<div class="col-12"><button type="button" class="btn btn-primary btn-sm" id="hqVoidRefundMdSaveBtn">총판 저장</button></div></div></div></div>'
-    + '<div class="card mb-3" id="hqStReceivableCard"><div class="card-header fw-semibold">미수금관리설정 (본사 기본)</div><div class="card-body">'
-    + '<p class="small text-muted mb-3"><strong>자동</strong>이면 미수금이 생긴 뒤 <strong>다음 정산 실행</strong>에서 지급액에 FIFO로 반영됩니다. <strong>수동</strong>이면 다음 정산에 자동 반영하지 않고 잔액이 쌓이며, <strong>미수금관리</strong> 화면에서 <strong>환수처리</strong>를 누른 건만 차기 정산에서 차감됩니다. 저장 시 아래 체크를 켜면 모든 가맹 <code>tb_settlement_setting.receivable_recovery_mode</code>도 같은 값으로 갱신됩니다(개별 오버라이드가 아닌 가맹만; 아래 「가맹」에서 가맹별로 다시 조정 가능).</p>'
+    + '<div class="col-12 col-md-6"><label class="form-label small mb-0" for="hqVoidMdModeVoid" data-pg-ui-t="무효 (21·40)">무효 (21·40)</label><select id="hqVoidMdModeVoid" class="form-select form-select-sm"></select></div>'
+    + '<div class="col-12 col-md-6"><label class="form-label small mb-0" for="hqVoidMdModeManualVoid" data-pg-ui-t="수동무효 (22·41)">수동무효 (22·41)</label><select id="hqVoidMdModeManualVoid" class="form-select form-select-sm"></select></div>'
+    + '<div class="col-12 col-md-6"><label class="form-label small mb-0" for="hqVoidMdModeRefund" data-pg-ui-t="환불 (30·42)">환불 (30·42)</label><select id="hqVoidMdModeRefund" class="form-select form-select-sm"></select></div>'
+    + '<div class="col-12 col-md-6"><label class="form-label small mb-0" for="hqVoidMdModeForceRefund" data-pg-ui-t="강제환불 (31)">강제환불 (31)</label><select id="hqVoidMdModeForceRefund" class="form-select form-select-sm"></select></div>'
+    + '<div class="col-12"><button type="button" class="btn btn-primary btn-sm" id="hqVoidRefundMdSaveBtn">' + escUi(L('총판 저장')) + '</button></div></div></div></div>'
+    + '<div class="card mb-3" id="hqStReceivableCard"><div class="card-header fw-semibold">' + escUi(L('미수금관리설정 (본사 기본)')) + '</div><div class="card-body">'
+    + '<p class="small text-muted mb-3">' + L('자동이면 미수금이 생긴 뒤 다음 정산 실행에서 지급액에 FIFO로 반영됩니다. 수동이면 다음 정산에 자동 반영하지 않고 잔액이 쌓이며, 미수금관리 화면에서 환수처리를 누른 건만 차기 정산에서 차감됩니다. 저장 시 아래 체크를 켜면 모든 가맹 tb_settlement_setting.receivable_recovery_mode도 같은 값으로 갱신됩니다(개별 오버라이드가 아닌 가맹만; 아래 「가맹」에서 가맹별로 다시 조정 가능).') + '</p>'
     + '<div class="row g-2 align-items-end">'
-    + '<div class="col-12 col-md-5"><label class="form-label small mb-0" for="hqStReceivableMode">미수금처리 방식</label>'
-    + '<select id="hqStReceivableMode" class="form-select form-select-sm"><option value="AUTO">자동</option><option value="MANUAL">수동</option></select></div>'
+    + '<div class="col-12 col-md-5"><label class="form-label small mb-0" for="hqStReceivableMode" data-pg-ui-t="미수금처리 방식">미수금처리 방식</label>'
+    + '<select id="hqStReceivableMode" class="form-select form-select-sm"><option value="AUTO">' + escUi(L('자동')) + '</option><option value="MANUAL">' + escUi(L('수동')) + '</option></select></div>'
     + '<div class="col-12 col-md-7 d-flex align-items-end"><div class="form-check mb-1">'
     + '<input class="form-check-input" type="checkbox" id="hqStReceivableSyncAll" checked>'
-    + '<label class="form-check-label small" for="hqStReceivableSyncAll">모든 가맹 정산설정에 동일 적용</label></div></div>'
+    + '<label class="form-check-label small" for="hqStReceivableSyncAll" data-pg-ui-t="모든 가맹 정산설정에 동일 적용">모든 가맹 정산설정에 동일 적용</label></div></div>'
     + '<div class="col-12 d-flex flex-wrap align-items-center gap-2">'
-    + '<button type="button" class="btn btn-primary btn-sm" id="hqStReceivableSaveBtn">저장</button>'
-    + '<button type="button" class="btn btn-link btn-sm p-0" id="hqStReceivableToUnpaid">미수금관리(수동 환수처리)로 이동</button></div></div></div></div>'
-    + '<div class="card mb-3"><div class="card-header fw-semibold">환수 / 미수금 설정</div><div class="card-body small">'
-    + '<p class="text-muted mb-3">총판(MASTER_DIST)마다 <strong>자동/수동</strong>을 두고, 소속 가맹은 기본으로 그 값을 따릅니다. 특정 가맹만 <strong>개별</strong>로 바꾸면 가맹 설정이 우선합니다. 수동이면 「미수금관리」에서 <strong>환수처리</strong> 요청 건만 다음 정산 마감 시 차감되고, 자동이면 정산 시 FIFO로 차감합니다. 위 「미수금관리설정 (본사 기본)」이 총판·가맹 상속의 출발값이 됩니다(가맹 개별 오버라이드 제외).</p>'
-    + '<p class="small fw-semibold mb-1">총판 — 소속 가맹 기본</p>'
+    + '<button type="button" class="btn btn-primary btn-sm" id="hqStReceivableSaveBtn">' + escUi(L('저장')) + '</button>'
+    + '<button type="button" class="btn btn-link btn-sm p-0" id="hqStReceivableToUnpaid">' + escUi(L('미수금관리(수동 환수처리)로 이동')) + '</button></div></div></div></div>'
+    + '<div class="card mb-3"><div class="card-header fw-semibold">' + escUi(L('환수 / 미수금 설정')) + '</div><div class="card-body small">'
+    + '<p class="text-muted mb-3">' + L('총판(MASTER_DIST)마다 자동/수동을 두고, 소속 가맹은 기본으로 그 값을 따릅니다. 특정 가맹만 개별로 바꾸면 가맹 설정이 우선합니다. 수동이면 「미수금관리」에서 환수처리 요청 건만 다음 정산 마감 시 차감되고, 자동이면 정산 시 FIFO로 차감합니다. 위 「미수금관리설정 (본사 기본)」이 총판·가맹 상속의 출발값이 됩니다(가맹 개별 오버라이드 제외).') + '</p>'
+    + '<p class="small fw-semibold mb-1" data-pg-ui-t="총판 — 소속 가맹 기본">총판 — 소속 가맹 기본</p>'
     + '<div class="row g-2 align-items-end mb-3">'
-    + '<div class="col-12 col-md-5"><label class="form-label small mb-0">총판</label><select id="hqRecvMdSel" class="form-select form-select-sm"><option value="">선택…</option></select></div>'
-    + '<div class="col-6 col-md-2"><label class="form-label small mb-0">모드</label><select id="hqRecvMdModeSel" class="form-select form-select-sm">'
-    + '<option value="AUTO">자동</option><option value="MANUAL">수동</option></select></div>'
-    + '<div class="col-auto d-grid"><button type="button" class="btn btn-primary btn-sm" id="hqRecvMdSaveBtn">총판 저장</button></div></div>'
-    + '<p class="small fw-semibold mb-1">가맹 — 총판과 동일 또는 개별</p>'
+    + '<div class="col-12 col-md-5"><label class="form-label small mb-0" data-pg-ui-t="총판">총판</label><select id="hqRecvMdSel" class="form-select form-select-sm"><option value="">' + escUi(L('선택…')) + '</option></select></div>'
+    + '<div class="col-6 col-md-2"><label class="form-label small mb-0" data-pg-ui-t="모드">모드</label><select id="hqRecvMdModeSel" class="form-select form-select-sm">'
+    + '<option value="AUTO">' + escUi(L('자동')) + '</option><option value="MANUAL">' + escUi(L('수동')) + '</option></select></div>'
+    + '<div class="col-auto d-grid"><button type="button" class="btn btn-primary btn-sm" id="hqRecvMdSaveBtn">' + escUi(L('총판 저장')) + '</button></div></div>'
+    + '<p class="small fw-semibold mb-1" data-pg-ui-t="가맹 — 총판과 동일 또는 개별">가맹 — 총판과 동일 또는 개별</p>'
     + '<div class="row g-2 align-items-end mb-2">'
-    + '<div class="col-12 col-md-5"><label class="form-label small mb-0">가맹점</label><select id="hqRecvMerchSel" class="form-select form-select-sm"><option value="">선택…</option></select></div>'
+    + '<div class="col-12 col-md-5"><label class="form-label small mb-0" data-pg-ui-t="가맹점">가맹점</label><select id="hqRecvMerchSel" class="form-select form-select-sm"><option value="">' + escUi(L('선택…')) + '</option></select></div>'
     + '<div class="col-12 col-md-4 d-flex align-items-center pt-md-4"><div class="form-check mb-0">'
     + '<input class="form-check-input" type="checkbox" id="hqRecvInheritChk" checked>'
-    + '<label class="form-check-label" for="hqRecvInheritChk">총판·본사 설정 따름</label></div></div>'
-    + '<div class="col-6 col-md-2"><label class="form-label small mb-0">개별 모드</label><select id="hqRecvModeSel" class="form-select form-select-sm" disabled>'
-    + '<option value="AUTO">자동</option><option value="MANUAL">수동</option></select></div>'
-    + '<div class="col-auto d-grid"><button type="button" class="btn btn-primary btn-sm" id="hqRecvSaveBtn">가맹 저장</button></div></div>'
-    + '<p class="text-muted small mb-3" id="hqRecvMerchHint">가맹을 선택하면 유효 모드·상속 출처가 여기에 표시됩니다.</p>'
-    + '<p class="small fw-semibold mb-1">유효 모드가 수동인 가맹</p>'
+    + '<label class="form-check-label" for="hqRecvInheritChk" data-pg-ui-t="총판·본사 설정 따름">총판·본사 설정 따름</label></div></div>'
+    + '<div class="col-6 col-md-2"><label class="form-label small mb-0" data-pg-ui-t="개별 모드">개별 모드</label><select id="hqRecvModeSel" class="form-select form-select-sm" disabled>'
+    + '<option value="AUTO">' + escUi(L('자동')) + '</option><option value="MANUAL">' + escUi(L('수동')) + '</option></select></div>'
+    + '<div class="col-auto d-grid"><button type="button" class="btn btn-primary btn-sm" id="hqRecvSaveBtn">' + escUi(L('가맹 저장')) + '</button></div></div>'
+    + '<p class="text-muted small mb-3" id="hqRecvMerchHint">' + escUi(L('가맹을 선택하면 유효 모드·상속 출처가 여기에 표시됩니다.')) + '</p>'
+    + '<p class="small fw-semibold mb-1" data-pg-ui-t="유효 모드가 수동인 가맹">유효 모드가 수동인 가맹</p>'
     + '<div class="table-responsive"><table class="table table-sm table-bordered align-middle mb-0">'
-    + '<thead class="table-light"><tr><th>업체코드</th><th>업체명</th><th>모드</th><th>출처</th></tr></thead><tbody id="hqRecvManualTbody"></tbody></table></div>'
+    + '<thead class="table-light"><tr><th data-pg-ui-t="업체코드">업체코드</th><th data-pg-ui-t="업체명">업체명</th><th data-pg-ui-t="모드">모드</th><th data-pg-ui-t="출처">출처</th></tr></thead><tbody id="hqRecvManualTbody"></tbody></table></div>'
     + '</div></div>';
-
+  }
   /** 정산구분: 정산 마감 후 개시 방식 (수동/자동/펌뱅킹) */
   var CALC_PROC_OPTIONS = [
     { v: 'MANUAL', t: '수동' },
@@ -505,60 +528,71 @@
     + '이체및송금: 수동·자동·자동(수동불가)·임의출금·사용안함. 이체주기(분)는 자동 계열만. '
     + '지급보류: 정산은 진행, 출금만 제한. 정산제외: D0 등 휴일 제외 등(세부는 설정 화면).';
 
-  /** 본사 영업일·휴일: 연간 미니달력 + 공휴일 프리셋 (hq-holiday-calendar.js) */
-  var HQ_HOLIDAY_UI_HTML = '<div class="col-12"><div class="hq-holiday-ui-wrap border rounded p-2 bg-light mt-1" data-hq-calendar-readonly="true">' +
-    '<div class="d-flex flex-wrap align-items-center gap-2 mb-2">' +
-    '<label class="small mb-0 text-nowrap">연도</label><select class="form-select form-select-sm hq-holiday-year" style="width:auto;min-width:5rem"></select>' +
-    '<button type="button" class="btn btn-sm btn-outline-primary hq-holiday-load-presets">공휴일 프리셋 불러오기</button>' +
-    '<button type="button" class="btn btn-sm btn-outline-secondary hq-holiday-refresh">달력 동기화</button>' +
-    '<button type="button" class="btn btn-sm btn-outline-secondary" id="hqBizdayProfileNewBtn">신규</button>' +
-    '<button type="button" class="btn btn-sm btn-primary" id="hqBizdayProfileSaveBtn">저장</button></div>' +
-    '<p class="text-muted small mb-2">날짜를 클릭하면 비영업일에서 추가/제거됩니다. [공휴일 프리셋 불러오기]는 기준국가에 따라 병합합니다. KR/US/JP/TH/CN은 연도별 법정·공지 연휴, GLOBAL은 해당 연도 토·일만 포함합니다.</p>' +
-    '<div class="hq-holiday-calendar-grid"></div></div></div>';
+  /** 본사 영업일·휴일: 연간 미니달력 + 공휴일 프리셋 (hq-holiday-calendar.js) — L()는 화면 렌더 시점에 평가 */
+  function hqHolidayUiHtml() {
+    return '<div class="col-12"><div class="hq-holiday-ui-wrap border rounded p-2 bg-light mt-1" data-hq-calendar-readonly="true">' +
+      '<div class="d-flex flex-wrap align-items-center gap-2 mb-2">' +
+      '<label class="small mb-0 text-nowrap" data-pg-ui-t="연도">' + escUi(L('연도')) + '</label><select class="form-select form-select-sm hq-holiday-year" style="width:auto;min-width:5rem"></select>' +
+      '<button type="button" class="btn btn-sm btn-outline-primary hq-holiday-load-presets" data-pg-ui-t="공휴일 프리셋 불러오기">' + escUi(L('공휴일 프리셋 불러오기')) + '</button>' +
+      '<button type="button" class="btn btn-sm btn-outline-secondary hq-holiday-refresh" data-pg-ui-t="달력 동기화">' + escUi(L('달력 동기화')) + '</button>' +
+      '<button type="button" class="btn btn-sm btn-outline-secondary" id="hqBizdayProfileNewBtn" data-pg-ui-t="신규">' + escUi(L('신규')) + '</button>' +
+      '<button type="button" class="btn btn-sm btn-primary" id="hqBizdayProfileSaveBtn" data-pg-ui-t="저장">' + escUi(L('저장')) + '</button></div>' +
+      '<p class="text-muted small mb-2">' + escUi(L('날짜를 클릭하면 비영업일에서 추가/제거됩니다. [공휴일 프리셋 불러오기]는 기준국가에 따라 병합합니다. KR/US/JP/TH/CN은 연도별 법정·공지 연휴, GLOBAL은 해당 연도 토·일만 포함합니다.')) + '</p>' +
+      '<div class="hq-holiday-calendar-grid"></div></div></div>';
+  }
 
   /** 본사 영업일·휴일: 기간형 추가 목록(언제부터~언제까지/내용/추가일/작성자) */
   var REGIONAL_BIZDAY_RANGE_UI_HTML = '<div class="col-12"><div class="border rounded p-2 bg-light mt-1">' +
     '<div class="d-flex flex-wrap align-items-end gap-2 mb-2">' +
-    '<div><label class="form-label mb-1">언제부터</label><input type="date" class="form-control form-control-sm" id="bizHolidayFromDate"></div>' +
-    '<div><label class="form-label mb-1">언제까지</label><input type="date" class="form-control form-control-sm" id="bizHolidayToDate"></div>' +
-    '<div style="min-width:220px"><label class="form-label mb-1">내용</label><input type="text" class="form-control form-control-sm" id="bizHolidayReason" placeholder="예: 설 연휴"></div>' +
-    '<div><label class="form-label mb-1">작성자</label><input type="text" class="form-control form-control-sm" id="bizHolidayWriter" placeholder="작성자"></div>' +
-    '<div><button type="button" class="btn btn-sm btn-primary" id="bizHolidayAddBtn">추가</button></div>' +
+    '<div><label class="form-label mb-1" data-pg-ui-t="언제부터">' + escUi(L('언제부터')) + '</label><input type="date" lang="en-CA" class="form-control form-control-sm" id="bizHolidayFromDate"></div>' +
+    '<div><label class="form-label mb-1" data-pg-ui-t="언제까지">' + escUi(L('언제까지')) + '</label><input type="date" lang="en-CA" class="form-control form-control-sm" id="bizHolidayToDate"></div>' +
+    '<div style="min-width:220px"><label class="form-label mb-1" data-pg-ui-t="내용">' + escUi(L('내용')) + '</label><input type="text" class="form-control form-control-sm" id="bizHolidayReason" data-pg-ui-placeholder="예: 설 연휴" placeholder="' + escUi(L('예: 설 연휴')) + '"></div>' +
+    '<div><label class="form-label mb-1" data-pg-ui-t="작성자">' + escUi(L('작성자')) + '</label><input type="text" class="form-control form-control-sm" id="bizHolidayWriter" data-pg-ui-placeholder="작성자" placeholder="' + escUi(L('작성자')) + '"></div>' +
+    '<div><button type="button" class="btn btn-sm btn-primary" id="bizHolidayAddBtn" data-pg-ui-t="추가">' + escUi(L('추가')) + '</button></div>' +
     '</div>' +
-    '<div class="table-responsive"><table class="table table-sm table-bordered mb-0"><thead><tr><th style="width:120px">언제부터</th><th style="width:120px">언제까지</th><th>내용</th><th style="width:130px">추가한날짜</th><th style="width:120px">작성자</th><th style="width:170px">처리</th></tr></thead>' +
-    '<tbody id="bizHolidayRangeTbody"><tr><td colspan="6" class="text-muted text-center">추가된 기간이 없습니다.</td></tr></tbody></table></div>' +
+    '<div class="table-responsive"><table class="table table-sm table-bordered mb-0"><thead><tr><th style="width:120px" data-pg-ui-t="언제부터">' + escUi(L('언제부터')) + '</th><th style="width:120px" data-pg-ui-t="언제까지">' + escUi(L('언제까지')) + '</th><th data-pg-ui-t="내용">' + escUi(L('내용')) + '</th><th style="width:130px" data-pg-ui-t="추가한날짜">' + escUi(L('추가한날짜')) + '</th><th style="width:120px" data-pg-ui-t="작성자">' + escUi(L('작성자')) + '</th><th style="width:170px" data-pg-ui-t="처리">' + escUi(L('처리')) + '</th></tr></thead>' +
+    '<tbody id="bizHolidayRangeTbody"><tr><td colspan="6" class="text-muted text-center" data-pg-ui-t="추가된 기간이 없습니다.">' + escUi(L('추가된 기간이 없습니다.')) + '</td></tr></tbody></table></div>' +
     '<input type="hidden" name="businessHolidayRangesJson" id="businessHolidayRangesJson">' +
     '</div></div>';
 
-  /** 본사설정 > 영업일설정: 등록된 설정 목록 */
+  /** 본사설정 > 영업일설정: 등록된 설정 목록 — 구분 옵션 value는 API/저장 호환으로 한국어 키 유지, 표시만 L() */
   var HQ_BIZDAY_KIND_OPTIONS = ['공휴일', '국경일', '기념일', '종교휴일', '임시공휴일', '대체공휴일'];
-  var HQ_BIZDAY_MANUAL_UI_HTML = '<div class="col-12"><div class="border rounded p-2 bg-light mt-1 mb-2">' +
-    '<input type="hidden" name="businessHolidayExtraDates" id="hqBizdayExtraDatesHidden">' +
-    '<input type="hidden" name="holidayManualEntriesJson" id="hqBizdayManualEntriesJson">' +
-    '<strong class="small d-block mb-2">휴일·비영업일 구간 등록</strong>' +
-    '<p class="text-muted small mb-2">시작·종료일·구분·내용을 입력한 뒤 [구간 추가]로 넣거나, 목록의 [수정]으로 불러온 뒤 [수정 반영]으로 바꿉니다. [삭제]로 행을 제거할 수 있습니다. 하단 달력에 반영됩니다.</p>' +
-    '<div class="row g-2 align-items-end mb-2">' +
-    '<div class="col-sm-6 col-md-2"><label class="form-label mb-1 small">시작일</label><input type="date" class="form-control form-control-sm" id="hqBizdayRangeFrom"></div>' +
-    '<div class="col-sm-6 col-md-2"><label class="form-label mb-1 small">종료일</label><input type="date" class="form-control form-control-sm" id="hqBizdayRangeTo"></div>' +
-    '<div class="col-sm-6 col-md-2"><label class="form-label mb-1 small">일자 구분</label><select class="form-select form-select-sm" id="hqBizdayRangeKind">' +
-    HQ_BIZDAY_KIND_OPTIONS.map(function (k) { return '<option value="' + k + '">' + k + '</option>'; }).join('') +
-    '</select></div>' +
-    '<div class="col-sm-12 col-md-3"><label class="form-label mb-1 small">내용</label><input type="text" class="form-control form-control-sm" id="hqBizdayRangeNote" placeholder="예: 설날 연휴"></div>' +
-    '<div class="col-sm-12 col-md-3"><label class="form-label mb-1 small d-block">&nbsp;</label><div class="d-flex flex-wrap gap-1 align-items-center">' +
-    '<button type="button" class="btn btn-sm btn-primary" id="hqBizdayRangeAddBtn">구간 추가</button>' +
-    '<button type="button" class="btn btn-sm btn-outline-secondary d-none" id="hqBizdayRangeCancelEditBtn">편집 취소</button></div></div></div>' +
-    '<div class="table-responsive"><table class="table table-sm table-bordered mb-0"><thead><tr><th style="width:110px">시작</th><th style="width:110px">종료</th><th style="width:120px">구분</th><th>내용</th><th style="width:72px">수정</th><th style="width:72px">삭제</th></tr></thead>' +
-    '<tbody id="hqBizdayManualTbody"><tr class="hq-bizday-manual-empty"><td colspan="6" class="text-center text-muted">등록된 구간이 없습니다.</td></tr></tbody></table></div></div></div>';
+  function hqBizdayKindOptionsHtml() {
+    return HQ_BIZDAY_KIND_OPTIONS.map(function (k) {
+      return '<option value="' + escUi(k) + '">' + escUi(L(k)) + '</option>';
+    }).join('');
+  }
+  function hqBizdayManualUiHtml() {
+    return '<div class="col-12"><div class="border rounded p-2 bg-light mt-1 mb-2">' +
+      '<input type="hidden" name="businessHolidayExtraDates" id="hqBizdayExtraDatesHidden">' +
+      '<input type="hidden" name="holidayManualEntriesJson" id="hqBizdayManualEntriesJson">' +
+      '<strong class="small d-block mb-2" data-pg-ui-t="휴일·비영업일 구간 등록">' + escUi(L('휴일·비영업일 구간 등록')) + '</strong>' +
+      '<p class="text-muted small mb-2">' + escUi(L('시작·종료일·구분·내용을 입력한 뒤 [구간 추가]로 넣거나, 목록의 [수정]으로 불러온 뒤 [수정 반영]으로 바꿉니다. [삭제]로 행을 제거할 수 있습니다. 하단 달력에 반영됩니다.')) + '</p>' +
+      '<div class="row g-2 align-items-end mb-2">' +
+      '<div class="col-sm-6 col-md-2"><label class="form-label mb-1 small" data-pg-ui-t="시작일">' + escUi(L('시작일')) + '</label><input type="date" lang="en-CA" class="form-control form-control-sm" id="hqBizdayRangeFrom"></div>' +
+      '<div class="col-sm-6 col-md-2"><label class="form-label mb-1 small" data-pg-ui-t="종료일">' + escUi(L('종료일')) + '</label><input type="date" lang="en-CA" class="form-control form-control-sm" id="hqBizdayRangeTo"></div>' +
+      '<div class="col-sm-6 col-md-2"><label class="form-label mb-1 small" data-pg-ui-t="일자 구분">' + escUi(L('일자 구분')) + '</label><select class="form-select form-select-sm" id="hqBizdayRangeKind">' +
+      hqBizdayKindOptionsHtml() +
+      '</select></div>' +
+      '<div class="col-sm-12 col-md-3"><label class="form-label mb-1 small" data-pg-ui-t="내용">' + escUi(L('내용')) + '</label><input type="text" class="form-control form-control-sm" id="hqBizdayRangeNote" data-pg-ui-placeholder="예: 설날 연휴" placeholder="' + escUi(L('예: 설날 연휴')) + '"></div>' +
+      '<div class="col-sm-12 col-md-3"><label class="form-label mb-1 small d-block">&nbsp;</label><div class="d-flex flex-wrap gap-1 align-items-center">' +
+      '<button type="button" class="btn btn-sm btn-primary" id="hqBizdayRangeAddBtn" data-pg-ui-t="구간 추가">' + escUi(L('구간 추가')) + '</button>' +
+      '<button type="button" class="btn btn-sm btn-outline-secondary d-none" id="hqBizdayRangeCancelEditBtn" data-pg-ui-t="편집 취소">' + escUi(L('편집 취소')) + '</button></div></div></div>' +
+      '<div class="table-responsive"><table class="table table-sm table-bordered mb-0"><thead><tr><th style="width:110px" data-pg-ui-t="시작">' + escUi(L('시작')) + '</th><th style="width:110px" data-pg-ui-t="종료">' + escUi(L('종료')) + '</th><th style="width:120px" data-pg-ui-t="구분">' + escUi(L('구분')) + '</th><th data-pg-ui-t="내용">' + escUi(L('내용')) + '</th><th style="width:72px" data-pg-ui-t="수정">' + escUi(L('수정')) + '</th><th style="width:72px" data-pg-ui-t="삭제">' + escUi(L('삭제')) + '</th></tr></thead>' +
+      '<tbody id="hqBizdayManualTbody"><tr class="hq-bizday-manual-empty"><td colspan="6" class="text-center text-muted" data-pg-ui-t="등록된 구간이 없습니다.">' + escUi(L('등록된 구간이 없습니다.')) + '</td></tr></tbody></table></div></div></div>';
+  }
 
-  var HQ_BIZDAY_PROFILE_LIST_HTML = '<div class="col-12"><div class="border rounded p-2 bg-light mt-1">' +
-    '<div class="d-flex justify-content-between align-items-center mb-2"><strong>저장된 영업일 설정 목록</strong><small class="text-muted">행의 [수정]으로 불러오거나, 데이터 열을 눌러 선택할 수 있습니다.</small></div>' +
-    '<div class="table-responsive"><table class="table table-sm table-bordered mb-0"><thead><tr><th style="width:48px">번호</th><th style="width:160px">이름</th><th style="width:72px">기준국가</th><th style="width:100px">등록자</th>' +
-    '<th class="text-center align-middle" style="width:88px" title="저장된 비영업일 중 토·일·기준국가 법정(프리셋) 공휴일에 해당하는 일수.">공식공휴일</th>' +
-    '<th class="text-center align-middle" style="width:88px" title="저장된 비영업일 중 위 공식에 해당하지 않는 일수(추가 지정 평일 등).">추가공휴일</th>' +
-    '<th class="text-center align-middle" style="width:80px" title="저장된 비영업 일자 수(중복 1회). 공식+추가와 일치.">총공휴일</th>' +
-    '<th style="width:100px">작성일</th><th style="width:100px">수정일</th><th class="text-center" style="width:76px">수정</th><th class="text-center" style="width:76px">삭제</th></tr></thead>' +
-    '<tbody id="hqBizdayProfileTbody"><tr><td colspan="11" class="text-center text-muted">저장된 설정이 없습니다.</td></tr></tbody></table></div>' +
-    '</div></div>';
+  function hqBizdayProfileListHtml() {
+    return '<div class="col-12"><div class="border rounded p-2 bg-light mt-1">' +
+      '<div class="d-flex justify-content-between align-items-center mb-2"><strong data-pg-ui-t="저장된 영업일 설정 목록">' + escUi(L('저장된 영업일 설정 목록')) + '</strong><small class="text-muted" data-pg-ui-t="행의 [수정]으로 불러오거나, 데이터 열을 눌러 선택할 수 있습니다.">' + escUi(L('행의 [수정]으로 불러오거나, 데이터 열을 눌러 선택할 수 있습니다.')) + '</small></div>' +
+      '<div class="table-responsive"><table class="table table-sm table-bordered mb-0"><thead><tr><th style="width:48px" data-pg-ui-t="번호">' + escUi(L('번호')) + '</th><th style="width:160px" data-pg-ui-t="이름">' + escUi(L('이름')) + '</th><th style="width:72px" data-pg-ui-t="기준국가">' + escUi(L('기준국가')) + '</th><th style="width:100px" data-pg-ui-t="등록자">' + escUi(L('등록자')) + '</th>' +
+      '<th class="text-center align-middle" style="width:88px" data-pg-ui-title="저장된 비영업일 중 토·일·기준국가 법정(프리셋) 공휴일에 해당하는 일수." title="' + escUi(L('저장된 비영업일 중 토·일·기준국가 법정(프리셋) 공휴일에 해당하는 일수.')) + '" data-pg-ui-t="공식공휴일">' + escUi(L('공식공휴일')) + '</th>' +
+      '<th class="text-center align-middle" style="width:88px" data-pg-ui-title="저장된 비영업일 중 위 공식에 해당하지 않는 일수(추가 지정 평일 등)." title="' + escUi(L('저장된 비영업일 중 위 공식에 해당하지 않는 일수(추가 지정 평일 등).')) + '" data-pg-ui-t="추가공휴일">' + escUi(L('추가공휴일')) + '</th>' +
+      '<th class="text-center align-middle" style="width:80px" data-pg-ui-title="저장된 비영업 일자 수(중복 1회). 공식+추가와 일치." title="' + escUi(L('저장된 비영업 일자 수(중복 1회). 공식+추가와 일치.')) + '" data-pg-ui-t="총공휴일">' + escUi(L('총공휴일')) + '</th>' +
+      '<th style="width:100px" data-pg-ui-t="작성일">' + escUi(L('작성일')) + '</th><th style="width:100px" data-pg-ui-t="수정일">' + escUi(L('수정일')) + '</th><th class="text-center" style="width:76px" data-pg-ui-t="수정">' + escUi(L('수정')) + '</th><th class="text-center" style="width:76px" data-pg-ui-t="삭제">' + escUi(L('삭제')) + '</th></tr></thead>' +
+      '<tbody id="hqBizdayProfileTbody"><tr><td colspan="11" class="text-center text-muted" data-pg-ui-t="저장된 설정이 없습니다.">' + escUi(L('저장된 설정이 없습니다.')) + '</td></tr></tbody></table></div>' +
+      '</div></div>';
+  }
 
   /** 배포설정 메뉴 — JPAY·가맹점 API 중계 진행안(정적 문서). 구현 시 이 본문을 참고·갱신합니다. */
   var DEPLOY_STATIC_HTML = {
@@ -581,7 +615,7 @@
       '<h5 class="text-dark fw-semibold mb-3">JPAY 우선 — 단계별 작업 계획</h5>' +
       '<p class="mb-2">아래는 구현 시 작업 분해 예시입니다. 실제 일정·담당은 제이페이 제공 스펙에 맞춰 조정합니다.</p>' +
       '<table class="table table-sm table-bordered bg-white">' +
-      '<thead><tr><th style="width:6rem">단계</th><th>내용</th></tr></thead><tbody>' +
+      '<thead><tr><th style="width:6rem" data-pg-ui-t="단계">단계</th><th data-pg-ui-t="내용">내용</th></tr></thead><tbody>' +
       '<tr><td class="text-nowrap">P0</td><td>JPAY API·3DS·노티 필드 정의서·샌드 MID/키 수령</td></tr>' +
       '<tr><td>P1</td><td><code>tb_pg_agency</code> 등에 JPAY 등록, 가맹점 <code>tb_merchant_pg_binding</code> (업체코드·MID) 검증</td></tr>' +
       '<tr><td>P2</td><td>노티매핑 JSON 벤더 <code>JPAY</code> — CALLBACK/RESULT 필드 매핑·표시값(displayMaps)</td></tr>' +
@@ -616,94 +650,89 @@
 
   /** 운영관리: 최상위 메뉴 플레이스홀더(하위 화면 추후 연동) */
   var OPS_MANAGEMENT_PLACEHOLDER_HTML = '<div class="ops-admin-placeholder text-muted small">' +
-    '<p class="mb-2"><strong class="text-body">운영관리</strong> 그룹입니다. 운영 배치·점검·장애 대응 등 전용 화면을 여기에 둘 수 있습니다.</p>' +
-    '<p class="mb-0">현재는 메뉴만 제공하며, 세부 기능은 이후 버전에서 연동합니다.</p></div>';
+    '<p class="mb-2"><strong class="text-body">' + escUi(L('운영관리')) + '</strong> ' + escUi(L('그룹입니다. 운영 배치·점검·장애 대응 등 전용 화면을 여기에 둘 수 있습니다.')) + '</p>' +
+    '<p class="mb-0">' + escUi(L('현재는 메뉴만 제공하며, 세부 기능은 이후 버전에서 연동합니다.')) + '</p></div>';
 
   var API_MERCHANT_DEPLOY_REG_HTML = '<div class="api-merchant-deploy-reg text-body">' +
-    '<h5 class="fw-semibold mb-2">1. API 가맹점 등록</h5>' +
+    '<h5 class="fw-semibold mb-2" data-pg-ui-t="1. API 가맹점 등록">1. API 가맹점 등록</h5>' +
     '<div class="alert alert-light border small mb-3">' +
-    '<p class="fw-semibold text-dark mb-2">순서</p>' +
+    '<p class="fw-semibold text-dark mb-2" data-pg-ui-t="순서">순서</p>' +
     '<ol class="mb-2 ps-3">' +
-    '<li class="mb-1"><strong>API연동설정</strong>에서 PG사 연동 추가 후, 연동용도에 <strong>API</strong>를 켭니다.</li>' +
-    '<li class="mb-1"><strong>업체등록</strong>에서 조직을 <strong>가맹점</strong>으로 등록하고, 결제대행사에서 아래 목록의 PG 중 하나를 선택·저장합니다.</li>' +
-    '<li class="mb-1">콜백·결과 URL은 <strong>업체정보</strong> 또는 <strong>통보관리</strong> 메뉴에서 등록합니다.</li>' +
-    '<li class="mb-0">등록이 끝나면 <strong>2. 가맹점 API 생성</strong>에서 MID·엔드포인트·연동 JSON을 발급합니다.</li></ol>' +
-    '<p class="small text-muted mb-0">이 표는 API연동설정 DB를 읽어, 연동용도에 API가 포함된 행만 보여 줍니다.</p></div>' +
+    '<li class="mb-1"><span data-pg-ui-t="API연동설정에서 PG사 연동 추가 후, 연동용도에 API를 켭니다.">API연동설정에서 PG사 연동 추가 후, 연동용도에 API를 켭니다.</span></li>' +
+    '<li class="mb-1"><span data-pg-ui-t="업체등록에서 조직을 가맹점으로 등록하고, 결제대행사에서 아래 목록의 PG 중 하나를 선택·저장합니다.">업체등록에서 조직을 가맹점으로 등록하고, 결제대행사에서 아래 목록의 PG 중 하나를 선택·저장합니다.</span></li>' +
+    '<li class="mb-1"><span data-pg-ui-t="콜백·결과 URL은 업체정보 또는 통보관리 메뉴에서 등록합니다.">콜백·결과 URL은 업체정보 또는 통보관리 메뉴에서 등록합니다.</span></li>' +
+    '<li class="mb-0"><span data-pg-ui-t="등록이 끝나면 2. 가맹점 API 생성에서 MID·엔드포인트·연동 JSON을 발급합니다.">등록이 끝나면 2. 가맹점 API 생성에서 MID·엔드포인트·연동 JSON을 발급합니다.</span></li></ol>' +
+    '<p class="small text-muted mb-0" data-pg-ui-t="이 표는 API연동설정 DB를 읽어, 연동용도에 API가 포함된 행만 보여 줍니다.">이 표는 API연동설정 DB를 읽어, 연동용도에 API가 포함된 행만 보여 줍니다.</p></div>' +
     '<div class="d-flex flex-wrap gap-2 mb-3">' +
-    '<button type="button" class="btn btn-primary btn-sm" id="apiMerchRegBtnPgApi">API연동설정</button>' +
-    '<button type="button" class="btn btn-outline-primary btn-sm" id="apiMerchRegBtnCompReg">업체등록</button>' +
-    '<button type="button" class="btn btn-outline-secondary btn-sm" id="apiMerchRegBtnCompTree">업체관리</button>' +
-    '<button type="button" class="btn btn-success btn-sm" id="apiMerchRegBtnNextGen">2. 가맹점 API 생성</button></div>' +
-    '<label class="form-label small fw-semibold mb-1">연동용도에 API가 켜진 결제대행사</label>' +
+    '<button type="button" class="btn btn-primary btn-sm" id="apiMerchRegBtnPgApi" data-pg-ui-t="API연동설정">API연동설정</button>' +
+    '<button type="button" class="btn btn-outline-primary btn-sm" id="apiMerchRegBtnCompReg" data-pg-ui-t="업체등록">업체등록</button>' +
+    '<button type="button" class="btn btn-outline-secondary btn-sm" id="apiMerchRegBtnCompTree" data-pg-ui-t="업체관리">업체관리</button>' +
+    '<button type="button" class="btn btn-success btn-sm" id="apiMerchRegBtnNextGen" data-pg-ui-t="2. 가맹점 API 생성">2. 가맹점 API 생성</button></div>' +
+    '<label class="form-label small fw-semibold mb-1" data-pg-ui-t="연동용도에 API가 켜진 결제대행사">연동용도에 API가 켜진 결제대행사</label>' +
     '<div class="table-no-col-resize-wrap border rounded mb-2">' +
     '<table class="table table-sm table-bordered align-middle mb-0 w-100 table-no-col-resize">' +
-    '<thead class="table-light"><tr><th class="text-nowrap">PG코드</th><th>결제대행사명</th><th class="text-nowrap">연동용도</th><th class="text-nowrap">본사 MID</th><th class="text-center text-nowrap">본사운영</th></tr></thead>' +
-    '<tbody id="apiMerchRegPgTbody"><tr><td colspan="5" class="text-center text-muted py-3">불러오는 중…</td></tr></tbody></table></div>' +
-    '<p class="small text-muted mb-0">가맹 전용 MID·키는 업체 저장 시 가맹 바인딩에 들어갑니다. 본사 행과 다를 수 있습니다.</p></div>';
+    '<thead class="table-light"><tr><th class="text-nowrap" data-pg-ui-t="PG코드">PG코드</th><th data-pg-ui-t="결제대행사명">결제대행사명</th><th class="text-nowrap" data-pg-ui-t="연동용도">연동용도</th><th class="text-nowrap" data-pg-ui-t="본사 MID">본사 MID</th><th class="text-center text-nowrap" data-pg-ui-t="본사운영">본사운영</th></tr></thead>' +
+    '<tbody id="apiMerchRegPgTbody"><tr><td colspan="5" class="text-center text-muted py-3" data-pg-ui-t="불러오는 중…">불러오는 중…</td></tr></tbody></table></div>' +
+    '<p class="small text-muted mb-0" data-pg-ui-t="가맹 전용 MID·키는 업체 저장 시 가맹 바인딩에 들어갑니다. 본사 행과 다를 수 있습니다.">가맹 전용 MID·키는 업체 저장 시 가맹 바인딩에 들어갑니다. 본사 행과 다를 수 있습니다.</p></div>';
 
   var MERCHANT_API_GENERATE_HTML = '<div class="merchant-deploy-kit text-body">' +
-    '<h5 class="fw-semibold mb-2">2. 가맹점 API 생성</h5>' +
-    '<div class="alert alert-info small mb-3 py-3 merchant-deploy-plain-help" role="region" aria-label="화면 안내">' +
-    '<p class="fw-semibold text-dark mb-2">이 화면은 뭘 하나요?</p>' +
-    '<p class="mb-3 mb-md-2">결제를 여기서 승인하는 곳이 <strong>아닙니다</strong>. ' +
-    '다른 서버(가맹·브로커)에 넣을 <strong>연동 설정 글자 묶음(JSON)</strong>을 받아 가거나, ' +
-    '그 서버들이 쓰는 <strong>비밀번호(브로커 시크릿)</strong>를 새로 뽑거나, 보안을 더 켜 두는 곳입니다.</p>' +
-    '<p class="fw-semibold text-dark mb-1">많은 경우 이 순서만 하면 됩니다</p>' +
+    '<h5 class="fw-semibold mb-2" data-pg-ui-t="2. 가맹점 API 생성">2. 가맹점 API 생성</h5>' +
+    '<div class="alert alert-info small mb-3 py-3 merchant-deploy-plain-help" role="region" data-pg-ui-aria-label="화면 안내">' +
+    '<p class="fw-semibold text-dark mb-2" data-pg-ui-t="이 화면은 뭘 하나요?">이 화면은 뭘 하나요?</p>' +
+    '<p class="mb-3 mb-md-2"><span data-pg-ui-t="결제를 여기서 승인하는 곳이 아닙니다. 다른 서버(가맹·브로커)에 넣을 연동 설정 글자 묶음(JSON)을 받아 가거나, 그 서버들이 쓰는 비밀번호(브로커 시크릿)를 새로 뽑거나, 보안을 더 켜 두는 곳입니다.">결제를 여기서 승인하는 곳이 아닙니다. 다른 서버(가맹·브로커)에 넣을 연동 설정 글자 묶음(JSON)을 받아 가거나, 그 서버들이 쓰는 비밀번호(브로커 시크릿)를 새로 뽑거나, 보안을 더 켜 두는 곳입니다.</span></p>' +
+    '<p class="fw-semibold text-dark mb-1" data-pg-ui-t="많은 경우 이 순서만 하면 됩니다">많은 경우 이 순서만 하면 됩니다</p>' +
     '<ol class="mb-3 ps-3">' +
-    '<li class="mb-1"><strong>업체명</strong>에 가맹 이름 일부를 넣고 <strong>가맹점 검색</strong>을 누릅니다. ' +
-    '(이미 <strong>업체코드</strong>를 알면 검색 없이 코드만 입력해도 됩니다.)</li>' +
-    '<li class="mb-1">표에서 해당 가맹 줄의 <strong>선택</strong>을 누릅니다. 위쪽 <strong>업체코드</strong> 칸이 채워집니다.</li>' +
-    '<li class="mb-1"><strong>PG 범위</strong>에서 실제 붙일 결제사(PG) 하나를 고릅니다. 잘 모르겠으면 일단 <strong>전체 PG</strong>로 받아 보고, 담당자에게 물어도 됩니다.</li>' +
-    '<li class="mb-0"><strong>연동 키트 JSON</strong>을 누릅니다. 맨 아래 <strong>회색 큰 칸</strong>에 나오는 글 전체를 복사해, 서버·연동 담당자에게 보내거나 설정에 넣습니다.</li>' +
+    '<li class="mb-1"><span data-pg-ui-t="업체명에 가맹 이름 일부를 넣고 가맹점 검색을 누릅니다. (이미 업체코드를 알면 검색 없이 코드만 입력해도 됩니다.)">업체명에 가맹 이름 일부를 넣고 가맹점 검색을 누릅니다. ' +
+    '(이미 업체코드를 알면 검색 없이 코드만 입력해도 됩니다.)</span></li>' +
+    '<li class="mb-1"><span data-pg-ui-t="표에서 해당 가맹 줄의 선택을 누릅니다. 위쪽 업체코드 칸이 채워집니다.">표에서 해당 가맹 줄의 선택을 누릅니다. 위쪽 업체코드 칸이 채워집니다.</span></li>' +
+    '<li class="mb-1"><span data-pg-ui-t="PG 범위에서 실제 붙일 결제사(PG) 하나를 고릅니다. 잘 모르겠으면 일단 전체 PG로 받아 보고, 담당자에게 물어도 됩니다.">PG 범위에서 실제 붙일 결제사(PG) 하나를 고릅니다. 잘 모르겠으면 일단 전체 PG로 받아 보고, 담당자에게 물어도 됩니다.</span></li>' +
+    '<li class="mb-0"><span data-pg-ui-t="연동 키트 JSON을 누릅니다. 맨 아래 회색 큰 칸에 나오는 글 전체를 복사해, 서버·연동 담당자에게 보내거나 설정에 넣습니다.">연동 키트 JSON을 누릅니다. 맨 아래 회색 큰 칸에 나오는 글 전체를 복사해, 서버·연동 담당자에게 보내거나 설정에 넣습니다.</span></li>' +
     '</ol>' +
-    '<p class="fw-semibold text-dark mb-1">아래 두 가지는 꼭 구분하세요</p>' +
+    '<p class="fw-semibold text-dark mb-1" data-pg-ui-t="아래 두 가지는 꼭 구분하세요">아래 두 가지는 꼭 구분하세요</p>' +
     '<ul class="mb-3 ps-3">' +
-    '<li class="mb-1"><strong>연동 키트 JSON</strong> — 지금 서버에 저장된 연동 정보를 <strong>읽기만</strong> 합니다. 가맹이나 PG가 망가지지는 않습니다.</li>' +
-    '<li class="mb-1"><strong>브로커 시크릿 재발급</strong> — 누르는 순간 예전 비밀번호는 쓸 수 없게 됩니다. ' +
-    '유출·도용이 의심될 때나, 담당자가 교체하라고 했을 때만 누르세요. 브로커 서버 설정도 <strong>같은 날</strong> 맞춰 바꿔야 결제가 끊기지 않습니다.</li>' +
+    '<li class="mb-1"><span data-pg-ui-t="연동 키트 JSON — 지금 서버에 저장된 연동 정보를 읽기만 합니다. 가맹이나 PG가 망가지지는 않습니다.">연동 키트 JSON — 지금 서버에 저장된 연동 정보를 읽기만 합니다. 가맹이나 PG가 망가지지는 않습니다.</span></li>' +
+    '<li class="mb-1"><span data-pg-ui-t="브로커 시크릿 재발급 — 누르는 순간 예전 비밀번호는 쓸 수 없게 됩니다. 유출·도용이 의심될 때나, 담당자가 교체하라고 했을 때만 누르세요. 브로커 서버 설정도 같은 날 맞춰 바꿔야 결제가 끊기지 않습니다.">브로커 시크릿 재발급 — 누르는 순간 예전 비밀번호는 쓸 수 없게 됩니다. ' +
+    '유출·도용이 의심될 때나, 담당자가 교체하라고 했을 때만 누르세요. 브로커 서버 설정도 같은 날 맞춰 바꿔야 결제가 끊기지 않습니다.</span></li>' +
     '</ul>' +
-    '<p class="fw-semibold text-dark mb-1">입력 칸은 이렇게 읽으면 됩니다</p>' +
+    '<p class="fw-semibold text-dark mb-1" data-pg-ui-t="입력 칸은 이렇게 읽으면 됩니다">입력 칸은 이렇게 읽으면 됩니다</p>' +
     '<ul class="mb-3 ps-3">' +
-    '<li class="mb-1"><strong>업체코드</strong> — 그 가맹을 시스템에서 부른 번호(M000… 같은 것). 목록 없이 직접 쳐도 됩니다.</li>' +
-    '<li class="mb-1"><strong>업체명</strong> — 사람이 부르는 상호 일부. 검색용입니다.</li>' +
-    '<li class="mb-1"><strong>PG 범위</strong> — 방금 말한 JSON·시크릿·강제 저장이 <strong>어느 PG 줄</strong>에 적용될지 고르는 것입니다.</li>' +
+    '<li class="mb-1"><span data-pg-ui-t="업체코드 — 그 가맹을 시스템에서 부른 번호(M000… 같은 것). 목록 없이 직접 쳐도 됩니다.">업체코드 — 그 가맹을 시스템에서 부른 번호(M000… 같은 것). 목록 없이 직접 쳐도 됩니다.</span></li>' +
+    '<li class="mb-1"><span data-pg-ui-t="업체명 — 사람이 부르는 상호 일부. 검색용입니다.">업체명 — 사람이 부르는 상호 일부. 검색용입니다.</span></li>' +
+    '<li class="mb-1"><span data-pg-ui-t="PG 범위 — 방금 말한 JSON·시크릿·강제 저장이 어느 PG 줄에 적용될지 고르는 것입니다.">PG 범위 — 방금 말한 JSON·시크릿·강제 저장이 어느 PG 줄에 적용될지 고르는 것입니다.</span></li>' +
     '</ul>' +
-    '<p class="fw-semibold text-dark mb-1">강제(시크릿 헤더 필수)란?</p>' +
-    '<p class="mb-2">체크하면 외부에서 우리 미들웨어를 부를 때 <strong>비밀번호 헤더를 반드시</strong> 붙이게 합니다. ' +
-    '보안을 올리는 설정이라, 개발·연동 담당과 말 맞춘 뒤 <strong>강제여부 저장</strong>을 누르는 것이 안전합니다.</p>' +
-    '<p class="fw-semibold text-dark mb-1">표에 아무도 안 나올 때</p>' +
-    '<p class="mb-0 text-muted">검색어를 줄이거나 바꿔 보세요. 그래도 0건이면, 지금 로그인한 계정으로는 그 가맹이 안 보이는 것입니다(상위 조직·권한). 본사 관리자에게 조회 범위를 물어보세요.</p>' +
+    '<p class="fw-semibold text-dark mb-1" data-pg-ui-t="강제(시크릿 헤더 필수)란?">강제(시크릿 헤더 필수)란?</p>' +
+    '<p class="mb-2"><span data-pg-ui-t="체크하면 외부에서 우리 미들웨어를 부를 때 비밀번호 헤더를 반드시 붙이게 합니다. 보안을 올리는 설정이라, 개발·연동 담당과 말 맞춘 뒤 강제여부 저장을 누르는 것이 안전합니다.">체크하면 외부에서 우리 미들웨어를 부를 때 비밀번호 헤더를 반드시 붙이게 합니다. 보안을 올리는 설정이라, 개발·연동 담당과 말 맞춘 뒤 강제여부 저장을 누르는 것이 안전합니다.</span></p>' +
+    '<p class="fw-semibold text-dark mb-1" data-pg-ui-t="표에 아무도 안 나올 때">표에 아무도 안 나올 때</p>' +
+    '<p class="mb-0 text-muted"><span data-pg-ui-t="검색어를 줄이거나 바꿔 보세요. 그래도 0건이면, 지금 로그인한 계정으로는 그 가맹이 안 보이는 것입니다(상위 조직·권한). 본사 관리자에게 조회 범위를 물어보세요.">검색어를 줄이거나 바꿔 보세요. 그래도 0건이면, 지금 로그인한 계정으로는 그 가맹이 안 보이는 것입니다(상위 조직·권한). 본사 관리자에게 조회 범위를 물어보세요.</span></p>' +
     '</div>' +
     '<details class="merchant-deploy-help small mb-3 p-2 border rounded bg-light">' +
-    '<summary class="fw-semibold text-secondary">개발자용 한 줄(접기)</summary>' +
-    '<p class="mb-1 mt-2">키트에는 바인딩·공개 API 베이스·노티 URL·브로커 등이 JSON으로 포함됩니다. ' +
-    '강제 시 헤더 <code>X-Icopay-Merchant-Broker-Secret</code> 없이 <code>/api/middleware/v1/pg/...</code> 호출이 막힙니다. ' +
-    '신규 PG는 본사 PG 연동 설정에 올라오면 PG 범위 목록에 자동 반영됩니다.</p>' +
+    '<summary class="fw-semibold text-secondary" data-pg-ui-t="개발자용 한 줄(접기)">개발자용 한 줄(접기)</summary>' +
+    '<p class="mb-1 mt-2"><span data-pg-ui-t="키트에는 바인딩·공개 API 베이스·노티 URL·브로커 등이 JSON으로 포함됩니다. 강제 시 헤더 X-Icopay-Merchant-Broker-Secret 없이 /api/middleware/v1/pg/... 호출이 막힙니다. 신규 PG는 본사 PG 연동 설정에 올라오면 PG 범위 목록에 자동 반영됩니다.">키트에는 바인딩·공개 API 베이스·노티 URL·브로커 등이 JSON으로 포함됩니다. 강제 시 헤더 X-Icopay-Merchant-Broker-Secret 없이 /api/middleware/v1/pg/... 호출이 막힙니다. 신규 PG는 본사 PG 연동 설정에 올라오면 PG 범위 목록에 자동 반영됩니다.</span></p>' +
     '</details>' +
     '<div id="merchantGenKitSummary" class="alert alert-secondary small mb-3 py-2 d-none" role="status" aria-live="polite"></div>' +
     '<div class="row g-2 mb-3">' +
-    '<div class="col-md-4"><label class="form-label small mb-0">업체코드 (직접 입력)</label>' +
-    '<input type="text" class="form-control form-control-sm" id="merchantDeployCompId" autocomplete="off" placeholder="예: M000123"></div>' +
-    '<div class="col-md-4"><label class="form-label small mb-0">업체명 (검색)</label>' +
+    '<div class="col-md-4"><label class="form-label small mb-0" data-pg-ui-t="업체코드 (직접 입력)">업체코드 (직접 입력)</label>' +
+    '<input type="text" class="form-control form-control-sm" id="merchantDeployCompId" autocomplete="off" data-pg-ui-placeholder="예: M000123" placeholder="예: M000123"></div>' +
+    '<div class="col-md-4"><label class="form-label small mb-0" data-pg-ui-t="업체명 (검색)">업체명 (검색)</label>' +
     '<input type="text" class="form-control form-control-sm" id="merchantDeploySearchCompNm" autocomplete="off"></div>' +
-    '<div class="col-md-4"><label class="form-label small mb-0">PG 범위 (키트·시크릿)</label>' +
+    '<div class="col-md-4"><label class="form-label small mb-0" data-pg-ui-t="PG 범위 (키트·시크릿)">PG 범위 (키트·시크릿)</label>' +
     '<select class="form-control form-control-sm" id="merchantDeployVendorScope"></select></div></div>' +
     '<div class="d-flex flex-wrap gap-2 align-items-center mb-3">' +
-    '<button type="button" class="btn btn-primary btn-sm" id="merchantDeploySearchBtn">가맹점 검색</button>' +
-    '<button type="button" class="btn btn-outline-primary btn-sm" id="merchantDeployLoadKitBtn">연동 패키지 생성(JSON)</button>' +
-    '<button type="button" class="btn btn-warning btn-sm" id="merchantDeployRotateSecretBtn">브로커 시크릿 재발급</button>' +
+    '<button type="button" class="btn btn-primary btn-sm" id="merchantDeploySearchBtn" data-pg-ui-t="가맹점 검색">가맹점 검색</button>' +
+    '<button type="button" class="btn btn-outline-primary btn-sm" id="merchantDeployLoadKitBtn" data-pg-ui-t="연동 패키지 생성(JSON)">연동 패키지 생성(JSON)</button>' +
+    '<button type="button" class="btn btn-warning btn-sm" id="merchantDeployRotateSecretBtn" data-pg-ui-t="브로커 시크릿 재발급">브로커 시크릿 재발급</button>' +
     '<label class="small mb-0 ms-1 d-flex align-items-center gap-1"><input type="checkbox" id="merchantDeployEnforceYn" checked> ' +
-    '<span>강제(시크릿 헤더 필수)</span></label>' +
-    '<button type="button" class="btn btn-outline-secondary btn-sm" id="merchantDeployEnforceBtn">강제여부 저장</button></div>' +
+    '<span data-pg-ui-t="강제(시크릿 헤더 필수)">강제(시크릿 헤더 필수)</span></label>' +
+    '<button type="button" class="btn btn-outline-secondary btn-sm" id="merchantDeployEnforceBtn" data-pg-ui-t="강제여부 저장">강제여부 저장</button></div>' +
     '<div class="merchant-deploy-table-wrap table-no-col-resize-wrap border rounded mb-2">' +
     '<table class="table table-sm table-bordered align-middle merchant-deploy-merchant-table table-no-col-resize w-100 mb-0" id="merchantDeployMerchantGrid">' +
     '<colgroup><col class="merchant-deploy-col-act" /><col class="merchant-deploy-col-code" /><col /><col class="merchant-deploy-col-cur" /></colgroup>' +
-    '<thead class="table-light"><tr><th class="text-center text-nowrap">선택</th><th class="text-nowrap">업체코드</th><th>업체명</th><th class="text-nowrap">기준통화</th></tr></thead>' +
-    '<tbody><tr><td colspan="4" class="text-center text-muted py-3">로딩 중…</td></tr></tbody></table></div>' +
+    '<thead class="table-light"><tr><th class="text-center text-nowrap" data-pg-ui-t="선택">선택</th><th class="text-nowrap" data-pg-ui-t="업체코드">업체코드</th><th data-pg-ui-t="업체명">업체명</th><th class="text-nowrap" data-pg-ui-t="기준통화">기준통화</th></tr></thead>' +
+    '<tbody><tr><td colspan="4" class="text-center text-muted py-3" data-pg-ui-t="로딩 중…">로딩 중…</td></tr></tbody></table></div>' +
     '<p class="small text-muted mb-2" id="merchantDeployPageInfo"></p>' +
-    '<label class="form-label small">응답 / 키트 (JSON)</label>' +
+    '<label class="form-label small" data-pg-ui-t="응답 / 키트 (JSON)">응답 / 키트 (JSON)</label>' +
     '<pre id="merchantDeployKitJson" class="bg-light p-3 small mb-0" style="max-height:520px;overflow:auto;border:1px solid #dee2e6;white-space:pre-wrap;">' +
-    '업체를 고른 뒤 「연동 패키지 생성(JSON)」을 누르면 요약과 JSON이 채워집니다.</pre></div>';
+    '<span data-pg-ui-t="업체를 고른 뒤 「연동 패키지 생성(JSON)」을 누르면 요약과 JSON이 채워집니다.">업체를 고른 뒤 「연동 패키지 생성(JSON)」을 누르면 요약과 JSON이 채워집니다.</span></pre></div>';
 
   var MENU_SCREENS = {
     '/hq/apiMerchantDeployReg': {
@@ -753,20 +782,23 @@
           id: 'hqDefaultCommFeeCard',
           notice: '총본사~영업점은 조직 배분(결제율·건당)에 반영됩니다. 가맹 열은 가맹점에 적용되는 합계(기본값)이며, 가맹점이 본사설정을 따를 때 기준이 됩니다. 업체관리 수수료에서 수정하면 그 값이 우선합니다. 결제·USDT·FX는 승인금액 기준 %, 3DS는 정책통화 기준 건당 고정, 나머지 건당·월간은 통화 단위입니다.',
           rows: [
-            [{ type: 'customHtml', col: 2, html: '<div class="form-field-block">' +
-              '<label class="form-label">정책코드</label>' +
+            [{ type: 'customHtml', col: 2, html: function () {
+              return '<div class="form-field-block">' +
+              '<label class="form-label">' + escUi(L('정책코드')) + '</label>' +
               '<input type="hidden" name="templateScope" id="hqDefCommTemplateScope" value="">' +
-              '<select id="hqDefCommTemplateScopeDisplay" class="form-control form-control-sm" disabled title="코드는 저장 시 자동 부여되며, 수정할 수 없습니다.">' +
-              '<option value="">(신규) 저장 시 자동 부여</option></select>' +
-              '<p class="text-muted small mb-0 mt-1">고유 코드는 시스템이 부여합니다. 목록에서 정책을 불러와 편집만 할 수 있습니다.</p></div>' },
-            { label: '정책명', type: 'text', name: 'policyName', col: 2, placeholder: '예: 기본정책 A' }, { label: '배포', type: 'select', name: 'deployYn', options: [{ v: 'Y', t: '배포' }, { v: 'N', t: '미배포' }], col: 2 }, { label: '통화코드', type: 'select', name: 'currencyCode', col: 2, options: [{ v: 'KRW', t: 'KRW' }, { v: 'USD', t: 'USD' }, { v: 'JPY', t: 'JPY' }, { v: 'EUR', t: 'EUR' }, { v: 'CNY', t: 'CNY' }, { v: 'THB', t: 'THB' }, { v: 'VND', t: 'VND' }, { v: 'GBP', t: 'GBP' }, { v: 'TWD', t: 'TWD' }, { v: 'HKD', t: 'HKD' }, { v: 'USDT', t: 'USDT' }] }],
-            [{ type: 'customHtml', col: 12, html: hqDefaultCommissionTierMatrixHtml() }],
+              '<select id="hqDefCommTemplateScopeDisplay" class="form-control form-control-sm" disabled title="' + escUi(L('코드는 저장 시 자동 부여되며, 수정할 수 없습니다.')) + '">' +
+              '<option value="">' + escUi(L('(신규) 저장 시 자동 부여')) + '</option></select>' +
+              '<p class="text-muted small mb-0 mt-1">' + escUi(L('고유 코드는 시스템이 부여합니다. 목록에서 정책을 불러와 편집만 할 수 있습니다.')) + '</p></div>';
+            } }, { label: '정책명', type: 'text', name: 'policyName', col: 2, placeholder: '예: 기본정책 A' }, { label: '배포', type: 'select', name: 'deployYn', options: [{ v: 'Y', t: '배포' }, { v: 'N', t: '미배포' }], col: 2 }, { label: '통화코드', type: 'select', name: 'currencyCode', col: 2, options: [{ v: 'KRW', t: 'KRW' }, { v: 'USD', t: 'USD' }, { v: 'JPY', t: 'JPY' }, { v: 'EUR', t: 'EUR' }, { v: 'CNY', t: 'CNY' }, { v: 'THB', t: 'THB' }, { v: 'VND', t: 'VND' }, { v: 'GBP', t: 'GBP' }, { v: 'TWD', t: 'TWD' }, { v: 'HKD', t: 'HKD' }, { v: 'USDT', t: 'USDT' }] }],
+            [{ type: 'customHtml', col: 12, html: hqDefaultCommissionTierMatrixHtml }],
             [{ label: '차지백 구간정책', type: 'select', name: 'chargebackPolicyId', col: 6, options: [{ v: '', t: '(미사용) 건당 차지백만' }] }],
-            [{ type: 'customHtml', col: 12, html: hqDefaultExtraFeesCardHtml() }],
-            [{ type: 'customHtml', col: 12, html: '<div class="form-field-block">' +
-              '<label class="form-label" for="hqDefCommPolicyRemark">정책비고(저장)</label>' +
+            [{ type: 'customHtml', col: 12, html: hqDefaultExtraFeesCardHtml }],
+            [{ type: 'customHtml', col: 12, html: function () {
+              return '<div class="form-field-block">' +
+              '<label class="form-label" for="hqDefCommPolicyRemark">' + escUi(L('정책비고(저장)')) + '</label>' +
               '<textarea class="form-control form-control-sm" name="policyRemark" id="hqDefCommPolicyRemark" rows="3"></textarea>' +
-              '</div>' }]
+              '</div>';
+            } }]
           ]
         },
         {
@@ -775,10 +807,12 @@
           notice: '가맹점 등록의 [보류율 설정]과 동일한 개념입니다. 승인(결제) 금액 중 롤링(담보금) 비율(%)만큼 보류하고, 설정한 보류 영업일 수가 지나면 정산 실행 시 지급액에 합산됩니다. 본사정책 따름(Y)이면 가맹점은 아래 본사 템플릿의 롤링 비율·일수를 따릅니다.',
           rows: [
             [{ label: '롤링(담보금)비율(%)', type: 'text', name: 'rollingPct', col: 2, placeholder: '5 또는 10' }, { label: '롤링보류일수', type: 'text', name: 'rollingDays', col: 2, placeholder: '120 또는 180' }],
-            [{ type: 'customHtml', col: 12, html: '<div class="d-flex justify-content-end flex-wrap gap-2 mt-2 pt-3 border-top">' +
-              '<button type="button" class="btn btn-outline-secondary btn-sm" id="hqDefCommNewPolicyBtn">신규정책</button>' +
-              '<button type="button" class="btn btn-primary btn-sm" id="hqDefCommFormSaveBtn">저장</button>' +
-              '</div>' }]
+            [{ type: 'customHtml', col: 12, html: function () {
+              return '<div class="d-flex justify-content-end flex-wrap gap-2 mt-2 pt-3 border-top">' +
+              '<button type="button" class="btn btn-outline-secondary btn-sm" id="hqDefCommNewPolicyBtn">' + escUi(L('신규정책')) + '</button>' +
+              '<button type="button" class="btn btn-primary btn-sm" id="hqDefCommFormSaveBtn">' + escUi(L('저장')) + '</button>' +
+              '</div>';
+            } }]
           ]
         },
         {
@@ -787,10 +821,11 @@
           rows: [[{
             type: 'customHtml',
             col: 12,
-            html: '<div id="hqDefaultCommissionFlash" class="alert alert-dismissible d-none mb-3" role="alert">' +
+            html: function () {
+              return '<div id="hqDefaultCommissionFlash" class="alert alert-dismissible d-none mb-3" role="alert">' +
               '<span data-pg-banner-text></span>' +
-              '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="닫기"></button></div>' +
-              '<p class="small text-muted mb-2 mb-md-1">헤더 1행은 <strong>수수료 고정</strong>·<strong>수수료 %</strong>·<strong>담보율</strong>·<strong>기타</strong> 묶음입니다. <strong>수수료 %</strong> 열은 숫자만 표시(단위 % 생략). 결제·USDT·FX는 승인금액 기준 %이며, <strong>3DS</strong>는 정책통화 기준 <strong>건당 고정</strong>입니다. 담보(롤링) 비율은 승인금액 기준 %입니다. 열이 많아 표에 <strong>최소 너비</strong>를 두었으며, 화면이 좁으면 아래 표 영역을 <strong>가로 스크롤</strong>하여 전체 열을 볼 수 있습니다.</p>' +
+              '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="' + escUi(L('닫기')) + '"></button></div>' +
+              '<p class="small text-muted mb-2 mb-md-1">' + L('헤더 1행은 <strong>수수료 고정</strong>·<strong>수수료 %</strong>·<strong>담보율</strong>·<strong>기타</strong> 묶음입니다. <strong>수수료 %</strong> 열은 숫자만 표시(단위 % 생략). 결제·USDT·FX는 승인금액 기준 %이며, <strong>3DS</strong>는 정책통화 기준 <strong>건당 고정</strong>입니다. 담보(롤링) 비율은 승인금액 기준 %입니다. 열이 많아 표에 <strong>최소 너비</strong>를 두었으며, 화면이 좁으면 아래 표 영역을 <strong>가로 스크롤</strong>하여 전체 열을 볼 수 있습니다.') + '</p>' +
               '<div class="table-responsive border rounded hq-default-comm-policy-scroll">' +
               '<table class="table table-sm table-hover align-middle mb-0 hq-default-comm-policy-table table-no-col-resize">' +
               '<colgroup>' +
@@ -806,38 +841,39 @@
               '<tr>' +
               '<th rowspan="2" class="text-center align-middle hq-def-comm-th-chk">' +
               '<div class="hq-def-comm-th-chk-inner flex-column">' +
-              '<input type="checkbox" class="form-check-input m-0" id="hqDefCommSelectAll" title="전체 선택" aria-label="전체 선택" />' +
-              '<span class="hq-def-comm-th-chk-label">선택</span>' +
+              '<input type="checkbox" class="form-check-input m-0" id="hqDefCommSelectAll" title="' + escUi(L('전체 선택')) + '" aria-label="' + escUi(L('전체 선택')) + '" />' +
+              '<span class="hq-def-comm-th-chk-label">' + escUi(L('선택')) + '</span>' +
               '</div></th>' +
-              '<th rowspan="2" class="text-center align-middle hq-def-comm-th-code">코드</th>' +
-              '<th rowspan="2" class="text-center align-middle hq-def-comm-th-name">이름</th>' +
-              '<th rowspan="2" class="text-center align-middle hq-def-comm-th-cb-zone small">차지백<br>구간정책</th>' +
-              '<th rowspan="2" class="text-center align-middle hq-def-comm-th-deploy">적용</th>' +
-              '<th rowspan="2" class="text-center align-middle hq-def-comm-th-cur">통화</th>' +
-              '<th colspan="11" class="text-center align-middle small hq-def-comm-th-group border-start">수수료 고정</th>' +
-              '<th colspan="3" class="text-center align-middle small hq-def-comm-th-group border-start">수수료 %</th>' +
-              '<th colspan="2" class="text-center align-middle small hq-def-comm-th-group border-start">담보율</th>' +
-              '<th rowspan="2" class="text-center align-middle hq-def-comm-th-mon border-start">월간</th>' +
-              '<th colspan="4" class="text-center align-middle small hq-def-comm-th-group border-start">기타</th>' +
-              '<th rowspan="2" class="text-center align-middle hq-def-comm-th-upd text-nowrap border-start">일시</th>' +
+              '<th rowspan="2" class="text-center align-middle hq-def-comm-th-code" data-pg-ui-t="코드">' + escUi(L('코드')) + '</th>' +
+              '<th rowspan="2" class="text-center align-middle hq-def-comm-th-name" data-pg-ui-t="이름">' + escUi(L('이름')) + '</th>' +
+              '<th rowspan="2" class="text-center align-middle hq-def-comm-th-cb-zone small"><span data-pg-ui-t="차지백">' + escUi(L('차지백')) + '</span><br><span data-pg-ui-t="구간정책">' + escUi(L('구간정책')) + '</span></th>' +
+              '<th rowspan="2" class="text-center align-middle hq-def-comm-th-deploy" data-pg-ui-t="적용">' + escUi(L('적용')) + '</th>' +
+              '<th rowspan="2" class="text-center align-middle hq-def-comm-th-cur" data-pg-ui-t="통화">' + escUi(L('통화')) + '</th>' +
+              '<th colspan="11" class="text-center align-middle small hq-def-comm-th-group border-start" data-pg-ui-t="수수료 고정">' + escUi(L('수수료 고정')) + '</th>' +
+              '<th colspan="3" class="text-center align-middle small hq-def-comm-th-group border-start" data-pg-ui-t="수수료 %">' + escUi(L('수수료 %')) + '</th>' +
+              '<th colspan="2" class="text-center align-middle small hq-def-comm-th-group border-start" data-pg-ui-t="담보율">' + escUi(L('담보율')) + '</th>' +
+              '<th rowspan="2" class="text-center align-middle hq-def-comm-th-mon border-start" data-pg-ui-t="월간">' + escUi(L('월간')) + '</th>' +
+              '<th colspan="4" class="text-center align-middle small hq-def-comm-th-group border-start" data-pg-ui-t="기타">' + escUi(L('기타')) + '</th>' +
+              '<th rowspan="2" class="text-center align-middle hq-def-comm-th-upd text-nowrap border-start" data-pg-ui-t="일시">' + escUi(L('일시')) + '</th>' +
               '</tr>' +
               '<tr>' +
-              '<th class="hq-def-comm-th-sub text-center border-start">건당</th><th class="hq-def-comm-th-sub text-center">실패</th><th class="hq-def-comm-th-sub text-center">정산</th><th class="hq-def-comm-th-sub text-center">송금</th><th class="hq-def-comm-th-sub text-center">U송금</th><th class="hq-def-comm-th-sub text-center">차지백</th><th class="hq-def-comm-th-sub text-center">취소</th><th class="hq-def-comm-th-sub text-center">무효</th><th class="hq-def-comm-th-sub text-center">수무효</th><th class="hq-def-comm-th-sub text-center">환불</th><th class="hq-def-comm-th-sub text-center">3DS</th>' +
-              '<th class="hq-def-comm-th-sub text-center border-start">결제</th><th class="hq-def-comm-th-sub text-center">USDT</th><th class="hq-def-comm-th-sub text-center">FX</th>' +
-              '<th class="hq-def-comm-th-sub text-center border-start">비율</th><th class="hq-def-comm-th-sub text-center">일</th>' +
-              '<th id="hqDefCommExtraHead1" class="hq-def-comm-th-sub text-center border-start">기타1</th><th id="hqDefCommExtraHead2" class="hq-def-comm-th-sub text-center">기타2</th><th id="hqDefCommExtraHead3" class="hq-def-comm-th-sub text-center">기타3</th><th id="hqDefCommExtraHead4" class="hq-def-comm-th-sub text-center">기타4</th>' +
+              '<th class="hq-def-comm-th-sub text-center border-start" data-pg-ui-t="건당">' + escUi(L('건당')) + '</th><th class="hq-def-comm-th-sub text-center" data-pg-ui-t="실패">' + escUi(L('실패')) + '</th><th class="hq-def-comm-th-sub text-center" data-pg-ui-t="정산">' + escUi(L('정산')) + '</th><th class="hq-def-comm-th-sub text-center" data-pg-ui-t="송금">' + escUi(L('송금')) + '</th><th class="hq-def-comm-th-sub text-center" data-pg-ui-t="U송금">' + escUi(L('U송금')) + '</th><th class="hq-def-comm-th-sub text-center" data-pg-ui-t="차지백">' + escUi(L('차지백')) + '</th><th class="hq-def-comm-th-sub text-center" data-pg-ui-t="취소">' + escUi(L('취소')) + '</th><th class="hq-def-comm-th-sub text-center" data-pg-ui-t="무효">' + escUi(L('무효')) + '</th><th class="hq-def-comm-th-sub text-center" data-pg-ui-t="수무효">' + escUi(L('수무효')) + '</th><th class="hq-def-comm-th-sub text-center" data-pg-ui-t="환불">' + escUi(L('환불')) + '</th><th class="hq-def-comm-th-sub text-center">3DS</th>' +
+              '<th class="hq-def-comm-th-sub text-center border-start" data-pg-ui-t="결제">' + escUi(L('결제')) + '</th><th class="hq-def-comm-th-sub text-center">USDT</th><th class="hq-def-comm-th-sub text-center">FX</th>' +
+              '<th class="hq-def-comm-th-sub text-center border-start" data-pg-ui-t="비율">' + escUi(L('비율')) + '</th><th class="hq-def-comm-th-sub text-center" data-pg-ui-t="일">' + escUi(L('일')) + '</th>' +
+              '<th id="hqDefCommExtraHead1" class="hq-def-comm-th-sub text-center border-start" data-pg-ui-t="기타1">' + escUi(L('기타1')) + '</th><th id="hqDefCommExtraHead2" class="hq-def-comm-th-sub text-center" data-pg-ui-t="기타2">' + escUi(L('기타2')) + '</th><th id="hqDefCommExtraHead3" class="hq-def-comm-th-sub text-center" data-pg-ui-t="기타3">' + escUi(L('기타3')) + '</th><th id="hqDefCommExtraHead4" class="hq-def-comm-th-sub text-center" data-pg-ui-t="기타4">' + escUi(L('기타4')) + '</th>' +
               '</tr>' +
               '</thead>' +
               '<tbody id="hqDefaultCommissionPolicyList"></tbody></table>' +
-              '<p class="small text-muted px-3 py-2 mb-0 d-none" id="hqDefaultCommissionPolicyListEmpty">등록된 템플릿이 없습니다. 위에서 [신규정책] 후 [저장]하세요.</p></div>' +
+              '<p class="small text-muted px-3 py-2 mb-0 d-none" id="hqDefaultCommissionPolicyListEmpty">' + escUi(L('등록된 템플릿이 없습니다. 위에서 [신규정책] 후 [저장]하세요.')) + '</p></div>' +
               '<div class="modal fade" id="hqDefaultCommissionDeleteModal" tabindex="-1" aria-hidden="true">' +
               '<div class="modal-dialog modal-dialog-centered"><div class="modal-content">' +
-              '<div class="modal-header"><h5 class="modal-title">정책 삭제</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="닫기"></button></div>' +
+              '<div class="modal-header"><h5 class="modal-title">' + escUi(L('정책 삭제')) + '</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="' + escUi(L('닫기')) + '"></button></div>' +
               '<div class="modal-body"><p class="mb-0" id="hqDefaultCommissionDeleteModalText"></p></div>' +
               '<div class="modal-footer">' +
-              '<button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">취소</button>' +
-              '<button type="button" class="btn btn-danger btn-sm" id="hqDefaultCommissionDeleteConfirmBtn">삭제</button>' +
-              '</div></div></div></div>'
+              '<button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">' + escUi(L('취소')) + '</button>' +
+              '<button type="button" class="btn btn-danger btn-sm" id="hqDefaultCommissionDeleteConfirmBtn">' + escUi(L('삭제')) + '</button>' +
+              '</div></div></div></div>';
+            }
           }]]
         }
       ],
@@ -854,24 +890,26 @@
         rows: [[{
           type: 'customHtml',
           col: 12,
-          html: '<div id="hqChargebackPolicyFlash" class="alert alert-dismissible d-none mb-3" role="alert"><span data-pg-banner-text></span><button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="닫기"></button></div>' +
-            '<div class="row g-3"><div class="col-12 col-lg-7"><div class="card h-100"><div class="card-header py-2 small fw-semibold">저장된 유형</div><div class="card-body p-2">' +
-            '<div class="table-responsive border rounded" style="max-height:480px;overflow-y:auto"><table class="table table-sm table-hover align-middle mb-0 hq-chargeback-policy-saved-table"><thead class="table-light"><tr><th class="text-nowrap">ID</th><th>이름</th><th class="text-nowrap">기준통화</th><th class="hq-cb-list-remark-th">비고</th></tr></thead><tbody id="hqChargebackPolicyListTbody"><tr><td colspan="4" class="text-muted text-center small">불러오는 중…</td></tr></tbody></table></div>' +
-            '<button type="button" class="btn btn-success btn-sm mt-2 w-100" id="hqChargebackPolicyNewBtn">새 유형</button></div></div></div>' +
-            '<div class="col-12 col-lg-5"><div class="card h-100"><div class="card-header py-2 small fw-semibold">편집</div><div class="card-body p-2">' +
+          html: function () {
+            return '<div id="hqChargebackPolicyFlash" class="alert alert-dismissible d-none mb-3" role="alert"><span data-pg-banner-text></span><button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="' + escUi(L('닫기')) + '"></button></div>' +
+            '<div class="row g-3"><div class="col-12 col-lg-7"><div class="card h-100"><div class="card-header py-2 small fw-semibold">' + escUi(L('저장된 유형')) + '</div><div class="card-body p-2">' +
+            '<div class="table-responsive border rounded" style="max-height:480px;overflow-y:auto"><table class="table table-sm table-hover align-middle mb-0 hq-chargeback-policy-saved-table"><thead class="table-light"><tr><th class="text-nowrap">ID</th><th data-pg-ui-t="이름">' + escUi(L('이름')) + '</th><th class="text-nowrap" data-pg-ui-t="기준통화">' + escUi(L('기준통화')) + '</th><th class="hq-cb-list-remark-th" data-pg-ui-t="비고">' + escUi(L('비고')) + '</th></tr></thead><tbody id="hqChargebackPolicyListTbody"><tr><td colspan="4" class="text-muted text-center small">' + escUi(L('불러오는 중…')) + '</td></tr></tbody></table></div>' +
+            '<button type="button" class="btn btn-success btn-sm mt-2 w-100" id="hqChargebackPolicyNewBtn" data-pg-ui-t="새 유형">' + escUi(L('새 유형')) + '</button></div></div></div>' +
+            '<div class="col-12 col-lg-5"><div class="card h-100"><div class="card-header py-2 small fw-semibold">' + escUi(L('편집')) + '</div><div class="card-body p-2">' +
             '<input type="hidden" id="hqCbPolId" value="" />' +
-            '<div class="mb-2"><label class="form-label small mb-0" for="hqCbPolName">이름</label><input type="text" class="form-control form-control-sm" id="hqCbPolName" maxlength="120" placeholder="예: 월간 차지백 단가표" /></div>' +
-            '<div class="mb-2"><label class="form-label small mb-0" for="hqCbPolCurrencyCode">기준통화</label><select class="form-select form-select-sm" id="hqCbPolCurrencyCode">' +
+            '<div class="mb-2"><label class="form-label small mb-0" for="hqCbPolName" data-pg-ui-t="이름">' + escUi(L('이름')) + '</label><input type="text" class="form-control form-control-sm" id="hqCbPolName" maxlength="120" data-pg-ui-placeholder="예: 월간 차지백 단가표" placeholder="' + escUi(L('예: 월간 차지백 단가표')) + '" /></div>' +
+            '<div class="mb-2"><label class="form-label small mb-0" for="hqCbPolCurrencyCode" data-pg-ui-t="기준통화">' + escUi(L('기준통화')) + '</label><select class="form-select form-select-sm" id="hqCbPolCurrencyCode">' +
             '<option value="KRW">KRW</option><option value="USD">USD</option><option value="JPY">JPY</option><option value="EUR">EUR</option>' +
             '<option value="CNY">CNY</option><option value="THB">THB</option><option value="VND">VND</option><option value="GBP">GBP</option>' +
             '<option value="TWD">TWD</option><option value="HKD">HKD</option><option value="USDT">USDT</option></select>' +
-            '<p class="small text-muted mb-0 mt-1">구간 건당 금액의 표시·집계 단위 안내용입니다.</p></div>' +
-            '<div class="mb-2"><label class="form-label small mb-0" for="hqCbPolRemark">비고</label><textarea class="form-control form-control-sm" id="hqCbPolRemark" rows="2" placeholder="내부 메모"></textarea></div>' +
-            '<div class="d-flex align-items-center justify-content-between mb-1"><span class="small fw-semibold">구간 (해당 월 강제환불 31 건수)</span><button type="button" class="btn btn-outline-secondary btn-sm" id="hqCbPolAddTierBtn">행 추가</button></div>' +
-            '<p class="small text-muted mb-2">sort 오름차순으로 검사하며, 건수 ≥ 최소건 and (최대건 비움 = 상한 없음 or 건수 ≤ 최대건) 인 첫 행이 적용됩니다.</p>' +
-            '<div class="table-responsive border rounded mb-3"><table class="table table-sm mb-0 align-middle" id="hqCbPolTierTable"><thead class="table-light"><tr><th style="width:72px">sort</th><th style="width:100px">최소건</th><th style="width:100px">최대건</th><th>건당금액</th><th style="width:52px"></th></tr></thead><tbody id="hqCbPolTierTbody"></tbody></table></div>' +
-            '<div class="d-flex flex-wrap gap-2"><button type="button" class="btn btn-primary btn-sm" id="hqChargebackPolicySaveBtn">저장</button>' +
-            '<button type="button" class="btn btn-outline-danger btn-sm" id="hqChargebackPolicyDeleteBtn">삭제</button></div></div></div></div></div>'
+            '<p class="small text-muted mb-0 mt-1">' + escUi(L('구간 건당 금액의 표시·집계 단위 안내용입니다.')) + '</p></div>' +
+            '<div class="mb-2"><label class="form-label small mb-0" for="hqCbPolRemark" data-pg-ui-t="비고">' + escUi(L('비고')) + '</label><textarea class="form-control form-control-sm" id="hqCbPolRemark" rows="2" data-pg-ui-placeholder="내부 메모" placeholder="' + escUi(L('내부 메모')) + '"></textarea></div>' +
+            '<div class="d-flex align-items-center justify-content-between mb-1"><span class="small fw-semibold">' + escUi(L('구간 (해당 월 강제환불 31 건수)')) + '</span><button type="button" class="btn btn-outline-secondary btn-sm" id="hqCbPolAddTierBtn" data-pg-ui-t="행 추가">' + escUi(L('행 추가')) + '</button></div>' +
+            '<p class="small text-muted mb-2">' + escUi(L('sort 오름차순으로 검사하며, 건수 ≥ 최소건 and (최대건 비움 = 상한 없음 or 건수 ≤ 최대건) 인 첫 행이 적용됩니다.')) + '</p>' +
+            '<div class="table-responsive border rounded mb-3"><table class="table table-sm mb-0 align-middle" id="hqCbPolTierTable"><thead class="table-light"><tr><th style="width:72px" data-pg-ui-t="sort">' + escUi(L('sort')) + '</th><th style="width:100px" data-pg-ui-t="최소건">' + escUi(L('최소건')) + '</th><th style="width:100px" data-pg-ui-t="최대건">' + escUi(L('최대건')) + '</th><th data-pg-ui-t="건당금액">' + escUi(L('건당금액')) + '</th><th style="width:52px"></th></tr></thead><tbody id="hqCbPolTierTbody"></tbody></table></div>' +
+            '<div class="d-flex flex-wrap gap-2"><button type="button" class="btn btn-primary btn-sm" id="hqChargebackPolicySaveBtn" data-pg-ui-t="저장">' + escUi(L('저장')) + '</button>' +
+            '<button type="button" class="btn btn-outline-danger btn-sm" id="hqChargebackPolicyDeleteBtn" data-pg-ui-t="삭제">' + escUi(L('삭제')) + '</button></div></div></div></div></div>';
+          }
         }]]
       }],
       buttons: [{ id: 'hqChargebackPolicyReloadBtn', label: '목록 새로고침', cls: 'btn-outline-secondary' }]
@@ -880,13 +918,13 @@
       hideListGrid: true,
       summary: [],
       buttons: [],
-      staticHtml: HQ_SETTLEMENT_ADMIN_HTML
+      staticHtml: hqSettlementAdminStaticHtml
     },
     '/hq/receivableRecoverySettings': {
       hideListGrid: true,
       summary: [],
       buttons: [],
-      staticHtml: HQ_RECEIVABLE_RECOVERY_HTML
+      staticHtml: hqReceivableRecoveryStaticHtml
     },
     '/hq/businessDaySetting': {
       isForm: true,
@@ -897,9 +935,9 @@
           rows: [
             [{ label: '이름', type: 'text', name: 'hqBizdayProfileName', col: 4, placeholder: '예: KR 기본 영업일' },
              { label: '기준국가선택', type: 'select', name: 'holidayCountryCodes', options: [{ v: 'KR', t: 'KR (대한민국)' }, { v: 'US', t: 'US (미국)' }, { v: 'JP', t: 'JP (일본)' }, { v: 'TH', t: 'TH (태국)' }, { v: 'CN', t: 'CN (중국)' }, { v: 'GLOBAL', t: 'GLOBAL (토·일만 휴일)' }], col: 3 }],
-            [{ type: 'customHtml', html: HQ_BIZDAY_MANUAL_UI_HTML, col: 12 }],
-            [{ type: 'customHtml', html: HQ_HOLIDAY_UI_HTML, col: 12 }],
-            [{ type: 'customHtml', html: HQ_BIZDAY_PROFILE_LIST_HTML, col: 12 }]
+            [{ type: 'customHtml', html: hqBizdayManualUiHtml, col: 12 }],
+            [{ type: 'customHtml', html: hqHolidayUiHtml, col: 12 }],
+            [{ type: 'customHtml', html: hqBizdayProfileListHtml, col: 12 }]
           ]
         }
       ],
@@ -924,7 +962,7 @@
           rows: [
             [{ label: '연결 총판', type: 'select', name: 'notifyTargetBoundOrgUnitId', col: 4, options: [{ v: '', t: '선택하세요' }] }],
             [{ label: '노티 대상명', type: 'text', name: 'newNotifyTargetName', col: 2, placeholder: '예: 총판A 수신', button: '노티자동생성', blockExtraClass: 'hq-notify-new-target-name-col' }],
-            [{ type: 'customHtml', col: 12, html: '<div class="table-responsive hq-notify-target-table-wrap table-no-col-resize-wrap"><table class="table table-sm table-bordered align-middle mb-1 table-no-col-resize" id="hqNotifyTargetTable"><thead class="table-light"><tr><th class="text-center" style="width:52px">No.</th><th class="text-center hq-notify-created-th" style="width:9.5rem;min-width:9rem">생성일시</th><th class="hq-notify-target-name-th">노티 대상명</th><th class="text-center hq-notify-bound-org-th" style="width:8rem;min-width:7rem">연결 총판</th><th>노티 주소</th><th class="text-center" style="width:88px">복사</th><th class="hq-notify-channel-th text-center" style="width:132px;min-width:132px">노티 성격</th><th class="text-center" style="width:100px">삭제</th></tr></thead><tbody id="hqNotifyTargetTbody"></tbody></table><p class="text-muted small mb-0 d-none" id="hqNotifyTargetEmpty">등록된 노티 대상이 없습니다.</p></div>' }]
+            [{ type: 'customHtml', col: 12, html: '<div class="table-responsive hq-notify-target-table-wrap table-no-col-resize-wrap"><table class="table table-sm table-bordered align-middle mb-1 table-no-col-resize" id="hqNotifyTargetTable"><thead class="table-light"><tr><th class="text-center" style="width:52px">No.</th><th class="text-center hq-notify-created-th" style="width:9.5rem;min-width:9rem" data-pg-ui-t="생성일시">생성일시</th><th class="hq-notify-target-name-th" data-pg-ui-t="노티 대상명">노티 대상명</th><th class="text-center hq-notify-bound-org-th" style="width:8rem;min-width:7rem" data-pg-ui-t="연결 총판">연결 총판</th><th data-pg-ui-t="노티 주소">노티 주소</th><th class="text-center" style="width:88px" data-pg-ui-t="복사">복사</th><th class="hq-notify-channel-th text-center" style="width:132px;min-width:132px" data-pg-ui-t="노티 성격">노티 성격</th><th class="text-center" style="width:100px" data-pg-ui-t="삭제">삭제</th></tr></thead><tbody id="hqNotifyTargetTbody"></tbody></table><p class="text-muted small mb-0 d-none" id="hqNotifyTargetEmpty" data-pg-ui-t="등록된 노티 대상이 없습니다.">등록된 노티 대상이 없습니다.</p></div>' }]
           ]
         }
       ],
@@ -954,7 +992,7 @@
       formSections: [
         {
           title: '노티매핑설정 (GUI)',
-          notice: '<strong>한눈에:</strong> <strong>결제대행사</strong>를 고른 뒤 <strong>CALLBACK / RESULT</strong> 채널에서 PG 파라미터 이름을 <strong>우리 항목(열 key)</strong>에 맞춥니다(예: <code>customId</code> → 내부 열). 수신 이력이 있으면 키가 자동으로 붙고, CHILL 계열은 일반 파라미터 묶음도 자동 보강됩니다. <strong>저장</strong> 시 결제내역·조직항목설정 열 이름과 동기화됩니다. <span class="text-danger">API 연결 오류(CSP·connect-src)</span>가 나면 <code>&lt;html data-pg-api-base=&quot;same-origin&quot;&gt;</code> 로 현재 호스트의 <code>/api</code>를 쓰거나, 정적 호스트 CSP에 <code>https://api.icopay.co.kr</code>를 허용하세요. DB·Bearer 저장은 <code>docs/노티매핑설정.md</code> 참고.</span>',
+          notice: '노티매핑설정 안내',
           rows: [
             [{
               type: 'customHtml',
@@ -962,11 +1000,11 @@
               html: '<div id="hqNotifyMappingUiRoot" class="hq-notify-mapping-ui"></div>' +
                 '<textarea name="mappingDefinitionJson" id="hqNotifyMappingJsonTa" class="d-none" rows="4" autocomplete="off"></textarea>' +
                 '<div class="row g-2 mt-2 align-items-end">' +
-                '<div class="col-md-4"><label class="form-label small mb-0">최종 수정일시</label>' +
+                '<div class="col-md-4"><label class="form-label small mb-0" data-pg-ui-t="최종 수정일시">최종 수정일시</label>' +
                 '<input type="text" name="updatedAt" class="form-control form-control-sm" readonly></div>' +
-                '<div class="col-md-8"><button type="button" class="btn btn-sm btn-outline-secondary" id="hqNotifyMappingToggleJsonBtn">전문가용: JSON 직접 편집</button></div></div>' +
+                '<div class="col-md-8"><button type="button" class="btn btn-sm btn-outline-secondary" id="hqNotifyMappingToggleJsonBtn" data-pg-ui-t="전문가용: JSON 직접 편집">전문가용: JSON 직접 편집</button></div></div>' +
                 '<div id="hqNotifyMappingJsonEditorWrap" class="d-none mt-2">' +
-                '<label class="form-label small">mappingDefinitionJson</label>' +
+                '<label class="form-label small" data-pg-ui-t="매핑 정의 JSON (필드명)">매핑 정의 JSON (필드명)</label>' +
                 '<textarea id="hqNotifyMappingJsonVisible" class="form-control font-monospace small" rows="14" spellcheck="false"></textarea></div>'
             }]
           ]
@@ -982,22 +1020,22 @@
           notice: '노티미들웨어·PG(칠페이 등)가 본 시스템의 노티 수신 URL(<code>/api/open/pg-notify/…</code>)로 전송한 요청을 저장한 로그입니다. 목록의 채널 열은 수신 경로 정보 표시용입니다. 대상코드·채널은 신규 수신 건부터 채워집니다(V72). 노티 대상에 연결 총판이 있으면 동일 MID라도 그 총판 트리 안에서만 분기하며, 총판 기준통화와 본문 통화가 다르면 처리 열에 통화불일치(수신경로)로 격리됩니다. <strong>수신성격</strong>은 NOTI가 요청 시 <code>X-Icopay-Notify-Delivery: LIVE|RETRY</code> 또는 <code>X-Noti-Attempt</code>(1=라이브, 2+=재전송) 헤더를 보낼 때만 구분되며, 없으면 「미표시」입니다. 바인딩·매핑을 고친 뒤 과거 건을 결제내역에 붙이려면 본문 보기 모달의 <strong>결제내역 재반영</strong>을 사용하세요(원문이 잘린 건은 불가).',
           rows: [
             [{ type: 'customHtml', col: 12, html: '<div class="row g-2 align-items-end mb-2 ni-inbound-toolbar">' +
-              '<div class="col-6 col-md-2"><label class="form-label small mb-0">수신일(부터)</label><input type="date" name="niSearchFrom" class="form-control form-control-sm" autocomplete="off"></div>' +
-              '<div class="col-6 col-md-2"><label class="form-label small mb-0">수신일(까지)</label><input type="date" name="niSearchTo" class="form-control form-control-sm" autocomplete="off"></div>' +
-              '<div class="col-12 col-md-2"><label class="form-label small mb-0">검색 항목</label><select name="niSearchKey" class="form-select form-select-sm">' +
-              '<option value="MID">MID</option><option value="ROUTE">ROUTE</option><option value="MERCHANT">가맹점코드</option><option value="STATUS">처리상태</option>' +
-              '<option value="TXN_ID">승인번호</option><option value="ORDER_NO">orderNo</option></select></div>' +
-              '<div class="col-12 col-md-3"><label class="form-label small mb-0">검색어</label><input type="text" name="niSearchValue" class="form-control form-control-sm" placeholder="부분 일치" autocomplete="off"></div>' +
-              '<div class="col-6 col-md-2"><label class="form-label small mb-0">채널</label><select name="niSearchChannelType" class="form-select form-select-sm">' +
-              '<option value="">전체</option><option value="CALL">CALL (Callback URL)</option><option value="RESULT">RESULT (Result URL)</option><option value="BOTH">BOTH (전체)</option></select></div>' +
-              '<div class="col-6 col-md-1 d-grid"><label class="form-label small mb-0 d-none d-md-block">&nbsp;</label><button type="button" id="hqNotifyInboundSearchBtn" class="btn btn-primary btn-sm">조회</button></div></div>' +
+              '<div class="col-6 col-md-2"><label class="form-label small mb-0">' + escUi(L('수신일(부터)')) + '</label><input type="date" lang="en-CA" name="niSearchFrom" class="form-control form-control-sm" autocomplete="off"></div>' +
+              '<div class="col-6 col-md-2"><label class="form-label small mb-0">' + escUi(L('수신일(까지)')) + '</label><input type="date" lang="en-CA" name="niSearchTo" class="form-control form-control-sm" autocomplete="off"></div>' +
+              '<div class="col-12 col-md-2"><label class="form-label small mb-0">' + escUi(L('검색 항목')) + '</label><select name="niSearchKey" class="form-select form-select-sm">' +
+              '<option value="MID">MID</option><option value="ROUTE">ROUTE</option><option value="MERCHANT">' + escUi(L('가맹점코드')) + '</option><option value="STATUS">' + escUi(L('처리상태')) + '</option>' +
+              '<option value="TXN_ID">' + escUi(L('승인번호')) + '</option><option value="ORDER_NO">orderNo</option></select></div>' +
+              '<div class="col-12 col-md-3"><label class="form-label small mb-0">' + escUi(L('검색어')) + '</label><input type="text" name="niSearchValue" class="form-control form-control-sm" placeholder="' + escUi(L('부분 일치')) + '" autocomplete="off"></div>' +
+              '<div class="col-6 col-md-2"><label class="form-label small mb-0">' + escUi(L('채널')) + '</label><select name="niSearchChannelType" class="form-select form-select-sm">' +
+              '<option value="">' + escUi(L('전체')) + '</option><option value="CALL">' + escUi(L('CALL (Callback URL)')) + '</option><option value="RESULT">' + escUi(L('RESULT (Result URL)')) + '</option><option value="BOTH">' + escUi(L('BOTH (전체)')) + '</option></select></div>' +
+              '<div class="col-6 col-md-1 d-grid"><label class="form-label small mb-0 d-none d-md-block">&nbsp;</label><button type="button" id="hqNotifyInboundSearchBtn" class="btn btn-primary btn-sm">' + escUi(L('조회')) + '</button></div></div>' +
               '<div class="table-responsive border rounded"><table class="table table-sm table-bordered align-middle mb-0" id="hqNotifyInboundTable">' +
-              '<thead class="table-light"><tr><th style="width:3.5rem">ID</th><th class="text-nowrap" style="width:10rem">수신시각</th><th style="width:4.5rem">채널</th><th style="width:5.5rem">대상코드</th><th style="width:7rem">MID</th><th style="width:4rem">루트</th>' +
-              '<th style="width:7rem">승인번호</th><th style="width:7rem">가맹점코드</th><th style="width:7.5rem">결제·처리</th><th style="width:5.5rem">수신성격</th><th class="hq-ni-th-error" style="width:11rem;max-width:11rem">오류메시지</th><th style="min-width:14rem">본문 미리보기</th><th class="text-center" style="width:4rem">보기</th></tr></thead>' +
-              '<tbody id="hqNotifyInboundTbody"><tr><td colspan="13" class="text-center text-muted py-4">[조회]를 누르세요.</td></tr></tbody></table></div>' +
+              '<thead class="table-light"><tr><th style="width:3.5rem">ID</th><th class="text-nowrap" style="width:10rem" data-pg-ui-t="수신시각">수신시각</th><th style="width:4.5rem" data-pg-ui-t="채널">채널</th><th style="width:5.5rem" data-pg-ui-t="대상코드">대상코드</th><th style="width:7rem">MID</th><th style="width:4rem" data-pg-ui-t="루트">루트</th>' +
+              '<th style="width:7rem" data-pg-ui-t="승인번호">승인번호</th><th style="width:7rem" data-pg-ui-t="가맹점코드">가맹점코드</th><th style="width:7.5rem" data-pg-ui-t="결제·처리">결제·처리</th><th style="width:5.5rem" data-pg-ui-t="수신성격">수신성격</th><th class="hq-ni-th-error" style="width:11rem;max-width:11rem" data-pg-ui-t="오류메시지">오류메시지</th><th style="min-width:14rem" data-pg-ui-t="본문 미리보기">본문 미리보기</th><th class="text-center" style="width:4rem" data-pg-ui-t="보기">보기</th></tr></thead>' +
+              '<tbody id="hqNotifyInboundTbody"><tr><td colspan="13" class="text-center text-muted py-4">' + escUi(L('[조회]를 누르세요.')) + '</td></tr></tbody></table></div>' +
               '<div class="pagination-row mt-2">' +
               '<div class="pagination-view-at-once">' +
-              '<span class="pagination-label">한 번에 보기:</span>' +
+              '<span class="pagination-label">' + escUi(L('한 번에 보기:')) + '</span>' +
               '<div class="pagination-size-options">' +
               '<button type="button" class="pagination-size-opt pagination-size-opt--active" data-size="25">25</button>' +
               '<button type="button" class="pagination-size-opt" data-size="50">50</button>' +
@@ -1007,7 +1045,7 @@
               '<button type="button" class="pagination-size-opt" data-size="500">500</button>' +
               '<button type="button" class="pagination-size-opt" data-size="1000">1000</button>' +
               '</div>' +
-              '<span class="pagination-total">건 (총 <span id="totalElementsCount">0</span>건)</span>' +
+              '<span class="pagination-total">' + escUi(L('건 (총')) + ' <span id="totalElementsCount">0</span>' + escUi(L('건)')) + '</span>' +
               '</div>' +
               '<input type="hidden" id="recordsPerPage" value="25">' +
               '<input type="hidden" id="pageCnt" value="1">' +
@@ -1016,13 +1054,13 @@
               '</div>' +
               '<div class="modal fade" id="hqNiDetailModal" tabindex="-1" aria-labelledby="hqNiDetailModalLabel" aria-hidden="true">' +
               '<div class="modal-dialog modal-xl modal-dialog-scrollable"><div class="modal-content">' +
-              '<div class="modal-header py-2"><h5 class="modal-title" id="hqNiDetailModalLabel">노티 원문</h5>' +
-              '<button type="button" class="btn-close" id="hqNiDetailCloseX" aria-label="닫기"></button></div>' +
+              '<div class="modal-header py-2"><h5 class="modal-title" id="hqNiDetailModalLabel">' + escUi(L('노티 원문')) + '</h5>' +
+              '<button type="button" class="btn-close" id="hqNiDetailCloseX" aria-label="' + escUi(L('닫기')) + '"></button></div>' +
               '<div class="modal-body"><p class="small text-muted mb-2" id="hqNiDetailMeta"></p>' +
               '<textarea id="hqNiDetailBody" class="form-control font-monospace small" rows="16" readonly spellcheck="false"></textarea></div>' +
               '<div class="modal-footer py-2 border-top d-flex gap-2 justify-content-end flex-wrap">' +
-              '<button type="button" class="btn btn-primary btn-sm" id="hqNiReplayBtn">결제내역 재반영</button>' +
-              '<button type="button" class="btn btn-secondary btn-sm" id="hqNiDetailCloseBtn">닫기</button></div>' +
+              '<button type="button" class="btn btn-primary btn-sm" id="hqNiReplayBtn">' + escUi(L('결제내역 재반영')) + '</button>' +
+              '<button type="button" class="btn btn-secondary btn-sm" id="hqNiDetailCloseBtn">' + escUi(L('닫기')) + '</button></div>' +
               '</div></div></div>' }]
           ]
         }
@@ -1052,9 +1090,9 @@
              { label: '유지 시간(분)', type: 'number', name: 'helloTimelineDurationMin', col: 2, placeholder: '기본 10', title: '1~1440(24시간). 사용일 때만 적용됩니다.' }],
             [{ type: 'customHtml', col: 12,
               html: '<div class="d-flex flex-wrap justify-content-end align-items-center gap-2 mt-1">' +
-                '<button type="button" class="btn btn-outline-secondary btn-sm" id="hqLedgerHelloTimelineReloadBtn">다시 불러오기</button>' +
-                '<button type="button" class="btn btn-primary btn-sm" id="hqLedgerHelloTimelineSaveBtn">헬로 타임라인 저장</button></div>' +
-                '<p class="small text-muted mb-0 mt-1">다른 전산설정 항목은 건드리지 않고, 위 두 값만 서버에 반영합니다. 하단 「저장」은 화면 전체를 저장합니다.</p>' }]
+                '<button type="button" class="btn btn-outline-secondary btn-sm" id="hqLedgerHelloTimelineReloadBtn">' + escUi(L('다시 불러오기')) + '</button>' +
+                '<button type="button" class="btn btn-primary btn-sm" id="hqLedgerHelloTimelineSaveBtn">' + escUi(L('헬로 타임라인 저장')) + '</button></div>' +
+                '<p class="small text-muted mb-0 mt-1">' + escUi(L('다른 전산설정 항목은 건드리지 않고, 위 두 값만 서버에 반영합니다. 하단 「저장」은 화면 전체를 저장합니다.')) + '</p>' }]
           ]
         },
         {
@@ -1064,28 +1102,28 @@
             [{ type: 'customHtml', col: 12,
               html: '<div class="d-flex flex-wrap align-items-start justify-content-between gap-3 border border-danger-subtle rounded p-3 mb-2 bg-body-secondary">' +
                 '<div class="flex-grow-1 small">' +
-                '<div class="fw-semibold text-danger mb-1">전체 데이터 초기화</div>' +
-                '<p class="mb-0 text-muted">버튼 클릭 후 <strong>이중 확인</strong>(브라우저 확인창 두 번, 각각 <strong>확인·취소</strong>)을 거칩니다. 첫 안내: 「데이터 초기화가 됩니다. 전체 데이터를 초기화합니다. 단, 등록된 업체 정보는 유지됩니다.」 등록된 <strong>조직·가맹 프로필</strong> 행만 유지하고 운영 데이터를 삭제합니다. 본사 전산·노티·PG 연동 등 HQ 전역 설정과 로그인 계정은 유지됩니다. <strong class="text-danger">복구할 수 없습니다.</strong></p></div>' +
-                '<button type="button" class="btn btn-danger btn-sm flex-shrink-0 align-self-center" id="hqLedgerOperationalDataResetBtn">전체 데이터 초기화…</button></div>' }],
+                '<div class="fw-semibold text-danger mb-1">' + escUi(L('전체 데이터 초기화')) + '</div>' +
+                '<p class="mb-0 text-muted">' + L('전산설정 전체 데이터 초기화 카드 본문') + '</p></div>' +
+                '<button type="button" class="btn btn-danger btn-sm flex-shrink-0 align-self-center" id="hqLedgerOperationalDataResetBtn">' + escUi(L('전체 데이터 초기화…')) + '</button></div>' }],
             [{ type: 'customHtml', col: 12,
               html: '<div class="d-flex flex-wrap align-items-start justify-content-between gap-3 border border-primary-subtle rounded p-3 mb-2 bg-body-secondary">' +
                 '<div class="flex-grow-1 small">' +
-                '<div class="fw-semibold text-primary mb-1">정산 데이터 초기화</div>' +
-                '<p class="mb-1 text-muted">유지: <strong>tb_commission_history</strong>(수수료내역), <strong>pg_trnsctn</strong> 거래 행, 본사·가맹 정산 설정(tb_settlement_setting·수수료정책·배분비율·본사 정산주기 등), 칠페이 통합정산 원문. 삭제: 정산실행(tb_settlement_run), 가맹정산·보류·유통·리포트의 근거가 되는 실행·미수·환수·담보(롤링)·잔액공제, 거래의 settled_yn만 N으로 초기화.</p>' +
+                '<div class="fw-semibold text-primary mb-1">' + escUi(L('정산 데이터 초기화')) + '</div>' +
+                '<p class="mb-1 text-muted">' + L('전산설정 정산 데이터 초기화 카드 본문') + '</p>' +
                 '<div class="d-flex flex-wrap gap-1 align-items-center">' +
-                '<span class="text-muted small me-1">부분:</span>' +
-                '<button type="button" class="btn btn-outline-primary btn-sm hq-ledger-sttl-reset-part" data-sttl-scope="RECEIVABLES" title="미수금 환수요청·미수금">미수금</button>' +
-                '<button type="button" class="btn btn-outline-primary btn-sm hq-ledger-sttl-reset-part" data-sttl-scope="RECOVERY" title="환수금(tb_settlement_recovery)">환수금</button>' +
-                '<button type="button" class="btn btn-outline-primary btn-sm hq-ledger-sttl-reset-part" data-sttl-scope="ROLLING" title="담보·롤링(tb_rolling_reserve)">담보</button>' +
-                '<button type="button" class="btn btn-outline-primary btn-sm hq-ledger-sttl-reset-part" data-sttl-scope="DEDUCTIONS" title="잔액공제 로그(tb_balance_deduction)">공제로그</button>' +
-                '<button type="button" class="btn btn-outline-primary btn-sm hq-ledger-sttl-reset-part" data-sttl-scope="RUNS" title="실행+위 연동 일괄(미수·환수·담보·공제·실행·settled)">실행+연동</button>' +
+                '<span class="text-muted small me-1">' + escUi(L('부분:')) + '</span>' +
+                '<button type="button" class="btn btn-outline-primary btn-sm hq-ledger-sttl-reset-part" data-sttl-scope="RECEIVABLES" title="' + escUi(L('미수금 환수요청·미수금')) + '">' + escUi(L('미수금')) + '</button>' +
+                '<button type="button" class="btn btn-outline-primary btn-sm hq-ledger-sttl-reset-part" data-sttl-scope="RECOVERY" title="' + escUi(L('환수금(tb_settlement_recovery)')) + '">' + escUi(L('환수금')) + '</button>' +
+                '<button type="button" class="btn btn-outline-primary btn-sm hq-ledger-sttl-reset-part" data-sttl-scope="ROLLING" title="' + escUi(L('담보·롤링(tb_rolling_reserve)')) + '">' + escUi(L('담보')) + '</button>' +
+                '<button type="button" class="btn btn-outline-primary btn-sm hq-ledger-sttl-reset-part" data-sttl-scope="DEDUCTIONS" title="' + escUi(L('잔액공제 로그(tb_balance_deduction)')) + '">' + escUi(L('공제로그')) + '</button>' +
+                '<button type="button" class="btn btn-outline-primary btn-sm hq-ledger-sttl-reset-part" data-sttl-scope="RUNS" title="' + escUi(L('실행+위 연동 일괄(미수·환수·담보·공제·실행·settled)')) + '">' + escUi(L('실행+연동')) + '</button>' +
                 '</div></div>' +
-                '<button type="button" class="btn btn-primary btn-sm flex-shrink-0 align-self-center" id="hqLedgerSettlementDataResetBtn">정산 데이터 초기화…</button></div>' }],
+                '<button type="button" class="btn btn-primary btn-sm flex-shrink-0 align-self-center" id="hqLedgerSettlementDataResetBtn">' + escUi(L('정산 데이터 초기화…')) + '</button></div>' }],
             [{ type: 'customHtml', col: 12,
               html: '<div class="border rounded"><table class="table table-sm table-bordered align-middle mb-0 w-100 hq-data-retention-table">' +
-                '<thead class="table-light"><tr><th>데이터 유형</th><th class="text-center text-nowrap">자동삭제</th><th class="text-nowrap text-center">삭제(일)</th><th class="text-nowrap text-center">보관(일)</th><th>설명·연동</th><th class="text-center text-nowrap">관리</th></tr></thead>' +
-                '<tbody id="hqDataRetentionTbody"><tr><td colspan="6" class="text-center text-muted py-3">불러오는 중…</td></tr></tbody></table></div>' +
-                '<p class="small text-muted mb-0 mt-1">각 행 <strong>[저장]</strong>은 표에 입력한 보관 값 전체를 한 번에 서버에 반영합니다. <strong>[수정]</strong>은 저장하지 않은 변경을 버리고 서버 값으로 다시 불러옵니다. <strong>[초기화]</strong>는 해당 데이터 유형의 저장된 덮어쓰기만 제거합니다.</p>' }]
+                '<thead class="table-light"><tr><th>' + escUi(L('데이터 유형')) + '</th><th class="text-center text-nowrap" data-pg-ui-t="자동삭제">자동삭제</th><th class="text-nowrap text-center" data-pg-ui-t="삭제(일)">삭제(일)</th><th class="text-nowrap text-center" data-pg-ui-t="보관(일)">보관(일)</th><th data-pg-ui-t="설명·연동">설명·연동</th><th class="text-center text-nowrap" data-pg-ui-t="관리">관리</th></tr></thead>' +
+                '<tbody id="hqDataRetentionTbody"><tr><td colspan="6" class="text-center text-muted py-3">' + escUi(L('불러오는 중…')) + '</td></tr></tbody></table></div>' +
+                '<p class="small text-muted mb-0 mt-1">' + L('전산설정 데이터 보관 표 하단 안내') + '</p>' }]
           ]
         },
         {
@@ -1102,16 +1140,16 @@
           title: '수수료·정산 로직 (수수료내역)',
           notice: '통화별 표는 결제·정산 통화(알파 코드)마다 소수 자릿수·잘리는 자리 처리를 지정합니다. 소수 자릿수가 0이면 금액은 정수만 의미하므로 「잘리는 자리 처리」는 비활성화되며 저장 시 그대로(버림, DOWN)로 통일됩니다. 목록 API는 행의 결제통화·거래통화에 맞춰 이 설정을 적용합니다. JSON에 없는 통화는 아래 「기본(통화 미지정)」값을 따릅니다. 조직항목설정 VIEW SETTING의 통화 열은 가맹 정책통화·거래통화를 표시하며, 총판 하위 가맹이 쓰는 모든 통화가 데이터에 존재하면 각 행에 그대로 나타납니다.',
           rows: [
-            [{ type: 'customHtml', col: 12, html: '<p class="small text-muted mb-1"><strong>기본(통화 미지정)</strong> — 아래 표에 없는 통화·미매핑 행에 사용됩니다.</p>' }],
+            [{ type: 'customHtml', col: 12, html: '<p class="small text-muted mb-1">' + L('전산설정 수수료 기본 통화 미지정 안내') + '</p>' }],
             [{ label: '소수 자릿수', type: 'select', name: 'feeListDecimalPlaces', col: 2,
               options: [{ v: '0', t: '0' }, { v: '1', t: '1' }, { v: '2', t: '2' }, { v: '3', t: '3' }, { v: '4', t: '4' }, { v: '5', t: '5' }, { v: '6', t: '6' }, { v: '7', t: '7' }, { v: '8', t: '8' }] },
              { label: '잘리는 자리 처리', type: 'select', name: 'feeListRoundMode', col: 3,
               options: [{ v: 'CEILING', t: '절상' }, { v: 'HALF_UP', t: '반올림' }, { v: 'DOWN', t: '그대로(버림)' }] }],
             [{ type: 'customHtml', col: 12,
               html: '<div class="border rounded"><table class="table table-sm table-bordered align-middle mb-0 w-100">' +
-                '<thead class="table-light"><tr><th>기준통화</th><th class="text-center text-nowrap">소수 자릿수</th><th class="text-nowrap">잘리는 자리 처리</th><th class="text-center text-nowrap">관리</th></tr></thead>' +
-                '<tbody id="hqFeeCurrencyFormatTbody"><tr><td colspan="4" class="text-center text-muted py-3">불러오는 중…</td></tr></tbody></table></div>' +
-                '<p class="small text-muted mb-0 mt-1">통화별 <strong>소수·잘리는 자리</strong>는 기본 잠금입니다. <strong>[수정]</strong>으로 연속 확인 후 편집 모드로 연 다음 변경하세요. 서버 반영은 관리 열 <strong>[저장]</strong>(연속 확인) 또는 화면 하단 <strong>저장</strong>으로 합니다. <strong>[취소]</strong>는 해당 통화 행의 미저장 변경만 되돌립니다. <strong>[전역값]</strong>은 편집 모드에서만 사용할 수 있으며, 위 기본(통화 미지정) 소수·처리를 해당 행에 복사합니다(복사 후에도 [저장] 필요).</p>' }]
+                '<thead class="table-light"><tr><th>' + escUi(L('기준통화')) + '</th><th class="text-center text-nowrap" data-pg-ui-t="소수 자릿수">소수 자릿수</th><th class="text-nowrap" data-pg-ui-t="잘리는 자리 처리">잘리는 자리 처리</th><th class="text-center text-nowrap" data-pg-ui-t="관리">관리</th></tr></thead>' +
+                '<tbody id="hqFeeCurrencyFormatTbody"><tr><td colspan="4" class="text-center text-muted py-3">' + escUi(L('불러오는 중…')) + '</td></tr></tbody></table></div>' +
+                '<p class="small text-muted mb-0 mt-1">' + L('전산설정 수수료 통화 표 하단 안내') + '</p>' }]
           ]
         },
         {
@@ -1123,17 +1161,17 @@
              { label: '표시 통화(알파)', type: 'text', name: 'payDisplayCurrencyCode', col: 3, readonly: true,
                placeholder: 'ISO 숫자 기준 자동' }],
             [{ type: 'customHtml', col: 12,
-              html: '<p class="small text-muted mb-1">지원 ISO 숫자 ↔ 표시 통화(알파) — 읽기 전용</p>' +
+              html: '<p class="small text-muted mb-1">' + escUi(L('지원 ISO 숫자 ↔ 표시 통화(알파) — 읽기 전용')) + '</p>' +
                 '<div class="border rounded"><table class="table table-sm table-bordered align-middle mb-0 w-100" id="grid_hqPayDisplayCurrencyCatalog">' +
-                '<thead class="table-light"><tr><th>ISO 4217 숫자</th><th>표시 통화(알파)</th><th class="text-center text-nowrap">전역 기준</th></tr></thead>' +
-                '<tbody id="hqPayDisplayCurrencyCatalogTbody"><tr><td colspan="3" class="text-center text-muted py-3">불러오는 중…</td></tr></tbody></table></div>' }]
+                '<thead class="table-light"><tr><th>' + escUi(L('ISO 4217 숫자')) + '</th><th data-pg-ui-t="표시 통화(알파)">표시 통화(알파)</th><th class="text-center text-nowrap" data-pg-ui-t="전역 기준">전역 기준</th></tr></thead>' +
+                '<tbody id="hqPayDisplayCurrencyCatalogTbody"><tr><td colspan="3" class="text-center text-muted py-3">' + escUi(L('불러오는 중…')) + '</td></tr></tbody></table></div>' }]
           ]
         },
         {
           title: '결제 후속조치 (NOTI 환경설정 대응)',
           notice: '시간 선택 국가(기준 Zone)는 무효·이메일무효에 적용됩니다. 무효 기본은 당일 <strong>0:00~21:00</strong>. 수동무효(이메일)도 당일 <strong>시작~마감</strong>을 지정(마감 비우면 23:59). 환불은 <strong>태국</strong> 기준 결제일 <strong>익일</strong>의 <strong>시작 시각</strong>부터 일수입니다. 「설정(사용)」이 사용일 때만 편집할 수 있습니다. 아래 표에서 <strong>본사·총판</strong> 등 조직 단계별로 동일 네 기능의 허용 여부를 둡니다.',
           rows: [
-            [{ type: 'customHtml', col: 12, html: hqLedgerPayFollowNotiTableHtml() + hqLedgerPayFollowLevelCapsTableHtml() }]
+            [{ type: 'customHtml', col: 12, html: function () { return hqLedgerPayFollowNotiTableHtml() + hqLedgerPayFollowLevelCapsTableHtml(); } }]
           ]
         },
         {
@@ -1157,7 +1195,7 @@
             [{ label: '메모', type: 'textarea', name: 'memo', col: 8, rows: 2 }],
             [{ label: '최종 수정', type: 'text', name: 'updatedAt', col: 4, readonly: true }],
             [{ type: 'customHtml', col: 12,
-              html: '<hr class="my-2" /><p class="small text-muted mb-2 fw-semibold">이메일무효(수동 VOID 요청 메일)</p>' }],
+              html: '<hr class="my-2" /><p class="small text-muted mb-2 fw-semibold">' + escUi(L('이메일무효(수동 VOID 요청 메일)')) + '</p>' }],
             [{ label: '수신 이메일', type: 'text', name: 'emailVoidTo', col: 4, placeholder: '예: help@chillpay.co' },
              { label: '회사명(본문 치환)', type: 'text', name: 'emailVoidCompanyName', col: 4 },
              { label: '담당자 성명(본문 치환)', type: 'text', name: 'emailVoidContactName', col: 4 }],
@@ -1169,8 +1207,8 @@
               placeholder: '예: ziobizm@gmail.com', title: '실제 PG 수신처가 아닌, 본인 확인용 주소입니다. SMTP·템플릿으로 샘플 본문이 발송됩니다.' },
              { type: 'customHtml', col: 7,
               html: '<div class="d-flex flex-wrap align-items-end gap-2 mt-1 mt-md-0">' +
-                '<button type="button" class="btn btn-primary btn-sm" id="hqLedgerVoidEmailTestBtn">테스트 메일 발송</button>' +
-                '<span class="small text-muted">제목에 [TEST]가 붙고, 본문 상단에 안내 문구가 추가됩니다. 결과는 <strong>운영관리 → 메일로그</strong>에 기록됩니다.</span></div>' }]
+                '<button type="button" class="btn btn-primary btn-sm" id="hqLedgerVoidEmailTestBtn">' + escUi(L('테스트 메일 발송')) + '</button>' +
+                '<span class="small text-muted">' + L('전산설정 이메일무효 테스트 발송 안내') + '</span></div>' }]
           ]
         }
       ],
@@ -1221,34 +1259,34 @@
               ] }
             ],
             [{ type: 'customHtml', col: 12, html: '<div class="card border-secondary mb-3" id="hqViewCustomColCard">' +
-              '<div class="card-header py-2 small fw-semibold">추가 VIEW 항목 (화면별 목록 · 본사 등록)</div>' +
+              '<div class="card-header py-2 small fw-semibold">' + escUi(L('추가 VIEW 항목 (화면별 목록 · 본사 등록)')) + '</div>' +
               '<div class="card-body py-2">' +
-              '<p class="text-muted small mb-2 mb-0">설정 대상 화면을 먼저 선택한 뒤, 표시명을 넣고 [항목 추가]하세요. 목록에서 이름을 바꾸거나 삭제할 수 있습니다. 내부 키는 자동 부여됩니다.</p>' +
+              '<p class="text-muted small mb-2 mb-0">' + escUi(L('설정 대상 화면을 먼저 선택한 뒤, 표시명을 넣고 [항목 추가]하세요. 목록에서 이름을 바꾸거나 삭제할 수 있습니다. 내부 키는 자동 부여됩니다.')) + '</p>' +
               '<div class="d-flex flex-wrap align-items-end gap-2 mb-2">' +
-              '<div class="flex-grow-1" style="min-width:200px"><label class="form-label small mb-0" for="hqViewCustomColNameInp">표시명</label>' +
-              '<input type="text" class="form-control form-control-sm" id="hqViewCustomColNameInp" maxlength="200" placeholder="예: 비고란" autocomplete="off"></div>' +
-              '<button type="button" class="btn btn-sm btn-success" id="hqViewCustomColAddBtn">항목 추가</button>' +
-              '<button type="button" class="btn btn-sm btn-outline-secondary" id="hqViewCustomColReloadBtn">목록 새로고침</button></div>' +
+              '<div class="flex-grow-1" style="min-width:200px"><label class="form-label small mb-0" for="hqViewCustomColNameInp">' + escUi(L('표시명')) + '</label>' +
+              '<input type="text" class="form-control form-control-sm" id="hqViewCustomColNameInp" maxlength="200" placeholder="' + escUi(L('예: 비고란')) + '" autocomplete="off"></div>' +
+              '<button type="button" class="btn btn-sm btn-success" id="hqViewCustomColAddBtn" data-pg-ui-t="항목 추가">' + escUi(L('항목 추가')) + '</button>' +
+              '<button type="button" class="btn btn-sm btn-outline-secondary" id="hqViewCustomColReloadBtn" data-pg-ui-t="목록 새로고침">' + escUi(L('목록 새로고침')) + '</button></div>' +
               '<div class="table-responsive border rounded"><table class="table table-sm table-hover mb-0">' +
-              '<thead class="table-light"><tr><th style="width:44%">표시명</th><th style="width:36%">내부 키</th><th style="width:12%">수정</th><th style="width:8%">삭제</th></tr></thead>' +
-              '<tbody id="hqViewCustomColTbody"><tr><td colspan="4" class="text-center text-muted small py-2">화면을 선택하세요.</td></tr></tbody></table></div>' +
+              '<thead class="table-light"><tr><th style="width:44%" data-pg-ui-t="표시명">' + escUi(L('표시명')) + '</th><th style="width:36%" data-pg-ui-t="내부 키">' + escUi(L('내부 키')) + '</th><th style="width:12%" data-pg-ui-t="수정">' + escUi(L('수정')) + '</th><th style="width:8%" data-pg-ui-t="삭제">' + escUi(L('삭제')) + '</th></tr></thead>' +
+              '<tbody id="hqViewCustomColTbody"><tr><td colspan="4" class="text-center text-muted small py-2" data-pg-ui-t="화면을 선택하세요.">' + escUi(L('화면을 선택하세요.')) + '</td></tr></tbody></table></div>' +
               '</div></div>' }],
             [{ type: 'customHtml', col: 12, html: '<div class="mb-2">' +
               '<div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-1">' +
-              '<span class="form-label mb-0">선택한 조직 유형에 노출할 열 (VIEW SETTING에서 선택 가능)</span>' +
-              '<div class="btn-group btn-group-sm flex-shrink-0" role="group" aria-label="열 노출 저장·일괄 선택">' +
-              '<button type="button" class="btn btn-primary" id="hqOrgAllowColSaveBtn">저장</button>' +
-              '<button type="button" class="btn btn-outline-danger" id="hqOrgAllowColSelectAllBtn">전체선택</button>' +
-              '<button type="button" class="btn btn-outline-secondary" id="hqOrgAllowColClearAllBtn">전체해제</button>' +
+              '<span class="form-label mb-0">' + escUi(L('선택한 조직 유형에 노출할 열 (VIEW SETTING에서 선택 가능)')) + '</span>' +
+              '<div class="btn-group btn-group-sm flex-shrink-0" role="group" aria-label="' + escUi(L('열 노출 저장·일괄 선택')) + '">' +
+              '<button type="button" class="btn btn-primary" id="hqOrgAllowColSaveBtn" data-pg-ui-t="저장">' + escUi(L('저장')) + '</button>' +
+              '<button type="button" class="btn btn-outline-danger" id="hqOrgAllowColSelectAllBtn" data-pg-ui-t="전체선택">' + escUi(L('전체선택')) + '</button>' +
+              '<button type="button" class="btn btn-outline-secondary" id="hqOrgAllowColClearAllBtn" data-pg-ui-t="전체해제">' + escUi(L('전체해제')) + '</button>' +
               '</div></div>' +
               '<div id="hqOrgAllowColumnChecks" class="column-guide-list border rounded p-2 bg-light"></div>' +
-              '<p class="text-muted small mb-0 mt-1">체크한 열만 해당 조직 유형 사용자 화면의 VIEW SETTING에 나타납니다. 지사·대리점·영업점·가맹점은 저장이 없으면 총판 설정을 사용합니다.</p></div>' +
+              '<p class="text-muted small mb-0 mt-1">' + escUi(L('체크한 열만 해당 조직 유형 사용자 화면의 VIEW SETTING에 나타납니다. 지사·대리점·영업점·가맹점은 저장이 없으면 총판 설정을 사용합니다.')) + '</p></div>' +
               '<div class="mb-0" id="hqOrgAllowSavedWrap">' +
-              '<span class="form-label d-block mb-1">저장된 설정 요약 (선택한 본사)</span>' +
-              '<p class="text-muted small mb-2">행을 클릭하면 위의 화면·조직 유형이 맞춰지고 서버에 저장된 체크 상태가 불러와집니다.</p>' +
+              '<span class="form-label d-block mb-1">' + escUi(L('저장된 설정 요약 (선택한 본사)')) + '</span>' +
+              '<p class="text-muted small mb-2">' + escUi(L('행을 클릭하면 위의 화면·조직 유형이 맞춰지고 서버에 저장된 체크 상태가 불러와집니다.')) + '</p>' +
               '<div class="table-responsive border rounded">' +
               '<table class="table table-sm table-hover mb-0"><thead class="thead-light"><tr>' +
-              '<th>화면</th><th>조직 유형</th><th class="text-right">허용 열 수</th><th>수정일시</th>' +
+              '<th data-pg-ui-t="화면">' + escUi(L('화면')) + '</th><th data-pg-ui-t="조직 유형">' + escUi(L('조직 유형')) + '</th><th class="text-right" data-pg-ui-t="허용 열 수">' + escUi(L('허용 열 수')) + '</th><th data-pg-ui-t="수정일시">' + escUi(L('수정일시')) + '</th>' +
               '</tr></thead><tbody id="hqOrgAllowPolicyList"></tbody></table></div>' +
               '<p class="text-muted small mb-0 mt-2" id="hqOrgAllowPolicyListHint"></p></div>' }]
           ]
@@ -1271,18 +1309,18 @@
       formSections: [
         {
           title: 'SSL 인증서 모니터링',
-          notice: 'Let’s Encrypt: Nginx가 사용하는 fullchain.pem 을 모니터링합니다. live 폴더명은 certbot 인증서 이름(예: api.icopay.co.kr)과 동일합니다. 다중 서브도메인(SAN)은 한 장의 인증서에 포함됩니다. 카페24 등 권한 DNS에 A 레코드가 VPS IP를 가리키는지·일부 ISP DNS 캐시로 예전 IP가 남지 않는지 확인하세요. 조회·저장은 시스템 관리자(ADMIN)만 가능합니다.',
+          notice: 'Let\u2019s Encrypt: Nginx가 사용하는 fullchain.pem 을 모니터링합니다. live 폴더명은 certbot 인증서 이름(예: api.icopay.co.kr)과 동일합니다. 다중 서브도메인(SAN)은 한 장의 인증서에 포함됩니다. 카페24 등 권한 DNS에 A 레코드가 VPS IP를 가리키는지·일부 ISP DNS 캐시로 예전 IP가 남지 않는지 확인하세요. 조회·저장은 시스템 관리자(ADMIN)만 가능합니다.',
           rows: [
             [{ label: 'fullchain.pem 경로', type: 'text', name: 'serverManageSslCertPath', col: 8, placeholder: '/etc/letsencrypt/live/api.icopay.co.kr/fullchain.pem' }],
             [{ label: 'LE live 폴더명(인증서 이름)', type: 'text', name: 'serverManageSslLeDomain', col: 4, placeholder: 'api.icopay.co.kr' }],
-            [{ type: 'customHtml', col: 12, html: '<label class="form-label d-block mb-1" for="serverManageUiRefreshMin">실시간 대시보드 자동 갱신(분)</label>' }],
+            [{ type: 'customHtml', col: 12, html: '<label class="form-label d-block mb-1" for="serverManageUiRefreshMin" data-pg-ui-t="실시간 대시보드 자동 갱신(분)">실시간 대시보드 자동 갱신(분)</label>' }],
             [{ type: 'customHtml', col: 12, html: '<div class="d-flex flex-wrap align-items-center gap-2 hq-srv-refresh-min-row">' +
               '<div class="hq-srv-refresh-min-input-wrap">' +
-              '<input type="number" class="form-control form-control-sm" name="serverManageUiRefreshMin" id="serverManageUiRefreshMin" min="1" max="60" step="1" placeholder="비우면 서버 기본">' +
+              '<input type="number" class="form-control form-control-sm" name="serverManageUiRefreshMin" id="serverManageUiRefreshMin" min="1" max="60" step="1" data-pg-ui-placeholder="비우면 서버 기본" placeholder="비우면 서버 기본">' +
               '</div>' +
-              '<button type="button" id="hqServerManageTopSaveBtn" class="btn btn-sm btn-outline-primary flex-shrink-0">저장</button>' +
+              '<button type="button" id="hqServerManageTopSaveBtn" class="btn btn-sm btn-outline-primary flex-shrink-0" data-pg-ui-t="저장">저장</button>' +
               '</div>' }],
-            [{ type: 'customHtml', col: 12, html: '<p class="text-muted small mb-0 mt-2">1~60분만 저장됩니다(내부는 초로 환산). 비우면 <code>application.yml</code>의 <code>app.serverManage.uiAutoRefreshSeconds</code>가 적용됩니다. 아래 [설정 저장]과 동일하게 전체 폼을 저장합니다.</p>' }]
+            [{ type: 'customHtml', col: 12, html: '<p class="text-muted small mb-0 mt-2">' + L('1~60분만 저장됩니다(내부는 초로 환산). 비우면 <code>application.yml</code>의 <code>app.serverManage.uiAutoRefreshSeconds</code>가 적용됩니다. 아래 [설정 저장]과 동일하게 전체 폼을 저장합니다.') + '</p>' }]
           ]
         },
         {
@@ -1311,20 +1349,20 @@
                 '<div class="d-flex flex-wrap align-items-center gap-3 mb-2 p-2 hq-mon-toolbar">' +
                 '<span id="hqSrvGeneratedAt" class="text-muted small">—</span>' +
                 '<span id="hqSrvCountdown" class="small fw-semibold text-primary">—</span>' +
-                '<label class="mb-0 small d-flex align-items-center gap-1 user-select-none"><input type="checkbox" id="hqSrvAutoRefresh" checked> 자동 갱신</label>' +
-                '<span class="text-muted small">간격 <span id="hqSrvIntervalSec">—</span></span>' +
+                '<label class="mb-0 small d-flex align-items-center gap-1 user-select-none"><input type="checkbox" id="hqSrvAutoRefresh" checked> <span data-pg-ui-t="자동 갱신">자동 갱신</span></label>' +
+                '<span class="text-muted small"><span data-pg-ui-t="간격">간격</span> <span id="hqSrvIntervalSec">—</span></span>' +
                 '</div>' +
                 '<div id="hqMonCrossOriginHint" class="alert alert-secondary py-2 small mb-0 mt-2 d-none" role="note"></div>' +
                 '<div id="hqSrvInlineMsg" class="small mt-2" role="status" aria-live="polite"></div>' +
                 '<div id="hqSrvAlerts"></div>' +
                 '<div id="hqSrvCards"></div>' +
                 '<div id="hqSrvUsageSection" class="hq-srv-usage-section mt-3">' +
-                '<h3 class="h6 fw-bold mb-2">트래픽 · 메모리 피크</h3>' +
-                '<p class="small text-muted mb-2">일간/주간/월간 전환 시 그래프·요약이 바뀝니다. 수집은 앱이 주기적으로 수행합니다. 레이아웃은 <a href="https://github.com/ziobiz/NOTI" target="_blank" rel="noopener">NOTI</a> 시스템 모니터를 참고했습니다.</p>' +
-                '<div class="btn-group btn-group-sm mb-2" role="group" aria-label="기간">' +
-                '<button type="button" class="btn btn-outline-primary active" data-hq-usage-grain="daily">일간</button>' +
-                '<button type="button" class="btn btn-outline-primary" data-hq-usage-grain="weekly">주간</button>' +
-                '<button type="button" class="btn btn-outline-primary" data-hq-usage-grain="monthly">월간</button>' +
+                '<h3 class="h6 fw-bold mb-2" data-pg-ui-t="트래픽 · 메모리 피크">트래픽 · 메모리 피크</h3>' +
+                '<p class="small text-muted mb-2">' + L('일간/주간/월간 전환 시 그래프·요약이 바뀝니다. 수집은 앱이 주기적으로 수행합니다. 레이아웃은 <a href="https://github.com/ziobiz/NOTI" target="_blank" rel="noopener">NOTI</a> 시스템 모니터를 참고했습니다.') + '</p>' +
+                '<div class="btn-group btn-group-sm mb-2" role="group" data-pg-ui-aria-label="기간">' +
+                '<button type="button" class="btn btn-outline-primary active" data-hq-usage-grain="daily" data-pg-ui-t="일간">일간</button>' +
+                '<button type="button" class="btn btn-outline-primary" data-hq-usage-grain="weekly" data-pg-ui-t="주간">주간</button>' +
+                '<button type="button" class="btn btn-outline-primary" data-hq-usage-grain="monthly" data-pg-ui-t="월간">월간</button>' +
                 '</div>' +
                 '<div class="row g-2 mb-2">' +
                 '<div class="col-lg-7"><div class="hq-usage-chart-wrap border rounded bg-white p-2"><canvas id="hqUsageChartMixed"></canvas></div></div>' +
@@ -1332,7 +1370,7 @@
                 '</div>' +
                 '<div id="hqUsageSummary" class="hq-usage-summary border rounded bg-white p-3 small text-body"></div>' +
                 '</div>' +
-                '<details class="mt-3 border rounded p-2 bg-light"><summary class="small text-muted user-select-none">원본 JSON (디버그)</summary>' +
+                '<details class="mt-3 border rounded p-2 bg-light"><summary class="small text-muted user-select-none" data-pg-ui-t="원본 JSON (디버그)">원본 JSON (디버그)</summary>' +
                 '<pre id="hqSrvJsonRaw" class="small mt-2 mb-0" style="max-height:240px;overflow:auto;white-space:pre-wrap"></pre></details>' +
                 '</div>'
             }]
@@ -1362,8 +1400,8 @@
           rows: [[{
             type: 'customHtml',
             col: 12,
-            html: '<button type="button" class="btn btn-sm btn-primary" id="hqApiConfigOpenPgLink">API연동설정 화면 열기</button>' +
-              '<span class="text-muted small ms-2">목록에서 행을 더블클릭하면 자격 증명을 편집할 수 있습니다.</span>'
+            html: '<button type="button" class="btn btn-sm btn-primary" id="hqApiConfigOpenPgLink">' + escUi(L('API연동설정 화면 열기')) + '</button>' +
+              '<span class="text-muted small ms-2">' + escUi(L('목록에서 행을 더블클릭하면 자격 증명을 편집할 수 있습니다.')) + '</span>'
           }]]
         },
         {
@@ -1408,20 +1446,26 @@
             [{
               type: 'customHtml',
               col: 12,
-              html: '<p class="small text-muted mb-2">연동용도 URL결제 PG 목록을 불러옵니다. 저장 시 <code>tb_hq_api_config.url_pay_display_fx_json</code>에 반영됩니다.</p>' +
-                '<div class="table-responsive">' +
-                '<table class="table table-sm table-bordered align-middle mb-2" id="grid_urlPayDeployPg">' +
-                '<thead class="table-light"><tr>' +
-                '<th style="min-width:10rem">결제대행사</th>' +
-                '<th style="min-width:7rem">금액 모드</th>' +
-                '<th style="min-width:7rem">결제 방식</th>' +
-                '<th style="min-width:5rem">표시 통화</th>' +
-                '<th style="min-width:5rem">실결제</th>' +
-                '<th style="min-width:6rem">FX</th>' +
-                '<th style="min-width:8rem">수동 실결제/1표시</th>' +
-                '<th style="min-width:6rem">마진율</th>' +
-                '</tr></thead><tbody id="hqUrlPayDeployPgTbody"><tr><td colspan="8" class="text-muted text-center py-3 small">목록을 불러오는 중…</td></tr></tbody></table></div>' +
-                '<input type="hidden" name="urlPayDisplayFxJson" id="hqUrlPayDeployFxHidden" value="">'
+              html: function hqUrlPayDeployPgGridHtml() {
+                return (
+                  '<p class="small text-muted mb-2">' +
+                  L('연동용도 URL결제 PG 목록을 불러옵니다. 저장 시 <code>tb_hq_api_config.url_pay_display_fx_json</code>에 반영됩니다.') +
+                  '</p>' +
+                  '<div class="table-responsive">' +
+                  '<table class="table table-sm table-bordered align-middle mb-2" id="grid_urlPayDeployPg">' +
+                  '<thead class="table-light"><tr>' +
+                  '<th style="min-width:10rem" data-pg-ui-t="결제대행사">결제대행사</th>' +
+                  '<th style="min-width:7rem" data-pg-ui-t="금액 모드">금액 모드</th>' +
+                  '<th style="min-width:7rem" data-pg-ui-t="결제 방식">결제 방식</th>' +
+                  '<th style="min-width:5rem" data-pg-ui-t="표시 통화">표시 통화</th>' +
+                  '<th style="min-width:5rem" data-pg-ui-t="실결제">실결제</th>' +
+                  '<th style="min-width:6rem" data-pg-ui-t="FX">FX</th>' +
+                  '<th style="min-width:8rem" data-pg-ui-t="수동 실결제/1표시">수동 실결제/1표시</th>' +
+                  '<th style="min-width:6rem" data-pg-ui-t="마진율">마진율</th>' +
+                  '</tr></thead><tbody id="hqUrlPayDeployPgTbody"><tr><td colspan="8" class="text-muted text-center py-3 small" data-pg-ui-t="목록을 불러오는 중…">목록을 불러오는 중…</td></tr></tbody></table></div>' +
+                  '<input type="hidden" name="urlPayDisplayFxJson" id="hqUrlPayDeployFxHidden" value="">'
+                );
+              }
             }]
           ]
         }
@@ -1457,19 +1501,19 @@
               col: 12,
               html: '<input type="hidden" name="urlPayTabTitleJson" id="urlPayTabTitleJson" value="{}">' +
                 '<div class="row g-2 align-items-end border rounded p-3 bg-light bg-opacity-25">' +
-                '<div class="col-md-6"><label class="form-label small mb-0" for="hqUrlPayFormTabTitleKo">브라우저 탭 이름 (한국어)</label>' +
-                '<input type="text" class="form-control form-control-sm" id="hqUrlPayFormTabTitleKo" maxlength="120" placeholder="비우면 기본 «Payment»">' +
+                '<div class="col-md-6"><label class="form-label small mb-0" for="hqUrlPayFormTabTitleKo" data-pg-ui-t="브라우저 탭 이름 (한국어)">브라우저 탭 이름 (한국어)</label>' +
+                '<input type="text" class="form-control form-control-sm" id="hqUrlPayFormTabTitleKo" maxlength="120" data-pg-ui-placeholder="비우면 기본 «Payment»" placeholder="비우면 기본 «Payment»">' +
                 '<div class="d-flex flex-wrap gap-2 mt-2">' +
-                '<button type="button" class="btn btn-sm btn-outline-primary" id="hqUrlPayFormTabTitleTranslateBtn">탭 제목 다국어</button>' +
-                '</div><p class="text-muted small mb-0 mt-1">다국어는 숨김 JSON에 저장됩니다. 한국어를 바꾼 뒤 필요 시 다시 「탭 제목 다국어」를 누르세요.</p></div>' +
-                '<div class="col-md-6"><label class="form-label small mb-0">파비콘 (탭 아이콘)</label>' +
+                '<button type="button" class="btn btn-sm btn-outline-primary" id="hqUrlPayFormTabTitleTranslateBtn" data-pg-ui-t="탭 제목 다국어">탭 제목 다국어</button>' +
+                '</div><p class="text-muted small mb-0 mt-1" data-pg-ui-t="다국어는 숨김 JSON에 저장됩니다. 한국어를 바꾼 뒤 필요 시 다시 「탭 제목 다국어」를 누르세요.">다국어는 숨김 JSON에 저장됩니다. 한국어를 바꾼 뒤 필요 시 다시 「탭 제목 다국어」를 누르세요.</p></div>' +
+                '<div class="col-md-6"><label class="form-label small mb-0" data-pg-ui-t="파비콘 (탭 아이콘)">파비콘 (탭 아이콘)</label>' +
                 '<div class="input-group input-group-sm">' +
-                '<input type="text" class="form-control font-monospace small" name="urlPayFaviconUrl" id="hqUrlPayFormFaviconUrl" readonly placeholder="업로드 후 경로가 표시됩니다">' +
+                '<input type="text" class="form-control font-monospace small" name="urlPayFaviconUrl" id="hqUrlPayFormFaviconUrl" readonly data-pg-ui-placeholder="업로드 후 경로가 표시됩니다" placeholder="업로드 후 경로가 표시됩니다">' +
                 '<input type="file" class="d-none" id="hqUrlPayFormFaviconFile" accept=".png,.jpg,.jpeg,image/png,image/jpeg">' +
-                '<button type="button" class="btn btn-outline-secondary" id="hqUrlPayFormFaviconBrowse">찾기</button>' +
-                '<button type="button" class="btn btn-outline-primary" id="hqUrlPayFormFaviconUpload">업로드</button>' +
-                '<button type="button" class="btn btn-outline-danger" id="hqUrlPayFormFaviconClear">제거</button></div>' +
-                '<p class="text-muted small mb-0 mt-1">PNG·JPG, 1MB 이하. 서버에서 32×32 PNG로 변환됩니다.</p></div></div>'
+                '<button type="button" class="btn btn-outline-secondary" id="hqUrlPayFormFaviconBrowse" data-pg-ui-t="찾기">찾기</button>' +
+                '<button type="button" class="btn btn-outline-primary" id="hqUrlPayFormFaviconUpload" data-pg-ui-t="업로드">업로드</button>' +
+                '<button type="button" class="btn btn-outline-danger" id="hqUrlPayFormFaviconClear" data-pg-ui-t="제거">제거</button></div>' +
+                '<p class="text-muted small mb-0 mt-1" data-pg-ui-t="PNG·JPG, 1MB 이하. 서버에서 32×32 PNG로 변환됩니다.">PNG·JPG, 1MB 이하. 서버에서 32×32 PNG로 변환됩니다.</p></div></div>'
             }]
           ]
         },
@@ -1482,27 +1526,27 @@
               col: 12,
               html: '<input type="hidden" name="payCurrencyScaleRulesJson" id="payCurrencyScaleRulesJson" value="">' +
                 '<div id="hqPayCurrencyScaleMount" class="hq-pay-currency-scale-mount">' +
-                '<p class="text-muted small mb-2">결제대행사는 <strong>연동용도 URL결제(Y)</strong>인 PG만 선택할 수 있습니다. 목록·선택 상자 옆의 <strong>연동용도</strong>는 API연동설정의 노티·URL결제·챗봇·API 연동 여부를 나타냅니다. 아래에서 추가·수정·삭제한 뒤 <strong>목록 저장(폼 반영)</strong> → 화면 하단 <strong>저장</strong> 순서로 저장합니다.</p>' +
+                '<p class="text-muted small mb-2">' + L('결제대행사는 <strong>연동용도 URL결제(Y)</strong>인 PG만 선택할 수 있습니다. 목록·선택 상자 옆의 <strong>연동용도</strong>는 API연동설정의 노티·URL결제·챗봇·API 연동 여부를 나타냅니다. 아래에서 추가·수정·삭제한 뒤 <strong>목록 저장(폼 반영)</strong> → 화면 하단 <strong>저장</strong> 순서로 저장합니다.') + '</p>' +
                 '<div class="border rounded p-2 mb-2 bg-light bg-opacity-25">' +
                 '<div class="row g-2 align-items-end">' +
-                '<div class="col-md-3"><label class="form-label small mb-0" for="hqPayScaleDraftPg">결제대행사</label>' +
-                '<select class="form-select form-select-sm" id="hqPayScaleDraftPg"><option value="">선택</option></select></div>' +
-                '<div class="col-md-2"><label class="form-label small mb-0" for="hqPayScaleDraftCur">통화</label>' +
+                '<div class="col-md-3"><label class="form-label small mb-0" for="hqPayScaleDraftPg" data-pg-ui-t="결제대행사">결제대행사</label>' +
+                '<select class="form-select form-select-sm" id="hqPayScaleDraftPg"><option value="" data-pg-ui-t="선택">선택</option></select></div>' +
+                '<div class="col-md-2"><label class="form-label small mb-0" for="hqPayScaleDraftCur" data-pg-ui-t="통화">통화</label>' +
                 '<select class="form-select form-select-sm" id="hqPayScaleDraftCur"></select></div>' +
-                '<div class="col-md-2"><label class="form-label small mb-0" for="hqPayScaleDraftMode">배율</label>' +
+                '<div class="col-md-2"><label class="form-label small mb-0" for="hqPayScaleDraftMode" data-pg-ui-t="배율">배율</label>' +
                 '<select class="form-select form-select-sm" id="hqPayScaleDraftMode"></select></div>' +
                 '<div class="col-md-5 d-flex flex-wrap gap-2 align-items-end pb-1">' +
-                '<button type="button" class="btn btn-sm btn-primary" id="hqPayCurrencyScaleBtnAdd">추가</button>' +
-                '<button type="button" class="btn btn-sm btn-outline-primary" id="hqPayCurrencyScaleBtnApplyEdit">수정 적용</button>' +
-                '<button type="button" class="btn btn-sm btn-outline-secondary" id="hqPayCurrencyScaleBtnCancelEdit">수정 취소</button>' +
-                '<button type="button" class="btn btn-sm btn-success" id="hqPayCurrencyScaleBtnSyncHidden">목록 저장(폼 반영)</button>' +
+                '<button type="button" class="btn btn-sm btn-primary" id="hqPayCurrencyScaleBtnAdd" data-pg-ui-t="추가">추가</button>' +
+                '<button type="button" class="btn btn-sm btn-outline-primary" id="hqPayCurrencyScaleBtnApplyEdit" data-pg-ui-t="수정 적용">수정 적용</button>' +
+                '<button type="button" class="btn btn-sm btn-outline-secondary" id="hqPayCurrencyScaleBtnCancelEdit" data-pg-ui-t="수정 취소">수정 취소</button>' +
+                '<button type="button" class="btn btn-sm btn-success" id="hqPayCurrencyScaleBtnSyncHidden" data-pg-ui-t="목록 저장(폼 반영)">목록 저장(폼 반영)</button>' +
                 '</div>' +
                 '<div class="col-12"><p class="small text-primary mb-0 d-none" id="hqPayScaleEditBanner" role="status"></p></div>' +
                 '</div></div>' +
                 '<div class="table-responsive"><table class="table table-sm table-bordered align-middle mb-2">' +
-                '<thead class="table-light"><tr><th class="text-center" style="width:3rem">#</th><th style="min-width:11rem">결제대행사</th><th style="min-width:9rem">연동용도</th><th style="min-width:6rem">통화</th><th style="min-width:7rem">배율</th><th class="text-center" style="width:4.5rem">수정</th><th class="text-center" style="width:4.5rem">삭제</th></tr></thead>' +
+                '<thead class="table-light"><tr><th class="text-center" style="width:3rem">#</th><th style="min-width:11rem" data-pg-ui-t="결제대행사">결제대행사</th><th style="min-width:9rem" data-pg-ui-t="연동용도">연동용도</th><th style="min-width:6rem" data-pg-ui-t="통화">통화</th><th style="min-width:7rem" data-pg-ui-t="배율">배율</th><th class="text-center" style="width:4.5rem" data-pg-ui-t="수정">수정</th><th class="text-center" style="width:4.5rem" data-pg-ui-t="삭제">삭제</th></tr></thead>' +
                 '<tbody id="hqPayCurrencyScaleTbody"></tbody></table></div>' +
-                '<p class="text-muted small mb-0">이전 방식 호환: <button type="button" class="btn btn-link btn-sm p-0 align-baseline" id="hqPayCurrencyScaleAddRow">빈 행을 바로 목록에 넣기</button></p></div>'
+                '<p class="text-muted small mb-0"><span data-pg-ui-t="이전 방식 호환: ">이전 방식 호환: </span><button type="button" class="btn btn-link btn-sm p-0 align-baseline" id="hqPayCurrencyScaleAddRow" data-pg-ui-t="빈 행을 바로 목록에 넣기">빈 행을 바로 목록에 넣기</button></p></div>'
             }]
           ]
         },
@@ -1537,47 +1581,47 @@
               html: '<input type="hidden" name="urlPayCardCopyConfigJson" id="urlPayCardCopyConfigJson" value="">' +
                 '<div id="hqPayCardCopyMount" class="hq-pay-card-copy-mount border rounded p-3 mb-2 bg-light bg-opacity-25">' +
                 '<div class="row g-2 align-items-end mb-3">' +
-                '<div class="col-md-3"><label class="form-label small mb-0">결제대행사 (URL결제)</label>' +
-                '<select class="form-select form-select-sm" id="hqPayCardCopyDraftPg"><option value="">선택</option></select></div>' +
-                '<div class="col-md-9"><label class="form-label small mb-0">제목 (한국어) — 결제 폼 «카드 *» 제목</label>' +
-                '<input type="text" class="form-control form-control-sm" id="hqPayCardCopyDraftTitle" maxlength="500" placeholder="예: 카드"></div>' +
-                '<div class="col-12 border-top pt-2 mt-1"><p class="small fw-semibold mb-2">결제 금액 하단 안내 (통화 스케일·PG별)</p>' +
+                '<div class="col-md-3"><label class="form-label small mb-0" data-pg-ui-t="결제대행사 (URL결제)">결제대행사 (URL결제)</label>' +
+                '<select class="form-select form-select-sm" id="hqPayCardCopyDraftPg"><option value="" data-pg-ui-t="선택">선택</option></select></div>' +
+                '<div class="col-md-9"><label class="form-label small mb-0" data-pg-ui-t="제목 (한국어) — 결제 폼 «카드 *» 제목">제목 (한국어) — 결제 폼 «카드 *» 제목</label>' +
+                '<input type="text" class="form-control form-control-sm" id="hqPayCardCopyDraftTitle" maxlength="500" data-pg-ui-placeholder="예: 카드" placeholder="예: 카드"></div>' +
+                '<div class="col-12 border-top pt-2 mt-1"><p class="small fw-semibold mb-2" data-pg-ui-t="결제 금액 하단 안내 (통화 스케일·PG별)">결제 금액 하단 안내 (통화 스케일·PG별)</p>' +
                 '<div class="form-check mb-2">' +
                 '<input class="form-check-input" type="checkbox" id="hqPayCardCopyDraftAmtShow" checked>' +
-                '<label class="form-check-label small" for="hqPayCardCopyDraftAmtShow">금액 입력란 아래 안내 문구 노출</label></div>' +
-                '<label class="form-label small mb-0" for="hqPayCardCopyDraftAmtNotice">안내 문구 (한국어, 비우면 페이지 기본 ×100/÷100 문구)</label>' +
-                '<textarea class="form-control form-control-sm" id="hqPayCardCopyDraftAmtNotice" rows="2" maxlength="2000" placeholder="예: 본사 「결제통화로직설정」에 따라 입력 금액과 결제 대행사로 전달되는 금액의 관계를 안내합니다."></textarea></div>' +
-                '<div class="col-12"><label class="form-label small mb-0">내용 1 (한국어)</label>' +
-                '<textarea class="form-control form-control-sm" id="hqPayCardCopyDraftBody1" rows="4" maxlength="4000" placeholder="카드 정보는 위 각 칸 안의 ChillPay 보안 입력(iframe)에서만 입력합니다. 카드 명의(Name on card)도 위 칸에만 입력하면 되며, iframe 밖에서는 값을 읽을 수 없어 하단 이름·성 입력은 표시하지 않습니다. ChillPay가 안전하게 처리하며, 당사 서버로 카드번호 평문이 전달되지 않습니다."></textarea></div>' +
-                '<div class="col-12"><label class="form-label small mb-0">내용 2 (한국어)</label>' +
-                '<textarea class="form-control form-control-sm" id="hqPayCardCopyDraftBody2" rows="4" maxlength="4000" placeholder="카드 입력은 연동된 PG사 보안 위젯(iframe 등)에서 제공합니다. 브랜드별 자릿수·CVV 규칙은 해당 PG가 처리하며, ChillPay는 AMEX 미지원입니다. 다른 PG 연동 시 같은 결제 껍데기 안에서 벤더별 위젯으로 갈아끼우는 형태가 일반적입니다."></textarea></div>' +
-                '<div class="col-12"><label class="form-label small mb-0">내용 3 (한국어)</label>' +
-                '<textarea class="form-control form-control-sm" id="hqPayCardCopyDraftBody3" rows="3" maxlength="4000" placeholder="예: 사용카드 안내(VISA, MASTER 등), 카드 표기와 동일한 명의 입력 안내 등"></textarea></div>' +
-                '<div class="col-12 mt-2"><hr class="my-2"><p class="small fw-semibold mb-2">URL 결제 결과 화면 (성공/실패 큰 글씨·하단 안내)</p></div>' +
-                '<div class="col-md-6"><label class="form-label small mb-0">성공 — 안내 제목 (한국어)</label>' +
-                '<textarea class="form-control form-control-sm" id="hqPayCardCopyDraftResultOk1" rows="2" maxlength="500" placeholder="예: 결제가 완료되었습니다."></textarea></div>' +
-                '<div class="col-md-6"><label class="form-label small mb-0">성공 — 하단 안내 (한국어)</label>' +
-                '<textarea class="form-control form-control-sm" id="hqPayCardCopyDraftResultOk2" rows="2" maxlength="2000" placeholder="예: 팝업으로 열렸다면 이 창을 닫아 주세요.…"></textarea></div>' +
-                '<div class="col-md-6"><label class="form-label small mb-0">실패·미완료 — 안내 제목 (한국어)</label>' +
-                '<textarea class="form-control form-control-sm" id="hqPayCardCopyDraftResultFail1" rows="2" maxlength="500" placeholder="예: 결제가 완료되지 않았거나 실패했습니다."></textarea></div>' +
-                '<div class="col-md-6"><label class="form-label small mb-0">실패·미완료 — 하단 안내 (한국어)</label>' +
-                '<textarea class="form-control form-control-sm" id="hqPayCardCopyDraftResultFail2" rows="2" maxlength="2000" placeholder="예: 팝업으로 열렸다면 이 창을 닫아 주세요.…"></textarea></div>' +
+                '<label class="form-check-label small" for="hqPayCardCopyDraftAmtShow" data-pg-ui-t="금액 입력란 아래 안내 문구 노출">금액 입력란 아래 안내 문구 노출</label></div>' +
+                '<label class="form-label small mb-0" for="hqPayCardCopyDraftAmtNotice" data-pg-ui-t="안내 문구 (한국어, 비우면 페이지 기본 ×100/÷100 문구)">안내 문구 (한국어, 비우면 페이지 기본 ×100/÷100 문구)</label>' +
+                '<textarea class="form-control form-control-sm" id="hqPayCardCopyDraftAmtNotice" rows="2" maxlength="2000" data-pg-ui-placeholder="예: 본사 「결제통화로직설정」에 따라 입력 금액과 결제 대행사로 전달되는 금액의 관계를 안내합니다." placeholder="예: 본사 「결제통화로직설정」에 따라 입력 금액과 결제 대행사로 전달되는 금액의 관계를 안내합니다."></textarea></div>' +
+                '<div class="col-12"><label class="form-label small mb-0" data-pg-ui-t="내용 1 (한국어)">내용 1 (한국어)</label>' +
+                '<textarea class="form-control form-control-sm" id="hqPayCardCopyDraftBody1" rows="4" maxlength="4000" data-pg-ui-placeholder="카드 정보는 위 각 칸 안의 ChillPay 보안 입력(iframe)에서만 입력합니다. 카드 명의(Name on card)도 위 칸에만 입력하면 되며, iframe 밖에서는 값을 읽을 수 없어 하단 이름·성 입력은 표시하지 않습니다. ChillPay가 안전하게 처리하며, 당사 서버로 카드번호 평문이 전달되지 않습니다." placeholder="카드 정보는 위 각 칸 안의 ChillPay 보안 입력(iframe)에서만 입력합니다. 카드 명의(Name on card)도 위 칸에만 입력하면 되며, iframe 밖에서는 값을 읽을 수 없어 하단 이름·성 입력은 표시하지 않습니다. ChillPay가 안전하게 처리하며, 당사 서버로 카드번호 평문이 전달되지 않습니다."></textarea></div>' +
+                '<div class="col-12"><label class="form-label small mb-0" data-pg-ui-t="내용 2 (한국어)">내용 2 (한국어)</label>' +
+                '<textarea class="form-control form-control-sm" id="hqPayCardCopyDraftBody2" rows="4" maxlength="4000" data-pg-ui-placeholder="카드 입력은 연동된 PG사 보안 위젯(iframe 등)에서 제공합니다. 브랜드별 자릿수·CVV 규칙은 해당 PG가 처리하며, ChillPay는 AMEX 미지원입니다. 다른 PG 연동 시 같은 결제 껍데기 안에서 벤더별 위젯으로 갈아끼우는 형태가 일반적입니다." placeholder="카드 입력은 연동된 PG사 보안 위젯(iframe 등)에서 제공합니다. 브랜드별 자릿수·CVV 규칙은 해당 PG가 처리하며, ChillPay는 AMEX 미지원입니다. 다른 PG 연동 시 같은 결제 껍데기 안에서 벤더별 위젯으로 갈아끼우는 형태가 일반적입니다."></textarea></div>' +
+                '<div class="col-12"><label class="form-label small mb-0" data-pg-ui-t="내용 3 (한국어)">내용 3 (한국어)</label>' +
+                '<textarea class="form-control form-control-sm" id="hqPayCardCopyDraftBody3" rows="3" maxlength="4000" data-pg-ui-placeholder="예: 사용카드 안내(VISA, MASTER 등), 카드 표기와 동일한 명의 입력 안내 등" placeholder="예: 사용카드 안내(VISA, MASTER 등), 카드 표기와 동일한 명의 입력 안내 등"></textarea></div>' +
+                '<div class="col-12 mt-2"><hr class="my-2"><p class="small fw-semibold mb-2" data-pg-ui-t="URL 결제 결과 화면 (성공/실패 큰 글씨·하단 안내)">URL 결제 결과 화면 (성공/실패 큰 글씨·하단 안내)</p></div>' +
+                '<div class="col-md-6"><label class="form-label small mb-0" data-pg-ui-t="성공 — 안내 제목 (한국어)">성공 — 안내 제목 (한국어)</label>' +
+                '<textarea class="form-control form-control-sm" id="hqPayCardCopyDraftResultOk1" rows="2" maxlength="500" data-pg-ui-placeholder="예: 결제가 완료되었습니다." placeholder="예: 결제가 완료되었습니다."></textarea></div>' +
+                '<div class="col-md-6"><label class="form-label small mb-0" data-pg-ui-t="성공 — 하단 안내 (한국어)">성공 — 하단 안내 (한국어)</label>' +
+                '<textarea class="form-control form-control-sm" id="hqPayCardCopyDraftResultOk2" rows="2" maxlength="2000" data-pg-ui-placeholder="예: 팝업으로 열렸다면 이 창을 닫아 주세요.…" placeholder="예: 팝업으로 열렸다면 이 창을 닫아 주세요.…"></textarea></div>' +
+                '<div class="col-md-6"><label class="form-label small mb-0" data-pg-ui-t="실패·미완료 — 안내 제목 (한국어)">실패·미완료 — 안내 제목 (한국어)</label>' +
+                '<textarea class="form-control form-control-sm" id="hqPayCardCopyDraftResultFail1" rows="2" maxlength="500" data-pg-ui-placeholder="예: 결제가 완료되지 않았거나 실패했습니다." placeholder="예: 결제가 완료되지 않았거나 실패했습니다."></textarea></div>' +
+                '<div class="col-md-6"><label class="form-label small mb-0" data-pg-ui-t="실패·미완료 — 하단 안내 (한국어)">실패·미완료 — 하단 안내 (한국어)</label>' +
+                '<textarea class="form-control form-control-sm" id="hqPayCardCopyDraftResultFail2" rows="2" maxlength="2000" data-pg-ui-placeholder="예: 팝업으로 열렸다면 이 창을 닫아 주세요.…" placeholder="예: 팝업으로 열렸다면 이 창을 닫아 주세요.…"></textarea></div>' +
                 '<div class="col-12 d-flex flex-wrap gap-2 align-items-center">' +
-                '<button type="button" class="btn btn-sm btn-primary" id="hqPayCardCopyBtnSave">저장</button>' +
-                '<button type="button" class="btn btn-sm btn-outline-primary" id="hqPayCardCopyBtnSaveI18n">저장(다국어)</button>' +
-                '<button type="button" class="btn btn-sm btn-outline-secondary" id="hqPayCardCopyBtnCancelEdit">수정 취소</button>' +
+                '<button type="button" class="btn btn-sm btn-primary" id="hqPayCardCopyBtnSave" data-pg-ui-t="저장">저장</button>' +
+                '<button type="button" class="btn btn-sm btn-outline-primary" id="hqPayCardCopyBtnSaveI18n" data-pg-ui-t="저장(다국어)">저장(다국어)</button>' +
+                '<button type="button" class="btn btn-sm btn-outline-secondary" id="hqPayCardCopyBtnCancelEdit" data-pg-ui-t="수정 취소">수정 취소</button>' +
                 '</div>' +
                 '<div class="col-12"><p class="small text-primary mb-0 d-none" id="hqPayCardCopyEditBanner" role="status"></p></div>' +
                 '</div>' +
                 '<div class="hq-pay-card-copy-grid-wrap w-100">' +
                 '<table class="table table-sm table-bordered align-middle mb-0 hq-pay-card-copy-grid table-no-col-resize">' +
                 '<colgroup><col class="hq-pay-card-copy-col-pg"><col><col><col><col><col><col><col><col><col><col style="width:3.25rem"><col style="width:3.25rem"><col style="width:3.25rem"></colgroup>' +
-                '<thead class="table-light"><tr><th scope="col">PG</th><th scope="col" title="한국어 제목">제목(한)</th><th scope="col" title="결제 금액 하단 안내">금액안내</th><th scope="col">내용1</th><th scope="col">내용2</th><th scope="col">내용3</th>' +
-                '<th scope="col" title="URL 결제 결과 — 성공 큰 글씨(한)">성공 제목</th><th scope="col" title="URL 결제 결과 — 성공 하단 안내(한)">성공 하단</th>' +
-                '<th scope="col" title="URL 결제 결과 — 실패 큰 글씨(한)">실패 제목</th><th scope="col" title="URL 결제 결과 — 실패 하단 안내(한)">실패 하단</th>' +
-                '<th class="text-center" scope="col">활성</th><th class="text-center" scope="col">수정</th><th class="text-center" scope="col">삭제</th></tr></thead>' +
+                '<thead class="table-light"><tr><th scope="col" data-pg-ui-t="PG">PG</th><th scope="col"  data-pg-ui-title="한국어 제목" title="한국어 제목" data-pg-ui-t="제목(한)">제목(한)</th><th scope="col"  data-pg-ui-title="결제 금액 하단 안내" title="결제 금액 하단 안내" data-pg-ui-t="금액안내">금액안내</th><th scope="col" data-pg-ui-t="내용1">내용1</th><th scope="col" data-pg-ui-t="내용2">내용2</th><th scope="col" data-pg-ui-t="내용3">내용3</th>' +
+                '<th scope="col"  data-pg-ui-title="URL 결제 결과 — 성공 큰 글씨(한)" title="URL 결제 결과 — 성공 큰 글씨(한)" data-pg-ui-t="성공 제목">성공 제목</th><th scope="col"  data-pg-ui-title="URL 결제 결과 — 성공 하단 안내(한)" title="URL 결제 결과 — 성공 하단 안내(한)" data-pg-ui-t="성공 하단">성공 하단</th>' +
+                '<th scope="col"  data-pg-ui-title="URL 결제 결과 — 실패 큰 글씨(한)" title="URL 결제 결과 — 실패 큰 글씨(한)" data-pg-ui-t="실패 제목">실패 제목</th><th scope="col"  data-pg-ui-title="URL 결제 결과 — 실패 하단 안내(한)" title="URL 결제 결과 — 실패 하단 안내(한)" data-pg-ui-t="실패 하단">실패 하단</th>' +
+                '<th class="text-center" scope="col" data-pg-ui-t="활성">활성</th><th class="text-center" scope="col" data-pg-ui-t="수정">수정</th><th class="text-center" scope="col" data-pg-ui-t="삭제">삭제</th></tr></thead>' +
                 '<tbody id="hqPayCardCopyTbody"></tbody></table></div>' +
-                '<p class="text-muted small mt-2 mb-0">이 블록의 <strong>저장</strong>은 목록에만 반영됩니다. 서버(DB) 반영은 화면 맨 아래 <strong>저장</strong>이 필요합니다.</p></div>'
+                '<p class="text-muted small mt-2 mb-0">' + L('이 블록의 <strong>저장</strong>은 목록에만 반영됩니다. 서버(DB) 반영은 화면 맨 아래 <strong>저장</strong>이 필요합니다.') + '</p></div>'
             }]
           ]
         },
@@ -1709,7 +1753,7 @@
           merchantOnly: true,
           cardExtraClass: 'pg-comp-reg-void-refund-panel',
           rows: [
-            [{ type: 'customHtml', col: 12, html: '<p class="small text-muted mb-3 mb-md-2"><strong>무효·환불 정산 방식</strong>(일반형·수익형·하이브리드·총판·본사 따름)은 아래 네 항목에서 선택합니다. <strong>총판·본사 따름</strong>이면 본사설정의 환수/미수금 화면에서 지정한 총판별·본사 기본값이 적용되고, 값을 고르면 해당 가맹이 우선합니다.</p>' }],
+            [{ type: 'customHtml', col: 12, html: merchantVoidRefundGuideHtml }],
             [{ label: '무효 정산(21·40)', type: 'select', name: 'voidSettlementMode', options: VOID_REFUND_SETTLE_MODE_OPTIONS.concat([{ v: 'FOLLOW', t: '총판·본사 따름' }]), col: 3, voidRefundSettlementModeField: true }, { label: '수동무효 정산(22·41)', type: 'select', name: 'manualVoidSettlementMode', options: VOID_REFUND_SETTLE_MODE_OPTIONS.concat([{ v: 'FOLLOW', t: '총판·본사 따름' }]), col: 3, voidRefundSettlementModeField: true }, { label: '환불 정산(30·42)', type: 'select', name: 'refundSettlementMode', options: VOID_REFUND_SETTLE_MODE_OPTIONS.concat([{ v: 'FOLLOW', t: '총판·본사 따름' }]), col: 3, voidRefundSettlementModeField: true }, { label: '강제환불(31)', type: 'select', name: 'forceRefundSettlementMode', options: VOID_REFUND_SETTLE_MODE_OPTIONS.concat([{ v: 'FOLLOW', t: '총판·본사 따름' }]), col: 3, voidRefundSettlementModeField: true }]
           ]
         },
@@ -1788,7 +1832,7 @@
           rows: [
             [{ label: '웹결제 사용여부', type: 'select', name: 'webPaymentUseYn', options: [{ v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }], col: 2 }],
             [{ label: '상품명', type: 'text', name: 'defaultProductName', col: 2, placeholder: '대표 상품명' }, { label: '상품코드', type: 'text', name: 'defaultProductCode', col: 1 }, { label: '기본금액', type: 'text', name: 'defaultProductAmount', col: 1, placeholder: '0' }, { label: '상품설명', type: 'text', name: 'defaultProductDesc', col: 4 }],
-            [{ type: 'customHtml', col: 12, html: '<div class="row mb-2"><div class="col-sm-5"><label class="form-label">결제 URL</label><div class="input-group input-group-sm"><input type="text" class="form-control" id="paymentUrlDisplay" readonly placeholder="가맹점 저장 후 조회"><button type="button" class="btn btn-outline-primary" id="paymentUrlCopyBtn">복사</button></div></div></div>' }]
+            [{ type: 'customHtml', col: 12, html: function () { return merchantPaymentUrlRowHtml('가맹점 저장 후 조회'); } }]
           ]
         },
         {
@@ -2049,7 +2093,7 @@
           merchantOnly: true,
           cardExtraClass: 'pg-comp-reg-void-refund-panel',
           rows: [
-            [{ type: 'customHtml', col: 12, html: '<p class="small text-muted mb-3 mb-md-2"><strong>무효·환불 정산 방식</strong>(일반형·수익형·하이브리드·총판·본사 따름)은 아래 네 항목에서 선택합니다. <strong>총판·본사 따름</strong>이면 본사설정의 환수/미수금 화면에서 지정한 총판별·본사 기본값이 적용되고, 값을 고르면 해당 가맹이 우선합니다.</p>' }],
+            [{ type: 'customHtml', col: 12, html: merchantVoidRefundGuideHtml }],
             [{ label: '무효 정산(21·40)', type: 'select', name: 'voidSettlementMode', options: VOID_REFUND_SETTLE_MODE_OPTIONS.concat([{ v: 'FOLLOW', t: '총판·본사 따름' }]), col: 3, voidRefundSettlementModeField: true }, { label: '수동무효 정산(22·41)', type: 'select', name: 'manualVoidSettlementMode', options: VOID_REFUND_SETTLE_MODE_OPTIONS.concat([{ v: 'FOLLOW', t: '총판·본사 따름' }]), col: 3, voidRefundSettlementModeField: true }, { label: '환불 정산(30·42)', type: 'select', name: 'refundSettlementMode', options: VOID_REFUND_SETTLE_MODE_OPTIONS.concat([{ v: 'FOLLOW', t: '총판·본사 따름' }]), col: 3, voidRefundSettlementModeField: true }, { label: '강제환불(31)', type: 'select', name: 'forceRefundSettlementMode', options: VOID_REFUND_SETTLE_MODE_OPTIONS.concat([{ v: 'FOLLOW', t: '총판·본사 따름' }]), col: 3, voidRefundSettlementModeField: true }]
           ]
         },
@@ -2128,7 +2172,7 @@
           rows: [
             [{ label: '웹결제 사용여부', type: 'select', name: 'webPaymentUseYn', options: [{ v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }], col: 2 }],
             [{ label: '상품명', type: 'text', name: 'defaultProductName', col: 2, placeholder: '대표 상품명' }, { label: '상품코드', type: 'text', name: 'defaultProductCode', col: 1 }, { label: '기본금액', type: 'text', name: 'defaultProductAmount', col: 1, placeholder: '0' }, { label: '상품설명', type: 'text', name: 'defaultProductDesc', col: 4 }],
-            [{ type: 'customHtml', col: 12, html: '<div class="row mb-2"><div class="col-sm-5"><label class="form-label">결제 URL</label><div class="input-group input-group-sm"><input type="text" class="form-control" id="paymentUrlDisplay" readonly placeholder="가맹점 저장 후 조회"><button type="button" class="btn btn-outline-primary" id="paymentUrlCopyBtn">복사</button></div></div></div>' }]
+            [{ type: 'customHtml', col: 12, html: function () { return merchantPaymentUrlRowHtml('가맹점 저장 후 조회'); } }]
           ]
         },
         {
@@ -2322,7 +2366,7 @@
           merchantOnly: true,
           cardExtraClass: 'pg-comp-reg-void-refund-panel',
           rows: [
-            [{ type: 'customHtml', col: 12, html: '<p class="small text-muted mb-3 mb-md-2"><strong>무효·환불 정산 방식</strong>(일반형·수익형·하이브리드·총판·본사 따름)은 아래 네 항목에서 선택합니다. <strong>총판·본사 따름</strong>이면 본사설정의 환수/미수금 화면에서 지정한 총판별·본사 기본값이 적용되고, 값을 고르면 해당 가맹이 우선합니다.</p>' }],
+            [{ type: 'customHtml', col: 12, html: merchantVoidRefundGuideHtml }],
             [{ label: '무효 정산(21·40)', type: 'select', name: 'voidSettlementMode', options: VOID_REFUND_SETTLE_MODE_OPTIONS.concat([{ v: 'FOLLOW', t: '총판·본사 따름' }]), col: 3, voidRefundSettlementModeField: true }, { label: '수동무효 정산(22·41)', type: 'select', name: 'manualVoidSettlementMode', options: VOID_REFUND_SETTLE_MODE_OPTIONS.concat([{ v: 'FOLLOW', t: '총판·본사 따름' }]), col: 3, voidRefundSettlementModeField: true }, { label: '환불 정산(30·42)', type: 'select', name: 'refundSettlementMode', options: VOID_REFUND_SETTLE_MODE_OPTIONS.concat([{ v: 'FOLLOW', t: '총판·본사 따름' }]), col: 3, voidRefundSettlementModeField: true }, { label: '강제환불(31)', type: 'select', name: 'forceRefundSettlementMode', options: VOID_REFUND_SETTLE_MODE_OPTIONS.concat([{ v: 'FOLLOW', t: '총판·본사 따름' }]), col: 3, voidRefundSettlementModeField: true }]
           ]
         },
@@ -2401,7 +2445,7 @@
           rows: [
             [{ label: '웹결제 사용여부', type: 'select', name: 'webPaymentUseYn', options: [{ v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }], col: 2 }],
             [{ label: '상품명', type: 'text', name: 'defaultProductName', col: 2, placeholder: '대표 상품명' }, { label: '상품코드', type: 'text', name: 'defaultProductCode', col: 1 }, { label: '기본금액', type: 'text', name: 'defaultProductAmount', col: 1, placeholder: '0' }, { label: '상품설명', type: 'text', name: 'defaultProductDesc', col: 4 }],
-            [{ type: 'customHtml', col: 12, html: '<div class="row mb-2"><div class="col-sm-5"><label class="form-label">결제 URL</label><div class="input-group input-group-sm"><input type="text" class="form-control" id="paymentUrlDisplay" readonly placeholder="가맹점 선택 후 조회"><button type="button" class="btn btn-outline-primary" id="paymentUrlCopyBtn">복사</button></div></div></div>' }]
+            [{ type: 'customHtml', col: 12, html: function () { return merchantPaymentUrlRowHtml('가맹점 선택 후 조회'); } }]
           ]
         },
         {
@@ -2528,7 +2572,8 @@
         { key: 'chgBefore', label: '변경 전' },
         { key: 'chgAfter', label: '변경 후' },
         { key: 'changedBy', label: '변경자' }
-      ]
+      ],
+      emptyMessage: '조회된 데이터가 없습니다.'
     },
     '/calc/payList': {
       listSortDirAnchor: 'refresh',
@@ -2539,37 +2584,29 @@
       searchFormClass: 'pay-mng-search-form',
       searchRows: [
         [
-          { label: '거래인자', type: 'select', name: 'searchTranFactor', options: [
-            { v: '', t: '전체' },
-            { v: 'ORDER_NO', t: '주문번호' },
-            { v: 'CUSTOMER_ID', t: '고객ID' },
-            { v: 'TRN_ID', t: '거래번호' },
-            { v: 'AMT', t: '금액' },
-            { v: 'MERCHANT', t: '가맹점' },
-            { v: 'ROUTE', t: '루트' },
-            { v: 'MID', t: 'MID' }
-          ], size: 9 },
-          { type: 'text', name: 'searchTranValue', placeholder: '값', size: 12 },
-          { type: 'daterange', from: 'searchFromDate', to: 'searchToDate' },
-          { type: 'quickdate' }
+          { label: '거래일자', type: 'daterange', from: 'searchFromDate', to: 'searchToDate' },
+          { type: 'quickdate', quickdateLabels: ['당일', '당월', '전일', '1주', '2주', '전월'], quickdateRanges: ['day', 'month', 'prevDay', 'week', 'week2', 'prevMonth'] },
+          { label: '결제대행사', type: 'select', name: 'searchPgCd', options: [{ v: '', t: '전체' }], size: 13 },
+          { label: '정산주기', type: 'select', name: 'searchCycle', options: CALC_CYCLE_SEARCH_OPTIONS, size: 10 }
         ],
         [
-          { label: '업체', type: 'select', name: 'searchCompField', options: [
-            { v: '', t: '전체' }, { v: 'NM', t: '업체명' }, { v: 'CODE', t: '업체코드' }
-          ], size: 8 },
-          { type: 'text', name: 'searchCompQ', placeholder: '업체명·코드', size: 11 },
-          { label: 'MID', type: 'text', name: 'searchMid', placeholder: 'MID', size: 9 },
-          { label: '수신채널', type: 'select', name: 'searchNotifyChannel', options: [
+          { label: '검색구분', type: 'select', name: 'searchFieldType', options: [
             { v: 'ALL', t: '전체' },
-            { v: 'CALLBACK', t: 'CALLBACK' },
-            { v: 'RESULT', t: 'RESULT URL' },
-            { v: 'BOTH', t: 'BOTH' }
-          ], size: 10 }
-        ],
-        [
-          { label: '결제구분', type: 'select', name: 'searchPayDivCd', options: [
+            { v: 'CUSTOMER_ID', t: '고객ID' },
+            { v: 'COMP_NM', t: '업체명' },
+            { v: 'COMP_ID', t: '업체코드' },
+            { v: 'APPROVAL_NO', t: '승인번호' },
+            { v: 'ORDER_NO', t: '주문번호' },
+            { v: 'MID', t: 'MID' },
+            { v: 'ROUTE', t: '루트' },
+            { v: 'CURRENCY', t: '통화' },
+            { v: 'STATUS', t: '상태' },
+            { v: 'AMOUNT', t: '금액' }
+          ], size: 11 },
+          { label: '검색어', type: 'text', name: 'searchKeyword', placeholder: '검색어', size: 22 },
+          { label: '상태구분', type: 'select', name: 'searchPayDivCd', options: [
             { v: '', t: '전체' },
-            { v: '10', t: '결제' },
+            { v: '10', t: '성공' },
             { v: '20', t: '취소' },
             { v: 'FAIL', t: '실패' },
             { v: '40', t: '자동무효' },
@@ -2577,18 +2614,8 @@
             { v: '42', t: '자동환불' },
             { v: '31', t: '강제환불' }
           ], size: 11 },
-          { label: '정산구분', type: 'select', name: 'searchPayProcCd', options: [
-            { v: '', t: '전체' }, { v: '10', t: '정산대기' }, { v: '20', t: '정산완료' }, { v: '30', t: '결제취소' }, { v: '40', t: '정산취소' }
-          ], size: 9 },
-          { label: '검색어', type: 'text', name: 'searchKeyword', placeholder: '주문·거래·고객·칠페이 ID 등', size: 22 },
-          { type: 'searchBtn', label: '검색' }
-        ],
-        [
-          { label: '결제대행사', type: 'select', name: 'searchPgCd', options: [{ v: '', t: '전체' }], size: 13 },
-          { label: '전산주기', type: 'select', name: 'searchCycle', options: CALC_CYCLE_SEARCH_OPTIONS, size: 10 },
-          { label: '사업자번호', type: 'text', name: 'searchRegNo', size: 12 },
-          { label: '카드승인번호', type: 'text', name: 'searchCardAprvNo', size: 11 },
-          { label: '피지거래번호', type: 'text', name: 'searchChillTxnId', placeholder: '승인번호(TransactionId)', size: 14 }
+          { type: 'searchBtn', label: '검색' },
+          { type: 'button', name: 'searchReset', label: '검색 초기화' }
         ]
       ],
       searchRows2: [],
@@ -2627,6 +2654,8 @@
       searchFormClass: 'screen-search-form pay-mng-search-form',
       searchRows: [
         [
+          { label: '거래일자', type: 'daterange', from: 'searchFromDate', to: 'searchToDate' },
+          { type: 'quickdate', quickdateLabels: ['당일', '당월', '전일', '1주', '2주', '전월'], quickdateRanges: ['day', 'month', 'prevDay', 'week', 'week2', 'prevMonth'] },
           { label: '정렬', type: 'select', name: 'searchOrderBy', options: [
             { v: 'TransactionId', t: '승인번호' },
             { v: 'TransactionDate', t: '거래일자' },
@@ -2636,19 +2665,21 @@
             { v: 'Merchant', t: 'Merchant' },
             { v: 'Customer', t: '고객' },
             { v: 'Status', t: '상태' }
-          ], size: 12 },
-          { type: 'daterange', from: 'searchFromDate', to: 'searchToDate' },
-          { type: 'quickdate' },
-          { type: 'searchBtn', label: '검색' },
-          { type: 'button', name: 'searchReset', label: '검색 초기화' }
+          ], size: 12 }
         ],
         [
-          { label: '검색어', type: 'text', name: 'searchKeyword', placeholder: 'SearchKeyword', size: 16 },
-          { label: 'MID', type: 'text', name: 'searchMerchantCode', placeholder: 'MerchantCode', size: 12 },
-          { label: '주문번호', type: 'text', name: 'searchOrderNo', size: 12 },
-          { label: '상태', type: 'text', name: 'searchChillStatus', placeholder: 'Paid, WaitAuthorize…', size: 11 },
-          { label: '채널', type: 'text', name: 'searchPaymentChannel', placeholder: 'Appendix B', size: 11 },
-          { label: 'Route', type: 'text', name: 'searchRouteNo', placeholder: '숫자', size: 6 }
+          { label: '검색구분', type: 'select', name: 'searchFieldType', options: [
+            { v: 'ALL', t: '전체' },
+            { v: 'APPROVAL_NO', t: '승인번호' },
+            { v: 'ORDER_NO', t: '주문번호' },
+            { v: 'CUSTOMER_ID', t: '고객ID' },
+            { v: 'MID', t: 'MID' },
+            { v: 'ROUTE', t: '루트' },
+            { v: 'STATUS', t: '상태' }
+          ], size: 11 },
+          { label: '검색어', type: 'text', name: 'searchKeyword', placeholder: '검색어', size: 22 },
+          { type: 'searchBtn', label: '검색' },
+          { type: 'button', name: 'searchReset', label: '검색 초기화' }
         ]
       ],
       noticeList: [
@@ -2971,7 +3002,9 @@
       columnGuideFixedKeys: ['rowNo', 'compNm', 'compId', 'curType'],
       paginationSizeOptions: [50, 100, 300, 400, 500],
       paginationDefaultSize: 50,
-      notice: '「환수금」은 정산이 반영된 뒤(승인 건이 settled 등으로 정산에 올라간 이후) 같은 거래가 환불·취소·무효·차지백 등으로 바뀔 때 정산에서 거둬야 할 금액이 자동으로 잡히는 내역입니다. 금액은 전산설정(환수금 수수료 포함) 및 수수료내역과 동일한 건별 산식입니다. 다음 정산 지급액에서는 환수금(FIFO)을 먼저 차감한 뒤 미수금(FIFO)을 차감합니다. 거래별 산출·검증은 「회수·거래기준」(/settlement/recallMng) 화면을 참고하세요.',
+      noticeList: [
+        '「환수금」은 정산이 반영된 뒤(승인 건이 settled 등으로 정산에 올라간 이후) 같은 거래가 환불·취소·무효·차지백 등으로 바뀔 때 정산에서 거둬야 할 금액이 자동으로 잡히는 내역입니다. 금액은 전산설정(환수금 수수료 포함) 및 수수료내역과 동일한 건별 산식입니다. 다음 정산 지급액에서는 환수금(FIFO)을 먼저 차감한 뒤 미수금(FIFO)을 차감합니다. 거래별 산출·검증은 「회수·거래기준」(/settlement/recallMng) 화면을 참고하세요.'
+      ],
       searchRows: [
         [
           { label: '업체코드', type: 'text', name: 'searchCompId' },
@@ -3017,7 +3050,9 @@
         'failFee', 'cancelFee', 'voidFee', 'manualVoidFee', 'refundFee', 'chargebackFee',
         'totalFee', 'feeVat', 'expectedPayout', 'settlementAmt', 'vatAppliedYn'
       ],
-      notice: '검색: 첫 줄에서 거래일·빠른기간을 정한 뒤, 둘째 줄에서 검색구분·검색어·상태그룹을 맞추고 오른쪽 [검색]을 누릅니다. 「전체」는 해당 조건으로 좁히지 않습니다. 앞쪽 열 순서(업체·거래일·거래시간·루트·승인번호·거래번호)는 통합 결제내역 기본과 같습니다. 건당수수료 열은 거래 성공 시 과금되는 성공(건당) 고정액만 표시합니다. 기타수수료: USDT·FX는 승인금액 대비 %(「결제(%)」 합계에 포함), 3DS는 정책통화 기준 건당 고정(합계 열에는 미포함·별도 열). 세 항목은 결제·건당 등과 별도로 동시 과금될 수 있습니다. 금액이 없으면 USDT·FX·3DS 열은 — 입니다. 정산 수수료는 정산 실행 시 1회 과금되며, 송금(이체) 수수료는 그 이후 송금 처리 시 과금되어 정산리포트에 정산 수수료·송금 수수료로 각각 표시됩니다. 이 화면의 총수수료·지급예상에는 정산·송금 건당액이 포함되지 않습니다. 결제(성공): 건당·%(승인 시 부과) 열, 담보(롤링%·추정액), 지급예상액, 정산액(지급예상−담보추정). 실패·취소·무효·환불 등은 상태별 수수료 규칙을 따르며, 무효·환불 계열은 성공 건과 동일한 건당·%가 추가로 과금될 수 있습니다(이중 과금). 차감(취소·환불·무효·실패 등): 지급예상액은 0, 총수수료·부가세는 과금액(양수), 정산액은 −(총수수료+부가세)입니다. 담보 추정은 승인 건에만 표시됩니다. 본사·총판 등은 로그인 조직 하위 가맹점만 조회됩니다.',
+      noticeList: [
+        '검색: 첫 줄에서 거래일·빠른기간을 정한 뒤, 둘째 줄에서 검색구분·검색어·상태그룹을 맞추고 오른쪽 [검색]을 누릅니다. 「전체」는 해당 조건으로 좁히지 않습니다. 앞쪽 열 순서(업체·거래일·거래시간·루트·승인번호·거래번호)는 통합 결제내역 기본과 같습니다. 건당수수료 열은 거래 성공 시 과금되는 성공(건당) 고정액만 표시합니다. 기타수수료: USDT·FX는 승인금액 대비 %(「결제(%)」 합계에 포함), 3DS는 정책통화 기준 건당 고정(합계 열에는 미포함·별도 열). 세 항목은 결제·건당 등과 별도로 동시 과금될 수 있습니다. 금액이 없으면 USDT·FX·3DS 열은 — 입니다. 정산 수수료는 정산 실행 시 1회 과금되며, 송금(이체) 수수료는 그 이후 송금 처리 시 과금되어 정산리포트에 정산 수수료·송금 수수료로 각각 표시됩니다. 이 화면의 총수수료·지급예상에는 정산·송금 건당액이 포함되지 않습니다. 결제(성공): 건당·%(승인 시 부과) 열, 담보(롤링%·추정액), 지급예상액, 정산액(지급예상−담보추정). 실패·취소·무효·환불 등은 상태별 수수료 규칙을 따르며, 무효·환불 계열은 성공 건과 동일한 건당·%가 추가로 과금될 수 있습니다(이중 과금). 차감(취소·환불·무효·실패 등): 지급예상액은 0, 총수수료·부가세는 과금액(양수), 정산액은 −(총수수료+부가세)입니다. 담보 추정은 승인 건에만 표시됩니다. 본사·총판 등은 로그인 조직 하위 가맹점만 조회됩니다.'
+      ],
       searchRows: [
         [
           { label: '거래일자', type: 'daterange', from: 'searchFromDate', to: 'searchToDate' },
@@ -3171,7 +3206,9 @@
       listToolbarBetweenRefreshAndSort: [
         { idPrefix: 'settlementExecuteRecentModeBtn', label: '최근정산', cls: 'btn-primary settlement-execute-recent-mode-btn' }
       ],
-      notice: '목록은 <strong>정산일(calc_dt)</strong>이 정산기간 안에 드는 실행만 보여 줍니다. 처음 열 때는 <strong>최근정산</strong> 모드(기본: 최근 1년·실행 등록 시각 최신순)입니다. [검색]을 누르면 입력한 정산기간으로 조회하며 정산일·업체코드 순으로 정렬됩니다. 「정산실행」버튼: 기간·가맹을 지정해 실행합니다(<strong>AUTO·MANUAL</strong> 모두 동일 주기·마감·격자·영업일 규칙). 검색: 정산기간·빠른기간·검색구분·<strong>정산구분</strong>(전체·자동·수동)·검색어 순으로 가맹 정산설정 기준을 좁힌 뒤 [검색]합니다. 「전체」는 해당 조건으로 좁히지 않습니다(검색어가 있을 때만 전체 컬럼 OR 검색). D+N·W+N·WK 등 달력 주기 가맹은 <strong>기간 종료일(정산일)</strong>이 해당 주기의 실행일일 때만 집계됩니다(미도래일에는 실행되지 않음). 정산마감시각·정산제외 영업일·D0 시간대는 자동 배치와 동일합니다. RT·T0·격자(M/H/TM/TH)는 조회 기간 내 거래가 있을 때만 해당 기간으로 집계합니다. <strong>H1·M 등 시간 격자</strong>는 한 구간(동일 정산 슬롯) 안에서 매출·취소·공제가 <strong>± 함께</strong> 집계되어 한 행의 지급액이 됩니다. 서버 크론은 AUTO 가맹만 자동 호출하며, 화면 「정산실행」은 AUTO·MANUAL을 추가로 수동 트리거할 수 있습니다. 목록의 정산주기·정산방법·루트는 가맹 정산설정·PG연동에서 가져옵니다. <strong>지급액</strong>은 순매출에서 수수료·수수료부가세·담보금(신규)를 뺀 값으로, 수수료·담보가 매출을 넘으면 <strong>음수</strong>로 표시됩니다(0으로 보정하지 않음). 그 경우 부족분 동액이 「미수금관리」에 1건 자동 등록되며(사유코드·메모로 실행과 연결), 본 목록의 <strong>미수금</strong> 열과 맞춰 볼 수 있습니다. 환수모드 <strong>AUTO</strong> 가맹은 다음 정산에서 양(+) 지급액에 환수금·미수금이 FIFO로 먼저 반영되고, <strong>MANUAL</strong> 가맹은 「미수금관리」에서 환수처리 후 차기 마감·정산에서 차감됩니다.',
+      noticeList: [
+        '목록은 정산일(calc_dt)이 정산기간 안에 드는 실행만 보여 줍니다. 처음 열 때는 최근정산 모드(기본: 최근 1년·실행 등록 시각 최신순)입니다. [검색]을 누르면 입력한 정산기간으로 조회하며 정산일·업체코드 순으로 정렬됩니다. 「정산실행」버튼: 기간·가맹을 지정해 실행합니다(AUTO·MANUAL 모두 동일 주기·마감·격자·영업일 규칙). 검색: 정산기간·빠른기간·검색구분·정산구분(전체·자동·수동)·검색어 순으로 가맹 정산설정 기준을 좁힌 뒤 [검색]합니다. 「전체」는 해당 조건으로 좁히지 않습니다(검색어가 있을 때만 전체 컬럼 OR 검색). D+N·W+N·WK 등 달력 주기 가맹은 기간 종료일(정산일)이 해당 주기의 실행일일 때만 집계됩니다(미도래일에는 실행되지 않음). 정산마감시각·정산제외 영업일·D0 시간대는 자동 배치와 동일합니다. RT·T0·격자(M/H/TM/TH)는 조회 기간 내 거래가 있을 때만 해당 기간으로 집계합니다. H1·M 등 시간 격자는 한 구간(동일 정산 슬롯) 안에서 매출·취소·공제가 ± 함께 집계되어 한 행의 지급액이 됩니다. 서버 크론은 AUTO 가맹만 자동 호출하며, 화면 「정산실행」은 AUTO·MANUAL을 추가로 수동 트리거할 수 있습니다. 목록의 정산주기·정산방법·루트는 가맹 정산설정·PG연동에서 가져옵니다. 지급액은 순매출에서 수수료·수수료부가세·담보금(신규)를 뺀 값으로, 수수료·담보가 매출을 넘으면 음수로 표시됩니다(0으로 보정하지 않음). 그 경우 부족분 동액이 「미수금관리」에 1건 자동 등록되며(사유코드·메모로 실행과 연결), 본 목록의 미수금 열과 맞춰 볼 수 있습니다. 환수모드 AUTO 가맹은 다음 정산에서 양(+) 지급액에 환수금·미수금이 FIFO로 먼저 반영되고, MANUAL 가맹은 「미수금관리」에서 환수처리 후 차기 마감·정산에서 차감됩니다.'
+      ],
       searchRows: [
         [
           { label: '정산기간', type: 'daterange', from: 'searchFromDate', to: 'searchToDate' },
@@ -3216,7 +3253,9 @@
       paginationDefaultSize: 50,
       hasSettlementExecuteDetailTable: true,
       settlementExecuteDetailUiVariant: 'publishDay',
-      notice: '<strong>정산배포</strong>: <code>PENDING</code> 만 표시. 과거 DB가 V101 백필로 전부 <code>DISTRIBUTED</code>였다면 운영 DB에 <code>db/V111_settlement_publish_pending_reopen.sql</code> 적용 후 목록이 채워집니다. 처음 열 때 정산기간이 비어 있으면 <strong>최근 1년</strong>입니다. 행 <strong>클릭</strong> 시 정산일 당일 해당 가맹 전체 거래를 아래에 표시합니다. 체크 후 <strong>정산배포</strong> → <code>DISTRIBUTED</code>, <strong>선택 홀딩</strong> → <code>HOLD</code>.',
+      noticeList: [
+        '정산배포: PENDING 만 표시. 과거 DB가 V101 백필로 전부 DISTRIBUTED였다면 운영 DB에 db/V111_settlement_publish_pending_reopen.sql 적용 후 목록이 채워집니다. 처음 열 때 정산기간이 비어 있으면 최근 1년입니다. 행 클릭 시 정산일 당일 해당 가맹 전체 거래를 아래에 표시합니다. 체크 후 정산배포 → DISTRIBUTED, 선택 홀딩 → HOLD.'
+      ],
       searchRows: [
         [
           { type: 'customHtml', html: '<input type="hidden" name="searchPublishTab" id="searchPublishTab" value="PENDING">', col: 12 },
@@ -3248,7 +3287,9 @@
       listSortDirAnchor: 'refresh',
       paginationSizeOptions: [50, 100, 300, 400, 500],
       paginationDefaultSize: 50,
-      notice: '<strong>정산대기</strong>: <code>HOLD</code> — 가맹 정산내역에 안 나감. 처음 열 때 정산기간이 비어 있으면 <strong>최근 1년</strong>입니다. 해제·배포는 「정산보류내역」 등 운영 절차. 노출 주기 요약은 <strong>정산배포</strong>와 같습니다.',
+      noticeList: [
+        '정산대기: HOLD — 가맹 정산내역에 안 나감. 처음 열 때 정산기간이 비어 있으면 최근 1년입니다. 해제·배포는 「정산보류내역」 등 운영 절차. 노출 주기 요약은 정산배포와 같습니다.'
+      ],
       searchRows: [
         [
           { type: 'customHtml', html: '<input type="hidden" name="searchPublishTab" id="searchPublishTab" value="HOLD">', col: 12 },
@@ -3291,7 +3332,7 @@
           { type: 'quickdate' }
         ],
         [
-          { label: '가맹점코드', type: 'text', name: 'searchCompId', placeholder: '가맹점 코드' },
+          { label: '가맹점코드', type: 'text', name: 'searchCompId', placeholder: '가맹점 코드', i18nPhKey: 'searchSettlementReportCompPh' },
           { label: '총판(상위)코드', type: 'text', name: 'searchMasterId', placeholder: '총판 조직 코드' },
           { label: '본사코드', type: 'text', name: 'searchRegionalId', placeholder: '본사 지급 리포트 시 필터' },
           { label: '통화', type: 'select', name: 'searchCurType', options: [{ v: '', t: '전체' }, { v: 'KRW', t: 'KRW' }, { v: 'USD', t: 'USD' }, { v: 'JPY', t: 'JPY' }, { v: 'THB', t: 'THB' }], size: 8 },
@@ -3514,7 +3555,7 @@
         { key: 'permissionGroupNm', label: '권한그룹*', type: 'userMngAssistantRole' },
         { key: 'roleNm', label: '역할', type: 'userMngRoleNm' },
         { key: '_pwd', label: '비밀번호', type: 'userMngPassword' },
-        { key: '_otp', label: 'OTP', type: 'userMngOtp' },
+        { key: '_otpAct', label: 'OTP', type: 'userMngOtp' },
         { key: 'userStatus', label: '사용여부*', type: 'userMngStatus' },
         { key: '_del', label: '삭제', type: 'userMngDraftDelete' },
         { key: 'inactiveReason', label: '미사용전환사유', type: 'userMngInactiveReason' }
@@ -3600,7 +3641,7 @@
           merchantOnly: true,
           cardExtraClass: 'pg-comp-reg-void-refund-panel',
           rows: [
-            [{ type: 'customHtml', col: 12, html: '<p class="small text-muted mb-3 mb-md-2"><strong>무효·환불 정산 방식</strong>(일반형·수익형·하이브리드·총판·본사 따름)은 아래 네 항목에서 선택합니다. <strong>총판·본사 따름</strong>이면 본사설정의 환수/미수금 화면에서 지정한 총판별·본사 기본값이 적용되고, 값을 고르면 해당 가맹이 우선합니다.</p>' }],
+            [{ type: 'customHtml', col: 12, html: merchantVoidRefundGuideHtml }],
             [{ label: '무효 정산(21·40)', type: 'select', name: 'voidSettlementMode', options: VOID_REFUND_SETTLE_MODE_OPTIONS.concat([{ v: 'FOLLOW', t: '총판·본사 따름' }]), col: 3, voidRefundSettlementModeField: true }, { label: '수동무효 정산(22·41)', type: 'select', name: 'manualVoidSettlementMode', options: VOID_REFUND_SETTLE_MODE_OPTIONS.concat([{ v: 'FOLLOW', t: '총판·본사 따름' }]), col: 3, voidRefundSettlementModeField: true }, { label: '환불 정산(30·42)', type: 'select', name: 'refundSettlementMode', options: VOID_REFUND_SETTLE_MODE_OPTIONS.concat([{ v: 'FOLLOW', t: '총판·본사 따름' }]), col: 3, voidRefundSettlementModeField: true }, { label: '강제환불(31)', type: 'select', name: 'forceRefundSettlementMode', options: VOID_REFUND_SETTLE_MODE_OPTIONS.concat([{ v: 'FOLLOW', t: '총판·본사 따름' }]), col: 3, voidRefundSettlementModeField: true }]
           ]
         },
@@ -3795,6 +3836,8 @@
     },
     '/ops/mailLog': {
       emptyMessage: '조회된 데이터가 없습니다.',
+      paginationDefaultSize: 20,
+      paginationSizeOptions: [20, 50, 100, 200],
       searchRows: [[
         { label: '구분', type: 'select', name: 'searchMailKind', col: 2,
           options: [{ v: '', t: '전체' }, { v: 'VOID_TEST', t: 'VOID 테스트' }, { v: 'VOID_TXN', t: '이메일무효(거래)' }] },
@@ -3802,7 +3845,7 @@
           options: [{ v: '', t: '전체' }, { v: 'SUCCESS', t: '성공' }, { v: 'FAIL', t: '실패' }] },
         { label: '등록일', type: 'daterange', from: 'searchFromDate', to: 'searchToDate' },
         { type: 'quickdate' },
-        { type: 'searchBtn', label: 'Q 검색' }
+        { type: 'searchBtn' }
       ]],
       summary: ['건수'],
       buttons: [{ id: 'searchBtn', label: '검색', cls: 'btn-primary' }],
@@ -3884,6 +3927,30 @@
       }
       return o;
     }
+    /**
+     * SUCCESS/REFUND/CANCEL/VOID 등 상태 고정 페이지는 상태구분(searchPayDivCd)이 중복이므로 숨김.
+     * (결제내역은 통합 목록이므로 유지)
+     */
+    function stripStatusDiv(o) {
+      try {
+        if (!o || !o.searchRows || !o.searchRows.length) return o;
+        o.searchRows = (o.searchRows || []).map(function (row) {
+          return (row || []).filter(function (cell) {
+            return !(cell && cell.type === 'select' && cell.name === 'searchPayDivCd');
+          });
+        }).filter(function (row) { return row && row.length; });
+        /* 고정 상태 화면은 검색구분의 '상태'도 의미 없으므로 제거 */
+        (o.searchRows || []).forEach(function (row) {
+          (row || []).forEach(function (cell) {
+            if (!cell || cell.type !== 'select' || cell.name !== 'searchFieldType' || !cell.options) return;
+            cell.options = (cell.options || []).filter(function (opt) {
+              return !(opt && String(opt.v).toUpperCase() === 'STATUS');
+            });
+          });
+        });
+      } catch (e) { /* ignore */ }
+      return o;
+    }
     MENU_SCREENS['/calc/payNotiList'] = cloneWith('NOTI', [
       '노티내역: 통합 결제내역과 동일한 그리드입니다(칠페이 시트 컬럼·2단 헤더·요약바·후속조치 포함). 조회만 origin=NOTI(전산 노티 적재)로 제한됩니다.',
       'ziobiz/NOTI 종합거래의 노티거래내역과 동일 성격의 데이터입니다.',
@@ -3891,18 +3958,18 @@
       '취소 건에 대한 정산 수수료 및 부가세는 정산 주기에 따라 반영됩니다.',
       '정산 주기 및 정산 수수료는 가맹점별로 상이할 수 있습니다.'
     ], true);
-    MENU_SCREENS['/calc/paySuccessList'] = cloneWith('SUCCESS', [
+    MENU_SCREENS['/calc/paySuccessList'] = stripStatusDiv(cloneWith('SUCCESS', [
       '성공내역: 통합 결제내역에서 승인 성공(결제) 상태만 간추렸습니다.',
       '무효·이메일무효·환불·강제환불 등 후속조치는 「결제내역」(/calc/payList)에서만 제공합니다.'
-    ]);
-    MENU_SCREENS['/calc/payFailList'] = cloneWith('FAIL', ['실패내역: 통합 결제내역에서 실패·거절만 간추렸습니다.']);
-    MENU_SCREENS['/calc/payRefundList'] = cloneWith('REFUND', ['환불내역: 통합 결제내역에서 환불만 간추렸습니다.']);
-    MENU_SCREENS['/calc/payForceRefundList'] = cloneWith('FORCE_REFUND', ['강제환불내역: 통합 결제내역에서 강제환불만 간추렸습니다.']);
-    MENU_SCREENS['/calc/payCancelList'] = cloneWith('CANCEL', ['취소내역: 통합 결제내역에서 취소만 간추렸습니다.']);
-    MENU_SCREENS['/calc/payVoidList'] = cloneWith('VOID', [
+    ]));
+    MENU_SCREENS['/calc/payFailList'] = stripStatusDiv(cloneWith('FAIL', ['실패내역: 통합 결제내역에서 실패·거절만 간추렸습니다.']));
+    MENU_SCREENS['/calc/payRefundList'] = stripStatusDiv(cloneWith('REFUND', ['환불내역: 통합 결제내역에서 환불만 간추렸습니다.']));
+    MENU_SCREENS['/calc/payForceRefundList'] = stripStatusDiv(cloneWith('FORCE_REFUND', ['강제환불내역: 통합 결제내역에서 강제환불만 간추렸습니다.']));
+    MENU_SCREENS['/calc/payCancelList'] = stripStatusDiv(cloneWith('CANCEL', ['취소내역: 통합 결제내역에서 취소만 간추렸습니다.']));
+    MENU_SCREENS['/calc/payVoidList'] = stripStatusDiv(cloneWith('VOID', [
       '무효내역: 승인(결제) 완료 후 수동·시스템 무효(내부 21·22·40·41·42)만 표시합니다. 취소(20)와 구분됩니다.',
       'ziobiz/NOTI 노티거래내역의 무효·이메일무효·자동무효 등과 동일 계열 상태입니다.'
-    ]);
+    ]));
     MENU_SCREENS['/calc/offsetCancList'] = cloneWith('OFFSET_CANCEL', [
       '상계취소내역: 가맹 정산에 이미 반영된 건(settled=Y)이 이후 취소·무효·환불·강제환불(내부 20·21·22·30·31·40·41·42)로 바뀐 경우만 표시합니다. 정산 전 실패(F0·99) 등은 제외됩니다.',
       '동일 조건으로 노티 반영 시 「환수금관리」에 POST_SETTLE_REFUND 자동 등록이 되며, 차기 정산 지급액에서 FIFO 차감됩니다(전산설정·가맹 환수모드와 동일).'
@@ -4023,8 +4090,12 @@
           });
         });
       }
-      if (ex && exc && exc.notice) {
+      if (ex && exc && exc.noticeList && exc.noticeList.length) {
+        ex.noticeList = exc.noticeList.slice();
+        try { delete ex.notice; } catch (eN1) { ex.notice = undefined; }
+      } else if (ex && exc && exc.notice) {
         ex.notice = exc.notice;
+        try { delete ex.noticeList; } catch (eN2) { ex.noticeList = undefined; }
       }
       if (ex && exc) {
         if (exc.settlementExecuteListModeField) ex.settlementExecuteListModeField = true;
@@ -4043,7 +4114,8 @@
         rcs.columns = JSON.parse(JSON.stringify(rc.columns || []));
         rcs.searchRows = JSON.parse(JSON.stringify(rc.searchRows || []));
         rcs.summary = (rc.summary || []).slice();
-        if (rc.notice) rcs.notice = rc.notice;
+        if (rc.noticeList && rc.noticeList.length) rcs.noticeList = rc.noticeList.slice();
+        else if (rc.notice) rcs.noticeList = [String(rc.notice)];
         if (rc.buttons) rcs.buttons = JSON.parse(JSON.stringify(rc.buttons));
         if (rc.listSortDirAnchor) rcs.listSortDirAnchor = rc.listSortDirAnchor;
         if (rc.paginationSizeOptions) rcs.paginationSizeOptions = rc.paginationSizeOptions.slice();
@@ -4121,9 +4193,9 @@
     return (
       '<div class="screen-list-sort-dir-wrap d-inline-flex align-items-center gap-2 flex-shrink-0">' +
       '<input type="hidden" name="searchOrderDir" class="screen-list-sort-dir-hidden" id="' + sid + '_val" value="DESC">' +
-      '<div class="d-inline-flex align-items-center gap-2 screen-list-sort-dir-menu" role="toolbar" aria-label="정렬 순서">' +
-      '<button type="button" class="btn btn-sm btn-secondary screen-list-sort-dir-btn" data-search-order-dir="DESC">내림차순</button>' +
-      '<button type="button" class="btn btn-sm btn-outline-secondary screen-list-sort-dir-btn" data-search-order-dir="ASC">오름차순</button>' +
+      '<div class="d-inline-flex align-items-center gap-2 screen-list-sort-dir-menu" role="toolbar" aria-label="' + escUi(L('정렬 순서')) + '" data-pg-i18n-aria="sortToolbar">' +
+      '<button type="button" class="btn btn-sm btn-secondary screen-list-sort-dir-btn" data-pg-i18n-sort="DESC" data-search-order-dir="DESC">' + escUi(L('내림차순')) + '</button>' +
+      '<button type="button" class="btn btn-sm btn-outline-secondary screen-list-sort-dir-btn" data-pg-i18n-sort="ASC" data-search-order-dir="ASC">' + escUi(L('오름차순')) + '</button>' +
       '</div></div>'
     );
   }
@@ -4141,9 +4213,13 @@
     var inner = '';
     var ch = field.size != null ? field.size : autoCh(field);
     var sz = sizeStyle(Math.ceil(ch * INPUT_SCALE));
+    var escDA = function (s) {
+      return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/"/g, '&quot;');
+    };
     if (field.type === 'daterange') {
       var dateCh = Math.ceil(10 * DATE_SCALE);
-      inner = (field.label ? '<span class="search-cell-label">' + field.label + '</span>' : '') + '<div class="search-cell-input search-cell-input--daterange"><input type="date" class="form-control form-control-sm search-date-input" id="' + (field.from || 'searchFromDate') + '" name="' + (field.from || 'searchFromDate') + '" style="' + sizeStyle(dateCh) + '"> ~ <input type="date" class="form-control form-control-sm search-date-input" id="' + (field.to || 'searchToDate') + '" name="' + (field.to || 'searchToDate') + '" style="' + sizeStyle(dateCh) + '"></div>';
+      var drLblAttr = field.label ? (' data-pg-i18n-lbl="' + escDA('drLbl:' + field.label) + '"') : '';
+      inner = (field.label ? '<span class="search-cell-label"' + drLblAttr + '>' + escUi(L(String(field.label))) + '</span>' : '') + '<div class="search-cell-input search-cell-input--daterange"><input type="date" lang="en-CA" class="form-control form-control-sm search-date-input" id="' + (field.from || 'searchFromDate') + '" name="' + (field.from || 'searchFromDate') + '" style="' + sizeStyle(dateCh) + '"> ~ <input type="date" lang="en-CA" class="form-control form-control-sm search-date-input" id="' + (field.to || 'searchToDate') + '" name="' + (field.to || 'searchToDate') + '" style="' + sizeStyle(dateCh) + '"></div>';
       return wrapSearchCell(inner, !!field.label);
     }
     if (field.type === 'quickdate') {
@@ -4152,8 +4228,9 @@
       var btns = '';
       for (var i = 0; i < labels.length; i++) {
         var lbl = labels[i];
-        var cls = (lbl === '당일' || lbl === '당월') ? ' quick-date--pink' : '';
-        btns += '<button type="button" class="btn btn-outline-primary btn-sm mr-1 quick-date' + cls + '" data-range="' + (ranges[i] || '') + '">' + lbl + '</button>';
+        var rgi = ranges[i] || '';
+        var cls = (rgi === 'day' || rgi === 'month') ? ' quick-date--pink' : '';
+        btns += '<button type="button" class="btn btn-outline-primary btn-sm mr-1 quick-date' + cls + '" data-range="' + rgi + '" data-pg-i18n-qd="' + escDA(rgi) + '">' + escUi(L(String(lbl))) + '</button>';
       }
       inner = '<div class="search-cell-input">' + btns + '</div>';
       return wrapSearchCell(inner, false);
@@ -4166,37 +4243,53 @@
       var cbName = field.checkboxName || 'searchIncludeSub';
       var searchLbl = field.searchLabel || '검색';
       inner = '<div class="search-cell-input comp-mng-search-actions-wrap d-flex align-items-center gap-2 flex-wrap">' +
-        '<label class="d-flex align-items-center mb-0"><input type="checkbox" class="form-check-input me-1" id="' + cbName + '" name="' + cbName + '">' + (field.label || '') + '</label>' +
-        '<button type="button" class="btn btn-primary btn-sm screen-search-btn">' + searchLbl + '</button>' +
+        '<label class="d-flex align-items-center mb-0"><input type="checkbox" class="form-check-input me-1" id="' + cbName + '" name="' + cbName + '">' + escUi(L(String(field.label || ''))) + '</label>' +
+        '<button type="button" class="btn btn-primary btn-sm screen-search-btn">' + escUi(L(String(searchLbl))) + '</button>' +
         '</div>';
       return wrapSearchCell(inner, false);
     }
     if (field.type === 'searchBtn') {
-      var btnLabel = field.label || '검색';
+      var btnLabel = L(String(field.label || '검색'));
       var iconHtml = field.noIcon ? '' : '<i class="bi bi-search"></i> ';
       var ccfg = cfg || {};
       var addInlineSort = ccfg.listSortDirToolbar !== false && !ccfg._listToolbarShowsSortDir;
       inner = '<div class="search-cell-input search-cell-input--right d-flex align-items-center flex-wrap gap-2 justify-content-end">';
       if (addInlineSort) inner += buildListSortDirSelectHtml(tabId);
-      inner += '<button type="button" class="btn btn-primary btn-sm screen-search-btn">' + iconHtml + btnLabel + '</button></div>';
+      inner += '<button type="button" class="btn btn-primary btn-sm screen-search-btn">' + iconHtml + escUi(btnLabel) + '</button></div>';
       return wrapSearchCell(inner, false);
     }
     if (field.type === 'button' && field.name === 'searchReset') {
-      inner = '<div class="search-cell-input"><button type="button" class="btn btn-outline-secondary btn-sm search-reset-btn">' + (field.label || '초기화') + '</button></div>';
+      inner = '<div class="search-cell-input"><button type="button" class="btn btn-outline-secondary btn-sm search-reset-btn" data-pg-i18n-reset="1">' + escUi(L(String(field.label || '초기화'))) + '</button></div>';
       return wrapSearchCell(inner, false);
     }
     if (field.type === 'checkbox') {
       var cbName = field.name || '';
-      inner = (field.label ? '<span class="search-cell-label">' + field.label + '</span>' : '') + '<div class="search-cell-input"><input type="checkbox" class="form-check-input" id="' + cbName + '" name="' + cbName + '"></div>';
+      inner = (field.label ? '<span class="search-cell-label" data-pg-i18n-lbl="' + escDA('cb:' + cbName) + '">' + escUi(L(String(field.label))) + '</span>' : '') + '<div class="search-cell-input"><input type="checkbox" class="form-check-input" id="' + cbName + '" name="' + cbName + '"></div>';
       return wrapSearchCell(inner, !!field.label);
     }
     if (field.type === 'select') {
-      var opts = (field.options || []).map(function (o) { return '<option value="' + (o.v || '') + '">' + (o.t || o.v) + '</option>'; }).join('');
-      inner = (field.label ? '<span class="search-cell-label">' + field.label + '</span>' : '') + '<div class="search-cell-input"><select class="form-control form-control-sm _searchChange" id="' + (field.name || '') + '" name="' + (field.name || '') + '" style="' + sz + '">' + opts + '</select></div>';
+      var selNm = field.name || '';
+      var opts = (field.options || []).map(function (o) {
+        var ov = o.v != null ? String(o.v) : '';
+        var optAttr = selNm ? ' data-pg-i18n-opt="' + escDA(selNm + '|' + ov) + '"' : '';
+        return '<option value="' + (o.v || '') + '"' + optAttr + '>' + escUi(L(String(o.t != null ? o.t : o.v || ''))) + '</option>';
+      }).join('');
+      var lblSel = '';
+      if (field.label) {
+        lblSel = '<span class="search-cell-label"' + (selNm ? ' data-pg-i18n-lbl="' + escDA(selNm) + '"' : '') + '>' + escUi(L(String(field.label))) + '</span>';
+      }
+      inner = lblSel + '<div class="search-cell-input"><select class="form-control form-control-sm _searchChange" id="' + (field.name || '') + '" name="' + (field.name || '') + '" style="' + sz + '">' + opts + '</select></div>';
       return wrapSearchCell(inner, !!field.label);
     }
     if (field.type === 'text') {
-      inner = (field.label ? '<span class="search-cell-label">' + field.label + '</span>' : '') + '<div class="search-cell-input"><input type="text" class="form-control form-control-sm _searchText" id="' + (field.name || '') + '" name="' + (field.name || '') + '" placeholder="' + (field.placeholder || '') + '" style="' + sz + '"></div>';
+      var txNm = field.name || '';
+      var phKeyTx = field.i18nPhKey || txNm;
+      var lblTx = '';
+      if (field.label) {
+        lblTx = '<span class="search-cell-label"' + (txNm ? ' data-pg-i18n-lbl="' + escDA(txNm + ':label') + '"' : '') + '>' + escUi(L(String(field.label))) + '</span>';
+      }
+      var phAttr = phKeyTx ? ' data-pg-i18n-ph="' + escDA(phKeyTx) + '"' : '';
+      inner = lblTx + '<div class="search-cell-input"><input type="text" class="form-control form-control-sm _searchText" id="' + (field.name || '') + '" name="' + (field.name || '') + '"' + phAttr + ' placeholder="' + escUi(L(String(field.placeholder || ''))) + '" style="' + sz + '"></div>';
       return wrapSearchCell(inner, !!field.label);
     }
     return '';
@@ -4239,9 +4332,17 @@
     var list = cfg.noticeList || [];
     var refBtn = cfg.noticeRefButton;
     if (list.length === 0 && !refBtn) return '';
-    var items = list.map(function (t) { return '<li>' + t + '</li>'; }).join('');
+    function escNoticeAttr(s) {
+      return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/"/g, '&quot;');
+    }
+    var items = list.map(function (t, idx) {
+      return '<li data-pg-notice-idx="' + idx + '" data-pg-ui-t="' + escNoticeAttr(String(t)) + '"></li>';
+    }).join('');
     var noticeHtml = list.length > 0 ? '<ul class="mb-0">' + items + '</ul>' : '';
-    var btnHtml = refBtn ? '<button type="button" class="btn btn-sm ' + (refBtn.cls || 'btn-success') + ' ms-2" id="' + (refBtn.id || 'noticeRefBtn') + '">' + (refBtn.label || '참고') + '</button>' : '';
+    var refKey = String(refBtn && refBtn.label != null && refBtn.label !== '' ? refBtn.label : '참고');
+    var btnHtml = refBtn
+      ? '<button type="button" class="btn btn-sm ' + (refBtn.cls || 'btn-success') + ' ms-2" id="' + (refBtn.id || 'noticeRefBtn') + '" data-pg-ui-t="' + escNoticeAttr(refKey) + '"></button>'
+      : '';
     return '<div class="search-notice pg-hello-toggle-zone mb-2 d-flex align-items-center flex-wrap">' + (list.length > 0 ? '<div class="search-notice-text flex-grow-1">' + noticeHtml + '</div>' : '') + btnHtml + '</div>';
   }
 
@@ -4251,7 +4352,8 @@
     var defaultFixed = ['rowNo', 'compId', 'compNm', 'compDivNm', 'trnDate', 'trnTime', 'routeNo'];
     var fixedKeys = (cfg.columnGuideFixedKeys && cfg.columnGuideFixedKeys.length) ? cfg.columnGuideFixedKeys : defaultFixed;
     var cols = cfg.columns.filter(function (c) {
-      if (c.type === 'checkbox' || c.type === 'payActions' || c.type === 'commissionInlineActions' || c.type === 'accountAccessActions' || c.type === 'accountAccessDelete' || c.type === 'userResetPassword' || c.type === 'userDelete') return false;
+      // payActions(후속조치)는 VIEW SETTING에서 토글 가능해야 함(통합 결제내역 등). 체크박스·인라인 액션만 제외.
+      if (c.type === 'checkbox' || c.type === 'commissionInlineActions' || c.type === 'accountAccessActions' || c.type === 'accountAccessDelete' || c.type === 'userResetPassword' || c.type === 'userDelete') return false;
       return fixedKeys.indexOf(c.key) === -1;
     });
     if (cols.length === 0) return '';
@@ -4261,18 +4363,18 @@
     var items = cols.map(function (c) {
       var key = c.key || '';
       var label = c.columnGuideLabel || c.label || c.key;
-      return '<label class="column-guide-item column-guide-item--on"><input type="checkbox" class="column-guide-check" data-key="' + escGl(key) + '" checked> <span class="column-guide-label">' + escGl(label) + '</span></label>';
+      return '<label class="column-guide-item column-guide-item--on"><input type="checkbox" class="column-guide-check" data-key="' + escGl(key) + '" checked> <span class="column-guide-label">' + escGl(L(String(label))) + '</span></label>';
     }).join('');
     var actionsHtml =
-      '<button type="button" class="btn btn-xs btn-outline-secondary column-guide-action-btn" id="compMngDefaultColumnsBtn">기본</button>' +
-      '<button type="button" class="btn btn-xs btn-outline-secondary column-guide-action-btn" id="compMngReleaseColumnsBtn">해제</button>' +
-      '<button type="button" class="btn btn-xs btn-outline-secondary column-guide-action-btn" id="compMngSelectAllColumnsBtn">선택</button>' +
-      '<button type="button" class="btn btn-xs btn-outline-primary column-guide-action-btn" id="compMngSaveColumnsBtn">저장</button>' +
-      '<button type="button" class="btn btn-xs btn-outline-secondary column-guide-action-btn" id="compMngRestoreColumnsBtn" title="바로 직전에 서버에 저장된 열 구성(또는 화면을 불러온 당시의 저장 상태)으로 되돌립니다.">복원</button>';
+      '<button type="button" class="btn btn-xs btn-outline-secondary column-guide-action-btn" id="compMngDefaultColumnsBtn" data-pg-i18n-cg-act="default">' + escGl(L('기본')) + '</button>' +
+      '<button type="button" class="btn btn-xs btn-outline-secondary column-guide-action-btn" id="compMngReleaseColumnsBtn" data-pg-i18n-cg-act="release">' + escGl(L('해제')) + '</button>' +
+      '<button type="button" class="btn btn-xs btn-outline-secondary column-guide-action-btn" id="compMngSelectAllColumnsBtn" data-pg-i18n-cg-act="selectAllCols">' + escGl(L('선택')) + '</button>' +
+      '<button type="button" class="btn btn-xs btn-outline-primary column-guide-action-btn" id="compMngSaveColumnsBtn" data-pg-i18n-cg-act="save">' + escGl(L('저장')) + '</button>' +
+      '<button type="button" class="btn btn-xs btn-outline-secondary column-guide-action-btn" id="compMngRestoreColumnsBtn" data-pg-i18n-cg-act="restore" data-pg-i18n-cg-title="restoreTip" title="' + escGl(L('바로 직전에 서버에 저장된 열 구성(또는 화면을 불러온 당시의 저장 상태)으로 되돌립니다.')) + '">' + escGl(L('복원')) + '</button>';
     var headRow =
       '<div class="column-guide-row column-guide-top column-guide-top--inline">' +
       '<div class="column-guide-inline-head">' +
-      '<span class="column-guide-title">VIEW SETTING</span>' +
+      '<span class="column-guide-title" data-pg-i18n-cg-act="viewSettingTitle">VIEW SETTING</span>' +
       '<span class="column-guide-vbar" aria-hidden="true">|</span>' +
       '<div class="column-guide-actions column-guide-actions--inline">' + actionsHtml + '</div>' +
       '</div></div>';
@@ -4293,52 +4395,55 @@
     }
     if (f.type === 'customHtml') {
       var colH = f.col || 12;
-      return '<div class="col-sm-' + colH + '">' + (f.html || '') + '</div>';
+      var htmlBody = typeof f.html === 'function' ? f.html() : (f.html || '');
+      return '<div class="col-sm-' + colH + '">' + htmlBody + '</div>';
     }
     if (f.type === 'notifyPairButton') {
       var colPair = f.col || 2;
       var cbF = f.callbackField || 'notifyUrl1';
       var rsF = f.resultField || 'notifyUrl2';
-      var pairLab = f.pairLabel != null ? String(f.pairLabel) : '노티 쌍';
-      var btnTxt = f.buttonText != null ? String(f.buttonText) : 'CALLBACK+RESULT 선택';
-      var hintTxt = f.hint != null ? String(f.hint) : '';
-      var titleAttr = f.titleHint ? ' title="' + String(f.titleHint).replace(/"/g, '&quot;') + '"' : '';
+      var pairLab = L(f.pairLabel != null ? String(f.pairLabel) : '노티 쌍');
+      var btnTxt = L(f.buttonText != null ? String(f.buttonText) : 'CALLBACK+RESULT 선택');
+      var hintTxt = f.hint != null ? L(String(f.hint)) : '';
+      var titleAttr = f.titleHint ? ' title="' + escUi(L(String(f.titleHint))) + '"' : '';
       var pairBtnDis = f.readonly ? ' disabled' : '';
       return '<div class="col-sm-' + colPair + ' form-field-block comp-notify-pair-inline">' +
-        '<label class="form-label comp-notify-pair-inline-label">' + pairLab + '</label>' +
+        '<label class="form-label comp-notify-pair-inline-label">' + escUi(pairLab) + '</label>' +
         '<button type="button" class="btn btn-outline-primary btn-sm w-100 comp-notify-pair-inline-btn"' + titleAttr + pairBtnDis +
-        ' data-action="노티쌍선택" data-callback-field="' + cbF + '" data-result-field="' + rsF + '">' + btnTxt + '</button>' +
-        (hintTxt ? '<p class="text-muted small mb-0 mt-1 comp-notify-pair-inline-hint">' + hintTxt + '</p>' : '') +
+        ' data-action="노티쌍선택" data-callback-field="' + cbF + '" data-result-field="' + rsF + '">' + escUi(btnTxt) + '</button>' +
+        (hintTxt ? '<p class="text-muted small mb-0 mt-1 comp-notify-pair-inline-hint">' + escUi(hintTxt) + '</p>' : '') +
         '</div>';
     }
     if (f.type === 'assistantPasswordManage') {
       var colAp = f.col || 2;
-      return '<div class="col-sm-' + colAp + ' form-field-block' + hqC + hqPolicyC + '"><label class="form-label">비밀번호</label>' +
+      return '<div class="col-sm-' + colAp + ' form-field-block' + hqC + hqPolicyC + '"><label class="form-label">' + escUi(L('비밀번호')) + '</label>' +
         '<div id="assistantPwdInitialRow">' +
         '<div class="form-input-with-btn"><span class="form-input-wrap">' +
-        '<input type="password" class="form-control form-control-sm" name="assistantPwd" id="assistantPwd" autocomplete="new-password" placeholder="8자 이상">' +
-        '</span><button type="button" class="btn btn-outline-secondary btn-sm" data-field="assistantPwd" data-action="저장">저장</button></div>' +
-        '<p class="text-muted small mb-0 mt-1">입력 후 [저장]으로 확정한 뒤 하단 [수정 저장]으로 반영하세요.</p></div>' +
+        '<input type="password" class="form-control form-control-sm" name="assistantPwd" id="assistantPwd" autocomplete="new-password" placeholder="' + escUi(L('8자 이상')) + '">' +
+        '</span><button type="button" class="btn btn-outline-secondary btn-sm" data-field="assistantPwd" data-action="저장">' + escUi(L('저장')) + '</button></div>' +
+        '<p class="text-muted small mb-0 mt-1">' + escUi(L('입력 후 [저장]으로 확정한 뒤 하단 [수정 저장]으로 반영하세요.')) + '</p></div>' +
         '<div id="assistantPwdResetRow" class="d-none">' +
-        '<div class="form-input-with-btn"><button type="button" class="btn btn-outline-secondary btn-sm" id="assistantPwdResetBtn" data-action="보조 비밀번호 초기화">비밀번호 초기화</button></div></div></div>';
+        '<div class="form-input-with-btn"><button type="button" class="btn btn-outline-secondary btn-sm" id="assistantPwdResetBtn" data-action="보조 비밀번호 초기화">' + escUi(L('비밀번호 초기화')) + '</button></div></div></div>';
     }
     if (f.type === 'passwordReset') {
       var col = f.col || 2;
-      var label = (f.label || '비밀번호').replace(/\*$/, '');
-      return '<div class="col-sm-' + col + ' form-field-block' + hqC + hqPolicyC + '"><label class="form-label">' + label + '</label><div class="form-input-with-btn"><button type="button" class="btn btn-outline-secondary btn-sm" id="compDetailPwdResetBtn" data-action="비밀번호 초기화">비밀번호 초기화</button></div></div>';
+      var label = L((f.label || '비밀번호').replace(/\*$/, ''));
+      return '<div class="col-sm-' + col + ' form-field-block' + hqC + hqPolicyC + '"><label class="form-label">' + escUi(label) + '</label><div class="form-input-with-btn"><button type="button" class="btn btn-outline-secondary btn-sm" id="compDetailPwdResetBtn" data-action="비밀번호 초기화">' + escUi(L('비밀번호 초기화')) + '</button></div></div>';
     }
     var isRequired = !!(f.required || (f.label && f.label.indexOf('*') !== -1));
     var reqClass = isRequired ? ' required-input' : '';
     if (f.type === 'regNoWithType') {
       var col = f.col || 2;
-      var label = (f.label || '사업자번호').replace(/\*$/, '') + (f.label && f.label.indexOf('*') !== -1 ? ' <span class="text-danger">*</span>' : '');
+      var labelCoreR = (f.label || '사업자번호').replace(/\*$/, '');
+      var label = L(labelCoreR) + (f.label && f.label.indexOf('*') !== -1 ? ' <span class="text-danger">*</span>' : '');
       return '<div class="col-sm-' + col + ' form-field-block' + hqC + hqPolicyC + '"><label class="form-label">' + label + '</label>' +
-        '<div class="d-flex gap-1 align-items-center"><select class="form-control form-control-sm' + reqClass + '" name="regType" id="regType" style="width:auto;min-width:70px"><option value="CORP">법인</option><option value="PERSONAL">개인</option></select>' +
-        '<input type="text" class="form-control form-control-sm flex-grow-1' + reqClass + '" name="' + (f.name || 'regNo') + '" id="' + (f.name || 'regNo') + '" placeholder="번호 입력"></div></div>';
+        '<div class="d-flex gap-1 align-items-center"><select class="form-control form-control-sm' + reqClass + '" name="regType" id="regType" style="width:auto;min-width:70px"><option value="CORP">' + escUi(L('법인')) + '</option><option value="PERSONAL">' + escUi(L('개인')) + '</option></select>' +
+        '<input type="text" class="form-control form-control-sm flex-grow-1' + reqClass + '" name="' + (f.name || 'regNo') + '" id="' + (f.name || 'regNo') + '" placeholder="' + escUi(L('번호 입력')) + '"></div></div>';
     }
     var col = f.col || 2;
     var req = (f.label && f.label.indexOf('*') !== -1) ? '' : '';
-    var label = (f.label || '').replace(/\*$/, '') + (f.label && f.label.indexOf('*') !== -1 ? ' <span class="text-danger">*</span>' : '');
+    var labelCore0 = (f.label || '').replace(/\*$/, '');
+    var label = L(labelCore0) + (f.label && f.label.indexOf('*') !== -1 ? ' <span class="text-danger">*</span>' : '');
     var name = f.name || '';
     var id = name;
     var ro = (readonlyAttr || f.readonly) ? ' readonly' : '';
@@ -4359,19 +4464,19 @@
       var numStep = (f.step != null && f.step !== '') ? String(f.step) : '1';
       var numMin = (f.min != null && f.min !== '') ? String(f.min) : '0';
       var numMaxAttr = (f.max != null && f.max !== '') ? (' max="' + String(f.max) + '"') : '';
-      inp = '<input type="number" min="' + numMin + '" step="' + numStep + '"' + numMaxAttr + ' class="form-control form-control-sm' + reqClass + '" name="' + name + '" id="' + id + '"' + (f.placeholder ? ' placeholder="' + f.placeholder + '"' : '') + ro + '>';
+      inp = '<input type="number" min="' + numMin + '" step="' + numStep + '"' + numMaxAttr + ' class="form-control form-control-sm' + reqClass + '" name="' + name + '" id="' + id + '"' + (f.placeholder ? ' placeholder="' + escUi(L(String(f.placeholder))) + '"' : '') + ro + '>';
     } else if (f.type === 'date') {
-      inp = '<input type="date" class="form-control form-control-sm' + reqClass + '" name="' + name + '" id="' + id + '"' + ro + '>';
+      inp = '<input type="date" lang="en-CA" class="form-control form-control-sm' + reqClass + '" name="' + name + '" id="' + id + '"' + ro + '>';
     } else if (f.type === 'text' || f.type === 'password') {
-      inp = '<input type="' + (f.type || 'text') + '" class="form-control form-control-sm' + reqClass + '" name="' + name + '" id="' + id + '"' + (f.placeholder ? ' placeholder="' + f.placeholder + '"' : '') + ro + '>';
+      inp = '<input type="' + (f.type || 'text') + '" class="form-control form-control-sm' + reqClass + '" name="' + name + '" id="' + id + '"' + (f.placeholder ? ' placeholder="' + escUi(L(String(f.placeholder))) + '"' : '') + ro + '>';
     } else if (f.type === 'time') {
       var isSettlementTime = (name === 'calcCloseTime' || name === 'calcStartTime' || name === 'transferExecTime');
       var isWithdrawLimitTime = (name === 'withdrawRestrictStartTime' || name === 'withdrawRestrictEndTime' || name === 'withdrawStartTime' || name === 'withdrawEndTime');
       isWideTime = (isSettlementTime || isWithdrawLimitTime);
       var wideTime = isWideTime ? ' settle-time-wide' : '';
-      inp = '<input type="time" class="form-control form-control-sm' + reqClass + wideTime + '" name="' + name + '" id="' + id + '"' + (f.placeholder ? ' placeholder="' + f.placeholder + '"' : '') + '>';
+      inp = '<input type="time" class="form-control form-control-sm' + reqClass + wideTime + '" name="' + name + '" id="' + id + '"' + (f.placeholder ? ' placeholder="' + escUi(L(String(f.placeholder))) + '"' : '') + '>';
     } else if (f.type === 'select') {
-      var opts = (f.options || []).map(function (o) { return '<option value="' + (o.v || '') + '">' + (o.t || o.v) + '</option>'; }).join('');
+      var opts = (f.options || []).map(function (o) { return '<option value="' + escUi(String(o.v || '')) + '">' + escUi(L(String(o.t != null ? o.t : o.v || ''))) + '</option>'; }).join('');
       var selAttrs = (f.readonly ? ' disabled' : '')
         + (f.loadCountries ? ' data-load-countries="true"' : '')
         + (f.bankByCountry ? ' data-bank-by-country="true"' : '')
@@ -4386,37 +4491,37 @@
         inp = '<div class="attach-section" data-attach-section="1">' +
           '<input type="hidden" name="attachListJson" data-attach-json value="[]">' +
           '<div class="attach-toolbar">' +
-          '<input type="text" class="form-control form-control-sm attach-display-name" data-attach-display-name placeholder="파일명 (예: 사업자등록증)">' +
+          '<input type="text" class="form-control form-control-sm attach-display-name" data-attach-display-name placeholder="' + escUi(L('파일명 (예: 사업자등록증)')) + '">' +
           '<label class="btn btn-outline-secondary btn-sm attach-file-pick mb-0">' +
-          '<span data-attach-file-label>파일 선택</span>' +
+          '<span data-attach-file-label>' + escUi(L('파일 선택')) + '</span>' +
           '<input type="file" class="d-none" data-attach-file accept=".png,.jpg,.jpeg,.gif,.webp,.bmp,.pdf,.doc,.docx,.hwp,.hwpx,.txt,.xls,.xlsx,.ppt,.pptx">' +
           '</label>' +
-          '<button type="button" class="btn btn-primary btn-sm" data-attach-add>추가</button>' +
+          '<button type="button" class="btn btn-primary btn-sm" data-attach-add>' + escUi(L('추가')) + '</button>' +
           '</div>' +
           '<div class="table-responsive attach-table-wrap table-no-col-resize-wrap">' +
           '<table class="table table-sm table-bordered mb-0 w-100 table-no-col-resize" data-attach-table>' +
-          '<thead><tr><th style="width:56px">No.</th><th>파일이름</th><th>첨부된 파일</th><th style="width:80px">수정</th><th style="width:80px">삭제</th></tr></thead>' +
-          '<tbody><tr data-empty-row><td colspan="5" class="text-center text-muted py-2">첨부된 파일이 없습니다.</td></tr></tbody>' +
+          '<thead><tr><th style="width:56px">No.</th><th>' + escUi(L('파일이름')) + '</th><th>' + escUi(L('첨부된 파일')) + '</th><th style="width:80px">' + escUi(L('수정')) + '</th><th style="width:80px">' + escUi(L('삭제')) + '</th></tr></thead>' +
+          '<tbody><tr data-empty-row><td colspan="5" class="text-center text-muted py-2">' + escUi(L('첨부된 파일이 없습니다.')) + '</td></tr></tbody>' +
           '</table></div>' +
-          '<p class="text-muted small mt-1 mb-0">허용 파일: 이미지, PDF, 문서 파일(doc/docx/hwp/hwpx/txt/xls/xlsx/ppt/pptx)</p>' +
+          '<p class="text-muted small mt-1 mb-0">' + escUi(L('허용 파일: 이미지, PDF, 문서 파일(doc/docx/hwp/hwpx/txt/xls/xlsx/ppt/pptx)')) + '</p>' +
           '</div>';
       } else {
         inp = '<input type="file" class="form-control form-control-sm" name="' + name + '" id="' + id + '">';
       }
     } else {
-      inp = '<input type="text" class="form-control form-control-sm' + reqClass + '" name="' + name + '" id="' + id + '"' + (f.placeholder ? ' placeholder="' + f.placeholder + '"' : '') + ro + '>';
+      inp = '<input type="text" class="form-control form-control-sm' + reqClass + '" name="' + name + '" id="' + id + '"' + (f.placeholder ? ' placeholder="' + escUi(L(String(f.placeholder))) + '"' : '') + ro + '>';
     }
     var inpWrap = inp;
     if (f.button) {
       var sideBtnDis = f.readonly ? ' disabled' : '';
-      inpWrap = '<div class="form-input-with-btn"><span class="form-input-wrap">' + inp + '</span><button type="button" class="btn btn-outline-secondary btn-sm"' + sideBtnDis + ' data-field="' + name + '" data-action="' + f.button + '">' + f.button + '</button></div>';
+      inpWrap = '<div class="form-input-with-btn"><span class="form-input-wrap">' + inp + '</span><button type="button" class="btn btn-outline-secondary btn-sm"' + sideBtnDis + ' data-field="' + name + '" data-action="' + escUi(String(f.button)) + '">' + escUi(L(String(f.button))) + '</button></div>';
     }
     if (f.smsButton) {
       var smsCls = 'btn-outline-primary';
       if (f.smsColor === 'warning') smsCls = 'btn-outline-warning';
       else if (f.smsColor === 'success') smsCls = 'btn-outline-success';
       else if (f.smsColor === 'secondary') smsCls = 'btn-outline-secondary';
-      inpWrap = '<div class="form-input-with-btn"><span class="form-input-wrap">' + inp + '</span><button type="button" class="btn ' + smsCls + ' btn-sm" data-field="' + name + '">SMS수신</button></div>';
+      inpWrap = '<div class="form-input-with-btn"><span class="form-input-wrap">' + inp + '</span><button type="button" class="btn ' + smsCls + ' btn-sm" data-field="' + name + '">' + escUi(L('SMS수신')) + '</button></div>';
     }
     var blockClass = 'col-sm-' + col + ' form-field-block';
     if (f.voidRefundSettlementModeField) blockClass += ' commission-void-refund-mode-field';
@@ -4440,7 +4545,7 @@
     var html = '<form id="' + (formId || 'compRegForm') + '" class="comp-reg-form" onsubmit="return false;">';
     if (formId === 'compRegForm') {
       html += '<div class="comp-div-hint alert alert-info py-2 mb-3" role="alert">' +
-        '<small><strong>업체구분</strong>을 선택하시면 해당 등록 유형에 맞는 입력 창이 표시됩니다. (총판/지사/대리점/가맹점)</small></div>';
+        '<small>' + escUi(L('업체구분을 선택하시면 해당 등록 유형에 맞는 입력 창이 표시됩니다. (총판/지사/대리점/가맹점)')) + '</small></div>';
     }
     sections.forEach(function (sec) {
       var cardClass = 'card mb-3';
@@ -4456,64 +4561,65 @@
       if (sec.branchAgencySalesHide) cardClass += ' branch-agency-sales-hide-section';
       if (sec.cardExtraClass) cardClass += ' ' + String(sec.cardExtraClass);
       var cardId = sec.id ? ' id="' + sec.id + '"' : '';
-      html += '<div' + cardId + ' class="' + cardClass + '"><div class="card-header">' + (sec.title || '') + '</div><div class="card-body">';
-      if (sec.notice) html += '<p class="text-muted small mb-2">' + sec.notice + '</p>';
+      html += '<div' + cardId + ' class="' + cardClass + '"><div class="card-header">' + escUi(L(String(sec.title || ''))) + '</div><div class="card-body">';
+      /* notice: 본문에 <strong>·<code> 등 허용(화면 정의 전용). L()만 사용 — escUi 하면 태그가 그대로 노출됨 */
+      if (sec.notice) html += '<p class="text-muted small mb-2">' + L(String(sec.notice)) + '</p>';
       if (sec.type === 'branding') {
-        html += '<p class="text-danger small mb-2">메인이미지는 5MB, 로고·URL결제·파비콘 이미지는 1MB까지 업로드 가능합니다. 파비콘은 PNG/JPG 업로드 시 32x32 PNG로 자동 변환되어 적용됩니다.</p>' +
-          '<div class="row mb-2"><div class="col-sm-6"><label class="form-label">메인이미지</label><div class="input-group input-group-sm">' +
-          '<input type="text" class="form-control form-control-sm" name="mainImageUrl" id="brandingMainImageUrl" readonly placeholder="업로드 파일명">' +
+        html += '<p class="text-danger small mb-2" data-pg-ui-t="메인이미지는 5MB, 로고·URL결제·파비콘 이미지는 1MB까지 업로드 가능합니다. 파비콘은 PNG/JPG 업로드 시 32x32 PNG로 자동 변환되어 적용됩니다.">메인이미지는 5MB, 로고·URL결제·파비콘 이미지는 1MB까지 업로드 가능합니다. 파비콘은 PNG/JPG 업로드 시 32x32 PNG로 자동 변환되어 적용됩니다.</p>' +
+          '<div class="row mb-2"><div class="col-sm-6"><label class="form-label" data-pg-ui-t="메인이미지">메인이미지</label><div class="input-group input-group-sm">' +
+          '<input type="text" class="form-control form-control-sm" name="mainImageUrl" id="brandingMainImageUrl" readonly data-pg-ui-placeholder="업로드 파일명" placeholder="업로드 파일명">' +
           '<input type="file" class="d-none" id="brandingMainImageFile" accept="image/png,image/jpeg,image/jpg">' +
-          '<button type="button" class="btn btn-outline-secondary" id="brandingMainImageBrowse">Browse</button><button type="button" class="btn btn-outline-danger" id="brandingMainImageDelete">삭제</button></div></div></div>' +
-          '<div class="row mb-2"><div class="col-sm-6"><label class="form-label">첫화면 로고이미지(로그인 페이지)</label><div class="input-group input-group-sm">' +
-          '<input type="text" class="form-control form-control-sm" name="firstLogoImageUrl" id="brandingFirstLogoImageUrl" readonly placeholder="업로드 파일명">' +
+          '<button type="button" class="btn btn-outline-secondary" id="brandingMainImageBrowse">Browse</button><button type="button" class="btn btn-outline-danger" id="brandingMainImageDelete" data-pg-ui-t="삭제">삭제</button></div></div></div>' +
+          '<div class="row mb-2"><div class="col-sm-6"><label class="form-label" data-pg-ui-t="첫화면 로고이미지(로그인 페이지)">첫화면 로고이미지(로그인 페이지)</label><div class="input-group input-group-sm">' +
+          '<input type="text" class="form-control form-control-sm" name="firstLogoImageUrl" id="brandingFirstLogoImageUrl" readonly data-pg-ui-placeholder="업로드 파일명" placeholder="업로드 파일명">' +
           '<input type="file" class="d-none" id="brandingFirstLogoImageFile" accept="image/png,image/jpeg,image/jpg">' +
-          '<button type="button" class="btn btn-outline-secondary" id="brandingFirstLogoImageBrowse">Browse</button><button type="button" class="btn btn-outline-danger" id="brandingFirstLogoImageDelete">삭제</button></div></div></div>' +
-          '<div class="row mb-2"><div class="col-sm-6"><label class="form-label">로그인 후 로고이미지(좌측 메뉴)</label><div class="input-group input-group-sm">' +
-          '<input type="text" class="form-control form-control-sm" name="logoImageUrl" id="brandingLogoImageUrl" readonly placeholder="업로드 파일명">' +
+          '<button type="button" class="btn btn-outline-secondary" id="brandingFirstLogoImageBrowse">Browse</button><button type="button" class="btn btn-outline-danger" id="brandingFirstLogoImageDelete" data-pg-ui-t="삭제">삭제</button></div></div></div>' +
+          '<div class="row mb-2"><div class="col-sm-6"><label class="form-label" data-pg-ui-t="로그인 후 로고이미지(좌측 메뉴)">로그인 후 로고이미지(좌측 메뉴)</label><div class="input-group input-group-sm">' +
+          '<input type="text" class="form-control form-control-sm" name="logoImageUrl" id="brandingLogoImageUrl" readonly data-pg-ui-placeholder="업로드 파일명" placeholder="업로드 파일명">' +
           '<input type="file" class="d-none" id="brandingLogoImageFile" accept="image/png,image/jpeg,image/jpg">' +
-          '<button type="button" class="btn btn-outline-secondary" id="brandingLogoImageBrowse">Browse</button><button type="button" class="btn btn-outline-danger" id="brandingLogoImageDelete">삭제</button></div></div></div>' +
-          '<div class="row mb-2"><div class="col-sm-6"><label class="form-label">URL결제이미지(공개 결제 페이지 상단)</label><div class="input-group input-group-sm">' +
-          '<input type="text" class="form-control form-control-sm" name="urlPayImageUrl" id="brandingUrlPayImageUrl" readonly placeholder="업로드 파일명">' +
+          '<button type="button" class="btn btn-outline-secondary" id="brandingLogoImageBrowse">Browse</button><button type="button" class="btn btn-outline-danger" id="brandingLogoImageDelete" data-pg-ui-t="삭제">삭제</button></div></div></div>' +
+          '<div class="row mb-2"><div class="col-sm-6"><label class="form-label" data-pg-ui-t="URL결제이미지(공개 결제 페이지 상단)">URL결제이미지(공개 결제 페이지 상단)</label><div class="input-group input-group-sm">' +
+          '<input type="text" class="form-control form-control-sm" name="urlPayImageUrl" id="brandingUrlPayImageUrl" readonly data-pg-ui-placeholder="업로드 파일명" placeholder="업로드 파일명">' +
           '<input type="file" class="d-none" id="brandingUrlPayImageFile" accept="image/png,image/jpeg,image/jpg">' +
-          '<button type="button" class="btn btn-outline-secondary" id="brandingUrlPayImageBrowse">Browse</button><button type="button" class="btn btn-outline-danger" id="brandingUrlPayImageDelete">삭제</button></div>' +
-          '<div class="form-text text-muted small">비우면 URL 결제 상단에는 「로그인 후 로고」가 표시됩니다. 총판(상위) 브랜딩이 가맹점 결제 URL에 적용됩니다.</div></div></div>' +
-          '<div class="row mb-2"><div class="col-sm-6"><label class="form-label">파비콘 이미지</label><div class="input-group input-group-sm">' +
-          '<input type="text" class="form-control form-control-sm" name="popconImageUrl" id="brandingPopconImageUrl" readonly placeholder="업로드 파일명">' +
+          '<button type="button" class="btn btn-outline-secondary" id="brandingUrlPayImageBrowse">Browse</button><button type="button" class="btn btn-outline-danger" id="brandingUrlPayImageDelete" data-pg-ui-t="삭제">삭제</button></div>' +
+          '<div class="form-text text-muted small" data-pg-ui-t="비우면 URL 결제 상단에는 「로그인 후 로고」가 표시됩니다. 총판(상위) 브랜딩이 가맹점 결제 URL에 적용됩니다.">비우면 URL 결제 상단에는 「로그인 후 로고」가 표시됩니다. 총판(상위) 브랜딩이 가맹점 결제 URL에 적용됩니다.</div></div></div>' +
+          '<div class="row mb-2"><div class="col-sm-6"><label class="form-label" data-pg-ui-t="파비콘 이미지">파비콘 이미지</label><div class="input-group input-group-sm">' +
+          '<input type="text" class="form-control form-control-sm" name="popconImageUrl" id="brandingPopconImageUrl" readonly data-pg-ui-placeholder="업로드 파일명" placeholder="업로드 파일명">' +
           '<input type="file" class="d-none" id="brandingPopconImageFile" accept="image/png,image/jpeg,image/jpg">' +
-          '<button type="button" class="btn btn-outline-secondary" id="brandingPopconImageBrowse">Browse</button><button type="button" class="btn btn-outline-danger" id="brandingPopconImageDelete">삭제</button></div></div></div>' +
-          '<div class="row mb-2"><div class="col-sm-4"><label class="form-label">배경테마</label><select class="form-control form-control-sm" name="brandingTheme" id="brandingTheme">' +
-          '<option value="DEFAULT">기본(현재)</option><option value="LIGHT">Light (흰배경/검정글씨)</option><option value="GRAY">Gray (라이트·다크 중간 톤)</option><option value="BROWN">Brown (상단 메뉴 톤 정렬)</option><option value="DARK">Dark (어두운배경/흰글씨)</option>' +
-          '<option value="PASTEL_1">파스텔1</option><option value="PASTEL_2">파스텔2</option><option value="PASTEL_3">파스텔3</option><option value="PASTEL_4">파스텔4</option><option value="PASTEL_5">파스텔5</option>' +
+          '<button type="button" class="btn btn-outline-secondary" id="brandingPopconImageBrowse">Browse</button><button type="button" class="btn btn-outline-danger" id="brandingPopconImageDelete" data-pg-ui-t="삭제">삭제</button></div></div></div>' +
+          '<div class="row mb-2"><div class="col-sm-4"><label class="form-label" data-pg-ui-t="배경테마">배경테마</label><select class="form-control form-control-sm" name="brandingTheme" id="brandingTheme">' +
+          '<option value="DEFAULT" data-pg-ui-t="기본(현재)">기본(현재)</option><option value="LIGHT" data-pg-ui-t="Light (흰배경/검정글씨)">Light (흰배경/검정글씨)</option><option value="GRAY" data-pg-ui-t="Gray (라이트·다크 중간 톤)">Gray (라이트·다크 중간 톤)</option><option value="BROWN" data-pg-ui-t="Brown (상단 메뉴 톤 정렬)">Brown (상단 메뉴 톤 정렬)</option><option value="DARK" data-pg-ui-t="Dark (어두운배경/흰글씨)">Dark (어두운배경/흰글씨)</option>' +
+          '<option value="PASTEL_1" data-pg-ui-t="파스텔1">파스텔1</option><option value="PASTEL_2" data-pg-ui-t="파스텔2">파스텔2</option><option value="PASTEL_3" data-pg-ui-t="파스텔3">파스텔3</option><option value="PASTEL_4" data-pg-ui-t="파스텔4">파스텔4</option><option value="PASTEL_5" data-pg-ui-t="파스텔5">파스텔5</option>' +
           '</select></div></div>' +
-          '<div class="row mb-2"><div class="col-sm-8"><label class="form-label">사이트 이름(브라우저 탭)</label><input type="text" class="form-control form-control-sm" name="siteName" id="brandingSiteName" maxlength="100" placeholder="예: OTL PAY 관리자"></div></div>' +
-          '<div class="row mb-2"><div class="col-sm-8"><label class="form-label">로그인 안내 호스트</label><input type="text" class="form-control form-control-sm" name="brandHost" id="brandingBrandHost" placeholder="예: api.example.com (선택)"></div></div>';
+          '<div class="row mb-2"><div class="col-sm-8"><label class="form-label" data-pg-ui-t="사이트 이름(브라우저 탭)">사이트 이름(브라우저 탭)</label><input type="text" class="form-control form-control-sm" name="siteName" id="brandingSiteName" maxlength="100" data-pg-ui-placeholder="예: OTL PAY 관리자" placeholder="예: OTL PAY 관리자"></div></div>' +
+          '<div class="row mb-2"><div class="col-sm-8"><label class="form-label" data-pg-ui-t="로그인 안내 호스트">로그인 안내 호스트</label><input type="text" class="form-control form-control-sm" name="brandHost" id="brandingBrandHost" data-pg-ui-placeholder="예: api.example.com (선택)" placeholder="예: api.example.com (선택)"></div></div>';
       } else if (sec.type === 'pgBindingList') {
         var omitExtSettleCols = !!sec.omitExtSettleColumns;
         html += '<div class="pg-binding-list-wrap"' + (omitExtSettleCols ? ' data-pg-omit-ext-settle-cols="1"' : '') + '><table class="table table-sm table-bordered pg-binding-table"><thead><tr>' +
-          '<th>운영</th><th>착신화</th><th>결제대행사</th><th>결제구분</th><th>MID</th><th>루트번호</th><th style="min-width:12rem">API KEY</th><th style="min-width:12rem">IV KEY</th><th>할부</th><th>최대할부</th>' +
-          (omitExtSettleCols ? '' : '<th title="비우면 연동(tb_pg_agency) 기본">예정모드</th><th>N</th><th>D시각</th>') +
-          '<th style="min-width:200px">작업</th></tr></thead><tbody id="pgBindingTbody"></tbody></table>' +
-          '<button type="button" class="btn btn-outline-primary btn-sm mt-2" id="pgBindingAddBtn">+ 결제대행사 추가</button>' +
+          '<th data-pg-ui-t="운영">운영</th><th data-pg-ui-t="착신화">착신화</th><th data-pg-ui-t="결제대행사">결제대행사</th><th data-pg-ui-t="결제구분">결제구분</th><th>MID</th><th data-pg-ui-t="루트번호">루트번호</th><th style="min-width:12rem">API KEY</th><th style="min-width:12rem">IV KEY</th><th data-pg-ui-t="할부">할부</th><th data-pg-ui-t="최대할부">최대할부</th>' +
+          (omitExtSettleCols ? '' : '<th data-pg-ui-title="비우면 연동(tb_pg_agency) 기본" title="비우면 연동(tb_pg_agency) 기본" data-pg-ui-t="예정모드">예정모드</th><th>N</th><th data-pg-ui-t="D시각">D시각</th>') +
+          '<th style="min-width:200px" data-pg-ui-t="작업">작업</th></tr></thead><tbody id="pgBindingTbody"></tbody></table>' +
+          '<button type="button" class="btn btn-outline-primary btn-sm mt-2" id="pgBindingAddBtn" data-pg-ui-t="+ 결제대행사 추가">+ 결제대행사 추가</button>' +
           '<input type="hidden" name="pgBindings" id="pgBindingsHidden" value="[]"></div>';
       } else if (sec.type === 'pgInfoDisplay') {
         html += '<div id="pgInfoDisplayWrap" class="pg-info-display">' +
-          '<div class="row mb-2"><div class="col-sm-3"><label class="form-label">웹결제 사용여부</label><select class="form-control form-control-sm" name="webPaymentUseYn"><option value="Y">사용</option><option value="N">미사용</option></select></div>' +
-          '<div class="col-sm-5"><label class="form-label">결제 URL</label><div class="input-group input-group-sm"><input type="text" class="form-control" id="paymentUrlDisplay" readonly placeholder="가맹점 선택 후 조회"><button type="button" class="btn btn-outline-primary" id="paymentUrlCopyBtn">복사</button></div></div></div>' +
+          '<div class="row mb-2"><div class="col-sm-3"><label class="form-label" data-pg-ui-t="웹결제 사용여부">웹결제 사용여부</label><select class="form-control form-control-sm" name="webPaymentUseYn"><option value="Y" data-pg-ui-t="사용">사용</option><option value="N" data-pg-ui-t="미사용">미사용</option></select></div>' +
+          '<div class="col-sm-5"><label class="form-label" data-pg-ui-t="결제 URL">결제 URL</label><div class="input-group input-group-sm"><input type="text" class="form-control" id="paymentUrlDisplay" readonly data-pg-ui-placeholder="가맹점 선택 후 조회" placeholder="가맹점 선택 후 조회"><button type="button" class="btn btn-outline-primary" id="paymentUrlCopyBtn" data-pg-ui-t="복사">복사</button></div></div></div>' +
           '</div>';
       } else if (sec.type === 'regionalCardLimitTable') {
-        html += '<div class="d-flex justify-content-end mb-2"><button type="button" class="btn btn-success btn-sm me-1" id="regionalCardLimitAddBtn">추가</button><button type="button" class="btn btn-danger btn-sm" id="regionalCardLimitDelBtn">삭제</button></div>' +
+        html += '<div class="d-flex justify-content-end mb-2"><button type="button" class="btn btn-success btn-sm me-1" id="regionalCardLimitAddBtn" data-pg-ui-t="추가">추가</button><button type="button" class="btn btn-danger btn-sm" id="regionalCardLimitDelBtn" data-pg-ui-t="삭제">삭제</button></div>' +
           '<div class="table-responsive"><table class="table table-sm table-bordered"><thead class="table-info"><tr>' +
-          '<th style="width:40px"><input type="checkbox" class="regional-card-limit-check-all" title="전체선택"></th>' +
-          '<th class="text-danger">결제구분</th><th class="text-danger">카드사</th><th class="text-danger">일</th><th class="text-danger">회</th><th class="text-danger">원</th><th class="text-danger">등록사유</th><th>등록일자</th><th>수정일자</th><th>비고</th></tr></thead>' +
+          '<th style="width:40px"><input type="checkbox" class="regional-card-limit-check-all" data-pg-ui-title="전체선택" title="전체선택"></th>' +
+          '<th class="text-danger" data-pg-ui-t="결제구분">결제구분</th><th class="text-danger" data-pg-ui-t="카드사">카드사</th><th class="text-danger" data-pg-ui-t="일">일</th><th class="text-danger" data-pg-ui-t="회">회</th><th class="text-danger" data-pg-ui-t="원">원</th><th class="text-danger" data-pg-ui-t="등록사유">등록사유</th><th data-pg-ui-t="등록일자">등록일자</th><th data-pg-ui-t="수정일자">수정일자</th><th data-pg-ui-t="비고">비고</th></tr></thead>' +
           '<tbody id="regionalCardLimitTbody"></tbody></table></div>' +
-          '<div class="text-center text-muted py-2 empty-table-msg" id="regionalCardLimitEmpty">조회 된 데이터가 없습니다.</div>' +
+          '<div class="text-center text-muted py-2 empty-table-msg" id="regionalCardLimitEmpty" data-pg-ui-t="조회된 데이터가 없습니다.">조회된 데이터가 없습니다.</div>' +
           '<input type="hidden" name="regionalCardLimits" id="regionalCardLimitsHidden" value="[]">';
       } else if (sec.type === 'regionalTerminalTable') {
         html += '<div class="table-responsive"><table class="table table-sm table-bordered"><thead class="table-info"><tr>' +
-          '<th>No.</th><th>결제대행사</th><th>터미널ID</th><th>비고</th></tr></thead>' +
+          '<th>No.</th><th data-pg-ui-t="결제대행사">결제대행사</th><th data-pg-ui-t="터미널ID">터미널ID</th><th data-pg-ui-t="비고">비고</th></tr></thead>' +
           '<tbody id="regionalTerminalTbody"></tbody></table></div>' +
-          '<div class="text-center text-muted py-2 empty-table-msg" id="regionalTerminalEmpty">조회 된 데이터가 없습니다.</div>' +
-          '<button type="button" class="btn btn-outline-primary btn-sm mt-2" id="regionalTerminalAddBtn">+ 터미널 추가</button>' +
+          '<div class="text-center text-muted py-2 empty-table-msg" id="regionalTerminalEmpty" data-pg-ui-t="조회된 데이터가 없습니다.">조회된 데이터가 없습니다.</div>' +
+          '<button type="button" class="btn btn-outline-primary btn-sm mt-2" id="regionalTerminalAddBtn" data-pg-ui-t="+ 터미널 추가">+ 터미널 추가</button>' +
           '<input type="hidden" name="regionalTerminals" id="regionalTerminalsHidden" value="[]">';
       } else {
         (sec.rows || []).forEach(function (row) {
@@ -4521,23 +4627,23 @@
           if (first && first.type === 'countryAddressRow') {
             var opt = first;
             html += '<div class="row country-address-row" data-country-address="true">' +
-              '<div class="col-sm-2 form-field-block"><label class="form-label">국가</label><select class="form-control form-control-sm" name="addrCountryCd" data-addr-country-select><option value="">선택</option><option value="JP">JAPAN</option><option value="KR">KOREA</option><option value="TH">THAILAND</option><option value="OTHER">기타</option></select></div>' +
-              '<div class="col-sm-2 form-field-block addr-country-other-wrap d-none"><label class="form-label">국가</label><select class="form-control form-control-sm" name="addrCountryCdOther">' + (window.PG_COUNTRY_OTHER_OPTIONS || '<option value="">선택</option>') + '</select></div>' +
-              '<div class="col-sm-2 form-field-block zip-wrap"><label class="form-label">' + (opt.zipLabel || '우편번호*') + '</label><div class="form-input-with-btn" data-zip-search-wrap><input type="text" class="form-control form-control-sm" name="zipCode" placeholder="검색" data-zip-input><button type="button" class="btn btn-outline-secondary btn-sm" data-addr-zip-search>검색</button></div></div>' +
-              '<div class="col-sm-2 form-field-block"><label class="form-label">' + (opt.addrLabel || '주소*') + '</label><input type="text" class="form-control form-control-sm" name="addr" data-addr-input></div>' +
-              '<div class="col-sm-2 form-field-block"><label class="form-label">' + (opt.addrDetailLabel || '상세주소') + '</label><input type="text" class="form-control form-control-sm" name="addrDetail"></div>' +
-              (opt.addrEtcLabel ? '<div class="col-sm-2 form-field-block"><label class="form-label">' + opt.addrEtcLabel + '</label><input type="text" class="form-control form-control-sm" name="addrEtc" placeholder="기타 입력"></div>' : '') +
+              '<div class="col-sm-2 form-field-block"><label class="form-label" data-pg-ui-t="국가">국가</label><select class="form-control form-control-sm" name="addrCountryCd" data-addr-country-select><option value="" data-pg-ui-t="선택">선택</option><option value="JP">JAPAN</option><option value="KR">KOREA</option><option value="TH">THAILAND</option><option value="OTHER" data-pg-ui-t="기타">기타</option></select></div>' +
+              '<div class="col-sm-2 form-field-block addr-country-other-wrap d-none"><label class="form-label" data-pg-ui-t="국가">국가</label><select class="form-control form-control-sm" name="addrCountryCdOther">' + (window.PG_COUNTRY_OTHER_OPTIONS || '<option value="" data-pg-ui-t="선택">선택</option>') + '</select></div>' +
+              '<div class="col-sm-2 form-field-block zip-wrap"><label class="form-label">' + escUi(L(String(opt.zipLabel || '우편번호*'))) + '</label><div class="form-input-with-btn" data-zip-search-wrap><input type="text" class="form-control form-control-sm" name="zipCode" data-pg-ui-placeholder="검색" placeholder="검색" data-zip-input><button type="button" class="btn btn-outline-secondary btn-sm" data-addr-zip-search data-pg-ui-t="검색">검색</button></div></div>' +
+              '<div class="col-sm-2 form-field-block"><label class="form-label">' + escUi(L(String(opt.addrLabel || '주소*'))) + '</label><input type="text" class="form-control form-control-sm" name="addr" data-addr-input></div>' +
+              '<div class="col-sm-2 form-field-block"><label class="form-label">' + escUi(L(String(opt.addrDetailLabel || '상세주소'))) + '</label><input type="text" class="form-control form-control-sm" name="addrDetail"></div>' +
+              (opt.addrEtcLabel ? '<div class="col-sm-2 form-field-block"><label class="form-label">' + escUi(L(String(opt.addrEtcLabel))) + '</label><input type="text" class="form-control form-control-sm" name="addrEtc" data-pg-ui-placeholder="기타 입력" placeholder="기타 입력"></div>' : '') +
               '</div>';
           } else if (first && first.type === 'countryBankRow') {
             var opt = first;
             var bankHq = opt.hideForHeadquarters ? ' comp-info-hide-if-hq' : '';
             html += '<div class="row country-bank-row' + bankHq + '" data-country-bank="true">' +
-              '<div class="col-sm-2 form-field-block"><label class="form-label">국가</label><select class="form-control form-control-sm" name="countryCd" data-country-select><option value="">선택</option><option value="JP">JAPAN</option><option value="KR">KOREA</option><option value="TH">THAILAND</option><option value="OTHER">기타</option></select></div>' +
-              '<div class="col-sm-2 form-field-block country-other-wrap d-none"><label class="form-label">국가</label><select class="form-control form-control-sm" name="countryCdOther">' + (window.PG_COUNTRY_OTHER_OPTIONS || '<option value="">선택</option>') + '</select></div>' +
-              '<div class="col-sm-2 form-field-block bank-select-wrap"><label class="form-label">' + (opt.bankLabel || '계좌은행*') + '</label><select class="form-control form-control-sm" name="bankCd" data-bank-select><option value="">국가 선택 후</option></select></div>' +
-              '<div class="col-sm-2 form-field-block bank-text-wrap d-none"><label class="form-label">' + (opt.bankLabel || '계좌은행*') + '</label><input type="text" class="form-control form-control-sm" name="bankCdText" placeholder="은행명 직접입력"></div>' +
-              '<div class="col-sm-2 form-field-block"><label class="form-label">' + (opt.accountNoLabel || '계좌번호*') + '</label><input type="text" class="form-control form-control-sm" name="' + (opt.accountNoName || 'accountNo') + '"></div>' +
-              '<div class="col-sm-2 form-field-block"><label class="form-label">' + (opt.accountHolderLabel || '계좌주명*') + '</label><input type="text" class="form-control form-control-sm" name="' + (opt.accountHolderName || 'accountHolder') + '"></div>' +
+              '<div class="col-sm-2 form-field-block"><label class="form-label" data-pg-ui-t="국가">국가</label><select class="form-control form-control-sm" name="countryCd" data-country-select><option value="" data-pg-ui-t="선택">선택</option><option value="JP">JAPAN</option><option value="KR">KOREA</option><option value="TH">THAILAND</option><option value="OTHER" data-pg-ui-t="기타">기타</option></select></div>' +
+              '<div class="col-sm-2 form-field-block country-other-wrap d-none"><label class="form-label" data-pg-ui-t="국가">국가</label><select class="form-control form-control-sm" name="countryCdOther">' + (window.PG_COUNTRY_OTHER_OPTIONS || '<option value="" data-pg-ui-t="선택">선택</option>') + '</select></div>' +
+              '<div class="col-sm-2 form-field-block bank-select-wrap"><label class="form-label">' + escUi(L(String(opt.bankLabel || '계좌은행*'))) + '</label><select class="form-control form-control-sm" name="bankCd" data-bank-select><option value="" data-pg-ui-t="국가 선택 후">국가 선택 후</option></select></div>' +
+              '<div class="col-sm-2 form-field-block bank-text-wrap d-none"><label class="form-label">' + escUi(L(String(opt.bankLabel || '계좌은행*'))) + '</label><input type="text" class="form-control form-control-sm" name="bankCdText" data-pg-ui-placeholder="은행명 직접입력" placeholder="은행명 직접입력"></div>' +
+              '<div class="col-sm-2 form-field-block"><label class="form-label">' + escUi(L(String(opt.accountNoLabel || '계좌번호*'))) + '</label><input type="text" class="form-control form-control-sm" name="' + (opt.accountNoName || 'accountNo') + '"></div>' +
+              '<div class="col-sm-2 form-field-block"><label class="form-label">' + escUi(L(String(opt.accountHolderLabel || '계좌주명*'))) + '</label><input type="text" class="form-control form-control-sm" name="' + (opt.accountHolderName || 'accountHolder') + '"></div>' +
               (opt.extraFields ? opt.extraFields.map(function (ef) {
                 return '<div class="col-sm-' + (ef.col || 2) + ' form-field-block"><label class="form-label">' + (ef.label || '') + '</label><input type="text" class="form-control form-control-sm" name="' + (ef.name || '') + '" placeholder="' + (ef.placeholder || '') + '"></div>';
               }).join('') : '') +
@@ -4559,7 +4665,7 @@
     if (buttons && buttons.length > 0) {
       html += '<div class="row mb-2"><div class="col-sm-12">';
       buttons.forEach(function (b) {
-        html += '<button type="button" class="btn ' + (b.cls || 'btn-secondary') + ' btn-sm mr-1" id="' + (b.id || '') + '">' + (b.label || '') + '</button>';
+        html += '<button type="button" class="btn ' + (b.cls || 'btn-secondary') + ' btn-sm mr-1" id="' + (b.id || '') + '">' + escUi(L(String(b.label || ''))) + '</button>';
       });
       html += '</div></div>';
     }
@@ -4574,7 +4680,7 @@
       var col = r.col || 2;
       var req = r.required ? ' <span class="text-danger">*</span>' : '';
       if (r.type === 'text') {
-        html += '<div class="col-sm-' + col + ' mb-2"><label class="form-label">' + (r.label || '') + req + '</label><input type="text" class="form-control form-control-sm" name="' + (r.name || '') + '" id="' + (r.name || '') + '"></div>';
+        html += '<div class="col-sm-' + col + ' mb-2"><label class="form-label">' + escUi(L(String(r.label || ''))) + req + '</label><input type="text" class="form-control form-control-sm" name="' + (r.name || '') + '" id="' + (r.name || '') + '"></div>';
       }
     });
     html += '</div></form>';
@@ -4587,7 +4693,7 @@
     var fmt = cfg.summaryFormat !== undefined ? cfg.summaryFormat : '0';
     var html = '<div class="row mb-2 summary-bar-wrap"><div class="col-sm-12">';
     items.forEach(function (s) {
-      html += '<span class="summary-item mr-3" id="summary_' + s + '">' + s + ': ' + fmt + '</span>';
+      html += '<span class="summary-item mr-3" id="summary_' + s + '">' + escUi(L(String(s))) + ': ' + fmt + '</span>';
     });
     html += '</div></div>';
     return html;
@@ -4597,7 +4703,7 @@
     var btns = cfg.buttons || [];
     var html = '<div class="row mb-2 screen-action-row"><div class="col-sm-12 screen-action-buttons">';
     btns.forEach(function (b) {
-      html += '<button type="button" class="btn ' + (b.cls || 'btn-secondary') + ' btn-sm mr-1" id="' + (b.id || '') + '">' + (b.label || '') + '</button>';
+      html += '<button type="button" class="btn ' + (b.cls || 'btn-secondary') + ' btn-sm mr-1" id="' + (b.id || '') + '">' + escUi(L(String(b.label || ''))) + '</button>';
     });
     html += '</div></div>';
     return html;
@@ -4618,10 +4724,10 @@
       if (b && b._viewSettingHello) continue;
       var id = String(b.id || '');
       var lab = String(b.label || '');
-      if (refreshIdx < 0 && (id === 'payListRefreshBtn' || lab === '새로고침')) refreshIdx = i;
-      if (excelIdx < 0 && (id === 'excelBtn' || id === 'excelDownBtn' || lab.indexOf('엑셀') !== -1)) excelIdx = i;
+      if (refreshIdx < 0 && (id === 'payListRefreshBtn' || lab === '새로고침' || lab === L('새로고침'))) refreshIdx = i;
+      if (excelIdx < 0 && (id === 'excelBtn' || id === 'excelDownBtn' || lab.indexOf('엑셀') !== -1 || lab.indexOf('Excel') !== -1)) excelIdx = i;
     }
-    var hello = { id: 'viewSettingHelloBtn', label: '헬로', cls: 'btn-view-setting-hello', _viewSettingHello: true };
+    var hello = { id: 'viewSettingHelloBtn', label: L('헬로'), cls: 'btn-view-setting-hello', _viewSettingHello: true };
     if (refreshIdx >= 0 && excelIdx >= 0 && excelIdx > refreshIdx) {
       out.splice(excelIdx, 0, hello);
     } else if (excelIdx >= 0) {
@@ -4643,7 +4749,7 @@
     if (items.length > 0) {
       summaryHtml = '<div class="summary-total-bar">';
       items.forEach(function (s) {
-        summaryHtml += '<span class="summary-total-item" id="summary_' + s + '">' + s + ': ' + fmt + '</span>';
+        summaryHtml += '<span class="summary-total-item" id="summary_' + s + '" data-pg-summary-key="' + String(s).replace(/"/g, '&quot;') + '">' + escUi(L(String(s))) + ': ' + fmt + '</span>';
       });
       summaryHtml += '</div>';
     }
@@ -4669,12 +4775,12 @@
           var bid0 = String(b && b.id || '');
           if (anchorSort === 'refresh' && bid0 === 'payListRefreshBtn') {
             var bidRf = (b && b._viewSettingHello) ? ('viewSettingHelloBtn_' + tid) : (b.id || '');
-            buttonsHtml += '<button type="button" class="btn ' + (b.cls || 'btn-secondary') + ' btn-sm" id="' + bidRf + '">' + (b.label || '') + '</button>';
+            buttonsHtml += '<button type="button" class="btn ' + (b.cls || 'btn-secondary') + ' btn-sm" id="' + bidRf + '">' + escUi(L(String(b.label || ''))) + '</button>';
             if (cfg.listToolbarBetweenRefreshAndSort && cfg.listToolbarBetweenRefreshAndSort.length) {
               cfg.listToolbarBetweenRefreshAndSort.forEach(function (bx) {
                 var pfx = bx.idPrefix || bx.id || 'listToolbarMid';
                 var midId = pfx + '_' + tid;
-                buttonsHtml += '<button type="button" class="btn btn-sm ' + (bx.cls || 'btn-outline-secondary') + '" id="' + midId + '">' + (bx.label || '') + '</button>';
+                buttonsHtml += '<button type="button" class="btn btn-sm ' + (bx.cls || 'btn-outline-secondary') + '" id="' + midId + '">' + escUi(L(String(bx.label || ''))) + '</button>';
               });
             }
             buttonsHtml += toolbarSortHtml;
@@ -4687,7 +4793,7 @@
           }
         }
         var bid = (b && b._viewSettingHello) ? ('viewSettingHelloBtn_' + tid) : (b.id || '');
-        buttonsHtml += '<button type="button" class="btn ' + (b.cls || 'btn-secondary') + ' btn-sm" id="' + bid + '">' + (b.label || '') + '</button>';
+        buttonsHtml += '<button type="button" class="btn ' + (b.cls || 'btn-secondary') + ' btn-sm" id="' + bid + '">' + escUi(L(String(b.label || ''))) + '</button>';
       });
       buttonsHtml += '</div>';
     }
@@ -4718,7 +4824,7 @@
       var lab = col ? (col.label || key) : key;
       var rs = rowspan > 1 ? ' rowspan="' + rowspan + '"' : '';
       var c = cls ? String(cls) : 'text-nowrap';
-      return '<th data-key="' + esc(key) + '"' + rs + ' class="' + esc(c) + '">' + esc(lab) + '</th>';
+      return '<th data-key="' + esc(key) + '"' + rs + ' class="' + esc(c) + '">' + escUi(L(String(lab))) + '</th>';
     }
     var APRV_MAIN = ['aprvCnt', 'aprvAmt'];
     var APRV_FEE = ['aprvFeeCnt', 'aprvFeePct', 'aprvFeeSum', 'aprvFeeVat'];
@@ -4763,9 +4869,9 @@
         return;
       }
       if (aprvDeep) {
-        r1.push('<th colspan="' + (aprvM.length + aprvF.length) + '" class="dist-th-group text-center">승인</th>');
+        r1.push('<th colspan="' + (aprvM.length + aprvF.length) + '" class="dist-th-group text-center" data-pg-ui-t="승인"></th>');
         aprvM.forEach(function (k) { r2.push(thKeyLabel(k, 2, 'text-nowrap')); });
-        r2.push('<th colspan="' + aprvF.length + '" class="dist-th-fee text-center text-nowrap">수수료</th>');
+        r2.push('<th colspan="' + aprvF.length + '" class="dist-th-fee text-center text-nowrap" data-pg-ui-t="수수료"></th>');
         aprvF.forEach(function (k) { r3.push(thKeyLabel(k, 1, 'text-nowrap dist-th-fee-sub')); });
       }
     }
@@ -4780,9 +4886,9 @@
         return;
       }
       if (canDeep) {
-        r1.push('<th colspan="' + (canM.length + canF.length) + '" class="dist-th-group text-center">취소</th>');
+        r1.push('<th colspan="' + (canM.length + canF.length) + '" class="dist-th-group text-center" data-pg-ui-t="취소"></th>');
         canM.forEach(function (k) { r2.push(thKeyLabel(k, 2, 'text-nowrap')); });
-        r2.push('<th colspan="' + canF.length + '" class="dist-th-fee text-center text-nowrap">수수료</th>');
+        r2.push('<th colspan="' + canF.length + '" class="dist-th-fee text-center text-nowrap" data-pg-ui-t="수수료"></th>');
         canF.forEach(function (k) { r3.push(thKeyLabel(k, 1, 'text-nowrap dist-th-fee-sub')); });
       }
     }
@@ -4822,8 +4928,8 @@
     var cols = cfg.columns || [];
     var respExtra = cfg.tableResponsiveExtraClass ? (' ' + String(cfg.tableResponsiveExtraClass).trim()) : '';
     if (cfg.distributionThreeRowHeader) {
-      var emptyMsg = cfg.emptyMessage || '조회된 데이터가 없습니다.';
-      var emptyRow = '<tr><td colspan="' + cols.length + '" class="empty-state-cell text-center text-muted py-4">' + emptyMsg + '</td></tr>';
+      var emptyMsg = L(String(cfg.emptyMessage != null ? cfg.emptyMessage : '조회된 데이터가 없습니다.'));
+      var emptyRow = '<tr><td colspan="' + cols.length + '" class="empty-state-cell text-center text-muted py-4">' + escUi(emptyMsg) + '</td></tr>';
       var respClass = 'table-responsive' + (cfg.tableScrollable ? ' table-scrollable' : '') + respExtra;
       var tblExtra = cfg.tableExtraClass ? (' ' + cfg.tableExtraClass) : '';
       return '<div class="' + respClass + '">' +
@@ -4832,16 +4938,19 @@
         '<tbody>' + emptyRow + '</tbody></table></div>';
     }
     var ths = cols.map(function (c) {
-      if (c.type === 'checkbox') return '<th style="width:40px"><input type="checkbox" class="grid-check-all" title="전체선택"></th>';
-      var thTitle = c.title ? (' title="' + String(c.title).replace(/&/g, '&amp;').replace(/"/g, '&quot;') + '"') : '';
+      if (c.type === 'checkbox') {
+        return '<th style="width:40px"><input type="checkbox" class="grid-check-all" title="' + escUi(L('전체선택')) + '"></th>';
+      }
+      var thTitle = c.title ? (' title="' + escUi(L(String(c.title))) + '"') : '';
       var thClassParts = [];
       if (c.align === 'center') thClassParts.push('text-center');
       if (c.thClass) thClassParts.push(String(c.thClass));
       var thCls = thClassParts.length ? (' class="' + thClassParts.join(' ') + '"') : '';
-      return '<th data-key="' + (c.key || '') + '"' + thCls + thTitle + '>' + (c.label || c.key) + '</th>';
+      var thLab = c.label != null ? String(c.label) : String(c.key || '');
+      return '<th data-key="' + (c.key || '') + '"' + thCls + thTitle + '>' + escUi(L(thLab)) + '</th>';
     }).join('');
-    var emptyMsg = cfg.emptyMessage || '조회된 데이터가 없습니다.';
-    var emptyRow = '<tr><td colspan="' + cols.length + '" class="empty-state-cell text-center text-muted py-4">' + emptyMsg + '</td></tr>';
+    var emptyMsg = L(String(cfg.emptyMessage != null ? cfg.emptyMessage : '조회된 데이터가 없습니다.'));
+    var emptyRow = '<tr><td colspan="' + cols.length + '" class="empty-state-cell text-center text-muted py-4">' + escUi(emptyMsg) + '</td></tr>';
     var respClass = 'table-responsive' + (cfg.tableScrollable ? ' table-scrollable' : '') + respExtra;
     var tblExtra = cfg.tableExtraClass ? (' ' + cfg.tableExtraClass) : '';
     var payMngGridCls = (cfg.payListStatusBar || cfg.payMngDenseGrid) ? ' pay-mng-data-grid' : '';
@@ -4854,81 +4963,87 @@
   /** 본사설정 > 도메인구성설정: 전사 URL + 본사·총판별 도메인 (개별 조직 권한 블록과 유사 레이아웃) */
   function renderDomainConfigShell(tabId) {
     var sid = tabId || 'hq_domainConfig';
+    var kSslIntro =
+      '이 서버의 <code>fullchain.pem</code> 에서 읽은 <strong>SAN(호스트명)</strong>과, 전사 URL·본사·총판에 저장된 URL의 호스트를 비교합니다. ' +
+      '표시·저장 시 주소에 <code>http://</code> 또는 <code>https://</code> 가 없으면 <strong>https://</strong> 를 붙입니다. ' +
+      '불일치 시 브라우저 인증서 경고가 날 수 있습니다. 서브도메인 추가 시 DNS A 레코드·Nginx <code>server_name</code>·<code>certbot --nginx -d …</code> 를 함께 적용하세요. ' +
+      '상세 SSL 경로·Certbot 타이머는 <strong>본사설정 → 서버운영관리</strong>를 참고하세요.';
+    var kOrgIntro =
+      '업체명에서 <strong>본사</strong> 또는 <strong>총판</strong>만 선택할 수 있습니다. 선택 후 설정 이름·URL을 입력하고 [설정저장]하면 하단 목록에 반영됩니다. ' +
+      'URL에 스킴이 없으면 <strong>https://</strong> 가 자동으로 붙습니다. ' +
+      '<strong>본사</strong> 관리자 URL: <strong>총본사·해당 본사</strong> 소속 계정만 로그인됩니다(하위 총판·가맹 등은 불가). ' +
+      '<strong>총판</strong> URL: <strong>총본사·이 총판을 소속 트리에 두는 본사·해당 총판 및 그 하위</strong>만 로그인됩니다(다른 총판·다른 본사 트리는 불가). ' +
+      '브랜딩(로그인 화면 등)은 접속한 URL에 매칭된 본사·총판 조직의 설정을 따릅니다.';
     return (
       '<div class="hq-domain-config-wrap">' +
       '<div class="card mb-3">' +
-      '<div class="card-header py-2 fw-semibold">전사 기본 URL</div>' +
+      '<div class="card-header py-2 fw-semibold" data-pg-ui-t="전사 기본 URL">전사 기본 URL</div>' +
       '<div class="card-body">' +
-      '<p class="text-muted small mb-2">노티·문서·가맹점 안내에 쓰는 기본 공개 URL입니다. 저장은 시스템 관리자(ADMIN)만 가능합니다.</p>' +
+      '<p class="text-muted small mb-2">' +
+      L('노티·문서·가맹점 안내에 쓰는 기본 공개 URL입니다. 저장은 시스템 관리자(ADMIN)만 가능합니다.') +
+      '</p>' +
       '<div class="row g-2 align-items-end">' +
-      '<div class="col-lg-5 col-md-12"><label class="form-label small mb-1">관리자(웹) 공개 URL</label>' +
-      '<input type="text" class="form-control form-control-sm" name="publicAdminSiteUrl" placeholder="https://icopay.co.kr"></div>' +
-      '<div class="col-lg-5 col-md-12"><label class="form-label small mb-1">API 공개 베이스 URL</label>' +
-      '<input type="text" class="form-control form-control-sm" name="publicApiBaseUrl" placeholder="https://api.icopay.co.kr"></div>' +
+      '<div class="col-lg-5 col-md-12"><label class="form-label small mb-1" data-pg-ui-t="관리자(웹) 공개 URL">관리자(웹) 공개 URL</label>' +
+      '<input type="text" class="form-control form-control-sm" name="publicAdminSiteUrl" data-pg-ui-placeholder="https://icopay.co.kr" placeholder="https://icopay.co.kr"></div>' +
+      '<div class="col-lg-5 col-md-12"><label class="form-label small mb-1" data-pg-ui-t="API 공개 베이스 URL">API 공개 베이스 URL</label>' +
+      '<input type="text" class="form-control form-control-sm" name="publicApiBaseUrl" data-pg-ui-placeholder="https://api.icopay.co.kr" placeholder="https://api.icopay.co.kr"></div>' +
       '<div class="col-lg-2 col-md-12">' +
-      '<button type="button" class="btn btn-sm btn-outline-primary w-100" id="hqDomainGlobalSaveBtn_' + sid + '">전사 URL 저장</button></div>' +
+      '<button type="button" class="btn btn-sm btn-outline-primary w-100" id="hqDomainGlobalSaveBtn_' + sid + '" data-pg-ui-t="전사 URL 저장">전사 URL 저장</button></div>' +
       '</div>' +
       '<div class="small mt-2" id="hqDomainGlobalMsg_' + sid + '" role="status"></div>' +
       '</div></div>' +
       '<div class="card mb-3 border-secondary">' +
-      '<div class="card-header py-2 fw-semibold">Let’s Encrypt · 도메인구성설정 연동</div>' +
+      '<div class="card-header py-2 fw-semibold" data-pg-ui-t="Let\u2019s Encrypt · 도메인구성설정 연동">Let\u2019s Encrypt · 도메인구성설정 연동</div>' +
       '<div class="card-body">' +
-      '<p class="text-muted small mb-2">이 서버의 <code>fullchain.pem</code> 에서 읽은 <strong>SAN(호스트명)</strong>과, 전사 URL·본사·총판에 저장된 URL의 호스트를 비교합니다. ' +
-      '표시·저장 시 주소에 <code>http://</code> 또는 <code>https://</code> 가 없으면 <strong>https://</strong> 를 붙입니다. ' +
-      '불일치 시 브라우저 인증서 경고가 날 수 있습니다. 서브도메인 추가 시 DNS A 레코드·Nginx <code>server_name</code>·<code>certbot --nginx -d …</code> 를 함께 적용하세요. ' +
-      '상세 SSL 경로·Certbot 타이머는 <strong>본사설정 → 서버운영관리</strong>를 참고하세요.</p>' +
-      '<div id="hqDomainSslLinkage_' + sid + '" class="small">불러오는 중…</div>' +
+      '<p class="text-muted small mb-2">' + L(kSslIntro) + '</p>' +
+      '<div id="hqDomainSslLinkage_' + sid + '" class="small">' + escUi(L('불러오는 중…')) + '</div>' +
       '</div></div>' +
       '<div class="card border-0 shadow-sm mb-3 org-perm-unit-section">' +
-      '<div class="card-header fw-semibold">본사·총판 도메인 설정</div>' +
+      '<div class="card-header fw-semibold" data-pg-ui-t="본사·총판 도메인 설정">본사·총판 도메인 설정</div>' +
       '<div class="card-body">' +
-      '<p class="text-muted small mb-3">업체명에서 <strong>본사</strong> 또는 <strong>총판</strong>만 선택할 수 있습니다. 선택 후 설정 이름·URL을 입력하고 [설정저장]하면 하단 목록에 반영됩니다. ' +
-      'URL에 스킴이 없으면 <strong>https://</strong> 가 자동으로 붙습니다. ' +
-      '<strong>본사</strong> 관리자 URL: <strong>총본사·해당 본사</strong> 소속 계정만 로그인됩니다(하위 총판·가맹 등은 불가). ' +
-      '<strong>총판</strong> URL: <strong>총본사·이 총판을 소속 트리에 두는 본사·해당 총판 및 그 하위</strong>만 로그인됩니다(다른 총판·다른 본사 트리는 불가). ' +
-      '브랜딩(로그인 화면 등)은 접속한 URL에 매칭된 본사·총판 조직의 설정을 따릅니다.</p>' +
+      '<p class="text-muted small mb-3">' + L(kOrgIntro) + '</p>' +
       '<div class="row g-2 align-items-end mb-2 org-perm-unit-control-row">' +
       '<div class="col-lg-3 col-md-6">' +
-      '<label class="form-label small mb-1">업체명</label>' +
+      '<label class="form-label small mb-1" data-pg-ui-t="업체명">업체명</label>' +
       '<select class="form-select form-select-sm" id="hqDomainOrgSelect_' + sid + '">' +
-      '<option value="">— 업체를 선택하세요 —</option></select></div>' +
+      '<option value="">' + escUi(L('— 업체를 선택하세요 —')) + '</option></select></div>' +
       '<div class="col-lg-2 col-md-6">' +
-      '<label class="form-label small mb-1">업체코드</label>' +
+      '<label class="form-label small mb-1" data-pg-ui-t="업체코드">업체코드</label>' +
       '<input type="text" class="form-control form-control-sm" id="hqDomainOrgCode_' + sid + '" readonly></div>' +
       '<div class="col-lg-2 col-md-6">' +
-      '<label class="form-label small mb-1">조직구분</label>' +
+      '<label class="form-label small mb-1" data-pg-ui-t="조직구분">조직구분</label>' +
       '<input type="text" class="form-control form-control-sm" id="hqDomainOrgLevel_' + sid + '" readonly></div>' +
       '<div class="col-lg-2 col-md-6">' +
-      '<label class="form-label small mb-1">설정 이름</label>' +
-      '<input type="text" class="form-control form-control-sm" id="hqDomainSettingName_' + sid + '" placeholder="표시용 이름" disabled></div>' +
+      '<label class="form-label small mb-1" data-pg-ui-t="설정 이름">설정 이름</label>' +
+      '<input type="text" class="form-control form-control-sm" id="hqDomainSettingName_' + sid + '" data-pg-ui-placeholder="표시용 이름" placeholder="표시용 이름" disabled></div>' +
       '</div>' +
       '<div class="row g-2 align-items-end mb-2">' +
       '<div class="col-lg-4 col-md-6">' +
-      '<label class="form-label small mb-1">관리자(웹) URL</label>' +
-      '<input type="text" class="form-control form-control-sm" id="hqDomainOrgAdminUrl_' + sid + '" placeholder="https://icopay.co.kr" disabled></div>' +
+      '<label class="form-label small mb-1" data-pg-ui-t="관리자(웹) URL">관리자(웹) URL</label>' +
+      '<input type="text" class="form-control form-control-sm" id="hqDomainOrgAdminUrl_' + sid + '" data-pg-ui-placeholder="https://icopay.co.kr" placeholder="https://icopay.co.kr" disabled></div>' +
       '<div class="col-lg-4 col-md-6">' +
-      '<label class="form-label small mb-1">API URL</label>' +
-      '<input type="text" class="form-control form-control-sm" id="hqDomainOrgApiUrl_' + sid + '" placeholder="https://api.icopay.co.kr" disabled></div>' +
+      '<label class="form-label small mb-1" data-pg-ui-t="API URL">API URL</label>' +
+      '<input type="text" class="form-control form-control-sm" id="hqDomainOrgApiUrl_' + sid + '" data-pg-ui-placeholder="https://api.icopay.co.kr" placeholder="https://api.icopay.co.kr" disabled></div>' +
       '<div class="col-lg-2 col-md-6">' +
-      '<button type="button" class="btn btn-sm btn-primary w-100" id="hqDomainOrgSaveBtn_' + sid + '" disabled>설정저장</button></div>' +
+      '<button type="button" class="btn btn-sm btn-primary w-100" id="hqDomainOrgSaveBtn_' + sid + '" disabled data-pg-ui-t="설정저장">설정저장</button></div>' +
       '</div>' +
-      '<p class="small mb-2 text-muted" id="hqDomainOrgHint_' + sid + '">업체를 선택하면 입력란이 활성화됩니다.</p>' +
+      '<p class="small mb-2 text-muted" id="hqDomainOrgHint_' + sid + '">' + escUi(L('업체를 선택하면 입력란이 활성화됩니다.')) + '</p>' +
       '<div class="small mb-2" id="hqDomainOrgMsg_' + sid + '" role="status"></div>' +
       '<div class="table-responsive">' +
       '<table class="table table-sm table-bordered align-middle mb-0" id="hqDomainOrgTable_' + sid + '">' +
       '<thead><tr>' +
-      '<th class="text-center text-nowrap" style="width:3rem">No.</th>' +
-      '<th>업체명</th>' +
-      '<th class="text-nowrap" style="width:9rem">업체코드</th>' +
-      '<th class="text-nowrap" style="width:5rem">조직구분</th>' +
-      '<th>설정 이름</th>' +
-      '<th>관리자(웹) URL</th>' +
-      '<th>API URL</th>' +
-      '<th class="text-center text-nowrap" style="width:5rem">삭제</th>' +
-      '<th class="text-nowrap" style="width:10rem">수정일시</th>' +
+      '<th class="text-center text-nowrap" style="width:3rem" data-pg-ui-t="No.">No.</th>' +
+      '<th data-pg-ui-t="업체명">업체명</th>' +
+      '<th class="text-nowrap" style="width:9rem" data-pg-ui-t="업체코드">업체코드</th>' +
+      '<th class="text-nowrap" style="width:5rem" data-pg-ui-t="조직구분">조직구분</th>' +
+      '<th data-pg-ui-t="설정 이름">설정 이름</th>' +
+      '<th data-pg-ui-t="관리자(웹) URL">관리자(웹) URL</th>' +
+      '<th data-pg-ui-t="API URL">API URL</th>' +
+      '<th class="text-center text-nowrap" style="width:5rem" data-pg-ui-t="삭제">삭제</th>' +
+      '<th class="text-nowrap" style="width:10rem" data-pg-ui-t="수정일시">수정일시</th>' +
       '</tr></thead>' +
       '<tbody id="hqDomainOrgTableTbody_' + sid + '">' +
-      '<tr><td colspan="9" class="text-center text-muted py-3">불러오는 중…</td></tr>' +
+      '<tr><td colspan="9" class="text-center text-muted py-3">' + escUi(L('불러오는 중…')) + '</td></tr>' +
       '</tbody></table></div>' +
       '</div></div></div>'
     );
@@ -4936,84 +5051,79 @@
 
   /** 조직별 권한 세팅 — 조직 탭 + 페이지별 권한 셀렉트 (내용은 API 로드 후 채움) */
   function renderOrgPagePermissionShell(tabId) {
+    var introKey = '조직 구분(총본사~가맹점)별로 메뉴(URL) 접근 권한을 설정합니다. <strong>총본사</strong>는 DB에 별도 저장이 없을 때 기본으로 <strong>모든 메뉴 전체 권한(삭제·전체)</strong>입니다. 각 대메뉴(본사설정·업체관리·배포설정 등) 구역 제목 오른쪽 <strong>간편</strong>에서 권한을 고르면 그 구역의 하위 메뉴가 한 번에 동일하게 맞춰집니다. <strong>옵저버</strong>는 조회만, <strong>수정</strong>은 쓰기·수정(삭제·일괄삭제 등 제한), <strong>삭제</strong>는 해당 화면의 삭제·수정·저장 등 모든 작업을 허용합니다. <strong>접근불가</strong>는 메뉴에서 숨깁니다. <strong>업체접근설정</strong>에 등록된 업체와 교집합으로 사용자관리 목록이 제한됩니다. 아래 <strong>담당자 권한그룹별 메뉴</strong>는 조직 최종 권한(상단 개별 조직 권한) 이내에서 관리/운영/정산/기술 담당 계정(ASSISTANT)의 메뉴를 한 단계 더 조입니다.';
+    var unitIntroKey = '총본사~가맹점 <strong>각 조직</strong>을 선택해, 단계별 기본과 다른 권한을 둘 수 있습니다. <strong>단계 기본 따름</strong>이면 위 탭의 조직 구분 기준만 적용되고, <strong>개별 설정</strong>이면 아래 표에서만 덮어씁니다. 조직을 고르면 <strong>현재 적용되는 권한(최종)</strong>이 표시됩니다.';
+    var assistIntroKey = '위에서 조직을 선택하면, 해당 조직에 <strong>접근 가능한 메뉴</strong>만 표시됩니다. 값을 <strong>조직 기본(상한)</strong>으로 두면 담당자에게도 조직과 동일한 권한이 적용됩니다. 본사·총판·총본사는 자기 조직만 저장할 수 있습니다.';
     return (
       '<div class="org-perm-matrix card border-0 shadow-sm mb-3">' +
       '<div class="card-body">' +
-      '<p class="text-muted small mb-3">' +
-      '조직 구분(총본사~가맹점)별로 메뉴(URL) 접근 권한을 설정합니다. <strong>총본사</strong>는 DB에 별도 저장이 없을 때 기본으로 <strong>모든 메뉴 전체 권한(삭제·전체)</strong>입니다. 각 대메뉴(본사설정·업체관리·배포설정 등) 구역 제목 오른쪽 <strong>간편</strong>에서 권한을 고르면 그 구역의 하위 메뉴가 한 번에 동일하게 맞춰집니다. ' +
-      '<strong>옵저버</strong>는 조회만, <strong>수정</strong>은 쓰기·수정(삭제·일괄삭제 등 제한), ' +
-      '<strong>삭제</strong>는 해당 화면의 삭제·수정·저장 등 모든 작업을 허용합니다. ' +
-      '<strong>접근불가</strong>는 메뉴에서 숨깁니다. <strong>업체접근설정</strong>에 등록된 업체와 교집합으로 사용자관리 목록이 제한됩니다. 아래 <strong>담당자 권한그룹별 메뉴</strong>는 조직 최종 권한(상단 개별 조직 권한) 이내에서 관리/운영/정산/기술 담당 계정(ASSISTANT)의 메뉴를 한 단계 더 조입니다.' +
-      '</p>' +
+      '<p class="text-muted small mb-3">' + L(introKey) + '</p>' +
       '<div class="d-flex flex-wrap align-items-center mb-2 org-perm-legend text-muted">' +
-      '<span class="me-2 fw-semibold text-secondary">행 색:</span>' +
-      '<span><i class="org-perm-legend-none" aria-hidden="true"></i>접근불가</span>' +
-      '<span><i class="org-perm-legend-observer" aria-hidden="true"></i>옵저버</span>' +
-      '<span><i class="org-perm-legend-modify" aria-hidden="true"></i>수정</span>' +
-      '<span><i class="org-perm-legend-delete" aria-hidden="true"></i>삭제(전체)</span>' +
+      '<span class="me-2 fw-semibold text-secondary" data-pg-ui-t="행 색:">' + escUi(L('행 색:')) + '</span>' +
+      '<span><i class="org-perm-legend-none" aria-hidden="true"></i><span data-pg-ui-t="접근불가">' + escUi(L('접근불가')) + '</span></span>' +
+      '<span><i class="org-perm-legend-observer" aria-hidden="true"></i><span data-pg-ui-t="옵저버">' + escUi(L('옵저버')) + '</span></span>' +
+      '<span><i class="org-perm-legend-modify" aria-hidden="true"></i><span data-pg-ui-t="수정">' + escUi(L('수정')) + '</span></span>' +
+      '<span><i class="org-perm-legend-delete" aria-hidden="true"></i><span data-pg-ui-t="삭제(전체)">' + escUi(L('삭제(전체)')) + '</span></span>' +
       '</div>' +
       '<ul class="nav nav-pills flex-wrap gap-1 mb-3 org-perm-level-tabs" id="orgPermTabs_' + tabId + '" role="tablist"></ul>' +
       '<div class="table-responsive org-perm-table-wrap table-no-col-resize-wrap">' +
       '<table class="table table-sm table-bordered align-middle mb-0 org-perm-table table-no-col-resize" id="orgPermTable_' + tabId + '">' +
-      '<thead><tr><th class="text-center text-nowrap org-perm-th-no" style="width:3.25rem">No.</th><th style="width:13%">메뉴ID</th><th>화면</th><th style="width:24%">권한</th></tr></thead>' +
-      '<tbody id="orgPermTbody_' + tabId + '"><tr><td colspan="4" class="text-center text-muted py-4">불러오는 중…</td></tr></tbody>' +
+      '<thead><tr><th class="text-center text-nowrap org-perm-th-no" style="width:3.25rem">No.</th><th style="width:13%" data-pg-ui-t="메뉴ID">' + escUi(L('메뉴ID')) + '</th><th data-pg-ui-t="화면">' + escUi(L('화면')) + '</th><th style="width:24%" data-pg-ui-t="권한">' + escUi(L('권한')) + '</th></tr></thead>' +
+      '<tbody id="orgPermTbody_' + tabId + '"><tr><td colspan="4" class="text-center text-muted py-4" data-pg-ui-t="불러오는 중…">' + escUi(L('불러오는 중…')) + '</td></tr></tbody>' +
       '</table></div>' +
       '</div></div>' +
       '<div class="d-flex justify-content-end align-items-center flex-wrap gap-2 mb-2 org-perm-default-actions">' +
-      '<button type="button" class="btn btn-outline-secondary btn-sm" id="hqPermissionReloadBtn" title="서버에 저장된 단계별 기본 권한을 다시 불러옵니다(저장하지 않은 편집은 사라질 수 있습니다)">다시 불러오기</button>' +
-      '<button type="button" class="btn btn-primary btn-sm" id="hqPermissionSaveBtn">권한 저장</button></div>' +
+      '<button type="button" class="btn btn-outline-secondary btn-sm" id="hqPermissionReloadBtn" data-pg-ui-t="다시 불러오기" data-pg-ui-title="서버에 저장된 단계별 기본 권한을 다시 불러옵니다(저장하지 않은 편집은 사라질 수 있습니다)" title="' + escUi(L('서버에 저장된 단계별 기본 권한을 다시 불러옵니다(저장하지 않은 편집은 사라질 수 있습니다)')) + '">' + escUi(L('다시 불러오기')) + '</button>' +
+      '<button type="button" class="btn btn-primary btn-sm" id="hqPermissionSaveBtn" data-pg-ui-t="권한 저장">' + escUi(L('권한 저장')) + '</button></div>' +
       '<div class="card border-0 shadow-sm mb-3 org-perm-unit-section">' +
-      '<div class="card-header fw-semibold">개별 조직 권한</div>' +
+      '<div class="card-header fw-semibold" data-pg-ui-t="개별 조직 권한">' + escUi(L('개별 조직 권한')) + '</div>' +
       '<div class="card-body">' +
-      '<p class="text-muted small mb-3">총본사~가맹점 <strong>각 조직</strong>을 선택해, 단계별 기본과 다른 권한을 둘 수 있습니다. ' +
-      '<strong>단계 기본 따름</strong>이면 위 탭의 조직 구분 기준만 적용되고, <strong>개별 설정</strong>이면 아래 표에서만 덮어씁니다. ' +
-      '조직을 고르면 <strong>현재 적용되는 권한(최종)</strong>이 표시됩니다.</p>' +
+      '<p class="text-muted small mb-3">' + L(unitIntroKey) + '</p>' +
       '<div class="row g-2 align-items-end mb-2 org-perm-unit-control-row">' +
       '<div class="col-lg-3 col-md-6">' +
-      '<label class="form-label small mb-1">업체명</label>' +
+      '<label class="form-label small mb-1" data-pg-ui-t="업체명">' + escUi(L('업체명')) + '</label>' +
       '<select class="form-select form-select-sm" id="orgPermUnitSelect_' + tabId + '">' +
-      '<option value="">— 업체를 선택하세요 —</option>' +
+      '<option value="" data-pg-ui-t="— 업체를 선택하세요 —">' + escUi(L('— 업체를 선택하세요 —')) + '</option>' +
       '</select></div>' +
       '<div class="col-lg-2 col-md-6">' +
-      '<label class="form-label small mb-1">업체코드</label>' +
+      '<label class="form-label small mb-1" data-pg-ui-t="업체코드">' + escUi(L('업체코드')) + '</label>' +
       '<input type="text" class="form-control form-control-sm" id="orgPermUnitCode_' + tabId + '" readonly>' +
       '</div>' +
       '<div class="col-lg-2 col-md-6">' +
-      '<label class="form-label small mb-1">조직구분</label>' +
+      '<label class="form-label small mb-1" data-pg-ui-t="조직구분">' + escUi(L('조직구분')) + '</label>' +
       '<input type="text" class="form-control form-control-sm" id="orgPermUnitLevel_' + tabId + '" readonly>' +
       '</div>' +
       '<div class="col-lg-2 col-md-6">' +
-      '<label class="form-label small mb-1">현재방식</label>' +
+      '<label class="form-label small mb-1" data-pg-ui-t="현재방식">' + escUi(L('현재방식')) + '</label>' +
       '<input type="text" class="form-control form-control-sm" id="orgPermUnitCurrentMode_' + tabId + '" readonly>' +
       '</div>' +
       '<div class="col-lg-2 col-md-6">' +
-      '<label class="form-label small mb-1">적용방식</label>' +
+      '<label class="form-label small mb-1" data-pg-ui-t="적용방식">' + escUi(L('적용방식')) + '</label>' +
       '<select class="form-select form-select-sm" id="orgPermUnitMode_' + tabId + '" disabled>' +
-      '<option value="LEVEL_DEFAULT">단계 기본 따름</option>' +
-      '<option value="CUSTOM">개별 설정</option>' +
+      '<option value="LEVEL_DEFAULT" data-pg-ui-t="단계 기본 따름">' + escUi(L('단계 기본 따름')) + '</option>' +
+      '<option value="CUSTOM" data-pg-ui-t="개별 설정">' + escUi(L('개별 설정')) + '</option>' +
       '</select></div>' +
       '<div class="col-lg-1 col-md-6">' +
-      '<button type="button" class="btn btn-sm btn-primary w-100" id="hqOrgUnitPermissionSaveBtn_' + tabId + '" disabled>설정저장</button>' +
+      '<button type="button" class="btn btn-sm btn-primary w-100" id="hqOrgUnitPermissionSaveBtn_' + tabId + '" disabled data-pg-ui-t="설정저장">' + escUi(L('설정저장')) + '</button>' +
       '</div></div>' +
-      '<p class="small mb-2" id="orgPermUnitHint_' + tabId + '">조직을 선택하면 적용 방식과 권한 표가 채워집니다.</p>' +
+      '<p class="small mb-2" id="orgPermUnitHint_' + tabId + '" data-pg-ui-t="조직을 선택하면 적용 방식과 권한 표가 채워집니다.">' + escUi(L('조직을 선택하면 적용 방식과 권한 표가 채워집니다.')) + '</p>' +
       '<div class="table-responsive org-perm-table-wrap table-no-col-resize-wrap">' +
       '<table class="table table-sm table-bordered align-middle mb-0 org-perm-table table-no-col-resize" id="orgPermUnitTable_' + tabId + '">' +
-      '<thead><tr><th class="text-center text-nowrap org-perm-th-no" style="width:3.25rem">No.</th><th style="width:13%">메뉴ID</th><th>화면</th><th style="width:24%">권한</th></tr></thead>' +
-      '<tbody id="orgPermUnitTbody_' + tabId + '"><tr><td colspan="4" class="text-center text-muted py-4">조직을 선택하세요.</td></tr></tbody>' +
+      '<thead><tr><th class="text-center text-nowrap org-perm-th-no" style="width:3.25rem">No.</th><th style="width:13%" data-pg-ui-t="메뉴ID">' + escUi(L('메뉴ID')) + '</th><th data-pg-ui-t="화면">' + escUi(L('화면')) + '</th><th style="width:24%" data-pg-ui-t="권한">' + escUi(L('권한')) + '</th></tr></thead>' +
+      '<tbody id="orgPermUnitTbody_' + tabId + '"><tr><td colspan="4" class="text-center text-muted py-4" data-pg-ui-t="조직을 선택하세요.">' + escUi(L('조직을 선택하세요.')) + '</td></tr></tbody>' +
       '</table></div></div></div>' +
       '<div class="card border-0 shadow-sm mb-3 org-perm-assist-section">' +
-      '<div class="card-header fw-semibold">담당자 권한그룹별 메뉴 (조직 상한 내)</div>' +
+      '<div class="card-header fw-semibold" data-pg-ui-t="담당자 권한그룹별 메뉴 (조직 상한 내)">' + escUi(L('담당자 권한그룹별 메뉴 (조직 상한 내)')) + '</div>' +
       '<div class="card-body">' +
-      '<p class="text-muted small mb-2" id="orgPermAssistHint_' + tabId + '">위에서 조직을 선택하면, 해당 조직에 <strong>접근 가능한 메뉴</strong>만 표시됩니다. ' +
-      '값을 <strong>조직 기본(상한)</strong>으로 두면 담당자에게도 조직과 동일한 권한이 적용됩니다. 본사·총판·총본사는 자기 조직만 저장할 수 있습니다.</p>' +
+      '<p class="text-muted small mb-2" id="orgPermAssistHint_' + tabId + '">' + L(assistIntroKey) + '</p>' +
       '<ul class="nav nav-pills flex-wrap gap-1 mb-2 org-perm-assist-role-tabs" id="orgPermAssistRoleTabs_' + tabId + '" role="tablist"></ul>' +
       '<div class="table-responsive org-perm-table-wrap table-no-col-resize-wrap">' +
       '<table class="table table-sm table-bordered align-middle mb-0 org-perm-table table-no-col-resize" id="orgPermAssistTable_' + tabId + '">' +
-      '<thead><tr><th class="text-center text-nowrap org-perm-th-no" style="width:3.25rem">No.</th><th style="width:13%">메뉴ID</th><th>화면</th><th style="width:28%">담당자 권한</th></tr></thead>' +
-      '<tbody id="orgPermAssistTbody_' + tabId + '"><tr><td colspan="4" class="text-center text-muted py-3">조직을 선택하세요.</td></tr></tbody>' +
+      '<thead><tr><th class="text-center text-nowrap org-perm-th-no" style="width:3.25rem">No.</th><th style="width:13%" data-pg-ui-t="메뉴ID">' + escUi(L('메뉴ID')) + '</th><th data-pg-ui-t="화면">' + escUi(L('화면')) + '</th><th style="width:28%" data-pg-ui-t="담당자 권한">' + escUi(L('담당자 권한')) + '</th></tr></thead>' +
+      '<tbody id="orgPermAssistTbody_' + tabId + '"><tr><td colspan="4" class="text-center text-muted py-3" data-pg-ui-t="조직을 선택하세요.">' + escUi(L('조직을 선택하세요.')) + '</td></tr></tbody>' +
       '</table></div>' +
       '<div class="d-flex justify-content-end mt-2">' +
-      '<button type="button" class="btn btn-sm btn-primary" id="hqOrgAssistSaveBtn_' + tabId + '" disabled>권한그룹 저장</button></div>' +
+      '<button type="button" class="btn btn-sm btn-primary" id="hqOrgAssistSaveBtn_' + tabId + '" disabled data-pg-ui-t="권한그룹 저장">' + escUi(L('권한그룹 저장')) + '</button></div>' +
       '</div></div>'
     );
   }
@@ -5038,11 +5148,11 @@
     }).join('');
     return '<div class="pagination-row">' +
       '<div class="pagination-view-at-once">' +
-      '<span class="pagination-label">한 번에 보기:</span>' +
+      '<span class="pagination-label">' + escUi(L('한 번에 보기:')) + '</span>' +
       '<div class="pagination-size-options">' +
       sizeBtns +
       '</div>' +
-      '<span class="pagination-total">건 (총 <span id="totalElementsCount">0</span>건)</span>' +
+      '<span class="pagination-total">' + escUi(L('건 (총')) + ' <span id="totalElementsCount">0</span>' + escUi(L('건)')) + '</span>' +
       '</div>' +
       '<input type="hidden" id="recordsPerPage" value="' + defSize + '">' +
       '<input type="hidden" id="pageCnt" value="1">' +
@@ -5058,7 +5168,7 @@
     var cfg = MENU_SCREENS[url];
     tabId = tabId || (url.replace(/^\//, '').replace(/\//g, '_'));
     if (!cfg) {
-      return '<div class="card"><div class="card-body"><p class="text-muted mb-0">화면 정보가 없습니다.</p>' + PAGE_FOOTER_HTML + '</div></div>';
+      return '<div class="card"><div class="card-body"><p class="text-muted mb-0">' + escUi(L('화면 정보가 없습니다.')) + '</p>' + PAGE_FOOTER_HTML + '</div></div>';
     }
     var html = '<div class="content" id="screenContent_' + tabId + '">';
     html += '<div class="card"><div class="card-body">';
@@ -5075,7 +5185,7 @@
       html += renderOrgPagePermissionShell(tabId);
       html += renderSummaryAndActions(cfg, tabId);
     } else if (cfg.staticHtml) {
-      html += cfg.staticHtml;
+      html += typeof cfg.staticHtml === 'function' ? cfg.staticHtml() : cfg.staticHtml;
       html += renderSummaryAndActions(cfg, tabId);
     } else {
       if (!cfg.hideListGrid) {
@@ -5087,51 +5197,51 @@
         html += renderTable(cfg, tabId);
         html += renderPagination(tabId, cfg);
         if (cfg.hasCommissionHistoryTable) {
-          html += '<div class="card mt-4 commission-history-card"><div class="card-header py-2 fw-semibold">수수료 변경 히스토리</div><div class="card-body pt-2">' +
-            '<p class="text-muted small mb-2" id="commissionHistSubtitle_' + tabId + '">목록에서 가맹점 행을 클릭하면 해당 업체의 변경 이력이 표시됩니다. (최근 변경이 No.1)</p>' +
+          html += '<div class="card mt-4 commission-history-card"><div class="card-header py-2 fw-semibold">' + escUi(L('수수료 변경 히스토리')) + '</div><div class="card-body pt-2">' +
+            '<p class="text-muted small mb-2" id="commissionHistSubtitle_' + tabId + '">' + escUi(L('목록에서 가맹점 행을 클릭하면 해당 업체의 변경 이력이 표시됩니다.')) + '</p>' +
             '<div class="table-responsive table-scrollable commission-list-table-wrap"><table class="table table-bordered table-sm table-hover mb-0 commission-split-grid table-no-col-resize" id="grid_commissionHist_' + tabId + '">' +
-            '<thead><tr><th class="text-muted">…</th></tr></thead><tbody><tr><td class="text-center text-muted py-3">조회 전</td></tr></tbody></table></div></div></div>';
+            '<thead><tr><th class="text-muted">…</th></tr></thead><tbody><tr><td class="text-center text-muted py-3">' + escUi(L('조회 전')) + '</td></tr></tbody></table></div></div></div>';
         }
         if (cfg.hasSettlementExecuteDetailTable) {
           var pubDayDetail = cfg.settlementExecuteDetailUiVariant === 'publishDay';
-          var settleDetailTitle = pubDayDetail ? '정산배포 · 당일 거래 내역' : '정산실행상세 · 정산 대상 거래';
-          var settleDetailMetaHint = pubDayDetail
+          var settleDetailTitleKo = pubDayDetail ? '정산배포 · 당일 거래 내역' : '정산실행상세 · 정산 대상 거래';
+          var settleDetailMetaHintKo = pubDayDetail
             ? '목록 행을 클릭하면 정산일 기준 당일 00:00~24:00 가맹 전체 거래를 표시합니다.'
             : '상단 목록 행을 더블클릭하면 표시됩니다.';
-          var settleDetailHintP = pubDayDetail
+          var settleDetailHintPKo = pubDayDetail
             ? '정산배포 목록에서 한 행을 <strong>클릭</strong>하면, 해당 실행의 <strong>정산일(calc_dt) 달력 하루</strong> 동안 해당 가맹의 <strong>전체 결제 거래</strong>를 승인일시 오름차순으로 불러옵니다(최대 2,500건·초과 시 상한 안내). 격자 정산의 집계 구간(H1 등)과 범위가 다를 수 있습니다.'
             : '정산실행 목록에서 한 행을 <strong>더블클릭</strong>하면, 해당 실행에 저장된 집계 건수(<code>included_txn_cnt</code>)가 있으면 그 건수만큼만, 같은 기간·정렬(승인일시 오름차순)으로 표시합니다. 상단 메타의 <strong>대상 매출액</strong>은 이 실행 집계 구간(예: H1 한 시간)에 대한 <strong>승인 매출 합</strong>(정산 실행 저장값)이며, 아래 표시 행의 단순 합이 아닙니다.';
-          var settleDetailEmpty = pubDayDetail ? '목록에서 행을 클릭하세요.' : '정산실행 행을 더블클릭하세요.';
+          var settleDetailEmptyKo = pubDayDetail ? '목록에서 행을 클릭하세요.' : '정산실행 행을 더블클릭하세요.';
           html += '<div class="card mt-4 screen-pay-list" id="settlementExecuteDetailCard_' + tabId + '"><div class="card-header py-2 fw-semibold d-flex flex-wrap justify-content-between align-items-center gap-2">' +
-            '<span>' + settleDetailTitle + '</span>' +
-            '<span class="small text-muted fw-normal" id="settlementExecuteDetailMeta_' + tabId + '">' + settleDetailMetaHint + '</span></div><div class="card-body pt-2">' +
-            '<p class="text-muted small mb-2" id="settlementExecuteDetailHint_' + tabId + '">' + settleDetailHintP + '</p>' +
+            '<span>' + escUi(L(settleDetailTitleKo)) + '</span>' +
+            '<span class="small text-muted fw-normal" id="settlementExecuteDetailMeta_' + tabId + '">' + escUi(L(settleDetailMetaHintKo)) + '</span></div><div class="card-body pt-2">' +
+            '<p class="text-muted small mb-2" id="settlementExecuteDetailHint_' + tabId + '">' + L(settleDetailHintPKo) + '</p>' +
             '<div class="table-responsive table-scrollable"><table class="table table-sm table-bordered table-hover align-middle mb-0 pay-mng-data-grid" id="grid_settlementExecuteDetail_' + tabId + '">' +
             '<thead>' +
             '<tr>' +
             '<th rowspan="2" class="text-nowrap text-end" style="width:3rem">No</th>' +
-            '<th rowspan="2" class="text-nowrap">거래일</th>' +
-            '<th rowspan="2" class="pay-grid-time-dual text-start small">시각</th>' +
-            '<th rowspan="2" class="text-nowrap">주문번호</th>' +
-            '<th rowspan="2" class="text-nowrap">승인번호</th>' +
-            '<th rowspan="2" class="text-nowrap">상태</th>' +
-            '<th rowspan="2" class="text-nowrap">구분</th>' +
-            '<th rowspan="2" class="text-end text-nowrap">매출</th>' +
-            '<th colspan="4" class="text-center text-nowrap">수수료(세부)</th>' +
-            '<th rowspan="2" class="text-end text-nowrap">예상지급</th>' +
-            '<th rowspan="2" class="text-nowrap">통화</th>' +
+            '<th rowspan="2" class="text-nowrap" data-pg-ui-t="거래일">거래일</th>' +
+            '<th rowspan="2" class="pay-grid-time-dual text-start small" data-pg-ui-t="시각">시각</th>' +
+            '<th rowspan="2" class="text-nowrap" data-pg-ui-t="주문번호">주문번호</th>' +
+            '<th rowspan="2" class="text-nowrap" data-pg-ui-t="승인번호">승인번호</th>' +
+            '<th rowspan="2" class="text-nowrap" data-pg-ui-t="상태">상태</th>' +
+            '<th rowspan="2" class="text-nowrap" data-pg-ui-t="구분">구분</th>' +
+            '<th rowspan="2" class="text-end text-nowrap" data-pg-ui-t="매출">매출</th>' +
+            '<th colspan="4" class="text-center text-nowrap" data-pg-ui-t="수수료(세부)">수수료(세부)</th>' +
+            '<th rowspan="2" class="text-end text-nowrap" data-pg-ui-t="예상지급">예상지급</th>' +
+            '<th rowspan="2" class="text-nowrap" data-pg-ui-t="통화">통화</th>' +
             '</tr>' +
             '<tr>' +
-            '<th class="text-end text-nowrap small" title="건당(고정) 수수료">고정</th>' +
-            '<th class="text-end text-nowrap small" title="매출 대비 % 수수료(MDR)">MDR</th>' +
-            '<th class="text-end text-nowrap small">담보</th>' +
-            '<th class="text-end text-nowrap small" title="승인: 기타%·수수료VAT 합 / 그 외: 무효·환불·수동무효·강제환불·실패 등 건당 수수료">기타</th>' +
+            '<th class="text-end text-nowrap small"  data-pg-ui-title="건당(고정) 수수료" title="건당(고정) 수수료" data-pg-ui-t="고정">고정</th>' +
+            '<th class="text-end text-nowrap small" data-pg-ui-title="매출 대비 % 수수료(MDR)" title="매출 대비 % 수수료(MDR)" data-pg-ui-t="MDR">MDR</th>' +
+            '<th class="text-end text-nowrap small" data-pg-ui-t="담보">담보</th>' +
+            '<th class="text-end text-nowrap small"  data-pg-ui-title="승인: 기타%·수수료VAT 합 / 그 외: 무효·환불·수동무효·강제환불·실패 등 건당 수수료" title="승인: 기타%·수수료VAT 합 / 그 외: 무효·환불·수동무효·강제환불·실패 등 건당 수수료" data-pg-ui-t="기타">기타</th>' +
             '</tr>' +
-            '</thead><tbody><tr><td colspan="14" class="text-center text-muted py-4">' + settleDetailEmpty + '</td></tr></tbody></table></div></div></div>';
+            '</thead><tbody><tr><td colspan="14" class="text-center text-muted py-4">' + escUi(L(settleDetailEmptyKo)) + '</td></tr></tbody></table></div></div></div>';
         }
       }
       if (cfg.hasSelectedTable) {
-        html += '<div class="card mt-4" id="compMngSelectedCard"><div class="card-header">선택된 업체</div><div class="card-body"><p class="text-muted small mb-2">위 테이블에서 선택 후 [선택 저장] 버튼을 누르면 선택된 항목만 아래에 표시됩니다.</p><div class="table-responsive table-scrollable" id="compMngSelectedWrap"><table class="table table-bordered table-sm" id="grid_compMngSelected"><thead><tr id="compMngSelectedThead"></tr></thead><tbody id="compMngSelectedTbody"><tr><td colspan="20" class="text-center text-muted py-4">선택된 항목이 없습니다.</td></tr></tbody></table></div></div></div>';
+        html += '<div class="card mt-4" id="compMngSelectedCard"><div class="card-header">' + escUi(L('선택된 업체')) + '</div><div class="card-body"><p class="text-muted small mb-2">' + escUi(L('위 테이블에서 선택 후 [선택 저장] 버튼을 누르면 선택된 항목만 아래에 표시됩니다.')) + '</p><div class="table-responsive table-scrollable" id="compMngSelectedWrap"><table class="table table-bordered table-sm" id="grid_compMngSelected"><thead><tr id="compMngSelectedThead"></tr></thead><tbody id="compMngSelectedTbody"><tr><td colspan="20" class="text-center text-muted py-4">' + escUi(L('선택된 항목이 없습니다.')) + '</td></tr></tbody></table></div></div></div>';
       }
       if (cfg.hasCompInfoDetailForm && cfg.compInfoDetailFormSections && cfg.compInfoDetailFormSections.length > 0) {
         html += '<div class="card mt-3"><div class="card-body" id="compInfoDetailCard">';
@@ -5144,6 +5254,87 @@
     return html;
   }
 
+  /** 결제내역(/calc/payList) 계열 — 카탈로그 라벨을 MENU_SCREENS 복제본에 반영할 때 사용 */
+  var PAY_LIST_INTEGRATED_SYNC_URLS = [
+    '/calc/payList', '/calc/payNotiList', '/calc/paySuccessList', '/calc/payFailList', '/calc/payRefundList', '/calc/payForceRefundList',
+    '/calc/payCancelList', '/calc/payVoidList', '/calc/offsetCancList', '/pay/easyPay', '/pay/chatbotPay',
+    '/calc/chillPayTrList', '/calc/chillPaySettlementList'
+  ];
+
+  /** 표준 목록 그리드 thead (2단 헤더 그룹 포함) — app.js doSearch thead 생성과 동일 규칙 */
+  function buildStandardDataGridTheadHtml(cols, headerGroups, opts) {
+    opts = opts || {};
+    var selectAllTitle = L(opts.selectAllTitle != null ? String(opts.selectAllTitle) : '전체선택');
+    var esc = function (s) {
+      return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+    };
+    if (!cols || !cols.length) return '';
+    var groups = headerGroups || [];
+    if (!groups.length) {
+      return '<tr>' + cols.map(function (c) {
+        if (c.type === 'checkbox') {
+          return '<th data-key="_chk" style="width:40px"><input type="checkbox" class="grid-check-all" title="' + esc(selectAllTitle) + '"></th>';
+        }
+        var thT = c.title ? (' title="' + esc(L(String(c.title))) + '"') : '';
+        var thClassParts = [];
+        if (c.align === 'center') thClassParts.push('text-center');
+        if (c.thClass) thClassParts.push(String(c.thClass));
+        var thCls = thClassParts.length ? (' class="' + thClassParts.join(' ') + '"') : '';
+        return '<th data-key="' + esc(c.key || '') + '"' + thT + thCls + '>' + esc(L(String(c.label != null ? c.label : c.key || ''))) + '</th>';
+      }).join('') + '</tr>';
+    }
+    var keyToGroup = {};
+    groups.forEach(function (g, gi) {
+      (g.keys || []).forEach(function (k) { keyToGroup[k] = gi; });
+    });
+    var groupColCount = groups.map(function () { return 0; });
+    cols.forEach(function (c) {
+      if (c.type === 'checkbox') return;
+      var gi = keyToGroup[c.key];
+      if (gi !== undefined) groupColCount[gi] += 1;
+    });
+    var top = '';
+    var sub = '';
+    var startedGroups = {};
+    cols.forEach(function (c) {
+      if (c.type === 'checkbox') {
+        top += '<th data-key="_chk" rowspan="2" style="width:40px"><input type="checkbox" class="grid-check-all" title="' + esc(selectAllTitle) + '"></th>';
+        return;
+      }
+      var gi = keyToGroup[c.key];
+      if (gi === undefined) {
+        top += '<th data-key="' + esc(c.key || '') + '" rowspan="2">' + esc(L(String(c.label != null ? c.label : c.key || ''))) + '</th>';
+      } else {
+        if (!startedGroups[gi] && groupColCount[gi] > 0) {
+          startedGroups[gi] = true;
+          top += '<th colspan="' + groupColCount[gi] + '">' + esc(L(String(groups[gi].label || ''))) + '</th>';
+        }
+        sub += '<th data-key="' + esc(c.key || '') + '">' + esc(L(String(c.label != null ? c.label : c.key || ''))) + '</th>';
+      }
+    });
+    return '<tr>' + top + '</tr><tr>' + sub + '</tr>';
+  }
+
+  function syncPayListIntegratedScreenLabelsFromCatalog() {
+    var P = typeof window !== 'undefined' ? window.PG_PAY_LIST_INTEGRATED : null;
+    if (!P || !P.columns || !MENU_SCREENS) return;
+    var labelByKey = {};
+    P.columns.forEach(function (c) {
+      if (c && c.key) labelByKey[c.key] = c.label;
+    });
+    PAY_LIST_INTEGRATED_SYNC_URLS.forEach(function (u) {
+      if (u === '/calc/chillPayTrList' || u === '/calc/chillPaySettlementList') return;
+      var scr = MENU_SCREENS[u];
+      if (!scr || !scr.columns) return;
+      scr.columns.forEach(function (col) {
+        if (col && col.key && labelByKey[col.key] != null) col.label = labelByKey[col.key];
+      });
+      if (P.headerGroups && P.headerGroups.length) {
+        scr.headerGroups = JSON.parse(JSON.stringify(P.headerGroups));
+      }
+    });
+  }
+
   window.PG_CALC_CYCLE_OPTIONS = CALC_CYCLE_OPTIONS;
   window.PG_CALC_CYCLE_SEARCH_OPTIONS = CALC_CYCLE_SEARCH_OPTIONS;
   window.PG_SCREENS = {
@@ -5151,6 +5342,9 @@
     getMenuScreens: function () { return MENU_SCREENS; },
     buildDistributionListTheadHtml: buildDistributionListTheadHtml,
     buildDistributionListTheadHtmlFromCols: buildDistributionListTheadHtmlFromCols,
-    getCompMngSearchCompDivOptions: getCompMngSearchCompDivOptions
+    getCompMngSearchCompDivOptions: getCompMngSearchCompDivOptions,
+    buildStandardDataGridTheadHtml: buildStandardDataGridTheadHtml,
+    syncPayListIntegratedScreenLabelsFromCatalog: syncPayListIntegratedScreenLabelsFromCatalog,
+    getPayListIntegratedSyncUrls: function () { return PAY_LIST_INTEGRATED_SYNC_URLS.slice(); }
   };
 })();

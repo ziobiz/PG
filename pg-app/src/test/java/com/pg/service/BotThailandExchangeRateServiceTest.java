@@ -169,4 +169,24 @@ class BotThailandExchangeRateServiceTest {
         assertThat(out.get().thbPerKrw()).isEqualByComparingTo("0.0000234");
         assertThat(out.get().thbPerUsd()).isEqualByComparingTo("36.7");
     }
+
+    @Test
+    void fetch_parses_krw_when_only_currency_id_iso_field() {
+        HqApiConfig c = new HqApiConfig();
+        c.setBotThailandApiKey("k");
+        when(hqApiConfigRepository.findAll()).thenReturn(List.of(c));
+        String json = """
+                {"result":{"data":{"data_detail":[
+                  {"period":"2026-04-18","currency_id":"KRW","mid_rate":"0.0234"},
+                  {"period":"2026-04-18","currency_name_eng":"US DOLLAR 1 USD","mid_rate":"36.7"}
+                ]}}}
+                """;
+        when(restTemplate.exchange(any(String.class), eq(HttpMethod.GET), any(HttpEntity.class), eq(String.class)))
+                .thenReturn(ResponseEntity.ok(json));
+
+        Optional<BotThailandExchangeRateService.BotDailyRates> out = service.fetchLatestThbPerUnitRates();
+        assertThat(out).isPresent();
+        assertThat(out.get().thbPerKrw()).isEqualByComparingTo("0.0234");
+        assertThat(out.get().thbPerUsd()).isEqualByComparingTo("36.7");
+    }
 }

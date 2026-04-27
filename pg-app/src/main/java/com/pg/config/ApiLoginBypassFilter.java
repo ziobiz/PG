@@ -48,7 +48,7 @@ public class ApiLoginBypassFilter extends OncePerRequestFilter {
             switch (attempt.getKind()) {
                 case SUCCESS -> writeJson(response, ApiResponse.ok(attempt.getResponse()));
                 case BAD_CREDENTIALS -> writeJson(response, ApiResponse.fail("아이디 또는 비밀번호가 올바르지 않습니다.", "AUTH_FAIL"));
-                case OTP_REQUIRED -> writeJson(response, ApiResponse.fail("Google Authenticator의 6자리 코드를 입력하세요.", "OTP_REQUIRED"));
+                case OTP_REQUIRED -> writeJson(response, ApiResponse.fail("OTP를 입력하세요.", "OTP_REQUIRED"));
                 case OTP_INVALID -> writeJson(response, ApiResponse.fail("OTP 코드가 올바르지 않습니다.", "OTP_INVALID"));
             }
         } catch (Exception e) {

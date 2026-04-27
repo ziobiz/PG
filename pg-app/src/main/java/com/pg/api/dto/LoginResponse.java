@@ -10,6 +10,8 @@ public class LoginResponse {
     private String compId;
     private String orgLevel;
     private String role;
+    /** 권한그룹 표시명(tb_user.permission_group_nm 등). 헤더 다국어용 */
+    private String permissionGroupNm;
     /** 본사·총판 관리자 URL 호스트로 로그인한 경우, 사이드바·테마용 브랜딩 조회 compId(포털 루트 조직 코드). 없으면 null */
     private String brandingCompId;
     /** 비밀번호 초기화 등으로 임시 비번 사용 중이면 true — 클라이언트에서 변경 유도 */
@@ -37,6 +39,8 @@ public class LoginResponse {
     public void setOrgLevel(String orgLevel) { this.orgLevel = orgLevel; }
     public String getRole() { return role; }
     public void setRole(String role) { this.role = role; }
+    public String getPermissionGroupNm() { return permissionGroupNm; }
+    public void setPermissionGroupNm(String permissionGroupNm) { this.permissionGroupNm = permissionGroupNm; }
     public String getBrandingCompId() { return brandingCompId; }
     public void setBrandingCompId(String brandingCompId) { this.brandingCompId = brandingCompId; }
     public boolean isMustChangePassword() { return mustChangePassword; }

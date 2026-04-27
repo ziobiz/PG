@@ -79,7 +79,6 @@ public class ApiUserController {
                     scopeCompCode,
                     str(body, "userId"),
                     str(body, "userNm"),
-                    str(body, "password"),
                     str(body, "mobile"),
                     str(body, "compId"),
                     str(body, "role"),

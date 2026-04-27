@@ -9,6 +9,8 @@ import java.util.Map;
  */
 public class PayListSearchRequest {
 
+    /** 통합 검색: 수수료내역 스타일의 검색구분 */
+    private String searchFieldType;
     private String searchTranFactor;
     private String searchTranValue;
     private LocalDate searchFromDate;
@@ -40,6 +42,7 @@ public class PayListSearchRequest {
     public static PayListSearchRequest fromParams(Map<String, String> raw) {
         PayListSearchRequest r = new PayListSearchRequest();
         if (raw == null) return r;
+        r.searchFieldType = raw.get("searchFieldType");
         r.searchTranFactor = raw.get("searchTranFactor");
         r.searchTranValue = raw.get("searchTranValue");
         r.searchCompField = raw.get("searchCompField");
@@ -67,6 +70,7 @@ public class PayListSearchRequest {
 
     public Map<String, String> toQueryParamMap() {
         Map<String, String> m = new LinkedHashMap<>();
+        put(m, "searchFieldType", searchFieldType);
         put(m, "searchTranFactor", searchTranFactor);
         put(m, "searchTranValue", searchTranValue);
         put(m, "searchFromDate", searchFromDate != null ? searchFromDate.toString() : null);
@@ -121,6 +125,8 @@ public class PayListSearchRequest {
 
     public String getSearchTranFactor() { return searchTranFactor; }
     public void setSearchTranFactor(String searchTranFactor) { this.searchTranFactor = searchTranFactor; }
+    public String getSearchFieldType() { return searchFieldType; }
+    public void setSearchFieldType(String searchFieldType) { this.searchFieldType = searchFieldType; }
     public String getSearchTranValue() { return searchTranValue; }
     public void setSearchTranValue(String searchTranValue) { this.searchTranValue = searchTranValue; }
     public LocalDate getSearchFromDate() { return searchFromDate; }

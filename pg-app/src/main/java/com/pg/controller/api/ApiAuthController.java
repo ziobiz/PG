@@ -52,7 +52,7 @@ public class ApiAuthController {
         return switch (attempt.getKind()) {
             case SUCCESS -> ResponseEntity.ok(ApiResponse.ok(attempt.getResponse()));
             case BAD_CREDENTIALS -> ResponseEntity.ok(ApiResponse.fail("아이디 또는 비밀번호가 올바르지 않습니다.", "AUTH_FAIL"));
-            case OTP_REQUIRED -> ResponseEntity.ok(ApiResponse.fail("Google Authenticator의 6자리 코드를 입력하세요.", "OTP_REQUIRED"));
+            case OTP_REQUIRED -> ResponseEntity.ok(ApiResponse.fail("OTP를 입력하세요.", "OTP_REQUIRED"));
             case OTP_INVALID -> ResponseEntity.ok(ApiResponse.fail("OTP 코드가 올바르지 않습니다.", "OTP_INVALID"));
         };
     }
@@ -68,6 +68,8 @@ public class ApiAuthController {
             user.put("userId", fresh.getUsername());
             user.put("userNm", fresh.getName() != null ? fresh.getName() : fresh.getUsername());
             user.put("role", fresh.getRole());
+            String pgn = fresh.getPermissionGroupNm();
+            user.put("permissionGroupNm", pgn != null && !pgn.isBlank() ? pgn.trim() : "");
             user.put("otpRegisteredYn", authService.isOtpFullyEnrolled(fresh) ? "Y" : "N");
             user.put("mustSetupOtp", authService.requiresOtpEnrollment(fresh));
             Map<String, Object> org = authService.getOrgInfo(fresh.getUsername());

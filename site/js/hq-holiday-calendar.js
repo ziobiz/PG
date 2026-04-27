@@ -5,7 +5,12 @@
 (function () {
   'use strict';
 
-  var DAY_HDR = ['일', '월', '화', '수', '목', '금', '토'];
+  function uiT(s) {
+    if (s == null || s === '') return '';
+    if (window.PG_UI_I18N && typeof window.PG_UI_I18N.t === 'function') return String(window.PG_UI_I18N.t(String(s)));
+    return String(s);
+  }
+  var DAY_HDR_KEYS = ['달력요일_일', '달력요일_월', '달력요일_화', '달력요일_수', '달력요일_목', '달력요일_금', '달력요일_토'];
 
   function pad(n) {
     return n < 10 ? '0' + n : String(n);
@@ -56,7 +61,7 @@
       arr.forEach(function (e) {
         var from = (e.fromDate != null) ? String(e.fromDate).trim() : '';
         var to = (e.toDate != null) ? String(e.toDate).trim() : '';
-        var kind = (e.holidayKind != null) ? String(e.holidayKind).trim() : '공휴일';
+        var kind = (e.holidayKind != null) ? String(e.holidayKind).trim() : '공휴일'; /* 저장/API 값(한국어 키) 유지 */
         var note = (e.note != null) ? String(e.note) : '';
         expandYmdRange(from, to || from).forEach(function (day) {
           byDate[day] = { kind: kind, note: note };
@@ -77,16 +82,17 @@
     box.className = 'hq-holiday-month border rounded p-2 bg-white h-100';
     var title = document.createElement('div');
     title.className = 'fw-semibold small mb-1';
-    title.textContent = y + '년 ' + m + '월';
+    var monthTpl = uiT('{Y}년 {M}월');
+    title.textContent = monthTpl.replace(/\{Y\}/g, String(y)).replace(/\{M\}/g, String(m)).replace(/\{Mm\}/g, pad(m));
     box.appendChild(title);
     var tbl = document.createElement('table');
     tbl.className = 'table table-sm table-bordered mb-0 hq-holiday-mini-table text-center';
     var thead = document.createElement('thead');
     var trh = document.createElement('tr');
     trh.className = 'small';
-    DAY_HDR.forEach(function (h) {
+    DAY_HDR_KEYS.forEach(function (k) {
       var th = document.createElement('th');
-      th.textContent = h;
+      th.textContent = uiT(k);
       trh.appendChild(th);
     });
     thead.appendChild(trh);
@@ -120,7 +126,7 @@
         if (meta && meta.kind) {
           btn.setAttribute('data-holiday-kind', meta.kind);
           btn.classList.add('hq-holiday-day--kind');
-          btn.setAttribute('title', meta.kind + (meta.note ? ' — ' + meta.note : ''));
+          btn.setAttribute('title', uiT(meta.kind) + (meta.note ? ' — ' + meta.note : ''));
         }
         td.appendChild(btn);
         dayNum++;
@@ -163,7 +169,8 @@
     for (var i = y0 - 1; i <= y0 + 2; i++) {
       var o = document.createElement('option');
       o.value = String(i);
-      o.textContent = i + '년';
+      var yTpl = uiT('{Y}년');
+      o.textContent = yTpl.replace(/\{Y\}/g, String(i));
       if (i === y0) o.selected = true;
       yearSel.appendChild(o);
     }
@@ -184,7 +191,7 @@
     var btnPreset = wrap.querySelector('.hq-holiday-load-presets');
     if (btnPreset) btnPreset.addEventListener('click', function () {
       if (!window.PG_API || !window.PG_API.holidayPresets) {
-        alert('API가 준비되지 않았습니다.');
+        alert(uiT('API가 준비되지 않았습니다.'));
         return;
       }
       var cc = (countryEl && countryEl.value) ? String(countryEl.value).trim() : 'KR,US,JP,TH';
@@ -198,7 +205,7 @@
         ta.value = datesToText(merged);
         refresh();
       }).catch(function (e) {
-        alert(e && e.message ? e.message : '공휴일 불러오기 실패');
+        alert(e && e.message ? e.message : uiT('공휴일 불러오기 실패'));
       });
     });
 
