@@ -10,11 +10,13 @@ import com.pg.entity.MerchantPgBinding;
 import com.pg.entity.OrgUnit;
 import com.pg.entity.PgAgency;
 import com.pg.entity.HqNotifyTarget;
+import com.pg.entity.MerchantNotifyUrl;
 import com.pg.entity.MerchantProfile;
 import com.pg.entity.PgNotifyInbound;
 import com.pg.integration.pg.notify.PgNotifyInboundTxnDispatcher;
 import com.pg.entity.PgTrnsctn;
 import com.pg.repository.HqNotifyTargetRepository;
+import com.pg.repository.MerchantNotifyUrlRepository;
 import com.pg.repository.MerchantPgBindingRepository;
 import com.pg.repository.MerchantProfileRepository;
 import com.pg.repository.OrgUnitRepository;
@@ -33,6 +35,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
@@ -55,10 +58,13 @@ import java.util.regex.Pattern;
  *       동일 MID로 바인딩이 여러 건이면 본문에 <b>업체코드(compId)</b> 또는 {@code icopayCompId=} 가 있어야 합니다.</li>
  *   <li>MID에 노티 연동 바인딩이 있으면 MID+루트로 노티 바인딩을 먼저 고르지만,
  *       본문 {@code icopayCompId=} 가 있고 그 업체가 노티 바인딩 업체와 다르면 URL 결제용 업체코드 해석을 우선합니다.</li>
- *   <li><b>동일 MID·동일 루트에 노티 연동 가맹점이 복수</b>이면 업체코드 없이는 임의(목록 순)로 한 곳만 잡히므로,
- *       {@code URL_PAY_NEEDS_COMP_ID} 로 거절하거나, 업체코드로 해당 조직의 노티 바인딩만 고릅니다.</li>
+ *   <li><b>동일 MID·동일 루트에 노티 연동 가맹점이 복수</b>이면 원칙적으로 {@code AMBIGUOUS_NOTI_MID_ROOT} 로 거절하거나 업체코드로 좁힙니다.
+ *       우선 <b>수신 URL의 {@code targetCode}(cb…/rs…)</b>가 각 총판 {@code tb_merchant_notify_url}(NOTIFY_1·2)에 실린 주소와
+ *       일치하는 조직 트리에 속한 후보만 남겨 단일 바인딩을 확정합니다(동일 MID·루트를 쓰는 서로 다른 총판).
+ *       그다음 보조로 노티 본문 통화와 가맹점 기준통화가 정확히 하나만 일치할 때 확정합니다.</li>
  *   <li><b>수신 URL 경로의 노티 대상코드</b>({@code tb_hq_notify_target})에 연결 총판({@code org_unit_id})이 있으면,
- *       MID·URL결제 분기는 <b>해당 총판 및 하위 조직</b> 바인딩으로만 한정합니다(다른 총판 동일 MID와 충돌 없음).</li>
+ *       MID·URL결제 분기는 <b>해당 총판 및 하위 조직</b> 바인딩으로만 한정합니다.
+ *       {@code org_unit_id} 가 비어 있으면 동일 {@code targetCode} 가 총판 {@code tb_merchant_notify_url} 에 포함된 경우 그 조직으로 보강합니다.</li>
  *   <li>연결 총판 프로필에 기준통화가 있고 노티 본문에 통화가 있으면 불일치 시 {@code BOUND_CURRENCY_MISMATCH} 로 격리합니다.</li>
  *   <li><b>URL 결제 연동이 있는 공통 MID로 가맹점이 복수</b>이면 업체코드가 없는 노티는 원칙적으로 거절합니다.
  *       단, RESULT 채널에서 동일 {@code orderNo}의 기존 {@code origin=URL} 행으로 가맹점을 보강할 수 있으면 예외입니다.</li>
@@ -85,6 +91,7 @@ public class PgNotifyReceiveService {
     private final ChillPayService chillPayService;
     private final PgTrnsctnRepository pgTrnsctnRepository;
     private final MerchantProfileRepository merchantProfileRepository;
+    private final MerchantNotifyUrlRepository merchantNotifyUrlRepository;
 
     public PgNotifyReceiveService(HqNotifyEnvService hqNotifyEnvService,
                                 PgNotifyInboundRepository inboundRepository,
@@ -96,7 +103,8 @@ public class PgNotifyReceiveService {
                                 HqNotifyTargetRepository hqNotifyTargetRepository,
                                 ChillPayService chillPayService,
                                 PgTrnsctnRepository pgTrnsctnRepository,
-                                MerchantProfileRepository merchantProfileRepository) {
+                                MerchantProfileRepository merchantProfileRepository,
+                                MerchantNotifyUrlRepository merchantNotifyUrlRepository) {
         this.hqNotifyEnvService = hqNotifyEnvService;
         this.inboundRepository = inboundRepository;
         this.bindingRepository = bindingRepository;
@@ -108,6 +116,7 @@ public class PgNotifyReceiveService {
         this.chillPayService = chillPayService;
         this.pgTrnsctnRepository = pgTrnsctnRepository;
         this.merchantProfileRepository = merchantProfileRepository;
+        this.merchantNotifyUrlRepository = merchantNotifyUrlRepository;
     }
 
     /**
@@ -228,6 +237,12 @@ public class PgNotifyReceiveService {
         in.setNotifyChannelType(channelType);
         in.setNotifyTargetCode(trimNotifyTargetCode(notifyTargetCode));
         in.setIngressDeliveryKind(NotifyIngressDeliveryKindResolver.resolve(request));
+
+        if (rejectUnknownNotifyTargetIfProvided(in)) {
+            inboundRepository.save(in);
+            return NotifyReceiveOutcome.json(buildNotifyApiJsonFailure(in, in.getProcessStatus(), in.getErrorMessage(), true),
+                    HttpStatus.UNPROCESSABLE_ENTITY);
+        }
 
         resolveAndFillInbound(in, parsed, body, contentType);
         inboundRepository.save(in);
@@ -589,15 +604,57 @@ public class PgNotifyReceiveService {
         return ct.trim().toUpperCase(Locale.ROOT);
     }
 
-    /** 노티 URL 경로의 {@code tb_hq_notify_target} → 연결 총판(MASTER_DIST) {@code org_unit_id} */
+    /**
+     * 노티 URL 경로의 {@code tb_hq_notify_target} → 연결 총판 {@code org_unit_id}.
+     * 본사 행에 org 가 비어 있으면, 총판이 복사해 둔 {@code tb_merchant_notify_url} 의 URL 문자열에 동일
+     * {@code targetCode} 가 포함된 조직이 정확히 하나일 때 그 조직으로 보강합니다.
+     */
     private Long resolveIngressBoundRootOrgId(String notifyTargetCode) {
         String code = trimNotifyTargetCode(notifyTargetCode);
         if (code == null || code.isBlank()) {
             return null;
         }
-        return hqNotifyTargetRepository.findByTargetCode(code.trim())
-                .map(HqNotifyTarget::getOrgUnitId)
-                .orElse(null);
+        Optional<HqNotifyTarget> tgt = hqNotifyTargetRepository.findByTargetCode(code.trim());
+        if (tgt.isEmpty()) {
+            return null;
+        }
+        Long oid = tgt.get().getOrgUnitId();
+        if (oid != null) {
+            return oid;
+        }
+        List<Long> fromNu = merchantNotifyUrlRepository.findDistinctOrgUnitIdsByNotiUrlContainingSegment(code.trim());
+        if (fromNu.size() == 1) {
+            log.info("노티 대상코드 {} 의 tb_hq_notify_target.org_unit_id 비어 있음 — tb_merchant_notify_url 로 총판 {} 보강",
+                    code, fromNu.get(0));
+            return fromNu.get(0);
+        }
+        if (fromNu.size() > 1) {
+            log.warn("노티 대상코드 {} 가 여러 조직 noti_url 에 동시 포함 — ingress 총판 보강 불가 orgIds={}", code, fromNu);
+        }
+        return null;
+    }
+
+    /**
+     * 노티 경로에 targetCode(cb/rs...)가 붙어 들어왔는데 DB에 없으면, 레거시 CALLBACK 로 폴백하면
+     * 총판 스코프 분리가 풀려 MID+루트 충돌 시 오동작(또는 미적재)이 발생할 수 있습니다.
+     * 따라서 명시된 targetCode가 미등록이면 즉시 격리합니다.
+     *
+     * @return true 이면 호출부에서 즉시 return
+     */
+    private boolean rejectUnknownNotifyTargetIfProvided(PgNotifyInbound in) {
+        if (in == null) {
+            return false;
+        }
+        String code = trimNotifyTargetCode(in.getNotifyTargetCode());
+        if (code == null || code.isBlank()) {
+            return false;
+        }
+        if (hqNotifyTargetRepository.findByTargetCode(code.trim()).isPresent()) {
+            return false;
+        }
+        in.setProcessStatus("UNKNOWN_NOTIFY_TARGET");
+        in.setErrorMessage("노티 수신 URL 경로 코드(" + code + ")가 등록돼 있지 않습니다. 총판별 CALLBACK/RESULT URL(cb…/rs…)을 정확히 사용하세요.");
+        return true;
     }
 
     private static boolean ingressScopeActive(Set<Long> ingressScope) {
@@ -772,10 +829,38 @@ public class PgNotifyReceiveService {
                     return;
                 }
                 if (isAmbiguousNotiMidRoot(notiForMid, p.rootNo)) {
+                    Optional<MerchantPgBinding> byPath = tryResolveAmbiguousNotiByNotifyUrlTarget(
+                            notiForMid, p.rootNo, in.getNotifyTargetCode());
+                    if (byPath.isPresent()) {
+                        log.info("노티 MID+루트 복수 후보 → 수신 경로코드·총판 NOTIFY URL 로 단일 바인딩 확정 (targetCode={}, orgUnitId={})",
+                                trimNotifyTargetCode(in.getNotifyTargetCode()), byPath.get().getOrgUnitId());
+                        if (hasComp) {
+                            in.setPayloadCompId(compStore);
+                        } else {
+                            in.setPayloadCompId(null);
+                        }
+                        applyBindingResolved(in, byPath.get());
+                        return;
+                    }
+                    Optional<MerchantPgBinding> byCur = tryResolveAmbiguousNotiByPayloadCurrency(notiForMid, p.rootNo, p);
+                    if (byCur.isPresent()) {
+                        log.info("노티 MID+루트 복수 후보 → 본문 통화({})·가맹 기준통화 일치로 단일 바인딩 확정 (orgUnitId={})",
+                                p.currency != null ? p.currency.trim() : "", byCur.get().getOrgUnitId());
+                        if (hasComp) {
+                            in.setPayloadCompId(compStore);
+                        } else {
+                            in.setPayloadCompId(null);
+                        }
+                        applyBindingResolved(in, byCur.get());
+                        return;
+                    }
                     if (!hasComp || compStore == null) {
                         in.setPayloadCompId(null);
-                        in.setProcessStatus("URL_PAY_NEEDS_COMP_ID");
-                        in.setErrorMessage("동일 MID·루트로 노티 연동된 가맹점이 여러 곳입니다. 노티 본문에 업체코드(compId, merchantCompCode 등) 또는 icopayCompId= 를 넣어 주세요.");
+                        in.setProcessStatus("AMBIGUOUS_NOTI_MID_ROOT");
+                        String hint = ingressRootOrgId != null
+                                ? "노티 본문에 업체코드(compId, merchantCompCode 등) 또는 icopayCompId= 를 넣어 주세요."
+                                : "총판별 CALLBACK/RESULT URL(cb…/rs…)을 사용하거나, 노티 본문에 업체코드(compId, merchantCompCode 등) 또는 icopayCompId= 를 넣어 주세요.";
+                        in.setErrorMessage("동일 MID·루트로 노티 연동된 가맹점이 여러 곳입니다. " + hint);
                         return;
                     }
                     Optional<OrgUnit> ouComp = orgUnitRepository.findByCode(compStore);
@@ -1053,8 +1138,11 @@ public class PgNotifyReceiveService {
     }
 
     private void applyBindingResolved(PgNotifyInbound in, MerchantPgBinding b) {
-        in.setOrgUnitId(b.getOrgUnitId());
-        orgUnitRepository.findById(b.getOrgUnitId()).ifPresent(o -> in.setMerchantId(o.getCode()));
+        Long orgId = b != null ? b.getOrgUnitId() : null;
+        in.setOrgUnitId(orgId);
+        if (orgId != null) {
+            orgUnitRepository.findById(orgId).ifPresent(o -> in.setMerchantId(o.getCode()));
+        }
         in.setProcessStatus("PARSED");
     }
 
@@ -1135,6 +1223,96 @@ public class PgNotifyReceiveService {
             return false;
         }
         return cand.stream().map(MerchantPgBinding::getOrgUnitId).distinct().count() > 1;
+    }
+
+    /**
+     * 동일 MID·동일 루트 후보가 복수일 때, 이번 요청의 노티 경로 코드(cb…/rs…)가 어느 총판의
+     * {@code tb_merchant_notify_url}(NOTIFY_1·NOTIFY_2) URL 에 실려 있는지(상위 조직까지 탐색)로
+     * 단일 가맹점 바인딩을 고릅니다.
+     */
+    private Optional<MerchantPgBinding> tryResolveAmbiguousNotiByNotifyUrlTarget(
+            List<MerchantPgBinding> notiForMid, String rootNo, String notifyTargetCode) {
+        String code = trimNotifyTargetCode(notifyTargetCode);
+        if (code == null || code.isBlank()) {
+            return Optional.empty();
+        }
+        List<MerchantPgBinding> cand = notiBindingsMatchingRoot(notiForMid, rootNo);
+        if (cand.size() < 2) {
+            return Optional.empty();
+        }
+        String needle = "/" + code.trim();
+        Map<Long, OrgUnit> byId = orgUnitRepository.findAll().stream()
+                .collect(Collectors.toMap(OrgUnit::getId, o -> o, (a, b) -> a));
+        List<MerchantPgBinding> hits = new ArrayList<>();
+        for (MerchantPgBinding b : cand) {
+            if (b.getOrgUnitId() == null) {
+                continue;
+            }
+            if (ancestorNotifyUrlContainsTargetSegment(byId, b.getOrgUnitId(), needle)) {
+                hits.add(b);
+            }
+        }
+        if (hits.size() == 1) {
+            return Optional.of(hits.get(0));
+        }
+        return Optional.empty();
+    }
+
+    private boolean ancestorNotifyUrlContainsTargetSegment(Map<Long, OrgUnit> byId, Long startOrgId, String needle) {
+        Long cur = startOrgId;
+        Set<Long> guard = new HashSet<>();
+        while (cur != null && !guard.contains(cur)) {
+            guard.add(cur);
+            if (notifyUrlRowContainsSegment(cur, needle)) {
+                return true;
+            }
+            OrgUnit ou = byId.get(cur);
+            cur = ou != null ? ou.getParentId() : null;
+        }
+        return false;
+    }
+
+    private boolean notifyUrlRowContainsSegment(Long orgUnitId, String needle) {
+        for (String ut : List.of("NOTIFY_1", "NOTIFY_2")) {
+            Optional<MerchantNotifyUrl> nu = merchantNotifyUrlRepository.findByOrgUnitIdAndUrlType(orgUnitId, ut);
+            if (nu.isEmpty()) {
+                continue;
+            }
+            String url = nu.get().getNotiUrl();
+            if (url != null && url.contains(needle)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * 동일 MID·동일 루트로 노티 연동 후보가 복수(서로 다른 가맹점 org)일 때,
+     * 노티 본문 통화와 각 가맹점 {@link MerchantProfile#getBaseCurrency()} 가 <strong>정확히 하나</strong>만
+     * {@link #currenciesEquivalent} 하면 그 바인딩을 반환합니다. (ChillPay {@code Currency}=764/392 등)
+     */
+    private Optional<MerchantPgBinding> tryResolveAmbiguousNotiByPayloadCurrency(
+            List<MerchantPgBinding> notiForMid, String rootNo, ParsedNotify p) {
+        if (p == null || p.currency == null || p.currency.isBlank()) {
+            return Optional.empty();
+        }
+        List<MerchantPgBinding> cand = notiBindingsMatchingRoot(notiForMid, rootNo);
+        if (cand.size() < 2) {
+            return Optional.empty();
+        }
+        String payloadCur = p.currency.trim();
+        List<MerchantPgBinding> matches = cand.stream()
+                .filter(b -> b.getOrgUnitId() != null)
+                .filter(b -> {
+                    Optional<MerchantProfile> prof = merchantProfileRepository.findByOrgUnitId(b.getOrgUnitId());
+                    String bc = prof.map(MerchantProfile::getBaseCurrency).map(String::trim).filter(s -> !s.isEmpty()).orElse("");
+                    return !bc.isEmpty() && currenciesEquivalent(bc, payloadCur);
+                })
+                .toList();
+        if (matches.size() == 1) {
+            return Optional.of(matches.get(0));
+        }
+        return Optional.empty();
     }
 
     private static Optional<MerchantPgBinding> findNotiBindingForOrgAndRoot(List<MerchantPgBinding> notiForMid,
