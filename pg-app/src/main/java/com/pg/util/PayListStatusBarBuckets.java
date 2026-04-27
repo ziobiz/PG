@@ -69,10 +69,10 @@ public final class PayListStatusBarBuckets {
         if ("F0".equalsIgnoreCase(s) || "99".equals(s)) {
             return FAIL;
         }
-        if ("21".equals(s) || "22".equals(s) || "40".equals(s) || "41".equals(s) || "42".equals(s)) {
+        if ("21".equals(s) || "22".equals(s) || "40".equals(s) || "41".equals(s)) {
             return VOID;
         }
-        if ("30".equals(s)) {
+        if ("30".equals(s) || "42".equals(s)) {
             return REFUND;
         }
         if ("31".equals(s)) {

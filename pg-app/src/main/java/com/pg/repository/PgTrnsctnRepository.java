@@ -4,6 +4,7 @@ import com.pg.entity.PgTrnsctn;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -57,4 +58,71 @@ public interface PgTrnsctnRepository extends JpaRepository<PgTrnsctn, String>, J
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("UPDATE PgTrnsctn t SET t.settledYn = 'N'")
     int clearAllSettlementFlagsOnTransactions();
+
+    /**
+     * 메인 대시보드 집계: 결제일시 = COALESCE(paidAt, createdAt), 상한 {@code toExclusive} 미포함.
+     * 반환: [전체건수, 승인(10)건수, 승인금액합]
+     */
+    @Query("SELECT COUNT(t), SUM(CASE WHEN t.status = '10' THEN 1 ELSE 0 END), " +
+           "SUM(CASE WHEN t.status = '10' THEN COALESCE(t.amtKrw, 0) ELSE 0 END) FROM PgTrnsctn t WHERE " +
+           "COALESCE(t.paidAt, t.createdAt) >= :fromInclusive AND COALESCE(t.paidAt, t.createdAt) < :toExclusive")
+    Object[] dashboardAggregateAll(@Param("fromInclusive") LocalDateTime fromInclusive,
+                                   @Param("toExclusive") LocalDateTime toExclusive);
+
+    @Query("SELECT COUNT(t), SUM(CASE WHEN t.status = '10' THEN 1 ELSE 0 END), " +
+           "SUM(CASE WHEN t.status = '10' THEN COALESCE(t.amtKrw, 0) ELSE 0 END) FROM PgTrnsctn t WHERE " +
+           "COALESCE(t.paidAt, t.createdAt) >= :fromInclusive AND COALESCE(t.paidAt, t.createdAt) < :toExclusive " +
+           "AND t.merchantId IN :merchantIds")
+    Object[] dashboardAggregateForMerchants(@Param("fromInclusive") LocalDateTime fromInclusive,
+                                          @Param("toExclusive") LocalDateTime toExclusive,
+                                          @Param("merchantIds") Collection<String> merchantIds);
+
+    /**
+     * 통화별 집계(청구 통화 curType 기준). 반환 행: [통화코드, 전체건수, 승인건수, 승인금액합(해당 통화 단위 amtKrw)]
+     */
+    @Query("SELECT COALESCE(NULLIF(TRIM(t.curType), ''), 'KRW'), COUNT(t), " +
+           "SUM(CASE WHEN t.status = '10' THEN 1 ELSE 0 END), " +
+           "SUM(CASE WHEN t.status = '10' THEN COALESCE(t.amtKrw, 0) ELSE 0 END) FROM PgTrnsctn t WHERE " +
+           "COALESCE(t.paidAt, t.createdAt) >= :fromInclusive AND COALESCE(t.paidAt, t.createdAt) < :toExclusive " +
+           "GROUP BY COALESCE(NULLIF(TRIM(t.curType), ''), 'KRW') ORDER BY COALESCE(NULLIF(TRIM(t.curType), ''), 'KRW')")
+    List<Object[]> dashboardAggregateByCurrencyAll(@Param("fromInclusive") LocalDateTime fromInclusive,
+                                                    @Param("toExclusive") LocalDateTime toExclusive);
+
+    @Query("SELECT COALESCE(NULLIF(TRIM(t.curType), ''), 'KRW'), COUNT(t), " +
+           "SUM(CASE WHEN t.status = '10' THEN 1 ELSE 0 END), " +
+           "SUM(CASE WHEN t.status = '10' THEN COALESCE(t.amtKrw, 0) ELSE 0 END) FROM PgTrnsctn t WHERE " +
+           "COALESCE(t.paidAt, t.createdAt) >= :fromInclusive AND COALESCE(t.paidAt, t.createdAt) < :toExclusive " +
+           "AND t.merchantId IN :merchantIds " +
+           "GROUP BY COALESCE(NULLIF(TRIM(t.curType), ''), 'KRW') ORDER BY COALESCE(NULLIF(TRIM(t.curType), ''), 'KRW')")
+    List<Object[]> dashboardAggregateByCurrencyForMerchants(@Param("fromInclusive") LocalDateTime fromInclusive,
+                                                            @Param("toExclusive") LocalDateTime toExclusive,
+                                                            @Param("merchantIds") Collection<String> merchantIds);
+
+    /** 리스크 스코어용: 실패(99/F0)·무효계열·환불·취소 건수 */
+    @Query("SELECT SUM(CASE WHEN t.status IN ('99','F0','f0') THEN 1 ELSE 0 END), " +
+           "SUM(CASE WHEN t.status IN ('21','22','40','41','42') THEN 1 ELSE 0 END), " +
+           "SUM(CASE WHEN t.status IN ('30','31') THEN 1 ELSE 0 END), " +
+           "SUM(CASE WHEN t.status = '20' THEN 1 ELSE 0 END) FROM PgTrnsctn t WHERE " +
+           "COALESCE(t.paidAt, t.createdAt) >= :f AND COALESCE(t.paidAt, t.createdAt) < :t")
+    Object[] dashboardRiskBucketsAll(@Param("f") LocalDateTime f, @Param("t") LocalDateTime t);
+
+    @Query("SELECT SUM(CASE WHEN t.status IN ('99','F0','f0') THEN 1 ELSE 0 END), " +
+           "SUM(CASE WHEN t.status IN ('21','22','40','41','42') THEN 1 ELSE 0 END), " +
+           "SUM(CASE WHEN t.status IN ('30','31') THEN 1 ELSE 0 END), " +
+           "SUM(CASE WHEN t.status = '20' THEN 1 ELSE 0 END) FROM PgTrnsctn t WHERE " +
+           "COALESCE(t.paidAt, t.createdAt) >= :f AND COALESCE(t.paidAt, t.createdAt) < :t " +
+           "AND t.merchantId IN :mids")
+    Object[] dashboardRiskBucketsMerchants(@Param("f") LocalDateTime f, @Param("t") LocalDateTime t,
+                                           @Param("mids") Collection<String> mids);
+
+    @Query("SELECT t.merchantId, COUNT(t) FROM PgTrnsctn t WHERE " +
+           "COALESCE(t.paidAt, t.createdAt) >= :f AND COALESCE(t.paidAt, t.createdAt) < :t " +
+           "AND t.status IN ('30','31') GROUP BY t.merchantId ORDER BY COUNT(t) DESC")
+    List<Object[]> dashboardTopRefundMerchantsAll(@Param("f") LocalDateTime f, @Param("t") LocalDateTime t, Pageable pageable);
+
+    @Query("SELECT t.merchantId, COUNT(t) FROM PgTrnsctn t WHERE " +
+           "COALESCE(t.paidAt, t.createdAt) >= :f AND COALESCE(t.paidAt, t.createdAt) < :t " +
+           "AND t.status IN ('30','31') AND t.merchantId IN :mids GROUP BY t.merchantId ORDER BY COUNT(t) DESC")
+    List<Object[]> dashboardTopRefundMerchantsIn(@Param("f") LocalDateTime f, @Param("t") LocalDateTime t,
+                                                   @Param("mids") Collection<String> mids, Pageable pageable);
 }

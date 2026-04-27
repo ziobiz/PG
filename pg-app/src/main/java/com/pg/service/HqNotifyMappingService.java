@@ -155,6 +155,7 @@ public class HqNotifyMappingService {
             "/calc/payForceRefundList",
             "/calc/payCancelList",
             "/calc/payVoidList",
+            "/calc/payEmailVoidList",
             "/calc/offsetCancList",
             "/pay/easyPay",
             "/pay/chatbotPay"
@@ -469,8 +470,8 @@ public class HqNotifyMappingService {
         a.add(mapping("TransactionId", "chillTransactionId", "칠페이 거래 ID → 그리드 TransactionId(칠페이)"));
         a.add(mapping("RouteNo", "routeNo", "라우트 번호"));
         a.add(mapping("Amount", "chillAmount", "금액(칠페이 시트)"));
-        a.add(mapping("DisplayAmount", "displayPayAmt", "고객 표시 금액(URL DISPLAY_FX·노티 확장)"));
-        a.add(mapping("DisplayCurrency", "displayPayCur", "고객 표시 통화"));
+        a.add(mapping("DisplayAmount", "displayPayAmt", "고객금액(URL DISPLAY_FX·노티 확장)"));
+        a.add(mapping("DisplayCurrency", "displayPayCur", "고객통화"));
         a.add(mapping("OrderNo", "orderNo", "주문번호"));
         a.add(mapping("Status / PaymentStatus", "chillPaymentStatus", "상태"));
         return a;

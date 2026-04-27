@@ -270,15 +270,19 @@
     ],
     '/calc/paySuccessList': [
       packN('성공내역: 통합 결제내역에서 승인 성공(결제) 상태만 간추렸습니다.', 'Success list: approved (paid) rows only.', '成功のみ抽出。', '仅成功（已支付）记录。', 'เฉพาะรายการสำเร็จ'),
-      packN('무효·이메일무효·환불·강제환불 등 후속조치는 「결제내역」(/calc/payList)에서만 제공합니다.', 'Void/refund follow-ups are only on /calc/payList.', '無効・返金の後続は「決済履歴」のみ。', '后续处理仅在「支付历史」。', 'ดำเนินการต่อเฉพาะที่ /calc/payList')
+      packN('무효·이메일무효·환불·강제환불 등 후속조치는 「결제내역」(/calc/payList)과 각 전용 화면(무효처리·이메일무효·환불처리·강제환불)에서 제공합니다.', 'Void/refund follow-ups are on /calc/payList and the dedicated void/refund screens.', '無効・返金の後続は「決済履歴」と各専用画面で利用できます。', '后续处理在「支付历史」及各专用作废/退款页面提供。', 'ดำเนินการต่อที่ /calc/payList และหน้าโมฆะ/คืนเงินเฉพาะ')
     ],
     '/calc/payFailList': [packN('실패내역: 통합 결제내역에서 실패·거절만 간추렸습니다.', 'Failed/rejected rows only.', '失敗・拒否のみ。', '仅失败/拒绝。', 'เฉพาะล้มเหลว/ปฏิเสธ')],
-    '/calc/payRefundList': [packN('환불내역: 통합 결제내역에서 환불만 간추렸습니다.', 'Refunds only.', '返金のみ。', '仅退款。', 'เฉพาะคืนเงิน')],
-    '/calc/payForceRefundList': [packN('강제환불내역: 통합 결제내역에서 강제환불만 간추렸습니다.', 'Force-refund rows only.', '強制返金のみ。', '仅强制退款。', 'บังคับคืนเงินเท่านั้น')],
+    '/calc/payRefundList': [packN('환불처리: 통합 결제내역에서 환불(내부 30·42)만 간추렸습니다.', 'Refund processing: refund states (30·42) only.', '返金処理: 30・42 のみ。', '退款处理：仅内部状态 30·42。', 'คืนเงิน: เฉพาะสถานะ 30·42')],
+    '/calc/payForceRefundList': [packN('강제환불: 통합 결제내역에서 강제환불(내부 31)만 간추렸습니다.', 'Force refund: internal state 31 only.', '強制返金: 31 のみ。', '强制退款：仅内部状态 31。', 'บังคับคืน: เฉพาะ 31')],
     '/calc/payCancelList': [packN('취소내역: 통합 결제내역에서 취소만 간추렸습니다.', 'Cancellations only.', '取消のみ。', '仅取消。', 'เฉพาะยกเลิก')],
     '/calc/payVoidList': [
-      packN('무효내역: 승인(결제) 완료 후 수동·시스템 무효(내부 21·22·40·41·42)만 표시합니다. 취소(20)와 구분됩니다.', 'Void list: manual/system void states after approval; distinct from cancel (20).', '無効: 承認後の無効系。取消(20)と区別。', '作废：批准后无效类，与取消(20)区分。', 'โมฆะหลังอนุมัติ แยกจากยกเลิก'),
-      packN('ziobiz/NOTI 노티거래내역의 무효·이메일무효·자동무효 등과 동일 계열 상태입니다.', 'Same state family as ziobiz/NOTI void flows.', 'NOTI 無効系と同系列。', '与 NOTI 作废类状态同族。', 'สายสถานะโมฆะ NOTI')
+      packN('무효처리: 승인(결제) 완료 후 일반·시스템 무효(내부 21·40)만 표시합니다. 이메일무효(22·41)는 「이메일무효」(/calc/payEmailVoidList) 화면에서, 환불(30·42)은 「환불처리」에서 봅니다. 취소(20)와 구분됩니다.', 'Void processing: internal states 21·40 only. Email void (22·41) is on /calc/payEmailVoidList; refunds (30·42) on refund processing.', '無効処理: 21・40 のみ。メール無効は専用画面。', '作废处理：仅 21·40；邮件作废见专用页。', 'โมฆะ 21·40 เท่านั้น อีเมลโมฆะหน้าแยก'),
+      packN('ziobiz/NOTI 노티거래내역의 무효·자동무효 등과 동일 계열(21·40)입니다.', 'Same NOTI void family for states 21·40.', 'NOTI 無効系(21・40)。', '与 NOTI 作废 21·40 同族。', 'สาย NOTI โมฆะ 21·40')
+    ],
+    '/calc/payEmailVoidList': [
+      packN('이메일무효: 승인(결제) 완료 후 이메일·수동 무효 계열(내부 22·41)만 표시합니다. 일반 무효(21·40)는 「무효처리」(/calc/payVoidList)에서 봅니다.', 'Email/manual void: internal 22·41 only. General void (21·40) is on /calc/payVoidList.', 'メール無効: 22・41 のみ。', '邮件作废：仅 22·41。', 'โมฆะอีเมล: 22·41'),
+      packN('ziobiz/NOTI 노티거래내역의 이메일무효 등과 동일 계열 상태입니다.', 'Same NOTI family as email-void flows.', 'NOTI メール無効系。', '与 NOTI 邮件作废同族。', 'สายอีเมลโมฆะ NOTI')
     ],
     '/calc/offsetCancList': [
       packN('상계취소내역: 가맹 정산에 이미 반영된 건(settled=Y)이 이후 취소·무효·환불·강제환불(내부 20·21·22·30·31·40·41·42)로 바뀐 경우만 표시합니다. 정산 전 실패(F0·99) 등은 제외됩니다.', 'Offset-cancel: rows already settled then later cancelled/void/refunded.', '相殺取消: 精算反映後に状態変化したもののみ。', '已结算后又取消/作废/退款的冲销场景。', 'หักบัญชีแล้วเปลี่ยนสถานะ'),
@@ -352,7 +356,11 @@
     'compRegNo': { KO: '사업자번호', EN: 'Business reg. no.', JP: '事業者番号', CH: '营业执照号', TH: 'เลขทะเบียนธุรกิจ' },
     'pgApproveAmt,payAprv': { KO: 'PG승인', EN: 'PG approval', JP: 'PG承認', CH: 'PG授权', TH: 'อนุมัติ PG' },
     'holdAmt,holdDttm': { KO: '보류', EN: 'Hold', JP: '保留', CH: '暂扣', TH: 'พักรอ' },
-    'feeCnt,feeRate': { KO: '수수료', EN: 'Fee', JP: '手数料', CH: '手续费', TH: 'ค่าธรรมเนียม' }
+    'feeCnt,feeRate': { KO: '수수료', EN: 'Fee', JP: '手数料', CH: '手续费', TH: 'ค่าธรรมเนียม' },
+    'payCustomerIndicator': { KO: '고객표시', EN: 'Shopper label', JP: '顧客表示', CH: '客户显示', TH: 'ป้ายลูกค้า' },
+    'displayPaySummary': { KO: '통화+금액', EN: 'Ccy + amount', JP: '通貨+金額', CH: '币种+金额', TH: 'สกุล+ยอด' },
+    'displayPayCur': { KO: '고객통화', EN: 'Shopper ccy', JP: '顧客通貨', CH: '客户币种', TH: 'สกุลลูกค้า' },
+    'displayPayAmt': { KO: '고객금액', EN: 'Shopper amt', JP: '顧客金額', CH: '客户金额', TH: 'ยอดลูกค้า' }
   };
 
   /** 열 키별 비한국어(및 명시 KO). 비어 있으면 카탈로그 스냅샷(한국어) 유지 */
@@ -375,6 +383,10 @@
     chillFeeAmt: { EN: 'Fee', JP: '手数料', CH: '手续费', TH: 'ค่าธรรมเนียม' },
     totalAmt: { EN: 'Total', JP: '合計', CH: '合计', TH: 'รวม' },
     currency: { EN: 'Currency', JP: '通貨', CH: '币种', TH: 'สกุลเงิน' },
+    payCustomerIndicator: { EN: 'Shopper label', JP: '顧客表示', CH: '客户显示', TH: 'ป้ายลูกค้า' },
+    displayPaySummary: { EN: 'Ccy + amount', JP: '通貨+金額', CH: '币种+金额', TH: 'สกุล+ยอด' },
+    displayPayCur: { EN: 'Shopper ccy', JP: '顧客通貨', CH: '客户币种', TH: 'สกุลลูกค้า' },
+    displayPayAmt: { EN: 'Shopper amt', JP: '顧客金額', CH: '客户金额', TH: 'ยอดลูกค้า' },
     regionalBaseCur: { EN: 'HQ base ccy', JP: '本社基準通貨', CH: '总部基准货币', TH: 'สกุลฐานสำนักงานใหญ่' },
     masterDistBaseCur: { EN: 'Dist. base ccy', JP: '総販基準通貨', CH: '总代基准货币', TH: 'สกุลฐานตัวแทนหลัก' },
     merchantBaseCur: { EN: 'Merchant base ccy', JP: '加盟店基準通貨', CH: '商户基准货币', TH: 'สกุลฐานร้านค้า' },

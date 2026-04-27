@@ -8,7 +8,7 @@ import java.util.Locale;
 import java.util.Optional;
 
 /**
- * ChillPay 노티 JSON에서 고객 표시 금액·통화를 읽어 {@link PgTrnsctn}에 반영합니다.
+ * ChillPay 노티 JSON에서 고객금액·고객통화를 읽어 {@link PgTrnsctn}에 반영합니다.
  * PG 청구 필드({@code cur_type}/{@code amt_krw})와 별도 키가 올 때만 설정합니다.
  */
 public final class PgTrnsctnNotifyDisplayHelper {

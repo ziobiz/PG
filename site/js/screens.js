@@ -1224,9 +1224,10 @@
                 { v: '/calc/paySuccessList', t: '성공내역' },
                 { v: '/calc/payFailList', t: '실패내역' },
                 { v: '/calc/payCancelList', t: '취소내역' },
-                { v: '/calc/payVoidList', t: '무효내역' },
-                { v: '/calc/payRefundList', t: '환불내역' },
-                { v: '/calc/payForceRefundList', t: '강제환불내역' },
+                { v: '/calc/payVoidList', t: '무효처리' },
+                { v: '/calc/payEmailVoidList', t: '이메일무효' },
+                { v: '/calc/payRefundList', t: '환불처리' },
+                { v: '/calc/payForceRefundList', t: '강제환불' },
                 { v: '/pay/easyPay', t: 'URL결제내역' },
                 { v: '/pay/chatbotPay', t: '챗봇결제내역' },
                 { v: '/calc/offsetCancList', t: '상계취소내역' },
@@ -3950,12 +3951,18 @@
       '무효·이메일무효·환불·강제환불 등 후속조치는 「결제내역」(/calc/payList)에서만 제공합니다.'
     ]));
     MENU_SCREENS['/calc/payFailList'] = stripStatusDiv(cloneWith('FAIL', ['실패내역: 통합 결제내역에서 실패·거절만 간추렸습니다.']));
-    MENU_SCREENS['/calc/payRefundList'] = stripStatusDiv(cloneWith('REFUND', ['환불내역: 통합 결제내역에서 환불만 간추렸습니다.']));
-    MENU_SCREENS['/calc/payForceRefundList'] = stripStatusDiv(cloneWith('FORCE_REFUND', ['강제환불내역: 통합 결제내역에서 강제환불만 간추렸습니다.']));
+    MENU_SCREENS['/calc/payRefundList'] = stripStatusDiv(cloneWith('REFUND', [
+      '환불처리: 통합 결제내역에서 일반·자동환불(내부 30·42)만 간추렸습니다.'
+    ]));
+    MENU_SCREENS['/calc/payForceRefundList'] = stripStatusDiv(cloneWith('FORCE_REFUND', [
+      '강제환불: 통합 결제내역에서 강제환불(내부 31)만 간추렸습니다.'
+    ]));
     MENU_SCREENS['/calc/payCancelList'] = stripStatusDiv(cloneWith('CANCEL', ['취소내역: 통합 결제내역에서 취소만 간추렸습니다.']));
     MENU_SCREENS['/calc/payVoidList'] = stripStatusDiv(cloneWith('VOID', [
-      '무효내역: 승인(결제) 완료 후 수동·시스템 무효(내부 21·22·40·41·42)만 표시합니다. 취소(20)와 구분됩니다.',
-      'ziobiz/NOTI 노티거래내역의 무효·이메일무효·자동무효 등과 동일 계열 상태입니다.'
+      '무효처리: 통합 결제내역에서 자동·시스템 무효(내부 21·40)만 표시합니다. 이메일무효(22·41)는 「이메일무효」메뉴, 취소(20)와 구분됩니다.'
+    ]));
+    MENU_SCREENS['/calc/payEmailVoidList'] = stripStatusDiv(cloneWith('MANUAL_VOID', [
+      '이메일무효: 통합 결제내역에서 수동·이메일 무효(내부 22·41)만 표시합니다. 자동무효(21·40)는 「무효처리」메뉴입니다.'
     ]));
     MENU_SCREENS['/calc/offsetCancList'] = cloneWith('OFFSET_CANCEL', [
       '상계취소내역: 가맹 정산에 이미 반영된 건(settled=Y)이 이후 취소·무효·환불·강제환불(내부 20·21·22·30·31·40·41·42)로 바뀐 경우만 표시합니다. 정산 전 실패(F0·99) 등은 제외됩니다.',
@@ -5245,7 +5252,7 @@
   /** 결제내역(/calc/payList) 계열 — 카탈로그 라벨을 MENU_SCREENS 복제본에 반영할 때 사용 */
   var PAY_LIST_INTEGRATED_SYNC_URLS = [
     '/calc/payList', '/calc/payNotiList', '/calc/paySuccessList', '/calc/payFailList', '/calc/payRefundList', '/calc/payForceRefundList',
-    '/calc/payCancelList', '/calc/payVoidList', '/calc/offsetCancList', '/pay/easyPay', '/pay/chatbotPay',
+    '/calc/payCancelList', '/calc/payVoidList', '/calc/payEmailVoidList', '/calc/offsetCancList', '/pay/easyPay', '/pay/chatbotPay',
     '/calc/chillPayTrList', '/calc/chillPaySettlementList'
   ];
 

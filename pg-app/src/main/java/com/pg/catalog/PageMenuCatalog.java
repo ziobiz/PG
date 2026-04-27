@@ -47,9 +47,10 @@ public final class PageMenuCatalog {
         add(list, "/calc/paySuccessList", "M0315", "성공내역", "결제관리");
         add(list, "/calc/payFailList", "M0303", "실패내역", "결제관리");
         add(list, "/calc/payCancelList", "M0318", "취소내역", "결제관리");
-        add(list, "/calc/payVoidList", "M0320", "무효내역", "결제관리");
-        add(list, "/calc/payRefundList", "M0316", "환불내역", "결제관리");
-        add(list, "/calc/payForceRefundList", "M0317", "강제환불내역", "결제관리");
+        add(list, "/calc/payVoidList", "M0320", "무효처리", "결제관리");
+        add(list, "/calc/payEmailVoidList", "M0325", "이메일무효", "결제관리");
+        add(list, "/calc/payRefundList", "M0316", "환불처리", "결제관리");
+        add(list, "/calc/payForceRefundList", "M0317", "강제환불", "결제관리");
         add(list, "/pay/easyPay", "M0310", "URL결제내역", "결제관리");
         add(list, "/pay/chatbotPay", "M0311", "챗봇결제내역", "결제관리");
         add(list, "/calc/offsetCancList", "M0309", "상계취소내역", "결제관리");

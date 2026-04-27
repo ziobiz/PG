@@ -3147,12 +3147,43 @@ body.theme-light .left-side-menu .btn-secondary:hover, body.theme-gray .left-sid
   flex: 0 1 auto;
 }
 
-/* 결제내역 후속조치: 기간 초과 등 비활성 */
-button.pay-follow:disabled,
-button.pay-follow.pay-follow--off {
+/* 결제내역 후속조치: 상태(성공·실패) 배지와 유사한 pill — 활성 파랑, 비활성 회색 */
+.pay-follow-pill-row {
+  max-width: 24rem;
+}
+button.pay-follow-pill {
+  display: inline-block;
+  padding: 0.14em 0.6em;
+  border-radius: 999px;
+  font-size: inherit;
+  font-weight: 600;
+  line-height: 1.25;
+  white-space: nowrap;
+  border: 1px solid transparent;
+  text-decoration: none !important;
+  vertical-align: middle;
+  box-shadow: none;
+}
+button.pay-follow-pill--active {
+  background: #2563eb;
+  color: #fff !important;
+  cursor: pointer;
+}
+button.pay-follow-pill--active:hover:not(:disabled) {
+  background: #1d4ed8;
+  color: #fff !important;
+}
+button.pay-follow-pill--disabled,
+button.pay-follow-pill--disabled:disabled {
+  background: #e5e7eb;
+  color: #64748b !important;
+  border-color: #cbd5e1;
   cursor: not-allowed;
-  opacity: 0.55;
-  text-decoration: none;
+  opacity: 1;
+}
+button.pay-follow-pill:focus-visible {
+  outline: 2px solid rgba(37, 99, 235, 0.45);
+  outline-offset: 1px;
 }
 
 /* 종합거래 환경설정: 데이터 보관 기간 표 — 수수료·정산 통화 표와 동일 래핑(border rounded + table-sm), 열 비율 고정 */
@@ -3857,3 +3888,79 @@ button.pay-follow.pay-follow--off {
   opacity: 0.55;
 }
 
+/* ========== 메인(/main) 대시보드 ========== */
+.pg-home-dashboard-mount .pg-dash-insight {
+  font-size: 0.92rem;
+  color: #5c6c7c;
+  border-left: 3px solid #0d6efd;
+  padding: 0.5rem 0.75rem;
+  background: #f8f9fa;
+  border-radius: 0 0.25rem 0.25rem 0;
+}
+.pg-home-dashboard-mount .pg-dash-kpi .card {
+  border: 1px solid #e9ecef;
+  box-shadow: 0 1px 2px rgba(0,0,0,.04);
+}
+.pg-home-dashboard-mount .pg-dash-kpi .display-6 {
+  font-size: 1.35rem;
+  font-weight: 600;
+}
+.pg-home-dashboard-mount .pg-dash-cal-wrap {
+  max-height: 320px;
+  overflow: auto;
+}
+.pg-home-dashboard-mount .pg-dash-quick .btn {
+  margin: 0.15rem 0.25rem 0.15rem 0;
+}
+.pg-home-dashboard-mount .pg-dash-evidence {
+  line-height: 1.45;
+}
+.pg-home-dashboard-mount .pg-dash-narr {
+  border-left: 3px solid #6c757d;
+}
+.pg-home-dashboard-mount .pg-dash-risk .display-5 {
+  font-size: 2rem;
+  font-weight: 700;
+}
+.pg-home-dashboard-mount .pg-dash-tl .pg-dash-tl-row {
+  position: relative;
+  padding-left: 1.1rem;
+  margin-bottom: 0.75rem;
+}
+.pg-home-dashboard-mount .pg-dash-tl .pg-dash-tl-dot {
+  position: absolute;
+  left: 0;
+  top: 0.35rem;
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background: #0d6efd;
+}
+.pg-home-dashboard-mount .pg-dash-kpi-chip {
+  min-height: 3.25rem;
+}
+
+.pg-dash-hq-hub .pg-dash-trend {
+  min-height: 120px;
+}
+.pg-dash-hq-hub .pg-dash-trend-col {
+  flex: 1;
+  min-width: 0;
+}
+.pg-dash-hq-hub .pg-dash-trend-bar-wrap {
+  height: 96px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+.pg-dash-hq-hub .pg-dash-trend-bar {
+  width: 100%;
+  max-width: 26px;
+  min-height: 3px;
+  background: linear-gradient(180deg, #0d6efd, #9ec5fe);
+  border-radius: 4px 4px 0 0;
+}
+.pg-dash-hq-hub .pg-dash-tile:hover {
+  background: #f8f9fa !important;
+  border-color: #0d6efd !important;
+}

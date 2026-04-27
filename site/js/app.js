@@ -1552,10 +1552,11 @@
     '/calc/payNotiList': { label: '노티내역', parent: '결제관리 > 결제내역' },
     '/calc/paySuccessList': { label: '성공내역', parent: '결제관리 > 결제내역' },
     '/calc/payFailList': { label: '실패내역', parent: '결제관리 > 결제내역' },
-    '/calc/payRefundList': { label: '환불내역', parent: '결제관리 > 결제내역' },
-    '/calc/payForceRefundList': { label: '강제환불내역', parent: '결제관리 > 결제내역' },
+    '/calc/payRefundList': { label: '환불처리', parent: '결제관리 > 결제내역' },
+    '/calc/payForceRefundList': { label: '강제환불', parent: '결제관리 > 결제내역' },
     '/calc/payCancelList': { label: '취소내역', parent: '결제관리 > 결제내역' },
-    '/calc/payVoidList': { label: '무효내역', parent: '결제관리 > 결제내역' },
+    '/calc/payVoidList': { label: '무효처리', parent: '결제관리 > 결제내역' },
+    '/calc/payEmailVoidList': { label: '이메일무효', parent: '결제관리 > 결제내역' },
     '/calc/offsetCancList': { label: '상계취소내역', parent: '결제관리 > 결제내역' },
     '/pay/easyPay': { label: 'URL결제내역', parent: '결제관리 > 결제내역' },
     '/pay/chatbotPay': { label: '챗봇결제내역', parent: '결제관리 > 결제내역' },
@@ -3098,7 +3099,7 @@
   }
 
   /** 결제내역 계열: 사이드 메뉴를 다시 눌렀을 때 목록 새로고침(재조회) */
-  var PAY_LIST_MENU_RECLICK_REFRESH_URLS = ['/calc/payList', '/calc/chillPayTrList', '/calc/chillPaySettlementList', '/calc/payNotiList', '/calc/paySuccessList', '/calc/payFailList', '/calc/payRefundList', '/calc/payForceRefundList', '/calc/payCancelList', '/calc/payVoidList', '/calc/offsetCancList', '/pay/easyPay', '/pay/chatbotPay'];
+  var PAY_LIST_MENU_RECLICK_REFRESH_URLS = ['/calc/payList', '/calc/chillPayTrList', '/calc/chillPaySettlementList', '/calc/payNotiList', '/calc/paySuccessList', '/calc/payFailList', '/calc/payRefundList', '/calc/payForceRefundList', '/calc/payCancelList', '/calc/payVoidList', '/calc/payEmailVoidList', '/calc/offsetCancList', '/pay/easyPay', '/pay/chatbotPay'];
 
   function refreshPayListPaneIfMenuRepeated(url, tabId) {
     if (PAY_LIST_MENU_RECLICK_REFRESH_URLS.indexOf(url) === -1) return;
@@ -3289,7 +3290,7 @@
   }
 
   /** 노티매핑 — 결제내역 계열(/calc/payList 변형) 화면 URL */
-  var PAY_LIST_NOTIFY_LAYOUT_URLS = ['/calc/payList', '/calc/payNotiList', '/calc/paySuccessList', '/calc/payFailList', '/calc/payRefundList', '/calc/payForceRefundList', '/calc/payCancelList', '/calc/payVoidList', '/calc/offsetCancList', '/pay/easyPay', '/pay/chatbotPay'];
+  var PAY_LIST_NOTIFY_LAYOUT_URLS = ['/calc/payList', '/calc/payNotiList', '/calc/paySuccessList', '/calc/payFailList', '/calc/payRefundList', '/calc/payForceRefundList', '/calc/payCancelList', '/calc/payVoidList', '/calc/payEmailVoidList', '/calc/offsetCancList', '/pay/easyPay', '/pay/chatbotPay'];
 
   /** 후속조치 열: VIEW SETTING·저장 키에 포함(기존 저장분에 없으면 보강). 성공내역 등 후속조치 없는 화면은 제외. 조직항목설정으로 열이 막힌 경우는 넣지 않음 */
   function ensurePayActionsInPayListViewKeys(pageUrl, keys, pane) {
@@ -3592,9 +3593,10 @@
       '/calc/paySuccessList': '성공내역',
       '/calc/payFailList': '실패내역',
       '/calc/payCancelList': '취소내역',
-      '/calc/payVoidList': '무효내역',
-      '/calc/payRefundList': '환불내역',
-      '/calc/payForceRefundList': '강제환불내역',
+      '/calc/payVoidList': '무효처리',
+      '/calc/payEmailVoidList': '이메일무효',
+      '/calc/payRefundList': '환불처리',
+      '/calc/payForceRefundList': '강제환불',
       '/pay/easyPay': 'URL결제내역',
       '/pay/chatbotPay': '챗봇결제내역',
       '/calc/offsetCancList': '상계취소내역'
@@ -4992,7 +4994,7 @@
     var payMgmtSortDirAutoRefreshUrls = [
       '/calc/chillPayTrList',
       '/calc/payList', '/calc/payNotiList', '/calc/paySuccessList', '/calc/payFailList',
-      '/calc/payRefundList', '/calc/payForceRefundList', '/calc/payCancelList', '/calc/payVoidList',
+      '/calc/payRefundList', '/calc/payForceRefundList', '/calc/payCancelList', '/calc/payVoidList', '/calc/payEmailVoidList',
       '/calc/offsetCancList', '/pay/easyPay', '/pay/chatbotPay'
     ];
     function defaultListPageSizeForUrl(url) {
@@ -5898,7 +5900,7 @@
         p.classList.toggle('screen-calc-gm-list', url === '/calc/calcGmList' || url === '/settlement/franchiseList'
           || url === '/calc/paySettlementHoldList' || url === '/settlement/paySettlementHoldList');
         p.classList.toggle('screen-calc-fee-list', url === '/calc/feeList' || url === '/settlement/feeList');
-        p.classList.toggle('screen-pay-list', url === '/calc/payList' || url === '/calc/chillPayTrList' || url === '/calc/chillPaySettlementList' || url === '/calc/payNotiList' || url === '/calc/paySuccessList' || url === '/calc/payFailList' || url === '/calc/payRefundList' || url === '/calc/payForceRefundList' || url === '/calc/payCancelList' || url === '/calc/payVoidList' || url === '/calc/offsetCancList' || url === '/pay/easyPay' || url === '/pay/chatbotPay');
+        p.classList.toggle('screen-pay-list', url === '/calc/payList' || url === '/calc/chillPayTrList' || url === '/calc/chillPaySettlementList' || url === '/calc/payNotiList' || url === '/calc/paySuccessList' || url === '/calc/payFailList' || url === '/calc/payRefundList' || url === '/calc/payForceRefundList' || url === '/calc/payCancelList' || url === '/calc/payVoidList' || url === '/calc/payEmailVoidList' || url === '/calc/offsetCancList' || url === '/pay/easyPay' || url === '/pay/chatbotPay');
         p.classList.toggle('screen-chill-pay-tr-list', url === '/calc/chillPayTrList');
         p.classList.toggle('screen-chill-pay-settlement-list', url === '/calc/chillPaySettlementList');
         p.classList.toggle('screen-comp-mng-tree', url === '/comp/compMngTree');
@@ -5989,7 +5991,7 @@
       if (url === '/system/noticeList') promise = api.noticeList(params);
       else if (url === '/calc/chillPayTrList') promise = api.chillPayTrSearch(params);
       else if (url === '/calc/chillPaySettlementList') promise = api.chillPaySettlementSearch(params);
-      else if (url === '/calc/payList' || url === '/calc/payFailList' || url === '/calc/offsetCancList' || url === '/pay/easyPay' || url === '/pay/chatbotPay' || url === '/calc/payNotiList' || url === '/calc/paySuccessList' || url === '/calc/payRefundList' || url === '/calc/payForceRefundList' || url === '/calc/payCancelList' || url === '/calc/payVoidList') promise = api.payList(params);
+      else if (url === '/calc/payList' || url === '/calc/payFailList' || url === '/calc/offsetCancList' || url === '/pay/easyPay' || url === '/pay/chatbotPay' || url === '/calc/payNotiList' || url === '/calc/paySuccessList' || url === '/calc/payRefundList' || url === '/calc/payForceRefundList' || url === '/calc/payCancelList' || url === '/calc/payVoidList' || url === '/calc/payEmailVoidList') promise = api.payList(params);
       else if (url === '/comp/compMngTree' || url === '/comp/myCompMng' || url === '/comp/compMng' || url === '/comp/compInfo') {
         if (url === '/comp/myCompMng') params.myOrgOnly = true;
         promise = api.compList(params);
@@ -6215,7 +6217,7 @@
           var pageSize = data && data.size != null ? parseInt(data.size, 10) : pageSizeFallback;
           if (isNaN(pageSize) || pageSize < 1) pageSize = pageSizeFallback;
           var rowNoBase = (pageNum - 1) * pageSize;
-          var isPayScr = url === '/calc/payList' || url === '/calc/payNotiList' || url === '/calc/paySuccessList' || url === '/calc/payFailList' || url === '/calc/payRefundList' || url === '/calc/payForceRefundList' || url === '/calc/payCancelList' || url === '/calc/payVoidList' || url === '/calc/offsetCancList' || url === '/pay/easyPay' || url === '/pay/chatbotPay';
+          var isPayScr = url === '/calc/payList' || url === '/calc/payNotiList' || url === '/calc/paySuccessList' || url === '/calc/payFailList' || url === '/calc/payRefundList' || url === '/calc/payForceRefundList' || url === '/calc/payCancelList' || url === '/calc/payVoidList' || url === '/calc/payEmailVoidList' || url === '/calc/offsetCancList' || url === '/pay/easyPay' || url === '/pay/chatbotPay';
           list.forEach(function (row, idx) {
             var escAttr = function (s) {
               return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
@@ -6274,16 +6276,19 @@
                     if (rowOk === undefined || rowOk === null) rowOk = true;
                     var ok = metaOk && rowOk === true;
                     var dis = ok ? '' : ' disabled';
-                    var cls = ok ? 'btn btn-link btn-sm p-0 pay-follow' : 'btn btn-link btn-sm p-0 pay-follow pay-follow--off text-muted';
+                    var pill = ok ? 'pay-follow-pill--active' : 'pay-follow-pill--disabled pay-follow--off';
+                    var cls = 'pay-follow pay-follow-pill ' + pill;
                     var lab = (window.PG_PAY_LIST_I18N && typeof window.PG_PAY_LIST_I18N.payFollowLabel === 'function')
                       ? window.PG_PAY_LIST_I18N.payFollowLabel(act) : labelKo;
                     return '<button type="button" class="' + cls + '"' + dis + ' data-act="' + act + '" data-pg-pay-follow="' + act + '" data-trn="' + es + '">' + lab + '</button>';
                   }
-                  html += '<td class="small text-nowrap pay-actions-cell">' +
-                    payFollowBtn('AUTO_VOID', '자동무효') + ' ' +
-                    payFollowBtn('EMAIL_VOID', '이메일무효') + ' ' +
-                    payFollowBtn('AUTO_REFUND', '자동환불') + ' ' +
-                    payFollowBtn('FORCE_REFUND', '강제환불') + '</td>';
+                  html += '<td class="small pay-actions-cell">' +
+                    '<div class="pay-follow-pill-row d-inline-flex flex-wrap align-items-center gap-1">' +
+                    payFollowBtn('AUTO_VOID', '자동무효') +
+                    payFollowBtn('EMAIL_VOID', '이메일무효') +
+                    payFollowBtn('AUTO_REFUND', '자동환불') +
+                    payFollowBtn('FORCE_REFUND', '강제환불') +
+                    '</div></td>';
                 }
               } else if (c.type === 'accountAccessActions') {
                 var actId = row.id != null ? String(row.id) : '';
@@ -6491,6 +6496,8 @@
                 } else if (isPayScr) {
                   var payCls = [];
                   if (['pgApproveAmt', 'payAmount', 'feeCnt', 'feeRate', 'feeAmt', 'feeVat', 'holdRate', 'holdAmt', 'settleAmt', 'chillAmount', 'icopayAmt', 'chillFeeAmt', 'totalAmt', 'displayPayAmt'].indexOf(c.key) >= 0) payCls.push('text-end');
+                  if (c.key === 'payCustomerIndicator') payCls.push('text-center', 'text-nowrap');
+                  if (c.key === 'displayPaySummary') payCls.push('text-nowrap');
                   var payDualTimeKeys = ['trnTime', 'payDttm', 'payAprv', 'holdDttm', 'calcDt', 'approveDt', 'cancelDt', 'payCompletedAt'];
                   if (['payAprv', 'holdDttm', 'calcDt', 'payDttm', 'trnDate', 'trnTime', 'payCompletedAt', 'trnId', 'chillTransactionId', 'routeNo', 'notifyChannelType'].indexOf(c.key) >= 0) {
                     if (payDualTimeKeys.indexOf(c.key) < 0) {
@@ -7121,7 +7128,7 @@
         if (PG_PAY_LIST_SEARCH_URLS.indexOf(url) !== -1) {
           updatePayListAggregateBars(p, tid, data && data.meta ? data.meta : null);
         }
-        if (url === '/calc/payList' || url === '/calc/payNotiList' || url === '/calc/paySuccessList' || url === '/calc/payFailList' || url === '/calc/payRefundList' || url === '/calc/payForceRefundList' || url === '/calc/payCancelList' || url === '/calc/payVoidList' || url === '/calc/offsetCancList' || url === '/pay/easyPay' || url === '/pay/chatbotPay') {
+        if (url === '/calc/payList' || url === '/calc/payNotiList' || url === '/calc/paySuccessList' || url === '/calc/payFailList' || url === '/calc/payRefundList' || url === '/calc/payForceRefundList' || url === '/calc/payCancelList' || url === '/calc/payVoidList' || url === '/calc/payEmailVoidList' || url === '/calc/offsetCancList' || url === '/pay/easyPay' || url === '/pay/chatbotPay') {
           var finSrv = data && data.meta && data.meta.payListFinancialSummary;
           if (!finSrv) {
             var ps = { aprv: 0, canc: 0, fee: 0, vat: 0, pay: 0, hold: 0 };
@@ -7792,7 +7799,7 @@
       }
       syncAllNoticeWriteButtons();
     }
-    var autoSearchUrls = ['/system/noticeList', '/calc/payList', '/calc/chillPayTrList', '/calc/chillPaySettlementList', '/calc/payNotiList', '/calc/paySuccessList', '/calc/payFailList', '/calc/payRefundList', '/calc/payForceRefundList', '/calc/payCancelList', '/calc/payVoidList', '/calc/offsetCancList', '/pay/easyPay', '/pay/chatbotPay',
+    var autoSearchUrls = ['/system/noticeList', '/calc/payList', '/calc/chillPayTrList', '/calc/chillPaySettlementList', '/calc/payNotiList', '/calc/paySuccessList', '/calc/payFailList', '/calc/payRefundList', '/calc/payForceRefundList', '/calc/payCancelList', '/calc/payVoidList', '/calc/payEmailVoidList', '/calc/offsetCancList', '/pay/easyPay', '/pay/chatbotPay',
       '/comp/compMngTree', '/comp/compInfoHistList', '/commission/commisionList',
       '/user/userMng', '/set/gridSetMng',
       '/calc/calcList', '/calc/calcGmList', '/calc/paySettlementHoldList', '/settlement/paySettlementHoldList', '/settlement/franchiseList', '/calc/feeList', '/settlement/feeList', '/calc/compPointMngList', '/settlement/recallMng', '/calc/balanceList', '/calc/unpaidMng', '/calc/exCalcList', '/settlement/execute', '/settlement/settlementResultDistribute', '/settlement/settlementResultHold', '/calc/collateralList', '/settlement/collateralList',
@@ -12962,9 +12969,10 @@
         '/calc/paySuccessList': '성공내역',
         '/calc/payFailList': '실패내역',
         '/calc/payCancelList': '취소내역',
-        '/calc/payVoidList': '무효내역',
-        '/calc/payRefundList': '환불내역',
-        '/calc/payForceRefundList': '강제환불내역',
+        '/calc/payVoidList': '무효처리',
+        '/calc/payEmailVoidList': '이메일무효',
+        '/calc/payRefundList': '환불처리',
+        '/calc/payForceRefundList': '강제환불',
         '/pay/easyPay': 'URL결제내역',
         '/pay/chatbotPay': '챗봇결제내역',
         '/calc/offsetCancList': '상계취소내역',
@@ -18909,7 +18917,7 @@
   var PG_PAY_LIST_SEARCH_URLS = [
     '/calc/payList', '/calc/chillPayTrList', '/calc/chillPaySettlementList', '/calc/payNotiList',
     '/calc/paySuccessList', '/calc/payFailList', '/calc/payRefundList', '/calc/payForceRefundList',
-    '/calc/payCancelList', '/calc/payVoidList', '/calc/offsetCancList', '/pay/easyPay', '/pay/chatbotPay'
+    '/calc/payCancelList', '/calc/payVoidList', '/calc/payEmailVoidList', '/calc/offsetCancList', '/pay/easyPay', '/pay/chatbotPay'
   ];
   /** 정산관리 그리드 — 기본 페이지 크기·하단 번호 블록 동일 */
   var PG_SETTLEMENT_LIST_GRID_URLS = [
@@ -19177,6 +19185,13 @@
           p.style.display = 'none';
         }
       });
+      try {
+        if (window.PG_HOME_DASHBOARD && typeof window.PG_HOME_DASHBOARD.onMainShown === 'function') {
+          window.requestAnimationFrame(function () {
+            try { window.PG_HOME_DASHBOARD.onMainShown(); } catch (eDash) {}
+          });
+        }
+      } catch (eDash2) {}
     } else {
       if (mainPane) {
         mainPane.classList.remove('show', 'active');
@@ -20155,7 +20170,26 @@
     else loadOrgUnit('');
   };
 
+  /** index 최초 로드 시 메인 탭이 활성이어도 loadContent가 안 돌면 대시보드가 비어 있음 → API 로드 */
+  function pgRefreshMainDashboardIfActive(opts) {
+    opts = opts || {};
+    var mainPane = document.getElementById('main');
+    if (!mainPane) return;
+    if (!mainPane.classList.contains('show') || !mainPane.classList.contains('active')) return;
+    if (mainPane.style.display === 'none') return;
+    if (!window.PG_HOME_DASHBOARD || typeof window.PG_HOME_DASHBOARD.onMainShown !== 'function') return;
+    if (opts.invalidate && typeof window.PG_HOME_DASHBOARD.invalidate === 'function') {
+      try { window.PG_HOME_DASHBOARD.invalidate(); } catch (eInv) {}
+    }
+    requestAnimationFrame(function () {
+      try { window.PG_HOME_DASHBOARD.onMainShown(); } catch (eP) {}
+    });
+  }
+
   document.addEventListener('DOMContentLoaded', function () {
+    requestAnimationFrame(function () {
+      try { pgRefreshMainDashboardIfActive({}); } catch (eBootDash) {}
+    });
     syncSessionUserFromAuthMe().finally(function () {
       applyAdminOnlyMenuItems();
       applyMenuVisibilityByPagePermissions();
@@ -20163,6 +20197,7 @@
       if (typeof window.maybeShowPgOtpEnrollModal === 'function') {
         window.maybeShowPgOtpEnrollModal();
       }
+      try { pgRefreshMainDashboardIfActive({ invalidate: true }); } catch (eBootDash2) {}
     });
     setTableRowPaddingY(getTableRowPaddingY());
     var ul = document.getElementById(TAB_UL);

@@ -278,6 +278,35 @@
     });
   }
 
+  function dashboardPayloadNeedsExt(d) {
+    if (!d || typeof d !== 'object') return true;
+    if (!d.insights || typeof d.insights !== 'object') return true;
+    var role = String(d.role || '').toUpperCase();
+    var ol = String(d.orgLevel || '').toUpperCase();
+    var needHub = role === 'ADMIN' || ol === 'HEADQUARTERS';
+    if (!needHub) return false;
+    var h = d.hqHub;
+    if (h == null || typeof h !== 'object') return true;
+    return !(h.variant || h.title);
+  }
+
+  function mergeDashboardExt(d, extBody) {
+    if (!d || typeof d !== 'object' || !extBody || typeof extBody !== 'object') return d;
+    if (extBody.insights && typeof extBody.insights === 'object') {
+      d.insights = extBody.insights;
+    }
+    if (Object.prototype.hasOwnProperty.call(extBody, 'hqHub')) {
+      d.hqHub = extBody.hqHub;
+    }
+    if (extBody.orgLevel && (d.orgLevel == null || String(d.orgLevel).trim() === '')) {
+      d.orgLevel = extBody.orgLevel;
+    }
+    if (extBody.role && (d.role == null || String(d.role).trim() === '')) {
+      d.role = extBody.role;
+    }
+    return d;
+  }
+
   window.PG_API = {
     getToken: getToken,
     setAuth: setAuth,
@@ -299,6 +328,53 @@
     /** 현재 토큰 기준 사용자·소속 업체 (업체정보조회 등) */
     authMe: function () {
       return get('/api/auth/me');
+    },
+
+    /** 메인(/main) 대시보드: 조직별 거래 요약·서버 요약·가맹 정산 달력 */
+    dashboardHome: function () {
+      var noStore = { 'Cache-Control': 'no-cache', 'Pragma': 'no-cache' };
+      return request({
+        path: '/api/dashboard/home',
+        method: 'GET',
+        params: {},
+        headers: noStore
+      }).then(function (r) {
+        if (r && r.success === false && r.success !== undefined) {
+          throw new Error(r.message || '대시보드 조회 실패');
+        }
+        var d = r && r.data != null ? r.data : r;
+        if (d && typeof d === 'object' && d.data && typeof d.data === 'object' && d.data.sales) {
+          d = d.data;
+        }
+        if (!d || typeof d !== 'object') return {};
+        try {
+          var u = JSON.parse(sessionStorage.getItem('pg_admin_user') || '{}');
+          if ((d.orgLevel == null || String(d.orgLevel).trim() === '') && u.orgLevel) {
+            d.orgLevel = u.orgLevel;
+          }
+          if ((d.role == null || String(d.role).trim() === '') && u.role) {
+            d.role = u.role;
+          }
+        } catch (eDashUser) { /* ignore */ }
+        if (!dashboardPayloadNeedsExt(d)) return d;
+        return request({
+          path: '/api/dashboard/ext',
+          method: 'GET',
+          params: {},
+          headers: noStore
+        }).then(function (r2) {
+          if (r2 && r2.success === false && r2.success !== undefined) {
+            return d;
+          }
+          var ext = r2 && r2.data != null ? r2.data : r2;
+          if (ext && typeof ext === 'object' && ext.data && typeof ext.data === 'object' && ext.data.insights) {
+            ext = ext.data;
+          }
+          return mergeDashboardExt(d, ext && typeof ext === 'object' ? ext : {});
+        }).catch(function () {
+          return d;
+        });
+      });
     },
 
     authChangePassword: function (currentPassword, newPassword, confirmPassword) {

@@ -779,9 +779,9 @@ public class PayListService {
                 ), cb.literal(PayListStatusBarBuckets.FAIL))
                 .when(cb.or(
                         cb.equal(st, "21"), cb.equal(st, "22"),
-                        cb.equal(st, "40"), cb.equal(st, "41"), cb.equal(st, "42")
+                        cb.equal(st, "40"), cb.equal(st, "41")
                 ), cb.literal(PayListStatusBarBuckets.VOID))
-                .when(cb.equal(st, "30"), cb.literal(PayListStatusBarBuckets.REFUND))
+                .when(cb.or(cb.equal(st, "30"), cb.equal(st, "42")), cb.literal(PayListStatusBarBuckets.REFUND))
                 .when(cb.equal(st, "31"), cb.literal(PayListStatusBarBuckets.FORCE_REFUND))
                 .when(cb.equal(st, "20"), cb.literal(PayListStatusBarBuckets.CANCEL))
                 .otherwise(cb.literal(PayListStatusBarBuckets.OTHER));
@@ -843,6 +843,7 @@ public class PayListService {
             case "SUCCESS" -> List.of(PayListStatusBarBuckets.SUCCESS);
             case "FAIL" -> List.of(PayListStatusBarBuckets.FAIL);
             case "VOID" -> List.of(PayListStatusBarBuckets.VOID);
+            case "MANUAL_VOID" -> List.of(PayListStatusBarBuckets.VOID);
             case "REFUND" -> List.of(PayListStatusBarBuckets.REFUND);
             case "FORCE_REFUND" -> List.of(PayListStatusBarBuckets.FORCE_REFUND);
             case "CANCEL" -> List.of(PayListStatusBarBuckets.CANCEL);
@@ -1288,10 +1289,11 @@ public class PayListService {
             case "INTEGRATED" -> cb.conjunction();
             case "SUCCESS" -> cb.equal(root.get("status"), "10");
             case "FAIL" -> root.get("status").in("F0", "99");
-            case "REFUND" -> cb.equal(root.get("status"), "30");
+            case "REFUND" -> root.get("status").in("30", "42");
             case "FORCE_REFUND" -> cb.equal(root.get("status"), "31");
             case "CANCEL" -> cb.equal(root.get("status"), "20");
-            case "VOID" -> root.get("status").in("21", "22", "40", "41", "42");
+            case "VOID" -> root.get("status").in("21", "40");
+            case "MANUAL_VOID" -> root.get("status").in("22", "41");
             case "OFFSET_CANCEL" -> cb.and(
                     cb.equal(cb.upper(cb.trim(cb.coalesce(root.get("settledYn"), cb.literal("N")))), "Y"),
                     root.get("status").in("20", "21", "22", "30", "31", "40", "41", "42"));

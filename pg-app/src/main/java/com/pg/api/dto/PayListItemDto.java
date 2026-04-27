@@ -226,7 +226,7 @@ public class PayListItemDto {
         return row;
     }
 
-    /** VIEW SETTING: URL·DISPLAY_FX·노티 등 고객 표시 금액·통화(PG 청구와 별도). */
+    /** VIEW SETTING: URL·DISPLAY_FX·노티 등 고객금액·고객통화(PG 청구와 별도). */
     private static void applyDisplayPayRow(PgTrnsctn t, Map<String, Object> row) {
         if (t.getDisplayAmt() != null && t.getDisplayCurType() != null && !t.getDisplayCurType().isBlank()) {
             String dCur = normalizeDisplayCurrency(t.getDisplayCurType().trim());
@@ -234,10 +234,19 @@ public class PayListItemDto {
             row.put("displayPayCur", dCur);
             String plain = t.getDisplayAmt().stripTrailingZeros().toPlainString();
             row.put("displayPaySummary", dCur + " " + plain);
+            String billCur = row.get("currency") != null
+                    ? normalizeDisplayCurrency(String.valueOf(row.get("currency")).trim())
+                    : "";
+            Object ca = row.get("chillAmount");
+            BigDecimal billingAmt = ca instanceof BigDecimal b ? b : null;
+            boolean curMatch = !billCur.isBlank() && billCur.equalsIgnoreCase(dCur);
+            boolean amtMatch = billingAmt != null && billingAmt.stripTrailingZeros().compareTo(t.getDisplayAmt().stripTrailingZeros()) == 0;
+            row.put("payCustomerIndicator", (curMatch && amtMatch) ? "\uB3D9\uC77C" : "\uBCC4\uB3C4");
         } else {
             row.put("displayPayAmt", null);
             row.put("displayPayCur", "");
             row.put("displayPaySummary", "");
+            row.put("payCustomerIndicator", "\u2014");
         }
     }
 

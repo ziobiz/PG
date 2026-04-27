@@ -371,6 +371,6 @@ CREATE TABLE IF NOT EXISTS tb_settlement_calc_cycle_audit (
 CREATE INDEX IF NOT EXISTS ix_scca_org_created ON tb_settlement_calc_cycle_audit (org_unit_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS ix_scca_merchant_created ON tb_settlement_calc_cycle_audit (merchant_code, created_at DESC);
 
--- V118: 거래 마스터 — 고객 표시 금액·통화 (db/V118_pg_trnsctn_display_pay.sql 과 동일)
+-- V118: 거래 마스터 — 고객금액·고객통화 (db/V118_pg_trnsctn_display_pay.sql 과 동일)
 ALTER TABLE pg_trnsctn ADD COLUMN IF NOT EXISTS display_cur_type VARCHAR(10);
 ALTER TABLE pg_trnsctn ADD COLUMN IF NOT EXISTS display_amt NUMERIC(20, 8);

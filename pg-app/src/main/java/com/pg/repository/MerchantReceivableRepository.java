@@ -1,9 +1,13 @@
 package com.pg.repository;
 
 import com.pg.entity.MerchantReceivable;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
+import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
@@ -19,4 +23,17 @@ public interface MerchantReceivableRepository extends JpaRepository<MerchantRece
     Optional<MerchantReceivable> findByMerchantIdAndReasonCodeAndMemo(String merchantId, String reasonCode, String memo);
 
     List<MerchantReceivable> findByReasonCodeAndMemoIn(String reasonCode, Collection<String> memos);
+
+    @Query("SELECT COUNT(r), COALESCE(SUM(r.remainingAmount), 0) FROM MerchantReceivable r WHERE UPPER(TRIM(r.status)) = 'PENDING'")
+    Object[] dashboardPendingReceivableAll();
+
+    @Query("SELECT COUNT(r), COALESCE(SUM(r.remainingAmount), 0) FROM MerchantReceivable r WHERE UPPER(TRIM(r.status)) = 'PENDING' AND r.merchantId IN :mids")
+    Object[] dashboardPendingReceivableIn(@Param("mids") Collection<String> mids);
+
+    @Query("SELECT r FROM MerchantReceivable r WHERE r.createdAt >= :since ORDER BY r.createdAt DESC")
+    List<MerchantReceivable> findRecentCreatedAll(@Param("since") LocalDateTime since, Pageable pageable);
+
+    @Query("SELECT r FROM MerchantReceivable r WHERE r.createdAt >= :since AND r.merchantId IN :mids ORDER BY r.createdAt DESC")
+    List<MerchantReceivable> findRecentCreatedIn(@Param("since") LocalDateTime since, @Param("mids") Collection<String> mids,
+                                                 Pageable pageable);
 }

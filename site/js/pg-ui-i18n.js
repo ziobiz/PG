@@ -5170,23 +5170,47 @@
       CH: '取消记录',
       TH: 'รายการยกเลิก'
     },
+    '무효처리': {
+      EN: 'Void processing',
+      JP: '無効処理',
+      CH: '作废处理',
+      TH: 'โมฆะ'
+    },
+    '이메일무효': {
+      EN: 'Email void',
+      JP: 'メール無効',
+      CH: '邮件作废',
+      TH: 'โมฆะอีเมล'
+    },
+    '환불처리': {
+      EN: 'Refund processing',
+      JP: '返金処理',
+      CH: '退款处理',
+      TH: 'คืนเงิน'
+    },
+    '강제환불': {
+      EN: 'Force refund',
+      JP: '強制返金',
+      CH: '强制退款',
+      TH: 'บังคับคืน'
+    },
     '무효내역': {
-      EN: 'Voided payments',
-      JP: '無効履歴',
-      CH: '无效记录',
-      TH: 'รายการโมฆะ'
+      EN: 'Void processing',
+      JP: '無効処理',
+      CH: '作废处理',
+      TH: 'โมฆะ'
     },
     '환불내역': {
-      EN: 'Refunds',
-      JP: '返金履歴',
-      CH: '退款记录',
-      TH: 'รายการคืนเงิน'
+      EN: 'Refund processing',
+      JP: '返金処理',
+      CH: '退款处理',
+      TH: 'คืนเงิน'
     },
     '강제환불내역': {
-      EN: 'Forced refunds',
-      JP: '強制返金履歴',
-      CH: '强制退款记录',
-      TH: 'รายการคืนเงินบังคับ'
+      EN: 'Force refund',
+      JP: '強制返金',
+      CH: '强制退款',
+      TH: 'บังคับคืน'
     },
     'URL결제내역': {
       EN: 'URL payment list',
