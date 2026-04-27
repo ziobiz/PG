@@ -2168,9 +2168,31 @@ td.empty-state-cell {
 }
 .pg-binding-table { font-size: var(--app-table-font-size); }
 .pg-binding-table th, .pg-binding-table td { vertical-align: middle; }
-.pg-binding-table input, .pg-binding-table select { min-width: 80px; }
+/* 텍스트·숫자 입력만 최소 너비 — 체크·라디오는 정사각형 유지 */
+.pg-binding-table input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]),
+.pg-binding-table select {
+  min-width: 80px;
+}
+.pg-binding-table td:first-child {
+  text-align: center;
+  width: 2.75rem;
+  max-width: 3.5rem;
+}
+.pg-binding-table input[type="checkbox"],
+.pg-binding-table input[type="radio"] {
+  min-width: 0 !important;
+  width: 1.125rem !important;
+  height: 1.125rem !important;
+  max-width: 1.125rem;
+  max-height: 1.125rem;
+  aspect-ratio: 1;
+  box-sizing: border-box;
+  margin-left: auto;
+  margin-right: auto;
+  display: block;
+}
 
-/* 결제대행사 설정: 운영(라디오 선택) 행만 파스텔 레드, 그 외 행은 그레이 */
+/* 결제대행사 설정: 운영(체크) 행만 파스텔 레드, 그 외 행은 그레이 */
 .pg-binding-table tbody tr.pg-binding-row--operational > td {
   background: linear-gradient(180deg, #fff5f5 0%, #ffe4e8 100%) !important;
   border-top-color: #fecdd3 !important;
@@ -2184,20 +2206,14 @@ td.empty-state-cell {
 .pg-binding-table tbody tr.pg-binding-row--inactive .form-select {
   background-color: #f8f9fa;
 }
-/* 운영 열 라디오: 선택 시 동그란 표시도 파스텔 레드( accent-color ) */
-.pg-binding-table tbody tr.pg-binding-row--operational input[type="radio"][name="pgOperational"] {
+/* 운영 열 체크(복수 가능): accent만 행별로 구분(크기는 위 공통 정사각형) */
+.pg-binding-table tbody tr.pg-binding-row--operational input[type="checkbox"][name="pgOperational"] {
   accent-color: #e85d75;
-  width: 1.15em;
-  height: 1.15em;
   cursor: pointer;
-  vertical-align: middle;
 }
-.pg-binding-table tbody tr.pg-binding-row--inactive input[type="radio"][name="pgOperational"] {
+.pg-binding-table tbody tr.pg-binding-row--inactive input[type="checkbox"][name="pgOperational"] {
   accent-color: #94a3b8;
-  width: 1.05em;
-  height: 1.05em;
   cursor: pointer;
-  vertical-align: middle;
 }
 
 /* 본사 API연동설정: 운영 체크(사용 Y) 행만 파스텔 레드 */
@@ -2210,12 +2226,22 @@ td.empty-state-cell {
   background-color: #eef0f3;
   color: #5c6370;
 }
-.table tbody tr.hq-pg-row-operational .hq-pg-operational-cb {
-  accent-color: #e85d75;
-  width: 1.15em;
-  height: 1.15em;
+/* 본사 API연동설정·기타 표: 운영 체크 정사각형(고정 레이아웃 열에서 늘어남 방지) */
+.hq-pg-api-mng-table .hq-pg-operational-cb,
+.table tbody tr.hq-pg-row-operational .hq-pg-operational-cb,
+.table tbody tr.hq-pg-row-inactive .hq-pg-operational-cb {
+  min-width: 0 !important;
+  width: 1.125rem !important;
+  height: 1.125rem !important;
+  max-width: 1.125rem;
+  max-height: 1.125rem;
+  aspect-ratio: 1;
+  box-sizing: border-box;
   cursor: pointer;
   vertical-align: middle;
+}
+.table tbody tr.hq-pg-row-operational .hq-pg-operational-cb {
+  accent-color: #e85d75;
 }
 .table tbody tr.hq-pg-row-inactive .hq-pg-operational-cb:not(:disabled) {
   accent-color: #94a3b8;
@@ -3824,5 +3850,10 @@ button.pay-follow.pay-follow--off {
 .merchant-deploy-kit .merchant-deploy-plain-help ol,
 .merchant-deploy-kit .merchant-deploy-plain-help ul {
   line-height: 1.55;
+}
+
+/* URL 결제 운영 조건 미충족 시 웹결제/대표상품 카드 비활성 표시 */
+#webPaymentCard.pg-url-pay-card--disabled {
+  opacity: 0.55;
 }
 

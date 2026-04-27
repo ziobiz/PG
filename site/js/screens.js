@@ -1083,19 +1083,6 @@
           ]
         },
         {
-          title: '헬로 타임라인',
-          notice: '「사용」이면 헬로(안내·VIEW SETTING 영역) 표시가 로그인 브라우저(sessionStorage)에서 전 페이지에 동기화됩니다. 한 페이지에서 헬로를 켜면 설정한 분(기본 10분) 동안 모든 목록 화면에서 동일하게 표시되며, 시간이 지나면 전 페이지에서 자동으로 숨김(비활성)으로 돌아갑니다. 「비사용」이면 기존과 같이 페이지(탭)마다 헬로를 따로 토글합니다.',
-          rows: [
-            [{ label: '헬로 타임라인', type: 'select', name: 'helloTimelineEnabledYn', options: [{ v: 'N', t: '비사용' }, { v: 'Y', t: '사용' }], col: 2 },
-             { label: '유지 시간(분)', type: 'number', name: 'helloTimelineDurationMin', col: 2, placeholder: '기본 10', title: '1~1440(24시간). 사용일 때만 적용됩니다.' }],
-            [{ type: 'customHtml', col: 12,
-              html: '<div class="d-flex flex-wrap justify-content-end align-items-center gap-2 mt-1">' +
-                '<button type="button" class="btn btn-outline-secondary btn-sm" id="hqLedgerHelloTimelineReloadBtn">' + escUi(L('다시 불러오기')) + '</button>' +
-                '<button type="button" class="btn btn-primary btn-sm" id="hqLedgerHelloTimelineSaveBtn">' + escUi(L('헬로 타임라인 저장')) + '</button></div>' +
-                '<p class="small text-muted mb-0 mt-1">' + escUi(L('다른 전산설정 항목은 건드리지 않고, 위 두 값만 서버에 반영합니다. 하단 「저장」은 화면 전체를 저장합니다.')) + '</p>' }]
-          ]
-        },
-        {
           title: '데이터 보관 기간',
           notice: '쌓이는 데이터 유형별로 DB·로그·버퍼 보관 목표 일수를 지정합니다. 표에는 업체정보(등록)·업체관리·정산관리·가맹점 정산내역(수수료내역)·정산 리포트 등 모듈별 유형이 포함됩니다. 「자동삭제」를 켠 항목만 매일 새벽 스케줄로 초과분 삭제를 시도합니다(스케줄 대상만 체크 가능). 그 외 유형은 보관 목표(일)만 저장됩니다. 아래 표는 하단 「수수료·정산 로직」과 같은 테이블 래핑(둥근 테두리·작은 표 스타일)을 사용합니다. 상단 빨간 「전체 데이터 초기화」는 보관 일수와 별도로, 등록된 조직·가맹 프로필만 남기고 거래·정산·노티·수수료 정책 등 넓게 비웁니다. 파란 「정산 데이터 초기화」는 <strong>수수료내역·거래·본사 정산 설정·통합정산(외부)</strong>은 두고 정산 실행·미수·환수·담보·공제·보류/유통/리포트 근거 행만 지웁니다(복구 불가, 동일 권한).',
           rows: [
@@ -1822,7 +1809,7 @@
           id: 'pgBindingCard',
           merchantOnly: true,
           omitExtSettleColumns: true,
-          notice: '배포설정 > API연동설정에서 사용(Y)으로 등록된 결제대행사가 목록에 표시됩니다. PG를 고르면 API연동설정의 MID·Route 등이 기본값으로 채워지며, 가맹점 전용 값은 수정·저장하면 됩니다. 예정모드·N·D시각은 위 「통합정산설정」에서 일괄 지정합니다. 실제 결제 운영 PG는 라디오(운영)로 하나만 지정합니다. 라디오가 켜진 행만 붉은 배경(파스텔)으로 표시됩니다. 하단 [저장] 시 한꺼번에 반영됩니다.'
+          notice: '배포설정 > API연동설정에서 사용(Y)으로 등록된 결제대행사가 목록에 표시됩니다. PG를 고르면 API연동설정의 MID·Route 등이 기본값으로 채워지며, 가맹점 전용 값은 수정·저장하면 됩니다. 예정모드·N·D시각은 위 「통합정산설정」에서 일괄 지정합니다. URL·챗봇·API 결제는 운영(체크)를 여러 행에 켤 수 있습니다. 체크된 행은 붉은 배경(파스텔)으로 표시됩니다. 노티 전용 PG는 카드브랜드가 ALL로 고정됩니다. 하단 [저장] 시 한꺼번에 반영됩니다.'
         },
         {
           title: '웹결제 사용 / 대표 기본상품정보 (온라인 URL 결제용)',
@@ -2162,7 +2149,7 @@
           id: 'pgBindingCard',
           merchantOnly: true,
           omitExtSettleColumns: true,
-          notice: '배포설정 > API연동설정에서 사용(Y)으로 등록된 결제대행사가 목록에 표시됩니다. PG를 고르면 API연동설정의 MID·Route 등이 기본값으로 채워지며, 가맹점 전용 값은 수정·저장하면 됩니다. 실제 결제 운영 PG는 라디오(운영)로 하나만 지정합니다. 라디오가 켜진 행만 붉은 배경(파스텔)으로 표시됩니다. 등록 화면은 하단 [저장] 시 한꺼번에 반영됩니다.'
+          notice: '배포설정 > API연동설정에서 사용(Y)으로 등록된 결제대행사가 목록에 표시됩니다. PG를 고르면 API연동설정의 MID·Route 등이 기본값으로 채워지며, 가맹점 전용 값은 수정·저장하면 됩니다. URL·챗봇·API 결제는 운영(체크)를 여러 행에 켤 수 있습니다. 체크된 행은 붉은 배경(파스텔)로 표시됩니다. 노티 전용 PG는 카드브랜드가 ALL로 고정됩니다. 등록 화면은 하단 [저장] 시 한꺼번에 반영됩니다.'
         },
         {
           title: '웹결제 사용 / 대표 기본상품정보 (온라인 URL 결제용)',
@@ -2435,7 +2422,7 @@
           id: 'pgBindingCard',
           merchantOnly: true,
           omitExtSettleColumns: true,
-          notice: '배포설정 > API연동설정(사용 Y) 전체가 목록에 나오며, PG 선택 시 본사에 등록한 MID·Route가 기본 입력됩니다. 예정모드·N·D시각은 위 「통합정산설정」에서 일괄 지정합니다. API KEY·IV는 비우면 본사 연동 자격을 따를 수 있습니다(ChillPay 등). 운영 PG는 라디오로 지정합니다. 라디오가 켜진 행만 붉은 배경(파스텔)으로 표시됩니다. [추가]로 행을 열고, 업체정보(가맹점)에서는 [저장][삭제][수정]마다 확인창이 두 번 뜹니다.'
+          notice: '배포설정 > API연동설정(사용 Y) 전체가 목록에 나오며, PG 선택 시 본사에 등록한 MID·Route가 기본 입력됩니다. 예정모드·N·D시각은 위 「통합정산설정」에서 일괄 지정합니다. API KEY·IV는 비우면 본사 연동 자격을 따를 수 있습니다(ChillPay 등). URL·챗봇·API 결제는 운영(체크)를 여러 행에 켤 수 있습니다. 체크된 행은 붉은 배경(파스텔)로 표시됩니다. 노티 전용 PG는 카드브랜드가 ALL로 고정됩니다. [추가]로 행을 열고, 업체정보(가맹점)에서는 [저장][삭제][수정]마다 확인창이 두 번 뜹니다.'
         },
         {
           title: '웹결제 사용 / 대표 기본상품정보 (온라인 URL 결제용)',
@@ -4596,7 +4583,7 @@
       } else if (sec.type === 'pgBindingList') {
         var omitExtSettleCols = !!sec.omitExtSettleColumns;
         html += '<div class="pg-binding-list-wrap"' + (omitExtSettleCols ? ' data-pg-omit-ext-settle-cols="1"' : '') + '><table class="table table-sm table-bordered pg-binding-table"><thead><tr>' +
-          '<th data-pg-ui-t="운영">운영</th><th data-pg-ui-t="착신화">착신화</th><th data-pg-ui-t="결제대행사">결제대행사</th><th data-pg-ui-t="결제구분">결제구분</th><th>MID</th><th data-pg-ui-t="루트번호">루트번호</th><th style="min-width:12rem">API KEY</th><th style="min-width:12rem">IV KEY</th><th data-pg-ui-t="할부">할부</th><th data-pg-ui-t="최대할부">최대할부</th>' +
+          '<th data-pg-ui-t="운영">운영</th><th data-pg-ui-t="착신화">착신화</th><th data-pg-ui-t="결제대행사">결제대행사</th><th data-pg-ui-t="결제구분">결제구분</th><th>MID</th><th data-pg-ui-t="루트번호">루트번호</th><th style="min-width:12rem">API KEY</th><th style="min-width:12rem">IV KEY</th><th data-pg-ui-t="할부">할부</th><th data-pg-ui-t="최대할부">최대할부</th><th data-pg-ui-t="카드브랜드">카드브랜드</th>' +
           (omitExtSettleCols ? '' : '<th data-pg-ui-title="비우면 연동(tb_pg_agency) 기본" title="비우면 연동(tb_pg_agency) 기본" data-pg-ui-t="예정모드">예정모드</th><th>N</th><th data-pg-ui-t="D시각">D시각</th>') +
           '<th style="min-width:200px" data-pg-ui-t="작업">작업</th></tr></thead><tbody id="pgBindingTbody"></tbody></table>' +
           '<button type="button" class="btn btn-outline-primary btn-sm mt-2" id="pgBindingAddBtn" data-pg-ui-t="+ 결제대행사 추가">+ 결제대행사 추가</button>' +
@@ -4710,11 +4697,12 @@
   }
 
   /**
-   * 헬로: 모든 목록(액션 바가 있을 때)에 삽입 — 클릭 시 안내(파스텔)·VIEW SETTING만 함께 숨김/표시(집계 바는 유지).
-   * VIEW SETTING이 없는 화면은 `.pg-hello-toggle-zone`(안내 박스 등)만 토글됩니다.
+   * 헬로: 목록 등 액션 바가 있을 때 삽입 — 클릭 시 안내(파스텔)·VIEW SETTING만 함께 숨김/표시(집계 바는 유지).
+   * 본사설정(/hq/*) 화면에는 주입하지 않습니다.
    */
-  function injectViewSettingHelloIntoButtons(btns, cfg) {
+  function injectViewSettingHelloIntoButtons(btns, cfg, screenUrl) {
     if (!cfg || cfg.hideListGrid) return btns || [];
+    if (screenUrl && String(screenUrl).indexOf('/hq/') === 0) return btns || [];
     if (!btns || !btns.length) return btns;
     var out = btns.slice();
     var refreshIdx = -1;
@@ -4741,9 +4729,9 @@
   }
 
   /** 총합(요약) 왼쪽 + 액션 버튼 오른쪽 한 줄 배치 (모든 목록 화면 공통) */
-  function renderSummaryAndActions(cfg, tabId) {
+  function renderSummaryAndActions(cfg, tabId, screenUrl) {
     var items = cfg.summary || [];
-    var btns = injectViewSettingHelloIntoButtons(cfg.buttons || [], cfg);
+    var btns = injectViewSettingHelloIntoButtons(cfg.buttons || [], cfg, screenUrl);
     var fmt = cfg.summaryFormat !== undefined ? cfg.summaryFormat : '0';
     var summaryHtml = '';
     if (items.length > 0) {
@@ -5174,24 +5162,24 @@
     html += '<div class="card"><div class="card-body">';
     if (cfg.isForm && cfg.formSections && cfg.formSections.length > 0) {
       html += renderFormSections(cfg);
-      html += renderSummaryAndActions(cfg, tabId);
+      html += renderSummaryAndActions(cfg, tabId, url);
     } else if (cfg.isForm && cfg.formRows && cfg.formRows.length > 0) {
       html += renderFormRows(cfg);
-      html += renderSummaryAndActions(cfg, tabId);
+      html += renderSummaryAndActions(cfg, tabId, url);
     } else if (cfg.domainConfigScreen) {
       html += renderDomainConfigShell(tabId);
-      html += renderSummaryAndActions(cfg, tabId);
+      html += renderSummaryAndActions(cfg, tabId, url);
     } else if (cfg.orgPagePermissionMatrix) {
       html += renderOrgPagePermissionShell(tabId);
-      html += renderSummaryAndActions(cfg, tabId);
+      html += renderSummaryAndActions(cfg, tabId, url);
     } else if (cfg.staticHtml) {
       html += typeof cfg.staticHtml === 'function' ? cfg.staticHtml() : cfg.staticHtml;
-      html += renderSummaryAndActions(cfg, tabId);
+      html += renderSummaryAndActions(cfg, tabId, url);
     } else {
       if (!cfg.hideListGrid) {
         html += renderSearchForm(cfg, tabId);
         if (cfg.noticeList && cfg.noticeList.length > 0) html += renderNotice(cfg);
-        html += renderSummaryAndActions(cfg, tabId);
+        html += renderSummaryAndActions(cfg, tabId, url);
         if (cfg.payListStatusBar) html += renderPayListStatusBarSlot(tabId);
         if (cfg.columns && cfg.columns.length > 0) html += renderTableColumnGuide(cfg);
         html += renderTable(cfg, tabId);

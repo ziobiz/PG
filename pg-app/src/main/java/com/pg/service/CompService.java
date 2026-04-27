@@ -36,6 +36,7 @@ import com.pg.util.CommissionTierJsonHelper;
 import com.pg.util.PercentDecimalHelper;
 import com.pg.util.ReceivableRecoveryModeUtil;
 import com.pg.util.VoidRefundSettlementModeUtil;
+import com.pg.util.CardBrandScopeUtil;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -1071,6 +1072,16 @@ public class CompService {
                                         bm.put("installmentYn", b.getInstallmentYn() != null ? b.getInstallmentYn() : "N");
                                         bm.put("maxInstallmentMonths", b.getMaxInstallmentMonths() != null ? String.valueOf(b.getMaxInstallmentMonths()) : "");
                                         bm.put("urlPayPricingMode", b.getUrlPayPricingMode() != null ? b.getUrlPayPricingMode() : "CHECKOUT_CURRENCY");
+                                        String pgc = b.getPgCd() != null ? b.getPgCd().trim() : "";
+                                        String integUrl = "N";
+                                        if (!pgc.isEmpty()) {
+                                            integUrl = pgAgencyRepository.findByPgCd(pgc)
+                                                    .filter(a -> a.getUseYn() != null && "Y".equalsIgnoreCase(a.getUseYn().trim()))
+                                                    .map(a -> "Y".equalsIgnoreCase(a.getIntegUrlPayYn() != null ? a.getIntegUrlPayYn().trim() : "") ? "Y" : "N")
+                                                    .orElse("N");
+                                        }
+                                        bm.put("integUrlPayYn", integUrl);
+                                        bm.put("cardBrandScope", b.getCardBrandScope() != null ? b.getCardBrandScope() : "ALL");
                                         bm.put("extSettleMode", b.getExtSettleMode() != null ? b.getExtSettleMode() : "");
                                         bm.put("extSettleLag", b.getExtSettleLag() != null ? String.valueOf(b.getExtSettleLag()) : "");
                                         bm.put("extSettleBatchTime", b.getExtSettleBatchTime() != null ? b.getExtSettleBatchTime().toString() : "");
@@ -1083,6 +1094,8 @@ public class CompService {
                                     merchantProfileRepository.save(mp);
                                 }
                                 m.put("webPaymentUseYn", mp.getWebPaymentUseYn() != null ? mp.getWebPaymentUseYn() : "Y");
+                                m.put("urlPayWebSettingsAllowed",
+                                        chillPayService.findOperationalWebBindingForUrlPay(ou.getId()).isPresent() ? "Y" : "N");
                             }
                             Map<String, Object> ownRegionalSettings = parseRegionalSettings(mp.getRegionalSettings());
                             if (!ownRegionalSettings.isEmpty()) {
@@ -1524,6 +1537,7 @@ public class CompService {
                                         }
                                         binding.setSortOrder(order++);
                                         applyUrlPayPricingModeFromJsonOrPrevious(binding, pc, pm, optStr(m, "urlPayPricingMode"), prevPgPricingModes);
+                                        binding.setCardBrandScope(resolveMerchantPgCardBrandScopeForSave(pc, optStr(m, "cardBrandScope")));
                                         applyExtSettlementFromJsonMap(binding, m);
                                         merchantPgBindingRepository.save(binding);
                                     }
@@ -2141,6 +2155,7 @@ public class CompService {
                     } else {
                         binding.setUrlPayPricingMode("CHECKOUT_CURRENCY");
                     }
+                    binding.setCardBrandScope(resolveMerchantPgCardBrandScopeForSave(pc, optStr(m, "cardBrandScope")));
                     binding.setSortOrder(++order);
                     applyExtSettlementFromJsonMap(binding, m);
                     merchantPgBindingRepository.save(binding);
@@ -3528,6 +3543,7 @@ public class CompService {
                 + " MID=" + nz(b.getMid()) + " 활성=" + nz(b.getActivationYn())
                 + " 운영=" + nz(b.getOperationalYn()) + " Route=" + nz(b.getRootNo())
                 + " URL금액=" + nz(b.getUrlPayPricingMode())
+                + " 카드=" + nz(b.getCardBrandScope())
                 + " 할부=" + nz(b.getInstallmentYn())
                 + " extSettle=" + nz(b.getExtSettleMode());
     }
@@ -3550,6 +3566,34 @@ public class CompService {
         }
     }
 
+    /**
+     * 연동용도가 노티만(Y)이고 URL·챗봇·API 연동이 없는 PG — 가맹 바인딩 카드브랜드 범위는 ALL 고정.
+     */
+    private boolean isPgAgencyNotifyOnlyIntegration(String pgCd) {
+        if (pgCd == null || pgCd.isBlank()) {
+            return false;
+        }
+        return pgAgencyRepository.findByPgCd(pgCd.trim())
+                .map(a -> "Y".equalsIgnoreCase(nullToN(a.getIntegNotiYn()))
+                        && !"Y".equalsIgnoreCase(nullToN(a.getIntegUrlPayYn()))
+                        && !"Y".equalsIgnoreCase(nullToN(a.getIntegWebChatbotYn()))
+                        && !"Y".equalsIgnoreCase(nullToN(a.getIntegApiYn())))
+                .orElse(false);
+    }
+
+    private static String nullToN(String s) {
+        return s != null ? s.trim() : "";
+    }
+
+    /** 노티 전용 PG면 ALL, 그 외에는 요청값 검증·정규화. */
+    private String resolveMerchantPgCardBrandScopeForSave(String pgCd, String requestedCardBrandScope) {
+        if (isPgAgencyNotifyOnlyIntegration(pgCd)) {
+            return "ALL";
+        }
+        CardBrandScopeUtil.validateOrThrow(requestedCardBrandScope);
+        return CardBrandScopeUtil.normalize(requestedCardBrandScope);
+    }
+
     private void validateMerchantPgBindingJsonRows(List<Map<String, Object>> list) {
         if (list == null) {
             return;
@@ -3560,6 +3604,9 @@ public class CompService {
                 continue;
             }
             requireSelectablePgAgencyForMerchant(pc);
+            if (!isPgAgencyNotifyOnlyIntegration(pc)) {
+                CardBrandScopeUtil.validateOrThrow(optStr(m, "cardBrandScope"));
+            }
         }
     }
 
@@ -3599,11 +3646,8 @@ public class CompService {
     }
 
     /**
-     * 가맹 PG 정산예정 덮어쓰기. {@code extSettleMode} 빈 값·{@code INHERIT} → 연동(tb_pg_agency) 기본 따름(DB null).
-     * {@code OFF} → 이 MID는 예정일 미표시. {@code T}/{@code D} → N(1~10), D는 일괄시각 필수.
-     */
-    /**
-     * URL 결제(연동용도 URL결제) 운영 WEB 바인딩이 없으면 {@link MerchantProfile#getWebPaymentUseYn()} 을 미사용(N)으로 맞춘다.
+     * 운영(Y) WEB 바인딩이면서 연동용도 URL결제인 행이 없으면 {@link MerchantProfile#getWebPaymentUseYn()} 을 미사용(N)으로 맞춘다.
+     * (노티 전용 PG만 운영이면 URL·웹결제 설정을 동시에 켤 수 없음.)
      * @return 프로필의 웹결제여부 값이 바뀌었으면 true (호출측에서 {@link MerchantProfileRepository#save} 권장)
      */
     private boolean syncMerchantWebPaymentUseYnIfNoUrlPayBinding(Long merchantOrgUnitId, MerchantProfile mp) {
@@ -3671,6 +3715,7 @@ public class CompService {
                                                      String activationYn, String operationalYn,
                                                      String installmentYn, String maxInstallmentMonthsStr,
                                                      String urlPayPricingMode,
+                                                     String cardBrandScope,
                                                      boolean extSettlementFieldsPresent,
                                                      String extSettleMode, String extSettleLagStr, String extSettleBatchHm) {
         OrgUnit ou = orgUnitRepository.findByCode(compId != null ? compId.trim() : "")
@@ -3725,13 +3770,6 @@ public class CompService {
             binding.setMaxInstallmentMonths(null);
         }
         boolean opY = "Y".equalsIgnoreCase(operationalYn);
-        if (opY) {
-            for (MerchantPgBinding other : merchantPgBindingRepository.findByOrgUnitIdOrderBySortOrderAsc(ou.getId())) {
-                if (binding.getId() != null && other.getId().equals(binding.getId())) continue;
-                other.setOperationalYn("N");
-                merchantPgBindingRepository.save(other);
-            }
-        }
         binding.setOperationalYn(opY ? "Y" : "N");
         if (binding.getId() == null) {
             if (urlPayPricingMode != null && "DISPLAY_FX_THB".equalsIgnoreCase(urlPayPricingMode.trim())) {
@@ -3743,6 +3781,7 @@ public class CompService {
             binding.setUrlPayPricingMode("DISPLAY_FX_THB".equalsIgnoreCase(urlPayPricingMode.trim())
                     ? "DISPLAY_FX_THB" : "CHECKOUT_CURRENCY");
         }
+        binding.setCardBrandScope(resolveMerchantPgCardBrandScopeForSave(pc, cardBrandScope));
         if (extSettlementFieldsPresent) {
             applyMerchantPgBindingExtSettlementFields(binding, extSettleMode, extSettleLagStr, extSettleBatchHm);
         }
@@ -3763,6 +3802,7 @@ public class CompService {
         bm.put("installmentYn", binding.getInstallmentYn());
         bm.put("maxInstallmentMonths", binding.getMaxInstallmentMonths() != null ? String.valueOf(binding.getMaxInstallmentMonths()) : "");
         bm.put("urlPayPricingMode", binding.getUrlPayPricingMode() != null ? binding.getUrlPayPricingMode() : "CHECKOUT_CURRENCY");
+        bm.put("cardBrandScope", binding.getCardBrandScope() != null ? binding.getCardBrandScope() : "ALL");
         bm.put("extSettleMode", binding.getExtSettleMode() != null ? binding.getExtSettleMode() : "");
         bm.put("extSettleLag", binding.getExtSettleLag() != null ? String.valueOf(binding.getExtSettleLag()) : "");
         bm.put("extSettleBatchTime", binding.getExtSettleBatchTime() != null ? binding.getExtSettleBatchTime().toString() : "");

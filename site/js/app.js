@@ -2131,6 +2131,90 @@
     });
   }
 
+  function pgAgencyCatalogRowNotifyOnly(cat, pgCd) {
+    var p = cat && pgCd ? cat[String(pgCd).trim().toUpperCase()] : null;
+    if (!p) return false;
+    var n = String(p.integNotiYn || '').toUpperCase() === 'Y';
+    var u = String(p.integUrlPayYn || '').toUpperCase() === 'Y';
+    var w = String(p.integWebChatbotYn || '').toUpperCase() === 'Y';
+    var a = String(p.integApiYn || '').toUpperCase() === 'Y';
+    return n && !u && !w && !a;
+  }
+
+  function pgSyncPgBindingRowCardBrandScopeUi(tr, pgAgencyCatalog) {
+    if (!tr) return;
+    var cbsEl = tr.querySelector('[data-field="cardBrandScope"]');
+    if (!cbsEl) return;
+    var pgEl = tr.querySelector('[data-field="pgCd"]');
+    var pgCd = pgEl && pgEl.value ? String(pgEl.value).trim() : '';
+    var notifyOnly = pgAgencyCatalogRowNotifyOnly(pgAgencyCatalog, pgCd);
+    if (notifyOnly) {
+      cbsEl.value = 'ALL';
+      cbsEl.disabled = true;
+      cbsEl.setAttribute('title', '노티 전용 결제대행사는 카드브랜드(ALL)가 고정됩니다.');
+    } else {
+      cbsEl.disabled = false;
+      cbsEl.removeAttribute('title');
+    }
+  }
+
+  function pgCardBrandScopeOptionsHtml() {
+    return '<option value="ALL">ALL</option>' +
+      '<option value="VMJUA">VMJUA (V+M+J+U+A)</option>' +
+      '<option value="VMJU">VMJU (V+M+J+U)</option>' +
+      '<option value="VMJ">VMJ (V+M+J)</option>' +
+      '<option value="VM">VM (V+M)</option>' +
+      '<option value="VJ">VJ (V+J)</option>' +
+      '<option value="MJ">MJ (M+J)</option>' +
+      '<option value="V">V (VISA)</option>' +
+      '<option value="M">M (MASTER)</option>' +
+      '<option value="J">J (JCB)</option>' +
+      '<option value="U">U (UNION)</option>' +
+      '<option value="A">A (AMX)</option>' +
+      '<option value="D">D (DINERS)</option>';
+  }
+
+  function pgComputeUrlPayWebAllowedFromCatalog(pane) {
+    try {
+      var tbody = pane && pane.querySelector ? pane.querySelector('#pgBindingTbody') : null;
+      var cat = pane && pane._pgAgencyCatalog ? pane._pgAgencyCatalog : null;
+      if (!tbody || !cat) return false;
+      var rows = tbody.querySelectorAll('tr');
+      for (var r = 0; r < rows.length; r++) {
+        var tr = rows[r];
+        var opInp = tr.querySelector('input[name="pgOperational"]');
+        if (!opInp || !opInp.checked) continue;
+        var pgSel = tr.querySelector('[data-field="pgCd"]');
+        var cd = pgSel && pgSel.value ? String(pgSel.value).trim() : '';
+        if (!cd) continue;
+        var row = cat[cd.toUpperCase()];
+        if (row && String(row.integUrlPayYn || '').toUpperCase() === 'Y') return true;
+      }
+      return false;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  /** 운영 행이 URL결제 연동 PG일 때만 웹결제/대표상품 카드 활성 */
+  function pgApplyUrlPayWebSettingsCardState(pane) {
+    if (!pane || !pane.querySelector) return;
+    var card = pane.querySelector('#webPaymentCard');
+    if (!card) return;
+    var allowed = pgComputeUrlPayWebAllowedFromCatalog(pane);
+    card.classList.toggle('pg-url-pay-card--disabled', !allowed);
+    card.querySelectorAll('input, select, textarea, button').forEach(function (el) {
+      if (el.closest && el.closest('.pg-binding-list-wrap')) return;
+      el.disabled = !allowed;
+    });
+    if (!allowed) {
+      card.setAttribute('title', 'URL 결제 연동이 있는 결제대행사를 WEB으로 등록하고, 해당 행에 운영(체크)을 켜면 이 영역이 활성화됩니다. 여러 운영 행이 있으면 그중 URL 연동이 있는 행이 하나라도 있으면 됩니다.');
+    } else {
+      card.removeAttribute('title');
+    }
+  }
+  window.pgApplyUrlPayWebSettingsCardState = pgApplyUrlPayWebSettingsCardState;
+
   /** 결제대행사 저장·삭제 후 compDetail로 웹결제 사용여부·결제 URL만 반영 */
   function pgSyncMerchantUrlPayUiFromCompDetail(pane, compId) {
     if (!pane || !compId || !window.PG_API.compDetail) return Promise.resolve();
@@ -2150,6 +2234,7 @@
       }
       var copyBtn = pane.querySelector('#paymentUrlCopyBtn');
       if (copyBtn) copyBtn.disabled = false;
+      pgApplyUrlPayWebSettingsCardState(pane);
     }).catch(function () {});
   }
 
@@ -2173,8 +2258,8 @@
         t.classList.toggle('pg-binding-row--inactive', !on);
       });
     }
-    /** 결제대행사가 한 줄뿐이면 운영 라디오가 비어 있을 수 없음 — 미선택 시 자동 선택(빨강 표시·저장 시 Y 반영). */
-    function ensureSingleRowOperationalRadio() {
+    /** 결제대행사가 한 줄뿐이면 운영 체크가 비어 있을 수 없음 — 미선택 시 자동으로 운영 체크. */
+    function ensureSingleRowOperationalCheckbox() {
       var rows = tbody.querySelectorAll('tr');
       if (rows.length !== 1) return;
       if (tbody.querySelector('input[name="pgOperational"]:checked')) return;
@@ -2187,6 +2272,7 @@
       tbody.addEventListener('change', function (ev) {
         if (ev.target && ev.target.getAttribute('name') === 'pgOperational') {
           syncPgBindingRowStyles();
+          if (typeof window.pgApplyUrlPayWebSettingsCardState === 'function') window.pgApplyUrlPayWebSettingsCardState(pane);
         }
       });
     }
@@ -2194,6 +2280,7 @@
     var payMethodOpts = '<option value="">선택</option><option value="WEB">WEB</option><option value="OFFLINE">오프라인</option><option value="APM">APM</option>';
     var activationOpts = '<option value="Y">사용</option><option value="N">미사용</option>';
     var installmentOpts = '<option value="N">미사용</option><option value="Y">사용</option>';
+    var cardBrandScopeOpts = pgCardBrandScopeOptionsHtml();
     var extSettleModeOpts = '<option value="">연동기본</option><option value="OFF">가맹:미표시</option><option value="T">T+N</option><option value="D">D+N</option>';
 
     function rowSnapshot(tr) {
@@ -2212,6 +2299,7 @@
         ivKey: sel('ivKey'),
         installmentYn: sel('installmentYn'),
         maxInstallmentMonths: sel('maxInstallmentMonths'),
+        cardBrandScope: sel('cardBrandScope'),
         extSettleMode: omitExtSettleCols ? '' : sel('extSettleMode'),
         extSettleLag: omitExtSettleCols ? '' : sel('extSettleLag'),
         extSettleBatchTime: omitExtSettleCols ? '' : sel('extSettleBatchTime'),
@@ -2234,6 +2322,7 @@
       setSel('ivKey', snap.ivKey);
       setSel('installmentYn', snap.installmentYn);
       setSel('maxInstallmentMonths', snap.maxInstallmentMonths);
+      setSel('cardBrandScope', snap.cardBrandScope);
       if (!omitExtSettleCols) {
         setSel('extSettleMode', snap.extSettleMode);
         setSel('extSettleLag', snap.extSettleLag);
@@ -2255,7 +2344,10 @@
     function setRowReadonly(tr, ro) {
       tr.querySelectorAll('[data-field]').forEach(function (el) { el.disabled = ro; });
       tr.querySelectorAll('input[name="pgOperational"]').forEach(function (el) { el.disabled = ro; });
-      if (!ro) syncPgBindingExtSettleBatchTime(tr);
+      if (!ro) {
+        syncPgBindingExtSettleBatchTime(tr);
+        pgSyncPgBindingRowCardBrandScopeUi(tr, pgAgencyCatalog);
+      }
     }
 
     function toggleRowEditUi(tr, editing) {
@@ -2276,7 +2368,8 @@
         if (r) r.value = i;
       });
       syncPgBindingRowStyles();
-      ensureSingleRowOperationalRadio();
+      ensureSingleRowOperationalCheckbox();
+      if (typeof window.pgApplyUrlPayWebSettingsCardState === 'function') window.pgApplyUrlPayWebSettingsCardState(pane);
     }
 
     function escPgOpt(s) {
@@ -2294,6 +2387,7 @@
         pgSel._pgAgencyTemplateBound = true;
         pgSel.addEventListener('change', function () {
           applyPgAgencyTemplateDefaults(tr);
+          if (typeof window.pgApplyUrlPayWebSettingsCardState === 'function') window.pgApplyUrlPayWebSettingsCardState(pane);
         });
       }
 
@@ -2369,12 +2463,8 @@
           };
           var pgCd = sel('pgCd');
           if (!pgCd) { alert('결제대행사(PG)를 선택하세요. 배포설정 > API연동설정에 먼저 등록해야 목록에 나타납니다.'); return; }
-          var trs = Array.prototype.slice.call(tbody.querySelectorAll('tr'));
-          var myIdx = trs.indexOf(tr);
-          var formRoot = pane.querySelector('#compDetailForm') || pane.querySelector('#compInfoDetailForm') || pane.querySelector('#compRegForm');
-          var opRadio = formRoot ? formRoot.querySelector('input[name="pgOperational"]:checked') : null;
-          var opIdx = opRadio ? parseInt(opRadio.value, 10) : -1;
-          var operationalYn = (myIdx === opIdx) ? 'Y' : 'N';
+          var opInpRow = tr.querySelector('input[name="pgOperational"]');
+          var operationalYn = opInpRow && opInpRow.checked ? 'Y' : 'N';
           var merchantExtRow = null;
           if (omitExtSettleCols && formRoot && formRoot.querySelector('[name="merchantPgExtSettleMode"]')) {
             merchantExtRow = pgMerchantRegExtSettlePayload(formRoot);
@@ -2419,6 +2509,7 @@
             operationalYn: operationalYn,
             installmentYn: sel('installmentYn') || 'N',
             maxInstallmentMonths: sel('maxInstallmentMonths'),
+            cardBrandScope: sel('cardBrandScope') || 'ALL',
             extSettleMode: extMRow,
             extSettleLag: extLagRow,
             extSettleBatchTime: String(extMRow || '').toUpperCase() === 'D' ? extBtRow : ''
@@ -2471,7 +2562,7 @@
         '<td><input type="number" class="form-control form-control-sm" data-field="extSettleLag" min="1" max="10" step="1" placeholder="" title="T/D일 때 1~10"></td>' +
         '<td><input type="time" class="form-control form-control-sm" data-field="extSettleBatchTime" step="60" title="D모드 일괄시각"></td>'
       );
-      tr.innerHTML = '<td><input type="radio" name="pgOperational" value="' + idx + '"' + (data.operationalYn === 'Y' ? ' checked' : '') + ' title="운영대상"></td>' +
+      tr.innerHTML = '<td><input type="checkbox" name="pgOperational" value="' + idx + '"' + (data.operationalYn === 'Y' ? ' checked' : '') + ' class="form-check-input m-0" title="운영대상(복수 선택 가능)"></td>' +
         '<td><select class="form-control form-control-sm" data-field="activationYn">' + activationOpts + '</select></td>' +
         '<td><select class="form-control form-control-sm" data-field="pgCd">' + pgAgencyOptsHtml + '</select></td>' +
         '<td><select class="form-control form-control-sm" data-field="payMethod">' + payMethodOpts + '</select></td>' +
@@ -2481,6 +2572,7 @@
         '<td><input type="text" class="form-control form-control-sm" data-field="ivKey" placeholder="IV KEY" autocomplete="off" style="min-width:12rem"></td>' +
         '<td><select class="form-control form-control-sm" data-field="installmentYn">' + installmentOpts + '</select></td>' +
         '<td><input type="text" class="form-control form-control-sm" data-field="maxInstallmentMonths" placeholder="12" autocomplete="off"></td>' +
+        '<td><select class="form-control form-control-sm" data-field="cardBrandScope">' + cardBrandScopeOpts + '</select></td>' +
         extSettleCells +
         '<td class="pg-binding-actions">' + actionsCell + '</td>';
 
@@ -2493,6 +2585,13 @@
       tr.querySelector('[data-field="ivKey"]').value = data.ivKey || '';
       tr.querySelector('[data-field="installmentYn"]').value = data.installmentYn || 'N';
       tr.querySelector('[data-field="maxInstallmentMonths"]').value = data.maxInstallmentMonths != null ? String(data.maxInstallmentMonths) : '';
+      var cbsEl = tr.querySelector('[data-field="cardBrandScope"]');
+      if (cbsEl) {
+        var cbs = (data.cardBrandScope != null && String(data.cardBrandScope).trim() !== '') ? String(data.cardBrandScope).trim().toUpperCase() : 'ALL';
+        var okOpt = false;
+        cbsEl.querySelectorAll('option').forEach(function (o) { if (o.value === cbs) okOpt = true; });
+        cbsEl.value = okOpt ? cbs : 'ALL';
+      }
       if (!omitExtSettleCols) {
         tr.querySelector('[data-field="extSettleMode"]').value = data.extSettleMode != null ? String(data.extSettleMode) : '';
         tr.querySelector('[data-field="extSettleLag"]').value = data.extSettleLag != null && String(data.extSettleLag) !== '' ? String(data.extSettleLag) : '';
@@ -2500,6 +2599,7 @@
         tr.querySelector('[data-field="extSettleBatchTime"]').value = exBt.length >= 5 ? exBt.substring(0, 5) : exBt;
       }
 
+      pgSyncPgBindingRowCardBrandScopeUi(tr, pgAgencyCatalog);
       tr.dataset.snapshot = JSON.stringify(rowSnapshot(tr));
       if (rowActionMode && hasId) setRowReadonly(tr, true);
 
@@ -2519,6 +2619,7 @@
       var rootEl = tr.querySelector('[data-field="rootNo"]');
       if (midEl && !String(midEl.value || '').trim() && p.defaultMid) midEl.value = String(p.defaultMid);
       if (rootEl && !String(rootEl.value || '').trim() && p.routeNo != null && String(p.routeNo) !== '') rootEl.value = String(p.routeNo);
+      pgSyncPgBindingRowCardBrandScopeUi(tr, pgAgencyCatalog);
     }
 
     var pgAgencyCatalog = null;
@@ -2560,13 +2661,17 @@
             ivKey: b.ivKey,
             installmentYn: b.installmentYn || 'N',
             maxInstallmentMonths: b.maxInstallmentMonths != null ? String(b.maxInstallmentMonths) : '',
+            cardBrandScope: b.cardBrandScope || 'ALL',
             extSettleMode: b.extSettleMode != null ? String(b.extSettleMode) : '',
             extSettleLag: b.extSettleLag != null ? String(b.extSettleLag) : '',
             extSettleBatchTime: b.extSettleBatchTime != null ? String(b.extSettleBatchTime) : ''
           }, pgAgencyOptsHtml);
         });
-        ensureSingleRowOperationalRadio();
+        ensureSingleRowOperationalCheckbox();
+        tbody.querySelectorAll('tr').forEach(function (tRow) { pgSyncPgBindingRowCardBrandScopeUi(tRow, pgAgencyCatalog); });
       }
+      pane._pgAgencyCatalog = pgAgencyCatalog;
+      if (typeof window.pgApplyUrlPayWebSettingsCardState === 'function') window.pgApplyUrlPayWebSettingsCardState(pane);
       if (typeof opts.onInitialBindingsApplied === 'function') {
         try { opts.onInitialBindingsApplied(bindings); } catch (eO) {}
       }
@@ -2581,7 +2686,9 @@
       });
     }).catch(function () {
       pgAgencyCatalog = {};
+      pane._pgAgencyCatalog = {};
       var pgAgencyOptsHtml = '<option value="">선택</option>';
+      if (typeof window.pgApplyUrlPayWebSettingsCardState === 'function') window.pgApplyUrlPayWebSettingsCardState(pane);
       if (typeof opts.onInitialBindingsApplied === 'function') {
         try { opts.onInitialBindingsApplied([]); } catch (eO2) {}
       }
@@ -6383,7 +6490,7 @@
                   if (commCls.length) cellClass = ' class="' + commCls.join(' ') + '"';
                 } else if (isPayScr) {
                   var payCls = [];
-                  if (['pgApproveAmt', 'payAmount', 'feeCnt', 'feeRate', 'feeAmt', 'feeVat', 'holdRate', 'holdAmt', 'settleAmt', 'chillAmount', 'icopayAmt', 'chillFeeAmt', 'totalAmt'].indexOf(c.key) >= 0) payCls.push('text-end');
+                  if (['pgApproveAmt', 'payAmount', 'feeCnt', 'feeRate', 'feeAmt', 'feeVat', 'holdRate', 'holdAmt', 'settleAmt', 'chillAmount', 'icopayAmt', 'chillFeeAmt', 'totalAmt', 'displayPayAmt'].indexOf(c.key) >= 0) payCls.push('text-end');
                   var payDualTimeKeys = ['trnTime', 'payDttm', 'payAprv', 'holdDttm', 'calcDt', 'approveDt', 'cancelDt', 'payCompletedAt'];
                   if (['payAprv', 'holdDttm', 'calcDt', 'payDttm', 'trnDate', 'trnTime', 'payCompletedAt', 'trnId', 'chillTransactionId', 'routeNo', 'notifyChannelType'].indexOf(c.key) >= 0) {
                     if (payDualTimeKeys.indexOf(c.key) < 0) {
@@ -9087,8 +9194,6 @@
         if (fd.regType != null) { fd.regNo = (fd.regType || 'CORP') + '|' + (fd.regNo || ''); delete fd.regType; }
         var tbody = form.querySelector('#pgBindingTbody');
         if (tbody) {
-          var operationalVal = form.querySelector('input[name="pgOperational"]:checked');
-          var operationalIdx = operationalVal ? parseInt(operationalVal.value, 10) : 0;
           var merchantExt = null;
           if ((fd.compDiv || '').toUpperCase() === 'MERCHANT' && form.querySelector('[name="merchantPgExtSettleMode"]')) {
             merchantExt = pgMerchantRegExtSettlePayload(form);
@@ -9128,10 +9233,11 @@
                 extLag = sel('extSettleLag');
                 extBt = extMUpper === 'D' ? sel('extSettleBatchTime') : '';
               }
+              var opChk = tr.querySelector('input[name="pgOperational"]');
               bindings.push({
                 pgCd: pgCd,
                 activationYn: sel('activationYn') || 'Y',
-                operationalYn: i === operationalIdx ? 'Y' : 'N',
+                operationalYn: opChk && opChk.checked ? 'Y' : 'N',
                 payMethod: sel('payMethod') || 'WEB',
                 mid: sel('mid'),
                 rootNo: sel('rootNo'),
@@ -9139,6 +9245,7 @@
                 ivKey: sel('ivKey'),
                 installmentYn: sel('installmentYn') || 'N',
                 maxInstallmentMonths: sel('maxInstallmentMonths'),
+                cardBrandScope: sel('cardBrandScope') || 'ALL',
                 extSettleMode: extM,
                 extSettleLag: extLag,
                 extSettleBatchTime: extBt
@@ -9794,7 +9901,7 @@
     }
     function filterParentCompCandidates(list, form) {
       if (!list || !form) return list || [];
-      if (form.id !== 'compDetailForm') return list;
+      if (form.id !== 'compDetailForm' && form.id !== 'compInfoDetailForm') return list;
       var scope = form.dataset.masterDistScopeOrgId;
       if (!scope) return list;
       return list.filter(function (row) {
@@ -9813,7 +9920,8 @@
     function resolveParentSearchForm(pane) {
       var reg = pane && pane.querySelector('#compRegForm');
       var det = pane && pane.querySelector('#compDetailForm');
-      return reg || det;
+      var info = pane && pane.querySelector('#compInfoDetailForm');
+      return reg || det || info;
     }
     /** 업체 등록·업체정보 상세 공통: 상위업체 검색 모달 */
     function bindParentCompSearchModal(pane) {
@@ -9833,7 +9941,7 @@
           window.PG_API.compList({
             searchCompId: (kw && kw.value) || '',
             searchCompNm: (kw && kw.value) || '',
-            searchUseYn: 'ALL',
+            searchUseYn: 'Y',
             page: 1,
             size: 1000
           }).then(function (data) {
@@ -9868,7 +9976,7 @@
           var compNm = tr.getAttribute('data-compNm');
           var mdScopeRaw = tr.getAttribute('data-master-dist-scope-org-id');
           var val = (compNm && String(compNm).trim()) ? String(compNm).trim() : (compId || '');
-          [pane.querySelector('#compRegForm'), pane.querySelector('#compDetailForm')].forEach(function (f) {
+          [pane.querySelector('#compRegForm'), pane.querySelector('#compDetailForm'), pane.querySelector('#compInfoDetailForm')].forEach(function (f) {
             if (f) {
               var pid = f.querySelector('input[name="parentId"]');
               if (pid) pid.value = id || '';
@@ -9886,11 +9994,12 @@
               } else {
                 try { delete f.dataset.masterDistScopeOrgId; } catch (eDs) { f.removeAttribute('data-master-dist-scope-org-id'); }
               }
+              pgMarkFormDirty(f);
             }
           });
           if (modal) modal.hide();
           if (window.pgClearCalcCycleScopedCache) window.pgClearCalcCycleScopedCache();
-          [pane.querySelector('#compRegForm'), pane.querySelector('#compDetailForm')].forEach(function (f) {
+          [pane.querySelector('#compRegForm'), pane.querySelector('#compDetailForm'), pane.querySelector('#compInfoDetailForm')].forEach(function (f) {
             if (!f) return;
             var div = (f.querySelector('[name="compDiv"]') || {}).value;
             if (div === 'MERCHANT') {
@@ -9911,12 +10020,12 @@
             window.PG_API.compList({
               searchCompId: (kw2 && kw2.value) || '',
               searchCompNm: (kw2 && kw2.value) || '',
-              searchUseYn: 'ALL',
+              searchUseYn: 'Y',
               page: 1,
               size: 1000
             }).then(function (data) {
               var raw = (data && data.list) ? data.list : [];
-              var activeForm = resolveParentSearchForm(pane) || document.querySelector('#compRegForm') || document.querySelector('#compDetailForm');
+              var activeForm = resolveParentSearchForm(pane) || document.querySelector('#compRegForm') || document.querySelector('#compDetailForm') || document.querySelector('#compInfoDetailForm');
               var list = filterParentExcludeMerchantLeaf(filterParentCompCandidates(raw, activeForm));
               tbody2.innerHTML = '';
               list.forEach(function (row) {
@@ -10614,8 +10723,6 @@
           if (compDivVal === 'MERCHANT') {
             var pgTbody = form.querySelector('#pgBindingTbody');
             if (pgTbody) {
-              var operationalVal = form.querySelector('input[name="pgOperational"]:checked');
-              var operationalIdx = operationalVal ? parseInt(operationalVal.value, 10) : 0;
               var merchantExtInfo = form.querySelector('[name="merchantPgExtSettleMode"]') ? pgMerchantRegExtSettlePayload(form) : null;
               var hasPgRowInfo = false;
               pgTbody.querySelectorAll('tr').forEach(function (tr) {
@@ -10652,10 +10759,11 @@
                     extLagI = sel('extSettleLag');
                     extBtI = extMUpperI === 'D' ? sel('extSettleBatchTime') : '';
                   }
+                  var opChkI = tr.querySelector('input[name="pgOperational"]');
                   bindings.push({
                     pgCd: pgCd,
                     activationYn: sel('activationYn') || 'Y',
-                    operationalYn: i === operationalIdx ? 'Y' : 'N',
+                    operationalYn: opChkI && opChkI.checked ? 'Y' : 'N',
                     payMethod: sel('payMethod') || 'WEB',
                     mid: sel('mid'),
                     rootNo: sel('rootNo'),
@@ -10663,6 +10771,7 @@
                     ivKey: sel('ivKey'),
                     installmentYn: sel('installmentYn') || 'N',
                     maxInstallmentMonths: sel('maxInstallmentMonths'),
+                    cardBrandScope: sel('cardBrandScope') || 'ALL',
                     extSettleMode: extMI,
                     extSettleLag: extLagI,
                     extSettleBatchTime: extBtI
@@ -11288,8 +11397,6 @@
           if (fd.regType != null) { fd.regNo = (fd.regType || 'CORP') + '|' + (fd.regNo || ''); delete fd.regType; }
           var tbodyPg = form.querySelector('#pgBindingTbody');
           if (tbodyPg) {
-            var operationalVal = form.querySelector('input[name="pgOperational"]:checked');
-            var operationalIdx = operationalVal ? parseInt(operationalVal.value, 10) : 0;
             var merchantExtDetail = null;
             if ((compDivVal || '').toUpperCase() === 'MERCHANT' && form.querySelector('[name="merchantPgExtSettleMode"]')) {
               merchantExtDetail = pgMerchantRegExtSettlePayload(form);
@@ -11329,10 +11436,11 @@
                   extLagD = sel('extSettleLag');
                   extBtD = extMUpperD === 'D' ? sel('extSettleBatchTime') : '';
                 }
+                var opChkD = tr.querySelector('input[name="pgOperational"]');
                 bindings.push({
                   pgCd: pgCd,
                   activationYn: sel('activationYn') || 'Y',
-                  operationalYn: i === operationalIdx ? 'Y' : 'N',
+                  operationalYn: opChkD && opChkD.checked ? 'Y' : 'N',
                   payMethod: sel('payMethod') || 'WEB',
                   mid: sel('mid'),
                   rootNo: sel('rootNo'),
@@ -11340,6 +11448,7 @@
                   ivKey: sel('ivKey'),
                   installmentYn: sel('installmentYn') || 'N',
                   maxInstallmentMonths: sel('maxInstallmentMonths'),
+                  cardBrandScope: sel('cardBrandScope') || 'ALL',
                   extSettleMode: extMD,
                   extSettleLag: extLagD,
                   extSettleBatchTime: extBtD
@@ -12434,6 +12543,40 @@
         if (/^cb/i.test(c) || /^rs/i.test(c)) return 'p:' + c.substring(2).toLowerCase();
         return 'legacy:' + c;
       }
+      function cacheHqNotifyMasterDistOpts(opts) {
+        pane._hqNotifyMasterDistOpts = Array.isArray(opts) ? opts : [];
+      }
+      function notifyRowBoundOrgId(t) {
+        if (!t) return '';
+        var v = t.boundOrgUnitId != null ? t.boundOrgUnitId : t.bound_org_unit_id;
+        if (v == null || v === '') return '';
+        return String(v).trim();
+      }
+      function notifyRowBoundCode(t) {
+        if (!t) return '';
+        var v = t.boundOrgUnitCode != null ? t.boundOrgUnitCode : t.bound_org_unit_code;
+        return v != null ? String(v).trim() : '';
+      }
+      function notifyRowBoundName(t) {
+        if (!t) return '';
+        var v = t.boundOrgUnitName != null ? t.boundOrgUnitName : t.bound_org_unit_name;
+        return v != null ? String(v).trim() : '';
+      }
+      function masterDistLabelFromCache(paneRef, orgIdStr) {
+        if (!orgIdStr) return '';
+        var opts = paneRef && paneRef._hqNotifyMasterDistOpts;
+        if (!opts || !opts.length) return '';
+        for (var i = 0; i < opts.length; i++) {
+          var o = opts[i];
+          if (o == null || o.id == null) continue;
+          if (String(o.id) === orgIdStr) {
+            var code = o.code != null ? String(o.code).trim() : '';
+            var nm = o.name != null ? String(o.name).trim() : '';
+            return (code ? code + ' — ' : '') + nm;
+          }
+        }
+        return '';
+      }
       function shortNotifyChannel(t) {
         var ch = String(t.channelType || '').toUpperCase();
         return ch === 'RESULT' ? 'RESULT' : 'CALLBACK';
@@ -12487,11 +12630,32 @@
           createdTimes.sort();
           var createdDisp = createdTimes.length ? escNt(createdTimes[0]) : '—';
           var boundDisp = '—';
-          var b0 = g[0];
-          if (b0 && (b0.boundOrgUnitCode || b0.boundOrgUnitName)) {
-            boundDisp = escNt((b0.boundOrgUnitCode || '').trim());
-            if (b0.boundOrgUnitName) {
-              boundDisp += '<br><span class="text-muted small">' + escNt(String(b0.boundOrgUnitName).substring(0, 48)) + '</span>';
+          var b0 = null;
+          var fallbackOrgId = '';
+          for (var bi = 0; bi < g.length; bi++) {
+            var bx = g[bi];
+            if (!bx) continue;
+            var bc = notifyRowBoundCode(bx);
+            var bn = notifyRowBoundName(bx);
+            if (bc || bn) {
+              b0 = bx;
+              break;
+            }
+            var oid = notifyRowBoundOrgId(bx);
+            if (oid && !fallbackOrgId) fallbackOrgId = oid;
+          }
+          if (b0) {
+            boundDisp = escNt(notifyRowBoundCode(b0));
+            var nm0 = notifyRowBoundName(b0);
+            if (nm0) {
+              boundDisp += '<br><span class="text-muted small">' + escNt(nm0.substring(0, 48)) + '</span>';
+            }
+          } else if (fallbackOrgId) {
+            var fromCache = masterDistLabelFromCache(pane, fallbackOrgId);
+            if (fromCache) {
+              boundDisp = escNt(fromCache);
+            } else {
+              boundDisp = escNt('#' + fallbackOrgId);
             }
           }
           var bindIds = g.map(function (gg) { return gg.id != null ? String(gg.id) : ''; }).filter(function (s) { return s !== ''; });
@@ -12525,6 +12689,7 @@
         tbody.innerHTML = html;
       }
       function fillMasterDistSelect(options) {
+        cacheHqNotifyMasterDistOpts(options);
         var sel = pane.querySelector('[name="notifyTargetBoundOrgUnitId"]');
         if (!sel) return;
         var cur = sel.value || '';
@@ -12597,6 +12762,7 @@
         if (hid) hid.value = idsCsv || '';
         if (!window.PG_API || !window.PG_API.hqNotifyMasterDistOptions) return;
         window.PG_API.hqNotifyMasterDistOptions().then(function (opts) {
+          cacheHqNotifyMasterDistOpts(opts);
           var modalSel = document.getElementById('hqNotifyPairBindOrgSelect');
           if (!modalSel) return;
           var html = '<option value="">' + escNt(pgAdminUiT('선택하세요')) + '</option>';
@@ -14537,8 +14703,7 @@
           'autoVoidYn', 'emailVoidYn', 'autoRefundYn', 'forceRefundYn',
           'autoVoidStartTime', 'autoVoidEndTime', 'emailVoidStartTime', 'emailVoidEndTime',
           'payFollowRefZone', 'autoRefundAfterDays', 'autoRefundWindowStartTime', 'forceRefundAfterDays',
-          'autoVoidReflectSettlementYn', 'emailVoidReflectSettlementYn', 'autoRefundReflectSettlementYn', 'forceRefundReflectSettlementYn',
-          'helloTimelineEnabledYn', 'helloTimelineDurationMin'];
+          'autoVoidReflectSettlementYn', 'emailVoidReflectSettlementYn', 'autoRefundReflectSettlementYn', 'forceRefundReflectSettlementYn'];
         keys.forEach(function (k) {
           var el = pane.querySelector('[name="' + k + '"]');
           if (!el) return;
@@ -14623,14 +14788,6 @@
         syncPayFollowLedgerUi(pane);
         fillPayFollowLevelCaps(d.payFollowLevelCaps);
         syncPayFollowLevelCapsAuthUi();
-        syncHelloTimelineLedgerFields();
-      }
-      function syncHelloTimelineLedgerFields() {
-        var en = pane.querySelector('[name="helloTimelineEnabledYn"]');
-        var dm = pane.querySelector('[name="helloTimelineDurationMin"]');
-        if (!en || !dm) return;
-        var on = String(en.value || '').toUpperCase() === 'Y';
-        dm.disabled = !on;
       }
       function renderHqPayDisplayCurrencyCatalog(rows, currentIsoNum) {
         var tb = pane.querySelector('#hqPayDisplayCurrencyCatalogTbody');
@@ -14799,8 +14956,7 @@
           'autoVoidYn', 'emailVoidYn', 'autoRefundYn', 'forceRefundYn',
           'autoVoidStartTime', 'autoVoidEndTime', 'emailVoidStartTime', 'emailVoidEndTime',
           'payFollowRefZone', 'autoRefundAfterDays', 'autoRefundWindowStartTime', 'forceRefundAfterDays',
-          'autoVoidReflectSettlementYn', 'emailVoidReflectSettlementYn', 'autoRefundReflectSettlementYn', 'forceRefundReflectSettlementYn',
-          'helloTimelineEnabledYn', 'helloTimelineDurationMin'].forEach(function (k) {
+          'autoVoidReflectSettlementYn', 'emailVoidReflectSettlementYn', 'autoRefundReflectSettlementYn', 'forceRefundReflectSettlementYn'].forEach(function (k) {
           var el = pane.querySelector('[name="' + k + '"]');
           if (el) fd[k] = el.value;
         });
@@ -14825,40 +14981,11 @@
         fd.feeCurrencyFormatJson = JSON.stringify(collectFeeCurrencyFormatRows());
         return fd;
       }
-      function applyLedgerHelloTimelineClientAfterResponse(d) {
-        if (typeof pgHelloTimelineInvalidateConfigCache === 'function') pgHelloTimelineInvalidateConfigCache();
-        if (d) {
-          var ynH = String(d.helloTimelineEnabledYn || 'N').toUpperCase() === 'Y' ? 'Y' : 'N';
-          var dmH = parseInt(String(d.helloTimelineDurationMin != null ? d.helloTimelineDurationMin : '10'), 10);
-          if (isNaN(dmH) || dmH < 1) dmH = 10;
-          if (dmH > 1440) dmH = 1440;
-          window._pgHelloTimelineFromLedger = { helloTimelineEnabledYn: ynH, helloTimelineDurationMin: dmH };
-        }
-        if (d && String(d.helloTimelineEnabledYn || 'N').toUpperCase() !== 'Y') {
-          if (typeof pgHelloTimelineSetUntilMs === 'function') pgHelloTimelineSetUntilMs(0);
-          document.querySelectorAll('.tab-pane').forEach(function (p) {
-            if (!p.querySelector || !p.querySelector('[id^="viewSettingHelloBtn_"]')) return;
-            p._viewSettingHelloHidden = false;
-            if (typeof pgHelloZonesSetHidden === 'function') pgHelloZonesSetHidden(p, false);
-            if (typeof pgHelloSyncButtonForPane === 'function') pgHelloSyncButtonForPane(p, false);
-          });
-          try {
-            if (window.PG_TABLE_COL_RESIZE && typeof window.PG_TABLE_COL_RESIZE.refreshIn === 'function') {
-              document.querySelectorAll('.tab-pane').forEach(function (p) { window.PG_TABLE_COL_RESIZE.refreshIn(p); });
-            }
-          } catch (eHl) { /* ignore */ }
-        } else if (d && String(d.helloTimelineEnabledYn || 'N').toUpperCase() === 'Y') {
-          var uSv = typeof pgHelloTimelineUntilMs === 'function' ? pgHelloTimelineUntilMs() : 0;
-          if (typeof pgHelloApplyTimelineToAllPanes === 'function') {
-            pgHelloApplyTimelineToAllPanes(!(uSv > Date.now()));
-          }
-        }
-      }
       function postLedgerSysSave(fd) {
         if (dimmLs) dimmLs.style.display = 'flex';
         window.PG_API.hqLedgerSysSettingsSave(fd).then(function (d) {
           fillLedgerSys(d);
-          applyLedgerHelloTimelineClientAfterResponse(d);
+          if (typeof pgHelloTimelineInvalidateConfigCache === 'function') pgHelloTimelineInvalidateConfigCache();
           alert(pgAdminUiT('저장되었습니다.'));
         }).catch(function (e) {
           alert(e && e.message ? e.message : pgAdminUiT('저장 실패'));
@@ -14999,28 +15126,6 @@
             pane._pgPostLedgerSysSave(pane._pgCollectLedgerSysFd(null));
             return;
           }
-          if (e.target.closest('#hqLedgerHelloTimelineSaveBtn')) {
-            e.preventDefault();
-            if (typeof dc !== 'function' || !dc(pgAdminUiT('헬로 타임라인 설정을 저장하시겠습니까?'), pgAdminUiT('사용 여부·유지 시간(분)만 서버에 반영됩니다. 계속하시겠습니까?'))) return;
-            var enHt = pane.querySelector('[name="helloTimelineEnabledYn"]');
-            var dmHt = pane.querySelector('[name="helloTimelineDurationMin"]');
-            if (!enHt || !window.PG_API || !window.PG_API.hqLedgerSysSettingsSaveHelloTimeline) {
-              alert(pgAdminUiT('헬로 타임라인 저장을 사용할 수 없습니다.'));
-              return;
-            }
-            var payloadHt = { helloTimelineEnabledYn: enHt.value };
-            if (dmHt) payloadHt.helloTimelineDurationMin = dmHt.value;
-            if (dimmLs) dimmLs.style.display = 'flex';
-            window.PG_API.hqLedgerSysSettingsSaveHelloTimeline(payloadHt).then(function (d) {
-              fillLedgerSys(d);
-              syncHelloTimelineLedgerFields();
-              applyLedgerHelloTimelineClientAfterResponse(d);
-              alert(pgAdminUiT('헬로 타임라인이 저장되었습니다.'));
-            }).catch(function (err) {
-              alert(err && err.message ? err.message : pgAdminUiT('저장 실패'));
-            }).finally(function () { if (dimmLs) dimmLs.style.display = 'none'; });
-            return;
-          }
           if (e.target.closest('#hqLedgerPayFollowLevelCapsSaveBtn')) {
             e.preventDefault();
             if (!ledgerMayEditPayFollowLevelCaps()) {
@@ -15041,26 +15146,6 @@
             }).catch(function (err) {
               alert(err && err.message ? err.message : pgAdminUiT('저장 실패'));
             }).finally(function () { if (dimmLs) dimmLs.style.display = 'none'; });
-            return;
-          }
-          if (e.target.closest('#hqLedgerHelloTimelineReloadBtn')) {
-            e.preventDefault();
-            if (typeof dc !== 'function' || !dc(pgAdminUiT('헬로 타임라인을 서버 저장값으로 되돌릴까요?'), pgAdminUiT('이 항목만 서버에서 다시 읽어 옵니다. 다른 입력란은 그대로입니다. 계속하시겠습니까?'))) return;
-            if (dimmLs) dimmLs.style.display = 'flex';
-            window.PG_API.hqLedgerSysSettings().then(function (d) {
-              if (!d) return;
-              ['helloTimelineEnabledYn', 'helloTimelineDurationMin'].forEach(function (k) {
-                var el = pane.querySelector('[name="' + k + '"]');
-                if (!el) return;
-                var raw = d[k];
-                if (raw == null || raw === undefined || String(raw).trim() === '') {
-                  if (k === 'helloTimelineEnabledYn') el.value = 'N';
-                  return;
-                }
-                el.value = String(raw);
-              });
-              syncHelloTimelineLedgerFields();
-            }).catch(function () {}).finally(function () { if (dimmLs) dimmLs.style.display = 'none'; });
             return;
           }
           if (e.target.closest('#hqLedgerVoidEmailTestBtn')) {
@@ -15250,9 +15335,6 @@
           }
           hqLedgerPayFollowSyncIfNeeded(e.target);
           var tCh = e.target;
-          if (tCh && pane.contains(tCh) && tCh.name === 'helloTimelineEnabledYn') {
-            syncHelloTimelineLedgerFields();
-          }
           if (tCh && pane.contains(tCh) && (tCh.name === 'feeListDecimalPlaces' || tCh.name === 'feeListRoundMode'
             || (tCh.classList && tCh.classList.contains('hq-fcf-dp')))) {
             syncLedgerFeeDecimalRoundUi();
@@ -19374,7 +19456,7 @@
         a.style.display = '';
       });
       // 핵심 저장 버튼은 항상 강제 비활성(표시는 유지)
-      ['#compInfoUpdateBtn', '#compDetailSaveBtn', '#compRegSaveBtn', '#hqOrgAllowSaveBtn', '#hqBizdayProfileSaveBtn', '#hqLedgerSysSettingsSaveBtn', '#hqLedgerHelloTimelineSaveBtn', '#hqLedgerPayFollowLevelCapsSaveBtn'].forEach(function (sel) {
+      ['#compInfoUpdateBtn', '#compDetailSaveBtn', '#compRegSaveBtn', '#hqOrgAllowSaveBtn', '#hqBizdayProfileSaveBtn', '#hqLedgerSysSettingsSaveBtn', '#hqLedgerPayFollowLevelCapsSaveBtn'].forEach(function (sel) {
         var b = pane.querySelector(sel);
         if (!b) return;
         b.disabled = true;

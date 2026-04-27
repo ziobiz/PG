@@ -131,8 +131,7 @@ public class UrlPayCardCopyService {
         putLangMapIfNonEmpty(out, KEY_RESULT_SUCCESS_FOOT, e.get("resultSuccessFoot"));
         putLangMapIfNonEmpty(out, KEY_RESULT_FAIL_MAIN, e.get("resultFailMain"));
         putLangMapIfNonEmpty(out, KEY_RESULT_FAIL_FOOT, e.get("resultFailFoot"));
-        String amtShowYn = text(e, KEY_AMOUNT_SCALE_NOTICE_SHOW_YN);
-        boolean showAmt = !"N".equalsIgnoreCase(amtShowYn.trim());
+        boolean showAmt = resolveAmountScaleNoticeShow(e);
         out.put("amountScaleNoticeShow", showAmt);
         Map<String, String> amtMap = langMap(e.get(KEY_AMOUNT_SCALE_NOTICE));
         if (!amtMap.isEmpty()) {
@@ -155,6 +154,31 @@ public class UrlPayCardCopyService {
         }
         JsonNode n = obj.get(field);
         return n != null && n.isTextual() ? n.asText("").trim() : "";
+    }
+
+    /**
+     * JSON에 문자열 Y/N·불리언·미설정(기본 노출)을 허용합니다.
+     * {@code text()}는 비텍스트 노드를 빈 문자열로 두어, 과거에 boolean으로 저장된 값이 무시되던 문제를 막습니다.
+     */
+    private static boolean resolveAmountScaleNoticeShow(JsonNode entry) {
+        if (entry == null || !entry.isObject()) {
+            return true;
+        }
+        JsonNode n = entry.get(KEY_AMOUNT_SCALE_NOTICE_SHOW_YN);
+        if (n == null || n.isNull()) {
+            return true;
+        }
+        if (n.isBoolean()) {
+            return n.asBoolean();
+        }
+        if (n.isTextual()) {
+            String t = n.asText("").trim();
+            if (t.isEmpty()) {
+                return true;
+            }
+            return !"N".equalsIgnoreCase(t);
+        }
+        return true;
     }
 
     private static Map<String, String> langMap(JsonNode node) {

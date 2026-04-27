@@ -6,7 +6,8 @@
     { "label": "사업자번호", "keys": ["compRegNo"] },
     { "label": "PG승인", "keys": ["pgApproveAmt", "payAprv"] },
     { "label": "보류", "keys": ["holdAmt", "holdDttm"] },
-    { "label": "수수료", "keys": ["feeCnt", "feeRate"] }
+    { "label": "수수료", "keys": ["feeCnt", "feeRate"] },
+    { "label": "고객표시", "keys": ["displayPaySummary", "displayPayCur", "displayPayAmt"] }
   ],
   "columns": [
     { "key": "_chk", "label": "선택", "visible": true, "order": 0 },
@@ -58,6 +59,9 @@
     { "key": "regionalNm", "label": "총판", "visible": true, "order": 46 },
     { "key": "masterNm", "label": "지사", "visible": true, "order": 47 },
     { "key": "branchNm", "label": "대리점", "visible": true, "order": 48 },
-    { "key": "payActions", "label": "후속조치", "visible": true, "order": 49 }
+    { "key": "displayPaySummary", "label": "고객표시(통화+금액)", "visible": true, "order": 49 },
+    { "key": "displayPayCur", "label": "고객표시통화", "visible": true, "order": 50 },
+    { "key": "displayPayAmt", "label": "고객표시금액", "visible": true, "order": 51 },
+    { "key": "payActions", "label": "후속조치", "visible": true, "order": 52 }
   ]
 }

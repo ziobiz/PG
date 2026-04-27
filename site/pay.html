@@ -341,8 +341,6 @@
           unsupportedInlinePgNoPg: '이 가맹점의 운영 PG는 공개 URL 인라인 카드 입력을 아직 지원하지 않습니다. 호스티드 결제 등 다른 흐름이나 PG별 위젯 연동 후 이용해 주세요.',
           unsupportedInlinePgWithPg: '운영 PG 코드 {pg} 는 공개 URL 인라인 카드 입력을 아직 지원하지 않습니다. 호스티드 결제 등 다른 흐름이나 PG별 위젯 연동 후 이용해 주세요.',
           unsupportedInlineSubmit: '인라인 카드 결제를 사용할 수 없습니다. 운영 PG 설정을 확인하세요.',
-          amountScaleMultiply: '본사 「결제통화로직설정」에 따라 입력하신 금액의 100배가 결제 대행사(칠리페이 등)로 전달됩니다.',
-          amountScaleDivide: '본사 「결제통화로직설정」에 따라 입력하신 금액의 1/100이 결제 대행사로 전달됩니다.',
           payResultOkTitle: '결제 완료',
           payResultFailTitle: '결제가 완료되지 않았거나 취소되었습니다',
           payResultCancelTitle: '결제 취소',
@@ -382,8 +380,6 @@
           unsupportedInlinePgNoPg: 'Inline card capture on this public URL is not wired for this merchant’s active payment provider yet. Use hosted checkout or add that PSP’s widget when available.',
           unsupportedInlinePgWithPg: 'Inline card capture is not wired for PSP code {pg} on this public URL yet. Use hosted checkout or integrate that PSP’s widget under this checkout shell.',
           unsupportedInlineSubmit: 'Inline card payment is not available for the configured PSP.',
-          amountScaleMultiply: 'Per HQ payment-currency rules, the amount sent to the PSP is your input × 100.',
-          amountScaleDivide: 'Per HQ payment-currency rules, the amount sent to the PSP is your input ÷ 100.',
           payResultOkTitle: 'Payment completed',
           payResultFailTitle: 'Payment was not completed or was cancelled',
           payResultCancelTitle: 'Payment cancelled',
@@ -423,8 +419,6 @@
           unsupportedInlinePgNoPg: '当前商户的运营 PG 尚未在此公开 URL 上接入内联卡输入。请使用托管结账或后续接入该 PG 的安全控件。',
           unsupportedInlinePgWithPg: '运营 PG（代码 {pg}）尚未在此公开 URL 上接入内联卡输入。请使用托管结账或接入该 PG 的控件。',
           unsupportedInlineSubmit: '无法使用内联卡支付，请检查运营 PG 配置。',
-          amountScaleMultiply: '根据总部支付货币规则，提交给支付机构的金额为输入金额 × 100。',
-          amountScaleDivide: '根据总部支付货币规则，提交给支付机构的金额为输入金额 ÷ 100。',
           payResultOkTitle: 'Payment completed',
           payResultFailTitle: 'Payment was not completed or was cancelled',
           payResultCancelTitle: 'Payment cancelled',
@@ -464,8 +458,6 @@
           unsupportedInlinePgNoPg: 'この公開URLでのインラインカード入力は、設定されている運用PGでは未対応です。ホスティド決済やPG別ウィジェット連携をご利用ください。',
           unsupportedInlinePgWithPg: '運用PGコード {pg} はこの公開URLでのインラインカード入力に未対応です。ホスティド決済やウィジェット連携をご利用ください。',
           unsupportedInlineSubmit: 'インラインカード決済は利用できません。運用PG設定を確認してください。',
-          amountScaleMultiply: '本社の決済通貨ルールにより、決済代行に送る金額は入力金額の100倍です。',
-          amountScaleDivide: '本社の決済通貨ルールにより、決済代行に送る金額は入力金額の1/100です。',
           payResultOkTitle: 'Payment completed',
           payResultFailTitle: 'Payment was not completed or was cancelled',
           payResultCancelTitle: 'Payment cancelled',
@@ -505,8 +497,6 @@
           unsupportedInlinePgNoPg: 'ผู้ให้บริการชำระเงินที่เปิดใช้งานของร้านนี้ยังไม่รองรับการกรอกบัตรแบบอินไลน์บน URL สาธารณะนี้ ใช้แบบโฮสต์หรือเชื่อมวิดเจ็ตของ PSP นั้นเมื่อพร้อม',
           unsupportedInlinePgWithPg: 'PSP รหัส {pg} ยังไม่รองรับการกรอกบัตรแบบอินไลน์บน URL นี้ ใช้แบบโฮสต์หรือเชื่อมวิดเจ็ตของ PSP',
           unsupportedInlineSubmit: 'ไม่สามารถชำระด้วยบัตรแบบอินไลน์สำหรับ PSP ที่ตั้งค่าไว้',
-          amountScaleMultiply: 'ตามกฎสกุลเงินของสำนักงานใหญ่ จำนวนที่ส่งให้ PSP เท่ากับจำนวนที่กรอก × 100',
-          amountScaleDivide: 'ตามกฎสกุลเงินของสำนักงานใหญ่ จำนวนที่ส่งให้ PSP เท่ากับจำนวนที่กรอก ÷ 100',
           payResultOkTitle: 'Payment completed',
           payResultFailTitle: 'Payment was not completed or was cancelled',
           payResultCancelTitle: 'Payment cancelled',
@@ -1309,25 +1299,38 @@
       function applyPayAmountScaleNotice() {
         var el = document.getElementById('payAmountScaleNotice');
         if (!el) return;
+        function hideNotice() {
+          el.textContent = '';
+          el.classList.add('d-none');
+        }
         var c = window.__payUrlCardCopy;
         var m = String(typeof urlPayAmountScaleMode !== 'undefined' ? urlPayAmountScaleMode : 'SAME').toUpperCase();
-        if (c && c.amountScaleNoticeShow === false) {
-          el.textContent = '';
-          el.classList.add('d-none');
+        if (m !== 'MULTIPLY_100' && m !== 'DIVIDE_100') {
+          hideNotice();
           return;
         }
-        if (m === 'MULTIPLY_100') {
-          var sm = pickCardCopyAmountScaleNoticeText();
-          el.textContent = sm || t('amountScaleMultiply');
-          el.classList.remove('d-none');
-        } else if (m === 'DIVIDE_100') {
-          var sd = pickCardCopyAmountScaleNoticeText();
-          el.textContent = sd || t('amountScaleDivide');
-          el.classList.remove('d-none');
-        } else {
-          el.textContent = '';
-          el.classList.add('d-none');
+        /**
+         * 금액 하단 안내는 본사 「결제구문설정」의 해당 PG 행만 따릅니다.
+         * - 결제구문 행이 없거나(checkout에 urlPayCardCopy 없음): 기본 ×100/÷100 문구는 넣지 않음.
+         * - amountScaleNoticeShow 가 꺼짐(N/false): 비움.
+         * - 켜져 있어도 맞춤 문구가 비면: 비움(페이지 기본 강제 문구 없음).
+         */
+        if (!c || typeof c !== 'object') {
+          hideNotice();
+          return;
         }
+        var showFlag = c.amountScaleNoticeShow;
+        if (showFlag === false || showFlag === 'N' || showFlag === 'n' || showFlag === 0) {
+          hideNotice();
+          return;
+        }
+        var custom = pickCardCopyAmountScaleNoticeText();
+        if (!custom) {
+          hideNotice();
+          return;
+        }
+        el.textContent = custom;
+        el.classList.remove('d-none');
       }
 
       function boot() {

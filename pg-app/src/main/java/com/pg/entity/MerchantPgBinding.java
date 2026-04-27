@@ -25,7 +25,7 @@ public class MerchantPgBinding {
     @Column(name = "activation_yn", length = 1)
     private String activationYn = "Y";
 
-    /** 운영대상 여부 (가맹점이 여러 PG 중 하나를 선택하여 운영, Y인 것만 실제 운영) */
+    /** 운영대상 여부 (URL·챗봇·API 결제는 복수 Y 가능. 노티 전용 PG는 ALL 고정 등 별도 규칙) */
     @Column(name = "operational_yn", length = 1)
     private String operationalYn = "N";
 
@@ -64,6 +64,13 @@ public class MerchantPgBinding {
      */
     @Column(name = "url_pay_pricing_mode", nullable = false, length = 32)
     private String urlPayPricingMode = "CHECKOUT_CURRENCY";
+
+    /**
+     * 이 행으로 받을 카드 브랜드 범위(약어).
+     * ALL, VMJU, VMJ, VM, VJ, MJ, V, M, J, U, A(AMX), D(DINERS) — 화면 셀렉트 값과 동일.
+     */
+    @Column(name = "card_brand_scope", nullable = false, length = 16)
+    private String cardBrandScope = "ALL";
 
     /** {@code null}: {@code tb_pg_agency} 기본 따름. {@code OFF}/{@code T}/{@code D}: 가맹 MID별 덮어쓰기 */
     @Column(name = "ext_settle_mode", length = 8)
@@ -111,6 +118,8 @@ public class MerchantPgBinding {
     public void setSortOrder(Integer sortOrder) { this.sortOrder = sortOrder; }
     public String getUrlPayPricingMode() { return urlPayPricingMode; }
     public void setUrlPayPricingMode(String urlPayPricingMode) { this.urlPayPricingMode = urlPayPricingMode; }
+    public String getCardBrandScope() { return cardBrandScope; }
+    public void setCardBrandScope(String cardBrandScope) { this.cardBrandScope = cardBrandScope; }
     public String getExtSettleMode() { return extSettleMode; }
     public void setExtSettleMode(String extSettleMode) { this.extSettleMode = extSettleMode; }
     public Integer getExtSettleLag() { return extSettleLag; }

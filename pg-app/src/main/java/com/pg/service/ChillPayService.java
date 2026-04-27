@@ -175,20 +175,20 @@ public class ChillPayService {
 
     /**
      * 가맹점 ChillPay 바인딩이 있으면 자격은 바인딩; 샌드박스·route·ChillPay URL은 동일 {@code pg_cd}의 {@link PgAgency} 한 행만 사용(타 PG 행 URL 병합 없음).
-     * URL·DirectCredit·프론트 설정은 {@link #findOperationalWebBindingForUrlPay} 와 동일 규칙(노티만 운영이어도 URL 전용 행 사용).
+     * 운영(Y) WEB 바인딩이면서 연동용도 URL결제인 PG만 사용합니다(노티 전용 운영 행만 있으면 URL 결제 불가).
      */
     private Config resolveConfig(Long merchantOrgUnitId) {
         ChillPayAgencyUrlOverrides globalUrlOv = loadChillPayAgencyUrlOverrides();
         if (merchantOrgUnitId == null) {
             return resolveConfigFromHq(globalUrlOv);
         }
-        Optional<MerchantPgBinding> bindingOpt = findOperationalWebBindingForUrlPay(merchantOrgUnitId)
-                .filter(b -> isChillPayFamilyPgCd(b.getPgCd()));
+        Optional<MerchantPgBinding> bindingOpt = findOperationalChillPayFamilyBinding(merchantOrgUnitId);
         if (bindingOpt.isEmpty()) {
             throw new IllegalStateException(
-                    "이 가맹점에 URL 결제로 사용할 ChillPay 계열 결제대행사(WEB·URL연동 바인딩)가 없습니다. "
-                            + "가맹점 등록에서 URL결제용(WEB) 결제대행사를 추가·사용으로 두고, 배포설정 > API연동설정에서 해당 pg_cd 행의 연동용도에 「URL결제」를 켜 주세요. "
-                            + "(연동용도가 노티만 Y인 PG만 있으면 URL 결제를 할 수 없습니다. 운영 라디오는 노티 쪽에 두어도 됩니다.)");
+                    "이 가맹점에 URL 결제로 사용할 ChillPay 계열 결제대행사(운영)가 없습니다. "
+                            + "가맹점 등록에서 URL결제 연동이 있는 결제대행사를 WEB으로 추가한 뒤, 해당 행에 운영(체크)을 켜세요. "
+                            + "배포설정 > API연동설정에서 해당 pg_cd 행의 연동용도에 「URL결제」를 켜야 합니다. "
+                            + "(노티 전용 PG만 운영으로 두면 URL 결제·웹결제 설정을 동시에 쓸 수 없습니다.)");
         }
         MerchantPgBinding b = bindingOpt.get();
         Optional<PgAgency> agencyForPgCd = resolvePgAgencyForMerchantBinding(b);
@@ -436,9 +436,8 @@ public class ChillPayService {
 
     /**
      * 온라인 URL 결제에 쓸 WEB 바인딩 1건.
-     * <p>연동용도 URL결제({@code integ_url_pay_yn=Y})인 {@code pg_cd}·사용(Y)·WEB(또는 미입력)만 후보로 두고,
-     * 운영(라디오 Y) 행을 그 외와 동등 후보 중에서 우선한다. 노티 전용 운영 행과 URL 전용 비운영 행을 같이 둔 경우
-     * URL 전용 행이 선택된다.</p>
+     * <p>운영(Y)이면서 사용(Y)·WEB(또는 미입력)·연동용도 URL결제({@code integ_url_pay_yn=Y})인 {@code pg_cd}만 후보입니다. 운영 행이 여러 개면 정렬 규칙으로 1건을 고릅니다.
+     * 노티 전용 PG를 운영으로 두고 URL 전용 행을 비운영으로 두는 구성은 URL 후보가 없어 웹결제가 비활성화됩니다.</p>
      */
     public Optional<MerchantPgBinding> findOperationalWebBindingForUrlPay(Long orgUnitId) {
         if (orgUnitId == null) {
@@ -447,6 +446,7 @@ public class ChillPayService {
         List<MerchantPgBinding> list = merchantPgBindingRepository.findByOrgUnitIdOrderBySortOrderAsc(orgUnitId);
         Map<String, Boolean> urlPayByPgCd = urlPayAgencyFlagByPgCd(list);
         return list.stream()
+                .filter(b -> b.getOperationalYn() != null && "Y".equalsIgnoreCase(b.getOperationalYn().trim()))
                 .filter(b -> b.getActivationYn() == null || "Y".equalsIgnoreCase(b.getActivationYn().trim()))
                 .filter(b -> b.getPgCd() != null && !b.getPgCd().isBlank())
                 .filter(b -> Boolean.TRUE.equals(urlPayByPgCd.get(pgCdKey(b))))
@@ -455,9 +455,7 @@ public class ChillPayService {
                     return pm == null || pm.isBlank() || "WEB".equalsIgnoreCase(pm.trim());
                 })
                 .min(Comparator
-                        .comparing((MerchantPgBinding b) -> bindingOperationalYn(b) ? 0 : 1)
-                        .thenComparing((MerchantPgBinding b) -> isChillPayFamilyPgCd(b.getPgCd()) ? 0 : 1)
-                        /* 본사 URL결제설정 DISPLAY + pgSettings 가 맞는 바인딩을, 일반형 URL PG보다 우선 */
+                        .comparing((MerchantPgBinding b) -> isChillPayFamilyPgCd(b.getPgCd()) ? 0 : 1)
                         .thenComparingInt((MerchantPgBinding b) -> UrlPayDisplayFxService.MODE_DISPLAY_FX_THB.equalsIgnoreCase(
                                 urlPayDisplayFxService.resolveUrlPayPricingMode(
                                         b.getPgCd() != null ? b.getPgCd().trim() : "",
@@ -466,10 +464,6 @@ public class ChillPayService {
                         .thenComparing((MerchantPgBinding b) -> genericChillPayPgCd(b.getPgCd()) ? 1 : 0)
                         .thenComparing(b -> b.getSortOrder() != null ? b.getSortOrder() : Integer.MAX_VALUE)
                         .thenComparing(MerchantPgBinding::getId));
-    }
-
-    private static boolean bindingOperationalYn(MerchantPgBinding b) {
-        return b != null && b.getOperationalYn() != null && "Y".equalsIgnoreCase(b.getOperationalYn().trim());
     }
 
     /**
@@ -483,8 +477,7 @@ public class ChillPayService {
     }
 
     /**
-     * URL 결제 시 선택된 WEB 바인딩의 {@code pg_cd} — {@link #getUrlPayPresentationForCheckout} 의 {@code urlPayOperationalPgCd} 와 동일 규칙.
-     * (운영 라디오가 노티 전용이면 URL 전용 비운영 행이 될 수 있음.) 결제통화 스케일 규칙·API 스케일링에 사용.
+     * URL 결제 시 운영 WEB 바인딩의 {@code pg_cd} — {@link #getUrlPayPresentationForCheckout} 의 {@code urlPayOperationalPgCd} 와 동일 규칙.
      */
     public String resolveUrlPayOperationalPgCd(Long merchantOrgUnitId) {
         if (merchantOrgUnitId == null) {
@@ -497,6 +490,41 @@ public class ChillPayService {
         }
         /* URL 결제는 가맹점에 세팅된 운영 WEB·URL결제 연동 PG만 사용. 본사 일반 CHILLPAY로 대체하지 않음 */
         return "";
+    }
+
+    /**
+     * 운영(Y) ChillPay 계열 바인딩 — 배포설정 &gt; API연동설정에서 연동용도 URL결제인 {@code pg_cd} 를 최우선,
+     * 다음 WEB(또는 결제구분 미입력), 그다음 기타 결제구분.
+     */
+    private Optional<MerchantPgBinding> findOperationalChillPayFamilyBinding(Long orgUnitId) {
+        if (orgUnitId == null) {
+            return Optional.empty();
+        }
+        List<MerchantPgBinding> list = merchantPgBindingRepository.findByOrgUnitIdOrderBySortOrderAsc(orgUnitId);
+        Map<String, Boolean> urlPayByPgCd = urlPayAgencyFlagByPgCd(list);
+        Optional<MerchantPgBinding> web = pickOperationalChillPayBindingRow(list, true, urlPayByPgCd);
+        return web.isPresent() ? web : pickOperationalChillPayBindingRow(list, false, urlPayByPgCd);
+    }
+
+    private Optional<MerchantPgBinding> pickOperationalChillPayBindingRow(
+            List<MerchantPgBinding> list, boolean webOnly, Map<String, Boolean> urlPayByPgCd) {
+        return list.stream()
+                .filter(b -> b.getOperationalYn() != null && "Y".equalsIgnoreCase(b.getOperationalYn().trim()))
+                .filter(b -> b.getActivationYn() == null || "Y".equalsIgnoreCase(b.getActivationYn().trim()))
+                .filter(b -> b.getPgCd() != null && isChillPayFamilyPgCd(b.getPgCd()))
+                .filter(b -> Boolean.TRUE.equals(urlPayByPgCd.get(pgCdKey(b))))
+                .filter(b -> !webOnly || isWebOrUnsetPayMethod(b.getPayMethod()))
+                .min(Comparator
+                        .comparing((MerchantPgBinding b) -> genericChillPayPgCd(b.getPgCd()) ? 1 : 0)
+                        .thenComparing(b -> b.getSortOrder() != null ? b.getSortOrder() : Integer.MAX_VALUE)
+                        .thenComparing(MerchantPgBinding::getId));
+    }
+
+    private static boolean isWebOrUnsetPayMethod(String payMethod) {
+        if (payMethod == null || payMethod.isBlank()) {
+            return true;
+        }
+        return "WEB".equalsIgnoreCase(payMethod.trim());
     }
 
     /** 바인딩 목록에 나온 {@code pg_cd} 별로, 사용 Y인 {@code tb_pg_agency} 행의 URL결제 연동 여부. */

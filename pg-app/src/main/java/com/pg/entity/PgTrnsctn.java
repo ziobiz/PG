@@ -107,6 +107,16 @@ public class PgTrnsctn {
     @Column(name = "mw_outbound_last_sent_status", length = 8)
     private String mwOutboundLastSentStatus;
 
+    /**
+     * 고객 화면(URL·챗봇·API 결제)에 보였던 금액·통화.
+     * {@link #curType}/{@link #amtKrw} 는 PG 청구(실승인) 기준이며, DISPLAY_FX 등으로 둘이 다를 수 있습니다.
+     */
+    @Column(name = "display_cur_type", length = 10)
+    private String displayCurType;
+
+    @Column(name = "display_amt", precision = 20, scale = 8)
+    private BigDecimal displayAmt;
+
     @PrePersist
     protected void onCreate() {
         if (createdAt == null) {
@@ -165,4 +175,9 @@ public class PgTrnsctn {
     public void setChillTransactionId(String chillTransactionId) { this.chillTransactionId = chillTransactionId; }
     public String getMwOutboundLastSentStatus() { return mwOutboundLastSentStatus; }
     public void setMwOutboundLastSentStatus(String mwOutboundLastSentStatus) { this.mwOutboundLastSentStatus = mwOutboundLastSentStatus; }
+
+    public String getDisplayCurType() { return displayCurType; }
+    public void setDisplayCurType(String displayCurType) { this.displayCurType = displayCurType; }
+    public BigDecimal getDisplayAmt() { return displayAmt; }
+    public void setDisplayAmt(BigDecimal displayAmt) { this.displayAmt = displayAmt; }
 }

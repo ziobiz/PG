@@ -222,7 +222,23 @@ public class PayListItemDto {
 
         row.put("origin", t.getOrigin() != null ? t.getOrigin() : "CHILL");
         row.put("notifyChannelType", notifyChannelTypeLabel(t));
+        applyDisplayPayRow(t, row);
         return row;
+    }
+
+    /** VIEW SETTING: URL·DISPLAY_FX·노티 등 고객 표시 금액·통화(PG 청구와 별도). */
+    private static void applyDisplayPayRow(PgTrnsctn t, Map<String, Object> row) {
+        if (t.getDisplayAmt() != null && t.getDisplayCurType() != null && !t.getDisplayCurType().isBlank()) {
+            String dCur = normalizeDisplayCurrency(t.getDisplayCurType().trim());
+            row.put("displayPayAmt", t.getDisplayAmt());
+            row.put("displayPayCur", dCur);
+            String plain = t.getDisplayAmt().stripTrailingZeros().toPlainString();
+            row.put("displayPaySummary", dCur + " " + plain);
+        } else {
+            row.put("displayPayAmt", null);
+            row.put("displayPayCur", "");
+            row.put("displayPaySummary", "");
+        }
     }
 
     /**

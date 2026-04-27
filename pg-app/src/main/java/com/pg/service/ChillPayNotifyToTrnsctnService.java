@@ -16,6 +16,7 @@ import com.pg.service.settlement.SettlementArrearsService;
 import com.pg.util.ChillPayNotifyOutcomeAdjust;
 import com.pg.util.NotifyAmountParse;
 import com.pg.util.NotifyChannelMerge;
+import com.pg.util.PgTrnsctnNotifyDisplayHelper;
 import com.pg.util.NotifyToTxnStatusMerge;
 import com.pg.util.PgNotifyInternalStatusMapper;
 import org.slf4j.Logger;
@@ -331,6 +332,7 @@ public class ChillPayNotifyToTrnsctnService implements PgNotifyInboundTxnHandler
         }
 
         applyMerchantFromIcopayCompInPayload(in, root, raw, t);
+        PgTrnsctnNotifyDisplayHelper.mergeFromChillPayJson(root, t);
 
         pgTrnsctnRepository.save(t);
         try {

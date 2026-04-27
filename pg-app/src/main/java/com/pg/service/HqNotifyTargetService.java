@@ -130,11 +130,13 @@ public class HqNotifyTargetService {
         repository.save(tRs);
 
         pushRequiredNotifyToDistributor(boundOrgUnitId, tCb.getTargetUrl(), tRs.getTargetUrl());
+        /* pushRequiredNotify → replaceDistributorOrgLinks 가 URL 불일치 등으로 org_unit_id 를 비운 채 못 채우는 경우가 있어, 대상 행은 id 기준으로 다시 고정 */
+        reassertOrgLinkOnTargetIds(List.of(tCb.getId(), tRs.getId()), boundOrgUnitId);
 
         Map<String, Object> out = new LinkedHashMap<>();
         List<Map<String, Object>> rows = new ArrayList<>();
-        rows.add(toMap(tCb));
-        rows.add(toMap(tRs));
+        rows.add(toMap(repository.findById(tCb.getId()).orElse(tCb)));
+        rows.add(toMap(repository.findById(tRs.getId()).orElse(tRs)));
         out.put("targets", rows);
         out.put("callbackUrl", tCb.getTargetUrl());
         out.put("resultUrl", tRs.getTargetUrl());
@@ -197,6 +199,26 @@ public class HqNotifyTargetService {
         }
         String[] cbRs = resolveCallbackResultUrls(new ArrayList<>(toSave.values()));
         pushRequiredNotifyToDistributor(boundOrgUnitId, cbRs[0], cbRs[1]);
+        reassertOrgLinkOnTargetIds(toSave.keySet(), boundOrgUnitId);
+    }
+
+    /**
+     * {@link #replaceDistributorOrgLinks} 가 본사 URL 기준 재매칭에 실패해도, 방금 연결한 노티 대상 행에는 org_unit_id 가 남도록 id 기준으로 복구합니다.
+     */
+    private void reassertOrgLinkOnTargetIds(Iterable<Long> targetIds, Long orgUnitId) {
+        if (targetIds == null || orgUnitId == null) {
+            return;
+        }
+        for (Long tid : targetIds) {
+            if (tid == null) {
+                continue;
+            }
+            repository.findById(tid).ifPresent(t -> {
+                t.setOrgUnitId(orgUnitId);
+                repository.save(t);
+            });
+        }
+        repository.flush();
     }
 
     /**
@@ -380,12 +402,12 @@ public class HqNotifyTargetService {
         m.put("channelTypeNm", channelLabelKo(ch));
         m.put("useYn", t.getUseYn());
         m.put("createdAt", t.getCreatedAt() != null ? t.getCreatedAt().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")) : "");
-        m.put("boundOrgUnitId", null);
+        Long orgId = t.getOrgUnitId();
+        m.put("boundOrgUnitId", orgId);
         m.put("boundOrgUnitCode", "");
         m.put("boundOrgUnitName", "");
-        if (t.getOrgUnitId() != null) {
-            orgUnitRepository.findById(t.getOrgUnitId()).ifPresent(ou -> {
-                m.put("boundOrgUnitId", ou.getId());
+        if (orgId != null) {
+            orgUnitRepository.findById(orgId).ifPresent(ou -> {
                 m.put("boundOrgUnitCode", ou.getCode() != null ? ou.getCode() : "");
                 m.put("boundOrgUnitName", ou.getName() != null ? ou.getName() : "");
             });

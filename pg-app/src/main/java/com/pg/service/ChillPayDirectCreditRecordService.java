@@ -73,9 +73,30 @@ public class ChillPayDirectCreditRecordService {
                                                 String urlPayIntegrationMode,
                                                 String payerDisplayName,
                                                 String checkoutCurrencyAlpha) {
+        recordAfterDirectCreditResponse(merchantOrgUnitId, res, requestAmount, requestOrderNo, requestCustomerId,
+                routeNo, urlPayIntegrationMode, payerDisplayName, checkoutCurrencyAlpha, null, null);
+    }
+
+    /**
+     * @param shopperDisplayAmount 고객에게 보였던 금액(주단위). DISPLAY_FX 등 PG 청구와 다를 때만 비움 아님.
+     * @param shopperDisplayCurrency ISO 알파 등(비어 있으면 표시 컬럼 미설정)
+     */
+    @Transactional
+    public void recordAfterDirectCreditResponse(Long merchantOrgUnitId,
+                                                ChillPayDirectCreditResponse res,
+                                                long requestAmount,
+                                                String requestOrderNo,
+                                                String requestCustomerId,
+                                                int routeNo,
+                                                String urlPayIntegrationMode,
+                                                String payerDisplayName,
+                                                String checkoutCurrencyAlpha,
+                                                BigDecimal shopperDisplayAmount,
+                                                String shopperDisplayCurrency) {
         try {
             doRecord(merchantOrgUnitId, res, requestAmount, requestOrderNo, requestCustomerId, routeNo,
-                    urlPayIntegrationMode, payerDisplayName, checkoutCurrencyAlpha);
+                    urlPayIntegrationMode, payerDisplayName, checkoutCurrencyAlpha,
+                    shopperDisplayAmount, shopperDisplayCurrency);
         } catch (Exception e) {
             log.warn("DirectCredit 거래 적재 실패 (결제 API 응답은 유지): {}", e.getMessage());
         }
@@ -89,7 +110,9 @@ public class ChillPayDirectCreditRecordService {
                           int routeNo,
                           String urlPayIntegrationMode,
                           String payerDisplayName,
-                          String checkoutCurrencyAlpha) {
+                          String checkoutCurrencyAlpha,
+                          BigDecimal shopperDisplayAmount,
+                          String shopperDisplayCurrency) {
         if (res == null || res.getStatus() != 200 || res.getData() == null) {
             return;
         }
@@ -163,6 +186,12 @@ public class ChillPayDirectCreditRecordService {
         }
         if (d.getIcopay() != null) {
             t.setIcopayAmt(BigDecimal.valueOf(d.getIcopay()));
+        }
+        if (shopperDisplayAmount != null && shopperDisplayAmount.compareTo(BigDecimal.ZERO) > 0
+                && shopperDisplayCurrency != null && !shopperDisplayCurrency.isBlank()) {
+            t.setDisplayAmt(shopperDisplayAmount);
+            String dc = shopperDisplayCurrency.trim().toUpperCase(Locale.ROOT);
+            t.setDisplayCurType(dc.length() > 10 ? dc.substring(0, 10) : dc);
         }
         if (paid) {
             t.setPaidAt(LocalDateTime.now(hqLedgerSysSettingsService.resolveLedgerDisplayZoneId()));

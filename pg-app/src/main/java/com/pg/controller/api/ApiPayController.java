@@ -463,6 +463,8 @@ public class ApiPayController {
         String pricingReq = str(body, "urlPayPricingMode");
         String checkoutCurrencyCode;
         BigDecimal pgAmount;
+        BigDecimal shopperDisplayAmountOut = null;
+        String shopperDisplayCurrencyOut = null;
         if (UrlPayDisplayFxService.MODE_DISPLAY_FX_THB.equalsIgnoreCase(pricingReq != null ? pricingReq : "")) {
             if (merchantOrgUnitId == null) {
                 return ResponseEntity.ok(ApiResponse.fail("가맹점을 찾을 수 없습니다.", "NOT_FOUND"));
@@ -489,6 +491,10 @@ public class ApiPayController {
                 checkoutCurrencyCode = fx.settlementCurrency();
                 /* 견적 금액은 이미 실결제 통화 주단위. 결제통화로직(×100 등)은 “폼 입력→PG”용이라 이중 적용 시 THB 체크섬 불일치 유발 */
                 pgAmount = fx.amount();
+                shopperDisplayAmountOut = dispAmt;
+                if (dispCur != null && !dispCur.isBlank()) {
+                    shopperDisplayCurrencyOut = dispCur.trim().toUpperCase(Locale.ROOT);
+                }
             } catch (IllegalArgumentException ex) {
                 String code = ex.getMessage() != null ? ex.getMessage() : "INVALID_FX_QUOTE";
                 return ResponseEntity.ok(ApiResponse.fail("환율 견적이 유효하지 않거나 만료되었습니다. 페이지를 새로고침한 뒤 다시 시도하세요.", code));
@@ -528,7 +534,8 @@ public class ApiPayController {
             long recordAmt = chillPayWireAmountLong(pgAmount, checkoutCurrencyCode);
             chillPayDirectCreditRecordService.recordAfterDirectCreditResponse(
                     merchantOrgUnitId, res, recordAmt, orderNo, customerId, payResult.routeUsed(),
-                    urlPayMode, payerName.isEmpty() ? null : payerName, checkoutCurrencyCode);
+                    urlPayMode, payerName.isEmpty() ? null : payerName, checkoutCurrencyCode,
+                    shopperDisplayAmountOut, shopperDisplayCurrencyOut);
             return ResponseEntity.ok(ApiResponse.ok(res));
         } catch (IllegalStateException e) {
             String msg = e.getMessage() != null ? e.getMessage() : "결제 요청 처리 중 오류가 발생했습니다.";

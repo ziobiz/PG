@@ -22,6 +22,7 @@ import com.pg.util.NotifyAmountParse;
 import com.pg.util.NotifyChannelMerge;
 import com.pg.util.NotifyToTxnStatusMerge;
 import com.pg.util.PgNotifyInternalStatusMapper;
+import com.pg.util.PgTrnsctnNotifyDisplayHelper;
 
 import java.io.InputStream;
 import java.math.BigDecimal;
@@ -468,6 +469,8 @@ public class HqNotifyMappingService {
         a.add(mapping("TransactionId", "chillTransactionId", "칠페이 거래 ID → 그리드 TransactionId(칠페이)"));
         a.add(mapping("RouteNo", "routeNo", "라우트 번호"));
         a.add(mapping("Amount", "chillAmount", "금액(칠페이 시트)"));
+        a.add(mapping("DisplayAmount", "displayPayAmt", "고객 표시 금액(URL DISPLAY_FX·노티 확장)"));
+        a.add(mapping("DisplayCurrency", "displayPayCur", "고객 표시 통화"));
         a.add(mapping("OrderNo", "orderNo", "주문번호"));
         a.add(mapping("Status / PaymentStatus", "chillPaymentStatus", "상태"));
         return a;
@@ -931,6 +934,7 @@ public class HqNotifyMappingService {
             t.setTotalAmt(amountBd);
         }
         parseOptionalDecimal(firstNonBlank(byKey, "icopayAmt")).ifPresent(t::setIcopayAmt);
+        applyShopperDisplayFromMappedNotify(byKey, notifyRoot, t);
 
         String aprv = firstNonBlank(byKey, "cardAprvNo", "pgApproveNo");
         if (aprv != null) {
@@ -1252,6 +1256,8 @@ public class HqNotifyMappingService {
             case "customerid", "custid", "customer" -> "customerId";
             case "customername", "payername", "username" -> "customerNm";
             case "currency", "currencycode" -> "currency";
+            case "displayamount", "shopperamount", "customerfacingamount" -> "displayPayAmt";
+            case "displaycurrency", "shoppercurrency", "orderdisplaycurrency" -> "displayPayCur";
             case "fee" -> "chillFeeAmt";
             case "icopay" -> "icopayAmt";
             case "paymentdate", "paidat", "transactiondate" -> "payCompletedAt";
@@ -1269,6 +1275,28 @@ public class HqNotifyMappingService {
             return "chillTransactionId";
         }
         return t;
+    }
+
+    /**
+     * 노티매핑으로 {@code displayPayAmt}/{@code displayPayCur} 가 오면 우선하고,
+     * 없으면 본문 표준 키(DisplayAmount 등)를 {@link PgTrnsctnNotifyDisplayHelper} 로 읽습니다.
+     */
+    private void applyShopperDisplayFromMappedNotify(Map<String, String> byKey, JsonNode notifyRoot, PgTrnsctn t) {
+        if (t == null) {
+            return;
+        }
+        String dAmtS = firstNonBlank(byKey, "displayPayAmt");
+        String dCurS = firstNonBlank(byKey, "displayPayCur");
+        if (dAmtS != null && dCurS != null && !dCurS.isBlank()) {
+            Optional<BigDecimal> o = parseOptionalDecimal(dAmtS);
+            if (NotifyAmountParse.isPositive(o)) {
+                t.setDisplayAmt(o.get());
+                String u = dCurS.trim().toUpperCase(Locale.ROOT);
+                t.setDisplayCurType(u.length() > 10 ? u.substring(0, 10) : u);
+                return;
+            }
+        }
+        PgTrnsctnNotifyDisplayHelper.mergeFromChillPayJson(notifyRoot, t);
     }
 
     private static String firstNonBlank(Map<String, String> m, String... keys) {
@@ -1552,6 +1580,7 @@ public class HqNotifyMappingService {
         Map<String, Map<String, String>> vm = cache.byVendorUpper().getOrDefault(pg, Map.of());
         LinkedHashSet<String> fieldKeys = new LinkedHashSet<>(vm.keySet());
         fieldKeys.add("currency");
+        fieldKeys.add("displayPayCur");
         fieldKeys.add("chillPaymentStatus");
         for (String fk : fieldKeys) {
             if ("notifyChannelType".equals(fk)) {
@@ -1567,7 +1596,7 @@ public class HqNotifyMappingService {
             }
             Map<String, String> vendorField = vm.get(fk);
             String label;
-            if ("currency".equals(fk)) {
+            if ("currency".equals(fk) || "displayPayCur".equals(fk)) {
                 label = resolveCurrencyDisplayLabel(vendorField, raw);
             } else {
                 label = lookupDisplayMap(vendorField, raw);
@@ -1579,7 +1608,7 @@ public class HqNotifyMappingService {
                 }
             }
             if (label != null) {
-                if ("currency".equals(fk)) {
+                if ("currency".equals(fk) || "displayPayCur".equals(fk)) {
                     label = normalizeCurrencyDisplayForGrid(label);
                 }
                 row.put(fk, label);

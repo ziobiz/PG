@@ -28,6 +28,7 @@
       MASTER_DIST: [
         'chillTransactionId', 'trnId', 'chillCustomer', 'orderNo', 'paymentChannel', 'payCompletedAt',
         'chillAmount', 'icopayAmt', 'chillFeeAmt', 'totalAmt', 'currency',
+        'displayPaySummary', 'displayPayCur', 'displayPayAmt',
         'regionalBaseCur', 'masterDistBaseCur', 'merchantBaseCur',
         'chillPaymentStatus', 'settledYn',
         'payDivNm', 'cardAprvNo', 'productNm', 'customerNm', 'customerTel', 'regionalNm', 'masterNm', 'branchNm',
@@ -38,6 +39,7 @@
       BRANCH_GROUP: [
         'chillTransactionId', 'trnId', 'chillCustomer', 'orderNo', 'paymentChannel', 'payCompletedAt',
         'chillAmount', 'icopayAmt', 'chillFeeAmt', 'totalAmt', 'currency',
+        'displayPaySummary', 'displayPayCur', 'displayPayAmt',
         'regionalBaseCur', 'masterDistBaseCur', 'merchantBaseCur',
         'chillPaymentStatus', 'settledYn',
         'payDivNm', 'cardAprvNo', 'productNm', 'customerNm', 'customerTel', 'regionalNm', 'masterNm', 'branchNm',
@@ -47,6 +49,7 @@
       MERCHANT: [
         'chillTransactionId', 'trnId', 'chillCustomer', 'orderNo', 'paymentChannel', 'payCompletedAt',
         'chillAmount', 'icopayAmt', 'chillFeeAmt', 'totalAmt', 'currency',
+        'displayPaySummary', 'displayPayCur', 'displayPayAmt',
         'regionalBaseCur', 'masterDistBaseCur', 'merchantBaseCur',
         'chillPaymentStatus', 'settledYn',
         'payDivNm', 'cardAprvNo', 'productNm', 'customerNm', 'payActions'
@@ -56,7 +59,8 @@
       { label: '사업자번호', keys: ['compRegNo'] },
       { label: 'PG승인', keys: ['pgApproveAmt', 'payAprv'] },
       { label: '보류', keys: ['holdAmt', 'holdDttm'] },
-      { label: '수수료', keys: ['feeCnt', 'feeRate'] }
+      { label: '수수료', keys: ['feeCnt', 'feeRate'] },
+      { label: '고객표시', keys: ['displayPaySummary', 'displayPayCur', 'displayPayAmt'] }
     ],
     /** gridType: 'checkbox' | 'payActions', 그 외 일반 열 */
     columns: [
@@ -78,6 +82,9 @@
       { key: 'chillFeeAmt', label: '수수료' },
       { key: 'totalAmt', label: '총금액' },
       { key: 'currency', label: '통화' },
+      { key: 'displayPaySummary', label: '고객표시(통화+금액)' },
+      { key: 'displayPayCur', label: '고객표시통화' },
+      { key: 'displayPayAmt', label: '고객표시금액' },
       { key: 'regionalBaseCur', label: '본사기준통화' },
       { key: 'masterDistBaseCur', label: '총판기준통화' },
       { key: 'merchantBaseCur', label: '가맹기준통화' },

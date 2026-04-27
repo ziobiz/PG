@@ -21,7 +21,7 @@ public interface HqNotifyTargetRepository extends JpaRepository<HqNotifyTarget, 
 
     Optional<HqNotifyTarget> findByTargetUrl(String targetUrl);
 
-    @Modifying
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("update HqNotifyTarget t set t.orgUnitId = null where t.orgUnitId = :orgUnitId")
     void clearOrgUnitIdByOrgUnitId(@Param("orgUnitId") Long orgUnitId);
 }
