@@ -374,7 +374,7 @@ public class DashboardHomeService {
         }
         String lvl = orgLevel != null ? orgLevel.toUpperCase(Locale.ROOT) : "";
         return switch (lvl) {
-            case "HEADQUARTERS" -> "총본사 운영 허브: 조직·7일 매출 추이·정산·업무 바로가기와 리스크 요약을 한 화면에서 확인할 수 있습니다.";
+            case "HEADQUARTERS" -> "DASHBOARD: 조직·7일 매출 추이·정산·업무 바로가기와 리스크 요약을 한 화면에서 확인할 수 있습니다.";
             case "REGIONAL" -> "본사 하위 가맹점 기준 결제·승인 금액 요약입니다.";
             case "MASTER_DIST", "BRANCH", "AGENCY", "SALES_OFFICE" -> "담당 가맹점 범위 내 결제·승인 건수 및 금액 요약입니다.";
             case "MERCHANT" -> "가맹점 기준 거래 요약과 정산 실행 이력(정산 달력)을 제공합니다.";

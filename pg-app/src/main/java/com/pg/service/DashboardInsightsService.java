@@ -81,6 +81,7 @@ public class DashboardInsightsService {
         if (emptyScope) {
             root.put("riskScorecard", emptyScorecard());
             root.put("kpiStrip", emptyKpi());
+            root.put("kpiStripYesterday", emptyKpiYesterday());
             root.put("timeline", List.of());
             root.put("priorityQueue", List.of());
             root.put("anomalies", List.of());
@@ -111,12 +112,21 @@ public class DashboardInsightsService {
         root.put("riskScorecard", scorecard);
 
         LocalDateTime dayStart = today.atStartOfDay();
+        LocalDateTime yesterdayStart = today.minusDays(1).atStartOfDay();
         RiskBuckets bToday = loadRiskBuckets(unrestricted, merchantScopeNonNull, dayStart, weekNextStart);
+        RiskBuckets bYesterday = loadRiskBuckets(unrestricted, merchantScopeNonNull, yesterdayStart, dayStart);
         Map<String, Object> kpi = new LinkedHashMap<>();
         kpi.put("todayFailures", bToday.fail);
         kpi.put("todayVoids", bToday.voidFamily);
         kpi.put("todayRefunds", bToday.refund);
         kpi.put("todayCancels", bToday.cancel);
+
+        Map<String, Object> kpiY = new LinkedHashMap<>();
+        kpiY.put("yesterdayFailures", bYesterday.fail);
+        kpiY.put("yesterdayVoids", bYesterday.voidFamily);
+        kpiY.put("yesterdayRefunds", bYesterday.refund);
+        kpiY.put("yesterdayCancels", bYesterday.cancel);
+        root.put("kpiStripYesterday", kpiY);
 
         Object[] recv = pendingReceivableStats(unrestricted, merchantScopeNonNull);
         long recvCnt = DashboardTupleRows.readLong(recv != null && recv.length > 0 ? recv[0] : null);
@@ -164,6 +174,7 @@ public class DashboardInsightsService {
         root.put("evidenceBase", evidence);
         root.put("riskScorecard", emptyScorecard());
         root.put("kpiStrip", emptyKpi());
+        root.put("kpiStripYesterday", emptyKpiYesterday());
         root.put("timeline", List.of());
         root.put("priorityQueue", List.of());
         root.put("anomalies", List.of());
@@ -198,10 +209,20 @@ public class DashboardInsightsService {
         return k;
     }
 
+    private static Map<String, Object> emptyKpiYesterday() {
+        Map<String, Object> k = new LinkedHashMap<>();
+        k.put("yesterdayFailures", 0L);
+        k.put("yesterdayVoids", 0L);
+        k.put("yesterdayRefunds", 0L);
+        k.put("yesterdayCancels", 0L);
+        return k;
+    }
+
     private static Map<String, String> defaultExplainers() {
         Map<String, String> m = new LinkedHashMap<>();
         m.put("riskScore", "최근 7일(오늘 포함) 실패·무효·환불·취소 건수에 가중치를 둔 규칙 점수입니다. 지난 7일 대비 증감은 동일 규칙으로 비교합니다.");
         m.put("kpiStrip", "오늘 0시 이후 결제일시 기준 건수와, 미수(PENDING)·노티 미매핑·정산보류/지급보류 행 수입니다.");
+        m.put("kpiStripYesterday", "전일 0시~24시(당일 0시 직전) 결제일시 기준 실패·무효·환불·취소 건수입니다. 미수·노티 등은 시점 스냅샷이 없어 제외합니다.");
         m.put("timeline", "정산 실행 생성·미수금 생성·노티 미처리(매핑 외) 중 최근 이벤트입니다.");
         m.put("priorityQueue", "규칙으로 정렬한 오늘 확인 권장 항목이며, 클릭 시 관리 화면으로 이동합니다.");
         m.put("anomalies", "지난 7일 환불·강제환불 건수 상위 가맹(식별자 마스킹)입니다.");

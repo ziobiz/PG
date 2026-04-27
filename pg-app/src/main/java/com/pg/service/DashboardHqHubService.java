@@ -49,7 +49,7 @@ public class DashboardHqHubService {
                                      LocalDate today) {
         Map<String, Object> hub = new LinkedHashMap<>();
         hub.put("variant", "HEADQUARTERS_HUB");
-        hub.put("title", admin ? "전사 운영 허브" : "총본사 운영 허브");
+        hub.put("title", "DASHBOARD");
 
         List<OrgUnit> allOrgs = orgUnitRepository.findAll();
         Set<Long> scopeOrgIds = resolveScopeOrgIds(admin, hqRootOrgUnitId, allOrgs);
@@ -135,12 +135,12 @@ public class DashboardHqHubService {
     public Map<String, Object> buildDegraded(boolean admin, Throwable error) {
         Map<String, Object> hub = new LinkedHashMap<>();
         hub.put("variant", "HEADQUARTERS_HUB");
-        hub.put("title", admin ? "전사 운영 허브" : "총본사 운영 허브");
+        hub.put("title", "DASHBOARD");
         String msg = error != null && error.getMessage() != null ? error.getMessage() : String.valueOf(error);
         if (msg.length() > 400) {
             msg = msg.substring(0, 400) + "…";
         }
-        hub.put("note", "허브 집계 중 오류: " + msg);
+        hub.put("note", "DASHBOARD 집계 중 오류: " + msg);
         hub.put("tiles", buildTiles());
         hub.put("orgUnitsByLevel", Map.of());
         hub.put("merchantOrgCount", 0L);

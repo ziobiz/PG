@@ -170,8 +170,15 @@
     var h = d.hqHub;
     if (!h || typeof h !== 'object') return '';
     var hl = h.headline || {};
-    var title = h.title ? esc(String(h.title)) : '운영 허브';
+    var title = h.title ? esc(String(h.title)) : 'DASHBOARD';
     var note = h.note ? '<p class="small text-warning mb-2">' + esc(String(h.note)) + '</p>' : '';
+
+    var kpiTop = '';
+    var insHub = d.insights;
+    if (insHub && typeof insHub === 'object' && !insHub.loadError) {
+      var exHub = insHub.explainers || {};
+      kpiTop = kpiStripHtml(insHub.kpiStrip, exHub) + kpiStripYesterdayHtml(insHub.kpiStripYesterday, exHub);
+    }
 
     var headRow =
       '<div class="row g-3 mb-3">' +
@@ -261,7 +268,7 @@
       '<h4 class="mb-0">' + title + '</h4>' +
       (d.orgLevel ? '<span class="badge bg-dark">' + esc(String(d.orgLevel)) + '</span>' : '') +
       '</div>' +
-      note + headRow + orgRow + trendCard + mixRow + tileCard + rsCard +
+      note + kpiTop + headRow + orgRow + trendCard + mixRow + tileCard + rsCard +
       '</section>'
     );
   }
@@ -349,6 +356,34 @@
       chip('미수 잔액', fmtMoney(kpi.receivableRemainingSum) + ' 원', kpi.receivableOpenCount > 0 ? 'danger' : 'secondary') +
       chip('노티 미처리(7d)', fmtNum(kpi.notifyNotParsedLast7d), kpi.notifyNotParsedLast7d > 0 ? 'warning' : 'secondary') +
       chip('정산보류(30d)', fmtNum(kpi.settlementHoldOrPayoutHoldRows30d), kpi.settlementHoldOrPayoutHoldRows30d > 0 ? 'warning' : 'secondary') +
+      '</div></div></div>'
+    );
+  }
+
+  function kpiStripYesterdayHtml(yp, explainers) {
+    yp = yp && typeof yp === 'object' ? yp : {};
+    function yn(k) {
+      var v = yp[k];
+      return v != null ? Number(v) : 0;
+    }
+    function chip(label, val, tone) {
+      tone = tone || 'secondary';
+      return '<div class="col-6 col-md-3 mb-2"><div class="border rounded p-2 h-100 bg-light pg-dash-kpi-chip">' +
+        '<div class="text-muted small">' + esc(label) + '</div>' +
+        '<div class="fw-semibold text-' + esc(tone) + '">' + esc(String(val)) + '</div></div></div>';
+    }
+    return (
+      '<div class="card mb-3">' +
+      '<div class="card-header py-2 d-flex align-items-center flex-wrap">' +
+      '<strong>어제의 운영 KPI</strong> <span class="text-muted small ms-1">(전일 0시~24시 거래일시)</span>' +
+      explainerBtn('kpiStripYesterday', explainers) +
+      '</div>' +
+      '<div class="card-body">' +
+      '<div class="row">' +
+      chip('실패(99/F0)', fmtNum(yn('yesterdayFailures')), 'danger') +
+      chip('환불(30/31)', fmtNum(yn('yesterdayRefunds')), 'warning') +
+      chip('무효계열', fmtNum(yn('yesterdayVoids')), 'secondary') +
+      chip('취소(20)', fmtNum(yn('yesterdayCancels')), 'secondary') +
       '</div></div></div>'
     );
   }
@@ -448,20 +483,22 @@
       }
       return (
         '<details class="mb-3 pg-dash-api-hint border rounded px-3 py-2 bg-light">' +
-        '<summary class="small text-muted" style="cursor:pointer;"><code>insights</code>만 없습니다. (허브는 표시 중)</summary>' +
+        '<summary class="small text-muted" style="cursor:pointer;"><code>insights</code>만 없습니다. (DASHBOARD는 표시 중)</summary>' +
         '<div class="small text-muted mt-2 pb-1">' +
         'API·정적 리소스 버전을 맞춘 뒤 <kbd>Ctrl+F5</kbd>로 새로고침하세요.' +
         '</div></details>'
       );
     }
     var ex = ins.explainers || {};
+    var kpiBlocks = hasHqHubPayload(d) ? '' : (kpiStripHtml(ins.kpiStrip, ex) + kpiStripYesterdayHtml(ins.kpiStripYesterday, ex));
     var narr = ins.ruleNarrative ? '<div class="alert alert-light border mb-3 pg-dash-narr"><div class="small text-uppercase text-muted mb-1">규칙 기반 인사이트 (비 LLM)</div><p class="mb-0">' + esc(ins.ruleNarrative) + '</p></div>' : '';
     var llm = ins.llmNarrativeEnabled ? '' : '<p class="small text-muted mb-2">숫자·근거는 서버 집계이며, LLM 요약은 비활성(1단계)입니다.</p>';
     var row = '<div class="row">' + riskScorecardHtml(ins.riskScorecard, ex) + '</div>';
     return (
       '<section class="pg-dash-insights mb-2">' +
+      kpiBlocks +
       narr + llm + evidenceHtml(ins.evidenceBase) +
-      row + kpiStripHtml(ins.kpiStrip, ex) +
+      row +
       timelineHtml(ins.timeline, ex) +
       priorityQueueHtml(ins.priorityQueue, ex) +
       anomaliesHtml(ins.anomalies, ex) +
