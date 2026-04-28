@@ -62,7 +62,7 @@
       { label: '보류', keys: ['holdAmt', 'holdDttm'] },
       { label: '수수료', keys: ['feeCnt', 'feeRate'] },
       { label: '고객표시', keys: ['payCustomerIndicator'] },
-      { label: '통화+금액', keys: ['displayPaySummary'] },
+      { label: '입력통화', keys: ['displayPaySummary'] },
       { label: '고객통화', keys: ['displayPayCur'] },
       { label: '고객금액', keys: ['displayPayAmt'] }
     ],
@@ -87,7 +87,7 @@
       { key: 'totalAmt', label: '총금액' },
       { key: 'currency', label: '통화' },
       { key: 'payCustomerIndicator', label: '고객표시' },
-      { key: 'displayPaySummary', label: '통화+금액' },
+      { key: 'displayPaySummary', label: '통화ㅣ금액', columnGuideLabel: '입력통화' },
       { key: 'displayPayCur', label: '고객통화' },
       { key: 'displayPayAmt', label: '고객금액' },
       { key: 'regionalBaseCur', label: '본사기준통화' },

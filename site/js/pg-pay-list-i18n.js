@@ -358,7 +358,7 @@
     'holdAmt,holdDttm': { KO: '보류', EN: 'Hold', JP: '保留', CH: '暂扣', TH: 'พักรอ' },
     'feeCnt,feeRate': { KO: '수수료', EN: 'Fee', JP: '手数料', CH: '手续费', TH: 'ค่าธรรมเนียม' },
     'payCustomerIndicator': { KO: '고객표시', EN: 'Shopper label', JP: '顧客表示', CH: '客户显示', TH: 'ป้ายลูกค้า' },
-    'displayPaySummary': { KO: '통화+금액', EN: 'Ccy + amount', JP: '通貨+金額', CH: '币种+金额', TH: 'สกุล+ยอด' },
+    'displayPaySummary': { KO: '입력통화', EN: 'Input currency', JP: '入力通貨', CH: '输入币种', TH: 'สกุลที่ป้อน' },
     'displayPayCur': { KO: '고객통화', EN: 'Shopper ccy', JP: '顧客通貨', CH: '客户币种', TH: 'สกุลลูกค้า' },
     'displayPayAmt': { KO: '고객금액', EN: 'Shopper amt', JP: '顧客金額', CH: '客户金额', TH: 'ยอดลูกค้า' }
   };
@@ -384,7 +384,7 @@
     totalAmt: { EN: 'Total', JP: '合計', CH: '合计', TH: 'รวม' },
     currency: { EN: 'Currency', JP: '通貨', CH: '币种', TH: 'สกุลเงิน' },
     payCustomerIndicator: { EN: 'Shopper label', JP: '顧客表示', CH: '客户显示', TH: 'ป้ายลูกค้า' },
-    displayPaySummary: { EN: 'Ccy + amount', JP: '通貨+金額', CH: '币种+金额', TH: 'สกุล+ยอด' },
+    displayPaySummary: { EN: 'Ccy | amount', JP: '通貨｜金額', CH: '币种｜金额', TH: 'สกุล｜ยอด' },
     displayPayCur: { EN: 'Shopper ccy', JP: '顧客通貨', CH: '客户币种', TH: 'สกุลลูกค้า' },
     displayPayAmt: { EN: 'Shopper amt', JP: '顧客金額', CH: '客户金额', TH: 'ยอดลูกค้า' },
     regionalBaseCur: { EN: 'HQ base ccy', JP: '本社基準通貨', CH: '总部基准货币', TH: 'สกุลฐานสำนักงานใหญ่' },
