@@ -4,8 +4,8 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
 
 /**
- * PG 노티 수신 URL(/api/open/pg-notify/...) — ziobiz/NOTI 등 미들웨어 송신원 제한용.
- * 값이 비어 있으면 해당 검증은 생략(기존 동작).
+ * PG 노티 수신 URL({@code /api/open/pg-notify/…} 및 {@code /api/middleware/notify/v1/pg-notify/…}) —
+ * ziobiz/NOTI 등 송신원 제한용. 값이 비어 있으면 해당 검증은 생략(기존 동작).
  */
 @Component
 @ConfigurationProperties(prefix = "app.pg-notify")

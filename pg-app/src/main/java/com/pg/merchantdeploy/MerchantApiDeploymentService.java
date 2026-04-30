@@ -15,6 +15,7 @@ import com.pg.repository.MerchantNotifyUrlRepository;
 import com.pg.repository.MerchantPgBindingRepository;
 import com.pg.repository.MerchantProfileRepository;
 import com.pg.repository.OrgUnitRepository;
+import com.pg.middleware.notify.PgNotifyIngressPaths;
 import com.pg.service.CompService;
 import com.pg.service.HqNotifyEnvService;
 import jakarta.servlet.http.HttpServletRequest;
@@ -128,8 +129,8 @@ public class MerchantApiDeploymentService {
 
         if (notifyCfg != null) {
             String token = notifyCfg.getIngressToken() != null ? notifyCfg.getIngressToken() : "";
-            kit.put("notifyIngressUrlOpen", publicApiBase + "/api/open/pg-notify/" + token);
-            kit.put("notifyIngressUrlMiddleware", publicApiBase + "/api/middleware/notify/v1/pg-notify/" + token);
+            kit.put("notifyIngressUrlOpen", publicApiBase + PgNotifyIngressPaths.OPEN_PREFIX + token);
+            kit.put("notifyIngressUrlMiddleware", publicApiBase + PgNotifyIngressPaths.MIDDLEWARE_PREFIX + token);
         } else {
             kit.put("notifyIngressUrlOpen", "");
             kit.put("notifyIngressUrlMiddleware", "");
@@ -192,6 +193,7 @@ public class MerchantApiDeploymentService {
         kit.put("integrationChecklist", List.of(
                 "API배포설정의 publicApiBaseUrl(또는 노티 publicBaseUrl)이 가맹점·PG사에 알려준 도메인과 일치하는지 확인",
                 "ChillPay 콜백·리다이렉트 URL은 본사 API연동설정·노티구성과 동일하게 유지",
+                "JPAY pay_notifyurl·콜백은 기본적으로 notifyIngressUrlMiddleware 경로를 사용합니다. 레거시만 필요하면 tb_pg_agency credentials_extra_json 에 jpayNotifyIngressStyle=OPEN",
                 "브로커 시크릿을 발급한 뒤 「강제」로 설정하면 /api/middleware/v1/pg/... 호출에 "
                         + MerchantBrokerAccessVerifier.HEADER_MERCHANT_BROKER_SECRET + " 헤더가 필수입니다",
                 "레거시 /api/pay/... 경로는 시크릿 검증 없이 동작합니다(이행 기간용)"

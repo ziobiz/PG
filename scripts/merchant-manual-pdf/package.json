@@ -1,0 +1,12 @@
+{
+  "name": "merchant-manual-pdf",
+  "private": true,
+  "type": "module",
+  "description": "가맹점 API 연동 매뉴얼 Markdown → PDF (pdfkit + Malgun Gothic)",
+  "scripts": {
+    "build-manuals": "node gen.mjs ../../docs/가맹점_API_연동_매뉴얼_목차.md && node gen.mjs ../../docs/가맹점_ChillPay_API_연동가이드.md && node gen.mjs ../../docs/가맹점_JPAY_API_연동가이드.md"
+  },
+  "dependencies": {
+    "pdfkit": "^0.15.0"
+  }
+}

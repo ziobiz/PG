@@ -3,6 +3,7 @@ output/
 
 # 스크립트 의존성
 scripts/node_modules/
+scripts/merchant-manual-pdf/node_modules/
 server/node_modules/
 
 # 업로드 파일 (본사/총판 브랜딩 이미지)
@@ -30,6 +31,9 @@ tmp-*.txt
 # OS
 .DS_Store
 Thumbs.db
+
+# MS Office 임시(잠금) 파일
+**/~$*
 
 # 민감 정보
 application-local.yml

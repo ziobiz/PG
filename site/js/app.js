@@ -12806,7 +12806,7 @@
       }
       function fillNotifyEnv(data) {
         if (!data) return;
-        ['notifyIngressUrl', 'ingressToken', 'publicBaseUrl', 'notifyOkResponse'].forEach(function (k) {
+        ['notifyIngressUrl', 'notifyIngressUrlOpen', 'ingressToken', 'publicBaseUrl', 'notifyOkResponse'].forEach(function (k) {
           var el = pane.querySelector('[name="' + k + '"]');
           if (el && data[k] != null && data[k] !== undefined) el.value = data[k];
         });

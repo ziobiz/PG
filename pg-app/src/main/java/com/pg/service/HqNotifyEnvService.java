@@ -1,6 +1,7 @@
 package com.pg.service;
 
 import com.pg.entity.HqNotifyEnvConfig;
+import com.pg.middleware.notify.PgNotifyIngressPaths;
 import com.pg.repository.HqNotifyEnvConfigRepository;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.stereotype.Service;
@@ -38,8 +39,20 @@ public class HqNotifyEnvService {
         return c;
     }
 
-    /** NOTI/칠페이 등에 등록할 전사 노티 수신 URL (토큰 경로 포함) */
+    /**
+     * NOTI·ChillPay·JPAY 등에 등록할 <strong>권장</strong> 전사 노티 수신 URL (미들웨어 베이스, 토큰까지 포함).
+     * 레거시 open 경로는 {@link #buildNotifyIngressUrlOpen}.
+     */
     public String buildNotifyIngressUrl(HqNotifyEnvConfig cfg, HttpServletRequest req) {
+        return PgNotifyIngressPaths.buildIngressBase(resolveNotifyPublicBase(cfg, req), cfg.getIngressToken());
+    }
+
+    /** 레거시 {@code /api/open/pg-notify/…} — 기존 등록 URL과 병행 안내용 */
+    public String buildNotifyIngressUrlOpen(HqNotifyEnvConfig cfg, HttpServletRequest req) {
+        return PgNotifyIngressPaths.buildIngressBaseOpen(resolveNotifyPublicBase(cfg, req), cfg.getIngressToken());
+    }
+
+    private static String resolveNotifyPublicBase(HqNotifyEnvConfig cfg, HttpServletRequest req) {
         String base = cfg.getPublicBaseUrl();
         if (base == null || base.isBlank()) {
             String scheme = req.getHeader("X-Forwarded-Proto");
@@ -56,8 +69,7 @@ public class HqNotifyEnvService {
             }
             base = scheme + "://" + host;
         }
-        base = base.trim().replaceAll("/+$", "");
-        return base + "/api/open/pg-notify/" + cfg.getIngressToken();
+        return base.trim().replaceAll("/+$", "");
     }
 
     public Map<String, Object> toMap(HqNotifyEnvConfig c, HttpServletRequest req) {
@@ -65,6 +77,7 @@ public class HqNotifyEnvService {
         m.put("ingressToken", c.getIngressToken());
         m.put("publicBaseUrl", c.getPublicBaseUrl() != null ? c.getPublicBaseUrl() : "");
         m.put("notifyIngressUrl", buildNotifyIngressUrl(c, req));
+        m.put("notifyIngressUrlOpen", buildNotifyIngressUrlOpen(c, req));
         m.put("autoVoidYn", yn(c.getAutoVoidYn()));
         m.put("emailVoidYn", yn(c.getEmailVoidYn()));
         m.put("autoRefundYn", yn(c.getAutoRefundYn()));

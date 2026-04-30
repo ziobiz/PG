@@ -948,9 +948,10 @@
       formSections: [
         {
           title: '전산 노티 수신 (NOTI 전산노티대상 연동)',
-          notice: '아래 URL을 ziobiz/NOTI 전산노티대상 설정에 등록하세요. 경로 끝 토큰으로 무단 호출을 막습니다. 운영 배포 후 [공개 URL 베이스]에 https://실제도메인 을 넣으면 안내 URL이 고정됩니다. 배포설정 > API연동설정에서 연동용도가 노티(등)인 PG는 노티를 MID+루트로 분기합니다. URL 결제만인 PG는 동일 MID가 여러 가맹점이면 본문에 업체코드(compId) 또는 icopayCompId= 가 필요합니다.',
+          notice: '권장: 아래 「노티 수신 URL(미들웨어)」을 ziobiz/NOTI·ChillPay·JPAY 등에 등록하세요(/api/middleware/notify/v1/pg-notify/…). 레거시 open 경로는 하단 참고 필드와 동일 처리입니다. 경로 끝 토큰으로 무단 호출을 막습니다. 운영 배포 후 [공개 URL 베이스]에 https://실제도메인 을 넣으면 안내 URL이 고정됩니다. 배포설정 > API연동설정에서 연동용도가 노티(등)인 PG는 노티를 MID+루트로 분기합니다. URL 결제만인 PG는 동일 MID가 여러 가맹점이면 본문에 업체코드(compId) 또는 icopayCompId= 가 필요합니다.',
           rows: [
-            [{ label: '노티 수신 URL', type: 'text', name: 'notifyIngressUrl', col: 6, readonly: true }],
+            [{ label: '노티 수신 URL(미들웨어 권장)', type: 'text', name: 'notifyIngressUrl', col: 6, readonly: true }],
+            [{ label: '노티 수신 URL(open·레거시)', type: 'text', name: 'notifyIngressUrlOpen', col: 6, readonly: true }],
             [{ label: 'Ingress 토큰(참고)', type: 'text', name: 'ingressToken', col: 6, readonly: true }],
             [{ label: '공개 URL 베이스', type: 'text', name: 'publicBaseUrl', col: 6, placeholder: '비우면 브라우저 접속 기준(예: http://localhost:8080)' }],
             [{ label: '노티 성공 응답 본문', type: 'textarea', name: 'notifyOkResponse', col: 6, placeholder: '{"result":"OK"}' }]

@@ -6,6 +6,7 @@ import com.pg.entity.HqApiConfig;
 import com.pg.entity.MerchantPgBinding;
 import com.pg.entity.PgAgency;
 import com.pg.integration.pg.PgVendor;
+import com.pg.middleware.notify.PgNotifyIngressPaths;
 import com.pg.repository.HqApiConfigRepository;
 import com.pg.repository.MerchantPgBindingRepository;
 import com.pg.repository.OrgUnitRepository;
@@ -146,8 +147,9 @@ public class JpayPaymentService {
             return out;
         }
         String token = hqNotifyEnvService.getOrCreate().getIngressToken();
-        String notifyUrl = publicBase + "/api/open/pg-notify/" + token + "/" + notifyTarget;
-        String callbackUrl = publicBase + "/api/open/pg-notify/" + token + "/" + resultTarget;
+        String notifyPathPrefix = resolveJpayNotifyPathPrefix(agency);
+        String notifyUrl = publicBase + notifyPathPrefix + token + "/" + notifyTarget;
+        String callbackUrl = publicBase + notifyPathPrefix + token + "/" + resultTarget;
 
         String siteUrl = str(body.get("payUrl"));
         if (siteUrl.isBlank()) {
@@ -301,6 +303,18 @@ public class JpayPaymentService {
     private String resolveBankCode(PgAgency agency) {
         String c = resolveExtraStr(agency, "jpayBankCode", "");
         return c.isBlank() ? DEFAULT_BANK_CODE : c.trim();
+    }
+
+    /**
+     * {@code tb_pg_agency.credentials_extra_json} 의 {@code jpayNotifyIngressStyle}.
+     * {@code OPEN} 이면 레거시 open 경로, 그 외(비우거나 {@code MIDDLEWARE})는 권장 미들웨어 경로.
+     */
+    private static String resolveJpayNotifyPathPrefix(PgAgency agency) {
+        String style = resolveExtraStr(agency, "jpayNotifyIngressStyle", "").trim().toUpperCase(Locale.ROOT);
+        if ("OPEN".equals(style)) {
+            return PgNotifyIngressPaths.OPEN_PREFIX;
+        }
+        return PgNotifyIngressPaths.MIDDLEWARE_PREFIX;
     }
 
     private static String resolveExtraStr(PgAgency agency, String key, String def) {
