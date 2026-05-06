@@ -1,9 +1,11 @@
 package com.pg.repository;
 
+import com.pg.entity.OrgLevel;
 import com.pg.entity.SettlementRun;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
-import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -15,6 +17,55 @@ import java.util.List;
 public interface SettlementRunRepository extends JpaRepository<SettlementRun, Long> {
 
     List<SettlementRun> findByCalcDtBetweenOrderByMerchantId(LocalDate from, LocalDate to);
+
+    Page<SettlementRun> findByCalcDtBetween(LocalDate from, LocalDate to, Pageable pageable);
+
+    @Query("""
+            SELECT r FROM SettlementRun r
+            WHERE r.calcDt BETWEEN :from AND :to
+            AND LOWER(TRIM(r.merchantId)) IN :lowMids
+            """)
+    Page<SettlementRun> findByCalcDtBetweenAndMerchantNormIn(
+            @Param("from") LocalDate from,
+            @Param("to") LocalDate to,
+            @Param("lowMids") Collection<String> lowMids,
+            Pageable pageable);
+
+    @Query("""
+            SELECT r FROM SettlementRun r
+            WHERE r.calcDt BETWEEN :from AND :to
+            AND EXISTS (
+              SELECT 1 FROM OrgUnit ou JOIN SettlementSetting ss ON ss.orgUnitId = ou.id
+              WHERE ou.orgLevel = :merchantLevel
+              AND LOWER(TRIM(ou.code)) = LOWER(TRIM(r.merchantId))
+              AND UPPER(TRIM(COALESCE(ss.calcProcType, ''))) = UPPER(TRIM(:procType))
+            )
+            """)
+    Page<SettlementRun> findByCalcDtBetweenAndMerchantCalcProcEquals(
+            @Param("from") LocalDate from,
+            @Param("to") LocalDate to,
+            @Param("merchantLevel") OrgLevel merchantLevel,
+            @Param("procType") String procType,
+            Pageable pageable);
+
+    @Query("""
+            SELECT r FROM SettlementRun r
+            WHERE r.calcDt BETWEEN :from AND :to
+            AND LOWER(TRIM(r.merchantId)) IN :lowMids
+            AND EXISTS (
+              SELECT 1 FROM OrgUnit ou JOIN SettlementSetting ss ON ss.orgUnitId = ou.id
+              WHERE ou.orgLevel = :merchantLevel
+              AND LOWER(TRIM(ou.code)) = LOWER(TRIM(r.merchantId))
+              AND UPPER(TRIM(COALESCE(ss.calcProcType, ''))) = UPPER(TRIM(:procType))
+            )
+            """)
+    Page<SettlementRun> findByCalcDtBetweenAndMerchantNormInAndMerchantCalcProcEquals(
+            @Param("from") LocalDate from,
+            @Param("to") LocalDate to,
+            @Param("lowMids") Collection<String> lowMids,
+            @Param("merchantLevel") OrgLevel merchantLevel,
+            @Param("procType") String procType,
+            Pageable pageable);
 
     /** 가맹점 메인 정산 달력·요약용 */
     List<SettlementRun> findByMerchantIdAndCalcDtBetweenOrderByCalcDtAsc(String merchantId, LocalDate from, LocalDate to);

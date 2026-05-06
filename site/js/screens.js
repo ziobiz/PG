@@ -2885,16 +2885,18 @@
       listSortDirAnchor: 'refresh',
       paginationSizeOptions: [50, 100, 300, 400, 500],
       paginationDefaultSize: 50,
+      tableColumnGuide: true,
       columnGuideFixedKeys: ['rowNo', 'compNm', 'compId', 'curType'],
-      /** 검색 폼은 정산실행과 동일: `screen-search-form`만( pay-mng-search-form 미부여 ) */
+      viewSettingDefaultSelectedKeys: [
+        'calcDt', 'targetPeriodText', 'calcCycle', 'calcMethod', 'txnCnt',
+        'amount', 'feeAmt', 'holdAmt', 'settlementBatchFee', 'feeVat', 'settleAmt',
+        'receivableAmt', 'settlementPublishSts', 'payoutHoldYn'
+      ],
       payMngDenseGrid: true,
       noticeList: [
-        '한 행은 정산실행이 저장한 가맹점 정산 결과입니다. 검색은 정산실행과 동일하게 상단 한 줄(정산일 구간·빠른기간·검색구분·검색어). 「전체」는 해당 필드로 좁히지 않으며, 검색어가 있을 때만 전체 컬럼 OR 검색입니다.',
-        '금액·수수료(feeAmt)·담보금(holdAmt 등)·정산금액은 실행 시 저장값이며, 수수료(건)·부가세·건당·정산건당·기타(%)·보유율은 해당 실행의 집계 구간(정산대상기간·당일 누적 마감시각) 거래를 수수료내역과 동일한 건별 규칙으로 보조 계산합니다. 신규 실행부터 period가 저장되며, 그 이전 행은 정산일 하루 창으로 재조회합니다. 정산대상기간: RT는 거래번호·승인번호·마감(초) 한 줄, 그 외는 yyyy-MM-dd HH:mm:ss ~ 동일 형식(일 단위는 00:00:00~23:59:59, 분·시 격자는 구간 시각).',
-        '수수료(건)·보류율·건당수수료·정산건당·기타(%)수수료 열은 보조 참고용 분해이며, 글자색이 연한 회색으로 표시됩니다. 수수료(%), 수수료(금액), 수수료(부가세), 보류금액, 금액, 정산금액 등은 실행 저장값 기준입니다.',
-        '본사·총판·지사·대리점·영업점 등 유통 구간 수익·수수료 분배는 유통망정산내역에서 동일 정산 실행분을 조직 단위로 집계합니다.',
-        '미수금 차감: 「미수금차감」은 해당 정산 실행에서 지급액에 반영된 미수금 회수액입니다. 「미수금처리」는 수동 가맹은 환수처리·처리중·완료(확정), 자동 가맹은 자동화중·완료로 표시됩니다. 수동/자동 전환은 본사설정 「환수/미수금설정」입니다.',
-        '정산금액(열): 수수료·담보가 순매출을 초과하면 음수로 표시됩니다. 동액은 미수금관리에 자동 등록되며, AUTO 가맹은 차기 정산에서 자동 차감, MANUAL 가맹은 환수처리 후 차기 마감·정산에서 차감됩니다.'
+        '한 행은 정산 실행으로 저장된 귀사(가맹) 정산 결과입니다. 정산기간·빠른기간으로 조회한 뒤 [검색] 하세요.',
+        '정산대상기간·결제금액·수수료·보증금·정산료·VAT·지급액은 정산배포·정산실행과 동일한 실행 저장값·집계 규칙을 따릅니다. 수수료 열은 건당·결제%·취소·환불(무효 등) 구간을 합산한 거래수수료(tb_settlement_run.total_fee)입니다.',
+        '표시 열은 [헬로] 옆 VIEW SETTING에서 조정할 수 있습니다(저장 시 사용자별 유지). 건당·취소·환불 등 세부 분해 열은 같은 거래 구간 합산 보조값입니다.'
       ],
       searchRows: [
         [
@@ -2919,71 +2921,49 @@
           { type: 'searchBtn', label: '검색' }
         ]
       ],
-      summary: ['건수', '금액', '수수료금액', '수수료부가세', '보류금액', '미수금', '정산금액'],
+      summary: ['건수', '결제금액', '수수료', '보증금', '정산료', 'VAT', '지급액', '미수금'],
       buttons: [
         { id: 'payListRefreshBtn', label: '새로고침', cls: 'btn-outline-secondary' },
         { id: 'searchBtn', label: '검색', cls: 'btn-primary' },
         { id: 'excelBtn', label: '엑셀다운로드', cls: 'btn-info' }
       ],
-      headerGroups: [
-        { label: '사업자번호', keys: ['bizNo'] },
-        { label: 'PG승인', keys: ['curType', 'amount', 'payNo'] },
-        { label: '수수료', keys: ['feeCnt', 'feeRate', 'feeAmt', 'feeVat', 'holdRate', 'holdAmt', 'perTxFeeAmt', 'settlementPerTxFeeAmt', 'extraFeesAmt'] }
-      ],
+      headerGroups: [],
       columns: [
-        { key: '_chk', type: 'checkbox' },
         { key: 'rowNo', label: '번호' },
         { key: 'compNm', label: '업체명' },
         { key: 'compId', label: '업체코드' },
         { key: 'curType', label: '통화' },
-        { key: 'trnId', label: '거래ID' },
-        { key: 'bizNo', label: '사업자번호' },
-        { key: 'payDivNm', label: '구분' },
-        { key: 'payCard', label: '결제카드' },
-        { key: 'cardAprvNo', label: '카드승인번호' },
-        { key: 'payCardNo', label: '카드번호' },
-        { key: 'instalMonth', label: '할부개월' },
-        { key: 'payMethod', label: '결제수단' },
-        { key: 'corpNm', label: '법인명' },
-        { key: 'pgNm', label: 'PG사명' },
-        { key: 'terminalId', label: '터미널ID' },
-        { key: 'amount', label: '금액' },
-        { key: 'payNo', label: '번호' },
-        { key: 'feeCnt', label: '수수료(건)' },
-        { key: 'feeRate', label: '수수료(%)' },
-        { key: 'feeAmt', label: '수수료(금액)', columnGuideLabel: '거래 집계 기반(정산 1회당 제외). 정산료는 별도 열.' },
-        { key: 'feeVat', label: '수수료(부가세)' },
-        { key: 'holdRate', label: '보류율(%)' },
-        { key: 'holdAmt', label: '보류금액' },
-        { key: 'settlementBatchFee', label: '정산료', thClass: 'text-end', columnGuideLabel: '정산 실행당 1회 정산수수료.' },
-        { key: 'perTxFeeAmt', label: '건당수수료' },
-        { key: 'settlementPerTxFeeAmt', label: '정산건당' },
-        { key: 'extraFeesAmt', label: '기타(%)수수료' },
+        { key: 'calcDt', label: '정산일시', columnGuideLabel: '정산 실행 일시(표시 형식은 환경 설정).' },
+        { key: 'targetPeriodText', label: '정산대상기간', thClass: 'pay-grid-time-dual text-start small', columnGuideLabel: '이번 실행에 포함된 거래 집계 구간(정산실행·배포와 동일).' },
         { key: 'calcCycle', label: '정산주기' },
         { key: 'calcMethod', label: '정산방법' },
-        { key: 'pgRootNo', label: '루트' },
-        { key: 'targetPeriodText', label: '정산대상기간', thClass: 'pay-grid-time-dual text-start small', columnGuideLabel: '해당 실행의 집계 구간 요약(JP·TH 두 줄).' },
-        { key: 'txnCnt', label: '건수', thClass: 'text-center text-nowrap', columnGuideLabel: '이번 정산 실행에 집계에 포함된 거래 건수. 컬럼 도입 이전 실행 행은 비어 있을 수 있습니다.' },
+        { key: 'txnCnt', label: '건수', thClass: 'text-center text-nowrap', columnGuideLabel: '집계에 포함된 거래 건수.' },
+        { key: 'amount', label: '결제금액', thClass: 'text-end', columnGuideLabel: '순매출(승인금액−취소금액). 정산실행 결제액과 동일 개념.' },
+        {
+          key: 'feeAmt',
+          label: '수수료',
+          thClass: 'text-end',
+          columnGuideLabel: '거래 수수료 합계(저장값). 건당·결제%·취소·환불·무효 등 구간이 정산 집계에 포함된 합과 동일하며, 월 이용료·실행당 고정 부가 등은 결제%측 합에 조정 반영됩니다.'
+        },
+        { key: 'feeSumPerTx', label: '수수료(건당합)', thClass: 'text-end', columnGuideLabel: '집계 구간 거래별 건당수수료 합산(보조).' },
+        { key: 'feeSumPaySide', label: '수수료(결제%·기타합)', thClass: 'text-end', columnGuideLabel: '결제율·USDT·FX·3DS·기타%·실패·차지백 및 실행당 고정 부가 등 합산(보조).' },
+        { key: 'feeSumCancel', label: '수수료(취소합)', thClass: 'text-end', columnGuideLabel: '취소(20) 고정 수수료 합(보조).' },
+        { key: 'feeSumRefundVoid', label: '수수료(환불·무효합)', thClass: 'text-end', columnGuideLabel: '환불·무효·수동무효 고정 수수료 합(보조).' },
+        { key: 'holdAmt', label: '보증금', thClass: 'text-end', columnGuideLabel: '롤링 예치 등 실행 저장 담보(보류) 금액.' },
+        { key: 'settlementBatchFee', label: '정산료', thClass: 'text-end', columnGuideLabel: '정산 실행당 1회 정산수수료.' },
+        { key: 'feeVat', label: 'VAT', thClass: 'text-end', columnGuideLabel: '거래수수료·정산료 기준 부가세(가맹 전산설정).' },
+        { key: 'settleAmt', label: '지급액', thClass: 'text-end', columnGuideLabel: '해당 차수 지급(예정)액(tb_settlement_run.pay_amt).' },
+        { key: 'receivableAmt', label: '미수금', thClass: 'text-end', columnGuideLabel: '지급부족 시 해당 실행에 자동 등록된 미수금.' },
         { key: 'cadenceGuideKr', label: '노출주기 안내', thClass: 'text-nowrap', columnGuideLabel: '주기별 노출 요약.' },
-        { key: 'settlementPublishSts', label: '배포상태', columnGuideLabel: 'PENDING·DISTRIBUTED·HOLD — 가맹점정산내역 반영 전 단계.' },
-        { key: 'payoutHoldYn', label: '지급보류', columnGuideLabel: 'Y면 지급보류 가맹; 배포가 HOLD로 잡힐 수 있음.' },
-        { key: 'settlementRunId', label: '실행ID', columnGuideLabel: '정산 실행 PK(tb_settlement_run). 추적용.' },
-        { key: 'receivableAmt', label: '미수금', columnGuideLabel: '정산 지급부족 시 해당 실행에 자동 등록된 미수금(발생액)' },
-        { key: 'receivableDeductAmt', label: '미수금차감', columnGuideLabel: '해당 정산 실행 지급액에서 미수금으로 차감된 금액' },
-        { key: 'receivableProcessNm', label: '미수금처리', columnGuideLabel: '차감 발생 시 완료·처리중·자동화중; 지급부족만 등록된 행은 차기정산자동 또는 환수처리·차기마감' },
-        { key: 'receivableRecoveryMode', label: '환수모드' },
-        { key: 'settleAmt', label: '정산금액', columnGuideLabel: '실행 저장 지급액; 수수료·담보 초과 시 음수·미수금 자동등록' },
-        { key: 'calcDt', label: '정산일시' },
-        { key: 'approveDt', label: '승인일시' },
-        { key: 'cancelDt', label: '취소일시' },
-        { key: 'payStatus', label: '확정여부', columnGuideLabel: 'CALCULATED=확정, PENDING=미확정.' },
-        { key: 'productNm', label: '구매상품' },
-        { key: 'customerNm', label: '고객명(결제자)' },
-        { key: 'customerTel', label: '휴대폰(결제자)' },
-        { key: 'regionalNm', label: '총판' },
-        { key: 'masterNm', label: '지사' },
-        { key: 'branchNm', label: '대리점' },
-        { key: 'payoutHoldRemark', label: '비고' }
+        { key: 'settlementPublishSts', label: '배포상태', columnGuideLabel: 'PENDING·DISTRIBUTED·HOLD.' },
+        { key: 'payoutHoldYn', label: '지급보류', columnGuideLabel: 'Y면 지급보류 가맹.' },
+        { key: 'settlementRunId', label: '실행ID', columnGuideLabel: '정산 실행 PK.' },
+        { key: 'pgRootNo', label: '루트' },
+        { key: 'feeCnt', label: '수수료발생건수', columnGuideLabel: '거래별 수수료 합이 0 초과인 건수(보조).' },
+        { key: 'feeRate', label: '수수료율%', columnGuideLabel: '순매출 대비 거래수수료 추정%' },
+        { key: 'perTxFeeAmt', label: '건당수수료(정책×건수)', thClass: 'text-end', columnGuideLabel: '정책 건당요금×거래건수(보조).' },
+        { key: 'settlementPerTxFeeAmt', label: '정산건당요금(레거시표시)', thClass: 'text-end', columnGuideLabel: '실행당 정산수수료와 혼동 없도록 정산료 열을 사용하세요.' },
+        { key: 'extraFeesAmt', label: '기타%합(거래)', thClass: 'text-end', columnGuideLabel: '거래별 기타 비율 슬롯 합(보조).' }
       ]
     },
     '/calc/compPointMngList': {
@@ -3196,7 +3176,7 @@
         { idPrefix: 'settlementExecuteRecentModeBtn', label: '최근정산', cls: 'btn-primary settlement-execute-recent-mode-btn' }
       ],
       noticeList: [
-        '목록은 정산일(calc_dt)이 정산기간 안에 드는 실행만 보여 줍니다. 처음 열 때는 최근정산 모드(기본: 최근 1년·실행 등록 시각 최신순)입니다. [검색]을 누르면 입력한 정산기간으로 조회하며 정산일·업체코드 순으로 정렬됩니다. 「정산실행」버튼: 기간·가맹을 지정해 실행합니다(AUTO·MANUAL 모두 동일 주기·마감·격자·영업일 규칙). 검색: 정산기간·빠른기간·검색구분·정산구분(전체·자동·수동)·검색어 순으로 가맹 정산설정 기준을 좁힌 뒤 [검색]합니다. 「전체」는 해당 조건으로 좁히지 않습니다(검색어가 있을 때만 전체 컬럼 OR 검색). D+N·W+N·WK 등 달력 주기 가맹은 기간 종료일(정산일)이 해당 주기의 실행일일 때만 집계됩니다(미도래일에는 실행되지 않음). 정산마감시각·정산제외 영업일·D0 시간대는 자동 배치와 동일합니다. RT·T0·격자(M/H/TM/TH)는 조회 기간 내 거래가 있을 때만 해당 기간으로 집계합니다. H1·M 등 시간 격자는 한 구간(동일 정산 슬롯) 안에서 매출·취소·공제가 ± 함께 집계되어 한 행의 지급액이 됩니다. 서버 크론은 AUTO 가맹만 자동 호출하며, 화면 「정산실행」은 AUTO·MANUAL을 추가로 수동 트리거할 수 있습니다. 목록의 정산주기·정산방법·루트는 가맹 정산설정·PG연동에서 가져옵니다. 지급액은 순매출에서 수수료·수수료부가세·담보금(신규)를 뺀 값으로, 수수료·담보가 매출을 넘으면 음수로 표시됩니다(0으로 보정하지 않음). 그 경우 부족분 동액이 「미수금관리」에 1건 자동 등록되며(사유코드·메모로 실행과 연결), 본 목록의 미수금 열과 맞춰 볼 수 있습니다. 환수모드 AUTO 가맹은 다음 정산에서 양(+) 지급액에 환수금·미수금이 FIFO로 먼저 반영되고, MANUAL 가맹은 「미수금관리」에서 환수처리 후 차기 마감·정산에서 차감됩니다.'
+        '이 메뉴는 정산방법이 비자동(수동·펌뱅킹 등)인 가맹을 「수동실행」하는 화면입니다. 정산방법이 자동인 가맹은 정산 배치(크론)가 돌며, 목록에는 이력이 보일 수 있으나 행 선택은 비활성입니다. 목록은 정산일(calc_dt)이 정산기간 안에 드는 실행입니다. [수동실행]: 기간 필수·동일 주기·마감·격자 규칙 적용하되 AUTO 가맹은 서버에서 제외됩니다. 검색의 정산구분은 전체·수동만 제공합니다. 자동 배치와 동일한 마감·영업일·D0 등 제약이 적용됩니다. 지급 부족 시 미수금 자동등록·환수/FIFO 규칙은 기존과 동일합니다.'
       ],
       searchRows: [
         [
@@ -3219,7 +3199,6 @@
           ], size: 10 },
           { label: '정산구분', type: 'select', name: 'searchCalcProcType', options: [
             { v: '', t: '전체' },
-            { v: 'AUTO', t: '자동' },
             { v: 'MANUAL', t: '수동' }
           ], size: 8 },
           { label: '검색어', type: 'text', name: 'searchKeyword', placeholder: '검색어', size: 16 },
@@ -3230,7 +3209,7 @@
       buttons: [
         { id: 'payListRefreshBtn', label: '새로고침', cls: 'btn-outline-secondary' },
         { id: 'searchBtn', label: '검색', cls: 'btn-primary' },
-        { id: 'exCalcBtn', label: '정산실행', cls: 'btn-warning' },
+        { id: 'exCalcBtn', label: '수동실행', cls: 'btn-warning' },
         { id: 'excelBtn', label: '엑셀다운로드', cls: 'btn-info' }
       ],
       columnGuideFixedKeys: ['rowNo', 'compNm', 'compId'],
@@ -3243,7 +3222,7 @@
       hasSettlementExecuteDetailTable: true,
       settlementExecuteDetailUiVariant: 'publishDay',
       noticeList: [
-        '정산배포: PENDING 만 표시. 과거 DB가 V101 백필로 전부 DISTRIBUTED였다면 운영 DB에 db/V111_settlement_publish_pending_reopen.sql 적용 후 목록이 채워집니다. 처음 열 때 정산기간이 비어 있으면 최근 1년입니다. 행 클릭 시 정산일 당일 해당 가맹 전체 거래를 아래에 표시합니다. 체크 후 정산배포 → DISTRIBUTED, 선택 홀딩 → HOLD.'
+        '정산배포: PENDING 만 표시. 과거 DB가 V101 백필로 전부 DISTRIBUTED였다면 운영 DB에 db/V111_settlement_publish_pending_reopen.sql 적용 후 목록이 채워집니다. 처음 열 때 정산기간이 비어 있으면 최근 1년입니다. 행 클릭 시 정산일 당일 해당 가맹 전체 거래를 아래에 표시합니다. 체크 후 배포실행 → DISTRIBUTED, 홀딩실행 → HOLD.'
       ],
       searchRows: [
         [
@@ -3265,8 +3244,8 @@
       buttons: [
         { id: 'payListRefreshBtn', label: '새로고침', cls: 'btn-outline-secondary' },
         { id: 'searchBtn', label: '검색', cls: 'btn-primary' },
-        { id: 'settlementPublishDistributeBtn', label: '정산배포', cls: 'btn-success' },
-        { id: 'settlementPublishHoldBtn', label: '선택 홀딩', cls: 'btn-warning' },
+        { id: 'settlementPublishDistributeBtn', label: '배포실행', cls: 'btn-success' },
+        { id: 'settlementPublishHoldBtn', label: '홀딩실행', cls: 'btn-warning' },
         { id: 'excelBtn', label: '엑셀다운로드', cls: 'btn-info' }
       ],
       columnGuideFixedKeys: ['rowNo', 'compNm', 'compId', 'curType'],
@@ -3308,16 +3287,26 @@
       listSortDirAnchor: 'refresh',
       paginationSizeOptions: [50, 100, 300, 400, 500],
       paginationDefaultSize: 50,
+      tableColumnGuide: true,
+      columnGuideFixedKeys: ['_chk', 'rowNo', 'compNm', 'compId', 'curType'],
+      viewSettingDefaultSelectedKeys: [
+        'settlementRunId', 'targetPeriodText', 'calcCycle', 'txnCnt', 'grossPay', 'refundAmt', 'netPay',
+        'rollingReserveAmt', 'mdrFeeAmt', 'perTxnFeeAmt', 'settlementBatchFee', 'feeVat', 'remittanceFee',
+        'payAmount', 'settlementDueDt', 'settledYn'
+      ],
+      hasSettlementExecuteDetailTable: true,
+      settlementExecuteDetailUiVariant: 'report',
       noticeList: [
         '[리포트 형식] 가맹점 정산 리포트: 총본사·본사·총판 등이 소속 가맹에 보내는 정산 형식. 본사 지급 리포트: 총본사가 본사(REGIONAL)에 지급할 금액을 본사 단위로 합산(총본사·본사 로그인만 선택 가능).',
-        '[하위 구분] 정산집계·정산실시·정산집계표·확정정산(리포트). 확정정산은 정산 실행이 CALCULATED(확정)이고 가맹점정산내역에 올라온 건만 목록으로 보이며, 행을 더블클릭하면 가맹 전달용 요약(거래 구간 집계 + 실행 금액)을 한 화면에서 봅니다.',
-        '정산집계·실시·집계표의 예치·Processing·건당요금·+7영업일은 백엔드 상수이며 응답 meta에 안내가 있습니다.'
+        '[하위 구분] 정산집계·정산실시·정산집계표·확정정산(리포트). 정산집계·정산실시·확정정산에서 실행 ID가 있는 행을 클릭하면 하단에 해당 정산 실행에 포함된 거래 목록이 표시됩니다. 집계표(SUM)는 요약 1행만 조회되며, 본사 지급 리포트의 정산실시(EXE)는 합산 행이라 실행 ID가 없을 수 있습니다.',
+        '정산집계·정산실시의 비율형 수수료·건당수수료·부가세는 수수료 정책·거래 상태별 수수료내역 계산과 동일 규칙으로 집계합니다. 통화 열은 정책 통화(THB/KRW/USD/JPY 등)입니다.',
+        '[배포 기준] 집계(AGG)·실시(EXE)·집계표(SUM)에는 정산배포가 완료된 실행(DISTRIBUTED, 레거시 null 허용)만 포함합니다. 가맹점정산내역·유통 집계와 동일합니다. 확정정산(RST)도 배포·확정된 실행만 표시합니다.'
       ],
       searchRows: [
         [
           { label: '리포트 형식', type: 'select', name: 'searchReportKind', options: [{ v: 'MERCHANT_STMT', t: '가맹점 정산 리포트' }, { v: 'REGIONAL_PAYOUT', t: '본사 지급 리포트(총본사→본사)' }], size: 22 },
           { label: '리포트구분', type: 'select', name: 'searchReportSub', options: [{ v: 'AGG', t: '정산집계' }, { v: 'EXE', t: '정산실시' }, { v: 'SUM', t: '정산집계표' }, { v: 'RST', t: '확정정산(리포트)' }], size: 14 },
-          { label: '결제일자', type: 'daterange', from: 'searchFromDate', to: 'searchToDate' },
+          { label: '정산대상기간', type: 'daterange', from: 'searchFromDate', to: 'searchToDate' },
           { type: 'quickdate' }
         ],
         [
@@ -3328,7 +3317,7 @@
           { type: 'searchBtn' }
         ]
       ],
-      summary: ['건수', '결제액', '환불', '순액', '정산금'],
+      summary: ['건수', '결제액', '환불/취소', '정산액', '지급액'],
       buttons: [
         { id: 'payListRefreshBtn', label: '새로고침', cls: 'btn-outline-secondary' },
         { id: 'searchBtn', label: '검색', cls: 'btn-primary' },
@@ -3338,64 +3327,107 @@
       columnsBySub: {
         AGG: [
           { key: '_chk', type: 'checkbox' }, { key: 'rowNo', label: '번호' },
-          { key: 'payDate', label: '결제일' }, { key: 'compNm', label: '가맹점명' }, { key: 'compId', label: '가맹코드' }, { key: 'curType', label: '통화' },
-          { key: 'grossPay', label: '결제액' }, { key: 'refundAmt', label: '환불/취소' }, { key: 'netPay', label: '순결제' },
-          { key: 'depositAmt', label: '예치(10%)' }, { key: 'processingFeeTotal', label: 'Processing(5.6%)' },
-          { key: 'txnFeeTotal', label: '건당수수료합' }, { key: 'settlementAmt', label: '정산금(추정)' },
-          { key: 'settlementDueDt', label: '지급예정일(+7영업일)' }, { key: 'settledYn', label: '정산완료' }
+          { key: 'settlementRunId', label: '실행ID', columnGuideLabel: '정산 실행 PK. 하단 거래 목록에 사용.' },
+          { key: 'targetPeriodText', label: '정산대상기간', thClass: 'pay-grid-time-dual text-start small' },
+          { key: 'calcDt', label: '정산일' }, { key: 'calcCycle', label: '정산주기', thClass: 'text-center text-nowrap small' },
+          { key: 'compNm', label: '가맹점명' }, { key: 'compId', label: '가맹코드' }, { key: 'curType', label: '통화', columnGuideLabel: '정책 통화(THB/KRW/USD/JPY 등).' },
+          { key: 'txnCnt', label: '거래건수', thClass: 'text-center text-nowrap', columnGuideLabel: '정산 실행에 집계 포함된 거래 건수 합(tb_settlement_run.included_txn_cnt).' },
+          { key: 'grossPay', label: '결제액' }, { key: 'refundAmt', label: '환불/취소' }, { key: 'netPay', label: '정산액', columnGuideLabel: '결제액 − 환불/취소(실행 저장 순매출).' },
+          { key: 'rollingReserveAmt', label: '보증금', columnGuideLabel: '롤링(담보) 보류액(실행 저장값).' },
+          { key: 'mdrFeeAmt', label: '수수료', columnGuideLabel: '결제%·USDT·FX 등 비율형 수수료 합(수수료내역과 동일 규칙).' },
+          { key: 'perTxnFeeAmt', label: '건당수수료', columnGuideLabel: '건당·고정·취소/무효/환불 등 MDR 외 수수료 합.' },
+          { key: 'settlementBatchFee', label: '정산 수수료', thClass: 'text-end', columnGuideLabel: '정산 실행당 1회 정산수수료.' },
+          { key: 'feeVat', label: 'VAT', thClass: 'text-end', columnGuideLabel: '거래수수료+정산수수료 기준 부가세(가맹 설정).' },
+          { key: 'remittanceFee', label: '송금 수수료', thClass: 'text-end', columnGuideLabel: '이체 또는 USDT 송금 차감액. 목록에는 금액만 표시하며, 최종 지급액·집계는 기존과 같이 차감 반영.' },
+          { key: 'totalFee', label: '거래수수료합', columnGuideLabel: '실행에 저장된 거래 수수료 합계.' },
+          { key: 'payAmount', label: '지급액', columnGuideLabel: '송금 수수료 차감 전 지급액(실행 저장).' },
+          { key: 'finalPayAfterRemittance', label: '최종 지급액', thClass: 'text-end fw-semibold' },
+          { key: 'settlementDueDt', label: '지급예정일', columnGuideLabel: '해당 정산 실행의 정산일(정산주기 일자)과 동일.' },
+          { key: 'settledYn', label: '정산완료' }, { key: 'status', label: '상태' }
         ],
         EXE: [
           { key: '_chk', type: 'checkbox' }, { key: 'rowNo', label: '번호' },
-          { key: 'calcDt', label: '정산일' }, { key: 'compNm', label: '가맹점명' }, { key: 'compId', label: '가맹코드' }, { key: 'curType', label: '통화' },
-          { key: 'txnCnt', label: '건수', thClass: 'text-center text-nowrap' },
-          { key: 'approveAmt', label: '승인합' }, { key: 'cancelAmt', label: '취소합' }, { key: 'netPay', label: '순액' },
-          { key: 'depositAmt', label: '예치(10%)' }, { key: 'processingFeeTotal', label: 'Processing(5.6%)' },
-          { key: 'payAmount', label: '지급액(배치)' }, { key: 'totalFee', label: '수수료', columnGuideLabel: '거래 집계만. 정산 실행당 1회 정산수수료는 정산료 열.' }, { key: 'rollingReserveAmt', label: '담보금' },
-          { key: 'settlementBatchFee', label: '정산료', thClass: 'text-end' },
-          { key: 'receivableRecoveryModeKr', label: '미수금처리', thClass: 'text-nowrap small', columnGuideLabel: '자동=차기정산 FIFO, 수동=환수처리 후 차감. 본사합산 행은 가맹 혼합.' },
-          { key: 'receivableAppliedAmt', label: '미수금차감', thClass: 'text-end', columnGuideLabel: '해당 정산 실행에서 미수금으로 차감된 합계.' },
-          { key: 'settlementDueDt', label: '지급예정일(+7영업일)' }, { key: 'settledYn', label: '완료' }, { key: 'status', label: '상태' }
+          { key: 'settlementRunId', label: '실행ID' },
+          { key: 'calcDt', label: '정산일' }, { key: 'targetPeriodText', label: '정산대상기간', thClass: 'pay-grid-time-dual text-start small' },
+          { key: 'calcCycle', label: '정산주기', thClass: 'text-center text-nowrap small' },
+          { key: 'compNm', label: '가맹점명' }, { key: 'compId', label: '가맹코드' }, { key: 'curType', label: '통화' },
+          { key: 'txnCnt', label: '거래건수', thClass: 'text-center text-nowrap', columnGuideLabel: '정산 실행에 집계 포함된 거래 건수.' },
+          { key: 'approveAmt', label: '결제액' }, { key: 'cancelAmt', label: '환불/취소' }, { key: 'netPay', label: '정산액' },
+          { key: 'rollingReserveAmt', label: '보증금' },
+          { key: 'mdrFeeAmt', label: '수수료' }, { key: 'perTxnFeeAmt', label: '건당수수료' },
+          { key: 'settlementBatchFee', label: '정산 수수료', thClass: 'text-end' },
+          { key: 'feeVat', label: 'VAT', thClass: 'text-end' },
+          { key: 'remittanceFee', label: '송금 수수료', thClass: 'text-end' },
+          { key: 'payAmount', label: '지급액(송금 전)', columnGuideLabel: '송금 수수료 차감 전.' },
+          { key: 'totalFee', label: '거래수수료합', columnGuideLabel: '실행 저장 거래 수수료 합.' },
+          { key: 'remittanceFeeBank', label: '송금수수료(통화)', thClass: 'text-end', columnGuideLabel: '통화 이체 송금 건. USDT 가맹은 비움.' },
+          { key: 'remittanceFeeUsdt', label: '송금(USDT) 수수료', thClass: 'text-end' },
+          { key: 'finalPayAfterRemittance', label: '최종 지급액', thClass: 'text-end fw-semibold' },
+          { key: 'receivableRecoveryModeKr', label: '미수금처리', thClass: 'text-nowrap small' },
+          { key: 'receivableAppliedAmt', label: '미수금차감', thClass: 'text-end' },
+          { key: 'settlementDueDt', label: '지급예정일' }, { key: 'settledYn', label: '완료' }, { key: 'status', label: '상태' }
         ],
         SUM: [
           { key: '_chk', type: 'checkbox' }, { key: 'rowNo', label: '번호' },
           { key: 'periodFrom', label: '기간FROM' }, { key: 'periodTo', label: '기간TO' }, { key: 'curType', label: '통화' },
-          { key: 'grossPay', label: '결제액합' }, { key: 'refundAmt', label: '환불합' }, { key: 'netPay', label: '순결제합' },
-          { key: 'depositAmt', label: '예치합' }, { key: 'processingFeeTotal', label: 'Processing합' }, { key: 'txnFeeTotal', label: '건당수수료합' },
-          { key: 'settlementAmt', label: '정산금합(추정)' }, { key: 'approveCnt', label: '승인건' }, { key: 'refundCnt', label: '환불건' }, { key: 'rowCount', label: '집계행수' }
+          { key: 'grossPay', label: '결제액합' }, { key: 'refundAmt', label: '환불/취소합' }, { key: 'netPay', label: '정산액합' },
+          { key: 'rollingReserveAmt', label: '보증금합' }, { key: 'mdrFeeAmt', label: '수수료합' }, { key: 'perTxnFeeAmt', label: '건당수수료합' },
+          { key: 'settlementBatchFee', label: '정산수수료합' }, { key: 'feeVat', label: 'VAT합' }, { key: 'remittanceFee', label: '송금수수료합' },
+          { key: 'payAmount', label: '지급액합' }, { key: 'settlementAmt', label: '정산금합', columnGuideLabel: '집계표상 지급액 합과 동일하게 표시.' },
+          { key: 'txnCnt', label: '거래건수', columnGuideLabel: '기간 내 실행 행의 포함 거래 건수 합.' }, { key: 'refundCnt', label: '환불건' }, { key: 'rowCount', label: '집계행수' }
         ],
         RST: [
           { key: '_chk', type: 'checkbox' }, { key: 'rowNo', label: '번호' },
           { key: 'calcDt', label: '정산일시' }, { key: 'compNm', label: '가맹점명' }, { key: 'compId', label: '가맹코드' }, { key: 'curType', label: '통화' },
           { key: 'targetPeriodText', label: '정산대상기간' }, { key: 'calcCycle', label: '정산주기' },
-          { key: 'approveAmt', label: '승인(매출)합' }, { key: 'cancelAmt', label: '취소합' }, { key: 'netPay', label: '순액' },
-          { key: 'feeAmt', label: '수수료' }, { key: 'holdAmt', label: '담보금' }, { key: 'payAmount', label: '지급액' },
+          { key: 'approveAmt', label: '결제액' }, { key: 'cancelAmt', label: '환불/취소' }, { key: 'netPay', label: '정산액' },
+          { key: 'feeAmt', label: '거래수수료' }, { key: 'holdAmt', label: '보증금' },
+          { key: 'settlementBatchFee', label: '정산 수수료', thClass: 'text-end' },
+          { key: 'payAmount', label: '지급액(송금 전)', columnGuideLabel: '송금 수수료 차감 전.' },
+          { key: 'remittanceFeeBank', label: '송금수수료', thClass: 'text-end' },
+          { key: 'remittanceFeeUsdt', label: '송금(USDT) 수수료', thClass: 'text-end' },
+          { key: 'finalPayAfterRemittance', label: '최종 지급액', thClass: 'text-end fw-semibold' },
           { key: 'payStatus', label: '상태' }
         ]
       },
       columnsRegionalPayout: {
         AGG: [
           { key: '_chk', type: 'checkbox' }, { key: 'rowNo', label: '번호' },
-          { key: 'payDate', label: '결제일' }, { key: 'regionalCompId', label: '본사코드' }, { key: 'regionalNm', label: '본사명' }, { key: 'merchantCnt', label: '가맹점수' }, { key: 'curType', label: '통화' },
-          { key: 'grossPay', label: '결제액합' }, { key: 'refundAmt', label: '환불/취소' }, { key: 'netPay', label: '순결제' },
-          { key: 'depositAmt', label: '예치(10%)' }, { key: 'processingFeeTotal', label: 'Processing(5.6%)' },
-          { key: 'txnFeeTotal', label: '건당수수료합' }, { key: 'settlementAmt', label: '지급액(추정)' },
-          { key: 'settlementDueDt', label: '지급예정일(+7영업일)' }, { key: 'settledYn', label: '정산완료' }
+          { key: 'settlementRunId', label: '실행ID' },
+          { key: 'targetPeriodText', label: '정산대상기간', thClass: 'pay-grid-time-dual text-start small' },
+          { key: 'calcDt', label: '정산일' }, { key: 'calcCycle', label: '정산주기', thClass: 'text-center text-nowrap small' },
+          { key: 'regionalCompId', label: '본사코드' }, { key: 'regionalNm', label: '본사명' },
+          { key: 'compNm', label: '가맹점명' }, { key: 'compId', label: '가맹코드' }, { key: 'merchantCnt', label: '가맹수', columnGuideLabel: '실행당 1.' }, { key: 'curType', label: '통화' },
+          { key: 'grossPay', label: '결제액' }, { key: 'refundAmt', label: '환불/취소' }, { key: 'netPay', label: '정산액' },
+          { key: 'rollingReserveAmt', label: '보증금' },
+          { key: 'mdrFeeAmt', label: '수수료' }, { key: 'perTxnFeeAmt', label: '건당수수료' },
+          { key: 'settlementBatchFee', label: '정산 수수료' }, { key: 'feeVat', label: 'VAT' }, { key: 'remittanceFee', label: '송금 수수료' },
+          { key: 'payAmount', label: '지급액' }, { key: 'finalPayAfterRemittance', label: '최종 지급액' },
+          { key: 'settlementDueDt', label: '지급예정일' }, { key: 'settledYn', label: '정산완료' }
         ],
         EXE: [
           { key: '_chk', type: 'checkbox' }, { key: 'rowNo', label: '번호' },
-          { key: 'calcDt', label: '정산일' }, { key: 'regionalCompId', label: '본사코드' }, { key: 'regionalNm', label: '본사명' }, { key: 'curType', label: '통화' },
-          { key: 'batchRunCnt', label: '배치건수' }, { key: 'approveAmt', label: '승인합' }, { key: 'cancelAmt', label: '취소합' }, { key: 'netPay', label: '순액' },
-          { key: 'payAmount', label: '지급액합' }, { key: 'totalFee', label: '수수료합' }, { key: 'rollingReserveAmt', label: '담보금합' },
+          { key: 'calcDt', label: '정산일' }, { key: 'calcCycle', label: '정산주기', thClass: 'text-center text-nowrap small' },
+          { key: 'regionalCompId', label: '본사코드' }, { key: 'regionalNm', label: '본사명' }, { key: 'curType', label: '통화' },
+          { key: 'batchRunCnt', label: '배치건수' }, { key: 'approveAmt', label: '결제액합' }, { key: 'cancelAmt', label: '환불/취소합' }, { key: 'netPay', label: '정산액합' },
+          { key: 'rollingReserveAmt', label: '보증금합' },
+          { key: 'mdrFeeAmt', label: '수수료합' }, { key: 'perTxnFeeAmt', label: '건당수수료합' },
+          { key: 'settlementBatchFee', label: '정산수수료합' }, { key: 'feeVat', label: 'VAT합' }, { key: 'remittanceFee', label: '송금수수료합' },
+          { key: 'payAmount', label: '지급액합(송금 전)' }, { key: 'totalFee', label: '거래수수료합' },
+          { key: 'remittanceFeeBank', label: '송금수수료합(통화)', thClass: 'text-end' },
+          { key: 'remittanceFeeUsdt', label: '송금(USDT) 수수료합', thClass: 'text-end' },
+          { key: 'finalPayAfterRemittance', label: '최종 지급액합', thClass: 'text-end' },
           { key: 'receivableRecoveryModeKr', label: '미수금처리', thClass: 'text-nowrap small' },
           { key: 'receivableAppliedAmt', label: '미수금차감합', thClass: 'text-end' },
-          { key: 'settlementDueDt', label: '지급예정일(+7영업일)' }, { key: 'settledYn', label: '완료' }, { key: 'status', label: '상태' }
+          { key: 'settlementDueDt', label: '지급예정일' }, { key: 'settledYn', label: '완료' }, { key: 'status', label: '상태' }
         ],
         SUM: [
           { key: '_chk', type: 'checkbox' }, { key: 'rowNo', label: '번호' },
           { key: 'periodFrom', label: '기간FROM' }, { key: 'periodTo', label: '기간TO' }, { key: 'curType', label: '통화' },
-          { key: 'grossPay', label: '결제액합' }, { key: 'refundAmt', label: '환불합' }, { key: 'netPay', label: '순결제합' },
-          { key: 'depositAmt', label: '예치합' }, { key: 'processingFeeTotal', label: 'Processing합' }, { key: 'txnFeeTotal', label: '건당수수료합' },
-          { key: 'settlementAmt', label: '지급액합(추정)' }, { key: 'approveCnt', label: '승인건' }, { key: 'refundCnt', label: '환불건' }, { key: 'rowCount', label: '집계행수' }
+          { key: 'grossPay', label: '결제액합' }, { key: 'refundAmt', label: '환불/취소합' }, { key: 'netPay', label: '정산액합' },
+          { key: 'rollingReserveAmt', label: '보증금합' }, { key: 'mdrFeeAmt', label: '수수료합' }, { key: 'perTxnFeeAmt', label: '건당수수료합' },
+          { key: 'settlementBatchFee', label: '정산수수료합' }, { key: 'feeVat', label: 'VAT합' }, { key: 'remittanceFee', label: '송금수수료합' },
+          { key: 'payAmount', label: '지급액합' }, { key: 'settlementAmt', label: '정산금합' }, { key: 'txnCnt', label: '거래건수', columnGuideLabel: '기간 내 실행 행의 포함 거래 건수 합.' }, { key: 'refundCnt', label: '환불건' }, { key: 'rowCount', label: '집계행수' }
         ]
       },
       emptyMessage: '조회된 데이터가 없습니다.'
@@ -3769,7 +3801,7 @@
       buttons: [
         { id: 'payListRefreshBtn', label: '새로고침', cls: 'btn-outline-secondary' },
         { id: 'searchBtn', label: '조회', cls: 'btn-primary' },
-        { id: 'executeBtn', label: '정산실행', cls: 'btn-danger' }
+        { id: 'executeBtn', label: '수동실행', cls: 'btn-danger' }
       ],
       columnGuideFixedKeys: ['rowNo', 'compNm', 'compId'],
       columns: [{ key: '_chk', type: 'checkbox' }, { key: 'rowNo', label: '번호' }, { key: 'compNm', label: '업체명' }, { key: 'compId', label: '업체코드' }, { key: 'curType', label: '통화' }, { key: 'txnCnt', label: '건수', thClass: 'text-center text-nowrap', columnGuideLabel: '이번 정산 실행에 집계에 포함된 거래 건수. 컬럼 도입 이전 실행 행은 비어 있을 수 있습니다.' }, { key: 'settlementBatchFee', label: '정산료', thClass: 'text-end', columnGuideLabel: '정산 실행당 1회 정산수수료.' }, { key: 'cadenceGuideKr', label: '노출주기 안내', thClass: 'text-nowrap', columnGuideLabel: '주기별 노출 요약.' }, { key: 'settlementPublishSts', label: '배포상태', columnGuideLabel: 'PENDING·DISTRIBUTED·HOLD — 가맹점정산내역 반영 전 단계.' }, { key: 'payoutHoldYn', label: '지급보류', columnGuideLabel: 'Y면 지급보류 가맹; 배포가 HOLD로 잡힐 수 있음.' }, { key: 'settlementRunId', label: '실행ID', columnGuideLabel: '정산 실행 PK(tb_settlement_run). 추적용.' }, { key: 'receivableAmt', label: '미수금', columnGuideLabel: '정산 지급부족 시 해당 실행에 자동 등록된 미수금(발생액)' }, { key: 'pgRootNo', label: '루트' }, { key: 'calcDt', label: '정산일자' }, { key: 'calcCycle', label: '정산주기' }, { key: 'calcMethod', label: '정산방법' }, { key: 'targetPeriodText', label: '정산대상기간', thClass: 'pay-grid-time-dual text-start small' }, { key: 'targetAmt', label: '결제액' }, { key: 'totalFee', label: '수수료', columnGuideLabel: '거래 집계만. 정산 실행당 1회 정산수수료는 정산료 열.' }, { key: 'rollingReserveAmt', label: '담보금' }, { key: 'payAmount', label: '지급액', columnGuideLabel: '0으로 보정하지 않음; 부족 시 음수·미수금 자동등록.' }, { key: 'status', label: '확정여부', columnGuideLabel: 'CALCULATED=확정, PENDING=미확정.' }],
@@ -3983,6 +4015,7 @@
       if (!gm) return;
       function buildPh() {
         var ph = JSON.parse(JSON.stringify(gm));
+        ph.summary = ['건수', '결제금액', '미수금', '지급액'];
         ph.noticeList = [
           '정산방법에서 지급보류가 「보류」인 가맹점은 정산 실행 시 결과가 가맹점정산내역·유통망정산 집계에 나타나지 않고 이 화면에만 적치됩니다. 정산 금액·수수료 등은 이미 계산·저장된 값입니다.',
           '「보류해제」열의 [Y→N 해제]로 한 건만 바로 해제하거나, 체크 후 [선택 건 지급보류 해제]로 여러 건을 한 번에 처리할 수 있습니다. 더블 확인 후 실행 행의 지급보류(Y)가 N으로 바뀌며 가맹점정산내역(및 유통 집계)에 반영됩니다. 가맹점 설정의 지급보류는 그대로이며, 이후 신규 정산 건은 다시 이 목록에 쌓일 수 있습니다.',
@@ -3993,7 +4026,15 @@
           { id: 'excelBtn', label: '엑셀다운로드', cls: 'btn-info' }
         ];
         ph.buttons = baseBtns.concat([{ id: 'payoutHoldReleaseBtn', label: '선택 건 지급보류 해제', cls: 'btn-warning' }]);
+        /** 가맹점정산내역은 체크 제외 — 보류 해제 화면만 행 선택 필요 */
         var phCols = ph.columns || [];
+        var hasChkPh = phCols.some(function (cc) { return cc && cc.key === '_chk'; });
+        if (!hasChkPh) {
+          phCols = [{ key: '_chk', type: 'checkbox' }].concat(phCols);
+          ph.columns = phCols;
+        }
+        ph.tableColumnGuide = false;
+        ph.columnGuideFixedKeys = ['_chk', 'rowNo', 'compNm', 'compId', 'curType', '_payoutHoldRelease'];
         var yIdxPh = -1;
         for (var ypi = 0; ypi < phCols.length; ypi++) {
           if (phCols[ypi] && phCols[ypi].key === 'payoutHoldYn') { yIdxPh = ypi; break; }
@@ -4011,9 +4052,6 @@
           ph.columns = phCols2;
         } else {
           ph.columns = phCols.concat([relColPh]);
-        }
-        if (ph.columnGuideFixedKeys && ph.columnGuideFixedKeys.indexOf('_payoutHoldRelease') === -1) {
-          ph.columnGuideFixedKeys = ph.columnGuideFixedKeys.concat(['_payoutHoldRelease']);
         }
         return ph;
       }
@@ -4040,6 +4078,14 @@
         if (gm.listSortDirAnchor) fr.listSortDirAnchor = gm.listSortDirAnchor;
         if (gm.searchRows && gm.searchRows.length) {
           fr.searchRows = JSON.parse(JSON.stringify(gm.searchRows));
+        }
+        if (gm.columnGuideFixedKeys && gm.columnGuideFixedKeys.length) {
+          fr.columnGuideFixedKeys = gm.columnGuideFixedKeys.slice();
+        }
+        if (gm.tableColumnGuide === false) fr.tableColumnGuide = false;
+        else if (gm.tableColumnGuide === true) fr.tableColumnGuide = true;
+        if (gm.viewSettingDefaultSelectedKeys && gm.viewSettingDefaultSelectedKeys.length) {
+          fr.viewSettingDefaultSelectedKeys = gm.viewSettingDefaultSelectedKeys.slice();
         }
       }
       var cl = MENU_SCREENS['/calc/calcList'];
@@ -4125,6 +4171,10 @@
       if (sr && srs && sr.columnsRegionalPayout) {
         srs.columnsRegionalPayout = JSON.parse(JSON.stringify(sr.columnsRegionalPayout));
       }
+      if (sr && srs) {
+        if (sr.hasSettlementExecuteDetailTable) srs.hasSettlementExecuteDetailTable = true;
+        if (sr.settlementExecuteDetailUiVariant) srs.settlementExecuteDetailUiVariant = sr.settlementExecuteDetailUiVariant;
+      }
       if (sr && srs && sr.columnsBySub && sr.columnsBySub.RST) {
         if (!srs.columnsBySub) srs.columnsBySub = {};
         srs.columnsBySub.RST = JSON.parse(JSON.stringify(sr.columnsBySub.RST));
@@ -4132,6 +4182,10 @@
       if (sr && srs && sr.columnsBySub && sr.columnsBySub.EXE) {
         if (!srs.columnsBySub) srs.columnsBySub = {};
         srs.columnsBySub.EXE = JSON.parse(JSON.stringify(sr.columnsBySub.EXE));
+      }
+      if (sr && srs && sr.columnsBySub && sr.columnsBySub.AGG) {
+        if (!srs.columnsBySub) srs.columnsBySub = {};
+        srs.columnsBySub.AGG = JSON.parse(JSON.stringify(sr.columnsBySub.AGG));
       }
       var col = MENU_SCREENS['/calc/collateralList'];
       if (col && !MENU_SCREENS['/settlement/collateralList']) {
@@ -5200,14 +5254,17 @@
         }
         if (cfg.hasSettlementExecuteDetailTable) {
           var pubDayDetail = cfg.settlementExecuteDetailUiVariant === 'publishDay';
-          var settleDetailTitleKo = pubDayDetail ? '정산배포 · 당일 거래 내역' : '정산실행상세 · 정산 대상 거래';
+          var reportDetail = cfg.settlementExecuteDetailUiVariant === 'report';
+          var settleDetailTitleKo = pubDayDetail ? '정산배포 · 당일 거래 내역' : (reportDetail ? '정산리포트 · 정산 대상 거래' : '정산실행상세 · 정산 대상 거래');
           var settleDetailMetaHintKo = pubDayDetail
             ? '목록 행을 클릭하면 정산일 기준 당일 00:00~24:00 가맹 전체 거래를 표시합니다.'
-            : '상단 목록 행을 더블클릭하면 표시됩니다.';
+            : (reportDetail ? '정산집계·정산실시·확정정산에서 실행 ID가 있는 행을 클릭하면 해당 실행에 집계된 거래가 표시됩니다.' : '상단 목록 행을 더블클릭하면 표시됩니다.');
           var settleDetailHintPKo = pubDayDetail
             ? '정산배포 목록에서 한 행을 <strong>클릭</strong>하면, 해당 실행의 <strong>정산일(calc_dt) 달력 하루</strong> 동안 해당 가맹의 <strong>전체 결제 거래</strong>를 승인일시 오름차순으로 불러옵니다(최대 2,500건·초과 시 상한 안내). 격자 정산의 집계 구간(H1 등)과 범위가 다를 수 있습니다.'
-            : '정산실행 목록에서 한 행을 <strong>더블클릭</strong>하면, 해당 실행에 저장된 집계 건수(<code>included_txn_cnt</code>)가 있으면 그 건수만큼만, 같은 기간·정렬(승인일시 오름차순)으로 표시합니다. 상단 메타의 <strong>대상 매출액</strong>은 이 실행 집계 구간(예: H1 한 시간)에 대한 <strong>승인 매출 합</strong>(정산 실행 저장값)이며, 아래 표시 행의 단순 합이 아닙니다.';
-          var settleDetailEmptyKo = pubDayDetail ? '목록에서 행을 클릭하세요.' : '정산실행 행을 더블클릭하세요.';
+            : (reportDetail
+              ? '정산집계·정산실시·확정정산에서 <strong>실행 ID</strong>가 있는 행을 <strong>클릭</strong>하면 해당 정산 실행에 포함된 거래를 정산실행 화면과 동일한 형식으로 불러옵니다. <strong>정산집계표(SUM)</strong>는 요약 1행만 제공되고, <strong>본사 지급 리포트의 정산실시(EXE)</strong>는 본사 합산 행이라 실행 ID가 없을 수 있습니다 — 이 경우 리포트 형식을 가맹점 정산 리포트로 바꾼 뒤 가맹 단위 행을 클릭하세요.'
+              : '정산실행 목록에서 한 행을 <strong>더블클릭</strong>하면, 해당 실행에 저장된 집계 건수(<code>included_txn_cnt</code>)가 있으면 그 건수만큼만, 같은 기간·정렬(승인일시 오름차순)으로 표시합니다. 상단 메타의 <strong>대상 매출액</strong>은 이 실행 집계 구간(예: H1 한 시간)에 대한 <strong>승인 매출 합</strong>(정산 실행 저장값)이며, 아래 표시 행의 단순 합이 아닙니다.');
+          var settleDetailEmptyKo = pubDayDetail ? '목록에서 행을 클릭하세요.' : (reportDetail ? '실행 ID가 있는 행을 클릭하세요.' : '정산실행 행을 더블클릭하세요.');
           html += '<div class="card mt-4 screen-pay-list" id="settlementExecuteDetailCard_' + tabId + '"><div class="card-header py-2 fw-semibold d-flex flex-wrap justify-content-between align-items-center gap-2">' +
             '<span>' + escUi(L(settleDetailTitleKo)) + '</span>' +
             '<span class="small text-muted fw-normal" id="settlementExecuteDetailMeta_' + tabId + '">' + escUi(L(settleDetailMetaHintKo)) + '</span></div><div class="card-body pt-2">' +
@@ -5310,6 +5367,31 @@
     });
     return '<tr>' + top + '</tr><tr>' + sub + '</tr>';
   }
+
+  /** 정산리포트: columnsBySub 열 키를 합쳐 VIEW SETTING(헬로)용 catalog 생성 */
+  (function mergeSettlementReportColumnGuideCatalog() {
+    Object.keys(MENU_SCREENS).forEach(function (url) {
+      if (url.indexOf('settlementReport') === -1) return;
+      var sr = MENU_SCREENS[url];
+      if (!sr || !sr.columnsBySub) return;
+      var seen = Object.create(null);
+      var merged = [];
+      function pushCols(arr) {
+        if (!arr) return;
+        arr.forEach(function (col) {
+          if (!col || !col.key) return;
+          if (seen[col.key]) return;
+          seen[col.key] = 1;
+          merged.push(col);
+        });
+      }
+      ['AGG', 'EXE', 'SUM', 'RST'].forEach(function (sub) { pushCols(sr.columnsBySub[sub]); });
+      if (sr.columnsRegionalPayout) {
+        ['AGG', 'EXE', 'SUM'].forEach(function (sub) { pushCols(sr.columnsRegionalPayout[sub]); });
+      }
+      sr.columns = merged;
+    });
+  })();
 
   function syncPayListIntegratedScreenLabelsFromCatalog() {
     var P = typeof window !== 'undefined' ? window.PG_PAY_LIST_INTEGRATED : null;

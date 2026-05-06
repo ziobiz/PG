@@ -52,7 +52,7 @@ import java.util.stream.Collectors;
 /**
  * 정산 수학 로직: 결제 데이터 → 거래 수수료 차감(수수료내역과 동일한 건별 {@link FeeListTxnBreakdownCalculator} 합산 + 월간이용료·기타FIX)
  * → 정산수수료·송금수수료는 실행당 1회 별도 공제 → 롤링(담보금) → 지급액
- * <p><b>정산로직(수동 「정산실행」)</b>: {@link #execute(LocalDate, LocalDate, String, boolean)} {@code manualExecuteRules=true} 일 때
+ * <p><b>정산로직(「수동실행」 화면)</b>: {@link #execute(LocalDate, LocalDate, String, boolean)} {@code manualExecuteRules=true} 일 때
  * 정산구분 {@code AUTO}·{@code MANUAL} 가맹 모두 동일 규칙으로 집계합니다. {@code D*}·{@code W+N}·{@code WK*} 는
  * {@link SettlementPeriodResolver#resolveAutoPeriodWindow} 로 정산일(기간 종료일)이 주기상 실행일일 때만 집계합니다.
  * 마감시각·정산제외 영업일·{@code D0} 시간대·격자 슬롯은 자동 배치와 동일합니다.</p>
@@ -148,6 +148,22 @@ public class SettlementCalcService {
                 r.getPeriodEndAt(), SettlementPeriodResolver.normalizeCalcCycle(cycleRaw));
     }
 
+    /**
+     * 가맹점정산내역·정산리포트({@link com.pg.service.SettlementReportService} AGG/EXE/SUM)·유통 집계 등:
+     * 정산배포 완료(DISTRIBUTED) 실행만.
+     * 레거시 데이터는 {@code settlement_publish_sts} 가 null/blank 이면 허용합니다.
+     */
+    public boolean isDistributedForMerchantStatementView(SettlementRun r) {
+        if (r == null) {
+            return false;
+        }
+        String s = r.getSettlementPublishSts();
+        if (s == null || s.isBlank()) {
+            return true;
+        }
+        return "DISTRIBUTED".equalsIgnoreCase(s.trim());
+    }
+
     public CommissionPolicy getPolicy(String merchantId) {
         if (merchantId != null && !merchantId.isEmpty()) {
             return commissionService.resolveCommissionPolicyForSettlement(merchantId.trim());
@@ -167,7 +183,8 @@ public class SettlementCalcService {
     /**
      * 정산 실행.
      *
-     * @param manualExecuteRules {@code true}: 정산관리 「정산실행」 버튼 — 정산로직(AUTO·MANUAL 공통, 주기·마감·영업일·격자) 적용
+     * @param manualExecuteRules {@code true}: 정산관리 「수동실행」 — 주기·마감·영업일·격자 규칙은 동일하나,
+     *                             정산구분 {@code AUTO} 가맹은 제외(정산 배치 전용). {@code MANUAL}·펌뱅킹 등만 대상.
      */
     @Transactional
     public List<SettlementRun> execute(LocalDate fromDate, LocalDate toDate, String merchantId, boolean manualExecuteRules) {
@@ -210,7 +227,7 @@ public class SettlementCalcService {
                 results.add(run);
             }
         }
-        appendReleaseOnlyMerchants(calcDt, merchantId, results, false);
+        appendReleaseOnlyMerchants(calcDt, merchantId, results, true);
         flushPendingCalcCycleIfNeeded(results);
         return results;
     }
@@ -224,7 +241,7 @@ public class SettlementCalcService {
     private record ManualExecuteRow(String mid, List<PgTrnsctn> txList, LocalDate periodFrom, LocalDate periodTo) {}
 
     /**
-     * 정산로직: 「정산실행」 대상 가맹 행 구성 (AUTO·MANUAL 공통).
+     * 「수동실행」 대상 가맹 행 구성 — 정산구분 {@code AUTO} 는 제외(배치 전용), 그 외(MANUAL·펌뱅킹 등)만.
      * <ul>
      *   <li>정산일({@code calcDt} = 요청 {@code toDate})이 가맹 정산 크론 존 기준 달력일보다 미래이면 제외.</li>
      *   <li>W·WK·D+N 등 달력형: {@link SettlementPeriodResolver#resolveAutoPeriodWindow} 가 null이면 해당일은 실행일이 아님(미도래).</li>
@@ -233,8 +250,8 @@ public class SettlementCalcService {
      * </ul>
      */
     /**
-     * 수동 「정산실행」: 격자 주기(M5·H1·TM 등)는 당일 기준 격자 구간이 끝난 뒤에만 허용.
-     * 단일 가맹 지정 시 사전 검증 — AUTO·MANUAL 동일.
+     * 「수동실행」 사전 검증: 격자 주기(M5·H1·TM 등)는 당일 기준 격자 구간이 끝난 뒤에만 허용.
+     * 정산구분 AUTO 가맹은 거부.
      */
     public Optional<String> validateManualSettlementExecuteWindow(String merchantCompId, LocalDate runTo) {
         if (merchantCompId == null || merchantCompId.isBlank() || runTo == null) {
@@ -249,6 +266,9 @@ public class SettlementCalcService {
             return Optional.empty();
         }
         SettlementSetting ss = ssOpt.get();
+        if (isAutoCalcProcType(ss.getCalcProcType())) {
+            return Optional.of("정산방법이 자동인 가맹은 정산 배치로 처리됩니다. 「수동실행」은 비자동(수동·펌뱅킹 등) 가맹만 가능합니다.");
+        }
         String cycleRaw = ss.getCalcCycle();
         if (cycleRaw == null || cycleRaw.isBlank() || "NONE".equalsIgnoreCase(cycleRaw.trim())) {
             return Optional.empty();
@@ -317,6 +337,9 @@ public class SettlementCalcService {
                 continue;
             }
             SettlementSetting ss = ssOpt.get();
+            if (isAutoCalcProcType(ss.getCalcProcType())) {
+                continue;
+            }
             String cycleRaw = ss.getCalcCycle();
             if (cycleRaw == null || cycleRaw.isBlank() || "NONE".equalsIgnoreCase(cycleRaw.trim())) {
                 continue;
@@ -372,6 +395,11 @@ public class SettlementCalcService {
             /* resolve·격자·실시간 분류 밖 주기: 검색 구간에 거래가 있어도 임의 집계하지 않음(미도래·오설정 방지) */
         }
         return rows;
+    }
+
+    /** 정산구분 AUTO — 배치({@link com.pg.service.settlement.SettlementAutoRunService})만 처리. 「수동실행」 화면에서는 제외. */
+    public static boolean isAutoCalcProcType(String calcProcType) {
+        return calcProcType != null && "AUTO".equalsIgnoreCase(calcProcType.trim());
     }
 
     /** {@link SettlementPeriodResolver#resolveAutoPeriodWindow} 로만 스케줄되는 주기(미도래 시 null). RT·격자 등은 false. */
@@ -442,7 +470,7 @@ public class SettlementCalcService {
             ou = orgUnitRepository.findByCodeIgnoreCase(m);
         }
         return ou.flatMap(o -> settlementSettingRepository.findByOrgUnitId(o.getId()))
-                .map(ss -> "AUTO".equalsIgnoreCase(String.valueOf(ss.getCalcProcType()).trim()))
+                .map(ss -> isAutoCalcProcType(ss.getCalcProcType()))
                 .orElse(false);
     }
 
@@ -472,7 +500,7 @@ public class SettlementCalcService {
             return List.of();
         }
         SettlementSetting ss = ssOpt.get();
-        if (!"AUTO".equalsIgnoreCase(String.valueOf(ss.getCalcProcType()).trim())) {
+        if (!isAutoCalcProcType(ss.getCalcProcType())) {
             return List.of();
         }
         String c0 = SettlementPeriodResolver.normalizeCalcCycle(ss.getCalcCycle());
@@ -526,7 +554,7 @@ public class SettlementCalcService {
             return List.of();
         }
         SettlementSetting ss = ssOpt.get();
-        if (!"AUTO".equalsIgnoreCase(String.valueOf(ss.getCalcProcType()).trim())) {
+        if (!isAutoCalcProcType(ss.getCalcProcType())) {
             return List.of();
         }
         String c0 = SettlementPeriodResolver.normalizeCalcCycle(ss.getCalcCycle());

@@ -162,7 +162,7 @@ public class DashboardHqHubService {
         addTile(tiles, "/hq/settlementAdmin", "정산 관리설정", "주기·보류·환수 정책", "bi-calendar-week", true);
         addTile(tiles, "/hq/notifyInbound", "노티 수신", "미매핑·재전송 점검", "bi-bell", true);
         addTile(tiles, "/calc/payList", "결제 내역", "승인·환불·무효 필터", "bi-credit-card", true);
-        addTile(tiles, "/calc/exCalcList", "정산 실행", "배치·수동 실행", "bi-play-circle", true);
+        addTile(tiles, "/calc/exCalcList", "정산 실행", "비자동 가맹만 [수동실행]", "bi-play-circle", true);
         addTile(tiles, "/calc/calcList", "유통망 정산", "단계별 정산 내역", "bi-diagram-3", true);
         addTile(tiles, "/calc/calcGmList", "가맹점 정산", "가맹 지급·보류", "bi-shop", true);
         addTile(tiles, "/calc/unpaidMng", "미수금", "잔액·환수", "bi-cash-coin", true);

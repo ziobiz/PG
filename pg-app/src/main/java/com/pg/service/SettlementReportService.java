@@ -1,26 +1,31 @@
 package com.pg.service;
 
 import com.pg.api.dto.PageResult;
+import com.pg.entity.ChargebackFeeTier;
 import com.pg.entity.CommissionPolicy;
 import com.pg.entity.OrgLevel;
 import com.pg.entity.OrgUnit;
 import com.pg.entity.PgTrnsctn;
+import com.pg.entity.SettlementSetting;
 import com.pg.entity.SettlementRun;
 import com.pg.repository.CommissionPolicyRepository;
 import com.pg.repository.HqLedgerSysSettingsRepository;
+import com.pg.repository.MerchantProfileRepository;
 import com.pg.repository.OrgUnitRepository;
 import com.pg.repository.PgTrnsctnRepository;
+import com.pg.repository.SettlementSettingRepository;
+import com.pg.service.settlement.FeeListTxnBreakdownCalculator;
+import com.pg.service.settlement.SettlementRunTargetPeriodLabelService;
 import com.pg.util.FeeCurrencyRoundResolver;
 import com.pg.util.FeeListRoundingPolicy;
+import com.pg.util.MerchantFeeVatUtil;
 import com.pg.util.PayDisplayCurrency;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.LocalTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -49,19 +54,31 @@ public class SettlementReportService {
     private final CommissionPolicyRepository commissionPolicyRepository;
     private final HqLedgerSysSettingsRepository hqLedgerSysSettingsRepository;
     private final ReceivableRecoveryModeService receivableRecoveryModeService;
+    private final SettlementSettingRepository settlementSettingRepository;
+    private final MerchantProfileRepository merchantProfileRepository;
+    private final FeeListTxnBreakdownCalculator feeListTxnBreakdownCalculator;
+    private final SettlementRunTargetPeriodLabelService settlementRunTargetPeriodLabelService;
 
     public SettlementReportService(OrgUnitRepository orgUnitRepository,
                                    PgTrnsctnRepository pgTrnsctnRepository,
                                    SettlementCalcService settlementCalcService,
                                    CommissionPolicyRepository commissionPolicyRepository,
                                    HqLedgerSysSettingsRepository hqLedgerSysSettingsRepository,
-                                   ReceivableRecoveryModeService receivableRecoveryModeService) {
+                                   ReceivableRecoveryModeService receivableRecoveryModeService,
+                                   SettlementSettingRepository settlementSettingRepository,
+                                   MerchantProfileRepository merchantProfileRepository,
+                                   FeeListTxnBreakdownCalculator feeListTxnBreakdownCalculator,
+                                   SettlementRunTargetPeriodLabelService settlementRunTargetPeriodLabelService) {
         this.orgUnitRepository = orgUnitRepository;
         this.pgTrnsctnRepository = pgTrnsctnRepository;
         this.settlementCalcService = settlementCalcService;
         this.commissionPolicyRepository = commissionPolicyRepository;
         this.hqLedgerSysSettingsRepository = hqLedgerSysSettingsRepository;
         this.receivableRecoveryModeService = receivableRecoveryModeService;
+        this.settlementSettingRepository = settlementSettingRepository;
+        this.merchantProfileRepository = merchantProfileRepository;
+        this.feeListTxnBreakdownCalculator = feeListTxnBreakdownCalculator;
+        this.settlementRunTargetPeriodLabelService = settlementRunTargetPeriodLabelService;
     }
 
     private FeeListRoundingPolicy settlementLedgerRoundPolicy() {
@@ -77,14 +94,6 @@ public class SettlementReportService {
         return FeeListRoundingPolicy.round(bd, rp).doubleValue();
     }
 
-    private static double settlementPctDisplay(BigDecimal net, BigDecimal rate, FeeListRoundingPolicy rp) {
-        if (net == null || rate == null || rp == null || net.signum() <= 0) {
-            return 0d;
-        }
-        return FeeListRoundingPolicy.round(
-                net.multiply(rate).setScale(8, RoundingMode.HALF_UP), rp).doubleValue();
-    }
-
     /** 가맹 정산·리포트 표시용 통화(수수료 정책 통화코드, 없으면 KRW) */
     private String resolveStatementCurrency(String compId) {
         if (compId == null || compId.isBlank()) {
@@ -95,6 +104,235 @@ public class SettlementReportService {
                 .filter(c -> c != null && !c.isBlank())
                 .map(c -> c.trim().toUpperCase(Locale.ROOT))
                 .orElse("KRW");
+    }
+
+    private FeeCurrencyRoundResolver feeCurrencyRoundResolver() {
+        return hqLedgerSysSettingsRepository.findFirstByOrderByIdAsc()
+                .map(FeeCurrencyRoundResolver::from)
+                .orElseGet(() -> FeeCurrencyRoundResolver.from(null));
+    }
+
+    private record MdrPerTxnSplit(double mdrAmt, double perTxnAmt) {}
+
+    /**
+     * 수수료내역과 동일한 건별 분해: MDR(결제%·USDT·FX) 합 + 건당(그 외 수수료) 합.
+     */
+    private MdrPerTxnSplit computeMdrAndPerTxnFeeForRun(SettlementRun r, String compId) {
+        if (compId == null || compId.isBlank() || r == null) {
+            return new MdrPerTxnSplit(0d, 0d);
+        }
+        CommissionPolicy pol = resolveCommissionPolicyForMerchantRow(compId.trim());
+        if (pol == null) {
+            return new MdrPerTxnSplit(0d, 0d);
+        }
+        LocalDateTime fromDt = r.resolvePeriodStartAt();
+        LocalDateTime toDt = r.resolvePeriodEndAt();
+        List<PgTrnsctn> txs = pgTrnsctnRepository.findForSettlement(compId.trim(), fromDt, toDt);
+        FeeCurrencyRoundResolver feeResolver = feeCurrencyRoundResolver();
+        Map<String, Long> monthCbCountCache = new HashMap<>();
+        Map<Long, List<ChargebackFeeTier>> tiersByPolicyId = new HashMap<>();
+        SettlementSetting feeVatSs = orgUnitRepository.findByCode(compId.trim())
+                .flatMap(ou -> settlementSettingRepository.findByOrgUnitId(ou.getId()))
+                .orElse(null);
+        double mdrSum = 0d;
+        double perSum = 0d;
+        for (PgTrnsctn t : txs) {
+            String rowCur = t.getCurType() != null && !t.getCurType().isBlank() ? t.getCurType().trim() : "KRW";
+            FeeListRoundingPolicy feeListRp = feeResolver.forCurrency(rowCur);
+            FeeListTxnBreakdownCalculator.FeeListTxnBreakdown br = feeListTxnBreakdownCalculator.computeFeeListTxnBreakdown(
+                    t, compId.trim(), pol, monthCbCountCache, tiersByPolicyId, feeVatSs, feeListRp);
+            double mdrOne = br.payFee() + br.usdtFee() + br.fxFee();
+            double nonPct = br.totalFee() - br.payFee() - br.usdtFee() - br.fxFee();
+            if (nonPct < 0d) {
+                nonPct = 0d;
+            }
+            mdrSum += mdrOne;
+            perSum += nonPct;
+        }
+        return new MdrPerTxnSplit(mdrSum, perSum);
+    }
+
+    private double feeVatForRun(SettlementRun r, String compId) {
+        FeeListRoundingPolicy ledgerRp = settlementLedgerRoundPolicy();
+        SettlementSetting feeVatSs = orgUnitRepository.findByCode(compId != null ? compId.trim() : "")
+                .flatMap(ou -> settlementSettingRepository.findByOrgUnitId(ou.getId()))
+                .orElse(null);
+        BigDecimal vatFeeBase = nz(r.getTotalFee());
+        if (r.getSettlementBatchFeeAmt() != null) {
+            vatFeeBase = vatFeeBase.add(nz(r.getSettlementBatchFeeAmt()));
+        }
+        BigDecimal feeVat = MerchantFeeVatUtil.vatOnFeeAmount(vatFeeBase, feeVatSs, ledgerRp.decimalPlaces());
+        return settlementMoneyDouble(feeVat, ledgerRp);
+    }
+
+    /** 리포트 통화 열: 정책 통화(THB/KRW/USD/JPY 등 알파코드). */
+    private String displayCurrencyForMerchant(String merchantId) {
+        String c = resolveStatementCurrency(merchantId);
+        if (c == null || c.isBlank()) {
+            return "KRW";
+        }
+        return c.trim().toUpperCase(Locale.ROOT);
+    }
+
+    private Map<String, Object> baseAggregateRowFromRun(SettlementRun r, String compId, OrgUnit ou) {
+        FeeListRoundingPolicy rp = settlementLedgerRoundPolicy();
+        BigDecimal ap = nz(r.getApproveAmt());
+        BigDecimal ca = nz(r.getCancelAmt());
+        BigDecimal net = ap.subtract(ca);
+        String cycleFb = settlementRunTargetPeriodLabelService.settlementCycleFallbackForMerchant(compId);
+        MdrPerTxnSplit split = computeMdrAndPerTxnFeeForRun(r, compId);
+        double mdrRounded = settlementMoneyDouble(BigDecimal.valueOf(split.mdrAmt()), rp);
+        double perRounded = settlementMoneyDouble(BigDecimal.valueOf(split.perTxnAmt()), rp);
+
+        Map<String, Object> m = new LinkedHashMap<>();
+        if (r.getCalcDt() != null) {
+            m.put("calcDt", r.getCalcDt().toString());
+        } else {
+            m.put("calcDt", "");
+        }
+        if (r.getId() != null) {
+            m.put("settlementRunId", r.getId());
+        }
+        m.put("targetPeriodText", settlementRunTargetPeriodLabelService.buildSettlementTargetPeriodLabel(r, cycleFb));
+        m.put("calcCycle", displayCalcCycleForExecuteRow(r, compId));
+        m.put("compId", compId);
+        m.put("compNm", ou != null ? ou.getName() : compId);
+        m.put("curType", displayCurrencyForMerchant(compId));
+        m.put("grossPay", settlementMoneyDouble(ap, rp));
+        m.put("refundAmt", settlementMoneyDouble(ca, rp));
+        m.put("netPay", settlementMoneyDouble(net, rp));
+        m.put("rollingReserveAmt", settlementMoneyDouble(r.getRollingReserveAmt(), rp));
+        m.put("mdrFeeAmt", mdrRounded);
+        m.put("perTxnFeeAmt", perRounded);
+        m.put("settlementBatchFee", r.getSettlementBatchFeeAmt() != null
+                ? settlementMoneyDouble(r.getSettlementBatchFeeAmt(), rp) : null);
+        m.put("feeVat", feeVatForRun(r, compId));
+        m.putAll(remittanceFieldsForRun(r));
+        m.put("payAmount", settlementMoneyDouble(r.getPayAmt(), rp));
+        m.put("totalFee", settlementMoneyDouble(r.getTotalFee(), rp));
+        m.put("settlementDueDt", r.getCalcDt() != null ? r.getCalcDt().toString() : "");
+        m.put("settledYn", "CALCULATED".equalsIgnoreCase(String.valueOf(r.getStatus())) ? "Y" : "N");
+        m.put("status", r.getStatus());
+        m.put("txnCnt", r.getIncludedTxnCnt());
+        return m;
+    }
+
+    /**
+     * 정산실시 행·확정 리포트 상세용: 송금(정책통화)·USDT 송금 차감 표기 및 최종 지급액.
+     * DB {@link SettlementRun#getRemittanceFeeAmt()}가 채워져 있으면 우선 사용합니다.
+     */
+    public Map<String, Object> remittanceFieldsForRun(SettlementRun r) {
+        Map<String, Object> m = new LinkedHashMap<>();
+        if (r == null || r.getMerchantId() == null || r.getMerchantId().isBlank()) {
+            m.put("remittanceFeeBank", null);
+            m.put("remittanceFeeUsdt", null);
+            m.put("finalPayAfterRemittance", null);
+            m.put("remittanceFee", null);
+            return m;
+        }
+        applyExecuteRemittanceAndFinalPay(m, r, r.getMerchantId().trim(), settlementLedgerRoundPolicy());
+        return m;
+    }
+
+    private String resolveMerchantCalcCycleRaw(String merchantId) {
+        if (merchantId == null || merchantId.isBlank()) {
+            return "";
+        }
+        Optional<OrgUnit> ou = orgUnitRepository.findByCode(merchantId.trim());
+        if (ou.isEmpty()) {
+            ou = orgUnitRepository.findByCodeIgnoreCase(merchantId.trim());
+        }
+        if (ou.isEmpty()) {
+            return "";
+        }
+        return settlementSettingRepository.findByOrgUnitId(ou.get().getId())
+                .map(ss -> ss.getCalcCycle() != null ? ss.getCalcCycle().trim() : "")
+                .orElse("");
+    }
+
+    private String displayCalcCycleForExecuteRow(SettlementRun r, String merchantId) {
+        if (r.getCalcCycleSnapshot() != null && !r.getCalcCycleSnapshot().isBlank()) {
+            return r.getCalcCycleSnapshot().trim();
+        }
+        return resolveMerchantCalcCycleRaw(merchantId);
+    }
+
+    /** 정책통화가 USDT이거나 가맹 기준통화에 USDT가 포함되면 USDT 송금 건당 정책을 사용합니다. */
+    private boolean merchantUsesUsdtRemittanceFee(String merchantId) {
+        String stmt = resolveStatementCurrency(merchantId);
+        if ("USDT".equalsIgnoreCase(stmt)) {
+            return true;
+        }
+        if (merchantId == null || merchantId.isBlank()) {
+            return false;
+        }
+        Optional<OrgUnit> ou = orgUnitRepository.findByCode(merchantId.trim());
+        if (ou.isEmpty()) {
+            ou = orgUnitRepository.findByCodeIgnoreCase(merchantId.trim());
+        }
+        return ou.flatMap(o -> merchantProfileRepository.findByOrgUnitId(o.getId()))
+                .map(mp -> {
+                    String bc = mp.getBaseCurrency();
+                    if (bc == null || bc.isBlank()) {
+                        return false;
+                    }
+                    return bc.toUpperCase(Locale.ROOT).contains("USDT");
+                })
+                .orElse(false);
+    }
+
+    private CommissionPolicy resolveCommissionPolicyForMerchantRow(String merchantId) {
+        if (merchantId != null && !merchantId.isBlank()) {
+            Optional<CommissionPolicy> direct = commissionPolicyRepository.findByScope(merchantId.trim());
+            if (direct.isPresent()) {
+                return direct.get();
+            }
+        }
+        return commissionPolicyRepository.findByScope("DEFAULT").orElse(null);
+    }
+
+    private void applyExecuteRemittanceAndFinalPay(Map<String, Object> m, SettlementRun r, String merchantId, FeeListRoundingPolicy rp) {
+        BigDecimal payBd = nz(r.getPayAmt());
+        BigDecimal storedRemit = r.getRemittanceFeeAmt();
+        if (storedRemit != null && storedRemit.compareTo(BigDecimal.ZERO) != 0) {
+            BigDecimal absStored = storedRemit.abs();
+            double remD = settlementMoneyDouble(absStored, rp);
+            boolean usdt = merchantUsesUsdtRemittanceFee(merchantId);
+            if (usdt) {
+                m.put("remittanceFeeBank", null);
+                m.put("remittanceFeeUsdt", -remD);
+            } else {
+                m.put("remittanceFeeBank", -remD);
+                m.put("remittanceFeeUsdt", null);
+            }
+            m.put("finalPayAfterRemittance", settlementMoneyDouble(payBd.subtract(absStored), rp));
+            m.put("remittanceFee", -remD);
+            return;
+        }
+        CommissionPolicy pol = resolveCommissionPolicyForMerchantRow(merchantId);
+        boolean usdt = merchantUsesUsdtRemittanceFee(merchantId);
+        if (usdt && pol != null && pol.getUsdtTransferFeeUsd() != null
+                && pol.getUsdtTransferFeeUsd().compareTo(BigDecimal.ZERO) > 0) {
+            BigDecimal fee = FeeListRoundingPolicy.round(pol.getUsdtTransferFeeUsd(), rp);
+            m.put("remittanceFeeBank", null);
+            m.put("remittanceFeeUsdt", -settlementMoneyDouble(fee, rp));
+            m.put("finalPayAfterRemittance", settlementMoneyDouble(payBd.subtract(fee), rp));
+            m.put("remittanceFee", -settlementMoneyDouble(fee, rp));
+            return;
+        }
+        if (!usdt && pol != null && pol.getRemittanceTransferFee() != null
+                && pol.getRemittanceTransferFee().compareTo(BigDecimal.ZERO) > 0) {
+            BigDecimal fee = FeeListRoundingPolicy.round(pol.getRemittanceTransferFee(), rp);
+            m.put("remittanceFeeBank", -settlementMoneyDouble(fee, rp));
+            m.put("remittanceFeeUsdt", null);
+            m.put("finalPayAfterRemittance", settlementMoneyDouble(payBd.subtract(fee), rp));
+            m.put("remittanceFee", -settlementMoneyDouble(fee, rp));
+            return;
+        }
+        m.put("remittanceFeeBank", null);
+        m.put("remittanceFeeUsdt", null);
+        m.put("finalPayAfterRemittance", settlementMoneyDouble(payBd, rp));
+        m.put("remittanceFee", null);
     }
 
     public Map<String, Object> reportMeta() {
@@ -108,8 +346,8 @@ public class SettlementReportService {
         m.put("feePerApproveKrw", FEE_PER_APPROVE);
         m.put("feePerRefundKrw", FEE_PER_REFUND);
         m.put("feeSettlementBatchKrw", FEE_SETTLEMENT_BATCH);
-        m.put("settlementDueBusinessDays", 7);
-        m.put("note", "정산일+7영업일은 주말 제외 근사치이며 공휴일은 미반영입니다. 예치·비율·건당요금은 운영 정책에 맞게 조정 가능합니다.");
+        m.put("settlementDueBusinessDays", 0);
+        m.put("note", "지급예정일은 해당 정산 실행의 정산일(정산주기 일자)과 동일합니다. 정산집계·실시의 비율형·건당·VAT는 수수료내역 계산과 동일 규칙입니다.");
         return m;
     }
 
@@ -169,7 +407,7 @@ public class SettlementReportService {
     }
 
     /**
-     * 가맹점 정산 리포트: 결제일·가맹·통화 단위.
+     * 가맹점 정산 리포트 집계: 정산 실행 단위(정산대상기간·실행과 동일).
      */
     private PageResult<Map<String, Object>> aggregateMerchant(
             OrgUnit userOrg,
@@ -186,38 +424,39 @@ public class SettlementReportService {
         }
         LocalDate fromDate = searchFromDate != null ? searchFromDate : LocalDate.now().minusMonths(1);
         LocalDate toDate = searchToDate != null ? searchToDate : LocalDate.now();
-        LocalDateTime fromDt = fromDate.atStartOfDay();
-        LocalDateTime toDt = toDate.atTime(LocalTime.MAX);
+        String ct = curType != null ? curType.trim().toUpperCase(Locale.ROOT) : "";
 
-        String ct = curType != null ? curType.trim() : "";
-        List<PgTrnsctn> raw = pgTrnsctnRepository.findForReportRange(fromDt, toDt, ct.isEmpty() ? null : ct);
-        List<PgTrnsctn> filtered = raw.stream()
-                .filter(t -> t.getMerchantId() != null && allowed.contains(t.getMerchantId()))
-                .collect(Collectors.toList());
-
-        Map<String, AggBucket> buckets = new LinkedHashMap<>();
-        for (PgTrnsctn t : filtered) {
-            LocalDate payDate = payDateOf(t);
-            String mid = t.getMerchantId();
-            String currency = t.getCurType() != null ? t.getCurType() : "KRW";
-            String key = payDate + "|" + mid + "|" + currency;
-            AggBucket b = buckets.computeIfAbsent(key, k -> new AggBucket(payDate, mid, currency));
-            b.add(t);
+        List<SettlementRun> runs = settlementCalcService.listRuns(fromDate, toDate);
+        List<Map<String, Object>> rows = new ArrayList<>();
+        for (SettlementRun r : runs) {
+            if ("Y".equalsIgnoreCase(r.getPayoutHoldYn() != null ? r.getPayoutHoldYn() : "")) {
+                continue;
+            }
+            if (!settlementCalcService.isDistributedForMerchantStatementView(r)) {
+                continue;
+            }
+            if (!settlementCalcService.isMerchantStatementVisibleSettlementRun(r)) {
+                continue;
+            }
+            String mid = r.getMerchantId();
+            if (mid == null || !allowed.contains(mid)) {
+                continue;
+            }
+            if (!ct.isEmpty() && !ct.equals(displayCurrencyForMerchant(mid))) {
+                continue;
+            }
+            OrgUnit ou = orgUnitRepository.findByCode(mid).orElse(null);
+            rows.add(baseAggregateRowFromRun(r, mid, ou));
         }
-
-        List<Map<String, Object>> rows = buckets.values().stream()
-                .map(this::toAggregateRow)
-                .sorted(Comparator
-                        .<Map<String, Object>, LocalDate>comparing(m -> LocalDate.parse(String.valueOf(m.get("payDate"))))
-                        .reversed()
-                        .thenComparing(m -> String.valueOf(m.getOrDefault("compId", ""))))
-                .collect(Collectors.toList());
-
+        rows.sort(Comparator
+                .<Map<String, Object>, String>comparing(x -> String.valueOf(x.getOrDefault("calcDt", "")))
+                .reversed()
+                .thenComparing(x -> String.valueOf(x.getOrDefault("compId", ""))));
         return pageOf(rows, page, size);
     }
 
     /**
-     * 본사 지급 리포트: 소속 가맹 거래를 상위 본사(REGIONAL) 단위로 합산 (총본사가 본사에 지급할 때 사용).
+     * 본사 지급 리포트 집계: 정산 실행 단위 행에 본사(REGIONAL) 열을 붙임.
      */
     private PageResult<Map<String, Object>> aggregateRegionalPayout(
             OrgUnit userOrg,
@@ -247,35 +486,47 @@ public class SettlementReportService {
 
         LocalDate fromDate = searchFromDate != null ? searchFromDate : LocalDate.now().minusMonths(1);
         LocalDate toDate = searchToDate != null ? searchToDate : LocalDate.now();
-        LocalDateTime fromDt = fromDate.atStartOfDay();
-        LocalDateTime toDt = toDate.atTime(LocalTime.MAX);
-        String ct = curType != null ? curType.trim() : "";
-        List<PgTrnsctn> raw = pgTrnsctnRepository.findForReportRange(fromDt, toDt, ct.isEmpty() ? null : ct);
+        String ct = curType != null ? curType.trim().toUpperCase(Locale.ROOT) : "";
 
-        Map<String, AggBucketRegional> buckets = new LinkedHashMap<>();
-        for (PgTrnsctn t : raw) {
-            String mid = t.getMerchantId();
-            if (mid == null || !allowedMerchants.contains(mid)) continue;
+        List<SettlementRun> runs = settlementCalcService.listRuns(fromDate, toDate);
+        List<Map<String, Object>> rows = new ArrayList<>();
+        for (SettlementRun r : runs) {
+            if ("Y".equalsIgnoreCase(r.getPayoutHoldYn() != null ? r.getPayoutHoldYn() : "")) {
+                continue;
+            }
+            if (!settlementCalcService.isDistributedForMerchantStatementView(r)) {
+                continue;
+            }
+            if (!settlementCalcService.isMerchantStatementVisibleSettlementRun(r)) {
+                continue;
+            }
+            String mid = r.getMerchantId();
+            if (mid == null || !allowedMerchants.contains(mid)) {
+                continue;
+            }
             OrgUnit merchantOu = orgUnitRepository.findByCode(mid).orElse(null);
-            if (merchantOu == null || merchantOu.getOrgLevel() != OrgLevel.MERCHANT) continue;
+            if (merchantOu == null || merchantOu.getOrgLevel() != OrgLevel.MERCHANT) {
+                continue;
+            }
             OrgUnit regional = findRegionalAncestor(merchantOu, idToOu);
             if (regional == null || regional.getCode() == null || !allowedRegional.contains(regional.getCode())) {
                 continue;
             }
-            LocalDate payDate = payDateOf(t);
-            String currency = t.getCurType() != null ? t.getCurType() : "KRW";
-            String key = payDate + "|" + regional.getCode() + "|" + currency;
-            AggBucketRegional b = buckets.computeIfAbsent(key, k -> new AggBucketRegional(payDate, regional.getCode(), currency));
-            b.add(t, mid);
+            if (!ct.isEmpty() && !ct.equals(displayCurrencyForMerchant(mid))) {
+                continue;
+            }
+            OrgUnit regOu = orgUnitRepository.findByCode(regional.getCode()).orElse(regional);
+            Map<String, Object> m = baseAggregateRowFromRun(r, mid, merchantOu);
+            m.put("regionalCompId", regional.getCode());
+            m.put("regionalNm", regOu.getName() != null ? regOu.getName() : regional.getCode());
+            m.put("merchantCnt", 1);
+            rows.add(m);
         }
-
-        List<Map<String, Object>> rows = buckets.values().stream()
-                .map(b -> toRegionalAggregateRow(b, idToOu))
-                .sorted(Comparator
-                        .<Map<String, Object>, LocalDate>comparing(m -> LocalDate.parse(String.valueOf(m.get("payDate"))))
-                        .reversed()
-                        .thenComparing(m -> String.valueOf(m.getOrDefault("regionalCompId", ""))))
-                .collect(Collectors.toList());
+        rows.sort(Comparator
+                .<Map<String, Object>, String>comparing(x -> String.valueOf(x.getOrDefault("calcDt", "")))
+                .reversed()
+                .thenComparing(x -> String.valueOf(x.getOrDefault("regionalCompId", "")))
+                .thenComparing(x -> String.valueOf(x.getOrDefault("compId", ""))));
         return pageOf(rows, page, size);
     }
 
@@ -323,6 +574,9 @@ public class SettlementReportService {
             if ("Y".equalsIgnoreCase(r.getPayoutHoldYn() != null ? r.getPayoutHoldYn() : "")) {
                 continue;
             }
+            if (!settlementCalcService.isDistributedForMerchantStatementView(r)) {
+                continue;
+            }
             if (!settlementCalcService.isMerchantStatementVisibleSettlementRun(r)) {
                 continue;
             }
@@ -331,32 +585,36 @@ public class SettlementReportService {
             OrgUnit ou = orgUnitRepository.findByCode(mid).orElse(null);
             Map<String, Object> m = new LinkedHashMap<>();
             LocalDate calcDt = r.getCalcDt();
+            String cycleFb = settlementRunTargetPeriodLabelService.settlementCycleFallbackForMerchant(mid);
             m.put("calcDt", calcDt != null ? calcDt.toString() : "");
+            if (r.getId() != null) {
+                m.put("settlementRunId", r.getId());
+            }
             m.put("compId", mid);
             m.put("compNm", ou != null ? ou.getName() : mid);
-            m.put("curType", resolveStatementCurrency(mid));
+            m.put("curType", displayCurrencyForMerchant(mid));
             FeeListRoundingPolicy rp = settlementLedgerRoundPolicy();
             BigDecimal ap = nz(r.getApproveAmt());
             BigDecimal ca = nz(r.getCancelAmt());
             BigDecimal net = ap.subtract(ca);
+            m.put("targetPeriodText", settlementRunTargetPeriodLabelService.buildSettlementTargetPeriodLabel(r, cycleFb));
             m.put("approveAmt", settlementMoneyDouble(ap, rp));
             m.put("cancelAmt", settlementMoneyDouble(ca, rp));
             m.put("netPay", settlementMoneyDouble(net, rp));
-            m.put("depositAmt", settlementPctDisplay(net, DEPOSIT_PCT, rp));
-            m.put("processingFeeTotal", settlementPctDisplay(net, PROC_PCT_TOTAL, rp));
-            m.put("processingFeePg", settlementPctDisplay(net, PROC_PCT_PG, rp));
-            m.put("processingFeeFile", settlementPctDisplay(net, PROC_PCT_FILE, rp));
-            m.put("processingFeeOnline", settlementPctDisplay(net, PROC_PCT_ONLINE, rp));
+            MdrPerTxnSplit split = computeMdrAndPerTxnFeeForRun(r, mid);
+            m.put("mdrFeeAmt", settlementMoneyDouble(BigDecimal.valueOf(split.mdrAmt()), rp));
+            m.put("perTxnFeeAmt", settlementMoneyDouble(BigDecimal.valueOf(split.perTxnAmt()), rp));
             m.put("payAmount", settlementMoneyDouble(r.getPayAmt(), rp));
             m.put("totalFee", settlementMoneyDouble(r.getTotalFee(), rp));
             m.put("rollingReserveAmt", settlementMoneyDouble(r.getRollingReserveAmt(), rp));
             m.put("settlementBatchFee", r.getSettlementBatchFeeAmt() != null
                     ? settlementMoneyDouble(r.getSettlementBatchFeeAmt(), rp) : null);
-            m.put("remittanceFee", r.getRemittanceFeeAmt() != null
-                    ? settlementMoneyDouble(r.getRemittanceFeeAmt(), rp) : null);
+            m.put("feeVat", feeVatForRun(r, mid));
+            m.put("calcCycle", displayCalcCycleForExecuteRow(r, mid));
+            m.putAll(remittanceFieldsForRun(r));
             m.put("txnCnt", r.getIncludedTxnCnt());
             m.put("status", r.getStatus());
-            m.put("settlementDueDt", calcDt != null ? addBusinessDays(calcDt, 7).toString() : "");
+            m.put("settlementDueDt", calcDt != null ? calcDt.toString() : "");
             m.put("settledYn", "CALCULATED".equalsIgnoreCase(String.valueOf(r.getStatus())) ? "Y" : "N");
             boolean manualRecv = receivableRecoveryModeService.isManualForMerchantCode(mid);
             m.put("receivableRecoveryMode", manualRecv ? "MANUAL" : "AUTO");
@@ -403,6 +661,9 @@ public class SettlementReportService {
             if ("Y".equalsIgnoreCase(r.getPayoutHoldYn() != null ? r.getPayoutHoldYn() : "")) {
                 continue;
             }
+            if (!settlementCalcService.isDistributedForMerchantStatementView(r)) {
+                continue;
+            }
             if (!settlementCalcService.isMerchantStatementVisibleSettlementRun(r)) {
                 continue;
             }
@@ -418,7 +679,7 @@ public class SettlementReportService {
             if (calcDt == null) continue;
             String key = calcDt + "|" + regional.getCode();
             RegionalExeBucket b = buckets.computeIfAbsent(key, k -> new RegionalExeBucket(calcDt, regional.getCode()));
-            b.add(r, resolveStatementCurrency(mid), settlementLedgerRoundPolicy());
+            b.add(r, resolveStatementCurrency(mid), settlementLedgerRoundPolicy(), this);
         }
 
         List<Map<String, Object>> rows = buckets.values().stream()
@@ -446,18 +707,21 @@ public class SettlementReportService {
         PageResult<Map<String, Object>> agg = aggregate(userOrgOpt, searchFromDate, searchToDate,
                 searchMerchantId, searchMasterId, searchRegionalId, curType, reportKind, 1, Integer.MAX_VALUE);
         List<Map<String, Object>> list = agg.getList() != null ? agg.getList() : List.of();
-        long sumGross = 0, sumRefund = 0, sumNet = 0, sumDeposit = 0, sumProc = 0, sumTxn = 0, sumSettle = 0;
-        long apCnt = 0, rfCnt = 0;
+        long sumGross = 0, sumRefund = 0, sumNet = 0, sumRolling = 0, sumMdr = 0, sumPerTxn = 0;
+        long sumBatchFee = 0, sumFeeVat = 0, sumRemit = 0, sumPay = 0;
+        long sumTxnCnt = 0;
         for (Map<String, Object> row : list) {
             sumGross += asLong(row.get("grossPay"));
             sumRefund += asLong(row.get("refundAmt"));
             sumNet += asLong(row.get("netPay"));
-            sumDeposit += asLong(row.get("depositAmt"));
-            sumProc += asLong(row.get("processingFeeTotal"));
-            sumTxn += asLong(row.get("txnFeeTotal"));
-            sumSettle += asLong(row.get("settlementAmt"));
-            apCnt += asLong(row.get("approveCnt"));
-            rfCnt += asLong(row.get("refundCnt"));
+            sumRolling += asLong(row.get("rollingReserveAmt"));
+            sumMdr += asLong(row.get("mdrFeeAmt"));
+            sumPerTxn += asLong(row.get("perTxnFeeAmt"));
+            sumBatchFee += asLong(row.get("settlementBatchFee"));
+            sumFeeVat += asLong(row.get("feeVat"));
+            sumRemit += asLong(row.get("remittanceFee"));
+            sumPay += asLong(row.get("payAmount"));
+            sumTxnCnt += asLong(row.get("txnCnt"));
         }
         LocalDate fromD = searchFromDate != null ? searchFromDate : LocalDate.now().minusMonths(1);
         LocalDate toD = searchToDate != null ? searchToDate : LocalDate.now();
@@ -469,12 +733,16 @@ public class SettlementReportService {
         one.put("grossPay", sumGross);
         one.put("refundAmt", sumRefund);
         one.put("netPay", sumNet);
-        one.put("depositAmt", sumDeposit);
-        one.put("processingFeeTotal", sumProc);
-        one.put("txnFeeTotal", sumTxn);
-        one.put("settlementAmt", sumSettle);
-        one.put("approveCnt", apCnt);
-        one.put("refundCnt", rfCnt);
+        one.put("rollingReserveAmt", sumRolling);
+        one.put("mdrFeeAmt", sumMdr);
+        one.put("perTxnFeeAmt", sumPerTxn);
+        one.put("settlementBatchFee", sumBatchFee);
+        one.put("feeVat", sumFeeVat);
+        one.put("remittanceFee", sumRemit);
+        one.put("payAmount", sumPay);
+        one.put("settlementAmt", sumPay);
+        one.put("txnCnt", sumTxnCnt);
+        one.put("refundCnt", 0L);
         one.put("rowCount", list.size());
 
         PageResult<Map<String, Object>> pr = new PageResult<>();
@@ -489,154 +757,6 @@ public class SettlementReportService {
 
     // --- internal ---
 
-    private static final class AggBucket {
-        final LocalDate payDate;
-        final String merchantId;
-        final String curType;
-        long gross;
-        long refund;
-        int approveCnt;
-        int refundCnt;
-        boolean allSettled = true;
-        boolean anyTxn;
-
-        AggBucket(LocalDate payDate, String merchantId, String curType) {
-            this.payDate = payDate;
-            this.merchantId = merchantId;
-            this.curType = curType;
-        }
-
-        void add(PgTrnsctn t) {
-            anyTxn = true;
-            long amt = txAmount(t);
-            String st = t.getStatus();
-            if (isApprove(st)) {
-                gross += amt;
-                approveCnt++;
-            } else if (isRefundLike(st)) {
-                refund += amt;
-                refundCnt++;
-            }
-            if (t.getSettledYn() == null || !"Y".equalsIgnoreCase(t.getSettledYn())) {
-                allSettled = false;
-            }
-        }
-    }
-
-    private Map<String, Object> toAggregateRow(AggBucket b) {
-        OrgUnit ou = orgUnitRepository.findByCode(b.merchantId).orElse(null);
-        long net = b.gross - b.refund;
-        BigDecimal netBd = BigDecimal.valueOf(Math.max(net, 0L));
-        long deposit = pct(netBd, DEPOSIT_PCT);
-        long procTotal = pct(netBd, PROC_PCT_TOTAL);
-        long procPg = pct(netBd, PROC_PCT_PG);
-        long procFile = pct(netBd, PROC_PCT_FILE);
-        long procOn = pct(netBd, PROC_PCT_ONLINE);
-        long txnFee = b.approveCnt * FEE_PER_APPROVE + b.refundCnt * FEE_PER_REFUND + FEE_SETTLEMENT_BATCH;
-        long settlement = net - deposit - procTotal - txnFee;
-        if (settlement < 0) settlement = 0;
-
-        Map<String, Object> m = new LinkedHashMap<>();
-        m.put("payDate", b.payDate.toString());
-        m.put("compId", b.merchantId);
-        m.put("compNm", ou != null ? ou.getName() : b.merchantId);
-        m.put("curType", b.curType);
-        m.put("grossPay", b.gross);
-        m.put("refundAmt", b.refund);
-        m.put("netPay", net);
-        m.put("approveCnt", b.approveCnt);
-        m.put("refundCnt", b.refundCnt);
-        m.put("depositAmt", deposit);
-        m.put("depositHoldDays", 180);
-        m.put("processingFeeTotal", procTotal);
-        m.put("processingFeePg", procPg);
-        m.put("processingFeeFile", procFile);
-        m.put("processingFeeOnline", procOn);
-        m.put("txnFeePerApprove", FEE_PER_APPROVE);
-        m.put("txnFeePerRefund", FEE_PER_REFUND);
-        m.put("txnFeeSettlementBatch", FEE_SETTLEMENT_BATCH);
-        m.put("txnFeeTotal", txnFee);
-        m.put("settlementAmt", settlement);
-        m.put("settlementDueDt", addBusinessDays(b.payDate, 7).toString());
-        m.put("settledYn", b.anyTxn && b.allSettled ? "Y" : "N");
-        return m;
-    }
-
-    private static final class AggBucketRegional {
-        final LocalDate payDate;
-        final String regionalCode;
-        final String curType;
-        long gross;
-        long refund;
-        int approveCnt;
-        int refundCnt;
-        final Set<String> merchantIds = new LinkedHashSet<>();
-        boolean allSettled = true;
-        boolean anyTxn;
-
-        AggBucketRegional(LocalDate payDate, String regionalCode, String curType) {
-            this.payDate = payDate;
-            this.regionalCode = regionalCode;
-            this.curType = curType;
-        }
-
-        void add(PgTrnsctn t, String merchantId) {
-            anyTxn = true;
-            merchantIds.add(merchantId);
-            long amt = txAmount(t);
-            String st = t.getStatus();
-            if (isApprove(st)) {
-                gross += amt;
-                approveCnt++;
-            } else if (isRefundLike(st)) {
-                refund += amt;
-                refundCnt++;
-            }
-            if (t.getSettledYn() == null || !"Y".equalsIgnoreCase(t.getSettledYn())) {
-                allSettled = false;
-            }
-        }
-    }
-
-    private Map<String, Object> toRegionalAggregateRow(AggBucketRegional b, Map<Long, OrgUnit> idToOu) {
-        OrgUnit reg = orgUnitRepository.findByCode(b.regionalCode).orElse(null);
-        long net = b.gross - b.refund;
-        BigDecimal netBd = BigDecimal.valueOf(Math.max(net, 0L));
-        long deposit = pct(netBd, DEPOSIT_PCT);
-        long procTotal = pct(netBd, PROC_PCT_TOTAL);
-        long procPg = pct(netBd, PROC_PCT_PG);
-        long procFile = pct(netBd, PROC_PCT_FILE);
-        long procOn = pct(netBd, PROC_PCT_ONLINE);
-        long txnFee = b.approveCnt * FEE_PER_APPROVE + b.refundCnt * FEE_PER_REFUND + FEE_SETTLEMENT_BATCH;
-        long settlement = net - deposit - procTotal - txnFee;
-        if (settlement < 0) settlement = 0;
-
-        Map<String, Object> m = new LinkedHashMap<>();
-        m.put("payDate", b.payDate.toString());
-        m.put("regionalCompId", b.regionalCode);
-        m.put("regionalNm", reg != null ? reg.getName() : b.regionalCode);
-        m.put("compId", b.regionalCode);
-        m.put("compNm", reg != null ? reg.getName() : b.regionalCode);
-        m.put("merchantCnt", b.merchantIds.size());
-        m.put("curType", b.curType);
-        m.put("grossPay", b.gross);
-        m.put("refundAmt", b.refund);
-        m.put("netPay", net);
-        m.put("approveCnt", b.approveCnt);
-        m.put("refundCnt", b.refundCnt);
-        m.put("depositAmt", deposit);
-        m.put("depositHoldDays", 180);
-        m.put("processingFeeTotal", procTotal);
-        m.put("processingFeePg", procPg);
-        m.put("processingFeeFile", procFile);
-        m.put("processingFeeOnline", procOn);
-        m.put("txnFeeTotal", txnFee);
-        m.put("settlementAmt", settlement);
-        m.put("settlementDueDt", addBusinessDays(b.payDate, 7).toString());
-        m.put("settledYn", b.anyTxn && b.allSettled ? "Y" : "N");
-        return m;
-    }
-
     private static final class RegionalExeBucket {
         final LocalDate calcDt;
         final String regionalCode;
@@ -645,6 +765,13 @@ public class SettlementReportService {
         BigDecimal payAmountSum = BigDecimal.ZERO;
         BigDecimal totalFeeSum = BigDecimal.ZERO;
         BigDecimal rollingSum = BigDecimal.ZERO;
+        BigDecimal mdrFeeSum = BigDecimal.ZERO;
+        BigDecimal perTxnFeeSum = BigDecimal.ZERO;
+        BigDecimal feeVatSum = BigDecimal.ZERO;
+        BigDecimal settlementBatchFeeSum = BigDecimal.ZERO;
+        BigDecimal remittanceBankSum = BigDecimal.ZERO;
+        BigDecimal remittanceUsdtSum = BigDecimal.ZERO;
+        BigDecimal finalPayAfterRemitSum = BigDecimal.ZERO;
         int runCount;
         boolean allCalculated = true;
         BigDecimal receivableAppliedSum = BigDecimal.ZERO;
@@ -655,7 +782,8 @@ public class SettlementReportService {
             this.regionalCode = regionalCode;
         }
 
-        void add(SettlementRun r, String stmtCurAlpha, FeeListRoundingPolicy rp) {
+        void add(SettlementRun r, String stmtCurAlpha, FeeListRoundingPolicy rp,
+                 SettlementReportService outer) {
             runCount++;
             if (stmtCurAlpha != null && !stmtCurAlpha.isBlank()) {
                 curTypes.add(stmtCurAlpha.trim().toUpperCase(Locale.ROOT));
@@ -667,6 +795,31 @@ public class SettlementReportService {
             rollingSum = rollingSum.add(FeeListRoundingPolicy.round(r.getRollingReserveAmt() != null ? r.getRollingReserveAmt() : BigDecimal.ZERO, rp));
             receivableAppliedSum = receivableAppliedSum.add(FeeListRoundingPolicy.round(
                     r.getReceivableAppliedAmt() != null ? r.getReceivableAppliedAmt() : BigDecimal.ZERO, rp));
+            String mid = r.getMerchantId();
+            if (mid != null && !mid.isBlank()) {
+                MdrPerTxnSplit sp = outer.computeMdrAndPerTxnFeeForRun(r, mid);
+                mdrFeeSum = mdrFeeSum.add(FeeListRoundingPolicy.round(BigDecimal.valueOf(sp.mdrAmt()), rp));
+                perTxnFeeSum = perTxnFeeSum.add(FeeListRoundingPolicy.round(BigDecimal.valueOf(sp.perTxnAmt()), rp));
+                feeVatSum = feeVatSum.add(FeeListRoundingPolicy.round(
+                        BigDecimal.valueOf(outer.feeVatForRun(r, mid)), rp));
+            }
+            if (r.getSettlementBatchFeeAmt() != null) {
+                settlementBatchFeeSum = settlementBatchFeeSum.add(
+                        FeeListRoundingPolicy.round(r.getSettlementBatchFeeAmt(), rp));
+            }
+            Map<String, Object> rem = outer.remittanceFieldsForRun(r);
+            Object b = rem.get("remittanceFeeBank");
+            Object u = rem.get("remittanceFeeUsdt");
+            Object fp = rem.get("finalPayAfterRemittance");
+            if (b instanceof Number bn) {
+                remittanceBankSum = remittanceBankSum.add(BigDecimal.valueOf(bn.doubleValue()));
+            }
+            if (u instanceof Number un) {
+                remittanceUsdtSum = remittanceUsdtSum.add(BigDecimal.valueOf(un.doubleValue()));
+            }
+            if (fp instanceof Number fn) {
+                finalPayAfterRemitSum = finalPayAfterRemitSum.add(BigDecimal.valueOf(fn.doubleValue()));
+            }
             if (!"CALCULATED".equalsIgnoreCase(String.valueOf(r.getStatus()))) {
                 allCalculated = false;
             }
@@ -695,16 +848,24 @@ public class SettlementReportService {
         m.put("approveAmt", settlementMoneyDouble(b.approveAmtSum, rp));
         m.put("cancelAmt", settlementMoneyDouble(b.cancelAmtSum, rp));
         m.put("netPay", settlementMoneyDouble(netBd, rp));
-        m.put("depositAmt", settlementPctDisplay(netBd, DEPOSIT_PCT, rp));
-        m.put("processingFeeTotal", settlementPctDisplay(netBd, PROC_PCT_TOTAL, rp));
-        m.put("processingFeePg", settlementPctDisplay(netBd, PROC_PCT_PG, rp));
-        m.put("processingFeeFile", settlementPctDisplay(netBd, PROC_PCT_FILE, rp));
-        m.put("processingFeeOnline", settlementPctDisplay(netBd, PROC_PCT_ONLINE, rp));
+        m.put("mdrFeeAmt", settlementMoneyDouble(b.mdrFeeSum, rp));
+        m.put("perTxnFeeAmt", settlementMoneyDouble(b.perTxnFeeSum, rp));
+        m.put("feeVat", settlementMoneyDouble(b.feeVatSum, rp));
+        m.put("settlementBatchFee", b.settlementBatchFeeSum.signum() != 0
+                ? settlementMoneyDouble(b.settlementBatchFeeSum, rp) : null);
         m.put("payAmount", settlementMoneyDouble(b.payAmountSum, rp));
         m.put("totalFee", settlementMoneyDouble(b.totalFeeSum, rp));
         m.put("rollingReserveAmt", settlementMoneyDouble(b.rollingSum, rp));
+        m.put("calcCycle", "-");
+        boolean bankRemit = b.remittanceBankSum.signum() != 0;
+        boolean usdtRemit = b.remittanceUsdtSum.signum() != 0;
+        m.put("remittanceFeeBank", bankRemit ? settlementMoneyDouble(b.remittanceBankSum, rp) : null);
+        m.put("remittanceFeeUsdt", usdtRemit ? settlementMoneyDouble(b.remittanceUsdtSum, rp) : null);
+        m.put("finalPayAfterRemittance", settlementMoneyDouble(b.finalPayAfterRemitSum, rp));
+        m.put("remittanceFee", bankRemit || usdtRemit
+                ? settlementMoneyDouble(b.remittanceBankSum.add(b.remittanceUsdtSum), rp) : null);
         m.put("status", b.allCalculated ? "CALCULATED" : "PENDING");
-        m.put("settlementDueDt", addBusinessDays(b.calcDt, 7).toString());
+        m.put("settlementDueDt", b.calcDt.toString());
         m.put("settledYn", b.allCalculated ? "Y" : "N");
         m.put("receivableRecoveryMode", "");
         m.put("receivableRecoveryModeKr", "본사합산(가맹 혼합)");
@@ -742,33 +903,6 @@ public class SettlementReportService {
                     .collect(Collectors.toCollection(LinkedHashSet::new));
         }
         return Set.of();
-    }
-
-    private static LocalDate payDateOf(PgTrnsctn t) {
-        LocalDateTime ts = t.getPaidAt() != null ? t.getPaidAt() : t.getCreatedAt();
-        if (ts == null) return LocalDate.now();
-        return ts.toLocalDate();
-    }
-
-    private static long txAmount(PgTrnsctn t) {
-        BigDecimal a = t.getAmtKrw();
-        if (a == null) a = t.getIcopayAmt();
-        if (a == null) a = t.getTotalAmt();
-        if (a == null) return 0L;
-        return a.abs().setScale(0, RoundingMode.HALF_UP).longValue();
-    }
-
-    private static boolean isApprove(String status) {
-        return "10".equals(status);
-    }
-
-    private static boolean isRefundLike(String status) {
-        return "20".equals(status) || "30".equals(status) || "31".equals(status);
-    }
-
-    private static long pct(BigDecimal net, BigDecimal rate) {
-        if (net == null || net.signum() <= 0) return 0L;
-        return net.multiply(rate).setScale(0, RoundingMode.HALF_UP).longValue();
     }
 
     private static BigDecimal nz(BigDecimal v) {

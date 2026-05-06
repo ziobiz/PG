@@ -39,7 +39,7 @@ import com.pg.util.BusinessDayCalendar;
  *       누락 슬롯을 매 tick 보강({@link SettlementCalcService#catchUpMissedPlainSubDailyGridSlots}).</li>
  * </ul>
  * 수동 기간 실행은 {@link SettlementCalcService#execute}를 직접 쓰면 된다.
- * 본사 화면 「정산실행」기간 미지정 호출은 {@link SettlementCalcService} 경유로 동일 규칙의 즉시 보강에 사용할 수 있다.
+ * 본사 「정산실행」화면에서 기간 미지정 호출은 {@link SettlementCalcService} 경유로 동일 규칙의 즉시 보강에 사용할 수 있다.
  */
 @Service
 public class SettlementAutoRunService {

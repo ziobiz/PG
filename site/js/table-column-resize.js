@@ -105,6 +105,7 @@
     });
     table.querySelectorAll('th.pg-th-has-resize').forEach(function (th) {
       th.classList.remove('pg-th-has-resize');
+      th.style.zIndex = '';
     });
     var oldCg = table.querySelector('colgroup.pg-col-resize-group');
     if (oldCg) oldCg.remove();
@@ -321,6 +322,10 @@
     handle.setAttribute('aria-orientation', 'vertical');
     handle.title = '열 너비 조절(드래그)';
     th.classList.add('pg-th-has-resize');
+    /* 오른쪽 경계 핸들이 다음 th(동일 행에서 뒤쪽 셀)에 가려져 드래그가 안 되는 경우 방지 — 왼쪽 열일수록 위로 쌓음 */
+    var zi = 400 - colStart;
+    if (zi < 2) zi = 2;
+    th.style.zIndex = String(zi);
     th.appendChild(handle);
     handle.addEventListener('mousedown', function (e) {
       e.stopPropagation();

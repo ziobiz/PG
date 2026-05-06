@@ -967,7 +967,6 @@ body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Ro
 #contentsMain .screen-calc-gm-list .table th[data-key="settlementPerTxFeeAmt"],
 #contentsMain .screen-calc-gm-list .table th[data-key="extraFeesAmt"] { min-width: 88px; text-align: center !important; }
 #contentsMain .screen-calc-gm-list .table th[data-key="bizType"] { min-width: 82px; }
-#contentsMain .screen-calc-gm-list .table th[data-key="bizNo"] { min-width: 120px; }
 #contentsMain .screen-calc-gm-list .table th[data-key="cardAprvNo"] { min-width: 120px; }
 #contentsMain .screen-calc-gm-list .table th[data-key="terminalId"] { min-width: 110px; }
 #contentsMain .screen-calc-gm-list .table th[data-key="amount"],
@@ -1546,10 +1545,12 @@ table.table.pg-table-col-resize-enabled {
   width: max-content;
   min-width: 100%;
 }
-/* 가맹정산·수수료내역 등 동일 pay-mng 그리드: 상위 .table-responsive > .table 의 auto 를 덮어씀 */
+/* 가맹정산·수수료내역 등 동일 pay-mng 그리드: 리사이즈 활성 시 결제 그리드와 동일하게 fixed + 가로 스크롤 폭 유지 */
 #contentsMain .screen-calc-gm-list .table-responsive > .table.pay-mng-data-grid.pg-table-col-resize-enabled,
 #contentsMain .screen-calc-fee-list .table-responsive > .table.pay-mng-data-grid.pg-table-col-resize-enabled {
   table-layout: fixed;
+  width: max-content;
+  min-width: 100%;
 }
 #contentsMain table.table thead th.pg-th-has-resize,
 .tab-pane.tabConDiv table.table thead th.pg-th-has-resize,
