@@ -1252,6 +1252,17 @@
         return Array.isArray(raw) ? raw : [];
       });
     },
+    chatbotProductsCurrencyMeta: function (compId) {
+      return get('/api/chatbot/products/currency-meta', { compId: String(compId || '').trim() }).then(function (r) {
+        if (r.success === false && r.success !== undefined) throw new Error(r.message || apiT('통화 정보 조회 실패', 'Currency lookup failed'));
+        var raw = r.data || {};
+        var fallback = ['JPY', 'KRW', 'USD', 'CNY', 'THB'];
+        return {
+          defaultCurrency: raw.defaultCurrency ? String(raw.defaultCurrency).trim().toUpperCase() : 'KRW',
+          allowedCurrencies: Array.isArray(raw.allowedCurrencies) && raw.allowedCurrencies.length ? raw.allowedCurrencies.map(function (x) { return String(x).trim().toUpperCase(); }) : fallback
+        };
+      });
+    },
     chatbotProductsSave: function (body) {
       return post('/api/chatbot/products/save', body || {}).then(function (r) {
         if (r.success === false && r.success !== undefined) throw new Error(r.message || apiT('저장 실패', 'Save failed'));
@@ -1273,22 +1284,40 @@
       fd.append('file', file);
       var headers = {};
       if (token) headers['Authorization'] = 'Bearer ' + token;
-      return fetch(base + '/api/chatbot/products/upload', { method: 'POST', headers: headers, body: fd }).then(function (res) {
-        if (res.status === 401) {
-          clearAuth();
-          if (window.location) window.location.replace((window.location.origin || '') + '/login.html');
-          return Promise.reject(new Error(apiT('인증이 만료되었습니다.', 'Session expired.')));
-        }
+      var url = base + '/api/chatbot/products/upload';
+      return fetch(url, { method: 'POST', headers: headers, body: fd, credentials: 'omit', mode: 'cors' }).then(function (res) {
         return res.text().then(function (text) {
+          if (res.status === 401) {
+            clearAuth();
+            if (typeof window.location !== 'undefined') window.location.replace((window.location.origin || '') + '/login.html');
+            return Promise.reject(new Error(apiT('인증이 만료되었습니다.', 'Session expired.')));
+          }
+          if (res.status === 413) {
+            return Promise.reject(new Error(apiT(
+              '업로드 파일 용량이 서버 제한을 초과했습니다. (HTTP 413)',
+              'Upload exceeds the server limit (HTTP 413).'
+            )));
+          }
           var r;
           try {
             r = text ? JSON.parse(text) : {};
           } catch (eJ) {
-            throw new Error(apiT('서버 응답 오류', 'Invalid server response'));
+            var flat = text ? String(text).replace(/<script[^>]*>[\s\S]*?<\/script>/gi, ' ').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 200) : '';
+            return Promise.reject(new Error(apiT('서버 응답이 JSON이 아닙니다.', 'Invalid JSON response.') + ' HTTP ' + res.status + (flat ? (' — ' + flat) : '')));
+          }
+          if (!res.ok) {
+            var hint = (r && r.message) ? r.message : (text ? String(text).slice(0, 120) : '');
+            return Promise.reject(new Error(apiT('API 오류', 'API error') + ' HTTP ' + res.status + (hint ? ': ' + hint : '')));
           }
           if (!r.success) throw new Error(r.message || apiT('업로드 실패', 'Upload failed'));
           return r.data || {};
         });
+      }).catch(function (err) {
+        var msg = (err && err.message) ? err.message : '';
+        if (msg === 'Failed to fetch' || msg.indexOf('NetworkError') !== -1 || msg.indexOf('Load failed') !== -1 || msg === 'Network request failed') {
+          return Promise.reject(new Error(apiT('API에 연결하지 못했습니다.', 'Unable to connect to API.') + ' (' + url + ')'));
+        }
+        return Promise.reject(err);
       });
     },
     opsMailLogList: function (params) {

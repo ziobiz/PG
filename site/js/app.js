@@ -13829,6 +13829,7 @@
           if (ix) ix.textContent = String(ri + 1);
         }
       }
+      var FALLBACK_CHATBOT_CCY_META = { defaultCurrency: 'KRW', allowedCurrencies: ['JPY', 'KRW', 'USD', 'CNY', 'THB'] };
       function appendChatbotProdRow(d0) {
         var d = d0 || {};
         if (!tbodyEl) return;
@@ -13894,7 +13895,22 @@
           td.appendChild(inp);
           tr.appendChild(td);
         }
-        tdInput('chatbot-field-code', d.productCode, 64);
+        var tdCode = document.createElement('td');
+        var inCode = document.createElement('input');
+        inCode.type = 'text';
+        inCode.className = 'form-control form-control-sm chatbot-field-code';
+        inCode.readOnly = true;
+        inCode.tabIndex = -1;
+        var rowHasSavedId = d.id != null && String(d.id).trim() && /^[0-9]+$/.test(String(d.id).trim());
+        var pc = d.productCode != null ? String(d.productCode).trim() : '';
+        if (rowHasSavedId && pc) {
+          inCode.value = pc;
+        } else {
+          inCode.value = '';
+          inCode.placeholder = pgAdminUiT('저장 시 자동 생성', 'Assigned on save');
+        }
+        tdCode.appendChild(inCode);
+        tr.appendChild(tdCode);
         tdInput('chatbot-field-title', d.title, 200);
         var tdLt = document.createElement('td');
         var selLt = document.createElement('select');
@@ -13918,7 +13934,32 @@
         tdDesc.appendChild(ta);
         tr.appendChild(tdDesc);
         tdInput('chatbot-field-amt', d.amount, null);
-        tdInput('chatbot-field-cur', d.currencyCode || 'KRW', 10);
+        var tdCur = document.createElement('td');
+        var selCur = document.createElement('select');
+        selCur.className = 'form-select form-select-sm chatbot-field-cur';
+        var metaCur = pane._chatbotProdCurrencyMeta || FALLBACK_CHATBOT_CCY_META;
+        var allowedCc = (metaCur.allowedCurrencies && metaCur.allowedCurrencies.length)
+          ? metaCur.allowedCurrencies.slice()
+          : FALLBACK_CHATBOT_CCY_META.allowedCurrencies.slice();
+        var defRowCc = (d.merchantDefaultCurrency != null && String(d.merchantDefaultCurrency).trim())
+          ? String(d.merchantDefaultCurrency).trim().toUpperCase()
+          : String(metaCur.defaultCurrency || 'KRW').trim().toUpperCase();
+        var curValPick = (d.currencyCode != null && String(d.currencyCode).trim())
+          ? String(d.currencyCode).trim().toUpperCase()
+          : defRowCc;
+        var codesCc = allowedCc.slice();
+        if (curValPick && codesCc.indexOf(curValPick) === -1) {
+          codesCc.unshift(curValPick);
+        }
+        codesCc.forEach(function (code) {
+          var o = document.createElement('option');
+          o.value = code;
+          o.textContent = code;
+          selCur.appendChild(o);
+        });
+        selCur.value = codesCc.indexOf(curValPick) >= 0 ? curValPick : (codesCc.length ? codesCc[0] : 'KRW');
+        tdCur.appendChild(selCur);
+        tr.appendChild(tdCur);
         var tdSort = document.createElement('td');
         var n = document.createElement('input');
         n.type = 'number';
@@ -13931,7 +13972,7 @@
         var sel = document.createElement('select');
         sel.className = 'form-select form-select-sm chatbot-field-use';
         var useSel = String(d.useYn || '').toUpperCase() === 'N' ? 'N' : 'Y';
-        [['Y', pgAdminUiT('판매 활성')], ['N', pgAdminUiT('판매 안 함(등록만)')]].forEach(function (vx) {
+        [['Y', pgAdminUiT('판매')], ['N', pgAdminUiT('대기')]].forEach(function (vx) {
           var v = vx[0];
           var o = document.createElement('option');
           o.value = v;
@@ -13959,12 +14000,6 @@
         grp.appendChild(fileIn);
         var btnRow = document.createElement('div');
         btnRow.className = 'd-flex flex-wrap gap-1';
-        var bro = document.createElement('button');
-        bro.type = 'button';
-        bro.className = 'btn btn-outline-secondary btn-sm chatbot-img-browse flex-grow-1';
-        bro.style.minWidth = '4rem';
-        bro.textContent = pgAdminUiT('찾기');
-        btnRow.appendChild(bro);
         var upl = document.createElement('button');
         upl.type = 'button';
         upl.className = 'btn btn-outline-primary btn-sm chatbot-img-upload flex-grow-1';
@@ -13980,7 +14015,15 @@
         var saveB = document.createElement('button');
         saveB.type = 'button';
         saveB.className = 'btn btn-sm btn-primary chatbot-save mb-1';
-        saveB.textContent = pgAdminUiT('저장');
+        if (rowHasSavedId) {
+          saveB.setAttribute('data-pg-ui-t', '수정');
+          saveB.textContent = pgAdminUiT('수정');
+          saveB.setAttribute('title', pgAdminUiT('변경 내용을 서버에 반영합니다.', 'Apply changes'));
+        } else {
+          saveB.setAttribute('data-pg-ui-t', '저장');
+          saveB.textContent = pgAdminUiT('저장');
+          saveB.setAttribute('title', pgAdminUiT('신규 상품을 등록합니다.', 'Register new product'));
+        }
         tdAct.appendChild(saveB);
         tdAct.appendChild(document.createTextNode(' '));
         var delB = document.createElement('button');
@@ -14029,7 +14072,18 @@
           addBtnEl.disabled = !!pane._chatbotProdMultiMerchant;
         }
         if (dimmCb) dimmCb.style.display = 'flex';
-        return window.PG_API.chatbotProductsList(loadSubtree ? '' : cid).then(function (list) {
+        var listPromise = window.PG_API.chatbotProductsList(loadSubtree ? '' : cid);
+        var metaPromise = (!loadSubtree && cid)
+          ? window.PG_API.chatbotProductsCurrencyMeta(cid).catch(function () { return null; })
+          : Promise.resolve(null);
+        return Promise.all([listPromise, metaPromise]).then(function (pairs) {
+          var list = pairs[0];
+          var metaRemote = pairs[1];
+          if (!loadSubtree && cid) {
+            pane._chatbotProdCurrencyMeta = metaRemote || FALLBACK_CHATBOT_CCY_META;
+          } else {
+            pane._chatbotProdCurrencyMeta = FALLBACK_CHATBOT_CCY_META;
+          }
           if (!tbodyEl) return list;
           var rows = Array.isArray(list) ? list : [];
           tbodyEl.innerHTML = '';
@@ -14079,50 +14133,56 @@
           appendChatbotProdRow({});
         });
       }
+      if (tbodyEl && !tbodyEl._chatbotImgUploadAutoBound) {
+        tbodyEl._chatbotImgUploadAutoBound = true;
+        tbodyEl.addEventListener('change', function (ev) {
+          var tgt = ev.target;
+          if (!(tgt instanceof HTMLInputElement)) return;
+          if (!tgt.classList.contains('chatbot-img-file')) return;
+          var trImg = tgt.closest('tr[data-chatbot-prod-row]');
+          if (!trImg || !tgt.files || !tgt.files[0]) return;
+          var cidU = (trImg.getAttribute('data-row-comp-id') || '').trim() || targetCompIdChatbot();
+          if (!cidU) {
+            alert(pgAdminUiT('행에 해당하는 가맹점 코드를 알 수 없습니다. 불러오기를 다시 하세요.'));
+            tgt.value = '';
+            return;
+          }
+          var pidAttr = trImg.getAttribute('data-prod-id');
+          var prodIdUpload = pidAttr && /^[0-9]+$/.test(String(pidAttr).trim()) ? pidAttr.trim() : null;
+          if (dimmCb) dimmCb.style.display = 'flex';
+          window.PG_API.chatbotProductsUpload(cidU, prodIdUpload, tgt.files[0]).then(function (data) {
+            var u = data && data.url ? String(data.url) : '';
+            var im = trImg.querySelector('.chatbot-field-img');
+            if (im && u) im.value = u;
+            tgt.value = '';
+          }).catch(function (e) {
+            alert((e && e.message) ? e.message : pgAdminUiT('업로드 실패'));
+            tgt.value = '';
+          }).finally(function () { if (dimmCb) dimmCb.style.display = 'none'; });
+        });
+      }
       if (tbodyEl && !tbodyEl._chatbotDelBound) {
         tbodyEl._chatbotDelBound = true;
         tbodyEl.addEventListener('click', function (ev) {
           var t = ev.target;
           if (!(t instanceof Element)) return;
           var btnUp = t.closest('.chatbot-img-upload');
-          var btnBr = t.closest('.chatbot-img-browse');
           var btnSav = t.closest('.chatbot-save');
           var btnDel = t.closest('.chatbot-delete');
           var trActive = btnUp ? btnUp.closest('tr[data-chatbot-prod-row]') : (
-            btnBr ? btnBr.closest('tr[data-chatbot-prod-row]') :
             btnSav ? btnSav.closest('tr[data-chatbot-prod-row]') :
             btnDel ? btnDel.closest('tr[data-chatbot-prod-row]') : null
           );
-          if (!trActive && !btnBr && !btnUp && !btnSav && !btnDel) return;
+          if (!trActive && !btnUp && !btnSav && !btnDel) return;
           if (!trActive) return;
           var cid = (trActive.getAttribute('data-row-comp-id') || '').trim() || targetCompIdChatbot();
           if (!cid) {
             alert(pgAdminUiT('행에 해당하는 가맹점 코드를 알 수 없습니다. 불러오기를 다시 하세요.'));
             return;
           }
-          if (btnBr) {
-            var fin = trActive.querySelector('.chatbot-img-file');
-            if (fin) fin.click();
-            return;
-          }
           if (btnUp) {
-            var cidU = cid;
-            var fin2 = trActive.querySelector('.chatbot-img-file');
-            if (!fin2 || !fin2.files || !fin2.files[0]) {
-              alert(pgAdminUiT('이미지 파일을 선택하세요.'));
-              return;
-            }
-            var pidAttr = trActive.getAttribute('data-prod-id');
-            var prodIdUpload = pidAttr && /^[0-9]+$/.test(String(pidAttr).trim()) ? pidAttr.trim() : null;
-            if (dimmCb) dimmCb.style.display = 'flex';
-            window.PG_API.chatbotProductsUpload(cidU, prodIdUpload, fin2.files[0]).then(function (data) {
-              var u = data && data.url ? String(data.url) : '';
-              var im = trActive.querySelector('.chatbot-field-img');
-              if (im && u) im.value = u;
-              fin2.value = '';
-            }).catch(function (e) {
-              alert((e && e.message) ? e.message : pgAdminUiT('업로드 실패'));
-            }).finally(function () { if (dimmCb) dimmCb.style.display = 'none'; });
+            var finPick = trActive.querySelector('.chatbot-img-file');
+            if (finPick) finPick.click();
             return;
           }
           if (btnSav) {

@@ -18,4 +18,6 @@ public interface MerchantChatbotProductRepository extends JpaRepository<Merchant
     long countByOrgUnitId(Long orgUnitId);
 
     long countByOrgUnitIdAndUseYn(Long orgUnitId, String useYn);
+
+    boolean existsByOrgUnitIdAndProductCode(Long orgUnitId, String productCode);
 }

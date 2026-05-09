@@ -195,9 +195,85 @@ public class MerchantChatbotProductService {
             OrgUnit ou = ouById.get(p.getOrgUnitId());
             m.put("compId", ou != null && ou.getCode() != null ? ou.getCode() : "");
             m.put("merchantName", ou != null && ou.getName() != null ? ou.getName() : "");
+            if (ou != null) {
+                m.put("merchantDefaultCurrency", normalizeBillingDefaultCurrency(resolveEffectiveBaseCurrencyIso(ou)));
+            }
             out.add(m);
         }
         return out;
+    }
+
+    /**
+     * 챗봇 상품 통화 UI: 청구 허용 통화 목록 + 가맹(상속 포함) 기준 기본 통화.
+     */
+    @Transactional(readOnly = true)
+    public Map<String, Object> currencyMetaForMerchantComp(String compId) {
+        Optional<OrgUnit> ouOpt = requireMerchantOrgByCode(compId);
+        if (ouOpt.isEmpty()) {
+            return null;
+        }
+        Map<String, Object> m = new LinkedHashMap<>();
+        m.put("allowedCurrencies", new ArrayList<>(ChatbotProductPricingUtil.BILLING_CURRENCIES));
+        m.put("defaultCurrency", normalizeBillingDefaultCurrency(resolveEffectiveBaseCurrencyIso(ouOpt.get())));
+        return m;
+    }
+
+    /** 프로필 첫 토큰 → 없으면 상위 조직 체인에서 상속 (총판 기준통화 정책과 동일). */
+    private String resolveEffectiveBaseCurrencyIso(OrgUnit merchantOu) {
+        if (merchantOu == null) {
+            return null;
+        }
+        Optional<MerchantProfile> mpOpt = merchantProfileRepository.findByOrgUnitId(merchantOu.getId());
+        String bc = mpOpt.map(MerchantProfile::getBaseCurrency).orElse(null);
+        if (bc != null && !bc.trim().isEmpty()) {
+            String tok = ChatbotProductPricingUtil.firstIsoCurrencyToken(bc);
+            if (tok != null && !tok.isEmpty()) {
+                return tok;
+            }
+        }
+        Long cur = merchantOu.getParentId();
+        Set<Long> seen = new HashSet<>();
+        while (cur != null && seen.add(cur)) {
+            OrgUnit ou = orgUnitRepository.findById(cur).orElse(null);
+            if (ou == null) {
+                break;
+            }
+            Optional<MerchantProfile> mp = merchantProfileRepository.findByOrgUnitId(cur);
+            String pbc = mp.map(MerchantProfile::getBaseCurrency).orElse("");
+            if (pbc != null && !pbc.trim().isEmpty()) {
+                String[] parts = pbc.split(",\\s*");
+                if (parts.length > 0 && !parts[0].trim().isEmpty()) {
+                    return ChatbotProductPricingUtil.firstIsoCurrencyToken(parts[0]);
+                }
+            }
+            cur = ou.getParentId();
+        }
+        return null;
+    }
+
+    private static String normalizeBillingDefaultCurrency(String rawIso) {
+        if (rawIso != null && ChatbotProductPricingUtil.isSupportedBillingCurrency(rawIso)) {
+            return rawIso.trim().toUpperCase(Locale.ROOT);
+        }
+        return "KRW";
+    }
+
+    /** 가맹(org) 단위 중복 없는 자동 상품코드 — 신규 저장 시에만 사용 */
+    private String allocUniqueProductCode(Long orgUnitId) {
+        if (orgUnitId == null) {
+            throw new IllegalArgumentException("orgUnitId가 필요합니다.");
+        }
+        for (int attempt = 0; attempt < 12; attempt++) {
+            String hex = UUID.randomUUID().toString().replace("-", "").substring(0, 16).toUpperCase(Locale.ROOT);
+            String candidate = "CB" + hex;
+            if (candidate.length() > 64) {
+                candidate = candidate.substring(0, 64);
+            }
+            if (!productRepository.existsByOrgUnitIdAndProductCode(orgUnitId, candidate)) {
+                return candidate;
+            }
+        }
+        throw new IllegalStateException("상품 코드 자동 생성에 실패했습니다. 잠시 후 다시 저장하세요.");
     }
 
     private Map<String, Object> toMap(MerchantChatbotProduct p) {
@@ -275,8 +351,14 @@ public class MerchantChatbotProductService {
             p.setOrgUnitId(orgUnitId);
         }
         if (body != null) {
-            String code = str(body.get("productCode"));
-            p.setProductCode(code != null && code.length() > 64 ? code.substring(0, 64) : code);
+            if (isNew) {
+                p.setProductCode(allocUniqueProductCode(orgUnitId));
+            } else {
+                String codeIn = str(body.get("productCode"));
+                if (codeIn != null && !codeIn.isBlank()) {
+                    p.setProductCode(codeIn.length() > 64 ? codeIn.substring(0, 64) : codeIn);
+                }
+            }
             String title = str(body.get("title"));
             if (title == null || title.isBlank()) {
                 throw new IllegalArgumentException("상품명은 필수입니다.");
@@ -290,9 +372,13 @@ public class MerchantChatbotProductService {
             p.setAmount(parseAmount(body.get("amount")));
             String cur = str(body.get("currencyCode"));
             if (cur == null || cur.isBlank()) {
-                cur = "KRW";
+                cur = normalizeBillingDefaultCurrency(resolveEffectiveBaseCurrencyIso(
+                        orgUnitRepository.findById(orgUnitId).orElse(null)));
             }
             cur = cur.trim().toUpperCase(Locale.ROOT);
+            if (!ChatbotProductPricingUtil.isSupportedBillingCurrency(cur)) {
+                throw new IllegalArgumentException("허용되지 않은 통화입니다. 목록에서 선택하세요.");
+            }
             p.setCurrencyCode(cur.length() > 10 ? cur.substring(0, 10) : cur);
             String img = str(body.get("imageUrl"));
             if (img != null && img.length() > 512) {

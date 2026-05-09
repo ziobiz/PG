@@ -61,16 +61,16 @@
       '<th class="hq-only-col" style="min-width:6.5rem" data-pg-ui-t="가맹점코드">' + escUi(L('가맹점코드')) + '</th>' +
       '<th class="hq-only-col" style="min-width:7rem" data-pg-ui-t="가맹점명">' + escUi(L('가맹점명')) + '</th>' +
       '<th class="hq-only-col" style="min-width:7.5rem" title="Y=고객 챗봇·공개 카탈로그 비노출(개발·검수 등)" data-pg-ui-t="본사 판매금지">' + escUi(L('본사 판매금지')) + '</th>' +
-      '<th style="min-width:7rem" data-pg-ui-t="코드">' + escUi(L('코드')) + '</th>' +
+      '<th style="min-width:7rem" title="신규 행은 저장 시 시스템이 코드를 자동 부여합니다." data-pg-ui-t="코드">' + escUi(L('코드')) + '</th>' +
       '<th style="min-width:9rem" data-pg-ui-t="상품명">' + escUi(L('상품명')) + '</th>' +
       '<th style="width:5.75rem" title="일반 판매 또는 예약 상품" data-pg-ui-t="판매·예약">' + escUi(L('판매·예약')) + '</th>' +
       '<th style="min-width:12rem" data-pg-ui-t="설명">' + escUi(L('설명')) + '</th>' +
       '<th style="min-width:7rem" data-pg-ui-t="금액">' + escUi(L('금액')) + '</th>' +
       '<th style="width:5.25rem" data-pg-ui-t="통화">' + escUi(L('통화')) + '</th>' +
       '<th style="width:4.25rem" data-pg-ui-t="순서">' + escUi(L('순서')) + '</th>' +
-      '<th style="width:5rem" title="판매 활성=Y일 때 고객 챗봇·카탈로그에 노출(본사 차단 등 별개)" data-pg-ui-t="판매 활성">' + escUi(L('판매 활성')) + '</th>' +
+      '<th style="width:5rem" title="판매=고객 챗봇·카탈로그 노출, 대기=등록만(본사 차단 등 별개)" data-pg-ui-t="판매상태">' + escUi(L('판매상태')) + '</th>' +
       '<th style="min-width:13rem" data-pg-ui-t="이미지">' + escUi(L('이미지')) + '</th>' +
-      '<th style="width:7.25rem;text-align:center" data-pg-ui-t="실행">' + escUi(L('실행')) + '</th>' +
+      '<th style="width:7.25rem;text-align:center" title="신규=저장, 등록된 행=수정·삭제" data-pg-ui-t="실행">' + escUi(L('실행')) + '</th>' +
       '</tr></thead>' +
       '<tbody id="chatbotProdTbody">' +
       '<tr><td colspan="14" class="text-muted text-center py-3 small empty-state-cell" id="chatbotProdTbodyPlaceholder" data-pg-ui-t="불러오기를 누르거나 행 추가를 선택하세요.">' +

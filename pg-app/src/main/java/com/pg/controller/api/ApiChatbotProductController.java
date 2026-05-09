@@ -80,6 +80,32 @@ public class ApiChatbotProductController {
         return ResponseEntity.ok(ApiResponse.ok(productService.listAllForOrg(ou.get().getId())));
     }
 
+    /** 챗봇 상품 화면: 통화 드롭다운 옵션 + 가맹 기준 기본 통화 */
+    @GetMapping("/currency-meta")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> currencyMeta(
+            @RequestParam String compId) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !(auth.getPrincipal() instanceof AppUser user)) {
+            return ResponseEntity.ok(ApiResponse.fail("인증이 필요합니다.", "UNAUTHORIZED"));
+        }
+        String cid = compId != null ? compId.trim() : "";
+        if (cid.isEmpty()) {
+            return ResponseEntity.ok(ApiResponse.fail("compId가 필요합니다.", "INVALID"));
+        }
+        if (!canAccessComp(cid)) {
+            return ResponseEntity.ok(ApiResponse.fail("권한이 없습니다.", "FORBIDDEN"));
+        }
+        if (!merchantMayUseChatbotProductCrud(user, cid)) {
+            return ResponseEntity.ok(ApiResponse.fail(
+                    "챗봇 상품관리는 업체 대표 또는 권한그룹 CHATBOT 계정만 사용할 수 있습니다.", "FORBIDDEN"));
+        }
+        Map<String, Object> meta = productService.currencyMetaForMerchantComp(cid);
+        if (meta == null) {
+            return ResponseEntity.ok(ApiResponse.fail("가맹점 코드를 확인하세요.", "NOT_FOUND"));
+        }
+        return ResponseEntity.ok(ApiResponse.ok(meta));
+    }
+
     @PostMapping("/save")
     public ResponseEntity<ApiResponse<Map<String, Object>>> save(@RequestBody Map<String, Object> body) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
