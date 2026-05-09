@@ -5,6 +5,9 @@
 (function (g) {
   'use strict';
 
+  var LOCALE_KEY = 'pg_pay_list_ui_locale';
+  var USER_SET_KEY = 'pg_pay_list_ui_locale_user_set';
+
   var STATIC = {
     '화면 정보가 없습니다.': {
       EN: 'No screen definition for this URL.',
@@ -14,6 +17,545 @@
     },
     '헬로': { EN: 'Hello', JP: 'Hello', CH: '提示', TH: 'Hello' },
     '8자 이상': { EN: '8+ characters', JP: '8文字以上', CH: '至少8位', TH: 'อย่างน้อย 8 ตัว' },
+    /* /main — 홈 대시보드(메인) */
+    '오늘': { EN: 'Today', JP: '今日', CH: '今天', TH: 'วันนี้' },
+    '최근 7일': { EN: 'Last 7 days', JP: '直近7日', CH: '最近7天', TH: '7 วันที่ผ่านมา' },
+    '최근 30일': { EN: 'Last 30 days', JP: '直近30日', CH: '最近30天', TH: '30 วันที่ผ่านมา' },
+    '통화별': { EN: 'By currency', JP: '通貨別', CH: '按币种', TH: 'ตามสกุลเงิน' },
+    '해당 기간 거래가 없습니다.': {
+      EN: 'No transactions in this period.',
+      JP: 'この期間の取引はありません。',
+      CH: '此期间没有交易。',
+      TH: 'ไม่มีธุรกรรมในช่วงเวลานี้'
+    },
+    '서버 트래픽 요약을 사용할 수 없습니다.': {
+      EN: 'Server traffic summary is unavailable.',
+      JP: 'サーバートラフィック要約を利用できません。',
+      CH: '无法使用服务器流量摘要。',
+      TH: 'ไม่สามารถใช้สรุปทราฟฟิกของเซิร์ฟเวอร์ได้'
+    },
+    '금일 트래픽 약': { EN: 'Today traffic approx.', JP: '本日のトラフィック約', CH: '今日流量约', TH: 'ทราฟฟิกวันนี้ประมาณ' },
+    '최근 7일 누적 약': { EN: 'Last 7 days total approx.', JP: '直近7日累計約', CH: '最近7天累计约', TH: 'รวม 7 วันประมาณ' },
+    '메모리 피크': { EN: 'Memory peak', JP: 'メモリピーク', CH: '内存峰值', TH: 'หน่วยความจำพีค' },
+    '수집된 서버 사용량 데이터가 없습니다.': {
+      EN: 'No server usage data collected.',
+      JP: '収集されたサーバー使用量データがありません。',
+      CH: '没有收集到服务器使用量数据。',
+      TH: 'ไม่มีข้อมูลการใช้งานเซิร์ฟเวอร์ที่ถูกเก็บรวบรวม'
+    },
+    '표시할 정산 실행 이력이 없습니다.': {
+      EN: 'No settlement run history to display.',
+      JP: '表示する精算実行履歴がありません。',
+      CH: '没有可显示的结算执行记录。',
+      TH: 'ไม่มีประวัติการรันชำระเงินให้แสดง'
+    },
+    '최근 7일 승인 금액 합': { EN: 'Approved amount sum (last 7 days)', JP: '直近7日 承認金額合計', CH: '最近7天批准金额合计', TH: 'ยอดอนุมัติรวม (7 วันล่าสุด)' },
+    '통화 혼합·참고': { EN: 'Mixed currencies (reference)', JP: '通貨混合・参考', CH: '混合币种（参考）', TH: 'สกุลเงินผสม (อ้างอิง)' },
+    '최근 7일 승인 건수': { EN: 'Approved count (last 7 days)', JP: '直近7日 承認件数', CH: '最近7天批准笔数', TH: 'จำนวนอนุมัติ (7 วันล่าสุด)' },
+    '최근 7일 전체 거래 건수': { EN: 'Total transactions (last 7 days)', JP: '直近7日 取引総件数', CH: '最近7天交易总笔数', TH: 'ธุรกรรมทั้งหมด (7 วันล่าสุด)' },
+    '조직 스냅샷': { EN: 'Org snapshot', JP: '組織スナップショット', CH: '组织快照', TH: 'สแนปช็อตองค์กร' },
+    '소속 트리': { EN: 'Hierarchy', JP: '所属ツリー', CH: '所属层级', TH: 'ลำดับชั้น' },
+    '가맹점 조직 수': { EN: 'Merchant org count', JP: '加盟店組織数', CH: '商户组织数', TH: 'จำนวนองค์กรร้านค้า' },
+    '추이 데이터가 없습니다.': { EN: 'No trend data.', JP: '推移データがありません。', CH: '没有趋势数据。', TH: 'ไม่มีข้อมูลแนวโน้ม' },
+    '7일 승인 금액 추이': { EN: '7-day approved amount trend', JP: '7日 承認金額推移', CH: '7天批准金额趋势', TH: 'แนวโน้มยอดอนุมัติ 7 วัน' },
+    '일별': { EN: 'Daily', JP: '日別', CH: '按日', TH: 'รายวัน' },
+    '최근 30일 거래 상태 믹스': { EN: 'Transaction status mix (last 30 days)', JP: '直近30日 取引ステータス構成', CH: '最近30天交易状态构成', TH: 'สัดส่วนสถานะธุรกรรม (30 วันล่าสุด)' },
+    '무효계': { EN: 'Void family', JP: '無効系', CH: '无效类', TH: 'กลุ่มโมฆะ' },
+    '업무 바로가기': { EN: 'Quick links', JP: '業務ショートカット', CH: '快捷入口', TH: 'ลิงก์ด่วน' },
+    '생성': { EN: 'Created', JP: '作成', CH: '创建', TH: 'สร้าง' },
+    '가맹': { EN: 'Merchant', JP: '加盟店', CH: '商户', TH: 'ร้านค้า' },
+    '배포': { EN: 'Publish', JP: '配布', CH: '发布', TH: 'เผยแพร่' },
+    '최근 정산 실행이 없습니다.': { EN: 'No recent settlement runs.', JP: '最近の精算実行はありません。', CH: '没有最近的结算执行。', TH: 'ไม่มีการรันชำระเงินล่าสุด' },
+    '최근 정산 실행': { EN: 'Recent settlement runs', JP: '最近の精算実行', CH: '最近的结算执行', TH: 'การรันชำระเงินล่าสุด' },
+    '정산실행': { EN: 'Run settlement', JP: '精算実行', CH: '执行结算', TH: 'รันชำระเงิน' },
+    '엔진': { EN: 'Engine', JP: 'エンジン', CH: '引擎', TH: 'เอนจิน' },
+    '거래시각': { EN: 'Txn time', JP: '取引時刻', CH: '交易时间', TH: 'เวลาออเดอร์' },
+    '범위': { EN: 'Scope', JP: '範囲', CH: '范围', TH: 'ขอบเขต' },
+    '리스크7일': { EN: 'Risk (7d)', JP: 'リスク7日', CH: '风险7天', TH: 'ความเสี่ยง 7 วัน' },
+    '비교7일': { EN: 'Compare (7d)', JP: '比較7日', CH: '对比7天', TH: 'เปรียบเทียบ 7 วัน' },
+    '의미': { EN: 'Meaning', JP: '意味', CH: '含义', TH: 'ความหมาย' },
+    '이번 주 리스크 점수': { EN: 'This week risk score', JP: '今週のリスクスコア', CH: '本周风险分数', TH: 'คะแนนความเสี่ยงสัปดาห์นี้' },
+    '지난주 대비': { EN: 'vs last week', JP: '先週比', CH: '较上周', TH: 'เทียบสัปดาห์ก่อน' },
+    '직전': { EN: 'prev', JP: '直前', CH: '前值', TH: 'ก่อนหน้า' },
+    '실패·무효·환불·취소 가중 합성(규칙)': {
+      EN: 'Weighted composite of fail/void/refund/cancel (rules).',
+      JP: '失敗・無効・返金・取消の加重合成（ルール）',
+      CH: '失败/无效/退款/取消加权合成（规则）',
+      TH: 'ถ่วงน้ำหนักจาก ล้มเหลว/โมฆะ/คืนเงิน/ยกเลิก (กฎ)'
+    },
+    '오늘의 운영 KPI': { EN: "Today's Ops KPI", JP: '本日の運用KPI', CH: '今日运营KPI', TH: 'KPI การปฏิบัติการวันนี้' },
+    '어제의 운영 KPI': { EN: "Yesterday's Ops KPI", JP: '昨日の運用KPI', CH: '昨日运营KPI', TH: 'KPI การปฏิบัติการเมื่อวาน' },
+    '전일 0시~24시 거래일시': { EN: '00:00–24:00 by txn time', JP: '前日0時～24時（取引時刻）', CH: '按交易时间 0:00–24:00', TH: '00:00–24:00 ตามเวลาออเดอร์' },
+    '실패(99/F0)': { EN: 'Failures (99/F0)', JP: '失敗(99/F0)', CH: '失败(99/F0)', TH: 'ล้มเหลว(99/F0)' },
+    '환불(30/31)': { EN: 'Refunds (30/31)', JP: '返金(30/31)', CH: '退款(30/31)', TH: 'คืนเงิน(30/31)' },
+    '무효계열': { EN: 'Void family', JP: '無効系', CH: '无效类', TH: 'กลุ่มโมฆะ' },
+    '취소(20)': { EN: 'Cancels (20)', JP: 'キャンセル(20)', CH: '取消(20)', TH: 'ยกเลิก(20)' },
+    '미수 건수': { EN: 'Receivables (count)', JP: '未収 件数', CH: '应收(笔数)', TH: 'ลูกหนี้(จำนวน)' },
+    '미수 잔액': { EN: 'Receivables (balance)', JP: '未収 残額', CH: '应收(余额)', TH: 'ลูกหนี้(ยอดคงเหลือ)' },
+    '노티 미처리(7d)': { EN: 'Notify unprocessed (7d)', JP: 'ノティ未処理(7d)', CH: '通知未处理(7d)', TH: 'โนติค้าง(7d)' },
+    '정산보류(30d)': { EN: 'Settlement holds (30d)', JP: '精算保留(30d)', CH: '结算暂缓(30d)', TH: 'พักชำระ(30d)' },
+    'DASHBOARD': { EN: 'Dashboard', JP: 'ダッシュボード', CH: '仪表盘', TH: 'แดชบอร์ด' },
+    'HEADQUARTERS': { EN: 'HEADQUARTERS', JP: '本社', CH: '总部', TH: 'สำนักงานใหญ่' },
+    '총본사': { EN: 'Headquarters', JP: '本社', CH: '总部', TH: 'สำนักงานใหญ่' },
+    '본사': { EN: 'Regional HQ', JP: '本社', CH: '区域总部', TH: 'สำนักงานใหญ่ย่อย' },
+    '총판': { EN: 'Master distributor', JP: '総販', CH: '总代', TH: 'ตัวแทนหลัก' },
+    '지사': { EN: 'Branch', JP: '支社', CH: '分支', TH: 'สาขา' },
+    '대리점': { EN: 'Agency', JP: '代理店', CH: '代理', TH: 'ตัวแทน' },
+    '영업점': { EN: 'Sales office', JP: '営業店', CH: '营业点', TH: 'สาขาการขาย' },
+    '가맹점': { EN: 'Merchant', JP: '加盟店', CH: '商户', TH: 'ร้านค้า' },
+    '성공': { EN: 'Success', JP: '成功', CH: '成功', TH: 'สำเร็จ' },
+    '요청': { EN: 'Requested', JP: '要求', CH: '请求', TH: 'ขอ' },
+    '대기': { EN: 'Pending', JP: '待機', CH: '等待', TH: 'รอ' },
+    '오류': { EN: 'Error', JP: 'エラー', CH: '错误', TH: 'ข้อผิดพลาด' },
+    '무효': { EN: 'Void', JP: '無効', CH: '作废', TH: 'โมฆะ' },
+    '이메일무효': { EN: 'Email void', JP: 'メール無効', CH: '邮件作废', TH: 'โมฆะอีเมล' },
+    '강제환불': { EN: 'Forced refund', JP: '強制返金', CH: '强制退款', TH: 'บังคับคืนเงิน' },
+    '자동무효': { EN: 'Auto void', JP: '自動無効', CH: '自动作废', TH: 'โมฆะอัตโนมัติ' },
+    '자동환불': { EN: 'Auto refund', JP: '自動返金', CH: '自动退款', TH: 'คืนเงินอัตโนมัติ' },
+
+    /* 공통 — API/팝업 오류 메시지 */
+    'ID 변경 실패': { EN: 'Failed to change ID', JP: 'ID変更に失敗しました', CH: 'ID更改失败', TH: 'เปลี่ยน ID ไม่สำเร็จ' },
+    '발송 실패': { EN: 'Send failed', JP: '送信に失敗しました', CH: '发送失败', TH: 'ส่งไม่สำเร็จ' },
+    '인증 실패': { EN: 'Verification failed', JP: '認証に失敗しました', CH: '验证失败', TH: 'ยืนยันไม่สำเร็จ' },
+    '등록 실패': { EN: 'Registration failed', JP: '登録に失敗しました', CH: '注册失败', TH: 'ลงทะเบียนไม่สำเร็จ' },
+    '삭제 실패': { EN: 'Delete failed', JP: '削除に失敗しました', CH: '删除失败', TH: 'ลบไม่สำเร็จ' },
+    '엑셀 다운로드에 실패했습니다.': { EN: 'Excel download failed.', JP: 'Excelのダウンロードに失敗しました。', CH: 'Excel下载失败。', TH: 'ดาวน์โหลด Excel ไม่สำเร็จ' },
+    '샘플 다운로드에 실패했습니다.': { EN: 'Sample download failed.', JP: 'サンプルのダウンロードに失敗しました。', CH: '示例下载失败。', TH: 'ดาวน์โหลดตัวอย่างไม่สำเร็จ' },
+
+    '인증이 만료되었습니다.': { EN: 'Your session has expired.', JP: 'セッションの有効期限が切れました。', CH: '会话已过期。', TH: 'เซสชันหมดอายุแล้ว' },
+    '인증이 만료되었습니다. 다시 로그인하세요.': { EN: 'Your session has expired. Please sign in again.', JP: 'セッションの有効期限が切れました。再ログインしてください。', CH: '会话已过期，请重新登录。', TH: 'เซสชันหมดอายุ โปรดเข้าสู่ระบบอีกครั้ง' },
+    'API 오류': { EN: 'API error', JP: 'APIエラー', CH: 'API错误', TH: 'ข้อผิดพลาด API' },
+    'API에 연결하지 못했습니다.': { EN: 'Unable to connect to API.', JP: 'APIに接続できません。', CH: '无法连接到API。', TH: 'ไม่สามารถเชื่อมต่อ API ได้' },
+    '네트워크·호스팅 설정을 확인해 주세요.': { EN: 'Please check network and hosting settings.', JP: 'ネットワーク・ホスティング設定を確認してください。', CH: '请检查网络与托管设置。', TH: 'โปรดตรวจสอบเครือข่ายและการโฮสต์' },
+    'API 경로가 없습니다.': { EN: 'Missing API URL/path.', JP: 'APIパスがありません。', CH: '缺少API路径。', TH: 'ไม่มีเส้นทาง API' },
+    '(도메인/프록시·CORS 확인)': { EN: '(check domain/reverse proxy/CORS)', JP: '（ドメイン/プロキシ・CORS確認）', CH: '（检查域名/代理/CORS）', TH: '(ตรวจสอบโดเมน/พร็อกซี/CORS)' },
+    '요청 처리에 실패했습니다.': { EN: 'Request failed.', JP: 'リクエストに失敗しました。', CH: '请求失败。', TH: 'คำขอล้มเหลว' },
+
+    '서버 응답 오류': { EN: 'Server response error.', JP: 'サーバー応答エラー', CH: '服务器响应错误', TH: 'ข้อผิดพลาดการตอบกลับของเซิร์ฟเวอร์' },
+    '서버 응답이 JSON이 아닙니다.': { EN: 'Server response is not valid JSON.', JP: 'サーバー応答がJSONではありません。', CH: '服务器响应不是JSON。', TH: 'การตอบกลับไม่ใช่ JSON' },
+    '(최신 pg-app 배포·Nginx 용량·502 등 확인)': { EN: '(check deployment/reverse proxy limits/502)', JP: '（最新配布/プロキシ制限/502等を確認）', CH: '（检查部署/代理限制/502等）', TH: '(ตรวจสอบการดีพลอย/ข้อจำกัดพร็อกซี/502)' },
+
+    '이미지 읽기에 실패했습니다.': { EN: 'Failed to read image.', JP: '画像の読み取りに失敗しました。', CH: '读取图片失败。', TH: 'อ่านรูปภาพไม่สำเร็จ' },
+    '이미지 크기를 확인할 수 없습니다.': { EN: 'Unable to determine image dimensions.', JP: '画像サイズを確認できません。', CH: '无法确认图片尺寸。', TH: 'ตรวจสอบขนาดรูปภาพไม่ได้' },
+    '이미지 압축 컨텍스트를 생성할 수 없습니다.': { EN: 'Unable to create image compression context.', JP: '画像圧縮コンテキストを作成できません。', CH: '无法创建图片压缩上下文。', TH: 'สร้างคอนเท็กซ์การบีบอัดรูปภาพไม่ได้' },
+    '이미지 압축 결과가 비어 있습니다.': { EN: 'Image compression result is empty.', JP: '画像圧縮結果が空です。', CH: '图片压缩结果为空。', TH: 'ผลลัพธ์การบีบอัดรูปภาพว่างเปล่า' },
+    '이미지 로딩에 실패했습니다.': { EN: 'Failed to load image.', JP: '画像の読み込みに失敗しました。', CH: '加载图片失败。', TH: 'โหลดรูปภาพไม่สำเร็จ' },
+    '타임라인': { EN: 'Timeline', JP: 'タイムライン', CH: '时间线', TH: 'ไทม์ไลน์' },
+    '최근 이벤트': { EN: 'Recent events', JP: '最近のイベント', CH: '最近事件', TH: 'อีเวนต์ล่าสุด' },
+    '표시할 이벤트가 없습니다.': { EN: 'No events to display.', JP: '表示するイベントがありません。', CH: '没有可显示的事件。', TH: 'ไม่มีอีเวนต์ให้แสดง' },
+    '오늘 처리 권장': { EN: 'Recommended today', JP: '本日の推奨対応', CH: '今日建议处理', TH: 'แนะนำให้จัดการวันนี้' },
+    '우선 처리 항목이 없습니다.': { EN: 'No priority items.', JP: '優先対応項目はありません。', CH: '没有优先事项。', TH: 'ไม่มีรายการเร่งด่วน' },
+    '이동': { EN: 'Open', JP: '移動', CH: '前往', TH: 'ไป' },
+    '이상 탐지(가벼운 통계)': { EN: 'Anomaly detection (light stats)', JP: '異常検知（軽量統計）', CH: '异常检测（轻量统计）', TH: 'ตรวจจับความผิดปกติ (สถิติเบา)' },
+    '환불계': { EN: 'Refund family', JP: '返金系', CH: '退款类', TH: 'กลุ่มคืนเงิน' },
+    '지급 참고 구간': { EN: 'Payout reference range', JP: '支払参考区間', CH: '支付参考区间', TH: 'ช่วงอ้างอิงการจ่าย' },
+    '정산주기': { EN: 'Settlement cycle', JP: '精算周期', CH: '结算周期', TH: 'รอบชำระเงิน' },
+    '최근 3회 지급액 중앙': { EN: 'Median payout (last 3)', JP: '直近3回 支払額中央値', CH: '最近3次支付额中位数', TH: 'ค่ามัธยฐานการจ่าย (3 ครั้งล่าสุด)' },
+    '최소': { EN: 'Min', JP: '最小', CH: '最小', TH: 'ต่ำสุด' },
+    '최대': { EN: 'Max', JP: '最大', CH: '最大', TH: 'สูงสุด' },
+    '인사이트 집계 오류': { EN: 'Insights aggregation error', JP: 'インサイト集計エラー', CH: '洞察汇总错误', TH: 'ข้อผิดพลาดการสรุปอินไซต์' },
+    '상단 매출 카드는 표시될 수 있으나, 리스크·KPI·타임라인 등은 집계 단계에서 실패했습니다. 서버 로그와 DB 스키마·데이터를 확인하세요.': {
+      EN: 'Top sales cards may show, but risk/KPI/timeline failed during aggregation. Check server logs and DB schema/data.',
+      JP: '上部の売上カードは表示される場合がありますが、リスク・KPI・タイムライン等は集計段階で失敗しました。サーバーログとDBスキーマ・データを確認してください。',
+      CH: '顶部销售卡片可能显示，但风险/KPI/时间线在汇总阶段失败。请检查服务器日志与数据库结构/数据。',
+      TH: 'การ์ดยอดขายอาจแสดงได้ แต่ Risk/KPI/Timeline ล้มเหลวในขั้นสรุป กรุณาตรวจสอบ 로그 และ DB schema/data'
+    },
+    '메인 확장 데이터가 아직 불완전합니다.': {
+      EN: 'Main extended data is still incomplete.',
+      JP: 'メイン拡張データがまだ不完全です。',
+      CH: '主页扩展数据仍不完整。',
+      TH: 'ข้อมูลเสริมหน้าหลักยังไม่สมบูรณ์'
+    },
+    '응답에': { EN: 'In the response,', JP: '応答に', CH: '响应中', TH: 'ในผลตอบกลับ' },
+    '또는(총본사·관리자인 경우)': { EN: 'or (for HQ/Admin)', JP: 'または（HQ/管理者の場合）', CH: '或（总部/管理员时）', TH: 'หรือ (สำนักงานใหญ่/แอดมิน)' },
+    '가 없습니다.': { EN: 'is missing.', JP: 'がありません。', CH: '缺少。', TH: 'หายไป' },
+    '클라이언트는': { EN: 'The client', JP: 'クライアントは', CH: '客户端', TH: 'ไคลเอนต์' },
+    '로 보강 조회를 시도합니다. 계속되면 네트워크 탭에서 두 요청의 JSON과 최신': {
+      EN: 'attempts a supplemental fetch. If it persists, check both requests JSON and the latest',
+      JP: 'で補強取得を試みます。続く場合はネットワークタブで2つのリクエストのJSONと最新の',
+      CH: '将尝试补充请求。若持续发生，请在网络面板检查两个请求的JSON与最新',
+      TH: 'จะพยายามดึงข้อมูลเสริม หากยังเป็นอยู่ ให้ตรวจ JSON ของทั้งสองคำขอ และเวอร์ชันล่าสุดของ'
+    },
+    '배포를 확인하세요.': { EN: 'deployment.', JP: 'デプロイを確認してください。', CH: '部署。', TH: 'การดีพลอย' },
+    '만 없습니다. (DASHBOARD는 표시 중)': {
+      EN: 'is missing only. (Dashboard is shown)',
+      JP: 'のみありません。（DASHBOARDは表示中）',
+      CH: '仅缺少此项。（仪表盘仍显示）',
+      TH: 'ขาดแค่นี้ (แดชบอร์ดแสดงอยู่)'
+    },
+    'API·정적 리소스 버전을 맞춘 뒤': { EN: 'After matching API/static versions,', JP: 'API・静的リソースのバージョンを合わせた後', CH: '匹配 API/静态资源版本后', TH: 'หลังจากให้เวอร์ชัน API/สแตติกตรงกันแล้ว' },
+    '로 새로고침하세요.': { EN: 'refresh.', JP: 'で更新してください。', CH: '请刷新。', TH: 'ให้รีเฟรช' },
+    '규칙 기반 인사이트 (비 LLM)': { EN: 'Rule-based insights (non-LLM)', JP: 'ルールベースのインサイト（非LLM）', CH: '规则洞察（非LLM）', TH: 'อินไซต์แบบกฎ (ไม่ใช้ LLM)' },
+    '숫자·근거는 서버 집계이며, LLM 요약은 비활성(1단계)입니다.': {
+      EN: 'Numbers/evidence are server-aggregated; LLM summary is disabled (phase 1).',
+      JP: '数値・根拠はサーバー集計で、LLM要約は無効（第1段階）です。',
+      CH: '数值与依据由服务端汇总；LLM 摘要已关闭（第1阶段）。',
+      TH: 'ตัวเลข/หลักฐานมาจากการสรุปบนเซิร์ฟเวอร์ และสรุปด้วย LLM ปิดอยู่ (เฟส 1)'
+    },
+    '서버 운영 · 트래픽 요약': { EN: 'Server ops · traffic summary', JP: 'サーバー運用・トラフィック要約', CH: '服务器运营·流量摘要', TH: 'สรุปการดูแลเซิร์ฟเวอร์·ทราฟฟิก' },
+    '정산 달력 · 실행 이력': { EN: 'Settlement calendar · run history', JP: '精算カレンダー・実行履歴', CH: '结算日历·执行记录', TH: 'ปฏิทินชำระเงิน·ประวัติการรัน' },
+    '좌측 메뉴에서 다른 화면을 선택하면 탭이 열립니다. 결제내역 컬럼은 해당 화면의 VIEW SETTING에서 조정할 수 있습니다.': {
+      EN: 'Select a screen from the left menu to open a tab. You can adjust payment list columns in View Setting on that screen.',
+      JP: '左メニューから画面を選ぶとタブが開きます。決済一覧の列は各画面のVIEW SETTINGで調整できます。',
+      CH: '从左侧菜单选择界面会打开标签页。支付列表列可在该界面的 VIEW SETTING 中调整。',
+      TH: 'เลือกหน้าจอจากเมนูซ้ายเพื่อเปิดแท็บ ปรับคอลัมน์รายการชำระเงินได้ที่ VIEW SETTING ของหน้าจอนั้น'
+    },
+    '기준일': { EN: 'As of', JP: '基準日', CH: '基准日', TH: 'ณ วันที่' },
+    '대시보드 API를 불러올 수 없습니다.': {
+      EN: 'Cannot load dashboard API.',
+      JP: 'ダッシュボードAPIを読み込めません。',
+      CH: '无法加载仪表盘 API。',
+      TH: 'ไม่สามารถโหลด API แดชบอร์ดได้'
+    },
+    '불러오는 중…': { EN: 'Loading…', JP: '読み込み中…', CH: '加载中…', TH: 'กำลังโหลด…' },
+    '조회 실패': { EN: 'Load failed', JP: '照会に失敗しました', CH: '查询失败', TH: 'โหลดล้มเหลว' },
+    '잠시만 기다려주십시오': {
+      EN: 'Please wait.',
+      JP: 'しばらくお待ちください。',
+      CH: '请稍候。',
+      TH: 'โปรดรอสักครู่'
+    },
+    '접기': { EN: 'Collapse', JP: '折りたたみ', CH: '收起', TH: 'พับ' },
+    '언어': { EN: 'Language', JP: '言語', CH: '语言', TH: 'ภาษา' },
+    '접속 IP:': { EN: 'IP:', JP: 'IP:', CH: 'IP：', TH: 'IP:' },
+    '접속시간:': { EN: 'Time:', JP: '時刻:', CH: '时间：', TH: 'เวลา:' },
+    '나의정보': { EN: 'My profile', JP: 'マイ情報', CH: '我的信息', TH: 'ข้อมูลของฉัน' },
+    '로그아웃': { EN: 'Log out', JP: 'ログアウト', CH: '退出登录', TH: 'ออกจากระบบ' },
+    '전체닫기': { EN: 'Close all', JP: 'すべて閉じる', CH: '关闭全部', TH: 'ปิดทั้งหมด' },
+    '메인': { EN: 'Home', JP: 'メイン', CH: '主页', TH: 'หน้าแรก' },
+    '지급': { EN: 'Payout', JP: '支払', CH: '支付', TH: 'จ่าย' },
+    '최근 7일 노티 미매핑/미적재 {0}건': {
+      EN: 'Notify unmapped/unloaded (7d): {0}',
+      JP: '直近7日 ノティ未マッピング/未取込 {0}件',
+      CH: '最近7天 通知未映射/未入库 {0}笔',
+      TH: 'โนติ ไม่แมป/ไม่โหลด (7 วัน): {0}'
+    },
+    '리스크 점수가 지난주 대비 {0} 상승': {
+      EN: 'Risk score increased by {0} vs last week',
+      JP: 'リスクスコアが先週比 {0} 上昇',
+      CH: '风险分数较上周上升 {0}',
+      TH: 'คะแนนความเสี่ยงเพิ่มขึ้น {0} เทียบสัปดาห์ก่อน'
+    },
+    '환불·무효 추이를 결제내역에서 필터로 확인': {
+      EN: 'Check refund/void trends by filtering payment list.',
+      JP: '返金・無効の推移は決済一覧でフィルタして確認してください。',
+      CH: '在支付列表中通过筛选查看退款/无效趋势。',
+      TH: 'ตรวจแนวโน้มคืนเงิน/โมฆะด้วยการกรองรายการชำระเงิน'
+    },
+    '최근 7일 리스크 내러티브 템플릿': {
+      EN: 'Risk score (7d) is {score}; change vs previous 7d: {delta}. Breakdown: fail {fail}, void {void}, refund {refund}, cancel {cancel}. Notify unmapped/unloaded (7d): {notify}.',
+      JP: '直近7日リスクスコアは {score}、直前7日比 {delta} です。内訳: 失敗 {fail}・無効系 {void}・返金 {refund}・キャンセル {cancel} 件。ノティ未マッピング/未取込（7日） {notify} 件。',
+      CH: '最近7天风险分数为 {score}，较前7天变化 {delta}。构成：失败 {fail}、无效 {void}、退款 {refund}、取消 {cancel}。通知未映射/未入库（7天）{notify}。',
+      TH: 'คะแนนความเสี่ยง 7 วัน = {score}, เปลี่ยนเทียบ 7 วันก่อน {delta}. รายละเอียด: ล้มเหลว {fail}, โมฆะ {void}, คืนเงิน {refund}, ยกเลิก {cancel}. โนติ ไม่แมป/ไม่โหลด (7 วัน) {notify}.'
+    },
+    '전사 기준 거래·매출 요약입니다. 서버 트래픽은 일간 수집 데이터 기반입니다.': {
+      EN: 'Company-wide transaction/sales summary. Server traffic is based on daily collected data.',
+      JP: '全社基準の取引・売上要約です。サーバートラフィックは日次収集データに基づきます。',
+      CH: '这是全公司的交易/销售汇总。服务器流量基于每日采集数据。',
+      TH: 'สรุปธุรกรรม/ยอดขายทั้งบริษัท ทราฟฟิกเซิร์ฟเวอร์อ้างอิงข้อมูลที่เก็บรายวัน'
+    },
+    /* /main HQ 허브 — 서버 제공 insightHint 및 타일 문자열 */
+    '소속 조직 또는 허용 가맹 범위가 없어 거래 요약이 0으로 표시됩니다.': {
+      EN: 'Trade summary shows 0 because there is no org or allowed merchant scope.',
+      JP: '所属組織または許容加盟店範囲がなく、取概要約は0として表示されています。',
+      CH: '无所属组织或允许的商户范围，交易汇总显示为0。',
+      TH: 'ไม่มีองค์กรหรือขอบเขตร้านค้าที่อนุญาต สรุปธุรกรรมแสดงเป็น 0'
+    },
+    'DASHBOARD: 조직·7일 매출 추이·정산·업무 바로가기와 리스크 요약을 한 화면에서 확인할 수 있습니다.': {
+      EN: 'Dashboard: organization, 7‑day revenue trend, settlement, shortcuts, and risk summary in one view.',
+      JP: 'DASHBOARD: 組織・7日売上推移・精算・業務ショートカットとリスク要約を一画面で確認できます。',
+      CH: '仪表板：组织、7天营收趋势、结算、快捷入口与风险摘要一屏汇总。',
+      TH: 'แดชบอร์ด: องค์กร แนวโน้มยอด 7 วัน ชำระบัญชี ทางลัด และ 요약ความเสี่ยงในหน้าเดียว'
+    },
+    '본사 하위 가맹점 기준 결제·승인 금액 요약입니다.': {
+      EN: 'Payment and approval amount summary for merchants under regional HQ.',
+      JP: '本社傘下の加盟店基準の決済・承認金額要約です。',
+      CH: '以本部下级商户为准的支付与批准金额汇总。',
+      TH: 'สรุปยอดชำระ/อนุมัติตามร้านค้าใต้สำนักงานใหญ่ภูมิภาค'
+    },
+    '담당 가맹점 범위 내 결제·승인 건수 및 금액 요약입니다.': {
+      EN: 'Payment/approval counts and amounts within assigned merchant scope.',
+      JP: '担当加盟店範囲内の決済・承認件数および金額要約です。',
+      CH: '负责范围内的支付/批准笔数与金额汇总。',
+      TH: 'จำนวนและยอดชำระ/อนุมัติในขอบเขตร้านค้าที่รับผิดชอบ'
+    },
+    '가맹점 기준 거래 요약과 정산 실행 이력(정산 달력)을 제공합니다.': {
+      EN: 'Merchant trade summary plus settlement runs (calendar).',
+      JP: '加盟店基準の取引要約と精算実行履歴（精算カレンダー）を提供します。',
+      CH: '提供商户维度交易摘要与结算执行记录（结算日历）。',
+      TH: 'สรุปธุรกรรมตามร้านค้าและประวัติการรันชำระเงิน (ปฏิทิน)'
+    },
+    '로그인 조직 범위 내 거래 요약입니다.': {
+      EN: 'Transaction summary within the logged‑in organization scope.',
+      JP: 'ログイン組織の範囲内における取引要約です。',
+      CH: '登录组织范围内的交易摘要。',
+      TH: 'สรุปธุรกรรมภายในขอบเขตองค์กรที่เข้าสู่ระบบ'
+    },
+    '허용 가맹 범위가 없어 거래·정산 요약을 생략했습니다.': {
+      EN: 'Settlement/trade summaries skipped: no merchant scope.',
+      JP: '許容加盟店範囲がないため、取引・精算要約を省略しました。',
+      CH: '无允许的商户范围，已省略交易/结算摘要。',
+      TH: 'ไม่มีขอบเขตร้านค้าที่อนุญาต จึงข้ามสรุปธุรกรรม/ชำระ'
+    },
+    'DASHBOARD 집계 중 오류: ': {
+      EN: 'Dashboard aggregation error: ',
+      JP: 'DASHBOARD集計中のエラー: ',
+      CH: '仪表板聚合错误：',
+      TH: 'ข้อผิดพลาดระหว่างประมวลผลแดชบอร์ด: '
+    },
+    '서버 운영': {
+      EN: 'Server ops',
+      JP: 'サーバー運用',
+      CH: '服务器运营',
+      TH: 'ดูแลเซิร์ฟเวอร์'
+    },
+    '호스트·SSL·디스크·DB 요약': {
+      EN: 'Host · SSL · disk · DB overview',
+      JP: 'ホスト・SSL・ディスク・DB要約',
+      CH: '主机·SSL·磁盘·数据库概要',
+      TH: 'โฮสต์ SSL ดิสก์ DB สรุป'
+    },
+    '정산 관리설정': {
+      EN: 'Settlement admin settings',
+      JP: '精算管理設定',
+      CH: '结算管理配置',
+      TH: 'ตั้งค่าชำระบัญชีหลัก'
+    },
+    '주기·보류·환수 정책': {
+      EN: 'Cycles · holds · recovery policy',
+      JP: '周期・保留・回収ポリシー',
+      CH: '周期·暂缓·回收策略',
+      TH: 'รอบ พักเก็บ การเรียกคืน'
+    },
+    '노티 수신': {
+      EN: 'Notify inbound',
+      JP: 'ノティ受信',
+      CH: '通知接入',
+      TH: 'รับแจ้งเตือน'
+    },
+    '미매핑·재전송 점검': {
+      EN: 'Unmapped · resend checks',
+      JP: '未マッピング・再送確認',
+      CH: '未映射·补发检查',
+      TH: 'ที่ยังไม่แมป/ตรวจส่งซ้ำ'
+    },
+    '결제 내역': {
+      EN: 'Payments',
+      JP: '決済一覧',
+      CH: '支付列表',
+      TH: 'รายการชำระเงิน'
+    },
+    '승인·환불·무효 필터': {
+      EN: 'Approve/refund/void filters',
+      JP: '承認・返金・無効フィルター',
+      CH: '授权/退款/无效筛选',
+      TH: 'กรอง อนุมัติ/คืนเงิน/โมฆะ'
+    },
+    '비자동 가맹만 [수동실행]': {
+      EN: 'Non‑auto merchants only — [manual run]',
+      JP: '非自動加盟店のみ（手動実行）',
+      CH: '仅非自动商户[手动运行]',
+      TH: 'เฉพาะร้านค้าที่ไม่ใช้อัตโนมัติ [รันด้วยมือ]'
+    },
+    '유통망 정산': {
+      EN: 'Distribution settlement',
+      JP: '流通網の精算',
+      CH: '分销链结算',
+      TH: 'ชำระบัญชีเครือข่ายจำหน่าย'
+    },
+    '단계별 정산 내역': {
+      EN: 'Stepwise settlement ledger',
+      JP: '段階別精算履歴',
+      CH: '分阶段结算明细',
+      TH: 'รายละเอียดชำระตามระดับ'
+    },
+    '가맹점 정산': {
+      EN: 'Merchant payout',
+      JP: '加盟店精算',
+      CH: '商户结算',
+      TH: 'การชำระร้านค้า'
+    },
+    '가맹 지급·보류': {
+      EN: 'Payouts · holds',
+      JP: '加盟店支払・保留',
+      CH: '门店支付·暂缓',
+      TH: 'จ่ายให้ร้าน/พัก'
+    },
+    '잔액·환수': {
+      EN: 'Balance · recovery',
+      JP: '残額・回収',
+      CH: '余额·回收',
+      TH: 'ยอดเรียกคืน'
+    },
+    '업체 트리': {
+      EN: 'Company tree',
+      JP: '取引先ツリー',
+      CH: '企业树',
+      TH: 'ต้นไม้องค์กร'
+    },
+    '조직·가맹 구조': {
+      EN: 'Org · merchant hierarchy',
+      JP: '組織・加盟店構造',
+      CH: '组织与商户层级',
+      TH: 'โครงสร้างองค์กรและร้านค้า'
+    },
+    '요율·배분': {
+      EN: 'Fees · splits',
+      JP: '手数料率・配分',
+      CH: '费率·分成',
+      TH: 'เรทค่าธรรมเนียมและแบ่ง'
+    },
+    'PG사 연동': {
+      EN: 'PG linkage',
+      JP: 'PG連携',
+      CH: 'PG对接',
+      TH: 'เชื่อม PG'
+    },
+    'API·MID': {
+      EN: 'API · MID',
+      JP: 'API・MID',
+      CH: 'API·MID',
+      TH: 'API · MID'
+    },
+    '도메인·포털': {
+      EN: 'Domain · portal',
+      JP: 'ドメイン・ポータル',
+      CH: '域名·门户',
+      TH: 'โดเมน·พอร์ทัล'
+    },
+    '호스트·브랜딩': {
+      EN: 'Host · branding',
+      JP: 'ホスト・ブランディング',
+      CH: '主机·品牌展示',
+      TH: 'โฮสต์·แบรนด์'
+    },
+    '서버운영관리': {
+      EN: 'Server ops',
+      JP: 'サーバー運用管理',
+      CH: '服务器运营管理',
+      TH: 'จัดการเซิร์ฟเวอร์'
+    },
+    '정산관리설정': {
+      EN: 'Settlement admin settings',
+      JP: '精算管理設定',
+      CH: '结算管理配置',
+      TH: 'ตั้งค่าผู้ดูแลระบบชำระบัญชี'
+    },
+    '잔액': {
+      EN: 'Balance',
+      JP: '残額',
+      CH: '余额',
+      TH: 'ยอดคงเหลือ'
+    },
+    '정산 실행': {
+      EN: 'Settlement run',
+      JP: '精算実行',
+      CH: '结算执行',
+      TH: 'รันชำระเงิน'
+    },
+    '노티 미매핑/미적재': {
+      EN: 'Notify unmapped / not loaded',
+      JP: 'ノティ未マッピング／未取込',
+      CH: '通知未映射/未入库',
+      TH: 'โนติที่ยังไม่แมป/ยังไม่โหลด'
+    },
+    '미수금 잔액 {0}건 · 합계 약 {1} 원': {
+      EN: 'Receivable balance {0} rows · approx. sum {1} KRW',
+      JP: '未収金残 {0} 件・合計 約 {1} ウォン',
+      CH: '应收余额 {0} 笔 · 合计约 {1} 韩元',
+      TH: 'ลูกหนี้ {0} รายการ · รวมประมาณ {1} วอน'
+    },
+    '최근 30일 정산 보류/지급보류 실행 {0}건': {
+      EN: '{0} settlement hold / payout-hold runs in the last 30 days',
+      JP: '直近30日 精算保留／支払保留 実行 {0} 件',
+      CH: '最近30天内结算暂缓/拨付暂缓运行 {0} 笔',
+      TH: '{0} รายการพักชำระ/พักจ่ายในช่วง 30 วัน'
+    },
+    '다음 정산 실행 일시는 정산주기({cycle}) 및 정산실행 배치 기준입니다.': {
+      EN: 'Next settlement run time follows calc cycle ({cycle}) and the settlement batch.',
+      JP: '次の精算実行タイミングは精算周期（{cycle}）および精算実行バッチに従います。',
+      CH: '下次结算执行时间取决于结算周期（{cycle}）与结算执行任务。',
+      TH: 'การรันชำระครั้งถัดไปตามรอบ ({cycle}) และงาน batch ชำระ'
+    },
+    '허용된 가맹 범위가 없어 인사이트 집계를 생략했습니다.': {
+      EN: 'Insights were skipped — no merchant scope.',
+      JP: '許容加盟店範囲がないため、インサイト集計を省略しました。',
+      CH: '无允许的商户范围，已跳过洞察汇总。',
+      TH: 'ไม่มีขอบเขตร้านค้า จึงข้ามการสรุปอินไซต์'
+    },
+    '인사이트 집계 중 오류가 발생했습니다. DB 스키마·연결·서버 로그를 확인하세요.': {
+      EN: 'Insight aggregation failed. Check DB schema, connectivity, and server logs.',
+      JP: 'インサイト集計中にエラーが発生しました。DBスキーマ・接続・サーバーログを確認してください。',
+      CH: '洞察汇总出错。请检查数据库结构、连接与服务器日志。',
+      TH: 'การสรุปอินไซต์ล้มเหลว ตรวจสอบสคีมา DB เชื่อมต่อและล็อก'
+    },
+    '지난 7일 환불·강제환불 건수 상위(조직 범위 내)': {
+      EN: 'Top refund/forced‑refund volume (last 7d, scope)',
+      JP: '直近7日 返金・強制返金 件数上位（組織範囲内）',
+      CH: '最近7天退款/强制退款笔数居前（范围内）',
+      TH: 'อันดับยอดคืนเงิน/บังคับคืนย้อนหลัง 7 วัน (ภายใน scope)'
+    },
+    '최근 정산 실행이 없어 지급 구간을 산출하지 못했습니다.': {
+      EN: 'No recent settlement runs; payout range unavailable.',
+      JP: '最近の精算実行がないため、支払区間を算出できません。',
+      CH: '无最近结算执行，无法计算支付区间。',
+      TH: 'ไม่มีประวัติรันชำระล่าสุด คำนวณช่วงจ่ายไม่ได้'
+    },
+    '지급액 데이터가 없습니다.': {
+      EN: 'No payout amounts available.',
+      JP: '支払金額データがありません。',
+      CH: '无支付金额数据。',
+      TH: 'ไม่มีข้อมูลยอดจ่าย'
+    },
+    '최근 3회 지급액의 최소·최대·중앙값으로 참고 구간만 표시합니다. 보류·환수·수수료는 실행별로 다릅니다.': {
+      EN: 'Shows reference range using min/max/median of the last three payouts; holds/recovery/fees vary by run.',
+      JP: '最近3回の支払額の最小・最大・中央値で参考区間のみ表示します。保留・回収・手数料は実行ごとに異なります。',
+      CH: '以最近3次支付额的最低/最高/中位数仅供参考；暂扣、回收与手续费因执行而异。',
+      TH: 'แสดงช่วงอ้างอิงจาก ต่ำ/สูง/มัธยฐาน ของการจ่าย 3 ครั้งล่าสุด; พัก/เรียกคืนค่าธรรมเนียมต่างกันในแต่ละรัน'
+    },
+    /* 대시보드 explainers(서버) */
+    '최근 7일(오늘 포함) 실패·무효·환불·취소 건수에 가중치를 둔 규칙 점수입니다. 지난 7일 대비 증감은 동일 규칙으로 비교합니다.': {
+      EN: 'Rule score from weighted fail/void/refund/cancel counts over 7 days (including today). Week‑over‑week uses the same rule.',
+      JP: '直近7日（当日含む）で失敗・無効・返金・取消件数に重みを付けた規則スコアです。先週7日との増減も同じ規則で比較します。',
+      CH: '以近7日（含今天）失败、无效、退款、取消的加权规则分数；与上周七日对比沿用同一规则。',
+      TH: 'คะแนนจากความถี่ของ ล้มเหลว/โมฆะ/คืน/ยกเลิก ใน 7 วัน (รวมวันนี้) แบบถ่วงน้ำหนัก และเทียบสัปดาห์ด้วยกฎเดียวกัน'
+    },
+    '오늘 0시 이후 결제일시 기준 건수와, 미수(PENDING)·노티 미매핑·정산보류/지급보류 행 수입니다.': {
+      EN: 'Counts since midnight by payment time plus open receivable, unmapped notifies, settlement/payout‑hold rows.',
+      JP: '本日0時以降の決済時刻ベースの件数と、未収(PENDING)・ノティ未マッピング・精算保留／支払保留件数です。',
+      CH: '自今日0点起的支付时点计数，外加待收应收、通知未映射、结算/拨付暂缓。',
+      TH: 'นับตั้งแต่เที่ยงคืนตามเวลาชำระ รวมลูกหนี้โนติไม่แมป และแถวพักชำระ/พักจ่าย'
+    },
+    '전일 0시~24시(당일 0시 직전) 결제일시 기준 실패·무효·환불·취소 건수입니다. 미수·노티 등은 시점 스냅샷이 없어 제외합니다.': {
+      EN: 'Yesterday failures/void/refunds/cancels by payment timestamp; receivables/notify KPIs omit yesterday snapshot.',
+      JP: '前日0〜24時（当日0時直前まで）決済時刻ベースの失敗・無効・返金・取消件数です。未収・ノティ等は同日スナップショットがないため対象外です。',
+      CH: '按昨日0–24点（至当日零点前）支付时刻的失败、无效、退款、取消；应收/通知等暂无该时点快照故不含。',
+      TH: 'ความล้มเหลว/โมฆะ/คืน/ยกเลิกของเมื่อวานตามเวลาชำระ ไม่รวม 미수·โนติ เพื่อไม่มีสแนปช็อต'
+    },
+    '정산 실행 생성·미수금 생성·노티 미처리(매핑 외) 중 최근 이벤트입니다.': {
+      EN: 'Recent settlement runs, receivable creation, unprocessed notifies (beyond mapping).',
+      JP: '精算実行作成・未収金作成・ノティ未処理（マッピング外）などの最新イベントです。',
+      CH: '最近的结算创建、应收创建及未处理通知（映射外）事件。',
+      TH: 'อีเวนต์ล่าสุดจากรันชำระ สร้างลูกหนี้ โนติที่ยังไม่ประมวลผล'
+    },
+    '규칙으로 정렬한 오늘 확인 권장 항목이며, 클릭 시 관리 화면으로 이동합니다.': {
+      EN: 'Rule‑ranked checklist for today — click to open admin screens.',
+      JP: '規則で並べた本日確認推奨項目で、クリックすると管理画面に移動します。',
+      CH: '按规则排序的今日推荐确认项；点击跳转管理界面。',
+      TH: 'รายการแนะนำวันนี้เรียงตามกฎ คลิกไปหน้าจัดการ'
+    },
+    '지난 7일 환불·강제환불 건수 상위 가맹(식별자 마스킹)입니다.': {
+      EN: 'Top merchants by refunds/forced refunds in 7 days (masked IDs).',
+      JP: '直近7日の返金・強制返金件数上位の加盟店です（識別子マスク）。',
+      CH: '近7日退款/强制退款居前商户（标识已掩码）。',
+      TH: 'ร้านค้าที่คืนบ่อยใน 7 วัน (รหัสถูกมาสก์)'
+    },
+    '최근 정산 실행 지급액으로 참고 구간만 제시합니다. 실제 지급은 보류·환수·정책에 따라 달라질 수 있습니다.': {
+      EN: 'Reference range only from recent payout amounts; actual payout may differ under holds/recovery/policy.',
+      JP: '最近の精算実行の支払額での参考区間のみです。実際の支払は保留・回収・ポリシーにより異なる場合があります。',
+      CH: '仅根据最近执行的支付金额给出参考区间；实际支付可能因暂扣/回收/策略而不同。',
+      TH: 'แสดงเฉพาะช่วงอ้างอิงจากยอดจ่ายที่ผ่านมา จริงอาจต่างจากพัก/เรียกคืน/นโยบาย'
+    },
     /* /user/userMng — 검색 라벨·thead·그리드·알림 (STRING_MAP 보강) */
     '사용자 ID': {
       EN: 'User ID',
@@ -292,12 +834,159 @@
       CH: '测试邮件已发送。请在「运营管理 → 邮件日志」中查看结果。',
       TH: 'ส่งอีเมลทดสอบแล้ว ตรวจผลได้ที่ ปฏิบัติการ → บันทึกเมล'
     },
+    /* TH tax report (/ops/taxReport), notices · grid · 검색 — 한글 키 = screens.js 문자열 그대로 */
+    '형식: YYYY-MM-DD (예: 2026-05-09)': {
+      EN: 'Format: YYYY-MM-DD (e.g. 2026-05-09)',
+      JP: '書式: YYYY-MM-DD（例: 2026-05-09）',
+      CH: '格式：YYYY-MM-DD（例：2026-05-09）',
+      TH: 'รูปแบบ: YYYY-MM-DD (เช่น 2026-05-09)'
+    },
+    '보고구분': { EN: 'Report scope', JP: '報告区分', CH: '报表范围', TH: 'ขอบเขตรายงาน' },
+    '귀속월': { EN: 'Attribution month', JP: '帰属月', CH: '归属月', TH: 'เดือนอ้างอิง' },
+    '기간별(확정 정산 실행)': {
+      EN: 'By period (confirmed runs)',
+      JP: '期間別（確定精算実行）',
+      CH: '按期间（已确认执行）',
+      TH: 'ตามช่วง (รันที่ยืนยันแล้ว)'
+    },
+    '월 통합(귀속월)': {
+      EN: 'Monthly roll-up',
+      JP: '月次集約（帰属月）',
+      CH: '按月汇总（归属月）',
+      TH: 'รวมรายเดือน (เดือนอ้างอิง)'
+    },
+    '엑셀(xlsx)': {
+      EN: 'Excel (xlsx)',
+      JP: 'Excel(xlsx)',
+      CH: 'Excel(xlsx)',
+      TH: 'Excel (xlsx)'
+    },
+    '실행ID': { EN: 'Run ID', JP: '実行ID', CH: '执行 ID', TH: 'รหัสรัน' },
+    '집계시작': { EN: 'Period from', JP: '集計開始', CH: '汇总开始', TH: 'เริ่มช่วง' },
+    '집계종료': { EN: 'Period to', JP: '集計終了', CH: '汇总结束', TH: 'สิ้นช่วง' },
+    '가맹명': { EN: 'Merchant name', JP: '加盟店名', CH: '商户名称', TH: 'ชื่อร้าน' },
+    '가맹코드': { EN: 'Merchant code', JP: '加盟店コード', CH: '商户代码', TH: 'รหัสร้าน' },
+    '거래건수': { EN: 'Txn count', JP: '取引件数', CH: '交易笔数', TH: 'จำนวนธุรกรรม' },
+    '순매출': { EN: 'Net sales', JP: '純売上', CH: '净销售额', TH: 'ยอดขายสุทธิ' },
+    '거래수수료합': {
+      EN: 'Txn fees (total)',
+      JP: '取引手数料合計',
+      CH: '交易手续费合计',
+      TH: 'รวมค่าธรรมเนียมธุรกรรม'
+    },
+    '지급액(송금전)': {
+      EN: 'Payout (before wire fee)',
+      JP: '支払額（送金前）',
+      CH: '拨付额（汇款前）',
+      TH: 'ยอดจ่าย (ก่อนค่าธรรมเนียมโอน)'
+    },
+    '송금료(통화)': {
+      EN: 'Wire fee (ccy)',
+      JP: '送金料（通貨）',
+      CH: '汇款费（币种）',
+      TH: 'ค่าธรรมเนียมโอน (ตามสกุล)'
+    },
+    '송금료(USDT)': {
+      EN: 'Wire fee (USDT)',
+      JP: '送金料（USDT）',
+      CH: '汇款费（USDT）',
+      TH: 'ค่าธรรมเนียมโอน (USDT)'
+    },
+    '최종지급(은행기준)': {
+      EN: 'Final payout (bank)',
+      JP: '最終支払（銀行基準）',
+      CH: '最终拨付（银行口径）',
+      TH: 'จ่ายสุดท้าย (เกณฑ์ธนาคาร)'
+    },
+    'tb_settlement_run PK': {
+      EN: 'tb_settlement_run primary key',
+      JP: 'tb_settlement_run の主キー',
+      CH: 'tb_settlement_run 主键',
+      TH: 'คีย์หลัก tb_settlement_run'
+    },
+    '송금수수료 차감 전': {
+      EN: 'Before remittance fee deduction',
+      JP: '送金手数料控除前',
+      CH: '扣减汇款手续费前',
+      TH: 'ก่อนหักค่าธรรมเนียมโอน'
+    },
+    '세금·은행 대조용': {
+      EN: 'Tax / bank reconciliation',
+      JP: '税務・銀行照合用',
+      CH: '税务/银行核对用',
+      TH: 'ใช้กู้ภาษี/เทียบธนาคาร'
+    },
+    '총본사·본사(REGIONAL)·총판(MASTER_DIST) 또는 ADMIN만 사용합니다. 다른 로그인은 목록이 비어 있거나 거부됩니다.': {
+      EN: 'Only root HQ, regional HQ (REGIONAL), master distributor (MASTER_DIST), or ADMIN may use this screen. Other logins see an empty list or are denied.',
+      JP: '総本部・本社(REGIONAL)・総販(MASTER_DIST) または ADMIN のみ利用できます。その他のログインでは一覧が空か拒否されます。',
+      CH: '仅总总部、本部(REGIONAL)、总代(MASTER_DIST)或 ADMIN 可使用本画面；其他登录将看到空列表或被拒绝。',
+      TH: 'ใช้ได้เฉพาะ HQ สูงสุด HQ ภูมิภาค(REGIONAL) ตัวแทนหลักหรือ ADMIN'
+    },
+    '로그인 조직 트리의 하위 가맹만 대상입니다(타 총판·타 본사 가맹 제외).': {
+      EN: 'Only merchants under the logged-in org tree (excludes merchants under other distributors or other regional HQs).',
+      JP: 'ログイン組織ツリー配下の加盟店のみが対象です（他総販・他本社配下は除く）。',
+      CH: '仅限登录组织树下属商户（不含其他总代或其他本部下属）。',
+      TH: 'เฉพาะร้านใต้องค์กรของผู้ล็อกอิน'
+    },
+    '행 원천: 확정정산(CALCULATED)·정산배포(DISTRIBUTED)·가맹점정산내역 노출 규칙을 통과한 정산 실행입니다.': {
+      EN: 'Row source: settlement runs that passed merchant-statement visibility rules as CALCULATED and DISTRIBUTED.',
+      JP: '行の元データ: 確定精算(CALCULATED)・精算配布(DISTRIBUTED)・加盟店精算明細の表示ルールを満たした精算実行です。',
+      CH: '行来源：已通过商户结算明细展示规则的已确认(CALCULATED)、已下发(DISTRIBUTED)结算执行。',
+      TH: 'แถวจากรันที่ผ่านกฎ CALCULATED/DISTRIBUTED'
+    },
+    '「월 통합」은 귀속월(YYYY-MM) 전체를 한 번에 조회합니다. 엑셀에는 실행 목록·TOTAL·가맹별 합계가 포함됩니다.': {
+      EN: 'Monthly roll-up loads the entire attribution month (YYYY-MM) at once. Excel includes run lines, TOTAL, and per-merchant subtotals.',
+      JP: '「月次集約」は帰属月(YYYY-MM)全体を一度に照会します。Excel には実行一覧・TOTAL・加盟店別集計が含まれます。',
+      CH: '「按月汇总」一次性查询归属月（YYYY-MM）全月。Excel 含执行明细、TOTAL 与商户小计。',
+      TH: 'โหมดรวมเดือนดึงทั้งเดือน YYYY-MM'
+    },
+    'FinalPayAfterRemittance는 송금 수수료 반영 후 지급 기준액으로, 실제 은행 송금과 일치시키는 용도로 검증하세요.': {
+      EN: 'FinalPayAfterRemittance is the bank-alignment payout after remittance fees; use it to reconcile actual bank transfers.',
+      JP: 'FinalPayAfterRemittance は送金手数料反映後の支払基準額で、実際の銀行送金との照合にご利用ください。',
+      CH: 'FinalPayAfterRemittance 为扣减汇款手续费后的拨付基准金额，可与实际银行汇款核对。',
+      TH: 'FinalPayAfterRemittance ใช้เทียบยอดโอนจริงหลังค่าธรรมเนียม'
+    },
     '발송 실패': {
       EN: 'Send failed',
       JP: '送信に失敗しました',
       CH: '发送失败',
       TH: 'ส่งไม่สำเร็จ'
     },
+    /* /main dashboard (pg-home-dashboard.js) */
+    '승인': { EN: 'Approved', JP: '承認', CH: '授权', TH: 'อนุมัติ' },
+    '전체': { EN: 'Total', JP: '全体', CH: '全部', TH: 'ทั้งหมด' },
+    '건': { EN: '', JP: '件', CH: '笔', TH: 'รายการ' },
+    '해당 기간 거래가 없습니다.': {
+      EN: 'No transactions in this period.',
+      JP: '該当期間の取引はありません。',
+      CH: '该期间没有交易。',
+      TH: 'ไม่มีธุรกรรมในช่วงเวลานี้'
+    },
+    '통화별': { EN: 'By currency', JP: '通貨別', CH: '按币种', TH: 'ตามสกุลเงิน' },
+    '오늘': { EN: 'Today', JP: '本日', CH: '今天', TH: 'วันนี้' },
+    '최근 7일': { EN: 'Last 7 days', JP: '直近7日', CH: '最近7天', TH: '7 วันที่ผ่านมา' },
+    '최근 30일': { EN: 'Last 30 days', JP: '直近30日', CH: '最近30天', TH: '30 วันที่ผ่านมา' },
+    '서버 트래픽 요약을 사용할 수 없습니다.': {
+      EN: 'Server traffic summary is unavailable.',
+      JP: 'サーバートラフィック要約を利用できません。',
+      CH: '无法使用服务器流量摘要。',
+      TH: 'ไม่สามารถใช้สรุปทราฟฟิกเซิร์ฟเวอร์ได้'
+    },
+    '수집된 서버 사용량 데이터가 없습니다.': {
+      EN: 'No server usage data collected.',
+      JP: '収集されたサーバー使用量データがありません。',
+      CH: '没有收集到服务器使用量数据。',
+      TH: 'ไม่มีข้อมูลการใช้งานเซิร์ฟเวอร์ที่เก็บไว้'
+    },
+    '표시할 정산 실행 이력이 없습니다.': {
+      EN: 'No settlement runs to display.',
+      JP: '表示できる精算実行履歴がありません。',
+      CH: '没有可显示的结算执行记录。',
+      TH: 'ไม่มีประวัติรันชำระบัญชีให้แสดง'
+    },
+    '승인합': { EN: 'Approved sum', JP: '承認合計', CH: '授权合计', TH: 'รวมอนุมัติ' },
+    '포함건수': { EN: 'Included count', JP: '含む件数', CH: '包含笔数', TH: 'จำนวนที่รวม' },
+    '주기': { EN: 'Cycle', JP: '周期', CH: '周期', TH: 'รอบ' },
     '번호': {
       EN: 'No.',
       JP: '番号',
@@ -11266,15 +11955,64 @@
     return ['KO', 'EN', 'JP', 'CH', 'TH'].indexOf(u) >= 0 ? u : 'KO';
   }
 
+  function autoDetectLocaleFromNavigator() {
+    try {
+      var raw = '';
+      if (typeof navigator !== 'undefined') {
+        raw = String(navigator.language || (navigator.languages && navigator.languages[0]) || '').trim();
+      }
+      if (!raw) return 'EN';
+      var s = raw.replace('_', '-').toLowerCase(); // e.g. ja-jp, zh-cn, th-th
+      var lang = s.split('-')[0] || '';
+      var region = (s.split('-')[1] || '').toUpperCase();
+      if (lang === 'ko') return 'KO';
+      if (lang === 'ja') return 'JP';
+      if (lang === 'th') return 'TH';
+      if (lang === 'zh') return 'CH';
+      if (lang === 'en') return 'EN';
+      // If region strongly implies a supported locale
+      if (region === 'KR') return 'KO';
+      if (region === 'JP') return 'JP';
+      if (region === 'TH') return 'TH';
+      if (region === 'CN' || region === 'TW' || region === 'HK' || region === 'MO' || region === 'SG') return 'CH';
+    } catch (e) {}
+    return 'EN';
+  }
+
+  function ensureAutoLocaleOnce() {
+    try {
+      var cur = localStorage.getItem(LOCALE_KEY);
+      if (cur && String(cur).trim() !== '') return;
+      var guessed = normalizeLocale(autoDetectLocaleFromNavigator()) || 'EN';
+      localStorage.setItem(LOCALE_KEY, guessed);
+    } catch (e) {}
+  }
+
+  function ensureNavigatorLocaleIfNotUserSet() {
+    try {
+      var userSet = localStorage.getItem(USER_SET_KEY);
+      if (userSet && String(userSet).trim() !== '') return;
+      // 호환: 과거 버전에서 사용자가 언어를 바꿨다면 locale 키만 남아있을 수 있음.
+      // 이 경우 "사용자 설정"으로 간주하고 유지한다.
+      var existing = localStorage.getItem(LOCALE_KEY);
+      if (existing && String(existing).trim() !== '') {
+        try { localStorage.setItem(USER_SET_KEY, '1'); } catch (eMark) {}
+        return;
+      }
+      var guessed = normalizeLocale(autoDetectLocaleFromNavigator()) || 'EN';
+      localStorage.setItem(LOCALE_KEY, guessed);
+    } catch (e) {}
+  }
+
   function getLocale() {
     if (g.PG_PAY_LIST_I18N && typeof g.PG_PAY_LIST_I18N.getLocale === 'function') {
       return g.PG_PAY_LIST_I18N.getLocale();
     }
     try {
-      var v = localStorage.getItem('pg_pay_list_ui_locale');
+      var v = localStorage.getItem(LOCALE_KEY);
       if (v) return normalizeLocale(v);
     } catch (e0) {}
-    return 'KO';
+    return 'EN';
   }
 
   /**
@@ -11372,6 +12110,11 @@
     getLocale: getLocale,
     applyDom: applyDom,
     dateInputBcp47: dateInputBcp47,
-    syncDateInputLangUnder: syncDateInputLangUnder
+    syncDateInputLangUnder: syncDateInputLangUnder,
+    ensureAutoLocaleOnce: ensureAutoLocaleOnce,
+    ensureNavigatorLocaleIfNotUserSet: ensureNavigatorLocaleIfNotUserSet
   };
+
+  // 첫 진입(특히 login.html)에서 사용자 선택 전 자동 로케일을 1회 설정
+  try { ensureNavigatorLocaleIfNotUserSet(); } catch (eInitLocale) {}
 })(typeof window !== 'undefined' ? window : globalThis);

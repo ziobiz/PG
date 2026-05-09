@@ -9,6 +9,7 @@ import com.pg.repository.HqNotifyEnvConfigRepository;
 import com.pg.repository.OrgUnitRepository;
 import com.pg.repository.UserCompAccessRepository;
 import com.pg.repository.UserRepository;
+import com.pg.util.ChatbotMerchantAdminConstants;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -284,8 +285,11 @@ public class UserListService {
         applyUserStatus(target, userStatus);
         String ir = safeTrim(inactiveReason);
         target.setInactiveReason(ir.isEmpty() ? null : ir);
-        target.setAssistantRoleType(normalizeAssistantRole(assistantRoleType));
-        target.setPermissionGroupNm(permissionGroupByAssistantRole(target.getAssistantRoleType()));
+        /* 대표(REPRESENTATIVE)는 권한그룹을 담당유형으로 덮어쓰지 않음(가맹 챗봇관리자·업체 대표 등 유지) */
+        if ("ASSISTANT".equalsIgnoreCase(safeTrim(target.getUserType()))) {
+            target.setAssistantRoleType(normalizeAssistantRole(assistantRoleType));
+            target.setPermissionGroupNm(permissionGroupByAssistantRole(target.getAssistantRoleType()));
+        }
         userRepository.save(target);
     }
 
@@ -404,12 +408,18 @@ public class UserListService {
 
     private String normalizeAssistantRole(String assistantRoleType) {
         String t = safeTrim(assistantRoleType).toUpperCase(Locale.ROOT);
-        if ("OPERATOR".equals(t) || "SETTLEMENT".equals(t) || "TECH".equals(t) || "MANAGER".equals(t)) return t;
+        if ("OPERATOR".equals(t) || "SETTLEMENT".equals(t) || "TECH".equals(t)
+                || "MANAGER".equals(t) || ChatbotMerchantAdminConstants.ASSISTANT_ROLE_TYPE.equals(t)) {
+            return t;
+        }
         return "MANAGER";
     }
 
     private String permissionGroupByAssistantRole(String role) {
         if (role == null || role.isBlank()) return "대표";
+        if (ChatbotMerchantAdminConstants.ASSISTANT_ROLE_TYPE.equalsIgnoreCase(role.trim())) {
+            return ChatbotMerchantAdminConstants.PERMISSION_GROUP_NM;
+        }
         return switch (role.toUpperCase(Locale.ROOT)) {
             case "MANAGER" -> "관리담당";
             case "OPERATOR" -> "운영담당";
@@ -441,8 +451,14 @@ public class UserListService {
         row.put("userStatus", ust);
         row.put("inactiveReason", u.getInactiveReason() != null ? u.getInactiveReason() : "");
         row.put("roleNm", u.getRole() != null ? u.getRole() : "USER");
+        String ut = u.getUserType() != null && !u.getUserType().isBlank() ? u.getUserType().trim() : "REPRESENTATIVE";
+        row.put("userType", ut);
         row.put("permissionGroupNm", u.getPermissionGroupNm() != null ? u.getPermissionGroupNm() : "");
-        row.put("assistantRoleType", u.getAssistantRoleType() != null ? u.getAssistantRoleType() : "MANAGER");
+        String art = u.getAssistantRoleType();
+        if (art == null || art.isBlank()) {
+            art = "REPRESENTATIVE".equalsIgnoreCase(ut) ? "" : "MANAGER";
+        }
+        row.put("assistantRoleType", art);
         row.put("otpRegisteredYn", "Y".equalsIgnoreCase(u.getOtpRegisteredYn()) ? "Y" : "N");
         row.put("passwordMustChangeYn", "Y".equalsIgnoreCase(u.getPasswordMustChangeYn()) ? "Y" : "N");
         row.put("useYn", u.isEnabled() ? "Y" : "N");

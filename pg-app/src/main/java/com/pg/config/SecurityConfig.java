@@ -41,6 +41,7 @@ public class SecurityConfig {
                 .requestMatchers(AntPathRequestMatcher.antMatcher("/api/dev/**")).permitAll()
                 .requestMatchers(AntPathRequestMatcher.antMatcher("/api/public/org/branding")).permitAll()
                 .requestMatchers(AntPathRequestMatcher.antMatcher("/api/public/org/portalByHost")).permitAll()
+                .requestMatchers(AntPathRequestMatcher.antMatcher("/api/pub/chatbot/**")).permitAll()
                 .requestMatchers(AntPathRequestMatcher.antMatcher("/api/pay/chillpay/**")).permitAll()
                 .requestMatchers(AntPathRequestMatcher.antMatcher("/api/pay/jpay/**")).permitAll()
                 .requestMatchers(AntPathRequestMatcher.antMatcher("/api/open/pg-notify/**")).permitAll()
@@ -77,6 +78,8 @@ public class SecurityConfig {
                     AntPathRequestMatcher.antMatcher("/robots.txt"),
                     AntPathRequestMatcher.antMatcher("/pay"),
                     AntPathRequestMatcher.antMatcher("/pay/**"),
+                    AntPathRequestMatcher.antMatcher("/chatbot-pay"),
+                    AntPathRequestMatcher.antMatcher("/chatbot-pay/**"),
                     AntPathRequestMatcher.antMatcher("/css/**"),
                     AntPathRequestMatcher.antMatcher("/js/**"),
                     AntPathRequestMatcher.antMatcher("/images/**"),

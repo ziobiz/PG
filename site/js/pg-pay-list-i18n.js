@@ -6,6 +6,7 @@
   'use strict';
 
   var STORAGE_KEY = 'pg_pay_list_ui_locale';
+  var USER_SET_KEY = 'pg_pay_list_ui_locale_user_set';
   var LOCALES = ['KO', 'JP', 'EN', 'CH', 'TH'];
 
   var UI = {
@@ -70,6 +71,10 @@
     'searchCompNm:label': { KO: '업체명', EN: 'Company name', JP: '加盟店名', CH: '商户名称', TH: 'ชื่อร้าน' },
     searchCompId: { KO: '업체코드', EN: 'Company code', JP: '加盟店コード', CH: '商户代码', TH: 'รหัสร้าน' },
     searchCompNm: { KO: '업체명', EN: 'Company name', JP: '加盟店名', CH: '商户名称', TH: 'ชื่อร้าน' },
+    searchTaxScope: { KO: '보고구분', EN: 'Report scope', JP: '報告区分', CH: '报表范围', TH: 'ขอบเขตรายงาน' },
+    searchYearMonth: { KO: '귀속월', EN: 'Attribution month', JP: '帰属月', CH: '归属月', TH: 'เดือนที่ครอบคลุม' },
+    'searchYearMonth:label': { KO: '귀속월', EN: 'Attribution month', JP: '帰属月', CH: '归属月', TH: 'เดือนที่ครอบคลุม' },
+    'drLbl:정산일': { KO: '정산일', EN: 'Settlement date', JP: '精算日', CH: '结算日', TH: 'วันชำระ' },
     'drLbl:기간': { KO: '기간', EN: 'Period', JP: '期間', CH: '期间', TH: 'ช่วงเวลา' },
     'drLbl:적용일(담보)': { KO: '적용일(담보)', EN: 'As-of date (collateral)', JP: '適用日（担保）', CH: '适用日（保证金）', TH: 'วันที่มีผล (หลักประกัน)' },
     'drLbl:결제일자': { KO: '결제일자', EN: 'Payment date', JP: '決済日', CH: '支付日期', TH: 'วันที่ชำระ' },
@@ -102,7 +107,8 @@
     searchKeywordEnPh: { KO: 'SearchKeyword', EN: 'SearchKeyword', JP: 'SearchKeyword', CH: 'SearchKeyword', TH: 'SearchKeyword' },
     searchSettlementReportCompPh: { KO: '가맹점 코드', EN: 'Merchant code', JP: '加盟店コード', CH: '商户代码', TH: 'รหัสร้านค้า' },
     searchMasterId: { KO: '총판 조직 코드', EN: 'Master dist. org code', JP: '総販組織コード', CH: '总代组织代码', TH: 'รหัสองค์กรตัวแทนหลัก' },
-    searchRegionalId: { KO: '본사 지급 리포트 시 필터', EN: 'Filter for HQ payout report', JP: '本社支払レポート用フィルタ', CH: '本部拨付报表筛选', TH: 'ตัวกรองรายงานจ่ายสำนักงานใหญ่' }
+    searchRegionalId: { KO: '본사 지급 리포트 시 필터', EN: 'Filter for HQ payout report', JP: '本社支払レポート用フィルタ', CH: '本部拨付报表筛选', TH: 'ตัวกรองรายงานจ่ายสำนักงานใหญ่' },
+    searchYearMonth: { KO: 'YYYY-MM', EN: 'YYYY-MM', JP: 'YYYY-MM', CH: 'YYYY-MM', TH: 'YYYY-MM' }
   };
 
   function optMap(base) {
@@ -195,6 +201,8 @@
     'searchMailStatus|': optMap(),
     'searchMailStatus|SUCCESS': optMap({ EN: 'Success', JP: '成功', CH: '成功', TH: 'สำเร็จ' }),
     'searchMailStatus|FAIL': optMap({ EN: 'Fail', JP: '失敗', CH: '失败', TH: 'ล้มเหลว' }),
+    'searchTaxScope|WEEKLY': optMap({ EN: 'By period (confirmed runs)', JP: '期間別（確定精算実行）', CH: '按期间（已确认执行）', TH: 'ตามช่วง (รันที่ยืนยันแล้ว)' }),
+    'searchTaxScope|MONTHLY': optMap({ EN: 'Monthly roll-up', JP: '月次集約（帰属月）', CH: '按月汇总（归属月）', TH: 'รวมรายเดือน (เดือนอ้างอิง)' }),
     'searchUseYn|': optMap(),
     'searchUseYn|Y': optMap({ EN: 'Active', JP: '使用', CH: '使用', TH: 'ใช้งาน' }),
     'searchUseYn|N': optMap({ EN: 'Inactive', JP: '未使用', CH: '未使用', TH: 'ไม่ใช้งาน' })
@@ -300,7 +308,7 @@
       packN('ChillPay API Transaction Services — Search Payment Transaction(실시간)입니다. ICOPAY 내부 DB(pg_trnsctn)가 아니라 칠페이 서버에서 직접 목록을 가져옵니다. ziobiz/NOTI 노티미들웨어의 종합거래·피지거래내역과 유사한 용도로 쓸 수 있습니다.', 'ChillPay API — live search; data comes from ChillPay, not ICOPAY pg_trnsctn. Similar use case to ziobiz/NOTI consolidated / ChillPay views.', 'ChillPay API からリアルタイム取得。ICOPAY DB ではありません。', 'ChillPay 接口实时查询，数据来自 ChillPay 服务器。', 'ดึงจาก ChillPay แบบเรียลไทม์ ไม่ใช่ DB ICOPAY'),
       packN('자격: 배포설정 > API배포설정 또는 tb_pg_agency(ChillPay)의 MerchantCode·ApiKey·MD5 Secret Key·샌드박스 여부를 사용합니다.', 'Credentials: deploy settings / tb_pg_agency (MerchantCode, ApiKey, MD5 secret, sandbox).', '認証情報は API 配備設定／tb_pg_agency を使用。', '凭据来自部署配置与 tb_pg_agency。', 'ใช้รหัสจากการตั้งค่า API'),
       packN('순서(내림차순·오름차순)는 [새로고침] 왼쪽 메뉴에서 고르며, 누르는 즉시 다시 조회됩니다(기본 내림차순). TransactionDate 범위는 검색 기간(날짜)을 ChillPay 형식(dd/MM/yyyy HH:mm:ss)으로 변환합니다. 문서: ChillPay-API-Transaction-Services-Document-EN_v1.0.6.', 'Sort order is next to [Refresh]. Default DESC. Date range is converted to ChillPay format per API doc v1.0.6.', '並び順は[再読込]左。期間は ChillPay 形式に変換。', '排序在刷新旁，日期按文档转 ChillPay 格式。', 'เรียงลำดับข้างรีเฟรช'),
-      packN('그리드 열 노출은 상단 VIEW SETTING에서 조정합니다(저장 시 사용자별로 유지). 번호·승인번호·업체명·업체코드·거래일·거래시간(JP·TH 두 줄)·루트는 그리드에 항상 표시되며 VIEW SETTING 목록에는 나오지 않습니다. 거래일은 yyyy년 M월 d일 형식입니다. 본사설정 → 조직항목설정에서 화면「통합내역」 허용 열을 제한할 수 있습니다.', 'Columns via VIEW SETTING (per user). Fixed leading columns are always visible. Org column allowance in HQ settings.', '列は VIEW SETTING。固定列は常時表示。', '列通过 VIEW SETTING 调整，前列固定。', 'คอลัมน์ตั้งค่า VIEW')
+      packN('그리드 열 노출은 상단 VIEW SETTING에서 조정합니다(저장 시 사용자별로 유지). 번호·승인번호·업체명·업체코드·거래일·거래시간(JP·TH 두 줄)·루트는 그리드에 항상 표시되며 VIEW SETTING 목록에는 나오지 않습니다. 거래일은 YYYY-MM-DD(예: 2026-05-09) 형식으로 표시됩니다. 본사설정 → 조직항목설정에서 화면「통합내역」 허용 열을 제한할 수 있습니다.', 'Columns via VIEW SETTING (per user). Fixed leading columns are always visible. Transaction date is shown as YYYY-MM-DD (e.g. 2026-05-09). Org column allowance in HQ settings.', '列は VIEW SETTING。固定列は常時表示。取引日は YYYY-MM-DD（例: 2026-05-09）形式。', '列通过 VIEW SETTING 调整，前列固定。交易日期以 YYYY-MM-DD（例：2026-05-09）显示。', 'คอลัมน์ตั้งค่า VIEW วันที่ทำรายการแสดงเป็น YYYY-MM-DD (เช่น 2026-05-09)')
     ],
     '/calc/chillPaySettlementList': [
       packN('「예정(ICOPAY)」열은 배포설정 API연동설정(tb_pg_agency)의 T+N(주말 제외 영업일·결제와 동일 시각) 또는 D+N(달력+N일·일괄 시각)으로 계산합니다. OFF·MID 미매칭이면 비웁니다. 가맹 업체정보의 결제대행사 행에서 예정모드를 비우면 연동 기본을 따르고, OFF/T/D로 덮어쓸 수 있습니다.', 'Expected (ICOPAY) uses T+N / D+N from tb_pg_agency; empty when OFF or MID mismatch.', '「予定(ICOPAY)」は T+N/D+N で算出。', '「预计(ICOPAY)」按 T+N/D+N 计算。', 'คาดการณ์ ICOPAY ตาม T+N/D+N'),
@@ -353,6 +361,43 @@
       packN('[하위 구분] 정산집계·정산실시·정산집계표·확정정산(리포트). 정산실시·확정정산 목록에서 행을 더블클릭하면 하단에 정산배포와 같이 해당 실행에 포함된 거래 목록이 표시됩니다(정산집계·집계표에는 실행 ID가 없어 생략).', '[Sub-type] Aggregate, runs, summary sheet, confirmed (report). Double-click a row on Runs or Confirmed to load included transactions in the bottom panel (same pattern as settlement publish). Aggregate/summary have no run id.', '[下位区分] 集計・実行・集計表・確定精算（レポート）。実行・確定精算では行ダブルクリックで下部に配布と同様の対象取引一覧を表示（集計・集計表は実行IDなし）。', '[子类型] 结算汇总、执行、汇总表、已确认（报表）。在执行或已确认列表双击行可在底部加载包含的交易（与结算发布相同）；汇总/汇总表无执行 ID。', '[ประเภทย่อย] สรุป / รัน / แผ่นสรุป / ยืนยันแล้ว ดับเบิลคลิกแถวในรัน/ยืนยันเพื่อโหลดธุรกรรมด้านล่าง (แบบเผยแพร่ชำระ); สรุปไม่มี run id'),
       packN('정산집계·실시·집계표의 예치·Processing·건당요금 등은 백엔드 상수이며 응답 meta에 안내가 있습니다. 지급예정일은 정산일(정산주기 일자)과 동일합니다.', 'Deposit %, Processing %, per-txn fee, etc. in aggregate/run/summary views are backend constants; see API response meta. Payout due date equals the settlement run date (cycle date).', '集計・実行・集計表の預かり・Processing・件当などはバックエンド定数で、応答metaに案内があります。支払予定日は精算日（周期日）と同一です。', '汇总、执行、汇总表中的暂扣、Processing、按笔费用等为后端常量，说明见接口 meta。预计拨付日与结算日（周期日）相同。', 'ค่าคงที่ฝั่งเซิร์ฟเวอร์ (เงินประกัน %, Processing, ค่าธรรมเนียมต่อราย ฯลฯ) ดูใน meta; วันครบกำหนดจ่ายเท่ากับวันชำระ (วันรอบชำระ)'),
       packN('[배포 기준] 집계(AGG)·실시(EXE)·집계표(SUM)에는 정산배포가 완료된 실행(DISTRIBUTED, 레거시 null 허용)만 포함합니다. 가맹점정산내역·유통 집계와 동일합니다. 확정정산(RST)도 배포·확정된 실행만 표시합니다.', '[Publish gate] AGG/EXE/SUM include only settlement runs published as DISTRIBUTED (legacy null allowed)—same gate as merchant statements and distribution rollup. RST lists only published and CALCULATED runs.', '[配布基準] AGG/EXE/SUM は配布済み(DISTRIBUTED、レガシーnull可)の実行のみ。加盟店精算・流通集計と同一。RST も配布・確定済みのみ。', '[下发口径] AGG/EXE/SUM 仅含已下发(DISTRIBUTED，兼容历史 null)的执行，与商户结算明细、流通汇总一致。RST 亦仅已下发且已确认。', '[เกณฑ์เผยแพร่] AGG/EXE/SUM รวมเฉพาะรันที่เผยแพร่แล้วเป็น DISTRIBUTED (รองรับ null เดิม) เหมือนรายการชำระร้านและสรุปห่วงโซ่ RST เฉพาะที่เผยแพร่และ CALCULATED')
+    ],
+    '/ops/taxReport': [
+      packN(
+        '총본사·본사(REGIONAL)·총판(MASTER_DIST) 또는 ADMIN만 사용합니다. 다른 로그인은 목록이 비어 있거나 거부됩니다.',
+        'Only root HQ, regional HQ (REGIONAL), master distributor (MASTER_DIST), or ADMIN may use this screen. Other logins see an empty list or are denied.',
+        '総本部・本社(REGIONAL)・総販(MASTER_DIST) または ADMIN のみ利用できます。その他のログインでは一覧が空か拒否されます。',
+        '仅总总部、本部(REGIONAL)、总代(MASTER_DIST)或 ADMIN 可使用本画面；其他登录将看到空列表或被拒绝。',
+        'ใช้ได้เฉพาะ HQ สูงสุด HQ ภูมิภาค(REGIONAL) ตัวแทนหลัก(MASTER_DIST) หรือ ADMIN การล็อกอินอื่นจะว่างหรือถูกปฏิเสธ'
+      ),
+      packN(
+        '로그인 조직 트리의 하위 가맹만 대상입니다(타 총판·타 본사 가맹 제외).',
+        'Only merchants under the logged-in org tree (excludes merchants under other distributors or other regional HQs).',
+        'ログイン組織ツリー配下の加盟店のみが対象です（他総販・他本社配下は除く）。',
+        '仅限登录组织树下属商户（不含其他总代或其他本部下属）。',
+        'เฉพาะร้านในโครงสร้างองค์กรของผู้ล็อกอิน (ยกเว้นใต้ตัวแทนหลัก/สำนักงานใหญ่อื่น)'
+      ),
+      packN(
+        '행 원천: 확정정산(CALCULATED)·정산배포(DISTRIBUTED)·가맹점정산내역 노출 규칙을 통과한 정산 실행입니다.',
+        'Row source: settlement runs that passed merchant-statement visibility rules as CALCULATED and DISTRIBUTED.',
+        '行の元データ: 確定精算(CALCULATED)・精算配布(DISTRIBUTED)・加盟店精算明細の表示ルールを満たした精算実行です。',
+        '行来源：已通过商户结算明细展示规则的已确认(CALCULATED)、已下发(DISTRIBUTED)结算执行。',
+        'แถวจากรันที่ผ่านกฎการแสดง CALCULATED และ DISTRIBUTED'
+      ),
+      packN(
+        '「월 통합」은 귀속월(YYYY-MM) 전체를 한 번에 조회합니다. 엑셀에는 실행 목록·TOTAL·가맹별 합계가 포함됩니다.',
+        'Monthly roll-up loads the entire attribution month (YYYY-MM) at once. Excel includes run lines, TOTAL, and per-merchant subtotals.',
+        '「月次集約」は帰属月(YYYY-MM)全体を一度に照会します。Excel には実行一覧・TOTAL・加盟店別集計が含まれます。',
+        '「按月汇总」一次性查询归属月（YYYY-MM）全月。Excel 含执行明细、TOTAL 与商户小计。',
+        'โหมดรวมเดือนดึงทั้งเดือน YYYY-MM ใน Excel มีรัน TOTAL และย่อยตามร้าน'
+      ),
+      packN(
+        'FinalPayAfterRemittance는 송금 수수료 반영 후 지급 기준액으로, 실제 은행 송금과 일치시키는 용도로 검증하세요.',
+        'FinalPayAfterRemittance is the bank-alignment payout after remittance fees; use it to reconcile actual bank transfers.',
+        'FinalPayAfterRemittance は送金手数料反映後の支払基準額で、実際の銀行送金との照合にご利用ください。',
+        'FinalPayAfterRemittance 为扣减汇款手续费后的拨付基准金额，可与实际银行汇款核对。',
+        'FinalPayAfterRemittance = ยอดจ่ายหลังค่าธรรมเนียมโอน ใช้เทียบกับโอนจริง'
+      )
     ]
   };
 
@@ -737,7 +782,7 @@
       || url === '/noti/notiCashReceiptSendMngList' || url === '/notify/cashReceiptSendMng'
       || url === '/noti/notiSendMngList' || url === '/notify/paySendMng'
       || url === '/user/userMng'
-      || url === '/ops/mailLog' || url === '/ops/opsMng'
+      || url === '/ops/mailLog' || url === '/ops/taxReport' || url === '/ops/opsMng'
       || url === '/hq/pgApiMng';
   }
 
@@ -984,6 +1029,10 @@
     try {
       localStorage.setItem(STORAGE_KEY, loc);
     } catch (e1) {}
+    // 사용자가 명시적으로 선택한 로케일만 "사용자 설정"으로 간주
+    if (!opts.silent) {
+      try { localStorage.setItem(USER_SET_KEY, '1'); } catch (e1u) {}
+    }
     try {
       if (typeof document !== 'undefined' && document.documentElement) {
         var langMap = { KO: 'ko', EN: 'en', JP: 'ja', CH: 'zh-Hans', TH: 'th' };

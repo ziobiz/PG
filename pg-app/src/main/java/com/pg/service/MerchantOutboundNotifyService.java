@@ -31,7 +31,11 @@ import java.util.Map;
 import java.util.Optional;
 
 /**
- * PG 노티 적재 후(커밋 이후) 가맹점 {@code tb_merchant_notify_url.url_type=MIDDLEWARE} 로 JSON POST.
+ * PG 노티 또는 DirectCredit 승인 적재 후(커밋 이후) 가맹점 {@code tb_merchant_notify_url} 로 JSON POST.
+ * <ul>
+ *   <li>{@link #URL_TYPE_MIDDLEWARE} — PG중계 동일 페이로드(+선택 HMAC).</li>
+ *   <li>{@link #URL_TYPE_BACKGROUND},{@link #URL_TYPE_RESULT} — 업체등록 「결제통보 URL」(URL·챗봇·노티·인라인 DirectCredit 공통 ChillPay 플로우).</li>
+ * </ul>
  * 칠페이 계열({@link PgVendor#isChillPayVendorCode})만 1차 활성화.
  */
 @Service
@@ -39,6 +43,8 @@ public class MerchantOutboundNotifyService {
 
     private static final Logger log = LoggerFactory.getLogger(MerchantOutboundNotifyService.class);
     public static final String URL_TYPE_MIDDLEWARE = "MIDDLEWARE";
+    public static final String URL_TYPE_BACKGROUND = "BACKGROUND";
+    public static final String URL_TYPE_RESULT = "RESULT";
     private static final ObjectMapper OM = new ObjectMapper();
     private static final int MAX_ATTEMPTS = 3;
     private static final long[] BACKOFF_MS = { 0L, 250L, 900L };
@@ -104,29 +110,78 @@ public class MerchantOutboundNotifyService {
         if (ou.isEmpty()) {
             return;
         }
-        Optional<MerchantNotifyUrl> mw = merchantNotifyUrlRepository.findByOrgUnitIdAndUrlType(ou.get().getId(), URL_TYPE_MIDDLEWARE);
-        if (mw.isEmpty()) {
+        Long orgUnitId = ou.get().getId();
+        Optional<MerchantNotifyUrl> mwOpt = merchantNotifyUrlRepository.findByOrgUnitIdAndUrlType(orgUnitId, URL_TYPE_MIDDLEWARE);
+        Optional<MerchantNotifyUrl> bgOpt = merchantNotifyUrlRepository.findByOrgUnitIdAndUrlType(orgUnitId, URL_TYPE_BACKGROUND);
+        Optional<MerchantNotifyUrl> rsOpt = merchantNotifyUrlRepository.findByOrgUnitIdAndUrlType(orgUnitId, URL_TYPE_RESULT);
+
+        Map<String, Object> basePayload = buildPayload(t, inbound, notifyChannel);
+
+        boolean anySuccess = false;
+
+        Optional<MerchantNotifyUrl> mw = mwOpt.filter(r -> yn(r.getUseYn()) && r.getNotiUrl() != null && !r.getNotiUrl().isBlank());
+        if (mw.isPresent()) {
+            try {
+                String bodyMw = OM.writeValueAsString(basePayload);
+                boolean okMw = postWithRetries(mw.get().getNotiUrl().trim(), bodyMw, mw.get().getSignSecret());
+                if (okMw) {
+                    anySuccess = true;
+                }
+            } catch (Exception e) {
+                log.warn("MIDDLEWARE 결제통보 직렬화 실패 trnId={}: {}", trnId, e.getMessage());
+            }
+        }
+
+        Optional<MerchantNotifyUrl> bg = bgOpt.filter(r -> yn(r.getUseYn()) && r.getNotiUrl() != null && !r.getNotiUrl().isBlank());
+        if (bg.isPresent()) {
+            try {
+                String bodyBg = OM.writeValueAsString(withMerchantNotifyTarget(basePayload, URL_TYPE_BACKGROUND));
+                if (postPlainPayNotify(bg.get(), bodyBg, URL_TYPE_BACKGROUND)) {
+                    anySuccess = true;
+                }
+            } catch (Exception e) {
+                log.warn("BACKGROUND 결제통보 직렬화 실패 trnId={}: {}", trnId, e.getMessage());
+            }
+        }
+
+        Optional<MerchantNotifyUrl> rs = rsOpt.filter(r -> yn(r.getUseYn()) && r.getNotiUrl() != null && !r.getNotiUrl().isBlank());
+        if (rs.isPresent()) {
+            try {
+                String bodyRs = OM.writeValueAsString(withMerchantNotifyTarget(basePayload, URL_TYPE_RESULT));
+                if (postPlainPayNotify(rs.get(), bodyRs, URL_TYPE_RESULT)) {
+                    anySuccess = true;
+                }
+            } catch (Exception e) {
+                log.warn("RESULT 결제통보 직렬화 실패 trnId={}: {}", trnId, e.getMessage());
+            }
+        }
+
+        if (!mw.isPresent() && !bg.isPresent() && !rs.isPresent()) {
             return;
         }
-        MerchantNotifyUrl row = mw.get();
-        if (!yn(row.getUseYn())) {
-            return;
-        }
-        String url = row.getNotiUrl();
-        if (url == null || url.isBlank()) {
-            return;
-        }
-        String bodyJson;
-        try {
-            bodyJson = OM.writeValueAsString(buildPayload(t, inbound, notifyChannel));
-        } catch (Exception e) {
-            log.warn("미들웨어 아웃바운드 JSON 생성 실패 trnId={}: {}", trnId, e.getMessage());
-            return;
-        }
-        boolean ok = postWithRetries(url.trim(), bodyJson, row.getSignSecret());
-        if (ok) {
+        if (anySuccess) {
             markMwOutboundSent(trnId, st);
         }
+    }
+
+    private static Map<String, Object> withMerchantNotifyTarget(Map<String, Object> base, String merchantNotifyTarget) {
+        LinkedHashMap<String, Object> m = new LinkedHashMap<>(base);
+        if (merchantNotifyTarget != null) {
+            m.put("merchantNotifyTarget", merchantNotifyTarget);
+        }
+        return m;
+    }
+
+    /**
+     * 업체등록 「URL Background · URL Result」。DB에 단일 행이라도 {@link MerchantNotifyUrl#getSignSecret()} 이 있으면 MIDDLEWARE와 동일 헤더로 서명.
+     */
+    private boolean postPlainPayNotify(MerchantNotifyUrl row, String bodyJson, String kindForLog) {
+        String sig = row.getSignSecret();
+        boolean ok = postWithRetries(row.getNotiUrl().trim(), bodyJson, sig);
+        if (!ok) {
+            log.warn("{} 결제통보 전송 실패 (재시도 소진): {}", kindForLog, row.getNotiUrl());
+        }
+        return ok;
     }
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)

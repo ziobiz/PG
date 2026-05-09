@@ -106,6 +106,8 @@ public class AuthService {
         res.setUserId(user.getUsername());
         res.setUserNm(user.getName() != null ? user.getName() : user.getUsername());
         res.setRole(user.getRole());
+        String ut = user.getUserType();
+        res.setUserType(ut != null && !ut.isBlank() ? ut.trim() : "REPRESENTATIVE");
         String pgn = user.getPermissionGroupNm();
         res.setPermissionGroupNm(pgn != null && !pgn.isBlank() ? pgn.trim() : "");
         resolveOrgUnitForLoginId(username.trim()).ifPresent(ou -> {
@@ -113,6 +115,9 @@ public class AuthService {
             res.setCompId(ou.getCode());
             res.setOrgLevel(ou.getOrgLevel() != null ? ou.getOrgLevel().name() : null);
         });
+        if (res.getOrgLevel() != null && "MERCHANT".equalsIgnoreCase(res.getOrgLevel())) {
+            res.setChatbotPaymentUseYn(resolveChatbotPaymentUseYnForMerchant(res.getOrgUnitId()));
+        }
         boolean mustChange = "Y".equalsIgnoreCase(user.getPasswordMustChangeYn())
                 || isInitialTempPassword(user.getUsername(), password);
         res.setMustChangePassword(mustChange);
@@ -128,6 +133,20 @@ public class AuthService {
             });
         }
         return LoginAttempt.success(res);
+    }
+
+    /** 가맹점(org_unit 기준) 챗봇결제 스위치 — 세션·/me 에서 챗봇 메뉴 표시에 사용 */
+    public String resolveChatbotPaymentUseYnForMerchant(Long orgUnitId) {
+        if (orgUnitId == null) {
+            return "N";
+        }
+        return merchantProfileRepository.findByOrgUnitId(orgUnitId)
+                .map(mp -> yn(mp.getChatbotPaymentUseYn()))
+                .orElse("N");
+    }
+
+    private static String yn(String v) {
+        return "Y".equalsIgnoreCase(v != null ? v.trim() : "") ? "Y" : "N";
     }
 
     public Optional<AppUser> validateToken(String token) {

@@ -36,6 +36,7 @@ public final class PageMenuCatalog {
         add(list, "/hq/receivableRecoverySettings", "M0124", "환수/미수금설정", "본사설정");
         add(list, "/hq/domainConfig", "M0115", "도메인구성설정", "본사설정");
         add(list, "/hq/serverManage", "M0116", "서버운영관리", "본사설정");
+        add(list, "/hq/chatbotAiSettings", "M0126", "AI설정", "본사설정");
         add(list, "/system/noticeList", "M0201", "공지사항", "업체관리");
         add(list, "/comp/myCompMng", "M0202", "업체정보조회", "업체관리");
         add(list, "/comp/compReg", "M0208", "업체등록", "업체관리");
@@ -53,6 +54,8 @@ public final class PageMenuCatalog {
         add(list, "/calc/payForceRefundList", "M0317", "강제환불", "결제관리");
         add(list, "/pay/easyPay", "M0310", "URL결제내역", "결제관리");
         add(list, "/pay/chatbotPay", "M0311", "챗봇결제내역", "결제관리");
+        add(list, "/chatbot/chatbotKbMng", "M0612", "기본설정", "챗봇관리");
+        add(list, "/chatbot/productMng", "M0611", "상품관리", "챗봇관리");
         add(list, "/calc/offsetCancList", "M0309", "상계취소내역", "결제관리");
         add(list, "/calc/chillPaySettlementList", "M0421", "통합정산", "정산관리");
         add(list, "/calc/calcList", "M0404", "유통망정산내역", "정산관리");
@@ -75,6 +78,7 @@ public final class PageMenuCatalog {
         add(list, "/set/gridSetMng", "M0505", "메뉴별항목순서관리", "사용자관리");
         add(list, "/ops/opsMng", "M0601", "운영관리", "운영관리");
         add(list, "/ops/mailLog", "M0602", "메일로그", "운영관리");
+        add(list, "/ops/taxReport", "M0603", "TAX 리포트", "운영관리");
         add(list, "/risk/list", "M0701", "리스크 현황", "리스크관리");
         add(list, "/deploy/integrationPlan", "M0901", "연동 진행안", "배포설정");
         add(list, "/deploy/jpayWorkPlan", "M0902", "JPAY 단계 계획", "배포설정");

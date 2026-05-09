@@ -329,10 +329,11 @@ public class SettlementReportService {
             m.put("remittanceFee", -settlementMoneyDouble(fee, rp));
             return;
         }
-        m.put("remittanceFeeBank", null);
-        m.put("remittanceFeeUsdt", null);
+        // 표시 정책: 송금수수료가 없으면 빈칸이 아니라 0으로 내려 화면에 0이 보이게 함(정산리포트·TAX 리포트 공통)
+        m.put("remittanceFeeBank", 0);
+        m.put("remittanceFeeUsdt", 0);
         m.put("finalPayAfterRemittance", settlementMoneyDouble(payBd, rp));
-        m.put("remittanceFee", null);
+        m.put("remittanceFee", 0);
     }
 
     public Map<String, Object> reportMeta() {

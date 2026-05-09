@@ -68,6 +68,8 @@ public class ApiAuthController {
             user.put("userId", fresh.getUsername());
             user.put("userNm", fresh.getName() != null ? fresh.getName() : fresh.getUsername());
             user.put("role", fresh.getRole());
+            String utMe = fresh.getUserType();
+            user.put("userType", utMe != null && !utMe.isBlank() ? utMe.trim() : "REPRESENTATIVE");
             String pgn = fresh.getPermissionGroupNm();
             user.put("permissionGroupNm", pgn != null && !pgn.isBlank() ? pgn.trim() : "");
             user.put("otpRegisteredYn", authService.isOtpFullyEnrolled(fresh) ? "Y" : "N");
@@ -78,6 +80,21 @@ public class ApiAuthController {
                 user.put("compId", org.get("compId"));
                 user.put("compNm", org.get("compNm"));
                 user.put("orgLevel", org.get("orgLevel"));
+                Object ol = org.get("orgLevel");
+                if (ol != null && "MERCHANT".equalsIgnoreCase(String.valueOf(ol))) {
+                    Object ouidObj = org.get("orgUnitId");
+                    Long ouid = null;
+                    if (ouidObj instanceof Number) {
+                        ouid = ((Number) ouidObj).longValue();
+                    } else if (ouidObj != null) {
+                        try {
+                            ouid = Long.parseLong(String.valueOf(ouidObj).trim());
+                        } catch (NumberFormatException ignored) {
+                            ouid = null;
+                        }
+                    }
+                    user.put("chatbotPaymentUseYn", authService.resolveChatbotPaymentUseYnForMerchant(ouid));
+                }
             }
             user.put("pagePermissions", orgPagePermissionService.resolvePagePermissionsForUser(fresh));
             user.put("canWriteNotice", orgPagePermissionService.canWriteNotice(fresh));

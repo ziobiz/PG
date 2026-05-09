@@ -10,6 +10,8 @@ public class LoginResponse {
     private String compId;
     private String orgLevel;
     private String role;
+    /** REPRESENTATIVE / ASSISTANT — 가맹 챗봇 메뉴 노출 등 클라이언트 판단용 */
+    private String userType;
     /** 권한그룹 표시명(tb_user.permission_group_nm 등). 헤더 다국어용 */
     private String permissionGroupNm;
     /** 본사·총판 관리자 URL 호스트로 로그인한 경우, 사이드바·테마용 브랜딩 조회 compId(포털 루트 조직 코드). 없으면 null */
@@ -22,6 +24,8 @@ public class LoginResponse {
     private String otpRegisteredYn = "N";
     /** 조직별 메뉴 권한(URL→NONE/OBSERVER/MODIFY/DELETE). ADMIN이면 null(무제한) */
     private Map<String, String> pagePermissions;
+    /** 가맹점(MERCHANT) 로그인 시 챗봇결제 사용 Y/N — 그 외 조직·역할은 null */
+    private String chatbotPaymentUseYn;
     /** 공지사항 등록 가능(총본사·본사·총판 + 화면 권한 MODIFY 이상) */
     private boolean canWriteNotice;
 
@@ -39,6 +43,8 @@ public class LoginResponse {
     public void setOrgLevel(String orgLevel) { this.orgLevel = orgLevel; }
     public String getRole() { return role; }
     public void setRole(String role) { this.role = role; }
+    public String getUserType() { return userType; }
+    public void setUserType(String userType) { this.userType = userType; }
     public String getPermissionGroupNm() { return permissionGroupNm; }
     public void setPermissionGroupNm(String permissionGroupNm) { this.permissionGroupNm = permissionGroupNm; }
     public String getBrandingCompId() { return brandingCompId; }
@@ -51,6 +57,8 @@ public class LoginResponse {
     public void setOtpRegisteredYn(String otpRegisteredYn) { this.otpRegisteredYn = otpRegisteredYn; }
     public Map<String, String> getPagePermissions() { return pagePermissions; }
     public void setPagePermissions(Map<String, String> pagePermissions) { this.pagePermissions = pagePermissions; }
+    public String getChatbotPaymentUseYn() { return chatbotPaymentUseYn; }
+    public void setChatbotPaymentUseYn(String chatbotPaymentUseYn) { this.chatbotPaymentUseYn = chatbotPaymentUseYn; }
     public boolean isCanWriteNotice() { return canWriteNotice; }
     public void setCanWriteNotice(boolean canWriteNotice) { this.canWriteNotice = canWriteNotice; }
 }

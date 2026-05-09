@@ -8,6 +8,13 @@
   var AUTH_USER_KEY = 'pg_admin_user';
   var AUTH_FLAG_KEY = 'pg_admin_auth';
 
+  function apiT(ko, en) {
+    try {
+      if (window.PG_UI_I18N && typeof window.PG_UI_I18N.t === 'function') return String(window.PG_UI_I18N.t(String(ko)));
+    } catch (e) {}
+    return (en != null && String(en).trim() !== '') ? String(en) : String(ko);
+  }
+
   /** 운영 API 기본 (config.js 의 PG_PUBLIC_ICOPAY_API 와 동일 개념) */
   function publicApiRoot() {
     var p = (typeof window !== 'undefined' && window.PG_PUBLIC_ICOPAY_API) ? String(window.PG_PUBLIC_ICOPAY_API) : 'https://api.icopay.co.kr';
@@ -78,29 +85,32 @@
         if (res.status === 401) {
           clearAuth();
           if (typeof window.location !== 'undefined') window.location.replace((window.location.origin || '') + '/login.html');
-          return Promise.reject(new Error('인증이 만료되었습니다. 다시 로그인하세요.'));
+          return Promise.reject(new Error(apiT('인증이 만료되었습니다. 다시 로그인하세요.', 'Your session has expired. Please sign in again.')));
         }
         if (res.status === 413) {
-          return Promise.reject(new Error('업로드 파일 용량이 서버 제한을 초과했습니다. 파일 크기를 줄여 다시 시도하세요. (HTTP 413, 프록시/Nginx의 client_max_body_size도 6MB 이상 필요)'));
+          return Promise.reject(new Error(apiT(
+            '업로드 파일 용량이 서버 제한을 초과했습니다. 파일 크기를 줄여 다시 시도하세요. (HTTP 413, 프록시/Nginx의 client_max_body_size도 6MB 이상 필요)',
+            'Upload exceeds the server limit. Reduce file size and try again. (HTTP 413: check reverse proxy/Nginx client_max_body_size)'
+          )));
         }
         var data;
         try {
           data = text ? JSON.parse(text) : {};
         } catch (e1) {
           var flat = text ? String(text).replace(/<script[^>]*>[\s\S]*?<\/script>/gi, ' ').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 200) : '';
-          var head = badParseHead || '서버 응답이 JSON이 아닙니다.';
-          return Promise.reject(new Error(head + ' HTTP ' + res.status + (flat ? (' — ' + flat) : '') + ' (최신 pg-app 배포·Nginx 용량·502 등 확인)'));
+          var head = badParseHead || apiT('서버 응답이 JSON이 아닙니다.', 'Server response is not valid JSON.');
+          return Promise.reject(new Error(head + ' HTTP ' + res.status + (flat ? (' — ' + flat) : '') + ' ' + apiT('(최신 pg-app 배포·Nginx 용량·502 등 확인)', '(check deployment/reverse proxy limits/502)')));
         }
         if (!res.ok) {
           var hint = (data && data.message) ? data.message : (text ? String(text).slice(0, 120) : '');
-          return Promise.reject(new Error('API 오류 HTTP ' + res.status + (hint ? ': ' + hint : '')));
+          return Promise.reject(new Error(apiT('API 오류', 'API error') + ' HTTP ' + res.status + (hint ? ': ' + hint : '')));
         }
         return data;
       });
     }).catch(function (err) {
       var msg = (err && err.message) ? err.message : '';
       if (msg === 'Failed to fetch' || msg.indexOf('NetworkError') !== -1 || msg.indexOf('Load failed') !== -1 || msg === 'Network request failed') {
-        return Promise.reject(new Error('API에 연결하지 못했습니다. (' + url + ') 네트워크·호스팅 설정을 확인해 주세요.'));
+        return Promise.reject(new Error(apiT('API에 연결하지 못했습니다.', 'Unable to connect to API.') + ' (' + url + ') ' + apiT('네트워크·호스팅 설정을 확인해 주세요.', 'Please check network and hosting settings.')));
       }
       return Promise.reject(err);
     });
@@ -130,7 +140,7 @@
       }
       if (q.length) url += (url.indexOf('?') >= 0 ? '&' : '?') + q.join('&');
     }
-    if (!url) return Promise.reject(new Error('API 경로가 없습니다.'));
+    if (!url) return Promise.reject(new Error(apiT('API 경로가 없습니다.', 'Missing API URL/path.')));
     // 교차 출처(관리자 도메인 ≠ API 도메인)에서 same-origin + Allow-Credentials 조합이 막히는 경우 방지.
     // Authorization: Bearer 는 omit 이어도 전송됨(쿠키만 생략).
     init.credentials = 'omit';
@@ -139,7 +149,7 @@
       if (res.status === 401) {
         clearAuth();
         if (typeof window.location !== 'undefined') window.location.replace((window.location.origin || '') + '/login.html');
-        return Promise.reject(new Error('인증이 만료되었습니다. 다시 로그인하세요.'));
+        return Promise.reject(new Error(apiT('인증이 만료되었습니다. 다시 로그인하세요.', 'Your session has expired. Please sign in again.')));
       }
       return res.text().then(function (text) {
         var data;
@@ -147,14 +157,14 @@
         if (!res.ok) {
           var hint = (data && data.message) ? data.message : (text ? String(text).slice(0, 120) : '');
           return Promise.reject(new Error(
-            'API 오류 HTTP ' + res.status + (hint ? (': ' + hint) : '') +
-            ' (도메인/프록시·CORS 확인)'
+            apiT('API 오류', 'API error') + ' HTTP ' + res.status + (hint ? (': ' + hint) : '') +
+            ' ' + apiT('(도메인/프록시·CORS 확인)', '(check domain/reverse proxy/CORS)')
           ));
         }
         if (data.success === false) {
           var failMsg = (data.message != null && String(data.message).trim() !== '')
             ? String(data.message).trim()
-            : ('요청 처리에 실패했습니다.' + (data.errorCode ? ' [' + data.errorCode + ']' : ''));
+            : (apiT('요청 처리에 실패했습니다.', 'Request failed.') + (data.errorCode ? ' [' + data.errorCode + ']' : ''));
           var failErr = new Error(failMsg);
           if (data.errorCode) failErr.errorCode = data.errorCode;
           return Promise.reject(failErr);
@@ -181,8 +191,9 @@
         }
         var apiRootHint = publicApiRoot();
         return Promise.reject(new Error(
-          'API에 연결하지 못했습니다. (' + url + ') ' +
-            '인터넷 연결, 정적 호스팅 보안 정책(connect-src에 ' + apiRootHint + ' 허용), 리버스 프록시·SSL·방화벽을 확인해 주세요.'
+          apiT('API에 연결하지 못했습니다.', 'Unable to connect to API.') + ' (' + url + ') ' +
+            apiT('인터넷 연결, 정적 호스팅 보안 정책(connect-src에', 'Check internet connection, static hosting security policy (allow connect-src') + ' ' +
+            apiRootHint + apiT('허용), 리버스 프록시·SSL·방화벽을 확인해 주세요.', '), reverse proxy, SSL, and firewall.')
         ));
       }
       return Promise.reject(err);
@@ -210,7 +221,7 @@
       try {
         var fr = new FileReader();
         fr.onload = function () { resolve(String(fr.result || '')); };
-        fr.onerror = function () { reject(new Error('이미지 읽기에 실패했습니다.')); };
+        fr.onerror = function () { reject(new Error(apiT('이미지 읽기에 실패했습니다.', 'Failed to read image.'))); };
         fr.readAsDataURL(file);
       } catch (e) {
         reject(e);
@@ -239,7 +250,7 @@
             var width = img.width || 0;
             var height = img.height || 0;
             if (!width || !height) {
-              return reject(new Error('이미지 크기를 확인할 수 없습니다.'));
+              return reject(new Error(apiT('이미지 크기를 확인할 수 없습니다.', 'Unable to determine image dimensions.')));
             }
             // 과도한 고해상도 이미지는 먼저 축소
             var maxSide = 2200;
@@ -251,7 +262,7 @@
             canvas.width = width;
             canvas.height = height;
             var ctx = canvas.getContext('2d');
-            if (!ctx) return reject(new Error('이미지 압축 컨텍스트를 생성할 수 없습니다.'));
+            if (!ctx) return reject(new Error(apiT('이미지 압축 컨텍스트를 생성할 수 없습니다.', 'Unable to create image compression context.')));
             ctx.drawImage(img, 0, 0, width, height);
 
             var q = 0.9;
@@ -263,7 +274,7 @@
               if (outBlob.size <= safeMax) break;
               q -= 0.1;
             }
-            if (!outBlob) return reject(new Error('이미지 압축 결과가 비어 있습니다.'));
+            if (!outBlob) return reject(new Error(apiT('이미지 압축 결과가 비어 있습니다.', 'Image compression result is empty.')));
             var ext = outBlob.type === 'image/png' ? 'png' : 'jpg';
             var baseName = String(file.name || 'upload').replace(/\.[^/.]+$/, '');
             var outName = baseName + '_compressed.' + ext;
@@ -272,7 +283,7 @@
             reject(e2);
           }
         };
-        img.onerror = function () { reject(new Error('이미지 로딩에 실패했습니다.')); };
+        img.onerror = function () { reject(new Error(apiT('이미지 로딩에 실패했습니다.', 'Failed to load image.'))); };
         img.src = dataUrl;
       });
     });
@@ -340,7 +351,7 @@
         headers: noStore
       }).then(function (r) {
         if (r && r.success === false && r.success !== undefined) {
-          throw new Error(r.message || '대시보드 조회 실패');
+          throw new Error(r.message || apiT('대시보드 조회 실패', 'Failed to load dashboard.'));
         }
         var d = r && r.data != null ? r.data : r;
         if (d && typeof d === 'object' && d.data && typeof d.data === 'object' && d.data.sales) {
@@ -448,7 +459,7 @@
 
     pgAgencyList: function () {
       return get('/api/hq/pgAgencyList').then(function (r) {
-        if (r.success === false && r.success !== undefined) throw new Error(r.message || '조회 실패');
+        if (r.success === false && r.success !== undefined) throw new Error(r.message || apiT('조회 실패', 'Failed to load.'));
         return r.data || [];
       });
     },
@@ -463,17 +474,23 @@
         headers: headers,
         body: new URLSearchParams(data)
       }).then(function (res) {
-        if (res.status === 401) { clearAuth(); if (window.location) window.location.replace((window.location.origin || '') + '/login.html'); return Promise.reject(new Error('인증이 만료되었습니다.')); }
+        if (res.status === 401) { clearAuth(); if (window.location) window.location.replace((window.location.origin || '') + '/login.html'); return Promise.reject(new Error(apiT('인증이 만료되었습니다.', 'Your session has expired.'))); }
         return res.text().then(function (text) {
           var r;
-          try { r = text ? JSON.parse(text) : {}; } catch (e) { return Promise.reject(new Error('서버 응답 오류 (API 서버가 실행 중인지, 주소가 맞는지 확인하세요)')); }
-          if (r.success === false && r.success !== undefined) throw new Error(r.message || '등록 실패');
+          try { r = text ? JSON.parse(text) : {}; } catch (e) { return Promise.reject(new Error(apiT('서버 응답 오류 (API 서버가 실행 중인지, 주소가 맞는지 확인하세요)', 'Server response error (check API server status and address).'))); }
+          if (r.success === false && r.success !== undefined) throw new Error(r.message || apiT('등록 실패', 'Registration failed.'));
           return r;
         });
       });
     },
     compCheckLoginId: function (loginId) {
       return get('/api/comp/check-login-id', { loginId: loginId || '' }).then(function (r) { return r.data; });
+    },
+    compCheckChatbotAdminUsername: function (compId, chatbotAdminUsername) {
+      return get('/api/comp/check-chatbot-admin-username', {
+        compId: String(compId || '').trim(),
+        chatbotAdminUsername: chatbotAdminUsername != null ? String(chatbotAdminUsername) : ''
+      }).then(function (r) { return r.data; });
     },
 
     /** 바이너리 응답 (xlsx 등) — JSON 파싱 안 함 */
@@ -492,11 +509,11 @@
         if (res.status === 401) {
           clearAuth();
           if (typeof window.location !== 'undefined') window.location.replace((window.location.origin || '') + '/login.html');
-          return Promise.reject(new Error('인증이 만료되었습니다. 다시 로그인하세요.'));
+          return Promise.reject(new Error(apiT('인증이 만료되었습니다. 다시 로그인하세요.', 'Your session has expired. Please sign in again.')));
         }
         if (!res.ok) {
           return res.text().then(function (t) {
-            throw new Error(t || ('다운로드 실패 (HTTP ' + res.status + ')'));
+            throw new Error(t || (apiT('다운로드 실패', 'Download failed') + ' (HTTP ' + res.status + ')'));
           });
         }
         return res.blob();
@@ -619,6 +636,75 @@
           });
         });
     },
+    /** 가맹 챗봇 상단 로고 — 서버에서 목표 용량까지 자동 재압축 */
+    compChatbotHeaderLogoUpload: function (compId, file) {
+      var base = getBaseUrl();
+      var token = getToken();
+      var fd = new FormData();
+      fd.append('compId', String(compId || '').trim());
+      fd.append('file', file);
+      var headers = {};
+      if (token) headers['Authorization'] = 'Bearer ' + token;
+      return fetch(base + '/api/comp/chatbotHeaderLogo/upload', { method: 'POST', headers: headers, body: fd }).then(function (res) {
+        if (res.status === 401) { clearAuth(); if (window.location) window.location.replace((window.location.origin || '') + '/login.html'); return Promise.reject(new Error('인증이 만료되었습니다.')); }
+        return res.text().then(function (text) {
+          var r;
+          try { r = text ? JSON.parse(text) : {}; } catch (e) { return Promise.reject(new Error('서버 응답 오류')); }
+          if (r.success === false && r.success !== undefined) throw new Error(r.message || '업로드 실패');
+          return r.data || {};
+        });
+      });
+    },
+    compChatbotKbGet: function (compId) {
+      return get('/api/comp/chatbotKb', { compId: compId }).then(function (r) {
+        if (r.success === false && r.success !== undefined) throw new Error(r.message || '조회 실패');
+        return r.data || {};
+      });
+    },
+    compChatbotKbMerchantList: function (params) {
+      return get('/api/comp/chatbotKb/merchantList', params || {}).then(function (r) {
+        if (r.success === false && r.success !== undefined) throw new Error(r.message || '목록 실패');
+        return r.data || { list: [], page: 1, size: 20, totalElements: 0, totalPages: 1 };
+      });
+    },
+    compChatbotKbSave: function (compId, fields) {
+      var body = new URLSearchParams({ compId: String(compId || '').trim() });
+      var f = fields || {};
+      ['chatbotKbCompanyNm', 'chatbotKbAddr', 'chatbotKbTel', 'chatbotKbEmail', 'chatbotKbContactNm', 'chatbotKbIntro', 'chatbotKbProductDesc'].forEach(function (k) {
+        if (f[k] != null) body.append(k, String(f[k]));
+      });
+      if (Object.prototype.hasOwnProperty.call(f, 'chatbotProductSlotLimit')) {
+        body.append('chatbotProductSlotLimit', String(f.chatbotProductSlotLimit != null ? f.chatbotProductSlotLimit : ''));
+      }
+      var base = getBaseUrl();
+      var token = getToken();
+      var headers = { 'Content-Type': 'application/x-www-form-urlencoded', 'Accept': 'application/json' };
+      if (token) headers['Authorization'] = 'Bearer ' + token;
+      return fetch(base + '/api/comp/chatbotKb/save', { method: 'POST', headers: headers, body: body }).then(function (res) {
+        if (res.status === 401) { clearAuth(); if (window.location) window.location.replace((window.location.origin || '') + '/login.html'); return Promise.reject(new Error('인증이 만료되었습니다.')); }
+        return res.text().then(function (text) {
+          var r; try { r = text ? JSON.parse(text) : {}; } catch (e) { return Promise.reject(new Error('서버 응답 오류')); }
+          if (r.success === false && r.success !== undefined) throw new Error(r.message || '저장 실패');
+          return r.data || {};
+        });
+      });
+    },
+    compChatbotKbSuggest: function (compId, kind) {
+      var body = new URLSearchParams({ compId: String(compId || '').trim(), kind: String(kind || 'intro') });
+      var base = getBaseUrl();
+      var token = getToken();
+      var headers = { 'Content-Type': 'application/x-www-form-urlencoded', 'Accept': 'application/json' };
+      if (token) headers['Authorization'] = 'Bearer ' + token;
+      return fetch(base + '/api/comp/chatbotKb/suggest', { method: 'POST', headers: headers, body: body }).then(function (res) {
+        if (res.status === 401) { clearAuth(); if (window.location) window.location.replace((window.location.origin || '') + '/login.html'); return Promise.reject(new Error('인증이 만료되었습니다.')); }
+        return res.text().then(function (text) {
+          var r; try { r = text ? JSON.parse(text) : {}; } catch (e) { return Promise.reject(new Error('서버 응답 오류')); }
+          if (r.success === false && r.success !== undefined) throw new Error(r.message || '생성 실패');
+          return (r.data && r.data.text != null) ? String(r.data.text) : '';
+        });
+      });
+    },
+
     compChangeLoginId: function (compId, newLoginId) {
       var base = getBaseUrl();
       var token = getToken();
@@ -691,7 +777,7 @@
     },
     commissionSave: function (compId, data) {
       var cid = compId != null ? String(compId).trim() : '';
-      if (!cid) return Promise.reject(new Error('업체코드가 없습니다.'));
+      if (!cid) return Promise.reject(new Error(apiT('업체코드가 없습니다.', 'Missing company code.')));
       var body = new URLSearchParams({ compId: cid });
       for (var k in data) {
         if (!Object.prototype.hasOwnProperty.call(data, k)) continue;
@@ -714,15 +800,15 @@
             } catch (eParse) {
               if (!res.ok) {
                 var flat = text ? String(text).replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 160) : '';
-                return Promise.reject(new Error('저장 실패 HTTP ' + res.status + (flat ? ' — ' + flat : '') + ' (JSON이 아닌 응답)'));
+                return Promise.reject(new Error(apiT('저장 실패', 'Save failed') + ' HTTP ' + res.status + (flat ? ' — ' + flat : '') + ' ' + apiT('(JSON이 아닌 응답)', '(non-JSON response)')));
               }
-              return Promise.reject(new Error('서버 응답 오류'));
+              return Promise.reject(new Error(apiT('서버 응답 오류', 'Server response error.')));
             }
             if (!res.ok) {
               var hint = (r && r.message) ? r.message : (text ? String(text).trim().slice(0, 200) : '');
-              return Promise.reject(new Error('저장 실패 HTTP ' + res.status + (hint ? ': ' + hint : '')));
+              return Promise.reject(new Error(apiT('저장 실패', 'Save failed') + ' HTTP ' + res.status + (hint ? ': ' + hint : '')));
             }
-            if (r.success === false && r.success !== undefined) throw new Error(r.message || '저장 실패');
+            if (r.success === false && r.success !== undefined) throw new Error(r.message || apiT('저장 실패', 'Save failed.'));
             return r;
           });
         });
@@ -1149,6 +1235,62 @@
     hqLedgerSysSettingsTestVoidEmail: function (body) {
       return post('/api/hq/ledgerSysSettings/testVoidEmail', body || {}).then(function (r) { return r.data; });
     },
+    hqChatbotAiSettings: function () {
+      return get('/api/hq/chatbotAiSettings').then(function (r) { return r.data; });
+    },
+    hqChatbotAiSettingsSave: function (body) {
+      return post('/api/hq/chatbotAiSettings/save', body || {}).then(function (r) { return r.data; });
+    },
+    chatbotProductsList: function (compId) {
+      var params = {};
+      if (compId != null && String(compId).trim() !== '') {
+        params.compId = String(compId).trim();
+      }
+      return get('/api/chatbot/products', params).then(function (r) {
+        if (r.success === false && r.success !== undefined) throw new Error(r.message || apiT('조회 실패', 'Lookup failed'));
+        var raw = r.data;
+        return Array.isArray(raw) ? raw : [];
+      });
+    },
+    chatbotProductsSave: function (body) {
+      return post('/api/chatbot/products/save', body || {}).then(function (r) {
+        if (r.success === false && r.success !== undefined) throw new Error(r.message || apiT('저장 실패', 'Save failed'));
+        return r.data;
+      });
+    },
+    chatbotProductsDelete: function (compId, id) {
+      return del('/api/chatbot/products/' + encodeURIComponent(String(id)) + '?compId=' + encodeURIComponent(String(compId || '').trim())).then(function (r) {
+        if (r.success === false && r.success !== undefined) throw new Error(r.message || apiT('삭제 실패', 'Delete failed'));
+        return !!(r.data === true || r.data === '' || r.data == null || r.success);
+      });
+    },
+    chatbotProductsUpload: function (compId, productId, file) {
+      var base = getBaseUrl();
+      var token = getToken();
+      var fd = new FormData();
+      fd.append('compId', String(compId || '').trim());
+      if (productId != null && String(productId).trim() !== '') fd.append('productId', String(productId).trim());
+      fd.append('file', file);
+      var headers = {};
+      if (token) headers['Authorization'] = 'Bearer ' + token;
+      return fetch(base + '/api/chatbot/products/upload', { method: 'POST', headers: headers, body: fd }).then(function (res) {
+        if (res.status === 401) {
+          clearAuth();
+          if (window.location) window.location.replace((window.location.origin || '') + '/login.html');
+          return Promise.reject(new Error(apiT('인증이 만료되었습니다.', 'Session expired.')));
+        }
+        return res.text().then(function (text) {
+          var r;
+          try {
+            r = text ? JSON.parse(text) : {};
+          } catch (eJ) {
+            throw new Error(apiT('서버 응답 오류', 'Invalid server response'));
+          }
+          if (!r.success) throw new Error(r.message || apiT('업로드 실패', 'Upload failed'));
+          return r.data || {};
+        });
+      });
+    },
     opsMailLogList: function (params) {
       var p = params || {};
       var q = { page: p.page || 1, size: p.size || 20 };
@@ -1157,6 +1299,28 @@
       if (p.searchFromDate) q.fromDate = p.searchFromDate;
       if (p.searchToDate) q.toDate = p.searchToDate;
       return get('/api/ops/mailLog', q).then(function (r) { return r.data; });
+    },
+    opsTaxReportAccess: function () {
+      return get('/api/ops/taxReport/access').then(function (r) { return r.data; });
+    },
+    opsTaxReportList: function (params) {
+      var p = params || {};
+      var q = { page: p.page || 1, size: p.size || 50 };
+      if (p.searchFromDate) q.searchFromDate = p.searchFromDate;
+      if (p.searchToDate) q.searchToDate = p.searchToDate;
+      if (p.searchCompId) q.searchCompId = p.searchCompId;
+      if (p.searchOrderDir) q.searchOrderDir = p.searchOrderDir;
+      return get('/api/ops/taxReport/list', q).then(function (r) { return r.data; });
+    },
+    opsTaxReportExport: function (payload) {
+      return this.fetchBinary('/api/ops/taxReport/export', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        },
+        body: JSON.stringify(payload || {})
+      });
     },
     hqOrgViewColumnRegionalBranches: function () {
       return get('/api/hq/orgViewColumnAllowance/regionalBranches').then(function (r) { return r.data || []; });

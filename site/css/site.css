@@ -452,6 +452,16 @@ body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Ro
 .tab-pane.tabConDiv { height: 100%; min-height: 0; display: none; padding: 0; overflow-y: auto; scrollbar-gutter: stable; font-size: var(--app-base-font-size); }
 .tab-pane.tabConDiv.show.active { display: block; }
 
+/* TAX 리포트: content 영역 자체의 가로 스크롤을 차단 */
+#contentsMain .tab-pane.tabConDiv.screen-tax-report,
+#contentsMain .tab-pane.tabConDiv.screen-tax-report .content-inner {
+  overflow-x: hidden !important;
+}
+/* content-inner는 pane 상위이므로, TAX 리포트 탭 활성 시 직접 차단 */
+.content-inner.content-inner--tax-report {
+  overflow-x: hidden !important;
+}
+
 /* 목록 화면 통일 간격: 검색 줄·알림·요약·테이블 구분 (결제내역·결제실패 등 전체) */
 .screen-search-form {
   display: flex;
@@ -508,12 +518,19 @@ body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Ro
 }
 /* 조회일자: 달력 40% 확대 */
 .screen-search-form .search-cell-input--daterange { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+/* 네이티브 date: YYYY-MM-DD + 달력 아이콘이 잘리지 않도록 전역 최소 너비 (인라인 ch·좁은 미디어쿼리보다 우선) */
+#contentsMain input[type="date"],
+.tab-pane.tabConDiv input[type="date"] {
+  min-width: 13.875rem !important;
+  width: auto !important;
+  max-width: none;
+}
 .screen-search-form .search-date-input {
   font-size: var(--app-base-font-size);
   height: 30px;
   padding: 2px 8px;
-  width: 154px;
-  min-width: 140px;
+  width: auto;
+  min-width: 13.875rem;
   max-width: none;
 }
 /* 결제관리 검색: 라벨 글자길이와 무관하게 입력칸 시작선/폭을 통일 */
@@ -606,7 +623,8 @@ body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Ro
 }
 @media (max-width: 768px) {
   .screen-search-form .search-cell--with-label .search-cell-label { min-width: 28px; font-size: var(--app-base-font-size); }
-  .screen-search-form .search-date-input { min-width: 90px; }
+  /* 세로 줄바꿈 시에도 날짜 전체 표시(#contentsMain 규칙과 동일 계열) */
+  .screen-search-form .search-date-input { min-width: 11.5rem !important; }
 }
 
 /* 알림 박스 (파스텔 톤): 오류 이월… ↔ 건수 줄 간격 (위·아래 동일, 전체 페이지 공통) */
@@ -1438,6 +1456,65 @@ body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Ro
 }
 #contentsMain .screen-pay-list .table .empty-state-cell {
   white-space: normal;
+}
+
+/* TAX 리포트: 페이지 하단 가로 스크롤바 제거 + 날짜 입력 폭 축소 */
+#contentsMain .screen-tax-report .table-responsive {
+  display: block;
+  width: 100%;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+}
+#contentsMain .screen-tax-report .table-responsive > .table {
+  width: 100% !important;
+  min-width: 100% !important;
+  table-layout: fixed;
+  margin-bottom: 0;
+}
+#contentsMain .screen-tax-report .table thead th,
+#contentsMain .screen-tax-report .table tbody td {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+#contentsMain .screen-tax-report input[type="date"] {
+  min-width: 10.5rem !important;
+}
+
+/* TAX 리포트: 그리드 셀 밀도(폭) 축소 → 가로 스크롤 방지 */
+#contentsMain .screen-tax-report .table thead th,
+#contentsMain .screen-tax-report .table tbody td {
+  font-size: 11px;
+  line-height: 1.2;
+  padding: 3px 4px;
+}
+/* data-key로 주요 열 너비를 강제(standard grid thead는 th[data-key] 지원) */
+#contentsMain .screen-tax-report .table thead th[data-key="rowNo"] { width: 44px; }
+#contentsMain .screen-tax-report .table thead th[data-key="settlementRunId"] { width: 76px; }
+#contentsMain .screen-tax-report .table thead th[data-key="calcDt"] { width: 86px; }
+#contentsMain .screen-tax-report .table thead th[data-key="periodFrom"],
+#contentsMain .screen-tax-report .table thead th[data-key="periodTo"] { width: 86px; }
+#contentsMain .screen-tax-report .table thead th[data-key="compId"] { width: 86px; }
+#contentsMain .screen-tax-report .table thead th[data-key="txnCnt"] { width: 66px; }
+#contentsMain .screen-tax-report .table thead th[data-key="approveAmt"],
+#contentsMain .screen-tax-report .table thead th[data-key="cancelAmt"],
+#contentsMain .screen-tax-report .table thead th[data-key="netSales"],
+#contentsMain .screen-tax-report .table thead th[data-key="totalFee"],
+#contentsMain .screen-tax-report .table thead th[data-key="rollingReserveAmt"],
+#contentsMain .screen-tax-report .table thead th[data-key="settlementBatchFee"],
+#contentsMain .screen-tax-report .table thead th[data-key="payAmount"],
+#contentsMain .screen-tax-report .table thead th[data-key="remittanceFeeBank"],
+#contentsMain .screen-tax-report .table thead th[data-key="remittanceFeeUsdt"],
+#contentsMain .screen-tax-report .table thead th[data-key="finalPayAfterRemittance"] { width: 98px; }
+#contentsMain .screen-tax-report .table thead th[data-key="reportNote"] { width: 110px; }
+
+/* TAX 리포트 상단(정산일) 날짜 입력칸: 폭 40% 축소(= 약 60% 폭) */
+#contentsMain .screen-tax-report .screen-search-form .search-cell-input--daterange input[type="date"] {
+  min-width: 6.5rem !important;
+  width: 6.5rem !important;
+  font-size: 11px;
+  padding-left: 6px;
+  padding-right: 6px;
 }
 
 /* 동일 화면: 검색폼·안내·VIEW·요약·버튼·페이지네이션 글자 크기 통일 */
@@ -3964,4 +4041,63 @@ button.pay-follow-pill:focus-visible {
 .pg-dash-hq-hub .pg-dash-tile:hover {
   background: #f8f9fa !important;
   border-color: #0d6efd !important;
+}
+
+/* 챗봇 기본설정 — 산하 가맹 현황 표: 가로 스크롤 없음, 긴 본문은 셀 안 줄바꿈 */
+.chatbot-kb-overview-outer .chatbot-kb-overview-table-wrap {
+  overflow-x: visible;
+  max-width: 100%;
+}
+.chatbot-kb-overview-outer #tbl_chatbot_kb_overview {
+  table-layout: fixed;
+  width: 100%;
+}
+.chatbot-kb-overview-outer #tbl_chatbot_kb_overview col.chatbot-kb-col-compid { width: 7%; }
+.chatbot-kb-overview-outer #tbl_chatbot_kb_overview col.chatbot-kb-col-compnm { width: 8%; }
+.chatbot-kb-overview-outer #tbl_chatbot_kb_overview col.chatbot-kb-col-prodslot { width: 5.5rem; }
+.chatbot-kb-overview-outer #tbl_chatbot_kb_overview col.chatbot-kb-col-kbnm { width: 8%; }
+.chatbot-kb-overview-outer #tbl_chatbot_kb_overview col.chatbot-kb-col-tel { width: 7%; }
+.chatbot-kb-overview-outer #tbl_chatbot_kb_overview col.chatbot-kb-col-email { width: 9%; }
+.chatbot-kb-overview-outer #tbl_chatbot_kb_overview col.chatbot-kb-col-contact { width: 6%; }
+.chatbot-kb-overview-outer #tbl_chatbot_kb_overview col.chatbot-kb-col-addr { width: 11%; }
+.chatbot-kb-overview-outer #tbl_chatbot_kb_overview col.chatbot-kb-col-intro { width: 16%; }
+.chatbot-kb-overview-outer #tbl_chatbot_kb_overview col.chatbot-kb-col-product { width: 16%; }
+.chatbot-kb-overview-outer #tbl_chatbot_kb_overview col.chatbot-kb-col-action { width: 4.5rem; }
+.chatbot-kb-overview-outer #tbl_chatbot_kb_overview th,
+.chatbot-kb-overview-outer #tbl_chatbot_kb_overview td {
+  vertical-align: top;
+}
+.chatbot-kb-overview-outer #tbl_chatbot_kb_overview .chatbot-kb-col-wrap {
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+.chatbot-kb-overview-outer #tbl_chatbot_kb_overview .chatbot-kb-col-multiline {
+  white-space: pre-wrap;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+.chatbot-kb-overview-outer #tbl_chatbot_kb_overview td.text-center {
+  vertical-align: middle;
+}
+
+/* 챗봇 상품관리 — 가맹 로그인 시 본사 전용 열 숨김 */
+.chatbot-prod-grid--merchant .hq-only-col {
+  display: none !important;
+}
+/* 인라인 편집 그리드: 열 리사이즈 비활성(table-no-col-resize) + 이미지·설명 칸 최소 너비 */
+.chatbot-product-mng .chatbot-prod-grid {
+  table-layout: auto;
+}
+.chatbot-product-mng .chatbot-prod-img-td {
+  min-width: 9.5rem;
+  max-width: 14rem;
+  vertical-align: top;
+}
+.chatbot-product-mng .chatbot-field-desc {
+  min-height: 2.75rem;
+  resize: vertical;
+}
+.chatbot-product-mng .chatbot-prod-img-stack .chatbot-field-img {
+  font-size: 0.75rem;
+  word-break: break-all;
 }

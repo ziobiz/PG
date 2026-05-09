@@ -1,0 +1,1961 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
+  <meta name="theme-color" content="#5d45d6">
+  <title>챗봇 결제</title>
+  <style>
+    :root {
+      --cb-brand: #5d45d6;
+      --cb-brand-hover: #4b38bb;
+      --cb-bg: #f2f3f8;
+      --cb-bot-bubble: #eceef3;
+      --cb-online: #2ecc71;
+      --cb-text: #1a1a1a;
+      --cb-muted: rgba(93, 69, 214, 0.55);
+      --safe-b: env(safe-area-inset-bottom, 0px);
+      /* 플로팅 챗 카드: 상·하·좌·우 라운딩 */
+      --cb-shell-radius: 18px;
+      --cb-shell-pad: 12px;
+    }
+    *, *::before, *::after { box-sizing: border-box; }
+    html {
+      min-height: 100%;
+    }
+    html, body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
+      color: var(--cb-text);
+      background: var(--cb-bg);
+      -webkit-tap-highlight-color: transparent;
+    }
+    body {
+      min-height: 100vh;
+      min-height: 100dvh;
+      padding: max(var(--cb-shell-pad), env(safe-area-inset-top, 0px))
+               max(var(--cb-shell-pad), env(safe-area-inset-right, 0px))
+               max(var(--cb-shell-pad), env(safe-area-inset-bottom, 0px))
+               max(var(--cb-shell-pad), env(safe-area-inset-left, 0px));
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .cb-root {
+      display: flex;
+      flex-direction: column;
+      flex: 1 1 auto;
+      width: 100%;
+      max-width: 480px;
+      min-height: 0;
+      min-height: calc(100vh - 2 * var(--cb-shell-pad));
+      min-height: calc(100dvh - 2 * var(--cb-shell-pad));
+      max-height: calc(100vh - 2 * var(--cb-shell-pad));
+      max-height: calc(100dvh - 2 * var(--cb-shell-pad));
+      margin: 0 auto;
+      background: #fff;
+      border-radius: var(--cb-shell-radius);
+      overflow: hidden;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1), 0 0 0 1px rgba(0, 0, 0, 0.04);
+    }
+    .cb-banner {
+      flex: 0 0 auto;
+      margin: 0;
+      padding: 0.5rem 0.75rem;
+      font-size: 0.8125rem;
+      border: none;
+      border-radius: 0;
+      display: none;
+    }
+    .cb-banner.show { display: block; }
+    .cb-header {
+      flex: 0 0 auto;
+      display: grid;
+      grid-template-columns: 42px minmax(0, 1fr) auto;
+      grid-template-rows: auto auto;
+      align-items: center;
+      column-gap: 0.65rem;
+      row-gap: 0.08rem;
+      padding: 0.65rem 0.75rem;
+      padding-top: calc(0.65rem + env(safe-area-inset-top, 0px));
+      background: linear-gradient(135deg, var(--cb-brand) 0%, #6b4fe0 100%);
+      color: #fff;
+    }
+    .cb-header-logo-wrap {
+      grid-column: 1;
+      grid-row: 1 / span 2;
+      align-self: center;
+      justify-self: center;
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.95);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      flex-shrink: 0;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+    }
+    .cb-header-logo-wrap img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    .cb-header-logo-fallback {
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--cb-brand);
+    }
+    /* 그리드 직속 자식으로 펼쳐 제목 행과 액션(새로고침)을 같은 행에 두어 세로 정렬 일치 */
+    .cb-header-text { display: contents; }
+    .cb-header-title-row {
+      grid-column: 2;
+      grid-row: 1;
+      align-self: center;
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+      min-width: 0;
+      min-height: 36px;
+      line-height: 1.25;
+      padding-inline-end: 0.35rem;
+    }
+    .cb-header-title {
+      flex: 1 1 auto;
+      min-width: 0;
+      font-weight: 700;
+      font-size: 1rem;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    /* 헤더 우측: 새로고침 등과 동일 톤의 텍스트 메뉴 버튼 */
+    .cb-menu-btn {
+      height: 36px;
+      padding: 0 0.65rem;
+      margin: 0;
+      border: none;
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.15);
+      color: #fff;
+      font-family: inherit;
+      font-size: 0.75rem;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      white-space: nowrap;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .cb-menu-btn:active {
+      background: rgba(255, 255, 255, 0.28);
+    }
+    .cb-menu-btn:link,
+    .cb-menu-btn:visited {
+      color: #fff;
+    }
+    .cb-header-sub {
+      grid-column: 2;
+      grid-row: 2;
+      align-self: start;
+      font-size: 0.75rem;
+      opacity: 0.92;
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+      margin-top: 0;
+    }
+    .cb-dot-online {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--cb-online);
+      box-shadow: 0 0 0 2px rgba(46, 204, 113, 0.35);
+    }
+    .cb-header-actions {
+      grid-column: 3;
+      grid-row: 1;
+      align-self: center;
+      display: flex;
+      gap: 0.35rem;
+      flex-shrink: 0;
+      margin-inline-start: 0.5rem;
+    }
+    .cb-icon-btn {
+      width: 36px;
+      height: 36px;
+      border: none;
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.15);
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 1rem;
+    }
+    .cb-icon-btn:active { background: rgba(255, 255, 255, 0.28); }
+    .cb-main {
+      flex: 1 1 auto;
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+      background: var(--cb-bg);
+    }
+    .cb-shelf-wrap {
+      flex: 0 0 auto;
+      background: var(--cb-bg);
+      border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+      padding: 0.5rem 0 0.65rem;
+    }
+    .cb-shelf-label {
+      font-size: 0.7rem;
+      font-weight: 600;
+      color: #6c757d;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      padding: 0 0.75rem 0.35rem;
+    }
+    .cb-shelf {
+      display: flex;
+      gap: 0.5rem;
+      overflow-x: auto;
+      padding: 0 0.75rem;
+      scrollbar-width: thin;
+      -webkit-overflow-scrolling: touch;
+    }
+    .cb-shelf::-webkit-scrollbar { height: 4px; }
+    .cb-shelf::-webkit-scrollbar-thumb {
+      background: rgba(93, 69, 214, 0.25);
+      border-radius: 4px;
+    }
+    .cb-pcard {
+      flex: 0 0 auto;
+      width: 132px;
+      background: #fff;
+      border-radius: 14px;
+      overflow: hidden;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
+      display: flex;
+      flex-direction: column;
+    }
+    .cb-pcard-img {
+      height: 72px;
+      background: #e9e9ef;
+      object-fit: cover;
+      width: 100%;
+    }
+    .cb-pcard-body { padding: 0.45rem 0.5rem 0.5rem; }
+    .cb-pcard-title {
+      font-size: 0.75rem;
+      font-weight: 600;
+      line-height: 1.25;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      min-height: 2.2em;
+    }
+    .cb-pcard-amt {
+      font-size: 0.72rem;
+      color: var(--cb-brand);
+      font-weight: 700;
+      margin-top: 0.2rem;
+    }
+    .cb-pcard-btn {
+      margin-top: 0.35rem;
+      width: 100%;
+      border: none;
+      border-radius: 8px;
+      background: var(--cb-brand);
+      color: #fff;
+      font-size: 0.72rem;
+      font-weight: 600;
+      padding: 0.35rem 0;
+      cursor: pointer;
+    }
+    .cb-pcard-btn:active { background: var(--cb-brand-hover); }
+    .cb-pcard-type {
+      display: inline-block;
+      font-size: 0.58rem;
+      font-weight: 800;
+      letter-spacing: 0.03em;
+      padding: 0.1rem 0.38rem;
+      border-radius: 6px;
+      margin-bottom: 0.22rem;
+    }
+    .cb-pcard-type-sale {
+      background: rgba(93, 69, 214, 0.14);
+      color: var(--cb-brand);
+    }
+    .cb-pcard-type-res {
+      background: rgba(217, 119, 6, 0.2);
+      color: #c2410c;
+    }
+    .cb-pcard-btn.cb-pcard-btn-res {
+      background: #ea580c;
+    }
+    .cb-pcard-btn.cb-pcard-btn-res:active { background: #c2410c; }
+    .cb-thread {
+      flex: 1 1 auto;
+      overflow-y: auto;
+      padding: 0.65rem 0.75rem 0.35rem;
+      -webkit-overflow-scrolling: touch;
+    }
+    .cb-msg-row {
+      display: flex;
+      margin-bottom: 0.65rem;
+      align-items: flex-end;
+      gap: 0.35rem;
+    }
+    .cb-msg-row.user { justify-content: flex-end; }
+    .cb-msg-row.bot { justify-content: flex-start; }
+    .cb-bubble {
+      max-width: min(82%, 320px);
+      padding: 0.55rem 0.75rem;
+      border-radius: 16px;
+      font-size: 0.875rem;
+      line-height: 1.45;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    .cb-bubble.user {
+      background: var(--cb-brand);
+      color: #fff;
+      border-bottom-right-radius: 4px;
+    }
+    .cb-bubble.bot {
+      background: var(--cb-bot-bubble);
+      color: var(--cb-text);
+      border-bottom-left-radius: 4px;
+    }
+    .cb-bubble .cb-bubble-media {
+      display: block;
+      max-width: 100%;
+      max-height: 200px;
+      border-radius: 10px;
+      margin-bottom: 0.35rem;
+      object-fit: cover;
+      background: rgba(0, 0, 0, 0.08);
+    }
+    .cb-bubble .cb-bubble-media.cb-bubble-char {
+      object-fit: contain;
+      max-height: 132px;
+      width: 132px;
+      margin-left: auto;
+      margin-right: auto;
+      background: rgba(255, 255, 255, 0.22);
+    }
+    .cb-bubble .cb-bubble-cap {
+      font-size: 0.81rem;
+    }
+    .cb-time {
+      font-size: 0.65rem;
+      color: var(--cb-muted);
+      flex-shrink: 0;
+      padding-bottom: 0.15rem;
+    }
+    .cb-msg-row.user { flex-direction: row-reverse; }
+    .cb-msg-row.user .cb-time { padding-right: 0.15rem; }
+    .cb-typing {
+      display: inline-flex;
+      gap: 4px;
+      padding: 0.5rem 0.75rem;
+      background: var(--cb-bot-bubble);
+      border-radius: 16px;
+      border-bottom-left-radius: 4px;
+    }
+    .cb-typing span {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--cb-brand);
+      animation: cb-bounce 1.2s infinite ease-in-out;
+    }
+    .cb-typing span:nth-child(2) { animation-delay: 0.15s; }
+    .cb-typing span:nth-child(3) { animation-delay: 0.3s; }
+    @keyframes cb-bounce {
+      0%, 80%, 100% { transform: scale(0.75); opacity: 0.5; }
+      40% { transform: scale(1); opacity: 1; }
+    }
+    .cb-composer {
+      flex: 0 0 auto;
+      padding: 0.5rem 0.65rem;
+      padding-bottom: calc(0.5rem + var(--safe-b));
+      background: #fff;
+      border-top: 1px solid rgba(0, 0, 0, 0.06);
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+    }
+    .cb-composer-tools {
+      display: flex;
+      align-items: center;
+      gap: 0.3rem;
+      padding: 0 0.1rem;
+      position: relative;
+    }
+    .cb-emoji-wrap { position: relative; flex-shrink: 0; }
+    .cb-emoji-btn {
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      border: 1px solid rgba(93, 69, 214, 0.25);
+      background: #f4f2ff;
+      font-size: 1.15rem;
+      line-height: 1;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0;
+    }
+    .cb-emoji-btn:active { background: #ebe6ff; }
+    /* fixed + 큰 그리드: .cb-root overflow:hidden 에 잘리지 않도록 뷰포트 기준 */
+    .cb-emoji-pop {
+      display: none;
+      position: fixed;
+      z-index: 10050;
+      box-sizing: border-box;
+      width: min(calc(100vw - 16px), 380px);
+      max-height: min(58vh, 400px);
+      overflow-x: hidden;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      grid-template-columns: repeat(8, minmax(0, 1fr));
+      gap: 4px;
+      padding: 10px 10px 12px;
+      background: #fff;
+      border-radius: 14px;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.18), 0 0 0 1px rgba(0, 0, 0, 0.06);
+    }
+    .cb-emoji-pop.show { display: grid; }
+    .cb-emoji-pop-hd {
+      grid-column: 1 / -1;
+      font-size: 0.68rem;
+      font-weight: 700;
+      color: #6c757d;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin: 0 0 4px;
+      padding: 0 2px;
+    }
+    .cb-emoji-item {
+      width: 100%;
+      aspect-ratio: 1;
+      min-height: 40px;
+      max-height: 48px;
+      border: none;
+      border-radius: 10px;
+      background: #f4f6fb;
+      font-size: 1.45rem;
+      line-height: 1;
+      cursor: pointer;
+      padding: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .cb-emoji-item:hover { background: #e8ecfa; }
+    .cb-emoji-item:active { background: #dde3f5; }
+
+    /* 동일 캐릭터 스타일 기본 인사(문구 입력) — 3열 카드 */
+    .cb-char-strip {
+      grid-column: 1 / -1;
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px;
+      margin: 2px 0 10px;
+    }
+    .cb-char-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      gap: 6px;
+      padding: 8px 4px 10px;
+      min-height: 0;
+      border: none;
+      border-radius: 12px;
+      background: linear-gradient(165deg, #f6f4ff 0%, #ebe6fc 100%);
+      box-shadow: 0 1px 0 rgba(107, 91, 203, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.85);
+      border: 1px solid rgba(107, 91, 203, 0.22);
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .cb-char-item:active {
+      background: linear-gradient(165deg, #ebe6fc 0%, #dfd6f9 100%);
+      transform: scale(0.98);
+    }
+    .cb-char-item svg {
+      width: 48px;
+      height: 48px;
+      flex-shrink: 0;
+      display: block;
+    }
+    .cb-char-lbl {
+      font-size: 0.625rem;
+      font-weight: 700;
+      color: #433d56;
+      text-align: center;
+      line-height: 1.25;
+      max-width: 100%;
+      word-break: keep-all;
+    }
+    .cb-sr-file {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+    .cb-attach-btn {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      border: 1.5px solid rgba(93, 69, 214, 0.4);
+      background: #f4f2ff;
+      color: var(--cb-brand);
+      font-size: 1.35rem;
+      font-weight: 400;
+      line-height: 1;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    .cb-attach-btn:active { background: #ebe6ff; }
+    .cb-attach-btn:disabled { opacity: 0.42; cursor: not-allowed; }
+    .cb-admin-img-preview {
+      max-height: 72px;
+      max-width: 100%;
+      border-radius: 8px;
+      margin-top: 0.35rem;
+      display: none;
+      object-fit: contain;
+      background: #f4f4f6;
+      border: 1px solid #e9e9ef;
+    }
+    .cb-input-wrap {
+      flex: 1;
+      min-width: 0;
+    }
+    .cb-input {
+      width: 100%;
+      border: 1px solid #e4e6ec;
+      border-radius: 22px;
+      padding: 0.55rem 0.85rem;
+      font-size: 0.9rem;
+      outline: none;
+      background: #f8f9fc;
+    }
+    .cb-input:focus {
+      border-color: rgba(93, 69, 214, 0.45);
+      background: #fff;
+    }
+    .cb-send {
+      width: 44px;
+      height: 44px;
+      border: none;
+      border-radius: 50%;
+      background: var(--cb-brand);
+      color: #fff;
+      font-size: 1.05rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      box-shadow: 0 2px 8px rgba(93, 69, 214, 0.35);
+    }
+    .cb-send:active { background: var(--cb-brand-hover); }
+    .cb-send:disabled { opacity: 0.45; cursor: not-allowed; }
+    .cb-fab {
+      position: fixed;
+      right: max(0.75rem, env(safe-area-inset-right, 0px));
+      bottom: calc(5.5rem + var(--safe-b));
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      border: none;
+      background: var(--cb-brand);
+      color: #fff;
+      box-shadow: 0 4px 16px rgba(93, 69, 214, 0.4);
+      font-size: 1.25rem;
+      cursor: pointer;
+      z-index: 20;
+      display: none;
+    }
+    .cb-fab.show { display: flex; align-items: center; justify-content: center; }
+    .cb-icon-btn[disabled] {
+      opacity: 0.35;
+      cursor: not-allowed;
+      pointer-events: none;
+    }
+    .cb-admin-sheet {
+      position: fixed;
+      inset: 0;
+      z-index: 100;
+      background: rgba(0, 0, 0, 0.48);
+      display: none;
+      align-items: flex-end;
+      justify-content: center;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    .cb-admin-sheet.show {
+      display: flex;
+    }
+    .cb-admin-panel {
+      width: 100%;
+      max-width: 480px;
+      max-height: 90vh;
+      background: #fff;
+      border-radius: 16px 16px 0 0;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 -8px 40px rgba(0, 0, 0, 0.2);
+    }
+    .cb-admin-head {
+      flex: 0 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.75rem 0.85rem;
+      border-bottom: 1px solid #eee;
+      font-weight: 700;
+      font-size: 0.95rem;
+    }
+    .cb-admin-head button {
+      border: none;
+      background: none;
+      color: var(--cb-brand);
+      font-size: 0.85rem;
+      cursor: pointer;
+      padding: 0.25rem 0.4rem;
+    }
+    .cb-admin-body {
+      flex: 1 1 auto;
+      overflow-y: auto;
+      padding: 0.75rem 0.85rem;
+      padding-bottom: calc(0.85rem + var(--safe-b));
+      font-size: 0.875rem;
+    }
+    .cb-admin-field {
+      margin-bottom: 0.65rem;
+    }
+    .cb-admin-field label {
+      display: block;
+      font-size: 0.72rem;
+      color: #6c757d;
+      margin-bottom: 0.2rem;
+    }
+    .cb-admin-field input,
+    .cb-admin-field select,
+    .cb-admin-field textarea {
+      width: 100%;
+      border: 1px solid #e4e6ec;
+      border-radius: 10px;
+      padding: 0.45rem 0.6rem;
+      font-size: 0.875rem;
+    }
+    .cb-admin-msg {
+      font-size: 0.8125rem;
+      color: #c0392b;
+      margin: 0.35rem 0;
+    }
+    .cb-admin-btn-row {
+      display: flex;
+      gap: 0.45rem;
+      flex-wrap: wrap;
+      margin-top: 0.5rem;
+    }
+    .cb-admin-btn-row button {
+      flex: 1 1 auto;
+      min-width: 6rem;
+      border: none;
+      border-radius: 10px;
+      padding: 0.55rem 0.75rem;
+      font-weight: 600;
+      font-size: 0.8125rem;
+      cursor: pointer;
+    }
+    .cb-admin-btn-row .primary {
+      background: var(--cb-brand);
+      color: #fff;
+    }
+    .cb-admin-btn-row .ghost {
+      background: #eef0f5;
+      color: #333;
+    }
+    .cb-admin-prow {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.5rem;
+      padding: 0.45rem 0;
+      border-bottom: 1px solid #f0f0f0;
+      font-size: 0.8125rem;
+    }
+    .cb-admin-prow small {
+      display: block;
+      color: #888;
+      font-weight: 400;
+    }
+  </style>
+</head>
+<body>
+  <div class="cb-root" id="chatbotPayRoot">
+    <div id="chatbotBanner" class="alert alert-danger cb-banner" role="alert"></div>
+
+    <header class="cb-header" aria-label="챗봇 헤더">
+      <div class="cb-header-logo-wrap" id="cbHeaderLogoWrap" title="">
+        <span class="cb-header-logo-fallback" id="cbHeaderLogoFb">★</span>
+        <img id="cbHeaderLogoImg" alt="" style="display:none;">
+      </div>
+      <div class="cb-header-text">
+        <div class="cb-header-title-row">
+          <span class="cb-header-title" id="cbMerchantTitle">챗봇 결제</span>
+        </div>
+        <div class="cb-header-sub">
+          <span class="cb-dot-online" aria-hidden="true"></span>
+          <span id="cbOnlineLabel">상담 가능</span>
+        </div>
+      </div>
+      <div class="cb-header-actions">
+        <a class="cb-menu-btn" id="chatbotBarePayLink" href="#" title="바로결제 페이지로 이동" aria-label="바로결제">바로결제</a>
+        <button type="button" class="cb-menu-btn" id="cbRegisterMenuBtn" title="상품 등록: 관리자 로그인" aria-label="등록" style="display:none">등록</button>
+        <button type="button" class="cb-icon-btn" id="cbOpenAdminBtn" title="챗봇 상품 관리" aria-label="챗봇 상품 관리" disabled style="display:none">⚙</button>
+        <button type="button" class="cb-icon-btn" id="chatbotRefreshBtn" title="새로고침" aria-label="새로고침">↻</button>
+      </div>
+    </header>
+
+    <main class="cb-main">
+      <div class="cb-shelf-wrap" id="cbShelfWrap">
+        <div class="cb-shelf-label">결제 상품</div>
+        <div id="chatbotCatalogMount" class="cb-shelf" aria-label="상품 목록"></div>
+      </div>
+      <div id="chatbotThread" class="cb-thread" role="log" aria-live="polite"></div>
+    </main>
+
+    <footer class="cb-composer">
+      <div class="cb-composer-tools">
+        <input type="file" id="cbImgFileInput" class="cb-sr-file" tabindex="-1" accept="image/jpeg,image/jpg,image/png" aria-label="챗봇 관리자용 상품 이미지 파일">
+        <input type="file" id="cbGuestImgFileInput" class="cb-sr-file" tabindex="-1" accept="image/jpeg,image/jpg,image/png" aria-label="고객 채팅 첨부 이미지">
+        <button type="button" class="cb-attach-btn" id="cbImgAttachBtn" title="이미지 첨부" aria-label="이미지 첨부">+</button>
+        <div class="cb-emoji-wrap">
+          <button type="button" class="cb-emoji-btn" id="cbEmojiToggleBtn" aria-label="인사 카드 및 이모지" title="인사 카드 및 이모지">😊</button>
+          <div class="cb-emoji-pop" id="cbEmojiPop" aria-hidden="true"></div>
+        </div>
+      </div>
+      <div class="cb-input-wrap">
+        <input type="text" class="cb-input" id="chatbotInput" placeholder="메시지를 입력하세요" maxlength="800" autocomplete="off" enterkeyhint="send">
+      </div>
+      <button type="button" class="cb-send" id="chatbotSendBtn" aria-label="전송">➤</button>
+    </footer>
+    <button type="button" class="cb-fab" id="cbScrollFab" aria-label="맨 아래로">⌄</button>
+  </div>
+
+  <div id="cbAdminSheet" class="cb-admin-sheet" aria-hidden="true">
+    <div class="cb-admin-panel" role="dialog" aria-labelledby="cbAdminTitle">
+      <div class="cb-admin-head">
+        <span id="cbAdminTitle">챗봇 상품 관리</span>
+        <div>
+          <button type="button" id="cbAdminCloseBtn">닫기</button>
+        </div>
+      </div>
+      <div class="cb-admin-body" id="cbAdminBody"></div>
+    </div>
+  </div>
+
+  <script src="js/config.js?v=9"></script>
+  <script>
+    (function () {
+      var h = (window.location && window.location.hostname) ? window.location.hostname : '';
+      if (h !== 'localhost' && h !== '127.0.0.1' && (h === 'api.icopay.co.kr')) {
+        try {
+          var og = (window.location.origin || '').replace(/\/$/, '');
+          if (og) window.PG_API_BASE = og;
+        } catch (e) {}
+      }
+    })();
+  </script>
+  <script>
+    (function () {
+      function apiBase() {
+        try {
+          var host0 = (window.location && window.location.hostname) ? window.location.hostname : '';
+          if (host0 === 'api.icopay.co.kr' && window.location.origin) {
+            return String(window.location.origin).replace(/\/$/, '');
+          }
+        } catch (e0) {}
+        var b = (window.PG_API_BASE !== undefined && window.PG_API_BASE !== '')
+          ? window.PG_API_BASE
+          : (window.location.origin || '');
+        return String(b).replace(/\/$/, '');
+      }
+
+      /** 기존 밑줄 링크(안내 저장 전)와 동일: `{api}/pay.html?m={compId}&entry=chatbot` */
+      function barePayChatbotUrl() {
+        var c = (typeof compId === 'string' ? compId : '').trim();
+        if (!c) return '';
+        return apiBase().replace(/\/$/, '') + '/pay.html?m=' + encodeURIComponent(c) + '&entry=chatbot';
+      }
+
+      function syncChatbotBarePayHref() {
+        var el = document.getElementById('chatbotBarePayLink');
+        if (!el) return;
+        var u = barePayChatbotUrl();
+        if (u) {
+          el.setAttribute('href', u);
+        } else {
+          el.setAttribute('href', '#');
+        }
+      }
+
+      function qsM() {
+        try {
+          return new URLSearchParams(window.location.search).get('m') || '';
+        } catch (e) {
+          return '';
+        }
+      }
+
+      function absAsset(u) {
+        if (!u) return '';
+        var raw = String(u).trim();
+        if (/^(https?:|data:|blob:)/i.test(raw)) return raw;
+        var base = apiBase().replace(/\/$/, '');
+        return base + (raw.charAt(0) === '/' ? raw : '/' + raw);
+      }
+
+      function nowTimeLabel() {
+        try {
+          return new Date().toLocaleTimeString('ko-KR', { hour: 'numeric', minute: '2-digit' });
+        } catch (e) {
+          return '';
+        }
+      }
+
+      var CB_GUEST_IMAGE_MARKER_PREFIX = '[CHATBOT_GUEST_IMAGE:url=';
+
+      function appendMsg(role, text, imageUrlOpt) {
+        var th = document.getElementById('chatbotThread');
+        if (!th) return;
+        var imgU = imageUrlOpt != null && String(imageUrlOpt).trim() !== '' ? String(imageUrlOpt).trim() : '';
+        var txt = text != null ? String(text).trim() : '';
+        var row = document.createElement('div');
+        row.className = 'cb-msg-row ' + (role === 'user' ? 'user' : 'bot');
+        var bubble = document.createElement('div');
+        bubble.className = 'cb-bubble ' + (role === 'user' ? 'user' : 'bot');
+        if (imgU) {
+          var im = document.createElement('img');
+          im.className = 'cb-bubble-media' + (/^data:image\/svg/i.test(imgU) ? ' cb-bubble-char' : '');
+          im.alt = '';
+          im.loading = 'lazy';
+          im.src = absAsset(imgU);
+          im.onerror = function () {
+            try { bubble.removeChild(im); } catch (eRi) {}
+            if (!txt) txt = '(이미지)';
+          };
+          bubble.appendChild(im);
+        }
+        if (txt) {
+          var cap = document.createElement('div');
+          cap.className = imgU ? 'cb-bubble-cap' : '';
+          cap.textContent = txt;
+          bubble.appendChild(cap);
+        } else if (!imgU) {
+          bubble.textContent = '';
+        }
+        var time = document.createElement('span');
+        time.className = 'cb-time';
+        time.textContent = nowTimeLabel();
+        row.appendChild(bubble);
+        row.appendChild(time);
+        th.appendChild(row);
+        th.scrollTop = th.scrollHeight;
+        syncFab();
+      }
+
+      function showTyping() {
+        var th = document.getElementById('chatbotThread');
+        if (!th) return null;
+        var row = document.createElement('div');
+        row.className = 'cb-msg-row bot';
+        row.setAttribute('data-typing', '1');
+        var box = document.createElement('div');
+        box.className = 'cb-typing';
+        for (var i = 0; i < 3; i++) {
+          var dot = document.createElement('span');
+          box.appendChild(dot);
+        }
+        row.appendChild(box);
+        th.appendChild(row);
+        th.scrollTop = th.scrollHeight;
+        return row;
+      }
+
+      function removeTypingRow(row) {
+        if (row && row.parentNode) row.parentNode.removeChild(row);
+      }
+
+      var compId = (qsM() || '').trim();
+      var messages = [];
+      var cbPendingProductImageUrl = '';
+      /** 기본 인사 캐릭터 선택 직후 전송 시 버블에 SVG 스티커 표시용 */
+      var cbPendingCharStickerDataUrl = '';
+
+      function cbSvgStickerDataUrl(svgMarkup) {
+        if (!svgMarkup || !String(svgMarkup).trim()) return '';
+        try {
+          return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(String(svgMarkup));
+        } catch (eDv) {
+          return '';
+        }
+      }
+
+      syncChatbotBarePayHref();
+
+      function showBanner(msg) {
+        var b = document.getElementById('chatbotBanner');
+        if (!b) return;
+        b.textContent = msg;
+        b.classList.add('show');
+      }
+
+      function applyCatalogMeta(data) {
+        var name = (data && data.merchantName) ? String(data.merchantName).trim() : '';
+        var titleEl = document.getElementById('cbMerchantTitle');
+        if (titleEl) titleEl.textContent = name || (compId || '챗봇 결제');
+        try {
+          document.title = (name ? name + ' · ' : '') + '챗봇 결제';
+        } catch (e) {}
+        var logoRaw = data && data.headerLogoUrl != null ? String(data.headerLogoUrl).trim() : '';
+        var img = document.getElementById('cbHeaderLogoImg');
+        var fb = document.getElementById('cbHeaderLogoFb');
+        var wrap = document.getElementById('cbHeaderLogoWrap');
+        if (logoRaw && img && wrap) {
+          img.onload = function () {
+            img.style.display = 'block';
+            if (fb) fb.style.display = 'none';
+          };
+          img.onerror = function () {
+            img.style.display = 'none';
+            if (fb) {
+              fb.style.display = 'flex';
+              fb.textContent = (name ? name.charAt(0) : (compId ? compId.charAt(0) : '★'));
+            }
+          };
+          img.src = absAsset(logoRaw);
+          img.alt = name || '';
+        } else if (fb) {
+          fb.style.display = 'flex';
+          fb.textContent = (name ? name.charAt(0) : (compId ? compId.charAt(0) : '★'));
+          if (img) img.style.display = 'none';
+        }
+      }
+
+      function renderCatalog(items) {
+        var mount = document.getElementById('chatbotCatalogMount');
+        var shelfWrap = document.getElementById('cbShelfWrap');
+        if (!mount) return;
+        mount.innerHTML = '';
+        if (!items || !items.length) {
+          if (shelfWrap) shelfWrap.style.display = 'none';
+          return;
+        }
+        if (shelfWrap) shelfWrap.style.display = '';
+        items.forEach(function (it) {
+          var title = String(it.title || '');
+          var amt = String(it.amount || '');
+          var cur = String(it.currencyCode || '').toUpperCase();
+          var rawImg = String(it.imageUrl || '').trim();
+          var allowImg = rawImg.startsWith('/') || /^https?:\/\//i.test(rawImg);
+
+          var pc = document.createElement('article');
+          pc.className = 'cb-pcard';
+          if (allowImg && rawImg) {
+            var im = document.createElement('img');
+            im.className = 'cb-pcard-img';
+            im.alt = '';
+            im.src = absAsset(rawImg);
+            im.onerror = function () { im.style.display = 'none'; };
+            pc.appendChild(im);
+          } else {
+            var ph = document.createElement('div');
+            ph.className = 'cb-pcard-img';
+            ph.style.display = 'flex';
+            ph.style.alignItems = 'center';
+            ph.style.justifyContent = 'center';
+            ph.style.fontSize = '1.5rem';
+            ph.style.opacity = '0.35';
+            ph.textContent = '🛒';
+            pc.appendChild(ph);
+          }
+          var body = document.createElement('div');
+          body.className = 'cb-pcard-body';
+          var tEl = document.createElement('div');
+          tEl.className = 'cb-pcard-title';
+          tEl.textContent = title;
+          body.appendChild(tEl);
+          var pr = document.createElement('div');
+          pr.className = 'cb-pcard-amt';
+          pr.textContent = amt + ' ' + cur;
+          body.appendChild(pr);
+          var btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = 'cb-pcard-btn' + (isRes ? ' cb-pcard-btn-res' : '');
+          btn.textContent = isRes ? '예약·결제' : '결제';
+          btn.addEventListener('click', function () {
+            var iq = '?m=' + encodeURIComponent(compId) + '&entry=chatbot';
+            iq += '&item=' + encodeURIComponent(title.substring(0, 200));
+            iq += '&amount=' + encodeURIComponent(amt);
+            window.location.href = apiBase().replace(/\/$/, '') + '/pay.html' + iq;
+          });
+          body.appendChild(btn);
+          pc.appendChild(body);
+          mount.appendChild(pc);
+        });
+      }
+
+      var CB_ADMIN_HDR = 'X-PG-Chatbot-Admin-Token';
+      function cbAdminTokKey() {
+        return compId ? 'pg_cbadm_' + String(compId).trim() : '';
+      }
+      function getCbAdminTok() {
+        try {
+          return sessionStorage.getItem(cbAdminTokKey()) || '';
+        } catch (e) {
+          return '';
+        }
+      }
+      function setCbAdminTok(t) {
+        try {
+          var k = cbAdminTokKey();
+          if (!k) return;
+          if (t) sessionStorage.setItem(k, t);
+          else sessionStorage.removeItem(k);
+        } catch (e2) {}
+      }
+      function focusCbAdminLoginUsernameSoon() {
+        window.setTimeout(function () {
+          var body = document.getElementById('cbAdminBody');
+          var inp = body && body.querySelector('input[type="text"][autocomplete="username"]');
+          if (inp) {
+            try { inp.focus({ preventScroll: false }); } catch (eF) { try { inp.focus(); } catch (e2) {} }
+          }
+        }, 100);
+      }
+
+      /** @param {?string} loginHint 로그인 전일 때 표시 문구(Event 넘김 무시는 typeof 체크로 처리). */
+      function openAdminSheet(loginHint) {
+        var sh = document.getElementById('cbAdminSheet');
+        if (!sh) return;
+        sh.classList.add('show');
+        sh.setAttribute('aria-hidden', 'false');
+        if (!getCbAdminTok()) {
+          var hi = '';
+          if (typeof loginHint === 'string' && loginHint.trim()) hi = loginHint.trim();
+          renderCbAdminLogin(hi);
+          focusCbAdminLoginUsernameSoon();
+        } else {
+          renderCbAdminInside();
+        }
+      }
+      function closeAdminSheet() {
+        var sh = document.getElementById('cbAdminSheet');
+        if (!sh) return;
+        sh.classList.remove('show');
+        sh.setAttribute('aria-hidden', 'true');
+      }
+      function cbAdminHeaders() {
+        var h = { 'Content-Type': 'application/json' };
+        var tok = getCbAdminTok();
+        if (tok) h[CB_ADMIN_HDR] = tok;
+        return h;
+      }
+      function setProductImageUrl(url) {
+        var s = (url != null && String(url).trim()) ? String(url).trim() : '';
+        cbPendingProductImageUrl = s;
+        var u = document.getElementById('cbAdImageUrl');
+        var pv = document.getElementById('cbAdImagePrev');
+        if (u) u.value = s;
+        if (pv) {
+          if (s) {
+            pv.src = absAsset(s);
+            pv.style.display = 'block';
+          } else {
+            pv.removeAttribute('src');
+            pv.style.display = 'none';
+          }
+        }
+      }
+      var CB_IMG_MAX_BYTES = 2097152;
+      function jpegBlobAsUploadFile(blob, originalName) {
+        var base = String(originalName || 'chatbot-product').replace(/^.*[/\\]/, '').replace(/\.[^.]+$/, '')
+          || 'chatbot-product';
+        try {
+          return new File([blob], base + '.jpg', { type: 'image/jpeg', lastModified: Date.now() });
+        } catch (eF) {
+          return blob;
+        }
+      }
+      /** 2MB 초과 시 긴 변 축소 + JPEG 품질을 단계적으로 내려 2MB 이하 Blob 생성 */
+      function shrinkImageFileUnderCap(file, maxBytes, cb) {
+        var url = URL.createObjectURL(file);
+        var img = new Image();
+        img.onload = function () {
+          URL.revokeObjectURL(url);
+          var sw = img.naturalWidth || img.width;
+          var sh = img.naturalHeight || img.height;
+          if (!sw || !sh) {
+            cb(new Error('유효하지 않은 이미지입니다.'));
+            return;
+          }
+          var canvas = document.createElement('canvas');
+          var ctx = canvas.getContext('2d');
+          var qualities = [0.88, 0.8, 0.72, 0.64, 0.56, 0.48, 0.42, 0.36];
+          var maxSides = [2048, 1792, 1536, 1280, 1024, 896, 768, 640, 512, 448, 384, 320];
+          var sideIdx = 0;
+          var qIdx = 0;
+          function step() {
+            var maxSide = maxSides[Math.min(sideIdx, maxSides.length - 1)];
+            var scale = Math.min(1, maxSide / Math.max(sw, sh));
+            var dw = Math.max(1, Math.round(sw * scale));
+            var dh = Math.max(1, Math.round(sh * scale));
+            canvas.width = dw;
+            canvas.height = dh;
+            ctx.fillStyle = '#fff';
+            ctx.fillRect(0, 0, dw, dh);
+            ctx.drawImage(img, 0, 0, dw, dh);
+            var q = qualities[Math.min(qIdx, qualities.length - 1)];
+            canvas.toBlob(function (blob) {
+              if (!blob) {
+                cb(new Error('이미지 인코딩에 실패했습니다.'));
+                return;
+              }
+              if (blob.size <= maxBytes) {
+                cb(null, jpegBlobAsUploadFile(blob, file.name));
+                return;
+              }
+              qIdx++;
+              if (qIdx < qualities.length) step();
+              else {
+                qIdx = 0;
+                sideIdx++;
+                if (sideIdx < maxSides.length) step();
+                else cb(new Error('파일을 2MB 이하로 줄이지 못했습니다.'));
+              }
+            }, 'image/jpeg', q);
+          }
+          step();
+        };
+        img.onerror = function () {
+          URL.revokeObjectURL(url);
+          cb(new Error('이미지를 불러오지 못했습니다.'));
+        };
+        img.src = url;
+      }
+      function uploadPubChatbotProductImage(file) {
+        if (!compId) {
+          alert('가맹점 코드(m=)가 필요합니다.');
+          return;
+        }
+        var tok = getCbAdminTok();
+        if (!tok) {
+          openAdminSheet(
+            '상품 이미지는 「챗봇 상품 관리」 로그인 후 추가할 수 있습니다. 아래에서 로그인한 뒤 하단의 + 버튼으로 이미지를 다시 선택해 주세요.'
+          );
+          return;
+        }
+        if (!file) return;
+        var root = apiBase().replace(/\/$/, '');
+        var hdr = {};
+        hdr[CB_ADMIN_HDR] = tok;
+        var btn = document.getElementById('cbImgAttachBtn');
+        var fin = document.getElementById('cbImgFileInput');
+        function finishReset() {
+          if (btn) btn.disabled = false;
+          if (fin) fin.value = '';
+        }
+        function postUpload(uploadFile) {
+          if (btn) btn.disabled = true;
+          var fd = new FormData();
+          fd.append('compId', compId);
+          var upNm = (uploadFile && uploadFile.name && String(uploadFile.name).trim())
+            ? String(uploadFile.name).trim() : 'chatbot-product.jpg';
+          fd.append('file', uploadFile, upNm);
+          fetch(root + '/api/pub/chatbot/admin/products/upload', {
+            method: 'POST',
+            headers: hdr,
+            body: fd,
+            credentials: 'same-origin'
+          }).then(function (r) { return r.json(); }).then(function (res) {
+            finishReset();
+            if (!res.success || !res.data || !res.data.url) {
+              alert(res.message || '업로드에 실패했습니다.');
+              return;
+            }
+            setProductImageUrl(String(res.data.url));
+            appendMsg('assistant',
+              '[안내] 선택한 이미지가 「챗봇 상품 관리」에서 다음 상품 저장 시 함께 등록됩니다.');
+          }).catch(function () {
+            finishReset();
+            alert('네트워크 오류입니다.');
+          });
+        }
+        if (file.size <= CB_IMG_MAX_BYTES) {
+          postUpload(file);
+          return;
+        }
+        if (btn) btn.disabled = true;
+        shrinkImageFileUnderCap(file, CB_IMG_MAX_BYTES, function (err, resized) {
+          if (err) {
+            if (btn) btn.disabled = false;
+            if (fin) fin.value = '';
+            alert(err.message || String(err));
+            return;
+          }
+          postUpload(resized);
+        });
+      }
+      function renderCbAdminLogin(errMsg) {
+        var body = document.getElementById('cbAdminBody');
+        if (!body) return;
+        body.innerHTML = '';
+        var hint = document.createElement('p');
+        hint.style.marginTop = '0';
+        hint.style.fontSize = '0.8125rem';
+        hint.style.color = '#6c757d';
+        hint.textContent = '챗봇 상품 등록 전용 계정입니다. 관리 웹에서 Google OTP까지 등록한 뒤 사용하세요.';
+        body.appendChild(hint);
+        if (errMsg) {
+          var er = document.createElement('div');
+          er.className = 'cb-admin-msg';
+          er.textContent = errMsg;
+          body.appendChild(er);
+        }
+        function addField(label, inp) {
+          var w = document.createElement('div');
+          w.className = 'cb-admin-field';
+          var lb = document.createElement('label');
+          lb.textContent = label;
+          w.appendChild(lb);
+          w.appendChild(inp);
+          body.appendChild(w);
+        }
+        var uEl = document.createElement('input');
+        uEl.type = 'text';
+        uEl.autocomplete = 'username';
+        addField('아이디', uEl);
+        var pEl = document.createElement('input');
+        pEl.type = 'password';
+        pEl.autocomplete = 'current-password';
+        addField('비밀번호', pEl);
+        var tEl = document.createElement('input');
+        tEl.type = 'text';
+        tEl.placeholder = '6자리';
+        tEl.inputMode = 'numeric';
+        tEl.maxLength = 8;
+        tEl.autocomplete = 'one-time-code';
+        addField('Google OTP', tEl);
+        var row = document.createElement('div');
+        row.className = 'cb-admin-btn-row';
+        var go = document.createElement('button');
+        go.type = 'button';
+        go.className = 'primary';
+        go.textContent = '로그인';
+        row.appendChild(go);
+        body.appendChild(row);
+        go.addEventListener('click', function () {
+          var root = apiBase().replace(/\/$/, '');
+          go.disabled = true;
+          fetch(root + '/api/pub/chatbot/admin/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              compId: compId,
+              username: String(uEl.value || '').trim(),
+              password: pEl.value || '',
+              totpCode: String(tEl.value || '').trim()
+            })
+          }).then(function (r) {
+            return r.json();
+          }).then(function (res) {
+            go.disabled = false;
+            if (res.success && res.data && res.data.token) {
+              setCbAdminTok(String(res.data.token));
+              renderCbAdminInside();
+              loadCatalog();
+              syncAttachPlusTitle();
+              appendMsg('bot', '[관리자] 챗봇 상품 관리 로그인되었습니다.');
+            } else {
+              renderCbAdminLogin(res.message || '로그인에 실패했습니다.');
+            }
+          }).catch(function () {
+            go.disabled = false;
+            renderCbAdminLogin('네트워크 오류입니다.');
+          });
+        });
+      }
+      function loadCbAdminProducts() {
+        var root = apiBase().replace(/\/$/, '');
+        var listEl = document.getElementById('cbAdList');
+        if (!listEl) return;
+        listEl.textContent = '불러오는 중…';
+        fetch(root + '/api/pub/chatbot/admin/products?compId=' + encodeURIComponent(compId), {
+          headers: cbAdminHeaders(),
+          credentials: 'same-origin'
+        }).then(function (r) {
+          return r.json();
+        }).then(function (res) {
+          listEl.innerHTML = '';
+          if (!res.success) {
+            listEl.textContent = res.message || '목록 오류';
+            return;
+          }
+          var rows = res.data || [];
+          if (!rows.length) {
+            listEl.innerHTML = '<p class="text-muted small">등록된 상품이 없습니다.</p>';
+            return;
+          }
+          rows.forEach(function (row) {
+            var id = row.id;
+            var pr = document.createElement('div');
+            pr.className = 'cb-admin-prow';
+            var left = document.createElement('div');
+            var ltLbl = String(row.listingType || 'SALE').toUpperCase() === 'RESERVATION' ? '예약' : '판매';
+            left.innerHTML = '<strong>' + escapeHtml(String(row.title || '')) + '</strong>' +
+              '<small>#' + id + ' · ' + ltLbl + ' · ' + escapeHtml(String(row.amount || '')) + ' ' +
+              escapeHtml(String(row.currencyCode || '').toUpperCase()) +
+              (row.useYn === 'N' ? ' · 숨김' : '') + '</small>';
+            var del = document.createElement('button');
+            del.type = 'button';
+            del.className = 'ghost';
+            del.style.flex = '0 0 auto';
+            del.style.minWidth = 'auto';
+            del.style.padding = '0.35rem 0.5rem';
+            del.style.fontSize = '0.75rem';
+            del.textContent = '삭제';
+            del.addEventListener('click', function () {
+              if (!confirm('이 상품을 삭제할까요?')) return;
+              fetch(root + '/api/pub/chatbot/admin/products/' + encodeURIComponent(String(id)) + '?compId=' + encodeURIComponent(compId), {
+                method: 'DELETE',
+                headers: cbAdminHeaders(),
+                credentials: 'same-origin'
+              }).then(function (r) {
+                return r.json();
+              }).then(function (r2) {
+                if (!r2.success) {
+                  alert(r2.message || '삭제 실패');
+                  return;
+                }
+                loadCbAdminProducts();
+                loadCatalog();
+              }).catch(function () {
+                alert('네트워크 오류');
+              });
+            });
+            pr.appendChild(left);
+            pr.appendChild(del);
+            listEl.appendChild(pr);
+          });
+        }).catch(function () {
+          listEl.textContent = '목록을 불러올 수 없습니다.';
+        });
+      }
+      function escapeHtml(s) {
+        return String(s)
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;');
+      }
+      function renderCbAdminInside() {
+        var tok = getCbAdminTok();
+        if (!tok) {
+          renderCbAdminLogin('');
+          return;
+        }
+        var body = document.getElementById('cbAdminBody');
+        if (!body) return;
+        body.innerHTML = '';
+        var hint = document.createElement('p');
+        hint.style.marginTop = '0';
+        hint.style.fontSize = '0.8125rem';
+        hint.style.color = '#6c757d';
+        hint.textContent = '상품 저장 후 카탈로그가 즉시 갱신됩니다.';
+        body.appendChild(hint);
+        var rowOut = document.createElement('div');
+        rowOut.className = 'cb-admin-btn-row';
+        var logout = document.createElement('button');
+        logout.type = 'button';
+        logout.className = 'ghost';
+        logout.textContent = '로그아웃';
+        rowOut.appendChild(logout);
+        body.appendChild(rowOut);
+        logout.addEventListener('click', function () {
+          var root = apiBase().replace(/\/$/, '');
+          fetch(root + '/api/pub/chatbot/admin/logout', {
+            method: 'POST',
+            headers: cbAdminHeaders(),
+            credentials: 'same-origin'
+          }).finally(function () {
+            setCbAdminTok('');
+            renderCbAdminLogin('');
+            syncAttachPlusTitle();
+            appendMsg('bot', '[관리자] 로그아웃되었습니다.');
+          });
+        });
+        var listMount = document.createElement('div');
+        listMount.id = 'cbAdList';
+        listMount.style.marginTop = '0.75rem';
+        body.appendChild(listMount);
+        var err = document.createElement('div');
+        err.className = 'cb-admin-msg';
+        err.id = 'cbAdFormErr';
+        err.style.display = 'none';
+        body.appendChild(err);
+        function addFormField(label, el) {
+          var w = document.createElement('div');
+          w.className = 'cb-admin-field';
+          var lb = document.createElement('label');
+          lb.textContent = label;
+          w.appendChild(lb);
+          w.appendChild(el);
+          body.appendChild(w);
+        }
+        var titleIn = document.createElement('input');
+        titleIn.type = 'text';
+        titleIn.placeholder = '필수';
+        addFormField('상품명', titleIn);
+        var listTypeLbl = document.createElement('label');
+        listTypeLbl.textContent = '유형 ';
+        listTypeLbl.style.marginRight = '0.35rem';
+        var listSel = document.createElement('select');
+        listSel.id = 'cbAdListingType';
+        listSel.style.maxWidth = '12rem';
+        listSel.innerHTML =
+          '<option value="SALE">판매 (일반)</option>' +
+          '<option value="RESERVATION">예약</option>';
+        var listWrap = document.createElement('div');
+        listWrap.className = 'cb-admin-field';
+        listWrap.style.display = 'flex';
+        listWrap.style.alignItems = 'center';
+        listWrap.style.flexWrap = 'wrap';
+        listWrap.style.gap = '0.35rem';
+        var listLbOuter = document.createElement('label');
+        listLbOuter.style.marginBottom = '0';
+        listLbOuter.textContent = '판매·예약 구분';
+        listLbOuter.style.width = '100%';
+        listWrap.appendChild(listLbOuter);
+        listWrap.appendChild(listSel);
+        body.appendChild(listWrap);
+        var amtIn = document.createElement('input');
+        amtIn.type = 'text';
+        amtIn.placeholder = '예: 10000';
+        addFormField('금액', amtIn);
+        var curIn = document.createElement('input');
+        curIn.type = 'text';
+        curIn.value = 'KRW';
+        addFormField('통화 코드', curIn);
+        var descIn = document.createElement('textarea');
+        descIn.rows = 3;
+        addFormField('설명(선택)', descIn);
+        var imgFieldWrap = document.createElement('div');
+        imgFieldWrap.className = 'cb-admin-field';
+        var imgLb = document.createElement('label');
+        imgLb.textContent = '상품 이미지';
+        imgFieldWrap.appendChild(imgLb);
+        var imgHint = document.createElement('p');
+        imgHint.style.margin = '0.15rem 0 0.3rem';
+        imgHint.style.fontSize = '0.75rem';
+        imgHint.style.color = '#6c757d';
+        imgHint.textContent = '하단 + 버튼으로 JPG·PNG 이미지를 선택합니다. 2MB를 넘으면 자동으로 줄여 올립니다.';
+        imgFieldWrap.appendChild(imgHint);
+        var imgUrlIn = document.createElement('input');
+        imgUrlIn.type = 'text';
+        imgUrlIn.id = 'cbAdImageUrl';
+        imgUrlIn.readOnly = true;
+        imgUrlIn.placeholder = '이미지 URL (선택)';
+        imgFieldWrap.appendChild(imgUrlIn);
+        var imgPrev = document.createElement('img');
+        imgPrev.id = 'cbAdImagePrev';
+        imgPrev.className = 'cb-admin-img-preview';
+        imgPrev.alt = '상품 이미지 미리보기';
+        imgFieldWrap.appendChild(imgPrev);
+        body.appendChild(imgFieldWrap);
+        if (cbPendingProductImageUrl) setProductImageUrl(cbPendingProductImageUrl);
+        var ynRow = document.createElement('div');
+        ynRow.className = 'cb-admin-field';
+        var ynLbl = document.createElement('label');
+        var chk = document.createElement('input');
+        chk.type = 'checkbox';
+        chk.checked = true;
+        ynLbl.appendChild(chk);
+        ynLbl.appendChild(document.createTextNode(' 카탈로그에 노출'));
+        ynRow.appendChild(ynLbl);
+        body.appendChild(ynRow);
+        var saveRow = document.createElement('div');
+        saveRow.className = 'cb-admin-btn-row';
+        var saveBt = document.createElement('button');
+        saveBt.type = 'button';
+        saveBt.className = 'primary';
+        saveBt.textContent = '상품 저장';
+        saveRow.appendChild(saveBt);
+        body.appendChild(saveRow);
+        saveBt.addEventListener('click', function () {
+          var root = apiBase().replace(/\/$/, '');
+          err.style.display = 'none';
+          saveBt.disabled = true;
+          var payload = {
+            compId: compId,
+            title: String(titleIn.value || '').trim(),
+            amount: String(amtIn.value || '').trim(),
+            currencyCode: String(curIn.value || 'KRW').trim() || 'KRW',
+            description: String(descIn.value || '').trim(),
+            useYn: chk.checked ? 'Y' : 'N',
+            listingType: (listSel && listSel.value) ? String(listSel.value).trim().toUpperCase() : 'SALE'
+          };
+          fetch(root + '/api/pub/chatbot/admin/products/save', {
+            method: 'POST',
+            headers: cbAdminHeaders(),
+            credentials: 'same-origin',
+            body: JSON.stringify(payload)
+          }).then(function (r) {
+            return r.json();
+          }).then(function (res) {
+            saveBt.disabled = false;
+            if (!res.success) {
+              err.textContent = res.message || '저장 실패';
+              err.style.display = 'block';
+              return;
+            }
+            titleIn.value = '';
+            amtIn.value = '';
+            descIn.value = '';
+            setProductImageUrl('');
+            loadCbAdminProducts();
+            loadCatalog();
+            appendMsg('bot', '[관리자] 상품을 저장했습니다.');
+          }).catch(function () {
+            saveBt.disabled = false;
+            err.textContent = '네트워크 오류';
+            err.style.display = 'block';
+          });
+        });
+        loadCbAdminProducts();
+      }
+
+      function loadCatalog() {
+        if (!compId) {
+          showBanner('주소에 가맹점 코드(m=)가 없습니다.');
+          syncChatbotBarePayHref();
+          var regHide = document.getElementById('cbRegisterMenuBtn');
+          if (regHide) regHide.style.display = 'none';
+          return Promise.resolve();
+        }
+        syncChatbotBarePayHref();
+        var root = apiBase().replace(/\/$/, '');
+        return fetch(root + '/api/pub/chatbot/catalog?compId=' + encodeURIComponent(compId), {
+          credentials: 'same-origin'
+        }).then(function (r) { return r.json(); }).then(function (res) {
+          if (!res.success) {
+            showBanner(res.message || '카탈로그를 불러올 수 없습니다.');
+            var regBad = document.getElementById('cbRegisterMenuBtn');
+            if (regBad) regBad.style.display = 'none';
+            return;
+          }
+          var d = res.data || {};
+          applyCatalogMeta(d);
+          renderCatalog(d.items || []);
+          var admBtn = document.getElementById('cbOpenAdminBtn');
+          if (admBtn) {
+            if (d.chatbotAdminConfigured === true) {
+              admBtn.style.display = 'flex';
+              admBtn.disabled = false;
+            } else {
+              admBtn.style.display = 'none';
+              admBtn.disabled = true;
+            }
+          }
+          var regM = document.getElementById('cbRegisterMenuBtn');
+          if (regM) {
+            regM.style.display = 'inline-flex';
+          }
+          syncAttachPlusTitle();
+        }).catch(function () {
+          showBanner('서버 연결 또는 응답 오류입니다.');
+          var regErr = document.getElementById('cbRegisterMenuBtn');
+          if (regErr) regErr.style.display = 'none';
+        });
+      }
+
+      function syncAttachPlusTitle() {
+        var b = document.getElementById('cbImgAttachBtn');
+        if (!b) return;
+        if (getCbAdminTok()) {
+          b.title = '챗봇 관리자: 상품 저장 시 사용할 이미지 업로드';
+          b.setAttribute('aria-label', '상품 이미지 추가');
+        } else {
+          b.title = '이미지 선택 후 채팅에 반영(일반 고객 문의)';
+          b.setAttribute('aria-label', '이미지로 문의하기');
+        }
+      }
+
+      function submitChatToServerAfterUserTurn() {
+        var inp = document.getElementById('chatbotInput');
+        if (!inp) return;
+        if (!compId) {
+          showBanner('가맹점 코드가 필요합니다.');
+          return;
+        }
+        inp.disabled = true;
+        var pending = showTyping();
+        fetch(apiBase().replace(/\/$/, '') + '/api/pub/chatbot/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'same-origin',
+          body: JSON.stringify({ compId: compId, messages: messages.slice(-24) })
+        }).then(function (r) { return r.json(); }).then(function (res) {
+          removeTypingRow(pending);
+          var reply = (res.success && res.data && res.data.reply != null)
+            ? String(res.data.reply).trim()
+            : (res.message ? String(res.message) : '오류');
+          appendMsg('assistant', reply || '(빈 응답)');
+          if (res.success && reply) messages.push({ role: 'assistant', content: reply });
+          inp.disabled = false;
+          inp.focus();
+        }).catch(function () {
+          removeTypingRow(pending);
+          appendMsg('assistant', '네트워크 오류');
+          inp.disabled = false;
+          inp.focus();
+        });
+      }
+
+      function sendChat() {
+        var inp = document.getElementById('chatbotInput');
+        if (!inp) return;
+        var text = String(inp.value || '').trim();
+        if (!text) return;
+        if (!compId) {
+          showBanner('가맹점 코드가 필요합니다.');
+          return;
+        }
+        var sticker = cbPendingCharStickerDataUrl ? String(cbPendingCharStickerDataUrl).trim() : '';
+        cbPendingCharStickerDataUrl = '';
+        inp.value = '';
+        appendMsg('user', text, sticker || undefined);
+        messages.push({ role: 'user', content: text });
+        submitChatToServerAfterUserTurn();
+      }
+
+      function postGuestChatImageMarker(relativeUrl) {
+        if (!relativeUrl || !compId) return;
+        var absUrl = absAsset(String(relativeUrl).trim());
+        var marker = CB_GUEST_IMAGE_MARKER_PREFIX + absUrl + ']';
+        appendMsg('user', '이미지를 보냈어요.', String(relativeUrl).trim());
+        messages.push({ role: 'user', content: marker });
+        submitChatToServerAfterUserTurn();
+      }
+
+      function uploadGuestChatbotImage(file) {
+        if (!compId || !file) return;
+        var root = apiBase().replace(/\/$/, '');
+        function postGuest(fdOrFile) {
+          var fd = new FormData();
+          fd.append('compId', compId);
+          fd.append('file', fdOrFile,
+            fdOrFile && fdOrFile.name ? fdOrFile.name : 'guest.jpg');
+          var btn = document.getElementById('cbImgAttachBtn');
+          var gfin = document.getElementById('cbGuestImgFileInput');
+          if (btn) btn.disabled = true;
+          fetch(root + '/api/pub/chatbot/guestImageUpload', {
+            method: 'POST',
+            body: fd,
+            credentials: 'same-origin'
+          }).then(function (r) { return r.json(); }).then(function (res) {
+            if (btn) btn.disabled = false;
+            if (gfin) gfin.value = '';
+            var u = res && res.data && res.data.url ? String(res.data.url).trim() : '';
+            if (!res.success || !u) {
+              alert((res && res.message) ? res.message : '이미지 업로드 실패');
+              return;
+            }
+            postGuestChatImageMarker(u);
+          }).catch(function () {
+            if (btn) btn.disabled = false;
+            if (gfin) gfin.value = '';
+            alert('네트워크 오류');
+          });
+        }
+        if (file.size <= CB_IMG_MAX_BYTES) {
+          postGuest(file);
+        } else {
+          var bx = document.getElementById('cbImgAttachBtn');
+          if (bx) bx.disabled = true;
+          shrinkImageFileUnderCap(file, CB_IMG_MAX_BYTES, function (err, resized) {
+            var b2 = document.getElementById('cbImgAttachBtn');
+            if (b2) b2.disabled = false;
+            if (err || !resized) {
+              alert(err && err.message ? err.message : '이미지 용량을 줄이지 못했습니다.');
+              var gx = document.getElementById('cbGuestImgFileInput');
+              if (gx) gx.value = '';
+              return;
+            }
+            postGuest(resized);
+          });
+        }
+      }
+
+      var thEl = document.getElementById('chatbotThread');
+      var fab = document.getElementById('cbScrollFab');
+      function syncFab() {
+        if (!thEl || !fab) return;
+        var dist = thEl.scrollHeight - thEl.scrollTop - thEl.clientHeight;
+        fab.classList.toggle('show', dist > 120);
+      }
+      if (thEl) {
+        thEl.addEventListener('scroll', syncFab);
+      }
+      if (fab) {
+        fab.addEventListener('click', function () {
+          if (thEl) thEl.scrollTo({ top: thEl.scrollHeight, behavior: 'smooth' });
+        });
+      }
+
+      (function bindBarePayLink() {
+        var lk = document.getElementById('chatbotBarePayLink');
+        if (!lk || lk.tagName !== 'A') return;
+        lk.addEventListener('click', function (ev) {
+          if (!barePayChatbotUrl()) {
+            ev.preventDefault();
+            showBanner('가맹점 코드(m=)가 필요합니다.');
+          }
+        });
+      })();
+
+      document.getElementById('chatbotRefreshBtn').addEventListener('click', function () {
+        window.location.reload();
+      });
+      var cbAdminOpen = document.getElementById('cbOpenAdminBtn');
+      if (cbAdminOpen) cbAdminOpen.addEventListener('click', openAdminSheet);
+      document.getElementById('cbAdminCloseBtn').addEventListener('click', closeAdminSheet);
+      document.getElementById('cbAdminSheet').addEventListener('click', function (ev) {
+        if (ev.target && ev.target.id === 'cbAdminSheet') closeAdminSheet();
+      });
+      document.getElementById('chatbotSendBtn').addEventListener('click', sendChat);
+      document.getElementById('chatbotInput').addEventListener('keydown', function (ev) {
+        if (ev.key === 'Enter' && !ev.shiftKey) {
+          ev.preventDefault();
+          sendChat();
+        }
+      });
+      var cbImgFileInput = document.getElementById('cbImgFileInput');
+      var cbGuestImgFileInput = document.getElementById('cbGuestImgFileInput');
+      var cbImgAttachBtn = document.getElementById('cbImgAttachBtn');
+      if (cbImgAttachBtn && cbImgFileInput) {
+        cbImgAttachBtn.addEventListener('click', function () {
+          if (!compId) {
+            showBanner('가맹점 코드(m=)가 필요합니다.');
+            return;
+          }
+          if (getCbAdminTok()) {
+            cbImgFileInput.click();
+            return;
+          }
+          if (cbGuestImgFileInput) cbGuestImgFileInput.click();
+        });
+        cbImgFileInput.addEventListener('change', function () {
+          var f = cbImgFileInput.files && cbImgFileInput.files[0];
+          if (!f) return;
+          uploadPubChatbotProductImage(f);
+        });
+      }
+      if (cbGuestImgFileInput) {
+        cbGuestImgFileInput.addEventListener('change', function () {
+          var gf = cbGuestImgFileInput.files && cbGuestImgFileInput.files[0];
+          if (!gf) return;
+          if (getCbAdminTok()) {
+            cbGuestImgFileInput.value = '';
+            return;
+          }
+          uploadGuestChatbotImage(gf);
+        });
+      }
+
+      var cbRegMenu = document.getElementById('cbRegisterMenuBtn');
+      if (cbRegMenu) {
+        cbRegMenu.addEventListener('click', function () {
+          openAdminSheet('아이디·비밀번호·Google OTP로 로그인한 뒤, 이 화면에서 상품을 등록·저장할 수 있습니다.');
+        });
+      }
+
+      (function initEmojiPalette() {
+        var pop = document.getElementById('cbEmojiPop');
+        var tog = document.getElementById('cbEmojiToggleBtn');
+        var inpEm = document.getElementById('chatbotInput');
+        if (!pop || !tog) return;
+
+        /* 동일 보라 둥근 캐릭터 6종 — 클릭 시 문구 삽입 */
+        var CB_CHAR_SVGS = {
+          thanks: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="48" height="48" aria-hidden="true"><g fill="none" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="32" cy="39" rx="19" ry="15" fill="#e8e4fc" stroke="#6b5bcf" stroke-width="2"/><ellipse cx="22" cy="41" rx="3.5" ry="2.2" fill="#f5b8d0" opacity=".4" stroke="none"/><ellipse cx="42" cy="41" rx="3.5" ry="2.2" fill="#f5b8d0" opacity=".4" stroke="none"/><circle cx="25.5" cy="35" r="2.9" fill="#2d2640" stroke="none"/><circle cx="38.5" cy="35" r="2.9" fill="#2d2640" stroke="none"/><path d="M26 43q6 7 12 0" stroke="#2d2640" stroke-width="2"/><ellipse cx="27" cy="50" rx="5.5" ry="4.2" fill="#dfd6f9" stroke="#6b5bcf" stroke-width="1.6" transform="rotate(-26 27 50)"/><ellipse cx="37" cy="50" rx="5.5" ry="4.2" fill="#dfd6f9" stroke="#6b5bcf" stroke-width="1.6" transform="rotate(26 37 50)"/></g></svg>',
+          hello: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="48" height="48" aria-hidden="true"><g fill="none" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="29" cy="39" rx="18" ry="15" fill="#e8e4fc" stroke="#6b5bcf" stroke-width="2"/><ellipse cx="20" cy="41" rx="3.2" ry="2" fill="#f5b8d0" opacity=".4" stroke="none"/><ellipse cx="38" cy="41" rx="3.2" ry="2" fill="#f5b8d0" opacity=".4" stroke="none"/><circle cx="23" cy="35" r="2.9" fill="#2d2640" stroke="none"/><circle cx="35" cy="35" r="2.9" fill="#2d2640" stroke="none"/><path d="M22 43q6 7 13 1" stroke="#2d2640" stroke-width="2"/><ellipse cx="50" cy="28" rx="10" ry="9" fill="#e8e4fc" stroke="#6b5bcf" stroke-width="2"/><path d="M45 26q6-8 13-5" stroke="#6b5bcf" stroke-width="2"/><path d="M47 31h8" stroke="#6b5bcf" stroke-width="1.5"/></g></svg>',
+          thankful: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="48" height="48" aria-hidden="true"><g stroke-linecap="round" stroke-linejoin="round"><ellipse cx="32" cy="39" rx="19" ry="15" fill="#e8e4fc" stroke="#6b5bcf" stroke-width="2"/><ellipse cx="22" cy="41" rx="3.5" ry="2.2" fill="#f5b8d0" opacity=".4"/><ellipse cx="42" cy="41" rx="3.5" ry="2.2" fill="#f5b8d0" opacity=".4"/><path fill="none" stroke="#2d2640" stroke-width="2" d="M23 35q2-3 5-1M36 34q2-3 5-1"/><path d="M26 43q6 7 12 0" stroke="#2d2640" stroke-width="2" fill="none"/><ellipse cx="27" cy="50" rx="5.5" ry="4.2" fill="#dfd6f9" stroke="#6b5bcf" stroke-width="1.6" transform="rotate(-26 27 50)"/><ellipse cx="37" cy="50" rx="5.5" ry="4.2" fill="#dfd6f9" stroke="#6b5bcf" stroke-width="1.6" transform="rotate(26 37 50)"/><path fill="#fb7185" stroke="#db2777" stroke-width=".8" d="M16 22c2-6 13-8 13 8-8 13-13 17-13 17S3 43 16 22z"/><path fill="#fb7185" stroke="#db2777" stroke-width=".8" d="M45 21c5-13 21-7 21 8 0 11-21 26-21 26S41 43 46 34c2-16 21-21 27-13"/></g></svg>',
+          orderthanks: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="48" height="48" aria-hidden="true"><g stroke-linecap="round" stroke-linejoin="round"><ellipse cx="32" cy="34" rx="17" ry="13" fill="#e8e4fc" stroke="#6b5bcf" stroke-width="2"/><ellipse cx="23" cy="36" rx="3" ry="2" fill="#f5b8d0" opacity=".4"/><ellipse cx="41" cy="36" rx="3" ry="2" fill="#f5b8d0" opacity=".4"/><circle cx="26" cy="31" r="2.7" fill="#2d2640"/><circle cx="38" cy="31" r="2.7" fill="#2d2640"/><path d="M25 39q7 8 14 2" stroke="#2d2640" stroke-width="2" fill="none"/><path fill="#c4b5fd" stroke="#6b5bcf" stroke-width="1.8" d="M18 50h28v11H18z"/><path fill="#faf8ff" stroke="#6b5bcf" stroke-width="1.2" d="M18 50l14-10 14 10"/><path stroke="#7c6abf" stroke-width="1.2" d="M28 55h8"/></g></svg>',
+          recommend: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="48" height="48" aria-hidden="true"><g stroke-linecap="round" stroke-linejoin="round"><path fill="#fbbf24" stroke="#d97706" stroke-width="1.5" d="M32 8l4.2 12.8h13.6L38.6 28.4l4.2 12.8L32 36.4l-10.8 4.8 4.2-12.8L14.2 20.8h13.6z"/><ellipse cx="32" cy="44" rx="18" ry="14" fill="#e8e4fc" stroke="#6b5bcf" stroke-width="2"/><ellipse cx="23" cy="46" rx="3.2" ry="2" fill="#f5b8d0" opacity=".4"/><ellipse cx="41" cy="46" rx="3.2" ry="2" fill="#f5b8d0" opacity=".4"/><circle cx="26" cy="41" r="2.8" fill="#2d2640"/><circle cx="38" cy="41" r="2.8" fill="#2d2640"/><path d="M25 48q7 6 14 0" stroke="#2d2640" stroke-width="2" fill="none"/></g></svg>',
+          like: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="48" height="48" aria-hidden="true"><g stroke-linecap="round" stroke-linejoin="round"><ellipse cx="32" cy="36" rx="19" ry="15" fill="#e8e4fc" stroke="#6b5bcf" stroke-width="2"/><ellipse cx="22" cy="38" rx="3.5" ry="2.2" fill="#f5b8d0" opacity=".4"/><ellipse cx="42" cy="38" rx="3.5" ry="2.2" fill="#f5b8d0" opacity=".4"/><path fill="#fb7185" stroke="#db2777" stroke-width="1.4" d="M32 45c-4-6-16-5-16 6 0 9 16 15 16 15s16-6 16-15c0-11-12-12-16-6z"/><circle cx="25.5" cy="32" r="2.9" fill="#2d2640"/><circle cx="38.5" cy="32" r="2.9" fill="#2d2640"/><path d="M26 40q6 4 12 0" stroke="#2d2640" stroke-width="1.8" fill="none"/></g></svg>'
+        };
+        var charPresets = [
+          { text: '감사합니다. ', label: '감사합니다', svg: CB_CHAR_SVGS.thanks },
+          { text: '안녕하세요. ', label: '안녕하세요', svg: CB_CHAR_SVGS.hello },
+          { text: '고맙습니다. ', label: '고맙습니다', svg: CB_CHAR_SVGS.thankful },
+          { text: '주문 감사합니다. ', label: '주문 감사합니다', svg: CB_CHAR_SVGS.orderthanks },
+          { text: '추천합니다. ', label: '추천합니다', svg: CB_CHAR_SVGS.recommend },
+          { text: '좋아요. ', label: '좋아요', svg: CB_CHAR_SVGS.like }
+        ];
+
+        var hdChar = document.createElement('div');
+        hdChar.className = 'cb-emoji-pop-hd';
+        hdChar.textContent = '기본 인사 (캐릭터)';
+        pop.appendChild(hdChar);
+        var strip = document.createElement('div');
+        strip.className = 'cb-char-strip';
+        charPresets.forEach(function (p) {
+          var b = document.createElement('button');
+          b.type = 'button';
+          b.className = 'cb-char-item';
+          b.title = p.label;
+          b.setAttribute('aria-label', p.label + ' 입력');
+          b.innerHTML = p.svg + '<span class="cb-char-lbl">' + (p.label || '') + '</span>';
+          b.addEventListener('click', function () {
+            cbPendingCharStickerDataUrl = cbSvgStickerDataUrl(p.svg || '');
+            if (inpEm) inpEm.value = String(inpEm.value || '') + p.text;
+            if (inpEm) try { inpEm.focus(); } catch (eFe) {}
+            hidePop();
+          });
+          strip.appendChild(b);
+        });
+        pop.appendChild(strip);
+
+        var sections = [
+          { title: '자주 쓰는', items: ['👍', '👌', '🙏', '❤️', '✅', '👏', '🎉', '💯', '✨', '🔥', '💪', '🙌', '🤝', '👋'] },
+          { title: '웃음·감정', items: ['😀', '😊', '😂', '🤣', '😍', '🥰', '😘', '😉', '🤔', '😮', '😢', '😭', '😤', '🥺', '😅', '🤗'] },
+          { title: '손·표시', items: ['✌️', '🤞', '👆', '👇', '🙆', '🙅', '🤷', '🙇', '💁', '☝️', '✋', '🤚'] },
+          { title: '하트·별', items: ['❤️', '🧡', '💛', '💚', '💙', '💜', '🖤', '🤍', '💕', '💖', '💗', '⭐', '🌟', '✨'] },
+          { title: '쇼핑·결제', items: ['🛒', '💳', '💰', '💵', '🧾', '📦', '🎁', '🏪', '📱', '🔔', '🚚', '✉️', '🏬'] },
+          { title: '기타', items: ['❌', '❓', '❗', '➡️', '⬅️', '⏰', '📅', '🔒', '🔑', '📷', '💬', '📝', '🌈', '☀️', '🌙'] }
+        ];
+        sections.forEach(function (sec) {
+          var hd = document.createElement('div');
+          hd.className = 'cb-emoji-pop-hd';
+          hd.textContent = sec.title;
+          pop.appendChild(hd);
+          sec.items.forEach(function (ch) {
+            var b = document.createElement('button');
+            b.type = 'button';
+            b.className = 'cb-emoji-item';
+            b.textContent = ch;
+            b.title = ch;
+            b.setAttribute('aria-label', ch);
+            b.addEventListener('click', function () {
+              if (inpEm) inpEm.value = String(inpEm.value || '') + ch;
+              if (inpEm) try { inpEm.focus(); } catch (eFe) {}
+              hidePop();
+            });
+            pop.appendChild(b);
+          });
+        });
+
+        function hidePop() {
+          pop.classList.remove('show');
+          pop.setAttribute('aria-hidden', 'true');
+        }
+
+        function positionCbEmojiPop() {
+          if (!pop.classList.contains('show')) return;
+          var margin = 8;
+          var maxW = Math.min(window.innerWidth - margin * 2, 380);
+          var maxH = Math.min(window.innerHeight * 0.52, 340);
+          pop.style.width = maxW + 'px';
+          pop.style.maxHeight = maxH + 'px';
+          var r = tog.getBoundingClientRect();
+          var pr = pop.getBoundingClientRect();
+          var pw = pr.width || maxW;
+          var ph = pr.height || 200;
+          var left = r.left + r.width / 2 - pw / 2;
+          left = Math.max(margin, Math.min(left, window.innerWidth - pw - margin));
+          pop.style.left = left + 'px';
+          pop.style.right = 'auto';
+          var spaceAbove = r.top - margin;
+          var spaceBelow = window.innerHeight - r.bottom - margin;
+          var wantAbove = spaceAbove >= Math.min(ph + 16, maxH + 40) || spaceAbove >= spaceBelow;
+          if (wantAbove) {
+            pop.style.bottom = (window.innerHeight - r.top + margin) + 'px';
+            pop.style.top = 'auto';
+          } else {
+            pop.style.top = (r.bottom + margin) + 'px';
+            pop.style.bottom = 'auto';
+          }
+          requestAnimationFrame(function () {
+            if (!pop.classList.contains('show')) return;
+            var box = pop.getBoundingClientRect();
+            if (box.top < margin) {
+              pop.style.top = (r.bottom + margin) + 'px';
+              pop.style.bottom = 'auto';
+            } else if (box.bottom > window.innerHeight - margin && r.top > box.height + margin) {
+              pop.style.bottom = (window.innerHeight - r.top + margin) + 'px';
+              pop.style.top = 'auto';
+            }
+          });
+        }
+
+        pop.addEventListener('click', function (ev) { ev.stopPropagation(); });
+        pop.addEventListener('keydown', function (ev) {
+          if (ev.key === 'Escape') hidePop();
+        });
+
+        tog.addEventListener('click', function (ev) {
+          ev.stopPropagation();
+          var on = !pop.classList.contains('show');
+          pop.classList.toggle('show', on);
+          pop.setAttribute('aria-hidden', on ? 'false' : 'true');
+          if (on) {
+            requestAnimationFrame(function () {
+              positionCbEmojiPop();
+              requestAnimationFrame(positionCbEmojiPop);
+            });
+          }
+        });
+
+        window.addEventListener('resize', function () {
+          if (pop.classList.contains('show')) positionCbEmojiPop();
+        });
+
+        document.addEventListener('click', function () { hidePop(); });
+      })();
+
+      syncAttachPlusTitle();
+
+      loadCatalog().then(function () {
+        if (compId) appendMsg('assistant', '원하시는 상품을 위에서 고르시거나, 결제·상품에 대해 물어보세요.');
+      });
+    })();
+  </script>
+</body>
+</html>

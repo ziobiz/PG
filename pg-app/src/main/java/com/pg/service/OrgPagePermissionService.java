@@ -5,12 +5,15 @@ import com.pg.entity.AppUser;
 import com.pg.entity.OrgLevel;
 import com.pg.entity.OrgPagePermission;
 import com.pg.entity.OrgUnit;
+import com.pg.entity.MerchantProfile;
 import com.pg.entity.OrgUnitAssistantPagePermission;
 import com.pg.entity.OrgUnitPagePermission;
+import com.pg.repository.MerchantProfileRepository;
 import com.pg.repository.OrgPagePermissionRepository;
 import com.pg.repository.OrgUnitAssistantPagePermissionRepository;
 import com.pg.repository.OrgUnitPagePermissionRepository;
 import com.pg.repository.OrgUnitRepository;
+import com.pg.util.ChatbotMerchantAdminConstants;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -32,12 +35,14 @@ public class OrgPagePermissionService {
     public static final String MODE_LEVEL_DEFAULT = "LEVEL_DEFAULT";
     public static final String MODE_CUSTOM = "CUSTOM";
 
-    public static final List<String> ASSISTANT_ROLE_TYPES = List.of("MANAGER", "OPERATOR", "SETTLEMENT", "TECH");
+    public static final List<String> ASSISTANT_ROLE_TYPES =
+            List.of("MANAGER", "OPERATOR", "SETTLEMENT", "TECH", ChatbotMerchantAdminConstants.ASSISTANT_ROLE_TYPE);
 
     private final OrgPagePermissionRepository orgPagePermissionRepository;
     private final OrgUnitPagePermissionRepository orgUnitPagePermissionRepository;
     private final OrgUnitAssistantPagePermissionRepository orgUnitAssistantPagePermissionRepository;
     private final OrgUnitRepository orgUnitRepository;
+    private final MerchantProfileRepository merchantProfileRepository;
     private final AuthService authService;
     private final OrgUnitChangeAuditService orgUnitChangeAuditService;
     private final PayFollowPolicyService payFollowPolicyService;
@@ -46,6 +51,7 @@ public class OrgPagePermissionService {
                                       OrgUnitPagePermissionRepository orgUnitPagePermissionRepository,
                                       OrgUnitAssistantPagePermissionRepository orgUnitAssistantPagePermissionRepository,
                                       OrgUnitRepository orgUnitRepository,
+                                      MerchantProfileRepository merchantProfileRepository,
                                       AuthService authService,
                                       OrgUnitChangeAuditService orgUnitChangeAuditService,
                                       @Lazy PayFollowPolicyService payFollowPolicyService) {
@@ -53,6 +59,7 @@ public class OrgPagePermissionService {
         this.orgUnitPagePermissionRepository = orgUnitPagePermissionRepository;
         this.orgUnitAssistantPagePermissionRepository = orgUnitAssistantPagePermissionRepository;
         this.orgUnitRepository = orgUnitRepository;
+        this.merchantProfileRepository = merchantProfileRepository;
         this.authService = authService;
         this.orgUnitChangeAuditService = orgUnitChangeAuditService;
         this.payFollowPolicyService = payFollowPolicyService;
@@ -79,7 +86,54 @@ public class OrgPagePermissionService {
         } else {
             base = effectiveMapForOrgLevel(level);
         }
-        return applyAssistantRoleOverlayIfNeeded(user, base, org);
+        Map<String, String> layered = applyAssistantRoleOverlayIfNeeded(user, base, org);
+        return elevateMerchantChatbotAdminChatbotMenusIfEligible(user, org, layered);
+    }
+
+    /**
+     * 가맹(MERCHANT)이고 챗봇결제 사용(Y)·업체 대표 또는 CHATBOT 권한그룹이면 챗봇관리 메뉴 최소 사용권한을 확보합니다(조직 권한이 NONE이던 경우도).
+     */
+    private Map<String, String> elevateMerchantChatbotAdminChatbotMenusIfEligible(AppUser user, Map<String, Object> org,
+                                                                                   Map<String, String> permissions) {
+        if (user == null || org == null || permissions == null) {
+            return permissions;
+        }
+        if (!OrgLevel.MERCHANT.name().equalsIgnoreCase(trim(String.valueOf(org.getOrDefault("orgLevel", ""))))) {
+            return permissions;
+        }
+        if (!ChatbotMerchantAdminConstants.merchantAdminWebMayUseChatbotFeatures(user)) {
+            return permissions;
+        }
+        Object ouIdObj = org.get("orgUnitId");
+        if (ouIdObj == null) {
+            return permissions;
+        }
+        long ouId;
+        try {
+            ouId = Long.parseLong(ouIdObj.toString().trim());
+        } catch (NumberFormatException e) {
+            return permissions;
+        }
+        String chatbotYn = merchantProfileRepository.findByOrgUnitId(ouId)
+                .map(MerchantProfile::getChatbotPaymentUseYn)
+                .orElse("N");
+        if (!"Y".equalsIgnoreCase(trim(chatbotYn))) {
+            return permissions;
+        }
+        Map<String, String> out = new LinkedHashMap<>(permissions);
+        String floor = P_DELETE;
+        raisePermissionFloor(out, "/chatbot/productMng", floor);
+        raisePermissionFloor(out, "/chatbot/chatbotKbMng", floor);
+        return out;
+    }
+
+    private void raisePermissionFloor(Map<String, String> map, String pageUrl, String floorPerm) {
+        if (map == null || pageUrl == null || pageUrl.isBlank()) {
+            return;
+        }
+        String cur = normalizePerm(map.get(pageUrl));
+        String fl = normalizePerm(floorPerm);
+        map.put(pageUrl, permFromStrength(Math.max(strength(cur), strength(fl))));
     }
 
     /**

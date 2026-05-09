@@ -6,6 +6,13 @@
 
   global.PG_UI = global.PG_UI || {};
 
+  function uiT(s) {
+    try {
+      if (global.PG_UI_I18N && typeof global.PG_UI_I18N.t === 'function') return global.PG_UI_I18N.t(String(s));
+    } catch (e) {}
+    return String(s);
+  }
+
   /**
    * @param {HTMLElement} root - 배너 조상(탭 pane 등)
    * @param {string} bannerId - # 제외 id
@@ -57,11 +64,12 @@
   global.PG_UI.resolvePayRowTone = function (row) {
     if (!row || typeof row !== 'object') return 'neutral';
     var divEarly = String(row.payDivNm || '').trim();
-    if (divEarly.indexOf('무효') >= 0 || divEarly === '자동환불') return 'void';
-    if (divEarly === '환불') return 'refund';
-    if (divEarly === '실패') return 'fail';
-    if (divEarly === '취소') return 'cancel';
-    if (divEarly === '인증대기') return 'other';
+    divEarly = uiT(divEarly);
+    if (divEarly.indexOf(uiT('무효')) >= 0 || divEarly === uiT('자동환불')) return 'void';
+    if (divEarly === uiT('환불')) return 'refund';
+    if (divEarly === uiT('실패')) return 'fail';
+    if (divEarly === uiT('취소')) return 'cancel';
+    if (divEarly === uiT('인증대기')) return 'other';
     var st = row.status != null ? String(row.status).trim() : '';
     if (st === '21' || st === '22' || st === '40' || st === '41' || st === '42') return 'void';
     if (st === '10') {
@@ -88,20 +96,22 @@
     if (st === '99' || st === 'F0' || st.toLowerCase() === 'f0') return 'fail';
     if (st === '08') return 'pending';
     var div = String(row.payDivNm || '').trim();
-    if (div === '인증대기') return 'other';
-    if (div === '환불') return 'refund';
-    if (div === '실패') return 'fail';
-    if (div === '취소') return 'cancel';
-    if (div.indexOf('무효') >= 0) return 'void';
+    div = uiT(div);
+    if (div === uiT('인증대기')) return 'other';
+    if (div === uiT('환불')) return 'refund';
+    if (div === uiT('실패')) return 'fail';
+    if (div === uiT('취소')) return 'cancel';
+    if (div.indexOf(uiT('무효')) >= 0) return 'void';
     var lab = row.chillPaymentStatus != null ? String(row.chillPaymentStatus).trim() : '';
     if (!lab || lab === '-') return 'neutral';
-    if (lab === '성공') return 'success';
-    if (lab === '취소') return 'cancel';
-    if (lab === '실패' || lab === '오류') return 'fail';
-    if (lab.indexOf('무효') >= 0) return 'void';
-    if (lab.indexOf('환불') >= 0) return 'refund';
-    if (lab.indexOf('인증대기') >= 0) return 'other';
-    if (lab === '요청' || lab.indexOf('대기') >= 0) return 'pending';
+    lab = uiT(lab);
+    if (lab === uiT('성공')) return 'success';
+    if (lab === uiT('취소')) return 'cancel';
+    if (lab === uiT('실패') || lab === uiT('오류')) return 'fail';
+    if (lab.indexOf(uiT('무효')) >= 0) return 'void';
+    if (lab.indexOf(uiT('환불')) >= 0) return 'refund';
+    if (lab.indexOf(uiT('인증대기')) >= 0) return 'other';
+    if (lab === uiT('요청') || lab.indexOf(uiT('대기')) >= 0) return 'pending';
     if (/^(paid|success|complete|authorized)$/i.test(lab)) return 'success';
     if (/cancel/i.test(lab) && lab.indexOf('무효') === -1) return 'cancel';
     if (/refund/i.test(lab)) return 'refund';
@@ -148,25 +158,25 @@
     var s = st == null ? '' : String(st).trim();
     if (!s) return '—';
     if (/^[0-4]$/.test(s)) {
-      if (s === '0') return '성공';
-      if (s === '1' || s === '3') return '실패';
-      if (s === '2') return '취소';
-      if (s === '4') return '오류';
+      if (s === '0') return uiT('성공');
+      if (s === '1' || s === '3') return uiT('실패');
+      if (s === '2') return uiT('취소');
+      if (s === '4') return uiT('오류');
     }
     switch (s) {
-      case '10': return '성공';
-      case '08': return '요청';
-      case '20': return '취소';
-      case '21': return '무효';
-      case '22': return '이메일무효';
-      case '30': return '환불';
-      case '31': return '강제환불';
-      case '40': return '자동무효';
-      case '41': return '이메일무효';
-      case '42': return '자동환불';
+      case '10': return uiT('성공');
+      case '08': return uiT('요청');
+      case '20': return uiT('취소');
+      case '21': return uiT('무효');
+      case '22': return uiT('이메일무효');
+      case '30': return uiT('환불');
+      case '31': return uiT('강제환불');
+      case '40': return uiT('자동무효');
+      case '41': return uiT('이메일무효');
+      case '42': return uiT('자동환불');
       case '99':
       case 'F0':
-      case 'f0': return '실패';
+      case 'f0': return uiT('실패');
       default: return s;
     }
   };

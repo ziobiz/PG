@@ -294,7 +294,41 @@
         return detectBrowserUrlPayLang();
       }
 
+      var PAY_ENTRY_CHATBOT = (function () {
+        try {
+          var p = new URLSearchParams(window.location.search);
+          return String(p.get('entry') || '').toLowerCase() === 'chatbot';
+        } catch (eB) {
+          return false;
+        }
+      })();
+
       var LANG = resolveInitialUrlPayLang();
+
+      /** 챗봇·링크 진입 시 ?item=&amount=&currency= 미리 채움 */
+      function applyQueryPrefillsFromUrl() {
+        try {
+          var p = new URLSearchParams(window.location.search);
+          var item = (p.get('item') || p.get('desc') || '').trim();
+          var amt = (p.get('amount') || p.get('amt') || '').trim();
+          var curq = (p.get('currency') || p.get('cur') || '').trim();
+          if (item) {
+            var it = document.getElementById('item');
+            if (it && !String(it.value || '').trim()) it.value = item.length > 500 ? item.substring(0, 500) : item;
+          }
+          if (amt) {
+            var am = document.getElementById('amount');
+            if (am && !String(am.value || '').trim()) am.value = amt.length > 40 ? amt.substring(0, 40) : amt;
+          }
+          if (curq && checkoutCtx && checkoutCtx.checkoutCurrencyCode) {
+            var want = curq.toUpperCase();
+            var curSel = checkoutCtx.checkoutCurrencyCode ? String(checkoutCtx.checkoutCurrencyCode).trim().toUpperCase() : '';
+            if (want && curSel && want !== curSel && window.console && console.warn) {
+              console.warn('URL currency param ignored (checkout currency is ' + curSel + ')');
+            }
+          }
+        } catch (eQp) { /* ignore */ }
+      }
       /** 본사 checkout-context: urlPayFlow INLINE|REDIRECT, urlPayFormMode FULL|SIMPLE */
       var urlPayFlow = 'INLINE';
       var urlPayFormMode = 'FULL';
@@ -1374,6 +1408,7 @@
           applyI18n();
           applyCheckoutHeaderBranding();
           applyCheckoutFormDefaults(compId, checkoutCtx);
+          applyQueryPrefillsFromUrl();
           if (urlPayDisplayFxActive && urlPayPricingMode === 'DISPLAY_FX_THB') {
             initUrlPayDisplayFx(compId);
           }
@@ -1544,7 +1579,8 @@
             ? String(checkoutCtx.checkoutCurrencyCode).trim()
             : 'JPY',
           urlPayIntegrationMode: 'INLINE',
-          urlPayCcdInline: urlPayCcdCardholderOnly()
+          urlPayCcdInline: urlPayCcdCardholderOnly(),
+          txnOrigin: PAY_ENTRY_CHATBOT ? 'CHATBOT' : 'URL'
         };
         fd.customerId = (emailVal && emailVal.length) ? emailVal : fd.orderNo;
 

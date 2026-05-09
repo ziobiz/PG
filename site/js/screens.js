@@ -5,14 +5,24 @@
 (function () {
   'use strict';
 
+  /**
+   * 화면 정의는 앱 시작 시 1회 로드되고, 문자열이 여기서 즉시 번역되면(특히 JP/EN)
+   * 이후 언어 변경 시 원문(키)을 복원할 수 없어 일부 문구가 고정됩니다.
+   *
+   * 따라서 이 파일의 L()은 "번역"이 아니라 "키(기본 KO 원문)"를 그대로 반환하고,
+   * 실제 번역은 렌더 후 `PG_UI_I18N.applyDom` / STRING_MAP 파이프라인에서 처리합니다.
+   */
   function L(s) {
-    if (s == null || s === '') return s;
-    if (typeof s !== 'string') return s;
-    if (window.PG_UI_I18N && typeof window.PG_UI_I18N.t === 'function') return window.PG_UI_I18N.t(s);
     return s;
   }
   function escUi(s) {
     return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+  }
+
+  /** 본사 AI설정 — 챗봇 플랜 월요금 통화 열 (서버 ChatbotProductPricingUtil.BILLING_CURRENCIES 와 동일) */
+  var PG_CHATBOT_PLAN_CCY = ['JPY', 'KRW', 'USD', 'CNY', 'THB'];
+  if (typeof window !== 'undefined') {
+    window.PG_CHATBOT_PLAN_CCY = PG_CHATBOT_PLAN_CCY;
   }
 
   /** 가맹/업체정보조회·업체정보조회: 무효·환불 안내(HTML은 STATIC의 L 결과) */
@@ -23,6 +33,295 @@
   function merchantPaymentUrlRowHtml(placeholderKo) {
     var ph = placeholderKo || '가맹점 저장 후 조회';
     return '<div class="row mb-2"><div class="col-sm-5"><label class="form-label">' + escUi(L('결제 URL')) + '</label><div class="input-group input-group-sm"><input type="text" class="form-control" id="paymentUrlDisplay" readonly placeholder="' + escUi(L(String(ph))) + '"><button type="button" class="btn btn-outline-primary" id="paymentUrlCopyBtn">' + escUi(L('복사')) + '</button></div></div></div>';
+  }
+
+  /** read-only 챗봇결제 URL (컨테이너마다 고유 id가 필요하면 별도 템플릿으로 분리) */
+  function merchantChatbotPaymentUrlRowHtml(placeholderKo) {
+    var ph = placeholderKo || '가맹점 저장 후 조회';
+    return '<div class="row mb-2"><div class="col-sm-5"><label class="form-label">' + escUi(L('챗봇결제 URL')) + '</label><div class="input-group input-group-sm"><input type="text" class="form-control" id="chatbotPaymentUrlDisplay" readonly placeholder="' + escUi(L(String(ph))) + '"><button type="button" class="btn btn-outline-primary" id="chatbotPaymentUrlCopyBtn">' + escUi(L('복사')) + '</button></div></div></div>';
+  }
+
+  /** 가맹점·상위 조직 — 챗봇 상품 그리드 (관리 메뉴) */
+  function chatbotProductMngGridHtml() {
+    return (
+      '<div class="chatbot-product-mng">' +
+      '<div class="row g-2 mb-3 align-items-end" id="chatbotProdScopeRow">' +
+      '<div class="col-md-5">' +
+      '<label class="form-label small mb-0" data-pg-ui-t="대상 가맹점 코드">' + escUi(L('대상 가맹점 코드')) + '</label>' +
+      '<input type="text" class="form-control form-control-sm" id="chatbotProdScopeCompId" maxlength="50" placeholder="">' +
+      '</div>' +
+      '<div class="col-auto pb-1">' +
+      '<button type="button" class="btn btn-sm btn-primary mt-3 mt-md-4" id="chatbotProdLoadBtn" data-pg-ui-t="불러오기">' + escUi(L('불러오기')) + '</button>' +
+      '</div></div>' +
+      '<p class="small text-muted mb-2 d-none" id="chatbotProdScopeHint">' + escUi(L('코드를 비우고 불러오기하면 로그인 조직 산하 가맹점의 등록 상품을 한 목록으로 봅니다. 본사·총판 열 「본사 판매금지」가 Y면 가맹이 사용=ON이어도 고객 챗봇·카탈로그에 노출되지 않습니다.')) + '</p>' +
+      '<div class="table-responsive table-no-col-resize-wrap">' +
+      '<table class="table table-sm table-bordered align-middle mb-2 chatbot-prod-grid table-no-col-resize" id="tbl_chatbot_products">' +
+      '<thead class="table-light"><tr>' +
+      '<th style="width:2.75rem;text-align:center">#</th>' +
+      '<th class="hq-only-col" style="min-width:6.5rem" data-pg-ui-t="가맹점코드">' + escUi(L('가맹점코드')) + '</th>' +
+      '<th class="hq-only-col" style="min-width:7rem" data-pg-ui-t="가맹점명">' + escUi(L('가맹점명')) + '</th>' +
+      '<th class="hq-only-col" style="min-width:7.5rem" title="Y=고객 챗봇·공개 카탈로그 비노출(개발·검수 등)" data-pg-ui-t="본사 판매금지">' + escUi(L('본사 판매금지')) + '</th>' +
+      '<th style="min-width:7rem" data-pg-ui-t="코드">' + escUi(L('코드')) + '</th>' +
+      '<th style="min-width:9rem" data-pg-ui-t="상품명">' + escUi(L('상품명')) + '</th>' +
+      '<th style="width:5.75rem" title="일반 판매 또는 예약 상품" data-pg-ui-t="판매·예약">' + escUi(L('판매·예약')) + '</th>' +
+      '<th style="min-width:12rem" data-pg-ui-t="설명">' + escUi(L('설명')) + '</th>' +
+      '<th style="min-width:7rem" data-pg-ui-t="금액">' + escUi(L('금액')) + '</th>' +
+      '<th style="width:5.25rem" data-pg-ui-t="통화">' + escUi(L('통화')) + '</th>' +
+      '<th style="width:4.25rem" data-pg-ui-t="순서">' + escUi(L('순서')) + '</th>' +
+      '<th style="width:5rem" title="판매 활성=Y일 때 고객 챗봇·카탈로그에 노출(본사 차단 등 별개)" data-pg-ui-t="판매 활성">' + escUi(L('판매 활성')) + '</th>' +
+      '<th style="min-width:13rem" data-pg-ui-t="이미지">' + escUi(L('이미지')) + '</th>' +
+      '<th style="width:7.25rem;text-align:center" data-pg-ui-t="실행">' + escUi(L('실행')) + '</th>' +
+      '</tr></thead>' +
+      '<tbody id="chatbotProdTbody">' +
+      '<tr><td colspan="14" class="text-muted text-center py-3 small empty-state-cell" id="chatbotProdTbodyPlaceholder" data-pg-ui-t="불러오기를 누르거나 행 추가를 선택하세요.">' +
+      escUi(L('불러오기를 누르거나 행 추가를 선택하세요.')) +
+      '</td></tr>' +
+      '</tbody></table></div>' +
+      '<button type="button" class="btn btn-sm btn-outline-primary" id="chatbotProdAddRowBtn" data-pg-ui-t="행 추가">' + escUi(L('행 추가')) + '</button>' +
+      '</div>'
+    );
+  }
+
+  /** 총본사·본사·총판 등: 산하 가맹 챗봇 안내 현황(목록) */
+  function chatbotKbMerchantOverviewHtml() {
+    return (
+      '<div id="chatbotKbOverviewOuter" class="chatbot-kb-overview-outer mb-2">' +
+      '<div id="chatbotKbOverviewWrap" class="mb-2">' +
+      '<div class="row g-2 align-items-end flex-wrap mb-2">' +
+      '<div class="col-lg-3 col-md-6"><label class="form-label small mb-0" data-pg-ui-t="업체코드">' + escUi(L('업체코드')) + '</label>' +
+      '<input type="text" class="form-control form-control-sm" id="chatbotKbOvSearchId" maxlength="50" placeholder=""></div>' +
+      '<div class="col-lg-3 col-md-6"><label class="form-label small mb-0" data-pg-ui-t="업체명">' + escUi(L('업체명')) + '</label>' +
+      '<input type="text" class="form-control form-control-sm" id="chatbotKbOvSearchNm" maxlength="120" placeholder=""></div>' +
+      '<div class="col-auto"><button type="button" class="btn btn-sm btn-primary mt-3 mt-md-4" id="chatbotKbOvSearchBtn" data-pg-ui-t="조회">' + escUi(L('조회')) + '</button></div>' +
+      '<div class="col-auto ms-lg-auto text-muted small align-self-center" id="chatbotKbOvPageInfo"></div>' +
+      '<div class="col-auto">' +
+      '<button type="button" class="btn btn-sm btn-outline-secondary" id="chatbotKbOvPrev" data-pg-ui-t="이전">' + escUi(L('이전')) + '</button> ' +
+      '<button type="button" class="btn btn-sm btn-outline-secondary" id="chatbotKbOvNext" data-pg-ui-t="다음">' + escUi(L('다음')) + '</button>' +
+      '</div></div>' +
+      '<div class="chatbot-kb-overview-table-wrap">' +
+      '<table class="table table-sm table-bordered align-middle mb-0 table-no-col-resize" id="tbl_chatbot_kb_overview">' +
+      '<colgroup>' +
+      '<col class="chatbot-kb-col-compid">' +
+      '<col class="chatbot-kb-col-compnm">' +
+      '<col class="chatbot-kb-col-prodslot">' +
+      '<col class="chatbot-kb-col-kbnm">' +
+      '<col class="chatbot-kb-col-tel">' +
+      '<col class="chatbot-kb-col-email">' +
+      '<col class="chatbot-kb-col-contact">' +
+      '<col class="chatbot-kb-col-addr">' +
+      '<col class="chatbot-kb-col-intro">' +
+      '<col class="chatbot-kb-col-product">' +
+      '<col class="chatbot-kb-col-action">' +
+      '</colgroup>' +
+      '<thead class="table-light"><tr>' +
+      '<th data-pg-ui-t="업체코드">' + escUi(L('업체코드')) + '</th>' +
+      '<th data-pg-ui-t="업체명">' + escUi(L('업체명')) + '</th>' +
+      '<th class="text-end" title="등록건수 / 등록상한 · 판매활성/플랜활성상한 (0 또는 미설정이면 무제한)" data-pg-ui-t="등록·활성(건)">' + escUi(L('등록·활성')) + '</th>' +
+      '<th data-pg-ui-t="안내 회사명">' + escUi(L('안내 회사명')) + '</th>' +
+      '<th data-pg-ui-t="전화">' + escUi(L('전화')) + '</th>' +
+      '<th data-pg-ui-t="이메일">' + escUi(L('이메일')) + '</th>' +
+      '<th data-pg-ui-t="담당자">' + escUi(L('담당자')) + '</th>' +
+      '<th data-pg-ui-t="주소">' + escUi(L('주소')) + '</th>' +
+      '<th data-pg-ui-t="회사소개">' + escUi(L('회사소개')) + '</th>' +
+      '<th data-pg-ui-t="판매안내">' + escUi(L('판매안내')) + '</th>' +
+      '<th class="text-center" data-pg-ui-t="수정">' + escUi(L('수정')) + '</th>' +
+      '</tr></thead><tbody id="chatbotKbOverviewTbody"></tbody></table></div></div></div>'
+    );
+  }
+
+  /** 챗봇 기본설정 화면 전용: 상위 조직용 가맹점 코드 입력 + 안내 폼(상품관리 화면과 분리) */
+  function chatbotKbScopeAndPublicFormHtml() {
+    return (
+      '<div id="chatbotKbScopeOuter" class="mb-2">' +
+      '<div class="row g-2 align-items-end flex-wrap" id="chatbotKbScopeRow">' +
+      '<div class="col-md-5">' +
+      '<label class="form-label small mb-0" data-pg-ui-t="대상 가맹점 코드">' + escUi(L('대상 가맹점 코드')) + '</label>' +
+      '<input type="text" class="form-control form-control-sm" id="chatbotKbScopeCompId" maxlength="50" placeholder="">' +
+      '</div>' +
+      '<div class="col-auto pb-1">' +
+      '<button type="button" class="btn btn-sm btn-primary mt-3 mt-md-4" id="chatbotKbFormLoadBtn" data-pg-ui-t="불러오기">' + escUi(L('불러오기')) + '</button>' +
+      '</div></div>' +
+      '<p class="small text-muted mb-0 mt-1" data-pg-ui-t="목록에서 [수정]을 누르면 코드가 채워지고 하단에서 플랜·안내를 고칠 수 있습니다.">' +
+      escUi(L('목록에서 [수정]을 누르면 코드가 채워지고 하단에서 플랜·안내를 고칠 수 있습니다.')) +
+      '</p></div>' +
+      chatbotPublicKbSectionHtml()
+    );
+  }
+
+  /** 챗봇관리 — 고객 안내 기본값(등록 정보 병합·AI 초안 가능) */
+  function chatbotPublicKbSectionHtml() {
+    return (
+      '<div class="border rounded p-3 mb-3 bg-body-secondary bg-opacity-25" id="chatbotKbProductPlanBanner">' +
+      '<div class="d-flex flex-wrap align-items-center gap-2 mb-2">' +
+      '<h6 class="small fw-semibold mb-0" data-pg-ui-t="챗봇 등록·이용 상품">' +
+      escUi(L('챗봇 등록·이용 상품')) + '</h6>' +
+      '<button type="button" class="btn btn-sm btn-outline-primary ms-auto" id="chatbotKbGoProductMngBtn" data-pg-ui-t="상품관리에서 등록·수정">' +
+      escUi(L('상품관리에서 등록·수정')) + '</button></div>' +
+      '<p class="small text-muted mb-2" data-pg-ui-t="챗봇_pay·공개 챗봇에 노출되는 판매 품목은 상품관리에서만 관리합니다.">' +
+      escUi(L('챗봇 결제 및 공개 챗봇 노출 상품은 「상품관리」에서 설정합니다. 플랜마다 동시 「판매 활성」 가능 개수가 있으며, 「사용=Y」만 고객에게 판매·노출됩니다. 그보다 2건 더 많게 상품 행은 등록해 두되 판매 비활성(사용=N)으로 둘 수 있습니다. 안내(LLM·카탈로그)에는 판매 활성이면서 본사 판매금지 아닌 상품만 포함됩니다.')) +
+      '</p>' +
+      '<dl class="row small mb-0">' +
+      '<dt class="col-sm-4 col-md-3 text-muted mb-1" data-pg-ui-t="챗봇결제">' + escUi(L('챗봇결제')) + '</dt>' +
+      '<dd class="col-sm-8 col-md-3 mb-1" id="chatbotKbPlanPaymentYnVal">—</dd>' +
+      '<dt class="col-sm-4 col-md-3 text-muted mb-1" data-pg-ui-t="판매 활성·등록 한도">' + escUi(L('판매 활성·등록 한도')) + '</dt>' +
+      '<dd class="col-sm-8 col-md-3 mb-1" id="chatbotKbPlanCapVal">—</dd>' +
+      '<dt class="col-sm-4 col-md-3 text-muted mb-1" data-pg-ui-t="판매 활성(현재/플랜)">' + escUi(L('판매 활성(현재/플랜)')) + '</dt>' +
+      '<dd class="col-sm-8 col-md-3 mb-1" id="chatbotKbPlanSaleActiveVal">—</dd>' +
+      '<dt class="col-sm-4 col-md-3 text-muted mb-1" data-pg-ui-t="등록 건수(전체)">' + escUi(L('등록 건수(전체)')) + '</dt>' +
+      '<dd class="col-sm-8 col-md-3 mb-1" id="chatbotKbPlanRegVal">—</dd>' +
+      '<dt class="col-sm-4 col-md-3 text-muted mb-1" data-pg-ui-t="남은 등록 슬롯">' + escUi(L('남은 등록 슬롯')) + '</dt>' +
+      '<dd class="col-sm-8 col-md-3 mb-1" id="chatbotKbPlanRemVal">—</dd>' +
+      '</dl>' +
+      '<div class="border-top pt-2 mt-3" id="chatbotKbPlanSlotEditRow">' +
+      '<label class="form-label small mb-1" for="chatbotKbPlanSlotSel" data-pg-ui-t="등록 가능 플랜(설정 변경)">' +
+      escUi(L('등록 가능 플랜(설정 변경)')) + '</label>' +
+      '<div class="d-flex flex-wrap align-items-center gap-2">' +
+      '<select id="chatbotKbPlanSlotSel" class="form-select form-select-sm" style="max-width: 14rem">' +
+      '<option value="" data-pg-ui-t="무제한 (건수 상한 없음)">' + escUi(L('무제한 (건수 상한 없음)')) + '</option>' +
+      [10, 20, 50, 80, 100, 150, 200].map(function (slotN) {
+        return '<option value="' + slotN + '">' + escUi(String(slotN)) + escUi(L('건')) + '</option>';
+      }).join('') +
+      '</select>' +
+      '<span class="small text-muted flex-grow-1 min-w-0" id="chatbotKbPlanSlotSelHint"></span>' +
+      '</div></div>' +
+      '<p class="small text-warning mb-0 d-none mt-2" id="chatbotKbPlanWarn"></p>' +
+      '</div>' +
+      '<div class="border rounded p-3 mb-3 bg-light bg-opacity-25" id="chatbotKbSection">' +
+      '<p class="small text-muted mb-2" data-pg-ui-t="고객 챗봇 문의 시 참고되는 안내입니다. 아래 비우면 1~5는 업체등록 정보와 동일하게 안내됩니다.">' +
+      escUi(L('고객 챗봇 문의 시 참고되는 안내입니다. 아래 비우면 1~5는 업체등록 정보와 동일하게 안내됩니다.')) +
+      '</p>' +
+      '<div class="row g-2">' +
+      '<div class="col-md-6"><label class="form-label small mb-0" data-pg-ui-t="회사이름">' + escUi(L('회사이름')) + '</label>' +
+      '<input type="text" class="form-control form-control-sm" id="chatbotKbCompanyNm" name="chatbotKbCompanyNm" maxlength="200"></div>' +
+      '<div class="col-md-6"><label class="form-label small mb-0" data-pg-ui-t="전화번호">' + escUi(L('전화번호')) + '</label>' +
+      '<input type="text" class="form-control form-control-sm" id="chatbotKbTel" name="chatbotKbTel" maxlength="100"></div>' +
+      '<div class="col-md-12"><label class="form-label small mb-0" data-pg-ui-t="회사주소">' + escUi(L('회사주소')) + '</label>' +
+      '<textarea class="form-control form-control-sm" id="chatbotKbAddr" name="chatbotKbAddr" rows="2" maxlength="600"></textarea></div>' +
+      '<div class="col-md-6"><label class="form-label small mb-0" data-pg-ui-t="이메일">' + escUi(L('이메일')) + '</label>' +
+      '<input type="text" class="form-control form-control-sm" id="chatbotKbEmail" name="chatbotKbEmail" maxlength="120"></div>' +
+      '<div class="col-md-6"><label class="form-label small mb-0" data-pg-ui-t="담당자 성명">' + escUi(L('담당자 성명')) + '</label>' +
+      '<input type="text" class="form-control form-control-sm" id="chatbotKbContactNm" name="chatbotKbContactNm" maxlength="100"></div>' +
+      '<div class="col-md-12"><label class="form-label small mb-0" data-pg-ui-t="회사소개">' + escUi(L('회사소개')) + '</label>' +
+      '<div class="d-flex flex-wrap gap-2 mb-1">' +
+      '<button type="button" class="btn btn-sm btn-outline-secondary" id="chatbotKbAiIntroBtn" data-pg-ui-t="AI로 회사소개 초안">' + escUi(L('AI로 회사소개 초안')) + '</button>' +
+      '</div>' +
+      '<textarea class="form-control form-control-sm" id="chatbotKbIntro" name="chatbotKbIntro" rows="4" maxlength="4000"></textarea></div>' +
+      '<div class="col-md-12"><label class="form-label small mb-0" data-pg-ui-t="판매상품 안내(개요)">' + escUi(L('판매상품 안내(개요)')) + '</label>' +
+      '<div class="d-flex flex-wrap gap-2 mb-1">' +
+      '<button type="button" class="btn btn-sm btn-outline-secondary" id="chatbotKbAiProductBtn" data-pg-ui-t="AI로 판매상품 안내 초안">' + escUi(L('AI로 판매상품 안내 초안')) + '</button>' +
+      '</div>' +
+      '<textarea class="form-control form-control-sm" id="chatbotKbProductDesc" name="chatbotKbProductDesc" rows="4" maxlength="4000"></textarea></div>' +
+      '<div class="col-12 d-flex flex-wrap gap-2 mt-2">' +
+      '<button type="button" class="btn btn-sm btn-primary" id="chatbotKbSaveBtn" data-pg-ui-t="안내 저장">' + escUi(L('안내 저장')) + '</button>' +
+      '</div></div></div>'
+    );
+  }
+
+  /** 본사 AI설정 — ziobiz/Stock php-web/pages/ai.php 리포트 API 키·모델·순위와 동일 필드명 */
+  function hqChatbotAiSettingsFormHtml() {
+    function modelSelectHtml(prov, presets) {
+      var opts = '<option value="">' + escUi(L('자동(기본)')) + '</option>';
+      for (var i = 0; i < presets.length; i++) {
+        var m = presets[i];
+        opts += '<option value="' + escUi(m) + '">' + escUi(m) + '</option>';
+      }
+      opts += '<option value="custom">' + escUi(L('기타(직접입력)')) + '</option>';
+      return (
+        '<div class="mb-2">' +
+        '<label class="form-label small mb-1" data-pg-ui-t="모델(버전)">' + escUi(L('모델(버전)')) + '</label>' +
+        '<div class="d-flex flex-wrap gap-2 align-items-center">' +
+        '<select name="' + escUi(prov) + '_model_sel" class="form-select form-select-sm hq-ai-model-sel" data-hq-ai-prov="' + escUi(prov) + '" style="min-width:12rem">' + opts + '</select>' +
+        '<input type="text" name="' + escUi(prov) + '_model_custom" class="form-control form-control-sm hq-ai-model-custom" data-hq-ai-prov="' + escUi(prov) + '" placeholder="' + escUi(L('모델명 직접입력')) + '" style="max-width:16rem;display:none">' +
+        '<input type="hidden" name="report_' + escUi(prov) + '_model" class="hq-ai-model-hidden" data-hq-ai-prov="' + escUi(prov) + '" value="">' +
+        '</div></div>'
+      );
+    }
+    var gemPre = ['gemini-2.0-flash', 'gemini-2.5-flash-lite', 'gemini-2.5-flash', 'gemini-1.5-flash', 'gemini-1.5-pro'];
+    var groqPre = ['llama-3.1-8b-instant', 'llama-3.3-70b-versatile', 'llama-3.1-70b-versatile', 'mixtral-8x7b-32768'];
+    var antPre = ['claude-sonnet-4-5', 'claude-3-5-sonnet-20241022', 'claude-3-opus-20240229', 'claude-3-haiku-20240307'];
+    var oaiPre = ['gpt-4o-mini', 'gpt-4o', 'gpt-4-turbo', 'gpt-4'];
+    function provBlk(label, prov, presets, placeholder) {
+      var keyNm = 'report_' + prov + '_api_key';
+      return (
+        '<div class="col-md-6 mb-3">' +
+        '<label class="form-label">' + escUi(L(label)) + '</label>' +
+        '<input type="password" name="' + escUi(keyNm) + '" class="form-control form-control-sm hq-ai-api-key-inp" autocomplete="off" data-hq-ai-key-def-ph="' + escUi(L(placeholder)) + '" placeholder="' + escUi(L(placeholder)) + '">' +
+        '<span class="small text-muted d-block mt-1 hq-ai-key-hint" data-hq-ai-hint="' + escUi(keyNm) + '"></span>' +
+        modelSelectHtml(prov, presets) +
+        '</div>'
+      );
+    }
+    var ordSel = '';
+    var pvLabels = [['gemini', 'Google Gemini'], ['groq', 'Groq'], ['anthropic', 'Anthropic(Claude)'], ['openai', 'OpenAI']];
+    for (var r = 1; r <= 4; r++) {
+      ordSel += '<label class="me-2 small">' + escUi(String(r)) + escUi(L('순위')) + '</label><select name="hqAiProvOrder_' + r + '" class="form-select form-select-sm d-inline-block me-3 mb-2" style="width:auto;min-width:9rem">';
+      ordSel += '<option value="">' + escUi(L('비사용')) + '</option>';
+      for (var j = 0; j < pvLabels.length; j++) {
+        ordSel += '<option value="' + escUi(pvLabels[j][0]) + '">' + escUi(pvLabels[j][1]) + '</option>';
+      }
+      ordSel += '</select>';
+    }
+    return (
+      '<div class="hq-chatbot-ai-settings">' +
+      '<p class="small text-muted mb-3">' +
+      escUi(L('ziobiz/Stock AI 페이지와 동일한 JSON 키(report_*_api_key, report_*_model, report_provider_order)로 저장합니다. 챗봇·상품 안내(LLM 호출 시 서버에서 이 설정을 참조합니다).')) +
+      '<br><span class="text-muted">' +
+      escUi(L('챗봇 상단 로고 자동축소( config_json 최상위, 선택 ): chatbot_logo_target_max_bytes(기본 2097152), chatbot_logo_max_edge_px(기본 1024), chatbot_logo_jpeg_quality_start(0~1, 기본 0.92), chatbot_logo_llm_tune_yn=Y(순위 LLM이 권장 변 길이 제안 → 서버 JPEG 재압축).')) +
+      '</span>' +
+      '</p>' +
+      '<h6 class="border-bottom pb-2 mb-3" data-pg-ui-t="리포트 API 키(챗봇·상품안내 공용)">' + escUi(L('리포트 API 키(챗봇·상품안내 공용)')) + '</h6>' +
+      '<div class="row">' +
+      provBlk('Google Gemini API 키', 'gemini', gemPre, 'AIzaSy…') +
+      provBlk('Groq API 키', 'groq', groqPre, 'gsk_…') +
+      provBlk('Anthropic(Claude) API 키', 'anthropic', antPre, 'sk-ant-…') +
+      provBlk('OpenAI API 키', 'openai', oaiPre, 'sk-…') +
+      '</div>' +
+      '<div class="mb-4">' +
+      '<label class="form-label" data-pg-ui-t="챗봇용 AI 제공자 순위 (1순위부터, 비사용은 건너뜀)">' + escUi(L('챗봇용 AI 제공자 순위')) + '</label>' +
+      '<div class="d-flex flex-wrap align-items-center">' + ordSel + '</div>' +
+      '</div>' +
+      '<h6 class="border-bottom pb-2 mb-3" data-pg-ui-t="프롬프트 (챗봇)">' + escUi(L('프롬프트 (챗봇)')) + '</h6>' +
+      '<div class="mb-3">' +
+      '<label class="form-label" data-pg-ui-t="우선 지시 (시스템)">' + escUi(L('우선 지시 (시스템)')) + '</label>' +
+      '<textarea name="ai_system_prompt_chatbot" rows="5" class="form-control form-control-sm" placeholder="' +
+      escUi(L('등록 상품 안내 시 반드시 지킬 규칙, 언어, 금액 왜곡 금지 등')) + '"></textarea>' +
+      '</div>' +
+      '<div class="mb-3">' +
+      '<label class="form-label" data-pg-ui-t="상품 카탈로그 사용자 프롬프트 템플릿">' + escUi(L('상품 카탈로그 사용자 프롬프트 템플릿')) + '</label>' +
+      '<textarea name="ai_prompt_chatbot_catalog" rows="4" class="form-control form-control-sm" placeholder="' +
+      escUi(L('상품 목록·가격 매칭 시 사용할 역할 안내')) + '"></textarea>' +
+      '</div>' +
+      '<h6 class="border-bottom pb-2 mb-3" data-pg-ui-t="챗봇 상품등록 플랜(월 이용료)">' +
+      escUi(L('챗봇 상품등록 플랜(월 이용료)')) + '</h6>' +
+      '<p class="small text-muted">' +
+      escUi(L('등록 가능 건수(10·20·50·80·100·150·200)별로 JPY·KRW·USD·CNY·THB 월 청구금액을 입력합니다. 자동 청구 시 가맹 소속 총판의 기준통화(첫 통화)가 위 다섯 통화 중 하나이면 그 통화 칸 금액을 미수금으로 올립니다. 총판에 없거나 통화가 맞지 않으면 가맹점 기준통화로 동일 규칙을 적용합니다. 챗봇결제(Y)·한도 지정 가맹은 매월 1회(서울) 전월분·사유 CHATBOT_MONTHLY_SERVICE·메모 CHATBOT_BILL:YYYY-MM')) +
+      '</p>' +
+      '<div class="table-responsive mb-3"><table class="table table-sm table-bordered table-no-col-resize">' +
+      '<thead><tr><th>' + escUi(L('등록 가능(건)')) + '</th>' +
+      PG_CHATBOT_PLAN_CCY.map(function (ccy) {
+        return '<th class="small text-nowrap">' + escUi(ccy) + '</th>';
+      }).join('') +
+      '</tr></thead><tbody>' +
+      [10, 20, 50, 80, 100, 150, 200].map(function (s) {
+        var tds = '<td class="align-middle">' + String(s) + '</td>';
+        for (var ci = 0; ci < PG_CHATBOT_PLAN_CCY.length; ci++) {
+          var ccy = PG_CHATBOT_PLAN_CCY[ci];
+          tds += '<td><input type="number" min="0" step="0.01" class="form-control form-control-sm" name="hq_ai_chatbot_slot_' + String(s) + '_' + ccy + '" value="0"></td>';
+        }
+        return '<tr>' + tds + '</tr>';
+      }).join('') +
+      '</tbody></table></div>' +
+      '<details class="mb-2">' +
+      '<summary class="small text-muted" style="cursor:pointer" data-pg-ui-t="고급 — 출력 형식 제한(ai_system_options_chatbot JSON)">' + escUi(L('고급 — 출력 형식 제한')) + '</summary>' +
+      '<div class="mt-2 p-3 border rounded bg-light">' +
+      '<textarea name="_ai_system_options_chatbot_raw" rows="6" class="form-control font-monospace form-control-sm" placeholder="{ &quot;max_sentences&quot;: 8, … }">' +
+      '</textarea>' +
+      '<span class="small text-muted" data-pg-ui-t="JSON 객체. 비워 두면 기존값 유지 또는 제한 없음.">' +
+      escUi(L('JSON 객체. 비워 두면 변경 없음.')) +
+      '</span></div>' +
+      '</details>' +
+      '</div>'
+    );
   }
 
   /** 전산설정관리: 표준시 — ziobiz/NOTI 시간·동기화 설정 대응 (신규 기본 Asia/Bangkok) */
@@ -423,8 +722,8 @@
     + '</div></div>'
     + '<div class="card mb-3"><div class="card-header fw-semibold">' + escUi(L('정산일정 미리보기')) + '</div><div class="card-body">'
     + '<div class="row g-2 align-items-end mb-2">'
-    + '<div class="col-6 col-md-2"><label class="form-label small mb-0" data-pg-ui-t="시작일">시작일</label><input type="date" lang="en-CA" id="hqStFrom" class="form-control form-control-sm"></div>'
-    + '<div class="col-6 col-md-2"><label class="form-label small mb-0" data-pg-ui-t="종료일">종료일</label><input type="date" lang="en-CA" id="hqStTo" class="form-control form-control-sm"></div>'
+    + '<div class="col-6 col-md-2"><label class="form-label small mb-0" data-pg-ui-t="시작일">시작일</label><input type="date" lang="en-CA" id="hqStFrom" class="form-control form-control-sm pg-date-input-iso"></div>'
+    + '<div class="col-6 col-md-2"><label class="form-label small mb-0" data-pg-ui-t="종료일">종료일</label><input type="date" lang="en-CA" id="hqStTo" class="form-control form-control-sm pg-date-input-iso"></div>'
     + '<div class="col-6 col-md-2 d-grid"><button type="button" class="btn btn-outline-primary btn-sm" id="hqStSchedBtn">' + escUi(L('조회')) + '</button></div></div>'
     + '<div class="table-responsive table-no-col-resize-wrap"><table class="table table-sm table-bordered align-middle mb-0 table-no-col-resize"><thead class="table-light"><tr><th data-pg-ui-t="정산일">정산일</th><th data-pg-ui-t="주기">주기</th><th data-pg-ui-t="대상 from">대상 from</th><th data-pg-ui-t="대상 to">대상 to</th><th data-pg-ui-t="비고">비고</th><th class="text-end" data-pg-ui-t="자동가맹">자동가맹</th></tr></thead><tbody id="hqStSchedTbody"></tbody></table></div>'
     + '<p class="small text-muted mb-0 mt-2">' + L('일중(M·H·TM·TH)는 당일 행·비고는 요약입니다. 상세는 서버 집계 규칙과 동일합니다.') + '</p>'
@@ -544,8 +843,8 @@
   /** 본사 영업일·휴일: 기간형 추가 목록(언제부터~언제까지/내용/추가일/작성자) */
   var REGIONAL_BIZDAY_RANGE_UI_HTML = '<div class="col-12"><div class="border rounded p-2 bg-light mt-1">' +
     '<div class="d-flex flex-wrap align-items-end gap-2 mb-2">' +
-    '<div><label class="form-label mb-1" data-pg-ui-t="언제부터">' + escUi(L('언제부터')) + '</label><input type="date" lang="en-CA" class="form-control form-control-sm" id="bizHolidayFromDate"></div>' +
-    '<div><label class="form-label mb-1" data-pg-ui-t="언제까지">' + escUi(L('언제까지')) + '</label><input type="date" lang="en-CA" class="form-control form-control-sm" id="bizHolidayToDate"></div>' +
+    '<div><label class="form-label mb-1" data-pg-ui-t="언제부터">' + escUi(L('언제부터')) + '</label><input type="date" lang="en-CA" class="form-control form-control-sm pg-date-input-iso" id="bizHolidayFromDate"></div>' +
+    '<div><label class="form-label mb-1" data-pg-ui-t="언제까지">' + escUi(L('언제까지')) + '</label><input type="date" lang="en-CA" class="form-control form-control-sm pg-date-input-iso" id="bizHolidayToDate"></div>' +
     '<div style="min-width:220px"><label class="form-label mb-1" data-pg-ui-t="내용">' + escUi(L('내용')) + '</label><input type="text" class="form-control form-control-sm" id="bizHolidayReason" data-pg-ui-placeholder="예: 설 연휴" placeholder="' + escUi(L('예: 설 연휴')) + '"></div>' +
     '<div><label class="form-label mb-1" data-pg-ui-t="작성자">' + escUi(L('작성자')) + '</label><input type="text" class="form-control form-control-sm" id="bizHolidayWriter" data-pg-ui-placeholder="작성자" placeholder="' + escUi(L('작성자')) + '"></div>' +
     '<div><button type="button" class="btn btn-sm btn-primary" id="bizHolidayAddBtn" data-pg-ui-t="추가">' + escUi(L('추가')) + '</button></div>' +
@@ -569,8 +868,8 @@
       '<strong class="small d-block mb-2" data-pg-ui-t="휴일·비영업일 구간 등록">' + escUi(L('휴일·비영업일 구간 등록')) + '</strong>' +
       '<p class="text-muted small mb-2">' + escUi(L('시작·종료일·구분·내용을 입력한 뒤 [구간 추가]로 넣거나, 목록의 [수정]으로 불러온 뒤 [수정 반영]으로 바꿉니다. [삭제]로 행을 제거할 수 있습니다. 하단 달력에 반영됩니다.')) + '</p>' +
       '<div class="row g-2 align-items-end mb-2">' +
-      '<div class="col-sm-6 col-md-2"><label class="form-label mb-1 small" data-pg-ui-t="시작일">' + escUi(L('시작일')) + '</label><input type="date" lang="en-CA" class="form-control form-control-sm" id="hqBizdayRangeFrom"></div>' +
-      '<div class="col-sm-6 col-md-2"><label class="form-label mb-1 small" data-pg-ui-t="종료일">' + escUi(L('종료일')) + '</label><input type="date" lang="en-CA" class="form-control form-control-sm" id="hqBizdayRangeTo"></div>' +
+      '<div class="col-sm-6 col-md-2"><label class="form-label mb-1 small" data-pg-ui-t="시작일">' + escUi(L('시작일')) + '</label><input type="date" lang="en-CA" class="form-control form-control-sm pg-date-input-iso" id="hqBizdayRangeFrom"></div>' +
+      '<div class="col-sm-6 col-md-2"><label class="form-label mb-1 small" data-pg-ui-t="종료일">' + escUi(L('종료일')) + '</label><input type="date" lang="en-CA" class="form-control form-control-sm pg-date-input-iso" id="hqBizdayRangeTo"></div>' +
       '<div class="col-sm-6 col-md-2"><label class="form-label mb-1 small" data-pg-ui-t="일자 구분">' + escUi(L('일자 구분')) + '</label><select class="form-select form-select-sm" id="hqBizdayRangeKind">' +
       hqBizdayKindOptionsHtml() +
       '</select></div>' +
@@ -1021,8 +1320,8 @@
           notice: '노티미들웨어·PG(칠페이 등)가 본 시스템의 노티 수신 URL(<code>/api/open/pg-notify/…</code>)로 전송한 요청을 저장한 로그입니다. 목록의 채널 열은 수신 경로 정보 표시용입니다. 대상코드·채널은 신규 수신 건부터 채워집니다(V72). 노티 대상에 연결 총판이 있으면 동일 MID라도 그 총판 트리 안에서만 분기하며, 총판 기준통화와 본문 통화가 다르면 처리 열에 통화불일치(수신경로)로 격리됩니다. <strong>수신성격</strong>은 NOTI가 요청 시 <code>X-Icopay-Notify-Delivery: LIVE|RETRY</code> 또는 <code>X-Noti-Attempt</code>(1=라이브, 2+=재전송) 헤더를 보낼 때만 구분되며, 없으면 「미표시」입니다. 바인딩·매핑을 고친 뒤 과거 건을 결제내역에 붙이려면 본문 보기 모달의 <strong>결제내역 재반영</strong>을 사용하세요(원문이 잘린 건은 불가).',
           rows: [
             [{ type: 'customHtml', col: 12, html: '<div class="row g-2 align-items-end mb-2 ni-inbound-toolbar">' +
-              '<div class="col-6 col-md-2"><label class="form-label small mb-0">' + escUi(L('수신일(부터)')) + '</label><input type="date" lang="en-CA" name="niSearchFrom" class="form-control form-control-sm" autocomplete="off"></div>' +
-              '<div class="col-6 col-md-2"><label class="form-label small mb-0">' + escUi(L('수신일(까지)')) + '</label><input type="date" lang="en-CA" name="niSearchTo" class="form-control form-control-sm" autocomplete="off"></div>' +
+              '<div class="col-6 col-md-2"><label class="form-label small mb-0">' + escUi(L('수신일(부터)')) + '</label><input type="date" lang="en-CA" name="niSearchFrom" class="form-control form-control-sm pg-date-input-iso" autocomplete="off"></div>' +
+              '<div class="col-6 col-md-2"><label class="form-label small mb-0">' + escUi(L('수신일(까지)')) + '</label><input type="date" lang="en-CA" name="niSearchTo" class="form-control form-control-sm pg-date-input-iso" autocomplete="off"></div>' +
               '<div class="col-12 col-md-2"><label class="form-label small mb-0">' + escUi(L('검색 항목')) + '</label><select name="niSearchKey" class="form-select form-select-sm">' +
               '<option value="MID">MID</option><option value="ROUTE">ROUTE</option><option value="MERCHANT">' + escUi(L('가맹점코드')) + '</option><option value="STATUS">' + escUi(L('처리상태')) + '</option>' +
               '<option value="TXN_ID">' + escUi(L('승인번호')) + '</option><option value="ORDER_NO">orderNo</option></select></div>' +
@@ -1309,7 +1608,7 @@
               '</div>' +
               '<button type="button" id="hqServerManageTopSaveBtn" class="btn btn-sm btn-outline-primary flex-shrink-0" data-pg-ui-t="저장">저장</button>' +
               '</div>' }],
-            [{ type: 'customHtml', col: 12, html: '<p class="text-muted small mb-0 mt-2">' + L('1~60분만 저장됩니다(내부는 초로 환산). 비우면 <code>application.yml</code>의 <code>app.serverManage.uiAutoRefreshSeconds</code>가 적용됩니다. 아래 [설정 저장]과 동일하게 전체 폼을 저장합니다.') + '</p>' }]
+            [{ type: 'customHtml', col: 12, html: '<p class="text-muted small mb-0 mt-2" data-pg-ui-t="1~60분만 저장됩니다(내부는 초로 환산). 비우면 <code>application.yml</code>의 <code>app.serverManage.uiAutoRefreshSeconds</code>가 적용됩니다. 아래 [설정 저장]과 동일하게 전체 폼을 저장합니다.">' + L('1~60분만 저장됩니다(내부는 초로 환산). 비우면 <code>application.yml</code>의 <code>app.serverManage.uiAutoRefreshSeconds</code>가 적용됩니다. 아래 [설정 저장]과 동일하게 전체 폼을 저장합니다.') + '</p>' }]
           ]
         },
         {
@@ -1347,7 +1646,7 @@
                 '<div id="hqSrvCards"></div>' +
                 '<div id="hqSrvUsageSection" class="hq-srv-usage-section mt-3">' +
                 '<h3 class="h6 fw-bold mb-2" data-pg-ui-t="트래픽 · 메모리 피크">트래픽 · 메모리 피크</h3>' +
-                '<p class="small text-muted mb-2">' + L('일간/주간/월간 전환 시 그래프·요약이 바뀝니다. 수집은 앱이 주기적으로 수행합니다. 레이아웃은 <a href="https://github.com/ziobiz/NOTI" target="_blank" rel="noopener">NOTI</a> 시스템 모니터를 참고했습니다.') + '</p>' +
+                '<p class="small text-muted mb-2" data-pg-ui-t="일간/주간/월간 전환 시 그래프·요약이 바뀝니다. 수집은 앱이 주기적으로 수행합니다. 레이아웃은 <a href=&quot;https://github.com/ziobiz/NOTI&quot; target=&quot;_blank&quot; rel=&quot;noopener&quot;>NOTI</a> 시스템 모니터를 참고했습니다.">' + L('일간/주간/월간 전환 시 그래프·요약이 바뀝니다. 수집은 앱이 주기적으로 수행합니다. 레이아웃은 <a href="https://github.com/ziobiz/NOTI" target="_blank" rel="noopener">NOTI</a> 시스템 모니터를 참고했습니다.') + '</p>' +
                 '<div class="btn-group btn-group-sm mb-2" role="group" data-pg-ui-aria-label="기간">' +
                 '<button type="button" class="btn btn-outline-primary active" data-hq-usage-grain="daily" data-pg-ui-t="일간">일간</button>' +
                 '<button type="button" class="btn btn-outline-primary" data-hq-usage-grain="weekly" data-pg-ui-t="주간">주간</button>' +
@@ -1463,6 +1762,54 @@
         { id: 'hqUrlPayDeployOpenApiLink', label: 'API연동설정', cls: 'btn-outline-secondary' },
         { id: 'hqUrlPayDeploySaveBtn', label: '저장', cls: 'btn-primary' }
       ]
+    },
+    '/hq/chatbotAiSettings': {
+      isForm: true,
+      formSections: [
+        {
+          title: 'AI설정',
+          notice: '<span data-pg-ui-t="JSON 키는 ziobiz/Stock 저장 스키마와 정합되게 report_* 접두를 사용합니다. API 키는 저장 후 화면에 다시 노출하지 않습니다. 빈 입력은 기존 키를 유지합니다.">JSON 키는 ziobiz/Stock 저장 스키마와 정합되게 report_* 접두를 사용합니다. API 키는 저장 후 화면에 다시 노출하지 않습니다. 빈 입력은 기존 키를 유지합니다.</span>',
+          rows: [
+            [{ type: 'customHtml', col: 12, html: hqChatbotAiSettingsFormHtml }]
+          ]
+        }
+      ],
+      buttons: [{ id: 'hqChatbotAiSaveBtn', label: '저장', cls: 'btn-primary' }]
+    },
+    '/chatbot/productMng': {
+      isForm: true,
+      formSections: [
+        {
+          title: '상품관리',
+          notice:
+            '<div class="alert alert-info py-2 px-3 small mb-0" role="note">' +
+            '<span data-pg-ui-t="상품 「판매 활성」 개수는 플랜(동시 활성 상한)을 넘을 수 없고, 등록 행은 플랜+2건까지 가능합니다. 본사 판매금지·챗봇결제 미사용 시 노출이 제한될 수 있습니다.">' +
+            '판매 활성 상품 수는 플랜 상한을 넘을 수 없습니다. 등록(보관) 행은 플랜 대비 최대 +2건까지 가능합니다.(예: 10건 플랜 → 활성 최대 10, 등록 최대 12) 본사 판매금지·챗봇결제 미사용이면 노출이 제한됩니다. 상위 조직은 가맹 코드 입력 후 불러오기 하세요.' +
+            '</span></div>',
+          rows: [[{
+            type: 'customHtml',
+            col: 12,
+            html: chatbotProductMngGridHtml
+          }]]
+        }
+      ],
+      buttons: []
+    },
+    '/chatbot/chatbotKbMng': {
+      isForm: true,
+      formSections: [
+        {
+          title: '산하 가맹 챗봇 기본설정 현황',
+          notice: '총본사·본사·총판 등 상위 조직은 산하 가맹점 중 챗봇결제 사용(Y) 가맹점만 표시됩니다(등록 정보와 병합된 안내 표시값). 가맹점 계정은 이 블록이 보이지 않으며, 하단에서 본인 업체 안내만 편집합니다.',
+          rows: [[{ type: 'customHtml', col: 12, html: chatbotKbMerchantOverviewHtml }]]
+        },
+        {
+          title: '기본설정',
+          notice: '챗봇에서 고객 문의 시 안내할 수 있는 회사·연락처·소개입니다. 가맹점은 본인 정보를 직접 입력·저장할 수 있습니다. 상위 조직은 산하 가맹점 코드를 지정해 조회·저장합니다. 실제 결제에 쓰이는 상품은 「상품관리」에서 등록하며, 플랜(등록 가능 건수) 범위 안에서만 등록됩니다. 공개 챗봇 AI는 등록된 상품 목록 안에서만 안내합니다. 회사소개·판매상품 안내(개요)는 본사 AI설정의 API 키·모델로 초안을 생성할 수 있습니다.',
+          rows: [[{ type: 'customHtml', col: 12, html: chatbotKbScopeAndPublicFormHtml }]]
+        }
+      ],
+      buttons: []
     },
     '/hq/paymentOrchestration': {
       isForm: true,
@@ -1825,6 +2172,39 @@
           ]
         },
         {
+          title: '챗봇결제 설정',
+          id: 'chatbotPaymentCard',
+          merchantOnly: true,
+          notice: '미사용이면 로그인한 가맹점 관리자에게 챗봇관리의 상품관리 메뉴가 표시되지 않습니다. 챗봇결제 URL은 공개 결제 화면 진입용입니다.',
+          rows: [
+            [{ label: '챗봇결제 사용여부', type: 'select', name: 'chatbotPaymentUseYn', options: [{ v: 'N', t: '미사용' }, { v: 'Y', t: '사용' }], col: 2 },
+              { label: '챗봇 상품등록 한도(건)', type: 'select', name: 'chatbotProductSlotLimit', col: 2,
+              options: [
+                { v: '', t: '—' }, { v: '10', t: '10' }, { v: '20', t: '20' }, { v: '50', t: '50' }, { v: '80', t: '80' },
+                { v: '100', t: '100' }, { v: '150', t: '150' }, { v: '200', t: '200' }
+              ] }],
+            [{
+              type: 'customHtml', col: 12,
+              html: function chatbotHeaderLogoFieldBlock() {
+                return '<div class="form-field-block chatbot-header-logo-upload-block w-100">' +
+                  '<label class="form-label">' + escUi(L('챗봇 상단 로고')) + '</label>' +
+                  '<div class="input-group input-group-sm mb-1">' +
+                  '<input type="text" class="form-control form-control-sm" name="chatbotHeaderLogoUrl" id="chatbotHeaderLogoUrl" ' +
+                  'placeholder="' + escUi(L('업로드 시 자동 반영 · 또는 HTTPS URL 직접 입력')) + '">' +
+                  '<input type="file" class="d-none" id="chatbotHeaderLogoFile" accept="image/png,image/jpeg,image/jpg">' +
+                  '<button type="button" class="btn btn-outline-secondary btn-sm" id="chatbotHeaderLogoBrowse">' + escUi(L('파일 선택')) + '</button>' +
+                  '<button type="button" class="btn btn-outline-primary btn-sm" id="chatbotHeaderLogoUpload">' + escUi(L('업로드·최적화')) + '</button>' +
+                  '</div>' +
+                  '<div class="form-text text-muted small">' +
+                  escUi(L('PNG·JPEG, 원본 최대 40MB. 서버에서 목표 2MB 이하(본사 AI설정 변경 가능)로 재압축합니다. chatbot_logo_llm_tune_yn=Y 일 때 AI설정 순위 LLM으로 권장 픽셀을 잡습니다.')) +
+                  '</div></div>';
+              }
+            }],
+            [{ label: '챗봇 관리자(로그인ID·중복검사)', type: 'text', name: 'chatbotAdminUsername', col: 12, button: '중복확인', placeholder: '가맹당 1명 · 없는 ID는 저장 시 자동 등록(초기비밀번호: ID+1!) · 공개 챗봇 상품관리 로그인에는 OTP 필요 · 비우면 해제' }],
+            [{ type: 'customHtml', col: 12, html: function () { return merchantChatbotPaymentUrlRowHtml('가맹점 저장 후 조회'); } }]
+          ]
+        },
+        {
           type: 'branding',
           title: '브랜딩 설정',
           id: 'brandingCard',
@@ -1852,6 +2232,16 @@
           notice: '결제 응답을 가맹점에게 송부할 노티 주소. 등록 시 결제통보 URL관리에 자동 반영됩니다.',
           rows: [
             [{ label: 'URL Background', type: 'text', name: 'notifyUrlBackground', col: 5, placeholder: 'https://' }, { label: 'URL Result', type: 'text', name: 'notifyUrlResult', col: 5, placeholder: 'https://' }]
+          ]
+        },
+        {
+          title: 'URL·챗봇 결제 승인 알림',
+          id: 'urlPaySuccessAlertCard',
+          merchantOnly: true,
+          notice: '인라인 DirectCredit(URL·챗봇) 승인 시 PG중계 JSON 전송과 함께 LINE Notify·대표 이메일(전산 SMTP) 알림을 보낼 수 있습니다. 토큰은 비우면 기존 유지, 삭제는 __CLEAR__.',
+          rows: [
+            [{ label: '승인 알림메일', type: 'select', name: 'urlPayAlertEmailYn', options: [{ v: 'N', t: '미사용' }, { v: 'Y', t: '사용 (대표 이메일)' }], col: 2 }],
+            [{ label: 'LINE Notify 토큰', type: 'password', name: 'urlPayLineNotifyToken', col: 6, placeholder: '변경 시만 입력 · 삭제: __CLEAR__' }]
           ]
         },
         { title: '첨부파일', rows: [[{ type: 'file', name: 'attach', col: 12, blockExtraClass: 'attach-field-block' }]] }
@@ -2165,6 +2555,39 @@
           ]
         },
         {
+          title: '챗봇결제 설정',
+          id: 'chatbotPaymentCard',
+          merchantOnly: true,
+          notice: '미사용이면 로그인한 가맹점 관리자에게 챗봇관리의 상품관리 메뉴가 표시되지 않습니다. 챗봇결제 URL은 공개 결제 화면 진입용입니다.',
+          rows: [
+            [{ label: '챗봇결제 사용여부', type: 'select', name: 'chatbotPaymentUseYn', options: [{ v: 'N', t: '미사용' }, { v: 'Y', t: '사용' }], col: 2 },
+              { label: '챗봇 상품등록 한도(건)', type: 'select', name: 'chatbotProductSlotLimit', col: 2,
+              options: [
+                { v: '', t: '—' }, { v: '10', t: '10' }, { v: '20', t: '20' }, { v: '50', t: '50' }, { v: '80', t: '80' },
+                { v: '100', t: '100' }, { v: '150', t: '150' }, { v: '200', t: '200' }
+              ] }],
+            [{
+              type: 'customHtml', col: 12,
+              html: function chatbotHeaderLogoFieldBlock() {
+                return '<div class="form-field-block chatbot-header-logo-upload-block w-100">' +
+                  '<label class="form-label">' + escUi(L('챗봇 상단 로고')) + '</label>' +
+                  '<div class="input-group input-group-sm mb-1">' +
+                  '<input type="text" class="form-control form-control-sm" name="chatbotHeaderLogoUrl" id="chatbotHeaderLogoUrl" ' +
+                  'placeholder="' + escUi(L('업로드 시 자동 반영 · 또는 HTTPS URL 직접 입력')) + '">' +
+                  '<input type="file" class="d-none" id="chatbotHeaderLogoFile" accept="image/png,image/jpeg,image/jpg">' +
+                  '<button type="button" class="btn btn-outline-secondary btn-sm" id="chatbotHeaderLogoBrowse">' + escUi(L('파일 선택')) + '</button>' +
+                  '<button type="button" class="btn btn-outline-primary btn-sm" id="chatbotHeaderLogoUpload">' + escUi(L('업로드·최적화')) + '</button>' +
+                  '</div>' +
+                  '<div class="form-text text-muted small">' +
+                  escUi(L('PNG·JPEG, 원본 최대 40MB. 서버에서 목표 2MB 이하(본사 AI설정 변경 가능)로 재압축합니다. chatbot_logo_llm_tune_yn=Y 일 때 AI설정 순위 LLM으로 권장 픽셀을 잡습니다.')) +
+                  '</div></div>';
+              }
+            }],
+            [{ label: '챗봇 관리자(로그인ID·중복검사)', type: 'text', name: 'chatbotAdminUsername', col: 12, button: '중복확인', placeholder: '가맹당 1명 · 없는 ID는 저장 시 자동 등록(초기비밀번호: ID+1!) · 공개 챗봇 상품관리 로그인에는 OTP 필요 · 비우면 해제' }],
+            [{ type: 'customHtml', col: 12, html: function () { return merchantChatbotPaymentUrlRowHtml('가맹점 저장 후 조회'); } }]
+          ]
+        },
+        {
           type: 'branding',
           title: '브랜딩 설정',
           id: 'brandingCard',
@@ -2180,6 +2603,16 @@
           notice: '결제 응답을 가맹점에게 송부할 노티 주소. 등록 시 결제통보 URL관리에 자동 반영됩니다.',
           rows: [
             [{ label: 'URL Background', type: 'text', name: 'notifyUrlBackground', col: 5, placeholder: 'https://' }, { label: 'URL Result', type: 'text', name: 'notifyUrlResult', col: 5, placeholder: 'https://' }]
+          ]
+        },
+        {
+          title: 'URL·챗봇 결제 승인 알림',
+          id: 'urlPaySuccessAlertCard',
+          merchantOnly: true,
+          notice: '인라인 DirectCredit(URL·챗봇) 승인 시 PG중계 JSON 전송과 함께 LINE Notify·대표 이메일(전산 SMTP) 알림을 보낼 수 있습니다. 토큰은 비우면 기존 유지, 삭제는 __CLEAR__.',
+          rows: [
+            [{ label: '승인 알림메일', type: 'select', name: 'urlPayAlertEmailYn', options: [{ v: 'N', t: '미사용' }, { v: 'Y', t: '사용 (대표 이메일)' }], col: 2 }],
+            [{ label: 'LINE Notify 토큰', type: 'password', name: 'urlPayLineNotifyToken', col: 6, placeholder: '변경 시만 입력 · 삭제: __CLEAR__' }]
           ]
         },
         { title: '첨부파일', rows: [[{ type: 'file', name: 'attach', col: 12, blockExtraClass: 'attach-field-block' }]] }
@@ -2438,6 +2871,39 @@
           ]
         },
         {
+          title: '챗봇결제 설정',
+          id: 'chatbotPaymentCard',
+          merchantOnly: true,
+          notice: '미사용이면 로그인한 가맹점 관리자에게 챗봇관리의 상품관리 메뉴가 표시되지 않습니다. 챗봇결제 URL은 공개 결제 화면 진입용입니다.',
+          rows: [
+            [{ label: '챗봇결제 사용여부', type: 'select', name: 'chatbotPaymentUseYn', options: [{ v: 'N', t: '미사용' }, { v: 'Y', t: '사용' }], col: 2 },
+              { label: '챗봇 상품등록 한도(건)', type: 'select', name: 'chatbotProductSlotLimit', col: 2,
+              options: [
+                { v: '', t: '—' }, { v: '10', t: '10' }, { v: '20', t: '20' }, { v: '50', t: '50' }, { v: '80', t: '80' },
+                { v: '100', t: '100' }, { v: '150', t: '150' }, { v: '200', t: '200' }
+              ] }],
+            [{
+              type: 'customHtml', col: 12,
+              html: function chatbotHeaderLogoFieldBlock() {
+                return '<div class="form-field-block chatbot-header-logo-upload-block w-100">' +
+                  '<label class="form-label">' + escUi(L('챗봇 상단 로고')) + '</label>' +
+                  '<div class="input-group input-group-sm mb-1">' +
+                  '<input type="text" class="form-control form-control-sm" name="chatbotHeaderLogoUrl" id="chatbotHeaderLogoUrl" ' +
+                  'placeholder="' + escUi(L('업로드 시 자동 반영 · 또는 HTTPS URL 직접 입력')) + '">' +
+                  '<input type="file" class="d-none" id="chatbotHeaderLogoFile" accept="image/png,image/jpeg,image/jpg">' +
+                  '<button type="button" class="btn btn-outline-secondary btn-sm" id="chatbotHeaderLogoBrowse">' + escUi(L('파일 선택')) + '</button>' +
+                  '<button type="button" class="btn btn-outline-primary btn-sm" id="chatbotHeaderLogoUpload">' + escUi(L('업로드·최적화')) + '</button>' +
+                  '</div>' +
+                  '<div class="form-text text-muted small">' +
+                  escUi(L('PNG·JPEG, 원본 최대 40MB. 서버에서 목표 2MB 이하(본사 AI설정 변경 가능)로 재압축합니다. chatbot_logo_llm_tune_yn=Y 일 때 AI설정 순위 LLM으로 권장 픽셀을 잡습니다.')) +
+                  '</div></div>';
+              }
+            }],
+            [{ label: '챗봇 관리자(로그인ID·중복검사)', type: 'text', name: 'chatbotAdminUsername', col: 12, button: '중복확인', placeholder: '가맹당 1명 · 없는 ID는 저장 시 자동 등록(초기비밀번호: ID+1!) · 공개 챗봇 상품관리 로그인에는 OTP 필요 · 비우면 해제' }],
+            [{ type: 'customHtml', col: 12, html: function () { return merchantChatbotPaymentUrlRowHtml('가맹점 선택 후 조회'); } }]
+          ]
+        },
+        {
           type: 'branding',
           title: '브랜딩 설정',
           id: 'brandingCard',
@@ -2452,6 +2918,16 @@
           notice: '결제 응답을 가맹점에게 송부할 노티 주소. 등록 시 결제통보 URL관리에 자동 반영됩니다.',
           rows: [
             [{ label: 'URL Background', type: 'text', name: 'notifyUrlBackground', col: 5, placeholder: 'https://' }, { label: 'URL Result', type: 'text', name: 'notifyUrlResult', col: 5, placeholder: 'https://' }]
+          ]
+        },
+        {
+          title: 'URL·챗봇 결제 승인 알림',
+          id: 'urlPaySuccessAlertCard',
+          merchantOnly: true,
+          notice: '인라인 DirectCredit(URL·챗봇) 승인 시 PG중계 JSON 전송과 함께 LINE Notify·대표 이메일(전산 SMTP) 알림을 보낼 수 있습니다. 토큰은 비우면 기존 유지, 삭제는 __CLEAR__.',
+          rows: [
+            [{ label: '승인 알림메일', type: 'select', name: 'urlPayAlertEmailYn', options: [{ v: 'N', t: '미사용' }, { v: 'Y', t: '사용 (대표 이메일)' }], col: 2 }],
+            [{ label: 'LINE Notify 토큰', type: 'password', name: 'urlPayLineNotifyToken', col: 6, placeholder: '변경 시만 입력 · 삭제: __CLEAR__' }]
           ]
         },
         { title: '첨부파일', rows: [[{ type: 'file', name: 'attach', col: 12, blockExtraClass: 'attach-field-block' }]] }
@@ -3699,6 +4175,16 @@
           ]
         },
         {
+          title: 'URL·챗봇 결제 승인 알림',
+          id: 'urlPaySuccessAlertCard',
+          merchantOnly: true,
+          notice: '인라인 DirectCredit(URL·챗봇) 승인 시 PG중계 JSON 전송과 함께 LINE Notify·대표 이메일(전산 SMTP) 알림을 보낼 수 있습니다. 토큰은 비우면 기존 유지, 삭제는 __CLEAR__.',
+          rows: [
+            [{ label: '승인 알림메일', type: 'select', name: 'urlPayAlertEmailYn', options: [{ v: 'N', t: '미사용' }, { v: 'Y', t: '사용 (대표 이메일)' }], col: 2 }],
+            [{ label: 'LINE Notify 토큰', type: 'password', name: 'urlPayLineNotifyToken', col: 6, placeholder: '변경 시만 입력 · 삭제: __CLEAR__' }]
+          ]
+        },
+        {
           type: 'pgInfoDisplay',
           title: '결제대행사정보',
           id: 'pgInfoCard',
@@ -3872,7 +4358,7 @@
       buttons: [{ id: 'searchBtn', label: '검색', cls: 'btn-primary' }],
       columns: [
         { key: 'rowNo', label: '번호' },
-        { key: 'createdAt', label: '일시' },
+        { key: 'createdAt', label: '등록일' },
         { key: 'mailKind', label: '구분' },
         { key: 'status', label: '상태' },
         { key: 'toAddress', label: '수신' },
@@ -3881,6 +4367,54 @@
         { key: 'bodyPreview', label: '본문 미리보기' },
         { key: 'pgTrnId', label: '거래번호' },
         { key: 'actorUsername', label: '실행자' }
+      ]
+    },
+    '/ops/taxReport': {
+      emptyMessage: '조회된 데이터가 없습니다.',
+      paginationDefaultSize: 50,
+      paginationSizeOptions: [20, 50, 100, 200],
+      columnGuideFixedKeys: ['rowNo', 'settlementRunId', 'compId'],
+      noticeList: [
+        '총본사·본사(REGIONAL)·총판(MASTER_DIST) 또는 ADMIN만 사용합니다. 다른 로그인은 목록이 비어 있거나 거부됩니다.',
+        '로그인 조직 트리의 하위 가맹만 대상입니다(타 총판·타 본사 가맹 제외).',
+        '행 원천: 확정정산(CALCULATED)·정산배포(DISTRIBUTED)·가맹점정산내역 노출 규칙을 통과한 정산 실행입니다.',
+        '「월 통합」은 귀속월(YYYY-MM) 전체를 한 번에 조회합니다. 엑셀에는 실행 목록·TOTAL·가맹별 합계가 포함됩니다.',
+        'FinalPayAfterRemittance는 송금 수수료 반영 후 지급 기준액으로, 실제 은행 송금과 일치시키는 용도로 검증하세요.'
+      ],
+      searchRows: [[
+        { label: '보고구분', type: 'select', name: 'searchTaxScope', col: 2,
+          options: [{ v: 'WEEKLY', t: '기간별(확정 정산 실행)' }, { v: 'MONTHLY', t: '월 통합(귀속월)' }] },
+        { label: '귀속월', type: 'text', name: 'searchYearMonth', col: 2, placeholder: 'YYYY-MM', i18nPhKey: 'searchYearMonth' },
+        { label: '정산일', type: 'daterange', from: 'searchFromDate', to: 'searchToDate' },
+        { type: 'quickdate' },
+        { label: '가맹코드', type: 'text', name: 'searchCompId', col: 2 },
+        { type: 'searchBtn' }
+      ]],
+      summary: ['건수'],
+      buttons: [
+        { id: 'searchBtn', label: '검색', cls: 'btn-primary' },
+        { id: 'excelBtn', label: '엑셀(xlsx)', cls: 'btn-info' }
+      ],
+      columns: [
+        { key: 'rowNo', label: '번호' },
+        { key: 'settlementRunId', label: '실행ID', columnGuideLabel: 'tb_settlement_run PK' },
+        { key: 'calcDt', label: '정산일' },
+        { key: 'periodFrom', label: '집계시작', thClass: 'text-center text-nowrap' },
+        { key: 'periodTo', label: '집계종료', thClass: 'text-center text-nowrap' },
+        { key: 'compNm', label: '가맹명' },
+        { key: 'compId', label: '가맹코드' },
+        { key: 'txnCnt', label: '거래건수', thClass: 'text-center' },
+        { key: 'approveAmt', label: '승인금액', thClass: 'text-end' },
+        { key: 'cancelAmt', label: '취소금액', thClass: 'text-end' },
+        { key: 'netSales', label: '순매출', thClass: 'text-end' },
+        { key: 'totalFee', label: '거래수수료합', thClass: 'text-end' },
+        { key: 'rollingReserveAmt', label: '담보(롤링)', thClass: 'text-end' },
+        { key: 'settlementBatchFee', label: '정산수수료', thClass: 'text-end' },
+        { key: 'payAmount', label: '지급액(송금전)', thClass: 'text-end', columnGuideLabel: '송금수수료 차감 전' },
+        { key: 'remittanceFeeBank', label: '송금료(통화)', thClass: 'text-end' },
+        { key: 'remittanceFeeUsdt', label: '송금료(USDT)', thClass: 'text-end' },
+        { key: 'finalPayAfterRemittance', label: '최종지급(은행기준)', thClass: 'text-end text-nowrap', columnGuideLabel: '세금·은행 대조용' },
+        { key: 'reportNote', label: '비고' }
       ]
     },
     '/deploy/integrationPlan': {
@@ -4256,19 +4790,43 @@
   }
 
   var INPUT_SCALE = 1.3;
-  var DATE_SCALE = 1.4;
 
   function renderSearchCell(field, cfg, tabId) {
     var inner = '';
     var ch = field.size != null ? field.size : autoCh(field);
     var sz = sizeStyle(Math.ceil(ch * INPUT_SCALE));
+    var todayIso = (function () {
+      try {
+        var d = new Date();
+        if (isNaN(d.getTime())) return '';
+        var y = String(d.getFullYear());
+        var m = String(d.getMonth() + 1).padStart(2, '0');
+        var dd = String(d.getDate()).padStart(2, '0');
+        return y + '-' + m + '-' + dd;
+      } catch (e) {
+        return '';
+      }
+    })();
     var escDA = function (s) {
       return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/"/g, '&quot;');
     };
     if (field.type === 'daterange') {
-      var dateCh = Math.ceil(10 * DATE_SCALE);
       var drLblAttr = field.label ? (' data-pg-i18n-lbl="' + escDA('drLbl:' + field.label) + '"') : '';
-      inner = (field.label ? '<span class="search-cell-label"' + drLblAttr + '>' + escUi(L(String(field.label))) + '</span>' : '') + '<div class="search-cell-input search-cell-input--daterange"><input type="date" lang="en-CA" class="form-control form-control-sm search-date-input" id="' + (field.from || 'searchFromDate') + '" name="' + (field.from || 'searchFromDate') + '" style="' + sizeStyle(dateCh) + '"> ~ <input type="date" lang="en-CA" class="form-control form-control-sm search-date-input" id="' + (field.to || 'searchToDate') + '" name="' + (field.to || 'searchToDate') + '" style="' + sizeStyle(dateCh) + '"></div>';
+      inner =
+        (field.label ? '<span class="search-cell-label"' + drLblAttr + '>' + escUi(L(String(field.label))) + '</span>' : '') +
+        '<div class="search-cell-input search-cell-input--daterange d-flex flex-wrap align-items-center gap-1">' +
+        '<input type="date" lang="en-CA" class="form-control form-control-sm search-date-input pg-date-input-iso" id="' +
+        (field.from || 'searchFromDate') +
+        '" name="' +
+        (field.from || 'searchFromDate') +
+        '"' + (todayIso ? (' value="' + escDA(todayIso) + '"') : '') + '>' +
+        '<span class="search-daterange-sep text-muted px-1" aria-hidden="true">—</span>' +
+        '<input type="date" lang="en-CA" class="form-control form-control-sm search-date-input pg-date-input-iso" id="' +
+        (field.to || 'searchToDate') +
+        '" name="' +
+        (field.to || 'searchToDate') +
+        '"' + (todayIso ? (' value="' + escDA(todayIso) + '"') : '') + '>' +
+        '</div>';
       return wrapSearchCell(inner, !!field.label);
     }
     if (field.type === 'quickdate') {
@@ -4515,7 +5073,7 @@
       var numMaxAttr = (f.max != null && f.max !== '') ? (' max="' + String(f.max) + '"') : '';
       inp = '<input type="number" min="' + numMin + '" step="' + numStep + '"' + numMaxAttr + ' class="form-control form-control-sm' + reqClass + '" name="' + name + '" id="' + id + '"' + (f.placeholder ? ' placeholder="' + escUi(L(String(f.placeholder))) + '"' : '') + ro + '>';
     } else if (f.type === 'date') {
-      inp = '<input type="date" lang="en-CA" class="form-control form-control-sm' + reqClass + '" name="' + name + '" id="' + id + '"' + ro + '>';
+      inp = '<input type="date" lang="en-CA" class="form-control form-control-sm pg-date-input-iso' + reqClass + '" name="' + name + '" id="' + id + '"' + ro + '>';
     } else if (f.type === 'text' || f.type === 'password') {
       inp = '<input type="' + (f.type || 'text') + '" class="form-control form-control-sm' + reqClass + '" name="' + name + '" id="' + id + '"' + (f.placeholder ? ' placeholder="' + escUi(L(String(f.placeholder))) + '"' : '') + ro + '>';
     } else if (f.type === 'time') {
@@ -4654,6 +5212,10 @@
         html += '<div id="pgInfoDisplayWrap" class="pg-info-display">' +
           '<div class="row mb-2"><div class="col-sm-3"><label class="form-label" data-pg-ui-t="웹결제 사용여부">웹결제 사용여부</label><select class="form-control form-control-sm" name="webPaymentUseYn"><option value="Y" data-pg-ui-t="사용">사용</option><option value="N" data-pg-ui-t="미사용">미사용</option></select></div>' +
           '<div class="col-sm-5"><label class="form-label" data-pg-ui-t="결제 URL">결제 URL</label><div class="input-group input-group-sm"><input type="text" class="form-control" id="paymentUrlDisplay" readonly data-pg-ui-placeholder="가맹점 선택 후 조회" placeholder="가맹점 선택 후 조회"><button type="button" class="btn btn-outline-primary" id="paymentUrlCopyBtn" data-pg-ui-t="복사">복사</button></div></div></div>' +
+          '<div class="row mb-2"><div class="col-sm-3"><label class="form-label" data-pg-ui-t="챗봇결제 사용여부">챗봇결제 사용여부</label><select class="form-control form-control-sm" name="chatbotPaymentUseYn"><option value="N" data-pg-ui-t="미사용">미사용</option><option value="Y" data-pg-ui-t="사용">사용</option></select></div>' +
+          '<div class="col-sm-3"><label class="form-label" data-pg-ui-t="챗봇 상품등록 한도(건)">챗봇 상품등록 한도(건)</label><select class="form-control form-control-sm" name="chatbotProductSlotLimit"><option value="">—</option>' +
+          '<option value="10">10</option><option value="20">20</option><option value="50">50</option><option value="80">80</option><option value="100">100</option><option value="150">150</option><option value="200">200</option></select></div>' +
+          '<div class="col-sm-5"><label class="form-label" data-pg-ui-t="챗봇결제 URL">챗봇결제 URL</label><div class="input-group input-group-sm"><input type="text" class="form-control" id="chatbotPaymentUrlDisplay" readonly data-pg-ui-placeholder="가맹점 선택 후 조회" placeholder="가맹점 선택 후 조회"><button type="button" class="btn btn-outline-primary" id="chatbotPaymentUrlCopyBtn" data-pg-ui-t="복사">복사</button></div></div></div>' +
           '</div>';
       } else if (sec.type === 'regionalCardLimitTable') {
         html += '<div class="d-flex justify-content-end mb-2"><button type="button" class="btn btn-success btn-sm me-1" id="regionalCardLimitAddBtn" data-pg-ui-t="추가">추가</button><button type="button" class="btn btn-danger btn-sm" id="regionalCardLimitDelBtn" data-pg-ui-t="삭제">삭제</button></div>' +
@@ -5311,7 +5873,7 @@
   var PAY_LIST_INTEGRATED_SYNC_URLS = [
     '/calc/payList', '/calc/payNotiList', '/calc/paySuccessList', '/calc/payFailList', '/calc/payRefundList', '/calc/payForceRefundList',
     '/calc/payCancelList', '/calc/payVoidList', '/calc/payEmailVoidList', '/calc/offsetCancList', '/pay/easyPay', '/pay/chatbotPay',
-    '/calc/chillPayTrList', '/calc/chillPaySettlementList'
+    '/calc/chillPayTrList', '/calc/chillPaySettlementList', '/ops/taxReport'
   ];
 
   /** 표준 목록 그리드 thead (2단 헤더 그룹 포함) — app.js doSearch thead 생성과 동일 규칙 */
@@ -5401,7 +5963,7 @@
       if (c && c.key) labelByKey[c.key] = c.label;
     });
     PAY_LIST_INTEGRATED_SYNC_URLS.forEach(function (u) {
-      if (u === '/calc/chillPayTrList' || u === '/calc/chillPaySettlementList') return;
+      if (u === '/calc/chillPayTrList' || u === '/calc/chillPaySettlementList' || u === '/ops/taxReport') return;
       var scr = MENU_SCREENS[u];
       if (!scr || !scr.columns) return;
       scr.columns.forEach(function (col) {

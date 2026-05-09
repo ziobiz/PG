@@ -159,6 +159,53 @@ public class MerchantProfile {
     @Column(name = "web_payment_use_yn", length = 1)
     private String webPaymentUseYn = "Y";
 
+    /** 챗봇결제 사용여부 (가맹점) - 미사용 시 관리자 챗봇 메뉴 비표시 */
+    @Column(name = "chatbot_payment_use_yn", length = 1)
+    private String chatbotPaymentUseYn = "N";
+
+    /** 챗봇 카탈로그 등록 가능 상품 수(10·20·50·80·100·150·200). 월 이용료·등록 건수 제한 */
+    @Column(name = "chatbot_product_slot_limit")
+    private Integer chatbotProductSlotLimit;
+
+    /** 고객 대면 챗봇 안내 — 회사명(비우면 조직명) */
+    @Column(name = "chatbot_kb_company_nm", length = 200)
+    private String chatbotKbCompanyNm;
+
+    /** 고객 대면 챗봇 안내 — 주소 */
+    @Column(name = "chatbot_kb_addr", length = 600)
+    private String chatbotKbAddr;
+
+    @Column(name = "chatbot_kb_tel", length = 100)
+    private String chatbotKbTel;
+
+    @Column(name = "chatbot_kb_email", length = 120)
+    private String chatbotKbEmail;
+
+    @Column(name = "chatbot_kb_contact_nm", length = 100)
+    private String chatbotKbContactNm;
+
+    @Column(name = "chatbot_kb_intro", columnDefinition = "TEXT")
+    private String chatbotKbIntro;
+
+    @Column(name = "chatbot_kb_product_desc", columnDefinition = "TEXT")
+    private String chatbotKbProductDesc;
+
+    /** 공개 챗봇 결제 페이지 상단 로고(URL). 미설정 시 상위 본사·총판 브랜딩 로고 사용 */
+    @Column(name = "chatbot_header_logo_url", length = 500)
+    private String chatbotHeaderLogoUrl;
+
+    /** 챗봇에서 상품 등록 허용 관리자(tb_user.id), 가맹당 1명 */
+    @Column(name = "chatbot_admin_user_id")
+    private Long chatbotAdminUserId;
+
+    /** URL·챗봇 인라인(DirectCredit) 승인 시 가맹점 대표 이메일로 알림 */
+    @Column(name = "url_pay_alert_email_yn", length = 1)
+    private String urlPayAlertEmailYn = "N";
+
+    /** LINE Notify(https://notify-bot.line.me/) 발급 토큰. 비면 미사용 */
+    @Column(name = "url_pay_line_notify_token", length = 256)
+    private String urlPayLineNotifyToken;
+
     /** 기준 화폐. 본사: 최대 3종 comma구분 (KRW,USD,JPY). 총판: 1종만 */
     @Column(name = "base_currency", length = 30)
     private String baseCurrency;
@@ -287,6 +334,34 @@ public class MerchantProfile {
     public void setCommissionConfigAllowed(String commissionConfigAllowed) { this.commissionConfigAllowed = commissionConfigAllowed; }
     public String getWebPaymentUseYn() { return webPaymentUseYn; }
     public void setWebPaymentUseYn(String webPaymentUseYn) { this.webPaymentUseYn = webPaymentUseYn; }
+    public String getChatbotPaymentUseYn() { return chatbotPaymentUseYn; }
+    public void setChatbotPaymentUseYn(String chatbotPaymentUseYn) { this.chatbotPaymentUseYn = chatbotPaymentUseYn; }
+    public Integer getChatbotProductSlotLimit() { return chatbotProductSlotLimit; }
+    public void setChatbotProductSlotLimit(Integer chatbotProductSlotLimit) {
+        this.chatbotProductSlotLimit = chatbotProductSlotLimit;
+    }
+    public String getChatbotKbCompanyNm() { return chatbotKbCompanyNm; }
+    public void setChatbotKbCompanyNm(String chatbotKbCompanyNm) { this.chatbotKbCompanyNm = chatbotKbCompanyNm; }
+    public String getChatbotKbAddr() { return chatbotKbAddr; }
+    public void setChatbotKbAddr(String chatbotKbAddr) { this.chatbotKbAddr = chatbotKbAddr; }
+    public String getChatbotKbTel() { return chatbotKbTel; }
+    public void setChatbotKbTel(String chatbotKbTel) { this.chatbotKbTel = chatbotKbTel; }
+    public String getChatbotKbEmail() { return chatbotKbEmail; }
+    public void setChatbotKbEmail(String chatbotKbEmail) { this.chatbotKbEmail = chatbotKbEmail; }
+    public String getChatbotKbContactNm() { return chatbotKbContactNm; }
+    public void setChatbotKbContactNm(String chatbotKbContactNm) { this.chatbotKbContactNm = chatbotKbContactNm; }
+    public String getChatbotKbIntro() { return chatbotKbIntro; }
+    public void setChatbotKbIntro(String chatbotKbIntro) { this.chatbotKbIntro = chatbotKbIntro; }
+    public String getChatbotKbProductDesc() { return chatbotKbProductDesc; }
+    public void setChatbotKbProductDesc(String chatbotKbProductDesc) { this.chatbotKbProductDesc = chatbotKbProductDesc; }
+    public String getChatbotHeaderLogoUrl() { return chatbotHeaderLogoUrl; }
+    public void setChatbotHeaderLogoUrl(String chatbotHeaderLogoUrl) { this.chatbotHeaderLogoUrl = chatbotHeaderLogoUrl; }
+    public Long getChatbotAdminUserId() { return chatbotAdminUserId; }
+    public void setChatbotAdminUserId(Long chatbotAdminUserId) { this.chatbotAdminUserId = chatbotAdminUserId; }
+    public String getUrlPayAlertEmailYn() { return urlPayAlertEmailYn; }
+    public void setUrlPayAlertEmailYn(String urlPayAlertEmailYn) { this.urlPayAlertEmailYn = urlPayAlertEmailYn; }
+    public String getUrlPayLineNotifyToken() { return urlPayLineNotifyToken; }
+    public void setUrlPayLineNotifyToken(String urlPayLineNotifyToken) { this.urlPayLineNotifyToken = urlPayLineNotifyToken; }
     public String getBaseCurrency() { return baseCurrency; }
     public void setBaseCurrency(String baseCurrency) { this.baseCurrency = baseCurrency; }
     public Integer getTerminalCountTerminal() { return terminalCountTerminal; }

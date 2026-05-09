@@ -24,7 +24,8 @@
         { "label": "정산관리설정", "url": "/hq/settlementAdmin", "menuId": "M0123" },
         { "label": "환수/미수금설정", "url": "/hq/receivableRecoverySettings", "menuId": "M0124" },
         { "label": "도메인구성설정", "url": "/hq/domainConfig", "menuId": "M0115" },
-        { "label": "서버운영관리", "url": "/hq/serverManage", "menuId": "M0116" }
+        { "label": "서버운영관리", "url": "/hq/serverManage", "menuId": "M0116" },
+        { "label": "AI설정", "url": "/hq/chatbotAiSettings", "menuId": "M0126" }
       ]
     },
     {
@@ -54,6 +55,14 @@
         { "label": "URL결제내역", "url": "/pay/easyPay", "menuId": "M0310" },
         { "label": "챗봇결제내역", "url": "/pay/chatbotPay", "menuId": "M0311" },
         { "label": "상계취소내역", "url": "/calc/offsetCancList", "menuId": "M0309" }
+      ]
+    },
+    {
+      "label": "챗봇관리",
+      "icon": "bi-chat-dots",
+      "children": [
+        { "label": "기본설정", "url": "/chatbot/chatbotKbMng", "menuId": "M0612" },
+        { "label": "상품관리", "url": "/chatbot/productMng", "menuId": "M0611" }
       ]
     },
     {
@@ -97,7 +106,8 @@
       "icon": "bi-sliders2",
       "children": [
         { "label": "운영관리", "url": "/ops/opsMng", "menuId": "M0601" },
-        { "label": "메일로그", "url": "/ops/mailLog", "menuId": "M0602" }
+        { "label": "메일로그", "url": "/ops/mailLog", "menuId": "M0602" },
+        { "label": "TAX 리포트", "url": "/ops/taxReport", "menuId": "M0603" }
       ]
     },
     {

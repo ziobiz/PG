@@ -532,10 +532,11 @@ public class ApiPayController {
                 urlPayMode = "INLINE";
             }
             long recordAmt = chillPayWireAmountLong(pgAmount, checkoutCurrencyCode);
+            String txnOrigin = normalizeTxnOrigin(str(body, "txnOrigin"));
             chillPayDirectCreditRecordService.recordAfterDirectCreditResponse(
                     merchantOrgUnitId, res, recordAmt, orderNo, customerId, payResult.routeUsed(),
                     urlPayMode, payerName.isEmpty() ? null : payerName, checkoutCurrencyCode,
-                    shopperDisplayAmountOut, shopperDisplayCurrencyOut);
+                    shopperDisplayAmountOut, shopperDisplayCurrencyOut, txnOrigin);
             return ResponseEntity.ok(ApiResponse.ok(res));
         } catch (IllegalStateException e) {
             String msg = e.getMessage() != null ? e.getMessage() : "결제 요청 처리 중 오류가 발생했습니다.";
@@ -578,6 +579,18 @@ public class ApiPayController {
             return xRealIp;
         }
         return request.getRemoteAddr() != null ? request.getRemoteAddr() : "127.0.0.1";
+    }
+
+    /** URL 결제 기본 ORIGIN(URL). 챗봇 진입 시 프론트에서 CHATBOT 전달 → 챗봇결제내역 필터와 일치 */
+    private static String normalizeTxnOrigin(String raw) {
+        if (raw == null || raw.isBlank()) {
+            return "URL";
+        }
+        String u = raw.trim().toUpperCase(Locale.ROOT);
+        if ("CHATBOT".equals(u)) {
+            return "CHATBOT";
+        }
+        return "URL";
     }
 
     private static String str(Map<String, Object> body, String key) {

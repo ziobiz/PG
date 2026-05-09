@@ -48,15 +48,18 @@ public class ChillPayDirectCreditRecordService {
     private final OrgUnitRepository orgUnitRepository;
     private final SettlementCalcService settlementCalcService;
     private final HqLedgerSysSettingsService hqLedgerSysSettingsService;
+    private final UrlPaySuccessAlertService urlPaySuccessAlertService;
 
     public ChillPayDirectCreditRecordService(PgTrnsctnRepository pgTrnsctnRepository,
                                             OrgUnitRepository orgUnitRepository,
                                             SettlementCalcService settlementCalcService,
-                                            HqLedgerSysSettingsService hqLedgerSysSettingsService) {
+                                            HqLedgerSysSettingsService hqLedgerSysSettingsService,
+                                            UrlPaySuccessAlertService urlPaySuccessAlertService) {
         this.pgTrnsctnRepository = pgTrnsctnRepository;
         this.orgUnitRepository = orgUnitRepository;
         this.settlementCalcService = settlementCalcService;
         this.hqLedgerSysSettingsService = hqLedgerSysSettingsService;
+        this.urlPaySuccessAlertService = urlPaySuccessAlertService;
     }
 
     /**
@@ -74,7 +77,7 @@ public class ChillPayDirectCreditRecordService {
                                                 String payerDisplayName,
                                                 String checkoutCurrencyAlpha) {
         recordAfterDirectCreditResponse(merchantOrgUnitId, res, requestAmount, requestOrderNo, requestCustomerId,
-                routeNo, urlPayIntegrationMode, payerDisplayName, checkoutCurrencyAlpha, null, null);
+                routeNo, urlPayIntegrationMode, payerDisplayName, checkoutCurrencyAlpha, null, null, "URL");
     }
 
     /**
@@ -93,10 +96,31 @@ public class ChillPayDirectCreditRecordService {
                                                 String checkoutCurrencyAlpha,
                                                 BigDecimal shopperDisplayAmount,
                                                 String shopperDisplayCurrency) {
+        recordAfterDirectCreditResponse(merchantOrgUnitId, res, requestAmount, requestOrderNo, requestCustomerId,
+                routeNo, urlPayIntegrationMode, payerDisplayName, checkoutCurrencyAlpha,
+                shopperDisplayAmount, shopperDisplayCurrency, "URL");
+    }
+
+    /**
+     * @param txnOrigin 전산 출처. {@code CHATBOT} 이면 챗봇 URL 결제 진입과 동일 ChillPay 파이프라인이다.
+     */
+    @Transactional
+    public void recordAfterDirectCreditResponse(Long merchantOrgUnitId,
+                                                ChillPayDirectCreditResponse res,
+                                                long requestAmount,
+                                                String requestOrderNo,
+                                                String requestCustomerId,
+                                                int routeNo,
+                                                String urlPayIntegrationMode,
+                                                String payerDisplayName,
+                                                String checkoutCurrencyAlpha,
+                                                BigDecimal shopperDisplayAmount,
+                                                String shopperDisplayCurrency,
+                                                String txnOrigin) {
         try {
             doRecord(merchantOrgUnitId, res, requestAmount, requestOrderNo, requestCustomerId, routeNo,
                     urlPayIntegrationMode, payerDisplayName, checkoutCurrencyAlpha,
-                    shopperDisplayAmount, shopperDisplayCurrency);
+                    shopperDisplayAmount, shopperDisplayCurrency, txnOrigin);
         } catch (Exception e) {
             log.warn("DirectCredit 거래 적재 실패 (결제 API 응답은 유지): {}", e.getMessage());
         }
@@ -112,7 +136,8 @@ public class ChillPayDirectCreditRecordService {
                           String payerDisplayName,
                           String checkoutCurrencyAlpha,
                           BigDecimal shopperDisplayAmount,
-                          String shopperDisplayCurrency) {
+                          String shopperDisplayCurrency,
+                          String txnOrigin) {
         if (res == null || res.getStatus() != 200 || res.getData() == null) {
             return;
         }
@@ -166,7 +191,7 @@ public class ChillPayDirectCreditRecordService {
             t.setCustomerNm(custNm);
         }
         t.setVan(PgVendor.CHILLPAY);
-        t.setOrigin("URL");
+        t.setOrigin("CHATBOT".equalsIgnoreCase(txnOrigin != null ? txnOrigin.trim() : "") ? "CHATBOT" : "URL");
         t.setChillPaymentStatus(psl);
         t.setRouteNo(String.valueOf(routeNo));
         if (d.getTransactionId() != null && !d.getTransactionId().isBlank()) {
@@ -198,6 +223,7 @@ public class ChillPayDirectCreditRecordService {
         }
         t.setSettledYn("N");
         pgTrnsctnRepository.save(t);
+        urlPaySuccessAlertService.scheduleAfterDirectCreditSave(t);
         if (paid && merchantId != null && !merchantId.isBlank() && !"UNKNOWN".equalsIgnoreCase(merchantId.trim())) {
             try {
                 settlementCalcService.triggerRealtimeAutoSettlementIfDue(merchantId.trim(), t);

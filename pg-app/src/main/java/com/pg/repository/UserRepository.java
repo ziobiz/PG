@@ -13,6 +13,8 @@ import java.util.List;
 public interface UserRepository extends JpaRepository<AppUser, Long> {
 
     Optional<AppUser> findByUsername(String username);
+
+    Optional<AppUser> findByUsernameIgnoreCase(String username);
     List<AppUser> findByOrgUnitCode(String orgUnitCode);
     List<AppUser> findByOrgUnitCodeAndUsernameNot(String orgUnitCode, String username);
 

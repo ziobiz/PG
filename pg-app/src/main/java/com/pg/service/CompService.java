@@ -37,6 +37,8 @@ import com.pg.util.PercentDecimalHelper;
 import com.pg.util.ReceivableRecoveryModeUtil;
 import com.pg.util.VoidRefundSettlementModeUtil;
 import com.pg.util.CardBrandScopeUtil;
+import com.pg.util.ChatbotProductPricingUtil;
+import com.pg.util.ChatbotMerchantAdminConstants;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -61,6 +63,7 @@ import java.util.Comparator;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
+import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Locale;
@@ -99,6 +102,8 @@ public class CompService {
     private final SettlementCalcCycleTransitionService settlementCalcCycleTransitionService;
     private final HqLedgerSysSettingsRepository hqLedgerSysSettingsRepository;
     private final ChillPayService chillPayService;
+    private final MerchantChatbotKbService merchantChatbotKbService;
+    private final MerchantChatbotProductService merchantChatbotProductService;
 
     private static LocalTime parseTime(String s) {
         if (s == null || s.trim().isEmpty()) return null;
@@ -413,7 +418,9 @@ public class CompService {
                        MasterDistSettlementCycleConfigService masterDistSettlementCycleConfigService,
                        SettlementCalcCycleTransitionService settlementCalcCycleTransitionService,
                        HqLedgerSysSettingsRepository hqLedgerSysSettingsRepository,
-                       ChillPayService chillPayService) {
+                       ChillPayService chillPayService,
+                       MerchantChatbotKbService merchantChatbotKbService,
+                       MerchantChatbotProductService merchantChatbotProductService) {
         this.orgUnitRepository = orgUnitRepository;
         this.merchantProfileRepository = merchantProfileRepository;
         this.settlementSettingRepository = settlementSettingRepository;
@@ -435,6 +442,208 @@ public class CompService {
         this.settlementCalcCycleTransitionService = settlementCalcCycleTransitionService;
         this.hqLedgerSysSettingsRepository = hqLedgerSysSettingsRepository;
         this.chillPayService = chillPayService;
+        this.merchantChatbotKbService = merchantChatbotKbService;
+        this.merchantChatbotProductService = merchantChatbotProductService;
+    }
+
+    /** 챗봇관리 — 고객 안내 문구(병합 표시값). 가맹만. */
+    @Transactional(readOnly = true)
+    public Optional<Map<String, Object>> getChatbotKbDisplay(String compId) {
+        return orgUnitRepository.findByCode(compId != null ? compId.trim() : "")
+                .filter(ou -> ou.getOrgLevel() == OrgLevel.MERCHANT)
+                .flatMap(ou -> merchantProfileRepository.findByOrgUnitId(ou.getId())
+                        .map(mp -> {
+                            Map<String, Object> m = new LinkedHashMap<>();
+                            m.put("compId", ou.getCode());
+                            m.putAll(merchantChatbotKbService.effectiveKbForDisplay(ou, mp));
+                            putChatbotProductPlanFields(ou.getId(), mp, m);
+                            return m;
+                        }));
+    }
+
+    private void putChatbotProductPlanFields(Long merchantOrgUnitId, MerchantProfile mp, Map<String, Object> target) {
+        String chatYn = mp.getChatbotPaymentUseYn() != null ? mp.getChatbotPaymentUseYn().trim() : "N";
+        target.put("chatbotPaymentUseYn", chatYn);
+        Integer slotRaw = mp.getChatbotProductSlotLimit();
+        target.put("chatbotProductSlotLimit", slotRaw != null ? slotRaw : "");
+        long reg = merchantChatbotProductService.countProductsForMerchant(merchantOrgUnitId);
+        target.put("chatbotProductRegisteredCount", reg);
+        long active = merchantChatbotProductService.countSaleActiveProductsForMerchant(merchantOrgUnitId);
+        target.put("chatbotProductSaleActiveCount", active);
+        int saleCapEff = merchantChatbotProductService.getEffectiveChatbotProductSlotCap(merchantOrgUnitId);
+        target.put("chatbotProductSlotCapEffective", saleCapEff);
+        int regCapEff = merchantChatbotProductService.getEffectiveRegistrationCap(merchantOrgUnitId);
+        target.put("chatbotProductRegistrationCapEffective", regCapEff);
+        if (saleCapEff > 0) {
+            target.put("chatbotProductSlotsRemaining", Math.max(0L, (long) regCapEff - reg));
+            target.put("chatbotProductSaleActiveRemaining", Math.max(0L, (long) saleCapEff - active));
+        } else {
+            target.put("chatbotProductSlotsRemaining", "");
+            target.put("chatbotProductSaleActiveRemaining", "");
+        }
+    }
+
+    /**
+     * 총본사·본사·총판 등 상위 조직: 산하 가맹점 중 챗봇결제 사용(Y) 가맹점만 — 챗봇 기본 안내(표시 병합값) 목록.
+     * 가맹(MERCHANT) 조직은 빈 페이지를 반환하며, 호출은 컨트롤러에서 막는 것이 좋습니다.
+     */
+    @Transactional(readOnly = true)
+    public PageResult<Map<String, Object>> searchChatbotKbMerchantsPage(
+            boolean viewerIsAdmin,
+            String viewerCompCode,
+            OrgLevel viewerOrgLevel,
+            String searchCompId,
+            String searchCompNm,
+            int page,
+            int size) {
+        PageResult<Map<String, Object>> out = new PageResult<>();
+        int p = Math.max(page, 1);
+        int sz = Math.min(Math.max(size, 1), 100);
+        if (!viewerIsAdmin && viewerOrgLevel == OrgLevel.MERCHANT) {
+            out.setList(new ArrayList<>());
+            out.setPage(p);
+            out.setSize(sz);
+            out.setTotalElements(0);
+            out.setTotalPages(1);
+            return out;
+        }
+        String sid = searchCompId != null ? searchCompId.trim().toLowerCase(Locale.ROOT) : "";
+        String snm = searchCompNm != null ? searchCompNm.trim().toLowerCase(Locale.ROOT) : "";
+        String scope = viewerCompCode != null ? viewerCompCode.trim() : "";
+        List<OrgUnit> merchants = orgUnitRepository.findByOrgLevelOrderByCodeAsc(OrgLevel.MERCHANT);
+        List<AbstractMap.SimpleEntry<OrgUnit, MerchantProfile>> paired = new ArrayList<>();
+        for (OrgUnit ou : merchants) {
+            if (ou == null || ou.getCode() == null) {
+                continue;
+            }
+            String code = ou.getCode().trim();
+            if (!viewerIsAdmin) {
+                if (scope.isEmpty() || !isTargetUnderViewerOrg(scope, code)) {
+                    continue;
+                }
+            }
+            if (!sid.isEmpty() && !code.toLowerCase(Locale.ROOT).contains(sid)) {
+                continue;
+            }
+            String nm = ou.getName() != null ? ou.getName().trim() : "";
+            if (!snm.isEmpty() && !nm.toLowerCase(Locale.ROOT).contains(snm)) {
+                continue;
+            }
+            Optional<MerchantProfile> mpOpt = merchantProfileRepository.findByOrgUnitId(ou.getId());
+            if (mpOpt.isEmpty()) {
+                continue;
+            }
+            MerchantProfile mp = mpOpt.get();
+            String chatYn = mp.getChatbotPaymentUseYn();
+            if (chatYn == null || !"Y".equalsIgnoreCase(chatYn.trim())) {
+                continue;
+            }
+            paired.add(new AbstractMap.SimpleEntry<>(ou, mp));
+        }
+        long total = paired.size();
+        int totalPages = sz > 0 ? (int) Math.max(1L, (total + sz - 1) / sz) : 1;
+        int from = (int) Math.min((long) (p - 1) * sz, total);
+        int to = (int) Math.min((long) from + sz, total);
+        List<Map<String, Object>> pageRows = new ArrayList<>();
+        for (int i = from; i < to; i++) {
+            AbstractMap.SimpleEntry<OrgUnit, MerchantProfile> e = paired.get(i);
+            OrgUnit ou = e.getKey();
+            MerchantProfile mp = e.getValue();
+            Map<String, Object> row = new LinkedHashMap<>();
+            row.put("compId", ou.getCode());
+            row.put("compNm", ou.getName() != null ? ou.getName() : "");
+            row.putAll(merchantChatbotKbService.effectiveKbForDisplay(ou, mp));
+            putChatbotProductPlanFields(ou.getId(), mp, row);
+            pageRows.add(row);
+        }
+        out.setList(pageRows);
+        out.setPage(p);
+        out.setSize(sz);
+        out.setTotalElements(total);
+        out.setTotalPages(totalPages);
+        return out;
+    }
+
+    @Transactional
+    public void saveMerchantChatbotKb(String compId,
+                                      String companyNm, String addr, String tel, String email, String contactNm,
+                                      String intro, String productDesc,
+                                      String chatbotProductSlotLimitParam) {
+        OrgUnit ou = orgUnitRepository.findByCode(compId != null ? compId.trim() : "")
+                .orElseThrow(() -> new IllegalArgumentException("업체를 찾을 수 없습니다."));
+        if (ou.getOrgLevel() != OrgLevel.MERCHANT) {
+            throw new IllegalArgumentException("가맹점만 챗봇 기본안내를 저장할 수 있습니다.");
+        }
+        MerchantProfile mp = merchantProfileRepository.findByOrgUnitId(ou.getId())
+                .orElseThrow(() -> new IllegalArgumentException("가맹 프로필을 찾을 수 없습니다."));
+        MerchantAuditSnapshot snap = MerchantAuditSnapshot.capture(ou, mp, resolveChatbotAdminUsername(mp));
+        merchantChatbotKbService.applyUserInput(mp, companyNm, addr, tel, email, contactNm, intro, productDesc);
+        applyChatbotProductSlotLimitFromChatbotKbSave(ou, mp, chatbotProductSlotLimitParam);
+        merchantProfileRepository.save(mp);
+        persistMerchantAuditDiff(snap, ou, mp, false);
+    }
+
+    /**
+     * 챗봇 기본설정 저장 API 전용 — 파라미터가 들어왔을 때만 반영합니다(구 클라이언트 호환).
+     * 빈 문자열/null 은 무제한(건수 미지정).
+     */
+    private void applyChatbotProductSlotLimitFromChatbotKbSave(OrgUnit ou, MerchantProfile mp, String chatbotProductSlotLimitParam) {
+        if (chatbotProductSlotLimitParam == null) {
+            return;
+        }
+        String payYn = mp.getChatbotPaymentUseYn();
+        if (payYn == null || !"Y".equalsIgnoreCase(payYn.trim())) {
+            return;
+        }
+        String raw = chatbotProductSlotLimitParam.trim();
+        if (raw.isEmpty()) {
+            mp.setChatbotProductSlotLimit(null);
+            return;
+        }
+        int slot;
+        try {
+            slot = Integer.parseInt(raw);
+        } catch (NumberFormatException e) {
+            throw new IllegalArgumentException("등록 가능 플랜(건수) 값이 올바르지 않습니다.");
+        }
+        if (slot <= 0) {
+            mp.setChatbotProductSlotLimit(null);
+            return;
+        }
+        if (!ChatbotProductPricingUtil.isAllowedSlot(slot)) {
+            throw new IllegalArgumentException(
+                    "챗봇 상품 등록 한도는 " + ChatbotProductPricingUtil.ALLOWED_SLOTS + " 중 하나만 선택할 수 있습니다.");
+        }
+        long pc = merchantChatbotProductService.countProductsForMerchant(ou.getId());
+        long activeY = merchantChatbotProductService.countSaleActiveProductsForMerchant(ou.getId());
+        int regMax = slot + ChatbotProductPricingUtil.CHATBOT_PRODUCT_REGISTER_EXTRA_SLOTS;
+        int extra = ChatbotProductPricingUtil.CHATBOT_PRODUCT_REGISTER_EXTRA_SLOTS;
+        if (pc > regMax) {
+            throw new IllegalArgumentException(
+                    "등록된 상품이 " + pc + "건으로, 선택한 플랜 기준 최대 등록(" + regMax + "건, 판매 활성 "
+                            + slot + "+미판매 보관 " + extra + ")을 초과합니다. 상품을 삭제한 뒤 변경하세요.");
+        }
+        if (activeY > slot) {
+            throw new IllegalArgumentException(
+                    "판매 활성 상품이 " + activeY + "건인데 선택한 플랜의 판매 활성 상한은 " + slot
+                            + "건입니다. 상품관리에서 판매 활성(사용)을 줄인 뒤 변경하세요.");
+        }
+        mp.setChatbotProductSlotLimit(slot);
+    }
+
+    @Transactional(readOnly = true)
+    public String suggestChatbotKbDraft(String compId, String kind) throws Exception {
+        OrgUnit ou = orgUnitRepository.findByCode(compId != null ? compId.trim() : "")
+                .orElseThrow(() -> new IllegalArgumentException("업체를 찾을 수 없습니다."));
+        if (ou.getOrgLevel() != OrgLevel.MERCHANT) {
+            throw new IllegalArgumentException("가맹점만 초안 생성이 가능합니다.");
+        }
+        MerchantProfile mp = merchantProfileRepository.findByOrgUnitId(ou.getId())
+                .orElseThrow(() -> new IllegalArgumentException("가맹 프로필을 찾을 수 없습니다."));
+        if (kind != null && "product".equalsIgnoreCase(kind.trim())) {
+            return merchantChatbotKbService.suggestProductDraft(ou, mp);
+        }
+        return merchantChatbotKbService.suggestIntroDraft(ou, mp);
     }
 
     private static String resolveActorUsernameFallback() {
@@ -790,6 +999,14 @@ public class CompService {
         return s == null ? "" : s.trim();
     }
 
+    private static String abbrevAudit(String s) {
+        if (s == null || s.isBlank()) {
+            return "(없음)";
+        }
+        String t = s.trim().replace('\n', ' ');
+        return t.length() > 120 ? t.substring(0, 120) + "…" : t;
+    }
+
     private static String ynDisplay(String y) {
         if (y == null || y.isBlank()) {
             return "";
@@ -896,6 +1113,30 @@ public class CompService {
         addDiff(rows, oid, compId, compNm, by, p + "비고", snap.remark(), nz(mp.getRemark()));
         addDiffYnAllow(rows, oid, compId, compNm, by, p + "수수료설정허용", snap.commissionConfigAllowed(), mp.getCommissionConfigAllowed());
         addDiffYn(rows, oid, compId, compNm, by, p + "웹결제사용여부", snap.webPaymentUseYn(), mp.getWebPaymentUseYn());
+        addDiffYn(rows, oid, compId, compNm, by, p + "챗봇결제사용여부", snap.chatbotPaymentUseYn(), mp.getChatbotPaymentUseYn());
+        addDiff(rows, oid, compId, compNm, by, p + "챗봇 상품등록 한도(건)",
+                snap.chatbotProductSlotLimit() != null ? String.valueOf(snap.chatbotProductSlotLimit()) : "",
+                mp.getChatbotProductSlotLimit() != null ? String.valueOf(mp.getChatbotProductSlotLimit()) : "");
+        addDiff(rows, oid, compId, compNm, by, p + "챗봇안내 회사명(DB)", snap.chatbotKbCompanyNm(), nz(mp.getChatbotKbCompanyNm()));
+        addDiff(rows, oid, compId, compNm, by, p + "챗봇안내 주소(DB)", snap.chatbotKbAddr(), nz(mp.getChatbotKbAddr()));
+        addDiff(rows, oid, compId, compNm, by, p + "챗봇안내 전화(DB)", snap.chatbotKbTel(), nz(mp.getChatbotKbTel()));
+        addDiff(rows, oid, compId, compNm, by, p + "챗봇안내 이메일(DB)", snap.chatbotKbEmail(), nz(mp.getChatbotKbEmail()));
+        addDiff(rows, oid, compId, compNm, by, p + "챗봇안내 담당자(DB)", snap.chatbotKbContactNm(), nz(mp.getChatbotKbContactNm()));
+        if (!Objects.equals(nz(snap.chatbotKbIntro()), nz(mp.getChatbotKbIntro()))) {
+            addOrgChangeRow(rows, oid, compId, compNm, by, p + "챗봇안내 회사소개", abbrevAudit(snap.chatbotKbIntro()), abbrevAudit(mp.getChatbotKbIntro()));
+        }
+        if (!Objects.equals(nz(snap.chatbotKbProductDesc()), nz(mp.getChatbotKbProductDesc()))) {
+            addOrgChangeRow(rows, oid, compId, compNm, by, p + "챗봇안내 판매상품", abbrevAudit(snap.chatbotKbProductDesc()), abbrevAudit(mp.getChatbotKbProductDesc()));
+        }
+        addDiff(rows, oid, compId, compNm, by, p + "챗봇 상단 로고 URL", snap.chatbotHeaderLogoUrl(), nz(mp.getChatbotHeaderLogoUrl()));
+        addDiff(rows, oid, compId, compNm, by, p + "챗봇 관리자(로그인ID)", snap.chatbotAdminUsername(), resolveChatbotAdminUsername(mp));
+        addDiffYn(rows, oid, compId, compNm, by, p + "URL·챗봇 승인 알림메일", snap.urlPayAlertEmailYn(), nz(mp.getUrlPayAlertEmailYn()));
+        boolean afterLineTok = mp.getUrlPayLineNotifyToken() != null && !mp.getUrlPayLineNotifyToken().isBlank();
+        if (snap.urlPayLineTokenConfigured() != afterLineTok) {
+            addOrgChangeRow(rows, oid, compId, compNm, by, p + "LINE Notify 토큰",
+                    snap.urlPayLineTokenConfigured() ? "등록" : "미등록",
+                    afterLineTok ? "등록" : "미등록");
+        }
         addDiff(rows, oid, compId, compNm, by, p + "기준통화", snap.baseCurrency(), nz(mp.getBaseCurrency()));
         addDiff(rows, oid, compId, compNm, by, p + "사이트URL", snap.siteUrl(), nz(mp.getSiteUrl()));
         addDiff(rows, oid, compId, compNm, by, p + "사이트개요", snap.siteSummary(), nz(mp.getSiteSummary()));
@@ -942,11 +1183,24 @@ public class CompService {
             String remark,
             String commissionConfigAllowed,
             String webPaymentUseYn,
+            String chatbotPaymentUseYn,
+            Integer chatbotProductSlotLimit,
+            String chatbotKbCompanyNm,
+            String chatbotKbAddr,
+            String chatbotKbTel,
+            String chatbotKbEmail,
+            String chatbotKbContactNm,
+            String chatbotKbIntro,
+            String chatbotKbProductDesc,
+            String chatbotHeaderLogoUrl,
+            String chatbotAdminUsername,
             String baseCurrency,
             String siteUrl,
             String siteSummary,
-            String regionalSettings) {
-        static MerchantAuditSnapshot capture(OrgUnit ou, MerchantProfile mp) {
+            String regionalSettings,
+            String urlPayAlertEmailYn,
+            boolean urlPayLineTokenConfigured) {
+        static MerchantAuditSnapshot capture(OrgUnit ou, MerchantProfile mp, String chatbotAdminUsernameResolved) {
             return new MerchantAuditSnapshot(
                     ou.getParentId(),
                     nz(ou.getName()),
@@ -978,11 +1232,107 @@ public class CompService {
                     nz(mp.getRemark()),
                     nz(mp.getCommissionConfigAllowed()),
                     nz(mp.getWebPaymentUseYn()),
+                    nz(mp.getChatbotPaymentUseYn()),
+                    mp.getChatbotProductSlotLimit(),
+                    nz(mp.getChatbotKbCompanyNm()),
+                    nz(mp.getChatbotKbAddr()),
+                    nz(mp.getChatbotKbTel()),
+                    nz(mp.getChatbotKbEmail()),
+                    nz(mp.getChatbotKbContactNm()),
+                    nz(mp.getChatbotKbIntro()),
+                    nz(mp.getChatbotKbProductDesc()),
+                    nz(mp.getChatbotHeaderLogoUrl()),
+                    nz(chatbotAdminUsernameResolved),
                     nz(mp.getBaseCurrency()),
                     nz(mp.getSiteUrl()),
                     nz(mp.getSiteSummary()),
-                    nz(mp.getRegionalSettings()));
+                    nz(mp.getRegionalSettings()),
+                    nz(mp.getUrlPayAlertEmailYn()),
+                    mp.getUrlPayLineNotifyToken() != null && !mp.getUrlPayLineNotifyToken().isBlank());
         }
+    }
+
+    private String resolveChatbotAdminUsername(MerchantProfile mp) {
+        if (mp == null || mp.getChatbotAdminUserId() == null) {
+            return "";
+        }
+        return userRepository.findById(mp.getChatbotAdminUserId()).map(AppUser::getUsername).orElse("");
+    }
+
+    private void assertExistingUserAssignableAsChatbotAdmin(OrgUnit merchantOu, AppUser existing) {
+        String merchantCode = merchantOu.getCode() != null ? merchantOu.getCode().trim() : "";
+        String occ = existing.getOrgUnitCode() != null ? existing.getOrgUnitCode().trim() : "";
+        if (merchantCode.isEmpty() || occ.isEmpty() || !occ.equalsIgnoreCase(merchantCode)) {
+            throw new IllegalArgumentException(
+                    "이미 사용 중인 로그인ID입니다. 다른 가맹점 소속 계정이거나 사용자관리 등에 등록된 ID는 지정할 수 없습니다.");
+        }
+        if (merchantProfileRepository.existsByChatbotAdminUserIdAndOrgUnitIdNot(existing.getId(), merchantOu.getId())) {
+            throw new IllegalArgumentException(
+                    "이 로그인ID는 이미 다른 가맹점의 챗봇 관리자로 등록되어 있습니다.");
+        }
+    }
+
+    /**
+     * 업체 저장 전·중복확인 API용: 챗봇 관리자 ID를 해당 가맹에 둘 수 있는지 검사합니다.
+     */
+    @Transactional(readOnly = true)
+    public void validateChatbotAdminUsernameAssignable(String compId, String rawUsername) {
+        if (compId == null || compId.isBlank()) {
+            throw new IllegalArgumentException("가맹점 코드가 필요합니다.");
+        }
+        String uid = rawUsername != null ? rawUsername.trim() : "";
+        if (uid.isEmpty()) {
+            throw new IllegalArgumentException("챗봇 관리자 로그인ID를 입력하세요.");
+        }
+        if (uid.length() > 50) {
+            throw new IllegalArgumentException("챗봇 관리자 로그인ID는 50자 이하여야 합니다.");
+        }
+        OrgUnit merchantOu = orgUnitRepository.findByCode(compId.trim())
+                .filter(ou -> ou.getOrgLevel() == OrgLevel.MERCHANT)
+                .orElseThrow(() -> new IllegalArgumentException("가맹점 코드를 확인하세요."));
+        userRepository.findByUsernameIgnoreCase(uid).ifPresent(u -> assertExistingUserAssignableAsChatbotAdmin(merchantOu, u));
+    }
+
+    /**
+     * 챗봇 관리자 로그인ID에 해당 사용자가 없으면 해당 가맹 소속 신규 계정을 만듭니다.
+     * 비밀번호는 사용자관리 신규 등록과 동일하게 {@code 로그인ID + "1!"} (첫 로그인 시 변경 안내).
+     * 공개 챗봇 관리 로그인은 {@link com.pg.service.ChatbotAdminAuthService}에서 OTP까지 요구합니다.
+     */
+    private AppUser resolveOrCreateChatbotAdminUser(OrgUnit merchantOu, String rawUsername) {
+        if (merchantOu == null || merchantOu.getCode() == null || merchantOu.getCode().isBlank()) {
+            throw new IllegalArgumentException("가맹 정보를 확인할 수 없습니다.");
+        }
+        String uid = rawUsername != null ? rawUsername.trim() : "";
+        if (uid.isEmpty()) {
+            throw new IllegalArgumentException("챗봇 관리자 로그인ID를 입력하세요.");
+        }
+        if (uid.length() > 50) {
+            throw new IllegalArgumentException("챗봇 관리자 로그인ID는 50자 이하여야 합니다.");
+        }
+        Optional<AppUser> existingOpt = userRepository.findByUsernameIgnoreCase(uid);
+        if (existingOpt.isPresent()) {
+            AppUser existing = existingOpt.get();
+            assertExistingUserAssignableAsChatbotAdmin(merchantOu, existing);
+            existing.setPermissionGroupNm(ChatbotMerchantAdminConstants.PERMISSION_GROUP_NM);
+            userRepository.save(existing);
+            return existing;
+        }
+        AppUser nu = new AppUser();
+        nu.setUsername(uid);
+        nu.setName(uid);
+        nu.setPassword(passwordEncoder.encode(uid + "1!"));
+        nu.setPasswordMustChangeYn("Y");
+        nu.setOrgUnitCode(merchantOu.getCode().trim());
+        nu.setPermissionGroupNm(ChatbotMerchantAdminConstants.PERMISSION_GROUP_NM);
+        nu.setRole("USER");
+        nu.setEnabled(true);
+        nu.setUserStatus("ACTIVE");
+        nu.setOtpRegisteredYn("N");
+        nu.setUserType("REPRESENTATIVE");
+        nu.setAssistantRoleType(null);
+        nu.setParentUsername(null);
+        userRepository.save(nu);
+        return nu;
     }
 
     /** 지역 본사(업체) 상세 조회 - 업체정보조회/수정 폼용 */
@@ -1036,12 +1386,17 @@ public class CompService {
                             m.put("remark", mp.getRemark());
                             m.put("commissionConfigAllowed", mp.getCommissionConfigAllowed());
                             m.put("webPaymentUseYn", mp.getWebPaymentUseYn() != null ? mp.getWebPaymentUseYn() : "Y");
+                            m.put("chatbotPaymentUseYn", mp.getChatbotPaymentUseYn() != null ? mp.getChatbotPaymentUseYn() : "N");
+                            m.put("chatbotProductSlotLimit", mp.getChatbotProductSlotLimit() != null ? mp.getChatbotProductSlotLimit() : "");
                             if (ou.getOrgLevel() == OrgLevel.MERCHANT) {
                                 m.put("payFollowMerchantUseYn", mp.getPayFollowMerchantUseYn());
                                 m.put("payFollowAutoVoidYn", mp.getPayFollowAutoVoidYn());
                                 m.put("payFollowEmailVoidYn", mp.getPayFollowEmailVoidYn());
                                 m.put("payFollowAutoRefundYn", mp.getPayFollowAutoRefundYn());
                                 m.put("payFollowForceRefundYn", mp.getPayFollowForceRefundYn());
+                                m.put("chatbotHeaderLogoUrl", mp.getChatbotHeaderLogoUrl() != null ? mp.getChatbotHeaderLogoUrl() : "");
+                                m.put("chatbotAdminUsername", resolveChatbotAdminUsername(mp));
+                                m.putAll(merchantChatbotKbService.effectiveKbForDisplay(ou, mp));
                             }
                             m.put("baseCurrency", mp.getBaseCurrency());
                             m.put("orgUnitId", ou.getId());
@@ -1232,6 +1587,9 @@ public class CompService {
                                         m.put("middlewareNotifyUrl", n.getNotiUrl());
                                     }
                                 }
+                                m.put("urlPayAlertEmailYn", mp.getUrlPayAlertEmailYn() != null ? mp.getUrlPayAlertEmailYn() : "N");
+                                m.put("urlPayLineNotifyTokenConfigured",
+                                        (mp.getUrlPayLineNotifyToken() != null && !mp.getUrlPayLineNotifyToken().isBlank()) ? "Y" : "N");
                             }
                             return m;
                         }));
@@ -1244,7 +1602,7 @@ public class CompService {
                           String useYn, String loginId, String pwd, String regNo, String bizType, String industry,
                           String bizNature, String product, String homepage, String settleName, String settleTelNo,
                           String fax, String email, String bankCd, String transferFee, String cryptoTransferFee, String accountNo, String accountHolder,
-                          String remark, String commissionConfigAllowed, String webPaymentUseYn, String baseCurrency,
+                          String remark, String commissionConfigAllowed, String webPaymentUseYn, String chatbotPaymentUseYn, Integer chatbotProductSlotLimit, String baseCurrency,
                           String siteUrl, String siteSummary, String pgBindings, String regionalSettings,
                           String assistantLoginId, String assistantPwd, String assistantRoleType, String brandingEditAllowedYn,
                           String defaultProductName, String defaultProductCode, String defaultProductAmount, String defaultProductDesc,
@@ -1258,11 +1616,13 @@ public class CompService {
                           String fee3dsRate, String chargebackFeePerTx, String chargebackPolicyId,
                           String voidSettlementMode, String manualVoidSettlementMode, String refundSettlementMode, String forceRefundSettlementMode,
                           String payFollowMerchantUseYn, String payFollowAutoVoidYn, String payFollowEmailVoidYn,
-                          String payFollowAutoRefundYn, String payFollowForceRefundYn) {
+                          String payFollowAutoRefundYn, String payFollowForceRefundYn,
+                          String urlPayAlertEmailYn, String urlPayLineNotifyToken,
+                          String chatbotHeaderLogoUrl, String chatbotAdminUsername) {
         return orgUnitRepository.findByCode(compId != null ? compId : "")
                 .flatMap(ou -> merchantProfileRepository.findByOrgUnitId(ou.getId())
                         .map(mp -> {
-                            MerchantAuditSnapshot snap = MerchantAuditSnapshot.capture(ou, mp);
+                            MerchantAuditSnapshot snap = MerchantAuditSnapshot.capture(ou, mp, resolveChatbotAdminUsername(mp));
                             if (compNm != null) ou.setName(compNm);
                             // 업체정보 수정에서는 기존 조직레벨 변경을 허용하지 않는다.
                             // (업체코드-조직레벨 정합성 보장: 총본사/본사/총판이 하위 레벨로 바뀌는 오작동 방지)
@@ -1308,6 +1668,75 @@ public class CompService {
                             String effDivForCommission = childLevel.name();
                             if (commissionConfigAllowed != null) mp.setCommissionConfigAllowed(commissionConfigAllowed);
                             if (webPaymentUseYn != null && !webPaymentUseYn.trim().isEmpty()) mp.setWebPaymentUseYn(webPaymentUseYn.trim());
+                            if (childLevel == OrgLevel.MERCHANT && chatbotPaymentUseYn != null && !chatbotPaymentUseYn.trim().isEmpty()) {
+                                mp.setChatbotPaymentUseYn("Y".equalsIgnoreCase(chatbotPaymentUseYn.trim()) ? "Y" : "N");
+                                if ("N".equalsIgnoreCase(mp.getChatbotPaymentUseYn() != null ? mp.getChatbotPaymentUseYn().trim() : "")) {
+                                    mp.setChatbotProductSlotLimit(null);
+                                }
+                            }
+                            if (childLevel == OrgLevel.MERCHANT && chatbotProductSlotLimit != null) {
+                                if (chatbotProductSlotLimit <= 0) {
+                                    mp.setChatbotProductSlotLimit(null);
+                                } else if (!ChatbotProductPricingUtil.isAllowedSlot(chatbotProductSlotLimit)) {
+                                    throw new IllegalArgumentException(
+                                            "챗봇 상품 등록 한도는 " + ChatbotProductPricingUtil.ALLOWED_SLOTS + " 중 하나만 선택할 수 있습니다.");
+                                } else {
+                                    long pc = merchantChatbotProductService.countProductsForMerchant(ou.getId());
+                                    long activeY = merchantChatbotProductService.countSaleActiveProductsForMerchant(ou.getId());
+                                    int regMax = chatbotProductSlotLimit + ChatbotProductPricingUtil.CHATBOT_PRODUCT_REGISTER_EXTRA_SLOTS;
+                                    int extra = ChatbotProductPricingUtil.CHATBOT_PRODUCT_REGISTER_EXTRA_SLOTS;
+                                    if (pc > regMax) {
+                                        throw new IllegalArgumentException(
+                                                "등록된 상품이 " + pc + "건으로, 선택한 플랜 기준 최대 등록(" + regMax + "건, 판매 활성 "
+                                                        + chatbotProductSlotLimit + "+미판매 보관 " + extra + ")을 초과합니다. 상품을 삭제한 뒤 변경하세요.");
+                                    }
+                                    if (activeY > chatbotProductSlotLimit) {
+                                        throw new IllegalArgumentException(
+                                                "판매 활성 상품이 " + activeY + "건인데 선택한 플랜의 판매 활성 상한은 "
+                                                        + chatbotProductSlotLimit
+                                                        + "건입니다. 상품관리에서 판매 활성(사용)을 줄인 뒤 변경하세요.");
+                                    }
+                                    mp.setChatbotProductSlotLimit(chatbotProductSlotLimit);
+                                }
+                            }
+                            if (childLevel == OrgLevel.MERCHANT
+                                    && mp.getChatbotPaymentUseYn() != null
+                                    && "Y".equalsIgnoreCase(mp.getChatbotPaymentUseYn().trim())) {
+                                if (mp.getChatbotProductSlotLimit() == null || mp.getChatbotProductSlotLimit() <= 0) {
+                                    mp.setChatbotProductSlotLimit(10);
+                                }
+                            }
+                            if (childLevel == OrgLevel.MERCHANT && chatbotHeaderLogoUrl != null) {
+                                String hLogo = chatbotHeaderLogoUrl.trim();
+                                if (hLogo.isEmpty()) {
+                                    mp.setChatbotHeaderLogoUrl(null);
+                                } else if (hLogo.length() > 500) {
+                                    throw new IllegalArgumentException("챗봇 상단 로고 URL은 500자 이하여야 합니다.");
+                                } else {
+                                    mp.setChatbotHeaderLogoUrl(hLogo);
+                                }
+                            }
+                            if (childLevel == OrgLevel.MERCHANT && chatbotAdminUsername != null) {
+                                String cab = chatbotAdminUsername.trim();
+                                if (cab.isEmpty()) {
+                                    mp.setChatbotAdminUserId(null);
+                                } else {
+                                    AppUser cabUser = resolveOrCreateChatbotAdminUser(ou, cab);
+                                    String occ = cabUser.getOrgUnitCode() != null ? cabUser.getOrgUnitCode().trim() : "";
+                                    String ccode = ou.getCode() != null ? ou.getCode().trim() : "";
+                                    if (!occ.equalsIgnoreCase(ccode)) {
+                                        throw new IllegalArgumentException("챗봇 관리자는 해당 가맹점 소속 사용자만 지정할 수 있습니다.");
+                                    }
+                                    if (!cabUser.isEnabled()) {
+                                        throw new IllegalArgumentException("챗봇 관리자로 지정할 수 없는 계정입니다.");
+                                    }
+                                    String ustat = cabUser.getUserStatus();
+                                    if (ustat != null && !ustat.isBlank() && !"ACTIVE".equalsIgnoreCase(ustat.trim())) {
+                                        throw new IllegalArgumentException("챗봇 관리자로 지정할 수 없는 계정입니다.");
+                                    }
+                                    mp.setChatbotAdminUserId(cabUser.getId());
+                                }
+                            }
                             if (baseCurrency != null && !baseCurrency.trim().isEmpty()) {
                                 String divForVal = childLevel.name();
                                 validateBaseCurrency(divForVal, baseCurrency);
@@ -1460,6 +1889,7 @@ public class CompService {
                             if (childLevel == OrgLevel.MERCHANT) {
                                 mergeMerchantPayFollowFromRequest(mp, payFollowMerchantUseYn, payFollowAutoVoidYn,
                                         payFollowEmailVoidYn, payFollowAutoRefundYn, payFollowForceRefundYn);
+                                applyMerchantUrlPayAlerts(mp, urlPayAlertEmailYn, urlPayLineNotifyToken);
                             }
                             merchantProfileRepository.save(mp);
                             if (assistantLoginId != null && !assistantLoginId.trim().isEmpty()) {
@@ -1644,6 +2074,33 @@ public class CompService {
      * 가맹점 결제통보 URL Background/Result. 기존 행을 지운 뒤 재삽입하여 (org_unit_id, url_type) 중복을 방지.
      */
     private static final String MERCHANT_NOTIFY_MIDDLEWARE = "MIDDLEWARE";
+    private static final String URL_PAY_LINE_TOKEN_CLEAR = "__CLEAR__";
+    private static final int URL_PAY_LINE_TOKEN_MAX_LEN = 256;
+
+    /** 가맹점만. 토큰 비움·미전달은 유지, {@code __CLEAR__} 이면 삭제. */
+    private void applyMerchantUrlPayAlerts(MerchantProfile mp, String urlPayAlertEmailYn, String urlPayLineNotifyToken) {
+        if (mp == null) {
+            return;
+        }
+        if (urlPayAlertEmailYn != null && !urlPayAlertEmailYn.isBlank()) {
+            mp.setUrlPayAlertEmailYn("Y".equalsIgnoreCase(urlPayAlertEmailYn.trim()) ? "Y" : "N");
+        }
+        if (urlPayLineNotifyToken == null) {
+            return;
+        }
+        String raw = urlPayLineNotifyToken.trim();
+        if (raw.isEmpty()) {
+            return;
+        }
+        if (URL_PAY_LINE_TOKEN_CLEAR.equalsIgnoreCase(raw)) {
+            mp.setUrlPayLineNotifyToken(null);
+            return;
+        }
+        if (raw.length() > URL_PAY_LINE_TOKEN_MAX_LEN) {
+            throw new IllegalArgumentException("LINE Notify 토큰은 " + URL_PAY_LINE_TOKEN_MAX_LEN + "자 이하여야 합니다.");
+        }
+        mp.setUrlPayLineNotifyToken(raw);
+    }
 
     private void saveMerchantPayNotifyUrls(Long orgUnitId, String background, String result,
                                            String middlewareUrl, String middlewareSecret) {
@@ -1828,13 +2285,13 @@ public class CompService {
                 /* 55–64: transfer … calcStart … calcProc … */
                 null, null, null, null, null, null, null, null, null, null,
                 /* pgBindings … */
-                null, null, null,
+                null, null, null, null,
                 /* 65–68 default product */
                 null, null, null, null,
                 /* notify 8 + commission 17 + 수수료VAT 2 + regionalSettings */
                 null, null, null, null, null, null, null, null,
                 null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null,
-                null, null, null);
+                null, null, null, null, null);
     }
 
     @Transactional
@@ -1856,7 +2313,7 @@ public class CompService {
                                      String transferType, Integer transferCycleDays, String autoTransferMin, String payHoldYn,
                                      String calcExcludeYn, String calcExcludeTarget, String calcStartTime,
                                      String calcProcType, String calcMinAmt, String transferExecTime,
-                                     String pgBindings, String webPaymentUseYn, String baseCurrency,
+                                     String pgBindings, String webPaymentUseYn, String chatbotPaymentUseYn, String baseCurrency,
                                      String defaultProductName, String defaultProductCode, String defaultProductAmount, String defaultProductDesc,
                                      String notifyUrlBackground, String notifyUrlResult,
                                      String notifyUrl1, String notifyUrl2, String notifyUrl3, String notifyUrl4,
@@ -1865,6 +2322,7 @@ public class CompService {
                                      String voidFeePerTx, String manualVoidFeePerTx, String usageRate,
                                      String failFee, String payRate, String refundRate, String rollingPct, String rollingDays,
                                      String feeSettlementPerTx, String remittanceTransferFee, String usdtTransferFeeUsd, String feeUsdt, String feeFx,
+                                     String urlPayAlertEmailYn, String urlPayLineNotifyToken,
                                      String feeVatApplyYn, String feeVatRatePct,
                                      String regionalSettings) {
         return registerWithExtra(code, name, compDiv, parentId,
@@ -1885,7 +2343,7 @@ public class CompService {
                 transferType, transferCycleDays, autoTransferMin, payHoldYn,
                 calcExcludeYn, calcExcludeTarget, calcStartTime,
                 calcProcType, calcMinAmt, transferExecTime,
-                pgBindings, webPaymentUseYn, baseCurrency,
+                pgBindings, webPaymentUseYn, chatbotPaymentUseYn, baseCurrency,
                 defaultProductName, defaultProductCode, defaultProductAmount, defaultProductDesc,
                 notifyUrlBackground, notifyUrlResult,
                 notifyUrl1, notifyUrl2, notifyUrl3, notifyUrl4,
@@ -1897,6 +2355,7 @@ public class CompService {
                 null, null, null,
                 null, null, null, null,
                 null, null, null, null, null,
+                urlPayAlertEmailYn, urlPayLineNotifyToken,
                 feeVatApplyYn, feeVatRatePct,
                 regionalSettings);
     }
@@ -1920,7 +2379,7 @@ public class CompService {
                                      String transferType, Integer transferCycleDays, String autoTransferMin, String payHoldYn,
                                      String calcExcludeYn, String calcExcludeTarget, String calcStartTime,
                                      String calcProcType, String calcMinAmt, String transferExecTime,
-                                     String pgBindings, String webPaymentUseYn, String baseCurrency,
+                                     String pgBindings, String webPaymentUseYn, String chatbotPaymentUseYn, String baseCurrency,
                                      String defaultProductName, String defaultProductCode, String defaultProductAmount, String defaultProductDesc,
                                      String notifyUrlBackground, String notifyUrlResult,
                                      String notifyUrl1, String notifyUrl2, String notifyUrl3, String notifyUrl4,
@@ -1933,6 +2392,7 @@ public class CompService {
                                      String voidSettlementMode, String manualVoidSettlementMode, String refundSettlementMode, String forceRefundSettlementMode,
                                      String payFollowMerchantUseYn, String payFollowAutoVoidYn, String payFollowEmailVoidYn,
                                      String payFollowAutoRefundYn, String payFollowForceRefundYn,
+                                     String urlPayAlertEmailYn, String urlPayLineNotifyToken,
                                      String feeVatApplyYn, String feeVatRatePct,
                                      String regionalSettings) {
         OrgUnit o = new OrgUnit();
@@ -2004,6 +2464,13 @@ public class CompService {
         if (siteSummary != null) mp.setSiteSummary(siteSummary.trim());
         mp.setRemark(remark);
         if (webPaymentUseYn != null && !webPaymentUseYn.trim().isEmpty()) mp.setWebPaymentUseYn(webPaymentUseYn.trim());
+        if ("MERCHANT".equalsIgnoreCase(compDivVal)) {
+            if (chatbotPaymentUseYn != null && !chatbotPaymentUseYn.trim().isEmpty()) {
+                mp.setChatbotPaymentUseYn("Y".equalsIgnoreCase(chatbotPaymentUseYn.trim()) ? "Y" : "N");
+            } else {
+                mp.setChatbotPaymentUseYn("N");
+            }
+        }
         if (baseCurrency != null && !baseCurrency.trim().isEmpty()) {
             validateBaseCurrency(compDiv != null ? compDiv : "AGENCY", baseCurrency);
             if ("MASTER_DIST".equalsIgnoreCase(compDivVal)) {
@@ -2033,6 +2500,8 @@ public class CompService {
             validateMerchantPolicyCurrencyCompatibility(chosenCur, commissionFollowHq, hqPolicyScope, null);
             mergeMerchantPayFollowFromRequest(mp, payFollowMerchantUseYn, payFollowAutoVoidYn,
                     payFollowEmailVoidYn, payFollowAutoRefundYn, payFollowForceRefundYn);
+            applyMerchantUrlPayAlerts(mp, urlPayAlertEmailYn, urlPayLineNotifyToken);
+            merchantChatbotKbService.seedFromRegistration(mp, saved);
         }
         merchantProfileRepository.save(mp);
 
@@ -2383,12 +2852,16 @@ public class CompService {
         if (roleType == null || roleType.isBlank()) return "MANAGER";
         String v = roleType.trim().toUpperCase();
         return switch (v) {
-            case "MANAGER", "OPERATOR", "SETTLEMENT", "TECH" -> v;
+            case "MANAGER", "OPERATOR", "SETTLEMENT", "TECH", "CHATBOT_ADMIN" -> v;
             default -> "MANAGER";
         };
     }
 
     private static String permissionGroupByAssistantRole(String roleType) {
+        if (ChatbotMerchantAdminConstants.ASSISTANT_ROLE_TYPE.equalsIgnoreCase(
+                normalizeAssistantRoleType(roleType))) {
+            return ChatbotMerchantAdminConstants.PERMISSION_GROUP_NM;
+        }
         return switch (normalizeAssistantRoleType(roleType)) {
             case "OPERATOR" -> "운영담당";
             case "SETTLEMENT" -> "정산담당";
@@ -3361,6 +3834,28 @@ public class CompService {
     }
 
     /**
+     * viewer 업체코드 기준 산하(직·간접) 가맹점 {@code org_unit.id} 목록. viewer가 가맹점이면 자기 조직만 포함.
+     */
+    @Transactional(readOnly = true)
+    public List<Long> collectMerchantOrgUnitIdsInViewerSubtree(String viewerCompCode) {
+        if (viewerCompCode == null || viewerCompCode.isBlank()) {
+            return List.of();
+        }
+        Optional<OrgUnit> vu = orgUnitRepository.findByCode(viewerCompCode.trim());
+        if (vu.isEmpty()) {
+            return List.of();
+        }
+        List<Long> desc = collectDescendantIds(vu.get().getId());
+        Set<Long> scope = new HashSet<>(desc);
+        scope.add(vu.get().getId());
+        return orgUnitRepository.findAll().stream()
+                .filter(o -> o.getOrgLevel() == OrgLevel.MERCHANT && scope.contains(o.getId()))
+                .map(OrgUnit::getId)
+                .sorted()
+                .toList();
+    }
+
+    /**
      * 업체관리(로그인 조직 하위만) 목록 검색 시 업체구분 필터: 본인·상위 단계는 무시하고 하위만 허용.
      * @return 허용 시 enum 이름, 무효/동급·상위면 null(=전체와 동일)
      */
@@ -3499,13 +3994,13 @@ public class CompService {
                             row.get("remark"),
                             null, null, null, null, null, null, null, null, null, null, row.get("calcCycle"), null,
                             row.get("transferType"), null, null, null, null, null, null, null, null, null,
-                            null, null, null,
+                            null, null, null, null,
                             null, null, null, null,
                             null, null, null, null, null, null, null, null,
                             null, null, null, null, null, null, null, null, null, null,
                             null, null, null, null, null, null, null, null, null, null,
                             null, null, null, null,
-                            null, null, null, null, null, null, null, null);
+                            null, null, null, null, null, null, null, null, null, null);
                     if (loginIdVal != null && !loginIdVal.isEmpty() && userRepository.findByUsername(loginIdVal).isEmpty()) {
                         AppUser appUser = new AppUser();
                         appUser.setUsername(loginIdVal);

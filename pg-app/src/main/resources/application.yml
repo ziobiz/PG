@@ -109,3 +109,7 @@ app:
     allowed-client-cidrs: ${PG_NOTIFY_ALLOWED_CIDRS:}
     hmac-secret: ${PG_NOTIFY_HMAC_SECRET:}
     hmac-header: ${PG_NOTIFY_HMAC_HEADER:X-PG-Notify-Hmac}
+  # 챗봇 상품등록 플랜 월 이용료 → 미수금 자동등록(전월분, 매월 1회 KST). false 로 스케줄 비활성.
+  chatbot:
+    monthlyBillingEnabled: ${APP_CHATBOT_MONTHLY_BILLING_ENABLED:true}
+    monthlyBillingCron: "${APP_CHATBOT_MONTHLY_BILLING_CRON:0 45 7 1 * *}"

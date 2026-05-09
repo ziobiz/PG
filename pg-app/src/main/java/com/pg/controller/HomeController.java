@@ -4,6 +4,9 @@ import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+
 @Controller
 public class HomeController {
 
@@ -26,6 +29,14 @@ public class HomeController {
 
     @GetMapping("/pay/{compId}")
     public String payByComp(@PathVariable("compId") String compId) {
-        return "redirect:/pay.html?m=" + compId;
+        String enc = URLEncoder.encode(compId != null ? compId : "", StandardCharsets.UTF_8);
+        return "redirect:/pay.html?m=" + enc;
+    }
+
+    /** 챗봇·임베드용 공개 진입 URL (결제 화면은 동일 셸, 구분은 쿼리로 확장 가능) */
+    @GetMapping("/chatbot-pay/{compId}")
+    public String chatbotPayByComp(@PathVariable("compId") String compId) {
+        String enc = URLEncoder.encode(compId != null ? compId : "", StandardCharsets.UTF_8);
+        return "redirect:/chatbot-pay.html?m=" + enc;
     }
 }
