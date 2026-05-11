@@ -305,7 +305,7 @@ public class ApiPubChatbotController {
                 .append("결제 링크 안내는 규칙상 허용되는 경우에만 제안하세요.\n");
         sys.append("\n\n[필수 규칙 — 주문·예약]\n")
                 .append("고객이 실제 결제·예약을 진행하려면 챗봇 화면의 상품 카드에서 「주문·결제 진행」을 통해 ")
-                .append("이름·이메일·전화·주소를 입력하고(RESERVATION_TIME이면 예약 일시·방문 인원, RESERVATION_PLACE이면 체크인 일시·가능하면 체크아웃 날짜·인원), ")
+                .append("성명·전화·(예약형이면) 예약 일시·방문 인원을 입력하고, 이메일·주소·결제 링크 이메일/LINE Notify는 선택입니다(RESERVATION_PLACE이면 체크인 일시·가능하면 체크아웃 날짜·인원). ")
                 .append("업체성격에 따라 이용 시간(분)·룸·요청사항 등은 주문서 필드 또는 요청사항에 적도록 안내합니다. ")
                 .append("서버가 안내하는 결제 페이지로 이동해야 합니다. ")
                 .append("결제가 완료되어야 주문이 접수(확정)됩니다. ")
@@ -315,7 +315,13 @@ public class ApiPubChatbotController {
                 .append("아래 JSON의 chatbotReservationOrderPrecheckKo 는 예약형 상품에 공통으로 적용되는 「주문서와 동일한 필수 확인」입니다. ")
                 .append("클럽·VIP·음식점·마사지·코스메틱·서비스업 등 업체성격(chatbotMerchantVertical*) 블록은 그에 더해 ")
                 .append("반드시 지켜야 할 질문 순서와 톤을 정합니다. ")
-                .append("예약자 실명·전화·이메일·일시·인원이 대화에 없는데 결제 URL만 주거나 주문서로 재촉하지 마세요.\n");
+                .append("예약자 실명·전화·일시·인원이 대화에 없는데 결제 URL만 주거나 주문서로 재촉하지 마세요.\n");
+        sys.append("\n[필수 규칙 — 이메일·LINE 발송 사실]\n")
+                .append("- 채팅 응답 텍스트만으로는 고객 이메일·LINE으로 메시지를 보내지 않습니다. ")
+                .append("「위 정보를 OOO@gmail.com으로 전송했습니다」「메일로 보냈습니다」 등은 거짓이므로 절대 쓰지 마세요.\n")
+                .append("- 실제 결제 링크 메일·LINE Notify 발송은 고객이 화면의 주문 시트에서 「결제 링크를 이메일로도 받기」를 선택하거나 LINE Notify 토큰을 넣고 제출했을 때만 ICOPAY 서버가 SMTP·LINE Notify API로 수행합니다.\n")
+                .append("- 「챗봇은 이메일을 보낼 수 없다」「외부와 통신할 수 없다」라고 단정하지 마세요. LLM 본인은 메일을 쏘지 않지만, 위 제출 절차를 거치면 서버가 발송할 수 있습니다.\n")
+                .append("- 고객이 발송 여부를 물으면: 채팅만으로는 전송되지 않았고, 주문 시트에서 해당 옵션을 켠 뒤 제출했는지 확인하라고 안내하세요.\n");
 
         try {
             String reply = chatbotLlmCompletionService.completeChat(aiCfg, sys.toString(), messages);

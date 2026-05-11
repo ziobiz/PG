@@ -2798,6 +2798,108 @@
         } catch (eD) { return ''; }
       }
 
+      /** 오전/오후·AM/PM 을 0–23 시로 변환(한국어 오후 7 = 19시). */
+      function cbHour24FromAmPm(apTok, h) {
+        if (h == null || isNaN(h)) return h;
+        var a = String(apTok || '').toLowerCase();
+        if (a === 'pm' || a === '오후') {
+          if (h < 12) return h + 12;
+          return h;
+        }
+        if (a === 'am' || a === '오전') {
+          if (h === 12) return 0;
+          return h;
+        }
+        return h;
+      }
+
+      /**
+       * 한 토막 문자열에서 예약 일시 추출 → datetime-local 값.
+       * 예: 2026.05.14 PM 7, 2026/5/14 오후 7시, 2026-05-14 19:30
+       */
+      function cbParseInlineReservationDate(seg) {
+        var s = String(seg || '').trim();
+        if (!s) return '';
+        var m = s.match(/(\d{4})[.\/](\d{1,2})[.\/](\d{1,2})\s+(오후|오전|PM|pm|AM|am)\s*(\d{1,2})(?::(\d{2}))?/);
+        if (m) {
+          var y = parseInt(m[1], 10);
+          var mo = parseInt(m[2], 10);
+          var da = parseInt(m[3], 10);
+          var h24 = cbHour24FromAmPm(m[4], parseInt(m[5], 10));
+          var mip = m[6] != null ? parseInt(m[6], 10) : 0;
+          if (!isNaN(y) && !isNaN(mo) && !isNaN(da) && !isNaN(h24)) {
+            return cbDateTimeLocalFromYmdhm(y, mo, da, h24, isNaN(mip) ? 0 : mip);
+          }
+        }
+        m = s.match(/(\d{4})[.\/](\d{1,2})[.\/](\d{1,2})[T\s]+(\d{1,2})(?::(\d{2}))?/);
+        if (m) {
+          var y2 = parseInt(m[1], 10);
+          var mo2 = parseInt(m[2], 10);
+          var da2 = parseInt(m[3], 10);
+          var hh2 = parseInt(m[4], 10);
+          var mip2 = m[5] != null ? parseInt(m[5], 10) : 0;
+          if (!isNaN(y2) && !isNaN(mo2) && !isNaN(da2) && !isNaN(hh2)) {
+            return cbDateTimeLocalFromYmdhm(y2, mo2, da2, hh2, isNaN(mip2) ? 0 : mip2);
+          }
+        }
+        m = s.match(/(\d{4})\.\s*(\d{1,2})월\s*(\d{1,2})일\s*(\d{1,2})시/);
+        if (m) {
+          var y3 = parseInt(m[1], 10);
+          var mo3 = parseInt(m[2], 10);
+          var da3 = parseInt(m[3], 10);
+          var hh3 = parseInt(m[4], 10);
+          if (!isNaN(y3) && !isNaN(mo3) && !isNaN(da3) && !isNaN(hh3)) {
+            return cbDateTimeLocalFromYmdhm(y3, mo3, da3, hh3, 0);
+          }
+        }
+        return '';
+      }
+
+      /**
+       * 사용자 한 줄 입력: "성명 / 전화 / 이메일 / 일시 / N명" 등 슬래시 구분 예약 정보.
+       */
+      function cbParseSlashReservationLine(line) {
+        var raw = String(line || '').replace(/\s+/g, ' ').trim();
+        if (!raw || raw.indexOf('/') < 0) return null;
+        var parts = raw.split('/').map(function (p) { return p.trim(); }).filter(function (x) { return x.length; });
+        if (parts.length < 4) return null;
+        var out = {};
+        var nameCandidates = [];
+        for (var i = 0; i < parts.length; i++) {
+          var p = parts[i];
+          var em = p.match(/([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/);
+          if (em) {
+            out.ordererEmail = em[1].trim();
+            continue;
+          }
+          var gGuest = p.match(/^(\d{1,3})\s*명$/);
+          if (gGuest) {
+            var gn = parseInt(gGuest[1], 10);
+            if (gn >= 1 && gn <= 999) out.guestCount = gn;
+            continue;
+          }
+          var dtl = cbParseInlineReservationDate(p);
+          if (dtl) {
+            out.reservationLocal = dtl;
+            continue;
+          }
+          var dig = p.replace(/\D/g, '');
+          if (dig.length >= 10 && dig.length <= 11 && /^[\d+\-().\s]+$/.test(p)) {
+            out.ordererPhone = dig;
+            continue;
+          }
+          nameCandidates.push(p);
+        }
+        if (nameCandidates.length && !out.ordererName) {
+          var nm0 = nameCandidates[0];
+          out.ordererName = nm0.length > 100 ? nm0.slice(0, 100) : nm0;
+        }
+        if (out.ordererName || out.ordererPhone || out.ordererEmail || out.reservationLocal || out.guestCount) {
+          return out;
+        }
+        return null;
+      }
+
       function cbVisibleOrderInput(id) {
         var el = document.getElementById(id);
         if (!el) return false;
@@ -2807,7 +2909,8 @@
       }
 
       /**
-       * 최근 채팅에서 주문 시트에 넣을 값 추출(휴리스틱). 봇 요약·사용자 한 줄 입력 모두 참고.
+       * 최근 채팅에서 주문 시트에 넣을 값 추출(휴리스틱).
+       * 사용자 메시지를 우선(봇 안내의 예시 번호·형식이 섞이지 않게), 슬래시 한 줄·PM 일시를 지원합니다.
        */
       function cbExtractPrefillFromChat(msgs) {
         var out = {};
@@ -2815,30 +2918,141 @@
         var slice = msgs.slice(-24);
         var blobNl = '';
         var flatParts = [];
+        var userRev = [];
         for (var i = 0; i < slice.length; i++) {
           var c = slice[i].content != null ? String(slice[i].content) : '';
           if (!c || c.indexOf(CB_GUEST_IMAGE_MARKER_PREFIX) === 0) continue;
           blobNl += '\n' + c;
           flatParts.push(c.replace(/\s+/g, ' ').trim());
+          var role = slice[i].role;
+          if (role === 'user') {
+            userRev.push(c.replace(/\s+/g, ' ').trim());
+          }
         }
         var blob = blobNl.slice(-16000);
         var blobFlat = flatParts.join(' ').slice(-12000);
+        var userBlob = '\n' + userRev.slice().reverse().join('\n');
+        var userFlat = userRev.slice().reverse().join(' ');
 
-        var emLabeled = blob.match(
+        function mergePrefill(parsed) {
+          if (!parsed) return;
+          if (parsed.ordererName && !out.ordererName) out.ordererName = parsed.ordererName;
+          if (parsed.ordererPhone && !out.ordererPhone) out.ordererPhone = parsed.ordererPhone;
+          if (parsed.ordererEmail && !out.ordererEmail) out.ordererEmail = parsed.ordererEmail;
+          if (parsed.reservationLocal && !out.reservationLocal) out.reservationLocal = parsed.reservationLocal;
+          if (parsed.guestCount != null && out.guestCount == null) out.guestCount = parsed.guestCount;
+          if (parsed.ordererAddr && !out.ordererAddr) out.ordererAddr = parsed.ordererAddr;
+        }
+
+        for (var ui = 0; ui < userRev.length; ui++) {
+          var slash = cbParseSlashReservationLine(userRev[userRev.length - 1 - ui]);
+          if (slash) {
+            mergePrefill(slash);
+            break;
+          }
+        }
+
+        var emUser = userBlob.match(
           /(?:Email Address|이메일\s*주소|이메일)\s*[:：]\s*([a-zA-Z0-9._%+-]+@[^\s<>,]+)/im
         );
-        if (emLabeled) out.ordererEmail = emLabeled[1].trim();
+        if (emUser && !out.ordererEmail) out.ordererEmail = emUser[1].trim();
+        if (!out.ordererEmail) {
+          var emU2 = userFlat.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g);
+          if (emU2 && emU2.length) out.ordererEmail = emU2[emU2.length - 1].trim();
+        }
+
+        var phUser = userBlob.match(
+          /(?:Phone Number|휴대전화|휴대\s*전화|전화\s*번호|연락처)\s*[:：]\s*([0-9+\-\s().]{8,28})/im
+        );
+        if (phUser && !out.ordererPhone) {
+          var pu = phUser[1].replace(/\D/g, '');
+          if (pu.length >= 10 && pu.length <= 11) out.ordererPhone = pu;
+        }
+        if (!out.ordererPhone) {
+          var hyU = userFlat.match(/0\d{1,2}[-.\s]?\d{3,4}[-.\s]?\d{4}/g);
+          if (hyU && hyU.length) {
+            out.ordererPhone = hyU[hyU.length - 1].replace(/\D/g, '');
+          } else {
+            var seqU = userFlat.match(/0\d{9,10}/g);
+            if (seqU && seqU.length) out.ordererPhone = seqU[seqU.length - 1];
+          }
+        }
+
+        var nmMrU = userBlob.match(
+          /(?:Reserver Name|예약자\s*성명|예약\s*자(?:\s*성명)?|방문\s*대표\s*성명|이름)\s*[:：]?\s*([^\n\r(]+?)\s*\(([^)\n\r]{1,32})\)/im
+        );
+        if (nmMrU && !out.ordererName) {
+          var nmAu = nmMrU[1].trim();
+          var nmBu = nmMrU[2].trim();
+          if (/[가-힣]/.test(nmBu)) out.ordererName = nmBu.length <= 40 ? nmBu : nmBu.slice(0, 40);
+          else if (/[가-힣]/.test(nmAu)) out.ordererName = nmAu.length <= 40 ? nmAu : nmAu.slice(0, 40);
+          else out.ordererName = (nmBu.length <= 40 ? nmBu : nmAu).slice(0, 40);
+        }
+        if (!out.ordererName) {
+          var nm2u = userBlob.match(/(?:성명|예약자)\s*[:：]\s*([가-힣a-zA-Z·\s]{2,28})/);
+          if (nm2u) out.ordererName = nm2u[1].trim();
+        }
+
+        var gcU = userBlob.match(
+          /(?:Number of Visitors|방문[^\d:：\n]*인원|예약\s*인원)\s*[:：]?\s*(\d{1,3})\s*명?/im
+        );
+        if (!gcU) gcU = userFlat.match(/(\d{1,3})\s*명(?:입니다|[\s,.]|$)/);
+        if (gcU && out.guestCount == null) {
+          var gnu = parseInt(gcU[1], 10);
+          if (gnu >= 1 && gnu <= 999) out.guestCount = gnu;
+        }
+
+        if (!out.reservationLocal) {
+          var dInline = cbParseInlineReservationDate(userFlat);
+          if (dInline) out.reservationLocal = dInline;
+        }
+        if (!out.reservationLocal) {
+          var dtU = userBlob.match(/\(\s*(\d{4})\.\s*(\d{1,2})월\s*(\d{1,2})일\s*(\d{1,2})시\s*\)/);
+          if (!dtU) dtU = userBlob.match(/(\d{4})\.\s*(\d{1,2})월\s*(\d{1,2})일\s*(\d{1,2})시/);
+          if (!dtU) dtU = userBlob.match(/(\d{4})[.\/](\d{1,2})[.\/](\d{1,2})[T\s]+(\d{1,2})(?::(\d{2}))?/);
+          if (dtU) {
+            var yu = parseInt(dtU[1], 10);
+            var mou = parseInt(dtU[2], 10);
+            var dau = parseInt(dtU[3], 10);
+            var hhu = parseInt(dtU[4], 10);
+            var mipu = dtU[5] != null ? parseInt(dtU[5], 10) : 0;
+            if (!isNaN(yu) && !isNaN(mou) && !isNaN(dau) && !isNaN(hhu)) {
+              var dtlu = cbDateTimeLocalFromYmdhm(yu, mou, dau, hhu, isNaN(mipu) ? 0 : mipu);
+              if (dtlu) out.reservationLocal = dtlu;
+            }
+          }
+        }
+        if (!out.reservationLocal) {
+          var isoU = userFlat.match(/\b(\d{4}-\d{2}-\d{2}T\d{2}:\d{2})\b/);
+          if (isoU) out.reservationLocal = isoU[1];
+        }
+
+        var addrU = userBlob.match(/(?:배송지|Address)\s*[:：]\s*([^\n;]{4,400})/im);
+        if (!addrU) addrU = userBlob.match(/(?:^|\n)\s*주소\s*[:：]\s*([^\n;]{4,400})/im);
+        if (addrU && !out.ordererAddr) {
+          var a1 = addrU[1].trim();
+          if (!/^[\w.%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(a1)) out.ordererAddr = a1;
+        }
+
+        if (!out.ordererEmail) {
+          var emLabeled = blob.match(
+            /(?:Email Address|이메일\s*주소|이메일)\s*[:：]\s*([a-zA-Z0-9._%+-]+@[^\s<>,]+)/im
+          );
+          if (emLabeled) out.ordererEmail = emLabeled[1].trim();
+        }
         if (!out.ordererEmail) {
           var emAll = blobFlat.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g);
           if (emAll && emAll.length) out.ordererEmail = emAll[emAll.length - 1].trim();
         }
 
-        var phLabeled = blob.match(
-          /(?:Phone Number|휴대전화|휴대\s*전화|전화\s*번호|연락처)\s*[:：]\s*([0-9+\-\s().]{8,28})/im
-        );
-        if (phLabeled) {
-          var p0 = phLabeled[1].replace(/\D/g, '');
-          if (p0.length >= 10 && p0.length <= 11) out.ordererPhone = p0;
+        if (!out.ordererPhone) {
+          var phLabeled = blob.match(
+            /(?:Phone Number|휴대전화|휴대\s*전화|전화\s*번호|연락처)\s*[:：]\s*([0-9+\-\s().]{8,28})/im
+          );
+          if (phLabeled) {
+            var p0 = phLabeled[1].replace(/\D/g, '');
+            if (p0.length >= 10 && p0.length <= 11) out.ordererPhone = p0;
+          }
         }
         if (!out.ordererPhone) {
           var hy = blobFlat.match(/0\d{1,2}[-.\s]?\d{3,4}[-.\s]?\d{4}/g);
@@ -2850,51 +3064,67 @@
           }
         }
 
-        var nmMr = blob.match(
-          /(?:Reserver Name|예약자\s*성명|예약\s*자(?:\s*성명)?|방문\s*대표\s*성명)\s*[:：]?\s*([^\n\r(]+?)\s*\(([^)\n\r]{1,32})\)/im
-        );
-        if (nmMr) {
-          var nmA = nmMr[1].trim();
-          var nmB = nmMr[2].trim();
-          if (/[가-힣]/.test(nmB)) out.ordererName = nmB.length <= 40 ? nmB : nmB.slice(0, 40);
-          else if (/[가-힣]/.test(nmA)) out.ordererName = nmA.length <= 40 ? nmA : nmA.slice(0, 40);
-          else out.ordererName = (nmB.length <= 40 ? nmB : nmA).slice(0, 40);
+        if (!out.ordererName) {
+          var nmMr = blob.match(
+            /(?:Reserver Name|예약자\s*성명|예약\s*자(?:\s*성명)?|방문\s*대표\s*성명)\s*[:：]?\s*([^\n\r(]+?)\s*\(([^)\n\r]{1,32})\)/im
+          );
+          if (nmMr) {
+            var nmA = nmMr[1].trim();
+            var nmB = nmMr[2].trim();
+            if (/[가-힣]/.test(nmB)) out.ordererName = nmB.length <= 40 ? nmB : nmB.slice(0, 40);
+            else if (/[가-힣]/.test(nmA)) out.ordererName = nmA.length <= 40 ? nmA : nmA.slice(0, 40);
+            else out.ordererName = (nmB.length <= 40 ? nmB : nmA).slice(0, 40);
+          }
         }
         if (!out.ordererName) {
           var nm2 = blob.match(/(?:성명|예약자)\s*[:：]\s*([가-힣a-zA-Z·\s]{2,28})/);
           if (nm2) out.ordererName = nm2[1].trim();
         }
 
-        var gcL = blob.match(
-          /(?:Number of Visitors|방문[^\d:：\n]*인원|예약\s*인원)\s*[:：]?\s*(\d{1,3})\s*명?/im
-        );
-        if (!gcL) gcL = blobFlat.match(/(\d{1,3})\s*명(?:입니다|[\s,.]|$)/);
-        if (gcL) {
-          var gn = parseInt(gcL[1], 10);
-          if (gn >= 1 && gn <= 999) out.guestCount = gn;
+        if (out.guestCount == null) {
+          var gcL = blob.match(
+            /(?:Number of Visitors|방문[^\d:：\n]*인원|예약\s*인원)\s*[:：]?\s*(\d{1,3})\s*명?/im
+          );
+          if (!gcL) gcL = blobFlat.match(/(\d{1,3})\s*명(?:입니다|[\s,.]|$)/);
+          if (gcL) {
+            var gn = parseInt(gcL[1], 10);
+            if (gn >= 1 && gn <= 999) out.guestCount = gn;
+          }
         }
 
-        var dt1 = blob.match(/\(\s*(\d{4})\.\s*(\d{1,2})월\s*(\d{1,2})일\s*(\d{1,2})시\s*\)/);
-        if (!dt1) dt1 = blob.match(/(\d{4})\.\s*(\d{1,2})월\s*(\d{1,2})일\s*(\d{1,2})시/);
-        if (!dt1) dt1 = blob.match(/(\d{4})[.\/](\d{1,2})[.\/](\d{1,2})[T\s]+(\d{1,2})(?::(\d{2}))?/);
-        if (dt1) {
-          var y = parseInt(dt1[1], 10);
-          var mo = parseInt(dt1[2], 10);
-          var da = parseInt(dt1[3], 10);
-          var hh = parseInt(dt1[4], 10);
-          var mip = dt1[5] != null ? parseInt(dt1[5], 10) : 0;
-          if (!isNaN(y) && !isNaN(mo) && !isNaN(da) && !isNaN(hh)) {
-            var dtl = cbDateTimeLocalFromYmdhm(y, mo, da, hh, isNaN(mip) ? 0 : mip);
-            if (dtl) out.reservationLocal = dtl;
+        if (!out.reservationLocal) {
+          var dt1 = blob.match(/\(\s*(\d{4})\.\s*(\d{1,2})월\s*(\d{1,2})일\s*(\d{1,2})시\s*\)/);
+          if (!dt1) dt1 = blob.match(/(\d{4})\.\s*(\d{1,2})월\s*(\d{1,2})일\s*(\d{1,2})시/);
+          if (!dt1) dt1 = blob.match(/(\d{4})[.\/](\d{1,2})[.\/](\d{1,2})[T\s]+(\d{1,2})(?::(\d{2}))?/);
+          if (dt1) {
+            var y = parseInt(dt1[1], 10);
+            var mo = parseInt(dt1[2], 10);
+            var da = parseInt(dt1[3], 10);
+            var hh = parseInt(dt1[4], 10);
+            var mip = dt1[5] != null ? parseInt(dt1[5], 10) : 0;
+            if (!isNaN(y) && !isNaN(mo) && !isNaN(da) && !isNaN(hh)) {
+              var dtl = cbDateTimeLocalFromYmdhm(y, mo, da, hh, isNaN(mip) ? 0 : mip);
+              if (dtl) out.reservationLocal = dtl;
+            }
           }
+        }
+        if (!out.reservationLocal) {
+          var dFull = cbParseInlineReservationDate(blobFlat);
+          if (dFull) out.reservationLocal = dFull;
         }
         if (!out.reservationLocal) {
           var iso = blobFlat.match(/\b(\d{4}-\d{2}-\d{2}T\d{2}:\d{2})\b/);
           if (iso) out.reservationLocal = iso[1];
         }
 
-        var addrL = blob.match(/(?:배송지|주소|Address)\s*[:：]\s*([^\n;]{4,400})/im);
-        if (addrL) out.ordererAddr = addrL[1].trim();
+        if (!out.ordererAddr) {
+          var addrL = blob.match(/(?:배송지|Address)\s*[:：]\s*([^\n;]{4,400})/im);
+          if (!addrL) addrL = blob.match(/(?:^|\n)\s*주소\s*[:：]\s*([^\n;]{4,400})/im);
+          if (addrL) {
+            var a2 = addrL[1].trim();
+            if (!/^[\w.%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(a2)) out.ordererAddr = a2;
+          }
+        }
 
         return out;
       }
