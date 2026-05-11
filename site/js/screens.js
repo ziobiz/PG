@@ -100,7 +100,7 @@
       '</div>' +
       '<div class="col-md-2">' +
       '<label class="form-label small mb-0" data-pg-ui-t="순서">' + escUi(L('순서')) + '</label>' +
-      '<input type="number" class="form-control form-control-sm" id="chatbotFormSort" step="1" value="0">' +
+      '<input type="number" class="form-control form-control-sm" id="chatbotFormSort" step="1" min="1" value="1">' +
       '</div></div>' +
       '<div class="row g-2 mb-1 d-none" id="chatbotFormPlaceListingHintRow">' +
       '<div class="col-12"><p class="small text-muted mb-0" id="chatbotFormPlaceListingHint"></p></div></div>' +

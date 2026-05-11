@@ -13947,6 +13947,181 @@
           if (ix) ix.textContent = String(ri + 1);
         }
       }
+      function refreshChatbotProdFormSortDefault() {
+        if (pane._chatbotProdEditingId) return;
+        var st = pane.querySelector('#chatbotFormSort');
+        if (!st) return;
+        var maxSo = 0;
+        if (tbodyEl) {
+          tbodyEl.querySelectorAll('tr[data-chatbot-prod-list-row]').forEach(function (tr) {
+            var dd = tr._chatbotProdData;
+            if (!dd) return;
+            var so = dd.sortOrder != null ? parseInt(String(dd.sortOrder), 10) : NaN;
+            if (!isNaN(so) && so > maxSo) maxSo = so;
+          });
+        }
+        var next = maxSo + 1;
+        if (next < 1) next = 1;
+        st.value = String(next);
+      }
+      function chatbotProdRowToSavePayload(d, sortOrderNum) {
+        var row = d || {};
+        var compId = (row.compId != null && String(row.compId).trim()) ? String(row.compId).trim() : targetCompIdChatbot();
+        var lt = normalizeChatbotListingTypeUi(row.listingType);
+        var pl = {
+          compId: compId,
+          id: row.id != null ? String(row.id) : undefined,
+          productCode: row.productCode != null ? String(row.productCode).trim() : '',
+          title: row.title != null ? String(row.title) : '',
+          description: row.description != null ? String(row.description) : '',
+          amount: row.amount != null ? String(row.amount) : '',
+          currencyCode: row.currencyCode != null ? String(row.currencyCode).trim().toUpperCase() : '',
+          sortOrder: String(sortOrderNum != null ? sortOrderNum : 1),
+          useYn: String(row.useYn || 'Y').trim().toUpperCase() === 'N' ? 'N' : 'Y',
+          hqCatalogBlockYn: String(row.hqCatalogBlockYn || 'N').trim().toUpperCase() === 'Y' ? 'Y' : 'N',
+          listingType: lt,
+          itemNature: row.itemNature != null && String(row.itemNature).trim()
+            ? String(row.itemNature).trim().toUpperCase()
+            : 'GOODS'
+        };
+        var urlArr = [];
+        if (Array.isArray(row.imageUrls) && row.imageUrls.length) {
+          urlArr = row.imageUrls.map(function (u) { return u != null ? String(u).trim() : ''; }).filter(Boolean);
+        } else {
+          if (row.imageUrl) urlArr.push(String(row.imageUrl).trim());
+          ['imageUrl2', 'imageUrl3', 'imageUrl4'].forEach(function (nk) {
+            if (row[nk]) urlArr.push(String(row[nk]).trim());
+          });
+        }
+        pl.imageUrl = urlArr[0] ? urlArr[0] : '';
+        pl.imageUrl2 = urlArr[1] ? urlArr[1] : '';
+        pl.imageUrl3 = urlArr[2] ? urlArr[2] : '';
+        pl.imageUrl4 = urlArr[3] ? urlArr[3] : '';
+        if (row.reservationSlotMinutes != null && String(row.reservationSlotMinutes).trim() !== '') {
+          var rsn = parseInt(String(row.reservationSlotMinutes).trim(), 10);
+          if (!isNaN(rsn) && rsn > 0) {
+            var ltEff0 = lt;
+            if (ltEff0 === 'RESERVATION_TIME') {
+              rsn = Math.max(30, Math.floor(rsn / 30) * 30);
+            }
+            pl.reservationSlotMinutes = rsn;
+          }
+        }
+        pl.promotionShelfYn = String(row.promotionShelfYn || 'N').trim().toUpperCase() === 'Y' ? 'Y' : 'N';
+        if (lt === 'RESERVATION_TIME' || lt === 'RESERVATION_PLACE') {
+          var cmPick = String(row.reservationCollectMode || 'FULL').trim().toUpperCase();
+          pl.reservationCollectMode = cmPick === 'DEPOSIT' ? 'DEPOSIT' : 'FULL';
+          if (cmPick === 'DEPOSIT' && row.depositAmount != null) {
+            pl.depositAmount = String(row.depositAmount);
+          }
+        }
+        return pl;
+      }
+      function collectChatbotProdTrsByCompId(compIdKey) {
+        var out = [];
+        if (!tbodyEl) return out;
+        tbodyEl.querySelectorAll('tr[data-chatbot-prod-list-row]').forEach(function (tr) {
+          var k = (tr.getAttribute('data-row-comp-id') || '').trim();
+          if (k === compIdKey) out.push(tr);
+        });
+        return out;
+      }
+      function sortChatbotProdTrsByOrder(trs) {
+        return trs.slice().sort(function (a, b) {
+          var da = a._chatbotProdData || {};
+          var db = b._chatbotProdData || {};
+          var sa = da.sortOrder != null ? Number(da.sortOrder) : 0;
+          var sb = db.sortOrder != null ? Number(db.sortOrder) : 0;
+          if (sa !== sb) return sa - sb;
+          var ia = da.id != null ? Number(da.id) : 0;
+          var ib = db.id != null ? Number(db.id) : 0;
+          return ia - ib;
+        });
+      }
+      function refreshChatbotProdSortDropdowns() {
+        if (!tbodyEl) return;
+        tbodyEl.querySelectorAll('tr[data-chatbot-prod-list-row]').forEach(function (tr) {
+          var cell = tr.querySelector('.chatbot-prod-sort-cell');
+          if (!cell) return;
+          cell.innerHTML = '';
+        });
+        var groups = {};
+        tbodyEl.querySelectorAll('tr[data-chatbot-prod-list-row]').forEach(function (tr) {
+          var gk = (tr.getAttribute('data-row-comp-id') || '').trim();
+          if (!groups[gk]) groups[gk] = [];
+          groups[gk].push(tr);
+        });
+        Object.keys(groups).forEach(function (compIdKey) {
+          var trs = sortChatbotProdTrsByOrder(groups[compIdKey]);
+          var n = trs.length;
+          for (var i = 0; i < n; i++) {
+            var tr = trs[i];
+            var cell = tr.querySelector('.chatbot-prod-sort-cell');
+            if (!cell) continue;
+            var rank = i + 1;
+            var sel = document.createElement('select');
+            sel.className = 'form-select form-select-sm chatbot-prod-sort-select';
+            sel.setAttribute('data-chatbot-prod-sort-rank', String(rank));
+            for (var o = 1; o <= n; o++) {
+              var opt = document.createElement('option');
+              opt.value = String(o);
+              opt.textContent = String(o);
+              sel.appendChild(opt);
+            }
+            sel.value = String(rank);
+            cell.appendChild(sel);
+          }
+        });
+        applyChatbotProdFormDisabledState();
+      }
+      function handleChatbotProdSortSelectChange(sel) {
+        if (!sel || !tbodyEl) return;
+        var tr = sel.closest('tr[data-chatbot-prod-list-row]');
+        if (!tr || !pane.contains(tr)) return;
+        var cid = (tr.getAttribute('data-row-comp-id') || '').trim() || targetCompIdChatbot();
+        if (!cid) {
+          alert(pgAdminUiT('가맹점 코드를 확인하세요.'));
+          return;
+        }
+        var oldRank = parseInt(sel.getAttribute('data-chatbot-prod-sort-rank') || '1', 10);
+        var newRank = parseInt(String(sel.value || '1'), 10);
+        if (isNaN(newRank) || newRank < 1) newRank = 1;
+        if (isNaN(oldRank) || oldRank < 1) oldRank = 1;
+        if (oldRank === newRank) return;
+        var sortedTrs = sortChatbotProdTrsByOrder(collectChatbotProdTrsByCompId(cid));
+        if (!sortedTrs.length) return;
+        var k = sortedTrs.length;
+        if (newRank > k) newRank = k;
+        var moving = sortedTrs.splice(oldRank - 1, 1)[0];
+        if (!moving) return;
+        sortedTrs.splice(newRank - 1, 0, moving);
+        var saves = [];
+        for (var si = 0; si < sortedTrs.length; si++) {
+          var trow = sortedTrs[si];
+          var d = trow._chatbotProdData;
+          if (!d || d.id == null) continue;
+          var newSo = si + 1;
+          var prevSo = d.sortOrder != null ? parseInt(String(d.sortOrder), 10) : NaN;
+          if (isNaN(prevSo)) prevSo = 0;
+          if (prevSo !== newSo) saves.push({ d: d, newSo: newSo });
+        }
+        if (!saves.length) return;
+        if (dimmCb) dimmCb.style.display = 'flex';
+        var chain = Promise.resolve();
+        saves.forEach(function (sv) {
+          chain = chain.then(function () {
+            return window.PG_API.chatbotProductsSave(chatbotProdRowToSavePayload(sv.d, sv.newSo));
+          });
+        });
+        chain.then(function () {
+          return loadChatbotProdTable();
+        }).catch(function (e) {
+          alert((e && e.message) ? e.message : pgAdminUiT('순서 저장 실패'));
+          return loadChatbotProdTable();
+        }).finally(function () {
+          if (dimmCb) dimmCb.style.display = 'none';
+        });
+      }
       var FALLBACK_CHATBOT_CCY_META = {
         defaultCurrency: 'KRW',
         allowedCurrencies: ['JPY', 'KRW', 'USD', 'CNY', 'THB'],
@@ -14189,7 +14364,7 @@
         var am = pane.querySelector('#chatbotFormAmt');
         if (am) am.value = '';
         var st = pane.querySelector('#chatbotFormSort');
-        if (st) st.value = '0';
+        if (st) st.value = '1';
         for (var ii = 1; ii <= 4; ii++) {
           var imi = pane.querySelector('#chatbotFormImg' + ii);
           if (imi) imi.value = '';
@@ -14284,7 +14459,10 @@
         if (am) am.value = d.amount != null ? String(d.amount) : '';
         refreshChatbotProdFormCurrencySelect(d);
         var st = pane.querySelector('#chatbotFormSort');
-        if (st) st.value = d.sortOrder != null ? String(d.sortOrder) : '0';
+        if (st) {
+          var soRaw = d.sortOrder != null ? parseInt(String(d.sortOrder), 10) : NaN;
+          st.value = !isNaN(soRaw) && soRaw >= 1 ? String(soRaw) : '1';
+        }
         var useSel = String(d.useYn || '').toUpperCase() === 'N' ? 'N' : 'Y';
         var us = pane.querySelector('#chatbotFormUse');
         if (us) us.value = useSel;
@@ -14338,7 +14516,12 @@
           description: pane.querySelector('#chatbotFormDesc') ? String(pane.querySelector('#chatbotFormDesc').value || '').trim() : '',
           amount: pane.querySelector('#chatbotFormAmt') ? String(pane.querySelector('#chatbotFormAmt').value || '').trim() : '',
           currencyCode: pane.querySelector('#chatbotFormCur') ? String(pane.querySelector('#chatbotFormCur').value || '').trim() : '',
-          sortOrder: pane.querySelector('#chatbotFormSort') ? String(pane.querySelector('#chatbotFormSort').value || '').trim() : '0',
+          sortOrder: (function () {
+            var raw = pane.querySelector('#chatbotFormSort') ? String(pane.querySelector('#chatbotFormSort').value || '').trim() : '';
+            var sn = parseInt(raw, 10);
+            if (isNaN(sn) || sn < 1) sn = 1;
+            return String(sn);
+          })(),
           useYn: pane.querySelector('#chatbotFormUse') ? String(pane.querySelector('#chatbotFormUse').value || 'Y').trim().toUpperCase() : 'Y',
           hqCatalogBlockYn: pane.querySelector('#chatbotFormHqBlock') ? String(pane.querySelector('#chatbotFormHqBlock').value || 'N').trim().toUpperCase() : 'N',
           listingType: (function () {
@@ -14392,6 +14575,11 @@
           if (!el) return;
           el.disabled = dis || (id === 'chatbotFormHqBlock' && olCb === 'MERCHANT');
         });
+        if (tbodyEl) {
+          tbodyEl.querySelectorAll('select.chatbot-prod-sort-select').forEach(function (sel) {
+            sel.disabled = !!dis;
+          });
+        }
         var ui = 1;
         for (ui = 1; ui <= 4; ui++) {
           var imRd = pane.querySelector('#chatbotFormImg' + ui);
@@ -14485,7 +14673,9 @@
         tr.appendChild(tdText('small chatbot-prod-col-desc', truncateChatbotProdCell(d.description != null ? String(d.description) : '', 220)));
         tr.appendChild(tdText('small chatbot-prod-col-amt', d.amount != null ? String(d.amount) : ''));
         tr.appendChild(tdText('small text-center chatbot-prod-col-ccy', d.currencyCode != null ? String(d.currencyCode).toUpperCase() : ''));
-        tr.appendChild(tdText('small text-center', d.sortOrder != null ? String(d.sortOrder) : '0'));
+        var tdSort = document.createElement('td');
+        tdSort.className = 'small text-center chatbot-prod-sort-cell';
+        tr.appendChild(tdSort);
         tr.appendChild(tdText('small', chatbotProdUseLabel(d.useYn)));
         tr.appendChild(tdText('small text-center', chatbotProdPromoShelfLabel(d.promotionShelfYn)));
         var imgDisp = chatbotProdImageSummary(d);
@@ -14551,6 +14741,7 @@
             trEm.appendChild(tdEm);
             tbodyEl.appendChild(trEm);
             applyChatbotProdFormDisabledState();
+            refreshChatbotProdFormSortDefault();
             if (gridChatbotProd && window.PG_TABLE_COL_RESIZE) {
               window.requestAnimationFrame(function () {
                 window.requestAnimationFrame(function () {
@@ -14564,7 +14755,8 @@
             renderChatbotProdListRow(item);
           });
           rebuildChatbotProdIndex();
-          applyChatbotProdFormDisabledState();
+          refreshChatbotProdSortDropdowns();
+          refreshChatbotProdFormSortDefault();
           if (gridChatbotProd && window.PG_TABLE_COL_RESIZE) {
             window.requestAnimationFrame(function () {
               window.requestAnimationFrame(function () {
@@ -14609,6 +14801,7 @@
         cancelEditBtn.addEventListener('click', function () {
           clearChatbotProdForm();
           applyChatbotProdFormDisabledState();
+          refreshChatbotProdFormSortDefault();
         });
       }
       var newRegBtn = pane.querySelector('#chatbotProdNewRegisterBtn');
@@ -14617,6 +14810,7 @@
         newRegBtn.addEventListener('click', function () {
           clearChatbotProdForm();
           applyChatbotProdFormDisabledState();
+          refreshChatbotProdFormSortDefault();
         });
       }
       if (!pane._chatbotProdImgUpBound) {
@@ -14715,10 +14909,16 @@
             }).finally(function () { if (dimmCb) dimmCb.style.display = 'none'; });
           }
         });
+        tbodyEl.addEventListener('change', function (ev) {
+          var tgt = ev.target;
+          if (!tgt || !tgt.classList || !tgt.classList.contains('chatbot-prod-sort-select')) return;
+          handleChatbotProdSortSelectChange(tgt);
+        });
       }
       initChatbotProdFormStaticSelects();
       clearChatbotProdForm();
       applyChatbotProdFormDisabledState();
+      refreshChatbotProdFormSortDefault();
       if (olCb === 'MERCHANT') {
         window.setTimeout(function () {
           loadChatbotProdTable();

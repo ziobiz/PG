@@ -795,7 +795,7 @@ public class MerchantChatbotProductService {
             }
             p.setImageUrl(img);
             Integer so = parseIntObj(body.get("sortOrder"));
-            p.setSortOrder(so != null ? so : 0);
+            p.setSortOrder(so != null ? Math.max(1, so) : 1);
             p.setUseYn(yn(str(body.get("useYn"))));
             if (allowHqCatalogFields) {
                 p.setHqCatalogBlockYn(yn(str(body.get("hqCatalogBlockYn"))));
