@@ -734,6 +734,18 @@
       });
     },
 
+    /** 챗봇관리 — 비용관리(히스토리): 챗봇 상품등록 플랜 월이용료 미수금 내역 */
+    compChatbotKbBillingHistory: function (compId, params) {
+      var p = params || {};
+      var q = { compId: String(compId || '').trim() };
+      if (p.page != null) q.page = p.page;
+      if (p.size != null) q.size = p.size;
+      return get('/api/comp/chatbotKb/billingHistory', q).then(function (r) {
+        if (r.success === false && r.success !== undefined) throw new Error(r.message || '조회 실패');
+        return r.data || { list: [], page: 1, size: 12, totalElements: 0, totalPages: 1, meta: {} };
+      });
+    },
+
     compChangeLoginId: function (compId, newLoginId) {
       var base = getBaseUrl();
       var token = getToken();

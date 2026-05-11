@@ -10,6 +10,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import com.pg.util.ImageShrinkJpegUtil;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -25,6 +26,7 @@ import java.util.*;
 public class ApiPubChatbotAdminController {
 
     private static final long IMAGE_MAX_BYTES = 2 * 1024 * 1024;
+    private static final long IMAGE_MAX_ORIGINAL_BYTES = 40L * 1024 * 1024;
 
     private final ChatbotAdminAuthService chatbotAdminAuthService;
     private final MerchantChatbotProductService productService;
@@ -114,8 +116,8 @@ public class ApiPubChatbotAdminController {
         if (file.isEmpty()) {
             return ResponseEntity.ok(ApiResponse.fail("파일을 선택하세요.", "EMPTY"));
         }
-        if (file.getSize() > IMAGE_MAX_BYTES) {
-            return ResponseEntity.ok(ApiResponse.fail("이미지는 2MB 이하여야 합니다.", "SIZE_EXCEEDED"));
+        if (file.getSize() > IMAGE_MAX_ORIGINAL_BYTES) {
+            return ResponseEntity.ok(ApiResponse.fail("업로드 이미지는 40MB 이하여야 합니다.", "SIZE_EXCEEDED"));
         }
         String ext = extension(file.getOriginalFilename());
         if (ext == null || (!ext.equalsIgnoreCase("png") && !ext.equalsIgnoreCase("jpg")
@@ -126,16 +128,20 @@ public class ApiPubChatbotAdminController {
             Path basePath = Paths.get(System.getProperty("user.dir"), uploadDir, "chatbot",
                     compId.trim()).normalize();
             Files.createDirectories(basePath);
+            byte[] optimized = file.getSize() <= IMAGE_MAX_BYTES
+                    ? file.getBytes()
+                    : ImageShrinkJpegUtil.optimizeToJpegUnderCap(file.getBytes(), IMAGE_MAX_BYTES, 2048);
             String fileName = "p" + (productId != null ? productId + "_" : "")
                     + UUID.randomUUID().toString().substring(0, 8)
-                    + "." + ext.toLowerCase(Locale.ROOT);
+                    + ".jpg";
             Path targetPath = basePath.resolve(fileName);
-            Files.copy(file.getInputStream(), targetPath, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+            Files.write(targetPath, optimized);
             String url = "/uploads/chatbot/" + compId.trim() + "/" + fileName;
             Map<String, Object> payload = new LinkedHashMap<>();
             payload.put("url", url);
             payload.put("storedFileName", fileName);
             payload.put("originalFileName", sanitizeName(file.getOriginalFilename()));
+            payload.put("optimizedBytes", optimized.length);
             return ResponseEntity.ok(ApiResponse.ok(payload));
         } catch (IOException e) {
             return ResponseEntity.ok(ApiResponse.fail("파일 저장 실패: " + e.getMessage(), "IO_ERROR"));

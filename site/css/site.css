@@ -4105,6 +4105,12 @@ button.pay-follow-pill:focus-visible {
 #contentsMain .chatbot-product-mng .chatbot-prod-grid:not(.pg-table-col-resize-enabled) {
   table-layout: auto;
 }
+/* 등록된 상품: 컬럼 리사이즈 미사용 시 항상 래퍼 가로를 꽉 채움(빈 여백·세로 한 글자 쌓임 방지) */
+#contentsMain .chatbot-product-mng .chatbot-prod-grid.table-no-col-resize:not(.pg-table-col-resize-enabled) {
+  table-layout: fixed;
+  width: 100%;
+  max-width: 100%;
+}
 #contentsMain .chatbot-product-mng .chatbot-prod-grid.pg-table-col-resize-enabled {
   table-layout: fixed;
   width: 100%;
@@ -4112,23 +4118,38 @@ button.pay-follow-pill:focus-visible {
 }
 /* 등록된 상품: 좁은 뷰포트에서는 가로 스크롤로 열을 압착하지 않음(리사이즈 핸들은 래퍼 안에서만 약간 잘릴 수 있음) */
 #contentsMain .chatbot-product-mng .chatbot-prod-table-responsive {
+  /* 스크롤은 유지하되(컬럼 리사이즈/전체 열 확인), 스크롤바만 숨김 */
   overflow-x: auto;
   width: 100%;
   max-width: 100%;
   -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;          /* Firefox */
+  -ms-overflow-style: none;       /* IE/Edge legacy */
 }
-/* 가맹 화면: 숨긴 본사 열에 대응하는 <col> 이 공간을 잡지 않도록 (JS 보조) */
-#contentsMain .chatbot-product-mng .chatbot-prod-grid--merchant.pg-table-col-resize-enabled colgroup.pg-col-resize-group col:nth-child(2),
-#contentsMain .chatbot-product-mng .chatbot-prod-grid--merchant.pg-table-col-resize-enabled colgroup.pg-col-resize-group col:nth-child(3),
-#contentsMain .chatbot-product-mng .chatbot-prod-grid--merchant.pg-table-col-resize-enabled colgroup.pg-col-resize-group col:nth-child(4) {
+#contentsMain .chatbot-product-mng .chatbot-prod-table-responsive::-webkit-scrollbar {
+  display: none;                  /* Chrome/Safari */
+}
+/* 가맹 화면: 숨긴 본사 열에 대응하는 <col> 이 공간을 잡지 않도록 */
+#contentsMain .chatbot-product-mng .chatbot-prod-grid--merchant colgroup col:nth-child(2),
+#contentsMain .chatbot-product-mng .chatbot-prod-grid--merchant colgroup col:nth-child(3),
+#contentsMain .chatbot-product-mng .chatbot-prod-grid--merchant colgroup col:nth-child(4) {
   width: 0 !important;
   min-width: 0 !important;
   max-width: 0 !important;
 }
+/* 설명 열: fixed 레이아웃에서 가로를 꽉 쓸 때 남는 폭을 주로 이 열이 사용 */
+#contentsMain .chatbot-product-mng .chatbot-prod-grid col.chatbot-prod-colgraph-desc {
+  width: 38%;
+}
 #contentsMain .chatbot-product-mng .chatbot-prod-table-responsive > .table.chatbot-prod-grid {
+  /* 리사이즈/컬럼 표시를 위해 최소 폭은 유지(스크롤바는 숨김 처리) */
   min-width: 960px;
   width: 100%;
   max-width: 100%;
+}
+/* 리사이즈 끈 그리드: 뷰가 넓을 때는 래퍼 100%까지 반드시 확장 */
+#contentsMain .chatbot-product-mng .chatbot-prod-table-responsive > .table.chatbot-prod-grid.table-no-col-resize:not(.pg-table-col-resize-enabled) {
+  min-width: max(960px, 100%);
 }
 #contentsMain .chatbot-product-mng .chatbot-prod-table-responsive .chatbot-prod-grid thead th,
 #contentsMain .chatbot-product-mng .chatbot-prod-table-responsive .chatbot-prod-grid tbody td {
@@ -4149,15 +4170,26 @@ button.pay-follow-pill:focus-visible {
 #contentsMain .chatbot-product-mng .chatbot-prod-grid th.chatbot-prod-col-title,
 #contentsMain .chatbot-product-mng .chatbot-prod-grid td.chatbot-prod-col-title {
   min-width: 10.5rem;
+  /* 극단적으로 좁아지면 한 글자씩 세로로 쌓이므로 한 줄 유지 + 말줄임 */
+  white-space: nowrap;
+  word-break: normal;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 #contentsMain .chatbot-product-mng .chatbot-prod-grid th.chatbot-prod-col-desc,
 #contentsMain .chatbot-product-mng .chatbot-prod-grid td.chatbot-prod-col-desc {
-  min-width: 14rem;
-  max-width: 36rem;
+  min-width: 12rem;
+  /* 테이블이 래퍼 전체 너비를 쓰도록 max-width 제한 제거(남는 폭은 설명 열이 흡수) */
+  max-width: none;
+  width: auto;
 }
 #contentsMain .chatbot-product-mng .chatbot-prod-grid th.chatbot-prod-col-code,
 #contentsMain .chatbot-product-mng .chatbot-prod-grid td.chatbot-prod-col-code {
   min-width: 5.5rem;
+  white-space: nowrap;
+  word-break: normal;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 #contentsMain .chatbot-product-mng .chatbot-prod-grid th.chatbot-prod-col-listing,
 #contentsMain .chatbot-product-mng .chatbot-prod-grid td.chatbot-prod-col-listing {
@@ -4199,6 +4231,12 @@ button.pay-follow-pill:focus-visible {
 .chatbot-product-mng .chatbot-field-desc {
   min-height: 2.75rem;
   resize: vertical;
+}
+
+/* 챗봇 상품관리: 상한 초과 이미지 슬롯은 비활성 표시(숨기지 않음) */
+#contentsMain .chatbot-product-mng .chatbot-form-img-slot--disabled {
+  opacity: 0.45;
+  pointer-events: none;
 }
 .chatbot-product-mng .chatbot-prod-img-stack .chatbot-field-img {
   font-size: 0.75rem;

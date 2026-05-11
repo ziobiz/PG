@@ -235,20 +235,23 @@ public class ApiPubChatbotController {
                     
                     """.stripIndent()).append('\n');
         }
-        sys.append("고객 챗봇에 노출되는 상품(JSON, 가맹 사용=Y 및 본사 판매금지 아님):\n").append(catalogJson);
+        sys.append("고객 챗봇에 노출되는 항목(JSON, 가맹 사용=Y 및 본사 판매금지 아님):\n").append(catalogJson);
         sys.append("\n각 상품의 promotionShelfYn: Y이면 고객 화면 상단 「프로모션」 영역에 표시되는 대표 상품이며, N이면 상단에는 안 나오고 채팅·안내용 목록에만 포함될 수 있습니다.\n");
         long merchantOuId = ou.get().getId();
         long publicProductCount = catalog.size();
         int slotCapEff = productService.getEffectiveChatbotProductSlotCap(merchantOuId);
         int regCapEff = productService.getEffectiveRegistrationCap(merchantOuId);
-        sys.append("\n\n[필수 규칙 — 상품 범위]\n")
-                .append("각 상품에는 listingType이 있습니다: SALE=일반 판매, RESERVATION_TIME=날짜·시간 단위 예약(미팅·서비스 슬롯 등), ")
+        sys.append("\n\n[필수 규칙 — 항목 범위]\n")
+                .append("각 항목에는 listingType이 있습니다: SALE=일반 판매, RESERVATION_TIME=날짜·시간 단위 예약(미팅·서비스 슬롯 등), ")
                 .append("RESERVATION_PLACE=숙박·장소 예약(호텔·펜션·객실 등: 체크인 일시·체크아웃 날짜 중심 안내). ")
                 .append("RESERVATION_PLACE는 고객이 체크인과 퇴실일을 정하는 숙박형이며, RESERVATION_TIME과 안내 톤을 구분하세요.\n")
-                .append("상품 사진을 보여 줄 때는 해당 JSON 행의 imageUrl 값을 그대로 사용하세요. 비어 있으면 사진이 없다고 안내합니다. ")
-                .append("고객 화면에서 사진이 보이도록 할 때는 본문에 ![상품](imageUrl) 또는 한 줄에 [이미지 URL: imageUrl] 형식으로 포함하세요(임의 URL 금지).\n")
-                .append("위 JSON 배열만 이 가맹점의 결제 가능한 등록 상품입니다. 목록에 없는 상품명·가격·재고·옵션을 지어내거나 추측하지 마세요.\n")
-                .append("고객이 목록에 없는 품목을 원하면 목록 안의 상품으로만 안내 가능함을 알리고, 과장·허위 없이 안내하세요.\n")
+                .append("각 항목에는 itemNature(항목 성격)가 있을 수 있습니다: GOODS/FOOD/ANIMAL/SERVICE/SERVICE_PERSON(사람 서비스) 등.\n")
+                .append("- itemNature=SERVICE_PERSON(사람 서비스)이면, 사람을 물건/상품처럼 표현하면 안 됩니다. '상품 구매' 같은 표현 금지.\n")
+                .append("  대신 '서비스 예약/선택', '파트너/스태프/아티스트 선택', '예약 대상'처럼 존중 표현을 사용하고, 이름은 title 그대로 부르세요.\n")
+                .append("항목 사진을 보여 줄 때는 해당 JSON 행의 imageUrl 값을 그대로 사용하세요. 비어 있으면 사진이 없다고 안내합니다. ")
+                .append("고객 화면에서 사진이 보이도록 할 때는 본문에 ![이미지](imageUrl) 또는 한 줄에 [이미지 URL: imageUrl] 형식으로 포함하세요(임의 URL 금지).\n")
+                .append("위 JSON 배열만 이 가맹점의 결제 가능한 등록 항목입니다. 목록에 없는 이름·가격·옵션을 지어내거나 추측하지 마세요.\n")
+                .append("고객이 목록에 없는 항목을 원하면 목록 안의 항목으로만 안내 가능함을 알리고, 과장·허위 없이 안내하세요.\n")
                 .append("Follow the customer message language when applying these rules;\n")
                 .append("keep names/amounts/currency strictly consistent with the JSON items.\n");
         if (slotCapEff > 0 && regCapEff > 0) {

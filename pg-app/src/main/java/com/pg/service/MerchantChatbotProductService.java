@@ -511,7 +511,7 @@ public class MerchantChatbotProductService {
     @Transactional(readOnly = true)
     public int getEffectiveMaxProductImages(Long merchantOrgUnitId) {
         if (merchantOrgUnitId == null) {
-            return 1;
+            return 4;
         }
         Integer min = null;
         for (Long oid : orgChainRootFirst(merchantOrgUnitId)) {
@@ -524,7 +524,7 @@ public class MerchantChatbotProductService {
                 min = min == null ? raw : Math.min(min, raw);
             }
         }
-        return min != null ? min : 1;
+        return min != null ? min : 4;
     }
 
     /** 상위 교집합 후 가맹 활성 교집합. */
@@ -663,6 +663,7 @@ public class MerchantChatbotProductService {
         m.put("reservationCollectMode", cm.getCode());
         m.put("depositAmount", p.getDepositAmount() != null ? p.getDepositAmount().stripTrailingZeros().toPlainString() : "");
         m.put("promotionShelfYn", yn(p.getPromotionShelfYn()));
+        m.put("itemNature", p.getItemNature() != null ? p.getItemNature() : "GOODS");
         m.put("imageUrls", imageUrlListForProduct(p));
         return m;
     }
@@ -673,7 +674,8 @@ public class MerchantChatbotProductService {
 
     private static List<String> imageUrlListForProduct(MerchantChatbotProduct p) {
         List<String> urls = new ArrayList<>();
-        for (String u : List.of(p.getImageUrl(), p.getImageUrl2(), p.getImageUrl3(), p.getImageUrl4())) {
+        // List.of(...) 는 null 허용 안 함 → 기존 데이터(image_url_2~4 NULL)에서 NPE 발생 가능
+        for (String u : new String[]{p.getImageUrl(), p.getImageUrl2(), p.getImageUrl3(), p.getImageUrl4()}) {
             if (u != null && !u.isBlank()) {
                 urls.add(u.trim());
             }
@@ -709,6 +711,7 @@ public class MerchantChatbotProductService {
             }
         }
         m.put("promotionShelfYn", yn(p.getPromotionShelfYn()));
+        m.put("itemNature", p.getItemNature() != null ? p.getItemNature() : "GOODS");
         return m;
     }
 
@@ -806,11 +809,27 @@ public class MerchantChatbotProductService {
                     p.setReservationSlotMinutes(null);
                 } else {
                     int clamped = Math.min(24 * 60, Math.max(15, rsm));
+                    ChatbotListingType ltNow = ChatbotListingType.fromCode(normalizeListingTypeStored(p.getListingType()))
+                            .orElse(ChatbotListingType.SALE);
+                    // 시간 예약은 30분 단위로만 허용
+                    if (ltNow == ChatbotListingType.RESERVATION_TIME) {
+                        clamped = Math.max(30, (clamped / 30) * 30);
+                    }
                     p.setReservationSlotMinutes(clamped);
                 }
             }
             if (body.containsKey("promotionShelfYn")) {
                 p.setPromotionShelfYn(yn(str(body.get("promotionShelfYn"))));
+            }
+            if (body.containsKey("itemNature")) {
+                String nat = str(body.get("itemNature"));
+                if (nat == null || nat.isBlank()) {
+                    p.setItemNature("GOODS");
+                } else {
+                    String u = nat.trim().toUpperCase(Locale.ROOT);
+                    if (u.length() > 24) u = u.substring(0, 24);
+                    p.setItemNature(u);
+                }
             }
             if (body.containsKey("imageUrl2")) {
                 p.setImageUrl2(clampStoredUrl(str(body.get("imageUrl2"))));

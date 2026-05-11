@@ -72,6 +72,10 @@ public class MerchantChatbotProduct {
     @Column(name = "promotion_shelf_yn", nullable = false, length = 1)
     private String promotionShelfYn = "N";
 
+    /** 항목 성격(공산품/음식/동물/서비스/사람 서비스 등). 고객 응대 톤·호칭 보정용 */
+    @Column(name = "item_nature", nullable = false, length = 24)
+    private String itemNature = "GOODS";
+
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 
@@ -242,6 +246,14 @@ public class MerchantChatbotProduct {
 
     public void setPromotionShelfYn(String promotionShelfYn) {
         this.promotionShelfYn = promotionShelfYn;
+    }
+
+    public String getItemNature() {
+        return itemNature;
+    }
+
+    public void setItemNature(String itemNature) {
+        this.itemNature = itemNature;
     }
 
     public LocalDateTime getCreatedAt() {

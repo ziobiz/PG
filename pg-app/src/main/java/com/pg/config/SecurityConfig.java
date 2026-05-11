@@ -13,6 +13,7 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.HttpStatusEntryPoint;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.util.matcher.NegatedRequestMatcher;
 import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 
 @Configuration
@@ -34,7 +35,8 @@ public class SecurityConfig {
     @Bean
     @Order(1)
     public SecurityFilterChain apiSecurityFilterChain(HttpSecurity http) throws Exception {
-        http.securityMatcher("/api/**");
+        // String 기반 matcher는 환경에 따라 MVC matcher로 해석되어 매칭이 어긋날 수 있어 명시적으로 AntPath 사용
+        http.securityMatcher(AntPathRequestMatcher.antMatcher("/api/**"));
         http.authorizeHttpRequests(auth -> auth
                 .requestMatchers(AntPathRequestMatcher.antMatcher("/api/auth/login")).permitAll()
                 .requestMatchers(AntPathRequestMatcher.antMatcher("/api/auth/me")).permitAll()
@@ -51,6 +53,9 @@ public class SecurityConfig {
                 .requestMatchers(AntPathRequestMatcher.antMatcher("/api/**")).authenticated());
         http.exceptionHandling(ex -> ex.authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED)));
         http.csrf(AbstractHttpConfigurer::disable);
+        // /api/** 는 SPA/외부 호출이 많아 기본 로그인 폼 리다이렉트(302) 방지 필수
+        http.formLogin(AbstractHttpConfigurer::disable);
+        http.logout(AbstractHttpConfigurer::disable);
         http.httpBasic(AbstractHttpConfigurer::disable);
         http.sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
         http.cors(Customizer.withDefaults());
@@ -62,9 +67,9 @@ public class SecurityConfig {
     @Bean
     @Order(2)
     public SecurityFilterChain webSecurityFilterChain(HttpSecurity httpSecurity) throws Exception {
+        // /api/** 는 API 체인에서만 처리 (웹 체인에서 로그인 리다이렉트가 끼어들지 않게 완전 제외)
+        httpSecurity.securityMatcher(new NegatedRequestMatcher(AntPathRequestMatcher.antMatcher("/api/**")));
         httpSecurity.authorizeHttpRequests(auth -> auth
-                // 이 체인에 /api/** 가 들어오면 안 됨(위 api 체인이 먼저 매칭). 방어용.
-                .requestMatchers(AntPathRequestMatcher.antMatcher("/api/**")).denyAll()
                 .requestMatchers(
                     AntPathRequestMatcher.antMatcher("/"),
                     AntPathRequestMatcher.antMatcher("/login"),

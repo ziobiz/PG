@@ -959,6 +959,27 @@
         return String(b).replace(/\/$/, '');
       }
 
+      /**
+       * https 페이지에서 http API를 선택하면 브라우저가 Mixed Content로 차단(TypeError)할 수 있습니다.
+       * 가능하면 https로 자동 보정합니다.
+       */
+      function normalizeApiBaseScheme(base) {
+        var raw = String(base || '').trim().replace(/\/$/, '');
+        if (!raw) return raw;
+        try {
+          var pageProto = (window.location && window.location.protocol) ? String(window.location.protocol) : '';
+          if (pageProto === 'https:' && /^http:\/\//i.test(raw)) {
+            // 동일 호스트면 https로 승격, 아니어도 운영 환경은 대부분 https이므로 우선 승격
+            raw = raw.replace(/^http:\/\//i, 'https://');
+          }
+        } catch (e) { /* ignore */ }
+        return raw;
+      }
+
+      function resolvedApiBase() {
+        return normalizeApiBaseScheme(apiBase());
+      }
+
       /** fetch 응답: HTTP 오류·비 JSON 본문 시 throw */
       function readFetchJson(r) {
         return r.text().then(function (txt) {
@@ -983,7 +1004,7 @@
       function barePayChatbotUrl() {
         var c = (typeof compId === 'string' ? compId : '').trim();
         if (!c) return '';
-        return apiBase().replace(/\/$/, '') + '/pay.html?m=' + encodeURIComponent(c) + '&entry=chatbot';
+        return resolvedApiBase() + '/pay.html?m=' + encodeURIComponent(c) + '&entry=chatbot';
       }
 
       window.cbCommerceHold = false;
@@ -1034,7 +1055,7 @@
         if (!u) return '';
         var raw = String(u).trim();
         if (/^(https?:|data:|blob:)/i.test(raw)) return raw;
-        var base = apiBase().replace(/\/$/, '');
+        var base = resolvedApiBase();
         return base + (raw.charAt(0) === '/' ? raw : '/' + raw);
       }
 
@@ -1689,7 +1710,7 @@
           return;
         }
         if (!file) return;
-        var root = apiBase().replace(/\/$/, '');
+        var root = resolvedApiBase();
         var hdr = {};
         hdr[CB_ADMIN_HDR] = tok;
         var btn = document.getElementById('cbImgAttachBtn');
@@ -1820,7 +1841,7 @@
         });
       }
       function loadCbAdminProducts() {
-        var root = apiBase().replace(/\/$/, '');
+        var root = resolvedApiBase();
         var listEl = document.getElementById('cbAdList');
         if (!listEl) return;
         listEl.textContent = '불러오는 중…';
@@ -1831,6 +1852,14 @@
         }).then(readFetchJson).then(function (res) {
           listEl.innerHTML = '';
           if (!res.success) {
+            // 서버 재시작/세션 만료 등으로 토큰이 무효가 되면 자동으로 로그인 화면으로 복귀
+            try {
+              if (String(res.errorCode || '').toUpperCase() === 'UNAUTHORIZED') {
+                setCbAdminTok('');
+                renderCbAdminLogin('세션이 만료되었습니다. 다시 로그인해 주세요.');
+                return;
+              }
+            } catch (eAuth) { /* ignore */ }
             listEl.textContent = res.message || '목록 오류';
             return;
           }
@@ -1917,7 +1946,7 @@
         rowOut.appendChild(logout);
         body.appendChild(rowOut);
         logout.addEventListener('click', function () {
-          var root = apiBase().replace(/\/$/, '');
+          var root = resolvedApiBase();
           fetch(root + '/api/pub/chatbot/admin/logout', {
             method: 'POST',
             mode: 'cors',
@@ -2045,9 +2074,19 @@
         saveRow.appendChild(saveBt);
         body.appendChild(saveRow);
         saveBt.addEventListener('click', function () {
-          var root = apiBase().replace(/\/$/, '');
+          var root = resolvedApiBase();
           err.style.display = 'none';
           saveBt.disabled = true;
+          var img0 = '';
+          try {
+            img0 = cbPendingProductImageUrl ? String(cbPendingProductImageUrl).trim() : '';
+          } catch (eImg0) { img0 = ''; }
+          if (!img0) {
+            try {
+              var iu = document.getElementById('cbAdImageUrl');
+              img0 = iu && iu.value ? String(iu.value).trim() : '';
+            } catch (eImg1) { /* ignore */ }
+          }
           var payload = {
             compId: compId,
             title: String(titleIn.value || '').trim(),
@@ -2055,6 +2094,7 @@
             currencyCode: String(curIn.value || 'KRW').trim() || 'KRW',
             description: String(descIn.value || '').trim(),
             useYn: chk.checked ? 'Y' : 'N',
+            imageUrl: img0,
             listingType: (listSel && listSel.value) ? String(listSel.value).trim().toUpperCase() : 'SALE',
             promotionShelfYn: chkPromo.checked ? 'Y' : 'N'
           };
@@ -2097,7 +2137,7 @@
         }
         syncChatbotBarePayHref();
         hideBanner();
-        var root = apiBase().replace(/\/$/, '');
+        var root = resolvedApiBase();
         return fetch(root + '/api/pub/chatbot/catalog?compId=' + encodeURIComponent(compId), {
           mode: 'cors',
           credentials: 'omit'
@@ -2139,7 +2179,21 @@
               hint = ' (HTTP ' + errCat.httpStatus + ')';
             }
           } catch (eH) { /* ignore */ }
-          showBanner('서버 연결 또는 응답 오류입니다.' + hint);
+          var baseHint = '';
+          try {
+            baseHint = ' · API=' + resolvedApiBase();
+          } catch (eBh) { baseHint = ''; }
+          var msg = '서버 연결 또는 응답 오류입니다.' + hint;
+          // fetch 자체가 막히는(TypeError) 경우: CORS/혼합콘텐츠/네트워크 단절 가능성이 큼
+          if (!hint) {
+            try {
+              var em = (errCat && errCat.message) ? String(errCat.message) : '';
+              if (em) msg += ' (' + em + ')';
+              msg += baseHint;
+              msg += ' · 브라우저에서 CORS 또는 Mixed Content 차단 여부를 확인해 주세요.';
+            } catch (eMsg) { /* ignore */ }
+          }
+          showBanner(msg);
           var regErr = document.getElementById('cbRegisterMenuBtn');
           if (regErr) regErr.style.display = 'none';
           return null;
@@ -2167,7 +2221,7 @@
         }
         inp.disabled = true;
         var pending = showTyping();
-        fetch(apiBase().replace(/\/$/, '') + '/api/pub/chatbot/chat', {
+        fetch(resolvedApiBase() + '/api/pub/chatbot/chat', {
           method: 'POST',
           mode: 'cors',
           credentials: 'omit',
@@ -2190,6 +2244,9 @@
             bubble = '서버 응답 오류입니다. (' + em.replace('HTTP_', 'HTTP ') + ') 잠시 후 다시 시도해 주세요.';
           } else if (em && em !== 'INVALID_JSON') {
             bubble = em;
+          }
+          if (bubble === '네트워크 오류') {
+            try { bubble = '네트워크 오류 (API=' + resolvedApiBase() + ')'; } catch (eB2) {}
           }
           appendMsg('assistant', bubble);
           inp.disabled = false;

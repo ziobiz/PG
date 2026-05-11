@@ -22,6 +22,8 @@ public interface MerchantReceivableRepository extends JpaRepository<MerchantRece
 
     Optional<MerchantReceivable> findByMerchantIdAndReasonCodeAndMemo(String merchantId, String reasonCode, String memo);
 
+    Optional<MerchantReceivable> findFirstByMerchantIdAndReasonCodeOrderByIdDesc(String merchantId, String reasonCode);
+
     List<MerchantReceivable> findByReasonCodeAndMemoIn(String reasonCode, Collection<String> memos);
 
     @Query("SELECT COUNT(r), COALESCE(SUM(r.remainingAmount), 0) FROM MerchantReceivable r WHERE UPPER(TRIM(r.status)) = 'PENDING'")

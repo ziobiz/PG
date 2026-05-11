@@ -4,21 +4,30 @@ import com.pg.api.ApiResponse;
 import com.pg.api.dto.PageResult;
 import com.pg.api.dto.StyledExcelExportRequest;
 import com.pg.entity.AppUser;
+import com.pg.entity.MerchantReceivable;
 import com.pg.entity.OrgLevel;
 import com.pg.entity.OrgUnit;
 import com.pg.repository.OrgUnitRepository;
+import com.pg.repository.MerchantReceivableRepository;
 import com.pg.service.AuthService;
 import com.pg.service.CompService;
 import com.pg.service.ExcelStyledExportService;
+import com.pg.util.ChatbotProductPricingUtil;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 
 import java.io.IOException;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.LinkedHashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -45,15 +54,18 @@ public class ApiCompController {
     private final AuthService authService;
     private final ExcelStyledExportService excelStyledExportService;
     private final ChatbotHeaderLogoUploadService chatbotHeaderLogoUploadService;
+    private final MerchantReceivableRepository merchantReceivableRepository;
 
     public ApiCompController(CompService compService, OrgUnitRepository orgUnitRepository, AuthService authService,
                              ExcelStyledExportService excelStyledExportService,
-                             ChatbotHeaderLogoUploadService chatbotHeaderLogoUploadService) {
+                             ChatbotHeaderLogoUploadService chatbotHeaderLogoUploadService,
+                             MerchantReceivableRepository merchantReceivableRepository) {
         this.compService = compService;
         this.orgUnitRepository = orgUnitRepository;
         this.authService = authService;
         this.excelStyledExportService = excelStyledExportService;
         this.chatbotHeaderLogoUploadService = chatbotHeaderLogoUploadService;
+        this.merchantReceivableRepository = merchantReceivableRepository;
     }
 
     @GetMapping("/changeHistory")
@@ -717,6 +729,69 @@ public class ApiCompController {
                 .map(ApiResponse::ok)
                 .map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.ok(ApiResponse.fail("가맹점을 찾을 수 없습니다.", "NOT_FOUND")));
+    }
+
+    /** 챗봇관리 — 비용관리(히스토리): 챗봇 상품등록 플랜 월이용료 미수금 내역 */
+    @GetMapping("/chatbotKb/billingHistory")
+    public ResponseEntity<ApiResponse<PageResult<Map<String, Object>>>> chatbotKbBillingHistory(
+            @RequestParam String compId,
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "12") int size) {
+        Authentication auth0 = SecurityContextHolder.getContext().getAuthentication();
+        if (!(auth0 != null && auth0.getPrincipal() instanceof AppUser u0)) {
+            return ResponseEntity.ok(ApiResponse.fail("로그인이 필요합니다.", "UNAUTHORIZED"));
+        }
+        if (!canAccessCompAsViewer(u0, compId)) {
+            return ResponseEntity.ok(ApiResponse.fail("조회 권한이 없습니다.", "FORBIDDEN"));
+        }
+        String mid = compId != null ? compId.trim() : "";
+        if (mid.isBlank()) {
+            return ResponseEntity.ok(ApiResponse.fail("업체코드(compId)는 필수입니다.", "VALIDATION"));
+        }
+        int p = Math.max(1, page);
+        int sz = Math.min(Math.max(1, size), 100);
+        Pageable pageable = PageRequest.of(p - 1, sz, Sort.by(Sort.Direction.DESC, "id"));
+
+        Specification<MerchantReceivable> spec = (root, query, cb) -> cb.and(
+                cb.equal(root.get("merchantId"), mid),
+                cb.equal(root.get("reasonCode"), ChatbotProductPricingUtil.RECEIVABLE_REASON_CHATBOT_MONTHLY)
+        );
+        Page<MerchantReceivable> slice = merchantReceivableRepository.findAll(spec, pageable);
+
+        List<Map<String, Object>> rows = new ArrayList<>();
+        for (MerchantReceivable r : slice.getContent()) {
+            Map<String, Object> m = new LinkedHashMap<>();
+            m.put("id", r.getId());
+            m.put("title", r.getTitle() != null ? r.getTitle() : "");
+            m.put("totalAmount", r.getTotalAmount() != null ? r.getTotalAmount() : 0);
+            m.put("remainingAmount", r.getRemainingAmount() != null ? r.getRemainingAmount() : 0);
+            m.put("status", r.getStatus() != null ? r.getStatus() : "");
+            m.put("memo", r.getMemo() != null ? r.getMemo() : "");
+            m.put("createdAt", r.getCreatedAt() != null ? r.getCreatedAt().toString() : "");
+            rows.add(m);
+        }
+        PageResult<Map<String, Object>> pr = new PageResult<>();
+        pr.setList(rows);
+        pr.setPage(p);
+        pr.setSize(sz);
+        pr.setTotalElements(slice.getTotalElements());
+        pr.setTotalPages(Math.max(1, slice.getTotalPages()));
+
+        MerchantReceivable latest = merchantReceivableRepository
+                .findFirstByMerchantIdAndReasonCodeOrderByIdDesc(mid, ChatbotProductPricingUtil.RECEIVABLE_REASON_CHATBOT_MONTHLY)
+                .orElse(null);
+        if (latest != null) {
+            pr.getMeta().put("latestTitle", latest.getTitle() != null ? latest.getTitle() : "");
+            pr.getMeta().put("latestTotalAmount", latest.getTotalAmount() != null ? latest.getTotalAmount() : 0);
+            pr.getMeta().put("latestMemo", latest.getMemo() != null ? latest.getMemo() : "");
+            pr.getMeta().put("latestCreatedAt", latest.getCreatedAt() != null ? latest.getCreatedAt().toString() : "");
+        } else {
+            pr.getMeta().put("latestTitle", "");
+            pr.getMeta().put("latestTotalAmount", 0);
+            pr.getMeta().put("latestMemo", "");
+            pr.getMeta().put("latestCreatedAt", "");
+        }
+        return ResponseEntity.ok(ApiResponse.ok(pr));
     }
 
     /** 총본사·본사·총판 등: 산하 가맹점 중 챗봇결제 사용(Y)만 — 기본 안내(표시값) 목록 — 가맹점 로그인은 제외 */

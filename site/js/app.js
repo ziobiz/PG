@@ -13942,7 +13942,7 @@
       var FALLBACK_CHATBOT_CCY_META = {
         defaultCurrency: 'KRW',
         allowedCurrencies: ['JPY', 'KRW', 'USD', 'CNY', 'THB'],
-        effectiveMaxProductImages: 1,
+        effectiveMaxProductImages: 4,
         allowedListingTypes: ['SALE', 'RESERVATION_TIME', 'RESERVATION_PLACE']
       };
       function normalizeChatbotListingTypeUi(code) {
@@ -13997,18 +13997,15 @@
         for (var si = 1; si <= 4; si++) {
           var wrap = pane.querySelector('.chatbot-form-img-slot[data-chatbot-img-slot="' + si + '"]');
           if (!wrap) continue;
-          if (si <= maxN) {
-            wrap.classList.remove('d-none');
-          } else {
-            wrap.classList.add('d-none');
-          }
           var inp = pane.querySelector('#chatbotFormImg' + si);
           var btn = pane.querySelector('#chatbotFormImgUpload' + si);
           var fin = pane.querySelector('#chatbotFormImgFile' + si);
           var dis = si > maxN;
+          wrap.classList.toggle('chatbot-form-img-slot--disabled', !!dis);
           if (inp) inp.disabled = !!dis;
           if (btn) btn.disabled = !!dis;
           if (fin && dis) fin.value = '';
+          if (inp && dis) inp.value = '';
         }
       }
       function updateChatbotProdReservationDependentUi(forceDisableAll) {
@@ -14033,6 +14030,21 @@
         if (rowCr) rowCr.classList.toggle('d-none', !isRes);
         if (rsEl) {
           rsEl.disabled = !isRes;
+          if (isRes) {
+            if (lt === 'RESERVATION_TIME') {
+              rsEl.step = '30';
+              rsEl.min = '30';
+              rsEl.placeholder = pgAdminUiT('30분 단위');
+            } else {
+              rsEl.step = '1';
+              rsEl.min = '15';
+              rsEl.placeholder = pgAdminUiT('기본');
+            }
+          } else {
+            rsEl.step = '1';
+            rsEl.min = '15';
+            rsEl.placeholder = pgAdminUiT('기본');
+          }
         }
         if (isRes && cmEl && depEl) {
           var cm = String(cmEl.value || 'FULL').trim().toUpperCase();
@@ -14072,11 +14084,28 @@
           });
         }
         rebuildChatbotListingTypeSelectFromMeta();
+        var natSel = pane.querySelector('#chatbotFormItemNature');
+        if (natSel && !natSel._chatbotStaticInit) {
+          natSel._chatbotStaticInit = true;
+          natSel.innerHTML = '';
+          [
+            ['GOODS', pgAdminUiT('공산품(일반)')],
+            ['FOOD', pgAdminUiT('음식')],
+            ['ANIMAL', pgAdminUiT('동물')],
+            ['SERVICE', pgAdminUiT('서비스(일반)')],
+            ['SERVICE_PERSON', pgAdminUiT('사람(서비스)')]
+          ].forEach(function (vx) {
+            var o = document.createElement('option');
+            o.value = vx[0];
+            o.textContent = vx[1];
+            natSel.appendChild(o);
+          });
+        }
         var useSel = pane.querySelector('#chatbotFormUse');
         if (useSel && !useSel._chatbotStaticInit) {
           useSel._chatbotStaticInit = true;
           useSel.innerHTML = '';
-          [['Y', pgAdminUiT('판매')], ['N', pgAdminUiT('대기')]].forEach(function (vx) {
+          [['Y', pgAdminUiT('판매(예약)')], ['N', pgAdminUiT('중지(대기)')]].forEach(function (vx) {
             var o = document.createElement('option');
             o.value = vx[0];
             o.textContent = vx[1];
@@ -14161,6 +14190,8 @@
         if (hq) hq.value = 'N';
         var lt = pane.querySelector('#chatbotFormListingType');
         if (lt) lt.value = 'SALE';
+        var nat = pane.querySelector('#chatbotFormItemNature');
+        if (nat) nat.value = 'GOODS';
         var us = pane.querySelector('#chatbotFormUse');
         if (us) us.value = 'Y';
         var rsCl = pane.querySelector('#chatbotFormResSlot');
@@ -14172,6 +14203,15 @@
         var dpa = pane.querySelector('#chatbotFormDepositAmt');
         if (dpa) dpa.value = '';
         refreshChatbotProdFormCurrencySelect({});
+        // 신규 등록 시 통화는 항상 "가맹점 설정 기본 통화"로 리셋
+        try {
+          var selCur = pane.querySelector('#chatbotFormCur');
+          var metaCur = pane._chatbotProdCurrencyMeta || FALLBACK_CHATBOT_CCY_META;
+          var defCur = metaCur && metaCur.defaultCurrency ? String(metaCur.defaultCurrency).trim().toUpperCase() : '';
+          if (selCur && defCur && Array.from(selCur.options).some(function (o) { return o.value === defCur; })) {
+            selCur.value = defCur;
+          }
+        } catch (eCurReset) { /* ignore */ }
         var cancelBtn = pane.querySelector('#chatbotProdFormCancelEditBtn');
         if (cancelBtn) cancelBtn.classList.add('d-none');
         updateChatbotProdRegisterHint(false);
@@ -14202,6 +14242,14 @@
         }
         var ti = pane.querySelector('#chatbotFormTitle');
         if (ti) ti.value = d.title != null ? String(d.title) : '';
+        var nat = pane.querySelector('#chatbotFormItemNature');
+        if (nat) {
+          var nv = d.itemNature != null && String(d.itemNature).trim()
+            ? String(d.itemNature).trim().toUpperCase()
+            : 'GOODS';
+          if (Array.from(nat.options).some(function (o) { return o.value === nv; })) nat.value = nv;
+          else nat.value = 'GOODS';
+        }
         rebuildChatbotListingTypeSelectFromMeta();
         var ltVal = normalizeChatbotListingTypeUi(d.listingType);
         var lt = pane.querySelector('#chatbotFormListingType');
@@ -14288,6 +14336,10 @@
           listingType: (function () {
             var lt0 = pane.querySelector('#chatbotFormListingType');
             return lt0 ? normalizeChatbotListingTypeUi(lt0.value) : 'SALE';
+          })(),
+          itemNature: (function () {
+            var n0 = pane.querySelector('#chatbotFormItemNature');
+            return n0 ? String(n0.value || 'GOODS').trim().toUpperCase() : 'GOODS';
           })()
         };
         pl.imageUrl = pane.querySelector('#chatbotFormImg1') ? String(pane.querySelector('#chatbotFormImg1').value || '').trim() : '';
@@ -14298,6 +14350,11 @@
         if (rsEl && String(rsEl.value || '').trim() !== '') {
           var rsn = parseInt(String(rsEl.value).trim(), 10);
           if (!isNaN(rsn) && rsn > 0) {
+            var ltEff0 = normalizeChatbotListingTypeUi(pl.listingType);
+            if (ltEff0 === 'RESERVATION_TIME') {
+              // 30분 단위 강제
+              rsn = Math.max(30, Math.floor(rsn / 30) * 30);
+            }
             pl.reservationSlotMinutes = rsn;
           }
         }
@@ -14373,7 +14430,7 @@
         return pgAdminUiT(String(n) + '장');
       }
       function chatbotProdUseLabel(u) {
-        return String(u || '').toUpperCase() === 'N' ? pgAdminUiT('대기') : pgAdminUiT('판매');
+        return String(u || '').toUpperCase() === 'N' ? pgAdminUiT('중지(대기)') : pgAdminUiT('판매(예약)');
       }
       function chatbotProdHqBlkLabel(y) {
         return String(y || '').toUpperCase() === 'Y' ? pgAdminUiT('차단') : pgAdminUiT('판매허용');
@@ -15005,6 +15062,74 @@
         return window.PG_API.compChatbotKbGet(cid).then(fillChatbotKbForm).catch(function () {});
       }
 
+      function memoToBillingMonth(memo) {
+        var s = memo != null ? String(memo) : '';
+        var m = s.match(/CHATBOT_BILL:([0-9]{4}-[0-9]{2})/);
+        return m ? m[1] : '';
+      }
+
+      function renderChatbotKbBillingHistory(pr) {
+        var tbody = pane.querySelector('#chatbotKbBillingTbody');
+        if (!tbody) return;
+        tbody.innerHTML = '';
+        var lst = pr && Array.isArray(pr.list) ? pr.list : [];
+        if (!lst.length) {
+          var tr0 = document.createElement('tr');
+          var td0 = document.createElement('td');
+          td0.colSpan = 4;
+          td0.className = 'small text-muted text-center py-3';
+          td0.textContent = pgAdminUiT('비용처리 내역이 없습니다.');
+          tr0.appendChild(td0);
+          tbody.appendChild(tr0);
+        } else {
+          lst.forEach(function (r) {
+            var tr = document.createElement('tr');
+            function td(v) {
+              var t = document.createElement('td');
+              t.className = 'small';
+              t.textContent = v != null ? String(v) : '';
+              tr.appendChild(t);
+            }
+            td(memoToBillingMonth(r.memo) || '—');
+            td((r.totalAmount != null ? String(r.totalAmount) : '0'));
+            td(r.status != null ? String(r.status) : '');
+            td(r.createdAt != null ? String(r.createdAt) : '');
+            tbody.appendChild(tr);
+          });
+        }
+        var info = pane.querySelector('#chatbotKbBillingPageInfo');
+        if (info) {
+          var p = pr && pr.page != null ? Number(pr.page) : 1;
+          var tp = pr && pr.totalPages != null ? Number(pr.totalPages) : 1;
+          if (isNaN(p) || p < 1) p = 1;
+          if (isNaN(tp) || tp < 1) tp = 1;
+          info.textContent = String(p) + ' / ' + String(tp);
+        }
+        var latestHint = pane.querySelector('#chatbotKbBillingLatestHint');
+        if (latestHint) {
+          var meta = pr && pr.meta ? pr.meta : {};
+          var lm = memoToBillingMonth(meta.latestMemo);
+          var la = meta.latestTotalAmount != null ? String(meta.latestTotalAmount) : '';
+          latestHint.textContent = (lm && la)
+            ? (pgAdminUiT('최근 청구월 ') + lm + ' · ' + pgAdminUiT('금액 ') + la)
+            : '';
+        }
+      }
+
+      function loadChatbotKbBillingHistory(pageNum) {
+        var cid = chatbotKbTargetCompIdCb();
+        if (!cid || !window.PG_API || !window.PG_API.compChatbotKbBillingHistory) return Promise.resolve();
+        var wantP = pageNum != null ? Number(pageNum) : (pane._chatbotKbBillPage || 1);
+        if (isNaN(wantP) || wantP < 1) wantP = 1;
+        pane._chatbotKbBillPage = wantP;
+        return window.PG_API.compChatbotKbBillingHistory(cid, { page: wantP, size: 12 })
+          .then(function (pr) {
+            renderChatbotKbBillingHistory(pr);
+            var tp = pr && pr.totalPages != null ? Number(pr.totalPages) : 1;
+            pane._chatbotKbBillTotalPages = isNaN(tp) || tp < 1 ? 1 : tp;
+          }).catch(function () {});
+      }
+
       function renderChatbotKbOverview(pr) {
         var ovTbody = pane.querySelector('#chatbotKbOverviewTbody');
         if (!ovTbody) return;
@@ -15248,6 +15373,23 @@
 
           if (tar.closest('#chatbotKbFormLoadBtn')) {
             loadChatbotKbForm();
+            loadChatbotKbBillingHistory(1);
+            return;
+          }
+
+          if (tar.closest('#chatbotKbBillingReloadBtn')) {
+            loadChatbotKbBillingHistory(1);
+            return;
+          }
+          if (tar.closest('#chatbotKbBillingPrevBtn')) {
+            var curB0 = pane._chatbotKbBillPage || 1;
+            if (curB0 > 1) loadChatbotKbBillingHistory(curB0 - 1);
+            return;
+          }
+          if (tar.closest('#chatbotKbBillingNextBtn')) {
+            var curB1 = pane._chatbotKbBillPage || 1;
+            var mxB1 = pane._chatbotKbBillTotalPages || 1;
+            if (curB1 < mxB1) loadChatbotKbBillingHistory(curB1 + 1);
             return;
           }
 
@@ -15317,6 +15459,7 @@
       }
       window.setTimeout(function () {
         loadChatbotKbForm();
+        loadChatbotKbBillingHistory(1);
         if (chatbotKbOlNow() !== 'MERCHANT') {
           loadChatbotKbOverviewReq();
         }

@@ -78,6 +78,10 @@
       '<label class="form-label small mb-0" title="저장 시 시스템이 코드를 자동 부여합니다." data-pg-ui-t="코드">' + escUi(L('코드')) + '</label>' +
       '<input type="text" class="form-control form-control-sm" id="chatbotFormCode" readonly tabindex="-1">' +
       '</div>' +
+      '<div class="col-md-2">' +
+      '<label class="form-label small mb-0" title="' + escUi(L('항목 성격(사람 서비스 등)을 지정하면 챗봇 응대 톤이 보정됩니다.')) + '" data-pg-ui-t="항목구성">' + escUi(L('항목구성')) + '</label>' +
+      '<select class="form-select form-select-sm" id="chatbotFormItemNature"></select>' +
+      '</div>' +
       '<div class="col-md-3">' +
       '<label class="form-label small mb-0" data-pg-ui-t="상품명">' + escUi(L('상품명')) + '</label>' +
       '<input type="text" class="form-control form-control-sm" id="chatbotFormTitle" maxlength="200">' +
@@ -159,7 +163,25 @@
       '</div></div></div>' +
       '<h6 class="mb-2 fw-semibold" data-pg-ui-t="등록된 상품">' + escUi(L('등록된 상품')) + '</h6>' +
       '<div class="table-responsive chatbot-prod-table-responsive">' +
-      '<table class="table table-sm table-bordered align-middle mb-2 chatbot-prod-grid" id="grid_chatbot_products">' +
+      '<table class="table table-sm table-bordered align-middle mb-2 chatbot-prod-grid table-no-col-resize" id="grid_chatbot_products">' +
+      '<colgroup>' +
+      '<col style="width:44px">' +          // #
+      '<col style="width:120px">' +         // hq: compId
+      '<col style="width:140px">' +         // hq: merchantName
+      '<col style="width:110px">' +         // hq: hqCatalogBlockYn
+      '<col style="width:96px">' +          // code
+      '<col style="width:220px">' +         // title
+      '<col style="width:140px">' +         // 판매·예약(기간예약)
+      '<col style="width:120px">' +         // 예약결제
+      '<col class="chatbot-prod-colgraph-desc">' + // 설명 — 테이블 전체 너비 시 남는 폭 흡수(CSS)
+      '<col style="width:110px">' +         // 금액
+      '<col style="width:70px">' +          // 통화
+      '<col style="width:70px">' +          // 순서
+      '<col style="width:110px">' +         // 판매상태
+      '<col style="width:90px">' +          // 프로모션
+      '<col style="width:110px">' +         // 이미지
+      '<col style="width:110px">' +         // 관리
+      '</colgroup>' +
       '<thead class="table-light"><tr>' +
       '<th style="width:2.75rem;text-align:center">#</th>' +
       '<th class="hq-only-col" data-pg-ui-t="가맹점코드">' + escUi(L('가맹점코드')) + '</th>' +
@@ -332,6 +354,33 @@
       '<span class="small text-muted flex-grow-1 min-w-0" id="chatbotKbPlanSlotSelHint"></span>' +
       '</div></div>' +
       '<p class="small text-warning mb-0 d-none mt-2" id="chatbotKbPlanWarn"></p>' +
+      '<div class="border-top pt-3 mt-3" id="chatbotKbBillingOuter">' +
+      '<div class="d-flex flex-wrap align-items-center gap-2 mb-2">' +
+      '<h6 class="small fw-semibold mb-0" data-pg-ui-t="비용관리(히스토리)">' + escUi(L('비용관리(히스토리)')) + '</h6>' +
+      '<button type="button" class="btn btn-sm btn-outline-secondary ms-auto" id="chatbotKbBillingReloadBtn" data-pg-ui-t="새로고침">' +
+      escUi(L('새로고침')) + '</button>' +
+      '</div>' +
+      '<p class="small text-muted mb-2" data-pg-ui-t="플랜 월 이용료는 미수금으로 등록되며 정산에서 환수됩니다.">' +
+      escUi(L('플랜 월 이용료는 미수금으로 등록되며 정산에서 환수됩니다.')) +
+      '</p>' +
+      '<div class="table-responsive">' +
+      '<table class="table table-sm table-bordered align-middle mb-2">' +
+      '<thead><tr>' +
+      '<th style="width: 140px" data-pg-ui-t="청구월"> ' + escUi(L('청구월')) + '</th>' +
+      '<th style="width: 180px" data-pg-ui-t="금액"> ' + escUi(L('금액')) + '</th>' +
+      '<th style="width: 120px" data-pg-ui-t="상태"> ' + escUi(L('상태')) + '</th>' +
+      '<th style="width: 180px" data-pg-ui-t="등록일"> ' + escUi(L('등록일')) + '</th>' +
+      '</tr></thead>' +
+      '<tbody id="chatbotKbBillingTbody"></tbody>' +
+      '</table>' +
+      '</div>' +
+      '<div class="d-flex align-items-center gap-2">' +
+      '<button type="button" class="btn btn-sm btn-outline-secondary" id="chatbotKbBillingPrevBtn" data-pg-ui-t="이전">' + escUi(L('이전')) + '</button>' +
+      '<button type="button" class="btn btn-sm btn-outline-secondary" id="chatbotKbBillingNextBtn" data-pg-ui-t="다음">' + escUi(L('다음')) + '</button>' +
+      '<span class="small text-muted ms-auto" id="chatbotKbBillingPageInfo">—</span>' +
+      '</div>' +
+      '<p class="small text-muted mb-0 mt-2" id="chatbotKbBillingLatestHint"></p>' +
+      '</div>' +
       '</div>' +
       '<div class="border rounded p-3 mb-3 bg-light bg-opacity-25" id="chatbotKbSection">' +
       '<p class="small text-muted mb-2" data-pg-ui-t="고객 챗봇 문의 시 참고되는 안내입니다. 아래 비우면 1~5는 업체등록 정보와 동일하게 안내됩니다.">' +
