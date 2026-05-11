@@ -454,7 +454,10 @@ public class ApiCompController {
             @RequestParam(required = false) String urlPayAlertEmailYn,
             @RequestParam(required = false) String urlPayLineNotifyToken,
             @RequestParam(required = false) String chatbotHeaderLogoUrl,
-            @RequestParam(required = false) String chatbotAdminUsername) {
+            @RequestParam(required = false) String chatbotAdminUsername,
+            @RequestParam(required = false) String chatbotCatalogListingGrant,
+            @RequestParam(required = false) Integer chatbotMaxProductImagesGrant,
+            @RequestParam(required = false) String chatbotCatalogListingEnabled) {
         var targetOpt = compService.getDetail(compId);
         if (targetOpt.isEmpty()) {
             return ResponseEntity.ok(ApiResponse.fail("업체를 찾을 수 없습니다.", "NOT_FOUND"));
@@ -486,7 +489,8 @@ public class ApiCompController {
                     feeSettlementPerTx, remittanceTransferFee, usdtTransferFeeUsd, feeUsdt, feeFx, fee3dsRate, chargebackFeePerTx, chargebackPolicyId,
                     voidSettlementMode, manualVoidSettlementMode, refundSettlementMode, forceRefundSettlementMode,
                     payFollowMerchantUseYn, payFollowAutoVoidYn, payFollowEmailVoidYn, payFollowAutoRefundYn, payFollowForceRefundYn,
-                    urlPayAlertEmailYn, urlPayLineNotifyToken, chatbotHeaderLogoUrl, chatbotAdminUsername);
+                    urlPayAlertEmailYn, urlPayLineNotifyToken, chatbotHeaderLogoUrl, chatbotAdminUsername,
+                    chatbotCatalogListingGrant, chatbotMaxProductImagesGrant, chatbotCatalogListingEnabled);
             return ResponseEntity.ok(ok ? ApiResponse.ok(Map.of("success", true, "message", "저장되었습니다."))
                     : ApiResponse.fail("업체를 찾을 수 없습니다.", "NOT_FOUND"));
         } catch (IllegalArgumentException e) {
@@ -752,6 +756,48 @@ public class ApiCompController {
         return ResponseEntity.ok(ApiResponse.ok(result));
     }
 
+    /** 본사·총본사·총판 등: 산하 가맹 챗봇 상업 기능(상품·주문·예약) 운영 보류 설정. 가맹 계정 불가 */
+    @PostMapping("/chatbotKb/commerceHold")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> chatbotKbCommerceHold(
+            @RequestParam String compId,
+            @RequestParam String holdYn) {
+        Authentication auth0 = SecurityContextHolder.getContext().getAuthentication();
+        if (!(auth0 != null && auth0.getPrincipal() instanceof AppUser u0)) {
+            return ResponseEntity.ok(ApiResponse.fail("로그인이 필요합니다.", "UNAUTHORIZED"));
+        }
+        boolean admin = "ADMIN".equalsIgnoreCase(u0.getRole());
+        OrgLevel vl;
+        String viewerComp = "";
+        if (!admin) {
+            Map<String, Object> org = authService.getOrgInfo(u0.getUsername());
+            viewerComp = org != null && org.get("compId") != null ? org.get("compId").toString().trim() : "";
+            String olStr = org != null && org.get("orgLevel") != null ? org.get("orgLevel").toString().trim() : "";
+            try {
+                vl = OrgLevel.valueOf(olStr.toUpperCase(Locale.ROOT));
+            } catch (IllegalArgumentException e) {
+                return ResponseEntity.ok(ApiResponse.fail("조직 정보를 확인할 수 없습니다.", "FORBIDDEN"));
+            }
+            if (vl == OrgLevel.MERCHANT) {
+                return ResponseEntity.ok(ApiResponse.fail("가맹점 계정에서는 이 설정을 변경할 수 없습니다.", "FORBIDDEN"));
+            }
+            if (viewerComp.isEmpty()) {
+                return ResponseEntity.ok(ApiResponse.fail("업체 정보가 없습니다.", "FORBIDDEN"));
+            }
+        } else {
+            vl = OrgLevel.HEADQUARTERS;
+        }
+        if (!admin && !canAccessCompAsViewer(u0, compId)) {
+            return ResponseEntity.ok(ApiResponse.fail("저장 권한이 없습니다.", "FORBIDDEN"));
+        }
+        try {
+            boolean hold = "Y".equalsIgnoreCase(holdYn != null ? holdYn.trim() : "");
+            compService.saveChatbotCommerceHold(admin, viewerComp, vl, compId.trim(), hold);
+            return ResponseEntity.ok(ApiResponse.ok(Map.of("success", true, "chatbotCommerceHoldYn", hold ? "Y" : "N")));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.ok(ApiResponse.fail(e.getMessage(), "VALIDATION"));
+        }
+    }
+
     @PostMapping("/chatbotKb/save")
     public ResponseEntity<ApiResponse<Map<String, Object>>> chatbotKbSave(
             @RequestParam String compId,
@@ -762,7 +808,12 @@ public class ApiCompController {
             @RequestParam(required = false) String chatbotKbContactNm,
             @RequestParam(required = false) String chatbotKbIntro,
             @RequestParam(required = false) String chatbotKbProductDesc,
-            @RequestParam(required = false) String chatbotProductSlotLimit) {
+            @RequestParam(required = false) String chatbotKbWelcomeHint,
+            @RequestParam(required = false) String chatbotOperationMode,
+            @RequestParam(required = false) String chatbotProductSlotLimit,
+            @RequestParam(required = false) String chatbotReservationSlotMinutes,
+            @RequestParam(required = false) String chatbotReservationZoneId,
+            @RequestParam(required = false) String chatbotCatalogListingEnabled) {
         Authentication auth0 = SecurityContextHolder.getContext().getAuthentication();
         if (!(auth0 != null && auth0.getPrincipal() instanceof AppUser u0)) {
             return ResponseEntity.ok(ApiResponse.fail("로그인이 필요합니다.", "UNAUTHORIZED"));
@@ -773,14 +824,15 @@ public class ApiCompController {
         try {
             compService.saveMerchantChatbotKb(compId.trim(), chatbotKbCompanyNm, chatbotKbAddr,
                     chatbotKbTel, chatbotKbEmail, chatbotKbContactNm, chatbotKbIntro, chatbotKbProductDesc,
-                    chatbotProductSlotLimit);
+                    chatbotProductSlotLimit, chatbotOperationMode, chatbotKbWelcomeHint,
+                    chatbotReservationSlotMinutes, chatbotReservationZoneId, chatbotCatalogListingEnabled);
             return ResponseEntity.ok(ApiResponse.ok(Map.of("success", true)));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.ok(ApiResponse.fail(e.getMessage(), "VALIDATION"));
         }
     }
 
-    /** 본사 AI설정 API를 사용해 회사소개 또는 판매상품 안내 초안 생성(kind=intro|product). */
+    /** 본사 AI설정 API를 사용해 회사소개·판매상품·첫화면 기본 안내 초안(kind=intro|product|welcome). */
     @PostMapping("/chatbotKb/suggest")
     public ResponseEntity<ApiResponse<Map<String, Object>>> chatbotKbSuggest(
             @RequestParam String compId,

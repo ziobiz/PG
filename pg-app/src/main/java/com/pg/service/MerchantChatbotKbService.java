@@ -1,13 +1,18 @@
 package com.pg.service;
 
+import com.pg.chatbot.ChatbotCatalogPolicy;
+import com.pg.chatbot.ChatbotOperationMode;
 import com.pg.entity.MerchantProfile;
 import com.pg.entity.OrgUnit;
 import com.pg.repository.MerchantProfileRepository;
 import org.springframework.stereotype.Service;
 
+import java.time.ZoneId;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 /**
  * 가맹 챗봇용 고객 안내(회사·연락처·소개): 등록정보 기반 기본값과 LLM 초안.
@@ -15,8 +20,13 @@ import java.util.Map;
 @Service
 public class MerchantChatbotKbService {
 
+    /** 공개 챗봇 첫 진입 시 상단 버블 — DB 미설정 시 */
+    public static final String DEFAULT_CHATBOT_WELCOME_HINT_KO =
+            "원하시는 상품을 위에서 고르시거나, 결제·상품에 대해 물어보세요.";
+
     private static final int MAX_INTRO = 4000;
     private static final int MAX_PRODUCT = 4000;
+    private static final int MAX_WELCOME_HINT = 600;
     private static final int MAX_SINGLE = 600;
 
     private final MerchantProfileRepository merchantProfileRepository;
@@ -53,6 +63,24 @@ public class MerchantChatbotKbService {
         mp.setChatbotKbContactNm(trimOrNull(firstNonBlank(mp.getSettleName(), mp.getCeoNm())));
         mp.setChatbotKbIntro(null);
         mp.setChatbotKbProductDesc(null);
+        mp.setChatbotKbWelcomeHint(null);
+    }
+
+    /** 카탈로그 API 등: 고객 화면에 내려줄 최종 첫 진입 안내 문구 */
+    public String effectiveWelcomeHintForPublic(Long merchantOrgUnitId) {
+        if (merchantOrgUnitId == null) {
+            return DEFAULT_CHATBOT_WELCOME_HINT_KO;
+        }
+        return merchantProfileRepository.findByOrgUnitId(merchantOrgUnitId)
+                .map(this::effectiveWelcomeHintForPublic)
+                .orElse(DEFAULT_CHATBOT_WELCOME_HINT_KO);
+    }
+
+    public String effectiveWelcomeHintForPublic(MerchantProfile mp) {
+        if (mp == null || mp.getChatbotKbWelcomeHint() == null || mp.getChatbotKbWelcomeHint().isBlank()) {
+            return DEFAULT_CHATBOT_WELCOME_HINT_KO;
+        }
+        return mp.getChatbotKbWelcomeHint().trim();
     }
 
     public Map<String, String> effectiveKbForDisplay(OrgUnit ou, MerchantProfile mp) {
@@ -64,7 +92,68 @@ public class MerchantChatbotKbService {
         m.put("chatbotKbContactNm", effective(mp.getChatbotKbContactNm(), firstNonBlank(mp.getSettleName(), mp.getCeoNm())));
         m.put("chatbotKbIntro", nz(mp.getChatbotKbIntro()));
         m.put("chatbotKbProductDesc", nz(mp.getChatbotKbProductDesc()));
+        m.put("chatbotKbWelcomeHint", nz(mp.getChatbotKbWelcomeHint()));
+        ChatbotOperationMode op = ChatbotOperationMode.resolveStored(mp.getChatbotOperationMode());
+        m.put("chatbotOperationMode", op.getCode());
+        m.put("chatbotOperationModeLabelKo", op.getLabelKo());
+        int slotM = mp.getChatbotReservationSlotMinutes() != null ? mp.getChatbotReservationSlotMinutes() : 60;
+        m.put("chatbotReservationSlotMinutes", String.valueOf(Math.max(15, Math.min(24 * 60, slotM))));
+        m.put("chatbotReservationZoneId", nz(mp.getChatbotReservationZoneId()));
         return m;
+    }
+
+    /** 공개 카탈로그·챗봇 화면용 예약 슬롯·타임존(기본값 포함). */
+    public Map<String, Object> publicReservationMeta(Long merchantOrgUnitId) {
+        Map<String, Object> m = new LinkedHashMap<>();
+        int slot = 60;
+        String zone = "Asia/Seoul";
+        if (merchantOrgUnitId != null) {
+            Optional<MerchantProfile> p = merchantProfileRepository.findByOrgUnitId(merchantOrgUnitId);
+            if (p.isPresent()) {
+                MerchantProfile mp = p.get();
+                if (mp.getChatbotReservationSlotMinutes() != null) {
+                    slot = Math.max(15, Math.min(24 * 60, mp.getChatbotReservationSlotMinutes()));
+                }
+                if (mp.getChatbotReservationZoneId() != null && !mp.getChatbotReservationZoneId().isBlank()) {
+                    zone = mp.getChatbotReservationZoneId().trim();
+                }
+            }
+        }
+        m.put("chatbotReservationSlotMinutes", slot);
+        m.put("chatbotReservationZoneId", zone);
+        return m;
+    }
+
+    /**
+     * 예약 슬롯(분)·타임존 저장. {@code slotParam}·{@code zoneParam} 이 null 이면 변경 없음(구 클라이언트).
+     */
+    public void applyReservationSettings(MerchantProfile mp, String slotParam, String zoneParam) {
+        if (slotParam != null) {
+            String t = slotParam.trim();
+            if (t.isEmpty()) {
+                mp.setChatbotReservationSlotMinutes(60);
+            } else {
+                try {
+                    int v = Integer.parseInt(t);
+                    mp.setChatbotReservationSlotMinutes(Math.max(15, Math.min(24 * 60, v)));
+                } catch (NumberFormatException ignored) {
+                    mp.setChatbotReservationSlotMinutes(60);
+                }
+            }
+        }
+        if (zoneParam != null) {
+            String z = zoneParam.trim();
+            if (z.isEmpty()) {
+                mp.setChatbotReservationZoneId("Asia/Seoul");
+            } else {
+                try {
+                    ZoneId.of(z);
+                    mp.setChatbotReservationZoneId(z.length() > 64 ? z.substring(0, 64) : z);
+                } catch (Exception ex) {
+                    mp.setChatbotReservationZoneId("Asia/Seoul");
+                }
+            }
+        }
     }
 
     /** 공개 챗봇 LLM system 블록에 넣는 요약(비어 있으면 빈 문자열). */
@@ -76,8 +165,32 @@ public class MerchantChatbotKbService {
         appendLine(sb, "전화", kb.get("chatbotKbTel"));
         appendLine(sb, "이메일", kb.get("chatbotKbEmail"));
         appendLine(sb, "담당자", kb.get("chatbotKbContactNm"));
+        sb.append("- 고객 첫 진입 상단 안내(버블 문구): ").append(effectiveWelcomeHintForPublic(mp)).append('\n');
         appendLine(sb, "회사소개", kb.get("chatbotKbIntro"));
         appendLine(sb, "판매상품 안내", kb.get("chatbotKbProductDesc"));
+        ChatbotOperationMode mode = ChatbotOperationMode.resolveStored(mp.getChatbotOperationMode());
+        sb.append("- 운영방식: ").append(mode.getLabelKo()).append(" (코드 ").append(mode.getCode()).append(")\n");
+        sb.append("- 챗봇 응대 규칙(운영방식, 고객 언어로 반영):\n");
+        for (String ln : mode.getLlmDirectiveKo().split("\\R")) {
+            if (!ln.isBlank()) {
+                sb.append("  • ").append(ln.trim()).append('\n');
+            }
+        }
+        int sm = mp.getChatbotReservationSlotMinutes() != null ? mp.getChatbotReservationSlotMinutes() : 60;
+        sm = Math.max(15, Math.min(24 * 60, sm));
+        String zid = mp.getChatbotReservationZoneId() != null && !mp.getChatbotReservationZoneId().isBlank()
+                ? mp.getChatbotReservationZoneId().trim() : "Asia/Seoul";
+        sb.append("- 예약 시 동일 상품에 대해 기본 ").append(sm).append("분 단위로 겹치는 시간대는 잡히지 않습니다. (고객 화면 주문 시 검증)\n");
+        sb.append("- 예약 일시는 타임존 ").append(zid).append(" 기준으로 해석합니다.\n");
+        if (mp.getChatbotCommerceHoldYn() != null && "Y".equalsIgnoreCase(mp.getChatbotCommerceHoldYn().trim())) {
+            sb.append("\n[중요 — 상업 기능 운영 보류]\n");
+            sb.append("현재 이 가맹점은 챗봇에서 주문·예약 접수·결제 페이지 안내가 일시 중지되어 있습니다.\n");
+            sb.append("- 연락처·영업 시간·위치·회사 소개 등 일반 문의는 사실 범위에서 답변할 수 있습니다.\n");
+            sb.append("- 시스템이 제공하는 상품 목록(이름·가격 등)은 「참고용」으로만 설명할 수 있습니다. 결제 URL 을 만들거나 예약을 접수하지 마세요.\n");
+            sb.append("- 고객이 구매나 예약을 원하면 접수 불가임을 알리고, 전화나 이메일 등 「기본 안내」 연락처로 개별 안내를 받도록 하세요.\n");
+        } else {
+            sb.append("- 주문 흐름: 고객이 챗봇에서 상품을 고른 뒤 주문서(이름·이메일·전화·주소·예약일시)를 제출하고 안내된 결제 페이지에서 결제하면 주문이 접수됩니다.\n");
+        }
         return sb.toString().trim();
     }
 
@@ -107,6 +220,111 @@ public class MerchantChatbotKbService {
         mp.setChatbotKbProductDesc(pd == null || pd.isBlank() ? null : pd.trim());
     }
 
+    /**
+     * 챗봇 운영방식 저장. {@code rawCode} 가 null 이면 무시(구 API 호환).
+     * 빈 문자열이면 DB 를 비워 기본값({@link ChatbotOperationMode#SALE_PREPAID})으로 간주합니다.
+     */
+    public void applyOperationMode(MerchantProfile mp, String rawCode) {
+        if (rawCode == null) {
+            return;
+        }
+        String t = rawCode.trim();
+        if (t.isEmpty()) {
+            mp.setChatbotOperationMode(null);
+            return;
+        }
+        mp.setChatbotOperationMode(ChatbotOperationMode.fromCodeStrict(t).getCode());
+    }
+
+    /** 본사·총판·본사등: 산하 가맹 상품 유형 교집합 마스크. */
+    public void applyCatalogListingGrant(MerchantProfile mp, String rawCsv) {
+        if (rawCsv == null) {
+            return;
+        }
+        String t = rawCsv.trim();
+        if (t.isEmpty()) {
+            mp.setChatbotCatalogListingGrant(null);
+            return;
+        }
+        LinkedHashSet<String> parsed = ChatbotCatalogPolicy.parseListingCsvOrNull(t);
+        if (parsed == null) {
+            throw new IllegalArgumentException(
+                    "산하 허용 상품 유형이 올바르지 않습니다. 예: SALE,RESERVATION_TIME,RESERVATION_PLACE");
+        }
+        mp.setChatbotCatalogListingGrant(ChatbotCatalogPolicy.joinListingCsv(parsed));
+    }
+
+    /** 가맹: 실제 활성 유형 서브셋. */
+    public void applyCatalogListingEnabled(MerchantProfile mp, String rawCsv) {
+        if (rawCsv == null) {
+            return;
+        }
+        String t = rawCsv.trim();
+        if (t.isEmpty()) {
+            mp.setChatbotCatalogListingEnabled(null);
+            return;
+        }
+        LinkedHashSet<String> parsed = ChatbotCatalogPolicy.parseListingCsvOrNull(t);
+        if (parsed == null) {
+            throw new IllegalArgumentException(
+                    "상품 유형 코드가 올바르지 않습니다. 예: SALE,RESERVATION_TIME,RESERVATION_PLACE");
+        }
+        mp.setChatbotCatalogListingEnabled(ChatbotCatalogPolicy.joinListingCsv(parsed));
+    }
+
+    public void applyCatalogMaxProductImages(MerchantProfile mp, Integer maxSlots) {
+        if (maxSlots == null) {
+            return;
+        }
+        int v = maxSlots;
+        if (v <= 0) {
+            mp.setChatbotMaxProductImagesGrant(null);
+            return;
+        }
+        Integer clamped = ChatbotCatalogPolicy.clampImageGrant(v);
+        if (clamped == null) {
+            mp.setChatbotMaxProductImagesGrant(null);
+            return;
+        }
+        mp.setChatbotMaxProductImagesGrant(clamped);
+    }
+
+    /**
+     * 첫 진입 상단 안내 저장. {@code raw} 가 null 이면 무시(구 클라이언트).
+     * 빈 문자열이면 DB 를 비워 기본 문구를 씁니다.
+     */
+    public void applyWelcomeHint(MerchantProfile mp, String raw) {
+        if (raw == null) {
+            return;
+        }
+        String t = raw.trim();
+        if (t.isEmpty()) {
+            mp.setChatbotKbWelcomeHint(null);
+            return;
+        }
+        String clamped = clampText(t, MAX_WELCOME_HINT);
+        mp.setChatbotKbWelcomeHint(clamped != null && !clamped.isBlank() ? clamped.trim() : null);
+    }
+
+    public String suggestWelcomeDraft(OrgUnit ou, MerchantProfile mp) throws Exception {
+        Map<String, Object> cfg = hqChatbotAiSettingsService.rawConfigForServerUse();
+        Map<String, String> eff = effectiveKbForDisplay(ou, mp);
+        String base = opt(cfg.get("ai_system_prompt_chatbot"));
+        String sys = (base.isBlank() ? "당신은 결제 가맹점의 고객 응대용 챗봇을 돕는 카피라이터입니다." : base)
+                + "\n\n아래는 해당 가맹점 정보입니다. 추측하지 말고 맥락만 사용하세요.\n"
+                + "- 업체명: " + eff.get("chatbotKbCompanyNm") + "\n"
+                + "- 회사소개(있을 때): " + nz(mp.getChatbotKbIntro()) + "\n"
+                + "- 운영방식 코드: " + eff.get("chatbotOperationMode") + "\n";
+
+        String task = "모바일 챗봇 **첫 화면 상단**에 잠깐 보이는 **한두 문장 안내**를 한국어로 작성하세요. "
+                + "고객이 위쪽 상품 목록에서 고르거나, 결제·상품 문의를 할 수 있다는 느낌으로 짧고 친절하게. "
+                + "가격·약속은 쓰지 마세요. 따옴표·제목 없이 본문 한 덩어리만 출력하세요.";
+
+        List<Map<String, String>> msgs = List.of(Map.of("role", "user", "content", task));
+        String out = chatbotLlmCompletionService.completeChat(cfg, sys, msgs);
+        return clampText(out, MAX_WELCOME_HINT).trim();
+    }
+
     public String suggestIntroDraft(OrgUnit ou, MerchantProfile mp) throws Exception {
         return runSuggest(ou, mp, true);
     }
@@ -115,6 +333,7 @@ public class MerchantChatbotKbService {
         return runSuggest(ou, mp, false);
     }
 
+    /** @param intro true=회사소개, false=판매상품 안내 */
     private String runSuggest(OrgUnit ou, MerchantProfile mp, boolean intro) throws Exception {
         Map<String, Object> cfg = hqChatbotAiSettingsService.rawConfigForServerUse();
         Map<String, String> eff = effectiveKbForDisplay(ou, mp);

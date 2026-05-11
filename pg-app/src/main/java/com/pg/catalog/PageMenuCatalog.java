@@ -56,6 +56,7 @@ public final class PageMenuCatalog {
         add(list, "/pay/chatbotPay", "M0311", "챗봇결제내역", "결제관리");
         add(list, "/chatbot/chatbotKbMng", "M0612", "기본설정", "챗봇관리");
         add(list, "/chatbot/productMng", "M0611", "상품관리", "챗봇관리");
+        add(list, "/chatbot/orderMng", "M0613", "주문관리", "챗봇관리");
         add(list, "/calc/offsetCancList", "M0309", "상계취소내역", "결제관리");
         add(list, "/calc/chillPaySettlementList", "M0421", "통합정산", "정산관리");
         add(list, "/calc/calcList", "M0404", "유통망정산내역", "정산관리");

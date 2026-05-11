@@ -132,7 +132,12 @@
 
   function fmtMoneyForCurrency(v, cur) {
     var c = String(cur || '').toUpperCase();
-    var maxFrac = (c === 'KRW' || c === 'JPY' || c === 'VND') ? 0 : 8;
+    var maxFrac =
+      c === 'KRW' || c === 'JPY' || c === 'VND'
+        ? 0
+        : c === 'THB' || c === 'USD' || c === 'EUR' || c === 'GBP'
+          ? 2
+          : 8;
     if (v == null || v === '') return '0';
     var x = Number(v);
     if (!isFinite(x)) return esc(String(v));
@@ -422,6 +427,69 @@
     );
   }
 
+  /** 성공(승인): 통화별 건수·금액 — rows: currency, txnApproved, amtApprovedSum (통화코드 KRW·USD·JPY·THB 등) */
+  function kpiApprovedByCurrencyBlock(rows) {
+    rows = Array.isArray(rows) ? rows : [];
+    function curNorm(r) {
+      var c = r && r.currency != null ? String(r.currency).trim().toUpperCase() : '';
+      return c || 'KRW';
+    }
+    rows = rows.slice().sort(function (a, b) {
+      return curNorm(a).localeCompare(curNorm(b));
+    });
+    var head =
+      '<div class="text-muted small mb-2">' + esc(uiT('통화별 성공 (건수·금액)')) + '</div>';
+    if (!rows.length) {
+      return (
+        '<div class="col-12 mb-2">' +
+        '<div class="border rounded p-3 bg-light">' +
+        head +
+        '<p class="small text-muted mb-0">' +
+        esc(uiT('해당 기간 성공(승인) 거래가 없습니다.')) +
+        '</p>' +
+        '</div></div>'
+      );
+    }
+    var body = rows
+      .map(function (r) {
+        var cur = curNorm(r);
+        var amt = fmtMoneyForCurrency(r && r.amtApprovedSum != null ? r.amtApprovedSum : 0, cur);
+        var cnt = fmtNum(r && r.txnApproved != null ? r.txnApproved : 0);
+        return (
+          '<tr>' +
+          '<td class="text-center align-middle"><span class="badge bg-secondary">' +
+          esc(cur) +
+          '</span></td>' +
+          '<td class="text-center align-middle">' +
+          cnt +
+          esc(uiT('건')) +
+          '</td>' +
+          '<td class="text-center align-middle fw-semibold text-success">' +
+          amt +
+          '</td>' +
+          '</tr>'
+        );
+      })
+      .join('');
+    var tbl =
+      '<div class="table-responsive table-no-col-resize-wrap">' +
+      '<table class="table table-sm table-bordered mb-0">' +
+      '<thead><tr>' +
+      '<th class="text-center align-middle">' +
+      esc(uiT('통화')) +
+      '</th>' +
+      '<th class="text-center align-middle">' +
+      esc(uiT('성공 건수')) +
+      '</th>' +
+      '<th class="text-center align-middle">' +
+      esc(uiT('성공 금액')) +
+      '</th>' +
+      '</tr></thead><tbody>' +
+      body +
+      '</tbody></table></div>';
+    return '<div class="col-12 mb-2"><div class="border rounded p-3 bg-light">' + head + tbl + '</div></div>';
+  }
+
   function riskScorecardHtml(rs, explainers) {
     if (!rs || typeof rs !== 'object') return '';
     var sc = rs.score != null ? Number(rs.score) : 0;
@@ -454,10 +522,13 @@
     return (
       '<div class="card mb-3">' +
       '<div class="card-header py-2 d-flex align-items-center flex-wrap">' +
-      '<strong>' + esc(uiT('오늘의 운영 KPI')) + '</strong>' + explainerBtn('kpiStrip', explainers) +
+      '<strong>' + esc(uiT('오늘의 운영 KPI')) + '</strong> <span class="text-muted small ms-1">(' + esc(uiT('거래일시 기준 오늘 0시~현재')) + ')</span>' +
+      explainerBtn('kpiStrip', explainers) +
       '</div>' +
       '<div class="card-body">' +
       '<div class="row">' +
+      chip(uiT('성공 건수'), fmtNum(kpi.todayTxnApproved), 'success') +
+      chip(uiT('전체 거래 건수'), fmtNum(kpi.todayTxnTotal), 'secondary') +
       chip(uiT('실패(99/F0)'), fmtNum(kpi.todayFailures), 'danger') +
       chip(uiT('환불(30/31)'), fmtNum(kpi.todayRefunds), 'warning') +
       chip(uiT('무효계열'), fmtNum(kpi.todayVoids), 'secondary') +
@@ -466,6 +537,9 @@
       chip(uiT('미수 잔액'), fmtMoney(kpi.receivableRemainingSum) + ' ' + esc(uiT('원')), kpi.receivableOpenCount > 0 ? 'danger' : 'secondary') +
       chip(uiT('노티 미처리(7d)'), fmtNum(kpi.notifyNotParsedLast7d), kpi.notifyNotParsedLast7d > 0 ? 'warning' : 'secondary') +
       chip(uiT('정산보류(30d)'), fmtNum(kpi.settlementHoldOrPayoutHoldRows30d), kpi.settlementHoldOrPayoutHoldRows30d > 0 ? 'warning' : 'secondary') +
+      '</div>' +
+      '<div class="row">' +
+      kpiApprovedByCurrencyBlock(kpi.todayApprovedByCurrency) +
       '</div></div></div>'
     );
   }
@@ -490,10 +564,15 @@
       '</div>' +
       '<div class="card-body">' +
       '<div class="row">' +
+      chip(uiT('성공 건수'), fmtNum(yn('yesterdayTxnApproved')), 'success') +
+      chip(uiT('전체 거래 건수'), fmtNum(yn('yesterdayTxnTotal')), 'secondary') +
       chip(uiT('실패(99/F0)'), fmtNum(yn('yesterdayFailures')), 'danger') +
       chip(uiT('환불(30/31)'), fmtNum(yn('yesterdayRefunds')), 'warning') +
       chip(uiT('무효계열'), fmtNum(yn('yesterdayVoids')), 'secondary') +
       chip(uiT('취소(20)'), fmtNum(yn('yesterdayCancels')), 'secondary') +
+      '</div>' +
+      '<div class="row">' +
+      kpiApprovedByCurrencyBlock(yp.yesterdayApprovedByCurrency) +
       '</div></div></div>'
     );
   }

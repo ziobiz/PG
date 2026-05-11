@@ -164,6 +164,7 @@ public class ApiChatbotProductController {
     public ResponseEntity<ApiResponse<Map<String, Object>>> upload(
             @RequestParam String compId,
             @RequestParam(required = false) Long productId,
+            @RequestParam(required = false) Integer imageSlot,
             @RequestParam("file") MultipartFile file) {
         if (file.isEmpty()) {
             return ResponseEntity.ok(ApiResponse.fail("파일을 선택하세요.", "EMPTY"));
@@ -183,6 +184,15 @@ public class ApiChatbotProductController {
         if (ou.isEmpty()) {
             return ResponseEntity.ok(ApiResponse.fail("가맹점만 업로드할 수 있습니다.", "NOT_FOUND"));
         }
+        int slot = imageSlot != null && imageSlot > 0 ? imageSlot : 1;
+        if (slot < 1 || slot > 4) {
+            return ResponseEntity.ok(ApiResponse.fail("imageSlot는 1~4만 허용됩니다.", "INVALID"));
+        }
+        int maxSlots = productService.getEffectiveMaxProductImages(ou.get().getId());
+        if (slot > maxSlots) {
+            return ResponseEntity.ok(ApiResponse.fail(
+                    "산하·상위 설정으로 챗봇 상품 이미지는 최대 " + maxSlots + "장까지 사용 가능합니다.", "FORBIDDEN"));
+        }
         if (file.getSize() > IMAGE_MAX_BYTES) {
             return ResponseEntity.ok(ApiResponse.fail("이미지는 2MB 이하여야 합니다.", "SIZE_EXCEEDED"));
         }
@@ -193,7 +203,8 @@ public class ApiChatbotProductController {
         try {
             Path basePath = Paths.get(System.getProperty("user.dir"), uploadDir, "chatbot", compId.trim()).normalize();
             Files.createDirectories(basePath);
-            String fileName = "p" + (productId != null ? productId + "_" : "") + UUID.randomUUID().toString().substring(0, 8)
+            String slotSeg = "_s" + slot + "_";
+            String fileName = "p" + (productId != null ? productId + "_" : "") + slotSeg + UUID.randomUUID().toString().substring(0, 8)
                     + "." + ext.toLowerCase(Locale.ROOT);
             Path targetPath = basePath.resolve(fileName);
             Files.copy(file.getInputStream(), targetPath, java.nio.file.StandardCopyOption.REPLACE_EXISTING);

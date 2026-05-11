@@ -37,6 +37,7 @@ import com.pg.util.PercentDecimalHelper;
 import com.pg.util.ReceivableRecoveryModeUtil;
 import com.pg.util.VoidRefundSettlementModeUtil;
 import com.pg.util.CardBrandScopeUtil;
+import com.pg.chatbot.ChatbotCatalogPolicy;
 import com.pg.util.ChatbotProductPricingUtil;
 import com.pg.util.ChatbotMerchantAdminConstants;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -464,6 +465,8 @@ public class CompService {
     private void putChatbotProductPlanFields(Long merchantOrgUnitId, MerchantProfile mp, Map<String, Object> target) {
         String chatYn = mp.getChatbotPaymentUseYn() != null ? mp.getChatbotPaymentUseYn().trim() : "N";
         target.put("chatbotPaymentUseYn", chatYn);
+        String holdYn = mp.getChatbotCommerceHoldYn() != null ? mp.getChatbotCommerceHoldYn().trim() : "N";
+        target.put("chatbotCommerceHoldYn", "Y".equalsIgnoreCase(holdYn) ? "Y" : "N");
         Integer slotRaw = mp.getChatbotProductSlotLimit();
         target.put("chatbotProductSlotLimit", slotRaw != null ? slotRaw : "");
         long reg = merchantChatbotProductService.countProductsForMerchant(merchantOrgUnitId);
@@ -481,6 +484,10 @@ public class CompService {
             target.put("chatbotProductSlotsRemaining", "");
             target.put("chatbotProductSaleActiveRemaining", "");
         }
+        target.put("chatbotCatalogListingEnabled", mp.getChatbotCatalogListingEnabled() != null ? mp.getChatbotCatalogListingEnabled() : "");
+        LinkedHashSet<String> effLt = merchantChatbotProductService.resolveEffectiveListingTypeCodes(merchantOrgUnitId);
+        target.put("chatbotEffectiveListingTypesCsv", ChatbotCatalogPolicy.joinListingCsv(effLt));
+        target.put("chatbotEffectiveMaxProductImages", merchantChatbotProductService.getEffectiveMaxProductImages(merchantOrgUnitId));
     }
 
     /**
@@ -568,7 +575,12 @@ public class CompService {
     public void saveMerchantChatbotKb(String compId,
                                       String companyNm, String addr, String tel, String email, String contactNm,
                                       String intro, String productDesc,
-                                      String chatbotProductSlotLimitParam) {
+                                      String chatbotProductSlotLimitParam,
+                                      String chatbotOperationModeParam,
+                                      String chatbotKbWelcomeHintParam,
+                                      String chatbotReservationSlotMinutesParam,
+                                      String chatbotReservationZoneIdParam,
+                                      String chatbotCatalogListingEnabledParam) {
         OrgUnit ou = orgUnitRepository.findByCode(compId != null ? compId.trim() : "")
                 .orElseThrow(() -> new IllegalArgumentException("업체를 찾을 수 없습니다."));
         if (ou.getOrgLevel() != OrgLevel.MERCHANT) {
@@ -578,9 +590,48 @@ public class CompService {
                 .orElseThrow(() -> new IllegalArgumentException("가맹 프로필을 찾을 수 없습니다."));
         MerchantAuditSnapshot snap = MerchantAuditSnapshot.capture(ou, mp, resolveChatbotAdminUsername(mp));
         merchantChatbotKbService.applyUserInput(mp, companyNm, addr, tel, email, contactNm, intro, productDesc);
+        merchantChatbotKbService.applyOperationMode(mp, chatbotOperationModeParam);
+        merchantChatbotKbService.applyWelcomeHint(mp, chatbotKbWelcomeHintParam);
+        merchantChatbotKbService.applyReservationSettings(mp, chatbotReservationSlotMinutesParam, chatbotReservationZoneIdParam);
+        merchantChatbotKbService.applyCatalogListingEnabled(mp, chatbotCatalogListingEnabledParam);
         applyChatbotProductSlotLimitFromChatbotKbSave(ou, mp, chatbotProductSlotLimitParam);
         merchantProfileRepository.save(mp);
         persistMerchantAuditDiff(snap, ou, mp, false);
+    }
+
+    /**
+     * 총본사·본사·총판 등: 산하 가맹의 챗봇 「운영 보류」(상품·주문·예약 차단, 문의 채팅 유지).
+     * 챗봇결제가 활성화된 가맹에만 적용합니다.
+     */
+    @Transactional
+    public void saveChatbotCommerceHold(boolean viewerIsAdmin,
+                                       String viewerCompCode,
+                                       OrgLevel viewerOrgLevel,
+                                       String targetCompId,
+                                       boolean hold) {
+        if (!viewerIsAdmin && viewerOrgLevel == OrgLevel.MERCHANT) {
+            throw new IllegalArgumentException("가맹점 계정에서는 산하 운영 보류 설정을 변경할 수 없습니다.");
+        }
+        String tid = targetCompId != null ? targetCompId.trim() : "";
+        if (tid.isEmpty()) {
+            throw new IllegalArgumentException("가맹점 코드가 필요합니다.");
+        }
+        OrgUnit mer = orgUnitRepository.findByCode(tid)
+                .filter(ou -> ou.getOrgLevel() == OrgLevel.MERCHANT)
+                .orElseThrow(() -> new IllegalArgumentException("가맹점을 찾을 수 없습니다."));
+        if (!viewerIsAdmin) {
+            String scope = viewerCompCode != null ? viewerCompCode.trim() : "";
+            if (scope.isEmpty() || !isTargetUnderViewerOrg(scope, tid)) {
+                throw new IllegalArgumentException("해당 업체를 관리할 수 없습니다.");
+            }
+        }
+        MerchantProfile mp = merchantProfileRepository.findByOrgUnitId(mer.getId())
+                .orElseThrow(() -> new IllegalArgumentException("가맹 프로필을 찾을 수 없습니다."));
+        if (mp.getChatbotPaymentUseYn() == null || !"Y".equalsIgnoreCase(mp.getChatbotPaymentUseYn().trim())) {
+            throw new IllegalArgumentException("챗봇결제가 활성화된 가맹점만 운영 보류를 적용할 수 있습니다.");
+        }
+        mp.setChatbotCommerceHoldYn(hold ? "Y" : "N");
+        merchantProfileRepository.save(mp);
     }
 
     /**
@@ -642,6 +693,9 @@ public class CompService {
                 .orElseThrow(() -> new IllegalArgumentException("가맹 프로필을 찾을 수 없습니다."));
         if (kind != null && "product".equalsIgnoreCase(kind.trim())) {
             return merchantChatbotKbService.suggestProductDraft(ou, mp);
+        }
+        if (kind != null && ("welcome".equalsIgnoreCase(kind.trim()) || "welcomeHint".equalsIgnoreCase(kind.trim()))) {
+            return merchantChatbotKbService.suggestWelcomeDraft(ou, mp);
         }
         return merchantChatbotKbService.suggestIntroDraft(ou, mp);
     }
@@ -1128,6 +1182,16 @@ public class CompService {
         if (!Objects.equals(nz(snap.chatbotKbProductDesc()), nz(mp.getChatbotKbProductDesc()))) {
             addOrgChangeRow(rows, oid, compId, compNm, by, p + "챗봇안내 판매상품", abbrevAudit(snap.chatbotKbProductDesc()), abbrevAudit(mp.getChatbotKbProductDesc()));
         }
+        if (!Objects.equals(nz(snap.chatbotKbWelcomeHint()), nz(mp.getChatbotKbWelcomeHint()))) {
+            addOrgChangeRow(rows, oid, compId, compNm, by, p + "챗봇 첫화면 안내",
+                    abbrevAudit(snap.chatbotKbWelcomeHint()), abbrevAudit(mp.getChatbotKbWelcomeHint()));
+        }
+        addDiff(rows, oid, compId, compNm, by, p + "챗봇 운영방식(DB)", snap.chatbotOperationMode(), nz(mp.getChatbotOperationMode()));
+        addDiff(rows, oid, compId, compNm, by, p + "챗봇 예약 슬롯(분)",
+                snap.chatbotReservationSlotMinutes() != null ? String.valueOf(snap.chatbotReservationSlotMinutes()) : "",
+                mp.getChatbotReservationSlotMinutes() != null ? String.valueOf(mp.getChatbotReservationSlotMinutes()) : "");
+        addDiff(rows, oid, compId, compNm, by, p + "챗봇 예약 타임존",
+                snap.chatbotReservationZoneId(), nz(mp.getChatbotReservationZoneId()));
         addDiff(rows, oid, compId, compNm, by, p + "챗봇 상단 로고 URL", snap.chatbotHeaderLogoUrl(), nz(mp.getChatbotHeaderLogoUrl()));
         addDiff(rows, oid, compId, compNm, by, p + "챗봇 관리자(로그인ID)", snap.chatbotAdminUsername(), resolveChatbotAdminUsername(mp));
         addDiffYn(rows, oid, compId, compNm, by, p + "URL·챗봇 승인 알림메일", snap.urlPayAlertEmailYn(), nz(mp.getUrlPayAlertEmailYn()));
@@ -1192,6 +1256,10 @@ public class CompService {
             String chatbotKbContactNm,
             String chatbotKbIntro,
             String chatbotKbProductDesc,
+            String chatbotKbWelcomeHint,
+            String chatbotOperationMode,
+            Integer chatbotReservationSlotMinutes,
+            String chatbotReservationZoneId,
             String chatbotHeaderLogoUrl,
             String chatbotAdminUsername,
             String baseCurrency,
@@ -1241,6 +1309,10 @@ public class CompService {
                     nz(mp.getChatbotKbContactNm()),
                     nz(mp.getChatbotKbIntro()),
                     nz(mp.getChatbotKbProductDesc()),
+                    nz(mp.getChatbotKbWelcomeHint()),
+                    nz(mp.getChatbotOperationMode()),
+                    mp.getChatbotReservationSlotMinutes(),
+                    nz(mp.getChatbotReservationZoneId()),
                     nz(mp.getChatbotHeaderLogoUrl()),
                     nz(chatbotAdminUsernameResolved),
                     nz(mp.getBaseCurrency()),
@@ -1388,7 +1460,14 @@ public class CompService {
                             m.put("webPaymentUseYn", mp.getWebPaymentUseYn() != null ? mp.getWebPaymentUseYn() : "Y");
                             m.put("chatbotPaymentUseYn", mp.getChatbotPaymentUseYn() != null ? mp.getChatbotPaymentUseYn() : "N");
                             m.put("chatbotProductSlotLimit", mp.getChatbotProductSlotLimit() != null ? mp.getChatbotProductSlotLimit() : "");
+                            m.put("chatbotCatalogListingGrant", mp.getChatbotCatalogListingGrant() != null ? mp.getChatbotCatalogListingGrant() : "");
+                            m.put("chatbotCatalogListingEnabled", mp.getChatbotCatalogListingEnabled() != null ? mp.getChatbotCatalogListingEnabled() : "");
+                            m.put("chatbotMaxProductImagesGrant", mp.getChatbotMaxProductImagesGrant() != null
+                                    ? String.valueOf(mp.getChatbotMaxProductImagesGrant()) : "");
                             if (ou.getOrgLevel() == OrgLevel.MERCHANT) {
+                                m.put("chatbotEffectiveListingTypes", ChatbotCatalogPolicy.joinListingCsv(
+                                        merchantChatbotProductService.resolveEffectiveListingTypeCodes(ou.getId())));
+                                m.put("chatbotEffectiveMaxProductImages", merchantChatbotProductService.getEffectiveMaxProductImages(ou.getId()));
                                 m.put("payFollowMerchantUseYn", mp.getPayFollowMerchantUseYn());
                                 m.put("payFollowAutoVoidYn", mp.getPayFollowAutoVoidYn());
                                 m.put("payFollowEmailVoidYn", mp.getPayFollowEmailVoidYn());
@@ -1618,7 +1697,9 @@ public class CompService {
                           String payFollowMerchantUseYn, String payFollowAutoVoidYn, String payFollowEmailVoidYn,
                           String payFollowAutoRefundYn, String payFollowForceRefundYn,
                           String urlPayAlertEmailYn, String urlPayLineNotifyToken,
-                          String chatbotHeaderLogoUrl, String chatbotAdminUsername) {
+                          String chatbotHeaderLogoUrl, String chatbotAdminUsername,
+                          String chatbotCatalogListingGrant, Integer chatbotMaxProductImagesGrant,
+                          String chatbotCatalogListingEnabled) {
         return orgUnitRepository.findByCode(compId != null ? compId : "")
                 .flatMap(ou -> merchantProfileRepository.findByOrgUnitId(ou.getId())
                         .map(mp -> {
@@ -2018,6 +2099,15 @@ public class CompService {
                                         middlewareNotifyUrl, middlewareNotifySecret);
                                 saveMerchantPayNotifyUrls(ou.getId(), notifyUrlBackground, notifyUrlResult,
                                         mwMerge[0], mwMerge[1]);
+                            }
+                            if (chatbotCatalogListingGrant != null && childLevel != OrgLevel.MERCHANT) {
+                                merchantChatbotKbService.applyCatalogListingGrant(mp, chatbotCatalogListingGrant);
+                            }
+                            if (chatbotMaxProductImagesGrant != null && childLevel != OrgLevel.MERCHANT) {
+                                merchantChatbotKbService.applyCatalogMaxProductImages(mp, chatbotMaxProductImagesGrant);
+                            }
+                            if (childLevel == OrgLevel.MERCHANT && chatbotCatalogListingEnabled != null) {
+                                merchantChatbotKbService.applyCatalogListingEnabled(mp, chatbotCatalogListingEnabled);
                             }
                             persistMerchantAuditDiff(snap, ou, mp, pwdChanged);
                             return true;

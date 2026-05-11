@@ -62,7 +62,8 @@
       "icon": "bi-chat-dots",
       "children": [
         { "label": "기본설정", "url": "/chatbot/chatbotKbMng", "menuId": "M0612" },
-        { "label": "상품관리", "url": "/chatbot/productMng", "menuId": "M0611" }
+        { "label": "상품관리", "url": "/chatbot/productMng", "menuId": "M0611" },
+        { "label": "주문관리", "url": "/chatbot/orderMng", "menuId": "M0613" }
       ]
     },
     {

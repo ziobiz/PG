@@ -163,6 +163,12 @@ public class MerchantProfile {
     @Column(name = "chatbot_payment_use_yn", length = 1)
     private String chatbotPaymentUseYn = "N";
 
+    /**
+     * 상위 조직(본사·총판 등) 운영 보류. 챗봇결제=Y 이어도 공개 고객 챗봇에서 상품·주문·예약·결제는 막고 일반 문의만 허용.
+     */
+    @Column(name = "chatbot_commerce_hold_yn", length = 1, nullable = false)
+    private String chatbotCommerceHoldYn = "N";
+
     /** 챗봇 카탈로그 등록 가능 상품 수(10·20·50·80·100·150·200). 월 이용료·등록 건수 제한 */
     @Column(name = "chatbot_product_slot_limit")
     private Integer chatbotProductSlotLimit;
@@ -190,6 +196,25 @@ public class MerchantProfile {
     @Column(name = "chatbot_kb_product_desc", columnDefinition = "TEXT")
     private String chatbotKbProductDesc;
 
+    /** 공개 챗봇 첫 진입 상단 안내 문구. 비우면 서버·클라이언트 기본 문구 사용 */
+    @Column(name = "chatbot_kb_welcome_hint", columnDefinition = "TEXT")
+    private String chatbotKbWelcomeHint;
+
+    /**
+     * 챗봇관리 기본설정 — 운영방식 코드.
+     * {@link com.pg.chatbot.ChatbotOperationMode} 참조. 미설정 시 응답·LLM 에서는 SALE_PREPAID 로 간주.
+     */
+    @Column(name = "chatbot_operation_mode", length = 40)
+    private String chatbotOperationMode;
+
+    /** 예약 상품 시 겹침 방지용 기본 슬롯 길이(분). 기본 60 */
+    @Column(name = "chatbot_reservation_slot_minutes", nullable = false)
+    private Integer chatbotReservationSlotMinutes = 60;
+
+    /** 예약 시작 시각 해석용 타임존(예: Asia/Seoul) */
+    @Column(name = "chatbot_reservation_zone_id", nullable = false, length = 64)
+    private String chatbotReservationZoneId = "Asia/Seoul";
+
     /** 공개 챗봇 결제 페이지 상단 로고(URL). 미설정 시 상위 본사·총판 브랜딩 로고 사용 */
     @Column(name = "chatbot_header_logo_url", length = 500)
     private String chatbotHeaderLogoUrl;
@@ -197,6 +222,18 @@ public class MerchantProfile {
     /** 챗봇에서 상품 등록 허용 관리자(tb_user.id), 가맹당 1명 */
     @Column(name = "chatbot_admin_user_id")
     private Long chatbotAdminUserId;
+
+    /** 산하 가맹 허용 카탈로그 유형(SALE,RESERVATION_TIME,RESERVATION_PLACE) 교집합. 비우면 해당 조직 단계에서 추가 제한 없음 */
+    @Column(name = "chatbot_catalog_listing_grant", length = 160)
+    private String chatbotCatalogListingGrant;
+
+    /** 가맹: 실제 사용할 유형. 비우면 상위 교집합 전부 */
+    @Column(name = "chatbot_catalog_listing_enabled", length = 160)
+    private String chatbotCatalogListingEnabled;
+
+    /** 산하 상품 이미지 최대 장수(1~4) 상한. 실효=체인 최소, 미설정은 최종 1 */
+    @Column(name = "chatbot_max_product_images_grant")
+    private Integer chatbotMaxProductImagesGrant;
 
     /** URL·챗봇 인라인(DirectCredit) 승인 시 가맹점 대표 이메일로 알림 */
     @Column(name = "url_pay_alert_email_yn", length = 1)
@@ -336,6 +373,15 @@ public class MerchantProfile {
     public void setWebPaymentUseYn(String webPaymentUseYn) { this.webPaymentUseYn = webPaymentUseYn; }
     public String getChatbotPaymentUseYn() { return chatbotPaymentUseYn; }
     public void setChatbotPaymentUseYn(String chatbotPaymentUseYn) { this.chatbotPaymentUseYn = chatbotPaymentUseYn; }
+
+    public String getChatbotCommerceHoldYn() {
+        return chatbotCommerceHoldYn;
+    }
+
+    public void setChatbotCommerceHoldYn(String chatbotCommerceHoldYn) {
+        this.chatbotCommerceHoldYn = chatbotCommerceHoldYn != null ? chatbotCommerceHoldYn : "N";
+    }
+
     public Integer getChatbotProductSlotLimit() { return chatbotProductSlotLimit; }
     public void setChatbotProductSlotLimit(Integer chatbotProductSlotLimit) {
         this.chatbotProductSlotLimit = chatbotProductSlotLimit;
@@ -354,10 +400,55 @@ public class MerchantProfile {
     public void setChatbotKbIntro(String chatbotKbIntro) { this.chatbotKbIntro = chatbotKbIntro; }
     public String getChatbotKbProductDesc() { return chatbotKbProductDesc; }
     public void setChatbotKbProductDesc(String chatbotKbProductDesc) { this.chatbotKbProductDesc = chatbotKbProductDesc; }
+    public String getChatbotKbWelcomeHint() { return chatbotKbWelcomeHint; }
+    public void setChatbotKbWelcomeHint(String chatbotKbWelcomeHint) { this.chatbotKbWelcomeHint = chatbotKbWelcomeHint; }
+    public String getChatbotOperationMode() { return chatbotOperationMode; }
+    public void setChatbotOperationMode(String chatbotOperationMode) { this.chatbotOperationMode = chatbotOperationMode; }
+    public Integer getChatbotReservationSlotMinutes() {
+        return chatbotReservationSlotMinutes;
+    }
+
+    public void setChatbotReservationSlotMinutes(Integer chatbotReservationSlotMinutes) {
+        this.chatbotReservationSlotMinutes = chatbotReservationSlotMinutes;
+    }
+
+    public String getChatbotReservationZoneId() {
+        return chatbotReservationZoneId;
+    }
+
+    public void setChatbotReservationZoneId(String chatbotReservationZoneId) {
+        this.chatbotReservationZoneId = chatbotReservationZoneId;
+    }
+
     public String getChatbotHeaderLogoUrl() { return chatbotHeaderLogoUrl; }
     public void setChatbotHeaderLogoUrl(String chatbotHeaderLogoUrl) { this.chatbotHeaderLogoUrl = chatbotHeaderLogoUrl; }
     public Long getChatbotAdminUserId() { return chatbotAdminUserId; }
     public void setChatbotAdminUserId(Long chatbotAdminUserId) { this.chatbotAdminUserId = chatbotAdminUserId; }
+
+    public String getChatbotCatalogListingGrant() {
+        return chatbotCatalogListingGrant;
+    }
+
+    public void setChatbotCatalogListingGrant(String chatbotCatalogListingGrant) {
+        this.chatbotCatalogListingGrant = chatbotCatalogListingGrant;
+    }
+
+    public String getChatbotCatalogListingEnabled() {
+        return chatbotCatalogListingEnabled;
+    }
+
+    public void setChatbotCatalogListingEnabled(String chatbotCatalogListingEnabled) {
+        this.chatbotCatalogListingEnabled = chatbotCatalogListingEnabled;
+    }
+
+    public Integer getChatbotMaxProductImagesGrant() {
+        return chatbotMaxProductImagesGrant;
+    }
+
+    public void setChatbotMaxProductImagesGrant(Integer chatbotMaxProductImagesGrant) {
+        this.chatbotMaxProductImagesGrant = chatbotMaxProductImagesGrant;
+    }
+
     public String getUrlPayAlertEmailYn() { return urlPayAlertEmailYn; }
     public void setUrlPayAlertEmailYn(String urlPayAlertEmailYn) { this.urlPayAlertEmailYn = urlPayAlertEmailYn; }
     public String getUrlPayLineNotifyToken() { return urlPayLineNotifyToken; }

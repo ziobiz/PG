@@ -40,9 +40,20 @@
       try {
         var pageH = window.location && window.location.hostname;
         var bu = new URL(b);
-        if (isIcopayAdminPageHost(pageH) && String(bu.hostname || '').toLowerCase() === 'api.icopay.co.kr') {
+        var bh = String(bu.hostname || '').toLowerCase();
+        var ph = String(pageH || '').toLowerCase();
+        if (isIcopayAdminPageHost(pageH) && bh === 'api.icopay.co.kr') {
           var og = (window.location.origin || '').replace(/\/$/, '').trim();
           if (og) return og;
+        }
+        /**
+         * www·대표 도메인은 통합 배포(동일 origin /api 프록시)일 수 있어 그대로 둔다.
+         * 그 외 *.icopay.co.kr 에서 PG_API_BASE 가 페이지와 같은 호스트면 정적 전용일 가능성이 높다.
+         */
+        if (isIcopayAdminPageHost(pageH) && ph === bh
+            && ph !== 'icopay.co.kr' && ph !== 'www.icopay.co.kr'
+            && /\.icopay\.co\.kr$/i.test(ph)) {
+          return publicApiRoot();
         }
       } catch (eBaseNorm) { /* ignore */ }
       return b;
@@ -667,11 +678,29 @@
         return r.data || { list: [], page: 1, size: 20, totalElements: 0, totalPages: 1 };
       });
     },
+    compChatbotKbCommerceHold: function (compId, hold) {
+      var body = new URLSearchParams({
+        compId: String(compId || '').trim(),
+        holdYn: hold === true || hold === 'Y' ? 'Y' : 'N'
+      });
+      var base = getBaseUrl();
+      var token = getToken();
+      var headers = { 'Content-Type': 'application/x-www-form-urlencoded', 'Accept': 'application/json' };
+      if (token) headers['Authorization'] = 'Bearer ' + token;
+      return fetch(base + '/api/comp/chatbotKb/commerceHold', { method: 'POST', headers: headers, body: body }).then(function (res) {
+        if (res.status === 401) { clearAuth(); if (window.location) window.location.replace((window.location.origin || '') + '/login.html'); return Promise.reject(new Error('인증이 만료되었습니다.')); }
+        return res.text().then(function (text) {
+          var r; try { r = text ? JSON.parse(text) : {}; } catch (e) { return Promise.reject(new Error('서버 응답 오류')); }
+          if (r.success === false && r.success !== undefined) throw new Error(r.message || '저장 실패');
+          return r.data || {};
+        });
+      });
+    },
     compChatbotKbSave: function (compId, fields) {
       var body = new URLSearchParams({ compId: String(compId || '').trim() });
       var f = fields || {};
-      ['chatbotKbCompanyNm', 'chatbotKbAddr', 'chatbotKbTel', 'chatbotKbEmail', 'chatbotKbContactNm', 'chatbotKbIntro', 'chatbotKbProductDesc'].forEach(function (k) {
-        if (f[k] != null) body.append(k, String(f[k]));
+      ['chatbotKbCompanyNm', 'chatbotKbAddr', 'chatbotKbTel', 'chatbotKbEmail', 'chatbotKbContactNm', 'chatbotKbWelcomeHint', 'chatbotKbIntro', 'chatbotKbProductDesc', 'chatbotOperationMode', 'chatbotReservationSlotMinutes', 'chatbotReservationZoneId', 'chatbotCatalogListingEnabled'].forEach(function (k) {
+        if (Object.prototype.hasOwnProperty.call(f, k) && f[k] != null) body.append(k, String(f[k]));
       });
       if (Object.prototype.hasOwnProperty.call(f, 'chatbotProductSlotLimit')) {
         body.append('chatbotProductSlotLimit', String(f.chatbotProductSlotLimit != null ? f.chatbotProductSlotLimit : ''));
@@ -1241,6 +1270,12 @@
     hqChatbotAiSettingsSave: function (body) {
       return post('/api/hq/chatbotAiSettings/save', body || {}).then(function (r) { return r.data; });
     },
+    chatbotOrdersList: function (compId) {
+      return get('/api/chatbot/orders', { compId: String(compId || '').trim() }).then(function (r) {
+        if (r.success === false && r.success !== undefined) throw new Error(r.message || '목록 실패');
+        return Array.isArray(r.data) ? r.data : [];
+      });
+    },
     chatbotProductsList: function (compId) {
       var params = {};
       if (compId != null && String(compId).trim() !== '') {
@@ -1257,9 +1292,17 @@
         if (r.success === false && r.success !== undefined) throw new Error(r.message || apiT('통화 정보 조회 실패', 'Currency lookup failed'));
         var raw = r.data || {};
         var fallback = ['JPY', 'KRW', 'USD', 'CNY', 'THB'];
+        var maxImg = raw.effectiveMaxProductImages != null ? parseInt(String(raw.effectiveMaxProductImages), 10) : 1;
+        if (isNaN(maxImg) || maxImg < 1) maxImg = 1;
+        if (maxImg > 4) maxImg = 4;
+        var allowedLt = Array.isArray(raw.allowedListingTypes) && raw.allowedListingTypes.length
+          ? raw.allowedListingTypes.map(function (x) { return String(x).trim().toUpperCase(); })
+          : ['SALE', 'RESERVATION_TIME', 'RESERVATION_PLACE'];
         return {
           defaultCurrency: raw.defaultCurrency ? String(raw.defaultCurrency).trim().toUpperCase() : 'KRW',
-          allowedCurrencies: Array.isArray(raw.allowedCurrencies) && raw.allowedCurrencies.length ? raw.allowedCurrencies.map(function (x) { return String(x).trim().toUpperCase(); }) : fallback
+          allowedCurrencies: Array.isArray(raw.allowedCurrencies) && raw.allowedCurrencies.length ? raw.allowedCurrencies.map(function (x) { return String(x).trim().toUpperCase(); }) : fallback,
+          effectiveMaxProductImages: maxImg,
+          allowedListingTypes: allowedLt
         };
       });
     },
@@ -1275,12 +1318,13 @@
         return !!(r.data === true || r.data === '' || r.data == null || r.success);
       });
     },
-    chatbotProductsUpload: function (compId, productId, file) {
+    chatbotProductsUpload: function (compId, productId, file, imageSlot) {
       var base = getBaseUrl();
       var token = getToken();
       var fd = new FormData();
       fd.append('compId', String(compId || '').trim());
       if (productId != null && String(productId).trim() !== '') fd.append('productId', String(productId).trim());
+      if (imageSlot != null && String(imageSlot).trim() !== '') fd.append('imageSlot', String(imageSlot).trim());
       fd.append('file', file);
       var headers = {};
       if (token) headers['Authorization'] = 'Bearer ' + token;

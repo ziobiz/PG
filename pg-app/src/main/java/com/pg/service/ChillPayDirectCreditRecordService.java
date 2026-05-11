@@ -49,17 +49,20 @@ public class ChillPayDirectCreditRecordService {
     private final SettlementCalcService settlementCalcService;
     private final HqLedgerSysSettingsService hqLedgerSysSettingsService;
     private final UrlPaySuccessAlertService urlPaySuccessAlertService;
+    private final MerchantChatbotOrderService merchantChatbotOrderService;
 
     public ChillPayDirectCreditRecordService(PgTrnsctnRepository pgTrnsctnRepository,
                                             OrgUnitRepository orgUnitRepository,
                                             SettlementCalcService settlementCalcService,
                                             HqLedgerSysSettingsService hqLedgerSysSettingsService,
-                                            UrlPaySuccessAlertService urlPaySuccessAlertService) {
+                                            UrlPaySuccessAlertService urlPaySuccessAlertService,
+                                            MerchantChatbotOrderService merchantChatbotOrderService) {
         this.pgTrnsctnRepository = pgTrnsctnRepository;
         this.orgUnitRepository = orgUnitRepository;
         this.settlementCalcService = settlementCalcService;
         this.hqLedgerSysSettingsService = hqLedgerSysSettingsService;
         this.urlPaySuccessAlertService = urlPaySuccessAlertService;
+        this.merchantChatbotOrderService = merchantChatbotOrderService;
     }
 
     /**
@@ -223,6 +226,11 @@ public class ChillPayDirectCreditRecordService {
         }
         t.setSettledYn("N");
         pgTrnsctnRepository.save(t);
+        try {
+            merchantChatbotOrderService.tryConfirmOrderAfterPaidTxn(t);
+        } catch (Exception ex) {
+            log.warn("챗봇 주문 확정 연동 실패(결제 적재는 유지) trnId={}: {}", t.getTrnId(), ex.getMessage());
+        }
         urlPaySuccessAlertService.scheduleAfterDirectCreditSave(t);
         if (paid && merchantId != null && !merchantId.isBlank() && !"UNKNOWN".equalsIgnoreCase(merchantId.trim())) {
             try {

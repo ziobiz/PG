@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
+  <!-- 자체 PG 호스트에 챗봇만 올릴 때: <html lang="ko" data-pg-chatbot-api-base="https://API루트"> -->
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
@@ -69,6 +70,12 @@
       display: none;
     }
     .cb-banner.show { display: block; }
+    /* 운영 보류: 헤더 바로결제 링크 비활성 표시 */
+    .cb-root .cb-bare-pay-hold.cb-menu-btn {
+      opacity: 0.45;
+      pointer-events: none;
+      cursor: not-allowed;
+    }
     .cb-header {
       flex: 0 0 auto;
       display: grid;
@@ -216,7 +223,7 @@
     .cb-shelf-label {
       font-size: 0.7rem;
       font-weight: 600;
-      color: #6c757d;
+      color: #a85a5a;
       text-transform: uppercase;
       letter-spacing: 0.04em;
       padding: 0 0.75rem 0.35rem;
@@ -301,6 +308,37 @@
       background: #ea580c;
     }
     .cb-pcard-btn.cb-pcard-btn-res:active { background: #c2410c; }
+    /* 프로모션 상단 카드 — 파스텔 레드 톤 */
+    .cb-pcard.cb-pcard--promo {
+      background: linear-gradient(168deg, #fffbfb 0%, #ffeef0 45%, #fff5f6 100%);
+      border: 1px solid rgba(230, 150, 150, 0.55);
+      box-shadow:
+        0 2px 14px rgba(190, 80, 90, 0.1),
+        0 0 0 1px rgba(255, 210, 210, 0.45) inset;
+    }
+    .cb-pcard.cb-pcard--promo .cb-pcard-img {
+      background: #f3d4d4;
+    }
+    .cb-pcard.cb-pcard--promo .cb-pcard-title {
+      color: #5c2a2a;
+    }
+    .cb-pcard.cb-pcard--promo .cb-pcard-amt {
+      color: #b84848;
+    }
+    .cb-pcard.cb-pcard--promo .cb-pcard-btn {
+      background: linear-gradient(180deg, #f2a8a8 0%, #e08080 100%);
+      color: #fff;
+      box-shadow: 0 1px 3px rgba(160, 50, 50, 0.2);
+    }
+    .cb-pcard.cb-pcard--promo .cb-pcard-btn:active {
+      background: linear-gradient(180deg, #e89898 0%, #d06060 100%);
+    }
+    .cb-pcard.cb-pcard--promo .cb-pcard-btn.cb-pcard-btn-res {
+      background: linear-gradient(180deg, #f0a090 0%, #dc6a58 100%);
+    }
+    .cb-pcard.cb-pcard--promo .cb-pcard-btn.cb-pcard-btn-res:active {
+      background: linear-gradient(180deg, #e08070 0%, #c55040 100%);
+    }
     .cb-thread {
       flex: 1 1 auto;
       overflow-y: auto;
@@ -350,6 +388,12 @@
       margin-left: auto;
       margin-right: auto;
       background: rgba(255, 255, 255, 0.22);
+    }
+    /* 어시스턴트가 노출하는 상품·안내 사진: 잘리지 않게 */
+    .cb-bubble .cb-bubble-media.cb-bubble-photo {
+      max-height: min(52vh, 320px);
+      object-fit: contain;
+      background: rgba(0, 0, 0, 0.06);
     }
     .cb-bubble .cb-bubble-cap {
       font-size: 0.81rem;
@@ -710,6 +754,18 @@
       border-bottom: 1px solid #f0f0f0;
       font-size: 0.8125rem;
     }
+    .cb-admin-prow.cb-admin-prow--inactive {
+      background: #e9ecef;
+      border-radius: 10px;
+      padding: 0.45rem 0.5rem;
+      margin-bottom: 0.25rem;
+      border-bottom: none;
+      color: #868e96;
+    }
+    .cb-admin-prow.cb-admin-prow--inactive strong,
+    .cb-admin-prow.cb-admin-prow--inactive small {
+      color: #868e96;
+    }
     .cb-admin-prow small {
       display: block;
       color: #888;
@@ -720,6 +776,7 @@
 <body>
   <div class="cb-root" id="chatbotPayRoot">
     <div id="chatbotBanner" class="alert alert-danger cb-banner" role="alert"></div>
+    <div id="cbCommerceHoldBar" class="alert alert-warning cb-banner py-2" role="status"></div>
 
     <header class="cb-header" aria-label="챗봇 헤더">
       <div class="cb-header-logo-wrap" id="cbHeaderLogoWrap" title="">
@@ -745,7 +802,7 @@
 
     <main class="cb-main">
       <div class="cb-shelf-wrap" id="cbShelfWrap">
-        <div class="cb-shelf-label">결제 상품</div>
+        <div class="cb-shelf-label" id="cbShelfLabel">프로모션</div>
         <div id="chatbotCatalogMount" class="cb-shelf" aria-label="상품 목록"></div>
       </div>
       <div id="chatbotThread" class="cb-thread" role="log" aria-live="polite"></div>
@@ -781,7 +838,55 @@
     </div>
   </div>
 
-  <script src="js/config.js?v=9"></script>
+  <div id="cbOrderSheet" class="cb-admin-sheet" style="z-index:110" aria-hidden="true">
+    <div class="cb-admin-panel" role="dialog" aria-labelledby="cbOrderTitle">
+      <div class="cb-admin-head">
+        <span id="cbOrderTitle">주문·결제</span>
+        <div>
+          <button type="button" id="cbOrderCloseBtn">닫기</button>
+        </div>
+      </div>
+      <div class="cb-admin-body" id="cbOrderBody">
+        <p class="small text-muted mb-2" id="cbOrderProdSummary"></p>
+        <div class="cb-admin-field">
+          <label for="cbOrderName">성명 (선택)</label>
+          <input type="text" id="cbOrderName" maxlength="100" autocomplete="name" placeholder="">
+        </div>
+        <div class="cb-admin-field">
+          <label for="cbOrderEmail">이메일</label>
+          <input type="email" id="cbOrderEmail" maxlength="120" autocomplete="email" required>
+        </div>
+        <div class="cb-admin-field">
+          <label for="cbOrderPhone">연락처(전화)</label>
+          <input type="tel" id="cbOrderPhone" maxlength="50" autocomplete="tel" required placeholder="010-0000-0000">
+        </div>
+        <div class="cb-admin-field">
+          <label for="cbOrderAddr">주소</label>
+          <textarea id="cbOrderAddr" rows="2" maxlength="600" required placeholder="방문·연락 가능 주소"></textarea>
+        </div>
+        <div class="cb-admin-field" id="cbOrderResWrap" style="display:none">
+          <label for="cbOrderResLocal" id="cbOrderResLocalLbl">예약 일시 <span class="text-muted" id="cbOrderZoneHint"></span></label>
+          <input type="datetime-local" id="cbOrderResLocal" step="60">
+        </div>
+        <div class="cb-admin-field" id="cbOrderCheckoutWrap" style="display:none">
+          <label for="cbOrderCheckoutDate">체크아웃 날짜 <span class="text-muted">(숙박·장소 예약, YYYY-MM-DD)</span></label>
+          <input type="date" id="cbOrderCheckoutDate">
+          <p class="small text-muted mb-0 mt-1" id="cbOrderPlaceStayHint"></p>
+        </div>
+        <div class="cb-admin-field">
+          <label for="cbOrderMemo">요청사항 (선택)</label>
+          <textarea id="cbOrderMemo" rows="2" maxlength="2000" placeholder=""></textarea>
+        </div>
+        <p class="cb-admin-msg" id="cbOrderErr" style="display:none"></p>
+        <div class="cb-admin-btn-row">
+          <button type="button" class="ghost" id="cbOrderCancelBtn">취소</button>
+          <button type="button" class="primary" id="cbOrderSubmitBtn">결제 페이지로</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/config.js?v=12"></script>
   <script>
     (function () {
       var h = (window.location && window.location.hostname) ? window.location.hostname : '';
@@ -797,15 +902,81 @@
     (function () {
       function apiBase() {
         try {
-          var host0 = (window.location && window.location.hostname) ? window.location.hostname : '';
+          var fromHtmlAttr = '';
+          try {
+            var rawAttr = document.documentElement
+              ? document.documentElement.getAttribute('data-pg-chatbot-api-base') : null;
+            fromHtmlAttr = rawAttr != null ? String(rawAttr).trim().replace(/\/$/, '') : '';
+          } catch (eAttr) { /* ignore */ }
+          if (fromHtmlAttr && /^https?:\/\//i.test(fromHtmlAttr)) {
+            return fromHtmlAttr;
+          }
+          var host0 = (window.location && window.location.hostname)
+            ? String(window.location.hostname).toLowerCase() : '';
+          if (host0 === 'localhost' || host0 === '127.0.0.1') {
+            var bLoc = (window.PG_API_BASE !== undefined && window.PG_API_BASE !== '')
+              ? String(window.PG_API_BASE).replace(/\/$/, '')
+              : String(window.location.origin || '').replace(/\/$/, '');
+            return bLoc;
+          }
           if (host0 === 'api.icopay.co.kr' && window.location.origin) {
             return String(window.location.origin).replace(/\/$/, '');
           }
-        } catch (e0) {}
+          var pubApi = (typeof window.PG_PUBLIC_ICOPAY_API === 'string' && window.PG_PUBLIC_ICOPAY_API)
+            ? String(window.PG_PUBLIC_ICOPAY_API).replace(/\/$/, '') : '';
+          var apiQs = '';
+          try {
+            apiQs = (new URLSearchParams(window.location.search || '').get('api') || '').trim().replace(/\/$/, '');
+          } catch (eSp) { /* ignore */ }
+          if (apiQs && /^https?:\/\//i.test(apiQs)) {
+            return apiQs;
+          }
+          var cur = String((window.PG_API_BASE !== undefined && window.PG_API_BASE !== '')
+            ? window.PG_API_BASE : '').replace(/\/$/, '');
+          var og = '';
+          try { og = String(window.location.origin || '').replace(/\/$/, ''); } catch (eOg) {}
+          var curHost = '';
+          try {
+            if (cur) curHost = String(new URL(cur).hostname || '').toLowerCase();
+          } catch (eU) { curHost = ''; }
+          /** PG_API_BASE 가 페이지와 다른 호스트면 자체·분리 배포로 간주하고 그대로 사용 */
+          if (cur && curHost && curHost !== host0) {
+            return cur;
+          }
+          var staticIcopay = host0 === 'icopay.co.kr' || host0 === 'www.icopay.co.kr'
+            || (!!host0 && host0 !== 'api.icopay.co.kr' && /\.icopay\.co\.kr$/i.test(host0));
+          var cafe = host0 && /\.cafe24\.com$/i.test(host0);
+          if (pubApi && (staticIcopay || cafe) && (!cur || cur === og)) {
+            return pubApi;
+          }
+          if (cur) return cur;
+          if (og) return og;
+          if (pubApi) return pubApi;
+        } catch (e0) { /* ignore */ }
         var b = (window.PG_API_BASE !== undefined && window.PG_API_BASE !== '')
           ? window.PG_API_BASE
           : (window.location.origin || '');
         return String(b).replace(/\/$/, '');
+      }
+
+      /** fetch 응답: HTTP 오류·비 JSON 본문 시 throw */
+      function readFetchJson(r) {
+        return r.text().then(function (txt) {
+          if (!r.ok) {
+            var erH = new Error('HTTP_' + (r && r.status));
+            erH.httpStatus = r && r.status;
+            erH.bodyPreview = String(txt || '').replace(/\s+/g, ' ').trim().slice(0, 200);
+            throw erH;
+          }
+          try {
+            return JSON.parse(txt);
+          } catch (eJ) {
+            var err = new Error('INVALID_JSON');
+            err.httpStatus = r && r.status;
+            err.bodyPreview = String(txt || '').replace(/\s+/g, ' ').trim().slice(0, 200);
+            throw err;
+          }
+        });
       }
 
       /** 기존 밑줄 링크(안내 저장 전)와 동일: `{api}/pay.html?m={compId}&entry=chatbot` */
@@ -815,14 +986,39 @@
         return apiBase().replace(/\/$/, '') + '/pay.html?m=' + encodeURIComponent(c) + '&entry=chatbot';
       }
 
+      window.cbCommerceHold = false;
+
+      function syncCbCommerceHoldUi(active) {
+        window.cbCommerceHold = !!active;
+        var hb = document.getElementById('cbCommerceHoldBar');
+        if (hb) {
+          if (window.cbCommerceHold) {
+            hb.textContent =
+              '운영 보류: 문의 채팅은 가능하지만 상품·예약·결제 기능은 일시 중지되었습니다.';
+            hb.classList.add('show');
+          } else {
+            hb.textContent = '';
+            hb.classList.remove('show');
+          }
+        }
+      }
+
       function syncChatbotBarePayHref() {
         var el = document.getElementById('chatbotBarePayLink');
         if (!el) return;
-        var u = barePayChatbotUrl();
-        if (u) {
-          el.setAttribute('href', u);
-        } else {
+        if (window.cbCommerceHold) {
+          el.classList.add('cb-bare-pay-hold');
           el.setAttribute('href', '#');
+          el.title = '운영 보류 중에는 이용할 수 없습니다.';
+        } else {
+          el.classList.remove('cb-bare-pay-hold');
+          el.removeAttribute('title');
+          var u = barePayChatbotUrl();
+          if (u) {
+            el.setAttribute('href', u);
+          } else {
+            el.setAttribute('href', '#');
+          }
         }
       }
 
@@ -842,6 +1038,100 @@
         return base + (raw.charAt(0) === '/' ? raw : '/' + raw);
       }
 
+      /** 봇 버블에 넣을 수 있는 이미지 src 만 허용(XSS 방지) */
+      function cbIsSafeAssistantImageUrl(u) {
+        var t = String(u || '').trim();
+        if (!t) return false;
+        if (/^javascript:/i.test(t)) return false;
+        if (/^data:image\//i.test(t)) return true;
+        if (/^blob:/i.test(t)) return true;
+        if (/^https?:\/\//i.test(t)) return true;
+        return t.charAt(0) === '/' && t.charAt(1) !== '/';
+      }
+
+      function cbCleanAssistantImgUrl(u) {
+        var x = String(u || '').trim().replace(/^<+|>+$/g, '').trim();
+        x = x.replace(/\]+$/g, '').replace(/\)+$/g, '').replace(/"+$/g, '').replace(/'+$/g, '').trim();
+        return x;
+      }
+
+      /** 단독 줄에 있는 업로드 경로를 마커로 바꿔 파서가 이미지로 인식하게 함 */
+      function cbAugmentBareChatbotImagePaths(s) {
+        return String(s || '').replace(
+          /(^|\n)\s*(\/uploads\/chatbot\/[^\s\n]+\.(?:png|jpe?g|gif|webp|svg))\s*(?=\n|$)/gi,
+          function (_, br, path) {
+            return br + '[이미지 URL: ' + path + ']';
+          }
+        );
+      }
+
+      /**
+       * 어시스턴트 문단에 포함된 이미지 마커를 순서대로 분리 (텍스트는 textContent 로만 출력).
+       */
+      function cbSplitAssistantContent(raw) {
+        var s = cbAugmentBareChatbotImagePaths(String(raw || ''));
+        var parts = [];
+        var re = /\[CHATBOT_GUEST_IMAGE:url=([^\]]+)\]|\[(?:이미지\s*URL|Image\s*URL|图片\s*URL)[:\s]*([^\]\n]+)\]|!\[[^\]]*\]\(([^)]+)\)/gi;
+        var last = 0;
+        var m;
+        while ((m = re.exec(s)) !== null) {
+          if (m.index > last) {
+            var chunk = s.slice(last, m.index).trim();
+            if (chunk) parts.push({ type: 'text', v: chunk });
+          }
+          var url = cbCleanAssistantImgUrl(m[1] || m[2] || m[3] || '');
+          if (url && cbIsSafeAssistantImageUrl(url)) parts.push({ type: 'img', v: url });
+          last = m.index + m[0].length;
+        }
+        if (last < s.length) {
+          var tail = s.slice(last).trim();
+          if (tail) parts.push({ type: 'text', v: tail });
+        }
+        if (!parts.length) parts.push({ type: 'text', v: s.trim() });
+        return parts;
+      }
+
+      function appendRichAssistantBubble(parts) {
+        var th = document.getElementById('chatbotThread');
+        if (!th) return;
+        var anyImg = parts.some(function (x) { return x.type === 'img'; });
+        var row = document.createElement('div');
+        row.className = 'cb-msg-row bot';
+        var bubble = document.createElement('div');
+        bubble.className = 'cb-bubble bot';
+        parts.forEach(function (p) {
+          if (p.type === 'img') {
+            var src = cbCleanAssistantImgUrl(p.v);
+            if (!cbIsSafeAssistantImageUrl(src)) return;
+            var im = document.createElement('img');
+            im.className = 'cb-bubble-media cb-bubble-photo';
+            im.alt = '';
+            im.loading = 'lazy';
+            im.src = absAsset(src);
+            im.onerror = function () {
+              try { bubble.removeChild(im); } catch (eRm) {}
+            };
+            bubble.appendChild(im);
+          } else if (p.type === 'text' && String(p.v || '').trim()) {
+            var cap = document.createElement('div');
+            cap.className = anyImg ? 'cb-bubble-cap' : '';
+            cap.textContent = String(p.v).trim();
+            bubble.appendChild(cap);
+          }
+        });
+        if (!bubble.childNodes.length) {
+          bubble.textContent = '(내용 없음)';
+        }
+        var time = document.createElement('span');
+        time.className = 'cb-time';
+        time.textContent = nowTimeLabel();
+        row.appendChild(bubble);
+        row.appendChild(time);
+        th.appendChild(row);
+        th.scrollTop = th.scrollHeight;
+        syncFab();
+      }
+
       function nowTimeLabel() {
         try {
           return new Date().toLocaleTimeString('ko-KR', { hour: 'numeric', minute: '2-digit' });
@@ -857,6 +1147,13 @@
         if (!th) return;
         var imgU = imageUrlOpt != null && String(imageUrlOpt).trim() !== '' ? String(imageUrlOpt).trim() : '';
         var txt = text != null ? String(text).trim() : '';
+        if (role !== 'user' && !imgU && txt) {
+          var splitParts = cbSplitAssistantContent(txt);
+          if (splitParts.some(function (p) { return p.type === 'img'; })) {
+            appendRichAssistantBubble(splitParts);
+            return;
+          }
+        }
         var row = document.createElement('div');
         row.className = 'cb-msg-row ' + (role === 'user' ? 'user' : 'bot');
         var bubble = document.createElement('div');
@@ -914,6 +1211,7 @@
       }
 
       var compId = (qsM() || '').trim();
+      window.cbPubReservation = { slotMinutes: 60, zoneId: 'Asia/Seoul' };
       var messages = [];
       var cbPendingProductImageUrl = '';
       /** 기본 인사 캐릭터 선택 직후 전송 시 버블에 SVG 스티커 표시용 */
@@ -935,6 +1233,13 @@
         if (!b) return;
         b.textContent = msg;
         b.classList.add('show');
+      }
+
+      function hideBanner() {
+        var b = document.getElementById('chatbotBanner');
+        if (!b) return;
+        b.textContent = '';
+        b.classList.remove('show');
       }
 
       function applyCatalogMeta(data) {
@@ -967,6 +1272,38 @@
           fb.textContent = (name ? name.charAt(0) : (compId ? compId.charAt(0) : '★'));
           if (img) img.style.display = 'none';
         }
+        try {
+          var sm = data && data.chatbotReservationSlotMinutes != null
+            ? parseInt(String(data.chatbotReservationSlotMinutes), 10) : 60;
+          if (isNaN(sm) || sm < 15) sm = 60;
+          var zid = (data && data.chatbotReservationZoneId != null && String(data.chatbotReservationZoneId).trim())
+            ? String(data.chatbotReservationZoneId).trim() : 'Asia/Seoul';
+          window.cbPubReservation = { slotMinutes: sm, zoneId: zid };
+        } catch (eResMeta) {
+          window.cbPubReservation = { slotMinutes: 60, zoneId: 'Asia/Seoul' };
+        }
+      }
+
+      function cbNormListingType(lt) {
+        var u = String(lt || '').trim().toUpperCase();
+        if (u === 'RESERVATION') return 'RESERVATION_TIME';
+        return u;
+      }
+      function cbIsReservationListing(it) {
+        var u = cbNormListingType(it && it.listingType);
+        return u === 'RESERVATION_TIME' || u === 'RESERVATION_PLACE';
+      }
+      function cbIsPlaceReservation(it) {
+        return cbNormListingType(it && it.listingType) === 'RESERVATION_PLACE';
+      }
+      function syncCheckoutMinFromCheckin() {
+        var rl = document.getElementById('cbOrderResLocal');
+        var co = document.getElementById('cbOrderCheckoutDate');
+        var cw = document.getElementById('cbOrderCheckoutWrap');
+        if (!rl || !co) return;
+        if (cw && cw.style.display === 'none') return;
+        var v = String(rl.value || '').trim();
+        if (v.length >= 10) co.min = v.slice(0, 10);
       }
 
       function renderCatalog(items) {
@@ -983,11 +1320,13 @@
           var title = String(it.title || '');
           var amt = String(it.amount || '');
           var cur = String(it.currencyCode || '').toUpperCase();
+          var isRes = cbIsReservationListing(it);
+          var isPl = cbIsPlaceReservation(it);
           var rawImg = String(it.imageUrl || '').trim();
           var allowImg = rawImg.startsWith('/') || /^https?:\/\//i.test(rawImg);
 
           var pc = document.createElement('article');
-          pc.className = 'cb-pcard';
+          pc.className = 'cb-pcard cb-pcard--promo';
           if (allowImg && rawImg) {
             var im = document.createElement('img');
             im.className = 'cb-pcard-img';
@@ -1019,18 +1358,185 @@
           var btn = document.createElement('button');
           btn.type = 'button';
           btn.className = 'cb-pcard-btn' + (isRes ? ' cb-pcard-btn-res' : '');
-          btn.textContent = isRes ? '예약·결제' : '결제';
-          btn.addEventListener('click', function () {
-            var iq = '?m=' + encodeURIComponent(compId) + '&entry=chatbot';
-            iq += '&item=' + encodeURIComponent(title.substring(0, 200));
-            iq += '&amount=' + encodeURIComponent(amt);
-            window.location.href = apiBase().replace(/\/$/, '') + '/pay.html' + iq;
-          });
+          if (window.cbCommerceHold) {
+            btn.disabled = true;
+            btn.textContent = '운영 보류';
+            btn.title = '운영 보류 중에는 주문·결제를 진행할 수 없습니다.';
+          } else {
+            btn.textContent = isPl ? '숙박 예약' : (isRes ? '예약·결제' : '결제');
+            btn.addEventListener('click', function () {
+              openOrderSheet(it);
+            });
+          }
           body.appendChild(btn);
           pc.appendChild(body);
           mount.appendChild(pc);
         });
       }
+
+      var cbOrderPendingItem = null;
+      function closeOrderSheet() {
+        var sh = document.getElementById('cbOrderSheet');
+        if (!sh) return;
+        sh.classList.remove('show');
+        sh.setAttribute('aria-hidden', 'true');
+        cbOrderPendingItem = null;
+      }
+      function openOrderSheet(item) {
+        if (window.cbCommerceHold) {
+          return;
+        }
+        cbOrderPendingItem = item || null;
+        var sh = document.getElementById('cbOrderSheet');
+        if (!sh || !cbOrderPendingItem) return;
+        var it = cbOrderPendingItem;
+        var title = String(it.title || '');
+        var amt = String(it.amount || '');
+        var cur = String(it.currencyCode || '').toUpperCase();
+        var isRes = cbIsReservationListing(it);
+        var isPl = cbIsPlaceReservation(it);
+        var sum = document.getElementById('cbOrderProdSummary');
+        if (sum) sum.textContent = title + ' · ' + amt + ' ' + cur;
+        var nameEl = document.getElementById('cbOrderName');
+        var emEl = document.getElementById('cbOrderEmail');
+        var phEl = document.getElementById('cbOrderPhone');
+        var adEl = document.getElementById('cbOrderAddr');
+        var mmEl = document.getElementById('cbOrderMemo');
+        var rlEl = document.getElementById('cbOrderResLocal');
+        if (nameEl) nameEl.value = '';
+        if (emEl) emEl.value = '';
+        if (phEl) phEl.value = '';
+        if (adEl) {
+          adEl.value = '';
+          adEl.placeholder = isPl ? '숙소 방문·체크인 안내 가능 주소' : '방문·연락 가능 주소';
+        }
+        if (mmEl) mmEl.value = '';
+        if (rlEl) rlEl.value = '';
+        var chkW = document.getElementById('cbOrderCheckoutWrap');
+        var chkIn = document.getElementById('cbOrderCheckoutDate');
+        var placeHint = document.getElementById('cbOrderPlaceStayHint');
+        if (chkIn) chkIn.value = '';
+        if (chkW) chkW.style.display = isPl ? '' : 'none';
+        if (placeHint) {
+          placeHint.textContent = isPl
+            ? '객실 타입·인원은 요청사항에 적어 주세요. 체크아웃을 비우면 상품에 설정된 슬롯(분)으로 숙박 구간을 계산합니다.'
+            : '';
+        }
+        var lblR = document.getElementById('cbOrderResLocalLbl');
+        var zone = (window.cbPubReservation && window.cbPubReservation.zoneId)
+          ? String(window.cbPubReservation.zoneId) : 'Asia/Seoul';
+        if (lblR) {
+          lblR.innerHTML = (isPl ? '체크인 일시' : '예약 일시')
+            + ' <span class="text-muted" id="cbOrderZoneHint"></span>';
+        }
+        var zh = document.getElementById('cbOrderZoneHint');
+        if (zh) zh.textContent = '(' + zone + ' 기준)';
+        var rw = document.getElementById('cbOrderResWrap');
+        if (rw) rw.style.display = isRes ? '' : 'none';
+        syncCheckoutMinFromCheckin();
+        var err = document.getElementById('cbOrderErr');
+        if (err) { err.style.display = 'none'; err.textContent = ''; }
+        sh.classList.add('show');
+        sh.setAttribute('aria-hidden', 'false');
+      }
+      function bindOrderSheetOnce() {
+        if (window._cbOrderSheetBound) return;
+        window._cbOrderSheetBound = true;
+        function goClose() { closeOrderSheet(); }
+        var c1 = document.getElementById('cbOrderCloseBtn');
+        var c2 = document.getElementById('cbOrderCancelBtn');
+        if (c1) c1.addEventListener('click', goClose);
+        if (c2) c2.addEventListener('click', goClose);
+        var rlChg = document.getElementById('cbOrderResLocal');
+        if (rlChg && !rlChg._cbCheckoutMinBound) {
+          rlChg._cbCheckoutMinBound = true;
+          rlChg.addEventListener('change', syncCheckoutMinFromCheckin);
+        }
+        var sub = document.getElementById('cbOrderSubmitBtn');
+        if (!sub) return;
+        sub.addEventListener('click', function () {
+          var err = document.getElementById('cbOrderErr');
+          if (err) { err.style.display = 'none'; err.textContent = ''; }
+          if (!compId || !cbOrderPendingItem) return;
+          var it = cbOrderPendingItem;
+          var pid = it.id;
+          if (pid == null || String(pid).trim() === '') {
+            if (err) { err.textContent = '상품 정보가 없습니다. 새로고침 후 다시 시도해 주세요.'; err.style.display = 'block'; }
+            return;
+          }
+          var ordererName = document.getElementById('cbOrderName')
+            ? String(document.getElementById('cbOrderName').value || '').trim() : '';
+          var ordererEmail = document.getElementById('cbOrderEmail')
+            ? String(document.getElementById('cbOrderEmail').value || '').trim() : '';
+          var ordererPhone = document.getElementById('cbOrderPhone')
+            ? String(document.getElementById('cbOrderPhone').value || '').trim() : '';
+          var ordererAddr = document.getElementById('cbOrderAddr')
+            ? String(document.getElementById('cbOrderAddr').value || '').trim() : '';
+          var orderMemo = document.getElementById('cbOrderMemo')
+            ? String(document.getElementById('cbOrderMemo').value || '').trim() : '';
+          if (!ordererEmail || ordererEmail.indexOf('@') < 0) {
+            if (err) { err.textContent = '유효한 이메일을 입력해 주세요.'; err.style.display = 'block'; }
+            return;
+          }
+          if (ordererPhone.length < 6) {
+            if (err) { err.textContent = '연락처(전화)를 입력해 주세요.'; err.style.display = 'block'; }
+            return;
+          }
+          if (ordererAddr.length < 4) {
+            if (err) { err.textContent = '주소를 입력해 주세요.'; err.style.display = 'block'; }
+            return;
+          }
+          var isRes2 = cbIsReservationListing(it);
+          var isPl2 = cbIsPlaceReservation(it);
+          var body = {
+            compId: String(compId).trim(),
+            productId: Number(pid),
+            ordererName: ordererName,
+            ordererEmail: ordererEmail,
+            ordererPhone: ordererPhone,
+            ordererAddr: ordererAddr,
+            orderMemo: orderMemo
+          };
+          if (isRes2) {
+            var rl = document.getElementById('cbOrderResLocal')
+              ? String(document.getElementById('cbOrderResLocal').value || '').trim() : '';
+            if (!rl) {
+              if (err) {
+                err.textContent = isPl2 ? '체크인 일시를 선택해 주세요.' : '예약 일시를 선택해 주세요.';
+                err.style.display = 'block';
+              }
+              return;
+            }
+            body.reservationLocal = rl;
+            if (isPl2) {
+              var co = document.getElementById('cbOrderCheckoutDate')
+                ? String(document.getElementById('cbOrderCheckoutDate').value || '').trim() : '';
+              if (co) body.reservationCheckoutLocal = co;
+            }
+          }
+          var root = apiBase().replace(/\/$/, '');
+          sub.disabled = true;
+          fetch(root + '/api/pub/chatbot/order-intent', {
+            method: 'POST',
+            mode: 'cors',
+            credentials: 'omit',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body)
+          }).then(readFetchJson).then(function (res) {
+            sub.disabled = false;
+            if (!res.success || !res.data || !res.data.payUrl) {
+              var msg = (res.message || '주문 처리에 실패했습니다.');
+              if (err) { err.textContent = msg; err.style.display = 'block'; }
+              return;
+            }
+            window.location.href = String(res.data.payUrl);
+          }).catch(function () {
+            sub.disabled = false;
+            if (err) { err.textContent = '네트워크 오류입니다.'; err.style.display = 'block'; }
+          });
+        });
+      }
+      bindOrderSheetOnce();
 
       var CB_ADMIN_HDR = 'X-PG-Chatbot-Admin-Token';
       function cbAdminTokKey() {
@@ -1201,10 +1707,11 @@
           fd.append('file', uploadFile, upNm);
           fetch(root + '/api/pub/chatbot/admin/products/upload', {
             method: 'POST',
+            mode: 'cors',
+            credentials: 'omit',
             headers: hdr,
-            body: fd,
-            credentials: 'same-origin'
-          }).then(function (r) { return r.json(); }).then(function (res) {
+            body: fd
+          }).then(readFetchJson).then(function (res) {
             finishReset();
             if (!res.success || !res.data || !res.data.url) {
               alert(res.message || '업로드에 실패했습니다.');
@@ -1286,6 +1793,8 @@
           go.disabled = true;
           fetch(root + '/api/pub/chatbot/admin/login', {
             method: 'POST',
+            mode: 'cors',
+            credentials: 'omit',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               compId: compId,
@@ -1293,9 +1802,7 @@
               password: pEl.value || '',
               totpCode: String(tEl.value || '').trim()
             })
-          }).then(function (r) {
-            return r.json();
-          }).then(function (res) {
+          }).then(readFetchJson).then(function (res) {
             go.disabled = false;
             if (res.success && res.data && res.data.token) {
               setCbAdminTok(String(res.data.token));
@@ -1318,11 +1825,10 @@
         if (!listEl) return;
         listEl.textContent = '불러오는 중…';
         fetch(root + '/api/pub/chatbot/admin/products?compId=' + encodeURIComponent(compId), {
-          headers: cbAdminHeaders(),
-          credentials: 'same-origin'
-        }).then(function (r) {
-          return r.json();
-        }).then(function (res) {
+          mode: 'cors',
+          credentials: 'omit',
+          headers: cbAdminHeaders()
+        }).then(readFetchJson).then(function (res) {
           listEl.innerHTML = '';
           if (!res.success) {
             listEl.textContent = res.message || '목록 오류';
@@ -1336,13 +1842,16 @@
           rows.forEach(function (row) {
             var id = row.id;
             var pr = document.createElement('div');
-            pr.className = 'cb-admin-prow';
+            pr.className = 'cb-admin-prow' + (row.useYn === 'N' ? ' cb-admin-prow--inactive' : '');
             var left = document.createElement('div');
-            var ltLbl = String(row.listingType || 'SALE').toUpperCase() === 'RESERVATION' ? '예약' : '판매';
+            var ltRaw = String(row.listingType || 'SALE').toUpperCase();
+            var ltN = ltRaw === 'RESERVATION' ? 'RESERVATION_TIME' : ltRaw;
+            var ltLbl = ltN === 'RESERVATION_PLACE' ? '숙박' : (ltN === 'RESERVATION_TIME' ? '예약' : '판매');
+            var promoTag = String(row.promotionShelfYn || '').toUpperCase() === 'Y' ? ' · 프로모션' : '';
             left.innerHTML = '<strong>' + escapeHtml(String(row.title || '')) + '</strong>' +
               '<small>#' + id + ' · ' + ltLbl + ' · ' + escapeHtml(String(row.amount || '')) + ' ' +
               escapeHtml(String(row.currencyCode || '').toUpperCase()) +
-              (row.useYn === 'N' ? ' · 숨김' : '') + '</small>';
+              (row.useYn === 'N' ? ' · 숨김' : '') + promoTag + '</small>';
             var del = document.createElement('button');
             del.type = 'button';
             del.className = 'ghost';
@@ -1355,11 +1864,10 @@
               if (!confirm('이 상품을 삭제할까요?')) return;
               fetch(root + '/api/pub/chatbot/admin/products/' + encodeURIComponent(String(id)) + '?compId=' + encodeURIComponent(compId), {
                 method: 'DELETE',
-                headers: cbAdminHeaders(),
-                credentials: 'same-origin'
-              }).then(function (r) {
-                return r.json();
-              }).then(function (r2) {
+                mode: 'cors',
+                credentials: 'omit',
+                headers: cbAdminHeaders()
+              }).then(readFetchJson).then(function (r2) {
                 if (!r2.success) {
                   alert(r2.message || '삭제 실패');
                   return;
@@ -1412,8 +1920,9 @@
           var root = apiBase().replace(/\/$/, '');
           fetch(root + '/api/pub/chatbot/admin/logout', {
             method: 'POST',
-            headers: cbAdminHeaders(),
-            credentials: 'same-origin'
+            mode: 'cors',
+            credentials: 'omit',
+            headers: cbAdminHeaders()
           }).finally(function () {
             setCbAdminTok('');
             renderCbAdminLogin('');
@@ -1451,7 +1960,8 @@
         listSel.style.maxWidth = '12rem';
         listSel.innerHTML =
           '<option value="SALE">판매 (일반)</option>' +
-          '<option value="RESERVATION">예약</option>';
+          '<option value="RESERVATION_TIME">예약 (시간·슬롯)</option>' +
+          '<option value="RESERVATION_PLACE">숙박·장소 (호텔·펜션)</option>';
         var listWrap = document.createElement('div');
         listWrap.className = 'cb-admin-field';
         listWrap.style.display = 'flex';
@@ -1510,6 +2020,22 @@
         ynLbl.appendChild(document.createTextNode(' 카탈로그에 노출'));
         ynRow.appendChild(ynLbl);
         body.appendChild(ynRow);
+        var promoRow = document.createElement('div');
+        promoRow.className = 'cb-admin-field';
+        var promoLbl = document.createElement('label');
+        var chkPromo = document.createElement('input');
+        chkPromo.type = 'checkbox';
+        chkPromo.checked = false;
+        promoLbl.appendChild(chkPromo);
+        promoLbl.appendChild(document.createTextNode(' 상단 프로모션에 표시'));
+        promoRow.appendChild(promoLbl);
+        var promoHint = document.createElement('p');
+        promoHint.style.margin = '0.25rem 0 0';
+        promoHint.style.fontSize = '0.72rem';
+        promoHint.style.color = '#6c757d';
+        promoHint.textContent = '체크 시 챗봇 첫 화면 상단 「프로모션」 카드에만 나옵니다.';
+        promoRow.appendChild(promoHint);
+        body.appendChild(promoRow);
         var saveRow = document.createElement('div');
         saveRow.className = 'cb-admin-btn-row';
         var saveBt = document.createElement('button');
@@ -1529,16 +2055,16 @@
             currencyCode: String(curIn.value || 'KRW').trim() || 'KRW',
             description: String(descIn.value || '').trim(),
             useYn: chk.checked ? 'Y' : 'N',
-            listingType: (listSel && listSel.value) ? String(listSel.value).trim().toUpperCase() : 'SALE'
+            listingType: (listSel && listSel.value) ? String(listSel.value).trim().toUpperCase() : 'SALE',
+            promotionShelfYn: chkPromo.checked ? 'Y' : 'N'
           };
           fetch(root + '/api/pub/chatbot/admin/products/save', {
             method: 'POST',
+            mode: 'cors',
+            credentials: 'omit',
             headers: cbAdminHeaders(),
-            credentials: 'same-origin',
             body: JSON.stringify(payload)
-          }).then(function (r) {
-            return r.json();
-          }).then(function (res) {
+          }).then(readFetchJson).then(function (res) {
             saveBt.disabled = false;
             if (!res.success) {
               err.textContent = res.message || '저장 실패';
@@ -1570,19 +2096,26 @@
           return Promise.resolve();
         }
         syncChatbotBarePayHref();
+        hideBanner();
         var root = apiBase().replace(/\/$/, '');
         return fetch(root + '/api/pub/chatbot/catalog?compId=' + encodeURIComponent(compId), {
-          credentials: 'same-origin'
-        }).then(function (r) { return r.json(); }).then(function (res) {
+          mode: 'cors',
+          credentials: 'omit'
+        }).then(readFetchJson).then(function (res) {
           if (!res.success) {
+            syncCbCommerceHoldUi(false);
+            syncChatbotBarePayHref();
             showBanner(res.message || '카탈로그를 불러올 수 없습니다.');
             var regBad = document.getElementById('cbRegisterMenuBtn');
             if (regBad) regBad.style.display = 'none';
-            return;
+            return null;
           }
+          hideBanner();
           var d = res.data || {};
+          syncCbCommerceHoldUi(!!d.chatbotCommerceHold);
+          syncChatbotBarePayHref();
           applyCatalogMeta(d);
-          renderCatalog(d.items || []);
+          renderCatalog(Array.isArray(d.promotionItems) ? d.promotionItems : []);
           var admBtn = document.getElementById('cbOpenAdminBtn');
           if (admBtn) {
             if (d.chatbotAdminConfigured === true) {
@@ -1598,10 +2131,18 @@
             regM.style.display = 'inline-flex';
           }
           syncAttachPlusTitle();
-        }).catch(function () {
-          showBanner('서버 연결 또는 응답 오류입니다.');
+          return d;
+        }).catch(function (errCat) {
+          var hint = '';
+          try {
+            if (errCat && errCat.httpStatus) {
+              hint = ' (HTTP ' + errCat.httpStatus + ')';
+            }
+          } catch (eH) { /* ignore */ }
+          showBanner('서버 연결 또는 응답 오류입니다.' + hint);
           var regErr = document.getElementById('cbRegisterMenuBtn');
           if (regErr) regErr.style.display = 'none';
+          return null;
         });
       }
 
@@ -1628,10 +2169,11 @@
         var pending = showTyping();
         fetch(apiBase().replace(/\/$/, '') + '/api/pub/chatbot/chat', {
           method: 'POST',
+          mode: 'cors',
+          credentials: 'omit',
           headers: { 'Content-Type': 'application/json' },
-          credentials: 'same-origin',
           body: JSON.stringify({ compId: compId, messages: messages.slice(-24) })
-        }).then(function (r) { return r.json(); }).then(function (res) {
+        }).then(readFetchJson).then(function (res) {
           removeTypingRow(pending);
           var reply = (res.success && res.data && res.data.reply != null)
             ? String(res.data.reply).trim()
@@ -1640,9 +2182,16 @@
           if (res.success && reply) messages.push({ role: 'assistant', content: reply });
           inp.disabled = false;
           inp.focus();
-        }).catch(function () {
+        }).catch(function (eChat) {
           removeTypingRow(pending);
-          appendMsg('assistant', '네트워크 오류');
+          var em = (eChat && eChat.message) ? String(eChat.message) : '';
+          var bubble = '네트워크 오류';
+          if (/^HTTP_\d+/.test(em)) {
+            bubble = '서버 응답 오류입니다. (' + em.replace('HTTP_', 'HTTP ') + ') 잠시 후 다시 시도해 주세요.';
+          } else if (em && em !== 'INVALID_JSON') {
+            bubble = em;
+          }
+          appendMsg('assistant', bubble);
           inp.disabled = false;
           inp.focus();
         });
@@ -1687,9 +2236,10 @@
           if (btn) btn.disabled = true;
           fetch(root + '/api/pub/chatbot/guestImageUpload', {
             method: 'POST',
-            body: fd,
-            credentials: 'same-origin'
-          }).then(function (r) { return r.json(); }).then(function (res) {
+            mode: 'cors',
+            credentials: 'omit',
+            body: fd
+          }).then(readFetchJson).then(function (res) {
             if (btn) btn.disabled = false;
             if (gfin) gfin.value = '';
             var u = res && res.data && res.data.url ? String(res.data.url).trim() : '';
@@ -1952,8 +2502,11 @@
 
       syncAttachPlusTitle();
 
-      loadCatalog().then(function () {
-        if (compId) appendMsg('assistant', '원하시는 상품을 위에서 고르시거나, 결제·상품에 대해 물어보세요.');
+      loadCatalog().then(function (d) {
+        if (!compId || !d) return;
+        var hint = String(d.chatbotWelcomeHint || '').trim();
+        if (!hint) hint = '상단 프로모션에서 대표 상품을 고르시거나, 채팅으로 결제·상품을 문의해 주세요.';
+        appendMsg('assistant', hint);
       });
     })();
   </script>

@@ -1,19 +1,27 @@
 package com.pg.service;
 
+import com.pg.chatbot.ChatbotCatalogPolicy;
+import com.pg.chatbot.ChatbotListingType;
+import com.pg.chatbot.ChatbotOperationMode;
+import com.pg.chatbot.ChatbotReservationCollectMode;
 import com.pg.entity.MerchantChatbotProduct;
 import com.pg.entity.MerchantProfile;
 import com.pg.entity.OrgLevel;
 import com.pg.entity.OrgUnit;
+import com.pg.repository.HqApiConfigRepository;
 import com.pg.repository.MerchantChatbotProductRepository;
 import com.pg.repository.MerchantProfileRepository;
 import com.pg.util.ChatbotProductPricingUtil;
 import com.pg.repository.OrgBrandingRepository;
 import com.pg.repository.OrgUnitRepository;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -25,17 +33,32 @@ public class MerchantChatbotProductService {
     private final MerchantProfileRepository merchantProfileRepository;
     private final OrgBrandingRepository orgBrandingRepository;
     private final OrgServiceUseService orgServiceUseService;
+    private final HqApiConfigRepository hqApiConfigRepository;
+    private final HqNotifyEnvService hqNotifyEnvService;
+    private final ChillPayService chillPayService;
+    private final UrlPayDisplayFxService urlPayDisplayFxService;
+    private final PaymentCurrencyScaleService paymentCurrencyScaleService;
 
     public MerchantChatbotProductService(MerchantChatbotProductRepository productRepository,
                                         OrgUnitRepository orgUnitRepository,
                                         MerchantProfileRepository merchantProfileRepository,
                                         OrgBrandingRepository orgBrandingRepository,
-                                        OrgServiceUseService orgServiceUseService) {
+                                        OrgServiceUseService orgServiceUseService,
+                                        HqApiConfigRepository hqApiConfigRepository,
+                                        HqNotifyEnvService hqNotifyEnvService,
+                                        ChillPayService chillPayService,
+                                        UrlPayDisplayFxService urlPayDisplayFxService,
+                                        PaymentCurrencyScaleService paymentCurrencyScaleService) {
         this.productRepository = productRepository;
         this.orgUnitRepository = orgUnitRepository;
         this.merchantProfileRepository = merchantProfileRepository;
         this.orgBrandingRepository = orgBrandingRepository;
         this.orgServiceUseService = orgServiceUseService;
+        this.hqApiConfigRepository = hqApiConfigRepository;
+        this.hqNotifyEnvService = hqNotifyEnvService;
+        this.chillPayService = chillPayService;
+        this.urlPayDisplayFxService = urlPayDisplayFxService;
+        this.paymentCurrencyScaleService = paymentCurrencyScaleService;
     }
 
     public long countProductsForMerchant(Long merchantOrgUnitId) {
@@ -99,7 +122,249 @@ public class MerchantChatbotProductService {
                 .map(mp -> mp.getChatbotAdminUserId() != null && mp.getChatbotAdminUserId() > 0)
                 .orElse(false);
         meta.put("chatbotAdminConfigured", chatbotAdminConfigured);
+        ChatbotOperationMode opMode = mpOpt
+                .map(mp -> ChatbotOperationMode.resolveStored(mp.getChatbotOperationMode()))
+                .orElse(ChatbotOperationMode.SALE_PREPAID);
+        meta.put("chatbotOperationMode", opMode.getCode());
+        meta.put("chatbotOperationModeLabelKo", opMode.getLabelKo());
+        meta.put("effectiveMaxProductImages", getEffectiveMaxProductImages(merchantOrgUnitId));
+        meta.put("allowedListingTypes", new ArrayList<>(effectiveListingTypesOrdered(merchantOrgUnitId)));
         return meta;
+    }
+
+    /**
+     * 브라우저가 열 결제 정적 페이지({@code /pay.html})용 공개 사이트 베이스 URL.
+     * {@code tb_hq_api_config.public_api_base_url} → 노티 {@code public_base_url} → 요청 Host 순.
+     */
+    public String resolvePublicCustomerSiteBase(HttpServletRequest req) {
+        String configured = hqApiConfigRepository.findAll().stream().findFirst()
+                .map(c -> c.getPublicApiBaseUrl() != null ? c.getPublicApiBaseUrl().trim() : "")
+                .orElse("");
+        configured = trimSlash(configured);
+        if (!configured.isBlank()) {
+            return configured;
+        }
+        String notifyBase = trimSlash(hqNotifyEnvService.getOrCreate().getPublicBaseUrl());
+        if (!notifyBase.isBlank()) {
+            return notifyBase;
+        }
+        if (req != null) {
+            return trimSlash(inferBaseFromRequest(req));
+        }
+        return "";
+    }
+
+    /**
+     * 카탈로그 각 행에 챗봇·URL 진입용 프리필 결제 링크({@code /pay.html?m=…&item=&amount=&currency=&entry=chatbot})를 붙입니다.
+     */
+    public void enrichPublicCatalogItemsWithPayUrls(List<Map<String, Object>> items, String compCode,
+                                                     HttpServletRequest req) {
+        if (items == null || items.isEmpty()) {
+            return;
+        }
+        String cid = compCode != null ? compCode.trim() : "";
+        if (cid.isEmpty()) {
+            return;
+        }
+        String base = resolvePublicCustomerSiteBase(req);
+        for (Map<String, Object> row : items) {
+            if (row == null) {
+                continue;
+            }
+            String title = row.get("title") != null ? String.valueOf(row.get("title")) : "";
+            String amount = row.get("amount") != null ? String.valueOf(row.get("amount")) : "";
+            String cur = row.get("currencyCode") != null ? String.valueOf(row.get("currencyCode")).trim().toUpperCase(Locale.ROOT) : "KRW";
+            String lt = row.get("listingType") != null ? String.valueOf(row.get("listingType")).trim() : "SALE";
+            boolean reservation = isReservationListingCode(lt);
+            boolean placeStay = ChatbotListingType.RESERVATION_PLACE.getCode().equalsIgnoreCase(lt);
+            row.put("urlPayPrefillUrl", buildPayHtmlPrefillUrl(base, cid, title, amount, cur));
+            if (placeStay) {
+                row.put("payLinkVerbKo", "숙박 예약하기");
+                row.put("payLinkVerbJa", "宿泊予約");
+            } else {
+                row.put("payLinkVerbKo", reservation ? "예약하기" : "구매하기");
+                row.put("payLinkVerbJa", reservation ? "予約する" : "購入する");
+            }
+        }
+    }
+
+    /**
+     * LLM이 금액·통화 안내를 할 때 사용할 URL 결제 체크아웃 요약(표시 통화 vs 청구 통화 등).
+     */
+    @Transactional(readOnly = true)
+    public Map<String, Object> urlPayFactsForChatbotLlm(Long merchantOrgUnitId) {
+        Map<String, Object> data = new LinkedHashMap<>();
+        if (merchantOrgUnitId == null) {
+            return data;
+        }
+        Map<String, Object> pres;
+        try {
+            pres = new LinkedHashMap<>(chillPayService.getUrlPayPresentationForCheckout(merchantOrgUnitId));
+        } catch (IllegalStateException ex) {
+            data.put("urlPayConfigured", false);
+            data.put("urlPayConfigurationHintKo",
+                    "이 가맹점은 URL 결제용 ChillPay 연동(운영·URL결제)이 없으면 결제 페이지가 열리지 않을 수 있습니다.");
+            return data;
+        }
+        data.put("urlPayConfigured", true);
+        data.putAll(pres);
+        String opPg = String.valueOf(data.getOrDefault("urlPayOperationalPgCd", ""));
+        resolveUrlPayCheckoutCurrencyCode(merchantOrgUnitId).ifPresent(cur ->
+                data.put("checkoutCurrencyCode", cur.trim().toUpperCase(Locale.ROOT)));
+        String pricingMode = String.valueOf(data.getOrDefault("urlPayPricingMode", "CHECKOUT_CURRENCY"));
+        boolean fxHq = urlPayDisplayFxService.isHqFeatureEnabled();
+        data.put("urlPayDisplayFxHqEnabled", fxHq);
+        if (UrlPayDisplayFxService.MODE_DISPLAY_FX_THB.equals(pricingMode) && fxHq) {
+            data.put("urlPayDisplayFxActive", true);
+            data.put("urlPayDisplayFxRefreshSeconds", urlPayDisplayFxService.refreshSeconds());
+            String setCur = urlPayDisplayFxService.settlementCurrencyForPg(opPg);
+            data.put("urlPaySettlementCurrencyCode", setCur);
+            data.put("urlPayDisplayFxDefaultDisplayCurrency", urlPayDisplayFxService.defaultDisplayCurrencyForPg(opPg));
+            data.put("urlPayDisplayFxDisplayCurrencyMulti", urlPayDisplayFxService.isDisplayCurrencyMultiForPg(opPg));
+            data.put("urlPayDisplayFxDisplayCurrencies", urlPayDisplayFxService.allowedDisplayCurrenciesForCheckout(opPg));
+            data.put("urlPayFxUiBlind", urlPayDisplayFxService.isUrlPayFxUiBlind(opPg));
+        } else {
+            data.put("urlPayDisplayFxActive", false);
+            data.put("urlPayFxUiBlind", false);
+        }
+        Object checkoutCurObj = data.get("checkoutCurrencyCode");
+        String checkoutCur = checkoutCurObj instanceof String ? (String) checkoutCurObj : null;
+        String scaleCur = checkoutCur;
+        if (Boolean.TRUE.equals(data.get("urlPayDisplayFxActive"))) {
+            Object scObj = data.get("urlPaySettlementCurrencyCode");
+            scaleCur = scObj instanceof String && !((String) scObj).isBlank() ? (String) scObj : "THB";
+        }
+        String scaleMode = paymentCurrencyScaleService.resolveModeForUi(opPg,
+                scaleCur != null && !scaleCur.isBlank() ? scaleCur : "");
+        data.put("urlPayAmountScaleMode", scaleMode);
+        data.put("urlPayCustomerCurrencyHintKo", buildUrlPayCustomerCurrencyHintKo(data));
+        data.remove("redirectPaymentPageUrl");
+        data.remove("paymentAppsrvV2Url");
+        data.remove("ccdScriptUrl");
+        return data;
+    }
+
+    private static String buildUrlPayCustomerCurrencyHintKo(Map<String, Object> data) {
+        String checkout = data.get("checkoutCurrencyCode") instanceof String
+                ? ((String) data.get("checkoutCurrencyCode")).trim().toUpperCase(Locale.ROOT) : "";
+        boolean fx = Boolean.TRUE.equals(data.get("urlPayDisplayFxActive"));
+        String settle = data.get("urlPaySettlementCurrencyCode") instanceof String
+                ? ((String) data.get("urlPaySettlementCurrencyCode")).trim().toUpperCase(Locale.ROOT) : "THB";
+        StringBuilder sb = new StringBuilder();
+        if (!checkout.isBlank()) {
+            sb.append("카탈로그 상품의 currencyCode는 고객에게 보여 주는 금액 단위 안내이며, 실제 카드 청구·결제 통화는 ")
+                    .append("checkoutCurrencyCode(").append(checkout).append(") 설정을 따릅니다. ");
+        }
+        if (fx) {
+            sb.append("본 가맹점 URL 결제는 표시 통화(예: JPY 등)로 금액을 입력·표시할 수 있으나, ")
+                    .append("실제 청구·정산은 ").append(settle).append(" 기준으로 처리되는 모드입니다. ")
+                    .append("최종 청구액은 결제 화면 단계에서 확인할 수 있습니다.");
+        } else if (sb.length() == 0) {
+            sb.append("상품 금액·통화는 카탈로그와 결제 화면을 동일하게 맞추어 안내하세요.");
+        }
+        return sb.toString().trim();
+    }
+
+    private static String buildPayHtmlPrefillUrl(String publicBaseTrimmed, String compCode,
+                                                 String title, String amountPlain, String currencyIso) {
+        StringBuilder q = new StringBuilder();
+        q.append("m=").append(urlEncode(compCode));
+        q.append("&entry=chatbot");
+        String t = title != null ? title.trim() : "";
+        if (!t.isEmpty()) {
+            q.append("&item=").append(urlEncode(t.length() > 500 ? t.substring(0, 500) : t));
+        }
+        String a = amountPlain != null ? amountPlain.trim() : "";
+        if (!a.isEmpty()) {
+            q.append("&amount=").append(urlEncode(a.length() > 40 ? a.substring(0, 40) : a));
+        }
+        String c = currencyIso != null ? currencyIso.trim().toUpperCase(Locale.ROOT) : "";
+        if (!c.isEmpty()) {
+            q.append("&currency=").append(urlEncode(c));
+        }
+        String path = "/pay.html?" + q;
+        String base = trimSlash(publicBaseTrimmed);
+        if (base.isBlank()) {
+            return path;
+        }
+        return base + path;
+    }
+
+    private static String urlEncode(String raw) {
+        return URLEncoder.encode(raw != null ? raw : "", StandardCharsets.UTF_8);
+    }
+
+    private static String trimSlash(String u) {
+        if (u == null) {
+            return "";
+        }
+        return u.trim().replaceAll("/+$", "");
+    }
+
+    private static String inferBaseFromRequest(HttpServletRequest req) {
+        String scheme = req.getHeader("X-Forwarded-Proto");
+        if (scheme == null || scheme.isBlank()) {
+            scheme = req.getScheme();
+        }
+        String host = req.getHeader("X-Forwarded-Host");
+        if (host == null || host.isBlank()) {
+            host = req.getServerName();
+            int port = req.getServerPort();
+            if (("http".equalsIgnoreCase(scheme) && port != 80)
+                    || ("https".equalsIgnoreCase(scheme) && port != 443)) {
+                host = host + ":" + port;
+            }
+        }
+        return scheme + "://" + host;
+    }
+
+    /** {@link com.pg.controller.api.ApiPayController} 와 동일 규칙 — URL 결제 체크아웃 통화. */
+    private Optional<String> resolveUrlPayCheckoutCurrencyCode(Long merchantOrgUnitId) {
+        Optional<String> own = firstProfileBaseCurrencyToken(merchantOrgUnitId);
+        if (own.isPresent()) {
+            return own;
+        }
+        Long cur = merchantOrgUnitId;
+        Set<Long> seen = new HashSet<>();
+        while (cur != null && seen.add(cur)) {
+            Optional<OrgUnit> ou = orgUnitRepository.findById(cur);
+            if (ou.isEmpty()) {
+                break;
+            }
+            OrgUnit u = ou.get();
+            if (u.getOrgLevel() == OrgLevel.MASTER_DIST) {
+                Optional<String> distCur = firstProfileBaseCurrencyToken(u.getId());
+                if (distCur.isPresent()) {
+                    return distCur;
+                }
+            }
+            cur = u.getParentId();
+        }
+        cur = merchantOrgUnitId;
+        seen.clear();
+        while (cur != null && seen.add(cur)) {
+            Optional<OrgUnit> ou = orgUnitRepository.findById(cur);
+            if (ou.isEmpty()) {
+                break;
+            }
+            OrgUnit u = ou.get();
+            if (u.getOrgLevel() == OrgLevel.REGIONAL) {
+                return firstProfileBaseCurrencyToken(u.getId());
+            }
+            cur = u.getParentId();
+        }
+        return Optional.empty();
+    }
+
+    private Optional<String> firstProfileBaseCurrencyToken(Long orgUnitId) {
+        if (orgUnitId == null) {
+            return Optional.empty();
+        }
+        return merchantProfileRepository.findByOrgUnitId(orgUnitId)
+                .map(MerchantProfile::getBaseCurrency)
+                .filter(s -> s != null && !s.isBlank())
+                .map(s -> s.split(",")[0].trim())
+                .filter(s -> !s.isEmpty());
     }
 
     private Optional<String> resolveInheritedBrandingLogoUrl(Long merchantOrgUnitId) {
@@ -155,6 +420,24 @@ public class MerchantChatbotProductService {
         return merchantProfileRepository.findByOrgUnitId(orgUnitId)
                 .map(mp -> "Y".equalsIgnoreCase(mp.getChatbotPaymentUseYn() != null ? mp.getChatbotPaymentUseYn().trim() : ""))
                 .orElse(false);
+    }
+
+    /** 상위 조직 「운영 보류」로 공개 카탈로그·주문 등 상업 기능이 막혀 있는지 */
+    @Transactional(readOnly = true)
+    public boolean isMerchantChatbotCommerceHold(Long orgUnitId) {
+        if (orgUnitId == null) {
+            return false;
+        }
+        return merchantProfileRepository.findByOrgUnitId(orgUnitId)
+                .map(mp -> "Y".equalsIgnoreCase(
+                        mp.getChatbotCommerceHoldYn() != null ? mp.getChatbotCommerceHoldYn().trim() : ""))
+                .orElse(false);
+    }
+
+    /** 챗봇결제 활성이면서 상업 기능(상품 노출·주문)이 허용된 상태 */
+    @Transactional(readOnly = true)
+    public boolean isChatbotCommercialFeaturesOpen(Long orgUnitId) {
+        return isChatbotPaymentOpenForMerchant(orgUnitId) && !isMerchantChatbotCommerceHold(orgUnitId);
     }
 
     @Transactional(readOnly = true)
@@ -215,7 +498,90 @@ public class MerchantChatbotProductService {
         Map<String, Object> m = new LinkedHashMap<>();
         m.put("allowedCurrencies", new ArrayList<>(ChatbotProductPricingUtil.BILLING_CURRENCIES));
         m.put("defaultCurrency", normalizeBillingDefaultCurrency(resolveEffectiveBaseCurrencyIso(ouOpt.get())));
+        Long mid = ouOpt.get().getId();
+        int maxImg = getEffectiveMaxProductImages(mid);
+        m.put("effectiveMaxProductImages", maxImg);
+        m.put("allowedListingTypes", new ArrayList<>(effectiveListingTypesOrdered(mid)));
         return m;
+    }
+
+    /**
+     * 조직 체인(총본사→…→가맹) 에서 명시된 이미지 상한 중 최소. 미지정 단계 무시. 전부 미지정이면 1.
+     */
+    @Transactional(readOnly = true)
+    public int getEffectiveMaxProductImages(Long merchantOrgUnitId) {
+        if (merchantOrgUnitId == null) {
+            return 1;
+        }
+        Integer min = null;
+        for (Long oid : orgChainRootFirst(merchantOrgUnitId)) {
+            Optional<MerchantProfile> mp = merchantProfileRepository.findByOrgUnitId(oid);
+            if (mp.isEmpty()) {
+                continue;
+            }
+            Integer raw = ChatbotCatalogPolicy.clampImageGrant(mp.get().getChatbotMaxProductImagesGrant());
+            if (raw != null) {
+                min = min == null ? raw : Math.min(min, raw);
+            }
+        }
+        return min != null ? min : 1;
+    }
+
+    /** 상위 교집합 후 가맹 활성 교집합. */
+    /** 가맹 실효 허용 카탈로그 유형 코드 집합 */
+    @Transactional(readOnly = true)
+    public LinkedHashSet<String> resolveEffectiveListingTypeCodes(Long merchantOrgUnitId) {
+        if (merchantOrgUnitId == null) {
+            return new LinkedHashSet<>(ChatbotCatalogPolicy.orderedAllListingCodes());
+        }
+        List<Long> chain = orgChainRootFirst(merchantOrgUnitId);
+        List<LinkedHashSet<String>> grants = new ArrayList<>();
+        for (Long oid : chain) {
+            merchantProfileRepository.findByOrgUnitId(oid).ifPresent(mp -> {
+                LinkedHashSet<String> seg = ChatbotCatalogPolicy.parseListingCsvOrNull(mp.getChatbotCatalogListingGrant());
+                if (seg != null) {
+                    grants.add(seg);
+                }
+            });
+        }
+        LinkedHashSet<String> mask = ChatbotCatalogPolicy.intersectGrants(grants);
+        LinkedHashSet<String> enabled = merchantProfileRepository.findByOrgUnitId(merchantOrgUnitId)
+                .map(m -> ChatbotCatalogPolicy.parseListingCsvOrNull(m.getChatbotCatalogListingEnabled()))
+                .orElse(null);
+        return ChatbotCatalogPolicy.intersectEnabled(mask, enabled);
+    }
+
+    private List<String> effectiveListingTypesOrdered(Long merchantOrgUnitId) {
+        LinkedHashSet<String> set = resolveEffectiveListingTypeCodes(merchantOrgUnitId);
+        List<String> out = new ArrayList<>();
+        for (String code : ChatbotCatalogPolicy.orderedAllListingCodes()) {
+            if (set.contains(code)) {
+                out.add(code);
+            }
+        }
+        return out;
+    }
+
+    /** 루트(최상위) → 가맹 순 */
+    private List<Long> orgChainRootFirst(Long orgUnitId) {
+        ArrayList<Long> tailFirst = new ArrayList<>();
+        Long cur = orgUnitId;
+        Set<Long> seen = new HashSet<>();
+        while (cur != null && seen.add(cur)) {
+            tailFirst.add(cur);
+            OrgUnit ou = orgUnitRepository.findById(cur).orElse(null);
+            cur = ou != null ? ou.getParentId() : null;
+        }
+        Collections.reverse(tailFirst);
+        return tailFirst;
+    }
+
+    private static boolean isReservationListingCode(String lt) {
+        if (lt == null || lt.isBlank()) {
+            return false;
+        }
+        Optional<ChatbotListingType> t = ChatbotListingType.fromCode(lt.trim());
+        return t.filter(ChatbotListingType::needsReservationWindow).isPresent();
     }
 
     /** 프로필 첫 토큰 → 없으면 상위 조직 체인에서 상속 (총판 기준통화 정책과 동일). */
@@ -285,15 +651,39 @@ public class MerchantChatbotProductService {
         m.put("amount", p.getAmount() != null ? p.getAmount().stripTrailingZeros().toPlainString() : "0");
         m.put("currencyCode", p.getCurrencyCode() != null ? p.getCurrencyCode() : "KRW");
         m.put("imageUrl", p.getImageUrl() != null ? p.getImageUrl() : "");
+        m.put("imageUrl2", nz(p.getImageUrl2()));
+        m.put("imageUrl3", nz(p.getImageUrl3()));
+        m.put("imageUrl4", nz(p.getImageUrl4()));
         m.put("sortOrder", p.getSortOrder() != null ? p.getSortOrder() : 0);
         m.put("useYn", yn(p.getUseYn()));
         m.put("hqCatalogBlockYn", yn(p.getHqCatalogBlockYn()));
         m.put("listingType", normalizeListingTypeStored(p.getListingType()));
+        m.put("reservationSlotMinutes", p.getReservationSlotMinutes() != null ? p.getReservationSlotMinutes() : "");
+        ChatbotReservationCollectMode cm = ChatbotReservationCollectMode.resolve(p.getReservationCollectMode());
+        m.put("reservationCollectMode", cm.getCode());
+        m.put("depositAmount", p.getDepositAmount() != null ? p.getDepositAmount().stripTrailingZeros().toPlainString() : "");
+        m.put("promotionShelfYn", yn(p.getPromotionShelfYn()));
+        m.put("imageUrls", imageUrlListForProduct(p));
         return m;
+    }
+
+    private static String nz(String s) {
+        return s != null ? s : "";
+    }
+
+    private static List<String> imageUrlListForProduct(MerchantChatbotProduct p) {
+        List<String> urls = new ArrayList<>();
+        for (String u : List.of(p.getImageUrl(), p.getImageUrl2(), p.getImageUrl3(), p.getImageUrl4())) {
+            if (u != null && !u.isBlank()) {
+                urls.add(u.trim());
+            }
+        }
+        return urls;
     }
 
     private Map<String, Object> toPublicMap(MerchantChatbotProduct p) {
         Map<String, Object> m = new LinkedHashMap<>();
+        m.put("id", p.getId());
         if (p.getProductCode() != null && !p.getProductCode().isBlank()) {
             m.put("productCode", p.getProductCode().trim());
         }
@@ -302,7 +692,23 @@ public class MerchantChatbotProductService {
         m.put("amount", p.getAmount() != null ? p.getAmount().stripTrailingZeros().toPlainString() : "0");
         m.put("currencyCode", p.getCurrencyCode() != null ? p.getCurrencyCode().trim().toUpperCase(Locale.ROOT) : "KRW");
         m.put("imageUrl", p.getImageUrl() != null ? p.getImageUrl() : "");
+        List<String> imgs = imageUrlListForProduct(p);
+        if (imgs.size() > 1) {
+            m.put("imageUrls", imgs);
+        }
         m.put("listingType", normalizeListingTypeStored(p.getListingType()));
+        if (p.getReservationSlotMinutes() != null) {
+            m.put("reservationSlotMinutes", p.getReservationSlotMinutes());
+        }
+        ChatbotReservationCollectMode cm = ChatbotReservationCollectMode.resolve(p.getReservationCollectMode());
+        if (ChatbotListingType.needsReservationWindow(ChatbotListingType.fromCode(normalizeListingTypeStored(p.getListingType())).orElse(ChatbotListingType.SALE))) {
+            m.put("reservationCollectMode", cm.getCode());
+            if (cm == ChatbotReservationCollectMode.DEPOSIT && p.getDepositAmount() != null) {
+                m.put("depositAmount", p.getDepositAmount().stripTrailingZeros().toPlainString());
+                m.put("checkoutAmountHint", p.getDepositAmount().stripTrailingZeros().toPlainString());
+            }
+        }
+        m.put("promotionShelfYn", yn(p.getPromotionShelfYn()));
         return m;
     }
 
@@ -394,6 +800,44 @@ public class MerchantChatbotProductService {
             if (body.containsKey("listingType")) {
                 p.setListingType(normalizeListingType(body.get("listingType")));
             }
+            if (body.containsKey("reservationSlotMinutes")) {
+                Integer rsm = parseIntObj(body.get("reservationSlotMinutes"));
+                if (rsm == null || rsm <= 0) {
+                    p.setReservationSlotMinutes(null);
+                } else {
+                    int clamped = Math.min(24 * 60, Math.max(15, rsm));
+                    p.setReservationSlotMinutes(clamped);
+                }
+            }
+            if (body.containsKey("promotionShelfYn")) {
+                p.setPromotionShelfYn(yn(str(body.get("promotionShelfYn"))));
+            }
+            if (body.containsKey("imageUrl2")) {
+                p.setImageUrl2(clampStoredUrl(str(body.get("imageUrl2"))));
+            }
+            if (body.containsKey("imageUrl3")) {
+                p.setImageUrl3(clampStoredUrl(str(body.get("imageUrl3"))));
+            }
+            if (body.containsKey("imageUrl4")) {
+                p.setImageUrl4(clampStoredUrl(str(body.get("imageUrl4"))));
+            }
+            if (isNew || body.containsKey("listingType") || body.containsKey("reservationCollectMode")
+                    || body.containsKey("depositAmount") || body.containsKey("amount")) {
+                applyReservationCollectFromBody(p, body);
+            }
+        }
+
+        String ltEff = normalizeListingTypeStored(p.getListingType());
+        LinkedHashSet<String> allowedLt = resolveEffectiveListingTypeCodes(orgUnitId);
+        if (!allowedLt.contains(ltEff)) {
+            throw new IllegalArgumentException(
+                    "상위·가맹 정책에서 허용되지 않는 상품 유형입니다: " + ltEff
+                            + ". 허용: " + ChatbotCatalogPolicy.joinListingCsv(allowedLt));
+        }
+        int maxImg = getEffectiveMaxProductImages(orgUnitId);
+        if (countFilledImageSlots(p) > maxImg) {
+            throw new IllegalArgumentException(
+                    "상품 이미지는 조직 설정 기준 최대 " + maxImg + "장까지 등록 가능합니다.");
         }
 
         if (saleCap > 0) {
@@ -411,6 +855,74 @@ public class MerchantChatbotProductService {
         }
 
         return toMap(productRepository.save(p));
+    }
+
+    private void applyReservationCollectFromBody(MerchantChatbotProduct p, Map<String, Object> body) {
+        ChatbotListingType lt = ChatbotListingType.fromCode(normalizeListingTypeStored(p.getListingType()))
+                .orElse(ChatbotListingType.SALE);
+        if (!ChatbotListingType.needsReservationWindow(lt)) {
+            p.setReservationCollectMode(ChatbotReservationCollectMode.FULL.getCode());
+            p.setDepositAmount(null);
+            return;
+        }
+        ChatbotReservationCollectMode cm = body != null && body.containsKey("reservationCollectMode")
+                ? ChatbotReservationCollectMode.resolve(str(body.get("reservationCollectMode")))
+                : ChatbotReservationCollectMode.resolve(p.getReservationCollectMode());
+        if (cm != ChatbotReservationCollectMode.DEPOSIT) {
+            p.setReservationCollectMode(ChatbotReservationCollectMode.FULL.getCode());
+            p.setDepositAmount(null);
+            return;
+        }
+        BigDecimal dep = parseDepositOptional(body != null ? body.get("depositAmount") : null, p.getDepositAmount());
+        if (dep == null || dep.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new IllegalArgumentException("예약금(DEPOSIT) 모드에는 예약금액을 0보다 크게 입력하세요.");
+        }
+        BigDecimal full = p.getAmount() != null ? p.getAmount() : BigDecimal.ZERO;
+        if (dep.compareTo(full) >= 0) {
+            throw new IllegalArgumentException("예약금은 상품 금액(전체)보다 작아야 합니다.");
+        }
+        p.setReservationCollectMode(ChatbotReservationCollectMode.DEPOSIT.getCode());
+        p.setDepositAmount(dep.setScale(4, RoundingMode.HALF_UP));
+    }
+
+    private static BigDecimal parseDepositOptional(Object bodyVal, BigDecimal fallback) {
+        if (bodyVal == null) {
+            return fallback;
+        }
+        String s = str(bodyVal);
+        if (s == null) {
+            return fallback;
+        }
+        try {
+            return new BigDecimal(s.trim().replace(",", "")).setScale(4, RoundingMode.HALF_UP);
+        } catch (Exception e) {
+            throw new IllegalArgumentException("예약금 형식이 올바르지 않습니다.");
+        }
+    }
+
+    private static int countFilledImageSlots(MerchantChatbotProduct p) {
+        int n = 0;
+        if (p.getImageUrl() != null && !p.getImageUrl().isBlank()) {
+            n++;
+        }
+        if (p.getImageUrl2() != null && !p.getImageUrl2().isBlank()) {
+            n++;
+        }
+        if (p.getImageUrl3() != null && !p.getImageUrl3().isBlank()) {
+            n++;
+        }
+        if (p.getImageUrl4() != null && !p.getImageUrl4().isBlank()) {
+            n++;
+        }
+        return n;
+    }
+
+    private static String clampStoredUrl(String s) {
+        if (s == null || s.isBlank()) {
+            return null;
+        }
+        String t = s.trim();
+        return t.length() > 512 ? t.substring(0, 512) : t;
     }
 
     /**
@@ -453,21 +965,18 @@ public class MerchantChatbotProductService {
     }
 
     private static String normalizeListingTypeStored(String stored) {
-        if (stored != null && "RESERVATION".equalsIgnoreCase(stored.trim())) {
-            return "RESERVATION";
-        }
-        return "SALE";
+        return ChatbotListingType.fromCode(stored != null ? stored : "")
+                .map(ChatbotListingType::getCode)
+                .orElse(ChatbotListingType.SALE.getCode());
     }
 
     private static String normalizeListingType(Object raw) {
         String s = str(raw);
         if (s == null) {
-            return "SALE";
+            return ChatbotListingType.SALE.getCode();
         }
-        return switch (s.trim().toUpperCase(Locale.ROOT)) {
-            case "RESERVATION", "RESERVE", "BOOKING" -> "RESERVATION";
-            default -> "SALE";
-        };
+        Optional<ChatbotListingType> t = ChatbotListingType.fromCode(s);
+        return t.map(ChatbotListingType::getCode).orElse(ChatbotListingType.SALE.getCode());
     }
 
     private static String str(Object o) {

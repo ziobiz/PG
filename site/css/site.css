@@ -4054,6 +4054,7 @@ button.pay-follow-pill:focus-visible {
 }
 .chatbot-kb-overview-outer #tbl_chatbot_kb_overview col.chatbot-kb-col-compid { width: 7%; }
 .chatbot-kb-overview-outer #tbl_chatbot_kb_overview col.chatbot-kb-col-compnm { width: 8%; }
+.chatbot-kb-overview-outer #tbl_chatbot_kb_overview col.chatbot-kb-col-opmode { width: 7.5rem; }
 .chatbot-kb-overview-outer #tbl_chatbot_kb_overview col.chatbot-kb-col-prodslot { width: 5.5rem; }
 .chatbot-kb-overview-outer #tbl_chatbot_kb_overview col.chatbot-kb-col-kbnm { width: 8%; }
 .chatbot-kb-overview-outer #tbl_chatbot_kb_overview col.chatbot-kb-col-tel { width: 7%; }
@@ -4061,8 +4062,16 @@ button.pay-follow-pill:focus-visible {
 .chatbot-kb-overview-outer #tbl_chatbot_kb_overview col.chatbot-kb-col-contact { width: 6%; }
 .chatbot-kb-overview-outer #tbl_chatbot_kb_overview col.chatbot-kb-col-addr { width: 11%; }
 .chatbot-kb-overview-outer #tbl_chatbot_kb_overview col.chatbot-kb-col-intro { width: 16%; }
-.chatbot-kb-overview-outer #tbl_chatbot_kb_overview col.chatbot-kb-col-product { width: 16%; }
+.chatbot-kb-overview-outer #tbl_chatbot_kb_overview col.chatbot-kb-col-product { width: 15%; }
+.chatbot-kb-overview-outer #tbl_chatbot_kb_overview col.chatbot-kb-col-commerce { width: 6.5rem; }
 .chatbot-kb-overview-outer #tbl_chatbot_kb_overview col.chatbot-kb-col-action { width: 4.5rem; }
+.chatbot-kb-overview-outer #tbl_chatbot_kb_overview .chatbot-kb-overview-commerce-cell {
+  vertical-align: middle;
+  text-align: center;
+}
+.chatbot-kb-overview-outer #tbl_chatbot_kb_overview .chatbot-kb-overview-commerce-cell .btn {
+  white-space: nowrap;
+}
 .chatbot-kb-overview-outer #tbl_chatbot_kb_overview th,
 .chatbot-kb-overview-outer #tbl_chatbot_kb_overview td {
   vertical-align: top;
@@ -4080,18 +4089,112 @@ button.pay-follow-pill:focus-visible {
   vertical-align: middle;
 }
 
-/* 챗봇 상품관리 — 가맹 로그인 시 본사 전용 열 숨김 */
+/* 챗봇 상품관리 — 가맹 로그인 시 본사 전용 열·등록폼 행 숨김 */
 .chatbot-prod-grid--merchant .hq-only-col {
   display: none !important;
 }
-/* 인라인 편집 그리드: 열 리사이즈 비활성(table-no-col-resize) + 이미지·설명 칸 최소 너비 */
-.chatbot-product-mng .chatbot-prod-grid {
+.chatbot-prod-register--merchant .hq-only-form {
+  display: none !important;
+}
+#contentsMain .chatbot-product-mng {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+}
+/* 리사이즈 전: auto / 적용 후: fixed(table-column-resize.js) — auto가 fixed를 덮지 않게 분리 */
+#contentsMain .chatbot-product-mng .chatbot-prod-grid:not(.pg-table-col-resize-enabled) {
   table-layout: auto;
 }
-.chatbot-product-mng .chatbot-prod-img-td {
-  min-width: 9.5rem;
-  max-width: 14rem;
-  vertical-align: top;
+#contentsMain .chatbot-product-mng .chatbot-prod-grid.pg-table-col-resize-enabled {
+  table-layout: fixed;
+  width: 100%;
+  max-width: 100%;
+}
+/* 등록된 상품: 좁은 뷰포트에서는 가로 스크롤로 열을 압착하지 않음(리사이즈 핸들은 래퍼 안에서만 약간 잘릴 수 있음) */
+#contentsMain .chatbot-product-mng .chatbot-prod-table-responsive {
+  overflow-x: auto;
+  width: 100%;
+  max-width: 100%;
+  -webkit-overflow-scrolling: touch;
+}
+/* 가맹 화면: 숨긴 본사 열에 대응하는 <col> 이 공간을 잡지 않도록 (JS 보조) */
+#contentsMain .chatbot-product-mng .chatbot-prod-grid--merchant.pg-table-col-resize-enabled colgroup.pg-col-resize-group col:nth-child(2),
+#contentsMain .chatbot-product-mng .chatbot-prod-grid--merchant.pg-table-col-resize-enabled colgroup.pg-col-resize-group col:nth-child(3),
+#contentsMain .chatbot-product-mng .chatbot-prod-grid--merchant.pg-table-col-resize-enabled colgroup.pg-col-resize-group col:nth-child(4) {
+  width: 0 !important;
+  min-width: 0 !important;
+  max-width: 0 !important;
+}
+#contentsMain .chatbot-product-mng .chatbot-prod-table-responsive > .table.chatbot-prod-grid {
+  min-width: 960px;
+  width: 100%;
+  max-width: 100%;
+}
+#contentsMain .chatbot-product-mng .chatbot-prod-table-responsive .chatbot-prod-grid thead th,
+#contentsMain .chatbot-product-mng .chatbot-prod-table-responsive .chatbot-prod-grid tbody td {
+  white-space: normal;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  min-width: 0;
+  vertical-align: middle;
+}
+/* 등록된 상품: 짧은 헤더는 세로 한 글자씩 쌓이지 않도록 한 줄 유지 */
+#contentsMain .chatbot-product-mng .chatbot-prod-table-responsive .chatbot-prod-grid thead th {
+  white-space: nowrap;
+}
+#contentsMain .chatbot-product-mng .chatbot-prod-table-responsive .chatbot-prod-grid tbody td {
+  white-space: normal;
+}
+/* 제목·설명은 너무 좁으면 한 글자씩 세로로 쌓이므로 하한을 둠 */
+#contentsMain .chatbot-product-mng .chatbot-prod-grid th.chatbot-prod-col-title,
+#contentsMain .chatbot-product-mng .chatbot-prod-grid td.chatbot-prod-col-title {
+  min-width: 10.5rem;
+}
+#contentsMain .chatbot-product-mng .chatbot-prod-grid th.chatbot-prod-col-desc,
+#contentsMain .chatbot-product-mng .chatbot-prod-grid td.chatbot-prod-col-desc {
+  min-width: 14rem;
+  max-width: 36rem;
+}
+#contentsMain .chatbot-product-mng .chatbot-prod-grid th.chatbot-prod-col-code,
+#contentsMain .chatbot-product-mng .chatbot-prod-grid td.chatbot-prod-col-code {
+  min-width: 5.5rem;
+}
+#contentsMain .chatbot-product-mng .chatbot-prod-grid th.chatbot-prod-col-listing,
+#contentsMain .chatbot-product-mng .chatbot-prod-grid td.chatbot-prod-col-listing {
+  min-width: 7.5rem;
+  max-width: 11rem;
+  white-space: normal;
+}
+#contentsMain .chatbot-product-mng .chatbot-prod-grid th.chatbot-prod-col-rescollect,
+#contentsMain .chatbot-product-mng .chatbot-prod-grid td.chatbot-prod-col-rescollect {
+  min-width: 7rem;
+  max-width: 9rem;
+  white-space: normal;
+}
+#contentsMain .chatbot-product-mng .chatbot-prod-grid th.chatbot-prod-col-amt,
+#contentsMain .chatbot-product-mng .chatbot-prod-grid td.chatbot-prod-col-amt {
+  min-width: 5rem;
+  max-width: 10rem;
+}
+#contentsMain .chatbot-product-mng .chatbot-prod-grid th.chatbot-prod-col-ccy,
+#contentsMain .chatbot-product-mng .chatbot-prod-grid td.chatbot-prod-col-ccy {
+  min-width: 3.5rem;
+  max-width: 5.5rem;
+  width: 4.5rem;
+  text-align: center;
+  white-space: nowrap;
+}
+.chatbot-product-mng .chatbot-prod-img-td,
+#contentsMain .chatbot-product-mng .chatbot-prod-grid thead th.chatbot-prod-col-img {
+  min-width: 5.5rem;
+  max-width: 9rem;
+  width: 7.5rem;
+  vertical-align: middle;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  word-break: normal;
+  overflow-wrap: normal;
 }
 .chatbot-product-mng .chatbot-field-desc {
   min-height: 2.75rem;
@@ -4100,4 +4203,33 @@ button.pay-follow-pill:focus-visible {
 .chatbot-product-mng .chatbot-prod-img-stack .chatbot-field-img {
   font-size: 0.75rem;
   word-break: break-all;
+}
+/* 챗봇 상품 — 판매중(useYn=Y 등) 행 스카이블루 (상품등록 목록) */
+.chatbot-product-mng .chatbot-prod-grid tbody tr.chatbot-prod-row--active td {
+  color: #1864ab !important;
+  background-color: #e7f5ff !important;
+  border-color: #d0ebff;
+}
+.chatbot-product-mng .chatbot-prod-grid tbody tr.chatbot-prod-row--active .chatbot-prod-ix {
+  color: #339af7 !important;
+}
+.chatbot-product-mng .chatbot-prod-grid tbody tr.chatbot-prod-row--active .btn-outline-primary {
+  border-color: #74c0fc;
+  color: #1971c2;
+}
+.chatbot-product-mng .chatbot-prod-grid tbody tr.chatbot-prod-row--active .btn-outline-danger {
+  border-color: #ffa8a8;
+  color: #c92a2a;
+}
+/* 챗봇 상품 — 판매상태 대기(useYn=N) 행 회색 */
+.chatbot-product-mng .chatbot-prod-grid tbody tr.chatbot-prod-row--inactive td {
+  color: #868e96 !important;
+  background-color: #f1f3f5 !important;
+  border-color: #dee2e6;
+}
+.chatbot-product-mng .chatbot-prod-grid tbody tr.chatbot-prod-row--inactive .chatbot-prod-ix {
+  color: #adb5bd !important;
+}
+.chatbot-product-mng .chatbot-prod-grid tbody tr.chatbot-prod-row--inactive .btn {
+  opacity: 0.9;
 }

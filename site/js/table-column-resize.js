@@ -8,6 +8,14 @@
   'use strict';
 
   var MIN_COL = 40;
+  /**
+   * grid_chatbot_products (thead/tbody 셀 DOM 순서, 0-based).
+   * 0# 1~3본사전용 4코드 5상품명 6판매·예약 7예약결제 8설명 9금액 10통화(상한) 11순서 12판매상태 13프로모션 14이미지 15관리
+   * 예약결제 열 추가 이전 인덱스(7=설명)와 어긋나면 설명 열이 극단적으로 좁아져 글자가 세로로 쌓임.
+   */
+  var CHATBOT_PROD_MIN_PX = { 4: 88, 5: 152, 6: 108, 7: 100, 8: 220, 9: 80, 11: 52, 12: 72, 13: 72, 14: 104, 15: 100 };
+  /** 통화·이미지 열이 비율 확대로 과도하게 넓어지는 것 방지 */
+  var CHATBOT_PROD_MAX_PX = { 10: 88, 14: 132 };
   var STORAGE_PREFIX = 'pg_col_w_';
   var applying = false;
   /** 동일 root 에 refreshIn 이 짧은 간격으로 여러 번 오면(페이지네이션·MutationObserver·finally) 한 번으로 합쳐 떨림 방지 */
@@ -81,6 +89,163 @@
     return !!(table && table.classList && table.classList.contains('pay-mng-data-grid'));
   }
 
+  /** 챗봇 상품관리 그리드: 가맹 로그인 시 hq 열이 display:none 인데도 <col> 이 남으면 표가 좁아짐 → 너비 보정 대상 */
+  function isChatbotProdGrid(table) {
+    return !!(table && table.classList && table.classList.contains('chatbot-prod-grid'));
+  }
+
+  /** tbody 기준 display:none 인 열은 <col> 폭 0 (가맹 화면 본사 전용 열 등) */
+  function zeroColsFromHiddenTheadCells(table, cols, n) {
+    var thead = table.querySelector('thead');
+    if (!thead || !thead.rows.length || !cols || cols.length !== n) {
+      return;
+    }
+    var lastRow = thead.rows[thead.rows.length - 1];
+    var payGrid = isPayMngDataGrid(table);
+    var idx = 0;
+    var j;
+    for (j = 0; j < lastRow.cells.length && idx < n; j++) {
+      var th = lastRow.cells[j];
+      var cs = parseInt(th.colSpan, 10) || 1;
+      if (global.getComputedStyle(th).display === 'none') {
+        for (var kh = 0; kh < cs && idx < n; kh++) {
+          if (payGrid) {
+            cols[idx].style.width = '';
+            cols[idx].style.minWidth = '0px';
+          } else {
+            cols[idx].style.minWidth = '';
+            cols[idx].style.width = '0px';
+            cols[idx].style.minWidth = '0px';
+          }
+          idx++;
+        }
+        continue;
+      }
+      idx += cs;
+    }
+  }
+
+  function snapHiddenColsToZero(table, cols) {
+    var n = cols.length;
+    var tr = table.querySelector('tbody tr');
+    var useBody = !!(tr && tr.cells && tr.cells.length === n);
+    if (useBody) {
+      var c0 = tr.cells[0];
+      if (c0 && c0.classList && c0.classList.contains('empty-state-cell')) {
+        useBody = false;
+      }
+    }
+    if (useBody) {
+      var payGrid = isPayMngDataGrid(table);
+      var i;
+      for (i = 0; i < cols.length; i++) {
+        var cell = tr.cells[i];
+        if (!cell) {
+          continue;
+        }
+        if (global.getComputedStyle(cell).display === 'none') {
+          if (payGrid) {
+            cols[i].style.width = '';
+            cols[i].style.minWidth = '0px';
+          } else {
+            cols[i].style.minWidth = '';
+            cols[i].style.width = '0px';
+            cols[i].style.minWidth = '0px';
+          }
+        }
+      }
+      return;
+    }
+    if (isChatbotProdGrid(table)) {
+      zeroColsFromHiddenTheadCells(table, cols, n);
+    }
+  }
+
+  /**
+   * 챗봇 상품 표: 가시 열의 <col> 픽셀 합이 래퍼보다 작으면 비율 확대 (오른쪽 빈 여백·과도한 줄바꿈 방지)
+   */
+  function normalizeChatbotProdColsFill(table, cols) {
+    if (!isChatbotProdGrid(table) || isPayMngDataGrid(table)) {
+      return;
+    }
+    var wrap = table.closest('.chatbot-prod-table-responsive');
+    if (!wrap) {
+      return;
+    }
+    var target = wrap.getBoundingClientRect().width;
+    if (target < 120) {
+      return;
+    }
+    target = Math.max(MIN_COL * 4, Math.round(target - 8));
+    var rects = cols.map(function (c) {
+      return c.getBoundingClientRect().width;
+    });
+    var sum = rects.reduce(function (a, b) {
+      return a + b;
+    }, 0);
+    /* 너무 미세한 여백만 있으면 건드리지 않음; 가시 열만 좁고 오른쪽이 크게 비는 경우만 확대 */
+    if (sum < 12 || sum >= target * 0.92) {
+      return;
+    }
+    var scale = target / sum;
+    var i;
+    for (i = 0; i < cols.length; i++) {
+      if (rects[i] <= 0.75) {
+        continue;
+      }
+      var floor = MIN_COL;
+      if (CHATBOT_PROD_MIN_PX[i] != null) {
+        floor = CHATBOT_PROD_MIN_PX[i];
+      }
+      var w = Math.max(floor, Math.round(rects[i] * scale));
+      if (CHATBOT_PROD_MAX_PX[i] != null && w > CHATBOT_PROD_MAX_PX[i]) {
+        w = CHATBOT_PROD_MAX_PX[i];
+      }
+      cols[i].style.minWidth = '';
+      cols[i].style.width = w + 'px';
+    }
+  }
+
+  /** 챗봇 상품 표: 가시 텍스트 열 <col> 너비 하한 (stored 폭·비율 확대 후에도 보장) */
+  function enforceChatbotProdReadableColMins(table, cols) {
+    if (!isChatbotProdGrid(table)) {
+      return;
+    }
+    var tr = table.querySelector('tbody tr');
+    if (!tr || !tr.cells || tr.cells.length !== cols.length) {
+      return;
+    }
+    var c0 = tr.cells[0];
+    if (c0 && c0.classList && c0.classList.contains('empty-state-cell')) {
+      return;
+    }
+    Object.keys(CHATBOT_PROD_MIN_PX).forEach(function (key) {
+      var i = parseInt(key, 10);
+      var minPx = CHATBOT_PROD_MIN_PX[i];
+      var cell = tr.cells[i];
+      if (!cell || global.getComputedStyle(cell).display === 'none') {
+        return;
+      }
+      var col = cols[i];
+      if (!col) {
+        return;
+      }
+      var cur = Math.round(col.getBoundingClientRect().width);
+      if (cur < minPx) {
+        col.style.minWidth = '';
+        col.style.width = minPx + 'px';
+      }
+      var maxPx = CHATBOT_PROD_MAX_PX[i];
+      if (maxPx != null) {
+        var cur2 = Math.round(col.getBoundingClientRect().width);
+        if (cur2 > maxPx) {
+          col.style.minWidth = '';
+          col.style.width = maxPx + 'px';
+        }
+      }
+    });
+  }
+
   function countDataColumns(table) {
     var tr = table.querySelector('tbody tr');
     if (tr && tr.cells && tr.cells.length) {
@@ -138,9 +303,16 @@
       if (!raw) return;
       var arr = JSON.parse(raw);
       if (!Array.isArray(arr) || arr.length !== cols.length) return;
+      var chatbotProd = isChatbotProdGrid(table);
       for (var i = 0; i < arr.length; i++) {
         var w = Number(arr[i]);
         if (isNaN(w) || w < MIN_COL) continue;
+        if (chatbotProd && CHATBOT_PROD_MIN_PX[i] != null && w < CHATBOT_PROD_MIN_PX[i]) {
+          continue;
+        }
+        if (chatbotProd && CHATBOT_PROD_MAX_PX[i] != null && w > CHATBOT_PROD_MAX_PX[i]) {
+          continue;
+        }
         if (payGrid) {
           cols[i].style.width = '';
           cols[i].style.minWidth = w + 'px';
@@ -181,6 +353,17 @@
         if (!cell) {
           continue;
         }
+        if (global.getComputedStyle(cell).display === 'none') {
+          if (payGrid) {
+            cols[i].style.width = '';
+            cols[i].style.minWidth = '0px';
+          } else {
+            cols[i].style.minWidth = '';
+            cols[i].style.width = '0px';
+            cols[i].style.minWidth = '0px';
+          }
+          continue;
+        }
         var px = Math.max(MIN_COL, Math.round(cell.getBoundingClientRect().width));
         if (payGrid) {
           cols[i].style.width = '';
@@ -201,6 +384,20 @@
     for (var j = 0; j < lastRow.cells.length && idx < n; j++) {
       var th = lastRow.cells[j];
       var cs = parseInt(th.colSpan, 10) || 1;
+      if (global.getComputedStyle(th).display === 'none') {
+        for (var kh = 0; kh < cs && idx < n; kh++) {
+          if (payGrid) {
+            cols[idx].style.width = '';
+            cols[idx].style.minWidth = '0px';
+          } else {
+            cols[idx].style.minWidth = '';
+            cols[idx].style.width = '0px';
+            cols[idx].style.minWidth = '0px';
+          }
+          idx++;
+        }
+        continue;
+      }
       var rw = Math.max(MIN_COL * cs, Math.round(th.getBoundingClientRect().width));
       var per = Math.max(MIN_COL, Math.round(rw / cs));
       for (var k = 0; k < cs && idx < n; k++) {
@@ -231,8 +428,13 @@
     var id = table.id || '';
     if (!id || id.indexOf('grid_') !== 0) return;
     try {
-      var arr = cols.map(function (c) {
-        return Math.round(c.getBoundingClientRect().width);
+      var chatbotProd = isChatbotProdGrid(table);
+      var arr = cols.map(function (c, i) {
+        var w = Math.round(c.getBoundingClientRect().width);
+        if (chatbotProd && CHATBOT_PROD_MIN_PX[i] != null) {
+          w = Math.max(w, CHATBOT_PROD_MIN_PX[i]);
+        }
+        return w;
       });
       global.localStorage.setItem(STORAGE_PREFIX + id, JSON.stringify(arr));
     } catch (e) { /* ignore */ }
@@ -304,6 +506,9 @@
       document.removeEventListener('touchend', onUp, true);
       document.body.style.cursor = '';
       document.body.style.userSelect = '';
+      if (isChatbotProdGrid(table)) {
+        enforceChatbotProdReadableColMins(table, cols);
+      }
       saveWidths(table, cols);
     }
     document.body.style.cursor = 'col-resize';
@@ -408,11 +613,14 @@
     if (cols.length !== n) return;
 
     applyStoredWidths(table, cols);
+    snapHiddenColsToZero(table, cols);
     /* fixed 적용 전에 셀 너비를 읽어 <col>에 넣지 않으면 열이 과도하게 압축되어 nowrap 셀이 겹쳐 보임 */
     function applyFixedAndHandles() {
       applying = true;
       try {
         seedMissingColWidthsFromDom(table, cols, n);
+        normalizeChatbotProdColsFill(table, cols);
+        enforceChatbotProdReadableColMins(table, cols);
         table.classList.add('pg-table-col-resize-enabled');
         attachHandles(table, cols, n);
       } finally {

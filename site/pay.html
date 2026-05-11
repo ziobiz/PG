@@ -191,7 +191,7 @@
     </div>
   </div>
 
-  <script src="js/config.js?v=9"></script>
+  <script src="js/config.js?v=12"></script>
   <script>
     (function () {
       var h = (window.location && window.location.hostname) ? window.location.hostname : '';
@@ -326,6 +326,11 @@
             if (want && curSel && want !== curSel && window.console && console.warn) {
               console.warn('URL currency param ignored (checkout currency is ' + curSel + ')');
             }
+          }
+          var ordq = (p.get('orderNo') || p.get('OrderNo') || '').trim();
+          if (ordq) {
+            var ordEl = document.getElementById('orderNo');
+            if (ordEl && ordq.length <= 20) ordEl.value = ordq;
           }
         } catch (eQp) { /* ignore */ }
       }

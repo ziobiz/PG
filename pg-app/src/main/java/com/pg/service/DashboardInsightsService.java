@@ -115,13 +115,24 @@ public class DashboardInsightsService {
         LocalDateTime yesterdayStart = today.minusDays(1).atStartOfDay();
         RiskBuckets bToday = loadRiskBuckets(unrestricted, merchantScopeNonNull, dayStart, weekNextStart);
         RiskBuckets bYesterday = loadRiskBuckets(unrestricted, merchantScopeNonNull, yesterdayStart, dayStart);
+        Map<String, Object> todayTxn = loadTxnAgg(unrestricted, merchantScopeNonNull, dayStart, weekNextStart);
+        Map<String, Object> yesterdayTxn = loadTxnAgg(unrestricted, merchantScopeNonNull, yesterdayStart, dayStart);
+        List<Map<String, Object>> todayByCur = loadApprovedByCurrency(unrestricted, merchantScopeNonNull, dayStart, weekNextStart);
+        List<Map<String, Object>> yesterdayByCur = loadApprovedByCurrency(unrestricted, merchantScopeNonNull, yesterdayStart, dayStart);
+
         Map<String, Object> kpi = new LinkedHashMap<>();
+        kpi.put("todayTxnTotal", todayTxn.get("txnTotal"));
+        kpi.put("todayTxnApproved", todayTxn.get("txnApproved"));
+        kpi.put("todayApprovedByCurrency", todayByCur);
         kpi.put("todayFailures", bToday.fail);
         kpi.put("todayVoids", bToday.voidFamily);
         kpi.put("todayRefunds", bToday.refund);
         kpi.put("todayCancels", bToday.cancel);
 
         Map<String, Object> kpiY = new LinkedHashMap<>();
+        kpiY.put("yesterdayTxnTotal", yesterdayTxn.get("txnTotal"));
+        kpiY.put("yesterdayTxnApproved", yesterdayTxn.get("txnApproved"));
+        kpiY.put("yesterdayApprovedByCurrency", yesterdayByCur);
         kpiY.put("yesterdayFailures", bYesterday.fail);
         kpiY.put("yesterdayVoids", bYesterday.voidFamily);
         kpiY.put("yesterdayRefunds", bYesterday.refund);
@@ -198,6 +209,9 @@ public class DashboardInsightsService {
 
     private static Map<String, Object> emptyKpi() {
         Map<String, Object> k = new LinkedHashMap<>();
+        k.put("todayTxnTotal", 0L);
+        k.put("todayTxnApproved", 0L);
+        k.put("todayApprovedByCurrency", List.of());
         k.put("todayFailures", 0L);
         k.put("todayVoids", 0L);
         k.put("todayRefunds", 0L);
@@ -211,6 +225,9 @@ public class DashboardInsightsService {
 
     private static Map<String, Object> emptyKpiYesterday() {
         Map<String, Object> k = new LinkedHashMap<>();
+        k.put("yesterdayTxnTotal", 0L);
+        k.put("yesterdayTxnApproved", 0L);
+        k.put("yesterdayApprovedByCurrency", List.of());
         k.put("yesterdayFailures", 0L);
         k.put("yesterdayVoids", 0L);
         k.put("yesterdayRefunds", 0L);
@@ -221,8 +238,8 @@ public class DashboardInsightsService {
     private static Map<String, String> defaultExplainers() {
         Map<String, String> m = new LinkedHashMap<>();
         m.put("riskScore", "최근 7일(오늘 포함) 실패·무효·환불·취소 건수에 가중치를 둔 규칙 점수입니다. 지난 7일 대비 증감은 동일 규칙으로 비교합니다.");
-        m.put("kpiStrip", "오늘 0시 이후 결제일시 기준 건수와, 미수(PENDING)·노티 미매핑·정산보류/지급보류 행 수입니다.");
-        m.put("kpiStripYesterday", "전일 0시~24시(당일 0시 직전) 결제일시 기준 실패·무효·환불·취소 건수입니다. 미수·노티 등은 시점 스냅샷이 없어 제외합니다.");
+        m.put("kpiStrip", "오늘 0시 이후 결제일시 기준 성공(상태 10) 건수·통화별 승인금액 합, 전체 거래 건수, 실패·무효·환불·취소 건수이며, 미수(PENDING)·노티 미매핑·정산보류/지급보류 행 수가 함께 포함됩니다.");
+        m.put("kpiStripYesterday", "전일 0시~24시(당일 0시 직전) 결제일시 기준 성공(상태 10) 건수·통화별 승인금액 합, 전체 거래 건수, 실패·무효·환불·취소 건수입니다. 미수·노티 등은 시점 스냅샷이 없어 제외합니다.");
         m.put("timeline", "정산 실행 생성·미수금 생성·노티 미처리(매핑 외) 중 최근 이벤트입니다.");
         m.put("priorityQueue", "규칙으로 정렬한 오늘 확인 권장 항목이며, 클릭 시 관리 화면으로 이동합니다.");
         m.put("anomalies", "지난 7일 환불·강제환불 건수 상위 가맹(식별자 마스킹)입니다.");
@@ -236,6 +253,60 @@ public class DashboardInsightsService {
                 : pgTrnsctnRepository.dashboardRiskBucketsMerchants(from, toEx, mids);
         Object[] row = DashboardTupleRows.normalizeRow(raw);
         return RiskBuckets.fromRow(row);
+    }
+
+    /** {@link PgTrnsctnRepository#dashboardAggregateAll} 와 동일: 결제일시 COALESCE(paid_at, created_at), 상한 toExclusive 미포함. */
+    private Map<String, Object> loadTxnAgg(boolean unrestricted, Set<String> mids, LocalDateTime fromInclusive, LocalDateTime toExclusive) {
+        Object raw = unrestricted
+                ? pgTrnsctnRepository.dashboardAggregateAll(fromInclusive, toExclusive)
+                : pgTrnsctnRepository.dashboardAggregateForMerchants(fromInclusive, toExclusive, mids);
+        Object[] row = DashboardTupleRows.normalizeRow(raw);
+        long total = DashboardTupleRows.readLong(row != null && row.length > 0 ? row[0] : null);
+        long appr = DashboardTupleRows.readLong(row != null && row.length > 1 ? row[1] : null);
+        BigDecimal sum = DashboardTupleRows.readDecimal(row != null && row.length > 2 ? row[2] : null);
+        Map<String, Object> m = new LinkedHashMap<>();
+        m.put("txnTotal", total);
+        m.put("txnApproved", appr);
+        m.put("amtApprovedSum", sum.setScale(2, RoundingMode.HALF_UP));
+        return m;
+    }
+
+    /**
+     * 성공(승인)만 통화별로 분해. {@link PgTrnsctnRepository#dashboardAggregateByCurrencyAll} — 청구 통화(curType) 기준, 승인 건이 있는 통화만 포함.
+     */
+    private List<Map<String, Object>> loadApprovedByCurrency(boolean unrestricted, Set<String> mids,
+                                                             LocalDateTime fromInclusive, LocalDateTime toExclusive) {
+        if (!unrestricted && (mids == null || mids.isEmpty())) {
+            return List.of();
+        }
+        List<Object[]> rawRows = unrestricted
+                ? pgTrnsctnRepository.dashboardAggregateByCurrencyAll(fromInclusive, toExclusive)
+                : pgTrnsctnRepository.dashboardAggregateByCurrencyForMerchants(fromInclusive, toExclusive, mids);
+        List<Map<String, Object>> out = new ArrayList<>();
+        for (Object[] raw : rawRows) {
+            Object[] row = DashboardTupleRows.normalizeRow(raw);
+            if (row == null || row.length < 4) {
+                continue;
+            }
+            String cur = row[0] != null ? row[0].toString().trim() : "";
+            if (cur.isEmpty()) {
+                cur = "KRW";
+            } else {
+                cur = cur.toUpperCase(Locale.ROOT);
+            }
+            long appr = DashboardTupleRows.readLong(row[2]);
+            BigDecimal amt = DashboardTupleRows.readDecimal(row[3]);
+            if (appr <= 0 && amt.compareTo(BigDecimal.ZERO) == 0) {
+                continue;
+            }
+            Map<String, Object> line = new LinkedHashMap<>();
+            line.put("currency", cur);
+            line.put("txnApproved", appr);
+            line.put("amtApprovedSum", amt.setScale(8, RoundingMode.HALF_UP));
+            out.add(line);
+        }
+        out.sort(Comparator.comparing(m -> String.valueOf(m.get("currency"))));
+        return out;
     }
 
     private Object[] pendingReceivableStats(boolean unrestricted, Set<String> mids) {

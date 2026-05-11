@@ -78,25 +78,45 @@
     var onIcopayAdminHost = host && host !== 'localhost' && host !== '127.0.0.1' && host !== 'api.icopay.co.kr'
         && (host === 'icopay.co.kr' || /\.icopay\.co\.kr$/i.test(host));
     if (onIcopayAdminHost) {
-      var savedPointsToApiSub = false;
-      if (savedTrim) {
-        try {
-          var parsedSaved = new URL(savedTrim);
-          savedPointsToApiSub = String(parsedSaved.hostname || '').toLowerCase() === 'api.icopay.co.kr';
-        } catch (ignoreSavedUrl) { /* ignore */ }
-      }
-      if (!savedTrim || savedPointsToApiSub) {
-        try {
-          var ogIcopayAdmin = (window.location.origin || '').replace(/\/$/, '');
-          if (ogIcopayAdmin) {
-            window.PG_API_BASE = ogIcopayAdmin;
-            if (typeof localStorage !== 'undefined') {
-              try {
-                localStorage.setItem('pg_api_base', ogIcopayAdmin);
-              } catch (eLsFix) { /* ignore */ }
+      var pathPage = '';
+      try {
+        pathPage = (window.location && window.location.pathname) ? String(window.location.pathname || '') : '';
+      } catch (ePath0) { /* ignore */ }
+      /**
+       * 챗봇 결제 단독 HTML: 카페24·icopay 서브도메인 정적만 있을 때 동일 origin 에 /api 가 없음.
+       * 관리자(index)와 동일 config 를 쓰므로 여기서 공개 API로 고정한다.
+       */
+      var pathLc = String(pathPage || '').toLowerCase();
+      var isChatbotPayPath = /(^|\/)chatbot-pay\.html([?#]|$)/.test(pathLc)
+        || /(^|\/)chatbot-pay([?#]|$)/.test(pathLc);
+      if (isChatbotPayPath) {
+        window.PG_API_BASE = PG_PUBLIC_ICOPAY_API;
+        if (typeof localStorage !== 'undefined') {
+          try {
+            localStorage.setItem('pg_api_base', window.PG_API_BASE);
+          } catch (eLsCb) { /* ignore */ }
+        }
+      } else {
+        var savedPointsToApiSub = false;
+        if (savedTrim) {
+          try {
+            var parsedSaved = new URL(savedTrim);
+            savedPointsToApiSub = String(parsedSaved.hostname || '').toLowerCase() === 'api.icopay.co.kr';
+          } catch (ignoreSavedUrl) { /* ignore */ }
+        }
+        if (!savedTrim || savedPointsToApiSub) {
+          try {
+            var ogIcopayAdmin = (window.location.origin || '').replace(/\/$/, '');
+            if (ogIcopayAdmin) {
+              window.PG_API_BASE = ogIcopayAdmin;
+              if (typeof localStorage !== 'undefined') {
+                try {
+                  localStorage.setItem('pg_api_base', ogIcopayAdmin);
+                } catch (eLsFix) { /* ignore */ }
+              }
             }
-          }
-        } catch (eIca) { /* ignore */ }
+          } catch (eIca) { /* ignore */ }
+        }
       }
     }
   }

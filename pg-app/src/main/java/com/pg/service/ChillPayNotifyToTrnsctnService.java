@@ -72,6 +72,7 @@ public class ChillPayNotifyToTrnsctnService implements PgNotifyInboundTxnHandler
     private final SettlementCalcService settlementCalcService;
     private final SettlementArrearsService settlementArrearsService;
     private final HqLedgerSysSettingsService hqLedgerSysSettingsService;
+    private final MerchantChatbotOrderService merchantChatbotOrderService;
 
     public ChillPayNotifyToTrnsctnService(PgTrnsctnRepository pgTrnsctnRepository,
                                          MerchantPgBindingRepository merchantPgBindingRepository,
@@ -80,7 +81,8 @@ public class ChillPayNotifyToTrnsctnService implements PgNotifyInboundTxnHandler
                                          MerchantOutboundNotifyService merchantOutboundNotifyService,
                                          SettlementCalcService settlementCalcService,
                                          SettlementArrearsService settlementArrearsService,
-                                         HqLedgerSysSettingsService hqLedgerSysSettingsService) {
+                                         HqLedgerSysSettingsService hqLedgerSysSettingsService,
+                                         MerchantChatbotOrderService merchantChatbotOrderService) {
         this.pgTrnsctnRepository = pgTrnsctnRepository;
         this.merchantPgBindingRepository = merchantPgBindingRepository;
         this.orgUnitRepository = orgUnitRepository;
@@ -89,6 +91,7 @@ public class ChillPayNotifyToTrnsctnService implements PgNotifyInboundTxnHandler
         this.settlementCalcService = settlementCalcService;
         this.settlementArrearsService = settlementArrearsService;
         this.hqLedgerSysSettingsService = hqLedgerSysSettingsService;
+        this.merchantChatbotOrderService = merchantChatbotOrderService;
     }
 
     @Override
@@ -170,6 +173,11 @@ public class ChillPayNotifyToTrnsctnService implements PgNotifyInboundTxnHandler
                 }
                 log.info("노티매핑 적용 거래 적재 trnId={} merchantId={} pgCd={} orderNo={} chillTxn={} status={}",
                         t.getTrnId(), t.getMerchantId(), pgCd, t.getOrderNo(), t.getChillTransactionId(), t.getStatus());
+                try {
+                    merchantChatbotOrderService.tryConfirmOrderAfterPaidTxn(t);
+                } catch (Exception ex) {
+                    log.warn("챗봇 주문 확정 연동 실패(노티 적재는 유지) trnId={}: {}", t.getTrnId(), ex.getMessage());
+                }
                 merchantOutboundNotifyService.scheduleAfterTxnCommit(t, in, notifyCh);
                 return true;
             }
@@ -349,6 +357,11 @@ public class ChillPayNotifyToTrnsctnService implements PgNotifyInboundTxnHandler
         }
         log.info("ChillPay 노티 거래 적재 trnId={} merchantId={} orderNo={} chillTxn={} channel={} status={}",
                 t.getTrnId(), t.getMerchantId(), t.getOrderNo(), t.getChillTransactionId(), notifyCh, t.getStatus());
+        try {
+            merchantChatbotOrderService.tryConfirmOrderAfterPaidTxn(t);
+        } catch (Exception ex) {
+            log.warn("챗봇 주문 확정 연동 실패(노티 적재는 유지) trnId={}: {}", t.getTrnId(), ex.getMessage());
+        }
         merchantOutboundNotifyService.scheduleAfterTxnCommit(t, in, notifyCh);
         return true;
     }
