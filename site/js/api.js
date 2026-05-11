@@ -699,7 +699,7 @@
     compChatbotKbSave: function (compId, fields) {
       var body = new URLSearchParams({ compId: String(compId || '').trim() });
       var f = fields || {};
-      ['chatbotKbCompanyNm', 'chatbotKbAddr', 'chatbotKbTel', 'chatbotKbEmail', 'chatbotKbContactNm', 'chatbotKbWelcomeHint', 'chatbotKbIntro', 'chatbotKbProductDesc', 'chatbotOperationMode', 'chatbotReservationSlotMinutes', 'chatbotReservationZoneId', 'chatbotCatalogListingEnabled'].forEach(function (k) {
+      ['chatbotKbCompanyNm', 'chatbotKbAddr', 'chatbotKbTel', 'chatbotKbEmail', 'chatbotKbContactNm', 'chatbotKbWelcomeHint', 'chatbotKbIntro', 'chatbotKbProductDesc', 'chatbotOperationMode', 'chatbotMerchantVertical', 'chatbotMerchantVerticalNotes', 'chatbotOrderSheetUiJson', 'chatbotReservationSlotMinutes', 'chatbotReservationZoneId', 'chatbotCatalogListingEnabled'].forEach(function (k) {
         if (Object.prototype.hasOwnProperty.call(f, k) && f[k] != null) body.append(k, String(f[k]));
       });
       if (Object.prototype.hasOwnProperty.call(f, 'chatbotProductSlotLimit')) {

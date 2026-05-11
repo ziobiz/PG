@@ -580,7 +580,10 @@ public class CompService {
                                       String chatbotKbWelcomeHintParam,
                                       String chatbotReservationSlotMinutesParam,
                                       String chatbotReservationZoneIdParam,
-                                      String chatbotCatalogListingEnabledParam) {
+                                      String chatbotCatalogListingEnabledParam,
+                                      String chatbotMerchantVerticalParam,
+                                      String chatbotMerchantVerticalNotesParam,
+                                      String chatbotOrderSheetUiJsonParam) {
         OrgUnit ou = orgUnitRepository.findByCode(compId != null ? compId.trim() : "")
                 .orElseThrow(() -> new IllegalArgumentException("업체를 찾을 수 없습니다."));
         if (ou.getOrgLevel() != OrgLevel.MERCHANT) {
@@ -594,6 +597,8 @@ public class CompService {
         merchantChatbotKbService.applyWelcomeHint(mp, chatbotKbWelcomeHintParam);
         merchantChatbotKbService.applyReservationSettings(mp, chatbotReservationSlotMinutesParam, chatbotReservationZoneIdParam);
         merchantChatbotKbService.applyCatalogListingEnabled(mp, chatbotCatalogListingEnabledParam);
+        merchantChatbotKbService.applyMerchantVertical(mp, chatbotMerchantVerticalParam, chatbotMerchantVerticalNotesParam);
+        merchantChatbotKbService.applyOrderSheetUiJson(mp, chatbotOrderSheetUiJsonParam);
         applyChatbotProductSlotLimitFromChatbotKbSave(ou, mp, chatbotProductSlotLimitParam);
         merchantProfileRepository.save(mp);
         persistMerchantAuditDiff(snap, ou, mp, false);
@@ -1187,6 +1192,15 @@ public class CompService {
                     abbrevAudit(snap.chatbotKbWelcomeHint()), abbrevAudit(mp.getChatbotKbWelcomeHint()));
         }
         addDiff(rows, oid, compId, compNm, by, p + "챗봇 운영방식(DB)", snap.chatbotOperationMode(), nz(mp.getChatbotOperationMode()));
+        addDiff(rows, oid, compId, compNm, by, p + "챗봇 가맹점 업체성격(DB)", snap.chatbotMerchantVertical(), nz(mp.getChatbotMerchantVertical()));
+        if (!Objects.equals(nz(snap.chatbotMerchantVerticalNotes()), nz(mp.getChatbotMerchantVerticalNotes()))) {
+            addOrgChangeRow(rows, oid, compId, compNm, by, p + "챗봇 업체성격 보조 메모",
+                    abbrevAudit(snap.chatbotMerchantVerticalNotes()), abbrevAudit(mp.getChatbotMerchantVerticalNotes()));
+        }
+        if (!Objects.equals(nz(snap.chatbotOrderSheetUiJson()), nz(mp.getChatbotOrderSheetUiJson()))) {
+            addOrgChangeRow(rows, oid, compId, compNm, by, p + "챗봇 주문 시트 UI(JSON)",
+                    abbrevAudit(snap.chatbotOrderSheetUiJson()), abbrevAudit(mp.getChatbotOrderSheetUiJson()));
+        }
         addDiff(rows, oid, compId, compNm, by, p + "챗봇 예약 슬롯(분)",
                 snap.chatbotReservationSlotMinutes() != null ? String.valueOf(snap.chatbotReservationSlotMinutes()) : "",
                 mp.getChatbotReservationSlotMinutes() != null ? String.valueOf(mp.getChatbotReservationSlotMinutes()) : "");
@@ -1258,6 +1272,9 @@ public class CompService {
             String chatbotKbProductDesc,
             String chatbotKbWelcomeHint,
             String chatbotOperationMode,
+            String chatbotMerchantVertical,
+            String chatbotMerchantVerticalNotes,
+            String chatbotOrderSheetUiJson,
             Integer chatbotReservationSlotMinutes,
             String chatbotReservationZoneId,
             String chatbotHeaderLogoUrl,
@@ -1311,6 +1328,9 @@ public class CompService {
                     nz(mp.getChatbotKbProductDesc()),
                     nz(mp.getChatbotKbWelcomeHint()),
                     nz(mp.getChatbotOperationMode()),
+                    nz(mp.getChatbotMerchantVertical()),
+                    nz(mp.getChatbotMerchantVerticalNotes()),
+                    nz(mp.getChatbotOrderSheetUiJson()),
                     mp.getChatbotReservationSlotMinutes(),
                     nz(mp.getChatbotReservationZoneId()),
                     nz(mp.getChatbotHeaderLogoUrl()),

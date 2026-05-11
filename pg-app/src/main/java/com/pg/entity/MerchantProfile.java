@@ -207,6 +207,24 @@ public class MerchantProfile {
     @Column(name = "chatbot_operation_mode", length = 40)
     private String chatbotOperationMode;
 
+    /**
+     * 챗봇관리 기본설정 — 가맹점 업체성격(운영방식과 별개: 주문·예약 질문 흐름).
+     * {@link com.pg.chatbot.ChatbotMerchantVertical} 코드.
+     */
+    @Column(name = "chatbot_merchant_vertical", nullable = false, length = 40)
+    private String chatbotMerchantVertical = "GENERAL_SALE";
+
+    /** 본사·총판: 업체성격 보조 메모(필수 질문 키워드 등). LLM 반영 */
+    @Column(name = "chatbot_merchant_vertical_notes", columnDefinition = "TEXT")
+    private String chatbotMerchantVerticalNotes;
+
+    /**
+     * 챗봇 고객 주문·예약 시트(필드 표시·라벨·숨김 등) 가맹별 JSON.
+     * 비우면 {@link com.pg.chatbot.ChatbotOrderSheetUiResolver} 가 업체성격 기본만 적용합니다.
+     */
+    @Column(name = "chatbot_order_sheet_ui_json", columnDefinition = "TEXT")
+    private String chatbotOrderSheetUiJson;
+
     /** 예약 상품 시 겹침 방지용 기본 슬롯 길이(분). 기본 60 */
     @Column(name = "chatbot_reservation_slot_minutes", nullable = false)
     private Integer chatbotReservationSlotMinutes = 60;
@@ -404,6 +422,31 @@ public class MerchantProfile {
     public void setChatbotKbWelcomeHint(String chatbotKbWelcomeHint) { this.chatbotKbWelcomeHint = chatbotKbWelcomeHint; }
     public String getChatbotOperationMode() { return chatbotOperationMode; }
     public void setChatbotOperationMode(String chatbotOperationMode) { this.chatbotOperationMode = chatbotOperationMode; }
+
+    public String getChatbotMerchantVertical() {
+        return chatbotMerchantVertical;
+    }
+
+    public void setChatbotMerchantVertical(String chatbotMerchantVertical) {
+        this.chatbotMerchantVertical = chatbotMerchantVertical != null ? chatbotMerchantVertical : "GENERAL_SALE";
+    }
+
+    public String getChatbotMerchantVerticalNotes() {
+        return chatbotMerchantVerticalNotes;
+    }
+
+    public void setChatbotMerchantVerticalNotes(String chatbotMerchantVerticalNotes) {
+        this.chatbotMerchantVerticalNotes = chatbotMerchantVerticalNotes;
+    }
+
+    public String getChatbotOrderSheetUiJson() {
+        return chatbotOrderSheetUiJson;
+    }
+
+    public void setChatbotOrderSheetUiJson(String chatbotOrderSheetUiJson) {
+        this.chatbotOrderSheetUiJson = chatbotOrderSheetUiJson;
+    }
+
     public Integer getChatbotReservationSlotMinutes() {
         return chatbotReservationSlotMinutes;
     }

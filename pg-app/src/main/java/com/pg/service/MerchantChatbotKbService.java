@@ -1,7 +1,9 @@
 package com.pg.service;
 
 import com.pg.chatbot.ChatbotCatalogPolicy;
+import com.pg.chatbot.ChatbotMerchantVertical;
 import com.pg.chatbot.ChatbotOperationMode;
+import com.pg.chatbot.ChatbotOrderSheetUiResolver;
 import com.pg.entity.MerchantProfile;
 import com.pg.entity.OrgUnit;
 import com.pg.repository.MerchantProfileRepository;
@@ -28,6 +30,7 @@ public class MerchantChatbotKbService {
     private static final int MAX_PRODUCT = 4000;
     private static final int MAX_WELCOME_HINT = 600;
     private static final int MAX_SINGLE = 600;
+    private static final int MAX_VERTICAL_NOTES = 2000;
 
     private final MerchantProfileRepository merchantProfileRepository;
     private final HqChatbotAiSettingsService hqChatbotAiSettingsService;
@@ -96,9 +99,35 @@ public class MerchantChatbotKbService {
         ChatbotOperationMode op = ChatbotOperationMode.resolveStored(mp.getChatbotOperationMode());
         m.put("chatbotOperationMode", op.getCode());
         m.put("chatbotOperationModeLabelKo", op.getLabelKo());
+        ChatbotMerchantVertical mv = ChatbotMerchantVertical.resolveStored(mp.getChatbotMerchantVertical());
+        m.put("chatbotMerchantVertical", mv.getCode());
+        m.put("chatbotMerchantVerticalLabelKo", mv.getLabelKo());
+        m.put("chatbotMerchantVerticalNotes", nz(mp.getChatbotMerchantVerticalNotes()));
+        m.put("chatbotOrderSheetUiJson", nz(mp.getChatbotOrderSheetUiJson()));
         int slotM = mp.getChatbotReservationSlotMinutes() != null ? mp.getChatbotReservationSlotMinutes() : 60;
         m.put("chatbotReservationSlotMinutes", String.valueOf(Math.max(15, Math.min(24 * 60, slotM))));
         m.put("chatbotReservationZoneId", nz(mp.getChatbotReservationZoneId()));
+        return m;
+    }
+
+    /** 공개 카탈로그·챗봇 화면용 가맹점 업체성격(LLM·클라이언트 힌트). */
+    public Map<String, Object> publicMerchantVerticalMeta(Long merchantOrgUnitId) {
+        LinkedHashMap<String, Object> m = new LinkedHashMap<>();
+        if (merchantOrgUnitId == null) {
+            return m;
+        }
+        Optional<MerchantProfile> p = merchantProfileRepository.findByOrgUnitId(merchantOrgUnitId);
+        if (p.isEmpty()) {
+            return m;
+        }
+        MerchantProfile mp = p.get();
+        ChatbotMerchantVertical v = ChatbotMerchantVertical.resolveStored(mp.getChatbotMerchantVertical());
+        m.put("chatbotMerchantVertical", v.getCode());
+        m.put("chatbotMerchantVerticalLabelKo", v.getLabelKo());
+        m.put("chatbotMerchantVerticalCollectHintKo", v.getOrderCollectHintKo());
+        m.put("chatbotMerchantVerticalNotes", nz(mp.getChatbotMerchantVerticalNotes()));
+        m.put("chatbotReservationOrderPrecheckKo", ChatbotMerchantVertical.sharedReservationOrderPrecheckKo());
+        m.put("chatbotOrderSheetUi", ChatbotOrderSheetUiResolver.resolvePublicUi(mp));
         return m;
     }
 
@@ -176,6 +205,19 @@ public class MerchantChatbotKbService {
                 sb.append("  • ").append(ln.trim()).append('\n');
             }
         }
+        ChatbotMerchantVertical mv = ChatbotMerchantVertical.resolveStored(mp.getChatbotMerchantVertical());
+        sb.append("\n- 가맹점 업체성격: ").append(mv.getLabelKo()).append(" (코드 ").append(mv.getCode()).append(")\n");
+        sb.append("- 주문·예약 대화에서 우선 확인할 정보(업체성격 기준):\n");
+        for (String ln : mv.getOrderCollectHintKo().split("\\R")) {
+            if (!ln.isBlank()) {
+                sb.append("  • ").append(ln.trim()).append('\n');
+            }
+        }
+        String vn = mp.getChatbotMerchantVerticalNotes();
+        if (vn != null && !vn.isBlank()) {
+            sb.append("- 본사·총판 「업체성격 보조 메모」(반드시 반영. 불법·과도한 개인정보 요구 금지): ")
+                    .append(vn.trim()).append('\n');
+        }
         int sm = mp.getChatbotReservationSlotMinutes() != null ? mp.getChatbotReservationSlotMinutes() : 60;
         sm = Math.max(15, Math.min(24 * 60, sm));
         String zid = mp.getChatbotReservationZoneId() != null && !mp.getChatbotReservationZoneId().isBlank()
@@ -189,7 +231,7 @@ public class MerchantChatbotKbService {
             sb.append("- 시스템이 제공하는 상품 목록(이름·가격 등)은 「참고용」으로만 설명할 수 있습니다. 결제 URL 을 만들거나 예약을 접수하지 마세요.\n");
             sb.append("- 고객이 구매나 예약을 원하면 접수 불가임을 알리고, 전화나 이메일 등 「기본 안내」 연락처로 개별 안내를 받도록 하세요.\n");
         } else {
-            sb.append("- 주문 흐름: 고객이 챗봇에서 상품을 고른 뒤 주문서(이름·이메일·전화·주소·예약일시)를 제출하고 안내된 결제 페이지에서 결제하면 주문이 접수됩니다.\n");
+            sb.append("- 주문 흐름: 고객이 챗봇에서 상품을 고른 뒤 주문서(성명·전화·예약일시·인원 등, 이메일·주소·LINE Notify 토큰은 선택)를 제출하고, 결제 페이지로 이동하거나(동시에) 이메일·LINE Notify로 결제 링크를 받을 수 있습니다.\n");
         }
         return sb.toString().trim();
     }
@@ -234,6 +276,44 @@ public class MerchantChatbotKbService {
             return;
         }
         mp.setChatbotOperationMode(ChatbotOperationMode.fromCodeStrict(t).getCode());
+    }
+
+    /**
+     * 가맹점 업체성격 저장. {@code rawCode}·{@code notesParam} 이 모두 null 이면 무시(구 API 호환).
+     * 코드 빈 문자열이면 GENERAL_SALE 로 저장합니다.
+     */
+    public void applyMerchantVertical(MerchantProfile mp, String rawCode, String notesParam) {
+        if (rawCode == null && notesParam == null) {
+            return;
+        }
+        if (rawCode != null) {
+            String t = rawCode.trim();
+            if (t.isEmpty()) {
+                mp.setChatbotMerchantVertical(ChatbotMerchantVertical.GENERAL_SALE.getCode());
+            } else {
+                mp.setChatbotMerchantVertical(ChatbotMerchantVertical.fromCodeStrict(t).getCode());
+            }
+        }
+        if (notesParam != null) {
+            String clamped = clampText(notesParam, MAX_VERTICAL_NOTES);
+            mp.setChatbotMerchantVerticalNotes(trimOrNull(clamped));
+        }
+    }
+
+    /**
+     * 챗봇 주문·예약 시트 UI JSON. {@code null} 이면 변경 없음, 빈 문자열이면 컬럼 비움.
+     */
+    public void applyOrderSheetUiJson(MerchantProfile mp, String raw) {
+        if (raw == null) {
+            return;
+        }
+        String t = raw.trim();
+        if (t.isEmpty()) {
+            mp.setChatbotOrderSheetUiJson(null);
+            return;
+        }
+        ChatbotOrderSheetUiResolver.validateMerchantJsonOrThrow(t);
+        mp.setChatbotOrderSheetUiJson(ChatbotOrderSheetUiResolver.clampStoredJson(t));
     }
 
     /** 본사·총판·본사등: 산하 가맹 상품 유형 교집합 마스크. */

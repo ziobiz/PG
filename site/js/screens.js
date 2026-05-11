@@ -161,27 +161,11 @@
       '<button type="button" class="btn btn-sm btn-outline-secondary d-none" id="chatbotProdFormCancelEditBtn" data-pg-ui-t="수정 취소">' + escUi(L('수정 취소')) + '</button>' +
       '<button type="button" class="btn btn-sm btn-outline-primary" id="chatbotProdNewRegisterBtn" data-pg-ui-t="신규등록">' + escUi(L('신규등록')) + '</button>' +
       '</div></div></div>' +
-      '<h6 class="mb-2 fw-semibold" data-pg-ui-t="등록된 상품">' + escUi(L('등록된 상품')) + '</h6>' +
+      '<h6 class="mb-1 fw-semibold" data-pg-ui-t="등록된 상품">' + escUi(L('등록된 상품')) + '</h6>' +
+      '<p class="small text-muted mb-2" data-pg-ui-t="열 너비: 표 헤더 각 칸의 오른쪽 가장자리를 드래그하면 열 너비를 조절할 수 있습니다. 설정은 이 브라우저에 저장됩니다.">' +
+      escUi(L('열 너비: 표 헤더 각 칸의 오른쪽 가장자리를 드래그하면 열 너비를 조절할 수 있습니다. 설정은 이 브라우저에 저장됩니다.')) + '</p>' +
       '<div class="table-responsive chatbot-prod-table-responsive">' +
-      '<table class="table table-sm table-bordered align-middle mb-2 chatbot-prod-grid table-no-col-resize" id="grid_chatbot_products">' +
-      '<colgroup>' +
-      '<col style="width:44px">' +          // #
-      '<col style="width:120px">' +         // hq: compId
-      '<col style="width:140px">' +         // hq: merchantName
-      '<col style="width:110px">' +         // hq: hqCatalogBlockYn
-      '<col style="width:96px">' +          // code
-      '<col style="width:220px">' +         // title
-      '<col style="width:140px">' +         // 판매·예약(기간예약)
-      '<col style="width:120px">' +         // 예약결제
-      '<col class="chatbot-prod-colgraph-desc">' + // 설명 — 테이블 전체 너비 시 남는 폭 흡수(CSS)
-      '<col style="width:110px">' +         // 금액
-      '<col style="width:70px">' +          // 통화
-      '<col style="width:70px">' +          // 순서
-      '<col style="width:110px">' +         // 판매상태
-      '<col style="width:90px">' +          // 프로모션
-      '<col style="width:110px">' +         // 이미지
-      '<col style="width:110px">' +         // 관리
-      '</colgroup>' +
+      '<table class="table table-sm table-bordered align-middle mb-2 chatbot-prod-grid" id="grid_chatbot_products">' +
       '<thead class="table-light"><tr>' +
       '<th style="width:2.75rem;text-align:center">#</th>' +
       '<th class="hq-only-col" data-pg-ui-t="가맹점코드">' + escUi(L('가맹점코드')) + '</th>' +
@@ -400,6 +384,43 @@
       '<p class="small text-muted mb-0 mt-1" data-pg-ui-t="선택한 운영방식에 맞춰 공개 챗봇 응대(선불·후불·예약 안내)가 적용됩니다.">' +
       escUi(L('선택한 운영방식에 맞춰 공개 챗봇 응대(선불·후불·예약 안내)가 적용됩니다.')) + '</p>' +
       '</div></div>' +
+      '<div class="row g-2 mb-2">' +
+      '<div class="col-12">' +
+      '<label class="form-label small mb-0" for="chatbotMerchantVertical" data-pg-ui-t="가맹점 업체성격">' +
+      escUi(L('가맹점 업체성격')) + '</label>' +
+      '<select class="form-select form-select-sm" id="chatbotMerchantVertical" name="chatbotMerchantVertical" style="max-width: 42rem">' +
+      [
+        ['GENERAL_SALE', '일반판매'],
+        ['ECOMMERCE', '이커머스'],
+        ['CONSULTING', '컨설팅'],
+        ['REAL_ESTATE', '부동산'],
+        ['AUTO_SALES', '자동차판매'],
+        ['SERVICE_TRADE', '서비스업'],
+        ['MASSAGE_GENERAL', '일반마사지'],
+        ['COSMETIC', '코스메틱'],
+        ['CLUB_ENTERTAINMENT', '클럽(유흥)'],
+        ['CLUB_MASSAGE', '클럽(마사지)'],
+        ['RESTAURANT', '음식점'],
+        ['VIP_CLUB', 'VIP 클럽'],
+        ['OTHER', '기타']
+      ].map(function (pair) {
+        return '<option value="' + escUi(pair[0]) + '">' + escUi(L(pair[1])) + '</option>';
+      }).join('') +
+      '</select>' +
+      '<p class="small text-muted mb-1 mt-1" data-pg-ui-t="업체성격은 운영방식과 별개로, 주문·예약 시 AI가 질문할 최소 정보의 기준입니다.">' +
+      escUi(L('운영방식(선불·후불·예약)과 별개로, 업종에 맞는 주문·예약 질문 흐름을 잡는 분류입니다. 공개 챗봇 AI가 카탈로그·운영방식과 모순 없이 필요한 항목만 묻도록 서버에서 안내 블록으로 전달됩니다.')) + '</p>' +
+      '<label class="form-label small mb-0" for="chatbotMerchantVerticalNotes" data-pg-ui-t="업체성격 보조 메모(선택)">' +
+      escUi(L('업체성격 보조 메모(선택)')) + '</label>' +
+      '<textarea class="form-control form-control-sm" id="chatbotMerchantVerticalNotes" name="chatbotMerchantVerticalNotes" rows="3" maxlength="2000" placeholder=""></textarea>' +
+      '<p class="small text-muted mb-0 mt-1" data-pg-ui-t="특화 업종에서 꼭 받아야 할 질문·금지 표현 등을 짧게 적으면 AI 안내에 합쳐집니다.">' +
+      escUi(L('특화 업종에서 반드시 받을 정보·피할 표현 등을 적으면 AI 수집 안내에 반영됩니다. 비우면 업체성격 기본 지침만 사용합니다.')) + '</p>' +
+      '<label class="form-label small mb-0 mt-2" for="chatbotOrderSheetUiJson" data-pg-ui-t="챗봇 주문·예약 시트 UI(JSON, 선택)">' +
+      escUi(L('챗봇 주문·예약 시트 UI(JSON, 선택)')) + '</label>' +
+      '<textarea class="form-control form-control-sm font-monospace" id="chatbotOrderSheetUiJson" name="chatbotOrderSheetUiJson" rows="7" maxlength="12000" spellcheck="false" placeholder="{&quot;fields&quot;:{&quot;orderMemo&quot;:{&quot;hidden&quot;:true}}}"></textarea>' +
+      '<p class="small text-muted mb-0 mt-1" data-pg-ui-t="주문시트 UI 안내">' +
+      escUi(L('고객 챗봇 「주문·결제」시트 필드 표시·라벨을 가맹별로 덮어씁니다. 최상위 fields 아래 키: ordererName, ordererEmail, ordererPhone, ordererAddr, orderMemo, reservationLocal, reservationCheckout, guestCount, serviceMinutes. 속성 예: hidden(true/false), labelKo, placeholderKo, showWhenReservation(이용시간 분, serviceMinutes만). 주소를 숨기면 prefillWhenHidden 을 4자 이상 필수. 이메일·전화는 숨길 수 없습니다. 비우면 업체성격 기본만 적용됩니다.')) +
+      '</p>' +
+      '</div></div>' +
       '<div class="row g-2 mb-2 border-top pt-2 mt-1">' +
       '<div class="col-md-4">' +
       '<label class="form-label small mb-0" for="chatbotReservationSlotMinutes" data-pg-ui-t="예약 기본 슬롯(분)">' + escUi(L('예약 기본 슬롯(분)')) + '</label>' +
@@ -479,6 +500,11 @@
         '<select name="' + escUi(prov) + '_model_sel" class="form-select form-select-sm hq-ai-model-sel" data-hq-ai-prov="' + escUi(prov) + '" style="min-width:12rem">' + opts + '</select>' +
         '<input type="text" name="' + escUi(prov) + '_model_custom" class="form-control form-control-sm hq-ai-model-custom" data-hq-ai-prov="' + escUi(prov) + '" placeholder="' + escUi(L('모델명 직접입력')) + '" style="max-width:16rem;display:none">' +
         '<input type="hidden" name="report_' + escUi(prov) + '_model" class="hq-ai-model-hidden" data-hq-ai-prov="' + escUi(prov) + '" value="">' +
+        '</div>' +
+        '<div class="form-check mt-2">' +
+        '<input class="form-check-input hq-ai-prov-disabled" type="checkbox" name="report_' + escUi(prov) + '_disabled" id="hq_ai_dis_' + escUi(prov) + '" value="Y">' +
+        '<label class="form-check-label small" for="hq_ai_dis_' + escUi(prov) + '">' + escUi(L('이 제공자·모델 사용중지')) + '</label>' +
+        '<span class="small text-muted d-block ms-4">' + escUi(L('체크 시 챗봇·상품안내 LLM에서 이 API 키·모델 조합을 호출하지 않습니다.')) + '</span>' +
         '</div></div>'
       );
     }
@@ -510,7 +536,7 @@
     return (
       '<div class="hq-chatbot-ai-settings">' +
       '<p class="small text-muted mb-3">' +
-      escUi(L('ziobiz/Stock AI 페이지와 동일한 JSON 키(report_*_api_key, report_*_model, report_provider_order)로 저장합니다. 챗봇·상품 안내(LLM 호출 시 서버에서 이 설정을 참조합니다).')) +
+      escUi(L('ziobiz/Stock AI 페이지와 동일한 JSON 키(report_*_api_key, report_*_model, report_provider_order, report_*_disabled)로 저장합니다. 챗봇·상품 안내(LLM 호출 시 서버에서 이 설정을 참조합니다).')) +
       '<br><span class="text-muted">' +
       escUi(L('챗봇 상단 로고 자동축소( config_json 최상위, 선택 ): chatbot_logo_target_max_bytes(기본 2097152), chatbot_logo_max_edge_px(기본 1024), chatbot_logo_jpeg_quality_start(0~1, 기본 0.92), chatbot_logo_llm_tune_yn=Y(순위 LLM이 권장 변 길이 제안 → 서버 JPEG 재압축).')) +
       '</span>' +

@@ -47,17 +47,20 @@ public class MerchantChatbotOrderService {
     private final MerchantProfileRepository merchantProfileRepository;
     private final MerchantChatbotProductRepository productRepository;
     private final MerchantChatbotProductService productService;
+    private final ChatbotPayLinkDeliveryService chatbotPayLinkDeliveryService;
 
     public MerchantChatbotOrderService(MerchantChatbotOrderRepository orderRepository,
                                        OrgUnitRepository orgUnitRepository,
                                        MerchantProfileRepository merchantProfileRepository,
                                        MerchantChatbotProductRepository productRepository,
-                                       MerchantChatbotProductService productService) {
+                                       MerchantChatbotProductService productService,
+                                       ChatbotPayLinkDeliveryService chatbotPayLinkDeliveryService) {
         this.orderRepository = orderRepository;
         this.orgUnitRepository = orgUnitRepository;
         this.merchantProfileRepository = merchantProfileRepository;
         this.productRepository = productRepository;
         this.productService = productService;
+        this.chatbotPayLinkDeliveryService = chatbotPayLinkDeliveryService;
     }
 
     /**
@@ -178,14 +181,16 @@ public class MerchantChatbotOrderService {
         String ordererEmail = clamp(trim(str(body, "ordererEmail")), 120);
         String ordererPhone = clamp(trim(str(body, "ordererPhone")), 50);
         String ordererAddr = clamp(trim(str(body, "ordererAddr")), 600);
-        if (ordererEmail.isEmpty() || !ordererEmail.contains("@")) {
-            throw new IllegalArgumentException("유효한 이메일을 입력하세요.");
-        }
         if (ordererPhone.length() < 6) {
             throw new IllegalArgumentException("연락처(전화)를 입력하세요.");
         }
-        if (ordererAddr.length() < 4) {
-            throw new IllegalArgumentException("배송·연락 주소를 입력하세요.");
+        if (!ordererEmail.isEmpty() && !ordererEmail.contains("@")) {
+            throw new IllegalArgumentException("유효한 이메일을 입력하세요.");
+        }
+        boolean sendPayLinkEmail = truthy(body.get("sendPayLinkEmail"));
+        String lineNotifyTokenUser = clamp(trim(str(body, "lineNotifyToken")), 256);
+        if (sendPayLinkEmail && ordererEmail.isEmpty()) {
+            throw new IllegalArgumentException("결제 링크를 이메일로 받으려면 이메일을 입력하세요.");
         }
 
         Long productId = parseLongObj(body.get("productId"));
@@ -235,6 +240,12 @@ public class MerchantChatbotOrderService {
                 currency = "KRW";
             }
             currency = currency.toUpperCase(Locale.ROOT);
+        }
+
+        if (ordererName.isEmpty() || ordererName.trim().length() < 2) {
+            throw new IllegalArgumentException(needsReservationListing(listingType)
+                    ? "예약자·방문 대표 성명을 2자 이상 입력하세요."
+                    : "성명을 2자 이상 입력하세요.");
         }
 
         int slotMinutes = resolveSlotMinutes(mp, product);
@@ -287,6 +298,18 @@ public class MerchantChatbotOrderService {
             /* productId 없는 자유 주문은 예약 겹침 검사 생략 */
         }
 
+        Integer guestCount = firstPositiveInt(body.get("guestCount"), body.get("partySize"));
+        Integer serviceDurationMinutes = parsePositiveInt(body.get("serviceDurationMinutes"));
+        if (needsReservationListing(listingType)) {
+            if (guestCount == null || guestCount < 1 || guestCount > 999) {
+                throw new IllegalArgumentException("예약·방문 인원(1~999명)을 입력하세요.");
+            }
+        }
+        if (serviceDurationMinutes != null
+                && (serviceDurationMinutes < 5 || serviceDurationMinutes > 24 * 60 * 2)) {
+            throw new IllegalArgumentException("이용 시간(분)은 5~2880 범위로 입력하세요.");
+        }
+
         String checkoutNo = allocateCheckoutOrderNo(ou.getCode());
         MerchantChatbotOrder order = new MerchantChatbotOrder();
         order.setOrgUnitId(ou.getId());
@@ -309,15 +332,16 @@ public class MerchantChatbotOrderService {
             order.setBalanceDueAmount(null);
         }
         order.setOrdererName(ordererName.isEmpty() ? null : ordererName);
-        order.setOrdererEmail(ordererEmail);
+        order.setOrdererEmail(ordererEmail.isEmpty() ? null : ordererEmail);
         order.setOrdererPhone(ordererPhone);
-        order.setOrdererAddr(ordererAddr);
+        order.setOrdererAddr(ordererAddr.isEmpty() ? null : ordererAddr);
         order.setReservationStart(resStart);
         order.setReservationEnd(resEnd);
         order.setStatus(MerchantChatbotOrder.STATUS_PENDING);
         order.setCheckoutOrderNo(checkoutNo);
-        String memo = trim(str(body, "orderMemo"));
-        order.setOrderMemo(memo.isEmpty() ? null : clamp(memo, 4000));
+        String userMemo = trim(str(body, "orderMemo"));
+        String combinedMemo = combineOrderMemoWithStructuredLines(userMemo, guestCount, serviceDurationMinutes);
+        order.setOrderMemo(combinedMemo.isEmpty() ? null : clamp(combinedMemo, 4000));
         orderRepository.save(order);
 
         String payUrl = buildPayPrefillUrl(request, ou.getCode(), title, amountBd.toPlainString(), currency, checkoutNo);
@@ -325,6 +349,8 @@ public class MerchantChatbotOrderService {
         data.put("orderId", order.getId());
         data.put("checkoutOrderNo", checkoutNo);
         data.put("payUrl", payUrl);
+        chatbotPayLinkDeliveryService.deliverIfRequested(data, sendPayLinkEmail, ordererEmail, lineNotifyTokenUser,
+                ou.getCode(), checkoutNo, title, amountBd, currency, payUrl);
         return data;
     }
 
@@ -461,6 +487,17 @@ public class MerchantChatbotOrderService {
         return v == null ? null : String.valueOf(v);
     }
 
+    private static boolean truthy(Object o) {
+        if (o == null) {
+            return false;
+        }
+        if (o instanceof Boolean b) {
+            return b;
+        }
+        String s = String.valueOf(o).trim();
+        return "1".equals(s) || "true".equalsIgnoreCase(s) || "y".equalsIgnoreCase(s) || "yes".equalsIgnoreCase(s);
+    }
+
     private static String trim(String s) {
         return s == null ? "" : s.trim();
     }
@@ -483,5 +520,53 @@ public class MerchantChatbotOrderService {
         }
         String t = s.trim();
         return t.length() <= max ? t : t.substring(0, max);
+    }
+
+    private static Integer parsePositiveInt(Object o) {
+        if (o == null) {
+            return null;
+        }
+        if (o instanceof Number n) {
+            int v = n.intValue();
+            return v > 0 ? v : null;
+        }
+        try {
+            int v = Integer.parseInt(String.valueOf(o).trim());
+            return v > 0 ? v : null;
+        } catch (NumberFormatException e) {
+            return null;
+        }
+    }
+
+    private static Integer firstPositiveInt(Object a, Object b) {
+        Integer p = parsePositiveInt(a);
+        if (p != null) {
+            return p;
+        }
+        return parsePositiveInt(b);
+    }
+
+    /**
+     * 예약·업체성격 확장 필드(인원·이용시간)를 메모 상단에 고정 형식으로 남겨 가맹 백오피스에서 식별하기 쉽게 합니다.
+     */
+    private static String combineOrderMemoWithStructuredLines(String userMemo,
+                                                                Integer guestCount,
+                                                                Integer serviceDurationMinutes) {
+        StringBuilder struct = new StringBuilder();
+        if (guestCount != null && guestCount > 0) {
+            struct.append("[주문·예약] 방문·이용 인원: ").append(guestCount).append("명\n");
+        }
+        if (serviceDurationMinutes != null && serviceDurationMinutes > 0) {
+            struct.append("[주문·예약] 이용 시간(분): ").append(serviceDurationMinutes).append('\n');
+        }
+        String prefix = struct.toString().trim();
+        String u = userMemo == null ? "" : userMemo.trim();
+        if (prefix.isEmpty()) {
+            return u;
+        }
+        if (u.isEmpty()) {
+            return prefix;
+        }
+        return prefix + "\n— 요청사항 —\n" + u;
     }
 }

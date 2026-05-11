@@ -13,7 +13,8 @@ import java.util.*;
 
 /**
  * 본사 AI 설정 — 저장 JSON 키는 ziobiz/Stock {@code report_*_api_key}, {@code report_*_model},
- * {@code report_provider_order} 및 챗봇 전용 {@code ai_system_prompt_chatbot}, {@code ai_system_options_chatbot},
+ * {@code report_provider_order}, {@code report_{gemini|groq|anthropic|openai}_disabled}(사용중지) 및
+ * 챗봇 전용 {@code ai_system_prompt_chatbot}, {@code ai_system_options_chatbot},
  * {@code ai_prompt_chatbot_catalog} 등을 사용합니다.
  */
 @Service
@@ -142,6 +143,13 @@ public class HqChatbotAiSettingsService {
             }
         }
 
+        for (String suf : List.of("gemini", "groq", "anthropic", "openai")) {
+            String dk = "report_" + suf + "_disabled";
+            if (body.containsKey(dk)) {
+                cur.put(dk, normalizeReportProviderDisabled(body.get(dk)));
+            }
+        }
+
         putIfPresentString(cur, body, "ai_system_prompt_chatbot");
         putIfPresentString(cur, body, "ai_prompt_chatbot_catalog");
 
@@ -198,6 +206,18 @@ public class HqChatbotAiSettingsService {
             }
         }
         return o;
+    }
+
+    /** JSON 저장용: 사용중지 플래그(true/false). */
+    private static boolean normalizeReportProviderDisabled(Object raw) {
+        if (raw == null) {
+            return false;
+        }
+        if (raw instanceof Boolean b) {
+            return b;
+        }
+        String s = String.valueOf(raw).trim().toLowerCase(Locale.ROOT);
+        return "y".equals(s) || "true".equals(s) || "1".equals(s) || "yes".equals(s);
     }
 
     private static List<String> sanitizeProviderOrder(List<String> order) {

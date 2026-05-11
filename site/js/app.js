@@ -13755,6 +13755,12 @@
         }
         ['gemini', 'groq', 'anthropic', 'openai'].forEach(function (p) {
           setModelUi(p, data['report_' + p + '_model']);
+          var dk = 'report_' + p + '_disabled';
+          var disCb = pane.querySelector('input.hq-ai-prov-disabled[name="' + dk + '"]');
+          if (disCb) {
+            var dv = data[dk];
+            disCb.checked = dv === true || dv === 'Y' || dv === 'y' || dv === 1 || dv === '1' || dv === 'true';
+          }
           var hk = 'report_' + p + '_api_key_configured';
           var hint = pane.querySelector('.hq-ai-key-hint[data-hq-ai-hint="report_' + p + '_api_key"]');
           if (hint) {
@@ -13839,6 +13845,8 @@
             if (raw && raw !== '********') body[fk] = raw;
             var mh = pane.querySelector('.hq-ai-model-hidden[data-hq-ai-prov="' + p + '"]');
             if (mh) body['report_' + p + '_model'] = (mh.value || '').trim();
+            var disCb = pane.querySelector('input.hq-ai-prov-disabled[name="report_' + p + '_disabled"]');
+            body['report_' + p + '_disabled'] = disCb && disCb.checked ? 'Y' : 'N';
           });
           var tsys = pane.querySelector('[name="ai_system_prompt_chatbot"]');
           if (tsys) body.ai_system_prompt_chatbot = tsys.value;
@@ -15040,6 +15048,17 @@
           opSel.value = want;
           if (opSel.value !== want) opSel.value = 'SALE_PREPAID';
         }
+        var mvSel = pane.querySelector('#chatbotMerchantVertical');
+        if (mvSel) {
+          var mvc = d.chatbotMerchantVertical != null ? String(d.chatbotMerchantVertical).trim().toUpperCase() : '';
+          var mvWant = mvc || 'GENERAL_SALE';
+          mvSel.value = mvWant;
+          if (mvSel.value !== mvWant) mvSel.value = 'GENERAL_SALE';
+        }
+        var mvNotes = pane.querySelector('#chatbotMerchantVerticalNotes');
+        if (mvNotes) mvNotes.value = d.chatbotMerchantVerticalNotes != null ? String(d.chatbotMerchantVerticalNotes) : '';
+        var osUiEl = pane.querySelector('#chatbotOrderSheetUiJson');
+        if (osUiEl) osUiEl.value = d.chatbotOrderSheetUiJson != null ? String(d.chatbotOrderSheetUiJson) : '';
         var resSlotEl = pane.querySelector('#chatbotReservationSlotMinutes');
         if (resSlotEl) {
           var slotOpts = [15, 30, 45, 60, 90, 120, 180, 240];
@@ -15271,6 +15290,12 @@
             });
             var opEl = pane.querySelector('#chatbotOperationMode');
             if (opEl) fields.chatbotOperationMode = opEl.value;
+            var mvEl = pane.querySelector('#chatbotMerchantVertical');
+            if (mvEl) fields.chatbotMerchantVertical = mvEl.value;
+            var mvNotesEl = pane.querySelector('#chatbotMerchantVerticalNotes');
+            if (mvNotesEl) fields.chatbotMerchantVerticalNotes = mvNotesEl.value;
+            var osUiSv = pane.querySelector('#chatbotOrderSheetUiJson');
+            if (osUiSv) fields.chatbotOrderSheetUiJson = osUiSv.value;
             var resSlotSv = pane.querySelector('#chatbotReservationSlotMinutes');
             if (resSlotSv) fields.chatbotReservationSlotMinutes = resSlotSv.value;
             var resZoneSv = pane.querySelector('#chatbotReservationZoneId');

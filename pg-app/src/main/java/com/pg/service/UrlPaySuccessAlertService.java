@@ -8,15 +8,9 @@ import com.pg.repository.MerchantProfileRepository;
 import com.pg.repository.OrgUnitRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
-import org.springframework.util.LinkedMultiValueMap;
-import org.springframework.util.MultiValueMap;
-import org.springframework.web.client.RestTemplate;
 
 import java.math.BigDecimal;
 
@@ -37,18 +31,20 @@ public class UrlPaySuccessAlertService {
     private final OrgUnitRepository orgUnitRepository;
     private final HqLedgerSysSettingsService hqLedgerSysSettingsService;
     private final LedgerSmtpMailService ledgerSmtpMailService;
-    private final RestTemplate restTemplate = new RestTemplate();
+    private final LineNotifyClient lineNotifyClient;
 
     public UrlPaySuccessAlertService(MerchantOutboundNotifyService merchantOutboundNotifyService,
                                     MerchantProfileRepository merchantProfileRepository,
                                     OrgUnitRepository orgUnitRepository,
                                     HqLedgerSysSettingsService hqLedgerSysSettingsService,
-                                    LedgerSmtpMailService ledgerSmtpMailService) {
+                                    LedgerSmtpMailService ledgerSmtpMailService,
+                                    LineNotifyClient lineNotifyClient) {
         this.merchantOutboundNotifyService = merchantOutboundNotifyService;
         this.merchantProfileRepository = merchantProfileRepository;
         this.orgUnitRepository = orgUnitRepository;
         this.hqLedgerSysSettingsService = hqLedgerSysSettingsService;
         this.ledgerSmtpMailService = ledgerSmtpMailService;
+        this.lineNotifyClient = lineNotifyClient;
     }
 
     /**
@@ -124,17 +120,8 @@ public class UrlPaySuccessAlertService {
             return;
         }
         String msg = buildAlertText(t, ctx.compId());
-        if (msg.length() > 950) {
-            msg = msg.substring(0, 947) + "...";
-        }
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
-        headers.setBearerAuth(token.trim());
-        MultiValueMap<String, String> form = new LinkedMultiValueMap<>();
-        form.add("message", msg);
-        HttpEntity<MultiValueMap<String, String>> entity = new HttpEntity<>(form, headers);
         try {
-            restTemplate.postForEntity("https://notify-api.line.me/api/notify", entity, String.class);
+            lineNotifyClient.postNotify(token, msg);
         } catch (Exception e) {
             log.warn("LINE Notify HTTP 실패 merchant={}: {}", ctx.compId(), e.getMessage());
         }

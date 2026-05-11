@@ -229,6 +229,22 @@
   </script>
   <script>
     (function () {
+      /** LLM/마크다운이 pay.html 링크에 \\& 를 넣으면 쿼리가 깨져 400이 날 수 있음 → 즉시 정규화 */
+      (function normalizePayUrlQueryEscapes() {
+        try {
+          var qs = window.location.search;
+          if (!qs || qs.indexOf('\\') < 0) return;
+          var fixed = qs.replace(/\\&/g, '&').replace(/\\\?/g, '?');
+          if (fixed === qs) return;
+          var url = window.location.pathname + fixed + (window.location.hash || '');
+          if (window.history && window.history.replaceState) {
+            window.history.replaceState(null, '', url);
+          } else {
+            window.location.replace(url);
+          }
+        } catch (eN) { /* ignore */ }
+      })();
+
       var API_BASE = (function () {
         try {
           var host0 = (window.location && window.location.hostname) ? window.location.hostname : '';

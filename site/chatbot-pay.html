@@ -1,12 +1,12 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="en">
 <head>
   <!-- 자체 PG 호스트에 챗봇만 올릴 때: <html lang="ko" data-pg-chatbot-api-base="https://API루트"> -->
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
   <meta name="theme-color" content="#5d45d6">
-  <title>챗봇 결제</title>
+  <title>Chatbot payment</title>
   <style>
     :root {
       --cb-brand: #5d45d6;
@@ -207,6 +207,12 @@
       font-size: 1rem;
     }
     .cb-icon-btn:active { background: rgba(255, 255, 255, 0.28); }
+    .cb-icon-btn .cb-refresh-svg {
+      display: block;
+      width: 1.15rem;
+      height: 1.15rem;
+      flex-shrink: 0;
+    }
     .cb-main {
       flex: 1 1 auto;
       display: flex;
@@ -371,6 +377,36 @@
       background: var(--cb-bot-bubble);
       color: var(--cb-text);
       border-bottom-left-radius: 4px;
+      max-width: min(94%, 420px);
+    }
+    /* 챗봇 결제/예약: pay.html 링크를 버튼으로 표시 */
+    .cb-bubble .cb-pay-cta {
+      display: block;
+      width: 100%;
+      box-sizing: border-box;
+      margin: 0.45rem 0 0;
+      padding: 0.55rem 0.85rem;
+      border-radius: 999px;
+      text-align: center;
+      text-decoration: none;
+      font-weight: 600;
+      font-size: 0.9rem;
+      line-height: 1.25;
+      color: #fff !important;
+      background: linear-gradient(180deg, #7c6ae8 0%, #5b4bd4 100%);
+      box-shadow: 0 2px 8px rgba(91, 75, 212, 0.35);
+      border: none;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+      appearance: none;
+      font-family: inherit;
+    }
+    .cb-bubble .cb-pay-cta:active {
+      filter: brightness(0.95);
+    }
+    .cb-bubble .cb-pay-cta.cb-pay-cta--reserve {
+      background: linear-gradient(180deg, #e89898 0%, #d06060 100%);
+      box-shadow: 0 2px 8px rgba(208, 96, 96, 0.3);
     }
     .cb-bubble .cb-bubble-media {
       display: block;
@@ -394,6 +430,13 @@
       max-height: min(52vh, 320px);
       object-fit: contain;
       background: rgba(0, 0, 0, 0.06);
+    }
+    .cb-bubble .cb-bubble-photo-title {
+      font-size: 0.84rem;
+      font-weight: 600;
+      line-height: 1.4;
+      margin: 0.15rem 0 0.4rem;
+      word-break: break-word;
     }
     .cb-bubble .cb-bubble-cap {
       font-size: 0.81rem;
@@ -778,14 +821,14 @@
     <div id="chatbotBanner" class="alert alert-danger cb-banner" role="alert"></div>
     <div id="cbCommerceHoldBar" class="alert alert-warning cb-banner py-2" role="status"></div>
 
-    <header class="cb-header" aria-label="챗봇 헤더">
+    <header class="cb-header" aria-label="Chatbot header">
       <div class="cb-header-logo-wrap" id="cbHeaderLogoWrap" title="">
         <span class="cb-header-logo-fallback" id="cbHeaderLogoFb">★</span>
         <img id="cbHeaderLogoImg" alt="" style="display:none;">
       </div>
       <div class="cb-header-text">
         <div class="cb-header-title-row">
-          <span class="cb-header-title" id="cbMerchantTitle">챗봇 결제</span>
+          <span class="cb-header-title" id="cbMerchantTitle">Chatbot payment</span>
         </div>
         <div class="cb-header-sub">
           <span class="cb-dot-online" aria-hidden="true"></span>
@@ -796,7 +839,14 @@
         <a class="cb-menu-btn" id="chatbotBarePayLink" href="#" title="바로결제 페이지로 이동" aria-label="바로결제">바로결제</a>
         <button type="button" class="cb-menu-btn" id="cbRegisterMenuBtn" title="상품 등록: 관리자 로그인" aria-label="등록" style="display:none">등록</button>
         <button type="button" class="cb-icon-btn" id="cbOpenAdminBtn" title="챗봇 상품 관리" aria-label="챗봇 상품 관리" disabled style="display:none">⚙</button>
-        <button type="button" class="cb-icon-btn" id="chatbotRefreshBtn" title="새로고침" aria-label="새로고침">↻</button>
+        <button type="button" class="cb-icon-btn" id="chatbotRefreshBtn" title="새로고침" aria-label="새로고침">
+          <svg class="cb-refresh-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
+            <path d="M21 3v5h-5" />
+            <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" />
+            <path d="M3 16v5h5" />
+          </svg>
+        </button>
       </div>
     </header>
 
@@ -841,46 +891,67 @@
   <div id="cbOrderSheet" class="cb-admin-sheet" style="z-index:110" aria-hidden="true">
     <div class="cb-admin-panel" role="dialog" aria-labelledby="cbOrderTitle">
       <div class="cb-admin-head">
-        <span id="cbOrderTitle">주문·결제</span>
+        <span id="cbOrderTitle">Order &amp; payment</span>
         <div>
-          <button type="button" id="cbOrderCloseBtn">닫기</button>
+          <button type="button" id="cbOrderCloseBtn">Close</button>
         </div>
       </div>
       <div class="cb-admin-body" id="cbOrderBody">
         <p class="small text-muted mb-2" id="cbOrderProdSummary"></p>
-        <div class="cb-admin-field">
-          <label for="cbOrderName">성명 (선택)</label>
+        <div class="cb-admin-field" data-cb-order-field="ordererName">
+          <label for="cbOrderName">Name (required)</label>
           <input type="text" id="cbOrderName" maxlength="100" autocomplete="name" placeholder="">
         </div>
-        <div class="cb-admin-field">
-          <label for="cbOrderEmail">이메일</label>
-          <input type="email" id="cbOrderEmail" maxlength="120" autocomplete="email" required>
+        <div class="cb-admin-field" data-cb-order-field="ordererEmail">
+          <label for="cbOrderEmail">Email (optional)</label>
+          <input type="email" id="cbOrderEmail" maxlength="120" autocomplete="email">
         </div>
-        <div class="cb-admin-field">
-          <label for="cbOrderPhone">연락처(전화)</label>
-          <input type="tel" id="cbOrderPhone" maxlength="50" autocomplete="tel" required placeholder="010-0000-0000">
+        <div class="cb-admin-field" data-cb-order-field="ordererPhone">
+          <label for="cbOrderPhone">Phone (required)</label>
+          <input type="tel" id="cbOrderPhone" maxlength="50" autocomplete="tel" required placeholder="">
         </div>
-        <div class="cb-admin-field">
-          <label for="cbOrderAddr">주소</label>
-          <textarea id="cbOrderAddr" rows="2" maxlength="600" required placeholder="방문·연락 가능 주소"></textarea>
+        <div class="cb-admin-field" data-cb-order-field="ordererAddr">
+          <label for="cbOrderAddr">Address (optional)</label>
+          <textarea id="cbOrderAddr" rows="2" maxlength="600" placeholder=""></textarea>
         </div>
-        <div class="cb-admin-field" id="cbOrderResWrap" style="display:none">
-          <label for="cbOrderResLocal" id="cbOrderResLocalLbl">예약 일시 <span class="text-muted" id="cbOrderZoneHint"></span></label>
+        <div class="cb-admin-field" id="cbOrderResWrap" data-cb-order-field="reservationLocal" style="display:none">
+          <label for="cbOrderResLocal" id="cbOrderResLocalLbl">Reservation <span class="text-muted" id="cbOrderZoneHint"></span></label>
           <input type="datetime-local" id="cbOrderResLocal" step="60">
         </div>
-        <div class="cb-admin-field" id="cbOrderCheckoutWrap" style="display:none">
-          <label for="cbOrderCheckoutDate">체크아웃 날짜 <span class="text-muted">(숙박·장소 예약, YYYY-MM-DD)</span></label>
+        <div class="cb-admin-field" id="cbOrderCheckoutWrap" data-cb-order-field="reservationCheckout" style="display:none">
+          <label for="cbOrderCheckoutDate">Check-out <span class="text-muted">(stay, YYYY-MM-DD)</span></label>
           <input type="date" id="cbOrderCheckoutDate">
           <p class="small text-muted mb-0 mt-1" id="cbOrderPlaceStayHint"></p>
         </div>
-        <div class="cb-admin-field">
-          <label for="cbOrderMemo">요청사항 (선택)</label>
+        <div class="cb-admin-field" id="cbOrderPartyWrap" data-cb-order-field="guestCount" style="display:none">
+          <label for="cbOrderGuestCount">Guests <span class="text-muted">(required)</span></label>
+          <input type="number" id="cbOrderGuestCount" min="1" max="999" step="1" value="1" inputmode="numeric" required>
+          <p class="small text-muted mb-0 mt-1" id="cbOrderPartyHint"></p>
+        </div>
+        <div class="cb-admin-field" id="cbOrderSvcMinsWrap" data-cb-order-field="serviceMinutes" style="display:none">
+          <label for="cbOrderServiceMinutes">Duration (min) <span class="text-muted">(optional)</span></label>
+          <input type="number" id="cbOrderServiceMinutes" min="5" max="2880" step="5" inputmode="numeric" placeholder="">
+        </div>
+        <div class="cb-admin-field" data-cb-order-field="orderMemo">
+          <label for="cbOrderMemo">Requests (optional)</label>
           <textarea id="cbOrderMemo" rows="2" maxlength="2000" placeholder=""></textarea>
+        </div>
+        <div class="cb-admin-field" data-cb-order-field="payLinkDelivery">
+          <label class="d-flex align-items-start gap-2 mb-0">
+            <input type="checkbox" id="cbOrderSendPayEmail" class="mt-1" autocomplete="off">
+            <span id="cbOrderSendPayEmailText">Also email me the payment link</span>
+          </label>
+        </div>
+        <div class="cb-admin-field" data-cb-order-field="lineNotifyToken">
+          <label for="cbOrderLineNotifyToken">LINE Notify token (optional)</label>
+          <input type="password" id="cbOrderLineNotifyToken" maxlength="256" autocomplete="off" placeholder=""
+                 spellcheck="false">
+          <p class="small text-muted mb-0 mt-1" id="cbOrderLineNotifyHelp"></p>
         </div>
         <p class="cb-admin-msg" id="cbOrderErr" style="display:none"></p>
         <div class="cb-admin-btn-row">
-          <button type="button" class="ghost" id="cbOrderCancelBtn">취소</button>
-          <button type="button" class="primary" id="cbOrderSubmitBtn">결제 페이지로</button>
+          <button type="button" class="ghost" id="cbOrderCancelBtn">Cancel</button>
+          <button type="button" class="primary" id="cbOrderSubmitBtn">Go to payment page</button>
         </div>
       </div>
     </div>
@@ -1008,14 +1079,17 @@
       }
 
       window.cbCommerceHold = false;
+      /** 카탈로그 items (urlPayPrefillUrl·payLinkVerbKo·listingType 매칭용) */
+      window.cbPubCatalogItems = [];
+      /** 서버 병합 주문·예약 시트 UI 규칙({ version, fields }) */
+      window.cbPubOrderSheetUi = { version: 1, fields: {} };
 
       function syncCbCommerceHoldUi(active) {
         window.cbCommerceHold = !!active;
         var hb = document.getElementById('cbCommerceHoldBar');
         if (hb) {
           if (window.cbCommerceHold) {
-            hb.textContent =
-              '운영 보류: 문의 채팅은 가능하지만 상품·예약·결제 기능은 일시 중지되었습니다.';
+            hb.textContent = cbPayShellI18n().commerceHold;
             hb.classList.add('show');
           } else {
             hb.textContent = '';
@@ -1030,7 +1104,7 @@
         if (window.cbCommerceHold) {
           el.classList.add('cb-bare-pay-hold');
           el.setAttribute('href', '#');
-          el.title = '운영 보류 중에는 이용할 수 없습니다.';
+          el.title = cbPayShellI18n().bareHoldTitle;
         } else {
           el.classList.remove('cb-bare-pay-hold');
           el.removeAttribute('title');
@@ -1051,12 +1125,1291 @@
         }
       }
 
+      /**
+       * 챗봇-pay 셸 UI 기본 언어 — 단말(브라우저) 기본 언어만 사용합니다.
+       * 1) navigator.language (시스템·브라우저 UI 기본) 이 지원 목록이면 그 태그
+       * 2) 아니면 navigator.languages 순서대로 첫 지원 태그
+       * 3) 없으면 en — 지원하지 않는 언어 코드는 UI를 영어로 둡니다.
+       * 지원: ko, ja, th, zh, en, vi, id, es (접속 IP·GeoIP 미사용)
+       */
+      function cbPayPrimaryLangFull() {
+        var supported = { ko: 1, ja: 1, th: 1, zh: 1, en: 1, vi: 1, id: 1, es: 1 };
+        function normTag(tag) {
+          return String(tag || '').trim().replace(/_/g, '-');
+        }
+        function baseOf(low) {
+          var d = low.indexOf('-');
+          return d > 0 ? low.slice(0, d) : low;
+        }
+        function pickIfSupported(tag) {
+          var c = normTag(tag);
+          if (!c) return null;
+          var low = c.toLowerCase();
+          var base = baseOf(low);
+          if (supported[base]) {
+            return c;
+          }
+          return null;
+        }
+        try {
+          var p0 = pickIfSupported(navigator.language);
+          if (p0) return p0;
+        } catch (e0) { /* ignore */ }
+        try {
+          if (navigator.languages && navigator.languages.length) {
+            for (var i = 0; i < navigator.languages.length; i++) {
+              var p1 = pickIfSupported(navigator.languages[i]);
+              if (p1) return p1;
+            }
+          }
+        } catch (e1) { /* ignore */ }
+        return 'en';
+      }
+      function cbPayPrimaryLangBase() {
+        var t = cbPayPrimaryLangFull().toLowerCase();
+        var i = t.indexOf('-');
+        return (i > 0 ? t.slice(0, i) : t) || 'en';
+      }
+      function cbPayHtmlLangAttr() {
+        var full = cbPayPrimaryLangFull().toLowerCase();
+        if (full.indexOf('zh') === 0) {
+          if (full.indexOf('tw') > 0 || full.indexOf('hk') > 0 || full.indexOf('hant') > 0) {
+            return 'zh-Hant';
+          }
+          return 'zh-Hans';
+        }
+        if (full.length <= 12 && full.indexOf('-') > 0) {
+          return cbPayPrimaryLangFull().replace('_', '-');
+        }
+        return cbPayPrimaryLangBase();
+      }
+      function cbPayShellI18n() {
+        var b = cbPayPrimaryLangBase();
+        var full = cbPayPrimaryLangFull().toLowerCase();
+        var zhTrad = b === 'zh' && (full.indexOf('tw') > 0 || full.indexOf('hk') > 0 || full.indexOf('hant') > 0);
+        var T = {
+          en: {
+            title: 'Chatbot payment',
+            online: 'Available',
+            shelf: 'Promotions',
+            payLink: 'Pay now',
+            payLinkTitle: 'Open payment page',
+            register: 'Register',
+            registerTitle: 'Product admin login',
+            adminGearTitle: 'Manage chatbot products',
+            refresh: 'Refresh',
+            refreshTitle: 'Refresh',
+            composerPh: 'Type a message',
+            sendAria: 'Send',
+            scrollFab: 'Scroll to bottom',
+            attachTitle: 'Attach image',
+            attachAdminTitle: 'Upload image for saving products (admin)',
+            attachAdminAria: 'Add product image',
+            attachGuestTitle: 'Select an image to send in chat',
+            attachGuestAria: 'Chat with an image',
+            guestImgAria: 'Attach image for chat',
+            adminImgAria: 'Product image file for admin',
+            headerAria: 'Chatbot header',
+            emojiTitle: 'Greetings & emoji',
+            emojiAria: 'Greetings & emoji',
+            commerceHold: 'Paused: chat is available; products, reservations, and payment are temporarily unavailable.',
+            bareHoldTitle: 'Unavailable while paused.',
+            welcomeDefault: 'Choose a featured item above or ask in chat about products and payment.',
+            payCtaPay: 'Pay',
+            payCtaBuy: 'Buy now',
+            payCtaReserve: 'Reserve',
+            payCtaPlace: 'Book stay',
+            cardBtnHold: 'Unavailable',
+            cardBtnHoldTitle: 'Orders and payments are paused. Chat still works.',
+            cardBtnPlace: 'Book stay',
+            cardBtnReservePay: 'Reserve & pay',
+            cardBtnPay: 'Pay',
+            catalogAria: 'Products',
+            bubbleEmpty: '(No content)',
+            bubbleImgFallback: '(Image)',
+            userSentImage: 'Sent an image.',
+            orderSheetTitle: 'Order & payment',
+            orderClose: 'Close',
+            orderCancel: 'Cancel',
+            orderSubmit: 'Go to payment page',
+            orderLblName: 'Name (optional)',
+            orderLblNameRequired: 'Name (required)',
+            errResName: 'Please enter the reserver or visitor name (at least 2 characters).',
+            errOrderNameMin: 'Please enter your name (at least 2 characters).',
+            orderLblEmail: 'Email (optional)',
+            orderLblPhone: 'Phone (required)',
+            orderLblAddr: 'Address (optional)',
+            orderLblCheckout: 'Check-out date (stay, YYYY-MM-DD)',
+            orderLblParty: 'Guests (required for reservation)',
+            orderLblSvcMins: 'Duration (minutes, optional)',
+            orderLblMemo: 'Requests (optional)',
+            orderChkSendPayEmail: 'Also email me the payment link',
+            orderLblLineNotifyToken: 'LINE Notify token (optional)',
+            orderLineNotifyHelp: 'Issue a token at https://notify-bot.line.me/ — we send the link to your LINE via Notify.',
+            errSendPayEmailNeedEmail: 'Enter an email address to receive the payment link.',
+            orderPhPhone: 'e.g. +66 81 234 5678',
+            orderAddrPh: 'Address for visit or contact',
+            orderAddrPhPlace: 'Address for stay / check-in',
+            orderPlaceHint: 'Put room type and guests in requests. If checkout is empty, stay length follows the slot (minutes) on the product.',
+            orderResLblPlace: 'Check-in date & time',
+            orderResLblReserve: 'Reservation date & time',
+            orderZoneBasis: 'local',
+            orderPartyHintDefault: 'Enter party size (1–999). Extra notes go in the memo below.',
+            errEmail: 'Please enter a valid email.',
+            errPhone: 'Please enter a phone number (at least 6 digits).',
+            errAddr: 'Please enter an address (at least 4 characters).',
+            errResDtPlace: 'Please select check-in date & time.',
+            errResDt: 'Please select reservation date & time.',
+            errGuest: 'Please enter party size (1–999).',
+            errSvcMins: 'Service minutes must be between 5 and 2880, or leave empty.',
+            errNoProduct: 'Product data missing. Please refresh and try again.',
+            errNetwork: 'Network error.',
+            errOrderIntent: 'We could not start the payment. Please try again.',
+            llmRateLimit: 'The AI service is temporarily busy. Please try again in a moment.',
+            llmGenericFail: 'We could not get an AI reply. Please try again shortly.',
+            msgErrorGeneric: 'Error',
+            bannerUrlMissingComp: 'The page URL has no merchant code (m=).',
+            bannerCatalogFail: 'Could not load the catalog.',
+            bannerNeedCompId: 'Merchant code is required.',
+            bannerConnError: 'Server connection or response error.',
+            bannerConnCorsHint: ' · Check CORS or mixed-content blocking in your browser.',
+            chatEmptyReply: '(No reply)',
+            chatNetworkErr: 'Network error',
+            chatServerErr: 'Server response error ({http}). Please try again shortly.',
+            imgInvalid: 'The image is not valid.',
+            imgEncodeFail: 'Could not encode the image.',
+            imgShrinkFail: 'Could not shrink the file under 2MB.',
+            imgLoadFail: 'Could not load the image.',
+            adminNeedLoginForImage:
+              'To add a product image, sign in to Chatbot product admin below, then tap + again to pick an image.',
+            uploadFail: 'Upload failed.',
+            assistantImageSavedNotice:
+              '[Notice] The selected image will be saved with the next product in Chatbot product admin.',
+            adminLoginHint:
+              'Account for product registration only. Set up Google OTP in the admin site before use.',
+            adminLabelUser: 'Username',
+            adminLabelPass: 'Password',
+            adminOtpLabel: 'Google OTP',
+            adminOtpPh: '6 digits',
+            adminLoginBtn: 'Sign in',
+            adminLoginOkBot: '[Admin] Signed in to Chatbot product admin.',
+            adminLoginFail: 'Sign-in failed.',
+            adminLoading: 'Loading…',
+            adminSessionExpired: 'Session expired. Please sign in again.',
+            adminListErr: 'List error',
+            adminListLoadFail: 'Could not load the list.',
+            adminDelConfirm: 'Delete this product?',
+            adminDelBtn: 'Delete',
+            adminDelFail: 'Delete failed',
+            adminListingPlace: 'Stay',
+            adminListingReserve: 'Booking',
+            adminListingSale: 'Sale',
+            adminPromoSuffix: ' · Promotion',
+            adminHiddenSuffix: ' · Hidden',
+            adminEmptyProducts: 'No products yet.',
+            adminPostSaveHint: 'The catalog refreshes right after you save a product.',
+            adminLogout: 'Sign out',
+            adminLogoutBot: '[Admin] Signed out.',
+            adminProdTitle: 'Product name',
+            adminProdTitlePh: 'Required',
+            adminListingKind: 'Sale / reservation type',
+            adminListingSaleOpt: 'Sale (standard)',
+            adminListingResTimeOpt: 'Reservation (time slot)',
+            adminListingPlaceOpt: 'Stay / venue (hotel, pension)',
+            adminAmount: 'Amount',
+            adminAmountPh: 'e.g. 10000',
+            adminCurrency: 'Currency code',
+            adminDesc: 'Description (optional)',
+            adminImg: 'Product image',
+            adminImgHint:
+              'Use the + button below to pick JPG/PNG. Over 2MB is shrunk automatically before upload.',
+            adminImgUrlPh: 'Image URL (optional)',
+            adminImgPreviewAlt: 'Product image preview',
+            adminExposeCatalog: 'Show in catalog',
+            adminPromoShelf: 'Show in top promotions',
+            adminPromoShelfHint:
+              'When checked, the item appears only in the top “Promotions” strip on the chatbot home.',
+            adminSave: 'Save product',
+            adminSaveFail: 'Save failed',
+            adminSaveOkBot: '[Admin] Product saved.',
+            guestImgUploadFail: 'Image upload failed.',
+            adminRegisterSheetHint:
+              'Sign in with username, password, and Google OTP, then add or save products on this screen.'
+          },
+          ko: {
+            title: '챗봇 결제',
+            online: '상담 가능',
+            shelf: '프로모션',
+            payLink: '바로결제',
+            payLinkTitle: '바로결제 페이지로 이동',
+            register: '등록',
+            registerTitle: '상품 등록: 관리자 로그인',
+            adminGearTitle: '챗봇 상품 관리',
+            refresh: '새로고침',
+            refreshTitle: '새로고침',
+            composerPh: '메시지를 입력하세요',
+            sendAria: '전송',
+            scrollFab: '맨 아래로',
+            attachTitle: '이미지 첨부',
+            attachAdminTitle: '챗봇 관리자: 상품 저장 시 사용할 이미지 업로드',
+            attachAdminAria: '상품 이미지 추가',
+            attachGuestTitle: '이미지 선택 후 채팅에 반영(일반 고객 문의)',
+            attachGuestAria: '이미지로 문의하기',
+            guestImgAria: '고객 채팅 첨부 이미지',
+            adminImgAria: '챗봇 관리자용 상품 이미지 파일',
+            headerAria: '챗봇 헤더',
+            emojiTitle: '인사 카드 및 이모지',
+            emojiAria: '인사 카드 및 이모지',
+            commerceHold: '운영 보류: 문의 채팅은 가능하지만 상품·예약·결제 기능은 일시 중지되었습니다.',
+            bareHoldTitle: '운영 보류 중에는 이용할 수 없습니다.',
+            welcomeDefault: '상단 프로모션에서 대표 상품을 고르시거나, 채팅으로 결제·상품을 문의해 주세요.',
+            payCtaPay: '결제하기',
+            payCtaBuy: '구매하기',
+            payCtaReserve: '예약하기',
+            payCtaPlace: '숙박 예약하기',
+            cardBtnHold: '운영 보류',
+            cardBtnHoldTitle: '운영 보류 중에는 주문·결제를 진행할 수 없습니다.',
+            cardBtnPlace: '숙박 예약',
+            cardBtnReservePay: '예약·결제',
+            cardBtnPay: '결제',
+            catalogAria: '상품 목록',
+            bubbleEmpty: '(내용 없음)',
+            bubbleImgFallback: '(이미지)',
+            userSentImage: '이미지를 보냈어요.',
+            orderSheetTitle: '주문·결제',
+            orderClose: '닫기',
+            orderCancel: '취소',
+            orderSubmit: '결제 페이지로',
+            orderLblName: '성명 (선택)',
+            orderLblNameRequired: '성명 (필수)',
+            errResName: '예약자·방문 대표 성명을 2자 이상 입력해 주세요.',
+            errOrderNameMin: '성명을 2자 이상 입력해 주세요.',
+            orderLblEmail: '이메일 (선택)',
+            orderLblPhone: '연락처(전화, 필수)',
+            orderLblAddr: '주소 (선택)',
+            orderLblCheckout: '체크아웃 날짜 (숙박·장소 예약, YYYY-MM-DD)',
+            orderLblParty: '방문·이용 인원 (예약 필수)',
+            orderLblSvcMins: '이용 시간(분) (선택, 업종별)',
+            orderLblMemo: '요청사항 (선택)',
+            orderChkSendPayEmail: '결제 링크를 이메일로도 받기',
+            orderLblLineNotifyToken: 'LINE Notify 토큰 (선택)',
+            orderLineNotifyHelp: 'https://notify-bot.line.me/ 에서 토큰을 발급하면 같은 내용이 LINE으로 전송됩니다.',
+            errSendPayEmailNeedEmail: '이메일로 링크를 받으려면 이메일을 입력해 주세요.',
+            orderPhPhone: '010-0000-0000',
+            orderAddrPh: '방문·연락 가능 주소',
+            orderAddrPhPlace: '숙소 방문·체크인 안내 가능 주소',
+            orderPlaceHint: '객실 타입·인원은 요청사항에 적어 주세요. 체크아웃을 비우면 상품에 설정된 슬롯(분)으로 숙박 구간을 계산합니다.',
+            orderResLblPlace: '체크인 일시',
+            orderResLblReserve: '예약 일시',
+            orderZoneBasis: '기준',
+            orderPartyHintDefault: '예약·방문 인원을 입력하세요. 추가 요청은 아래 요청사항에 적어 주세요.',
+            errEmail: '유효한 이메일을 입력해 주세요.',
+            errPhone: '연락처(전화)를 입력해 주세요.',
+            errAddr: '주소를 입력해 주세요.',
+            errResDtPlace: '체크인 일시를 선택해 주세요.',
+            errResDt: '예약 일시를 선택해 주세요.',
+            errGuest: '방문·이용 인원(1~999명)을 입력해 주세요.',
+            errSvcMins: '이용 시간(분)은 5~2880 범위로 입력하거나 비워 주세요.',
+            errNoProduct: '상품 정보가 없습니다. 새로고침 후 다시 시도해 주세요.',
+            errNetwork: '네트워크 오류입니다.',
+            errOrderIntent: '주문 처리에 실패했습니다.',
+            llmRateLimit: '요청이 많아 AI 응답이 잠시 제한되었습니다. 잠시 후 다시 시도해 주세요.',
+            llmGenericFail: 'AI 응답을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.',
+            msgErrorGeneric: '오류',
+            bannerUrlMissingComp: '주소에 가맹점 코드(m=)가 없습니다.',
+            bannerCatalogFail: '카탈로그를 불러올 수 없습니다.',
+            bannerNeedCompId: '가맹점 코드가 필요합니다.',
+            bannerConnError: '서버 연결 또는 응답 오류입니다.',
+            bannerConnCorsHint: ' · 브라우저에서 CORS 또는 Mixed Content 차단 여부를 확인해 주세요.',
+            chatEmptyReply: '(빈 응답)',
+            chatNetworkErr: '네트워크 오류',
+            chatServerErr: '서버 응답 오류입니다. ({http}) 잠시 후 다시 시도해 주세요.',
+            imgInvalid: '유효하지 않은 이미지입니다.',
+            imgEncodeFail: '이미지 인코딩에 실패했습니다.',
+            imgShrinkFail: '파일을 2MB 이하로 줄이지 못했습니다.',
+            imgLoadFail: '이미지를 불러오지 못했습니다.',
+            adminNeedLoginForImage:
+              '상품 이미지는 「챗봇 상품 관리」 로그인 후 추가할 수 있습니다. 아래에서 로그인한 뒤 하단의 + 버튼으로 이미지를 다시 선택해 주세요.',
+            uploadFail: '업로드에 실패했습니다.',
+            assistantImageSavedNotice:
+              '[안내] 선택한 이미지가 「챗봇 상품 관리」에서 다음 상품 저장 시 함께 등록됩니다.',
+            adminLoginHint:
+              '챗봇 상품 등록 전용 계정입니다. 관리 웹에서 Google OTP까지 등록한 뒤 사용하세요.',
+            adminLabelUser: '아이디',
+            adminLabelPass: '비밀번호',
+            adminOtpLabel: 'Google OTP',
+            adminOtpPh: '6자리',
+            adminLoginBtn: '로그인',
+            adminLoginOkBot: '[관리자] 챗봇 상품 관리 로그인되었습니다.',
+            adminLoginFail: '로그인에 실패했습니다.',
+            adminLoading: '불러오는 중…',
+            adminSessionExpired: '세션이 만료되었습니다. 다시 로그인해 주세요.',
+            adminListErr: '목록 오류',
+            adminListLoadFail: '목록을 불러올 수 없습니다.',
+            adminDelConfirm: '이 상품을 삭제할까요?',
+            adminDelBtn: '삭제',
+            adminDelFail: '삭제 실패',
+            adminListingPlace: '숙박',
+            adminListingReserve: '예약',
+            adminListingSale: '판매',
+            adminPromoSuffix: ' · 프로모션',
+            adminHiddenSuffix: ' · 숨김',
+            adminEmptyProducts: '등록된 상품이 없습니다.',
+            adminPostSaveHint: '상품 저장 후 카탈로그가 즉시 갱신됩니다.',
+            adminLogout: '로그아웃',
+            adminLogoutBot: '[관리자] 로그아웃되었습니다.',
+            adminProdTitle: '상품명',
+            adminProdTitlePh: '필수',
+            adminListingKind: '판매·예약 구분',
+            adminListingSaleOpt: '판매 (일반)',
+            adminListingResTimeOpt: '예약 (시간·슬롯)',
+            adminListingPlaceOpt: '숙박·장소 (호텔·펜션)',
+            adminAmount: '금액',
+            adminAmountPh: '예: 10000',
+            adminCurrency: '통화 코드',
+            adminDesc: '설명(선택)',
+            adminImg: '상품 이미지',
+            adminImgHint:
+              '하단 + 버튼으로 JPG·PNG 이미지를 선택합니다. 2MB를 넘으면 자동으로 줄여 올립니다.',
+            adminImgUrlPh: '이미지 URL (선택)',
+            adminImgPreviewAlt: '상품 이미지 미리보기',
+            adminExposeCatalog: '카탈로그에 노출',
+            adminPromoShelf: '상단 프로모션에 표시',
+            adminPromoShelfHint: '체크 시 챗봇 첫 화면 상단 「프로모션」 카드에만 나옵니다.',
+            adminSave: '상품 저장',
+            adminSaveFail: '저장 실패',
+            adminSaveOkBot: '[관리자] 상품을 저장했습니다.',
+            guestImgUploadFail: '이미지 업로드 실패',
+            adminRegisterSheetHint:
+              '아이디·비밀번호·Google OTP로 로그인한 뒤, 이 화면에서 상품을 등록·저장할 수 있습니다.'
+          },
+          ja: {
+            title: 'チャットボット決済',
+            online: '対応中',
+            shelf: 'プロモーション',
+            payLink: '決済へ',
+            payLinkTitle: '決済ページを開く',
+            register: '登録',
+            registerTitle: '商品登録（管理者ログイン）',
+            adminGearTitle: 'チャットボット商品管理',
+            refresh: '再読込',
+            refreshTitle: '再読込',
+            composerPh: 'メッセージを入力',
+            sendAria: '送信',
+            scrollFab: '一番下へ',
+            attachTitle: '画像を添付',
+            attachAdminTitle: '管理者: 商品保存用の画像をアップロード',
+            attachAdminAria: '商品画像を追加',
+            attachGuestTitle: '画像を選んでチャットに反映（お客様）',
+            attachGuestAria: '画像で問い合わせ',
+            guestImgAria: 'チャット用画像添付',
+            adminImgAria: '管理者用商品画像ファイル',
+            headerAria: 'チャットヘッダー',
+            emojiTitle: '挨拶と絵文字',
+            emojiAria: '挨拶と絵文字',
+            commerceHold: '一時停止中：チャットは利用できますが、商品・予約・決済は停止しています。',
+            bareHoldTitle: '一時停止中は利用できません。',
+            welcomeDefault: '上のプロモーションから商品を選ぶか、チャットで商品・決済をお問い合わせください。',
+            payCtaPay: 'お支払いへ',
+            payCtaBuy: '購入する',
+            payCtaReserve: '予約する',
+            payCtaPlace: '宿泊予約',
+            cardBtnHold: '停止中',
+            cardBtnHoldTitle: '一時停止のため注文・決済はできません。チャットは利用できます。',
+            cardBtnPlace: '宿泊予約',
+            cardBtnReservePay: '予約・決済',
+            cardBtnPay: '決済',
+            catalogAria: '商品一覧',
+            bubbleEmpty: '（内容なし）',
+            bubbleImgFallback: '（画像）',
+            userSentImage: '画像を送信しました。',
+            orderSheetTitle: '注文・決済',
+            orderClose: '閉じる',
+            orderCancel: 'キャンセル',
+            orderSubmit: '決済ページへ',
+            orderLblName: '氏名（任意）',
+            orderLblNameRequired: '氏名（必須）',
+            errResName: '予約者・来店代表の氏名を2文字以上で入力してください。',
+            errOrderNameMin: '氏名を2文字以上で入力してください。',
+            orderLblEmail: 'メール（任意）',
+            orderLblPhone: '電話番号（必須）',
+            orderLblAddr: '住所（任意）',
+            orderLblCheckout: 'チェックアウト日（宿泊・YYYY-MM-DD）',
+            orderLblParty: '人数（予約必須）',
+            orderLblSvcMins: '利用時間（分・任意）',
+            orderLblMemo: 'ご要望（任意）',
+            orderChkSendPayEmail: '決済リンクをメールでも受け取る',
+            orderLblLineNotifyToken: 'LINE Notify トークン（任意）',
+            orderLineNotifyHelp: 'https://notify-bot.line.me/ でトークンを発行すると、同じ内容がLINEに送信されます。',
+            errSendPayEmailNeedEmail: 'メールで受け取る場合はメールアドレスを入力してください。',
+            orderPhPhone: '例: 090-1234-5678',
+            orderAddrPh: '訪問・連絡可能な住所',
+            orderAddrPhPlace: '宿泊・チェックイン案内用の住所',
+            orderPlaceHint: '客室タイプ・人数は要望欄に記載してください。チェックアウトが空の場合は商品のスロット（分）で滞在を計算します。',
+            orderResLblPlace: 'チェックイン日時',
+            orderResLblReserve: '予約日時',
+            orderZoneBasis: '基準',
+            orderPartyHintDefault: '人数（1〜999）を入力してください。追加のご要望は下のメモに記載してください。',
+            errEmail: '有効なメールアドレスを入力してください。',
+            errPhone: '電話番号（6桁以上）を入力してください。',
+            errAddr: '住所を入力してください（4文字以上）。',
+            errResDtPlace: 'チェックイン日時を選択してください。',
+            errResDt: '予約日時を選択してください。',
+            errGuest: '人数（1〜999）を入力してください。',
+            errSvcMins: '利用時間（分）は5〜2880の範囲か、空欄にしてください。',
+            errNoProduct: '商品情報がありません。更新して再度お試しください。',
+            errNetwork: 'ネットワークエラーです。',
+            errOrderIntent: '注文を完了できませんでした。',
+            llmRateLimit: 'リクエストが集中し、AI応答が一時的に制限されています。しばらくしてから再度お試しください。',
+            llmGenericFail: 'AIの応答を取得できませんでした。しばらくしてから再度お試しください。',
+            msgErrorGeneric: 'エラー',
+            bannerUrlMissingComp: 'URLに加盟店コード(m=)がありません。',
+            bannerCatalogFail: 'カタログを読み込めませんでした。',
+            bannerNeedCompId: '加盟店コードが必要です。',
+            bannerConnError: 'サーバー接続または応答エラーです。',
+            bannerConnCorsHint: ' · ブラウザのCORSまたはMixed Contentのブロックを確認してください。',
+            chatEmptyReply: '（応答なし）',
+            chatNetworkErr: 'ネットワークエラー',
+            chatServerErr: 'サーバー応答エラー（{http}）。しばらくしてから再度お試しください。'
+          },
+          th: {
+            title: 'แชทบอทชำระเงิน',
+            online: 'พร้อมให้บริการ',
+            shelf: 'โปรโมชัน',
+            payLink: 'ชำระเงิน',
+            payLinkTitle: 'ไปหน้าชำระเงิน',
+            register: 'ลงทะเบียน',
+            registerTitle: 'เข้าสู่ระบบผู้ดูแลสินค้า',
+            adminGearTitle: 'จัดการสินค้าแชทบอท',
+            refresh: 'รีเฟรช',
+            refreshTitle: 'รีเฟรช',
+            composerPh: 'พิมพ์ข้อความ',
+            sendAria: 'ส่ง',
+            scrollFab: 'เลื่อนลงล่าง',
+            attachTitle: 'แนบรูป',
+            attachAdminTitle: 'ผู้ดูแล: อัปโหลดรูปสำหรับบันทึกสินค้า',
+            attachAdminAria: 'เพิ่มรูปสินค้า',
+            attachGuestTitle: 'เลือกรูปเพื่อส่งในแชท',
+            attachGuestAria: 'แชทด้วยรูป',
+            guestImgAria: 'แนบรูปสำหรับแชท',
+            adminImgAria: 'ไฟล์รูปสินค้าสำหรับผู้ดูแล',
+            headerAria: 'ส่วนหัวแชทบอท',
+            emojiTitle: 'การ์ดทักทายและอีโมจิ',
+            emojiAria: 'การ์ดทักทายและอีโมจิ',
+            commerceHold: 'ระงับชั่วคราว: แชทยังใช้ได้ แต่สินค้า การจอง และการชำระเงินหยุดชั่วคราว',
+            bareHoldTitle: 'ใช้ไม่ได้ขณะระงับ',
+            welcomeDefault: 'เลือกสินค้าเด่นด้านบน หรือสอบถามสินค้าและการชำระเงินทางแชท',
+            payCtaPay: 'ชำระเงิน',
+            payCtaBuy: 'ซื้อเลย',
+            payCtaReserve: 'จอง',
+            payCtaPlace: 'จองที่พัก',
+            cardBtnHold: 'ปิดชั่วคราว',
+            cardBtnHoldTitle: 'สั่งซื้อและชำระเงินถูกระงับ แชทยังใช้ได้',
+            cardBtnPlace: 'จองที่พัก',
+            cardBtnReservePay: 'จองและชำระ',
+            cardBtnPay: 'ชำระ',
+            catalogAria: 'รายการสินค้า',
+            bubbleEmpty: '(ไม่มีเนื้อหา)',
+            bubbleImgFallback: '(รูปภาพ)',
+            userSentImage: 'ส่งรูปแล้ว',
+            orderSheetTitle: 'สั่งซื้อและชำระเงิน',
+            orderClose: 'ปิด',
+            orderCancel: 'ยกเลิก',
+            orderSubmit: 'ไปหน้าชำระเงิน',
+            orderLblName: 'ชื่อ (ไม่บังคับ)',
+            orderLblNameRequired: 'ชื่อ (จำเป็น)',
+            errResName: 'กรุณากรอกชื่อผู้จองหรือผู้มา อย่างน้อย 2 ตัวอักษร',
+            errOrderNameMin: 'กรุณากรอกชื่ออย่างน้อย 2 ตัวอักษร',
+            orderLblEmail: 'อีเมล (ไม่บังคับ)',
+            orderLblPhone: 'โทรศัพท์ (จำเป็น)',
+            orderLblAddr: 'ที่อยู่ (ไม่บังคับ)',
+            orderLblCheckout: 'วันเช็คเอาต์ (ที่พัก, YYYY-MM-DD)',
+            orderLblParty: 'จำนวนคน (จำเป็นสำหรับการจอง)',
+            orderLblSvcMins: 'ระยะเวลา (นาที, ไม่บังคับ)',
+            orderLblMemo: 'คำขอ (ไม่บังคับ)',
+            orderChkSendPayEmail: 'ส่งลิงก์ชำระเงินทางอีเมลด้วย',
+            orderLblLineNotifyToken: 'โทเค็น LINE Notify (ไม่บังคับ)',
+            orderLineNotifyHelp: 'ออกโทเค็นที่ https://notify-bot.line.me/ ระบบจะส่งข้อความเดียวกันไปที่ LINE ของคุณ',
+            errSendPayEmailNeedEmail: 'หากต้องการรับลิงก์ทางอีเมล กรุณากรอกอีเมล',
+            orderPhPhone: 'เช่น 081-234-5678',
+            orderAddrPh: 'ที่อยู่สำหรับติดต่อ/เข้าพบ',
+            orderAddrPhPlace: 'ที่อยู่ที่พัก/เช็คอิน',
+            orderPlaceHint: 'ระบุประเภทห้องและจำนวนคนในช่องคำขอ หากไม่ระบุเช็คเอาต์ ระบบจะคำนวณตามช่วงเวลา (นาที) ของสินค้า',
+            orderResLblPlace: 'วันเวลาเช็คอิน',
+            orderResLblReserve: 'วันเวลาจอง',
+            orderZoneBasis: 'ตามโซน',
+            orderPartyHintDefault: 'กรอกจำนวนคน (1–999) รายละเอียดเพิ่มเติมใส่ในช่องหมายเหตุ',
+            errEmail: 'กรุณากรอกอีเมลที่ถูกต้อง',
+            errPhone: 'กรุณากรอกเบอร์โทร (อย่างน้อย 6 หลัก)',
+            errAddr: 'กรุณากรอกที่อยู่ (อย่างน้อย 4 ตัวอักษร)',
+            errResDtPlace: 'กรุณาเลือกวันเวลาเช็คอิน',
+            errResDt: 'กรุณาเลือกวันเวลาจอง',
+            errGuest: 'กรุณากรอกจำนวนคน (1–999)',
+            errSvcMins: 'ระยะเวลา (นาที) ต้องอยู่ระหว่าง 5–2880 หรือเว้นว่าง',
+            errNoProduct: 'ไม่มีข้อมูลสินค้า โปรดรีเฟรชแล้วลองใหม่',
+            errNetwork: 'ข้อผิดพลาดเครือข่าย',
+            errOrderIntent: 'ไม่สามารถดำเนินการสั่งซื้อได้',
+            llmRateLimit: 'ระบบ AI กำลังคับคั่ง โปรดลองใหม่ในอีกสักครู่',
+            llmGenericFail: 'โหลดคำตอบ AI ไม่สำเร็จ โปรดลองใหม่ภายหลัง',
+            msgErrorGeneric: 'ข้อผิดพลาด',
+            bannerUrlMissingComp: 'URL ไม่มีรหัสร้านค้า (m=)',
+            bannerCatalogFail: 'โหลดแคตตาล็อกไม่ได้',
+            bannerNeedCompId: 'ต้องการรหัสร้านค้า',
+            bannerConnError: 'การเชื่อมต่อหรือการตอบกลับจากเซิร์ฟเวอร์ผิดพลาด',
+            bannerConnCorsHint: ' · ตรวจสอบการบล็อก CORS หรือ mixed content ในเบราว์เซอร์',
+            chatEmptyReply: '(ไม่มีคำตอบ)',
+            chatNetworkErr: 'ข้อผิดพลาดเครือข่าย',
+            chatServerErr: 'ข้อผิดพลาดการตอบกลับเซิร์ฟเวอร์ ({http}) โปรดลองใหม่ภายหลัง'
+          },
+          zh: zhTrad
+            ? {
+                title: '聊天機器人付款',
+                online: '在線',
+                shelf: '促銷',
+                payLink: '前往付款',
+                payLinkTitle: '開啟付款頁',
+                register: '註冊',
+                registerTitle: '商品登錄（管理員）',
+                adminGearTitle: '聊天機器人商品管理',
+                refresh: '重新整理',
+                refreshTitle: '重新整理',
+                composerPh: '輸入訊息',
+                sendAria: '傳送',
+                scrollFab: '捲動到底',
+                attachTitle: '附加圖片',
+                attachAdminTitle: '管理員：上傳儲存商品用圖片',
+                attachAdminAria: '新增商品圖片',
+                attachGuestTitle: '選擇圖片並加入聊天',
+                attachGuestAria: '以圖片詢問',
+                guestImgAria: '聊天附加圖片',
+                adminImgAria: '管理員商品圖片檔',
+                headerAria: '聊天標題列',
+                emojiTitle: '問候卡與表情符號',
+                emojiAria: '問候卡與表情符號',
+                commerceHold: '暫停營運：仍可聊天；商品、預約與付款暫停。',
+                bareHoldTitle: '暫停期間無法使用。',
+                welcomeDefault: '請從上方促銷選擇商品，或以聊天詢問商品與付款。',
+                payCtaPay: '付款',
+                payCtaBuy: '立即購買',
+                payCtaReserve: '預約',
+                payCtaPlace: '住宿預約',
+                cardBtnHold: '暫停',
+                cardBtnHoldTitle: '暫停期間無法下單或付款，仍可聊天。',
+                cardBtnPlace: '住宿預約',
+                cardBtnReservePay: '預約並付款',
+                cardBtnPay: '付款',
+                catalogAria: '商品列表',
+                bubbleEmpty: '（無內容）',
+                bubbleImgFallback: '（圖片）',
+                userSentImage: '已傳送圖片。',
+                orderSheetTitle: '訂單與付款',
+                orderClose: '關閉',
+                orderCancel: '取消',
+                orderSubmit: '前往付款頁',
+                orderLblName: '姓名（選填）',
+                orderLblNameRequired: '姓名（必填）',
+                errResName: '請輸入預約者或到訪代表姓名（至少 2 個字元）。',
+                errOrderNameMin: '請輸入姓名（至少 2 個字元）。',
+                orderLblEmail: '電子郵件（選填）',
+                orderLblPhone: '電話（必填）',
+                orderLblAddr: '地址（選填）',
+                orderLblCheckout: '退房日期（住宿，YYYY-MM-DD）',
+                orderLblParty: '人數（預約必填）',
+                orderLblSvcMins: '使用時間（分鐘，選填）',
+                orderLblMemo: '備註（選填）',
+                orderChkSendPayEmail: '以電子郵件接收付款連結',
+                orderLblLineNotifyToken: 'LINE Notify 權杖（選填）',
+                orderLineNotifyHelp: '於 https://notify-bot.line.me/ 建立權杖後，相同內容會傳送到您的 LINE。',
+                errSendPayEmailNeedEmail: '若要收到電子郵件，請先填寫電子郵件。',
+                orderPhPhone: '例：0912-345-678',
+                orderAddrPh: '可聯絡／拜訪地址',
+                orderAddrPhPlace: '住宿／入住說明用地址',
+                orderPlaceHint: '房型與人數請寫在備註。若退房留空，將依商品設定的時段（分鐘）計算住宿區間。',
+                orderResLblPlace: '入住日期與時間',
+                orderResLblReserve: '預約日期與時間',
+                orderZoneBasis: '時區',
+                orderPartyHintDefault: '請輸入人數（1–999）。其他需求請寫在下方備註。',
+                errEmail: '請輸入有效的電子郵件。',
+                errPhone: '請輸入電話（至少 6 碼）。',
+                errAddr: '請輸入地址（至少 4 個字元）。',
+                errResDtPlace: '請選擇入住日期與時間。',
+                errResDt: '請選擇預約日期與時間。',
+                errGuest: '請輸入人數（1–999）。',
+                errSvcMins: '使用分鐘數須為 5–2880，或留空。',
+                errNoProduct: '缺少商品資料，請重新整理後再試。',
+                errNetwork: '網路錯誤。',
+                errOrderIntent: '無法完成訂單。',
+                llmRateLimit: 'AI 回應暫時受限，請稍後再試。',
+                llmGenericFail: '無法取得 AI 回應，請稍後再試。',
+                msgErrorGeneric: '錯誤',
+                bannerUrlMissingComp: '網址中沒有商店代碼 (m=)。',
+                bannerCatalogFail: '無法載入商品目錄。',
+                bannerNeedCompId: '需要商店代碼。',
+                bannerConnError: '伺服器連線或回應錯誤。',
+                bannerConnCorsHint: ' · 請檢查瀏覽器是否阻擋 CORS 或混合內容。',
+                chatEmptyReply: '（無回覆）',
+                chatNetworkErr: '網路錯誤',
+                chatServerErr: '伺服器回應錯誤（{http}）。請稍後再試。'
+              }
+            : {
+                title: '聊天机器人付款',
+                online: '在线',
+                shelf: '促销',
+                payLink: '去支付',
+                payLinkTitle: '打开支付页',
+                register: '登记',
+                registerTitle: '商品登记（管理员登录）',
+                adminGearTitle: '聊天机器人商品管理',
+                refresh: '刷新',
+                refreshTitle: '刷新',
+                composerPh: '输入消息',
+                sendAria: '发送',
+                scrollFab: '滚到底部',
+                attachTitle: '添加图片',
+                attachAdminTitle: '管理员：上传保存商品用图片',
+                attachAdminAria: '添加商品图片',
+                attachGuestTitle: '选择图片发送到聊天',
+                attachGuestAria: '用图片咨询',
+                guestImgAria: '聊天附加图片',
+                adminImgAria: '管理员商品图片文件',
+                headerAria: '聊天机器人页眉',
+                emojiTitle: '问候卡与表情',
+                emojiAria: '问候卡与表情',
+                commerceHold: '运营暂停：可继续聊天；商品、预约与支付暂停。',
+                bareHoldTitle: '暂停期间不可用。',
+                welcomeDefault: '请从上方促销选择商品，或在聊天中咨询商品与支付。',
+                payCtaPay: '支付',
+                payCtaBuy: '立即购买',
+                payCtaReserve: '预约',
+                payCtaPlace: '住宿预约',
+                cardBtnHold: '暂停',
+                cardBtnHoldTitle: '暂停期间无法下单或支付，仍可聊天。',
+                cardBtnPlace: '住宿预约',
+                cardBtnReservePay: '预约并支付',
+                cardBtnPay: '支付',
+                catalogAria: '商品列表',
+                bubbleEmpty: '（无内容）',
+                bubbleImgFallback: '（图片）',
+                userSentImage: '已发送图片。',
+                orderSheetTitle: '订单与支付',
+                orderClose: '关闭',
+                orderCancel: '取消',
+                orderSubmit: '前往支付页',
+                orderLblName: '姓名（选填）',
+                orderLblNameRequired: '姓名（必填）',
+                errResName: '请输入预约人或到店代表姓名（至少 2 个字符）。',
+                errOrderNameMin: '请输入姓名（至少 2 个字符）。',
+                orderLblEmail: '邮箱（选填）',
+                orderLblPhone: '电话（必填）',
+                orderLblAddr: '地址（选填）',
+                orderLblCheckout: '退房日期（住宿，YYYY-MM-DD）',
+                orderLblParty: '人数（预约必填）',
+                orderLblSvcMins: '使用时长（分钟，选填）',
+                orderLblMemo: '备注（选填）',
+                orderChkSendPayEmail: '同时用电子邮件接收付款链接',
+                orderLblLineNotifyToken: 'LINE Notify 令牌（选填）',
+                orderLineNotifyHelp: '在 https://notify-bot.line.me/ 获取令牌后，相同内容会发送到您的 LINE。',
+                errSendPayEmailNeedEmail: '要通过邮件接收链接，请先填写邮箱。',
+                orderPhPhone: '例：13800138000',
+                orderAddrPh: '可联系/到访地址',
+                orderAddrPhPlace: '住宿/入住说明用地址',
+                orderPlaceHint: '房型与人数请写在备注。若退房留空，将按商品设定的时段（分钟）计算住宿区间。',
+                orderResLblPlace: '入住日期与时间',
+                orderResLblReserve: '预约日期与时间',
+                orderZoneBasis: '时区',
+                orderPartyHintDefault: '请输入人数（1–999）。其他需求写在下方备注。',
+                errEmail: '请输入有效邮箱。',
+                errPhone: '请输入电话（至少6位）。',
+                errAddr: '请输入地址（至少4个字符）。',
+                errResDtPlace: '请选择入住日期与时间。',
+                errResDt: '请选择预约日期与时间。',
+                errGuest: '请输入人数（1–999）。',
+                errSvcMins: '使用分钟数须为5–2880，或留空。',
+                errNoProduct: '缺少商品数据，请刷新后重试。',
+                errNetwork: '网络错误。',
+                errOrderIntent: '无法完成订单。',
+                llmRateLimit: 'AI 响应暂时受限，请稍后再试。',
+                llmGenericFail: '无法获取 AI 回复，请稍后再试。',
+                msgErrorGeneric: '错误',
+                bannerUrlMissingComp: '网址中没有商户代码 (m=)。',
+                bannerCatalogFail: '无法加载商品目录。',
+                bannerNeedCompId: '需要商户代码。',
+                bannerConnError: '服务器连接或响应错误。',
+                bannerConnCorsHint: ' · 请检查浏览器是否阻止 CORS 或混合内容。',
+                chatEmptyReply: '（无回复）',
+                chatNetworkErr: '网络错误',
+                chatServerErr: '服务器响应错误（{http}）。请稍后再试。'
+              },
+          vi: {
+            title: 'Thanh toán chatbot',
+            online: 'Sẵn sàng',
+            shelf: 'Khuyến mãi',
+            payLink: 'Thanh toán',
+            payLinkTitle: 'Mở trang thanh toán',
+            register: 'Đăng ký',
+            registerTitle: 'Đăng nhập quản trị sản phẩm',
+            adminGearTitle: 'Quản lý sản phẩm chatbot',
+            refresh: 'Tải lại',
+            refreshTitle: 'Tải lại',
+            composerPh: 'Nhập tin nhắn',
+            sendAria: 'Gửi',
+            scrollFab: 'Cuối trang',
+            attachTitle: 'Đính kèm ảnh',
+            attachAdminTitle: 'Quản trị: tải ảnh để lưu sản phẩm',
+            attachAdminAria: 'Thêm ảnh sản phẩm',
+            attachGuestTitle: 'Chọn ảnh gửi trong chat',
+            attachGuestAria: 'Chat kèm ảnh',
+            guestImgAria: 'Ảnh đính kèm chat',
+            adminImgAria: 'Tệp ảnh sản phẩm (quản trị)',
+            headerAria: 'Tiêu đề chatbot',
+            emojiTitle: 'Lời chào & emoji',
+            emojiAria: 'Lời chào & emoji',
+            commerceHold: 'Tạm dừng: chat vẫn dùng được; sản phẩm, đặt chỗ và thanh toán tạm ngưng.',
+            bareHoldTitle: 'Không dùng được khi tạm dừng.',
+            welcomeDefault: 'Chọn mục nổi bật phía trên hoặc hỏi trong chat về sản phẩm và thanh toán.',
+            payCtaPay: 'Thanh toán',
+            payCtaBuy: 'Mua ngay',
+            payCtaReserve: 'Đặt chỗ',
+            payCtaPlace: 'Đặt lưu trú',
+            cardBtnHold: 'Tạm dừng',
+            cardBtnHoldTitle: 'Không thể đặt hàng hoặc thanh toán khi tạm dừng.',
+            cardBtnPlace: 'Đặt lưu trú',
+            cardBtnReservePay: 'Đặt & thanh toán',
+            cardBtnPay: 'Thanh toán',
+            catalogAria: 'Danh sách sản phẩm',
+            bubbleEmpty: '(Trống)',
+            bubbleImgFallback: '(Hình ảnh)',
+            userSentImage: 'Đã gửi hình.',
+            orderSheetTitle: 'Đơn hàng & thanh toán',
+            orderClose: 'Đóng',
+            orderCancel: 'Hủy',
+            orderSubmit: 'Đến trang thanh toán',
+            orderLblName: 'Họ tên (tuỳ chọn)',
+            orderLblNameRequired: 'Họ tên (bắt buộc)',
+            errResName: 'Vui lòng nhập tên người đặt hoặc đại diện (ít nhất 2 ký tự).',
+            errOrderNameMin: 'Vui lòng nhập họ tên (ít nhất 2 ký tự).',
+            orderLblEmail: 'Email (tuỳ chọn)',
+            orderLblPhone: 'Điện thoại (bắt buộc)',
+            orderLblAddr: 'Địa chỉ (tuỳ chọn)',
+            orderLblCheckout: 'Ngày trả phòng (lưu trú, YYYY-MM-DD)',
+            orderLblParty: 'Số khách (bắt buộc khi đặt)',
+            orderLblSvcMins: 'Thời lượng (phút, tuỳ chọn)',
+            orderLblMemo: 'Ghi chú (tuỳ chọn)',
+            orderChkSendPayEmail: 'Gửi liên kết thanh toán qua email',
+            orderLblLineNotifyToken: 'Mã LINE Notify (tuỳ chọn)',
+            orderLineNotifyHelp: 'Tạo mã tại https://notify-bot.line.me/ — nội dung tương tự sẽ gửi tới LINE của bạn.',
+            errSendPayEmailNeedEmail: 'Để nhận liên kết qua email, vui lòng nhập email.',
+            orderPhPhone: 'VD: 0901234567',
+            orderAddrPh: 'Địa chỉ liên hệ/ghé thăm',
+            orderAddrPhPlace: 'Địa chỉ lưu trú/check-in',
+            orderPlaceHint: 'Ghi loại phòng và số khách ở phần ghi chú. Nếu trả phòng trống, hệ thống tính theo slot (phút) của sản phẩm.',
+            orderResLblPlace: 'Ngày giờ nhận phòng',
+            orderResLblReserve: 'Ngày giờ đặt',
+            orderZoneBasis: 'múi giờ',
+            orderPartyHintDefault: 'Nhập số khách (1–999). Yêu cầu khác ghi ở ghi chú bên dưới.',
+            errEmail: 'Vui lòng nhập email hợp lệ.',
+            errPhone: 'Vui lòng nhập số điện thoại (ít nhất 6 chữ số).',
+            errAddr: 'Vui lòng nhập địa chỉ (ít nhất 4 ký tự).',
+            errResDtPlace: 'Chọn ngày giờ nhận phòng.',
+            errResDt: 'Chọn ngày giờ đặt.',
+            errGuest: 'Nhập số khách (1–999).',
+            errSvcMins: 'Phút sử dụng phải từ 5–2880 hoặc để trống.',
+            errNoProduct: 'Thiếu dữ liệu sản phẩm. Vui lòng tải lại trang.',
+            errNetwork: 'Lỗi mạng.',
+            errOrderIntent: 'Không thể xử lý đơn hàng.',
+            llmRateLimit: 'Dịch vụ AI đang bận. Vui lòng thử lại sau.',
+            llmGenericFail: 'Không lấy được phản hồi AI. Vui lòng thử lại sau.',
+            msgErrorGeneric: 'Lỗi',
+            bannerUrlMissingComp: 'URL không có mã cửa hàng (m=).',
+            bannerCatalogFail: 'Không tải được danh mục.',
+            bannerNeedCompId: 'Cần mã cửa hàng.',
+            bannerConnError: 'Lỗi kết nối hoặc phản hồi máy chủ.',
+            bannerConnCorsHint: ' · Kiểm tra chặn CORS hoặc mixed content trên trình duyệt.',
+            chatEmptyReply: '(Không có phản hồi)',
+            chatNetworkErr: 'Lỗi mạng',
+            chatServerErr: 'Lỗi phản hồi máy chủ ({http}). Vui lòng thử lại sau.'
+          },
+          id: {
+            title: 'Pembayaran chatbot',
+            online: 'Siap',
+            shelf: 'Promosi',
+            payLink: 'Bayar',
+            payLinkTitle: 'Buka halaman pembayaran',
+            register: 'Daftar',
+            registerTitle: 'Login admin produk',
+            adminGearTitle: 'Kelola produk chatbot',
+            refresh: 'Muat ulang',
+            refreshTitle: 'Muat ulang',
+            composerPh: 'Ketik pesan',
+            sendAria: 'Kirim',
+            scrollFab: 'Ke bawah',
+            attachTitle: 'Lampirkan gambar',
+            attachAdminTitle: 'Admin: unggah gambar untuk simpan produk',
+            attachAdminAria: 'Tambah gambar produk',
+            attachGuestTitle: 'Pilih gambar untuk dikirim di chat',
+            attachGuestAria: 'Chat dengan gambar',
+            guestImgAria: 'Lampiran gambar chat',
+            adminImgAria: 'Berkas gambar produk (admin)',
+            headerAria: 'Header chatbot',
+            emojiTitle: 'Kartu salam & emoji',
+            emojiAria: 'Kartu salam & emoji',
+            commerceHold: 'Ditangguhkan: chat tetap ada; produk, reservasi, dan pembayaran ditangguhkan.',
+            bareHoldTitle: 'Tidak tersedia saat ditangguhkan.',
+            welcomeDefault: 'Pilih item unggulan di atas atau tanya di chat tentang produk dan pembayaran.',
+            payCtaPay: 'Bayar',
+            payCtaBuy: 'Beli sekarang',
+            payCtaReserve: 'Pesan',
+            payCtaPlace: 'Pesan menginap',
+            cardBtnHold: 'Ditangguhkan',
+            cardBtnHoldTitle: 'Pesanan dan pembayaran ditangguhkan. Chat tetap tersedia.',
+            cardBtnPlace: 'Pesan menginap',
+            cardBtnReservePay: 'Pesan & bayar',
+            cardBtnPay: 'Bayar',
+            catalogAria: 'Daftar produk',
+            bubbleEmpty: '(Kosong)',
+            bubbleImgFallback: '(Gambar)',
+            userSentImage: 'Mengirim gambar.',
+            orderSheetTitle: 'Pesanan & pembayaran',
+            orderClose: 'Tutup',
+            orderCancel: 'Batal',
+            orderSubmit: 'Ke halaman pembayaran',
+            orderLblName: 'Nama (opsional)',
+            orderLblNameRequired: 'Nama (wajib)',
+            errResName: 'Masukkan nama pemesan atau perwakilan (minimal 2 karakter).',
+            errOrderNameMin: 'Masukkan nama (minimal 2 karakter).',
+            orderLblEmail: 'Email (opsional)',
+            orderLblPhone: 'Telepon (wajib)',
+            orderLblAddr: 'Alamat (opsional)',
+            orderLblCheckout: 'Tanggal check-out (menginap, YYYY-MM-DD)',
+            orderLblParty: 'Jumlah tamu (wajib untuk reservasi)',
+            orderLblSvcMins: 'Durasi (menit, opsional)',
+            orderLblMemo: 'Permintaan (opsional)',
+            orderChkSendPayEmail: 'Kirim tautan pembayaran juga ke email saya',
+            orderLblLineNotifyToken: 'Token LINE Notify (opsional)',
+            orderLineNotifyHelp: 'Buat token di https://notify-bot.line.me/ — isi yang sama dikirim ke LINE Anda.',
+            errSendPayEmailNeedEmail: 'Untuk menerima tautan lewat email, isi alamat email.',
+            orderPhPhone: 'mis. 081234567890',
+            orderAddrPh: 'Alamat kunjungan/kontak',
+            orderAddrPhPlace: 'Alamat menginap/check-in',
+            orderPlaceHint: 'Tulis tipe kamar dan jumlah tamu di catatan. Jika check-out kosong, durasi mengikuti slot (menit) produk.',
+            orderResLblPlace: 'Tanggal & waktu check-in',
+            orderResLblReserve: 'Tanggal & waktu reservasi',
+            orderZoneBasis: 'zona',
+            orderPartyHintDefault: 'Masukkan jumlah tamu (1–999). Permintaan lain di catatan di bawah.',
+            errEmail: 'Masukkan email yang valid.',
+            errPhone: 'Masukkan nomor telepon (minimal 6 digit).',
+            errAddr: 'Masukkan alamat (minimal 4 karakter).',
+            errResDtPlace: 'Pilih tanggal & waktu check-in.',
+            errResDt: 'Pilih tanggal & waktu reservasi.',
+            errGuest: 'Masukkan jumlah tamu (1–999).',
+            errSvcMins: 'Menit layanan harus 5–2880 atau kosong.',
+            errNoProduct: 'Data produk hilang. Segarkan halaman.',
+            errNetwork: 'Kesalahan jaringan.',
+            errOrderIntent: 'Pesanan tidak dapat diproses.',
+            llmRateLimit: 'Layanan AI sibuk. Silakan coba lagi sebentar lagi.',
+            llmGenericFail: 'Tidak bisa mendapat balasan AI. Silakan coba lagi.',
+            msgErrorGeneric: 'Kesalahan',
+            bannerUrlMissingComp: 'URL tidak berisi kode merchant (m=).',
+            bannerCatalogFail: 'Tidak dapat memuat katalog.',
+            bannerNeedCompId: 'Kode merchant diperlukan.',
+            bannerConnError: 'Kesalahan koneksi atau respons server.',
+            bannerConnCorsHint: ' · Periksa pemblokiran CORS atau mixed content di browser.',
+            chatEmptyReply: '(Tidak ada balasan)',
+            chatNetworkErr: 'Kesalahan jaringan',
+            chatServerErr: 'Kesalahan respons server ({http}). Silakan coba lagi.'
+          },
+          es: {
+            title: 'Pago con chatbot',
+            online: 'Disponible',
+            shelf: 'Promociones',
+            payLink: 'Pagar ahora',
+            payLinkTitle: 'Abrir página de pago',
+            register: 'Registrarse',
+            registerTitle: 'Inicio de sesión de administración de productos',
+            adminGearTitle: 'Gestionar productos del chatbot',
+            refresh: 'Actualizar',
+            refreshTitle: 'Actualizar',
+            composerPh: 'Escriba un mensaje',
+            sendAria: 'Enviar',
+            scrollFab: 'Ir al final',
+            attachTitle: 'Adjuntar imagen',
+            attachAdminTitle: 'Subir imagen para guardar producto (admin)',
+            attachAdminAria: 'Añadir imagen del producto',
+            attachGuestTitle: 'Seleccione una imagen para enviar en el chat',
+            attachGuestAria: 'Chat con imagen',
+            guestImgAria: 'Adjuntar imagen al chat',
+            adminImgAria: 'Archivo de imagen del producto (admin)',
+            headerAria: 'Cabecera del chatbot',
+            emojiTitle: 'Saludos y emoji',
+            emojiAria: 'Saludos y emoji',
+            commerceHold: 'En pausa: el chat sigue disponible; productos, reservas y pagos están en pausa.',
+            bareHoldTitle: 'No disponible mientras esté en pausa.',
+            welcomeDefault: 'Elija un destacado arriba o pregunte en el chat sobre productos y pago.',
+            payCtaPay: 'Pagar',
+            payCtaBuy: 'Comprar ahora',
+            payCtaReserve: 'Reservar',
+            payCtaPlace: 'Reservar alojamiento',
+            cardBtnHold: 'No disponible',
+            cardBtnHoldTitle: 'Pedidos y pagos en pausa. El chat sigue activo.',
+            cardBtnPlace: 'Reservar alojamiento',
+            cardBtnReservePay: 'Reservar y pagar',
+            cardBtnPay: 'Pagar',
+            catalogAria: 'Productos',
+            bubbleEmpty: '(Sin contenido)',
+            bubbleImgFallback: '(Imagen)',
+            userSentImage: 'Se envió una imagen.',
+            orderSheetTitle: 'Pedido y pago',
+            orderClose: 'Cerrar',
+            orderCancel: 'Cancelar',
+            orderSubmit: 'Ir a la página de pago',
+            orderLblName: 'Nombre (opcional)',
+            orderLblNameRequired: 'Nombre (obligatorio)',
+            errResName: 'Introduzca el nombre del reservante o visitante (al menos 2 caracteres).',
+            errOrderNameMin: 'Introduzca el nombre (al menos 2 caracteres).',
+            orderLblEmail: 'Correo (opcional)',
+            orderLblPhone: 'Teléfono (obligatorio)',
+            orderLblAddr: 'Dirección (opcional)',
+            orderLblCheckout: 'Fecha de salida (estancia, YYYY-MM-DD)',
+            orderLblParty: 'Huéspedes (obligatorio para reserva)',
+            orderLblSvcMins: 'Duración (minutos, opcional)',
+            orderLblMemo: 'Solicitudes (opcional)',
+            orderChkSendPayEmail: 'Enviarme también el enlace de pago por correo',
+            orderLblLineNotifyToken: 'Token de LINE Notify (opcional)',
+            orderLineNotifyHelp: 'Cree un token en https://notify-bot.line.me/ — enviaremos el mismo mensaje a su LINE.',
+            errSendPayEmailNeedEmail: 'Para recibir el enlace por correo, introduzca un email.',
+            orderPhPhone: 'ej. +34 600 000 000',
+            orderAddrPh: 'Dirección de visita o contacto',
+            orderAddrPhPlace: 'Dirección de alojamiento / check-in',
+            orderPlaceHint: 'Indique tipo de habitación y huéspedes en solicitudes. Si la salida está vacía, la estancia sigue el intervalo (minutos) del producto.',
+            orderResLblPlace: 'Fecha y hora de entrada',
+            orderResLblReserve: 'Fecha y hora de reserva',
+            orderZoneBasis: 'zona',
+            orderPartyHintDefault: 'Indique el número de personas (1–999). Notas adicionales abajo.',
+            errEmail: 'Introduzca un correo válido.',
+            errPhone: 'Introduzca un teléfono (al menos 6 dígitos).',
+            errAddr: 'Introduzca una dirección (al menos 4 caracteres).',
+            errResDtPlace: 'Seleccione fecha y hora de entrada.',
+            errResDt: 'Seleccione fecha y hora de reserva.',
+            errGuest: 'Introduzca el número de personas (1–999).',
+            errSvcMins: 'Los minutos de servicio deben estar entre 5 y 2880, o vacío.',
+            errNoProduct: 'Faltan datos del producto. Actualice e inténtelo de nuevo.',
+            errNetwork: 'Error de red.',
+            errOrderIntent: 'No se pudo iniciar el pago. Inténtelo de nuevo.',
+            llmRateLimit: 'El servicio de IA está ocupado. Inténtelo de nuevo en un momento.',
+            llmGenericFail: 'No se pudo obtener una respuesta de la IA. Inténtelo de nuevo.',
+            msgErrorGeneric: 'Error',
+            bannerUrlMissingComp: 'La URL no incluye el código de comercio (m=).',
+            bannerCatalogFail: 'No se pudo cargar el catálogo.',
+            bannerNeedCompId: 'Se requiere el código de comercio.',
+            bannerConnError: 'Error de conexión o respuesta del servidor.',
+            bannerConnCorsHint: ' · Compruebe el bloqueo CORS o mixed content en el navegador.',
+            chatEmptyReply: '(Sin respuesta)',
+            chatNetworkErr: 'Error de red',
+            chatServerErr: 'Error de respuesta del servidor ({http}). Inténtelo de nuevo.'
+          }
+        };
+        if (b === 'zh') {
+          return Object.assign({}, T.en, T.zh);
+        }
+        var langPack = (b && typeof T[b] === 'object' && T[b] !== null) ? T[b] : {};
+        return Object.assign({}, T.en, langPack);
+      }
+      function cbPayApplyShellLocale() {
+        var s = cbPayShellI18n();
+        try {
+          document.documentElement.setAttribute('lang', cbPayHtmlLangAttr());
+        } catch (eL) { /* ignore */ }
+        try {
+          document.title = s.title;
+        } catch (eT) { /* ignore */ }
+        var titleEl = document.getElementById('cbMerchantTitle');
+        if (titleEl) titleEl.textContent = s.title;
+        var onl = document.getElementById('cbOnlineLabel');
+        if (onl) onl.textContent = s.online;
+        var sl = document.getElementById('cbShelfLabel');
+        if (sl) sl.textContent = s.shelf;
+        var payL = document.getElementById('chatbotBarePayLink');
+        if (payL) {
+          payL.textContent = s.payLink;
+          payL.setAttribute('aria-label', s.payLink);
+          payL.setAttribute('title', s.payLinkTitle);
+        }
+        var regB = document.getElementById('cbRegisterMenuBtn');
+        if (regB) {
+          regB.textContent = s.register;
+          regB.setAttribute('aria-label', s.register);
+          regB.setAttribute('title', s.registerTitle);
+        }
+        var admB = document.getElementById('cbOpenAdminBtn');
+        if (admB) admB.setAttribute('title', s.adminGearTitle);
+        var refB = document.getElementById('chatbotRefreshBtn');
+        if (refB) {
+          refB.setAttribute('aria-label', s.refresh);
+          refB.setAttribute('title', s.refreshTitle || s.refresh);
+        }
+        var inp = document.getElementById('chatbotInput');
+        if (inp) inp.setAttribute('placeholder', s.composerPh);
+        var snd = document.getElementById('chatbotSendBtn');
+        if (snd) snd.setAttribute('aria-label', s.sendAria);
+        var fab = document.getElementById('cbScrollFab');
+        if (fab) fab.setAttribute('aria-label', s.scrollFab);
+        var att = document.getElementById('cbImgAttachBtn');
+        if (att) {
+          att.setAttribute('title', s.attachGuestTitle || s.attachTitle);
+          att.setAttribute('aria-label', s.attachGuestAria || s.attachTitle);
+        }
+        var emo = document.getElementById('cbEmojiToggleBtn');
+        if (emo) {
+          emo.setAttribute('title', s.emojiTitle);
+          emo.setAttribute('aria-label', s.emojiAria);
+        }
+        var gImg = document.getElementById('cbGuestImgFileInput');
+        if (gImg) gImg.setAttribute('aria-label', s.guestImgAria);
+        var aImg = document.getElementById('cbImgFileInput');
+        if (aImg) aImg.setAttribute('aria-label', s.adminImgAria);
+        var hdr = document.querySelector('header.cb-header');
+        if (hdr) hdr.setAttribute('aria-label', s.headerAria);
+        var catM = document.getElementById('chatbotCatalogMount');
+        if (catM) catM.setAttribute('aria-label', s.catalogAria);
+        var admTitleEl = document.getElementById('cbAdminTitle');
+        if (admTitleEl) admTitleEl.textContent = s.adminGearTitle;
+        var admCloseEl = document.getElementById('cbAdminCloseBtn');
+        if (admCloseEl) admCloseEl.textContent = s.orderClose;
+        cbPayApplyOrderSheetStaticLabels();
+      }
+
+      function cbPayApplyOrderSheetStaticLabels() {
+        var s = cbPayShellI18n();
+        var t = document.getElementById('cbOrderTitle');
+        if (t) t.textContent = s.orderSheetTitle;
+        var c1 = document.getElementById('cbOrderCloseBtn');
+        if (c1) c1.textContent = s.orderClose;
+        var c2 = document.getElementById('cbOrderCancelBtn');
+        if (c2) c2.textContent = s.orderCancel;
+        var sub = document.getElementById('cbOrderSubmitBtn');
+        if (sub) sub.textContent = s.orderSubmit;
+        function lblFor(id, text) {
+          var el = document.querySelector('label[for="' + id + '"]');
+          if (el) el.textContent = text;
+        }
+        lblFor('cbOrderName', s.orderLblNameRequired);
+        lblFor('cbOrderEmail', s.orderLblEmail);
+        lblFor('cbOrderPhone', s.orderLblPhone);
+        lblFor('cbOrderAddr', s.orderLblAddr);
+        lblFor('cbOrderCheckoutDate', s.orderLblCheckout);
+        lblFor('cbOrderGuestCount', s.orderLblParty);
+        lblFor('cbOrderServiceMinutes', s.orderLblSvcMins);
+        lblFor('cbOrderMemo', s.orderLblMemo);
+        var st = document.getElementById('cbOrderSendPayEmailText');
+        if (st) st.textContent = s.orderChkSendPayEmail || '';
+        lblFor('cbOrderLineNotifyToken', s.orderLblLineNotifyToken || 'LINE Notify token');
+        var lh = document.getElementById('cbOrderLineNotifyHelp');
+        if (lh) lh.textContent = s.orderLineNotifyHelp || '';
+        var ph = document.getElementById('cbOrderPhone');
+        if (ph) ph.setAttribute('placeholder', s.orderPhPhone);
+      }
+
       function absAsset(u) {
         if (!u) return '';
         var raw = String(u).trim();
         if (/^(https?:|data:|blob:)/i.test(raw)) return raw;
         var base = resolvedApiBase();
         return base + (raw.charAt(0) === '/' ? raw : '/' + raw);
+      }
+
+      /** LLM 출력 등에서 pay.html 쿼리에 \\& 가 섞이면 링크·매칭이 깨짐 */
+      function cbNormalizePayHtmlHref(h) {
+        return String(h || '')
+          .trim()
+          .replace(/\\&/g, '&')
+          .replace(/\\\?/g, '?')
+          .replace(/%5C%26/gi, '%26');
+      }
+
+      function cbPayPrefillParts(href) {
+        try {
+          var x = new URL(cbNormalizePayHtmlHref(href), resolvedApiBase());
+          var path = String(x.pathname || '');
+          var low = path.toLowerCase();
+          if (!low.endsWith('/pay.html') && low !== 'pay.html') return null;
+          return {
+            path: path,
+            m: String(x.searchParams.get('m') || '').trim(),
+            entry: String(x.searchParams.get('entry') || '').trim().toLowerCase(),
+            item: decodeURIComponent(String(x.searchParams.get('item') || '').replace(/\+/g, ' ')).trim(),
+            amount: String(x.searchParams.get('amount') || '').trim(),
+            currency: String(x.searchParams.get('currency') || '').trim().toUpperCase()
+          };
+        } catch (e) {
+          return null;
+        }
+      }
+
+      function cbTrustedPayHref(href) {
+        var p = cbPayPrefillParts(href);
+        if (!p || p.entry !== 'chatbot' || !p.m) return false;
+        var apiO = '';
+        try {
+          apiO = new URL(resolvedApiBase()).origin;
+        } catch (e2) {
+          return false;
+        }
+        try {
+          return new URL(href, resolvedApiBase()).origin === apiO;
+        } catch (e3) {
+          return false;
+        }
+      }
+
+      function cbDefaultPayLabelForCatalogItem(it) {
+        var s = cbPayShellI18n();
+        if (!it) return s.payCtaPay;
+        if (cbIsPlaceReservation(it)) return s.payCtaPlace;
+        if (cbIsReservationListing(it)) return s.payCtaReserve;
+        return s.payCtaBuy;
+      }
+
+      function cbCatalogPayVerbLabel(it) {
+        if (!it) return '';
+        var b = cbPayPrimaryLangBase();
+        try {
+          if (b === 'ja') {
+            var vj = String(it.payLinkVerbJa || '').trim();
+            if (vj) return vj;
+          }
+          if (b === 'ko') {
+            var vk = String(it.payLinkVerbKo || '').trim();
+            if (vk) return vk;
+          }
+        } catch (eLg) { /* ignore */ }
+        return cbDefaultPayLabelForCatalogItem(it);
+      }
+
+      function cbLabelForPayUrl(href) {
+        var p = cbPayPrefillParts(href);
+        if (!p || p.entry !== 'chatbot') return '';
+        var items = window.cbPubCatalogItems || [];
+        for (var i = 0; i < items.length; i++) {
+          var it = items[i];
+          if (!it) continue;
+          var cand = String(it.urlPayPrefillUrl || '').trim();
+          if (cand) {
+            var pc = cbPayPrefillParts(cand);
+            if (pc && pc.m === p.m && pc.entry === p.entry && pc.item === p.item &&
+                pc.amount === p.amount && pc.currency === p.currency) {
+              return cbCatalogPayVerbLabel(it);
+            }
+          }
+          var tit = String(it.title || '').trim();
+          if (tit && p.item && tit === p.item) {
+            return cbCatalogPayVerbLabel(it);
+          }
+        }
+        return '';
+      }
+
+      /**
+       * 어시스턴트가 준 pay.html(chatbot) URL과 동일한 카탈로그 행.
+       * 매칭되면 링크 대신 주문·예약 시트를 열어 결제 전에 입력을 받습니다.
+       */
+      function cbCatalogItemFromPayHref(href) {
+        var p = cbPayPrefillParts(href);
+        if (!p || p.entry !== 'chatbot') return null;
+        var mid = String(typeof compId !== 'undefined' && compId != null ? compId : '').trim();
+        if (mid && p.m && p.m !== mid) return null;
+        var items = window.cbPubCatalogItems || [];
+        for (var i = 0; i < items.length; i++) {
+          var it = items[i];
+          if (!it) continue;
+          var cand = String(it.urlPayPrefillUrl || '').trim();
+          if (cand) {
+            var pc = cbPayPrefillParts(cand);
+            if (pc && pc.m === p.m && pc.entry === p.entry && pc.item === p.item &&
+                pc.amount === p.amount && pc.currency === p.currency) {
+              return it;
+            }
+          }
+          var tit = String(it.title || '').trim();
+          if (tit && p.item && tit === p.item) {
+            return it;
+          }
+        }
+        return null;
+      }
+
+      function cbGuessPayLabelFromContext(beforeText) {
+        var shell = cbPayShellI18n();
+        var s = String(beforeText || '').slice(-280);
+        if (/예약|reserve|booking|予約|예약하기/i.test(s)) return shell.payCtaReserve;
+        if (/숙박|체크인|check-?in|宿泊/i.test(s)) return shell.payCtaPlace;
+        if (/구매|購入|buy(\s+now)?/i.test(s)) return shell.payCtaBuy;
+        return shell.payCtaPay;
+      }
+
+      function cbTrimTrailingUrlJunk(raw) {
+        return String(raw || '').replace(/[)\].,;>'"\u201d\u2019>]+$/g, '').trim();
+      }
+
+      /**
+       * 어시스턴트 텍스트 안의 pay.html(chatbot) URL을 제거하고 동일 href의 버튼으로 치환합니다.
+       */
+      function cbAppendAssistantRichText(parentEl, rawText) {
+        if (!parentEl) return;
+        while (parentEl.firstChild) parentEl.removeChild(parentEl.firstChild);
+        var s = String(rawText || '');
+        var re = /(\bhttps?:\/\/[^\s<]+\/pay\.html\?[^\s<]+|\b\/pay\.html\?[^\s<]+)/gi;
+        var last = 0;
+        var m;
+        while ((m = re.exec(s)) !== null) {
+          if (m.index > last) {
+            parentEl.appendChild(document.createTextNode(s.slice(last, m.index)));
+          }
+          var raw = cbTrimTrailingUrlJunk(m[0]);
+          var href = cbNormalizePayHtmlHref(raw);
+          if (raw.indexOf('//') < 0 && raw.charAt(0) === '/') {
+            try {
+              href = new URL(href, resolvedApiBase()).href;
+            } catch (eH) {
+              href = cbNormalizePayHtmlHref(raw);
+            }
+          }
+          if (cbTrustedPayHref(href)) {
+            var before = s.slice(Math.max(0, m.index - 320), m.index);
+            var label = cbLabelForPayUrl(href) || cbGuessPayLabelFromContext(before);
+            var reserveCls = /(예약|숙박|予約|reserve|booking|book stay|宿泊)/i.test(label) ? ' cb-pay-cta--reserve' : '';
+            var catIt = cbCatalogItemFromPayHref(href);
+            var pid = catIt && catIt.id != null ? String(catIt.id).trim() : '';
+            if (pid !== '') {
+              (function (itBind, labelTxt, cls) {
+                var btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'cb-pay-cta' + cls;
+                btn.textContent = labelTxt;
+                btn.addEventListener('click', function (e) {
+                  e.preventDefault();
+                  if (window.cbCommerceHold) return;
+                  openOrderSheet(itBind);
+                });
+                parentEl.appendChild(btn);
+              })(catIt, label, reserveCls);
+            } else {
+              var a = document.createElement('a');
+              a.href = href;
+              a.className = 'cb-pay-cta' + reserveCls;
+              a.target = '_blank';
+              a.rel = 'noopener noreferrer';
+              a.setAttribute('role', 'button');
+              a.textContent = label;
+              parentEl.appendChild(a);
+            }
+          } else {
+            parentEl.appendChild(document.createTextNode(m[0]));
+          }
+          last = m.index + m[0].length;
+        }
+        if (last < s.length) {
+          parentEl.appendChild(document.createTextNode(s.slice(last)));
+        }
       }
 
       /** 봇 버블에 넣을 수 있는 이미지 src 만 허용(XSS 방지) */
@@ -1086,27 +2439,51 @@
         );
       }
 
+      /** LLM 이 alt 없이 끊어 쓴 마크다운 껍데기·고아 대괄호 제거 */
+      function cbStripBrokenAssistantMarkdown(s) {
+        var x = String(s || '').replace(/\r\n/g, '\n');
+        x = x.replace(/(^|\n)[ \t]*\[[ \t]*\n[ \t]*\][ \t]*\([ \t]*(?=\n)/g, '$1');
+        x = x.replace(/(^|\n)[ \t]*\[\s*\][ \t]*\([ \t]*(?=\n)/g, '$1');
+        x = x.replace(/(^|\n)[ \t]*\[\s*(?=\n|$)/g, '$1');
+        x = x.replace(/(^|\n)[ \t]*\]\(\s*(?=\n|$)/g, '$1');
+        return x;
+      }
+
+      function cbIsOrphanAssistantTextChunk(t) {
+        var u = String(t || '').trim();
+        if (!u) return true;
+        if (u === '[' || u === ']') return true;
+        if (/^\[\s*$/.test(u)) return true;
+        if (/^\]\(\s*$/.test(u)) return true;
+        if (/^\(\s*$/.test(u)) return true;
+        return false;
+      }
+
       /**
        * 어시스턴트 문단에 포함된 이미지 마커를 순서대로 분리 (텍스트는 textContent 로만 출력).
+       * ![alt](url) 의 alt 는 사진 위 캡션으로 사용.
        */
       function cbSplitAssistantContent(raw) {
-        var s = cbAugmentBareChatbotImagePaths(String(raw || ''));
+        var s = cbStripBrokenAssistantMarkdown(cbAugmentBareChatbotImagePaths(String(raw || '')));
         var parts = [];
-        var re = /\[CHATBOT_GUEST_IMAGE:url=([^\]]+)\]|\[(?:이미지\s*URL|Image\s*URL|图片\s*URL)[:\s]*([^\]\n]+)\]|!\[[^\]]*\]\(([^)]+)\)/gi;
+        var re = /\[CHATBOT_GUEST_IMAGE:url=([^\]]+)\]|\[(?:이미지\s*URL|Image\s*URL|图片\s*URL)[:\s]*([^\]\n]+)\]|!\[([^\]]*)\]\s*\(\s*([^)]+)\)/gi;
         var last = 0;
         var m;
         while ((m = re.exec(s)) !== null) {
           if (m.index > last) {
             var chunk = s.slice(last, m.index).trim();
-            if (chunk) parts.push({ type: 'text', v: chunk });
+            if (chunk && !cbIsOrphanAssistantTextChunk(chunk)) parts.push({ type: 'text', v: chunk });
           }
-          var url = cbCleanAssistantImgUrl(m[1] || m[2] || m[3] || '');
-          if (url && cbIsSafeAssistantImageUrl(url)) parts.push({ type: 'img', v: url });
+          var url = cbCleanAssistantImgUrl(m[1] || m[2] || m[4] || '');
+          var altMd = (m[3] != null) ? String(m[3]).replace(/\s+/g, ' ').trim() : '';
+          if (url && cbIsSafeAssistantImageUrl(url)) {
+            parts.push({ type: 'img', v: url, alt: altMd });
+          }
           last = m.index + m[0].length;
         }
         if (last < s.length) {
           var tail = s.slice(last).trim();
-          if (tail) parts.push({ type: 'text', v: tail });
+          if (tail && !cbIsOrphanAssistantTextChunk(tail)) parts.push({ type: 'text', v: tail });
         }
         if (!parts.length) parts.push({ type: 'text', v: s.trim() });
         return parts;
@@ -1124,9 +2501,16 @@
           if (p.type === 'img') {
             var src = cbCleanAssistantImgUrl(p.v);
             if (!cbIsSafeAssistantImageUrl(src)) return;
+            var capAlt = p.alt != null ? String(p.alt).trim() : '';
+            if (capAlt) {
+              var tit = document.createElement('div');
+              tit.className = 'cb-bubble-photo-title';
+              tit.textContent = capAlt;
+              bubble.appendChild(tit);
+            }
             var im = document.createElement('img');
             im.className = 'cb-bubble-media cb-bubble-photo';
-            im.alt = '';
+            im.alt = capAlt || '';
             im.loading = 'lazy';
             im.src = absAsset(src);
             im.onerror = function () {
@@ -1136,12 +2520,12 @@
           } else if (p.type === 'text' && String(p.v || '').trim()) {
             var cap = document.createElement('div');
             cap.className = anyImg ? 'cb-bubble-cap' : '';
-            cap.textContent = String(p.v).trim();
+            cbAppendAssistantRichText(cap, String(p.v).trim());
             bubble.appendChild(cap);
           }
         });
         if (!bubble.childNodes.length) {
-          bubble.textContent = '(내용 없음)';
+          bubble.textContent = cbPayShellI18n().bubbleEmpty;
         }
         var time = document.createElement('span');
         time.className = 'cb-time';
@@ -1155,9 +2539,14 @@
 
       function nowTimeLabel() {
         try {
-          return new Date().toLocaleTimeString('ko-KR', { hour: 'numeric', minute: '2-digit' });
+          var loc = String(cbPayPrimaryLangFull() || '').replace(/_/g, '-').trim() || undefined;
+          return new Date().toLocaleTimeString(loc, { hour: 'numeric', minute: '2-digit' });
         } catch (e) {
-          return '';
+          try {
+            return new Date().toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+          } catch (e2) {
+            return '';
+          }
         }
       }
 
@@ -1187,14 +2576,18 @@
           im.src = absAsset(imgU);
           im.onerror = function () {
             try { bubble.removeChild(im); } catch (eRi) {}
-            if (!txt) txt = '(이미지)';
+            if (!txt) txt = cbPayShellI18n().bubbleImgFallback;
           };
           bubble.appendChild(im);
         }
         if (txt) {
           var cap = document.createElement('div');
           cap.className = imgU ? 'cb-bubble-cap' : '';
-          cap.textContent = txt;
+          if (role === 'assistant' || role === 'bot') {
+            cbAppendAssistantRichText(cap, txt);
+          } else {
+            cap.textContent = txt;
+          }
           bubble.appendChild(cap);
         } else if (!imgU) {
           bubble.textContent = '';
@@ -1265,10 +2658,11 @@
 
       function applyCatalogMeta(data) {
         var name = (data && data.merchantName) ? String(data.merchantName).trim() : '';
+        var shell = cbPayShellI18n();
         var titleEl = document.getElementById('cbMerchantTitle');
-        if (titleEl) titleEl.textContent = name || (compId || '챗봇 결제');
+        if (titleEl) titleEl.textContent = name || (compId || shell.title);
         try {
-          document.title = (name ? name + ' · ' : '') + '챗봇 결제';
+          document.title = (name ? name + ' · ' : (compId ? String(compId).trim() + ' · ' : '')) + shell.title;
         } catch (e) {}
         var logoRaw = data && data.headerLogoUrl != null ? String(data.headerLogoUrl).trim() : '';
         var img = document.getElementById('cbHeaderLogoImg');
@@ -1303,6 +2697,233 @@
         } catch (eResMeta) {
           window.cbPubReservation = { slotMinutes: 60, zoneId: 'Asia/Seoul' };
         }
+        try {
+          window.cbPubVertical = {
+            code: (data && data.chatbotMerchantVertical != null) ? String(data.chatbotMerchantVertical).trim() : 'GENERAL_SALE',
+            labelKo: (data && data.chatbotMerchantVerticalLabelKo != null) ? String(data.chatbotMerchantVerticalLabelKo) : '',
+            collectHintKo: (data && data.chatbotMerchantVerticalCollectHintKo != null) ? String(data.chatbotMerchantVerticalCollectHintKo) : '',
+            notes: (data && data.chatbotMerchantVerticalNotes != null) ? String(data.chatbotMerchantVerticalNotes) : ''
+          };
+        } catch (eVer) {
+          window.cbPubVertical = { code: 'GENERAL_SALE', labelKo: '', collectHintKo: '', notes: '' };
+        }
+        try {
+          window.cbPubOrderSheetUi = (data && data.chatbotOrderSheetUi && typeof data.chatbotOrderSheetUi === 'object')
+            ? data.chatbotOrderSheetUi
+            : { version: 1, fields: {} };
+        } catch (eOs) {
+          window.cbPubOrderSheetUi = { version: 1, fields: {} };
+        }
+      }
+
+      function cbOrderFieldWrap(key) {
+        return document.querySelector('#cbOrderBody [data-cb-order-field="' + key + '"]');
+      }
+
+      /**
+       * 가맹별 chatbotOrderSheetUi.fields 를 시트에 반영(표시·라벨·placeholder·숨김 시 prefill).
+       */
+      function cbApplyOrderSheetFieldRules(it, isRes, isPl, s, zone) {
+        var ui = window.cbPubOrderSheetUi || {};
+        var fld = ui.fields || {};
+        function rr(k) { return fld[k] || null; }
+        function applyStatic(key, inpId) {
+          var ru = rr(key);
+          var w = cbOrderFieldWrap(key);
+          if (!w) return;
+          var hide = !!(ru && ru.hidden === true);
+          w.style.display = hide ? 'none' : '';
+          var inp = inpId ? document.getElementById(inpId) : null;
+          if (inp) {
+            if (hide && ru && ru.prefillWhenHidden != null) {
+              inp.value = String(ru.prefillWhenHidden);
+            }
+            if (!hide && ru && ru.placeholderKo) {
+              inp.setAttribute('placeholder', String(ru.placeholderKo));
+            }
+          }
+          var lab = w.querySelector('label');
+          if (lab && ru && ru.labelKo) lab.textContent = String(ru.labelKo);
+        }
+        applyStatic('ordererName', 'cbOrderName');
+        applyStatic('ordererEmail', 'cbOrderEmail');
+        applyStatic('ordererPhone', 'cbOrderPhone');
+        applyStatic('ordererAddr', 'cbOrderAddr');
+        applyStatic('orderMemo', 'cbOrderMemo');
+
+        var wRl = cbOrderFieldWrap('reservationLocal');
+        if (wRl) {
+          var ru = rr('reservationLocal');
+          var hide = !isRes || (ru && ru.hidden === true);
+          wRl.style.display = hide ? 'none' : '';
+          var lbl = document.getElementById('cbOrderResLocalLbl');
+          if (!hide && ru && ru.labelKo && lbl) {
+            lbl.textContent = String(ru.labelKo) + ' (' + String(zone || '') + ' ' + s.orderZoneBasis + ')';
+          }
+        }
+        var wCo = cbOrderFieldWrap('reservationCheckout');
+        if (wCo) {
+          var rc = rr('reservationCheckout');
+          var hideC = !isPl || (rc && rc.hidden === true);
+          wCo.style.display = hideC ? 'none' : '';
+          var lbCo = wCo.querySelector('label[for="cbOrderCheckoutDate"]');
+          if (!hideC && rc && rc.labelKo && lbCo) lbCo.textContent = String(rc.labelKo);
+        }
+        var wGc = cbOrderFieldWrap('guestCount');
+        if (wGc) {
+          var rg = rr('guestCount');
+          var hideG = !isRes || (rg && rg.hidden === true);
+          wGc.style.display = hideG ? 'none' : '';
+          var lbG = wGc.querySelector('label[for="cbOrderGuestCount"]');
+          if (!hideG && rg && rg.labelKo && lbG) lbG.textContent = String(rg.labelKo);
+        }
+        var wSm = cbOrderFieldWrap('serviceMinutes');
+        if (wSm) {
+          var rs = rr('serviceMinutes');
+          if (rs && rs.hidden === true) wSm.style.display = 'none';
+          else wSm.style.display = window._cbOrderSvcMins ? '' : 'none';
+          var lbS = wSm.querySelector('label[for="cbOrderServiceMinutes"]');
+          if (wSm.style.display !== 'none' && rs && rs.labelKo && lbS) lbS.textContent = String(rs.labelKo);
+        }
+      }
+
+      /** 채팅에 나온 날짜·시각을 datetime-local 문자열로(브라우저 로컬 달력 기준). */
+      function cbDateTimeLocalFromYmdhm(y, mo, d, h, mi) {
+        try {
+          var dt = new Date(y, mo - 1, d, h, mi || 0, 0, 0);
+          if (isNaN(dt.getTime())) return '';
+          var p = function (n) { return (n < 10 ? '0' : '') + n; };
+          return dt.getFullYear() + '-' + p(dt.getMonth() + 1) + '-' + p(dt.getDate()) +
+            'T' + p(dt.getHours()) + ':' + p(dt.getMinutes());
+        } catch (eD) { return ''; }
+      }
+
+      function cbVisibleOrderInput(id) {
+        var el = document.getElementById(id);
+        if (!el) return false;
+        var w = el.closest('[data-cb-order-field]');
+        if (w && w.style.display === 'none') return false;
+        return true;
+      }
+
+      /**
+       * 최근 채팅에서 주문 시트에 넣을 값 추출(휴리스틱). 봇 요약·사용자 한 줄 입력 모두 참고.
+       */
+      function cbExtractPrefillFromChat(msgs) {
+        var out = {};
+        if (!msgs || !msgs.length) return out;
+        var slice = msgs.slice(-24);
+        var blobNl = '';
+        var flatParts = [];
+        for (var i = 0; i < slice.length; i++) {
+          var c = slice[i].content != null ? String(slice[i].content) : '';
+          if (!c || c.indexOf(CB_GUEST_IMAGE_MARKER_PREFIX) === 0) continue;
+          blobNl += '\n' + c;
+          flatParts.push(c.replace(/\s+/g, ' ').trim());
+        }
+        var blob = blobNl.slice(-16000);
+        var blobFlat = flatParts.join(' ').slice(-12000);
+
+        var emLabeled = blob.match(
+          /(?:Email Address|이메일\s*주소|이메일)\s*[:：]\s*([a-zA-Z0-9._%+-]+@[^\s<>,]+)/im
+        );
+        if (emLabeled) out.ordererEmail = emLabeled[1].trim();
+        if (!out.ordererEmail) {
+          var emAll = blobFlat.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g);
+          if (emAll && emAll.length) out.ordererEmail = emAll[emAll.length - 1].trim();
+        }
+
+        var phLabeled = blob.match(
+          /(?:Phone Number|휴대전화|휴대\s*전화|전화\s*번호|연락처)\s*[:：]\s*([0-9+\-\s().]{8,28})/im
+        );
+        if (phLabeled) {
+          var p0 = phLabeled[1].replace(/\D/g, '');
+          if (p0.length >= 10 && p0.length <= 11) out.ordererPhone = p0;
+        }
+        if (!out.ordererPhone) {
+          var hy = blobFlat.match(/0\d{1,2}[-.\s]?\d{3,4}[-.\s]?\d{4}/g);
+          if (hy && hy.length) {
+            out.ordererPhone = hy[hy.length - 1].replace(/\D/g, '');
+          } else {
+            var seqs = blobFlat.match(/0\d{9,10}/g);
+            if (seqs && seqs.length) out.ordererPhone = seqs[seqs.length - 1];
+          }
+        }
+
+        var nmMr = blob.match(
+          /(?:Reserver Name|예약자\s*성명|예약\s*자(?:\s*성명)?|방문\s*대표\s*성명)\s*[:：]?\s*([^\n\r(]+?)\s*\(([^)\n\r]{1,32})\)/im
+        );
+        if (nmMr) {
+          var nmA = nmMr[1].trim();
+          var nmB = nmMr[2].trim();
+          if (/[가-힣]/.test(nmB)) out.ordererName = nmB.length <= 40 ? nmB : nmB.slice(0, 40);
+          else if (/[가-힣]/.test(nmA)) out.ordererName = nmA.length <= 40 ? nmA : nmA.slice(0, 40);
+          else out.ordererName = (nmB.length <= 40 ? nmB : nmA).slice(0, 40);
+        }
+        if (!out.ordererName) {
+          var nm2 = blob.match(/(?:성명|예약자)\s*[:：]\s*([가-힣a-zA-Z·\s]{2,28})/);
+          if (nm2) out.ordererName = nm2[1].trim();
+        }
+
+        var gcL = blob.match(
+          /(?:Number of Visitors|방문[^\d:：\n]*인원|예약\s*인원)\s*[:：]?\s*(\d{1,3})\s*명?/im
+        );
+        if (!gcL) gcL = blobFlat.match(/(\d{1,3})\s*명(?:입니다|[\s,.]|$)/);
+        if (gcL) {
+          var gn = parseInt(gcL[1], 10);
+          if (gn >= 1 && gn <= 999) out.guestCount = gn;
+        }
+
+        var dt1 = blob.match(/\(\s*(\d{4})\.\s*(\d{1,2})월\s*(\d{1,2})일\s*(\d{1,2})시\s*\)/);
+        if (!dt1) dt1 = blob.match(/(\d{4})\.\s*(\d{1,2})월\s*(\d{1,2})일\s*(\d{1,2})시/);
+        if (!dt1) dt1 = blob.match(/(\d{4})[.\/](\d{1,2})[.\/](\d{1,2})[T\s]+(\d{1,2})(?::(\d{2}))?/);
+        if (dt1) {
+          var y = parseInt(dt1[1], 10);
+          var mo = parseInt(dt1[2], 10);
+          var da = parseInt(dt1[3], 10);
+          var hh = parseInt(dt1[4], 10);
+          var mip = dt1[5] != null ? parseInt(dt1[5], 10) : 0;
+          if (!isNaN(y) && !isNaN(mo) && !isNaN(da) && !isNaN(hh)) {
+            var dtl = cbDateTimeLocalFromYmdhm(y, mo, da, hh, isNaN(mip) ? 0 : mip);
+            if (dtl) out.reservationLocal = dtl;
+          }
+        }
+        if (!out.reservationLocal) {
+          var iso = blobFlat.match(/\b(\d{4}-\d{2}-\d{2}T\d{2}:\d{2})\b/);
+          if (iso) out.reservationLocal = iso[1];
+        }
+
+        var addrL = blob.match(/(?:배송지|주소|Address)\s*[:：]\s*([^\n;]{4,400})/im);
+        if (addrL) out.ordererAddr = addrL[1].trim();
+
+        return out;
+      }
+
+      function cbMergeChatPrefillIntoOrderFields(pf) {
+        if (!pf) return;
+        function setIfVisibleEmpty(id, val) {
+          if (val == null || String(val).trim() === '') return;
+          if (!cbVisibleOrderInput(id)) return;
+          var el = document.getElementById(id);
+          if (!el) return;
+          if (String(el.value || '').trim() !== '') return;
+          el.value = String(val).trim();
+        }
+        setIfVisibleEmpty('cbOrderName', pf.ordererName);
+        setIfVisibleEmpty('cbOrderEmail', pf.ordererEmail);
+        setIfVisibleEmpty('cbOrderPhone', pf.ordererPhone);
+        setIfVisibleEmpty('cbOrderAddr', pf.ordererAddr);
+        setIfVisibleEmpty('cbOrderMemo', pf.orderMemo);
+        setIfVisibleEmpty('cbOrderResLocal', pf.reservationLocal);
+        if (pf.guestCount != null && pf.guestCount >= 1 && pf.guestCount <= 999) {
+          var gcEl = document.getElementById('cbOrderGuestCount');
+          if (gcEl && cbVisibleOrderInput('cbOrderGuestCount')) {
+            var cur = parseInt(String(gcEl.value || '1'), 10);
+            if (!cur || cur === 1) gcEl.value = String(pf.guestCount);
+          }
+        }
+        setIfVisibleEmpty('cbOrderCheckoutDate', pf.reservationCheckout);
+        setIfVisibleEmpty('cbOrderServiceMinutes', pf.serviceMinutes);
       }
 
       function cbNormListingType(lt) {
@@ -1379,12 +3000,13 @@
           var btn = document.createElement('button');
           btn.type = 'button';
           btn.className = 'cb-pcard-btn' + (isRes ? ' cb-pcard-btn-res' : '');
+          var si = cbPayShellI18n();
           if (window.cbCommerceHold) {
             btn.disabled = true;
-            btn.textContent = '운영 보류';
-            btn.title = '운영 보류 중에는 주문·결제를 진행할 수 없습니다.';
+            btn.textContent = si.cardBtnHold;
+            btn.title = si.cardBtnHoldTitle;
           } else {
-            btn.textContent = isPl ? '숙박 예약' : (isRes ? '예약·결제' : '결제');
+            btn.textContent = isPl ? si.cardBtnPlace : (isRes ? si.cardBtnReservePay : si.cardBtnPay);
             btn.addEventListener('click', function () {
               openOrderSheet(it);
             });
@@ -1410,7 +3032,9 @@
         cbOrderPendingItem = item || null;
         var sh = document.getElementById('cbOrderSheet');
         if (!sh || !cbOrderPendingItem) return;
+        var s = cbPayShellI18n();
         var it = cbOrderPendingItem;
+        var chatPrefill = cbExtractPrefillFromChat(messages);
         var title = String(it.title || '');
         var amt = String(it.amount || '');
         var cur = String(it.currencyCode || '').toUpperCase();
@@ -1429,9 +3053,13 @@
         if (phEl) phEl.value = '';
         if (adEl) {
           adEl.value = '';
-          adEl.placeholder = isPl ? '숙소 방문·체크인 안내 가능 주소' : '방문·연락 가능 주소';
+          adEl.placeholder = isPl ? s.orderAddrPhPlace : s.orderAddrPh;
         }
         if (mmEl) mmEl.value = '';
+        var sendEm = document.getElementById('cbOrderSendPayEmail');
+        if (sendEm) sendEm.checked = false;
+        var ltIn = document.getElementById('cbOrderLineNotifyToken');
+        if (ltIn) ltIn.value = '';
         if (rlEl) rlEl.value = '';
         var chkW = document.getElementById('cbOrderCheckoutWrap');
         var chkIn = document.getElementById('cbOrderCheckoutDate');
@@ -1439,24 +3067,62 @@
         if (chkIn) chkIn.value = '';
         if (chkW) chkW.style.display = isPl ? '' : 'none';
         if (placeHint) {
-          placeHint.textContent = isPl
-            ? '객실 타입·인원은 요청사항에 적어 주세요. 체크아웃을 비우면 상품에 설정된 슬롯(분)으로 숙박 구간을 계산합니다.'
-            : '';
+          placeHint.textContent = isPl ? s.orderPlaceHint : '';
         }
         var lblR = document.getElementById('cbOrderResLocalLbl');
         var zone = (window.cbPubReservation && window.cbPubReservation.zoneId)
           ? String(window.cbPubReservation.zoneId) : 'Asia/Seoul';
         if (lblR) {
-          lblR.innerHTML = (isPl ? '체크인 일시' : '예약 일시')
+          lblR.innerHTML = (isPl ? s.orderResLblPlace : s.orderResLblReserve)
             + ' <span class="text-muted" id="cbOrderZoneHint"></span>';
         }
         var zh = document.getElementById('cbOrderZoneHint');
-        if (zh) zh.textContent = '(' + zone + ' 기준)';
+        if (zh) zh.textContent = '(' + zone + ' ' + s.orderZoneBasis + ')';
         var rw = document.getElementById('cbOrderResWrap');
         if (rw) rw.style.display = isRes ? '' : 'none';
-        syncCheckoutMinFromCheckin();
+        var partyW = document.getElementById('cbOrderPartyWrap');
+        var gcIn = document.getElementById('cbOrderGuestCount');
+        var partyHint = document.getElementById('cbOrderPartyHint');
+        if (partyW) partyW.style.display = isRes ? '' : 'none';
+        if (gcIn) gcIn.value = '1';
+        if (partyHint) {
+          var ph = '';
+          try {
+            var v0 = window.cbPubVertical || {};
+            if (v0.notes && String(v0.notes).trim()) ph = String(v0.notes).trim();
+            else if (v0.collectHintKo && String(v0.collectHintKo).trim()) {
+              var ch = String(v0.collectHintKo).replace(/\s+/g, ' ').trim();
+              ph = ch.length > 180 ? ch.slice(0, 180) + '…' : ch;
+            }
+          } catch (ePh) { ph = ''; }
+          partyHint.textContent = isRes ? (ph || s.orderPartyHintDefault) : '';
+        }
+        var vcode = '';
+        try {
+          vcode = String((window.cbPubVertical && window.cbPubVertical.code) ? window.cbPubVertical.code : '').trim().toUpperCase();
+        } catch (eVc) { vcode = ''; }
+        if (!vcode) vcode = 'GENERAL_SALE';
+        var svcMinsVert = /^(MASSAGE_GENERAL|COSMETIC|CLUB_MASSAGE|CLUB_ENTERTAINMENT|VIP_CLUB|RESTAURANT|SERVICE_TRADE)$/.test(vcode);
+        var svcDefVert = !!(isRes && svcMinsVert);
+        var osFld = (window.cbPubOrderSheetUi && window.cbPubOrderSheetUi.fields) ? window.cbPubOrderSheetUi.fields : {};
+        var smRule = osFld.serviceMinutes || null;
+        if (smRule && smRule.showWhenReservation === false) {
+          window._cbOrderSvcMins = false;
+        } else if (smRule && smRule.showWhenReservation === true) {
+          window._cbOrderSvcMins = !!isRes;
+        } else {
+          window._cbOrderSvcMins = svcDefVert;
+        }
+        var svcW = document.getElementById('cbOrderSvcMinsWrap');
+        var svcIn = document.getElementById('cbOrderServiceMinutes');
+        if (svcW) svcW.style.display = window._cbOrderSvcMins ? '' : 'none';
+        if (svcIn) svcIn.value = '';
         var err = document.getElementById('cbOrderErr');
         if (err) { err.style.display = 'none'; err.textContent = ''; }
+        cbPayApplyOrderSheetStaticLabels();
+        cbApplyOrderSheetFieldRules(it, isRes, isPl, s, zone);
+        cbMergeChatPrefillIntoOrderFields(chatPrefill);
+        syncCheckoutMinFromCheckin();
         sh.classList.add('show');
         sh.setAttribute('aria-hidden', 'false');
       }
@@ -1477,12 +3143,13 @@
         if (!sub) return;
         sub.addEventListener('click', function () {
           var err = document.getElementById('cbOrderErr');
+          var si = cbPayShellI18n();
           if (err) { err.style.display = 'none'; err.textContent = ''; }
           if (!compId || !cbOrderPendingItem) return;
           var it = cbOrderPendingItem;
           var pid = it.id;
           if (pid == null || String(pid).trim() === '') {
-            if (err) { err.textContent = '상품 정보가 없습니다. 새로고침 후 다시 시도해 주세요.'; err.style.display = 'block'; }
+            if (err) { err.textContent = si.errNoProduct; err.style.display = 'block'; }
             return;
           }
           var ordererName = document.getElementById('cbOrderName')
@@ -1495,19 +3162,36 @@
             ? String(document.getElementById('cbOrderAddr').value || '').trim() : '';
           var orderMemo = document.getElementById('cbOrderMemo')
             ? String(document.getElementById('cbOrderMemo').value || '').trim() : '';
-          if (!ordererEmail || ordererEmail.indexOf('@') < 0) {
-            if (err) { err.textContent = '유효한 이메일을 입력해 주세요.'; err.style.display = 'block'; }
+          if (ordererEmail && ordererEmail.indexOf('@') < 0) {
+            if (err) { err.textContent = si.errEmail; err.style.display = 'block'; }
             return;
           }
           if (ordererPhone.length < 6) {
-            if (err) { err.textContent = '연락처(전화)를 입력해 주세요.'; err.style.display = 'block'; }
-            return;
-          }
-          if (ordererAddr.length < 4) {
-            if (err) { err.textContent = '주소를 입력해 주세요.'; err.style.display = 'block'; }
+            if (err) { err.textContent = si.errPhone; err.style.display = 'block'; }
             return;
           }
           var isRes2 = cbIsReservationListing(it);
+          if (!ordererName || ordererName.length < 2) {
+            if (err) {
+              err.textContent = isRes2 ? si.errResName : (si.errOrderNameMin || si.errResName);
+              err.style.display = 'block';
+            }
+            return;
+          }
+          var sendPayChk = document.getElementById('cbOrderSendPayEmail');
+          var sendPayLinkEmail = !!(sendPayChk && sendPayChk.checked);
+          if (sendPayLinkEmail && !ordererEmail) {
+            if (err) {
+              err.textContent = si.errSendPayEmailNeedEmail || 'Enter an email address to receive the payment link.';
+              err.style.display = 'block';
+            }
+            return;
+          }
+          var lineTokEl = document.getElementById('cbOrderLineNotifyToken');
+          var lineNotifyToken = lineTokEl ? String(lineTokEl.value || '').trim() : '';
+          if (lineNotifyToken.length > 256) {
+            lineNotifyToken = lineNotifyToken.substring(0, 256);
+          }
           var isPl2 = cbIsPlaceReservation(it);
           var body = {
             compId: String(compId).trim(),
@@ -1516,14 +3200,16 @@
             ordererEmail: ordererEmail,
             ordererPhone: ordererPhone,
             ordererAddr: ordererAddr,
-            orderMemo: orderMemo
+            orderMemo: orderMemo,
+            sendPayLinkEmail: sendPayLinkEmail,
+            lineNotifyToken: lineNotifyToken
           };
           if (isRes2) {
             var rl = document.getElementById('cbOrderResLocal')
               ? String(document.getElementById('cbOrderResLocal').value || '').trim() : '';
             if (!rl) {
               if (err) {
-                err.textContent = isPl2 ? '체크인 일시를 선택해 주세요.' : '예약 일시를 선택해 주세요.';
+                err.textContent = isPl2 ? si.errResDtPlace : si.errResDt;
                 err.style.display = 'block';
               }
               return;
@@ -1533,6 +3219,26 @@
               var co = document.getElementById('cbOrderCheckoutDate')
                 ? String(document.getElementById('cbOrderCheckoutDate').value || '').trim() : '';
               if (co) body.reservationCheckoutLocal = co;
+            }
+            var gcRaw = document.getElementById('cbOrderGuestCount')
+              ? String(document.getElementById('cbOrderGuestCount').value || '').trim() : '1';
+            var gcNum = parseInt(gcRaw, 10);
+            if (!gcNum || gcNum < 1 || gcNum > 999) {
+              if (err) { err.textContent = si.errGuest; err.style.display = 'block'; }
+              return;
+            }
+            body.guestCount = gcNum;
+            if (window._cbOrderSvcMins) {
+              var smRaw = document.getElementById('cbOrderServiceMinutes')
+                ? String(document.getElementById('cbOrderServiceMinutes').value || '').trim() : '';
+              if (smRaw) {
+                var smNum = parseInt(smRaw, 10);
+                if (isNaN(smNum) || smNum < 5 || smNum > 2880) {
+                  if (err) { err.textContent = si.errSvcMins; err.style.display = 'block'; }
+                  return;
+                }
+                body.serviceDurationMinutes = smNum;
+              }
             }
           }
           var root = apiBase().replace(/\/$/, '');
@@ -1546,14 +3252,14 @@
           }).then(readFetchJson).then(function (res) {
             sub.disabled = false;
             if (!res.success || !res.data || !res.data.payUrl) {
-              var msg = (res.message || '주문 처리에 실패했습니다.');
+              var msg = (res.message || si.errOrderIntent);
               if (err) { err.textContent = msg; err.style.display = 'block'; }
               return;
             }
             window.location.href = String(res.data.payUrl);
           }).catch(function () {
             sub.disabled = false;
-            if (err) { err.textContent = '네트워크 오류입니다.'; err.style.display = 'block'; }
+            if (err) { err.textContent = si.errNetwork; err.style.display = 'block'; }
           });
         });
       }
@@ -1647,10 +3353,11 @@
         var img = new Image();
         img.onload = function () {
           URL.revokeObjectURL(url);
+          var si = cbPayShellI18n();
           var sw = img.naturalWidth || img.width;
           var sh = img.naturalHeight || img.height;
           if (!sw || !sh) {
-            cb(new Error('유효하지 않은 이미지입니다.'));
+            cb(new Error(si.imgInvalid));
             return;
           }
           var canvas = document.createElement('canvas');
@@ -1672,7 +3379,7 @@
             var q = qualities[Math.min(qIdx, qualities.length - 1)];
             canvas.toBlob(function (blob) {
               if (!blob) {
-                cb(new Error('이미지 인코딩에 실패했습니다.'));
+                cb(new Error(si.imgEncodeFail));
                 return;
               }
               if (blob.size <= maxBytes) {
@@ -1685,7 +3392,7 @@
                 qIdx = 0;
                 sideIdx++;
                 if (sideIdx < maxSides.length) step();
-                else cb(new Error('파일을 2MB 이하로 줄이지 못했습니다.'));
+                else cb(new Error(si.imgShrinkFail));
               }
             }, 'image/jpeg', q);
           }
@@ -1693,20 +3400,19 @@
         };
         img.onerror = function () {
           URL.revokeObjectURL(url);
-          cb(new Error('이미지를 불러오지 못했습니다.'));
+          cb(new Error(cbPayShellI18n().imgLoadFail));
         };
         img.src = url;
       }
       function uploadPubChatbotProductImage(file) {
+        var shUp = cbPayShellI18n();
         if (!compId) {
-          alert('가맹점 코드(m=)가 필요합니다.');
+          alert(shUp.bannerNeedCompId);
           return;
         }
         var tok = getCbAdminTok();
         if (!tok) {
-          openAdminSheet(
-            '상품 이미지는 「챗봇 상품 관리」 로그인 후 추가할 수 있습니다. 아래에서 로그인한 뒤 하단의 + 버튼으로 이미지를 다시 선택해 주세요.'
-          );
+          openAdminSheet(shUp.adminNeedLoginForImage);
           return;
         }
         if (!file) return;
@@ -1735,15 +3441,14 @@
           }).then(readFetchJson).then(function (res) {
             finishReset();
             if (!res.success || !res.data || !res.data.url) {
-              alert(res.message || '업로드에 실패했습니다.');
+              alert(res.message || shUp.uploadFail);
               return;
             }
             setProductImageUrl(String(res.data.url));
-            appendMsg('assistant',
-              '[안내] 선택한 이미지가 「챗봇 상품 관리」에서 다음 상품 저장 시 함께 등록됩니다.');
+            appendMsg('assistant', shUp.assistantImageSavedNotice);
           }).catch(function () {
             finishReset();
-            alert('네트워크 오류입니다.');
+            alert(shUp.adminNetworkErr);
           });
         }
         if (file.size <= CB_IMG_MAX_BYTES) {
@@ -1762,6 +3467,7 @@
         });
       }
       function renderCbAdminLogin(errMsg) {
+        var adm = cbPayShellI18n();
         var body = document.getElementById('cbAdminBody');
         if (!body) return;
         body.innerHTML = '';
@@ -1769,7 +3475,7 @@
         hint.style.marginTop = '0';
         hint.style.fontSize = '0.8125rem';
         hint.style.color = '#6c757d';
-        hint.textContent = '챗봇 상품 등록 전용 계정입니다. 관리 웹에서 Google OTP까지 등록한 뒤 사용하세요.';
+        hint.textContent = adm.adminLoginHint;
         body.appendChild(hint);
         if (errMsg) {
           var er = document.createElement('div');
@@ -1789,24 +3495,24 @@
         var uEl = document.createElement('input');
         uEl.type = 'text';
         uEl.autocomplete = 'username';
-        addField('아이디', uEl);
+        addField(adm.adminLabelUser, uEl);
         var pEl = document.createElement('input');
         pEl.type = 'password';
         pEl.autocomplete = 'current-password';
-        addField('비밀번호', pEl);
+        addField(adm.adminLabelPass, pEl);
         var tEl = document.createElement('input');
         tEl.type = 'text';
-        tEl.placeholder = '6자리';
+        tEl.placeholder = adm.adminOtpPh;
         tEl.inputMode = 'numeric';
         tEl.maxLength = 8;
         tEl.autocomplete = 'one-time-code';
-        addField('Google OTP', tEl);
+        addField(adm.adminOtpLabel, tEl);
         var row = document.createElement('div');
         row.className = 'cb-admin-btn-row';
         var go = document.createElement('button');
         go.type = 'button';
         go.className = 'primary';
-        go.textContent = '로그인';
+        go.textContent = adm.adminLoginBtn;
         row.appendChild(go);
         body.appendChild(row);
         go.addEventListener('click', function () {
@@ -1830,21 +3536,22 @@
               renderCbAdminInside();
               loadCatalog();
               syncAttachPlusTitle();
-              appendMsg('bot', '[관리자] 챗봇 상품 관리 로그인되었습니다.');
+              appendMsg('bot', adm.adminLoginOkBot);
             } else {
-              renderCbAdminLogin(res.message || '로그인에 실패했습니다.');
+              renderCbAdminLogin(res.message || adm.adminLoginFail);
             }
           }).catch(function () {
             go.disabled = false;
-            renderCbAdminLogin('네트워크 오류입니다.');
+            renderCbAdminLogin(adm.adminNetworkErr);
           });
         });
       }
       function loadCbAdminProducts() {
+        var adm = cbPayShellI18n();
         var root = resolvedApiBase();
         var listEl = document.getElementById('cbAdList');
         if (!listEl) return;
-        listEl.textContent = '불러오는 중…';
+        listEl.textContent = adm.adminLoading;
         fetch(root + '/api/pub/chatbot/admin/products?compId=' + encodeURIComponent(compId), {
           mode: 'cors',
           credentials: 'omit',
@@ -1856,16 +3563,17 @@
             try {
               if (String(res.errorCode || '').toUpperCase() === 'UNAUTHORIZED') {
                 setCbAdminTok('');
-                renderCbAdminLogin('세션이 만료되었습니다. 다시 로그인해 주세요.');
+                renderCbAdminLogin(adm.adminSessionExpired);
                 return;
               }
             } catch (eAuth) { /* ignore */ }
-            listEl.textContent = res.message || '목록 오류';
+            listEl.textContent = res.message || adm.adminListErr;
             return;
           }
           var rows = res.data || [];
           if (!rows.length) {
-            listEl.innerHTML = '<p class="text-muted small">등록된 상품이 없습니다.</p>';
+            listEl.innerHTML =
+              '<p class="text-muted small">' + escapeHtml(adm.adminEmptyProducts) + '</p>';
             return;
           }
           rows.forEach(function (row) {
@@ -1875,12 +3583,18 @@
             var left = document.createElement('div');
             var ltRaw = String(row.listingType || 'SALE').toUpperCase();
             var ltN = ltRaw === 'RESERVATION' ? 'RESERVATION_TIME' : ltRaw;
-            var ltLbl = ltN === 'RESERVATION_PLACE' ? '숙박' : (ltN === 'RESERVATION_TIME' ? '예약' : '판매');
-            var promoTag = String(row.promotionShelfYn || '').toUpperCase() === 'Y' ? ' · 프로모션' : '';
+            var ltLbl =
+              ltN === 'RESERVATION_PLACE'
+                ? adm.adminListingPlace
+                : ltN === 'RESERVATION_TIME'
+                  ? adm.adminListingReserve
+                  : adm.adminListingSale;
+            var promoTag =
+              String(row.promotionShelfYn || '').toUpperCase() === 'Y' ? adm.adminPromoSuffix : '';
             left.innerHTML = '<strong>' + escapeHtml(String(row.title || '')) + '</strong>' +
               '<small>#' + id + ' · ' + ltLbl + ' · ' + escapeHtml(String(row.amount || '')) + ' ' +
               escapeHtml(String(row.currencyCode || '').toUpperCase()) +
-              (row.useYn === 'N' ? ' · 숨김' : '') + promoTag + '</small>';
+              (row.useYn === 'N' ? adm.adminHiddenSuffix : '') + promoTag + '</small>';
             var del = document.createElement('button');
             del.type = 'button';
             del.className = 'ghost';
@@ -1888,9 +3602,9 @@
             del.style.minWidth = 'auto';
             del.style.padding = '0.35rem 0.5rem';
             del.style.fontSize = '0.75rem';
-            del.textContent = '삭제';
+            del.textContent = adm.adminDelBtn;
             del.addEventListener('click', function () {
-              if (!confirm('이 상품을 삭제할까요?')) return;
+              if (!confirm(adm.adminDelConfirm)) return;
               fetch(root + '/api/pub/chatbot/admin/products/' + encodeURIComponent(String(id)) + '?compId=' + encodeURIComponent(compId), {
                 method: 'DELETE',
                 mode: 'cors',
@@ -1898,13 +3612,13 @@
                 headers: cbAdminHeaders()
               }).then(readFetchJson).then(function (r2) {
                 if (!r2.success) {
-                  alert(r2.message || '삭제 실패');
+                  alert(r2.message || adm.adminDelFail);
                   return;
                 }
                 loadCbAdminProducts();
                 loadCatalog();
               }).catch(function () {
-                alert('네트워크 오류');
+                alert(adm.adminNetworkErr);
               });
             });
             pr.appendChild(left);
@@ -1912,7 +3626,7 @@
             listEl.appendChild(pr);
           });
         }).catch(function () {
-          listEl.textContent = '목록을 불러올 수 없습니다.';
+          listEl.textContent = adm.adminListLoadFail;
         });
       }
       function escapeHtml(s) {
@@ -1930,19 +3644,20 @@
         }
         var body = document.getElementById('cbAdminBody');
         if (!body) return;
+        var adm = cbPayShellI18n();
         body.innerHTML = '';
         var hint = document.createElement('p');
         hint.style.marginTop = '0';
         hint.style.fontSize = '0.8125rem';
         hint.style.color = '#6c757d';
-        hint.textContent = '상품 저장 후 카탈로그가 즉시 갱신됩니다.';
+        hint.textContent = adm.adminPostSaveHint;
         body.appendChild(hint);
         var rowOut = document.createElement('div');
         rowOut.className = 'cb-admin-btn-row';
         var logout = document.createElement('button');
         logout.type = 'button';
         logout.className = 'ghost';
-        logout.textContent = '로그아웃';
+        logout.textContent = adm.adminLogout;
         rowOut.appendChild(logout);
         body.appendChild(rowOut);
         logout.addEventListener('click', function () {
@@ -1956,7 +3671,7 @@
             setCbAdminTok('');
             renderCbAdminLogin('');
             syncAttachPlusTitle();
-            appendMsg('bot', '[관리자] 로그아웃되었습니다.');
+            appendMsg('bot', adm.adminLogoutBot);
           });
         });
         var listMount = document.createElement('div');
@@ -1979,18 +3694,21 @@
         }
         var titleIn = document.createElement('input');
         titleIn.type = 'text';
-        titleIn.placeholder = '필수';
-        addFormField('상품명', titleIn);
-        var listTypeLbl = document.createElement('label');
-        listTypeLbl.textContent = '유형 ';
-        listTypeLbl.style.marginRight = '0.35rem';
+        titleIn.placeholder = adm.adminProdTitlePh;
+        addFormField(adm.adminProdTitle, titleIn);
         var listSel = document.createElement('select');
         listSel.id = 'cbAdListingType';
         listSel.style.maxWidth = '12rem';
         listSel.innerHTML =
-          '<option value="SALE">판매 (일반)</option>' +
-          '<option value="RESERVATION_TIME">예약 (시간·슬롯)</option>' +
-          '<option value="RESERVATION_PLACE">숙박·장소 (호텔·펜션)</option>';
+          '<option value="SALE">' +
+          escapeHtml(adm.adminListingSaleOpt) +
+          '</option>' +
+          '<option value="RESERVATION_TIME">' +
+          escapeHtml(adm.adminListingResTimeOpt) +
+          '</option>' +
+          '<option value="RESERVATION_PLACE">' +
+          escapeHtml(adm.adminListingPlaceOpt) +
+          '</option>';
         var listWrap = document.createElement('div');
         listWrap.className = 'cb-admin-field';
         listWrap.style.display = 'flex';
@@ -1999,43 +3717,43 @@
         listWrap.style.gap = '0.35rem';
         var listLbOuter = document.createElement('label');
         listLbOuter.style.marginBottom = '0';
-        listLbOuter.textContent = '판매·예약 구분';
+        listLbOuter.textContent = adm.adminListingKind;
         listLbOuter.style.width = '100%';
         listWrap.appendChild(listLbOuter);
         listWrap.appendChild(listSel);
         body.appendChild(listWrap);
         var amtIn = document.createElement('input');
         amtIn.type = 'text';
-        amtIn.placeholder = '예: 10000';
-        addFormField('금액', amtIn);
+        amtIn.placeholder = adm.adminAmountPh;
+        addFormField(adm.adminAmount, amtIn);
         var curIn = document.createElement('input');
         curIn.type = 'text';
         curIn.value = 'KRW';
-        addFormField('통화 코드', curIn);
+        addFormField(adm.adminCurrency, curIn);
         var descIn = document.createElement('textarea');
         descIn.rows = 3;
-        addFormField('설명(선택)', descIn);
+        addFormField(adm.adminDesc, descIn);
         var imgFieldWrap = document.createElement('div');
         imgFieldWrap.className = 'cb-admin-field';
         var imgLb = document.createElement('label');
-        imgLb.textContent = '상품 이미지';
+        imgLb.textContent = adm.adminImg;
         imgFieldWrap.appendChild(imgLb);
         var imgHint = document.createElement('p');
         imgHint.style.margin = '0.15rem 0 0.3rem';
         imgHint.style.fontSize = '0.75rem';
         imgHint.style.color = '#6c757d';
-        imgHint.textContent = '하단 + 버튼으로 JPG·PNG 이미지를 선택합니다. 2MB를 넘으면 자동으로 줄여 올립니다.';
+        imgHint.textContent = adm.adminImgHint;
         imgFieldWrap.appendChild(imgHint);
         var imgUrlIn = document.createElement('input');
         imgUrlIn.type = 'text';
         imgUrlIn.id = 'cbAdImageUrl';
         imgUrlIn.readOnly = true;
-        imgUrlIn.placeholder = '이미지 URL (선택)';
+        imgUrlIn.placeholder = adm.adminImgUrlPh;
         imgFieldWrap.appendChild(imgUrlIn);
         var imgPrev = document.createElement('img');
         imgPrev.id = 'cbAdImagePrev';
         imgPrev.className = 'cb-admin-img-preview';
-        imgPrev.alt = '상품 이미지 미리보기';
+        imgPrev.alt = adm.adminImgPreviewAlt;
         imgFieldWrap.appendChild(imgPrev);
         body.appendChild(imgFieldWrap);
         if (cbPendingProductImageUrl) setProductImageUrl(cbPendingProductImageUrl);
@@ -2046,7 +3764,7 @@
         chk.type = 'checkbox';
         chk.checked = true;
         ynLbl.appendChild(chk);
-        ynLbl.appendChild(document.createTextNode(' 카탈로그에 노출'));
+        ynLbl.appendChild(document.createTextNode(' ' + adm.adminExposeCatalog));
         ynRow.appendChild(ynLbl);
         body.appendChild(ynRow);
         var promoRow = document.createElement('div');
@@ -2056,13 +3774,13 @@
         chkPromo.type = 'checkbox';
         chkPromo.checked = false;
         promoLbl.appendChild(chkPromo);
-        promoLbl.appendChild(document.createTextNode(' 상단 프로모션에 표시'));
+        promoLbl.appendChild(document.createTextNode(' ' + adm.adminPromoShelf));
         promoRow.appendChild(promoLbl);
         var promoHint = document.createElement('p');
         promoHint.style.margin = '0.25rem 0 0';
         promoHint.style.fontSize = '0.72rem';
         promoHint.style.color = '#6c757d';
-        promoHint.textContent = '체크 시 챗봇 첫 화면 상단 「프로모션」 카드에만 나옵니다.';
+        promoHint.textContent = adm.adminPromoShelfHint;
         promoRow.appendChild(promoHint);
         body.appendChild(promoRow);
         var saveRow = document.createElement('div');
@@ -2070,7 +3788,7 @@
         var saveBt = document.createElement('button');
         saveBt.type = 'button';
         saveBt.className = 'primary';
-        saveBt.textContent = '상품 저장';
+        saveBt.textContent = adm.adminSave;
         saveRow.appendChild(saveBt);
         body.appendChild(saveRow);
         saveBt.addEventListener('click', function () {
@@ -2107,7 +3825,7 @@
           }).then(readFetchJson).then(function (res) {
             saveBt.disabled = false;
             if (!res.success) {
-              err.textContent = res.message || '저장 실패';
+              err.textContent = res.message || adm.adminSaveFail;
               err.style.display = 'block';
               return;
             }
@@ -2117,10 +3835,10 @@
             setProductImageUrl('');
             loadCbAdminProducts();
             loadCatalog();
-            appendMsg('bot', '[관리자] 상품을 저장했습니다.');
+            appendMsg('bot', adm.adminSaveOkBot);
           }).catch(function () {
             saveBt.disabled = false;
-            err.textContent = '네트워크 오류';
+            err.textContent = adm.adminNetworkErr;
             err.style.display = 'block';
           });
         });
@@ -2129,7 +3847,9 @@
 
       function loadCatalog() {
         if (!compId) {
-          showBanner('주소에 가맹점 코드(m=)가 없습니다.');
+          try { window.cbPubCatalogItems = []; } catch (eIc) { /* ignore */ }
+          try { window.cbPubOrderSheetUi = { version: 1, fields: {} }; } catch (eOs0) { /* ignore */ }
+          showBanner(cbPayShellI18n().bannerUrlMissingComp);
           syncChatbotBarePayHref();
           var regHide = document.getElementById('cbRegisterMenuBtn');
           if (regHide) regHide.style.display = 'none';
@@ -2143,9 +3863,10 @@
           credentials: 'omit'
         }).then(readFetchJson).then(function (res) {
           if (!res.success) {
+            try { window.cbPubCatalogItems = []; } catch (eIt) { /* ignore */ }
             syncCbCommerceHoldUi(false);
             syncChatbotBarePayHref();
-            showBanner(res.message || '카탈로그를 불러올 수 없습니다.');
+            showBanner(res.message || cbPayShellI18n().bannerCatalogFail);
             var regBad = document.getElementById('cbRegisterMenuBtn');
             if (regBad) regBad.style.display = 'none';
             return null;
@@ -2155,6 +3876,7 @@
           syncCbCommerceHoldUi(!!d.chatbotCommerceHold);
           syncChatbotBarePayHref();
           applyCatalogMeta(d);
+          window.cbPubCatalogItems = Array.isArray(d.items) ? d.items : [];
           renderCatalog(Array.isArray(d.promotionItems) ? d.promotionItems : []);
           var admBtn = document.getElementById('cbOpenAdminBtn');
           if (admBtn) {
@@ -2173,6 +3895,7 @@
           syncAttachPlusTitle();
           return d;
         }).catch(function (errCat) {
+          try { window.cbPubCatalogItems = []; } catch (eCi) { /* ignore */ }
           var hint = '';
           try {
             if (errCat && errCat.httpStatus) {
@@ -2183,14 +3906,15 @@
           try {
             baseHint = ' · API=' + resolvedApiBase();
           } catch (eBh) { baseHint = ''; }
-          var msg = '서버 연결 또는 응답 오류입니다.' + hint;
+          var sb = cbPayShellI18n();
+          var msg = sb.bannerConnError + hint;
           // fetch 자체가 막히는(TypeError) 경우: CORS/혼합콘텐츠/네트워크 단절 가능성이 큼
           if (!hint) {
             try {
               var em = (errCat && errCat.message) ? String(errCat.message) : '';
               if (em) msg += ' (' + em + ')';
               msg += baseHint;
-              msg += ' · 브라우저에서 CORS 또는 Mixed Content 차단 여부를 확인해 주세요.';
+              msg += sb.bannerConnCorsHint;
             } catch (eMsg) { /* ignore */ }
           }
           showBanner(msg);
@@ -2200,15 +3924,33 @@
         });
       }
 
+      /** 구버전 서버가 HTTP+JSON 원문을 message로 줄 때 채팅에 노출되지 않게 합니다. */
+      function cbSanitizeLlmPublicError(raw) {
+        var shell = cbPayShellI18n();
+        var s = String(raw || '').trim();
+        if (!s) return shell.msgErrorGeneric;
+        if (/^HTTP\s+429\b/i.test(s)) {
+          return shell.llmRateLimit;
+        }
+        if (/rate_limit/i.test(s) && /"error"\s*:/.test(s)) {
+          return shell.llmRateLimit;
+        }
+        if (/^HTTP\s+\d{3}\b/i.test(s) && (s.indexOf('{') >= 0 || s.length > 200)) {
+          return shell.llmGenericFail;
+        }
+        return s;
+      }
+
       function syncAttachPlusTitle() {
         var b = document.getElementById('cbImgAttachBtn');
         if (!b) return;
+        var s = cbPayShellI18n();
         if (getCbAdminTok()) {
-          b.title = '챗봇 관리자: 상품 저장 시 사용할 이미지 업로드';
-          b.setAttribute('aria-label', '상품 이미지 추가');
+          b.title = s.attachAdminTitle || s.attachTitle;
+          b.setAttribute('aria-label', s.attachAdminAria || s.attachTitle);
         } else {
-          b.title = '이미지 선택 후 채팅에 반영(일반 고객 문의)';
-          b.setAttribute('aria-label', '이미지로 문의하기');
+          b.title = s.attachGuestTitle || s.attachTitle;
+          b.setAttribute('aria-label', s.attachGuestAria || s.attachTitle);
         }
       }
 
@@ -2216,7 +3958,7 @@
         var inp = document.getElementById('chatbotInput');
         if (!inp) return;
         if (!compId) {
-          showBanner('가맹점 코드가 필요합니다.');
+          showBanner(cbPayShellI18n().bannerNeedCompId);
           return;
         }
         inp.disabled = true;
@@ -2229,24 +3971,31 @@
           body: JSON.stringify({ compId: compId, messages: messages.slice(-24) })
         }).then(readFetchJson).then(function (res) {
           removeTypingRow(pending);
-          var reply = (res.success && res.data && res.data.reply != null)
-            ? String(res.data.reply).trim()
-            : (res.message ? String(res.message) : '오류');
-          appendMsg('assistant', reply || '(빈 응답)');
+          var reply;
+          if (res.success && res.data && res.data.reply != null) {
+            reply = String(res.data.reply).trim();
+          } else {
+            reply = cbSanitizeLlmPublicError(res.message ? String(res.message) : '');
+          }
+          appendMsg('assistant', reply || cbPayShellI18n().chatEmptyReply);
           if (res.success && reply) messages.push({ role: 'assistant', content: reply });
           inp.disabled = false;
           inp.focus();
         }).catch(function (eChat) {
           removeTypingRow(pending);
           var em = (eChat && eChat.message) ? String(eChat.message) : '';
-          var bubble = '네트워크 오류';
+          var sChat = cbPayShellI18n();
+          var bubble = sChat.chatNetworkErr;
           if (/^HTTP_\d+/.test(em)) {
-            bubble = '서버 응답 오류입니다. (' + em.replace('HTTP_', 'HTTP ') + ') 잠시 후 다시 시도해 주세요.';
+            bubble = String(sChat.chatServerErr || '').replace(
+              /\{http\}/g,
+              em.replace('HTTP_', 'HTTP ')
+            );
           } else if (em && em !== 'INVALID_JSON') {
             bubble = em;
           }
-          if (bubble === '네트워크 오류') {
-            try { bubble = '네트워크 오류 (API=' + resolvedApiBase() + ')'; } catch (eB2) {}
+          if (bubble === sChat.chatNetworkErr) {
+            try { bubble = sChat.chatNetworkErr + ' (API=' + resolvedApiBase() + ')'; } catch (eB2) {}
           }
           appendMsg('assistant', bubble);
           inp.disabled = false;
@@ -2260,7 +4009,7 @@
         var text = String(inp.value || '').trim();
         if (!text) return;
         if (!compId) {
-          showBanner('가맹점 코드가 필요합니다.');
+          showBanner(cbPayShellI18n().bannerNeedCompId);
           return;
         }
         var sticker = cbPendingCharStickerDataUrl ? String(cbPendingCharStickerDataUrl).trim() : '';
@@ -2275,13 +4024,14 @@
         if (!relativeUrl || !compId) return;
         var absUrl = absAsset(String(relativeUrl).trim());
         var marker = CB_GUEST_IMAGE_MARKER_PREFIX + absUrl + ']';
-        appendMsg('user', '이미지를 보냈어요.', String(relativeUrl).trim());
+        appendMsg('user', cbPayShellI18n().userSentImage, String(relativeUrl).trim());
         messages.push({ role: 'user', content: marker });
         submitChatToServerAfterUserTurn();
       }
 
       function uploadGuestChatbotImage(file) {
         if (!compId || !file) return;
+        var sg = cbPayShellI18n();
         var root = apiBase().replace(/\/$/, '');
         function postGuest(fdOrFile) {
           var fd = new FormData();
@@ -2301,14 +4051,14 @@
             if (gfin) gfin.value = '';
             var u = res && res.data && res.data.url ? String(res.data.url).trim() : '';
             if (!res.success || !u) {
-              alert((res && res.message) ? res.message : '이미지 업로드 실패');
+              alert((res && res.message) ? res.message : sg.guestImgUploadFail);
               return;
             }
             postGuestChatImageMarker(u);
           }).catch(function () {
             if (btn) btn.disabled = false;
             if (gfin) gfin.value = '';
-            alert('네트워크 오류');
+            alert(sg.adminNetworkErr);
           });
         }
         if (file.size <= CB_IMG_MAX_BYTES) {
@@ -2320,7 +4070,7 @@
             var b2 = document.getElementById('cbImgAttachBtn');
             if (b2) b2.disabled = false;
             if (err || !resized) {
-              alert(err && err.message ? err.message : '이미지 용량을 줄이지 못했습니다.');
+              alert(err && err.message ? err.message : sg.imgShrinkFail);
               var gx = document.getElementById('cbGuestImgFileInput');
               if (gx) gx.value = '';
               return;
@@ -2352,7 +4102,7 @@
         lk.addEventListener('click', function (ev) {
           if (!barePayChatbotUrl()) {
             ev.preventDefault();
-            showBanner('가맹점 코드(m=)가 필요합니다.');
+            showBanner(cbPayShellI18n().bannerNeedCompId);
           }
         });
       })();
@@ -2379,7 +4129,7 @@
       if (cbImgAttachBtn && cbImgFileInput) {
         cbImgAttachBtn.addEventListener('click', function () {
           if (!compId) {
-            showBanner('가맹점 코드(m=)가 필요합니다.');
+            showBanner(cbPayShellI18n().bannerNeedCompId);
             return;
           }
           if (getCbAdminTok()) {
@@ -2409,7 +4159,7 @@
       var cbRegMenu = document.getElementById('cbRegisterMenuBtn');
       if (cbRegMenu) {
         cbRegMenu.addEventListener('click', function () {
-          openAdminSheet('아이디·비밀번호·Google OTP로 로그인한 뒤, 이 화면에서 상품을 등록·저장할 수 있습니다.');
+          openAdminSheet(cbPayShellI18n().adminRegisterSheetHint);
         });
       }
 
@@ -2559,10 +4309,12 @@
 
       syncAttachPlusTitle();
 
+      cbPayApplyShellLocale();
+
       loadCatalog().then(function (d) {
         if (!compId || !d) return;
         var hint = String(d.chatbotWelcomeHint || '').trim();
-        if (!hint) hint = '상단 프로모션에서 대표 상품을 고르시거나, 채팅으로 결제·상품을 문의해 주세요.';
+        if (!hint) hint = cbPayShellI18n().welcomeDefault;
         appendMsg('assistant', hint);
       });
     })();

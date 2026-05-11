@@ -4105,12 +4105,6 @@ button.pay-follow-pill:focus-visible {
 #contentsMain .chatbot-product-mng .chatbot-prod-grid:not(.pg-table-col-resize-enabled) {
   table-layout: auto;
 }
-/* 등록된 상품: 컬럼 리사이즈 미사용 시 항상 래퍼 가로를 꽉 채움(빈 여백·세로 한 글자 쌓임 방지) */
-#contentsMain .chatbot-product-mng .chatbot-prod-grid.table-no-col-resize:not(.pg-table-col-resize-enabled) {
-  table-layout: fixed;
-  width: 100%;
-  max-width: 100%;
-}
 #contentsMain .chatbot-product-mng .chatbot-prod-grid.pg-table-col-resize-enabled {
   table-layout: fixed;
   width: 100%;
@@ -4137,18 +4131,14 @@ button.pay-follow-pill:focus-visible {
   min-width: 0 !important;
   max-width: 0 !important;
 }
-/* 설명 열: fixed 레이아웃에서 가로를 꽉 쓸 때 남는 폭을 주로 이 열이 사용 */
-#contentsMain .chatbot-product-mng .chatbot-prod-grid col.chatbot-prod-colgraph-desc {
-  width: 38%;
-}
 #contentsMain .chatbot-product-mng .chatbot-prod-table-responsive > .table.chatbot-prod-grid {
   /* 리사이즈/컬럼 표시를 위해 최소 폭은 유지(스크롤바는 숨김 처리) */
   min-width: 960px;
   width: 100%;
   max-width: 100%;
 }
-/* 리사이즈 끈 그리드: 뷰가 넓을 때는 래퍼 100%까지 반드시 확장 */
-#contentsMain .chatbot-product-mng .chatbot-prod-table-responsive > .table.chatbot-prod-grid.table-no-col-resize:not(.pg-table-col-resize-enabled) {
+/* 리사이즈 적용 전: 뷰가 넓을 때는 래퍼 100%까지 반드시 확장 */
+#contentsMain .chatbot-product-mng .chatbot-prod-table-responsive > .table.chatbot-prod-grid:not(.pg-table-col-resize-enabled) {
   min-width: max(960px, 100%);
 }
 #contentsMain .chatbot-product-mng .chatbot-prod-table-responsive .chatbot-prod-grid thead th,

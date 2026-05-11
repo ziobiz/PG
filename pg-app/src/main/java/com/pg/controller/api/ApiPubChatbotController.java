@@ -33,9 +33,10 @@ public class ApiPubChatbotController {
     /** 고객 채팅 이미지 — LLM용 마커 ([CHATBOT_GUEST_IMAGE:url=...])와 동일 규칙 */
     public static final String GUEST_IMAGE_MARKER = "[CHATBOT_GUEST_IMAGE:url=";
 
-    /** 첫 고객 메시지 기준 언어 힌트(한글·히라가나·가타카나) */
+    /** 고객 메시지 언어 힌트 */
     private static final Pattern HAS_HANGUL = Pattern.compile("[\\uAC00-\\uD7AF\\u1100-\\u11FF\\u3130-\\u318F]");
     private static final Pattern HAS_KANA = Pattern.compile("[\\u3040-\\u309F\\u30A0-\\u30FF\\u31F0-\\u31FF]");
+    private static final Pattern HAS_THAI = Pattern.compile("[\\u0E00-\\u0E7F]");
 
     private final MerchantChatbotProductService productService;
     private final HqChatbotAiSettingsService hqChatbotAiSettingsService;
@@ -92,6 +93,7 @@ public class ApiPubChatbotController {
         data.putAll(productService.resolveChatbotPublicUi(ou.get().getId()));
         data.put("chatbotWelcomeHint", merchantChatbotKbService.effectiveWelcomeHintForPublic(ou.get().getId()));
         data.putAll(merchantChatbotKbService.publicReservationMeta(ou.get().getId()));
+        data.putAll(merchantChatbotKbService.publicMerchantVerticalMeta(ou.get().getId()));
         return ResponseEntity.ok(ApiResponse.ok(data));
     }
 
@@ -218,7 +220,9 @@ public class ApiPubChatbotController {
             catalogJson = "[]";
             urlPayFactsJson = "{}";
         }
+        final String outputLanguageLock = customerLanguageDirective(messages);
         StringBuilder sys = new StringBuilder();
+        sys.append(outputLanguageLock).append("\n\n");
         if (!basePrompt.isEmpty()) {
             sys.append(basePrompt).append("\n\n");
         }
@@ -248,8 +252,10 @@ public class ApiPubChatbotController {
                 .append("각 항목에는 itemNature(항목 성격)가 있을 수 있습니다: GOODS/FOOD/ANIMAL/SERVICE/SERVICE_PERSON(사람 서비스) 등.\n")
                 .append("- itemNature=SERVICE_PERSON(사람 서비스)이면, 사람을 물건/상품처럼 표현하면 안 됩니다. '상품 구매' 같은 표현 금지.\n")
                 .append("  대신 '서비스 예약/선택', '파트너/스태프/아티스트 선택', '예약 대상'처럼 존중 표현을 사용하고, 이름은 title 그대로 부르세요.\n")
-                .append("항목 사진을 보여 줄 때는 해당 JSON 행의 imageUrl 값을 그대로 사용하세요. 비어 있으면 사진이 없다고 안내합니다. ")
-                .append("고객 화면에서 사진이 보이도록 할 때는 본문에 ![이미지](imageUrl) 또는 한 줄에 [이미지 URL: imageUrl] 형식으로 포함하세요(임의 URL 금지).\n")
+                .append("항목 사진을 보여 줄 때는 해당 JSON 행의 imageUrl(또는 imageUrls) 값을 그대로 사용하세요. 비어 있으면 사진이 없다고 안내합니다. ")
+                .append("고객 화면에서 사진과 함께 반드시 누구/무엇인지 알 수 있게 하세요: 마크다운 이미지는 `![표시 텍스트](imageUrl)` 한 줄로만 쓰고, 표시 텍스트(alt)에는 JSON의 title과 description 요지(이름·한 줄 소개)를 함께 넣으세요. ")
+                .append("alt를 비우거나 `![` 와 `](` 를 줄바꿈으로 끊어 쓰지 마세요(화면에 `[` `](` 잡글자가 남습니다). ")
+                .append("`[이미지 URL: imageUrl]` 형식을 쓸 경우에도, 그 직전 문장에 동일 항목의 title·요약을 반드시 문장으로 적으세요(사진만 단독 금지). 임의 URL 금지.\n")
                 .append("위 JSON 배열만 이 가맹점의 결제 가능한 등록 항목입니다. 목록에 없는 이름·가격·옵션을 지어내거나 추측하지 마세요.\n")
                 .append("고객이 목록에 없는 항목을 원하면 목록 안의 항목으로만 안내 가능함을 알리고, 과장·허위 없이 안내하세요.\n")
                 .append("Follow the customer message language when applying these rules;\n")
@@ -263,7 +269,13 @@ public class ApiPubChatbotController {
         sys.append("\n\n[필수 규칙 — 결제 링크·통화]\n")
                 .append("- 고객에게 줄 결제 URL은 반드시 각 상품 객체의 urlPayPrefillUrl 값만 사용하세요. ")
                 .append("placeholder 도메인(example.com)·추측 URL·임의 경로를 만들지 마세요.\n")
-                .append("- 링크 버튼 문구: payLinkVerbKo / payLinkVerbJa 및 listingType을 참고해 예약·구매 표현을 고객 언어에 맞게 선택하세요.\n")
+                .append("- 고객 채팅 화면에서는 긴 pay.html 주소를 같은 메시지에 반복 나열하지 마세요. ")
+                .append("pay.html URL의 쿼리에서 & 앞에 백슬래시(\\)를 넣지 마세요(예: \\& 형태 금지). 반드시 원문 & 만 사용하세요. ")
+                .append("이스케이프된 주소는 브라우저에서 HTTP 400 오류가 납니다. ")
+                .append("urlPayPrefillUrl 은 해당 상품 안내에 한 번만 정확히 포함하면 됩니다. ")
+                .append("클라이언트가 listingType·payLinkVerbKo 에 맞춰 「예약하기/구매하기/숙박 예약하기」 형태의 버튼으로 바꿔 보여 주므로, ")
+                .append("본문에서는 '아래 버튼으로 결제(또는 예약)를 진행해 주세요'처럼 짧게 안내해도 됩니다.\n")
+                .append("- 링크 버튼 문구(내부 참고): payLinkVerbKo / payLinkVerbJa 및 listingType을 참고해 예약·구매 표현을 고객 언어에 맞게 선택하세요.\n")
                 .append("- 금액·통화 설명은 아래 JSON(urlPayCheckoutFacts)의 checkoutCurrencyCode·urlPayPricingMode·")
                 .append("urlPayDisplayFxActive·urlPaySettlementCurrencyCode·urlPayCustomerCurrencyHintKo 를 근거로 하세요. ")
                 .append("표시 통화와 실제 청구 통화가 다를 수 있음을 고객 언어로 명확히 안내하세요.\n");
@@ -272,27 +284,67 @@ public class ApiPubChatbotController {
         if (kb != null && !kb.isBlank()) {
             sys.append("\n\n가맹점 기본 안내(고객 문의 시 사실로 답할 수 있는 범위):\n").append(kb);
         }
+        Map<String, Object> vertMeta = merchantChatbotKbService.publicMerchantVerticalMeta(ou.get().getId());
+        try {
+            sys.append("\n\n[가맹점 업체성격·수집 힌트(JSON)]\n")
+                    .append(objectMapper.writeValueAsString(vertMeta))
+                    .append("""
+
+                            [필수 — 업체성격·예약 정보(대화 단계)]
+                            - 위 JSON의 chatbotMerchantVertical*, chatbotMerchantVerticalCollectHintKo, chatbotMerchantVerticalNotes 를 반드시 참고하세요.
+                            - 고객이 결제·주문서(화면)로 가기 전에, 업체성격에 맞는 방문·예약 정보(일시·타임존, 방문 인원, 이용 시간(분), 룸·좌석·동행 등)를 고객 언어로 **먼저** 확인하세요. 빠진 항목이 있으면 질문으로 채운 뒤 안내하세요.
+                            - 상품 listingType 이 RESERVATION_TIME 또는 RESERVATION_PLACE 이면 예약 시작 일시는 주문서에서 서버가 검증합니다. 인원·이용 시간 등은 주문서 요청사항에 적히도록 고객에게 안내하고, 대화에서도 요약해 일치하는지 확인하세요.
+                            - JSON·가맹 기본 안내에 없는 조건·가격·옵션을 지어내지 마세요.
+                            """.stripIndent());
+        } catch (Exception ignored) {
+            /* JSON 직렬화 실패 시에도 나머지 규칙은 유지 */
+        }
         sys.append("\n\n[필수 규칙 — 가맹점 운영방식]\n")
                 .append("위 기본 안내에 포함된 「운영방식」및 「챗봇 응대 규칙(운영방식)」을 반드시 따르세요. ")
                 .append("선불/후불·판매/예약 안내가 해당 규칙과 모순되지 않게 고객 언어로 통일하고, ")
                 .append("결제 링크 안내는 규칙상 허용되는 경우에만 제안하세요.\n");
         sys.append("\n\n[필수 규칙 — 주문·예약]\n")
                 .append("고객이 실제 결제·예약을 진행하려면 챗봇 화면의 상품 카드에서 「주문·결제 진행」을 통해 ")
-                .append("이름·이메일·전화·주소를 입력하고(RESERVATION_TIME이면 예약 일시, RESERVATION_PLACE이면 체크인 일시와 가능하면 체크아웃 날짜), ")
+                .append("이름·이메일·전화·주소를 입력하고(RESERVATION_TIME이면 예약 일시·방문 인원, RESERVATION_PLACE이면 체크인 일시·가능하면 체크아웃 날짜·인원), ")
+                .append("업체성격에 따라 이용 시간(분)·룸·요청사항 등은 주문서 필드 또는 요청사항에 적도록 안내합니다. ")
                 .append("서버가 안내하는 결제 페이지로 이동해야 합니다. ")
                 .append("결제가 완료되어야 주문이 접수(확정)됩니다. ")
                 .append("예약 상품(RESERVATION_TIME·RESERVATION_PLACE)은 동일 상품·겹치는 숙박·시간 구간이 막혀 있을 수 있음을 안내하세요. ")
                 .append("카탈로그 JSON의 chatbotReservationSlotMinutes·chatbotReservationZoneId(최상위와 동일 키가 있으면 예약 해석 기준)를 참고하세요.\n");
+        sys.append("\n[필수 — 예약 상품 사전 수집(대화 → 주문서 일치)]\n")
+                .append("아래 JSON의 chatbotReservationOrderPrecheckKo 는 예약형 상품에 공통으로 적용되는 「주문서와 동일한 필수 확인」입니다. ")
+                .append("클럽·VIP·음식점·마사지·코스메틱·서비스업 등 업체성격(chatbotMerchantVertical*) 블록은 그에 더해 ")
+                .append("반드시 지켜야 할 질문 순서와 톤을 정합니다. ")
+                .append("예약자 실명·전화·이메일·일시·인원이 대화에 없는데 결제 URL만 주거나 주문서로 재촉하지 마세요.\n");
 
         try {
             String reply = chatbotLlmCompletionService.completeChat(aiCfg, sys.toString(), messages);
             Map<String, Object> data = new LinkedHashMap<>();
-            data.put("reply", reply);
+            data.put("reply", sanitizeChatbotPayReplyMarkdown(reply));
             return ResponseEntity.ok(ApiResponse.ok(data));
         } catch (Exception e) {
             String msg = e.getMessage() != null ? e.getMessage() : "LLM 호출 실패";
             return ResponseEntity.ok(ApiResponse.fail(msg, "LLM_ERROR"));
         }
+    }
+
+    /**
+     * LLM 이 빈 alt·줄바꿈으로 깨뜨린 마크다운 이미지 껍데기([ 와 ]( 단독 줄 등)를 제거해
+     * 고객 화면에 잡글자가 남지 않게 합니다.
+     */
+    private static String sanitizeChatbotPayReplyMarkdown(String reply) {
+        if (reply == null || reply.isBlank()) {
+            return reply;
+        }
+        String s = reply.replace("\r\n", "\n");
+        s = s.replaceAll("(?m)(^|\\n)[ \\t]*\\[[ \\t]*\\n[ \\t]*\\][ \\t]*\\([ \\t]*(?=\\n)", "$1");
+        s = s.replaceAll("(?m)(^|\\n)[ \\t]*\\[\\s*\\][ \\t]*\\([ \\t]*(?=\\n)", "$1");
+        s = s.replaceAll("(?m)(^|\\n)[ \\t]*\\[\\s*(?=\\n|$)", "$1");
+        s = s.replaceAll("(?m)(^|\\n)[ \\t]*\\]\\(\\s*(?=\\n|$)", "$1");
+        /* Markdown/LaTeX-style \\& in pay.html links breaks query parsing (Tomcat may return 400). */
+        s = s.replace("\\&", "&");
+        s = s.replace("%5C%26", "%26");
+        return s;
     }
 
     private static String str(Object o) {
@@ -343,7 +395,7 @@ public class ApiPubChatbotController {
 
     /**
      * 대화 목록에서 <strong>가장 마지막</strong> {@code role=user} 메시지(이번 질문) 언어에 맞춰 답하도록 지시합니다.
-     * 대화 도중 다른 언어로 바꾸면 같은 언어로 이어 받습니다.
+     * 대화 도중 다른 언어로 바꾸면 그 턴의 언어로만 답합니다(영어 질문→영어, 일본어 질문→일본어).
      */
     private static String customerLanguageDirective(List<Map<String, String>> messages) {
         String latestUserText = "";
@@ -363,26 +415,83 @@ public class ApiPubChatbotController {
             }
         }
         StringBuilder sb = new StringBuilder();
-        sb.append("[언어 규칙] 이번 답변은 반드시 **고객이 방금 작성한 마지막 사용자 메시지**에 쓰인 언어와 동일해야 합니다. ");
-        sb.append("대화 중간에 고객이 다른 언어로 질문하면, 그 메시지의 언어로만 답하세요. 앞쪽 메시지 언어에 고정되지 마세요.");
-        sb.append(' ');
+        sb.append("[CRITICAL — OUTPUT LANGUAGE]\n");
+        sb.append("Your entire reply (every sentence) MUST be written in the same language as the customer's ")
+                .append("**latest** user message below. If they switch language mid-thread, follow the latest turn only. ");
+        sb.append("Do not answer in Korean when they wrote in English or Japanese, and do not answer in English ")
+                .append("when they wrote in Japanese, unless the latest message itself mixes those scripts.\n");
+        sb.append("[언어 규칙] 이번 턴 답변 전체는 **방금** 고객이 보낸 마지막 사용자 메시지의 언어와 동일해야 합니다. ");
+        sb.append("이전 대화가 한국어여도, 마지막 메시지가 영어/일본어면 그 언어로만 답하세요.\n");
         if (!latestUserText.isEmpty()) {
             boolean ko = HAS_HANGUL.matcher(latestUserText).find();
-            boolean ja = HAS_KANA.matcher(latestUserText).find();
-            if (ko && !ja) {
-                sb.append("(감지) 방금 사용자 메시지에 한글(한국어)이 포함되어 있습니다. 이번 응답은 한국어만 사용하세요.");
+            boolean jaKana = HAS_KANA.matcher(latestUserText).find();
+            boolean th = HAS_THAI.matcher(latestUserText).find();
+            int lat = latinLetterCount(latestUserText);
+            int han = hanIdeographCount(latestUserText);
+            if (ko && !jaKana) {
+                sb.append("(감지) 마지막 사용자 메시지에 한글이 있습니다. **응답 전체를 한국어로만** 작성하세요. ");
+                sb.append("영어·일본어 문장으로 본문을 쓰지 마세요(JSON에 있는 고유명사·금액 표기는 예외).");
                 return sb.toString();
             }
-            if (ja && !ko) {
-                sb.append("(検知) 直近のユーザーメッセージにはひらがな・カタカナ等が含まれます。この応答は必ず自然な日本語のみで書いてください。");
+            if (jaKana && !ko) {
+                sb.append("(検知) 直近のユーザーメッセージにひらがな・カタカナ等が含まれます。**応答の本文はすべて自然な日本語のみ**で書いてください。 ");
+                sb.append("韓国語や英語の文で本文を書かないでください(商品名・金額など固有名・表記は除く)。");
                 return sb.toString();
             }
-            if (ko && ja) {
-                sb.append("방금 메시지에 한글과 일본어 표기가 섞여 있습니다. 주된 표기 언어에 맞춰 답하세요.");
+            if (ko && jaKana) {
+                sb.append("마지막 메시지에 한글과 일본어 가나가 함께 있습니다. **주된 표기에 맞춰 한 가지 언어로만** 본문을 작성하세요.");
+                return sb.toString();
+            }
+            if (th && lat < 3) {
+                sb.append("(Detected) Thai script in the latest user message. Reply **entirely in Thai** ")
+                        .append("for the body text; do not use Korean or Japanese for explanations.");
+                return sb.toString();
+            }
+            if (han >= 2 && !ko && !jaKana && lat < 3) {
+                sb.append("(Detection) The latest message is mostly Han characters without Hangul or Japanese kana. ")
+                        .append("Reply in **one** language only: use **natural Japanese** if the wording or catalog ")
+                        .append("context is clearly Japanese; otherwise use **Chinese** (Simplified unless the user ")
+                        .append("uses Traditional forms). Do not answer in Korean for the body.");
+                return sb.toString();
+            }
+            if (lat >= 2) {
+                sb.append("(Detected) The latest user message is primarily Latin script (e.g. English). ")
+                        .append("Write the **entire reply in that language (English)**. ")
+                        .append("Do not switch to Korean or Japanese because earlier turns used them; ")
+                        .append("do not add Korean/Japanese paragraphs unless the latest user message itself mixes them.");
                 return sb.toString();
             }
         }
-        sb.append("그 밖의 언어(영어·태국어 등)도 고객이 그 언어로 쓴 것과 같은 언어로만 답합니다.");
+        sb.append("For any other language, write the full reply only in the language the customer used in their ")
+                .append("latest message (match register and script).");
         return sb.toString();
+    }
+
+    private static int hanIdeographCount(String s) {
+        if (s == null || s.isEmpty()) {
+            return 0;
+        }
+        int n = 0;
+        for (int i = 0; i < s.length(); i++) {
+            char c = s.charAt(i);
+            if (Character.UnicodeScript.of(c) == Character.UnicodeScript.HAN) {
+                n++;
+            }
+        }
+        return n;
+    }
+
+    private static int latinLetterCount(String s) {
+        if (s == null || s.isEmpty()) {
+            return 0;
+        }
+        int n = 0;
+        for (int i = 0; i < s.length(); i++) {
+            char c = s.charAt(i);
+            if ((c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z')) {
+                n++;
+            }
+        }
+        return n;
     }
 }

@@ -18,11 +18,28 @@ import java.util.*;
 
 /**
  * 본사 {@code tb_hq_chatbot_ai_settings.config_json} 키·프로바이더 순서로 외부 LLM 호출 (챗봇 공개 API용).
+ * <p>API 키가 둘 이상이면(예: Gemini+Groq) 한쪽이 429·5xx 등으로 막힐 때 같은 요청 안에서
+ * 다른 프로바이더를 이어 시도하는 <strong>혼용(페일오버·순환)</strong>을 합니다.</p>
  */
 @Service
 public class ChatbotLlmCompletionService {
 
     private static final Logger log = LoggerFactory.getLogger(ChatbotLlmCompletionService.class);
+
+    /**
+     * 공개 챗봇 등에 그대로 노출해도 되는 안내 — Groq/OpenAI 원문 JSON(429 rate limit 등)은 절대 넣지 않습니다.
+     */
+    public static final String PUBLIC_MSG_RATE_LIMIT =
+            "요청이 많아 AI 응답이 잠시 제한되었습니다. 잠시 후 다시 시도해 주세요.\n"
+                    + "The AI service is temporarily busy. Please try again in a moment.";
+
+    public static final String PUBLIC_MSG_UPSTREAM_UNAVAILABLE =
+            "AI 서비스가 일시적으로 사용할 수 없습니다. 잠시 후 다시 시도해 주세요.\n"
+                    + "The AI service is temporarily unavailable. Please try again shortly.";
+
+    public static final String PUBLIC_MSG_UPSTREAM =
+            "AI 응답을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.\n"
+                    + "We could not get an AI reply. Please try again shortly.";
 
     private static final Duration TIMEOUT = Duration.ofSeconds(25);
 
@@ -47,22 +64,90 @@ public class ChatbotLlmCompletionService {
                 ? (List<String>) rawAiConfig.get("report_provider_order")
                 : List.of();
         List<String> order = normalizeOrder(orderRaw);
-        Exception last = null;
+        ArrayDeque<String> queue = new ArrayDeque<>();
         for (String prov : order) {
+            if (isProviderDisabled(prov, rawAiConfig)) {
+                log.debug("chatbot llm skip provider={} (disabled in HQ AI settings)", prov);
+                continue;
+            }
+            if (!providerHasApiKey(prov, rawAiConfig)) {
+                log.debug("chatbot llm skip provider={} (no API key configured)", prov);
+                continue;
+            }
+            queue.addLast(prov);
+        }
+        if (queue.isEmpty()) {
+            throw new IllegalStateException(
+                    "사용 가능한 LLM 설정이 없습니다. 본사 AI설정에서 API 키를 등록하거나, 해당 제공자의 「사용중지」를 해제하세요.");
+        }
+        int initialKeyed = queue.size();
+        int maxAttempts = Math.max(initialKeyed * 4, 8);
+        Exception last = null;
+        int invokedWithKey = 0;
+        while (!queue.isEmpty() && invokedWithKey < maxAttempts) {
+            String prov = queue.pollFirst();
+            invokedWithKey++;
             try {
                 String reply = invokeProvider(prov, rawAiConfig, systemPrompt, trimmed);
                 if (reply != null && !reply.isBlank()) {
                     return reply.trim();
                 }
+                log.warn("chatbot llm provider={} returned empty completion", prov);
             } catch (Exception e) {
                 last = e;
-                log.warn("chatbot llm provider={} failed: {}", prov, e.getMessage());
+                log.warn("chatbot llm provider={} failed: {}", prov, abbrev(e.getMessage(), 500));
+                if (shouldRotateProviderForHybrid(e) && !queue.isEmpty()) {
+                    queue.addLast(prov);
+                }
             }
         }
         if (last != null) {
             throw last;
         }
-        throw new IllegalStateException("사용 가능한 LLM 설정이 없습니다. 본사 AI설정에서 API 키·모델을 등록하세요.");
+        throw new IllegalStateException(
+                "LLM 응답이 비어 있습니다. 잠시 후 다시 시도하거나 본사 AI설정(모델·키)을 확인하세요.");
+    }
+
+    /** 429·상류 5xx 등: 같은 요청에서 다른 API 키(예: Gemini)를 먼저 시도하도록 큐 뒤로 돌립니다. */
+    private static boolean shouldRotateProviderForHybrid(Throwable e) {
+        if (!(e instanceof IllegalStateException ise)) {
+            return false;
+        }
+        String m = ise.getMessage();
+        return PUBLIC_MSG_RATE_LIMIT.equals(m) || PUBLIC_MSG_UPSTREAM_UNAVAILABLE.equals(m);
+    }
+
+    /** {@code report_{provider}_disabled} 가 Y/true 등이면 해당 프로바이더(및 설정 모델)를 호출하지 않습니다. */
+    private static boolean isProviderDisabled(String provider, Map<String, Object> cfg) {
+        if (cfg == null || provider == null) {
+            return false;
+        }
+        String p = provider.trim().toLowerCase(Locale.ROOT);
+        Object v = cfg.get("report_" + p + "_disabled");
+        if (v == null) {
+            return false;
+        }
+        if (v instanceof Boolean b) {
+            return b;
+        }
+        String s = String.valueOf(v).trim().toLowerCase(Locale.ROOT);
+        return "y".equals(s) || "true".equals(s) || "1".equals(s) || "yes".equals(s);
+    }
+
+    /** API 키가 없는 프로바이더는 호출하지 않음 — 선행 프로바이더가 빈 응답일 때 오해의 소지가 있는 \"API key missing\" 연쇄를 막습니다. */
+    private static boolean providerHasApiKey(String provider, Map<String, Object> cfg) {
+        if (cfg == null || provider == null) {
+            return false;
+        }
+        String p = provider.trim().toLowerCase(Locale.ROOT);
+        String key = switch (p) {
+            case "groq" -> stringVal(cfg.get("report_groq_api_key"));
+            case "openai" -> stringVal(cfg.get("report_openai_api_key"));
+            case "anthropic" -> stringVal(cfg.get("report_anthropic_api_key"));
+            case "gemini" -> stringVal(cfg.get("report_gemini_api_key"));
+            default -> null;
+        };
+        return key != null && !key.isBlank();
     }
 
     private static List<String> normalizeOrder(List<String> raw) {
@@ -113,12 +198,14 @@ public class ChatbotLlmCompletionService {
                                   List<Map<String, String>> messages) throws Exception {
         return switch (provider) {
             case "groq" -> openAiCompatible(
+                    "groq",
                     "https://api.groq.com/openai/v1/chat/completions",
                     stringVal(cfg.get("report_groq_api_key")),
                     firstNonBlank(stringVal(cfg.get("report_groq_model")), "llama-3.1-8b-instant"),
                     systemPrompt,
                     messages);
             case "openai" -> openAiCompatible(
+                    "openai",
                     "https://api.openai.com/v1/chat/completions",
                     stringVal(cfg.get("report_openai_api_key")),
                     firstNonBlank(stringVal(cfg.get("report_openai_model")), "gpt-4o-mini"),
@@ -153,7 +240,20 @@ public class ChatbotLlmCompletionService {
         return b;
     }
 
-    private String openAiCompatible(String url, String apiKey, String model, String system,
+    /** HTTP 오류 시 응답 본문은 로그에만 남기고, 고객에게는 짧은 공개 메시지로만 예외를 던집니다. */
+    private static IllegalStateException upstreamHttp(String providerId, int status, String rawBody) {
+        String logBody = abbrev(rawBody, 2000);
+        log.warn("chatbot llm upstream provider={} httpStatus={} body={}", providerId, status, logBody);
+        if (status == 429) {
+            return new IllegalStateException(PUBLIC_MSG_RATE_LIMIT);
+        }
+        if (status == 503 || status == 502 || status == 504 || status >= 500) {
+            return new IllegalStateException(PUBLIC_MSG_UPSTREAM_UNAVAILABLE);
+        }
+        return new IllegalStateException(PUBLIC_MSG_UPSTREAM);
+    }
+
+    private String openAiCompatible(String providerId, String url, String apiKey, String model, String system,
                                     List<Map<String, String>> messages) throws Exception {
         if (apiKey == null || apiKey.isBlank()) {
             throw new IllegalStateException("API key missing");
@@ -182,7 +282,7 @@ public class ChatbotLlmCompletionService {
                 .build();
         HttpResponse<String> res = http.send(req, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
         if (res.statusCode() < 200 || res.statusCode() >= 300) {
-            throw new IllegalStateException("HTTP " + res.statusCode() + " " + abbrev(res.body(), 400));
+            throw upstreamHttp(providerId, res.statusCode(), res.body());
         }
         JsonNode tree = mapper.readTree(res.body());
         JsonNode choice0 = tree.path("choices").path(0).path("message").path("content");
@@ -226,7 +326,7 @@ public class ChatbotLlmCompletionService {
                 .build();
         HttpResponse<String> res = http.send(req, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
         if (res.statusCode() < 200 || res.statusCode() >= 300) {
-            throw new IllegalStateException("HTTP " + res.statusCode() + " " + abbrev(res.body(), 400));
+            throw upstreamHttp("anthropic", res.statusCode(), res.body());
         }
         JsonNode tree = mapper.readTree(res.body());
         JsonNode block0 = tree.path("content").path(0).path("text");
@@ -275,7 +375,7 @@ public class ChatbotLlmCompletionService {
                 .build();
         HttpResponse<String> res = http.send(req, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
         if (res.statusCode() < 200 || res.statusCode() >= 300) {
-            throw new IllegalStateException("HTTP " + res.statusCode() + " " + abbrev(res.body(), 400));
+            throw upstreamHttp("gemini", res.statusCode(), res.body());
         }
         JsonNode tree = mapper.readTree(res.body());
         JsonNode text = tree.path("candidates").path(0).path("content").path("parts").path(0).path("text");

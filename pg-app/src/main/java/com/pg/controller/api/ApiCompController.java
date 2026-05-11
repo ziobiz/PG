@@ -888,7 +888,10 @@ public class ApiCompController {
             @RequestParam(required = false) String chatbotProductSlotLimit,
             @RequestParam(required = false) String chatbotReservationSlotMinutes,
             @RequestParam(required = false) String chatbotReservationZoneId,
-            @RequestParam(required = false) String chatbotCatalogListingEnabled) {
+            @RequestParam(required = false) String chatbotCatalogListingEnabled,
+            @RequestParam(required = false) String chatbotMerchantVertical,
+            @RequestParam(required = false) String chatbotMerchantVerticalNotes,
+            @RequestParam(required = false) String chatbotOrderSheetUiJson) {
         Authentication auth0 = SecurityContextHolder.getContext().getAuthentication();
         if (!(auth0 != null && auth0.getPrincipal() instanceof AppUser u0)) {
             return ResponseEntity.ok(ApiResponse.fail("로그인이 필요합니다.", "UNAUTHORIZED"));
@@ -900,7 +903,8 @@ public class ApiCompController {
             compService.saveMerchantChatbotKb(compId.trim(), chatbotKbCompanyNm, chatbotKbAddr,
                     chatbotKbTel, chatbotKbEmail, chatbotKbContactNm, chatbotKbIntro, chatbotKbProductDesc,
                     chatbotProductSlotLimit, chatbotOperationMode, chatbotKbWelcomeHint,
-                    chatbotReservationSlotMinutes, chatbotReservationZoneId, chatbotCatalogListingEnabled);
+                    chatbotReservationSlotMinutes, chatbotReservationZoneId, chatbotCatalogListingEnabled,
+                    chatbotMerchantVertical, chatbotMerchantVerticalNotes, chatbotOrderSheetUiJson);
             return ResponseEntity.ok(ApiResponse.ok(Map.of("success", true)));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.ok(ApiResponse.fail(e.getMessage(), "VALIDATION"));
