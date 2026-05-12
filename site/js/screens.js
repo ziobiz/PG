@@ -3596,6 +3596,16 @@
             { v: 'STATUS', t: '상태' }
           ], size: 11 },
           { label: '검색어', type: 'text', name: 'searchKeyword', placeholder: '검색어', size: 22 },
+          { label: '상태구분', type: 'select', name: 'searchPayDivCd', options: [
+            { v: '', t: '전체' },
+            { v: '10', t: '성공' },
+            { v: '20', t: '취소' },
+            { v: 'FAIL', t: '실패' },
+            { v: '40', t: '자동무효' },
+            { v: '41', t: '이메일무효' },
+            { v: '42', t: '자동환불' },
+            { v: '31', t: '강제환불' }
+          ], size: 11 },
           { type: 'searchBtn', label: '검색' },
           { type: 'button', name: 'searchReset', label: '검색 초기화' }
         ]

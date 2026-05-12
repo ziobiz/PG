@@ -1294,6 +1294,7 @@ public class ChillPayService {
             String status,
             LocalDate transactionDateFrom,
             LocalDate transactionDateTo,
+            String searchPayDivCd,
             boolean multiCurrency,
             String primaryCurrency,
             Authentication authentication) {
@@ -1301,6 +1302,14 @@ public class ChillPayService {
         Long effectiveMerchantOrgUnitId = resolveMerchantOrgUnitIdForChillPayTxnApi(merchantOrgUnitId, merchantCodeFilter);
         int ps = Math.min(100, Math.max(1, size));
         int pn = Math.max(1, page);
+        String payDivFilter = searchPayDivCd != null ? searchPayDivCd.trim() : "";
+        if (!payDivFilter.isEmpty()) {
+            return searchChillPayPaymentTransactionsWithPayDivFilter(
+                    effectiveMerchantOrgUnitId, pn, ps, orderBy, orderDir, searchKeyword, merchantCodeFilter,
+                    paymentChannel, routeNoFilter, orderNo, status, transactionDateFrom, transactionDateTo,
+                    payDivFilter, multiCurrency, primaryCurrency, authentication);
+        }
+
         PageResult<Map<String, Object>> display = searchChillPayPaymentTransactionsPage(
                 effectiveMerchantOrgUnitId, pn, ps, orderBy, orderDir, searchKeyword, merchantCodeFilter,
                 paymentChannel, routeNoFilter, orderNo, status, transactionDateFrom, transactionDateTo,
@@ -1329,6 +1338,112 @@ public class ChillPayService {
         payListService.putHqLedgerPayDisplayCurrencyMeta(meta);
         display.setMeta(meta);
         return display;
+    }
+
+    /**
+     * 통합내역 상단 「상태구분」: 결제내역(tb_pg_trnsctn.status)과 동일 코드로, 노티 보강 후 칠페이 목록을 거릅니다.
+     * 칠페이 API는 페이지당 최대 100건이므로, 필터 시 여러 API 페이지를 순회해 요청 페이지를 채웁니다(상한은 CHILL_STATUS_BAR_MAX_PAGES와 동일).
+     */
+    private PageResult<Map<String, Object>> searchChillPayPaymentTransactionsWithPayDivFilter(
+            Long effectiveMerchantOrgUnitId,
+            int pn,
+            int ps,
+            String orderBy,
+            String orderDir,
+            String searchKeyword,
+            String merchantCodeFilter,
+            String paymentChannel,
+            Integer routeNoFilter,
+            String orderNo,
+            String status,
+            LocalDate transactionDateFrom,
+            LocalDate transactionDateTo,
+            String payDivFilter,
+            boolean multiCurrency,
+            String primaryCurrency,
+            Authentication authentication) {
+
+        List<Map<String, Object>> acc = new ArrayList<>();
+        Map<String, Object> baseMeta = new LinkedHashMap<>();
+        int lastRawSize = 0;
+        int scanEnd = 0;
+        for (int scanCp = 1; scanCp <= CHILL_STATUS_BAR_MAX_PAGES && acc.size() < pn * ps; scanCp++) {
+            PageResult<Map<String, Object>> slice = searchChillPayPaymentTransactionsPage(
+                    effectiveMerchantOrgUnitId, scanCp, ps, orderBy, orderDir, searchKeyword, merchantCodeFilter,
+                    paymentChannel, routeNoFilter, orderNo, status, transactionDateFrom, transactionDateTo,
+                    null, null);
+            if (slice.getMeta() != null && baseMeta.isEmpty()) {
+                baseMeta.putAll(slice.getMeta());
+            }
+            List<Map<String, Object>> rawList = slice.getList() != null ? slice.getList() : Collections.emptyList();
+            lastRawSize = rawList.size();
+            for (Map<String, Object> row : rawList) {
+                if (rowMatchesSearchPayDivCd(row, payDivFilter)) {
+                    acc.add(row);
+                }
+            }
+            scanEnd = scanCp;
+            if (rawList.size() < ps) {
+                break;
+            }
+        }
+        boolean cappedTotals = acc.size() < pn * ps && lastRawSize >= ps && scanEnd >= CHILL_STATUS_BAR_MAX_PAGES;
+
+        int fromIdx = (pn - 1) * ps;
+        List<Map<String, Object>> pageRows = new ArrayList<>();
+        for (int i = fromIdx; i < Math.min(fromIdx + ps, acc.size()); i++) {
+            Map<String, Object> src = acc.get(i);
+            Map<String, Object> row = new LinkedHashMap<>(src);
+            row.put("rowNo", i + 1);
+            pageRows.add(row);
+        }
+
+        PayListStatusBarBuckets.MutableRollup roll = new PayListStatusBarBuckets.MutableRollup();
+        accumulateChillPayRowsIntoRollup(roll, acc);
+
+        PageResult<Map<String, Object>> out = new PageResult<>();
+        out.setList(pageRows);
+        out.setPage(pn);
+        out.setSize(ps);
+        long totalFiltered = acc.size();
+        out.setTotalElements(totalFiltered);
+        out.setTotalPages(Math.max(1, (int) Math.ceil(totalFiltered / (double) ps)));
+
+        Map<String, Object> meta = new LinkedHashMap<>(baseMeta);
+        meta.put("payListStatusBar", roll.toPayload(multiCurrency, primaryCurrency, cappedTotals));
+        meta.put("payListFinancialSummary", payListService.buildChillPayFinancialSummary(acc, authentication));
+        if (cappedTotals) {
+            meta.put("chillPayPayDivFilterCapped", Boolean.TRUE);
+        }
+        payListService.putHqLedgerPayDisplayCurrencyMeta(meta);
+        out.setMeta(meta);
+        return out;
+    }
+
+    private static boolean rowMatchesSearchPayDivCd(Map<String, Object> row, String payDivFilter) {
+        if (row == null || payDivFilter == null || payDivFilter.isBlank()) {
+            return true;
+        }
+        String v = payDivFilter.trim();
+        String st = firstNonBlankString(row, "status", "Status");
+        if ("FAIL".equalsIgnoreCase(v)) {
+            if ("F0".equalsIgnoreCase(st) || "99".equals(st)) {
+                return true;
+            }
+            return PayListStatusBarBuckets.FAIL.equals(PayListStatusBarBuckets.bucketForChillStatus(st));
+        }
+        if ("10".equals(v)) {
+            return "10".equals(st) || "0".equals(st)
+                    || PayListStatusBarBuckets.SUCCESS.equals(PayListStatusBarBuckets.bucketForChillStatus(st));
+        }
+        if ("20".equals(v)) {
+            return "20".equals(st) || "2".equals(st)
+                    || PayListStatusBarBuckets.CANCEL.equals(PayListStatusBarBuckets.bucketForChillStatus(st));
+        }
+        if ("40".equals(v) || "41".equals(v) || "42".equals(v) || "31".equals(v)) {
+            return v.equals(st);
+        }
+        return v.equalsIgnoreCase(st);
     }
 
     /**
@@ -1755,6 +1870,7 @@ public class ChillPayService {
                 enrichChillPayTrSearchRow(row, orgCache, txnOrgCache);
                 list.add(row);
             }
+            enrichSettlementRowsTxnStatusForChillGrid(list);
             long total = body.getTotalRecord() != null ? body.getTotalRecord() : 0L;
             int totalPages = total <= 0 ? 1 : (int) Math.ceil((double) total / (double) ps);
 

@@ -69,7 +69,10 @@ public class ApiCalcController {
 
     /**
      * 칠페이 API는 가맹점 코드 1건 위주 — 비관리자는 허용 범위와 교차 적용.
-     * 하위 가맹이 여러 곳이면 통합내역에서 가맹점 코드를 지정해 검색해야 합니다.
+     * 하위 가맹이 여러 곳이면 통합내역·통합정산에서 가맹점 코드(또는 MID)를 지정해 검색해야 합니다.
+     * <p>예외: 로그인 조직이 <strong>총본사(HEADQUARTERS)</strong>이면 본사 ChillPay 자격으로 범위를 넓혀
+     * (요청 필터가 비어 있을 때) 빈 문자열을 반환합니다. 그렇지 않으면 가맹이 2곳 이상일 때 {@code __NONE__}으로
+     * 동일 MID에 섞인 타 조직 거래가 노출되는 것을 막습니다.
      */
     private String resolveChillPayMerchantCodeFilter(Authentication authentication, String requested) {
         Set<String> allowed = orgAccessService.visibleMerchantCompCodes(authentication);
@@ -86,7 +89,24 @@ public class ApiCalcController {
         if (allowed.size() == 1) {
             return allowed.iterator().next();
         }
+        if (isHeadquartersOrgViewer(authentication)) {
+            return "";
+        }
         return "__NONE__";
+    }
+
+    /** 총본사 소속(ADMIN 은 visible 이 null 이라 여기까지 오지 않음) */
+    private boolean isHeadquartersOrgViewer(Authentication authentication) {
+        if (authentication == null || !(authentication.getPrincipal() instanceof AppUser user)) {
+            return false;
+        }
+        String code = user.getOrgUnitCode();
+        if (code == null || code.isBlank()) {
+            return false;
+        }
+        return orgUnitRepository.findByCode(code.trim())
+                .map(ou -> ou.getOrgLevel() == OrgLevel.HEADQUARTERS)
+                .orElse(false);
     }
 
     /**
@@ -148,6 +168,8 @@ public class ApiCalcController {
             @RequestParam(required = false) String searchChillStatus,
             @RequestParam(required = false) String searchRouteNo,
             @RequestParam(required = false) String searchFieldType,
+            /** 결제내역과 동일: ICOPAY 상태(tb_pg_trnsctn 보강 후) 기준 필터 */
+            @RequestParam(required = false) String searchPayDivCd,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate searchFromDate,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate searchToDate,
             Authentication authentication) {
@@ -221,6 +243,7 @@ public class ApiCalcController {
                     scs,
                     tFrom,
                     tTo,
+                    searchPayDivCd,
                     multiCurrency,
                     primaryCurrency,
                     authentication);
