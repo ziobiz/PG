@@ -8,7 +8,10 @@ import com.pg.service.MerchantChatbotOrderService;
 import com.pg.service.MerchantChatbotProductService;
 import com.pg.service.MerchantChatbotKbService;
 import com.pg.entity.OrgUnit;
+import com.pg.util.QrCodePngUtil;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.CacheControl;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -32,6 +35,9 @@ public class ApiPubChatbotController {
     private static final long GUEST_IMAGE_MAX_BYTES = 2 * 1024 * 1024;
     /** 고객 채팅 이미지 — LLM용 마커 ([CHATBOT_GUEST_IMAGE:url=...])와 동일 규칙 */
     public static final String GUEST_IMAGE_MARKER = "[CHATBOT_GUEST_IMAGE:url=";
+
+    /** 가맹점 코드(공개 QR·임베드 URL 등) */
+    private static final Pattern CHATBOT_QR_COMP_CODE = Pattern.compile("^[A-Za-z0-9_-]{1,64}$");
 
     /** 고객 메시지 언어 힌트 */
     private static final Pattern HAS_HANGUL = Pattern.compile("[\\uAC00-\\uD7AF\\u1100-\\u11FF\\u3130-\\u318F]");
@@ -470,6 +476,64 @@ public class ApiPubChatbotController {
         }
         sb.append("For any other language, write the full reply only in the language the customer used in their ")
                 .append("latest message (match register and script).");
+        return sb.toString();
+    }
+
+    /**
+     * 가맹점 배포용: 챗봇 결제 진입 URL을 QR(PNG)로 반환합니다. 카메라 스캔 시 동일 URL로 이동합니다.
+     * {@code GET /api/pub/chatbot/pay-qr?m=가맹점코드}{@code &size=280} (size 128~512, 기본 280)
+     */
+    @GetMapping(value = "/pay-qr", produces = MediaType.IMAGE_PNG_VALUE)
+    public ResponseEntity<byte[]> chatbotPayQr(@RequestParam(value = "m", required = false) String m,
+                                               @RequestParam(value = "compId", required = false) String compIdParam,
+                                               @RequestParam(value = "size", required = false, defaultValue = "280") int sizePx,
+                                               HttpServletRequest request) {
+        String code = firstNonBlankParam(m, compIdParam);
+        if (code == null || !CHATBOT_QR_COMP_CODE.matcher(code).matches()) {
+            return ResponseEntity.notFound().build();
+        }
+        Optional<OrgUnit> ou = productService.requireMerchantOrgByCode(code);
+        if (ou.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+        if (!productService.isChatbotPaymentOpenForMerchant(ou.get().getId())) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+        String base = productService.resolvePublicCustomerSiteBase(request).trim().replaceAll("/+$", "");
+        if (base.isEmpty()) {
+            base = inferPublicBaseFromRequest(request);
+        }
+        String enc = java.net.URLEncoder.encode(code, java.nio.charset.StandardCharsets.UTF_8).replace("+", "%20");
+        String url = base + "/chatbot-pay/" + enc;
+        int dim = Math.min(512, Math.max(128, sizePx));
+        try {
+            byte[] png = QrCodePngUtil.encodePng(url, dim);
+            return ResponseEntity.ok()
+                    .cacheControl(CacheControl.maxAge(1, java.util.concurrent.TimeUnit.HOURS).cachePublic())
+                    .body(png);
+        } catch (Exception ex) {
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+
+    private static String firstNonBlankParam(String a, String b) {
+        if (a != null && !a.isBlank()) {
+            return a.trim();
+        }
+        if (b != null && !b.isBlank()) {
+            return b.trim();
+        }
+        return null;
+    }
+
+    private static String inferPublicBaseFromRequest(HttpServletRequest req) {
+        String scheme = req.getScheme();
+        String host = req.getServerName();
+        int port = req.getServerPort();
+        StringBuilder sb = new StringBuilder(scheme).append("://").append(host);
+        if (("http".equals(scheme) && port != 80) || ("https".equals(scheme) && port != 443)) {
+            sb.append(':').append(port);
+        }
         return sb.toString();
     }
 

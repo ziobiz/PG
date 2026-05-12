@@ -705,6 +705,12 @@
       if (Object.prototype.hasOwnProperty.call(f, 'chatbotProductSlotLimit')) {
         body.append('chatbotProductSlotLimit', String(f.chatbotProductSlotLimit != null ? f.chatbotProductSlotLimit : ''));
       }
+      if (Object.prototype.hasOwnProperty.call(f, 'chatbotProductSlotPlanUseSplit')) {
+        body.append('chatbotProductSlotPlanUseSplit', String(f.chatbotProductSlotPlanUseSplit != null ? f.chatbotProductSlotPlanUseSplit : ''));
+      }
+      if (Object.prototype.hasOwnProperty.call(f, 'chatbotProductSlotLimitNext')) {
+        body.append('chatbotProductSlotLimitNext', String(f.chatbotProductSlotLimitNext != null ? f.chatbotProductSlotLimitNext : ''));
+      }
       var base = getBaseUrl();
       var token = getToken();
       var headers = { 'Content-Type': 'application/x-www-form-urlencoded', 'Accept': 'application/json' };

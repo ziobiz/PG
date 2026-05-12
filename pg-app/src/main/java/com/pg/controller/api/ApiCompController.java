@@ -754,7 +754,9 @@ public class ApiCompController {
 
         Specification<MerchantReceivable> spec = (root, query, cb) -> cb.and(
                 cb.equal(root.get("merchantId"), mid),
-                cb.equal(root.get("reasonCode"), ChatbotProductPricingUtil.RECEIVABLE_REASON_CHATBOT_MONTHLY)
+                root.get("reasonCode").in(List.of(
+                        ChatbotProductPricingUtil.RECEIVABLE_REASON_CHATBOT_MONTHLY,
+                        ChatbotProductPricingUtil.RECEIVABLE_REASON_CHATBOT_UPGRADE))
         );
         Page<MerchantReceivable> slice = merchantReceivableRepository.findAll(spec, pageable);
 
@@ -767,6 +769,8 @@ public class ApiCompController {
             m.put("remainingAmount", r.getRemainingAmount() != null ? r.getRemainingAmount() : 0);
             m.put("status", r.getStatus() != null ? r.getStatus() : "");
             m.put("memo", r.getMemo() != null ? r.getMemo() : "");
+            m.put("reasonCode", r.getReasonCode() != null ? r.getReasonCode() : "");
+            m.put("billingCcy", r.getBillingCcy() != null ? r.getBillingCcy() : "");
             m.put("createdAt", r.getCreatedAt() != null ? r.getCreatedAt().toString() : "");
             rows.add(m);
         }
@@ -778,7 +782,9 @@ public class ApiCompController {
         pr.setTotalPages(Math.max(1, slice.getTotalPages()));
 
         MerchantReceivable latest = merchantReceivableRepository
-                .findFirstByMerchantIdAndReasonCodeOrderByIdDesc(mid, ChatbotProductPricingUtil.RECEIVABLE_REASON_CHATBOT_MONTHLY)
+                .findFirstByMerchantIdAndReasonCodeInOrderByIdDesc(mid, List.of(
+                        ChatbotProductPricingUtil.RECEIVABLE_REASON_CHATBOT_MONTHLY,
+                        ChatbotProductPricingUtil.RECEIVABLE_REASON_CHATBOT_UPGRADE))
                 .orElse(null);
         if (latest != null) {
             pr.getMeta().put("latestTitle", latest.getTitle() != null ? latest.getTitle() : "");
@@ -886,6 +892,8 @@ public class ApiCompController {
             @RequestParam(required = false) String chatbotKbWelcomeHint,
             @RequestParam(required = false) String chatbotOperationMode,
             @RequestParam(required = false) String chatbotProductSlotLimit,
+            @RequestParam(required = false) String chatbotProductSlotPlanUseSplit,
+            @RequestParam(required = false) String chatbotProductSlotLimitNext,
             @RequestParam(required = false) String chatbotReservationSlotMinutes,
             @RequestParam(required = false) String chatbotReservationZoneId,
             @RequestParam(required = false) String chatbotCatalogListingEnabled,
@@ -902,7 +910,8 @@ public class ApiCompController {
         try {
             compService.saveMerchantChatbotKb(compId.trim(), chatbotKbCompanyNm, chatbotKbAddr,
                     chatbotKbTel, chatbotKbEmail, chatbotKbContactNm, chatbotKbIntro, chatbotKbProductDesc,
-                    chatbotProductSlotLimit, chatbotOperationMode, chatbotKbWelcomeHint,
+                    chatbotProductSlotLimit, chatbotProductSlotPlanUseSplit, chatbotProductSlotLimitNext,
+                    chatbotOperationMode, chatbotKbWelcomeHint,
                     chatbotReservationSlotMinutes, chatbotReservationZoneId, chatbotCatalogListingEnabled,
                     chatbotMerchantVertical, chatbotMerchantVerticalNotes, chatbotOrderSheetUiJson);
             return ResponseEntity.ok(ApiResponse.ok(Map.of("success", true)));

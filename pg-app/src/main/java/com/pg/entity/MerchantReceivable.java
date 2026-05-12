@@ -39,6 +39,10 @@ public class MerchantReceivable {
     @Column(name = "memo", columnDefinition = "TEXT")
     private String memo;
 
+    /** 청구 통화(ISO 4217, 표시용). 미기입 시 금액만 표기 */
+    @Column(name = "billing_ccy", length = 3)
+    private String billingCcy;
+
     @Column(name = "created_by", length = 100)
     private String createdBy;
 
@@ -70,6 +74,8 @@ public class MerchantReceivable {
     public void setReasonCode(String reasonCode) { this.reasonCode = reasonCode; }
     public String getMemo() { return memo; }
     public void setMemo(String memo) { this.memo = memo; }
+    public String getBillingCcy() { return billingCcy; }
+    public void setBillingCcy(String billingCcy) { this.billingCcy = billingCcy; }
     public String getCreatedBy() { return createdBy; }
     public void setCreatedBy(String createdBy) { this.createdBy = createdBy; }
     public LocalDateTime getCreatedAt() { return createdAt; }

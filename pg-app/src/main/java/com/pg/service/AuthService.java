@@ -189,24 +189,36 @@ public class AuthService {
 
     /**
      * 로그인ID로 소속 {@link OrgUnit} 조회.
-     * 우선순위: 사용자(tb_user)의 org_unit_code(유효한 조직 행이 있을 때) → 가맹점 프로필(로그인ID) → ADMIN이면 총본사 1건.
-     * 본사·총판 등 조직 계정은 org_unit_code가 권한·데이터 범위의 기준이 되므로, 가맹점 프로필보다 앞에 둡니다.
+     * <ul>
+     *   <li>{@code org_unit_code}가 가맹점(MERCHANT)이면 그 조직.</li>
+     *   <li>그 외(본사·총판 등)로 잡혀 있어도, 동일 로그인ID에 연결된 {@code tb_merchant_profile} 이 있으면
+     *       가맹점 조직을 반환(가맹 포털·챗봇 기본설정에서 compId 누락 방지).</li>
+     *   <li>그다음 가맹 프로필만 있는 경우.</li>
+     *   <li>ADMIN이면 총본사 1건.</li>
+     * </ul>
      */
     public Optional<OrgUnit> resolveOrgUnitForLoginId(String loginId) {
         if (loginId == null || loginId.isBlank()) return Optional.empty();
         String id = loginId.trim();
+        Optional<OrgUnit> fromMp = merchantProfileRepository.findByLoginId(id)
+                .flatMap(mp -> orgUnitRepository.findById(mp.getOrgUnitId()));
         Optional<AppUser> userOpt = userRepository.findByUsername(id);
         if (userOpt.isPresent()) {
             AppUser u = userOpt.get();
             if (u.getOrgUnitCode() != null && !u.getOrgUnitCode().isBlank()) {
                 Optional<OrgUnit> fromUserCode = orgUnitRepository.findByCode(u.getOrgUnitCode().trim());
                 if (fromUserCode.isPresent()) {
+                    OrgUnit ou = fromUserCode.get();
+                    if (ou.getOrgLevel() == OrgLevel.MERCHANT) {
+                        return fromUserCode;
+                    }
+                    if (fromMp.isPresent() && fromMp.get().getOrgLevel() == OrgLevel.MERCHANT) {
+                        return fromMp;
+                    }
                     return fromUserCode;
                 }
             }
         }
-        Optional<OrgUnit> fromMp = merchantProfileRepository.findByLoginId(id)
-                .flatMap(mp -> orgUnitRepository.findById(mp.getOrgUnitId()));
         if (fromMp.isPresent()) {
             return fromMp;
         }

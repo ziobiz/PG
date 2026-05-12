@@ -11,7 +11,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.Map;
 
 /**
- * 본사설정 — AI설정 (챗봇 연동용 LLM 키·모델·프롬프트). JSON 스키마는 Stock AI 페이지와 호환 가능한 필드명을 사용합니다.
+ * 본사설정 — AI챗봇설정 (챗봇 연동용 LLM 키·모델·프롬프트). JSON 스키마는 Stock AI 페이지와 호환 가능한 필드명을 사용합니다.
  */
 @RestController
 @RequestMapping(value = "/api/hq/chatbotAiSettings", produces = "application/json")

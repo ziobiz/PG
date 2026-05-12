@@ -173,6 +173,17 @@ public class MerchantProfile {
     @Column(name = "chatbot_product_slot_limit")
     private Integer chatbotProductSlotLimit;
 
+    /**
+     * 다음 플랜(예약): 상향·하향 모두 익월(서울 달력) 적용 시 본 값을 {@link #chatbotProductSlotLimit} 로 이관.
+     * 당월에는 {@link #chatbotProductSlotLimit} 이 유효하며, {@link #chatbotProductSlotPendingApplyYm} 에 도달하면 이관.
+     */
+    @Column(name = "chatbot_product_slot_limit_pending")
+    private Integer chatbotProductSlotLimitPending;
+
+    /** {@code chatbot_product_slot_limit_pending} 적용 시작 월(YYYY-MM, Asia/Seoul) */
+    @Column(name = "chatbot_product_slot_pending_apply_ym", length = 7)
+    private String chatbotProductSlotPendingApplyYm;
+
     /** 고객 대면 챗봇 안내 — 회사명(비우면 조직명) */
     @Column(name = "chatbot_kb_company_nm", length = 200)
     private String chatbotKbCompanyNm;
@@ -404,6 +415,23 @@ public class MerchantProfile {
     public void setChatbotProductSlotLimit(Integer chatbotProductSlotLimit) {
         this.chatbotProductSlotLimit = chatbotProductSlotLimit;
     }
+
+    public Integer getChatbotProductSlotLimitPending() {
+        return chatbotProductSlotLimitPending;
+    }
+
+    public void setChatbotProductSlotLimitPending(Integer chatbotProductSlotLimitPending) {
+        this.chatbotProductSlotLimitPending = chatbotProductSlotLimitPending;
+    }
+
+    public String getChatbotProductSlotPendingApplyYm() {
+        return chatbotProductSlotPendingApplyYm;
+    }
+
+    public void setChatbotProductSlotPendingApplyYm(String chatbotProductSlotPendingApplyYm) {
+        this.chatbotProductSlotPendingApplyYm = chatbotProductSlotPendingApplyYm;
+    }
+
     public String getChatbotKbCompanyNm() { return chatbotKbCompanyNm; }
     public void setChatbotKbCompanyNm(String chatbotKbCompanyNm) { this.chatbotKbCompanyNm = chatbotKbCompanyNm; }
     public String getChatbotKbAddr() { return chatbotKbAddr; }

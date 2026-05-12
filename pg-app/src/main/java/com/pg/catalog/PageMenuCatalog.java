@@ -36,7 +36,7 @@ public final class PageMenuCatalog {
         add(list, "/hq/receivableRecoverySettings", "M0124", "환수/미수금설정", "본사설정");
         add(list, "/hq/domainConfig", "M0115", "도메인구성설정", "본사설정");
         add(list, "/hq/serverManage", "M0116", "서버운영관리", "본사설정");
-        add(list, "/hq/chatbotAiSettings", "M0126", "AI설정", "본사설정");
+        add(list, "/hq/chatbotAiSettings", "M0126", "AI챗봇설정", "본사설정");
         add(list, "/system/noticeList", "M0201", "공지사항", "업체관리");
         add(list, "/comp/myCompMng", "M0202", "업체정보조회", "업체관리");
         add(list, "/comp/compReg", "M0208", "업체등록", "업체관리");

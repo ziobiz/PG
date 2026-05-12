@@ -355,9 +355,16 @@ public class UserListService {
     }
 
     private void requireManage(AppUser actor) {
-        Map<String, Object> cap = managementCapability(actor);
-        boolean canManage = "Y".equals(String.valueOf(cap.get("canManageUsers")));
-        if (!canManage) throw new IllegalArgumentException("총본사 환경설정에서 사용자관리 권한이 비활성화되어 있습니다.");
+        HqNotifyEnvConfig cfg = hqNotifyEnvConfigRepository.findFirstByOrderByIdAsc().orElse(null);
+        boolean featureEnabled = cfg != null && "Y".equalsIgnoreCase(cfg.getManagerUserControlEnabledYn());
+        if (!featureEnabled) {
+            throw new IllegalArgumentException(
+                    "총본사 환경설정에서 「관리담당 사용자관리 권한」이 꺼져 있습니다. 본사설정 → 사용자설정에서 사용으로 저장한 뒤 다시 시도하세요.");
+        }
+        if (!isManagerRole(actor)) {
+            throw new IllegalArgumentException(
+                    "현재 로그인 계정으로는 사용자를 추가·수정할 수 없습니다. 시스템 관리자(ADMIN), 조직 대표(대표) 계정, 또는 담당자(ASSISTANT) 중 관리담당(MANAGER)만 가능합니다.");
+        }
     }
 
     /**
@@ -387,10 +394,25 @@ public class UserListService {
         return "MANAGER".equalsIgnoreCase(safeTrim(actor.getAssistantRoleType()));
     }
 
+    /**
+     * 사용자관리(추가·수정) 가능 주체: ADMIN, 담당자(ASSISTANT) 중 MANAGER,
+     * 또는 조직 대표({@code REPRESENTATIVE}). {@code userType}이 비어 있으면 레거시 호환으로 대표로 간주합니다.
+     */
     private boolean isManagerRole(AppUser actor) {
-        if (actor == null) return false;
-        if ("ADMIN".equalsIgnoreCase(actor.getRole())) return true;
-        return "MANAGER".equalsIgnoreCase(safeTrim(actor.getAssistantRoleType()));
+        if (actor == null) {
+            return false;
+        }
+        if ("ADMIN".equalsIgnoreCase(safeTrim(actor.getRole()))) {
+            return true;
+        }
+        if ("MANAGER".equalsIgnoreCase(safeTrim(actor.getAssistantRoleType()))) {
+            return true;
+        }
+        String ut = safeTrim(actor.getUserType());
+        if ("ASSISTANT".equalsIgnoreCase(ut)) {
+            return false;
+        }
+        return ut.isEmpty() || "REPRESENTATIVE".equalsIgnoreCase(ut);
     }
 
     private String normalizeRole(String role) {

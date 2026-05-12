@@ -7,6 +7,30 @@
   <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
   <meta name="theme-color" content="#5d45d6">
   <title>Chatbot payment</title>
+  <script>
+    (function () {
+      try {
+        var q = new URLSearchParams(window.location.search || '');
+        var embedQ = q.get('embed') === '1' || q.get('embed') === 'true';
+        var m = String(q.get('m') || '').trim();
+        var sk = m ? ('pg_cb_embed_shell_v1:' + m) : '';
+        var persisted = false;
+        try {
+          persisted = sk && window.sessionStorage && window.sessionStorage.getItem(sk) === '1';
+        } catch (eS) { /* ignore */ }
+        if (embedQ) {
+          document.documentElement.setAttribute('data-cb-embed', '1');
+          if (sk) {
+            try { window.sessionStorage.setItem(sk, '1'); } catch (eW) { /* ignore */ }
+          }
+        } else if (persisted) {
+          document.documentElement.setAttribute('data-cb-embed', '1');
+        } else if (sk) {
+          try { window.sessionStorage.removeItem(sk); } catch (eR) { /* ignore */ }
+        }
+      } catch (e) { /* ignore */ }
+    })();
+  </script>
   <style>
     :root {
       --cb-brand: #5d45d6;
@@ -22,6 +46,37 @@
       --cb-shell-pad: 12px;
     }
     *, *::before, *::after { box-sizing: border-box; }
+    /* 외부 사이트 플로팅 위젯 iframe (?embed=1): 패널에 맞춰 꽉 채움 · 본문 가독 15px (Siamly 류 위젯과 유사한 비율) */
+    html[data-cb-embed="1"] {
+      font-size: 15px;
+      background: #fff;
+    }
+    html[data-cb-embed="1"] body {
+      padding: 0;
+      align-items: stretch;
+      min-height: 100vh;
+      min-height: 100dvh;
+      background: #fff;
+    }
+    html[data-cb-embed="1"] .cb-root {
+      width: 100%;
+      max-width: none;
+      margin: 0;
+      min-height: 100vh;
+      min-height: 100dvh;
+      max-height: none;
+      border-radius: 0;
+      box-shadow: none;
+    }
+    /* 임베드: 회색 셸 제거 — 본문·프로모션·스레드 배경을 흰색으로 통일(회색 띠 최소화) */
+    html[data-cb-embed="1"] .cb-main,
+    html[data-cb-embed="1"] .cb-shelf-wrap,
+    html[data-cb-embed="1"] .cb-thread {
+      background: #fff;
+    }
+    html[data-cb-embed="1"] .cb-shelf-wrap {
+      border-bottom-color: rgba(0, 0, 0, 0.06);
+    }
     html {
       min-height: 100%;
     }
@@ -246,6 +301,80 @@
     .cb-shelf::-webkit-scrollbar-thumb {
       background: rgba(93, 69, 214, 0.25);
       border-radius: 4px;
+    }
+    /* 프로모션: 한 줄에 최대 3카드, 가로 스크롤 없음(넘치면 다음 줄) — 반응형(모바일 글자·간격 축소) */
+    .cb-shelf.cb-shelf--promo {
+      --cb-promo-shelf-gap: clamp(0.22rem, 1.2vw, 0.45rem);
+      flex-wrap: wrap;
+      overflow-x: hidden;
+      overflow-y: visible;
+      scrollbar-width: none;
+      -ms-overflow-style: none;
+      gap: var(--cb-promo-shelf-gap);
+      justify-content: flex-start;
+      padding-left: clamp(0.35rem, 2.2vw, 0.75rem);
+      padding-right: clamp(0.35rem, 2.2vw, 0.75rem);
+    }
+    .cb-shelf.cb-shelf--promo::-webkit-scrollbar {
+      display: none;
+      width: 0;
+      height: 0;
+    }
+    .cb-shelf.cb-shelf--promo .cb-pcard {
+      flex: 0 0 calc((100% - 2 * var(--cb-promo-shelf-gap)) / 3);
+      width: calc((100% - 2 * var(--cb-promo-shelf-gap)) / 3);
+      max-width: calc((100% - 2 * var(--cb-promo-shelf-gap)) / 3);
+      min-width: 0;
+    }
+    .cb-shelf.cb-shelf--promo .cb-pcard-img {
+      height: clamp(36px, 11vw, 52px);
+    }
+    .cb-shelf.cb-shelf--promo .cb-pcard-body {
+      padding: clamp(0.22rem, 1.1vw, 0.32rem) clamp(0.22rem, 1.4vw, 0.38rem) clamp(0.28rem, 1.2vw, 0.42rem);
+    }
+    .cb-shelf.cb-shelf--promo .cb-pcard-title {
+      font-size: clamp(0.52rem, 1.85vw + 0.28rem, 0.66rem);
+      min-height: 1.85em;
+      line-height: 1.2;
+      -webkit-line-clamp: 2;
+    }
+    .cb-shelf.cb-shelf--promo .cb-pcard-amt {
+      font-size: clamp(0.48rem, 1.35vw + 0.26rem, 0.62rem);
+      margin-top: 0.1rem;
+      line-height: 1.2;
+      word-break: break-all;
+    }
+    .cb-shelf.cb-shelf--promo .cb-pcard-btn {
+      font-size: clamp(0.48rem, 1.25vw + 0.26rem, 0.62rem);
+      padding: clamp(0.18rem, 0.9vw, 0.26rem) 0;
+      margin-top: clamp(0.18rem, 1vw, 0.28rem);
+      line-height: 1.15;
+    }
+    @media (max-width: 380px) {
+      .cb-shelf-wrap {
+        padding: 0.38rem 0 0.48rem;
+      }
+      .cb-shelf-label {
+        font-size: clamp(0.55rem, 1.8vw + 0.22rem, 0.68rem);
+        padding: 0 clamp(0.35rem, 2vw, 0.65rem) 0.28rem;
+      }
+      .cb-shelf.cb-shelf--promo .cb-pcard {
+        border-radius: 10px;
+      }
+    }
+    @media (max-width: 320px) {
+      .cb-shelf.cb-shelf--promo .cb-pcard-title {
+        -webkit-line-clamp: 2;
+        font-size: 0.5rem;
+        min-height: 1.75em;
+      }
+      .cb-shelf.cb-shelf--promo .cb-pcard-amt {
+        font-size: 0.48rem;
+      }
+      .cb-shelf.cb-shelf--promo .cb-pcard-btn {
+        font-size: 0.46rem;
+        padding: 0.16rem 0;
+      }
     }
     .cb-pcard {
       flex: 0 0 auto;
@@ -853,7 +982,7 @@
     <main class="cb-main">
       <div class="cb-shelf-wrap" id="cbShelfWrap">
         <div class="cb-shelf-label" id="cbShelfLabel">프로모션</div>
-        <div id="chatbotCatalogMount" class="cb-shelf" aria-label="상품 목록"></div>
+        <div id="chatbotCatalogMount" class="cb-shelf cb-shelf--promo" aria-label="상품 목록"></div>
       </div>
       <div id="chatbotThread" class="cb-thread" role="log" aria-live="polite"></div>
     </main>
@@ -1071,11 +1200,16 @@
         });
       }
 
-      /** 기존 밑줄 링크(안내 저장 전)와 동일: `{api}/pay.html?m={compId}&entry=chatbot` */
+      /** 기존 밑줄 링크(안내 저장 전)와 동일: `{api}/pay.html?m={compId}&entry=chatbot` + 복귀용 return */
       function barePayChatbotUrl() {
         var c = (typeof compId === 'string' ? compId : '').trim();
         if (!c) return '';
-        return resolvedApiBase() + '/pay.html?m=' + encodeURIComponent(c) + '&entry=chatbot';
+        var base = resolvedApiBase() + '/pay.html?m=' + encodeURIComponent(c) + '&entry=chatbot';
+        try {
+          var ret = (window.location && window.location.href) ? String(window.location.href).split('#')[0] : '';
+          if (ret) base += '&return=' + encodeURIComponent(ret);
+        } catch (eRet) { /* ignore */ }
+        return base;
       }
 
       window.cbCommerceHold = false;
@@ -3486,7 +3620,17 @@
               if (err) { err.textContent = msg; err.style.display = 'block'; }
               return;
             }
-            window.location.href = String(res.data.payUrl);
+            var payU = String(res.data.payUrl);
+            try {
+              var u = new URL(payU, window.location.href);
+              var ret0 = (window.location && window.location.href) ? String(window.location.href).split('#')[0] : '';
+              if (ret0 && !u.searchParams.get('return')) {
+                u.searchParams.set('return', ret0);
+              }
+              window.location.href = u.href;
+            } catch (ePu) {
+              window.location.href = payU;
+            }
           }).catch(function () {
             sub.disabled = false;
             if (err) { err.textContent = si.errNetwork; err.style.display = 'block'; }

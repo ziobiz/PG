@@ -8,9 +8,15 @@
   <title>Payment</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;600&display=swap" rel="stylesheet">
-  <link href="css/pay-inline.css?v=30" rel="stylesheet">
+  <link href="css/pay-inline.css?v=31" rel="stylesheet">
 </head>
 <body class="pay-inline-body">
+  <nav id="payChatbotNavBar" class="pay-chatbot-nav d-none" aria-label="Chatbot checkout">
+    <div class="pay-chatbot-nav-inner">
+      <button type="button" class="btn btn-sm btn-outline-secondary pay-chatbot-nav-prev" id="payChatbotHistBackBtn" data-i18n="chatbotNavPrev">Previous page</button>
+      <a class="btn btn-sm btn-primary pay-chatbot-nav-back" id="payChatbotBackLink" href="#" data-i18n="chatbotNavBack">Back to chatbot</a>
+    </div>
+  </nav>
   <div class="pay-shell">
     <div class="pay-card">
       <div class="pay-brand">
@@ -408,7 +414,10 @@
           payResultReturnAlertCancel: '결제가 취소되었습니다. 확인을 누르면 결제 페이지로 돌아갑니다.',
           fxDisplayCurrency: '표시 통화',
           fxThbEstimate: '청구예상 금액',
-          needFxQuote: '환율 견적을 불러오는 중이거나 실패했습니다. 잠시 후 다시 시도하세요.'
+          needFxQuote: '환율 견적을 불러오는 중이거나 실패했습니다. 잠시 후 다시 시도하세요.',
+          chatbotNavAria: '챗봇 결제 안내',
+          chatbotNavBack: '챗봇으로 돌아가기',
+          chatbotNavPrev: '이전 페이지'
         },
         ENG: {
           brandTitle: 'ICOPAY', brandSub: 'Secure checkout', phItem: 'Digital Contents Product',
@@ -447,7 +456,10 @@
           payResultReturnAlertCancel: 'Payment was cancelled. Press OK to return to checkout.',
           fxDisplayCurrency: 'Display currency',
           fxThbEstimate: 'Estimated charge',
-          needFxQuote: 'Exchange quote is loading or failed. Please wait and try again.'
+          needFxQuote: 'Exchange quote is loading or failed. Please wait and try again.',
+          chatbotNavAria: 'Chatbot checkout',
+          chatbotNavBack: 'Back to chatbot',
+          chatbotNavPrev: 'Previous page'
         },
         CHN: {
           brandTitle: 'ICOPAY', brandSub: '安全结账', phItem: '商品或服务名称',
@@ -486,7 +498,10 @@
           payResultReturnAlertCancel: '支付已取消。点确定返回结账页。',
           fxDisplayCurrency: '显示货币',
           fxThbEstimate: '预计扣款金额',
-          needFxQuote: '汇率报价加载中或失败，请稍后重试。'
+          needFxQuote: '汇率报价加载中或失败，请稍后重试。',
+          chatbotNavAria: '聊天机器人结账',
+          chatbotNavBack: '返回聊天机器人',
+          chatbotNavPrev: '上一页'
         },
         JPN: {
           brandTitle: 'ICOPAY', brandSub: 'セキュア決済', phItem: '商品・サービス名',
@@ -525,7 +540,10 @@
           payResultReturnAlertCancel: 'お支払いはキャンセルされました。OKで決済ページに戻ります。',
           fxDisplayCurrency: '表示通貨',
           fxThbEstimate: '請求見込金額',
-          needFxQuote: '為替見積りを読み込み中か、取得に失敗しました。しばらくしてから再度お試しください。'
+          needFxQuote: '為替見積りを読み込み中か、取得に失敗しました。しばらくしてから再度お試しください。',
+          chatbotNavAria: 'チャットボット決済',
+          chatbotNavBack: 'チャットボットに戻る',
+          chatbotNavPrev: '前のページ'
         },
         THA: {
           brandTitle: 'ICOPAY', brandSub: 'ชำระเงินปลอดภัย', phItem: 'ชื่อสินค้าหรือบริการ',
@@ -564,7 +582,10 @@
           payResultReturnAlertCancel: 'ยกเลิกการชำระเงินแล้ว กดตกลงเพื่อกลับไปหน้าชำระเงิน',
           fxDisplayCurrency: 'สกุลเงินที่แสดง',
           fxThbEstimate: 'ยอดเรียกเก็บโดยประมาณ',
-          needFxQuote: 'กำลังโหลดอัตราแล้วหรือโหลดไม่สำเร็จ โปรดรอแล้วลองอีกครั้ง'
+          needFxQuote: 'กำลังโหลดอัตราแล้วหรือโหลดไม่สำเร็จ โปรดรอแล้วลองอีกครั้ง',
+          chatbotNavAria: 'ชำระเงินผ่านแชทบอท',
+          chatbotNavBack: 'กลับไปแชทบอท',
+          chatbotNavPrev: 'หน้าก่อน'
         }
       };
 
@@ -664,6 +685,103 @@
         }
       }
 
+      function payDefaultChatbotShellUrl(merchantCode) {
+        var mid = String(merchantCode || '').trim();
+        if (!mid) return '';
+        try {
+          var u = new URL('/chatbot-pay/' + encodeURIComponent(mid), window.location.origin);
+          try {
+            var sk = 'pg_cb_embed_shell_v1:' + mid;
+            if (window.sessionStorage && window.sessionStorage.getItem(sk) === '1') {
+              u.searchParams.set('embed', '1');
+            }
+          } catch (eSt) { /* ignore */ }
+          return u.href;
+        } catch (e) {
+          return '';
+        }
+      }
+
+      function payIsAllowedChatbotReturnUrl(href, merchantCode) {
+        var mid = String(merchantCode || '').trim();
+        try {
+          var u = new URL(String(href || '').trim(), window.location.href);
+          if (u.protocol !== 'http:' && u.protocol !== 'https:') return false;
+          var path = String(u.pathname || '');
+          var mPath = path.match(/^\/chatbot-pay\/([^/]+)\/?$/i);
+          if (!mPath) return false;
+          var codeInPath = decodeURIComponent(String(mPath[1] || '').replace(/\+/g, ' ')).trim();
+          if (mid && codeInPath !== mid) return false;
+          if (u.origin === window.location.origin) return true;
+          try {
+            var ref = (document.referrer && String(document.referrer).trim()) ? String(document.referrer).trim() : '';
+            if (!ref) return false;
+            var ru = new URL(ref);
+            if (ru.origin !== u.origin) return false;
+            if (!/\/chatbot-pay\//i.test(ru.pathname || '')) return false;
+            return true;
+          } catch (e2) {
+            return false;
+          }
+        } catch (e0) {
+          return false;
+        }
+      }
+
+      function payResolveChatbotReturnHref(merchantCode) {
+        var mid = String(merchantCode || '').trim();
+        var raw = '';
+        try {
+          var pqs = new URLSearchParams(window.location.search);
+          raw = (pqs.get('return') || pqs.get('r') || '').trim();
+        } catch (eP) { /* ignore */ }
+        if (raw) {
+          try {
+            var dec = decodeURIComponent(raw);
+            if (payIsAllowedChatbotReturnUrl(dec, mid)) return dec;
+          } catch (eD) { /* ignore */ }
+        }
+        return payDefaultChatbotShellUrl(mid);
+      }
+
+      function initPayChatbotEntryNavBar() {
+        if (!PAY_ENTRY_CHATBOT) return;
+        var bar = document.getElementById('payChatbotNavBar');
+        var link = document.getElementById('payChatbotBackLink');
+        var histBtn = document.getElementById('payChatbotHistBackBtn');
+        if (!bar || !link) return;
+        var mid = getCompId();
+        var href = payResolveChatbotReturnHref(mid);
+        if (href) {
+          link.setAttribute('href', href);
+          link.removeAttribute('aria-disabled');
+          link.classList.remove('disabled', 'pe-none');
+        } else {
+          link.setAttribute('href', '#');
+          link.setAttribute('aria-disabled', 'true');
+          link.classList.add('disabled', 'pe-none');
+        }
+        if (histBtn) {
+          histBtn.style.display = (window.history.length > 1) ? '' : 'none';
+          if (!window._payChatbotNavHistBound) {
+            window._payChatbotNavHistBound = true;
+            histBtn.addEventListener('click', function () {
+              if (window.history.length > 1) {
+                window.history.back();
+              }
+            });
+          }
+        }
+        if (!window._payChatbotNavLinkBound) {
+          window._payChatbotNavLinkBound = true;
+          link.addEventListener('click', function (ev) {
+            var h = link.getAttribute('href');
+            if (!h || h === '#') ev.preventDefault();
+          });
+        }
+        bar.classList.remove('d-none');
+      }
+
       function t(key) {
         var pack = I18N[LANG] || I18N.ENG;
         return pack[key] != null ? pack[key] : (I18N.ENG[key] || key);
@@ -754,6 +872,10 @@
         updatePayCardSectionTexts();
         applyPayDocumentTitle();
         applyPayFavicon();
+        if (PAY_ENTRY_CHATBOT) {
+          var barNav = document.getElementById('payChatbotNavBar');
+          if (barNav) barNav.setAttribute('aria-label', t('chatbotNavAria'));
+        }
       }
 
       function applyPayFavicon() {
@@ -875,6 +997,9 @@
         applyI18n();
         if (bootCompId && checkoutCtx) {
           applyCheckoutFormDefaults(bootCompId, checkoutCtx);
+        }
+        if (PAY_ENTRY_CHATBOT) {
+          initPayChatbotEntryNavBar();
         }
       }
 

@@ -7,13 +7,18 @@ import com.pg.entity.OrgPagePermission;
 import com.pg.entity.OrgUnit;
 import com.pg.entity.MerchantProfile;
 import com.pg.entity.OrgUnitAssistantPagePermission;
+import com.pg.entity.HqNotifyEnvConfig;
 import com.pg.entity.OrgUnitPagePermission;
+import com.pg.repository.HqNotifyEnvConfigRepository;
 import com.pg.repository.MerchantProfileRepository;
 import com.pg.repository.OrgPagePermissionRepository;
 import com.pg.repository.OrgUnitAssistantPagePermissionRepository;
 import com.pg.repository.OrgUnitPagePermissionRepository;
 import com.pg.repository.OrgUnitRepository;
 import com.pg.util.ChatbotMerchantAdminConstants;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -38,6 +43,89 @@ public class OrgPagePermissionService {
     public static final List<String> ASSISTANT_ROLE_TYPES =
             List.of("MANAGER", "OPERATOR", "SETTLEMENT", "TECH", ChatbotMerchantAdminConstants.ASSISTANT_ROLE_TYPE);
 
+    /**
+     * 담당자(ASSISTANT)별 메뉴 상한 — DB에 tb_org_unit_assistant_page_permission 행이 없을 때 적용.
+     * 조직 개별 권한(ceiling)과 교집합되어 최종 접근이 결정됩니다.
+     * <ul>
+     *   <li>MANAGER — 전 메뉴 {@link #P_DELETE}</li>
+     *   <li>OPERATOR — 사용자관리·정산관리 그룹 제외 전부</li>
+     *   <li>SETTLEMENT — 업체관리·결제관리·정산관리·챗봇관리</li>
+     *   <li>TECH — 결제관리·통보관리</li>
+     *   <li>CHATBOT_ADMIN — 업체관리·결제관리·챗봇관리</li>
+     * </ul>
+     */
+    public static String defaultAssistantFloorForCatalogItem(String assistantRoleType, PageMenuCatalog.PageMenuItem item) {
+        if (item == null) {
+            return P_NONE;
+        }
+        String role = trim(assistantRoleType).toUpperCase(Locale.ROOT);
+        String g = item.parentGroup() != null ? item.parentGroup() : "";
+        return defaultAssistantAllowsParentGroup(role, g) ? P_DELETE : P_NONE;
+    }
+
+    private static boolean defaultAssistantAllowsParentGroup(String roleUpper, String parentGroup) {
+        String g = parentGroup != null ? parentGroup : "";
+        if ("MANAGER".equals(roleUpper)) {
+            return true;
+        }
+        if ("OPERATOR".equals(roleUpper)) {
+            return !"사용자관리".equals(g) && !"정산관리".equals(g);
+        }
+        if ("SETTLEMENT".equals(roleUpper)) {
+            return "업체관리".equals(g) || "결제관리".equals(g) || "정산관리".equals(g) || "챗봇관리".equals(g);
+        }
+        if ("TECH".equals(roleUpper)) {
+            return "결제관리".equals(g) || "통보관리".equals(g);
+        }
+        if (ChatbotMerchantAdminConstants.ASSISTANT_ROLE_TYPE.equals(roleUpper)) {
+            return "업체관리".equals(g) || "결제관리".equals(g) || "챗봇관리".equals(g);
+        }
+        return true;
+    }
+
+    private static Map<String, String> buildCodeOnlyDefaultAssistantRoleMap(String assistantRoleTypeUpper) {
+        String role = assistantRoleTypeUpper != null ? assistantRoleTypeUpper.trim().toUpperCase(Locale.ROOT) : "";
+        Map<String, String> m = new LinkedHashMap<>();
+        for (PageMenuCatalog.PageMenuItem item : PageMenuCatalog.items()) {
+            m.put(item.pageUrl(), defaultAssistantFloorForCatalogItem(role, item));
+        }
+        return m;
+    }
+
+    /**
+     * 조직 최종 권한(ceiling) 위에 담당자 역할 기본(및 저장된 오버라이드)을 합성합니다.
+     */
+    public Map<String, String> mergeAssistantRoleOverlay(Map<String, String> orgCeiling, String assistantRoleTypeUpper, long orgUnitId) {
+        if (orgCeiling == null) {
+            return new LinkedHashMap<>();
+        }
+        String art = assistantRoleTypeUpper != null ? assistantRoleTypeUpper.trim().toUpperCase(Locale.ROOT) : "";
+        Map<String, String> byUrl = new HashMap<>();
+        for (OrgUnitAssistantPagePermission r : orgUnitAssistantPagePermissionRepository
+                .findByOrgUnitIdOrderByAssistantRoleTypeAscPageUrlAsc(orgUnitId)) {
+            if (r.getAssistantRoleType() != null && art.equalsIgnoreCase(r.getAssistantRoleType().trim())
+                    && r.getPageUrl() != null && !r.getPageUrl().isBlank()) {
+                byUrl.put(r.getPageUrl().trim(), normalizePerm(r.getPermission()));
+            }
+        }
+        AssistantMatrixStorage shell = readAssistantMatrixStorageFromDb();
+        OrgUnit ou = orgUnitRepository.findById(orgUnitId).orElse(null);
+        OrgLevel orgLevel = ou != null ? ou.getOrgLevel() : null;
+        Map<String, String> roleDefault = resolveDefaultAssistantRoleMap(art, orgLevel, shell);
+        Map<String, String> out = new LinkedHashMap<>();
+        for (PageMenuCatalog.PageMenuItem item : PageMenuCatalog.items()) {
+            String url = item.pageUrl();
+            String ceiling = normalizePerm(orgCeiling.getOrDefault(url, P_DELETE));
+            String roleWant = byUrl.containsKey(url) ? byUrl.get(url) : roleDefault.getOrDefault(url, P_DELETE);
+            if (P_NONE.equals(ceiling)) {
+                out.put(url, P_NONE);
+            } else {
+                out.put(url, intersectPermission(ceiling, roleWant));
+            }
+        }
+        return out;
+    }
+
     private final OrgPagePermissionRepository orgPagePermissionRepository;
     private final OrgUnitPagePermissionRepository orgUnitPagePermissionRepository;
     private final OrgUnitAssistantPagePermissionRepository orgUnitAssistantPagePermissionRepository;
@@ -46,6 +134,9 @@ public class OrgPagePermissionService {
     private final AuthService authService;
     private final OrgUnitChangeAuditService orgUnitChangeAuditService;
     private final PayFollowPolicyService payFollowPolicyService;
+    private final HqNotifyEnvConfigRepository hqNotifyEnvConfigRepository;
+
+    private static final ObjectMapper ASSISTANT_MATRIX_JSON = new ObjectMapper();
 
     public OrgPagePermissionService(OrgPagePermissionRepository orgPagePermissionRepository,
                                       OrgUnitPagePermissionRepository orgUnitPagePermissionRepository,
@@ -54,7 +145,8 @@ public class OrgPagePermissionService {
                                       MerchantProfileRepository merchantProfileRepository,
                                       AuthService authService,
                                       OrgUnitChangeAuditService orgUnitChangeAuditService,
-                                      @Lazy PayFollowPolicyService payFollowPolicyService) {
+                                      @Lazy PayFollowPolicyService payFollowPolicyService,
+                                      HqNotifyEnvConfigRepository hqNotifyEnvConfigRepository) {
         this.orgPagePermissionRepository = orgPagePermissionRepository;
         this.orgUnitPagePermissionRepository = orgUnitPagePermissionRepository;
         this.orgUnitAssistantPagePermissionRepository = orgUnitAssistantPagePermissionRepository;
@@ -63,6 +155,285 @@ public class OrgPagePermissionService {
         this.authService = authService;
         this.orgUnitChangeAuditService = orgUnitChangeAuditService;
         this.payFollowPolicyService = payFollowPolicyService;
+        this.hqNotifyEnvConfigRepository = hqNotifyEnvConfigRepository;
+    }
+
+    /**
+     * 본사 사용자설정 UI: 조직 단계(총본사~가맹점)별로 코드 기본 + HQ 저장값이 합성된 담당자 역할×URL 권한.
+     */
+    public Map<String, Map<String, Map<String, String>>> getHqAssistantDefaultMatrixByLevelResolvedForApi() {
+        AssistantMatrixStorage shell = readAssistantMatrixStorageFromDb();
+        Map<String, Map<String, Map<String, String>>> out = new LinkedHashMap<>();
+        for (OrgLevel ol : OrgLevel.values()) {
+            Map<String, Map<String, String>> roleMap = new LinkedHashMap<>();
+            for (String role : ASSISTANT_ROLE_TYPES) {
+                roleMap.put(role, new LinkedHashMap<>(resolveDefaultAssistantRoleMap(role, ol, shell)));
+            }
+            out.put(ol.name(), roleMap);
+        }
+        return out;
+    }
+
+    /** 사용자설정 일괄 적용 UI — {@link OrgLevel} 순서대로. */
+    public List<Map<String, Object>> getAssistantOrgLevelsForApi() {
+        List<Map<String, Object>> rows = new ArrayList<>();
+        for (OrgLevel lv : OrgLevel.values()) {
+            Map<String, Object> m = new LinkedHashMap<>();
+            m.put("key", lv.name());
+            m.put("nameKo", lv.getNameKo());
+            m.put("code", lv.getCode());
+            rows.add(m);
+        }
+        return rows;
+    }
+
+    public List<Map<String, Object>> getAssistantMatrixCatalogForApi() {
+        List<Map<String, Object>> rows = new ArrayList<>();
+        for (PageMenuCatalog.PageMenuItem it : PageMenuCatalog.items()) {
+            Map<String, Object> r = new LinkedHashMap<>();
+            r.put("pageUrl", it.pageUrl());
+            r.put("menuId", it.menuId());
+            r.put("menuNm", it.menuName());
+            r.put("parentGroup", it.parentGroup());
+            rows.add(r);
+        }
+        return rows;
+    }
+
+    public String normalizeAssistantRoleDefaultMatrixToJson(Object raw) throws JsonProcessingException {
+        if (raw == null) {
+            return null;
+        }
+        if (!(raw instanceof Map<?, ?> root)) {
+            throw new IllegalArgumentException("assistantRoleDefaultMatrix 는 객체여야 합니다.");
+        }
+        Set<String> catalogUrls = PageMenuCatalog.items().stream()
+                .map(PageMenuCatalog.PageMenuItem::pageUrl)
+                .collect(Collectors.toCollection(LinkedHashSet::new));
+        Set<String> validLevels = Arrays.stream(OrgLevel.values()).map(Enum::name).collect(Collectors.toCollection(LinkedHashSet::new));
+        AssistantMatrixStorage cleaned = AssistantMatrixStorage.fromClient(root).sanitize(catalogUrls, ASSISTANT_ROLE_TYPES, validLevels);
+        if (cleaned.isEmpty()) {
+            return null;
+        }
+        return ASSISTANT_MATRIX_JSON.writeValueAsString(cleaned.toJsonRoot());
+    }
+
+    private AssistantMatrixStorage readAssistantMatrixStorageFromDb() {
+        String json = hqNotifyEnvConfigRepository.findFirstByOrderByIdAsc()
+                .map(HqNotifyEnvConfig::getAssistantRoleDefaultMatrixJson)
+                .orElse(null);
+        return AssistantMatrixStorage.parseDbJson(json);
+    }
+
+    private Map<String, String> resolveDefaultAssistantRoleMap(String assistantRoleTypeUpper, OrgLevel orgLevel,
+                                                               AssistantMatrixStorage shell) {
+        String role = assistantRoleTypeUpper != null ? assistantRoleTypeUpper.trim().toUpperCase(Locale.ROOT) : "";
+        Map<String, String> out = new LinkedHashMap<>(buildCodeOnlyDefaultAssistantRoleMap(role));
+        mergeRoleUrlOverlayInto(out, shell.global.get(role));
+        if (orgLevel != null) {
+            Map<String, Map<String, String>> lvl = shell.byLevel.get(orgLevel.name());
+            if (lvl != null) {
+                mergeRoleUrlOverlayInto(out, lvl.get(role));
+            }
+        }
+        return out;
+    }
+
+    private static void mergeRoleUrlOverlayInto(Map<String, String> out, Map<String, String> overlay) {
+        if (overlay == null || overlay.isEmpty() || out == null) {
+            return;
+        }
+        for (Map.Entry<String, String> e : overlay.entrySet()) {
+            String u = e.getKey() != null ? e.getKey().trim() : "";
+            if (u.isEmpty() || !out.containsKey(u)) {
+                continue;
+            }
+            out.put(u, normalizePerm(e.getValue()));
+        }
+    }
+
+    /**
+     * HQ 저장 JSON — 레거시(역할만 최상위) 또는 v2(global + byLevel).
+     */
+    private static final class AssistantMatrixStorage {
+        final Map<String, Map<String, String>> global;
+        /** OrgLevel.name() → role → url → perm */
+        final Map<String, Map<String, Map<String, String>>> byLevel;
+
+        private AssistantMatrixStorage(Map<String, Map<String, String>> global,
+                                       Map<String, Map<String, Map<String, String>>> byLevel) {
+            this.global = global != null ? global : new LinkedHashMap<>();
+            this.byLevel = byLevel != null ? byLevel : new LinkedHashMap<>();
+        }
+
+        static AssistantMatrixStorage empty() {
+            return new AssistantMatrixStorage(new LinkedHashMap<>(), new LinkedHashMap<>());
+        }
+
+        boolean isEmpty() {
+            if (hasUrlEntries(global)) {
+                return false;
+            }
+            for (Map<String, Map<String, String>> m : byLevel.values()) {
+                if (hasUrlEntries(m)) {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        private static boolean hasUrlEntries(Map<String, Map<String, String>> roleMap) {
+            if (roleMap == null) {
+                return false;
+            }
+            for (Map<String, String> row : roleMap.values()) {
+                if (row != null && !row.isEmpty()) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        AssistantMatrixStorage sanitize(Set<String> catalogUrls, List<String> roles, Set<String> validLevels) {
+            Map<String, Map<String, String>> g = sanitizeRoleMap(global, catalogUrls, roles);
+            Map<String, Map<String, Map<String, String>>> bl = new LinkedHashMap<>();
+            for (Map.Entry<String, Map<String, Map<String, String>>> le : byLevel.entrySet()) {
+                String lvl = le.getKey() != null ? le.getKey().trim() : "";
+                if (!validLevels.contains(lvl)) {
+                    continue;
+                }
+                Map<String, Map<String, String>> inner = new LinkedHashMap<>();
+                if (le.getValue() != null) {
+                    for (String role : roles) {
+                        Map<String, String> row = le.getValue().get(role);
+                        Map<String, String> cleanRow = new LinkedHashMap<>();
+                        if (row != null) {
+                            for (Map.Entry<String, String> pe : row.entrySet()) {
+                                String url = pe.getKey() != null ? pe.getKey().trim() : "";
+                                if (catalogUrls.contains(url)) {
+                                    cleanRow.put(url, normalizePermStatic(pe.getValue()));
+                                }
+                            }
+                        }
+                        if (!cleanRow.isEmpty()) {
+                            inner.put(role, cleanRow);
+                        }
+                    }
+                }
+                if (!inner.isEmpty()) {
+                    bl.put(lvl, inner);
+                }
+            }
+            return new AssistantMatrixStorage(g, bl);
+        }
+
+        private static Map<String, Map<String, String>> sanitizeRoleMap(Map<String, Map<String, String>> raw,
+                                                                        Set<String> catalogUrls, List<String> roles) {
+            Map<String, Map<String, String>> g = new LinkedHashMap<>();
+            if (raw == null) {
+                return g;
+            }
+            for (String role : roles) {
+                Map<String, String> row = raw.get(role);
+                Map<String, String> cleanRow = new LinkedHashMap<>();
+                if (row != null) {
+                    for (Map.Entry<String, String> pe : row.entrySet()) {
+                        String url = pe.getKey() != null ? pe.getKey().trim() : "";
+                        if (catalogUrls.contains(url)) {
+                            cleanRow.put(url, normalizePermStatic(pe.getValue()));
+                        }
+                    }
+                }
+                if (!cleanRow.isEmpty()) {
+                    g.put(role, cleanRow);
+                }
+            }
+            return g;
+        }
+
+        Map<String, Object> toJsonRoot() {
+            Map<String, Object> root = new LinkedHashMap<>();
+            if (!global.isEmpty()) {
+                root.put("global", new LinkedHashMap<>(global));
+            }
+            if (!byLevel.isEmpty()) {
+                Map<String, Object> bl = new LinkedHashMap<>();
+                for (Map.Entry<String, Map<String, Map<String, String>>> e : byLevel.entrySet()) {
+                    Map<String, Object> inner = new LinkedHashMap<>();
+                    for (Map.Entry<String, Map<String, String>> re : e.getValue().entrySet()) {
+                        inner.put(re.getKey(), new LinkedHashMap<>(re.getValue()));
+                    }
+                    bl.put(e.getKey(), inner);
+                }
+                root.put("byLevel", bl);
+            }
+            root.put("v", 2);
+            return root;
+        }
+
+        static AssistantMatrixStorage fromClient(Map<?, ?> root) {
+            if (root == null) {
+                return empty();
+            }
+            boolean v2 = root.containsKey("global") || root.containsKey("byLevel");
+            if (v2) {
+                Map<String, Map<String, String>> g = parseRoleUrlMapLayer(root.get("global"));
+                Map<String, Map<String, Map<String, String>>> bl = new LinkedHashMap<>();
+                Object blo = root.get("byLevel");
+                if (blo instanceof Map<?, ?> blm) {
+                    for (Map.Entry<?, ?> le : blm.entrySet()) {
+                        String lvl = le.getKey() != null ? le.getKey().toString().trim() : "";
+                        if (lvl.isEmpty()) {
+                            continue;
+                        }
+                        if (le.getValue() instanceof Map<?, ?> rm) {
+                            bl.put(lvl, parseRoleUrlMapLayer(rm));
+                        }
+                    }
+                }
+                return new AssistantMatrixStorage(g, bl);
+            }
+            // 레거시: 최상위 키가 역할명
+            return new AssistantMatrixStorage(parseRoleUrlMapLayer(root), new LinkedHashMap<>());
+        }
+
+        static AssistantMatrixStorage parseDbJson(String json) {
+            if (json == null || json.isBlank()) {
+                return empty();
+            }
+            try {
+                Map<String, Object> root = ASSISTANT_MATRIX_JSON.readValue(json, new TypeReference<Map<String, Object>>() {
+                });
+                return fromClient(root);
+            } catch (Exception e) {
+                return empty();
+            }
+        }
+
+        private static Map<String, Map<String, String>> parseRoleUrlMapLayer(Object layerObj) {
+            Map<String, Map<String, String>> out = new LinkedHashMap<>();
+            if (!(layerObj instanceof Map<?, ?> layer)) {
+                return out;
+            }
+            for (Map.Entry<?, ?> re : layer.entrySet()) {
+                String role = re.getKey() != null ? re.getKey().toString().trim().toUpperCase(Locale.ROOT) : "";
+                if (!ASSISTANT_ROLE_TYPES.contains(role)) {
+                    continue;
+                }
+                if (!(re.getValue() instanceof Map<?, ?> rm)) {
+                    continue;
+                }
+                Map<String, String> inner = new LinkedHashMap<>();
+                for (Map.Entry<?, ?> pe : rm.entrySet()) {
+                    String url = pe.getKey() != null ? pe.getKey().toString().trim() : "";
+                    inner.put(url, normalizePermStatic(String.valueOf(pe.getValue())));
+                }
+                if (!inner.isEmpty()) {
+                    out.put(role, inner);
+                }
+            }
+            return out;
+        }
     }
 
     /** ADMIN·미연결 계정: 제한 없음 → null */
@@ -137,8 +508,8 @@ public class OrgPagePermissionService {
     }
 
     /**
-     * ASSISTANT 계정이면 조직에 저장된 담당자(관리/운영/정산/기술)별 권한을 조직 최종 권한 상한 내에서 병합합니다.
-     * 행이 없는 URL은 조직 최종 권한을 그대로 둡니다.
+     * ASSISTANT 계정이면 담당자 역할별 기본 메뉴 상한(및 tb_org_unit_assistant_page_permission 저장값)을
+     * 조직 최종 권한(ceiling)과 교집합하여 병합합니다. URL별 저장 행이 없으면 역할 기본만 적용합니다.
      */
     private Map<String, String> applyAssistantRoleOverlayIfNeeded(AppUser user, Map<String, String> orgEffective,
                                                                    Map<String, Object> orgMap) {
@@ -162,34 +533,7 @@ public class OrgPagePermissionService {
         } catch (NumberFormatException e) {
             return orgEffective;
         }
-        List<OrgUnitAssistantPagePermission> rows =
-                orgUnitAssistantPagePermissionRepository.findByOrgUnitIdOrderByAssistantRoleTypeAscPageUrlAsc(ouId);
-        Map<String, String> byUrl = new HashMap<>();
-        for (OrgUnitAssistantPagePermission r : rows) {
-            if (r.getAssistantRoleType() != null && art.equalsIgnoreCase(r.getAssistantRoleType().trim())
-                    && r.getPageUrl() != null && !r.getPageUrl().isBlank()) {
-                byUrl.put(r.getPageUrl().trim(), normalizePerm(r.getPermission()));
-            }
-        }
-        if (byUrl.isEmpty()) {
-            return orgEffective;
-        }
-        Map<String, String> out = new LinkedHashMap<>();
-        for (PageMenuCatalog.PageMenuItem item : PageMenuCatalog.items()) {
-            String url = item.pageUrl();
-            String ceiling = orgEffective.getOrDefault(url, P_DELETE);
-            if (!byUrl.containsKey(url)) {
-                out.put(url, ceiling);
-                continue;
-            }
-            if (P_NONE.equals(ceiling)) {
-                out.put(url, P_NONE);
-                continue;
-            }
-            String roleP = byUrl.get(url);
-            out.put(url, intersectPermission(ceiling, roleP));
-        }
-        return out;
+        return mergeAssistantRoleOverlay(orgEffective, art, ouId);
     }
 
     private static String trim(String s) {
@@ -400,20 +744,12 @@ public class OrgPagePermissionService {
     }
 
     private Map<String, Map<String, String>> buildAssistantMatrixMap(long orgUnitId) {
+        OrgUnit ou = orgUnitRepository.findById(orgUnitId).orElse(null);
+        String level = ou != null && ou.getOrgLevel() != null ? ou.getOrgLevel().name() : "";
+        Map<String, String> ceiling = effectiveMapForOrgUnit(orgUnitId, level);
         Map<String, Map<String, String>> assist = new LinkedHashMap<>();
         for (String role : ASSISTANT_ROLE_TYPES) {
-            assist.put(role, new LinkedHashMap<>());
-        }
-        for (OrgUnitAssistantPagePermission r : orgUnitAssistantPagePermissionRepository
-                .findByOrgUnitIdOrderByAssistantRoleTypeAscPageUrlAsc(orgUnitId)) {
-            if (r.getAssistantRoleType() == null || r.getPageUrl() == null || r.getPageUrl().isBlank()) {
-                continue;
-            }
-            String role = r.getAssistantRoleType().trim().toUpperCase(Locale.ROOT);
-            if (!assist.containsKey(role)) {
-                continue;
-            }
-            assist.get(role).put(r.getPageUrl().trim(), normalizePerm(r.getPermission()));
+            assist.put(role, mergeAssistantRoleOverlay(ceiling, role, orgUnitId));
         }
         return assist;
     }

@@ -5,7 +5,7 @@ import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
 /**
- * 본사설정·AI설정 — 챗봇 및 상품 안내 등에 사용할 LLM 키/모델/프로바이더 순위·프롬프트 옵션.
+ * 본사설정·AI챗봇설정 — 챗봇 및 상품 안내 등에 사용할 LLM 키/모델/프로바이더 순위·프롬프트 옵션.
  * {@code config_json} 스키마는 ziobiz/Stock {@code php-web/pages/ai.php} 의 리포트 API 키·모델·순위 필드명과 호환되도록 저장합니다.
  */
 @Entity

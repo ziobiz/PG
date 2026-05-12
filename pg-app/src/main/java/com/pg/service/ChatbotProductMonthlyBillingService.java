@@ -91,7 +91,7 @@ public class ChatbotProductMonthlyBillingService {
             }
             String title = "챗봇 상품등록 월이용료 " + ym + " (" + slot + "건·" + billCcy + ")";
             settlementArrearsService.createReceivable(mid, fee, title,
-                    ChatbotProductPricingUtil.RECEIVABLE_REASON_CHATBOT_MONTHLY, memoKey, "SYSTEM");
+                    ChatbotProductPricingUtil.RECEIVABLE_REASON_CHATBOT_MONTHLY, memoKey, "SYSTEM", billCcy);
             created++;
         }
         return created;
@@ -100,7 +100,7 @@ public class ChatbotProductMonthlyBillingService {
     /**
      * 소속 총판(MASTER_DIST) {@code base_currency} 첫 통화 우선; 없으면 가맹점 프로필 첫 통화.
      */
-    private String resolveChatbotMonthlyBillingCurrency(Long merchantOrgUnitId) {
+    public String resolveChatbotMonthlyBillingCurrency(Long merchantOrgUnitId) {
         if (merchantOrgUnitId == null) {
             return null;
         }

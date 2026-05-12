@@ -116,6 +116,13 @@ public class HqNotifyEnvConfig {
     @Column(name = "manager_password_reset_enabled_yn", length = 1)
     private String managerPasswordResetEnabledYn = "N";
 
+    /**
+     * 담당자 역할별 메뉴 기본 권한(JSON: 역할 → URL → NONE|OBSERVER|MODIFY|DELETE).
+     * 비우면 코드 내장 기본(사용자설정 안내와 동일)만 사용합니다.
+     */
+    @Column(name = "assistant_role_default_matrix_json", columnDefinition = "TEXT")
+    private String assistantRoleDefaultMatrixJson;
+
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
@@ -181,6 +188,10 @@ public class HqNotifyEnvConfig {
     public void setManagerUserControlEnabledYn(String managerUserControlEnabledYn) { this.managerUserControlEnabledYn = managerUserControlEnabledYn; }
     public String getManagerPasswordResetEnabledYn() { return managerPasswordResetEnabledYn; }
     public void setManagerPasswordResetEnabledYn(String managerPasswordResetEnabledYn) { this.managerPasswordResetEnabledYn = managerPasswordResetEnabledYn; }
+    public String getAssistantRoleDefaultMatrixJson() { return assistantRoleDefaultMatrixJson; }
+    public void setAssistantRoleDefaultMatrixJson(String assistantRoleDefaultMatrixJson) {
+        this.assistantRoleDefaultMatrixJson = assistantRoleDefaultMatrixJson;
+    }
     public LocalDateTime getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
 }

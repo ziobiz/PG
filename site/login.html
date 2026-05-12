@@ -111,7 +111,7 @@
             <input type="password" class="form-control" id="userPwd" name="userPwd" autocomplete="current-password">
           </div>
           <div id="loginTotpMfaBlock" class="mb-3 d-none">
-            <label for="loginTotpMfaCode" class="form-label">OTP</label>
+            <label for="loginTotpMfaCode" class="form-label" data-pg-ui-t="OTP">OTP</label>
             <input type="text" class="form-control" id="loginTotpMfaCode" maxlength="6" inputmode="numeric" autocomplete="one-time-code" aria-describedby="loginTotpMfaHint">
             <div id="loginTotpMfaHint" class="small mt-2 mb-0 d-none" role="status"></div>
           </div>
@@ -210,14 +210,28 @@
     })();
   </script>
   <script src="js/api.js?v=13"></script>
-  <script src="js/pg-ui-string-map.js?v=13"></script>
-  <script src="js/pg-ui-i18n.js?v=27"></script>
+  <script src="js/pg-ui-string-map.js?v=14"></script>
+  <script src="js/pg-ui-i18n.js?v=28"></script>
   <script>
     (function () {
       var origin = window.location.origin || '';
       var apiBase = typeof window.PG_assetApiBase === 'function' ? window.PG_assetApiBase() : ((window.PG_API_BASE || '').replace(/\/$/, '') || origin);
       var compId = (typeof URLSearchParams !== 'undefined' && new URLSearchParams(window.location.search).get('org')) || '';
       var loginHost = (window.location && window.location.host) ? window.location.host : '';
+
+      /** 로케일: 관리자에서 마지막으로 선택한 언어(localStorage pg_pay_list_ui_locale). 미설정 시 단말 언어(pg-ui-i18n ensureNavigatorLocaleIfNotUserSet). */
+      function applyLoginPageI18n() {
+        try {
+          if (window.PG_UI_I18N && typeof window.PG_UI_I18N.applyDom === 'function') {
+            window.PG_UI_I18N.applyDom(document.body);
+          }
+          if (window.PG_UI_I18N && typeof window.PG_UI_I18N.getLocale === 'function' && document.documentElement) {
+            var loc = window.PG_UI_I18N.getLocale();
+            var langMap = { KO: 'ko', EN: 'en', JP: 'ja', CH: 'zh-Hans', TH: 'th' };
+            document.documentElement.setAttribute('lang', langMap[loc] || 'ko');
+          }
+        } catch (eDomI18n) { /* ignore */ }
+      }
 
       function trKo(ko, en) {
         try {
@@ -304,14 +318,12 @@
               if (b) applyBranding(b);
             });
           }
-        }).catch(function () {});
+        }).catch(function () {}).then(function () {
+          applyLoginPageI18n();
+        });
       }
       applyPortalAndBranding();
-      try {
-        if (window.PG_UI_I18N && typeof window.PG_UI_I18N.applyDom === 'function') {
-          window.PG_UI_I18N.applyDom(document.body);
-        }
-      } catch (eDom0) {}
+      applyLoginPageI18n();
 
       var AUTH_KEY = 'pg_admin_auth';
       var existingTok = sessionStorage.getItem('pg_admin_token');
@@ -387,6 +399,7 @@
         if (otpB) otpB.classList.add('d-none');
         if (wrap) wrap.classList.remove('login-otp-flow');
         resetLoginOtpSteps();
+        applyLoginPageI18n();
       }
 
       function finishLoginAfterOtp() {

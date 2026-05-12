@@ -13,8 +13,9 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.HttpStatusEntryPoint;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-import org.springframework.security.web.util.matcher.NegatedRequestMatcher;
 import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
+import org.springframework.security.web.util.matcher.NegatedRequestMatcher;
+import org.springframework.security.web.util.matcher.OrRequestMatcher;
 
 @Configuration
 @EnableWebSecurity
@@ -26,6 +27,31 @@ public class SecurityConfig {
     public SecurityConfig(TokenAuthFilter tokenAuthFilter, ApiAuthenticationEntryPoint apiAuthenticationEntryPoint) {
         this.tokenAuthFilter = tokenAuthFilter;
         this.apiAuthenticationEntryPoint = apiAuthenticationEntryPoint;
+    }
+
+    /**
+     * 가맹점 외부 사이트 iframe 에서 열리는 공개 결제·챗봇 HTML.
+     * 기본 {@code X-Frame-Options: DENY} 를 끄지 않으면 타 도메인 iframe 에서 "연결 거부"에 가까운 오류로 보일 수 있습니다.
+     */
+    @Bean
+    @Order(0)
+    public SecurityFilterChain embeddablePublicContentChain(HttpSecurity http) throws Exception {
+        http.securityMatcher(new OrRequestMatcher(
+                AntPathRequestMatcher.antMatcher("/chatbot-pay"),
+                AntPathRequestMatcher.antMatcher("/chatbot-pay/**"),
+                AntPathRequestMatcher.antMatcher("/chatbot-pay.html"),
+                AntPathRequestMatcher.antMatcher("/pay"),
+                AntPathRequestMatcher.antMatcher("/pay/**"),
+                AntPathRequestMatcher.antMatcher("/pay.html"),
+                AntPathRequestMatcher.antMatcher("/pay-result.html")));
+        http.authorizeHttpRequests(auth -> auth.anyRequest().permitAll());
+        http.csrf(AbstractHttpConfigurer::disable);
+        http.formLogin(AbstractHttpConfigurer::disable);
+        http.httpBasic(AbstractHttpConfigurer::disable);
+        http.logout(AbstractHttpConfigurer::disable);
+        http.headers(headers -> headers.frameOptions(frame -> frame.disable()));
+        http.cors(Customizer.withDefaults());
+        return http.build();
     }
 
     /**
@@ -85,6 +111,7 @@ public class SecurityConfig {
                     AntPathRequestMatcher.antMatcher("/pay/**"),
                     AntPathRequestMatcher.antMatcher("/chatbot-pay"),
                     AntPathRequestMatcher.antMatcher("/chatbot-pay/**"),
+                    AntPathRequestMatcher.antMatcher("/v1/embed-chatbot/**"),
                     AntPathRequestMatcher.antMatcher("/css/**"),
                     AntPathRequestMatcher.antMatcher("/js/**"),
                     AntPathRequestMatcher.antMatcher("/images/**"),

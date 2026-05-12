@@ -13,9 +13,21 @@
    * 0# 1~3본사전용 4코드 5상품명 6판매·예약 7예약결제 8설명 9금액 10통화(상한) 11순서 12판매상태 13프로모션 14이미지 15관리
    * 예약결제 열 추가 이전 인덱스(7=설명)와 어긋나면 설명 열이 극단적으로 좁아져 글자가 세로로 쌓임.
    */
-  var CHATBOT_PROD_MIN_PX = { 4: 88, 5: 152, 6: 108, 7: 100, 8: 220, 9: 80, 11: 52, 12: 72, 13: 72, 14: 104, 15: 100 };
-  /** 통화·이미지 열이 비율 확대로 과도하게 넓어지는 것 방지 */
-  var CHATBOT_PROD_MAX_PX = { 10: 88, 14: 132 };
+  var CHATBOT_PROD_MIN_PX = { 4: 88, 5: 152, 6: 108, 7: 100, 8: 260, 9: 80, 11: 44, 12: 72, 13: 72, 14: 104, 15: 100 };
+  /** 좁게 유지할 열(순서·# 등) 상한 + 통화·이미지 등 과확대 방지. 설명(8)·상품명(5)은 상한 없음 → 남는 폭 흡수 */
+  var CHATBOT_PROD_MAX_PX = {
+    0: 48,
+    4: 120,
+    6: 128,
+    7: 120,
+    9: 104,
+    10: 88,
+    11: 56,
+    12: 108,
+    13: 92,
+    14: 132,
+    15: 128
+  };
   var STORAGE_PREFIX = 'pg_col_w_';
   var applying = false;
   /** 동일 root 에 refreshIn 이 짧은 간격으로 여러 번 오면(페이지네이션·MutationObserver·finally) 한 번으로 합쳐 떨림 방지 */
@@ -204,9 +216,46 @@
       cols[i].style.minWidth = '';
       cols[i].style.width = w + 'px';
     }
+    /* 상한으로 줄어든 뒤 래퍼보다 좁으면 남는 폭은 설명(8) → 상품명(5) 순으로 흡수 */
+    var sum2 = cols.reduce(function (acc, c) {
+      var r = c.getBoundingClientRect().width;
+      return acc + (r > 0.5 ? r : 0);
+    }, 0);
+    if (sum2 < target * 0.96 && sum2 > 40) {
+      var slack = Math.round(target - sum2);
+      var absorb = [8, 5];
+      var ai;
+      for (ai = 0; ai < absorb.length && slack > 1; ai++) {
+        var ii = absorb[ai];
+        var colA = cols[ii];
+        if (!colA || rects[ii] <= 0.75) {
+          continue;
+        }
+        var cap = CHATBOT_PROD_MAX_PX[ii];
+        var curA = Math.round(colA.getBoundingClientRect().width);
+        var add = slack;
+        if (cap != null) {
+          add = Math.min(slack, Math.max(0, cap - curA));
+        }
+        if (add > 0) {
+          colA.style.width = curA + add + 'px';
+          slack -= add;
+        }
+      }
+    }
   }
 
-  /** 챗봇 상품 표: 가시 텍스트 열 <col> 너비 하한 (stored 폭·비율 확대 후에도 보장) */
+  function chatbotNextVisibleColIndex(cols, fromIdx) {
+    var j;
+    for (j = fromIdx + 1; j < cols.length; j++) {
+      if (cols[j].getBoundingClientRect().width > 2) {
+        return j;
+      }
+    }
+    return -1;
+  }
+
+  /** 챗봇 상품 표: <col> 하한·상한 재보장 */
   function enforceChatbotProdReadableColMins(table, cols) {
     if (!isChatbotProdGrid(table)) {
       return;
@@ -311,7 +360,7 @@
           continue;
         }
         if (chatbotProd && CHATBOT_PROD_MAX_PX[i] != null && w > CHATBOT_PROD_MAX_PX[i]) {
-          continue;
+          w = CHATBOT_PROD_MAX_PX[i];
         }
         if (payGrid) {
           cols[i].style.width = '';
@@ -365,6 +414,13 @@
           continue;
         }
         var px = Math.max(MIN_COL, Math.round(cell.getBoundingClientRect().width));
+        var chatbotProdBody = !payGrid && isChatbotProdGrid(table);
+        if (chatbotProdBody && CHATBOT_PROD_MAX_PX[i] != null) {
+          px = Math.min(px, CHATBOT_PROD_MAX_PX[i]);
+        }
+        if (chatbotProdBody && CHATBOT_PROD_MIN_PX[i] != null) {
+          px = Math.max(px, CHATBOT_PROD_MIN_PX[i]);
+        }
         if (payGrid) {
           cols[i].style.width = '';
           cols[i].style.minWidth = px + 'px';
@@ -434,6 +490,9 @@
         if (chatbotProd && CHATBOT_PROD_MIN_PX[i] != null) {
           w = Math.max(w, CHATBOT_PROD_MIN_PX[i]);
         }
+        if (chatbotProd && CHATBOT_PROD_MAX_PX[i] != null) {
+          w = Math.min(w, CHATBOT_PROD_MAX_PX[i]);
+        }
         return w;
       });
       global.localStorage.setItem(STORAGE_PREFIX + id, JSON.stringify(arr));
@@ -444,6 +503,67 @@
     e.preventDefault();
     e.stopPropagation();
     var startX = e.pageX || (e.touches && e.touches[0] && e.touches[0].pageX) || 0;
+    /* 챗봇 상품 그리드: 인접 가시 열끼리 합이 일정하게 유지(한 열만 키우면 fixed+100%에서 드래그가 먹지 않는 문제 완화) */
+    if (span === 1 && isChatbotProdGrid(table) && !isPayMngDataGrid(table)) {
+      var pairRight = chatbotNextVisibleColIndex(cols, startIdx);
+      if (pairRight > startIdx) {
+        var cPairL = cols[startIdx];
+        var cPairR = cols[pairRight];
+        var startWL = Math.round(cPairL.getBoundingClientRect().width);
+        var startWR = Math.round(cPairR.getBoundingClientRect().width);
+        if (startWL >= 4 && startWR >= 4) {
+          var totalPair = startWL + startWR;
+          function chatMinPx(idx) {
+            var v = CHATBOT_PROD_MIN_PX[idx];
+            return v != null ? v : MIN_COL;
+          }
+          function chatMaxPx(idx) {
+            var v = CHATBOT_PROD_MAX_PX[idx];
+            return v != null ? v : 16000;
+          }
+          var minPL = chatMinPx(startIdx);
+          var minPR = chatMinPx(pairRight);
+          var maxPL = chatMaxPx(startIdx);
+          var maxPR = chatMaxPx(pairRight);
+          function onMovePair(ev) {
+            var x = ev.pageX || (ev.touches && ev.touches[0] && ev.touches[0].pageX) || 0;
+            var dx = x - startX;
+            var wL = Math.max(minPL, Math.min(maxPL, Math.round(startWL + dx)));
+            var wR = totalPair - wL;
+            if (wR < minPR) {
+              wR = minPR;
+              wL = totalPair - wR;
+              wL = Math.max(minPL, Math.min(maxPL, wL));
+            } else if (wR > maxPR) {
+              wR = maxPR;
+              wL = totalPair - wR;
+              wL = Math.max(minPL, Math.min(maxPL, wL));
+            }
+            cPairL.style.minWidth = '';
+            cPairL.style.width = wL + 'px';
+            cPairR.style.minWidth = '';
+            cPairR.style.width = wR + 'px';
+          }
+          function onUpPair() {
+            document.removeEventListener('mousemove', onMovePair, true);
+            document.removeEventListener('mouseup', onUpPair, true);
+            document.removeEventListener('touchmove', onMovePair, true);
+            document.removeEventListener('touchend', onUpPair, true);
+            document.body.style.cursor = '';
+            document.body.style.userSelect = '';
+            enforceChatbotProdReadableColMins(table, cols);
+            saveWidths(table, cols);
+          }
+          document.body.style.cursor = 'col-resize';
+          document.body.style.userSelect = 'none';
+          document.addEventListener('mousemove', onMovePair, true);
+          document.addEventListener('mouseup', onUpPair, true);
+          document.addEventListener('touchmove', onMovePair, { passive: false, capture: true });
+          document.addEventListener('touchend', onUpPair, true);
+          return;
+        }
+      }
+    }
     var slice = [];
     var k;
     for (k = 0; k < span; k++) {

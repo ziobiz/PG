@@ -775,6 +775,7 @@
     var integrated = w.PG_SCREENS && w.PG_SCREENS.getPayListIntegratedSyncUrls ? w.PG_SCREENS.getPayListIntegratedSyncUrls() : [];
     if (integrated.indexOf(url) !== -1) return true;
     return url === '/calc/calcList' || url === '/settlement/distributionList'
+      || url === '/calc/feeList' || url === '/settlement/feeList'
       || url === '/calc/collateralList' || url === '/settlement/collateralList'
       || url === '/calc/compPointMngList' || url === '/settlement/recallMng'
       || url === '/calc/unpaidMng' || url === '/settlement/unpaidMng'
@@ -794,9 +795,12 @@
     var selTitle = (loc === 'KO' ? UI.selectAll.KO : (UI.selectAll[loc] || UI.selectAll.EN));
     document.querySelectorAll('.tab-pane.tabConDiv[formurl]').forEach(function (pane) {
       var url = pane.getAttribute('formurl');
-      if (!url || urls.indexOf(url) === -1) return;
+      if (!url) return;
       var cfg = screens[url];
       if (!cfg) return;
+      var inIntegrated = urls.indexOf(url) !== -1;
+      var hasTwoRowHeader = cfg.headerGroups && cfg.headerGroups.length;
+      if (!inIntegrated && !hasTwoRowHeader) return;
       var tid = pane.id;
       var thead = pane.querySelector('#grid_' + tid + ' thead');
       if (!thead || !pane._lastGridCols || !pane._lastGridCols.length) return;

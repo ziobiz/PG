@@ -38,8 +38,8 @@ import com.pg.util.ReceivableRecoveryModeUtil;
 import com.pg.util.VoidRefundSettlementModeUtil;
 import com.pg.util.CardBrandScopeUtil;
 import com.pg.chatbot.ChatbotCatalogPolicy;
-import com.pg.util.ChatbotProductPricingUtil;
 import com.pg.util.ChatbotMerchantAdminConstants;
+import com.pg.util.ChatbotProductPricingUtil;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -57,9 +57,12 @@ import org.springframework.data.jpa.domain.Specification;
 import jakarta.persistence.criteria.Predicate;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.YearMonth;
+import java.time.ZoneId;
 import java.util.Comparator;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
@@ -105,6 +108,9 @@ public class CompService {
     private final ChillPayService chillPayService;
     private final MerchantChatbotKbService merchantChatbotKbService;
     private final MerchantChatbotProductService merchantChatbotProductService;
+    private final HqChatbotAiSettingsService hqChatbotAiSettingsService;
+    private final ChatbotProductMonthlyBillingService chatbotProductMonthlyBillingService;
+    private final ChatbotPlanProrationService chatbotPlanProrationService;
 
     private static LocalTime parseTime(String s) {
         if (s == null || s.trim().isEmpty()) return null;
@@ -421,7 +427,10 @@ public class CompService {
                        HqLedgerSysSettingsRepository hqLedgerSysSettingsRepository,
                        ChillPayService chillPayService,
                        MerchantChatbotKbService merchantChatbotKbService,
-                       MerchantChatbotProductService merchantChatbotProductService) {
+                       MerchantChatbotProductService merchantChatbotProductService,
+                       HqChatbotAiSettingsService hqChatbotAiSettingsService,
+                       ChatbotProductMonthlyBillingService chatbotProductMonthlyBillingService,
+                       ChatbotPlanProrationService chatbotPlanProrationService) {
         this.orgUnitRepository = orgUnitRepository;
         this.merchantProfileRepository = merchantProfileRepository;
         this.settlementSettingRepository = settlementSettingRepository;
@@ -445,6 +454,9 @@ public class CompService {
         this.chillPayService = chillPayService;
         this.merchantChatbotKbService = merchantChatbotKbService;
         this.merchantChatbotProductService = merchantChatbotProductService;
+        this.hqChatbotAiSettingsService = hqChatbotAiSettingsService;
+        this.chatbotProductMonthlyBillingService = chatbotProductMonthlyBillingService;
+        this.chatbotPlanProrationService = chatbotPlanProrationService;
     }
 
     /** 챗봇관리 — 고객 안내 문구(병합 표시값). 가맹만. */
@@ -469,6 +481,10 @@ public class CompService {
         target.put("chatbotCommerceHoldYn", "Y".equalsIgnoreCase(holdYn) ? "Y" : "N");
         Integer slotRaw = mp.getChatbotProductSlotLimit();
         target.put("chatbotProductSlotLimit", slotRaw != null ? slotRaw : "");
+        Integer slotPend = mp.getChatbotProductSlotLimitPending();
+        target.put("chatbotProductSlotLimitPending", slotPend != null ? slotPend : "");
+        target.put("chatbotProductSlotPendingApplyYm",
+                mp.getChatbotProductSlotPendingApplyYm() != null ? mp.getChatbotProductSlotPendingApplyYm().trim() : "");
         long reg = merchantChatbotProductService.countProductsForMerchant(merchantOrgUnitId);
         target.put("chatbotProductRegisteredCount", reg);
         long active = merchantChatbotProductService.countSaleActiveProductsForMerchant(merchantOrgUnitId);
@@ -488,6 +504,37 @@ public class CompService {
         LinkedHashSet<String> effLt = merchantChatbotProductService.resolveEffectiveListingTypeCodes(merchantOrgUnitId);
         target.put("chatbotEffectiveListingTypesCsv", ChatbotCatalogPolicy.joinListingCsv(effLt));
         target.put("chatbotEffectiveMaxProductImages", merchantChatbotProductService.getEffectiveMaxProductImages(merchantOrgUnitId));
+        Map<String, Object> hqCfg = hqChatbotAiSettingsService.rawConfigForServerUse();
+        String billCcy = chatbotProductMonthlyBillingService.resolveChatbotMonthlyBillingCurrency(merchantOrgUnitId);
+        if (!ChatbotProductPricingUtil.isSupportedBillingCurrency(billCcy)) {
+            String fromHq = ChatbotProductPricingUtil.firstSupportedCurrencyWithAnyNonZeroSlotFee(hqCfg);
+            if (ChatbotProductPricingUtil.isSupportedBillingCurrency(fromHq)) {
+                billCcy = fromHq;
+            } else {
+                billCcy = "KRW";
+            }
+        }
+        target.put("chatbotPlanBillingCurrency", billCcy != null ? billCcy : "");
+        Integer curSlot0 = mp.getChatbotProductSlotLimit();
+        if (billCcy != null && ChatbotProductPricingUtil.isSupportedBillingCurrency(billCcy)
+                && curSlot0 != null && curSlot0 > 0 && ChatbotProductPricingUtil.isAllowedSlot(curSlot0)) {
+            BigDecimal curFee = ChatbotProductPricingUtil.monthlyFeeForSlotAndCurrency(hqCfg, curSlot0, billCcy);
+            target.put("chatbotPlanMonthlyFee", curFee != null ? curFee.setScale(2, RoundingMode.HALF_UP) : BigDecimal.ZERO);
+        } else {
+            target.put("chatbotPlanMonthlyFee", BigDecimal.ZERO);
+        }
+        Map<String, BigDecimal> feesBySlot = new LinkedHashMap<>();
+        if (billCcy != null && ChatbotProductPricingUtil.isSupportedBillingCurrency(billCcy)) {
+            for (Integer s : ChatbotProductPricingUtil.ALLOWED_SLOTS) {
+                BigDecimal f = ChatbotProductPricingUtil.monthlyFeeForSlotAndCurrency(hqCfg, s, billCcy);
+                feesBySlot.put(String.valueOf(s), f != null ? f.setScale(2, RoundingMode.HALF_UP) : BigDecimal.ZERO);
+            }
+        } else {
+            for (Integer s : ChatbotProductPricingUtil.ALLOWED_SLOTS) {
+                feesBySlot.put(String.valueOf(s), BigDecimal.ZERO);
+            }
+        }
+        target.put("chatbotPlanFeesBySlot", feesBySlot);
     }
 
     /**
@@ -576,6 +623,8 @@ public class CompService {
                                       String companyNm, String addr, String tel, String email, String contactNm,
                                       String intro, String productDesc,
                                       String chatbotProductSlotLimitParam,
+                                      String chatbotProductSlotPlanUseSplitParam,
+                                      String chatbotProductSlotLimitNextParam,
                                       String chatbotOperationModeParam,
                                       String chatbotKbWelcomeHintParam,
                                       String chatbotReservationSlotMinutesParam,
@@ -599,7 +648,13 @@ public class CompService {
         merchantChatbotKbService.applyCatalogListingEnabled(mp, chatbotCatalogListingEnabledParam);
         merchantChatbotKbService.applyMerchantVertical(mp, chatbotMerchantVerticalParam, chatbotMerchantVerticalNotesParam);
         merchantChatbotKbService.applyOrderSheetUiJson(mp, chatbotOrderSheetUiJsonParam);
-        applyChatbotProductSlotLimitFromChatbotKbSave(ou, mp, chatbotProductSlotLimitParam);
+        boolean splitPlan = "Y".equalsIgnoreCase(
+                chatbotProductSlotPlanUseSplitParam != null ? chatbotProductSlotPlanUseSplitParam.trim() : "");
+        if (splitPlan) {
+            applyChatbotProductSlotSplitFromChatbotKbSave(ou, mp, chatbotProductSlotLimitParam, chatbotProductSlotLimitNextParam);
+        } else {
+            applyChatbotProductSlotLimitFromChatbotKbSave(ou, mp, chatbotProductSlotLimitParam);
+        }
         merchantProfileRepository.save(mp);
         persistMerchantAuditDiff(snap, ou, mp, false);
     }
@@ -642,6 +697,7 @@ public class CompService {
     /**
      * 챗봇 기본설정 저장 API 전용 — 파라미터가 들어왔을 때만 반영합니다(구 클라이언트 호환).
      * 빈 문자열/null 은 무제한(건수 미지정).
+     * 업그레이드: 즉시 반영 + 차액 미수금. 다운그레이드: 당월 유지, 다음 달(서울)부터 pending 적용.
      */
     private void applyChatbotProductSlotLimitFromChatbotKbSave(OrgUnit ou, MerchantProfile mp, String chatbotProductSlotLimitParam) {
         if (chatbotProductSlotLimitParam == null) {
@@ -651,9 +707,13 @@ public class CompService {
         if (payYn == null || !"Y".equalsIgnoreCase(payYn.trim())) {
             return;
         }
+        ZoneId seoul = ZoneId.of("Asia/Seoul");
+        Integer previousSlot = mp.getChatbotProductSlotLimit();
         String raw = chatbotProductSlotLimitParam.trim();
         if (raw.isEmpty()) {
             mp.setChatbotProductSlotLimit(null);
+            mp.setChatbotProductSlotLimitPending(null);
+            mp.setChatbotProductSlotPendingApplyYm(null);
             return;
         }
         int slot;
@@ -664,16 +724,45 @@ public class CompService {
         }
         if (slot <= 0) {
             mp.setChatbotProductSlotLimit(null);
+            mp.setChatbotProductSlotLimitPending(null);
+            mp.setChatbotProductSlotPendingApplyYm(null);
             return;
         }
+        assertMerchantFitsChatbotProductSlotPlan(ou, slot);
+
+        boolean hadCurrent = previousSlot != null && previousSlot > 0;
+        if (!hadCurrent) {
+            mp.setChatbotProductSlotLimit(slot);
+            mp.setChatbotProductSlotLimitPending(null);
+            mp.setChatbotProductSlotPendingApplyYm(null);
+            return;
+        }
+        if (slot == previousSlot) {
+            mp.setChatbotProductSlotLimitPending(null);
+            mp.setChatbotProductSlotPendingApplyYm(null);
+            return;
+        }
+        if (slot > previousSlot) {
+            mp.setChatbotProductSlotLimit(slot);
+            mp.setChatbotProductSlotLimitPending(null);
+            mp.setChatbotProductSlotPendingApplyYm(null);
+            chatbotPlanProrationService.postUpgradeDeltaIfNeeded(ou.getCode(), mp, previousSlot, slot);
+            return;
+        }
+        // 다운그레이드: 당월 한도 유지, 다음 달(서울)부터 적용
+        mp.setChatbotProductSlotLimitPending(slot);
+        mp.setChatbotProductSlotPendingApplyYm(YearMonth.now(seoul).plusMonths(1).toString());
+    }
+
+    private void assertMerchantFitsChatbotProductSlotPlan(OrgUnit ou, int slot) {
         if (!ChatbotProductPricingUtil.isAllowedSlot(slot)) {
             throw new IllegalArgumentException(
                     "챗봇 상품 등록 한도는 " + ChatbotProductPricingUtil.ALLOWED_SLOTS + " 중 하나만 선택할 수 있습니다.");
         }
         long pc = merchantChatbotProductService.countProductsForMerchant(ou.getId());
         long activeY = merchantChatbotProductService.countSaleActiveProductsForMerchant(ou.getId());
-        int regMax = slot + ChatbotProductPricingUtil.CHATBOT_PRODUCT_REGISTER_EXTRA_SLOTS;
         int extra = ChatbotProductPricingUtil.CHATBOT_PRODUCT_REGISTER_EXTRA_SLOTS;
+        int regMax = slot + extra;
         if (pc > regMax) {
             throw new IllegalArgumentException(
                     "등록된 상품이 " + pc + "건으로, 선택한 플랜 기준 최대 등록(" + regMax + "건, 판매 활성 "
@@ -684,7 +773,83 @@ public class CompService {
                     "판매 활성 상품이 " + activeY + "건인데 선택한 플랜의 판매 활성 상한은 " + slot
                             + "건입니다. 상품관리에서 판매 활성(사용)을 줄인 뒤 변경하세요.");
         }
-        mp.setChatbotProductSlotLimit(slot);
+    }
+
+    /**
+     * 챗봇 기본설정(플랜) 분할 저장: 즉시 상향(잔여일 차액 미수금)과 다음 플랜 예약(익월 적용, 상·하향 공통)을 분리.
+     */
+    private void applyChatbotProductSlotSplitFromChatbotKbSave(
+            OrgUnit ou, MerchantProfile mp, String immediateRaw, String nextRaw) {
+        String payYn = mp.getChatbotPaymentUseYn();
+        if (payYn == null || !"Y".equalsIgnoreCase(payYn.trim())) {
+            return;
+        }
+        ZoneId seoul = ZoneId.of("Asia/Seoul");
+        if (immediateRaw != null && !immediateRaw.isBlank()) {
+            String ir = immediateRaw.trim();
+            if ("__UNLIMITED__".equalsIgnoreCase(ir)) {
+                mp.setChatbotProductSlotLimit(null);
+                mp.setChatbotProductSlotLimitPending(null);
+                mp.setChatbotProductSlotPendingApplyYm(null);
+            } else {
+                int imm;
+                try {
+                    imm = Integer.parseInt(ir);
+                } catch (NumberFormatException e) {
+                    throw new IllegalArgumentException("즉시 플랜(건수) 값이 올바르지 않습니다.");
+                }
+                if (imm <= 0) {
+                    throw new IllegalArgumentException("즉시 변경은 양의 정수 건수 또는 무제한 항목만 선택할 수 있습니다.");
+                }
+                assertMerchantFitsChatbotProductSlotPlan(ou, imm);
+                Integer cur = mp.getChatbotProductSlotLimit();
+                boolean hadFinite = cur != null && cur > 0;
+                if (hadFinite) {
+                    if (imm <= cur) {
+                        throw new IllegalArgumentException(
+                                "즉시 적용은 상위 플랜(건수 증가)만 가능합니다. 감소·동일 반영은 「다음 플랜(예약)」에서 설정하세요.");
+                    }
+                    int oldCap = cur;
+                    mp.setChatbotProductSlotLimit(imm);
+                    mp.setChatbotProductSlotLimitPending(null);
+                    mp.setChatbotProductSlotPendingApplyYm(null);
+                    chatbotPlanProrationService.postUpgradeDeltaIfNeeded(ou.getCode(), mp, oldCap, imm);
+                } else {
+                    mp.setChatbotProductSlotLimit(imm);
+                    mp.setChatbotProductSlotLimitPending(null);
+                    mp.setChatbotProductSlotPendingApplyYm(null);
+                    chatbotPlanProrationService.postUpgradeDeltaIfNeeded(ou.getCode(), mp, null, imm);
+                }
+            }
+        }
+        if (nextRaw == null) {
+            return;
+        }
+        String nr = nextRaw.trim();
+        Integer currentSlot = mp.getChatbotProductSlotLimit();
+        if (nr.isEmpty()) {
+            mp.setChatbotProductSlotLimitPending(null);
+            mp.setChatbotProductSlotPendingApplyYm(null);
+            return;
+        }
+        int nxt;
+        try {
+            nxt = Integer.parseInt(nr);
+        } catch (NumberFormatException e) {
+            throw new IllegalArgumentException("다음 플랜(예약) 건수 값이 올바르지 않습니다.");
+        }
+        if (nxt <= 0) {
+            throw new IllegalArgumentException("다음 플랜(예약)은 양의 정수 건수만 지정할 수 있습니다.");
+        }
+        assertMerchantFitsChatbotProductSlotPlan(ou, nxt);
+        boolean currentFinite = currentSlot != null && currentSlot > 0;
+        if (currentFinite && nxt == currentSlot) {
+            mp.setChatbotProductSlotLimitPending(null);
+            mp.setChatbotProductSlotPendingApplyYm(null);
+            return;
+        }
+        mp.setChatbotProductSlotLimitPending(nxt);
+        mp.setChatbotProductSlotPendingApplyYm(YearMonth.now(seoul).plusMonths(1).toString());
     }
 
     @Transactional(readOnly = true)

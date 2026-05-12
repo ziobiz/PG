@@ -368,3 +368,35 @@ body.pay-inline-body {
   color: #b83232 !important;
   font-weight: 600;
 }
+
+/* 챗봇(entry=chatbot)에서 pay.html 진입 시: 상단 복귀 바 */
+.pay-chatbot-nav {
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  background: linear-gradient(180deg, #f8f9fc 0%, #eef1f8 100%);
+  border-bottom: 1px solid var(--pay-border);
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.04);
+}
+.pay-chatbot-nav-inner {
+  max-width: 520px;
+  margin: 0 auto;
+  padding: 0.5rem 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+.pay-chatbot-nav .btn {
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+.pay-chatbot-nav-prev {
+  flex: 0 1 auto;
+}
+.pay-chatbot-nav-back {
+  flex: 1 1 auto;
+  min-width: 8rem;
+  text-align: center;
+}

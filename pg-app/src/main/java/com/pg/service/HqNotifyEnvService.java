@@ -4,13 +4,17 @@ import com.pg.entity.HqNotifyEnvConfig;
 import com.pg.middleware.notify.PgNotifyIngressPaths;
 import com.pg.repository.HqNotifyEnvConfigRepository;
 import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Locale;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
 
 @Service
 public class HqNotifyEnvService {
@@ -20,9 +24,12 @@ public class HqNotifyEnvService {
     private static final int EMAIL_VOID_END_MIN_FIXED = 23 * 60 + 59;
 
     private final HqNotifyEnvConfigRepository repository;
+    private final OrgPagePermissionService orgPagePermissionService;
 
-    public HqNotifyEnvService(HqNotifyEnvConfigRepository repository) {
+    public HqNotifyEnvService(HqNotifyEnvConfigRepository repository,
+                              @Lazy OrgPagePermissionService orgPagePermissionService) {
         this.repository = repository;
+        this.orgPagePermissionService = orgPagePermissionService;
     }
 
     @Transactional
@@ -104,6 +111,15 @@ public class HqNotifyEnvService {
         m.put("managerUserControlEnabledYn", yn(c.getManagerUserControlEnabledYn()));
         m.put("managerPasswordResetEnabledYn", yn(c.getManagerPasswordResetEnabledYn()));
         m.put("updatedAt", c.getUpdatedAt() != null ? c.getUpdatedAt().toString() : "");
+        try {
+            m.put("assistantOrgLevels", orgPagePermissionService.getAssistantOrgLevelsForApi());
+            m.put("assistantRoleDefaultMatrixByLevel", orgPagePermissionService.getHqAssistantDefaultMatrixByLevelResolvedForApi());
+            m.put("assistantMatrixCatalog", orgPagePermissionService.getAssistantMatrixCatalogForApi());
+        } catch (Exception ignored) {
+            m.put("assistantOrgLevels", List.of());
+            m.put("assistantRoleDefaultMatrixByLevel", Map.of());
+            m.put("assistantMatrixCatalog", List.of());
+        }
         return m;
     }
 
@@ -429,6 +445,14 @@ public class HqNotifyEnvService {
         }
         if (body.containsKey("managerPasswordResetEnabledYn")) {
             c.setManagerPasswordResetEnabledYn(yn(String.valueOf(body.get("managerPasswordResetEnabledYn"))));
+        }
+        if (body.containsKey("assistantRoleDefaultMatrix")) {
+            try {
+                c.setAssistantRoleDefaultMatrixJson(
+                        orgPagePermissionService.normalizeAssistantRoleDefaultMatrixToJson(body.get("assistantRoleDefaultMatrix")));
+            } catch (JsonProcessingException e) {
+                throw new IllegalArgumentException("담당자 기본 권한 JSON 저장 실패: " + e.getMessage());
+            }
         }
         if (payFollowKeysPresentInBody(body)) {
             validatePayFollowTimeWindows(c);

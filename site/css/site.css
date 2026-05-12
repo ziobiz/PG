@@ -771,7 +771,6 @@ body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Ro
   text-align: center !important;
 }
 #contentsMain .card { border: 1px solid #ddd; border-radius: 2px; }
-#contentsMain .card-header { font-size: var(--app-base-font-size); }
 #contentsMain .card-body { padding: 16px 20px; }
 #contentsMain .table thead th { background: #d9edf7; border: 1px solid #bce8f1; font-weight: 600; color: #31708f; padding: 8px 10px; }
 #contentsMain .table td { padding: var(--table-row-padding-y) 10px; border-color: #ddd; }
@@ -2234,11 +2233,6 @@ td.empty-state-cell {
   background: linear-gradient(135deg, #e8f4fc 0%, #d4edff 100%);
   border-color: #b3d9f2;
 }
-#holdRateCard .card-header,
-#commissionPolicyCard .card-header {
-  background: rgba(179, 217, 242, 0.5);
-  border-bottom-color: #b3d9f2;
-}
 /* 결제대행사 설정: 복수 추가 테이블 (가로 스크롤바 없음 — 카드 너비 안에 표시) */
 .pg-binding-list-wrap {
   overflow-x: visible;
@@ -3579,10 +3573,6 @@ button.pay-follow-pill:focus-visible {
   background: #fff1f3; /* rose-50 */
   border-color: #fecdd3; /* rose-200 */
 }
-#chargebackPolicyCard > .card-header {
-  background: #ffe4e6; /* rose-100 */
-  border-bottom-color: #fecdd3;
-}
 #chargebackPolicyCard > .card-body {
   background: transparent;
 }
@@ -3620,12 +3610,6 @@ button.pay-follow-pill:focus-visible {
   border-color: #f3dfa8;
   background: linear-gradient(180deg, #fffdf7 0%, #fff8e0 100%);
   box-shadow: 0 1px 2px rgba(200, 170, 50, 0.07);
-}
-.comp-reg-form .card.pg-comp-reg-void-refund-panel > .card-header {
-  background: #fff3c4;
-  border-bottom-color: #f0e0a8;
-  color: #5c4d1a;
-  font-weight: 600;
 }
 .comp-reg-form .card.pg-comp-reg-void-refund-panel > .card-body {
   background: transparent;
@@ -4089,6 +4073,25 @@ button.pay-follow-pill:focus-visible {
   vertical-align: middle;
 }
 
+/* 챗봇 플랜구매설정 — 파란 헤더·파스텔 카드(가독성) */
+#contentsMain .chatbot-kb-plan-shell {
+  background: linear-gradient(180deg, #eef5ff 0%, #f8fbff 35%, #ffffff 100%);
+}
+#contentsMain .chatbot-kb-plan-header {
+  background: linear-gradient(90deg, #0d6efd 0%, #5c9dff 100%);
+  letter-spacing: 0.02em;
+}
+#contentsMain .chatbot-kb-plan-pill {
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid rgba(13, 110, 253, 0.12);
+  color: #212529;
+}
+#contentsMain .chatbot-kb-guidance-shell {
+  background: #f3f6f9;
+  border-color: #dee2e6 !important;
+  color: #212529;
+}
+
 /* 챗봇 상품관리 — 가맹 로그인 시 본사 전용 열·등록폼 행 숨김 */
 .chatbot-prod-grid--merchant .hq-only-col {
   display: none !important;
@@ -4116,6 +4119,9 @@ button.pay-follow-pill:focus-visible {
   overflow-x: auto;
   width: 100%;
   max-width: 100%;
+  /* 헤더 리사이즈 핸들(right:-4px)이 잘리지 않도록 */
+  padding-right: 10px;
+  box-sizing: border-box;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;          /* Firefox */
   -ms-overflow-style: none;       /* IE/Edge legacy */
@@ -4168,10 +4174,30 @@ button.pay-follow-pill:focus-visible {
 }
 #contentsMain .chatbot-product-mng .chatbot-prod-grid th.chatbot-prod-col-desc,
 #contentsMain .chatbot-product-mng .chatbot-prod-grid td.chatbot-prod-col-desc {
-  min-width: 12rem;
+  min-width: 14rem;
   /* 테이블이 래퍼 전체 너비를 쓰도록 max-width 제한 제거(남는 폭은 설명 열이 흡수) */
   max-width: none;
   width: auto;
+}
+/* 순서: 숫자 드롭다운만 — 폼셀렉트가 행 너비를 잡아먹지 않도록 */
+#contentsMain .chatbot-product-mng .chatbot-prod-grid th.chatbot-prod-col-sort,
+#contentsMain .chatbot-product-mng .chatbot-prod-grid td.chatbot-prod-sort-cell {
+  width: 3.25rem;
+  max-width: 3.5rem;
+  min-width: 2.75rem;
+  padding-left: 0.2rem;
+  padding-right: 0.2rem;
+  box-sizing: border-box;
+}
+#contentsMain .chatbot-product-mng .chatbot-prod-grid .chatbot-prod-sort-cell .chatbot-prod-sort-select {
+  width: 100%;
+  max-width: 3.1rem;
+  min-width: 0;
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: 0.25rem;
+  padding-right: 1.35rem;
+  box-sizing: border-box;
 }
 #contentsMain .chatbot-product-mng .chatbot-prod-grid th.chatbot-prod-col-code,
 #contentsMain .chatbot-product-mng .chatbot-prod-grid td.chatbot-prod-col-code {
@@ -4260,4 +4286,84 @@ button.pay-follow-pill:focus-visible {
 }
 .chatbot-product-mng .chatbot-prod-grid tbody tr.chatbot-prod-row--inactive .btn {
   opacity: 0.9;
+}
+
+/* 본사 사용자설정 — 담당자(보조) 메뉴 기본 권한: 대메뉴별 톤 */
+#contentsMain .hq-user-asst-matrix-root .hq-asst-grp-0 td {
+  background-color: rgba(13, 110, 253, 0.06);
+}
+#contentsMain .hq-user-asst-matrix-root .hq-asst-grp-1 td {
+  background-color: rgba(25, 135, 84, 0.07);
+}
+#contentsMain .hq-user-asst-matrix-root .hq-asst-grp-2 td {
+  background-color: rgba(111, 66, 193, 0.07);
+}
+#contentsMain .hq-user-asst-matrix-root .hq-asst-grp-3 td {
+  background-color: rgba(214, 51, 132, 0.07);
+}
+#contentsMain .hq-user-asst-matrix-root .hq-asst-grp-4 td {
+  background-color: rgba(253, 126, 20, 0.08);
+}
+#contentsMain .hq-user-asst-matrix-root .hq-asst-grp-5 td {
+  background-color: rgba(32, 201, 151, 0.08);
+}
+#contentsMain .hq-user-asst-matrix-root .hq-asst-grp-6 td {
+  background-color: rgba(108, 117, 125, 0.1);
+}
+#contentsMain .hq-user-asst-matrix-root tr.hq-asst-grp-hdr td {
+  font-weight: 600;
+  border-top-width: 2px;
+}
+#contentsMain .hq-user-asst-matrix-root tr.hq-asst-grp-hdr.hq-asst-grp-0 td {
+  box-shadow: inset 0 3px 0 0 #4dabf7;
+}
+#contentsMain .hq-user-asst-matrix-root tr.hq-asst-grp-hdr.hq-asst-grp-1 td {
+  box-shadow: inset 0 3px 0 0 #51cf66;
+}
+#contentsMain .hq-user-asst-matrix-root tr.hq-asst-grp-hdr.hq-asst-grp-2 td {
+  box-shadow: inset 0 3px 0 0 #9775fa;
+}
+#contentsMain .hq-user-asst-matrix-root tr.hq-asst-grp-hdr.hq-asst-grp-3 td {
+  box-shadow: inset 0 3px 0 0 #f06595;
+}
+#contentsMain .hq-user-asst-matrix-root tr.hq-asst-grp-hdr.hq-asst-grp-4 td {
+  box-shadow: inset 0 3px 0 0 #ffa94d;
+}
+#contentsMain .hq-user-asst-matrix-root tr.hq-asst-grp-hdr.hq-asst-grp-5 td {
+  box-shadow: inset 0 3px 0 0 #38d9a9;
+}
+#contentsMain .hq-user-asst-matrix-root tr.hq-asst-grp-hdr.hq-asst-grp-6 td {
+  box-shadow: inset 0 3px 0 0 #adb5bd;
+}
+
+/* ========== 본문 카드 섹션 제목(.card-header): 배경테마와 무관하게 기본(DEFAULT) 화면과 동일 톤·글꼴 크기 고정 ========== */
+#contentsMain .card > .card-header,
+.tab-pane.tabConDiv .card > .card-header {
+  background-color: rgba(0, 0, 0, 0.03) !important;
+  background-image: none !important;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.125) !important;
+  color: #495057 !important;
+  font-size: var(--app-base-font-size) !important;
+  font-weight: 600 !important;
+}
+#contentsMain .card > .card-header span,
+.tab-pane.tabConDiv .card > .card-header span {
+  color: inherit !important;
+}
+/* 의도적 파스텔/강조 카드 — 위 고정보다 우선 */
+#contentsMain #holdRateCard.card > .card-header,
+#contentsMain #commissionPolicyCard.card > .card-header {
+  background: rgba(179, 217, 242, 0.5) !important;
+  border-bottom-color: #b3d9f2 !important;
+  color: #31708f !important;
+}
+#contentsMain #chargebackPolicyCard > .card-header {
+  background: #ffe4e6 !important;
+  border-bottom-color: #fecdd3 !important;
+  color: #7f1d2d !important;
+}
+#contentsMain .comp-reg-form .card.pg-comp-reg-void-refund-panel > .card-header {
+  background: #fff3c4 !important;
+  border-bottom-color: #f0e0a8 !important;
+  color: #5c4d1a !important;
 }

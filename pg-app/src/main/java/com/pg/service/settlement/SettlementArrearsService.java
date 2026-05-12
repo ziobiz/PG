@@ -423,6 +423,11 @@ public class SettlementArrearsService {
 
     @Transactional
     public MerchantReceivable createReceivable(String merchantId, BigDecimal amount, String title, String reasonCode, String memo, String createdBy) {
+        return createReceivable(merchantId, amount, title, reasonCode, memo, createdBy, null);
+    }
+
+    @Transactional
+    public MerchantReceivable createReceivable(String merchantId, BigDecimal amount, String title, String reasonCode, String memo, String createdBy, String billingCcy) {
         if (merchantId == null || merchantId.isBlank() || amount == null || amount.signum() <= 0) {
             throw new IllegalArgumentException("merchantId·amount");
         }
@@ -438,6 +443,10 @@ public class SettlementArrearsService {
         r.setReasonCode(reasonCode != null && !reasonCode.isBlank() ? reasonCode.trim() : "MANUAL");
         r.setMemo(memo);
         r.setCreatedBy(createdBy);
+        if (billingCcy != null && !billingCcy.isBlank()) {
+            String c = billingCcy.trim().toUpperCase(java.util.Locale.ROOT);
+            r.setBillingCcy(c.length() > 3 ? c.substring(0, 3) : c);
+        }
         return merchantReceivableRepository.save(r);
     }
 

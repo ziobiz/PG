@@ -104,7 +104,7 @@
               <li class="child-li" data-url="/hq/receivableRecoverySettings"><a href="#" data-menu_id="M0124">환수/미수금설정</a></li>
               <li class="child-li" data-url="/hq/domainConfig"><a href="#" data-menu_id="M0115">도메인구성설정</a></li>
               <li class="child-li" data-url="/hq/serverManage"><a href="#" data-menu_id="M0116">서버운영관리</a></li>
-              <li class="child-li" data-url="/hq/chatbotAiSettings"><a href="#" data-menu_id="M0126" data-pg-ui-t="AI설정">AI설정</a></li>
+              <li class="child-li" data-url="/hq/chatbotAiSettings"><a href="#" data-menu_id="M0126" data-pg-ui-t="AI챗봇설정">AI챗봇설정</a></li>
             </ul>
           </li>
           <!-- 업체관리 (FXHJ 동일) -->
@@ -133,7 +133,7 @@
               <li class="child-li" data-url="/calc/payRefundList"><a href="#" data-menu_id="M0316">환불처리</a></li>
               <li class="child-li" data-url="/calc/payForceRefundList"><a href="#" data-menu_id="M0317">강제환불</a></li>
               <li class="child-li" data-url="/pay/easyPay"><a href="#" data-menu_id="M0310">URL결제내역</a></li>
-              <li class="child-li" data-url="/pay/chatbotPay"><a href="#" data-menu_id="M0311">챗봇결제내역</a></li>
+              <li class="child-li" data-url="/pay/chatbotPay"><a href="#" data-menu_id="M0311" data-pg-ui-t="챗봇결제내역">챗봇결제내역</a></li>
               <li class="child-li" data-url="/calc/offsetCancList"><a href="#" data-menu_id="M0309" title="정산 반영(settled) 후 취소·무효·환불 건만 표시. 환수금관리 자동 등록과 연계됩니다.">상계취소내역</a></li>
             </ul>
           </li>
@@ -778,6 +778,15 @@
           var me = res && res.data ? res.data : {};
           if (!me || typeof me !== 'object') return;
           var merged = Object.assign({}, (user || {}), me);
+          if (!String(merged.compId || '').trim() && String((user || {}).compId || '').trim()) {
+            merged.compId = user.compId;
+          }
+          if ((merged.orgUnitId == null || merged.orgUnitId === '') && (user || {}).orgUnitId != null && (user || {}).orgUnitId !== '') {
+            merged.orgUnitId = user.orgUnitId;
+          }
+          if (!String(merged.orgLevel || '').trim() && String((user || {}).orgLevel || '').trim()) {
+            merged.orgLevel = user.orgLevel;
+          }
           try { sessionStorage.setItem('pg_admin_user', JSON.stringify(merged)); } catch (eSave) {}
           user = merged;
           applyHeaderUserDisplay(merged);

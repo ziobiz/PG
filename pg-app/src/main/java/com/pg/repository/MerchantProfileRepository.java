@@ -26,5 +26,7 @@ public interface MerchantProfileRepository extends JpaRepository<MerchantProfile
     @Query("SELECT mp FROM MerchantProfile mp WHERE mp.chatbotPaymentUseYn = 'Y' "
             + "AND mp.chatbotProductSlotLimit IS NOT NULL AND mp.chatbotProductSlotLimit > 0")
     List<MerchantProfile> findProfilesForChatbotMonthlyBilling();
+
+    List<MerchantProfile> findByChatbotProductSlotLimitPendingIsNotNull();
 }
 

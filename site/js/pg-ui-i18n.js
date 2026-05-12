@@ -12137,6 +12137,22 @@
         if (loc === 'CH') return nh + '小时';
         if (loc === 'TH') return nh + ' ชม.';
       }
+      var mMin = sKo.match(/^(\d{1,4})분$/);
+      if (mMin) {
+        var nm = mMin[1];
+        var rowMin = g.PG_UI_STRING_MAP && g.PG_UI_STRING_MAP['분'];
+        var suffMin = rowMin ? (rowMin[loc] || rowMin.EN) : ' min';
+        if (suffMin != null && String(suffMin).length) return String(nm) + String(suffMin);
+        return String(nm);
+      }
+      var mGeon = sKo.match(/^(\d{1,4})건$/);
+      if (mGeon) {
+        var ng = mGeon[1];
+        var rowG = g.PG_UI_STRING_MAP && g.PG_UI_STRING_MAP['건'];
+        var suffG = rowG ? (rowG[loc] || rowG.EN) : '';
+        if (suffG != null && String(suffG).trim().length) return String(ng) + String(suffG);
+        return String(ng);
+      }
     }
     if (sk0) return pickRow(sk0, loc) || sKo;
     var m = g.PG_UI_STRING_MAP && g.PG_UI_STRING_MAP[sKo];

@@ -37,6 +37,28 @@ public final class ChatbotProductPricingUtil {
         return BILLING_CURRENCIES.contains(u);
     }
 
+    /**
+     * 본사 {@code chatbot_product_slots_pricing} 에서 슬롯별 금액이 0보다 큰 첫 통화({@link #BILLING_CURRENCIES} 순).
+     * 가맹 기준통화가 청구 통화 목록에 없을 때 플랜 표시용 폴백.
+     */
+    public static String firstSupportedCurrencyWithAnyNonZeroSlotFee(Map<String, Object> hqConfig) {
+        Object raw = hqConfig != null ? hqConfig.get(CONFIG_KEY_SLOTS_PRICING) : null;
+        Map<String, Map<String, BigDecimal>> bySlot = normalizeSlotsPricing(raw);
+        for (String ccy : BILLING_CURRENCIES) {
+            for (Integer s : ALLOWED_SLOTS) {
+                Map<String, BigDecimal> row = bySlot.get(String.valueOf(s));
+                if (row == null) {
+                    continue;
+                }
+                BigDecimal f = row.get(ccy);
+                if (f != null && f.signum() > 0) {
+                    return ccy;
+                }
+            }
+        }
+        return null;
+    }
+
     /** {@code tb_merchant_profile.base_currency} CSV 등에서 첫 번째 토큰만 사용 */
     public static String firstIsoCurrencyToken(String baseCurrencyCsv) {
         if (baseCurrencyCsv == null || baseCurrencyCsv.isBlank()) {
@@ -151,6 +173,13 @@ public final class ChatbotProductPricingUtil {
         return "CHATBOT_BILL:" + ym.toString();
     }
 
-    /** 미수금 reason_code 컬럼(40자) 이내 */
+    /** 미수금 reason_code 컬럼(40자) 이내 — 월 정기 청구(전월) */
     public static final String RECEIVABLE_REASON_CHATBOT_MONTHLY = "CHATBOT_MONTHLY_SERVICE";
+    /** 플랜 상향 시 잔여일 기준 차액(미수금). 월말까지 과금 기간은 달력 기준으로 동일하게 유지 */
+    public static final String RECEIVABLE_REASON_CHATBOT_UPGRADE = "CHATBOT_PLAN_UPGRADE";
+
+    /** 업그레이드 미수금 메모(중복 방지). 예: CHATBOT_UPGRADE:2026-05-12:10→100 */
+    public static String memoKeyForPlanUpgrade(java.time.LocalDate changedDate, int fromSlot, int toSlot) {
+        return "CHATBOT_UPGRADE:" + changedDate + ":" + fromSlot + "→" + toSlot;
+    }
 }
