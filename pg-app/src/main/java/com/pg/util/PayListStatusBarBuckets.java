@@ -8,9 +8,14 @@ import com.pg.repository.CommissionPolicyRepository;
 import com.pg.repository.OrgUnitRepository;
 
 import java.math.BigDecimal;
+import jakarta.persistence.criteria.CriteriaBuilder;
+import jakarta.persistence.criteria.Path;
+import jakarta.persistence.criteria.Predicate;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -18,15 +23,17 @@ import java.util.Optional;
 import java.util.TreeMap;
 
 /**
- * 결제내역·통합내역 상단 상태별(성공·실패·무효·환불·취소·기타) 건수·통화별 금액 요약.
+ * 결제내역·통합내역 상단 상태별(성공·실패·취소·무효·이메일무효·환불·강제환불·기타) 건수·통화별 금액 요약.
  */
 public final class PayListStatusBarBuckets {
 
     public static final String SUCCESS = "SUCCESS";
     public static final String FAIL = "FAIL";
     public static final String VOID = "VOID";
+    /** 내부 22·41 및 칠페이 이메일무효 계열 — {@link #VOID}(21·40 등)과 구분 */
+    public static final String EMAIL_VOID = "EMAIL_VOID";
     public static final String REFUND = "REFUND";
-    /** 내부 상태 31 강제환불 — 통합·기본 화면 상태바에서는 일반 환불(30)에 합산 */
+    /** 내부 상태 31 강제환불 */
     public static final String FORCE_REFUND = "FORCE_REFUND";
     /** ICOPAY 내부 취소(20) 및 칠페이 취소 계열 — {@link #OTHER} 에서 제외 */
     public static final String CANCEL = "CANCEL";
@@ -34,6 +41,13 @@ public final class PayListStatusBarBuckets {
 
     private PayListStatusBarBuckets() {
     }
+
+    /**
+     * 결제내역·통합내역 상단 상태바 및 일별통합/일별결제 집계 열 순서.
+     * 성공·실패·취소·무효(21·40)·이메일무효(22·41)·환불(30·42)·강제환불(31)·기타.
+     */
+    public static final List<String> DEFAULT_STATUS_BAR_BUCKET_ORDER = List.of(
+            SUCCESS, FAIL, CANCEL, VOID, EMAIL_VOID, REFUND, FORCE_REFUND, OTHER);
 
     /**
      * 다통화(버킷별 JPY | USD …) 표시 여부.
@@ -69,7 +83,10 @@ public final class PayListStatusBarBuckets {
         if ("F0".equalsIgnoreCase(s) || "99".equals(s)) {
             return FAIL;
         }
-        if ("21".equals(s) || "22".equals(s) || "40".equals(s) || "41".equals(s)) {
+        if ("22".equals(s) || "41".equals(s)) {
+            return EMAIL_VOID;
+        }
+        if ("21".equals(s) || "40".equals(s)) {
             return VOID;
         }
         if ("30".equals(s) || "42".equals(s)) {
@@ -105,8 +122,10 @@ public final class PayListStatusBarBuckets {
         if ("1".equals(raw) || "3".equals(raw) || "4".equals(raw)) {
             return FAIL;
         }
-        if (low.contains("voided") || low.contains("void") || low.contains("emailvoid")
-                || low.contains("무효") || low.contains("이메일무효")) {
+        if (low.contains("emailvoid") || low.contains("email_void") || low.contains("이메일무효")) {
+            return EMAIL_VOID;
+        }
+        if (low.contains("voided") || low.contains("void") || low.contains("무효")) {
             return VOID;
         }
         if (low.contains("refund") || low.contains("환불")) {
@@ -153,6 +172,108 @@ public final class PayListStatusBarBuckets {
             Map.entry("840", "USD"),
             Map.entry("978", "EUR")
     );
+
+    /**
+     * {@code cur_type} 등에 저장된 ISO 4217 숫자(392·764…)와 표시 통화 알파(JPY·THB…) 검색을 연결합니다.
+     * 알파·숫자·혼합 입력에서 DB와 동등 비교할 후보 문자열만 반환합니다(부분 검색은 {@link #buildCurTypeSearchPredicate}의 LIKE).
+     */
+    public static List<String> expandCurTypeSearchExactVariants(String raw) {
+        if (raw == null || raw.isBlank()) {
+            return List.of();
+        }
+        LinkedHashSet<String> keys = new LinkedHashSet<>();
+        String t = raw.trim();
+        String asAlpha = normalizeCurrency(t);
+        if (asAlpha != null && !asAlpha.isBlank() && asAlpha.length() <= 8) {
+            keys.add(asAlpha);
+        }
+        String digits = t.replaceAll("[^0-9]", "");
+        if (!digits.isEmpty()) {
+            String upperD = digits;
+            String key;
+            if (upperD.length() < 3) {
+                key = "0".repeat(3 - upperD.length()) + upperD;
+            } else if (upperD.length() == 3) {
+                key = upperD;
+            } else {
+                String norm = upperD.replaceFirst("^0+(?!$)", "");
+                if (norm.length() > 3) {
+                    key = norm.substring(norm.length() - 3);
+                } else if (norm.length() < 3) {
+                    key = "0".repeat(3 - norm.length()) + norm;
+                } else {
+                    key = norm;
+                }
+            }
+            if (key.length() == 3) {
+                keys.add(key);
+                String a = ISO4217_NUMERIC_TO_ALPHA.get(key);
+                if (a != null) {
+                    keys.add(a);
+                }
+            }
+        }
+        if (t.matches("(?i)^[A-Za-z]{3}$")) {
+            String u = t.toUpperCase(Locale.ROOT);
+            for (Map.Entry<String, String> e : ISO4217_NUMERIC_TO_ALPHA.entrySet()) {
+                if (e.getValue().equals(u)) {
+                    keys.add(e.getKey());
+                    break;
+                }
+            }
+        }
+        keys.removeIf(s -> s == null || s.isBlank());
+        return new ArrayList<>(keys);
+    }
+
+    /** JPA: 통화 검색 — 표시 알파·ISO 숫자 어느 쪽으로 넣어도 {@code cur_type} 과 매칭 */
+    public static Predicate buildCurTypeSearchPredicate(CriteriaBuilder cb, Path<String> curTypePath, String raw) {
+        if (raw == null || raw.isBlank()) {
+            return cb.conjunction();
+        }
+        String trimmed = raw.trim();
+        List<Predicate> ors = new ArrayList<>();
+        String escLike = escapeSqlLikeMeta(trimmed);
+        String pat = "%" + escLike.toLowerCase(Locale.ROOT) + "%";
+        ors.add(cb.and(cb.isNotNull(curTypePath), cb.like(cb.lower(curTypePath), pat, '\\')));
+        for (String k : expandCurTypeSearchExactVariants(trimmed)) {
+            ors.add(cb.equal(curTypePath, k));
+        }
+        return cb.or(ors.toArray(Predicate[]::new));
+    }
+
+    private static String escapeSqlLikeMeta(String raw) {
+        if (raw == null || raw.isEmpty()) {
+            return "";
+        }
+        return raw.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_");
+    }
+
+    /** 메모리 필터: 그리드 행의 통화 문자열이 검색어(알파/숫자)와 일치하는지 */
+    public static boolean curTypeRowMatchesKeyword(Object curDb, String keyword) {
+        if (keyword == null || keyword.trim().isEmpty()) {
+            return true;
+        }
+        if (curDb == null) {
+            return false;
+        }
+        String db = String.valueOf(curDb).trim();
+        if (db.isEmpty()) {
+            return false;
+        }
+        String dbL = db.toLowerCase(Locale.ROOT);
+        String kw = keyword.trim();
+        String kLow = kw.toLowerCase(Locale.ROOT);
+        if (dbL.contains(kLow)) {
+            return true;
+        }
+        for (String v : expandCurTypeSearchExactVariants(kw)) {
+            if (v != null && dbL.equalsIgnoreCase(v)) {
+                return true;
+            }
+        }
+        return false;
+    }
 
     public static String normalizeCurrency(String cur) {
         if (cur == null || cur.isBlank()) {
@@ -266,7 +387,7 @@ public final class PayListStatusBarBuckets {
     }
 
     /**
-     * @param bucketOrder 노출할 버킷 키 순서. null/빈값이면 성공~기타 6종(강제환불 제외).
+     * @param bucketOrder 노출할 버킷 키 순서. null/빈값이면 {@link #DEFAULT_STATUS_BAR_BUCKET_ORDER}(8종).
      */
     public static Map<String, Object> buildBarPayload(
             boolean multiCurrency,
@@ -280,7 +401,7 @@ public final class PayListStatusBarBuckets {
         String primary = normalizeCurrency(primaryCurrency != null ? primaryCurrency : "KRW");
         List<String> bucketOrderEff = (bucketOrder != null && !bucketOrder.isEmpty())
                 ? bucketOrder
-                : List.of(SUCCESS, FAIL, VOID, REFUND, CANCEL, OTHER);
+                : DEFAULT_STATUS_BAR_BUCKET_ORDER;
         List<Map<String, Object>> buckets = new ArrayList<>();
         for (String key : bucketOrderEff) {
             Map<String, BigDecimal> amts = amountsByBucketCurrency.getOrDefault(key, Collections.emptyMap());

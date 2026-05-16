@@ -1396,6 +1396,251 @@ public class ApiSettlementController {
         return ResponseEntity.ok(ApiResponse.ok(pr));
     }
 
+    private static final int DAILY_FEE_SUMMARY_MAX_DAYS = 93;
+    private static final int DAILY_FEE_PAGE_SIZE = 500;
+    private static final int DAILY_FEE_MAX_PAGES_PER_DAY = 400;
+    private static final String[] DAILY_FEE_SUM_NUMERIC_KEYS = {
+            "txnFixedFeesSum", "pctFeesSum", "usdtFee", "fxFee", "fee3dsFee", "rollingHoldEst",
+            "failFee", "cancelFee", "voidFee", "manualVoidFee", "refundFee", "chargebackFee",
+            "totalFee", "feeVat", "expectedPayout", "settlementAmt"
+    };
+
+    private Specification<PgTrnsctn> feeListSpecification(Set<String> allowedMerchants,
+                                                          LocalDateTime fromDt,
+                                                          LocalDateTime toDt,
+                                                          String effFtFinal,
+                                                          String effKwFinal,
+                                                          Set<String> merchantNameFilter,
+                                                          String statusGroup) {
+        return (root, query, cb) -> {
+            List<Predicate> parts = new ArrayList<>();
+            parts.add(cb.between(root.get("createdAt"), fromDt, toDt));
+            parts.add(cb.isNotNull(root.get("merchantId")));
+            parts.add(cb.notEqual(root.get("merchantId"), ""));
+            if (allowedMerchants != null) {
+                parts.add(root.get("merchantId").in(allowedMerchants));
+            }
+            if (merchantNameFilter != null) {
+                parts.add(root.get("merchantId").in(merchantNameFilter));
+            }
+            addFeeListStatusGroupPredicate(parts, cb, root, statusGroup);
+            if (!"COMP_NM".equals(effFtFinal)) {
+                Predicate fieldPred = buildFeeListFieldSearchPredicate(root, query, cb, effFtFinal, effKwFinal);
+                if (fieldPred != null) {
+                    parts.add(fieldPred);
+                }
+            }
+            Subquery<Long> ouExists = query.subquery(Long.class);
+            Root<OrgUnit> ouRoot = ouExists.from(OrgUnit.class);
+            ouExists.select(cb.literal(1L));
+            ouExists.where(cb.equal(ouRoot.get("code"), root.get("merchantId")));
+            parts.add(cb.exists(ouExists));
+            return cb.and(parts.toArray(new Predicate[0]));
+        };
+    }
+
+    /**
+     * 수수료내역과 동일 필터·산식으로, 적재일(createdAt) 기준 일자별 합계를 반환합니다.
+     */
+    @GetMapping("/dailyFeeSummary")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> dailyFeeSummary(
+            Authentication authentication,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate searchFromDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate searchToDate,
+            @RequestParam(required = false) String searchCompId,
+            @RequestParam(required = false) String searchCompNm,
+            @RequestParam(required = false) String searchFieldType,
+            @RequestParam(required = false) String searchKeyword,
+            @RequestParam(required = false) String searchStatusGroup,
+            @RequestParam(required = false) String searchOrderDir) {
+        Set<String> allowedMerchants = orgAccessService.visibleMerchantCompCodes(authentication);
+        if (allowedMerchants != null && allowedMerchants.isEmpty()) {
+            Map<String, Object> empty = new LinkedHashMap<>();
+            empty.put("list", List.of());
+            return ResponseEntity.ok(ApiResponse.ok(empty));
+        }
+        LocalDate fromDate = searchFromDate;
+        LocalDate toDate = searchToDate;
+        if (fromDate == null || toDate == null) {
+            return ResponseEntity.ok(ApiResponse.fail("거래일자(searchFromDate, searchToDate)는 필수입니다.", "VALIDATION"));
+        }
+        if (fromDate.isAfter(toDate)) {
+            return ResponseEntity.ok(ApiResponse.fail("거래일자 시작이 종료보다 늦을 수 없습니다.", "VALIDATION"));
+        }
+        long span = ChronoUnit.DAYS.between(fromDate, toDate) + 1;
+        if (span > DAILY_FEE_SUMMARY_MAX_DAYS) {
+            return ResponseEntity.ok(ApiResponse.fail("조회 기간은 " + DAILY_FEE_SUMMARY_MAX_DAYS + "일 이내로 지정해 주세요.", "VALIDATION"));
+        }
+        ZoneId ledgerTz = resolveLedgerDisplayZoneId();
+        LocalDate today = LocalDate.now(ledgerTz);
+        LocalDate effectiveTo = toDate.isAfter(today) ? today : toDate;
+        if (fromDate.isAfter(effectiveTo)) {
+            Map<String, Object> empty = new LinkedHashMap<>();
+            empty.put("list", List.of());
+            empty.put("meta", Map.of("note", "조회 구간에 포함된 일자가 없습니다."));
+            return ResponseEntity.ok(ApiResponse.ok(empty));
+        }
+
+        String effFt = "ALL";
+        String effKw = "";
+        if (searchFieldType != null && !searchFieldType.isBlank()) {
+            effFt = searchFieldType.trim().toUpperCase(Locale.ROOT);
+            effKw = searchKeyword != null ? searchKeyword.trim() : "";
+        } else {
+            if (searchCompId != null && !searchCompId.isBlank()) {
+                effFt = "COMP_ID";
+                effKw = searchCompId.trim();
+            } else if (searchCompNm != null && !searchCompNm.isBlank()) {
+                effFt = "COMP_NM";
+                effKw = searchCompNm.trim();
+            }
+        }
+        if ("COMP_NM".equals(effFt) && effKw.isEmpty()) {
+            effFt = "ALL";
+        }
+        final String effFtFinal = effFt;
+        final String effKwFinal = effKw;
+        String statusGroup = searchStatusGroup != null && !searchStatusGroup.isBlank()
+                ? searchStatusGroup.trim().toUpperCase(Locale.ROOT) : "ALL";
+
+        final Set<String> merchantNameFilter;
+        if ("COMP_NM".equals(effFtFinal) && !effKwFinal.isEmpty()) {
+            Set<String> nm = new HashSet<>();
+            for (OrgUnit ou : orgUnitRepository.findByOrgLevelAndNameContainingIgnoreCase(OrgLevel.MERCHANT, effKwFinal)) {
+                if (ou.getCode() == null || ou.getCode().isBlank()) {
+                    continue;
+                }
+                String code = ou.getCode().trim();
+                if (allowedMerchantsContains(allowedMerchants, code)) {
+                    nm.add(code);
+                }
+            }
+            if (nm.isEmpty()) {
+                Map<String, Object> empty = new LinkedHashMap<>();
+                empty.put("list", List.of());
+                return ResponseEntity.ok(ApiResponse.ok(empty));
+            }
+            merchantNameFilter = nm;
+        } else {
+            merchantNameFilter = null;
+        }
+
+        FeeCurrencyRoundResolver feeResolver = resolveFeeCurrencyRoundResolver();
+        Map<String, Long> monthCbCountCache = new HashMap<>();
+        Map<Long, List<ChargebackFeeTier>> tiersByPolicyId = new HashMap<>();
+        Map<String, CommissionPolicy> polCache = new HashMap<>();
+        Sort sort = Sort.by(sortDirectionFromSearchOrderDir(searchOrderDir), "createdAt")
+                .and(Sort.by(sortDirectionFromSearchOrderDir(searchOrderDir), "trnId"));
+
+        List<Map<String, Object>> out = new ArrayList<>();
+        for (LocalDate d = effectiveTo; !d.isBefore(fromDate); d = d.minusDays(1)) {
+            LocalDateTime fromDt = d.atStartOfDay();
+            LocalDateTime toDt = d.atTime(LocalTime.MAX);
+            Specification<PgTrnsctn> specDay = feeListSpecification(allowedMerchants, fromDt, toDt, effFtFinal, effKwFinal,
+                    merchantNameFilter, statusGroup);
+            long txnCount = pgTrnsctnRepository.count(specDay);
+            long settledY = 0;
+            long settledN = 0;
+            Map<String, Double> sums = new LinkedHashMap<>();
+            for (String k : DAILY_FEE_SUM_NUMERIC_KEYS) {
+                sums.put(k, 0d);
+            }
+            Set<String> merchantIds = new HashSet<>();
+            boolean capped = false;
+            long scanned = 0;
+            for (int pageIdx = 0; pageIdx < DAILY_FEE_MAX_PAGES_PER_DAY; pageIdx++) {
+                Pageable pageable = PageRequest.of(pageIdx, DAILY_FEE_PAGE_SIZE, sort);
+                Page<PgTrnsctn> slice = pgTrnsctnRepository.findAll(specDay, pageable);
+                if (slice.isEmpty()) {
+                    break;
+                }
+                List<String> mids = slice.getContent().stream()
+                        .map(PgTrnsctn::getMerchantId)
+                        .filter(Objects::nonNull)
+                        .map(String::trim)
+                        .filter(s -> !s.isEmpty())
+                        .distinct()
+                        .collect(Collectors.toList());
+                Map<String, PayListRowContext> ctxByMerchant = mids.isEmpty()
+                        ? Collections.emptyMap()
+                        : payListService.buildPayListRowContextMap(mids);
+                for (PgTrnsctn t : slice.getContent()) {
+                    if (t.getMerchantId() == null || t.getMerchantId().isBlank()) {
+                        continue;
+                    }
+                    merchantIds.add(t.getMerchantId().trim());
+                    String yn = t.getSettledYn();
+                    if (yn != null && "Y".equalsIgnoreCase(yn.trim())) {
+                        settledY++;
+                    } else {
+                        settledN++;
+                    }
+                    Map<String, Object> row = buildFeeListRowMap(t, monthCbCountCache, tiersByPolicyId, ctxByMerchant, polCache, feeResolver);
+                    for (String key : DAILY_FEE_SUM_NUMERIC_KEYS) {
+                        Object v = row.get(key);
+                        if (v instanceof Number n) {
+                            sums.merge(key, n.doubleValue(), Double::sum);
+                        }
+                    }
+                }
+                scanned += slice.getNumberOfElements();
+                if (!slice.hasNext()) {
+                    break;
+                }
+                if (pageIdx + 1 >= DAILY_FEE_MAX_PAGES_PER_DAY) {
+                    capped = true;
+                    break;
+                }
+            }
+            String settlementStateLabel;
+            if (txnCount <= 0) {
+                settlementStateLabel = "—";
+            } else if (settledN == 0) {
+                settlementStateLabel = "정산완료";
+            } else if (settledY == 0) {
+                settlementStateLabel = "정산대기";
+            } else {
+                settlementStateLabel = "부분정산";
+            }
+            String expectedSettleDateLabel;
+            if (merchantIds.size() > 1) {
+                expectedSettleDateLabel = "복수가맹";
+            } else if (merchantIds.isEmpty()) {
+                expectedSettleDateLabel = "—";
+            } else {
+                String mid = merchantIds.iterator().next();
+                PayListRowContext ctx = payListService.buildPayListRowContextMap(List.of(mid)).get(mid);
+                String cycle = "";
+                if (ctx != null && ctx.getSettlement() != null && ctx.getSettlement().getCalcCycle() != null) {
+                    cycle = ctx.getSettlement().getCalcCycle().trim();
+                }
+                expectedSettleDateLabel = cycle.isEmpty() ? "—" : cycle;
+            }
+            Map<String, Object> one = new LinkedHashMap<>();
+            one.put("day", d.toString());
+            one.put("expectedSettleDateLabel", expectedSettleDateLabel);
+            one.put("txnCount", txnCount);
+            for (Map.Entry<String, Double> e : sums.entrySet()) {
+                one.put(e.getKey(), e.getValue());
+            }
+            one.put("settlementStateLabel", settlementStateLabel);
+            one.put("scannedRows", scanned);
+            one.put("capped", capped);
+            out.add(one);
+        }
+        Map<String, Object> payload = new LinkedHashMap<>();
+        payload.put("list", out);
+        Map<String, Object> meta = new LinkedHashMap<>();
+        meta.put("dailyFeeNote", "일자별 상세는 동일 조건으로 feeList 에 해당 일자만 지정해 조회합니다.");
+        payload.put("meta", meta);
+        PageResult<Map<String, Object>> prMeta = new PageResult<>();
+        attachFeeCurrencyMeta(prMeta);
+        if (prMeta.getMeta() != null) {
+            meta.putAll(prMeta.getMeta());
+        }
+        return ResponseEntity.ok(ApiResponse.ok(payload));
+    }
+
     private static void addFeeListStatusGroupPredicate(List<Predicate> parts,
                                                        CriteriaBuilder cb,
                                                        Root<PgTrnsctn> root,

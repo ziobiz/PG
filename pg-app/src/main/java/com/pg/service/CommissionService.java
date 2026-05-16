@@ -32,10 +32,12 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -90,7 +92,8 @@ public class CommissionService {
         return orgUnitRepository.findByCode(c).or(() -> orgUnitRepository.findByCodeIgnoreCase(c));
     }
 
-    public PageResult<Map<String, Object>> search(String searchCompId, String searchCompNm, String searchCompDiv, String useYn, int page, int size) {
+    public PageResult<Map<String, Object>> search(String searchCompId, String searchCompNm, String searchCompDiv,
+                                                  String searchPolicyCur, String useYn, int page, int size) {
         List<OrgUnit> all = orgUnitRepository.findAll(Sort.by(Sort.Direction.ASC, "code"));
         Map<Long, OrgUnit> orgById = all.stream()
                 .filter(o -> o.getId() != null)
@@ -99,6 +102,7 @@ public class CommissionService {
                 .filter(o -> o.getOrgLevel() == OrgLevel.MERCHANT)
                 .filter(o -> matchUseYn(o, useYn))
                 .filter(o -> matchCommissionSearchTarget(o, searchCompId, searchCompNm, searchCompDiv))
+                .filter(o -> matchCommissionPolicyOrBaseCurrency(o, searchPolicyCur))
                 .collect(Collectors.toList());
         int total = filtered.size();
         int start = (page - 1) * size;
@@ -541,6 +545,54 @@ public class CommissionService {
         return f.equals(resolveOrgUseYn(orgUnit));
     }
 
+    /**
+     * 적용 정책 통화(tb_commission_policy.currency_code) 또는 가맹 프로필 기준통화(CSV 가능)가 선택값과 같으면 통과.
+     */
+    private boolean matchCommissionPolicyOrBaseCurrency(OrgUnit merchant, String searchPolicyCurRaw) {
+        if (searchPolicyCurRaw == null || searchPolicyCurRaw.isBlank()) {
+            return true;
+        }
+        String want = PayListStatusBarBuckets.normalizeCurrency(searchPolicyCurRaw.trim());
+        if (want.isEmpty()) {
+            return true;
+        }
+        String mc = normCompCode(merchant);
+        CommissionPolicy policy = resolveCommissionPolicyForSettlement(mc);
+        if (policy != null && policy.getCurrencyCode() != null && !policy.getCurrencyCode().isBlank()) {
+            String polCur = PayListStatusBarBuckets.normalizeCurrency(policy.getCurrencyCode().trim());
+            if (want.equalsIgnoreCase(polCur)) {
+                return true;
+            }
+        }
+        for (String b : merchantBaseCurrencyAlphas(merchant)) {
+            if (want.equalsIgnoreCase(b)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private Set<String> merchantBaseCurrencyAlphas(OrgUnit merchant) {
+        Set<String> out = new HashSet<>();
+        if (merchant == null || merchant.getId() == null) {
+            return out;
+        }
+        merchantProfileRepository.findByOrgUnitId(merchant.getId()).ifPresent(mp -> {
+            String raw = mp.getBaseCurrency();
+            if (raw == null || raw.isBlank()) {
+                return;
+            }
+            for (String p : raw.split(",")) {
+                String t = p != null ? p.trim() : "";
+                if (t.isEmpty()) {
+                    continue;
+                }
+                out.add(PayListStatusBarBuckets.normalizeCurrency(t));
+            }
+        });
+        return out;
+    }
+
     private boolean matchCommissionSearchTarget(OrgUnit merchant, String searchCompId, String searchCompNm, String searchCompDiv) {
         String div = searchCompDiv != null ? searchCompDiv.trim().toUpperCase(Locale.ROOT) : "";
         if (div.isEmpty() || "MERCHANT".equals(div)) {
@@ -829,10 +881,6 @@ public class CommissionService {
                 .filter(o -> o.getId() != null)
                 .collect(Collectors.toMap(OrgUnit::getId, o -> o, (a, b) -> a));
 
-        Map<String, Object> live = new LinkedHashMap<>(buildCommissionRow(ou));
-        syncNamesFromCurrentOrgTree(live, ou, orgById);
-        refreshAncestorNamesByCode(live);
-
         List<CommissionHistory> asc = commissionHistoryRepository.findByCompIdIgnoreCaseOrderByCreatedAtAsc(c);
         if (asc.isEmpty()) {
             asc = commissionHistoryRepository.findAll(Sort.by(Sort.Direction.ASC, "createdAt")).stream()
@@ -845,19 +893,27 @@ public class CommissionService {
         int n = asc.size();
 
         if (n == 0) {
+            Map<String, Object> live = new LinkedHashMap<>(buildCommissionRow(ou));
+            syncNamesFromCurrentOrgTree(live, ou, orgById);
+            refreshAncestorNamesByCode(live);
             allRows.add(historyRowShell(inferCommissionEffectiveStart(ou), farFuture, "", live));
         } else {
             CommissionHistory newest = asc.get(n - 1);
             LocalDateTime tNew = newest.getCreatedAt() != null ? newest.getCreatedAt() : LocalDateTime.now();
             String byNew = newest.getChangedBy() != null ? newest.getChangedBy() : "";
-            allRows.add(historyRowShell(tNew, farFuture, byNew, live));
+            Map<String, Object> newestBody = copyHistorySnapshot(parseHistorySnapshotMap(newest));
+            ensureTotalNmCurrencyIfBlank(newestBody, ou);
+            syncNamesFromCurrentOrgTree(newestBody, ou, orgById);
+            refreshAncestorNamesByCode(newestBody);
+            allRows.add(historyRowShell(tNew, farFuture, byNew, newestBody));
 
             for (int idx = n - 2; idx >= 0; idx--) {
                 CommissionHistory h = asc.get(idx);
                 LocalDateTime start = h.getCreatedAt();
                 LocalDateTime end = asc.get(idx + 1).getCreatedAt();
-                Map<String, Object> snapBody = parseHistorySnapshotMap(h);
+                Map<String, Object> snapBody = copyHistorySnapshot(parseHistorySnapshotMap(h));
                 ensureTotalNmCurrencyIfBlank(snapBody, ou);
+                syncNamesFromCurrentOrgTree(snapBody, ou, orgById);
                 refreshAncestorNamesByCode(snapBody);
                 String by = h.getChangedBy() != null ? h.getChangedBy() : "";
                 allRows.add(historyRowShell(start, end, by, snapBody));
@@ -930,6 +986,14 @@ public class CommissionService {
         } catch (Exception ignored) {
         }
         return snap;
+    }
+
+    /** 이렉 행 간 Map 참조 공유 방지 — 표시용 복사본 */
+    private static LinkedHashMap<String, Object> copyHistorySnapshot(Map<String, Object> src) {
+        if (src == null || src.isEmpty()) {
+            return new LinkedHashMap<>();
+        }
+        return new LinkedHashMap<>(src);
     }
 
     private LocalDateTime inferCommissionEffectiveStart(OrgUnit ou) {

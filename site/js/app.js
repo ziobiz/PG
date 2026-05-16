@@ -1626,6 +1626,7 @@
     '/ops/opsMng': { label: '운영관리', parent: '운영관리' },
     '/ops/mailLog': { label: '메일로그', parent: '운영관리' },
     '/ops/taxReport': { label: 'TAX 리포트', parent: '운영관리' },
+    '/ops/integratedReport': { label: '통합 리포트', parent: '운영관리' },
     '/risk/list': { label: '리스크 현황', parent: '리스크관리' },
     '/deploy/integrationPlan': { label: '연동 진행안', parent: '배포설정' },
     '/deploy/jpayWorkPlan': { label: 'JPAY 단계 계획', parent: '배포설정' },
@@ -6528,6 +6529,414 @@
         }
       });
     };
+
+    /**
+     * 일간통합·일간결제·일별수수료: 상단 일자별 집계 + 클릭 시 하단 상세(동일 API, 해당 일만).
+     */
+    function renderPgDailySummaryScreen(p, tid, url, params, data, cfg, dimm) {
+      if (dimm) dimm.style.display = 'none';
+      var api = window.PG_API;
+      var kind = (cfg && cfg.dailySummaryKind) ? String(cfg.dailySummaryKind) : 'pay';
+      var list = (data && data.list) ? data.list : [];
+      var table = p.querySelector('#grid_' + tid);
+      if (!table) return;
+      var tbody = table.querySelector('tbody');
+      var theadRow = table.querySelector('thead tr');
+      var cols = (cfg && cfg.columns) ? cfg.columns : [];
+      function esc(s) {
+        return (typeof window.pgAdminEscHtml === 'function') ? window.pgAdminEscHtml(String(s)) : String(s);
+      }
+      function escAttr(s) {
+        return String(s).replace(/&/g, '&amp;').replace(/"/g, '&quot;');
+      }
+      function bucketCount(row, bucketKey) {
+        if (row.statusBucketCounts && row.statusBucketCounts[bucketKey] != null) {
+          return row.statusBucketCounts[bucketKey];
+        }
+        var bar = row.meta && row.meta.payListStatusBar;
+        if (bar && bar.buckets) {
+          for (var bi = 0; bi < bar.buckets.length; bi++) {
+            var b = bar.buckets[bi];
+            if (b && b.key === bucketKey) return b.count != null ? b.count : 0;
+          }
+        }
+        return 0;
+      }
+      function paymentAmountTd(fin, currencyCode) {
+        fin = fin || {};
+        var map = fin.paymentByCurrency || {};
+        var code = String(currencyCode || '').toUpperCase();
+        var raw = null;
+        if (Object.prototype.hasOwnProperty.call(map, code)) {
+          raw = map[code];
+        } else {
+          Object.keys(map).forEach(function (k) {
+            if (raw != null) return;
+            if (String(k).toUpperCase() === code) raw = map[k];
+          });
+        }
+        if (raw == null || String(raw).trim() === '') {
+          return '<td class="text-end text-nowrap small"><span class="text-muted">' + esc('—') + '</span></td>';
+        }
+        return '<td class="text-end text-nowrap small">' + formatPayListStatusAmount(code, raw) + '</td>';
+      }
+      function feeNumTd(v) {
+        if (v == null || v === '') {
+          return '<td class="text-end text-nowrap"><span class="text-muted">' + esc('—') + '</span></td>';
+        }
+        var n = Number(v);
+        if (isNaN(n)) return '<td class="text-end text-nowrap">' + esc(String(v)) + '</td>';
+        return '<td class="text-end text-nowrap">' + esc(n.toLocaleString('de-DE', { minimumFractionDigits: 0, maximumFractionDigits: 4 })) + '</td>';
+      }
+      function dailySummaryTdForCol(col, row, day, kindLocal, fin, metaFin, te, err) {
+        if (col.statusBucketKey) {
+          return '<td class="text-end">' + esc(bucketCount(row, col.statusBucketKey)) + '</td>';
+        }
+        if (col.currencyCode) {
+          var srcFin = kindLocal === 'chill' ? metaFin : fin;
+          return paymentAmountTd(srcFin, col.currencyCode);
+        }
+        var k = col.key;
+        if (k === 'day') return '<td class="text-nowrap">' + esc(day) + '</td>';
+        if (k === 'txnCount') return '<td class="text-end">' + esc(row.txnCount != null ? row.txnCount : 0) + '</td>';
+        if (k === 'totalElements') return '<td class="text-end">' + esc(te != null ? te : 0) + '</td>';
+        if (k === 'successCount') {
+          var sc0 = fin && fin.successCount != null ? fin.successCount : 0;
+          return '<td class="text-end">' + esc(sc0) + '</td>';
+        }
+        if (k === 'note') return '<td class="text-muted small">' + esc(err || ' ') + '</td>';
+        if (k === 'settlementStateLabel' || k === 'expectedSettleDateLabel') {
+          return '<td class="text-nowrap">' + esc(row[k] != null ? String(row[k]) : '') + '</td>';
+        }
+        if (kindLocal === 'fee' && k) return feeNumTd(row[k]);
+        return '<td></td>';
+      }
+      if (theadRow && cols.length) {
+        theadRow.innerHTML = cols.map(function (c) {
+          return '<th class="text-nowrap">' + esc(String(c.label != null ? c.label : c.key)) + '</th>';
+        }).join('');
+      }
+      var rowsHtml = list.map(function (row) {
+        var day = row.day != null ? String(row.day) : '';
+        if (kind === 'chill') {
+          var teCh = row.totalElements != null ? row.totalElements : 0;
+          var metaFinCh = row.meta && row.meta.payListFinancialSummary ? row.meta.payListFinancialSummary : null;
+          var errCh = row.note ? String(row.note) : (row.error ? String(row.error) : '');
+          var cellsCh = cols.map(function (col) {
+            return dailySummaryTdForCol(col, row, day, 'chill', null, metaFinCh, teCh, errCh);
+          }).join('');
+          return '<tr class="daily-master-row" data-day="' + escAttr(day) + '" style="cursor:pointer">' + cellsCh + '</tr>';
+        }
+        if (kind === 'fee') {
+          var cellsFee = cols.map(function (col) {
+            return dailySummaryTdForCol(col, row, day, 'fee', null, null, null, '');
+          }).join('');
+          return '<tr class="daily-master-row" data-day="' + escAttr(day) + '" style="cursor:pointer">' + cellsFee + '</tr>';
+        }
+        var finPay = row.payListFinancialSummary || {};
+        var cellsPay = cols.map(function (col) {
+          return dailySummaryTdForCol(col, row, day, 'pay', finPay, null, null, '');
+        }).join('');
+        return '<tr class="daily-master-row" data-day="' + escAttr(day) + '" style="cursor:pointer">' + cellsPay + '</tr>';
+      }).join('');
+      var colSpan = cols.length || 4;
+      tbody.innerHTML = rowsHtml || ('<tr><td colspan="' + colSpan + '" class="text-center text-muted">' + esc('데이터 없음') + '</td></tr>');
+      try {
+        if (typeof injectTableRowResizeHandles === 'function') injectTableRowResizeHandles(tbody, colSpan);
+      } catch (eCol) { /* ignore */ }
+
+      var oldW = p.querySelector('#dailyDetailWrap_' + tid);
+      if (oldW) oldW.remove();
+      var wrap = document.createElement('div');
+      wrap.id = 'dailyDetailWrap_' + tid;
+      wrap.className = 'mt-3';
+      wrap.innerHTML = '<div class="fw-semibold mb-2 small text-secondary">' + esc('선택 일자 상세') + '</div>' +
+        '<div class="table-responsive"><table class="table table-sm table-bordered" id="grid_' + tid + '_detail">' +
+        '<thead><tr id="dailyDetailHead_' + tid + '"><th>…</th></tr></thead><tbody><tr><td class="text-center text-muted py-3">' + esc('위에서 일자를 클릭하세요.') + '</td></tr></tbody></table></div>';
+      var tableWrap = table.closest('.table-responsive');
+      if (tableWrap && tableWrap.parentNode) {
+        tableWrap.parentNode.insertBefore(wrap, tableWrap.nextSibling);
+      } else if (p) {
+        p.appendChild(wrap);
+      }
+
+      function renderDetailTable(rows, keys, labels) {
+        var det = p.querySelector('#grid_' + tid + '_detail');
+        if (!det) return;
+        var htr = det.querySelector('#dailyDetailHead_' + tid);
+        var bdy = det.querySelector('tbody');
+        if (htr) {
+          htr.innerHTML = keys.map(function (k, i) {
+            return '<th class="text-nowrap">' + esc(labels[i] || k) + '</th>';
+          }).join('');
+        }
+        if (!rows || !rows.length) {
+          bdy.innerHTML = '<tr><td colspan="' + keys.length + '" class="text-center text-muted py-2">' + esc('데이터 없음') + '</td></tr>';
+          return;
+        }
+        bdy.innerHTML = rows.map(function (r) {
+          return '<tr>' + keys.map(function (k) {
+            var v = r[k];
+            if (v == null) v = '';
+            return '<td>' + esc(String(v)) + '</td>';
+          }).join('') + '</tr>';
+        }).join('');
+        try {
+          if (typeof injectTableRowResizeHandles === 'function') injectTableRowResizeHandles(bdy, keys.length);
+        } catch (e2) { /* ignore */ }
+      }
+
+      function loadDay(day) {
+        if (!day || !api) return;
+        var dparams = {};
+        if (params) {
+          for (var pk in params) {
+            if (Object.prototype.hasOwnProperty.call(params, pk)) dparams[pk] = params[pk];
+          }
+        }
+        dparams.searchFromDate = day;
+        dparams.searchToDate = day;
+        dparams.page = 1;
+        dparams.size = 50;
+        var detBody = p.querySelector('#grid_' + tid + '_detail tbody');
+        if (detBody) detBody.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-2">' + esc('불러오는 중…') + '</td></tr>';
+        if (kind === 'chill') {
+          api.chillPayTrSearch(dparams).then(function (d2) {
+            var rows = (d2 && d2.list) ? d2.list : [];
+            renderDetailTable(rows,
+              ['rowNo', 'transactionId', 'compId', 'compNm', 'amount', 'status'],
+              ['번호', '승인번호', '업체코드', '업체명', '금액', '상태']);
+          }).catch(function () {
+            if (detBody) detBody.innerHTML = '<tr><td colspan="6" class="text-center text-danger py-2">' + esc('상세 조회 실패') + '</td></tr>';
+          });
+        } else if (kind === 'fee') {
+          api.settlementFeeList(dparams).then(function (d2) {
+            var rows = (d2 && d2.list) ? d2.list : [];
+            renderDetailTable(rows,
+              ['rowNo', 'compId', 'compNm', 'trnDate', 'totalFee', 'settlementAmt', 'settlementStateLabel'],
+              ['번호', '업체코드', '업체명', '거래일', '총수수료', '정산액', '정산유무']);
+          }).catch(function () {
+            if (detBody) detBody.innerHTML = '<tr><td colspan="7" class="text-center text-danger py-2">' + esc('상세 조회 실패') + '</td></tr>';
+          });
+        } else {
+          dparams.payListVariant = (cfg && cfg.detailPayListVariant) ? cfg.detailPayListVariant : 'INTEGRATED';
+          api.payList(dparams).then(function (d2) {
+            var rows = (d2 && d2.list) ? d2.list : [];
+            renderDetailTable(rows,
+              ['rowNo', 'compId', 'compNm', 'trnDate', 'amount', 'statusNm'],
+              ['번호', '업체코드', '업체명', '거래일', '금액', '상태']);
+          }).catch(function () {
+            if (detBody) detBody.innerHTML = '<tr><td colspan="6" class="text-center text-danger py-2">' + esc('상세 조회 실패') + '</td></tr>';
+          });
+        }
+      }
+
+      if (!p._dailySummaryClickBound) {
+        p._dailySummaryClickBound = true;
+        p.addEventListener('click', function (ev) {
+          var tr = ev.target && ev.target.closest ? ev.target.closest('tr.daily-master-row') : null;
+          if (!tr || !p.contains(tr)) return;
+          var day = tr.getAttribute('data-day');
+          if (!day) return;
+          loadDay(day);
+        });
+      }
+
+      var cntEl = p.querySelector('#summary_건수, .summary-count, [data-summary="건수"]');
+      if (cntEl) {
+        var pref1 = (window.PG_PAY_LIST_I18N && typeof window.PG_PAY_LIST_I18N.summaryCountPrefix === 'function')
+          ? window.PG_PAY_LIST_I18N.summaryCountPrefix() : '건수: ';
+        cntEl.textContent = pref1 + list.length;
+      }
+      try {
+        if (window.PG_TABLE_COL_RESIZE && typeof window.PG_TABLE_COL_RESIZE.refreshIn === 'function') {
+          window.PG_TABLE_COL_RESIZE.refreshIn(p);
+        }
+      } catch (eR) { /* ignore */ }
+    }
+
+    /** 운영관리 — 통합 리포트: 일자별 넓은 표 + 일자 클릭 시 통합 결제내역 하단 */
+    function renderOpsIntegratedReportScreen(p, tid, url, params, data, cfg, dimm) {
+      if (dimm) dimm.style.display = 'none';
+      var list = (data && data.list) ? data.list : [];
+      var table = p.querySelector('#grid_' + tid);
+      if (!table) return;
+      var thead = table.querySelector('thead');
+      var tbody = table.querySelector('tbody');
+      if (!thead || !tbody) return;
+      function esc(s) {
+        return (typeof window.pgAdminEscHtml === 'function') ? window.pgAdminEscHtml(String(s)) : String(s);
+      }
+      function uiT(s) {
+        return (typeof pgAdminUiT === 'function') ? pgAdminUiT(s) : s;
+      }
+      function numCell(v, extraCls) {
+        var c = extraCls ? (' ' + extraCls) : '';
+        if (v == null || v === '') return '<td class="text-end text-nowrap integrated-report-cell--money' + c + '"> </td>';
+        return '<td class="text-end text-nowrap integrated-report-cell--money' + c + '">' + esc(v) + '</td>';
+      }
+      function findMerchant(mList, compId) {
+        for (var i = 0; i < (mList || []).length; i++) {
+          if (String((mList[i] || {}).compId || '') === String(compId)) return mList[i];
+        }
+        return null;
+      }
+      var BUCKET_LABEL = {
+        SUCCESS: uiT('성공'),
+        CANCEL: uiT('취소'),
+        FAIL: uiT('실패'),
+        VOID: uiT('무효'),
+        EMAIL_VOID: uiT('이메일무효'),
+        REFUND: uiT('환불'),
+        FORCE_REFUND: uiT('강제환불')
+      };
+      var BUCKET_KEYS = ['SUCCESS', 'CANCEL', 'FAIL', 'VOID', 'EMAIL_VOID', 'REFUND', 'FORCE_REFUND'];
+      var allMidsSet = {};
+      list.forEach(function (row) {
+        (row.merchants || []).forEach(function (m) {
+          if (m && m.compId) allMidsSet[String(m.compId)] = 1;
+        });
+      });
+      var globalMerchants = Object.keys(allMidsSet).sort();
+      var nameByMid = {};
+      list.forEach(function (row) {
+        (row.merchants || []).forEach(function (m) {
+          if (m && m.compId && nameByMid[m.compId] == null) nameByMid[m.compId] = m.compNm || '';
+        });
+      });
+      var h1 = [];
+      var h2 = [];
+      h1.push('<th rowspan="2" class="text-nowrap integrated-report-th--base">' + esc(uiT('일자')) + '</th>');
+      h1.push('<th rowspan="2" class="text-end text-nowrap integrated-report-th--base">' + esc(uiT('총결제액')) + '</th>');
+      h1.push('<th rowspan="2" class="text-end text-nowrap integrated-report-th--base">' + esc(uiT('총수수료')) + '</th>');
+      h1.push('<th rowspan="2" class="text-end text-nowrap integrated-report-th--base">' + esc(uiT('보증금액')) + '</th>');
+      h1.push('<th rowspan="2" class="text-end text-nowrap integrated-report-th--base">' + esc('VAT') + '</th>');
+      h1.push('<th rowspan="2" class="text-nowrap integrated-report-th--base">' + esc(uiT('결제주기')) + '</th>');
+      h1.push('<th rowspan="2" class="text-end text-nowrap integrated-report-th--base">' + esc(uiT('총거래건수')) + '</th>');
+      BUCKET_KEYS.forEach(function (bk) {
+        h1.push('<th colspan="2" class="text-center text-nowrap integrated-report-th--' + bk + '">' + esc(BUCKET_LABEL[bk] || bk) + '</th>');
+        h2.push('<th class="text-end text-nowrap small">' + esc(uiT('금액')) + '</th>');
+        h2.push('<th class="text-end text-nowrap small">' + esc(uiT('건수')) + '</th>');
+      });
+      globalMerchants.forEach(function (mid) {
+        var nm = nameByMid[mid] || '';
+        var merchCls = (globalMerchants.indexOf(mid) % 2 === 0) ? 'even' : 'odd';
+        h1.push('<th colspan="4" class="text-center text-nowrap integrated-report-merch--' + merchCls + '">' + esc(nm) +
+          '<div class="small text-muted fw-normal d-block">' + esc(mid) + '</div></th>');
+      });
+      globalMerchants.forEach(function (mid) {
+        var merchCls = (globalMerchants.indexOf(mid) % 2 === 0) ? 'even' : 'odd';
+        h2.push('<th class="text-end text-nowrap small integrated-report-merch--' + merchCls + '">' + esc(uiT('수수료(변동·% / 건당)')) + '</th>');
+        h2.push('<th class="text-end text-nowrap small integrated-report-merch--' + merchCls + '">' + esc(uiT('총건수')) + '</th>');
+        h2.push('<th class="text-end text-nowrap small integrated-report-merch--' + merchCls + '">' + esc(uiT('성공건수')) + '</th>');
+        h2.push('<th class="text-end text-nowrap small integrated-report-merch--' + merchCls + '">' + esc(uiT('총금액')) + '</th>');
+      });
+      thead.innerHTML = '<tr>' + h1.join('') + '</tr><tr>' + h2.join('') + '</tr>';
+      var rowsHtml = list.map(function (row) {
+        var bucketMap = {};
+        (row.buckets || []).forEach(function (b) {
+          if (b && b.bucket) bucketMap[b.bucket] = b;
+        });
+        var tds = [];
+        tds.push('<td class="text-nowrap integrated-report-td--base">' + esc(row.day) + '</td>');
+        tds.push(numCell(row.totalPayment, 'integrated-report-td--base'));
+        tds.push(numCell(row.totalFeeExVat, 'integrated-report-td--base'));
+        tds.push(numCell(row.depositAmount, 'integrated-report-td--base'));
+        tds.push(numCell(row.vat, 'integrated-report-td--base'));
+        tds.push('<td class="text-nowrap integrated-report-td--base">' + esc(row.payCycleLabel != null ? row.payCycleLabel : '') + '</td>');
+        tds.push(numCell(row.totalTxnCount, 'integrated-report-td--base'));
+        BUCKET_KEYS.forEach(function (bk) {
+          var b = bucketMap[bk] || { amount: '', count: '' };
+          tds.push(numCell(b.amount, 'integrated-report-td--' + bk));
+          tds.push(numCell(b.count, 'integrated-report-td--' + bk));
+        });
+        globalMerchants.forEach(function (mid) {
+          var m = findMerchant(row.merchants, mid);
+          var merchCls = (globalMerchants.indexOf(mid) % 2 === 0) ? 'even' : 'odd';
+          if (!m) {
+            tds.push('<td class="integrated-report-merch--' + merchCls + '"></td><td class="integrated-report-merch--' + merchCls + '"></td>' +
+              '<td class="integrated-report-merch--' + merchCls + '"></td><td class="integrated-report-merch--' + merchCls + '"></td>');
+          } else {
+            var feeStr = (m.feeVariable != null ? String(m.feeVariable) : '') + ' / ' + (m.feePerTxn != null ? String(m.feePerTxn) : '');
+            tds.push('<td class="text-end text-nowrap small integrated-report-merch--' + merchCls + '">' + esc(feeStr) + '</td>');
+            tds.push(numCell(m.txnCount, 'integrated-report-merch--' + merchCls));
+            tds.push(numCell(m.successCount, 'integrated-report-merch--' + merchCls));
+            tds.push(numCell(m.totalAmount, 'integrated-report-merch--' + merchCls));
+          }
+        });
+        return '<tr class="integrated-report-day-row" data-day="' + String(row.day || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;') + '" style="cursor:pointer">' + tds.join('') + '</tr>';
+      }).join('');
+      tbody.innerHTML = rowsHtml || ('<tr><td colspan="99" class="text-center text-muted">' + esc(uiT('데이터 없음')) + '</td></tr>');
+      var detHost = p.querySelector('#integratedReportDetail_' + tid);
+      if (detHost) {
+        detHost.innerHTML = '<div class="fw-semibold mb-2 small text-secondary">' + esc(uiT('선택 일자 상세 (통합 결제내역)')) + '</div>' +
+          '<div class="table-responsive"><table class="table table-sm table-bordered" id="grid_' + tid + '_detail">' +
+          '<thead><tr><th class="text-muted">…</th></tr></thead><tbody><tr><td class="text-center text-muted py-3">' +
+          esc(uiT('위에서 일자를 클릭하세요.')) + '</td></tr></tbody></table></div>';
+      }
+      if (!p._integratedReportClickBound) {
+        p._integratedReportClickBound = true;
+        p.addEventListener('click', function (ev) {
+          var tr = ev.target && ev.target.closest ? ev.target.closest('tr.integrated-report-day-row') : null;
+          if (!tr || !p.contains(tr)) return;
+          var day = tr.getAttribute('data-day');
+          if (!day || !window.PG_API || !window.PG_API.payList) return;
+          var dparams = {};
+          if (params) {
+            for (var k in params) {
+              if (Object.prototype.hasOwnProperty.call(params, k)) dparams[k] = params[k];
+            }
+          }
+          dparams.searchFromDate = day;
+          dparams.searchToDate = day;
+          dparams.page = 1;
+          dparams.size = 50;
+          dparams.payListVariant = 'INTEGRATED';
+          var detTb = p.querySelector('#grid_' + tid + '_detail tbody');
+          if (detTb) {
+            detTb.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-2">' + esc(uiT('불러오는 중…')) + '</td></tr>';
+          }
+          window.PG_API.payList(dparams).then(function (d2) {
+            var rows = (d2 && d2.list) ? d2.list : [];
+            var detTable = p.querySelector('#grid_' + tid + '_detail');
+            if (!detTable) return;
+            var htr = detTable.querySelector('thead tr');
+            if (htr) {
+              htr.innerHTML = '<th class="text-nowrap">' + esc(uiT('번호')) + '</th><th class="text-nowrap">' + esc(uiT('업체코드')) + '</th>' +
+                '<th class="text-nowrap">' + esc(uiT('업체명')) + '</th><th class="text-nowrap">' + esc(uiT('거래일')) + '</th>' +
+                '<th class="text-end">' + esc(uiT('금액')) + '</th><th class="text-nowrap">' + esc(uiT('상태')) + '</th>';
+            }
+            var bdy = detTable.querySelector('tbody');
+            if (!bdy) return;
+            if (!rows.length) {
+              bdy.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-2">' + esc(uiT('데이터 없음')) + '</td></tr>';
+              return;
+            }
+            bdy.innerHTML = rows.map(function (r) {
+              return '<tr><td>' + esc(r.rowNo != null ? r.rowNo : '') + '</td><td>' + esc(r.compId || '') + '</td><td>' + esc(r.compNm || '') + '</td>' +
+                '<td>' + esc(r.trnDate || '') + '</td><td class="text-end">' + esc(r.amount != null ? r.amount : '') + '</td><td>' + esc(r.statusNm || r.status || '') + '</td></tr>';
+            }).join('');
+          }).catch(function () {
+            var detErr = p.querySelector('#grid_' + tid + '_detail tbody');
+            if (detErr) detErr.innerHTML = '<tr><td colspan="6" class="text-center text-danger py-2">' + esc(uiT('상세 조회 실패')) + '</td></tr>';
+          });
+        });
+      }
+      p._integratedReportLastData = { list: list, params: params, meta: data && data.meta ? data.meta : null };
+      var cntEl = p.querySelector('#summary_건수, .summary-count, [data-summary="건수"]');
+      if (cntEl) {
+        var pref1 = (window.PG_PAY_LIST_I18N && typeof window.PG_PAY_LIST_I18N.summaryCountPrefix === 'function')
+          ? window.PG_PAY_LIST_I18N.summaryCountPrefix() : uiT('건수') + ': ';
+        cntEl.textContent = pref1 + list.length;
+      }
+      if (data && data.meta) updatePayListAggregateBars(p, tid, data.meta);
+      try {
+        if (window.PG_TABLE_COL_RESIZE && typeof window.PG_TABLE_COL_RESIZE.refreshIn === 'function') {
+          window.PG_TABLE_COL_RESIZE.refreshIn(p);
+        }
+      } catch (eIr) { /* ignore */ }
+    }
+
     function doSearch(p, tid, pageOverride) {
       /** 서버 ISO(…T…) → 화면에 숫자 날짜·시각이 보이도록 T를 공백으로 (YYYY-MM-DD 그대로 유지). */
       function isoLocalDisplay(val) {
@@ -6558,11 +6967,13 @@
         p.classList.toggle('screen-distribution-list', url === '/calc/calcList' || url === '/settlement/distributionList');
         p.classList.toggle('screen-user-mng', url === '/user/userMng');
         p.classList.toggle('screen-tax-report', url === '/ops/taxReport');
+        p.classList.toggle('screen-ops-integrated-report', url === '/ops/integratedReport');
       }
       try {
         var ci = document.querySelector('.content-inner');
         if (ci && ci.classList) {
           ci.classList.toggle('content-inner--tax-report', url === '/ops/taxReport');
+          ci.classList.toggle('content-inner--ops-integrated-report', url === '/ops/integratedReport');
         }
       } catch (eCiTax) {}
       var cfg = window.PG_SCREENS && window.PG_SCREENS.getMenuScreens && window.PG_SCREENS.getMenuScreens()[url];
@@ -6672,7 +7083,7 @@
         }
         return;
       }
-      if (!cfg || ((!cfg.columns || cfg.columns.length === 0) && !cfg.columnsBySub && !cfg.columnsRegionalPayout && !cfg.orgPagePermissionMatrix)) return;
+      if (!cfg || ((!cfg.columns || cfg.columns.length === 0) && !cfg.columnsBySub && !cfg.columnsRegionalPayout && !cfg.orgPagePermissionMatrix && !cfg.opsIntegratedReportScreen)) return;
       if (p._payListMergedCfg && cfg.payListVariant) {
         cfg = p._payListMergedCfg;
       }
@@ -6708,6 +7119,49 @@
       if (cfg.payListVariant) params.payListVariant = cfg.payListVariant;
       p.setAttribute('data-last-url', url);
       p.setAttribute('data-last-page', String(params.page));
+      if (cfg && cfg.isOpsIntegratedReport) {
+        try {
+          var tbPreIr = p.querySelector('#grid_' + tid + ' tbody');
+          if (tbPreIr) {
+            var loadMsgIr = (typeof pgAdminUiT === 'function') ? pgAdminUiT('불러오는 중…') : '불러오는 중…';
+            tbPreIr.innerHTML = '<tr><td colspan="40" class="text-center text-muted py-3">' +
+              (typeof window.pgAdminEscHtml === 'function' ? window.pgAdminEscHtml(String(loadMsgIr)) : String(loadMsgIr)) + '</td></tr>';
+          }
+        } catch (ePreIr) { /* ignore */ }
+      }
+      if (cfg && cfg.isDailySummaryScreen && !p._defaultDailyFeeWeekApplied && url === '/calc/dailyFee') {
+        try {
+          var dFee = new Date();
+          if (!isNaN(dFee.getTime())) {
+            var yDf = String(dFee.getFullYear());
+            var mDf = String(dFee.getMonth() + 1).padStart(2, '0');
+            var ddDf = String(dFee.getDate()).padStart(2, '0');
+            var todayDf = yDf + '-' + mDf + '-' + ddDf;
+            var fromDf = new Date(dFee.getTime());
+            fromDf.setDate(fromDf.getDate() - 6);
+            var yF = String(fromDf.getFullYear());
+            var mF = String(fromDf.getMonth() + 1).padStart(2, '0');
+            var ddF = String(fromDf.getDate()).padStart(2, '0');
+            var fromIsoDf = yF + '-' + mF + '-' + ddF;
+            var dfEl = p.querySelector('#searchFromDate');
+            var dtEl = p.querySelector('#searchToDate');
+            if (dfEl) dfEl.value = fromIsoDf;
+            if (dtEl) dtEl.value = todayDf;
+          }
+          p._defaultDailyFeeWeekApplied = true;
+        } catch (eDfDt) { /* ignore */ }
+      }
+      if (cfg && cfg.isDailySummaryScreen) {
+        try {
+          var tbPreDs = p.querySelector('#grid_' + tid + ' tbody');
+          var colPre = (cfg.columns && cfg.columns.length) ? cfg.columns.length : 8;
+          if (tbPreDs) {
+            var loadMsgDs = (typeof pgAdminUiT === 'function') ? pgAdminUiT('불러오는 중…') : '불러오는 중…';
+            tbPreDs.innerHTML = '<tr><td colspan="' + colPre + '" class="text-center text-muted py-3">' +
+              (typeof window.pgAdminEscHtml === 'function' ? window.pgAdminEscHtml(String(loadMsgDs)) : String(loadMsgDs)) + '</td></tr>';
+          }
+        } catch (ePreDs) { /* ignore */ }
+      }
       var dimm = document.getElementById('dimm');
       if (dimm) dimm.style.display = 'flex';
       var promise = null;
@@ -6759,6 +7213,10 @@
       else if (url === '/risk/list') promise = Promise.resolve({ list: [], totalElements: 0, totalPages: 1, page: params.page || 1, size: params.size || 20 });
       else if (url === '/ops/mailLog') promise = api.opsMailLogList(params);
       else if (url === '/ops/taxReport') promise = api.opsTaxReportList(params);
+      else if (url === '/ops/integratedReport') promise = api.opsIntegratedReportDaily(params);
+      else if (url === '/calc/dailyIntegrated') promise = api.dailyChillIntegratedSummary(params);
+      else if (url === '/calc/dailyPay') promise = api.dailyPaySummary(params);
+      else if (url === '/calc/dailyFee') promise = api.dailyFeeSummary(params);
       if (!promise) {
         if (dimm) dimm.style.display = 'none';
         p._lastGridList = [];
@@ -6766,10 +7224,11 @@
         var tbody = p.querySelector('#grid_' + tid + ' tbody');
         var rk0 = params.searchReportKind || 'MERCHANT_STMT';
         var sub0 = params.searchReportSub || 'AGG';
-        var emptyCols = (cfg.columns && cfg.columns.length) ? cfg.columns.length
-          : (rk0 === 'REGIONAL_PAYOUT' && cfg.columnsRegionalPayout && cfg.columnsRegionalPayout[sub0] ? cfg.columnsRegionalPayout[sub0].length
-            : (cfg.columnsBySub && cfg.columnsBySub[sub0] ? cfg.columnsBySub[sub0].length
-              : (cfg.columnsBySub && cfg.columnsBySub.AGG ? cfg.columnsBySub.AGG.length : 8)));
+        var emptyCols = (url === '/ops/integratedReport' && cfg && cfg.isOpsIntegratedReport) ? 40
+          : ((cfg.columns && cfg.columns.length) ? cfg.columns.length
+            : (rk0 === 'REGIONAL_PAYOUT' && cfg.columnsRegionalPayout && cfg.columnsRegionalPayout[sub0] ? cfg.columnsRegionalPayout[sub0].length
+              : (cfg.columnsBySub && cfg.columnsBySub[sub0] ? cfg.columnsBySub[sub0].length
+                : (cfg.columnsBySub && cfg.columnsBySub.AGG ? cfg.columnsBySub.AGG.length : 8))));
         if (tbody) {
           tbody.innerHTML = '<tr><td colspan="' + emptyCols + '" class="empty-state-cell text-center text-muted">' + pgAdminEscHtml(pgAdminUiT('조회된 데이터가 없습니다.')) + '</td></tr>';
         }
@@ -6788,6 +7247,14 @@
       promise.then(function (data) {
         var feeFmtByCur = data && data.meta && data.meta.feeCurrencyFormatByCur ? data.meta.feeCurrencyFormatByCur : null;
         if (p) p._feeCurrencyFormatByCur = feeFmtByCur;
+        if (cfg && cfg.isOpsIntegratedReport) {
+          renderOpsIntegratedReportScreen(p, tid, url, params, data, cfg, dimm);
+          return;
+        }
+        if (cfg && cfg.isDailySummaryScreen) {
+          renderPgDailySummaryScreen(p, tid, url, params, data, cfg, dimm);
+          return;
+        }
         if (url === '/hq/accountMng') {
           p._hqAccountAccessUsers = Array.isArray(data && data.users) ? data.users : [];
           p._hqAccountAccessComps = Array.isArray(data && data.comps) ? data.comps : [];
@@ -8015,9 +8482,10 @@
         p._lastGridCols = null;
         var tbody = p.querySelector('#grid_' + tid + ' tbody');
         var rkErr = params.searchReportKind || 'MERCHANT_STMT';
-        var colFallback = (cfg.columns && cfg.columns.length) ? cfg.columns.length
-          : (rkErr === 'REGIONAL_PAYOUT' && cfg.columnsRegionalPayout && cfg.columnsRegionalPayout.AGG ? cfg.columnsRegionalPayout.AGG.length
-            : (cfg.columnsBySub && cfg.columnsBySub.AGG ? cfg.columnsBySub.AGG.length : 8));
+        var colFallback = (url === '/ops/integratedReport' && cfg && cfg.isOpsIntegratedReport) ? 40
+          : ((cfg.columns && cfg.columns.length) ? cfg.columns.length
+            : (rkErr === 'REGIONAL_PAYOUT' && cfg.columnsRegionalPayout && cfg.columnsRegionalPayout.AGG ? cfg.columnsRegionalPayout.AGG.length
+              : (cfg.columnsBySub && cfg.columnsBySub.AGG ? cfg.columnsBySub.AGG.length : 8)));
         if (tbody) {
           var errRaw = err && err.message ? String(err.message).trim() : '';
           var errDisp = errRaw ? pgAdminUiT(errRaw) : pgAdminUiT('조회 실패');
@@ -8599,7 +9067,8 @@
       '/user/userMng', '/set/gridSetMng',
       '/calc/calcList', '/calc/calcGmList', '/calc/paySettlementHoldList', '/settlement/paySettlementHoldList', '/settlement/franchiseList', '/calc/feeList', '/settlement/feeList', '/calc/compPointMngList', '/settlement/recallMng', '/calc/balanceList', '/calc/unpaidMng', '/calc/exCalcList', '/settlement/execute', '/settlement/settlementResultDistribute', '/settlement/settlementResultHold', '/calc/collateralList', '/settlement/collateralList',
       '/noti/notiUrlMng', '/noti/notiSendMngList', '/noti/notiCashReceiptUrlMng', '/noti/notiCashReceiptSendMngList',
-      '/hq/pgApiMng', '/hq/permissionMng', '/hq/accountMng', '/risk/list'];
+      '/hq/pgApiMng', '/hq/permissionMng', '/hq/accountMng', '/risk/list', '/ops/integratedReport',
+      '/calc/dailyIntegrated', '/calc/dailyPay', '/calc/dailyFee'];
     function applySettlementReportAccessThenSearch() {
       function runSearch() {
         ensureStandardSearchDaterangeYesterdayToToday(pane);

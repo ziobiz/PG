@@ -10,6 +10,7 @@
         { "label": "차지백설정", "url": "/hq/chargebackPolicy", "menuId": "M0117" },
         { "label": "영업일설정", "url": "/hq/businessDaySetting", "menuId": "M0109" },
         { "label": "본사권한설정", "url": "/hq/permissionMng", "menuId": "M0104" },
+        { "label": "태블릿설정", "url": "/hq/opsModeMng", "menuId": "M0127" },
         { "label": "사용자설정", "url": "/hq/userSettings", "menuId": "M0120" },
         { "label": "업체접근설정", "url": "/hq/accountMng", "menuId": "M0106" },
         { "label": "조직항목설정", "url": "/hq/orgViewColumnAllowance", "menuId": "M0108" },
@@ -44,7 +45,9 @@
       "icon": "bi-credit-card",
       "children": [
         { "label": "통합내역", "url": "/calc/chillPayTrList", "menuId": "M0319" },
+        { "label": "일별통합", "url": "/calc/dailyIntegrated", "menuId": "M0326" },
         { "label": "결제내역", "url": "/calc/payList", "menuId": "M0301" },
+        { "label": "일별결제", "url": "/calc/dailyPay", "menuId": "M0327" },
         { "label": "성공내역", "url": "/calc/paySuccessList", "menuId": "M0315" },
         { "label": "실패내역", "url": "/calc/payFailList", "menuId": "M0303" },
         { "label": "취소내역", "url": "/calc/payCancelList", "menuId": "M0318" },
@@ -58,20 +61,12 @@
       ]
     },
     {
-      "label": "챗봇관리",
-      "icon": "bi-chat-dots",
-      "children": [
-        { "label": "기본설정", "url": "/chatbot/chatbotKbMng", "menuId": "M0612" },
-        { "label": "상품관리", "url": "/chatbot/productMng", "menuId": "M0611" },
-        { "label": "주문관리", "url": "/chatbot/orderMng", "menuId": "M0613" }
-      ]
-    },
-    {
       "label": "정산관리",
       "icon": "bi-cash-stack",
       "children": [
         { "label": "통합정산", "url": "/calc/chillPaySettlementList", "menuId": "M0421" },
         { "label": "수수료내역", "url": "/calc/feeList", "menuId": "M0406" },
+        { "label": "일별수수료", "url": "/calc/dailyFee", "menuId": "M0425" },
         { "label": "정산실행", "url": "/calc/exCalcList", "menuId": "M0418" },
         { "label": "정산배포", "url": "/settlement/settlementResultDistribute", "menuId": "M0423" },
         { "label": "정산대기", "url": "/settlement/settlementResultHold", "menuId": "M0424" },
@@ -82,6 +77,15 @@
         { "label": "환수금관리", "url": "/calc/compPointMngList", "menuId": "M0407" },
         { "label": "미수금관리", "url": "/calc/unpaidMng", "menuId": "M0413" },
         { "label": "정산리포트", "url": "/calc/settlementReport", "menuId": "M0419" }
+      ]
+    },
+    {
+      "label": "챗봇관리",
+      "icon": "bi-chat-dots",
+      "children": [
+        { "label": "기본설정", "url": "/chatbot/chatbotKbMng", "menuId": "M0612" },
+        { "label": "상품관리", "url": "/chatbot/productMng", "menuId": "M0611" },
+        { "label": "주문관리", "url": "/chatbot/orderMng", "menuId": "M0613" }
       ]
     },
     {
@@ -108,7 +112,12 @@
       "children": [
         { "label": "운영관리", "url": "/ops/opsMng", "menuId": "M0601" },
         { "label": "메일로그", "url": "/ops/mailLog", "menuId": "M0602" },
-        { "label": "TAX 리포트", "url": "/ops/taxReport", "menuId": "M0603" }
+        { "label": "TAX 리포트", "url": "/ops/taxReport", "menuId": "M0603" },
+        { "label": "통합 리포트", "url": "/ops/integratedReport", "menuId": "M0604" },
+        { "label": "연동 진행안", "url": "/ops/integrationPlan", "menuId": "M0614" },
+        { "label": "JPAY 단계 계획", "url": "/ops/jpayWorkPlan", "menuId": "M0615" },
+        { "label": "가맹점 API 배포", "url": "/ops/merchantApiPolicy", "menuId": "M0616" },
+        { "label": "배포 체크리스트", "url": "/ops/launchChecklist", "menuId": "M0617" }
       ]
     },
     {

@@ -122,6 +122,7 @@
     '/chatbot/orderMng': T('Orders', '注文管理', '订单管理', 'คำสั่งซื้อ'),
     '/chatbot/chatbotKbMng': T('Basic settings', '基本設定', '基本设置', 'การตั้งค่าพื้นฐาน'),
     '/hq/permissionMng': T('HQ permissions', '本社権限設定', '总部权限', 'สิทธิ์ HQ'),
+    '/hq/opsModeMng': T('Tablet settings', 'タブレット設定', '平板设置', 'ตั้งค่าแท็บเล็ต'),
     '/hq/userSettings': T('User defaults', 'ユーザー設定', '用户设置', 'ค่าผู้ใช้'),
     '/hq/notifyEnv': T('Notify config', 'ノティ構成', '通知环境配置', 'ตั้งค่าแจ้งเตือน'),
     '/hq/notifyMapping': T('Notify mapping', 'ノティマッピング', '通知映射', 'แมปแจ้งเตือน'),
@@ -133,6 +134,8 @@
     '/hq/accountMng': T('Merchant access', '加盟店アクセス', '商户访问控制', 'การเข้าถึงร้าน'),
     '/system/noticeList': T('Notices', 'お知らせ', '公告', 'ประกาศ'),
     '/comp/myCompMng': T('Merchant lookup', '加盟店情報照会', '商户信息查询', 'ค้นหาร้านค้า'),
+    '/comp/compInfo': T('Merchant registry (HQ)', '加盟店台帳(本社)', '商户台账(总部)', 'ทะเบียนร้าน (HQ)'),
+    '/comp/compMng': T('Merchant list (simple)', '加盟店一覧(簡易)', '商户列表(简)', 'รายการร้าน (แบบง่าย)'),
     '/comp/compMngTree': T('Merchant tree', '加盟店管理', '商户管理', 'จัดการร้านค้า'),
     '/comp/compDetail': T('Merchant detail', '加盟店情報', '商户详情', 'รายละเอียดร้าน'),
     '/commission/commisionList': T('Commission mgmt', '手数料管理', '手续费管理', 'ค่าธรรมเนียม'),
@@ -158,13 +161,16 @@
     '/calc/calcGmList': T('Merchant settlement', '加盟店精算', '商户结算', 'ชำระร้านค้า'),
     '/settlement/franchiseList': T('Merchant settlement', '加盟店精算', '商户结算', 'ชำระร้านค้า'),
     '/calc/paySettlementHoldList': T('Settlement hold', '精算保留', '结算暂缓', 'พักการชำระ'),
-    '/settlement/paySettlementHoldList': T('Settlement hold', '精算保留', '结算暂缓', 'พักการชำระ'),
     '/calc/feeList': T('Fee history', '手数料一覧', '手续费明细', 'ประวัติค่าธรรมเนียม'),
     '/settlement/feeList': T('Fee history', '手数料一覧', '手续费明细', 'ประวัติค่าธรรมเนียม'),
+    '/calc/dailyIntegrated': T('Daily integrated', '日別統合', '按日整合', 'รวมรายวัน'),
+    '/calc/dailyPay': T('Daily payments', '日別決済', '按日支付', 'ชำระรายวัน'),
+    '/calc/dailyFee': T('Daily fees', '日別手数料', '按日手续费', 'ค่าธรรมเนียมรายวัน'),
     '/calc/compPointMngList': T('Recovery balance', '回収金管理', '回款管理', 'กู้คืน'),
     '/calc/balanceList': T('Balances', '残高一覧', '余额', 'ยอดคงเหลือ'),
     '/calc/unpaidMng': T('Receivables', '未収管理', '应收管理', 'ลูกหนี้'),
     '/calc/exCalcList': T('Run settlement', '精算実行', '执行结算', 'รันชำระบัญชี'),
+    '/settlement/execute': T('Run settlement', '精算実行', '执行结算', 'รันชำระบัญชี'),
     '/settlement/settlementResultDistribute': T('Distribute', '精算配布', '结算下发', 'แจกจ่ายผลชำระ'),
     '/settlement/settlementResultHold': T('On hold', '精算待ち', '结算待处理', 'รอชำระ'),
     '/calc/settlementReport': T('Settlement report', '精算レポート', '结算报表', 'รายงานชำระ'),
@@ -179,6 +185,11 @@
     '/ops/opsMng': T('Operations', '運用管理', '运营管理', 'ปฏิบัติการ'),
     '/ops/mailLog': T('Mail log', 'メールログ', '邮件日志', 'บันทึกเมล'),
     '/ops/taxReport': T('TH tax report', 'タイ税務レポート', '泰国税务报表', 'รายงานภาษี TH'),
+    '/ops/integratedReport': T('Integrated report', '統合レポート', '综合报表', 'รายงานรวม'),
+    '/ops/integrationPlan': T('Integration plan', '連携進行案', '联调计划', 'แผนเชื่อมต่อ'),
+    '/ops/jpayWorkPlan': T('JPAY rollout plan', 'JPAY段階計画', 'JPAY 阶段计划', 'แผน JPAY'),
+    '/ops/merchantApiPolicy': T('Merchant API rollout', '加盟店API配布', '商户 API 发布', 'นโยบาย Merchant API'),
+    '/ops/launchChecklist': T('Launch checklist', '配布チェックリスト', '上线检查清单', 'เช็กลิสต์เปิดใช้'),
     '/risk/list': T('Risk dashboard', 'リスク状況', '风险看板', 'ภาพรวมความเสี่ยง'),
     '/deploy/integrationPlan': T('Integration plan', '連携進行案', '联调计划', 'แผนเชื่อมต่อ'),
     '/deploy/jpayWorkPlan': T('JPAY rollout plan', 'JPAY段階計画', 'JPAY 阶段计划', 'แผน JPAY'),
@@ -341,6 +352,9 @@
     try {
       if (typeof w.PG_refreshHeaderUserDisplay === 'function') w.PG_refreshHeaderUserDisplay();
     } catch (eHdr) {}
+    try {
+      if (typeof w.PG_syncTabletLaunchBoard === 'function') w.PG_syncTabletLaunchBoard();
+    } catch (eTblLaunch) {}
   }
 
   w.PG_ADMIN_SHELL_I18N = {

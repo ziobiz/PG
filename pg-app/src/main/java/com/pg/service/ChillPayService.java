@@ -113,11 +113,12 @@ public class ChillPayService {
     /** {@link PgExtSettlementExpectedService} 가 통합정산 행에 넣는 {@code icopayExpectedSettleAt} 표기 */
     private static final DateTimeFormatter ICO_EXPECTED_SETTLE_AT_DT =
             DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm", Locale.ROOT);
-    /** 통합내역·통합정산 그리드 거래일 표시(년·월·일 한글) */
-    private static final DateTimeFormatter CHILL_TRN_DATE_DISPLAY_KR =
-            DateTimeFormatter.ofPattern("yyyy년 M월 d일", Locale.KOREAN);
+    /** 통합내역·통합정산 그리드 거래일 표시 — {@code yyyy-MM-dd} (로케일 비의존) */
+    private static final DateTimeFormatter CHILL_TRN_DATE_GRID = DateTimeFormatter.ISO_LOCAL_DATE;
     /** 통합내역 상단 요약: 최대 추가 ChillPay API 호출 페이지 수(페이지당 최대 100건) */
     private static final int CHILL_STATUS_BAR_MAX_PAGES = 30;
+    /** 일별통합 일자 집계 시 페이지 간 ChillPay 호출 간격(4004 완화). 0 이면 대기 없음. */
+    private static final long CHILL_DAILY_SUMMARY_INTER_PAGE_MS = 80L;
 
     /** ChillPay 문서 예시처럼 JSON 에 명시적 {@code null} 필드를 포함한다(기본 Jackson 은 null 키를 생략함). */
     private static final ObjectMapper CHILLPAY_SETTLEMENT_JSON = new ObjectMapper()
@@ -1341,6 +1342,114 @@ public class ChillPayService {
     }
 
     /**
+     * 일별통합 상단 일자별 집계 전용: 해당 거래일의 ChillPay 결제 검색을
+     * {@link #CHILL_STATUS_BAR_MAX_PAGES} 페이지(페이지당 최대 100건)까지 순회해 금액·상태 버킷을 합산합니다.
+     * {@link #searchChillPayPaymentTransactions} 와 동일한 집계 범위이며, 그리드 목록은 반환하지 않습니다.
+     * <p>{@code totalElements} 는 ChillPay TotalRecord(상태구분 필터 시 매칭 행 수)와 동일합니다.
+     * 전체 건수가 스캔 상한을 넘으면 {@code meta.chillDailySummaryScanCapped} 가 true 입니다.
+     */
+    public PageResult<Map<String, Object>> searchChillPayPaymentTransactionsDailySummary(
+            Long merchantOrgUnitId,
+            String orderBy,
+            String orderDir,
+            String searchKeyword,
+            String merchantCodeFilter,
+            String paymentChannel,
+            Integer routeNoFilter,
+            String orderNo,
+            String status,
+            LocalDate transactionDateFrom,
+            LocalDate transactionDateTo,
+            String searchPayDivCd,
+            boolean multiCurrency,
+            String primaryCurrency,
+            Authentication authentication) {
+
+        Long effectiveMerchantOrgUnitId = resolveMerchantOrgUnitIdForChillPayTxnApi(merchantOrgUnitId, merchantCodeFilter);
+        final int pageSize = 100;
+        String payDivStr = searchPayDivCd != null ? searchPayDivCd.trim() : "";
+        boolean payDivClientFiltered = !payDivStr.isEmpty();
+
+        PageResult<Map<String, Object>> first = searchChillPayPaymentTransactionsPage(
+                effectiveMerchantOrgUnitId, 1, pageSize, orderBy, orderDir, searchKeyword, merchantCodeFilter,
+                paymentChannel, routeNoFilter, orderNo, status, transactionDateFrom, transactionDateTo, null, null);
+
+        long totalEl = first.getTotalElements();
+        int totalPages = first.getTotalPages();
+        int maxPages = Math.min(Math.max(totalPages, 1), CHILL_STATUS_BAR_MAX_PAGES);
+
+        PayListStatusBarBuckets.MutableRollup roll = new PayListStatusBarBuckets.MutableRollup();
+        List<Map<String, Object>> rowsForFinancial = new ArrayList<>();
+
+        for (int p = 1; p <= maxPages; p++) {
+            PageResult<Map<String, Object>> slice = (p == 1)
+                    ? first
+                    : searchChillPayPaymentTransactionsPage(
+                            effectiveMerchantOrgUnitId, p, pageSize, orderBy, orderDir, searchKeyword, merchantCodeFilter,
+                            paymentChannel, routeNoFilter, orderNo, status, transactionDateFrom, transactionDateTo,
+                            null, null);
+            List<Map<String, Object>> raw = slice.getList() != null ? slice.getList() : Collections.emptyList();
+            if (payDivClientFiltered) {
+                for (Map<String, Object> row : raw) {
+                    if (rowMatchesSearchPayDivCd(row, payDivStr)) {
+                        rowsForFinancial.add(row);
+                    }
+                }
+            } else {
+                accumulateChillPayRowsIntoRollup(roll, raw);
+                rowsForFinancial.addAll(raw);
+            }
+            if (raw.size() < pageSize) {
+                break;
+            }
+            if (p < maxPages) {
+                chillDailySummaryInterPagePause();
+            }
+        }
+
+        if (payDivClientFiltered) {
+            accumulateChillPayRowsIntoRollup(roll, rowsForFinancial);
+        }
+
+        boolean scanCapped = totalPages > maxPages;
+        long outTotal = payDivClientFiltered ? rowsForFinancial.size() : totalEl;
+
+        Map<String, Object> meta = first.getMeta() != null ? new LinkedHashMap<>(first.getMeta()) : new LinkedHashMap<>();
+        meta.put("payListStatusBar", roll.toPayload(multiCurrency, primaryCurrency, scanCapped, true, null,
+                PayListStatusBarBuckets.DEFAULT_STATUS_BAR_BUCKET_ORDER));
+        meta.put("payListFinancialSummary", payListService.buildChillPayFinancialSummary(rowsForFinancial, authentication));
+        payListService.putHqLedgerPayDisplayCurrencyMeta(meta);
+        if (scanCapped) {
+            meta.put("chillDailySummaryScanCapped", Boolean.TRUE);
+            meta.put("chillDailySummaryTotalPages", totalPages);
+        }
+        if (payDivClientFiltered) {
+            meta.put("chillDailySummaryPayDivClientFiltered", Boolean.TRUE);
+            meta.put("chillDailySummaryUnfilteredTotalRecord", totalEl);
+        }
+
+        PageResult<Map<String, Object>> out = new PageResult<>();
+        out.setPage(1);
+        out.setSize(pageSize);
+        out.setTotalElements(outTotal);
+        out.setTotalPages(Math.max(1, (int) Math.ceil(outTotal / (double) pageSize)));
+        out.setList(Collections.emptyList());
+        out.setMeta(meta);
+        return out;
+    }
+
+    private static void chillDailySummaryInterPagePause() {
+        if (CHILL_DAILY_SUMMARY_INTER_PAGE_MS <= 0L) {
+            return;
+        }
+        try {
+            Thread.sleep(CHILL_DAILY_SUMMARY_INTER_PAGE_MS);
+        } catch (InterruptedException ie) {
+            Thread.currentThread().interrupt();
+        }
+    }
+
+    /**
      * 통합내역 상단 「상태구분」: 결제내역(tb_pg_trnsctn.status)과 동일 코드로, 노티 보강 후 칠페이 목록을 거릅니다.
      * 칠페이 API는 페이지당 최대 100건이므로, 필터 시 여러 API 페이지를 순회해 요청 페이지를 채웁니다(상한은 CHILL_STATUS_BAR_MAX_PAGES와 동일).
      */
@@ -1857,6 +1966,9 @@ public class ChillPayService {
                 throw new IllegalStateException("ChillPay 응답 본문이 비어 있습니다.");
             }
             if (body.getStatus() != null && body.getStatus() != 200) {
+                if (isChillPayNoTransactionsStatus(body.getStatus())) {
+                    return emptyChillPayPaymentSearchPage(pn, ps, cfg, url, body.getStatus(), body.getMessage());
+                }
                 String msg = body.getMessage() != null ? body.getMessage() : ("상태코드 " + body.getStatus());
                 throw new IllegalStateException(msg);
             }
@@ -1888,12 +2000,50 @@ public class ChillPayService {
             meta.put("chillPayPaymentSearchUrl", url);
             pr.setMeta(meta);
             return pr;
+        } catch (HttpClientErrorException ex) {
+            String detail = ex.getResponseBodyAsString(StandardCharsets.UTF_8);
+            if (HttpStatus.BAD_REQUEST.equals(ex.getStatusCode()) && isChillPayNoTransactionsHttpBody(detail)) {
+                return emptyChillPayPaymentSearchPage(pn, ps, cfg, url, 3002, "Transaction Not Found");
+            }
+            log.error("ChillPay Search Payment Transaction HTTP {}: {}", ex.getStatusCode(), detail);
+            throw new IllegalStateException("ChillPay 거래 검색 API 호출 실패: " + ex.getStatusCode() + " " + detail, ex);
         } catch (IllegalStateException e) {
             throw e;
         } catch (Exception e) {
             log.error("ChillPay Search Payment Transaction 실패: {}", e.getMessage());
             throw new IllegalStateException("ChillPay 거래 검색 API 호출 실패: " + e.getMessage(), e);
         }
+    }
+
+    /** ChillPay: 조건에 맞는 거래 없음(HTTP 400 + status 3002 등) — 오류가 아닌 빈 목록 */
+    private static boolean isChillPayNoTransactionsStatus(Integer status) {
+        return status != null && status == 3002;
+    }
+
+    private static boolean isChillPayNoTransactionsHttpBody(String detail) {
+        if (detail == null || detail.isBlank()) {
+            return false;
+        }
+        return detail.contains("\"status\":3002") || detail.contains("\"status\": 3002");
+    }
+
+    private PageResult<Map<String, Object>> emptyChillPayPaymentSearchPage(int page, int size, Config cfg, String url,
+                                                                           Integer chillStatus, String chillMessage) {
+        PageResult<Map<String, Object>> pr = new PageResult<>();
+        pr.setList(List.of());
+        pr.setPage(Math.max(1, page));
+        pr.setSize(Math.min(100, Math.max(1, size)));
+        pr.setTotalElements(0L);
+        pr.setTotalPages(1);
+        Map<String, Object> meta = new LinkedHashMap<>();
+        meta.put("chillPayMessage", chillMessage != null ? chillMessage : "Transaction Not Found");
+        meta.put("chillPayStatus", chillStatus != null ? chillStatus : 3002);
+        meta.put("chillPaySandbox", cfg.sandbox());
+        meta.put("chillPayTxnApiEnv", cfg.sandbox() ? "SANDBOX" : "PRODUCTION");
+        meta.put("chillPayPaymentSearchUrl", url);
+        meta.put("chillPayNoTransactions", true);
+        pr.setMeta(meta);
+        return pr;
     }
 
     /**
@@ -2025,6 +2175,9 @@ public class ChillPayService {
                         paymentChannel, routeNoFilter, orderNo, status,
                         transactionDateFrom, transactionDateTo, paymentDateFrom, paymentDateTo, url);
             }
+            if (HttpStatus.BAD_REQUEST.equals(ex.getStatusCode()) && isChillPayNoTransactionsHttpBody(detail)) {
+                return emptyChillPayPaymentSearchPage(pn, ps, cfg, url, 3002, "Transaction Not Found");
+            }
             throw new IllegalStateException("ChillPay 정산 검색 API 호출 실패: " + ex.getStatusCode() + " " + detail, ex);
         } catch (IllegalStateException e) {
             throw e;
@@ -2041,6 +2194,9 @@ public class ChillPayService {
                         merchantOrgUnitId, page, size, orderByEff, orderDir, searchKeyword, merchantCodeFilter,
                         paymentChannel, routeNoFilter, orderNo, status,
                         transactionDateFrom, transactionDateTo, paymentDateFrom, paymentDateTo, url);
+            }
+            if (isChillPayNoTransactionsStatus(body.getStatus())) {
+                return emptyChillPayPaymentSearchPage(pn, ps, cfg, url, body.getStatus(), body.getMessage());
             }
             String msg = body.getMessage() != null ? body.getMessage() : ("상태코드 " + body.getStatus());
             throw new IllegalStateException(msg);
@@ -2293,7 +2449,7 @@ public class ChillPayService {
     /**
      * 통합내역·통합정산 그리드: 결제내역과 동일 키(trnDate, trnTime, payCompletedAt) + 업체관리(MID·Route) 매핑(compNm, compId).
      * API naive 시각은 본사 전산설정 표준시간대({@code display_timezone})로 해석합니다.
-     * {@code trnDate}는 {@code yyyy년 M월 d일}, {@code trnTime}은 시각만 표준+JP 두 줄, {@code payCompletedAt}은 일시 두 줄.
+     * {@code trnDate}는 {@code yyyy-MM-dd}(ISO 날짜), {@code trnTime}은 시각만 표준+JP 두 줄, {@code payCompletedAt}은 일시 두 줄.
      */
     private void enrichChillPayTrSearchRow(Map<String, Object> m,
                                            Map<String, Optional<OrgUnit>> orgCache,
@@ -2308,7 +2464,7 @@ public class ChillPayService {
         ZoneId primary = hqLedgerSysSettingsService.resolveLedgerDisplayZoneId();
         Optional<TxnDualLineSpec> dualOpt = resolveTxnDualLineForChillRow(m);
         if (tx != null) {
-            m.put("trnDate", tx.toLocalDate().format(CHILL_TRN_DATE_DISPLAY_KR));
+            m.put("trnDate", tx.toLocalDate().format(CHILL_TRN_DATE_GRID));
             m.put("trnTime", dualOpt.map(d -> TrnTimeDualZoneDisplay.formatConfigurableDualLineTimeOnly(tx, primary,
                             d.tag1(), d.displayZone1(), d.tag2(), d.displayZone2()))
                     .orElseGet(() -> formatJstAndIctTimeSameCell(tx, primary)));

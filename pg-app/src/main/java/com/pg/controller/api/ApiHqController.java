@@ -21,6 +21,7 @@ import com.pg.service.HolidayPresetService;
 import com.pg.service.HqPayCopyTranslationService;
 import com.pg.service.HqServerManageService;
 import com.pg.service.OrgPagePermissionService;
+import com.pg.service.OrgTabletMenuService;
 import com.pg.service.PayFollowPolicyService;
 import com.pg.service.OrgUnitChangeAuditService;
 import com.pg.service.ServerUsageService;
@@ -69,6 +70,7 @@ public class ApiHqController {
     private final OrgUnitChangeAuditService orgUnitChangeAuditService;
     private final HqPayCopyTranslationService hqPayCopyTranslationService;
     private final PayFollowPolicyService payFollowPolicyService;
+    private final OrgTabletMenuService orgTabletMenuService;
 
     public ApiHqController(CommissionPolicyRepository commissionPolicyRepository,
                            ChargebackFeePolicyRepository chargebackFeePolicyRepository,
@@ -83,7 +85,8 @@ public class ApiHqController {
                            AuthService authService,
                            OrgUnitChangeAuditService orgUnitChangeAuditService,
                            HqPayCopyTranslationService hqPayCopyTranslationService,
-                           PayFollowPolicyService payFollowPolicyService) {
+                           PayFollowPolicyService payFollowPolicyService,
+                           OrgTabletMenuService orgTabletMenuService) {
         this.commissionPolicyRepository = commissionPolicyRepository;
         this.chargebackFeePolicyRepository = chargebackFeePolicyRepository;
         this.hqApiConfigRepository = hqApiConfigRepository;
@@ -98,6 +101,7 @@ public class ApiHqController {
         this.orgUnitChangeAuditService = orgUnitChangeAuditService;
         this.hqPayCopyTranslationService = hqPayCopyTranslationService;
         this.payFollowPolicyService = payFollowPolicyService;
+        this.orgTabletMenuService = orgTabletMenuService;
     }
 
     private static PageResult<Map<String, Object>> emptyPage(int page, int size) {
@@ -2316,6 +2320,51 @@ public class ApiHqController {
             }
         }
         return out;
+    }
+
+    /** 태블릿설정 — 태블릿 모드에서 조직 단계별로 노출할 태블릿 전용 메뉴(URL) */
+    @GetMapping("/opsModeMng")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> opsModeMng() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !(auth.getPrincipal() instanceof AppUser u)) {
+            return ResponseEntity.ok(ApiResponse.fail("로그인이 필요합니다.", "FORBIDDEN"));
+        }
+        if (!orgTabletMenuService.mayOpenOpsModeMng(u)) {
+            return ResponseEntity.ok(ApiResponse.fail("이 메뉴를 열 권한이 없습니다.", "FORBIDDEN"));
+        }
+        return ResponseEntity.ok(ApiResponse.ok(orgTabletMenuService.buildOpsModeMngPayload()));
+    }
+
+    @PostMapping("/opsModeMng/save")
+    @SuppressWarnings("unchecked")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> opsModeMngSave(@RequestBody Map<String, Object> body) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !(auth.getPrincipal() instanceof AppUser u)) {
+            return ResponseEntity.ok(ApiResponse.fail("로그인이 필요합니다.", "FORBIDDEN"));
+        }
+        if (!orgTabletMenuService.maySaveTabletMatrix(u)) {
+            return ResponseEntity.ok(ApiResponse.fail("태블릿 메뉴 매트릭스는 총본사(또는 시스템 관리자)만 저장할 수 있습니다.", "FORBIDDEN"));
+        }
+        try {
+            Object raw = body != null ? body.get("matrix") : null;
+            if (!(raw instanceof Map)) {
+                return ResponseEntity.ok(ApiResponse.fail("matrix 형식이 올바르지 않습니다.", "VALIDATION"));
+            }
+            Map<String, Map<String, String>> matrix = new LinkedHashMap<>();
+            for (Map.Entry<?, ?> e : ((Map<?, ?>) raw).entrySet()) {
+                String orgLv = e.getKey() != null ? e.getKey().toString() : "";
+                if (!(e.getValue() instanceof Map<?, ?> sub)) continue;
+                Map<String, String> pages = new LinkedHashMap<>();
+                for (Map.Entry<?, ?> pe : sub.entrySet()) {
+                    pages.put(String.valueOf(pe.getKey()), pe.getValue() != null ? pe.getValue().toString() : "");
+                }
+                matrix.put(orgLv, pages);
+            }
+            orgTabletMenuService.saveTabletMatrix(matrix);
+            return ResponseEntity.ok(ApiResponse.ok(orgTabletMenuService.buildOpsModeMngPayload()));
+        } catch (Exception ex) {
+            return ResponseEntity.ok(ApiResponse.fail(ex.getMessage() != null ? ex.getMessage() : "저장 실패", "ERROR"));
+        }
     }
 
     /** 4. 조직별 페이지/기능 접근 권한 세팅 — 총본사(HEADQUARTERS)·ADMIN: 전체, 본사·총판: 담당자 권한그룹만 */

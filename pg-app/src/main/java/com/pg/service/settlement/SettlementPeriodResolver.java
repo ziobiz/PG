@@ -8,6 +8,7 @@ import java.time.temporal.ChronoUnit;
 import java.time.temporal.TemporalAdjusters;
 import java.util.Collections;
 import java.util.Locale;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -20,10 +21,11 @@ import java.util.regex.Pattern;
  * <p>{@code WK+1W}/{@code WK+1WT}: 1주(월~일) 마감 후 각각 영업일 3·10일째 정산.
  * {@code WK+2W}/{@code WK+2WT}: 격주 2주 마감 후 각각 영업일 3·10일째.
  * {@code WK+1WM}/{@code WK+2WM}: 1주·격주 2주 마감 후 영업일 30일째.
- * “마감 다음날”부터 영업일만 세며(휴일 집합은 현재 비어 있음), 그날이 비영업일이면 다음 영업일로 맞춘다.</p>
+ * “마감 다음날”(일요일 다음날)부터 N영업일째가 정산 도래일이며, 도래일이 비영업일이면 다음 영업일로 맞춘다.
+ * 영업일은 주말 제외 + 호출 측이 넘긴 비영업일 집합(가맹 소속 총판·본사 영업일설정, {@link SettlementBusinessHolidayService})을 반영한다.</p>
  * <p>{@code D0} 자동 배치는 서울 기준 당일 00:00~23:50 구간에서만 실행된다.</p>
  * <p>{@code D+N}: 정산 실행·정산일은 달력 당일을 기준으로 하고(통상 마감시간 이후·새벽 배치),
- * 집계 기준일 하루는 그 정산일에서 N을 역산해 정한다. {@code D1}~{@code D30}의 N은 영업일(주말 제외, 휴일 집합은 현재 비어 있음),
+ * 집계 기준일 하루는 그 정산일에서 N을 역산해 정한다. {@code D1}~{@code D30}의 N은 영업일(주말·비영업일 집합 제외),
  * {@code D31} 이상은 달력일 역산이다. ‘전일 하루’가 아니라 집계 기준일과 정산일(당일)의 관계로 본다.</p>
  */
 public final class SettlementPeriodResolver {
@@ -53,9 +55,10 @@ public final class SettlementPeriodResolver {
         };
     }
 
-    private static LocalDate nextBusinessDayOrSame(LocalDate d) {
+    private static LocalDate nextBusinessDayOrSame(LocalDate d, Set<LocalDate> holidays) {
+        Set<LocalDate> hol = holidays != null ? holidays : Collections.emptySet();
         LocalDate cur = d;
-        while (!BusinessDayCalendar.isBusinessDay(cur, Collections.emptySet())) {
+        while (!BusinessDayCalendar.isBusinessDay(cur, hol)) {
             cur = cur.plusDays(1);
         }
         return cur;
@@ -69,8 +72,17 @@ public final class SettlementPeriodResolver {
 
     /**
      * 오늘이 해당 주기의 "정산 실행일"일 때만 기간을 반환한다. 해당일이 아니면 {@code null}.
+     * 휴일 집합 없이 호출 시 주말만 제외(본사·총판 프로필 미반영).
      */
     public static PeriodWindow resolveAutoPeriodWindow(String calcCycle, LocalDate today) {
+        return resolveAutoPeriodWindow(calcCycle, today, Collections.emptySet());
+    }
+
+    /**
+     * @param holidays 가맹 소속 총판 영업일·휴일(본사 영업일설정). 주말은 {@link BusinessDayCalendar} 가 별도 처리.
+     */
+    public static PeriodWindow resolveAutoPeriodWindow(String calcCycle, LocalDate today, Set<LocalDate> holidays) {
+        Set<LocalDate> hol = holidays != null ? holidays : Collections.emptySet();
         String c = normalizeCalcCycle(calcCycle);
         if (c.isEmpty() || "NONE".equals(c)) {
             return null;
@@ -87,7 +99,7 @@ public final class SettlementPeriodResolver {
             }
             LocalDate periodDay;
             if (n >= 1 && n <= 30) {
-                periodDay = BusinessDayCalendar.subtractBusinessDays(today, n, Collections.emptySet());
+                periodDay = BusinessDayCalendar.subtractBusinessDays(today, n, hol);
             } else {
                 periodDay = today.minusDays(n);
             }
@@ -97,12 +109,13 @@ public final class SettlementPeriodResolver {
         LocalDate thisMonday = today.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
 
         if (c.matches("W\\d+")) {
-            int d = Integer.parseInt(c.substring(1));
+            int businessDaysAfterEnd = Integer.parseInt(c.substring(1));
             for (int k = 0; k <= 16; k++) {
                 LocalDate start = thisMonday.minusWeeks(k);
                 LocalDate end = start.plusDays(6);
-                LocalDate base = end.plusDays(d);
-                LocalDate settle = nextBusinessDayOrSame(base);
+                /* W+N: 일요일(마감) 다음날부터 N영업일째 — WK* 와 동일 카운트 방식 */
+                LocalDate base = BusinessDayCalendar.addBusinessDays(end, businessDaysAfterEnd, hol);
+                LocalDate settle = nextBusinessDayOrSame(base, hol);
                 if (settle.equals(today)) {
                     return new PeriodWindow(start, end);
                 }
@@ -120,8 +133,8 @@ public final class SettlementPeriodResolver {
             for (int k = 0; k <= 16; k++) {
                 LocalDate start = thisMonday.minusWeeks(k);
                 LocalDate end = start.plusDays(6);
-                LocalDate base = BusinessDayCalendar.addBusinessDays(end, businessDaysAfterEnd, Collections.emptySet());
-                LocalDate settle = nextBusinessDayOrSame(base);
+                LocalDate base = BusinessDayCalendar.addBusinessDays(end, businessDaysAfterEnd, hol);
+                LocalDate settle = nextBusinessDayOrSame(base, hol);
                 if (settle.equals(today)) {
                     return new PeriodWindow(start, end);
                 }
@@ -142,8 +155,8 @@ public final class SettlementPeriodResolver {
                     continue;
                 }
                 LocalDate end = start.plusDays(13);
-                LocalDate base = BusinessDayCalendar.addBusinessDays(end, businessDaysAfterEnd, Collections.emptySet());
-                LocalDate settle = nextBusinessDayOrSame(base);
+                LocalDate base = BusinessDayCalendar.addBusinessDays(end, businessDaysAfterEnd, hol);
+                LocalDate settle = nextBusinessDayOrSame(base, hol);
                 if (settle.equals(today)) {
                     return new PeriodWindow(start, end);
                 }

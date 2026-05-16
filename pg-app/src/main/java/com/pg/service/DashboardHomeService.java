@@ -5,6 +5,7 @@ import com.pg.entity.OrgUnit;
 import com.pg.entity.SettlementRun;
 import com.pg.repository.PgTrnsctnRepository;
 import com.pg.repository.SettlementRunRepository;
+import com.pg.util.DashboardCurrencyAggregate;
 import com.pg.util.DashboardTupleRows;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -274,24 +275,7 @@ public class DashboardHomeService {
         List<Object[]> rawRows = unrestricted
                 ? pgTrnsctnRepository.dashboardAggregateByCurrencyAll(start, endExclusive)
                 : pgTrnsctnRepository.dashboardAggregateByCurrencyForMerchants(start, endExclusive, merchantIds);
-        List<Map<String, Object>> out = new ArrayList<>();
-        for (Object[] raw : rawRows) {
-            Object[] row = DashboardTupleRows.normalizeRow(raw);
-            if (row == null || row.length < 4) {
-                continue;
-            }
-            String cur = row[0] != null ? row[0].toString().trim() : "KRW";
-            if (cur.isEmpty()) {
-                cur = "KRW";
-            }
-            Map<String, Object> m = new LinkedHashMap<>();
-            m.put("currency", cur);
-            m.put("txnTotal", DashboardTupleRows.readLong(row[1]));
-            m.put("txnApproved", DashboardTupleRows.readLong(row[2]));
-            m.put("amtApprovedSum", DashboardTupleRows.readDecimal(row[3]).setScale(8, RoundingMode.HALF_UP));
-            out.add(m);
-        }
-        return out;
+        return DashboardCurrencyAggregate.mergeSalesByCurrencyRows(rawRows);
     }
 
     private static Map<String, Object> rowToAgg(Object[] row) {

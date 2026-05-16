@@ -10,6 +10,7 @@ import com.pg.repository.AuthTokenRepository;
 import com.pg.repository.MerchantProfileRepository;
 import com.pg.repository.OrgUnitRepository;
 import com.pg.repository.UserRepository;
+import com.pg.util.ChatbotMerchantAdminConstants;
 import com.pg.util.TotpRfc6238;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -37,12 +38,14 @@ public class AuthService {
     private final OrgUnitRepository orgUnitRepository;
     private final OrgPagePermissionService orgPagePermissionService;
     private final OrgPortalHostService orgPortalHostService;
+    private final OrgTabletMenuService orgTabletMenuService;
 
     public AuthService(UserRepository userRepository, AuthTokenRepository authTokenRepository,
                        PasswordEncoder passwordEncoder, MerchantProfileRepository merchantProfileRepository,
                        OrgUnitRepository orgUnitRepository,
                        @Lazy OrgPagePermissionService orgPagePermissionService,
-                       OrgPortalHostService orgPortalHostService) {
+                       OrgPortalHostService orgPortalHostService,
+                       @Lazy OrgTabletMenuService orgTabletMenuService) {
         this.userRepository = userRepository;
         this.authTokenRepository = authTokenRepository;
         this.passwordEncoder = passwordEncoder;
@@ -50,6 +53,7 @@ public class AuthService {
         this.orgUnitRepository = orgUnitRepository;
         this.orgPagePermissionService = orgPagePermissionService;
         this.orgPortalHostService = orgPortalHostService;
+        this.orgTabletMenuService = orgTabletMenuService;
     }
 
     @Transactional
@@ -64,7 +68,7 @@ public class AuthService {
     }
 
     /**
-     * 웹 로그인 — 총본사·본사·총판·ADMIN(OTP 등록 완료)은 비밀번호 후 TOTP 6자리 필수.
+     * 웹 로그인 — 총본사·본사·총판·가맹 CHATBOT 권한그룹·ADMIN(OTP 등록 완료)은 비밀번호 후 TOTP 6자리 필수.
      */
     @Transactional
     public LoginAttempt loginAttempt(String username, String password, String clientHost, String totpCode) {
@@ -114,6 +118,7 @@ public class AuthService {
             res.setOrgUnitId(ou.getId());
             res.setCompId(ou.getCode());
             res.setOrgLevel(ou.getOrgLevel() != null ? ou.getOrgLevel().name() : null);
+            res.setTabletFeatureUseYn(ynTabletFeature(ou.getTabletFeatureUseYn()));
         });
         if (res.getOrgLevel() != null && "MERCHANT".equalsIgnoreCase(res.getOrgLevel())) {
             res.setChatbotPaymentUseYn(resolveChatbotPaymentUseYnForMerchant(res.getOrgUnitId()));
@@ -124,6 +129,7 @@ public class AuthService {
         res.setMustSetupOtp(requiresOtpEnrollment(user));
         res.setOtpRegisteredYn(isOtpFullyEnrolled(user) ? "Y" : "N");
         res.setPagePermissions(orgPagePermissionService.resolvePagePermissionsForUser(user));
+        res.setTabletMenuUrls(orgTabletMenuService.resolveTabletMenuUrlsForUser(user, res.getPagePermissions()));
         res.setCanWriteNotice(orgPagePermissionService.canWriteNotice(user));
         if (clientHost != null && !clientHost.isBlank()) {
             orgPortalHostService.findPortalOrgByAdminWebHost(clientHost.trim()).ifPresent(portal -> {
@@ -239,7 +245,15 @@ public class AuthService {
         m.put("compId", ou.getCode());
         m.put("compNm", ou.getName());
         m.put("orgLevel", ou.getOrgLevel() != null ? ou.getOrgLevel().name() : null);
+        m.put("tabletFeatureUseYn", ynTabletFeature(ou.getTabletFeatureUseYn()));
         return m;
+    }
+
+    private static String ynTabletFeature(String v) {
+        if (v == null || v.isBlank()) {
+            return "Y";
+        }
+        return "Y".equalsIgnoreCase(v.trim()) ? "Y" : "N";
     }
 
     public void changeOwnName(String username, String newName) {
@@ -380,9 +394,26 @@ public class AuthService {
     }
 
     /**
+     * 가맹(MERCHANT) 소속이고 {@code tb_user.permission_group_nm} 이 CHATBOT(구 챗봇관리자)인 계정.
+     * 챗봇 상품 관리 등에 Google OTP 등록·로그인 2단계를 적용한다.
+     */
+    public boolean isMerchantChatbotPermissionGroupUser(AppUser user) {
+        if (user == null || !ChatbotMerchantAdminConstants.isChatbotPermissionGroupNm(user.getPermissionGroupNm())) {
+            return false;
+        }
+        Optional<OrgUnit> ouOpt = resolveOrgUnitForLoginId(user.getUsername());
+        if (ouOpt.isEmpty()) {
+            return false;
+        }
+        OrgLevel lvl = ouOpt.get().getOrgLevel();
+        return lvl == OrgLevel.MERCHANT;
+    }
+
+    /**
      * Google OTP 미등록 시 로그인 후 등록을 유도하는 경우 true.
      * <ul>
      *   <li>{@code ADMIN} 역할: 소속 조직이 없어도 등록·테스트 가능(시드 {@code admin} 포함).</li>
+     *   <li>가맹(MERCHANT) 소속이면서 권한그룹 CHATBOT(구 챗봇관리자).</li>
      *   <li>그 외: 총본사·본사·총판(HEADQUARTERS / REGIONAL / MASTER_DIST) 소속만 해당.</li>
      * </ul>
      * {@link #isOtpFullyEnrolled(AppUser)} 이면 false.
@@ -395,6 +426,9 @@ public class AuthService {
             return false;
         }
         if ("ADMIN".equalsIgnoreCase(user.getRole())) {
+            return true;
+        }
+        if (isMerchantChatbotPermissionGroupUser(user)) {
             return true;
         }
         Optional<OrgUnit> ouOpt = resolveOrgUnitForLoginId(user.getUsername());
@@ -410,13 +444,16 @@ public class AuthService {
 
     /**
      * 로그인 시점 Google OTP(TOTP) 2단계 인증 대상 여부.
-     * OTP 앱 등록이 완료된 총본사·본사·총판 소속 및 ADMIN 만 해당.
+     * OTP 앱 등록이 완료된 총본사·본사·총판 소속, 가맹 CHATBOT 권한그룹, 및 ADMIN 만 해당.
      */
     public boolean requiresTotpSecondFactorAtLogin(AppUser user) {
         if (user == null || !isOtpFullyEnrolled(user)) {
             return false;
         }
         if ("ADMIN".equalsIgnoreCase(user.getRole())) {
+            return true;
+        }
+        if (isMerchantChatbotPermissionGroupUser(user)) {
             return true;
         }
         Optional<OrgUnit> ouOpt = resolveOrgUnitForLoginId(user.getUsername());

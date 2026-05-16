@@ -1,6 +1,7 @@
 package com.pg.service;
 
 import com.pg.chatbot.ChatbotCatalogPolicy;
+import com.pg.chatbot.ChatbotPromotionShelfMode;
 import com.pg.chatbot.ChatbotListingType;
 import com.pg.chatbot.ChatbotOperationMode;
 import com.pg.chatbot.ChatbotReservationCollectMode;
@@ -129,6 +130,12 @@ public class MerchantChatbotProductService {
         meta.put("chatbotOperationModeLabelKo", opMode.getLabelKo());
         meta.put("effectiveMaxProductImages", getEffectiveMaxProductImages(merchantOrgUnitId));
         meta.put("allowedListingTypes", new ArrayList<>(effectiveListingTypesOrdered(merchantOrgUnitId)));
+        ChatbotPromotionShelfMode shelfMode = mpOpt
+                .map(mp -> ChatbotPromotionShelfMode.resolveStored(mp.getChatbotPromotionShelfMode()))
+                .orElse(ChatbotPromotionShelfMode.PROMOTION);
+        meta.put("promotionShelfMode", shelfMode.name());
+        int rotSec = mpOpt.map(MerchantProfile::getChatbotPromotionRotateSeconds).orElse(30);
+        meta.put("promotionRotateSeconds", ChatbotPromotionShelfMode.normalizeRotateSeconds(rotSec));
         return meta;
     }
 
@@ -502,7 +509,36 @@ public class MerchantChatbotProductService {
         int maxImg = getEffectiveMaxProductImages(mid);
         m.put("effectiveMaxProductImages", maxImg);
         m.put("allowedListingTypes", new ArrayList<>(effectiveListingTypesOrdered(mid)));
+        Optional<MerchantProfile> mpShelf = merchantProfileRepository.findByOrgUnitId(mid);
+        ChatbotPromotionShelfMode shelfMode = mpShelf
+                .map(mp -> ChatbotPromotionShelfMode.resolveStored(mp.getChatbotPromotionShelfMode()))
+                .orElse(ChatbotPromotionShelfMode.PROMOTION);
+        m.put("promotionShelfMode", shelfMode.name());
+        int rotSec = mpShelf.map(MerchantProfile::getChatbotPromotionRotateSeconds).orElse(30);
+        m.put("promotionRotateSeconds", ChatbotPromotionShelfMode.normalizeRotateSeconds(rotSec));
         return m;
+    }
+
+    /**
+     * 챗봇-pay 상단 프로모션 표시 방식·순환 간격(가맹 프로필). 상품관리 화면에서 가맹·상위 조직이 저장.
+     */
+    @Transactional
+    public Map<String, Object> savePromotionShelfSettingsForMerchantOrg(long merchantOrgUnitId,
+                                                                        String modeRaw,
+                                                                        Integer rotateSeconds) {
+        MerchantProfile mp = merchantProfileRepository.findByOrgUnitId(merchantOrgUnitId)
+                .orElseThrow(() -> new IllegalArgumentException("가맹 프로필을 찾을 수 없습니다."));
+        ChatbotPromotionShelfMode mode = ChatbotPromotionShelfMode.resolveStored(modeRaw);
+        mp.setChatbotPromotionShelfMode(mode.name());
+        mp.setChatbotPromotionRotateSeconds(ChatbotPromotionShelfMode.normalizeRotateSeconds(rotateSeconds));
+        merchantProfileRepository.save(mp);
+        if (mode == ChatbotPromotionShelfMode.HIDDEN) {
+            productRepository.clearPromotionShelfYnForOrgUnit(merchantOrgUnitId);
+        }
+        Map<String, Object> out = new LinkedHashMap<>();
+        out.put("promotionShelfMode", mode.name());
+        out.put("promotionRotateSeconds", mp.getChatbotPromotionRotateSeconds());
+        return out;
     }
 
     /**
@@ -711,6 +747,7 @@ public class MerchantChatbotProductService {
             }
         }
         m.put("promotionShelfYn", yn(p.getPromotionShelfYn()));
+        m.put("sortOrder", p.getSortOrder() != null ? p.getSortOrder() : 0);
         m.put("itemNature", p.getItemNature() != null ? p.getItemNature() : "GOODS");
         return m;
     }

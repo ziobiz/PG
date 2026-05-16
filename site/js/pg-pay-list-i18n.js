@@ -11,6 +11,8 @@
 
   var UI = {
     search: { KO: '검색', EN: 'Search', JP: '検索', CH: '搜索', TH: 'ค้นหา' },
+    /** 정산 실행(/settlement/execute) 검색 버튼 — 스냅 라벨이 「조회」일 때만 사용 */
+    lookup: { KO: '조회', EN: 'Load', JP: '照会', CH: '查询', TH: 'โหลด' },
     refresh: { KO: '새로고침', EN: 'Refresh', JP: '再読込', CH: '刷新', TH: 'รีเฟรช' },
     excel: { KO: '엑셀다운로드', EN: 'Excel download', JP: 'Excel取得', CH: 'Excel下载', TH: 'ดาวน์โหลด Excel' },
     selectAll: { KO: '전체선택', EN: 'Select all', JP: '全選択', CH: '全选', TH: 'เลือกทั้งหมด' },
@@ -21,6 +23,10 @@
     sortToolbarAria: { KO: '정렬 순서', EN: 'Sort order', JP: '並び順', CH: '排序', TH: 'ลำดับการเรียง' },
     helloBtn: { KO: '헬로', EN: 'Hello', JP: 'Hello', CH: '提示', TH: 'Hello' },
     receivableReg: { KO: '미수금등록', EN: 'Register receivable', JP: '未収金登録', CH: '登记应收', TH: 'ลงทะเบียนลูกหนี้' },
+    excelSample: { KO: 'SAMPLE', EN: 'SAMPLE', JP: 'SAMPLE', CH: 'SAMPLE', TH: 'SAMPLE' },
+    excelReg: { KO: '엑셀등록', EN: 'Excel upload', JP: 'Excel登録', CH: 'Excel导入', TH: 'อัปโหลด Excel' },
+    compReg: { KO: '등록', EN: 'Register', JP: '登録', CH: '注册', TH: 'ลงทะเบียน' },
+    compInfoDetail: { KO: '상세(지역본사정보)', EN: 'Detail (regional HQ)', JP: '詳細（地域本社）', CH: '详情（区域总部）', TH: 'รายละเอียด (สำนักงานใหญ่ภูมิภาค)' },
     printSetup: { KO: '인쇄설정', EN: 'Print setup', JP: '印刷設定', CH: '打印设置', TH: 'ตั้งค่าพิมพ์' },
     cgTitle: { KO: 'VIEW SETTING', EN: 'VIEW SETTING', JP: 'VIEW SETTING', CH: 'VIEW SETTING', TH: 'VIEW SETTING' },
     cgDefault: { KO: '기본', EN: 'Default', JP: '既定', CH: '默认', TH: 'ค่าเริ่มต้น' },
@@ -37,7 +43,19 @@
     },
     userAdd: { KO: '추가', EN: 'Add', JP: '追加', CH: '添加', TH: 'เพิ่ม' },
     hqPgApiOpSave: { KO: '운영 저장', EN: 'Save operational', JP: '運用を保存', CH: '保存运营', TH: 'บันทึกการทำงาน' },
-    hqPgApiAdd: { KO: 'PG사 연동 추가', EN: 'Add PG linkage', JP: 'PG連携を追加', CH: '添加 PG 对接', TH: 'เพิ่มการเชื่อม PG' }
+    hqPgApiAdd: { KO: 'PG사 연동 추가', EN: 'Add PG linkage', JP: 'PG連携を追加', CH: '添加 PG 对接', TH: 'เพิ่มการเชื่อม PG' },
+    commissionSetting: { KO: '수수료설정', EN: 'Fee settings', JP: '手数料設定', CH: '手续费设置', TH: 'ตั้งค่าค่าธรรมเนียม' },
+    /** 정산배포(/settlement/settlementResultDistribute) 툴바 */
+    settlementPublishDistribute: { KO: '배포실행', EN: 'Deploy run', JP: '配布実行', CH: '下发执行', TH: 'รันแจกจ่าย' },
+    settlementPublishHold: { KO: '홀딩실행', EN: 'Hold run', JP: 'ホールド実行', CH: '暂缓执行', TH: 'รันพัก' },
+    /** 정산보류내역 — [선택 건 지급보류 해제] */
+    payoutHoldReleaseBulk: {
+      KO: '선택 건 지급보류 해제',
+      EN: 'Release payout hold (selected)',
+      JP: '選択実行の支給保留解除',
+      CH: '解除所选记录的支付暂缓',
+      TH: 'ปลดการพักจ่ายที่เลือก'
+    }
   };
 
   /** 공통 옵션·검색필드 라벨·placeholder (name 기준) */
@@ -50,6 +68,8 @@
     searchPayDivCd: { KO: '상태구분', EN: 'Status type', JP: '状態区分', CH: '状态区分', TH: 'ประเภทสถานะ' },
     searchPayProcCd: { KO: '정산구분', EN: 'Settlement status', JP: '精算区分', CH: '结算状态', TH: 'สถานะการชำระบัญชี' },
     searchKeyword: { KO: '검색어', EN: 'Keyword', JP: '検索語', CH: '关键词', TH: 'คำค้น' },
+    /** screens.js text 필드 기본 키 `name + ':label'` — searchKeyword 전용 */
+    'searchKeyword:label': { KO: '검색어', EN: 'Keyword', JP: '検索語', CH: '关键词', TH: 'คำค้น' },
     searchPgCd: { KO: '결제대행사', EN: 'PG / acquirer', JP: '決済代行', CH: '支付机构', TH: 'ผู้ให้บริการชำระเงิน' },
     searchCycle: { KO: '정산주기', EN: 'Settlement cycle', JP: '精算サイクル', CH: '结算周期', TH: 'รอบการชำระบัญชี' },
     searchRegNo: { KO: '사업자번호', EN: 'Business reg. no.', JP: '事業者番号', CH: '营业执照号', TH: 'เลขทะเบียน' },
@@ -65,6 +85,9 @@
     searchFieldType: { KO: '검색구분', EN: 'Search field', JP: '検索区分', CH: '搜索字段', TH: 'ฟิลด์ค้นหา' },
     searchStatusGroup: { KO: '상태그룹', EN: 'Status group', JP: '状態グループ', CH: '状态分组', TH: 'กลุ่มสถานะ' },
     'drLbl:정산기간': { KO: '정산기간', EN: 'Settlement period', JP: '精算期間', CH: '结算期间', TH: 'ช่วงการชำระบัญชี' },
+    'drLbl:정산대상기간': { KO: '정산대상기간', EN: 'Settlement window', JP: '精算対象期間', CH: '结算对象期间', TH: 'ช่วงเวลาที่ชำระครอบคลุม' },
+    'drLbl:정산대상일': { KO: '정산대상일', EN: 'Settlement as-of date', JP: '精算対象日', CH: '结算目标日', TH: 'วันที่ชำระ (เป้า)' },
+    searchCalcProcType: { KO: '정산구분', EN: 'Settlement type', JP: '精算区分', CH: '结算类型', TH: 'ประเภทการชำระ' },
     searchDateType: { KO: '조회기준', EN: 'Search basis', JP: '照会基準', CH: '查询依据', TH: 'เกณฑ์การค้นหา' },
     searchCompDiv: { KO: '업체구분', EN: 'Org type', JP: '組織区分', CH: '组织类型', TH: 'ประเภทองค์กร' },
     'searchCompId:label': { KO: '업체코드', EN: 'Company code', JP: '加盟店コード', CH: '商户代码', TH: 'รหัสร้าน' },
@@ -79,19 +102,40 @@
     'drLbl:적용일(담보)': { KO: '적용일(담보)', EN: 'As-of date (collateral)', JP: '適用日（担保）', CH: '适用日（保证金）', TH: 'วันที่มีผล (หลักประกัน)' },
     'drLbl:결제일자': { KO: '결제일자', EN: 'Payment date', JP: '決済日', CH: '支付日期', TH: 'วันที่ชำระ' },
     'drLbl:전송일자': { KO: '전송일자', EN: 'Send date', JP: '送信日', CH: '发送日期', TH: 'วันที่ส่ง' },
+    'drLbl:거래일자': { KO: '거래일자', EN: 'Txn date', JP: '取引日', CH: '交易日期', TH: 'วันที่ทำรายการ' },
+    'drLbl:적재일': { KO: '적재일', EN: 'Ingest date', JP: '取込日', CH: '入库日', TH: 'วันที่บันทึก' },
+    'drLbl:작성일': { KO: '작성일', EN: 'Created date', JP: '作成日', CH: '创建日期', TH: 'วันที่สร้าง' },
+    'searchTitle:label': { KO: '제목', EN: 'Title', JP: 'タイトル', CH: '标题', TH: 'หัวข้อ' },
     searchStatus: { KO: '상태', EN: 'Status', JP: '状態', CH: '状态', TH: 'สถานะ' },
     searchReportKind: { KO: '리포트 형식', EN: 'Report format', JP: 'レポート形式', CH: '报表格式', TH: 'รูปแบบรายงาน' },
     searchReportSub: { KO: '리포트구분', EN: 'Report type', JP: 'レポート区分', CH: '报表类别', TH: 'ประเภทรายงาน' },
+    searchSettlementReportMerchLbl: { KO: '가맹점코드', EN: 'Merchant code', JP: '加盟店コード', CH: '商户代码', TH: 'รหัสร้านค้า' },
     searchMasterId: { KO: '총판(상위)코드', EN: 'Master dist. code', JP: '総販（上位）コード', CH: '总代代码', TH: 'รหัสตัวแทนหลัก' },
+    'searchMasterId:label': { KO: '총판(상위)코드', EN: 'Master dist. code', JP: '総販（上位）コード', CH: '总代代码', TH: 'รหัสตัวแทนหลัก' },
     searchRegionalId: { KO: '본사코드', EN: 'Regional HQ code', JP: '本社コード', CH: '本部代码', TH: 'รหัสสำนักงานใหญ่' },
+    'searchRegionalId:label': { KO: '본사코드', EN: 'Regional HQ code', JP: '本社コード', CH: '本部代码', TH: 'รหัสสำนักงานใหญ่' },
     searchCurType: { KO: '통화', EN: 'Currency', JP: '通貨', CH: '币种', TH: 'สกุลเงิน' },
+    searchMenuId: { KO: '메뉴 선택', EN: 'Select menu', JP: 'メニュー選択', CH: '选择菜单', TH: 'เลือกเมนู' },
+    searchRiskDiv: { KO: '리스크구분', EN: 'Risk type', JP: 'リスク区分', CH: '风险类型', TH: 'ประเภทความเสี่ยง' },
+    searchUrlType: { KO: 'URL구분', EN: 'URL type', JP: 'URL区分', CH: 'URL类型', TH: 'ประเภท URL' },
     searchUserId: { KO: '사용자 ID', EN: 'User ID', JP: 'ユーザーID', CH: '用户ID', TH: 'รหัสผู้ใช้' },
     'searchUserId:label': { KO: '사용자 ID', EN: 'User ID', JP: 'ユーザーID', CH: '用户ID', TH: 'รหัสผู้ใช้' },
     searchUserNm: { KO: '사용자명', EN: 'User name', JP: 'ユーザー名', CH: '用户名', TH: 'ชื่อผู้ใช้' },
     'searchUserNm:label': { KO: '사용자명', EN: 'User name', JP: 'ユーザー名', CH: '用户名', TH: 'ชื่อผู้ใช้' },
     searchUseStatus: { KO: '사용여부', EN: 'Status', JP: '使用状態', CH: '使用状态', TH: 'สถานะการใช้งาน' },
     'searchPgNm:label': { KO: 'PG사명', EN: 'PG name', JP: 'PG社名', CH: 'PG 名称', TH: 'ชื่อ PG' },
-    searchUseYn: { KO: '사용여부', EN: 'In use', JP: '使用状態', CH: '使用状态', TH: 'สถานะการใช้งาน' }
+    searchUseYn: { KO: '사용여부', EN: 'In use', JP: '使用状態', CH: '使用状态', TH: 'สถานะการใช้งาน' },
+    compTreeSearchUseStatus: { KO: '업체사용상태', EN: 'Company status', JP: '加盟店使用状態', CH: '商户使用状态', TH: 'สถานะการใช้งานร้าน' },
+    searchPayHoldYn: { KO: '지급보류', EN: 'Payout hold', JP: '支払保留', CH: '支付暂缓', TH: 'ระงับการจ่าย' },
+    'cb:searchIncludeSub': { KO: '하위업체포함', EN: 'Include sub-orgs', JP: '下位組織を含む', CH: '含下级组织', TH: 'รวมองค์กรย่อย' },
+    'searchCeoNm:label': { KO: '대표자명', EN: 'CEO name', JP: '代表者名', CH: '负责人姓名', TH: 'ชื่อผู้แทน' },
+    'searchTerminalId:label': { KO: '터미널ID', EN: 'Terminal ID', JP: '端末ID', CH: '终端ID', TH: 'รหัสเทอร์มินัล' },
+    'searchCeoMobile:label': { KO: '휴대폰', EN: 'Mobile', JP: '携帯', CH: '手机', TH: 'มือถือ' },
+    'searchChangedBy:label': { KO: '변경자명', EN: 'Changed by', JP: '変更者名', CH: '变更人', TH: 'ผู้แก้ไข' },
+    'drLbl:접속일자': { KO: '접속일자', EN: 'Access date', JP: '接続日', CH: '访问日期', TH: 'วันที่เข้าใช้' },
+    searchCompNmHqLabel: { KO: '업체명(본사명)', EN: 'Name (regional HQ)', JP: '店名（本社名）', CH: '名称（本部名）', TH: 'ชื่อ (สำนักงานใหญ่ภูมิภาค)' },
+    searchCompOrgPick: { KO: '업체선택(조직)', EN: 'Company (org)', JP: '取引先選択（組織）', CH: '企业选择（组织）', TH: 'เลือกบริษัท (องค์กร)' },
+    searchCompListUseYn: { KO: '업체사용여부', EN: 'Company in use', JP: '店舗の使用有無', CH: '商户是否使用', TH: 'ร้านเปิดใช้งานหรือไม่' }
   };
   var PH = {
     searchTranValue: { KO: '값', EN: 'Value', JP: '値', CH: '值', TH: 'ค่า' },
@@ -162,6 +206,12 @@
     'searchFieldType|CURRENCY': optMap({ EN: 'Currency', JP: '通貨', CH: '币种', TH: 'สกุลเงิน' }),
     'searchFieldType|STATUS': optMap({ EN: 'Status', JP: '状態', CH: '状态', TH: 'สถานะ' }),
     'searchFieldType|AMOUNT': optMap({ EN: 'Amount', JP: '金額', CH: '金额', TH: 'จำนวนเงิน' }),
+    'searchFieldType|CALC_CYCLE': optMap({ EN: 'Settlement cycle', JP: '精算サイクル', CH: '结算周期', TH: 'รอบการชำระ' }),
+    'searchFieldType|CALC_METHOD': optMap({ EN: 'Settlement method', JP: '精算方法', CH: '结算方式', TH: 'วิธีการชำระ' }),
+    'searchFieldType|SETTLEMENT_PUBLISH_STS': optMap({ EN: 'Publish status', JP: '配布状態', CH: '发布状态', TH: 'สถานะเผยแพร่' }),
+    'searchFieldType|PAYOUT_HOLD_YN': optMap({ EN: 'Payout hold', JP: '支払保留', CH: '支付暂缓', TH: 'พักจ่าย' }),
+    'searchCalcProcType|': optMap(),
+    'searchCalcProcType|MANUAL': optMap({ EN: 'Manual', JP: '手動', CH: '手动', TH: 'ด้วยมือ' }),
     'searchFieldType|CUSTOMER_ID': optMap({ EN: 'Customer ID', JP: '顧客ID', CH: '客户ID', TH: 'รหัสลูกค้า' }),
     'searchStatusGroup|SUCCESS': optMap({ EN: 'Success', JP: '成功', CH: '成功', TH: 'สำเร็จ' }),
     'searchStatusGroup|FAIL': optMap({ EN: 'Fail', JP: '失敗', CH: '失败', TH: 'ล้มเหลว' }),
@@ -191,6 +241,15 @@
     'searchReportSub|EXE': optMap({ EN: 'Settlement runs', JP: '精算実行', CH: '结算执行', TH: 'รันชำระบัญชี' }),
     'searchReportSub|SUM': optMap({ EN: 'Summary sheet', JP: '精算集計表', CH: '结算汇总表', TH: 'แผ่นสรุป' }),
     'searchReportSub|RST': optMap({ EN: 'Confirmed settlement (report)', JP: '確定精算（レポート）', CH: '已确认结算（报表）', TH: 'ชำระที่ยืนยัน (รายงาน)' }),
+    'searchCurType|': optMap(),
+    'searchUrlType|': optMap(),
+    'searchUrlType|PAY': optMap({ EN: 'Payment notify', JP: '決済通報', CH: '支付通知', TH: 'แจ้งชำระ' }),
+    'searchUrlType|BACKGROUND': optMap({ EN: 'URL Background', JP: 'URL Background', CH: 'URL Background', TH: 'URL Background' }),
+    'searchUrlType|RESULT': optMap({ EN: 'URL Result', JP: 'URL Result', CH: 'URL Result', TH: 'URL Result' }),
+    'searchMenuId|': optMap({ EN: 'Select', JP: '選択', CH: '请选择', TH: 'เลือก' }),
+    'searchMenuId|M0301': optMap({ EN: 'Payments', JP: '決済履歴', CH: '支付历史', TH: 'ประวัติการชำระ' }),
+    'searchMenuId|M0404': optMap({ EN: 'Distribution settlement', JP: '流通網精算履歴', CH: '分销结算明细', TH: 'ชำระเครือข่าย' }),
+    'searchRiskDiv|': optMap(),
     'searchUseStatus|': optMap(),
     'searchUseStatus|ACTIVE': optMap({ EN: 'Active', JP: '使用中', CH: '使用中', TH: 'ใช้งาน' }),
     'searchUseStatus|INACTIVE': optMap({ EN: 'Inactive', JP: '未使用', CH: '未使用', TH: 'ไม่ใช้งาน' }),
@@ -205,7 +264,18 @@
     'searchTaxScope|MONTHLY': optMap({ EN: 'Monthly roll-up', JP: '月次集約（帰属月）', CH: '按月汇总（归属月）', TH: 'รวมรายเดือน (เดือนอ้างอิง)' }),
     'searchUseYn|': optMap(),
     'searchUseYn|Y': optMap({ EN: 'Active', JP: '使用', CH: '使用', TH: 'ใช้งาน' }),
-    'searchUseYn|N': optMap({ EN: 'Inactive', JP: '未使用', CH: '未使用', TH: 'ไม่ใช้งาน' })
+    'searchUseYn|N': optMap({ EN: 'Inactive', JP: '未使用', CH: '未使用', TH: 'ไม่ใช้งาน' }),
+    'searchUseYn|ALL': optMap({ EN: 'All', JP: 'すべて', CH: '全部', TH: 'ทั้งหมด' }),
+    'searchPayHoldYn|': optMap(),
+    'searchPayHoldYn|Y': optMap({ EN: 'On hold', JP: '保留', CH: '暂缓', TH: 'พักจ่าย' }),
+    'searchPayHoldYn|N': optMap({ EN: 'Normal', JP: '正常', CH: '正常', TH: 'ปกติ' }),
+    'searchCompDiv|MERCHANT': optMap({ EN: 'Merchant', JP: '加盟店', CH: '商户', TH: 'ร้านค้า' }),
+    'searchPolicyCur|': optMap(),
+    'searchPolicyCur|JPY': optMap({ EN: 'JPY', JP: 'JPY', CH: 'JPY', TH: 'JPY' }),
+    'searchPolicyCur|USD': optMap({ EN: 'USD', JP: 'USD', CH: 'USD', TH: 'USD' }),
+    'searchPolicyCur|THB': optMap({ EN: 'THB', JP: 'THB', CH: 'THB', TH: 'THB' }),
+    'searchPolicyCur|CNY': optMap({ EN: 'CNY', JP: 'CNY', CH: 'CNY', TH: 'CNY' }),
+    'searchPolicyCur|KRW': optMap({ EN: 'KRW', JP: 'KRW', CH: 'KRW', TH: 'KRW' })
   };
 
   var QD = {
@@ -229,6 +299,8 @@
   /** setSummaryText 등에서 쓰는 한글 키 → 로케일 라벨 (값은 그대로 두고 접두만 번역) */
   var SUMMARY_LBL = {
     건수: { KO: '건수', EN: 'Count', JP: '件数', CH: '笔数', TH: 'จำนวนรายการ' },
+    성공: { KO: '성공', EN: 'Success', JP: '成功', CH: '成功', TH: 'สำเร็จ' },
+    실패: { KO: '실패', EN: 'Failure', JP: '失敗', CH: '失败', TH: 'ล้มเหลว' },
     금액: { KO: '금액', EN: 'Amount', JP: '金額', CH: '金额', TH: 'จำนวนเงิน' },
     수수료금액: { KO: '수수료금액', EN: 'Fee amount', JP: '手数料金額', CH: '手续费金额', TH: 'ยอดค่าธรรมเนียม' },
     수수료부가세: { KO: '수수료부가세', EN: 'Fee VAT', JP: '手数料消費税', CH: '手续费增值税', TH: 'VAT ค่าธรรมเนียม' },
@@ -245,6 +317,8 @@
     환수금액: { KO: '환수금액', EN: 'Recovery', JP: '回収金額', CH: '回收金额', TH: 'ยอดกู้คืน' },
     잔여: { KO: '잔여', EN: 'Remaining', JP: '残高', CH: '剩余', TH: 'คงเหลือ' },
     결제액: { KO: '결제액', EN: 'Payment', JP: '決済額', CH: '支付金额', TH: 'ยอดชำระ' },
+    '환불/취소': { KO: '환불/취소', EN: 'Refund / cancel', JP: '返金／取消', CH: '退款/取消', TH: 'คืนเงิน/ยกเลิก' },
+    정산액: { KO: '정산액', EN: 'Settlement amount', JP: '精算額', CH: '结算额', TH: 'ยอดชำระบัญชี' },
     환불: { KO: '환불', EN: 'Refund', JP: '返金', CH: '退款', TH: 'คืนเงิน' },
     순액: { KO: '순액', EN: 'Net', JP: '純額', CH: '净额', TH: 'สุทธิ' },
     정산금: { KO: '정산금', EN: 'Settlement', JP: '精算金', CH: '结算款', TH: 'เงินชำระบัญชี' },
@@ -398,6 +472,228 @@
         'FinalPayAfterRemittance 为扣减汇款手续费后的拨付基准金额，可与实际银行汇款核对。',
         'FinalPayAfterRemittance = ยอดจ่ายหลังค่าธรรมเนียมโอน ใช้เทียบกับโอนจริง'
       )
+    ],
+    '/calc/dailyIntegrated': [
+      packN(
+        '통합내역(칠페이 결제 검색)과 동일 자격·필터로, 거래일자 구간을 일 단위로 집계합니다. 일자별 성공·실패·취소·무효·이메일무효·환불·강제환불·기타 건수는 해당 일 집계 기준입니다(칠페이 일 100건 초과 시 금액·상태 요약은 샘플일 수 있음). 일자 행을 클릭하면 아래에 해당 일 통합내역(최대 50건)이 표시됩니다.',
+        'Uses the same credentials and filters as integrated ChillPay payment search, aggregated by calendar day. Per-day success/fail/cancel/void/email-void/refund/force-refund/other counts follow that day’s aggregation (when a day exceeds ~100 ChillPay rows, amount/status summaries may be sampled). Click a date row to show up to 50 integrated rows for that day below.',
+        '統合内訳（ChillPay 決済検索）と同一資格・フィルタで、取引日範囲を日単位で集計します。日別の成功・失敗・取消・無効・メール無効・返金・強制返金・その他件数は当日の集計基準です（ChillPay が1日100件超の場合、金額・状態要約はサンプルのことがあります）。日付行をクリックすると当日の統合内訳（最大50件）を下に表示します。',
+        '与「整合明细（ChillPay 支付搜索）」相同权限与筛选，按交易日区间做按日汇总。各日的成功/失败/取消/作废/邮件作废/退款/强制退款/其他笔数按当日汇总口径（ChillPay 单日超过约100笔时，金额与状态摘要可能为抽样）。点击日期行可在下方显示该日整合明细（最多50条）。',
+        'ใช้สิทธิ์และตัวกรองเดียวกับค้นหา ChillPay รวมรายวัน คลิกแถววันที่เพื่อดูรายการรวมของวันนั้นสูงสุด 50 รายการ'
+      ),
+      packN(
+        '조회 기간은 최대 93일입니다. 칠페이 API 장애 시 해당 일에 오류 메시지가 표시될 수 있습니다.',
+        'The query window is up to 93 days. If the ChillPay API errors, that day may show an error message.',
+        '照会期間は最大93日です。ChillPay API 障害時は当日にエラーが表示されることがあります。',
+        '查询区间最长93天。ChillPay API 故障时该日可能显示错误信息。',
+        'ช่วงสูงสุด 93 วัน หาก API ChillPay ล้มเหลวอาจแสดงข้อความในวันนั้น'
+      )
+    ],
+    '/calc/dailyPay': [
+      packN(
+        '결제내역(tb_pg_trnsctn, 적재일)과 동일 필터로 일자별 집계합니다. 일자별 성공·실패·취소·무효·이메일무효·환불·강제환불·기타 건수는 해당 일 전체 건 기준입니다. 일자 행을 클릭하면 아래에 해당 일 결제내역(최대 50건)이 표시됩니다.',
+        'Same filters as payment history (tb_pg_trnsctn, ingest date), aggregated by day. Per-day bucket counts are for all rows that day. Click a date row to load up to 50 payment rows for that day below.',
+        '決済履歴（tb_pg_trnsctn、取込日）と同一フィルタで日別集計します。日別の成功・失敗・取消・無効・メール無効・返金・強制返金・その他件数は当日の全件基準です。日付行をクリックすると当日の決済履歴（最大50件）を下に表示します。',
+        '与支付历史（tb_pg_trnsctn，入库日）相同筛选，按日汇总。各状态分组笔数为该日全量口径。点击日期行可在下方加载该日支付明细（最多50条）。',
+        'สรุปรายวันด้วยตัวกรองเดียวกับประวัติการชำระ คลิกวันที่เพื่อโหลดสูงสุด 50 รายการ'
+      ),
+      packN(
+        '조회 기간은 최대 93일입니다.',
+        'The query window is up to 93 days.',
+        '照会期間は最大93日です。',
+        '查询区间最长93天。',
+        'ช่วงสูงสุด 93 วัน'
+      )
+    ],
+    '/calc/feeList': [
+      packN(
+        '검색: 첫 줄에서 거래일·빠른기간을 정한 뒤, 둘째 줄에서 검색구분·검색어·상태그룹을 맞추고 오른쪽 [검색]을 누릅니다. 「전체」는 해당 조건으로 좁히지 않습니다. 앞쪽 열 순서(업체·거래일·거래시간·루트·승인번호·거래번호)는 통합 결제내역 기본과 같습니다. 건당수수료 열은 거래 성공 시 과금되는 성공(건당) 고정액만 표시합니다. 기타수수료: USDT·FX는 승인금액 대비 %(「결제(%)」 합계에 포함), 3DS는 정책통화 기준 건당 고정(합계 열에는 미포함·별도 열). 세 항목은 결제·건당 등과 별도로 동시 과금될 수 있습니다. 금액이 없으면 USDT·FX·3DS 열은 — 입니다. 정산 수수료는 정산 실행 시 1회 과금되며, 송금(이체) 수수료는 그 이후 송금 처리 시 과금되어 정산리포트에 정산 수수료·송금 수수료로 각각 표시됩니다. 이 화면의 총수수료·지급예상에는 정산·송금 건당액이 포함되지 않습니다. 결제(성공): 건당·%(승인 시 부과) 열, 담보(롤링%·추정액), 지급예상액, 정산액(지급예상−담보추정). 실패·취소·무효·환불 등은 상태별 수수료 규칙을 따르며, 무효·환불 계열은 성공 건과 동일한 건당·%가 추가로 과금될 수 있습니다(이중 과금). 차감(취소·환불·무효·실패 등): 지급예상액은 0, 총수수료·부가세는 과금액(양수), 정산액은 −(총수수료+부가세)입니다. 담보 추정은 승인 건에만 표시됩니다. 본사·총판 등은 로그인 조직 하위 가맹점만 조회됩니다.',
+        'Search: set transaction dates and quick range on the first row; on the second row set search field, keyword, and status group, then click [Search] on the right. [All] does not narrow that dimension. Leading columns (merchant, date, time, route, approval no., txn id) match the integrated payment list. The per-txn fee column shows only the flat success fee charged on successful transactions. Other fees: USDT·FX are % of approved amount (included in the Pay(%) total); 3DS is a fixed per-txn charge in policy currency (not in the sum totals, separate column). Those three may accrue alongside pay/per-txn fees. When there is no amount, USDT·FX·3DS show an em dash. Settlement fees are charged once per settlement run; wire/transfer fees are charged when the transfer is processed and appear separately on settlement reports as settlement fee and wire fee. This screen’s total fees and expected payout exclude settlement/wire per-txn rows. Pay (success): per-txn and % columns charged on approval; collateral (rolling % and estimate); expected payout; settlement amount (expected minus collateral estimate). Fail/cancel/void/refund follow state-specific fee rules; void/refund families may incur the same per-txn/% as success (double charge). Deductions (cancel/refund/void/fail, etc.): expected payout is 0; total fee and VAT are charged amounts (positive); settlement amount is −(total fee + VAT). Collateral estimate is shown only for approved transactions. HQ/distributors see only merchants under the logged-in organization.',
+        '検索：1行目で取引日・クイック期間を指定し、2行目で検索区分・キーワード・状態グループを合わせて右の［検索］を押します。「すべて」はその条件での絞り込みを行いません。先頭列（加盟店・取引日・時刻・ルート・承認番号・取引番号）は統合決済一覧と同じ順です。件当手数料列は取引成功時のみ課される成功（件当）固定額を表示します。その他手数料：USDT・FXは承認金額比の%（「決済(%)」合計に含む）、3DSは政策通貨基準の件当固定（合計列には含まず別列）。3つは決済・件当等とは別に同時課金され得ます。金額がない場合USDT・FX・3DSは「—」です。精算手数料は精算実行時に1回課金され、送金（振込）手数料はその後の送金処理で課金され精算レポートに精算手数料・送金手数料として表示されます。この画面の手数料合計・支払予定額には精算・送金の件当は含みません。決済（成功）：件当・%（承認時）列、担保（ロール%・見積額）、支払予定額、精算額（支払予定−担保見積）。失敗・取消・無効・返金等は状態別の手数料ルールに従い、無効・返金系は成功取引と同様の件当・%が追加課金され得ます（二重課金）。控除（取消・返金・無効・失敗等）：支払予定額は0、手数料合計・消費税は課金額（正）、精算額は−(手数料合計+消費税)です。担保見積は承認取引のみ表示されます。本社・総販等はログイン組織配下の加盟店のみ照会できます。',
+        '搜索：首行设交易日与快捷区间，次行设搜索字段、关键词、状态分组后点右侧【搜索】。「全部」不按该维度筛选。前列顺序（商户、交易日期、时间、路由、授权号、交易号）与综合支付列表一致。按笔手续费列仅显示成功交易时收取的固定成功费。其他费用：USDT·FX 为批准金额比例%（计入「支付(%)」合计）；3DS 为政策货币按笔固定（不计入合计列，单独列）。三者可与支付/按笔等同时计费。无金额时 USDT·FX·3DS 显示「—」。结算手续费在结算执行时收取一次；汇款（转账）手续费在后续汇款处理时收取并在结算报告中分列。本屏手续费合计与预计拨付不含结算/汇款按笔。支付（成功）：按笔与%（批准时）列、担保（滚动%·估计额）、预计拨付额、结算额（预计−担保估计）。失败·取消·作废·退款等按状态计费规则；作废·退款类可能与成功交易同样再收按笔/%（双重计费）。扣减（取消·退款·作废·失败等）：预计拨付为0；手续费合计与增值税为计费额（正）；结算额为−(手续费合计+增值税)。担保估计仅对批准交易显示。总部/总代等仅可查登录组织下属商户。',
+        'ค้นหา: แถวแรกตั้งวันที่และช่วงด่วน แถวสองตั้งฟิลด์ค้นหา คำค้น กลุ่มสถานะ แล้วกด [ค้นหา] ขวา 「ทั้งหมด」ไม่กรองมิตินั้น คอลัมน์หน้าเหมือนรายการชำระรวม ค่าธรรมเนียมต่อรายการแสดงเฉพาะค่าคงที่ตอนสำเร็จ USDT·FX เป็น % ของยอดอนุมัติ (รวมใน「ชำระ(%)」) 3DS เป็นคงที่ต่อรายการตามสกุลนโยบาย (คอลัมน์แยก) ค่าธรรมเนียมชำระบัญชี/โอนต่อรายการไม่รวมในยอดรวมหน้านี้ สำเร็จ: คอลัมน์ต่อรายการ·% หลักประกัน ยอดจ่ายโดยประมาณ ยอดชำระ (ประมาณ−หลักประกัน) ล้มเหลว·ยกเลิก·โมฆะ·คืนเงิน ตามกฎสถานะ โมฆะ/คืนอาจถูกเก็บซ้ำ หัก: ยอดจ่ายโดยประมาณ=0 รวม+Vat เป็นบวก ยอดชำระ=−(รวม+Vat) ประมาณหลักประกันเฉพาะอนุมัติ เห็นเฉพาะร้านใต้องค์กรที่ล็อกอิน'
+      )
+    ],
+    '/settlement/feeList': [
+      packN(
+        '검색: 첫 줄에서 거래일·빠른기간을 정한 뒤, 둘째 줄에서 검색구분·검색어·상태그룹을 맞추고 오른쪽 [검색]을 누릅니다. 「전체」는 해당 조건으로 좁히지 않습니다. 앞쪽 열 순서(업체·거래일·거래시간·루트·승인번호·거래번호)는 통합 결제내역 기본과 같습니다. 건당수수료 열은 거래 성공 시 과금되는 성공(건당) 고정액만 표시합니다. 기타수수료: USDT·FX는 승인금액 대비 %(「결제(%)」 합계에 포함), 3DS는 정책통화 기준 건당 고정(합계 열에는 미포함·별도 열). 세 항목은 결제·건당 등과 별도로 동시 과금될 수 있습니다. 금액이 없으면 USDT·FX·3DS 열은 — 입니다. 정산 수수료는 정산 실행 시 1회 과금되며, 송금(이체) 수수료는 그 이후 송금 처리 시 과금되어 정산리포트에 정산 수수료·송금 수수료로 각각 표시됩니다. 이 화면의 총수수료·지급예상에는 정산·송금 건당액이 포함되지 않습니다. 결제(성공): 건당·%(승인 시 부과) 열, 담보(롤링%·추정액), 지급예상액, 정산액(지급예상−담보추정). 실패·취소·무효·환불 등은 상태별 수수료 규칙을 따르며, 무효·환불 계열은 성공 건과 동일한 건당·%가 추가로 과금될 수 있습니다(이중 과금). 차감(취소·환불·무효·실패 등): 지급예상액은 0, 총수수료·부가세는 과금액(양수), 정산액은 −(총수수료+부가세)입니다. 담보 추정은 승인 건에만 표시됩니다. 본사·총판 등은 로그인 조직 하위 가맹점만 조회됩니다.',
+        'Search: set transaction dates and quick range on the first row; on the second row set search field, keyword, and status group, then click [Search] on the right. [All] does not narrow that dimension. Leading columns (merchant, date, time, route, approval no., txn id) match the integrated payment list. The per-txn fee column shows only the flat success fee charged on successful transactions. Other fees: USDT·FX are % of approved amount (included in the Pay(%) total); 3DS is a fixed per-txn charge in policy currency (not in the sum totals, separate column). Those three may accrue alongside pay/per-txn fees. When there is no amount, USDT·FX·3DS show an em dash. Settlement fees are charged once per settlement run; wire/transfer fees are charged when the transfer is processed and appear separately on settlement reports as settlement fee and wire fee. This screen’s total fees and expected payout exclude settlement/wire per-txn rows. Pay (success): per-txn and % columns charged on approval; collateral (rolling % and estimate); expected payout; settlement amount (expected minus collateral estimate). Fail/cancel/void/refund follow state-specific fee rules; void/refund families may incur the same per-txn/% as success (double charge). Deductions (cancel/refund/void/fail, etc.): expected payout is 0; total fee and VAT are charged amounts (positive); settlement amount is −(total fee + VAT). Collateral estimate is shown only for approved transactions. HQ/distributors see only merchants under the logged-in organization.',
+        '検索：1行目で取引日・クイック期間を指定し、2行目で検索区分・キーワード・状態グループを合わせて右の［検索］を押します。「すべて」はその条件での絞り込みを行いません。先頭列（加盟店・取引日・時刻・ルート・承認番号・取引番号）は統合決済一覧と同じ順です。件当手数料列は取引成功時のみ課される成功（件当）固定額を表示します。その他手数料：USDT・FXは承認金額比の%（「決済(%)」合計に含む）、3DSは政策通貨基準の件当固定（合計列には含まず別列）。3つは決済・件当等とは別に同時課金され得ます。金額がない場合USDT・FX・3DSは「—」です。精算手数料は精算実行時に1回課金され、送金（振込）手数料はその後の送金処理で課金され精算レポートに精算手数料・送金手数料として表示されます。この画面の手数料合計・支払予定額には精算・送金の件当は含みません。決済（成功）：件当・%（承認時）列、担保（ロール%・見積額）、支払予定額、精算額（支払予定−担保見積）。失敗・取消・無効・返金等は状態別の手数料ルールに従い、無効・返金系は成功取引と同様の件当・%が追加課金され得ます（二重課金）。控除（取消・返金・無効・失敗等）：支払予定額は0、手数料合計・消費税は課金額（正）、精算額は−(手数料合計+消費税)です。担保見積は承認取引のみ表示されます。本社・総販等はログイン組織配下の加盟店のみ照会できます。',
+        '搜索：首行设交易日与快捷区间，次行设搜索字段、关键词、状态分组后点右侧【搜索】。「全部」不按该维度筛选。前列顺序（商户、交易日期、时间、路由、授权号、交易号）与综合支付列表一致。按笔手续费列仅显示成功交易时收取的固定成功费。其他费用：USDT·FX 为批准金额比例%（计入「支付(%)」合计）；3DS 为政策货币按笔固定（不计入合计列，单独列）。三者可与支付/按笔等同时计费。无金额时 USDT·FX·3DS 显示「—」。结算手续费在结算执行时收取一次；汇款（转账）手续费在后续汇款处理时收取并在结算报告中分列。本屏手续费合计与预计拨付不含结算/汇款按笔。支付（成功）：按笔与%（批准时）列、担保（滚动%·估计额）、预计拨付额、结算额（预计−担保估计）。失败·取消·作废·退款等按状态计费规则；作废·退款类可能与成功交易同样再收按笔/%（双重计费）。扣减（取消·退款·作废·失败等）：预计拨付为0；手续费合计与增值税为计费额（正）；结算额为−(手续费合计+增值税)。担保估计仅对批准交易显示。总部/总代等仅可查登录组织下属商户。',
+        'ค้นหา: แถวแรกตั้งวันที่และช่วงด่วน แถวสองตั้งฟิลด์ค้นหา คำค้น กลุ่มสถานะ แล้วกด [ค้นหา] ขวา 「ทั้งหมด」ไม่กรองมิตินั้น คอลัมน์หน้าเหมือนรายการชำระรวม ค่าธรรมเนียมต่อรายการแสดงเฉพาะค่าคงที่ตอนสำเร็จ USDT·FX เป็น % ของยอดอนุมัติ (รวมใน「ชำระ(%)」) 3DS เป็นคงที่ต่อรายการตามสกุลนโยบาย (คอลัมน์แยก) ค่าธรรมเนียมชำระบัญชี/โอนต่อรายการไม่รวมในยอดรวมหน้านี้ สำเร็จ: คอลัมน์ต่อรายการ·% หลักประกัน ยอดจ่ายโดยประมาณ ยอดชำระ (ประมาณ−หลักประกัน) ล้มเหลว·ยกเลิก·โมฆะ·คืนเงิน ตามกฎสถานะ โมฆะ/คืนอาจถูกเก็บซ้ำ หัก: ยอดจ่ายโดยประมาณ=0 รวม+Vat เป็นบวก ยอดชำระ=−(รวม+Vat) ประมาณหลักประกันเฉพาะอนุมัติ เห็นเฉพาะร้านใต้องค์กรที่ล็อกอิน'
+      )
+    ],
+    '/calc/exCalcList': [
+      packN(
+        '이 메뉴는 정산방법이 비자동(수동·펌뱅킹 등)인 가맹을 「수동실행」하는 화면입니다. 정산방법이 자동인 가맹은 정산 배치(크론)가 돌며, 목록에는 이력이 보일 수 있으나 행 선택은 비활성입니다. 목록은 정산일(calc_dt)이 정산기간 안에 드는 실행입니다. [수동실행]: 기간 필수·동일 주기·마감·격자 규칙 적용하되 AUTO 가맹은 서버에서 제외됩니다. 검색의 정산구분은 전체·수동만 제공합니다. 자동 배치와 동일한 마감·영업일·D0 등 제약이 적용됩니다. 지급 부족 시 미수금 자동등록·환수/FIFO 규칙은 기존과 동일합니다.',
+        'This screen runs settlement manually for merchants whose method is non-automatic (manual, firm banking, etc.). Automatic merchants are handled by the batch (cron); runs may appear in the list but row selection is disabled. Rows are runs whose settlement date (calc_dt) falls in the selected period. [Manual run]: period is required; same cycle, cutoff, and grid rules apply, but AUTO merchants are excluded on the server. Search settlement type offers only All / Manual. Cutoff, business days, D0, and other constraints match the automatic batch. Short payout still auto-posts receivables; recovery/FIFO rules are unchanged.',
+        '本画面は、精算方法が非自動（手動・ファームバンキング等）の加盟店向けに「手動実行」するためのものです。自動の加盟店はバッチ（cron）で処理され、一覧に履歴が見えることはあっても行選択は無効です。一覧は精算日(calc_dt)が精算期間に含まれる実行です。[手動実行]：期間必須・同一周期・締め・格子ルールを適用しますが、AUTO加盟店はサーバー側で除外されます。検索の精算区分は全体・手動のみです。自動バッチと同じ締め・営業日・D0等の制約が適用されます。支払不足時の未収自動登録・回収/FIFOルールは従来と同じです。',
+        '本屏对手动类（手动、银企等）非自动结算商户进行「手动执行」。自动类商户由定时批处理；列表可见历史但不可选行。列表为精算日(calc_dt)落在所选精算期间内的执行。[手动执行]：须填期间，周期·截止·网格规则相同，但服务端排除 AUTO 商户。搜索的结算类型仅「全部·手动」。截止、营业日、D0 等与自动批处理一致。拨付不足时自动登记应收及回收/FIFO 规则不变。',
+        'หน้านี้รันชำระด้วยมือสำหรับร้านที่วิธีชำระไม่ใช่อัตโนมัติ ร้านอัตโนมัติถูก cron จัดการ อาจเห็นในรายการแต่เลือกแถวไม่ได้ แสดงเฉพาะรันที่ calc_dt อยู่ในช่วง [รันด้วยมือ] ต้องมีช่วงเวลา ใช้กฎรอบเดียวกันแต่ตัด AUTO ฝั่งเซิร์ฟเวอร์ ค้นหาแบ่งเพียงทั้งหมด/ด้วยมือ ข้อจำกัดเหมือน batch ยอดไม่พอลงลูกหนี้อัตโนมัติและ FIFO เหมือนเดิม'
+      )
+    ],
+    '/settlement/execute': [
+      packN(
+        '이 메뉴는 정산방법이 비자동(수동·펌뱅킹 등)인 가맹을 「수동실행」하는 화면입니다. 정산방법이 자동인 가맹은 정산 배치(크론)가 돌며, 목록에는 이력이 보일 수 있으나 행 선택은 비활성입니다. 목록은 정산일(calc_dt)이 정산기간 안에 드는 실행입니다. [수동실행]: 기간 필수·동일 주기·마감·격자 규칙 적용하되 AUTO 가맹은 서버에서 제외됩니다. 검색의 정산구분은 전체·수동만 제공합니다. 자동 배치와 동일한 마감·영업일·D0 등 제약이 적용됩니다. 지급 부족 시 미수금 자동등록·환수/FIFO 규칙은 기존과 동일합니다.',
+        'This screen runs settlement manually for merchants whose method is non-automatic (manual, firm banking, etc.). Automatic merchants are handled by the batch (cron); runs may appear in the list but row selection is disabled. Rows are runs whose settlement date (calc_dt) falls in the selected period. [Manual run]: period is required; same cycle, cutoff, and grid rules apply, but AUTO merchants are excluded on the server. Search settlement type offers only All / Manual. Cutoff, business days, D0, and other constraints match the automatic batch. Short payout still auto-posts receivables; recovery/FIFO rules are unchanged.',
+        '本画面は、精算方法が非自動（手動・ファームバンキング等）の加盟店向けに「手動実行」するためのものです。自動の加盟店はバッチ（cron）で処理され、一覧に履歴が見えることはあっても行選択は無効です。一覧は精算日(calc_dt)が精算期間に含まれる実行です。[手動実行]：期間必須・同一周期・締め・格子ルールを適用しますが、AUTO加盟店はサーバー側で除外されます。検索の精算区分は全体・手動のみです。自動バッチと同じ締め・営業日・D0等の制約が適用されます。支払不足時の未収自動登録・回収/FIFOルールは従来と同じです。',
+        '本屏对手动类（手动、银企等）非自动结算商户进行「手动执行」。自动类商户由定时批处理；列表可见历史但不可选行。列表为精算日(calc_dt)落在所选精算期间内的执行。[手动执行]：须填期间，周期·截止·网格规则相同，但服务端排除 AUTO 商户。搜索的结算类型仅「全部·手动」。截止、营业日、D0 等与自动批处理一致。拨付不足时自动登记应收及回收/FIFO 规则不变。',
+        'หน้านี้รันชำระด้วยมือสำหรับร้านที่วิธีชำระไม่ใช่อัตโนมัติ ร้านอัตโนมัติถูก cron จัดการ อาจเห็นในรายการแต่เลือกแถวไม่ได้ แสดงเฉพาะรันที่ calc_dt อยู่ในช่วง [รันด้วยมือ] ต้องมีช่วงเวลา ใช้กฎรอบเดียวกันแต่ตัด AUTO ฝั่งเซิร์ฟเวอร์ ค้นหาแบ่งเพียงทั้งหมด/ด้วยมือ ข้อจำกัดเหมือน batch ยอดไม่พอลงลูกหนี้อัตโนมัติและ FIFO เหมือนเดิม'
+      )
+    ],
+    '/settlement/settlementResultDistribute': [
+      packN(
+        '정산배포: PENDING 만 표시. 과거 DB가 V101 백필로 전부 DISTRIBUTED였다면 운영 DB에 db/V111_settlement_publish_pending_reopen.sql 적용 후 목록이 채워집니다. 처음 열 때 정산기간이 비어 있으면 최근 1년입니다. 행 클릭 시 정산일 당일 해당 가맹 전체 거래를 아래에 표시합니다. 체크 후 배포실행 → DISTRIBUTED, 홀딩실행 → HOLD.',
+        'Settlement distribution: shows PENDING only. If an older DB was fully backfilled to DISTRIBUTED (V101), run db/V111_settlement_publish_pending_reopen.sql on the production DB to repopulate this list. When opened with an empty period, the default is the last year. Click a row to load that merchant’s payments for the settlement calendar day. After selecting rows: Deploy run → DISTRIBUTED; Hold run → HOLD.',
+        '精算配布: PENDINGのみ表示。過去DBがV101バックフィルで全件DISTRIBUTEDの場合は、本番DBにdb/V111_settlement_publish_pending_reopen.sqlを適用すると一覧が埋まります。精算期間が空のまま開いたときは直近1年です。行をクリックすると精算日当日の当該加盟店の全決済取引を下に表示します。チェック後: 配布実行→DISTRIBUTED、ホールド実行→HOLD。',
+        '结算下发：仅显示 PENDING。若历史库经 V101 回填全部为 DISTRIBUTED，请在生产库执行 db/V111_settlement_publish_pending_reopen.sql 后列表才会出现数据。首次打开若精算期间为空，默认为最近一年。单击行可在下方加载该商户精算日当天全部支付。勾选后：下发执行→DISTRIBUTED；暂缓执行→HOLD。',
+        'แจกจ่ายผลชำระ: แสดงเฉพาะ PENDING หาก DB เก่าถูก backfill เป็น DISTRIBUTED ทั้งหมด (V101) ให้รัน db/V111_settlement_publish_pending_reopen.sql บน DB จริงแล้วรายการจะกลับมา เมื่อเปิดโดยช่วงว่าง ค่าเริ่มต้นคือ 1 ปีล่าสุด คลิกแถวเพื่อโหลดการชำระทั้งหมดของร้านในวันปฏิทินของวันชำระ หลังเลือก: รันแจกจ่าย→DISTRIBUTED; รันพัก→HOLD'
+      )
+    ],
+    '/settlement/settlementResultHold': [
+      packN(
+        '정산대기: HOLD — 가맹 정산내역에 안 나감. 처음 열 때 정산기간이 비어 있으면 최근 1년입니다. 해제·배포는 「정산보류내역」 등 운영 절차. 노출 주기 요약은 정산배포와 같습니다.',
+        'Settlement pending: HOLD — not posted to merchant settlement statements. When opened with an empty settlement period, the default is the last year. Release and distribution follow operational procedures such as Settlement hold list. Cadence display summary matches Settlement distribution.',
+        '精算待ち: HOLD — 加盟店精算一覧には載りません。精算期間が空のまま開いたときは直近1年が既定です。解除・配布は「精算保留一覧」などの運用手順に従ってください。表示サイクル要約は精算配布と同じです。',
+        '结算待处理：HOLD — 不会出现在商户结算明细中。首次打开若精算期间为空，默认为最近一年。解除与下发请按「结算暂缓明细」等运营流程。展示周期说明与结算下发一致。',
+        'รอชำระ: HOLD — ไม่ขึ้นรายการชำระร้านค้า เมื่อเปิดโดยช่วงชำระว่าง ค่าเริ่มต้นคือ 1 ปีล่าสุด การปลดและแจกจ่ายตามขั้นตอนเช่น รายการพักชำระ สรุปรอบแสดงเหมือนหน้าแจกจ่ายผลชำระ'
+      )
+    ],
+    '/calc/paySettlementHoldList': [
+      packN(
+        '정산방법에서 지급보류가 「보류」인 가맹점은 정산 실행 시 결과가 가맹점정산내역·유통망정산 집계에 나타나지 않고 이 화면에만 적치됩니다. 정산 금액·수수료 등은 이미 계산·저장된 값입니다.',
+        'Merchants with payout hold set to “hold” in settlement method do not appear in merchant settlement or distributor totals when a run completes; rows land on this screen only. Amounts and fees are already calculated and stored.',
+        '精算方法で支給保留が「保留」の加盟店は、精算実行時に加盟店精算一覧・流通網精算集計へは出ず、この画面にのみ溜まります。精算金額・手数料等は既に計算・保存済みの値です。',
+        '结算方式中支付暂缓为「暂缓」的商户，结算执行完成后不会出现在商户结算与分销汇总中，仅堆积在本屏。结算金额与手续费等为已计算并保存的值。',
+        'ร้านที่ตั้งค่าพักจ่ายเป็น「พัก」จะไม่ไปรวมในรายการชำระร้าน/เครือข่ายหลังรันชำระ แสดงเฉพาะหน้านี้ ยอดและค่าธรรมเนียมคำนวณและบันทึกแล้ว'
+      ),
+      packN(
+        '「보류해제」열의 [Y→N 해제]로 한 건만 바로 해제하거나, 체크 후 [선택 건 지급보류 해제]로 여러 건을 한 번에 처리할 수 있습니다. 더블 확인 후 실행 행의 지급보류(Y)가 N으로 바뀌며 가맹점정산내역(및 유통 집계)에 반영됩니다. 가맹점 설정의 지급보류는 그대로이며, 이후 신규 정산 건은 다시 이 목록에 쌓일 수 있습니다.',
+        'Use [Y→N release] in the Release column for a single row, or check rows and [Release payout hold (selected)] for bulk. After confirmation, payout hold on the run becomes N and posts to merchant settlement (and distributor totals). The merchant profile payout-hold setting is unchanged; new runs may appear here again.',
+        '「保留解除」列の［Y→N解除］で1件だけ即解除するか、チェック後［選択実行の支給保留解除］で複数件を一括処理できます。確認後、実行行の支給保留(Y)がNになり加盟店精算一覧（および流通集計）へ反映されます。加盟店設定の支給保留は変わらず、以後の新規精算は再びこの一覧に溜まることがあります。',
+        '「解除暂缓」列用【Y→N 解除】逐条解除，或勾选后【解除所选记录的支付暂缓】批量处理。确认后该执行行的支付暂缓变为 N 并写入商户结算（及分销汇总）。商户配置的支付暂缓不变，后续新结算仍可能再进入本列表。',
+        'คอลัมน์ปลด: กด [Y→N] ทีละแถว หรือเลือกหลายแถวแล้ว [ปลดพักจ่ายที่เลือก] หลังยืนยัน Y เป็น N และสะท้อนในรายการชำระร้าน การตั้งค่าพักจ่ายของร้านไม่เปลี่ยน รันใหม่อาจกลับมาที่นี่'
+      ),
+      packN(
+        '결제 건별 롤링 예치(담보)는 「담보금내역」(/calc/collateralList)에서 확인하세요.',
+        'Per-transaction rolling collateral is shown under Collateral list (/calc/collateralList).',
+        '取引別ロール預り（担保）は「担保金一覧」(/calc/collateralList)で確認してください。',
+        '按笔滚动保证金请在「保证金记录」(/calc/collateralList)查看。',
+        'หลักประกันหมุนเวียนต่อรายการดูที่รายการหลักประกัน (/calc/collateralList)'
+      )
+    ],
+    '/calc/dailyFee': [
+      packN(
+        '수수료내역과 동일 산식·동일 필터로 일자별 합계를 표시합니다(건당·결제%·USDT·FX·3DS·실패·취소·무효·환불·차지백·총수수료·부가세·지급예상·정산액 등). 정산유무는 해당 일 거래의 settled_yn 이 전부 Y이면 정산완료, 전부 N이면 정산대기, 혼합이면 부분정산입니다.',
+        'Daily totals use the same formulas and filters as fee history (per-txn, %, USDT, FX, 3DS, fail/cancel/void/refund/chargeback, total fee, VAT, expected payout, settlement amount, etc.). Settlement state for a day is “completed” if all rows are settled=Y, “pending” if all N, or “partial” if mixed.',
+        '手数料明細と同一の計算式・フィルタで日別合計を表示します。精算有無は当日の settled_yn がすべて Y なら精算完了、すべて N なら待ち、混在なら一部精算です。',
+        '与手续费明细相同公式与筛选，按日显示合计。若该日交易 settled_yn 全为 Y 为已结算，全 N 为待结算，混合为部分结算。',
+        'สรุปรายวันตามสูตรเดียวกับประวัติค่าธรรมเนียม สถานะชำระจาก settled_yn ของวันนั้น'
+      ),
+      packN(
+        '첫 화면은 집계 부하·게이트웨이 시간 초과(504)를 줄이기 위해 최근 7일(당일 포함)만 자동 조회합니다. 당월·당일 등은 빠른기간 버튼 뒤 [검색]으로 넓히면 됩니다.',
+        'The first load auto-queries the last 7 days (including today) to reduce load and 504 risk. Use quick-range then [Search] to widen (e.g. this month).',
+        '初回は負荷と504回避のため直近7日（当日含む）のみ自動照会します。当月などはクイック期間のあと[検索]で広げます。',
+        '首次进入为降低聚合负载与504风险，自动只查最近7天（含当天）。需要当月等请用快捷日期后点「搜索」扩大。',
+        'โหลดครั้งแรก 7 วันล่าสุดเพื่อลดโหลด ขยายช่วงด้วยปุ่มช่วงแล้วกดค้นหา'
+      ),
+      packN(
+        '일자 행을 클릭하면 아래에 해당 일 수수료내역(최대 50건, 수수료내역 화면과 동일 열 구성)이 표시됩니다. 조회 기간은 최대 93일입니다. 데이터가 매우 많으면 상단 집계가 일부만 반영될 수 있습니다(meta.capped).',
+        'Click a date row to show up to 50 fee rows for that day (same columns as fee history). Query window up to 93 days. Very large data may cap the top aggregate (see meta.capped).',
+        '日付行をクリックすると当日の手数料明細（最大50件、手数料明細画面と同じ列）を表示します。照会は最大93日。データが極端に多いと上部集計が一部のみになることがあります（meta.capped）。',
+        '点击日期行在下方显示该日手续费明细（最多50列，与手续费明细一致）。查询最长93天；数据量极大时顶部汇总可能部分反映（meta.capped）。',
+        'คลิกวันที่เพื่อดูค่าธรรมเนียมสูงสุด 50 รายการ ช่วงสูงสุด 93 วัน อาจมี meta.capped'
+      ),
+      packN(
+        '미래 일자는 표시되지 않습니다(전산 표시 기준일). 일자 순서는 [내림차순](최신일 위)·[오름차순]으로 바꿀 수 있으며 기본은 내림차순입니다.',
+        'Future dates are not shown (system as-of). Toggle Desc/Asc with the toolbar next to [Refresh]; default is newest first.',
+        '未来日は表示しません。並び順は[再読込]横の降順・昇順で切替、既定は降順です。',
+        '不显示未来日期。顺序可用「刷新」旁降序/升序切换，默认最新在上。',
+        'ไม่แสดงวันในอนาคต เรียงใหม่สุดก่อนเป็นค่าเริ่มต้น'
+      )
+    ],
+    '/ops/integratedReport': [
+      packN(
+        '총본사·본사(REGIONAL)·총판(MASTER_DIST) 또는 ADMIN만 사용합니다. 조회 범위는 로그인 조직의 하위 가맹 거래입니다.',
+        'Only root HQ, regional HQ (REGIONAL), master distributor (MASTER_DIST), or ADMIN. Scope is merchants under the logged-in org tree.',
+        '総本部・本社(REGIONAL)・総販(MASTER_DIST) または ADMIN のみ。範囲はログイン組織配下の加盟店取引です。',
+        '仅总总部、本部(REGIONAL)、总代(MASTER_DIST)或 ADMIN。范围为登录组织下属商户交易。',
+        'เฉพาะ HQ สูงสุด/ภูมิภาค/ตัวแทนหลักหรือ ADMIN ขอบเขตคือร้านใต้องค์กร'
+      ),
+      packN(
+        '집계 기준일은 거래 적재일(created_at)이며, 일별결제와 동일합니다. 상단 요약·상태별 금액은 조직 기준 표시 통화로 합산합니다.',
+        'Aggregation is by transaction ingest date (created_at), same as daily payment. Top summary and bucket amounts are summed in the org display currency.',
+        '集計基準日は取引取込日（created_at）で、日別決済と同じです。上部要約・状態別金額は組織表示通貨で合算します。',
+        '汇总口径为交易入库日（created_at），与按日支付一致。顶部摘要与状态金额按组织展示币种汇总。',
+        'รวมตามวันที่บันทึก (created_at) เหมือนรายวัน สรุปด้านบนเป็นสกุลแสดงขององค์กร'
+      ),
+      packN(
+        '일자 행을 클릭하면 아래에 해당 일의 통합 결제내역(동일 필터)이 표시됩니다. 행 순서는 적재일(일자) 기준이며, [새로고침] 옆 「내림차순·오름차순」으로 최신일 우선/과거일 우선을 바꿀 수 있습니다(통합 결제내역과 동일).',
+        'Click a date row to load integrated payment rows for that day (same filters). Row order is by ingest date; use Desc/Asc next to [Refresh] like integrated payment list.',
+        '日付行をクリックすると当日の統合決済履歴（同一フィルタ）を表示します。並びは取込日基準で、[再読込]横の降順・昇順で切替できます。',
+        '点击日期行在下方加载该日综合支付（同筛选）。行序按入库日；在「刷新」侧切换升降序，与综合支付列表一致。',
+        'คลิกวันที่เพื่อโหลดรายการชำระรวมของวันนั้น เรียงตามวันที่บันทึก'
+      ),
+      packN(
+        '[엑셀다운로드]는 결제내역과 동일한 상단 메뉴 형태이며, 현재 조회된 일자별 통합 리포트 표를 서식 xlsx로 받습니다.',
+        '[Excel download] uses the same top action pattern as payment history and exports the currently loaded daily integrated report as styled xlsx.',
+        '[Excelダウンロード]は決済履歴と同じ上部操作で、現在表示中の日別統合レポートを書式付きxlsxで取得します。',
+        '「Excel 下载」与支付历史相同顶部操作，将当前查询到的按日综合报表导出为带格式 xlsx。',
+        'ดาวน์โหลด Excel แบบเดียวกับรายการชำระ ส่งออกตารางรายงานรวมรายวันที่โหลดอยู่'
+      ),
+      packN(
+        '요약 바: 검색 기간 전체 거래 건수(건수)와 통화별 총결제액(승인−취소)·총수수료(부가세 제외)·총보증금(담보 추정)·예상지급액을 결제내역 상단과 같은 형식으로 표시합니다.',
+        'Summary bar: for the search range, shows total txn count and per-currency total payment (approve−cancel), total fee ex-VAT, total deposit (collateral estimate), and expected payout—same layout as payment history.',
+        '要約バー: 検索期間全体の件数と、通貨別の総決済額（承認−取消）・総手数料（税抜）・総保証金（担保見込み）・見込み支払額を決済履歴上部と同形式で表示します。',
+        '摘要栏：在搜索区间内显示总笔数及分币种总支付（批准−取消）、总手续费（不含增值税）、总保证金（担保估计）、预计拨付，版式与支付历史顶部一致。',
+        'แถบสรุป: จำนวนรายการและยอดรวมตามสกุล ค่าธรรมเนียมก่อน VAT เงินประกัน ยอดจ่ายโดยประมาณ เหมือนหน้าประวัติชำระ'
+      )
+    ],
+    '/commission/commisionList': [
+      packN(
+        'VIEW SETTING 열 목록은 본사설정 → 조직항목설정(화면: 수수료관리)에서 허용한 키와 동일합니다. 신규 열 「통화(policyCur)」는 적용 수수료 정책의 통화코드(ISO 숫자·알파)를 THB·JPY 등 알파로 표시합니다. 조직항목설정을 바꾼 뒤 새로고침·재조회하면 체크 목록·노출 제한이 반영됩니다.',
+        'VIEW SETTING columns match keys allowed in HQ settings → Org columns (screen: Commission management). The new 「Currency (policyCur)」 column shows the applied policy currency code (ISO numeric/alpha) as THB, JPY, etc. After changing org columns, refresh and search again to update the checklist and visibility rules.',
+        'VIEW SETTING の列一覧は、本社設定 → 組織項目設定（画面：手数料管理）で許可したキーと同じです。新列「通貨(policyCur)」は適用手数料ポリシーの通貨コード（ISO 数字・アルファ）を THB・JPY 等のアルファで表示します。組織項目設定を変更した後は再読込・再検索でチェック一覧と表示制限が反映されます。',
+        'VIEW SETTING 列与「总部设置 → 组织字段」（手续费管理）允许的键一致。新列「货币(policyCur)」将适用手续费政策的货币代码显示为 THB、JPY 等。修改组织字段后请刷新并重新查询以更新勾选与可见性。',
+        'คอลัมน์ VIEW SETTING ตรงกับที่อนุญาตใน ตั้งค่า HQ → คอลัมน์องค์กร (หน้าจัดการค่าธรรมเนียม) คอลัมน์ใหม่ policyCur แสดงรหัสสกุลเงินเป็น THB/JPY ฯลฯ หลังแก้ให้รีเฟรชและค้นหาใหม่'
+      ),
+      packN(
+        '적용시작일을 비우면 저장 시점(서버 시각) 기준으로 적용됩니다.',
+        'If the effective start date is blank, it is applied as of the save time (server clock).',
+        '適用開始日を空にすると、保存時点（サーバー時刻）基準で適用されます。',
+        '若留空生效开始日，则按保存时刻（服务器时间）生效。',
+        'ว่างวันที่เริ่มใช้จะถือเวลาบันทึก (เซิร์ฟเวอร์)'
+      ),
+      packN(
+        '동일 가맹점에 미래 적용일이 중복되지 않도록 한 번에 한 건만 등록하는 것을 권장합니다.',
+        'To avoid overlapping future effective dates for the same merchant, register one row at a time.',
+        '同一加盟店で将来の適用日が重複しないよう、一度に1件だけ登録することを推奨します。',
+        '为避免同一商户未来生效日重叠，建议每次只登记一行。',
+        'แนะนำลงทะเบียนทีละแถวเพื่อไม่ให้วันที่ซ้ำในร้านเดียวกัน'
+      ),
+      packN(
+        '상위 조직 수수료 정책이 바뀌면 이후 신규 가맹점 등록 시 하위 배분 설정에 반영될 수 있습니다.',
+        'If an upstream org fee policy changes, new merchant registrations may inherit updated downstream splits.',
+        '上位組織の手数料ポリシーが変わると、以降の新規加盟店登録時に下位の配分設定へ反映される場合があります。',
+        '若上级组织手续费政策变更，后续新注册商户的分成设置可能会随之变化。',
+        'หากนโยบายค่าธรรมเนียมขององค์กรระดับบนเปลี่ยน การลงทะเบียนร้านใหม่ภายหลังอาจสะท้อนการแบ่งส่วนล่างสุด'
+      )
+    ],
+    '/comp/compMngTree': [
+      packN(
+        '기본 조회는 업체사용상태가 사용인 업체만 표시합니다. 미사용·전체는 셀렉트에서 선택하세요. 조직별 화면 권한(옵저버·수정 등)은 사용/미사용과 관계없이 동일하게 적용됩니다. 미사용으로 바꾼 조직은 결제·정산·노티가 중단되며, 사용으로 되돌리면 복구됩니다. 상위를 미사용으로 두면 하위 프로필도 함께 미사용 처리됩니다.',
+        'By default only companies marked in use are listed. Pick inactive or all in the filter. Screen permissions (observer, edit, etc.) apply regardless of use flag. Disabling an org stops pay, settlement, and notify; re-enabling restores. Disabling a parent disables descendant profiles.',
+        '既定では使用中の加盟店のみ表示します。未使用・すべてはセレクトで選択してください。画面権限は使用状態に依存しません。未使用にすると決済・精算・ノティが停止し、使用に戻すと復旧します。上位を未使用にすると下位も未使用になります。',
+        '默认仅显示「使用中」的商户；在筛选器选择未使用或全部。界面权限与使用标志无关。停用组织会停止支付、结算与通知；恢复使用即可恢复。上级停用则下级档案一并停用。',
+        'ค่าเริ่มต้นแสดงเฉพาะร้านที่สถานะใช้งาน เลือกไม่ใช้หรือทั้งหมดในตัวกรอง สิทธิ์หน้าจอไม่ขึ้นกับสถานะ ปิดใช้งานจะหยุดการชำระ การหักบัญชี และแจ้งเตือน เปิดกลับได้ ปิดระดับบนจะปิดโปรไฟล์ลูกด้วย'
+      ),
+      packN(
+        '엑셀등록: [SAMPLE]으로 서식 있는 xlsx(헤더 색·표선·가운데 정렬)를 받아 예시 행을 수정·추가한 뒤 [엑셀등록]에 업로드하세요.',
+        'Excel register: download [SAMPLE] styled xlsx (header color, borders, center align), edit sample rows, then upload via [Excel register].',
+        'Excel登録: [SAMPLE]の書式付きxlsxを取得し、例示行を編集・追加してから[Excel登録]へアップロードしてください。',
+        'Excel 导入：下载带格式的 [SAMPLE] xlsx（表头颜色、边框、居中），修改示例行后通过「Excel 导入」上传。',
+        'นำเข้า Excel: ดาวน์โหลด [SAMPLE] แบบมีรูปแบบ แก้ไขแถวตัวอย่าง แล้วอัปโหลดที่ [นำเข้า Excel]'
+      )
     ]
   };
 
@@ -453,6 +749,7 @@
     pgNm: { EN: 'PG', JP: 'PG', CH: 'PG', TH: 'PG' },
     terminalId: { EN: 'Terminal', JP: '端末', CH: '终端', TH: 'เทอร์มินัล' },
     calcCycle: { EN: 'Settle cycle', JP: '精算周期', CH: '结算周期', TH: 'รอบชำระ' },
+    calcProcType: { EN: 'Settlement class', JP: '精算区分', CH: '结算类别', TH: 'ประเภทการชำระ' },
     pgApproveAmt: { EN: 'Amount', JP: '金額', CH: '金额', TH: 'จำนวนเงิน' },
     payAprv: { EN: 'Time', JP: '日時', CH: '时间', TH: 'เวลา' },
     holdAmt: { EN: 'Amount', JP: '金額', CH: '金额', TH: 'จำนวนเงิน' },
@@ -468,7 +765,31 @@
     regionalNm: { EN: 'Distributor', JP: '総販', CH: '总代', TH: 'ตัวแทนหลัก' },
     masterNm: { EN: 'Branch', JP: '支社', CH: '分公司', TH: 'สาขา' },
     branchNm: { EN: 'Agency', JP: '代理店', CH: '代理', TH: 'ตัวแทน' },
-    payActions: { EN: 'Follow-up', JP: '後続対応', CH: '后续处理', TH: 'ดำเนินการต่อ' }
+    payActions: { EN: 'Follow-up', JP: '後続対応', CH: '后续处理', TH: 'ดำเนินการต่อ' },
+    compDivNm: { EN: 'Org type', JP: '組織区分', CH: '组织类型', TH: 'ประเภทองค์กร' },
+    settlementAmt: { EN: 'Settlement', JP: '精算金', CH: '结算款', TH: 'เงินชำระ' },
+    receivables: { EN: 'Receivable', JP: '未収金', CH: '应收', TH: 'ลูกหนี้' },
+    siteRoot: { EN: 'Root', JP: 'ルート', CH: '根路由', TH: 'รูท' },
+    contact: { EN: 'Contact', JP: '連絡先', CH: '联系方式', TH: 'ติดต่อ' },
+    bankNm: { EN: 'Bank', JP: '銀行', CH: '银行', TH: 'ธนาคาร' },
+    accountNo: { EN: 'Account no.', JP: '口座番号', CH: '账号', TH: 'เลขบัญชี' },
+    transferFee: { EN: 'Remit fee', JP: '送金手数料', CH: '汇款手续费', TH: 'ค่าธรรมเนียมโอน' },
+    transferType: { EN: 'Transfer type', JP: '振込区分', CH: '转账类型', TH: 'ประเภทโอน' },
+    transferCycleHours: { EN: 'Cycle (min)', JP: '周期(分)', CH: '周期(分)', TH: 'รอบ (นาที)' },
+    calcExcludeYn: { EN: 'Settle exclude', JP: '精算除外', CH: '排除结算', TH: 'ยกเว้นชำระ' },
+    calcExcludeTarget: { EN: 'Exclude target', JP: '除外対象', CH: '排除对象', TH: 'เป้าหมายยกเว้น' },
+    calcStartTime: { EN: 'Settle start', JP: '精算開始', CH: '结算开始', TH: 'เริ่มชำระ' },
+    payHoldYn: { EN: 'Payout hold', JP: '支払保留', CH: '支付暂缓', TH: 'พักจ่าย' },
+    useYn: { EN: 'In use', JP: '使用', CH: '使用状态', TH: 'ใช้งาน' },
+    terminalCountTerminal: { EN: 'Terminal (POS)', JP: '端末(端末)', CH: '终端(机具)', TH: 'เทอร์มินัล (POS)' },
+    terminalCountWeb: { EN: 'Terminal (web)', JP: '端末(web)', CH: '终端(web)', TH: 'เทอร์มินัล (เว็บ)' },
+    chgTarget: { EN: 'Field', JP: '変更対象', CH: '变更项', TH: 'ฟิลด์' },
+    chgBefore: { EN: 'Before', JP: '変更前', CH: '变更前', TH: 'ก่อน' },
+    chgAfter: { EN: 'After', JP: '変更後', CH: '变更后', TH: 'หลัง' },
+    chgDt: { EN: 'Changed at', JP: '変更日時', CH: '变更时间', TH: 'เวลาแก้ไข' },
+    riskDiv: { EN: 'Risk type', JP: 'リスク区分', CH: '风险类型', TH: 'ประเภทความเสี่ยง' },
+    riskDesc: { EN: 'Description', JP: '内容', CH: '说明', TH: 'รายละเอียด' },
+    regDt: { EN: 'Registered', JP: '登録日', CH: '注册日期', TH: 'วันที่ลงทะเบียน' }
   };
 
   var CHILL_TR_COL = Object.assign({}, COL, {
@@ -606,6 +927,30 @@
 
   var _screenSnap = null;
 
+  /** 결제내역 동기 URL 외 — 검색폼·안내 스냅/로케일 적용 대상 */
+  var EXTRA_I18N_SCREEN_SNAP_URLS = ['/calc/dailyIntegrated', '/calc/dailyPay', '/calc/dailyFee', '/calc/feeList', '/settlement/feeList', '/calc/exCalcList', '/settlement/execute',
+    '/settlement/settlementResultDistribute', '/settlement/settlementResultHold', '/ops/integratedReport',
+    '/comp/compMngTree', '/comp/myCompMng', '/comp/compReg', '/comp/compDetail', '/comp/compInfo', '/comp/compMng',
+    '/comp/compInfoHistList', '/comp/compChangeHistory', '/commission/commisionList'];
+
+  /** 단일 헤더 그리드 — 로케일 변경 시 thead 재생성 */
+  var COMP_GRID_SINGLE_HEADER_URLS = {
+    '/comp/compMngTree': 1,
+    '/comp/compInfo': 1,
+    '/comp/compMng': 1,
+    '/comp/compInfoHistList': 1,
+    '/comp/compChangeHistory': 1,
+    '/calc/settlementReport': 1,
+    '/settlement/settlementReport': 1,
+    '/noti/notiUrlMng': 1,
+    '/notify/payUrlMng': 1,
+    '/noti/notiCashReceiptUrlMng': 1,
+    '/notify/cashReceiptUrlMng': 1,
+    '/set/gridSetMng': 1,
+    '/user/menuOrderMng': 1,
+    '/risk/list': 1
+  };
+
   function deepClone(o) {
     try {
       return JSON.parse(JSON.stringify(o));
@@ -618,7 +963,22 @@
     if (_screenSnap) return;
     var screens = w.PG_SCREENS && w.PG_SCREENS.getMenuScreens ? w.PG_SCREENS.getMenuScreens() : null;
     if (!screens) return;
-    var urls = w.PG_SCREENS.getPayListIntegratedSyncUrls ? w.PG_SCREENS.getPayListIntegratedSyncUrls() : [];
+    var urls = w.PG_SCREENS.getPayListIntegratedSyncUrls ? w.PG_SCREENS.getPayListIntegratedSyncUrls().slice() : [];
+    try {
+      Object.keys(screens).forEach(function (k) {
+        if (!k) return;
+        var s = screens[k];
+        if (!s) return;
+        var hasSr =
+          (s.searchRows && s.searchRows.length) ||
+          (s.searchRows2 && s.searchRows2.length) ||
+          (s.searchRows3 && s.searchRows3.length);
+        if (hasSr && urls.indexOf(k) === -1) urls.push(k);
+      });
+    } catch (eSnapUrls) {}
+    EXTRA_I18N_SCREEN_SNAP_URLS.forEach(function (eu) {
+      if (eu && urls.indexOf(eu) === -1) urls.push(eu);
+    });
     _screenSnap = { urls: urls, buttons: {}, empty: {}, scrKo: {} };
     urls.forEach(function (u) {
       var scr = screens[u];
@@ -632,7 +992,10 @@
         searchRows2: scr.searchRows2 ? deepClone(scr.searchRows2) : null,
         searchRows3: scr.searchRows3 ? deepClone(scr.searchRows3) : null,
         noticeList: scr.noticeList ? scr.noticeList.slice() : null,
-        summary: scr.summary ? scr.summary.slice() : null
+        summary: scr.summary ? scr.summary.slice() : null,
+        columns: scr.columns ? scr.columns.map(function (c) {
+          return c ? { key: c.key, label: c.label, type: c.type } : null;
+        }) : null
       };
     });
   }
@@ -661,9 +1024,15 @@
           cell.label = UI.search[loc] || cell.label;
         } else if (cell.type === 'searchReset' || (cell.type === 'button' && cell.name === 'searchReset')) {
           cell.label = UI.searchReset[loc] || cell.label;
+        } else if (cell.type === 'compMngSearchActions') {
+          var ckb = cell.checkboxName || 'searchIncludeSub';
+          var ckLb = LBL['cb:' + ckb];
+          if (ckLb && cell.label != null) cell.label = ckLb[loc] || ckLb.EN || scell.label;
+          cell.searchLabel = (UI.search[loc] || UI.search.EN || scell.searchLabel);
         } else if (cell.type === 'select' && cell.name) {
           var nm = cell.name;
-          var lbRow = LBL[nm];
+          var lbKeySel = cell.i18nLblKey || nm;
+          var lbRow = LBL[lbKeySel];
           if (lbRow) cell.label = lbRow[loc] || lbRow.EN || scell.label;
           (cell.options || []).forEach(function (opt) {
             var k = nm + '|' + (opt.v != null ? String(opt.v) : '');
@@ -673,7 +1042,7 @@
             opt.t = om ? (om[loc] || om.EN || fb) : fb;
           });
         } else if (cell.type === 'text' && cell.name) {
-          var lr = LBL[cell.name];
+          var lr = LBL[cell.i18nLblKey || (cell.name + ':label')];
           if (lr) cell.label = lr[loc] || lr.EN || scell.label;
           var phKeyWalk = cell.i18nPhKey || scell.i18nPhKey || cell.name;
           var pr = PH[phKeyWalk];
@@ -685,6 +1054,19 @@
         } else if (cell.type === 'checkbox' && cell.name) {
           var ck = LBL['cb:' + cell.name];
           if (ck) cell.label = ck[loc] || ck.EN || scell.label;
+        } else if (cell.type === 'quickdate') {
+          var rangesQd = cell.quickdateRanges || (scell && scell.quickdateRanges);
+          if (!rangesQd || !rangesQd.length) rangesQd = ['day', 'month', 'prevDay', 'week', 'week2', 'prevMonth'];
+          if (!cell.quickdateLabels) cell.quickdateLabels = [];
+          var snapLabsQd = scell && scell.quickdateLabels ? scell.quickdateLabels : [];
+          for (var qi = 0; qi < rangesQd.length; qi++) {
+            var qk = rangesQd[qi];
+            var qrow = QD[qk];
+            var snapLb = snapLabsQd[qi] != null ? snapLabsQd[qi] : null;
+            var fbLb = snapLb != null ? snapLb : (cell.quickdateLabels[qi] != null ? cell.quickdateLabels[qi] : '');
+            if (qrow) cell.quickdateLabels[qi] = lblText(qrow, loc, fbLb);
+            else if (snapLb != null) cell.quickdateLabels[qi] = snapLb;
+          }
         }
       }
     }
@@ -703,6 +1085,12 @@
         if (snap.searchRows2 != null) scr.searchRows2 = deepClone(snap.searchRows2);
         if (snap.searchRows3 != null) scr.searchRows3 = deepClone(snap.searchRows3);
         if (snap.noticeList) scr.noticeList = snap.noticeList.slice();
+        if (COMP_GRID_SINGLE_HEADER_URLS[u] && snap.columns && scr.columns) {
+          scr.columns.forEach(function (c, idx) {
+            var s = snap.columns[idx];
+            if (s && c && s.key === c.key && s.label != null) c.label = s.label;
+          });
+        }
         return;
       }
       walkSearchRowsApplyLocale(scr.searchRows, snap.searchRows, loc);
@@ -714,6 +1102,15 @@
           var pk = packs && packs[i];
           scr.noticeList[i] = pk ? pickNoticeLine(pk, loc) : snap.noticeList[i];
         }
+      }
+      if (COMP_GRID_SINGLE_HEADER_URLS[u] && snap.columns && scr.columns) {
+        scr.columns.forEach(function (c) {
+          if (!c || !c.key) return;
+          var row = COL[c.key];
+          var snapRow = snap.columns.filter(function (x) { return x && x.key === c.key; })[0];
+          var fb = snapRow ? snapRow.label : c.label;
+          if (row) c.label = tRow(row, loc, fb);
+        });
       }
     });
   }
@@ -761,10 +1158,27 @@
         var id = String(b.id);
         if (id === 'payListRefreshBtn') b.label = UI.refresh[loc] || b.label;
         else if (id === 'excelDownBtn' || id === 'excelBtn') b.label = UI.excel[loc] || b.label;
-        else if (id === 'searchBtn') b.label = UI.search[loc] || b.label;
+        else if (id === 'searchBtn') {
+          var snapB2 = _screenSnap.buttons[u];
+          var origSb = (snapB2 || []).filter(function (x) { return x && String(x.id) === 'searchBtn'; })[0];
+          if (origSb && String(origSb.label || '') === '조회') {
+            b.label = UI.lookup[loc] || UI.lookup.EN || b.label;
+          } else {
+            b.label = UI.search[loc] || b.label;
+          }
+        }
+        else if (id === 'excelSampleBtn') b.label = UI.excelSample[loc] || UI.excelSample.EN || b.label;
+        else if (id === 'excelRegBtn') b.label = UI.excelReg[loc] || UI.excelReg.EN || b.label;
+        else if (id === 'compRegBtn') b.label = UI.compReg[loc] || UI.compReg.EN || b.label;
+        else if (id === 'compInfoDetailBtn') b.label = UI.compInfoDetail[loc] || UI.compInfoDetail.EN || b.label;
         else if (id === 'receivableRegBtn') b.label = UI.receivableReg[loc] || UI.receivableReg.EN || b.label;
         else if (id === 'hqPgApiOperationalSaveBtn') b.label = UI.hqPgApiOpSave[loc] || UI.hqPgApiOpSave.EN || b.label;
         else if (id === 'hqPgApiAddBtn') b.label = UI.hqPgApiAdd[loc] || UI.hqPgApiAdd.EN || b.label;
+        else if (id === 'commissionSettingBtn') b.label = UI.commissionSetting[loc] || UI.commissionSetting.EN || b.label;
+        else if (id === 'commissionInlineTopSaveBtn') b.label = UI.cgSave[loc] || UI.cgSave.EN || b.label;
+        else if (id === 'settlementPublishDistributeBtn') b.label = UI.settlementPublishDistribute[loc] || UI.settlementPublishDistribute.EN || b.label;
+        else if (id === 'settlementPublishHoldBtn') b.label = UI.settlementPublishHold[loc] || UI.settlementPublishHold.EN || b.label;
+        else if (id === 'payoutHoldReleaseBtn') b.label = UI.payoutHoldReleaseBulk[loc] || UI.payoutHoldReleaseBulk.EN || b.label;
       });
     });
   }
@@ -775,16 +1189,26 @@
     var integrated = w.PG_SCREENS && w.PG_SCREENS.getPayListIntegratedSyncUrls ? w.PG_SCREENS.getPayListIntegratedSyncUrls() : [];
     if (integrated.indexOf(url) !== -1) return true;
     return url === '/calc/calcList' || url === '/settlement/distributionList'
+      || url === '/calc/dailyIntegrated' || url === '/calc/dailyPay' || url === '/calc/dailyFee'
       || url === '/calc/feeList' || url === '/settlement/feeList'
+      || url === '/calc/exCalcList' || url === '/settlement/execute'
       || url === '/calc/collateralList' || url === '/settlement/collateralList'
       || url === '/calc/compPointMngList' || url === '/settlement/recallMng'
       || url === '/calc/unpaidMng' || url === '/settlement/unpaidMng'
       || url === '/calc/settlementReport' || url === '/settlement/settlementReport'
-      || url === '/noti/notiCashReceiptSendMngList' || url === '/notify/cashReceiptSendMng'
+      || url === '/settlement/settlementResultDistribute' || url === '/settlement/settlementResultHold'
+      || url === '/calc/paySettlementHoldList'      || url === '/noti/notiCashReceiptSendMngList' || url === '/notify/cashReceiptSendMng'
       || url === '/noti/notiSendMngList' || url === '/notify/paySendMng'
+      || url === '/noti/notiUrlMng' || url === '/notify/payUrlMng'
+      || url === '/noti/notiCashReceiptUrlMng' || url === '/notify/cashReceiptUrlMng'
+      || url === '/set/gridSetMng' || url === '/user/menuOrderMng'
       || url === '/user/userMng'
-      || url === '/ops/mailLog' || url === '/ops/taxReport' || url === '/ops/opsMng'
-      || url === '/hq/pgApiMng';
+      || url === '/ops/mailLog' || url === '/ops/taxReport' || url === '/ops/integratedReport' || url === '/ops/opsMng'
+      || url === '/hq/pgApiMng'
+      || url === '/commission/commisionList'
+      || url === '/system/noticeList'
+      || url === '/risk/list'
+      || (url.indexOf('/comp/') === 0);
   }
 
   function refreshOpenPayListTheads(loc) {
@@ -792,7 +1216,6 @@
     var build = w.PG_SCREENS && w.PG_SCREENS.buildStandardDataGridTheadHtml;
     if (!screens || !build) return;
     var urls = w.PG_SCREENS.getPayListIntegratedSyncUrls ? w.PG_SCREENS.getPayListIntegratedSyncUrls() : [];
-    var selTitle = (loc === 'KO' ? UI.selectAll.KO : (UI.selectAll[loc] || UI.selectAll.EN));
     document.querySelectorAll('.tab-pane.tabConDiv[formurl]').forEach(function (pane) {
       var url = pane.getAttribute('formurl');
       if (!url) return;
@@ -800,11 +1223,15 @@
       if (!cfg) return;
       var inIntegrated = urls.indexOf(url) !== -1;
       var hasTwoRowHeader = cfg.headerGroups && cfg.headerGroups.length;
-      if (!inIntegrated && !hasTwoRowHeader) return;
+      var compSingle = COMP_GRID_SINGLE_HEADER_URLS[url];
+      if (!inIntegrated && !hasTwoRowHeader && !compSingle) return;
       var tid = pane.id;
       var thead = pane.querySelector('#grid_' + tid + ' thead');
       if (!thead || !pane._lastGridCols || !pane._lastGridCols.length) return;
-      thead.innerHTML = build(pane._lastGridCols, cfg.headerGroups || [], { selectAllTitle: selTitle });
+      thead.innerHTML = build(pane._lastGridCols, cfg.headerGroups || [], { selectAllTitle: '전체선택' });
+      if (w.PG_UI_I18N && typeof w.PG_UI_I18N.applyDom === 'function') {
+        try { w.PG_UI_I18N.applyDom(thead); } catch (eTheadI18n) {}
+      }
       if (w.PG_TABLE_COL_RESIZE && typeof w.PG_TABLE_COL_RESIZE.refreshInSync === 'function') {
         w.PG_TABLE_COL_RESIZE.refreshInSync(pane);
       } else if (w.PG_TABLE_COL_RESIZE && typeof w.PG_TABLE_COL_RESIZE.refreshIn === 'function') {
@@ -820,7 +1247,7 @@
     var pLab = UI.printSetup[loc] || UI.printSetup.KO;
     document.querySelectorAll('.tab-pane.tabConDiv[formurl]').forEach(function (pane) {
       var url = pane.getAttribute('formurl');
-      if (!url || !isPayMngDomPaneUrl(url)) return;
+      if (!url) return;
       var rf = pane.querySelector('#payListRefreshBtn');
       if (rf) rf.textContent = rLab;
       var ex = pane.querySelector('#excelDownBtn');
@@ -829,7 +1256,18 @@
       var pr = pane.querySelector('#printBtn');
       if (pr) pr.textContent = pLab;
       var tbSearch = pane.querySelector('#searchBtn');
-      if (tbSearch) tbSearch.textContent = sLab;
+      if (tbSearch) {
+        var tsp = tbSearch.querySelector('span[data-pg-ui-t]');
+        if (tsp) {
+          var tk = tsp.getAttribute('data-pg-ui-t');
+          if (tk && w.PG_UI_I18N && typeof w.PG_UI_I18N.t === 'function') tsp.textContent = w.PG_UI_I18N.t(tk);
+          else tsp.textContent = sLab;
+        } else {
+          tbSearch.textContent = (url === '/settlement/execute')
+            ? (UI.lookup[loc] || UI.lookup.EN || UI.lookup.KO)
+            : sLab;
+        }
+      }
       var recvReg = pane.querySelector('#receivableRegBtn');
       if (recvReg) recvReg.textContent = (UI.receivableReg[loc] || UI.receivableReg.EN || UI.receivableReg.KO);
       if (url === '/user/userMng') {
@@ -844,12 +1282,65 @@
         var hqPgAdd = pane.querySelector('#hqPgApiAddBtn');
         if (hqPgAdd) hqPgAdd.textContent = lblText(UI.hqPgApiAdd, loc, hqPgAdd.textContent);
       }
+      if (url === '/commission/commisionList') {
+        var cSet = pane.querySelector('#commissionSettingBtn');
+        if (cSet) cSet.textContent = lblText(UI.commissionSetting, loc, cSet.textContent);
+        var cTopSave = pane.querySelector('#commissionInlineTopSaveBtn');
+        if (cTopSave) cTopSave.textContent = lblText(UI.cgSave, loc, cTopSave.textContent);
+        var cPagSave = pane.querySelector('#commissionPaginationSaveBtn');
+        if (cPagSave) cPagSave.textContent = lblText(UI.cgSave, loc, cPagSave.textContent);
+      }
+      if (url === '/settlement/settlementResultDistribute') {
+        var pubDist = pane.querySelector('#settlementPublishDistributeBtn');
+        if (pubDist) pubDist.textContent = lblText(UI.settlementPublishDistribute, loc, pubDist.textContent);
+        var pubHold = pane.querySelector('#settlementPublishHoldBtn');
+        if (pubHold) pubHold.textContent = lblText(UI.settlementPublishHold, loc, pubHold.textContent);
+      }
+      if (url === '/calc/paySettlementHoldList') {
+        var phRel = pane.querySelector('#payoutHoldReleaseBtn');
+        if (phRel) phRel.textContent = lblText(UI.payoutHoldReleaseBulk, loc, phRel.textContent);
+      }
       var inlineSearch = pane.querySelector('.screen-search-btn');
       if (inlineSearch) {
-        inlineSearch.innerHTML = '<i class="bi bi-search"></i> ' + sLab;
+        var ink = url === '/settlement/execute' ? '조회' : '검색';
+        inlineSearch.innerHTML = '<i class="bi bi-search"></i> <span data-pg-ui-t="' + ink + '"></span>';
+        var isp = inlineSearch.querySelector('span[data-pg-ui-t]');
+        if (isp && w.PG_UI_I18N && typeof w.PG_UI_I18N.t === 'function') {
+          isp.textContent = w.PG_UI_I18N.t(ink);
+        }
       }
       var emptyCell = pane.querySelector('#grid_' + pane.id + ' tbody .empty-state-cell');
-      if (emptyCell) emptyCell.textContent = UI.empty[loc] || UI.empty.KO;
+      if (emptyCell) {
+        var ekEl = emptyCell.querySelector('[data-pg-ui-t]');
+        if (ekEl) {
+          var ek = ekEl.getAttribute('data-pg-ui-t');
+          if (ek && w.PG_UI_I18N && typeof w.PG_UI_I18N.t === 'function') ekEl.textContent = w.PG_UI_I18N.t(ek);
+        } else {
+          emptyCell.textContent = UI.empty[loc] || UI.empty.KO;
+        }
+      }
+      if (w.PG_UI_I18N && typeof w.PG_UI_I18N.applyDom === 'function') {
+        try {
+          var gid0 = pane.id;
+          if (url === '/calc/exCalcList' || url === '/settlement/execute' || url === '/settlement/settlementResultDistribute' || url === '/settlement/settlementResultHold'
+            || url === '/calc/settlementReport' || url === '/settlement/settlementReport') {
+            var actRowSe = pane.querySelector('.screen-summary-action-row');
+            if (actRowSe) w.PG_UI_I18N.applyDom(actRowSe);
+            var thSe = pane.querySelector('#grid_' + gid0 + ' thead');
+            if (thSe) w.PG_UI_I18N.applyDom(thSe);
+            var detCardSe = pane.querySelector('#settlementExecuteDetailCard_' + gid0);
+            if (detCardSe) w.PG_UI_I18N.applyDom(detCardSe);
+          }
+          if (url === '/calc/paySettlementHoldList') {
+            var actPh = pane.querySelector('.screen-summary-action-row');
+            if (actPh) w.PG_UI_I18N.applyDom(actPh);
+            var thPh = pane.querySelector('#grid_' + gid0 + ' thead');
+            if (thPh) w.PG_UI_I18N.applyDom(thPh);
+            var tbPh = pane.querySelector('#grid_' + gid0 + ' tbody');
+            if (tbPh) w.PG_UI_I18N.applyDom(tbPh);
+          }
+        } catch (eSeDom) {}
+      }
     });
   }
 
@@ -864,8 +1355,9 @@
     if (!screens) return;
     document.querySelectorAll('.tab-pane.tabConDiv[formurl]').forEach(function (pane) {
       var url = pane.getAttribute('formurl');
-      if (!url || !isPayMngDomPaneUrl(url)) return;
+      if (!url) return;
       var cfg = screens[url];
+      var tid = pane.id || '';
       pane.querySelectorAll('[data-pg-i18n-lbl]').forEach(function (el) {
         var k = el.getAttribute('data-pg-i18n-lbl');
         if (!k) return;
@@ -894,10 +1386,14 @@
         el.textContent = lblText(UI.searchReset, loc, el.textContent);
       });
       pane.querySelectorAll('[data-pg-i18n-sort="DESC"]').forEach(function (el) {
-        el.textContent = lblText(UI.sortDesc, loc, el.textContent);
+        var sp = el.querySelector('span[data-pg-ui-t]');
+        if (sp) sp.textContent = lblText(UI.sortDesc, loc, sp.textContent);
+        else el.textContent = lblText(UI.sortDesc, loc, el.textContent);
       });
       pane.querySelectorAll('[data-pg-i18n-sort="ASC"]').forEach(function (el) {
-        el.textContent = lblText(UI.sortAsc, loc, el.textContent);
+        var sp = el.querySelector('span[data-pg-ui-t]');
+        if (sp) sp.textContent = lblText(UI.sortAsc, loc, sp.textContent);
+        else el.textContent = lblText(UI.sortAsc, loc, el.textContent);
       });
       pane.querySelectorAll('[data-pg-i18n-aria="sortToolbar"]').forEach(function (el) {
         el.setAttribute('aria-label', lblText(UI.sortToolbarAria, loc, el.getAttribute('aria-label') || ''));
@@ -924,6 +1420,12 @@
         if (isNaN(idx) || !packs || !packs[idx]) return;
         el.textContent = pickNoticeLine(packs[idx], loc);
       });
+      if (cfg && cfg.isDailySummaryScreen) {
+        var theadDs = pane.querySelector('#grid_' + tid + ' thead');
+        if (theadDs && w.PG_UI_I18N && typeof w.PG_UI_I18N.applyDom === 'function') {
+          try { w.PG_UI_I18N.applyDom(theadDs); } catch (eDailyTheadDom) {}
+        }
+      }
       pane.querySelectorAll('.summary-total-item[data-pg-summary-key]').forEach(function (el) {
         var key = el.getAttribute('data-pg-summary-key');
         if (!key) return;
@@ -938,7 +1440,6 @@
         var row = PAY_FOLLOW[act];
         if (row) el.textContent = lblText(row, loc, el.textContent);
       });
-      var tid = pane.id || '';
       var hello = pane.querySelector('#viewSettingHelloBtn_' + tid);
       if (hello) hello.textContent = lblText(UI.helloBtn, loc, hello.textContent);
       if (cfg && cfg.columns) {
@@ -971,6 +1472,12 @@
         if (tbOnly && w.PG_UI_I18N && typeof w.PG_UI_I18N.applyDom === 'function') {
           try { w.PG_UI_I18N.applyDom(tbOnly); } catch (eTbD) {}
         }
+      }
+      if (w.PG_UI_I18N && typeof w.PG_UI_I18N.applyDom === 'function') {
+        try {
+          var pr0 = pane.querySelector('.pagination-row');
+          if (pr0) w.PG_UI_I18N.applyDom(pr0);
+        } catch (ePagUi) {}
       }
     });
     if (typeof w.PG_refreshPayListAggregateBarsDom === 'function') {

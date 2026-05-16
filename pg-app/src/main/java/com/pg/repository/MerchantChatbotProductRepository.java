@@ -2,6 +2,9 @@ package com.pg.repository;
 
 import com.pg.entity.MerchantChatbotProduct;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.util.Collection;
 import java.util.List;
@@ -20,4 +23,8 @@ public interface MerchantChatbotProductRepository extends JpaRepository<Merchant
     long countByOrgUnitIdAndUseYn(Long orgUnitId, String useYn);
 
     boolean existsByOrgUnitIdAndProductCode(Long orgUnitId, String productCode);
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("update MerchantChatbotProduct p set p.promotionShelfYn = 'N' where p.orgUnitId = :orgUnitId")
+    int clearPromotionShelfYnForOrgUnit(@Param("orgUnitId") Long orgUnitId);
 }

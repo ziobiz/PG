@@ -1,5 +1,6 @@
 package com.pg.api.dto;
 
+import java.util.List;
 import java.util.Map;
 
 public class LoginResponse {
@@ -28,6 +29,10 @@ public class LoginResponse {
     private String chatbotPaymentUseYn;
     /** 공지사항 등록 가능(총본사·본사·총판 + 화면 권한 MODIFY 이상) */
     private boolean canWriteNotice;
+    /** 태블릿 모드 사이드바에 노출 가능한 URL 목록(조직 단계 설정 ∩ 페이지 권한) */
+    private List<String> tabletMenuUrls;
+    /** 소속 조직(tb_org_unit) 태블릿 UI 기능 Y/N — ADMIN·조직 없음은 null */
+    private String tabletFeatureUseYn;
 
     public String getToken() { return token; }
     public void setToken(String token) { this.token = token; }
@@ -61,4 +66,8 @@ public class LoginResponse {
     public void setChatbotPaymentUseYn(String chatbotPaymentUseYn) { this.chatbotPaymentUseYn = chatbotPaymentUseYn; }
     public boolean isCanWriteNotice() { return canWriteNotice; }
     public void setCanWriteNotice(boolean canWriteNotice) { this.canWriteNotice = canWriteNotice; }
+    public List<String> getTabletMenuUrls() { return tabletMenuUrls; }
+    public void setTabletMenuUrls(List<String> tabletMenuUrls) { this.tabletMenuUrls = tabletMenuUrls; }
+    public String getTabletFeatureUseYn() { return tabletFeatureUseYn; }
+    public void setTabletFeatureUseYn(String tabletFeatureUseYn) { this.tabletFeatureUseYn = tabletFeatureUseYn; }
 }

@@ -38,6 +38,7 @@ import com.pg.util.ReceivableRecoveryModeUtil;
 import com.pg.util.VoidRefundSettlementModeUtil;
 import com.pg.util.CardBrandScopeUtil;
 import com.pg.chatbot.ChatbotCatalogPolicy;
+import com.pg.chatbot.ChatbotPromotionShelfMode;
 import com.pg.util.ChatbotMerchantAdminConstants;
 import com.pg.util.ChatbotProductPricingUtil;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -504,6 +505,10 @@ public class CompService {
         LinkedHashSet<String> effLt = merchantChatbotProductService.resolveEffectiveListingTypeCodes(merchantOrgUnitId);
         target.put("chatbotEffectiveListingTypesCsv", ChatbotCatalogPolicy.joinListingCsv(effLt));
         target.put("chatbotEffectiveMaxProductImages", merchantChatbotProductService.getEffectiveMaxProductImages(merchantOrgUnitId));
+        ChatbotPromotionShelfMode psm = ChatbotPromotionShelfMode.resolveStored(mp.getChatbotPromotionShelfMode());
+        target.put("chatbotPromotionShelfMode", psm.name());
+        target.put("chatbotPromotionRotateSeconds",
+                ChatbotPromotionShelfMode.normalizeRotateSeconds(mp.getChatbotPromotionRotateSeconds()));
         Map<String, Object> hqCfg = hqChatbotAiSettingsService.rawConfigForServerUse();
         String billCcy = chatbotProductMonthlyBillingService.resolveChatbotMonthlyBillingCurrency(merchantOrgUnitId);
         if (!ChatbotProductPricingUtil.isSupportedBillingCurrency(billCcy)) {
@@ -1649,6 +1654,11 @@ public class CompService {
                             m.put("chatbotCatalogListingEnabled", mp.getChatbotCatalogListingEnabled() != null ? mp.getChatbotCatalogListingEnabled() : "");
                             m.put("chatbotMaxProductImagesGrant", mp.getChatbotMaxProductImagesGrant() != null
                                     ? String.valueOf(mp.getChatbotMaxProductImagesGrant()) : "");
+                            m.put("chatbotPromotionShelfMode",
+                                    mp.getChatbotPromotionShelfMode() != null && !mp.getChatbotPromotionShelfMode().isBlank()
+                                            ? mp.getChatbotPromotionShelfMode().trim() : "PROMOTION");
+                            m.put("chatbotPromotionRotateSeconds",
+                                    mp.getChatbotPromotionRotateSeconds() != null ? mp.getChatbotPromotionRotateSeconds() : 30);
                             if (ou.getOrgLevel() == OrgLevel.MERCHANT) {
                                 m.put("chatbotEffectiveListingTypes", ChatbotCatalogPolicy.joinListingCsv(
                                         merchantChatbotProductService.resolveEffectiveListingTypeCodes(ou.getId())));
@@ -1664,6 +1674,7 @@ public class CompService {
                             }
                             m.put("baseCurrency", mp.getBaseCurrency());
                             m.put("orgUnitId", ou.getId());
+                            m.put("tabletFeatureUseYn", "Y".equalsIgnoreCase(ou.getTabletFeatureUseYn() != null ? ou.getTabletFeatureUseYn().trim() : "") ? "Y" : "N");
                             if ("MASTER_DIST".equalsIgnoreCase(ou.getOrgLevel() != null ? ou.getOrgLevel().name() : "")) {
                                 for (MerchantNotifyUrl n : merchantNotifyUrlRepository.findByOrgUnitIdOrderByUrlTypeAsc(ou.getId())) {
                                     if (n.getUrlType() == null) continue;
@@ -1884,7 +1895,9 @@ public class CompService {
                           String urlPayAlertEmailYn, String urlPayLineNotifyToken,
                           String chatbotHeaderLogoUrl, String chatbotAdminUsername,
                           String chatbotCatalogListingGrant, Integer chatbotMaxProductImagesGrant,
-                          String chatbotCatalogListingEnabled) {
+                          String chatbotCatalogListingEnabled,
+                          String chatbotPromotionShelfMode, Integer chatbotPromotionRotateSeconds,
+                          String tabletFeatureUseYn) {
         return orgUnitRepository.findByCode(compId != null ? compId : "")
                 .flatMap(ou -> merchantProfileRepository.findByOrgUnitId(ou.getId())
                         .map(mp -> {
@@ -1929,6 +1942,14 @@ public class CompService {
                                     }
                                     ou.setParentId(parentId);
                                 }
+                            }
+                            if (tabletFeatureUseYn != null && !tabletFeatureUseYn.isBlank()) {
+                                String prevTf = ou.getTabletFeatureUseYn() != null && "Y".equalsIgnoreCase(ou.getTabletFeatureUseYn().trim()) ? "Y" : "N";
+                                String nextTf = "Y".equalsIgnoreCase(tabletFeatureUseYn.trim()) ? "Y" : "N";
+                                if (!nextTf.equals(prevTf)) {
+                                    persistSingleOrgFieldChange(ou, "태블릿 UI 기능", prevTf, nextTf);
+                                }
+                                ou.setTabletFeatureUseYn(nextTf);
                             }
                             orgUnitRepository.save(ou);
                             String effDivForCommission = childLevel.name();
@@ -2294,6 +2315,15 @@ public class CompService {
                             if (childLevel == OrgLevel.MERCHANT && chatbotCatalogListingEnabled != null) {
                                 merchantChatbotKbService.applyCatalogListingEnabled(mp, chatbotCatalogListingEnabled);
                             }
+                            if (childLevel == OrgLevel.MERCHANT && chatbotPromotionShelfMode != null
+                                    && !chatbotPromotionShelfMode.isBlank()) {
+                                mp.setChatbotPromotionShelfMode(
+                                        ChatbotPromotionShelfMode.resolveStored(chatbotPromotionShelfMode).name());
+                            }
+                            if (childLevel == OrgLevel.MERCHANT && chatbotPromotionRotateSeconds != null) {
+                                mp.setChatbotPromotionRotateSeconds(
+                                        ChatbotPromotionShelfMode.normalizeRotateSeconds(chatbotPromotionRotateSeconds));
+                            }
                             persistMerchantAuditDiff(snap, ou, mp, pwdChanged);
                             return true;
                         }))
@@ -2566,7 +2596,7 @@ public class CompService {
                 /* notify 8 + commission 17 + 수수료VAT 2 + regionalSettings */
                 null, null, null, null, null, null, null, null,
                 null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null,
-                null, null, null, null, null);
+                null, null, null, null, null, null);
     }
 
     @Transactional
@@ -2599,7 +2629,8 @@ public class CompService {
                                      String feeSettlementPerTx, String remittanceTransferFee, String usdtTransferFeeUsd, String feeUsdt, String feeFx,
                                      String urlPayAlertEmailYn, String urlPayLineNotifyToken,
                                      String feeVatApplyYn, String feeVatRatePct,
-                                     String regionalSettings) {
+                                     String regionalSettings,
+                                     String tabletFeatureUseYn) {
         return registerWithExtra(code, name, compDiv, parentId,
                 compTel, zipCode, addr, addrDetail, addrEtc, addrCountryCd,
                 ceoNm, ceoMobile, useYn, loginId,
@@ -2632,7 +2663,8 @@ public class CompService {
                 null, null, null, null, null,
                 urlPayAlertEmailYn, urlPayLineNotifyToken,
                 feeVatApplyYn, feeVatRatePct,
-                regionalSettings);
+                regionalSettings,
+                tabletFeatureUseYn);
     }
 
     @Transactional
@@ -2669,7 +2701,8 @@ public class CompService {
                                      String payFollowAutoRefundYn, String payFollowForceRefundYn,
                                      String urlPayAlertEmailYn, String urlPayLineNotifyToken,
                                      String feeVatApplyYn, String feeVatRatePct,
-                                     String regionalSettings) {
+                                     String regionalSettings,
+                                     String tabletFeatureUseYn) {
         OrgUnit o = new OrgUnit();
         String compDivVal = compDiv != null ? compDiv.trim() : "AGENCY";
         Long effectiveParentId = parentId;
@@ -2695,6 +2728,8 @@ public class CompService {
         validateParentLevel(effectiveParentId, childLevel, null);
         o.setParentId(effectiveParentId);
         o.setStatus("ACTIVE");
+        o.setTabletFeatureUseYn(tabletFeatureUseYn != null && !tabletFeatureUseYn.isBlank()
+                && !"Y".equalsIgnoreCase(tabletFeatureUseYn.trim()) ? "N" : "Y");
         OrgUnit saved = orgUnitRepository.save(o);
 
         MerchantProfile mp = new MerchantProfile();
@@ -4275,7 +4310,8 @@ public class CompService {
                             null, null, null, null, null, null, null, null, null, null,
                             null, null, null, null, null, null, null, null, null, null,
                             null, null, null, null,
-                            null, null, null, null, null, null, null, null, null, null);
+                            null, null, null, null, null, null, null, null, null, null,
+                            null);
                     if (loginIdVal != null && !loginIdVal.isEmpty() && userRepository.findByUsername(loginIdVal).isEmpty()) {
                         AppUser appUser = new AppUser();
                         appUser.setUsername(loginIdVal);

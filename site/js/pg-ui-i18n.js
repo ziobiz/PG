@@ -16,6 +16,104 @@
       TH: 'ไม่มีคำจำกัดความหน้าจอสำหรับ URL นี้'
     },
     '헬로': { EN: 'Hello', JP: 'Hello', CH: '提示', TH: 'Hello' },
+    '태블릿': { EN: 'Tablet', JP: 'タブレット', CH: '平板', TH: 'แท็บเล็ต' },
+    '태블릿 UI 전환': { EN: 'Toggle tablet UI', JP: 'タブレットUI切替', CH: '切换平板界面', TH: 'สลับ UI แท็บเล็ต' },
+    '태블릿설정에서 이 조직 단계에 노출되지 않은 메뉴입니다. 접근불가(NONE)만 가능합니다.': {
+      EN: 'This menu is not exposed for this org level in Tablet settings. Only NONE is allowed.',
+      JP: 'タブレット設定でこの組織段階に表示されていないメニューです。アクセス不可(NONE)のみ可能です。',
+      CH: '此菜单未在该组织级别的平板设置中开放，仅可为不可访问(NONE)。',
+      TH: 'เมนูนี้ไม่เปิดในการตั้งค่าแท็บเล็ตสำหรับระดับองค์กรนี้ ใช้ได้เฉพาะ NONE'
+    },
+    '태블릿설정 미노출 — 접근불가 고정': {
+      EN: 'Not in Tablet settings — fixed to no access',
+      JP: 'タブレット設定で非表示 — アクセス不可固定',
+      CH: '未在平板设置中开放 — 固定为不可访问',
+      TH: 'ไม่เปิดในการตั้งค่าแท็บเล็ต — ปิดการเข้าถึง'
+    },
+    '태블릿설정 안내': {
+      EN: 'Check menus for each organization column (headquarters through merchant). Tablet mode shows only menus enabled here and allowed in HQ permissions. Only HEADQUARTERS or ADMIN can save.',
+      JP: '組織列（総本社〜加盟店）ごとにタブレットで使うメニューにチェックします。タブレットモードでは本社権限とここでONのメニューのみ表示。保存は総本社またはADMINのみ。',
+      CH: '在各组织列（总部至商户）勾选平板可用菜单。开启平板模式后仅显示此处勾选且总部权限允许的菜单。仅总部或 ADMIN 可保存。',
+      TH: 'ติ๊กเมนูตามคอลัมน์องค์กร (สำนักงานใหญ่ถึงร้านค้า) โหมดแท็บเล็ตแสดงเมนูที่เปิดที่นี่และสิทธิ์ HQ อนุญาต บันทึกได้เฉพาะสำนักงานใหญ่หรือ ADMIN'
+    },
+    '태블릿 모드에서 사용할 메뉴가 없습니다. 본사권한설정·태블릿설정을 확인하세요.': {
+      EN: 'No menus are available for tablet mode. Check HQ permissions and Tablet settings.',
+      JP: 'タブレットモードで使えるメニューがありません。本社権限設定・タブレット設定を確認してください。',
+      CH: '没有可在平板模式下使用的菜单。请检查总部权限与平板设置。',
+      TH: 'ไม่มีเมนูสำหรับโหมดแท็บเล็ต ตรวจสอบสิทธิ์ HQ และการตั้งค่าแท็บเล็ต'
+    },
+    '태블릿 메인 — 아이콘을 눌러 화면을 여세요.': {
+      EN: 'Tablet home — tap an icon to open a screen.',
+      JP: 'タブレットホーム — アイコンをタップして画面を開きます。',
+      CH: '平板主页 — 点图标打开对应界面。',
+      TH: 'หน้าแรกแท็บเล็ต — แตะไอคอนเพื่อเปิดหน้าจอ'
+    },
+    '일별결제': {
+      EN: 'Daily payments',
+      JP: '日別決済',
+      CH: '按日支付',
+      TH: 'ชำระรายวัน'
+    },
+    '일별수수료': {
+      EN: 'Daily fees',
+      JP: '日別手数料',
+      CH: '按日手续费',
+      TH: 'ค่าธรรมเนียมรายวัน'
+    },
+    '화면 모드 (변경 시에만 선택)': {
+      EN: 'Display mode (select only if changing)',
+      JP: '表示モード（変更する場合のみ選択）',
+      CH: '显示模式（仅在需要更改时选择）',
+      TH: 'โหมดแสดงผล (เลือกเฉพาะเมื่อต้องการเปลี่ยน)'
+    },
+    '최근 로그인과 동일 (기본)': {
+      EN: 'Same as last sign-in (default)',
+      JP: '前回ログインと同じ（既定）',
+      CH: '与上次登录相同（默认）',
+      TH: 'เหมือนการเข้าล่าสุด (ค่าเริ่มต้น)'
+    },
+    '이번만 태블릿 보드': {
+      EN: 'Tablet board — this sign-in only',
+      JP: '今回のみタブレットボード',
+      CH: '仅本次使用平板看板',
+      TH: 'บอร์ดแท็บเล็ต — เฉพาะครั้งนี้'
+    },
+    '이번만 일반 화면': {
+      EN: 'Standard layout — this sign-in only',
+      JP: '今回のみ通常画面',
+      CH: '仅本次使用标准界面',
+      TH: 'หน้าจอมาตรฐาน — เฉพาะครั้งนี้'
+    },
+    '이번 로그인만 태블릿 보드 UI로 시작합니다.': {
+      EN: 'This sign-in will start with the tablet board UI.',
+      JP: '今回のログインのみタブレットボードUIで開始します。',
+      CH: '仅本次登录以平板看板界面开始。',
+      TH: 'การเข้าครั้งนี้จะเริ่มด้วย UI บอร์ดแท็บเล็ต'
+    },
+    '이번 로그인만 일반(좌측 메뉴) 화면으로 시작합니다.': {
+      EN: 'This sign-in will start with the standard layout.',
+      JP: '今回のログインのみ通常（左メニュー）画面で開始します。',
+      CH: '仅本次登录以标准（左侧菜单）布局开始。',
+      TH: 'การเข้าครั้งนี้จะเริ่มด้วยเลย์เอาต์มาตรฐาน'
+    },
+    '기본: 최근에 태블릿 UI로 접속했습니다. 바꾸려면 아래에서 선택하세요.': {
+      EN: 'Default: your last sign-in used tablet UI. Change below only if needed.',
+      JP: '既定：前回はタブレットUIでした。変更する場合のみ下から選んでください。',
+      CH: '默认：上次为平板界面。仅在需要更改时于下方选择。',
+      TH: 'ค่าเริ่มต้น: ครั้งก่อนใช้ UI แท็บเล็ต เปลี่ยนเฉพาะเมื่อจำเป็น'
+    },
+    '기본: 최근에 일반 화면으로 접속했습니다. 바꾸려면 아래에서 선택하세요.': {
+      EN: 'Default: your last sign-in used the standard layout. Change below only if needed.',
+      JP: '既定：前回は通常画面でした。変更する場合のみ下から選んでください。',
+      CH: '默认：上次为标准界面。仅在需要更改时于下方选择。',
+      TH: 'ค่าเริ่มต้น: ครั้งก่อนใช้หน้าจอมาตรฐาน เปลี่ยนเฉพาะเมื่อจำเป็น'
+    },
+    '첫 로그인: 기기에 따라 태블릿 또는 일반으로 시작합니다. 이후에는 최근 접속 방식이 기본입니다.': {
+      EN: 'First sign-in: starts by device hint; later visits default to your last mode.',
+      JP: '初回ログイン：端末に応じてタブレットまたは通常で開始します。以降は直近の接続方式が既定です。',
+      CH: '首次登录：按设备提示进入平板或标准界面；之后默认沿用上次方式。',
+      TH: 'เข้าครั้งแรก: เริ่มตามอุปกรณ์ ครั้งถัดไปใช้โหมดล่าสุดเป็นค่าเริ่มต้น'
+    },
     '8자 이상': { EN: '8+ characters', JP: '8文字以上', CH: '至少8位', TH: 'อย่างน้อย 8 ตัว' },
     /* /main — 홈 대시보드(메인) */
     '오늘': { EN: 'Today', JP: '今日', CH: '今天', TH: 'วันนี้' },
@@ -122,6 +220,92 @@
       CH: '商品登记',
       TH: 'ลงทะเบียนสินค้า'
     },
+    '챗봇-pay 상단 프로모션': {
+      EN: 'Chatbot-pay top promotion',
+      JP: 'チャットボット決済上部プロモーション',
+      CH: '聊天机器人支付页顶部促销',
+      TH: 'โปรโมชันด้านบน chatbot-pay'
+    },
+    '챗봇-pay 상단 프로모션 안내': {
+      EN: 'Choose how the top promotion area is shown. Interval is in 30-second steps. If you turn the top off, saving clears every product’s “include in top pool” flag so it matches a fully hidden strip.',
+      JP: '上部プロモーション領域の表示方式です。間隔は30秒単位。「上部オフ」で保存すると、全商品の上部候補フラグを解除し、帯を完全に隠す状態と揃えます。',
+      CH: '设置顶部促销区展示方式；间隔为 30 秒步进。若选择「关闭顶部」并保存，将清除所有商品的「纳入顶部候选」标记，与完全隐藏一致。',
+      TH: 'เลือกวิธีแสดงแถบโปรด้านบน ช่วงหมุนเป็นขั้น 30 วิ หากปิดด้านบนและบันทึก ระบบจะล้างทุกสินค้าออกจากพูลเดียวกับซ่อนแถบ'
+    },
+    '표시 방식': {
+      EN: 'Display mode',
+      JP: '表示方式',
+      CH: '展示方式',
+      TH: 'โหมดการแสดง'
+    },
+    '끔 (상단 숨김)': {
+      EN: 'Off (hide top strip)',
+      JP: 'オフ（上部非表示）',
+      CH: '关（隐藏顶部条）',
+      TH: 'ปิด (ซ่อนแถบบน)'
+    },
+    '프로모션 (전체 그리드)': {
+      EN: 'Promotion (full grid)',
+      JP: 'プロモーション（全グリッド）',
+      CH: '促销（全网格）',
+      TH: 'โปรโมชัน (กริดเต็ม)'
+    },
+    '다이나믹 (3칸 순환)': {
+      EN: 'Dynamic (3-slot rotation)',
+      JP: 'ダイナミック（3枠ローテーション）',
+      CH: '动态（三格轮播）',
+      TH: 'ไดนามิก (หมุน 3 ช่อง)'
+    },
+    '하이브리드 (좌1고정+2칸 순환)': {
+      EN: 'Hybrid (1 fixed left + 2 rotating)',
+      JP: 'ハイブリッド（左1固定＋2枠ローテーション）',
+      CH: '混合（左一固定 + 两格轮播）',
+      TH: 'ไฮบริด (ซ้าย 1 คงที่ + หมุน 2 ช่อง)'
+    },
+    '순환 간격(초)': {
+      EN: 'Rotation interval (sec)',
+      JP: 'ローテーション間隔（秒）',
+      CH: '轮播间隔（秒）',
+      TH: 'ช่วงหมุน (วินาที)'
+    },
+    '30의 배수': {
+      EN: 'Multiples of 30',
+      JP: '30秒単位',
+      CH: '须为 30 的倍数',
+      TH: 'ทวีคูณของ 30'
+    },
+    '편집 상품 · 상단 후보 포함': {
+      EN: 'Editing product · include in top pool',
+      JP: '編集中の商品・上部候補に含める',
+      CH: '正在编辑的商品 · 纳入顶部候选',
+      TH: 'สินค้าที่แก้ไข · รวมในพูลด้านบน'
+    },
+    '상단 후보 포함 안내': {
+      EN: 'When the top strip is off, this is locked to “exclude”. When a layout mode is on, pick which products feed the strip (order uses the Sort field).',
+      JP: '上部オフのときは「含めない」に固定されます。レイアウトをオンにしたら、帯に載せる商品を選びます（順序は並び順）。',
+      CH: '顶部关闭时固定为「不包含」。开启布局后，选择参与顶部带的商品（顺序用排序字段）。',
+      TH: 'ปิดแถบบนจะล็อกเป็นไม่รวม เปิดโหมดแล้วเลือกสินค้าที่เข้าพูล (ลำดับตามช่องเรียง)'
+    },
+    '상단 후보 포함 도움말': {
+      EN: 'Top pool membership for the product you are editing.',
+      JP: '編集中商品が上部プロモーション候補に入るか。',
+      CH: '当前编辑商品是否纳入顶部促销候选。',
+      TH: 'สินค้าที่แก้ไขอยู่เข้าพูลโปรด้านบนหรือไม่'
+    },
+    '상단 후보': {
+      EN: 'Top pool',
+      JP: '上部候補',
+      CH: '顶部候选',
+      TH: 'พูลบน'
+    },
+    '후보 포함': { EN: 'In pool', JP: '候補に含む', CH: '纳入候选', TH: 'ในพูล' },
+    '후보 제외': { EN: 'Not in pool', JP: '候補外', CH: '不纳入候选', TH: 'ไม่ในพูล' },
+    '판매 활성 상품 수는 플랜 상한을 넘을 수 없습니다. 등록(보관) 행은 플랜 대비 최대 +2건까지 가능합니다.(예: 10건 플랜 → 활성 최대 10, 등록 최대 12) 본사 판매금지·챗봇결제 미사용이면 노출이 제한됩니다. 상위 조직은 가맹 코드 입력 후 불러오기 하세요. 챗봇-pay 상단 프로모션(끔·그리드·다이나믹·하이브리드)과 편집 중 상품의 후보 포함은 상단 「챗봇-pay 상단 프로모션」카드에서 함께 설정합니다.': {
+      EN: 'Active sale items cannot exceed the plan cap; you may keep up to plan+2 registered rows (e.g. plan 10 → max 10 active, 12 registered). HQ block or disabled chatbot payment may hide items. Parent orgs: enter a merchant code then Load. Chatbot-pay top promotion (off / grid / dynamic / hybrid) and whether the product you edit is in the top pool are configured together in the “Chatbot-pay top promotion” card above.',
+      JP: '販売有効商品数はプラン上限を超えられません。登録（保管）行はプラン比で最大+2件まで可能です（例：10件プラン→有効最大10、登録最大12）。本社販売禁止・チャットボット決済未使用の場合は掲載が制限されます。上位組織は加盟店コード入力後に読み込んでください。チャットボット決済上部プロモーション（オフ/グリッド/ダイナミック/ハイブリッド）と編集中商品の上部候補への含有は、上部の「チャットボット決済上部プロモーション」カードでまとめて設定します。',
+      CH: '在售商品数不能超过套餐上限；登记（暂存）行最多可比套餐多 2 条（例如套餐 10：在售最多 10，登记最多 12）。总部禁售或关闭聊天机器人支付会限制展示。上级组织请先输入商户代码再加载。聊天机器人支付页顶部促销（关/网格/动态/混合）与当前编辑商品是否纳入顶部候选，请在上方「聊天机器人支付页顶部促销」卡片中一并设置。',
+      TH: 'สินค้าที่ขายอยู่เกินเพดานแพลนไม่ได้ แถวลงทะเบียนเก็บได้มากกว่าแพลน +2 รายการ ห้ามขายของ HQ หรือปิดชำระแชทบอทจะจำกัดการแสดง องค์กรแม่ใส่รหัสร้านแล้วโหลด โปรด้านบน chatbot-pay (ปิด/กริด/ไดนามิก/ไฮบริด) และการรวมสินค้าที่แก้ในพูล ตั้งร่วมกันในการ์ดด้านบน'
+    },
     '등록된 상품': {
       EN: 'Registered products',
       JP: '登録済み商品',
@@ -222,6 +406,18 @@
     '환불계': { EN: 'Refund family', JP: '返金系', CH: '退款类', TH: 'กลุ่มคืนเงิน' },
     '지급 참고 구간': { EN: 'Payout reference range', JP: '支払参考区間', CH: '支付参考区间', TH: 'ช่วงอ้างอิงการจ่าย' },
     '정산주기': { EN: 'Settlement cycle', JP: '精算周期', CH: '结算周期', TH: 'รอบชำระเงิน' },
+    '예약된 적용 정산주기: {0}{1}': {
+      EN: 'Pending settlement cycle to apply: {0}{1}',
+      JP: '適用予定の精算サイクル: {0}{1}',
+      CH: '待应用的结算周期：{0}{1}',
+      TH: 'รอบชำระที่จะใช้: {0}{1}'
+    },
+    ' ({0} 지정)': {
+      EN: ' (effective {0})',
+      JP: '（指定: {0}）',
+      CH: '（指定：{0}）',
+      TH: ' (มีผล {0})'
+    },
     '최근 3회 지급액 중앙': { EN: 'Median payout (last 3)', JP: '直近3回 支払額中央値', CH: '最近3次支付额中位数', TH: 'ค่ามัธยฐานการจ่าย (3 ครั้งล่าสุด)' },
     '최소': { EN: 'Min', JP: '最小', CH: '最小', TH: 'ต่ำสุด' },
     '최대': { EN: 'Max', JP: '最大', CH: '最大', TH: 'สูงสุด' },
@@ -809,18 +1005,30 @@
       CH: '临时密码（ID+1!）：',
       TH: 'รหัสผ่านชั่วคราว (ID+1!):'
     },
-    /* /ops/opsMng placeholder, /ops/mailLog thead·cells (STRING_MAP 보강) */
-    '그룹입니다. 운영 배치·점검·장애 대응 등 전용 화면을 여기에 둘 수 있습니다.': {
-      EN: 'This is the operations group. You can place dedicated screens here for batch jobs, checks, and incident response.',
-      JP: '運用グループです。バッチ・点検・障害対応などの専用画面をここに配置できます。',
-      CH: '此为运营分组。可在此放置批次、巡检与故障处理等专用界面。',
-      TH: 'นี่คือกลุ่มปฏิบัติการ สามารถวางหน้าจอเฉพาะสำหรับแบตช์ การตรวจสอบ และการตอบสนองเหตุขัดข้องได้ที่นี่'
+    /* /ops/opsMng 허브, /ops/mailLog thead·cells (STRING_MAP 보강) */
+    '운영관리 그룹입니다. 운영 배치·점검·장애 대응 등 전용 화면을 여기에 둘 수 있습니다.': {
+      EN: 'This is the Operations management group. You can place dedicated screens here for operational batch jobs, inspections, and incident response.',
+      JP: '運用管理グループです。運用バッチ・点検・障害対応などの専用画面をここに置けます。',
+      CH: '此为运营管理分组。可在此放置运营批处理、巡检与故障处理等专用界面。',
+      TH: 'นี่คือกลุ่มการบริหารปฏิบัติการ สามารถวางหน้าจอเฉพาะสำหรับแบตช์ การตรวจสอบ และการตอบสนองเหตุขัดข้องได้ที่นี่'
     },
     '현재는 메뉴만 제공하며, 세부 기능은 이후 버전에서 연동합니다.': {
       EN: 'Only the menu is available for now; detailed features will be linked in a later version.',
       JP: '現時点ではメニューのみです。詳細機能は今後のバージョンで連携予定です。',
       CH: '目前仅提供菜单，详细功能将在后续版本中接入。',
       TH: 'ขณะนี้มีเฉพาะเมนู ฟีเจอร์ละเอียดจะเชื่อมในเวอร์ชันถัดไป'
+    },
+    'PG 연동·배포 참고 문서': {
+      EN: 'PG integration & deployment reference',
+      JP: 'PG連携・配布の参考ドキュメント',
+      CH: 'PG 联动与部署参考文档',
+      TH: 'เอกสารอ้างอิงการเชื่อม PG และการใช้งานจริง'
+    },
+    '아래 하위 메뉴는 배포설정의 동명 화면과 내용이 같습니다. JPAY 연동·가맹점 API·체크리스트 점검 시 활용하세요.': {
+      EN: 'The submenus below mirror the same titles under Deployment settings with identical content. Use them when reviewing JPAY integration, merchant API rollout, and launch checklists.',
+      JP: '以下のサブメニューはデプロイ設定の同名画面と内容が同じです。JPAY連携・加盟店API・チェックリスト点検にご利用ください。',
+      CH: '以下子菜单与「部署设置」下同标题页面内容一致。JPAY 联动、商户 API、上线清单巡检时请使用。',
+      TH: 'เมนูย่อยด้านล่างมีเนื้อหาเดียวกับหน้าชื่อเดียวกันในการตั้งค่า deploy ใช้ตรวจ JPAY การแจก Merchant API และเช็กลิสต์เปิดใช้'
     },
     '이메일무효(거래)': {
       EN: 'Email void (transaction)',
@@ -937,6 +1145,7 @@
     '집계시작': { EN: 'Period from', JP: '集計開始', CH: '汇总开始', TH: 'เริ่มช่วง' },
     '집계종료': { EN: 'Period to', JP: '集計終了', CH: '汇总结束', TH: 'สิ้นช่วง' },
     '가맹명': { EN: 'Merchant name', JP: '加盟店名', CH: '商户名称', TH: 'ชื่อร้าน' },
+    '가맹점명': { EN: 'Merchant name', JP: '加盟店名', CH: '商户名称', TH: 'ชื่อร้าน' },
     '가맹코드': { EN: 'Merchant code', JP: '加盟店コード', CH: '商户代码', TH: 'รหัสร้าน' },
     '거래건수': { EN: 'Txn count', JP: '取引件数', CH: '交易笔数', TH: 'จำนวนธุรกรรม' },
     '순매출': { EN: 'Net sales', JP: '純売上', CH: '净销售额', TH: 'ยอดขายสุทธิ' },
@@ -945,6 +1154,30 @@
       JP: '取引手数料合計',
       CH: '交易手续费合计',
       TH: 'รวมค่าธรรมเนียมธุรกรรม'
+    },
+    '정산 수수료': {
+      EN: 'Settlement fee (per run)',
+      JP: '精算手数料（実行単位）',
+      CH: '结算手续费（按次）',
+      TH: 'ค่าธรรมเนียมชำระบัญชี (ต่อรัน)'
+    },
+    '송금 수수료': {
+      EN: 'Remittance fee',
+      JP: '送金手数料',
+      CH: '汇款手续费',
+      TH: 'ค่าธรรมเนียมโอน'
+    },
+    '지급예정일': {
+      EN: 'Payout due date',
+      JP: '支払予定日',
+      CH: '预计拨付日',
+      TH: 'วันครบกำหนดจ่าย'
+    },
+    '보증금': {
+      EN: 'Deposit (rolling reserve)',
+      JP: '保証金（ローリング）',
+      CH: '保证金（滚动）',
+      TH: 'เงินประกัน (โรลลิง)'
     },
     '지급액(송금전)': {
       EN: 'Payout (before wire fee)',
@@ -1026,7 +1259,7 @@
     },
     /* /main dashboard (pg-home-dashboard.js) */
     '승인': { EN: 'Approved', JP: '承認', CH: '授权', TH: 'อนุมัติ' },
-    '전체': { EN: 'Total', JP: '全体', CH: '全部', TH: 'ทั้งหมด' },
+    '전체': { EN: 'All', JP: 'すべて', CH: '全部', TH: 'ทั้งหมด' },
     '건': { EN: '', JP: '件', CH: '笔', TH: 'รายการ' },
     '해당 기간 거래가 없습니다.': {
       EN: 'No transactions in this period.',
@@ -1391,6 +1624,102 @@
       CH: '已自动显示与当前登录关联的组织企业信息。可在下方查看与修改。',
       TH: 'แสดงองค์กรที่ผูกกับบัญชีเข้าใช้อัตโนมัติ ดู/แก้ไขด้านล่าง'
     },
+    '대표 아이디 (중복검사)': {
+      EN: 'Main login ID (duplicate check)',
+      JP: '代表ログインID（重複確認）',
+      CH: '主登录ID（查重）',
+      TH: 'ไอดีเข้าใช้หลัก (ตรวจซ้ำ)'
+    },
+    중복확인: {
+      EN: 'Check duplicate',
+      JP: '重複確認',
+      CH: '查重',
+      TH: 'ตรวจสอบซ้ำ'
+    },
+    '중복확인 실패': {
+      EN: 'Duplicate check failed',
+      JP: '重複確認に失敗しました',
+      CH: '查重失败',
+      TH: 'การตรวจซ้ำล้มเหลว'
+    },
+    '대표 아이디 중복확인을 먼저 진행하세요.': {
+      EN: 'Please run duplicate check for the main login ID first.',
+      JP: '先に代表ログインIDの重複確認を行ってください。',
+      CH: '请先完成主登录ID的查重。',
+      TH: 'โปรดตรวจสอบซ้ำไอดีหลักก่อน'
+    },
+    '보조 아이디 중복확인을 먼저 진행하세요.': {
+      EN: 'Please run duplicate check for the assistant login ID first.',
+      JP: '先に補助ログインIDの重複確認を行ってください。',
+      CH: '请先完成辅助登录ID的查重。',
+      TH: 'โปรดตรวจสอบซ้ำไอดีผู้ช่วยก่อน'
+    },
+    '로그인ID 중복확인을 먼저 진행하세요.': {
+      EN: 'Please run duplicate check for the login ID first.',
+      JP: '先にログインIDの重複確認を行ってください。',
+      CH: '请先完成登录ID的查重。',
+      TH: 'โปรดตรวจสอบซ้ำรหัสเข้าใช้ก่อน'
+    },
+    '챗봇 관리자 로그인ID 중복확인을 먼저 진행하세요.': {
+      EN: 'Please run duplicate check for the chatbot admin login ID first.',
+      JP: '先にチャットボット管理者ログインIDの重複確認を行ってください。',
+      CH: '请先完成聊天机器人管理员登录ID的查重。',
+      TH: 'โปรดตรวจสอบซ้ำรหัสผู้ดูแลแชทบอตก่อน'
+    },
+    '챗봇 카탈로그(산하 허용·이미지)': {
+      EN: 'Chatbot catalog (sub-org allowance & images)',
+      JP: 'チャットボットカタログ（傘下許容・画像）',
+      CH: '聊天机器人目录（下级允许与图片）',
+      TH: 'แคตตาล็อกแชทบอต (สิทธิ์ลูกข่ายและรูป)'
+    },
+    '총본사·본사·총판만 설정합니다. 비우면 해당 단계에서 제한 없음(상위·시스템 기본). 산하 가맹 실효값은 체인 최소(교집합·이미지 장수)입니다.': {
+      EN: 'Only root HQ, regional HQ, and master distributors can set this. Leave blank for no limit at that tier (inherits HQ/system defaults). Effective values for downstream merchants use the strictest cap along the chain (intersection of allowed types and image count).',
+      JP: '設定できるのは総本部・本社・総販のみです。空欄なら当該段階では制限なし（上位・システム既定を継承）。傘下加盟店の実効値はチェーン上の最も厳しい値（許容タイプの共通部分・画像枚数）になります。',
+      CH: '仅总总部、地区总部、总代可配置。留空表示该层级不设限（继承上级/系统默认）。下级商户生效值为整条链上最严限制（允许类型的交集与图片张数）。',
+      TH: 'ตั้งได้เฉพาะ HQ สูงสุด HQ ภูมิภาค และตัวแทนหลัก ว่าง = ไม่จำกัดในระดับนั้น (ตามค่าเริ่มต้นระบบ/บน) ค่าที่มีผลกับร้านลูกข่ายใช้ค่าที่เข้มที่สุดในโซ่น (ทับซ้อนของประเภทและจำนวนรูป)'
+    },
+    '산하 허용 상품유형(CSV)': {
+      EN: 'Allowed listing types for sub-orgs (CSV)',
+      JP: '傘下で許可する商品タイプ（CSV）',
+      CH: '下级允许的商品类型（CSV）',
+      TH: 'ประเภทสินค้าที่อนุญาตใต้องค์กร (CSV)'
+    },
+    'SALE,RESERVATION_TIME,RESERVATION_PLACE': {
+      EN: 'e.g. SALE,RESERVATION_TIME,RESERVATION_PLACE',
+      JP: '例: SALE,RESERVATION_TIME,RESERVATION_PLACE',
+      CH: '例：SALE,RESERVATION_TIME,RESERVATION_PLACE',
+      TH: 'เช่น SALE,RESERVATION_TIME,RESERVATION_PLACE'
+    },
+    '상품 이미지 장수 상한(1~4)': {
+      EN: 'Max product images (1–4)',
+      JP: '商品画像の上限枚数（1～4）',
+      CH: '商品图片张数上限（1~4）',
+      TH: 'จำนวนรูปสินค้าสูงสุด (1–4)'
+    },
+    '— 미지정': {
+      EN: '— Not set',
+      JP: '— 未指定',
+      CH: '— 未指定',
+      TH: '— ไม่ระบุ'
+    },
+    '브랜딩 설정': {
+      EN: 'Branding',
+      JP: 'ブランディング設定',
+      CH: '品牌设置',
+      TH: 'การตั้งค่าแบรนด์'
+    },
+    '본사에서 [배경/로고 변경권한]을 부여한 가맹점은 메인·로고·테마를 수정할 수 있습니다. 메인이미지=로그인 화면 왼쪽 배경, 로고=로그인창 상단·사이드바 상단.': {
+      EN: 'Merchants granted [background/logo edit rights] by HQ may change main image, logos, and theme. Main image = left background on the login page; logos = top of the login box and top of the sidebar.',
+      JP: '本社が［背景／ロゴ変更権限］を付与した加盟店は、メイン・ロゴ・テーマを変更できます。メイン画像＝ログイン画面左の背景、ロゴ＝ログイン枠上・サイドバー上です。',
+      CH: '总部授予【背景/Logo 修改权限】的商户可修改主图、Logo 与主题。主图=登录页左侧背景；Logo=登录框顶部与侧栏顶部。',
+      TH: 'ร้านที่ HQ ให้สิทธิ์ [แก้พื้นหลัง/โลโก้] แก้ภาพหลัก โลโก้ และธีมได้ ภาพหลัก=พื้นหลังซ้ายหน้าเข้าใช้ โลโก้=ด้านบนกล่องล็อกอินและแถบด้านข้าง'
+    },
+    '수정 저장': {
+      EN: 'Save changes',
+      JP: '変更を保存',
+      CH: '保存修改',
+      TH: 'บันทึกการแก้ไข'
+    },
     '선택한 가맹점의 정보입니다. 그리드에서 한 건 선택 후 [상세] 버튼으로 조회·수정합니다.': {
       EN: 'This is the selected merchant. Pick one row in the grid, then use [Detail] to view or edit.',
       JP: '選択した加盟店の情報です。一覧で1件選び、[詳細]で照会・修正します。',
@@ -1404,10 +1733,10 @@
       TH: 'บริษัทที่สำนักงานใหญ่ของคุณให้สิทธิ์ เลือกแถวแล้วกด [รายละเอียด]'
     },
     '무효·환불 정산 방식 카드 안내': {
-      EN: '<strong>Void / refund settlement</strong> (standard, revenue, hybrid, or follow distributor/HQ) is configured in the four fields below. <strong>Follow distributor/HQ</strong> applies the per-distributor and HQ defaults from HQ settings → recovery/receivables; choosing a value here overrides for this merchant.',
-      JP: '<strong>無効・返金の精算方式</strong>（一般・収益・ハイブリッド・総販/本社に従う）は下の4項目で設定します。<strong>総販・本社に従う</strong>は、本社設定の回収/未収画面の総販別・本社デフォルトを適用し、値を選ぶと当該加盟店を優先します。',
-      CH: '<strong>无效/退款结算方式</strong>（一般、收益、混合、跟随总代/总部）在下方四项中设置。<strong>跟随总代/总部</strong>适用总部「回款/应收」中的总代与总部默认值；在此选择则覆盖该商户。',
-      TH: '<strong>การชำระคืน/โมฆะ</strong> (มาตรฐาน·รายได้·ไฮบริด·ตามตัวแทนหลัก/HQ) ตั้งในสี่ช่องด้านล่าง <strong>ตามตัวแทนหลัก·HQ</strong> ใช้ค่าเริ่มต้นจากการตั้งค่า HQ'
+      EN: 'Void / refund settlement (standard, revenue, hybrid 1/2, or follow distributor/HQ) is set in the four fields below. Standard: deduct net sales, no extra success fees on void/refund. Revenue: keep net sales, charge success fees again. Hybrid 1/2 split void vs refund rules. Follow uses HQ → recovery/receivables defaults; a value here overrides for this merchant.',
+      JP: '下の4項目で無効・返金の精算方式（一般・収益・ハイブリッド1/2・総販/本社に従う）を設定します。一般は純売上控除・成功手数料は追加しません。収益は純売上維持・二重課金します。総販・本社に従うは本社の回収/未収設定を適用し、ここで選ぶと加盟店優先です。',
+      CH: '在下方四项设置无效/退款结算（一般、收益、混合1/2、跟随总代/总部）。一般：扣净销售额，无效/退款不追加成功手续费。收益：不扣净销售额，再次收取成功手续费。跟随适用总部回款/应收默认值；此处选择则商户优先。',
+      TH: 'ตั้งโมฆะ/คืนเงินในสี่ช่อง (มาตรฐาน·รายได้·ไฮบริด1/2·ตาม HQ) มาตรฐานหักยอด·ไม่เก็บค่าธรรมเนียมสำเร็จซ้ำ รายได้คงยอด·เก็บซ้ำ ตาม HQ ใช้ค่าเริ่มต้นจากหน้าตั้งค่า HQ'
     },
     '검색: 첫 줄에서 거래일·빠른기간을 정한 뒤, 둘째 줄에서 검색구분·검색어·상태그룹을 맞추고 오른쪽 [검색]을 누릅니다. 「전체」는 해당 조건으로 좁히지 않습니다. 앞쪽 열 순서(업체·거래일·거래시간·루트·승인번호·거래번호)는 통합 결제내역 기본과 같습니다. 건당수수료 열은 거래 성공 시 과금되는 성공(건당) 고정액만 표시합니다. 기타수수료: USDT·FX는 승인금액 대비 %(「결제(%)」 합계에 포함), 3DS는 정책통화 기준 건당 고정(합계 열에는 미포함·별도 열). 세 항목은 결제·건당 등과 별도로 동시 과금될 수 있습니다. 금액이 없으면 USDT·FX·3DS 열은 — 입니다. 정산 수수료는 정산 실행 시 1회 과금되며, 송금(이체) 수수료는 그 이후 송금 처리 시 과금되어 정산리포트에 정산 수수료·송금 수수료로 각각 표시됩니다. 이 화면의 총수수료·지급예상에는 정산·송금 건당액이 포함되지 않습니다. 결제(성공): 건당·%(승인 시 부과) 열, 담보(롤링%·추정액), 지급예상액, 정산액(지급예상−담보추정). 실패·취소·무효·환불 등은 상태별 수수료 규칙을 따르며, 무효·환불 계열은 성공 건과 동일한 건당·%가 추가로 과금될 수 있습니다(이중 과금). 차감(취소·환불·무효·실패 등): 지급예상액은 0, 총수수료·부가세는 과금액(양수), 정산액은 −(총수수료+부가세)입니다. 담보 추정은 승인 건에만 표시됩니다. 본사·총판 등은 로그인 조직 하위 가맹점만 조회됩니다.': {
       EN: 'Search: set transaction dates and quick range on the first row; on the second row set search field, keyword, and status group, then click [Search] on the right. [All] does not narrow that dimension. Leading columns (merchant, date, time, route, approval no., txn id) match the integrated payment list. The per-txn fee column shows only the flat success fee charged on successful transactions. Other fees: USDT·FX are % of approved amount (included in the Pay(%) total); 3DS is a fixed per-txn charge in policy currency (not in the sum totals, separate column). Those three may accrue alongside pay/per-txn fees. When there is no amount, USDT·FX·3DS show an em dash. Settlement fees are charged once per settlement run; wire/transfer fees are charged when the transfer is processed and appear separately on settlement reports as settlement fee and wire fee. This screen’s total fees and expected payout exclude settlement/wire per-txn rows. Pay (success): per-txn and % columns charged on approval; collateral (rolling % and estimate); expected payout; settlement amount (expected minus collateral estimate). Fail/cancel/void/refund follow state-specific fee rules; void/refund families may incur the same per-txn/% as success (double charge). Deductions (cancel/refund/void/fail, etc.): expected payout is 0; total fee and VAT are charged amounts (positive); settlement amount is −(total fee + VAT). Collateral estimate is shown only for approved transactions. HQ/distributors see only merchants under the logged-in organization.',
@@ -1434,6 +1763,30 @@
       JP: '総販・本社に従う',
       CH: '跟随总代/总部',
       TH: 'ตามตัวแทนหลัก / HQ'
+    },
+    '일반형 (순매출 차감·무효·환불 시 성공 수수료 미추가)': {
+      EN: 'Standard (deduct net sales; no extra success fees on void/refund)',
+      JP: '一般型（純売上控除・無効/返金時は成功手数料を追加しない）',
+      CH: '标准型（扣净销售额；无效/退款不追加成功手续费）',
+      TH: 'มาตรฐาน (หักยอดขายสุทธิ·โมฆะ/คืนไม่เก็บค่าธรรมเนียมสำเร็จซ้ำ)'
+    },
+    '수익형 (순매출 미차감·무효·환불 시 성공 수수료 이중 과금)': {
+      EN: 'Revenue (no net deduction; success fees charged again on void/refund)',
+      JP: '収益型（純売上未控除・無効/返金時も成功手数料を二重課金）',
+      CH: '收益型（不扣净销售额；无效/退款再次收取成功手续费）',
+      TH: 'รายได้ (ไม่หักยอดขายสุทธิ·โมฆะ/คืนเก็บค่าธรรมเนียมสำเร็จซ้ำ)'
+    },
+    '하이브리드1 (무효·수무: 순매출 차감·이중과금 / 환불·강제: 순매출 유지·건당만)': {
+      EN: 'Hybrid 1 (void/manual: deduct net + double fee / refund/force: keep net + per-txn only)',
+      JP: 'ハイブリッド1（無効・手動: 純売上控除+二重 / 返金・強制: 純売上維持+件当のみ）',
+      CH: '混合1（无效/手动作废：扣净销售额+双收 / 退款/强制：保留净销售额+仅按笔）',
+      TH: 'ไฮบริด1 (โมฆะ/มือ: หักยอด+เก็บซ้ำ / คืน/บังคับ: คงยอด+ต่อรายการ)'
+    },
+    '하이브리드2 (환불·강제: 순매출 차감·이중과금 / 무효·수무: 순매출 유지·건당만)': {
+      EN: 'Hybrid 2 (refund/force: deduct net + double fee / void/manual: keep net + per-txn only)',
+      JP: 'ハイブリッド2（返金・強制: 純売上控除+二重 / 無効・手動: 純売上維持+件当のみ）',
+      CH: '混合2（退款/强制：扣净销售额+双收 / 无效/手动作废：保留净销售额+仅按笔）',
+      TH: 'ไฮบริด2 (คืน/บังคับ: หักยอด+เก็บซ้ำ / โมฆะ/มือ: คงยอด+ต่อรายการ)'
     },
     '일반형 (순매출 차감·환불·자동환불 금액 포함)': {
       EN: 'Standard (net sales less refunds & auto-refunds)',
@@ -1577,6 +1930,863 @@
       JP: '銀行名を直接入力',
       CH: '手动输入银行名',
       TH: 'พิมพ์ชื่อธนาคารเอง'
+    },
+    '직접입력': { EN: 'Manual entry', JP: '直接入力', CH: '手动输入', TH: 'กรอกเอง' },
+    '본사정책 따름': {
+      EN: 'Follow HQ policy',
+      JP: '本社ポリシーに従う',
+      CH: '跟随总部政策',
+      TH: 'ตามนโยบายสำนักงานใหญ่'
+    },
+    '본사 정책선택': {
+      EN: 'HQ policy selection',
+      JP: '本社ポリシー選択',
+      CH: '总部政策选择',
+      TH: 'เลือกนโยบายสำนักงานใหญ่'
+    },
+    '본사 기본 템플릿 (DEFAULT)': {
+      EN: 'HQ default template (DEFAULT)',
+      JP: '本社既定テンプレート (DEFAULT)',
+      CH: '总部默认模板 (DEFAULT)',
+      TH: 'เทมเพลตค่าเริ่มต้น HQ (DEFAULT)'
+    },
+    '본사 기본 템플릿': {
+      EN: 'HQ default template',
+      JP: '本社既定テンプレート',
+      CH: '总部默认模板',
+      TH: 'เทมเพลตค่าเริ่มต้น HQ'
+    },
+    '보조 아이디 (중복검사)': {
+      EN: 'Assistant login ID (duplicate check)',
+      JP: '副次ログインID（重複確認）',
+      CH: '辅助登录账号（查重）',
+      TH: 'รหัสผู้ช่วย (ตรวจซ้ำ)'
+    },
+    'SWIFT 코드': {
+      EN: 'SWIFT code',
+      JP: 'SWIFTコード',
+      CH: 'SWIFT 代码',
+      TH: 'รหัส SWIFT'
+    },
+    '무효·환불 정산 (안내)': {
+      EN: 'Void / refund settlement (guide)',
+      JP: '無効・返金精算（案内）',
+      CH: '无效/退款结算（说明）',
+      TH: 'โมฆะ/คืนเงิน (คำอธิบาย)'
+    },
+    '무효 정산(21·40)': {
+      EN: 'Void settlement (21·40)',
+      JP: '無効精算(21・40)',
+      CH: '无效结算(21·40)',
+      TH: 'ชำระโมฆะ (21·40)'
+    },
+    '수동무효 정산(22·41)': {
+      EN: 'Manual void settlement (22·41)',
+      JP: '手動無効精算(22・41)',
+      CH: '手动作废结算(22·41)',
+      TH: 'โมฆะด้วยมือ (22·41)'
+    },
+    '환불 정산(30·42)': {
+      EN: 'Refund settlement (30·42)',
+      JP: '返金精算(30・42)',
+      CH: '退款结算(30·42)',
+      TH: 'ชำระคืนเงิน (30·42)'
+    },
+    '강제환불(31)': {
+      EN: 'Forced refund (31)',
+      JP: '強制返金(31)',
+      CH: '强制退款(31)',
+      TH: 'บังคับคืนเงิน (31)'
+    },
+    '기본·종전과 동일': {
+      EN: 'Same as default / legacy',
+      JP: '既定・従前と同じ',
+      CH: '与默认/沿用相同',
+      TH: 'เหมือนค่าเริ่มต้น/เดิม'
+    },
+    '정산마감시간': {
+      EN: 'Settlement cutoff time',
+      JP: '精算締切時刻',
+      CH: '结算截止时间',
+      TH: 'เวลาปิดรอบชำระ'
+    },
+    '정산자동개시시간': {
+      EN: 'Auto settlement start time',
+      JP: '精算自動開始時刻',
+      CH: '自动结算开始时间',
+      TH: 'เวลาเริ่มชำระอัตโนมัติ'
+    },
+    '변경 비고': {
+      EN: 'Change remark',
+      JP: '変更備考',
+      CH: '变更备注',
+      TH: 'หมายเหตุการเปลี่ยนแปลง'
+    },
+    '오전': { EN: 'AM', JP: '午前', CH: '上午', TH: 'ก่อนเที่ยง' },
+    '오후': { EN: 'PM', JP: '午後', CH: '下午', TH: 'หลังเที่ยง' },
+    '이체시간': {
+      EN: 'Transfer time',
+      JP: '振込時刻',
+      CH: '转账时间',
+      TH: 'เวลาโอน'
+    },
+    '정산제외여부': {
+      EN: 'Settlement exclusion (Y/N)',
+      JP: '精算除外の有無',
+      CH: '是否排除结算',
+      TH: 'ยกเว้นการชำระ (Y/N)'
+    },
+    '미만 시 다음 주기': {
+      EN: 'If below min, defer to next cycle',
+      JP: '下限未満は次周期へ',
+      CH: '低于下限则并入下一周期',
+      TH: 'ต่ำกว่าขั้นต่ำ → รอบถัดไป'
+    },
+    '펌뱅킹 최소': {
+      EN: 'Firm banking minimum',
+      JP: 'ファームバンキング下限',
+      CH: '银企直连最低额',
+      TH: 'ขั้นต่ำเฟิร์มแบงกิ้ง'
+    },
+    '예정모드': {
+      EN: 'Scheduled mode',
+      JP: '予定モード',
+      CH: '预定模式',
+      TH: 'โหมดกำหนดการ'
+    },
+    '연동기본': {
+      EN: 'Integration default',
+      JP: '連携既定',
+      CH: '联动默认',
+      TH: 'ค่าเริ่มต้นการเชื่อม'
+    },
+    'D시각(일괄)': {
+      EN: 'D time (batch)',
+      JP: 'D時刻（一括）',
+      CH: 'D 时刻（批量）',
+      TH: 'เวลา D (รวม)'
+    },
+    '착신화': {
+      EN: 'Inbound mapping',
+      JP: '着信化',
+      CH: '来账映射',
+      TH: 'แมปปิงขาเข้า'
+    },
+    '결제구분': {
+      EN: 'Pay method',
+      JP: '決済区分',
+      CH: '支付类型',
+      TH: 'ประเภทชำระ'
+    },
+    카드사: {
+      EN: 'Card issuer',
+      JP: 'カード会社',
+      CH: '发卡机构',
+      TH: 'ค่ายบัตร'
+    },
+    등록사유: {
+      EN: 'Registration reason',
+      JP: '登録理由',
+      CH: '登记原因',
+      TH: 'เหตุผลที่ลงทะเบียน'
+    },
+    '루트번호': {
+      EN: 'Route no.',
+      JP: 'ルート番号',
+      CH: '路由号',
+      TH: 'หมายเลข Route'
+    },
+    '카드브랜드': {
+      EN: 'Card brand',
+      JP: 'カードブランド',
+      CH: '卡品牌',
+      TH: 'แบรนด์บัตร'
+    },
+    '웹결제 사용 / 대표 기본상품정보 (온라인 URL 결제용)': {
+      EN: 'WEB checkout / default product (online URL pay)',
+      JP: 'WEB決済 / 代表デフォルト商品（オンラインURL決済用）',
+      CH: 'WEB 支付 / 默认商品（在线 URL 支付）',
+      TH: 'ชำระ WEB / สินค้าเริ่มต้น (ชำระ URL)'
+    },
+    '대표 상품명': {
+      EN: 'Default product name',
+      JP: '代表商品名',
+      CH: '默认商品名称',
+      TH: 'ชื่อสินค้าหลัก'
+    },
+    '챗봇 상품등록 한도(건)': {
+      EN: 'Chatbot product row cap',
+      JP: 'チャットボット商品登録上限（件）',
+      CH: '聊天机器人商品登记上限（条）',
+      TH: 'จำกัดจำนวนสินค้าแชทบอท (แถว)'
+    },
+    '챗봇 관리자(로그인ID·중복검사)': {
+      EN: 'Chatbot admin (login ID · duplicate check)',
+      JP: 'チャットボット管理者（ログインID・重複確認）',
+      CH: '聊天机器人管理员（登录 ID·查重）',
+      TH: 'ผู้ดูแลแชทบอท (รหัสเข้า·ตรวจซ้ำ)'
+    },
+    '가맹당 1명 · 없는 ID는 저장 시 자동 등록(초기비밀번호: ID+1!) · 공개 챗봇 상품관리 로그인에는 OTP 필요 · 비우면 해제': {
+      EN: 'One per merchant · unknown IDs auto-create on save (initial password: ID+1!) · public chatbot product admin needs OTP · leave blank to disable',
+      JP: '加盟店あたり1名・未登録IDは保存時に自動登録（初期PW: ID+1!）・公開チャットボット商品管理ログインはOTP必須・空欄で解除',
+      CH: '每商户一名 · 不存在 ID 保存时自动注册（初始密码：ID+1!）· 公开聊天机器人商品管理登录需 OTP · 留空解除',
+      TH: 'ร้านละ 1 · ID ใหม่บันทึกแล้วสร้างอัตโนมัติ (รหัสเริ่ม: ID+1!) · แอดมินสินค้าสาธารณะต้อง OTP · ว่างเพื่อปิด'
+    },
+    '가맹 활성 카탈로그 유형(CSV)': {
+      EN: 'Merchant active catalog types (CSV)',
+      JP: '加盟店アクティブカタログ種別(CSV)',
+      CH: '商户启用目录类型（CSV）',
+      TH: 'ประเภทแคตตาล็อกที่ใช้ (CSV)'
+    },
+    '승인 알림메일': {
+      EN: 'Approval notification email',
+      JP: '承認通知メール',
+      CH: '批准通知邮件',
+      TH: 'อีเมลแจ้งอนุมัติ'
+    },
+    '업로드 시 자동 반영 · 또는 HTTPS URL 직접 입력': {
+      EN: 'Auto-fill on upload · or paste HTTPS URL',
+      JP: 'アップロードで自動反映・またはHTTPS URLを直接入力',
+      CH: '上传后自动填入 · 或直接粘贴 HTTPS URL',
+      TH: 'อัปโหลดแล้วเติมอัตโนมัติ · หรือวาง HTTPS URL'
+    },
+    'PNG·JPEG, 원본 최대 40MB. 서버에서 목표 2MB 이하(본사 AI챗봇설정 변경 가능)로 재압축합니다. chatbot_logo_llm_tune_yn=Y 일 때 AI챗봇설정 순위 LLM으로 권장 픽셀을 잡습니다.': {
+      EN: 'PNG/JPEG, up to 40 MB source. Server recompresses toward ≤2 MB (HQ AI chatbot settings). When chatbot_logo_llm_tune_yn=Y, HQ AI chatbot LLM ranking picks suggested pixels.',
+      JP: 'PNG/JPEG、原稿最大40MB。サーバで目標2MB以下に再圧縮（本社AIチャットボット設定で変更可）。chatbot_logo_llm_tune_yn=Y のとき本社AIチャットボット設定のLLM順位で推奨ピクセルを決めます。',
+      CH: 'PNG/JPEG，原图最大 40MB。服务器再压缩至约 2MB 以下（可由总部 AI 聊天设置调整）。chatbot_logo_llm_tune_yn=Y 时由总部 AI 聊天 LLM 排序建议像素。',
+      TH: 'PNG/JPEG สูงสุด 40MB เซิร์ฟเวอร์บีบอีกให้ ≤2MB (ตั้งใน HQ AI) ถ้า chatbot_logo_llm_tune_yn=Y ใช้ LLM แนะนำความละเอียด'
+    },
+    '배포설정 > API연동설정(사용 Y) 전체가 목록에 나오며, PG 선택 시 본사에 등록한 MID·Route가 기본 입력됩니다. 예정모드·N·D시각은 위 「통합정산설정」에서 일괄 지정합니다. API KEY·IV는 비우면 본사 연동 자격을 따를 수 있습니다(ChillPay 등). URL·챗봇·API 결제는 운영(체크)를 여러 행에 켤 수 있습니다. 체크된 행은 붉은 배경(파스텔)로 표시됩니다. 노티 전용 PG는 카드브랜드가 ALL로 고정됩니다. [추가]로 행을 열고, 업체정보(가맹점)에서는 [저장][삭제][수정]마다 확인창이 두 번 뜹니다.': {
+      EN: 'Deployment → API integration (Y) rows are all listed; picking a PG fills MID·Route from HQ registration. Scheduled mode·N·D time are set in bulk under Integrated settlement above. Leave API KEY·IV blank to inherit HQ credentials (e.g. ChillPay). URL·chatbot·API can each have multiple “live” rows checked; checked rows use a pastel red highlight. Notify-only PGs fix card brand to ALL. Use [Add] to open a row; on merchant detail, [Save]/[Delete]/[Edit] each shows two confirmation dialogs.',
+      JP: 'デプロイ設定＞API連携(使用Y)の全行が一覧に出ます。PGを選ぶと本社登録のMID・Routeが既定入力。予定モード・N・D時刻は上の「統合精算設定」で一括。API KEY・IVは空で本社連携資格を継承(ChillPay等)。URL・チャットボット・APIは運用チェックを複数行に可。チェック行はパステル赤背景。ノティ専用PGはカードブランドALL固定。[追加]で行を開き、加盟店情報では[保存][削除][修正]ごとに確認が二重です。',
+      CH: '部署 API 联动（启用 Y）全部列出；选 PG 后填入总部登记的 MID·Route。预定模式·N·D 时间在上方「整合结算设置」批量设置。API KEY·IV 留空则继承总部凭证。URL·聊天机器人·API 可多行勾选运营；选中行淡红底。纯通知 PG 卡品牌固定 ALL。【添加】打开行；在商户信息中【保存】【删除】【修改】各触发两次确认。',
+      TH: 'รายการ API ที่เปิด Y ทั้งหมด เลือก PG แล้วเติม MID·Route จาก HQ โหมดกำหนด·N·D ตั้งรวมด้านบน ว่าง KEY/IV ใช้สิทธิ์ HQ ได้ หลายแถว URL/แชทบอท/API เปิดใช้งานได้ แถวที่เลือกพื้นหลังแดงอ่อน PG แจ้งเตือนอย่างเดียวการ์ด ALL กดเพิ่มแถว ที่หน้าร้าน บันทึก/ลบ/แก้ แต่ละครั้งมียืนยัน 2 ครั้ง'
+    },
+    '배포설정 > API연동설정에서 사용(Y)으로 등록된 결제대행사가 목록에 표시됩니다. PG를 고르면 API연동설정의 MID·Route 등이 기본값으로 채워지며, 가맹점 전용 값은 수정·저장하면 됩니다. 예정모드·N·D시각은 위 「통합정산설정」에서 일괄 지정합니다. URL·챗봇·API 결제는 운영(체크)를 여러 행에 켤 수 있습니다. 체크된 행은 붉은 배경(파스텔)로 표시됩니다. 노티 전용 PG는 카드브랜드가 ALL로 고정됩니다. 하단 [저장] 시 한꺼번에 반영됩니다.': {
+      EN: 'Deployment → API integration (Y) lists all acquirers. Picking a PG fills MID·Route from HQ defaults; edit and save merchant-specific values. Scheduled mode·N·D time are set in bulk under Integrated settlement above. URL·chatbot·API can have multiple live rows checked; checked rows use a pastel red highlight. Notify-only PGs fix card brand to ALL. Click [Save] at the bottom to apply all at once.',
+      JP: 'デプロイ設定＞API連携(使用Y)の決済代行が一覧に出ます。PG選択で本社のMID・Routeが既定入力。予定モード・N・D時刻は上の「統合精算設定」で一括。URL・チャットボット・APIは運用チェックを複数行に可。チェック行はパステル赤背景。ノティ専用PGはカードブランドALL固定。下の［保存］で一括反映。',
+      CH: '部署 API 联动（启用 Y）的收单行会全部列出；选 PG 后填入总部 MID·Route 默认值，商户专用值可改后保存。预定模式·N·D 时间在上方「整合结算设置」批量设置。URL·聊天机器人·API 可多行勾选运营；选中行淡红底。纯通知 PG 卡品牌固定 ALL。底部【保存】一次生效。',
+      TH: 'API ที่เปิด Y แสดงครบ เลือก PG เติม MID·Route จาก HQ แก้ค่าร้านแล้วบันทึก โหมดกำหนด·N·D ตั้งรวมด้านบน หลายแถว URL/แชทบอท/API เปิดใช้ได้ แถวที่เลือกพื้นหลังแดงอ่อน PG แจ้งเตือนอย่างเดียวการ์ด ALL กด [บันทึก] ล่างสุดครั้งเดียว'
+    },
+    '배포설정 > API연동설정에서 사용(Y)으로 등록된 결제대행사가 목록에 표시됩니다. PG를 고르면 API연동설정의 MID·Route 등이 기본값으로 채워지며, 가맹점 전용 값은 수정·저장하면 됩니다. URL·챗봇·API 결제는 운영(체크)를 여러 행에 켤 수 있습니다. 체크된 행은 붉은 배경(파스텔)로 표시됩니다. 노티 전용 PG는 카드브랜드가 ALL로 고정됩니다. 등록 화면은 하단 [저장] 시 한꺼번에 반영됩니다.': {
+      EN: 'Acquirers enabled (Y) under Deployment → API integration are listed. Selecting a PG prefills MID·Route from those defaults; edit merchant-specific values and save. URL, chatbot, and API checkout can each have multiple live rows; checked rows use a pastel red highlight. Notify-only PGs lock card brand to ALL. On this registration screen, click [Save] at the bottom to apply all changes at once.',
+      JP: 'デプロイ設定＞API連携で使用(Y)の決済代行が一覧に表示されます。PGを選ぶとMID・Route等が連携設定の既定で埋まり、加盟店固有は編集して保存します。URL・チャットボット・API決済は運用チェックを複数行にできます。チェック行はパステル調の赤背景です。ノティ専用PGはカードブランドALL固定です。登録画面では下の［保存］で一括反映されます。',
+      CH: '在「部署」>「API 联动」中设为启用 (Y) 的收单行会显示在列表中。选择 PG 后，会用联动配置的 MID·Route 等作为默认填入；商户专用值可修改后保存。URL、聊天机器人、API 支付可勾选多行运营；已勾选行以淡红底高亮。纯通知 PG 的卡品牌固定为 ALL。本注册页请使用底部【保存】一次全部提交。',
+      TH: 'ผู้ให้บริการที่เปิดใช้ (Y) ในการเชื่อม API แสดงในรายการ เลือก PG แล้วเติม MID·Route เป็นค่าเริ่มต้นจากการตั้งค่า แก้ค่าเฉพาะร้านแล้วบันทึกได้ URL·แชทบอท·API เปิดหลายแถวได้ แถวที่เลือกพื้นหลังแดงอ่อน PG แจ้งเตือนอย่างเดียวการ์ด ALL คงที่ หน้าลงทะเบียนกด [บันทึก] ล่างสุดเพื่อยืนยันทั้งหมด'
+    },
+    N: {
+      EN: 'N (T+N / D+N lag)',
+      JP: 'N（T+N・D+Nの遅延日数）',
+      CH: 'N（T+N / D+N 滞后天数）',
+      TH: 'N (ช้า T+N / D+N วัน)'
+    },
+    'T/D 시 1~10': {
+      EN: '1–10 when T or D',
+      JP: 'T/D時は1～10',
+      CH: 'T 或 D 时填 1~10',
+      TH: 'เมื่อ T หรือ D ใส่ 1–10'
+    },
+    상품명: { EN: 'Product name', JP: '商品名', CH: '商品名称', TH: 'ชื่อสินค้า' },
+    상품코드: { EN: 'Product code', JP: '商品コード', CH: '商品代码', TH: 'รหัสสินค้า' },
+    기본금액: { EN: 'Default amount', JP: 'デフォルト金額', CH: '默认金额', TH: 'ยอดเริ่มต้น' },
+    상품설명: { EN: 'Product description', JP: '商品説明', CH: '商品说明', TH: 'คำอธิบายสินค้า' },
+    '챗봇 상단 로고': {
+      EN: 'Chatbot header logo',
+      JP: 'チャットボット上部ロゴ',
+      CH: '聊天机器人顶部 Logo',
+      TH: 'โลโก้หัวแชทบอท'
+    },
+    '업로드·최적화': {
+      EN: 'Upload & optimize',
+      JP: 'アップロード・最適化',
+      CH: '上传并优化',
+      TH: 'อัปโหลดและปรับให้เหมาะ'
+    },
+    '사용 (대표 이메일)': {
+      EN: 'On (primary email)',
+      JP: '使用（代表メール）',
+      CH: '启用（主邮箱）',
+      TH: 'ใช้ (อีเมลหลัก)'
+    },
+    '정산담당자연락처': {
+      EN: 'Settlement contact phone',
+      JP: '精算担当者連絡先',
+      CH: '结算负责人联系电话',
+      TH: 'เบอร์ติดต่อผู้รับผิดชอบการชำระเงิน'
+    },
+    '계좌정보': { EN: 'Account details', JP: '口座情報', CH: '账户信息', TH: 'ข้อมูลบัญชี' },
+    '계좌은행': { EN: 'Bank (account)', JP: '口座銀行', CH: '开户银行', TH: 'ธนาคารบัญชี' },
+    '국가': { EN: 'Country', JP: '国', CH: '国家', TH: 'ประเทศ' },
+    '지점이름': { EN: 'Branch name', JP: '支店名', CH: '网点名称', TH: 'ชื่อสาขา' },
+    '지점 주소': { EN: 'Branch address', JP: '支店住所', CH: '网点地址', TH: 'ที่อยู่สาขา' },
+    '담당전화번호': { EN: 'Contact phone', JP: '担当電話番号', CH: '联系电话', TH: 'เบอร์ติดต่อผู้รับผิดชอบ' },
+    '코인 지갑 주소': {
+      EN: 'Crypto wallet address',
+      JP: 'コインウォレットアドレス',
+      CH: '加密钱包地址',
+      TH: 'ที่อยู่กระเป๋าคริปโต'
+    },
+    '코인 수취 지갑 주소': {
+      EN: 'Receiving wallet address',
+      JP: 'コイン受取用ウォレットアドレス',
+      CH: '收款钱包地址',
+      TH: 'ที่อยู่กระเป๋ารับเหรียญ'
+    },
+    '네트워크': { EN: 'Network', JP: 'ネットワーク', CH: '网络', TH: 'เครือข่าย' },
+    '네트워크 이름': {
+      EN: 'Network name',
+      JP: 'ネットワーク名',
+      CH: '网络名称',
+      TH: 'ชื่อเครือข่าย'
+    },
+    '기준 화폐1*': {
+      EN: 'Base currency 1*',
+      JP: '基準通貨1*',
+      CH: '基准货币1*',
+      TH: 'สกุลเงินฐาน 1*'
+    },
+    '기준 화폐2': {
+      EN: 'Base currency 2',
+      JP: '基準通貨2',
+      CH: '基准货币2',
+      TH: 'สกุลเงินฐาน 2'
+    },
+    '기준 화폐3': {
+      EN: 'Base currency 3',
+      JP: '基準通貨3',
+      CH: '基准货币3',
+      TH: 'สกุลเงินฐาน 3'
+    },
+    '기준 화폐*': {
+      EN: 'Base currency*',
+      JP: '基準通貨*',
+      CH: '基准货币*',
+      TH: 'สกุลเงินฐาน*'
+    },
+    '송금자명(입금시)': {
+      EN: 'Remitter name (on deposit)',
+      JP: '振込人名義（入金時）',
+      CH: '汇款人名称（入账时）',
+      TH: 'ชื่อผู้โอน (ตอนรับเงิน)'
+    },
+    '입금 시 송금자명': {
+      EN: 'Remitter name as shown on deposit',
+      JP: '入金時の振込人名義',
+      CH: '入账时的汇款人名称',
+      TH: 'ชื่อผู้โอนตามที่เห็นตอนรับเงิน'
+    },
+    '크립토 이체 수수료(USD)': {
+      EN: 'Crypto transfer fee (USD)',
+      JP: '暗号資産振込手数料(USD)',
+      CH: '加密货币转账手续费(USD)',
+      TH: 'ค่าธรรมเนียมโอนคริปโต (USD)'
+    },
+    이체수수료: {
+      EN: 'Transfer fee',
+      JP: '振込手数料',
+      CH: '转账手续费',
+      TH: 'ค่าธรรมเนียมโอน'
+    },
+    기준화폐: {
+      EN: 'Base currency',
+      JP: '基準通貨',
+      CH: '基准货币',
+      TH: 'สกุลเงินฐาน'
+    },
+    잔액알림금액: {
+      EN: 'Balance alert amount',
+      JP: '残高通知金額',
+      CH: '余额提醒金额',
+      TH: 'ยอดแจ้งเตือนคงเหลือ'
+    },
+    '의심거래/오류알림': {
+      EN: 'Suspicious txn / error alert',
+      JP: '疑わしい取引/エラー通知',
+      CH: '可疑交易/错误通知',
+      TH: 'แจ้งเตือนทุจริต/ข้อผิดพลาด'
+    },
+    해외로그인알림: {
+      EN: 'Overseas login alert',
+      JP: '海外ログイン通知',
+      CH: '境外登录通知',
+      TH: 'แจ้งเตือนล็อกอินต่างประเทศ'
+    },
+    임시비밀번호알림: {
+      EN: 'Temporary password alert',
+      JP: '仮パスワード通知',
+      CH: '临时密码通知',
+      TH: 'แจ้งเตือนรหัสผ่านชั่วคราว'
+    },
+    비거래기준월: {
+      EN: 'Non-transaction base (months)',
+      JP: '非取引基準（月）',
+      CH: '非交易基准（月）',
+      TH: 'เกณฑ์ไม่มีธุรกรรม (เดือน)'
+    },
+    '동일카드 중복결제 한도(WEB)*': {
+      EN: 'Same-card duplicate pay limit (WEB)*',
+      JP: '同一カード重複決済上限(WEB)*',
+      CH: '同卡重复支付限额(WEB)*',
+      TH: 'วงเงินชำระซ้ำบัตรเดียวกัน (WEB)*'
+    },
+    '동일카드 중복결제 한도(단말)*': {
+      EN: 'Same-card duplicate pay limit (terminal)*',
+      JP: '同一カード重複決済上限(端末)*',
+      CH: '同卡重复支付限额(终端)*',
+      TH: 'วงเงินชำระซ้ำบัตรเดียวกัน (เทอร์มินัล)*'
+    },
+    회: {
+      EN: 'Times',
+      JP: '回',
+      CH: '次',
+      TH: 'ครั้ง'
+    },
+    원: {
+      EN: 'KRW',
+      JP: 'ウォン',
+      CH: '韩元',
+      TH: 'วอน'
+    },
+    '신규회원 한도 자동전환*': {
+      EN: 'Auto-switch new-member limit*',
+      JP: '新規会員限度の自動切替*',
+      CH: '新会员限额自动切换*',
+      TH: 'สลับวงเงินสมาชิกใหม่อัตโนมัติ*'
+    },
+    '신규회원 일한도*': {
+      EN: 'New-member daily limit*',
+      JP: '新規会員の日次限度*',
+      CH: '新会员日限额*',
+      TH: 'วงเงินรายวันสมาชิกใหม่*'
+    },
+    '전환기준일*': {
+      EN: 'Switch reference date*',
+      JP: '切替基準日*',
+      CH: '切换基准日*',
+      TH: 'วันที่อ้างอิงการสลับ*'
+    },
+    '전환 일한도*': {
+      EN: 'Post-switch daily limit*',
+      JP: '切替後の日次限度*',
+      CH: '切换后日限额*',
+      TH: 'วงเงินรายวันหลังสลับ*'
+    },
+    '적용시작일*': {
+      EN: 'Effective start date*',
+      JP: '適用開始日*',
+      CH: '生效开始日*',
+      TH: 'วันเริ่มใช้*'
+    },
+    정산정보: {
+      EN: 'Settlement info',
+      JP: '精算情報',
+      CH: '结算信息',
+      TH: 'ข้อมูลการชำระ'
+    },
+    'PG수수료(일반)*': {
+      EN: 'PG fee (general)*',
+      JP: 'PG手数料（一般）*',
+      CH: 'PG 手续费（一般）*',
+      TH: 'ค่าธรรมเนียม PG (ทั่วไป)*'
+    },
+    '차액정산 월횟수': {
+      EN: 'Net settlement runs / month',
+      JP: '差額精算の月回数',
+      CH: '差额结算月次数',
+      TH: 'จำนวนรอบชำระสุทธิต่อเดือน'
+    },
+    '정산보고서 은행*': {
+      EN: 'Settlement report bank*',
+      JP: '精算レポート銀行*',
+      CH: '结算报告银行*',
+      TH: 'ธนาคารในรายงานชำระ*'
+    },
+    'PG수수료(삼성페이)': {
+      EN: 'PG fee (Samsung Pay)',
+      JP: 'PG手数料（Samsung Pay）',
+      CH: 'PG 手续费（Samsung Pay）',
+      TH: 'ค่าธรรมเนียม PG (Samsung Pay)'
+    },
+    SMS수수료: {
+      EN: 'SMS fee',
+      JP: 'SMS手数料',
+      CH: '短信手续费',
+      TH: 'ค่า SMS'
+    },
+    '세금계산서 이메일': {
+      EN: 'Tax invoice email',
+      JP: '税計算書メール',
+      CH: '税务发票邮箱',
+      TH: 'อีเมลใบกำกับภาษี'
+    },
+    직결수수료: {
+      EN: 'Direct-connect fee',
+      JP: '直結手数料',
+      CH: '直连手续费',
+      TH: 'ค่าธรรมเนียมเชื่อมตรง'
+    },
+    솔루션수수료: {
+      EN: 'Solution fee',
+      JP: 'ソリューション手数料',
+      CH: '方案手续费',
+      TH: 'ค่าโซลูชัน'
+    },
+    '예금주명*': {
+      EN: 'Account holder*',
+      JP: '口座名義*',
+      CH: '账户户名*',
+      TH: 'ชื่อบัญชี*'
+    },
+    '일 이용료': {
+      EN: 'Daily usage fee',
+      JP: '日額利用料',
+      CH: '日使用费',
+      TH: 'ค่าธรรมเนียมรายวัน'
+    },
+    '입금자명조회*': {
+      EN: 'Depositor name lookup*',
+      JP: '入金者名義照会*',
+      CH: '汇款人名查询*',
+      TH: 'การค้นหาชื่อผู้โอน*'
+    },
+    '이체/출금 인증번호': {
+      EN: 'Transfer / payout OTP',
+      JP: '振込/出金認証番号',
+      CH: '转账/出款验证码',
+      TH: 'รหัสยืนยันโอน/ถอน'
+    },
+    미조회: {
+      EN: 'Do not look up',
+      JP: '照会しない',
+      CH: '不查询',
+      TH: 'ไม่ค้นหา'
+    },
+    '결제 제한 시간 설정': {
+      EN: 'Payment time restriction',
+      JP: '決済制限時間の設定',
+      CH: '支付限制时间设置',
+      TH: 'จำกัดเวลาชำระเงิน'
+    },
+    '단말 결제제한*': {
+      EN: 'Terminal pay restriction*',
+      JP: '端末決済制限*',
+      CH: '终端支付限制*',
+      TH: 'จำกัดชำระผ่านเทอร์มินัล*'
+    },
+    'WEB 결제제한*': {
+      EN: 'WEB pay restriction*',
+      JP: 'WEB決済制限*',
+      CH: 'WEB 支付限制*',
+      TH: 'จำกัดชำระ WEB*'
+    },
+    '기본 수수료 설정': {
+      EN: 'Default fee settings',
+      JP: '基本手数料の設定',
+      CH: '默认手续费设置',
+      TH: 'ตั้งค่าค่าธรรมเนียมเริ่มต้น'
+    },
+    '기본 결제한도 설정': {
+      EN: 'Default payment limit settings',
+      JP: '基本決済限度の設定',
+      CH: '默认支付限额设置',
+      TH: 'ตั้งค่าวงเงินชำระเริ่มต้น'
+    },
+    '기본 터미널 정보': {
+      EN: 'Default terminal info',
+      JP: '基本端末情報',
+      CH: '默认终端信息',
+      TH: 'ข้อมูลเทอร์มินัลเริ่มต้น'
+    },
+    상세정보: {
+      EN: 'Details',
+      JP: '詳細情報',
+      CH: '详细信息',
+      TH: 'รายละเอียด'
+    },
+    정산형태: {
+      EN: 'Settlement type',
+      JP: '精算形態',
+      CH: '结算形态',
+      TH: 'รูปแบบการชำระ'
+    },
+    가맹점별: {
+      EN: 'Per merchant',
+      JP: '加盟店別',
+      CH: '按商户',
+      TH: 'ต่อร้านค้า'
+    },
+    '요율(%)': {
+      EN: 'Rate (%)',
+      JP: '料率(%)',
+      CH: '费率(%)',
+      TH: 'อัตรา (%)'
+    },
+    요율: {
+      EN: 'Rate',
+      JP: '料率',
+      CH: '费率',
+      TH: 'อัตรา'
+    },
+    사용한도: {
+      EN: 'Usage limit',
+      JP: '利用限度',
+      CH: '使用额度',
+      TH: 'วงเงินใช้งาน'
+    },
+    '필수 노티': {
+      EN: 'Required notify',
+      JP: '必須ノティ',
+      CH: '必填通知',
+      TH: 'แจ้งเตือนบังคับ'
+    },
+    '노티 쌍 선택': {
+      EN: 'Pick notify pair',
+      JP: 'ノティペアを選択',
+      CH: '选择通知对',
+      TH: 'เลือกคู่แจ้งเตือน'
+    },
+    '본사 노티구성에서 연결 시 자동 입력됩니다.': {
+      EN: 'Auto-filled when wired in HQ notify configuration.',
+      JP: '本社ノティ構成で接続すると自動入力されます。',
+      CH: '在总部通知配置中连接后会自动填入。',
+      TH: 'เชื่อมในตั้งค่าแจ้งเตือน HQ แล้วจะเติมอัตโนมัติ'
+    },
+    '본사설정 > 노티구성설정에서 총판에 노티 대상을 연결하세요.': {
+      EN: 'In HQ settings → Notify wiring, link notify targets to this distributor.',
+      JP: '本社設定＞ノティ構成でこの総販にノティ先を接続してください。',
+      CH: '在总部设置 > 通知环境配置中为该总代连接通知对象。',
+      TH: 'ที่ตั้งค่า HQ > การเชื่อมแจ้งเตือน ให้เชื่อมเป้าหมายกับตัวแทนหลัก'
+    },
+    '노티 CALLBACK (URL 1)*': {
+      EN: 'Notify CALLBACK (URL 1)*',
+      JP: 'ノティ CALLBACK (URL1)*',
+      CH: '通知 CALLBACK (URL 1)*',
+      TH: 'แจ้งเตือน CALLBACK (URL 1)*'
+    },
+    '노티 RESULT (URL 2)*': {
+      EN: 'Notify RESULT (URL 2)*',
+      JP: 'ノティ RESULT (URL2)*',
+      CH: '通知 RESULT (URL 2)*',
+      TH: 'แจ้งเตือน RESULT (URL 2)*'
+    },
+    노티선택: {
+      EN: 'Pick notify',
+      JP: 'ノティを選択',
+      CH: '选择通知',
+      TH: 'เลือกแจ้งเตือน'
+    },
+    '보조 노티': {
+      EN: 'Auxiliary notify',
+      JP: '補助ノティ',
+      CH: '辅助通知',
+      TH: 'แจ้งเตือนเสริม'
+    },
+    '보조 쌍 선택': {
+      EN: 'Pick aux pair',
+      JP: '補助ペアを選択',
+      CH: '选择辅助对',
+      TH: 'เลือกคู่เสริม'
+    },
+    'URL 3·4를 같은 쌍으로 채웁니다.': {
+      EN: 'Fills URL 3 and 4 as one pair.',
+      JP: 'URL3・4を同じペアで埋めます。',
+      CH: '将 URL 3 与 4 作为一对填写。',
+      TH: 'เติม URL 3 และ 4 เป็นคู่เดียวกัน'
+    },
+    '노티 URL 3(보조)': {
+      EN: 'Notify URL 3 (aux)',
+      JP: 'ノティURL3（補助）',
+      CH: '通知 URL 3（辅助）',
+      TH: 'แจ้งเตือน URL 3 (เสริม)'
+    },
+    '노티 URL 4(보조)': {
+      EN: 'Notify URL 4 (aux)',
+      JP: 'ノティURL4（補助）',
+      CH: '通知 URL 4（辅助）',
+      TH: 'แจ้งเตือน URL 4 (เสริม)'
+    },
+    '1회 한도*': {
+      EN: 'Per-txn limit*',
+      JP: '1回限度*',
+      CH: '单笔限额*',
+      TH: 'วงเงินต่อรายการ*'
+    },
+    '일 한도*': {
+      EN: 'Daily limit*',
+      JP: '日次限度*',
+      CH: '日限额*',
+      TH: 'วงเงินรายวัน*'
+    },
+    '월 한도*': {
+      EN: 'Monthly limit*',
+      JP: '月次限度*',
+      CH: '月限额*',
+      TH: 'วงเงินรายเดือน*'
+    },
+    '연 한도(법인)*': {
+      EN: 'Annual limit (corp.)*',
+      JP: '年次限度（法人）*',
+      CH: '年限额（法人）*',
+      TH: 'วงเงินรายปี (นิติบุคคล)*'
+    },
+    '연 한도(개인)*': {
+      EN: 'Annual limit (individual)*',
+      JP: '年次限度（個人）*',
+      CH: '年限额（个人）*',
+      TH: 'วงเงินรายปี (บุคคลธรรมดา)*'
+    },
+    '출금 제한 설정': {
+      EN: 'Withdrawal restriction',
+      JP: '出金制限設定',
+      CH: '出款限制设置',
+      TH: 'ตั้งค่าจำกัดการถอนเงิน'
+    },
+    '출금 제한 시간 설정': {
+      EN: 'Withdrawal time window',
+      JP: '出金制限時間設定',
+      CH: '出款时间限制设置',
+      TH: 'ตั้งค่าช่วงเวลาจำกัดการถอน'
+    },
+    '출금제한 유형': {
+      EN: 'Restriction type',
+      JP: '出金制限種別',
+      CH: '出款限制类型',
+      TH: 'ประเภทข้อจำกัดการถอน'
+    },
+    '시작시간': { EN: 'Start time', JP: '開始時刻', CH: '开始时间', TH: 'เวลาเริ่ม' },
+    '종료시간': { EN: 'End time', JP: '終了時刻', CH: '结束时间', TH: 'เวลาสิ้นสุด' },
+    '출금제한시작시간': {
+      EN: 'Restriction start time',
+      JP: '出金制限開始時刻',
+      CH: '限制开始时间',
+      TH: 'เวลาเริ่มจำกัดการถอน'
+    },
+    '출금제한종료시간': {
+      EN: 'Restriction end time',
+      JP: '出金制限終了時刻',
+      CH: '限制结束时间',
+      TH: 'เวลาสิ้นสุดจำกัดการถอน'
+    },
+    '지급한도 설정': {
+      EN: 'Payout limits',
+      JP: '支払限度設定',
+      CH: '支付限额设置',
+      TH: 'ตั้งค่าวงเงินจ่าย'
+    },
+    '기본한도(원)': {
+      EN: 'Base limit (KRW)',
+      JP: '基本限度（ウォン）',
+      CH: '基本限额（韩元）',
+      TH: 'วงเงินพื้นฐาน (วอน)'
+    },
+    '추가한도(원)': {
+      EN: 'Additional limit (KRW)',
+      JP: '追加限度（ウォン）',
+      CH: '追加限额（韩元）',
+      TH: 'วงเงินเพิ่มเติม (วอน)'
+    },
+    '한도알림': { EN: 'Limit alert', JP: '限度通知', CH: '限额提醒', TH: 'แจ้งเตือนวงเงิน' },
+    '1회 지급한도': {
+      EN: 'Per-payout limit',
+      JP: '1回あたりの支払限度',
+      CH: '单笔支付限额',
+      TH: 'วงเงินต่อครั้งที่จ่าย'
+    },
+    '보류율 설정': {
+      EN: 'Rolling hold rate',
+      JP: '保留率設定',
+      CH: '滚动保留比例设置',
+      TH: 'ตั้งค่าอัตรากันวงเงิน (โรลลิง)'
+    },
+    '수수료정책': {
+      EN: 'Fee policy',
+      JP: '手数料ポリシー',
+      CH: '手续费政策',
+      TH: 'นโยบายค่าธรรมเนียม'
+    },
+    '결제 후속조치 (가맹점 관리자)': {
+      EN: 'Post-payment actions (merchant admin)',
+      JP: '決済後フォロー（加盟店管理者）',
+      CH: '支付后续处理（商户管理员）',
+      TH: 'การดำเนินการหลังชำระเงิน (ผู้ดูแลร้านค้า)'
+    },
+    '정산방법': {
+      EN: 'Settlement method',
+      JP: '精算方法',
+      CH: '结算方式',
+      TH: 'วิธีการชำระเงิน'
+    },
+    '통합정산설정': {
+      EN: 'Integrated settlement',
+      JP: '統合精算設定',
+      CH: '整合结算设置',
+      TH: 'การชำระเงินแบบรวม'
+    },
+    '결제대행사 설정': {
+      EN: 'Payment provider (PG) setup',
+      JP: '決済代行設定',
+      CH: '支付机构设置',
+      TH: 'ตั้งค่าผู้ให้บริการชำระเงิน (PG)'
+    },
+    '챗봇결제 설정': {
+      EN: 'Chatbot checkout',
+      JP: 'チャットボット決済設定',
+      CH: '聊天机器人支付设置',
+      TH: 'ตั้งค่าชำระผ่านแชทบอท'
+    },
+    'URL·챗봇 결제 승인 알림': {
+      EN: 'URL / chatbot payment approval alerts',
+      JP: 'URL・チャットボット決済承認通知',
+      CH: 'URL / 聊天机器人支付批准通知',
+      TH: 'การแจ้งเตือนอนุมัติชำระ URL / แชทบอท'
+    },
+    '미사용이면 로그인한 가맹점 관리자에게 챗봇관리의 상품관리 메뉴가 표시되지 않습니다. 챗봇결제 URL은 공개 결제 화면 진입용입니다. 프로모션 표시 방식·순환 간격은 챗봇관리 「상품관리」에서 설정합니다.': {
+      EN: 'If disabled, the Product management menu under Chatbot admin is hidden for the logged-in merchant admin. The chatbot payment URL opens the public checkout. Promotion layout and rotation are set under Chatbot admin » Product management.',
+      JP: '未使用の場合、ログイン中の加盟店管理者にはチャットボット管理の「商品管理」メニューが表示されません。チャットボット決済URLは公開決済画面への入口です。プロモーション表示方式・ローテーション間隔はチャットボット管理「商品管理」で設定します。',
+      CH: '停用后，已登录的商户管理员将不显示聊天机器人管理中的「商品管理」菜单。聊天机器人支付 URL 用于进入公开支付页。促销展示方式与轮播间隔在聊天机器人管理「商品管理」中设置。',
+      TH: 'ปิดใช้งานแล้ว ผู้ดูแลร้านที่ล็อกอินจะไม่เห็นเมนูจัดการสินค้าในแชทบอท URL ชำระแชทบอทเป็นทางเข้าหน้าชำระสาธารณะ โหมดโปรโมชันและช่วงหมุนเวียนตั้งในแชทบอท » จัดการสินค้า'
+    },
+    '인라인 DirectCredit(URL·챗봇) 승인 시 PG중계 JSON 전송과 함께 LINE Notify·대표 이메일(전산 SMTP) 알림을 보낼 수 있습니다. 토큰은 비우면 기존 유지, 삭제는 __CLEAR__.': {
+      EN: 'On inline DirectCredit (URL / chatbot) approval, you can send LINE Notify and representative email (system SMTP) together with the PG relay JSON. Leave the token blank to keep the current value; use __CLEAR__ to remove it.',
+      JP: 'インラインDirectCredit（URL・チャットボット）承認時に、PG中継JSONとあわせてLINE Notify・代表メール（電算SMTP）通知を送れます。トークンは空欄で現状維持、削除は__CLEAR__です。',
+      CH: '内联 DirectCredit（URL / 聊天机器人）批准时，可与 PG 中继 JSON 一并发送 LINE Notify 与代表邮箱（系统 SMTP）通知。令牌留空保留原值；删除填 __CLEAR__。',
+      TH: 'เมื่ออนุมัติ DirectCredit แบบอินไลน์ (URL/แชทบอท) สามารถส่ง LINE Notify และอีเมลตัวแทน (SMTP ระบบ) พร้อม JSON รีเลย์ PG ได้ เว้นโทเคนไว้คงค่าเดิม ลบใส่ __CLEAR__'
+    },
+    '즉시 적용': {
+      EN: 'Apply immediately',
+      JP: '即時適用',
+      CH: '立即生效',
+      TH: 'ใช้ทันที'
+    },
+    '다음 정산 실행 후(예약)': {
+      EN: 'After next settlement run (scheduled)',
+      JP: '次回精算実行後（予約）',
+      CH: '下次结算执行后（预约）',
+      TH: 'หลังรันชำระครั้งถัดไป (จอง)'
+    },
+    '해당없음': {
+      EN: 'Not applicable',
+      JP: '該当なし',
+      CH: '不适用',
+      TH: 'ไม่เกี่ยวข้อง'
+    },
+    'LINE Notify 토큰': {
+      EN: 'LINE Notify token',
+      JP: 'LINE Notify トークン',
+      CH: 'LINE Notify 令牌',
+      TH: 'โทเค็น LINE Notify'
+    },
+    '변경 시만 입력 · 삭제: __CLEAR__': {
+      EN: 'Enter only when changing · delete: __CLEAR__',
+      JP: '変更時のみ入力・削除：__CLEAR__',
+      CH: '仅在变更时填写·删除：__CLEAR__',
+      TH: 'กรอกเมื่อเปลี่ยนเท่านั้น · ลบ: __CLEAR__'
+    },
+    'SALE,RESERVATION_TIME 예: 시간예약만': {
+      EN: 'e.g. SALE,RESERVATION_TIME — time-slot reservation only',
+      JP: '例: SALE,RESERVATION_TIME — 時間枠予約のみ',
+      CH: '例：SALE,RESERVATION_TIME — 仅时段预约',
+      TH: 'เช่น SALE,RESERVATION_TIME — เฉพาะจองตามช่วงเวลา'
     },
     '기타 입력': { EN: 'Other (text)', JP: 'その他（入力）', CH: '其他（填写）', TH: 'อื่นๆ (พิมพ์)' },
     '비우면 연동(tb_pg_agency) 기본': {
@@ -1769,6 +2979,8 @@
       TH: 'รหัสบริษัทออกอัตโนมัติตอนบันทึกครั้งแรก (คำนำหน้า 2 + เลข 8 หลัก) แก้ไม่ได้หลังออก ย้ายองค์กรได้เฉพาะขึ้นบน ปิดการใช้งานที่บนปิดลูกทั้งหมด ร้านค้าเปิดใหม่ได้เมื่อเปลี่ยนหัวหน้า รหัสผ่านกดบันทึกข้างช่องแล้วบันทึกด้านล่าง ลืมรหัสใช้รีเซ็ตจากเมนูข้อมูล'
     },
     건당료: { EN: 'Per-txn fee', JP: '件当手数料', CH: '按笔费用', TH: 'ค่าธรรมเนียมต่อรายการ' },
+    '요율%': { EN: 'Rate %', JP: '料率%', CH: '费率%', TH: 'อัตรา %' },
+    적용시작일: { EN: 'Effective from', JP: '適用開始日', CH: '生效开始日', TH: 'ใช้ตั้งแต่วันที่' },
     기준통화: { EN: 'Base currency', JP: '基準通貨', CH: '基准货币', TH: 'สกุลฐาน' },
     처리: { EN: 'Actions', JP: '操作', CH: '操作', TH: 'ดำเนินการ' },
     합계: { EN: 'Total', JP: '合計', CH: '合计', TH: 'รวม' },
@@ -2395,6 +3607,12 @@
       CH: '结算最低额',
       TH: 'ยอดขั้นต่ำการชำระ'
     },
+    '이체및송금최소금액': {
+      EN: 'Transfer & remittance minimum',
+      JP: '振込・送金最小金額',
+      CH: '转账与汇款最低额',
+      TH: 'ยอดขั้นต่ำโอนและโอนเงิน'
+    },
     '이체실행시각': {
       EN: 'Transfer run time',
       JP: '振替実行時刻',
@@ -2406,6 +3624,30 @@
       JP: '支給保留',
       CH: '支付暂缓',
       TH: 'ระงับการจ่าย'
+    },
+    '보류해제': {
+      EN: 'Release hold',
+      JP: '保留解除',
+      CH: '解除暂缓',
+      TH: 'ปลดพัก'
+    },
+    'Y→N 해제': {
+      EN: 'Y→N release',
+      JP: 'Y→N解除',
+      CH: 'Y→N 解除',
+      TH: 'ปลด Y→N'
+    },
+    '이 실행 건만 지급보류 Y→N 해제': {
+      EN: 'Release payout hold Y→N for this run only',
+      JP: 'この実行のみ支給保留をY→N解除',
+      CH: '仅解除本笔执行的支付暂缓 Y→N',
+      TH: 'ปลดพักจ่าย Y→N เฉพาะรันนี้'
+    },
+    '클릭 시 이 실행 건만 지급보류 Y→N 해제(가맹점정산내역·유통 반영). 가맹 설정의 지급보류는 변경되지 않습니다.': {
+      EN: 'Click to release payout hold Y→N for this run only (posts to merchant settlement and distributor totals). The merchant payout-hold setting is not changed.',
+      JP: 'クリックで当該実行のみ支給保留をY→N解除（加盟店精算一覧・流通へ反映）。加盟店設定の支給保留は変更されません。',
+      CH: '点击后仅解除该执行行的支付暂缓 Y→N（写入商户结算与分销汇总）。不修改商户的支付暂缓设置。',
+      TH: 'คลิกเพื่อปลดพักจ่าย Y→N เฉพาะรันนี้ (สะท้อนในรายการชำระร้านและเครือข่าย) ไม่เปลี่ยนการตั้งค่าพักจ่ายของร้าน'
     },
     '정산제외': {
       EN: 'Exclude from settlement',
@@ -3403,6 +4645,13 @@
       CH: '应收合计',
       TH: 'ยอดลูกหนี้รวม'
     },
+    /** 미수금관리(/calc/unpaidMng) 그리드 열 deductCnt — 잔여 미수금액 */
+    '잔여': {
+      EN: 'Remaining',
+      JP: '残額',
+      CH: '剩余',
+      TH: 'คงเหลือ'
+    },
     '다음 정산 마감 시 이 미수금을 지급액에서 차감하도록 요청할까요?': {
       EN: 'Request to deduct this receivable from payout on the next settlement close?',
       JP: '次回精算締め時に、この未収金を支払額から控除するよう依頼しますか？',
@@ -3631,6 +4880,102 @@
       CH: '结算完成',
       TH: 'ชำระครบแล้ว'
     },
+    '부분정산': {
+      EN: 'Partial settlement',
+      JP: '一部精算',
+      CH: '部分结算',
+      TH: 'ชำระบางส่วน'
+    },
+    '최근정산': {
+      EN: 'Recent runs',
+      JP: '直近精算',
+      CH: '近期结算',
+      TH: 'ชำระล่าสุด'
+    },
+    '수동실행': {
+      EN: 'Manual run',
+      JP: '手動実行',
+      CH: '手动执行',
+      TH: 'รันด้วยมือ'
+    },
+    '노출주기 안내': {
+      EN: 'Cadence guide',
+      JP: '表示周期ガイド',
+      CH: '展示周期说明',
+      TH: 'คำแนะนำรอบแสดงผล'
+    },
+    '확정여부': {
+      EN: 'Confirmed',
+      JP: '確定可否',
+      CH: '确认状态',
+      TH: 'สถานะการยืนยัน'
+    },
+    '정산대상기간': {
+      EN: 'Settlement window',
+      JP: '精算対象期間',
+      CH: '结算对象期间',
+      TH: 'ช่วงเวลาที่ชำระครอบคลุม'
+    },
+    '정산료': {
+      EN: 'Settlement fee',
+      JP: '精算手数料',
+      CH: '结算手续费',
+      TH: 'ค่าธรรมเนียมชำระบัญชี'
+    },
+    '배포상태': {
+      EN: 'Publish status',
+      JP: '配布状態',
+      CH: '发布状态',
+      TH: 'สถานะเผยแพร่'
+    },
+    '정산일자': {
+      EN: 'Settlement date',
+      JP: '精算日',
+      CH: '结算日',
+      TH: 'วันชำระ'
+    },
+    '결제액': {
+      EN: 'Payment amount',
+      JP: '決済額',
+      CH: '支付金额',
+      TH: 'ยอดชำระ'
+    },
+    '담보금': {
+      EN: 'Collateral',
+      JP: '担保金',
+      CH: '保证金',
+      TH: 'หลักประกัน'
+    },
+    '수수료': {
+      EN: 'Fees',
+      JP: '手数料',
+      CH: '手续费',
+      TH: 'ค่าธรรมเนียม'
+    },
+    '정산리포트 · 정산 대상 거래': {
+      EN: 'Settlement report · target transactions',
+      JP: '精算レポート・精算対象取引',
+      CH: '结算报表·目标交易',
+      TH: 'รายงานชำระ·ธุรกรรมเป้าหมาย'
+    },
+    '정산집계·정산실시·확정정산에서 실행 ID가 있는 행을 클릭하면 해당 실행에 집계된 거래가 표시됩니다.': {
+      EN: 'Click a row with a run ID in aggregate, runs, or confirmed to show transactions aggregated for that run.',
+      JP: '集計・実行・確定精算で実行IDがある行をクリックすると、当該実行に集計された取引が表示されます。',
+      CH: '在结算汇总、执行或已确认列表中点击含执行 ID 的行，可显示该执行汇总的交易。',
+      TH: 'คลิกแถวที่มี run ID ในสรุป/รัน/ยืนยันเพื่อแสดงธุรกรรมที่รวมในรันนั้น'
+    },
+    '실행 ID가 있는 행을 클릭하세요.': {
+      EN: 'Click a row that has a run ID.',
+      JP: '実行IDがある行をクリックしてください。',
+      CH: '请点击包含执行 ID 的行。',
+      TH: 'คลิกแถวที่มี run ID'
+    },
+    '정산집계·정산실시·확정정산에서 <strong>실행 ID</strong>가 있는 행을 <strong>클릭</strong>하면 해당 정산 실행에 포함된 거래를 정산실행 화면과 동일한 형식으로 불러옵니다. <strong>정산집계표(SUM)</strong>는 요약 1행만 제공되고, <strong>본사 지급 리포트의 정산실시(EXE)</strong>는 본사 합산 행이라 실행 ID가 없을 수 있습니다 — 이 경우 리포트 형식을 가맹점 정산 리포트로 바꾼 뒤 가맹 단위 행을 클릭하세요.': {
+      EN: 'In aggregate, runs, or confirmed, <strong>click</strong> a row that has a <strong>run ID</strong> to load included transactions in the same layout as settlement runs. <strong>Summary sheet (SUM)</strong> is a single summary row; <strong>HQ payout report → Runs (EXE)</strong> may be a regional aggregate without a run ID — switch the report format to the merchant report and click a merchant row.',
+      JP: '集計・実行・確定精算で<strong>実行ID</strong>がある行を<strong>クリック</strong>すると、当該精算実行に含まれる取引を精算実行画面と同じ形式で読み込みます。<strong>集計表(SUM)</strong>は要約1行のみで、<strong>本社支払レポートの実行(EXE)</strong>は本社合算行のため実行IDがない場合があります。その場合はレポート形式を加盟店精算に切り替え、加盟店単位の行をクリックしてください。',
+      CH: '在结算汇总、执行或已确认中<strong>单击</strong>含<strong>执行 ID</strong>的行，可按与结算执行相同格式加载包含的交易。<strong>汇总表(SUM)</strong>仅一行摘要；<strong>本部拨付报表的执行(EXE)</strong>可能为本部汇总行而无执行 ID——此时请将报表格式改为商户结算报表后点击商户行。',
+      TH: 'ในสรุป/รัน/ยืนยัน <strong>คลิก</strong>แถวที่มี <strong>run ID</strong> เพื่อโหลดธุรกรรมในรูปแบบเดียวกับหน้ารัน SUM เป็นสรุปหนึ่งแถว รายงานจ่าย HQ แบบ EXE อาจไม่มี run ID — เปลี่ยนรูปแบบเป็นรายงานร้านแล้วคลิกแถวร้าน'
+    },
     '지급액(배치)': {
       EN: 'Payout (batch)',
       JP: '支払額（バッチ）',
@@ -3836,6 +5181,12 @@
       CH: '支付机构',
       TH: 'ผู้ให้บริการชำระเงิน'
     },
+    터미널ID: {
+      EN: 'Terminal ID',
+      JP: '端末ID',
+      CH: '终端 ID',
+      TH: 'รหัสเทอร์มินัล'
+    },
     'PG코드': { EN: 'PG code', JP: 'PGコード', CH: 'PG 代码', TH: 'รหัส PG' },
     '연동용도': { EN: 'Integration scope', JP: '連携用途', CH: '对接用途', TH: 'ขอบเขตการเชื่อม' },
     'URL금액': { EN: 'URL amount mode', JP: 'URL金額', CH: 'URL 金额', TH: 'โหมดจำนวน URL' },
@@ -3848,6 +5199,8 @@
     '사용': { EN: 'Active', JP: '使用', CH: '使用', TH: 'ใช้งาน' },
     '미사용': { EN: 'Inactive', JP: '未使用', CH: '未使用', TH: 'ไม่ใช้งาน' },
     '등록일': { EN: 'Registered', JP: '登録日', CH: '注册日期', TH: 'วันที่ลงทะเบียน' },
+    '등록일자': { EN: 'Registered date', JP: '登録日付', CH: '注册日期', TH: 'วันที่ลงทะเบียน' },
+    '수정일자': { EN: 'Last updated', JP: '更新日時', CH: '修改日期时间', TH: 'วันที่แก้ไข' },
     '관리': { EN: 'Actions', JP: '管理', CH: '操作', TH: 'จัดการ' },
     'URL결제: 일반형 / DP(DISPLAY) / BLIND': {
       EN: 'URL pay: Standard / DP (DISPLAY) / BLIND',
@@ -3869,12 +5222,21 @@
       TH: 'คาดการณ์ ICOPAY: OFF/T/D'
     },
     '노티': { EN: 'Notify', JP: 'ノティ', CH: '通知', TH: 'แจ้งเตือน' },
+    'URL': { EN: 'URL', JP: 'URL', CH: 'URL', TH: 'URL' },
+    'Sandbox': { EN: 'Sandbox', JP: 'Sandbox', CH: '沙盒', TH: 'Sandbox' },
+    'Production': { EN: 'Production', JP: '本番', CH: '生产', TH: 'Production' },
     '챗봇': { EN: 'Chatbot', JP: 'チャットボット', CH: '聊天机器人', TH: 'แชทบอท' },
     '복합(레거시)': {
       EN: 'Multi (legacy)',
       JP: '複合（レガシー）',
       CH: '复合（遗留）',
       TH: 'หลายประเภท (เลกาซี)'
+    },
+    '본사미운영': {
+      EN: 'Not HQ-operational',
+      JP: '本社未運用',
+      CH: '总部未运营',
+      TH: 'สำนักงานใหญ่ไม่เปิดใช้'
     },
     '구버전': { EN: 'Legacy', JP: '旧版', CH: '旧版', TH: 'รุ่นเก่า' },
     '일반': { EN: 'Standard', JP: '標準', CH: '标准', TH: 'มาตรฐาน' },
@@ -5260,6 +6622,24 @@
       CH: '删除（全部）',
       TH: 'ลบ (เต็มสิทธิ์)'
     },
+    '태블릿설정': {
+      EN: 'Tablet settings',
+      JP: 'タブレット設定',
+      CH: '平板设置',
+      TH: 'ตั้งค่าแท็บเล็ต'
+    },
+    '사용자설정': {
+      EN: 'User defaults',
+      JP: 'ユーザー設定',
+      CH: '用户设置',
+      TH: 'ค่าผู้ใช้'
+    },
+    '업체접근설정': {
+      EN: 'Company access',
+      JP: '加盟店アクセス設定',
+      CH: '商户访问设置',
+      TH: 'ตั้งค่าการเข้าถึงร้าน'
+    },
     본사설정: {
       EN: 'HQ settings',
       JP: '本社設定',
@@ -5497,6 +6877,81 @@
       CH: '管理员：密码重置',
       TH: 'ผู้ดูแล: รีเซ็ตรหัสผ่าน'
     },
+    /* /hq/userSettings — 담당자(보조) 메뉴 기본 권한 */
+    '담당자(보조) 메뉴 기본 권한': {
+      EN: 'Assistant role default menu permissions',
+      JP: '担当者（補助）メニュー既定権限',
+      CH: '担当人（辅助）菜单默认权限',
+      TH: 'สิทธิ์เมนูเริ่มต้นของผู้ช่วย'
+    },
+    '카탈로그의 모든 메뉴(URL)를 조직 단계(총본사~가맹점)별로 담당자 역할 상한을 둡니다. <strong>태블릿모드</strong> 구역은 [태블릿설정]에서 해당 조직에 노출한 메뉴만 권한을 줄 수 있으며, 미노출 메뉴는 접근불가(NONE)로 고정·비활성화됩니다(태블릿설정이 우선). 상단에서 편집할 조직 단계를 고른 뒤 표를 수정합니다. 본사권한설정의 개별 조직 「담당자 권한그룹별 메뉴」 저장값이 여기 기본값보다 우선합니다.': {
+      EN: 'Set per-menu (URL) permission ceilings by organization level (headquarters through merchant) for each assistant role. In the <strong>Tablet mode</strong> section, only menus exposed in [Tablet settings] for that level can be granted; others are fixed to no access (NONE) and disabled (tablet settings take priority). Choose the edit level above, then adjust the table. Per-organization assistant group menus saved in HQ permissions override these defaults.',
+      JP: 'カタログの全メニュー(URL)について、組織段階（総本社〜加盟店）ごとに担当者ロールの上限を設定します。<strong>タブレットモード</strong>欄は［タブレット設定］で当該組織に表示したメニューのみ権限付与でき、非表示はアクセス不可(NONE)で固定・無効です（タブレット設定が優先）。上部で編集する組織段階を選び表を修正します。本社権限設定の個別組織「担当者権限グループ別メニュー」保存値がここより優先されます。',
+      CH: '按组织级别（总总部至商户）为各担当角色设置菜单(URL)权限上限。<strong>平板模式</strong>区域仅可授予[平板设置]中对该级别开放的菜单；未开放的固定为不可访问(NONE)且禁用（平板设置优先）。请在上方选择要编辑的组织级别后修改表格。总部权限设置中各组织的「担当权限组菜单」保存值优先于本处默认值。',
+      TH: 'กำหนดเพดานสิทธิ์ต่อเมนู(URL) ตามระดับองค์กร (สำนักงานใหญ่ถึงร้านค้า) สำหรับแต่ละบทบาทผู้ช่วย ในส่วน <strong>โหมดแท็บเล็ต</strong> ให้สิทธิ์ได้เฉพาะเมนูที่เปิดใน[การตั้งค่าแท็บเล็ต] สำหรับระดับนั้น อื่นๆ คงเป็น NONE และปิดใช้งาน (การตั้งค่าแท็บเล็ตมีลำดับก่อน) เลือกระดับองค์กรด้านบนแล้วแก้ตาราง ค่าที่บันทึกในเมนูกลุ่มผู้ช่วยต่อองค์กร (สิทธิ์ HQ) มีลำดับก่อนค่าเริ่มต้นที่นี่'
+    },
+    '편집 조직 단계': {
+      EN: 'Edit organization level',
+      JP: '編集する組織段階',
+      CH: '编辑组织级别',
+      TH: 'ระดับองค์กรที่แก้ไข'
+    },
+    '표의 변경은 선택한 조직 단계에 반영됩니다. 저장 시 전체 조직 단계가 일괄 전송됩니다.': {
+      EN: 'Table edits apply to the selected organization level. Saving sends all levels in one batch.',
+      JP: '表の変更は選択した組織段階に反映されます。保存時は全組織段階を一括送信します。',
+      CH: '表格变更应用于所选组织级别。保存时将批量提交全部组织级别。',
+      TH: 'การแก้ตารางมีผลกับระดับองค์กรที่เลือก บันทึกจะส่งทุกระดับพร้อมกัน'
+    },
+    '대메뉴·역할 일괄 적용': {
+      EN: 'Bulk apply by main menu & role',
+      JP: '大メニュー・ロール一括適用',
+      CH: '按主菜单·角色批量应用',
+      TH: 'นำไปใช้กลุ่มตามเมนูหลัก·บทบาท'
+    },
+    '적용 대상 조직 단계': {
+      EN: 'Target organization levels',
+      JP: '適用対象の組織段階',
+      CH: '适用组织级别',
+      TH: 'ระดับองค์กรเป้าหมาย'
+    },
+    '역할': { EN: 'Role', JP: 'ロール', CH: '角色', TH: 'บทบาท' },
+    '권한': { EN: 'Permission', JP: '権限', CH: '权限', TH: 'สิทธิ์' },
+    '적용': { EN: 'Apply', JP: '適用', CH: '应用', TH: 'นำไปใช้' },
+    '그룹 일괄': {
+      EN: 'Group bulk',
+      JP: 'グループ一括',
+      CH: '分组批量',
+      TH: 'กลุ่มรวม'
+    },
+    '전체 메뉴': {
+      EN: 'All menus',
+      JP: '全メニュー',
+      CH: '全部菜单',
+      TH: 'เมนูทั้งหมด'
+    },
+    '(미분류)': {
+      EN: '(Uncategorized)',
+      JP: '（未分類）',
+      CH: '（未分类）',
+      TH: '(ไม่จัดหมวด)'
+    },
+    '태블릿모드': {
+      EN: 'Tablet mode',
+      JP: 'タブレットモード',
+      CH: '平板模式',
+      TH: 'โหมดแท็บเล็ต'
+    },
+    '체크한 조직 단계·역할에만 동일 권한이 채워집니다. 대메뉴에서 「전체 메뉴」를 고르면 카탈로그 전체 URL이 대상입니다.': {
+      EN: 'Fills the same permission only for checked organization levels and roles. Choosing “All menus” under main menu targets every catalog URL.',
+      JP: 'チェックした組織段階・ロールにのみ同じ権限を入れます。大メニューで「全メニュー」を選ぶとカタログの全URLが対象です。',
+      CH: '仅为勾选的组织级别与角色填入相同权限。主菜单选择「全部菜单」时对象为目录中全部 URL。',
+      TH: 'เติมสิทธิ์เดียวกันเฉพาะระดับองค์กรและบทบาทที่เลือก เมนูหลัก「เมนูทั้งหมด」ครอบคลุม URL ทั้งหมดในแคตตาล็อก'
+    },
+    'MANAGER': { EN: 'MANAGER', JP: 'MANAGER', CH: 'MANAGER', TH: 'MANAGER' },
+    'OPERATOR': { EN: 'OPERATOR', JP: 'OPERATOR', CH: 'OPERATOR', TH: 'OPERATOR' },
+    'SETTLEMENT': { EN: 'SETTLEMENT', JP: 'SETTLEMENT', CH: 'SETTLEMENT', TH: 'SETTLEMENT' },
+    'TECH': { EN: 'TECH', JP: 'TECH', CH: 'TECH', TH: 'TECH' },
+    'CHATBOT': { EN: 'CHATBOT', JP: 'CHATBOT', CH: 'CHATBOT', TH: 'CHATBOT' },
     /* /hq/accountMng — 加盟店アクセス（HQ: which companies a login may access） */
     '등록된 업체별 접근 규칙이 없습니다.': {
       EN: 'No merchant access rules are registered.',
@@ -5738,6 +7193,12 @@
       JP: 'チェックした列のみ、当該組織区分のユーザーの VIEW SETTING に表示されます。支社・代理店・営業店・加盟店は保存がない場合は総代理設定を使います。',
       CH: '仅勾选的列会出现在该组织类型用户的 VIEW SETTING 中。支社、代理店、营业点、加盟店若无保存则使用总代设置。',
       TH: 'เฉพาะคอลัมน์ที่ติ๊กจะปรากฏใน VIEW SETTING ของผู้ใช้ประเภทองค์กรนั้น สาขา·ตัวแทน·สำนักขาย·ร้าน หากไม่มีการบันทึกจะใช้ค่าตัวแทนหลัก'
+    },
+    '체크한 열만 해당 조직 유형 사용자 화면의 VIEW SETTING에 나타납니다. ▲▼ 버튼으로 체크된 항목의 순서를 바꾼 뒤 [저장]하면 VIEW SETTING에서의 기본 나열 순서에 반영됩니다. 지사·대리점·영업점·가맹점은 저장이 없으면 총판 설정을 사용합니다.': {
+      EN: 'Only checked columns appear in VIEW SETTING for users of that org type. Use ▲▼ to reorder checked items; [Save] updates the default order in VIEW SETTING. Branch, agency, sales office, and merchant use the distributor policy when nothing is saved.',
+      JP: 'チェックした列のみ、当該組織区分ユーザーの VIEW SETTING に表示されます。▲▼ でチェック済み項目の順序を変え、［保存］で VIEW SETTING の既定並び順に反映します。支社・代理店・営業店・加盟店は保存がない場合は総代理設定を使います。',
+      CH: '仅勾选的列会出现在该组织类型用户的 VIEW SETTING 中。用 ▲▼ 调整已勾选项顺序，［保存］后反映到 VIEW SETTING 的默认排列。支社、代理店、营业点、加盟店若无保存则使用总代设置。',
+      TH: 'เฉพาะคอลัมน์ที่ติ๊กจะแสดงใน VIEW SETTING ของประเภทองค์กรนั้น ใช้ ▲▼ จัดลำดับรายการที่ติ๊ก แล้ว［บันทึก］เพื่อสะท้อนลำดับเริ่มต้นใน VIEW SETTING สาขา·ตัวแทน·สำนักขาย·ร้าน หากไม่บันทึกจะใช้ค่าตัวแทนหลัก'
     },
     '저장된 설정 요약 (선택한 본사)': {
       EN: 'Saved policy summary (selected HQ)',
@@ -6288,11 +7749,17 @@
     },
     '×100': { EN: '×100', JP: '×100', CH: '×100', TH: '×100' },
     '÷100': { EN: '÷100', JP: '÷100', CH: '÷100', TH: '÷100' },
-    'URL 표시통화→실결제 THB 등에 쓰는 BOT Stat-ExchangeRate 호출값입니다. 칸을 비우면 서버 application.yml·환경변수(BOT_THAILAND_*)를 따릅니다. (A) 레거시 iAPI: Base https://iapi.bot.or.th, Path /Stat/Stat-ExchangeRate/DAILY_AVG_EXG_RATE_V1/, 헤더 이름 api-key. (B) API 포털 v2: Base https://gateway.api.bot.or.th/Stat-ExchangeRate/v2, Path /DAILY_AVG_EXG_RATE/, 헤더 이름 Authorization(값=구독 Client ID).': {
-      EN: 'BOT Stat-ExchangeRate values used for URL display currency → THB, etc. Leave blank to follow server application.yml / BOT_THAILAND_* env. (A) Legacy iAPI: Base https://iapi.bot.or.th, Path /Stat/Stat-ExchangeRate/DAILY_AVG_EXG_RATE_V1/, header api-key. (B) API portal v2: Base https://gateway.api.bot.or.th/Stat-ExchangeRate/v2, Path /DAILY_AVG_EXG_RATE/, header Authorization (value = subscription Client ID).',
-      JP: 'URL表示通貨→THB等に使うBOT Stat-ExchangeRateの呼び出し値です。空欄ならサーバーのapplication.yml・環境変数(BOT_THAILAND_*)に従います。(A) レガシーiAPI: Base https://iapi.bot.or.th, Path /Stat/Stat-ExchangeRate/DAILY_AVG_EXG_RATE_V1/, ヘッダ名api-key。(B) APIポータルv2: Base https://gateway.api.bot.or.th/Stat-ExchangeRate/v2, Path /DAILY_AVG_EXG_RATE/, ヘッダ名Authorization(値=サブスクClient ID)。',
-      CH: '用于 URL 展示币种→THB 等的 BOT Stat-ExchangeRate 调用配置。留空则遵循服务器 application.yml 与环境变量 BOT_THAILAND_*。(A) 旧 iAPI… (B) API 门户 v2…',
-      TH: 'ค่าเรียก BOT Stat-ExchangeRate สำหรับสกุลแสดง URL→THB ว่างไว้ใช้ application.yml / BOT_THAILAND_*'
+    'URL 표시통화→THB 등에 쓰는 BOT Stat-ExchangeRate 호출값입니다. 칸을 비우면 서버 application.yml·환경변수(BOT_THAILAND_*)를 따릅니다. (A) 레거시 iAPI: Base https://iapi.bot.or.th, Path /Stat/Stat-ExchangeRate/DAILY_AVG_EXG_RATE_V1/, 헤더 이름 api-key. (B) API 포털 v2: Base https://gateway.api.bot.or.th/Stat-ExchangeRate/v2, Path /DAILY_AVG_EXG_RATE/, 헤더 이름 Authorization(값=구독 Client ID).': {
+      EN: 'BOT Stat-ExchangeRate settings for URL display currency → THB, etc. Leave fields blank to use server application.yml and env vars (BOT_THAILAND_*). (A) Legacy iAPI: Base https://iapi.bot.or.th, Path /Stat/Stat-ExchangeRate/DAILY_AVG_EXG_RATE_V1/, header name api-key. (B) API portal v2: Base https://gateway.api.bot.or.th/Stat-ExchangeRate/v2, Path /DAILY_AVG_EXG_RATE/, header name Authorization (value = subscription Client ID).',
+      JP: 'URL表示通貨→THB等に使うBOT Stat-ExchangeRateの呼び出し値です。空欄ならサーバーのapplication.yml・環境変数(BOT_THAILAND_*)に従います。(A) レガシーiAPI: Base https://iapi.bot.or.th, Path /Stat/Stat-ExchangeRate/DAILY_AVG_EXG_RATE_V1/, ヘッダ名 api-key。(B) APIポータルv2: Base https://gateway.api.bot.or.th/Stat-ExchangeRate/v2, Path /DAILY_AVG_EXG_RATE/, ヘッダ名 Authorization（値=サブスクClient ID）。',
+      CH: '用于 URL 展示币种→THB 等的 BOT Stat-ExchangeRate 调用参数。留空则遵循服务器 application.yml 与环境变量 BOT_THAILAND_*。(A) 旧版 iAPI：Base https://iapi.bot.or.th，Path /Stat/Stat-ExchangeRate/DAILY_AVG_EXG_RATE_V1/，请求头名称 api-key。(B) API 门户 v2：Base https://gateway.api.bot.or.th/Stat-ExchangeRate/v2，Path /DAILY_AVG_EXG_RATE/，请求头名称 Authorization（值=订阅 Client ID）。',
+      TH: 'ค่าเรียก BOT Stat-ExchangeRate สำหรับสกุลแสดง URL→THB เป็นต้น ว่างไว้จะใช้ application.yml ของเซิร์ฟเวอร์ / ตัวแปร BOT_THAILAND_* (A) iAPI แบบเดิม: Base https://iapi.bot.or.th, Path /Stat/Stat-ExchangeRate/DAILY_AVG_EXG_RATE_V1/, ชื่อหัวข้อ api-key (B) พอร์ทัล API v2: Base https://gateway.api.bot.or.th/Stat-ExchangeRate/v2, Path /DAILY_AVG_EXG_RATE/, ชื่อหัวข้อ Authorization (ค่า=Client ID จากการสมัคร)'
+    },
+    'Base URL': {
+      EN: 'Base URL',
+      JP: 'Base URL',
+      CH: 'Base URL',
+      TH: 'Base URL'
     },
     'API 키(Client ID)': {
       EN: 'API key (Client ID)',
@@ -6689,6 +8156,24 @@
       JP: '以下のURLをziobiz/NOTIのシステムノティ先設定に登録してください。パス末尾のトークンで不正呼び出しを防ぎます。本番公開後は［公開URLベース］にhttps://実際のドメインを入れると案内URLが固定されます。デプロイ設定＞API連携設定で連携用途にノティ等が含まれるPGは、MID+ルートでノティを振り分けます。URL決済のみのPGで同一MIDが複数加盟店にまたがる場合は本文に加盟店コード(compId)またはicopayCompId=が必要です。',
       CH: '请将下方 URL 登记到 ziobiz/NOTI 的系统通知目标设置。路径末尾令牌可防止未授权调用。生产部署后，在［公开 URL 基址］填入 https://实际域名 可固定提示 URL。在部署设置＞API 联动中，联动用途含通知等的 PG 会按 MID+路由分流通知。仅 URL 支付的 PG 若同一 MID 对应多商户，则正文需包含商户代码(compId)或 icopayCompId=。',
       TH: 'ลงทะเบียน URL ด้านล่างในการตั้งค่าเป้ารับแจ้งเตือนระบบ ziobiz/NOTI โทเคนท้ายพาธกันยิงโดยไม่ได้รับอนุญาต หลัง deploy ใส่ [ฐาน URL สาธารณะ] เป็น https://โดเมนจริง เพื่อคง URL ที่แสดง ในการตั้งค่า deploy > เชื่อม API หากขอบเขตมีแจ้งเตือน PG จะแบ่งตาม MID+รูท หาก PG แค่ URL pay และ MID เดียวหลายร้าน ต้องมี compId หรือ icopayCompId= ในตัวแบบ'
+    },
+    '권장: 아래 「노티 수신 URL(미들웨어)」을 ziobiz/NOTI·ChillPay·JPAY 등에 등록하세요(/api/middleware/notify/v1/pg-notify/…). 레거시 open 경로는 하단 참고 필드와 동일 처리입니다. 경로 끝 토큰으로 무단 호출을 막습니다. 운영 배포 후 [공개 URL 베이스]에 https://실제도메인 을 넣으면 안내 URL이 고정됩니다. 배포설정 > API연동설정에서 연동용도가 노티(등)인 PG는 노티를 MID+루트로 분기합니다. URL 결제만인 PG는 동일 MID가 여러 가맹점이면 본문에 업체코드(compId) 또는 icopayCompId= 가 필요합니다.': {
+      EN: 'Recommended: register the 「Notify ingress URL (middleware)」 below with ziobiz/NOTI, ChillPay, JPAY, etc. (/api/middleware/notify/v1/pg-notify/…). The legacy open path is handled the same as the reference field at the bottom. The path suffix token blocks unauthorized calls. After production deploy, set [Public URL base] to https://your-domain so the displayed URL is stable. In Deployment > API integration, PSPs whose scope includes notify route by MID+root. URL-pay-only PSPs sharing one MID across merchants need compId or icopayCompId= in the body.',
+      JP: '推奨: 下の「ノティ受信URL（ミドルウェア）」をziobiz/NOTI・ChillPay・JPAY等に登録してください（/api/middleware/notify/v1/pg-notify/…）。レガシーopenパスは下の参考フィールドと同じ処理です。パス末尾のトークンで不正呼び出しを防ぎます。本番公開後、［公開URLベース］にhttps://実際のドメインを入れると案内URLが固定されます。デプロイ設定＞API連携設定で連携用途にノティ（等）が含まれるPGは、MID+ルートでノティを振り分けます。URL決済のみのPGで同一MIDが複数加盟店にまたがる場合は、本文に加盟店コード(compId)またはicopayCompId=が必要です。',
+      CH: '建议：将下方「通知接入 URL（中间件）」登记到 ziobiz/NOTI、ChillPay、JPAY 等（/api/middleware/notify/v1/pg-notify/…）。旧版 open 路径与底部参考字段同等处理。路径末尾令牌防止未授权调用。生产部署后在［公开 URL 基址］填入 https://实际域名 可固定提示 URL。部署设置＞API 联动中，联动用途含通知等的 PG 按 MID+路由分流。仅 URL 支付的 PG 若同一 MID 对应多商户，正文需 compId 或 icopayCompId=。',
+      TH: 'แนะนำ: ลงทะเบียน「URL รับแจ้งเตือน (มิดเดิลแวร์)」ด้านล่างกับ ziobiz/NOTI·ChillPay·JPAY ฯลฯ (/api/middleware/notify/v1/pg-notify/…) เส้นทาง open แบบเก่าจัดการเหมือนช่องอ้างอิงด้านล่าง โทเคนท้ายพาธกันยิงโดยไม่ได้รับอนุญาต หลัง deploy ใส่ [ฐาน URL สาธารณะ] เป็น https://โดเมนจริง PG ที่ขอบเขตมีแจ้งเตือนจะแบ่งตาม MID+รูท หาก PG แค่ URL pay และ MID เดียวหลายร้าน ต้องมี compId หรือ icopayCompId= ในตัวแบบ'
+    },
+    '노티 수신 URL(미들웨어 권장)': {
+      EN: 'Notify ingress URL (middleware, recommended)',
+      JP: 'ノティ受信URL（ミドルウェア推奨）',
+      CH: '通知接入 URL（中间件，推荐）',
+      TH: 'URL รับแจ้งเตือน (มิดเดิลแวร์ แนะนำ)'
+    },
+    '노티 수신 URL(open·레거시)': {
+      EN: 'Notify ingress URL (open · legacy)',
+      JP: 'ノティ受信URL（open・レガシー）',
+      CH: '通知接入 URL（open·旧版）',
+      TH: 'URL รับแจ้งเตือน (open·เลกาซี)'
     },
     '노티 수신 URL': {
       EN: 'Notify ingress URL',
@@ -7783,7 +9268,7 @@
       TH: 'สแนปชอต JSON แมป ฯลฯ ไม่ลบอัตโนมัติ'
     },
     '스케줄': { EN: 'Scheduler', JP: 'スケジュール', CH: '调度', TH: 'ตารางงาน' },
-    '정책': { EN: 'Policy', JP: '政策', CH: '策略', TH: 'นโยบาย' },
+    '정책': { EN: 'Policy', JP: 'ポリシー', CH: '策略', TH: 'นโยบาย' },
     '자동삭제(스케줄)': {
       EN: 'Auto delete (scheduler)',
       JP: '自動削除（スケジュール）',
@@ -9318,6 +10803,54 @@
       CH: '不征收',
       TH: 'ไม่เรียกเก็บ'
     },
+    'Merchant Code': {
+      EN: 'Merchant Code',
+      JP: 'マーチャントコード',
+      CH: '商户代码',
+      TH: 'รหัสร้านค้า'
+    },
+    'MD5 Secret Key': {
+      EN: 'MD5 Secret Key',
+      JP: 'MD5シークレットキー',
+      CH: 'MD5 密钥',
+      TH: 'MD5 Secret Key'
+    },
+    'Route No': {
+      EN: 'Route No',
+      JP: 'ルート番号',
+      CH: '路由号',
+      TH: 'Route No'
+    },
+    Environment: {
+      EN: 'Environment',
+      JP: '環境',
+      CH: '环境',
+      TH: 'สภาพแวดล้อม'
+    },
+    Sandbox: {
+      EN: 'Sandbox',
+      JP: 'Sandbox',
+      CH: 'Sandbox',
+      TH: 'Sandbox'
+    },
+    Production: {
+      EN: 'Production',
+      JP: 'Production',
+      CH: 'Production',
+      TH: 'Production'
+    },
+    'Bearer Token': {
+      EN: 'Bearer Token',
+      JP: 'Bearerトークン',
+      CH: 'Bearer Token',
+      TH: 'Bearer Token'
+    },
+    Basic: {
+      EN: 'Basic',
+      JP: 'Basic',
+      CH: 'Basic',
+      TH: 'Basic'
+    },
     /* /hq/merchantApiGenerate — 안내·폼·그리드·알림 */
     '화면 안내': {
       EN: 'Screen guide',
@@ -10018,6 +11551,24 @@
       CH: '顺序',
       TH: 'ลำดับ'
     },
+    '항목ID': {
+      EN: 'Item ID',
+      JP: '項目ID',
+      CH: '项目 ID',
+      TH: 'รหัสรายการ'
+    },
+    '항목명': {
+      EN: 'Item name',
+      JP: '項目名',
+      CH: '项目名称',
+      TH: 'ชื่อรายการ'
+    },
+    '표시여부': {
+      EN: 'Visible',
+      JP: '表示有無',
+      CH: '是否显示',
+      TH: 'แสดงหรือไม่'
+    },
     '표시명': {
       EN: 'Display name',
       JP: '表示名',
@@ -10372,11 +11923,11 @@
       TH: 'ช่วงสัปดาห์ก่อน + เลื่อน 5 วันทำการ'
     },
     '정산주기:W7:desc': {
-      KO: '전주 구간 + 7영업일 오프셋 규칙입니다.',
-      EN: 'Prior week window plus a 7-business-day offset rule.',
-      JP: '前週区間＋営業日7日オフセットのルールです。',
-      CH: '上一周区间 + 7 个工作日偏移规则。',
-      TH: 'ช่วงสัปดาห์ก่อน + เลื่อน 7 วันทำการ'
+      KO: '월~일(달력 1주) 집계. 일요일 마감 후 7영업일째가 정산일(주말·공휴는 익영업일). AUTO 가맹은 그날 정산마감시각 이후 자동 1회 실행.',
+      EN: 'Calendar Mon–Sun window. Settlement on the 7th business day after Sunday close (rolls forward on weekends/holidays). AUTO merchants: one auto run after close time that day.',
+      JP: '月〜日(暦週)集計。日曜締めの翌営業日から7営業日目が精算日(休日は翌営業日)。AUTOは当日精算締め時刻以降に1回自動実行。',
+      CH: '按日历周一至周日汇总。周日截止后第7个工作日结算（遇周末/假日顺延）。AUTO 商户在当日结算截止时间后自动执行一次。',
+      TH: 'สรุปจันทร์–อาทิตย์ (ปฏิทิน) ปิดสัปดาห์วันอาทิตย์ +7 วันทำการ (เลื่อนถ้าหยุด) AUTO: รันหลังเวลาปิดยอดวันนั้น 1 ครั้ง'
     },
     '정산주기:W10:desc': {
       KO: '전주 구간 + 10영업일 오프셋 규칙입니다.',
@@ -10663,6 +12214,74 @@
       TH: 'เลือกอย่างน้อย 2 รอบที่ต่างกัน'
     },
 
+
+    /* noticeList toolbar + modal + hq receivable (2026) */
+    '글작성': {
+      EN: 'Write post', JP: '投稿', CH: '撰写', TH: 'เขียนประกาศ'
+    },
+    '첫화면': {
+      EN: 'Home screen', JP: 'トップ画面', CH: '首页', TH: 'หน้าแรก'
+    },
+    '팝업': {
+      EN: 'Popup', JP: 'ポップアップ', CH: '弹窗', TH: 'ป๊อปอัป'
+    },
+    '작성자': {
+      EN: 'Author', JP: '作成者', CH: '作者', TH: 'ผู้เขียน'
+    },
+    '비고': {
+      EN: 'Remarks', JP: '備考', CH: '备注', TH: 'หมายเหตุ'
+    },
+    '로그인 첫 화면 노출 (AI 다국어·단말 언어)': {
+      EN: 'Show on login home (AI i18n · device language)',
+      JP: 'ログイン初回画面に表示（AI多言語・端末言語）',
+      CH: '登录首页展示（AI 多语言·终端语言）',
+      TH: 'แสดงหน้าเข้าสู่ระบบ (AI หลายภาษา·ภาษาเครื่อง)'
+    },
+    '로그인 팝업 노출 (AI 다국어·단말 언어)': {
+      EN: 'Show as login popup (AI i18n · device language)',
+      JP: 'ログインポップアップ表示（AI多言語・端末言語）',
+      CH: '登录弹窗展示（AI 多语言·终端语言）',
+      TH: 'แสดงป๊อปอัปเข้าสู่ระบบ (AI หลายภาษา·ภาษาเครื่อง)'
+    },
+    '공지 수정': {
+      EN: 'Edit notice', JP: 'お知らせ修正', CH: '编辑公告', TH: 'แก้ไขประกาศ'
+    },
+    '목록에서 공지 한 건을 선택(체크)하세요.': {
+      EN: 'Select one notice row (checkbox) in the list.',
+      JP: '一覧でお知らせ1件を選択（チェック）してください。',
+      CH: '请在列表中勾选一条公告。',
+      TH: 'เลือกประกาศหนึ่งรายการในรายการ (ติ๊กถูก)'
+    },
+    '적용되었습니다.': {
+      EN: 'Applied.', JP: '適用しました。', CH: '已应用。', TH: 'นำไปใช้แล้ว'
+    },
+    '적용 실패': {
+      EN: 'Apply failed', JP: '適用失敗', CH: '应用失败', TH: 'นำไปใช้ไม่สำเร็จ'
+    },
+    '수정되었습니다.': {
+      EN: 'Updated.', JP: '修正しました。', CH: '已更新。', TH: 'แก้ไขแล้ว'
+    },
+    '등록되었습니다.': {
+      EN: 'Registered.', JP: '登録しました。', CH: '已登记。', TH: 'ลงทะเบียนแล้ว'
+    },
+    '삭제되었습니다.': {
+      EN: 'Deleted.', JP: '削除しました。', CH: '已删除。', TH: 'ลบแล้ว'
+    },
+    '삭제 실패': {
+      EN: 'Delete failed', JP: '削除失敗', CH: '删除失败', TH: 'ลบไม่สำเร็จ'
+    },
+    '거래 21·40 무효, 22·41 수동무효, 30·42 환불·자동환불, 31 강제환불 각각에 대해 순매출·이중 과금(성공 건당·%) 방식을 둡니다. 일반형은 승인 시 성공 수수료만, 무효·환불 건에는 무효/환불 건당만 과금합니다. 수익형은 순매출 미차감·무효·환불에도 성공 수수료를 다시 붙입니다. 하이브리드1·2는 무효 계열과 환불 계열을 나눕니다. 31 강제환불만 차지백 수수료(구간·건당)가 부과됩니다.': {
+      EN: 'For void 21/40, manual void 22/41, refund/auto-refund 30/42, and force-refund 31, set net-sales and double-charge (per-txn success fees) rules. Standard: success fees on approval only; void/refund rows charge void/refund per-txn only. Revenue: no net deduction; success fees charged again on void/refund. Hybrid 1/2 split void vs refund families. Only 31 may incur chargeback fees (tier or per txn).',
+      JP: '取引21/40無効、22/41手動無効、30/42返金・自動返金、31強制返金について、純売上・二重課金（成功件当・%）方式を設定します。一般型は承認時の成功手数料のみ、無効・返金は件当のみ。収益型は純売上未控除・成功手数料を再課金。ハイブリッド1/2で無効系と返金系を分けます。31のみCB手数料。',
+      CH: '针对 21/40 无效、22/41 手动作废、30/42 退款/自动退款、31 强制退款，分别设置净销售额与双重计费（成功按笔·%）。一般型仅批准时收成功手续费；无效/退款仅按笔。收益型不扣净销售额且再次收成功手续费。混合1/2区分无效系与退款系。仅 31 可收拒付手续费。',
+      TH: 'ตั้งยอดขายสุทธิและเก็บซ้ำสำหรับโมฆะ/คืน 31 มี chargeback มาตรฐานเก็บซ้ำไม่ รายได้เก็บซ้ำ ไฮบริด1/2 แยกประเภท'
+    },
+    '총판(MASTER_DIST)마다 무효·수동무효·환불·강제환불 정산 방식을 둡니다. 비우면 본사 기본과 동일합니다. 가맹 「총판·본사 따름」이면 총판 값(없으면 본사)을 따르고, 가맹에서 모드를 고르면 가맹이 우선합니다.': {
+      EN: 'Per MASTER_DIST, set void/manual void/refund/force-refund settlement modes. Empty = HQ default. If merchant follows distributor/HQ, use distributor value (else HQ); explicit merchant choice wins.',
+      JP: 'MASTER_DISTごとに無効・手動無効・返金・強制返金の精算方式を設定。空欄は本社デフォルトと同じ。「総販・本社に従う」は総販値（なければ本社）、加盟店で選べば加盟店優先。',
+      CH: '按总代设置无效/手动作废/退款/强制退款结算方式。留空等同总部默认。商户「跟随总代/总部」用总代值（无则总部）；商户自选优先。',
+      TH: 'ต่อตัวแทนหลัก ตั้งโมฆะ/คืน ว่างเท่า HQ ร้านตามตัวแทน ร้านเลือกเองชนะ'
+    },
     /* HQ /hq/receivableRecoverySettings — 回収・未収設定 */
     '거래 21·40 무효, 22·41 수동무효, 30·42 환불·자동환불, 31 강제환불 각각에 대해 순매출 반영 방식을 둡니다. 31 강제환불만 차지백 수수료(구간 정책 또는 건당)가 부과되며, 30·42는 환불 건당 수수료만 적용됩니다. 가맹이 본사정책 따름이면 템플릿에 저장된 값이 복사됩니다. 가맹 직접입력에서 「본사 따름」을 선택하면 이 본사 기본을 사용합니다.': {
       EN: 'For txn codes 21/40 void, 22/41 manual void, 30/42 refund & auto-refund, and 31 force-refund, choose how each affects net sales. Only 31 force-refund may incur chargeback fees (tier policy or per txn); 30/42 use refund per-txn fees only. Merchants following HQ policy copy template values; choosing “Follow HQ” in merchant entry uses these HQ defaults.',
@@ -10814,6 +12433,54 @@
       CH: '生效模式为手动的商户',
       TH: 'ร้านที่โหมดที่ใช้เป็น MANUAL'
     },
+    'URL구분': {
+      EN: 'URL type',
+      JP: 'URL区分',
+      CH: 'URL类型',
+      TH: 'ประเภท URL'
+    },
+    '통보URL': {
+      EN: 'Notify URL',
+      JP: '通報URL',
+      CH: '通知 URL',
+      TH: 'URL แจ้งเตือน'
+    },
+    '현금영수증 통보URL': {
+      EN: 'Cash receipt notify URL',
+      JP: '現金領収通知URL',
+      CH: '现金收据通知 URL',
+      TH: 'URL แจ้งใบเสร็จ'
+    },
+    '현금영수증통보 URL': {
+      EN: 'Cash receipt notify URL',
+      JP: '現金領収通知URL',
+      CH: '现金收据通知 URL',
+      TH: 'URL แจ้งใบเสร็จ'
+    },
+    '내림차순': {
+      EN: 'Descending',
+      JP: '降順',
+      CH: '降序',
+      TH: 'จากมากไปน้อย'
+    },
+    '오름차순': {
+      EN: 'Ascending',
+      JP: '昇順',
+      CH: '升序',
+      TH: 'จากน้อยไปมาก'
+    },
+    '정렬 순서': {
+      EN: 'Sort order',
+      JP: '並び順',
+      CH: '排序',
+      TH: 'ลำดับการเรียง'
+    },
+    '검색': {
+      EN: 'Search',
+      JP: '検索',
+      CH: '搜索',
+      TH: 'ค้นหา'
+    },
     '업체코드': {
       EN: 'Company code',
       JP: '店番号',
@@ -10843,6 +12510,30 @@
       JP: '本社デフォルトと同じ（空欄）',
       CH: '与总部默认相同（留空）',
       TH: 'เหมือน HQ (ว่าง)'
+    },
+    '가맹 개별': {
+      EN: 'Merchant override',
+      JP: '加盟店個別',
+      CH: '商户单独',
+      TH: 'ร้านแยกตั้งค่า'
+    },
+    '총판 설정': {
+      EN: 'Distributor setting',
+      JP: '総販設定',
+      CH: '总代设置',
+      TH: 'ตั้งค่าตัวแทนหลัก'
+    },
+    '본사 기본': {
+      EN: 'HQ default',
+      JP: '本社デフォルト',
+      CH: '总部默认',
+      TH: 'ค่าเริ่ม HQ'
+    },
+    '저장되었습니다.': {
+      EN: 'Saved.',
+      JP: '保存しました。',
+      CH: '已保存。',
+      TH: 'บันทึกแล้ว'
     },
     '미수금관리설정이 저장되었습니다.': {
       EN: 'Receivables policy saved.',
@@ -11169,6 +12860,96 @@
       JP: '再確認です。削除後、入力内容はサーバー側で空になります。本当に削除しますか？',
       CH: '再次确认。删除后服务器将清空已保存内容。确定删除吗？',
       TH: 'ยืนยันอีกครั้ง หลังลบค่าที่บันทึกจะถูกล้างบนเซิร์ฟเวอร์ ลบจริงหรือไม่'
+    },
+
+    /* HQ /hq/chatbotAiSettings — AI챗봇설정 */
+    'AI챗봇설정': {
+      EN: 'AI chatbot settings', JP: 'AIチャットボット設定', CH: 'AI 聊天机器人设置', TH: 'ตั้งค่าแชทบอท AI'
+    },
+    '챗봇용 AI 제공자 순위 (1순위부터, 비사용은 건너뜀)': {
+      EN: 'AI provider priority for chatbot (from 1st; skip unused)',
+      JP: 'チャットボット用AIプロバイダ順位（1位から、未使用はスキップ）',
+      CH: '聊天机器人 AI 提供商优先级（从第 1 位起，跳过未使用）',
+      TH: 'ลำดับผู้ให้บริการ AI แชทบอท (เริ่ม 1 ข้ามที่ไม่ใช้)'
+    },
+    '1순위': { EN: '1st', JP: '1位', CH: '第1', TH: 'อันดับ 1' },
+    '2순위': { EN: '2nd', JP: '2位', CH: '第2', TH: 'อันดับ 2' },
+    '3순위': { EN: '3rd', JP: '3位', CH: '第3', TH: 'อันดับ 3' },
+    '4순위': { EN: '4th', JP: '4位', CH: '第4', TH: 'อันดับ 4' },
+    '키가 저장되어 있습니다. 바꿀 때만 새 값을 입력하세요.': {
+      EN: 'A key is saved. Enter a new value only when changing it.',
+      JP: 'キーが保存されています。変更時のみ新しい値を入力してください。',
+      CH: '密钥已保存。仅在更改时输入新值。',
+      TH: 'มีการบันทึกคีย์แล้ว ใส่ค่าใหม่เมื่อต้องการเปลี่ยนเท่านั้น'
+    },
+    '미등록입니다.': {
+      EN: 'Not registered.', JP: '未登録です。', CH: '未注册。', TH: 'ยังไม่ลงทะเบียน'
+    },
+    'Google Gemini API 키': {
+      EN: 'Google Gemini API key', JP: 'Google Gemini APIキー', CH: 'Google Gemini API 密钥', TH: 'คีย์ Google Gemini API'
+    },
+    'Groq API 키': {
+      EN: 'Groq API key', JP: 'Groq APIキー', CH: 'Groq API 密钥', TH: 'คีย์ Groq API'
+    },
+    'Anthropic(Claude) API 키': {
+      EN: 'Anthropic (Claude) API key', JP: 'Anthropic(Claude) APIキー', CH: 'Anthropic (Claude) API 密钥', TH: 'คีย์ Anthropic (Claude) API'
+    },
+    'OpenAI API 키': {
+      EN: 'OpenAI API key', JP: 'OpenAI APIキー', CH: 'OpenAI API 密钥', TH: 'คีย์ OpenAI API'
+    },
+    '챗봇 상품등록 플랜(월 이용료)': {
+      EN: 'Chatbot product registration plan (monthly fee)',
+      JP: 'チャットボット商品登録プラン（月額）',
+      CH: '聊天机器人商品登记方案（月费）',
+      TH: 'แพลนลงทะเบียนสินค้าแชทบอท (ค่ารายเดือน)'
+    },
+    '우선 지시 (시스템)': {
+      EN: 'Priority instructions (system)',
+      JP: '優先指示（システム）',
+      CH: '优先指令（系统）',
+      TH: 'คำสั่งระบบ (ลำดับความสำคัญ)'
+    },
+    '프롬프트 (챗봇)': {
+      EN: 'Prompts (chatbot)',
+      JP: 'プロンプト（チャットボット）',
+      CH: '提示词（聊天机器人）',
+      TH: 'พรอมต์ (แชทบอท)'
+    },
+    '리포트 API 키(챗봇·상품안내 공용)': {
+      EN: 'Report API keys (shared for chatbot & product guidance)',
+      JP: 'レポートAPIキー（チャットボット・商品案内共通）',
+      CH: '报告 API 密钥（聊天机器人与商品说明共用）',
+      TH: 'คีย์ API รายงาน (แชทบอท·แนะนำสินค้า ร่วมกัน)'
+    },
+    '등록 상품 안내 시 반드시 지킬 규칙, 언어, 금액 왜곡 금지 등': {
+      EN: 'Rules for registered-product guidance: language, do not distort amounts, etc.',
+      JP: '登録商品の案内で必ず守るルール（言語、金額のねじれ・誇張の禁止など）',
+      CH: '介绍登记商品时必须遵守的规则（语言、禁止歪曲金额等）',
+      TH: 'กฎเมื่อแนะนำสินค้าที่ลงทะเบียน (ภาษา ห้ามบิดเบือนยอด ฯลฯ)'
+    },
+    '상품 목록·가격 매칭 시 사용할 역할 안내': {
+      EN: 'Role guidance when matching the product list to prices',
+      JP: '商品一覧・価格照合時に使う役割（ロール）の案内',
+      CH: '匹配商品列表与价格时使用的角色说明',
+      TH: 'คำแนะบทบาทเมื่อจับคู่รายการสินค้ากับราคา'
+    },
+    '상품 카탈로그 사용자 프롬프트 템플릿': {
+      EN: 'Product catalog user prompt template',
+      JP: '商品カタログユーザープロンプトテンプレート',
+      CH: '商品目录用户提示模板',
+      TH: 'เทมเพลตพรอมต์ผู้ใช้แคตตาล็อกสินค้า'
+    },
+    '고급 — 출력 형식 제한(ai_system_options_chatbot JSON)': {
+      EN: 'Advanced — output format limits (ai_system_options_chatbot JSON)',
+      JP: '高度 — 出力形式制限（ai_system_options_chatbot JSON）',
+      CH: '高级 — 输出格式限制（ai_system_options_chatbot JSON）',
+      TH: 'ขั้นสูง — จำกัดรูปแบบผลลัพธ์ (ai_system_options_chatbot JSON)'
+    },
+    '고급 JSON 형식 오류입니다.': {
+      EN: 'Advanced JSON format error.', JP: '高度JSONの形式エラーです。', CH: '高级 JSON 格式错误。', TH: 'รูปแบบ JSON ขั้นสูงไม่ถูกต้อง'
+    },
+    '모델명 직접입력': {
+      EN: 'Enter model name', JP: 'モデル名を直接入力', CH: '手动输入模型名', TH: 'พิมพ์ชื่อโมเดล'
     },
 
     /* HQ /hq/serverManage — 서버운영관리 (screens L + app.js pgAdminUiT) */
@@ -12011,6 +13792,122 @@
       TH: 'พร็อกซี Cloudflare (เมฆส้ม) อาจทำให้ Full strict ล้ม (526 ฯลฯ) ใช้ DNS only (เมฆเทา) หรือ A ตรงง่ายกว่า'
     },
 
+    /* 통합 리포트·일별통합/결제/수수료 — 그리드·엑셀·상세 */
+    '일자': { EN: 'Date', JP: '日付', CH: '日期', TH: 'วันที่' },
+    '총결제액': { EN: 'Total payment', JP: '総決済額', CH: '总支付额', TH: 'ยอดชำระรวม' },
+    '총보증금': { EN: 'Total deposit', JP: '総保証金', CH: '总保证金', TH: 'เงินประกันรวม' },
+    '총거래건수': { EN: 'Total transactions', JP: '総取引件数', CH: '总交易笔数', TH: 'จำนวนธุรกรรมทั้งหมด' },
+    '통합리포트': { EN: 'Integrated report', JP: '統合レポート', CH: '综合报表', TH: 'รายงานรวม' },
+    '통합 리포트': { EN: 'Integrated report', JP: '統合レポート', CH: '综合报表', TH: 'รายงานรวม' },
+    '보증금액': { EN: 'Deposit amount', JP: '保証金額', CH: '保证金金额', TH: 'ยอดเงินประกัน' },
+    '결제주기': { EN: 'Pay cycle', JP: '決済サイクル', CH: '支付周期', TH: 'รอบการชำระ' },
+    '금액': { EN: 'Amount', JP: '金額', CH: '金额', TH: 'จำนวนเงิน' },
+    '건수': { EN: 'Count', JP: '件数', CH: '笔数', TH: 'จำนวน' },
+    '수수료(변동·% / 건당)': { EN: 'Fee (var.% / per txn)', JP: '手数料（変動%／件）', CH: '手续费（浮动%/笔）', TH: 'ค่าธรรมเนียม (% แปรผัน / รายการ)' },
+    '총건수': { EN: 'Total count', JP: '総件数', CH: '总笔数', TH: 'จำนวนรวม' },
+    '성공건수': { EN: 'Success count', JP: '成功件数', CH: '成功笔数', TH: 'จำนวนสำเร็จ' },
+    '총금액': { EN: 'Total amount', JP: '総金額', CH: '总金额', TH: 'ยอดรวม' },
+    '통화(총금액)': { EN: 'Currency (total amt)', JP: '通貨（総金額）', CH: '币种（总金额）', TH: 'สกุล (ยอดรวม)' },
+    '예상지급액(통화별)': { EN: 'Expected payout (by ccy)', JP: '見込み支払（通貨別）', CH: '预计拨付（按币种）', TH: 'ยอดจ่ายโดยประมาณ (ตามสกุล)' },
+    '취소': { EN: 'Cancel', JP: '取消', CH: '取消', TH: 'ยกเลิก' },
+    '환불': { EN: 'Refund', JP: '返金', CH: '退款', TH: 'คืนเงิน' },
+    '데이터 없음': { EN: 'No data', JP: 'データがありません', CH: '无数据', TH: 'ไม่มีข้อมูล' },
+    '불러오는 중…': { EN: 'Loading…', JP: '読み込み中…', CH: '加载中…', TH: 'กำลังโหลด…' },
+    '선택 일자 상세': { EN: 'Selected date detail', JP: '選択日の詳細', CH: '所选日期明细', TH: 'รายละเอียดวันที่เลือก' },
+    '선택 일자 상세 (통합 결제내역)': { EN: 'Selected date — integrated payments', JP: '選択日の詳細（統合決済）', CH: '所选日期明细（综合支付）', TH: 'รายละเอียดวันที่เลือก (ชำระรวม)' },
+    '위에서 일자를 클릭하세요.': { EN: 'Click a date row above.', JP: '上の日付行をクリックしてください。', CH: '请点击上方的日期行。', TH: 'คลิกแถววันที่ด้านบน' },
+    '거래일': { EN: 'Txn date', JP: '取引日', CH: '交易日期', TH: 'วันที่ทำรายการ' },
+    '적재일': { EN: 'Ingest date', JP: '取込日', CH: '入库日', TH: 'วันที่บันทึก' },
+    '전체건수': { EN: 'All txns', JP: '全件数', CH: '全部笔数', TH: 'ทุกรายการ' },
+    '총건수(칠페이)': { EN: 'Total (ChillPay)', JP: '総件数（ChillPay）', CH: '总笔数（ChillPay）', TH: 'จำนวนรวม (ChillPay)' },
+    '정산유무': { EN: 'Settlement status', JP: '精算有無', CH: '结算状态', TH: 'สถานะการชำระ' },
+    '정산예정일': { EN: 'Expected settlement date', JP: '精算予定日', CH: '预计结算日', TH: 'วันที่คาดว่าจะชำระ' },
+    '정산예정': {
+      EN: 'Est. settlement',
+      JP: '精算予定',
+      CH: '预计结算',
+      TH: 'คาดชำระ'
+    },
+    '복수가맹': { EN: 'Multiple merchants', JP: '複数加盟店', CH: '多家商户', TH: 'หลายร้านค้า' },
+    '복수': { EN: 'Multiple', JP: '複数', CH: '多种', TH: 'หลายรายการ' },
+    'VAT': { EN: 'VAT', JP: 'VAT', CH: '增值税', TH: 'VAT' },
+
+    /* 목록 하단 페이지네이션 — screens.js data-pg-ui-t(한 번에 보기 / 건 (총 N건)) 공통 */
+    '한 번에 보기:': {
+      EN: 'Page size:',
+      JP: '表示件数:',
+      CH: '每页条数:',
+      TH: 'จำนวนต่อหน้า:'
+    },
+    '건 (총': {
+      EN: 'Total ',
+      JP: '合計 ',
+      CH: '共 ',
+      TH: 'รวม '
+    },
+    '건)': {
+      EN: ' rows',
+      JP: ' 件',
+      CH: ' 条',
+      TH: ' รายการ'
+    },
+
+    /* 수수료내역 (/calc/feeList, /settlement/feeList) — 2단 그룹 헤더·열·VIEW SETTING 가이드 */
+    '거래': { EN: 'Transaction', JP: '取引', CH: '交易', TH: 'ธุรกรรม' },
+    '승인 / 결제수수료(%)': {
+      EN: 'Approval / pay fee (%)',
+      JP: '承認 / 決済手数料(%)',
+      CH: '授权 / 支付手续费(%)',
+      TH: 'อนุมัติ / ค่าธรรมเนียมชำระ (%)'
+    },
+    '기타수수료': { EN: 'Other fees', JP: 'その他手数料', CH: '其他手续费', TH: 'ค่าธรรมเนียมอื่น' },
+    '실패·취소·무효·환불·차지백': {
+      EN: 'Fail · Cancel · Void · Refund · Chargeback',
+      JP: '失敗・取消・無効・返金・チャージバック',
+      CH: '失败·取消·作废·退款·拒付',
+      TH: 'ล้มเหลว·ยกเลิก·โมฆะ·คืนเงิน·ชาร์จแบ็ก'
+    },
+    '차감·지급': { EN: 'Deduction · Payout', JP: '控除・支払', CH: '扣减·拨付', TH: 'หัก·จ่าย' },
+    '거래번호(우리)': { EN: 'Txn ID (ours)', JP: '取引番号（自社）', CH: '交易号（我方）', TH: 'รหัสธุรกรรม (ภายใน)' },
+    '결제통화': { EN: 'Pay currency', JP: '決済通貨', CH: '支付币种', TH: 'สกุลชำระ' },
+    '정책통화': { EN: 'Policy currency', JP: '政策通貨', CH: '政策币种', TH: 'สกุลนโยบาย' },
+    '결제(%)': { EN: 'Pay (%)', JP: '決済(%)', CH: '支付(%)', TH: 'ชำระ (%)' },
+    '담보율(%)': { EN: 'Collateral rate (%)', JP: '担保率(%)', CH: '担保比例(%)', TH: 'อัตราหลักประกัน (%)' },
+    '보류일': { EN: 'Hold days', JP: '保留日数', CH: '留存天数', TH: 'วันพัก' },
+    '담보추정액': { EN: 'Collateral estimate', JP: '担保見積額', CH: '担保估计额', TH: 'ประมาณการหลักประกัน' },
+    '지급예상액': { EN: 'Expected payout', JP: '支払予定額', CH: '预计拨付额', TH: 'ยอดจ่ายโดยประมาณ' },
+    '정산액': { EN: 'Settlement amount', JP: '精算額', CH: '结算额', TH: 'ยอดชำระบัญชี' },
+    '부가세': { EN: 'VAT', JP: '消費税', CH: '增值税', TH: 'VAT' },
+    '루트': { EN: 'Route', JP: 'ルート', CH: '路由', TH: 'เส้นทาง' },
+    '거래시간': { EN: 'Txn time', JP: '取引時刻', CH: '交易时间', TH: 'เวลาทำรายการ' },
+    'USDT': { EN: 'USDT', JP: 'USDT', CH: 'USDT', TH: 'USDT' },
+    '3DS': { EN: '3DS', JP: '3DS', CH: '3DS', TH: '3DS' },
+    '성공제외': { EN: 'Exclude success', JP: '成功を除く', CH: '不含成功', TH: 'ยกเว้นสำเร็จ' },
+    '가맹 정산설정 정산주기': {
+      EN: 'Settlement cycle (merchant setting)',
+      JP: '精算周期（加盟店設定）',
+      CH: '结算周期（商户设置）',
+      TH: 'รอบชำระ (ตั้งค่าร้าน)'
+    },
+    'USDT(%) 과금액(승인금액 기준)': {
+      EN: 'USDT (%) charge (on approved amount)',
+      JP: 'USDT(%) 課金額（承認金額基準）',
+      CH: 'USDT(%) 计费额（按批准金额）',
+      TH: 'ค่า USDT (%) ตามยอดอนุมัติ'
+    },
+    'FX(%) 과금액(승인금액 기준)': {
+      EN: 'FX (%) charge (on approved amount)',
+      JP: 'FX(%) 課金額（承認金額基準）',
+      CH: 'FX(%) 计费额（按批准金额）',
+      TH: 'ค่า FX (%) ตามยอดอนุมัติ'
+    },
+    '3DS 건당 고정 과금액': {
+      EN: '3DS fixed per-txn charge',
+      JP: '3DS 件当固定課金額',
+      CH: '3DS 按笔固定计费',
+      TH: 'ค่า 3DS คงที่ต่อรายการ'
+    },
+
     URL: { EN: 'URL', JP: 'URL', CH: 'URL', TH: 'URL' },
     API: { EN: 'API', JP: 'API', CH: 'API', TH: 'API' },
     기타: {
@@ -12095,14 +13992,30 @@
     return 'en-CA';
   }
 
+  /** type=time 네이티브 픽커의 오전/오후·표기를 UI 로케에 맞춤(브라우저/OS에 따라 다름). */
+  function timeInputBcp47() {
+    var loc = getLocale();
+    if (loc === 'JP') return 'ja-JP';
+    if (loc === 'KO') return 'ko-KR';
+    if (loc === 'CH') return 'zh-CN';
+    if (loc === 'TH') return 'th-TH';
+    return 'en-US';
+  }
+
   function syncDateInputLangUnder(root) {
     if (!root || typeof root.querySelectorAll !== 'function') return;
     var bcp = dateInputBcp47();
+    var bcpTime = timeInputBcp47();
     try {
       root.querySelectorAll('input[type="date"]').forEach(function (el) {
         el.setAttribute('lang', bcp);
       });
     } catch (eDt) {}
+    try {
+      root.querySelectorAll('input[type="time"]').forEach(function (el) {
+        el.setAttribute('lang', bcpTime);
+      });
+    } catch (eTm) {}
   }
 
   function pickRow(row, loc) {
@@ -12116,6 +14029,10 @@
     var loc = getLocale();
     var sKo = String(ko);
     var sk0 = STATIC[sKo];
+    /* 폼 라벨: pgUiFormLabelSpan이 필수 * 표시용으로 끝의 *를 떼어 data-pg-ui-t에 넣는 경우가 많아, STATIC/맵은 * 포함 키만 있는 경우가 있다. */
+    if (!sk0 && sKo.indexOf('*') === -1) {
+      sk0 = STATIC[sKo + '*'];
+    }
     if (loc === 'KO') {
       if (sk0 && sk0.KO != null && String(sk0.KO).length) return String(sk0.KO);
       return sKo;
@@ -12156,6 +14073,9 @@
     }
     if (sk0) return pickRow(sk0, loc) || sKo;
     var m = g.PG_UI_STRING_MAP && g.PG_UI_STRING_MAP[sKo];
+    if (!m && sKo.indexOf('*') === -1) {
+      m = g.PG_UI_STRING_MAP && g.PG_UI_STRING_MAP[sKo + '*'];
+    }
     if (m) {
       var v = m[loc] || m.EN;
       if (v != null && String(v).length) return String(v);
@@ -12189,6 +14109,16 @@
       var k = el.getAttribute('data-pg-ui-aria-label');
       if (k == null || k === '') return;
       el.setAttribute('aria-label', t(k));
+    });
+    root.querySelectorAll('option[data-pg-ui-t]').forEach(function (el) {
+      var kOpt = el.getAttribute('data-pg-ui-t');
+      if (kOpt == null || kOpt === '') return;
+      el.textContent = t(kOpt);
+    });
+    root.querySelectorAll('[data-pg-ui-html]').forEach(function (el) {
+      var kHtml = el.getAttribute('data-pg-ui-html');
+      if (kHtml == null || kHtml === '') return;
+      el.innerHTML = t(kHtml);
     });
     syncDateInputLangUnder(root);
   }

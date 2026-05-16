@@ -9,6 +9,7 @@ import com.pg.service.MerchantChatbotProductService;
 import com.pg.service.MerchantChatbotKbService;
 import com.pg.entity.OrgUnit;
 import com.pg.util.QrCodePngUtil;
+import com.pg.chatbot.ChatbotPromotionShelfMode;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.CacheControl;
 import org.springframework.http.HttpStatus;
@@ -84,19 +85,35 @@ public class ApiPubChatbotController {
         if (!commerceHold) {
             productService.enrichPublicCatalogItemsWithPayUrls(items, ou.get().getCode(), request);
         }
-        List<Map<String, Object>> promotionItems = new java.util.ArrayList<>();
+        Map<String, Object> pubUi = productService.resolveChatbotPublicUi(ou.get().getId());
+        ChatbotPromotionShelfMode shelfMode = ChatbotPromotionShelfMode.resolveStored(
+                String.valueOf(pubUi.getOrDefault("promotionShelfMode", "PROMOTION")));
+
+        List<Map<String, Object>> promotionItems = new ArrayList<>();
         for (Map<String, Object> row : items) {
             if (row != null && "Y".equalsIgnoreCase(String.valueOf(row.getOrDefault("promotionShelfYn", "N")))) {
                 promotionItems.add(row);
             }
         }
+        promotionItems.sort(Comparator
+                .comparingInt(ApiPubChatbotController::promotionSortKey)
+                .thenComparingLong(ApiPubChatbotController::promotionIdKey));
+
+        Long hybridPinnedProductId = null;
+        if (shelfMode == ChatbotPromotionShelfMode.HYBRID && !promotionItems.isEmpty()) {
+            hybridPinnedProductId = promotionIdKey(promotionItems.get(0));
+        }
+        List<Map<String, Object>> promotionItemsOut = shelfMode == ChatbotPromotionShelfMode.HIDDEN
+                ? List.of() : promotionItems;
+
         Map<String, Object> data = new LinkedHashMap<>();
         data.put("compId", ou.get().getCode());
         data.put("chatbotCommerceHold", commerceHold);
         data.put("items", items);
-        data.put("promotionItems", promotionItems);
+        data.put("promotionItems", promotionItemsOut);
+        data.put("promotionHybridPinnedProductId", hybridPinnedProductId != null ? hybridPinnedProductId : "");
         data.put("publicPaySiteBase", productService.resolvePublicCustomerSiteBase(request));
-        data.putAll(productService.resolveChatbotPublicUi(ou.get().getId()));
+        data.putAll(pubUi);
         data.put("chatbotWelcomeHint", merchantChatbotKbService.effectiveWelcomeHintForPublic(ou.get().getId()));
         data.putAll(merchantChatbotKbService.publicReservationMeta(ou.get().getId()));
         data.putAll(merchantChatbotKbService.publicMerchantVerticalMeta(ou.get().getId()));
@@ -246,7 +263,7 @@ public class ApiPubChatbotController {
                     """.stripIndent()).append('\n');
         }
         sys.append("고객 챗봇에 노출되는 항목(JSON, 가맹 사용=Y 및 본사 판매금지 아님):\n").append(catalogJson);
-        sys.append("\n각 상품의 promotionShelfYn: Y이면 고객 화면 상단 「프로모션」 영역에 표시되는 대표 상품이며, N이면 상단에는 안 나오고 채팅·안내용 목록에만 포함될 수 있습니다.\n");
+        sys.append("\n각 상품의 promotionShelfYn: Y이면 상단 프로모션 후보입니다. 가맹 프로필 표시 방식이 HIDDEN이면 고객 화면에는 비어 보이며, HIDDEN으로 저장하면 서버가 모든 상품의 promotionShelfYn을 N으로 맞춥니다. N이면 후보가 아니며 채팅·안내용 목록에만 포함될 수 있습니다.\n");
         long merchantOuId = ou.get().getId();
         long publicProductCount = catalog.size();
         int slotCapEff = productService.getEffectiveChatbotProductSlotCap(merchantOuId);
@@ -549,6 +566,42 @@ public class ApiPubChatbotController {
             }
         }
         return n;
+    }
+
+    private static int promotionSortKey(Map<String, Object> row) {
+        if (row == null) {
+            return 0;
+        }
+        Object so = row.get("sortOrder");
+        if (so instanceof Number) {
+            return ((Number) so).intValue();
+        }
+        if (so != null) {
+            try {
+                return Integer.parseInt(String.valueOf(so).trim());
+            } catch (NumberFormatException ignored) {
+                return 0;
+            }
+        }
+        return 0;
+    }
+
+    private static long promotionIdKey(Map<String, Object> row) {
+        if (row == null) {
+            return 0L;
+        }
+        Object id = row.get("id");
+        if (id instanceof Number) {
+            return ((Number) id).longValue();
+        }
+        if (id != null) {
+            try {
+                return Long.parseLong(String.valueOf(id).trim());
+            } catch (NumberFormatException ignored) {
+                return 0L;
+            }
+        }
+        return 0L;
     }
 
     private static int latinLetterCount(String s) {

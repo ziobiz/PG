@@ -17,6 +17,7 @@ import com.pg.entity.ChargebackFeeTier;
 import com.pg.service.settlement.FeeListTxnBreakdownCalculator;
 import com.pg.service.settlement.SettlementArrearsService;
 import com.pg.service.settlement.SettlementCycleTiming;
+import com.pg.service.settlement.SettlementBusinessHolidayService;
 import com.pg.service.settlement.SettlementPeriodResolver;
 import com.pg.util.BusinessDayCalendar;
 import com.pg.util.CommissionExtraFeeUtil;
@@ -76,6 +77,7 @@ public class SettlementCalcService {
     private final SettlementCalcCycleTransitionService settlementCalcCycleTransitionService;
     private final HqSettlementCycleAdminService hqSettlementCycleAdminService;
     private final MasterDistSettlementCronZoneService masterDistSettlementCronZoneService;
+    private final SettlementBusinessHolidayService settlementBusinessHolidayService;
     private final VoidRefundSettlementModeResolutionService voidRefundSettlementModeResolutionService;
     private final CommissionService commissionService;
     private final FeeListTxnBreakdownCalculator feeListTxnBreakdownCalculator;
@@ -92,6 +94,7 @@ public class SettlementCalcService {
                                  SettlementCalcCycleTransitionService settlementCalcCycleTransitionService,
                                  HqSettlementCycleAdminService hqSettlementCycleAdminService,
                                  MasterDistSettlementCronZoneService masterDistSettlementCronZoneService,
+                                 SettlementBusinessHolidayService settlementBusinessHolidayService,
                                  VoidRefundSettlementModeResolutionService voidRefundSettlementModeResolutionService,
                                  CommissionService commissionService,
                                  FeeListTxnBreakdownCalculator feeListTxnBreakdownCalculator) {
@@ -107,6 +110,7 @@ public class SettlementCalcService {
         this.settlementCalcCycleTransitionService = settlementCalcCycleTransitionService;
         this.hqSettlementCycleAdminService = hqSettlementCycleAdminService;
         this.masterDistSettlementCronZoneService = masterDistSettlementCronZoneService;
+        this.settlementBusinessHolidayService = settlementBusinessHolidayService;
         this.voidRefundSettlementModeResolutionService = voidRefundSettlementModeResolutionService;
         this.commissionService = commissionService;
         this.feeListTxnBreakdownCalculator = feeListTxnBreakdownCalculator;
@@ -299,7 +303,8 @@ public class SettlementCalcService {
             return Optional.of("D0 정산은 당일 허용 시각(0:00~23:50) 내에서만 실행할 수 있습니다.");
         }
         if (isCalendarCycleExclusiveToResolver(c0)) {
-            if (SettlementPeriodResolver.resolveAutoPeriodWindow(cycleRaw, runTo) == null) {
+            var hol = settlementBusinessHolidayService.resolveNonBusinessDatesForMerchantOrgUnitId(ouOpt.get().getId());
+            if (SettlementPeriodResolver.resolveAutoPeriodWindow(cycleRaw, runTo, hol) == null) {
                 return Optional.of("선택한 정산대상 종료일은 해당 가맹 정산주기(" + c0 + ")의 실행일이 아닙니다.");
             }
         }
@@ -347,8 +352,9 @@ public class SettlementCalcService {
             if (!hqSettlementCycleAdminService.isActiveSettlementCycle(cycleRaw)) {
                 continue;
             }
+            var merchantHolidays = settlementBusinessHolidayService.resolveNonBusinessDatesForMerchantOrgUnitId(ou.getId());
             if ("Y".equalsIgnoreCase(String.valueOf(ss.getCalcExcludeYn()).trim())
-                    && !BusinessDayCalendar.isBusinessDay(calcDt, Collections.emptySet())) {
+                    && !BusinessDayCalendar.isBusinessDay(calcDt, merchantHolidays)) {
                 continue;
             }
             LocalTime close = ss.getCalcCloseTime();
@@ -366,7 +372,8 @@ public class SettlementCalcService {
                     && !SettlementCycleTiming.isD0AutoBatchAllowedNow(merchantNow)) {
                 continue;
             }
-            SettlementPeriodResolver.PeriodWindow w = SettlementPeriodResolver.resolveAutoPeriodWindow(cycleRaw, calcDt);
+            SettlementPeriodResolver.PeriodWindow w = SettlementPeriodResolver.resolveAutoPeriodWindow(
+                    cycleRaw, calcDt, merchantHolidays);
             if (w != null) {
                 LocalDateTime qFrom = w.fromDate().atStartOfDay();
                 LocalDateTime qTo = w.toDate().atTime(LocalTime.MAX);

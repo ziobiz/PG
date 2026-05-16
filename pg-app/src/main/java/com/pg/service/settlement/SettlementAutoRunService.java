@@ -54,6 +54,7 @@ public class SettlementAutoRunService {
     private final SettlementSettingRepository settlementSettingRepository;
     private final HqSettlementCycleAdminService hqSettlementCycleAdminService;
     private final MasterDistSettlementCronZoneService masterDistSettlementCronZoneService;
+    private final SettlementBusinessHolidayService settlementBusinessHolidayService;
     private final SettlementRunRepository settlementRunRepository;
     private final int autoRunSubDailyMissedGraceMinutes;
 
@@ -62,6 +63,7 @@ public class SettlementAutoRunService {
                                     SettlementSettingRepository settlementSettingRepository,
                                     HqSettlementCycleAdminService hqSettlementCycleAdminService,
                                     MasterDistSettlementCronZoneService masterDistSettlementCronZoneService,
+                                    SettlementBusinessHolidayService settlementBusinessHolidayService,
                                     SettlementRunRepository settlementRunRepository,
                                     @Value("${app.settlement.autoRunSubDailyMissedGraceMinutes:30}") int autoRunSubDailyMissedGraceMinutes) {
         this.settlementCalcService = settlementCalcService;
@@ -69,6 +71,7 @@ public class SettlementAutoRunService {
         this.settlementSettingRepository = settlementSettingRepository;
         this.hqSettlementCycleAdminService = hqSettlementCycleAdminService;
         this.masterDistSettlementCronZoneService = masterDistSettlementCronZoneService;
+        this.settlementBusinessHolidayService = settlementBusinessHolidayService;
         this.settlementRunRepository = settlementRunRepository;
         int g = autoRunSubDailyMissedGraceMinutes;
         if (g < 0) {
@@ -124,8 +127,9 @@ public class SettlementAutoRunService {
                 if (!activeCycles.contains(c0)) {
                     continue;
                 }
+                var merchantHolidays = settlementBusinessHolidayService.resolveNonBusinessDatesForMerchantOrgUnitId(ou.getId());
                 if ("Y".equalsIgnoreCase(ss.getCalcExcludeYn() != null ? ss.getCalcExcludeYn().trim() : "")
-                        && !BusinessDayCalendar.isBusinessDay(merchantToday, Collections.emptySet())) {
+                        && !BusinessDayCalendar.isBusinessDay(merchantToday, merchantHolidays)) {
                     continue;
                 }
                 if (SettlementCycleTiming.isSubDailyScheduleCode(c0)) {
@@ -159,7 +163,8 @@ public class SettlementAutoRunService {
                         continue;
                     }
                 }
-                SettlementPeriodResolver.PeriodWindow w = SettlementPeriodResolver.resolveAutoPeriodWindow(cycle, merchantToday);
+                SettlementPeriodResolver.PeriodWindow w = SettlementPeriodResolver.resolveAutoPeriodWindow(
+                        cycle, merchantToday, merchantHolidays);
                 if (w == null) {
                     continue;
                 }
@@ -218,8 +223,9 @@ public class SettlementAutoRunService {
             if (!activeCycles.contains(c0)) {
                 continue;
             }
+            var merchantHolidaysPeek = settlementBusinessHolidayService.resolveNonBusinessDatesForMerchantOrgUnitId(ou.getId());
             if ("Y".equalsIgnoreCase(ss.getCalcExcludeYn() != null ? ss.getCalcExcludeYn().trim() : "")
-                    && !BusinessDayCalendar.isBusinessDay(merchantToday, Collections.emptySet())) {
+                    && !BusinessDayCalendar.isBusinessDay(merchantToday, merchantHolidaysPeek)) {
                 continue;
             }
             if (SettlementCycleTiming.isSubDailyScheduleCode(c0)) {
@@ -249,7 +255,8 @@ public class SettlementAutoRunService {
                     continue;
                 }
             }
-            SettlementPeriodResolver.PeriodWindow w = SettlementPeriodResolver.resolveAutoPeriodWindow(cycle, merchantToday);
+            SettlementPeriodResolver.PeriodWindow w = SettlementPeriodResolver.resolveAutoPeriodWindow(
+                    cycle, merchantToday, merchantHolidaysPeek);
             if (w == null) {
                 continue;
             }

@@ -8,6 +8,7 @@ import com.pg.entity.AppUser;
 import com.pg.repository.UserRepository;
 import com.pg.service.AuthService;
 import com.pg.service.OrgPagePermissionService;
+import com.pg.service.OrgTabletMenuService;
 import com.pg.service.PayFollowPolicyService;
 import com.pg.service.UserOtpEnrollmentService;
 import org.springframework.http.ResponseEntity;
@@ -28,16 +29,19 @@ public class ApiAuthController {
     private final PayFollowPolicyService payFollowPolicyService;
     private final UserRepository userRepository;
     private final UserOtpEnrollmentService userOtpEnrollmentService;
+    private final OrgTabletMenuService orgTabletMenuService;
 
     public ApiAuthController(AuthService authService, OrgPagePermissionService orgPagePermissionService,
                              PayFollowPolicyService payFollowPolicyService,
                              UserRepository userRepository,
-                             UserOtpEnrollmentService userOtpEnrollmentService) {
+                             UserOtpEnrollmentService userOtpEnrollmentService,
+                             OrgTabletMenuService orgTabletMenuService) {
         this.authService = authService;
         this.orgPagePermissionService = orgPagePermissionService;
         this.payFollowPolicyService = payFollowPolicyService;
         this.userRepository = userRepository;
         this.userOtpEnrollmentService = userOtpEnrollmentService;
+        this.orgTabletMenuService = orgTabletMenuService;
     }
 
     @PostMapping("/login")
@@ -95,8 +99,11 @@ public class ApiAuthController {
                     }
                     user.put("chatbotPaymentUseYn", authService.resolveChatbotPaymentUseYnForMerchant(ouid));
                 }
+                user.put("tabletFeatureUseYn", org.get("tabletFeatureUseYn"));
             }
-            user.put("pagePermissions", orgPagePermissionService.resolvePagePermissionsForUser(fresh));
+            Map<String, String> ppMe = orgPagePermissionService.resolvePagePermissionsForUser(fresh);
+            user.put("pagePermissions", ppMe);
+            user.put("tabletMenuUrls", orgTabletMenuService.resolveTabletMenuUrlsForUser(fresh, ppMe));
             user.put("canWriteNotice", orgPagePermissionService.canWriteNotice(fresh));
             var pfa = payFollowPolicyService.allowedActionsForViewer(fresh);
             user.put("payFollowAllowed", pfa);

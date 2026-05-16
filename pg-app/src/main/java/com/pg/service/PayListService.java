@@ -45,8 +45,10 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.ZoneId;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -1281,6 +1283,521 @@ public class PayListService {
             }
         }
         parts.add(cb.or(notNoti, notiMatch));
+    }
+
+    private static final int OPS_INTEGRATED_REPORT_MAX_DAYS = 93;
+    private static final int DAILY_PAY_SUMMARY_MAX_DAYS = 93;
+
+    /**
+     * 운영관리 통합 리포트: 적재일(createdAt) 기준 일자별 전역 집계 + 가맹점 동적 열(해당 일 거래가 있는 가맹만, 업체코드 오름차순).
+     * 결제내역 통합(INTEGRATED)과 동일한 {@link #buildSpecification}·조직 가맹 범위를 사용합니다.
+     */
+    public Map<String, Object> buildOpsIntegratedReport(LocalDate rangeFrom,
+                                                      LocalDate rangeTo,
+                                                      Authentication authentication) {
+        if (rangeFrom == null || rangeTo == null) {
+            throw new IllegalArgumentException("거래일자(searchFromDate, searchToDate)는 필수입니다.");
+        }
+        if (rangeFrom.isAfter(rangeTo)) {
+            throw new IllegalArgumentException("거래일자 시작이 종료보다 늦을 수 없습니다.");
+        }
+        long spanRequested = ChronoUnit.DAYS.between(rangeFrom, rangeTo) + 1;
+        if (spanRequested > OPS_INTEGRATED_REPORT_MAX_DAYS) {
+            throw new IllegalArgumentException("조회 기간은 " + OPS_INTEGRATED_REPORT_MAX_DAYS + "일 이내로 지정해 주세요.");
+        }
+        ZoneId ledgerTz = hqLedgerSysSettingsService.resolveLedgerDisplayZoneId();
+        LocalDate today = LocalDate.now(ledgerTz);
+        LocalDate effectiveTo = rangeTo.isAfter(today) ? today : rangeTo;
+        if (rangeFrom.isAfter(effectiveTo)) {
+            Map<String, Object> empty = new LinkedHashMap<>();
+            empty.put("list", List.of());
+            empty.put("meta", Map.of("note", "조회 구간에 포함된 일자가 없습니다."));
+            return empty;
+        }
+        PayListSearchRequest base = new PayListSearchRequest();
+        base.setPayListVariant("INTEGRATED");
+        base.setSearchFromDate(rangeFrom);
+        base.setSearchToDate(effectiveTo);
+        LocalDateTime fullFrom = rangeFrom.atStartOfDay();
+        LocalDateTime fullTo = effectiveTo.atTime(LocalTime.MAX);
+        Specification<PgTrnsctn> specFull = buildSpecification(base, fullFrom, fullTo, authentication);
+
+        AppUser user = (authentication != null && authentication.getPrincipal() instanceof AppUser u) ? u : null;
+        OrgLevel level = PayListStatusBarBuckets.resolveViewerOrgLevel(user, orgUnitRepository);
+        boolean multi = PayListStatusBarBuckets.isMultiCurrencyViewer(level);
+        String primary = PayListStatusBarBuckets.resolveViewerPrimaryCurrency(user, orgUnitRepository, commissionPolicyRepository,
+                hqLedgerPayDisplayCurrencyAlpha());
+        String primaryNorm = PayListStatusBarBuckets.normalizeCurrency(primary);
+        boolean baseCurrencyConfigured = isViewerBaseCurrencyConfigured(user);
+        final List<String> currencyOrderTemplate;
+        if (baseCurrencyConfigured) {
+            currencyOrderTemplate = resolveViewerDisplayCurrencyOrder(user, multi);
+        } else {
+            currencyOrderTemplate = new ArrayList<>();
+        }
+        Set<String> allowedCur = baseCurrencyConfigured ? new HashSet<>(currencyOrderTemplate) : null;
+
+        CriteriaBuilder cb = entityManager.getCriteriaBuilder();
+        CriteriaQuery<String> cqMid = cb.createQuery(String.class);
+        Root<PgTrnsctn> rMid = cqMid.from(PgTrnsctn.class);
+        cqMid.select(rMid.get("merchantId")).distinct(true);
+        cqMid.where(specFull.toPredicate(rMid, cqMid, cb));
+        Set<String> mids = new HashSet<>();
+        try (Stream<String> sMid = entityManager.createQuery(cqMid).getResultStream()) {
+            sMid.filter(Objects::nonNull).map(String::trim).filter(x -> !x.isEmpty()).forEach(mids::add);
+        }
+        Map<String, PayListRowContext> ctxMap = buildPayListRowContextMap(mids);
+
+        Map<LocalDate, OpsIntegratedDayAgg> byDay = new LinkedHashMap<>();
+        for (LocalDate d = rangeFrom; !d.isAfter(effectiveTo); d = d.plusDays(1)) {
+            byDay.put(d, new OpsIntegratedDayAgg());
+        }
+
+        CriteriaQuery<Tuple> cqRows = cb.createTupleQuery();
+        Root<PgTrnsctn> root = cqRows.from(PgTrnsctn.class);
+        cqRows.multiselect(root.get("createdAt"), root.get("merchantId"), root.get("status"), root.get("curType"), root.get("amtKrw"));
+        cqRows.where(specFull.toPredicate(root, cqRows, cb));
+        try (Stream<Tuple> rowStream = entityManager.createQuery(cqRows).getResultStream()) {
+            rowStream.forEach(tup -> {
+                LocalDateTime cat = tup.get(0, LocalDateTime.class);
+                if (cat == null) {
+                    return;
+                }
+                LocalDate day = cat.toLocalDate();
+                OpsIntegratedDayAgg agg = byDay.get(day);
+                if (agg == null) {
+                    return;
+                }
+                String midRaw = tup.get(1, String.class);
+                String st = tup.get(2, String.class);
+                String curRaw = tup.get(3, String.class);
+                BigDecimal amt = tup.get(4, BigDecimal.class);
+                if (amt == null) {
+                    amt = BigDecimal.ZERO;
+                }
+                agg.txnCount++;
+                String bucket = PayListStatusBarBuckets.bucketForPgStatus(st);
+                agg.bucketCount.merge(bucket, 1L, Long::sum);
+
+                String cur = PayListStatusBarBuckets.normalizeCurrency(curRaw);
+                boolean curOk = allowedCur == null || allowedCur.contains(cur);
+                if (curOk) {
+                    agg.bucketAmount.merge(bucket, amt, BigDecimal::add);
+                }
+
+                String mid = midRaw != null ? midRaw.trim() : "";
+                PayListRowContext ctx = !mid.isEmpty() ? ctxMap.get(mid) : null;
+                if (!mid.isEmpty()) {
+                    OpsIntegratedMerchantAgg mag = agg.merchants.computeIfAbsent(mid, k -> new OpsIntegratedMerchantAgg(mid, ctx));
+                    mag.txnCount++;
+                    mag.bucketCount.merge(bucket, 1L, Long::sum);
+                    if (curOk) {
+                        mag.bucketAmount.merge(bucket, amt, BigDecimal::add);
+                    }
+                    if (ctx != null && ctx.getSettlement() != null && ctx.getSettlement().getCalcCycle() != null) {
+                        String cc = ctx.getSettlement().getCalcCycle().trim();
+                        if (!cc.isEmpty()) {
+                            agg.cycleCodes.add(cc);
+                        }
+                    }
+                    if ("10".equals(st)) {
+                        mag.successCount++;
+                        if (curOk) {
+                            mag.approve.merge(cur, amt, BigDecimal::add);
+                            if (ctx != null) {
+                                PayListItemDto.ApprovedSettlementParts p = PayListItemDto.approvedSettlementParts(amt, ctx);
+                                mag.feeExVat.merge(cur, p.feeAmt, BigDecimal::add);
+                                mag.feeVat.merge(cur, p.feeVat, BigDecimal::add);
+                                mag.hold.merge(cur, p.holdAmt, BigDecimal::add);
+                                mag.perTxnParts.merge(cur, p.perTxAmt.add(p.settlementPerTxAmt), BigDecimal::add);
+                                mag.extraPct.merge(cur, p.extraPctAmt, BigDecimal::add);
+                            }
+                        }
+                    } else if (PayListItemDto.isCancelAmountStatus(st) && curOk) {
+                        mag.cancel.merge(cur, amt, BigDecimal::add);
+                    }
+                }
+
+                if ("10".equals(st)) {
+                    agg.successCount++;
+                    if (curOk) {
+                        agg.approve.merge(cur, amt, BigDecimal::add);
+                        if (ctx != null) {
+                            PayListItemDto.ApprovedSettlementParts p = PayListItemDto.approvedSettlementParts(amt, ctx);
+                            agg.feeExVat.merge(cur, p.feeAmt, BigDecimal::add);
+                            agg.feeVat.merge(cur, p.feeVat, BigDecimal::add);
+                            agg.hold.merge(cur, p.holdAmt, BigDecimal::add);
+                        }
+                    }
+                } else if (PayListItemDto.isCancelAmountStatus(st) && curOk) {
+                    agg.cancel.merge(cur, amt, BigDecimal::add);
+                }
+            });
+        }
+
+        List<Map<String, Object>> list = new ArrayList<>();
+        for (LocalDate d = effectiveTo; !d.isBefore(rangeFrom); d = d.minusDays(1)) {
+            OpsIntegratedDayAgg agg = byDay.getOrDefault(d, new OpsIntegratedDayAgg());
+            list.add(agg.toApiRow(d, primaryNorm, baseCurrencyConfigured, currencyOrderTemplate, ctxMap));
+        }
+
+        Map<String, Object> meta = new LinkedHashMap<>();
+        meta.put("primaryCurrency", primaryNorm);
+        meta.put("multiCurrency", multi || !baseCurrencyConfigured);
+        meta.put("integratedReportNote",
+                "집계 기준일은 거래 적재일(created_at)입니다. 일별결제와 동일합니다. 상태별 금액·건수는 조직 기준 표시 통화 행만 합산합니다(총본사·본사 다통화 설정 시). "
+                        + "가맹 열은 해당 일자에 한 건이라도 집계된 가맹만 표시되며 업체코드 오름차순입니다.");
+        try {
+            Map<String, Object> bar = computePgTxnStatusBar(base, authentication);
+            Map<String, Object> fin = computePayListFinancialSummary(base, authentication);
+            meta.put("payListStatusBar", bar);
+            meta.put("payListFinancialSummary", fin);
+            putHqLedgerPayDisplayCurrencyMeta(meta);
+        } catch (RuntimeException ignored) {
+            /* 집계 실패 시 일자 목록만 반환 */
+        }
+        Map<String, Object> out = new LinkedHashMap<>();
+        out.put("list", list);
+        out.put("meta", meta);
+        return out;
+    }
+
+    /** 운영관리 통합 리포트 — 일자 단위 */
+    private static final class OpsIntegratedDayAgg {
+        long txnCount;
+        long successCount;
+        final Map<String, Long> bucketCount = new HashMap<>();
+        final Map<String, BigDecimal> bucketAmount = new HashMap<>();
+        final Map<String, BigDecimal> approve = new HashMap<>();
+        final Map<String, BigDecimal> cancel = new HashMap<>();
+        final Map<String, BigDecimal> feeExVat = new HashMap<>();
+        final Map<String, BigDecimal> feeVat = new HashMap<>();
+        final Map<String, BigDecimal> hold = new HashMap<>();
+        final Set<String> cycleCodes = new HashSet<>();
+        final Map<String, OpsIntegratedMerchantAgg> merchants = new HashMap<>();
+
+        Map<String, Object> toApiRow(LocalDate day,
+                                     String primaryNorm,
+                                     boolean baseCurrencyConfigured,
+                                     List<String> currencyOrderTemplate,
+                                     Map<String, PayListRowContext> ctxMap) {
+            List<String> currencyOrder = new ArrayList<>(currencyOrderTemplate);
+            if (!baseCurrencyConfigured) {
+                currencyOrder.clear();
+                Set<String> union = new HashSet<>();
+                union.addAll(approve.keySet());
+                union.addAll(cancel.keySet());
+                union.addAll(feeExVat.keySet());
+                union.addAll(feeVat.keySet());
+                union.addAll(hold.keySet());
+                currencyOrder.addAll(union);
+                PayListStatusBarBuckets.sortCurrencyCodes(currencyOrder);
+            }
+            if (currencyOrder.isEmpty()) {
+                currencyOrder.add(primaryNorm);
+            }
+            BigDecimal totalPayment = BigDecimal.ZERO;
+            BigDecimal totalFeeExVat = BigDecimal.ZERO;
+            BigDecimal totalVat = BigDecimal.ZERO;
+            BigDecimal totalHold = BigDecimal.ZERO;
+            for (String c : currencyOrder) {
+                BigDecimal a = approve.getOrDefault(c, BigDecimal.ZERO);
+                BigDecimal k = cancel.getOrDefault(c, BigDecimal.ZERO);
+                totalPayment = totalPayment.add(a.subtract(k));
+                totalFeeExVat = totalFeeExVat.add(feeExVat.getOrDefault(c, BigDecimal.ZERO));
+                totalVat = totalVat.add(feeVat.getOrDefault(c, BigDecimal.ZERO));
+                totalHold = totalHold.add(hold.getOrDefault(c, BigDecimal.ZERO));
+            }
+            String payCycleLabel;
+            if (cycleCodes.isEmpty()) {
+                payCycleLabel = "";
+            } else if (cycleCodes.size() == 1) {
+                payCycleLabel = cycleCodes.iterator().next();
+            } else {
+                payCycleLabel = "Multi";
+            }
+            List<Map<String, Object>> bucketRows = new ArrayList<>();
+            for (String bk : PayListStatusBarBuckets.DEFAULT_STATUS_BAR_BUCKET_ORDER) {
+                if (PayListStatusBarBuckets.OTHER.equals(bk)) {
+                    continue;
+                }
+                Map<String, Object> br = new LinkedHashMap<>();
+                br.put("bucket", bk);
+                br.put("count", bucketCount.getOrDefault(bk, 0L));
+                br.put("amount", PayListStatusBarBuckets.stripTrailingZeros(bucketAmount.getOrDefault(bk, BigDecimal.ZERO)));
+                bucketRows.add(br);
+            }
+            List<Map<String, Object>> merchantRows = new ArrayList<>();
+            merchants.values().stream()
+                    .filter(m -> m.txnCount > 0)
+                    .sorted(Comparator.comparing(m -> m.compId, Comparator.nullsLast(String::compareTo)))
+                    .forEach(m -> merchantRows.add(m.toApiRow(currencyOrder, ctxMap)));
+            Map<String, Object> row = new LinkedHashMap<>();
+            row.put("day", day.toString());
+            row.put("totalPayment", PayListStatusBarBuckets.stripTrailingZeros(totalPayment));
+            row.put("totalFeeExVat", PayListStatusBarBuckets.stripTrailingZeros(totalFeeExVat));
+            row.put("depositAmount", PayListStatusBarBuckets.stripTrailingZeros(totalHold));
+            row.put("vat", PayListStatusBarBuckets.stripTrailingZeros(totalVat));
+            row.put("payCycleLabel", payCycleLabel);
+            row.put("totalTxnCount", txnCount);
+            row.put("buckets", bucketRows);
+            row.put("merchants", merchantRows);
+            row.put("successCount", successCount);
+            return row;
+        }
+    }
+
+    /** 가맹점별 일 집계(통합 리포트 동적 열) */
+    private static final class OpsIntegratedMerchantAgg {
+        final String compId;
+        final PayListRowContext ctx;
+        long txnCount;
+        long successCount;
+        final Map<String, Long> bucketCount = new HashMap<>();
+        final Map<String, BigDecimal> bucketAmount = new HashMap<>();
+        final Map<String, BigDecimal> approve = new HashMap<>();
+        final Map<String, BigDecimal> cancel = new HashMap<>();
+        final Map<String, BigDecimal> feeExVat = new HashMap<>();
+        final Map<String, BigDecimal> feeVat = new HashMap<>();
+        final Map<String, BigDecimal> hold = new HashMap<>();
+        final Map<String, BigDecimal> perTxnParts = new HashMap<>();
+        final Map<String, BigDecimal> extraPct = new HashMap<>();
+
+        OpsIntegratedMerchantAgg(String compId, PayListRowContext ctx) {
+            this.compId = compId;
+            this.ctx = ctx;
+        }
+
+        Map<String, Object> toApiRow(List<String> currencyOrder,
+                                     Map<String, PayListRowContext> ctxMap) {
+            BigDecimal feeVar = BigDecimal.ZERO;
+            BigDecimal feePerTxn = BigDecimal.ZERO;
+            BigDecimal totalAmt = BigDecimal.ZERO;
+            for (String c : currencyOrder) {
+                BigDecimal a = approve.getOrDefault(c, BigDecimal.ZERO);
+                BigDecimal k = cancel.getOrDefault(c, BigDecimal.ZERO);
+                totalAmt = totalAmt.add(a.subtract(k));
+                BigDecimal fe = feeExVat.getOrDefault(c, BigDecimal.ZERO);
+                BigDecimal pt = perTxnParts.getOrDefault(c, BigDecimal.ZERO);
+                BigDecimal ex = extraPct.getOrDefault(c, BigDecimal.ZERO);
+                feePerTxn = feePerTxn.add(pt);
+                feeVar = feeVar.add(fe.subtract(pt).subtract(ex));
+            }
+            PayListRowContext cctx = ctx != null ? ctx : ctxMap.get(compId);
+            String compNm = "";
+            if (cctx != null && cctx.getCompNm() != null) {
+                compNm = cctx.getCompNm();
+            }
+            Map<String, Object> m = new LinkedHashMap<>();
+            m.put("compId", compId);
+            m.put("compNm", compNm);
+            m.put("feeVariable", PayListStatusBarBuckets.stripTrailingZeros(feeVar));
+            m.put("feePerTxn", PayListStatusBarBuckets.stripTrailingZeros(feePerTxn));
+            m.put("txnCount", txnCount);
+            m.put("successCount", successCount);
+            m.put("totalAmount", PayListStatusBarBuckets.stripTrailingZeros(totalAmt));
+            return m;
+        }
+    }
+
+    /**
+     * 결제내역과 동일 필터({@link PayListSearchRequest})로, 적재일(createdAt) 기준 일자별 건수·금액 요약.
+     * 상세 목록은 클라이언트가 해당 일자로 {@code /api/calc/payList} 를 호출합니다.
+     */
+    public List<Map<String, Object>> buildDailyPayListSummary(LocalDate rangeFrom,
+                                                              LocalDate rangeTo,
+                                                              PayListSearchRequest template,
+                                                              Authentication authentication) {
+        if (rangeFrom == null || rangeTo == null || rangeFrom.isAfter(rangeTo)) {
+            return List.of();
+        }
+        long span = ChronoUnit.DAYS.between(rangeFrom, rangeTo) + 1;
+        if (span > DAILY_PAY_SUMMARY_MAX_DAYS) {
+            throw new IllegalArgumentException("조회 기간은 " + DAILY_PAY_SUMMARY_MAX_DAYS + "일 이내로 지정해 주세요.");
+        }
+        ZoneId ledgerTz = hqLedgerSysSettingsService.resolveLedgerDisplayZoneId();
+        LocalDate today = LocalDate.now(ledgerTz);
+        LocalDate effectiveTo = rangeTo.isAfter(today) ? today : rangeTo;
+        if (rangeFrom.isAfter(effectiveTo)) {
+            return List.of();
+        }
+        PayListSearchRequest base = PayListSearchRequest.shallowCopy(template);
+        base.setPayListVariant("INTEGRATED");
+        base.setSearchFromDate(rangeFrom);
+        base.setSearchToDate(effectiveTo);
+        LocalDateTime fullFrom = rangeFrom.atStartOfDay();
+        LocalDateTime fullTo = effectiveTo.atTime(LocalTime.MAX);
+        Specification<PgTrnsctn> specFull = buildSpecification(base, fullFrom, fullTo, authentication);
+
+        AppUser user = (authentication != null && authentication.getPrincipal() instanceof AppUser u) ? u : null;
+        OrgLevel level = PayListStatusBarBuckets.resolveViewerOrgLevel(user, orgUnitRepository);
+        boolean multi = PayListStatusBarBuckets.isMultiCurrencyViewer(level);
+        String primary = PayListStatusBarBuckets.resolveViewerPrimaryCurrency(user, orgUnitRepository, commissionPolicyRepository,
+                hqLedgerPayDisplayCurrencyAlpha());
+        String primaryNorm = PayListStatusBarBuckets.normalizeCurrency(primary);
+        boolean baseCurrencyConfigured = isViewerBaseCurrencyConfigured(user);
+        final List<String> currencyOrderTemplate;
+        if (baseCurrencyConfigured) {
+            currencyOrderTemplate = resolveViewerDisplayCurrencyOrder(user, multi);
+        } else {
+            currencyOrderTemplate = new ArrayList<>();
+        }
+        Set<String> allowedCur = baseCurrencyConfigured ? new HashSet<>(currencyOrderTemplate) : null;
+        boolean effectiveMultiCurrency = multi || !baseCurrencyConfigured;
+
+        CriteriaBuilder cb = entityManager.getCriteriaBuilder();
+        Set<String> mcodes = new HashSet<>();
+        CriteriaQuery<String> cqMids = cb.createQuery(String.class);
+        Root<PgTrnsctn> rootMids = cqMids.from(PgTrnsctn.class);
+        cqMids.select(rootMids.get("merchantId"));
+        cqMids.where(specFull.toPredicate(rootMids, cqMids, cb));
+        cqMids.distinct(true);
+        try (Stream<String> midStream = entityManager.createQuery(cqMids).getResultStream()) {
+            midStream.forEach(mid -> {
+                if (mid != null && !mid.isBlank()) {
+                    mcodes.add(mid.trim());
+                }
+            });
+        }
+        Map<String, PayListRowContext> ctxMap = buildPayListRowContextMap(mcodes);
+
+        Map<LocalDate, PayDayFinancialAgg> byDay = new LinkedHashMap<>();
+        for (LocalDate d = rangeFrom; !d.isAfter(effectiveTo); d = d.plusDays(1)) {
+            byDay.put(d, new PayDayFinancialAgg());
+        }
+
+        CriteriaQuery<Tuple> cqRows = cb.createTupleQuery();
+        Root<PgTrnsctn> root = cqRows.from(PgTrnsctn.class);
+        cqRows.multiselect(
+                root.get("createdAt"),
+                root.get("merchantId"),
+                root.get("status"),
+                root.get("curType"),
+                root.get("amtKrw"));
+        cqRows.where(specFull.toPredicate(root, cqRows, cb));
+        try (Stream<Tuple> rowStream = entityManager.createQuery(cqRows).getResultStream()) {
+            rowStream.forEach(tup -> {
+                LocalDateTime cat = tup.get(0, LocalDateTime.class);
+                if (cat == null) {
+                    return;
+                }
+                LocalDate day = cat.toLocalDate();
+                PayDayFinancialAgg agg = byDay.get(day);
+                if (agg == null) {
+                    return;
+                }
+                String mid = tup.get(1, String.class);
+                String st = tup.get(2, String.class);
+                String curRaw = tup.get(3, String.class);
+                BigDecimal amt = tup.get(4, BigDecimal.class);
+                if (amt == null) {
+                    amt = BigDecimal.ZERO;
+                }
+                agg.txnCount++;
+                String bucket = PayListStatusBarBuckets.bucketForPgStatus(st);
+                agg.bucketCount.merge(bucket, 1L, Long::sum);
+                String cur = PayListStatusBarBuckets.normalizeCurrency(curRaw);
+                if (allowedCur != null && !allowedCur.contains(cur)) {
+                    return;
+                }
+                PayListRowContext ctx = mid != null ? ctxMap.get(mid.trim()) : null;
+                if ("10".equals(st)) {
+                    agg.successCount++;
+                    agg.approveCountByCur.merge(cur, 1L, Long::sum);
+                    agg.approve.merge(cur, amt, BigDecimal::add);
+                    PayListItemDto.ApprovedSettlementParts p = PayListItemDto.approvedSettlementParts(amt, ctx);
+                    agg.feeVatSum.merge(cur, p.feeAmt.add(p.feeVat), BigDecimal::add);
+                    agg.hold.merge(cur, p.holdAmt, BigDecimal::add);
+                    agg.payout.merge(cur, p.settleAmt, BigDecimal::add);
+                } else if (PayListItemDto.isCancelAmountStatus(st)) {
+                    agg.cancelCountByCur.merge(cur, 1L, Long::sum);
+                    agg.cancel.merge(cur, amt, BigDecimal::add);
+                }
+            });
+        }
+
+        List<Map<String, Object>> out = new ArrayList<>();
+        for (LocalDate d = effectiveTo; !d.isBefore(rangeFrom); d = d.minusDays(1)) {
+            PayDayFinancialAgg agg = byDay.getOrDefault(d, new PayDayFinancialAgg());
+            Map<String, Object> row = new LinkedHashMap<>();
+            row.put("day", d.toString());
+            row.put("txnCount", agg.txnCount);
+            row.put("statusBucketCounts", new LinkedHashMap<>(agg.bucketCount));
+            row.put("payListFinancialSummary", agg.toPayListFinancialSummaryMap(
+                    primaryNorm, allowedCur, effectiveMultiCurrency, baseCurrencyConfigured, currencyOrderTemplate));
+            out.add(row);
+        }
+        return out;
+    }
+
+    /** 일간결제 집계용 — {@link #computePayListFinancialSummary} 와 동일 규칙으로 일별 누적 */
+    private static final class PayDayFinancialAgg {
+        long txnCount;
+        long successCount;
+        final Map<String, Long> bucketCount = new HashMap<>();
+        final Map<String, BigDecimal> approve = new HashMap<>();
+        final Map<String, BigDecimal> cancel = new HashMap<>();
+        final Map<String, Long> approveCountByCur = new HashMap<>();
+        final Map<String, Long> cancelCountByCur = new HashMap<>();
+        final Map<String, BigDecimal> feeVatSum = new HashMap<>();
+        final Map<String, BigDecimal> hold = new HashMap<>();
+        final Map<String, BigDecimal> payout = new HashMap<>();
+
+        Map<String, Object> toPayListFinancialSummaryMap(String primaryNorm,
+                                                          Set<String> allowedCur,
+                                                          boolean effectiveMultiCurrency,
+                                                          boolean baseCurrencyConfigured,
+                                                          List<String> currencyOrderTemplate) {
+            List<String> currencyOrder = new ArrayList<>(currencyOrderTemplate);
+            if (!baseCurrencyConfigured) {
+                currencyOrder.clear();
+                Set<String> union = new HashSet<>();
+                union.addAll(approve.keySet());
+                union.addAll(cancel.keySet());
+                union.addAll(feeVatSum.keySet());
+                union.addAll(hold.keySet());
+                union.addAll(payout.keySet());
+                currencyOrder.addAll(union);
+                PayListStatusBarBuckets.sortCurrencyCodes(currencyOrder);
+            }
+            if (currencyOrder.isEmpty()) {
+                currencyOrder.add(primaryNorm);
+            }
+            Map<String, String> approvePlain = new LinkedHashMap<>();
+            Map<String, Long> approveCountPlain = new LinkedHashMap<>();
+            Map<String, String> cancelPlain = new LinkedHashMap<>();
+            Map<String, Long> cancelCountPlain = new LinkedHashMap<>();
+            Map<String, String> paymentPlain = new LinkedHashMap<>();
+            Map<String, String> feePlain = new LinkedHashMap<>();
+            Map<String, String> holdPlain = new LinkedHashMap<>();
+            Map<String, String> payoutPlain = new LinkedHashMap<>();
+            for (String c : currencyOrder) {
+                BigDecimal a = approve.getOrDefault(c, BigDecimal.ZERO);
+                BigDecimal k = cancel.getOrDefault(c, BigDecimal.ZERO);
+                approvePlain.put(c, PayListStatusBarBuckets.stripTrailingZeros(a));
+                approveCountPlain.put(c, approveCountByCur.getOrDefault(c, 0L));
+                cancelPlain.put(c, PayListStatusBarBuckets.stripTrailingZeros(k));
+                cancelCountPlain.put(c, cancelCountByCur.getOrDefault(c, 0L));
+                paymentPlain.put(c, PayListStatusBarBuckets.stripTrailingZeros(a.subtract(k)));
+                feePlain.put(c, PayListStatusBarBuckets.stripTrailingZeros(feeVatSum.getOrDefault(c, BigDecimal.ZERO)));
+                holdPlain.put(c, PayListStatusBarBuckets.stripTrailingZeros(hold.getOrDefault(c, BigDecimal.ZERO)));
+                payoutPlain.put(c, PayListStatusBarBuckets.stripTrailingZeros(payout.getOrDefault(c, BigDecimal.ZERO)));
+            }
+            Map<String, Object> out = new LinkedHashMap<>();
+            out.put("successCount", successCount);
+            out.put("multiCurrency", effectiveMultiCurrency);
+            out.put("primaryCurrency", primaryNorm);
+            out.put("currencyOrder", new ArrayList<>(currencyOrder));
+            out.put("approveByCurrency", approvePlain);
+            out.put("approveCountByCurrency", approveCountPlain);
+            out.put("cancelByCurrency", cancelPlain);
+            out.put("cancelCountByCurrency", cancelCountPlain);
+            out.put("paymentByCurrency", paymentPlain);
+            out.put("feeByCurrency", feePlain);
+            out.put("holdByCurrency", holdPlain);
+            out.put("payoutByCurrency", payoutPlain);
+            return out;
+        }
     }
 
     private Predicate variantPredicate(jakarta.persistence.criteria.Root<PgTrnsctn> root,

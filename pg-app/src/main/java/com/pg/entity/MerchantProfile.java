@@ -264,6 +264,17 @@ public class MerchantProfile {
     @Column(name = "chatbot_max_product_images_grant")
     private Integer chatbotMaxProductImagesGrant;
 
+    /**
+     * 챗봇-pay 상단 프로모션 인텔리전트 모드.
+     * {@link com.pg.chatbot.ChatbotPromotionShelfMode} 코드 저장.
+     */
+    @Column(name = "chatbot_promotion_shelf_mode", nullable = false, length = 16)
+    private String chatbotPromotionShelfMode = "PROMOTION";
+
+    /** DYNAMIC·HYBRID 순환 주기(초). 30초 단위, 기본 30 */
+    @Column(name = "chatbot_promotion_rotate_seconds", nullable = false)
+    private Integer chatbotPromotionRotateSeconds = 30;
+
     /** URL·챗봇 인라인(DirectCredit) 승인 시 가맹점 대표 이메일로 알림 */
     @Column(name = "url_pay_alert_email_yn", length = 1)
     private String urlPayAlertEmailYn = "N";
@@ -518,6 +529,22 @@ public class MerchantProfile {
 
     public void setChatbotMaxProductImagesGrant(Integer chatbotMaxProductImagesGrant) {
         this.chatbotMaxProductImagesGrant = chatbotMaxProductImagesGrant;
+    }
+
+    public String getChatbotPromotionShelfMode() {
+        return chatbotPromotionShelfMode;
+    }
+
+    public void setChatbotPromotionShelfMode(String chatbotPromotionShelfMode) {
+        this.chatbotPromotionShelfMode = chatbotPromotionShelfMode != null ? chatbotPromotionShelfMode : "PROMOTION";
+    }
+
+    public Integer getChatbotPromotionRotateSeconds() {
+        return chatbotPromotionRotateSeconds;
+    }
+
+    public void setChatbotPromotionRotateSeconds(Integer chatbotPromotionRotateSeconds) {
+        this.chatbotPromotionRotateSeconds = chatbotPromotionRotateSeconds != null ? chatbotPromotionRotateSeconds : 30;
     }
 
     public String getUrlPayAlertEmailYn() { return urlPayAlertEmailYn; }

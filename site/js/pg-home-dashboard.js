@@ -107,6 +107,32 @@
       .split('상태').join(uiT('상태'));
   }
 
+  /** 결제내역·수수료와 동일: ISO 4217 숫자(764=THB, 392=JPY…) → 알파 */
+  function normalizeDashboardCurrency(cur) {
+    if (cur == null || cur === '') return 'KRW';
+    var s = String(cur).trim();
+    if (!s) return 'KRW';
+    if (/^[A-Za-z]+\s+\(\d+\)$/.test(s)) {
+      return s.replace(/\s+\(\d+\)$/, '').trim().toUpperCase();
+    }
+    var upper = s.toUpperCase();
+    if (/^\d+$/.test(upper)) {
+      var key = upper;
+      if (key.length < 3) key = ('000' + key).slice(-3);
+      else if (key.length > 3) {
+        key = key.replace(/^0+/, '');
+        if (key.length > 3) key = key.slice(-3);
+        else if (key.length < 3) key = ('000' + key).slice(-3);
+      }
+      var map = {
+        '036': 'AUD', '392': 'JPY', '410': 'KRW', '458': 'MYR', '702': 'SGD', '764': 'THB',
+        '826': 'GBP', '840': 'USD', '978': 'EUR', '156': 'CNY', '344': 'HKD', '554': 'NZD', '756': 'CHF'
+      };
+      return map[key] || key;
+    }
+    return upper;
+  }
+
   function fmtNum(n) {
     if (n == null || n === '') return '0';
     var x = Number(n);
@@ -170,7 +196,7 @@
       );
     }
     var lines = rows.map(function (r) {
-      var cur = r && r.currency ? String(r.currency) : 'KRW';
+      var cur = normalizeDashboardCurrency(r && r.currency ? String(r.currency) : 'KRW');
       var amt = fmtMoneyForCurrency(r && r.amtApprovedSum != null ? r.amtApprovedSum : 0, cur);
       var tx = fmtNum(r && r.txnApproved != null ? r.txnApproved : 0);
       var tot = fmtNum(r && r.txnTotal != null ? r.txnTotal : 0);
@@ -431,8 +457,7 @@
   function kpiApprovedByCurrencyBlock(rows) {
     rows = Array.isArray(rows) ? rows : [];
     function curNorm(r) {
-      var c = r && r.currency != null ? String(r.currency).trim().toUpperCase() : '';
-      return c || 'KRW';
+      return normalizeDashboardCurrency(r && r.currency != null ? String(r.currency) : 'KRW');
     }
     rows = rows.slice().sort(function (a, b) {
       return curNorm(a).localeCompare(curNorm(b));
@@ -762,6 +787,9 @@
   }
 
   function onMainShown() {
+    if (typeof window.PG_shouldShowTabletLaunchBoard === 'function' && window.PG_shouldShowTabletLaunchBoard()) {
+      return;
+    }
     var mount = document.getElementById('pgHomeDashboardMount');
     if (!mount) return;
     if (!window.PG_API || typeof window.PG_API.dashboardHome !== 'function') {

@@ -113,6 +113,7 @@ public class OrgPagePermissionService {
         OrgLevel orgLevel = ou != null ? ou.getOrgLevel() : null;
         Map<String, String> roleDefault = resolveDefaultAssistantRoleMap(art, orgLevel, shell);
         Map<String, String> out = new LinkedHashMap<>();
+        String orgLevelCode = orgLevel != null ? orgLevel.name() : "";
         for (PageMenuCatalog.PageMenuItem item : PageMenuCatalog.items()) {
             String url = item.pageUrl();
             String ceiling = normalizePerm(orgCeiling.getOrDefault(url, P_DELETE));
@@ -123,6 +124,7 @@ public class OrgPagePermissionService {
                 out.put(url, intersectPermission(ceiling, roleWant));
             }
         }
+        enforceTabletExposureOnRoleMap(orgLevelCode, out);
         return out;
     }
 
@@ -135,6 +137,7 @@ public class OrgPagePermissionService {
     private final OrgUnitChangeAuditService orgUnitChangeAuditService;
     private final PayFollowPolicyService payFollowPolicyService;
     private final HqNotifyEnvConfigRepository hqNotifyEnvConfigRepository;
+    private final OrgTabletMenuService orgTabletMenuService;
 
     private static final ObjectMapper ASSISTANT_MATRIX_JSON = new ObjectMapper();
 
@@ -146,7 +149,8 @@ public class OrgPagePermissionService {
                                       AuthService authService,
                                       OrgUnitChangeAuditService orgUnitChangeAuditService,
                                       @Lazy PayFollowPolicyService payFollowPolicyService,
-                                      HqNotifyEnvConfigRepository hqNotifyEnvConfigRepository) {
+                                      HqNotifyEnvConfigRepository hqNotifyEnvConfigRepository,
+                                      @Lazy OrgTabletMenuService orgTabletMenuService) {
         this.orgPagePermissionRepository = orgPagePermissionRepository;
         this.orgUnitPagePermissionRepository = orgUnitPagePermissionRepository;
         this.orgUnitAssistantPagePermissionRepository = orgUnitAssistantPagePermissionRepository;
@@ -156,6 +160,19 @@ public class OrgPagePermissionService {
         this.orgUnitChangeAuditService = orgUnitChangeAuditService;
         this.payFollowPolicyService = payFollowPolicyService;
         this.hqNotifyEnvConfigRepository = hqNotifyEnvConfigRepository;
+        this.orgTabletMenuService = orgTabletMenuService;
+    }
+
+    /** 태블릿설정에서 노출되지 않은 태블릿 전용 URL은 담당자 권한을 접근불가로 고정 */
+    private void enforceTabletExposureOnRoleMap(String orgLevel, Map<String, String> roleMap) {
+        if (roleMap == null || orgLevel == null || orgLevel.isBlank()) {
+            return;
+        }
+        for (String url : OrgTabletMenuService.TABLET_MENU_URLS) {
+            if (!orgTabletMenuService.isTabletUrlExposedForOrgLevel(orgLevel, url)) {
+                roleMap.put(url, P_NONE);
+            }
+        }
     }
 
     /**
@@ -212,6 +229,7 @@ public class OrgPagePermissionService {
                 .collect(Collectors.toCollection(LinkedHashSet::new));
         Set<String> validLevels = Arrays.stream(OrgLevel.values()).map(Enum::name).collect(Collectors.toCollection(LinkedHashSet::new));
         AssistantMatrixStorage cleaned = AssistantMatrixStorage.fromClient(root).sanitize(catalogUrls, ASSISTANT_ROLE_TYPES, validLevels);
+        clampTabletMenusInAssistantStorage(cleaned);
         if (cleaned.isEmpty()) {
             return null;
         }
@@ -235,6 +253,7 @@ public class OrgPagePermissionService {
             if (lvl != null) {
                 mergeRoleUrlOverlayInto(out, lvl.get(role));
             }
+            enforceTabletExposureOnRoleMap(orgLevel.name(), out);
         }
         return out;
     }
@@ -740,6 +759,7 @@ public class OrgPagePermissionService {
         out.put("effective", effective);
         out.put("assistantRoles", ASSISTANT_ROLE_TYPES);
         out.put("assistantMatrix", buildAssistantMatrixMap(orgUnitId));
+        out.put("tabletExposedUrls", orgTabletMenuService.listExposedTabletUrlsForOrgLevel(level));
         return out;
     }
 
@@ -790,6 +810,10 @@ public class OrgPagePermissionService {
                 }
                 String ceiling = effective.getOrDefault(url, P_DELETE);
                 if (P_NONE.equals(ceiling)) {
+                    continue;
+                }
+                if (OrgTabletMenuService.isTabletCatalogUrl(url)
+                        && !orgTabletMenuService.isTabletUrlExposedForOrgLevel(level, url)) {
                     continue;
                 }
                 String want = normalizePerm(pe.getValue());
@@ -1042,7 +1066,23 @@ public class OrgPagePermissionService {
                 Map.of("v", P_DELETE, "t", "삭제(전체)")
         ));
         payload.put("payFollowLevelCaps", payFollowPolicyService.buildLevelCapsPayload());
+        payload.put("tabletMenuExposureByLevel", orgTabletMenuService.buildTabletExposureByLevelForApi());
         return payload;
+    }
+
+    private void clampTabletMenusInAssistantStorage(AssistantMatrixStorage storage) {
+        if (storage == null) {
+            return;
+        }
+        for (Map.Entry<String, Map<String, Map<String, String>>> le : storage.byLevel.entrySet()) {
+            String lvl = le.getKey();
+            if (le.getValue() == null) {
+                continue;
+            }
+            for (Map<String, String> roleMap : le.getValue().values()) {
+                enforceTabletExposureOnRoleMap(lvl, roleMap);
+            }
+        }
     }
 
     @Transactional

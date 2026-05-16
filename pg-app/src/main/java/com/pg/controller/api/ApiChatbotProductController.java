@@ -79,6 +79,11 @@ public class ApiChatbotProductController {
             return ResponseEntity.ok(ApiResponse.fail(
                     "챗봇 상품관리는 업체 대표 또는 권한그룹 CHATBOT 계정만 사용할 수 있습니다.", "FORBIDDEN"));
         }
+        if (merchantChatbotGroupMissingOtp(user)) {
+            return ResponseEntity.ok(ApiResponse.fail(
+                    "권한그룹 CHATBOT 계정은 Google OTP 등록 후 챗봇 상품 관리를 사용할 수 있습니다. 로그인 시 안내에 따라 OTP를 등록하세요.",
+                    "OTP_SETUP_REQUIRED"));
+        }
         return ResponseEntity.ok(ApiResponse.ok(productService.listAllForOrg(ou.get().getId())));
     }
 
@@ -101,11 +106,67 @@ public class ApiChatbotProductController {
             return ResponseEntity.ok(ApiResponse.fail(
                     "챗봇 상품관리는 업체 대표 또는 권한그룹 CHATBOT 계정만 사용할 수 있습니다.", "FORBIDDEN"));
         }
+        if (merchantChatbotGroupMissingOtp(user)) {
+            return ResponseEntity.ok(ApiResponse.fail(
+                    "권한그룹 CHATBOT 계정은 Google OTP 등록 후 챗봇 상품 관리를 사용할 수 있습니다. 로그인 시 안내에 따라 OTP를 등록하세요.",
+                    "OTP_SETUP_REQUIRED"));
+        }
         Map<String, Object> meta = productService.currencyMetaForMerchantComp(cid);
         if (meta == null) {
             return ResponseEntity.ok(ApiResponse.fail("가맹점 코드를 확인하세요.", "NOT_FOUND"));
         }
         return ResponseEntity.ok(ApiResponse.ok(meta));
+    }
+
+    /** 챗봇-pay 상단 프로모션 표시 방식·순환 간격(가맹 프로필). 상품관리 화면 전용 저장. */
+    @PostMapping("/promotion-shelf-settings")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> savePromotionShelfSettings(
+            @RequestBody Map<String, Object> body) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !(auth.getPrincipal() instanceof AppUser user)) {
+            return ResponseEntity.ok(ApiResponse.fail("인증이 필요합니다.", "UNAUTHORIZED"));
+        }
+        String compId = str(body != null ? body.get("compId") : null);
+        if (compId == null) {
+            return ResponseEntity.ok(ApiResponse.fail("compId가 필요합니다.", "INVALID"));
+        }
+        if (!canAccessComp(compId)) {
+            return ResponseEntity.ok(ApiResponse.fail("권한이 없습니다.", "FORBIDDEN"));
+        }
+        if (!merchantMayUseChatbotProductCrud(user, compId)) {
+            return ResponseEntity.ok(ApiResponse.fail(
+                    "챗봇 상품관리는 업체 대표 또는 권한그룹 CHATBOT 계정만 사용할 수 있습니다.", "FORBIDDEN"));
+        }
+        if (merchantChatbotGroupMissingOtp(user)) {
+            return ResponseEntity.ok(ApiResponse.fail(
+                    "권한그룹 CHATBOT 계정은 Google OTP 등록 후 챗봇 상품 관리를 사용할 수 있습니다. 로그인 시 안내에 따라 OTP를 등록하세요.",
+                    "OTP_SETUP_REQUIRED"));
+        }
+        Optional<OrgUnit> ou = productService.requireMerchantOrgByCode(compId);
+        if (ou.isEmpty()) {
+            return ResponseEntity.ok(ApiResponse.fail("가맹점 코드를 확인하세요.", "NOT_FOUND"));
+        }
+        String mode = str(body != null ? body.get("chatbotPromotionShelfMode") : null);
+        if (mode == null) {
+            mode = "PROMOTION";
+        }
+        Integer rot = null;
+        Object ro = body != null ? body.get("chatbotPromotionRotateSeconds") : null;
+        if (ro instanceof Number) {
+            rot = ((Number) ro).intValue();
+        } else if (ro != null) {
+            try {
+                rot = Integer.parseInt(String.valueOf(ro).trim());
+            } catch (NumberFormatException ignored) {
+                rot = null;
+            }
+        }
+        try {
+            Map<String, Object> out = productService.savePromotionShelfSettingsForMerchantOrg(ou.get().getId(), mode, rot);
+            return ResponseEntity.ok(ApiResponse.ok(out));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.ok(ApiResponse.fail(e.getMessage(), "INVALID"));
+        }
     }
 
     @PostMapping("/save")
@@ -124,6 +185,11 @@ public class ApiChatbotProductController {
         if (!merchantMayUseChatbotProductCrud(user, compId)) {
             return ResponseEntity.ok(ApiResponse.fail(
                     "챗봇 상품관리는 업체 대표 또는 권한그룹 CHATBOT 계정만 사용할 수 있습니다.", "FORBIDDEN"));
+        }
+        if (merchantChatbotGroupMissingOtp(user)) {
+            return ResponseEntity.ok(ApiResponse.fail(
+                    "권한그룹 CHATBOT 계정은 Google OTP 등록 후 챗봇 상품 관리를 사용할 수 있습니다. 로그인 시 안내에 따라 OTP를 등록하세요.",
+                    "OTP_SETUP_REQUIRED"));
         }
         Optional<OrgUnit> ou = productService.requireMerchantOrgByCode(compId);
         if (ou.isEmpty()) {
@@ -149,6 +215,11 @@ public class ApiChatbotProductController {
         if (!merchantMayUseChatbotProductCrud(user, compId)) {
             return ResponseEntity.ok(ApiResponse.fail(
                     "챗봇 상품관리는 업체 대표 또는 권한그룹 CHATBOT 계정만 사용할 수 있습니다.", "FORBIDDEN"));
+        }
+        if (merchantChatbotGroupMissingOtp(user)) {
+            return ResponseEntity.ok(ApiResponse.fail(
+                    "권한그룹 CHATBOT 계정은 Google OTP 등록 후 챗봇 상품 관리를 사용할 수 있습니다. 로그인 시 안내에 따라 OTP를 등록하세요.",
+                    "OTP_SETUP_REQUIRED"));
         }
         Optional<OrgUnit> ou = productService.requireMerchantOrgByCode(compId);
         if (ou.isEmpty()) {
@@ -181,6 +252,11 @@ public class ApiChatbotProductController {
         if (!merchantMayUseChatbotProductCrud(uploader, compId)) {
             return ResponseEntity.ok(ApiResponse.fail(
                     "챗봇 상품관리는 업체 대표 또는 권한그룹 CHATBOT 계정만 사용할 수 있습니다.", "FORBIDDEN"));
+        }
+        if (merchantChatbotGroupMissingOtp(uploader)) {
+            return ResponseEntity.ok(ApiResponse.fail(
+                    "권한그룹 CHATBOT 계정은 Google OTP 등록 후 챗봇 상품 관리를 사용할 수 있습니다. 로그인 시 안내에 따라 OTP를 등록하세요.",
+                    "OTP_SETUP_REQUIRED"));
         }
         Optional<OrgUnit> ou = productService.requireMerchantOrgByCode(compId);
         if (ou.isEmpty()) {
@@ -223,6 +299,11 @@ public class ApiChatbotProductController {
         } catch (IOException e) {
             return ResponseEntity.ok(ApiResponse.fail("파일 저장 실패: " + e.getMessage(), "IO_ERROR"));
         }
+    }
+
+    /** 가맹 CHATBOT 권한그룹은 OTP 완료 전 상품 API 사용 불가(로그인 후 등록 유도와 동일 정책). */
+    private boolean merchantChatbotGroupMissingOtp(AppUser user) {
+        return authService.isMerchantChatbotPermissionGroupUser(user) && !authService.isOtpFullyEnrolled(user);
     }
 
     /** 가맹(MERCHANT) 로그인은 업체 대표 또는 CHATBOT 권한그룹만 상품 API 사용. 그 외 단계·ADMIN 은 통과. */

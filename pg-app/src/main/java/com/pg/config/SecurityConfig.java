@@ -70,6 +70,7 @@ public class SecurityConfig {
                 .requestMatchers(AntPathRequestMatcher.antMatcher("/api/public/org/branding")).permitAll()
                 .requestMatchers(AntPathRequestMatcher.antMatcher("/api/public/org/portalByHost")).permitAll()
                 .requestMatchers(AntPathRequestMatcher.antMatcher("/api/pub/chatbot/**")).permitAll()
+                .requestMatchers(AntPathRequestMatcher.antMatcher("/api/pub/login-notice")).permitAll()
                 .requestMatchers(AntPathRequestMatcher.antMatcher("/api/pay/chillpay/**")).permitAll()
                 .requestMatchers(AntPathRequestMatcher.antMatcher("/api/pay/jpay/**")).permitAll()
                 .requestMatchers(AntPathRequestMatcher.antMatcher("/api/open/pg-notify/**")).permitAll()

@@ -169,4 +169,36 @@ public class PayListSearchRequest {
     public void setPage(int page) { this.page = page; }
     public int getSize() { return size; }
     public void setSize(int size) { this.size = size; }
+
+    /** 일별 집계 등: 검색 조건만 복제(날짜·페이지는 호출부에서 덮어씀). */
+    public static PayListSearchRequest shallowCopy(PayListSearchRequest src) {
+        PayListSearchRequest r = new PayListSearchRequest();
+        if (src == null) {
+            return r;
+        }
+        r.searchFieldType = src.searchFieldType;
+        r.searchTranFactor = src.searchTranFactor;
+        r.searchTranValue = src.searchTranValue;
+        r.searchFromDate = src.searchFromDate;
+        r.searchToDate = src.searchToDate;
+        r.searchCompField = src.searchCompField;
+        r.searchCompQ = src.searchCompQ;
+        r.searchMid = src.searchMid;
+        r.searchTmnId = src.searchTmnId;
+        r.searchPayDivCd = src.searchPayDivCd;
+        r.searchPayProcCd = src.searchPayProcCd;
+        r.searchKeyword = src.searchKeyword;
+        r.searchPgCd = src.searchPgCd;
+        r.searchCycle = src.searchCycle;
+        r.searchRegNo = src.searchRegNo;
+        r.searchCardAprvNo = src.searchCardAprvNo;
+        r.searchChillTxnId = src.searchChillTxnId;
+        r.searchNotifyChannel = src.searchNotifyChannel;
+        r.searchOrderDir = src.searchOrderDir;
+        r.searchOrderBy = src.searchOrderBy;
+        r.payListVariant = src.payListVariant;
+        r.page = src.page;
+        r.size = src.size;
+        return r;
+    }
 }

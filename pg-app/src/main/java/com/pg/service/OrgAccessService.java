@@ -52,12 +52,18 @@ public class OrgAccessService {
         if (rootCode.isEmpty()) {
             return Set.of();
         }
-        Optional<OrgUnit> rootOpt = orgUnitRepository.findByCode(rootCode);
+        Optional<OrgUnit> rootOpt = orgUnitRepository.findByCodeIgnoreCase(rootCode);
+        if (rootOpt.isEmpty() && user.getOrgUnitCode() != null && !user.getOrgUnitCode().isBlank()) {
+            rootOpt = orgUnitRepository.findByCodeIgnoreCase(user.getOrgUnitCode().trim());
+        }
         if (rootOpt.isEmpty()) {
             return Set.of();
         }
         OrgUnit root = rootOpt.get();
         OrgLevel lvl = root.getOrgLevel();
+        if (lvl == OrgLevel.HEADQUARTERS) {
+            return null;
+        }
         if (lvl == OrgLevel.MERCHANT) {
             if (root.getCode() == null || root.getCode().isBlank()) {
                 return Set.of();

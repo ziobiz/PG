@@ -9,6 +9,7 @@ import com.pg.repository.PgNotifyInboundRepository;
 import com.pg.repository.PgTrnsctnRepository;
 import com.pg.repository.SettlementRunRepository;
 import com.pg.repository.SettlementSettingRepository;
+import com.pg.util.DashboardCurrencyAggregate;
 import com.pg.util.DashboardTupleRows;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
@@ -282,31 +283,7 @@ public class DashboardInsightsService {
         List<Object[]> rawRows = unrestricted
                 ? pgTrnsctnRepository.dashboardAggregateByCurrencyAll(fromInclusive, toExclusive)
                 : pgTrnsctnRepository.dashboardAggregateByCurrencyForMerchants(fromInclusive, toExclusive, mids);
-        List<Map<String, Object>> out = new ArrayList<>();
-        for (Object[] raw : rawRows) {
-            Object[] row = DashboardTupleRows.normalizeRow(raw);
-            if (row == null || row.length < 4) {
-                continue;
-            }
-            String cur = row[0] != null ? row[0].toString().trim() : "";
-            if (cur.isEmpty()) {
-                cur = "KRW";
-            } else {
-                cur = cur.toUpperCase(Locale.ROOT);
-            }
-            long appr = DashboardTupleRows.readLong(row[2]);
-            BigDecimal amt = DashboardTupleRows.readDecimal(row[3]);
-            if (appr <= 0 && amt.compareTo(BigDecimal.ZERO) == 0) {
-                continue;
-            }
-            Map<String, Object> line = new LinkedHashMap<>();
-            line.put("currency", cur);
-            line.put("txnApproved", appr);
-            line.put("amtApprovedSum", amt.setScale(8, RoundingMode.HALF_UP));
-            out.add(line);
-        }
-        out.sort(Comparator.comparing(m -> String.valueOf(m.get("currency"))));
-        return out;
+        return DashboardCurrencyAggregate.mergeApprovedByCurrencyRows(rawRows);
     }
 
     private Object[] pendingReceivableStats(boolean unrestricted, Set<String> mids) {

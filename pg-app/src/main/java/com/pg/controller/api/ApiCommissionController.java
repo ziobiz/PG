@@ -25,12 +25,15 @@ public class ApiCommissionController {
             @RequestParam(required = false) String searchCompId,
             @RequestParam(required = false) String searchCompNm,
             @RequestParam(required = false) String searchCompDiv,
+            /** 적용 정책 통화 또는 가맹 기준통화(프로필)로 필터 — JPY·USD·THB·CNY·KRW 등 ISO 알파 */
+            @RequestParam(required = false) String searchPolicyCur,
             @RequestParam(required = false) String useYn,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate searchFromDate,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate searchToDate,
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "500") int size) {
-        PageResult<Map<String, Object>> pr = commissionService.search(searchCompId, searchCompNm, searchCompDiv, useYn, page, size);
+        PageResult<Map<String, Object>> pr = commissionService.search(searchCompId, searchCompNm, searchCompDiv,
+                searchPolicyCur, useYn, page, size);
         return ResponseEntity.ok(ApiResponse.ok(pr));
     }
 

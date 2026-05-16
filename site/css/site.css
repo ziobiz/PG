@@ -10,7 +10,9 @@
   /* VIEW SETTING 패널(.table-column-guide) 전용 글자 크기 */
   --view-setting-font-size: 10px;
 }
-body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans KR", sans-serif; font-size: var(--app-base-font-size); }
+html { height: 100%; }
+/* 좌측·상단 고정, 본문만 세로 스크롤 — 문서 전체 스크롤 방지 */
+body { margin: 0; height: 100%; overflow: hidden; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans KR", sans-serif; font-size: var(--app-base-font-size); }
 
 /* OBSERVER(조회전용): ziobim/NOTI의 비활성 버튼 톤과 유사하게 회색 고정 */
 .pg-perm-observer .btn:disabled,
@@ -31,15 +33,31 @@ body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Ro
   color: #6c757d !important;
   cursor: not-allowed !important;
 }
-.wrapper { display: flex; flex-direction: column; min-height: 100vh; }
-/* 세로로 메뉴가 길면 사이드바 내부 스크롤 대신 본 행 전체를 스크롤 */
-.wrapper-body { display: flex; flex-direction: row; flex: 1; min-height: 0; min-width: 0; overflow-x: hidden; overflow-y: auto; align-items: stretch; scrollbar-gutter: stable; }
+.wrapper {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  max-height: 100%;
+  overflow: hidden;
+}
+/* 좌측 메뉴 + 우측 콘텐츠 행: 높이는 뷰포트에 고정, 세로 스크롤은 우측 .content-inner·탭 영역만 */
+.wrapper-body {
+  display: flex;
+  flex-direction: row;
+  flex: 1 1 auto;
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+  align-items: stretch;
+}
 
 /* ========== 좌측 사이드바: layout/left-side-menu.html 구조 (로고 → 접기 → 메뉴) ========== */
 .left-side-menu {
   width: 260px;
   min-width: 260px;
-  min-height: 100vh;
+  min-height: 0;
+  align-self: stretch;
   height: auto;
   max-height: none;
   background: #2c3138;
@@ -48,7 +66,7 @@ body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Ro
   transition: width 0.2s, min-width 0.2s;
   display: flex;
   flex-direction: column;
-  overflow: visible;
+  overflow: hidden;
   position: relative;
   z-index: 100;
 }
@@ -129,10 +147,11 @@ body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Ro
   display: none;
   object-fit: contain;
 }
-/* 내부 스크롤 없이 메뉴 전체 높이만큼 펼침 → 부모 .wrapper-body 세로 스크롤 */
+/* 좌측 사이드바 내부에 세로 스크롤바를 두지 않음(요청: 스크롤은 우측 본문만). 메뉴가 매우 길면 하단은 보이지 않을 수 있음 */
 #left-side-menu-container {
-  flex: 0 0 auto;
-  overflow: visible;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
 }
 .left-side-menu .btn-secondary {
   background: #3a4149 !important;
@@ -202,7 +221,18 @@ body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Ro
 /* 실제 선택된 메뉴(클릭된 서브메뉴)는 보라색 */
 .child-li.mm-active a { color: #fff; background: #6658dd; font-weight: 500; }
 /* ========== 상단 헤더: 우측만 - 접속IP·접속시간·사용자(아이콘+ID+이름)·전체닫기 ========== */
-.content-page { flex: 1; display: flex; flex-direction: column; min-width: 0; min-height: 100vh; width: auto; background: #f5f5f5; overflow: hidden; position: relative; z-index: 1; }
+.content-page {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  width: auto;
+  background: #f5f5f5;
+  overflow: hidden;
+  position: relative;
+  z-index: 1;
+}
 .header-top {
   display: flex;
   align-items: center;
@@ -348,7 +378,23 @@ body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Ro
 .content-tabs .tab-close-button:hover { color: #fff; }
 
 /* ========== 본문 내부 (흰 배경, 너비 자동 조절) ========== */
-.content-inner { padding: 16px 20px; flex: 1; min-height: 0; min-width: 0; width: 100%; max-width: none; background: #fff; overflow-x: auto; overflow-y: auto; font-size: var(--app-base-font-size); }
+/* 우측 본문(3번): 세로 스크롤바는 이 영역 오른쪽에만 — 상단 헤더·탭은 .content-body 안에서 고정 */
+.content-inner {
+  padding: 16px 20px;
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  width: 100%;
+  max-width: none;
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+  overflow-x: auto;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+  overscroll-behavior-y: contain;
+  font-size: var(--app-base-font-size);
+}
 /* 본문 공통: sm 입력·셀렉트는 사용자관리와 동일 10px */
 .content-inner .form-control-sm,
 .content-inner .form-select-sm,
@@ -443,13 +489,28 @@ body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Ro
   }
 }
 .content-page .container-fluid { max-width: none; width: 100%; overflow: hidden; }
+/* .content-inner 는 container-fluid 와 겹침 — 위 규칙의 overflow:hidden 이 세로 스크롤을 막으므로 본문만 스크롤 재허용 */
+.content-page .container-fluid.content-inner {
+  overflow-x: auto;
+  overflow-y: auto;
+}
 .page-title-box { margin-bottom: 14px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; }
 .page-title-box .page-title { margin: 0; order: 1; font-size: var(--app-base-font-size); font-weight: 600; color: #333; }
 .page-title-box .breadcrumb { margin: 0; padding: 0; background: none; font-size: var(--app-base-font-size); color: #666; order: 2; }
 .page-title-box .breadcrumb-item.navi { font-weight: 600; color: #333; }
 .page-title-box .page-title.empty-title { display: none; }
-#contentsMain { flex: 1; min-height: 0; overflow: hidden; }
-.tab-pane.tabConDiv { height: 100%; min-height: 0; display: none; padding: 0; overflow-y: auto; scrollbar-gutter: stable; font-size: var(--app-base-font-size); }
+#contentsMain { flex: 1 1 auto; min-height: 0; overflow: visible; display: flex; flex-direction: column; }
+/* 탭 본문은 부모(.content-inner)에서만 세로 스크롤 — 이중 스크롤·가려진 스크롤바 방지 */
+.tab-pane.tabConDiv {
+  flex: 1 1 auto;
+  min-height: 0;
+  height: auto;
+  display: none;
+  padding: 0;
+  overflow-x: visible;
+  overflow-y: visible;
+  font-size: var(--app-base-font-size);
+}
 .tab-pane.tabConDiv.show.active { display: block; }
 
 /* TAX 리포트: content 영역 자체의 가로 스크롤을 차단 */
@@ -4139,13 +4200,13 @@ button.pay-follow-pill:focus-visible {
 }
 #contentsMain .chatbot-product-mng .chatbot-prod-table-responsive > .table.chatbot-prod-grid {
   /* 리사이즈/컬럼 표시를 위해 최소 폭은 유지(스크롤바는 숨김 처리) */
-  min-width: 960px;
+  min-width: 1000px;
   width: 100%;
   max-width: 100%;
 }
 /* 리사이즈 적용 전: 뷰가 넓을 때는 래퍼 100%까지 반드시 확장 */
 #contentsMain .chatbot-product-mng .chatbot-prod-table-responsive > .table.chatbot-prod-grid:not(.pg-table-col-resize-enabled) {
-  min-width: max(960px, 100%);
+  min-width: max(1000px, 100%);
 }
 #contentsMain .chatbot-product-mng .chatbot-prod-table-responsive .chatbot-prod-grid thead th,
 #contentsMain .chatbot-product-mng .chatbot-prod-table-responsive .chatbot-prod-grid tbody td {
@@ -4207,17 +4268,30 @@ button.pay-follow-pill:focus-visible {
   overflow: hidden;
   text-overflow: ellipsis;
 }
+/* 판매·예약 / 예약결제: 짧은 라벨이 글자 단위로 세로 쌓이며 옆 열과 겹쳐 보이지 않도록 */
 #contentsMain .chatbot-product-mng .chatbot-prod-grid th.chatbot-prod-col-listing,
 #contentsMain .chatbot-product-mng .chatbot-prod-grid td.chatbot-prod-col-listing {
-  min-width: 7.5rem;
-  max-width: 11rem;
-  white-space: normal;
+  min-width: 9.5rem;
+  max-width: 14rem;
+  white-space: nowrap;
+  word-break: normal;
+  overflow-wrap: normal;
+}
+#contentsMain .chatbot-product-mng .chatbot-prod-grid td.chatbot-prod-col-listing {
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 #contentsMain .chatbot-product-mng .chatbot-prod-grid th.chatbot-prod-col-rescollect,
 #contentsMain .chatbot-product-mng .chatbot-prod-grid td.chatbot-prod-col-rescollect {
-  min-width: 7rem;
-  max-width: 9rem;
-  white-space: normal;
+  min-width: 8.5rem;
+  max-width: 12rem;
+  white-space: nowrap;
+  word-break: normal;
+  overflow-wrap: normal;
+}
+#contentsMain .chatbot-product-mng .chatbot-prod-grid td.chatbot-prod-col-rescollect {
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 #contentsMain .chatbot-product-mng .chatbot-prod-grid th.chatbot-prod-col-amt,
 #contentsMain .chatbot-product-mng .chatbot-prod-grid td.chatbot-prod-col-amt {
@@ -4366,4 +4440,349 @@ button.pay-follow-pill:focus-visible {
   background: #fff3c4 !important;
   border-bottom-color: #f0e0a8 !important;
   color: #5c4d1a !important;
+}
+
+/* ========== 운영관리 — 통합 리포트: 한 줄 표시·파스텔 버킷·가맹 교차 배경 ========== */
+.content-inner--ops-integrated-report .integrated-report-wrap {
+  overflow-x: auto;
+}
+.content-inner--ops-integrated-report .integrated-report-wrap table.integrated-report-grid {
+  width: max(100%, 1400px);
+  table-layout: auto;
+  font-size: 0.8125rem;
+}
+.content-inner--ops-integrated-report .integrated-report-wrap table.integrated-report-grid th,
+.content-inner--ops-integrated-report .integrated-report-wrap table.integrated-report-grid td {
+  white-space: nowrap;
+  vertical-align: middle;
+  padding-left: 0.55rem;
+  padding-right: 0.55rem;
+}
+.content-inner--ops-integrated-report .integrated-report-wrap table.integrated-report-grid .integrated-report-cell--money {
+  min-width: 9rem;
+  white-space: nowrap;
+}
+.content-inner--ops-integrated-report .integrated-report-wrap table.integrated-report-grid th.integrated-report-th--base {
+  background: #f8f9fa;
+  color: #343a40;
+}
+.content-inner--ops-integrated-report .integrated-report-wrap table.integrated-report-grid td.integrated-report-td--base {
+  background: #fff;
+}
+/* 상태별 버킷 (헤더 1행 + 금액/건수 셀) */
+.content-inner--ops-integrated-report .integrated-report-wrap th.integrated-report-th--SUCCESS,
+.content-inner--ops-integrated-report .integrated-report-wrap td.integrated-report-td--SUCCESS {
+  background: #fff9db !important;
+  border-color: #ffec99 !important;
+}
+.content-inner--ops-integrated-report .integrated-report-wrap th.integrated-report-th--CANCEL,
+.content-inner--ops-integrated-report .integrated-report-wrap td.integrated-report-td--CANCEL {
+  background: #e7f5ff !important;
+  border-color: #d0ebff !important;
+}
+.content-inner--ops-integrated-report .integrated-report-wrap th.integrated-report-th--FAIL,
+.content-inner--ops-integrated-report .integrated-report-wrap td.integrated-report-td--FAIL {
+  background: #fff4e6 !important;
+  border-color: #ffd8a8 !important;
+}
+.content-inner--ops-integrated-report .integrated-report-wrap th.integrated-report-th--VOID,
+.content-inner--ops-integrated-report .integrated-report-wrap td.integrated-report-td--VOID {
+  background: #ebfbee !important;
+  border-color: #b2f2bb !important;
+}
+.content-inner--ops-integrated-report .integrated-report-wrap th.integrated-report-th--EMAIL_VOID,
+.content-inner--ops-integrated-report .integrated-report-wrap td.integrated-report-td--EMAIL_VOID {
+  background: #e6fcf5 !important;
+  border-color: #96f2d7 !important;
+}
+.content-inner--ops-integrated-report .integrated-report-wrap th.integrated-report-th--REFUND,
+.content-inner--ops-integrated-report .integrated-report-wrap td.integrated-report-td--REFUND {
+  background: #ffe8e8 !important;
+  border-color: #ffc9c9 !important;
+}
+.content-inner--ops-integrated-report .integrated-report-wrap th.integrated-report-th--FORCE_REFUND,
+.content-inner--ops-integrated-report .integrated-report-wrap td.integrated-report-td--FORCE_REFUND {
+  background: #ffe3e3 !important;
+  border-color: #ffb3b3 !important;
+}
+/* 가맹 블록 교차 색 */
+.content-inner--ops-integrated-report .integrated-report-wrap th.integrated-report-merch--even,
+.content-inner--ops-integrated-report .integrated-report-wrap td.integrated-report-merch--even {
+  background: #f3f0ff !important;
+  border-color: #d0bfff !important;
+}
+.content-inner--ops-integrated-report .integrated-report-wrap th.integrated-report-merch--odd,
+.content-inner--ops-integrated-report .integrated-report-wrap td.integrated-report-merch--odd {
+  background: #e7fcf8 !important;
+  border-color: #99e9d2 !important;
+}
+.content-inner--ops-integrated-report .integrated-report-wrap tr.integrated-report-day-row:hover td {
+  filter: brightness(0.97);
+}
+
+/* ========== 태블릿 UI 모드 — 협소 디스플레이용 고밀도·소형 타이포 ==========
+   html.pg-admin--tablet 일 때만 적용. 터치는 유지하되 정보 밀도를 우선합니다. */
+html.pg-admin--tablet {
+  /* 기본(13px)보다 한 단계 촘촘 — 매우 좁은 폭에서만 살짝 더 줄어듦 */
+  --app-base-font-size: clamp(10.5px, 2.55vw, 11.75px);
+  --app-form-sm-font-size: clamp(10px, 2.35vw, 11px);
+  --app-table-font-size: clamp(9.5px, 2.25vw, 10.5px);
+  --table-row-padding-y: 2px;
+  --pg-tablet-rail: rgba(124, 140, 255, 0.95);
+  --pg-tablet-rail-glow: rgba(124, 140, 255, 0.22);
+  font-size: var(--app-base-font-size);
+  letter-spacing: -0.012em;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* 본문 영역: 미세 격자로 스크롤 영역만 구획(눈 피로 최소) */
+html.pg-admin--tablet .content-page {
+  background-color: #f3f4f6;
+  background-image:
+    linear-gradient(rgba(15, 23, 42, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(15, 23, 42, 0.03) 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+
+/* 상단 바: 얇은 글래스 느낌 + 높이 절약 */
+html.pg-admin--tablet .header-top {
+  min-height: 42px;
+  padding: 0 10px 0 12px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(232, 232, 232, 0.98));
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border-bottom-color: rgba(0, 0, 0, 0.06);
+}
+html.pg-admin--tablet .header-top-right {
+  gap: 8px 10px;
+}
+html.pg-admin--tablet .header-user-icon {
+  font-size: 1.2rem;
+}
+html.pg-admin--tablet .btn-header-close {
+  padding: 4px 10px;
+  font-size: var(--app-base-font-size);
+}
+html.pg-admin--tablet .pg-pay-lang-inline {
+  padding: 2px 8px;
+  gap: 2px 6px;
+  font-size: var(--app-base-font-size);
+  border-radius: 999px;
+}
+html.pg-admin--tablet .header-top-right .pg-tablet-shell-inline .form-check-input {
+  width: 2.15rem;
+  height: 1.15rem;
+}
+
+/* 태블릿 모드: 좌측 사이드 메뉴 숨김 — 상단 탭·아이콘 런처만 사용 */
+html.pg-admin--tablet .left-side-menu {
+  display: none !important;
+}
+/* 접힘 플라이아웃 잔상 방지 */
+html.pg-admin--tablet #flyout-submenu.flyout-submenu,
+html.pg-admin--tablet .flyout-submenu {
+  display: none !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
+/* 탭 행: 한 줄에 더 많이 */
+html.pg-admin--tablet .content-tab-row {
+  min-height: 32px;
+  padding: 0 6px;
+}
+html.pg-admin--tablet .content-tabs .tab-a {
+  padding: 5px 9px;
+  font-size: var(--app-base-font-size);
+}
+html.pg-admin--tablet .content-tabs .tab-close-button {
+  margin: 0 2px;
+  padding: 0 4px;
+  font-size: var(--app-form-sm-font-size);
+}
+
+/* 본문 패딩·표·카드·폼 */
+html.pg-admin--tablet .content-inner {
+  padding: 8px 10px;
+  font-size: var(--app-base-font-size);
+}
+html.pg-admin--tablet .content-inner .card {
+  border-radius: 6px;
+}
+html.pg-admin--tablet .content-inner .card-header,
+html.pg-admin--tablet .tab-pane.tabConDiv .card-header {
+  padding: 0.35rem 0.55rem;
+  font-size: var(--app-form-sm-font-size);
+  font-weight: 600;
+}
+html.pg-admin--tablet .content-inner .card-body,
+html.pg-admin--tablet .tab-pane.tabConDiv .card-body {
+  padding: 0.45rem 0.55rem;
+}
+html.pg-admin--tablet .content-inner .form-label,
+html.pg-admin--tablet .tab-pane.tabConDiv .form-label {
+  margin-bottom: 0.2rem;
+  font-size: var(--app-form-sm-font-size);
+  font-weight: 600;
+  color: #374151;
+}
+html.pg-admin--tablet .content-inner .form-control,
+html.pg-admin--tablet .content-inner .form-select,
+html.pg-admin--tablet .tab-pane.tabConDiv .form-control,
+html.pg-admin--tablet .tab-pane.tabConDiv .form-select {
+  padding: 0.22rem 0.45rem;
+  font-size: var(--app-form-sm-font-size);
+  min-height: calc(1.5em + 6px);
+}
+html.pg-admin--tablet .content-inner .btn,
+html.pg-admin--tablet .tab-pane.tabConDiv .btn {
+  padding: 0.25rem 0.5rem;
+  font-size: var(--app-form-sm-font-size);
+  line-height: 1.25;
+}
+html.pg-admin--tablet .content-inner .btn-sm,
+html.pg-admin--tablet .tab-pane.tabConDiv .btn-sm {
+  padding: 0.15rem 0.4rem;
+  font-size: var(--app-table-font-size);
+}
+html.pg-admin--tablet .content-inner .table,
+html.pg-admin--tablet .tab-pane.tabConDiv .table {
+  font-size: var(--app-table-font-size);
+}
+html.pg-admin--tablet .content-inner .table > :not(caption) > * > *,
+html.pg-admin--tablet .tab-pane.tabConDiv .table > :not(caption) > * > * {
+  padding: 0.2rem 0.3rem;
+  vertical-align: middle;
+}
+html.pg-admin--tablet .content-inner .table thead th,
+html.pg-admin--tablet .tab-pane.tabConDiv .table thead th {
+  font-size: var(--app-table-font-size);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* 검색·액션 한 줄 밀도 */
+html.pg-admin--tablet .content-inner .row.g-2,
+html.pg-admin--tablet .tab-pane.tabConDiv .row.g-2 {
+  --bs-gutter-y: 0.35rem;
+  --bs-gutter-x: 0.45rem;
+}
+html.pg-admin--tablet .content-inner .pagination,
+html.pg-admin--tablet .tab-pane.tabConDiv .pagination {
+  font-size: var(--app-table-font-size);
+}
+
+/* 모달·알림도 동일 스케일 */
+html.pg-admin--tablet .modal-header,
+html.pg-admin--tablet .modal-body,
+html.pg-admin--tablet .modal-footer {
+  padding: 0.5rem 0.65rem;
+  font-size: var(--app-base-font-size);
+}
+
+html.pg-admin--tablet #contentsMain {
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* 태블릿 모드 메인(/main): 아이콘 런처 — Table-Order 스타일 터치 선택 */
+.pg-tablet-launch-board {
+  padding: 0.25rem 0 1rem;
+}
+.pg-tablet-launch-board .pg-tablet-launch-hint {
+  font-size: 0.95rem;
+}
+.pg-tablet-launch-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 6.5rem;
+  padding: 0.75rem 0.5rem;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  border-radius: 0.75rem;
+  background: var(--bs-body-bg, #fff);
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.15s ease, border-color 0.15s ease, transform 0.08s ease;
+  text-decoration: none;
+  color: inherit;
+}
+.pg-tablet-launch-tile:hover,
+.pg-tablet-launch-tile:focus-visible {
+  border-color: var(--bs-primary, #0d6efd);
+  background: rgba(13, 110, 253, 0.06);
+  outline: none;
+}
+.pg-tablet-launch-tile:active {
+  transform: scale(0.98);
+}
+.pg-tablet-launch-tile .bi {
+  font-size: 2.25rem;
+  line-height: 1;
+  color: var(--bs-primary, #0d6efd);
+}
+.pg-tablet-launch-tile .pg-tablet-launch-lbl {
+  margin-top: 0.5rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-align: center;
+  line-height: 1.25;
+  word-break: keep-all;
+}
+html.pg-admin--tablet .pg-tablet-launch-tile {
+  min-height: 7.5rem;
+  padding: 1rem 0.6rem;
+}
+html.pg-admin--tablet .pg-tablet-launch-tile .bi {
+  font-size: 2.75rem;
+}
+html.pg-admin--tablet .pg-tablet-launch-tile .pg-tablet-launch-lbl {
+  font-size: 1rem;
+}
+
+/* 태블릿설정 — 조직×메뉴 체크 매트릭스 */
+.hq-ops-mode-matrix-wrap {
+  max-height: min(72vh, 42rem);
+  overflow: auto;
+}
+.hq-ops-mode-matrix-grid thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: var(--bs-table-bg, #fff);
+  box-shadow: inset 0 -1px 0 var(--bs-border-color, #dee2e6);
+  font-size: 0.8125rem;
+  vertical-align: middle;
+}
+.hq-ops-mode-matrix-grid .hq-ops-mode-th-menu,
+.hq-ops-mode-matrix-grid .hq-ops-mode-td-menu {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  min-width: 11rem;
+  max-width: 18rem;
+  background: var(--bs-table-bg, #fff);
+  box-shadow: inset -1px 0 0 var(--bs-border-color, #dee2e6);
+}
+.hq-ops-mode-matrix-grid thead .hq-ops-mode-th-menu {
+  z-index: 3;
+}
+.hq-ops-mode-matrix-grid .hq-ops-mode-th-level {
+  min-width: 4.5rem;
+  width: 4.75rem;
+}
+.hq-ops-mode-matrix-grid .hq-ops-mode-td-check {
+  width: 4.75rem;
+}
+.hq-ops-mode-matrix-grid .hq-ops-mode-item-cb {
+  width: 1.1rem;
+  height: 1.1rem;
+  cursor: pointer;
+}
+.hq-ops-mode-matrix-grid tbody tr:nth-child(odd) > td {
+  background-color: rgba(13, 110, 253, 0.04);
+}
+.hq-ops-mode-matrix-grid tbody tr:nth-child(odd) > .hq-ops-mode-td-menu {
+  background-color: rgba(13, 110, 253, 0.06);
 }

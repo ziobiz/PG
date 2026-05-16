@@ -25,11 +25,14 @@ public class HqNotifyEnvService {
 
     private final HqNotifyEnvConfigRepository repository;
     private final OrgPagePermissionService orgPagePermissionService;
+    private final OrgTabletMenuService orgTabletMenuService;
 
     public HqNotifyEnvService(HqNotifyEnvConfigRepository repository,
-                              @Lazy OrgPagePermissionService orgPagePermissionService) {
+                              @Lazy OrgPagePermissionService orgPagePermissionService,
+                              @Lazy OrgTabletMenuService orgTabletMenuService) {
         this.repository = repository;
         this.orgPagePermissionService = orgPagePermissionService;
+        this.orgTabletMenuService = orgTabletMenuService;
     }
 
     @Transactional
@@ -115,10 +118,12 @@ public class HqNotifyEnvService {
             m.put("assistantOrgLevels", orgPagePermissionService.getAssistantOrgLevelsForApi());
             m.put("assistantRoleDefaultMatrixByLevel", orgPagePermissionService.getHqAssistantDefaultMatrixByLevelResolvedForApi());
             m.put("assistantMatrixCatalog", orgPagePermissionService.getAssistantMatrixCatalogForApi());
+            m.put("tabletMenuExposureByLevel", orgTabletMenuService.buildTabletExposureByLevelForApi());
         } catch (Exception ignored) {
             m.put("assistantOrgLevels", List.of());
             m.put("assistantRoleDefaultMatrixByLevel", Map.of());
             m.put("assistantMatrixCatalog", List.of());
+            m.put("tabletMenuExposureByLevel", Map.of());
         }
         return m;
     }

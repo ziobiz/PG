@@ -40,6 +40,10 @@ public class OrgUnit {
     @Column(name = "page_permission_mode", length = 20)
     private String pagePermissionMode = "LEVEL_DEFAULT";
 
+    /** 관리자 웹 태블릿 UI 사용 Y/N — N이면 해당 조직 소속은 태블릿 메뉴 URL이 적용되지 않습니다. */
+    @Column(name = "tablet_feature_use_yn", length = 1)
+    private String tabletFeatureUseYn = "Y";
+
     /** 본사·총판 도메인 설정 화면용 표시 이름 */
     @Column(name = "domain_setting_name", length = 200)
     private String domainSettingName;
@@ -62,15 +66,25 @@ public class OrgUnit {
         }
     }
 
+    private void normalizeTabletFeatureUseYn() {
+        if (tabletFeatureUseYn == null || tabletFeatureUseYn.isBlank()) {
+            tabletFeatureUseYn = "Y";
+        } else {
+            tabletFeatureUseYn = "Y".equalsIgnoreCase(tabletFeatureUseYn.trim()) ? "Y" : "N";
+        }
+    }
+
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();
         normalizePagePermissionMode();
+        normalizeTabletFeatureUseYn();
     }
 
     @PreUpdate
     protected void onUpdate() {
         normalizePagePermissionMode();
+        normalizeTabletFeatureUseYn();
     }
 
     public Long getId() { return id; }
@@ -89,6 +103,8 @@ public class OrgUnit {
         return (pagePermissionMode != null && !pagePermissionMode.isBlank()) ? pagePermissionMode : "LEVEL_DEFAULT";
     }
     public void setPagePermissionMode(String pagePermissionMode) { this.pagePermissionMode = pagePermissionMode; }
+    public String getTabletFeatureUseYn() { return tabletFeatureUseYn; }
+    public void setTabletFeatureUseYn(String tabletFeatureUseYn) { this.tabletFeatureUseYn = tabletFeatureUseYn; }
     public String getDomainSettingName() { return domainSettingName; }
     public void setDomainSettingName(String domainSettingName) { this.domainSettingName = domainSettingName; }
     public String getOrgDomainAdminUrl() { return orgDomainAdminUrl; }

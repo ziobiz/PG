@@ -350,6 +350,18 @@
       margin-top: clamp(0.18rem, 1vw, 0.28rem);
       line-height: 1.15;
     }
+    /* 다이나믹·하이브리드: 정확히 3열 그리드 */
+    .cb-shelf.cb-shelf--promo.cb-shelf--promo-rot {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      flex-wrap: unset;
+      overflow-x: hidden;
+    }
+    .cb-shelf.cb-shelf--promo.cb-shelf--promo-rot .cb-pcard {
+      flex: unset;
+      width: auto;
+      max-width: none;
+    }
     @media (max-width: 380px) {
       .cb-shelf-wrap {
         padding: 0.38rem 0 0.48rem;
@@ -1704,7 +1716,10 @@
             bannerConnCorsHint: ' · ブラウザのCORSまたはMixed Contentのブロックを確認してください。',
             chatEmptyReply: '（応答なし）',
             chatNetworkErr: 'ネットワークエラー',
-            chatServerErr: 'サーバー応答エラー（{http}）。しばらくしてから再度お試しください。'
+            chatServerErr: 'サーバー応答エラー（{http}）。しばらくしてから再度お試しください。',
+            adminPromoShelf: '上部プロモーションに表示',
+            adminPromoShelfHint:
+              'オンにすると、チャットボットの初回画面の上部「プロモーション」帯にのみ表示されます。'
           },
           th: {
             title: 'แชทบอทชำระเงิน',
@@ -1793,7 +1808,10 @@
             bannerConnCorsHint: ' · ตรวจสอบการบล็อก CORS หรือ mixed content ในเบราว์เซอร์',
             chatEmptyReply: '(ไม่มีคำตอบ)',
             chatNetworkErr: 'ข้อผิดพลาดเครือข่าย',
-            chatServerErr: 'ข้อผิดพลาดการตอบกลับเซิร์ฟเวอร์ ({http}) โปรดลองใหม่ภายหลัง'
+            chatServerErr: 'ข้อผิดพลาดการตอบกลับเซิร์ฟเวอร์ ({http}) โปรดลองใหม่ภายหลัง',
+            adminPromoShelf: 'แสดงในโปรโมชันด้านบน',
+            adminPromoShelfHint:
+              'เมื่อเลือก รายการจะปรากฏเฉพาะในแถบ「โปรโมชัน」ด้านบนของหน้าแรกแชทบอทเท่านั้น'
           },
           zh: zhTrad
             ? {
@@ -1883,7 +1901,9 @@
                 bannerConnCorsHint: ' · 請檢查瀏覽器是否阻擋 CORS 或混合內容。',
                 chatEmptyReply: '（無回覆）',
                 chatNetworkErr: '網路錯誤',
-                chatServerErr: '伺服器回應錯誤（{http}）。請稍後再試。'
+                chatServerErr: '伺服器回應錯誤（{http}）。請稍後再試。',
+                adminPromoShelf: '在頂部促銷中顯示',
+                adminPromoShelfHint: '勾選後，僅顯示於聊天機器人首頁頂部的「促銷」區。'
               }
             : {
                 title: '聊天机器人付款',
@@ -1972,7 +1992,9 @@
                 bannerConnCorsHint: ' · 请检查浏览器是否阻止 CORS 或混合内容。',
                 chatEmptyReply: '（无回复）',
                 chatNetworkErr: '网络错误',
-                chatServerErr: '服务器响应错误（{http}）。请稍后再试。'
+                chatServerErr: '服务器响应错误（{http}）。请稍后再试。',
+                adminPromoShelf: '在顶部促销中显示',
+                adminPromoShelfHint: '勾选后，仅出现在聊天机器人首页顶部的「促销」区。'
               },
           vi: {
             title: 'Thanh toán chatbot',
@@ -2061,7 +2083,10 @@
             bannerConnCorsHint: ' · Kiểm tra chặn CORS hoặc mixed content trên trình duyệt.',
             chatEmptyReply: '(Không có phản hồi)',
             chatNetworkErr: 'Lỗi mạng',
-            chatServerErr: 'Lỗi phản hồi máy chủ ({http}). Vui lòng thử lại sau.'
+            chatServerErr: 'Lỗi phản hồi máy chủ ({http}). Vui lòng thử lại sau.',
+            adminPromoShelf: 'Hiển thị ở khuyến mãi trên cùng',
+            adminPromoShelfHint:
+              'Khi chọn, mục chỉ hiện trên dải «Khuyến mãi» phía trên trang chủ chatbot.'
           },
           id: {
             title: 'Pembayaran chatbot',
@@ -2150,7 +2175,10 @@
             bannerConnCorsHint: ' · Periksa pemblokiran CORS atau mixed content di browser.',
             chatEmptyReply: '(Tidak ada balasan)',
             chatNetworkErr: 'Kesalahan jaringan',
-            chatServerErr: 'Kesalahan respons server ({http}). Silakan coba lagi.'
+            chatServerErr: 'Kesalahan respons server ({http}). Silakan coba lagi.',
+            adminPromoShelf: 'Tampilkan di promosi atas',
+            adminPromoShelfHint:
+              'Jika dicentang, item hanya muncul di kartu «Promosi» di atas beranda chatbot.'
           },
           es: {
             title: 'Pago con chatbot',
@@ -2239,7 +2267,10 @@
             bannerConnCorsHint: ' · Compruebe el bloqueo CORS o mixed content en el navegador.',
             chatEmptyReply: '(Sin respuesta)',
             chatNetworkErr: 'Error de red',
-            chatServerErr: 'Error de respuesta del servidor ({http}). Inténtelo de nuevo.'
+            chatServerErr: 'Error de respuesta del servidor ({http}). Inténtelo de nuevo.',
+            adminPromoShelf: 'Mostrar en promociones superiores',
+            adminPromoShelfHint:
+              'Si está marcado, el artículo solo aparece en la franja superior de «Promociones» de la página inicial del chatbot.'
           }
         };
         if (b === 'zh') {
@@ -2848,6 +2879,21 @@
         } catch (eOs) {
           window.cbPubOrderSheetUi = { version: 1, fields: {} };
         }
+        try {
+          window.cbPromotionShelfMode = (data && data.promotionShelfMode != null)
+            ? String(data.promotionShelfMode).trim().toUpperCase() : 'PROMOTION';
+          var rs = data && data.promotionRotateSeconds != null ? parseInt(String(data.promotionRotateSeconds), 10) : 30;
+          if (isNaN(rs) || rs < 30) rs = 30;
+          rs = Math.floor(rs / 30) * 30;
+          if (rs > 86400) rs = 86400;
+          window.cbPromotionRotateSeconds = rs;
+          var hp = data && data.promotionHybridPinnedProductId;
+          window.cbPromotionHybridPinnedProductId = (hp != null && hp !== '') ? hp : '';
+        } catch (ePrm) {
+          window.cbPromotionShelfMode = 'PROMOTION';
+          window.cbPromotionRotateSeconds = 30;
+          window.cbPromotionHybridPinnedProductId = '';
+        }
       }
 
       function cbOrderFieldWrap(key) {
@@ -3312,73 +3358,192 @@
         if (v.length >= 10) co.min = v.slice(0, 10);
       }
 
+      var cbPromoRotateTimer = null;
+      var cbPromoDynOffset = 0;
+      var cbPromoHybOffset = 0;
+
+      function stopCbPromotionRotation() {
+        if (cbPromoRotateTimer) {
+          clearInterval(cbPromoRotateTimer);
+          cbPromoRotateTimer = null;
+        }
+      }
+
+      function sortCbPromoItems(items) {
+        var arr = (items || []).slice();
+        arr.sort(function (a, b) {
+          var sa = parseInt(String(a && a.sortOrder != null ? a.sortOrder : '0'), 10) || 0;
+          var sb = parseInt(String(b && b.sortOrder != null ? b.sortOrder : '0'), 10) || 0;
+          if (sa !== sb) return sa - sb;
+          var ia = parseInt(String(a && a.id != null ? a.id : '0'), 10) || 0;
+          var ib = parseInt(String(b && b.id != null ? b.id : '0'), 10) || 0;
+          return ia - ib;
+        });
+        return arr;
+      }
+
+      function appendCbPromoCard(mount, it) {
+        if (!mount || !it) return;
+        var title = String(it.title || '');
+        var amt = String(it.amount || '');
+        var cur = String(it.currencyCode || '').toUpperCase();
+        var isRes = cbIsReservationListing(it);
+        var isPl = cbIsPlaceReservation(it);
+        var rawImg = String(it.imageUrl || '').trim();
+        var allowImg = rawImg.startsWith('/') || /^https?:\/\//i.test(rawImg);
+
+        var pc = document.createElement('article');
+        pc.className = 'cb-pcard cb-pcard--promo';
+        if (allowImg && rawImg) {
+          var im = document.createElement('img');
+          im.className = 'cb-pcard-img';
+          im.alt = '';
+          im.src = absAsset(rawImg);
+          im.onerror = function () { im.style.display = 'none'; };
+          pc.appendChild(im);
+        } else {
+          var ph = document.createElement('div');
+          ph.className = 'cb-pcard-img';
+          ph.style.display = 'flex';
+          ph.style.alignItems = 'center';
+          ph.style.justifyContent = 'center';
+          ph.style.fontSize = '1.5rem';
+          ph.style.opacity = '0.35';
+          ph.textContent = '🛒';
+          pc.appendChild(ph);
+        }
+        var body = document.createElement('div');
+        body.className = 'cb-pcard-body';
+        var tEl = document.createElement('div');
+        tEl.className = 'cb-pcard-title';
+        tEl.textContent = title;
+        body.appendChild(tEl);
+        var pr = document.createElement('div');
+        pr.className = 'cb-pcard-amt';
+        pr.textContent = amt + ' ' + cur;
+        body.appendChild(pr);
+        var btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'cb-pcard-btn' + (isRes ? ' cb-pcard-btn-res' : '');
+        var si = cbPayShellI18n();
+        if (window.cbCommerceHold) {
+          btn.disabled = true;
+          btn.textContent = si.cardBtnHold;
+          btn.title = si.cardBtnHoldTitle;
+        } else {
+          btn.textContent = isPl ? si.cardBtnPlace : (isRes ? si.cardBtnReservePay : si.cardBtnPay);
+          btn.addEventListener('click', function () {
+            openOrderSheet(it);
+          });
+        }
+        body.appendChild(btn);
+        pc.appendChild(body);
+        mount.appendChild(pc);
+      }
+
       function renderCatalog(items) {
+        stopCbPromotionRotation();
+        cbPromoDynOffset = 0;
+        cbPromoHybOffset = 0;
         var mount = document.getElementById('chatbotCatalogMount');
         var shelfWrap = document.getElementById('cbShelfWrap');
         if (!mount) return;
         mount.innerHTML = '';
-        if (!items || !items.length) {
+        mount.classList.remove('cb-shelf--promo-rot');
+        var mode = String(window.cbPromotionShelfMode != null ? window.cbPromotionShelfMode : 'PROMOTION').toUpperCase();
+        var sorted = sortCbPromoItems(items || []);
+        if (mode === 'HIDDEN' || !sorted.length) {
           if (shelfWrap) shelfWrap.style.display = 'none';
           return;
         }
         if (shelfWrap) shelfWrap.style.display = '';
-        items.forEach(function (it) {
-          var title = String(it.title || '');
-          var amt = String(it.amount || '');
-          var cur = String(it.currencyCode || '').toUpperCase();
-          var isRes = cbIsReservationListing(it);
-          var isPl = cbIsPlaceReservation(it);
-          var rawImg = String(it.imageUrl || '').trim();
-          var allowImg = rawImg.startsWith('/') || /^https?:\/\//i.test(rawImg);
+        var rotSec = parseInt(String(window.cbPromotionRotateSeconds != null ? window.cbPromotionRotateSeconds : '30'), 10) || 30;
+        if (rotSec < 30) rotSec = 30;
+        rotSec = Math.floor(rotSec / 30) * 30;
+        if (rotSec > 86400) rotSec = 86400;
+        var rotMs = rotSec * 1000;
+        var pinId = window.cbPromotionHybridPinnedProductId;
 
-          var pc = document.createElement('article');
-          pc.className = 'cb-pcard cb-pcard--promo';
-          if (allowImg && rawImg) {
-            var im = document.createElement('img');
-            im.className = 'cb-pcard-img';
-            im.alt = '';
-            im.src = absAsset(rawImg);
-            im.onerror = function () { im.style.display = 'none'; };
-            pc.appendChild(im);
-          } else {
-            var ph = document.createElement('div');
-            ph.className = 'cb-pcard-img';
-            ph.style.display = 'flex';
-            ph.style.alignItems = 'center';
-            ph.style.justifyContent = 'center';
-            ph.style.fontSize = '1.5rem';
-            ph.style.opacity = '0.35';
-            ph.textContent = '🛒';
-            pc.appendChild(ph);
+        function resolveHybridPinned(list) {
+          if (!list || !list.length) return null;
+          if (pinId != null && pinId !== '') {
+            for (var i = 0; i < list.length; i++) {
+              if (String(list[i].id) === String(pinId)) return list[i];
+            }
           }
-          var body = document.createElement('div');
-          body.className = 'cb-pcard-body';
-          var tEl = document.createElement('div');
-          tEl.className = 'cb-pcard-title';
-          tEl.textContent = title;
-          body.appendChild(tEl);
-          var pr = document.createElement('div');
-          pr.className = 'cb-pcard-amt';
-          pr.textContent = amt + ' ' + cur;
-          body.appendChild(pr);
-          var btn = document.createElement('button');
-          btn.type = 'button';
-          btn.className = 'cb-pcard-btn' + (isRes ? ' cb-pcard-btn-res' : '');
-          var si = cbPayShellI18n();
-          if (window.cbCommerceHold) {
-            btn.disabled = true;
-            btn.textContent = si.cardBtnHold;
-            btn.title = si.cardBtnHoldTitle;
-          } else {
-            btn.textContent = isPl ? si.cardBtnPlace : (isRes ? si.cardBtnReservePay : si.cardBtnPay);
-            btn.addEventListener('click', function () {
-              openOrderSheet(it);
-            });
+          return list[0];
+        }
+
+        function paintPromotionAll() {
+          mount.innerHTML = '';
+          sorted.forEach(function (it) { appendCbPromoCard(mount, it); });
+        }
+
+        function paintDynamic() {
+          mount.innerHTML = '';
+          var n = sorted.length;
+          if (n <= 3) {
+            sorted.forEach(function (it) { appendCbPromoCard(mount, it); });
+            return;
           }
-          body.appendChild(btn);
-          pc.appendChild(body);
-          mount.appendChild(pc);
-        });
+          for (var i = 0; i < 3; i++) {
+            appendCbPromoCard(mount, sorted[(cbPromoDynOffset + i) % n]);
+          }
+        }
+
+        function paintHybrid() {
+          mount.innerHTML = '';
+          var pinned = resolveHybridPinned(sorted);
+          if (!pinned) return;
+          var rest = [];
+          for (var j = 0; j < sorted.length; j++) {
+            if (String(sorted[j].id) !== String(pinned.id)) rest.push(sorted[j]);
+          }
+          appendCbPromoCard(mount, pinned);
+          if (!rest.length) {
+            appendCbPromoCard(mount, pinned);
+            appendCbPromoCard(mount, pinned);
+            return;
+          }
+          var rn = rest.length;
+          var a = rest[cbPromoHybOffset % rn];
+          var b = rest[(cbPromoHybOffset + 1) % rn];
+          appendCbPromoCard(mount, a);
+          appendCbPromoCard(mount, b);
+        }
+
+        if (mode === 'PROMOTION') {
+          paintPromotionAll();
+          return;
+        }
+        if (mode !== 'DYNAMIC' && mode !== 'HYBRID') {
+          paintPromotionAll();
+          return;
+        }
+        mount.classList.add('cb-shelf--promo-rot');
+        if (mode === 'DYNAMIC') {
+          paintDynamic();
+          if (sorted.length > 3) {
+            cbPromoRotateTimer = setInterval(function () {
+              cbPromoDynOffset = (cbPromoDynOffset + 1) % sorted.length;
+              paintDynamic();
+            }, rotMs);
+          }
+          return;
+        }
+        /* HYBRID */
+        paintHybrid();
+        cbPromoRotateTimer = setInterval(function () {
+          var pinned0 = resolveHybridPinned(sorted);
+          var rest0 = [];
+          for (var k = 0; k < sorted.length; k++) {
+            if (pinned0 && String(sorted[k].id) !== String(pinned0.id)) rest0.push(sorted[k]);
+          }
+          if (rest0.length > 1) {
+            cbPromoHybOffset = (cbPromoHybOffset + 1) % rest0.length;
+          }
+          paintHybrid();
+        }, rotMs);
       }
 
       var cbOrderPendingItem = null;

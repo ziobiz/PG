@@ -23,8 +23,13 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
+import java.time.ZoneId;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
@@ -250,6 +255,232 @@ public class ApiCalcController {
             return ResponseEntity.ok(ApiResponse.ok(r));
         } catch (IllegalStateException e) {
             return ResponseEntity.ok(ApiResponse.fail(e.getMessage(), "CHILLPAY"));
+        }
+    }
+
+    private static final int DAILY_CHILL_SUMMARY_MAX_DAYS = 93;
+
+    /**
+     * 통합내역(칠페이 결제 검색)과 동일 자격·필터로, 거래일자(TransactionDate) 구간을 일 단위로 나눠
+     * 일자별 총건수·상태 버킷·금액 요약(meta)을 채웁니다. 상세는 해당 일자로 {@code /api/calc/chillPayTrSearch} 를 호출합니다.
+     */
+    @GetMapping("/dailyChillIntegratedSummary")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> dailyChillIntegratedSummary(
+            @RequestParam(required = false) String searchOrderBy,
+            @RequestParam(required = false) String searchOrderDir,
+            @RequestParam(required = false) String searchKeyword,
+            @RequestParam(required = false) String searchMerchantCode,
+            @RequestParam(required = false) String searchPaymentChannel,
+            @RequestParam(required = false) String searchOrderNo,
+            @RequestParam(required = false) String searchChillStatus,
+            @RequestParam(required = false) String searchRouteNo,
+            @RequestParam(required = false) String searchFieldType,
+            @RequestParam(required = false) String searchPayDivCd,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate searchFromDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate searchToDate,
+            Authentication authentication) {
+        try {
+            AppUser user = (authentication != null && authentication.getPrincipal() instanceof AppUser u) ? u : null;
+            boolean multiCurrency = PayListStatusBarBuckets.isMultiCurrencyViewer(
+                    PayListStatusBarBuckets.resolveViewerOrgLevel(user, orgUnitRepository));
+            String ledgerCur = PayDisplayCurrency.alphaFromSettings(hqLedgerSysSettingsService.getOrCreate());
+            String primaryCurrency = PayListStatusBarBuckets.resolveViewerPrimaryCurrency(
+                    user, orgUnitRepository, commissionPolicyRepository, ledgerCur);
+
+            String sftRaw = searchFieldType;
+            boolean unified = false;
+            String ft = "";
+            if (sftRaw != null && !sftRaw.isBlank()) {
+                unified = true;
+                ft = sftRaw.trim().toUpperCase(Locale.ROOT);
+            }
+            String kw = searchKeyword != null ? searchKeyword.trim() : "";
+            String sk = unified ? "" : (searchKeyword != null ? searchKeyword.trim() : "");
+            String smc = unified ? "" : (searchMerchantCode != null ? searchMerchantCode.trim() : "");
+            String spc = unified ? "" : (searchPaymentChannel != null ? searchPaymentChannel.trim() : "");
+            String son = unified ? "" : (searchOrderNo != null ? searchOrderNo.trim() : "");
+            String scs = unified ? "" : (searchChillStatus != null ? searchChillStatus.trim() : "");
+            String srn = unified ? "" : (searchRouteNo != null ? searchRouteNo.trim() : "");
+
+            if (unified) {
+                switch (ft) {
+                    case "ALL" -> sk = kw;
+                    case "MID", "COMP_ID" -> smc = kw;
+                    case "ORDER_NO" -> son = kw;
+                    case "APPROVAL_NO" -> sk = kw;
+                    case "ROUTE" -> srn = kw;
+                    case "STATUS" -> scs = kw;
+                    case "CUSTOMER_ID", "AMOUNT", "CURRENCY", "COMP_NM" -> sk = kw;
+                    default -> sk = kw;
+                }
+            }
+
+            Integer routeNo = null;
+            if (srn != null && !srn.isBlank()) {
+                try {
+                    routeNo = Integer.parseInt(srn.trim());
+                } catch (NumberFormatException ignored) {
+                    routeNo = null;
+                }
+            }
+
+            String merchantFilter = resolveChillPayMerchantCodeFilter(authentication,
+                    smc != null && !smc.isEmpty() ? smc : null);
+            if ("__NONE__".equals(merchantFilter)) {
+                Map<String, Object> empty = new LinkedHashMap<>();
+                empty.put("list", List.of());
+                empty.put("meta", Map.of("note", "조회 가능한 가맹 범위가 없습니다."));
+                return ResponseEntity.ok(ApiResponse.ok(empty));
+            }
+
+            LocalDate tFrom = searchFromDate;
+            LocalDate tTo = searchToDate;
+            if (tFrom == null || tTo == null) {
+                return ResponseEntity.ok(ApiResponse.fail("거래일자 시작·종료(searchFromDate, searchToDate)는 필수입니다.", "VALIDATION"));
+            }
+            if (tFrom.isAfter(tTo)) {
+                return ResponseEntity.ok(ApiResponse.fail("거래일자 시작이 종료보다 늦을 수 없습니다.", "VALIDATION"));
+            }
+            long span = ChronoUnit.DAYS.between(tFrom, tTo) + 1;
+            if (span > DAILY_CHILL_SUMMARY_MAX_DAYS) {
+                return ResponseEntity.ok(ApiResponse.fail("조회 기간은 " + DAILY_CHILL_SUMMARY_MAX_DAYS + "일 이내로 지정해 주세요.", "VALIDATION"));
+            }
+            ZoneId ledgerTz = hqLedgerSysSettingsService.resolveLedgerDisplayZoneId();
+            LocalDate today = LocalDate.now(ledgerTz);
+            LocalDate effectiveTo = tTo.isAfter(today) ? today : tTo;
+            if (tFrom.isAfter(effectiveTo)) {
+                Map<String, Object> empty = new LinkedHashMap<>();
+                empty.put("list", List.of());
+                empty.put("meta", Map.of("note", "조회 구간에 포함된 일자가 없습니다(미래 일자는 표시하지 않습니다)."));
+                return ResponseEntity.ok(ApiResponse.ok(empty));
+            }
+
+            List<Map<String, Object>> rows = new ArrayList<>();
+            for (LocalDate d = effectiveTo; !d.isBefore(tFrom); d = d.minusDays(1)) {
+                Map<String, Object> one = new LinkedHashMap<>();
+                one.put("day", d.toString());
+                try {
+                    PageResult<Map<String, Object>> pr = chillPayService.searchChillPayPaymentTransactionsDailySummary(
+                            null,
+                            searchOrderBy,
+                            searchOrderDir,
+                            sk,
+                            merchantFilter,
+                            spc,
+                            routeNo,
+                            son,
+                            scs,
+                            d,
+                            d,
+                            searchPayDivCd,
+                            multiCurrency,
+                            primaryCurrency,
+                            authentication);
+                    one.put("totalElements", pr.getTotalElements());
+                    Map<String, Object> meta = pr.getMeta() != null ? new LinkedHashMap<>(pr.getMeta()) : new LinkedHashMap<>();
+                    one.put("meta", meta);
+                    one.put("statusBucketCounts", statusBucketCountsFromPayListStatusBar(meta));
+                    String note = buildChillDailySummaryNote(meta);
+                    if (!note.isEmpty()) {
+                        one.put("note", note);
+                    }
+                } catch (IllegalStateException ex) {
+                    one.put("error", ex.getMessage());
+                    one.put("totalElements", 0L);
+                    one.put("statusBucketCounts", Map.of());
+                }
+                rows.add(one);
+            }
+            Map<String, Object> payload = new LinkedHashMap<>();
+            payload.put("list", rows);
+            Map<String, Object> meta = new LinkedHashMap<>();
+            meta.put("dailyChillNote", "일자별 상세는 동일 조건으로 chillPayTrSearch(통합내역) 에 해당 일자만 지정해 조회합니다.");
+            if (tTo.isAfter(today)) {
+                meta.put("displayToDate", today.toString());
+                meta.put("requestedToDate", tTo.toString());
+            }
+            payload.put("meta", meta);
+            return ResponseEntity.ok(ApiResponse.ok(payload));
+        } catch (IllegalStateException e) {
+            return ResponseEntity.ok(ApiResponse.fail(e.getMessage(), "CHILLPAY"));
+        }
+    }
+
+    private static Map<String, Long> statusBucketCountsFromPayListStatusBar(Map<String, Object> meta) {
+        Map<String, Long> out = new LinkedHashMap<>();
+        if (meta == null) {
+            return out;
+        }
+        Object barObj = meta.get("payListStatusBar");
+        if (!(barObj instanceof Map<?, ?> bar)) {
+            return out;
+        }
+        Object bucketsObj = bar.get("buckets");
+        if (!(bucketsObj instanceof List<?> buckets)) {
+            return out;
+        }
+        for (Object bObj : buckets) {
+            if (!(bObj instanceof Map<?, ?> b)) {
+                continue;
+            }
+            Object key = b.get("key");
+            Object cnt = b.get("count");
+            if (key == null) {
+                continue;
+            }
+            long n = 0L;
+            if (cnt instanceof Number num) {
+                n = num.longValue();
+            }
+            out.put(String.valueOf(key), n);
+        }
+        return out;
+    }
+
+    private static String buildChillDailySummaryNote(Map<String, Object> meta) {
+        if (meta == null) {
+            return "";
+        }
+        List<String> parts = new ArrayList<>();
+        if (Boolean.TRUE.equals(meta.get("chillDailySummaryScanCapped"))) {
+            parts.add("금액·상태 요약은 일 3,000건(100×30페이지) 스캔 상한까지 반영");
+        }
+        if (Boolean.TRUE.equals(meta.get("chillDailySummaryPayDivClientFiltered"))) {
+            parts.add("상태구분은 ChillPay 목록 전페이지 매칭 집계");
+        }
+        return String.join(" · ", parts);
+    }
+
+    /** 결제내역과 동일 필터로 적재일(createdAt) 기준 일자별 집계. */
+    @GetMapping("/dailyPaySummary")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> dailyPaySummary(@RequestParam Map<String, String> params,
+                                                                            Authentication authentication) {
+        PayListSearchRequest req = PayListSearchRequest.fromParams(params);
+        LocalDate from = req.getSearchFromDate();
+        LocalDate to = req.getSearchToDate();
+        if (from == null || to == null) {
+            return ResponseEntity.ok(ApiResponse.fail("거래일자(searchFromDate, searchToDate)는 필수입니다.", "VALIDATION"));
+        }
+        if (from.isAfter(to)) {
+            return ResponseEntity.ok(ApiResponse.fail("거래일자 시작이 종료보다 늦을 수 없습니다.", "VALIDATION"));
+        }
+        try {
+            req.setPayListVariant("INTEGRATED");
+            List<Map<String, Object>> list = payListService.buildDailyPayListSummary(from, to, req, authentication);
+            Map<String, Object> payload = new LinkedHashMap<>();
+            payload.put("list", list);
+            Map<String, Object> meta = new LinkedHashMap<>();
+            meta.put("dailyPayNote", "일자별 상세는 결제내역(/calc/payList, INTEGRATED)과 동일 필터·적재일(createdAt) 기준으로 payList 에 해당 일자만 지정해 조회합니다.");
+            ZoneId ledgerTz = hqLedgerSysSettingsService.resolveLedgerDisplayZoneId();
+            LocalDate today = LocalDate.now(ledgerTz);
+            if (to.isAfter(today)) {
+                meta.put("displayToDate", today.toString());
+                meta.put("requestedToDate", to.toString());
+            }
+            payload.put("meta", meta);
+            return ResponseEntity.ok(ApiResponse.ok(payload));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.ok(ApiResponse.fail(e.getMessage(), "VALIDATION"));
         }
     }
 

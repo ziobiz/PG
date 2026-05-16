@@ -136,7 +136,7 @@
     var url = base + path;
     var headers = { 'Content-Type': 'application/json', 'Accept': 'application/json' };
     var token = getToken();
-    if (token) headers['Authorization'] = 'Bearer ' + token;
+    if (token && !options.anonymous) headers['Authorization'] = 'Bearer ' + token;
     if (options.headers) {
       for (var k in options.headers) headers[k] = options.headers[k];
     }
@@ -158,8 +158,10 @@
     init.mode = 'cors';
     return fetch(url, init).then(function (res) {
       if (res.status === 401) {
-        clearAuth();
-        if (typeof window.location !== 'undefined') window.location.replace((window.location.origin || '') + '/login.html');
+        if (!options.anonymous) {
+          clearAuth();
+          if (typeof window.location !== 'undefined') window.location.replace((window.location.origin || '') + '/login.html');
+        }
         return Promise.reject(new Error(apiT('인증이 만료되었습니다. 다시 로그인하세요.', 'Your session has expired. Please sign in again.')));
       }
       return res.text().then(function (text) {
@@ -211,8 +213,15 @@
     });
   }
 
-  function get(path, params) {
-    return request({ path: path, method: 'GET', params: params || {} });
+  function get(path, params, extra) {
+    extra = extra || {};
+    return request({
+      path: path,
+      method: 'GET',
+      params: params || {},
+      headers: extra.headers || {},
+      anonymous: !!extra.anonymous
+    });
   }
 
   function post(path, body) {
@@ -427,8 +436,45 @@
       return get('/api/system/notice', params).then(function (r) { return r.data; });
     },
 
-    noticeCreate: function (title, content) {
-      return post('/api/system/notice', { title: title || '', content: content || '' });
+    noticeGet: function (id) {
+      return get('/api/system/notice/' + encodeURIComponent(id)).then(function (r) { return r.data; });
+    },
+
+    noticeCreate: function (title, content, opts) {
+      opts = opts || {};
+      return post('/api/system/notice', {
+        title: title || '',
+        content: content || '',
+        showOnLogin: !!opts.showOnLogin,
+        showAsPopup: !!opts.showAsPopup
+      });
+    },
+
+    noticeUpdate: function (id, payload) {
+      return request({ path: '/api/system/notice/' + encodeURIComponent(id), method: 'PUT', body: payload || {} });
+    },
+
+    noticeDelete: function (id) {
+      return request({ path: '/api/system/notice/' + encodeURIComponent(id), method: 'DELETE' });
+    },
+
+    noticePinLoginHome: function (id) {
+      return post('/api/system/notice/' + encodeURIComponent(id) + '/login-home', {});
+    },
+
+    noticePinLoginPopup: function (id) {
+      return post('/api/system/notice/' + encodeURIComponent(id) + '/login-popup', {});
+    },
+
+    /** 로그인 첫 화면·팝업 공지(비로그인). Accept-Language 는 단말 기본 언어(navigator) 기준으로 전달합니다. */
+    loginNoticePublic: function () {
+      var hdr = {};
+      try {
+        hdr['Accept-Language'] = (navigator.languages && navigator.languages.length)
+          ? navigator.languages.join(',')
+          : (navigator.language || 'ko');
+      } catch (eAl) { hdr['Accept-Language'] = 'ko'; }
+      return get('/api/pub/login-notice', {}, { anonymous: true, headers: hdr }).then(function (r) { return r.data; });
     },
 
     payList: function (params) {
@@ -441,6 +487,12 @@
     /** ChillPay Transaction API — Search Payment Transaction (실시간) */
     chillPayTrSearch: function (params) {
       return get('/api/calc/chillPayTrSearch', params).then(function (r) { return r.data; });
+    },
+    dailyChillIntegratedSummary: function (params) {
+      return get('/api/calc/dailyChillIntegratedSummary', params).then(function (r) { return r.data; });
+    },
+    dailyPaySummary: function (params) {
+      return get('/api/calc/dailyPaySummary', params).then(function (r) { return r.data; });
     },
     /** ChillPay 통합정산 — Search Settlement Transaction(/api/v1/settlement/search) */
     chillPaySettlementSearch: function (params) {
@@ -941,6 +993,9 @@
     settlementFeeList: function (params) {
       return get('/api/settlement/feeList', params).then(function (r) { return r.data; });
     },
+    dailyFeeSummary: function (params) {
+      return get('/api/settlement/dailyFeeSummary', params).then(function (r) { return r.data; });
+    },
     settlementExecute: function (params) {
       return get('/api/settlement/execute', params).then(function (r) { return r.data; });
     },
@@ -1320,8 +1375,19 @@
           defaultCurrency: raw.defaultCurrency ? String(raw.defaultCurrency).trim().toUpperCase() : 'KRW',
           allowedCurrencies: Array.isArray(raw.allowedCurrencies) && raw.allowedCurrencies.length ? raw.allowedCurrencies.map(function (x) { return String(x).trim().toUpperCase(); }) : fallback,
           effectiveMaxProductImages: maxImg,
-          allowedListingTypes: allowedLt
+          allowedListingTypes: allowedLt,
+          promotionShelfMode: raw.promotionShelfMode != null ? String(raw.promotionShelfMode).trim().toUpperCase() : 'PROMOTION',
+          promotionRotateSeconds: (function () {
+            var v = raw.promotionRotateSeconds != null ? parseInt(String(raw.promotionRotateSeconds), 10) : 30;
+            return isNaN(v) ? 30 : v;
+          })()
         };
+      });
+    },
+    chatbotProductsPromotionShelfSave: function (body) {
+      return post('/api/chatbot/products/promotion-shelf-settings', body || {}).then(function (r) {
+        if (r.success === false && r.success !== undefined) throw new Error(r.message || apiT('저장 실패', 'Save failed'));
+        return r.data || {};
       });
     },
     chatbotProductsSave: function (body) {
@@ -1413,6 +1479,17 @@
         body: JSON.stringify(payload || {})
       });
     },
+    opsIntegratedReportAccess: function () {
+      return get('/api/ops/integratedReport/access').then(function (r) { return r.data; });
+    },
+    opsIntegratedReportDaily: function (params) {
+      var p = params || {};
+      var q = {};
+      if (p.searchFromDate) q.searchFromDate = p.searchFromDate;
+      if (p.searchToDate) q.searchToDate = p.searchToDate;
+      if (p.searchOrderDir != null && String(p.searchOrderDir).trim() !== '') q.searchOrderDir = String(p.searchOrderDir).trim();
+      return get('/api/ops/integratedReport/daily', q).then(function (r) { return r.data; });
+    },
     hqOrgViewColumnRegionalBranches: function () {
       return get('/api/hq/orgViewColumnAllowance/regionalBranches').then(function (r) { return r.data || []; });
     },
@@ -1454,6 +1531,12 @@
     },
     hqPermissionMngSave: function (body) {
       return post('/api/hq/permissionMng/save', body || {}).then(function (r) { return r.data; });
+    },
+    hqOpsModeMng: function (params) {
+      return get('/api/hq/opsModeMng', params).then(function (r) { return r.data; });
+    },
+    hqOpsModeMngSave: function (body) {
+      return post('/api/hq/opsModeMng/save', body || {}).then(function (r) { return r.data; });
     },
     hqOrgUnitPermission: function (params) {
       return get('/api/hq/orgUnitPermission', params || {}).then(function (r) { return r.data; });

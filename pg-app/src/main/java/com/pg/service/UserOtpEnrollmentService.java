@@ -17,7 +17,7 @@ import java.util.Locale;
 import java.util.Map;
 
 /**
- * 총본사·본사·총판 및 {@code ADMIN} 역할 계정의 Google OTP 등록.
+ * 총본사·본사·총판, 가맹(MERCHANT) 권한그룹 CHATBOT(구 챗봇관리자), 및 {@code ADMIN} 역할 계정의 Google OTP 등록.
  * 이메일로 발송하는 구성용 인증번호는 {@value #OTP_SETUP_EMAIL_TO} 로만 발송합니다.
  */
 @Service
