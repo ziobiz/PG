@@ -156,6 +156,7 @@
     // Authorization: Bearer 는 omit 이어도 전송됨(쿠키만 생략).
     init.credentials = 'omit';
     init.mode = 'cors';
+    init.redirect = 'manual';
     return fetch(url, init).then(function (res) {
       if (res.status === 401) {
         if (!options.anonymous) {
@@ -164,9 +165,38 @@
         }
         return Promise.reject(new Error(apiT('인증이 만료되었습니다. 다시 로그인하세요.', 'Your session has expired. Please sign in again.')));
       }
+      if (res.status === 301 || res.status === 302 || res.status === 303 || res.status === 307 || res.status === 308) {
+        var loc = res.headers && res.headers.get ? res.headers.get('Location') : '';
+        return Promise.reject(new Error(apiT(
+          'API가 HTML 로그인·정적 페이지로 리다이렉트되었습니다(' + res.status + (loc ? (': ' + loc) : '') + '). Nginx/Apache에서 location /api/ 가 pg-app(8080)으로 프록시되는지 확인하세요.',
+          'API was redirected to HTML (' + res.status + '). Ensure /api/ is proxied to pg-app.'
+        )));
+      }
       return res.text().then(function (text) {
         var data;
-        try { data = text ? JSON.parse(text) : {}; } catch (e) { data = {}; }
+        var trimmed = text ? String(text).trim() : '';
+        try { data = trimmed ? JSON.parse(trimmed) : {}; } catch (e) { data = {}; }
+        var looksHtml = trimmed && (
+          trimmed.charAt(0) === '<' ||
+          /^<!DOCTYPE/i.test(trimmed) ||
+          /^<html[\s>]/i.test(trimmed)
+        );
+        if (res.ok && looksHtml) {
+          var canRetryPublicApi = !options._retriedPublicApi
+            && path.indexOf('/api/') === 0
+            && base !== publicApiRoot();
+          if (canRetryPublicApi) {
+            var retryApiOpt = {};
+            for (var rkApi in options) retryApiOpt[rkApi] = options[rkApi];
+            retryApiOpt.baseOverride = publicApiRoot();
+            retryApiOpt._retriedPublicApi = true;
+            return request(retryApiOpt);
+          }
+          return Promise.reject(new Error(apiT(
+            'API 응답이 HTML입니다(정적 index·로그인 페이지). 최신 pg-app JAR 배포 후 Nginx에서 location /api/ → 127.0.0.1:8080 프록시를 확인하세요. 요청: ' + url.split('?')[0],
+            'API returned HTML instead of JSON. Deploy pg-app and proxy /api/ to port 8080. URL: ' + url.split('?')[0]
+          )));
+        }
         if (!res.ok) {
           var hint = (data && data.message) ? data.message : (text ? String(text).slice(0, 120) : '');
           return Promise.reject(new Error(
@@ -336,6 +366,41 @@
       d.role = extBody.role;
     }
     return d;
+  }
+
+  /** ApiResponse { success, data:{ list, meta } } · 이중 래핑·data가 배열·래퍼 없는 {list,meta} 정규화 */
+  function unwrapListMetaApiPayload(r) {
+    if (!r || typeof r !== 'object') return null;
+    if (r.success === false) return null;
+    if (r.error && r.status != null && r.data == null && !Array.isArray(r.list)) return null;
+    var p = r.data;
+    if (p == null && (Array.isArray(r.list) || (r.meta && typeof r.meta === 'object'))) {
+      p = r;
+    }
+    if (Array.isArray(p)) {
+      return { list: p, meta: (r.meta && typeof r.meta === 'object') ? r.meta : {} };
+    }
+    if (p && typeof p === 'object') {
+      if (p.success === true && p.data != null) {
+        p = p.data;
+      }
+      if (Array.isArray(p)) {
+        return { list: p, meta: (r.meta && typeof r.meta === 'object') ? r.meta : {} };
+      }
+      if (p && typeof p === 'object' && !Array.isArray(p)) {
+        var out = p;
+        if (!Array.isArray(out.list)) {
+          if (Array.isArray(out.content)) out.list = out.content;
+          else out.list = [];
+        }
+        if (!out.meta || typeof out.meta !== 'object') out.meta = {};
+        return out;
+      }
+    }
+    if (Array.isArray(r.list)) {
+      return { list: r.list, meta: (r.meta && typeof r.meta === 'object') ? r.meta : {} };
+    }
+    return null;
   }
 
   window.PG_API = {
@@ -1482,6 +1547,7 @@
     opsIntegratedReportAccess: function () {
       return get('/api/ops/integratedReport/access').then(function (r) { return r.data; });
     },
+    unwrapListMetaApiPayload: unwrapListMetaApiPayload,
     opsIntegratedReportDaily: function (params) {
       var p = params || {};
       var q = {};
@@ -1498,18 +1564,22 @@
           var failMsg = (r && r.message) ? String(r.message).trim() : '';
           return Promise.reject(new Error(failMsg || apiT('통합 리포트 조회에 실패했습니다.', 'Integrated report request failed.')));
         }
-        var payload = r.data;
-        if (payload && payload.data && typeof payload.data === 'object' && !Array.isArray(payload.data)) {
-          payload = payload.data;
+        if (r && r.error && r.status != null && !unwrapListMetaApiPayload(r)) {
+          var st = Number(r.status);
+          var pathHint = r.path ? String(r.path) : '/api/ops/integratedReport/daily';
+          if (st === 404) {
+            return Promise.reject(new Error(apiT(
+              '통합 리포트 API(' + pathHint + ')를 찾을 수 없습니다. 최신 pg-app JAR 배포 후 서버를 재시작하세요.',
+              'Integrated report API not found (' + pathHint + '). Deploy the latest pg-app JAR and restart.'
+            )));
+          }
         }
-        if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
+        var payload = unwrapListMetaApiPayload(r);
+        if (!payload) {
           return Promise.reject(new Error(apiT(
-            '통합 리포트 응답 형식이 올바르지 않습니다. 최신 pg-app JAR 배포·API 경로(/api/ops/integratedReport/daily)를 확인하세요.',
-            'Invalid integrated report response. Verify pg-app deployment and /api/ops/integratedReport/daily.'
+            '통합 리포트 응답을 해석할 수 없습니다. 브라우저 개발자도구 네트워크에서 /api/ops/integratedReport/daily 응답(JSON)과 API 서버(pg-app) 배포를 확인하세요.',
+            'Unable to parse integrated report response. Check the /api/ops/integratedReport/daily JSON in the network tab and pg-app deployment.'
           )));
-        }
-        if (!Array.isArray(payload.list)) {
-          payload.list = [];
         }
         return payload;
       });

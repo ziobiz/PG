@@ -46,6 +46,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -1393,10 +1394,27 @@ public class PayListService {
     private static final int OPS_INTEGRATED_REPORT_MAX_DAYS = 93;
     private static final int DAILY_PAY_SUMMARY_MAX_DAYS = 93;
 
+    /** 스트림(ResultSet) 열린 상태에서 중첩 쿼리를 막기 위해 가맹별 정산용 수수료정책을 선로딩합니다. */
+    private Map<String, CommissionPolicy> preloadSettlementCommissionPolicies(Set<String> merchantCodes) {
+        Map<String, CommissionPolicy> cache = new HashMap<>();
+        if (merchantCodes == null || merchantCodes.isEmpty()) {
+            return cache;
+        }
+        for (String mid : merchantCodes) {
+            if (mid == null || mid.isBlank()) {
+                continue;
+            }
+            String key = mid.trim();
+            cache.put(key, commissionService.resolveCommissionPolicyForSettlement(key));
+        }
+        return cache;
+    }
+
     /**
      * 운영관리 통합 리포트: 적재일(createdAt) 기준 일자별 전역 집계 + 가맹점 동적 열(해당 일 거래가 있는 가맹만, 업체코드 오름차순).
      * 결제내역 통합(INTEGRATED)과 동일한 {@link #buildSpecification}·조직 가맹 범위를 사용합니다.
      */
+    @Transactional(readOnly = true)
     public Map<String, Object> buildOpsIntegratedReport(PayListSearchRequest template,
                                                       Authentication authentication) {
         PayListSearchRequest reqIn = PayListSearchRequest.shallowCopy(template != null ? template : new PayListSearchRequest());
@@ -1453,12 +1471,14 @@ public class PayListService {
         cqMid.select(rMid.get("merchantId")).distinct(true);
         cqMid.where(specFull.toPredicate(rMid, cqMid, cb));
         Set<String> mids = new HashSet<>();
-        try (Stream<String> sMid = entityManager.createQuery(cqMid).getResultStream()) {
-            sMid.filter(Objects::nonNull).map(String::trim).filter(x -> !x.isEmpty()).forEach(mids::add);
+        for (String sMid : entityManager.createQuery(cqMid).getResultList()) {
+            if (sMid != null && !sMid.isBlank()) {
+                mids.add(sMid.trim());
+            }
         }
         Map<String, PayListRowContext> ctxMap = buildPayListRowContextMap(mids);
         FeeCurrencyRoundResolver feeResolver = FeeCurrencyRoundResolver.from(hqLedgerSysSettingsService.getOrCreate());
-        Map<String, CommissionPolicy> integratedPolCache = new HashMap<>();
+        Map<String, CommissionPolicy> integratedPolCache = preloadSettlementCommissionPolicies(mids);
 
         Map<LocalDate, OpsIntegratedDayAgg> byDay = new LinkedHashMap<>();
         for (LocalDate d = effectiveFrom; !d.isAfter(effectiveTo); d = d.plusDays(1)) {
@@ -1469,16 +1489,16 @@ public class PayListService {
         Root<PgTrnsctn> root = cqRows.from(PgTrnsctn.class);
         cqRows.multiselect(root.get("createdAt"), root.get("merchantId"), root.get("status"), root.get("curType"), root.get("amtKrw"));
         cqRows.where(specFull.toPredicate(root, cqRows, cb));
-        try (Stream<Tuple> rowStream = entityManager.createQuery(cqRows).getResultStream()) {
-            rowStream.forEach(tup -> {
+        List<Tuple> rowTuples = entityManager.createQuery(cqRows).getResultList();
+        for (Tuple tup : rowTuples) {
                 LocalDateTime cat = tup.get(0, LocalDateTime.class);
                 if (cat == null) {
-                    return;
+                    continue;
                 }
                 LocalDate day = cat.toLocalDate();
                 OpsIntegratedDayAgg agg = byDay.get(day);
                 if (agg == null) {
-                    return;
+                    continue;
                 }
                 String midRaw = tup.get(1, String.class);
                 String st = tup.get(2, String.class);
@@ -1497,8 +1517,11 @@ public class PayListService {
                 String mid = midRaw != null ? midRaw.trim() : "";
                 PayListRowContext ctx = !mid.isEmpty() ? ctxMap.get(mid) : null;
                 if (!mid.isEmpty()) {
-                    CommissionPolicy pol = integratedPolCache.computeIfAbsent(mid,
-                            id -> commissionService.resolveCommissionPolicyForSettlement(id));
+                    CommissionPolicy pol = integratedPolCache.get(mid);
+                    if (pol == null) {
+                        pol = commissionService.resolveCommissionPolicyForSettlement(mid);
+                        integratedPolCache.put(mid, pol);
+                    }
                     BigDecimal bucketPolicyUnit = FeeListTxnAmountService.roundPolicyFixedFeeForBucket(
                             bucket, pol, feeResolver);
                     if (bucketPolicyUnit.signum() > 0) {
@@ -1544,7 +1567,6 @@ public class PayListService {
                 } else if (PayListItemDto.isCancelAmountStatus(st) && curOk) {
                     agg.cancel.merge(cur, amt, BigDecimal::add);
                 }
-            });
         }
 
         List<Map<String, Object>> list = new ArrayList<>();

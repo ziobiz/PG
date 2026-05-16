@@ -7143,6 +7143,12 @@
     /** 운영관리 — 통합 리포트: 일자별 넓은 표 + 일자 클릭 시 통합 결제내역 하단 */
     function extractOpsIntegratedReportList(data) {
       if (!data) return [];
+      if (window.PG_API && typeof window.PG_API.unwrapListMetaApiPayload === 'function') {
+        var norm = window.PG_API.unwrapListMetaApiPayload(
+          data.success != null || data.data != null ? data : { success: true, data: data }
+        );
+        if (norm && Array.isArray(norm.list)) return norm.list;
+      }
       if (Array.isArray(data)) return data;
       if (Array.isArray(data.list)) return data.list;
       if (data.data && Array.isArray(data.data.list)) return data.data.list;
