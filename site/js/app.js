@@ -5516,6 +5516,20 @@
     function ensureStandardSearchDaterangeYesterdayToToday(pane) {
       ensureNamedDateRangeYesterdayToToday(pane, '#searchFromDate', '#searchToDate');
     }
+    /** 통합 리포트: 화면 기본값(당일~당일) 대신 전일~당일로 첫 조회 */
+    function ensureIntegratedReportDefaultSearchDates(pane) {
+      if (!pane) return;
+      var fromEl = pane.querySelector('#searchFromDate');
+      var toEl = pane.querySelector('#searchToDate');
+      if (!fromEl || !toEl) return;
+      if (pane._integratedReportDefaultDatesApplied) return;
+      var toD = new Date();
+      var fromD = new Date();
+      fromD.setDate(fromD.getDate() - 1);
+      fromEl.value = fmtYmd(fromD);
+      toEl.value = fmtYmd(toD);
+      pane._integratedReportDefaultDatesApplied = true;
+    }
     function ensurePayListDefaultSearchDates(pane) {
       ensureStandardSearchDaterangeYesterdayToToday(pane);
     }
@@ -6530,6 +6544,102 @@
       });
     };
 
+    /** 결제내역·일별결제 상세 — 성공/실패 동일 이중 일시(payCompletedAt·payDttm) */
+    function resolvePayGridPaymentTimeRaw(r) {
+      if (!r) return '';
+      if (r.payCompletedAt != null && String(r.payCompletedAt).trim() !== '') {
+        return String(r.payCompletedAt).trim();
+      }
+      if (r.payDttm != null && String(r.payDttm).trim() !== '') {
+        return String(r.payDttm).trim();
+      }
+      if (r.payAprv != null && String(r.payAprv).trim() !== '') {
+        return String(r.payAprv).trim();
+      }
+      if (r.trnTime != null && String(r.trnTime).trim() !== '') {
+        var td = r.trnDate != null ? String(r.trnDate).trim() : '';
+        var tt = String(r.trnTime).trim();
+        if (tt.indexOf('\n') >= 0 && td) {
+          var tlines = tt.split('\n').map(function (x) { return String(x).trim(); }).filter(function (x) { return x; });
+          var allZoneTimeOnly = tlines.length === 2 && tlines.every(function (l) {
+            return /^\s*[A-Z]{2,4}\s+\d{1,2}:\d{2}/.test(l) && l.indexOf(td) < 0 && !/\d{4}-\d{2}-\d{2}/.test(l);
+          });
+          if (allZoneTimeOnly) {
+            return tlines.map(function (l) {
+              var m = l.match(/^([A-Z]{2,4})\s+(.+)$/);
+              return m ? (m[1] + ' ' + td + ' ' + m[2]) : l;
+            }).join('\n');
+          }
+          return td + '\n' + tt;
+        }
+        if (tt.indexOf('\n') >= 0) {
+          return tt;
+        }
+        return td ? (td + ' ' + tt) : tt;
+      }
+      if (r.trnDate != null && String(r.trnDate).trim() !== '') {
+        return String(r.trnDate).trim();
+      }
+      return '';
+    }
+    function formatPayGridDualTimeHtml(raw, escFn) {
+      var escLocal = escFn || function (s) {
+        return (typeof window.pgAdminEscHtml === 'function') ? window.pgAdminEscHtml(String(s)) : String(s);
+      };
+      if (raw == null || String(raw).trim() === '') return escLocal('—');
+      var s = String(raw);
+      if (s.indexOf('\n') === -1) return escLocal(s);
+      var lines = s.split('\n');
+      function escLine(t) {
+        return String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      }
+      if (lines.length === 2 && /^\s*[A-Z]{2,4}\s+\d{4}-\d{2}-\d{2}\s+\d/.test(lines[0]) && /^\s*[A-Z]{2,4}\s+\d{4}-\d{2}-\d{2}\s+\d/.test(lines[1])) {
+        return '<span class="pay-grid-time-line pay-grid-time-line--line1 text-nowrap">' + escLine(lines[0]) + '</span><br>' +
+          '<span class="pay-grid-time-line pay-grid-time-line--line2 text-nowrap">' + escLine(lines[1]) + '</span>';
+      }
+      if (lines.length === 3 && /^\d{4}-\d{2}-\d{2}$/.test(lines[0].trim())) {
+        var d0 = lines[0].trim();
+        var mA = lines[1].match(/^([A-Z]{2,4})\s+(\d{1,2}:\d{2}:\d{2}(?:\.\d+)?)/);
+        var mB = lines[2].match(/^([A-Z]{2,4})\s+(\d{1,2}:\d{2}:\d{2}(?:\.\d+)?)/);
+        if (mA && mB) {
+          return '<span class="pay-grid-time-line pay-grid-time-line--line1 text-nowrap">' + escLine(mA[1] + ' ' + d0 + ' ' + mA[2]) + '</span><br>' +
+            '<span class="pay-grid-time-line pay-grid-time-line--line2 text-nowrap">' + escLine(mB[1] + ' ' + d0 + ' ' + mB[2]) + '</span>';
+        }
+      }
+      return lines.map(escLine).join('<br>');
+    }
+
+    /** 결제내역과 동일 파스텔 행 톤 — 일별·통합 리포트 상세 tr class */
+    function payGridRowToneTrOpen(r, chillMode) {
+      var pgUi = window.PG_UI || {};
+      var tone = 'neutral';
+      if (chillMode && typeof pgUi.resolveChillTrRowTone === 'function') {
+        tone = pgUi.resolveChillTrRowTone(r);
+      } else if (typeof pgUi.resolvePayRowTone === 'function') {
+        tone = pgUi.resolvePayRowTone(r);
+      }
+      if (tone && tone !== 'neutral') {
+        return '<tr class="pay-row-tone--' + tone + '">';
+      }
+      return '<tr>';
+    }
+
+    /** 일별·통합 리포트 상세 — 가맹 정산주기(결제내역 calcCycle과 동일 코드 표기) */
+    function payGridDetailCalcCycleCell(r, escFn) {
+      var escLocal = escFn || function (s) { return String(s); };
+      var raw = r && r.calcCycle != null ? String(r.calcCycle).trim() : '';
+      if (!raw || raw === '-') return escLocal('—');
+      return escLocal(raw);
+    }
+
+    /** 일별수수료·통합 리포트 상세 — 정산예정일(expectedSettleDate, 수수료내역·결제내역과 동일) */
+    function payGridDetailExpectedSettleCell(r, escFn) {
+      var escLocal = escFn || function (s) { return String(s); };
+      var raw = r && r.expectedSettleDate != null ? String(r.expectedSettleDate).trim() : '';
+      if (!raw || raw === '-' || raw === '—') return escLocal('—');
+      return escLocal(raw);
+    }
+
     /**
      * 일간통합·일간결제·일별수수료: 상단 일자별 집계 + 클릭 시 하단 상세(동일 API, 해당 일만).
      */
@@ -6543,6 +6653,9 @@
       var tbody = table.querySelector('tbody');
       var theadRow = table.querySelector('thead tr');
       var cols = (cfg && cfg.columns) ? cfg.columns : [];
+      function uiT(s) {
+        return (typeof pgAdminUiT === 'function') ? pgAdminUiT(String(s)) : String(s);
+      }
       function esc(s) {
         return (typeof window.pgAdminEscHtml === 'function') ? window.pgAdminEscHtml(String(s)) : String(s);
       }
@@ -6588,7 +6701,169 @@
         if (isNaN(n)) return '<td class="text-end text-nowrap">' + esc(String(v)) + '</td>';
         return '<td class="text-end text-nowrap">' + esc(n.toLocaleString('de-DE', { minimumFractionDigits: 0, maximumFractionDigits: 4 })) + '</td>';
       }
-      function dailySummaryTdForCol(col, row, day, kindLocal, fin, metaFin, te, err) {
+      function dailyDetailRowNo(r, idx, dparams) {
+        if (r && r.rowNo != null && String(r.rowNo).trim() !== '') return String(r.rowNo);
+        var pg = dparams && dparams.page != null ? parseInt(dparams.page, 10) : 1;
+        var sz = dparams && dparams.size != null ? parseInt(dparams.size, 10) : 50;
+        if (isNaN(pg) || pg < 1) pg = 1;
+        if (isNaN(sz) || sz < 1) sz = 50;
+        return String((pg - 1) * sz + idx + 1);
+      }
+      function dailyChillPaymentTimeCell(r) {
+        var raw = resolvePayGridPaymentTimeRaw(r);
+        if (!raw && r.paymentDate != null && String(r.paymentDate).trim() !== '') {
+          raw = String(r.paymentDate).trim();
+        }
+        if (!raw && r.transactionDate != null && String(r.transactionDate).trim() !== '') {
+          raw = String(r.transactionDate).trim();
+        }
+        return formatPayGridDualTimeHtml(raw, esc);
+      }
+      function dailyChillStatusKo(r) {
+        var pgUi = window.PG_UI || {};
+        var st = r.status != null ? String(r.status).trim() : '';
+        if (!st) return '—';
+        if (typeof pgUi.internalPayStatusToKo === 'function') {
+          var mapped = pgUi.internalPayStatusToKo(st);
+          if (mapped && mapped !== '—' && mapped !== st) return mapped;
+        }
+        var low = st.toLowerCase();
+        if (st === '0' || low === 'paid' || low === 'success' || low === 'complete' || low === 'authorized') return uiT('성공');
+        if (st === '2' || low.indexOf('cancel') >= 0) return uiT('취소');
+        if (st === '1' || st === '3' || st === '4' || low.indexOf('fail') >= 0 || low.indexOf('error') >= 0 || low.indexOf('declin') >= 0) return uiT('실패');
+        if (low.indexOf('void') >= 0 || low.indexOf('무효') >= 0) return low.indexOf('email') >= 0 ? uiT('이메일무효') : uiT('무효');
+        if (low.indexOf('refund') >= 0 || low.indexOf('환불') >= 0) return low.indexOf('force') >= 0 ? uiT('강제환불') : uiT('환불');
+        if (low.indexOf('waitauthorize') >= 0 || low.indexOf('pending') >= 0 || low.indexOf('processing') >= 0 || low.indexOf('요청') >= 0 || low.indexOf('대기') >= 0) return uiT('요청');
+        if (/^(성공|취소|실패|무효|환불|요청|오류|이메일무효|자동무효|자동환불|강제환불)/.test(st)) return uiT(st);
+        return st;
+      }
+      function dailyChillDetailStatusCell(r) {
+        var label = dailyChillStatusKo(r);
+        var pgUiFee = window.PG_PAY_LIST_I18N || {};
+        if (typeof pgUiFee.payGridStatusBadge === 'function' && typeof window.PG_UI !== 'undefined' &&
+            typeof window.PG_UI.resolveChillTrRowTone === 'function') {
+          return pgUiFee.payGridStatusBadge(label, window.PG_UI.resolveChillTrRowTone(r));
+        }
+        return esc(label || '—');
+      }
+      function dailyChillAmountCell(r) {
+        if (r.amount == null || r.amount === '') return esc('—');
+        var amt = String(r.amount);
+        var cur = r.currency != null && String(r.currency).trim() !== '' ? String(r.currency).trim() : '';
+        return esc(cur ? (amt + ' ' + cur) : amt);
+      }
+      function dailyPayPaymentTimeCell(r) {
+        return formatPayGridDualTimeHtml(resolvePayGridPaymentTimeRaw(r), esc);
+      }
+      function dailyPayApprovalNo(r) {
+        var txn = '';
+        if (r.chillTransactionId != null) {
+          var c = String(r.chillTransactionId).trim();
+          if (c && c !== '-') txn = c;
+        }
+        if (!txn && r.transactionId != null) {
+          var t = String(r.transactionId).trim();
+          if (t && t !== '-') txn = t;
+        }
+        if (!txn && r.cardAprvNo != null) {
+          var a = String(r.cardAprvNo).trim();
+          if (a && a !== '-') txn = a;
+        }
+        return txn;
+      }
+      function dailyPayAmountCell(r) {
+        var amtVal = null;
+        if (r.payAmount != null && r.payAmount !== '') amtVal = r.payAmount;
+        else if (r.chillAmount != null && r.chillAmount !== '') amtVal = r.chillAmount;
+        else if (r.amount != null && r.amount !== '') amtVal = r.amount;
+        else if (r.pgApproveAmt != null && r.pgApproveAmt !== '') amtVal = r.pgApproveAmt;
+        if (amtVal == null || amtVal === '') return esc('—');
+        var cur = '';
+        if (r.currency != null && String(r.currency).trim() !== '') cur = String(r.currency).trim();
+        else if (r.payCur != null && String(r.payCur).trim() !== '') cur = String(r.payCur).trim();
+        else if (r.curType != null && String(r.curType).trim() !== '') cur = String(r.curType).trim();
+        var n = Number(amtVal);
+        var amtStr = isNaN(n) ? String(amtVal) : n.toLocaleString('de-DE', { minimumFractionDigits: 0, maximumFractionDigits: 4 });
+        return esc(cur ? (amtStr + ' ' + cur) : amtStr);
+      }
+      function dailyPayStatusKo(r) {
+        var label = r.statusNm != null ? String(r.statusNm).trim() : '';
+        if (label) return uiT(label);
+        var pgUi = window.PG_UI || {};
+        var st = r.status != null ? String(r.status).trim() : '';
+        if (!st) return '—';
+        if (typeof pgUi.internalPayStatusToKo === 'function') {
+          var mapped = pgUi.internalPayStatusToKo(st);
+          if (mapped && mapped !== '—') return mapped;
+        }
+        var div = r.payDivNm != null ? String(r.payDivNm).trim() : '';
+        if (div) return div;
+        return st;
+      }
+      function dailyPayDetailStatusCell(r) {
+        var label = dailyPayStatusKo(r);
+        var pgUiFee = window.PG_PAY_LIST_I18N || {};
+        if (typeof pgUiFee.payGridStatusBadge === 'function' && typeof pgUiFee.resolvePayRowTone === 'function') {
+          return pgUiFee.payGridStatusBadge(label, pgUiFee.resolvePayRowTone(r));
+        }
+        return esc(label || '—');
+      }
+      function dailyFeeApprovalNo(r) {
+        var txn = '';
+        if (r.chillTransactionId != null) {
+          var c = String(r.chillTransactionId).trim();
+          if (c && c !== '-') txn = c;
+        }
+        if (!txn && r.transactionId != null) {
+          var t = String(r.transactionId).trim();
+          if (t && t !== '-') txn = t;
+        }
+        return txn;
+      }
+      function dailyFeeAmountCell(r) {
+        return dailyPayAmountCell(r);
+      }
+      function dailyFeePaymentTimeCell(r) {
+        return dailyPayPaymentTimeCell(r);
+      }
+      function dailyFeeSettlementYnLabel(r) {
+        var sy = r.settledYn != null ? String(r.settledYn).trim().toUpperCase() : '';
+        if (sy === 'Y') return uiT('정산완료');
+        if (sy === 'N') return uiT('정산대기');
+        return '—';
+      }
+      function dailyFeeDetailStatusCell(r) {
+        return dailyPayDetailStatusCell(r);
+      }
+      function dailyFeeRowCurrency(r) {
+        if (!r) return '';
+        if (r.curType != null && String(r.curType).trim() !== '') return String(r.curType).trim();
+        if (r.payCur != null && String(r.payCur).trim() !== '') return String(r.payCur).trim();
+        if (r.policyCur != null && String(r.policyCur).trim() !== '') return String(r.policyCur).trim();
+        if (r.currency != null && String(r.currency).trim() !== '') return String(r.currency).trim();
+        return '';
+      }
+      function dailyFeeMoneyCell(r, amtVal) {
+        if (amtVal == null || amtVal === '') return esc('—');
+        var n = Number(amtVal);
+        var amtStr = isNaN(n) ? String(amtVal) : n.toLocaleString('de-DE', { minimumFractionDigits: 0, maximumFractionDigits: 4 });
+        var cur = dailyFeeRowCurrency(r);
+        return esc(cur ? (amtStr + ' ' + cur) : amtStr);
+      }
+      function dailyFeeTotalFeeCell(r) {
+        var feeRaw = r.totalFee != null ? r.totalFee : r.feeAmt;
+        var fee = feeRaw != null ? Number(feeRaw) : NaN;
+        if (isNaN(fee)) return esc('—');
+        var vat = r.feeVat != null ? Number(r.feeVat) : 0;
+        if (!isNaN(vat) && vat !== 0) return dailyFeeMoneyCell(r, fee + vat);
+        return dailyFeeMoneyCell(r, fee);
+      }
+      function dailyFeeSettlementAmtCell(r) {
+        if (r.settlementAmt != null && r.settlementAmt !== '') return dailyFeeMoneyCell(r, r.settlementAmt);
+        if (r.settleAmt != null && r.settleAmt !== '') return dailyFeeMoneyCell(r, r.settleAmt);
+        return esc('—');
+      }
+      function dailySummaryTdForCol(col, row, day, kindLocal, fin, metaFin, te, err, rowIdx) {
         if (col.statusBucketKey) {
           return '<td class="text-end">' + esc(bucketCount(row, col.statusBucketKey)) + '</td>';
         }
@@ -6597,6 +6872,10 @@
           return paymentAmountTd(srcFin, col.currencyCode);
         }
         var k = col.key;
+        if (k === 'rowNo') {
+          var no = row && row.rowNo != null && String(row.rowNo).trim() !== '' ? String(row.rowNo) : String((rowIdx != null ? rowIdx : 0) + 1);
+          return '<td class="text-center text-nowrap">' + esc(no) + '</td>';
+        }
         if (k === 'day') return '<td class="text-nowrap">' + esc(day) + '</td>';
         if (k === 'txnCount') return '<td class="text-end">' + esc(row.txnCount != null ? row.txnCount : 0) + '</td>';
         if (k === 'totalElements') return '<td class="text-end">' + esc(te != null ? te : 0) + '</td>';
@@ -6605,42 +6884,44 @@
           return '<td class="text-end">' + esc(sc0) + '</td>';
         }
         if (k === 'note') return '<td class="text-muted small">' + esc(err || ' ') + '</td>';
-        if (k === 'settlementStateLabel' || k === 'expectedSettleDateLabel') {
-          return '<td class="text-nowrap">' + esc(row[k] != null ? String(row[k]) : '') + '</td>';
+        if (k === 'settlementStateLabel') {
+          var stLab = row[k] != null ? String(row[k]).trim() : '';
+          return '<td class="text-nowrap">' + esc(stLab ? uiT(stLab) : '') + '</td>';
         }
         if (kindLocal === 'fee' && k) return feeNumTd(row[k]);
         return '<td></td>';
       }
       if (theadRow && cols.length) {
         theadRow.innerHTML = cols.map(function (c) {
-          return '<th class="text-nowrap">' + esc(String(c.label != null ? c.label : c.key)) + '</th>';
+          var lab = c.label != null ? c.label : c.key;
+          return '<th class="text-nowrap">' + esc(uiT(lab != null ? lab : '')) + '</th>';
         }).join('');
       }
-      var rowsHtml = list.map(function (row) {
+      var rowsHtml = list.map(function (row, rowIdx) {
         var day = row.day != null ? String(row.day) : '';
         if (kind === 'chill') {
           var teCh = row.totalElements != null ? row.totalElements : 0;
           var metaFinCh = row.meta && row.meta.payListFinancialSummary ? row.meta.payListFinancialSummary : null;
           var errCh = row.note ? String(row.note) : (row.error ? String(row.error) : '');
           var cellsCh = cols.map(function (col) {
-            return dailySummaryTdForCol(col, row, day, 'chill', null, metaFinCh, teCh, errCh);
+            return dailySummaryTdForCol(col, row, day, 'chill', null, metaFinCh, teCh, errCh, rowIdx);
           }).join('');
           return '<tr class="daily-master-row" data-day="' + escAttr(day) + '" style="cursor:pointer">' + cellsCh + '</tr>';
         }
         if (kind === 'fee') {
           var cellsFee = cols.map(function (col) {
-            return dailySummaryTdForCol(col, row, day, 'fee', null, null, null, '');
+            return dailySummaryTdForCol(col, row, day, 'fee', null, null, null, '', rowIdx);
           }).join('');
           return '<tr class="daily-master-row" data-day="' + escAttr(day) + '" style="cursor:pointer">' + cellsFee + '</tr>';
         }
         var finPay = row.payListFinancialSummary || {};
         var cellsPay = cols.map(function (col) {
-          return dailySummaryTdForCol(col, row, day, 'pay', finPay, null, null, '');
+          return dailySummaryTdForCol(col, row, day, 'pay', finPay, null, null, '', rowIdx);
         }).join('');
         return '<tr class="daily-master-row" data-day="' + escAttr(day) + '" style="cursor:pointer">' + cellsPay + '</tr>';
       }).join('');
       var colSpan = cols.length || 4;
-      tbody.innerHTML = rowsHtml || ('<tr><td colspan="' + colSpan + '" class="text-center text-muted">' + esc('데이터 없음') + '</td></tr>');
+      tbody.innerHTML = rowsHtml || ('<tr><td colspan="' + colSpan + '" class="text-center text-muted">' + esc(uiT('데이터 없음')) + '</td></tr>');
       try {
         if (typeof injectTableRowResizeHandles === 'function') injectTableRowResizeHandles(tbody, colSpan);
       } catch (eCol) { /* ignore */ }
@@ -6650,9 +6931,9 @@
       var wrap = document.createElement('div');
       wrap.id = 'dailyDetailWrap_' + tid;
       wrap.className = 'mt-3';
-      wrap.innerHTML = '<div class="fw-semibold mb-2 small text-secondary">' + esc('선택 일자 상세') + '</div>' +
-        '<div class="table-responsive"><table class="table table-sm table-bordered" id="grid_' + tid + '_detail">' +
-        '<thead><tr id="dailyDetailHead_' + tid + '"><th>…</th></tr></thead><tbody><tr><td class="text-center text-muted py-3">' + esc('위에서 일자를 클릭하세요.') + '</td></tr></tbody></table></div>';
+      wrap.innerHTML = '<div class="fw-semibold mb-2 small text-secondary">' + esc(uiT('선택 일자 상세')) + '</div>' +
+        '<div class="table-responsive"><table class="table table-sm table-bordered pay-grid-detail-pastel" id="grid_' + tid + '_detail">' +
+        '<thead><tr id="dailyDetailHead_' + tid + '"><th>…</th></tr></thead><tbody><tr><td class="text-center text-muted py-3">' + esc(uiT(kind === 'fee' ? '위에서 일자를 더블클릭하세요.' : '위에서 일자를 클릭하세요.')) + '</td></tr></tbody></table></div>';
       var tableWrap = table.closest('.table-responsive');
       if (tableWrap && tableWrap.parentNode) {
         tableWrap.parentNode.insertBefore(wrap, tableWrap.nextSibling);
@@ -6660,23 +6941,24 @@
         p.appendChild(wrap);
       }
 
-      function renderDetailTable(rows, keys, labels) {
+      function renderDetailTable(rows, keys, labels, dparamsForNo) {
         var det = p.querySelector('#grid_' + tid + '_detail');
         if (!det) return;
         var htr = det.querySelector('#dailyDetailHead_' + tid);
         var bdy = det.querySelector('tbody');
         if (htr) {
           htr.innerHTML = keys.map(function (k, i) {
-            return '<th class="text-nowrap">' + esc(labels[i] || k) + '</th>';
+            var lab = labels[i] || k;
+            return '<th class="text-nowrap">' + esc(uiT(lab != null ? lab : '')) + '</th>';
           }).join('');
         }
         if (!rows || !rows.length) {
-          bdy.innerHTML = '<tr><td colspan="' + keys.length + '" class="text-center text-muted py-2">' + esc('데이터 없음') + '</td></tr>';
+          bdy.innerHTML = '<tr><td colspan="' + keys.length + '" class="text-center text-muted py-2">' + esc(uiT('데이터 없음')) + '</td></tr>';
           return;
         }
-        bdy.innerHTML = rows.map(function (r) {
+        bdy.innerHTML = rows.map(function (r, idx) {
           return '<tr>' + keys.map(function (k) {
-            var v = r[k];
+            var v = k === 'rowNo' ? dailyDetailRowNo(r, idx, dparamsForNo) : r[k];
             if (v == null) v = '';
             return '<td>' + esc(String(v)) + '</td>';
           }).join('') + '</tr>';
@@ -6699,47 +6981,150 @@
         dparams.page = 1;
         dparams.size = 50;
         var detBody = p.querySelector('#grid_' + tid + '_detail tbody');
-        if (detBody) detBody.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-2">' + esc('불러오는 중…') + '</td></tr>';
+        var detLoadColspan = kind === 'fee' ? 12 : 8;
+        if (detBody) detBody.innerHTML = '<tr><td colspan="' + detLoadColspan + '" class="text-center text-muted py-2">' + esc(uiT('불러오는 중…')) + '</td></tr>';
         if (kind === 'chill') {
           api.chillPayTrSearch(dparams).then(function (d2) {
             var rows = (d2 && d2.list) ? d2.list : [];
-            renderDetailTable(rows,
-              ['rowNo', 'transactionId', 'compId', 'compNm', 'amount', 'status'],
-              ['번호', '승인번호', '업체코드', '업체명', '금액', '상태']);
+            var detTable = p.querySelector('#grid_' + tid + '_detail');
+            if (!detTable) return;
+            var htr = detTable.querySelector('#dailyDetailHead_' + tid) || detTable.querySelector('thead tr');
+            if (htr) {
+              htr.innerHTML = '<th class="text-nowrap text-center">' + esc(uiT('번호')) + '</th>' +
+                '<th class="text-nowrap">' + esc(uiT('결제시간')) + '</th>' +
+                '<th class="text-nowrap">' + esc(uiT('승인번호')) + '</th>' +
+                '<th class="text-nowrap">' + esc(uiT('업체코드')) + '</th>' +
+                '<th class="text-nowrap">' + esc(uiT('업체명')) + '</th>' +
+                '<th class="text-nowrap text-center">' + esc(uiT('정산주기')) + '</th>' +
+                '<th class="text-end">' + esc(uiT('결제액')) + '</th>' +
+                '<th class="text-nowrap text-center">' + esc(uiT('상태')) + '</th>';
+            }
+            var bdy = detTable.querySelector('tbody');
+            if (!bdy) return;
+            if (!rows.length) {
+              bdy.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-2">' + esc(uiT('데이터 없음')) + '</td></tr>';
+              return;
+            }
+            bdy.innerHTML = rows.map(function (r, idx) {
+              var txnId = r.transactionId != null ? String(r.transactionId) : (r.chillTransactionId != null ? String(r.chillTransactionId) : '');
+              return payGridRowToneTrOpen(r, true) + '<td class="text-center text-nowrap">' + esc(dailyDetailRowNo(r, idx, dparams)) + '</td>' +
+                '<td class="text-nowrap small pay-grid-time-dual">' + dailyChillPaymentTimeCell(r) + '</td>' +
+                '<td class="text-nowrap">' + esc(txnId) + '</td>' +
+                '<td class="text-nowrap">' + esc(r.compId || '') + '</td>' +
+                '<td class="text-nowrap">' + esc(r.compNm || '') + '</td>' +
+                '<td class="text-center text-nowrap small">' + payGridDetailCalcCycleCell(r, esc) + '</td>' +
+                '<td class="text-end text-nowrap">' + dailyChillAmountCell(r) + '</td>' +
+                '<td class="text-center text-nowrap">' + dailyChillDetailStatusCell(r) + '</td></tr>';
+            }).join('');
+            try {
+              if (typeof injectTableRowResizeHandles === 'function') injectTableRowResizeHandles(bdy, 8);
+            } catch (eChillDet) { /* ignore */ }
           }).catch(function () {
-            if (detBody) detBody.innerHTML = '<tr><td colspan="6" class="text-center text-danger py-2">' + esc('상세 조회 실패') + '</td></tr>';
+            if (detBody) detBody.innerHTML = '<tr><td colspan="8" class="text-center text-danger py-2">' + esc(uiT('상세 조회 실패')) + '</td></tr>';
           });
         } else if (kind === 'fee') {
           api.settlementFeeList(dparams).then(function (d2) {
             var rows = (d2 && d2.list) ? d2.list : [];
-            renderDetailTable(rows,
-              ['rowNo', 'compId', 'compNm', 'trnDate', 'totalFee', 'settlementAmt', 'settlementStateLabel'],
-              ['번호', '업체코드', '업체명', '거래일', '총수수료', '정산액', '정산유무']);
+            var detTable = p.querySelector('#grid_' + tid + '_detail');
+            if (!detTable) return;
+            var htr = detTable.querySelector('#dailyDetailHead_' + tid) || detTable.querySelector('thead tr');
+            if (htr) {
+              htr.innerHTML = '<th class="text-nowrap text-center">' + esc(uiT('번호')) + '</th>' +
+                '<th class="text-nowrap">' + esc(uiT('결제시간')) + '</th>' +
+                '<th class="text-nowrap">' + esc(uiT('승인번호')) + '</th>' +
+                '<th class="text-nowrap">' + esc(uiT('업체코드')) + '</th>' +
+                '<th class="text-nowrap">' + esc(uiT('업체명')) + '</th>' +
+                '<th class="text-nowrap text-center">' + esc(uiT('정산주기')) + '</th>' +
+                '<th class="text-nowrap text-center">' + esc(uiT('정산예정')) + '</th>' +
+                '<th class="text-end">' + esc(uiT('결제액')) + '</th>' +
+                '<th class="text-end">' + esc(uiT('수수료')) + '</th>' +
+                '<th class="text-end">' + esc(uiT('정산액')) + '</th>' +
+                '<th class="text-nowrap text-center">' + esc(uiT('상태')) + '</th>' +
+                '<th class="text-nowrap text-center">' + esc(uiT('정산유무')) + '</th>';
+            }
+            var bdy = detTable.querySelector('tbody');
+            if (!bdy) return;
+            if (!rows.length) {
+              bdy.innerHTML = '<tr><td colspan="12" class="text-center text-muted py-2">' + esc(uiT('데이터 없음')) + '</td></tr>';
+              return;
+            }
+            bdy.innerHTML = rows.map(function (r, idx) {
+              return payGridRowToneTrOpen(r, false) + '<td class="text-center text-nowrap">' + esc(dailyDetailRowNo(r, idx, dparams)) + '</td>' +
+                '<td class="text-nowrap small pay-grid-time-dual">' + dailyFeePaymentTimeCell(r) + '</td>' +
+                '<td class="text-nowrap">' + esc(dailyFeeApprovalNo(r)) + '</td>' +
+                '<td class="text-nowrap">' + esc(r.compId || '') + '</td>' +
+                '<td class="text-nowrap">' + esc(r.compNm || '') + '</td>' +
+                '<td class="text-center text-nowrap small">' + payGridDetailCalcCycleCell(r, esc) + '</td>' +
+                '<td class="text-center text-nowrap small">' + payGridDetailExpectedSettleCell(r, esc) + '</td>' +
+                '<td class="text-end text-nowrap">' + dailyFeeAmountCell(r) + '</td>' +
+                '<td class="text-end text-nowrap">' + dailyFeeTotalFeeCell(r) + '</td>' +
+                '<td class="text-end text-nowrap">' + dailyFeeSettlementAmtCell(r) + '</td>' +
+                '<td class="text-center text-nowrap">' + dailyFeeDetailStatusCell(r) + '</td>' +
+                '<td class="text-center text-nowrap">' + esc(dailyFeeSettlementYnLabel(r)) + '</td></tr>';
+            }).join('');
+            try {
+              if (typeof injectTableRowResizeHandles === 'function') injectTableRowResizeHandles(bdy, 12);
+            } catch (eFeeDet) { /* ignore */ }
           }).catch(function () {
-            if (detBody) detBody.innerHTML = '<tr><td colspan="7" class="text-center text-danger py-2">' + esc('상세 조회 실패') + '</td></tr>';
+            if (detBody) detBody.innerHTML = '<tr><td colspan="12" class="text-center text-danger py-2">' + esc(uiT('상세 조회 실패')) + '</td></tr>';
           });
         } else {
           dparams.payListVariant = (cfg && cfg.detailPayListVariant) ? cfg.detailPayListVariant : 'INTEGRATED';
           api.payList(dparams).then(function (d2) {
             var rows = (d2 && d2.list) ? d2.list : [];
-            renderDetailTable(rows,
-              ['rowNo', 'compId', 'compNm', 'trnDate', 'amount', 'statusNm'],
-              ['번호', '업체코드', '업체명', '거래일', '금액', '상태']);
+            var detTable = p.querySelector('#grid_' + tid + '_detail');
+            if (!detTable) return;
+            var htr = detTable.querySelector('#dailyDetailHead_' + tid) || detTable.querySelector('thead tr');
+            if (htr) {
+              htr.innerHTML = '<th class="text-nowrap text-center">' + esc(uiT('번호')) + '</th>' +
+                '<th class="text-nowrap">' + esc(uiT('결제시간')) + '</th>' +
+                '<th class="text-nowrap">' + esc(uiT('승인번호')) + '</th>' +
+                '<th class="text-nowrap">' + esc(uiT('업체코드')) + '</th>' +
+                '<th class="text-nowrap">' + esc(uiT('업체명')) + '</th>' +
+                '<th class="text-nowrap text-center">' + esc(uiT('정산주기')) + '</th>' +
+                '<th class="text-end">' + esc(uiT('결제액')) + '</th>' +
+                '<th class="text-nowrap text-center">' + esc(uiT('상태')) + '</th>';
+            }
+            var bdy = detTable.querySelector('tbody');
+            if (!bdy) return;
+            if (!rows.length) {
+              bdy.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-2">' + esc(uiT('데이터 없음')) + '</td></tr>';
+              return;
+            }
+            bdy.innerHTML = rows.map(function (r, idx) {
+              return payGridRowToneTrOpen(r, false) + '<td class="text-center text-nowrap">' + esc(dailyDetailRowNo(r, idx, dparams)) + '</td>' +
+                '<td class="text-nowrap small pay-grid-time-dual">' + dailyPayPaymentTimeCell(r) + '</td>' +
+                '<td class="text-nowrap">' + esc(dailyPayApprovalNo(r)) + '</td>' +
+                '<td class="text-nowrap">' + esc(r.compId || '') + '</td>' +
+                '<td class="text-nowrap">' + esc(r.compNm || '') + '</td>' +
+                '<td class="text-center text-nowrap small">' + payGridDetailCalcCycleCell(r, esc) + '</td>' +
+                '<td class="text-end text-nowrap">' + dailyPayAmountCell(r) + '</td>' +
+                '<td class="text-center text-nowrap">' + dailyPayDetailStatusCell(r) + '</td></tr>';
+            }).join('');
+            try {
+              if (typeof injectTableRowResizeHandles === 'function') injectTableRowResizeHandles(bdy, 8);
+            } catch (ePayDet) { /* ignore */ }
           }).catch(function () {
-            if (detBody) detBody.innerHTML = '<tr><td colspan="6" class="text-center text-danger py-2">' + esc('상세 조회 실패') + '</td></tr>';
+            if (detBody) detBody.innerHTML = '<tr><td colspan="8" class="text-center text-danger py-2">' + esc(uiT('상세 조회 실패')) + '</td></tr>';
           });
         }
       }
 
-      if (!p._dailySummaryClickBound) {
+      function bindDailyMasterRowOpen(ev) {
+        var tr = ev.target && ev.target.closest ? ev.target.closest('tr.daily-master-row') : null;
+        if (!tr || !p.contains(tr)) return;
+        var day = tr.getAttribute('data-day');
+        if (!day) return;
+        loadDay(day);
+      }
+      if (kind === 'fee') {
+        if (!p._dailyFeeDblClickBound) {
+          p._dailyFeeDblClickBound = true;
+          p.addEventListener('dblclick', bindDailyMasterRowOpen);
+        }
+      } else if (!p._dailySummaryClickBound) {
         p._dailySummaryClickBound = true;
-        p.addEventListener('click', function (ev) {
-          var tr = ev.target && ev.target.closest ? ev.target.closest('tr.daily-master-row') : null;
-          if (!tr || !p.contains(tr)) return;
-          var day = tr.getAttribute('data-day');
-          if (!day) return;
-          loadDay(day);
-        });
+        p.addEventListener('click', bindDailyMasterRowOpen);
       }
 
       var cntEl = p.querySelector('#summary_건수, .summary-count, [data-summary="건수"]');
@@ -6756,9 +7141,16 @@
     }
 
     /** 운영관리 — 통합 리포트: 일자별 넓은 표 + 일자 클릭 시 통합 결제내역 하단 */
+    function extractOpsIntegratedReportList(data) {
+      if (!data) return [];
+      if (Array.isArray(data)) return data;
+      if (Array.isArray(data.list)) return data.list;
+      if (data.data && Array.isArray(data.data.list)) return data.data.list;
+      return [];
+    }
     function renderOpsIntegratedReportScreen(p, tid, url, params, data, cfg, dimm) {
       if (dimm) dimm.style.display = 'none';
-      var list = (data && data.list) ? data.list : [];
+      var list = extractOpsIntegratedReportList(data);
       var table = p.querySelector('#grid_' + tid);
       if (!table) return;
       var thead = table.querySelector('thead');
@@ -6769,6 +7161,92 @@
       }
       function uiT(s) {
         return (typeof pgAdminUiT === 'function') ? pgAdminUiT(s) : s;
+      }
+      function irDetailRowNo(r, idx, dparams) {
+        if (r && r.rowNo != null && String(r.rowNo).trim() !== '') return String(r.rowNo);
+        var pg = dparams && dparams.page != null ? parseInt(dparams.page, 10) : 1;
+        var sz = dparams && dparams.size != null ? parseInt(dparams.size, 10) : 50;
+        if (isNaN(pg) || pg < 1) pg = 1;
+        if (isNaN(sz) || sz < 1) sz = 50;
+        return String((pg - 1) * sz + idx + 1);
+      }
+      function irPaymentTimeCell(r) {
+        return formatPayGridDualTimeHtml(resolvePayGridPaymentTimeRaw(r), esc);
+      }
+      function irApprovalNo(r) {
+        var txn = '';
+        if (r.chillTransactionId != null) {
+          var c = String(r.chillTransactionId).trim();
+          if (c && c !== '-') txn = c;
+        }
+        if (!txn && r.transactionId != null) {
+          var t = String(r.transactionId).trim();
+          if (t && t !== '-') txn = t;
+        }
+        if (!txn && r.cardAprvNo != null) {
+          var a = String(r.cardAprvNo).trim();
+          if (a && a !== '-') txn = a;
+        }
+        if (!txn && r.pgApproveNo != null) {
+          var p = String(r.pgApproveNo).trim();
+          if (p && p !== '-') txn = p;
+        }
+        return txn;
+      }
+      function irMoneyWithCur(amtVal, r) {
+        if (amtVal == null || amtVal === '') return esc('—');
+        var cur = '';
+        if (r.currency != null && String(r.currency).trim() !== '') cur = String(r.currency).trim();
+        else if (r.payCur != null && String(r.payCur).trim() !== '') cur = String(r.payCur).trim();
+        else if (r.curType != null && String(r.curType).trim() !== '') cur = String(r.curType).trim();
+        var n = Number(amtVal);
+        var amtStr = isNaN(n) ? String(amtVal) : n.toLocaleString('de-DE', { minimumFractionDigits: 0, maximumFractionDigits: 4 });
+        return esc(cur ? (amtStr + ' ' + cur) : amtStr);
+      }
+      function irPayAmountCell(r) {
+        if (r.payAmount != null && r.payAmount !== '') return irMoneyWithCur(r.payAmount, r);
+        if (r.chillAmount != null && r.chillAmount !== '') return irMoneyWithCur(r.chillAmount, r);
+        if (r.amount != null && r.amount !== '') return irMoneyWithCur(r.amount, r);
+        if (r.pgApproveAmt != null && r.pgApproveAmt !== '') return irMoneyWithCur(r.pgApproveAmt, r);
+        return esc('—');
+      }
+      function irFeeCell(r) {
+        var feeRaw = r.totalFee != null ? r.totalFee : r.feeAmt;
+        var fee = feeRaw != null ? Number(feeRaw) : NaN;
+        var vat = r.feeVat != null ? Number(r.feeVat) : 0;
+        if (isNaN(fee)) return esc('—');
+        if (!isNaN(vat) && vat !== 0) return irMoneyWithCur(fee + vat, r);
+        return irMoneyWithCur(fee, r);
+      }
+      function irSettleAmtCell(r) {
+        if (r.settleAmt != null && r.settleAmt !== '') return irMoneyWithCur(r.settleAmt, r);
+        if (r.settlementAmt != null && r.settlementAmt !== '') return irMoneyWithCur(r.settlementAmt, r);
+        return esc('—');
+      }
+      function irStatusKo(r) {
+        var label = r.statusNm != null ? String(r.statusNm).trim() : '';
+        if (label) return label;
+        var pgUi = window.PG_UI || {};
+        var st = r.status != null ? String(r.status).trim() : '';
+        if (st && typeof pgUi.internalPayStatusToKo === 'function') {
+          var mapped = pgUi.internalPayStatusToKo(st);
+          if (mapped && mapped !== '—') return mapped;
+        }
+        if (st) {
+          var stMap = { '10': uiT('성공'), '08': uiT('요청'), '20': uiT('취소'), 'F0': uiT('실패'), '99': uiT('실패'),
+            '21': uiT('무효'), '40': uiT('무효'), '22': uiT('이메일무효'), '41': uiT('이메일무효'),
+            '30': uiT('환불'), '42': uiT('환불'), '31': uiT('강제환불') };
+          return stMap[st] || st;
+        }
+        return '—';
+      }
+      function irDetailStatusCell(r) {
+        var label = irStatusKo(r);
+        var pgUiFee = window.PG_PAY_LIST_I18N || {};
+        if (typeof pgUiFee.payGridStatusBadge === 'function' && typeof pgUiFee.resolvePayRowTone === 'function') {
+          return pgUiFee.payGridStatusBadge(label, pgUiFee.resolvePayRowTone(r));
+        }
+        return esc(label);
       }
       function numCell(v, extraCls) {
         var c = extraCls ? (' ' + extraCls) : '';
@@ -6806,12 +7284,12 @@
       });
       var h1 = [];
       var h2 = [];
+      h1.push('<th rowspan="2" class="text-center text-nowrap integrated-report-th--base">' + esc(uiT('번호')) + '</th>');
       h1.push('<th rowspan="2" class="text-nowrap integrated-report-th--base">' + esc(uiT('일자')) + '</th>');
       h1.push('<th rowspan="2" class="text-end text-nowrap integrated-report-th--base">' + esc(uiT('총결제액')) + '</th>');
       h1.push('<th rowspan="2" class="text-end text-nowrap integrated-report-th--base">' + esc(uiT('총수수료')) + '</th>');
       h1.push('<th rowspan="2" class="text-end text-nowrap integrated-report-th--base">' + esc(uiT('보증금액')) + '</th>');
       h1.push('<th rowspan="2" class="text-end text-nowrap integrated-report-th--base">' + esc('VAT') + '</th>');
-      h1.push('<th rowspan="2" class="text-nowrap integrated-report-th--base">' + esc(uiT('결제주기')) + '</th>');
       h1.push('<th rowspan="2" class="text-end text-nowrap integrated-report-th--base">' + esc(uiT('총거래건수')) + '</th>');
       BUCKET_KEYS.forEach(function (bk) {
         h1.push('<th colspan="2" class="text-center text-nowrap integrated-report-th--' + bk + '">' + esc(BUCKET_LABEL[bk] || bk) + '</th>');
@@ -6832,18 +7310,19 @@
         h2.push('<th class="text-end text-nowrap small integrated-report-merch--' + merchCls + '">' + esc(uiT('총금액')) + '</th>');
       });
       thead.innerHTML = '<tr>' + h1.join('') + '</tr><tr>' + h2.join('') + '</tr>';
-      var rowsHtml = list.map(function (row) {
+      var rowsHtml = list.map(function (row, rowIdx) {
         var bucketMap = {};
         (row.buckets || []).forEach(function (b) {
           if (b && b.bucket) bucketMap[b.bucket] = b;
         });
         var tds = [];
+        var masterNo = row && row.rowNo != null && String(row.rowNo).trim() !== '' ? String(row.rowNo) : String(rowIdx + 1);
+        tds.push('<td class="text-center text-nowrap integrated-report-td--base">' + esc(masterNo) + '</td>');
         tds.push('<td class="text-nowrap integrated-report-td--base">' + esc(row.day) + '</td>');
         tds.push(numCell(row.totalPayment, 'integrated-report-td--base'));
         tds.push(numCell(row.totalFeeExVat, 'integrated-report-td--base'));
         tds.push(numCell(row.depositAmount, 'integrated-report-td--base'));
         tds.push(numCell(row.vat, 'integrated-report-td--base'));
-        tds.push('<td class="text-nowrap integrated-report-td--base">' + esc(row.payCycleLabel != null ? row.payCycleLabel : '') + '</td>');
         tds.push(numCell(row.totalTxnCount, 'integrated-report-td--base'));
         BUCKET_KEYS.forEach(function (bk) {
           var b = bucketMap[bk] || { amount: '', count: '' };
@@ -6857,7 +7336,8 @@
             tds.push('<td class="integrated-report-merch--' + merchCls + '"></td><td class="integrated-report-merch--' + merchCls + '"></td>' +
               '<td class="integrated-report-merch--' + merchCls + '"></td><td class="integrated-report-merch--' + merchCls + '"></td>');
           } else {
-            var feeStr = (m.feeVariable != null ? String(m.feeVariable) : '') + ' / ' + (m.feePerTxn != null ? String(m.feePerTxn) : '');
+            var feeVarPart = (m.feeVariable != null && String(m.feeVariable).trim() !== '') ? (String(m.feeVariable) + '%') : '';
+            var feeStr = feeVarPart + ' / ' + (m.feePerTxn != null ? String(m.feePerTxn) : '');
             tds.push('<td class="text-end text-nowrap small integrated-report-merch--' + merchCls + '">' + esc(feeStr) + '</td>');
             tds.push(numCell(m.txnCount, 'integrated-report-merch--' + merchCls));
             tds.push(numCell(m.successCount, 'integrated-report-merch--' + merchCls));
@@ -6866,11 +7346,17 @@
         });
         return '<tr class="integrated-report-day-row" data-day="' + String(row.day || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;') + '" style="cursor:pointer">' + tds.join('') + '</tr>';
       }).join('');
-      tbody.innerHTML = rowsHtml || ('<tr><td colspan="99" class="text-center text-muted">' + esc(uiT('데이터 없음')) + '</td></tr>');
+      if (!rowsHtml) {
+        var emptyNote = (data && data.meta && data.meta.note) ? String(data.meta.note).trim() : '';
+        var emptyMsg = emptyNote || uiT('데이터 없음');
+        tbody.innerHTML = '<tr><td colspan="99" class="text-center text-muted py-3">' + esc(emptyMsg) + '</td></tr>';
+      } else {
+        tbody.innerHTML = rowsHtml;
+      }
       var detHost = p.querySelector('#integratedReportDetail_' + tid);
       if (detHost) {
         detHost.innerHTML = '<div class="fw-semibold mb-2 small text-secondary">' + esc(uiT('선택 일자 상세 (통합 결제내역)')) + '</div>' +
-          '<div class="table-responsive"><table class="table table-sm table-bordered" id="grid_' + tid + '_detail">' +
+          '<div class="table-responsive"><table class="table table-sm table-bordered pay-grid-detail-pastel" id="grid_' + tid + '_detail">' +
           '<thead><tr><th class="text-muted">…</th></tr></thead><tbody><tr><td class="text-center text-muted py-3">' +
           esc(uiT('위에서 일자를 클릭하세요.')) + '</td></tr></tbody></table></div>';
       }
@@ -6894,7 +7380,7 @@
           dparams.payListVariant = 'INTEGRATED';
           var detTb = p.querySelector('#grid_' + tid + '_detail tbody');
           if (detTb) {
-            detTb.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-2">' + esc(uiT('불러오는 중…')) + '</td></tr>';
+            detTb.innerHTML = '<tr><td colspan="11" class="text-center text-muted py-2">' + esc(uiT('불러오는 중…')) + '</td></tr>';
           }
           window.PG_API.payList(dparams).then(function (d2) {
             var rows = (d2 && d2.list) ? d2.list : [];
@@ -6902,23 +7388,43 @@
             if (!detTable) return;
             var htr = detTable.querySelector('thead tr');
             if (htr) {
-              htr.innerHTML = '<th class="text-nowrap">' + esc(uiT('번호')) + '</th><th class="text-nowrap">' + esc(uiT('업체코드')) + '</th>' +
-                '<th class="text-nowrap">' + esc(uiT('업체명')) + '</th><th class="text-nowrap">' + esc(uiT('거래일')) + '</th>' +
-                '<th class="text-end">' + esc(uiT('금액')) + '</th><th class="text-nowrap">' + esc(uiT('상태')) + '</th>';
+              htr.innerHTML = '<th class="text-nowrap text-center">' + esc(uiT('번호')) + '</th>' +
+                '<th class="text-nowrap">' + esc(uiT('결제시간')) + '</th>' +
+                '<th class="text-nowrap">' + esc(uiT('승인번호')) + '</th>' +
+                '<th class="text-nowrap">' + esc(uiT('업체코드')) + '</th>' +
+                '<th class="text-nowrap">' + esc(uiT('업체명')) + '</th>' +
+                '<th class="text-nowrap text-center">' + esc(uiT('정산주기')) + '</th>' +
+                '<th class="text-nowrap text-center">' + esc(uiT('정산예정')) + '</th>' +
+                '<th class="text-end">' + esc(uiT('결제액')) + '</th>' +
+                '<th class="text-end">' + esc(uiT('수수료')) + '</th>' +
+                '<th class="text-end">' + esc(uiT('정산액')) + '</th>' +
+                '<th class="text-nowrap text-center">' + esc(uiT('상태')) + '</th>';
             }
             var bdy = detTable.querySelector('tbody');
             if (!bdy) return;
             if (!rows.length) {
-              bdy.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-2">' + esc(uiT('데이터 없음')) + '</td></tr>';
+              bdy.innerHTML = '<tr><td colspan="11" class="text-center text-muted py-2">' + esc(uiT('데이터 없음')) + '</td></tr>';
               return;
             }
-            bdy.innerHTML = rows.map(function (r) {
-              return '<tr><td>' + esc(r.rowNo != null ? r.rowNo : '') + '</td><td>' + esc(r.compId || '') + '</td><td>' + esc(r.compNm || '') + '</td>' +
-                '<td>' + esc(r.trnDate || '') + '</td><td class="text-end">' + esc(r.amount != null ? r.amount : '') + '</td><td>' + esc(r.statusNm || r.status || '') + '</td></tr>';
+            bdy.innerHTML = rows.map(function (r, idx) {
+              return payGridRowToneTrOpen(r, false) + '<td class="text-center text-nowrap">' + esc(irDetailRowNo(r, idx, dparams)) + '</td>' +
+                '<td class="text-nowrap small pay-grid-time-dual">' + irPaymentTimeCell(r) + '</td>' +
+                '<td class="text-nowrap">' + esc(irApprovalNo(r)) + '</td>' +
+                '<td class="text-nowrap">' + esc(r.compId || '') + '</td>' +
+                '<td class="text-nowrap">' + esc(r.compNm || '') + '</td>' +
+                '<td class="text-center text-nowrap small">' + payGridDetailCalcCycleCell(r, esc) + '</td>' +
+                '<td class="text-center text-nowrap small">' + payGridDetailExpectedSettleCell(r, esc) + '</td>' +
+                '<td class="text-end text-nowrap">' + irPayAmountCell(r) + '</td>' +
+                '<td class="text-end text-nowrap">' + irFeeCell(r) + '</td>' +
+                '<td class="text-end text-nowrap">' + irSettleAmtCell(r) + '</td>' +
+                '<td class="text-center text-nowrap">' + irDetailStatusCell(r) + '</td></tr>';
             }).join('');
+            try {
+              if (typeof injectTableRowResizeHandles === 'function') injectTableRowResizeHandles(bdy, 11);
+            } catch (eIrDet) { /* ignore */ }
           }).catch(function () {
             var detErr = p.querySelector('#grid_' + tid + '_detail tbody');
-            if (detErr) detErr.innerHTML = '<tr><td colspan="6" class="text-center text-danger py-2">' + esc(uiT('상세 조회 실패')) + '</td></tr>';
+            if (detErr) detErr.innerHTML = '<tr><td colspan="11" class="text-center text-danger py-2">' + esc(uiT('상세 조회 실패')) + '</td></tr>';
           });
         });
       }
@@ -6927,7 +7433,12 @@
       if (cntEl) {
         var pref1 = (window.PG_PAY_LIST_I18N && typeof window.PG_PAY_LIST_I18N.summaryCountPrefix === 'function')
           ? window.PG_PAY_LIST_I18N.summaryCountPrefix() : uiT('건수') + ': ';
-        cntEl.textContent = pref1 + list.length;
+        var txnSum = 0;
+        list.forEach(function (row) {
+          var n = row && row.totalTxnCount != null ? Number(row.totalTxnCount) : 0;
+          if (!isNaN(n)) txnSum += n;
+        });
+        cntEl.textContent = pref1 + txnSum;
       }
       if (data && data.meta) updatePayListAggregateBars(p, tid, data.meta);
       try {
@@ -6989,8 +7500,8 @@
             // 표준 목록 검색 daterange
             var df = p.querySelector('#searchFromDate');
             var dt = p.querySelector('#searchToDate');
-            if (df) df.value = today0;
-            if (dt) dt.value = today0;
+            if (df && !String(df.value || '').trim()) df.value = today0;
+            if (dt && !String(dt.value || '').trim()) dt.value = today0;
             // 기타 search-date-input (커스텀 from/to)도 있으면 채움
             (p.querySelectorAll('input.search-date-input[type=\"date\"]') || []).forEach(function (el) {
               if (el) el.value = today0;
@@ -7091,7 +7602,17 @@
       if (url === '/calc/paySuccessList' && cfg && cfg.columns) {
         cfg = stripPayFollowColumnsFromPayListCfg(cfg);
       }
+      if (cfg && cfg.isOpsIntegratedReport) {
+        ensureIntegratedReportDefaultSearchDates(p);
+      }
       var params = collectSearchParams(p);
+      if (cfg && cfg.isOpsIntegratedReport) {
+        if (!params.searchFromDate || !params.searchToDate) {
+          ensureIntegratedReportDefaultSearchDates(p);
+          params.searchFromDate = params.searchFromDate || (p.querySelector('#searchFromDate') || {}).value;
+          params.searchToDate = params.searchToDate || (p.querySelector('#searchToDate') || {}).value;
+        }
+      }
       if (url === '/ops/taxReport') {
         coerceTaxReportSearchParams(params);
       }
@@ -7120,6 +7641,7 @@
       p.setAttribute('data-last-url', url);
       p.setAttribute('data-last-page', String(params.page));
       if (cfg && cfg.isOpsIntegratedReport) {
+        ensureIntegratedReportDefaultSearchDates(p);
         try {
           var tbPreIr = p.querySelector('#grid_' + tid + ' tbody');
           if (tbPreIr) {
@@ -7224,7 +7746,7 @@
         var tbody = p.querySelector('#grid_' + tid + ' tbody');
         var rk0 = params.searchReportKind || 'MERCHANT_STMT';
         var sub0 = params.searchReportSub || 'AGG';
-        var emptyCols = (url === '/ops/integratedReport' && cfg && cfg.isOpsIntegratedReport) ? 40
+        var emptyCols = (url === '/ops/integratedReport' && cfg && cfg.isOpsIntegratedReport) ? 39
           : ((cfg.columns && cfg.columns.length) ? cfg.columns.length
             : (rk0 === 'REGIONAL_PAYOUT' && cfg.columnsRegionalPayout && cfg.columnsRegionalPayout[sub0] ? cfg.columnsRegionalPayout[sub0].length
               : (cfg.columnsBySub && cfg.columnsBySub[sub0] ? cfg.columnsBySub[sub0].length
@@ -7769,8 +8291,8 @@
                   if (['payCur', 'policyCur', 'curType', 'vatAppliedYn'].indexOf(c.key) >= 0) feeCls.push('text-center');
                   if (c.key === 'statusNm') feeCls.push('text-center');
                   if (c.key === 'trnTime') feeCls.push('pay-grid-time-dual');
-                  if (['trnDate', 'trnId', 'chillTransactionId', 'routeNo', 'calcCycle'].indexOf(c.key) >= 0) feeCls.push('text-nowrap');
-                  if (c.key === 'calcCycle') feeCls.push('text-center');
+                  if (['trnDate', 'trnId', 'chillTransactionId', 'routeNo', 'calcCycle', 'expectedSettleDate'].indexOf(c.key) >= 0) feeCls.push('text-nowrap');
+                  if (c.key === 'calcCycle' || c.key === 'expectedSettleDate') feeCls.push('text-center');
                   if (feeCls.length) cellClass = ' class="' + feeCls.join(' ') + '"';
                 } else if (url === '/calc/compPointMngList') {
                   var recCls2 = [];
@@ -7946,8 +8468,9 @@
                     feeShow = (val != null && val !== '') ? String(val) : '0';
                   } else if (c.key === 'rollingDays') {
                     feeShow = (val != null && val !== '') ? String(val) : '0';
-                  } else if (c.key === 'calcCycle') {
-                    feeShow = (val != null && String(val).trim() !== '') ? String(val).trim() : '—';
+                  } else if (c.key === 'calcCycle' || c.key === 'expectedSettleDate') {
+                    var cycleRaw = val != null ? String(val).trim() : '';
+                    feeShow = (cycleRaw !== '' && cycleRaw !== '-') ? cycleRaw : '—';
                   }
                   var feeTdInner = feeShow;
                   if (c.key === 'trnTime' && val && String(val).indexOf('\n') !== -1) {
@@ -8482,7 +9005,7 @@
         p._lastGridCols = null;
         var tbody = p.querySelector('#grid_' + tid + ' tbody');
         var rkErr = params.searchReportKind || 'MERCHANT_STMT';
-        var colFallback = (url === '/ops/integratedReport' && cfg && cfg.isOpsIntegratedReport) ? 40
+        var colFallback = (url === '/ops/integratedReport' && cfg && cfg.isOpsIntegratedReport) ? 39
           : ((cfg.columns && cfg.columns.length) ? cfg.columns.length
             : (rkErr === 'REGIONAL_PAYOUT' && cfg.columnsRegionalPayout && cfg.columnsRegionalPayout.AGG ? cfg.columnsRegionalPayout.AGG.length
               : (cfg.columnsBySub && cfg.columnsBySub.AGG ? cfg.columnsBySub.AGG.length : 8)));
@@ -9139,6 +9662,9 @@
           runPayListInitialSearch();
         } else if (url === '/settlement/settlementResultDistribute' || url === '/settlement/settlementResultHold') {
           ensureSettlementPublishQueueDefaultSearchDates(pane);
+          runPayListInitialSearch();
+        } else if (url === '/ops/integratedReport') {
+          ensureIntegratedReportDefaultSearchDates(pane);
           runPayListInitialSearch();
         } else {
           ensureStandardSearchDaterangeYesterdayToToday(pane);

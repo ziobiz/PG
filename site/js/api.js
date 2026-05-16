@@ -1485,10 +1485,34 @@
     opsIntegratedReportDaily: function (params) {
       var p = params || {};
       var q = {};
-      if (p.searchFromDate) q.searchFromDate = p.searchFromDate;
-      if (p.searchToDate) q.searchToDate = p.searchToDate;
-      if (p.searchOrderDir != null && String(p.searchOrderDir).trim() !== '') q.searchOrderDir = String(p.searchOrderDir).trim();
-      return get('/api/ops/integratedReport/daily', q).then(function (r) { return r.data; });
+      for (var k in p) {
+        if (!Object.prototype.hasOwnProperty.call(p, k)) continue;
+        if (k === 'page' || k === 'size') continue;
+        var v = p[k];
+        if (v === undefined || v === null) continue;
+        if (String(v).trim() === '') continue;
+        q[k] = v;
+      }
+      return get('/api/ops/integratedReport/daily', q).then(function (r) {
+        if (!r || r.success === false) {
+          var failMsg = (r && r.message) ? String(r.message).trim() : '';
+          return Promise.reject(new Error(failMsg || apiT('통합 리포트 조회에 실패했습니다.', 'Integrated report request failed.')));
+        }
+        var payload = r.data;
+        if (payload && payload.data && typeof payload.data === 'object' && !Array.isArray(payload.data)) {
+          payload = payload.data;
+        }
+        if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
+          return Promise.reject(new Error(apiT(
+            '통합 리포트 응답 형식이 올바르지 않습니다. 최신 pg-app JAR 배포·API 경로(/api/ops/integratedReport/daily)를 확인하세요.',
+            'Invalid integrated report response. Verify pg-app deployment and /api/ops/integratedReport/daily.'
+          )));
+        }
+        if (!Array.isArray(payload.list)) {
+          payload.list = [];
+        }
+        return payload;
+      });
     },
     hqOrgViewColumnRegionalBranches: function () {
       return get('/api/hq/orgViewColumnAllowance/regionalBranches').then(function (r) { return r.data || []; });

@@ -46,9 +46,12 @@ import com.pg.service.PayListService;
 import com.pg.service.SettlementCalcService;
 import com.pg.service.ReceivableRecoveryModeService;
 import com.pg.service.SettlementReportService;
+import com.pg.service.settlement.FeeListTxnAmountService;
 import com.pg.service.settlement.FeeListTxnBreakdownCalculator;
 import com.pg.service.settlement.SettlementArrearsService;
 import com.pg.service.settlement.SettlementAutoRunService;
+import com.pg.service.settlement.SettlementBusinessHolidayService;
+import com.pg.service.settlement.SettlementExpectedDateResolver;
 import com.pg.service.settlement.SettlementRunFeeReconciliationService;
 import com.pg.service.settlement.SettlementPublishCadence;
 import com.pg.service.settlement.SettlementCycleTiming;
@@ -58,6 +61,7 @@ import com.pg.util.FeeCurrencyRoundResolver;
 import com.pg.util.FeeListRoundingPolicy;
 import com.pg.util.MerchantFeeVatUtil;
 import com.pg.util.PayDisplayCurrency;
+import com.pg.util.PayListStatusBarBuckets;
 import com.pg.util.PercentDecimalHelper;
 import com.pg.util.TrnTimeDualZoneDisplay;
 import jakarta.persistence.criteria.CriteriaBuilder;
@@ -85,6 +89,7 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -113,6 +118,7 @@ public class ApiSettlementController {
     private final SettlementAutoRunService settlementAutoRunService;
     private final HqLedgerSysSettingsRepository hqLedgerSysSettingsRepository;
     private final FeeListTxnBreakdownCalculator feeListTxnBreakdownCalculator;
+    private final FeeListTxnAmountService feeListTxnAmountService;
     private final SettlementRecoveryRepository settlementRecoveryRepository;
     private final MerchantReceivableRepository merchantReceivableRepository;
     private final MerchantReceivableRecoveryRequestRepository merchantReceivableRecoveryRequestRepository;
@@ -121,6 +127,7 @@ public class ApiSettlementController {
     private final SettlementRunFeeReconciliationService settlementRunFeeReconciliationService;
     private final ReceivableRecoveryModeService receivableRecoveryModeService;
     private final CommissionService commissionService;
+    private final SettlementBusinessHolidayService settlementBusinessHolidayService;
 
     private static final ZoneId SEOUL = ZoneId.of("Asia/Seoul");
 
@@ -144,6 +151,7 @@ public class ApiSettlementController {
                                    SettlementAutoRunService settlementAutoRunService,
                                    HqLedgerSysSettingsRepository hqLedgerSysSettingsRepository,
                                    FeeListTxnBreakdownCalculator feeListTxnBreakdownCalculator,
+                                   FeeListTxnAmountService feeListTxnAmountService,
                                    SettlementRecoveryRepository settlementRecoveryRepository,
                                    MerchantReceivableRepository merchantReceivableRepository,
                                    MerchantReceivableRecoveryRequestRepository merchantReceivableRecoveryRequestRepository,
@@ -151,7 +159,8 @@ public class ApiSettlementController {
                                    OrgPagePermissionService orgPagePermissionService,
                                    SettlementRunFeeReconciliationService settlementRunFeeReconciliationService,
                                    ReceivableRecoveryModeService receivableRecoveryModeService,
-                                   CommissionService commissionService) {
+                                   CommissionService commissionService,
+                                   SettlementBusinessHolidayService settlementBusinessHolidayService) {
         this.settlementCalcService = settlementCalcService;
         this.settlementRunRepository = settlementRunRepository;
         this.orgUnitRepository = orgUnitRepository;
@@ -172,6 +181,7 @@ public class ApiSettlementController {
         this.settlementAutoRunService = settlementAutoRunService;
         this.hqLedgerSysSettingsRepository = hqLedgerSysSettingsRepository;
         this.feeListTxnBreakdownCalculator = feeListTxnBreakdownCalculator;
+        this.feeListTxnAmountService = feeListTxnAmountService;
         this.settlementRecoveryRepository = settlementRecoveryRepository;
         this.merchantReceivableRepository = merchantReceivableRepository;
         this.merchantReceivableRecoveryRequestRepository = merchantReceivableRecoveryRequestRepository;
@@ -180,6 +190,17 @@ public class ApiSettlementController {
         this.settlementRunFeeReconciliationService = settlementRunFeeReconciliationService;
         this.receivableRecoveryModeService = receivableRecoveryModeService;
         this.commissionService = commissionService;
+        this.settlementBusinessHolidayService = settlementBusinessHolidayService;
+    }
+
+    private Set<LocalDate> holidaysForMerchant(Map<Long, Set<LocalDate>> holidayCache, PayListRowContext payCtx) {
+        if (holidayCache == null || payCtx == null || payCtx.getProfile() == null
+                || payCtx.getProfile().getOrgUnitId() == null) {
+            return Set.of();
+        }
+        long orgUnitId = payCtx.getProfile().getOrgUnitId();
+        return holidayCache.computeIfAbsent(orgUnitId,
+                settlementBusinessHolidayService::resolveNonBusinessDatesForMerchantOrgUnitId);
     }
 
     private ZoneId resolveLedgerDisplayZoneId() {
@@ -1377,13 +1398,20 @@ public class ApiSettlementController {
                 ? Collections.emptyMap()
                 : payListService.buildPayListRowContextMap(mids);
         Map<String, CommissionPolicy> polCache = new HashMap<>();
+        Map<Long, Set<LocalDate>> holidayCache = new HashMap<>();
 
         List<Map<String, Object>> rows = new ArrayList<>();
+        int rowNoStart = (pageOneBased - 1) * pageSize + 1;
+        int rowIdx = 0;
         for (PgTrnsctn t : slice.getContent()) {
             if (t.getMerchantId() == null || t.getMerchantId().isBlank()) {
                 continue;
             }
-            rows.add(buildFeeListRowMap(t, monthCbCountCache, tiersByPolicyId, ctxByMerchant, polCache, feeResolver));
+            Map<String, Object> feeRow = buildFeeListRowMap(t, monthCbCountCache, tiersByPolicyId, ctxByMerchant, polCache,
+                    feeResolver, holidayCache);
+            feeRow.put("rowNo", rowNoStart + rowIdx);
+            rowIdx++;
+            rows.add(feeRow);
         }
 
         PageResult<Map<String, Object>> pr = new PageResult<>();
@@ -1529,6 +1557,7 @@ public class ApiSettlementController {
         Map<String, Long> monthCbCountCache = new HashMap<>();
         Map<Long, List<ChargebackFeeTier>> tiersByPolicyId = new HashMap<>();
         Map<String, CommissionPolicy> polCache = new HashMap<>();
+        Map<Long, Set<LocalDate>> holidayCache = new HashMap<>();
         Sort sort = Sort.by(sortDirectionFromSearchOrderDir(searchOrderDir), "createdAt")
                 .and(Sort.by(sortDirectionFromSearchOrderDir(searchOrderDir), "trnId"));
 
@@ -1545,7 +1574,6 @@ public class ApiSettlementController {
             for (String k : DAILY_FEE_SUM_NUMERIC_KEYS) {
                 sums.put(k, 0d);
             }
-            Set<String> merchantIds = new HashSet<>();
             boolean capped = false;
             long scanned = 0;
             for (int pageIdx = 0; pageIdx < DAILY_FEE_MAX_PAGES_PER_DAY; pageIdx++) {
@@ -1568,14 +1596,14 @@ public class ApiSettlementController {
                     if (t.getMerchantId() == null || t.getMerchantId().isBlank()) {
                         continue;
                     }
-                    merchantIds.add(t.getMerchantId().trim());
                     String yn = t.getSettledYn();
                     if (yn != null && "Y".equalsIgnoreCase(yn.trim())) {
                         settledY++;
                     } else {
                         settledN++;
                     }
-                    Map<String, Object> row = buildFeeListRowMap(t, monthCbCountCache, tiersByPolicyId, ctxByMerchant, polCache, feeResolver);
+                    Map<String, Object> row = buildFeeListRowMap(t, monthCbCountCache, tiersByPolicyId, ctxByMerchant, polCache,
+                            feeResolver, holidayCache);
                     for (String key : DAILY_FEE_SUM_NUMERIC_KEYS) {
                         Object v = row.get(key);
                         if (v instanceof Number n) {
@@ -1602,23 +1630,8 @@ public class ApiSettlementController {
             } else {
                 settlementStateLabel = "부분정산";
             }
-            String expectedSettleDateLabel;
-            if (merchantIds.size() > 1) {
-                expectedSettleDateLabel = "복수가맹";
-            } else if (merchantIds.isEmpty()) {
-                expectedSettleDateLabel = "—";
-            } else {
-                String mid = merchantIds.iterator().next();
-                PayListRowContext ctx = payListService.buildPayListRowContextMap(List.of(mid)).get(mid);
-                String cycle = "";
-                if (ctx != null && ctx.getSettlement() != null && ctx.getSettlement().getCalcCycle() != null) {
-                    cycle = ctx.getSettlement().getCalcCycle().trim();
-                }
-                expectedSettleDateLabel = cycle.isEmpty() ? "—" : cycle;
-            }
             Map<String, Object> one = new LinkedHashMap<>();
             one.put("day", d.toString());
-            one.put("expectedSettleDateLabel", expectedSettleDateLabel);
             one.put("txnCount", txnCount);
             for (Map.Entry<String, Double> e : sums.entrySet()) {
                 one.put(e.getKey(), e.getValue());
@@ -1976,13 +1989,7 @@ public class ApiSettlementController {
      * 지급예상액은 0, 총수수료·부가세는 과금액(양수), 정산액은 −(총수수료+부가세).
      */
     private static boolean isFeeListMerchantDeductionStatus(String st) {
-        if (st == null || st.isBlank()) {
-            return false;
-        }
-        return switch (st.trim()) {
-            case "20", "21", "22", "30", "31", "40", "41", "42", "F0", "99" -> true;
-            default -> false;
-        };
+        return FeeListTxnAmountService.isFeeListMerchantDeductionStatus(st);
     }
 
     private Map<String, Object> buildFeeListRowMap(PgTrnsctn t,
@@ -1990,7 +1997,8 @@ public class ApiSettlementController {
                                                    Map<Long, List<ChargebackFeeTier>> tiersByPolicyId,
                                                    Map<String, PayListRowContext> ctxByMerchant,
                                                    Map<String, CommissionPolicy> polCache,
-                                                   FeeCurrencyRoundResolver feeResolver) {
+                                                   FeeCurrencyRoundResolver feeResolver,
+                                                   Map<Long, Set<LocalDate>> holidayCache) {
         String compId = t.getMerchantId().trim();
         PayListRowContext payCtx = ctxByMerchant.get(compId);
         SettlementSetting feeVatSs = payCtx != null ? payCtx.getSettlement() : null;
@@ -2006,34 +2014,13 @@ public class ApiSettlementController {
         FeeListTxnBreakdownCalculator.FeeListTxnBreakdown br = feeListTxnBreakdownCalculator.computeFeeListTxnBreakdown(
                 t, compId, pol, monthCbCountCache, tiersByPolicyId, feeVatSs, feeListRp);
         String stRow = t.getStatus() != null ? t.getStatus().trim() : "";
-        BigDecimal totalFeeMag = FeeListRoundingPolicy.round(BigDecimal.valueOf(br.totalFee()), feeListRp);
-        BigDecimal feeVatMag = FeeListRoundingPolicy.round(br.feeVatBd(), feeListRp);
-        final BigDecimal totalFeeBd;
-        final BigDecimal feeVatOut;
-        final BigDecimal expectedPayoutBd;
-        if ("10".equals(stRow)) {
-            totalFeeBd = totalFeeMag;
-            feeVatOut = feeVatMag;
-            expectedPayoutBd = FeeListRoundingPolicy.round(amountBd.subtract(totalFeeBd).subtract(feeVatOut), feeListRp);
-        } else if (isFeeListMerchantDeductionStatus(stRow)) {
-            /* 차감 행: 지급예상 0. 총수수료·부가세는 과금 규모(양수), 정산액만 가맹 차감(음수). */
-            expectedPayoutBd = FeeListRoundingPolicy.round(BigDecimal.ZERO, feeListRp);
-            totalFeeBd = totalFeeMag;
-            feeVatOut = feeVatMag;
-        } else {
-            totalFeeBd = totalFeeMag;
-            feeVatOut = feeVatMag;
-            expectedPayoutBd = FeeListRoundingPolicy.round(amountBd.subtract(totalFeeBd).subtract(feeVatOut), feeListRp);
-        }
-        BigDecimal rollingHoldEstBd = FeeListRoundingPolicy.round(BigDecimal.valueOf(br.rollingHoldEst()), feeListRp);
-        final BigDecimal settlementAmtBd;
-        if ("10".equals(stRow)) {
-            settlementAmtBd = FeeListRoundingPolicy.round(expectedPayoutBd.subtract(rollingHoldEstBd), feeListRp);
-        } else if (isFeeListMerchantDeductionStatus(stRow)) {
-            settlementAmtBd = FeeListRoundingPolicy.round(totalFeeMag.add(feeVatMag).negate(), feeListRp);
-        } else {
-            settlementAmtBd = FeeListRoundingPolicy.round(expectedPayoutBd.subtract(rollingHoldEstBd), feeListRp);
-        }
+        FeeListTxnAmountService.FeeListTxnAmounts feeAmts = feeListTxnAmountService.compute(
+                t, payCtx, pol, payCurKey, feeResolver, monthCbCountCache, tiersByPolicyId);
+        BigDecimal totalFeeBd = feeAmts.totalFee();
+        BigDecimal feeVatOut = feeAmts.feeVat();
+        BigDecimal expectedPayoutBd = feeAmts.expectedPayout();
+        BigDecimal settlementAmtBd = feeAmts.settlementAmt();
+        BigDecimal rollingHoldEstBd = feeAmts.rollingHoldEst();
         double extraFeesSum = br.extraFee1() + br.extraFee2() + br.extraFee3() + br.extraFee4();
         double txnFixedFeesSum;
         double pctFeesSum;
@@ -2049,18 +2036,36 @@ public class ApiSettlementController {
         Map<String, Object> m = new LinkedHashMap<>();
         m.put("compNm", payRow.get("compNm"));
         m.put("compId", payRow.get("compId"));
+        String calcCycleRaw = "";
         if (feeVatSs != null && feeVatSs.getCalcCycle() != null && !feeVatSs.getCalcCycle().isBlank()) {
-            m.put("calcCycle", feeVatSs.getCalcCycle().trim());
-        } else {
-            m.put("calcCycle", "");
+            calcCycleRaw = feeVatSs.getCalcCycle().trim();
         }
+        m.put("calcCycle", calcCycleRaw);
+        LocalDate trnDate = t.getCreatedAt() != null ? t.getCreatedAt().toLocalDate() : null;
+        Object trnDateObj = payRow.get("trnDate");
+        if (trnDateObj != null && !String.valueOf(trnDateObj).isBlank()) {
+            try {
+                trnDate = LocalDate.parse(String.valueOf(trnDateObj).trim());
+            } catch (DateTimeParseException ignored) {
+                /* createdAt fallback */
+            }
+        }
+        String expectedSettle = "";
+        if (!calcCycleRaw.isEmpty() && trnDate != null) {
+            expectedSettle = SettlementExpectedDateResolver.formatExpectedSettlementDate(
+                    trnDate, t.getCreatedAt(), calcCycleRaw, holidaysForMerchant(holidayCache, payCtx));
+        }
+        m.put("expectedSettleDate", expectedSettle.isEmpty() ? "—" : expectedSettle);
         m.put("trnDate", payRow.get("trnDate"));
         m.put("trnTime", payRow.get("trnTime"));
+        m.put("payCompletedAt", payRow.get("payCompletedAt"));
         m.put("routeNo", payRow.get("routeNo"));
         m.put("chillTransactionId", payRow.get("chillTransactionId"));
+        m.put("transactionId", payRow.get("transactionId"));
         m.put("trnId", payRow.get("trnId"));
+        m.put("settledYn", payRow.get("settledYn"));
         m.put("status", t.getStatus());
-        m.put("statusNm", payDivName(t.getStatus()));
+        m.put("statusNm", PayListStatusBarBuckets.pgStatusDisplayLabel(t.getStatus()));
         m.put("payDivNm", payRow.get("payDivNm"));
         m.put("chillPaymentStatus", payRow.get("chillPaymentStatus"));
         m.put("amount", amountBd);

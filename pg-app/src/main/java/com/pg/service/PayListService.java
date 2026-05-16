@@ -6,6 +6,7 @@ import com.pg.api.dto.PayListRowContext;
 import com.pg.api.dto.PayListSearchRequest;
 import com.pg.api.dto.TxnDualLineSpec;
 import com.pg.entity.AppUser;
+import com.pg.entity.ChargebackFeeTier;
 import com.pg.entity.CommissionPolicy;
 import com.pg.entity.DistributionFeeConfig;
 import com.pg.entity.MerchantPgBinding;
@@ -21,6 +22,12 @@ import com.pg.repository.MerchantProfileRepository;
 import com.pg.repository.OrgUnitRepository;
 import com.pg.repository.PgTrnsctnRepository;
 import com.pg.repository.SettlementSettingRepository;
+import com.pg.service.settlement.FeeListTxnAmountService;
+import com.pg.service.settlement.SettlementBusinessHolidayService;
+import com.pg.service.settlement.SettlementExpectedDateResolver;
+import com.pg.entity.CommissionPolicy;
+import com.pg.util.FeeCurrencyRoundResolver;
+import com.pg.util.FeeListRoundingPolicy;
 import com.pg.util.PayDisplayCurrency;
 import com.pg.util.PayListStatusBarBuckets;
 import jakarta.persistence.EntityManager;
@@ -77,6 +84,9 @@ public class PayListService {
     private final OrgAccessService orgAccessService;
     private final HqLedgerSysSettingsService hqLedgerSysSettingsService;
     private final MasterDistSettlementCronZoneService masterDistSettlementCronZoneService;
+    private final SettlementBusinessHolidayService settlementBusinessHolidayService;
+    private final CommissionService commissionService;
+    private final FeeListTxnAmountService feeListTxnAmountService;
 
     @PersistenceContext
     private EntityManager entityManager;
@@ -92,7 +102,10 @@ public class PayListService {
                           PayFollowPolicyService payFollowPolicyService,
                           OrgAccessService orgAccessService,
                           HqLedgerSysSettingsService hqLedgerSysSettingsService,
-                          MasterDistSettlementCronZoneService masterDistSettlementCronZoneService) {
+                          MasterDistSettlementCronZoneService masterDistSettlementCronZoneService,
+                          SettlementBusinessHolidayService settlementBusinessHolidayService,
+                          CommissionService commissionService,
+                          FeeListTxnAmountService feeListTxnAmountService) {
         this.trnsctnRepository = trnsctnRepository;
         this.orgUnitRepository = orgUnitRepository;
         this.merchantProfileRepository = merchantProfileRepository;
@@ -105,6 +118,80 @@ public class PayListService {
         this.orgAccessService = orgAccessService;
         this.hqLedgerSysSettingsService = hqLedgerSysSettingsService;
         this.masterDistSettlementCronZoneService = masterDistSettlementCronZoneService;
+        this.settlementBusinessHolidayService = settlementBusinessHolidayService;
+        this.commissionService = commissionService;
+        this.feeListTxnAmountService = feeListTxnAmountService;
+    }
+
+    /**
+     * 통합 리포트 상세 — 수수료내역과 동일 건별 총수수료·부가세·정산액을 payList 행에 덮어씁니다.
+     */
+    private void applyFeeListAmountsToPayRow(Map<String, Object> row,
+                                             PgTrnsctn t,
+                                             PayListRowContext ctx,
+                                             FeeCurrencyRoundResolver feeResolver,
+                                             Map<String, CommissionPolicy> polCache,
+                                             Map<String, Long> monthCbCountCache,
+                                             Map<Long, List<ChargebackFeeTier>> tiersByPolicyId) {
+        if (row == null || t == null || t.getMerchantId() == null || t.getMerchantId().isBlank()) {
+            return;
+        }
+        String compId = t.getMerchantId().trim();
+        CommissionPolicy pol = polCache.computeIfAbsent(compId,
+                id -> commissionService.resolveCommissionPolicyForSettlement(id));
+        Object payCurDisp = row.get("currency");
+        String payCurKey = payCurDisp != null && !String.valueOf(payCurDisp).isBlank()
+                ? String.valueOf(payCurDisp).trim()
+                : (t.getCurType() != null && !t.getCurType().isBlank() ? t.getCurType().trim() : "KRW");
+        FeeListTxnAmountService.FeeListTxnAmounts amts = feeListTxnAmountService.compute(
+                t, ctx, pol, payCurKey, feeResolver, monthCbCountCache, tiersByPolicyId);
+        row.put("feeAmt", amts.totalFee());
+        row.put("feeVat", amts.feeVat());
+        row.put("settleAmt", amts.settlementAmt());
+        row.put("settlementAmt", amts.settlementAmt());
+        row.put("totalFee", amts.totalFee());
+        row.put("expectedPayout", amts.expectedPayout());
+        row.put("holdAmt", amts.rollingHoldEst());
+        row.put("rollingHoldEst", amts.rollingHoldEst());
+    }
+
+    private void enrichPayListSettlementExpectedDate(Map<String, Object> row,
+                                                     PgTrnsctn t,
+                                                     PayListRowContext ctx,
+                                                     Map<Long, Set<LocalDate>> holidayCache) {
+        if (row == null || t == null || ctx == null || ctx.getSettlement() == null) {
+            if (row != null) {
+                row.put("expectedSettleDate", "—");
+            }
+            return;
+        }
+        String cycle = ctx.getSettlement().getCalcCycle();
+        if (cycle == null || cycle.isBlank()) {
+            row.put("expectedSettleDate", "—");
+            return;
+        }
+        LocalDate trnDate = t.getCreatedAt() != null ? t.getCreatedAt().toLocalDate() : null;
+        Object trnDateObj = row.get("trnDate");
+        if (trnDateObj != null && !String.valueOf(trnDateObj).isBlank()) {
+            try {
+                trnDate = LocalDate.parse(String.valueOf(trnDateObj).trim());
+            } catch (Exception ignored) {
+                /* createdAt fallback */
+            }
+        }
+        if (trnDate == null) {
+            row.put("expectedSettleDate", "—");
+            return;
+        }
+        Set<LocalDate> hol = Set.of();
+        if (ctx.getProfile() != null && ctx.getProfile().getOrgUnitId() != null && holidayCache != null) {
+            long orgUnitId = ctx.getProfile().getOrgUnitId();
+            hol = holidayCache.computeIfAbsent(orgUnitId,
+                    settlementBusinessHolidayService::resolveNonBusinessDatesForMerchantOrgUnitId);
+        }
+        String expected = SettlementExpectedDateResolver.formatExpectedSettlementDate(
+                trnDate, t.getCreatedAt(), cycle.trim(), hol);
+        row.put("expectedSettleDate", expected.isEmpty() ? "—" : expected);
     }
 
     /** 결제 목록 meta: 전산설정 기준 결제 통화(ISO 숫자·알파) — UI 폴백·표시 연동 */
@@ -165,12 +252,30 @@ public class PayListService {
         AppUser payListViewer = (authentication != null && authentication.getPrincipal() instanceof AppUser u) ? u : null;
         ZoneId ledgerTz = hqLedgerSysSettingsService.resolveLedgerDisplayZoneId();
         List<Map<String, Object>> list = new ArrayList<>();
+        Map<Long, Set<LocalDate>> holidayCache = new HashMap<>();
+        int rowNoStart = (page - 1) * size + 1;
+        int rowIdx = 0;
+        String payListVariant = req.getPayListVariant() != null && !req.getPayListVariant().isBlank()
+                ? req.getPayListVariant().trim().toUpperCase(Locale.ROOT) : "";
+        boolean integratedFeeListAligned = "INTEGRATED".equals(payListVariant);
+        FeeCurrencyRoundResolver integratedFeeResolver = integratedFeeListAligned
+                ? FeeCurrencyRoundResolver.from(hqLedgerSysSettingsService.getOrCreate()) : null;
+        Map<String, CommissionPolicy> integratedPolCache = integratedFeeListAligned ? new HashMap<>() : null;
+        Map<String, Long> integratedMonthCbCache = integratedFeeListAligned ? new HashMap<>() : null;
+        Map<Long, List<ChargebackFeeTier>> integratedTiersByPolicyId = integratedFeeListAligned ? new HashMap<>() : null;
         for (PgTrnsctn t : result.getContent()) {
             PayListRowContext ctx = ctxByCode.get(t.getMerchantId());
             Map<String, Object> row = PayListItemDto.from(t, ctx, ledgerTz);
+            if (integratedFeeListAligned && integratedFeeResolver != null) {
+                applyFeeListAmountsToPayRow(row, t, ctx, integratedFeeResolver, integratedPolCache,
+                        integratedMonthCbCache, integratedTiersByPolicyId);
+            }
+            enrichPayListSettlementExpectedDate(row, t, ctx, holidayCache);
             String pgCd = resolvePgCdForPayListRow(ctx, t);
             hqNotifyMappingService.applyDisplayTransform(displayCache, pgCd, row);
             row.put("payFollowRow", payFollowPolicyService.payFollowRowEnabled(payListViewer, t));
+            row.put("rowNo", rowNoStart + rowIdx);
+            rowIdx++;
             list.add(row);
         }
         PageResult<Map<String, Object>> pr = new PageResult<>();
@@ -1292,11 +1397,18 @@ public class PayListService {
      * 운영관리 통합 리포트: 적재일(createdAt) 기준 일자별 전역 집계 + 가맹점 동적 열(해당 일 거래가 있는 가맹만, 업체코드 오름차순).
      * 결제내역 통합(INTEGRATED)과 동일한 {@link #buildSpecification}·조직 가맹 범위를 사용합니다.
      */
-    public Map<String, Object> buildOpsIntegratedReport(LocalDate rangeFrom,
-                                                      LocalDate rangeTo,
+    public Map<String, Object> buildOpsIntegratedReport(PayListSearchRequest template,
                                                       Authentication authentication) {
-        if (rangeFrom == null || rangeTo == null) {
-            throw new IllegalArgumentException("거래일자(searchFromDate, searchToDate)는 필수입니다.");
+        PayListSearchRequest reqIn = PayListSearchRequest.shallowCopy(template != null ? template : new PayListSearchRequest());
+        ZoneId ledgerTz = hqLedgerSysSettingsService.resolveLedgerDisplayZoneId();
+        LocalDate today = LocalDate.now(ledgerTz);
+        LocalDate rangeFrom = reqIn.getSearchFromDate();
+        LocalDate rangeTo = reqIn.getSearchToDate();
+        if (rangeTo == null) {
+            rangeTo = today;
+        }
+        if (rangeFrom == null) {
+            rangeFrom = today.minusDays(1);
         }
         if (rangeFrom.isAfter(rangeTo)) {
             throw new IllegalArgumentException("거래일자 시작이 종료보다 늦을 수 없습니다.");
@@ -1305,20 +1417,18 @@ public class PayListService {
         if (spanRequested > OPS_INTEGRATED_REPORT_MAX_DAYS) {
             throw new IllegalArgumentException("조회 기간은 " + OPS_INTEGRATED_REPORT_MAX_DAYS + "일 이내로 지정해 주세요.");
         }
-        ZoneId ledgerTz = hqLedgerSysSettingsService.resolveLedgerDisplayZoneId();
-        LocalDate today = LocalDate.now(ledgerTz);
         LocalDate effectiveTo = rangeTo.isAfter(today) ? today : rangeTo;
-        if (rangeFrom.isAfter(effectiveTo)) {
-            Map<String, Object> empty = new LinkedHashMap<>();
-            empty.put("list", List.of());
-            empty.put("meta", Map.of("note", "조회 구간에 포함된 일자가 없습니다."));
-            return empty;
+        LocalDate effectiveFrom = rangeFrom;
+        boolean rangeStartAdjusted = false;
+        if (effectiveFrom.isAfter(effectiveTo)) {
+            effectiveFrom = effectiveTo;
+            rangeStartAdjusted = true;
         }
-        PayListSearchRequest base = new PayListSearchRequest();
+        PayListSearchRequest base = PayListSearchRequest.shallowCopy(reqIn);
         base.setPayListVariant("INTEGRATED");
-        base.setSearchFromDate(rangeFrom);
+        base.setSearchFromDate(effectiveFrom);
         base.setSearchToDate(effectiveTo);
-        LocalDateTime fullFrom = rangeFrom.atStartOfDay();
+        LocalDateTime fullFrom = effectiveFrom.atStartOfDay();
         LocalDateTime fullTo = effectiveTo.atTime(LocalTime.MAX);
         Specification<PgTrnsctn> specFull = buildSpecification(base, fullFrom, fullTo, authentication);
 
@@ -1347,9 +1457,11 @@ public class PayListService {
             sMid.filter(Objects::nonNull).map(String::trim).filter(x -> !x.isEmpty()).forEach(mids::add);
         }
         Map<String, PayListRowContext> ctxMap = buildPayListRowContextMap(mids);
+        FeeCurrencyRoundResolver feeResolver = FeeCurrencyRoundResolver.from(hqLedgerSysSettingsService.getOrCreate());
+        Map<String, CommissionPolicy> integratedPolCache = new HashMap<>();
 
         Map<LocalDate, OpsIntegratedDayAgg> byDay = new LinkedHashMap<>();
-        for (LocalDate d = rangeFrom; !d.isAfter(effectiveTo); d = d.plusDays(1)) {
+        for (LocalDate d = effectiveFrom; !d.isAfter(effectiveTo); d = d.plusDays(1)) {
             byDay.put(d, new OpsIntegratedDayAgg());
         }
 
@@ -1381,35 +1493,34 @@ public class PayListService {
 
                 String cur = PayListStatusBarBuckets.normalizeCurrency(curRaw);
                 boolean curOk = allowedCur == null || allowedCur.contains(cur);
-                if (curOk) {
-                    agg.bucketAmount.merge(bucket, amt, BigDecimal::add);
-                }
 
                 String mid = midRaw != null ? midRaw.trim() : "";
                 PayListRowContext ctx = !mid.isEmpty() ? ctxMap.get(mid) : null;
                 if (!mid.isEmpty()) {
+                    CommissionPolicy pol = integratedPolCache.computeIfAbsent(mid,
+                            id -> commissionService.resolveCommissionPolicyForSettlement(id));
+                    BigDecimal bucketPolicyUnit = FeeListTxnAmountService.roundPolicyFixedFeeForBucket(
+                            bucket, pol, feeResolver);
+                    if (bucketPolicyUnit.signum() > 0) {
+                        agg.bucketPolicyFee.merge(bucket, bucketPolicyUnit, BigDecimal::add);
+                    }
+                }
+
+                if (!mid.isEmpty()) {
                     OpsIntegratedMerchantAgg mag = agg.merchants.computeIfAbsent(mid, k -> new OpsIntegratedMerchantAgg(mid, ctx));
                     mag.txnCount++;
                     mag.bucketCount.merge(bucket, 1L, Long::sum);
-                    if (curOk) {
-                        mag.bucketAmount.merge(bucket, amt, BigDecimal::add);
-                    }
-                    if (ctx != null && ctx.getSettlement() != null && ctx.getSettlement().getCalcCycle() != null) {
-                        String cc = ctx.getSettlement().getCalcCycle().trim();
-                        if (!cc.isEmpty()) {
-                            agg.cycleCodes.add(cc);
-                        }
-                    }
                     if ("10".equals(st)) {
                         mag.successCount++;
                         if (curOk) {
                             mag.approve.merge(cur, amt, BigDecimal::add);
                             if (ctx != null) {
-                                PayListItemDto.ApprovedSettlementParts p = PayListItemDto.approvedSettlementParts(amt, ctx);
+                                PayListRowContext policyCtx = ctx.withOmitSettlementFeeFromApprovedTxnBreakdown(true);
+                                PayListItemDto.ApprovedSettlementParts p = PayListItemDto.approvedSettlementParts(amt, policyCtx);
                                 mag.feeExVat.merge(cur, p.feeAmt, BigDecimal::add);
                                 mag.feeVat.merge(cur, p.feeVat, BigDecimal::add);
                                 mag.hold.merge(cur, p.holdAmt, BigDecimal::add);
-                                mag.perTxnParts.merge(cur, p.perTxAmt.add(p.settlementPerTxAmt), BigDecimal::add);
+                                mag.perTxnParts.merge(cur, p.perTxAmt, BigDecimal::add);
                                 mag.extraPct.merge(cur, p.extraPctAmt, BigDecimal::add);
                             }
                         }
@@ -1423,7 +1534,8 @@ public class PayListService {
                     if (curOk) {
                         agg.approve.merge(cur, amt, BigDecimal::add);
                         if (ctx != null) {
-                            PayListItemDto.ApprovedSettlementParts p = PayListItemDto.approvedSettlementParts(amt, ctx);
+                            PayListRowContext policyCtx = ctx.withOmitSettlementFeeFromApprovedTxnBreakdown(true);
+                            PayListItemDto.ApprovedSettlementParts p = PayListItemDto.approvedSettlementParts(amt, policyCtx);
                             agg.feeExVat.merge(cur, p.feeAmt, BigDecimal::add);
                             agg.feeVat.merge(cur, p.feeVat, BigDecimal::add);
                             agg.hold.merge(cur, p.holdAmt, BigDecimal::add);
@@ -1436,17 +1548,29 @@ public class PayListService {
         }
 
         List<Map<String, Object>> list = new ArrayList<>();
-        for (LocalDate d = effectiveTo; !d.isBefore(rangeFrom); d = d.minusDays(1)) {
+        for (LocalDate d = effectiveTo; !d.isBefore(effectiveFrom); d = d.minusDays(1)) {
             OpsIntegratedDayAgg agg = byDay.getOrDefault(d, new OpsIntegratedDayAgg());
-            list.add(agg.toApiRow(d, primaryNorm, baseCurrencyConfigured, currencyOrderTemplate, ctxMap));
+            list.add(agg.toApiRow(d, primaryNorm, baseCurrencyConfigured, currencyOrderTemplate, ctxMap, feeResolver));
         }
 
         Map<String, Object> meta = new LinkedHashMap<>();
+        if (rangeStartAdjusted) {
+            meta.put("dateRangeAdjusted", true);
+            meta.put("note", "조회 시작일이 집계 가능한 마지막 일(" + effectiveTo + ")보다 뒤여서 해당 일 기준으로 표시합니다.");
+        }
+        if (rangeTo.isAfter(today)) {
+            meta.put("displayToDate", effectiveTo.toString());
+            meta.put("requestedToDate", rangeTo.toString());
+        }
         meta.put("primaryCurrency", primaryNorm);
         meta.put("multiCurrency", multi || !baseCurrencyConfigured);
+        meta.put("feeCurrencyFormats", feeResolver.toClientByCurrencyMap());
         meta.put("integratedReportNote",
-                "집계 기준일은 거래 적재일(created_at)입니다. 일별결제와 동일합니다. 상태별 금액·건수는 조직 기준 표시 통화 행만 합산합니다(총본사·본사 다통화 설정 시). "
-                        + "가맹 열은 해당 일자에 한 건이라도 집계된 가맹만 표시되며 업체코드 오름차순입니다.");
+                "집계 기준일은 거래 적재일(created_at)입니다. 일별결제와 동일합니다. "
+                        + "성공·취소·실패·무효·이메일무효·환불·강제환불 열의 금액은 결제액이 아니라 「건수 × 기본 수수료 정책의 해당 상태 건당(고정) 수수료」입니다(성공=건당, 실패=실패수수료 등). "
+                        + "가맹 열은 해당 일자에 한 건이라도 집계된 가맹만 표시되며 업체코드 오름차순입니다. "
+                        + "가맹 수수료(변동·% / 건당)은 정책 결제율(%)·건당 표시입니다. "
+                        + "일자 클릭 시 하단 통합 결제내역의 수수료·정산액은 수수료내역과 동일한 건별 산식입니다.");
         try {
             Map<String, Object> bar = computePgTxnStatusBar(base, authentication);
             Map<String, Object> fin = computePayListFinancialSummary(base, authentication);
@@ -1467,20 +1591,20 @@ public class PayListService {
         long txnCount;
         long successCount;
         final Map<String, Long> bucketCount = new HashMap<>();
-        final Map<String, BigDecimal> bucketAmount = new HashMap<>();
+        final Map<String, BigDecimal> bucketPolicyFee = new HashMap<>();
         final Map<String, BigDecimal> approve = new HashMap<>();
         final Map<String, BigDecimal> cancel = new HashMap<>();
         final Map<String, BigDecimal> feeExVat = new HashMap<>();
         final Map<String, BigDecimal> feeVat = new HashMap<>();
         final Map<String, BigDecimal> hold = new HashMap<>();
-        final Set<String> cycleCodes = new HashSet<>();
         final Map<String, OpsIntegratedMerchantAgg> merchants = new HashMap<>();
 
         Map<String, Object> toApiRow(LocalDate day,
                                      String primaryNorm,
                                      boolean baseCurrencyConfigured,
                                      List<String> currencyOrderTemplate,
-                                     Map<String, PayListRowContext> ctxMap) {
+                                     Map<String, PayListRowContext> ctxMap,
+                                     FeeCurrencyRoundResolver feeResolver) {
             List<String> currencyOrder = new ArrayList<>(currencyOrderTemplate);
             if (!baseCurrencyConfigured) {
                 currencyOrder.clear();
@@ -1503,18 +1627,11 @@ public class PayListService {
             for (String c : currencyOrder) {
                 BigDecimal a = approve.getOrDefault(c, BigDecimal.ZERO);
                 BigDecimal k = cancel.getOrDefault(c, BigDecimal.ZERO);
+                FeeListRoundingPolicy rp = feeResolver.forCurrency(c);
                 totalPayment = totalPayment.add(a.subtract(k));
-                totalFeeExVat = totalFeeExVat.add(feeExVat.getOrDefault(c, BigDecimal.ZERO));
-                totalVat = totalVat.add(feeVat.getOrDefault(c, BigDecimal.ZERO));
-                totalHold = totalHold.add(hold.getOrDefault(c, BigDecimal.ZERO));
-            }
-            String payCycleLabel;
-            if (cycleCodes.isEmpty()) {
-                payCycleLabel = "";
-            } else if (cycleCodes.size() == 1) {
-                payCycleLabel = cycleCodes.iterator().next();
-            } else {
-                payCycleLabel = "Multi";
+                totalFeeExVat = totalFeeExVat.add(FeeListRoundingPolicy.round(feeExVat.getOrDefault(c, BigDecimal.ZERO), rp));
+                totalVat = totalVat.add(FeeListRoundingPolicy.round(feeVat.getOrDefault(c, BigDecimal.ZERO), rp));
+                totalHold = totalHold.add(FeeListRoundingPolicy.round(hold.getOrDefault(c, BigDecimal.ZERO), rp));
             }
             List<Map<String, Object>> bucketRows = new ArrayList<>();
             for (String bk : PayListStatusBarBuckets.DEFAULT_STATUS_BAR_BUCKET_ORDER) {
@@ -1524,21 +1641,20 @@ public class PayListService {
                 Map<String, Object> br = new LinkedHashMap<>();
                 br.put("bucket", bk);
                 br.put("count", bucketCount.getOrDefault(bk, 0L));
-                br.put("amount", PayListStatusBarBuckets.stripTrailingZeros(bucketAmount.getOrDefault(bk, BigDecimal.ZERO)));
+                br.put("amount", PayListStatusBarBuckets.stripTrailingZeros(bucketPolicyFee.getOrDefault(bk, BigDecimal.ZERO)));
                 bucketRows.add(br);
             }
             List<Map<String, Object>> merchantRows = new ArrayList<>();
             merchants.values().stream()
                     .filter(m -> m.txnCount > 0)
                     .sorted(Comparator.comparing(m -> m.compId, Comparator.nullsLast(String::compareTo)))
-                    .forEach(m -> merchantRows.add(m.toApiRow(currencyOrder, ctxMap)));
+                    .forEach(m -> merchantRows.add(m.toApiRow(currencyOrder, ctxMap, feeResolver)));
             Map<String, Object> row = new LinkedHashMap<>();
             row.put("day", day.toString());
             row.put("totalPayment", PayListStatusBarBuckets.stripTrailingZeros(totalPayment));
             row.put("totalFeeExVat", PayListStatusBarBuckets.stripTrailingZeros(totalFeeExVat));
             row.put("depositAmount", PayListStatusBarBuckets.stripTrailingZeros(totalHold));
             row.put("vat", PayListStatusBarBuckets.stripTrailingZeros(totalVat));
-            row.put("payCycleLabel", payCycleLabel);
             row.put("totalTxnCount", txnCount);
             row.put("buckets", bucketRows);
             row.put("merchants", merchantRows);
@@ -1554,7 +1670,6 @@ public class PayListService {
         long txnCount;
         long successCount;
         final Map<String, Long> bucketCount = new HashMap<>();
-        final Map<String, BigDecimal> bucketAmount = new HashMap<>();
         final Map<String, BigDecimal> approve = new HashMap<>();
         final Map<String, BigDecimal> cancel = new HashMap<>();
         final Map<String, BigDecimal> feeExVat = new HashMap<>();
@@ -1569,30 +1684,37 @@ public class PayListService {
         }
 
         Map<String, Object> toApiRow(List<String> currencyOrder,
-                                     Map<String, PayListRowContext> ctxMap) {
-            BigDecimal feeVar = BigDecimal.ZERO;
-            BigDecimal feePerTxn = BigDecimal.ZERO;
+                                     Map<String, PayListRowContext> ctxMap,
+                                     FeeCurrencyRoundResolver feeResolver) {
             BigDecimal totalAmt = BigDecimal.ZERO;
             for (String c : currencyOrder) {
                 BigDecimal a = approve.getOrDefault(c, BigDecimal.ZERO);
                 BigDecimal k = cancel.getOrDefault(c, BigDecimal.ZERO);
                 totalAmt = totalAmt.add(a.subtract(k));
-                BigDecimal fe = feeExVat.getOrDefault(c, BigDecimal.ZERO);
-                BigDecimal pt = perTxnParts.getOrDefault(c, BigDecimal.ZERO);
-                BigDecimal ex = extraPct.getOrDefault(c, BigDecimal.ZERO);
-                feePerTxn = feePerTxn.add(pt);
-                feeVar = feeVar.add(fe.subtract(pt).subtract(ex));
             }
             PayListRowContext cctx = ctx != null ? ctx : ctxMap.get(compId);
             String compNm = "";
             if (cctx != null && cctx.getCompNm() != null) {
                 compNm = cctx.getCompNm();
             }
+            String feeVar = "";
+            String feePer = "";
+            CommissionPolicy pol = cctx != null ? cctx.getPolicy() : null;
+            if (pol != null && feeResolver != null) {
+                String policyCur = pol.getCurrencyCode() != null && !pol.getCurrencyCode().isBlank()
+                        ? pol.getCurrencyCode().trim().toUpperCase(Locale.ROOT) : "KRW";
+                FeeListRoundingPolicy rp = feeResolver.forCurrency(policyCur);
+                BigDecimal payRate = pol.getPayRate() != null ? pol.getPayRate() : BigDecimal.ZERO;
+                BigDecimal perTx = pol.getPerTxFee() != null ? pol.getPerTxFee() : BigDecimal.ZERO;
+                feeVar = PayListStatusBarBuckets.stripTrailingZeros(FeeListRoundingPolicy.round(payRate, rp));
+                feePer = PayListStatusBarBuckets.stripTrailingZeros(FeeListRoundingPolicy.round(perTx, rp));
+            }
             Map<String, Object> m = new LinkedHashMap<>();
             m.put("compId", compId);
             m.put("compNm", compNm);
-            m.put("feeVariable", PayListStatusBarBuckets.stripTrailingZeros(feeVar));
-            m.put("feePerTxn", PayListStatusBarBuckets.stripTrailingZeros(feePerTxn));
+            m.put("feeVariable", feeVar);
+            m.put("feePerTxn", feePer);
+            m.put("feePolicyCurrency", pol != null && pol.getCurrencyCode() != null ? pol.getCurrencyCode().trim().toUpperCase(Locale.ROOT) : "");
             m.put("txnCount", txnCount);
             m.put("successCount", successCount);
             m.put("totalAmount", PayListStatusBarBuckets.stripTrailingZeros(totalAmt));

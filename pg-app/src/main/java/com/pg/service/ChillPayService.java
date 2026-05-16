@@ -18,6 +18,7 @@ import com.pg.entity.OrgLevel;
 import com.pg.entity.OrgUnit;
 import com.pg.entity.PgTrnsctn;
 import com.pg.entity.PgAgency;
+import com.pg.entity.SettlementSetting;
 import com.pg.util.ChillPayDirectCreditUtil;
 import com.pg.util.PayListStatusBarBuckets;
 import com.pg.util.TrnTimeDualZoneDisplay;
@@ -26,6 +27,7 @@ import com.pg.repository.MerchantPgBindingRepository;
 import com.pg.repository.OrgUnitRepository;
 import com.pg.repository.PgAgencyRepository;
 import com.pg.repository.PgTrnsctnRepository;
+import com.pg.repository.SettlementSettingRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.*;
@@ -136,6 +138,7 @@ public class ChillPayService {
     private final PgExtSettlementExpectedService pgExtSettlementExpectedService;
     private final HqLedgerSysSettingsService hqLedgerSysSettingsService;
     private final MasterDistSettlementCronZoneService masterDistSettlementCronZoneService;
+    private final SettlementSettingRepository settlementSettingRepository;
     private final RestTemplate restTemplate = new RestTemplate();
 
     public ChillPayService(ChillPayProperties props, HqApiConfigRepository hqApiConfigRepository,
@@ -148,7 +151,8 @@ public class ChillPayService {
                           UrlPayDisplayFxService urlPayDisplayFxService,
                           PgExtSettlementExpectedService pgExtSettlementExpectedService,
                           HqLedgerSysSettingsService hqLedgerSysSettingsService,
-                          MasterDistSettlementCronZoneService masterDistSettlementCronZoneService) {
+                          MasterDistSettlementCronZoneService masterDistSettlementCronZoneService,
+                          SettlementSettingRepository settlementSettingRepository) {
         this.props = props;
         this.hqApiConfigRepository = hqApiConfigRepository;
         this.merchantPgBindingRepository = merchantPgBindingRepository;
@@ -161,6 +165,7 @@ public class ChillPayService {
         this.pgExtSettlementExpectedService = pgExtSettlementExpectedService;
         this.hqLedgerSysSettingsService = hqLedgerSysSettingsService;
         this.masterDistSettlementCronZoneService = masterDistSettlementCronZoneService;
+        this.settlementSettingRepository = settlementSettingRepository;
     }
 
     /** 가맹점 결제 조합 시 MID·샌드박스 보조 (Route 확정 전에 조회 가능) */
@@ -1977,9 +1982,10 @@ public class ChillPayService {
             int startNo = (pn - 1) * ps + 1;
             Map<String, Optional<OrgUnit>> orgCache = new HashMap<>();
             Map<String, TxnMerchantLookup> txnOrgCache = new HashMap<>();
+            Map<Long, String> calcCycleByOrgId = new HashMap<>();
             for (int i = 0; i < raw.size(); i++) {
                 Map<String, Object> row = wrapChillPayRow(raw.get(i), startNo + i);
-                enrichChillPayTrSearchRow(row, orgCache, txnOrgCache);
+                enrichChillPayTrSearchRow(row, orgCache, txnOrgCache, calcCycleByOrgId);
                 list.add(row);
             }
             enrichSettlementRowsTxnStatusForChillGrid(list);
@@ -2206,10 +2212,11 @@ public class ChillPayService {
         int startNo = (pn - 1) * ps + 1;
         Map<String, Optional<OrgUnit>> orgCache = new HashMap<>();
         Map<String, TxnMerchantLookup> txnOrgCache = new HashMap<>();
+        Map<Long, String> calcCycleByOrgId = new HashMap<>();
         for (int i = 0; i < raw.size(); i++) {
             Map<String, Object> row = wrapChillPayRow(raw.get(i), startNo + i);
             applyChillSettlementSearchAliases(row);
-            enrichChillPayTrSearchRow(row, orgCache, txnOrgCache);
+            enrichChillPayTrSearchRow(row, orgCache, txnOrgCache, calcCycleByOrgId);
             list.add(row);
         }
         enrichSettlementRowsTxnStatusForChillGrid(list);
@@ -2453,9 +2460,33 @@ public class ChillPayService {
      */
     private void enrichChillPayTrSearchRow(Map<String, Object> m,
                                            Map<String, Optional<OrgUnit>> orgCache,
-                                           Map<String, TxnMerchantLookup> txnOrgCache) {
-        enrichChillPayTrRowOrg(m, orgCache, txnOrgCache);
+                                           Map<String, TxnMerchantLookup> txnOrgCache,
+                                           Map<Long, String> calcCycleByOrgId) {
+        enrichChillPayTrRowOrg(m, orgCache, txnOrgCache, calcCycleByOrgId);
         enrichChillPayTrRowDatesAndZones(m);
+        ensureChillPayTrCalcCycle(m, calcCycleByOrgId);
+    }
+
+    private void ensureChillPayTrCalcCycle(Map<String, Object> m, Map<Long, String> calcCycleByOrgId) {
+        Object existing = m.get("calcCycle");
+        if (existing != null && !String.valueOf(existing).trim().isEmpty() && !"-".equals(String.valueOf(existing).trim())) {
+            return;
+        }
+        m.put("calcCycle", "-");
+    }
+
+    private void putChillPayTrCalcCycleForOrg(Map<String, Object> m, Long orgUnitId, Map<Long, String> calcCycleByOrgId) {
+        if (orgUnitId == null) {
+            m.put("calcCycle", "-");
+            return;
+        }
+        String cycle = calcCycleByOrgId.computeIfAbsent(orgUnitId, id ->
+                settlementSettingRepository.findByOrgUnitId(id)
+                        .map(SettlementSetting::getCalcCycle)
+                        .map(String::trim)
+                        .filter(s -> !s.isEmpty())
+                        .orElse(""));
+        m.put("calcCycle", cycle.isEmpty() ? "-" : cycle);
     }
 
     private void enrichChillPayTrRowDatesAndZones(Map<String, Object> m) {
@@ -2499,7 +2530,8 @@ public class ChillPayService {
 
     private void enrichChillPayTrRowOrg(Map<String, Object> m,
                                         Map<String, Optional<OrgUnit>> orgCache,
-                                        Map<String, TxnMerchantLookup> txnOrgCache) {
+                                        Map<String, TxnMerchantLookup> txnOrgCache,
+                                        Map<Long, String> calcCycleByOrgId) {
         String mid = chillTrMerchantRaw(m);
         String routeKey = normalizeChillRouteNoKey(chillTrRouteRaw(m));
         if (mid.isEmpty()) {
@@ -2514,6 +2546,7 @@ public class ChillPayService {
                 m.put("compNm", o.getName() != null ? o.getName() : "");
                 m.put("compId", o.getCode() != null ? o.getCode() : "");
                 m.put("merchantNm", o.getName() != null ? o.getName() : mid);
+                putChillPayTrCalcCycleForOrg(m, o.getId(), calcCycleByOrgId);
             } else {
                 m.put("compNm", "");
                 m.put("compId", "");
@@ -2521,14 +2554,15 @@ public class ChillPayService {
             }
         }
         if (isBlankStr(m.get("compId")) || isBlankStr(m.get("compNm"))) {
-            enrichChillPayTrRowOrgFromTxn(m, txnOrgCache);
+            enrichChillPayTrRowOrgFromTxn(m, txnOrgCache, calcCycleByOrgId);
         }
     }
 
     /**
      * 1순위(MID·Route→바인딩) 후에도 업체명·코드가 비어 있으면, 결제 DB에 저장된 Chill TransactionId로 역추적한다.
      */
-    private void enrichChillPayTrRowOrgFromTxn(Map<String, Object> m, Map<String, TxnMerchantLookup> txnOrgCache) {
+    private void enrichChillPayTrRowOrgFromTxn(Map<String, Object> m, Map<String, TxnMerchantLookup> txnOrgCache,
+                                               Map<Long, String> calcCycleByOrgId) {
         String chillTxn = firstNonBlankString(m,
                 "transactionId", "TransactionId", "Transaction_Id", "transaction_id",
                 "chillTransactionId", "ChillTransactionId", "CHILL_TRANSACTION_ID");
@@ -2552,6 +2586,7 @@ public class ChillPayService {
                     m.put("merchantNm", display);
                 }
             }
+            putChillPayTrCalcCycleForOrg(m, ou.getId(), calcCycleByOrgId);
         } else {
             if (isBlankStr(m.get("compId"))) {
                 m.put("compId", lk.merchantId());

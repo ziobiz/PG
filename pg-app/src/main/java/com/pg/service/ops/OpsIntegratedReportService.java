@@ -1,10 +1,10 @@
 package com.pg.service.ops;
 
+import com.pg.api.dto.PayListSearchRequest;
 import com.pg.service.PayListService;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDate;
 import java.util.Map;
 import java.util.Optional;
 
@@ -27,11 +27,12 @@ public class OpsIntegratedReportService {
         return taxReportService.accessMeta(authentication);
     }
 
-    public Map<String, Object> dailyReport(LocalDate searchFromDate, LocalDate searchToDate, Authentication authentication) {
+    public Map<String, Object> dailyReport(Map<String, String> params, Authentication authentication) {
         Optional<String> deny = taxReportService.accessDeniedReason(authentication);
         if (deny.isPresent()) {
             throw new IllegalStateException(deny.get());
         }
-        return payListService.buildOpsIntegratedReport(searchFromDate, searchToDate, authentication);
+        PayListSearchRequest req = PayListSearchRequest.fromParams(params);
+        return payListService.buildOpsIntegratedReport(req, authentication);
     }
 }

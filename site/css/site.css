@@ -1448,6 +1448,43 @@ body { margin: 0; height: 100%; overflow: hidden; font-family: -apple-system, Bl
   background: linear-gradient(90deg, rgba(251, 191, 36, 0.38) 0, rgba(254, 243, 199, 0.92) 14px, #fffbeb 100%) !important;
 }
 
+/* 일별통합·일별결제·일별수수료·통합 리포트 — 일자 클릭 상세(결제내역과 동일 파스텔 행) */
+#contentsMain table.pay-grid-detail-pastel tbody tr.pay-row-tone--success,
+#contentsMain table.pay-grid-detail-pastel tbody tr.pay-row-tone--success:nth-child(odd),
+#contentsMain table.pay-grid-detail-pastel tbody tr.pay-row-tone--success:nth-child(even) {
+  background: #e6f7ec !important;
+}
+#contentsMain table.pay-grid-detail-pastel tbody tr.pay-row-tone--cancel,
+#contentsMain table.pay-grid-detail-pastel tbody tr.pay-row-tone--cancel:nth-child(odd),
+#contentsMain table.pay-grid-detail-pastel tbody tr.pay-row-tone--cancel:nth-child(even) {
+  background: linear-gradient(90deg, rgba(148, 163, 184, 0.35) 0, rgba(212, 220, 230, 0.55) 12px, #e8edf3 100%) !important;
+}
+#contentsMain table.pay-grid-detail-pastel tbody tr.pay-row-tone--void,
+#contentsMain table.pay-grid-detail-pastel tbody tr.pay-row-tone--void:nth-child(odd),
+#contentsMain table.pay-grid-detail-pastel tbody tr.pay-row-tone--void:nth-child(even) {
+  background: linear-gradient(90deg, rgba(251, 191, 36, 0.42) 0, rgba(255, 237, 213, 0.95) 14px, #fff7ed 100%) !important;
+}
+#contentsMain table.pay-grid-detail-pastel tbody tr.pay-row-tone--refund,
+#contentsMain table.pay-grid-detail-pastel tbody tr.pay-row-tone--refund:nth-child(odd),
+#contentsMain table.pay-grid-detail-pastel tbody tr.pay-row-tone--refund:nth-child(even) {
+  background: #e8f1fc !important;
+}
+#contentsMain table.pay-grid-detail-pastel tbody tr.pay-row-tone--fail,
+#contentsMain table.pay-grid-detail-pastel tbody tr.pay-row-tone--fail:nth-child(odd),
+#contentsMain table.pay-grid-detail-pastel tbody tr.pay-row-tone--fail:nth-child(even) {
+  background: #fdecef !important;
+}
+#contentsMain table.pay-grid-detail-pastel tbody tr.pay-row-tone--pending,
+#contentsMain table.pay-grid-detail-pastel tbody tr.pay-row-tone--pending:nth-child(odd),
+#contentsMain table.pay-grid-detail-pastel tbody tr.pay-row-tone--pending:nth-child(even) {
+  background: #f5f7fa !important;
+}
+#contentsMain table.pay-grid-detail-pastel tbody tr.pay-row-tone--other,
+#contentsMain table.pay-grid-detail-pastel tbody tr.pay-row-tone--other:nth-child(odd),
+#contentsMain table.pay-grid-detail-pastel tbody tr.pay-row-tone--other:nth-child(even) {
+  background: linear-gradient(90deg, rgba(251, 191, 36, 0.38) 0, rgba(254, 243, 199, 0.92) 14px, #fffbeb 100%) !important;
+}
+
 .pay-grid-status-badge {
   display: inline-block;
   padding: 0.12em 0.55em;

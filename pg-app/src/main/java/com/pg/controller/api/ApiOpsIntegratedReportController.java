@@ -2,7 +2,6 @@ package com.pg.controller.api;
 
 import com.pg.api.ApiResponse;
 import com.pg.service.ops.OpsIntegratedReportService;
-import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -10,7 +9,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.time.LocalDate;
 import java.util.Map;
 
 /**
@@ -37,10 +35,9 @@ public class ApiOpsIntegratedReportController {
     @GetMapping(value = "/daily", produces = "application/json")
     public ResponseEntity<ApiResponse<Map<String, Object>>> daily(
             Authentication authentication,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate searchFromDate,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate searchToDate) {
+            @RequestParam Map<String, String> params) {
         try {
-            Map<String, Object> payload = opsIntegratedReportService.dailyReport(searchFromDate, searchToDate, authentication);
+            Map<String, Object> payload = opsIntegratedReportService.dailyReport(params, authentication);
             return ResponseEntity.ok(ApiResponse.ok(payload));
         } catch (IllegalArgumentException e) {
             String msg = e.getMessage() != null ? e.getMessage() : "VALIDATION";

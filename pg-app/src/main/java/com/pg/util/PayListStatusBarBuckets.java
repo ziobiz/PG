@@ -101,6 +101,23 @@ public final class PayListStatusBarBuckets {
         return OTHER;
     }
 
+    /** 결제내역·통합 리포트 상세 — 성공·실패·취소·무효 등 한글 표기 */
+    public static String pgStatusDisplayLabel(String statusRaw) {
+        if (statusRaw != null && "08".equals(statusRaw.trim())) {
+            return "요청";
+        }
+        return switch (bucketForPgStatus(statusRaw)) {
+            case SUCCESS -> "성공";
+            case FAIL -> "실패";
+            case CANCEL -> "취소";
+            case VOID -> "무효";
+            case EMAIL_VOID -> "이메일무효";
+            case REFUND -> "환불";
+            case FORCE_REFUND -> "강제환불";
+            default -> "기타";
+        };
+    }
+
     /**
      * ChillPay Transaction Status / PaymentStatus 문자열 — {@code resolveChillTrRowTone} 와 동일 계열.
      */

@@ -77,12 +77,8 @@ public class PayListItemDto {
         row.put("chillCustomer", chillCustomerLabel(t));
         row.put("orderNo", orderNoLabel(t));
         row.put("paymentChannel", blank(t.getPaymentChannel()));
-        row.put("payCompletedAt", t.getPaidAt() != null
-                ? (dual != null
-                ? TrnTimeDualZoneDisplay.formatConfigurableDualLineDateTime(t.getPaidAt(), interpret,
-                dual.tag1(), dual.displayZone1(), dual.tag2(), dual.displayZone2())
-                : TrnTimeDualZoneDisplay.formatDualLineDateTime(t.getPaidAt(), interpret))
-                : "");
+        /* 성공(승인)=paidAt, 실패·취소 등=paidAt 없으면 createdAt — trnTime(시각만)과 동일 이중 일시 표기 */
+        row.put("payCompletedAt", payDtStr);
         row.put("currency", resolveCurrencyCodeForDisplay(t, mp));
         row.put("routeNo", routeNoLabel(t, b));
         /** 그리드 행 상태색·뱃지 — 클라이언트 톤 매핑용(ICOPAY 내부 코드) */
@@ -102,6 +98,7 @@ public class PayListItemDto {
         row.put("settleDiv", "정산");
         String effStatus = effectiveStatusForPayLabels(t);
         row.put("payDivNm", payDivLabel(effStatus));
+        row.put("statusNm", PayListStatusBarBuckets.pgStatusDisplayLabel(effStatus));
         row.put("payProcNm", payProcLabel(effStatus));
         row.put("payCard", "-");
         row.put("cardAprvNo", resolveApprovalNoForDisplay(t));

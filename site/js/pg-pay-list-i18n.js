@@ -789,7 +789,41 @@
     chgDt: { EN: 'Changed at', JP: '変更日時', CH: '变更时间', TH: 'เวลาแก้ไข' },
     riskDiv: { EN: 'Risk type', JP: 'リスク区分', CH: '风险类型', TH: 'ประเภทความเสี่ยง' },
     riskDesc: { EN: 'Description', JP: '内容', CH: '说明', TH: 'รายละเอียด' },
-    regDt: { EN: 'Registered', JP: '登録日', CH: '注册日期', TH: 'วันที่ลงทะเบียน' }
+    regDt: { EN: 'Registered', JP: '登録日', CH: '注册日期', TH: 'วันที่ลงทะเบียน' },
+    day: { EN: 'Date', JP: '日付', CH: '日期', TH: 'วันที่' },
+    totalElements: { EN: 'Total (ChillPay)', JP: '総件数（ChillPay）', CH: '总笔数（ChillPay）', TH: 'รวม (ChillPay)' },
+    txnCount: { EN: 'All txns', JP: '全件数', CH: '全部笔数', TH: 'ทุกรายการ' },
+    txnFixedFeesSum: { EN: 'Per-txn fee', JP: '件当手数료', CH: '按笔手续费', TH: 'ค่าธรรมเนียมต่อรายการ' },
+    pctFeesSum: { EN: 'Pay (%)', JP: '決済(%)', CH: '支付(%)', TH: 'ชำระ (%)' },
+    usdtFee: { EN: 'USDT', JP: 'USDT', CH: 'USDT', TH: 'USDT' },
+    fxFee: { EN: 'FX', JP: 'FX', CH: 'FX', TH: 'FX' },
+    fee3dsFee: { EN: '3DS', JP: '3DS', CH: '3DS', TH: '3DS' },
+    rollingHoldEst: { EN: 'Collateral est.', JP: '担保見積額', CH: '担保估计额', TH: 'ประมาณหลักประกัน' },
+    failFee: { EN: 'Fail fee', JP: '失敗', CH: '失败', TH: 'ล้มเหลว' },
+    cancelFee: { EN: 'Cancel fee', JP: '取消', CH: '取消', TH: 'ยกเลิก' },
+    voidFee: { EN: 'Void fee', JP: '無効', CH: '作废', TH: 'โมฆะ' },
+    manualVoidFee: { EN: 'Manual void', JP: '手動無効', CH: '手动作废', TH: 'โมฆะด้วยมือ' },
+    refundFee: { EN: 'Refund fee', JP: '返金', CH: '退款', TH: 'คืนเงิน' },
+    chargebackFee: { EN: 'Chargeback', JP: 'チャージバック', CH: '拒付', TH: 'ชาร์จแบ็ก' },
+    totalFee: { EN: 'Total fee', JP: '手数料合計', CH: '手续费合计', TH: 'ค่าธรรมเนียมรวม' },
+    feeVat: { EN: 'VAT', JP: '消費税', CH: '增值税', TH: 'VAT' },
+    expectedPayout: { EN: 'Expected payout', JP: '支払予定額', CH: '预计拨付', TH: 'ยอดจ่ายโดยประมาณ' },
+    settlementAmt: { EN: 'Settlement amt.', JP: '精算額', CH: '结算额', TH: 'ยอดชำระ' },
+    settlementStateLabel: { EN: 'Settlement status', JP: '精算有無', CH: '结算状态', TH: 'สถานะการชำระ' },
+    note: { EN: 'Note', JP: '備考', CH: '备注', TH: 'หมายเหตุ' },
+    successCount: { EN: 'Success count', JP: '成功件数', CH: '成功笔数', TH: 'จำนวนสำเร็จ' }
+  };
+
+  /** 일별통합·일별결제·일별수수료 상태 버킷 열 */
+  var STATUS_BUCKET = {
+    SUCCESS: { EN: 'Success', JP: '成功', CH: '成功', TH: 'สำเร็จ' },
+    FAIL: { EN: 'Fail', JP: '失敗', CH: '失败', TH: 'ล้มเหลว' },
+    CANCEL: { EN: 'Cancel', JP: '取消', CH: '取消', TH: 'ยกเลิก' },
+    VOID: { EN: 'Void', JP: '無効', CH: '作废', TH: 'โมฆะ' },
+    EMAIL_VOID: { EN: 'Email void', JP: 'メール無効', CH: '邮件作废', TH: 'โมฆะทางอีเมล' },
+    REFUND: { EN: 'Refund', JP: '返金', CH: '退款', TH: 'คืนเงิน' },
+    FORCE_REFUND: { EN: 'Force refund', JP: '強制返金', CH: '强制退款', TH: 'บังคับคืนเงิน' },
+    OTHER: { EN: 'Other', JP: 'その他', CH: '其他', TH: 'อื่นๆ' }
   };
 
   var CHILL_TR_COL = Object.assign({}, COL, {
@@ -994,9 +1028,45 @@
         noticeList: scr.noticeList ? scr.noticeList.slice() : null,
         summary: scr.summary ? scr.summary.slice() : null,
         columns: scr.columns ? scr.columns.map(function (c) {
-          return c ? { key: c.key, label: c.label, type: c.type } : null;
-        }) : null
+          return c ? { key: c.key, statusBucketKey: c.statusBucketKey, label: c.label, type: c.type } : null;
+        }) : null,
+        isDailySummaryScreen: !!scr.isDailySummaryScreen
       };
+    });
+  }
+
+  function applyDailySummaryColumnsLocale(scr, snap, loc) {
+    if (!scr || !scr.isDailySummaryScreen || !scr.columns || !snap || !snap.columns) return;
+    if (loc === 'KO') {
+      scr.columns.forEach(function (c, idx) {
+        var s = snap.columns[idx];
+        if (s && c && s.label != null) c.label = s.label;
+      });
+      return;
+    }
+    scr.columns.forEach(function (c) {
+      if (!c) return;
+      var snapRow = null;
+      for (var i = 0; i < snap.columns.length; i++) {
+        var s = snap.columns[i];
+        if (!s) continue;
+        if (c.statusBucketKey && s.statusBucketKey === c.statusBucketKey) {
+          snapRow = s;
+          break;
+        }
+        if (c.key && s.key === c.key) {
+          snapRow = s;
+          break;
+        }
+      }
+      var fb = snapRow && snapRow.label != null ? snapRow.label : c.label;
+      if (c.statusBucketKey) {
+        var bk = STATUS_BUCKET[c.statusBucketKey];
+        if (bk) c.label = tRow(bk, loc, fb);
+      } else if (c.key) {
+        var row = COL[c.key];
+        if (row) c.label = tRow(row, loc, fb);
+      }
     });
   }
 
@@ -1091,6 +1161,7 @@
             if (s && c && s.key === c.key && s.label != null) c.label = s.label;
           });
         }
+        if (scr.isDailySummaryScreen) applyDailySummaryColumnsLocale(scr, snap, 'KO');
         return;
       }
       walkSearchRowsApplyLocale(scr.searchRows, snap.searchRows, loc);
@@ -1112,7 +1183,38 @@
           if (row) c.label = tRow(row, loc, fb);
         });
       }
+      if (scr.isDailySummaryScreen) applyDailySummaryColumnsLocale(scr, snap, loc);
     });
+  }
+
+  function refreshDailySummaryOpenPane(pane, cfg, tid, loc) {
+    if (!pane || !cfg || !cfg.isDailySummaryScreen || !tid) return;
+    loc = loc || getLocale();
+    var kind = cfg.dailySummaryKind ? String(cfg.dailySummaryKind) : 'pay';
+    var escHtml = function (s) {
+      return (w.PG_UI_I18N && typeof w.PG_UI_I18N.t === 'function') ? w.PG_UI_I18N.t(String(s)) : String(s);
+    };
+    var theadRow = pane.querySelector('#grid_' + tid + ' thead tr');
+    if (theadRow && cfg.columns && cfg.columns.length) {
+      theadRow.innerHTML = cfg.columns.map(function (c) {
+        var lab = c.label != null ? c.label : (c.key || '');
+        return '<th class="text-nowrap">' + escHtml(lab) + '</th>';
+      }).join('');
+    }
+    var detWrap = pane.querySelector('#dailyDetailWrap_' + tid);
+    if (detWrap) {
+      var titleEl = detWrap.querySelector('.fw-semibold');
+      if (titleEl) titleEl.textContent = escHtml('선택 일자 상세');
+      var hintTd = detWrap.querySelector('#grid_' + tid + '_detail tbody td.text-muted');
+      if (hintTd && hintTd.colSpan >= 8) {
+        hintTd.textContent = escHtml(kind === 'fee' ? '위에서 일자를 더블클릭하세요.' : '위에서 일자를 클릭하세요.');
+      }
+    }
+    var emptyCell = pane.querySelector('#grid_' + tid + ' tbody td.text-center.text-muted');
+    if (emptyCell && emptyCell.closest('tr') && !emptyCell.closest('tr').classList.contains('daily-master-row')) {
+      var onlyEmpty = pane.querySelectorAll('#grid_' + tid + ' tbody tr').length === 1;
+      if (onlyEmpty) emptyCell.textContent = escHtml('데이터 없음');
+    }
   }
 
   function patchCalcCycleSearchOptionAll(loc) {
@@ -1421,10 +1523,9 @@
         el.textContent = pickNoticeLine(packs[idx], loc);
       });
       if (cfg && cfg.isDailySummaryScreen) {
-        var theadDs = pane.querySelector('#grid_' + tid + ' thead');
-        if (theadDs && w.PG_UI_I18N && typeof w.PG_UI_I18N.applyDom === 'function') {
-          try { w.PG_UI_I18N.applyDom(theadDs); } catch (eDailyTheadDom) {}
-        }
+        try {
+          refreshDailySummaryOpenPane(pane, cfg, tid, loc);
+        } catch (eDailyPaneI18n) {}
       }
       pane.querySelectorAll('.summary-total-item[data-pg-summary-key]').forEach(function (el) {
         var key = el.getAttribute('data-pg-summary-key');
