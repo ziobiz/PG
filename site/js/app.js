@@ -8190,6 +8190,15 @@
                 html += '<td class="text-center text-nowrap">' +
                   '<button type="button" class="btn btn-sm btn-outline-primary hq-pg-row-edit py-0 px-1 me-1" data-row-idx="' + idx + '" data-pg-ui-title="연동 자격 수정" title="' + escAttr(pgAdminUiT('연동 자격 수정')) + '" data-pg-ui-t="수정">수정</button>' +
                   '<button type="button" class="btn btn-sm btn-outline-danger hq-pg-row-del py-0 px-1" data-row-idx="' + idx + '" data-pg-ui-title="PG 연동 삭제" title="' + escAttr(pgAdminUiT('PG 연동 삭제')) + '" data-pg-ui-t="삭제">삭제</button></td>';
+              } else if (c.type === 'noticeActions' && url === '/system/noticeList') {
+                var noticeRowId = row.id != null ? String(row.id) : '';
+                var noticeCanWrite = !!(getSessionUser() && getSessionUser().canWriteNotice);
+                html += '<td class="text-center text-nowrap">' +
+                  '<button type="button" class="btn btn-sm btn-outline-primary notice-detail-btn py-0 px-1 me-1" data-notice-id="' + escAttr(noticeRowId) + '" data-pg-ui-t="상세">상세</button>';
+                if (noticeCanWrite) {
+                  html += '<button type="button" class="btn btn-sm btn-outline-success notice-edit-btn py-0 px-1" data-notice-id="' + escAttr(noticeRowId) + '" data-pg-ui-t="수정">수정</button>';
+                }
+                html += '</td>';
               } else if (url === '/hq/pgApiMng' && c.key === 'integrationScopeLabel') {
                 var ik = String(row.integKind || '');
                 var scopeHtml;
@@ -9683,24 +9692,7 @@
     }
     bindNotifyTargetPicker();
     if (url === '/system/noticeList') {
-      var actRowNw = pane.querySelector('.screen-action-buttons');
-      if (actRowNw && !pane.querySelector('[data-notice-write-btn]')) {
-        var wb = document.createElement('button');
-        wb.type = 'button';
-        wb.className = 'btn btn-success btn-sm';
-        wb.setAttribute('data-notice-write-btn', '1');
-        wb.classList.add('d-none');
-        wb.setAttribute('data-pg-ui-t', '공지 등록');
-        wb.addEventListener('click', function () {
-          var u = getSessionUser();
-          if (!u || !u.canWriteNotice) { alert(pgAdminUiT('공지 등록 권한이 없습니다. 조직 등급(총본사·본사·총판)과 [공지사항] 화면 권한을 확인하세요.')); return; }
-          openNoticeWriteModal(function () {
-            doSearch(pane, tabId, 1);
-          });
-        });
-        actRowNw.insertBefore(wb, actRowNw.firstChild);
-      }
-      syncAllNoticeWriteButtons();
+      bindNoticeListScreen(pane, tabId, doSearch);
     }
     var autoSearchUrls = ['/system/noticeList', '/calc/payList', '/calc/chillPayTrList', '/calc/chillPaySettlementList', '/calc/payNotiList', '/calc/paySuccessList', '/calc/payFailList', '/calc/payRefundList', '/calc/payForceRefundList', '/calc/payCancelList', '/calc/payVoidList', '/calc/payEmailVoidList', '/calc/offsetCancList', '/pay/easyPay', '/pay/chatbotPay',
       '/comp/compMngTree', '/comp/compInfoHistList', '/commission/commisionList',
@@ -24322,8 +24314,110 @@
     });
   }
 
+  function noticeRequireWritePermission() {
+    var u = getSessionUser();
+    if (!u || !u.canWriteNotice) {
+      alert(pgAdminUiT('공지 등록 권한이 없습니다. 조직 등급(총본사·본사·총판)과 [공지사항] 화면 권한을 확인하세요.'));
+      return false;
+    }
+    return true;
+  }
+
+  function getNoticeListSelectedId(pane) {
+    if (!pane) return null;
+    var tbody = pane.querySelector('tbody');
+    if (!tbody) return null;
+    var checked = tbody.querySelector('tr .grid-row-check:checked');
+    if (!checked) return null;
+    var tr = checked.closest('tr');
+    if (!tr) return null;
+    var id = tr.getAttribute('data-id');
+    if (id) return id;
+    var idx = parseInt(tr.getAttribute('data-row-idx') || '-1', 10);
+    var list = pane._lastGridList || [];
+    if (idx >= 0 && list[idx] && list[idx].id != null) return String(list[idx].id);
+    return null;
+  }
+
+  function bindNoticeListScreen(pane, tabId, doSearchFn) {
+    if (!pane) return;
+    pane.querySelectorAll('[data-notice-write-btn]').forEach(function (btn) {
+      if ((btn.id || '') !== 'noticeWriteBtn') {
+        try { btn.remove(); } catch (eRm) {}
+      }
+    });
+    var writeBtn = pane.querySelector('#noticeWriteBtn');
+    if (writeBtn && !writeBtn._pgNoticeBound) {
+      writeBtn._pgNoticeBound = true;
+      writeBtn.setAttribute('data-notice-write-btn', '1');
+      writeBtn.addEventListener('click', function () {
+        if (!noticeRequireWritePermission()) return;
+        openNoticeWriteModal(function () {
+          if (typeof doSearchFn === 'function') doSearchFn(pane, tabId, 1);
+        });
+      });
+    }
+    var homeBtn = pane.querySelector('#noticeLoginHomeBtn');
+    if (homeBtn && !homeBtn._pgNoticeBound) {
+      homeBtn._pgNoticeBound = true;
+      homeBtn.setAttribute('data-notice-toolbar-btn', '1');
+      homeBtn.addEventListener('click', function () {
+        if (!noticeRequireWritePermission()) return;
+        var nid = getNoticeListSelectedId(pane);
+        if (!nid) { alert(pgAdminUiT('목록에서 공지 한 건을 선택(체크)하세요.')); return; }
+        if (!window.PG_API || !window.PG_API.noticePinLoginHome) { alert(pgAdminUiT('API를 사용할 수 없습니다.')); return; }
+        window.PG_API.noticePinLoginHome(nid).then(function () {
+          alert(pgAdminUiT('로그인 첫 화면 공지로 지정되었습니다.'));
+          if (typeof doSearchFn === 'function') doSearchFn(pane, tabId, 1);
+        }).catch(function (e) {
+          alert(e && e.message ? e.message : pgAdminUiT('처리 실패'));
+        });
+      });
+    }
+    var popupBtn = pane.querySelector('#noticeLoginPopupBtn');
+    if (popupBtn && !popupBtn._pgNoticeBound) {
+      popupBtn._pgNoticeBound = true;
+      popupBtn.setAttribute('data-notice-toolbar-btn', '1');
+      popupBtn.addEventListener('click', function () {
+        if (!noticeRequireWritePermission()) return;
+        var nid = getNoticeListSelectedId(pane);
+        if (!nid) { alert(pgAdminUiT('목록에서 공지 한 건을 선택(체크)하세요.')); return; }
+        if (!window.PG_API || !window.PG_API.noticePinLoginPopup) { alert(pgAdminUiT('API를 사용할 수 없습니다.')); return; }
+        window.PG_API.noticePinLoginPopup(nid).then(function () {
+          alert(pgAdminUiT('로그인 팝업 공지로 지정되었습니다.'));
+          if (typeof doSearchFn === 'function') doSearchFn(pane, tabId, 1);
+        }).catch(function (e) {
+          alert(e && e.message ? e.message : pgAdminUiT('처리 실패'));
+        });
+      });
+    }
+    if (!pane._noticeGridClickBound) {
+      pane._noticeGridClickBound = true;
+      pane.addEventListener('click', function (ev) {
+        var detailBtn = ev.target && ev.target.closest ? ev.target.closest('.notice-detail-btn') : null;
+        var editBtn = ev.target && ev.target.closest ? ev.target.closest('.notice-edit-btn') : null;
+        if (!detailBtn && !editBtn) return;
+        var nid = (detailBtn || editBtn).getAttribute('data-notice-id');
+        if (!nid) return;
+        if (editBtn) {
+          if (!noticeRequireWritePermission()) return;
+          openNoticeWriteModal(function () {
+            if (typeof doSearchFn === 'function') doSearchFn(pane, tabId, 1);
+          }, { editId: nid });
+          return;
+        }
+        openNoticeWriteModal(null, { editId: nid, readOnly: true });
+      });
+    }
+    syncAllNoticeWriteButtons();
+  }
+
   function ensureNoticeWriteModal() {
     var el = document.getElementById('pgNoticeWriteModal');
+    if (el && !el.querySelector('#pgNoticeWriteShowOnLogin')) {
+      try { el.remove(); } catch (eNwRm) {}
+      el = null;
+    }
     if (el) return el;
     var wrap = document.createElement('div');
     wrap.innerHTML =
@@ -24336,8 +24430,12 @@
       '<div class="modal-body">' +
       '<div class="mb-3"><label class="form-label" for="pgNoticeWriteTitle" data-pg-ui-t="제목"></label>' +
       '<input type="text" class="form-control" id="pgNoticeWriteTitle" maxlength="500" data-pg-ui-placeholder="제목"></div>' +
-      '<div class="mb-0"><label class="form-label" for="pgNoticeWriteContent" data-pg-ui-t="내용"></label>' +
+      '<div class="mb-3"><label class="form-label" for="pgNoticeWriteContent" data-pg-ui-t="내용"></label>' +
       '<textarea class="form-control" id="pgNoticeWriteContent" rows="12" data-pg-ui-placeholder="내용"></textarea></div>' +
+      '<div class="mb-0 d-flex flex-wrap gap-3">' +
+      '<div class="form-check"><input class="form-check-input" type="checkbox" id="pgNoticeWriteShowOnLogin"><label class="form-check-label" for="pgNoticeWriteShowOnLogin" data-pg-ui-t="첫화면">첫화면</label></div>' +
+      '<div class="form-check"><input class="form-check-input" type="checkbox" id="pgNoticeWriteShowAsPopup"><label class="form-check-label" for="pgNoticeWriteShowAsPopup" data-pg-ui-t="팝업">팝업</label></div>' +
+      '</div>' +
       '</div>' +
       '<div class="modal-footer">' +
       '<button type="button" class="btn btn-secondary" data-bs-dismiss="modal" data-pg-ui-t="취소"></button>' +
@@ -24352,14 +24450,22 @@
     if (saveBtn && !saveBtn._pgBound) {
       saveBtn._pgBound = true;
       saveBtn.addEventListener('click', function () {
+        if (el._noticeReadOnly) return;
         var titleEl = el.querySelector('#pgNoticeWriteTitle');
         var contentEl = el.querySelector('#pgNoticeWriteContent');
+        var loginEl = el.querySelector('#pgNoticeWriteShowOnLogin');
+        var popupEl = el.querySelector('#pgNoticeWriteShowAsPopup');
         var title = titleEl && titleEl.value ? String(titleEl.value).trim() : '';
         var content = contentEl && contentEl.value ? String(contentEl.value) : '';
         if (!title) { alert(pgAdminUiT('제목을 입력하세요.')); return; }
-        if (!window.PG_API || !window.PG_API.noticeCreate) { alert(pgAdminUiT('API를 사용할 수 없습니다.')); return; }
-        window.PG_API.noticeCreate(title, content).then(function () {
-          alert(pgAdminUiT('등록되었습니다.'));
+        if (!window.PG_API) { alert(pgAdminUiT('API를 사용할 수 없습니다.')); return; }
+        var opts = {
+          showOnLogin: !!(loginEl && loginEl.checked),
+          showAsPopup: !!(popupEl && popupEl.checked)
+        };
+        var editId = el._noticeEditId;
+        var done = function (msg) {
+          alert(msg);
           try {
             var M = window.bootstrap && window.bootstrap.Modal;
             if (M) {
@@ -24367,12 +24473,30 @@
               if (inst) inst.hide();
             }
           } catch (err) {}
-          if (titleEl) titleEl.value = '';
-          if (contentEl) contentEl.value = '';
+          el._noticeEditId = null;
+          el._noticeReadOnly = false;
           if (typeof el._onNoticeSaved === 'function') {
             try { el._onNoticeSaved(); } catch (e1) {}
           }
           el._onNoticeSaved = null;
+        };
+        if (editId) {
+          if (!window.PG_API.noticeUpdate) { alert(pgAdminUiT('API를 사용할 수 없습니다.')); return; }
+          window.PG_API.noticeUpdate(editId, {
+            title: title,
+            content: content,
+            showOnLogin: opts.showOnLogin,
+            showAsPopup: opts.showAsPopup
+          }).then(function () {
+            done(pgAdminUiT('수정되었습니다.'));
+          }).catch(function (e) {
+            alert(e && e.message ? e.message : pgAdminUiT('수정 실패'));
+          });
+          return;
+        }
+        if (!window.PG_API.noticeCreate) { alert(pgAdminUiT('API를 사용할 수 없습니다.')); return; }
+        window.PG_API.noticeCreate(title, content, opts).then(function () {
+          done(pgAdminUiT('등록되었습니다.'));
         }).catch(function (e) {
           alert(e && e.message ? e.message : pgAdminUiT('등록 실패'));
         });
@@ -24381,13 +24505,58 @@
     return el;
   }
 
-  function openNoticeWriteModal(onSaved) {
-    var el = ensureNoticeWriteModal();
-    el._onNoticeSaved = typeof onSaved === 'function' ? onSaved : null;
+  function applyNoticeWriteModalMode(el, opts) {
+    opts = opts || {};
     var titleEl = el.querySelector('#pgNoticeWriteTitle');
     var contentEl = el.querySelector('#pgNoticeWriteContent');
-    if (titleEl) titleEl.value = '';
-    if (contentEl) contentEl.value = '';
+    var loginEl = el.querySelector('#pgNoticeWriteShowOnLogin');
+    var popupEl = el.querySelector('#pgNoticeWriteShowAsPopup');
+    var labelEl = el.querySelector('#pgNoticeWriteModalLabel');
+    var saveBtn = el.querySelector('#pgNoticeWriteSaveBtn');
+    var readOnly = !!opts.readOnly;
+    var editId = opts.editId || null;
+    el._noticeEditId = editId;
+    el._noticeReadOnly = readOnly;
+    if (titleEl) {
+      titleEl.value = '';
+      titleEl.readOnly = readOnly;
+    }
+    if (contentEl) {
+      contentEl.value = '';
+      contentEl.readOnly = readOnly;
+    }
+    if (loginEl) { loginEl.checked = false; loginEl.disabled = readOnly; }
+    if (popupEl) { popupEl.checked = false; popupEl.disabled = readOnly; }
+    if (saveBtn) {
+      saveBtn.style.display = readOnly ? 'none' : '';
+      var saveLab = editId ? '저장' : '등록';
+      saveBtn.setAttribute('data-pg-ui-t', saveLab);
+      saveBtn.textContent = pgAdminUiT(saveLab);
+    }
+    if (labelEl) {
+      var titleKey = readOnly ? '공지 상세' : (editId ? '공지 수정' : '공지 등록');
+      labelEl.setAttribute('data-pg-ui-t', titleKey);
+      labelEl.textContent = pgAdminUiT(titleKey);
+    }
+    if (editId && window.PG_API && window.PG_API.noticeGet) {
+      window.PG_API.noticeGet(editId).then(function (raw) {
+        var d = raw && raw.data ? raw.data : raw;
+        if (!d) return;
+        if (titleEl) titleEl.value = d.title || '';
+        if (contentEl) contentEl.value = d.content || '';
+        if (loginEl) loginEl.checked = String(d.showOnLogin || '') === 'Y';
+        if (popupEl) popupEl.checked = String(d.showAsPopup || '') === 'Y';
+      }).catch(function (e) {
+        alert(e && e.message ? e.message : pgAdminUiT('조회 실패'));
+      });
+    }
+  }
+
+  function openNoticeWriteModal(onSaved, opts) {
+    opts = opts || {};
+    var el = ensureNoticeWriteModal();
+    el._onNoticeSaved = typeof onSaved === 'function' ? onSaved : null;
+    applyNoticeWriteModalMode(el, opts);
     try {
       var M = window.bootstrap && window.bootstrap.Modal;
       if (!M) { alert(pgAdminUiT('화면 구성을 불러오지 못했습니다.')); return; }
@@ -24475,6 +24644,8 @@
         if (btn.classList.contains('pagination-size-opt')) return;
         if (btn.classList.contains('pagination-num')) return;
         if (btn.getAttribute('data-notice-write-btn')) return;
+        if (btn.getAttribute('data-notice-toolbar-btn')) return;
+        if ((btn.id || '') === 'noticeWriteBtn' || (btn.id || '') === 'noticeLoginHomeBtn' || (btn.id || '') === 'noticeLoginPopupBtn') return;
         if (pane.classList && pane.classList.contains('pg-merchant-own-comp-viewer')
           && ((btn.id || '') === 'paymentUrlCopyBtn' || (btn.id || '') === 'chatbotPaymentUrlCopyBtn' || (btn.id || '') === 'chatbotEmbedScriptCopyBtn' || (btn.id || '') === 'chatbotQrDownloadBtn')) {
           btn.disabled = false;
