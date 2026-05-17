@@ -2332,7 +2332,9 @@ public class ApiHqController {
         if (!orgTabletMenuService.mayOpenOpsModeMng(u)) {
             return ResponseEntity.ok(ApiResponse.fail("이 메뉴를 열 권한이 없습니다.", "FORBIDDEN"));
         }
-        return ResponseEntity.ok(ApiResponse.ok(orgTabletMenuService.buildOpsModeMngPayload()));
+        Map<String, Object> payload = new java.util.LinkedHashMap<>(orgTabletMenuService.buildOpsModeMngPayload());
+        payload.put("canSaveMatrix", orgTabletMenuService.maySaveTabletMatrix(u));
+        return ResponseEntity.ok(ApiResponse.ok(payload));
     }
 
     @PostMapping("/opsModeMng/save")
@@ -2361,7 +2363,9 @@ public class ApiHqController {
                 matrix.put(orgLv, pages);
             }
             orgTabletMenuService.saveTabletMatrix(matrix);
-            return ResponseEntity.ok(ApiResponse.ok(orgTabletMenuService.buildOpsModeMngPayload()));
+            Map<String, Object> saved = new java.util.LinkedHashMap<>(orgTabletMenuService.buildOpsModeMngPayload());
+            saved.put("canSaveMatrix", orgTabletMenuService.maySaveTabletMatrix(u));
+            return ResponseEntity.ok(ApiResponse.ok(saved));
         } catch (Exception ex) {
             return ResponseEntity.ok(ApiResponse.fail(ex.getMessage() != null ? ex.getMessage() : "저장 실패", "ERROR"));
         }

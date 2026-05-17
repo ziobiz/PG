@@ -118,11 +118,13 @@ public class HqNotifyEnvService {
             m.put("assistantOrgLevels", orgPagePermissionService.getAssistantOrgLevelsForApi());
             m.put("assistantRoleDefaultMatrixByLevel", orgPagePermissionService.getHqAssistantDefaultMatrixByLevelResolvedForApi());
             m.put("assistantMatrixCatalog", orgPagePermissionService.getAssistantMatrixCatalogForApi());
+            m.put("assistantTabletMatrixCatalog", orgPagePermissionService.getAssistantTabletMatrixCatalogForApi());
             m.put("tabletMenuExposureByLevel", orgTabletMenuService.buildTabletExposureByLevelForApi());
         } catch (Exception ignored) {
             m.put("assistantOrgLevels", List.of());
             m.put("assistantRoleDefaultMatrixByLevel", Map.of());
             m.put("assistantMatrixCatalog", List.of());
+            m.put("assistantTabletMatrixCatalog", List.of());
             m.put("tabletMenuExposureByLevel", Map.of());
         }
         return m;

@@ -6923,11 +6923,71 @@
       CH: '担当人（辅助）菜单默认权限',
       TH: 'สิทธิ์เมนูเริ่มต้นของผู้ช่วย'
     },
-    '카탈로그의 모든 메뉴(URL)를 조직 단계(총본사~가맹점)별로 담당자 역할 상한을 둡니다. <strong>태블릿모드</strong> 구역은 [태블릿설정]에서 해당 조직에 노출한 메뉴만 권한을 줄 수 있으며, 미노출 메뉴는 접근불가(NONE)로 고정·비활성화됩니다(태블릿설정이 우선). 상단에서 편집할 조직 단계를 고른 뒤 표를 수정합니다. 본사권한설정의 개별 조직 「담당자 권한그룹별 메뉴」 저장값이 여기 기본값보다 우선합니다.': {
-      EN: 'Set per-menu (URL) permission ceilings by organization level (headquarters through merchant) for each assistant role. In the <strong>Tablet mode</strong> section, only menus exposed in [Tablet settings] for that level can be granted; others are fixed to no access (NONE) and disabled (tablet settings take priority). Choose the edit level above, then adjust the table. Per-organization assistant group menus saved in HQ permissions override these defaults.',
-      JP: 'カタログの全メニュー(URL)について、組織段階（総本社〜加盟店）ごとに担当者ロールの上限を設定します。<strong>タブレットモード</strong>欄は［タブレット設定］で当該組織に表示したメニューのみ権限付与でき、非表示はアクセス不可(NONE)で固定・無効です（タブレット設定が優先）。上部で編集する組織段階を選び表を修正します。本社権限設定の個別組織「担当者権限グループ別メニュー」保存値がここより優先されます。',
-      CH: '按组织级别（总总部至商户）为各担当角色设置菜单(URL)权限上限。<strong>平板模式</strong>区域仅可授予[平板设置]中对该级别开放的菜单；未开放的固定为不可访问(NONE)且禁用（平板设置优先）。请在上方选择要编辑的组织级别后修改表格。总部权限设置中各组织的「担当权限组菜单」保存值优先于本处默认值。',
-      TH: 'กำหนดเพดานสิทธิ์ต่อเมนู(URL) ตามระดับองค์กร (สำนักงานใหญ่ถึงร้านค้า) สำหรับแต่ละบทบาทผู้ช่วย ในส่วน <strong>โหมดแท็บเล็ต</strong> ให้สิทธิ์ได้เฉพาะเมนูที่เปิดใน[การตั้งค่าแท็บเล็ต] สำหรับระดับนั้น อื่นๆ คงเป็น NONE และปิดใช้งาน (การตั้งค่าแท็บเล็ตมีลำดับก่อน) เลือกระดับองค์กรด้านบนแล้วแก้ตาราง ค่าที่บันทึกในเมนูกลุ่มผู้ช่วยต่อองค์กร (สิทธิ์ HQ) มีลำดับก่อนค่าเริ่มต้นที่นี่'
+    '카탈로그의 일반(데스크톱) 메뉴(URL)를 조직 단계(총본사~가맹점)별로 담당자 역할 상한을 둡니다. 태블릿 전용 메뉴는 아래 「태블릿모드」에서 설정합니다. 상단에서 편집할 조직 단계를 고른 뒤 표를 수정합니다. 본사권한설정의 개별 조직 「담당자 권한그룹별 메뉴」 저장값이 여기 기본값보다 우선합니다.': {
+      EN: 'Set permission ceilings for desktop catalog menus (URLs) by organization level (headquarters through merchant) for each assistant role. Tablet-only menus are configured in the Tablet mode section below. Choose the edit level above, then adjust the table. Per-organization assistant group menus in HQ permissions override these defaults.',
+      JP: 'カタログの一般（デスクトップ）メニュー(URL)について、組織段階（総本社〜加盟店）ごとに担当者ロールの上限を設定します。タブレット専用メニューは下の「タブレットモード」で設定します。上部で編集する組織段階を選び表を修正します。本社権限設定の個別組織「担当者権限グループ別メニュー」保存値がここより優先されます。',
+      CH: '按组织级别（总总部至商户）为各担当角色设置桌面目录菜单(URL)权限上限。平板专用菜单在下方「平板模式」中设置。请在上方选择要编辑的组织级别后修改表格。总部权限设置中各组织的「担当权限组菜单」保存值优先于本处默认值。',
+      TH: 'กำหนดเพดานสิทธิ์เมนูเดสก์ท็อป(URL) ตามระดับองค์กรสำหรับแต่ละบทบาทผู้ช่วย เมนูเฉพาะแท็บเล็ตตั้งในส่วนโหมดแท็บเล็ตด้านล่าง เลือกระดับองค์กรด้านบนแล้วแก้ตาราง ค่าที่บันทึกในเมนูกลุ่มผู้ช่วยต่อองค์กร (สิทธิ์ HQ) มีลำดับก่อนค่าเริ่มต้นที่นี่'
+    },
+    '태블릿모드 (담당자 권한)': {
+      EN: 'Tablet mode (assistant permissions)',
+      JP: 'タブレットモード（担当者権限）',
+      CH: '平板模式（担当人权限）',
+      TH: 'โหมดแท็บเล็ต (สิทธิ์ผู้ช่วย)'
+    },
+    '카탈로그의 일반(데스크톱) 메뉴(URL)를 조직 단계(총본사~가맹점)별로 담당자 역할 상한을 둡니다. 태블릿 전용 메뉴는 아래 「태블릿모드」에서 설정합니다. 본사권한설정과 같이 조직 단계 탭을 선택한 뒤 표를 수정합니다. 본사권한설정의 개별 조직 「담당자 권한그룹별 메뉴」 저장값이 여기 기본값보다 우선합니다.': {
+      EN: 'Set permission ceilings for desktop catalog menus by organization level (headquarters through merchant). Tablet-only menus are configured in Tablet mode below. Select an organization level tab as in HQ permissions, then edit the table. Per-organization assistant menus in HQ permissions override these defaults.',
+      JP: 'デスクトップ向けカタログメニュー(URL)について、組織段階（総本社〜加盟店）ごとに担当者ロールの上限を設定します。タブレット専用メニューは下の「タブレットモード」で設定します。本社権限設定と同様に組織段階タブを選んで表を編集します。本社権限設定の個別組織「担当者権限グループ別メニュー」保存値がここより優先されます。',
+      CH: '按组织级别（总总部至商户）为桌面目录菜单(URL)设置担当角色权限上限。平板专用菜单在下方「平板模式」中配置。请像总部权限设置一样选择组织级别标签后编辑表格。总部权限中各组织的「担当权限组菜单」保存值优先于本处默认值。',
+      TH: 'กำหนดเพดานสิทธิ์เมนูเดสก์ท็อป(URL) ตามระดับองค์กร (สำนักงานใหญ่ถึงร้านค้า) เมนูเฉพาะแท็บเล็ตตั้งในส่วนโหมดแท็บเล็ตด้านล่าง เลือกแท็บระดับองค์กรแบบสิทธิ์ HQ แล้วแก้ตาราง ค่าที่บันทึกในเมนูกลุ่มผู้ช่วยต่อองค์กร (สิทธิ์ HQ) มีลำดับก่อนค่าเริ่มต้นที่นี่'
+    },
+    '태블릿 로그인·사이드바에 노출되는 메뉴만 담당자 역할별 기본 권한을 설정합니다. [태블릿설정]에서 해당 조직 단계에 노출하지 않은 메뉴는 접근불가(NONE)로 고정되며 선택이 비활성화됩니다(태블릿설정이 우선). 아래 조직 단계 탭으로 편집할 단계를 선택합니다.': {
+      EN: 'Set default assistant-role permissions only for menus shown in tablet login and the sidebar. Menus not exposed in [Tablet settings] for that organization level are fixed to no access (NONE) and disabled (tablet settings take priority). Select the organization level tab below to edit.',
+      JP: 'タブレットログイン・サイドバーに表示するメニューのみ、担当者ロール別の既定権限を設定します。［タブレット設定］で当該組織段階に表示しないメニューはアクセス不可(NONE)で固定され選択不可です（タブレット設定が優先）。下の組織段階タブで編集する段階を選択します。',
+      CH: '仅为平板登录与侧栏中显示的菜单设置各担当角色的默认权限。[平板设置]中未对该组织级别开放的菜单固定为不可访问(NONE)且禁用（平板设置优先）。请在下方组织级别标签中选择要编辑的级别。',
+      TH: 'ตั้งสิทธิ์เริ่มต้นต่อบทบาทผู้ช่วยเฉพาะเมนูที่แสดงในการล็อกอินแท็บเล็ตและแถบด้านข้าง เมนูที่ไม่เปิดใน[การตั้งค่าแท็บเล็ต]จะคงเป็น NONE และปิดใช้งาน (การตั้งค่าแท็บเล็ตมีลำดับก่อน) เลือกแท็บระดับองค์กรด้านล่างเพื่อแก้ไข'
+    },
+    '조직 단계(본사권한설정과 동일)': {
+      EN: 'Organization level (same as HQ permissions)',
+      JP: '組織段階（本社権限設定と同様）',
+      CH: '组织级别（与总部权限相同）',
+      TH: 'ระดับองค์กร (เหมือนสิทธิ์ HQ)'
+    },
+    '조직 단계(태블릿 권한 편집)': {
+      EN: 'Organization level (tablet permission edit)',
+      JP: '組織段階（タブレット権限の編集）',
+      CH: '组织级别（编辑平板权限）',
+      TH: 'ระดับองค์กร (แก้ไขสิทธิ์แท็บเล็ต)'
+    },
+    '태블릿 · 대메뉴·역할 일괄 적용': {
+      EN: 'Tablet · bulk apply by main menu & role',
+      JP: 'タブレット・大メニュー・ロール一括適用',
+      CH: '平板 · 按主菜单与角色批量应用',
+      TH: 'แท็บเล็ต · นำไปใช้กลุ่มตามเมนูหลักและบทบาท'
+    },
+    '태블릿 · 역할 일괄 적용': {
+      EN: 'Tablet · bulk apply by role',
+      JP: 'タブレット・ロール一括適用',
+      CH: '平板 · 按角色批量应用',
+      TH: 'แท็บเล็ต · นำไปใช้กลุ่มตามบทบาท'
+    },
+    '태블릿 메뉴 전체': {
+      EN: 'All tablet menus',
+      JP: 'タブレットメニュー全体',
+      CH: '全部平板菜单',
+      TH: 'เมนูแท็บเล็ตทั้งหมด'
+    },
+    '체크한 조직 단계·역할에만 동일 권한이 채워집니다. 태블릿설정에서 미노출된 메뉴는 적용되지 않습니다.': {
+      EN: 'Fills the same permission only for checked organization levels and roles. Menus not exposed in Tablet settings are skipped.',
+      JP: 'チェックした組織段階・ロールにのみ同じ権限を入れます。タブレット設定で非表示のメニューには適用されません。',
+      CH: '仅为勾选的组织级别与角色填入相同权限。平板设置中未开放的菜单不会应用。',
+      TH: 'เติมสิทธิ์เดียวกันเฉพาะระดับองค์กรและบทบาทที่เลือก ข้ามเมนูที่ไม่เปิดในการตั้งค่าแท็บเล็ต'
+    },
+    '태블릿설정에서 이 조직 단계에 노출되지 않은 메뉴입니다.': {
+      EN: 'This menu is not exposed for this organization level in Tablet settings.',
+      JP: 'この組織段階ではタブレット設定で表示されていないメニューです。',
+      CH: '此菜单在该组织级别的平板设置中未开放。',
+      TH: 'เมนูนี้ไม่ได้เปิดสำหรับระดับองค์กรนี้ในการตั้งค่าแท็บเล็ต'
     },
     '편집 조직 단계': {
       EN: 'Edit organization level',
@@ -9406,6 +9466,30 @@
       JP: 'Helloタイムラインを保存しました。',
       CH: 'Hello 时间线已保存。',
       TH: 'บันทึกไทม์ไลน์ Hello แล้ว'
+    },
+    '조직 단계별 후속조치 기능 허용': {
+      EN: 'Per-level post-payment action caps',
+      JP: '組織段階別の後続措置許可',
+      CH: '按组织层级后续措施上限',
+      TH: 'ขีดจำกัดการหลังชำระตามระดับองค์กร'
+    },
+    '단계별 허용 저장': {
+      EN: 'Save per-level caps',
+      JP: '段階別許可を保存',
+      CH: '保存分级上限',
+      TH: 'บันทึกตามระดับ'
+    },
+    '총본사가 단계마다 사용할 수 있는 네 가지 후속조치를 제한합니다. 전역 NOTI 설정이 꺼져 있으면 해당 기능은 동작하지 않습니다. 가맹점은 등록 시 개별 선택과 함께 적용되며(미선택 시 미사용), 이 표는 단계별 상한입니다.': {
+      EN: 'HQ caps the four post-payment actions (auto void, email void, auto refund, force refund) per organization level. If global NOTI settings disable a feature, it does not run. Merchants also follow per-registration choices (unset = disabled); this grid is the per-level ceiling.',
+      JP: '総本社が組織段階ごとに4種の後続措置（自動無効・メール無効・自動返金・強制返金）の使用上限を設定します。NOTI全体設定でオフの機能は動作しません。加盟店は登録時の個別選択も適用され（未選択は未使用）、この表は段階別の上限です。',
+      CH: '总部分别限制四种后续措施（自动作废、邮件作废、自动退款、强制退款）的使用上限。若全局 NOTI 设置关闭某功能则不生效。商户另按注册时的选择（未选=未使用）；本表为各层级上限。',
+      TH: 'สำนักงานใหญ่กำหนดเพดาน 4 การหลังชำระ (โมฆะอัตโนมัติ โมฆะอีเมล คืนเงินอัตโนมัติ บังคับคืนเงิน) ตามระดับองค์กร หาก NOTI ปิดฟีเจอร์จะไม่ทำงาน ร้านค้ายังตามที่เลือกตอนลงทะเบียน (ไม่เลือก=ไม่ใช้) ตารางนี้คือเพดานต่อระดับ'
+    },
+    '[단계별 허용 저장]으로만 반영됩니다(하단 전체 저장과 별도). 총본사·시스템 관리자만 변경할 수 있습니다.': {
+      EN: 'Applies only via [Save per-level caps] (separate from Save at the bottom of the screen). Only root HQ and system administrators can change this.',
+      JP: '「段階別許可を保存」でのみ反映されます（画面下部の一括保存とは別です）。総本社・システム管理者のみ変更できます。',
+      CH: '仅通过【保存分级上限】生效（与画面底部整页保存分开）。仅总总部与系统管理员可修改。',
+      TH: 'มีผลเฉพาะเมื่อกด [บันทึกตามระดับ] (แยกจากบันทึกทั้งหน้าด้านล่าง) เฉพาะสำนักงานใหญ่และผู้ดูแลระบบเท่านั้นที่แก้ไขได้'
     },
     '조직 단계별 후속조치 허용을 저장하시겠습니까?': {
       EN: 'Save per-tier pay follow caps?',

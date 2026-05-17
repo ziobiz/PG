@@ -217,6 +217,27 @@ public class OrgPagePermissionService {
         return rows;
     }
 
+    /** 사용자설정 「태블릿모드」 매트릭스 행 — {@link OrgTabletMenuService#TABLET_MENU_URLS} 순서 */
+    public List<Map<String, Object>> getAssistantTabletMatrixCatalogForApi() {
+        Map<String, PageMenuCatalog.PageMenuItem> byUrl = new LinkedHashMap<>();
+        for (PageMenuCatalog.PageMenuItem it : PageMenuCatalog.items()) {
+            byUrl.put(it.pageUrl(), it);
+        }
+        List<Map<String, Object>> rows = new ArrayList<>();
+        for (String url : OrgTabletMenuService.TABLET_MENU_URLS) {
+            PageMenuCatalog.PageMenuItem it = byUrl.get(url);
+            Map<String, Object> r = new LinkedHashMap<>();
+            r.put("pageUrl", url);
+            r.put("menuNm", it != null ? it.menuName() : url);
+            r.put("parentGroup", it != null ? it.parentGroup() : "태블릿모드");
+            if (it != null) {
+                r.put("menuId", it.menuId());
+            }
+            rows.add(r);
+        }
+        return rows;
+    }
+
     public String normalizeAssistantRoleDefaultMatrixToJson(Object raw) throws JsonProcessingException {
         if (raw == null) {
             return null;

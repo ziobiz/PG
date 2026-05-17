@@ -22,7 +22,7 @@ public interface SettlementSettingRepository extends JpaRepository<SettlementSet
 
     /** 가맹·정산구분 AUTO·calc_cycle 유효 건수(정산일정 요약용) */
     @Query(value = """
-            SELECT ss.calc_cycle AS cycle_code, COUNT(*)::bigint AS cnt
+            SELECT ss.calc_cycle AS cycle_code, CAST(COUNT(*) AS BIGINT) AS cnt
             FROM tb_settlement_setting ss
             INNER JOIN tb_org_unit ou ON ou.id = ss.org_unit_id
             WHERE ou.org_level = 'MERCHANT'

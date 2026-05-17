@@ -1743,16 +1743,14 @@
         },
         {
           title: '담당자(보조) 메뉴 기본 권한',
-          notice: '카탈로그의 모든 메뉴(URL)를 조직 단계(총본사~가맹점)별로 담당자 역할 상한을 둡니다. <strong>태블릿모드</strong> 구역은 [태블릿설정]에서 해당 조직에 노출한 메뉴만 권한을 줄 수 있으며, 미노출 메뉴는 접근불가(NONE)로 고정·비활성화됩니다(태블릿설정이 우선). 상단에서 편집할 조직 단계를 고른 뒤 표를 수정합니다. 본사권한설정의 개별 조직 「담당자 권한그룹별 메뉴」 저장값이 여기 기본값보다 우선합니다.',
+          notice: '카탈로그의 일반(데스크톱) 메뉴(URL)를 조직 단계(총본사~가맹점)별로 담당자 역할 상한을 둡니다. 태블릿 전용 메뉴는 아래 「태블릿모드」에서 설정합니다. 본사권한설정과 같이 조직 단계 탭을 선택한 뒤 표를 수정합니다. 본사권한설정의 개별 조직 「담당자 권한그룹별 메뉴」 저장값이 여기 기본값보다 우선합니다.',
           rows: [
             [{
               type: 'customHtml',
               col: 12,
               html: '<div id="hqUserAsstMatrixRoot" class="hq-user-asst-matrix-root border rounded p-2 bg-body-tertiary">' +
-                '<div class="d-flex flex-wrap align-items-center gap-2 mb-2">' +
-                '<label for="hqUserAsstOrgLevelSel" class="form-label small mb-0 text-nowrap" data-pg-ui-t="편집 조직 단계">편집 조직 단계</label>' +
-                '<select id="hqUserAsstOrgLevelSel" class="form-select form-select-sm" style="max-width:14rem"></select>' +
-                '<span class="small text-muted ms-md-2" data-pg-ui-t="표의 변경은 선택한 조직 단계에 반영됩니다. 저장 시 전체 조직 단계가 일괄 전송됩니다.">표의 변경은 선택한 조직 단계에 반영됩니다. 저장 시 전체 조직 단계가 일괄 전송됩니다.</span></div>' +
+                '<p class="small text-muted mb-2" data-pg-ui-t="조직 단계(본사권한설정과 동일)">조직 단계(본사권한설정과 동일)</p>' +
+                '<ul class="nav nav-pills flex-wrap gap-1 mb-2 org-perm-level-tabs hq-user-asst-level-tabs" id="hqUserAsstOrgLevelTabs" role="tablist"></ul>' +
                 '<div class="table-responsive hq-user-asst-matrix-scroll" style="max-height:28rem">' +
                 '<table class="table table-sm table-bordered align-middle mb-0 bg-white" id="hqUserAsstMatrixTable">' +
                 '<thead class="table-light sticky-top"><tr><th style="min-width:7rem" data-pg-ui-t="대메뉴">대메뉴</th><th style="min-width:8rem" data-pg-ui-t="메뉴">메뉴</th>' +
@@ -1770,6 +1768,34 @@
                 '<select id="hqUserAsstBulkPermSel" class="form-select form-select-sm"></select></div>' +
                 '<div class="col-6 col-md-3 col-lg-2 d-grid"><button type="button" class="btn btn-sm btn-outline-primary mt-3 mt-lg-4" id="hqUserAsstBulkApplyBtn" data-pg-ui-t="적용">적용</button></div></div>' +
                 '<p class="text-muted mb-0 mt-2 small" data-pg-ui-t="체크한 조직 단계·역할에만 동일 권한이 채워집니다. 대메뉴에서 「전체 메뉴」를 고르면 카탈로그 전체 URL이 대상입니다.">체크한 조직 단계·역할에만 동일 권한이 채워집니다. 대메뉴에서 「전체 메뉴」를 고르면 카탈로그 전체 URL이 대상입니다.</p></div></div>'
+            }]
+          ]
+        },
+        {
+          title: '태블릿모드 (담당자 권한)',
+          notice: '태블릿 로그인·사이드바에 노출되는 메뉴만 담당자 역할별 기본 권한을 설정합니다. [태블릿설정]에서 해당 조직 단계에 노출하지 않은 메뉴는 접근불가(NONE)로 고정되며 선택이 비활성화됩니다(태블릿설정이 우선). 아래 조직 단계 탭으로 편집할 단계를 선택합니다.',
+          rows: [
+            [{
+              type: 'customHtml',
+              col: 12,
+              html: '<div id="hqUserTabletMatrixRoot" class="hq-user-tablet-matrix-root border rounded p-2 bg-body-tertiary">' +
+                '<p class="small text-muted mb-2" data-pg-ui-t="조직 단계(태블릿 권한 편집)">조직 단계(태블릿 권한 편집)</p>' +
+                '<ul class="nav nav-pills flex-wrap gap-1 mb-2 org-perm-level-tabs hq-user-tablet-level-tabs" id="hqUserTabletOrgLevelTabs" role="tablist"></ul>' +
+                '<div class="table-responsive hq-user-tablet-matrix-scroll" style="max-height:22rem">' +
+                '<table class="table table-sm table-bordered align-middle mb-0 bg-white" id="hqUserTabletMatrixTable">' +
+                '<thead class="table-light sticky-top"><tr><th style="min-width:10rem" data-pg-ui-t="메뉴">메뉴</th>' +
+                '<th class="text-center text-nowrap p-1" style="min-width:5.5rem" data-pg-ui-t="MANAGER">MANAGER</th><th class="text-center text-nowrap p-1" style="min-width:5.5rem" data-pg-ui-t="OPERATOR">OPERATOR</th>' +
+                '<th class="text-center text-nowrap p-1" style="min-width:5.5rem" data-pg-ui-t="SETTLEMENT">SETTLEMENT</th><th class="text-center text-nowrap p-1" style="min-width:5.5rem" data-pg-ui-t="TECH">TECH</th>' +
+                '<th class="text-center text-nowrap p-1" style="min-width:5.5rem" data-pg-ui-t="CHATBOT">CHATBOT</th></tr></thead><tbody id="hqUserTabletMatrixTbody"></tbody></table></div>' +
+                '<div id="hqUserTabletBulkPanel" class="mt-3 p-2 border rounded bg-white small">' +
+                '<div class="fw-semibold mb-2" data-pg-ui-t="태블릿 · 역할 일괄 적용">태블릿 · 역할 일괄 적용</div>' +
+                '<div class="row g-2 align-items-end">' +
+                '<div class="col-12 col-lg-5"><div class="form-label mb-1" data-pg-ui-t="적용 대상 조직 단계">적용 대상 조직 단계</div><div id="hqUserTabletBulkOrgChecks" class="d-flex flex-wrap gap-2"></div></div>' +
+                '<div class="col-12 col-md-6 col-lg-4"><div class="form-label mb-1" data-pg-ui-t="역할">역할</div><div id="hqUserTabletBulkRoleChecks" class="d-flex flex-wrap gap-2"></div></div>' +
+                '<div class="col-6 col-md-3 col-lg-2"><label class="form-label mb-0" for="hqUserTabletBulkPermSel" data-pg-ui-t="권한">권한</label>' +
+                '<select id="hqUserTabletBulkPermSel" class="form-select form-select-sm"></select></div>' +
+                '<div class="col-6 col-md-3 col-lg-2 d-grid"><button type="button" class="btn btn-sm btn-outline-primary mt-3 mt-lg-4" id="hqUserTabletBulkApplyBtn" data-pg-ui-t="적용">적용</button></div></div>' +
+                '<p class="text-muted mb-0 mt-2 small" data-pg-ui-t="체크한 조직 단계·역할에만 동일 권한이 채워집니다. 태블릿설정에서 미노출된 메뉴는 적용되지 않습니다.">체크한 조직 단계·역할에만 동일 권한이 채워집니다. 태블릿설정에서 미노출된 메뉴는 적용되지 않습니다.</p></div></div>'
             }]
           ]
         }

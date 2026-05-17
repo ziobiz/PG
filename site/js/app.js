@@ -7611,6 +7611,38 @@
         });
         return;
       }
+      /* 태블릿설정 — 조직×메뉴 체크 매트릭스 */
+      if (url === '/hq/opsModeMng') {
+        var dimmOps = document.getElementById('dimm');
+        if (dimmOps) dimmOps.style.display = 'flex';
+        if (!api || !api.hqOpsModeMng) {
+          if (dimmOps) dimmOps.style.display = 'none';
+          return;
+        }
+        var opsTimeoutMs = 25000;
+        var opsTimeout = new Promise(function (_, reject) {
+          setTimeout(function () {
+            reject(new Error(pgAdminUiT('응답 시간이 초과되었습니다. PG START로 서버를 재시작한 뒤 다시 시도하세요.')));
+          }, opsTimeoutMs);
+        });
+        Promise.race([api.hqOpsModeMng({}), opsTimeout]).then(function (data) {
+          if (data && data.success === false) {
+            alert(data.message || pgAdminUiT('태블릿 설정을 불러오지 못했습니다.'));
+            return;
+          }
+          if (window.initHqOpsModeTabletMatrix) window.initHqOpsModeTabletMatrix(p, tid, data);
+        }).catch(function (err) {
+          var msgOps = (err && err.message) ? err.message : pgAdminUiT('태블릿 설정을 불러오지 못했습니다.');
+          alert(msgOps);
+          var tbOpsErr = p.querySelector('#hqOpsModeMatrixTbody_' + tid);
+          if (tbOpsErr) {
+            tbOpsErr.innerHTML = '<tr><td colspan="8" class="text-center text-danger py-4">' + pgAdminEscHtml(msgOps) + '</td></tr>';
+          }
+        }).finally(function () {
+          if (dimmOps) dimmOps.style.display = 'none';
+        });
+        return;
+      }
       if (url === '/hq/notifyInbound') {
         var pcNi = p.querySelector('#pageCnt');
         if (pageOverride != null && pageOverride !== '' && pageOverride !== false && pcNi) {
@@ -9333,6 +9365,62 @@
       });
     }
     var url = pane.getAttribute('formurl') || '';
+    function loadHqOpsModeTabletMatrixFromApi(pane0, tabId0, confirmReload) {
+      if (!window.PG_API || !window.PG_API.hqOpsModeMng) return;
+      if (confirmReload && !pgConfirmBeforeSave(
+        pgAdminUiT('서버에 저장된 태블릿 메뉴 설정을 다시 불러옵니다. 저장하지 않은 편집은 취소됩니다. 계속할까요?'),
+        pgAdminUiT('불러오면 편집 중인 내용이 사라집니다. 정말 진행할까요?')
+      )) return;
+      var dimmOpsL = document.getElementById('dimm');
+      if (dimmOpsL) dimmOpsL.style.display = 'flex';
+      window.PG_API.hqOpsModeMng({}).then(function (data) {
+        if (data && data.success === false) {
+          alert(data.message || pgAdminUiT('태블릿 설정을 불러오지 못했습니다.'));
+          return;
+        }
+        if (window.initHqOpsModeTabletMatrix) window.initHqOpsModeTabletMatrix(pane0, tabId0, data);
+      }).catch(function (e) {
+        alert(e && e.message ? e.message : pgAdminUiT('태블릿 설정을 불러오지 못했습니다.'));
+      }).finally(function () {
+        if (dimmOpsL) dimmOpsL.style.display = 'none';
+      });
+    }
+    if (url === '/hq/opsModeMng') {
+      var hqOpsReloadBtn = pane.querySelector('#hqOpsModeReloadBtn_' + tabId);
+      if (hqOpsReloadBtn && !hqOpsReloadBtn._bound) {
+        hqOpsReloadBtn._bound = true;
+        hqOpsReloadBtn.addEventListener('click', function () {
+          loadHqOpsModeTabletMatrixFromApi(pane, tabId, true);
+        });
+      }
+      var hqOpsSaveBtn = pane.querySelector('#hqOpsModeSaveBtn_' + tabId);
+      if (hqOpsSaveBtn && !hqOpsSaveBtn._bound) {
+        hqOpsSaveBtn._bound = true;
+        hqOpsSaveBtn.addEventListener('click', function () {
+          var stOps = pane._hqOpsModeState;
+          if (!stOps) { alert(pgAdminUiT('저장할 데이터가 없습니다.')); return; }
+          if (pane._hqOpsModeCanSave === false) {
+            alert(pgAdminUiT('태블릿 메뉴 매트릭스는 총본사(또는 시스템 관리자)만 저장할 수 있습니다.'));
+            return;
+          }
+          if (!pgConfirmBeforeSave(pgAdminUiT('태블릿 메뉴 노출 설정을 저장하시겠습니까?'))) return;
+          var dimmOpsS = document.getElementById('dimm');
+          if (dimmOpsS) dimmOpsS.style.display = 'flex';
+          window.PG_API.hqOpsModeMngSave({ matrix: stOps }).then(function (res) {
+            if (res && res.success === false) {
+              alert(res.message || pgAdminUiT('저장 실패'));
+              return;
+            }
+            if (window.initHqOpsModeTabletMatrix) window.initHqOpsModeTabletMatrix(pane, tabId, res);
+            alert(pgAdminUiT('저장되었습니다.'));
+          }).catch(function (e) {
+            alert(e && e.message ? e.message : pgAdminUiT('저장 실패'));
+          }).finally(function () {
+            if (dimmOpsS) dimmOpsS.style.display = 'none';
+          });
+        });
+      }
+    }
     if (url === '/calc/unpaidMng' || url === '/settlement/unpaidMng') {
       var permUnpaid = getPagePermissionForUrl('/calc/unpaidMng');
       var canRecvReg = permUnpaid === 'MODIFY' || permUnpaid === 'DELETE';
@@ -9617,7 +9705,7 @@
       '/user/userMng', '/set/gridSetMng',
       '/calc/calcList', '/calc/calcGmList', '/calc/paySettlementHoldList', '/settlement/paySettlementHoldList', '/settlement/franchiseList', '/calc/feeList', '/settlement/feeList', '/calc/compPointMngList', '/settlement/recallMng', '/calc/balanceList', '/calc/unpaidMng', '/calc/exCalcList', '/settlement/execute', '/settlement/settlementResultDistribute', '/settlement/settlementResultHold', '/calc/collateralList', '/settlement/collateralList',
       '/noti/notiUrlMng', '/noti/notiSendMngList', '/noti/notiCashReceiptUrlMng', '/noti/notiCashReceiptSendMngList',
-      '/hq/pgApiMng', '/hq/permissionMng', '/hq/accountMng', '/risk/list', '/ops/integratedReport',
+      '/hq/pgApiMng', '/hq/permissionMng', '/hq/opsModeMng', '/hq/accountMng', '/risk/list', '/ops/integratedReport',
       '/calc/dailyIntegrated', '/calc/dailyPay', '/calc/dailyFee'];
     function applySettlementReportAccessThenSearch() {
       function runSearch() {
@@ -14877,6 +14965,7 @@
       var HQ_ASST_MATRIX_ROLES = ['MANAGER', 'OPERATOR', 'SETTLEMENT', 'TECH', 'CHATBOT_ADMIN'];
       var HQ_ASST_PERM_OPTS = ['NONE', 'OBSERVER', 'MODIFY', 'DELETE'];
       var HQ_ASST_BULK_ALL = '__ALL__';
+      var HQ_TABLET_GRP_ALL = '__TABLET_ALL__';
 
       function hqAsstPermLabel(code) {
         var v = String(code != null ? code : '').toUpperCase();
@@ -14908,9 +14997,46 @@
       }
       function hqAsstEnsureState(pane) {
         if (!pane._hqUserAsstState) {
-          pane._hqUserAsstState = { orgLevel: 'MERCHANT', byLevel: {} };
+          pane._hqUserAsstState = { orgLevel: 'HEADQUARTERS', tabletOrgLevel: 'HEADQUARTERS', byLevel: {} };
+        }
+        if (pane._hqUserAsstState.tabletOrgLevel == null || pane._hqUserAsstState.tabletOrgLevel === '') {
+          pane._hqUserAsstState.tabletOrgLevel = pane._hqUserAsstState.orgLevel || 'HEADQUARTERS';
         }
         return pane._hqUserAsstState;
+      }
+      function hqUserFillOrgLevelTabs(pane, data, tabsId, levelProp) {
+        var tabs = pane.querySelector(tabsId);
+        if (!tabs) return;
+        var st = hqAsstEnsureState(pane);
+        var levels = data.assistantOrgLevels || [];
+        var active = st[levelProp];
+        if (!active || !levels.some(function (lv) { return lv.key === active; })) {
+          active = levels[0] ? levels[0].key : 'HEADQUARTERS';
+          st[levelProp] = active;
+        }
+        tabs.innerHTML = levels.map(function (lv) {
+          var isActive = lv.key === active;
+          return '<li class="nav-item" role="presentation"><button type="button" class="nav-link' +
+            (isActive ? ' active' : '') + '" data-org-level="' + pgAdminEscHtml(lv.key) + '">' +
+            pgAdminEscHtml(hqAsstOrgLevelLabel(lv)) + '</button></li>';
+        }).join('');
+      }
+      function hqUserBindOrgLevelTabs(pane, data, opts) {
+        var tabs = pane.querySelector(opts.tabsId);
+        if (!tabs || tabs._hqUserLvlBound) return;
+        tabs._hqUserLvlBound = true;
+        tabs.addEventListener('click', function (ev) {
+          var btn = ev.target && ev.target.closest ? ev.target.closest('[data-org-level]') : null;
+          if (!btn || !tabs.contains(btn)) return;
+          var st = hqAsstEnsureState(pane);
+          hqAsstSyncLevelFromDom(pane, opts.scope);
+          st[opts.levelProp] = btn.getAttribute('data-org-level');
+          tabs.querySelectorAll('.nav-link').forEach(function (b) {
+            b.classList.toggle('active', b === btn);
+          });
+          if (opts.scope === 'tablet') hqTabletRenderMatrix(pane);
+          else hqAsstRenderMatrix(pane);
+        });
       }
       function hqAsstGroupCatalog(cat) {
         var groups = [];
@@ -14925,15 +15051,17 @@
         });
         return groups;
       }
-      function hqAsstSyncCurrentLevelFromDom(pane) {
+      function hqAsstSyncLevelFromDom(pane, scope) {
         var st = hqAsstEnsureState(pane);
-        var lvl = st.orgLevel;
+        var lvl = scope === 'tablet' ? st.tabletOrgLevel : st.orgLevel;
         if (!lvl) return;
         if (!st.byLevel[lvl]) st.byLevel[lvl] = hqAsstEmptyRoleMaps();
         HQ_ASST_MATRIX_ROLES.forEach(function (r) {
           if (!st.byLevel[lvl][r]) st.byLevel[lvl][r] = {};
         });
-        pane.querySelectorAll('.hq-user-asst-matrix-sel').forEach(function (sel) {
+        var rootSel = scope === 'tablet' ? '#hqUserTabletMatrixTbody' : '#hqUserAsstMatrixTbody';
+        var selCls = scope === 'tablet' ? '.hq-user-tablet-matrix-sel' : '.hq-user-asst-matrix-sel';
+        pane.querySelectorAll(rootSel + ' ' + selCls).forEach(function (sel) {
           var role = sel.getAttribute('data-role');
           var enc = sel.getAttribute('data-url-enc');
           if (!role || enc == null) return;
@@ -14942,9 +15070,29 @@
           } catch (eS) {}
         });
       }
+      function hqAsstSyncAllLevelsFromDom(pane) {
+        hqAsstSyncLevelFromDom(pane, 'asst');
+        hqAsstSyncLevelFromDom(pane, 'tablet');
+      }
       function hqAsstCollectMatrixPayload(pane) {
-        hqAsstSyncCurrentLevelFromDom(pane);
+        hqAsstSyncAllLevelsFromDom(pane);
         return { global: {}, byLevel: hqAsstDeepClone(hqAsstEnsureState(pane).byLevel) };
+      }
+      function hqTabletUrlSet(pane) {
+        var s = {};
+        (pane._hqUserTabletCatalog || []).forEach(function (row) {
+          if (row && row.pageUrl) s[row.pageUrl] = true;
+        });
+        return s;
+      }
+      function hqTabletExposedSet(pane, lvl) {
+        var exp = pane._hqUserTabletExposure || {};
+        var list = exp[lvl];
+        var s = {};
+        if (Array.isArray(list)) {
+          list.forEach(function (u) { if (u) s[u] = true; });
+        }
+        return s;
       }
       function hqAsstInitFromApi(pane, data) {
         var st = hqAsstEnsureState(pane);
@@ -14953,21 +15101,20 @@
           var k = lv.key;
           if (!st.byLevel[k]) st.byLevel[k] = hqAsstEmptyRoleMaps();
         });
-        if (!st.orgLevel || !st.byLevel[st.orgLevel]) {
-          st.orgLevel = (data.assistantOrgLevels && data.assistantOrgLevels[0] && data.assistantOrgLevels[0].key) ? data.assistantOrgLevels[0].key : 'MERCHANT';
-        }
-        pane._hqUserAsstCatalog = data.assistantMatrixCatalog ? data.assistantMatrixCatalog.slice() : [];
-      }
-      function hqAsstFillOrgLevelSelect(pane, data) {
-        var sel = pane.querySelector('#hqUserAsstOrgLevelSel');
-        if (!sel) return;
-        var st = hqAsstEnsureState(pane);
-        var html = '';
-        (data.assistantOrgLevels || []).forEach(function (lv) {
-          html += '<option value="' + lv.key + '">' + pgAdminEscHtml(hqAsstOrgLevelLabel(lv)) + '</option>';
+        var firstKey = (data.assistantOrgLevels && data.assistantOrgLevels[0] && data.assistantOrgLevels[0].key)
+          ? data.assistantOrgLevels[0].key : 'HEADQUARTERS';
+        if (!st.orgLevel || !st.byLevel[st.orgLevel]) st.orgLevel = firstKey;
+        if (!st.tabletOrgLevel || !st.byLevel[st.tabletOrgLevel]) st.tabletOrgLevel = firstKey;
+        pane._hqUserTabletCatalog = data.assistantTabletMatrixCatalog ? data.assistantTabletMatrixCatalog.slice() : [];
+        pane._hqUserTabletExposure = data.tabletMenuExposureByLevel || {};
+        var tset = hqTabletUrlSet(pane);
+        pane._hqUserAsstCatalog = (data.assistantMatrixCatalog || []).filter(function (row) {
+          return row && row.pageUrl && !tset[row.pageUrl];
         });
-        sel.innerHTML = html;
-        sel.value = st.orgLevel;
+      }
+      function hqAsstFillOrgLevelTabs(pane, data) {
+        hqUserFillOrgLevelTabs(pane, data, '#hqUserAsstOrgLevelTabs', 'orgLevel');
+        hqUserFillOrgLevelTabs(pane, data, '#hqUserTabletOrgLevelTabs', 'tabletOrgLevel');
       }
       function hqAsstFillBulkPanel(pane, data) {
         var orgWrap = pane.querySelector('#hqUserAsstBulkOrgChecks');
@@ -15042,10 +15189,141 @@
         });
         tb.innerHTML = html;
       }
+      function hqTabletFillBulkPanel(pane, data) {
+        var orgWrap = pane.querySelector('#hqUserTabletBulkOrgChecks');
+        var roleWrap = pane.querySelector('#hqUserTabletBulkRoleChecks');
+        var permSel = pane.querySelector('#hqUserTabletBulkPermSel');
+        if (!orgWrap || !roleWrap || !permSel) return;
+        orgWrap.innerHTML = '';
+        (data.assistantOrgLevels || []).forEach(function (lv) {
+          var id = 'hqTabletBulkOrg_' + lv.key;
+          orgWrap.innerHTML += '<div class="form-check form-check-inline m-0">' +
+            '<input class="form-check-input" type="checkbox" value="' + lv.key + '" id="' + id + '">' +
+            '<label class="form-check-label" for="' + id + '">' + pgAdminEscHtml(hqAsstOrgLevelLabel(lv)) + '</label></div>';
+        });
+        roleWrap.innerHTML = '';
+        HQ_ASST_MATRIX_ROLES.forEach(function (role) {
+          var id = 'hqTabletBulkRole_' + role;
+          roleWrap.innerHTML += '<div class="form-check form-check-inline m-0">' +
+            '<input class="form-check-input hq-tablet-bulk-role-cb" type="checkbox" value="' + role + '" id="' + id + '" checked>' +
+            '<label class="form-check-label" for="' + id + '">' + pgAdminEscHtml(hqAsstRoleLabel(role)) + '</label></div>';
+        });
+        permSel.innerHTML = HQ_ASST_PERM_OPTS.map(function (p) {
+          return '<option value="' + p + '">' + pgAdminEscHtml(hqAsstPermLabel(p)) + '</option>';
+        }).join('');
+      }
+      function hqTabletRenderMatrix(pane) {
+        var st = hqAsstEnsureState(pane);
+        var cat = pane._hqUserTabletCatalog || [];
+        var tb = pane.querySelector('#hqUserTabletMatrixTbody');
+        if (!tb) return;
+        var lvl = st.tabletOrgLevel;
+        var matrix = (st.byLevel[lvl]) || hqAsstEmptyRoleMaps();
+        var exposed = hqTabletExposedSet(pane, lvl);
+        var html = '';
+        var encAll = encodeURIComponent(HQ_TABLET_GRP_ALL);
+        var lockTitle = pgAdminUiT('태블릿설정에서 이 조직 단계에 노출되지 않은 메뉴입니다.');
+        html += '<tr class="hq-asst-grp-hdr hq-asst-grp-0"><td class="small fw-semibold">' +
+          pgAdminEscHtml(pgAdminUiT('태블릿 메뉴 전체')) + '</td>';
+        HQ_ASST_MATRIX_ROLES.forEach(function (role) {
+          html += '<td class="p-1"><select class="form-select form-select-sm hq-tablet-grp-bulk" data-parent-enc="' + encAll + '" data-role="' + role + '">' +
+            '<option value="">' + pgAdminEscHtml(pgAdminUiT('그룹 일괄')) + '</option>' +
+            HQ_ASST_PERM_OPTS.map(function (p) { return '<option value="' + p + '">' + pgAdminEscHtml(hqAsstPermLabel(p)) + '</option>'; }).join('') +
+            '</select></td>';
+        });
+        html += '</tr>';
+        cat.forEach(function (row) {
+          var url = row.pageUrl || '';
+          if (!url) return;
+          var enc = encodeURIComponent(url);
+          var isExposed = !!exposed[url];
+          html += '<tr class="hq-tablet-row hq-asst-grp-0' + (isExposed ? '' : ' table-secondary opacity-75') + '">' +
+            '<td class="small">' + pgAdminEscHtml(pgOrgPermMenuLabel(url, row.menuNm || '')) + '</td>';
+          HQ_ASST_MATRIX_ROLES.forEach(function (role) {
+            var mv = (matrix[role] && matrix[role][url]) ? String(matrix[role][url]) : 'NONE';
+            if (!isExposed) {
+              mv = 'NONE';
+              if (!st.byLevel[lvl]) st.byLevel[lvl] = hqAsstEmptyRoleMaps();
+              if (!st.byLevel[lvl][role]) st.byLevel[lvl][role] = {};
+              st.byLevel[lvl][role][url] = 'NONE';
+            }
+            var opts = HQ_ASST_PERM_OPTS.map(function (p) {
+              return '<option value="' + p + '"' + (p === mv ? ' selected' : '') + '>' + pgAdminEscHtml(hqAsstPermLabel(p)) + '</option>';
+            }).join('');
+            html += '<td class="p-1"><select class="form-select form-select-sm hq-user-tablet-matrix-sel"' +
+              (isExposed ? '' : ' disabled title="' + pgAdminEscHtml(lockTitle) + '"') +
+              ' data-role="' + role + '" data-url-enc="' + enc + '">' + opts + '</select></td>';
+          });
+          html += '</tr>';
+        });
+        tb.innerHTML = html;
+      }
+      function hqTabletApplyGroupBulkSelect(pane, sel) {
+        var perm = sel.value;
+        if (!perm) return;
+        hqAsstSyncLevelFromDom(pane, 'tablet');
+        var st = hqAsstEnsureState(pane);
+        var lvl = st.tabletOrgLevel;
+        var role = sel.getAttribute('data-role');
+        var encP = sel.getAttribute('data-parent-enc');
+        if (!lvl || !role || encP == null) return;
+        var parentKey;
+        try { parentKey = decodeURIComponent(encP); } catch (eP) { parentKey = ''; }
+        if (parentKey !== HQ_TABLET_GRP_ALL) return;
+        var exposed = hqTabletExposedSet(pane, lvl);
+        if (!st.byLevel[lvl]) st.byLevel[lvl] = hqAsstEmptyRoleMaps();
+        if (!st.byLevel[lvl][role]) st.byLevel[lvl][role] = {};
+        (pane._hqUserTabletCatalog || []).forEach(function (row) {
+          var url = row.pageUrl || '';
+          if (url && exposed[url]) {
+            st.byLevel[lvl][role][url] = perm;
+          }
+        });
+        sel.value = '';
+        hqTabletRenderMatrix(pane);
+      }
+      function hqTabletApplyBulkBar(pane) {
+        var orgChecks = pane.querySelectorAll('#hqUserTabletBulkOrgChecks input[type="checkbox"]:checked');
+        var roleChecks = pane.querySelectorAll('#hqUserTabletBulkRoleChecks .hq-tablet-bulk-role-cb:checked');
+        var permSel = pane.querySelector('#hqUserTabletBulkPermSel');
+        if (!permSel) return;
+        if (!orgChecks.length) {
+          alert(pgAdminUiT('적용할 조직 단계를 하나 이상 선택하세요.'));
+          return;
+        }
+        if (!roleChecks.length) {
+          alert(pgAdminUiT('적용할 역할을 하나 이상 선택하세요.'));
+          return;
+        }
+        var perm = permSel.value;
+        hqAsstSyncLevelFromDom(pane, 'tablet');
+        var st = hqAsstEnsureState(pane);
+        var targetUrls = [];
+        (pane._hqUserTabletCatalog || []).forEach(function (row) {
+          if (row.pageUrl) targetUrls.push(row.pageUrl);
+        });
+        if (!targetUrls.length) {
+          alert(pgAdminUiT('대상 메뉴가 없습니다.'));
+          return;
+        }
+        orgChecks.forEach(function (ocb) {
+          var lv = ocb.value;
+          var exposed = hqTabletExposedSet(pane, lv);
+          if (!st.byLevel[lv]) st.byLevel[lv] = hqAsstEmptyRoleMaps();
+          roleChecks.forEach(function (rcb) {
+            var role = rcb.value;
+            if (!st.byLevel[lv][role]) st.byLevel[lv][role] = {};
+            targetUrls.forEach(function (u) {
+              if (exposed[u]) st.byLevel[lv][role][u] = perm;
+            });
+          });
+        });
+        hqTabletRenderMatrix(pane);
+      }
       function hqAsstApplyGroupBulkSelect(pane, sel) {
         var perm = sel.value;
         if (!perm) return;
-        hqAsstSyncCurrentLevelFromDom(pane);
+        hqAsstSyncLevelFromDom(pane, 'asst');
         var st = hqAsstEnsureState(pane);
         var lvl = st.orgLevel;
         var role = sel.getAttribute('data-role');
@@ -15084,7 +15362,7 @@
         }
         var perm = permSel.value;
         var parentVal = parentSel.value;
-        hqAsstSyncCurrentLevelFromDom(pane);
+        hqAsstSyncLevelFromDom(pane, 'asst');
         var st = hqAsstEnsureState(pane);
         var targetUrls = [];
         if (parentVal === HQ_ASST_BULK_ALL) {
@@ -15117,56 +15395,71 @@
         });
         hqAsstRenderMatrix(pane);
       }
-      function hqAsstBindMatrixUiOnce(pane) {
+      function hqAsstBindMatrixUiOnce(pane, data) {
         var rootMx = pane.querySelector('#hqUserAsstMatrixRoot');
-        if (!rootMx || rootMx._hqAsstUiBound) return;
-        rootMx._hqAsstUiBound = true;
-        rootMx.addEventListener('change', function (ev) {
-          var t = ev.target;
-          if (t && t.classList && t.classList.contains('hq-asst-grp-bulk')) {
-            hqAsstApplyGroupBulkSelect(pane, t);
+        if (rootMx && !rootMx._hqAsstUiBound) {
+          rootMx._hqAsstUiBound = true;
+          rootMx.addEventListener('change', function (ev) {
+            var t = ev.target;
+            if (t && t.classList && t.classList.contains('hq-asst-grp-bulk')) {
+              hqAsstApplyGroupBulkSelect(pane, t);
+            }
+          });
+          var bulkBtn = pane.querySelector('#hqUserAsstBulkApplyBtn');
+          if (bulkBtn) {
+            bulkBtn.addEventListener('click', function () { hqAsstApplyBulkBar(pane); });
           }
-        });
-        var orgSel = pane.querySelector('#hqUserAsstOrgLevelSel');
-        if (orgSel) {
-          orgSel.addEventListener('change', function () {
-            hqAsstSyncCurrentLevelFromDom(pane);
-            hqAsstEnsureState(pane).orgLevel = orgSel.value;
-            hqAsstRenderMatrix(pane);
-          });
         }
-        var bulkBtn = pane.querySelector('#hqUserAsstBulkApplyBtn');
-        if (bulkBtn) {
-          bulkBtn.addEventListener('click', function () {
-            hqAsstApplyBulkBar(pane);
+        var rootTb = pane.querySelector('#hqUserTabletMatrixRoot');
+        if (rootTb && !rootTb._hqTabletUiBound) {
+          rootTb._hqTabletUiBound = true;
+          rootTb.addEventListener('change', function (ev) {
+            var t = ev.target;
+            if (t && t.classList && t.classList.contains('hq-tablet-grp-bulk')) {
+              hqTabletApplyGroupBulkSelect(pane, t);
+            }
           });
+          var bulkBtnT = pane.querySelector('#hqUserTabletBulkApplyBtn');
+          if (bulkBtnT) {
+            bulkBtnT.addEventListener('click', function () { hqTabletApplyBulkBar(pane); });
+          }
         }
+        hqUserBindOrgLevelTabs(pane, data, { tabsId: '#hqUserAsstOrgLevelTabs', levelProp: 'orgLevel', scope: 'asst' });
+        hqUserBindOrgLevelTabs(pane, data, { tabsId: '#hqUserTabletOrgLevelTabs', levelProp: 'tabletOrgLevel', scope: 'tablet' });
       }
       function hqAsstFillAll(pane, data) {
         if (!data) return;
         pane._hqUserAsstLastData = data;
         hqAsstInitFromApi(pane, data);
-        hqAsstFillOrgLevelSelect(pane, data);
+        hqAsstFillOrgLevelTabs(pane, data);
         hqAsstFillBulkPanel(pane, data);
+        hqTabletFillBulkPanel(pane, data);
         hqAsstRenderMatrix(pane);
-        hqAsstBindMatrixUiOnce(pane);
+        hqTabletRenderMatrix(pane);
+        hqAsstBindMatrixUiOnce(pane, data);
         if (window.PG_UI_I18N && typeof window.PG_UI_I18N.applyDom === 'function') {
           try {
             var mxRoot = pane.querySelector('#hqUserAsstMatrixRoot');
             if (mxRoot) window.PG_UI_I18N.applyDom(mxRoot);
+            var tbRoot = pane.querySelector('#hqUserTabletMatrixRoot');
+            if (tbRoot) window.PG_UI_I18N.applyDom(tbRoot);
           } catch (eUsDom) {}
         }
       }
       pane._hqUserAsstRefreshLocale = function () {
         var d = pane._hqUserAsstLastData;
         if (!d) return;
-        hqAsstFillOrgLevelSelect(pane, d);
+        hqAsstFillOrgLevelTabs(pane, d);
         hqAsstFillBulkPanel(pane, d);
+        hqTabletFillBulkPanel(pane, d);
         hqAsstRenderMatrix(pane);
+        hqTabletRenderMatrix(pane);
         if (window.PG_UI_I18N && typeof window.PG_UI_I18N.applyDom === 'function') {
           try {
             var r0 = pane.querySelector('#hqUserAsstMatrixRoot');
             if (r0) window.PG_UI_I18N.applyDom(r0);
+            var r1 = pane.querySelector('#hqUserTabletMatrixRoot');
+            if (r1) window.PG_UI_I18N.applyDom(r1);
             window.PG_UI_I18N.applyDom(pane);
           } catch (eUsLoc) {}
         }
@@ -24238,6 +24531,124 @@
         var t = (btn.textContent || '').trim();
         if (t.indexOf('삭제') !== -1 || t.indexOf('일괄삭제') !== -1) btn.disabled = true;
       });
+    }
+  };
+
+  function unwrapHqOpsModePayload(data) {
+    if (!data || typeof data !== 'object') return null;
+    if (data.success === false) return null;
+    if (data.tabletItems != null || data.matrix != null) return data;
+    if (data.success === true && data.data && typeof data.data === 'object') return data.data;
+    return data;
+  }
+
+  window.initHqOpsModeTabletMatrix = function (pane, tabId, data) {
+    data = unwrapHqOpsModePayload(data);
+    if (!data) {
+      var tbFail = pane.querySelector('#hqOpsModeMatrixTbody_' + tabId) || pane.querySelector('[id^="hqOpsModeMatrixTbody_"]');
+      if (tbFail) {
+        tbFail.innerHTML = '<tr><td colspan="8" class="text-center text-danger py-4">' + pgAdminEscHtml(pgAdminUiT('태블릿 설정을 불러오지 못했습니다.')) + '</td></tr>';
+      }
+      return;
+    }
+    var thead = pane.querySelector('#hqOpsModeMatrixThead_' + tabId);
+    var tbody = pane.querySelector('#hqOpsModeMatrixTbody_' + tabId);
+    if (!thead || !tbody) {
+      var fbOps = pane.querySelector('[id^="hqOpsModeMatrixTbody_"]');
+      if (fbOps) {
+        fbOps.innerHTML = '<tr><td colspan="8" class="text-center text-danger py-4">' + pgAdminEscHtml(pgAdminUiT('화면을 불러오지 못했습니다. 탭을 닫았다가 다시 열거나 새로고침 후 시도하세요.')) + '</td></tr>';
+      }
+      return;
+    }
+    var items = Array.isArray(data.tabletItems) ? data.tabletItems : [];
+    var orgLevels = Array.isArray(data.orgLevels) ? data.orgLevels : [];
+    var matrixIn = (data.matrix && typeof data.matrix === 'object' && !Array.isArray(data.matrix)) ? data.matrix : {};
+    var canSave = data.canSaveMatrix !== false;
+
+    var state = {};
+    orgLevels.forEach(function (lv) {
+      var code = lv && lv.code != null ? String(lv.code) : '';
+      if (!code) return;
+      var row = matrixIn[code];
+      state[code] = {};
+      items.forEach(function (it) {
+        var u = it && it.url != null ? String(it.url) : '';
+        if (!u) return;
+        state[code][u] = (row && String(row[u] || '').toUpperCase() === 'Y') ? 'Y' : 'N';
+      });
+    });
+
+    pane._hqOpsModeState = state;
+    pane._hqOpsModeItems = items;
+    pane._hqOpsModeOrgLevels = orgLevels;
+    pane._hqOpsModeCanSave = canSave;
+
+    var saveBtnOps = pane.querySelector('#hqOpsModeSaveBtn_' + tabId);
+    if (saveBtnOps) saveBtnOps.disabled = !canSave;
+
+    function escOpsAttr(s) {
+      return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/"/g, '&quot;');
+    }
+    function opsMenuLabel(it) {
+      var lb = it && it.label != null ? String(it.label) : '';
+      var u = it && it.url != null ? String(it.url) : '';
+      if (u && window.PG_ADMIN_SHELL_I18N && typeof window.PG_ADMIN_SHELL_I18N.tUrlLabel === 'function') {
+        try {
+          var locOps = (window.PG_PAY_LIST_I18N && typeof window.PG_PAY_LIST_I18N.getLocale === 'function')
+            ? window.PG_PAY_LIST_I18N.getLocale() : 'KO';
+          return window.PG_ADMIN_SHELL_I18N.tUrlLabel(u, locOps, lb || u);
+        } catch (eOpsLb) { /* ignore */ }
+      }
+      return pgAdminUiT(lb || u);
+    }
+
+    if (!items.length || !orgLevels.length) {
+      thead.innerHTML = '<tr><th class="hq-ops-mode-th-menu">' + pgAdminEscHtml(pgAdminUiT('메뉴')) + '</th><th colspan="6" class="text-center text-muted">' + pgAdminEscHtml(pgAdminUiT('표시할 메뉴가 없습니다.')) + '</th></tr>';
+      tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-4">' + pgAdminEscHtml(pgAdminUiT('데이터 없음')) + '</td></tr>';
+      return;
+    }
+
+    var thHtml = '<tr><th class="hq-ops-mode-th-menu" data-pg-ui-t="메뉴">' + pgAdminEscHtml(pgAdminUiT('메뉴')) + '</th>';
+    orgLevels.forEach(function (lv) {
+      var code = escOpsAttr(lv.code);
+      var nm = pgAdminUiT(String(lv.name != null ? lv.name : lv.code || ''));
+      thHtml += '<th class="text-center hq-ops-mode-th-level" data-org-level="' + code + '" title="' + code + '">' + pgAdminEscHtml(nm) + '</th>';
+    });
+    thHtml += '</tr>';
+    thead.innerHTML = thHtml;
+
+    var tbHtml = '';
+    items.forEach(function (it) {
+      var menuUrl = it && it.url != null ? String(it.url) : '';
+      if (!menuUrl) return;
+      tbHtml += '<tr data-menu-url="' + escOpsAttr(menuUrl) + '">';
+      tbHtml += '<td class="hq-ops-mode-td-menu"><span class="d-block small text-muted">' + pgAdminEscHtml(menuUrl) + '</span><span class="fw-semibold">' + pgAdminEscHtml(opsMenuLabel(it)) + '</span></td>';
+      orgLevels.forEach(function (lv) {
+        var lvCode = lv && lv.code != null ? String(lv.code) : '';
+        var checked = state[lvCode] && state[lvCode][menuUrl] === 'Y';
+        var dis = canSave ? '' : ' disabled';
+        tbHtml += '<td class="text-center hq-ops-mode-td-check"><input type="checkbox" class="form-check-input hq-ops-mode-item-cb" data-org-level="' + escOpsAttr(lvCode) + '" data-menu-url="' + escOpsAttr(menuUrl) + '"' + (checked ? ' checked' : '') + dis + '></td>';
+      });
+      tbHtml += '</tr>';
+    });
+    tbody.innerHTML = tbHtml;
+
+    if (!pane._hqOpsModeMatrixChangeBound) {
+      pane._hqOpsModeMatrixChangeBound = true;
+      pane.addEventListener('change', function (ev) {
+        var t = ev.target;
+        if (!t || !t.classList || !t.classList.contains('hq-ops-mode-item-cb')) return;
+        if (!pane.contains(t)) return;
+        var lvKey = t.getAttribute('data-org-level') || '';
+        var urlKey = t.getAttribute('data-menu-url') || '';
+        if (!lvKey || !urlKey || !pane._hqOpsModeState || !pane._hqOpsModeState[lvKey]) return;
+        pane._hqOpsModeState[lvKey][urlKey] = t.checked ? 'Y' : 'N';
+      });
+    }
+
+    var cardOps = pane.querySelector('.hq-ops-mode-tablet');
+    if (cardOps && window.PG_UI_I18N && typeof window.PG_UI_I18N.applyDom === 'function') {
+      try { window.PG_UI_I18N.applyDom(cardOps); } catch (eOpsDom) { /* ignore */ }
     }
   };
 
