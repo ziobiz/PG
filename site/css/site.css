@@ -4069,6 +4069,29 @@ button.pay-follow-pill:focus-visible {
   max-height: 320px;
   overflow: auto;
 }
+.pg-home-dashboard-mount .pg-dash-bizday .hq-holiday-month {
+  font-size: 0.85rem;
+}
+.pg-home-dashboard-mount .pg-dash-bizday .hq-holiday-mini-table td {
+  padding: 0.15rem;
+}
+.pg-home-dashboard-mount .pg-dash-bizday .hq-holiday-day {
+  pointer-events: none;
+  cursor: default;
+}
+.pg-home-dashboard-mount .pg-dash-bizday-swatch {
+  width: 0.85rem;
+  height: 0.85rem;
+  vertical-align: middle;
+  margin-right: 0.2rem;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+}
+.pg-home-dashboard-mount .pg-dash-bizday-swatch--on {
+  background: #fff;
+}
+.pg-home-dashboard-mount .pg-dash-bizday-swatch--off {
+  background: #e9ecef;
+}
 .pg-home-dashboard-mount .pg-dash-quick .btn {
   margin: 0.15rem 0.25rem 0.15rem 0;
 }

@@ -1309,7 +1309,7 @@
   var HQ_BIZDAY_KIND_OPTIONS = ['공휴일', '국경일', '기념일', '종교휴일', '임시공휴일', '대체공휴일'];
   function hqBizdayKindOptionsHtml() {
     return HQ_BIZDAY_KIND_OPTIONS.map(function (k) {
-      return '<option value="' + escUi(k) + '">' + escUi(L(k)) + '</option>';
+      return '<option value="' + escUi(k) + '" data-pg-ui-t="' + escUi(k) + '">' + escUi(L(k)) + '</option>';
     }).join('');
   }
   function hqBizdayManualUiHtml() {
@@ -1317,10 +1317,10 @@
       '<input type="hidden" name="businessHolidayExtraDates" id="hqBizdayExtraDatesHidden">' +
       '<input type="hidden" name="holidayManualEntriesJson" id="hqBizdayManualEntriesJson">' +
       '<strong class="small d-block mb-2" data-pg-ui-t="휴일·비영업일 구간 등록">' + escUi(L('휴일·비영업일 구간 등록')) + '</strong>' +
-      '<p class="text-muted small mb-2">' + escUi(L('시작·종료일·구분·내용을 입력한 뒤 [구간 추가]로 넣거나, 목록의 [수정]으로 불러온 뒤 [수정 반영]으로 바꿉니다. [삭제]로 행을 제거할 수 있습니다. 하단 달력에 반영됩니다.')) + '</p>' +
+      pgUiParagraph('시작·종료일·구분·내용을 입력한 뒤 [구간 추가]로 넣거나, 목록의 [수정]으로 불러온 뒤 [수정 반영]으로 바꿉니다. [삭제]로 행을 제거할 수 있습니다. 하단 달력에 반영됩니다.', 'text-muted small mb-2') +
       '<div class="row g-2 align-items-end mb-2">' +
-      '<div class="col-sm-6 col-md-2"><label class="form-label mb-1 small" data-pg-ui-t="시작일">' + escUi(L('시작일')) + '</label><input type="date" lang="en-CA" class="form-control form-control-sm pg-date-input-iso" id="hqBizdayRangeFrom"></div>' +
-      '<div class="col-sm-6 col-md-2"><label class="form-label mb-1 small" data-pg-ui-t="종료일">' + escUi(L('종료일')) + '</label><input type="date" lang="en-CA" class="form-control form-control-sm pg-date-input-iso" id="hqBizdayRangeTo"></div>' +
+      '<div class="col-sm-6 col-md-2"><label class="form-label mb-1 small" data-pg-ui-t="시작일">' + escUi(L('시작일')) + '</label><input type="date" lang="en-CA" class="form-control form-control-sm pg-date-input-iso" id="hqBizdayRangeFrom" data-pg-ui-title="연도-월-일"></div>' +
+      '<div class="col-sm-6 col-md-2"><label class="form-label mb-1 small" data-pg-ui-t="종료일">' + escUi(L('종료일')) + '</label><input type="date" lang="en-CA" class="form-control form-control-sm pg-date-input-iso" id="hqBizdayRangeTo" data-pg-ui-title="연도-월-일"></div>' +
       '<div class="col-sm-6 col-md-2"><label class="form-label mb-1 small" data-pg-ui-t="일자 구분">' + escUi(L('일자 구분')) + '</label><select class="form-select form-select-sm" id="hqBizdayRangeKind">' +
       hqBizdayKindOptionsHtml() +
       '</select></div>' +
@@ -1813,11 +1813,11 @@
               '<div class="col-6 col-md-2"><label class="form-label small mb-0" data-pg-ui-t="수신일(부터)">' + escUi(L('수신일(부터)')) + '</label><input type="date" lang="en-CA" name="niSearchFrom" class="form-control form-control-sm pg-date-input-iso" autocomplete="off"></div>' +
               '<div class="col-6 col-md-2"><label class="form-label small mb-0" data-pg-ui-t="수신일(까지)">' + escUi(L('수신일(까지)')) + '</label><input type="date" lang="en-CA" name="niSearchTo" class="form-control form-control-sm pg-date-input-iso" autocomplete="off"></div>' +
               '<div class="col-12 col-md-2"><label class="form-label small mb-0" data-pg-ui-t="검색 항목">' + escUi(L('검색 항목')) + '</label><select name="niSearchKey" class="form-select form-select-sm">' +
-              '<option value="MID">MID</option><option value="ROUTE">ROUTE</option><option value="MERCHANT">' + escUi(L('가맹점코드')) + '</option><option value="STATUS">' + escUi(L('처리상태')) + '</option>' +
-              '<option value="TXN_ID">' + escUi(L('승인번호')) + '</option><option value="ORDER_NO">orderNo</option></select></div>' +
-              '<div class="col-12 col-md-3"><label class="form-label small mb-0" data-pg-ui-t="검색어">' + escUi(L('검색어')) + '</label><input type="text" name="niSearchValue" class="form-control form-control-sm" placeholder="' + escUi(L('부분 일치')) + '" autocomplete="off"></div>' +
+              '<option value="MID">MID</option><option value="ROUTE">ROUTE</option><option value="MERCHANT" data-pg-ui-t="가맹점코드">' + escUi(L('가맹점코드')) + '</option><option value="STATUS" data-pg-ui-t="처리상태">' + escUi(L('처리상태')) + '</option>' +
+              '<option value="TXN_ID" data-pg-ui-t="승인번호">' + escUi(L('승인번호')) + '</option><option value="ORDER_NO">orderNo</option></select></div>' +
+              '<div class="col-12 col-md-3"><label class="form-label small mb-0" data-pg-ui-t="검색어">' + escUi(L('검색어')) + '</label><input type="text" name="niSearchValue" class="form-control form-control-sm" data-pg-ui-placeholder="부분 일치" placeholder="' + escUi(L('부분 일치')) + '" autocomplete="off"></div>' +
               '<div class="col-6 col-md-2"><label class="form-label small mb-0" data-pg-ui-t="채널">' + escUi(L('채널')) + '</label><select name="niSearchChannelType" class="form-select form-select-sm">' +
-              '<option value="">' + escUi(L('전체')) + '</option><option value="CALL">' + escUi(L('CALL (Callback URL)')) + '</option><option value="RESULT">' + escUi(L('RESULT (Result URL)')) + '</option><option value="BOTH">' + escUi(L('BOTH (전체)')) + '</option></select></div>' +
+              '<option value="" data-pg-ui-t="전체">' + escUi(L('전체')) + '</option><option value="CALL" data-pg-ui-t="CALL (Callback URL)">' + escUi(L('CALL (Callback URL)')) + '</option><option value="RESULT" data-pg-ui-t="RESULT (Result URL)">' + escUi(L('RESULT (Result URL)')) + '</option><option value="BOTH" data-pg-ui-t="BOTH (전체)">' + escUi(L('BOTH (전체)')) + '</option></select></div>' +
               '<div class="col-6 col-md-1 d-grid"><label class="form-label small mb-0 d-none d-md-block">&nbsp;</label><button type="button" id="hqNotifyInboundSearchBtn" class="btn btn-primary btn-sm" data-pg-ui-t="조회">' + escUi(L('조회')) + '</button></div></div>' +
               '<div class="table-responsive border rounded"><table class="table table-sm table-bordered align-middle mb-0" id="hqNotifyInboundTable">' +
               '<thead class="table-light"><tr><th style="width:3.5rem">ID</th><th class="text-nowrap" style="width:10rem" data-pg-ui-t="수신시각">수신시각</th><th style="width:4.5rem" data-pg-ui-t="채널">채널</th><th style="width:5.5rem" data-pg-ui-t="대상코드">대상코드</th><th style="width:7rem">MID</th><th style="width:4rem" data-pg-ui-t="루트">루트</th>' +
@@ -1924,7 +1924,7 @@
               options: [{ v: 'CEILING', t: '절상' }, { v: 'HALF_UP', t: '반올림' }, { v: 'DOWN', t: '그대로(버림)' }] }],
             [{ type: 'customHtml', col: 12,
               html: '<div class="border rounded"><table class="table table-sm table-bordered align-middle mb-0 w-100">' +
-                '<thead class="table-light"><tr><th>' + escUi(L('기준통화')) + '</th><th class="text-center text-nowrap" data-pg-ui-t="소수 자릿수">소수 자릿수</th><th class="text-nowrap" data-pg-ui-t="잘리는 자리 처리">잘리는 자리 처리</th><th class="text-center text-nowrap" data-pg-ui-t="관리">관리</th></tr></thead>' +
+                '<thead class="table-light"><tr>' + pgUiThT('기준통화') + pgUiThT('소수 자릿수', 'text-center text-nowrap') + pgUiThT('잘리는 자리 처리', 'text-nowrap') + pgUiThT('관리', 'text-center text-nowrap') + '</tr></thead>' +
                 '<tbody id="hqFeeCurrencyFormatTbody"><tr><td colspan="4" class="text-center text-muted py-3">' + escUi(L('불러오는 중…')) + '</td></tr></tbody></table></div>' +
                 pgUiParagraphHtml('전산설정 수수료 통화 표 하단 안내', 'small text-muted mb-0 mt-1') }]
           ]
@@ -1940,7 +1940,7 @@
             [{ type: 'customHtml', col: 12,
               html: '<p class="small text-muted mb-1" data-pg-ui-t="지원 ISO 숫자 ↔ 표시 통화(알파) — 읽기 전용">' + escUi(L('지원 ISO 숫자 ↔ 표시 통화(알파) — 읽기 전용')) + '</p>' +
                 '<div class="border rounded"><table class="table table-sm table-bordered align-middle mb-0 w-100" id="grid_hqPayDisplayCurrencyCatalog">' +
-                '<thead class="table-light"><tr><th>' + escUi(L('ISO 4217 숫자')) + '</th><th data-pg-ui-t="표시 통화(알파)">표시 통화(알파)</th><th class="text-center text-nowrap" data-pg-ui-t="전역 기준">전역 기준</th></tr></thead>' +
+                '<thead class="table-light"><tr>' + pgUiThT('ISO 4217 숫자') + pgUiThT('표시 통화(알파)') + pgUiThT('전역 기준', 'text-center text-nowrap') + '</tr></thead>' +
                 '<tbody id="hqPayDisplayCurrencyCatalogTbody"><tr><td colspan="3" class="text-center text-muted py-3">' + escUi(L('불러오는 중…')) + '</td></tr></tbody></table></div>' }]
           ]
         },

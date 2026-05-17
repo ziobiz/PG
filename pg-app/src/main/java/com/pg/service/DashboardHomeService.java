@@ -56,6 +56,7 @@ public class DashboardHomeService {
     private final ServerUsageService serverUsageService;
     private final DashboardInsightsService dashboardInsightsService;
     private final DashboardHqHubService dashboardHqHubService;
+    private final DashboardBusinessDayCalendarService dashboardBusinessDayCalendarService;
 
     public DashboardHomeService(AuthService authService,
                                 OrgAccessService orgAccessService,
@@ -63,7 +64,8 @@ public class DashboardHomeService {
                                 SettlementRunRepository settlementRunRepository,
                                 ServerUsageService serverUsageService,
                                 DashboardInsightsService dashboardInsightsService,
-                                DashboardHqHubService dashboardHqHubService) {
+                                DashboardHqHubService dashboardHqHubService,
+                                DashboardBusinessDayCalendarService dashboardBusinessDayCalendarService) {
         this.authService = authService;
         this.orgAccessService = orgAccessService;
         this.pgTrnsctnRepository = pgTrnsctnRepository;
@@ -71,6 +73,7 @@ public class DashboardHomeService {
         this.serverUsageService = serverUsageService;
         this.dashboardInsightsService = dashboardInsightsService;
         this.dashboardHqHubService = dashboardHqHubService;
+        this.dashboardBusinessDayCalendarService = dashboardBusinessDayCalendarService;
     }
 
     public Map<String, Object> buildHome(Authentication authentication) {
@@ -149,7 +152,52 @@ public class DashboardHomeService {
         }
 
         out.put("insightHint", buildInsightHint(orgLevel, admin, emptyScope));
+        putBusinessDayCalendar(out, s);
         putInsightsAndHqHub(out, s);
+        return out;
+    }
+
+    /**
+     * 메인 영업일 3개월(지난달·당월·다음달). anchor는 당월(기준일의 연월).
+     */
+    private void putBusinessDayCalendar(Map<String, Object> out, DashboardAuthSlice s) {
+        try {
+            Map<String, Object> cal = dashboardBusinessDayCalendarService.build(
+                    s.user().getRole(),
+                    s.orgLevel(),
+                    s.orgUnitId(),
+                    null);
+            out.put("businessDayCalendar", cal);
+        } catch (Exception ex) {
+            log.warn("dashboard businessDayCalendar build failed for user={}", s.user().getUsername(), ex);
+            out.put("businessDayCalendar", null);
+        }
+    }
+
+    public Map<String, Object> buildBusinessDayCalendar(Authentication authentication, String anchorMonth) {
+        Map<String, Object> out = new LinkedHashMap<>();
+        Optional<DashboardAuthSlice> sliceOpt = resolveAuthSlice(authentication);
+        if (sliceOpt.isEmpty()) {
+            out.put("ok", false);
+            out.put("message", "로그인이 필요합니다.");
+            return out;
+        }
+        DashboardAuthSlice s = sliceOpt.get();
+        if (!dashboardBusinessDayCalendarService.isEligible(s.user().getRole(), s.orgLevel())) {
+            out.put("ok", false);
+            out.put("message", "영업일 달력을 볼 수 있는 조직이 아닙니다.");
+            return out;
+        }
+        try {
+            Map<String, Object> cal = dashboardBusinessDayCalendarService.build(
+                    s.user().getRole(), s.orgLevel(), s.orgUnitId(), anchorMonth);
+            out.put("ok", true);
+            out.put("businessDayCalendar", cal);
+        } catch (Exception ex) {
+            log.warn("dashboard businessDayCalendar anchor={} failed", anchorMonth, ex);
+            out.put("ok", false);
+            out.put("message", ex.getMessage() != null ? ex.getMessage() : "영업일 달력 조회 실패");
+        }
         return out;
     }
 

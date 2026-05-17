@@ -164,6 +164,21 @@
     }
     return o;
   }
+
+  function isOptAllKoText(s) {
+    var t = String(s == null ? '' : s).trim();
+    return t === OPT0.KO;
+  }
+
+  /** OPT[name|value] 또는 한글 「전체」 공통 라벨(OPT0) */
+  function resolveOptText(loc, optKey, fallback) {
+    if (loc === 'KO') return fallback;
+    var row = OPT[optKey];
+    if (row) return row[loc] || row.EN || fallback;
+    if (isOptAllKoText(fallback)) return OPT0[loc] || OPT0.EN || fallback;
+    return fallback;
+  }
+
   var OPT = {
     'searchTranFactor|ORDER_NO': optMap({ EN: 'Order no.', JP: '注文番号', CH: '订单号', TH: 'เลขคำสั่งซื้อ' }),
     'searchTranFactor|CUSTOMER_ID': optMap({ EN: 'Customer ID', JP: '顧客ID', CH: '客户ID', TH: 'รหัสลูกค้า' }),
@@ -174,6 +189,12 @@
     'searchTranFactor|MID': optMap({ EN: 'MID', JP: 'MID', CH: 'MID', TH: 'MID' }),
     'searchCompField|NM': optMap({ EN: 'Name', JP: '店名', CH: '名称', TH: 'ชื่อ' }),
     'searchCompField|CODE': optMap({ EN: 'Code', JP: 'コード', CH: '代码', TH: 'รหัส' }),
+    'searchPgCd|': optMap(),
+    'searchCycle|': optMap(),
+    'searchTranFactor|': optMap(),
+    'searchCondition|': optMap(),
+    'searchPayDivCd|': optMap(),
+    'searchPayProcCd|': optMap(),
     'searchPayDivCd|10': optMap({ EN: 'Success', JP: '成功', CH: '成功', TH: 'สำเร็จ' }),
     'searchPayDivCd|20': optMap({ EN: 'Cancel', JP: '取消', CH: '取消', TH: 'ยกเลิก' }),
     'searchPayDivCd|FAIL': optMap({ EN: 'Fail', JP: '失敗', CH: '失败', TH: 'ล้มเหลว' }),
@@ -1106,10 +1127,9 @@
           if (lbRow) cell.label = lbRow[loc] || lbRow.EN || scell.label;
           (cell.options || []).forEach(function (opt) {
             var k = nm + '|' + (opt.v != null ? String(opt.v) : '');
-            var om = OPT[k];
             var snapOpt = (scell.options || []).filter(function (x) { return x && String(x.v) === String(opt.v); })[0];
             var fb = snapOpt ? snapOpt.t : opt.t;
-            opt.t = om ? (om[loc] || om.EN || fb) : fb;
+            opt.t = resolveOptText(loc, k, fb);
           });
         } else if (cell.type === 'text' && cell.name) {
           var lr = LBL[cell.i18nLblKey || (cell.name + ':label')];
@@ -1477,6 +1497,7 @@
         if (!k) return;
         var row = OPT[k];
         if (row) el.textContent = lblText(row, loc, el.textContent);
+        else el.textContent = resolveOptText(loc, k, el.textContent);
       });
       pane.querySelectorAll('[data-pg-i18n-qd]').forEach(function (el) {
         var k = el.getAttribute('data-pg-i18n-qd');

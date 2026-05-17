@@ -1258,6 +1258,33 @@
       TH: 'ส่งไม่สำเร็จ'
     },
     /* /main dashboard (pg-home-dashboard.js) */
+    '영업일 달력': { EN: 'Business-day calendar', JP: '営業日カレンダー', CH: '营业日日历', TH: 'ปฏิทินวันทำการ' },
+    '지난달·이번달·다음달 (3개월)': {
+      EN: 'Last · this · next month (3 months)',
+      JP: '先月・今月・翌月（3か月）',
+      CH: '上月·本月·下月（3个月）',
+      TH: 'เดือนที่แล้ว·เดือนนี้·เดือนหน้า (3 เดือน)'
+    },
+    '이전 3개월': { EN: 'Previous 3 months', JP: '前の3か月', CH: '前3个月', TH: 'ย้อน 3 เดือน' },
+    '다음 3개월': { EN: 'Next 3 months', JP: '次の3か月', CH: '后3个月', TH: 'ถัดไป 3 เดือน' },
+    '영업일 설정': { EN: 'Business-day settings', JP: '営業日設定', CH: '营业日设置', TH: 'ตั้งค่าวันทำการ' },
+    '기준 프로필': { EN: 'Profile', JP: '基準プロファイル', CH: '基准配置', TH: 'โปรไฟล์อ้างอิง' },
+    '기준국가': { EN: 'Country', JP: '基準国', CH: '基准国家', TH: 'ประเทศอ้างอิง' },
+    '영업일 수': { EN: 'Business days', JP: '営業日数', CH: '营业日数', TH: 'จำนวนวันทำการ' },
+    '영업일': { EN: 'Business day', JP: '営業日', CH: '营业日', TH: 'วันทำการ' },
+    '휴일·주말': { EN: 'Holiday / weekend', JP: '休日・週末', CH: '假日·周末', TH: 'วันหยุด·สุดสัปดาห์' },
+    '영업일 달력을 불러오는 중…': {
+      EN: 'Loading business-day calendar…',
+      JP: '営業日カレンダーを読み込み中…',
+      CH: '正在加载营业日日历…',
+      TH: 'กำลังโหลดปฏิทินวันทำการ…'
+    },
+    '영업일 달력 조회 실패': {
+      EN: 'Failed to load business-day calendar.',
+      JP: '営業日カレンダーの取得に失敗しました。',
+      CH: '营业日日历查询失败。',
+      TH: 'โหลดปฏิทินวันทำการไม่สำเร็จ'
+    },
     '승인': { EN: 'Approved', JP: '承認', CH: '授权', TH: 'อนุมัติ' },
     '전체': { EN: 'All', JP: 'すべて', CH: '全部', TH: 'ทั้งหมด' },
     '건': { EN: '', JP: '件', CH: '笔', TH: 'รายการ' },
@@ -6258,6 +6285,12 @@
       CH: '例：春节连休',
       TH: 'เช่น ช่วงตรุษจีน'
     },
+    '연도-월-일': {
+      EN: 'Year-month-day (YYYY-MM-DD)',
+      JP: '年-月-日',
+      CH: '年-月-日',
+      TH: 'ปี-เดือน-วัน (YYYY-MM-DD)'
+    },
     '구간 추가': {
       EN: 'Add range',
       JP: '区間を追加',
@@ -6694,6 +6727,12 @@
       CH: '部署设置',
       TH: 'ตั้งค่า deploy'
     },
+    챗봇관리: {
+      EN: 'Chatbot management',
+      JP: 'チャットボット管理',
+      CH: '聊天机器人管理',
+      TH: 'จัดการ Chatbot'
+    },
     기타: { EN: 'Other', JP: 'その他', CH: '其他', TH: 'อื่นๆ' },
     '조직 단계별 기본 권한은 <strong>총본사</strong>(또는 시스템 관리자)만 편집합니다.': {
       EN: 'Tier default permissions can be edited only by the <strong>head office</strong> (or a system administrator).',
@@ -6952,6 +6991,8 @@
     'SETTLEMENT': { EN: 'SETTLEMENT', JP: 'SETTLEMENT', CH: 'SETTLEMENT', TH: 'SETTLEMENT' },
     'TECH': { EN: 'TECH', JP: 'TECH', CH: 'TECH', TH: 'TECH' },
     'CHATBOT': { EN: 'CHATBOT', JP: 'CHATBOT', CH: 'CHATBOT', TH: 'CHATBOT' },
+    메뉴: { EN: 'Menu', JP: 'メニュー', CH: '菜单', TH: 'เมนู' },
+    대메뉴: { EN: 'Main menu', JP: '大メニュー', CH: '主菜单', TH: 'เมนูหลัก' },
     /* /hq/accountMng — 加盟店アクセス（HQ: which companies a login may access） */
     '등록된 업체별 접근 규칙이 없습니다.': {
       EN: 'No merchant access rules are registered.',
@@ -8736,6 +8777,12 @@
       CH: 'ISO 4217 数字',
       TH: 'ตัวเลข ISO 4217'
     },
+    '전역 기준': {
+      EN: 'Global default',
+      JP: '全体基準',
+      CH: '全局基准',
+      TH: 'ค่าฐานทั่วโลก'
+    },
     '결제 후속조치 (NOTI 환경설정 대응)': {
       EN: 'Pay follow-up (NOTI env)',
       JP: '決済フォロー（NOTI環境対応）',
@@ -9031,6 +9078,49 @@
       CH: '168 小时（7 天）',
       TH: '168 ชั่วโมง (7 วัน)'
     },
+    '1시간': { EN: '1 hour', JP: '1時間', CH: '1 小时', TH: '1 ชั่วโมง' },
+    '2시간': { EN: '2 hours', JP: '2時間', CH: '2 小时', TH: '2 ชั่วโมง' },
+    '3시간': { EN: '3 hours', JP: '3時間', CH: '3 小时', TH: '3 ชั่วโมง' },
+    '6시간': { EN: '6 hours', JP: '6時間', CH: '6 小时', TH: '6 ชั่วโมง' },
+    '12시간': { EN: '12 hours', JP: '12時間', CH: '12 小时', TH: '12 ชั่วโมง' },
+    '18시간': { EN: '18 hours', JP: '18時間', CH: '18 小时', TH: '18 ชั่วโมง' },
+    '24시간': { EN: '24 hours', JP: '24時間', CH: '24 小时', TH: '24 ชั่วโมง' },
+    '36시간': { EN: '36 hours', JP: '36時間', CH: '36 小时', TH: '36 ชั่วโมง' },
+    '48시간': { EN: '48 hours', JP: '48時間', CH: '48 小时', TH: '48 ชั่วโมง' },
+    '72시간': { EN: '72 hours', JP: '72時間', CH: '72 小时', TH: '72 ชั่วโมง' },
+    '1일': { EN: '1 day', JP: '1日', CH: '1 天', TH: '1 วัน' },
+    '2일': { EN: '2 days', JP: '2日', CH: '2 天', TH: '2 วัน' },
+    '3일': { EN: '3 days', JP: '3日', CH: '3 天', TH: '3 วัน' },
+    '4일': { EN: '4 days', JP: '4日', CH: '4 天', TH: '4 วัน' },
+    '5일': { EN: '5 days', JP: '5日', CH: '5 天', TH: '5 วัน' },
+    '6일': { EN: '6 days', JP: '6日', CH: '6 天', TH: '6 วัน' },
+    '7일': { EN: '7 days', JP: '7日', CH: '7 天', TH: '7 วัน' },
+    '8일': { EN: '8 days', JP: '8日', CH: '8 天', TH: '8 วัน' },
+    '9일': { EN: '9 days', JP: '9日', CH: '9 天', TH: '9 วัน' },
+    '10일': { EN: '10 days', JP: '10日', CH: '10 天', TH: '10 วัน' },
+    '11일': { EN: '11 days', JP: '11日', CH: '11 天', TH: '11 วัน' },
+    '12일': { EN: '12 days', JP: '12日', CH: '12 天', TH: '12 วัน' },
+    '13일': { EN: '13 days', JP: '13日', CH: '13 天', TH: '13 วัน' },
+    '14일': { EN: '14 days', JP: '14日', CH: '14 天', TH: '14 วัน' },
+    '15일': { EN: '15 days', JP: '15日', CH: '15 天', TH: '15 วัน' },
+    '16일': { EN: '16 days', JP: '16日', CH: '16 天', TH: '16 วัน' },
+    '17일': { EN: '17 days', JP: '17日', CH: '17 天', TH: '17 วัน' },
+    '18일': { EN: '18 days', JP: '18日', CH: '18 天', TH: '18 วัน' },
+    '19일': { EN: '19 days', JP: '19日', CH: '19 天', TH: '19 วัน' },
+    '20일': { EN: '20 days', JP: '20日', CH: '20 天', TH: '20 วัน' },
+    '21일': { EN: '21 days', JP: '21日', CH: '21 天', TH: '21 วัน' },
+    '22일': { EN: '22 days', JP: '22日', CH: '22 天', TH: '22 วัน' },
+    '23일': { EN: '23 days', JP: '23日', CH: '23 天', TH: '23 วัน' },
+    '24일': { EN: '24 days', JP: '24日', CH: '24 天', TH: '24 วัน' },
+    '25일': { EN: '25 days', JP: '25日', CH: '25 天', TH: '25 วัน' },
+    '26일': { EN: '26 days', JP: '26日', CH: '26 天', TH: '26 วัน' },
+    '27일': { EN: '27 days', JP: '27日', CH: '27 天', TH: '27 วัน' },
+    '28일': { EN: '28 days', JP: '28日', CH: '28 天', TH: '28 วัน' },
+    '29일': { EN: '29 days', JP: '29日', CH: '29 天', TH: '29 วัน' },
+    '30일': { EN: '30 days', JP: '30日', CH: '30 天', TH: '30 วัน' },
+    '45일': { EN: '45 days', JP: '45日', CH: '45 天', TH: '45 วัน' },
+    '60일': { EN: '60 days', JP: '60日', CH: '60 天', TH: '60 วัน' },
+    '90일': { EN: '90 days', JP: '90日', CH: '90 天', TH: '90 วัน' },
     '(저장값)': {
       EN: '(saved)',
       JP: '（保存値）',
@@ -9857,6 +9947,133 @@
       JP: '受信性質',
       CH: '接收性质',
       TH: 'ลักษณะการรับ'
+    },
+  /* API 한글 라벨 — /hq/notifyInbound 목록·상세 (HqNotifyInboundQueryService) */
+    매핑완료: {
+      EN: 'Mapping complete',
+      JP: 'マッピング完了',
+      CH: '映射完成',
+      TH: 'แมปเสร็จแล้ว'
+    },
+    가맹점미매핑: {
+      EN: 'Merchant not mapped',
+      JP: '加盟店未マッピング',
+      CH: '商户未映射',
+      TH: 'ร้านยังไม่แมป'
+    },
+    '업체차단(프로필N·구버전)': {
+      EN: 'Company blocked (profile N / legacy)',
+      JP: '取引先ブロック（プロファイルN・旧版）',
+      CH: '企业已屏蔽（档案 N·旧版）',
+      TH: 'บริษัทถูกบล็อก (โปรไฟล์ N / เวอร์ชันเก่า)'
+    },
+    'URL결제·업체코드필요': {
+      EN: 'URL pay · company code required',
+      JP: 'URL決済・取引先コード必須',
+      CH: 'URL 支付·需企业代码',
+      TH: 'ชำระ URL · ต้องมีรหัสบริษัท'
+    },
+    업체미확인: {
+      EN: 'Company unresolved',
+      JP: '取引先未確認',
+      CH: '企业未确认',
+      TH: 'ยังไม่ยืนยันบริษัท'
+    },
+    바인딩없음: {
+      EN: 'No binding',
+      JP: 'バインディングなし',
+      CH: '无绑定',
+      TH: 'ไม่มี binding'
+    },
+    MID불일치: {
+      EN: 'MID mismatch',
+      JP: 'MID不一致',
+      CH: 'MID 不一致',
+      TH: 'MID ไม่ตรง'
+    },
+    URL결제PG아님: {
+      EN: 'Not URL-pay PG',
+      JP: 'URL決済PGではない',
+      CH: '非 URL 支付 PG',
+      TH: 'ไม่ใช่ PG ชำระ URL'
+    },
+    '통화불일치(수신경로)': {
+      EN: 'Currency mismatch (ingress)',
+      JP: '通貨不一致（受信経路）',
+      CH: '货币不一致（接收路径）',
+      TH: 'สกุลเงินไม่ตรง (เส้นทางรับ)'
+    },
+    수신경로업체불일치: {
+      EN: 'Ingress company mismatch',
+      JP: '受信経路の取引先不一致',
+      CH: '接收路径企业不一致',
+      TH: 'บริษัทไม่ตรงเส้นทางรับ'
+    },
+    라이브: {
+      EN: 'Live',
+      JP: 'ライブ',
+      CH: '实时',
+      TH: 'ไลฟ์'
+    },
+    재전송: {
+      EN: 'Retry',
+      JP: '再送',
+      CH: '重试',
+      TH: 'ส่งซ้ำ'
+    },
+    성공: {
+      EN: 'Success',
+      JP: '成功',
+      CH: '成功',
+      TH: 'สำเร็จ'
+    },
+    실패: {
+      EN: 'Failed',
+      JP: '失敗',
+      CH: '失败',
+      TH: 'ล้มเหลว'
+    },
+    취소: {
+      EN: 'Cancelled',
+      JP: 'キャンセル',
+      CH: '取消',
+      TH: 'ยกเลิก'
+    },
+    오류: {
+      EN: 'Error',
+      JP: 'エラー',
+      CH: '错误',
+      TH: 'ข้อผิดพลาด'
+    },
+    요청: {
+      EN: 'Requested',
+      JP: 'リクエスト',
+      CH: '请求',
+      TH: 'ร้องขอ'
+    },
+    무효: {
+      EN: 'Void',
+      JP: '無効',
+      CH: '无效',
+      TH: 'void'
+    },
+    이메일무효: {
+      EN: 'Email void',
+      JP: 'メール無効',
+      CH: '邮件无效',
+      TH: 'void อีเมล'
+    },
+    환불: {
+      EN: 'Refund',
+      JP: '返金',
+      CH: '退款',
+      TH: 'คืนเงิน'
+    },
+    강제환불: {
+      EN: 'Forced refund',
+      JP: '強制返金',
+      CH: '强制退款',
+      TH: 'คืนเงินบังคับ'
     },
     /* HQ /hq/notifyMapping — GUI·알림 (screens L + app.js pgAdminUiT) */
     '노티매핑설정 (GUI)': {

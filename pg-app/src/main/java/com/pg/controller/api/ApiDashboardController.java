@@ -9,6 +9,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.Map;
@@ -35,6 +36,27 @@ public class ApiDashboardController {
         return ResponseEntity.ok()
                 .cacheControl(CacheControl.noStore().mustRevalidate())
                 .body(ApiResponse.ok(body));
+    }
+
+    /**
+     * 메인 영업일 3개월 달력 — anchorMonth(YYYY-MM) 기준 지난달·당월·다음달.
+     * 이전/다음 이동은 응답의 prevAnchorMonth / nextAnchorMonth(±3개월) 사용.
+     */
+    @GetMapping("/businessDayCalendar")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> businessDayCalendar(
+            @RequestParam(name = "anchorMonth", required = false) String anchorMonth) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        Map<String, Object> body = dashboardHomeService.buildBusinessDayCalendar(auth, anchorMonth);
+        if (Boolean.FALSE.equals(body.get("ok"))) {
+            return ResponseEntity.ok(ApiResponse.fail(
+                    body.get("message") != null ? body.get("message").toString() : "오류",
+                    body.get("message") != null && String.valueOf(body.get("message")).contains("로그인")
+                            ? "UNAUTHORIZED" : "FORBIDDEN"));
+        }
+        Object cal = body.get("businessDayCalendar");
+        return ResponseEntity.ok()
+                .cacheControl(CacheControl.noStore().mustRevalidate())
+                .body(ApiResponse.ok(cal instanceof Map<?, ?> m ? (Map<String, Object>) m : Map.of()));
     }
 
     /** 메인 확장(insights·hqHub)만 — /home 본문이 잘리는 프록시·캐시 대비 */

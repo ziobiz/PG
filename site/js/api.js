@@ -427,6 +427,27 @@
     },
 
     /** 메인(/main) 대시보드: 조직별 거래 요약·서버 요약·가맹 정산 달력 */
+    /** 메인 영업일 3개월 — anchorMonth: YYYY-MM (당월=기준, 표시는 전·당·익월) */
+    dashboardBusinessDayCalendar: function (anchorMonth) {
+      var params = {};
+      if (anchorMonth) params.anchorMonth = String(anchorMonth).substring(0, 7);
+      return request({
+        path: '/api/dashboard/businessDayCalendar',
+        method: 'GET',
+        params: params,
+        headers: { 'Cache-Control': 'no-cache', 'Pragma': 'no-cache' }
+      }).then(function (r) {
+        if (r && r.success === false && r.success !== undefined) {
+          throw new Error(r.message || apiT('영업일 달력 조회 실패', 'Failed to load business-day calendar.'));
+        }
+        var d = r && r.data != null ? r.data : r;
+        if (d && typeof d === 'object' && d.data && typeof d.data === 'object' && d.data.months) {
+          d = d.data;
+        }
+        return d && typeof d === 'object' ? d : {};
+      });
+    },
+
     dashboardHome: function () {
       var noStore = { 'Cache-Control': 'no-cache', 'Pragma': 'no-cache' };
       return request({

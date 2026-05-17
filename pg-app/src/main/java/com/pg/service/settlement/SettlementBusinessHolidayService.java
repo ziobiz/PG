@@ -89,7 +89,69 @@ public class SettlementBusinessHolidayService {
         return ou.map(o -> resolveNonBusinessDatesForMerchantOrgUnitId(o.getId())).orElse(Collections.emptySet());
     }
 
-    private Set<LocalDate> resolveNonBusinessDatesForMasterDistOrgUnitId(long masterDistOrgUnitId) {
+    /**
+     * 메인 대시보드·조회용: 조직 단위의 유효 비영업일(주말은 {@link BusinessDayCalendar}에서 별도 제외).
+     */
+    public Set<LocalDate> resolveNonBusinessDatesForOrgUnitId(long orgUnitId) {
+        OrgUnit ou = orgUnitRepository.findById(orgUnitId).orElse(null);
+        if (ou == null) {
+            return Collections.emptySet();
+        }
+        if (ou.getOrgLevel() == OrgLevel.MASTER_DIST) {
+            return resolveNonBusinessDatesForMasterDistOrgUnitId(orgUnitId);
+        }
+        if (ou.getOrgLevel() == OrgLevel.MERCHANT) {
+            return resolveNonBusinessDatesForMerchantOrgUnitId(orgUnitId);
+        }
+        if (ou.getOrgLevel() == OrgLevel.REGIONAL) {
+            return parseNonBusinessDatesFromHolidaySlice(extractHolidaySlice(loadRegionalSettings(orgUnitId)));
+        }
+        Optional<Long> mdId = masterDistSettlementCronZoneService.findNearestMasterDistOrgId(orgUnitId);
+        if (mdId.isPresent()) {
+            return resolveNonBusinessDatesForMasterDistOrgUnitId(mdId.get());
+        }
+        Map<String, Object> inherited = resolveInheritedHolidaySliceFromRegional(ou.getParentId());
+        if (!inherited.isEmpty()) {
+            return parseNonBusinessDatesFromHolidaySlice(inherited);
+        }
+        return Collections.emptySet();
+    }
+
+    /** 표시용: 유효 영업일 프로필명·기준국가(없으면 빈 문자열). */
+    public Map<String, String> resolveHolidayProfileMetaForOrgUnitId(long orgUnitId) {
+        OrgUnit ou = orgUnitRepository.findById(orgUnitId).orElse(null);
+        if (ou == null) {
+            return Map.of("profileName", "", "countryCode", "");
+        }
+        Map<String, Object> slice;
+        if (ou.getOrgLevel() == OrgLevel.MASTER_DIST) {
+            slice = resolveEffectiveHolidaySliceForMasterDist(ou);
+        } else if (ou.getOrgLevel() == OrgLevel.REGIONAL) {
+            slice = extractHolidaySlice(loadRegionalSettings(orgUnitId));
+        } else {
+            Optional<Long> mdId = masterDistSettlementCronZoneService.findNearestMasterDistOrgId(orgUnitId);
+            if (mdId.isPresent()) {
+                OrgUnit md = orgUnitRepository.findById(mdId.get()).orElse(null);
+                slice = md != null ? resolveEffectiveHolidaySliceForMasterDist(md) : Map.of();
+            } else {
+                slice = resolveInheritedHolidaySliceFromRegional(ou.getParentId());
+            }
+        }
+        String name = str(slice.get("holidayProfileName"));
+        String cc = str(slice.get("holidayCountryCode"));
+        if (cc.isEmpty()) {
+            cc = str(slice.get("holidayCountryCodes"));
+            if (cc.contains(",")) {
+                cc = cc.split(",")[0].trim();
+            }
+        }
+        if (cc.isEmpty()) {
+            cc = str(slice.get("holidayProfileCountry"));
+        }
+        return Map.of("profileName", name, "countryCode", cc);
+    }
+
+    public Set<LocalDate> resolveNonBusinessDatesForMasterDistOrgUnitId(long masterDistOrgUnitId) {
         OrgUnit md = orgUnitRepository.findById(masterDistOrgUnitId).orElse(null);
         if (md == null || md.getOrgLevel() != OrgLevel.MASTER_DIST) {
             return Collections.emptySet();

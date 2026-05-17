@@ -11,6 +11,9 @@
   /** 이전에 받은 본문이 insights(및 HQ 시 hqHub)까지 포함된 완전한 페이로드였는지 — 불완전하면 캐시하지 않고 다시 조회한다 */
   var _lastPayloadComplete = false;
   var _incompleteRefetchAttempts = 0;
+  /** 영업일 달력 anchor(YYYY-MM) — 3개월 이동 시 API 재조회 */
+  var _bizAnchorMonth = '';
+  var _bizCalLoading = false;
 
   function esc(s) {
     if (s == null) return '';
@@ -257,6 +260,156 @@
       return '<p class="text-muted small mb-0">' + esc(uiT('수집된 서버 사용량 데이터가 없습니다.')) + '</p>';
     }
     return '<ul class="small mb-0 ps-3">' + lines.map(function (h) { return '<li>' + h + '</li>'; }).join('') + '</ul>';
+  }
+
+  function canShowBusinessDayCalendar(d) {
+    if (!d || !d.businessDayCalendar || typeof d.businessDayCalendar !== 'object') return false;
+    var role = String(d.role || '').toUpperCase();
+    var ol = String(d.orgLevel || '').toUpperCase();
+    if (role === 'ADMIN') return true;
+    return ['HEADQUARTERS', 'REGIONAL', 'MASTER_DIST', 'BRANCH', 'AGENCY', 'SALES_OFFICE'].indexOf(ol) >= 0;
+  }
+
+  function monthSelectedMap(month) {
+    var map = {};
+    (month && month.days ? month.days : []).forEach(function (cell) {
+      if (cell && cell.date && cell.businessDay === false) map[cell.date] = true;
+    });
+    return map;
+  }
+
+  function businessDayMonthsGridHtml(cal) {
+    var H = window.PG_HQ_HOLIDAY;
+    if (!H || typeof H.renderMonth !== 'function' || !cal || !cal.months) {
+      return '<p class="text-muted small mb-0">' + esc(uiT('영업일 달력을 불러오는 중…')) + '</p>';
+    }
+    var parts = [];
+    (cal.months || []).forEach(function (mo) {
+      var y = Number(mo.year);
+      var m = Number(mo.month);
+      if (!y || !m) return;
+      var el = H.renderMonth(y, m, monthSelectedMap(mo), {});
+      var cnt = mo.businessDayCount != null ? fmtNum(mo.businessDayCount) : '0';
+      parts.push(
+        '<div class="col-lg-4 col-md-6 mb-2 pg-dash-bizday-month-col">' +
+        el.outerHTML +
+        '<div class="small text-muted text-center mt-1">' + esc(uiT('영업일 수')) + ' <strong>' + cnt + '</strong></div></div>'
+      );
+    });
+    return '<div class="row g-2 pg-dash-bizday-grid">' + parts.join('') + '</div>';
+  }
+
+  function businessDayCalendarSectionHtml(cal) {
+    if (!cal || !cal.months) return '';
+    var anchor = cal.anchorMonth ? String(cal.anchorMonth) : '';
+    var winFrom = cal.windowFrom ? String(cal.windowFrom).substring(0, 7) : '';
+    var winTo = cal.windowTo ? String(cal.windowTo).substring(0, 7) : '';
+    var rangeLbl = winFrom && winTo ? winFrom + ' ~ ' + winTo : anchor;
+    var profile = cal.profileName ? esc(String(cal.profileName)) : '—';
+    var cc = cal.countryCode ? esc(String(cal.countryCode)) : '';
+    var settingsUrl = cal.settingsUrl || '/hq/businessDaySetting';
+    var prevA = cal.prevAnchorMonth ? String(cal.prevAnchorMonth) : '';
+    var nextA = cal.nextAnchorMonth ? String(cal.nextAnchorMonth) : '';
+    return (
+      '<div class="card mb-3 pg-dash-bizday" id="pgDashBizdayCard"' +
+      ' data-anchor-month="' + esc(anchor) + '"' +
+      ' data-prev-anchor="' + esc(prevA) + '"' +
+      ' data-next-anchor="' + esc(nextA) + '">' +
+      '<div class="card-header py-2 d-flex flex-wrap align-items-center justify-content-between gap-2">' +
+      '<div><strong>' + esc(uiT('영업일 달력')) + '</strong> ' +
+      '<span class="text-muted small ms-1 pg-dash-bizday-range">(' + esc(rangeLbl) + ' · ' + esc(uiT('지난달·이번달·다음달 (3개월)')) + ')</span></div>' +
+      '<div class="small text-muted mt-1 pg-dash-bizday-meta">' +
+      '<span class="me-2">' + esc(uiT('기준 프로필')) + ' <strong class="pg-dash-bizday-profile">' + profile + '</strong></span>' +
+      (cc ? '<span>' + esc(uiT('기준국가')) + ' <code class="pg-dash-bizday-cc">' + cc + '</code></span>' : '') +
+      '</div></div>' +
+      '<div class="d-flex flex-wrap align-items-center gap-2">' +
+      '<button type="button" class="btn btn-outline-secondary btn-sm pg-dash-bizday-prev" title="' + esc(uiT('이전 3개월')) + '">' +
+      '<i class="bi bi-chevron-left"></i> ' + esc(uiT('이전 3개월')) + '</button>' +
+      '<button type="button" class="btn btn-outline-secondary btn-sm pg-dash-bizday-next" title="' + esc(uiT('다음 3개월')) + '">' +
+      esc(uiT('다음 3개월')) + ' <i class="bi bi-chevron-right"></i></button>' +
+      '<button type="button" class="btn btn-outline-primary btn-sm pg-dash-open-url" data-url="' + esc(settingsUrl) + '">' +
+      esc(uiT('영업일 설정')) + '</button></div>' +
+      '<div class="card-body pt-2">' +
+      '<div class="d-flex flex-wrap gap-3 small text-muted mb-2 pg-dash-bizday-legend">' +
+      '<span><span class="d-inline-block rounded pg-dash-bizday-swatch pg-dash-bizday-swatch--on"></span> ' + esc(uiT('영업일')) + '</span>' +
+      '<span><span class="d-inline-block rounded pg-dash-bizday-swatch pg-dash-bizday-swatch--off"></span> ' + esc(uiT('휴일·주말')) + '</span></div>' +
+      businessDayMonthsGridHtml(cal) +
+      '</div></div>'
+    );
+  }
+
+  function updateBusinessDayCardDom(card, cal) {
+    if (!card || !cal) return;
+    var anchor = cal.anchorMonth ? String(cal.anchorMonth) : '';
+    card.setAttribute('data-anchor-month', anchor);
+    card.setAttribute('data-prev-anchor', cal.prevAnchorMonth ? String(cal.prevAnchorMonth) : '');
+    card.setAttribute('data-next-anchor', cal.nextAnchorMonth ? String(cal.nextAnchorMonth) : '');
+    _bizAnchorMonth = anchor;
+    var winFrom = cal.windowFrom ? String(cal.windowFrom).substring(0, 7) : '';
+    var winTo = cal.windowTo ? String(cal.windowTo).substring(0, 7) : '';
+    var rangeEl = card.querySelector('.pg-dash-bizday-range');
+    if (rangeEl && winFrom && winTo) {
+      rangeEl.textContent = '(' + winFrom + ' ~ ' + winTo + ' · ' + uiT('지난달·이번달·다음달 (3개월)') + ')';
+    }
+    var profEl = card.querySelector('.pg-dash-bizday-profile');
+    if (profEl) profEl.textContent = cal.profileName ? String(cal.profileName) : '—';
+    var ccEl = card.querySelector('.pg-dash-bizday-cc');
+    if (ccEl) ccEl.textContent = cal.countryCode ? String(cal.countryCode) : '';
+    var body = card.querySelector('.card-body');
+    if (!body) return;
+    var legend = body.querySelector('.pg-dash-bizday-legend');
+    var gridWrap = document.createElement('div');
+    gridWrap.innerHTML = businessDayMonthsGridHtml(cal);
+    var newGrid = gridWrap.firstElementChild;
+    var oldGrid = body.querySelector('.pg-dash-bizday-grid');
+    if (oldGrid && newGrid) oldGrid.replaceWith(newGrid);
+    else if (newGrid) body.appendChild(newGrid);
+    if (!legend && newGrid) body.insertBefore(gridWrap.querySelector('.pg-dash-bizday-legend') || document.createElement('div'), newGrid);
+  }
+
+  function bindBusinessDayCalendar(root) {
+    var card = root.querySelector('#pgDashBizdayCard');
+    if (!card) return;
+    if (card.getAttribute('data-pg-bizday-bound') === '1') return;
+    card.setAttribute('data-pg-bizday-bound', '1');
+    function loadAnchor(anchor) {
+      if (_bizCalLoading || !window.PG_API || typeof window.PG_API.dashboardBusinessDayCalendar !== 'function') return;
+      _bizCalLoading = true;
+      var body = card.querySelector('.card-body');
+      var oldGrid = body && body.querySelector('.pg-dash-bizday-grid');
+      if (oldGrid) {
+        oldGrid.innerHTML = '<div class="col-12 text-center text-muted small py-4">' + esc(uiT('영업일 달력을 불러오는 중…')) + '</div>';
+      }
+      window.PG_API.dashboardBusinessDayCalendar(anchor)
+        .then(function (cal) {
+          if (!cal || !cal.months) return;
+          updateBusinessDayCardDom(card, cal);
+          if (_lastPayload && typeof _lastPayload === 'object') {
+            _lastPayload.businessDayCalendar = cal;
+          }
+        })
+        .catch(function (err) {
+          var msg = err && err.message ? String(err.message) : uiT('영업일 달력 조회 실패');
+          if (oldGrid) oldGrid.innerHTML = '<div class="col-12"><div class="alert alert-warning small mb-0">' + esc(msg) + '</div></div>';
+        })
+        .finally(function () {
+          _bizCalLoading = false;
+        });
+    }
+    var prevBtn = card.querySelector('.pg-dash-bizday-prev');
+    var nextBtn = card.querySelector('.pg-dash-bizday-next');
+    if (prevBtn) {
+      prevBtn.addEventListener('click', function () {
+        var a = card.getAttribute('data-prev-anchor') || '';
+        if (a) loadAnchor(a);
+      });
+    }
+    if (nextBtn) {
+      nextBtn.addEventListener('click', function () {
+        var a = card.getAttribute('data-next-anchor') || '';
+        if (a) loadAnchor(a);
+      });
+    }
   }
 
   function settlementTable(events) {
@@ -755,12 +908,14 @@
 
     var ql = quickLinksHtml(d.quickLinks);
     var hq = hqHubSection(d);
+    var biz = canShowBusinessDayCalendar(d) ? businessDayCalendarSectionHtml(d.businessDayCalendar) : '';
     var ins = insightsSection(d);
     var foot =
       '<p class="text-muted small mb-0 mt-3">' + esc(uiT('좌측 메뉴에서 다른 화면을 선택하면 탭이 열립니다. 결제내역 컬럼은 해당 화면의 VIEW SETTING에서 조정할 수 있습니다.')) + '</p>';
 
-    mount.innerHTML = head + hint + hq + ins + ql + salesRow + srv + cal + foot;
+    mount.innerHTML = head + hint + hq + biz + ins + ql + salesRow + srv + cal + foot;
     bindQuick(mount);
+    bindBusinessDayCalendar(mount);
   }
 
   function sessionKey() {
@@ -845,8 +1000,13 @@
     _lastPayloadComplete = false;
     _lastPayload = null;
     _incompleteRefetchAttempts = 0;
+    _bizAnchorMonth = '';
     var mount = document.getElementById('pgHomeDashboardMount');
-    if (mount) mount.removeAttribute('data-pg-dash-loaded');
+    if (mount) {
+      mount.removeAttribute('data-pg-dash-loaded');
+      var bizCard = mount.querySelector('#pgDashBizdayCard');
+      if (bizCard) bizCard.removeAttribute('data-pg-bizday-bound');
+    }
   }
 
   /** 현재 로케일로 동일 페이로드 재그리기 (언어 변경 시) */

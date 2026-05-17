@@ -11,6 +11,23 @@
     return String(s);
   }
   var DAY_HDR_KEYS = ['달력요일_일', '달력요일_월', '달력요일_화', '달력요일_수', '달력요일_목', '달력요일_금', '달력요일_토'];
+  /** API/저장 구분값(한국어 키) — 표시만 uiT() */
+  var HQ_BIZDAY_KIND_KEYS = ['공휴일', '국경일', '기념일', '종교휴일', '임시공휴일', '대체공휴일'];
+
+  function translateHolidayKind(kind) {
+    var k = (kind != null) ? String(kind).trim() : '';
+    if (!k) k = '공휴일';
+    return uiT(k);
+  }
+
+  function refreshKindSelect(sel) {
+    if (!sel) return;
+    var cur = sel.value;
+    sel.innerHTML = HQ_BIZDAY_KIND_KEYS.map(function (k) {
+      return '<option value="' + k + '" data-pg-ui-t="' + k + '">' + uiT(k) + '</option>';
+    }).join('');
+    if (cur && HQ_BIZDAY_KIND_KEYS.indexOf(cur) >= 0) sel.value = cur;
+  }
 
   function pad(n) {
     return n < 10 ? '0' + n : String(n);
@@ -126,7 +143,7 @@
         if (meta && meta.kind) {
           btn.setAttribute('data-holiday-kind', meta.kind);
           btn.classList.add('hq-holiday-day--kind');
-          btn.setAttribute('title', uiT(meta.kind) + (meta.note ? ' — ' + meta.note : ''));
+          btn.setAttribute('title', translateHolidayKind(meta.kind) + (meta.note ? ' — ' + meta.note : ''));
         }
         td.appendChild(btn);
         dayNum++;
@@ -241,5 +258,12 @@
     });
   }
 
-  window.PG_HQ_HOLIDAY = { init: init };
+  window.PG_HQ_HOLIDAY = {
+    init: init,
+    renderMonth: renderMonth,
+    uiT: uiT,
+    translateHolidayKind: translateHolidayKind,
+    refreshKindSelect: refreshKindSelect,
+    kindKeys: HQ_BIZDAY_KIND_KEYS
+  };
 })();

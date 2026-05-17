@@ -97,7 +97,8 @@
     사용자관리: { EN: 'Users', JP: 'ユーザー管理', CH: '用户管理', TH: 'ผู้ใช้' },
     운영관리: { EN: 'Operations', JP: '運用管理', CH: '运营管理', TH: 'ปฏิบัติการ' },
     리스크관리: { EN: 'Risk', JP: 'リスク管理', CH: '风险管理', TH: 'ความเสี่ยง' },
-    배포설정: { EN: 'Deployment', JP: 'デプロイ設定', CH: '部署设置', TH: 'การใช้งานจริง' }
+    배포설정: { EN: 'Deployment', JP: 'デプロイ設定', CH: '部署设置', TH: 'การใช้งานจริง' },
+    챗봇관리: { EN: 'Chatbot management', JP: 'チャットボット管理', CH: '聊天机器人管理', TH: 'จัดการ Chatbot' }
   };
 
   function T(en, jp, ch, th) {
@@ -361,6 +362,7 @@
     apply: apply,
     getLoc: getLoc,
     tUrlLabel: tUrlLabel,
+    tParentSeg: tParentSeg,
     tParentChain: tParentChain,
     mainLabel: function () {
       return mainLabel(getLoc());
