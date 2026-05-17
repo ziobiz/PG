@@ -8,6 +8,7 @@
   var LAST_KEY = 'pg_admin_login_tablet_last';
   var LEGACY_PREF_KEY = 'pg_admin_login_tablet_preference';
   var SHELL_KEY = 'pg_admin_tablet_shell';
+  var CHOICE_KEY = 'pg_login_ui_mode_choice';
   var SELECT_ID = 'pgLoginUiModeSelect';
 
   function tabletShellCanActivate(res) {
@@ -15,7 +16,12 @@
     var urls = Array.isArray(res.tabletMenuUrls) ? res.tabletMenuUrls : [];
     var roleU = String(res.role != null ? res.role : '').toUpperCase();
     var orgTf = String(res.tabletFeatureUseYn != null ? res.tabletFeatureUseYn : 'Y').trim().toUpperCase();
-    return urls.length > 0 && (roleU === 'ADMIN' || orgTf === 'Y');
+    var orgOk = roleU === 'ADMIN' || orgTf === 'Y';
+    if (!orgOk) return false;
+    if (roleU !== 'ADMIN' && String(res.orgLevel != null ? res.orgLevel : '').toUpperCase() === 'MERCHANT') {
+      return true;
+    }
+    return urls.length > 0;
   }
 
   /** iPad·Android 태블릿 등 — iPhone은 첫 방문 fallback에서 제외 */
@@ -70,11 +76,32 @@
     } catch (eSel) { return null; }
   }
 
+  function captureLoginUiChoice() {
+    try {
+      var sel = getSelectEl();
+      var v = sel && sel.value ? String(sel.value) : '';
+      if (v === 'tablet' || v === 'desktop' || v === 'same') {
+        g.sessionStorage.setItem(CHOICE_KEY, v);
+      }
+    } catch (eCap) { /* ignore */ }
+  }
+
+  function clearLoginUiChoice() {
+    try { g.sessionStorage.removeItem(CHOICE_KEY); } catch (eClr) { /* ignore */ }
+  }
+
   function getSelectedLoginUiMode() {
     try {
       var sel = getSelectEl();
-      var v = sel && sel.value ? String(sel.value) : 'same';
-      if (v === 'tablet' || v === 'desktop' || v === 'same') return v;
+      var v = sel && sel.value ? String(sel.value) : '';
+      if (v === 'tablet' || v === 'desktop') return v;
+      if (v === 'same') {
+        var pend = g.sessionStorage.getItem(CHOICE_KEY);
+        if (pend === 'tablet' || pend === 'desktop') return pend;
+        return 'same';
+      }
+      var pend2 = g.sessionStorage.getItem(CHOICE_KEY);
+      if (pend2 === 'tablet' || pend2 === 'desktop' || pend2 === 'same') return pend2;
     } catch (e3) { /* ignore */ }
     return 'same';
   }
@@ -102,6 +129,7 @@
         else g.sessionStorage.removeItem(SHELL_KEY);
       }
       persistLastLoginMode();
+      clearLoginUiChoice();
     } catch (e4) { /* ignore */ }
   }
 
@@ -134,12 +162,14 @@
   function initLoginPanel(panelRoot) {
     if (!panelRoot) return;
     var sel = getSelectEl();
-    if (sel) sel.value = 'same';
     if (panelRoot.getAttribute('data-pg-tablet-pref-init') !== '1') {
       panelRoot.setAttribute('data-pg-tablet-pref-init', '1');
+      clearLoginUiChoice();
+      if (sel) sel.value = 'same';
       panelRoot.addEventListener('change', function (ev) {
         var t = ev.target;
         if (!t || t.id !== SELECT_ID) return;
+        captureLoginUiChoice();
         updateHint(panelRoot);
       });
     }
@@ -153,6 +183,8 @@
     detectLikelyTabletDevice: detectLikelyTabletDevice,
     getLastLoginMode: getLastLoginMode,
     applyShellAfterAuth: applyShellAfterAuth,
+    captureLoginUiChoice: captureLoginUiChoice,
+    clearLoginUiChoice: clearLoginUiChoice,
     initLoginPanel: initLoginPanel,
     syncLastLoginModeFromSessionShell: syncLastLoginModeFromSessionShell
   };

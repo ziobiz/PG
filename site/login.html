@@ -246,7 +246,7 @@
   <script src="js/api.js?v=14"></script>
   <script src="js/pg-ui-string-map.js?v=14"></script>
   <script src="js/pg-ui-i18n.js?v=30"></script>
-  <script src="js/pg-login-tablet-shell.js?v=3"></script>
+  <script src="js/pg-login-tablet-shell.js?v=4"></script>
   <script>
     (function () {
       var origin = window.location.origin || '';
@@ -465,9 +465,15 @@
         if (resData.mustSetupOtp !== undefined) u.mustSetupOtp = !!resData.mustSetupOtp;
         if (resData.otpRegisteredYn !== undefined) u.otpRegisteredYn = String(resData.otpRegisteredYn);
         if (resData.chatbotPaymentUseYn !== undefined) u.chatbotPaymentUseYn = String(resData.chatbotPaymentUseYn);
+        if (resData.webPaymentUseYn !== undefined) u.webPaymentUseYn = String(resData.webPaymentUseYn);
         if (Array.isArray(resData.tabletMenuUrls)) u.tabletMenuUrls = resData.tabletMenuUrls;
         if (resData.tabletFeatureUseYn !== undefined) u.tabletFeatureUseYn = String(resData.tabletFeatureUseYn);
         api.setAuth(resData.token, u);
+        try {
+          if (window.PG_LOGIN_TABLET_SHELL && typeof window.PG_LOGIN_TABLET_SHELL.captureLoginUiChoice === 'function') {
+            window.PG_LOGIN_TABLET_SHELL.captureLoginUiChoice();
+          }
+        } catch (eTabCapOtp) { /* ignore */ }
         try { sessionStorage.setItem('pg_pending_otp_on_login', '1'); } catch (eP) {}
         var init = document.getElementById('loginPanelInitial');
         var otpB = document.getElementById('loginOtpBlock');
@@ -500,6 +506,9 @@
           sessionStorage.removeItem('pg_pending_otp_on_login');
         } catch (eF) { /* ignore */ }
         try {
+          if (window.PG_LOGIN_TABLET_SHELL && typeof window.PG_LOGIN_TABLET_SHELL.captureLoginUiChoice === 'function') {
+            window.PG_LOGIN_TABLET_SHELL.captureLoginUiChoice();
+          }
           var rawU2 = sessionStorage.getItem('pg_admin_user');
           if (rawU2 && window.PG_LOGIN_TABLET_SHELL && typeof window.PG_LOGIN_TABLET_SHELL.applyShellAfterAuth === 'function') {
             window.PG_LOGIN_TABLET_SHELL.applyShellAfterAuth(JSON.parse(rawU2));
@@ -596,11 +605,15 @@
           if (resData.mustSetupOtp !== undefined) u.mustSetupOtp = !!resData.mustSetupOtp;
           if (resData.otpRegisteredYn !== undefined) u.otpRegisteredYn = String(resData.otpRegisteredYn);
           if (resData.chatbotPaymentUseYn !== undefined) u.chatbotPaymentUseYn = String(resData.chatbotPaymentUseYn);
+          if (resData.webPaymentUseYn !== undefined) u.webPaymentUseYn = String(resData.webPaymentUseYn);
           if (Array.isArray(resData.tabletMenuUrls)) u.tabletMenuUrls = resData.tabletMenuUrls;
           if (resData.tabletFeatureUseYn !== undefined) u.tabletFeatureUseYn = String(resData.tabletFeatureUseYn);
           api.setAuth(resData.token, u);
         }
         try {
+          if (window.PG_LOGIN_TABLET_SHELL && typeof window.PG_LOGIN_TABLET_SHELL.captureLoginUiChoice === 'function') {
+            window.PG_LOGIN_TABLET_SHELL.captureLoginUiChoice();
+          }
           if (window.PG_LOGIN_TABLET_SHELL && typeof window.PG_LOGIN_TABLET_SHELL.applyShellAfterAuth === 'function') {
             window.PG_LOGIN_TABLET_SHELL.applyShellAfterAuth(resData);
           }
@@ -695,6 +708,7 @@
         if (p.data.mustSetupOtp !== undefined) u.mustSetupOtp = !!p.data.mustSetupOtp;
         if (p.data.otpRegisteredYn !== undefined) u.otpRegisteredYn = String(p.data.otpRegisteredYn);
         if (p.data.chatbotPaymentUseYn !== undefined) u.chatbotPaymentUseYn = String(p.data.chatbotPaymentUseYn);
+        if (p.data.webPaymentUseYn !== undefined) u.webPaymentUseYn = String(p.data.webPaymentUseYn);
         if (Array.isArray(p.data.tabletMenuUrls)) u.tabletMenuUrls = p.data.tabletMenuUrls;
         if (p.data.tabletFeatureUseYn !== undefined) u.tabletFeatureUseYn = String(p.data.tabletFeatureUseYn);
         api.setAuth(p.data.token, u);

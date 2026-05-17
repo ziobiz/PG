@@ -98,6 +98,7 @@ public class ApiAuthController {
                         }
                     }
                     user.put("chatbotPaymentUseYn", authService.resolveChatbotPaymentUseYnForMerchant(ouid));
+                    user.put("webPaymentUseYn", authService.resolveWebPaymentUseYnForMerchant(ouid));
                 }
                 user.put("tabletFeatureUseYn", org.get("tabletFeatureUseYn"));
             }

@@ -27,6 +27,8 @@ public class LoginResponse {
     private Map<String, String> pagePermissions;
     /** 가맹점(MERCHANT) 로그인 시 챗봇결제 사용 Y/N — 그 외 조직·역할은 null */
     private String chatbotPaymentUseYn;
+    /** 가맹점(MERCHANT) 로그인 시 URL(웹)결제 사용 Y/N — 그 외 조직·역할은 null */
+    private String webPaymentUseYn;
     /** 공지사항 등록 가능(총본사·본사·총판 + 화면 권한 MODIFY 이상) */
     private boolean canWriteNotice;
     /** 태블릿 모드 사이드바에 노출 가능한 URL 목록(조직 단계 설정 ∩ 페이지 권한) */
@@ -64,6 +66,8 @@ public class LoginResponse {
     public void setPagePermissions(Map<String, String> pagePermissions) { this.pagePermissions = pagePermissions; }
     public String getChatbotPaymentUseYn() { return chatbotPaymentUseYn; }
     public void setChatbotPaymentUseYn(String chatbotPaymentUseYn) { this.chatbotPaymentUseYn = chatbotPaymentUseYn; }
+    public String getWebPaymentUseYn() { return webPaymentUseYn; }
+    public void setWebPaymentUseYn(String webPaymentUseYn) { this.webPaymentUseYn = webPaymentUseYn; }
     public boolean isCanWriteNotice() { return canWriteNotice; }
     public void setCanWriteNotice(boolean canWriteNotice) { this.canWriteNotice = canWriteNotice; }
     public List<String> getTabletMenuUrls() { return tabletMenuUrls; }

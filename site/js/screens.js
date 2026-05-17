@@ -2086,7 +2086,14 @@
               '<button type="button" class="btn btn-outline-danger" id="hqOrgAllowColSelectAllBtn" data-pg-ui-t="전체선택">' + escUi(L('전체선택')) + '</button>' +
               '<button type="button" class="btn btn-outline-secondary" id="hqOrgAllowColClearAllBtn" data-pg-ui-t="전체해제">' + escUi(L('전체해제')) + '</button>' +
               '</div></div>' +
-              '<div id="hqOrgAllowColumnChecks" class="column-guide-list border rounded p-2 bg-light"></div>' +
+              '<div id="hqOrgAllowColumnChecks" class="hq-org-allow-col-wrap border rounded bg-light">' +
+              '<div class="table-responsive hq-org-allow-col-scroll">' +
+              '<table class="table table-sm table-bordered align-middle mb-0 bg-white hq-org-allow-col-table">' +
+              '<thead class="table-light sticky-top"><tr>' +
+              '<th class="text-center text-nowrap" style="width:5.5rem" data-pg-ui-t="현재리스트순위">현재리스트순위</th>' +
+              '<th data-pg-ui-t="항목이름">항목이름</th>' +
+              '<th class="text-center text-nowrap" style="width:5.5rem" data-pg-ui-t="위 아래">위 아래</th>' +
+              '</tr></thead><tbody id="hqOrgAllowColumnChecksBody"></tbody></table></div></div>' +
               '<p class="text-muted small mb-0 mt-1" data-pg-ui-t="체크한 열만 해당 조직 유형 사용자 화면의 VIEW SETTING에 나타납니다. ▲▼ 버튼으로 체크된 항목의 순서를 바꾼 뒤 [저장]하면 VIEW SETTING에서의 기본 나열 순서에 반영됩니다. 지사·대리점·영업점·가맹점은 저장이 없으면 총판 설정을 사용합니다.">' + escUi(L('체크한 열만 해당 조직 유형 사용자 화면의 VIEW SETTING에 나타납니다. ▲▼ 버튼으로 체크된 항목의 순서를 바꾼 뒤 [저장]하면 VIEW SETTING에서의 기본 나열 순서에 반영됩니다. 지사·대리점·영업점·가맹점은 저장이 없으면 총판 설정을 사용합니다.')) + '</p></div>' +
               '<div class="mb-0" id="hqOrgAllowSavedWrap">' +
               '<span class="form-label d-block mb-1" data-pg-ui-t="저장된 설정 요약 (선택한 본사)">' + escUi(L('저장된 설정 요약 (선택한 본사)')) + '</span>' +

@@ -734,6 +734,10 @@
   var COL = {
     _chk: { EN: 'Sel', JP: '選択', CH: '选', TH: 'เลือก' },
     rowNo: { EN: 'No.', JP: '番号', CH: '序号', TH: 'ลำดับ' },
+    sortOrder: { EN: 'Order', JP: '順序', CH: '顺序', TH: 'ลำดับ' },
+    colId: { EN: 'Item ID', JP: '項目ID', CH: '项目 ID', TH: 'รหัสรายการ' },
+    colNm: { EN: 'Item name', JP: '項目名', CH: '项目名称', TH: 'ชื่อรายการ' },
+    dispYn: { EN: 'Visible', JP: '表示有無', CH: '是否显示', TH: 'แสดงหรือไม่' },
     compNm: { EN: 'Merchant name', JP: '加盟店名', CH: '商户名称', TH: 'ชื่อร้านค้า' },
     compId: { EN: 'Merchant code', JP: '加盟店コード', CH: '商户代码', TH: 'รหัสร้านค้า' },
     trnDate: { EN: 'Txn date', JP: '取引日', CH: '交易日期', TH: 'วันที่ทำรายการ' },
@@ -1197,10 +1201,8 @@
       if (COMP_GRID_SINGLE_HEADER_URLS[u] && snap.columns && scr.columns) {
         scr.columns.forEach(function (c) {
           if (!c || !c.key) return;
-          var row = COL[c.key];
           var snapRow = snap.columns.filter(function (x) { return x && x.key === c.key; })[0];
-          var fb = snapRow ? snapRow.label : c.label;
-          if (row) c.label = tRow(row, loc, fb);
+          if (snapRow && snapRow.label != null) c.label = snapRow.label;
         });
       }
       if (scr.isDailySummaryScreen) applyDailySummaryColumnsLocale(scr, snap, loc);

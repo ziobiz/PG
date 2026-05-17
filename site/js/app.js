@@ -1607,6 +1607,8 @@
     '/comp/compChangeHistory': { label: '업체변경이력', parent: '업체관리' },
     '/comp/compReg': { label: '업체등록', parent: '업체관리' },
     '/calc/payList': { label: '결제내역', parent: '결제관리' },
+    '/calc/dailyPay': { label: '일별결제', parent: '결제관리' },
+    '/calc/dailyFee': { label: '일별수수료', parent: '정산관리' },
     '/calc/chillPayTrList': { label: '통합내역', parent: '결제관리' },
     '/calc/chillPaySettlementList': { label: '통합정산', parent: '정산관리' },
     '/calc/payNotiList': { label: '노티내역', parent: '결제관리 > 결제내역' },
@@ -17790,17 +17792,33 @@
       function escHqOrgCell(s) {
         return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
       }
-      /** 한 행: 순서 이동(▲▼) + 체크 — 저장 시 DOM 순서가 allowedKeysJson 순서가 됨. labelInnerHtml 이 있으면 labelText 대신 span 안에 그대로 삽입(이스케이프된 조각만 전달). */
+      function hqOrgAllowColTbody() {
+        return pane.querySelector('#hqOrgAllowColumnChecksBody');
+      }
+      function hqOrgAllowRefreshRanks(tbody) {
+        if (!tbody) return;
+        var rows = tbody.querySelectorAll('.hq-allow-col-row');
+        for (var i = 0; i < rows.length; i++) {
+          var sp = rows[i].querySelector('.hq-allow-col-rank');
+          if (sp) sp.textContent = String(i + 1);
+        }
+      }
+      function hqOrgAllowColEmptyRow(msg) {
+        return '<tr><td colspan="3" class="text-center text-muted small py-3">' + pgAdminEscHtml(msg) + '</td></tr>';
+      }
+      /** 한 행: 순위·항목(체크)·▲▼ — 저장 시 tbody DOM 순서가 allowedKeysJson 순서가 됨. */
       function hqAllowColRowHtml(key, labelText, checked, isCustom, labelInnerHtml) {
         var cust = isCustom ? ' data-hq-custom="1"' : '';
         var labIn = labelInnerHtml != null && String(labelInnerHtml).length ? String(labelInnerHtml) : escHqOrgCell(labelText);
-        return '<div class="hq-allow-col-row d-flex align-items-center gap-1 flex-wrap py-1" data-key="' + escHqOrgCell(key) + '">' +
-          '<div class="btn-group btn-group-sm flex-shrink-0" role="group">' +
-          '<button type="button" class="btn btn-outline-secondary hq-allow-col-move px-2 py-0" data-dir="-1" title="' + escHqOrgCell(pgAdminUiT('위로')) + '">▲</button>' +
-          '<button type="button" class="btn btn-outline-secondary hq-allow-col-move px-2 py-0" data-dir="1" title="' + escHqOrgCell(pgAdminUiT('아래로')) + '">▼</button></div>' +
-          '<label class="column-guide-item column-guide-item--on d-inline-flex align-items-center mb-0 flex-grow-1 min-w-0">' +
-          '<input type="checkbox" class="hq-allow-col-check" data-key="' + escHqOrgCell(key) + '"' + cust + (checked ? ' checked' : '') + '> ' +
-          '<span class="column-guide-label small text-break">' + labIn + '</span></label></div>';
+        return '<tr class="hq-allow-col-row" data-key="' + escHqOrgCell(key) + '">' +
+          '<td class="text-center align-middle"><span class="hq-allow-col-rank badge rounded-pill text-bg-secondary">—</span></td>' +
+          '<td class="align-middle"><label class="column-guide-item column-guide-item--on d-flex align-items-center gap-2 mb-0 min-w-0">' +
+          '<input type="checkbox" class="hq-allow-col-check flex-shrink-0" data-key="' + escHqOrgCell(key) + '"' + cust + (checked ? ' checked' : '') + '>' +
+          '<span class="column-guide-label small text-break">' + labIn + '</span></label></td>' +
+          '<td class="text-center align-middle text-nowrap">' +
+          '<div class="btn-group btn-group-sm d-inline-flex" role="group">' +
+          '<button type="button" class="btn btn-outline-secondary hq-allow-col-move px-2" data-dir="-1" title="' + escHqOrgCell(pgAdminUiT('위로')) + '" aria-label="' + escHqOrgCell(pgAdminUiT('위로')) + '">▲</button>' +
+          '<button type="button" class="btn btn-outline-secondary hq-allow-col-move px-2" data-dir="1" title="' + escHqOrgCell(pgAdminUiT('아래로')) + '" aria-label="' + escHqOrgCell(pgAdminUiT('아래로')) + '">▼</button></div></td></tr>';
       }
       function renderHqViewCustomColTable(rows) {
         var tb = pane.querySelector('#hqViewCustomColTbody');
@@ -17845,8 +17863,8 @@
         }
       }
       function buildAllowanceChecks(pageUrl, afterBuild) {
-        var mount = pane.querySelector('#hqOrgAllowColumnChecks');
-        if (!mount || !window.PG_SCREENS || !window.PG_SCREENS.getMenuScreens) {
+        var tbody = hqOrgAllowColTbody();
+        if (!tbody || !window.PG_SCREENS || !window.PG_SCREENS.getMenuScreens) {
           if (typeof afterBuild === 'function') afterBuild();
           return;
         }
@@ -17859,7 +17877,7 @@
         }
         function paintNativeCols(resolvedColDefs) {
           if (!cfg || !resolvedColDefs.length) {
-            mount.innerHTML = '<span class="text-muted small">' + pgAdminEscHtml(pgAdminUiT('화면 정의를 찾을 수 없습니다.')) + '</span>';
+            tbody.innerHTML = hqOrgAllowColEmptyRow(pgAdminUiT('화면 정의를 찾을 수 없습니다.'));
             if (typeof afterBuild === 'function') afterBuild();
             return;
           }
@@ -17872,12 +17890,13 @@
             var on0 = hqAllowColDefaultChecked(pageUrl, c.key);
             html += hqAllowColRowHtml(c.key, labelT, on0, false);
           });
-          mount.innerHTML = html || ('<span class="text-muted small">' + pgAdminEscHtml(pgAdminUiT('선택 가능한 열이 없습니다.')) + '</span>');
+          tbody.innerHTML = html || hqOrgAllowColEmptyRow(pgAdminUiT('선택 가능한 열이 없습니다.'));
+          hqOrgAllowRefreshRanks(tbody);
           if (typeof afterBuild === 'function') afterBuild();
         }
         function paintWithCustom(resolvedColDefs) {
           if (!cfg || !resolvedColDefs.length) {
-            mount.innerHTML = '<span class="text-muted small">' + pgAdminEscHtml(pgAdminUiT('화면 정의를 찾을 수 없습니다.')) + '</span>';
+            tbody.innerHTML = hqOrgAllowColEmptyRow(pgAdminUiT('화면 정의를 찾을 수 없습니다.'));
             if (typeof afterBuild === 'function') afterBuild();
             return;
           }
@@ -17903,7 +17922,8 @@
               var labHtml = escHqOrgCell(lab) + ' <span class="badge bg-secondary">' + pgAdminEscHtml(pgAdminUiT('추가')) + '</span>';
               html += hqAllowColRowHtml(k, '', onC, true, labHtml);
             });
-            mount.innerHTML = html || ('<span class="text-muted small">' + pgAdminEscHtml(pgAdminUiT('선택 가능한 열이 없습니다.')) + '</span>');
+            tbody.innerHTML = html || hqOrgAllowColEmptyRow(pgAdminUiT('선택 가능한 열이 없습니다.'));
+            hqOrgAllowRefreshRanks(tbody);
             if (typeof afterBuild === 'function') afterBuild();
           }).catch(function () {
             paintNativeCols(resolvedColDefs);
@@ -17928,9 +17948,9 @@
       }
       function readCheckedAllowKeys() {
         var keys = [];
-        var mount = pane.querySelector('#hqOrgAllowColumnChecks');
-        if (!mount) return keys;
-        mount.querySelectorAll('.hq-allow-col-row').forEach(function (row) {
+        var tbody = hqOrgAllowColTbody();
+        if (!tbody) return keys;
+        tbody.querySelectorAll('.hq-allow-col-row').forEach(function (row) {
           var cb = row.querySelector('.hq-allow-col-check');
           if (cb && cb.checked) {
             var k = cb.getAttribute('data-key');
@@ -18007,9 +18027,9 @@
           var k = cb.getAttribute('data-key') || '';
           cb.checked = !!set[k];
         });
-        var mount = pane.querySelector('#hqOrgAllowColumnChecks');
-        if (!mount) return;
-        var rows = Array.prototype.slice.call(mount.querySelectorAll('.hq-allow-col-row'));
+        var tbody = hqOrgAllowColTbody();
+        if (!tbody) return;
+        var rows = Array.prototype.slice.call(tbody.querySelectorAll('.hq-allow-col-row'));
         if (!rows.length) return;
         var byKey = {};
         rows.forEach(function (r) {
@@ -18032,7 +18052,8 @@
             delete byKey[kk];
           }
         });
-        mount.appendChild(frag);
+        tbody.appendChild(frag);
+        hqOrgAllowRefreshRanks(tbody);
       }
       if (pane.querySelector('select[data-load-regional-branches="true"]') && window.PG_API && window.PG_API.hqOrgViewColumnRegionalBranches) {
         window.PG_API.hqOrgViewColumnRegionalBranches().then(function (list) {
@@ -18111,18 +18132,19 @@
         pane.addEventListener('click', function (ev) {
           var mv = ev.target && ev.target.closest ? ev.target.closest('.hq-allow-col-move') : null;
           if (!mv || !pane.contains(mv)) return;
-          var mount = pane.querySelector('#hqOrgAllowColumnChecks');
+          var tbody = hqOrgAllowColTbody();
           var row = mv.closest('.hq-allow-col-row');
-          if (!mount || !row || !mount.contains(row)) return;
+          if (!tbody || !row || !tbody.contains(row)) return;
           var dir = parseInt(mv.getAttribute('data-dir') || '0', 10);
           if (!dir) return;
           var sib = dir < 0 ? row.previousElementSibling : row.nextElementSibling;
           if (!sib || !sib.classList.contains('hq-allow-col-row')) return;
           if (dir < 0) {
-            mount.insertBefore(row, sib);
+            tbody.insertBefore(row, sib);
           } else {
-            mount.insertBefore(row, sib.nextElementSibling);
+            tbody.insertBefore(row, sib.nextElementSibling);
           }
+          hqOrgAllowRefreshRanks(tbody);
         });
       }
       if (!pane._hqOrgAllowBulkBound) {
@@ -24165,6 +24187,9 @@
           });
         }
       } catch (eDash2) {}
+      try {
+        if (typeof window.PG_syncTabletLaunchBoard === 'function') window.PG_syncTabletLaunchBoard();
+      } catch (eTabMain) {}
     } else {
       if (mainPane) {
         mainPane.classList.remove('show', 'active');
@@ -24396,10 +24421,16 @@
         if (d.mustSetupOtp !== undefined) prev.mustSetupOtp = !!d.mustSetupOtp;
         if (d.otpRegisteredYn !== undefined) prev.otpRegisteredYn = d.otpRegisteredYn;
         if (d.chatbotPaymentUseYn !== undefined) prev.chatbotPaymentUseYn = String(d.chatbotPaymentUseYn);
+        if (d.webPaymentUseYn !== undefined) prev.webPaymentUseYn = String(d.webPaymentUseYn);
+        if (d.tabletMenuUrls !== undefined) prev.tabletMenuUrls = Array.isArray(d.tabletMenuUrls) ? d.tabletMenuUrls : [];
+        if (d.tabletFeatureUseYn !== undefined) prev.tabletFeatureUseYn = String(d.tabletFeatureUseYn);
         sessionStorage.setItem('pg_admin_user', JSON.stringify(prev));
         syncAllNoticeWriteButtons();
         try { applyMenuVisibilityByPagePermissions(); } catch (eMenu) {}
         try { redirectIfActiveMenuForbidden(); } catch (eRedir) {}
+        try {
+          if (typeof window.PG_syncTabletLaunchBoard === 'function') window.PG_syncTabletLaunchBoard();
+        } catch (eTabSync) {}
       } catch (e) {}
     }).catch(function () {});
   }
@@ -25318,6 +25349,12 @@
   /** index 최초 로드 시 메인 탭이 활성이어도 loadContent가 안 돌면 대시보드가 비어 있음 → API 로드 */
   function pgRefreshMainDashboardIfActive(opts) {
     opts = opts || {};
+    if (typeof window.PG_shouldShowTabletLaunchBoard === 'function' && window.PG_shouldShowTabletLaunchBoard()) {
+      try {
+        if (typeof window.PG_syncTabletLaunchBoard === 'function') window.PG_syncTabletLaunchBoard();
+      } catch (eTabDash) {}
+      return;
+    }
     var mainPane = document.getElementById('main');
     if (!mainPane) return;
     if (!mainPane.classList.contains('show') || !mainPane.classList.contains('active')) return;
@@ -25546,4 +25583,8 @@
       });
     }
   });
+
+  window.getPgSessionUser = getSessionUser;
+  window.isMenuAllowedForCurrentUser = isMenuAllowedForCurrentUser;
+  window.pgRefreshMainDashboardIfActive = pgRefreshMainDashboardIfActive;
 })();
