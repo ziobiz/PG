@@ -218,7 +218,7 @@ public class ChatbotLlmCompletionService {
                     messages);
             case "gemini" -> gemini(
                     stringVal(cfg.get("report_gemini_api_key")),
-                    firstNonBlank(stringVal(cfg.get("report_gemini_model")), "gemini-1.5-flash"),
+                    firstNonBlank(stringVal(cfg.get("report_gemini_model")), "gemini-3-flash-preview"),
                     systemPrompt,
                     messages);
             default -> throw new IllegalArgumentException("unknown provider " + provider);

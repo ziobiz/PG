@@ -264,10 +264,12 @@
 
   function canShowBusinessDayCalendar(d) {
     if (!d || !d.businessDayCalendar || typeof d.businessDayCalendar !== 'object') return false;
+    var cal = d.businessDayCalendar;
+    if (Array.isArray(cal.months) && cal.months.length > 0) return true;
     var role = String(d.role || '').toUpperCase();
     var ol = String(d.orgLevel || '').toUpperCase();
     if (role === 'ADMIN') return true;
-    return ['HEADQUARTERS', 'REGIONAL', 'MASTER_DIST', 'BRANCH', 'AGENCY', 'SALES_OFFICE'].indexOf(ol) >= 0;
+    return ['HEADQUARTERS', 'REGIONAL', 'MASTER_DIST', 'BRANCH', 'AGENCY', 'SALES_OFFICE', 'MERCHANT'].indexOf(ol) >= 0;
   }
 
   function monthSelectedMap(month) {
@@ -299,7 +301,18 @@
     return '<div class="row g-2 pg-dash-bizday-grid">' + parts.join('') + '</div>';
   }
 
-  function businessDayCalendarSectionHtml(cal) {
+  function canOpenBusinessDaySettingsMenu(d) {
+    try {
+      var u = JSON.parse(sessionStorage.getItem('pg_admin_user') || '{}');
+      var role = String((u && u.role) || (d && d.role) || '').toUpperCase();
+      var ol = String((u && u.orgLevel) || (d && d.orgLevel) || '').toUpperCase();
+      return role === 'ADMIN' || ol === 'HEADQUARTERS';
+    } catch (e) {
+      return false;
+    }
+  }
+
+  function businessDayCalendarSectionHtml(cal, dashCtx) {
     if (!cal || !cal.months) return '';
     var anchor = cal.anchorMonth ? String(cal.anchorMonth) : '';
     var winFrom = cal.windowFrom ? String(cal.windowFrom).substring(0, 7) : '';
@@ -308,33 +321,42 @@
     var profile = cal.profileName ? esc(String(cal.profileName)) : '—';
     var cc = cal.countryCode ? esc(String(cal.countryCode)) : '';
     var settingsUrl = cal.settingsUrl || '/hq/businessDaySetting';
+    var showSettingsBtn = canOpenBusinessDaySettingsMenu(dashCtx);
+    var settingsBtnHtml = showSettingsBtn
+      ? ('<button type="button" class="btn btn-outline-primary btn-sm pg-dash-open-url" data-url="' + esc(settingsUrl) + '">' +
+        esc(uiT('영업일 설정')) + '</button>')
+      : '';
     var prevA = cal.prevAnchorMonth ? String(cal.prevAnchorMonth) : '';
     var nextA = cal.nextAnchorMonth ? String(cal.nextAnchorMonth) : '';
     return (
-      '<div class="card mb-3 pg-dash-bizday" id="pgDashBizdayCard"' +
+      '<section class="pg-dash-bizday-section mb-3" aria-label="' + esc(uiT("영업일 달력")) + '">' +
+      '<div class="card pg-dash-bizday" id="pgDashBizdayCard"' +
       ' data-anchor-month="' + esc(anchor) + '"' +
       ' data-prev-anchor="' + esc(prevA) + '"' +
       ' data-next-anchor="' + esc(nextA) + '">' +
-      '<div class="card-header py-2 d-flex flex-wrap align-items-center justify-content-between gap-2">' +
-      '<div><strong>' + esc(uiT('영업일 달력')) + '</strong> ' +
-      '<span class="text-muted small ms-1 pg-dash-bizday-range">(' + esc(rangeLbl) + ' · ' + esc(uiT('지난달·이번달·다음달 (3개월)')) + ')</span></div>' +
-      '<div class="small text-muted mt-1 pg-dash-bizday-meta">' +
-      '<span class="me-2">' + esc(uiT('기준 프로필')) + ' <strong class="pg-dash-bizday-profile">' + profile + '</strong></span>' +
-      (cc ? '<span>' + esc(uiT('기준국가')) + ' <code class="pg-dash-bizday-cc">' + cc + '</code></span>' : '') +
-      '</div></div>' +
-      '<div class="d-flex flex-wrap align-items-center gap-2">' +
-      '<button type="button" class="btn btn-outline-secondary btn-sm pg-dash-bizday-prev" title="' + esc(uiT('이전 3개월')) + '">' +
-      '<i class="bi bi-chevron-left"></i> ' + esc(uiT('이전 3개월')) + '</button>' +
-      '<button type="button" class="btn btn-outline-secondary btn-sm pg-dash-bizday-next" title="' + esc(uiT('다음 3개월')) + '">' +
-      esc(uiT('다음 3개월')) + ' <i class="bi bi-chevron-right"></i></button>' +
-      '<button type="button" class="btn btn-outline-primary btn-sm pg-dash-open-url" data-url="' + esc(settingsUrl) + '">' +
-      esc(uiT('영업일 설정')) + '</button></div>' +
+      '<div class="card-header py-2 pg-dash-bizday-toolbar">' +
+      '<div class="pg-dash-bizday-toolbar__row">' +
+      '<div class="pg-dash-bizday-toolbar__title text-nowrap">' +
+      '<strong>' + esc(uiT("영업일 달력")) + '</strong> ' +
+      '<span class="text-muted small pg-dash-bizday-range">(' + esc(rangeLbl) + ' · ' + esc(uiT("지난달·이번달·다음달 (3개월)")) + ')</span></div>' +
+      '<span class="pg-dash-bizday-toolbar__sep text-muted" aria-hidden="true">|</span>' +
+      '<div class="pg-dash-bizday-toolbar__actions d-flex flex-wrap align-items-center gap-1">' +
+      '<button type="button" class="btn btn-outline-secondary btn-sm pg-dash-bizday-prev" title="' + esc(uiT("이전 3개월")) + '">' +
+      '<i class="bi bi-chevron-left"></i> ' + esc(uiT("이전 3개월")) + '</button>' +
+      '<button type="button" class="btn btn-outline-secondary btn-sm pg-dash-bizday-next" title="' + esc(uiT("다음 3개월")) + '">' +
+      esc(uiT("다음 3개월")) + ' <i class="bi bi-chevron-right"></i></button>' +
+      settingsBtnHtml +
+      '</div>' +
+      '<div class="small text-muted pg-dash-bizday-meta pg-dash-bizday-toolbar__meta">' +
+      '<span class="me-2">' + esc(uiT("기준 프로필")) + ' <strong class="pg-dash-bizday-profile">' + profile + '</strong></span>' +
+      (cc ? '<span>' + esc(uiT("기준국가")) + ' <code class="pg-dash-bizday-cc">' + cc + '</code></span>' : '') +
+      '</div></div></div>' +
       '<div class="card-body pt-2">' +
       '<div class="d-flex flex-wrap gap-3 small text-muted mb-2 pg-dash-bizday-legend">' +
-      '<span><span class="d-inline-block rounded pg-dash-bizday-swatch pg-dash-bizday-swatch--on"></span> ' + esc(uiT('영업일')) + '</span>' +
-      '<span><span class="d-inline-block rounded pg-dash-bizday-swatch pg-dash-bizday-swatch--off"></span> ' + esc(uiT('휴일·주말')) + '</span></div>' +
+      '<span><span class="d-inline-block rounded pg-dash-bizday-swatch pg-dash-bizday-swatch--on"></span> ' + esc(uiT("영업일")) + '</span>' +
+      '<span><span class="d-inline-block rounded pg-dash-bizday-swatch pg-dash-bizday-swatch--off"></span> ' + esc(uiT("휴일·주말")) + '</span></div>' +
       businessDayMonthsGridHtml(cal) +
-      '</div></div>'
+      '</div></div></section>'
     );
   }
 
@@ -828,7 +850,16 @@
     return !!(h.variant || h.title);
   }
 
-  function insightsSection(d) {
+  function insightsKpiBlocksHtml(d) {
+    if (hasHqHubPayload(d)) return '';
+    var ins = d.insights;
+    if (!ins || typeof ins !== 'object') return '';
+    var ex = ins.explainers || {};
+    return kpiStripHtml(ins.kpiStrip, ex) + kpiStripYesterdayHtml(ins.kpiStripYesterday, ex);
+  }
+
+  function insightsSection(d, opts) {
+    opts = opts || {};
     var ins = d.insights;
     if (ins && typeof ins === 'object' && ins.loadError) {
       return (
@@ -857,7 +888,7 @@
       );
     }
     var ex = ins.explainers || {};
-    var kpiBlocks = hasHqHubPayload(d) ? '' : (kpiStripHtml(ins.kpiStrip, ex) + kpiStripYesterdayHtml(ins.kpiStripYesterday, ex));
+    var kpiBlocks = opts.skipKpi ? '' : (hasHqHubPayload(d) ? '' : (kpiStripHtml(ins.kpiStrip, ex) + kpiStripYesterdayHtml(ins.kpiStripYesterday, ex)));
     var narr = ins.ruleNarrative ? '<div class="alert alert-light border mb-3 pg-dash-narr"><div class="small text-uppercase text-muted mb-1">' + esc(uiT('규칙 기반 인사이트 (비 LLM)')) + '</div><p class="mb-0">' + esc(translateInlineKo(ins.ruleNarrative)) + '</p></div>' : '';
     var llm = ins.llmNarrativeEnabled ? '' : '<p class="small text-muted mb-2">' + esc(uiT('숫자·근거는 서버 집계이며, LLM 요약은 비활성(1단계)입니다.')) + '</p>';
     var row = '<div class="row">' + riskScorecardHtml(ins.riskScorecard, ex) + '</div>';
@@ -908,12 +939,18 @@
 
     var ql = quickLinksHtml(d.quickLinks);
     var hq = hqHubSection(d);
-    var biz = canShowBusinessDayCalendar(d) ? businessDayCalendarSectionHtml(d.businessDayCalendar) : '';
-    var ins = insightsSection(d);
     var foot =
       '<p class="text-muted small mb-0 mt-3">' + esc(uiT('좌측 메뉴에서 다른 화면을 선택하면 탭이 열립니다. 결제내역 컬럼은 해당 화면의 VIEW SETTING에서 조정할 수 있습니다.')) + '</p>';
-
-    mount.innerHTML = head + hint + hq + biz + ins + ql + salesRow + srv + cal + foot;
+    var hubDash = hasHqHubPayload(d);
+    var biz = canShowBusinessDayCalendar(d) ? businessDayCalendarSectionHtml(d.businessDayCalendar, d) : '';
+    var ins;
+    if (hubDash) {
+      ins = insightsSection(d);
+      mount.innerHTML = head + hint + hq + biz + ins + ql + salesRow + srv + cal + foot;
+    } else {
+      ins = insightsSection(d, { skipKpi: true });
+      mount.innerHTML = head + hint + hq + insightsKpiBlocksHtml(d) + biz + ins + ql + salesRow + srv + cal + foot;
+    }
     bindQuick(mount);
     bindBusinessDayCalendar(mount);
   }

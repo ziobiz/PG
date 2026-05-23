@@ -25,6 +25,7 @@ public class JpaySaleRecordService {
 
     private static final Logger log = LoggerFactory.getLogger(JpaySaleRecordService.class);
     private static final String ORIGIN_URL = "URL";
+    private static final String ORIGIN_MERCHANT_API = "MERCHANT_API";
     private static final String ST_PAID = "10";
     private static final String ST_PENDING = "08";
     private static final String ST_FAIL = "99";
@@ -51,9 +52,10 @@ public class JpaySaleRecordService {
                                      String currency,
                                      int routeNo,
                                      String customerHint,
-                                     String productName) {
+                                     String productName,
+                                     String txnOrigin) {
         try {
-            doRecord(orgUnitId, orderNo, amount, currency, routeNo, customerHint, productName);
+            doRecord(orgUnitId, orderNo, amount, currency, routeNo, customerHint, productName, txnOrigin);
         } catch (Exception e) {
             log.warn("JPAY sale 거래 적재(대기) 실패: {}", e.getMessage());
         }
@@ -65,7 +67,8 @@ public class JpaySaleRecordService {
                           String currency,
                           int routeNo,
                           String customerHint,
-                          String productName) {
+                          String productName,
+                          String txnOrigin) {
         if (orgUnitId == null || orderNo == null || orderNo.isBlank()) {
             return;
         }
@@ -81,13 +84,14 @@ public class JpaySaleRecordService {
         if (on.length() > 64) {
             on = on.substring(0, 64);
         }
-        Optional<PgTrnsctn> ex = pgTrnsctnRepository.findFirstByMerchantIdAndOrderNoAndOrigin(merchantId, on, ORIGIN_URL);
+        String origin = resolveOrigin(txnOrigin);
+        Optional<PgTrnsctn> ex = pgTrnsctnRepository.findFirstByMerchantIdAndOrderNoAndOrigin(merchantId, on, origin);
         PgTrnsctn t = ex.orElseGet(() -> {
             PgTrnsctn x = new PgTrnsctn();
             x.setTrnId(newTrnId());
             x.setMerchantId(merchantId.trim());
             x.setServiceType("URL_JPAY");
-            x.setOrigin(ORIGIN_URL);
+            x.setOrigin(origin);
             return x;
         });
         t.setStatus(ST_PENDING);
@@ -122,8 +126,7 @@ public class JpaySaleRecordService {
         }
         try {
             String on = orderNo.trim();
-            Optional<PgTrnsctn> ex = pgTrnsctnRepository.findFirstByMerchantIdAndOrderNoAndOrigin(
-                    merchantId.trim(), on, ORIGIN_URL);
+            Optional<PgTrnsctn> ex = findTxnForOrder(merchantId.trim(), on);
             if (ex.isEmpty()) {
                 return;
             }
@@ -152,6 +155,23 @@ public class JpaySaleRecordService {
         } catch (Exception e) {
             log.warn("JPAY 동기 응답 반영 실패: {}", e.getMessage());
         }
+    }
+
+    private static String resolveOrigin(String txnOrigin) {
+        if (txnOrigin != null && "MERCHANT_API".equalsIgnoreCase(txnOrigin.trim())) {
+            return ORIGIN_MERCHANT_API;
+        }
+        return ORIGIN_URL;
+    }
+
+    private Optional<PgTrnsctn> findTxnForOrder(String merchantId, String orderNo) {
+        Optional<PgTrnsctn> a = pgTrnsctnRepository.findFirstByMerchantIdAndOrderNoAndOrigin(
+                merchantId, orderNo, ORIGIN_MERCHANT_API);
+        if (a.isPresent()) {
+            return a;
+        }
+        return pgTrnsctnRepository.findFirstByMerchantIdAndOrderNoAndOrigin(
+                merchantId, orderNo, ORIGIN_URL);
     }
 
     private static String newTrnId() {

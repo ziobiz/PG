@@ -41,6 +41,7 @@ import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -119,7 +120,38 @@ public class SettlementCalcService {
     public List<SettlementRun> listRuns(LocalDate fromDate, LocalDate toDate) {
         if (fromDate == null) fromDate = LocalDate.now().minusYears(1);
         if (toDate == null) toDate = LocalDate.now();
-        return settlementRunRepository.findByCalcDtBetweenOrderByMerchantId(fromDate, toDate);
+        return dedupeSettlementRunsForListView(
+                settlementRunRepository.findByCalcDtBetweenOrderByMerchantId(fromDate, toDate));
+    }
+
+    /**
+     * 가맹점정산·유통망·정산보류·정산실행 목록: 동일 정산 슬롯 중복 실행 행은 최신(id) 1건만.
+     */
+    public static List<SettlementRun> dedupeSettlementRunsForListView(List<SettlementRun> runs) {
+        if (runs == null || runs.size() <= 1) {
+            return runs != null ? runs : List.of();
+        }
+        Map<String, SettlementRun> best = new LinkedHashMap<>();
+        for (SettlementRun r : runs) {
+            if (r == null) {
+                continue;
+            }
+            String mid = r.getMerchantId() != null ? r.getMerchantId().trim().toLowerCase(Locale.ROOT) : "";
+            String key = r.getPeriodEndAt() != null
+                    ? mid + "|G|" + r.getCalcDt() + "|" + r.getPeriodEndAt()
+                    : mid + "|C|" + r.getPeriodFrom() + "|" + r.getPeriodTo() + "|" + r.getCalcDt();
+            SettlementRun prev = best.get(key);
+            if (prev == null) {
+                best.put(key, r);
+                continue;
+            }
+            Long rid = r.getId();
+            Long pid = prev.getId();
+            if (rid != null && (pid == null || rid > pid)) {
+                best.put(key, r);
+            }
+        }
+        return new ArrayList<>(best.values());
     }
 
     /**
@@ -200,6 +232,12 @@ public class SettlementCalcService {
         if (!manualExecuteRules) {
             List<String> merchantIds = list.stream().map(PgTrnsctn::getMerchantId).distinct().collect(Collectors.toList());
             for (String mid : merchantIds) {
+                if (mid == null || mid.isBlank()) {
+                    continue;
+                }
+                if (settlementRunRepository.existsByMerchantNormAndCalendarSlot(mid.trim(), fromDate, toDate, calcDt)) {
+                    continue;
+                }
                 List<PgTrnsctn> txList = list.stream().filter(t -> mid.equals(t.getMerchantId())).collect(Collectors.toList());
                 SettlementRun run = calcOne(mid, calcDt, txList, Optional.empty(), false, true, Optional.empty());
                 if (run != null) {
@@ -221,6 +259,10 @@ public class SettlementCalcService {
                 .collect(Collectors.groupingBy(t -> t.getMerchantId().trim()));
 
         for (ManualExecuteRow row : buildManualExecuteRows(fromDate, toDate, merchantId, calcDt, byMid)) {
+            if (settlementRunRepository.existsByMerchantNormAndCalendarSlot(
+                    row.mid(), row.periodFrom(), row.periodTo(), calcDt)) {
+                continue;
+            }
             SettlementRun run = calcOne(row.mid(), calcDt, row.txList(), Optional.empty(), false, true, Optional.empty());
             if (run != null) {
                 run.setPeriodFrom(row.periodFrom());
@@ -449,6 +491,10 @@ public class SettlementCalcService {
         candidates.removeAll(done);
         for (String mid : candidates) {
             if (skipAutoProcMerchants && isMerchantAutoCalcProc(mid)) {
+                continue;
+            }
+            LocalDateTime releaseSlotEnd = calcDt.plusDays(1).atStartOfDay();
+            if (settlementRunRepository.existsByMerchantIdAndCalcDtAndPeriodEndAt(mid, calcDt, releaseSlotEnd)) {
                 continue;
             }
             SettlementRun run = calcOne(mid, calcDt, Collections.emptyList(), Optional.empty(), false, true, Optional.empty());

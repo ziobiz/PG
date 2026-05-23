@@ -1,0 +1,6 @@
+# ICOPAY 가맹점 API — WEB-INF/classes/icopay-config.properties 로 복사
+apiBaseUrl=https://api.icopay.co.kr
+compId=M000123
+brokerSecret=YOUR_BROKER_SECRET
+connectTimeoutSec=15
+readTimeoutSec=30

@@ -1869,7 +1869,15 @@
     return String(u.chatbotPaymentUseYn || 'N').trim().toUpperCase() !== 'Y';
   }
 
+  function isHeadquartersSessionUser() {
+    var u = getSessionUser();
+    if (!u) return false;
+    if (String(u.role || '').toUpperCase() === 'ADMIN') return true;
+    return String(u.orgLevel != null ? u.orgLevel : '').toUpperCase() === 'HEADQUARTERS';
+  }
+
   function isMenuAllowedForCurrentUser(url) {
+    if (url === '/hq/businessDaySetting' && !isHeadquartersSessionUser()) return false;
     if (getPagePermissionForUrl(url) === 'NONE') return false;
     if (isMerchantChatbotMenuForbidden(url)) return false;
     return true;
@@ -1882,6 +1890,15 @@
     var showPerm = ol === 'HEADQUARTERS' || ol === 'REGIONAL' || ol === 'MASTER_DIST';
     document.querySelectorAll('.child-li[data-url="/hq/permissionMng"]').forEach(function (li) {
       if (showPerm) {
+        li.style.display = '';
+      } else {
+        li.style.display = 'none';
+        li.classList.remove('mm-active');
+      }
+    });
+    var showBizdaySetting = isHeadquartersSessionUser();
+    document.querySelectorAll('.child-li[data-url="/hq/businessDaySetting"]').forEach(function (li) {
+      if (showBizdaySetting) {
         li.style.display = '';
       } else {
         li.style.display = 'none';
@@ -2398,6 +2415,29 @@
     return '<script src="' + base + '/v1/embed-chatbot/' + enc + '" async defer charset="utf-8"><\/script>';
   }
   window.pgBuildChatbotEmbedScriptTag = pgBuildChatbotEmbedScriptTag;
+
+  /** 가맹점 API 인라인 결제 iframe 위젯 — prepare 후 sessionToken을 data-session-token에 넣습니다. */
+  function pgBuildMerchantPayEmbedScriptTag(baseUrlTrimmed, compId, sessionToken, targetId) {
+    if (!compId || !sessionToken) return '';
+    var base = String(baseUrlTrimmed || '').replace(/\/$/, '');
+    var enc = encodeURIComponent(String(compId).trim());
+    var tok = encodeURIComponent(String(sessionToken).trim());
+    var tgt = targetId ? String(targetId).trim() : 'icopay-pay-checkout';
+    return '<div id="' + tgt + '"></div>\n' +
+      '<script src="' + base + '/v1/embed-pay/' + enc + '" data-session-token="' + tok + '" data-target="' + tgt + '" async defer charset="utf-8"><\/script>';
+  }
+  window.pgBuildMerchantPayEmbedScriptTag = pgBuildMerchantPayEmbedScriptTag;
+
+  function pgBuildMerchantJpayEmbedScriptTag(baseUrlTrimmed, compId, sessionToken, targetId) {
+    if (!compId || !sessionToken) return '';
+    var base = String(baseUrlTrimmed || '').replace(/\/$/, '');
+    var enc = encodeURIComponent(String(compId).trim());
+    var tok = encodeURIComponent(String(sessionToken).trim());
+    var tgt = targetId ? String(targetId).trim() : 'icopay-jpay-checkout';
+    return '<div id="' + tgt + '"></div>\n' +
+      '<script src="' + base + '/v1/embed-jpay-pay/' + enc + '" data-session-token="' + tok + '" data-target="' + tgt + '" async defer charset="utf-8"><\/script>';
+  }
+  window.pgBuildMerchantJpayEmbedScriptTag = pgBuildMerchantJpayEmbedScriptTag;
 
   /** 공개 API: 챗봇 결제 진입 URL PNG QR (가맹점 코드 m, size 128~512) */
   function pgChatbotPayQrPngUrl(compId, sizePx) {
@@ -9012,6 +9052,23 @@
           });
           setSummaryText(p, '담보금액', fmtNum(coll.holdAmt));
         }
+        if (url === '/calc/unpaidMng' || url === '/settlement/unpaidMng') {
+          var rsMeta = data && data.meta && data.meta.receivableSummary ? data.meta.receivableSummary : null;
+          if (rsMeta) {
+            setSummaryText(p, '잔액합계', fmtNum(rsMeta.remainingTotal));
+            setSummaryText(p, '미수금합계', fmtNum(rsMeta.totalAmountSum));
+          } else {
+            var upSum = { rem: 0, tot: 0 };
+            list.forEach(function (r) {
+              var stUp = String(r.status || '').trim().toUpperCase();
+              if (stUp === 'CANCELLED' || stUp === 'WRITE_OFF') return;
+              upSum.rem += asNum(r.remainingAmount != null ? r.remainingAmount : r.deductCnt);
+              upSum.tot += asNum(r.totalAmount);
+            });
+            setSummaryText(p, '잔액합계', fmtNum(upSum.rem));
+            setSummaryText(p, '미수금합계', fmtNum(upSum.tot));
+          }
+        }
         if (data && data.size != null && (PG_PAY_LIST_SEARCH_URLS.indexOf(url) !== -1 || PG_SETTLEMENT_LIST_GRID_URLS.indexOf(url) !== -1)) {
           var rpSync = p.querySelector('#recordsPerPage');
           if (rpSync) {
@@ -15499,7 +15556,7 @@
     if (url === '/hq/chatbotAiSettings') {
       var dimmAi = document.getElementById('dimm');
       var PRESETS_AI = {
-        gemini: ['gemini-2.0-flash', 'gemini-2.5-flash-lite', 'gemini-2.5-flash', 'gemini-1.5-flash', 'gemini-1.5-pro'],
+        gemini: ['gemini-3-flash-preview', 'gemini-3.1-pro-preview', 'gemini-3.1-flash-lite', 'gemini-2.5-pro', 'gemini-2.5-flash', 'gemini-2.5-flash-lite', 'gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-1.5-pro'],
         groq: ['llama-3.1-8b-instant', 'llama-3.3-70b-versatile', 'llama-3.1-70b-versatile', 'mixtral-8x7b-32768'],
         anthropic: ['claude-sonnet-4-5', 'claude-3-5-sonnet-20241022', 'claude-3-opus-20240229', 'claude-3-haiku-20240307'],
         openai: ['gpt-4o-mini', 'gpt-4o', 'gpt-4-turbo', 'gpt-4']
@@ -23114,7 +23171,7 @@
         st.currentList = Array.isArray(list) ? list : [];
         if (!tbodyBiz) return;
         if (!st.currentList.length) {
-          tbodyBiz.innerHTML = '<tr><td colspan="11" class="text-center text-muted">' + pgAdminEscHtml(pgAdminUiT('저장된 설정이 없습니다.')) + '</td></tr>';
+          tbodyBiz.innerHTML = '<tr><td colspan="12" class="text-center text-muted">' + pgAdminEscHtml(pgAdminUiT('저장된 설정이 없습니다.')) + '</td></tr>';
           return;
         }
         var html = '';
@@ -23131,6 +23188,11 @@
             '<td>' + (it.createdBy || '-') + '</td>' +
             '<td class="text-center align-middle">' + hc.official + '</td><td class="text-center align-middle">' + hc.added + '</td><td class="text-center align-middle">' + hc.total + '</td>' +
             '<td>' + createdDisp + '</td><td>' + updatedDisp + '</td>' +
+            '<td class="text-center p-1 align-middle">' +
+            (String(it.hqDefaultYn || '') === 'Y'
+              ? '<span class="badge bg-primary" data-pg-ui-t="총본사 기준">총본사 기준</span>'
+              : '<button type="button" class="btn btn-sm btn-outline-secondary hq-bizday-set-hq-default" data-id="' + idStr + '">' + pgAdminEscHtml(pgAdminUiT('지정')) + '</button>') +
+            '</td>' +
             '<td class="text-center p-1 align-middle"><button type="button" class="btn btn-sm btn-outline-primary hq-bizday-profile-edit" data-id="' + idStr + '">' + pgAdminEscHtml(pgAdminUiT('수정')) + '</button></td>' +
             '<td class="text-center p-1 align-middle"><button type="button" class="btn btn-sm btn-outline-danger hq-bizday-profile-del" data-id="' + idStr + '">' + pgAdminEscHtml(pgAdminUiT('삭제')) + '</button></td></tr>';
         });
@@ -23164,7 +23226,7 @@
           renderList(list || []);
           if (window.PG_HQ_HOLIDAY && typeof window.PG_HQ_HOLIDAY.init === 'function') window.PG_HQ_HOLIDAY.init(pane, { force: true });
         }).catch(function (e) {
-          if (tbodyBiz) tbodyBiz.innerHTML = '<tr><td colspan="11" class="text-center text-danger">' + pgAdminEscHtml(e && e.message ? e.message : pgAdminUiT('영업일 설정 조회 실패')) + '</td></tr>';
+          if (tbodyBiz) tbodyBiz.innerHTML = '<tr><td colspan="12" class="text-center text-danger">' + pgAdminEscHtml(e && e.message ? e.message : pgAdminUiT('영업일 설정 조회 실패')) + '</td></tr>';
         }).finally(function () { if (dimmBiz) dimmBiz.style.display = 'none'; });
       }
       /** 신규·저장·삭제 공통: 1차 확인 → 2차 최종 확인(취소 시 중단) */
@@ -23172,6 +23234,11 @@
         if (!window.confirm(msgStep1)) return false;
         if (!window.confirm(msgStep2)) return false;
         return true;
+      }
+      function pgApplyBizdayChangeToMainDashboard() {
+        if (typeof window.pgRefreshMainDashboardIfActive === 'function') {
+          try { window.pgRefreshMainDashboardIfActive({ invalidate: true }); } catch (eBizDashInv) {}
+        }
       }
       if (newBtnBiz) newBtnBiz.addEventListener('click', function () {
         if (!hqBizdayTwoStepConfirm(
@@ -23246,6 +23313,7 @@
             var found = data.list.find(function (x) { return String(x.id || '') === st.currentEditingId; });
             if (found) loadManualFromItem(found);
           }
+          pgApplyBizdayChangeToMainDashboard();
         }).catch(function (e) { alert(e && e.message ? e.message : pgAdminUiT('저장 실패')); }).finally(function () { if (dimmBiz) dimmBiz.style.display = 'none'; });
       });
       function runHqBizdayDeleteById(deleteId) {
@@ -23261,6 +23329,7 @@
           alert((data && data.message) ? data.message : pgAdminUiT('삭제되었습니다.'));
           if (String(st.currentEditingId) === String(deleteId)) clearEditor();
           renderList((data && data.list) ? data.list : []);
+          pgApplyBizdayChangeToMainDashboard();
         }).catch(function (e) { alert(e && e.message ? e.message : pgAdminUiT('삭제 실패')); }).finally(function () { if (dimmBiz) dimmBiz.style.display = 'none'; });
       }
       function refreshHqBizdayDomI18n() {
@@ -23360,6 +23429,30 @@
               rt.refreshManualRangeFormUi();
               if (window.PG_HQ_HOLIDAY && typeof window.PG_HQ_HOLIDAY.init === 'function') window.PG_HQ_HOLIDAY.init(p, { force: true });
             }
+            return;
+          }
+          var hqDefBtn = ev.target && ev.target.closest ? ev.target.closest('.hq-bizday-set-hq-default') : null;
+          if (hqDefBtn && p.contains(hqDefBtn)) {
+            ev.stopPropagation();
+            var hqDefId = hqDefBtn.getAttribute('data-id') || '';
+            if (!hqDefId) return;
+            if (!hqBizdayTwoStepConfirm(
+              pgAdminUiT('[1단계] 이 영업일 설정을 총본사 기준(메인 영업일 달력)으로 지정합니다.\n진행하시겠습니까? (취소 시 변경 없음)'),
+              pgAdminUiT('[2단계] 최종 확인: 지정 즉시 메인·정산 기본 영업일이 이 프로필로 바뀝니다.\n지정하시겠습니까?')
+            )) return;
+            if (!window.PG_API || typeof window.PG_API.hqBusinessDaySetHqDefault !== 'function') {
+              alert(pgAdminUiT('API를 사용할 수 없습니다.'));
+              return;
+            }
+            if (dimmBiz) dimmBiz.style.display = 'flex';
+            window.PG_API.hqBusinessDaySetHqDefault(hqDefId).then(function (data) {
+              var list = data && data.list ? data.list : st0.currentList;
+              renderList(list);
+              pgApplyBizdayChangeToMainDashboard();
+              alert(pgAdminUiT('총본사 기준 영업일로 지정되었습니다. 메인 영업일 달력을 갱신했습니다.'));
+            }).catch(function (e) {
+              alert(e && e.message ? e.message : pgAdminUiT('적용 실패'));
+            }).finally(function () { if (dimmBiz) dimmBiz.style.display = 'none'; });
             return;
           }
           var profileDel = ev.target && ev.target.closest ? ev.target.closest('.hq-bizday-profile-del') : null;
@@ -23811,7 +23904,11 @@
         '<li>' + pgAdminEscHtml(pgAdminUiT('공개 API 베이스:')) + ' <code>' + esc(kit.publicApiBaseUrl || '') + '</code></li>' +
         (kit.baseCurrency ? '<li>' + pgAdminEscHtml(pgAdminUiT('기준통화:')) + ' <strong>' + esc(kit.baseCurrency) + '</strong></li>' : '') +
         '<li class="mb-0 mt-1">' + pgAdminEscHtml(pgAdminUiT('가맹 PG 바인딩')) + '</li><ul class="mb-0 ps-3">' + bindLi + '</ul>' +
-        '<li class="mt-2 mb-0">' + pgAdminEscHtml(pgAdminUiT('아래 JSON 전체를 복사해 가맹·개발 담당에게 전달하세요.')) + '</li></ul>';
+        '<li class="mt-2 mb-0">' + pgAdminEscHtml(pgAdminUiT('아래 JSON 전체를 복사해 가맹·개발 담당에게 전달하세요.')) + '</li>' +
+        (kit.merchantIntegrationSamples && kit.merchantIntegrationSamples.downloadBaseUrl
+          ? '<li class="mt-2 mb-0">' + pgAdminEscHtml(pgAdminUiT('PHP/JSP 샘플:')) + ' <code>' + esc(kit.merchantIntegrationSamples.downloadBaseUrl) + '</code></li>'
+          : '') +
+        '</ul>';
     }
     function loadKit() {
       var cid = compInput && compInput.value ? String(compInput.value).trim() : '';
@@ -25526,14 +25623,15 @@
       } catch (eTabDash) {}
       return;
     }
+    /* 영업일설정 등 다른 탭에서 저장해도 메인 캐시는 항상 비운다(탭 전환 시 onMainShown이 재조회). */
+    if (opts.invalidate && window.PG_HOME_DASHBOARD && typeof window.PG_HOME_DASHBOARD.invalidate === 'function') {
+      try { window.PG_HOME_DASHBOARD.invalidate(); } catch (eInv) {}
+    }
     var mainPane = document.getElementById('main');
     if (!mainPane) return;
     if (!mainPane.classList.contains('show') || !mainPane.classList.contains('active')) return;
     if (mainPane.style.display === 'none') return;
     if (!window.PG_HOME_DASHBOARD || typeof window.PG_HOME_DASHBOARD.onMainShown !== 'function') return;
-    if (opts.invalidate && typeof window.PG_HOME_DASHBOARD.invalidate === 'function') {
-      try { window.PG_HOME_DASHBOARD.invalidate(); } catch (eInv) {}
-    }
     requestAnimationFrame(function () {
       try { window.PG_HOME_DASHBOARD.onMainShown(); } catch (eP) {}
     });

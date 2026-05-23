@@ -32,6 +32,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.springframework.http.ResponseEntity;
+import org.springframework.util.StringUtils;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.transaction.annotation.Transactional;
@@ -2015,12 +2016,46 @@ public class ApiHqController {
         String raw = c != null ? c.getBusinessDaySettingsJson() : null;
         List<Map<String, Object>> list = parseBusinessDaySettings(raw);
         enrichBusinessDayHolidayCounts(list);
+        enrichBusinessDayHqDefaultFlags(c, list);
         return ResponseEntity.ok(ApiResponse.ok(list));
+    }
+
+    /** 본사설정 영업일 목록에서 총본사 기준(메인 달력·HQ 기본)으로 지정할 프로필 선택 */
+    @PostMapping("/businessDaySettings/setHqDefault")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> businessDaySettingsSetHqDefault(
+            @RequestBody(required = false) Map<String, Object> body) {
+        AppUser u = currentAppUser();
+        if (!mayManageBusinessDaySettings(u)) {
+            return ResponseEntity.ok(ApiResponse.fail("영업일 설정은 총본사(또는 시스템 관리자)만 변경할 수 있습니다.", "FORBIDDEN"));
+        }
+        String id = Optional.ofNullable(hqStr(body, "id")).orElse("").trim();
+        if (id.isEmpty()) {
+            return ResponseEntity.ok(ApiResponse.fail("지정할 영업일 설정 ID가 필요합니다.", "VALIDATION"));
+        }
+        HqApiConfig c = hqApiConfigRepository.findAll().stream().findFirst().orElse(new HqApiConfig());
+        List<Map<String, Object>> list = parseBusinessDaySettings(c.getBusinessDaySettingsJson());
+        boolean found = list.stream().anyMatch(m -> id.equals(String.valueOf(m.getOrDefault("id", ""))));
+        if (!found) {
+            return ResponseEntity.ok(ApiResponse.fail("저장된 영업일 설정 목록에 없는 ID입니다.", "NOT_FOUND"));
+        }
+        c.setHqDefaultBusinessDayProfileId(id);
+        hqApiConfigRepository.save(c);
+        enrichBusinessDayHolidayCounts(list);
+        enrichBusinessDayHqDefaultFlags(c, list);
+        return ResponseEntity.ok(ApiResponse.ok(Map.of(
+                "success", true,
+                "message", "총본사 기준 영업일로 지정되었습니다.",
+                "hqDefaultBusinessDayProfileId", id,
+                "list", list)));
     }
 
     /** 본사설정 > 영업일설정 저장(추가/수정/삭제) */
     @PostMapping("/businessDaySettings/save")
     public ResponseEntity<ApiResponse<Map<String, Object>>> businessDaySettingsSave(@RequestBody Map<String, Object> body) {
+        AppUser u = currentAppUser();
+        if (!mayManageBusinessDaySettings(u)) {
+            return ResponseEntity.ok(ApiResponse.fail("영업일 설정은 총본사(또는 시스템 관리자)만 저장할 수 있습니다.", "FORBIDDEN"));
+        }
         HqApiConfig c = hqApiConfigRepository.findAll().stream().findFirst().orElse(new HqApiConfig());
         List<Map<String, Object>> list = parseBusinessDaySettings(c.getBusinessDaySettingsJson());
         String mode = Optional.ofNullable(hqStr(body, "mode")).orElse("UPSERT").trim().toUpperCase(Locale.ROOT);
@@ -2035,9 +2070,13 @@ public class ApiHqController {
             if (id.isEmpty()) return ResponseEntity.ok(ApiResponse.fail("삭제할 ID가 필요합니다.", "VALIDATION"));
             final String deleteId = id;
             list = list.stream().filter(m -> !Objects.equals(String.valueOf(m.getOrDefault("id", "")), deleteId)).collect(Collectors.toList());
+            if (deleteId.equals(String.valueOf(c.getHqDefaultBusinessDayProfileId() != null ? c.getHqDefaultBusinessDayProfileId() : "").trim())) {
+                c.setHqDefaultBusinessDayProfileId(list.isEmpty() ? null : String.valueOf(list.get(0).getOrDefault("id", "")));
+            }
             c.setBusinessDaySettingsJson(writeBusinessDaySettings(list));
             hqApiConfigRepository.save(c);
             enrichBusinessDayHolidayCounts(list);
+            enrichBusinessDayHqDefaultFlags(c, list);
             return ResponseEntity.ok(ApiResponse.ok(Map.of("success", true, "message", "삭제되었습니다.", "list", list)));
         }
         if (name.isEmpty()) return ResponseEntity.ok(ApiResponse.fail("이름은 필수입니다.", "VALIDATION"));
@@ -2102,9 +2141,26 @@ public class ApiHqController {
         }
         if (!updated) list.add(row);
         c.setBusinessDaySettingsJson(writeBusinessDaySettings(list));
+        if (!StringUtils.hasText(c.getHqDefaultBusinessDayProfileId()) && !list.isEmpty()) {
+            c.setHqDefaultBusinessDayProfileId(id);
+        }
         hqApiConfigRepository.save(c);
         enrichBusinessDayHolidayCounts(list);
+        enrichBusinessDayHqDefaultFlags(c, list);
         return ResponseEntity.ok(ApiResponse.ok(Map.of("success", true, "message", "저장되었습니다.", "id", id, "list", list)));
+    }
+
+    private void enrichBusinessDayHqDefaultFlags(HqApiConfig c, List<Map<String, Object>> list) {
+        if (list == null) return;
+        String defId = c != null && c.getHqDefaultBusinessDayProfileId() != null
+                ? c.getHqDefaultBusinessDayProfileId().trim() : "";
+        if (defId.isEmpty() && !list.isEmpty()) {
+            defId = String.valueOf(list.get(0).getOrDefault("id", "")).trim();
+        }
+        for (Map<String, Object> row : list) {
+            String rid = String.valueOf(row.getOrDefault("id", "")).trim();
+            row.put("hqDefaultYn", !defId.isEmpty() && defId.equals(rid) ? "Y" : "N");
+        }
     }
 
     /** 저장된 비영업 일자 중 공식(토·일·해당국 프리셋 법정일) / 추가(그 외) / 총 — API 응답용 (DB JSON에는 넣지 않음) */
@@ -2516,6 +2572,29 @@ public class ApiHqController {
         } catch (Exception ex) {
             return ResponseEntity.ok(ApiResponse.fail(ex.getMessage() != null ? ex.getMessage() : "저장 실패", "ERROR"));
         }
+    }
+
+    private static AppUser currentAppUser() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth != null && auth.getPrincipal() instanceof AppUser u) {
+            return u;
+        }
+        return null;
+    }
+
+    /** 본사설정 > 영업일설정 화면·저장 — 총본사·ADMIN만 */
+    private boolean mayManageBusinessDaySettings(AppUser u) {
+        if (u == null) {
+            return false;
+        }
+        if ("ADMIN".equalsIgnoreCase(u.getRole())) {
+            return true;
+        }
+        Map<String, Object> org = authService.getOrgInfo(u.getUsername());
+        if (org == null) {
+            return false;
+        }
+        return "HEADQUARTERS".equals(String.valueOf(org.getOrDefault("orgLevel", "")).trim().toUpperCase(Locale.ROOT));
     }
 
     private boolean mayOpenPermissionScreen(AppUser u) {

@@ -651,11 +651,26 @@
 
   /** 본사 AI챗봇설정 — ziobiz/Stock php-web/pages/ai.php 리포트 API 키·모델·순위와 동일 필드명 */
   function hqChatbotAiSettingsFormHtml() {
+    var geminiModelLabels = {
+      'gemini-3-flash-preview': 'Gemini 3 Flash',
+      'gemini-3.1-pro-preview': 'Gemini 3.1 Pro',
+      'gemini-3.1-flash-lite': 'Gemini 3.1 Flash-Lite',
+      'gemini-2.5-pro': 'Gemini 2.5 Pro',
+      'gemini-2.5-flash': 'Gemini 2.5 Flash',
+      'gemini-2.5-flash-lite': 'Gemini 2.5 Flash-Lite',
+      'gemini-2.0-flash': 'Gemini 2.0 Flash',
+      'gemini-1.5-flash': 'Gemini 1.5 Flash',
+      'gemini-1.5-pro': 'Gemini 1.5 Pro'
+    };
+    function geminiModelOptionLabel(id) {
+      return geminiModelLabels[id] ? geminiModelLabels[id] + ' (' + id + ')' : id;
+    }
     function modelSelectHtml(prov, presets) {
       var opts = '<option value="" data-pg-ui-t="자동(기본)">' + escUi(L('자동(기본)')) + '</option>';
       for (var i = 0; i < presets.length; i++) {
         var m = presets[i];
-        opts += '<option value="' + escUi(m) + '">' + escUi(m) + '</option>';
+        var lab = (prov === 'gemini') ? geminiModelOptionLabel(m) : m;
+        opts += '<option value="' + escUi(m) + '">' + escUi(lab) + '</option>';
       }
       opts += '<option value="custom" data-pg-ui-t="기타(직접입력)">' + escUi(L('기타(직접입력)')) + '</option>';
       return (
@@ -673,7 +688,7 @@
         '</div></div>'
       );
     }
-    var gemPre = ['gemini-2.0-flash', 'gemini-2.5-flash-lite', 'gemini-2.5-flash', 'gemini-1.5-flash', 'gemini-1.5-pro'];
+    var gemPre = ['gemini-3-flash-preview', 'gemini-3.1-pro-preview', 'gemini-3.1-flash-lite', 'gemini-2.5-pro', 'gemini-2.5-flash', 'gemini-2.5-flash-lite', 'gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-1.5-pro'];
     var groqPre = ['llama-3.1-8b-instant', 'llama-3.3-70b-versatile', 'llama-3.1-70b-versatile', 'mixtral-8x7b-32768'];
     var antPre = ['claude-sonnet-4-5', 'claude-3-5-sonnet-20241022', 'claude-3-opus-20240229', 'claude-3-haiku-20240307'];
     var oaiPre = ['gpt-4o-mini', 'gpt-4o', 'gpt-4-turbo', 'gpt-4'];
@@ -1339,8 +1354,10 @@
       '<th class="text-center align-middle" style="width:88px" data-pg-ui-title="저장된 비영업일 중 토·일·기준국가 법정(프리셋) 공휴일에 해당하는 일수." title="' + escUi(L('저장된 비영업일 중 토·일·기준국가 법정(프리셋) 공휴일에 해당하는 일수.')) + '" data-pg-ui-t="공식공휴일">' + escUi(L('공식공휴일')) + '</th>' +
       '<th class="text-center align-middle" style="width:88px" data-pg-ui-title="저장된 비영업일 중 위 공식에 해당하지 않는 일수(추가 지정 평일 등)." title="' + escUi(L('저장된 비영업일 중 위 공식에 해당하지 않는 일수(추가 지정 평일 등).')) + '" data-pg-ui-t="추가공휴일">' + escUi(L('추가공휴일')) + '</th>' +
       '<th class="text-center align-middle" style="width:80px" data-pg-ui-title="저장된 비영업 일자 수(중복 1회). 공식+추가와 일치." title="' + escUi(L('저장된 비영업 일자 수(중복 1회). 공식+추가와 일치.')) + '" data-pg-ui-t="총공휴일">' + escUi(L('총공휴일')) + '</th>' +
-      '<th style="width:100px" data-pg-ui-t="작성일">' + escUi(L('작성일')) + '</th><th style="width:100px" data-pg-ui-t="수정일">' + escUi(L('수정일')) + '</th><th class="text-center" style="width:76px" data-pg-ui-t="수정">' + escUi(L('수정')) + '</th><th class="text-center" style="width:76px" data-pg-ui-t="삭제">' + escUi(L('삭제')) + '</th></tr></thead>' +
-      '<tbody id="hqBizdayProfileTbody"><tr><td colspan="11" class="text-center text-muted" data-pg-ui-t="저장된 설정이 없습니다.">' + escUi(L('저장된 설정이 없습니다.')) + '</td></tr></tbody></table></div>' +
+      '<th style="width:100px" data-pg-ui-t="작성일">' + escUi(L('작성일')) + '</th><th style="width:100px" data-pg-ui-t="수정일">' + escUi(L('수정일')) + '</th>' +
+      '<th class="text-center align-middle" style="width:100px" data-pg-ui-t="총본사 기준">' + escUi(L('총본사 기준')) + '</th>' +
+      '<th class="text-center" style="width:76px" data-pg-ui-t="수정">' + escUi(L('수정')) + '</th><th class="text-center" style="width:76px" data-pg-ui-t="삭제">' + escUi(L('삭제')) + '</th></tr></thead>' +
+      '<tbody id="hqBizdayProfileTbody"><tr><td colspan="12" class="text-center text-muted" data-pg-ui-t="저장된 설정이 없습니다.">' + escUi(L('저장된 설정이 없습니다.')) + '</td></tr></tbody></table></div>' +
       '</div></div>';
   }
 
@@ -4517,7 +4534,7 @@
         { idPrefix: 'settlementExecuteRecentModeBtn', label: '최근정산', cls: 'btn-primary settlement-execute-recent-mode-btn' }
       ],
       noticeList: [
-        '이 메뉴는 정산방법이 비자동(수동·펌뱅킹 등)인 가맹을 「수동실행」하는 화면입니다. 정산방법이 자동인 가맹은 정산 배치(크론)가 돌며, 목록에는 이력이 보일 수 있으나 행 선택은 비활성입니다. 목록은 정산일(calc_dt)이 정산기간 안에 드는 실행입니다. [수동실행]: 기간 필수·동일 주기·마감·격자 규칙 적용하되 AUTO 가맹은 서버에서 제외됩니다. 검색의 정산구분은 전체·수동만 제공합니다. 자동 배치와 동일한 마감·영업일·D0 등 제약이 적용됩니다. 지급 부족 시 미수금 자동등록·환수/FIFO 규칙은 기존과 동일합니다.'
+        '이 메뉴는 정산방법이 비자동(수동·펌뱅킹 등)인 가맹을 「수동실행」하는 화면입니다. 정산방법이 자동인 가맹은 정산 배치(크론)가 돌며, 목록에는 이력이 보일 수 있으나 행 선택은 비활성입니다. 목록은 정산일(calc_dt)이 정산기간 안에 드는 실행입니다. [수동실행]: 기간 필수·동일 주기·마감·격자 규칙 적용하되 AUTO 가맹은 서버에서 제외됩니다. 검색구분「정산대상일」: 집계 마감일(calc_dt)의 해당 월·일(1~31)만( W7 이면 주간 일요일 마감일). 「정산일」: 배치가 돌았거나 돌 예정인 정산 도래일( W7·영업일 N일 후) 또는 실행 등록일 기준 해당 월·일. 정산구분은 전체·자동·수동. 자동 배치와 동일한 마감·영업일·D0 등 제약이 적용됩니다. 지급 부족 시 미수금 자동등록·환수/FIFO 규칙은 기존과 동일합니다.'
       ],
       searchRows: [
         [
@@ -4536,13 +4553,16 @@
             { v: 'STATUS', t: '상태' },
             { v: 'SETTLEMENT_PUBLISH_STS', t: '배포상태' },
             { v: 'PAYOUT_HOLD_YN', t: '지급보류' },
-            { v: 'AMOUNT', t: '금액' }
+            { v: 'AMOUNT', t: '금액' },
+            { v: 'SETTLE_TARGET_DAY', t: '정산대상일' },
+            { v: 'SETTLE_RUN_DAY', t: '정산일' }
           ], size: 10 },
           { label: '정산구분', type: 'select', name: 'searchCalcProcType', options: [
             { v: '', t: '전체' },
+            { v: 'AUTO', t: '자동' },
             { v: 'MANUAL', t: '수동' }
           ], size: 8 },
-          { label: '검색어', type: 'text', name: 'searchKeyword', placeholder: '검색어', size: 16 },
+          { label: '검색어', type: 'text', name: 'searchKeyword', placeholder: '검색어(일: 1~31)', size: 16 },
           { type: 'searchBtn', label: '검색' }
         ]
       ],
@@ -6809,15 +6829,15 @@
             ? '목록 행을 클릭하면 정산일 기준 당일 00:00~24:00 가맹 전체 거래를 표시합니다.'
             : (reportDetail ? '정산집계·정산실시·확정정산에서 실행 ID가 있는 행을 클릭하면 해당 실행에 집계된 거래가 표시됩니다.' : '상단 목록 행을 더블클릭하면 표시됩니다.');
           var settleDetailHintPKo = pubDayDetail
-            ? '정산배포 목록에서 한 행을 <strong>클릭</strong>하면, 해당 실행의 <strong>정산일(calc_dt) 달력 하루</strong> 동안 해당 가맹의 <strong>전체 결제 거래</strong>를 승인일시 오름차순으로 불러옵니다(최대 2,500건·초과 시 상한 안내). 격자 정산의 집계 구간(H1 등)과 범위가 다를 수 있습니다.'
+            ? '정산배포 목록에서 한 행을 클릭하면, 해당 실행의 정산일(calc_dt) 달력 하루 동안 해당 가맹의 전체 결제 거래를 승인일시 오름차순으로 불러옵니다(최대 2,500건·초과 시 상한 안내). 격자 정산의 집계 구간(H1 등)과 범위가 다를 수 있습니다.'
             : (reportDetail
-              ? '정산집계·정산실시·확정정산에서 <strong>실행 ID</strong>가 있는 행을 <strong>클릭</strong>하면 해당 정산 실행에 포함된 거래를 정산실행 화면과 동일한 형식으로 불러옵니다. <strong>정산집계표(SUM)</strong>는 요약 1행만 제공되고, <strong>본사 지급 리포트의 정산실시(EXE)</strong>는 본사 합산 행이라 실행 ID가 없을 수 있습니다 — 이 경우 리포트 형식을 가맹점 정산 리포트로 바꾼 뒤 가맹 단위 행을 클릭하세요.'
-              : '정산실행 목록에서 한 행을 <strong>더블클릭</strong>하면, 해당 실행에 저장된 집계 건수(<code>included_txn_cnt</code>)가 있으면 그 건수만큼만, 같은 기간·정렬(승인일시 오름차순)으로 표시합니다. 상단 메타의 <strong>대상 매출액</strong>은 이 실행 집계 구간(예: H1 한 시간)에 대한 <strong>승인 매출 합</strong>(정산 실행 저장값)이며, 아래 표시 행의 단순 합이 아닙니다.');
+              ? '정산집계·정산실시·확정정산에서 실행 ID가 있는 행을 클릭하면 해당 정산 실행에 포함된 거래를 정산실행 화면과 동일한 형식으로 불러옵니다. 정산집계표(SUM)는 요약 1행만 제공되고, 본사 지급 리포트의 정산실시(EXE)는 본사 합산 행이라 실행 ID가 없을 수 있습니다 — 이 경우 리포트 형식을 가맹점 정산 리포트로 바꾼 뒤 가맹 단위 행을 클릭하세요.'
+              : '정산실행 목록에서 한 행을 더블클릭하면, 해당 실행에 저장된 집계 건수(included_txn_cnt)가 있으면 그 건수만큼만, 같은 기간·정렬(승인일시 오름차순)으로 표시합니다. 상단 메타의 대상 매출액은 이 실행 집계 구간(예: H1 한 시간)에 대한 승인 매출 합(정산 실행 저장값)이며, 아래 표시 행의 단순 합이 아닙니다.');
           var settleDetailEmptyKo = pubDayDetail ? '목록에서 행을 클릭하세요.' : (reportDetail ? '실행 ID가 있는 행을 클릭하세요.' : '정산실행 행을 더블클릭하세요.');
           html += '<div class="card mt-4 screen-pay-list" id="settlementExecuteDetailCard_' + tabId + '"><div class="card-header py-2 fw-semibold d-flex flex-wrap justify-content-between align-items-center gap-2">' +
             '<span data-pg-ui-t="' + escUi(settleDetailTitleKo) + '">' + escUi(L(settleDetailTitleKo)) + '</span>' +
             '<span class="small text-muted fw-normal" id="settlementExecuteDetailMeta_' + tabId + '" data-pg-ui-t="' + escUi(settleDetailMetaHintKo) + '">' + escUi(L(settleDetailMetaHintKo)) + '</span></div><div class="card-body pt-2">' +
-            '<p class="text-muted small mb-2" id="settlementExecuteDetailHint_' + tabId + '"><span data-pg-ui-t="' + escUi(settleDetailHintPKo) + '">' + L(settleDetailHintPKo) + '</span></p>' +
+            '<p class="text-muted small mb-2" id="settlementExecuteDetailHint_' + tabId + '"><span data-pg-ui-t="' + escUi(settleDetailHintPKo) + '">' + escUi(L(settleDetailHintPKo)) + '</span></p>' +
             '<div class="table-responsive table-scrollable"><table class="table table-sm table-bordered table-hover align-middle mb-0 pay-mng-data-grid" id="grid_settlementExecuteDetail_' + tabId + '">' +
             '<thead>' +
             '<tr>' +

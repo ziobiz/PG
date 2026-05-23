@@ -219,7 +219,8 @@ public class JpayPaymentService {
 
         jpaySaleRecordService.recordOrTouchPending(orgUnitId, orderNo, amountBd, currency, routeNo,
                 str(body.get("payEmailAddress")),
-                str(body.get("item")));
+                str(body.get("item")),
+                resolveTxnOrigin(str(body.get("txnOrigin"))));
 
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
@@ -269,6 +270,11 @@ public class JpayPaymentService {
         return out;
     }
 
+    /** 가맹점 API 인라인 결제(jpay-pay.html) 등 — JPAY URL 결제 운영 바인딩 존재 여부 */
+    public boolean hasOperationalWebBinding(Long orgUnitId) {
+        return findOperationalJpayWebBinding(orgUnitId).isPresent();
+    }
+
     private String resolveMerchantCode(Long orgUnitId) {
         if (orgUnitId == null) {
             return "";
@@ -276,6 +282,17 @@ public class JpayPaymentService {
         return orgUnitRepository.findById(orgUnitId)
                 .map(o -> o.getCode() != null ? o.getCode().trim() : "")
                 .orElse("");
+    }
+
+    private static String resolveTxnOrigin(String raw) {
+        if (raw == null || raw.isBlank()) {
+            return "URL";
+        }
+        String u = raw.trim().toUpperCase(Locale.ROOT);
+        if ("MERCHANT_API".equals(u)) {
+            return "MERCHANT_API";
+        }
+        return "URL";
     }
 
     private Optional<MerchantPgBinding> findOperationalJpayWebBinding(Long orgUnitId) {

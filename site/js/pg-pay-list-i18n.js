@@ -231,6 +231,8 @@
     'searchFieldType|CALC_METHOD': optMap({ EN: 'Settlement method', JP: '精算方法', CH: '结算方式', TH: 'วิธีการชำระ' }),
     'searchFieldType|SETTLEMENT_PUBLISH_STS': optMap({ EN: 'Publish status', JP: '配布状態', CH: '发布状态', TH: 'สถานะเผยแพร่' }),
     'searchFieldType|PAYOUT_HOLD_YN': optMap({ EN: 'Payout hold', JP: '支払保留', CH: '支付暂缓', TH: 'พักจ่าย' }),
+    'searchFieldType|SETTLE_TARGET_DAY': optMap({ EN: 'Settlement target date', JP: '精算対象日', CH: '结算目标日', TH: 'วันที่เป้าหมายชำระ' }),
+    'searchFieldType|SETTLE_RUN_DAY': optMap({ EN: 'Settlement date', JP: '精算日', CH: '结算日', TH: 'วันชำระ' }),
     'searchCalcProcType|': optMap(),
     'searchCalcProcType|MANUAL': optMap({ EN: 'Manual', JP: '手動', CH: '手动', TH: 'ด้วยมือ' }),
     'searchFieldType|CUSTOMER_ID': optMap({ EN: 'Customer ID', JP: '顧客ID', CH: '客户ID', TH: 'รหัสลูกค้า' }),

@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ICOPAY 가맹점 연동 샘플</title>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 720px; margin: 2rem auto; padding: 0 1rem; line-height: 1.6; }
+    code { background: #f4f4f4; padding: 0.1em 0.35em; border-radius: 3px; }
+    h2 { margin-top: 1.5rem; }
+    ul { padding-left: 1.25rem; }
+  </style>
+</head>
+<body>
+  <h1>ICOPAY 가맹점 연동 샘플 (PHP / JSP)</h1>
+  <p>다운로드 베이스: <code>{publicApiBaseUrl}/merchant-api-samples/</code></p>
+
+  <h2>PHP</h2>
+  <ol>
+    <li><a href="php/icopay_config.example.php">php/icopay_config.example.php</a> → <code>icopay_config.php</code> (document root 밖 권장)</li>
+    <li><a href="php/IcopayMerchantApi.php">php/IcopayMerchantApi.php</a> — API 클라이언트</li>
+    <li><a href="php/checkout_chillpay.php">checkout_chillpay.php</a> | <a href="php/checkout_jpay.php">checkout_jpay.php</a> — 결제 페이지 예제</li>
+    <li><a href="php/notify_webhook.php">php/notify_webhook.php</a> — 웹훅 스텁</li>
+    <li><a href="common/icopay-checkout.js">common/icopay-checkout.js</a> — postMessage 수신</li>
+  </ol>
+
+  <h2>JSP (Java 11+)</h2>
+  <ol>
+    <li><a href="jsp/icopay-config.example.properties">jsp/icopay-config.example.properties</a> → <code>WEB-INF/classes/icopay-config.properties</code></li>
+    <li><a href="jsp/IcopayMerchantApi.sample.java">jsp/IcopayMerchantApi.sample.java</a> — Java 클라이언트 샘플</li>
+    <li><a href="jsp/checkout-chillpay.jsp">checkout-chillpay.jsp</a> | <a href="jsp/checkout-jpay.jsp">checkout-jpay.jsp</a></li>
+    <li><a href="jsp/notify-webhook.jsp">jsp/notify-webhook.jsp</a></li>
+  </ol>
+
+  <h2>연동 순서</h2>
+  <p>주문 생성 → 서버 <code>prepare</code>(브로커 시크릿) → <code>sessionToken</code> → embed 스크립트 → postMessage / 웹훅</p>
+  <p>키트 JSON의 <code>merchantIntegrationSamples</code>, <code>merchantInlineCheckoutChillPay</code> / <code>merchantInlineCheckoutJpay</code> 참고.</p>
+  <p><a href="README.txt">README.txt</a> (텍스트 버전)</p>
+</body>
+</html>

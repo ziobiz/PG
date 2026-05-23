@@ -95,6 +95,77 @@ public final class SettlementExpectedDateResolver {
                 .orElse("");
     }
 
+    /**
+     * 정산 실행 행 — 집계 구간·주기·영업일 기준 예상 정산일(배치 도래일·W+N·D+N 등).
+     * {@code periodTo} 가 있으면 주간·격주 마감일, 없으면 {@code calcDt} 를 기준일로 씁니다.
+     */
+    public static Optional<LocalDate> resolveExpectedSettlementDateForRun(LocalDate calcDt,
+                                                                          LocalDate periodFrom,
+                                                                          LocalDate periodTo,
+                                                                          String calcCycle,
+                                                                          Set<LocalDate> holidays) {
+        Set<LocalDate> hol = holidays != null ? holidays : Collections.emptySet();
+        String c = SettlementPeriodResolver.normalizeCalcCycle(calcCycle);
+        if (c.isEmpty() || "NONE".equals(c)) {
+            return calcDt != null ? Optional.of(calcDt) : Optional.empty();
+        }
+        LocalDate anchor = periodTo != null ? periodTo : calcDt;
+        if (anchor == null) {
+            return Optional.empty();
+        }
+
+        if (SettlementCycleTiming.isRealtimeCode(c) || SettlementCycleTiming.isRollingIntradayGridCode(c)) {
+            return Optional.of(anchor);
+        }
+        if (SettlementCycleTiming.isSubDailyScheduleCode(c)) {
+            return Optional.of(anchor);
+        }
+
+        Matcher dm = D_CYCLE.matcher(c);
+        if (dm.matches()) {
+            int n = Integer.parseInt(dm.group(1), 10);
+            if (n < 0 || n > 90) {
+                return Optional.empty();
+            }
+            if (n == 0) {
+                return Optional.of(nextBusinessDayOrSame(anchor, hol));
+            }
+            if (n <= 30) {
+                LocalDate baseDay = periodFrom != null ? periodFrom : anchor;
+                return Optional.of(nextBusinessDayOrSame(BusinessDayCalendar.addBusinessDays(baseDay, n, hol), hol));
+            }
+            return Optional.of(anchor.plusDays(n));
+        }
+
+        if (c.matches("W\\d+")) {
+            int businessDaysAfterEnd = Integer.parseInt(c.substring(1));
+            LocalDate base = BusinessDayCalendar.addBusinessDays(anchor, businessDaysAfterEnd, hol);
+            return Optional.of(nextBusinessDayOrSame(base, hol));
+        }
+
+        if ("WK1W".equals(c) || "WK1WT".equals(c) || "WK1WM".equals(c)) {
+            int bd = switch (c) {
+                case "WK1WT" -> 10;
+                case "WK1WM" -> 30;
+                default -> 3;
+            };
+            LocalDate base = BusinessDayCalendar.addBusinessDays(anchor, bd, hol);
+            return Optional.of(nextBusinessDayOrSame(base, hol));
+        }
+
+        if ("WK2W".equals(c) || "WK2WT".equals(c) || "WK2WM".equals(c)) {
+            int bd = switch (c) {
+                case "WK2WT" -> 10;
+                case "WK2WM" -> 30;
+                default -> 3;
+            };
+            LocalDate base = BusinessDayCalendar.addBusinessDays(anchor, bd, hol);
+            return Optional.of(nextBusinessDayOrSame(base, hol));
+        }
+
+        return Optional.of(anchor);
+    }
+
     private static LocalDate expectedWeeklySettleDate(LocalDate txnDate, int businessDaysAfterEnd,
                                                       Set<LocalDate> hol, int weekSpan) {
         LocalDate monday = txnDate.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));

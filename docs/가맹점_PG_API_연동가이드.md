@@ -94,10 +94,34 @@
 2. **통보 URL 스텁 구현** — HTTPS, 200 응답, 본문 파싱·로그·멱등 설계  
 3. **브로커 시크릿** — 강제면 클라이언트에 헤더 삽입 모듈부터 적용  
 4. **ChillPay 또는 JPAY** 중 계약된 PG부터  
-   - ChillPay: `config` → `checkout-context` → (필요 시) `display-fx-quote` → `request` 순 권장  
-   - JPAY: `sale` 호출 및 `redirectUrl`·`status` 처리  
+   - **권장(인라인 iframe):** PHP/JSP 샘플(`merchant-api-samples/`) — 서버 `prepare` → `sessionToken` → embed → postMessage/웹훅  
+   - ChillPay(고급): `config` → `checkout-context` → (필요 시) `display-fx-quote` → `request`  
+   - JPAY(고급): `sale` 호출 및 `redirectUrl`·`status` 처리  
 5. **스테이징(제공 시) 검증** 후 운영 URL로 전환  
 6. **본사 검수 요청** — 아래 체크리스트 제출
+
+### 3.1 PHP / JSP 연동 (인라인 결제 — 권장)
+
+가맹 쇼핑몰이 **PHP** 또는 **JSP** 인 경우, 본사 키트 JSON의 `merchantIntegrationSamples` 와 아래 정적 샘플을 사용합니다.
+
+| 항목 | URL ( `{BASE}` = `publicApiBaseUrl` ) |
+|------|----------------------------------------|
+| 샘플 목록 | `{BASE}/merchant-api-samples/README.txt` |
+| PHP 클라이언트 | `{BASE}/merchant-api-samples/php/IcopayMerchantApi.php` |
+| PHP ChillPay 예제 | `{BASE}/merchant-api-samples/php/checkout_chillpay.php` |
+| PHP JPAY 예제 | `{BASE}/merchant-api-samples/php/checkout_jpay.php` |
+| JSP Java 클라이언트 | `{BASE}/merchant-api-samples/jsp/IcopayMerchantApi.sample.java` |
+| JSP ChillPay 예제 | `{BASE}/merchant-api-samples/jsp/checkout-chillpay.jsp` |
+| postMessage JS | `{BASE}/merchant-api-samples/common/icopay-checkout.js` |
+
+**흐름**
+
+1. 가맹 서버(PHP/JSP): 주문 저장 후 `POST .../inline-checkout/prepare` (헤더 `X-Icopay-Merchant-Broker-Secret`)  
+2. 응답 `data.sessionToken` 으로 embed 스크립트 HTML 생성 (`IcopayMerchantApi.buildEmbedHtml`)  
+3. 브라우저: ICOPAY 결제 iframe 표시 → `ICOPAY_INLINE_CHECKOUT` postMessage 또는 `merchantNotifyUrls` 웹훅으로 완료  
+4. (선택) `GET .../inline-checkout/status?compId=&orderNo=` 폴링  
+
+**보안:** 브로커 시크릿은 **가맹 서버에만** 저장. JavaScript·모바일 앱에 넣지 마세요.
 
 ---
 

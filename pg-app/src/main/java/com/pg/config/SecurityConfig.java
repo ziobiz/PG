@@ -43,6 +43,9 @@ public class SecurityConfig {
                 AntPathRequestMatcher.antMatcher("/pay"),
                 AntPathRequestMatcher.antMatcher("/pay/**"),
                 AntPathRequestMatcher.antMatcher("/pay.html"),
+                AntPathRequestMatcher.antMatcher("/jpay-pay"),
+                AntPathRequestMatcher.antMatcher("/jpay-pay/**"),
+                AntPathRequestMatcher.antMatcher("/jpay-pay.html"),
                 AntPathRequestMatcher.antMatcher("/pay-result.html")));
         http.authorizeHttpRequests(auth -> auth.anyRequest().permitAll());
         http.csrf(AbstractHttpConfigurer::disable);
@@ -76,6 +79,7 @@ public class SecurityConfig {
                 .requestMatchers(AntPathRequestMatcher.antMatcher("/api/open/pg-notify/**")).permitAll()
                 .requestMatchers(AntPathRequestMatcher.antMatcher("/api/middleware/notify/**")).permitAll()
                 .requestMatchers(AntPathRequestMatcher.antMatcher("/api/middleware/v1/pg/**")).permitAll()
+                .requestMatchers(AntPathRequestMatcher.antMatcher("/api/middleware/v1/merchant/**")).permitAll()
                 .requestMatchers(HttpMethod.OPTIONS, "/api/**").permitAll()
                 .requestMatchers(AntPathRequestMatcher.antMatcher("/api/**")).authenticated());
         http.exceptionHandling(ex -> ex.authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED)));
@@ -106,13 +110,19 @@ public class SecurityConfig {
                     /* URL 결제 ChillPay 복귀 — 패턴 *.html 과 무관하게 미인증 허용(로그인 리다이렉트 방지) */
                     AntPathRequestMatcher.antMatcher("/pay-result.html"),
                     AntPathRequestMatcher.antMatcher("/pay.html"),
+                    AntPathRequestMatcher.antMatcher("/jpay-pay.html"),
                     AntPathRequestMatcher.antMatcher("/favicon.ico"),
                     AntPathRequestMatcher.antMatcher("/robots.txt"),
                     AntPathRequestMatcher.antMatcher("/pay"),
                     AntPathRequestMatcher.antMatcher("/pay/**"),
+                    AntPathRequestMatcher.antMatcher("/jpay-pay"),
+                    AntPathRequestMatcher.antMatcher("/jpay-pay/**"),
                     AntPathRequestMatcher.antMatcher("/chatbot-pay"),
                     AntPathRequestMatcher.antMatcher("/chatbot-pay/**"),
                     AntPathRequestMatcher.antMatcher("/v1/embed-chatbot/**"),
+                    AntPathRequestMatcher.antMatcher("/v1/embed-pay/**"),
+                    AntPathRequestMatcher.antMatcher("/v1/embed-jpay-pay/**"),
+                    AntPathRequestMatcher.antMatcher("/merchant-api-samples/**"),
                     AntPathRequestMatcher.antMatcher("/css/**"),
                     AntPathRequestMatcher.antMatcher("/js/**"),
                     AntPathRequestMatcher.antMatcher("/images/**"),

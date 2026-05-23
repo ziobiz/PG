@@ -194,7 +194,7 @@ public class ChillPayDirectCreditRecordService {
             t.setCustomerNm(custNm);
         }
         t.setVan(PgVendor.CHILLPAY);
-        t.setOrigin("CHATBOT".equalsIgnoreCase(txnOrigin != null ? txnOrigin.trim() : "") ? "CHATBOT" : "URL");
+        t.setOrigin(resolveTxnOrigin(txnOrigin));
         t.setChillPaymentStatus(psl);
         t.setRouteNo(String.valueOf(routeNo));
         if (d.getTransactionId() != null && !d.getTransactionId().isBlank()) {
@@ -297,6 +297,21 @@ public class ChillPayDirectCreditRecordService {
             return b.trim();
         }
         return null;
+    }
+
+    /** {@code CHATBOT}·{@code MERCHANT_API}·그 외 URL */
+    private static String resolveTxnOrigin(String txnOrigin) {
+        if (txnOrigin == null || txnOrigin.isBlank()) {
+            return "URL";
+        }
+        String u = txnOrigin.trim().toUpperCase(Locale.ROOT);
+        if ("CHATBOT".equals(u)) {
+            return "CHATBOT";
+        }
+        if ("MERCHANT_API".equals(u)) {
+            return "MERCHANT_API";
+        }
+        return "URL";
     }
 
     /** {@code INLINE}·{@code REDIRECT}·그 외(레거시 {@code API}) */

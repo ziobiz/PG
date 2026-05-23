@@ -4125,6 +4125,42 @@ button.pay-follow-pill:focus-visible {
 .pg-home-dashboard-mount .pg-dash-bizday-swatch--off {
   background: #e9ecef;
 }
+.pg-home-dashboard-mount .pg-dash-bizday-toolbar {
+  padding-top: 0.5rem;
+  padding-bottom: 0.5rem;
+}
+.pg-home-dashboard-mount .pg-dash-bizday-toolbar__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.75rem;
+  width: 100%;
+}
+.pg-home-dashboard-mount .pg-dash-bizday-toolbar__title {
+  flex: 0 1 auto;
+  min-width: 0;
+}
+.pg-home-dashboard-mount .pg-dash-bizday-toolbar__sep {
+  flex: 0 0 auto;
+  opacity: 0.45;
+  user-select: none;
+}
+.pg-home-dashboard-mount .pg-dash-bizday-toolbar__actions {
+  flex: 0 0 auto;
+}
+.pg-home-dashboard-mount .pg-dash-bizday-toolbar__meta {
+  flex: 0 0 auto;
+  margin-left: auto;
+  margin-top: 0;
+  text-align: right;
+  white-space: nowrap;
+}
+.pg-home-dashboard-mount .pg-dash-bizday-section {
+  display: block;
+}
+.pg-home-dashboard-mount .pg-dash-bizday-section .card {
+  margin-bottom: 0;
+}
 .pg-home-dashboard-mount .pg-dash-quick .btn {
   margin: 0.15rem 0.25rem 0.15rem 0;
 }

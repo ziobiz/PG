@@ -1346,6 +1346,26 @@
     '이전 3개월': { EN: 'Previous 3 months', JP: '前の3か月', CH: '前3个月', TH: 'ย้อน 3 เดือน' },
     '다음 3개월': { EN: 'Next 3 months', JP: '次の3か月', CH: '后3个月', TH: 'ถัดไป 3 เดือน' },
     '영업일 설정': { EN: 'Business-day settings', JP: '営業日設定', CH: '营业日设置', TH: 'ตั้งค่าวันทำการ' },
+    '총본사 기준': { EN: 'HQ default', JP: '総本部基準', CH: '总本部基准', TH: 'มาตรฐานสำนักงานใหญ่' },
+    '지정': { EN: 'Set', JP: '指定', CH: '指定', TH: 'กำหนด' },
+    '이 영업일 설정을 총본사 기준(메인 영업일 달력)으로 지정하시겠습니까?': {
+      EN: 'Set this business-day profile as the HQ default (main calendar)?',
+      JP: 'この営業日設定を総本部基準（メイン営業日カレンダー）に指定しますか？',
+      CH: '是否将此营业日设置指定为总本部基准（主营业日日历）？',
+      TH: 'กำหนดการตั้งค่าวันทำการนี้เป็นมาตรฐานสำนักงานใหญ่ (ปฏิทินหลัก) หรือไม่?'
+    },
+    '총본사 기준 영업일로 지정되었습니다.': {
+      EN: 'Set as HQ default business-day calendar.',
+      JP: '総本部基準の営業日として指定しました。',
+      CH: '已指定为总本部基准营业日。',
+      TH: 'กำหนดเป็นวันทำการมาตรฐานสำนักงานใหญ่แล้ว'
+    },
+    '총본사 기준 영업일로 지정되었습니다. 메인 영업일 달력을 갱신했습니다.': {
+      EN: 'Set as HQ default business-day calendar. The main business-day calendar has been refreshed.',
+      JP: '総本部基準の営業日として指定し、メイン営業日カレンダーを更新しました。',
+      CH: '已指定为总本部基准营业日，并已刷新主营业日日历。',
+      TH: 'กำหนดเป็นวันทำการมาตรฐานสำนักงานใหญ่และอัปเดตปฏิทินหลักแล้ว'
+    },
     '기준 프로필': { EN: 'Profile', JP: '基準プロファイル', CH: '基准配置', TH: 'โปรไฟล์อ้างอิง' },
     '기준국가': { EN: 'Country', JP: '基準国', CH: '基准国家', TH: 'ประเทศอ้างอิง' },
     '영업일 수': { EN: 'Business days', JP: '営業日数', CH: '营业日数', TH: 'จำนวนวันทำการ' },
@@ -4144,11 +4164,23 @@
       CH: '双击上方列表行即可显示。',
       TH: 'ดับเบิลคลิกแถวในรายการด้านบนเพื่อแสดง'
     },
-    '정산실행 목록에서 한 행을 <strong>더블클릭</strong>하면, 해당 실행에 저장된 집계 건수(<code>included_txn_cnt</code>)가 있으면 그 건수만큼만, 같은 기간·정렬(승인일시 오름차순)으로 표시합니다. 상단 메타의 <strong>대상 매출액</strong>은 이 실행 집계 구간(예: H1 한 시간)에 대한 <strong>승인 매출 합</strong>(정산 실행 저장값)이며, 아래 표시 행의 단순 합이 아닙니다.': {
-      EN: 'In the settlement run list, <strong>double-click</strong> a row. If the run stored a count (<code>included_txn_cnt</code>), that many rows are shown for the same window and sort (approval time ascending). The meta <strong>target sales</strong> is the <strong>sum of approved sales</strong> for this run’s slot (e.g. one H1 hour)—the value saved on the run—not a simple sum of the rows below.',
-      JP: '精算実行一覧で行を<strong>ダブルクリック</strong>すると、当該実行に保存された集計件数(<code>included_txn_cnt</code>)がある場合はその件数だけを、同一期間・並び（承認日時昇順）で表示します。上部メタの<strong>対象売上額</strong>は、この実行の集計区間（例：H1の1時間）における<strong>承認売上合計</strong>（精算実行に保存された値）であり、下表の行を単純合計した値ではありません。',
-      CH: '在结算执行列表中<strong>双击</strong>一行。若该执行保存了汇总笔数（<code>included_txn_cnt</code>），则仅显示该笔数，同一区间与排序（批准时间升序）。顶部元数据中的<strong>目标销售额</strong>是该执行汇总区间（例如 H1 一小时）的<strong>批准销售额合计</strong>（保存在执行上的值），不是下方各行简单相加。',
-      TH: 'ในรายการรันชำระ <strong>ดับเบิลคลิก</strong>แถว หากมีจำนวนที่บันทึก (<code>included_txn_cnt</code>) จะแสดงเท่านั้นในช่วงและเรียงเดียวกัน (เวลาอนุมัติ ascending) ยอดขาย<strong>เป้าหมาย</strong>ในเมตาเป็น<strong>ผลรวมยอดอนุมัติ</strong>ของช่วงสรุปของรันนี้ (เช่น H1 หนึ่งชม.) ค่าที่บันทึกบนรัน ไม่ใช่ผลรวมแถวด้านล่าง'
+    '정산실행 목록에서 한 행을 더블클릭하면, 해당 실행에 저장된 집계 건수(included_txn_cnt)가 있으면 그 건수만큼만, 같은 기간·정렬(승인일시 오름차순)으로 표시합니다. 상단 메타의 대상 매출액은 이 실행 집계 구간(예: H1 한 시간)에 대한 승인 매출 합(정산 실행 저장값)이며, 아래 표시 행의 단순 합이 아닙니다.': {
+      EN: 'In the settlement run list, double-click a row. If the run stored a count (included_txn_cnt), that many rows are shown for the same window and sort (approval time ascending). The meta target sales is the sum of approved sales for this run’s slot (e.g. one H1 hour)—the value saved on the run—not a simple sum of the rows below.',
+      JP: '精算実行一覧で行をダブルクリックすると、当該実行に保存された集計件数(included_txn_cnt)がある場合はその件数だけを、同一期間・並び（承認日時昇順）で表示します。上部メタの対象売上額は、この実行の集計区間（例：H1の1時間）における承認売上合計（精算実行に保存された値）であり、下表の行を単純合計した値ではありません。',
+      CH: '在结算执行列表中双击一行。若该执行保存了汇总笔数（included_txn_cnt），则仅显示该笔数，同一区间与排序（批准时间升序）。顶部元数据中的目标销售额是该执行汇总区间（例如 H1 一小时）的批准销售额合计（保存在执行上的值），不是下方各行简单相加。',
+      TH: 'ในรายการรันชำระ ดับเบิลคลิกแถว หากมีจำนวนที่บันทึก (included_txn_cnt) จะแสดงเท่านั้นในช่วงและเรียงเดียวกัน (เวลาอนุมัติ ascending) ยอดขายเป้าหมายในเมตาเป็นผลรวมยอดอนุมัติของช่วงสรุปของรันนี้ (เช่น H1 หนึ่งชม.) ค่าที่บันทึกบนรัน ไม่ใช่ผลรวมแถวด้านล่าง'
+    },
+    '정산배포 목록에서 한 행을 클릭하면, 해당 실행의 정산일(calc_dt) 달력 하루 동안 해당 가맹의 전체 결제 거래를 승인일시 오름차순으로 불러옵니다(최대 2,500건·초과 시 상한 안내). 격자 정산의 집계 구간(H1 등)과 범위가 다를 수 있습니다.': {
+      EN: 'In settlement publish, click a row to load all payment transactions for that merchant on the settlement date (calc_dt) calendar day, approval time ascending (max 2,500; notice if truncated). Grid settlement windows (H1, etc.) may differ.',
+      JP: '精算配布一覧で行をクリックすると、当該実行の精算日(calc_dt)暦日1日分の当該加盟店の全決済取引を承認日時昇順で読み込みます（最大2,500件・超過時は案内）。格子精算の集計区間(H1等)と範囲が異なる場合があります。',
+      CH: '在结算发布列表中点击一行，将按批准时间升序加载该执行结算日(calc_dt)日历日内该商户的全部支付交易（最多2,500条，超出会提示）。网格结算的汇总区间(H1等)可能不同。',
+      TH: 'ในรายการเผยแพร่ชำระ คลิกแถวเพื่อโหลดธุรกรรมทั้งหมดของร้านในวันชำระ (calc_dt) เรียงเวลาอนุมัติ (สูงสุด 2,500)'
+    },
+    '정산집계·정산실시·확정정산에서 실행 ID가 있는 행을 클릭하면 해당 정산 실행에 포함된 거래를 정산실행 화면과 동일한 형식으로 불러옵니다. 정산집계표(SUM)는 요약 1행만 제공되고, 본사 지급 리포트의 정산실시(EXE)는 본사 합산 행이라 실행 ID가 없을 수 있습니다 — 이 경우 리포트 형식을 가맹점 정산 리포트로 바꾼 뒤 가맹 단위 행을 클릭하세요.': {
+      EN: 'In aggregate/runs/confirmed settlement, click a row with a run ID to load included transactions like the run settlement screen. SUM is one summary row; HQ EXE may lack run ID—switch to merchant report and click a merchant row.',
+      JP: '精算集計・実行・確定で実行IDがある行をクリックすると、精算実行画面と同形式で対象取引を読み込みます。SUMは要約1行のみ。本社EXEは実行IDがない場合あり—加盟店レポートに切替後クリック。',
+      CH: '在汇总/执行/确认结算中，点击有执行 ID 的行，以与结算执行屏相同格式加载包含的交易。SUM 仅一行摘要；总部 EXE 可能无执行 ID—请切换为商户报表后点击商户行。',
+      TH: 'ในสรุป/รัน/ยืนยัน คลิกแถวที่มี run ID เพื่อโหลดธุรกรรมแบบหน้ารันชำระ SUM เป็นหนึ่งแถวสรุป EXE สำนักงานใหญ่อาจไม่มี run ID'
     },
     '정산실행 행을 더블클릭하세요.': {
       EN: 'Double-click a settlement run row.',
@@ -5038,6 +5070,18 @@
       JP: '精算日',
       CH: '结算日',
       TH: 'วันชำระ'
+    },
+    '정산대상일': {
+      EN: 'Settlement target date',
+      JP: '精算対象日',
+      CH: '结算目标日',
+      TH: 'วันที่เป้าหมายชำระ'
+    },
+    '정산대상일(시작일~종료일)을 입력하세요.': {
+      EN: 'Enter settlement target date (start date ~ end date).',
+      JP: '精算対象日（開始日～終了日）を入力してください。',
+      CH: '请输入结算目标日（开始日～结束日）。',
+      TH: 'กรุณากรอกวันที่เป้าหมายชำระ (วันเริ่ม~วันสิ้นสุด)'
     },
     '결제액': {
       EN: 'Payment amount',
@@ -6298,13 +6342,13 @@
       CH: '{Y}年{M}月',
       TH: '{Mm}/{Y}'
     },
-    달력요일_일: { EN: 'Su', JP: '日', CH: '日', TH: 'อา' },
-    달력요일_월: { EN: 'Mo', JP: '月', CH: '一', TH: 'จ' },
-    달력요일_화: { EN: 'Tu', JP: '火', CH: '二', TH: 'อ' },
-    달력요일_수: { EN: 'We', JP: '水', CH: '三', TH: 'พ' },
-    달력요일_목: { EN: 'Th', JP: '木', CH: '四', TH: 'พฤ' },
-    달력요일_금: { EN: 'Fr', JP: '金', CH: '五', TH: 'ศ' },
-    달력요일_토: { EN: 'Sa', JP: '土', CH: '六', TH: 'ส' },
+    달력요일_일: { KO: '일', EN: 'Su', JP: '日', CH: '日', TH: 'อา' },
+    달력요일_월: { KO: '월', EN: 'Mo', JP: '月', CH: '一', TH: 'จ' },
+    달력요일_화: { KO: '화', EN: 'Tu', JP: '火', CH: '二', TH: 'อ' },
+    달력요일_수: { KO: '수', EN: 'We', JP: '水', CH: '三', TH: 'พ' },
+    달력요일_목: { KO: '목', EN: 'Th', JP: '木', CH: '四', TH: 'พฤ' },
+    달력요일_금: { KO: '금', EN: 'Fr', JP: '金', CH: '五', TH: 'ศ' },
+    달력요일_토: { KO: '토', EN: 'Sa', JP: '土', CH: '六', TH: 'ส' },
     'API가 준비되지 않았습니다.': {
       EN: 'The API is not available.',
       JP: 'APIが利用できません。',

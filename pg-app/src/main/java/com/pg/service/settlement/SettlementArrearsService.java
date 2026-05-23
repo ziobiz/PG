@@ -27,6 +27,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -39,6 +40,15 @@ public class SettlementArrearsService {
 
     /** 정산 실행 지급액이 음수일 때 자동 등록되는 미수금(다음 정산 지급액에서 FIFO 차감) */
     public static final String REASON_AUTO_SETTLEMENT_DEFICIT = "AUTO_SETTLEMENT_DEFICIT";
+
+    /** 가맹·정산기간·calc_dt 슬롯당 지급부족 자동미수 1건 — 정산 실행 ID 중복 시에도 중복 등록 방지 */
+    public static String buildAutoDeficitSlotMemo(SettlementRun run, String merchantId) {
+        LocalDate calc = run != null && run.getCalcDt() != null ? run.getCalcDt() : LocalDate.EPOCH;
+        LocalDate from = run != null && run.getPeriodFrom() != null ? run.getPeriodFrom() : calc;
+        LocalDate to = run != null && run.getPeriodTo() != null ? run.getPeriodTo() : calc;
+        String mid = merchantId != null ? merchantId.trim() : "";
+        return "AUTO_DEFICIT_SLOT:" + mid + "|" + from + "|" + to + "|" + calc;
+    }
 
     private static final String REASON_POST_SETTLE_REFUND = "POST_SETTLE_REFUND";
     private static final List<String> OPEN_RECOVERY = List.of("PENDING", "PARTIAL");
@@ -257,15 +267,24 @@ public class SettlementArrearsService {
     }
 
     /**
-     * 정산 지급액 음수분을 미수금으로 1회 등록. memo에 settlement_run_id를 두어 동일 실행 재처리 시 중복 방지.
+     * 정산 지급액 음수분을 미수금으로 1회 등록.
+     * memo는 가맹·정산기간·calc_dt 슬롯 키({@link #buildAutoDeficitSlotMemo})로 중복 방지(동일 주기 재실행·run_id 변경 대응).
      */
     private void registerAutoDeficitReceivableIfNeeded(SettlementRun run, BigDecimal debtPositive, FeeListRoundingPolicy rp, String merchantId) {
         if (debtPositive == null || debtPositive.signum() <= 0) {
             return;
         }
-        String memoKey = "AUTO_DEFICIT:" + run.getId();
-        if (merchantReceivableRepository.existsByMerchantIdAndReasonCodeAndMemo(merchantId, REASON_AUTO_SETTLEMENT_DEFICIT, memoKey)) {
+        String slotMemo = buildAutoDeficitSlotMemo(run, merchantId);
+        if (merchantReceivableRepository.existsByMerchantIdAndReasonCodeAndMemo(
+                merchantId, REASON_AUTO_SETTLEMENT_DEFICIT, slotMemo)) {
             return;
+        }
+        if (run.getId() != null) {
+            String runMemo = "AUTO_DEFICIT:" + run.getId();
+            if (merchantReceivableRepository.existsByMerchantIdAndReasonCodeAndMemo(
+                    merchantId, REASON_AUTO_SETTLEMENT_DEFICIT, runMemo)) {
+                return;
+            }
         }
         BigDecimal amt = FeeListRoundingPolicy.round(debtPositive, rp);
         MerchantReceivable r = new MerchantReceivable();
@@ -276,7 +295,7 @@ public class SettlementArrearsService {
         r.setAppliedAmount(BigDecimal.ZERO);
         r.setStatus("PENDING");
         r.setReasonCode(REASON_AUTO_SETTLEMENT_DEFICIT);
-        r.setMemo(memoKey);
+        r.setMemo(slotMemo);
         r.setCreatedBy("SYSTEM");
         merchantReceivableRepository.save(r);
     }

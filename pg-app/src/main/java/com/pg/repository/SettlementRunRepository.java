@@ -72,9 +72,38 @@ public interface SettlementRunRepository extends JpaRepository<SettlementRun, Lo
 
     List<SettlementRun> findByCalcDtAndMerchantId(LocalDate calcDt, String merchantId);
 
-    boolean existsByMerchantIdAndCalcDt(String merchantId, LocalDate calcDt);
+    @Query("""
+            SELECT COUNT(r) > 0 FROM SettlementRun r
+            WHERE lower(trim(r.merchantId)) = lower(trim(:merchantId))
+            AND r.calcDt = :calcDt
+            """)
+    boolean existsByMerchantIdAndCalcDt(@Param("merchantId") String merchantId, @Param("calcDt") LocalDate calcDt);
 
-    boolean existsByMerchantIdAndCalcDtAndPeriodEndAt(String merchantId, LocalDate calcDt, LocalDateTime periodEndAt);
+    @Query("""
+            SELECT COUNT(r) > 0 FROM SettlementRun r
+            WHERE lower(trim(r.merchantId)) = lower(trim(:merchantId))
+            AND r.calcDt = :calcDt
+            AND r.periodEndAt = :periodEndAt
+            """)
+    boolean existsByMerchantIdAndCalcDtAndPeriodEndAt(
+            @Param("merchantId") String merchantId,
+            @Param("calcDt") LocalDate calcDt,
+            @Param("periodEndAt") LocalDateTime periodEndAt);
+
+    /** 달력형·주간(W/WK/D+) 정산: period_end_at 없는 동일 슬롯 1건 */
+    @Query("""
+            SELECT COUNT(r) > 0 FROM SettlementRun r
+            WHERE lower(trim(r.merchantId)) = lower(trim(:merchantId))
+            AND r.periodFrom = :periodFrom
+            AND r.periodTo = :periodTo
+            AND r.calcDt = :calcDt
+            AND r.periodEndAt IS NULL
+            """)
+    boolean existsByMerchantNormAndCalendarSlot(
+            @Param("merchantId") String merchantId,
+            @Param("periodFrom") LocalDate periodFrom,
+            @Param("periodTo") LocalDate periodTo,
+            @Param("calcDt") LocalDate calcDt);
 
     /**
      * 당일 누적 재집계(T0·TM/TH) 등에서 동일 가맹·정산일 행을 비울 때 사용.

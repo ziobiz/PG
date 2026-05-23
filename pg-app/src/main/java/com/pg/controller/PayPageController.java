@@ -47,4 +47,21 @@ public class PayPageController {
                     .body("Payment page unavailable.");
         }
     }
+
+    @GetMapping(value = "/jpay-pay.html", produces = MediaType.TEXT_HTML_VALUE)
+    public ResponseEntity<String> jpayPayHtml() {
+        try {
+            Resource resource = new ClassPathResource("static/jpay-pay.html");
+            String html = new String(resource.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
+            return ResponseEntity.ok()
+                    .contentType(MediaType.parseMediaType("text/html;charset=UTF-8"))
+                    .cacheControl(CacheControl.noStore())
+                    .body(html);
+        } catch (IOException e) {
+            log.error("jpay-pay.html 로드 실패", e);
+            return ResponseEntity.internalServerError()
+                    .contentType(MediaType.TEXT_PLAIN)
+                    .body("JPAY payment page unavailable.");
+        }
+    }
 }

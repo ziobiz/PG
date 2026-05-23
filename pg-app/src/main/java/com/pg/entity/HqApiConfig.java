@@ -154,6 +154,10 @@ public class HqApiConfig {
     @Column(name = "business_day_settings_json", columnDefinition = "TEXT")
     private String businessDaySettingsJson;
 
+    /** 총본사 기준 영업일 프로필 ID (business_day_settings_json 항목 id) */
+    @Column(name = "hq_default_business_day_profile_id", length = 64)
+    private String hqDefaultBusinessDayProfileId;
+
     /** 관리자(웹) 공개 URL — 안내·문서용 */
     @Column(name = "public_admin_site_url", length = 500)
     private String publicAdminSiteUrl;
@@ -264,6 +268,8 @@ public class HqApiConfig {
     public void setSettlementVatApplyYn(String settlementVatApplyYn) { this.settlementVatApplyYn = settlementVatApplyYn; }
     public String getBusinessDaySettingsJson() { return businessDaySettingsJson; }
     public void setBusinessDaySettingsJson(String businessDaySettingsJson) { this.businessDaySettingsJson = businessDaySettingsJson; }
+    public String getHqDefaultBusinessDayProfileId() { return hqDefaultBusinessDayProfileId; }
+    public void setHqDefaultBusinessDayProfileId(String hqDefaultBusinessDayProfileId) { this.hqDefaultBusinessDayProfileId = hqDefaultBusinessDayProfileId; }
     public String getPublicAdminSiteUrl() { return publicAdminSiteUrl; }
     public void setPublicAdminSiteUrl(String publicAdminSiteUrl) { this.publicAdminSiteUrl = publicAdminSiteUrl; }
     public String getPublicApiBaseUrl() { return publicApiBaseUrl; }

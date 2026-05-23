@@ -1271,6 +1271,9 @@
     hqBusinessDaySettingsSave: function (body) {
       return post('/api/hq/businessDaySettings/save', body || {}).then(function (r) { return r.data || r; });
     },
+    hqBusinessDaySetHqDefault: function (id) {
+      return post('/api/hq/businessDaySettings/setHqDefault', { id: id || '' }).then(function (r) { return r.data || r; });
+    },
 
     hqSettlementCycleOptions: function () {
       return get('/api/hq/settlement/cycleOptions').then(function (r) { return r.data || []; });

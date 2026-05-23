@@ -38,6 +38,17 @@ public class MerchantBrokerAccessVerifier {
     public void verify(HttpServletRequest request, Map<String, Object> jsonBody) {
         String vendorPath = extractVendorSegment(request.getRequestURI());
         String vendorScope = MerchantPgBrokerVendor.fromBrokerPathSegment(vendorPath);
+        enforceBrokerSecret(request, jsonBody, vendorScope);
+    }
+
+    /**
+     * {@code /api/middleware/v1/merchant/{vendor}/...} 가맹점 통합 API용 브로커 시크릿 검증.
+     */
+    public void verifyMerchantApi(HttpServletRequest request, Map<String, Object> jsonBody, String vendorScope) {
+        enforceBrokerSecret(request, jsonBody, MerchantPgBrokerVendor.normalizeScope(vendorScope));
+    }
+
+    private void enforceBrokerSecret(HttpServletRequest request, Map<String, Object> jsonBody, String vendorScope) {
         Long orgUnitId = resolveOrgUnitId(request, jsonBody);
         if (orgUnitId == null) {
             return;

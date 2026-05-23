@@ -40,6 +40,11 @@ public class HomeController {
         return redirectWithMergedQuery("/chatbot-pay.html", compId, request);
     }
 
+    @GetMapping("/jpay-pay/{compId}")
+    public String jpayPayByComp(@PathVariable("compId") String compId, HttpServletRequest request) {
+        return redirectWithMergedQuery("/jpay-pay.html", compId, request);
+    }
+
     /**
      * 경로 변수 업체코드를 {@code m=} 으로 고정하고, 요청 쿼리(금액·상품명 등)는 그대로 이어 붙입니다.
      * {@code m}/{@code compId}/{@code merchant} 는 클라이언트가 넘긴 값보다 경로의 업체코드를 우선합니다.

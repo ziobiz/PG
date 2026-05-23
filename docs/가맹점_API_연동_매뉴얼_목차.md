@@ -4,9 +4,10 @@ PG별로 **매뉴얼을 분리**했습니다. 가맹점에는 아래 해당 문�
 
 | 배포 대상 | 문서 (MD / PDF 동명) |
 |-----------|----------------------|
-| ChillPay 연동 가맹 | `가맹점_ChillPay_API_연동가이드.md` · `.pdf` |
+| **ChillPay URL 결제 · 인라인 iframe API** | **`ChillPay_URL결제_인라인API_배포가이드.md`** · `.pdf` ← **배포·검수용 (권장)** |
+| ChillPay 연동 가맹 (DirectCredit·공통) | `가맹점_ChillPay_API_연동가이드.md` · `.pdf` |
 | JPAY 연동 가맹 | `가맹점_JPAY_API_연동가이드.md` · `.pdf` |
-| 두 PG 모두 | 위 **두 세트** 모두 전달 |
+| 두 PG 모두 | 위 **해당 세트** 모두 전달 |
 
 **공통:** 연동 키트 JSON, `publicApiBaseUrl`, 브로커 시크릿(`X-Icopay-Merchant-Broker-Secret`), 통보(웹훅) URL — 절차는 동일하며 세부는 각 PG 매뉴얼에 있습니다.
 
@@ -27,3 +28,4 @@ PG별로 **매뉴얼을 분리**했습니다. 가맹점에는 아래 해당 문�
 | 버전 | 일자 | 요약 |
 |------|------|------|
 | 1.0 | (배포일 기입) | ChillPay·JPAY 매뉴얼 분리, 목차 전용 파일 신설 |
+| 1.1 | 2026-05-23 | ChillPay URL 결제 인라인 API 배포 가이드 추가 |

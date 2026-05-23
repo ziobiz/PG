@@ -173,6 +173,59 @@ public class ApiPayController {
     }
 
     /**
+     * JPAY 인라인 결제 페이지({@code jpay-pay.html})용 가맹점 표시·기본값.
+     */
+    @GetMapping("/jpay/checkout-context")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> jpayCheckoutContext(
+            @RequestParam(required = false) Long merchantId,
+            @RequestParam(required = false) String compId) {
+        Long orgUnitId = resolveMerchantOrgUnitId(merchantId, compId);
+        if (orgUnitId == null) {
+            return ResponseEntity.ok(ApiResponse.fail("가맹점을 찾을 수 없습니다.", "NOT_FOUND"));
+        }
+        if (!orgServiceUseService.isOrgServiceActive(orgUnitId)) {
+            return ResponseEntity.ok(ApiResponse.fail(
+                    "서비스가 중지된 업체입니다. (미사용 또는 상위 조직 미사용)", "ORG_DISABLED"));
+        }
+        Optional<MerchantProfile> prof = merchantProfileRepository.findByOrgUnitId(orgUnitId);
+        if (prof.isPresent()) {
+            String wpy = prof.get().getWebPaymentUseYn();
+            if (wpy != null && "N".equalsIgnoreCase(wpy.trim())) {
+                return ResponseEntity.ok(ApiResponse.fail(
+                        "이 가맹점은 웹결제(URL 결제)가 미사용으로 설정되어 있습니다.", "WEB_PAYMENT_DISABLED"));
+            }
+        }
+        if (!jpayPaymentService.hasOperationalWebBinding(orgUnitId)) {
+            return ResponseEntity.ok(ApiResponse.fail(
+                    "JPAY URL 결제(운영) 바인딩이 없습니다.", "URL_PAYMENT_PG_MISSING"));
+        }
+        Optional<OrgUnit> ou = orgUnitRepository.findById(orgUnitId);
+        if (ou.isEmpty()) {
+            return ResponseEntity.ok(ApiResponse.fail("가맹점을 찾을 수 없습니다.", "NOT_FOUND"));
+        }
+        Map<String, Object> data = new LinkedHashMap<>();
+        data.put("compId", ou.get().getCode());
+        data.put("merchantName", ou.get().getName());
+        data.put("pgVendor", "JPAY");
+        data.put("integrationMode", "INLINE");
+        prof.ifPresent(p -> {
+            if (p.getBaseCurrency() != null && !p.getBaseCurrency().isBlank()) {
+                data.put("defaultCurrency", p.getBaseCurrency().trim().toUpperCase(Locale.ROOT));
+            }
+        });
+        Optional<MerchantDefaultProduct> dp = merchantDefaultProductRepository.findByOrgUnitId(orgUnitId);
+        if (dp.isPresent()) {
+            if (dp.get().getProductName() != null && !dp.get().getProductName().isBlank()) {
+                data.put("defaultProductName", dp.get().getProductName().trim());
+            }
+            if (dp.get().getDefaultAmount() != null) {
+                data.put("defaultAmount", dp.get().getDefaultAmount().stripTrailingZeros().toPlainString());
+            }
+        }
+        return ResponseEntity.ok(ApiResponse.ok(data));
+    }
+
+    /**
      * ChillPay 결제 페이지용 설정 (CCD·DirectCredit·리다이렉트 URL 등).
      * 가맹점 운영 ChillPay 바인딩의 {@code pg_cd}와 동일한 PG사 API 연동({@code tb_pg_agency}) 행을 따름.
      */
@@ -581,7 +634,7 @@ public class ApiPayController {
         return request.getRemoteAddr() != null ? request.getRemoteAddr() : "127.0.0.1";
     }
 
-    /** URL 결제 기본 ORIGIN(URL). 챗봇 진입 시 프론트에서 CHATBOT 전달 → 챗봇결제내역 필터와 일치 */
+    /** URL 결제 기본 ORIGIN(URL). 챗봇·가맹 API 진입 시 프론트에서 CHATBOT/MERCHANT_API 전달 */
     private static String normalizeTxnOrigin(String raw) {
         if (raw == null || raw.isBlank()) {
             return "URL";
@@ -589,6 +642,9 @@ public class ApiPayController {
         String u = raw.trim().toUpperCase(Locale.ROOT);
         if ("CHATBOT".equals(u)) {
             return "CHATBOT";
+        }
+        if ("MERCHANT_API".equals(u)) {
+            return "MERCHANT_API";
         }
         return "URL";
     }

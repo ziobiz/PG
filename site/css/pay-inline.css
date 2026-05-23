@@ -15,6 +15,22 @@ body.pay-inline-body {
   font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans KR", "Noto Sans JP", "Noto Sans Thai", sans-serif;
 }
 
+html[data-pay-embed="1"] body.pay-inline-body {
+  background: #fff;
+}
+
+html[data-pay-embed="1"] .pay-shell {
+  max-width: none;
+  margin: 0;
+  padding: 0.75rem 0.75rem 1rem;
+}
+
+html[data-pay-embed="1"] .pay-card {
+  box-shadow: none;
+  border-radius: 0;
+  padding: 1rem 0.75rem 1.25rem;
+}
+
 .pay-redirect-banner {
   margin-bottom: 1rem;
 }

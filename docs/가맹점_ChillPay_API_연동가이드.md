@@ -9,6 +9,7 @@
 | **문의** | 계약·키·URL·권한·CCD 설정은 **플랫폼(본사)** 관리자 채널 |
 
 **목적:** 가맹점이 ICOPAY **ChillPay 브로커/레거시 API**만 사용해 결제를 붙이고, 통보(웹훅)를 처리하기 위한 개발·검수 기준을 정리합니다.  
+**URL 결제 · 인라인 iframe API 배포(운영·가맹 설정·체크리스트)** → **`ChillPay_URL결제_인라인API_배포가이드.md`**  
 **JPAY만 연동하는 경우** → `가맹점_JPAY_API_연동가이드.md` 를 사용하세요.  
 **전체 목차·배포 안내** → `가맹점_API_연동_매뉴얼_목차.md`
 
@@ -66,6 +67,16 @@
 ---
 
 ## 3. 권장 개발 순서 (ChillPay)
+
+### 3-A. URL 결제 · 인라인 iframe (가맹 쇼핑몰 embed)
+
+가맹 쇼핑몰에 ICOPAY 결제창을 **iframe** 으로 삽입하는 방식입니다. **배포·검수 절차 전용 문서:**
+
+→ **`ChillPay_URL결제_인라인API_배포가이드.md`**
+
+요약: 키트 발급 → 본사 URL INLINE 설정 → 가맹 서버 `prepare` → embed → postMessage/웹훅.
+
+### 3-B. DirectCredit REST (서버·앱 직접 승인)
 
 1. 키트·ChillPay 바인딩(`merchantPgBindings` 내 `CHILLPAY` 계열) 확인  
 2. **통보 URL** 스텁(HTTPS·멱등)  

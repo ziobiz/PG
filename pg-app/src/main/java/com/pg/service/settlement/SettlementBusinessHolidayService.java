@@ -272,6 +272,47 @@ public class SettlementBusinessHolidayService {
         return "";
     }
 
+    /** 본사설정에 지정된 총본사 기준 영업일 프로필(없으면 목록 첫 항목). */
+    public Optional<Map<String, Object>> resolveHqDefaultBusinessDayProfileRow() {
+        HqApiConfig c = hqApiConfigRepository.findAll().stream().findFirst().orElse(null);
+        List<Map<String, Object>> profiles = loadHqBusinessDayProfiles();
+        if (profiles.isEmpty()) {
+            return Optional.empty();
+        }
+        String defId = c != null ? str(c.getHqDefaultBusinessDayProfileId()) : "";
+        if (StringUtils.hasText(defId)) {
+            for (Map<String, Object> row : profiles) {
+                if (defId.equals(str(row.get("id")))) {
+                    return Optional.of(row);
+                }
+            }
+        }
+        return Optional.of(profiles.get(0));
+    }
+
+    public Set<LocalDate> resolveNonBusinessDatesForHqDefault() {
+        return parseNonBusinessDatesFromHolidaySlice(
+                resolveHqDefaultBusinessDayProfileRow()
+                        .map(this::holidaySliceFromHqProfileRow)
+                        .orElse(Map.of()));
+    }
+
+    public Map<String, String> resolveHqDefaultHolidayProfileMeta() {
+        return resolveHqDefaultBusinessDayProfileRow()
+                .map(row -> Map.of(
+                        "profileName", str(row.get("name")),
+                        "countryCode", str(row.get("countryCode")).isEmpty() ? "KR" : str(row.get("countryCode"))))
+                .orElse(Map.of("profileName", "", "countryCode", "KR"));
+    }
+
+    private Map<String, Object> holidaySliceFromHqProfileRow(Map<String, Object> row) {
+        Map<String, Object> slice = new LinkedHashMap<>();
+        slice.put("holidayProfileName", str(row.get("name")));
+        slice.put("holidayCountryCode", str(row.get("countryCode")));
+        slice.put("businessHolidayExtraDates", str(row.get("businessHolidayExtraDates")));
+        return slice;
+    }
+
     private List<Map<String, Object>> loadHqBusinessDayProfiles() {
         HqApiConfig c = hqApiConfigRepository.findAll().stream().findFirst().orElse(null);
         if (c == null || !StringUtils.hasText(c.getBusinessDaySettingsJson())) {

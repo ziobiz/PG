@@ -8,7 +8,17 @@
   <title>Payment</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;600&display=swap" rel="stylesheet">
-  <link href="css/pay-inline.css?v=31" rel="stylesheet">
+  <link href="css/pay-inline.css?v=32" rel="stylesheet">
+  <script>
+    (function () {
+      try {
+        var q = new URLSearchParams(window.location.search || '');
+        if (q.get('embed') === '1' || q.get('embed') === 'true') {
+          document.documentElement.setAttribute('data-pay-embed', '1');
+        }
+      } catch (e) { /* ignore */ }
+    })();
+  </script>
 </head>
 <body class="pay-inline-body">
   <nav id="payChatbotNavBar" class="pay-chatbot-nav d-none" aria-label="Chatbot checkout">
@@ -321,6 +331,24 @@
           var p = new URLSearchParams(window.location.search);
           return String(p.get('entry') || '').toLowerCase() === 'chatbot';
         } catch (eB) {
+          return false;
+        }
+      })();
+
+      var PAY_ENTRY_MERCHANT_API = (function () {
+        try {
+          var p = new URLSearchParams(window.location.search);
+          return String(p.get('entry') || '').toLowerCase() === 'merchant_api';
+        } catch (eM) {
+          return false;
+        }
+      })();
+
+      var PAY_EMBED_MODE = (function () {
+        try {
+          var p = new URLSearchParams(window.location.search);
+          return p.get('embed') === '1' || p.get('embed') === 'true';
+        } catch (eE) {
           return false;
         }
       })();
@@ -1016,6 +1044,65 @@
         el.textContent = msg;
       }
 
+      /** 가맹점 iframe(embed-pay) → 부모 창 postMessage */
+      function notifyMerchantEmbedCheckout(detail) {
+        if (!PAY_ENTRY_MERCHANT_API && !PAY_EMBED_MODE) return;
+        try {
+          if (window.parent && window.parent !== window) {
+            window.parent.postMessage({
+              type: 'ICOPAY_INLINE_CHECKOUT',
+              detail: detail || {}
+            }, window.location.origin);
+          }
+        } catch (ePm) { /* ignore */ }
+      }
+
+      function lockPayInputField(id, value) {
+        var el = document.getElementById(id);
+        if (!el || value == null || String(value).trim() === '') return;
+        el.value = String(value);
+        el.readOnly = true;
+        el.setAttribute('aria-readonly', 'true');
+      }
+
+      function validateMerchantApiSession() {
+        if (!PAY_ENTRY_MERCHANT_API) return Promise.resolve();
+        var tok = '';
+        try {
+          tok = (new URLSearchParams(window.location.search).get('session') || '').trim();
+        } catch (eT) { /* ignore */ }
+        if (!tok) return Promise.resolve();
+        return fetchJson(apiUrl('/api/middleware/v1/merchant/chillpay/inline-checkout/session',
+            'token=' + encodeURIComponent(tok))).then(function (res) {
+          if (res.success !== true || !res.data) throw new Error(res.message || t('configErr'));
+          var d = res.data;
+          lockPayInputField('orderNo', d.orderNo);
+          lockPayInputField('amount', d.amount);
+          lockPayInputField('item', d.productName);
+          var ordEl = document.getElementById('orderNo');
+          var amtEl = document.getElementById('amount');
+          var itEl = document.getElementById('item');
+          if (d.orderNo && ordEl && String(ordEl.value).trim() !== String(d.orderNo).trim()) {
+            throw new Error('orderNo mismatch');
+          }
+          if (d.amount && amtEl && String(amtEl.value).replace(/,/g, '').trim() !== String(d.amount).replace(/,/g, '').trim()) {
+            throw new Error('amount mismatch');
+          }
+        });
+      }
+
+      function applyMerchantApiEmbedUi() {
+        if (!PAY_EMBED_MODE) return;
+        document.querySelectorAll('.pay-lang').forEach(function (el) { el.style.display = 'none'; });
+        var brand = document.querySelector('.pay-brand');
+        if (brand && PAY_ENTRY_MERCHANT_API) brand.style.display = 'none';
+        var shell = document.querySelector('.pay-shell');
+        if (shell) {
+          shell.style.paddingTop = '0.75rem';
+          shell.style.paddingBottom = '1rem';
+        }
+      }
+
       function escapeHtmlPay(s) {
         var d = document.createElement('div');
         d.textContent = s == null ? '' : String(s);
@@ -1098,6 +1185,15 @@
             var alertMsg = isCancel ? t('payResultReturnAlertCancel')
               : (isErr ? t('payResultReturnAlertFail') : t('payResultReturnAlertOk'));
             runAfterReturnNotice(alertMsg, function () {
+              if (PAY_EMBED_MODE) {
+                notifyMerchantEmbedCheckout({
+                  phase: 'closed',
+                  success: !isErr && !isCancel,
+                  cancelled: !!isCancel,
+                  orderNo: orderNo || ''
+                });
+                return;
+              }
               try { window.close(); } catch (e0) { /* ignore */ }
               window.setTimeout(function () {
                 navigateToPayEntry();
@@ -1105,6 +1201,13 @@
             });
           });
         }
+        notifyMerchantEmbedCheckout({
+          phase: 'finished',
+          success: !isErr && !isCancel,
+          cancelled: !!isCancel,
+          orderNo: orderNo || '',
+          message: msg != null ? String(msg) : ''
+        });
       }
 
       function apiUrl(path, qs) {
@@ -1545,7 +1648,11 @@
           urlPayDisplayFxRefreshSeconds = (!isNaN(_fxSec) && _fxSec > 0) ? _fxSec : 600;
           window.__payUrlCardCopy = checkoutCtx.urlPayCardCopy && typeof checkoutCtx.urlPayCardCopy === 'object'
             ? checkoutCtx.urlPayCardCopy : null;
-          document.getElementById('orderNo').value = buildChillPayOrderNo(compId);
+          if (!PAY_ENTRY_MERCHANT_API) {
+            document.getElementById('orderNo').value = buildChillPayOrderNo(compId);
+          } else if (!String(document.getElementById('orderNo').value || '').trim()) {
+            document.getElementById('orderNo').value = buildChillPayOrderNo(compId);
+          }
           if (checkoutCtx.clientIp) {
             var iph = document.getElementById('clientIpHolder');
             if (iph) iph.value = checkoutCtx.clientIp;
@@ -1555,6 +1662,8 @@
           applyCheckoutHeaderBranding();
           applyCheckoutFormDefaults(compId, checkoutCtx);
           applyQueryPrefillsFromUrl();
+          applyMerchantApiEmbedUi();
+          return validateMerchantApiSession().then(function () {
           if (urlPayDisplayFxActive && urlPayPricingMode === 'DISPLAY_FX_THB') {
             initUrlPayDisplayFx(compId);
           }
@@ -1602,6 +1711,7 @@
             }
             if (window.console && window.console.warn) window.console.warn(cfgErr);
           });
+          });
         }).catch(function (e) {
           var el = document.getElementById('configError');
           el.style.display = 'block';
@@ -1623,6 +1733,13 @@
             var d = res.data.data;
             var ord = (d && d.orderNo) ? String(d.orderNo) : (fd.orderNo || '');
             if (d && d.paymentStatus === 'WaitAuthorize' && d.paymentUrl) {
+              notifyMerchantEmbedCheckout({
+                phase: 'wait_authorize',
+                success: true,
+                orderNo: ord,
+                paymentUrl: d.paymentUrl,
+                transactionId: d.transactionId || d.TransactionId || ''
+              });
               try {
                 sessionStorage.setItem('pg_pay_return_m', fd.compId || '');
                 sessionStorage.setItem('pg_pay_pending_order', ord);
@@ -1726,7 +1843,7 @@
             : 'JPY',
           urlPayIntegrationMode: 'INLINE',
           urlPayCcdInline: urlPayCcdCardholderOnly(),
-          txnOrigin: PAY_ENTRY_CHATBOT ? 'CHATBOT' : 'URL'
+          txnOrigin: PAY_ENTRY_CHATBOT ? 'CHATBOT' : (PAY_ENTRY_MERCHANT_API ? 'MERCHANT_API' : 'URL')
         };
         fd.customerId = (emailVal && emailVal.length) ? emailVal : fd.orderNo;
 

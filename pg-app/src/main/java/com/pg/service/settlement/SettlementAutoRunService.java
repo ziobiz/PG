@@ -171,7 +171,10 @@ public class SettlementAutoRunService {
                 if ("D0".equals(c0) && !SettlementCycleTiming.isD0AutoBatchAllowedNow(merchantNow)) {
                     continue;
                 }
-                if (settlementRunRepository.existsByMerchantIdAndCalcDt(mid, merchantToday)) {
+                /* execute() 저장 calc_dt = period toDate( W7 → 주간 일요일). merchantToday(배치 도래일)와 다르면 매 tick 중복 실행됨 */
+                LocalDate runCalcDt = w.toDate();
+                if (settlementRunRepository.existsByMerchantNormAndCalendarSlot(
+                        mid, w.fromDate(), w.toDate(), runCalcDt)) {
                     continue;
                 }
                 List<SettlementRun> runs = settlementCalcService.execute(w.fromDate(), w.toDate(), mid);
@@ -263,7 +266,9 @@ public class SettlementAutoRunService {
             if ("D0".equals(c0) && !SettlementCycleTiming.isD0AutoBatchAllowedNow(merchantNow)) {
                 continue;
             }
-            if (!settlementRunRepository.existsByMerchantIdAndCalcDt(mid, merchantToday)) {
+            LocalDate runCalcDtPeek = w.toDate();
+            if (!settlementRunRepository.existsByMerchantNormAndCalendarSlot(
+                    mid, w.fromDate(), w.toDate(), runCalcDtPeek)) {
                 return true;
             }
         }
