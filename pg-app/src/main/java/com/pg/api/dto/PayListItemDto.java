@@ -616,9 +616,9 @@ public class PayListItemDto {
             case "10" -> "성공";
             case "20" -> "취소";
             case "21" -> "무효";
-            case "22" -> "이메일무효";
+            case "22" -> "이메일 무효";
             case "40" -> "자동무효";
-            case "41" -> "이메일무효";
+            case "41" -> "이메일 무효";
             case "42" -> "자동환불";
             case "30" -> "환불";
             case "31" -> "강제환불";
@@ -633,7 +633,7 @@ public class PayListItemDto {
             case "08" -> "요청";
             case "20" -> "취소";
             case "21" -> "무효";
-            case "22" -> "이메일무효";
+            case "22" -> "이메일 무효";
             case "30" -> "환불";
             case "31" -> "강제환불";
             case "F0", "99", "f0" -> "실패";
@@ -751,9 +751,9 @@ public class PayListItemDto {
             case "08" -> "인증대기";
             case "20" -> "취소";
             case "21" -> "무효";
-            case "22" -> "이메일무효";
+            case "22" -> "이메일 무효";
             case "40" -> "자동무효";
-            case "41" -> "이메일무효";
+            case "41" -> "이메일 무효";
             case "42" -> "자동환불";
             case "30", "31" -> "환불";
             case "F0", "99" -> "실패";

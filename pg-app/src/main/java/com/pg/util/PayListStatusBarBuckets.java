@@ -111,7 +111,7 @@ public final class PayListStatusBarBuckets {
             case FAIL -> "실패";
             case CANCEL -> "취소";
             case VOID -> "무효";
-            case EMAIL_VOID -> "이메일무효";
+            case EMAIL_VOID -> "이메일 무효";
             case REFUND -> "환불";
             case FORCE_REFUND -> "강제환불";
             default -> "기타";
@@ -139,7 +139,7 @@ public final class PayListStatusBarBuckets {
         if ("1".equals(raw) || "3".equals(raw) || "4".equals(raw)) {
             return FAIL;
         }
-        if (low.contains("emailvoid") || low.contains("email_void") || low.contains("이메일무효")) {
+        if (low.contains("emailvoid") || low.contains("email_void") || low.contains("이메일무효") || low.contains("이메일 무효")) {
             return EMAIL_VOID;
         }
         if (low.contains("voided") || low.contains("void") || low.contains("무효")) {

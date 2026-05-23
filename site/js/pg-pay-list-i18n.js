@@ -15,6 +15,9 @@
     lookup: { KO: '조회', EN: 'Load', JP: '照会', CH: '查询', TH: 'โหลด' },
     refresh: { KO: '새로고침', EN: 'Refresh', JP: '再読込', CH: '刷新', TH: 'รีเฟรช' },
     excel: { KO: '엑셀다운로드', EN: 'Excel download', JP: 'Excel取得', CH: 'Excel下载', TH: 'ดาวน์โหลด Excel' },
+    listExcel: { KO: '엑셀리스트다운', EN: 'Excel list download', JP: 'Excelリストダウン', CH: 'Excel列表下载', TH: 'ดาวน์โหลด Excel รายการ' },
+    detailTitle: { KO: '선택 일자 상세', EN: 'Selected date detail', JP: '選択日の詳細', CH: '所选日期明细', TH: 'รายละเอียดวันที่เลือก' },
+    detailTitleIr: { KO: '선택 일자 상세 (통합 결제내역)', EN: 'Selected date — integrated payments', JP: '選択日の詳細（統合決済）', CH: '所选日期明细（综合支付）', TH: 'รายละเอียดวันที่เลือก (ชำระรวม)' },
     selectAll: { KO: '전체선택', EN: 'Select all', JP: '全選択', CH: '全选', TH: 'เลือกทั้งหมด' },
     empty: { KO: '조회된 데이터가 없습니다.', EN: 'No records found.', JP: '該当データがありません。', CH: '没有查询到数据。', TH: 'ไม่พบข้อมูล' },
     searchReset: { KO: '검색 초기화', EN: 'Reset search', JP: '検索リセット', CH: '重置搜索', TH: 'รีเซ็ตการค้นหา' },
@@ -314,7 +317,7 @@
 
   var PAY_FOLLOW = {
     AUTO_VOID: { KO: '무효처리', EN: 'Auto void', JP: '自動無効', CH: '自动作废', TH: 'โมฆะอัตโนมัติ' },
-    EMAIL_VOID: { KO: '이메일무효', EN: 'Email void', JP: 'メール無効', CH: '邮件作废', TH: 'โมฆะทางอีเมล' },
+    EMAIL_VOID: { KO: '이메일 무효', EN: 'Email void', JP: 'メール無効', CH: '邮件作废', TH: 'โมฆะทางอีเมล' },
     AUTO_REFUND: { KO: '환불처리', EN: 'Auto refund', JP: '自動返金', CH: '自动退款', TH: 'คืนเงินอัตโนมัติ' },
     FORCE_REFUND: { KO: '강제환불', EN: 'Force refund', JP: '強制返金', CH: '强制退款', TH: 'บังคับคืนเงิน' }
   };
@@ -498,11 +501,11 @@
     ],
     '/calc/dailyIntegrated': [
       packN(
-        '통합내역(칠페이 결제 검색)과 동일 자격·필터로, 거래일자 구간을 일 단위로 집계합니다. 일자별 성공·실패·취소·무효·이메일무효·환불·강제환불·기타 건수는 해당 일 집계 기준입니다(칠페이 일 100건 초과 시 금액·상태 요약은 샘플일 수 있음). 일자 행을 클릭하면 아래에 해당 일 통합내역(최대 50건)이 표시됩니다.',
-        'Uses the same credentials and filters as integrated ChillPay payment search, aggregated by calendar day. Per-day success/fail/cancel/void/email-void/refund/force-refund/other counts follow that day’s aggregation (when a day exceeds ~100 ChillPay rows, amount/status summaries may be sampled). Click a date row to show up to 50 integrated rows for that day below.',
-        '統合内訳（ChillPay 決済検索）と同一資格・フィルタで、取引日範囲を日単位で集計します。日別の成功・失敗・取消・無効・メール無効・返金・強制返金・その他件数は当日の集計基準です（ChillPay が1日100件超の場合、金額・状態要約はサンプルのことがあります）。日付行をクリックすると当日の統合内訳（最大50件）を下に表示します。',
-        '与「整合明细（ChillPay 支付搜索）」相同权限与筛选，按交易日区间做按日汇总。各日的成功/失败/取消/作废/邮件作废/退款/强制退款/其他笔数按当日汇总口径（ChillPay 单日超过约100笔时，金额与状态摘要可能为抽样）。点击日期行可在下方显示该日整合明细（最多50条）。',
-        'ใช้สิทธิ์และตัวกรองเดียวกับค้นหา ChillPay รวมรายวัน คลิกแถววันที่เพื่อดูรายการรวมของวันนั้นสูงสุด 50 รายการ'
+        '통합내역(칠페이 결제 검색)과 동일 자격·필터로, 거래일자 구간을 일 단위로 집계합니다. 일자별 성공·실패·취소·무효·이메일무효·환불·강제환불·기타 건수는 해당 일 집계 기준입니다(칠페이 일 100건 초과 시 금액·상태 요약은 샘플일 수 있음). 일자 행을 클릭하면 아래에 해당 일 통합내역 전체가 표시됩니다.',
+        'Uses the same credentials and filters as integrated ChillPay payment search, aggregated by calendar day. Per-day success/fail/cancel/void/email-void/refund/force-refund/other counts follow that day’s aggregation (when a day exceeds ~100 ChillPay rows, amount/status summaries may be sampled). Click a date row to show all integrated rows for that day below.',
+        '統合内訳（ChillPay 決済検索）と同一資格・フィルタで、取引日範囲を日単位で集計します。日別の成功・失敗・取消・無効・メール無効・返金・強制返金・その他件数は当日の集計基準です（ChillPay が1日100件超の場合、金額・状態要約はサンプルのことがあります）。日付行をクリックすると当日の統合内訳をすべて下に表示します。',
+        '与「整合明细（ChillPay 支付搜索）」相同权限与筛选，按交易日区间做按日汇总。各日的成功/失败/取消/作废/邮件作废/退款/强制退款/其他笔数按当日汇总口径（ChillPay 单日超过约100笔时，金额与状态摘要可能为抽样）。点击日期行可在下方显示该日全部整合明细。',
+        'ใช้สิทธิ์และตัวกรองเดียวกับค้นหา ChillPay รวมรายวัน คลิกแถววันที่เพื่อดูรายการรวมของวันนั้นทั้งหมด'
       ),
       packN(
         '조회 기간은 최대 93일입니다. 칠페이 API 장애 시 해당 일에 오류 메시지가 표시될 수 있습니다.',
@@ -514,11 +517,11 @@
     ],
     '/calc/dailyPay': [
       packN(
-        '결제내역(tb_pg_trnsctn, 적재일)과 동일 필터로 일자별 집계합니다. 일자별 성공·실패·취소·무효·이메일무효·환불·강제환불·기타 건수는 해당 일 전체 건 기준입니다. 일자 행을 클릭하면 아래에 해당 일 결제내역(최대 50건)이 표시됩니다.',
-        'Same filters as payment history (tb_pg_trnsctn, ingest date), aggregated by day. Per-day bucket counts are for all rows that day. Click a date row to load up to 50 payment rows for that day below.',
-        '決済履歴（tb_pg_trnsctn、取込日）と同一フィルタで日別集計します。日別の成功・失敗・取消・無効・メール無効・返金・強制返金・その他件数は当日の全件基準です。日付行をクリックすると当日の決済履歴（最大50件）を下に表示します。',
-        '与支付历史（tb_pg_trnsctn，入库日）相同筛选，按日汇总。各状态分组笔数为该日全量口径。点击日期行可在下方加载该日支付明细（最多50条）。',
-        'สรุปรายวันด้วยตัวกรองเดียวกับประวัติการชำระ คลิกวันที่เพื่อโหลดสูงสุด 50 รายการ'
+        '결제내역(tb_pg_trnsctn, 적재일)과 동일 필터로 일자별 집계합니다. 일자별 성공·실패·취소·무효·이메일무효·환불·강제환불·기타 건수는 해당 일 전체 건 기준입니다. 일자 행을 클릭하면 아래에 해당 일 결제내역 전체가 표시됩니다.',
+        'Same filters as payment history (tb_pg_trnsctn, ingest date), aggregated by day. Per-day bucket counts are for all rows that day. Click a date row to load all payment rows for that day below.',
+        '決済履歴（tb_pg_trnsctn、取込日）と同一フィルタで日別集計します。日別の成功・失敗・取消・無効・メール無効・返金・強制返金・その他件数は当日の全件基準です。日付行をクリックすると当日の決済履歴をすべて下に表示します。',
+        '与支付历史（tb_pg_trnsctn，入库日）相同筛选，按日汇总。各状态分组笔数为该日全量口径。点击日期行可在下方加载该日全部支付明细。',
+        'สรุปรายวันด้วยตัวกรองเดียวกับประวัติการชำระ คลิกวันที่เพื่อโหลดรายการทั้งหมดของวันนั้น'
       ),
       packN(
         '조회 기간은 최대 93일입니다.',
@@ -621,11 +624,11 @@
         'โหลดครั้งแรก 7 วันล่าสุดเพื่อลดโหลด ขยายช่วงด้วยปุ่มช่วงแล้วกดค้นหา'
       ),
       packN(
-        '일자 행을 클릭하면 아래에 해당 일 수수료내역(최대 50건, 수수료내역 화면과 동일 열 구성)이 표시됩니다. 조회 기간은 최대 93일입니다. 데이터가 매우 많으면 상단 집계가 일부만 반영될 수 있습니다(meta.capped).',
-        'Click a date row to show up to 50 fee rows for that day (same columns as fee history). Query window up to 93 days. Very large data may cap the top aggregate (see meta.capped).',
-        '日付行をクリックすると当日の手数料明細（最大50件、手数料明細画面と同じ列）を表示します。照会は最大93日。データが極端に多いと上部集計が一部のみになることがあります（meta.capped）。',
-        '点击日期行在下方显示该日手续费明细（最多50列，与手续费明细一致）。查询最长93天；数据量极大时顶部汇总可能部分反映（meta.capped）。',
-        'คลิกวันที่เพื่อดูค่าธรรมเนียมสูงสุด 50 รายการ ช่วงสูงสุด 93 วัน อาจมี meta.capped'
+        '일자 행을 클릭하면 아래에 해당 일 수수료내역 전체가 표시됩니다(수수료내역 화면과 동일 열 구성). 조회 기간은 최대 93일입니다. 데이터가 매우 많으면 상단 집계가 일부만 반영될 수 있습니다(meta.capped).',
+        'Click a date row to show all fee rows for that day (same columns as fee history). Query window up to 93 days. Very large data may cap the top aggregate (see meta.capped).',
+        '日付行をクリックすると当日の手数料明細をすべて表示します（手数料明細画面と同じ列）。照会は最大93日。データが極端に多いと上部集計が一部のみになることがあります（meta.capped）。',
+        '点击日期行在下方显示该日全部手续费明细（与手续费明细列一致）。查询最长93天；数据量极大时顶部汇总可能部分反映（meta.capped）。',
+        'คลิกวันที่เพื่อดูค่าธรรมเนียมทั้งหมดของวันนั้น ช่วงสูงสุด 93 วัน อาจมี meta.capped'
       ),
       packN(
         '미래 일자는 표시되지 않습니다(전산 표시 기준일). 일자 순서는 [내림차순](최신일 위)·[오름차순]으로 바꿀 수 있으며 기본은 내림차순입니다.',
@@ -729,7 +732,13 @@
     'payCustomerIndicator': { KO: '고객표시', EN: 'Shopper label', JP: '顧客表示', CH: '客户显示', TH: 'ป้ายลูกค้า' },
     'displayPaySummary': { KO: '입력통화', EN: 'Input currency', JP: '入力通貨', CH: '输入币种', TH: 'สกุลที่ป้อน' },
     'displayPayCur': { KO: '고객통화', EN: 'Shopper ccy', JP: '顧客通貨', CH: '客户币种', TH: 'สกุลลูกค้า' },
-    'displayPayAmt': { KO: '고객금액', EN: 'Shopper amt', JP: '顧客金額', CH: '客户金额', TH: 'ยอดลูกค้า' }
+    'displayPayAmt': { KO: '고객금액', EN: 'Shopper amt', JP: '顧客金額', CH: '客户金额', TH: 'ยอดลูกค้า' },
+    'trnDate,trnTime,routeNo,chillTransactionId,trnId': { KO: '거래', EN: 'Transaction', JP: '取引', CH: '交易', TH: 'ธุรกรรม' },
+    'txnFixedFeesSum,pctFeesSum': { KO: '승인 / 결제수수료(%)', EN: 'Approval / pay fee (%)', JP: '承認／決済手数料(%)', CH: '授权/支付手续费(%)', TH: 'อนุมัติ / ค่าธรรมเนียม (%)' },
+    'usdtFee,fxFee,fee3dsFee': { KO: '기타수수료', EN: 'Other fees', JP: 'その他手数料', CH: '其他手续费', TH: 'ค่าธรรมเนียมอื่น' },
+    'rollingPctPlain,rollingDays,rollingHoldEst': { KO: '담보(롤링)', EN: 'Collateral (rolling)', JP: '担保(ロール)', CH: '担保(滚动)', TH: 'หลักประกัน (โรล)' },
+    'failFee,cancelFee,voidFee,manualVoidFee,refundFee,chargebackFee': { KO: '실패·취소·무효·환불·차지백', EN: 'Fail·cancel·void·refund·CB', JP: '失敗・取消・無効・返金・CB', CH: '失败·取消·作废·退款·拒付', TH: 'ล้มเหลว·ยกเลิก·โมฆะ·คืน·CB' },
+    'totalFee,feeVat,expectedPayout,settlementAmt': { KO: '차감·지급', EN: 'Deduction·payout', JP: '控除・支払', CH: '扣减·拨付', TH: 'หัก·จ่าย' }
   };
 
   /** 열 키별 비한국어(및 명시 KO). 비어 있으면 카탈로그 스냅샷(한국어) 유지 */
@@ -764,6 +773,14 @@
     masterDistBaseCur: { EN: 'Dist. base ccy', JP: '総販基準通貨', CH: '总代基准货币', TH: 'สกุลฐานตัวแทนหลัก' },
     merchantBaseCur: { EN: 'Merchant base ccy', JP: '加盟店基準通貨', CH: '商户基准货币', TH: 'สกุลฐานร้านค้า' },
     chillPaymentStatus: { EN: 'Status', JP: '状態', CH: '状态', TH: 'สถานะ' },
+    statusNm: { EN: 'Status', JP: '状態', CH: '状态', TH: 'สถานะ' },
+    amount: { EN: 'Payment amount', JP: '決済金額', CH: '支付金额', TH: 'ยอดชำระ' },
+    payCur: { EN: 'Pay ccy', JP: '決済通貨', CH: '支付币种', TH: 'สกุลชำระ' },
+    policyCur: { EN: 'Policy ccy', JP: '政策通貨', CH: '政策币种', TH: 'สกุลนโยบาย' },
+    expectedSettleDate: { EN: 'Est. settle', JP: '精算予定', CH: '预计结算', TH: 'ชำระโดยประมาณ' },
+    rollingPctPlain: { EN: 'Coll. %', JP: '担保率(%)', CH: '担保率(%)', TH: 'หลักประกัน (%)' },
+    rollingDays: { EN: 'Hold days', JP: '保留日', CH: '暂扣天数', TH: 'วันพัก' },
+    vatAppliedYn: { EN: 'VAT applied', JP: 'VAT適用', CH: 'VAT适用', TH: 'VAT' },
     settledYn: { EN: 'Settlement', JP: '精算', CH: '结算', TH: 'การชำระบัญชี' },
     compRegNo: { EN: 'Business no.', JP: '事業者番号', CH: '注册号', TH: 'เลขทะเบียน' },
     payDivNm: { EN: 'Type', JP: '区分', CH: '类型', TH: 'ประเภท' },
@@ -847,7 +864,7 @@
     FAIL: { EN: 'Fail', JP: '失敗', CH: '失败', TH: 'ล้มเหลว' },
     CANCEL: { EN: 'Cancel', JP: '取消', CH: '取消', TH: 'ยกเลิก' },
     VOID: { EN: 'Void', JP: '無効', CH: '作废', TH: 'โมฆะ' },
-    EMAIL_VOID: { EN: 'Email void', JP: 'メール無効', CH: '邮件作废', TH: 'โมฆะทางอีเมล' },
+    EMAIL_VOID: { KO: '이메일 무효', EN: 'Email void', JP: 'メール無効', CH: '邮件作废', TH: 'โมฆะทางอีเมล' },
     REFUND: { EN: 'Refund', JP: '返金', CH: '退款', TH: 'คืนเงิน' },
     FORCE_REFUND: { EN: 'Force refund', JP: '強制返金', CH: '强制退款', TH: 'บังคับคืนเงิน' },
     OTHER: { EN: 'Other', JP: 'その他', CH: '其他', TH: 'อื่นๆ' }
@@ -954,6 +971,34 @@
       if (c && c.key && byKey[c.key] != null) c.label = byKey[c.key];
     });
     scr.headerGroups = JSON.parse(JSON.stringify(snap.hg || []));
+  }
+
+  function applyFeeListScreenLocale(loc) {
+    var screens = w.PG_SCREENS && w.PG_SCREENS.getMenuScreens ? w.PG_SCREENS.getMenuScreens() : null;
+    if (!screens) return;
+    ['/calc/feeList', '/settlement/feeList'].forEach(function (url) {
+      var scr = screens[url];
+      if (!scr || !scr.columns) return;
+      ensureChillColSnap(scr);
+      if (loc === 'KO') {
+        restoreChillColSnap(scr);
+        return;
+      }
+      var snap = scr._i18nColSnap;
+      var byKey = {};
+      snap.cols.forEach(function (x) { if (x && x.key) byKey[x.key] = x.label; });
+      scr.columns.forEach(function (c) {
+        if (!c || !c.key) return;
+        var row = COL[c.key];
+        c.label = tRow(row, loc, byKey[c.key] != null ? byKey[c.key] : c.label);
+      });
+      (scr.headerGroups || []).forEach(function (g, i) {
+        var sig = (g.keys || []).join(',');
+        var row = HG[sig];
+        var koLab = (snap.hg[i] && snap.hg[i].label) || g.label;
+        g.label = tRow(row, loc, koLab);
+      });
+    });
   }
 
   function applyChillListCatalogLocale(loc) {
@@ -1227,11 +1272,36 @@
     }
     var detWrap = pane.querySelector('#dailyDetailWrap_' + tid);
     if (detWrap) {
-      var titleEl = detWrap.querySelector('.fw-semibold');
-      if (titleEl) titleEl.textContent = escHtml('선택 일자 상세');
+      var titleEl = detWrap.querySelector('#dailyDetailTitle_' + tid);
+      if (titleEl) {
+        var daySuffix = '';
+        var mDay = (titleEl.textContent || '').match(/\((\d{4}-\d{2}-\d{2})\)\s*$/);
+        if (mDay) daySuffix = ' (' + mDay[1] + ')';
+        titleEl.textContent = escHtml((UI.detailTitle && UI.detailTitle[loc] ? UI.detailTitle[loc] : '선택 일자 상세') + daySuffix);
+      }
+      var lex = detWrap.querySelector('#listExcelDownBtn span[data-pg-ui-t]');
+      if (lex) lex.textContent = escHtml(UI.listExcel[loc] || UI.listExcel.KO);
       var hintTd = detWrap.querySelector('#grid_' + tid + '_detail tbody td.text-muted');
       if (hintTd && hintTd.colSpan >= 8) {
         hintTd.textContent = escHtml(kind === 'fee' ? '위에서 일자를 더블클릭하세요.' : '위에서 일자를 클릭하세요.');
+      }
+      if (w.PG_UI_I18N && typeof w.PG_UI_I18N.applyDom === 'function') {
+        try { w.PG_UI_I18N.applyDom(detWrap); } catch (eDetWrapI18n) {}
+      }
+    }
+    var irDetHost = pane.querySelector('#integratedReportDetail_' + tid);
+    if (irDetHost) {
+      var irTitleEl = irDetHost.querySelector('#integratedReportDetailTitle_' + tid);
+      if (irTitleEl) {
+        var daySuffixIr = '';
+        var mDayIr = (irTitleEl.textContent || '').match(/\((\d{4}-\d{2}-\d{2})\)\s*$/);
+        if (mDayIr) daySuffixIr = ' (' + mDayIr[1] + ')';
+        irTitleEl.textContent = escHtml((UI.detailTitleIr && UI.detailTitleIr[loc] ? UI.detailTitleIr[loc] : UI.detailTitleIr.KO) + daySuffixIr);
+      }
+      var lexIr = irDetHost.querySelector('#listExcelDownBtn span[data-pg-ui-t]');
+      if (lexIr) lexIr.textContent = escHtml(UI.listExcel[loc] || UI.listExcel.KO);
+      if (w.PG_UI_I18N && typeof w.PG_UI_I18N.applyDom === 'function') {
+        try { w.PG_UI_I18N.applyDom(irDetHost); } catch (eIrDetWrapI18n) {}
       }
     }
     var emptyCell = pane.querySelector('#grid_' + tid + ' tbody td.text-center.text-muted');
@@ -1284,6 +1354,7 @@
         var id = String(b.id);
         if (id === 'payListRefreshBtn') b.label = UI.refresh[loc] || b.label;
         else if (id === 'excelDownBtn' || id === 'excelBtn') b.label = UI.excel[loc] || b.label;
+        else if (id === 'listExcelDownBtn') b.label = UI.listExcel[loc] || b.label;
         else if (id === 'searchBtn') {
           var snapB2 = _screenSnap.buttons[u];
           var origSb = (snapB2 || []).filter(function (x) { return x && String(x.id) === 'searchBtn'; })[0];
@@ -1371,6 +1442,9 @@
     var rLab = UI.refresh[loc] || UI.refresh.KO;
     var eLab = UI.excel[loc] || UI.excel.KO;
     var pLab = UI.printSetup[loc] || UI.printSetup.KO;
+    document.querySelectorAll('.tab-pane.tabConDiv[formurl] #listExcelDownBtn span[data-pg-ui-t]').forEach(function (lexSpan) {
+      lexSpan.textContent = UI.listExcel[loc] || UI.listExcel.KO;
+    });
     document.querySelectorAll('.tab-pane.tabConDiv[formurl]').forEach(function (pane) {
       var url = pane.getAttribute('formurl');
       if (!url) return;
@@ -1605,6 +1679,9 @@
           if (pr0) w.PG_UI_I18N.applyDom(pr0);
         } catch (ePagUi) {}
       }
+      if (w.PG_UI && typeof w.PG_UI.refreshPayGridStatusBadges === 'function') {
+        try { w.PG_UI.refreshPayGridStatusBadges(pane); } catch (ePayBadge) {}
+      }
     });
     if (typeof w.PG_refreshPayListAggregateBarsDom === 'function') {
       try { w.PG_refreshPayListAggregateBarsDom(); } catch (eAgg) {}
@@ -1680,6 +1757,7 @@
     if (w.PG_SCREENS && typeof w.PG_SCREENS.syncPayListIntegratedScreenLabelsFromCatalog === 'function') {
       w.PG_SCREENS.syncPayListIntegratedScreenLabelsFromCatalog();
     }
+    applyFeeListScreenLocale(loc);
     applyChillListCatalogLocale(loc);
     applyMenuScreensSearchAndNoticesLocale(loc);
     applyScreenChromeLocale(loc);

@@ -104,6 +104,14 @@
             'Upload exceeds the server limit. Reduce file size and try again. (HTTP 413: check reverse proxy/Nginx client_max_body_size)'
           )));
         }
+        if (res.status === 504 || res.status === 502 || res.status === 503) {
+          var gwKo = '게이트웨이 시간 초과(HTTP ' + res.status + '). 조회 기간을 줄인 뒤 [검색]을 다시 시도해 주세요.';
+          var gwTpl = '게이트웨이 시간 초과(HTTP {0}). 조회 기간을 줄인 뒤 [검색]을 다시 시도해 주세요.';
+          var gwMsg = apiT(gwTpl, 'Gateway timeout (HTTP {0}). Narrow the date range and click [Search] again.');
+          if (gwMsg.indexOf('{0}') >= 0) gwMsg = gwMsg.replace('{0}', String(res.status));
+          else gwMsg = apiT(gwKo, 'Gateway timeout (HTTP ' + res.status + '). Narrow the date range and click [Search] again.');
+          return Promise.reject(new Error(gwMsg));
+        }
         var data;
         try {
           data = text ? JSON.parse(text) : {};

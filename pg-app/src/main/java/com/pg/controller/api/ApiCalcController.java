@@ -391,6 +391,7 @@ public class ApiCalcController {
                 }
                 rows.add(one);
             }
+            PayListService.applyDailySummaryDayListOrder(rows, searchOrderDir);
             Map<String, Object> payload = new LinkedHashMap<>();
             payload.put("list", rows);
             Map<String, Object> meta = new LinkedHashMap<>();
@@ -443,7 +444,7 @@ public class ApiCalcController {
         }
         List<String> parts = new ArrayList<>();
         if (Boolean.TRUE.equals(meta.get("chillDailySummaryScanCapped"))) {
-            parts.add("금액·상태 요약은 일 3,000건(100×30페이지) 스캔 상한까지 반영");
+            parts.add("금액·상태 요약은 일 15,000건(500×30페이지) 스캔 상한까지 반영");
         }
         if (Boolean.TRUE.equals(meta.get("chillDailySummaryPayDivClientFiltered"))) {
             parts.add("상태구분은 ChillPay 목록 전페이지 매칭 집계");

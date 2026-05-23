@@ -499,7 +499,7 @@ public class HqNotifyInboundQueryService {
             case "10" -> "성공";
             case "20" -> "취소";
             case "21" -> "무효";
-            case "22" -> "이메일무효";
+            case "22" -> "이메일 무효";
             case "30" -> "환불";
             case "31" -> "강제환불";
             case "99", "F0" -> "실패";

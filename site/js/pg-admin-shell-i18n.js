@@ -292,7 +292,14 @@
       var tabA = li.querySelector('.tab-a');
       if (!tabA || !url) return;
       if (li.getAttribute('data-pg-catalog-tab') === '1') return;
-      tabA.textContent = tUrlLabel(url, loc);
+      var info = (w.PG_MENU_INFO && w.PG_MENU_INFO[url]) || {};
+      var sideA = document.querySelector('#side-nav-ul .child-li[data-url="' + url + '"] > a');
+      var sideKo = sideA && sideA.getAttribute('data-pg-menu-ko');
+      var fallbackKo = info.label || sideKo || tabA.getAttribute('data-pg-tab-ko') || '';
+      if (fallbackKo && !tabA.getAttribute('data-pg-tab-ko')) {
+        tabA.setAttribute('data-pg-tab-ko', fallbackKo);
+      }
+      tabA.textContent = tUrlLabel(url, loc, fallbackKo);
     });
   }
 

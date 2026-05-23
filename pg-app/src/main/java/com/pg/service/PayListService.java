@@ -56,6 +56,7 @@ import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -1410,6 +1411,16 @@ public class PayListService {
         return cache;
     }
 
+    /** 일별 집계·통합 리포트 목록: 기본 최신일 우선(DESC). {@code searchOrderDir=ASC} 이면 일자 오름차순 */
+    public static void applyDailySummaryDayListOrder(List<Map<String, Object>> rows, String searchOrderDir) {
+        if (rows == null || rows.size() <= 1) {
+            return;
+        }
+        if (searchOrderDir != null && "ASC".equalsIgnoreCase(searchOrderDir.trim())) {
+            Collections.reverse(rows);
+        }
+    }
+
     /**
      * 운영관리 통합 리포트: 적재일(createdAt) 기준 일자별 전역 집계 + 가맹점 동적 열(해당 일 거래가 있는 가맹만, 업체코드 오름차순).
      * 결제내역 통합(INTEGRATED)과 동일한 {@link #buildSpecification}·조직 가맹 범위를 사용합니다.
@@ -1574,6 +1585,7 @@ public class PayListService {
             OpsIntegratedDayAgg agg = byDay.getOrDefault(d, new OpsIntegratedDayAgg());
             list.add(agg.toApiRow(d, primaryNorm, baseCurrencyConfigured, currencyOrderTemplate, ctxMap, feeResolver));
         }
+        applyDailySummaryDayListOrder(list, reqIn.getSearchOrderDir());
 
         Map<String, Object> meta = new LinkedHashMap<>();
         if (rangeStartAdjusted) {
@@ -1871,6 +1883,7 @@ public class PayListService {
                     primaryNorm, allowedCur, effectiveMultiCurrency, baseCurrencyConfigured, currencyOrderTemplate));
             out.add(row);
         }
+        applyDailySummaryDayListOrder(out, template != null ? template.getSearchOrderDir() : null);
         return out;
     }
 

@@ -1474,12 +1474,38 @@ public class ApiSettlementController {
 
     private static final int DAILY_FEE_SUMMARY_MAX_DAYS = 93;
     private static final int DAILY_FEE_PAGE_SIZE = 500;
-    private static final int DAILY_FEE_MAX_PAGES_PER_DAY = 400;
+    /** 전체 조회 구간 1회 스캔 상한(페이지). 일자별 반복 조회 대신 단일 패스로 504·타임아웃을 줄입니다. */
+    private static final int DAILY_FEE_MAX_SCAN_PAGES = 400;
     private static final String[] DAILY_FEE_SUM_NUMERIC_KEYS = {
             "txnFixedFeesSum", "pctFeesSum", "usdtFee", "fxFee", "fee3dsFee", "rollingHoldEst",
             "failFee", "cancelFee", "voidFee", "manualVoidFee", "refundFee", "chargebackFee",
             "totalFee", "feeVat", "expectedPayout", "settlementAmt"
     };
+
+    private static final class DailyFeeDayAgg {
+        long txnCount;
+        long settledY;
+        long settledN;
+        final Map<String, Double> sums = new LinkedHashMap<>();
+
+        DailyFeeDayAgg() {
+            for (String k : DAILY_FEE_SUM_NUMERIC_KEYS) {
+                sums.put(k, 0d);
+            }
+        }
+    }
+
+    private static void mergeDailyFeeNumericSums(Map<String, Double> sums, Map<String, Object> row) {
+        if (sums == null || row == null) {
+            return;
+        }
+        for (String key : DAILY_FEE_SUM_NUMERIC_KEYS) {
+            Object v = row.get(key);
+            if (v instanceof Number n) {
+                sums.merge(key, n.doubleValue(), Double::sum);
+            }
+        }
+    }
 
     private Specification<PgTrnsctn> feeListSpecification(Set<String> allowedMerchants,
                                                           LocalDateTime fromDt,
@@ -1606,93 +1632,102 @@ public class ApiSettlementController {
         Map<Long, List<ChargebackFeeTier>> tiersByPolicyId = new HashMap<>();
         Map<String, CommissionPolicy> polCache = new HashMap<>();
         Map<Long, Set<LocalDate>> holidayCache = new HashMap<>();
+        Map<String, PayListRowContext> ctxByMerchant = new HashMap<>();
         Sort sort = Sort.by(sortDirectionFromSearchOrderDir(searchOrderDir), "createdAt")
                 .and(Sort.by(sortDirectionFromSearchOrderDir(searchOrderDir), "trnId"));
 
+        Map<LocalDate, DailyFeeDayAgg> byDay = new LinkedHashMap<>();
+        for (LocalDate d = fromDate; !d.isAfter(effectiveTo); d = d.plusDays(1)) {
+            byDay.put(d, new DailyFeeDayAgg());
+        }
+        LocalDateTime rangeFrom = fromDate.atStartOfDay();
+        LocalDateTime rangeTo = effectiveTo.atTime(LocalTime.MAX);
+        Specification<PgTrnsctn> specFull = feeListSpecification(allowedMerchants, rangeFrom, rangeTo, effFtFinal, effKwFinal,
+                merchantNameFilter, statusGroup);
+
+        boolean capped = false;
+        long totalScanned = 0;
+        for (int pageIdx = 0; pageIdx < DAILY_FEE_MAX_SCAN_PAGES; pageIdx++) {
+            Pageable pageable = PageRequest.of(pageIdx, DAILY_FEE_PAGE_SIZE, sort);
+            Page<PgTrnsctn> slice = pgTrnsctnRepository.findAll(specFull, pageable);
+            if (slice.isEmpty()) {
+                break;
+            }
+            List<String> mids = slice.getContent().stream()
+                    .map(PgTrnsctn::getMerchantId)
+                    .filter(Objects::nonNull)
+                    .map(String::trim)
+                    .filter(s -> !s.isEmpty())
+                    .filter(mid -> !ctxByMerchant.containsKey(mid))
+                    .distinct()
+                    .collect(Collectors.toList());
+            if (!mids.isEmpty()) {
+                ctxByMerchant.putAll(payListService.buildPayListRowContextMap(mids));
+            }
+            for (PgTrnsctn t : slice.getContent()) {
+                if (t.getMerchantId() == null || t.getMerchantId().isBlank() || t.getCreatedAt() == null) {
+                    continue;
+                }
+                LocalDate day = t.getCreatedAt().toLocalDate();
+                DailyFeeDayAgg agg = byDay.get(day);
+                if (agg == null) {
+                    continue;
+                }
+                agg.txnCount++;
+                String yn = t.getSettledYn();
+                if (yn != null && "Y".equalsIgnoreCase(yn.trim())) {
+                    agg.settledY++;
+                } else {
+                    agg.settledN++;
+                }
+                Map<String, Object> row = buildFeeListRowMap(t, monthCbCountCache, tiersByPolicyId, ctxByMerchant, polCache,
+                        feeResolver, holidayCache);
+                mergeDailyFeeNumericSums(agg.sums, row);
+            }
+            totalScanned += slice.getNumberOfElements();
+            if (!slice.hasNext()) {
+                break;
+            }
+            if (pageIdx + 1 >= DAILY_FEE_MAX_SCAN_PAGES) {
+                capped = true;
+                break;
+            }
+        }
+
         List<Map<String, Object>> out = new ArrayList<>();
         for (LocalDate d = effectiveTo; !d.isBefore(fromDate); d = d.minusDays(1)) {
-            LocalDateTime fromDt = d.atStartOfDay();
-            LocalDateTime toDt = d.atTime(LocalTime.MAX);
-            Specification<PgTrnsctn> specDay = feeListSpecification(allowedMerchants, fromDt, toDt, effFtFinal, effKwFinal,
-                    merchantNameFilter, statusGroup);
-            long txnCount = pgTrnsctnRepository.count(specDay);
-            long settledY = 0;
-            long settledN = 0;
-            Map<String, Double> sums = new LinkedHashMap<>();
-            for (String k : DAILY_FEE_SUM_NUMERIC_KEYS) {
-                sums.put(k, 0d);
-            }
-            boolean capped = false;
-            long scanned = 0;
-            for (int pageIdx = 0; pageIdx < DAILY_FEE_MAX_PAGES_PER_DAY; pageIdx++) {
-                Pageable pageable = PageRequest.of(pageIdx, DAILY_FEE_PAGE_SIZE, sort);
-                Page<PgTrnsctn> slice = pgTrnsctnRepository.findAll(specDay, pageable);
-                if (slice.isEmpty()) {
-                    break;
-                }
-                List<String> mids = slice.getContent().stream()
-                        .map(PgTrnsctn::getMerchantId)
-                        .filter(Objects::nonNull)
-                        .map(String::trim)
-                        .filter(s -> !s.isEmpty())
-                        .distinct()
-                        .collect(Collectors.toList());
-                Map<String, PayListRowContext> ctxByMerchant = mids.isEmpty()
-                        ? Collections.emptyMap()
-                        : payListService.buildPayListRowContextMap(mids);
-                for (PgTrnsctn t : slice.getContent()) {
-                    if (t.getMerchantId() == null || t.getMerchantId().isBlank()) {
-                        continue;
-                    }
-                    String yn = t.getSettledYn();
-                    if (yn != null && "Y".equalsIgnoreCase(yn.trim())) {
-                        settledY++;
-                    } else {
-                        settledN++;
-                    }
-                    Map<String, Object> row = buildFeeListRowMap(t, monthCbCountCache, tiersByPolicyId, ctxByMerchant, polCache,
-                            feeResolver, holidayCache);
-                    for (String key : DAILY_FEE_SUM_NUMERIC_KEYS) {
-                        Object v = row.get(key);
-                        if (v instanceof Number n) {
-                            sums.merge(key, n.doubleValue(), Double::sum);
-                        }
-                    }
-                }
-                scanned += slice.getNumberOfElements();
-                if (!slice.hasNext()) {
-                    break;
-                }
-                if (pageIdx + 1 >= DAILY_FEE_MAX_PAGES_PER_DAY) {
-                    capped = true;
-                    break;
-                }
-            }
+            DailyFeeDayAgg agg = byDay.getOrDefault(d, new DailyFeeDayAgg());
             String settlementStateLabel;
-            if (txnCount <= 0) {
+            if (agg.txnCount <= 0) {
                 settlementStateLabel = "—";
-            } else if (settledN == 0) {
+            } else if (agg.settledN == 0) {
                 settlementStateLabel = "정산완료";
-            } else if (settledY == 0) {
+            } else if (agg.settledY == 0) {
                 settlementStateLabel = "정산대기";
             } else {
                 settlementStateLabel = "부분정산";
             }
             Map<String, Object> one = new LinkedHashMap<>();
             one.put("day", d.toString());
-            one.put("txnCount", txnCount);
-            for (Map.Entry<String, Double> e : sums.entrySet()) {
+            one.put("txnCount", agg.txnCount);
+            for (Map.Entry<String, Double> e : agg.sums.entrySet()) {
                 one.put(e.getKey(), e.getValue());
             }
             one.put("settlementStateLabel", settlementStateLabel);
-            one.put("scannedRows", scanned);
-            one.put("capped", capped);
+            one.put("scannedRows", agg.txnCount);
+            one.put("capped", capped && agg.txnCount > 0);
             out.add(one);
         }
+        PayListService.applyDailySummaryDayListOrder(out, searchOrderDir);
         Map<String, Object> payload = new LinkedHashMap<>();
         payload.put("list", out);
         Map<String, Object> meta = new LinkedHashMap<>();
         meta.put("dailyFeeNote", "일자별 상세는 동일 조건으로 feeList 에 해당 일자만 지정해 조회합니다.");
+        if (capped) {
+            meta.put("dailyFeeCapped", true);
+            meta.put("dailyFeeScannedRows", totalScanned);
+            meta.put("dailyFeeCapNote", "집계 대상 건수가 많아 일부만 반영되었을 수 있습니다. 기간을 줄이거나 feeList에서 상세 조회하세요.");
+        }
         payload.put("meta", meta);
         PageResult<Map<String, Object>> prMeta = new PageResult<>();
         attachFeeCurrencyMeta(prMeta);
@@ -4309,7 +4344,7 @@ public class ApiSettlementController {
             case "21" -> "무효";
             case "22" -> "수동무효";
             case "40" -> "자동무효";
-            case "41" -> "이메일무효";
+            case "41" -> "이메일 무효";
             case "42" -> "자동환불";
             case "30", "31" -> "환불";
             case "F0", "99" -> "실패";

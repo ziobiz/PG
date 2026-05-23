@@ -629,17 +629,64 @@ body { margin: 0; height: 100%; overflow: hidden; font-family: -apple-system, Bl
   min-width: 220px !important;
   max-width: 100%;
 }
-/* 퀵 날짜 버튼: 당일·당월 핑크 톤, 나머지 기존 톤 */
-.quick-date { font-size: var(--app-base-font-size); padding: 4px 8px; }
-.quick-date--pink {
+/* 퀵 날짜: 미선택 outline, 선택 시 range별 파스텔 */
+.quick-date {
+  font-size: var(--app-base-font-size);
+  padding: 4px 8px;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+.quick-date.quick-date--selected {
+  font-weight: 600;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.06);
+}
+.quick-date.quick-date--selected[data-range="day"] {
   background: linear-gradient(180deg, #fce4ec 0%, #f8bbd9 100%) !important;
   border-color: #f48fb1 !important;
   color: #ad1457 !important;
 }
-.quick-date--pink:hover {
-  background: linear-gradient(180deg, #f8bbd9 0%, #f48fb1 100%) !important;
-  border-color: #ec407a !important;
-  color: #880e4f !important;
+.quick-date.quick-date--selected[data-range="month"] {
+  background: linear-gradient(180deg, #f3e5f5 0%, #e1bee7 100%) !important;
+  border-color: #ce93d8 !important;
+  color: #7b1fa2 !important;
+}
+.quick-date.quick-date--selected[data-range="prevDay"] {
+  background: linear-gradient(180deg, #e8f5e9 0%, #c8e6c9 100%) !important;
+  border-color: #81c784 !important;
+  color: #2e7d32 !important;
+}
+.quick-date.quick-date--selected[data-range="week"],
+.quick-date.quick-date--selected[data-range="weekCal"] {
+  background: linear-gradient(180deg, #e3f2fd 0%, #bbdefb 100%) !important;
+  border-color: #64b5f6 !important;
+  color: #1565c0 !important;
+}
+.quick-date.quick-date--selected[data-range="week2"],
+.quick-date.quick-date--selected[data-range="prevWeekCal"] {
+  background: linear-gradient(180deg, #e0f7fa 0%, #b2ebf2 100%) !important;
+  border-color: #4dd0e1 !important;
+  color: #00838f !important;
+}
+.quick-date.quick-date--selected[data-range="prevMonth"] {
+  background: linear-gradient(180deg, #fff8e1 0%, #ffecb3 100%) !important;
+  border-color: #ffd54f !important;
+  color: #f57f17 !important;
+}
+.quick-date.quick-date--selected:hover,
+.quick-date.quick-date--selected:focus {
+  filter: brightness(0.97);
+}
+
+/* 일별·통합리포트 — 선택 일자 행 레드 파스텔(하단 상세와 연결) */
+.daily-master-row--selected > td,
+.integrated-report-day-row--selected > td {
+  background: linear-gradient(180deg, #ffebee 0%, #ffcdd2 100%) !important;
+}
+.daily-master-row--selected:hover > td,
+.integrated-report-day-row--selected:hover > td {
+  filter: brightness(0.98);
+}
+#contentsMain .daily-detail-toolbar .daily-detail-action-buttons {
+  margin-left: auto;
 }
 
 /* 업체관리: 검색 영역 2~3줄 배치, 스크롤바 없음 */

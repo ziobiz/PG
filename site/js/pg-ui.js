@@ -57,6 +57,110 @@
     return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
   }
 
+  function escAttr(s) {
+    return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+  }
+
+  /** 영문·숫자 status 토큰 → uiT 키(한국어 canonical) */
+  var PAY_STATUS_EN_TO_KO_KEY = {
+    success: '성공',
+    paid: '성공',
+    complete: '성공',
+    completed: '성공',
+    authorized: '성공',
+    approved: '승인',
+    approve: '승인',
+    fail: '실패',
+    failed: '실패',
+    failure: '실패',
+    error: '오류',
+    declined: '실패',
+    decline: '실패',
+    cancel: '취소',
+    cancelled: '취소',
+    canceled: '취소',
+    void: '무효',
+    voided: '무효',
+    emailvoid: '이메일 무효',
+    'email void': '이메일 무효',
+    'manual void': '수동무효',
+    refund: '환불',
+    refunded: '환불',
+    'force refund': '강제환불',
+    forcerefund: '강제환불',
+    'auto void': '자동무효',
+    'auto refund': '자동환불',
+    pending: '요청',
+    processing: '요청',
+    request: '요청',
+    requested: '요청',
+    waitauthorize: '인증대기',
+    other: '기타'
+  };
+
+  /** 한국어 statusNm·payDivNm 등 → uiT */
+  var PAY_STATUS_KO_KEYS = [
+    '성공', '실패', '취소', '무효', '환불', '요청', '오류', '이메일 무효', '이메일무효', '자동무효', '자동환불',
+    '강제환불', '수동무효', '승인', '인증대기', '기타'
+  ];
+
+  /**
+   * 결제·수수료 그리드 상태 표기 — 코드·한국어·영문을 현재 UI 로케일로.
+   * @param {string} rawText statusNm / chillPaymentStatus / 코드
+   * @param {object} [rowOpt] status 코드 보조(row.status)
+   */
+  global.PG_UI.localizePayStatusLabel = function (rawText, rowOpt) {
+    var s = rawText == null ? '' : String(rawText).trim();
+    if (s === '이메일무효') s = '이메일 무효';
+    if (!s || s === '—' || s === '-') return '—';
+    if (rowOpt && rowOpt.status != null) {
+      var stCode = String(rowOpt.status).trim();
+      if (stCode && typeof global.PG_UI.internalPayStatusToKo === 'function') {
+        var fromCode = global.PG_UI.internalPayStatusToKo(stCode);
+        if (fromCode && fromCode !== '—' && fromCode !== stCode) return fromCode;
+      }
+    }
+    if (/^[0-4]$/.test(s) || /^(08|10|20|21|22|30|31|40|41|42|99|F0|f0)$/.test(s)) {
+      if (typeof global.PG_UI.internalPayStatusToKo === 'function') {
+        return global.PG_UI.internalPayStatusToKo(s);
+      }
+    }
+    var low = s.toLowerCase().replace(/\s+/g, ' ').trim();
+    var enKey = PAY_STATUS_EN_TO_KO_KEY[low] || PAY_STATUS_EN_TO_KO_KEY[low.replace(/\s/g, '')];
+    if (enKey) return uiT(enKey);
+    if (PAY_STATUS_KO_KEYS.indexOf(s) >= 0) return uiT(s);
+    if (/^(성공|취소|실패|무효|환불|요청|오류|이메일 무효|이메일무효|자동무효|자동환불|강제환불|수동무효|승인|인증대기|기타)/.test(s)) {
+      var m = s.match(/^(성공|취소|실패|무효|환불|요청|오류|이메일 무효|이메일무효|자동무효|자동환불|강제환불|수동무효|승인|인증대기|기타)/);
+      if (m) return uiT(m[1] === '이메일무효' ? '이메일 무효' : m[1]);
+    }
+    if (low.indexOf('email') >= 0 && low.indexOf('void') >= 0) return uiT('이메일 무효');
+    if (low.indexOf('force') >= 0 && low.indexOf('refund') >= 0) return uiT('강제환불');
+    if (low.indexOf('auto') >= 0 && low.indexOf('void') >= 0) return uiT('자동무효');
+    if (low.indexOf('auto') >= 0 && low.indexOf('refund') >= 0) return uiT('자동환불');
+    if (low.indexOf('manual') >= 0 && low.indexOf('void') >= 0) return uiT('수동무효');
+    if (low.indexOf('void') >= 0 || s.indexOf('무효') >= 0) {
+      if (low.indexOf('email') >= 0 || s.indexOf('이메일') >= 0) return uiT('이메일 무효');
+      return uiT('무효');
+    }
+    if (low.indexOf('refund') >= 0 || s.indexOf('환불') >= 0) return uiT('환불');
+    if (low.indexOf('cancel') >= 0 || s === '취소') return uiT('취소');
+    if (low.indexOf('fail') >= 0 || low.indexOf('declin') >= 0 || s === '실패') return uiT('실패');
+    if (low.indexOf('success') >= 0 || low === 'paid' || s === '성공') return uiT('성공');
+    if (low.indexOf('pending') >= 0 || low.indexOf('request') >= 0 || s === '요청') return uiT('요청');
+    var tr = uiT(s);
+    return tr !== s ? tr : s;
+  };
+
+  /** 로케일 변경 시 이미 렌더된 .pay-grid-status-badge 텍스트 갱신 */
+  global.PG_UI.refreshPayGridStatusBadges = function (root) {
+    if (!root || !root.querySelectorAll) return;
+    root.querySelectorAll('.pay-grid-status-badge').forEach(function (el) {
+      var raw = el.getAttribute('data-pg-status-raw');
+      if (raw == null || raw === '') raw = el.textContent || '';
+      el.textContent = global.PG_UI.localizePayStatusLabel(raw, null);
+    });
+  };
+
   /**
    * 결제내역 그리드 행·Status 뱃지 톤 — 내부 status 우선, 없으면 chillPaymentStatus·구분.
    * @returns {'success'|'cancel'|'void'|'refund'|'fail'|'pending'|'other'|'neutral'}
@@ -143,11 +247,14 @@
   };
 
   /** 결제내역·통합내역 Status 열 — 행 톤과 동일한 뱃지 색(기타=상단 집계 OTHER 톤) */
-  global.PG_UI.payGridStatusBadge = function (rawText, tone) {
+  global.PG_UI.payGridStatusBadge = function (rawText, tone, rowOpt) {
     var t = tone && tone !== 'neutral' ? tone : 'neutral';
-    var inner = escHtml(rawText);
+    var raw = rawText == null ? '' : String(rawText).trim();
+    var label = global.PG_UI.localizePayStatusLabel(raw, rowOpt);
+    var inner = escHtml(label);
     if (!inner) inner = '—';
-    return '<span class="pay-grid-status-badge pay-grid-status-badge--' + t + '">' + inner + '</span>';
+    var rawAttr = escAttr(raw || rawText || '');
+    return '<span class="pay-grid-status-badge pay-grid-status-badge--' + t + '" data-pg-status-raw="' + rawAttr + '">' + inner + '</span>';
   };
 
   /**
@@ -168,16 +275,22 @@
       case '08': return uiT('요청');
       case '20': return uiT('취소');
       case '21': return uiT('무효');
-      case '22': return uiT('이메일무효');
+      case '22': return uiT('이메일 무효');
       case '30': return uiT('환불');
       case '31': return uiT('강제환불');
       case '40': return uiT('자동무효');
-      case '41': return uiT('이메일무효');
+      case '41': return uiT('이메일 무효');
       case '42': return uiT('자동환불');
       case '99':
       case 'F0':
       case 'f0': return uiT('실패');
-      default: return s;
+      default: {
+        var enKey = PAY_STATUS_EN_TO_KO_KEY[s.toLowerCase()];
+        if (enKey) return uiT(enKey);
+        if (PAY_STATUS_KO_KEYS.indexOf(s) >= 0) return uiT(s);
+        var tr = uiT(s);
+        return tr !== s ? tr : s;
+      }
     }
   };
 })(typeof window !== 'undefined' ? window : this);

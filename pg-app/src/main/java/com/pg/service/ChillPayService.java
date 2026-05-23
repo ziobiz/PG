@@ -117,7 +117,9 @@ public class ChillPayService {
             DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm", Locale.ROOT);
     /** 통합내역·통합정산 그리드 거래일 표시 — {@code yyyy-MM-dd} (로케일 비의존) */
     private static final DateTimeFormatter CHILL_TRN_DATE_GRID = DateTimeFormatter.ISO_LOCAL_DATE;
-    /** 통합내역 상단 요약: 최대 추가 ChillPay API 호출 페이지 수(페이지당 최대 100건) */
+    /** 통합내역·일별통합: ChillPay 결제 검색 API 페이지당 상한(문서 기본 100, 상세·목록 500까지 요청) */
+    private static final int CHILL_PAY_PAYMENT_PAGE_SIZE_MAX = 500;
+    /** 통합내역 상단 요약: 최대 추가 ChillPay API 호출 페이지 수 */
     private static final int CHILL_STATUS_BAR_MAX_PAGES = 30;
     /** 일별통합 일자 집계 시 페이지 간 ChillPay 호출 간격(4004 완화). 0 이면 대기 없음. */
     private static final long CHILL_DAILY_SUMMARY_INTER_PAGE_MS = 80L;
@@ -1306,7 +1308,7 @@ public class ChillPayService {
             Authentication authentication) {
 
         Long effectiveMerchantOrgUnitId = resolveMerchantOrgUnitIdForChillPayTxnApi(merchantOrgUnitId, merchantCodeFilter);
-        int ps = Math.min(100, Math.max(1, size));
+        int ps = Math.min(CHILL_PAY_PAYMENT_PAGE_SIZE_MAX, Math.max(1, size));
         int pn = Math.max(1, page);
         String payDivFilter = searchPayDivCd != null ? searchPayDivCd.trim() : "";
         if (!payDivFilter.isEmpty()) {
@@ -1348,7 +1350,7 @@ public class ChillPayService {
 
     /**
      * 일별통합 상단 일자별 집계 전용: 해당 거래일의 ChillPay 결제 검색을
-     * {@link #CHILL_STATUS_BAR_MAX_PAGES} 페이지(페이지당 최대 100건)까지 순회해 금액·상태 버킷을 합산합니다.
+     * {@link #CHILL_STATUS_BAR_MAX_PAGES} 페이지(페이지당 최대 {@link #CHILL_PAY_PAYMENT_PAGE_SIZE_MAX}건)까지 순회해 금액·상태 버킷을 합산합니다.
      * {@link #searchChillPayPaymentTransactions} 와 동일한 집계 범위이며, 그리드 목록은 반환하지 않습니다.
      * <p>{@code totalElements} 는 ChillPay TotalRecord(상태구분 필터 시 매칭 행 수)와 동일합니다.
      * 전체 건수가 스캔 상한을 넘으면 {@code meta.chillDailySummaryScanCapped} 가 true 입니다.
@@ -1371,7 +1373,7 @@ public class ChillPayService {
             Authentication authentication) {
 
         Long effectiveMerchantOrgUnitId = resolveMerchantOrgUnitIdForChillPayTxnApi(merchantOrgUnitId, merchantCodeFilter);
-        final int pageSize = 100;
+        final int pageSize = CHILL_PAY_PAYMENT_PAGE_SIZE_MAX;
         String payDivStr = searchPayDivCd != null ? searchPayDivCd.trim() : "";
         boolean payDivClientFiltered = !payDivStr.isEmpty();
 
@@ -1456,7 +1458,7 @@ public class ChillPayService {
 
     /**
      * 통합내역 상단 「상태구분」: 결제내역(tb_pg_trnsctn.status)과 동일 코드로, 노티 보강 후 칠페이 목록을 거릅니다.
-     * 칠페이 API는 페이지당 최대 100건이므로, 필터 시 여러 API 페이지를 순회해 요청 페이지를 채웁니다(상한은 CHILL_STATUS_BAR_MAX_PAGES와 동일).
+     * 칠페이 결제 검색은 페이지당 최대 {@link #CHILL_PAY_PAYMENT_PAGE_SIZE_MAX}건까지 요청합니다. 필터 시 여러 API 페이지를 순회해 요청 페이지를 채웁니다(상한은 CHILL_STATUS_BAR_MAX_PAGES와 동일).
      */
     private PageResult<Map<String, Object>> searchChillPayPaymentTransactionsWithPayDivFilter(
             Long effectiveMerchantOrgUnitId,
@@ -1942,7 +1944,7 @@ public class ChillPayService {
             throw new IllegalStateException("ChillPay MD5 Key가 설정되지 않았습니다.");
         }
 
-        int ps = Math.min(100, Math.max(1, size));
+        int ps = Math.min(CHILL_PAY_PAYMENT_PAGE_SIZE_MAX, Math.max(1, size));
         int pn = Math.max(1, page);
 
         ChillPayPaymentSearchApiRequest req = new ChillPayPaymentSearchApiRequest();
@@ -2038,7 +2040,7 @@ public class ChillPayService {
         PageResult<Map<String, Object>> pr = new PageResult<>();
         pr.setList(List.of());
         pr.setPage(Math.max(1, page));
-        pr.setSize(Math.min(100, Math.max(1, size)));
+        pr.setSize(Math.min(CHILL_PAY_PAYMENT_PAGE_SIZE_MAX, Math.max(1, size)));
         pr.setTotalElements(0L);
         pr.setTotalPages(1);
         Map<String, Object> meta = new LinkedHashMap<>();

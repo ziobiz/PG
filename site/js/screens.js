@@ -895,7 +895,7 @@
       '</div></td>' +
       '<td class="text-center"><select name="autoVoidReflectSettlementYn" class="form-select form-select-sm hq-pay-follow-sel-ref">' + ynRef + '</select></td></tr>' +
       '<tr>' +
-      '<td class="fw-semibold">' + pgUiSpanT('수동무효') + ' <span class="badge bg-secondary" data-pg-ui-t="이메일무효">' + escA(L('이메일무효')) + '</span></td>' +
+      '<td class="fw-semibold">' + pgUiSpanT('수동무효') + ' <span class="badge bg-secondary" data-pg-ui-t="이메일 무효">' + escA(L('이메일 무효')) + '</span></td>' +
       '<td class="small" data-pg-ui-t="승인일(기준 Zone) 당일 시작~마감(자동무효와 동일 형식)">' + escA(L('승인일(기준 Zone) 당일 시작~마감(자동무효와 동일 형식)')) + '</td>' +
       '<td class="text-center"><select name="emailVoidYn" class="form-select form-select-sm hq-pay-follow-sel-use">' + ynUse + '</select></td>' +
       '<td class="hq-pay-follow-void-times"><div class="d-flex flex-wrap align-items-center gap-1 gap-md-2">' +
@@ -936,7 +936,7 @@
     var capYn = pgUiOptHtml([{ v: 'N', t: '미사용' }, { v: 'Y', t: '사용' }]);
     var fields = [
       { k: 'autoVoid', t: '자동무효' },
-      { k: 'emailVoid', t: '이메일무효' },
+      { k: 'emailVoid', t: '이메일 무효' },
       { k: 'autoRefund', t: '자동환불' },
       { k: 'forceRefund', t: '강제환불' }
     ];
@@ -2060,7 +2060,7 @@
                 { v: '/calc/payFailList', t: '실패내역' },
                 { v: '/calc/payCancelList', t: '취소내역' },
                 { v: '/calc/payVoidList', t: '무효처리' },
-                { v: '/calc/payEmailVoidList', t: '이메일무효' },
+                { v: '/calc/payEmailVoidList', t: '이메일 무효' },
                 { v: '/calc/payRefundList', t: '환불처리' },
                 { v: '/calc/payForceRefundList', t: '강제환불' },
                 { v: '/pay/easyPay', t: 'URL결제내역' },
@@ -2073,12 +2073,14 @@
                 { v: '/calc/feeList', t: '수수료내역' },
                 { v: '/calc/dailyFee', t: '일별수수료' },
                 { v: '/calc/exCalcList', t: '정산실행' },
-                { v: '/calc/calcGmList', t: '가맹점정산내역' },
+                { v: '/settlement/settlementResultDistribute', t: '정산배포' },
+                { v: '/settlement/settlementResultHold', t: '정산대기' },
                 { v: '/calc/paySettlementHoldList', t: '정산보류내역' },
-                { v: '/calc/calcList', t: '유통망정산내역' },
+                { v: '/calc/compPointMngList', t: '환수금내역' },
+                { v: '/calc/unpaidMng', t: '미수금내역' },
                 { v: '/calc/collateralList', t: '담보금내역' },
-                { v: '/calc/compPointMngList', t: '환수금관리' },
-                { v: '/calc/unpaidMng', t: '미수금관리' },
+                { v: '/calc/calcList', t: '유통망정산내역' },
+                { v: '/calc/calcGmList', t: '가맹점정산내역' },
                 { v: '/calc/settlementReport', t: '정산리포트' }
               ] }
             ],
@@ -2705,7 +2707,7 @@
           notice: '관리자 화면의 자동무효·이메일무효·자동환불·강제환불 사용 여부입니다. 전산설정관리(전역) 및 본사권한설정의 조직 단계 상한과 함께 적용됩니다. [기본·종전]은 미설정과 동일(허용으로 해석)입니다.',
           rows: [
             [{ label: '후속조치 사용', type: 'select', name: 'payFollowMerchantUseYn', options: [{ v: '', t: '기본·종전과 동일' }, { v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }], col: 2 }],
-            [{ label: '자동무효', type: 'select', name: 'payFollowAutoVoidYn', options: [{ v: '', t: '기본·종전과 동일' }, { v: 'Y', t: '허용' }, { v: 'N', t: '불가' }], col: 2 }, { label: '이메일무효', type: 'select', name: 'payFollowEmailVoidYn', options: [{ v: '', t: '기본·종전과 동일' }, { v: 'Y', t: '허용' }, { v: 'N', t: '불가' }], col: 2 }, { label: '자동환불', type: 'select', name: 'payFollowAutoRefundYn', options: [{ v: '', t: '기본·종전과 동일' }, { v: 'Y', t: '허용' }, { v: 'N', t: '불가' }], col: 2 }, { label: '강제환불', type: 'select', name: 'payFollowForceRefundYn', options: [{ v: '', t: '기본·종전과 동일' }, { v: 'Y', t: '허용' }, { v: 'N', t: '불가' }], col: 2 }]
+            [{ label: '자동무효', type: 'select', name: 'payFollowAutoVoidYn', options: [{ v: '', t: '기본·종전과 동일' }, { v: 'Y', t: '허용' }, { v: 'N', t: '불가' }], col: 2 }, { label: '이메일 무효', type: 'select', name: 'payFollowEmailVoidYn', options: [{ v: '', t: '기본·종전과 동일' }, { v: 'Y', t: '허용' }, { v: 'N', t: '불가' }], col: 2 }, { label: '자동환불', type: 'select', name: 'payFollowAutoRefundYn', options: [{ v: '', t: '기본·종전과 동일' }, { v: 'Y', t: '허용' }, { v: 'N', t: '불가' }], col: 2 }, { label: '강제환불', type: 'select', name: 'payFollowForceRefundYn', options: [{ v: '', t: '기본·종전과 동일' }, { v: 'Y', t: '허용' }, { v: 'N', t: '불가' }], col: 2 }]
           ]
         },
         {
@@ -3108,7 +3110,7 @@
           notice: '관리자 화면의 자동무효·이메일무효·자동환불·강제환불 사용 여부입니다. 전산설정관리(전역) 및 본사권한설정의 조직 단계 상한과 함께 적용됩니다. [기본·종전]은 미설정과 동일(허용으로 해석)입니다.',
           rows: [
             [{ label: '후속조치 사용', type: 'select', name: 'payFollowMerchantUseYn', options: [{ v: '', t: '기본·종전과 동일' }, { v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }], col: 2 }],
-            [{ label: '자동무효', type: 'select', name: 'payFollowAutoVoidYn', options: [{ v: '', t: '기본·종전과 동일' }, { v: 'Y', t: '허용' }, { v: 'N', t: '불가' }], col: 2 }, { label: '이메일무효', type: 'select', name: 'payFollowEmailVoidYn', options: [{ v: '', t: '기본·종전과 동일' }, { v: 'Y', t: '허용' }, { v: 'N', t: '불가' }], col: 2 }, { label: '자동환불', type: 'select', name: 'payFollowAutoRefundYn', options: [{ v: '', t: '기본·종전과 동일' }, { v: 'Y', t: '허용' }, { v: 'N', t: '불가' }], col: 2 }, { label: '강제환불', type: 'select', name: 'payFollowForceRefundYn', options: [{ v: '', t: '기본·종전과 동일' }, { v: 'Y', t: '허용' }, { v: 'N', t: '불가' }], col: 2 }]
+            [{ label: '자동무효', type: 'select', name: 'payFollowAutoVoidYn', options: [{ v: '', t: '기본·종전과 동일' }, { v: 'Y', t: '허용' }, { v: 'N', t: '불가' }], col: 2 }, { label: '이메일 무효', type: 'select', name: 'payFollowEmailVoidYn', options: [{ v: '', t: '기본·종전과 동일' }, { v: 'Y', t: '허용' }, { v: 'N', t: '불가' }], col: 2 }, { label: '자동환불', type: 'select', name: 'payFollowAutoRefundYn', options: [{ v: '', t: '기본·종전과 동일' }, { v: 'Y', t: '허용' }, { v: 'N', t: '불가' }], col: 2 }, { label: '강제환불', type: 'select', name: 'payFollowForceRefundYn', options: [{ v: '', t: '기본·종전과 동일' }, { v: 'Y', t: '허용' }, { v: 'N', t: '불가' }], col: 2 }]
           ]
         },
         {
@@ -3444,7 +3446,7 @@
           notice: '관리자 화면의 자동무효·이메일무효·자동환불·강제환불 사용 여부입니다. 전산설정관리(전역) 및 본사권한설정의 조직 단계 상한과 함께 적용됩니다. [기본·종전]은 미설정과 동일(허용으로 해석)입니다.',
           rows: [
             [{ label: '후속조치 사용', type: 'select', name: 'payFollowMerchantUseYn', options: [{ v: '', t: '기본·종전과 동일' }, { v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }], col: 2 }],
-            [{ label: '자동무효', type: 'select', name: 'payFollowAutoVoidYn', options: [{ v: '', t: '기본·종전과 동일' }, { v: 'Y', t: '허용' }, { v: 'N', t: '불가' }], col: 2 }, { label: '이메일무효', type: 'select', name: 'payFollowEmailVoidYn', options: [{ v: '', t: '기본·종전과 동일' }, { v: 'Y', t: '허용' }, { v: 'N', t: '불가' }], col: 2 }, { label: '자동환불', type: 'select', name: 'payFollowAutoRefundYn', options: [{ v: '', t: '기본·종전과 동일' }, { v: 'Y', t: '허용' }, { v: 'N', t: '불가' }], col: 2 }, { label: '강제환불', type: 'select', name: 'payFollowForceRefundYn', options: [{ v: '', t: '기본·종전과 동일' }, { v: 'Y', t: '허용' }, { v: 'N', t: '불가' }], col: 2 }]
+            [{ label: '자동무효', type: 'select', name: 'payFollowAutoVoidYn', options: [{ v: '', t: '기본·종전과 동일' }, { v: 'Y', t: '허용' }, { v: 'N', t: '불가' }], col: 2 }, { label: '이메일 무효', type: 'select', name: 'payFollowEmailVoidYn', options: [{ v: '', t: '기본·종전과 동일' }, { v: 'Y', t: '허용' }, { v: 'N', t: '불가' }], col: 2 }, { label: '자동환불', type: 'select', name: 'payFollowAutoRefundYn', options: [{ v: '', t: '기본·종전과 동일' }, { v: 'Y', t: '허용' }, { v: 'N', t: '불가' }], col: 2 }, { label: '강제환불', type: 'select', name: 'payFollowForceRefundYn', options: [{ v: '', t: '기본·종전과 동일' }, { v: 'Y', t: '허용' }, { v: 'N', t: '불가' }], col: 2 }]
           ]
         },
         {
@@ -3726,7 +3728,7 @@
             { v: '20', t: '취소' },
             { v: 'FAIL', t: '실패' },
             { v: '40', t: '자동무효' },
-            { v: '41', t: '이메일무효' },
+            { v: '41', t: '이메일 무효' },
             { v: '42', t: '자동환불' },
             { v: '31', t: '강제환불' }
           ], size: 11 },
@@ -3800,7 +3802,7 @@
             { v: '20', t: '취소' },
             { v: 'FAIL', t: '실패' },
             { v: '40', t: '자동무효' },
-            { v: '41', t: '이메일무효' },
+            { v: '41', t: '이메일 무효' },
             { v: '42', t: '자동환불' },
             { v: '31', t: '강제환불' }
           ], size: 11 },
@@ -3881,7 +3883,7 @@
             { v: '20', t: '취소' },
             { v: 'FAIL', t: '실패' },
             { v: '40', t: '자동무효' },
-            { v: '41', t: '이메일무효' },
+            { v: '41', t: '이메일 무효' },
             { v: '42', t: '자동환불' },
             { v: '31', t: '강제환불' }
           ], size: 11 },
@@ -3889,7 +3891,7 @@
         ]
       ],
       noticeList: [
-        '통합내역(칠페이 결제 검색)과 동일 자격·필터로, 거래일자(TransactionDate) 구간을 일 단위로 집계합니다. 일자별 금액·상태는 해당 일 전체 목록(최대 3,000건) 합산입니다. 일 3,000건 초과 시 통합내역 상단 요약과 동일하게 스캔 상한 안내됩니다. 일자 행을 클릭하면 아래 「선택 일자 상세」에 번호·결제시간(결제완료 시각·JP/TH 이중 표시)·승인번호·업체코드·업체명·정산주기·결제액·상태(한글)가 표시됩니다(최대 50건).',
+        '통합내역(칠페이 결제 검색)과 동일 자격·필터로, 거래일자(TransactionDate) 구간을 일 단위로 집계합니다. 일자별 금액·상태는 해당 일 전체 목록(최대 15,000건) 합산입니다. 일 15,000건 초과 시 통합내역 상단 요약과 동일하게 스캔 상한 안내됩니다. 일자 행을 클릭하면 아래 「선택 일자 상세」에 해당 일 전체 거래가 표시됩니다(번호·결제시간·승인번호·업체·정산주기·결제액·상태).',
         '조회 기간은 최대 93일입니다. 당월 등으로 종료일이 오늘 이후이면 표시는 전산 기준일(오늘)까지만 합니다(미래 일자 미표시). 칠페이 API 장애 시 해당 일에 오류 메시지가 표시될 수 있습니다.'
       ],
       summary: ['건수'],
@@ -3906,7 +3908,7 @@
         { statusBucketKey: 'FAIL', label: '실패' },
         { statusBucketKey: 'CANCEL', label: '취소' },
         { statusBucketKey: 'VOID', label: '무효' },
-        { statusBucketKey: 'EMAIL_VOID', label: '이메일무효' },
+        { statusBucketKey: 'EMAIL_VOID', label: '이메일 무효' },
         { statusBucketKey: 'REFUND', label: '환불' },
         { statusBucketKey: 'FORCE_REFUND', label: '강제환불' },
         { statusBucketKey: 'OTHER', label: '기타' },
@@ -3954,7 +3956,7 @@
             { v: '20', t: '취소' },
             { v: 'FAIL', t: '실패' },
             { v: '40', t: '자동무효' },
-            { v: '41', t: '이메일무효' },
+            { v: '41', t: '이메일 무효' },
             { v: '42', t: '자동환불' },
             { v: '31', t: '강제환불' }
           ], size: 11 },
@@ -3962,7 +3964,7 @@
         ]
       ],
       noticeList: [
-        '결제내역(/calc/payList, INTEGRATED)과 동일 필터·조직 범위로, 적재일(createdAt) 기준 일자별 집계합니다. 일자별 성공·실패·취소·무효·이메일무효·환불·강제환불·기타 건수는 해당 일 전체 건 기준입니다. 일자 행을 클릭하면 아래 「선택 일자 상세」에 번호·결제시간(결제완료 시각·JP/TH 이중 표시)·승인번호·업체코드·업체명·정산주기·결제액·상태(한글)가 표시됩니다(최대 50건, 거래일 열 없음).',
+        '결제내역(/calc/payList, INTEGRATED)과 동일 필터·조직 범위로, 적재일(createdAt) 기준 일자별 집계합니다. 일자별 성공·실패·취소·무효·이메일무효·환불·강제환불·기타 건수는 해당 일 전체 건 기준입니다. 일자 행을 클릭하면 아래 「선택 일자 상세」에 해당 일 전체 결제내역이 표시됩니다(거래일 열 없음).',
         '조회 기간은 최대 93일입니다. 당월 등으로 종료일이 오늘 이후이면 표시는 전산 기준일(오늘)까지만 합니다(미래 일자 미표시).'
       ],
       summary: ['건수'],
@@ -3979,7 +3981,7 @@
         { statusBucketKey: 'FAIL', label: '실패' },
         { statusBucketKey: 'CANCEL', label: '취소' },
         { statusBucketKey: 'VOID', label: '무효' },
-        { statusBucketKey: 'EMAIL_VOID', label: '이메일무효' },
+        { statusBucketKey: 'EMAIL_VOID', label: '이메일 무효' },
         { statusBucketKey: 'REFUND', label: '환불' },
         { statusBucketKey: 'FORCE_REFUND', label: '강제환불' },
         { statusBucketKey: 'OTHER', label: '기타' },
@@ -4327,7 +4329,7 @@
       noticeList: [
         '수수료내역과 동일 산식·동일 필터로 일자별 합계를 표시합니다. 정산유무는 해당 일 거래의 settled_yn 이 전부 Y이면 정산완료, 전부 N이면 정산대기, 혼합이면 부분정산입니다.',
         '첫 화면은 집계 부하·게이트웨이 시간 초과(504)를 줄이기 위해 최근 7일(당일 포함)만 자동 조회합니다. 당월·당일 등은 빠른기간 버튼 뒤 [검색]으로 넓히면 됩니다.',
-        '일자 행을 더블클릭하면 아래 「선택 일자 상세」에 해당 일 수수료내역(최대 50건)이 표시됩니다. 번호·결제시간·승인번호·업체·정산주기·정산예정(업체명 오른쪽)·결제액·수수료·정산액(통화 표기)·상태(한글)·정산유무(거래 settled_yn)를 확인할 수 있으며 거래일 열은 두지 않습니다. 조회 기간은 최대 93일입니다.',
+        '일자 행을 더블클릭하면 아래 「선택 일자 상세」에 해당 일 수수료내역 전체가 표시됩니다. 번호·결제시간·승인번호·업체·정산주기·정산예정(업체명 오른쪽)·결제액·수수료·정산액(통화 표기)·상태(한글)·정산유무(거래 settled_yn)를 확인할 수 있으며 거래일 열은 두지 않습니다. 조회 기간은 최대 93일입니다.',
         '미래 일자는 표시되지 않습니다(전산 표시 기준일). 일자 순서는 [내림차순](최신일 위)·[오름차순]으로 바꿀 수 있으며 기본은 내림차순입니다.'
       ],
       summary: ['건수'],
@@ -5056,7 +5058,7 @@
           notice: '관리자 화면의 자동무효·이메일무효·자동환불·강제환불 사용 여부입니다. 전산설정관리(전역) 및 본사권한설정의 조직 단계 상한과 함께 적용됩니다. [기본·종전]은 미설정과 동일(허용으로 해석)입니다.',
           rows: [
             [{ label: '후속조치 사용', type: 'select', name: 'payFollowMerchantUseYn', options: [{ v: '', t: '기본·종전과 동일' }, { v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }], col: 2 }],
-            [{ label: '자동무효', type: 'select', name: 'payFollowAutoVoidYn', options: [{ v: '', t: '기본·종전과 동일' }, { v: 'Y', t: '허용' }, { v: 'N', t: '불가' }], col: 2 }, { label: '이메일무효', type: 'select', name: 'payFollowEmailVoidYn', options: [{ v: '', t: '기본·종전과 동일' }, { v: 'Y', t: '허용' }, { v: 'N', t: '불가' }], col: 2 }, { label: '자동환불', type: 'select', name: 'payFollowAutoRefundYn', options: [{ v: '', t: '기본·종전과 동일' }, { v: 'Y', t: '허용' }, { v: 'N', t: '불가' }], col: 2 }, { label: '강제환불', type: 'select', name: 'payFollowForceRefundYn', options: [{ v: '', t: '기본·종전과 동일' }, { v: 'Y', t: '허용' }, { v: 'N', t: '불가' }], col: 2 }]
+            [{ label: '자동무효', type: 'select', name: 'payFollowAutoVoidYn', options: [{ v: '', t: '기본·종전과 동일' }, { v: 'Y', t: '허용' }, { v: 'N', t: '불가' }], col: 2 }, { label: '이메일 무효', type: 'select', name: 'payFollowEmailVoidYn', options: [{ v: '', t: '기본·종전과 동일' }, { v: 'Y', t: '허용' }, { v: 'N', t: '불가' }], col: 2 }, { label: '자동환불', type: 'select', name: 'payFollowAutoRefundYn', options: [{ v: '', t: '기본·종전과 동일' }, { v: 'Y', t: '허용' }, { v: 'N', t: '불가' }], col: 2 }, { label: '강제환불', type: 'select', name: 'payFollowForceRefundYn', options: [{ v: '', t: '기본·종전과 동일' }, { v: 'Y', t: '허용' }, { v: 'N', t: '불가' }], col: 2 }]
           ]
         },
         {
@@ -5232,7 +5234,7 @@
       paginationSizeOptions: [20, 50, 100, 200],
       searchRows: [[
         { label: '구분', type: 'select', name: 'searchMailKind', col: 2,
-          options: [{ v: '', t: '전체' }, { v: 'VOID_TEST', t: 'VOID 테스트' }, { v: 'VOID_TXN', t: '이메일무효(거래)' }] },
+          options: [{ v: '', t: '전체' }, { v: 'VOID_TEST', t: 'VOID 테스트' }, { v: 'VOID_TXN', t: '이메일 무효(거래)' }] },
         { label: '상태', type: 'select', name: 'searchMailStatus', col: 2,
           options: [{ v: '', t: '전체' }, { v: 'SUCCESS', t: '성공' }, { v: 'FAIL', t: '실패' }] },
         { label: '등록일', type: 'daterange', from: 'searchFromDate', to: 'searchToDate' },
@@ -5315,7 +5317,7 @@
       noticeList: [
         '총본사·본사(REGIONAL)·총판(MASTER_DIST) 또는 ADMIN만 사용합니다. 조회 범위는 로그인 조직의 하위 가맹 거래입니다.',
         '집계 기준일은 거래 적재일(created_at)이며, 일별결제와 동일합니다. 성공·취소·실패 등 상태 열의 금액은 결제액이 아니라 「건수 × 기본 수수료 정책의 해당 상태 건당 수수료」(예: 성공 7건·건당 20 → 140)입니다.',
-        '일자 행을 클릭하면 아래 「선택 일자 상세」에 통합 결제내역(최대 50건)이 표시됩니다. 번호·결제시간·승인번호·업체·정산주기·정산예정(업체명 오른쪽)·결제액·수수료(총수수료+부가세)·정산액·상태(한글)를 확인할 수 있으며, 수수료·정산액은 정산관리 수수료내역과 동일한 건별 산식(FeeListTxnBreakdown)입니다. 거래일 열은 두지 않습니다. 가맹 열 「수수료(변동·% / 건당)」은 정책 결제율(%)·건당 표시입니다.',
+        '일자 행을 클릭하면 아래 「선택 일자 상세」에 해당 일 통합 결제내역 전체가 표시됩니다. 번호·결제시간·승인번호·업체·정산주기·정산예정(업체명 오른쪽)·결제액·수수료(총수수료+부가세)·정산액·상태(한글)를 확인할 수 있으며, 수수료·정산액은 정산관리 수수료내역과 동일한 건별 산식(FeeListTxnBreakdown)입니다. 거래일 열은 두지 않습니다. 가맹 열 「수수료(변동·% / 건당)」은 정책 결제율(%)·건당 표시입니다.',
         '내부 상태 「요청」(08, 인증·결제 진행 중)은 상단 집계의 「기타」 건수에 포함되며 취소·실패·성공이 아닙니다. 칠페이 최종 승인 노티(성공) 전 단계이며, 가맹 결제통보 URL이 설정된 경우에만 PG→가맹 통보가 나갈 수 있습니다(칠페이→PG 수신 노티와 별개).',
         '[엑셀다운로드]는 결제내역과 동일한 상단 메뉴 형태이며, 현재 조회된 일자별 통합 리포트 표를 서식 xlsx로 받습니다.',
         '요약 바: 검색 기간 전체 거래 건수(건수)와 통화별 총결제액(승인−취소)·총수수료(부가세 제외)·총보증금(담보 추정)·예상지급액을 결제내역 상단과 같은 형식으로 표시합니다.'
@@ -5701,6 +5703,36 @@
       '</div></div>'
     );
   }
+  /** 선택 일자 상세 — 내림·오름차순(상세 전용) + 엑셀리스트다운 */
+  function buildDailyDetailSortDirHtml(tabId) {
+    var tid = tabId || '';
+    var sid = tid ? ('searchDetailOrderDir_' + tid.replace(/[^a-zA-Z0-9_-]/g, '_')) : 'searchDetailOrderDir';
+    return (
+      '<div class="screen-list-sort-dir-wrap d-inline-flex align-items-center gap-2 flex-shrink-0">' +
+      '<input type="hidden" name="searchDetailOrderDir" class="screen-list-sort-dir-hidden daily-detail-sort-dir-hidden" id="' + sid + '_val" value="DESC">' +
+      '<div class="d-inline-flex align-items-center gap-2 screen-list-sort-dir-menu daily-detail-sort-dir-menu" role="toolbar" data-pg-ui-aria-label="상세 정렬 순서" aria-label="' + escUi(L('상세 정렬 순서')) + '">' +
+      '<button type="button" class="btn btn-sm btn-secondary screen-list-sort-dir-btn daily-detail-sort-dir-btn" data-pg-i18n-sort="DESC" data-search-order-dir="DESC"><span data-pg-ui-t="내림차순">' + escUi(L('내림차순')) + '</span></button>' +
+      '<button type="button" class="btn btn-sm btn-outline-secondary screen-list-sort-dir-btn daily-detail-sort-dir-btn" data-pg-i18n-sort="ASC" data-search-order-dir="ASC"><span data-pg-ui-t="오름차순">' + escUi(L('오름차순')) + '</span></button>' +
+      '</div></div>'
+    );
+  }
+  function buildDailyDetailToolbarHtml(tabId, opts) {
+    opts = opts || {};
+    var tid = tabId || '';
+    var escAttr = function (s) {
+      return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/"/g, '&quot;');
+    };
+    var titleId = opts.titleId || ('dailyDetailTitle_' + tid);
+    var titleKey = opts.titleKey || '선택 일자 상세';
+    return (
+      '<div class="daily-detail-toolbar d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">' +
+      '<div class="fw-semibold small text-secondary daily-detail-section-title" id="' + escAttr(titleId) + '" data-pg-ui-t="' + escAttr(titleKey) + '">' + escUi(L(titleKey)) + '</div>' +
+      '<div class="screen-action-buttons daily-detail-action-buttons d-flex flex-wrap align-items-center gap-2">' +
+      buildDailyDetailSortDirHtml(tid) +
+      '<button type="button" class="btn btn-info btn-sm" id="listExcelDownBtn"><span data-pg-ui-t="엑셀리스트다운">' + escUi(L('엑셀리스트다운')) + '</span></button>' +
+      '</div></div>'
+    );
+  }
   function toolbarHasSearchBtnForSort(btns) {
     return (btns || []).some(function (b) { return b && String(b.id || '') === 'searchBtn'; });
   }
@@ -5755,8 +5787,7 @@
       for (var i = 0; i < labels.length; i++) {
         var lbl = labels[i];
         var rgi = ranges[i] || '';
-        var cls = (rgi === 'day' || rgi === 'month') ? ' quick-date--pink' : '';
-        btns += '<button type="button" class="btn btn-outline-primary btn-sm mr-1 quick-date' + cls + '" data-range="' + rgi + '" data-pg-i18n-qd="' + escDA(rgi) + '">' + escUi(L(String(lbl))) + '</button>';
+        btns += '<button type="button" class="btn btn-outline-primary btn-sm mr-1 quick-date" data-range="' + rgi + '" data-pg-i18n-qd="' + escDA(rgi) + '" aria-pressed="false">' + escUi(L(String(lbl))) + '</button>';
       }
       inner = '<div class="search-cell-input">' + btns + '</div>';
       return wrapSearchCell(inner, false);
@@ -6814,7 +6845,9 @@
         if (cfg.payListStatusBar) html += renderPayListStatusBarSlot(tabId);
         if (cfg.columns && cfg.columns.length > 0) html += renderTableColumnGuide(cfg);
         html += renderTable(cfg, tabId);
-        html += renderPagination(tabId, cfg);
+        if (!cfg.isDailySummaryScreen) {
+          html += renderPagination(tabId, cfg);
+        }
         if (cfg.hasCommissionHistoryTable) {
           html += '<div class="card mt-4 commission-history-card"><div class="card-header py-2 fw-semibold">' + escUi(L('수수료 변경 히스토리')) + '</div><div class="card-body pt-2">' +
             '<p class="text-muted small mb-2" id="commissionHistSubtitle_' + tabId + '">' + escUi(L('목록에서 가맹점 행을 클릭하면 해당 업체의 변경 이력이 표시됩니다.')) + '</p>' +
@@ -7000,6 +7033,7 @@
     buildDistributionListTheadHtmlFromCols: buildDistributionListTheadHtmlFromCols,
     getCompMngSearchCompDivOptions: getCompMngSearchCompDivOptions,
     buildStandardDataGridTheadHtml: buildStandardDataGridTheadHtml,
+    buildDailyDetailToolbarHtml: buildDailyDetailToolbarHtml,
     syncPayListIntegratedScreenLabelsFromCatalog: syncPayListIntegratedScreenLabelsFromCatalog,
     getPayListIntegratedSyncUrls: function () { return PAY_LIST_INTEGRATED_SYNC_URLS.slice(); }
   };
