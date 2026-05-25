@@ -25,4 +25,9 @@ JSP (Java 11+)
 키트 JSON 의 merchantIntegrationSamples, merchantInlineCheckoutChillPay 참고.
 배포·검수 문서: docs/ChillPay_URL결제_인라인API_배포가이드.md
 
+WooCommerce
+-----------
+WordPress/WooCommerce 가맹: 저장소 woocommerce/icopay-woocommerce/ 플러그인 ZIP 배포.
+(compId·broker secret·API URL 설정 → HQ 웹훅 URL 등록)
+
 인코딩: UTF-8. 브라우저에서 한글이 깨지면 새로고침(Ctrl+F5) 또는 파일을 저장 후 메모장에서 UTF-8로 열어 주세요.
