@@ -54,6 +54,13 @@ public class PgAgency {
     @Column(name = "integ_api_yn", nullable = false, length = 1)
     private String integApiYn = "N";
 
+    /** URL 재결제(저장 카드·CreditToken) 연동 */
+    @Column(name = "integ_url_pay_repay_yn", nullable = false, length = 1)
+    private String integUrlPayRepayYn = "N";
+
+    @Column(name = "endpoint_url_pay_repay", length = 512)
+    private String endpointUrlPayRepay;
+
     @Column(name = "use_yn", length = 1)
     private String useYn = "Y";
 
@@ -123,6 +130,9 @@ public class PgAgency {
         if (integApiYn == null || integApiYn.isBlank()) {
             integApiYn = "N";
         }
+        if (integUrlPayRepayYn == null || integUrlPayRepayYn.isBlank()) {
+            integUrlPayRepayYn = "N";
+        }
     }
 
     public Long getId() { return id; }
@@ -147,6 +157,10 @@ public class PgAgency {
     public void setIntegWebChatbotYn(String integWebChatbotYn) { this.integWebChatbotYn = integWebChatbotYn; }
     public String getIntegApiYn() { return integApiYn; }
     public void setIntegApiYn(String integApiYn) { this.integApiYn = integApiYn; }
+    public String getIntegUrlPayRepayYn() { return integUrlPayRepayYn; }
+    public void setIntegUrlPayRepayYn(String integUrlPayRepayYn) { this.integUrlPayRepayYn = integUrlPayRepayYn; }
+    public String getEndpointUrlPayRepay() { return endpointUrlPayRepay; }
+    public void setEndpointUrlPayRepay(String endpointUrlPayRepay) { this.endpointUrlPayRepay = endpointUrlPayRepay; }
     public String getUseYn() { return useYn; }
     public void setUseYn(String useYn) { this.useYn = useYn; }
     public String getOperationalYn() { return operationalYn; }

@@ -488,6 +488,13 @@ public class PayListItemDto {
      *   <li>KRW를 제외한 복수 통화만 있으면 정렬 후 {@code JPY/USD} 형태(행마다 구분 불가 시 노티 Currency 매핑 권장)</li>
      * </ul>
      */
+    /** 건별 수수료·담보 계산 및 그리드 {@code currency} 컬럼과 동일한 결제통화 키. */
+    public static String payCurKeyForFeeCompute(PgTrnsctn t, PayListRowContext ctx) {
+        MerchantProfile mp = ctx != null ? ctx.getProfile() : null;
+        String key = resolveCurrencyCodeForDisplay(t, mp);
+        return key != null && !key.isBlank() ? key.trim() : "KRW";
+    }
+
     private static String resolveCurrencyCodeForDisplay(PgTrnsctn t, MerchantProfile mp) {
         String db = t.getCurType() != null ? t.getCurType().trim().toUpperCase(Locale.ROOT) : "";
         String assembled;

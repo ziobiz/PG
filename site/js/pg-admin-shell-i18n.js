@@ -187,6 +187,7 @@
     '/ops/mailLog': T('Mail log', 'メールログ', '邮件日志', 'บันทึกเมล'),
     '/ops/taxReport': T('TH tax report', 'タイ税務レポート', '泰国税务报表', 'รายงานภาษี TH'),
     '/ops/integratedReport': T('Integrated report', '統合レポート', '综合报表', 'รายงานรวม'),
+    '/ops/verifyReport': T('Verify report', '検証レポート', '验证报表', 'รายงานตรวจสอบ'),
     '/ops/integrationPlan': T('Integration plan', '連携進行案', '联调计划', 'แผนเชื่อมต่อ'),
     '/ops/jpayWorkPlan': T('JPAY rollout plan', 'JPAY段階計画', 'JPAY 阶段计划', 'แผน JPAY'),
     '/ops/merchantApiPolicy': T('Merchant API rollout', '加盟店API配布', '商户 API 发布', 'นโยบาย Merchant API'),

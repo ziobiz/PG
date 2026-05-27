@@ -14,10 +14,12 @@ import com.pg.repository.OrgUnitRepository;
 import com.pg.service.ChillPayDirectCreditRecordService;
 import com.pg.service.ChillPayService;
 import com.pg.service.JpayPaymentService;
+import com.pg.service.MerchantCreditTokenService;
 import com.pg.service.OrgServiceUseService;
 import com.pg.service.PaymentCurrencyScaleService;
 import com.pg.service.UrlPayCardCopyService;
 import com.pg.service.UrlPayDisplayFxService;
+import com.pg.urlpay.UrlPayCheckoutModeUtil;
 import com.pg.util.ChillPayDirectCreditUtil;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -53,6 +55,7 @@ public class ApiPayController {
     private final UrlPayCardCopyService urlPayCardCopyService;
     private final UrlPayDisplayFxService urlPayDisplayFxService;
     private final OrgBrandingRepository orgBrandingRepository;
+    private final MerchantCreditTokenService merchantCreditTokenService;
 
     public ApiPayController(ChillPayService chillPayService,
                             JpayPaymentService jpayPaymentService,
@@ -64,7 +67,8 @@ public class ApiPayController {
                             PaymentCurrencyScaleService paymentCurrencyScaleService,
                             UrlPayCardCopyService urlPayCardCopyService,
                             UrlPayDisplayFxService urlPayDisplayFxService,
-                            OrgBrandingRepository orgBrandingRepository) {
+                            OrgBrandingRepository orgBrandingRepository,
+                            MerchantCreditTokenService merchantCreditTokenService) {
         this.chillPayService = chillPayService;
         this.jpayPaymentService = jpayPaymentService;
         this.chillPayDirectCreditRecordService = chillPayDirectCreditRecordService;
@@ -76,6 +80,24 @@ public class ApiPayController {
         this.urlPayCardCopyService = urlPayCardCopyService;
         this.urlPayDisplayFxService = urlPayDisplayFxService;
         this.orgBrandingRepository = orgBrandingRepository;
+        this.merchantCreditTokenService = merchantCreditTokenService;
+    }
+
+    private static boolean isUrlPayRepayVariant(String raw) {
+        return UrlPayCheckoutModeUtil.isUrlPayRepayVariantParam(raw);
+    }
+
+    private String merchantUrlPayCheckoutMode(Long orgUnitId) {
+        if (orgUnitId == null) {
+            return UrlPayCheckoutModeUtil.STANDARD;
+        }
+        return merchantProfileRepository.findByOrgUnitId(orgUnitId)
+                .map(mp -> UrlPayCheckoutModeUtil.normalize(mp.getUrlPayCheckoutMode()))
+                .orElse(UrlPayCheckoutModeUtil.STANDARD);
+    }
+
+    private boolean resolveEffectiveUrlPayRepay(String urlPayVariantParam, Long orgUnitId) {
+        return UrlPayCheckoutModeUtil.resolveEffectiveRepay(urlPayVariantParam, merchantUrlPayCheckoutMode(orgUnitId));
     }
 
     private Long resolveMerchantOrgUnitId(Long merchantId, String compId) {
@@ -232,8 +254,10 @@ public class ApiPayController {
     @GetMapping("/chillpay/config")
     public ResponseEntity<ApiResponse<Map<String, Object>>> chillpayConfig(
             @RequestParam(required = false) Long merchantId,
-            @RequestParam(required = false) String compId) {
+            @RequestParam(required = false) String compId,
+            @RequestParam(required = false, name = "urlPayVariant") String urlPayVariant) {
         Long orgUnitId = resolveMerchantOrgUnitId(merchantId, compId);
+        boolean repay = resolveEffectiveUrlPayRepay(urlPayVariant, orgUnitId);
         if (orgUnitId != null && !orgServiceUseService.isOrgServiceActive(orgUnitId)) {
             return ResponseEntity.ok(ApiResponse.fail(
                     "서비스가 중지된 업체입니다. (미사용 또는 상위 조직 미사용)", "ORG_DISABLED"));
@@ -247,13 +271,25 @@ public class ApiPayController {
                             "이 가맹점은 웹결제(URL 결제)가 미사용으로 설정되어 있습니다.", "WEB_PAYMENT_DISABLED"));
                 }
             }
-            if (chillPayService.findOperationalWebBindingForUrlPay(orgUnitId).isEmpty()) {
+            if (repay) {
+                if (!chillPayService.isUrlPayRepayEnabledAtHq()) {
+                    return ResponseEntity.ok(ApiResponse.fail(
+                            "본사 설정에서 URL 재결제 기능이 꺼져 있습니다.", "URL_PAY_REPAY_DISABLED"));
+                }
+                if (chillPayService.findOperationalWebBindingForUrlPayRepay(orgUnitId).isEmpty()) {
+                    return ResponseEntity.ok(ApiResponse.fail(
+                            "URL 재결제를 처리할 결제대행사(운영·연동용도 URL재결제)가 없습니다.", "URL_PAY_REPAY_PG_MISSING"));
+                }
+            } else if (chillPayService.findOperationalWebBindingForUrlPay(orgUnitId).isEmpty()) {
                 return ResponseEntity.ok(ApiResponse.fail(
                         "URL 결제를 처리할 결제대행사(운영·연동용도 URL결제)가 없습니다.", "URL_PAYMENT_PG_MISSING"));
             }
         }
         try {
-            return ResponseEntity.ok(ApiResponse.ok(chillPayService.getConfigForFrontend(orgUnitId)));
+            Map<String, Object> cfg = repay
+                    ? chillPayService.getConfigForFrontendUrlPayRepay(orgUnitId)
+                    : chillPayService.getConfigForFrontend(orgUnitId);
+            return ResponseEntity.ok(ApiResponse.ok(cfg));
         } catch (IllegalStateException e) {
             return ResponseEntity.ok(ApiResponse.fail(e.getMessage(), "CHILLPAY_ROUTE_NOT_CONFIGURED"));
         }
@@ -267,8 +303,10 @@ public class ApiPayController {
     public ResponseEntity<ApiResponse<Map<String, Object>>> chillpayCheckoutContext(
             @RequestParam(required = false) Long merchantId,
             @RequestParam(required = false) String compId,
+            @RequestParam(required = false, name = "urlPayVariant") String urlPayVariant,
             HttpServletRequest request) {
         Long orgUnitId = resolveMerchantOrgUnitId(merchantId, compId);
+        boolean repay = resolveEffectiveUrlPayRepay(urlPayVariant, orgUnitId);
         if (orgUnitId == null) {
             return ResponseEntity.ok(ApiResponse.fail("가맹점을 찾을 수 없습니다.", "NOT_FOUND"));
         }
@@ -284,7 +322,16 @@ public class ApiPayController {
                         "이 가맹점은 웹결제(URL 결제)가 미사용으로 설정되어 있습니다.", "WEB_PAYMENT_DISABLED"));
             }
         }
-        if (chillPayService.findOperationalWebBindingForUrlPay(orgUnitId).isEmpty()) {
+        if (repay) {
+            if (!chillPayService.isUrlPayRepayEnabledAtHq()) {
+                return ResponseEntity.ok(ApiResponse.fail(
+                        "본사 설정에서 URL 재결제 기능이 꺼져 있습니다.", "URL_PAY_REPAY_DISABLED"));
+            }
+            if (chillPayService.findOperationalWebBindingForUrlPayRepay(orgUnitId).isEmpty()) {
+                return ResponseEntity.ok(ApiResponse.fail(
+                        "URL 재결제를 처리할 결제대행사(운영·연동용도 URL재결제)가 없습니다.", "URL_PAY_REPAY_PG_MISSING"));
+            }
+        } else if (chillPayService.findOperationalWebBindingForUrlPay(orgUnitId).isEmpty()) {
             return ResponseEntity.ok(ApiResponse.fail(
                     "URL 결제를 처리할 결제대행사(운영·연동용도 URL결제)가 없습니다.", "URL_PAYMENT_PG_MISSING"));
         }
@@ -295,7 +342,11 @@ public class ApiPayController {
         try {
             Map<String, Object> data = new HashMap<>();
             data.put("clientIp", getClientIp(request));
-            data.putAll(chillPayService.getUrlPayPresentationForCheckout(orgUnitId));
+            if (repay) {
+                data.putAll(chillPayService.getUrlPayRepayPresentationForCheckout(orgUnitId));
+            } else {
+                data.putAll(chillPayService.getUrlPayPresentationForCheckout(orgUnitId));
+            }
             // 본사 URL결제 프레젠테이션 이후에 덮어씀 — 향후 맵에 동일 키가 생겨도 가맹점 표시·기본상품이 유지되도록
             data.put("compId", ou.get().getCode());
             data.put("merchantName", ou.get().getName());
@@ -313,7 +364,9 @@ public class ApiPayController {
                     data.put("defaultCheckoutAmount", amt);
                 }
             }
-            String opPg = chillPayService.resolveUrlPayOperationalPgCd(orgUnitId);
+            String opPg = repay
+                    ? chillPayService.resolveUrlPayRepayOperationalPgCd(orgUnitId)
+                    : chillPayService.resolveUrlPayOperationalPgCd(orgUnitId);
             String pricingMode = String.valueOf(data.getOrDefault("urlPayPricingMode", "CHECKOUT_CURRENCY"));
             boolean fxHq = urlPayDisplayFxService.isHqFeatureEnabled();
             data.put("urlPayDisplayFxHqEnabled", fxHq);
@@ -343,6 +396,8 @@ public class ApiPayController {
             urlPayCardCopyService.resolveActiveCopyByPg(opPg).ifPresent(copy -> data.put("urlPayCardCopy", copy));
             resolveCheckoutHeaderLogoUrl(orgUnitId).ifPresent(u -> data.put("checkoutHeaderLogoUrl", u));
             data.put("urlPayResultPageUrl", chillPayService.resolveUrlPayResultAbsolute(request, ou.get().getCode()));
+            data.put("urlPayCheckoutMode", merchantUrlPayCheckoutMode(orgUnitId));
+            data.put("effectiveUrlPayVariant", repay ? UrlPayCheckoutModeUtil.REPAY : UrlPayCheckoutModeUtil.STANDARD);
             return ResponseEntity.ok(ApiResponse.ok(data));
         } catch (IllegalStateException e) {
             return ResponseEntity.ok(ApiResponse.fail(e.getMessage(), "CHILLPAY_ROUTE_NOT_CONFIGURED"));
@@ -460,6 +515,35 @@ public class ApiPayController {
     }
 
     /**
+     * URL 재결제 — 저장된 CreditToken 목록(Card Select UI용 MerchantSecurityCheck 포함).
+     */
+    @GetMapping("/chillpay/saved-cards")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> chillpaySavedCards(
+            @RequestParam String compId,
+            @RequestParam String customerId) {
+        Long orgUnitId = resolveMerchantOrgUnitId(null, compId);
+        if (orgUnitId == null) {
+            return ResponseEntity.ok(ApiResponse.fail("가맹점을 찾을 수 없습니다.", "NOT_FOUND"));
+        }
+        if (!chillPayService.isUrlPayRepayEnabledAtHq()) {
+            return ResponseEntity.ok(ApiResponse.fail(
+                    "본사 설정에서 URL 재결제 기능이 꺼져 있습니다.", "URL_PAY_REPAY_DISABLED"));
+        }
+        if (chillPayService.findOperationalWebBindingForUrlPayRepay(orgUnitId).isEmpty()) {
+            return ResponseEntity.ok(ApiResponse.fail(
+                    "URL 재결제를 처리할 결제대행사(운영·연동용도 URL재결제)가 없습니다.", "URL_PAY_REPAY_PG_MISSING"));
+        }
+        String pgCd = chillPayService.resolveUrlPayRepayOperationalPgCd(orgUnitId);
+        String cust = MerchantCreditTokenService.normalizeCustomerId(null, null, customerId);
+        Map<String, Object> out = new LinkedHashMap<>();
+        out.put("compId", compId.trim());
+        out.put("customerId", cust);
+        out.put("pgCd", pgCd);
+        out.put("cards", merchantCreditTokenService.listForCardSelect(orgUnitId, pgCd, cust));
+        return ResponseEntity.ok(ApiResponse.ok(out));
+    }
+
+    /**
      * ChillPay DirectCredit 결제 요청.
      * CCD 스크립트에서 발급받은 DirectCreditToken과 주문 정보를 받아 ChillPay API 호출.
      */
@@ -474,6 +558,7 @@ public class ApiPayController {
             try { merchantIdVal = Long.parseLong(mid.toString()); } catch (NumberFormatException ignored) {}
         }
         Long merchantOrgUnitId = resolveMerchantOrgUnitId(merchantIdVal, (String) body.get("compId"));
+        boolean repayVariant = resolveEffectiveUrlPayRepay(str(body, "urlPayVariant"), merchantOrgUnitId);
 
         /* ziobiz/NOTI /admin/test-pay/submit 과 동일 토큰 키 변형 */
         String directCreditToken = firstNonBlankStr(body,
@@ -512,7 +597,21 @@ public class ApiPayController {
                     "서비스가 중지된 업체입니다. (미사용 또는 상위 조직 미사용)", "ORG_DISABLED"));
         }
 
-        String opPg = merchantOrgUnitId != null ? chillPayService.resolveUrlPayOperationalPgCd(merchantOrgUnitId) : "";
+        String opPg = merchantOrgUnitId != null
+                ? (repayVariant
+                    ? chillPayService.resolveUrlPayRepayOperationalPgCd(merchantOrgUnitId)
+                    : chillPayService.resolveUrlPayOperationalPgCd(merchantOrgUnitId))
+                : "";
+        if (repayVariant && merchantOrgUnitId != null) {
+            if (!chillPayService.isUrlPayRepayEnabledAtHq()) {
+                return ResponseEntity.ok(ApiResponse.fail(
+                        "본사 설정에서 URL 재결제 기능이 꺼져 있습니다.", "URL_PAY_REPAY_DISABLED"));
+            }
+            if (chillPayService.findOperationalWebBindingForUrlPayRepay(merchantOrgUnitId).isEmpty()) {
+                return ResponseEntity.ok(ApiResponse.fail(
+                        "URL 재결제를 처리할 결제대행사(운영·연동용도 URL재결제)가 없습니다.", "URL_PAY_REPAY_PG_MISSING"));
+            }
+        }
         String pricingReq = str(body, "urlPayPricingMode");
         String checkoutCurrencyCode;
         BigDecimal pgAmount;
@@ -572,14 +671,36 @@ public class ApiPayController {
 
         String browserReturnUrl = enrichPayResultReturnUrlWithOrderNo(
                 chillPayService.resolveUrlPayResultAbsolute(request, str(body, "compId")), orderNo);
+        String saveCard = str(body, "saveCard");
+        if (saveCard == null) {
+            saveCard = str(body, "rememberCard");
+        }
+        String creditToken = firstNonBlankStr(body, "creditToken", "CreditToken");
+        String tokenType = str(body, "tokenType");
+        if (tokenType == null && creditToken != null && !creditToken.isEmpty()) {
+            tokenType = "CT";
+        }
+        ChillPayService.UrlPayBindingScope bindScope = repayVariant
+                ? ChillPayService.UrlPayBindingScope.REPAY
+                : ChillPayService.UrlPayBindingScope.STANDARD;
         try {
             ChillPayService.ChillPayDirectPaymentResult payResult = chillPayService.requestPayment(
                     orderNo, customerId, pgAmount, directCreditToken,
                     phoneNumber, description, ipAddress, custEmail,
                     merchantOrgUnitId, langCode, checkoutCurrencyCode,
-                    browserReturnUrl
+                    browserReturnUrl, saveCard, creditToken, tokenType, bindScope
             );
             ChillPayDirectCreditResponse res = payResult.response();
+            if (repayVariant && res != null && res.getData() != null
+                    && "Paid".equalsIgnoreCase(String.valueOf(res.getData().getPaymentStatus()))) {
+                if (creditToken != null && !creditToken.isBlank()) {
+                    merchantCreditTokenService.markUsed(merchantOrgUnitId, opPg, customerId, creditToken);
+                }
+            }
+            if (repayVariant && saveCard != null && "Y".equalsIgnoreCase(saveCard)
+                    && creditToken != null && !creditToken.isBlank()) {
+                merchantCreditTokenService.upsertToken(merchantOrgUnitId, opPg, customerId, creditToken, null, null);
+            }
             String urlPayMode = str(body, "urlPayIntegrationMode");
             if (urlPayMode == null || urlPayMode.isBlank()) {
                 urlPayMode = "INLINE";

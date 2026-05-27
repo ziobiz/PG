@@ -120,6 +120,11 @@
             <div class="small text-muted mb-1" data-i18n="ccdLabelRemember">Save card consent</div>
             <div id="ccdinline-card-remember" class="pay-ccd-slot"></div>
           </div>
+          <div class="pay-ccd-field mb-2 d-none" id="payRepayCardSelectWrap">
+            <div class="small text-muted mb-1" data-i18n="ccdLabelSavedCards">Saved cards</div>
+            <div id="ccdinline-card-select" class="pay-ccd-slot"></div>
+            <p class="small text-muted mb-0 mt-1" id="payRepaySavedCardsHint" data-i18n="repaySavedCardsHint">Enter your email above, then choose a saved card or enter a new card below.</p>
+          </div>
         </div>
         </div>
 
@@ -353,6 +358,50 @@
         }
       })();
 
+      /** STANDARD: 일반 URL·챗봇·API / REPAY: 저장 카드 재결제 URL 전용 */
+      var URL_PAY_VARIANT = (function () {
+        try {
+          var p = new URLSearchParams(window.location.search);
+          var v = String(p.get('variant') || p.get('urlPayVariant') || '').trim().toUpperCase();
+          if (v === 'REPAY' || v === 'URL_PAY_REPAY') return 'REPAY';
+          var path = (window.location.pathname || '').toLowerCase();
+          if (path.indexOf('pay-repay') >= 0) return 'REPAY';
+        } catch (eV) { /* ignore */ }
+        return 'STANDARD';
+      })();
+      var PAY_REPAY_MODE = URL_PAY_VARIANT === 'REPAY';
+
+      function applyRepayModeUiFromState() {
+        try {
+          var cardSelectWrap = document.getElementById('payRepayCardSelectWrap');
+          var rememberWrap = document.getElementById('ccdinline-card-remember');
+          var rememberField = rememberWrap ? rememberWrap.closest('.pay-ccd-field') : null;
+          if (rememberField) rememberField.classList.toggle('d-none', !PAY_REPAY_MODE);
+          if (cardSelectWrap) cardSelectWrap.classList.toggle('d-none', !PAY_REPAY_MODE);
+          if (PAY_REPAY_MODE) {
+            var brandSub = document.querySelector('.pay-brand-sub');
+            if (brandSub && !brandSub.getAttribute('data-repay-sub')) {
+              brandSub.setAttribute('data-repay-sub', '1');
+              brandSub.textContent = t('brandSubRepay');
+            }
+          }
+        } catch (eRepUi) { /* ignore */ }
+      }
+
+      function syncUrlPayVariantFromCheckoutContext(ctx) {
+        if (!ctx) return false;
+        var eff = String(ctx.effectiveUrlPayVariant || ctx.urlPayVariant || '').trim().toUpperCase();
+        if (eff !== 'REPAY') return false;
+        if (PAY_REPAY_MODE) return false;
+        PAY_REPAY_MODE = true;
+        URL_PAY_VARIANT = 'REPAY';
+        applyRepayModeUiFromState();
+        return true;
+      }
+      window.__pgPaySavedCardList = [];
+      window.__pgPayPendingCreditToken = '';
+      window.__pgPayPendingRememberCard = 'N';
+
       var LANG = resolveInitialUrlPayLang();
 
       /** 챗봇·링크 진입 시 ?item=&amount=&currency= 미리 채움 */
@@ -414,6 +463,11 @@
           cardSection: '카드', cardNote: '카드 정보는 위 각 칸 안의 ChillPay 보안 입력(iframe)에서만 입력합니다. 카드 명의(Name on card)도 위 칸에만 입력하면 되며, iframe 밖에서는 값을 읽을 수 없어 하단 이름·성 입력은 표시하지 않습니다. ChillPay가 안전하게 처리하며, 당사 서버로 카드번호 평문이 전달되지 않습니다.',
           ccdBrandAdaptiveHint: '카드 입력은 연동된 PG사 보안 위젯(iframe 등)에서 제공합니다. 브랜드별 자릿수·CVV 규칙은 해당 PG가 처리하며, ChillPay는 AMEX 미지원입니다. 다른 PG 연동 시 같은 결제 껍데기 안에서 벤더별 위젯으로 갈아끼우는 형태가 일반적입니다.',
           ccdLabelName: '카드 명의', ccdLabelNumber: '카드 번호', ccdLabelExpiry: '유효기간', ccdLabelCvv: 'CVC/CVV', ccdLabelRemember: '카드 저장 동의',
+          ccdLabelSavedCards: '저장된 카드', brandSubRepay: '저장 카드 · 재결제',
+          repaySavedCardsHint: '이메일을 입력하면 저장된 카드를 선택하거나, 아래에서 새 카드를 입력할 수 있습니다.',
+          repaySavedCardsLoaded: '저장된 카드가 표시되었습니다. 선택하거나 새 카드를 입력하세요.',
+          repaySavedCardsNone: '저장된 카드가 없습니다. 새 카드를 입력하고 저장 동의를 선택할 수 있습니다.',
+          repaySavedCardsLoadFail: '저장된 카드를 불러오지 못했습니다. 새 카드로 결제할 수 있습니다.',
           totalAmount: '결제 금액', agreeTerms: '이용약관에 동의합니다.', confirmOrder: '위 주문 내용을 확인했습니다.',
           payButton: '결제', configErr: '설정을 불러올 수 없습니다.', needComp: '유효한 가맹점 코드(m)가 필요합니다.',
           needToken: '각 카드 보안 칸에 입력한 뒤 「결제」를 누르세요. 칸이 비어 있으면 새로고침 후 다시 시도하거나 가맹점에 문의하세요.', needAmount: '금액을 입력하세요.',
@@ -456,6 +510,11 @@
           cardSection: 'Card', cardNote: 'Enter your card only in the secure fields inside each box above. For this inline checkout, the cardholder name is collected only in «Name on card» above (we do not ask for it again below). ChillPay handles card data; our server does not receive your full card number as plain text.',
           ccdBrandAdaptiveHint: 'Card inputs come from the active PG’s secure widget; brand-specific rules (e.g. AMEX at other PGs) are handled there—not in this page’s HTML. ChillPay does not support AMEX; multi-PG checkout swaps widgets under the same shell.',
           ccdLabelName: 'Name on card', ccdLabelNumber: 'Card number', ccdLabelExpiry: 'Expiry', ccdLabelCvv: 'CVV/CVC', ccdLabelRemember: 'Save-card consent',
+          ccdLabelSavedCards: 'Saved cards', brandSubRepay: 'Saved card · re-pay',
+          repaySavedCardsHint: 'Enter your email, then choose a saved card or enter a new card below.',
+          repaySavedCardsLoaded: 'Saved cards are shown. Select one or enter a new card.',
+          repaySavedCardsNone: 'No saved cards yet. Enter a new card and opt in to save it.',
+          repaySavedCardsLoadFail: 'Could not load saved cards. You can pay with a new card.',
           totalAmount: 'Total Amount', agreeTerms: 'I agree to the Terms and Conditions.', confirmOrder: 'I confirm the order details above.',
           payButton: 'Payment', configErr: 'Could not load payment configuration.', needComp: 'A valid merchant code (m) is required.',
           needToken: 'Fill each secure card field, then press Pay. If the fields stay blank, refresh or contact the merchant.', needAmount: 'Enter a valid amount.',
@@ -498,6 +557,11 @@
           cardSection: '银行卡', cardNote: '请在上方每个框内的安全输入区输入卡信息；持卡人姓名仅在「Name on card」中填写，下方不再重复询问（iframe 外无法读取该值）。由 ChillPay 处理，卡号不以明文提交到我方服务器。',
           ccdBrandAdaptiveHint: '卡号等信息由当前对接的 PG 安全控件提供；品牌规则由该 PG 处理。ChillPay 不支持 AMEX。多 PG 时可在同一结账框架下切换不同厂商控件。',
           ccdLabelName: '持卡人姓名', ccdLabelNumber: '卡号', ccdLabelExpiry: '有效期', ccdLabelCvv: 'CVV/CVC', ccdLabelRemember: '保存卡片同意',
+          ccdLabelSavedCards: '已保存的卡', brandSubRepay: '保存卡 · 再次支付',
+          repaySavedCardsHint: '请输入邮箱后选择已保存的卡，或在下方输入新卡。',
+          repaySavedCardsLoaded: '已显示保存的卡。请选择或输入新卡。',
+          repaySavedCardsNone: '尚无保存的卡。可输入新卡并选择保存。',
+          repaySavedCardsLoadFail: '无法加载保存的卡。可使用新卡支付。',
           totalAmount: '总金额', agreeTerms: '我同意条款和条件。', confirmOrder: '我确认以上订单信息。',
           payButton: '支付', configErr: '无法加载支付配置。', needComp: '需要有效的商户代码 (m)。',
           needToken: '请填好每个安全卡槽后点支付。若始终空白请刷新或联系商户。', needAmount: '请输入有效金额。',
@@ -540,6 +604,11 @@
           cardSection: 'カード', cardNote: 'カード情報は上の各枠内のセキュア入力欄のみに入力してください。氏名は「Name on card」のみで、下の名・姓は表示しません（iframe 外からは読み取れません）。ChillPay が処理し、当サーバーにカード番号の平文は送られません。',
           ccdBrandAdaptiveHint: 'カード入力は接続中のPGのセキュアウィジェットが提供します。ブランド別桁数はPG側です。ChillPayはAMEX非対応。複数PGは同一チェックアウト枠でウィジェットを切替えるのが一般的です。',
           ccdLabelName: 'カード名義', ccdLabelNumber: 'カード番号', ccdLabelExpiry: '有効期限', ccdLabelCvv: 'CVV/CVC', ccdLabelRemember: 'カード保存の同意',
+          ccdLabelSavedCards: '保存済みカード', brandSubRepay: '保存カード · 再決済',
+          repaySavedCardsHint: 'メールを入力すると保存カードを選べます。下で新規カードも入力できます。',
+          repaySavedCardsLoaded: '保存カードを表示しました。選択するか新規カードを入力してください。',
+          repaySavedCardsNone: '保存カードがありません。新規カード入力と保存同意が可能です。',
+          repaySavedCardsLoadFail: '保存カードを読み込めませんでした。新規カードで決済できます。',
           totalAmount: '合計金額', agreeTerms: '利用規約に同意します。', confirmOrder: '上記の注文内容を確認しました。',
           payButton: '決済', configErr: '設定を読み込めませんでした。', needComp: '有効な加盟店コード (m) が必要です。',
           needToken: '各セキュア欄に入力してから「決済」を押してください。欄が空のままなら再読み込みするか加盟店へお問い合わせください。', needAmount: '有効な金額を入力してください。',
@@ -582,6 +651,11 @@
           cardSection: 'บัตร', cardNote: 'กรอกข้อมูลบัตรเฉพาะในช่องปลอดภัยด้านบน ชื่อบนบัตรกรอกเฉพาะใน «Name on card» ด้านบนเท่านั้น เราไม่ถามชื่อซ้ำด้านล่าง ChillPay จัดการ ไม่ส่งหมายเลขบัตรแบบเปล่าไปยังเซิร์ฟเวอร์ของเรา',
           ccdBrandAdaptiveHint: 'ช่องกรอกบัตรมาจากวิดเจ็ตของ PG ที่เชื่อมอยู่ กฎตามแบรนด์เป็นของ PG ChillPay ไม่รองรับ AMEX หลาย PG ใช้กรอบเช็คเอาต์เดียวแล้วสลับวิดเจ็ต',
           ccdLabelName: 'ชื่อบนบัตร', ccdLabelNumber: 'หมายเลขบัตร', ccdLabelExpiry: 'วันหมดอายุ', ccdLabelCvv: 'CVV/CVC', ccdLabelRemember: 'ยินยอมบันทึกบัตร',
+          ccdLabelSavedCards: 'บัตรที่บันทึกไว้', brandSubRepay: 'บัตรที่บันทึก · ชำระซ้ำ',
+          repaySavedCardsHint: 'กรอกอีเมล แล้วเลือกบัตรที่บันทึกไว้หรือกรอกบัตรใหม่ด้านล่าง',
+          repaySavedCardsLoaded: 'แสดงบัตรที่บันทึกแล้ว เลือกหรือกรอกบัตรใหม่',
+          repaySavedCardsNone: 'ยังไม่มีบัตรที่บันทึก กรอกบัตรใหม่และเลือกบันทึกได้',
+          repaySavedCardsLoadFail: 'โหลดบัตรที่บันทึกไม่ได้ ชำระด้วยบัตรใหม่ได้',
           totalAmount: 'จำนวนเงินรวม', agreeTerms: 'ข้าพเจ้ายอมรับข้อกำหนดและเงื่อนไข', confirmOrder: 'ข้าพเจ้ายืนยันรายละเอียดคำสั่งซื้อด้านบน',
           payButton: 'ชำระเงิน', configErr: 'ไม่สามารถโหลดการตั้งค่าได้', needComp: 'ต้องใช้รหัสร้านค้า (m) ที่ถูกต้อง',
           needToken: 'กรอกช่องบัตรปลอดภัยให้ครบแล้วกดชำระ ถ้าว่างตลอดให้รีเฟรชหรือติดต่อร้าน', needAmount: 'กรุณากรอกจำนวนเงินที่ถูกต้อง',
@@ -663,6 +737,74 @@
         ids.forEach(function (id) {
           setReqInput(id, !simple);
         });
+        var rememberWrap = document.getElementById('ccdinline-card-remember');
+        if (rememberWrap) {
+          var rememberField = rememberWrap.closest('.pay-ccd-field');
+          if (rememberField) rememberField.classList.toggle('d-none', !PAY_REPAY_MODE);
+        }
+        var cardSelectWrap = document.getElementById('payRepayCardSelectWrap');
+        if (cardSelectWrap) cardSelectWrap.classList.toggle('d-none', !PAY_REPAY_MODE);
+        if (PAY_REPAY_MODE) {
+          var brandSub = document.querySelector('.pay-brand-sub');
+          if (brandSub && !brandSub.getAttribute('data-repay-sub')) {
+            brandSub.setAttribute('data-repay-sub', '1');
+            brandSub.textContent = t('brandSubRepay');
+          }
+        }
+      }
+
+      function payVariantQuerySuffix() {
+        return PAY_REPAY_MODE ? '&urlPayVariant=REPAY' : '';
+      }
+
+      function resolveRepayCustomerId() {
+        var emailVal = '';
+        var emailEl = document.getElementById('custEmail');
+        if (emailEl) emailVal = String(emailEl.value || '').trim();
+        if (emailVal) return emailVal;
+        var ord = document.getElementById('orderNo');
+        if (ord && String(ord.value || '').trim()) return String(ord.value).trim();
+        return '';
+      }
+
+      function populateRepayCardSelectUi(cards) {
+        window.__pgPaySavedCardList = Array.isArray(cards) ? cards : [];
+        var ccd = window.ccdinline;
+        if (!ccd || typeof ccd.AddCreditTokenToCardSelectUI !== 'function') return;
+        window.__pgPaySavedCardList.forEach(function (row) {
+          if (!row || !row.creditToken || !row.requestExpireDate || !row.merchantSecurityCheck) return;
+          try {
+            ccd.AddCreditTokenToCardSelectUI(row.requestExpireDate, row.creditToken, row.merchantSecurityCheck);
+          } catch (eAdd) {
+            if (window.console && console.warn) console.warn(eAdd);
+          }
+        });
+      }
+
+      function refreshRepaySavedCards() {
+        if (!PAY_REPAY_MODE) return Promise.resolve();
+        var compId = getCompId();
+        var customerId = resolveRepayCustomerId();
+        var hint = document.getElementById('payRepaySavedCardsHint');
+        if (!compId || !customerId) {
+          if (hint) hint.textContent = t('repaySavedCardsHint');
+          window.__pgPaySavedCardList = [];
+          return Promise.resolve();
+        }
+        var q = 'compId=' + encodeURIComponent(compId) + '&customerId=' + encodeURIComponent(customerId);
+        return fetchJson(apiUrl('/api/pay/chillpay/saved-cards', q)).then(function (res) {
+          if (res.success !== true || !res.data) {
+            if (hint) hint.textContent = t('repaySavedCardsNone');
+            return;
+          }
+          var cards = res.data.cards || [];
+          if (hint) {
+            hint.textContent = cards.length ? t('repaySavedCardsLoaded') : t('repaySavedCardsNone');
+          }
+          populateRepayCardSelectUi(cards);
+        }).catch(function () {
+          if (hint) hint.textContent = t('repaySavedCardsLoadFail');
+        });
       }
 
       function getCompId() {
@@ -673,6 +815,9 @@
           var path = (window.location.pathname || '').replace(/\/+$/, '');
           var seg = path.split('/').filter(Boolean);
           if (seg.length >= 2 && seg[0].toLowerCase() === 'pay' && String(seg[1]).indexOf('.') < 0) {
+            return String(seg[1]).trim();
+          }
+          if (seg.length >= 2 && seg[0].toLowerCase() === 'pay-repay' && String(seg[1]).indexOf('.') < 0) {
             return String(seg[1]).trim();
           }
         } catch (e) { /* ignore */ }
@@ -1298,12 +1443,24 @@
 
       /** ChillPay ccdpayment.js 콜백 (data-callback-event-receiver) */
       window.pgPayCcdEvent = function (eventId, subEventId, data) {
+        if (eventId === 'Initialized' && PAY_REPAY_MODE) {
+          refreshRepaySavedCards().then(function () {
+            populateRepayCardSelectUi(window.__pgPaySavedCardList || []);
+          });
+          return;
+        }
         if (eventId === 'CreateTokenSucceed' && data && data.PaymentCreditToken) {
           var h = document.getElementById('directCreditToken');
           if (h) h.value = data.PaymentCreditToken;
+          if (data.CreditToken) window.__pgPayPendingCreditToken = String(data.CreditToken);
+          if (data.RememberCard) window.__pgPayPendingRememberCard = String(data.RememberCard).toUpperCase() === 'Y' ? 'Y' : 'N';
           var cont = window.__pgPayContinue;
           window.__pgPayContinue = null;
           if (typeof cont === 'function') cont();
+          return;
+        }
+        if (eventId === 'UseCreditTokenSucceed' && data && data.CreditToken) {
+          window.__pgPayPendingCreditToken = String(data.CreditToken);
           return;
         }
         if (eventId === 'CreateTokenFailed' || eventId === 'CreateTokenError') {
@@ -1631,10 +1788,13 @@
         var mnEarly = document.getElementById('merchantNameDisplay');
         if (mnEarly) mnEarly.textContent = compId;
 
-        var q = 'compId=' + encodeURIComponent(compId);
+        var q = 'compId=' + encodeURIComponent(compId) + payVariantQuerySuffix();
         fetchJsonWithRetry(apiUrl('/api/pay/chillpay/checkout-context', q), 5, 600).then(function (ctxRes) {
           if (ctxRes.success !== true || !ctxRes.data) throw new Error(ctxRes.message || t('configErr'));
           checkoutCtx = ctxRes.data;
+          if (syncUrlPayVariantFromCheckoutContext(checkoutCtx)) {
+            q = 'compId=' + encodeURIComponent(compId) + payVariantQuerySuffix();
+          }
           urlPayFlow = String(checkoutCtx.urlPayFlow || 'INLINE').toUpperCase();
           urlPayFormMode = String(checkoutCtx.urlPayFormMode || 'FULL').toUpperCase();
           urlPayInlineWidgetKind = String(checkoutCtx.urlPayInlineWidgetKind || 'CHILLPAY_CCD').toUpperCase();
@@ -1659,6 +1819,14 @@
           }
           applyCheckoutPresentation();
           applyI18n();
+          if (PAY_REPAY_MODE) {
+            var emailEl = document.getElementById('custEmail');
+            if (emailEl && !emailEl._pgRepayBound) {
+              emailEl._pgRepayBound = true;
+              emailEl.addEventListener('change', function () { refreshRepaySavedCards(); });
+              emailEl.addEventListener('blur', function () { refreshRepaySavedCards(); });
+            }
+          }
           applyCheckoutHeaderBranding();
           applyCheckoutFormDefaults(compId, checkoutCtx);
           applyQueryPrefillsFromUrl();
@@ -1845,6 +2013,12 @@
           urlPayCcdInline: urlPayCcdCardholderOnly(),
           txnOrigin: PAY_ENTRY_CHATBOT ? 'CHATBOT' : (PAY_ENTRY_MERCHANT_API ? 'MERCHANT_API' : 'URL')
         };
+        if (PAY_REPAY_MODE) {
+          fd.urlPayVariant = 'REPAY';
+          if (window.__pgPayPendingCreditToken) fd.creditToken = window.__pgPayPendingCreditToken;
+          if (window.__pgPayPendingRememberCard === 'Y') fd.saveCard = 'Y';
+          if (fd.creditToken) fd.tokenType = 'CT';
+        }
         fd.customerId = (emailVal && emailVal.length) ? emailVal : fd.orderNo;
 
         if (urlPayDisplayFxActive && urlPayPricingMode === 'DISPLAY_FX_THB') {

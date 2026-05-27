@@ -78,6 +78,14 @@ public class HqApiConfig {
     @Column(name = "url_pay_redirect_enabled_yn", length = 1)
     private String urlPayRedirectEnabledYn = "Y";
 
+    /** URL 재결제(저장 카드) 공개 제공 여부 */
+    @Column(name = "url_pay_repay_enabled_yn", length = 1)
+    private String urlPayRepayEnabledYn = "N";
+
+    /** URL 재결제 공개 경로 템플릿. 예: /pay-repay/{compCode} */
+    @Column(name = "url_pay_repay_path_template", length = 255)
+    private String urlPayRepayPathTemplate = "/pay-repay/{compCode}";
+
     /**
      * URL 공개 결제 페이지(/pay/…) 입력 필드 구성.
      * FULL: 청구지·성명 분리 등 전체, SIMPLE: 상품·연락·금액 중심 간편 폼.
@@ -240,6 +248,10 @@ public class HqApiConfig {
     public void setUrlPayInlineEnabledYn(String urlPayInlineEnabledYn) { this.urlPayInlineEnabledYn = urlPayInlineEnabledYn; }
     public String getUrlPayRedirectEnabledYn() { return urlPayRedirectEnabledYn; }
     public void setUrlPayRedirectEnabledYn(String urlPayRedirectEnabledYn) { this.urlPayRedirectEnabledYn = urlPayRedirectEnabledYn; }
+    public String getUrlPayRepayEnabledYn() { return urlPayRepayEnabledYn; }
+    public void setUrlPayRepayEnabledYn(String urlPayRepayEnabledYn) { this.urlPayRepayEnabledYn = urlPayRepayEnabledYn; }
+    public String getUrlPayRepayPathTemplate() { return urlPayRepayPathTemplate; }
+    public void setUrlPayRepayPathTemplate(String urlPayRepayPathTemplate) { this.urlPayRepayPathTemplate = urlPayRepayPathTemplate; }
     public String getUrlPayFormMode() { return urlPayFormMode; }
     public void setUrlPayFormMode(String urlPayFormMode) { this.urlPayFormMode = urlPayFormMode; }
     public String getUrlPayTabTitleJson() { return urlPayTabTitleJson; }

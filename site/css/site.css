@@ -770,7 +770,7 @@ body { margin: 0; height: 100%; overflow: hidden; font-family: -apple-system, Bl
   margin-bottom: 20px;
   min-height: 40px;
 }
-/* 총합 영역: 파스텔 보라 톤 (중요 사항) */
+/* 총합 영역 (전역 기본 — 결제·정산 화면은 아래 오버라이드) */
 .summary-total-bar {
   display: flex;
   align-items: center;
@@ -785,6 +785,17 @@ body { margin: 0; height: 100%; overflow: hidden; font-family: -apple-system, Bl
   font-weight: 600;
 }
 .summary-total-bar .summary-total-item { white-space: nowrap; }
+/* 건수만 보라 톤 (예: 건수 : 65) — 배경·다른 항목 색은 화면별 기존 UI 유지 */
+.summary-total-bar .summary-total-item#summary_건수,
+.summary-total-bar .summary-total-item[data-pg-summary-key="건수"],
+.summary-total-bar .summary-count-item,
+.summary-total-bar .summary-count,
+.summary-count-item.daily-detail-count,
+.daily-detail-toolbar-start .daily-detail-count.summary-count-item,
+#contentsMain [data-summary="건수"] {
+  color: #4a148c;
+  font-weight: 700;
+}
 .comp-mng-sort-label { display: inline; font-weight: 500; margin: 0; }
 .comp-mng-sort-select { display: inline-block; width: auto; min-width: 90px; }
 /* 액션 버튼은 항상 오른쪽 (요약 있든 없든, 목록/폼/정산실행 동일) */
@@ -1000,12 +1011,19 @@ body { margin: 0; height: 100%; overflow: hidden; font-family: -apple-system, Bl
 #contentsMain .screen-calc-gm-list .summary-total-bar {
   background: #f8fbff;
   border: 1px solid #d7e8fb;
+  color: #1a3a52;
   padding: 8px 12px;
   font-size: var(--pay-mng-dense-font-size);
 }
 #contentsMain .screen-calc-gm-list [data-summary] {
   color: #2b5f8d;
   font-weight: 600;
+}
+#contentsMain .screen-calc-gm-list [data-summary="건수"],
+#contentsMain .screen-calc-gm-list #summary_건수,
+#contentsMain .screen-calc-gm-list [data-pg-summary-key="건수"] {
+  color: #4a148c;
+  font-weight: 700;
 }
 #contentsMain .screen-calc-gm-list .pay-mng-search-form .form-label,
 #contentsMain .screen-calc-gm-list .pay-mng-search-form .form-control,
@@ -1110,12 +1128,19 @@ body { margin: 0; height: 100%; overflow: hidden; font-family: -apple-system, Bl
 #contentsMain .screen-calc-fee-list .summary-total-bar {
   background: #f8fbff;
   border: 1px solid #d7e8fb;
+  color: #1a3a52;
   padding: 8px 12px;
   font-size: var(--pay-mng-dense-font-size);
 }
 #contentsMain .screen-calc-fee-list [data-summary] {
   color: #2b5f8d;
   font-weight: 600;
+}
+#contentsMain .screen-calc-fee-list [data-summary="건수"],
+#contentsMain .screen-calc-fee-list #summary_건수,
+#contentsMain .screen-calc-fee-list [data-pg-summary-key="건수"] {
+  color: #4a148c;
+  font-weight: 700;
 }
 #contentsMain .screen-calc-fee-list .pay-mng-search-form .form-label,
 #contentsMain .screen-calc-fee-list .pay-mng-search-form .form-control,
@@ -1206,14 +1231,116 @@ body { margin: 0; height: 100%; overflow: hidden; font-family: -apple-system, Bl
 #contentsMain .screen-calc-fee-list .table th[data-key="totalFee"],
 #contentsMain .screen-calc-fee-list .table th[data-key="feeVat"] { min-width: 96px; }
 
-/* 결제내역(통합·파생): 참고 UI — 연한 블루 2단 헤더, 요약 숫자 색 구분, 행 줄무늬 */
-.screen-pay-list .summary-total-bar {
+/* 결제내역(통합·파생): 테이블 헤더는 연한 블루, 상단 요약 바는 연한 블루 톤 */
+.summary-total-bar--pay-list-aggregate {
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+  line-height: 1.45;
+  font-size: var(--pay-mng-dense-font-size, 12px);
+}
+.summary-total-bar--pay-list-aggregate .pay-list-aggregate-inline-sep {
+  color: #94a3b8;
+  opacity: 0.75;
+  font-weight: 400;
+  margin: 0 2px;
+}
+.summary-total-bar--pay-list-aggregate .pay-list-financial-summary,
+.summary-total-bar--pay-list-aggregate .pay-list-status-bar {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 8px;
+  padding: 0;
+  margin: 0;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  line-height: inherit;
+  font-size: inherit;
+  text-align: left;
+}
+.summary-total-bar--pay-list-aggregate .pay-list-financial-summary__inner {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 0;
+  padding: 0;
+  margin: 0;
+}
+.summary-total-bar--pay-list-aggregate .pay-list-status-bar__pill {
+  padding: 3px 8px;
+  border-radius: 8px;
+}
+.daily-detail-toolbar-start .daily-detail-financial-summary {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+  min-width: 0;
+  font-size: var(--pay-mng-dense-font-size, 12px);
+  line-height: 1.45;
+  font-weight: 600;
+  color: #1a3a52;
+}
+.daily-detail-toolbar-start .daily-detail-financial-summary--empty {
+  display: none;
+}
+.daily-detail-toolbar-start .daily-detail-financial-sep {
+  color: #94a3b8;
+  font-weight: 400;
+}
+.daily-detail-toolbar-start .daily-detail-count-sep {
+  color: #94a3b8;
+  font-weight: 400;
+}
+.daily-detail-toolbar-start .daily-detail-count {
+  color: #4a148c;
+  font-weight: 700;
+  font-size: var(--pay-mng-dense-font-size, 12px);
+  white-space: nowrap;
+}
+#contentsMain tr.verify-report-day-row--mismatch {
+  background-color: rgba(255, 243, 224, 0.85);
+}
+#contentsMain tr.verify-report-day-row--mismatch td {
+  border-color: rgba(255, 183, 77, 0.45);
+}
+#contentsMain tr.verify-report-mismatch-row {
+  background-color: rgba(255, 235, 238, 0.75);
+}
+#contentsMain .verify-report-day-row--mismatch.daily-master-row--selected,
+#contentsMain tr.verify-report-day-row.daily-master-row--selected {
+  outline: 2px solid rgba(156, 39, 176, 0.45);
+  outline-offset: -2px;
+}
+.daily-detail-toolbar-start .pay-list-financial-summary__inner {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 0;
+}
+/* 결제관리·통합·일별·ChillPay: 요약 바 연한 블루 (건수 텍스트만 보라) */
+.screen-pay-list .summary-total-bar,
+#contentsMain .screen-daily-integrated .summary-total-bar,
+#contentsMain .screen-daily-pay .summary-total-bar,
+#contentsMain .screen-daily-fee .summary-total-bar,
+#contentsMain .screen-chill-pay-tr-list .summary-total-bar,
+#contentsMain .screen-chill-pay-settlement-list .summary-total-bar {
   background: #f8fbff;
   border: 1px solid #cde6f3;
   color: #1a3a52;
   font-weight: 600;
 }
-.screen-pay-list .summary-total-item#summary_건수 { color: #222; font-weight: 700; }
+.screen-pay-list .summary-total-item#summary_건수,
+#contentsMain .screen-daily-integrated .summary-total-item#summary_건수,
+#contentsMain .screen-daily-pay .summary-total-item#summary_건수,
+#contentsMain .screen-daily-fee .summary-total-item#summary_건수,
+#contentsMain .screen-chill-pay-tr-list .summary-total-item#summary_건수,
+#contentsMain .screen-chill-pay-settlement-list .summary-total-item#summary_건수 {
+  color: #4a148c;
+  font-weight: 700;
+}
 .screen-pay-list .summary-total-item#summary_승인금액 { color: #198754; }
 .screen-pay-list .summary-total-item#summary_취소금액 { color: #dc3545; }
 .screen-pay-list .summary-total-item#summary_결제금액,
@@ -1231,7 +1358,7 @@ body { margin: 0; height: 100%; overflow: hidden; font-family: -apple-system, Bl
   text-align: left;
 }
 .pay-list-status-bar--empty { display: none; }
-/* 결제관리 상단: 전체 집계(1행) + 상태 pill 요약(2행) */
+/* 결제관리 상단: summary-total-bar(건수+금액 한 줄) + 아래 상태 pill */
 .pay-list-aggregate-stack {
   display: flex;
   flex-direction: column;
@@ -1297,7 +1424,17 @@ body { margin: 0; height: 100%; overflow: hidden; font-family: -apple-system, Bl
   gap: 8px;
   text-align: left;
 }
-/* 상태바: 1행 성공·실패·무효, 2행 환불·취소·기타 (각 3열) */
+.pay-list-status-bar__inner--inline {
+  flex-direction: row;
+  align-items: center;
+  gap: 6px 8px;
+}
+.pay-list-status-bar__inner--inline > .pay-list-status-bar__pill {
+  width: auto;
+  max-width: none;
+  white-space: nowrap;
+}
+/* 레거시 2행 그리드(일별 상세 등) — 상단 요약바는 --inline 사용 */
 .pay-list-status-bar__inner--grid {
   flex-direction: column;
   align-items: stretch;
@@ -1348,6 +1485,11 @@ body { margin: 0; height: 100%; overflow: hidden; font-family: -apple-system, Bl
   background: #ffedd5;
   color: #c2410c;
   border-color: #fed7aa;
+}
+.pay-list-status-bar__pill--email-void {
+  background: #fce7f3;
+  color: #9d174d;
+  border-color: #fbcfe8;
 }
 /* 환불(블루)·기타(앰버)·취소(그레이) 톤 구분 */
 .pay-list-status-bar__pill--refund {

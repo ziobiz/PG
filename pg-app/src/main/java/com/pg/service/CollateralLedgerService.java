@@ -21,6 +21,7 @@ import com.pg.util.PayDisplayCurrency;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.time.DateTimeException;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -145,12 +146,33 @@ public class CollateralLedgerService {
             LocalDate searchToDate,
             String searchCompId,
             String searchCompNm,
+            String searchFieldType,
+            String searchKeyword,
             String searchStatus,
             String searchOrderDir,
             int page,
             int size) {
         if (page < 1) page = 1;
         if (size < 1) size = 20;
+
+        String effFt = "ALL";
+        String effKw = "";
+        if (searchFieldType != null && !searchFieldType.isBlank()) {
+            effFt = searchFieldType.trim().toUpperCase(Locale.ROOT);
+            effKw = searchKeyword != null ? searchKeyword.trim() : "";
+        } else if (searchCompId != null && !searchCompId.isBlank()) {
+            effFt = "COMP_ID";
+            effKw = searchCompId.trim();
+        } else if (searchCompNm != null && !searchCompNm.isBlank()) {
+            effFt = "COMP_NM";
+            effKw = searchCompNm.trim();
+        }
+        if ("COMP_NM".equals(effFt) && effKw.isEmpty()) {
+            effFt = "ALL";
+        }
+        if ("SETTLE_DAY".equals(effFt)) {
+            effFt = "SETTLE_TARGET_DAY";
+        }
 
         LocalDate from = searchFromDate;
         LocalDate to = searchToDate;
@@ -163,10 +185,64 @@ public class CollateralLedgerService {
             to = LocalDate.now();
         }
 
+        LocalDate holdDayTarget = null;
+        LocalDate releaseDayTarget = null;
+        boolean periodByReleaseDate = "SETTLE_RUN_DAY".equals(effFt) && effKw.isEmpty();
+        if ("SETTLE_TARGET_DAY".equals(effFt) && !effKw.isEmpty()) {
+            Integer dom = parseSettlementDayOfMonthKeyword(effKw);
+            if (dom == null) {
+                return emptyPage(page, size);
+            }
+            LocalDate monthAnchor = searchFromDate != null ? searchFromDate
+                    : (searchToDate != null ? searchToDate : LocalDate.now());
+            holdDayTarget = resolveSettlementDayInMonth(monthAnchor, dom);
+            if (holdDayTarget == null) {
+                return emptyPage(page, size);
+            }
+            effFt = "ALL";
+            effKw = "";
+        } else if ("SETTLE_RUN_DAY".equals(effFt) && !effKw.isEmpty()) {
+            Integer dom = parseSettlementDayOfMonthKeyword(effKw);
+            if (dom == null) {
+                return emptyPage(page, size);
+            }
+            LocalDate monthAnchor = searchFromDate != null ? searchFromDate
+                    : (searchToDate != null ? searchToDate : LocalDate.now());
+            releaseDayTarget = resolveSettlementDayInMonth(monthAnchor, dom);
+            if (releaseDayTarget == null) {
+                return emptyPage(page, size);
+            }
+            effFt = "ALL";
+            effKw = "";
+        }
+
         Set<String> merchantFilter = null;
         if (searchCompId != null && !searchCompId.isBlank()) {
             merchantFilter = new LinkedHashSet<>();
             merchantFilter.add(searchCompId.trim());
+        }
+        if ("COMP_ID".equals(effFt) && !effKw.isEmpty()) {
+            if (merchantFilter == null) {
+                merchantFilter = new LinkedHashSet<>();
+            }
+            merchantFilter.add(effKw.trim());
+            effFt = "ALL";
+            effKw = "";
+        }
+        if ("COMP_NM".equals(effFt) && !effKw.isEmpty()) {
+            List<OrgUnit> hits = orgUnitRepository.findByOrgLevelAndNameContainingIgnoreCase(
+                    OrgLevel.MERCHANT, effKw.trim());
+            Set<String> codes = hits.stream().map(OrgUnit::getCode).filter(Objects::nonNull).collect(Collectors.toSet());
+            if (merchantFilter == null) {
+                merchantFilter = codes;
+            } else {
+                merchantFilter.retainAll(codes);
+            }
+            if (merchantFilter.isEmpty()) {
+                return emptyPage(page, size);
+            }
+            effFt = "ALL";
+            effKw = "";
         }
         if (searchCompNm != null && !searchCompNm.isBlank()) {
             List<OrgUnit> hits = orgUnitRepository.findByOrgLevelAndNameContainingIgnoreCase(
@@ -184,6 +260,8 @@ public class CollateralLedgerService {
 
         String statusNorm = normalizeStatus(searchStatus);
         LocalDate today = LocalDate.now();
+        final String effFtFinal = effFt;
+        final String effKwFinal = effKw;
 
         List<RollingReserve> all = rollingReserveRepository.findAll();
         List<RollingReserve> filtered = new ArrayList<>();
@@ -195,8 +273,25 @@ public class CollateralLedgerService {
                 continue;
             }
             LocalDate effStart = effectiveHoldStart(r);
-            if (effStart == null) continue;
-            if (effStart.isBefore(from) || effStart.isAfter(to)) {
+            LocalDate releaseDate = r.getReleaseDate();
+            if (holdDayTarget != null) {
+                if (effStart == null || !holdDayTarget.equals(effStart)) {
+                    continue;
+                }
+            } else if (releaseDayTarget != null) {
+                if (releaseDate == null || !releaseDayTarget.equals(releaseDate)) {
+                    continue;
+                }
+            } else {
+                LocalDate rangeDate = periodByReleaseDate ? releaseDate : effStart;
+                if (rangeDate == null) {
+                    continue;
+                }
+                if (rangeDate.isBefore(from) || rangeDate.isAfter(to)) {
+                    continue;
+                }
+            }
+            if (!collateralListRowMatches(r, effFtFinal, effKwFinal)) {
                 continue;
             }
             filtered.add(r);
@@ -305,6 +400,73 @@ public class CollateralLedgerService {
             return null;
         }
         return s.trim().toUpperCase(Locale.ROOT);
+    }
+
+    private static Integer parseSettlementDayOfMonthKeyword(String raw) {
+        if (raw == null || raw.isBlank()) {
+            return null;
+        }
+        String s = raw.trim();
+        if (!s.matches("\\d{1,2}")) {
+            return null;
+        }
+        int dom;
+        try {
+            dom = Integer.parseInt(s);
+        } catch (NumberFormatException e) {
+            return null;
+        }
+        if (dom < 1 || dom > 31) {
+            return null;
+        }
+        return dom;
+    }
+
+    private static LocalDate resolveSettlementDayInMonth(LocalDate monthAnchor, int dayOfMonth) {
+        LocalDate anchor = monthAnchor != null ? monthAnchor : LocalDate.now();
+        try {
+            return anchor.withDayOfMonth(dayOfMonth);
+        } catch (DateTimeException e) {
+            return null;
+        }
+    }
+
+    private static boolean collateralListRowMatches(RollingReserve r, String fieldType, String keyword) {
+        String ft = fieldType == null || fieldType.isBlank() ? "ALL" : fieldType.trim().toUpperCase(Locale.ROOT);
+        String kw = keyword == null ? "" : keyword.trim();
+        if (!"ALL".equals(ft) && kw.isEmpty()) {
+            return true;
+        }
+        if ("ALL".equals(ft) && kw.isEmpty()) {
+            return true;
+        }
+        String kLow = kw.toLowerCase(Locale.ROOT);
+        String mid = r.getMerchantId() != null ? r.getMerchantId().trim().toLowerCase(Locale.ROOT) : "";
+        String tid = r.getTrnId() != null ? r.getTrnId().trim().toLowerCase(Locale.ROOT) : "";
+        LocalDate holdStart = effectiveHoldStart(r);
+        LocalDate releaseDate = r.getReleaseDate();
+        return switch (ft) {
+            case "COMP_ID", "MID" -> mid.contains(kLow);
+            case "COMP_NM" -> false;
+            case "SETTLE_TARGET_DAY", "SETTLE_DAY" -> {
+                Integer dom = parseSettlementDayOfMonthKeyword(kw);
+                if (dom == null) {
+                    yield false;
+                }
+                yield (holdStart != null && holdStart.getDayOfMonth() == dom);
+            }
+            case "SETTLE_RUN_DAY" -> {
+                Integer dom = parseSettlementDayOfMonthKeyword(kw);
+                if (dom == null) {
+                    yield false;
+                }
+                yield (releaseDate != null && releaseDate.getDayOfMonth() == dom);
+            }
+            case "ALL" -> mid.contains(kLow) || tid.contains(kLow)
+                    || (holdStart != null && holdStart.toString().contains(kw))
+                    || (releaseDate != null && releaseDate.toString().contains(kw));
+            default -> true;
+        };
     }
 
     private static PageResult<Map<String, Object>> emptyPage(int page, int size) {

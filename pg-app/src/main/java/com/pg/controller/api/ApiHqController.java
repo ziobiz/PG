@@ -148,6 +148,9 @@ public class ApiHqController {
         if (ynPg(p.getIntegUrlPayYn())) {
             parts.add("URL");
         }
+        if (ynPg(p.getIntegUrlPayRepayYn())) {
+            parts.add("URL재결제");
+        }
         if (ynPg(p.getIntegWebChatbotYn())) {
             parts.add("챗봇");
         }
@@ -165,6 +168,9 @@ public class ApiHqController {
         }
         if (ynPg(p.getIntegUrlPayYn())) {
             ys.add("URL_PAY");
+        }
+        if (ynPg(p.getIntegUrlPayRepayYn())) {
+            ys.add("URL_PAY_REPAY");
         }
         if (ynPg(p.getIntegWebChatbotYn())) {
             ys.add("WEB_CHATBOT");
@@ -188,6 +194,7 @@ public class ApiHqController {
         return switch (kind) {
             case "NOTI" -> "노티";
             case "URL_PAY" -> "URL";
+            case "URL_PAY_REPAY" -> "URL재결제";
             case "WEB_CHATBOT" -> "챗봇";
             case "API" -> "API";
             case "MULTI" -> "복합(레거시)";
@@ -201,6 +208,9 @@ public class ApiHqController {
         }
         if ("URL_PAY".equals(kind)) {
             return nz(p.getEndpointUrlPay());
+        }
+        if ("URL_PAY_REPAY".equals(kind)) {
+            return nz(p.getEndpointUrlPayRepay());
         }
         if ("WEB_CHATBOT".equals(kind) || "API".equals(kind)) {
             String a = nz(p.getEndpointApi());
@@ -232,6 +242,7 @@ public class ApiHqController {
         StringBuilder sb = new StringBuilder();
         appendEp(sb, "노티", p.getEndpointNoti());
         appendEp(sb, "URL", p.getEndpointUrlPay());
+        appendEp(sb, "URL재결제", p.getEndpointUrlPayRepay());
         appendEp(sb, "API", p.getEndpointApi());
         if (p.getApiEndpoint() != null && !p.getApiEndpoint().isBlank()) {
             appendEp(sb, "구버전", p.getApiEndpoint());
@@ -383,9 +394,11 @@ public class ApiHqController {
                     m.put("apiEndpoint", p.getApiEndpoint());
                     m.put("endpointNoti", p.getEndpointNoti() != null ? p.getEndpointNoti() : "");
                     m.put("endpointUrlPay", p.getEndpointUrlPay() != null ? p.getEndpointUrlPay() : "");
+                    m.put("endpointUrlPayRepay", p.getEndpointUrlPayRepay() != null ? p.getEndpointUrlPayRepay() : "");
                     m.put("endpointApi", p.getEndpointApi() != null ? p.getEndpointApi() : "");
                     m.put("integNotiYn", ynPg(p.getIntegNotiYn()) ? "Y" : "N");
                     m.put("integUrlPayYn", ynPg(p.getIntegUrlPayYn()) ? "Y" : "N");
+                    m.put("integUrlPayRepayYn", ynPg(p.getIntegUrlPayRepayYn()) ? "Y" : "N");
                     m.put("integWebChatbotYn", ynPg(p.getIntegWebChatbotYn()) ? "Y" : "N");
                     m.put("integApiYn", ynPg(p.getIntegApiYn()) ? "Y" : "N");
                     String integKind = resolveIntegKind(p);
@@ -449,9 +462,11 @@ public class ApiHqController {
                     m.put("apiEndpoint", p.getApiEndpoint() != null ? p.getApiEndpoint() : "");
                     m.put("endpointNoti", p.getEndpointNoti() != null ? p.getEndpointNoti() : "");
                     m.put("endpointUrlPay", p.getEndpointUrlPay() != null ? p.getEndpointUrlPay() : "");
+                    m.put("endpointUrlPayRepay", p.getEndpointUrlPayRepay() != null ? p.getEndpointUrlPayRepay() : "");
                     m.put("endpointApi", p.getEndpointApi() != null ? p.getEndpointApi() : "");
                     m.put("integNotiYn", ynPg(p.getIntegNotiYn()) ? "Y" : "N");
                     m.put("integUrlPayYn", ynPg(p.getIntegUrlPayYn()) ? "Y" : "N");
+                    m.put("integUrlPayRepayYn", ynPg(p.getIntegUrlPayRepayYn()) ? "Y" : "N");
                     m.put("integWebChatbotYn", ynPg(p.getIntegWebChatbotYn()) ? "Y" : "N");
                     m.put("integApiYn", ynPg(p.getIntegApiYn()) ? "Y" : "N");
                     String integKind = resolveIntegKind(p);
@@ -786,10 +801,12 @@ public class ApiHqController {
         String ep = epRaw != null && !epRaw.isBlank() ? epRaw.trim() : null;
         entity.setIntegNotiYn("N");
         entity.setIntegUrlPayYn("N");
+        entity.setIntegUrlPayRepayYn("N");
         entity.setIntegWebChatbotYn("N");
         entity.setIntegApiYn("N");
         entity.setEndpointNoti(null);
         entity.setEndpointUrlPay(null);
+        entity.setEndpointUrlPayRepay(null);
         entity.setEndpointApi(null);
         switch (kind) {
             case "NOTI" -> {
@@ -800,6 +817,10 @@ public class ApiHqController {
                 entity.setIntegUrlPayYn("Y");
                 entity.setEndpointUrlPay(ep);
             }
+            case "URL_PAY_REPAY" -> {
+                entity.setIntegUrlPayRepayYn("Y");
+                entity.setEndpointUrlPayRepay(ep);
+            }
             case "WEB_CHATBOT" -> {
                 entity.setIntegWebChatbotYn("Y");
                 entity.setEndpointApi(ep);
@@ -808,7 +829,7 @@ public class ApiHqController {
                 entity.setIntegApiYn("Y");
                 entity.setEndpointApi(ep);
             }
-            default -> throw new IllegalArgumentException("연동용도는 NOTI, URL_PAY, WEB_CHATBOT, API 중 하나여야 합니다.");
+            default -> throw new IllegalArgumentException("연동용도는 NOTI, URL_PAY, URL_PAY_REPAY, WEB_CHATBOT, API 중 하나여야 합니다.");
         }
     }
 
@@ -1500,6 +1521,8 @@ public class ApiHqController {
         data.put("apiBrokerRedirectEnabledYn", "Y");
         data.put("urlPayInlineEnabledYn", "Y");
         data.put("urlPayRedirectEnabledYn", "Y");
+        data.put("urlPayRepayEnabledYn", "N");
+        data.put("urlPayRepayPathTemplate", "/pay-repay/{compCode}");
         data.put("urlPayFormMode", "FULL");
         data.put("urlPayTabTitleJson", "{}");
         data.put("urlPayFaviconUrl", "");
@@ -1530,6 +1553,8 @@ public class ApiHqController {
             if (c.getApiBrokerRedirectEnabledYn() != null) data.put("apiBrokerRedirectEnabledYn", c.getApiBrokerRedirectEnabledYn());
             if (c.getUrlPayInlineEnabledYn() != null) data.put("urlPayInlineEnabledYn", c.getUrlPayInlineEnabledYn());
             if (c.getUrlPayRedirectEnabledYn() != null) data.put("urlPayRedirectEnabledYn", c.getUrlPayRedirectEnabledYn());
+            if (c.getUrlPayRepayEnabledYn() != null) data.put("urlPayRepayEnabledYn", c.getUrlPayRepayEnabledYn());
+            if (c.getUrlPayRepayPathTemplate() != null) data.put("urlPayRepayPathTemplate", c.getUrlPayRepayPathTemplate());
             if (c.getUrlPayFormMode() != null) data.put("urlPayFormMode", c.getUrlPayFormMode());
             if (c.getUrlPayTabTitleJson() != null && !c.getUrlPayTabTitleJson().isBlank()) {
                 data.put("urlPayTabTitleJson", c.getUrlPayTabTitleJson());
@@ -1597,6 +1622,9 @@ public class ApiHqController {
         c.setApiBrokerRedirectEnabledYn("N".equalsIgnoreCase(String.valueOf(body.getOrDefault("apiBrokerRedirectEnabledYn", "Y"))) ? "N" : "Y");
         c.setUrlPayInlineEnabledYn("N".equalsIgnoreCase(String.valueOf(body.getOrDefault("urlPayInlineEnabledYn", "Y"))) ? "N" : "Y");
         c.setUrlPayRedirectEnabledYn("N".equalsIgnoreCase(String.valueOf(body.getOrDefault("urlPayRedirectEnabledYn", "Y"))) ? "N" : "Y");
+        c.setUrlPayRepayEnabledYn("Y".equalsIgnoreCase(String.valueOf(body.getOrDefault("urlPayRepayEnabledYn", "N"))) ? "Y" : "N");
+        String repayPathTpl = body.get("urlPayRepayPathTemplate") != null ? body.get("urlPayRepayPathTemplate").toString().trim() : "";
+        c.setUrlPayRepayPathTemplate(repayPathTpl.isEmpty() ? "/pay-repay/{compCode}" : repayPathTpl);
         String upForm = body.get("urlPayFormMode") != null ? body.get("urlPayFormMode").toString().trim() : "FULL";
         c.setUrlPayFormMode("SIMPLE".equalsIgnoreCase(upForm) ? "SIMPLE" : "FULL");
         Object tabTitleJson = body.get("urlPayTabTitleJson");

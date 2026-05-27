@@ -45,8 +45,37 @@ public class HomeController {
         return redirectWithMergedQuery("/jpay-pay.html", compId, request);
     }
 
+    @GetMapping("/pay-repay/{compId}")
+    public String payRepayByComp(@PathVariable("compId") String compId, HttpServletRequest request) {
+        String enc = URLEncoder.encode(compId != null ? compId : "", StandardCharsets.UTF_8);
+        StringBuilder sb = new StringBuilder("redirect:/pay.html?variant=repay&m=").append(enc);
+        if (request != null) {
+            for (Map.Entry<String, String[]> e : request.getParameterMap().entrySet()) {
+                String key = e.getKey();
+                if (key == null) {
+                    continue;
+                }
+                String kl = key.trim();
+                if (kl.isEmpty() || "m".equalsIgnoreCase(kl) || "compId".equalsIgnoreCase(kl)
+                        || "merchant".equalsIgnoreCase(kl) || "variant".equalsIgnoreCase(kl)) {
+                    continue;
+                }
+                if (e.getValue() == null) {
+                    continue;
+                }
+                for (String val : e.getValue()) {
+                    if (val == null) {
+                        continue;
+                    }
+                    sb.append('&').append(URLEncoder.encode(kl, StandardCharsets.UTF_8))
+                            .append('=').append(URLEncoder.encode(val, StandardCharsets.UTF_8));
+                }
+            }
+        }
+        return sb.toString();
+    }
+
     /**
-     * 경로 변수 업체코드를 {@code m=} 으로 고정하고, 요청 쿼리(금액·상품명 등)는 그대로 이어 붙입니다.
      * {@code m}/{@code compId}/{@code merchant} 는 클라이언트가 넘긴 값보다 경로의 업체코드를 우선합니다.
      */
     private static String redirectWithMergedQuery(String htmlPath, String compId, HttpServletRequest request) {

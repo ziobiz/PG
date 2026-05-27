@@ -45,7 +45,7 @@ public class IcipayPgBrokerChillPayController {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body(ApiResponse.fail(e.getMessage(), "BROKER_AUTH"));
         }
-        return apiPayController.chillpayConfig(merchantId, compId);
+        return apiPayController.chillpayConfig(merchantId, compId, null);
     }
 
     @GetMapping("/checkout-context")
@@ -59,7 +59,7 @@ public class IcipayPgBrokerChillPayController {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body(ApiResponse.fail(e.getMessage(), "BROKER_AUTH"));
         }
-        return apiPayController.chillpayCheckoutContext(merchantId, compId, request);
+        return apiPayController.chillpayCheckoutContext(merchantId, compId, null, request);
     }
 
     @GetMapping("/display-fx-quote")

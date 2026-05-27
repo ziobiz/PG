@@ -39,6 +39,7 @@ public class OrgTabletMenuService {
             "/calc/chillPayTrList",
             "/pay/chatbotPay",
             "/ops/integratedReport",
+            "/ops/verifyReport",
             "/user/userMng"
     );
 

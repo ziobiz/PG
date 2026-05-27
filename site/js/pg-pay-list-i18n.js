@@ -18,6 +18,7 @@
     listExcel: { KO: '엑셀리스트다운', EN: 'Excel list download', JP: 'Excelリストダウン', CH: 'Excel列表下载', TH: 'ดาวน์โหลด Excel รายการ' },
     detailTitle: { KO: '선택 일자 상세', EN: 'Selected date detail', JP: '選択日の詳細', CH: '所选日期明细', TH: 'รายละเอียดวันที่เลือก' },
     detailTitleIr: { KO: '선택 일자 상세 (통합 결제내역)', EN: 'Selected date — integrated payments', JP: '選択日の詳細（統合決済）', CH: '所选日期明细（综合支付）', TH: 'รายละเอียดวันที่เลือก (ชำระรวม)' },
+    detailTitleVr: { KO: '선택 일자 불일치', EN: 'Selected date — mismatches', JP: '選択日の不一致', CH: '所选日期不一致', TH: 'วันที่เลือก — ไม่ตรงกัน' },
     selectAll: { KO: '전체선택', EN: 'Select all', JP: '全選択', CH: '全选', TH: 'เลือกทั้งหมด' },
     empty: { KO: '조회된 데이터가 없습니다.', EN: 'No records found.', JP: '該当データがありません。', CH: '没有查询到数据。', TH: 'ไม่พบข้อมูล' },
     searchReset: { KO: '검색 초기화', EN: 'Reset search', JP: '検索リセット', CH: '重置搜索', TH: 'รีเซ็ตการค้นหา' },
@@ -102,6 +103,7 @@
     'searchYearMonth:label': { KO: '귀속월', EN: 'Attribution month', JP: '帰属月', CH: '归属月', TH: 'เดือนที่ครอบคลุม' },
     'drLbl:정산일': { KO: '정산일', EN: 'Settlement date', JP: '精算日', CH: '结算日', TH: 'วันชำระ' },
     'drLbl:기간': { KO: '기간', EN: 'Period', JP: '期間', CH: '期间', TH: 'ช่วงเวลา' },
+    'drLbl:등록일자': { KO: '등록일자', EN: 'Registered date', JP: '登録日', CH: '登记日期', TH: 'วันที่ลงทะเบียน' },
     'drLbl:적용일(담보)': { KO: '적용일(담보)', EN: 'As-of date (collateral)', JP: '適用日（担保）', CH: '适用日（保证金）', TH: 'วันที่มีผล (หลักประกัน)' },
     'drLbl:결제일자': { KO: '결제일자', EN: 'Payment date', JP: '決済日', CH: '支付日期', TH: 'วันที่ชำระ' },
     'drLbl:전송일자': { KO: '전송일자', EN: 'Send date', JP: '送信日', CH: '发送日期', TH: 'วันที่ส่ง' },
@@ -311,6 +313,7 @@
     week: optMap({ EN: '1 week', JP: '1週', CH: '1周', TH: '1 สัปดาห์' }),
     week2: optMap({ EN: '2 weeks', JP: '2週', CH: '2周', TH: '2 สัปดาห์' }),
     prevMonth: optMap({ EN: 'Prev. month', JP: '前月', CH: '上月', TH: 'เดือนก่อน' }),
+    prevMonth2: optMap({ EN: '2 months ago', JP: '2ヶ月前', CH: '两个月前', TH: '2 เดือนก่อน' }),
     weekCal: optMap({ EN: 'This week', JP: '今週', CH: '本周', TH: 'สัปดาห์นี้' }),
     prevWeekCal: optMap({ EN: 'Last week', JP: '先週', CH: '上周', TH: 'สัปดาห์ที่แล้ว' })
   };
@@ -339,7 +342,9 @@
     총수수료: { KO: '총수수료', EN: 'Total fees', JP: '手数料合計', CH: '手续费合计', TH: 'ค่าธรรมเนียมรวม' },
     부가세: { KO: '부가세', EN: 'VAT', JP: '消費税', CH: '增值税', TH: 'VAT' },
     지급예상합: { KO: '지급예상합', EN: 'Expected payout', JP: '支払予定合計', CH: '预计拨付合计', TH: 'ยอดจ่ายโดยประมาณ' },
+    지급예상: { KO: '지급예상', EN: 'Expected payout', JP: '支払予定', CH: '预计拨付', TH: 'ยอดจ่ายโดยประมาณ' },
     정산액합: { KO: '정산액합', EN: 'Settlement total', JP: '精算額合計', CH: '结算额合计', TH: 'ยอดชำระบัญชีรวม' },
+    정산예상: { KO: '정산예상', EN: 'Expected settlement', JP: '精算予定', CH: '预计结算', TH: 'ยอดชำระบัญชีโดยประมาณ' },
     환수금액: { KO: '환수금액', EN: 'Recovery', JP: '回収金額', CH: '回收金额', TH: 'ยอดกู้คืน' },
     잔여: { KO: '잔여', EN: 'Remaining', JP: '残高', CH: '剩余', TH: 'คงเหลือ' },
     결제액: { KO: '결제액', EN: 'Payment', JP: '決済額', CH: '支付金额', TH: 'ยอดชำระ' },
@@ -348,6 +353,11 @@
     환불: { KO: '환불', EN: 'Refund', JP: '返金', CH: '退款', TH: 'คืนเงิน' },
     순액: { KO: '순액', EN: 'Net', JP: '純額', CH: '净额', TH: 'สุทธิ' },
     정산금: { KO: '정산금', EN: 'Settlement', JP: '精算金', CH: '结算款', TH: 'เงินชำระบัญชี' },
+    총거래: { KO: '총거래', EN: 'Total txn amount', JP: '総取引', CH: '总交易', TH: 'ยอดธุรกรรมรวม' },
+    추정결산: { KO: '추정결산', EN: 'Est. settlement', JP: '推定決算', CH: '预估结算', TH: 'ประมาณการชำระบัญชี' },
+    승인: { KO: '승인', EN: 'Approved', JP: '承認', CH: '授权', TH: 'อนุมัติ' },
+    취소: { KO: '취소', EN: 'Cancel', JP: '取消', CH: '取消', TH: 'ยกเลิก' },
+    담보: { KO: '담보', EN: 'Collateral', JP: '担保', CH: '担保', TH: 'หลักประกัน' },
     승인금액: { KO: '승인금액', EN: 'Approved amount', JP: '承認金額', CH: '授权金额', TH: 'ยอดอนุมัติ' },
     취소금액: { KO: '취소금액', EN: 'Cancelled amount', JP: '取消金額', CH: '取消金额', TH: 'ยอดยกเลิก' },
     결제금액: { KO: '결제금액', EN: 'Payment amount', JP: '決済金額', CH: '支付金额', TH: 'ยอดชำระเงิน' },
@@ -370,7 +380,7 @@
       packN('[후속조치]는 본사설정 > 전산설정관리에서 기능을 켠 경우에만 동작합니다 (NOTI 환경설정과 동일).', '[Follow-up] actions run only when enabled in HQ Settings > Ledger system settings (same as NOTI).', '[後続対応]は本社設定＞全算設定で有効化した場合のみ動作します（NOTI と同様）。', '[后续处理] 仅在「本社设置 > 账务系统设置」开启时生效（与 NOTI 相同）。', '[ดำเนินการต่อ] ทำงานเมื่อเปิดในตั้งค่าระบบบัญชีเท่านั้น (เหมือน NOTI)'),
       packN('취소 건에 대한 정산 수수료 및 부가세는 정산 주기에 따라 반영됩니다.', 'Settlement fees and VAT for cancelled items follow the settlement cycle.', '取消取引の精算手数料・消費税は精算サイクルに従って反映されます。', '取消交易的结算手续费与增值税按结算周期反映。', 'ค่าธรรมเนียมและ VAT ของรายการยกเลิกสะท้อนตามรอบชำระบัญชี'),
       packN('정산 주기 및 정산 수수료는 가맹점별로 상이할 수 있습니다.', 'Settlement cycle and fees may differ per merchant.', '精算サイクル・手数料は加盟店ごとに異なる場合があります。', '结算周期与手续费可能因商户而异。', 'รอบและค่าธรรมเนียมอาจต่างกันในแต่ละร้าน'),
-      packN('상단 첫 줄: 검색·기간·권한 범위 전체 집계(승인 건수·통화별 승인/취소/결제·수수료+부가세·보류·지급). 둘째 줄: 성공·실패 등 통화별 금액. 본사·총본사는 통화별 병기, 총판·하위는 기준 통화 한 줄.', 'Top row: aggregates for the search scope (approval counts, per-currency approve/cancel/pay, fee+VAT, hold, payout). Second row: per-currency success/fail amounts. HQ shows multiple currencies; distributors see one base line.', '上段: 検索・期間・権限範囲の集計。下段: 通貨別の成功・失敗など。本社は複数通貨、下位は基準通貨一行。', '首行：按搜索与权限汇总。次行：各币种成功/失败等金额。总部多币种，下级一行本位币。', 'แถวบน: สรุปตามช่วงและสิทธิ์ แถวล่าง: ยอดตามสกุลเงิน สำนักงานใหญ่หลายสกุล ลูกข่ายหนึ่งบรรทัด')
+      packN('상단 한 줄: 건수·통화별 총거래·승인·취소·수수료·담보·부가세·추정결산(승인−(취소+수수료+담보+부가세), 수수료내역과 동일 건별 산식). 아래: 성공·실패 등 상태 pill. 본사·총본사는 통화별 병기.', 'Top row: count and per-currency total txn, approve, cancel, fees, collateral, VAT, est. settlement (approve−(cancel+fees+collateral+VAT); same per-txn rules as fee list). Below: status pills. HQ shows multiple currencies.', '上段: 件数・通貨別総取引・承認・取消・手数料・担保・消費税・推定決算（承認−(取消+手数料+担保+消費税)）。下段: 状態 pill。', '首行：件数及分币种总交易、批准、取消、手续费、担保、增值税、预估结算（批准−(取消+手续费+担保+增值税)）。下方状态 pill。', 'แถวบน: จำนวนและยอดตามสกุล รวมธุรกรรม อนุมัติ ยกเลิก ค่าธรรมเนียม หลักประกัน VAT ประมาณการชำระ (อนุมัติ−(ยกเลิก+ค่าธรรมเนียม+หลักประกัน+VAT)) ด้านล่าง pill สถานะ')
     ],
     '/calc/payNotiList': [
       packN('노티내역: 통합 결제내역과 동일한 그리드입니다(칠페이 시트 컬럼·2단 헤더·요약바·후속조치 포함). 조회만 origin=NOTI(전산 노티 적재)로 제한됩니다.', 'Notify list uses the same grid as integrated payments; data is limited to origin=NOTI.', 'ノティ履歴は統合決済と同一グリッド。origin=NOTI のみ。', '通知列表与综合支付相同表格，仅 origin=NOTI。', 'รายการแจ้งเตือน: กริดเดียวกับรวม จำกัด origin=NOTI'),
@@ -381,19 +391,31 @@
     ],
     '/calc/paySuccessList': [
       packN('성공내역: 통합 결제내역에서 승인 성공(결제) 상태만 간추렸습니다.', 'Success list: approved (paid) rows only.', '成功のみ抽出。', '仅成功（已支付）记录。', 'เฉพาะรายการสำเร็จ'),
-      packN('무효·이메일무효·환불·강제환불 등 후속조치는 「결제내역」(/calc/payList)과 각 전용 화면(무효처리·이메일무효·환불처리·강제환불)에서 제공합니다.', 'Void/refund follow-ups are on /calc/payList and the dedicated void/refund screens.', '無効・返金の後続は「決済履歴」と各専用画面で利用できます。', '后续处理在「支付历史」及各专用作废/退款页面提供。', 'ดำเนินการต่อที่ /calc/payList และหน้าโมฆะ/คืนเงินเฉพาะ')
+      packN('상단은 건수와 해당 상태(성공) 요약 pill만 표시합니다(일별통합과 동일). 금액·수수료 한 줄 집계는 통합 결제내역·수수료내역을 이용하세요.', 'Top shows count and success status pill only (like daily integrated). Use integrated pay list or fee list for amount/fee summary.', '上段は件数と成功 pill のみ（日次統合と同様）。金額・手数料一行は統合決済・手数料一覧を利用。', '顶部仅显示件数与成功状态 pill（同按日汇总）。金额与手续费一行请用综合支付历史或手续费明细。', 'ด้านบนแสดงจำนวนและ pill สำเร็จเท่านั้น ใช้รายการรวมหรือค่าธรรมเนียมสำหรับสรุปยอด')
     ],
-    '/calc/payFailList': [packN('실패내역: 통합 결제내역에서 실패·거절만 간추렸습니다.', 'Failed/rejected rows only.', '失敗・拒否のみ。', '仅失败/拒绝。', 'เฉพาะล้มเหลว/ปฏิเสธ')],
-    '/calc/payRefundList': [packN('환불처리: 통합 결제내역에서 환불(내부 30·42)만 간추렸습니다.', 'Refund processing: refund states (30·42) only.', '返金処理: 30・42 のみ。', '退款处理：仅内部状态 30·42。', 'คืนเงิน: เฉพาะสถานะ 30·42')],
-    '/calc/payForceRefundList': [packN('강제환불: 통합 결제내역에서 강제환불(내부 31)만 간추렸습니다.', 'Force refund: internal state 31 only.', '強制返金: 31 のみ。', '强制退款：仅内部状态 31。', 'บังคับคืน: เฉพาะ 31')],
-    '/calc/payCancelList': [packN('취소내역: 통합 결제내역에서 취소만 간추렸습니다.', 'Cancellations only.', '取消のみ。', '仅取消。', 'เฉพาะยกเลิก')],
+    '/calc/payFailList': [
+      packN('실패내역: 통합 결제내역에서 실패·거절만 간추렸습니다.', 'Failed/rejected rows only.', '失敗・拒否のみ。', '仅失败/拒绝。', 'เฉพาะล้มเหลว/ปฏิเสธ'),
+      packN('상단은 건수와 해당 상태(실패) 요약 pill만 표시합니다(일별통합과 동일).', 'Top shows count and fail status pill only (like daily integrated).', '上段は件数と失敗 pill のみ。', '顶部仅显示件数与失败状态 pill。', 'ด้านบนแสดงจำนวนและ pill ล้มเหลวเท่านั้น')
+    ],
+    '/calc/payRefundList': [
+      packN('환불처리: 통합 결제내역에서 일반·자동환불(내부 30·42)만 간추렸습니다.', 'Refund processing: refund states (30·42) only.', '返金処理: 30・42 のみ。', '退款处理：仅内部状态 30·42。', 'คืนเงิน: เฉพาะสถานะ 30·42'),
+      packN('상단은 건수와 해당 상태(환불) 요약 pill만 표시합니다(일별통합과 동일).', 'Top shows count and refund status pill only.', '上段は件数と返金 pill のみ。', '顶部仅显示件数与退款状态 pill。', 'ด้านบนแสดงจำนวนและ pill คืนเงินเท่านั้น')
+    ],
+    '/calc/payForceRefundList': [
+      packN('강제환불: 통합 결제내역에서 강제환불(내부 31)만 간추렸습니다.', 'Force refund: internal state 31 only.', '強制返金: 31 のみ。', '强制退款：仅内部状态 31。', 'บังคับคืน: เฉพาะ 31'),
+      packN('상단은 건수와 해당 상태(강제환불) 요약 pill만 표시합니다(일별통합과 동일).', 'Top shows count and force-refund pill only.', '上段は件数と強制返金 pill のみ。', '顶部仅显示件数与强制退款 pill。', 'ด้านบนแสดงจำนวนและ pill บังคับคืนเท่านั้น')
+    ],
+    '/calc/payCancelList': [
+      packN('취소내역: 통합 결제내역에서 취소만 간추렸습니다.', 'Cancellations only.', '取消のみ。', '仅取消。', 'เฉพาะยกเลิก'),
+      packN('상단은 건수와 해당 상태(취소) 요약 pill만 표시합니다(일별통합과 동일).', 'Top shows count and cancel pill only.', '上段は件数と取消 pill のみ。', '顶部仅显示件数与取消 pill。', 'ด้านบนแสดงจำนวนและ pill ยกเลิกเท่านั้น')
+    ],
     '/calc/payVoidList': [
-      packN('무효처리: 승인(결제) 완료 후 일반·시스템 무효(내부 21·40)만 표시합니다. 이메일무효(22·41)는 「이메일무효」(/calc/payEmailVoidList) 화면에서, 환불(30·42)은 「환불처리」에서 봅니다. 취소(20)와 구분됩니다.', 'Void processing: internal states 21·40 only. Email void (22·41) is on /calc/payEmailVoidList; refunds (30·42) on refund processing.', '無効処理: 21・40 のみ。メール無効は専用画面。', '作废处理：仅 21·40；邮件作废见专用页。', 'โมฆะ 21·40 เท่านั้น อีเมลโมฆะหน้าแยก'),
-      packN('ziobiz/NOTI 노티거래내역의 무효·자동무효 등과 동일 계열(21·40)입니다.', 'Same NOTI void family for states 21·40.', 'NOTI 無効系(21・40)。', '与 NOTI 作废 21·40 同族。', 'สาย NOTI โมฆะ 21·40')
+      packN('무효처리: 통합 결제내역에서 자동·시스템 무효(내부 21·40)만 표시합니다. 이메일무효(22·41)는 「이메일무효」메뉴, 취소(20)와 구분됩니다.', 'Void processing: internal states 21·40 only. Email void (22·41) is on email-void menu; distinct from cancel (20).', '無効処理: 21・40 のみ。メール無効は別メニュー。', '作废处理：仅 21·40；邮件作废见专用菜单。', 'โมฆะ 21·40 เท่านั้น อีเมลโมฆะเมนูแยก'),
+      packN('상단은 건수와 해당 상태(무효) 요약 pill만 표시합니다(일별통합과 동일).', 'Top shows count and void pill only.', '上段は件数と無効 pill のみ。', '顶部仅显示件数与作废 pill。', 'ด้านบนแสดงจำนวนและ pill โมฆะเท่านั้น')
     ],
     '/calc/payEmailVoidList': [
-      packN('이메일무효: 승인(결제) 완료 후 이메일·수동 무효 계열(내부 22·41)만 표시합니다. 일반 무효(21·40)는 「무효처리」(/calc/payVoidList)에서 봅니다.', 'Email/manual void: internal 22·41 only. General void (21·40) is on /calc/payVoidList.', 'メール無効: 22・41 のみ。', '邮件作废：仅 22·41。', 'โมฆะอีเมล: 22·41'),
-      packN('ziobiz/NOTI 노티거래내역의 이메일무효 등과 동일 계열 상태입니다.', 'Same NOTI family as email-void flows.', 'NOTI メール無効系。', '与 NOTI 邮件作废同族。', 'สายอีเมลโมฆะ NOTI')
+      packN('이메일무효: 통합 결제내역에서 수동·이메일 무효(내부 22·41)만 표시합니다. 자동무효(21·40)는 「무효처리」메뉴입니다.', 'Email/manual void: internal 22·41 only. Auto void (21·40) is on void menu.', 'メール無効: 22・41 のみ。自動無効は無効処理メニュー。', '邮件作废：仅 22·41；自动作废见作废菜单。', 'โมฆะอีเมล: 22·41 โมฆะอัตโนมัติเมนูแยก'),
+      packN('상단은 건수와 해당 상태(이메일 무효) 요약 pill만 표시합니다(일별통합과 동일).', 'Top shows count and email-void pill only.', '上段は件数とメール無効 pill のみ。', '顶部仅显示件数与邮件作废 pill。', 'ด้านบนแสดงจำนวนและ pill อีเมลโมฆะเท่านั้น')
     ],
     '/calc/offsetCancList': [
       packN('상계취소내역: 가맹 정산에 이미 반영된 건(settled=Y)이 이후 취소·무효·환불·강제환불(내부 20·21·22·30·31·40·41·42)로 바뀐 경우만 표시합니다. 정산 전 실패(F0·99) 등은 제외됩니다.', 'Offset-cancel: rows already settled then later cancelled/void/refunded.', '相殺取消: 精算反映後に状態変化したもののみ。', '已结算后又取消/作废/退款的冲销场景。', 'หักบัญชีแล้วเปลี่ยนสถานะ'),
@@ -411,6 +433,13 @@
       packN('그리드 열 노출은 상단 VIEW SETTING에서 조정합니다(저장 시 사용자별로 유지). 번호·승인번호·업체명·업체코드·거래일·거래시간(JP·TH 두 줄)·루트는 그리드에 항상 표시되며 VIEW SETTING 목록에는 나오지 않습니다. 거래일은 YYYY-MM-DD(예: 2026-05-09) 형식으로 표시됩니다. 본사설정 → 조직항목설정에서 화면「통합내역」 허용 열을 제한할 수 있습니다.', 'Columns via VIEW SETTING (per user). Fixed leading columns are always visible. Transaction date is shown as YYYY-MM-DD (e.g. 2026-05-09). Org column allowance in HQ settings.', '列は VIEW SETTING。固定列は常時表示。取引日は YYYY-MM-DD（例: 2026-05-09）形式。', '列通过 VIEW SETTING 调整，前列固定。交易日期以 YYYY-MM-DD（例：2026-05-09）显示。', 'คอลัมน์ตั้งค่า VIEW วันที่ทำรายการแสดงเป็น YYYY-MM-DD (เช่น 2026-05-09)')
     ],
     '/calc/chillPaySettlementList': [
+      packN(
+        '상단 한 줄: 건수·총거래·승인·취소·수수료·담보·부가세·지급예상(승인−(취소+수수료+부가세))·추정결산(지급예상−담보). 아래 상태 pill과 별도입니다.',
+        'Top row: count, total txn, approve, cancel, fees, collateral, VAT, expected payout, est. settlement — separate from status pills below.',
+        '上段: 件数・総取引・承認・取消・手数料・担保・消費税・支払予定・推定決算。下の状態 pill とは別。',
+        '首行：件数、总交易、批准、取消、手续费、担保、增值税、预计拨付、预估结算；与下方状态 pill 分开。',
+        'แถวบน: สรุปยอดตามสูตรชำระบัญชี แยกจาก pill สถานะด้านล่าง'
+      ),
       packN('「예정(ICOPAY)」열은 배포설정 API연동설정(tb_pg_agency)의 T+N(주말 제외 영업일·결제와 동일 시각) 또는 D+N(달력+N일·일괄 시각)으로 계산합니다. OFF·MID 미매칭이면 비웁니다. 가맹 업체정보의 결제대행사 행에서 예정모드를 비우면 연동 기본을 따르고, OFF/T/D로 덮어쓸 수 있습니다.', 'Expected (ICOPAY) uses T+N / D+N from tb_pg_agency; empty when OFF or MID mismatch.', '「予定(ICOPAY)」は T+N/D+N で算出。', '「预计(ICOPAY)」按 T+N/D+N 计算。', 'คาดการณ์ ICOPAY ตาม T+N/D+N'),
       packN('칠페이 Transaction Services — Search Settlement Transaction API로 조회합니다. 통합내역은 결제 검색 중심이고, 통합정산은 정산 검색·지급액·순액·서비스비·이체일 등 정산 원문이 다릅니다. ICOPAY 정산 실행·유통망 정산 테이블과 무관합니다.', 'Settlement search API returns settlement-centric fields; unrelated to ICOPAY settlement run tables.', '精算検索 API。決済検索とは異なる項目。', '结算查询 API，字段与支付查询不同。', 'API ค้นหาเซตเทิลเมนต์'),
       packN('「정산(이체)」열은 승인 성공 건에만 ChillPay Settled를 정산완료 / 미정산으로 보입니다. 실패·취소·환불·무효 등은 칸을 비웁니다.', 'Settled column only for successful approvals; others blank.', '「精算」列は成功時のみ。', '「结算」列仅成功时显示。', 'คอลัมน์ Settled เฉพาะสำเร็จ'),
@@ -452,14 +481,14 @@
     ],
     '/calc/settlementReport': [
       packN('[리포트 형식] 가맹점 정산 리포트: 총본사·본사·총판 등이 소속 가맹에 보내는 정산 형식. 본사 지급 리포트: 총본사가 본사(REGIONAL)에 지급할 금액을 본사 단위로 합산(총본사·본사 로그인만 선택 가능).', '[Report format] Merchant report: settlement layout sent to merchants under your org tree. HQ payout report: amounts the root HQ pays to each REGIONAL (H) company, aggregated per regional org (selectable only when logged in as root HQ or regional HQ).', '[レポート形式] 加盟店精算：組織配下の加盟店向けの精算体裁。本社支払：総本部が本社(REGIONAL)へ支払う金額を本社単位で集計（総本部・本社ログイン時のみ選択可）。', '[报表格式] 商户结算报表：向隶属商户下发的结算版式。本部拨付报表：总总部按本部(REGIONAL)汇总应付金额（仅总总部/本部登录可选）。', '[รูปแบบรายงาน] รายงานร้าน: รูปแบบชำระที่ส่งให้ร้านในโครงสร้างองค์กร รายงานจ่าย HQ: ยอดที่สำนักงานใหญ่สุดจ่ายให้แต่ละ REGIONAL รวมตามรหัส本社 (เลือกได้เมื่อล็อกอินเป็น HQ รากหรือ HQ ภูมิภาคเท่านั้น)'),
-      packN('[하위 구분] 정산집계·정산실시·정산집계표·확정정산(리포트). 정산실시·확정정산 목록에서 행을 더블클릭하면 하단에 정산배포와 같이 해당 실행에 포함된 거래 목록이 표시됩니다(정산집계·집계표에는 실행 ID가 없어 생략).', '[Sub-type] Aggregate, runs, summary sheet, confirmed (report). Double-click a row on Runs or Confirmed to load included transactions in the bottom panel (same pattern as settlement publish). Aggregate/summary have no run id.', '[下位区分] 集計・実行・集計表・確定精算（レポート）。実行・確定精算では行ダブルクリックで下部に配布と同様の対象取引一覧を表示（集計・集計表は実行IDなし）。', '[子类型] 结算汇总、执行、汇总表、已确认（报表）。在执行或已确认列表双击行可在底部加载包含的交易（与结算发布相同）；汇总/汇总表无执行 ID。', '[ประเภทย่อย] สรุป / รัน / แผ่นสรุป / ยืนยันแล้ว ดับเบิลคลิกแถวในรัน/ยืนยันเพื่อโหลดธุรกรรมด้านล่าง (แบบเผยแพร่ชำระ); สรุปไม่มี run id'),
-      packN('정산집계·실시·집계표의 예치·Processing·건당요금 등은 백엔드 상수이며 응답 meta에 안내가 있습니다. 지급예정일은 정산일(정산주기 일자)과 동일합니다.', 'Deposit %, Processing %, per-txn fee, etc. in aggregate/run/summary views are backend constants; see API response meta. Payout due date equals the settlement run date (cycle date).', '集計・実行・集計表の預かり・Processing・件当などはバックエンド定数で、応答metaに案内があります。支払予定日は精算日（周期日）と同一です。', '汇总、执行、汇总表中的暂扣、Processing、按笔费用等为后端常量，说明见接口 meta。预计拨付日与结算日（周期日）相同。', 'ค่าคงที่ฝั่งเซิร์ฟเวอร์ (เงินประกัน %, Processing, ค่าธรรมเนียมต่อราย ฯลฯ) ดูใน meta; วันครบกำหนดจ่ายเท่ากับวันชำระ (วันรอบชำระ)'),
+      packN('[하위 구분] 정산집계·정산실시·정산집계표·확정정산(리포트). 정산집계·정산실시·확정정산에서 실행 ID가 있는 행을 클릭하면 하단에 해당 정산 실행에 포함된 거래 목록이 표시됩니다. 집계표(SUM)는 요약 1행만 조회되며, 본사 지급 리포트의 정산실시(EXE)는 합산 행이라 실행 ID가 없을 수 있습니다.', '[Sub-type] Aggregate, runs, summary sheet, confirmed (report). Click a row with a run ID in aggregate, runs, or confirmed to show included transactions below. SUM is one summary row; HQ payout report → Runs (EXE) may be an aggregate row without a run ID.', '[下位区分] 集計・実行・集計表・確定精算（レポート）。集計・実行・確定精算で実行IDがある行をクリックすると、下部に当該精算実行に含まれる取引一覧が表示されます。集計表(SUM)は要約1行のみで、本社支払レポートの実行(EXE)は合算行のため実行IDがない場合があります。', '[子类型] 结算汇总、执行、汇总表、已确认（报表）。在汇总、执行或已确认中点击含执行 ID 的行，可在下方显示该执行包含的交易列表。汇总表(SUM)仅一行摘要；本部拨付报表的执行(EXE)可能为汇总行而无执行 ID。', '[ประเภทย่อย] สรุป / รัน / แผ่นสรุป / ยืนยันแล้ว คลิกแถวที่มี run ID ใน AGG/EXE/RST เพื่อแสดงธุรกรรมด้านล่าง SUM เป็นหนึ่งแถวสรุป EXE รายงานจ่าย HQ อาจไม่มี run ID'),
+      packN('정산집계·정산실시의 비율형 수수료·건당수수료·부가세는 수수료 정책·거래 상태별 수수료내역 계산과 동일 규칙으로 집계합니다. 통화 열은 정책 통화(THB/KRW/USD/JPY 등)입니다.', 'Percentage fees, per-txn fees, and VAT in aggregate and runs are summed using the same rules as fee policy and per-status fee history. The currency column shows policy currency (THB/KRW/USD/JPY, etc.).', '精算集計・実行の比率型手数료・件当手数료・消費税は、手数料政策・取引状態別の手数料一覧計算と同一ルールで集計します。通貨列は政策通貨（THB/KRW/USD/JPY 等）です。', '结算汇总、执行中的比例手续费、按笔手续费、增值税按手续费政策及各交易状态的手续费明细相同规则汇总。货币列显示政策货币（THB/KRW/USD/JPY 等）。', 'ค่าธรรมเนียม % ต่อรายการ และ VAT ใน AGG/EXE รวมตามกฎเดียวกับนโยบายและประวัติค่าธรรมเนียม คอลัมน์สกุลเงินแสดงสกุลนโยบาย (THB/KRW/USD/JPY ฯลฯ)'),
       packN('[배포 기준] 집계(AGG)·실시(EXE)·집계표(SUM)에는 정산배포가 완료된 실행(DISTRIBUTED, 레거시 null 허용)만 포함합니다. 가맹점정산내역·유통 집계와 동일합니다. 확정정산(RST)도 배포·확정된 실행만 표시합니다.', '[Publish gate] AGG/EXE/SUM include only settlement runs published as DISTRIBUTED (legacy null allowed)—same gate as merchant statements and distribution rollup. RST lists only published and CALCULATED runs.', '[配布基準] AGG/EXE/SUM は配布済み(DISTRIBUTED、レガシーnull可)の実行のみ。加盟店精算・流通集計と同一。RST も配布・確定済みのみ。', '[下发口径] AGG/EXE/SUM 仅含已下发(DISTRIBUTED，兼容历史 null)的执行，与商户结算明细、流通汇总一致。RST 亦仅已下发且已确认。', '[เกณฑ์เผยแพร่] AGG/EXE/SUM รวมเฉพาะรันที่เผยแพร่แล้วเป็น DISTRIBUTED (รองรับ null เดิม) เหมือนรายการชำระร้านและสรุปห่วงโซ่ RST เฉพาะที่เผยแพร่และ CALCULATED')
     ],
     '/settlement/settlementReport': [
       packN('[리포트 형식] 가맹점 정산 리포트: 총본사·본사·총판 등이 소속 가맹에 보내는 정산 형식. 본사 지급 리포트: 총본사가 본사(REGIONAL)에 지급할 금액을 본사 단위로 합산(총본사·본사 로그인만 선택 가능).', '[Report format] Merchant report: settlement layout sent to merchants under your org tree. HQ payout report: amounts the root HQ pays to each REGIONAL (H) company, aggregated per regional org (selectable only when logged in as root HQ or regional HQ).', '[レポート形式] 加盟店精算：組織配下の加盟店向けの精算体裁。本社支払：総本部が本社(REGIONAL)へ支払う金額を本社単位で集計（総本部・本社ログイン時のみ選択可）。', '[报表格式] 商户结算报表：向隶属商户下发的结算版式。本部拨付报表：总总部按本部(REGIONAL)汇总应付金额（仅总总部/本部登录可选）。', '[รูปแบบรายงาน] รายงานร้าน: รูปแบบชำระที่ส่งให้ร้านในโครงสร้างองค์กร รายงานจ่าย HQ: ยอดที่สำนักงานใหญ่สุดจ่ายให้แต่ละ REGIONAL รวมตามรหัส本社 (เลือกได้เมื่อล็อกอินเป็น HQ รากหรือ HQ ภูมิภาคเท่านั้น)'),
-      packN('[하위 구분] 정산집계·정산실시·정산집계표·확정정산(리포트). 정산실시·확정정산 목록에서 행을 더블클릭하면 하단에 정산배포와 같이 해당 실행에 포함된 거래 목록이 표시됩니다(정산집계·집계표에는 실행 ID가 없어 생략).', '[Sub-type] Aggregate, runs, summary sheet, confirmed (report). Double-click a row on Runs or Confirmed to load included transactions in the bottom panel (same pattern as settlement publish). Aggregate/summary have no run id.', '[下位区分] 集計・実行・集計表・確定精算（レポート）。実行・確定精算では行ダブルクリックで下部に配布と同様の対象取引一覧を表示（集計・集計表は実行IDなし）。', '[子类型] 结算汇总、执行、汇总表、已确认（报表）。在执行或已确认列表双击行可在底部加载包含的交易（与结算发布相同）；汇总/汇总表无执行 ID。', '[ประเภทย่อย] สรุป / รัน / แผ่นสรุป / ยืนยันแล้ว ดับเบิลคลิกแถวในรัน/ยืนยันเพื่อโหลดธุรกรรมด้านล่าง (แบบเผยแพร่ชำระ); สรุปไม่มี run id'),
-      packN('정산집계·실시·집계표의 예치·Processing·건당요금 등은 백엔드 상수이며 응답 meta에 안내가 있습니다. 지급예정일은 정산일(정산주기 일자)과 동일합니다.', 'Deposit %, Processing %, per-txn fee, etc. in aggregate/run/summary views are backend constants; see API response meta. Payout due date equals the settlement run date (cycle date).', '集計・実行・集計表の預かり・Processing・件当などはバックエンド定数で、応答metaに案内があります。支払予定日は精算日（周期日）と同一です。', '汇总、执行、汇总表中的暂扣、Processing、按笔费用等为后端常量，说明见接口 meta。预计拨付日与结算日（周期日）相同。', 'ค่าคงที่ฝั่งเซิร์ฟเวอร์ (เงินประกัน %, Processing, ค่าธรรมเนียมต่อราย ฯลฯ) ดูใน meta; วันครบกำหนดจ่ายเท่ากับวันชำระ (วันรอบชำระ)'),
+      packN('[하위 구분] 정산집계·정산실시·정산집계표·확정정산(리포트). 정산집계·정산실시·확정정산에서 실행 ID가 있는 행을 클릭하면 하단에 해당 정산 실행에 포함된 거래 목록이 표시됩니다. 집계표(SUM)는 요약 1행만 조회되며, 본사 지급 리포트의 정산실시(EXE)는 합산 행이라 실행 ID가 없을 수 있습니다.', '[Sub-type] Aggregate, runs, summary sheet, confirmed (report). Click a row with a run ID in aggregate, runs, or confirmed to show included transactions below. SUM is one summary row; HQ payout report → Runs (EXE) may be an aggregate row without a run ID.', '[下位区分] 集計・実行・集計表・確定精算（レポート）。集計・実行・確定精算で実行IDがある行をクリックすると、下部に当該精算実行に含まれる取引一覧が表示されます。集計表(SUM)は要約1行のみで、本社支払レポートの実行(EXE)は合算行のため実行IDがない場合があります。', '[子类型] 结算汇总、执行、汇总表、已确认（报表）。在汇总、执行或已确认中点击含执行 ID 的行，可在下方显示该执行包含的交易列表。汇总表(SUM)仅一行摘要；本部拨付报表的执行(EXE)可能为汇总行而无执行 ID。', '[ประเภทย่อย] สรุป / รัน / แผ่นสรุป / ยืนยันแล้ว คลิกแถวที่มี run ID ใน AGG/EXE/RST เพื่อแสดงธุรกรรมด้านล่าง SUM เป็นหนึ่งแถวสรุป EXE รายงานจ่าย HQ อาจไม่มี run ID'),
+      packN('정산집계·정산실시의 비율형 수수료·건당수수료·부가세는 수수료 정책·거래 상태별 수수료내역 계산과 동일 규칙으로 집계합니다. 통화 열은 정책 통화(THB/KRW/USD/JPY 등)입니다.', 'Percentage fees, per-txn fees, and VAT in aggregate and runs are summed using the same rules as fee policy and per-status fee history. The currency column shows policy currency (THB/KRW/USD/JPY, etc.).', '精算集計・実行の比率型手数료・件当手数료・消費税は、手数料政策・取引状態別の手数料一覧計算と同一ルールで集計します。通貨列は政策通貨（THB/KRW/USD/JPY 等）です。', '结算汇总、执行中的比例手续费、按笔手续费、增值税按手续费政策及各交易状态的手续费明细相同规则汇总。货币列显示政策货币（THB/KRW/USD/JPY 等）。', 'ค่าธรรมเนียม % ต่อรายการ และ VAT ใน AGG/EXE รวมตามกฎเดียวกับนโยบายและประวัติค่าธรรมเนียม คอลัมน์สกุลเงินแสดงสกุลนโยบาย (THB/KRW/USD/JPY ฯลฯ)'),
       packN('[배포 기준] 집계(AGG)·실시(EXE)·집계표(SUM)에는 정산배포가 완료된 실행(DISTRIBUTED, 레거시 null 허용)만 포함합니다. 가맹점정산내역·유통 집계와 동일합니다. 확정정산(RST)도 배포·확정된 실행만 표시합니다.', '[Publish gate] AGG/EXE/SUM include only settlement runs published as DISTRIBUTED (legacy null allowed)—same gate as merchant statements and distribution rollup. RST lists only published and CALCULATED runs.', '[配布基準] AGG/EXE/SUM は配布済み(DISTRIBUTED、レガシーnull可)の実行のみ。加盟店精算・流通集計と同一。RST も配布・確定済みのみ。', '[下发口径] AGG/EXE/SUM 仅含已下发(DISTRIBUTED，兼容历史 null)的执行，与商户结算明细、流通汇总一致。RST 亦仅已下发且已确认。', '[เกณฑ์เผยแพร่] AGG/EXE/SUM รวมเฉพาะรันที่เผยแพร่แล้วเป็น DISTRIBUTED (รองรับ null เดิม) เหมือนรายการชำระร้านและสรุปห่วงโซ่ RST เฉพาะที่เผยแพร่และ CALCULATED')
     ],
     '/ops/taxReport': [
@@ -501,11 +530,11 @@
     ],
     '/calc/dailyIntegrated': [
       packN(
-        '통합내역(칠페이 결제 검색)과 동일 자격·필터로, 거래일자 구간을 일 단위로 집계합니다. 일자별 성공·실패·취소·무효·이메일무효·환불·강제환불·기타 건수는 해당 일 집계 기준입니다(칠페이 일 100건 초과 시 금액·상태 요약은 샘플일 수 있음). 일자 행을 클릭하면 아래에 해당 일 통합내역 전체가 표시됩니다.',
-        'Uses the same credentials and filters as integrated ChillPay payment search, aggregated by calendar day. Per-day success/fail/cancel/void/email-void/refund/force-refund/other counts follow that day’s aggregation (when a day exceeds ~100 ChillPay rows, amount/status summaries may be sampled). Click a date row to show all integrated rows for that day below.',
-        '統合内訳（ChillPay 決済検索）と同一資格・フィルタで、取引日範囲を日単位で集計します。日別の成功・失敗・取消・無効・メール無効・返金・強制返金・その他件数は当日の集計基準です（ChillPay が1日100件超の場合、金額・状態要約はサンプルのことがあります）。日付行をクリックすると当日の統合内訳をすべて下に表示します。',
-        '与「整合明细（ChillPay 支付搜索）」相同权限与筛选，按交易日区间做按日汇总。各日的成功/失败/取消/作废/邮件作废/退款/强制退款/其他笔数按当日汇总口径（ChillPay 单日超过约100笔时，金额与状态摘要可能为抽样）。点击日期行可在下方显示该日全部整合明细。',
-        'ใช้สิทธิ์และตัวกรองเดียวกับค้นหา ChillPay รวมรายวัน คลิกแถววันที่เพื่อดูรายการรวมของวันนั้นทั้งหมด'
+        '통합내역(칠페이 결제 검색)과 동일 자격·필터로, 거래일자 구간을 일 단위로 집계합니다. 일자별 성공·실패·취소·무효·이메일무효·환불·강제환불·기타 건수는 해당 일 집계 기준입니다(칠페이 일 100건 초과 시 금액·상태 요약은 샘플일 수 있음). 일자 행을 더블클릭하면 아래에 해당 일 통합내역 전체·총거래~추정결산 요약이 표시됩니다.',
+        'Uses the same credentials and filters as integrated ChillPay payment search, aggregated by calendar day. Per-day counts follow that day’s aggregation (when a day exceeds ~100 ChillPay rows, amount/status summaries may be sampled). Double-click a date row to show all integrated rows and the financial summary for that day below.',
+        '統合内訳（ChillPay 決済検索）と同一資格・フィルタで、取引日範囲を日単位で集計します。日別件数は当日の集計基準です。日付行をダブルクリックすると当日の統合内訳と総取引〜推定決算の要約を下に表示します。',
+        '与「整合明细（ChillPay 支付搜索）」相同权限与筛选，按交易日区间做按日汇总。双击日期行可在下方显示该日全部整合明细及总交易〜预估结算摘要。',
+        'ใช้สิทธิ์และตัวกรองเดียวกับค้นหา ChillPay รวมรายวัน ดับเบิลคลิกแถววันที่เพื่อดูรายการและสรุปยอดของวันนั้น'
       ),
       packN(
         '조회 기간은 최대 93일입니다. 칠페이 API 장애 시 해당 일에 오류 메시지가 표시될 수 있습니다.',
@@ -517,11 +546,11 @@
     ],
     '/calc/dailyPay': [
       packN(
-        '결제내역(tb_pg_trnsctn, 적재일)과 동일 필터로 일자별 집계합니다. 일자별 성공·실패·취소·무효·이메일무효·환불·강제환불·기타 건수는 해당 일 전체 건 기준입니다. 일자 행을 클릭하면 아래에 해당 일 결제내역 전체가 표시됩니다.',
-        'Same filters as payment history (tb_pg_trnsctn, ingest date), aggregated by day. Per-day bucket counts are for all rows that day. Click a date row to load all payment rows for that day below.',
-        '決済履歴（tb_pg_trnsctn、取込日）と同一フィルタで日別集計します。日別の成功・失敗・取消・無効・メール無効・返金・強制返金・その他件数は当日の全件基準です。日付行をクリックすると当日の決済履歴をすべて下に表示します。',
-        '与支付历史（tb_pg_trnsctn，入库日）相同筛选，按日汇总。各状态分组笔数为该日全量口径。点击日期行可在下方加载该日全部支付明细。',
-        'สรุปรายวันด้วยตัวกรองเดียวกับประวัติการชำระ คลิกวันที่เพื่อโหลดรายการทั้งหมดของวันนั้น'
+        '결제내역(tb_pg_trnsctn, 적재일)과 동일 필터로 일자별 집계합니다. 일자별 성공·실패·취소·무효·이메일무효·환불·강제환불·기타 건수는 해당 일 전체 건 기준입니다. 일자 행을 더블클릭하면 아래에 해당 일 결제내역 전체·총거래~추정결산 요약이 표시됩니다.',
+        'Same filters as payment history (tb_pg_trnsctn, ingest date), aggregated by day. Per-day bucket counts are for all rows that day. Double-click a date row to load all payment rows and the financial summary for that day below.',
+        '決済履歴（tb_pg_trnsctn、取込日）と同一フィルタで日別集計します。日付行をダブルクリックすると当日の決済履歴と総取引〜推定決算の要約を下に表示します。',
+        '与支付历史（tb_pg_trnsctn，入库日）相同筛选，按日汇总。双击日期行可在下方加载该日全部支付明细及总交易〜预估结算摘要。',
+        'สรุปรายวันด้วยตัวกรองเดียวกับประวัติการชำระ ดับเบิลคลิกวันที่เพื่อโหลดรายการและสรุปยอดของวันนั้น'
       ),
       packN(
         '조회 기간은 최대 93일입니다.',
@@ -533,6 +562,13 @@
     ],
     '/calc/feeList': [
       packN(
+        '상단 한 줄: 건수·총거래·승인·취소·수수료·담보·부가세·지급예상(승인−(취소+수수료+부가세))·추정결산(지급예상−담보). 정산예상(구) 라벨은 제거되었습니다.',
+        'Top row: count, total txn, approve, cancel, fees, collateral, VAT, expected payout (approve−(cancel+fees+VAT)), est. settlement (expected−collateral). Legacy “expected settlement” label removed.',
+        '上段: 件数・総取引・承認・取消・手数料・担保・消費税・支払予定(承認−(取消+手数料+消費税))・推定決算(支払予定−担保)。旧「精算予定」ラベルは廃止。',
+        '首行：件数、总交易、批准、取消、手续费、担保、增值税、预计拨付(批准−(取消+手续费+增值税))、预估结算(预计拨付−担保)。已移除旧「预计结算」标签。',
+        'แถวบน: จำนวน ยอดรวมธุรกรรม อนุมัติ ยกเลิก ค่าธรรมเนียม หลักประกัน VAT ยอดจ่ายโดยประมาณ ประมาณการชำระบัญชี'
+      ),
+      packN(
         '검색: 첫 줄에서 거래일·빠른기간을 정한 뒤, 둘째 줄에서 검색구분·검색어·상태그룹을 맞추고 오른쪽 [검색]을 누릅니다. 「전체」는 해당 조건으로 좁히지 않습니다. 앞쪽 열 순서(업체·거래일·거래시간·루트·승인번호·거래번호)는 통합 결제내역 기본과 같습니다. 건당수수료 열은 거래 성공 시 과금되는 성공(건당) 고정액만 표시합니다. 기타수수료: USDT·FX는 승인금액 대비 %(「결제(%)」 합계에 포함), 3DS는 정책통화 기준 건당 고정(합계 열에는 미포함·별도 열). 세 항목은 결제·건당 등과 별도로 동시 과금될 수 있습니다. 금액이 없으면 USDT·FX·3DS 열은 — 입니다. 정산 수수료는 정산 실행 시 1회 과금되며, 송금(이체) 수수료는 그 이후 송금 처리 시 과금되어 정산리포트에 정산 수수료·송금 수수료로 각각 표시됩니다. 이 화면의 총수수료·지급예상에는 정산·송금 건당액이 포함되지 않습니다. 결제(성공): 건당·%(승인 시 부과) 열, 담보(롤링%·추정액), 지급예상액, 정산액(지급예상−담보추정). 실패·취소·무효·환불 등은 상태별 수수료 규칙을 따르며, 무효·환불 계열은 성공 건과 동일한 건당·%가 추가로 과금될 수 있습니다(이중 과금). 차감(취소·환불·무효·실패 등): 지급예상액은 0, 총수수료·부가세는 과금액(양수), 정산액은 −(총수수료+부가세)입니다. 담보 추정은 승인 건에만 표시됩니다. 본사·총판 등은 로그인 조직 하위 가맹점만 조회됩니다.',
         'Search: set transaction dates and quick range on the first row; on the second row set search field, keyword, and status group, then click [Search] on the right. [All] does not narrow that dimension. Leading columns (merchant, date, time, route, approval no., txn id) match the integrated payment list. The per-txn fee column shows only the flat success fee charged on successful transactions. Other fees: USDT·FX are % of approved amount (included in the Pay(%) total); 3DS is a fixed per-txn charge in policy currency (not in the sum totals, separate column). Those three may accrue alongside pay/per-txn fees. When there is no amount, USDT·FX·3DS show an em dash. Settlement fees are charged once per settlement run; wire/transfer fees are charged when the transfer is processed and appear separately on settlement reports as settlement fee and wire fee. This screen’s total fees and expected payout exclude settlement/wire per-txn rows. Pay (success): per-txn and % columns charged on approval; collateral (rolling % and estimate); expected payout; settlement amount (expected minus collateral estimate). Fail/cancel/void/refund follow state-specific fee rules; void/refund families may incur the same per-txn/% as success (double charge). Deductions (cancel/refund/void/fail, etc.): expected payout is 0; total fee and VAT are charged amounts (positive); settlement amount is −(total fee + VAT). Collateral estimate is shown only for approved transactions. HQ/distributors see only merchants under the logged-in organization.',
         '検索：1行目で取引日・クイック期間を指定し、2行目で検索区分・キーワード・状態グループを合わせて右の［検索］を押します。「すべて」はその条件での絞り込みを行いません。先頭列（加盟店・取引日・時刻・ルート・承認番号・取引番号）は統合決済一覧と同じ順です。件当手数料列は取引成功時のみ課される成功（件当）固定額を表示します。その他手数料：USDT・FXは承認金額比の%（「決済(%)」合計に含む）、3DSは政策通貨基準の件当固定（合計列には含まず別列）。3つは決済・件当等とは別に同時課金され得ます。金額がない場合USDT・FX・3DSは「—」です。精算手数料は精算実行時に1回課金され、送金（振込）手数料はその後の送金処理で課金され精算レポートに精算手数料・送金手数料として表示されます。この画面の手数料合計・支払予定額には精算・送金の件当は含みません。決済（成功）：件当・%（承認時）列、担保（ロール%・見積額）、支払予定額、精算額（支払予定−担保見積）。失敗・取消・無効・返金等は状態別の手数料ルールに従い、無効・返金系は成功取引と同様の件当・%が追加課金され得ます（二重課金）。控除（取消・返金・無効・失敗等）：支払予定額は0、手数料合計・消費税は課金額（正）、精算額は−(手数料合計+消費税)です。担保見積は承認取引のみ表示されます。本社・総販等はログイン組織配下の加盟店のみ照会できます。',
@@ -541,6 +577,13 @@
       )
     ],
     '/settlement/feeList': [
+      packN(
+        '상단 한 줄: 건수·총거래·승인·취소·수수료·담보·부가세·지급예상(승인−(취소+수수료+부가세))·추정결산(지급예상−담보). 정산예상(구) 라벨은 제거되었습니다.',
+        'Top row: count, total txn, approve, cancel, fees, collateral, VAT, expected payout (approve−(cancel+fees+VAT)), est. settlement (expected−collateral). Legacy “expected settlement” label removed.',
+        '上段: 件数・総取引・承認・取消・手数料・担保・消費税・支払予定(承認−(取消+手数料+消費税))・推定決算(支払予定−担保)。旧「精算予定」ラベルは廃止。',
+        '首行：件数、总交易、批准、取消、手续费、担保、增值税、预计拨付(批准−(取消+手续费+增值税))、预估结算(预计拨付−担保)。已移除旧「预计结算」标签。',
+        'แถวบน: จำนวน ยอดรวมธุรกรรม อนุมัติ ยกเลิก ค่าธรรมเนียม หลักประกัน VAT ยอดจ่ายโดยประมาณ ประมาณการชำระบัญชี'
+      ),
       packN(
         '검색: 첫 줄에서 거래일·빠른기간을 정한 뒤, 둘째 줄에서 검색구분·검색어·상태그룹을 맞추고 오른쪽 [검색]을 누릅니다. 「전체」는 해당 조건으로 좁히지 않습니다. 앞쪽 열 순서(업체·거래일·거래시간·루트·승인번호·거래번호)는 통합 결제내역 기본과 같습니다. 건당수수료 열은 거래 성공 시 과금되는 성공(건당) 고정액만 표시합니다. 기타수수료: USDT·FX는 승인금액 대비 %(「결제(%)」 합계에 포함), 3DS는 정책통화 기준 건당 고정(합계 열에는 미포함·별도 열). 세 항목은 결제·건당 등과 별도로 동시 과금될 수 있습니다. 금액이 없으면 USDT·FX·3DS 열은 — 입니다. 정산 수수료는 정산 실행 시 1회 과금되며, 송금(이체) 수수료는 그 이후 송금 처리 시 과금되어 정산리포트에 정산 수수료·송금 수수료로 각각 표시됩니다. 이 화면의 총수수료·지급예상에는 정산·송금 건당액이 포함되지 않습니다. 결제(성공): 건당·%(승인 시 부과) 열, 담보(롤링%·추정액), 지급예상액, 정산액(지급예상−담보추정). 실패·취소·무효·환불 등은 상태별 수수료 규칙을 따르며, 무효·환불 계열은 성공 건과 동일한 건당·%가 추가로 과금될 수 있습니다(이중 과금). 차감(취소·환불·무효·실패 등): 지급예상액은 0, 총수수료·부가세는 과금액(양수), 정산액은 −(총수수료+부가세)입니다. 담보 추정은 승인 건에만 표시됩니다. 본사·총판 등은 로그인 조직 하위 가맹점만 조회됩니다.',
         'Search: set transaction dates and quick range on the first row; on the second row set search field, keyword, and status group, then click [Search] on the right. [All] does not narrow that dimension. Leading columns (merchant, date, time, route, approval no., txn id) match the integrated payment list. The per-txn fee column shows only the flat success fee charged on successful transactions. Other fees: USDT·FX are % of approved amount (included in the Pay(%) total); 3DS is a fixed per-txn charge in policy currency (not in the sum totals, separate column). Those three may accrue alongside pay/per-txn fees. When there is no amount, USDT·FX·3DS show an em dash. Settlement fees are charged once per settlement run; wire/transfer fees are charged when the transfer is processed and appear separately on settlement reports as settlement fee and wire fee. This screen’s total fees and expected payout exclude settlement/wire per-txn rows. Pay (success): per-txn and % columns charged on approval; collateral (rolling % and estimate); expected payout; settlement amount (expected minus collateral estimate). Fail/cancel/void/refund follow state-specific fee rules; void/refund families may incur the same per-txn/% as success (double charge). Deductions (cancel/refund/void/fail, etc.): expected payout is 0; total fee and VAT are charged amounts (positive); settlement amount is −(total fee + VAT). Collateral estimate is shown only for approved transactions. HQ/distributors see only merchants under the logged-in organization.',
@@ -606,9 +649,99 @@
         '取引別ロール預り（担保）は「担保金一覧」(/calc/collateralList)で確認してください。',
         '按笔滚动保证金请在「保证金记录」(/calc/collateralList)查看。',
         'หลักประกันหมุนเวียนต่อรายการดูที่รายการหลักประกัน (/calc/collateralList)'
+      ),
+      packN(
+        '표시 열은 [헬로] 옆 VIEW SETTING에서 조정할 수 있습니다(저장 시 사용자별 유지). 체크·보류해제 열은 항상 표시됩니다.',
+        'Toggle visible columns via VIEW SETTING next to Hello (saved per user). Checkbox and Release columns always stay visible.',
+        '表示列は［Hello］横の VIEW SETTING で調整できます（保存時ユーザー別に維持）。チェック・保留解除列は常に表示されます。',
+        '可通过 Hello 旁的 VIEW SETTING 调整显示列（按用户保存）。勾选与解除暂缓列始终显示。',
+        'สลับคอลัมน์ที่มองเห็นผ่าน VIEW SETTING ข้าง Hello (บันทึกต่อผู้ใช้) คอลัมน์เลือกและปลดพักแสดงเสมอ'
+      )
+    ],
+    '/settlement/paySettlementHoldList': [
+      packN(
+        '정산방법에서 지급보류가 「보류」인 가맹점은 정산 실행 시 결과가 가맹점정산내역·유통망정산 집계에 나타나지 않고 이 화면에만 적치됩니다. 정산 금액·수수료 등은 이미 계산·저장된 값입니다.',
+        'Merchants with payout hold set to “hold” in settlement method do not appear in merchant settlement or distributor totals when a run completes; rows land on this screen only. Amounts and fees are already calculated and stored.',
+        '精算方法で支給保留が「保留」の加盟店は、精算実行時に加盟店精算一覧・流通網精算集計へは出ず、この画面にのみ溜まります。精算金額・手数料等は既に計算・保存済みの値です。',
+        '结算方式中支付暂缓为「暂缓」的商户，结算执行完成后不会出现在商户结算与分销汇总中，仅堆积在本屏。结算金额与手续费等为已计算并保存的值。',
+        'ร้านที่ตั้งค่าพักจ่ายเป็น「พัก」จะไม่ไปรวมในรายการชำระร้าน/เครือข่ายหลังรันชำระ แสดงเฉพาะหน้านี้ ยอดและค่าธรรมเนียมคำนวณและบันทึกแล้ว'
+      ),
+      packN(
+        '「보류해제」열의 [Y→N 해제]로 한 건만 바로 해제하거나, 체크 후 [선택 건 지급보류 해제]로 여러 건을 한 번에 처리할 수 있습니다. 더블 확인 후 실행 행의 지급보류(Y)가 N으로 바뀌며 가맹점정산내역(및 유통 집계)에 반영됩니다. 가맹점 설정의 지급보류는 그대로이며, 이후 신규 정산 건은 다시 이 목록에 쌓일 수 있습니다.',
+        'Use [Y→N release] in the Release column for a single row, or check rows and [Release payout hold (selected)] for bulk. After confirmation, payout hold on the run becomes N and posts to merchant settlement (and distributor totals). The merchant profile payout-hold setting is unchanged; new runs may appear here again.',
+        '「保留解除」列の［Y→N解除］で1件だけ即解除するか、チェック後［選択実行の支給保留解除］で複数件を一括処理できます。確認後、実行行の支給保留(Y)がNになり加盟店精算一覧（および流通集計）へ反映されます。加盟店設定の支給保留は変わらず、以後の新規精算は再びこの一覧に溜まることがあります。',
+        '「解除暂缓」列用【Y→N 解除】逐条解除，或勾选后【解除所选记录的支付暂缓】批量处理。确认后该执行行的支付暂缓变为 N 并写入商户结算（及分销汇总）。商户配置的支付暂缓不变，后续新结算仍可能再进入本列表。',
+        'คอลัมน์ปลด: กด [Y→N] ทีละแถว หรือเลือกหลายแถวแล้ว [ปลดพักจ่ายที่เลือก] หลังยืนยัน Y เป็น N และสะท้อนในรายการชำระร้าน การตั้งค่าพักจ่ายของร้านไม่เปลี่ยน รันใหม่อาจกลับมาที่นี่'
+      ),
+      packN(
+        '결제 건별 롤링 예치(담보)는 「담보금내역」(/calc/collateralList)에서 확인하세요.',
+        'Per-transaction rolling collateral is shown under Collateral list (/calc/collateralList).',
+        '取引別ロール預り（担保）は「担保金一覧」(/calc/collateralList)で確認してください。',
+        '按笔滚动保证金请在「保证金记录」(/calc/collateralList)查看。',
+        'หลักประกันหมุนเวียนต่อรายการดูที่รายการหลักประกัน (/calc/collateralList)'
+      ),
+      packN(
+        '표시 열은 [헬로] 옆 VIEW SETTING에서 조정할 수 있습니다(저장 시 사용자별 유지). 체크·보류해제 열은 항상 표시됩니다.',
+        'Toggle visible columns via VIEW SETTING next to Hello (saved per user). Checkbox and Release columns always stay visible.',
+        '表示列は［Hello］横の VIEW SETTING で調整できます（保存時ユーザー別に維持）。チェック・保留解除列は常に表示されます。',
+        '可通过 Hello 旁的 VIEW SETTING 调整显示列（按用户保存）。勾选与解除暂缓列始终显示。',
+        'สลับคอลัมน์ที่มองเห็นผ่าน VIEW SETTING ข้าง Hello (บันทึกต่อผู้ใช้) คอลัมน์เลือกและปลดพักแสดงเสมอ'
+      )
+    ],
+    '/calc/calcGmList': [
+      packN(
+        '한 행은 정산 실행으로 저장된 귀사(가맹) 정산 결과입니다. 정산기간·빠른기간으로 조회한 뒤 [검색] 하세요.',
+        'Each row is a settlement run result saved for your merchant. Set the settlement period or quick range, then click [Search].',
+        '1行は精算実行として保存された貴社（加盟店）の精算結果です。精算期間・クイック期間を指定してから［検索］してください。',
+        '每行为您（商户）已保存的结算执行结果。请设定结算期间或快捷区间后点击【搜索】。',
+        'แต่ละแถวคือผลชำระที่บันทึกจากรันชำระ ตั้งช่วงชำระหรือช่วงด่วนแล้วกด [ค้นหา]'
+      ),
+      packN(
+        '정산대상기간·결제금액·수수료·보증금·정산료·VAT·지급액은 정산배포·정산실행과 동일한 실행 저장값·집계 규칙을 따릅니다. 수수료 열은 건당·결제%·취소·환불(무효 등) 구간을 합산한 거래수수료(tb_settlement_run.total_fee)입니다.',
+        'Target period, payment amount, fees, collateral, settlement fee, VAT, and payout follow the same stored run values and aggregation rules as settlement publish and runs. The fee column is total transaction fees (tb_settlement_run.total_fee) summing per-txn, pay %, cancel, refund (void, etc.) buckets.',
+        '精算対象期間・決済金額・手数료・担保金・精算料・VAT・支払額は、精算配布・精算実行と同じ実行保存値・集計ルールに従います。手数料列は件当・決済%・取消・返金（無効等）区間を合算した取引手数料（tb_settlement_run.total_fee）です。',
+        '结算目标期间、支付金额、手续费、保证金、结算费、VAT、拨付额与结算下发、结算执行采用相同的执行保存值与汇总规则。手续费列为按笔、支付%、取消、退款（作废等）区间汇总的交易手续费（tb_settlement_run.total_fee）。',
+        'ช่วงเป้าหมาย ยอดชำระ ค่าธรรมเนียม หลักประกัน ค่าธรรมเนียมชำระ VAT และยอดจ่ายใช้กฎเดียวกับแจกจ่าย/รันชำระ คอลัมน์ค่าธรรมเนียมคือ total_fee รวมต่อรายการ % ยกเลิก คืน โมฆะ ฯลฯ'
+      ),
+      packN(
+        '표시 열은 [헬로] 옆 VIEW SETTING에서 조정할 수 있습니다(저장 시 사용자별 유지). 건당·취소·환불 등 세부 분해 열은 같은 거래 구간 합산 보조값입니다.',
+        'Toggle visible columns via VIEW SETTING next to Hello (saved per user). Per-txn, cancel, refund, etc. breakdown columns are auxiliary sums for the same transaction window.',
+        '表示列は［Hello］横の VIEW SETTING で調整できます（保存時ユーザー別に維持）。件当・取消・返金等の内訳列は同一取引区間の合算補助値です。',
+        '可通过 Hello 旁的 VIEW SETTING 调整显示列（按用户保存）。按笔、取消、退款等明细列为同一交易区间的汇总辅助值。',
+        'สลับคอลัมน์ที่มองเห็นผ่าน VIEW SETTING ข้าง Hello (บันทึกต่อผู้ใช้) คอลัมน์แยกต่อรายการ ยกเลิก คืน ฯลฯ เป็นยอดรวมเสริมในช่วงธุรกรรมเดียวกัน'
+      )
+    ],
+    '/settlement/franchiseList': [
+      packN(
+        '한 행은 정산 실행으로 저장된 귀사(가맹) 정산 결과입니다. 정산기간·빠른기간으로 조회한 뒤 [검색] 하세요.',
+        'Each row is a settlement run result saved for your merchant. Set the settlement period or quick range, then click [Search].',
+        '1行は精算実行として保存された貴社（加盟店）の精算結果です。精算期間・クイック期間を指定してから［検索］してください。',
+        '每行为您（商户）已保存的结算执行结果。请设定结算期间或快捷区间后点击【搜索】。',
+        'แต่ละแถวคือผลชำระที่บันทึกจากรันชำระ ตั้งช่วงชำระหรือช่วงด่วนแล้วกด [ค้นหา]'
+      ),
+      packN(
+        '정산대상기간·결제금액·수수료·보증금·정산료·VAT·지급액은 정산배포·정산실행과 동일한 실행 저장값·집계 규칙을 따릅니다. 수수료 열은 건당·결제%·취소·환불(무효 등) 구간을 합산한 거래수수료(tb_settlement_run.total_fee)입니다.',
+        'Target period, payment amount, fees, collateral, settlement fee, VAT, and payout follow the same stored run values and aggregation rules as settlement publish and runs. The fee column is total transaction fees (tb_settlement_run.total_fee) summing per-txn, pay %, cancel, refund (void, etc.) buckets.',
+        '精算対象期間・決済金額・手数료・担保金・精算料・VAT・支払額は、精算配布・精算実行と同じ実行保存値・集計ルールに従います。手数料列は件当・決済%・取消・返金（無効等）区間を合算した取引手数料（tb_settlement_run.total_fee）です。',
+        '结算目标期间、支付金额、手续费、保证金、结算费、VAT、拨付额与结算下发、结算执行采用相同的执行保存值与汇总规则。手续费列为按笔、支付%、取消、退款（作废等）区间汇总的交易手续费（tb_settlement_run.total_fee）。',
+        'ช่วงเป้าหมาย ยอดชำระ ค่าธรรมเนียม หลักประกัน ค่าธรรมเนียมชำระ VAT และยอดจ่ายใช้กฎเดียวกับแจกจ่าย/รันชำระ คอลัมน์ค่าธรรมเนียมคือ total_fee รวมต่อรายการ % ยกเลิก คืน โมฆะ ฯลฯ'
+      ),
+      packN(
+        '표시 열은 [헬로] 옆 VIEW SETTING에서 조정할 수 있습니다(저장 시 사용자별 유지). 건당·취소·환불 등 세부 분해 열은 같은 거래 구간 합산 보조값입니다.',
+        'Toggle visible columns via VIEW SETTING next to Hello (saved per user). Per-txn, cancel, refund, etc. breakdown columns are auxiliary sums for the same transaction window.',
+        '表示列は［Hello］横の VIEW SETTING で調整できます（保存時ユーザー別に維持）。件当・取消・返金等の内訳列は同一取引区間の合算補助値です。',
+        '可通过 Hello 旁的 VIEW SETTING 调整显示列（按用户保存）。按笔、取消、退款等明细列为同一交易区间的汇总辅助值。',
+        'สลับคอลัมน์ที่มองเห็นผ่าน VIEW SETTING ข้าง Hello (บันทึกต่อผู้ใช้) คอลัมน์แยกต่อรายการ ยกเลิก คืน ฯลฯ เป็นยอดรวมเสริมในช่วงธุรกรรมเดียวกัน'
       )
     ],
     '/calc/dailyFee': [
+      packN(
+        '상단·일자 더블클릭 하단 「선택 일자 상세」: 건수 옆에 총거래·승인·취소·수수료·담보·부가세·지급예상·추정결산을 수수료내역과 동일 산식으로 표시합니다.',
+        'Top bar and bottom “Selected date detail” (double-click a day): same formulas as fee history — total txn, approve, cancel, fees, collateral, VAT, expected payout, est. settlement.',
+        '上段・日付ダブルクリック下段「選択日詳細」: 手数料明細と同一式で総取引・承認・取消・手数料・担保・消費税・支払予定・推定決算を表示。',
+        '顶部与双击日期下方「选择日期详情」：与手续费明细相同公式显示总交易、批准、取消、手续费、担保、增值税、预计拨付、预估结算。',
+        'แถบบนและรายละเอียดวันที่ (ดับเบิลคลิก): สูตรเดียวกับประวัติค่าธรรมเนียม'
+      ),
       packN(
         '수수료내역과 동일 산식·동일 필터로 일자별 합계를 표시합니다(건당·결제%·USDT·FX·3DS·실패·취소·무효·환불·차지백·총수수료·부가세·지급예상·정산액 등). 정산유무는 해당 일 거래의 settled_yn 이 전부 Y이면 정산완료, 전부 N이면 정산대기, 혼합이면 부분정산입니다.',
         'Daily totals use the same formulas and filters as fee history (per-txn, %, USDT, FX, 3DS, fail/cancel/void/refund/chargeback, total fee, VAT, expected payout, settlement amount, etc.). Settlement state for a day is “completed” if all rows are settled=Y, “pending” if all N, or “partial” if mixed.',
@@ -624,11 +757,11 @@
         'โหลดครั้งแรก 7 วันล่าสุดเพื่อลดโหลด ขยายช่วงด้วยปุ่มช่วงแล้วกดค้นหา'
       ),
       packN(
-        '일자 행을 클릭하면 아래에 해당 일 수수료내역 전체가 표시됩니다(수수료내역 화면과 동일 열 구성). 조회 기간은 최대 93일입니다. 데이터가 매우 많으면 상단 집계가 일부만 반영될 수 있습니다(meta.capped).',
-        'Click a date row to show all fee rows for that day (same columns as fee history). Query window up to 93 days. Very large data may cap the top aggregate (see meta.capped).',
-        '日付行をクリックすると当日の手数料明細をすべて表示します（手数料明細画面と同じ列）。照会は最大93日。データが極端に多いと上部集計が一部のみになることがあります（meta.capped）。',
-        '点击日期行在下方显示该日全部手续费明细（与手续费明细列一致）。查询最长93天；数据量极大时顶部汇总可能部分反映（meta.capped）。',
-        'คลิกวันที่เพื่อดูค่าธรรมเนียมทั้งหมดของวันนั้น ช่วงสูงสุด 93 วัน อาจมี meta.capped'
+        '일자 행을 더블클릭하면 아래에 해당 일 수수료내역 전체가 표시됩니다(수수료내역 화면과 동일 열 구성). 조회 기간은 최대 93일입니다. 데이터가 매우 많으면 상단 집계가 일부만 반영될 수 있습니다(meta.capped).',
+        'Double-click a date row to show all fee rows for that day (same columns as fee history). Query window up to 93 days. Very large data may cap the top aggregate (see meta.capped).',
+        '日付行をダブルクリックすると当日の手数料明細をすべて表示します（手数料明細画面と同じ列）。照会は最大93日。データが極端に多いと上部集計が一部のみになることがあります（meta.capped）。',
+        '双击日期行在下方显示该日全部手续费明细（与手续费明细列一致）。查询最长93天；数据量极大时顶部汇总可能部分反映（meta.capped）。',
+        'ดับเบิลคลิกวันที่เพื่อดูค่าธรรมเนียมทั้งหมดของวันนั้น ช่วงสูงสุด 93 วัน อาจมี meta.capped'
       ),
       packN(
         '미래 일자는 표시되지 않습니다(전산 표시 기준일). 일자 순서는 [내림차순](최신일 위)·[오름차순]으로 바꿀 수 있으며 기본은 내림차순입니다.',
@@ -636,6 +769,36 @@
         '未来日は表示しません。並び順は[再読込]横の降順・昇順で切替、既定は降順です。',
         '不显示未来日期。顺序可用「刷新」旁降序/升序切换，默认最新在上。',
         'ไม่แสดงวันในอนาคต เรียงใหม่สุดก่อนเป็นค่าเริ่มต้น'
+      )
+    ],
+    '/ops/verifyReport': [
+      packN(
+        'ChillPay 통합내역(API, 거래일 TransactionDate)을 기준으로 결제내역 NOTI(origin=NOTI)와 승인번호(TransactionId)·결제액·상태를 대조합니다.',
+        'Reconciles ChillPay integrated rows (API, txn date TransactionDate) against payment history NOTI (origin=NOTI) by approval no. (TransactionId), amount, and status.',
+        'ChillPay統合履歴（API・取引日TransactionDate）を基準に、決済履歴NOTI（origin=NOTI）と承認番号（TransactionId）・決済額・状態を照合します。',
+        '以 ChillPay 综合记录（API，交易日 TransactionDate）为基准，对照支付历史 NOTI（origin=NOTI）的授权号（TransactionId）、支付额与状态。',
+        'เทียบ ChillPay รวม (API, TransactionDate) กับ NOTI ชำระ (origin=NOTI) ด้วยเลขอนุมัติ ยอด และสถานะ'
+      ),
+      packN(
+        '일치 건은 하단 「선택 일자 불일치」 목록에서 제외됩니다. JPAY 등 다른 PG·URL/챗봇만 있는 건은 대상이 아니며, 통합에 없고 결제에만 있는 건은 오류로 표시하지 않습니다.',
+        'Matched rows are omitted from the bottom 「Selected date — mismatches」 list. JPAY-only or URL/chatbot-only rows are out of scope; payment-only rows not in integrated data are not flagged as errors.',
+        '一致件は下部「選択日の不一致」から除外します。JPAY等のみ・URL/チャットボットのみは対象外。統合に無く決済のみの件はエラーにしません。',
+        '一致记录在下方「所选日期不一致」中排除。仅 JPAY、仅 URL/聊天机器人不在范围；综合无而支付有的记录不标为错误。',
+        'รายการที่ตรงกันจะไม่อยู่ในรายการไม่ตรงกันด้านล่าง JPAY/URL/แชทบอทเท่านั้นไม่รวม มีแค่ชำระไม่มีรวมไม่ถือเป็นข้อผิดพลาด'
+      ),
+      packN(
+        '일자 행을 더블클릭하면 해당 일의 불일치 건만 표시합니다(승인번호로 통합내역·결제내역에서 추적). 결제시간·금액 표기 형식 차이는 불일치로 잡지 않습니다.',
+        'Double-click a date row to show mismatches for that day only (trace by approval no. in integrated vs payment). Time or amount formatting differences are not treated as mismatches.',
+        '日付行をダブルクリックすると当日の不一致のみ表示（承認番号で統合・決済を追跡）。決済時刻・金額表記の差は不一致にしません。',
+        '双击日期行仅显示该日不一致（按授权号在综合与支付中追踪）。支付时间或金额格式差异不算不一致。',
+        'ดับเบิลคลิกวันที่แสดงเฉพาะรายการไม่ตรงกันของวันนั้น (ตามเลขอนุมัติ) ความต่างรูปแบบเวลา/ยอดไม่นับ'
+      ),
+      packN(
+        '총본사·본사(REGIONAL)·총판(MASTER_DIST) 또는 ADMIN만 사용합니다. 조회 기간은 최대 93일입니다.',
+        'Only root HQ, regional HQ (REGIONAL), master distributor (MASTER_DIST), or ADMIN. Query window up to 93 days.',
+        '総本部・本社(REGIONAL)・総販(MASTER_DIST) または ADMIN のみ。照会は最大93日。',
+        '仅总总部、本部(REGIONAL)、总代(MASTER_DIST) 或 ADMIN。查询最长 93 天。',
+        'เฉพาะ HQ สูงสุด/ภูมิภาค/ตัวแทนหลักหรือ ADMIN ช่วงสูงสุด 93 วัน'
       )
     ],
     '/ops/integratedReport': [
@@ -654,11 +817,11 @@
         'รวมตามวันที่บันทึก (created_at) เหมือนรายวัน สรุปด้านบนเป็นสกุลแสดงขององค์กร'
       ),
       packN(
-        '일자 행을 클릭하면 아래에 해당 일의 통합 결제내역(동일 필터)이 표시됩니다. 행 순서는 적재일(일자) 기준이며, [새로고침] 옆 「내림차순·오름차순」으로 최신일 우선/과거일 우선을 바꿀 수 있습니다(통합 결제내역과 동일).',
-        'Click a date row to load integrated payment rows for that day (same filters). Row order is by ingest date; use Desc/Asc next to [Refresh] like integrated payment list.',
-        '日付行をクリックすると当日の統合決済履歴（同一フィルタ）を表示します。並びは取込日基準で、[再読込]横の降順・昇順で切替できます。',
-        '点击日期行在下方加载该日综合支付（同筛选）。行序按入库日；在「刷新」侧切换升降序，与综合支付列表一致。',
-        'คลิกวันที่เพื่อโหลดรายการชำระรวมของวันนั้น เรียงตามวันที่บันทึก'
+        '일자 행을 더블클릭하면 아래 「선택 일자 상세 (통합 결제내역)」에 해당 일의 통합 결제내역(동일 필터)과 총거래·승인·취소·수수료·담보·부가세·추정결산이 표시됩니다. 행 순서는 적재일(일자) 기준이며, [새로고침] 옆 「내림차순·오름차순」으로 최신일 우선/과거일 우선을 바꿀 수 있습니다(통합 결제내역과 동일).',
+        'Double-click a date row to load integrated payment rows for that day (same filters) with total txn, approve, cancel, fees, collateral, VAT, and est. settlement in the detail toolbar. Row order is by ingest date; use Desc/Asc next to [Refresh] like integrated payment list.',
+        '日付行をダブルクリックすると「選択日詳細（統合決済履歴）」に当日の統合決済と総取引・承認・取消・手数料・担保・消費税・推定決算を表示します。並びは取込日基準で、[再読込]横の降順・昇順で切替できます。',
+        '双击日期行在下方「选择日期详情（综合支付）」加载该日综合支付及总交易、批准、取消、手续费、担保、增值税、预估结算。行序按入库日；在「刷新」侧切换升降序，与综合支付列表一致。',
+        'ดับเบิลคลิกวันที่เพื่อโหลดรายการชำระรวมของวันนั้นพร้อมสรุปยอด เรียงตามวันที่บันทึก'
       ),
       packN(
         '[엑셀다운로드]는 결제내역과 동일한 상단 메뉴 형태이며, 현재 조회된 일자별 통합 리포트 표를 서식 xlsx로 받습니다.',
@@ -855,6 +1018,15 @@
     settlementAmt: { EN: 'Settlement amt.', JP: '精算額', CH: '结算额', TH: 'ยอดชำระ' },
     settlementStateLabel: { EN: 'Settlement status', JP: '精算有無', CH: '结算状态', TH: 'สถานะการชำระ' },
     note: { EN: 'Note', JP: '備考', CH: '备注', TH: 'หมายเหตุ' },
+    chillCount: { EN: 'Integrated (Chill) count', JP: '統合(Chill)件数', CH: '综合(Chill)笔数', TH: 'จำนวนรวม (Chill)' },
+    matchedCount: { EN: 'Matched count', JP: '一致件数', CH: '一致笔数', TH: 'จำนวนที่ตรงกัน' },
+    mismatchCount: { EN: 'Mismatch count', JP: '不一致件数', CH: '不一致笔数', TH: 'จำนวนไม่ตรงกัน' },
+    approvalNo: { EN: 'Auth no.', JP: '承認番号', CH: '授权号', TH: 'เลขอนุมัติ' },
+    chillAmt: { EN: 'Integrated pay amt', JP: '統合決済額', CH: '综合支付额', TH: 'ยอดชำระรวม' },
+    notiAmt: { EN: 'NOTI pay amt', JP: 'NOTI決済額', CH: 'NOTI 支付额', TH: 'ยอด NOTI' },
+    chillStatus: { EN: 'Integrated status', JP: '統合状態', CH: '综合状态', TH: 'สถานะรวม' },
+    notiStatus: { EN: 'NOTI status', JP: 'NOTI状態', CH: 'NOTI 状态', TH: 'สถานะ NOTI' },
+    reason: { EN: 'Note', JP: '備考', CH: '备注', TH: 'หมายเหตุ' },
     successCount: { EN: 'Success count', JP: '成功件数', CH: '成功笔数', TH: 'จำนวนสำเร็จ' }
   };
 
@@ -1035,7 +1207,8 @@
 
   /** 결제내역 동기 URL 외 — 검색폼·안내 스냅/로케일 적용 대상 */
   var EXTRA_I18N_SCREEN_SNAP_URLS = ['/calc/dailyIntegrated', '/calc/dailyPay', '/calc/dailyFee', '/calc/feeList', '/settlement/feeList', '/calc/exCalcList', '/settlement/execute',
-    '/settlement/settlementResultDistribute', '/settlement/settlementResultHold', '/ops/integratedReport',
+    '/settlement/settlementResultDistribute', '/settlement/settlementResultHold', '/calc/calcGmList', '/settlement/franchiseList',
+    '/calc/paySettlementHoldList', '/settlement/paySettlementHoldList', '/ops/integratedReport', '/ops/verifyReport',
     '/comp/compMngTree', '/comp/myCompMng', '/comp/compReg', '/comp/compDetail', '/comp/compInfo', '/comp/compMng',
     '/comp/compInfoHistList', '/comp/compChangeHistory', '/commission/commisionList'];
 
@@ -1102,13 +1275,14 @@
         columns: scr.columns ? scr.columns.map(function (c) {
           return c ? { key: c.key, statusBucketKey: c.statusBucketKey, label: c.label, type: c.type } : null;
         }) : null,
-        isDailySummaryScreen: !!scr.isDailySummaryScreen
+        isDailySummaryScreen: !!scr.isDailySummaryScreen,
+        isOpsVerifyReport: !!scr.isOpsVerifyReport
       };
     });
   }
 
   function applyDailySummaryColumnsLocale(scr, snap, loc) {
-    if (!scr || !scr.isDailySummaryScreen || !scr.columns || !snap || !snap.columns) return;
+    if (!scr || (!scr.isDailySummaryScreen && !scr.isOpsVerifyReport) || !scr.columns || !snap || !snap.columns) return;
     if (loc === 'KO') {
       scr.columns.forEach(function (c, idx) {
         var s = snap.columns[idx];
@@ -1232,7 +1406,7 @@
             if (s && c && s.key === c.key && s.label != null) c.label = s.label;
           });
         }
-        if (scr.isDailySummaryScreen) applyDailySummaryColumnsLocale(scr, snap, 'KO');
+        if (scr.isDailySummaryScreen || scr.isOpsVerifyReport) applyDailySummaryColumnsLocale(scr, snap, 'KO');
         return;
       }
       walkSearchRowsApplyLocale(scr.searchRows, snap.searchRows, loc);
@@ -1252,7 +1426,7 @@
           if (snapRow && snapRow.label != null) c.label = snapRow.label;
         });
       }
-      if (scr.isDailySummaryScreen) applyDailySummaryColumnsLocale(scr, snap, loc);
+      if (scr.isDailySummaryScreen || scr.isOpsVerifyReport) applyDailySummaryColumnsLocale(scr, snap, loc);
     });
   }
 
@@ -1279,11 +1453,12 @@
         if (mDay) daySuffix = ' (' + mDay[1] + ')';
         titleEl.textContent = escHtml((UI.detailTitle && UI.detailTitle[loc] ? UI.detailTitle[loc] : '선택 일자 상세') + daySuffix);
       }
+      refreshDailyDetailCountLabel(detWrap.querySelector('#dailyDetailCount_' + tid));
       var lex = detWrap.querySelector('#listExcelDownBtn span[data-pg-ui-t]');
       if (lex) lex.textContent = escHtml(UI.listExcel[loc] || UI.listExcel.KO);
       var hintTd = detWrap.querySelector('#grid_' + tid + '_detail tbody td.text-muted');
       if (hintTd && hintTd.colSpan >= 8) {
-        hintTd.textContent = escHtml(kind === 'fee' ? '위에서 일자를 더블클릭하세요.' : '위에서 일자를 클릭하세요.');
+        hintTd.textContent = escHtml('위에서 일자를 더블클릭하세요.');
       }
       if (w.PG_UI_I18N && typeof w.PG_UI_I18N.applyDom === 'function') {
         try { w.PG_UI_I18N.applyDom(detWrap); } catch (eDetWrapI18n) {}
@@ -1298,6 +1473,7 @@
         if (mDayIr) daySuffixIr = ' (' + mDayIr[1] + ')';
         irTitleEl.textContent = escHtml((UI.detailTitleIr && UI.detailTitleIr[loc] ? UI.detailTitleIr[loc] : UI.detailTitleIr.KO) + daySuffixIr);
       }
+      refreshDailyDetailCountLabel(irDetHost.querySelector('#integratedReportDetailCount_' + tid));
       var lexIr = irDetHost.querySelector('#listExcelDownBtn span[data-pg-ui-t]');
       if (lexIr) lexIr.textContent = escHtml(UI.listExcel[loc] || UI.listExcel.KO);
       if (w.PG_UI_I18N && typeof w.PG_UI_I18N.applyDom === 'function') {
@@ -1308,6 +1484,68 @@
     if (emptyCell && emptyCell.closest('tr') && !emptyCell.closest('tr').classList.contains('daily-master-row')) {
       var onlyEmpty = pane.querySelectorAll('#grid_' + tid + ' tbody tr').length === 1;
       if (onlyEmpty) emptyCell.textContent = escHtml('데이터 없음');
+    }
+  }
+
+  function uiTPlain(s, loc) {
+    if (loc === 'KO') return String(s);
+    return (w.PG_UI_I18N && typeof w.PG_UI_I18N.t === 'function') ? w.PG_UI_I18N.t(String(s)) : String(s);
+  }
+
+  function formatVerifyReportDayNote(row, loc) {
+    loc = loc || getLocale();
+    var hasMis = row && (row.hasMismatch === true || (row.mismatchCount != null && Number(row.mismatchCount) > 0));
+    if (!hasMis) return uiTPlain('일치', loc);
+    var nm = row.notiMissingCount != null ? Number(row.notiMissingCount) : NaN;
+    var ns = row.statusDiffCount != null ? Number(row.statusDiffCount) : NaN;
+    var na = row.amountDiffCount != null ? Number(row.amountDiffCount) : NaN;
+    if (!isNaN(nm) || !isNaN(ns) || !isNaN(na)) {
+      var parts = [];
+      if (!isNaN(nm) && nm > 0) parts.push(uiTPlain('NOTI 미수신', loc) + ' ' + nm + uiTPlain('건', loc));
+      if (!isNaN(ns) && ns > 0) parts.push(uiTPlain('상태 불일치', loc) + ' ' + ns + uiTPlain('건', loc));
+      if (!isNaN(na) && na > 0) parts.push(uiTPlain('결제액 불일치', loc) + ' ' + na + uiTPlain('건', loc));
+      var nr = row.requestNoNotiCount != null ? Number(row.requestNoNotiCount) : NaN;
+      if (!isNaN(nr) && nr > 0) parts.push(uiTPlain('요청·대기', loc) + ' ' + nr + uiTPlain('건 제외', loc));
+      if (parts.length) return parts.join(', ');
+    }
+    var note = row && row.note != null ? String(row.note) : '';
+    return note ? uiTPlain(note, loc) : '';
+  }
+
+  function refreshVerifyReportOpenPane(pane, cfg, tid, loc) {
+    if (!pane || !cfg || !cfg.isOpsVerifyReport || !tid) return;
+    loc = loc || getLocale();
+    if (typeof pane._verifyReportRefreshI18n === 'function') {
+      try { pane._verifyReportRefreshI18n(loc); } catch (eVrCb) {}
+      return;
+    }
+    var escHtml = function (s) {
+      return uiTPlain(s, loc);
+    };
+    var theadRow = pane.querySelector('#grid_' + tid + ' thead tr');
+    if (theadRow && cfg.columns && cfg.columns.length) {
+      theadRow.innerHTML = cfg.columns.map(function (c) {
+        var lab = c.label != null ? c.label : (c.key || '');
+        return '<th class="text-nowrap">' + escHtml(lab) + '</th>';
+      }).join('');
+    }
+    var detWrap = pane.querySelector('#verifyReportDetailWrap_' + tid);
+    if (detWrap) {
+      var titleEl = detWrap.querySelector('#verifyReportDetailTitle_' + tid);
+      if (titleEl) {
+        var daySuffix = '';
+        var mDay = (titleEl.textContent || '').match(/\((\d{4}-\d{2}-\d{2})\)\s*$/);
+        if (mDay) daySuffix = ' (' + mDay[1] + ')';
+        titleEl.textContent = escHtml((UI.detailTitleVr && UI.detailTitleVr[loc] ? UI.detailTitleVr[loc] : UI.detailTitleVr.KO) + daySuffix);
+      }
+      if (w.PG_UI_I18N && typeof w.PG_UI_I18N.applyDom === 'function') {
+        try { w.PG_UI_I18N.applyDom(detWrap); } catch (eDetVr) {}
+      }
+    }
+    var emptyCell = pane.querySelector('#grid_' + tid + ' tbody td.text-center.text-muted');
+    if (emptyCell && emptyCell.closest('tr') && !emptyCell.closest('tr').classList.contains('verify-report-day-row')) {
+      var onlyEmpty = pane.querySelectorAll('#grid_' + tid + ' tbody tr').length === 1;
+      if (onlyEmpty) emptyCell.textContent = escHtml(cfg.emptyMessage || UI.empty[loc] || UI.empty.KO);
     }
   }
 
@@ -1354,6 +1592,7 @@
         var id = String(b.id);
         if (id === 'payListRefreshBtn') b.label = UI.refresh[loc] || b.label;
         else if (id === 'excelDownBtn' || id === 'excelBtn') b.label = UI.excel[loc] || b.label;
+        else if (id === 'excelAllDownBtn') b.label = (w.PG_UI_I18N && typeof w.PG_UI_I18N.t === 'function') ? w.PG_UI_I18N.t('모두다운로드') : b.label;
         else if (id === 'listExcelDownBtn') b.label = UI.listExcel[loc] || b.label;
         else if (id === 'searchBtn') {
           var snapB2 = _screenSnap.buttons[u];
@@ -1389,18 +1628,20 @@
       || url === '/calc/dailyIntegrated' || url === '/calc/dailyPay' || url === '/calc/dailyFee'
       || url === '/calc/feeList' || url === '/settlement/feeList'
       || url === '/calc/exCalcList' || url === '/settlement/execute'
+      || url === '/calc/calcGmList' || url === '/settlement/franchiseList'
       || url === '/calc/collateralList' || url === '/settlement/collateralList'
       || url === '/calc/compPointMngList' || url === '/settlement/recallMng'
       || url === '/calc/unpaidMng' || url === '/settlement/unpaidMng'
       || url === '/calc/settlementReport' || url === '/settlement/settlementReport'
       || url === '/settlement/settlementResultDistribute' || url === '/settlement/settlementResultHold'
-      || url === '/calc/paySettlementHoldList'      || url === '/noti/notiCashReceiptSendMngList' || url === '/notify/cashReceiptSendMng'
+      || url === '/calc/paySettlementHoldList' || url === '/settlement/paySettlementHoldList'
+      || url === '/noti/notiCashReceiptSendMngList' || url === '/notify/cashReceiptSendMng'
       || url === '/noti/notiSendMngList' || url === '/notify/paySendMng'
       || url === '/noti/notiUrlMng' || url === '/notify/payUrlMng'
       || url === '/noti/notiCashReceiptUrlMng' || url === '/notify/cashReceiptUrlMng'
       || url === '/set/gridSetMng' || url === '/user/menuOrderMng'
       || url === '/user/userMng'
-      || url === '/ops/mailLog' || url === '/ops/taxReport' || url === '/ops/integratedReport' || url === '/ops/opsMng'
+      || url === '/ops/mailLog' || url === '/ops/taxReport' || url === '/ops/integratedReport' || url === '/ops/verifyReport' || url === '/ops/opsMng'
       || url === '/hq/pgApiMng'
       || url === '/commission/commisionList'
       || url === '/system/noticeList'
@@ -1453,6 +1694,15 @@
       var ex = pane.querySelector('#excelDownBtn');
       if (!ex) ex = pane.querySelector('#excelBtn');
       if (ex) ex.textContent = eLab;
+      var exAll = pane.querySelector('#excelAllDownBtn');
+      if (exAll) {
+        var exAllSpan = exAll.querySelector('span[data-pg-ui-t]');
+        if (exAllSpan && w.PG_UI_I18N && typeof w.PG_UI_I18N.t === 'function') {
+          exAllSpan.textContent = w.PG_UI_I18N.t(exAllSpan.getAttribute('data-pg-ui-t') || '모두다운로드');
+        } else if (w.PG_UI_I18N && typeof w.PG_UI_I18N.t === 'function') {
+          exAll.textContent = w.PG_UI_I18N.t('모두다운로드');
+        }
+      }
       var pr = pane.querySelector('#printBtn');
       if (pr) pr.textContent = pLab;
       var tbSearch = pane.querySelector('#searchBtn');
@@ -1496,7 +1746,7 @@
         var pubHold = pane.querySelector('#settlementPublishHoldBtn');
         if (pubHold) pubHold.textContent = lblText(UI.settlementPublishHold, loc, pubHold.textContent);
       }
-      if (url === '/calc/paySettlementHoldList') {
+      if (url === '/calc/paySettlementHoldList' || url === '/settlement/paySettlementHoldList') {
         var phRel = pane.querySelector('#payoutHoldReleaseBtn');
         if (phRel) phRel.textContent = lblText(UI.payoutHoldReleaseBulk, loc, phRel.textContent);
       }
@@ -1523,7 +1773,8 @@
         try {
           var gid0 = pane.id;
           if (url === '/calc/exCalcList' || url === '/settlement/execute' || url === '/settlement/settlementResultDistribute' || url === '/settlement/settlementResultHold'
-            || url === '/calc/settlementReport' || url === '/settlement/settlementReport') {
+            || url === '/calc/settlementReport' || url === '/settlement/settlementReport'
+            || url === '/calc/calcGmList' || url === '/settlement/franchiseList') {
             var actRowSe = pane.querySelector('.screen-summary-action-row');
             if (actRowSe) w.PG_UI_I18N.applyDom(actRowSe);
             var thSe = pane.querySelector('#grid_' + gid0 + ' thead');
@@ -1531,7 +1782,7 @@
             var detCardSe = pane.querySelector('#settlementExecuteDetailCard_' + gid0);
             if (detCardSe) w.PG_UI_I18N.applyDom(detCardSe);
           }
-          if (url === '/calc/paySettlementHoldList') {
+          if (url === '/calc/paySettlementHoldList' || url === '/settlement/paySettlementHoldList') {
             var actPh = pane.querySelector('.screen-summary-action-row');
             if (actPh) w.PG_UI_I18N.applyDom(actPh);
             var thPh = pane.querySelector('#grid_' + gid0 + ' thead');
@@ -1625,6 +1876,11 @@
         try {
           refreshDailySummaryOpenPane(pane, cfg, tid, loc);
         } catch (eDailyPaneI18n) {}
+      }
+      if (cfg && cfg.isOpsVerifyReport) {
+        try {
+          refreshVerifyReportOpenPane(pane, cfg, tid, loc);
+        } catch (eVrPaneI18n) {}
       }
       pane.querySelectorAll('.summary-total-item[data-pg-summary-key]').forEach(function (el) {
         var key = el.getAttribute('data-pg-summary-key');
@@ -1723,6 +1979,13 @@
     if (loc === 'KO') return '건수: ';
     var row = SUMMARY_LBL['건수'];
     return (row && (row[loc] || row.EN) ? (row[loc] || row.EN) : '건수') + ': ';
+  }
+
+  function refreshDailyDetailCountLabel(countEl) {
+    if (!countEl) return;
+    var raw = countEl.getAttribute('data-pg-count');
+    if (raw == null || raw === '') return;
+    countEl.textContent = summaryCountPrefix() + raw;
   }
 
   function optionAllText() {
@@ -1836,10 +2099,12 @@
     init: init,
     formatSummaryLine: formatSummaryLine,
     summaryCountPrefix: summaryCountPrefix,
+    refreshDailyDetailCountLabel: refreshDailyDetailCountLabel,
     optionAllText: optionAllText,
     payFollowLabel: payFollowLabel,
     refreshOpenPayMngDomI18n: refreshOpenPayMngDomI18n,
     refreshOpenPayListPaneChrome: refreshOpenPayListPaneChrome,
-    isPayMngDomPaneUrl: isPayMngDomPaneUrl
+    isPayMngDomPaneUrl: isPayMngDomPaneUrl,
+    formatVerifyReportDayNote: formatVerifyReportDayNote
   };
 })(typeof window !== 'undefined' ? window : globalThis);

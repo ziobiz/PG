@@ -1217,6 +1217,9 @@
         var c = (typeof compId === 'string' ? compId : '').trim();
         if (!c) return '';
         var base = resolvedApiBase() + '/pay.html?m=' + encodeURIComponent(c) + '&entry=chatbot';
+        if (String(window.cbUrlPayCheckoutMode || '').toUpperCase() === 'REPAY') {
+          base += '&variant=repay';
+        }
         try {
           var ret = (window.location && window.location.href) ? String(window.location.href).split('#')[0] : '';
           if (ret) base += '&return=' + encodeURIComponent(ret);
@@ -4412,6 +4415,7 @@
           }
           hideBanner();
           var d = res.data || {};
+          window.cbUrlPayCheckoutMode = String(d.urlPayCheckoutMode || 'STANDARD').trim().toUpperCase();
           syncCbCommerceHoldUi(!!d.chatbotCommerceHold);
           syncChatbotBarePayHref();
           applyCatalogMeta(d);

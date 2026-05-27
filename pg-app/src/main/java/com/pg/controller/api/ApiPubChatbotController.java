@@ -83,7 +83,7 @@ public class ApiPubChatbotController {
         /* 운영 보류여도 상품·로고·안내는 유지하고, 결제 프리필 URL 만 생략(주문 API 는 별도 차단). */
         List<Map<String, Object>> items = productService.listPublicCatalog(ou.get().getId());
         if (!commerceHold) {
-            productService.enrichPublicCatalogItemsWithPayUrls(items, ou.get().getCode(), request);
+            productService.enrichPublicCatalogItemsWithPayUrls(items, ou.get().getCode(), request, ou.get().getId());
         }
         Map<String, Object> pubUi = productService.resolveChatbotPublicUi(ou.get().getId());
         ChatbotPromotionShelfMode shelfMode = ChatbotPromotionShelfMode.resolveStored(
@@ -108,6 +108,7 @@ public class ApiPubChatbotController {
 
         Map<String, Object> data = new LinkedHashMap<>();
         data.put("compId", ou.get().getCode());
+        data.put("urlPayCheckoutMode", productService.resolveUrlPayCheckoutModeForMerchant(ou.get().getId()));
         data.put("chatbotCommerceHold", commerceHold);
         data.put("items", items);
         data.put("promotionItems", promotionItemsOut);
@@ -231,7 +232,7 @@ public class ApiPubChatbotController {
         boolean commerceHold = productService.isMerchantChatbotCommerceHold(ou.get().getId());
         List<Map<String, Object>> catalog = productService.listPublicCatalog(ou.get().getId());
         if (!commerceHold) {
-            productService.enrichPublicCatalogItemsWithPayUrls(catalog, ou.get().getCode(), request);
+            productService.enrichPublicCatalogItemsWithPayUrls(catalog, ou.get().getCode(), request, ou.get().getId());
         }
         Map<String, Object> urlPayFacts = commerceHold ? Map.of() : productService.urlPayFactsForChatbotLlm(ou.get().getId());
         String catalogJson;

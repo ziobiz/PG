@@ -276,6 +276,9 @@ public class ApiCompController {
             @RequestParam(required = false) String feeVatApplyYn,
             @RequestParam(required = false) String feeVatRatePct,
             @RequestParam(required = false) String regionalSettings,
+            @RequestParam(required = false) String urlPayCheckoutMode,
+            @RequestParam(required = false) String apiUrlPayCheckoutMode,
+            @RequestParam(required = false) String chatbotUrlPayCheckoutMode,
             @RequestParam(required = false) String tabletFeatureUseYn) {
         Long parentIdVal = parentId;
         if (parentIdVal == null && parentComp != null && !parentComp.isEmpty()) {
@@ -325,6 +328,9 @@ public class ApiCompController {
                 urlPayAlertEmailYn, urlPayLineNotifyToken,
                 feeVatApplyYn, feeVatRatePct,
                 regionalSettings,
+                urlPayCheckoutMode,
+                apiUrlPayCheckoutMode,
+                chatbotUrlPayCheckoutMode,
                 tabletFeatureUseYn);
         return ResponseEntity.ok(ApiResponse.ok(Map.of("compId", saved.getCode(), "compNm", saved.getName())));
         } catch (IllegalArgumentException e) {
@@ -474,6 +480,9 @@ public class ApiCompController {
             @RequestParam(required = false) String chatbotCatalogListingEnabled,
             @RequestParam(required = false) String chatbotPromotionShelfMode,
             @RequestParam(required = false) Integer chatbotPromotionRotateSeconds,
+            @RequestParam(required = false) String urlPayCheckoutMode,
+            @RequestParam(required = false) String apiUrlPayCheckoutMode,
+            @RequestParam(required = false) String chatbotUrlPayCheckoutMode,
             @RequestParam(required = false) String tabletFeatureUseYn) {
         var targetOpt = compService.getDetail(compId);
         if (targetOpt.isEmpty()) {
@@ -509,6 +518,9 @@ public class ApiCompController {
                     urlPayAlertEmailYn, urlPayLineNotifyToken, chatbotHeaderLogoUrl, chatbotAdminUsername,
                     chatbotCatalogListingGrant, chatbotMaxProductImagesGrant, chatbotCatalogListingEnabled,
                     chatbotPromotionShelfMode, chatbotPromotionRotateSeconds,
+                    urlPayCheckoutMode,
+                    apiUrlPayCheckoutMode,
+                    chatbotUrlPayCheckoutMode,
                     tabletFeatureUseYn);
             return ResponseEntity.ok(ok ? ApiResponse.ok(Map.of("success", true, "message", "저장되었습니다."))
                     : ApiResponse.fail("업체를 찾을 수 없습니다.", "NOT_FOUND"));

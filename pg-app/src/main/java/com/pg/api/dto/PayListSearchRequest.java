@@ -36,6 +36,10 @@ public class PayListSearchRequest {
     /** 정렬 속성(화면 확장용): createdAt·paidAt·trnId·amtKrw·merchantId·orderNo·status 등 엔티티 필드명 */
     private String searchOrderBy;
     private String payListVariant;
+    /** true — 상태바·금액 집계(meta) 생략(모두다운로드·연속 페이지 조회) */
+    private boolean skipMeta;
+    /** true — 페이지당 최대 15_000건까지 조회(모두다운로드) */
+    private boolean listExport;
     private int page = 1;
     private int size = 20;
 
@@ -65,6 +69,8 @@ public class PayListSearchRequest {
         r.searchToDate = parseDate(raw.get("searchToDate"));
         r.page = parseInt(raw.get("page"), 1);
         r.size = parseInt(raw.get("size"), 20);
+        r.skipMeta = isTruthy(raw.get("skipMeta"));
+        r.listExport = isTruthy(raw.get("listExport"));
         return r;
     }
 
@@ -123,6 +129,12 @@ public class PayListSearchRequest {
         }
     }
 
+    private static boolean isTruthy(String s) {
+        if (s == null || s.isBlank()) return false;
+        String v = s.trim();
+        return "true".equalsIgnoreCase(v) || "1".equals(v) || "Y".equalsIgnoreCase(v);
+    }
+
     public String getSearchTranFactor() { return searchTranFactor; }
     public void setSearchTranFactor(String searchTranFactor) { this.searchTranFactor = searchTranFactor; }
     public String getSearchFieldType() { return searchFieldType; }
@@ -169,6 +181,10 @@ public class PayListSearchRequest {
     public void setPage(int page) { this.page = page; }
     public int getSize() { return size; }
     public void setSize(int size) { this.size = size; }
+    public boolean isSkipMeta() { return skipMeta; }
+    public void setSkipMeta(boolean skipMeta) { this.skipMeta = skipMeta; }
+    public boolean isListExport() { return listExport; }
+    public void setListExport(boolean listExport) { this.listExport = listExport; }
 
     /** 일별 집계 등: 검색 조건만 복제(날짜·페이지는 호출부에서 덮어씀). */
     public static PayListSearchRequest shallowCopy(PayListSearchRequest src) {
@@ -199,6 +215,8 @@ public class PayListSearchRequest {
         r.payListVariant = src.payListVariant;
         r.page = src.page;
         r.size = src.size;
+        r.skipMeta = src.skipMeta;
+        r.listExport = src.listExport;
         return r;
     }
 }

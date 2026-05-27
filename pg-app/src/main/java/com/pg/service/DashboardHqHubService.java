@@ -6,6 +6,7 @@ import com.pg.entity.SettlementRun;
 import com.pg.repository.OrgUnitRepository;
 import com.pg.repository.PgTrnsctnRepository;
 import com.pg.repository.SettlementRunRepository;
+import com.pg.service.settlement.SettlementRunDateDisplayService;
 import com.pg.util.DashboardTupleRows;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
@@ -32,13 +33,16 @@ public class DashboardHqHubService {
     private final OrgUnitRepository orgUnitRepository;
     private final PgTrnsctnRepository pgTrnsctnRepository;
     private final SettlementRunRepository settlementRunRepository;
+    private final SettlementRunDateDisplayService settlementRunDateDisplayService;
 
     public DashboardHqHubService(OrgUnitRepository orgUnitRepository,
                                  PgTrnsctnRepository pgTrnsctnRepository,
-                                 SettlementRunRepository settlementRunRepository) {
+                                 SettlementRunRepository settlementRunRepository,
+                                 SettlementRunDateDisplayService settlementRunDateDisplayService) {
         this.orgUnitRepository = orgUnitRepository;
         this.pgTrnsctnRepository = pgTrnsctnRepository;
         this.settlementRunRepository = settlementRunRepository;
+        this.settlementRunDateDisplayService = settlementRunDateDisplayService;
     }
 
     public Map<String, Object> build(boolean admin,
@@ -117,6 +121,7 @@ public class DashboardHqHubService {
             Map<String, Object> m = new LinkedHashMap<>();
             m.put("at", r.getCreatedAt() != null ? r.getCreatedAt().toString() : null);
             m.put("calcDt", r.getCalcDt() != null ? r.getCalcDt().toString() : null);
+            settlementRunDateDisplayService.enrichCloseAndExecDates(m, r);
             m.put("merchantIdMasked", maskMid(r.getMerchantId()));
             m.put("payAmt", r.getPayAmt());
             m.put("settlementPublishSts", r.getSettlementPublishSts());

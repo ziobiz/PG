@@ -159,6 +159,26 @@ public class MerchantProfile {
     @Column(name = "web_payment_use_yn", length = 1)
     private String webPaymentUseYn = "Y";
 
+    /**
+     * 공개 URL 결제 방식 — {@link com.pg.urlpay.UrlPayCheckoutModeUtil}.
+     * STANDARD=일반 URL, REPAY=저장 카드 재결제 URL.
+     */
+    @Column(name = "url_pay_checkout_mode", nullable = false, length = 16)
+    private String urlPayCheckoutMode = "STANDARD";
+
+    /**
+     * API URL 인라인 중계 결제 방식 — {@link com.pg.urlpay.UrlPayCheckoutModeUtil}.
+     */
+    @Column(name = "api_url_pay_checkout_mode", nullable = false, length = 16)
+    private String apiUrlPayCheckoutMode = "STANDARD";
+
+    /**
+     * 챗봇 결제 URL 방식 — {@link com.pg.urlpay.UrlPayCheckoutModeUtil}.
+     * 웹결제(공개 URL)·API 중계와 별도 선택.
+     */
+    @Column(name = "chatbot_url_pay_checkout_mode", nullable = false, length = 16)
+    private String chatbotUrlPayCheckoutMode = "STANDARD";
+
     /** 챗봇결제 사용여부 (가맹점) - 미사용 시 관리자 챗봇 메뉴 비표시 */
     @Column(name = "chatbot_payment_use_yn", length = 1)
     private String chatbotPaymentUseYn = "N";
@@ -411,6 +431,23 @@ public class MerchantProfile {
     public void setCommissionConfigAllowed(String commissionConfigAllowed) { this.commissionConfigAllowed = commissionConfigAllowed; }
     public String getWebPaymentUseYn() { return webPaymentUseYn; }
     public void setWebPaymentUseYn(String webPaymentUseYn) { this.webPaymentUseYn = webPaymentUseYn; }
+    public String getUrlPayCheckoutMode() { return urlPayCheckoutMode; }
+    public void setUrlPayCheckoutMode(String urlPayCheckoutMode) {
+        this.urlPayCheckoutMode = urlPayCheckoutMode != null && !urlPayCheckoutMode.isBlank()
+                ? urlPayCheckoutMode.trim().toUpperCase(java.util.Locale.ROOT) : "STANDARD";
+    }
+
+    public String getApiUrlPayCheckoutMode() { return apiUrlPayCheckoutMode; }
+    public void setApiUrlPayCheckoutMode(String apiUrlPayCheckoutMode) {
+        this.apiUrlPayCheckoutMode = apiUrlPayCheckoutMode != null && !apiUrlPayCheckoutMode.isBlank()
+                ? apiUrlPayCheckoutMode.trim().toUpperCase(java.util.Locale.ROOT) : "STANDARD";
+    }
+
+    public String getChatbotUrlPayCheckoutMode() { return chatbotUrlPayCheckoutMode; }
+    public void setChatbotUrlPayCheckoutMode(String chatbotUrlPayCheckoutMode) {
+        this.chatbotUrlPayCheckoutMode = chatbotUrlPayCheckoutMode != null && !chatbotUrlPayCheckoutMode.isBlank()
+                ? chatbotUrlPayCheckoutMode.trim().toUpperCase(java.util.Locale.ROOT) : "STANDARD";
+    }
     public String getChatbotPaymentUseYn() { return chatbotPaymentUseYn; }
     public void setChatbotPaymentUseYn(String chatbotPaymentUseYn) { this.chatbotPaymentUseYn = chatbotPaymentUseYn; }
 

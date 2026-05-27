@@ -84,10 +84,7 @@ public final class PageMenuCatalog {
         add(list, "/ops/mailLog", "M0602", "메일로그", "운영관리");
         add(list, "/ops/taxReport", "M0603", "TAX 리포트", "운영관리");
         add(list, "/ops/integratedReport", "M0604", "통합 리포트", "운영관리");
-        add(list, "/ops/integrationPlan", "M0614", "연동 진행안", "운영관리");
-        add(list, "/ops/jpayWorkPlan", "M0615", "JPAY 단계 계획", "운영관리");
-        add(list, "/ops/merchantApiPolicy", "M0616", "가맹점 API 배포", "운영관리");
-        add(list, "/ops/launchChecklist", "M0617", "배포 체크리스트", "운영관리");
+        add(list, "/ops/verifyReport", "M0605", "검증 리포트", "운영관리");
         add(list, "/risk/list", "M0701", "리스크 현황", "리스크관리");
         add(list, "/deploy/integrationPlan", "M0901", "연동 진행안", "배포설정");
         add(list, "/deploy/jpayWorkPlan", "M0902", "JPAY 단계 계획", "배포설정");

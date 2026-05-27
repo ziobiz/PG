@@ -15,6 +15,7 @@ import com.pg.repository.OrgUnitRepository;
 import com.pg.repository.PgTrnsctnRepository;
 import com.pg.repository.SettlementSettingRepository;
 import com.pg.service.settlement.FeeListTxnBreakdownCalculator;
+import com.pg.service.settlement.SettlementRunDateDisplayService;
 import com.pg.service.settlement.SettlementRunTargetPeriodLabelService;
 import com.pg.util.FeeCurrencyRoundResolver;
 import com.pg.util.FeeListRoundingPolicy;
@@ -58,6 +59,7 @@ public class SettlementReportService {
     private final MerchantProfileRepository merchantProfileRepository;
     private final FeeListTxnBreakdownCalculator feeListTxnBreakdownCalculator;
     private final SettlementRunTargetPeriodLabelService settlementRunTargetPeriodLabelService;
+    private final SettlementRunDateDisplayService settlementRunDateDisplayService;
 
     public SettlementReportService(OrgUnitRepository orgUnitRepository,
                                    PgTrnsctnRepository pgTrnsctnRepository,
@@ -68,7 +70,8 @@ public class SettlementReportService {
                                    SettlementSettingRepository settlementSettingRepository,
                                    MerchantProfileRepository merchantProfileRepository,
                                    FeeListTxnBreakdownCalculator feeListTxnBreakdownCalculator,
-                                   SettlementRunTargetPeriodLabelService settlementRunTargetPeriodLabelService) {
+                                   SettlementRunTargetPeriodLabelService settlementRunTargetPeriodLabelService,
+                                   SettlementRunDateDisplayService settlementRunDateDisplayService) {
         this.orgUnitRepository = orgUnitRepository;
         this.pgTrnsctnRepository = pgTrnsctnRepository;
         this.settlementCalcService = settlementCalcService;
@@ -79,6 +82,7 @@ public class SettlementReportService {
         this.merchantProfileRepository = merchantProfileRepository;
         this.feeListTxnBreakdownCalculator = feeListTxnBreakdownCalculator;
         this.settlementRunTargetPeriodLabelService = settlementRunTargetPeriodLabelService;
+        this.settlementRunDateDisplayService = settlementRunDateDisplayService;
     }
 
     private FeeListRoundingPolicy settlementLedgerRoundPolicy() {
@@ -210,7 +214,9 @@ public class SettlementReportService {
         m.putAll(remittanceFieldsForRun(r));
         m.put("payAmount", settlementMoneyDouble(r.getPayAmt(), rp));
         m.put("totalFee", settlementMoneyDouble(r.getTotalFee(), rp));
-        m.put("settlementDueDt", r.getCalcDt() != null ? r.getCalcDt().toString() : "");
+        String cycleDisp = displayCalcCycleForExecuteRow(r, compId);
+        settlementRunDateDisplayService.enrichCloseAndExecDates(m, r, cycleDisp);
+        m.put("settlementDueDt", String.valueOf(m.getOrDefault("settlementExecDate", "")));
         m.put("settledYn", "CALCULATED".equalsIgnoreCase(String.valueOf(r.getStatus())) ? "Y" : "N");
         m.put("status", r.getStatus());
         m.put("txnCnt", r.getIncludedTxnCnt());
@@ -615,7 +621,8 @@ public class SettlementReportService {
             m.putAll(remittanceFieldsForRun(r));
             m.put("txnCnt", r.getIncludedTxnCnt());
             m.put("status", r.getStatus());
-            m.put("settlementDueDt", calcDt != null ? calcDt.toString() : "");
+            settlementRunDateDisplayService.enrichCloseAndExecDates(m, r, String.valueOf(m.getOrDefault("calcCycle", "")));
+            m.put("settlementDueDt", String.valueOf(m.getOrDefault("settlementExecDate", "")));
             m.put("settledYn", "CALCULATED".equalsIgnoreCase(String.valueOf(r.getStatus())) ? "Y" : "N");
             boolean manualRecv = receivableRecoveryModeService.isManualForMerchantCode(mid);
             m.put("receivableRecoveryMode", manualRecv ? "MANUAL" : "AUTO");

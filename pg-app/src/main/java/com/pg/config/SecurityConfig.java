@@ -42,6 +42,8 @@ public class SecurityConfig {
                 AntPathRequestMatcher.antMatcher("/chatbot-pay.html"),
                 AntPathRequestMatcher.antMatcher("/pay"),
                 AntPathRequestMatcher.antMatcher("/pay/**"),
+                AntPathRequestMatcher.antMatcher("/pay-repay"),
+                AntPathRequestMatcher.antMatcher("/pay-repay/**"),
                 AntPathRequestMatcher.antMatcher("/pay.html"),
                 AntPathRequestMatcher.antMatcher("/jpay-pay"),
                 AntPathRequestMatcher.antMatcher("/jpay-pay/**"),

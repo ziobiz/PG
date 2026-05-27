@@ -439,17 +439,18 @@
       return '<p class="text-muted small mb-0">' + esc(uiT('표시할 정산 실행 이력이 없습니다.')) + '</p>';
     }
     var rows = events.map(function (e) {
-      var dt = e.calcDt != null ? esc(e.calcDt) : '';
+      var closeDt = e.settlementCloseDate != null ? esc(e.settlementCloseDate) : (e.calcDt != null ? esc(e.calcDt) : '');
+      var execDt = e.settlementExecDate != null ? esc(e.settlementExecDate) : '';
       var pay = fmtMoney(e.payAmt);
       var ap = fmtMoney(e.approveAmt);
       var cnt = e.includedTxnCnt != null ? fmtNum(e.includedTxnCnt) : '—';
       var cyc = e.calcCycleSnapshot ? esc(String(e.calcCycleSnapshot)) : '—';
-      return '<tr><td>' + dt + '</td><td class="text-end">' + ap + '</td><td class="text-end">' + pay + '</td><td class="text-end">' + cnt + '</td><td><code>' + cyc + '</code></td></tr>';
+      return '<tr><td class="text-nowrap">' + closeDt + '</td><td class="text-nowrap">' + execDt + '</td><td class="text-end">' + ap + '</td><td class="text-end">' + pay + '</td><td class="text-end">' + cnt + '</td><td><code>' + cyc + '</code></td></tr>';
     }).join('');
     return (
       '<div class="table-responsive pg-dash-cal-wrap">' +
       '<table class="table table-sm table-hover mb-0">' +
-      '<thead><tr><th>' + esc(uiT('정산일')) + '</th><th class="text-end">' + esc(uiT('승인합')) + '</th><th class="text-end">' + esc(uiT('지급액')) + '</th><th class="text-end">' + esc(uiT('포함건수')) + '</th><th>' + esc(uiT('주기')) + '</th></tr></thead>' +
+      '<thead><tr><th>' + esc(uiT('정산마감일')) + '</th><th>' + esc(uiT('정산일자')) + '</th><th class="text-end">' + esc(uiT('승인합')) + '</th><th class="text-end">' + esc(uiT('지급액')) + '</th><th class="text-end">' + esc(uiT('포함건수')) + '</th><th>' + esc(uiT('주기')) + '</th></tr></thead>' +
       '<tbody>' + rows + '</tbody></table></div>'
     );
   }
@@ -564,12 +565,14 @@
 
     var rs = h.recentSettlements || [];
     var rsRows = rs.map(function (r) {
-      return '<tr><td class="text-nowrap small">' + esc(r.at || '') + '</td><td>' + esc(r.calcDt || '') + '</td>' +
+      var closeDt = r.settlementCloseDate != null ? r.settlementCloseDate : (r.calcDt || '');
+      var execDt = r.settlementExecDate != null ? r.settlementExecDate : '';
+      return '<tr><td class="text-nowrap small">' + esc(r.at || '') + '</td><td class="text-nowrap">' + esc(closeDt) + '</td><td class="text-nowrap">' + esc(execDt) + '</td>' +
         '<td>' + esc(r.merchantIdMasked || '') + '</td><td class="text-end">' + fmtMoney(r.payAmt) + '</td>' +
         '<td><code class="small">' + esc(String(r.settlementPublishSts || '')) + '</code></td></tr>';
     }).join('');
     var rsTable = rs.length
-      ? '<div class="table-responsive"><table class="table table-sm table-hover mb-0"><thead><tr><th>' + esc(uiT('생성')) + '</th><th>' + esc(uiT('정산일')) + '</th><th>' + esc(uiT('가맹')) + '</th><th class="text-end">' + esc(uiT('지급액')) + '</th><th>' + esc(uiT('배포')) + '</th></tr></thead><tbody>' + rsRows + '</tbody></table></div>'
+      ? '<div class="table-responsive"><table class="table table-sm table-hover mb-0"><thead><tr><th>' + esc(uiT('생성')) + '</th><th>' + esc(uiT('정산마감일')) + '</th><th>' + esc(uiT('정산일자')) + '</th><th>' + esc(uiT('가맹')) + '</th><th class="text-end">' + esc(uiT('지급액')) + '</th><th>' + esc(uiT('배포')) + '</th></tr></thead><tbody>' + rsRows + '</tbody></table></div>'
       : '<p class="text-muted small mb-0">' + esc(uiT('최근 정산 실행이 없습니다.')) + '</p>';
     var rsCard =
       '<div class="card mb-3"><div class="card-header py-2 d-flex justify-content-between align-items-center">' +

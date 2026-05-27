@@ -12,6 +12,7 @@ import com.pg.entity.OrgUnit;
 import com.pg.repository.HqApiConfigRepository;
 import com.pg.repository.MerchantChatbotProductRepository;
 import com.pg.repository.MerchantProfileRepository;
+import com.pg.urlpay.UrlPayCheckoutModeUtil;
 import com.pg.util.ChatbotProductPricingUtil;
 import com.pg.repository.OrgBrandingRepository;
 import com.pg.repository.OrgUnitRepository;
@@ -165,7 +166,7 @@ public class MerchantChatbotProductService {
      * 카탈로그 각 행에 챗봇·URL 진입용 프리필 결제 링크({@code /pay.html?m=…&item=&amount=&currency=&entry=chatbot})를 붙입니다.
      */
     public void enrichPublicCatalogItemsWithPayUrls(List<Map<String, Object>> items, String compCode,
-                                                     HttpServletRequest req) {
+                                                     HttpServletRequest req, Long orgUnitId) {
         if (items == null || items.isEmpty()) {
             return;
         }
@@ -173,6 +174,7 @@ public class MerchantChatbotProductService {
         if (cid.isEmpty()) {
             return;
         }
+        boolean repayMode = isMerchantUrlPayCheckoutRepay(orgUnitId);
         String base = resolvePublicCustomerSiteBase(req);
         for (Map<String, Object> row : items) {
             if (row == null) {
@@ -184,7 +186,7 @@ public class MerchantChatbotProductService {
             String lt = row.get("listingType") != null ? String.valueOf(row.get("listingType")).trim() : "SALE";
             boolean reservation = isReservationListingCode(lt);
             boolean placeStay = ChatbotListingType.RESERVATION_PLACE.getCode().equalsIgnoreCase(lt);
-            row.put("urlPayPrefillUrl", buildPayHtmlPrefillUrl(base, cid, title, amount, cur));
+            row.put("urlPayPrefillUrl", buildPayHtmlPrefillUrl(base, cid, title, amount, cur, repayMode));
             if (placeStay) {
                 row.put("payLinkVerbKo", "숙박 예약하기");
                 row.put("payLinkVerbJa", "宿泊予約");
@@ -204,13 +206,18 @@ public class MerchantChatbotProductService {
         if (merchantOrgUnitId == null) {
             return data;
         }
+        boolean repayMode = isMerchantUrlPayCheckoutRepay(merchantOrgUnitId);
+        data.put("urlPayCheckoutMode", resolveUrlPayCheckoutModeForMerchant(merchantOrgUnitId));
         Map<String, Object> pres;
         try {
-            pres = new LinkedHashMap<>(chillPayService.getUrlPayPresentationForCheckout(merchantOrgUnitId));
+            pres = repayMode
+                    ? new LinkedHashMap<>(chillPayService.getUrlPayRepayPresentationForCheckout(merchantOrgUnitId))
+                    : new LinkedHashMap<>(chillPayService.getUrlPayPresentationForCheckout(merchantOrgUnitId));
         } catch (IllegalStateException ex) {
             data.put("urlPayConfigured", false);
-            data.put("urlPayConfigurationHintKo",
-                    "이 가맹점은 URL 결제용 ChillPay 연동(운영·URL결제)이 없으면 결제 페이지가 열리지 않을 수 있습니다.");
+            data.put("urlPayConfigurationHintKo", repayMode
+                    ? "이 가맹점은 URL 재결제용 ChillPay 연동(운영·URL재결제)이 없으면 결제 페이지가 열리지 않을 수 있습니다."
+                    : "이 가맹점은 URL 결제용 ChillPay 연동(운영·URL결제)이 없으면 결제 페이지가 열리지 않을 수 있습니다.");
             return data;
         }
         data.put("urlPayConfigured", true);
@@ -272,11 +279,30 @@ public class MerchantChatbotProductService {
         return sb.toString().trim();
     }
 
+    @Transactional(readOnly = true)
+    public String resolveUrlPayCheckoutModeForMerchant(Long orgUnitId) {
+        if (orgUnitId == null) {
+            return UrlPayCheckoutModeUtil.STANDARD;
+        }
+        return merchantProfileRepository.findByOrgUnitId(orgUnitId)
+                .map(mp -> UrlPayCheckoutModeUtil.normalize(mp.getChatbotUrlPayCheckoutMode()))
+                .orElse(UrlPayCheckoutModeUtil.STANDARD);
+    }
+
+    @Transactional(readOnly = true)
+    public boolean isMerchantUrlPayCheckoutRepay(Long orgUnitId) {
+        return UrlPayCheckoutModeUtil.isRepay(resolveUrlPayCheckoutModeForMerchant(orgUnitId));
+    }
+
     private static String buildPayHtmlPrefillUrl(String publicBaseTrimmed, String compCode,
-                                                 String title, String amountPlain, String currencyIso) {
+                                                 String title, String amountPlain, String currencyIso,
+                                                 boolean repayMode) {
         StringBuilder q = new StringBuilder();
         q.append("m=").append(urlEncode(compCode));
         q.append("&entry=chatbot");
+        if (repayMode) {
+            q.append("&variant=repay");
+        }
         String t = title != null ? title.trim() : "";
         if (!t.isEmpty()) {
             q.append("&item=").append(urlEncode(t.length() > 500 ? t.substring(0, 500) : t));

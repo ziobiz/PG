@@ -156,6 +156,12 @@
       CH: '汇总数据量过大，可能仅反映部分结果。请缩短期间或在手续费列表中查看明细。',
       TH: 'ข้อมูลมากเกินไป อาจสะท้อนเพียงบางส่วน ลดช่วงวันที่หรือดูรายละเอียดในรายการค่าธรรมเนียม'
     },
+    '집계 대상 건수가 많아 일부만 반영되었을 수 있습니다. 기간을 줄이거나 목록에서 상세 조회하세요.': {
+      EN: 'Too many rows to aggregate; totals may be partial. Narrow the date range or open the list for details.',
+      JP: '集計対象が多いため一部のみ反映された可能性があります。期間を短くするか一覧で詳細を確認してください。',
+      CH: '汇总数据量过大，可能仅反映部分结果。请缩短期间或在列表中查看明细。',
+      TH: 'ข้อมูลมากเกินไป อาจสะท้อนเพียงบางส่วน ลดช่วงวันที่หรือดูรายละเอียดในรายการ'
+    },
     '해당 일자 거래가 많아 상세 목록이 일부만 표시됩니다.': {
       EN: 'Too many transactions for this day; only part of the detail list is shown.',
       JP: '当該日の取引が多いため、詳細一覧の一部のみ表示しています。',
@@ -4064,6 +4070,30 @@
       CH: '拨付金额',
       TH: 'ยอดจ่าย'
     },
+    '지급예상': {
+      EN: 'Expected payout',
+      JP: '支払予定',
+      CH: '预计拨付',
+      TH: 'ยอดจ่ายโดยประมาณ'
+    },
+    '정산예상': {
+      EN: 'Expected settlement',
+      JP: '精算予定',
+      CH: '预计结算',
+      TH: 'ยอดชำระบัญชีโดยประมาณ'
+    },
+    '총거래': {
+      EN: 'Total txn amount',
+      JP: '総取引',
+      CH: '总交易',
+      TH: 'ยอดธุรกรรมรวม'
+    },
+    '추정결산': {
+      EN: 'Est. settlement',
+      JP: '推定決算',
+      CH: '预估结算',
+      TH: 'ประมาณการชำระบัญชี'
+    },
     '성공': {
       EN: 'Success',
       JP: '成功',
@@ -4118,11 +4148,11 @@
       CH: '取消',
       TH: 'ยกเลิก'
     },
-    '목록은 정산일(calc_dt)이 정산기간 안에 드는 실행만 보여 줍니다. 처음 열 때는 최근정산 모드(기본: 최근 1년·정산일 최신순, 동일 정산일은 실행 등록 시각 순)입니다. [검색]을 누르면 입력한 정산기간으로 조회하며 정산일·업체코드 순으로 정렬됩니다. 「정산실행」버튼: 기간·가맹을 지정해 실행합니다(AUTO·MANUAL 모두 동일 주기·마감·격자·영업일 규칙). 검색: 정산기간·빠른기간·검색구분·정산구분(전체·자동·수동)·검색어 순으로 가맹 정산설정 기준을 좁힌 뒤 [검색]합니다. 「전체」는 해당 조건으로 좁히지 않습니다(검색어가 있을 때만 전체 컬럼 OR 검색). D+N·W+N·WK 등 달력 주기 가맹은 기간 종료일(정산일)이 해당 주기의 실행일일 때만 집계됩니다(미도래일에는 실행되지 않음). 정산마감시각·정산제외 영업일·D0 시간대는 자동 배치와 동일합니다. RT·T0·격자(M/H/TM/TH)는 조회 기간 내 거래가 있을 때만 해당 기간으로 집계합니다. H1·M 등 시간 격자는 한 구간(동일 정산 슬롯) 안에서 매출·취소·공제가 ± 함께 집계되어 한 행의 지급액이 됩니다. 서버 크론은 AUTO 가맹만 자동 호출하며, 화면 「정산실행」은 AUTO·MANUAL을 추가로 수동 트리거할 수 있습니다. 목록의 정산주기·정산방법·루트는 가맹 정산설정·PG연동에서 가져옵니다. 지급액은 순매출에서 수수료·수수료부가세·담보금(신규)를 뺀 값으로, 수수료·담보가 매출을 넘으면 음수로 표시됩니다(0으로 보정하지 않음). 그 경우 부족분 동액이 「미수금관리」에 1건 자동 등록되며(사유코드·메모로 실행과 연결), 본 목록의 미수금 열과 맞춰 볼 수 있습니다. 환수모드 AUTO 가맹은 다음 정산에서 양(+) 지급액에 환수금·미수금이 FIFO로 먼저 반영되고, MANUAL 가맹은 「미수금관리」에서 환수처리 후 차기 마감·정산에서 차감됩니다.': {
-      EN: 'The list shows runs whose settlement date (calc_dt) falls in the selected period. On first open it is in Recent mode (default: last year, newest run registration time first). [Search] loads the period you entered and sorts by settlement date, then merchant code. Run settlement: pick period and merchants (AUTO and MANUAL share the same cycle, cutoff, grid, and business-day rules). Search narrows by period, quick range, field, settlement type (all/auto/manual), then keyword, then [Search]. “All” does not narrow that dimension (OR across columns only when a keyword is present). D+N, W+N, WK merchants aggregate only when the period end (settlement date) is that cycle’s run day (nothing runs on future days). Cutoff time, excluded business days, and D0 windows match the batch job. RT, T0, and grids (M/H/TM/TH) aggregate only when there are txns in the queried window. H1, M, etc. sum sales, cancels, and deductions ± together inside one slot into one payout row. Server cron auto-runs AUTO merchants only; this screen can also manually trigger AUTO and MANUAL. Cycle, method, and route come from merchant settlement settings and PG links. Payout is net sales minus fees, fee VAT, and rolling collateral (new); if fees and collateral exceed sales, the value stays negative (not clamped to zero). The shortfall is auto-posted once to Receivables (reason code and memo link the run); compare with the receivable column here. Recovery mode AUTO applies recoveries and receivables FIFO to the next positive payout; MANUAL merchants use Receivables recovery, then the next close/settlement.',
-      JP: '一覧は精算日(calc_dt)が指定した精算期間に含まれる実行のみを表示します。初回は「直近の精算」モード（既定：過去1年・実行登録日時の新しい順）です。[検索]で入力した精算期間に切り替え、精算日・加盟店コード順に並びます。「精算実行」は期間と加盟店を指定して実行します（AUTO・MANUALとも同一の周期・締め・グリッド・営業日ルール）。検索は精算期間・クイック期間・検索区分・精算区分（全体・自動・手動）・検索語の順で精算設定を絞り、[検索]します。「全体」はその条件では絞りません（検索語があるときのみ全列OR検索）。D+N・W+N・WKなどカレンダー周期の加盟店は、期間終了日（精算日）がその周期の実行日に一致するときだけ集計されます（未到来日は実行されません）。精算締め時刻・精算除外営業日・D0の扱いは自動バッチと同じです。RT・T0・格子(M/H/TM/TH)は照会期間内に取引がある場合のみその期間で集計します。H1・Mなど時間格子は同一精算スロット内で売上・取消・控除を±まとめて一行の支払額にします。サーバークロンはAUTO加盟店のみ自動実行し、本画面の「精算実行」はAUTO・MANUALを手動で追加トリガーできます。一覧の精算サイクル・精算方法・ルートは加盟店精算設定・PG連携から取得します。支払額は純売上から手数料・手数料付加税・担保金（新規）を差し引いた値で、手数料・担保が売上を超えると負のまま表示します（0に補正しません）。その場合不足額相当が「未収管理」に1件自動登録され（理由コード・メモで実行と紐づけ）、本一覧の未収列と照合できます。回収モードAUTO加盟店は次回精算の正の支払額に回収金・未収金をFIFOで先に反映し、MANUAL加盟店は「未収管理」で回収処理後に次回締め・精算で相殺されます。',
-      CH: '列表仅显示精算日(calc_dt)落在所选精算期间内的执行。首次打开为「最近精算」模式（默认：近一年、按执行登记时间从新到旧）。[搜索]按输入的精算期间查询，并按精算日、商户代码排序。「执行结算」可指定期间与商户（AUTO 与 MANUAL 使用相同的周期、截止、网格与营业日规则）。搜索顺序为：精算期间、快捷期间、搜索字段、精算类型（全部·自动·手动）、关键词，然后[搜索]。「全部」不在该维度上收窄（仅在有搜索词时做全列 OR）。D+N、W+N、WK 等日历周期商户仅在期间结束日（精算日）等于该周期的执行日时才汇总（未到的日期不会执行）。精算截止时间、排除的营业日与 D0 处理与自动批处理一致。RT、T0、网格(M/H/TM/TH) 仅在查询窗口内有交易时才按该期间汇总。H1、M 等时间网格在同一精算槽内将销售、撤销、扣款±合并为一行的拨付额。服务器定时任务仅自动调用 AUTO 商户；本屏「执行结算」也可手动触发 AUTO 与 MANUAL。列表中的精算周期、方法与路由来自商户精算设置与 PG 联动。拨付额为净销售减去手续费、手续费增值税与滚动担保（新）；若手续费与担保超过销售额则保持负数（不钳到零）。差额会自动登记一条「应收管理」（理由码与备注关联执行），可与本列表的应收列对照。回收模式 AUTO 商户在下次正拨付额上按 FIFO 先扣回收与应收；MANUAL 商户在「应收管理」处理回收后于下次截止/精算扣减。',
-      TH: 'รายการแสดงเฉพาะรันที่วันที่ชำระ (calc_dt) อยู่ในช่วงที่เลือก เมื่อเปิดครั้งแรกเป็นโหมดชำระล่าสุด (ค่าเริ่มต้น: 1 ปีล่าสุด เรียงเวลาลงทะเบียนรันใหม่ก่อน) [ค้นหา] โหลดช่วงที่กรอกและเรียงตามวันชำระ แล้วรหัสร้าน 「รันชำระ」เลือกช่วงและร้าน (AUTO กับ MANUAL ใช้กฎรอบ ปิด กริด และวันทำการเดียวกัน) การค้นหาคัดโดยช่วงชำระ ช่วงด่วน ฟิลด์ ประเภทชำระ (ทั้งหมด/อัตโนมัติ/ด้วยมือ) คำสำคัญ แล้ว [ค้นหา] 「ทั้งหมด」ไม่คัดในขั้นนั้น (OR ทุกคอลัมน์เมื่อมีคำค้น) ร้านรอบปฏิทิน D+N W+N WK สรุปเมื่อวันสิ้นช่วง (วันชำระ) ตรงกับวันรันของรอบนั้น (วันที่ยังไม่ถึงจะไม่รัน) เวลาปิด วันหยุดที่ยกเว้น และ D0 เหมือนงาน batch RT T0 กริด (M/H/TM/TH) สรุปเมื่อมีธุรกรรมในช่วงที่ถาม H1 M รวมยอดขาย ยกเลิก หัก ± ในสล็อตเดียวเป็นจ่ายหนึ่งแถว cron เซิร์ฟเวอร์รัน AUTO อัตโนมัติเท่านั้น หน้านี้สามารถกดรัน AUTO/MANUAL เพิ่มได้ รอบ วิธี และเส้นทางมาจากตั้งค่าชำระร้านและลิงก์ PG จ่าย = ยอดสุทธิ − ค่าธรรมเนียม VAT ค่าธรรมเนียม หลักประกัน (ใหม่) ถ้าเกินยอดขายคงติดลบ (ไม่บังคับเป็นศูนย์) ส่วนต่างลงลูกหนี้อัตโนมัติ 1 รายการใน「ลูกหนี้」(รหัสเหตุผลและบันทึกผูกรัน) เทียบกับคอลัมน์ลูกหนี้ที่นี่ โหมดกู้คืน AUTO หักกู้คืนและลูกหนี้ FIFO จากยอดบวกครั้งถัดไป MANUAL ใช้「ลูกหนี้」ก่อน แล้วหักในรอบปิด/ชำระถัดไป'
+    '목록은 정산마감일 또는 정산일자(배치 실행일)가 정산기간 안에 드는 실행을 보여 줍니다. 처음 열 때는 최근정산 모드(기본: 최근 1년·정산일 최신순, 동일 정산일은 실행 등록 시각 순)입니다. [검색]을 누르면 입력한 정산기간으로 조회하며 정산일·업체코드 순으로 정렬됩니다. 「정산실행」버튼: 기간·가맹을 지정해 실행합니다(AUTO·MANUAL 모두 동일 주기·마감·격자·영업일 규칙). 검색: 정산기간·빠른기간·검색구분·정산구분(전체·자동·수동)·검색어 순으로 가맹 정산설정 기준을 좁힌 뒤 [검색]합니다. 「전체」는 해당 조건으로 좁히지 않습니다(검색어가 있을 때만 전체 컬럼 OR 검색). D+N·W+N·WK 등 달력 주기 가맹은 기간 종료일(정산일)이 해당 주기의 실행일일 때만 집계됩니다(미도래일에는 실행되지 않음). 정산마감시각·정산제외 영업일·D0 시간대는 자동 배치와 동일합니다. RT·T0·격자(M/H/TM/TH)는 조회 기간 내 거래가 있을 때만 해당 기간으로 집계합니다. H1·M 등 시간 격자는 한 구간(동일 정산 슬롯) 안에서 매출·취소·공제가 ± 함께 집계되어 한 행의 지급액이 됩니다. 서버 크론은 AUTO 가맹만 자동 호출하며, 화면 「정산실행」은 AUTO·MANUAL을 추가로 수동 트리거할 수 있습니다. 목록의 정산주기·정산방법·루트는 가맹 정산설정·PG연동에서 가져옵니다. 지급액은 순매출에서 수수료·수수료부가세·담보금(신규)를 뺀 값으로, 수수료·담보가 매출을 넘으면 음수로 표시됩니다(0으로 보정하지 않음). 그 경우 부족분 동액이 「미수금관리」에 1건 자동 등록되며(사유코드·메모로 실행과 연결), 본 목록의 미수금 열과 맞춰 볼 수 있습니다. 환수모드 AUTO 가맹은 다음 정산에서 양(+) 지급액에 환수금·미수금이 FIFO로 먼저 반영되고, MANUAL 가맹은 「미수금관리」에서 환수처리 후 차기 마감·정산에서 차감됩니다.': {
+      EN: 'The list shows runs whose settlement close date or settlement execution date (batch run day) falls in the selected period. On first open it is in Recent mode (default: last year, newest run registration time first). [Search] loads the period you entered and sorts by settlement date, then merchant code. Run settlement: pick period and merchants (AUTO and MANUAL share the same cycle, cutoff, grid, and business-day rules). Search narrows by period, quick range, field, settlement type (all/auto/manual), then keyword, then [Search]. “All” does not narrow that dimension (OR across columns only when a keyword is present). D+N, W+N, WK merchants aggregate only when the period end (settlement date) is that cycle’s run day (nothing runs on future days). Cutoff time, excluded business days, and D0 windows match the batch job. RT, T0, and grids (M/H/TM/TH) aggregate only when there are txns in the queried window. H1, M, etc. sum sales, cancels, and deductions ± together inside one slot into one payout row. Server cron auto-runs AUTO merchants only; this screen can also manually trigger AUTO and MANUAL. Cycle, method, and route come from merchant settlement settings and PG links. Payout is net sales minus fees, fee VAT, and rolling collateral (new); if fees and collateral exceed sales, the value stays negative (not clamped to zero). The shortfall is auto-posted once to Receivables (reason code and memo link the run); compare with the receivable column here. Recovery mode AUTO applies recoveries and receivables FIFO to the next positive payout; MANUAL merchants use Receivables recovery, then the next close/settlement.',
+      JP: '一覧は精算締め日または精算日（バッチ実行日）が指定した精算期間に含まれる実行を表示します。初回は「直近の精算」モード（既定：過去1年・実行登録日時の新しい順）です。[検索]で入力した精算期間に切り替え、精算日・加盟店コード順に並びます。「精算実行」は期間と加盟店を指定して実行します（AUTO・MANUALとも同一の周期・締め・グリッド・営業日ルール）。検索は精算期間・クイック期間・検索区分・精算区分（全体・自動・手動）・検索語の順で精算設定を絞り、[検索]します。「全体」はその条件では絞りません（検索語があるときのみ全列OR検索）。D+N・W+N・WKなどカレンダー周期の加盟店は、期間終了日（精算日）がその周期の実行日に一致するときだけ集計されます（未到来日は実行されません）。精算締め時刻・精算除外営業日・D0の扱いは自動バッチと同じです。RT・T0・格子(M/H/TM/TH)は照会期間内に取引がある場合のみその期間で集計します。H1・Mなど時間格子は同一精算スロット内で売上・取消・控除を±まとめて一行の支払額にします。サーバークロンはAUTO加盟店のみ自動実行し、本画面の「精算実行」はAUTO・MANUALを手動で追加トリガーできます。一覧の精算サイクル・精算方法・ルートは加盟店精算設定・PG連携から取得します。支払額は純売上から手数料・手数料付加税・担保金（新規）を差し引いた値で、手数料・担保が売上を超えると負のまま表示します（0に補正しません）。その場合不足額相当が「未収管理」に1件自動登録され（理由コード・メモで実行と紐づけ）、本一覧の未収列と照合できます。回収モードAUTO加盟店は次回精算の正の支払額に回収金・未収金をFIFOで先に反映し、MANUAL加盟店は「未収管理」で回収処理後に次回締め・精算で相殺されます。',
+      CH: '列表显示精算截止日或精算日（批处理执行日）落在所选精算期间内的执行。首次打开为「最近精算」模式（默认：近一年、按执行登记时间从新到旧）。[搜索]按输入的精算期间查询，并按精算日、商户代码排序。「执行结算」可指定期间与商户（AUTO 与 MANUAL 使用相同的周期、截止、网格与营业日规则）。搜索顺序为：精算期间、快捷期间、搜索字段、精算类型（全部·自动·手动）、关键词，然后[搜索]。「全部」不在该维度上收窄（仅在有搜索词时做全列 OR）。D+N、W+N、WK 等日历周期商户仅在期间结束日（精算日）等于该周期的执行日时才汇总（未到的日期不会执行）。精算截止时间、排除的营业日与 D0 处理与自动批处理一致。RT、T0、网格(M/H/TM/TH) 仅在查询窗口内有交易时才按该期间汇总。H1、M 等时间网格在同一精算槽内将销售、撤销、扣款±合并为一行的拨付额。服务器定时任务仅自动调用 AUTO 商户；本屏「执行结算」也可手动触发 AUTO 与 MANUAL。列表中的精算周期、方法与路由来自商户精算设置与 PG 联动。拨付额为净销售减去手续费、手续费增值税与滚动担保（新）；若手续费与担保超过销售额则保持负数（不钳到零）。差额会自动登记一条「应收管理」（理由码与备注关联执行），可与本列表的应收列对照。回收模式 AUTO 商户在下次正拨付额上按 FIFO 先扣回收与应收；MANUAL 商户在「应收管理」处理回收后于下次截止/精算扣减。',
+      TH: 'รายการแสดงรันที่วันปิดชำระหรือวันชำระ (วันรัน batch) อยู่ในช่วงที่เลือก เมื่อเปิดครั้งแรกเป็นโหมดชำระล่าสุด (ค่าเริ่มต้น: 1 ปีล่าสุด เรียงเวลาลงทะเบียนรันใหม่ก่อน) [ค้นหา] โหลดช่วงที่กรอกและเรียงตามวันชำระ แล้วรหัสร้าน 「รันชำระ」เลือกช่วงและร้าน (AUTO กับ MANUAL ใช้กฎรอบ ปิด กริด และวันทำการเดียวกัน) การค้นหาคัดโดยช่วงชำระ ช่วงด่วน ฟิลด์ ประเภทชำระ (ทั้งหมด/อัตโนมัติ/ด้วยมือ) คำสำคัญ แล้ว [ค้นหา] 「ทั้งหมด」ไม่คัดในขั้นนั้น (OR ทุกคอลัมน์เมื่อมีคำค้น) ร้านรอบปฏิทิน D+N W+N WK สรุปเมื่อวันสิ้นช่วง (วันชำระ) ตรงกับวันรันของรอบนั้น (วันที่ยังไม่ถึงจะไม่รัน) เวลาปิด วันหยุดที่ยกเว้น และ D0 เหมือนงาน batch RT T0 กริด (M/H/TM/TH) สรุปเมื่อมีธุรกรรมในช่วงที่ถาม H1 M รวมยอดขาย ยกเลิก หัก ± ในสล็อตเดียวเป็นจ่ายหนึ่งแถว cron เซิร์ฟเวอร์รัน AUTO อัตโนมัติเท่านั้น หน้านี้สามารถกดรัน AUTO/MANUAL เพิ่มได้ รอบ วิธี และเส้นทางมาจากตั้งค่าชำระร้านและลิงก์ PG จ่าย = ยอดสุทธิ − ค่าธรรมเนียม VAT ค่าธรรมเนียม หลักประกัน (ใหม่) ถ้าเกินยอดขายคงติดลบ (ไม่บังคับเป็นศูนย์) ส่วนต่างลงลูกหนี้อัตโนมัติ 1 รายการใน「ลูกหนี้」(รหัสเหตุผลและบันทึกผูกรัน) เทียบกับคอลัมน์ลูกหนี้ที่นี่ โหมดกู้คืน AUTO หักกู้คืนและลูกหนี้ FIFO จากยอดบวกครั้งถัดไป MANUAL ใช้「ลูกหนี้」ก่อน แล้วหักในรอบปิด/ชำระถัดไป'
     },
     '이번 정산 실행에 집계에 포함된 거래 건수. 컬럼 도입 이전 실행 행은 비어 있을 수 있습니다.': {
       EN: 'Txn count included in this settlement run; rows from before the column was added may be blank.',
@@ -5097,11 +5127,95 @@
       CH: '发布状态',
       TH: 'สถานะเผยแพร่'
     },
+    '정산마감일': {
+      EN: 'Settlement close date',
+      JP: '精算締日',
+      CH: '结算截止日',
+      TH: 'วันปิดรอบชำระ'
+    },
     '정산일자': {
-      EN: 'Settlement date',
-      JP: '精算日',
-      CH: '结算日',
-      TH: 'วันชำระ'
+      EN: 'Settlement date (batch)',
+      JP: '精算日（バッチ）',
+      CH: '结算日（批次）',
+      TH: 'วันชำระ (แบทช์)'
+    },
+    '집계 구간 마감일.': {
+      EN: 'Period close date (end of aggregation window).',
+      JP: '集計区間の締日。',
+      CH: '汇总区间截止日。',
+      TH: 'วันปิดช่วงสรุป'
+    },
+    '정산주기·영업일 기준 배치 예정일.': {
+      EN: 'Scheduled batch date by settlement cycle and business days.',
+      JP: '精算サイクル・営業日基準のバッチ予定日。',
+      CH: '按结算周期与营业日计算的批次预定日。',
+      TH: 'วันแบทช์ตามรอบชำระและวันทำการ'
+    },
+    '집계 구간 마감일(예: W7이면 해당 주 마지막 날). 기존 calc_dt와 동일.': {
+      EN: 'Period close date (e.g. W7 = last day of that week). Same as legacy calc_dt.',
+      JP: '集計区間締日（例：W7なら当該週の最終日）。従来の calc_dt と同一。',
+      CH: '汇总区间截止日（如 W7 为该周最后一天）。与原先 calc_dt 相同。',
+      TH: 'วันปิดช่วงสรุป (เช่น W7 = วันสุดท้ายของสัปดาห์) เหมือน calc_dt เดิม'
+    },
+    '정산주기·영업일 기준 배치(정산) 예정일(W+N 영업일 등).': {
+      EN: 'Scheduled settlement batch date by cycle and business days (e.g. W+N business days).',
+      JP: '精算サイクル・営業日基準の精算バッチ予定日（W+N 営業日など）。',
+      CH: '按结算周期与营业日的结算批次预定日（如 W+N 营业日等）。',
+      TH: 'วันแบทช์ชำระตามรอบและวันทำการ (เช่น W+N วันทำการ)'
+    },
+    '정산주기·영업일 기준 배치(정산) 예정일(정산일자 열과 동일).': {
+      EN: 'Scheduled settlement batch date by cycle and business days (same as Settlement date column).',
+      JP: '精算サイクル・営業日基準の精算バッチ予定日（精算日列と同一）。',
+      CH: '按结算周期与营业日的结算批次预定日（与「结算日」列相同）。',
+      TH: 'วันแบทช์ชำระตามรอบและวันทำการ (ตรงคอลัมน์วันชำระ)'
+    },
+    '정산 실행 일시(표시 형식은 환경 설정).': {
+      EN: 'Settlement run timestamp (display format follows environment settings).',
+      JP: '精算実行日時（表示形式は環境設定）。',
+      CH: '结算执行时间（显示格式随环境设置）。',
+      TH: 'วันเวลารันชำระ (รูปแบบตามการตั้งค่าระบบ)'
+    },
+    '한 행은 정산 실행으로 저장된 귀사(가맹) 정산 결과입니다. 정산기간·빠른기간으로 조회한 뒤 [검색] 하세요.': {
+      EN: 'Each row is a settlement run result saved for your merchant. Set the settlement period or quick range, then click [Search].',
+      JP: '1行は精算実行として保存された貴社（加盟店）の精算結果です。精算期間・クイック期間を指定してから［検索］してください。',
+      CH: '每行为您（商户）已保存的结算执行结果。请设定结算期间或快捷区间后点击【搜索】。',
+      TH: 'แต่ละแถวคือผลชำระที่บันทึกจากรันชำระ ตั้งช่วงชำระหรือช่วงด่วนแล้วกด [ค้นหา]'
+    },
+    '정산대상기간·결제금액·수수료·보증금·정산료·VAT·지급액은 정산배포·정산실행과 동일한 실행 저장값·집계 규칙을 따릅니다. 수수료 열은 건당·결제%·취소·환불(무효 등) 구간을 합산한 거래수수료(tb_settlement_run.total_fee)입니다.': {
+      EN: 'Target period, payment amount, fees, collateral, settlement fee, VAT, and payout follow the same stored run values and aggregation rules as settlement publish and runs. The fee column is total transaction fees (tb_settlement_run.total_fee) summing per-txn, pay %, cancel, refund (void, etc.) buckets.',
+      JP: '精算対象期間・決済金額・手数料・担保金・精算料・VAT・支払額は、精算配布・精算実行と同じ実行保存値・集計ルールに従います。手数料列は件当・決済%・取消・返金（無効等）区間を合算した取引手数料（tb_settlement_run.total_fee）です。',
+      CH: '结算目标期间、支付金额、手续费、保证金、结算费、VAT、拨付额与结算下发、结算执行采用相同的执行保存值与汇总规则。手续费列为按笔、支付%、取消、退款（作废等）区间汇总的交易手续费（tb_settlement_run.total_fee）。',
+      TH: 'ช่วงเป้าหมาย ยอดชำระ ค่าธรรมเนียม หลักประกัน ค่าธรรมเนียมชำระ VAT และยอดจ่ายใช้กฎเดียวกับแจกจ่าย/รันชำระ คอลัมน์ค่าธรรมเนียมคือ total_fee รวมต่อรายการ % ยกเลิก คืน โมฆะ ฯลฯ'
+    },
+    '표시 열은 [헬로] 옆 VIEW SETTING에서 조정할 수 있습니다(저장 시 사용자별 유지). 건당·취소·환불 등 세부 분해 열은 같은 거래 구간 합산 보조값입니다.': {
+      EN: 'Toggle visible columns via VIEW SETTING next to Hello (saved per user). Per-txn, cancel, refund, etc. breakdown columns are auxiliary sums for the same transaction window.',
+      JP: '表示列は［Hello］横の VIEW SETTING で調整できます（保存時ユーザー別に維持）。件当・取消・返金等の内訳列は同一取引区間の合算補助値です。',
+      CH: '可通过 Hello 旁的 VIEW SETTING 调整显示列（按用户保存）。按笔、取消、退款等明细列为同一交易区间的汇总辅助值。',
+      TH: 'สลับคอลัมน์ที่มองเห็นผ่าน VIEW SETTING ข้าง Hello (บันทึกต่อผู้ใช้) คอลัมน์แยกต่อรายการ ยกเลิก คืน ฯลฯ เป็นยอดรวมเสริมในช่วงธุรกรรมเดียวกัน'
+    },
+    '[하위 구분] 정산집계·정산실시·정산집계표·확정정산(리포트). 정산집계·정산실시·확정정산에서 실행 ID가 있는 행을 클릭하면 하단에 해당 정산 실행에 포함된 거래 목록이 표시됩니다. 집계표(SUM)는 요약 1행만 조회되며, 본사 지급 리포트의 정산실시(EXE)는 합산 행이라 실행 ID가 없을 수 있습니다.': {
+      EN: '[Sub-type] Aggregate, runs, summary sheet, confirmed (report). Click a row with a run ID in aggregate, runs, or confirmed to show included transactions below. SUM is one summary row; HQ payout report → Runs (EXE) may be an aggregate row without a run ID.',
+      JP: '[下位区分] 集計・実行・集計表・確定精算（レポート）。集計・実行・確定精算で実行IDがある行をクリックすると、下部に当該精算実行に含まれる取引一覧が表示されます。集計表(SUM)は要約1行のみで、本社支払レポートの実行(EXE)は合算行のため実行IDがない場合があります。',
+      CH: '[子类型] 结算汇总、执行、汇总表、已确认（报表）。在汇总、执行或已确认中点击含执行 ID 的行，可在下方显示该执行包含的交易列表。汇总表(SUM)仅一行摘要；本部拨付报表的执行(EXE)可能为汇总行而无执行 ID。',
+      TH: '[ประเภทย่อย] สรุป / รัน / แผ่นสรุป / ยืนยันแล้ว คลิกแถวที่มี run ID ใน AGG/EXE/RST เพื่อแสดงธุรกรรมด้านล่าง SUM เป็นหนึ่งแถวสรุป EXE รายงานจ่าย HQ อาจไม่มี run ID'
+    },
+    '정산집계·정산실시의 비율형 수수료·건당수수료·부가세는 수수료 정책·거래 상태별 수수료내역 계산과 동일 규칙으로 집계합니다. 통화 열은 정책 통화(THB/KRW/USD/JPY 등)입니다.': {
+      EN: 'Percentage fees, per-txn fees, and VAT in aggregate and runs are summed using the same rules as fee policy and per-status fee history. The currency column shows policy currency (THB/KRW/USD/JPY, etc.).',
+      JP: '精算集計・実行の比率型手数料・件当手数料・消費税は、手数料政策・取引状態別の手数料一覧計算と同一ルールで集計します。通貨列は政策通貨（THB/KRW/USD/JPY 等）です。',
+      CH: '结算汇总、执行中的比例手续费、按笔手续费、增值税按手续费政策及各交易状态的手续费明细相同规则汇总。货币列显示政策货币（THB/KRW/USD/JPY 等）。',
+      TH: 'ค่าธรรมเนียม % ต่อรายการ และ VAT ใน AGG/EXE รวมตามกฎเดียวกับนโยบายและประวัติค่าธรรมเนียม คอลัมน์สกุลเงินแสดงสกุลนโยบาย (THB/KRW/USD/JPY ฯลฯ)'
+    },
+    '[배포 기준] 집계(AGG)·실시(EXE)·집계표(SUM)에는 정산배포가 완료된 실행(DISTRIBUTED, 레거시 null 허용)만 포함합니다. 가맹점정산내역·유통 집계와 동일합니다. 확정정산(RST)도 배포·확정된 실행만 표시합니다.': {
+      EN: '[Publish gate] AGG/EXE/SUM include only settlement runs published as DISTRIBUTED (legacy null allowed)—same gate as merchant statements and distribution rollup. RST lists only published and CALCULATED runs.',
+      JP: '[配布基準] AGG/EXE/SUM は配布済み(DISTRIBUTED、レガシーnull可)の実行のみ。加盟店精算・流通集計と同一。RST も配布・確定済みのみ。',
+      CH: '[下发口径] AGG/EXE/SUM 仅含已下发(DISTRIBUTED，兼容历史 null)的执行，与商户结算明细、流通汇总一致。RST 亦仅已下发且已确认。',
+      TH: '[เกณฑ์เผยแพร่] AGG/EXE/SUM รวมเฉพาะรันที่เผยแพร่แล้วเป็น DISTRIBUTED (รองรับ null เดิม) เหมือนรายการชำระร้านและสรุปห่วงโซ่ RST เฉพาะที่เผยแพร่และ CALCULATED'
+    },
+    '표시 열은 [헬로] 옆 VIEW SETTING에서 조정할 수 있습니다(저장 시 사용자별 유지). 체크·보류해제 열은 항상 표시됩니다.': {
+      EN: 'Toggle visible columns via VIEW SETTING next to Hello (saved per user). Checkbox and Release columns always stay visible.',
+      JP: '表示列は［Hello］横の VIEW SETTING で調整できます（保存時ユーザー別に維持）。チェック・保留解除列は常に表示されます。',
+      CH: '可通过 Hello 旁的 VIEW SETTING 调整显示列（按用户保存）。勾选与解除暂缓列始终显示。',
+      TH: 'สลับคอลัมน์ที่มองเห็นผ่าน VIEW SETTING ข้าง Hello (บันทึกต่อผู้ใช้) คอลัมน์เลือกและปลดพักแสดงเสมอ'
     },
     '정산대상일': {
       EN: 'Settlement target date',
@@ -5349,7 +5463,37 @@
       CH: '重试次数',
       TH: 'จำนวนครั้งที่ส่งซ้ำ'
     },
-    /* /hq/pgApiMng — 그리드·모달·알림 */
+    /* /hq/pgApiMng — 그리드·모달·알림·헬로 안내 */
+    '연동 용도(노티·URL·챗봇·API)와 용도별 엔드포인트를 구분해 저장합니다. URL 용도 행은 「URL금액」에서 일반(일반형) / DP(DISPLAY) / BLIND를 지정할 수 있으며, 본사 URL결제설정(FX JSON)의 해당 PG 금액 모드와 동일합니다. 노티=미들웨어 수신 매칭, URL=공개 URL 결제 플로우, 챗봇/API=PG사 API 직연동(동일 연동 URL). 목록 「연동용도」는 파스텔 색으로 구분됩니다. API Key·MD5는 목록 미노출. [삭제]는 등록일 오른쪽, 신규는 [PG사 연동 추가]입니다.': {
+      EN: 'Integration scopes (notify, URL, chatbot, API) and per-scope endpoints are stored separately. For URL rows, set Standard / DP (DISPLAY) / BLIND under URL amount — same as the HQ URL pay FX JSON amount mode for that PG. Notify = middleware receive matching; URL = public URL checkout; chatbot/API = direct PG API (same linkage URL). Scope badges use pastel colors. API Key and MD5 are hidden in the list. [Delete] is right of Registered; add new via [Add PG linkage].',
+      JP: '連携用途（ノティ・URL・チャットボット・API）と用途別エンドポイントを分けて保存します。URL用途行は「URL金額」で標準 / DP(DISPLAY) / BLIND を指定でき、本社URL決済設定（FX JSON）の当該PG金額モードと同じです。ノティ=ミドルウェア受信マッチ、URL=公開URL決済、チャットボット/API=PG API直連携（同一連携URL）。一覧「連携用途」はパステル色で区別。API Key・MD5は一覧非表示。[削除]は登録日の右、[PG連携追加]で新規登録。',
+      CH: '按对接用途（通知·URL·聊天机器人·API）分别保存各用途端点。URL 用途行可在「URL 金额」选择标准 / DP(DISPLAY) / BLIND，与总部 URL 支付设置（FX JSON）中该 PG 的金额模式一致。通知=中间件接收匹配，URL=公开 URL 支付流程，聊天机器人/API=直连 PG API（同一对接 URL）。列表「对接用途」以淡色区分。API Key·MD5 不在列表显示。[删除]在注册日期右侧，新增用 [添加 PG 对接]。',
+      TH: 'แยกบันทึกขอบเขตการเชื่อม (แจ้งเตือน·URL·แชทบอท·API) และเอนด์พอยต์ตามขอบเขต แถว URL ตั้ง มาตรฐาน / DP (DISPLAY) / BLIND ที่「โหมดจำนวน URL» — ตรงกับโหมดจำนวน PG ในการตั้งค่า URL สำนักงานใหญ่ (FX JSON) แจ้งเตือน=จับคู่รับ middleware URL=เช็คเอาต์ URL สาธารณะ แชทบอท/API=เชื่อม PG โดยตรง (URL เดียวกัน) ป้ายขอบเขตใช้สีพาสเทล API Key·MD5 ไม่แสดงในรายการ [ลบ] อยู่ขวาของวันที่ลงทะเบียน สร้างใหม่ด้วย [เพิ่มการเชื่อม PG]'
+    },
+    '통합정산 「예정(ICOPAY)」열: PG사 연동 편집에서 T+N(주말 제외 영업일·결제와 동일 시각) 또는 D+N(달력+N일·일괄 시각)을 저장합니다. OFF면 예정일을 채우지 않습니다. D는 일괄 시각(HH:mm) 필수.': {
+      EN: 'Integrated settlement Sched. (ICOPAY): in PG linkage edit, save T+N (business days excluding weekends, same time as payment) or D+N (calendar +N days, batch time). OFF leaves the expected date blank. D requires batch time (HH:mm).',
+      JP: '統合精算「予定(ICOPAY)」列: PG連携編集で T+N（週末除く営業日・決済と同時刻）または D+N（暦+N日・一括時刻）を保存。OFF なら予定日を空に。D は一括時刻(HH:mm)必須。',
+      CH: '综合结算「预计(ICOPAY)」列：在 PG 对接编辑中保存 T+N（不含周末的营业日·与支付同时刻）或 D+N（日历+N 天·批量时刻）。OFF 则不填预计日。D 必须填写批量时刻(HH:mm)。',
+      TH: 'คอลัมน์กำหนด (ICOPAY) การชำระรวม: แก้การเชื่อม PG บันทึก T+N (วันทำการไม่รวมสุดสัปดาห์·เวลาเดียวกับชำระ) หรือ D+N (ปฏิทิน+N วัน·เวลารวม) OFF ไม่เติมวันคาด D ต้องมีเวลารวม (HH:mm)'
+    },
+    'ChillPay는 PG코드 CHILLPAY, API·URL 엔드포인트는 ChillPayService가 병합 반영합니다. 운영 DB는 db/V35_pg_agency_integration_scope.sql 적용 후 배포하세요.': {
+      EN: 'ChillPay uses PG code CHILLPAY; API/URL endpoints are merged by ChillPayService. Apply db/V35_pg_agency_integration_scope.sql on the production DB before deploy.',
+      JP: 'ChillPay は PGコード CHILLPAY。API・URL エンドポイントは ChillPayService がマージ反映。本番 DB に db/V35_pg_agency_integration_scope.sql を適用してからデプロイしてください。',
+      CH: 'ChillPay 使用 PG 代码 CHILLPAY；API·URL 端点由 ChillPayService 合并写入。请在运营 DB 执行 db/V35_pg_agency_integration_scope.sql 后再部署。',
+      TH: 'ChillPay ใช้รหัส PG CHILLPAY เอนด์พอยต์ API·URL ถูกรวมโดย ChillPayService ใช้ db/V35_pg_agency_integration_scope.sql บน DB โปรduction ก่อน deploy'
+    },
+    '운영 저장': {
+      EN: 'Save operational',
+      JP: '運用保存',
+      CH: '保存运营',
+      TH: 'บันทึกการทำงานจริง'
+    },
+    'PG사 연동 추가': {
+      EN: 'Add PG linkage',
+      JP: 'PG連携追加',
+      CH: '添加 PG 对接',
+      TH: 'เพิ่มการเชื่อม PG'
+    },
     '조회된 데이터가 없습니다.': {
       EN: 'No records found.',
       JP: '該当データがありません。',
@@ -7864,6 +8008,108 @@
       JP: 'URL決済型 REDIRECT の提供',
       CH: '提供 URL 支付 REDIRECT',
       TH: 'เปิดใช้ REDIRECT แบบชำระ URL'
+    },
+    'URL 재결제형 제공': {
+      EN: 'Offer URL re-pay (saved card)',
+      JP: 'URL再決済型の提供',
+      CH: '提供 URL 再支付（保存卡）',
+      TH: 'เปิดใช้ URL ชำระซ้ำ (บัตรที่บันทึก)'
+    },
+    'URL 재결제 경로 템플릿': {
+      EN: 'URL re-pay path template',
+      JP: 'URL再決済パステンプレート',
+      CH: 'URL 再支付路径模板',
+      TH: 'เทมเพลตเส้นทาง URL ชำระซ้ำ'
+    },
+    'URL 재결제 URL': {
+      EN: 'URL re-pay URL',
+      JP: 'URL再決済URL',
+      CH: 'URL 再支付 URL',
+      TH: 'URL ชำระซ้ำ'
+    },
+    'URL 결제 방식': {
+      EN: 'URL checkout mode',
+      JP: 'URL決済方式',
+      CH: 'URL 结账方式',
+      TH: 'โหมดชำระ URL'
+    },
+    '일반 URL 결제': {
+      EN: 'Standard URL payment',
+      JP: '通常URL決済',
+      CH: '普通 URL 支付',
+      TH: 'ชำระ URL ปกติ'
+    },
+    '재결제 URL (저장 카드)': {
+      EN: 'Re-pay URL (saved cards)',
+      JP: '再決済URL（保存カード）',
+      CH: '再支付 URL（保存卡）',
+      TH: 'URL ชำระซ้ำ (บัตรที่บันทึก)'
+    },
+    'URL 결제 방식(공통)': {
+      EN: 'URL checkout mode (shared)',
+      JP: 'URL決済方式（共通）',
+      CH: 'URL 结账方式（共用）',
+      TH: 'โหมดชำระ URL (ใช้ร่วมกัน)'
+    },
+    '웹결제 설정에서 선택': {
+      EN: 'Selected in web payment settings',
+      JP: 'WEB決済設定で選択',
+      CH: '在 WEB 支付设置中选择',
+      TH: 'เลือกในการตั้งค่าชำระ WEB'
+    },
+    '공개 URL·챗봇 결제·API URL 인라인 중계 결제에 공통 적용됩니다. 변경은 위 「웹결제 사용 / 대표 기본상품정보」의 URL 결제 방식에서 하세요.': {
+      EN: 'Applies to public URL, chatbot checkout, and API URL inline relay alike. Change it under Web payment » URL checkout mode.',
+      JP: '公開URL・チャットボット決済・API URLインライン中継決済に共通適用されます。変更は上の「WEB決済使用/代表基本商品情報」のURL決済方式で行います。',
+      CH: '同时适用于公开 URL、聊天机器人结账与 API URL 内联中继。请在上方「WEB 支付使用 / 代表基本商品信息」的 URL 结账方式中修改。',
+      TH: 'ใช้ร่วมกับ URL สาธารณะ ชำระแชทบอท และ API URL inline relay เปลี่ยนที่ 「การใช้ชำระ WEB / ข้อมูลสินค้าหลัก」ด้านบน'
+    },
+    '미사용이면 로그인한 가맹점 관리자에게 챗봇관리의 상품관리 메뉴가 표시되지 않습니다. 「URL 결제 방식」은 챗봇 주문·카탈로그 결제에만 적용되며 공개 URL·API 중계와 별도로 선택할 수 있습니다. 재결제 URL 은 본사 URL 재결제 기능 ON 및 URL재결제 PG 바인딩이 필요합니다. 챗봇결제 URL은 챗봇 쇼핑·주문 진입용입니다.': {
+      EN: 'If disabled, Product management under Chatbot admin is hidden. URL checkout mode applies to chatbot orders and catalog checkout only, and can be set separately from public URL and API relay. Re-pay URL requires HQ re-pay enabled and a URL re-pay PG binding. The chatbot payment URL is the chatbot storefront entry.',
+      JP: '未使用の場合、チャットボット管理の商品管理メニューは非表示です。「URL決済方式」はチャットボット注文・カタログ決済のみに適用され、公開URL・API中継とは別に選択できます。再決済URLは本社URL再決済機能ONおよびURL再決済PGバインディングが必要です。チャットボット決済URLはチャットボットショップ・注文の入口です。',
+      CH: '停用后隐藏聊天机器人管理中的商品管理。「URL 结账方式」仅用于聊天机器人订单与目录结账，可与公开 URL、API 中继分开设置。再支付 URL 需开启总部再支付功能并绑定 URL 再支付 PG。聊天机器人支付 URL 为商城入口。',
+      TH: 'ปิดใช้งานแล้วซ่อนเมนูจัดการสินค้าแชทบอท 「โหมดชำระ URL」ใช้กับคำสั่งซื้อและแคตตาล็อกแชทบอทเท่านั้น ตั้งแยกจาก URL สาธารณะและ API relay ได้ URL ชำระซ้ำต้องเปิดฟีเจอร์ที่สำนักงานใหญ่และผูก PG URL ชำระแชทบอทเป็นทางเข้าร้าน'
+    },
+    'API URL 인라인 중계 결제': {
+      EN: 'API URL inline relay checkout',
+      JP: 'API URLインライン中継決済',
+      CH: 'API URL 内联中继支付',
+      TH: 'ชำระ API URL inline relay'
+    },
+    '가맹 API inline-checkout/prepare 호출 시 payUrl·결제창에 적용됩니다. 공개 URL·챗봇과 별도로 일반 URL/재결제 URL 을 선택할 수 있습니다. 재결제 URL 은 본사 URL 재결제 기능 ON 및 URL재결제 PG 바인딩(연동용도 URL재결제·운영 Y)이 필요합니다.': {
+      EN: 'Applies to payUrl and checkout when calling merchant API inline-checkout/prepare. Standard / re-pay URL can be set separately from public URL and chatbot. Re-pay URL requires HQ re-pay enabled and an operational URL re-pay PG binding.',
+      JP: '加盟店API inline-checkout/prepare 呼び出し時の payUrl・決済画面に適用されます。公開URL・チャットボットとは別に通常URL/再決済URLを選択できます。再決済URLは本社URL再決済機能ONおよびURL再決済PGバインディング(連動用途URL再決済・運用Y)が必要です。',
+      CH: '调用商户 API inline-checkout/prepare 时应用于 payUrl 与结账页。可与公开 URL、聊天机器人分开选择普通 URL/再支付 URL。再支付 URL 需开启总部再支付功能并绑定 URL 再支付 PG（用途 URL 再支付·运营 Y）。',
+      TH: 'ใช้กับ payUrl และหน้าชำระเมื่อเรียก merchant API inline-checkout/prepare เลือก URL ปกติ/ชำระซ้ำแยกจาก URL สาธารณะและแชทบอทได้ URL ชำระซ้ำต้องเปิดฟีเจอร์ที่สำนักงานใหญ่และผูก PG URL ชำระซ้ำ (operational Y)'
+    },
+    '본사 결제로직설정에서 URL 결제형 INLINE 제공이 Y 이어야 합니다. prepare 응답 payUrl 에 variant=repay 가 포함되면 재결제 URL 모드입니다.': {
+      EN: 'HQ payment logic must have URL payment INLINE enabled (Y). If prepare response payUrl includes variant=repay, re-pay URL mode is active.',
+      JP: '本社決済ロジック設定でURL決済型INLINE提供がYである必要があります。prepare応答 payUrl に variant=repay が含まれると再決済URLモードです。',
+      CH: '总部支付逻辑设置中 URL 支付型 INLINE 提供须为 Y。若 prepare 响应 payUrl 含 variant=repay 则为再支付 URL 模式。',
+      TH: 'ต้องเปิด URL payment INLINE (Y) ในการตั้งค่าตรรกะชำระที่สำนักงานใหญ่ หาก payUrl ใน prepare มี variant=repay คือโหมด URL ชำระซ้ำ'
+    },
+    '미사용 선택 시 WEB 결제 시스템이 중지됩니다. 「URL 결제 방식」은 공개 URL(/pay/업체코드) 결제에만 적용됩니다. API·챗봇 결제 방식은 각 설정 카드에서 별도 선택합니다. 재결제 URL 은 본사 URL 재결제 기능 ON 및 URL재결제 PG 바인딩이 필요합니다.': {
+      EN: 'If disabled, web payment stops. URL checkout mode applies to public URL (/pay/{merchantCode}) only. API and chatbot modes are set on their own cards. Re-pay URL requires HQ re-pay enabled and a URL re-pay PG binding.',
+      JP: '未使用の場合WEB決済は停止します。「URL決済方式」は公開URL(/pay/加盟店コード)のみに適用。API・チャットボットは各設定カードで別途選択。再決済URLは本社URL再決済機能ONおよびURL再決済PGバインディングが必要です。',
+      CH: '选「未使用」则停止 WEB 支付。「URL 结账方式」仅用于公开 URL(/pay/商户代码)。API 与聊天机器人在各自设置卡片中单独选择。再支付 URL 需开启总部再支付功能并绑定 URL 再支付 PG。',
+      TH: 'เลือกไม่ใช้จะหยุดระบบชำระ WEB 「โหมดชำระ URL」ใช้กับ URL สาธารณะ (/pay/รหัสร้าน) เท่านั้น API·แชทบอทเลือกแยกในการ์ดของตน URL ชำระซ้ำต้องเปิดฟีเจอร์ที่สำนักงานใหญ่และผูก PG'
+    },
+    'URL재결제': {
+      EN: 'URL re-pay',
+      JP: 'URL再決済',
+      CH: 'URL再支付',
+      TH: 'URLชำระซ้ำ'
+    },
+    '②-R URL재결제': {
+      EN: '②-R URL re-pay',
+      JP: '②-R URL再決済',
+      CH: '②-R URL再支付',
+      TH: '②-R URLชำระซ้ำ'
+    },
+    '저장 카드(CreditToken) 재결제 전용 공개 URL. 가맹 「URL 결제 방식」(공개 URL)·「API URL 인라인 중계 결제」·「챗봇결제 설정」 각각 재결제 URL 이면 해당 채널에 적용됩니다.': {
+      EN: 'Public URL for saved-card (CreditToken) re-pay. When public URL, API URL inline relay, or chatbot URL checkout mode is re-pay, it applies to that channel.',
+      JP: '保存カード(CreditToken)再決済用の公開URL。加盟店「URL決済方式」(公開URL)・「API URLインライン中継決済」・「チャットボット決済設定」それぞれが再決済URLの場合、該当チャネルに適用。',
+      CH: '保存卡(CreditToken)再支付公开 URL。商户「URL 结账方式」（公开 URL）、「API URL 内联中继支付」、「聊天机器人支付设置」各自为再支付 URL 时，应用于对应渠道。',
+      TH: 'URL สาธารณะสำหรับชำระซ้ำด้วยบัตรที่บันทึก (CreditToken) เมื่อโหมด URL สาธารณะ·API inline relay·แชทบอทเป็นชำระซ้ำ ใช้กับช่องทางนั้น'
     },
     'URL 결제 폼 설정': {
       EN: 'URL payment form settings',
@@ -14355,6 +14601,64 @@
       CH: '请双击上方的日期行。',
       TH: 'ดับเบิลคลิกแถววันที่ด้านบน'
     },
+    '검증 리포트': { EN: 'Verify report', JP: '検証レポート', CH: '验证报表', TH: 'รายงานตรวจสอบ' },
+    '통합(Chill)건수': { EN: 'Integrated (Chill) count', JP: '統合(Chill)件数', CH: '综合(Chill)笔数', TH: 'จำนวนรวม (Chill)' },
+    '일치건수': { EN: 'Matched count', JP: '一致件数', CH: '一致笔数', TH: 'จำนวนที่ตรงกัน' },
+    '불일치건수': { EN: 'Mismatch count', JP: '不一致件数', CH: '不一致笔数', TH: 'จำนวนไม่ตรงกัน' },
+    '선택 일자 불일치': { EN: 'Selected date — mismatches', JP: '選択日の不一致', CH: '所选日期不一致', TH: 'วันที่เลือก — ไม่ตรงกัน' },
+    '통합 결제액': { EN: 'Integrated pay amt', JP: '統合決済額', CH: '综合支付额', TH: 'ยอดชำระรวม' },
+    'NOTI 결제액': { EN: 'NOTI pay amt', JP: 'NOTI決済額', CH: 'NOTI 支付额', TH: 'ยอด NOTI' },
+    '통합 상태': { EN: 'Integrated status', JP: '統合状態', CH: '综合状态', TH: 'สถานะรวม' },
+    'NOTI 상태': { EN: 'NOTI status', JP: 'NOTI状態', CH: 'NOTI 状态', TH: 'สถานะ NOTI' },
+    '일치': { EN: 'Match', JP: '一致', CH: '一致', TH: 'ตรงกัน' },
+    '불일치 없음': { EN: 'No mismatches', JP: '不一致なし', CH: '无不一致', TH: 'ไม่มีความไม่ตรงกัน' },
+    'NOTI 미수신': { EN: 'NOTI not received', JP: 'NOTI未受信', CH: '未收到 NOTI', TH: 'ไม่ได้รับ NOTI' },
+    '상태 불일치': { EN: 'Status mismatch', JP: '状態不一致', CH: '状态不一致', TH: 'สถานะไม่ตรงกัน' },
+    '결제액 불일치': { EN: 'Amount mismatch', JP: '決済額不一致', CH: '支付额不一致', TH: 'ยอดไม่ตรงกัน' },
+    '상태·결제액 불일치': { EN: 'Status & amount mismatch', JP: '状態・決済額不一致', CH: '状态·支付额不一致', TH: 'สถานะและยอดไม่ตรงกัน' },
+    '통합 기준 맞춤': { EN: 'Sync to integrated', JP: '統合基準で合わせる', CH: '按综合对齐', TH: 'ปรับตามรวม' },
+    '상태 불일치 일괄 맞춤': { EN: 'Sync all status mismatches', JP: '状態不一致を一括合わせ', CH: '批量按综合对齐状态', TH: 'ปรับสถานะไม่ตรงกันทั้งหมด' },
+    '선택 일자의 상태 불일치 건을 통합(ChillPay) 기준으로 일괄 맞춥니다. 계속할까요?': {
+      EN: 'Sync all status mismatches for this day to ChillPay integrated status. Continue?',
+      JP: '選択日の状態不一致をChillPay統合基準で一括合わせします。続行しますか？',
+      CH: '将该日所有状态不一致按 ChillPay 综合标准批量对齐。继续吗？',
+      TH: 'ปรับสถานะไม่ตรงกันของวันนี้ตาม ChillPay รวม ดำเนินการต่อหรือไม่'
+    },
+    '상태 일괄 맞춤 완료': { EN: 'Batch status sync done', JP: '状態一括合わせ完了', CH: '批量状态对齐完成', TH: 'ปรับสถานะแบบกลุ่มเสร็จ' },
+    '상태 일괄 맞춤에 실패했습니다.': { EN: 'Batch status sync failed.', JP: '状態一括合わせに失敗しました。', CH: '批量状态对齐失败。', TH: 'ปรับสถานะแบบกลุ่มล้มเหลว' },
+    '요청·대기': { EN: 'Request/pending', JP: 'リクエスト・待機', CH: '请求/等待', TH: 'คำขอ/รอ' },
+    '건 제외': { EN: ' excluded', JP: '件除外', CH: '件排除', TH: ' รายการยกเว้น' },
+    '통합(ChillPay) 상태에 맞춰 NOTI 결제내역 상태를 갱신합니다. 계속할까요?': {
+      EN: 'Update NOTI payment row status to match integrated (ChillPay). Continue?',
+      JP: 'NOTI決済内訳の状態を統合(ChillPay)に合わせて更新します。続行しますか？',
+      CH: '将 NOTI 支付记录状态更新为与综合(ChillPay)一致。是否继续？',
+      TH: 'อัปเดตสถานะ NOTI ให้ตรงกับรวม (ChillPay) ต่อไหม'
+    },
+    '상태 맞춤에 실패했습니다.': {
+      EN: 'Status sync failed.',
+      JP: '状態合わせに失敗しました。',
+      CH: '状态对齐失败。',
+      TH: 'ปรับสถานะไม่สำเร็จ'
+    },
+    '상태 맞춤 완료': {
+      EN: 'Status synced',
+      JP: '状態を合わせました',
+      CH: '状态已对齐',
+      TH: 'ปรับสถานะแล้ว'
+    },
+    '처리': { EN: 'Action', JP: '処理', CH: '处理', TH: 'ดำเนินการ' },
+    '검증 리포트 조회에 실패했습니다.': {
+      EN: 'Verify report request failed.',
+      JP: '検証レポートの照会に失敗しました。',
+      CH: '验证报表查询失败。',
+      TH: 'โหลดรายงานตรวจสอบไม่สำเร็จ'
+    },
+    '검증 리포트 응답을 해석할 수 없습니다.': {
+      EN: 'Unable to parse verify report response.',
+      JP: '検証レポート応答を解釈できません。',
+      CH: '无法解析验证报表响应。',
+      TH: 'แปลงผลรายงานตรวจสอบไม่ได้'
+    },
     '결제시간': { EN: 'Payment time', JP: '決済時刻', CH: '支付时间', TH: 'เวลาชำระเงิน' },
     '거래일': { EN: 'Txn date', JP: '取引日', CH: '交易日期', TH: 'วันที่ทำรายการ' },
     '적재일': { EN: 'Ingest date', JP: '取込日', CH: '入库日', TH: 'วันที่บันทึก' },
@@ -14390,6 +14694,60 @@
       JP: ' 件',
       CH: ' 条',
       TH: ' รายการ'
+    },
+    '1000건': {
+      EN: '1,000 rows',
+      JP: '1000件',
+      CH: '1000条',
+      TH: '1,000 รายการ'
+    },
+    '모두': {
+      EN: 'All',
+      JP: 'すべて',
+      CH: '全部',
+      TH: 'ทั้งหมด'
+    },
+    '모두다운로드': {
+      EN: 'Download all',
+      JP: 'すべてダウンロード',
+      CH: '全部下载',
+      TH: 'ดาวน์โหลดทั้งหมด'
+    },
+    '모든리스트': {
+      EN: 'All list',
+      JP: 'すべてのリスト',
+      CH: '全部列表',
+      TH: 'รายการทั้งหมด'
+    },
+    '먼저 [검색]으로 조회한 뒤 「모두」를 선택하세요.': {
+      EN: 'Run [Search] first, then choose All.',
+      JP: '先に［検索］で照会してから「すべて」を選んでください。',
+      CH: '请先[搜索]查询，再选择「全部」。',
+      TH: 'กด [ค้นหา] ก่อน แล้วจึงเลือก「ทั้งหมด」'
+    },
+    '검색 결과 전체를 불러오는 중입니다…': {
+      EN: 'Loading all search results…',
+      JP: '検索結果全体を読み込み中…',
+      CH: '正在加载全部搜索结果…',
+      TH: 'กำลังโหลดผลการค้นหาทั้งหมด…'
+    },
+    '이 화면에서는 모두다운로드를 지원하지 않습니다.': {
+      EN: 'Download all is not supported on this screen.',
+      JP: 'この画面では一括ダウンロードに対応していません。',
+      CH: '此画面不支持全部下载。',
+      TH: 'หน้านี้ไม่รองรับการดาวน์โหลดทั้งหมด'
+    },
+    '다운로드할 검색 결과가 없습니다. [검색] 후 다시 시도하세요.': {
+      EN: 'No search results to download. Run [Search] and try again.',
+      JP: 'ダウンロードする検索結果がありません。［検索］後に再試行してください。',
+      CH: '没有可下载的搜索结果。请先[搜索]后再试。',
+      TH: 'ไม่มีผลค้นหาให้ดาวน์โหลด กด [ค้นหา] แล้วลองอีกครั้ง'
+    },
+    '검색 결과가 {MAX}건을 초과하여 상위 {MAX}건만 다운로드합니다.': {
+      EN: 'Search results exceed {MAX} rows; only the first {MAX} will be downloaded.',
+      JP: '検索結果が{MAX}件を超えるため、先頭{MAX}件のみダウンロードします。',
+      CH: '搜索结果超过 {MAX} 条，仅下载前 {MAX} 条。',
+      TH: 'ผลค้นหาเกิน {MAX} รายการ จะดาวน์โหลดเพียง {MAX} รายการแรก'
     },
 
     /* 수수료내역 (/calc/feeList, /settlement/feeList) — 2단 그룹 헤더·열·VIEW SETTING 가이드 */

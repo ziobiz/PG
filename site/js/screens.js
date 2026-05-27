@@ -27,6 +27,19 @@
     return '<label class="form-label"><span data-pg-ui-t="' + escUi(keyKo) + '">' + escUi(L(keyKo)) + '</span>' + star + '</label>';
   }
 
+  /** 정산·담보·환수·미수 — 빠른기간(당일~전월) */
+  var QD_SETTLE_STD_LABELS = ['당일', '당월', '전일', '1주', '2주', '전월'];
+  var QD_SETTLE_STD_RANGES = ['day', 'month', 'prevDay', 'week', 'week2', 'prevMonth'];
+  /** 유통망정산 — 월 단위 + 2개월전 */
+  var QD_DIST_MONTHLY_LABELS = QD_SETTLE_STD_LABELS.concat(['2개월전']);
+  var QD_DIST_MONTHLY_RANGES = QD_SETTLE_STD_RANGES.concat(['prevMonth2']);
+  function qdSettleStdField() {
+    return { type: 'quickdate', quickdateLabels: QD_SETTLE_STD_LABELS.slice(), quickdateRanges: QD_SETTLE_STD_RANGES.slice() };
+  }
+  function qdDistMonthlyField() {
+    return { type: 'quickdate', quickdateLabels: QD_DIST_MONTHLY_LABELS.slice(), quickdateRanges: QD_DIST_MONTHLY_RANGES.slice() };
+  }
+
   function pgUiSpanText(keyKo) {
     keyKo = String(keyKo == null ? '' : keyKo);
     return '<span data-pg-ui-t="' + escUi(keyKo) + '">' + escUi(L(keyKo)) + '</span>';
@@ -100,6 +113,25 @@
   function merchantPaymentUrlRowHtml(placeholderKo) {
     var ph = placeholderKo || '가맹점 저장 후 조회';
     return '<div class="row mb-2"><div class="col-sm-5"><label class="form-label" data-pg-ui-t="결제 URL">' + escUi(L('결제 URL')) + '</label><div class="input-group input-group-sm"><input type="text" class="form-control" id="paymentUrlDisplay" readonly placeholder="' + escUi(L(String(ph))) + '" data-pg-ui-placeholder="' + escUi(String(ph)) + '"><button type="button" class="btn btn-outline-primary" id="paymentUrlCopyBtn" data-pg-ui-t="복사">' + escUi(L('복사')) + '</button></div></div></div>';
+  }
+
+  function merchantPaymentRepayUrlRowHtml(placeholderKo) {
+    var ph = placeholderKo || '가맹점 저장 후 조회';
+    return '<div class="row mb-2"><div class="col-sm-5"><label class="form-label" data-pg-ui-t="URL 재결제 URL">' + escUi(L('URL 재결제 URL')) + '</label><div class="input-group input-group-sm"><input type="text" class="form-control" id="paymentRepayUrlDisplay" readonly placeholder="' + escUi(L(String(ph))) + '" data-pg-ui-placeholder="' + escUi(String(ph)) + '"><button type="button" class="btn btn-outline-primary" id="paymentRepayUrlCopyBtn" data-pg-ui-t="복사">' + escUi(L('복사')) + '</button></div></div></div>';
+  }
+
+  /** 가맹 등록·정보 — API URL 인라인 중계 결제 방식(공개 URL·챗봇과 별도) */
+  function merchantApiUrlPayCheckoutCardSection() {
+    return {
+      title: 'API URL 인라인 중계 결제',
+      id: 'apiUrlPayCheckoutCard',
+      merchantOnly: true,
+      notice: '가맹 API inline-checkout/prepare 호출 시 payUrl·결제창에 적용됩니다. 공개 URL·챗봇과 별도로 일반 URL/재결제 URL 을 선택할 수 있습니다. 재결제 URL 은 본사 URL 재결제 기능 ON 및 URL재결제 PG 바인딩(연동용도 URL재결제·운영 Y)이 필요합니다.',
+      rows: [
+        [{ label: 'URL 결제 방식', type: 'select', name: 'apiUrlPayCheckoutMode', options: [{ v: 'STANDARD', t: '일반 URL 결제' }, { v: 'REPAY', t: '재결제 URL (저장 카드)' }], col: 3 }],
+        [{ label: '', type: 'note', col: 12, text: '본사 결제로직설정에서 URL 결제형 INLINE 제공이 Y 이어야 합니다. prepare 응답 payUrl 에 variant=repay 가 포함되면 재결제 URL 모드입니다.' }]
+      ]
+    };
   }
 
   /** read-only 챗봇결제 URL (컨테이너마다 고유 id가 필요하면 별도 템플릿으로 분리) */
@@ -1539,6 +1571,7 @@
         '통합정산 「예정(ICOPAY)」열: PG사 연동 편집에서 T+N(주말 제외 영업일·결제와 동일 시각) 또는 D+N(달력+N일·일괄 시각)을 저장합니다. OFF면 예정일을 채우지 않습니다. D는 일괄 시각(HH:mm) 필수.',
         'ChillPay는 PG코드 CHILLPAY, API·URL 엔드포인트는 ChillPayService가 병합 반영합니다. 운영 DB는 db/V35_pg_agency_integration_scope.sql 적용 후 배포하세요.'
       ],
+      tableColumnGuide: true,
       summary: ['건수'],
       buttons: [
         { id: 'searchBtn', label: '검색', cls: 'btn-primary' },
@@ -2384,7 +2417,10 @@
             [{ label: 'API 중계형 INLINE 제공', type: 'select', name: 'apiBrokerInlineEnabledYn', options: [{ v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }], col: 2 },
              { label: 'API 중계형 REDIRECT 제공', type: 'select', name: 'apiBrokerRedirectEnabledYn', options: [{ v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }], col: 2 },
              { label: 'URL 결제형 INLINE 제공', type: 'select', name: 'urlPayInlineEnabledYn', options: [{ v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }], col: 2 },
-             { label: 'URL 결제형 REDIRECT 제공', type: 'select', name: 'urlPayRedirectEnabledYn', options: [{ v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }], col: 2 }]
+             { label: 'URL 결제형 REDIRECT 제공', type: 'select', name: 'urlPayRedirectEnabledYn', options: [{ v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }], col: 2 }],
+            [{ label: 'URL 재결제형 제공', type: 'select', name: 'urlPayRepayEnabledYn', options: [{ v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }], col: 2 },
+             { label: 'URL 재결제 경로 템플릿', type: 'text', name: 'urlPayRepayPathTemplate', col: 4, placeholder: '/pay-repay/{compCode}' },
+             { label: '', type: 'note', col: 6, text: '저장 카드(CreditToken) 재결제 전용 공개 URL. 가맹 「URL 결제 방식」(공개 URL)·「API URL 인라인 중계 결제」·「챗봇결제 설정」 각각 재결제 URL 이면 해당 채널에 적용됩니다.' }]
           ]
         },
         {
@@ -2749,18 +2785,21 @@
           title: '웹결제 사용 / 대표 기본상품정보 (온라인 URL 결제용)',
           id: 'webPaymentCard',
           merchantOnly: true,
-          notice: '미사용 선택 시 WEB 결제 시스템이 중지됩니다. 아래 대표 기본상품정보는 온라인 URL 결제 기본값으로 사용됩니다.',
+          notice: '미사용 선택 시 WEB 결제 시스템이 중지됩니다. 「URL 결제 방식」은 공개 URL(/pay/업체코드) 결제에만 적용됩니다. API·챗봇 결제 방식은 각 설정 카드에서 별도 선택합니다. 재결제 URL 은 본사 URL 재결제 기능 ON 및 URL재결제 PG 바인딩이 필요합니다.',
           rows: [
-            [{ label: '웹결제 사용여부', type: 'select', name: 'webPaymentUseYn', options: [{ v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }], col: 2 }],
+            [{ label: '웹결제 사용여부', type: 'select', name: 'webPaymentUseYn', options: [{ v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }], col: 2 },
+             { label: 'URL 결제 방식', type: 'select', name: 'urlPayCheckoutMode', options: [{ v: 'STANDARD', t: '일반 URL 결제' }, { v: 'REPAY', t: '재결제 URL (저장 카드)' }], col: 3 }],
             [{ label: '상품명', type: 'text', name: 'defaultProductName', col: 2, placeholder: '대표 상품명' }, { label: '상품코드', type: 'text', name: 'defaultProductCode', col: 1 }, { label: '기본금액', type: 'text', name: 'defaultProductAmount', col: 1, placeholder: '0' }, { label: '상품설명', type: 'text', name: 'defaultProductDesc', col: 4 }],
-            [{ type: 'customHtml', col: 12, html: function () { return merchantPaymentUrlRowHtml('가맹점 저장 후 조회'); } }]
+            [{ type: 'customHtml', col: 12, html: function () { return merchantPaymentUrlRowHtml('가맹점 저장 후 조회'); } },
+             { type: 'customHtml', col: 12, html: function () { return merchantPaymentRepayUrlRowHtml('가맹점 저장 후 조회'); } }]
           ]
         },
+        merchantApiUrlPayCheckoutCardSection(),
         {
           title: '챗봇결제 설정',
           id: 'chatbotPaymentCard',
           merchantOnly: true,
-          notice: '미사용이면 로그인한 가맹점 관리자에게 챗봇관리의 상품관리 메뉴가 표시되지 않습니다. 챗봇결제 URL은 공개 결제 화면 진입용입니다. 프로모션 표시 방식·순환 간격은 챗봇관리 「상품관리」에서 설정합니다.',
+          notice: '미사용이면 로그인한 가맹점 관리자에게 챗봇관리의 상품관리 메뉴가 표시되지 않습니다. 「URL 결제 방식」은 챗봇 주문·카탈로그 결제에만 적용되며 공개 URL·API 중계와 별도로 선택할 수 있습니다. 재결제 URL 은 본사 URL 재결제 기능 ON 및 URL재결제 PG 바인딩이 필요합니다. 챗봇결제 URL은 챗봇 쇼핑·주문 진입용입니다.',
           rows: [
             [{ label: '챗봇결제 사용여부', type: 'select', name: 'chatbotPaymentUseYn', options: [{ v: 'N', t: '미사용' }, { v: 'Y', t: '사용' }], col: 2 },
               { label: '챗봇 상품등록 한도(건)', type: 'select', name: 'chatbotProductSlotLimit', col: 2,
@@ -2788,6 +2827,7 @@
               }
             }],
             [{ label: '챗봇 관리자(로그인ID·중복검사)', type: 'text', name: 'chatbotAdminUsername', col: 12, button: '중복확인', placeholder: '가맹당 1명 · 없는 ID는 저장 시 자동 등록(초기비밀번호: ID+1!) · 공개 챗봇 상품관리 로그인에는 OTP 필요 · 비우면 해제' }],
+            [{ label: 'URL 결제 방식', type: 'select', name: 'chatbotUrlPayCheckoutMode', options: [{ v: 'STANDARD', t: '일반 URL 결제' }, { v: 'REPAY', t: '재결제 URL (저장 카드)' }], col: 3 }],
             [{ type: 'customHtml', col: 12, html: function () { return merchantChatbotPaymentUrlRowHtml('가맹점 저장 후 조회'); } }],
             [{ type: 'customHtml', col: 12, html: function () { return merchantChatbotEmbedScriptRowHtml('가맹점 저장 후 조회'); } }],
             [{ type: 'customHtml', col: 12, html: function () { return merchantChatbotQrRowHtml(); } }],
@@ -3152,18 +3192,21 @@
           title: '웹결제 사용 / 대표 기본상품정보 (온라인 URL 결제용)',
           id: 'webPaymentCard',
           merchantOnly: true,
-          notice: '미사용 선택 시 WEB 결제 시스템이 중지됩니다. 아래 대표 기본상품정보는 온라인 URL 결제 기본값으로 사용됩니다.',
+          notice: '미사용 선택 시 WEB 결제 시스템이 중지됩니다. 「URL 결제 방식」은 공개 URL(/pay/업체코드) 결제에만 적용됩니다. API·챗봇 결제 방식은 각 설정 카드에서 별도 선택합니다. 재결제 URL 은 본사 URL 재결제 기능 ON 및 URL재결제 PG 바인딩이 필요합니다.',
           rows: [
-            [{ label: '웹결제 사용여부', type: 'select', name: 'webPaymentUseYn', options: [{ v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }], col: 2 }],
+            [{ label: '웹결제 사용여부', type: 'select', name: 'webPaymentUseYn', options: [{ v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }], col: 2 },
+             { label: 'URL 결제 방식', type: 'select', name: 'urlPayCheckoutMode', options: [{ v: 'STANDARD', t: '일반 URL 결제' }, { v: 'REPAY', t: '재결제 URL (저장 카드)' }], col: 3 }],
             [{ label: '상품명', type: 'text', name: 'defaultProductName', col: 2, placeholder: '대표 상품명' }, { label: '상품코드', type: 'text', name: 'defaultProductCode', col: 1 }, { label: '기본금액', type: 'text', name: 'defaultProductAmount', col: 1, placeholder: '0' }, { label: '상품설명', type: 'text', name: 'defaultProductDesc', col: 4 }],
-            [{ type: 'customHtml', col: 12, html: function () { return merchantPaymentUrlRowHtml('가맹점 저장 후 조회'); } }]
+            [{ type: 'customHtml', col: 12, html: function () { return merchantPaymentUrlRowHtml('가맹점 저장 후 조회'); } },
+             { type: 'customHtml', col: 12, html: function () { return merchantPaymentRepayUrlRowHtml('가맹점 저장 후 조회'); } }]
           ]
         },
+        merchantApiUrlPayCheckoutCardSection(),
         {
           title: '챗봇결제 설정',
           id: 'chatbotPaymentCard',
           merchantOnly: true,
-          notice: '미사용이면 로그인한 가맹점 관리자에게 챗봇관리의 상품관리 메뉴가 표시되지 않습니다. 챗봇결제 URL은 공개 결제 화면 진입용입니다. 프로모션 표시 방식·순환 간격은 챗봇관리 「상품관리」에서 설정합니다.',
+          notice: '미사용이면 로그인한 가맹점 관리자에게 챗봇관리의 상품관리 메뉴가 표시되지 않습니다. 「URL 결제 방식」은 챗봇 주문·카탈로그 결제에만 적용되며 공개 URL·API 중계와 별도로 선택할 수 있습니다. 재결제 URL 은 본사 URL 재결제 기능 ON 및 URL재결제 PG 바인딩이 필요합니다. 챗봇결제 URL은 챗봇 쇼핑·주문 진입용입니다.',
           rows: [
             [{ label: '챗봇결제 사용여부', type: 'select', name: 'chatbotPaymentUseYn', options: [{ v: 'N', t: '미사용' }, { v: 'Y', t: '사용' }], col: 2 },
               { label: '챗봇 상품등록 한도(건)', type: 'select', name: 'chatbotProductSlotLimit', col: 2,
@@ -3191,6 +3234,7 @@
               }
             }],
             [{ label: '챗봇 관리자(로그인ID·중복검사)', type: 'text', name: 'chatbotAdminUsername', col: 12, button: '중복확인', placeholder: '가맹당 1명 · 없는 ID는 저장 시 자동 등록(초기비밀번호: ID+1!) · 공개 챗봇 상품관리 로그인에는 OTP 필요 · 비우면 해제' }],
+            [{ label: 'URL 결제 방식', type: 'select', name: 'chatbotUrlPayCheckoutMode', options: [{ v: 'STANDARD', t: '일반 URL 결제' }, { v: 'REPAY', t: '재결제 URL (저장 카드)' }], col: 3 }],
             [{ type: 'customHtml', col: 12, html: function () { return merchantChatbotPaymentUrlRowHtml('가맹점 저장 후 조회'); } }],
             [{ type: 'customHtml', col: 12, html: function () { return merchantChatbotEmbedScriptRowHtml('가맹점 저장 후 조회'); } }],
             [{ type: 'customHtml', col: 12, html: function () { return merchantChatbotQrRowHtml(); } }],
@@ -3488,18 +3532,21 @@
           title: '웹결제 사용 / 대표 기본상품정보 (온라인 URL 결제용)',
           id: 'webPaymentCard',
           merchantOnly: true,
-          notice: '미사용 선택 시 WEB 결제 시스템이 중지됩니다. 아래 대표 기본상품정보는 온라인 URL 결제 기본값으로 사용됩니다.',
+          notice: '미사용 선택 시 WEB 결제 시스템이 중지됩니다. 「URL 결제 방식」은 공개 URL(/pay/업체코드) 결제에만 적용됩니다. API·챗봇 결제 방식은 각 설정 카드에서 별도 선택합니다. 재결제 URL 은 본사 URL 재결제 기능 ON 및 URL재결제 PG 바인딩이 필요합니다.',
           rows: [
-            [{ label: '웹결제 사용여부', type: 'select', name: 'webPaymentUseYn', options: [{ v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }], col: 2 }],
+            [{ label: '웹결제 사용여부', type: 'select', name: 'webPaymentUseYn', options: [{ v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }], col: 2 },
+             { label: 'URL 결제 방식', type: 'select', name: 'urlPayCheckoutMode', options: [{ v: 'STANDARD', t: '일반 URL 결제' }, { v: 'REPAY', t: '재결제 URL (저장 카드)' }], col: 3 }],
             [{ label: '상품명', type: 'text', name: 'defaultProductName', col: 2, placeholder: '대표 상품명' }, { label: '상품코드', type: 'text', name: 'defaultProductCode', col: 1 }, { label: '기본금액', type: 'text', name: 'defaultProductAmount', col: 1, placeholder: '0' }, { label: '상품설명', type: 'text', name: 'defaultProductDesc', col: 4 }],
-            [{ type: 'customHtml', col: 12, html: function () { return merchantPaymentUrlRowHtml('가맹점 선택 후 조회'); } }]
+            [{ type: 'customHtml', col: 12, html: function () { return merchantPaymentUrlRowHtml('가맹점 선택 후 조회'); } },
+             { type: 'customHtml', col: 12, html: function () { return merchantPaymentRepayUrlRowHtml('가맹점 선택 후 조회'); } }]
           ]
         },
+        merchantApiUrlPayCheckoutCardSection(),
         {
           title: '챗봇결제 설정',
           id: 'chatbotPaymentCard',
           merchantOnly: true,
-          notice: '미사용이면 로그인한 가맹점 관리자에게 챗봇관리의 상품관리 메뉴가 표시되지 않습니다. 챗봇결제 URL은 공개 결제 화면 진입용입니다. 프로모션 표시 방식·순환 간격은 챗봇관리 「상품관리」에서 설정합니다.',
+          notice: '미사용이면 로그인한 가맹점 관리자에게 챗봇관리의 상품관리 메뉴가 표시되지 않습니다. 「URL 결제 방식」은 챗봇 주문·카탈로그 결제에만 적용되며 공개 URL·API 중계와 별도로 선택할 수 있습니다. 재결제 URL 은 본사 URL 재결제 기능 ON 및 URL재결제 PG 바인딩이 필요합니다. 챗봇결제 URL은 챗봇 쇼핑·주문 진입용입니다.',
           rows: [
             [{ label: '챗봇결제 사용여부', type: 'select', name: 'chatbotPaymentUseYn', options: [{ v: 'N', t: '미사용' }, { v: 'Y', t: '사용' }], col: 2 },
               { label: '챗봇 상품등록 한도(건)', type: 'select', name: 'chatbotProductSlotLimit', col: 2,
@@ -3527,6 +3574,7 @@
               }
             }],
             [{ label: '챗봇 관리자(로그인ID·중복검사)', type: 'text', name: 'chatbotAdminUsername', col: 12, button: '중복확인', placeholder: '가맹당 1명 · 없는 ID는 저장 시 자동 등록(초기비밀번호: ID+1!) · 공개 챗봇 상품관리 로그인에는 OTP 필요 · 비우면 해제' }],
+            [{ label: 'URL 결제 방식', type: 'select', name: 'chatbotUrlPayCheckoutMode', options: [{ v: 'STANDARD', t: '일반 URL 결제' }, { v: 'REPAY', t: '재결제 URL (저장 카드)' }], col: 3 }],
             [{ type: 'customHtml', col: 12, html: function () { return merchantChatbotPaymentUrlRowHtml('가맹점 선택 후 조회'); } }],
             [{ type: 'customHtml', col: 12, html: function () { return merchantChatbotEmbedScriptRowHtml('가맹점 선택 후 조회'); } }],
             [{ type: 'customHtml', col: 12, html: function () { return merchantChatbotQrRowHtml(); } }],
@@ -3697,6 +3745,7 @@
       listSortDirAnchor: 'refresh',
       payListVariant: 'INTEGRATED',
       payListStatusBar: true,
+      payListFinancialInline: true,
       /** VIEW SETTING: 열 목록은 pay-list-integrated-catalog.js 로 채움 */
       tableColumnGuide: true,
       searchFormClass: 'pay-mng-search-form',
@@ -3744,9 +3793,9 @@
         '[후속조치]는 본사설정 > 전산설정관리에서 기능을 켠 경우에만 동작합니다 (NOTI 환경설정과 동일).',
         '취소 건에 대한 정산 수수료 및 부가세는 정산 주기에 따라 반영됩니다.',
         '정산 주기 및 정산 수수료는 가맹점별로 상이할 수 있습니다.',
-        '상단 첫 줄: 검색·기간·권한 범위 전체 집계(승인 건수·통화별 승인/취소/결제·수수료+부가세·보류·지급). 둘째 줄: 성공·실패 등 통화별 금액. 본사·총본사는 통화별 병기, 총판·하위는 기준 통화 한 줄.'
+        '상단 한 줄: 건수·통화별 총거래·승인·취소·수수료·담보·부가세·추정결산(승인−(취소+수수료+담보+부가세), 수수료내역과 동일 건별 산식)·아래 상태별 금액 pill. 본사·총본사는 통화별 병기, 총판·하위는 기준 통화 한 줄.'
       ],
-      summary: [],
+      summary: ['건수'],
       buttons: [
         { id: 'payListRefreshBtn', label: '새로고침', cls: 'btn-outline-secondary' },
         { id: 'excelDownBtn', label: '엑셀다운로드', cls: 'btn-info' }
@@ -3766,6 +3815,7 @@
       paginationSizeOptions: [50, 100],
       paginationDefaultSize: 50,
       payListStatusBar: true,
+      payListFinancialInline: true,
       tableColumnGuide: true,
       /** VIEW SETTING에서 숨길 수 없는 열: 결제내역 통합과 동일한 앞부분(번호·거래ID·업체·거래일시·Route) */
       columnGuideFixedKeys: ['rowNo', 'transactionId', 'compNm', 'compId', 'trnDate', 'trnTime', 'routeNo'],
@@ -3891,7 +3941,7 @@
         ]
       ],
       noticeList: [
-        '통합내역(칠페이 결제 검색)과 동일 자격·필터로, 거래일자(TransactionDate) 구간을 일 단위로 집계합니다. 일자별 금액·상태는 해당 일 전체 목록(최대 15,000건) 합산입니다. 일 15,000건 초과 시 통합내역 상단 요약과 동일하게 스캔 상한 안내됩니다. 일자 행을 클릭하면 아래 「선택 일자 상세」에 해당 일 전체 거래가 표시됩니다(번호·결제시간·승인번호·업체·정산주기·결제액·상태).',
+        '통합내역(칠페이 결제 검색)과 동일 자격·필터로, 거래일자(TransactionDate) 구간을 일 단위로 집계합니다. 일자별 금액·상태는 해당 일 전체 목록(최대 15,000건) 합산입니다. 일 15,000건 초과 시 통합내역 상단 요약과 동일하게 스캔 상한 안내됩니다. 일자 행을 더블클릭하면 아래 「선택 일자 상세」에 해당 일 전체 거래·금액 요약이 표시됩니다.',
         '조회 기간은 최대 93일입니다. 당월 등으로 종료일이 오늘 이후이면 표시는 전산 기준일(오늘)까지만 합니다(미래 일자 미표시). 칠페이 API 장애 시 해당 일에 오류 메시지가 표시될 수 있습니다.'
       ],
       summary: ['건수'],
@@ -3964,7 +4014,7 @@
         ]
       ],
       noticeList: [
-        '결제내역(/calc/payList, INTEGRATED)과 동일 필터·조직 범위로, 적재일(createdAt) 기준 일자별 집계합니다. 일자별 성공·실패·취소·무효·이메일무효·환불·강제환불·기타 건수는 해당 일 전체 건 기준입니다. 일자 행을 클릭하면 아래 「선택 일자 상세」에 해당 일 전체 결제내역이 표시됩니다(거래일 열 없음).',
+        '결제내역(/calc/payList, INTEGRATED)과 동일 필터·조직 범위로, 적재일(createdAt) 기준 일자별 집계합니다. 일자별 성공·실패·취소·무효·이메일무효·환불·강제환불·기타 건수는 해당 일 전체 건 기준입니다. 일자 행을 더블클릭하면 아래 「선택 일자 상세」에 해당 일 전체 결제내역·총거래~추정결산 요약이 표시됩니다(거래일 열 없음).',
         '조회 기간은 최대 93일입니다. 당월 등으로 종료일이 오늘 이후이면 표시는 전산 기준일(오늘)까지만 합니다(미래 일자 미표시).'
       ],
       summary: ['건수'],
@@ -4000,6 +4050,7 @@
       paginationSizeOptions: [50, 100, 300, 400, 500],
       paginationDefaultSize: 50,
       payListStatusBar: true,
+      payListFinancialInline: true,
       tableColumnGuide: true,
       /** VIEW SETTING·조직항목설정 고정열: 번호만. 통화 포함 그 외 열은 VIEW SETTING에서 켜고 끔 */
       columnGuideFixedKeys: ['rowNo'],
@@ -4107,7 +4158,7 @@
             { v: 'SETTLE', t: '정산일자' }
           ], size: 10 },
           { label: '기간', type: 'daterange', from: 'searchFromDate', to: 'searchToDate' },
-          { type: 'quickdate', quickdateLabels: ['오늘', '전일', '금주', '전주'], quickdateRanges: ['day', 'prevDay', 'weekCal', 'prevWeekCal'] },
+          qdDistMonthlyField(),
           { label: '업체구분', type: 'select', name: 'searchCompDiv', options: [
             { v: '', t: '전체(단계별 합산)' },
             { v: 'HEADQUARTERS', t: '총본사' },
@@ -4171,7 +4222,7 @@
       tableColumnGuide: true,
       columnGuideFixedKeys: ['rowNo', 'compNm', 'compId', 'curType'],
       viewSettingDefaultSelectedKeys: [
-        'calcDt', 'targetPeriodText', 'calcCycle', 'calcMethod', 'txnCnt',
+        'calcDt', 'settlementCloseDate', 'settlementExecDate', 'targetPeriodText', 'calcCycle', 'calcMethod', 'txnCnt',
         'amount', 'feeAmt', 'holdAmt', 'settlementBatchFee', 'feeVat', 'settleAmt',
         'receivableAmt', 'settlementPublishSts', 'payoutHoldYn'
       ],
@@ -4198,9 +4249,11 @@
             { v: 'STATUS', t: '상태' },
             { v: 'SETTLEMENT_PUBLISH_STS', t: '배포상태' },
             { v: 'PAYOUT_HOLD_YN', t: '지급보류' },
-            { v: 'AMOUNT', t: '금액' }
+            { v: 'AMOUNT', t: '금액' },
+            { v: 'SETTLE_TARGET_DAY', t: '정산대상일' },
+            { v: 'SETTLE_RUN_DAY', t: '정산일' }
           ], size: 10 },
-          { label: '검색어', type: 'text', name: 'searchKeyword', placeholder: '검색어', size: 16 },
+          { label: '검색어', type: 'text', name: 'searchKeyword', placeholder: '검색어(일: 1~31)', size: 16 },
           { type: 'searchBtn', label: '검색' }
         ]
       ],
@@ -4216,7 +4269,7 @@
         { key: 'compNm', label: '업체명' },
         { key: 'compId', label: '업체코드' },
         { key: 'curType', label: '통화' },
-        { key: 'calcDt', label: '정산일시', columnGuideLabel: '정산 실행 일시(표시 형식은 환경 설정).' },
+        { key: 'calcDt', label: '정산일시', columnGuideLabel: '정산 실행 일시(표시 형식은 환경 설정).' }, { key: 'settlementCloseDate', label: '정산마감일', thClass: 'text-center text-nowrap', columnGuideLabel: '집계 구간 마감일.' }, { key: 'settlementExecDate', label: '정산일자', thClass: 'text-center text-nowrap', columnGuideLabel: '정산주기·영업일 기준 배치 예정일.' },
         { key: 'targetPeriodText', label: '정산대상기간', thClass: 'pay-grid-time-dual text-start small', columnGuideLabel: '이번 실행에 포함된 거래 집계 구간(정산실행·배포와 동일).' },
         { key: 'calcCycle', label: '정산주기' },
         { key: 'calcMethod', label: '정산방법' },
@@ -4259,7 +4312,12 @@
       ],
       searchRows: [
         [
+          { label: '등록일자', type: 'daterange', from: 'searchFromDate', to: 'searchToDate' },
+          qdSettleStdField()
+        ],
+        [
           { label: '업체코드', type: 'text', name: 'searchCompId' },
+          { label: '업체명', type: 'text', name: 'searchCompNm' },
           { type: 'searchBtn' }
         ]
       ],
@@ -4414,7 +4472,8 @@
           { type: 'searchBtn', label: '검색' }
         ]
       ],
-      summary: ['건수', '총수수료', '부가세', '지급예상합', '정산액합'],
+      payListFinancialInline: true,
+      summary: ['건수'],
       buttons: [
         { id: 'payListRefreshBtn', label: '새로고침', cls: 'btn-outline-secondary' },
         { id: 'searchBtn', label: '검색', cls: 'btn-primary' },
@@ -4494,6 +4553,10 @@
         '가맹이 본사설정 「환수/미수금설정」에서 수동(MANUAL)인 경우에만 행의 [환수처리]로 다음 정산 마감 반영을 요청할 수 있습니다. 자동(AUTO) 가맹은 정산 시 미수금이 FIFO로 차감됩니다.'
       ],
       searchRows: [
+        [
+          { label: '등록일자', type: 'daterange', from: 'searchFromDate', to: 'searchToDate' },
+          qdSettleStdField()
+        ],
         [
           { label: '업체코드', type: 'text', name: 'searchCompId' },
           { label: '업체명', type: 'text', name: 'searchCompNm' },
@@ -4576,7 +4639,7 @@
         { id: 'excelBtn', label: '엑셀다운로드', cls: 'btn-info' }
       ],
       columnGuideFixedKeys: ['rowNo', 'compNm', 'compId'],
-      columns: [{ key: '_chk', type: 'checkbox' }, { key: 'rowNo', label: '번호' }, { key: 'compNm', label: '업체명' }, { key: 'compId', label: '업체코드' }, { key: 'curType', label: '통화' }, { key: 'txnCnt', label: '건수', thClass: 'text-center text-nowrap', columnGuideLabel: '이번 정산 실행에 집계에 포함된 거래 건수. 컬럼 도입 이전 실행 행은 비어 있을 수 있습니다.' }, { key: 'settlementBatchFee', label: '정산료', thClass: 'text-end', columnGuideLabel: '정산 실행당 1회 정산수수료.' }, { key: 'cadenceGuideKr', label: '노출주기 안내', thClass: 'text-nowrap', columnGuideLabel: '주기별 노출 요약.' }, { key: 'settlementPublishSts', label: '배포상태', columnGuideLabel: 'PENDING·DISTRIBUTED·HOLD — 가맹점정산내역 반영 전 단계.' }, { key: 'payoutHoldYn', label: '지급보류', columnGuideLabel: 'Y면 지급보류 가맹; 배포가 HOLD로 잡힐 수 있음.' }, { key: 'settlementRunId', label: '실행ID', columnGuideLabel: '정산 실행 PK(tb_settlement_run). 추적용.' }, { key: 'receivableAmt', label: '미수금', columnGuideLabel: '정산 지급부족 시 해당 실행에 자동 등록된 미수금(발생액)' }, { key: 'pgRootNo', label: '루트' }, { key: 'calcDt', label: '정산일자' }, { key: 'calcCycle', label: '정산주기' }, { key: 'calcMethod', label: '정산방법' }, { key: 'targetPeriodText', label: '정산대상기간', thClass: 'pay-grid-time-dual text-start small' }, { key: 'targetAmt', label: '결제액' }, { key: 'totalFee', label: '수수료', columnGuideLabel: '거래 집계만. 정산 실행당 1회 정산수수료는 정산료 열.' }, { key: 'rollingReserveAmt', label: '담보금' }, { key: 'payAmount', label: '지급액', columnGuideLabel: '0으로 보정하지 않음; 부족 시 음수·미수금 자동등록.' }, { key: 'status', label: '확정여부', columnGuideLabel: 'CALCULATED=확정, PENDING=미확정.' }]
+      columns: [{ key: '_chk', type: 'checkbox' }, { key: 'rowNo', label: '번호' }, { key: 'compNm', label: '업체명' }, { key: 'compId', label: '업체코드' }, { key: 'curType', label: '통화' }, { key: 'txnCnt', label: '건수', thClass: 'text-center text-nowrap', columnGuideLabel: '이번 정산 실행에 집계에 포함된 거래 건수. 컬럼 도입 이전 실행 행은 비어 있을 수 있습니다.' }, { key: 'settlementBatchFee', label: '정산료', thClass: 'text-end', columnGuideLabel: '정산 실행당 1회 정산수수료.' }, { key: 'cadenceGuideKr', label: '노출주기 안내', thClass: 'text-nowrap', columnGuideLabel: '주기별 노출 요약.' }, { key: 'settlementPublishSts', label: '배포상태', columnGuideLabel: 'PENDING·DISTRIBUTED·HOLD — 가맹점정산내역 반영 전 단계.' }, { key: 'payoutHoldYn', label: '지급보류', columnGuideLabel: 'Y면 지급보류 가맹; 배포가 HOLD로 잡힐 수 있음.' }, { key: 'settlementRunId', label: '실행ID', columnGuideLabel: '정산 실행 PK(tb_settlement_run). 추적용.' }, { key: 'receivableAmt', label: '미수금', columnGuideLabel: '정산 지급부족 시 해당 실행에 자동 등록된 미수금(발생액)' }, { key: 'pgRootNo', label: '루트' }, { key: 'settlementCloseDate', label: '정산마감일', thClass: 'text-center text-nowrap', columnGuideLabel: '집계 구간 마감일(예: W7이면 해당 주 마지막 날). 기존 calc_dt와 동일.' }, { key: 'settlementExecDate', label: '정산일자', thClass: 'text-center text-nowrap', columnGuideLabel: '정산주기·영업일 기준 배치(정산) 예정일(W+N 영업일 등).' }, { key: 'calcCycle', label: '정산주기' }, { key: 'calcMethod', label: '정산방법' }, { key: 'targetPeriodText', label: '정산대상기간', thClass: 'pay-grid-time-dual text-start small' }, { key: 'targetAmt', label: '결제액' }, { key: 'totalFee', label: '수수료', columnGuideLabel: '거래 집계만. 정산 실행당 1회 정산수수료는 정산료 열.' }, { key: 'rollingReserveAmt', label: '담보금' }, { key: 'payAmount', label: '지급액', columnGuideLabel: '0으로 보정하지 않음; 부족 시 음수·미수금 자동등록.' }, { key: 'status', label: '확정여부', columnGuideLabel: 'CALCULATED=확정, PENDING=미확정.' }]
     },
     '/settlement/settlementResultDistribute': {
       listSortDirAnchor: 'refresh',
@@ -4594,12 +4657,22 @@
           { type: 'quickdate' },
           { label: '검색구분', type: 'select', name: 'searchFieldType', options: [
             { v: 'ALL', t: '전체' },
+            { v: 'CALC_CYCLE', t: '정산주기' },
+            { v: 'CALC_METHOD', t: '정산방법' },
             { v: 'COMP_NM', t: '업체명' },
             { v: 'COMP_ID', t: '업체코드' },
+            { v: 'APPROVAL_NO', t: '승인번호' },
+            { v: 'MID', t: 'MID' },
+            { v: 'ROUTE', t: '루트' },
+            { v: 'CURRENCY', t: '통화' },
+            { v: 'STATUS', t: '상태' },
             { v: 'SETTLEMENT_PUBLISH_STS', t: '배포상태' },
-            { v: 'PAYOUT_HOLD_YN', t: '지급보류' }
-          ], size: 8 },
-          { label: '검색어', type: 'text', name: 'searchKeyword', placeholder: '검색어', size: 14 },
+            { v: 'PAYOUT_HOLD_YN', t: '지급보류' },
+            { v: 'AMOUNT', t: '금액' },
+            { v: 'SETTLE_TARGET_DAY', t: '정산대상일' },
+            { v: 'SETTLE_RUN_DAY', t: '정산일' }
+          ], size: 10 },
+          { label: '검색어', type: 'text', name: 'searchKeyword', placeholder: '검색어(일: 1~31)', size: 14 },
           { type: 'searchBtn', label: '검색' }
         ]
       ],
@@ -4612,7 +4685,7 @@
         { id: 'excelBtn', label: '엑셀다운로드', cls: 'btn-info' }
       ],
       columnGuideFixedKeys: ['rowNo', 'compNm', 'compId', 'curType'],
-      columns: [{ key: '_chk', type: 'checkbox' }, { key: 'rowNo', label: '번호' }, { key: 'compNm', label: '업체명' }, { key: 'compId', label: '업체코드' }, { key: 'curType', label: '통화' }, { key: 'calcDt', label: '정산일자' }, { key: 'calcCycle', label: '정산주기' }, { key: 'cadenceGuideKr', label: '노출주기 안내', thClass: 'text-nowrap' }, { key: 'settlementPublishSts', label: '배포상태' }, { key: 'payoutHoldYn', label: '지급보류' }, { key: 'settlementRunId', label: '실행ID', columnGuideLabel: '정산 실행 PK.' }, { key: 'calcMethod', label: '정산방법' }, { key: 'targetPeriodText', label: '정산대상기간', thClass: 'pay-grid-time-dual text-start small' }, { key: 'txnCnt', label: '건수', thClass: 'text-center text-nowrap', columnGuideLabel: '이번 정산 실행에 집계에 포함된 거래 건수. 컬럼 도입 이전 실행 행은 비어 있을 수 있습니다.' }, { key: 'pgRootNo', label: '루트' }, { key: 'targetAmt', label: '결제액' }, { key: 'totalFee', label: '수수료', columnGuideLabel: '거래 집계만. 정산 실행당 1회 정산수수료는 정산료 열.' }, { key: 'rollingReserveAmt', label: '담보금' }, { key: 'settlementBatchFee', label: '정산료', thClass: 'text-end', columnGuideLabel: '정산 실행당 1회 정산수수료.' }, { key: 'receivableAmt', label: '미수금' }, { key: 'payAmount', label: '지급액', columnGuideLabel: '0으로 보정하지 않음; 음수 가능.' }, { key: 'status', label: '확정여부', columnGuideLabel: 'CALCULATED=확정, PENDING=미확정.' }]
+      columns: [{ key: '_chk', type: 'checkbox' }, { key: 'rowNo', label: '번호' }, { key: 'compNm', label: '업체명' }, { key: 'compId', label: '업체코드' }, { key: 'curType', label: '통화' }, { key: 'settlementCloseDate', label: '정산마감일', thClass: 'text-center text-nowrap', columnGuideLabel: '집계 구간 마감일(예: W7이면 해당 주 마지막 날). 기존 calc_dt와 동일.' }, { key: 'settlementExecDate', label: '정산일자', thClass: 'text-center text-nowrap', columnGuideLabel: '정산주기·영업일 기준 배치(정산) 예정일(W+N 영업일 등).' }, { key: 'calcCycle', label: '정산주기' }, { key: 'cadenceGuideKr', label: '노출주기 안내', thClass: 'text-nowrap' }, { key: 'settlementPublishSts', label: '배포상태' }, { key: 'payoutHoldYn', label: '지급보류' }, { key: 'settlementRunId', label: '실행ID', columnGuideLabel: '정산 실행 PK.' }, { key: 'calcMethod', label: '정산방법' }, { key: 'targetPeriodText', label: '정산대상기간', thClass: 'pay-grid-time-dual text-start small' }, { key: 'txnCnt', label: '건수', thClass: 'text-center text-nowrap', columnGuideLabel: '이번 정산 실행에 집계에 포함된 거래 건수. 컬럼 도입 이전 실행 행은 비어 있을 수 있습니다.' }, { key: 'pgRootNo', label: '루트' }, { key: 'targetAmt', label: '결제액' }, { key: 'totalFee', label: '수수료', columnGuideLabel: '거래 집계만. 정산 실행당 1회 정산수수료는 정산료 열.' }, { key: 'rollingReserveAmt', label: '담보금' }, { key: 'settlementBatchFee', label: '정산료', thClass: 'text-end', columnGuideLabel: '정산 실행당 1회 정산수수료.' }, { key: 'receivableAmt', label: '미수금' }, { key: 'payAmount', label: '지급액', columnGuideLabel: '0으로 보정하지 않음; 음수 가능.' }, { key: 'status', label: '확정여부', columnGuideLabel: 'CALCULATED=확정, PENDING=미확정.' }]
     },
     '/settlement/settlementResultHold': {
       listSortDirAnchor: 'refresh',
@@ -4628,12 +4701,22 @@
           { type: 'quickdate' },
           { label: '검색구분', type: 'select', name: 'searchFieldType', options: [
             { v: 'ALL', t: '전체' },
+            { v: 'CALC_CYCLE', t: '정산주기' },
+            { v: 'CALC_METHOD', t: '정산방법' },
             { v: 'COMP_NM', t: '업체명' },
             { v: 'COMP_ID', t: '업체코드' },
+            { v: 'APPROVAL_NO', t: '승인번호' },
+            { v: 'MID', t: 'MID' },
+            { v: 'ROUTE', t: '루트' },
+            { v: 'CURRENCY', t: '통화' },
+            { v: 'STATUS', t: '상태' },
             { v: 'SETTLEMENT_PUBLISH_STS', t: '배포상태' },
-            { v: 'PAYOUT_HOLD_YN', t: '지급보류' }
-          ], size: 8 },
-          { label: '검색어', type: 'text', name: 'searchKeyword', placeholder: '검색어', size: 14 },
+            { v: 'PAYOUT_HOLD_YN', t: '지급보류' },
+            { v: 'AMOUNT', t: '금액' },
+            { v: 'SETTLE_TARGET_DAY', t: '정산대상일' },
+            { v: 'SETTLE_RUN_DAY', t: '정산일' }
+          ], size: 10 },
+          { label: '검색어', type: 'text', name: 'searchKeyword', placeholder: '검색어(일: 1~31)', size: 14 },
           { type: 'searchBtn', label: '검색' }
         ]
       ],
@@ -4644,7 +4727,7 @@
         { id: 'excelBtn', label: '엑셀다운로드', cls: 'btn-info' }
       ],
       columnGuideFixedKeys: ['rowNo', 'compNm', 'compId', 'curType'],
-      columns: [{ key: '_chk', type: 'checkbox' }, { key: 'rowNo', label: '번호' }, { key: 'compNm', label: '업체명' }, { key: 'compId', label: '업체코드' }, { key: 'curType', label: '통화' }, { key: 'calcDt', label: '정산일자' }, { key: 'calcCycle', label: '정산주기' }, { key: 'cadenceGuideKr', label: '노출주기 안내', thClass: 'text-nowrap' }, { key: 'settlementPublishSts', label: '배포상태' }, { key: 'payoutHoldYn', label: '지급보류' }, { key: 'settlementRunId', label: '실행ID', columnGuideLabel: '정산 실행 PK.' }, { key: 'calcMethod', label: '정산방법' }, { key: 'targetPeriodText', label: '정산대상기간', thClass: 'pay-grid-time-dual text-start small' }, { key: 'txnCnt', label: '건수', thClass: 'text-center text-nowrap', columnGuideLabel: '이번 정산 실행에 집계에 포함된 거래 건수. 컬럼 도입 이전 실행 행은 비어 있을 수 있습니다.' }, { key: 'pgRootNo', label: '루트' }, { key: 'targetAmt', label: '결제액' }, { key: 'totalFee', label: '수수료', columnGuideLabel: '거래 집계만. 정산 실행당 1회 정산수수료는 정산료 열.' }, { key: 'rollingReserveAmt', label: '담보금' }, { key: 'settlementBatchFee', label: '정산료', thClass: 'text-end', columnGuideLabel: '정산 실행당 1회 정산수수료.' }, { key: 'receivableAmt', label: '미수금' }, { key: 'payAmount', label: '지급액', columnGuideLabel: '0으로 보정하지 않음; 음수 가능.' }, { key: 'status', label: '확정여부', columnGuideLabel: 'CALCULATED=확정, PENDING=미확정.' }]
+      columns: [{ key: '_chk', type: 'checkbox' }, { key: 'rowNo', label: '번호' }, { key: 'compNm', label: '업체명' }, { key: 'compId', label: '업체코드' }, { key: 'curType', label: '통화' }, { key: 'settlementCloseDate', label: '정산마감일', thClass: 'text-center text-nowrap', columnGuideLabel: '집계 구간 마감일(예: W7이면 해당 주 마지막 날). 기존 calc_dt와 동일.' }, { key: 'settlementExecDate', label: '정산일자', thClass: 'text-center text-nowrap', columnGuideLabel: '정산주기·영업일 기준 배치(정산) 예정일(W+N 영업일 등).' }, { key: 'calcCycle', label: '정산주기' }, { key: 'cadenceGuideKr', label: '노출주기 안내', thClass: 'text-nowrap' }, { key: 'settlementPublishSts', label: '배포상태' }, { key: 'payoutHoldYn', label: '지급보류' }, { key: 'settlementRunId', label: '실행ID', columnGuideLabel: '정산 실행 PK.' }, { key: 'calcMethod', label: '정산방법' }, { key: 'targetPeriodText', label: '정산대상기간', thClass: 'pay-grid-time-dual text-start small' }, { key: 'txnCnt', label: '건수', thClass: 'text-center text-nowrap', columnGuideLabel: '이번 정산 실행에 집계에 포함된 거래 건수. 컬럼 도입 이전 실행 행은 비어 있을 수 있습니다.' }, { key: 'pgRootNo', label: '루트' }, { key: 'targetAmt', label: '결제액' }, { key: 'totalFee', label: '수수료', columnGuideLabel: '거래 집계만. 정산 실행당 1회 정산수수료는 정산료 열.' }, { key: 'rollingReserveAmt', label: '담보금' }, { key: 'settlementBatchFee', label: '정산료', thClass: 'text-end', columnGuideLabel: '정산 실행당 1회 정산수수료.' }, { key: 'receivableAmt', label: '미수금' }, { key: 'payAmount', label: '지급액', columnGuideLabel: '0으로 보정하지 않음; 음수 가능.' }, { key: 'status', label: '확정여부', columnGuideLabel: 'CALCULATED=확정, PENDING=미확정.' }]
     },
     '/calc/settlementReport': {
       listSortDirAnchor: 'refresh',
@@ -4653,7 +4736,7 @@
       tableColumnGuide: true,
       columnGuideFixedKeys: ['_chk', 'rowNo', 'compNm', 'compId', 'curType'],
       viewSettingDefaultSelectedKeys: [
-        'settlementRunId', 'targetPeriodText', 'calcCycle', 'txnCnt', 'grossPay', 'refundAmt', 'netPay',
+        'settlementRunId', 'settlementCloseDate', 'settlementExecDate', 'targetPeriodText', 'calcCycle', 'txnCnt', 'grossPay', 'refundAmt', 'netPay',
         'rollingReserveAmt', 'mdrFeeAmt', 'perTxnFeeAmt', 'settlementBatchFee', 'feeVat', 'remittanceFee',
         'payAmount', 'settlementDueDt', 'settledYn'
       ],
@@ -4692,7 +4775,7 @@
           { key: '_chk', type: 'checkbox' }, { key: 'rowNo', label: '번호' },
           { key: 'settlementRunId', label: '실행ID', columnGuideLabel: '정산 실행 PK. 하단 거래 목록에 사용.' },
           { key: 'targetPeriodText', label: '정산대상기간', thClass: 'pay-grid-time-dual text-start small' },
-          { key: 'calcDt', label: '정산일' }, { key: 'calcCycle', label: '정산주기', thClass: 'text-center text-nowrap small' },
+          { key: 'settlementCloseDate', label: '정산마감일', thClass: 'text-center text-nowrap' }, { key: 'settlementExecDate', label: '정산일자', thClass: 'text-center text-nowrap' }, { key: 'calcCycle', label: '정산주기', thClass: 'text-center text-nowrap small' },
           { key: 'compNm', label: '가맹점명' }, { key: 'compId', label: '가맹코드' }, { key: 'curType', label: '통화', columnGuideLabel: '정책 통화(THB/KRW/USD/JPY 등).' },
           { key: 'txnCnt', label: '거래건수', thClass: 'text-center text-nowrap', columnGuideLabel: '정산 실행에 집계 포함된 거래 건수 합(tb_settlement_run.included_txn_cnt).' },
           { key: 'grossPay', label: '결제액' }, { key: 'refundAmt', label: '환불/취소' }, { key: 'netPay', label: '정산액', columnGuideLabel: '결제액 − 환불/취소(실행 저장 순매출).' },
@@ -4705,13 +4788,13 @@
           { key: 'totalFee', label: '거래수수료합', columnGuideLabel: '실행에 저장된 거래 수수료 합계.' },
           { key: 'payAmount', label: '지급액', columnGuideLabel: '송금 수수료 차감 전 지급액(실행 저장).' },
           { key: 'finalPayAfterRemittance', label: '최종 지급액', thClass: 'text-end fw-semibold' },
-          { key: 'settlementDueDt', label: '지급예정일', columnGuideLabel: '해당 정산 실행의 정산일(정산주기 일자)과 동일.' },
+          { key: 'settlementDueDt', label: '지급예정일', columnGuideLabel: '정산주기·영업일 기준 배치(정산) 예정일(정산일자 열과 동일).' },
           { key: 'settledYn', label: '정산완료' }, { key: 'status', label: '상태' }
         ],
         EXE: [
           { key: '_chk', type: 'checkbox' }, { key: 'rowNo', label: '번호' },
           { key: 'settlementRunId', label: '실행ID' },
-          { key: 'calcDt', label: '정산일' }, { key: 'targetPeriodText', label: '정산대상기간', thClass: 'pay-grid-time-dual text-start small' },
+          { key: 'settlementCloseDate', label: '정산마감일', thClass: 'text-center text-nowrap' }, { key: 'settlementExecDate', label: '정산일자', thClass: 'text-center text-nowrap' }, { key: 'targetPeriodText', label: '정산대상기간', thClass: 'pay-grid-time-dual text-start small' },
           { key: 'calcCycle', label: '정산주기', thClass: 'text-center text-nowrap small' },
           { key: 'compNm', label: '가맹점명' }, { key: 'compId', label: '가맹코드' }, { key: 'curType', label: '통화' },
           { key: 'txnCnt', label: '거래건수', thClass: 'text-center text-nowrap', columnGuideLabel: '정산 실행에 집계 포함된 거래 건수.' },
@@ -4741,7 +4824,7 @@
         ],
         RST: [
           { key: '_chk', type: 'checkbox' }, { key: 'rowNo', label: '번호' },
-          { key: 'calcDt', label: '정산일시' }, { key: 'compNm', label: '가맹점명' }, { key: 'compId', label: '가맹코드' }, { key: 'curType', label: '통화' },
+          { key: 'calcDt', label: '정산일시' }, { key: 'settlementCloseDate', label: '정산마감일', thClass: 'text-center text-nowrap', columnGuideLabel: '집계 구간 마감일.' }, { key: 'settlementExecDate', label: '정산일자', thClass: 'text-center text-nowrap', columnGuideLabel: '정산주기·영업일 기준 배치 예정일.' }, { key: 'compNm', label: '가맹점명' }, { key: 'compId', label: '가맹코드' }, { key: 'curType', label: '통화' },
           { key: 'targetPeriodText', label: '정산대상기간' }, { key: 'calcCycle', label: '정산주기' },
           { key: 'approveAmt', label: '결제액' }, { key: 'cancelAmt', label: '환불/취소' }, { key: 'netPay', label: '정산액' },
           { key: 'feeAmt', label: '거래수수료' }, { key: 'holdAmt', label: '보증금' },
@@ -4758,7 +4841,7 @@
           { key: '_chk', type: 'checkbox' }, { key: 'rowNo', label: '번호' },
           { key: 'settlementRunId', label: '실행ID' },
           { key: 'targetPeriodText', label: '정산대상기간', thClass: 'pay-grid-time-dual text-start small' },
-          { key: 'calcDt', label: '정산일' }, { key: 'calcCycle', label: '정산주기', thClass: 'text-center text-nowrap small' },
+          { key: 'settlementCloseDate', label: '정산마감일', thClass: 'text-center text-nowrap' }, { key: 'settlementExecDate', label: '정산일자', thClass: 'text-center text-nowrap' }, { key: 'calcCycle', label: '정산주기', thClass: 'text-center text-nowrap small' },
           { key: 'regionalCompId', label: '본사코드' }, { key: 'regionalNm', label: '본사명' },
           { key: 'compNm', label: '가맹점명' }, { key: 'compId', label: '가맹코드' }, { key: 'merchantCnt', label: '가맹수', columnGuideLabel: '실행당 1.' }, { key: 'curType', label: '통화' },
           { key: 'grossPay', label: '결제액' }, { key: 'refundAmt', label: '환불/취소' }, { key: 'netPay', label: '정산액' },
@@ -4770,7 +4853,7 @@
         ],
         EXE: [
           { key: '_chk', type: 'checkbox' }, { key: 'rowNo', label: '번호' },
-          { key: 'calcDt', label: '정산일' }, { key: 'calcCycle', label: '정산주기', thClass: 'text-center text-nowrap small' },
+          { key: 'settlementCloseDate', label: '정산마감일', thClass: 'text-center text-nowrap' }, { key: 'settlementExecDate', label: '정산일자', thClass: 'text-center text-nowrap' }, { key: 'calcCycle', label: '정산주기', thClass: 'text-center text-nowrap small' },
           { key: 'regionalCompId', label: '본사코드' }, { key: 'regionalNm', label: '본사명' }, { key: 'curType', label: '통화' },
           { key: 'batchRunCnt', label: '배치건수' }, { key: 'approveAmt', label: '결제액합' }, { key: 'cancelAmt', label: '환불/취소합' }, { key: 'netPay', label: '정산액합' },
           { key: 'rollingReserveAmt', label: '보증금합' },
@@ -4812,11 +4895,17 @@
       searchRows: [
         [
           { label: '적용일(담보)', type: 'daterange', from: 'searchFromDate', to: 'searchToDate', col: 5 },
-          { type: 'quickdate' }
+          qdSettleStdField()
         ],
         [
-          { label: '업체코드', type: 'text', name: 'searchCompId', col: 3 },
-          { label: '업체명', type: 'text', name: 'searchCompNm', col: 3 },
+          { label: '검색구분', type: 'select', name: 'searchFieldType', options: [
+            { v: 'ALL', t: '전체' },
+            { v: 'COMP_NM', t: '업체명' },
+            { v: 'COMP_ID', t: '업체코드' },
+            { v: 'SETTLE_TARGET_DAY', t: '정산대상일' },
+            { v: 'SETTLE_RUN_DAY', t: '정산일' }
+          ], size: 10 },
+          { label: '검색어', type: 'text', name: 'searchKeyword', placeholder: '검색어(일: 1~31)', col: 3 },
           { label: '상태', type: 'select', name: 'searchStatus', options: [{ v: '', t: '전체' }, { v: 'HOLD', t: '보류' }, { v: 'RELEASED', t: '해지' }], col: 2 },
           { type: 'searchBtn' }
         ]
@@ -5177,7 +5266,7 @@
         { id: 'executeBtn', label: '수동실행', cls: 'btn-danger' }
       ],
       columnGuideFixedKeys: ['rowNo', 'compNm', 'compId'],
-      columns: [{ key: '_chk', type: 'checkbox' }, { key: 'rowNo', label: '번호' }, { key: 'compNm', label: '업체명' }, { key: 'compId', label: '업체코드' }, { key: 'curType', label: '통화' }, { key: 'txnCnt', label: '건수', thClass: 'text-center text-nowrap', columnGuideLabel: '이번 정산 실행에 집계에 포함된 거래 건수. 컬럼 도입 이전 실행 행은 비어 있을 수 있습니다.' }, { key: 'settlementBatchFee', label: '정산료', thClass: 'text-end', columnGuideLabel: '정산 실행당 1회 정산수수료.' }, { key: 'cadenceGuideKr', label: '노출주기 안내', thClass: 'text-nowrap', columnGuideLabel: '주기별 노출 요약.' }, { key: 'settlementPublishSts', label: '배포상태', columnGuideLabel: 'PENDING·DISTRIBUTED·HOLD — 가맹점정산내역 반영 전 단계.' }, { key: 'payoutHoldYn', label: '지급보류', columnGuideLabel: 'Y면 지급보류 가맹; 배포가 HOLD로 잡힐 수 있음.' }, { key: 'settlementRunId', label: '실행ID', columnGuideLabel: '정산 실행 PK(tb_settlement_run). 추적용.' }, { key: 'receivableAmt', label: '미수금', columnGuideLabel: '정산 지급부족 시 해당 실행에 자동 등록된 미수금(발생액)' }, { key: 'pgRootNo', label: '루트' }, { key: 'calcDt', label: '정산일자' }, { key: 'calcCycle', label: '정산주기' }, { key: 'calcMethod', label: '정산방법' }, { key: 'targetPeriodText', label: '정산대상기간', thClass: 'pay-grid-time-dual text-start small' }, { key: 'targetAmt', label: '결제액' }, { key: 'totalFee', label: '수수료', columnGuideLabel: '거래 집계만. 정산 실행당 1회 정산수수료는 정산료 열.' }, { key: 'rollingReserveAmt', label: '담보금' }, { key: 'payAmount', label: '지급액', columnGuideLabel: '0으로 보정하지 않음; 부족 시 음수·미수금 자동등록.' }, { key: 'status', label: '확정여부', columnGuideLabel: 'CALCULATED=확정, PENDING=미확정.' }],
+      columns: [{ key: '_chk', type: 'checkbox' }, { key: 'rowNo', label: '번호' }, { key: 'compNm', label: '업체명' }, { key: 'compId', label: '업체코드' }, { key: 'curType', label: '통화' }, { key: 'txnCnt', label: '건수', thClass: 'text-center text-nowrap', columnGuideLabel: '이번 정산 실행에 집계에 포함된 거래 건수. 컬럼 도입 이전 실행 행은 비어 있을 수 있습니다.' }, { key: 'settlementBatchFee', label: '정산료', thClass: 'text-end', columnGuideLabel: '정산 실행당 1회 정산수수료.' }, { key: 'cadenceGuideKr', label: '노출주기 안내', thClass: 'text-nowrap', columnGuideLabel: '주기별 노출 요약.' }, { key: 'settlementPublishSts', label: '배포상태', columnGuideLabel: 'PENDING·DISTRIBUTED·HOLD — 가맹점정산내역 반영 전 단계.' }, { key: 'payoutHoldYn', label: '지급보류', columnGuideLabel: 'Y면 지급보류 가맹; 배포가 HOLD로 잡힐 수 있음.' }, { key: 'settlementRunId', label: '실행ID', columnGuideLabel: '정산 실행 PK(tb_settlement_run). 추적용.' }, { key: 'receivableAmt', label: '미수금', columnGuideLabel: '정산 지급부족 시 해당 실행에 자동 등록된 미수금(발생액)' }, { key: 'pgRootNo', label: '루트' }, { key: 'settlementCloseDate', label: '정산마감일', thClass: 'text-center text-nowrap', columnGuideLabel: '집계 구간 마감일(예: W7이면 해당 주 마지막 날). 기존 calc_dt와 동일.' }, { key: 'settlementExecDate', label: '정산일자', thClass: 'text-center text-nowrap', columnGuideLabel: '정산주기·영업일 기준 배치(정산) 예정일(W+N 영업일 등).' }, { key: 'calcCycle', label: '정산주기' }, { key: 'calcMethod', label: '정산방법' }, { key: 'targetPeriodText', label: '정산대상기간', thClass: 'pay-grid-time-dual text-start small' }, { key: 'targetAmt', label: '결제액' }, { key: 'totalFee', label: '수수료', columnGuideLabel: '거래 집계만. 정산 실행당 1회 정산수수료는 정산료 열.' }, { key: 'rollingReserveAmt', label: '담보금' }, { key: 'payAmount', label: '지급액', columnGuideLabel: '0으로 보정하지 않음; 부족 시 음수·미수금 자동등록.' }, { key: 'status', label: '확정여부', columnGuideLabel: 'CALCULATED=확정, PENDING=미확정.' }],
       emptyMessage: '조회된 데이터가 없습니다.'
     },
     '/notify/payUrlMng': {
@@ -5285,7 +5374,7 @@
       columns: [
         { key: 'rowNo', label: '번호' },
         { key: 'settlementRunId', label: '실행ID', columnGuideLabel: 'tb_settlement_run PK' },
-        { key: 'calcDt', label: '정산일' },
+        { key: 'settlementCloseDate', label: '정산마감일', thClass: 'text-center text-nowrap' }, { key: 'settlementExecDate', label: '정산일자', thClass: 'text-center text-nowrap' },
         { key: 'periodFrom', label: '집계시작', thClass: 'text-center text-nowrap' },
         { key: 'periodTo', label: '집계종료', thClass: 'text-center text-nowrap' },
         { key: 'compNm', label: '가맹명' },
@@ -5307,6 +5396,7 @@
     '/ops/integratedReport': {
       isOpsIntegratedReport: true,
       opsIntegratedReportScreen: true,
+      payListFinancialInline: true,
       listSortDirAnchor: 'refresh',
       searchFormClass: 'pay-mng-search-form',
       searchRows: [[
@@ -5317,7 +5407,7 @@
       noticeList: [
         '총본사·본사(REGIONAL)·총판(MASTER_DIST) 또는 ADMIN만 사용합니다. 조회 범위는 로그인 조직의 하위 가맹 거래입니다.',
         '집계 기준일은 거래 적재일(created_at)이며, 일별결제와 동일합니다. 성공·취소·실패 등 상태 열의 금액은 결제액이 아니라 「건수 × 기본 수수료 정책의 해당 상태 건당 수수료」(예: 성공 7건·건당 20 → 140)입니다.',
-        '일자 행을 클릭하면 아래 「선택 일자 상세」에 해당 일 통합 결제내역 전체가 표시됩니다. 번호·결제시간·승인번호·업체·정산주기·정산예정(업체명 오른쪽)·결제액·수수료(총수수료+부가세)·정산액·상태(한글)를 확인할 수 있으며, 수수료·정산액은 정산관리 수수료내역과 동일한 건별 산식(FeeListTxnBreakdown)입니다. 거래일 열은 두지 않습니다. 가맹 열 「수수료(변동·% / 건당)」은 정책 결제율(%)·건당 표시입니다.',
+        '일자 행을 더블클릭하면 아래 「선택 일자 상세 (통합 결제내역)」에 해당 일 통합 결제내역 전체·총거래~추정결산 요약이 표시됩니다. 번호·결제시간·승인번호·업체·정산주기·정산예정(업체명 오른쪽)·결제액·수수료(총수수료+부가세)·정산액·상태(한글)를 확인할 수 있으며, 수수료·정산액은 정산관리 수수료내역과 동일한 건별 산식(FeeListTxnBreakdown)입니다. 거래일 열은 두지 않습니다. 가맹 열 「수수료(변동·% / 건당)」은 정책 결제율(%)·건당 표시입니다.',
         '내부 상태 「요청」(08, 인증·결제 진행 중)은 상단 집계의 「기타」 건수에 포함되며 취소·실패·성공이 아닙니다. 칠페이 최종 승인 노티(성공) 전 단계이며, 가맹 결제통보 URL이 설정된 경우에만 PG→가맹 통보가 나갈 수 있습니다(칠페이→PG 수신 노티와 별개).',
         '[엑셀다운로드]는 결제내역과 동일한 상단 메뉴 형태이며, 현재 조회된 일자별 통합 리포트 표를 서식 xlsx로 받습니다.',
         '요약 바: 검색 기간 전체 거래 건수(건수)와 통화별 총결제액(승인−취소)·총수수료(부가세 제외)·총보증금(담보 추정)·예상지급액을 결제내역 상단과 같은 형식으로 표시합니다.'
@@ -5330,29 +5420,58 @@
       columns: [{ key: 'day', label: '일자' }],
       emptyMessage: '조회된 데이터가 없습니다.'
     },
-    '/ops/integrationPlan': {
-      hideListGrid: true,
-      staticHtml: DEPLOY_STATIC_HTML.integrationPlan,
-      summary: [],
-      buttons: []
-    },
-    '/ops/jpayWorkPlan': {
-      hideListGrid: true,
-      staticHtml: DEPLOY_STATIC_HTML.jpayWorkPlan,
-      summary: [],
-      buttons: []
-    },
-    '/ops/merchantApiPolicy': {
-      hideListGrid: true,
-      staticHtml: DEPLOY_STATIC_HTML.merchantApiPolicy,
-      summary: [],
-      buttons: []
-    },
-    '/ops/launchChecklist': {
-      hideListGrid: true,
-      staticHtml: DEPLOY_STATIC_HTML.launchChecklist,
-      summary: [],
-      buttons: []
+    '/ops/verifyReport': {
+      isOpsVerifyReport: true,
+      opsVerifyReportScreen: true,
+      listSortDirAnchor: 'refresh',
+      searchFormClass: 'pay-mng-search-form',
+      searchRows: [[
+        { label: '거래일자', type: 'daterange', from: 'searchFromDate', to: 'searchToDate' },
+        { type: 'quickdate', quickdateLabels: ['당일', '당월', '전일', '1주', '2주', '전월'], quickdateRanges: ['day', 'month', 'prevDay', 'week', 'week2', 'prevMonth'] },
+        { label: '검색구분', type: 'select', name: 'searchFieldType', options: [
+          { v: 'ALL', t: '전체' },
+          { v: 'APPROVAL_NO', t: '승인번호' },
+          { v: 'ORDER_NO', t: '주문번호' },
+          { v: 'CUSTOMER_ID', t: '고객ID' },
+          { v: 'MID', t: 'MID' },
+          { v: 'ROUTE', t: '루트' },
+          { v: 'STATUS', t: '상태' }
+        ], size: 11 },
+        { label: '검색어', type: 'text', name: 'searchKeyword', placeholder: '검색어', size: 22 },
+        { label: '상태구분', type: 'select', name: 'searchPayDivCd', options: [
+          { v: '', t: '전체' },
+          { v: '10', t: '성공' },
+          { v: '20', t: '취소' },
+          { v: 'FAIL', t: '실패' },
+          { v: '40', t: '자동무효' },
+          { v: '41', t: '이메일 무효' },
+          { v: '42', t: '자동환불' },
+          { v: '31', t: '강제환불' }
+        ], size: 11 },
+        { type: 'searchBtn', label: '검색' }
+      ]],
+      noticeList: [
+        'ChillPay 통합내역(API, 거래일 TransactionDate)을 기준으로 결제내역 NOTI(origin=NOTI)와 승인번호(TransactionId)·결제액·상태를 대조합니다.',
+        '일치 건은 하단 「선택 일자 불일치」 목록에서 제외됩니다. 통합 상태가 요청·대기(인증 전)이면 노티가 오지 않는 것이 정상이므로 NOTI 미수신으로 잡지 않습니다.',
+        '상태 불일치 건은 하단에서 「통합 기준 맞춤」 또는 「상태 불일치 일괄 맞춤」으로 NOTI 결제내역을 통합 상태에 맞출 수 있습니다(금액 불일치는 제외).',
+        'JPAY 등 다른 PG·URL/챗봇만 있는 건은 대상이 아니며, 통합에 없고 결제에만 있는 건은 오류로 표시하지 않습니다.',
+        '일자 행을 더블클릭하면 해당 일의 불일치 건만 표시합니다(승인번호로 통합내역·결제내역에서 추적). 결제시간·금액 표기 형식 차이는 불일치로 잡지 않습니다.',
+        '총본사·본사(REGIONAL)·총판(MASTER_DIST) 또는 ADMIN만 사용합니다. 조회 기간은 최대 93일입니다.'
+      ],
+      summary: ['건수'],
+      buttons: [
+        { id: 'payListRefreshBtn', label: '새로고침', cls: 'btn-outline-secondary' },
+        { id: 'searchBtn', label: '검색', cls: 'btn-primary' }
+      ],
+      columns: [
+        { key: 'rowNo', label: '번호' },
+        { key: 'day', label: '일자' },
+        { key: 'chillCount', label: '통합(Chill)건수' },
+        { key: 'matchedCount', label: '일치건수' },
+        { key: 'mismatchCount', label: '불일치건수' },
+        { key: 'note', label: '비고' }
+      ],
+      emptyMessage: '조회된 데이터가 없습니다.'
     },
     '/deploy/integrationPlan': {
       hideListGrid: true,
@@ -5450,24 +5569,39 @@
       '취소 건에 대한 정산 수수료 및 부가세는 정산 주기에 따라 반영됩니다.',
       '정산 주기 및 정산 수수료는 가맹점별로 상이할 수 있습니다.'
     ], true);
-    MENU_SCREENS['/calc/paySuccessList'] = stripStatusDiv(cloneWith('SUCCESS', [
+    function asStatusOnlyPayScreen(o) {
+      o.payListFinancialInline = false;
+      return o;
+    }
+    MENU_SCREENS['/calc/paySuccessList'] = asStatusOnlyPayScreen(stripStatusDiv(cloneWith('SUCCESS', [
       '성공내역: 통합 결제내역에서 승인 성공(결제) 상태만 간추렸습니다.',
+      '상단은 건수와 해당 상태(성공) 요약 pill만 표시합니다(일별통합과 동일). 금액·수수료 한 줄 집계는 통합 결제내역·수수료내역을 이용하세요.',
       '무효·이메일무효·환불·강제환불 등 후속조치는 「결제내역」(/calc/payList)에서만 제공합니다.'
-    ]));
-    MENU_SCREENS['/calc/payFailList'] = stripStatusDiv(cloneWith('FAIL', ['실패내역: 통합 결제내역에서 실패·거절만 간추렸습니다.']));
-    MENU_SCREENS['/calc/payRefundList'] = stripStatusDiv(cloneWith('REFUND', [
-      '환불처리: 통합 결제내역에서 일반·자동환불(내부 30·42)만 간추렸습니다.'
-    ]));
-    MENU_SCREENS['/calc/payForceRefundList'] = stripStatusDiv(cloneWith('FORCE_REFUND', [
-      '강제환불: 통합 결제내역에서 강제환불(내부 31)만 간추렸습니다.'
-    ]));
-    MENU_SCREENS['/calc/payCancelList'] = stripStatusDiv(cloneWith('CANCEL', ['취소내역: 통합 결제내역에서 취소만 간추렸습니다.']));
-    MENU_SCREENS['/calc/payVoidList'] = stripStatusDiv(cloneWith('VOID', [
-      '무효처리: 통합 결제내역에서 자동·시스템 무효(내부 21·40)만 표시합니다. 이메일무효(22·41)는 「이메일무효」메뉴, 취소(20)와 구분됩니다.'
-    ]));
-    MENU_SCREENS['/calc/payEmailVoidList'] = stripStatusDiv(cloneWith('MANUAL_VOID', [
-      '이메일무효: 통합 결제내역에서 수동·이메일 무효(내부 22·41)만 표시합니다. 자동무효(21·40)는 「무효처리」메뉴입니다.'
-    ]));
+    ])));
+    MENU_SCREENS['/calc/payFailList'] = asStatusOnlyPayScreen(stripStatusDiv(cloneWith('FAIL', [
+      '실패내역: 통합 결제내역에서 실패·거절만 간추렸습니다.',
+      '상단은 건수와 해당 상태(실패) 요약 pill만 표시합니다(일별통합과 동일).'
+    ])));
+    MENU_SCREENS['/calc/payRefundList'] = asStatusOnlyPayScreen(stripStatusDiv(cloneWith('REFUND', [
+      '환불처리: 통합 결제내역에서 일반·자동환불(내부 30·42)만 간추렸습니다.',
+      '상단은 건수와 해당 상태(환불) 요약 pill만 표시합니다(일별통합과 동일).'
+    ])));
+    MENU_SCREENS['/calc/payForceRefundList'] = asStatusOnlyPayScreen(stripStatusDiv(cloneWith('FORCE_REFUND', [
+      '강제환불: 통합 결제내역에서 강제환불(내부 31)만 간추렸습니다.',
+      '상단은 건수와 해당 상태(강제환불) 요약 pill만 표시합니다(일별통합과 동일).'
+    ])));
+    MENU_SCREENS['/calc/payCancelList'] = asStatusOnlyPayScreen(stripStatusDiv(cloneWith('CANCEL', [
+      '취소내역: 통합 결제내역에서 취소만 간추렸습니다.',
+      '상단은 건수와 해당 상태(취소) 요약 pill만 표시합니다(일별통합과 동일).'
+    ])));
+    MENU_SCREENS['/calc/payVoidList'] = asStatusOnlyPayScreen(stripStatusDiv(cloneWith('VOID', [
+      '무효처리: 통합 결제내역에서 자동·시스템 무효(내부 21·40)만 표시합니다. 이메일무효(22·41)는 「이메일무효」메뉴, 취소(20)와 구분됩니다.',
+      '상단은 건수와 해당 상태(무효) 요약 pill만 표시합니다(일별통합과 동일).'
+    ])));
+    MENU_SCREENS['/calc/payEmailVoidList'] = asStatusOnlyPayScreen(stripStatusDiv(cloneWith('MANUAL_VOID', [
+      '이메일무효: 통합 결제내역에서 수동·이메일 무효(내부 22·41)만 표시합니다. 자동무효(21·40)는 「무효처리」메뉴입니다.',
+      '상단은 건수와 해당 상태(이메일 무효) 요약 pill만 표시합니다(일별통합과 동일).'
+    ])));
     MENU_SCREENS['/calc/offsetCancList'] = cloneWith('OFFSET_CANCEL', [
       '상계취소내역: 가맹 정산에 이미 반영된 건(settled=Y)이 이후 취소·무효·환불·강제환불(내부 20·21·22·30·31·40·41·42)로 바뀐 경우만 표시합니다. 정산 전 실패(F0·99) 등은 제외됩니다.',
       '동일 조건으로 노티 반영 시 「환수금관리」에 POST_SETTLE_REFUND 자동 등록이 되며, 차기 정산 지급액에서 FIFO 차감됩니다(전산설정·가맹 환수모드와 동일).'
@@ -5490,7 +5624,8 @@
         ph.noticeList = [
           '정산방법에서 지급보류가 「보류」인 가맹점은 정산 실행 시 결과가 가맹점정산내역·유통망정산 집계에 나타나지 않고 이 화면에만 적치됩니다. 정산 금액·수수료 등은 이미 계산·저장된 값입니다.',
           '「보류해제」열의 [Y→N 해제]로 한 건만 바로 해제하거나, 체크 후 [선택 건 지급보류 해제]로 여러 건을 한 번에 처리할 수 있습니다. 더블 확인 후 실행 행의 지급보류(Y)가 N으로 바뀌며 가맹점정산내역(및 유통 집계)에 반영됩니다. 가맹점 설정의 지급보류는 그대로이며, 이후 신규 정산 건은 다시 이 목록에 쌓일 수 있습니다.',
-          '결제 건별 롤링 예치(담보)는 「담보금내역」(/calc/collateralList)에서 확인하세요.'
+          '결제 건별 롤링 예치(담보)는 「담보금내역」(/calc/collateralList)에서 확인하세요.',
+          '표시 열은 [헬로] 옆 VIEW SETTING에서 조정할 수 있습니다(저장 시 사용자별 유지). 체크·보류해제 열은 항상 표시됩니다.'
         ];
         var baseBtns = gm.buttons ? JSON.parse(JSON.stringify(gm.buttons)) : [
           { id: 'searchBtn', label: '검색', cls: 'btn-primary' },
@@ -5504,8 +5639,11 @@
           phCols = [{ key: '_chk', type: 'checkbox' }].concat(phCols);
           ph.columns = phCols;
         }
-        ph.tableColumnGuide = false;
+        ph.tableColumnGuide = true;
         ph.columnGuideFixedKeys = ['_chk', 'rowNo', 'compNm', 'compId', 'curType', '_payoutHoldRelease'];
+        if (gm.viewSettingDefaultSelectedKeys && gm.viewSettingDefaultSelectedKeys.length) {
+          ph.viewSettingDefaultSelectedKeys = gm.viewSettingDefaultSelectedKeys.slice();
+        }
         var yIdxPh = -1;
         for (var ypi = 0; ypi < phCols.length; ypi++) {
           if (phCols[ypi] && phCols[ypi].key === 'payoutHoldYn') { yIdxPh = ypi; break; }
@@ -5527,6 +5665,7 @@
         return ph;
       }
       MENU_SCREENS['/calc/paySettlementHoldList'] = buildPh();
+      MENU_SCREENS['/settlement/paySettlementHoldList'] = buildPh();
     } catch (ePh) { /* ignore */ }
   })();
 
@@ -5584,7 +5723,8 @@
       if (ex && exc && ex.columns && ex.columns.length) {
         exc.columns = JSON.parse(JSON.stringify(ex.columns));
         (exc.columns || []).forEach(function (col) {
-          if (col && col.key === 'calcDt') col.label = '정산일자';
+          if (col && col.key === 'settlementCloseDate') col.label = '정산마감일';
+          if (col && col.key === 'settlementExecDate') col.label = '정산일자';
         });
         if (ex.columnGuideFixedKeys && ex.columnGuideFixedKeys.length) {
           exc.columnGuideFixedKeys = ex.columnGuideFixedKeys.slice();
@@ -5724,10 +5864,18 @@
     };
     var titleId = opts.titleId || ('dailyDetailTitle_' + tid);
     var titleKey = opts.titleKey || '선택 일자 상세';
+    var countId = opts.countId || ('dailyDetailCount_' + tid);
+    var finId = opts.financialSummaryId || ('dailyDetailFinancialSummary_' + tid);
     return (
       '<div class="daily-detail-toolbar d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">' +
-      '<div class="fw-semibold small text-secondary daily-detail-section-title" id="' + escAttr(titleId) + '" data-pg-ui-t="' + escAttr(titleKey) + '">' + escUi(L(titleKey)) + '</div>' +
-      '<div class="screen-action-buttons daily-detail-action-buttons d-flex flex-wrap align-items-center gap-2">' +
+      '<div class="daily-detail-toolbar-start d-flex flex-wrap align-items-center gap-2 flex-grow-1 min-w-0">' +
+      '<div class="fw-semibold small text-secondary daily-detail-section-title flex-shrink-0" id="' + escAttr(titleId) + '" data-pg-ui-t="' + escAttr(titleKey) + '">' + escUi(L(titleKey)) + '</div>' +
+      '<span class="pay-list-aggregate-inline-sep daily-detail-count-sep" aria-hidden="true" style="display:none">ㅣ</span>' +
+        '<span class="summary-total-item daily-detail-count summary-count-item" id="' + escAttr(countId) + '" style="display:none" aria-live="polite"></span>' +
+      '<span class="pay-list-aggregate-inline-sep daily-detail-financial-sep" aria-hidden="true" style="display:none">ㅣ</span>' +
+      '<div class="pay-list-financial-summary pay-list-financial-summary--empty daily-detail-financial-summary" id="' + escAttr(finId) + '" role="status" aria-live="polite"></div>' +
+      '</div>' +
+      '<div class="screen-action-buttons daily-detail-action-buttons d-flex flex-wrap align-items-center gap-2 flex-shrink-0">' +
       buildDailyDetailSortDirHtml(tid) +
       '<button type="button" class="btn btn-info btn-sm" id="listExcelDownBtn"><span data-pg-ui-t="엑셀리스트다운">' + escUi(L('엑셀리스트다운')) + '</span></button>' +
       '</div></div>'
@@ -5914,7 +6062,7 @@
     var fixedKeys = (cfg.columnGuideFixedKeys && cfg.columnGuideFixedKeys.length) ? cfg.columnGuideFixedKeys : defaultFixed;
     var cols = cfg.columns.filter(function (c) {
       // payActions(후속조치)는 VIEW SETTING에서 토글 가능해야 함(통합 결제내역 등). 체크박스·인라인 액션만 제외.
-      if (c.type === 'checkbox' || c.type === 'commissionInlineActions' || c.type === 'accountAccessActions' || c.type === 'accountAccessDelete' || c.type === 'userResetPassword' || c.type === 'userDelete') return false;
+      if (c.type === 'checkbox' || c.type === 'commissionInlineActions' || c.type === 'accountAccessActions' || c.type === 'accountAccessDelete' || c.type === 'userResetPassword' || c.type === 'userDelete' || c.type === 'payoutHoldReleaseBtn' || c.type === 'pgApiMngRowActions') return false;
       return fixedKeys.indexOf(c.key) === -1;
     });
     if (cols.length === 0) return '';
@@ -6189,6 +6337,8 @@
         html += '<div id="pgInfoDisplayWrap" class="pg-info-display">' +
           '<div class="row mb-2"><div class="col-sm-3"><label class="form-label" data-pg-ui-t="웹결제 사용여부">웹결제 사용여부</label><select class="form-control form-control-sm" name="webPaymentUseYn"><option value="Y" data-pg-ui-t="사용">사용</option><option value="N" data-pg-ui-t="미사용">미사용</option></select></div>' +
           '<div class="col-sm-5"><label class="form-label" data-pg-ui-t="결제 URL">결제 URL</label><div class="input-group input-group-sm"><input type="text" class="form-control" id="paymentUrlDisplay" readonly data-pg-ui-placeholder="가맹점 선택 후 조회" placeholder="가맹점 선택 후 조회"><button type="button" class="btn btn-outline-primary" id="paymentUrlCopyBtn" data-pg-ui-t="복사">복사</button></div></div></div>' +
+          '<div class="row mb-2">' +
+          '<div class="col-sm-5"><label class="form-label" data-pg-ui-t="URL 재결제 URL">URL 재결제 URL</label><div class="input-group input-group-sm"><input type="text" class="form-control" id="paymentRepayUrlDisplay" readonly data-pg-ui-placeholder="가맹점 선택 후 조회" placeholder="가맹점 선택 후 조회"><button type="button" class="btn btn-outline-primary" id="paymentRepayUrlCopyBtn" data-pg-ui-t="복사">복사</button></div></div></div>' +
           '<div class="row mb-2"><div class="col-sm-3"><label class="form-label" data-pg-ui-t="챗봇결제 사용여부">챗봇결제 사용여부</label><select class="form-control form-control-sm" name="chatbotPaymentUseYn"><option value="N" data-pg-ui-t="미사용">미사용</option><option value="Y" data-pg-ui-t="사용">사용</option></select></div>' +
           '<div class="col-sm-3"><label class="form-label" data-pg-ui-t="챗봇 상품등록 한도(건)">챗봇 상품등록 한도(건)</label><select class="form-control form-control-sm" name="chatbotProductSlotLimit"><option value="">—</option>' +
           '<option value="10">10</option><option value="20">20</option><option value="50">50</option><option value="80">80</option><option value="100">100</option><option value="150">150</option><option value="200">200</option></select></div>' +
@@ -6332,7 +6482,8 @@
    */
   function injectViewSettingHelloIntoButtons(btns, cfg, screenUrl) {
     if (!cfg || cfg.hideListGrid) return btns || [];
-    if (screenUrl && String(screenUrl).indexOf('/hq/') === 0) return btns || [];
+    var su = screenUrl ? String(screenUrl) : '';
+    if (su.indexOf('/hq/') === 0 && su !== '/hq/pgApiMng') return btns || [];
     if (!btns || !btns.length) return btns;
     var out = btns.slice();
     var refreshIdx = -1;
@@ -6358,17 +6509,59 @@
     return out;
   }
 
+  /** 엑셀다운로드 옆 — [검색] 조건 전체 xlsx(하단 한 번에 보기·페이지 무관) */
+  function injectExcelAllDownloadButton(btns, cfg, screenUrl) {
+    if (!cfg || cfg.hideListGrid || !btns || !btns.length) return btns || [];
+    if (cfg.isDailySummaryScreen || cfg.isOpsIntegratedReport || cfg.orgPagePermissionMatrix || cfg.hqOpsModeMng) return btns;
+    var su = screenUrl ? String(screenUrl) : '';
+    if (su === '/ops/taxReport') return btns;
+    var hasExcel = false;
+    for (var i = 0; i < btns.length; i++) {
+      var id = String(btns[i].id || '');
+      if (id === 'excelBtn' || id === 'excelDownBtn') { hasExcel = true; break; }
+    }
+    if (!hasExcel) return btns;
+    var out = btns.slice();
+    var insertIdx = -1;
+    for (var j = 0; j < out.length; j++) {
+      var id2 = String(out[j].id || '');
+      if (id2 === 'excelBtn' || id2 === 'excelDownBtn') { insertIdx = j + 1; break; }
+    }
+    var allBtn = { id: 'excelAllDownBtn', label: '모두다운로드', cls: 'btn-outline-info' };
+    if (insertIdx >= 0) out.splice(insertIdx, 0, allBtn);
+    else out.push(allBtn);
+    return out;
+  }
+
   /** 총합(요약) 왼쪽 + 액션 버튼 오른쪽 한 줄 배치 (모든 목록 화면 공통) */
   function renderSummaryAndActions(cfg, tabId, screenUrl) {
     var items = cfg.summary || [];
-    var btns = injectViewSettingHelloIntoButtons(cfg.buttons || [], cfg, screenUrl);
+    var btns = injectExcelAllDownloadButton(injectViewSettingHelloIntoButtons(cfg.buttons || [], cfg, screenUrl), cfg, screenUrl);
     var fmt = cfg.summaryFormat !== undefined ? cfg.summaryFormat : '0';
+    var payAggInline = !!(cfg && cfg.payListFinancialInline);
+    var payStatusInline = !!(cfg && cfg.payListStatusBar && !payAggInline);
     var summaryHtml = '';
-    if (items.length > 0) {
-      summaryHtml = '<div class="summary-total-bar">';
+    if (items.length > 0 || payAggInline || payStatusInline) {
+      summaryHtml = '<div class="summary-total-bar' + ((payAggInline || payStatusInline) ? ' summary-total-bar--pay-list-aggregate' : '') + '">';
       items.forEach(function (s) {
-        summaryHtml += '<span class="summary-total-item" id="summary_' + s + '" data-pg-summary-key="' + String(s).replace(/"/g, '&quot;') + '">' + escUi(L(String(s))) + ': ' + fmt + '</span>';
+        var sk = String(s);
+        var countCls = sk === '건수' ? ' summary-count-item' : '';
+        summaryHtml += '<span class="summary-total-item' + countCls + '" id="summary_' + sk + '" data-pg-summary-key="' + sk.replace(/"/g, '&quot;') + '">' + escUi(L(sk)) + ': ' + fmt + '</span>';
       });
+      if (payAggInline) {
+        var tAgg = tabId || '';
+        if (items.length > 0) {
+          summaryHtml += '<span class="pay-list-status-bar__pipe pay-list-aggregate-inline-sep" aria-hidden="true">ㅣ</span>';
+        }
+        summaryHtml += '<div class="pay-list-financial-summary pay-list-financial-summary--empty" id="payListFinancialSummary_' + tAgg + '" role="status" aria-live="polite"></div>';
+      }
+      if (payStatusInline) {
+        var tSt = tabId || '';
+        if (items.length > 0) {
+          summaryHtml += '<span class="pay-list-status-bar__pipe pay-list-aggregate-inline-sep" aria-hidden="true">ㅣ</span>';
+        }
+        summaryHtml += '<div class="pay-list-status-bar pay-list-status-bar--empty" id="payListStatusBar_' + tSt + '" role="status" aria-live="polite"></div>';
+      }
       summaryHtml += '</div>';
     }
     var buttonsHtml = '';
@@ -6422,13 +6615,10 @@
     return '<div class="screen-summary-action-row">' + summaryHtml + buttonsHtml + '</div>';
   }
 
-  /** 결제내역·통합내역: 서버 meta.payListFinancialSummary + meta.payListStatusBar, VIEW SETTING 위 — 2행 분리 */
+  /** 결제·통합내역: 상태별 집계(성공/실패 등) — 금액·건수는 summary-total-bar 한 줄에 병합 */
   function renderPayListStatusBarSlot(tabId) {
     var t = tabId || '';
     return '<div class="pay-list-summary-stack pay-list-aggregate-stack mb-2 small border rounded bg-light px-2 py-2">' +
-      '<div class="pay-list-aggregate-section pay-list-aggregate-section--financial">' +
-      '<div class="pay-list-aggregate-row pay-list-aggregate-row--financial pay-list-financial-summary pay-list-financial-summary--empty" id="payListFinancialSummary_' + t + '" role="status" aria-live="polite"></div>' +
-      '</div>' +
       '<div class="pay-list-aggregate-section pay-list-aggregate-section--status">' +
       '<div class="pay-list-aggregate-row pay-list-aggregate-row--status pay-list-status-bar pay-list-status-bar--empty" id="payListStatusBar_' + t + '" role="status" aria-live="polite"></div>' +
       '</div>' +
@@ -6763,6 +6953,14 @@
     );
   }
 
+  /** 한 번에 보기 — 1000건·모두(전체) 고정 버튼 HTML */
+  function buildPaginationExtraSizeButtonsHtml() {
+    return '<button type="button" class="pagination-size-opt pagination-size-opt--1000" data-size="1000">' +
+      '<span data-pg-ui-t="1000건">' + escUi(L('1000건')) + '</span></button>' +
+      '<button type="button" class="pagination-size-opt pagination-size-opt--all" data-size="all">' +
+      '<span data-pg-ui-t="모두">' + escUi(L('모두')) + '</span></button>';
+  }
+
   function renderPagination(tabId, listCfg) {
     var trailingSave = '';
     if (listCfg && listCfg.paginationTrailingSaveButton) {
@@ -6772,6 +6970,7 @@
     var sizeOpts = (listCfg && Array.isArray(listCfg.paginationSizeOptions) && listCfg.paginationSizeOptions.length)
       ? listCfg.paginationSizeOptions.slice()
       : [50, 100, 200, 500, 1000];
+    sizeOpts = sizeOpts.filter(function (n) { return n !== 1000; });
     var defSize = listCfg && listCfg.paginationDefaultSize != null ? parseInt(listCfg.paginationDefaultSize, 10) : 500;
     if (isNaN(defSize) || defSize < 1) defSize = 500;
     if (sizeOpts.indexOf(defSize) === -1) {
@@ -6781,6 +6980,7 @@
       var active = n === defSize ? ' pagination-size-opt--active' : '';
       return '<button type="button" class="pagination-size-opt' + active + '" data-size="' + n + '">' + n + '</button>';
     }).join('');
+    sizeBtns += buildPaginationExtraSizeButtonsHtml();
     return '<div class="pagination-row">' +
       '<div class="pagination-view-at-once">' +
       '<span class="pagination-label" data-pg-ui-t="한 번에 보기:">' + escUi(L('한 번에 보기:')) + '</span>' +
@@ -6829,9 +7029,6 @@
       html += renderSearchForm(cfg, tabId);
       if (cfg.noticeList && cfg.noticeList.length > 0) html += renderNotice(cfg);
       html += renderSummaryAndActions(cfg, tabId, url);
-      html += '<div class="pay-list-summary-stack pay-list-aggregate-stack mb-2 small border rounded bg-light px-2 py-2">' +
-        '<div class="pay-list-aggregate-row pay-list-aggregate-row--financial pay-list-financial-summary pay-list-financial-summary--empty" id="payListFinancialSummary_' + tabId + '" role="status" aria-live="polite"></div>' +
-        '</div>';
       html += '<div class="table-responsive table-scrollable integrated-report-wrap" id="integratedReportWrap_' + tabId + '">' +
         '<table class="table table-sm table-bordered align-middle mb-0 table-no-col-resize integrated-report-grid" id="grid_' + tabId + '">' +
         '<thead><tr><th class="text-center text-muted py-2">…</th></tr></thead>' +
@@ -6842,7 +7039,7 @@
         html += renderSearchForm(cfg, tabId);
         if (cfg.noticeList && cfg.noticeList.length > 0) html += renderNotice(cfg);
         html += renderSummaryAndActions(cfg, tabId, url);
-        if (cfg.payListStatusBar) html += renderPayListStatusBarSlot(tabId);
+        if (cfg.payListStatusBar && cfg.payListFinancialInline) html += renderPayListStatusBarSlot(tabId);
         if (cfg.columns && cfg.columns.length > 0) html += renderTableColumnGuide(cfg);
         html += renderTable(cfg, tabId);
         if (!cfg.isDailySummaryScreen) {
@@ -7012,7 +7209,7 @@
       if (c && c.key) labelByKey[c.key] = c.label;
     });
     PAY_LIST_INTEGRATED_SYNC_URLS.forEach(function (u) {
-      if (u === '/calc/chillPayTrList' || u === '/calc/chillPaySettlementList' || u === '/ops/taxReport' || u === '/ops/integratedReport') return;
+      if (u === '/calc/chillPayTrList' || u === '/calc/chillPaySettlementList' || u === '/ops/taxReport' || u === '/ops/integratedReport' || u === '/ops/verifyReport') return;
       var scr = MENU_SCREENS[u];
       if (!scr || !scr.columns) return;
       scr.columns.forEach(function (col) {

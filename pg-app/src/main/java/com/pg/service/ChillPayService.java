@@ -81,6 +81,11 @@ import java.util.Set;
 @Service
 public class ChillPayService {
 
+    /** URL 결제 바인딩 범위 — STANDARD: 일반 URL·챗봇·API, REPAY: 저장 카드 재결제 URL 전용 */
+    public enum UrlPayBindingScope {
+        STANDARD, REPAY
+    }
+
     private static final Logger log = LoggerFactory.getLogger(ChillPayService.class);
     private static final String CCD_SCRIPT_SANDBOX = "https://sandbox-bankdemo3.chillpay.co/js/ccdpayment.js";
     private static final String CCD_SCRIPT_PROD = "https://cdn.chill.credit/js/ccdpayment.js";
@@ -118,7 +123,8 @@ public class ChillPayService {
     /** 통합내역·통합정산 그리드 거래일 표시 — {@code yyyy-MM-dd} (로케일 비의존) */
     private static final DateTimeFormatter CHILL_TRN_DATE_GRID = DateTimeFormatter.ISO_LOCAL_DATE;
     /** 통합내역·일별통합: ChillPay 결제 검색 API 페이지당 상한(문서 기본 100, 상세·목록 500까지 요청) */
-    private static final int CHILL_PAY_PAYMENT_PAGE_SIZE_MAX = 500;
+    /** ChillPay 결제 검색 API — PageSize 상한(초과 시 status 2005 Invalid PageSize Data). */
+    private static final int CHILL_PAY_PAYMENT_PAGE_SIZE_MAX = 100;
     /** 통합내역 상단 요약: 최대 추가 ChillPay API 호출 페이지 수 */
     private static final int CHILL_STATUS_BAR_MAX_PAGES = 30;
     /** 일별통합 일자 집계 시 페이지 간 ChillPay 호출 간격(4004 완화). 0 이면 대기 없음. */
@@ -186,17 +192,28 @@ public class ChillPayService {
      * 운영(Y) WEB 바인딩이면서 연동용도 URL결제인 PG만 사용합니다(노티 전용 운영 행만 있으면 URL 결제 불가).
      */
     private Config resolveConfig(Long merchantOrgUnitId) {
+        return resolveConfig(merchantOrgUnitId, UrlPayBindingScope.STANDARD);
+    }
+
+    private Config resolveConfig(Long merchantOrgUnitId, UrlPayBindingScope scope) {
         ChillPayAgencyUrlOverrides globalUrlOv = loadChillPayAgencyUrlOverrides();
         if (merchantOrgUnitId == null) {
             return resolveConfigFromHq(globalUrlOv);
         }
-        Optional<MerchantPgBinding> bindingOpt = findOperationalChillPayFamilyBinding(merchantOrgUnitId);
+        Optional<MerchantPgBinding> bindingOpt = findOperationalChillPayFamilyBinding(merchantOrgUnitId, scope);
         if (bindingOpt.isEmpty()) {
+            String hint = scope == UrlPayBindingScope.REPAY
+                    ? "배포설정 > API연동설정에서 해당 pg_cd 행의 연동용도에 「URL재결제」를 켜야 합니다."
+                    : "배포설정 > API연동설정에서 해당 pg_cd 행의 연동용도에 「URL결제」를 켜야 합니다. "
+                            + "(노티 전용 PG만 운영으로 두면 URL 결제·웹결제 설정을 동시에 쓸 수 없습니다.)";
             throw new IllegalStateException(
-                    "이 가맹점에 URL 결제로 사용할 ChillPay 계열 결제대행사(운영)가 없습니다. "
-                            + "가맹점 등록에서 URL결제 연동이 있는 결제대행사를 WEB으로 추가한 뒤, 해당 행에 운영(체크)을 켜세요. "
-                            + "배포설정 > API연동설정에서 해당 pg_cd 행의 연동용도에 「URL결제」를 켜야 합니다. "
-                            + "(노티 전용 PG만 운영으로 두면 URL 결제·웹결제 설정을 동시에 쓸 수 없습니다.)");
+                    (scope == UrlPayBindingScope.REPAY
+                            ? "이 가맹점에 URL 재결제로 사용할 ChillPay 계열 결제대행사(운영)가 없습니다. "
+                            : "이 가맹점에 URL 결제로 사용할 ChillPay 계열 결제대행사(운영)가 없습니다. ")
+                            + "가맹점 등록에서 "
+                            + (scope == UrlPayBindingScope.REPAY ? "URL재결제" : "URL결제")
+                            + " 연동이 있는 결제대행사를 WEB으로 추가한 뒤, 해당 행에 운영(체크)을 켜세요. "
+                            + hint);
         }
         MerchantPgBinding b = bindingOpt.get();
         Optional<PgAgency> agencyForPgCd = resolvePgAgencyForMerchantBinding(b);
@@ -223,7 +240,9 @@ public class ChillPayService {
             throw new IllegalStateException(
                     "ChillPay API Key·MD5(또는 가맹점 IV)가 비어 있습니다. 가맹점 결제대행사 행에 입력하거나, "
                             + "배포설정 > API연동설정에서 동일 pg_cd(" + pgc + ") 행에 API Key·MD5를 등록하세요. "
-                            + "해당 행은 연동용도 「URL결제」가 Y인 행이어야 합니다.");
+                            + "해당 행은 연동용도 「"
+                            + (scope == UrlPayBindingScope.REPAY ? "URL재결제" : "URL결제")
+                            + "」가 Y인 행이어야 합니다.");
         }
         HqFallbackRef hqRef = resolveHqFallbackRef();
         String mc = resolveMerchantMidForUrlPay(b, agencyForPgCd, hqRef);
@@ -273,6 +292,10 @@ public class ChillPayService {
      * (배포설정 &gt; API연동설정에 Route·MID만 CHILLPAY 행에 두고 가맹점 바인딩은 확장 코드만 쓰는 구성을 지원)
      */
     private Optional<PgAgency> findChillPayAgencyFallbackForMissingPgCd(String requestedPgCd) {
+        return findChillPayAgencyFallbackForMissingPgCd(requestedPgCd, UrlPayBindingScope.STANDARD);
+    }
+
+    private Optional<PgAgency> findChillPayAgencyFallbackForMissingPgCd(String requestedPgCd, UrlPayBindingScope scope) {
         if (requestedPgCd == null || requestedPgCd.isBlank() || !isChillPayFamilyPgCd(requestedPgCd)) {
             return Optional.empty();
         }
@@ -284,7 +307,11 @@ public class ChillPayService {
             if (a.getUseYn() == null || !"Y".equalsIgnoreCase(a.getUseYn().trim())) {
                 continue;
             }
-            if (!"Y".equalsIgnoreCase(a.getIntegUrlPayYn() != null ? a.getIntegUrlPayYn().trim() : "")) {
+            if (scope == UrlPayBindingScope.REPAY) {
+                if (!"Y".equalsIgnoreCase(a.getIntegUrlPayRepayYn() != null ? a.getIntegUrlPayRepayYn().trim() : "")) {
+                    continue;
+                }
+            } else if (!"Y".equalsIgnoreCase(a.getIntegUrlPayYn() != null ? a.getIntegUrlPayYn().trim() : "")) {
                 continue;
             }
             candidates.add(a);
@@ -452,7 +479,7 @@ public class ChillPayService {
             return Optional.empty();
         }
         List<MerchantPgBinding> list = merchantPgBindingRepository.findByOrgUnitIdOrderBySortOrderAsc(orgUnitId);
-        Map<String, Boolean> urlPayByPgCd = urlPayAgencyFlagByPgCd(list);
+        Map<String, Boolean> urlPayByPgCd = urlPayAgencyFlagByPgCd(list, UrlPayBindingScope.STANDARD);
         return list.stream()
                 .filter(b -> b.getOperationalYn() != null && "Y".equalsIgnoreCase(b.getOperationalYn().trim()))
                 .filter(b -> b.getActivationYn() == null || "Y".equalsIgnoreCase(b.getActivationYn().trim()))
@@ -501,17 +528,78 @@ public class ChillPayService {
     }
 
     /**
+     * URL 재결제(저장 카드)용 운영 WEB 바인딩 — {@code integ_url_pay_repay_yn=Y} PG만 후보.
+     */
+    public Optional<MerchantPgBinding> findOperationalWebBindingForUrlPayRepay(Long orgUnitId) {
+        if (orgUnitId == null || !isUrlPayRepayEnabledAtHq()) {
+            return Optional.empty();
+        }
+        List<MerchantPgBinding> list = merchantPgBindingRepository.findByOrgUnitIdOrderBySortOrderAsc(orgUnitId);
+        Map<String, Boolean> repayByPgCd = urlPayAgencyFlagByPgCd(list, UrlPayBindingScope.REPAY);
+        return list.stream()
+                .filter(b -> b.getOperationalYn() != null && "Y".equalsIgnoreCase(b.getOperationalYn().trim()))
+                .filter(b -> b.getActivationYn() == null || "Y".equalsIgnoreCase(b.getActivationYn().trim()))
+                .filter(b -> b.getPgCd() != null && !b.getPgCd().isBlank())
+                .filter(b -> Boolean.TRUE.equals(repayByPgCd.get(pgCdKey(b))))
+                .filter(b -> {
+                    String pm = b.getPayMethod();
+                    return pm == null || pm.isBlank() || "WEB".equalsIgnoreCase(pm.trim());
+                })
+                .min(Comparator
+                        .comparing((MerchantPgBinding b) -> isChillPayFamilyPgCd(b.getPgCd()) ? 0 : 1)
+                        .thenComparingInt((MerchantPgBinding b) -> UrlPayDisplayFxService.MODE_DISPLAY_FX_THB.equalsIgnoreCase(
+                                urlPayDisplayFxService.resolveUrlPayPricingMode(
+                                        b.getPgCd() != null ? b.getPgCd().trim() : "",
+                                        b.getUrlPayPricingMode() != null ? b.getUrlPayPricingMode().trim() : ""))
+                                ? 0 : 1)
+                        .thenComparing((MerchantPgBinding b) -> genericChillPayPgCd(b.getPgCd()) ? 1 : 0)
+                        .thenComparing(b -> b.getSortOrder() != null ? b.getSortOrder() : Integer.MAX_VALUE)
+                        .thenComparing(MerchantPgBinding::getId));
+    }
+
+    public String resolveUrlPayRepayOperationalPgCd(Long merchantOrgUnitId) {
+        if (merchantOrgUnitId == null) {
+            return "";
+        }
+        Optional<MerchantPgBinding> webOp = findOperationalWebBindingForUrlPayRepay(merchantOrgUnitId);
+        if (webOp.isPresent()) {
+            String cd = webOp.get().getPgCd();
+            return cd != null ? cd.trim() : "";
+        }
+        return "";
+    }
+
+    public boolean isUrlPayRepayEnabledAtHq() {
+        return hqApiConfigRepository.findAll().stream().findFirst()
+                .map(c -> c.getUrlPayRepayEnabledYn() != null
+                        && "Y".equalsIgnoreCase(c.getUrlPayRepayEnabledYn().trim()))
+                .orElse(false);
+    }
+
+    public String resolveUrlPayRepayPathTemplate() {
+        return hqApiConfigRepository.findAll().stream().findFirst()
+                .map(HqApiConfig::getUrlPayRepayPathTemplate)
+                .filter(s -> s != null && !s.isBlank())
+                .map(String::trim)
+                .orElse("/pay-repay/{compCode}");
+    }
+
+    /**
      * 운영(Y) ChillPay 계열 바인딩 — 배포설정 &gt; API연동설정에서 연동용도 URL결제인 {@code pg_cd} 를 최우선,
      * 다음 WEB(또는 결제구분 미입력), 그다음 기타 결제구분.
      */
     private Optional<MerchantPgBinding> findOperationalChillPayFamilyBinding(Long orgUnitId) {
+        return findOperationalChillPayFamilyBinding(orgUnitId, UrlPayBindingScope.STANDARD);
+    }
+
+    private Optional<MerchantPgBinding> findOperationalChillPayFamilyBinding(Long orgUnitId, UrlPayBindingScope scope) {
         if (orgUnitId == null) {
             return Optional.empty();
         }
         List<MerchantPgBinding> list = merchantPgBindingRepository.findByOrgUnitIdOrderBySortOrderAsc(orgUnitId);
-        Map<String, Boolean> urlPayByPgCd = urlPayAgencyFlagByPgCd(list);
-        Optional<MerchantPgBinding> web = pickOperationalChillPayBindingRow(list, true, urlPayByPgCd);
-        return web.isPresent() ? web : pickOperationalChillPayBindingRow(list, false, urlPayByPgCd);
+        Map<String, Boolean> flagByPgCd = urlPayAgencyFlagByPgCd(list, scope);
+        Optional<MerchantPgBinding> web = pickOperationalChillPayBindingRow(list, true, flagByPgCd);
+        return web.isPresent() ? web : pickOperationalChillPayBindingRow(list, false, flagByPgCd);
     }
 
     private Optional<MerchantPgBinding> pickOperationalChillPayBindingRow(
@@ -535,20 +623,28 @@ public class ChillPayService {
         return "WEB".equalsIgnoreCase(payMethod.trim());
     }
 
-    /** 바인딩 목록에 나온 {@code pg_cd} 별로, 사용 Y인 {@code tb_pg_agency} 행의 URL결제 연동 여부. */
+    /** 바인딩 목록에 나온 {@code pg_cd} 별로, 사용 Y인 {@code tb_pg_agency} 행의 URL결제/URL재결제 연동 여부. */
     private Map<String, Boolean> urlPayAgencyFlagByPgCd(List<MerchantPgBinding> list) {
+        return urlPayAgencyFlagByPgCd(list, UrlPayBindingScope.STANDARD);
+    }
+
+    private Map<String, Boolean> urlPayAgencyFlagByPgCd(List<MerchantPgBinding> list, UrlPayBindingScope scope) {
         Map<String, Boolean> m = new HashMap<>();
         for (MerchantPgBinding b : list) {
             String k = pgCdKey(b);
             if (k.isEmpty()) {
                 continue;
             }
-            m.computeIfAbsent(k, this::loadAgencyIntegUrlPayYn);
+            m.computeIfAbsent(k, pgCd -> loadAgencyIntegUrlPayYn(pgCd, scope));
         }
         return m;
     }
 
     private boolean loadAgencyIntegUrlPayYn(String pgCd) {
+        return loadAgencyIntegUrlPayYn(pgCd, UrlPayBindingScope.STANDARD);
+    }
+
+    private boolean loadAgencyIntegUrlPayYn(String pgCd, UrlPayBindingScope scope) {
         if (pgCd == null || pgCd.isBlank()) {
             return false;
         }
@@ -557,12 +653,15 @@ public class ChillPayService {
                 .filter(a -> a.getUseYn() != null && "Y".equalsIgnoreCase(a.getUseYn().trim()));
         if (row.isPresent()) {
             PgAgency a = row.get();
+            if (scope == UrlPayBindingScope.REPAY) {
+                return "Y".equalsIgnoreCase(a.getIntegUrlPayRepayYn() != null ? a.getIntegUrlPayRepayYn().trim() : "");
+            }
             return "Y".equalsIgnoreCase(a.getIntegUrlPayYn() != null ? a.getIntegUrlPayYn().trim() : "");
         }
         if (!isChillPayFamilyPgCd(k)) {
             return false;
         }
-        return findChillPayAgencyFallbackForMissingPgCd(k).isPresent();
+        return findChillPayAgencyFallbackForMissingPgCd(k, scope).isPresent();
     }
 
     private static String pgCdKey(MerchantPgBinding b) {
@@ -877,12 +976,24 @@ public class ChillPayService {
             String phoneNumber, String description, String ipAddress, String custEmail,
             Long merchantOrgUnitId, String langCode, String checkoutCurrencyCode,
             String browserReturnUrl) {
+        return requestPayment(orderNo, customerId, amount, directCreditToken, phoneNumber, description,
+                ipAddress, custEmail, merchantOrgUnitId, langCode, checkoutCurrencyCode, browserReturnUrl,
+                null, null, null, UrlPayBindingScope.STANDARD);
+    }
+
+    public ChillPayDirectPaymentResult requestPayment(
+            String orderNo, String customerId, BigDecimal amount, String directCreditToken,
+            String phoneNumber, String description, String ipAddress, String custEmail,
+            Long merchantOrgUnitId, String langCode, String checkoutCurrencyCode,
+            String browserReturnUrl, String saveCard, String creditToken, String tokenType,
+            UrlPayBindingScope bindingScope) {
 
         if (merchantOrgUnitId != null && !orgServiceUseService.isOrgServiceActive(merchantOrgUnitId)) {
             throw new IllegalStateException("서비스가 중지된 업체입니다. (미사용 또는 상위 조직 미사용)");
         }
 
-        Config cfg = resolveConfig(merchantOrgUnitId);
+        UrlPayBindingScope scope = bindingScope != null ? bindingScope : UrlPayBindingScope.STANDARD;
+        Config cfg = resolveConfig(merchantOrgUnitId, scope);
         if (cfg.apiKey() == null || cfg.apiKey().isEmpty()) {
             throw new IllegalStateException("ChillPay API Key가 설정되지 않았습니다. 배포설정 > API배포설정 또는 가맹점 등록 > 결제대행사 설정에서 ChillPay 정보를 입력하세요.");
         }
@@ -896,6 +1007,15 @@ public class ChillPayService {
         req.setCustomerId(customerId != null ? customerId : "guest");
         req.setAmount(normalizeChillPayRequestAmount(amount, checkoutCurrencyCode));
         req.setDirectCreditToken(directCreditToken);
+        if (creditToken != null && !creditToken.isBlank()) {
+            req.setCreditToken(creditToken.trim());
+            req.setTokenType(tokenType != null && !tokenType.isBlank() ? tokenType.trim().toUpperCase(Locale.ROOT) : "CT");
+        } else if (tokenType != null && !tokenType.isBlank()) {
+            req.setTokenType(tokenType.trim().toUpperCase(Locale.ROOT));
+        }
+        if (saveCard != null && !saveCard.isBlank()) {
+            req.setSaveCard("Y".equalsIgnoreCase(saveCard.trim()) ? "Y" : "N");
+        }
         /* NOTI /admin/test-pay/submit: PhoneNumber 기본값 */
         String phone = (phoneNumber != null && !phoneNumber.isBlank()) ? phoneNumber.trim() : "0911111111";
         req.setPhoneNumber(phone);
@@ -1077,6 +1197,72 @@ public class ChillPayService {
         m.put("paymentAppsrvV2Url", cfg.getAppsrvPaymentV2Url());
         m.put("ccdScriptUrl", cfg.getCcdScriptUrl());
         return m;
+    }
+
+    public Map<String, Object> getConfigForFrontendUrlPayRepay(Long merchantOrgUnitId) {
+        Config cfg = resolveConfig(merchantOrgUnitId, UrlPayBindingScope.REPAY);
+        Map<String, Object> m = new LinkedHashMap<>();
+        m.put("ccdScriptUrl", cfg.getCcdScriptUrl());
+        m.put("directCreditApiUrl", cfg.getPaymentApiUrl());
+        m.put("redirectPaymentPageUrl", cfg.getRedirectPaymentPageUrl());
+        m.put("paymentAppsrvV2Url", cfg.getAppsrvPaymentV2Url());
+        m.put("merchantCode", cfg.merchantCode() != null ? cfg.merchantCode() : "");
+        m.put("apiKey", cfg.apiKey() != null ? cfg.apiKey() : "");
+        m.put("routeNo", cfg.routeNo());
+        m.put("sandbox", cfg.sandbox());
+        m.put("urlPayVariant", "REPAY");
+        return m;
+    }
+
+    public Map<String, Object> getUrlPayRepayPresentationForCheckout(Long merchantOrgUnitId) {
+        Config cfg = resolveConfig(merchantOrgUnitId, UrlPayBindingScope.REPAY);
+        Map<String, Object> m = new LinkedHashMap<>();
+        Optional<HqApiConfig> opt = hqApiConfigRepository.findAll().stream().findFirst();
+        if (opt.isEmpty()) {
+            m.put("urlPayFlow", "INLINE");
+            m.put("urlPayFormMode", "FULL");
+        } else {
+            HqApiConfig c = opt.get();
+            m.put("urlPayFlow", effectiveUrlPayFlow(c));
+            m.put("urlPayFormMode", effectiveUrlPayFormMode(c));
+        }
+        String opPgCd = resolveUrlPayRepayOperationalPgCd(merchantOrgUnitId);
+        String widgetKind = resolveUrlPayInlineWidgetKind(opPgCd);
+        m.put("urlPayVariant", "REPAY");
+        m.put("urlPayOperationalPgCd", opPgCd);
+        m.put("urlPayInlineWidgetKind", widgetKind);
+        m.put("urlPayRepayPathTemplate", resolveUrlPayRepayPathTemplate());
+        Optional<MerchantPgBinding> repayBinding = findOperationalWebBindingForUrlPayRepay(merchantOrgUnitId);
+        if (repayBinding.isPresent()) {
+            String legacy = repayBinding.get().getUrlPayPricingMode() != null
+                    ? repayBinding.get().getUrlPayPricingMode().trim() : "";
+            m.put("urlPayPricingMode", urlPayDisplayFxService.resolveUrlPayPricingMode(opPgCd, legacy));
+        } else {
+            m.put("urlPayPricingMode", "CHECKOUT_CURRENCY");
+        }
+        m.put("redirectPaymentPageUrl", cfg.getRedirectPaymentPageUrl());
+        m.put("paymentAppsrvV2Url", cfg.getAppsrvPaymentV2Url());
+        m.put("ccdScriptUrl", cfg.getCcdScriptUrl());
+        return m;
+    }
+
+    /**
+     * ChillPay Card Select / UseCreditToken 용 MerchantSecurityCheck (MD5).
+     * Concat: MerchantCode + ApiKey + RequestExpireDate + CreditToken + MD5SecretKey
+     */
+    public String computeMerchantSecurityCheck(Long merchantOrgUnitId, UrlPayBindingScope scope,
+                                               String requestExpireDate, String creditToken) {
+        if (merchantOrgUnitId == null || requestExpireDate == null || requestExpireDate.isBlank()
+                || creditToken == null || creditToken.isBlank()) {
+            return "";
+        }
+        Config cfg = resolveConfig(merchantOrgUnitId, scope != null ? scope : UrlPayBindingScope.REPAY);
+        String concat = (cfg.merchantCode() != null ? cfg.merchantCode() : "")
+                + (cfg.apiKey() != null ? cfg.apiKey() : "")
+                + requestExpireDate.trim()
+                + creditToken.trim()
+                + (cfg.md5Key() != null ? cfg.md5Key() : "");
+        return md5(concat);
     }
 
     /** URL 결제 기본 방식과 INLINE/REDIRECT 제공 여부를 반영한 실효 방식 */
@@ -1445,6 +1631,66 @@ public class ChillPayService {
         return out;
     }
 
+    /**
+     * 검증 리포트: 해당 거래일(TransactionDate) ChillPay 결제 검색 행 전체(페이지 상한까지).
+     * {@link #searchChillPayPaymentTransactionsDailySummary} 와 동일 스캔 범위·필터.
+     */
+    public List<Map<String, Object>> listChillPayPaymentRowsForTransactionDate(
+            Long merchantOrgUnitId,
+            String orderBy,
+            String orderDir,
+            String searchKeyword,
+            String merchantCodeFilter,
+            String paymentChannel,
+            Integer routeNoFilter,
+            String orderNo,
+            String status,
+            LocalDate transactionDate,
+            String searchPayDivCd,
+            Authentication authentication) {
+
+        if (transactionDate == null) {
+            return List.of();
+        }
+        Long effectiveMerchantOrgUnitId = resolveMerchantOrgUnitIdForChillPayTxnApi(merchantOrgUnitId, merchantCodeFilter);
+        final int pageSize = CHILL_PAY_PAYMENT_PAGE_SIZE_MAX;
+        String payDivStr = searchPayDivCd != null ? searchPayDivCd.trim() : "";
+        boolean payDivClientFiltered = !payDivStr.isEmpty();
+
+        PageResult<Map<String, Object>> first = searchChillPayPaymentTransactionsPage(
+                effectiveMerchantOrgUnitId, 1, pageSize, orderBy, orderDir, searchKeyword, merchantCodeFilter,
+                paymentChannel, routeNoFilter, orderNo, status, transactionDate, transactionDate, null, null);
+
+        int totalPages = first.getTotalPages();
+        int maxPages = Math.min(Math.max(totalPages, 1), CHILL_STATUS_BAR_MAX_PAGES);
+        List<Map<String, Object>> acc = new ArrayList<>();
+
+        for (int p = 1; p <= maxPages; p++) {
+            PageResult<Map<String, Object>> slice = (p == 1)
+                    ? first
+                    : searchChillPayPaymentTransactionsPage(
+                            effectiveMerchantOrgUnitId, p, pageSize, orderBy, orderDir, searchKeyword, merchantCodeFilter,
+                            paymentChannel, routeNoFilter, orderNo, status, transactionDate, transactionDate, null, null);
+            List<Map<String, Object>> raw = slice.getList() != null ? slice.getList() : Collections.emptyList();
+            if (payDivClientFiltered) {
+                for (Map<String, Object> row : raw) {
+                    if (rowMatchesSearchPayDivCd(row, payDivStr)) {
+                        acc.add(row);
+                    }
+                }
+            } else {
+                acc.addAll(raw);
+            }
+            if (raw.size() < pageSize) {
+                break;
+            }
+            if (p < maxPages) {
+                chillDailySummaryInterPagePause();
+            }
+        }
+        return acc;
+    }
+
     private static void chillDailySummaryInterPagePause() {
         if (CHILL_DAILY_SUMMARY_INTER_PAGE_MS <= 0L) {
             return;
@@ -1649,7 +1895,9 @@ public class ChillPayService {
 
         Map<String, Object> meta = display.getMeta() != null ? new LinkedHashMap<>(display.getMeta()) : new LinkedHashMap<>();
         meta.put("payListStatusBar", roll.toPayload(multiCurrency, primaryCurrency, totalPages > maxPages));
-        meta.put("payListFinancialSummary", payListService.buildChillPayFinancialSummary(rowsForFinancial, authentication));
+        Map<String, Object> settlementFinSummary = payListService.buildChillPayFinancialSummary(rowsForFinancial, authentication);
+        settlementFinSummary.put("feeListSummary", true);
+        meta.put("payListFinancialSummary", settlementFinSummary);
         payListService.putHqLedgerPayDisplayCurrencyMeta(meta);
         meta.put("chillPaySettlementMode", true);
         meta.put("chillPaySettlementApi", "SearchSettlementTransaction");

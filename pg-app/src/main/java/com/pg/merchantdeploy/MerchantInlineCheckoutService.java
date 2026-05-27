@@ -11,6 +11,7 @@ import com.pg.repository.PgTrnsctnRepository;
 import com.pg.service.ChillPayService;
 import com.pg.service.MerchantChatbotProductService;
 import com.pg.service.OrgServiceUseService;
+import com.pg.urlpay.UrlPayCheckoutModeUtil;
 import com.pg.util.ChillPayDirectCreditUtil;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.stereotype.Service;
@@ -75,10 +76,23 @@ public class MerchantInlineCheckoutService {
                 return fail("이 가맹점은 웹결제(URL 결제)가 미사용으로 설정되어 있습니다.", "WEB_PAYMENT_DISABLED");
             }
         }
-        if (chillPayService.findOperationalWebBindingForUrlPay(orgUnitId).isEmpty()) {
+        String checkoutMode = profOpt
+                .map(mp -> UrlPayCheckoutModeUtil.normalize(mp.getApiUrlPayCheckoutMode()))
+                .orElse(UrlPayCheckoutModeUtil.STANDARD);
+        boolean repayMode = UrlPayCheckoutModeUtil.isRepay(checkoutMode);
+        if (repayMode) {
+            if (!chillPayService.isUrlPayRepayEnabledAtHq()) {
+                return fail("본사 설정에서 URL 재결제 기능이 꺼져 있습니다.", "URL_PAY_REPAY_DISABLED");
+            }
+            if (chillPayService.findOperationalWebBindingForUrlPayRepay(orgUnitId).isEmpty()) {
+                return fail("URL 재결제를 처리할 ChillPay(운영·URL재결제) 바인딩이 없습니다.", "URL_PAY_REPAY_PG_MISSING");
+            }
+        } else if (chillPayService.findOperationalWebBindingForUrlPay(orgUnitId).isEmpty()) {
             return fail("URL 결제를 처리할 ChillPay(운영·URL결제) 바인딩이 없습니다.", "URL_PAYMENT_PG_MISSING");
         }
-        Map<String, Object> presentation = chillPayService.getUrlPayPresentationForCheckout(orgUnitId);
+        Map<String, Object> presentation = repayMode
+                ? chillPayService.getUrlPayRepayPresentationForCheckout(orgUnitId)
+                : chillPayService.getUrlPayPresentationForCheckout(orgUnitId);
         String flow = String.valueOf(presentation.getOrDefault("urlPayFlow", "INLINE"));
         if (!"INLINE".equalsIgnoreCase(flow)) {
             return fail("본사 URL 결제 기본 방식이 INLINE이 아닙니다. 결제로직설정을 확인하세요.", "INLINE_NOT_ENABLED");
@@ -114,7 +128,7 @@ public class MerchantInlineCheckoutService {
         MerchantInlineCheckoutTokenService.SessionPayload session = parsed.get();
 
         String base = trimSlash(productService.resolvePublicCustomerSiteBase(request));
-        String payPath = buildPayPath(ou.getCode(), sessionToken, orderNo, amountPlain, currency, productName, langCode);
+        String payPath = buildPayPath(ou.getCode(), sessionToken, orderNo, amountPlain, currency, productName, langCode, repayMode);
         String payUrl = base.isEmpty() ? payPath : base + payPath;
         String embedScriptUrl = base.isEmpty()
                 ? "/v1/embed-pay/" + urlEnc(ou.getCode())
@@ -130,6 +144,8 @@ public class MerchantInlineCheckoutService {
                         + "/api/middleware/v1/merchant/chillpay/inline-checkout/prepare");
         data.put("integrationMode", "INLINE");
         data.put("pgVendor", MerchantPgBrokerVendor.CHILLPAY);
+        data.put("urlPayCheckoutMode", checkoutMode);
+        data.put("effectiveUrlPayVariant", repayMode ? UrlPayCheckoutModeUtil.REPAY : UrlPayCheckoutModeUtil.STANDARD);
         if (langCode != null && !langCode.isBlank()) {
             data.put("langCode", langCode);
         }
@@ -216,10 +232,14 @@ public class MerchantInlineCheckoutService {
     }
 
     private static String buildPayPath(String compCode, String sessionToken, String orderNo,
-                                       String amountPlain, String currency, String productName, String langCode) {
+                                       String amountPlain, String currency, String productName, String langCode,
+                                       boolean repayMode) {
         StringBuilder q = new StringBuilder();
-        q.append("/pay/").append(urlEnc(compCode));
+        q.append(repayMode ? "/pay-repay/" : "/pay/").append(urlEnc(compCode));
         q.append("?entry=merchant_api");
+        if (repayMode) {
+            q.append("&variant=repay");
+        }
         q.append("&embed=1");
         q.append("&session=").append(urlEnc(sessionToken));
         q.append("&orderNo=").append(urlEnc(orderNo));

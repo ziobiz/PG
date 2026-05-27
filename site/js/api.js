@@ -1616,6 +1616,50 @@
         return payload;
       });
     },
+    opsVerifyReportAccess: function () {
+      return get('/api/ops/verifyReport/access').then(function (r) { return r.data; });
+    },
+    opsVerifyReportDaily: function (params) {
+      var p = params || {};
+      var q = {};
+      for (var k in p) {
+        if (!Object.prototype.hasOwnProperty.call(p, k)) continue;
+        if (k === 'page' || k === 'size') continue;
+        var v = p[k];
+        if (v === undefined || v === null) continue;
+        if (String(v).trim() === '') continue;
+        q[k] = v;
+      }
+      return get('/api/ops/verifyReport/daily', q).then(function (r) {
+        if (!r || r.success === false) {
+          var failMsg = (r && r.message) ? String(r.message).trim() : '';
+          return Promise.reject(new Error(failMsg || apiT('검증 리포트 조회에 실패했습니다.', 'Verify report request failed.')));
+        }
+        var payload = unwrapListMetaApiPayload(r);
+        if (!payload) {
+          return Promise.reject(new Error(apiT('검증 리포트 응답을 해석할 수 없습니다.', 'Unable to parse verify report response.')));
+        }
+        return payload;
+      });
+    },
+    opsVerifyReportSyncStatus: function (body) {
+      return post('/api/ops/verifyReport/syncStatus', body || {}).then(function (r) {
+        if (!r || r.success === false) {
+          var failMsg = (r && r.message) ? String(r.message).trim() : '';
+          return Promise.reject(new Error(failMsg || apiT('상태 맞춤에 실패했습니다.', 'Status sync failed.')));
+        }
+        return r.data;
+      });
+    },
+    opsVerifyReportSyncStatusBatch: function (body) {
+      return post('/api/ops/verifyReport/syncStatusBatch', body || {}).then(function (r) {
+        if (!r || r.success === false) {
+          var failMsg = (r && r.message) ? String(r.message).trim() : '';
+          return Promise.reject(new Error(failMsg || apiT('상태 일괄 맞춤에 실패했습니다.', 'Batch status sync failed.')));
+        }
+        return r.data;
+      });
+    },
     hqOrgViewColumnRegionalBranches: function () {
       return get('/api/hq/orgViewColumnAllowance/regionalBranches').then(function (r) { return r.data || []; });
     },

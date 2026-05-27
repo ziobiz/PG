@@ -43,6 +43,14 @@ public class OrgPagePermissionService {
     public static final List<String> ASSISTANT_ROLE_TYPES =
             List.of("MANAGER", "OPERATOR", "SETTLEMENT", "TECH", ChatbotMerchantAdminConstants.ASSISTANT_ROLE_TYPE);
 
+    /** 운영관리(/ops/*)에 있던 배포 문서 URL — 권한·북마크 호환용 */
+    private static final Map<String, String> LEGACY_OPS_TO_DEPLOY_URL = Map.of(
+            "/ops/integrationPlan", "/deploy/integrationPlan",
+            "/ops/jpayWorkPlan", "/deploy/jpayWorkPlan",
+            "/ops/merchantApiPolicy", "/deploy/merchantApiPolicy",
+            "/ops/launchChecklist", "/deploy/launchChecklist"
+    );
+
     /**
      * 담당자(ASSISTANT)별 메뉴 상한 — DB에 tb_org_unit_assistant_page_permission 행이 없을 때 적용.
      * 조직 개별 권한(ceiling)과 교집합되어 최종 접근이 결정됩니다.
@@ -635,6 +643,7 @@ public class OrgPagePermissionService {
                 byUrl.put(r.getPageUrl().trim(), normalizePerm(r.getPermission()));
             }
         }
+        mergeLegacyOpsDeployPermissions(byUrl);
         Map<String, String> out = new LinkedHashMap<>();
         for (PageMenuCatalog.PageMenuItem item : PageMenuCatalog.items()) {
             String url = item.pageUrl();
@@ -743,6 +752,7 @@ public class OrgPagePermissionService {
                 byUrl.put(r.getPageUrl().trim(), normalizePerm(r.getPermission()));
             }
         }
+        mergeLegacyOpsDeployPermissions(byUrl);
         Map<String, String> out = new LinkedHashMap<>();
         for (PageMenuCatalog.PageMenuItem item : PageMenuCatalog.items()) {
             String url = item.pageUrl();
@@ -1154,5 +1164,25 @@ public class OrgPagePermissionService {
             case P_NONE, P_OBSERVER, P_MODIFY, P_DELETE -> u;
             default -> P_DELETE;
         };
+    }
+
+    /** DB에 남아 있는 /ops/* 배포 문서 권한을 /deploy/* 로 병합 */
+    private static void mergeLegacyOpsDeployPermissions(Map<String, String> byUrl) {
+        if (byUrl == null || byUrl.isEmpty()) {
+            return;
+        }
+        for (Map.Entry<String, String> legacy : LEGACY_OPS_TO_DEPLOY_URL.entrySet()) {
+            String from = legacy.getKey();
+            String to = legacy.getValue();
+            if (!byUrl.containsKey(from)) {
+                continue;
+            }
+            String perm = byUrl.remove(from);
+            if (byUrl.containsKey(to)) {
+                byUrl.put(to, permFromStrength(Math.max(strength(byUrl.get(to)), strength(perm))));
+            } else {
+                byUrl.put(to, perm);
+            }
+        }
     }
 }

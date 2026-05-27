@@ -22,6 +22,7 @@
     '/calc/chillPayTrList',
     '/pay/chatbotPay',
     '/ops/integratedReport',
+    '/ops/verifyReport',
     '/user/userMng'
   ];
 
@@ -41,6 +42,7 @@
     '/calc/chillPayTrList': { icon: 'bi-collection-fill', tone: 'pay' },
     '/pay/chatbotPay': { icon: 'bi-chat-square-text-fill', tone: 'bot' },
     '/ops/integratedReport': { icon: 'bi-bar-chart-line-fill', tone: 'ops' },
+    '/ops/verifyReport': { icon: 'bi-clipboard2-check-fill', tone: 'ops' },
     '/user/userMng': { icon: 'bi-person-badge-fill', tone: 'user' }
   };
 

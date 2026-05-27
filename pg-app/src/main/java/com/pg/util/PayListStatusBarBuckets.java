@@ -166,6 +166,26 @@ public final class PayListStatusBarBuckets {
     }
 
     /**
+     * ChillPay 통합 Status — 결제 요청·인증 대기 등. 노티는 아직 오지 않는 것이 정상이므로 검증 리포트 NOTI 대조에서 제외합니다.
+     */
+    public static boolean isChillRequestPendingStatus(String statusRaw) {
+        if (statusRaw == null || statusRaw.isBlank()) {
+            return false;
+        }
+        String raw = statusRaw.trim();
+        if ("08".equals(raw)) {
+            return true;
+        }
+        if (!OTHER.equals(bucketForChillStatus(raw))) {
+            return false;
+        }
+        String low = raw.toLowerCase(Locale.ROOT);
+        return low.contains("pending") || low.contains("wait") || low.contains("request")
+                || low.contains("processing") || low.contains("authorize")
+                || low.contains("요청") || low.contains("대기");
+    }
+
+    /**
      * 집계 키 정규화: ISO 4217 숫자(392·840 등)와 {@code JPY (392)} 형태를 알파 코드로 맞춥니다.
      * 그리드·노티매핑과 동일 계열({@code HqNotifyMappingService} 통화 폴백)입니다.
      */

@@ -1,5 +1,6 @@
 package com.pg.service;
 
+import com.pg.util.ExcelExportNumberUtil;
 import org.apache.poi.ss.usermodel.BorderStyle;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.CellStyle;
@@ -18,13 +19,15 @@ import org.springframework.stereotype.Service;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 /**
  * 헤더 배경색·가운데 정렬·테두리·텍스트 서식(@)이 적용된 xlsx 생성.
- * 계좌번호·사업자번호 등 긴 숫자가 과학적 표기법으로 깨지지 않도록 텍스트 열만 지정한다.
+ * 계좌번호·사업자번호 등 긴 숫자는 텍스트 열로, 금액·건수는 숫자 셀로 저장(SUM 가능).
  */
 @Service
 public class ExcelStyledExportService {
@@ -71,6 +74,8 @@ public class ExcelStyledExportService {
             dataTextStyle.cloneStyleFrom(dataCenterStyle);
             dataTextStyle.setDataFormat(df.getFormat("@"));
 
+            Map<String, CellStyle> numberStyleCache = new HashMap<>();
+
             int colCount = headers.size();
             Row hRow = sheet.createRow(0);
             hRow.setHeightInPoints(24);
@@ -91,8 +96,28 @@ public class ExcelStyledExportService {
                         val = line.get(i);
                     }
                     boolean asText = textIdx.contains(i);
-                    cell.setCellValue(val);
-                    cell.setCellStyle(asText ? dataTextStyle : dataCenterStyle);
+                    if (asText || val.isEmpty()) {
+                        cell.setCellValue(val);
+                        cell.setCellStyle(asText ? dataTextStyle : dataCenterStyle);
+                    } else {
+                        Double num = ExcelExportNumberUtil.tryParse(val);
+                        if (num != null) {
+                            cell.setCellValue(num);
+                            String fmt = ExcelExportNumberUtil.excelFormatFor(num);
+                            CellStyle numStyle = numberStyleCache.get(fmt);
+                            if (numStyle == null) {
+                                numStyle = wb.createCellStyle();
+                                numStyle.cloneStyleFrom(dataCenterStyle);
+                                numStyle.setAlignment(HorizontalAlignment.RIGHT);
+                                numStyle.setDataFormat(df.getFormat(fmt));
+                                numberStyleCache.put(fmt, numStyle);
+                            }
+                            cell.setCellStyle(numStyle);
+                        } else {
+                            cell.setCellValue(val);
+                            cell.setCellStyle(dataCenterStyle);
+                        }
+                    }
                 }
             }
 

@@ -344,7 +344,7 @@ public class MerchantChatbotOrderService {
         order.setOrderMemo(combinedMemo.isEmpty() ? null : clamp(combinedMemo, 4000));
         orderRepository.save(order);
 
-        String payUrl = buildPayPrefillUrl(request, ou.getCode(), title, amountBd.toPlainString(), currency, checkoutNo);
+        String payUrl = buildPayPrefillUrl(request, ou.getId(), ou.getCode(), title, amountBd.toPlainString(), currency, checkoutNo);
         Map<String, Object> data = new LinkedHashMap<>();
         data.put("orderId", order.getId());
         data.put("checkoutOrderNo", checkoutNo);
@@ -354,12 +354,16 @@ public class MerchantChatbotOrderService {
         return data;
     }
 
-    private String buildPayPrefillUrl(HttpServletRequest request, String compCode, String itemTitle,
+    private String buildPayPrefillUrl(HttpServletRequest request, Long orgUnitId, String compCode, String itemTitle,
                                       String amountPlain, String currencyIso, String orderNo) {
+        boolean repayMode = productService.isMerchantUrlPayCheckoutRepay(orgUnitId);
         String base = trimSlash(productService.resolvePublicCustomerSiteBase(request));
         StringBuilder q = new StringBuilder();
         q.append("m=").append(urlEncode(compCode));
         q.append("&entry=chatbot");
+        if (repayMode) {
+            q.append("&variant=repay");
+        }
         q.append("&orderNo=").append(urlEncode(orderNo));
         if (!itemTitle.isEmpty()) {
             String t = itemTitle.length() > 500 ? itemTitle.substring(0, 500) : itemTitle;

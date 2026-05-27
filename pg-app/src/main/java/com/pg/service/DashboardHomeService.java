@@ -7,6 +7,7 @@ import com.pg.repository.PgTrnsctnRepository;
 import com.pg.repository.SettlementRunRepository;
 import com.pg.util.DashboardCurrencyAggregate;
 import com.pg.util.DashboardTupleRows;
+import com.pg.service.settlement.SettlementRunDateDisplayService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.core.Authentication;
@@ -57,6 +58,7 @@ public class DashboardHomeService {
     private final DashboardInsightsService dashboardInsightsService;
     private final DashboardHqHubService dashboardHqHubService;
     private final DashboardBusinessDayCalendarService dashboardBusinessDayCalendarService;
+    private final SettlementRunDateDisplayService settlementRunDateDisplayService;
 
     public DashboardHomeService(AuthService authService,
                                 OrgAccessService orgAccessService,
@@ -65,7 +67,8 @@ public class DashboardHomeService {
                                 ServerUsageService serverUsageService,
                                 DashboardInsightsService dashboardInsightsService,
                                 DashboardHqHubService dashboardHqHubService,
-                                DashboardBusinessDayCalendarService dashboardBusinessDayCalendarService) {
+                                DashboardBusinessDayCalendarService dashboardBusinessDayCalendarService,
+                                SettlementRunDateDisplayService settlementRunDateDisplayService) {
         this.authService = authService;
         this.orgAccessService = orgAccessService;
         this.pgTrnsctnRepository = pgTrnsctnRepository;
@@ -74,6 +77,7 @@ public class DashboardHomeService {
         this.dashboardInsightsService = dashboardInsightsService;
         this.dashboardHqHubService = dashboardHqHubService;
         this.dashboardBusinessDayCalendarService = dashboardBusinessDayCalendarService;
+        this.settlementRunDateDisplayService = settlementRunDateDisplayService;
     }
 
     public Map<String, Object> buildHome(Authentication authentication) {
@@ -384,9 +388,10 @@ public class DashboardHomeService {
         return m;
     }
 
-    private static Map<String, Object> settlementRunToMap(SettlementRun r) {
+    private Map<String, Object> settlementRunToMap(SettlementRun r) {
         Map<String, Object> m = new LinkedHashMap<>();
         m.put("calcDt", r.getCalcDt() != null ? r.getCalcDt().toString() : null);
+        settlementRunDateDisplayService.enrichCloseAndExecDates(m, r);
         m.put("approveAmt", r.getApproveAmt());
         m.put("payAmt", r.getPayAmt());
         m.put("totalFee", r.getTotalFee());

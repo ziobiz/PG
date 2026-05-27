@@ -1342,6 +1342,9 @@ public class CompService {
         addDiff(rows, oid, compId, compNm, by, p + "비고", snap.remark(), nz(mp.getRemark()));
         addDiffYnAllow(rows, oid, compId, compNm, by, p + "수수료설정허용", snap.commissionConfigAllowed(), mp.getCommissionConfigAllowed());
         addDiffYn(rows, oid, compId, compNm, by, p + "웹결제사용여부", snap.webPaymentUseYn(), mp.getWebPaymentUseYn());
+        addDiff(rows, oid, compId, compNm, by, p + "URL결제방식", snap.urlPayCheckoutMode(), nz(mp.getUrlPayCheckoutMode()));
+        addDiff(rows, oid, compId, compNm, by, p + "APIURL결제방식", snap.apiUrlPayCheckoutMode(), nz(mp.getApiUrlPayCheckoutMode()));
+        addDiff(rows, oid, compId, compNm, by, p + "챗봇URL결제방식", snap.chatbotUrlPayCheckoutMode(), nz(mp.getChatbotUrlPayCheckoutMode()));
         addDiffYn(rows, oid, compId, compNm, by, p + "챗봇결제사용여부", snap.chatbotPaymentUseYn(), mp.getChatbotPaymentUseYn());
         addDiff(rows, oid, compId, compNm, by, p + "챗봇 상품등록 한도(건)",
                 snap.chatbotProductSlotLimit() != null ? String.valueOf(snap.chatbotProductSlotLimit()) : "",
@@ -1431,6 +1434,9 @@ public class CompService {
             String remark,
             String commissionConfigAllowed,
             String webPaymentUseYn,
+            String urlPayCheckoutMode,
+            String apiUrlPayCheckoutMode,
+            String chatbotUrlPayCheckoutMode,
             String chatbotPaymentUseYn,
             Integer chatbotProductSlotLimit,
             String chatbotKbCompanyNm,
@@ -1487,6 +1493,9 @@ public class CompService {
                     nz(mp.getRemark()),
                     nz(mp.getCommissionConfigAllowed()),
                     nz(mp.getWebPaymentUseYn()),
+                    nz(mp.getUrlPayCheckoutMode()),
+                    nz(mp.getApiUrlPayCheckoutMode()),
+                    nz(mp.getChatbotUrlPayCheckoutMode()),
                     nz(mp.getChatbotPaymentUseYn()),
                     mp.getChatbotProductSlotLimit(),
                     nz(mp.getChatbotKbCompanyNm()),
@@ -1648,6 +1657,9 @@ public class CompService {
                             m.put("remark", mp.getRemark());
                             m.put("commissionConfigAllowed", mp.getCommissionConfigAllowed());
                             m.put("webPaymentUseYn", mp.getWebPaymentUseYn() != null ? mp.getWebPaymentUseYn() : "Y");
+                            m.put("urlPayCheckoutMode", com.pg.urlpay.UrlPayCheckoutModeUtil.normalize(mp.getUrlPayCheckoutMode()));
+                            m.put("apiUrlPayCheckoutMode", com.pg.urlpay.UrlPayCheckoutModeUtil.normalize(mp.getApiUrlPayCheckoutMode()));
+                            m.put("chatbotUrlPayCheckoutMode", com.pg.urlpay.UrlPayCheckoutModeUtil.normalize(mp.getChatbotUrlPayCheckoutMode()));
                             m.put("chatbotPaymentUseYn", mp.getChatbotPaymentUseYn() != null ? mp.getChatbotPaymentUseYn() : "N");
                             m.put("chatbotProductSlotLimit", mp.getChatbotProductSlotLimit() != null ? mp.getChatbotProductSlotLimit() : "");
                             m.put("chatbotCatalogListingGrant", mp.getChatbotCatalogListingGrant() != null ? mp.getChatbotCatalogListingGrant() : "");
@@ -1724,6 +1736,9 @@ public class CompService {
                                     merchantProfileRepository.save(mp);
                                 }
                                 m.put("webPaymentUseYn", mp.getWebPaymentUseYn() != null ? mp.getWebPaymentUseYn() : "Y");
+                                m.put("urlPayCheckoutMode", com.pg.urlpay.UrlPayCheckoutModeUtil.normalize(mp.getUrlPayCheckoutMode()));
+                                m.put("apiUrlPayCheckoutMode", com.pg.urlpay.UrlPayCheckoutModeUtil.normalize(mp.getApiUrlPayCheckoutMode()));
+                                m.put("chatbotUrlPayCheckoutMode", com.pg.urlpay.UrlPayCheckoutModeUtil.normalize(mp.getChatbotUrlPayCheckoutMode()));
                                 m.put("urlPayWebSettingsAllowed",
                                         chillPayService.findOperationalWebBindingForUrlPay(ou.getId()).isPresent() ? "Y" : "N");
                             }
@@ -1897,6 +1912,9 @@ public class CompService {
                           String chatbotCatalogListingGrant, Integer chatbotMaxProductImagesGrant,
                           String chatbotCatalogListingEnabled,
                           String chatbotPromotionShelfMode, Integer chatbotPromotionRotateSeconds,
+                          String urlPayCheckoutMode,
+                          String apiUrlPayCheckoutMode,
+                          String chatbotUrlPayCheckoutMode,
                           String tabletFeatureUseYn) {
         return orgUnitRepository.findByCode(compId != null ? compId : "")
                 .flatMap(ou -> merchantProfileRepository.findByOrgUnitId(ou.getId())
@@ -1955,6 +1973,11 @@ public class CompService {
                             String effDivForCommission = childLevel.name();
                             if (commissionConfigAllowed != null) mp.setCommissionConfigAllowed(commissionConfigAllowed);
                             if (webPaymentUseYn != null && !webPaymentUseYn.trim().isEmpty()) mp.setWebPaymentUseYn(webPaymentUseYn.trim());
+                            if (childLevel == OrgLevel.MERCHANT) {
+                                applyMerchantUrlPayCheckoutMode(mp, ou.getId(), urlPayCheckoutMode);
+                                applyMerchantApiUrlPayCheckoutMode(mp, ou.getId(), apiUrlPayCheckoutMode);
+                                applyMerchantChatbotUrlPayCheckoutMode(mp, ou.getId(), chatbotUrlPayCheckoutMode);
+                            }
                             if (childLevel == OrgLevel.MERCHANT && chatbotPaymentUseYn != null && !chatbotPaymentUseYn.trim().isEmpty()) {
                                 mp.setChatbotPaymentUseYn("Y".equalsIgnoreCase(chatbotPaymentUseYn.trim()) ? "Y" : "N");
                                 if ("N".equalsIgnoreCase(mp.getChatbotPaymentUseYn() != null ? mp.getChatbotPaymentUseYn().trim() : "")) {
@@ -2407,6 +2430,53 @@ public class CompService {
         mp.setUrlPayLineNotifyToken(raw);
     }
 
+    /** 가맹점 공개 URL 결제 방식 (STANDARD | REPAY). */
+    private void applyMerchantUrlPayCheckoutMode(MerchantProfile mp, Long orgUnitId, String urlPayCheckoutMode) {
+        if (mp == null || orgUnitId == null || urlPayCheckoutMode == null || urlPayCheckoutMode.isBlank()) {
+            return;
+        }
+        String norm = com.pg.urlpay.UrlPayCheckoutModeUtil.normalize(urlPayCheckoutMode);
+        if (com.pg.urlpay.UrlPayCheckoutModeUtil.isRepay(norm)) {
+            validateUrlPayRepayModeAllowed(orgUnitId);
+        }
+        mp.setUrlPayCheckoutMode(norm);
+    }
+
+    /** 가맹점 API URL 인라인 중계 결제 방식 (STANDARD | REPAY). */
+    private void applyMerchantApiUrlPayCheckoutMode(MerchantProfile mp, Long orgUnitId, String apiUrlPayCheckoutMode) {
+        if (mp == null || orgUnitId == null || apiUrlPayCheckoutMode == null || apiUrlPayCheckoutMode.isBlank()) {
+            return;
+        }
+        String norm = com.pg.urlpay.UrlPayCheckoutModeUtil.normalize(apiUrlPayCheckoutMode);
+        if (com.pg.urlpay.UrlPayCheckoutModeUtil.isRepay(norm)) {
+            validateUrlPayRepayModeAllowed(orgUnitId);
+        }
+        mp.setApiUrlPayCheckoutMode(norm);
+    }
+
+    /** 가맹점 챗봇 결제 URL 방식 (STANDARD | REPAY). */
+    private void applyMerchantChatbotUrlPayCheckoutMode(MerchantProfile mp, Long orgUnitId, String chatbotUrlPayCheckoutMode) {
+        if (mp == null || orgUnitId == null || chatbotUrlPayCheckoutMode == null || chatbotUrlPayCheckoutMode.isBlank()) {
+            return;
+        }
+        String norm = com.pg.urlpay.UrlPayCheckoutModeUtil.normalize(chatbotUrlPayCheckoutMode);
+        if (com.pg.urlpay.UrlPayCheckoutModeUtil.isRepay(norm)) {
+            validateUrlPayRepayModeAllowed(orgUnitId);
+        }
+        mp.setChatbotUrlPayCheckoutMode(norm);
+    }
+
+    private void validateUrlPayRepayModeAllowed(Long orgUnitId) {
+        if (!chillPayService.isUrlPayRepayEnabledAtHq()) {
+            throw new IllegalArgumentException(
+                    "본사 설정에서 URL 재결제 기능이 꺼져 있어 재결제 URL 방식을 선택할 수 없습니다.");
+        }
+        if (chillPayService.findOperationalWebBindingForUrlPayRepay(orgUnitId).isEmpty()) {
+            throw new IllegalArgumentException(
+                    "재결제 URL 방식을 사용하려면 운영(Y)·연동용도 URL재결제 결제대행사 바인딩이 필요합니다.");
+        }
+    }
+
     private void saveMerchantPayNotifyUrls(Long orgUnitId, String background, String result,
                                            String middlewareUrl, String middlewareSecret) {
         String bg = normalizeMerchantPayNotifyUrl(background);
@@ -2596,7 +2666,7 @@ public class CompService {
                 /* notify 8 + commission 17 + 수수료VAT 2 + regionalSettings */
                 null, null, null, null, null, null, null, null,
                 null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null,
-                null, null, null, null, null, null);
+                null, null, null, null, null, null, null, null, null);
     }
 
     @Transactional
@@ -2630,6 +2700,9 @@ public class CompService {
                                      String urlPayAlertEmailYn, String urlPayLineNotifyToken,
                                      String feeVatApplyYn, String feeVatRatePct,
                                      String regionalSettings,
+                                     String urlPayCheckoutMode,
+                                     String apiUrlPayCheckoutMode,
+                                     String chatbotUrlPayCheckoutMode,
                                      String tabletFeatureUseYn) {
         return registerWithExtra(code, name, compDiv, parentId,
                 compTel, zipCode, addr, addrDetail, addrEtc, addrCountryCd,
@@ -2664,6 +2737,9 @@ public class CompService {
                 urlPayAlertEmailYn, urlPayLineNotifyToken,
                 feeVatApplyYn, feeVatRatePct,
                 regionalSettings,
+                urlPayCheckoutMode,
+                apiUrlPayCheckoutMode,
+                chatbotUrlPayCheckoutMode,
                 tabletFeatureUseYn);
     }
 
@@ -2702,6 +2778,9 @@ public class CompService {
                                      String urlPayAlertEmailYn, String urlPayLineNotifyToken,
                                      String feeVatApplyYn, String feeVatRatePct,
                                      String regionalSettings,
+                                     String urlPayCheckoutMode,
+                                     String apiUrlPayCheckoutMode,
+                                     String chatbotUrlPayCheckoutMode,
                                      String tabletFeatureUseYn) {
         OrgUnit o = new OrgUnit();
         String compDivVal = compDiv != null ? compDiv.trim() : "AGENCY";
@@ -2775,6 +2854,9 @@ public class CompService {
         mp.setRemark(remark);
         if (webPaymentUseYn != null && !webPaymentUseYn.trim().isEmpty()) mp.setWebPaymentUseYn(webPaymentUseYn.trim());
         if ("MERCHANT".equalsIgnoreCase(compDivVal)) {
+            applyMerchantUrlPayCheckoutMode(mp, saved.getId(), urlPayCheckoutMode);
+            applyMerchantApiUrlPayCheckoutMode(mp, saved.getId(), apiUrlPayCheckoutMode);
+            applyMerchantChatbotUrlPayCheckoutMode(mp, saved.getId(), chatbotUrlPayCheckoutMode);
             if (chatbotPaymentUseYn != null && !chatbotPaymentUseYn.trim().isEmpty()) {
                 mp.setChatbotPaymentUseYn("Y".equalsIgnoreCase(chatbotPaymentUseYn.trim()) ? "Y" : "N");
             } else {
@@ -4311,7 +4393,7 @@ public class CompService {
                             null, null, null, null, null, null, null, null, null, null,
                             null, null, null, null,
                             null, null, null, null, null, null, null, null, null, null,
-                            null);
+                            null, null, null, null);
                     if (loginIdVal != null && !loginIdVal.isEmpty() && userRepository.findByUsername(loginIdVal).isEmpty()) {
                         AppUser appUser = new AppUser();
                         appUser.setUsername(loginIdVal);
