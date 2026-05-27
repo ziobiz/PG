@@ -1212,11 +1212,15 @@
         });
       }
 
-      /** 기존 밑줄 링크(안내 저장 전)와 동일: `{api}/pay.html?m={compId}&entry=chatbot` + 복귀용 return */
+      /** 기존 밑줄 링크(안내 저장 전)와 동일: `{api}/{pay|jpay-pay}.html?m={compId}&entry=chatbot` + 복귀용 return */
+      function cbChatbotPayPageName() {
+        return String(window.cbChatbotCheckoutPgVendor || '').toUpperCase() === 'JPAY' ? 'jpay-pay.html' : 'pay.html';
+      }
+
       function barePayChatbotUrl() {
         var c = (typeof compId === 'string' ? compId : '').trim();
         if (!c) return '';
-        var base = resolvedApiBase() + '/pay.html?m=' + encodeURIComponent(c) + '&entry=chatbot';
+        var base = resolvedApiBase() + '/' + cbChatbotPayPageName() + '?m=' + encodeURIComponent(c) + '&entry=chatbot';
         if (String(window.cbUrlPayCheckoutMode || '').toUpperCase() === 'REPAY') {
           base += '&variant=repay';
         }
@@ -2399,7 +2403,8 @@
           var x = new URL(cbNormalizePayHtmlHref(href), resolvedApiBase());
           var path = String(x.pathname || '');
           var low = path.toLowerCase();
-          if (!low.endsWith('/pay.html') && low !== 'pay.html') return null;
+          if (!low.endsWith('/pay.html') && low !== 'pay.html'
+              && !low.endsWith('/jpay-pay.html') && low !== 'jpay-pay.html') return null;
           return {
             path: path,
             m: String(x.searchParams.get('m') || '').trim(),
@@ -4416,6 +4421,7 @@
           hideBanner();
           var d = res.data || {};
           window.cbUrlPayCheckoutMode = String(d.urlPayCheckoutMode || 'STANDARD').trim().toUpperCase();
+          window.cbChatbotCheckoutPgVendor = String(d.chatbotCheckoutPgVendor || 'CHILLPAY').trim().toUpperCase();
           syncCbCommerceHoldUi(!!d.chatbotCommerceHold);
           syncChatbotBarePayHref();
           applyCatalogMeta(d);

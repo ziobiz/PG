@@ -9,9 +9,11 @@ import com.pg.repository.HqApiConfigRepository;
 import com.pg.repository.MerchantProfileRepository;
 import com.pg.repository.OrgUnitRepository;
 import com.pg.repository.PgTrnsctnRepository;
+import com.pg.service.ChillPayService;
 import com.pg.service.JpayPaymentService;
 import com.pg.service.MerchantChatbotProductService;
 import com.pg.service.OrgServiceUseService;
+import com.pg.service.UrlPayCheckoutCurrencyService;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.stereotype.Service;
 
@@ -36,6 +38,7 @@ public class MerchantJpayInlineCheckoutService {
     private final MerchantChatbotProductService productService;
     private final MerchantInlineCheckoutTokenService tokenService;
     private final PgTrnsctnRepository pgTrnsctnRepository;
+    private final UrlPayCheckoutCurrencyService urlPayCheckoutCurrencyService;
 
     public MerchantJpayInlineCheckoutService(OrgUnitRepository orgUnitRepository,
                                              MerchantProfileRepository merchantProfileRepository,
@@ -44,7 +47,8 @@ public class MerchantJpayInlineCheckoutService {
                                              HqApiConfigRepository hqApiConfigRepository,
                                              MerchantChatbotProductService productService,
                                              MerchantInlineCheckoutTokenService tokenService,
-                                             PgTrnsctnRepository pgTrnsctnRepository) {
+                                             PgTrnsctnRepository pgTrnsctnRepository,
+                                             UrlPayCheckoutCurrencyService urlPayCheckoutCurrencyService) {
         this.orgUnitRepository = orgUnitRepository;
         this.merchantProfileRepository = merchantProfileRepository;
         this.orgServiceUseService = orgServiceUseService;
@@ -53,11 +57,16 @@ public class MerchantJpayInlineCheckoutService {
         this.productService = productService;
         this.tokenService = tokenService;
         this.pgTrnsctnRepository = pgTrnsctnRepository;
+        this.urlPayCheckoutCurrencyService = urlPayCheckoutCurrencyService;
     }
 
     public Map<String, Object> prepare(Long orgUnitId, Map<String, Object> body, HttpServletRequest request) {
         if (orgUnitId == null) {
             return fail("가맹점을 찾을 수 없습니다.", "NOT_FOUND");
+        }
+        if (body != null && (body.containsKey("subscriptionPlan") || body.containsKey("subscription_plan")
+                || "SUBSCRIPTION".equalsIgnoreCase(str(body.get("checkoutKind"))))) {
+            return fail("JPAY 구독 가입은 /api/middleware/v1/merchant/jpay/subscription/prepare 를 사용하세요.", "SUBSCRIPTION_USE_DEDICATED_API");
         }
         Optional<OrgUnit> ouOpt = orgUnitRepository.findById(orgUnitId);
         if (ouOpt.isEmpty()) {
@@ -79,12 +88,11 @@ public class MerchantJpayInlineCheckoutService {
         }
         HqApiConfig hq = hqApiConfigRepository.findAll().stream().findFirst().orElse(null);
         if (hq != null) {
-            String flow = hq.getApiBrokerDefaultFlowType() != null ? hq.getApiBrokerDefaultFlowType().trim() : "INLINE";
-            if (!"INLINE".equalsIgnoreCase(flow)) {
-                return fail("본사 API 중계형 기본 방식이 INLINE이 아닙니다. 결제로직설정을 확인하세요.", "INLINE_NOT_ENABLED");
+            if (!"INLINE".equalsIgnoreCase(ChillPayService.effectiveUrlPayFlow(hq))) {
+                return fail("본사 URL 결제 기본 방식이 INLINE이 아닙니다. 결제로직설정을 확인하세요.", "INLINE_NOT_ENABLED");
             }
-            if ("N".equalsIgnoreCase(hq.getApiBrokerInlineEnabledYn())) {
-                return fail("본사 설정에서 API 중계형 INLINE 제공이 꺼져 있습니다.", "INLINE_NOT_ENABLED");
+            if ("N".equalsIgnoreCase(hq.getUrlPayInlineEnabledYn())) {
+                return fail("본사 설정에서 URL 결제형 INLINE 제공이 꺼져 있습니다.", "INLINE_NOT_ENABLED");
             }
         }
 
@@ -97,10 +105,8 @@ public class MerchantJpayInlineCheckoutService {
             return fail("유효한 amount가 필요합니다.", "INVALID_AMOUNT");
         }
         String amountPlain = amount.stripTrailingZeros().toPlainString();
-        String currency = MerchantInlineCheckoutTokenService.normalizeCurrency(str(body.get("currency")));
-        if (currency.isBlank()) {
-            currency = "USD";
-        }
+        String currency = urlPayCheckoutCurrencyService.resolveCheckoutCurrency(
+                orgUnitId, str(body.get("currency")));
         String productName = clamp(str(body.get("productName")), 500);
         if (productName.isBlank()) {
             productName = clamp(str(body.get("item")), 500);

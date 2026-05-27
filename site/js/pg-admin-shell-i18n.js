@@ -157,6 +157,7 @@
     '/calc/offsetCancList': T('Netting cancels', '相殺取消', '轧差取消', 'ยกเลิกหักกลบ'),
     '/pay/easyPay': T('URL payments', 'URL決済一覧', 'URL 支付记录', 'ชำระ URL'),
     '/pay/chatbotPay': T('Chatbot payments', 'チャットボット決済', '聊天机器人支付', 'ชำระแชทบอท'),
+    '/pay/jpaySubscription': T('Subscription payments', '定期決済一覧', '订阅支付记录', 'รายการชำระสมัคร'),
     '/calc/calcList': T('Channel settlement', '流通網精算', '渠道结算', 'ชำระช่องทาง'),
     '/settlement/distributionList': T('Channel settlement', '流通網精算', '渠道结算', 'ชำระช่องทาง'),
     '/calc/calcGmList': T('Merchant settlement', '加盟店精算', '商户结算', 'ชำระร้านค้า'),

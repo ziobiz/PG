@@ -7,10 +7,13 @@ import com.pg.entity.MerchantProfile;
 import com.pg.entity.OrgBranding;
 import com.pg.entity.OrgLevel;
 import com.pg.entity.OrgUnit;
+import com.pg.repository.HqApiConfigRepository;
 import com.pg.repository.MerchantDefaultProductRepository;
 import com.pg.repository.MerchantProfileRepository;
 import com.pg.repository.OrgBrandingRepository;
 import com.pg.repository.OrgUnitRepository;
+import com.pg.merchantdeploy.MerchantInlineCheckoutTokenService;
+import com.pg.merchantdeploy.MerchantPgBrokerVendor;
 import com.pg.service.ChillPayDirectCreditRecordService;
 import com.pg.service.ChillPayService;
 import com.pg.service.JpayPaymentService;
@@ -18,6 +21,7 @@ import com.pg.service.MerchantCreditTokenService;
 import com.pg.service.OrgServiceUseService;
 import com.pg.service.PaymentCurrencyScaleService;
 import com.pg.service.UrlPayCardCopyService;
+import com.pg.service.UrlPayCheckoutCurrencyService;
 import com.pg.service.UrlPayDisplayFxService;
 import com.pg.urlpay.UrlPayCheckoutModeUtil;
 import com.pg.util.ChillPayDirectCreditUtil;
@@ -48,39 +52,48 @@ public class ApiPayController {
     private final JpayPaymentService jpayPaymentService;
     private final ChillPayDirectCreditRecordService chillPayDirectCreditRecordService;
     private final OrgUnitRepository orgUnitRepository;
+    private final HqApiConfigRepository hqApiConfigRepository;
     private final MerchantDefaultProductRepository merchantDefaultProductRepository;
     private final MerchantProfileRepository merchantProfileRepository;
     private final OrgServiceUseService orgServiceUseService;
     private final PaymentCurrencyScaleService paymentCurrencyScaleService;
     private final UrlPayCardCopyService urlPayCardCopyService;
     private final UrlPayDisplayFxService urlPayDisplayFxService;
+    private final UrlPayCheckoutCurrencyService urlPayCheckoutCurrencyService;
     private final OrgBrandingRepository orgBrandingRepository;
     private final MerchantCreditTokenService merchantCreditTokenService;
+    private final MerchantInlineCheckoutTokenService merchantInlineCheckoutTokenService;
 
     public ApiPayController(ChillPayService chillPayService,
                             JpayPaymentService jpayPaymentService,
                             ChillPayDirectCreditRecordService chillPayDirectCreditRecordService,
                             OrgUnitRepository orgUnitRepository,
+                            HqApiConfigRepository hqApiConfigRepository,
                             MerchantDefaultProductRepository merchantDefaultProductRepository,
                             MerchantProfileRepository merchantProfileRepository,
                             OrgServiceUseService orgServiceUseService,
                             PaymentCurrencyScaleService paymentCurrencyScaleService,
                             UrlPayCardCopyService urlPayCardCopyService,
                             UrlPayDisplayFxService urlPayDisplayFxService,
+                            UrlPayCheckoutCurrencyService urlPayCheckoutCurrencyService,
                             OrgBrandingRepository orgBrandingRepository,
-                            MerchantCreditTokenService merchantCreditTokenService) {
+                            MerchantCreditTokenService merchantCreditTokenService,
+                            MerchantInlineCheckoutTokenService merchantInlineCheckoutTokenService) {
         this.chillPayService = chillPayService;
         this.jpayPaymentService = jpayPaymentService;
         this.chillPayDirectCreditRecordService = chillPayDirectCreditRecordService;
         this.orgUnitRepository = orgUnitRepository;
+        this.hqApiConfigRepository = hqApiConfigRepository;
         this.merchantDefaultProductRepository = merchantDefaultProductRepository;
         this.merchantProfileRepository = merchantProfileRepository;
         this.orgServiceUseService = orgServiceUseService;
         this.paymentCurrencyScaleService = paymentCurrencyScaleService;
         this.urlPayCardCopyService = urlPayCardCopyService;
         this.urlPayDisplayFxService = urlPayDisplayFxService;
+        this.urlPayCheckoutCurrencyService = urlPayCheckoutCurrencyService;
         this.orgBrandingRepository = orgBrandingRepository;
         this.merchantCreditTokenService = merchantCreditTokenService;
+        this.merchantInlineCheckoutTokenService = merchantInlineCheckoutTokenService;
     }
 
     private static boolean isUrlPayRepayVariant(String raw) {
@@ -108,59 +121,6 @@ public class ApiPayController {
         return null;
     }
 
-    /** 가맹점 프로필 {@code base_currency} 첫 토큰(본사 다통화 comma 구분 대응). */
-    private Optional<String> firstProfileBaseCurrencyToken(Long orgUnitId) {
-        if (orgUnitId == null) {
-            return Optional.empty();
-        }
-        return merchantProfileRepository.findByOrgUnitId(orgUnitId)
-                .map(MerchantProfile::getBaseCurrency)
-                .filter(s -> s != null && !s.isBlank())
-                .map(s -> s.split(",")[0].trim())
-                .filter(s -> !s.isEmpty());
-    }
-
-    /**
-     * URL 결제 체크아웃 통화: 가맹점 기준화폐 → (상위 체인) 가장 가까운 총판 기준화폐 → 가장 가까운 본사 기준화폐 첫 값.
-     * 가맹점 레코드만 비어 있고 총판에 THB만 있는 경우에도 THB가 내려가 ChillPay·화면이 엔화로 고정되지 않습니다.
-     */
-    private Optional<String> resolveUrlPayCheckoutCurrencyCode(Long merchantOrgUnitId) {
-        Optional<String> own = firstProfileBaseCurrencyToken(merchantOrgUnitId);
-        if (own.isPresent()) {
-            return own;
-        }
-        Long cur = merchantOrgUnitId;
-        Set<Long> seen = new HashSet<>();
-        while (cur != null && seen.add(cur)) {
-            Optional<OrgUnit> ou = orgUnitRepository.findById(cur);
-            if (ou.isEmpty()) {
-                break;
-            }
-            OrgUnit u = ou.get();
-            if (u.getOrgLevel() == OrgLevel.MASTER_DIST) {
-                Optional<String> distCur = firstProfileBaseCurrencyToken(u.getId());
-                if (distCur.isPresent()) {
-                    return distCur;
-                }
-            }
-            cur = u.getParentId();
-        }
-        cur = merchantOrgUnitId;
-        seen.clear();
-        while (cur != null && seen.add(cur)) {
-            Optional<OrgUnit> ou = orgUnitRepository.findById(cur);
-            if (ou.isEmpty()) {
-                break;
-            }
-            OrgUnit u = ou.get();
-            if (u.getOrgLevel() == OrgLevel.REGIONAL) {
-                return firstProfileBaseCurrencyToken(u.getId());
-            }
-            cur = u.getParentId();
-        }
-        return Optional.empty();
-    }
-
     /**
      * JPAY {@code pay_index} 서버 사이드 호출(샌드박스·운영). 본문은 {@link JpayPaymentService#executeDirectSale} 필드 규약을 따릅니다.
      * 공개 엔드포인트 — {@code compId} 또는 {@code merchantId}(org_unit.id)로 가맹점을 식별합니다.
@@ -181,6 +141,12 @@ public class ApiPayController {
         if (orgUnitId == null) {
             return ResponseEntity.ok(ApiResponse.fail("가맹점을 찾을 수 없습니다. compId 또는 merchantId를 넣으세요.", "NOT_FOUND"));
         }
+        if (body.containsKey("subscriptionPlan") || body.containsKey("subscription_plan")
+                || "Subscription".equalsIgnoreCase(str(body, "pay_type"))
+                || "SUBSCRIPTION".equalsIgnoreCase(str(body, "checkoutKind"))) {
+            return ResponseEntity.ok(ApiResponse.fail(
+                    "JPAY 구독은 /api/pay/jpay/subscribe 또는 subscription/prepare API를 사용하세요.", "SUBSCRIPTION_USE_DEDICATED_API"));
+        }
         if (!orgServiceUseService.isOrgServiceActive(orgUnitId)) {
             return ResponseEntity.ok(ApiResponse.fail(
                     "서비스가 중지된 업체입니다. (미사용 또는 상위 조직 미사용)", "ORG_DISABLED"));
@@ -189,7 +155,11 @@ public class ApiPayController {
         Object ok = result.get("success");
         if (ok instanceof Boolean && !(Boolean) ok) {
             String msg = result.get("message") != null ? result.get("message").toString() : "JPAY 요청 실패";
-            return ResponseEntity.ok(ApiResponse.fail(msg, "JPAY_ERROR"));
+            String code = result.get("errorCode") != null ? result.get("errorCode").toString().trim() : "JPAY_ERROR";
+            if (code.isEmpty()) {
+                code = "JPAY_ERROR";
+            }
+            return ResponseEntity.ok(ApiResponse.fail(msg, code));
         }
         return ResponseEntity.ok(ApiResponse.ok(result));
     }
@@ -200,7 +170,8 @@ public class ApiPayController {
     @GetMapping("/jpay/checkout-context")
     public ResponseEntity<ApiResponse<Map<String, Object>>> jpayCheckoutContext(
             @RequestParam(required = false) Long merchantId,
-            @RequestParam(required = false) String compId) {
+            @RequestParam(required = false) String compId,
+            HttpServletRequest request) {
         Long orgUnitId = resolveMerchantOrgUnitId(merchantId, compId);
         if (orgUnitId == null) {
             return ResponseEntity.ok(ApiResponse.fail("가맹점을 찾을 수 없습니다.", "NOT_FOUND"));
@@ -234,7 +205,24 @@ public class ApiPayController {
             if (p.getBaseCurrency() != null && !p.getBaseCurrency().isBlank()) {
                 data.put("defaultCurrency", p.getBaseCurrency().trim().toUpperCase(Locale.ROOT));
             }
+            if (p.getCountryCd() != null && !p.getCountryCd().isBlank()) {
+                data.put("defaultCountryIso2", p.getCountryCd().trim().toUpperCase(Locale.ROOT));
+            } else if (p.getAddrCountryCd() != null && !p.getAddrCountryCd().isBlank()) {
+                data.put("defaultCountryIso2", p.getAddrCountryCd().trim().toUpperCase(Locale.ROOT));
+            }
         });
+        data.put("checkoutCurrencyCode",
+                urlPayCheckoutCurrencyService.resolveCheckoutCurrency(orgUnitId, null));
+        data.put("clientIp", getClientIp(request));
+        hqApiConfigRepository.findAll().stream().findFirst().ifPresent(hq -> {
+            data.put("urlPayFlow", ChillPayService.effectiveUrlPayFlow(hq));
+            data.put("urlPayFormMode", ChillPayService.effectiveUrlPayFormMode(hq));
+        });
+        jpayPaymentService.resolveOperationalPgCd(orgUnitId).ifPresent(opPg -> {
+            String checkoutCur = String.valueOf(data.get("checkoutCurrencyCode"));
+            data.put("urlPayAmountScaleMode", paymentCurrencyScaleService.resolveModeForUi(opPg, checkoutCur));
+        });
+        resolveCheckoutHeaderLogoUrl(orgUnitId).ifPresent(u -> data.put("checkoutHeaderLogoUrl", u));
         Optional<MerchantDefaultProduct> dp = merchantDefaultProductRepository.findByOrgUnitId(orgUnitId);
         if (dp.isPresent()) {
             if (dp.get().getProductName() != null && !dp.get().getProductName().isBlank()) {
@@ -245,6 +233,99 @@ public class ApiPayController {
             }
         }
         return ResponseEntity.ok(ApiResponse.ok(data));
+    }
+
+    /**
+     * JPAY 구독 인라인 페이지({@code jpay-subscribe.html})용 컨텍스트.
+     */
+    @GetMapping("/jpay/subscribe-checkout-context")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> jpaySubscribeCheckoutContext(
+            @RequestParam(required = false) Long merchantId,
+            @RequestParam(required = false) String compId,
+            HttpServletRequest request) {
+        Long orgUnitId = resolveMerchantOrgUnitId(merchantId, compId);
+        if (orgUnitId == null) {
+            return ResponseEntity.ok(ApiResponse.fail("가맹점을 찾을 수 없습니다.", "NOT_FOUND"));
+        }
+        if (!orgServiceUseService.isOrgServiceActive(orgUnitId)) {
+            return ResponseEntity.ok(ApiResponse.fail("서비스가 중지된 업체입니다.", "ORG_DISABLED"));
+        }
+        if (!jpayPaymentService.hasOperationalSubscriptionBinding(orgUnitId)) {
+            return ResponseEntity.ok(ApiResponse.fail("JPAY API 구독(운영) 바인딩이 없습니다.", "SUBSCRIPTION_PG_MISSING"));
+        }
+        Optional<OrgUnit> ou = orgUnitRepository.findById(orgUnitId);
+        if (ou.isEmpty()) {
+            return ResponseEntity.ok(ApiResponse.fail("가맹점을 찾을 수 없습니다.", "NOT_FOUND"));
+        }
+        Map<String, Object> data = new LinkedHashMap<>();
+        data.put("compId", ou.get().getCode());
+        data.put("merchantName", ou.get().getName());
+        data.put("pgVendor", "JPAY");
+        data.put("checkoutKind", "SUBSCRIPTION");
+        data.put("integrationMode", "INLINE");
+        data.put("checkoutCurrencyCode", urlPayCheckoutCurrencyService.resolveCheckoutCurrency(orgUnitId, null));
+        data.put("clientIp", getClientIp(request));
+        resolveCheckoutHeaderLogoUrl(orgUnitId).ifPresent(u -> data.put("checkoutHeaderLogoUrl", u));
+        return ResponseEntity.ok(ApiResponse.ok(data));
+    }
+
+    /**
+     * JPAY 구독 Sale — 세션 토큰({@code checkoutKind=SUBSCRIPTION}) 필수.
+     */
+    @PostMapping("/jpay/subscribe")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> jpaySubscribe(
+            @RequestBody Map<String, Object> body,
+            HttpServletRequest request) {
+        String sessionToken = str(body, "sessionToken");
+        if (sessionToken.isBlank()) {
+            sessionToken = str(body, "session");
+        }
+        if (sessionToken.isBlank()) {
+            return ResponseEntity.ok(ApiResponse.fail("sessionToken(세션)이 필요합니다.", "INVALID_SESSION"));
+        }
+        var parsed = merchantInlineCheckoutTokenService.parseValid(
+                sessionToken, MerchantPgBrokerVendor.JPAY,
+                MerchantInlineCheckoutTokenService.CHECKOUT_SUBSCRIPTION);
+        if (parsed.isEmpty()) {
+            return ResponseEntity.ok(ApiResponse.fail("세션이 유효하지 않거나 만료되었습니다.", "INVALID_SESSION"));
+        }
+        var session = parsed.get();
+        Long orgUnitId = resolveMerchantOrgUnitId(null, session.compId());
+        if (orgUnitId == null) {
+            return ResponseEntity.ok(ApiResponse.fail("가맹점을 찾을 수 없습니다.", "NOT_FOUND"));
+        }
+        if (!orgServiceUseService.isOrgServiceActive(orgUnitId)) {
+            return ResponseEntity.ok(ApiResponse.fail("서비스가 중지된 업체입니다.", "ORG_DISABLED"));
+        }
+        String orderNo = str(body, "orderNo");
+        if (orderNo.isBlank()) {
+            orderNo = session.orderNo();
+        }
+        if (!orderNo.equals(session.orderNo())) {
+            return ResponseEntity.ok(ApiResponse.fail("세션 orderNo와 요청 orderNo가 일치하지 않습니다.", "SESSION_MISMATCH"));
+        }
+        String planJson = session.subscriptionPlanJson();
+        if (planJson == null || planJson.isBlank()) {
+            return ResponseEntity.ok(ApiResponse.fail("구독 plan 정보가 없습니다.", "SUBSCRIPTION_PLAN_REQUIRED"));
+        }
+        body.put("compId", session.compId());
+        body.put("orderNo", orderNo);
+        body.put("txnOrigin", "SUBSCRIPTION");
+        if (body.get("amount") == null || str(body, "amount").isBlank()) {
+            body.put("amount", session.amountPlain());
+        }
+        if (body.get("currency") == null || str(body, "currency").isBlank()) {
+            body.put("currency", session.currency());
+        }
+        Map<String, Object> result = jpayPaymentService.executeSubscriptionSale(
+                orgUnitId, body, request, getClientIp(request), planJson);
+        Object ok = result.get("success");
+        if (ok instanceof Boolean && !(Boolean) ok) {
+            String msg = result.get("message") != null ? result.get("message").toString() : "JPAY 구독 요청 실패";
+            String code = result.get("errorCode") != null ? result.get("errorCode").toString().trim() : "JPAY_ERROR";
+            return ResponseEntity.ok(ApiResponse.fail(msg, code.isEmpty() ? "JPAY_ERROR" : code));
+        }
+        return ResponseEntity.ok(ApiResponse.ok(result));
     }
 
     /**
@@ -350,7 +431,7 @@ public class ApiPayController {
             // 본사 URL결제 프레젠테이션 이후에 덮어씀 — 향후 맵에 동일 키가 생겨도 가맹점 표시·기본상품이 유지되도록
             data.put("compId", ou.get().getCode());
             data.put("merchantName", ou.get().getName());
-            resolveUrlPayCheckoutCurrencyCode(orgUnitId).ifPresent(cur ->
+            urlPayCheckoutCurrencyService.resolveFromOrgChain(orgUnitId).ifPresent(cur ->
                     data.put("checkoutCurrencyCode", cur.trim().toUpperCase(Locale.ROOT)));
             Optional<MerchantDefaultProduct> dp = merchantDefaultProductRepository.findByOrgUnitId(orgUnitId);
             if (dp.isPresent()) {
@@ -657,12 +738,8 @@ public class ApiPayController {
                 return ResponseEntity.ok(ApiResponse.fail("유효한 결제 금액을 입력하세요.", "INVALID_AMOUNT"));
             }
             String bodyCur = str(body, "currency");
-            checkoutCurrencyCode = resolveUrlPayCheckoutCurrencyCode(merchantOrgUnitId)
-                    .map(s -> s.trim().toUpperCase(Locale.ROOT))
-                    .orElse(bodyCur != null ? bodyCur.trim().toUpperCase(Locale.ROOT) : null);
-            if (checkoutCurrencyCode == null || checkoutCurrencyCode.isEmpty()) {
-                checkoutCurrencyCode = "JPY";
-            }
+            checkoutCurrencyCode = urlPayCheckoutCurrencyService.resolveCheckoutCurrency(
+                    merchantOrgUnitId, bodyCur);
             pgAmount = paymentCurrencyScaleService.toPgAmount(displayAmount, opPg, checkoutCurrencyCode);
         }
         if (pgAmount == null || pgAmount.compareTo(BigDecimal.ZERO) <= 0) {

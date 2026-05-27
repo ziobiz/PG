@@ -26,6 +26,7 @@ public class JpaySaleRecordService {
     private static final Logger log = LoggerFactory.getLogger(JpaySaleRecordService.class);
     private static final String ORIGIN_URL = "URL";
     private static final String ORIGIN_MERCHANT_API = "MERCHANT_API";
+    private static final String ORIGIN_SUBSCRIPTION = "SUBSCRIPTION";
     private static final String ST_PAID = "10";
     private static final String ST_PENDING = "08";
     private static final String ST_FAIL = "99";
@@ -102,7 +103,7 @@ public class JpaySaleRecordService {
         if (amount != null && amount.compareTo(BigDecimal.ZERO) > 0) {
             t.setAmtKrw(amount);
         }
-        String cur = currency != null ? currency.trim().toUpperCase() : "USD";
+        String cur = currency != null ? currency.trim().toUpperCase() : UrlPayCheckoutCurrencyService.DEFAULT_FALLBACK;
         t.setCurType(cur.length() > 3 ? cur.substring(0, 3) : cur);
         t.setRouteNo(String.valueOf(routeNo));
         String cid = customerHint != null && !customerHint.isBlank() ? customerHint.trim() : "guest";
@@ -121,12 +122,17 @@ public class JpaySaleRecordService {
 
     @Transactional
     public void applySyncApiOutcome(String merchantId, String orderNo, int status, String msg) {
+        applySyncApiOutcome(merchantId, orderNo, status, msg, null);
+    }
+
+    @Transactional
+    public void applySyncApiOutcome(String merchantId, String orderNo, int status, String msg, String txnOrigin) {
         if (merchantId == null || merchantId.isBlank() || orderNo == null || orderNo.isBlank()) {
             return;
         }
         try {
             String on = orderNo.trim();
-            Optional<PgTrnsctn> ex = findTxnForOrder(merchantId.trim(), on);
+            Optional<PgTrnsctn> ex = findTxnForOrder(merchantId.trim(), on, txnOrigin);
             if (ex.isEmpty()) {
                 return;
             }
@@ -161,14 +167,30 @@ public class JpaySaleRecordService {
         if (txnOrigin != null && "MERCHANT_API".equalsIgnoreCase(txnOrigin.trim())) {
             return ORIGIN_MERCHANT_API;
         }
+        if (txnOrigin != null && "SUBSCRIPTION".equalsIgnoreCase(txnOrigin.trim())) {
+            return ORIGIN_SUBSCRIPTION;
+        }
         return ORIGIN_URL;
     }
 
     private Optional<PgTrnsctn> findTxnForOrder(String merchantId, String orderNo) {
+        return findTxnForOrder(merchantId, orderNo, null);
+    }
+
+    private Optional<PgTrnsctn> findTxnForOrder(String merchantId, String orderNo, String txnOrigin) {
+        if (txnOrigin != null && "SUBSCRIPTION".equalsIgnoreCase(txnOrigin.trim())) {
+            return pgTrnsctnRepository.findFirstByMerchantIdAndOrderNoAndOrigin(
+                    merchantId, orderNo, ORIGIN_SUBSCRIPTION);
+        }
         Optional<PgTrnsctn> a = pgTrnsctnRepository.findFirstByMerchantIdAndOrderNoAndOrigin(
                 merchantId, orderNo, ORIGIN_MERCHANT_API);
         if (a.isPresent()) {
             return a;
+        }
+        Optional<PgTrnsctn> sub = pgTrnsctnRepository.findFirstByMerchantIdAndOrderNoAndOrigin(
+                merchantId, orderNo, ORIGIN_SUBSCRIPTION);
+        if (sub.isPresent()) {
+            return sub;
         }
         return pgTrnsctnRepository.findFirstByMerchantIdAndOrderNoAndOrigin(
                 merchantId, orderNo, ORIGIN_URL);

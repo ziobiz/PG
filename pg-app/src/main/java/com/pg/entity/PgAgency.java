@@ -54,6 +54,13 @@ public class PgAgency {
     @Column(name = "integ_api_yn", nullable = false, length = 1)
     private String integApiYn = "N";
 
+    /** JPAY 가맹 API 구독(정기) 연동 — integ_api_yn 과 별도 */
+    @Column(name = "integ_api_subscription_yn", nullable = false, length = 1)
+    private String integApiSubscriptionYn = "N";
+
+    @Column(name = "endpoint_api_subscription", length = 512)
+    private String endpointApiSubscription;
+
     /** URL 재결제(저장 카드·CreditToken) 연동 */
     @Column(name = "integ_url_pay_repay_yn", nullable = false, length = 1)
     private String integUrlPayRepayYn = "N";
@@ -130,6 +137,9 @@ public class PgAgency {
         if (integApiYn == null || integApiYn.isBlank()) {
             integApiYn = "N";
         }
+        if (integApiSubscriptionYn == null || integApiSubscriptionYn.isBlank()) {
+            integApiSubscriptionYn = "N";
+        }
         if (integUrlPayRepayYn == null || integUrlPayRepayYn.isBlank()) {
             integUrlPayRepayYn = "N";
         }
@@ -157,6 +167,10 @@ public class PgAgency {
     public void setIntegWebChatbotYn(String integWebChatbotYn) { this.integWebChatbotYn = integWebChatbotYn; }
     public String getIntegApiYn() { return integApiYn; }
     public void setIntegApiYn(String integApiYn) { this.integApiYn = integApiYn; }
+    public String getIntegApiSubscriptionYn() { return integApiSubscriptionYn; }
+    public void setIntegApiSubscriptionYn(String integApiSubscriptionYn) { this.integApiSubscriptionYn = integApiSubscriptionYn; }
+    public String getEndpointApiSubscription() { return endpointApiSubscription; }
+    public void setEndpointApiSubscription(String endpointApiSubscription) { this.endpointApiSubscription = endpointApiSubscription; }
     public String getIntegUrlPayRepayYn() { return integUrlPayRepayYn; }
     public void setIntegUrlPayRepayYn(String integUrlPayRepayYn) { this.integUrlPayRepayYn = integUrlPayRepayYn; }
     public String getEndpointUrlPayRepay() { return endpointUrlPayRepay; }

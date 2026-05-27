@@ -41,15 +41,18 @@ public class JpayNotifyToTrnsctnService implements PgNotifyInboundTxnHandler {
     private final PgAgencyRepository pgAgencyRepository;
     private final SettlementCalcService settlementCalcService;
     private final HqLedgerSysSettingsService hqLedgerSysSettingsService;
+    private final JpaySubscriptionNotifyService jpaySubscriptionNotifyService;
 
     public JpayNotifyToTrnsctnService(PgTrnsctnRepository pgTrnsctnRepository,
                                       PgAgencyRepository pgAgencyRepository,
                                       SettlementCalcService settlementCalcService,
-                                      HqLedgerSysSettingsService hqLedgerSysSettingsService) {
+                                      HqLedgerSysSettingsService hqLedgerSysSettingsService,
+                                      JpaySubscriptionNotifyService jpaySubscriptionNotifyService) {
         this.pgTrnsctnRepository = pgTrnsctnRepository;
         this.pgAgencyRepository = pgAgencyRepository;
         this.settlementCalcService = settlementCalcService;
         this.hqLedgerSysSettingsService = hqLedgerSysSettingsService;
+        this.jpaySubscriptionNotifyService = jpaySubscriptionNotifyService;
     }
 
     @Override
@@ -108,12 +111,15 @@ public class JpayNotifyToTrnsctnService implements PgNotifyInboundTxnHandler {
             log.warn("JPAY 노티 가맹점 미해석 orderid={}", orderid);
             return true;
         }
+        if (jpaySubscriptionNotifyService.isSubscriptionNotify(form)) {
+            jpaySubscriptionNotifyService.applySubscriptionNotify(merchantId.trim(), form, notifyChannel);
+            return true;
+        }
         String on = orderid.trim();
         if (on.length() > 64) {
             on = on.substring(0, 64);
         }
-        Optional<PgTrnsctn> ex = pgTrnsctnRepository.findFirstByMerchantIdAndOrderNoAndOrigin(
-                merchantId.trim(), on, ORIGIN_URL);
+        Optional<PgTrnsctn> ex = findJpayTxn(merchantId.trim(), on);
         PgTrnsctn t = ex.orElseGet(() -> {
             PgTrnsctn x = new PgTrnsctn();
             x.setTrnId(newTrnId());
@@ -187,6 +193,21 @@ public class JpayNotifyToTrnsctnService implements PgNotifyInboundTxnHandler {
         }
         log.info("JPAY 노티 반영 trnId={} merchantId={} orderNo={} returncode={}", t.getTrnId(), merchantId, on, ret);
         return true;
+    }
+
+    private Optional<PgTrnsctn> findJpayTxn(String merchantId, String orderNo) {
+        Optional<PgTrnsctn> sub = pgTrnsctnRepository.findFirstByMerchantIdAndOrderNoAndOrigin(
+                merchantId, orderNo, "SUBSCRIPTION");
+        if (sub.isPresent()) {
+            return sub;
+        }
+        Optional<PgTrnsctn> api = pgTrnsctnRepository.findFirstByMerchantIdAndOrderNoAndOrigin(
+                merchantId, orderNo, "MERCHANT_API");
+        if (api.isPresent()) {
+            return api;
+        }
+        return pgTrnsctnRepository.findFirstByMerchantIdAndOrderNoAndOrigin(
+                merchantId, orderNo, ORIGIN_URL);
     }
 
     private Optional<PgAgency> findJpayAgencyByMerchantMid(String memberid) {

@@ -236,6 +236,8 @@ public class ApiCompController {
             @RequestParam(required = false) String defaultProductDesc,
             @RequestParam(required = false) String notifyUrlBackground,
             @RequestParam(required = false) String notifyUrlResult,
+            @RequestParam(required = false) String jpayNotifyUrl,
+            @RequestParam(required = false) String jpayCallbackUrl,
             @RequestParam(required = false) String notifyUrl1,
             @RequestParam(required = false) String notifyUrl2,
             @RequestParam(required = false) String notifyUrl3,
@@ -279,6 +281,7 @@ public class ApiCompController {
             @RequestParam(required = false) String urlPayCheckoutMode,
             @RequestParam(required = false) String apiUrlPayCheckoutMode,
             @RequestParam(required = false) String chatbotUrlPayCheckoutMode,
+            @RequestParam(required = false) String apiJpaySubscriptionUseYn,
             @RequestParam(required = false) String tabletFeatureUseYn) {
         Long parentIdVal = parentId;
         if (parentIdVal == null && parentComp != null && !parentComp.isEmpty()) {
@@ -319,6 +322,7 @@ public class ApiCompController {
                 pgBindings, webPaymentUseYn, chatbotPaymentUseYn, baseCurrency,
                 defaultProductName, defaultProductCode, defaultProductAmount, defaultProductDesc,
                 notifyUrlBackground, notifyUrlResult,
+                jpayNotifyUrl, jpayCallbackUrl,
                 notifyUrl1, notifyUrl2, notifyUrl3, notifyUrl4,
                 middlewareNotifyUrl, middlewareNotifySecret,
                 commissionFollowHq, hqPolicyScope, perTxFee, cancelRate, voidFeePerTx, manualVoidFeePerTx, usageRate, failFee, payRate, refundRate, rollingPct, rollingDays,
@@ -331,6 +335,7 @@ public class ApiCompController {
                 urlPayCheckoutMode,
                 apiUrlPayCheckoutMode,
                 chatbotUrlPayCheckoutMode,
+                apiJpaySubscriptionUseYn,
                 tabletFeatureUseYn);
         return ResponseEntity.ok(ApiResponse.ok(Map.of("compId", saved.getCode(), "compNm", saved.getName())));
         } catch (IllegalArgumentException e) {
@@ -436,6 +441,8 @@ public class ApiCompController {
             @RequestParam(required = false) String defaultProductDesc,
             @RequestParam(required = false) String notifyUrlBackground,
             @RequestParam(required = false) String notifyUrlResult,
+            @RequestParam(required = false) String jpayNotifyUrl,
+            @RequestParam(required = false) String jpayCallbackUrl,
             @RequestParam(required = false) String notifyUrl1,
             @RequestParam(required = false) String notifyUrl2,
             @RequestParam(required = false) String notifyUrl3,
@@ -483,6 +490,7 @@ public class ApiCompController {
             @RequestParam(required = false) String urlPayCheckoutMode,
             @RequestParam(required = false) String apiUrlPayCheckoutMode,
             @RequestParam(required = false) String chatbotUrlPayCheckoutMode,
+            @RequestParam(required = false) String apiJpaySubscriptionUseYn,
             @RequestParam(required = false) String tabletFeatureUseYn) {
         var targetOpt = compService.getDetail(compId);
         if (targetOpt.isEmpty()) {
@@ -509,6 +517,7 @@ public class ApiCompController {
                     assistantLoginId, assistantPwd, assistantRoleType, brandingEditAllowedYn,
                     defaultProductName, defaultProductCode, defaultProductAmount, defaultProductDesc,
                     notifyUrlBackground, notifyUrlResult,
+                    jpayNotifyUrl, jpayCallbackUrl,
                     notifyUrl1, notifyUrl2, notifyUrl3, notifyUrl4,
                     middlewareNotifyUrl, middlewareNotifySecret,
                     commissionFollowHq, hqPolicyScope, perTxFee, cancelRate, voidFeePerTx, manualVoidFeePerTx, usageRate, failFee, payRate, refundRate, rollingPct, rollingDays,
@@ -521,6 +530,7 @@ public class ApiCompController {
                     urlPayCheckoutMode,
                     apiUrlPayCheckoutMode,
                     chatbotUrlPayCheckoutMode,
+                    apiJpaySubscriptionUseYn,
                     tabletFeatureUseYn);
             return ResponseEntity.ok(ok ? ApiResponse.ok(Map.of("success", true, "message", "저장되었습니다."))
                     : ApiResponse.fail("업체를 찾을 수 없습니다.", "NOT_FOUND"));

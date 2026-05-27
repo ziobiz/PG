@@ -1266,7 +1266,7 @@ public class ChillPayService {
     }
 
     /** URL 결제 기본 방식과 INLINE/REDIRECT 제공 여부를 반영한 실효 방식 */
-    static String effectiveUrlPayFlow(HqApiConfig c) {
+    public static String effectiveUrlPayFlow(HqApiConfig c) {
         String def = c.getUrlPayDefaultFlowType() != null ? c.getUrlPayDefaultFlowType().trim() : "REDIRECT";
         boolean inlineOk = !"N".equalsIgnoreCase(c.getUrlPayInlineEnabledYn());
         boolean redirectOk = !"N".equalsIgnoreCase(c.getUrlPayRedirectEnabledYn());
@@ -1285,7 +1285,7 @@ public class ChillPayService {
         return "INLINE";
     }
 
-    static String effectiveUrlPayFormMode(HqApiConfig c) {
+    public static String effectiveUrlPayFormMode(HqApiConfig c) {
         String fm = c.getUrlPayFormMode();
         if (fm == null || fm.isBlank()) {
             return "FULL";

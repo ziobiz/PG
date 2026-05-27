@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
-  <title>JPAY Payment</title>
+  <title>JPAY Subscription</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="css/pay-inline.css?v=32" rel="stylesheet">
   <script>
@@ -23,7 +23,7 @@
     <div class="pay-card">
       <div class="pay-brand" id="jpayBrandBlock">
         <div class="pay-brand-logo">ICOPAY</div>
-        <div class="pay-brand-sub">JPAY Secure checkout</div>
+        <div class="pay-brand-sub">JPAY Subscription checkout</div>
       </div>
       <div id="configError" class="alert alert-warning pay-alert-config" style="display:none;"></div>
       <div id="payResult" class="pay-result" style="display:none;"></div>
@@ -34,6 +34,10 @@
           <div class="pay-row pay-row-static">
             <div class="pay-row-label">Merchant</div>
             <div class="pay-row-value"><span id="merchantNameDisplay">—</span></div>
+          </div>
+          <div class="pay-row pay-row-static" id="planInfoRow" style="display:none;">
+            <div class="pay-row-label">Plan</div>
+            <div class="pay-row-value"><span id="planInfoDisplay">—</span></div>
           </div>
           <div class="pay-row">
             <label class="pay-row-label mb-0" for="item">Item</label>
@@ -67,7 +71,7 @@
           <div class="col-6"><input type="text" class="form-control form-control-sm pay-input-round" id="payCity" placeholder="City" required></div>
           <div class="col-6"><input type="text" class="form-control form-control-sm pay-input-round" id="payPostcode" placeholder="Postcode" required></div>
         </div>
-        <button type="submit" class="btn btn-primary btn-pay w-100" id="submitBtn">Pay</button>
+        <button type="submit" class="btn btn-primary btn-pay w-100" id="submitBtn">Subscribe</button>
       </form>
     </div>
   </div>
@@ -76,9 +80,7 @@
       var PAY_ENTRY_MERCHANT_API = (function () {
         try { return String(new URLSearchParams(location.search).get('entry') || '').toLowerCase() === 'merchant_api'; } catch (e) { return false; }
       })();
-      var PAY_ENTRY_CHATBOT = (function () {
-        try { return String(new URLSearchParams(location.search).get('entry') || '').toLowerCase() === 'chatbot'; } catch (e) { return false; }
-      })();
+      var PAY_ENTRY_CHATBOT = false;
       var PAY_EMBED_MODE = (function () {
         try { var q = new URLSearchParams(location.search); return q.get('embed') === '1' || q.get('embed') === 'true'; } catch (e) { return false; }
       })();
@@ -126,48 +128,48 @@
       var LANG = resolveInitialUrlPayLang();
       var I18N = {
         KOR: {
-          title: 'JPAY 결제', brandSub: 'JPAY 안전 결제', merchant: '가맹점', item: '상품명', amount: '금액', card: '카드',
+          title: 'JPAY 구독', brandSub: 'JPAY 정기결제', merchant: '가맹점', item: '상품명', amount: '금액', card: '카드',
           cardNo: '카드번호', firstName: '이름', lastName: '성', email: '이메일', billing: '청구 정보',
-          phone: '전화번호', country: '국가(2자)', address: '주소', city: '도시', postcode: '우편번호', pay: '결제',
-          errMerchant: '가맹점 코드(m)가 필요합니다.', errLoad: '결제 화면을 불러오지 못했습니다.',
+          phone: '전화번호', country: '국가(2자)', address: '주소', city: '도시', postcode: '우편번호', pay: '구독하기',
+          errMerchant: '가맹점 코드(m)가 필요합니다.', errLoad: '구독 화면을 불러오지 못했습니다.',
           errInvalidSession: '세션이 유효하지 않거나 만료되었습니다.', errSessionMismatch: '세션과 주문 정보가 일치하지 않습니다.',
-          payComplete: '결제 완료', payFailed: '결제 실패', paid: '결제되었습니다.', networkErr: '네트워크 오류',
+          payComplete: '구독 완료', payFailed: '구독 실패', paid: '구독이 등록되었습니다.', networkErr: '네트워크 오류',
           mm: 'MM', yyyy: 'YYYY', cvv: 'CVV'
         },
         ENG: {
-          title: 'JPAY Payment', brandSub: 'JPAY Secure checkout', merchant: 'Merchant', item: 'Item', amount: 'Amount', card: 'Card',
+          title: 'JPAY Subscription', brandSub: 'JPAY recurring billing', merchant: 'Merchant', item: 'Item', amount: 'Amount', card: 'Card',
           cardNo: 'Card number', firstName: 'First name', lastName: 'Last name', email: 'Email', billing: 'Billing',
-          phone: 'Phone', country: 'Country (ISO2)', address: 'Address', city: 'City', postcode: 'Postcode', pay: 'Pay',
-          errMerchant: 'Merchant code (m) is required.', errLoad: 'Failed to load checkout.',
+          phone: 'Phone', country: 'Country (ISO2)', address: 'Address', city: 'City', postcode: 'Postcode', pay: 'Subscribe',
+          errMerchant: 'Merchant code (m) is required.', errLoad: 'Failed to load subscription checkout.',
           errInvalidSession: 'Session is invalid or expired.', errSessionMismatch: 'Session does not match order details.',
-          payComplete: 'Payment complete', payFailed: 'Payment failed', paid: 'Paid', networkErr: 'Network error',
+          payComplete: 'Subscription complete', payFailed: 'Subscription failed', paid: 'Subscribed.', networkErr: 'Network error',
           mm: 'MM', yyyy: 'YYYY', cvv: 'CVV'
         },
         JPN: {
-          title: 'JPAY 決済', brandSub: 'JPAY セキュア決済', merchant: '加盟店', item: '商品名', amount: '金額', card: 'カード',
+          title: 'JPAY 定期', brandSub: 'JPAY 定期決済', merchant: '加盟店', item: '商品名', amount: '金額', card: 'カード',
           cardNo: 'カード番号', firstName: '名', lastName: '姓', email: 'メール', billing: '請求先',
-          phone: '電話', country: '国(2字)', address: '住所', city: '市区町村', postcode: '郵便番号', pay: '支払う',
-          errMerchant: '加盟店コード(m)が必要です。', errLoad: '決済画面の読み込みに失敗しました。',
+          phone: '電話', country: '国(2字)', address: '住所', city: '市区町村', postcode: '郵便番号', pay: '定期登録',
+          errMerchant: '加盟店コード(m)が必要です。', errLoad: '定期決済画面の読み込みに失敗しました。',
           errInvalidSession: 'セッションが無効または期限切れです。', errSessionMismatch: 'セッションと注文情報が一致しません。',
-          payComplete: '決済完了', payFailed: '決済失敗', paid: '決済完了', networkErr: 'ネットワークエラー',
+          payComplete: '定期登録完了', payFailed: '定期登録失敗', paid: '定期登録が完了しました。', networkErr: 'ネットワークエラー',
           mm: 'MM', yyyy: 'YYYY', cvv: 'CVV'
         },
         CHN: {
-          title: 'JPAY 支付', brandSub: 'JPAY 安全支付', merchant: '商户', item: '商品', amount: '金额', card: '银行卡',
+          title: 'JPAY 订阅', brandSub: 'JPAY 定期扣款', merchant: '商户', item: '商品', amount: '金额', card: '银行卡',
           cardNo: '卡号', firstName: '名', lastName: '姓', email: '邮箱', billing: '账单地址',
-          phone: '电话', country: '国家(2位)', address: '地址', city: '城市', postcode: '邮编', pay: '支付',
-          errMerchant: '需要商户代码(m)。', errLoad: '无法加载支付页面。',
+          phone: '电话', country: '国家(2位)', address: '地址', city: '城市', postcode: '邮编', pay: '订阅',
+          errMerchant: '需要商户代码(m)。', errLoad: '无法加载订阅页面。',
           errInvalidSession: '会话无效或已过期。', errSessionMismatch: '会话与订单信息不一致。',
-          payComplete: '支付完成', payFailed: '支付失败', paid: '已支付', networkErr: '网络错误',
+          payComplete: '订阅完成', payFailed: '订阅失败', paid: '订阅已注册。', networkErr: '网络错误',
           mm: 'MM', yyyy: 'YYYY', cvv: 'CVV'
         },
         THA: {
-          title: 'JPAY ชำระเงิน', brandSub: 'JPAY ชำระเงินปลอดภัย', merchant: 'ร้านค้า', item: 'สินค้า', amount: 'จำนวนเงิน', card: 'บัตร',
+          title: 'JPAY สมัครสมาชิก', brandSub: 'JPAY ชำระรายงวด', merchant: 'ร้านค้า', item: 'สินค้า', amount: 'จำนวนเงิน', card: 'บัตร',
           cardNo: 'หมายเลขบัตร', firstName: 'ชื่อ', lastName: 'นามสกุล', email: 'อีเมล', billing: 'ที่อยู่เรียกเก็บ',
-          phone: 'โทรศัพท์', country: 'ประเทศ(2)', address: 'ที่อยู่', city: 'เมือง', postcode: 'รหัสไปรษณีย์', pay: 'ชำระเงิน',
-          errMerchant: 'ต้องระบุรหัสร้านค้า (m)', errLoad: 'โหลดหน้าชำระเงินไม่สำเร็จ',
+          phone: 'โทรศัพท์', country: 'ประเทศ(2)', address: 'ที่อยู่', city: 'เมือง', postcode: 'รหัสไปรษณีย์', pay: 'สมัคร',
+          errMerchant: 'ต้องระบุรหัสร้านค้า (m)', errLoad: 'โหลดหน้าสมัครไม่สำเร็จ',
           errInvalidSession: 'เซสชันไม่ถูกต้องหรือหมดอายุ', errSessionMismatch: 'เซสชันไม่ตรงกับข้อมูลคำสั่งซื้อ',
-          payComplete: 'ชำระเงินสำเร็จ', payFailed: 'ชำระเงินล้มเหลว', paid: 'ชำระแล้ว', networkErr: 'ข้อผิดพลาดเครือข่าย',
+          payComplete: 'สมัครสำเร็จ', payFailed: 'สมัครล้มเหลว', paid: 'สมัครแล้ว', networkErr: 'ข้อผิดพลาดเครือข่าย',
           mm: 'MM', yyyy: 'YYYY', cvv: 'CVV'
         }
       };
@@ -270,14 +272,14 @@
         el.style.display = 'block';
         el.className = ok ? 'ok pay-result-final' : 'err pay-result-final';
         el.innerHTML = '<div class="pay-result-title">' + (ok ? t('payComplete') : t('payFailed')) + '</div><p>' + msg + '</p>';
-        notifyParent(Object.assign({ phase: 'finished', success: ok, orderNo: orderNo || '', message: msg, pgVendor: 'JPAY' }, extra || {}));
+        notifyParent(Object.assign({ phase: 'finished', success: ok, orderNo: orderNo || '', message: msg, pgVendor: 'JPAY', checkoutKind: 'SUBSCRIPTION' }, extra || {}));
       }
 
       function buildJpayOrderNo(compId) {
         var t = String(Date.now());
         var c = String(compId || 'X').replace(/[^0-9A-Za-z]/g, '');
         if (c.length > 6) c = c.slice(0, 6);
-        var raw = 'P' + c + t;
+        var raw = 'S' + c + t;
         if (raw.length > 20) raw = raw.slice(0, 20);
         return raw;
       }
@@ -298,12 +300,13 @@
       var checkoutCtx = null;
       var sessionPayload = null;
 
+      var sessionToken = '';
+
       function validateSession() {
         if (!PAY_ENTRY_MERCHANT_API) return Promise.resolve();
-        var tok = '';
-        try { tok = (new URLSearchParams(location.search).get('session') || '').trim(); } catch (e) {}
-        if (!tok) return Promise.resolve();
-        return fetchJson(apiUrl('/api/middleware/v1/merchant/jpay/inline-checkout/session', 'token=' + encodeURIComponent(tok)))
+        try { sessionToken = (new URLSearchParams(location.search).get('session') || '').trim(); } catch (e) {}
+        if (!sessionToken) return Promise.resolve();
+        return fetchJson(apiUrl('/api/middleware/v1/merchant/jpay/subscription/session', 'token=' + encodeURIComponent(sessionToken)))
           .then(function (res) {
             if (!res.success || !res.data) throw new Error(t('errInvalidSession'));
             sessionPayload = res.data;
@@ -312,6 +315,14 @@
             lockField('amount', d.amount);
             lockField('item', d.productName);
             if (d.currency) document.getElementById('currencyHint').textContent = String(d.currency).toUpperCase();
+            if (d.subscriptionPlanJson) {
+              try {
+                var plan = JSON.parse(d.subscriptionPlanJson);
+                var info = (plan.name || 'Plan') + ' (' + (plan.plan_type || '') + ')';
+                document.getElementById('planInfoDisplay').textContent = info;
+                document.getElementById('planInfoRow').style.display = '';
+              } catch (eP) { /* ignore */ }
+            }
           });
       }
 
@@ -341,7 +352,7 @@
           if (brand && PAY_ENTRY_MERCHANT_API) brand.style.display = 'none';
         }
         applyQueryPrefills();
-        fetchJson(apiUrl('/api/pay/jpay/checkout-context', 'compId=' + encodeURIComponent(compId)))
+        fetchJson(apiUrl('/api/pay/jpay/subscribe-checkout-context', 'compId=' + encodeURIComponent(compId)))
           .then(function (ctxRes) {
             if (!ctxRes.success || !ctxRes.data) throw new Error(ctxRes.message || 'Config error');
             var ctx = ctxRes.data;
@@ -417,9 +428,10 @@
           payLanguage: jpayPayLanguageCode(),
           langCode: LANG,
           system: 'icopay',
-          txnOrigin: PAY_ENTRY_CHATBOT ? 'CHATBOT' : (PAY_ENTRY_MERCHANT_API ? 'MERCHANT_API' : 'URL')
+          txnOrigin: 'SUBSCRIPTION',
+          sessionToken: sessionToken
         };
-        fetch(API_BASE + '/api/pay/jpay/sale', {
+        fetch(API_BASE + '/api/pay/jpay/subscribe', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(body)
@@ -437,7 +449,7 @@
             return;
           }
           if (st === 0) {
-            showFinished(true, msg || t('paid'), body.orderNo, { jpayStatus: st });
+            showFinished(true, msg || t('paid'), body.orderNo, { jpayStatus: st, checkoutKind: 'SUBSCRIPTION' });
             return;
           }
           showFinished(false, msg || t('payFailed'), body.orderNo, { jpayStatus: st });

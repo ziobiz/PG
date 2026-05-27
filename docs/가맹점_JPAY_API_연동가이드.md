@@ -8,7 +8,8 @@
 | **적용 PG** | **JPAY** (ICOPAY 공개 API — `pay_index` 서버 사이드) |
 | **문의** | 계약·MID·키·노티 URL·`jpayNotifyIngressStyle` 등은 **플랫폼(본사)** 관리자 채널 |
 
-**목적:** 가맹점이 ICOPAY **JPAY 브로커/레거시 API**만 사용해 매출 요청·3DS 리턴을 처리하고, 통보(웹훅)를 받기 위한 개발·검수 기준을 정리합니다.  
+**목적:** 가맹점이 ICOPAY **JPAY 브로커/레거시 API** 또는 **인라인 iframe URL 결제**로 매출·3DS·통보(웹훅)를 처리하기 위한 개발·검수 기준을 정리합니다.  
+**인라인 URL 결제(쇼핑몰 iframe) 배포·검수** → **`JPAY_URL결제_인라인API_배포가이드.md`** (권장)  
 **ChillPay만 연동하는 경우** → `가맹점_ChillPay_API_연동가이드.md` 를 사용하세요.  
 **전체 목차·배포 안내** → `가맹점_API_연동_매뉴얼_목차.md`
 
@@ -27,6 +28,7 @@
 1. [전제·용어](#1-전제용어)  
 2. [본사로부터 전달받을 것](#2-본사로부터-전달받을-것)  
 3. [권장 개발 순서 (JPAY)](#3-권장-개발-순서-jpay)  
+3-A. [인라인 URL 결제 (iframe)](#3-a-인라인-url-결제-iframe)  
 4. [공통 기술 사양](#4-공통-기술-사양)  
 5. [JPAY REST API 상세](#5-jpay-rest-api-상세)  
 6. [가맹점 서버 통보(웹훅)](#6-가맹점-서버-통보웹훅)  
@@ -69,12 +71,52 @@
 
 ## 3. 권장 개발 순서 (JPAY)
 
-1. 키트·JPAY 바인딩(`JPAY` 계열 `pg_cd`, 운영 Y) 확인  
+**연동 방식을 먼저 선택하세요.**
+
+| 방식 | 용도 | 문서 |
+|------|------|------|
+| **인라인 URL (권장 — 쇼핑몰)** | 가맹 서버 `prepare` → iframe `jpay-pay.html` | **`JPAY_URL결제_인라인API_배포가이드.md`** · 아래 §3-A |
+| **서버 직접 sale** | 가맹 백엔드가 카드 필드를 받아 `POST .../jpay/sale` | 본 문서 §5 |
+
+### 3.1 서버 직접 sale 순서
+
+1. 키트·JPAY 바인딩(`JPAY` 계열 `pg_cd`, WEB·운영 Y) 확인  
 2. **통보 URL** 스텁  
 3. 브로커 시크릿 강제 시 헤더  
 4. **`POST .../jpay/sale`** 연동 — 응답의 `status`, `redirectUrl` 처리  
 5. JPAY 매뉴얼과 병행해 3DS·비동기 노티 시나리오 검증  
 6. 본사 검수
+
+---
+
+## 3-A. 인라인 URL 결제 (iframe)
+
+ChillPay URL 인라인과 **동일한 중계 패턴**입니다. 차이는 JPAY 전용 경로·결제창·본사 **API 중계형 INLINE** 설정입니다.
+
+### 흐름
+
+1. 가맹 서버: `POST {BASE}/api/middleware/v1/merchant/jpay/inline-checkout/prepare` (+ 브로커 시크릿)  
+2. 응답 `sessionToken` → embed 스크립트 `data-session-token` 또는 `payUrl` iframe  
+3. 고객: `jpay-pay.html` 에서 카드 입력 → ICOPAY가 `pay_index` 호출  
+4. 완료: `postMessage` 이벤트 **`ICOPAY_INLINE_CHECKOUT`** + 가맹 웹훅(멱등)
+
+### 키트 JSON
+
+`merchantInlineCheckoutJpay` 블록에 `prepareUrl`, `embedScriptUrl`, `embedScriptExample`, `statusUrl` 이 포함됩니다.
+
+### PHP 최소 예
+
+```php
+$prep = $api->prepareInlineCheckout(
+    IcopayMerchantApi::VENDOR_JPAY, $orderNo, $amount, 'USD', $productName
+);
+echo $api->buildEmbedHtml(IcopayMerchantApi::VENDOR_JPAY, $prep['data']['sessionToken']);
+```
+
+전체 예: `merchant-api-samples/php/checkout_jpay.php`  
+배포·본사 설정·체크리스트: **`JPAY_URL결제_인라인API_배포가이드.md`**
+
+> **ChillPay·노티 전용** 가맹점 바인딩만으로는 JPAY 인라인을 사용할 수 없습니다. JPAY `pg_cd` 를 별도 등록해야 합니다.
 
 ---
 
@@ -106,10 +148,22 @@ JPAY 관련 `errorCode` 예: `NOT_FOUND`, `ORG_DISABLED`, `BROKER_AUTH`, `JPAY_E
 | `compId` / `merchantId` | 예 | 가맹 식별 |
 | `orderNo` | 예 | 최대 64자(초과 시 잘림) |
 | `amount` | 예 | 0 초과 |
-| `currency` | 아니오 | 기본 `USD` |
+| `currency` | 아니오 | ChillPay URL 일반형과 동일: 가맹 → 총판 → 본사 **기준통화** 우선, 없으면 본문 값, 최종 **`JPY`** |
 | `payUrl` | 아니오 | 비우면 플랫폼 공개 베이스 |
 
-카드·청구지 등: JSON 키 예 `payCardno` → JPAY `pay_cardno` 등(플랫폼 매핑).
+**J-Pay Sale 매핑** ([공식 Sale API](https://docs.j-pay.net/docs/api/sale)): ICOPAY JSON → `pay_index` form.
+
+| ICOPAY JSON | J-Pay 필드 |
+|-------------|-----------|
+| `payCardno` … `payCardcvv` | `pay_cardno` … |
+| `payFirstname`, `payLastname`, `payEmailAddress` | `pay_firstname` … |
+| `payTelephone`, `payCountryIsoCode2`, `payStreetAddress1`, `payCity`, `payPostcode` | 동명 snake_case |
+| `payLanguage` / `langCode` | `pay_language` (`en`, `ko`, `zh` …) |
+| (생략) | `system` 기본 `icopay`, 배송 주소는 청구지 복제 |
+
+**응답 `status`:** `0` 성공 · `1` 3DS(`redirectUrl`) · `2` 실패 — J-Pay 문서와 동일.
+
+카드·청구지 등: JSON camelCase → JPAY `pay_*` snake_case (플랫폼 매핑).
 
 ### 응답 `data` (참고)
 
@@ -141,6 +195,10 @@ JPAY 관련 `errorCode` 예: `NOT_FOUND`, `ORG_DISABLED`, `BROKER_AUTH`, `JPAY_E
 
 ## 8. 검수·오픈 전 체크리스트
 
+**인라인 URL:** `JPAY_URL결제_인라인API_배포가이드.md` §8 체크리스트 우선.
+
+**서버 직접 sale:**
+
 - [ ] 운영 베이스 URL만 사용  
 - [ ] 브로커 시크릿(강제 시)  
 - [ ] `sale` 후 `status` / `redirectUrl` / 고객 복귀 처리  
@@ -151,6 +209,15 @@ JPAY 관련 `errorCode` 예: `NOT_FOUND`, `ORG_DISABLED`, `BROKER_AUTH`, `JPAY_E
 ---
 
 ## 9. 부록 — 엔드포인트
+
+**인라인 prepare (가맹 서버):**
+
+```
+POST {BASE}/api/middleware/v1/merchant/jpay/inline-checkout/prepare
+GET  {BASE}/api/middleware/v1/merchant/jpay/inline-checkout/status?compId=&orderNo=
+```
+
+**서버 직접 sale:**
 
 ```
 POST {BASE}/api/middleware/v1/pg/jpay/sale

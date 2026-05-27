@@ -193,6 +193,7 @@ public class MerchantApiDeploymentService {
         }
         if (MerchantPgBrokerVendor.ALL.equals(vs) || MerchantPgBrokerVendor.JPAY.equals(vs)) {
             kit.put("merchantInlineCheckoutJpay", buildMerchantInlineCheckoutBlock(publicApiBase, ou.getCode(), "jpay"));
+            kit.put("merchantSubscriptionCheckoutJpay", buildMerchantSubscriptionCheckoutBlock(publicApiBase, ou.getCode()));
         }
 
         kit.put("merchantIntegrationSamples", buildIntegrationSamples(publicApiBase));
@@ -206,6 +207,8 @@ public class MerchantApiDeploymentService {
                         + publicApiBase + "/api/middleware/v1/merchant/chillpay/inline-checkout/prepare → sessionToken → /v1/embed-pay/{compId}",
                 "JPAY 인라인(가맹 API): 가맹 서버 POST "
                         + publicApiBase + "/api/middleware/v1/merchant/jpay/inline-checkout/prepare → sessionToken → /v1/embed-jpay-pay/{compId}",
+                "JPAY 구독(가맹 API·③): POST "
+                        + publicApiBase + "/api/middleware/v1/merchant/jpay/subscription/prepare → sessionToken → /v1/embed-jpay-subscribe/{compId}",
                 "가맹 PHP/JSP: prepare 는 반드시 가맹 서버에서 호출(브로커 시크릿 노출 금지). 브라우저에는 sessionToken·embed 스크립트만 전달",
                 "ChillPay 콜백·리다이렉트 URL은 본사 API연동설정·노티구성과 동일하게 유지",
                 "JPAY pay_notifyurl·콜백은 기본적으로 notifyIngressUrlMiddleware 경로를 사용합니다. 레거시만 필요하면 tb_pg_agency credentials_extra_json 에 jpayNotifyIngressStyle=OPEN",
@@ -261,6 +264,45 @@ public class MerchantApiDeploymentService {
         block.put("jspClientFile", "merchant-api-samples/jsp/IcopayMerchantApi.sample.java");
         block.put("phpCheckoutExample", jpay ? "merchant-api-samples/php/checkout_jpay.php" : "merchant-api-samples/php/checkout_chillpay.php");
         block.put("jspCheckoutExample", jpay ? "merchant-api-samples/jsp/checkout-jpay.jsp" : "merchant-api-samples/jsp/checkout-chillpay.jsp");
+        return block;
+    }
+
+    private Map<String, Object> buildMerchantSubscriptionCheckoutBlock(String publicApiBase, String compId) {
+        String base = publicApiBase != null ? publicApiBase.trim() : "";
+        Map<String, Object> block = new LinkedHashMap<>();
+        block.put("integrationMode", "INLINE");
+        block.put("checkoutKind", "SUBSCRIPTION");
+        block.put("pgVendor", MerchantPgBrokerVendor.JPAY);
+        block.put("descriptionKr", "JPAY API 구독 — jpay-subscribe.html(카드·3DS·정기) iframe 삽입");
+        block.put("prepareUrl", base + "/api/middleware/v1/merchant/jpay/subscription/prepare");
+        block.put("sessionUrl", base + "/api/middleware/v1/merchant/jpay/subscription/session?token={sessionToken}");
+        block.put("statusUrl", base + "/api/middleware/v1/merchant/jpay/subscription/status?compId=" + compId + "&orderNo={orderNo}");
+        block.put("cancelUrl", base + "/api/middleware/v1/merchant/jpay/subscription/cancel");
+        block.put("embedScriptUrl", base + "/v1/embed-jpay-subscribe/" + compId);
+        block.put("subscribePagePathTemplate", base + "/jpay-subscribe/" + compId + "?entry=merchant_api&embed=1&session={sessionToken}&lang={langCode}");
+        block.put("prepareBodyExample", Map.of(
+                "compId", compId,
+                "orderNo", "SUB-001",
+                "amount", 9.99,
+                "currency", "USD",
+                "productName", "Monthly Plan",
+                "subscriptionPlan", Map.of(
+                        "name", "Monthly Plan",
+                        "plan_type", "monthly",
+                        "description", "Monthly subscription",
+                        "attempts", "3",
+                        "interval_time", 3600,
+                        "total_count", 12
+                ),
+                "lang", "ENG"
+        ));
+        block.put("embedScriptExample",
+                "<div id=\"icopay-jpay-subscribe\"></div>\n"
+                        + "<script src=\"" + base + "/v1/embed-jpay-subscribe/" + compId + "\"\n"
+                        + "  data-session-token=\"{sessionToken}\"\n"
+                        + "  data-target=\"icopay-jpay-subscribe\"\n"
+                        + "  data-lang=\"{langCode}\" async defer charset=\"utf-8\"></script>");
+        block.put("postMessageEvent", "ICOPAY_INLINE_CHECKOUT");
         return block;
     }
 

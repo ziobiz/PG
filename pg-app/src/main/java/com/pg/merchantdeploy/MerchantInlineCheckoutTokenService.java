@@ -17,10 +17,13 @@ import java.util.Optional;
 import java.util.UUID;
 
 /**
- * 가맹점 인라인 결제 세션 토큰(HMAC). DB 없이 서명·만료만 검증합니다.
+ * 가맹점 인라인 결제·구독 세션 토큰(HMAC). DB 없이 서명·만료만 검증합니다.
  */
 @Service
 public class MerchantInlineCheckoutTokenService {
+
+    public static final String CHECKOUT_ONE_TIME = "ONE_TIME";
+    public static final String CHECKOUT_SUBSCRIPTION = "SUBSCRIPTION";
 
     private static final int DEFAULT_TTL_SECONDS = 1800;
 
@@ -38,6 +41,8 @@ public class MerchantInlineCheckoutTokenService {
             String currency,
             String productName,
             String pgVendor,
+            String checkoutKind,
+            String subscriptionPlanJson,
             long expiresEpochSec
     ) {
         Map<String, Object> toPublicMap() {
@@ -55,26 +60,55 @@ public class MerchantInlineCheckoutTokenService {
             if (pgVendor != null && !pgVendor.isBlank()) {
                 m.put("pgVendor", pgVendor);
             }
+            if (checkoutKind != null && !checkoutKind.isBlank()) {
+                m.put("checkoutKind", checkoutKind);
+            }
+            if (subscriptionPlanJson != null && !subscriptionPlanJson.isBlank()) {
+                m.put("subscriptionPlanJson", subscriptionPlanJson);
+            }
             m.put("expiresAt", Instant.ofEpochSecond(expiresEpochSec).toString());
             return m;
+        }
+
+        boolean isSubscription() {
+            return CHECKOUT_SUBSCRIPTION.equalsIgnoreCase(checkoutKind != null ? checkoutKind.trim() : "");
         }
     }
 
     public String issue(String pgVendor, String compId, String orderNo, String amountPlain,
                         String currency, String productName) {
+        return issueInternal(pgVendor, compId, orderNo, amountPlain, currency, productName,
+                CHECKOUT_ONE_TIME, "");
+    }
+
+    public String issueSubscription(String pgVendor, String compId, String orderNo, String amountPlain,
+                                    String currency, String productName, String subscriptionPlanJson) {
+        return issueInternal(pgVendor, compId, orderNo, amountPlain, currency, productName,
+                CHECKOUT_SUBSCRIPTION, subscriptionPlanJson != null ? subscriptionPlanJson : "");
+    }
+
+    private String issueInternal(String pgVendor, String compId, String orderNo, String amountPlain,
+                                 String currency, String productName, String checkoutKind,
+                                 String subscriptionPlanJson) {
         long exp = Instant.now().getEpochSecond() + DEFAULT_TTL_SECONDS;
         String sid = UUID.randomUUID().toString().replace("-", "");
         String vendor = normalizeVendor(pgVendor);
-        String payload = joinPayload(sid, compId, orderNo, amountPlain, currency, productName, vendor, exp);
+        String kind = normalizeCheckoutKind(checkoutKind);
+        String planEnc = encodePlan(subscriptionPlanJson);
+        String payload = joinPayload(sid, compId, orderNo, amountPlain, currency, productName, vendor, kind, planEnc, exp);
         String sig = sign(payload);
         return base64Url(payload) + "." + base64Url(sig);
     }
 
     public Optional<SessionPayload> parseValid(String token) {
-        return parseValid(token, null);
+        return parseValid(token, null, null);
     }
 
     public Optional<SessionPayload> parseValid(String token, String expectedVendor) {
+        return parseValid(token, expectedVendor, null);
+    }
+
+    public Optional<SessionPayload> parseValid(String token, String expectedVendor, String expectedCheckoutKind) {
         if (token == null || token.isBlank()) {
             return Optional.empty();
         }
@@ -95,8 +129,19 @@ public class MerchantInlineCheckoutTokenService {
         }
         String[] fields = payload.split("\\|", -1);
         String vendor;
+        String checkoutKind = CHECKOUT_ONE_TIME;
+        String planEnc = "";
         long exp;
-        if (fields.length >= 8) {
+        if (fields.length >= 10) {
+            vendor = normalizeVendor(fields[6]);
+            checkoutKind = normalizeCheckoutKind(fields[7]);
+            planEnc = fields[8];
+            try {
+                exp = Long.parseLong(fields[9]);
+            } catch (NumberFormatException e) {
+                return Optional.empty();
+            }
+        } else if (fields.length >= 8) {
             vendor = normalizeVendor(fields[6]);
             try {
                 exp = Long.parseLong(fields[7]);
@@ -120,6 +165,10 @@ public class MerchantInlineCheckoutTokenService {
                 && !normalizeVendor(expectedVendor).equals(vendor)) {
             return Optional.empty();
         }
+        if (expectedCheckoutKind != null && !expectedCheckoutKind.isBlank()
+                && !normalizeCheckoutKind(expectedCheckoutKind).equals(checkoutKind)) {
+            return Optional.empty();
+        }
         return Optional.of(new SessionPayload(
                 fields[0],
                 fields[1],
@@ -128,12 +177,15 @@ public class MerchantInlineCheckoutTokenService {
                 emptyToNull(fields[4]),
                 emptyToNull(fields[5]),
                 vendor,
+                checkoutKind,
+                decodePlan(planEnc),
                 exp
         ));
     }
 
     private static String joinPayload(String sessionId, String compId, String orderNo, String amountPlain,
-                                      String currency, String productName, String pgVendor, long exp) {
+                                      String currency, String productName, String pgVendor, String checkoutKind,
+                                      String planEnc, long exp) {
         return String.join("|",
                 nz(sessionId),
                 nz(compId),
@@ -142,7 +194,36 @@ public class MerchantInlineCheckoutTokenService {
                 nz(currency),
                 nz(productName),
                 normalizeVendor(pgVendor),
+                normalizeCheckoutKind(checkoutKind),
+                nz(planEnc),
                 Long.toString(exp));
+    }
+
+    private static String normalizeCheckoutKind(String raw) {
+        if (raw == null || raw.isBlank()) {
+            return CHECKOUT_ONE_TIME;
+        }
+        String u = raw.trim().toUpperCase(Locale.ROOT);
+        return CHECKOUT_SUBSCRIPTION.equals(u) ? CHECKOUT_SUBSCRIPTION : CHECKOUT_ONE_TIME;
+    }
+
+    private static String encodePlan(String planJson) {
+        if (planJson == null || planJson.isBlank()) {
+            return "";
+        }
+        return Base64.getUrlEncoder().withoutPadding()
+                .encodeToString(planJson.getBytes(StandardCharsets.UTF_8));
+    }
+
+    private static String decodePlan(String enc) {
+        if (enc == null || enc.isBlank()) {
+            return null;
+        }
+        try {
+            return new String(Base64.getUrlDecoder().decode(enc), StandardCharsets.UTF_8);
+        } catch (IllegalArgumentException e) {
+            return null;
+        }
     }
 
     private static String normalizeVendor(String raw) {

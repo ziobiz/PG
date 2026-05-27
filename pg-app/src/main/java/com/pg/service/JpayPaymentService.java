@@ -7,7 +7,11 @@ import com.pg.entity.MerchantPgBinding;
 import com.pg.entity.PgAgency;
 import com.pg.integration.pg.PgVendor;
 import com.pg.middleware.notify.PgNotifyIngressPaths;
+import com.pg.entity.MerchantNotifyUrl;
+import com.pg.entity.MerchantJpaySubscription;
+import com.pg.repository.MerchantJpaySubscriptionRepository;
 import com.pg.repository.HqApiConfigRepository;
+import com.pg.repository.MerchantNotifyUrlRepository;
 import com.pg.repository.MerchantPgBindingRepository;
 import com.pg.repository.OrgUnitRepository;
 import com.pg.repository.PgAgencyRepository;
@@ -37,7 +41,8 @@ import java.util.TreeMap;
 
 /**
  * JPAY 샌드박스·운영 {@code pay_index} 직접 호출(서버 사이드).
- * 노티·콜백 URL은 {@link HqApiConfig#getPublicApiBaseUrl()} 또는 노티구성 {@code publicBaseUrl} + 노티 토큰으로 조합합니다.
+ * {@code pay_notifyurl}·{@code pay_callbackurl} 은 가맹 {@code tb_merchant_notify_url}(JPAY_NOTIFY/JPAY_CALLBACK) 우선,
+ * 없으면 {@link HqApiConfig#getPublicApiBaseUrl()} + 노티 ingress(cbJpay/rsJpay) 기본값입니다.
  */
 @Service
 public class JpayPaymentService {
@@ -56,6 +61,10 @@ public class JpayPaymentService {
     private final HqApiConfigRepository hqApiConfigRepository;
     private final JpaySaleRecordService jpaySaleRecordService;
     private final OrgUnitRepository orgUnitRepository;
+    private final MerchantNotifyUrlRepository merchantNotifyUrlRepository;
+    private final UrlPayCheckoutCurrencyService urlPayCheckoutCurrencyService;
+    private final JpaySubscriptionConfigService jpaySubscriptionConfigService;
+    private final MerchantJpaySubscriptionRepository merchantJpaySubscriptionRepository;
     private final RestTemplate restTemplate = new RestTemplate();
 
     public JpayPaymentService(MerchantPgBindingRepository merchantPgBindingRepository,
@@ -64,7 +73,11 @@ public class JpayPaymentService {
                               HqNotifyEnvService hqNotifyEnvService,
                               HqApiConfigRepository hqApiConfigRepository,
                               JpaySaleRecordService jpaySaleRecordService,
-                              OrgUnitRepository orgUnitRepository) {
+                              OrgUnitRepository orgUnitRepository,
+                              MerchantNotifyUrlRepository merchantNotifyUrlRepository,
+                              UrlPayCheckoutCurrencyService urlPayCheckoutCurrencyService,
+                              JpaySubscriptionConfigService jpaySubscriptionConfigService,
+                              MerchantJpaySubscriptionRepository merchantJpaySubscriptionRepository) {
         this.merchantPgBindingRepository = merchantPgBindingRepository;
         this.pgAgencyRepository = pgAgencyRepository;
         this.orgServiceUseService = orgServiceUseService;
@@ -72,6 +85,10 @@ public class JpayPaymentService {
         this.hqApiConfigRepository = hqApiConfigRepository;
         this.jpaySaleRecordService = jpaySaleRecordService;
         this.orgUnitRepository = orgUnitRepository;
+        this.merchantNotifyUrlRepository = merchantNotifyUrlRepository;
+        this.urlPayCheckoutCurrencyService = urlPayCheckoutCurrencyService;
+        this.jpaySubscriptionConfigService = jpaySubscriptionConfigService;
+        this.merchantJpaySubscriptionRepository = merchantJpaySubscriptionRepository;
     }
 
     /**
@@ -83,58 +100,40 @@ public class JpayPaymentService {
                                                  String clientIp) {
         Map<String, Object> out = new LinkedHashMap<>();
         if (orgUnitId == null) {
-            out.put("success", false);
-            out.put("message", "가맹점을 찾을 수 없습니다.");
-            return out;
+            return failOut("가맹점을 찾을 수 없습니다.", "NOT_FOUND");
         }
         if (!orgServiceUseService.isOrgServiceActive(orgUnitId)) {
-            out.put("success", false);
-            out.put("message", "서비스가 중지된 업체입니다.");
-            return out;
+            return failOut("서비스가 중지된 업체입니다.", "ORG_DISABLED");
         }
         Optional<MerchantPgBinding> bindOpt = findOperationalJpayWebBinding(orgUnitId);
         if (bindOpt.isEmpty()) {
-            out.put("success", false);
-            out.put("message", "JPAY URL 결제(운영) 바인딩이 없습니다. 결제대행사에 JPAY·URL결제를 등록하세요.");
-            return out;
+            return failOut("JPAY URL 결제(운영) 바인딩이 없습니다. 결제대행사에 JPAY·URL결제를 등록하세요.", "URL_PAYMENT_PG_MISSING");
         }
         MerchantPgBinding binding = bindOpt.get();
         Optional<PgAgency> agOpt = pgAgencyRepository.findByPgCd(binding.getPgCd() != null ? binding.getPgCd().trim() : "");
         if (agOpt.isEmpty()) {
-            out.put("success", false);
-            out.put("message", "PG사 연동(tb_pg_agency) 행을 찾을 수 없습니다.");
-            return out;
+            return failOut("PG사 연동(tb_pg_agency) 행을 찾을 수 없습니다.", "PG_AGENCY_MISSING");
         }
         PgAgency agency = agOpt.get();
         String mid = binding.getMid() != null ? binding.getMid().trim() : "";
         String apiKey = agency.getApiKey() != null ? agency.getApiKey().trim() : "";
         if (mid.isEmpty() || apiKey.isEmpty()) {
-            out.put("success", false);
-            out.put("message", "JPAY MID·API Key(tb_pg_agency)를 설정하세요.");
-            return out;
+            return failOut("JPAY MID·API Key(tb_pg_agency)를 설정하세요.", "JPAY_CREDENTIALS_MISSING");
         }
         int routeNo = parseRouteNo(binding.getRootNo());
 
         String orderNo = str(body.get("orderNo"));
         if (orderNo.isBlank()) {
-            out.put("success", false);
-            out.put("message", "orderNo가 필요합니다.");
-            return out;
+            return failOut("orderNo가 필요합니다.", "INVALID_ORDER_NO");
         }
         if (orderNo.length() > 64) {
             orderNo = orderNo.substring(0, 64);
         }
         BigDecimal amountBd = parseAmount(body.get("amount"));
         if (amountBd == null || amountBd.compareTo(BigDecimal.ZERO) <= 0) {
-            out.put("success", false);
-            out.put("message", "amount는 0보다 커야 합니다.");
-            return out;
+            return failOut("amount는 0보다 커야 합니다.", "INVALID_AMOUNT");
         }
-        String currency = str(body.get("currency"));
-        if (currency.isBlank()) {
-            currency = "USD";
-        }
-        currency = currency.trim().toUpperCase(Locale.ROOT);
+        String currency = urlPayCheckoutCurrencyService.resolveCheckoutCurrency(orgUnitId, str(body.get("currency")));
 
         String payIndexUrl = resolvePayIndexUrl(agency);
         String bankCode = resolveBankCode(agency);
@@ -142,14 +141,14 @@ public class JpayPaymentService {
         String resultTarget = resolveExtraStr(agency, "jpayResultTarget", "rsJpay");
         String publicBase = resolvePublicApiBase(req);
         if (publicBase.isBlank()) {
-            out.put("success", false);
-            out.put("message", "공개 API 베이스 URL이 없습니다. 배포설정에 publicApiBaseUrl 또는 노티 publicBaseUrl을 넣으세요.");
-            return out;
+            return failOut("공개 API 베이스 URL이 없습니다. 배포설정에 publicApiBaseUrl 또는 노티 publicBaseUrl을 넣으세요.", "PUBLIC_API_BASE_MISSING");
         }
         String token = hqNotifyEnvService.getOrCreate().getIngressToken();
         String notifyPathPrefix = resolveJpayNotifyPathPrefix(agency);
-        String notifyUrl = publicBase + notifyPathPrefix + token + "/" + notifyTarget;
-        String callbackUrl = publicBase + notifyPathPrefix + token + "/" + resultTarget;
+        String defaultNotifyUrl = publicBase + notifyPathPrefix + token + "/" + notifyTarget;
+        String defaultCallbackUrl = publicBase + notifyPathPrefix + token + "/" + resultTarget;
+        String notifyUrl = resolveMerchantJpayNotifyUrl(orgUnitId, defaultNotifyUrl);
+        String callbackUrl = resolveMerchantJpayCallbackUrl(orgUnitId, defaultCallbackUrl);
 
         String siteUrl = str(body.get("payUrl"));
         if (siteUrl.isBlank()) {
@@ -199,6 +198,18 @@ public class JpayPaymentService {
         addIfPresent(form, body, "pay_telephone", "payTelephone");
         addIfPresent(form, body, "pay_language", "payLanguage");
         addIfPresent(form, body, "system", "system");
+
+        addIfPresent(form, body, "shipping_firstname", "shippingFirstname");
+        addIfPresent(form, body, "shipping_lastname", "shippingLastname");
+        addIfPresent(form, body, "shipping_street_address1", "shippingStreetAddress1");
+        addIfPresent(form, body, "shipping_street_address2", "shippingStreetAddress2");
+        addIfPresent(form, body, "shipping_city", "shippingCity");
+        addIfPresent(form, body, "shipping_state", "shippingState");
+        addIfPresent(form, body, "shipping_postcode", "shippingPostcode");
+        addIfPresent(form, body, "shipping_country_iso_code_2", "shippingCountryIsoCode2");
+        addIfPresent(form, body, "shipping_telephone", "shippingTelephone");
+
+        applyJpaySaleDefaults(form, body);
 
         String productJson = str(body.get("payProductname"));
         if (productJson.isBlank()) {
@@ -270,9 +281,287 @@ public class JpayPaymentService {
         return out;
     }
 
+    /** 가맹점 API JPAY 구독(운영) 바인딩 존재 여부 */
+    public boolean hasOperationalSubscriptionBinding(Long orgUnitId) {
+        return jpaySubscriptionConfigService.findOperationalSubscriptionBinding(orgUnitId).isPresent();
+    }
+
+    /**
+     * JPAY 구독 Sale — {@code pay_type=Subscription}, {@code subscription_plan} JSON.
+     */
+    public Map<String, Object> executeSubscriptionSale(Long orgUnitId,
+                                                       Map<String, Object> body,
+                                                       HttpServletRequest req,
+                                                       String clientIp,
+                                                       String subscriptionPlanJson) {
+        if (subscriptionPlanJson == null || subscriptionPlanJson.isBlank()) {
+            return failOut("subscriptionPlan이 필요합니다.", "SUBSCRIPTION_PLAN_REQUIRED");
+        }
+        Map<String, Object> out = new LinkedHashMap<>();
+        if (orgUnitId == null) {
+            return failOut("가맹점을 찾을 수 없습니다.", "NOT_FOUND");
+        }
+        if (!orgServiceUseService.isOrgServiceActive(orgUnitId)) {
+            return failOut("서비스가 중지된 업체입니다.", "ORG_DISABLED");
+        }
+        Optional<MerchantPgBinding> bindOpt = jpaySubscriptionConfigService.findOperationalSubscriptionBinding(orgUnitId);
+        if (bindOpt.isEmpty()) {
+            return failOut("JPAY API 구독(운영) 바인딩이 없습니다.", "SUBSCRIPTION_PG_MISSING");
+        }
+        MerchantPgBinding binding = bindOpt.get();
+        Optional<PgAgency> agOpt = pgAgencyRepository.findByPgCd(binding.getPgCd() != null ? binding.getPgCd().trim() : "");
+        if (agOpt.isEmpty()) {
+            return failOut("PG사 연동(tb_pg_agency) 행을 찾을 수 없습니다.", "PG_AGENCY_MISSING");
+        }
+        PgAgency agency = agOpt.get();
+        String mid = binding.getMid() != null ? binding.getMid().trim() : "";
+        String apiKey = agency.getApiKey() != null ? agency.getApiKey().trim() : "";
+        if (mid.isEmpty() || apiKey.isEmpty()) {
+            return failOut("JPAY MID·API Key(tb_pg_agency)를 설정하세요.", "JPAY_CREDENTIALS_MISSING");
+        }
+        int routeNo = parseRouteNo(binding.getRootNo());
+
+        String orderNo = str(body.get("orderNo"));
+        if (orderNo.isBlank()) {
+            return failOut("orderNo가 필요합니다.", "INVALID_ORDER_NO");
+        }
+        if (orderNo.length() > 64) {
+            orderNo = orderNo.substring(0, 64);
+        }
+        BigDecimal amountBd = parseAmount(body.get("amount"));
+        if (amountBd == null || amountBd.compareTo(BigDecimal.ZERO) <= 0) {
+            return failOut("amount는 0보다 커야 합니다.", "INVALID_AMOUNT");
+        }
+        String currency = urlPayCheckoutCurrencyService.resolveCheckoutCurrency(orgUnitId, str(body.get("currency")));
+
+        String payIndexUrl = resolvePayIndexUrl(agency);
+        String bankCode = resolveBankCode(agency);
+        String notifyTarget = resolveExtraStr(agency, "jpayNotifyTarget", "cbJpay");
+        String resultTarget = resolveExtraStr(agency, "jpayResultTarget", "rsJpay");
+        String publicBase = resolvePublicApiBase(req);
+        if (publicBase.isBlank()) {
+            return failOut("공개 API 베이스 URL이 없습니다.", "PUBLIC_API_BASE_MISSING");
+        }
+        String token = hqNotifyEnvService.getOrCreate().getIngressToken();
+        String notifyPathPrefix = resolveJpayNotifyPathPrefix(agency);
+        String defaultNotifyUrl = publicBase + notifyPathPrefix + token + "/" + notifyTarget;
+        String defaultCallbackUrl = publicBase + notifyPathPrefix + token + "/" + resultTarget;
+        String notifyUrl = resolveMerchantJpayNotifyUrl(orgUnitId, defaultNotifyUrl);
+        String callbackUrl = resolveMerchantJpayCallbackUrl(orgUnitId, defaultCallbackUrl);
+
+        String siteUrl = str(body.get("payUrl"));
+        if (siteUrl.isBlank()) {
+            siteUrl = publicBase;
+        }
+        String compCode = str(body.get("compId"));
+        String attach = compCode.isBlank() ? "" : "icopayCompId=" + compCode.trim();
+
+        String applyDate = LocalDateTime.now().format(APPLY_FMT);
+        TreeMap<String, String> signParams = new TreeMap<>();
+        signParams.put("pay_memberid", mid);
+        signParams.put("pay_orderid", orderNo);
+        signParams.put("pay_applydate", applyDate);
+        signParams.put("pay_bankcode", bankCode);
+        signParams.put("pay_notifyurl", notifyUrl);
+        signParams.put("pay_callbackurl", callbackUrl);
+        signParams.put("pay_amount", amountBd.stripTrailingZeros().toPlainString());
+
+        String md5sign = JpaySignatureUtil.signRequestParams(signParams, apiKey);
+        MultiValueMap<String, String> form = new LinkedMultiValueMap<>();
+        for (Map.Entry<String, String> e : signParams.entrySet()) {
+            form.add(e.getKey(), e.getValue());
+        }
+        form.add("pay_md5sign", md5sign);
+        form.add("pay_currency", currency);
+        form.add("pay_url", siteUrl);
+        form.add("pay_type", "Subscription");
+        form.add("subscription_plan", subscriptionPlanJson);
+        if (!attach.isBlank()) {
+            form.add("attach", attach);
+        }
+
+        addIfPresent(form, body, "pay_cardno", "payCardno");
+        addIfPresent(form, body, "pay_cardmonth", "payCardmonth");
+        addIfPresent(form, body, "pay_cardyear", "payCardyear");
+        addIfPresent(form, body, "pay_cardcvv", "payCardcvv");
+        addIfPresent(form, body, "pay_firstname", "payFirstname");
+        addIfPresent(form, body, "pay_lastname", "payLastname");
+        addIfPresent(form, body, "pay_street_address1", "payStreetAddress1");
+        addIfPresent(form, body, "pay_street_address2", "payStreetAddress2");
+        addIfPresent(form, body, "pay_city", "payCity");
+        addIfPresent(form, body, "pay_postcode", "payPostcode");
+        addIfPresent(form, body, "pay_state", "payState");
+        addIfPresent(form, body, "pay_country_iso_code_2", "payCountryIsoCode2");
+        addIfPresent(form, body, "pay_email_address", "payEmailAddress");
+        addIfPresent(form, body, "pay_telephone", "payTelephone");
+        addIfPresent(form, body, "pay_language", "payLanguage");
+        addIfPresent(form, body, "system", "system");
+        applyJpaySaleDefaults(form, body);
+
+        String productJson = str(body.get("payProductname"));
+        if (productJson.isBlank()) {
+            String item = str(body.get("item"));
+            if (item.isBlank()) {
+                item = "Subscription " + orderNo;
+            }
+            productJson = defaultProductJson(item, amountBd.stripTrailingZeros().toPlainString());
+        }
+        form.add("pay_productname", productJson);
+
+        String ip = clientIp != null && !clientIp.isBlank() ? clientIp : "127.0.0.1";
+        form.add("pay_ip", ip);
+        String ua = req != null ? req.getHeader("User-Agent") : "";
+        if (ua != null && !ua.isBlank()) {
+            form.add("pay_useragent", ua.length() > 512 ? ua.substring(0, 512) : ua);
+        }
+
+        jpaySaleRecordService.recordOrTouchPending(orgUnitId, orderNo, amountBd, currency, routeNo,
+                str(body.get("payEmailAddress")),
+                str(body.get("item")),
+                "SUBSCRIPTION");
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+        HttpEntity<MultiValueMap<String, String>> entity = new HttpEntity<>(form, headers);
+        String raw;
+        try {
+            ResponseEntity<String> resp = restTemplate.postForEntity(payIndexUrl, entity, String.class);
+            raw = resp.getBody() != null ? resp.getBody() : "";
+        } catch (Exception e) {
+            log.warn("JPAY subscription pay_index 호출 실패: {}", e.getMessage());
+            out.put("success", false);
+            out.put("message", "JPAY 구독 연동 호출 실패: " + e.getMessage());
+            return out;
+        }
+
+        int status = -1;
+        String msg = "";
+        String url3ds = "";
+        try {
+            JsonNode n = OM.readTree(raw.trim().startsWith("{") ? raw : "{}");
+            status = n.path("status").asInt(-1);
+            msg = n.path("msg").asText("");
+            url3ds = n.path("url").asText("");
+        } catch (Exception e) {
+            out.put("success", false);
+            out.put("message", "JPAY 응답 파싱 실패");
+            out.put("rawResponse", raw);
+            return out;
+        }
+
+        String midCode = resolveMerchantCode(orgUnitId);
+        if (status == 0 || status == 2) {
+            jpaySaleRecordService.applySyncApiOutcome(midCode, orderNo, status, msg, "SUBSCRIPTION");
+        }
+
+        out.put("success", true);
+        out.put("status", status);
+        out.put("msg", msg);
+        if (status == 1 && url3ds != null && !url3ds.isBlank()) {
+            out.put("redirectUrl", url3ds);
+        }
+        out.put("orderNo", orderNo);
+        out.put("checkoutKind", "SUBSCRIPTION");
+        out.put("payIndexUrl", payIndexUrl);
+        out.put("rawResponse", raw);
+        return out;
+    }
+
+    /** JPAY 구독 해지 — 최초 {@code pay_orderid} 기준. */
+    public Map<String, Object> executeSubscriptionCancel(Long orgUnitId, String orderNo, HttpServletRequest req) {
+        if (orgUnitId == null || orderNo == null || orderNo.isBlank()) {
+            return failOut("orderNo가 필요합니다.", "INVALID_ORDER_NO");
+        }
+        Optional<MerchantPgBinding> bindOpt = jpaySubscriptionConfigService.findOperationalSubscriptionBinding(orgUnitId);
+        if (bindOpt.isEmpty()) {
+            return failOut("JPAY API 구독(운영) 바인딩이 없습니다.", "SUBSCRIPTION_PG_MISSING");
+        }
+        MerchantPgBinding binding = bindOpt.get();
+        Optional<PgAgency> agOpt = pgAgencyRepository.findByPgCd(binding.getPgCd() != null ? binding.getPgCd().trim() : "");
+        if (agOpt.isEmpty()) {
+            return failOut("PG사 연동 행을 찾을 수 없습니다.", "PG_AGENCY_MISSING");
+        }
+        PgAgency agency = agOpt.get();
+        String mid = binding.getMid() != null ? binding.getMid().trim() : "";
+        String apiKey = agency.getApiKey() != null ? agency.getApiKey().trim() : "";
+        if (mid.isEmpty() || apiKey.isEmpty()) {
+            return failOut("JPAY MID·API Key를 설정하세요.", "JPAY_CREDENTIALS_MISSING");
+        }
+        String on = orderNo.trim();
+        if (on.length() > 64) {
+            on = on.substring(0, 64);
+        }
+        TreeMap<String, String> signParams = new TreeMap<>();
+        signParams.put("pay_memberid", mid);
+        signParams.put("pay_orderid", on);
+        String md5sign = JpaySignatureUtil.signRequestParams(signParams, apiKey);
+
+        MultiValueMap<String, String> form = new LinkedMultiValueMap<>();
+        form.add("pay_memberid", mid);
+        form.add("pay_orderid", on);
+        form.add("pay_md5sign", md5sign);
+
+        String cancelUrl = resolveSubscriptionCancelUrl(agency);
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+        HttpEntity<MultiValueMap<String, String>> entity = new HttpEntity<>(form, headers);
+        String raw;
+        try {
+            ResponseEntity<String> resp = restTemplate.postForEntity(cancelUrl, entity, String.class);
+            raw = resp.getBody() != null ? resp.getBody() : "";
+        } catch (Exception e) {
+            log.warn("JPAY subscription cancel 호출 실패: {}", e.getMessage());
+            Map<String, Object> out = new LinkedHashMap<>();
+            out.put("success", false);
+            out.put("message", "JPAY 구독 해지 호출 실패: " + e.getMessage());
+            return out;
+        }
+        Map<String, Object> out = new LinkedHashMap<>();
+        out.put("success", true);
+        out.put("rawResponse", raw);
+        try {
+            JsonNode n = OM.readTree(raw.trim().startsWith("{") ? raw : "{}");
+            out.put("status", n.path("status").asText(""));
+            out.put("msg", n.path("msg").asText(""));
+            out.put("paymentTransactionId", n.path("payment_transaction_id").asText(""));
+        } catch (Exception ignored) {
+            /* keep raw */
+        }
+        out.put("orderNo", on);
+        out.put("cancelUrl", cancelUrl);
+        return out;
+    }
+
+    private String resolveSubscriptionCancelUrl(PgAgency agency) {
+        String fromJson = resolveExtraStr(agency, "jpaySubscriptionCancelUrl", "");
+        if (!fromJson.isBlank()) {
+            return fromJson.trim();
+        }
+        String payIndex = resolvePayIndexUrl(agency);
+        if (payIndex.contains("/pay_index")) {
+            return payIndex.replace("/pay_index", "/pay_index/subscriptioncancel");
+        }
+        return payIndex + "/subscriptioncancel";
+    }
+
     /** 가맹점 API 인라인 결제(jpay-pay.html) 등 — JPAY URL 결제 운영 바인딩 존재 여부 */
     public boolean hasOperationalWebBinding(Long orgUnitId) {
         return findOperationalJpayWebBinding(orgUnitId).isPresent();
+    }
+
+    /** 운영 JPAY URL 바인딩의 {@code pg_cd} (결제통화 스케일·표시 연동용). */
+    public Optional<String> resolveOperationalPgCd(Long orgUnitId) {
+        return findOperationalJpayWebBinding(orgUnitId)
+                .map(b -> b.getPgCd() != null ? b.getPgCd().trim() : "")
+                .filter(s -> !s.isEmpty());
+    }
+
+    private static Map<String, Object> failOut(String message, String errorCode) {
+        Map<String, Object> out = new LinkedHashMap<>();
+        out.put("success", false);
+        out.put("message", message);
+        out.put("errorCode", errorCode);
+        return out;
     }
 
     private String resolveMerchantCode(Long orgUnitId) {
@@ -292,6 +581,12 @@ public class JpayPaymentService {
         if ("MERCHANT_API".equals(u)) {
             return "MERCHANT_API";
         }
+        if ("CHATBOT".equals(u)) {
+            return "CHATBOT";
+        }
+        if ("SUBSCRIPTION".equals(u)) {
+            return "SUBSCRIPTION";
+        }
         return "URL";
     }
 
@@ -301,11 +596,23 @@ public class JpayPaymentService {
                 .filter(b -> b.getOperationalYn() != null && "Y".equalsIgnoreCase(b.getOperationalYn().trim()))
                 .filter(b -> b.getActivationYn() == null || "Y".equalsIgnoreCase(b.getActivationYn().trim()))
                 .filter(b -> b.getPgCd() != null && PgVendor.isJpayFamily(b.getPgCd()))
+                .filter(b -> isAgencyUrlPayIntegration(b.getPgCd()))
                 .filter(b -> {
                     String pm = b.getPayMethod();
                     return pm == null || pm.isBlank() || "WEB".equalsIgnoreCase(pm.trim());
                 })
                 .min(Comparator.comparingInt(b -> b.getSortOrder() != null ? b.getSortOrder() : Integer.MAX_VALUE));
+    }
+
+    /** 연동용도 URL결제({@code integ_url_pay_yn=Y}) PG만 URL·웹결제·인라인 후보. API 전용 발급은 제외. */
+    private boolean isAgencyUrlPayIntegration(String pgCd) {
+        if (pgCd == null || pgCd.isBlank()) {
+            return false;
+        }
+        return pgAgencyRepository.findByPgCd(pgCd.trim())
+                .filter(a -> a.getUseYn() != null && "Y".equalsIgnoreCase(a.getUseYn().trim()))
+                .map(a -> "Y".equalsIgnoreCase(a.getIntegUrlPayYn() != null ? a.getIntegUrlPayYn().trim() : ""))
+                .orElse(false);
     }
 
     private String resolvePayIndexUrl(PgAgency agency) {
@@ -332,6 +639,35 @@ public class JpayPaymentService {
             return PgNotifyIngressPaths.OPEN_PREFIX;
         }
         return PgNotifyIngressPaths.MIDDLEWARE_PREFIX;
+    }
+
+    /** 가맹 JPAY 수신통보 URL — {@link MerchantNotifyUrl#URL_TYPE_JPAY_NOTIFY} 우선, 없으면 ingress 기본값 */
+    private String resolveMerchantJpayNotifyUrl(Long orgUnitId, String defaultIngressUrl) {
+        return resolveMerchantConfiguredNotifyUrl(orgUnitId, MerchantNotifyUrl.URL_TYPE_JPAY_NOTIFY, defaultIngressUrl);
+    }
+
+    /** 가맹 JPAY 콜백 URL — {@link MerchantNotifyUrl#URL_TYPE_JPAY_CALLBACK} 우선, 없으면 ingress 기본값 */
+    private String resolveMerchantJpayCallbackUrl(Long orgUnitId, String defaultIngressUrl) {
+        return resolveMerchantConfiguredNotifyUrl(orgUnitId, MerchantNotifyUrl.URL_TYPE_JPAY_CALLBACK, defaultIngressUrl);
+    }
+
+    private String resolveMerchantConfiguredNotifyUrl(Long orgUnitId, String urlType, String defaultIngressUrl) {
+        if (orgUnitId == null || urlType == null || urlType.isBlank()) {
+            return defaultIngressUrl != null ? defaultIngressUrl : "";
+        }
+        Optional<MerchantNotifyUrl> row = merchantNotifyUrlRepository.findByOrgUnitIdAndUrlType(orgUnitId, urlType.trim());
+        if (row.isEmpty()) {
+            return defaultIngressUrl != null ? defaultIngressUrl : "";
+        }
+        MerchantNotifyUrl n = row.get();
+        if (n.getUseYn() != null && !"Y".equalsIgnoreCase(n.getUseYn().trim())) {
+            return defaultIngressUrl != null ? defaultIngressUrl : "";
+        }
+        String u = n.getNotiUrl() != null ? n.getNotiUrl().trim() : "";
+        if (u.isBlank()) {
+            return defaultIngressUrl != null ? defaultIngressUrl : "";
+        }
+        return u;
     }
 
     private static String resolveExtraStr(PgAgency agency, String key, String def) {
@@ -387,6 +723,93 @@ public class JpayPaymentService {
         if (!v.isBlank()) {
             form.add(formKey, v);
         }
+    }
+
+    /**
+     * J-Pay Sale API 필수에 가까운 필드 기본값 — {@code system}, {@code pay_language}, 배송=청구 복제.
+     * @see <a href="https://docs.j-pay.net/docs/api/sale">J-Pay Sale</a>
+     */
+    private static void applyJpaySaleDefaults(MultiValueMap<String, String> form, Map<String, Object> body) {
+        if (firstFormVal(form, "system").isBlank()) {
+            form.add("system", "icopay");
+        }
+        if (firstFormVal(form, "pay_language").isBlank()) {
+            String lang = resolveJpayPayLanguage(form, body);
+            form.add("pay_language", lang);
+        }
+        copyShippingFromBillingIfAbsent(form);
+    }
+
+    private static String resolveJpayPayLanguage(MultiValueMap<String, String> form, Map<String, Object> body) {
+        for (String key : new String[]{"payLanguage", "langCode", "lang"}) {
+            String mapped = mapIcopayLangToJpay(str(body.get(key)));
+            if (!mapped.isBlank()) {
+                return mapped;
+            }
+        }
+        String fromForm = mapIcopayLangToJpay(firstFormVal(form, "pay_language"));
+        if (!fromForm.isBlank()) {
+            return fromForm;
+        }
+        return "en";
+    }
+
+    /** ICOPAY 결제창 코드(KOR/ENG/…) 또는 ISO 태그 → J-Pay demo 형식( en, ko, zh …). */
+    private static String mapIcopayLangToJpay(String raw) {
+        if (raw == null || raw.isBlank()) {
+            return "";
+        }
+        String u = raw.trim().toUpperCase(Locale.ROOT);
+        return switch (u) {
+            case "KOR", "KO", "KR" -> "ko";
+            case "ENG", "EN" -> "en";
+            case "JPN", "JA", "JP" -> "ja";
+            case "CHN", "ZH", "CN" -> "zh";
+            case "THA", "TH" -> "th";
+            default -> {
+                if (u.length() == 2) {
+                    yield u.toLowerCase(Locale.ROOT);
+                }
+                String lower = raw.trim().toLowerCase(Locale.ROOT);
+                if (lower.length() >= 2 && lower.charAt(0) >= 'a' && lower.charAt(0) <= 'z') {
+                    yield lower.length() > 2 ? lower.substring(0, 2) : lower;
+                }
+                yield "";
+            }
+        };
+    }
+
+    private static void copyShippingFromBillingIfAbsent(MultiValueMap<String, String> form) {
+        copyFormIfAbsent(form, "shipping_firstname", "pay_firstname");
+        copyFormIfAbsent(form, "shipping_lastname", "pay_lastname");
+        copyFormIfAbsent(form, "shipping_street_address1", "pay_street_address1");
+        copyFormIfAbsent(form, "shipping_street_address2", "pay_street_address2");
+        copyFormIfAbsent(form, "shipping_city", "pay_city");
+        copyFormIfAbsent(form, "shipping_state", "pay_state");
+        copyFormIfAbsent(form, "shipping_postcode", "pay_postcode");
+        copyFormIfAbsent(form, "shipping_country_iso_code_2", "pay_country_iso_code_2");
+        copyFormIfAbsent(form, "shipping_telephone", "pay_telephone");
+    }
+
+    private static void copyFormIfAbsent(MultiValueMap<String, String> form, String targetKey, String sourceKey) {
+        if (!firstFormVal(form, targetKey).isBlank()) {
+            return;
+        }
+        String src = firstFormVal(form, sourceKey);
+        if (!src.isBlank()) {
+            form.add(targetKey, src);
+        }
+    }
+
+    private static String firstFormVal(MultiValueMap<String, String> form, String key) {
+        if (form == null || key == null) {
+            return "";
+        }
+        List<String> vals = form.get(key);
+        if (vals == null || vals.isEmpty()) {
+            return "";
+        }
+        return vals.get(0) != null ? vals.get(0).trim() : "";
     }
 
     private static int parseRouteNo(String rootNo) {

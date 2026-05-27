@@ -57,6 +57,7 @@ public final class PageMenuCatalog {
         add(list, "/calc/payForceRefundList", "M0317", "강제환불", "결제관리");
         add(list, "/pay/easyPay", "M0310", "URL결제내역", "결제관리");
         add(list, "/pay/chatbotPay", "M0311", "챗봇결제내역", "결제관리");
+        add(list, "/pay/jpaySubscription", "M0312", "구독결제내역", "결제관리");
         add(list, "/calc/offsetCancList", "M0309", "상계취소내역", "결제관리");
         add(list, "/calc/chillPaySettlementList", "M0421", "통합정산", "정산관리");
         add(list, "/calc/feeList", "M0406", "수수료내역", "정산관리");

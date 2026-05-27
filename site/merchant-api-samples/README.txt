@@ -22,8 +22,10 @@ JSP (Java 11+)
 ---------
 주문 생성 -> 서버 prepare(브로커 시크릿) -> sessionToken -> embed 스크립트 -> postMessage/웹훅
 
-키트 JSON 의 merchantIntegrationSamples, merchantInlineCheckoutChillPay 참고.
-배포·검수 문서: docs/ChillPay_URL결제_인라인API_배포가이드.md
+키트 JSON 의 merchantIntegrationSamples, merchantInlineCheckoutChillPay / merchantInlineCheckoutJpay 참고.
+배포·검수 문서:
+  ChillPay — docs/ChillPay_URL결제_인라인API_배포가이드.md
+  JPAY     — docs/JPAY_URL결제_인라인API_배포가이드.md
 
 WooCommerce
 -----------

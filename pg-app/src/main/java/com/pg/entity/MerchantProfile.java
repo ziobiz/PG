@@ -172,6 +172,10 @@ public class MerchantProfile {
     @Column(name = "api_url_pay_checkout_mode", nullable = false, length = 16)
     private String apiUrlPayCheckoutMode = "STANDARD";
 
+    /** JPAY 가맹 API 구독(정기) 인라인 사용 — 본사 jpaySubscriptionEnabledYn 과 함께 */
+    @Column(name = "api_jpay_subscription_use_yn", nullable = false, length = 1)
+    private String apiJpaySubscriptionUseYn = "N";
+
     /**
      * 챗봇 결제 URL 방식 — {@link com.pg.urlpay.UrlPayCheckoutModeUtil}.
      * 웹결제(공개 URL)·API 중계와 별도 선택.
@@ -441,6 +445,10 @@ public class MerchantProfile {
     public void setApiUrlPayCheckoutMode(String apiUrlPayCheckoutMode) {
         this.apiUrlPayCheckoutMode = apiUrlPayCheckoutMode != null && !apiUrlPayCheckoutMode.isBlank()
                 ? apiUrlPayCheckoutMode.trim().toUpperCase(java.util.Locale.ROOT) : "STANDARD";
+    }
+    public String getApiJpaySubscriptionUseYn() { return apiJpaySubscriptionUseYn; }
+    public void setApiJpaySubscriptionUseYn(String apiJpaySubscriptionUseYn) {
+        this.apiJpaySubscriptionUseYn = apiJpaySubscriptionUseYn != null && "Y".equalsIgnoreCase(apiJpaySubscriptionUseYn.trim()) ? "Y" : "N";
     }
 
     public String getChatbotUrlPayCheckoutMode() { return chatbotUrlPayCheckoutMode; }

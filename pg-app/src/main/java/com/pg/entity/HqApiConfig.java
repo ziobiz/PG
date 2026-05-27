@@ -86,6 +86,22 @@ public class HqApiConfig {
     @Column(name = "url_pay_repay_path_template", length = 255)
     private String urlPayRepayPathTemplate = "/pay-repay/{compCode}";
 
+    /** JPAY 가맹 API 구독(정기) 전역 제공 여부 — ③ 인라인 전용 */
+    @Column(name = "jpay_subscription_enabled_yn", length = 1)
+    private String jpaySubscriptionEnabledYn = "N";
+
+    /** JPAY 구독 인라인 결제창(jpay-subscribe.html) 제공 여부 */
+    @Column(name = "jpay_subscription_inline_enabled_yn", length = 1)
+    private String jpaySubscriptionInlineEnabledYn = "N";
+
+    /** JPAY 구독 공개 경로 템플릿. 예: /jpay-subscribe/{compCode} */
+    @Column(name = "jpay_subscription_path_template", length = 128)
+    private String jpaySubscriptionPathTemplate = "/jpay-subscribe/{compCode}";
+
+    /** JPAY 구독 기본 plan attempts·interval_time 등 JSON */
+    @Column(name = "jpay_subscription_config_json", columnDefinition = "TEXT")
+    private String jpaySubscriptionConfigJson;
+
     /**
      * URL 공개 결제 페이지(/pay/…) 입력 필드 구성.
      * FULL: 청구지·성명 분리 등 전체, SIMPLE: 상품·연락·금액 중심 간편 폼.
@@ -252,6 +268,14 @@ public class HqApiConfig {
     public void setUrlPayRepayEnabledYn(String urlPayRepayEnabledYn) { this.urlPayRepayEnabledYn = urlPayRepayEnabledYn; }
     public String getUrlPayRepayPathTemplate() { return urlPayRepayPathTemplate; }
     public void setUrlPayRepayPathTemplate(String urlPayRepayPathTemplate) { this.urlPayRepayPathTemplate = urlPayRepayPathTemplate; }
+    public String getJpaySubscriptionEnabledYn() { return jpaySubscriptionEnabledYn; }
+    public void setJpaySubscriptionEnabledYn(String jpaySubscriptionEnabledYn) { this.jpaySubscriptionEnabledYn = jpaySubscriptionEnabledYn; }
+    public String getJpaySubscriptionInlineEnabledYn() { return jpaySubscriptionInlineEnabledYn; }
+    public void setJpaySubscriptionInlineEnabledYn(String jpaySubscriptionInlineEnabledYn) { this.jpaySubscriptionInlineEnabledYn = jpaySubscriptionInlineEnabledYn; }
+    public String getJpaySubscriptionPathTemplate() { return jpaySubscriptionPathTemplate; }
+    public void setJpaySubscriptionPathTemplate(String jpaySubscriptionPathTemplate) { this.jpaySubscriptionPathTemplate = jpaySubscriptionPathTemplate; }
+    public String getJpaySubscriptionConfigJson() { return jpaySubscriptionConfigJson; }
+    public void setJpaySubscriptionConfigJson(String jpaySubscriptionConfigJson) { this.jpaySubscriptionConfigJson = jpaySubscriptionConfigJson; }
     public String getUrlPayFormMode() { return urlPayFormMode; }
     public void setUrlPayFormMode(String urlPayFormMode) { this.urlPayFormMode = urlPayFormMode; }
     public String getUrlPayTabTitleJson() { return urlPayTabTitleJson; }

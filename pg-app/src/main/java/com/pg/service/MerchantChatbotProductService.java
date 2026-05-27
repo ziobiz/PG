@@ -12,6 +12,7 @@ import com.pg.entity.OrgUnit;
 import com.pg.repository.HqApiConfigRepository;
 import com.pg.repository.MerchantChatbotProductRepository;
 import com.pg.repository.MerchantProfileRepository;
+import com.pg.integration.pg.PgVendor;
 import com.pg.urlpay.UrlPayCheckoutModeUtil;
 import com.pg.util.ChatbotProductPricingUtil;
 import com.pg.repository.OrgBrandingRepository;
@@ -40,6 +41,8 @@ public class MerchantChatbotProductService {
     private final ChillPayService chillPayService;
     private final UrlPayDisplayFxService urlPayDisplayFxService;
     private final PaymentCurrencyScaleService paymentCurrencyScaleService;
+    private final UrlPayCheckoutCurrencyService urlPayCheckoutCurrencyService;
+    private final JpayPaymentService jpayPaymentService;
 
     public MerchantChatbotProductService(MerchantChatbotProductRepository productRepository,
                                         OrgUnitRepository orgUnitRepository,
@@ -50,7 +53,9 @@ public class MerchantChatbotProductService {
                                         HqNotifyEnvService hqNotifyEnvService,
                                         ChillPayService chillPayService,
                                         UrlPayDisplayFxService urlPayDisplayFxService,
-                                        PaymentCurrencyScaleService paymentCurrencyScaleService) {
+                                        PaymentCurrencyScaleService paymentCurrencyScaleService,
+                                        UrlPayCheckoutCurrencyService urlPayCheckoutCurrencyService,
+                                        JpayPaymentService jpayPaymentService) {
         this.productRepository = productRepository;
         this.orgUnitRepository = orgUnitRepository;
         this.merchantProfileRepository = merchantProfileRepository;
@@ -61,6 +66,8 @@ public class MerchantChatbotProductService {
         this.chillPayService = chillPayService;
         this.urlPayDisplayFxService = urlPayDisplayFxService;
         this.paymentCurrencyScaleService = paymentCurrencyScaleService;
+        this.urlPayCheckoutCurrencyService = urlPayCheckoutCurrencyService;
+        this.jpayPaymentService = jpayPaymentService;
     }
 
     public long countProductsForMerchant(Long merchantOrgUnitId) {
@@ -174,7 +181,6 @@ public class MerchantChatbotProductService {
         if (cid.isEmpty()) {
             return;
         }
-        boolean repayMode = isMerchantUrlPayCheckoutRepay(orgUnitId);
         String base = resolvePublicCustomerSiteBase(req);
         for (Map<String, Object> row : items) {
             if (row == null) {
@@ -186,7 +192,7 @@ public class MerchantChatbotProductService {
             String lt = row.get("listingType") != null ? String.valueOf(row.get("listingType")).trim() : "SALE";
             boolean reservation = isReservationListingCode(lt);
             boolean placeStay = ChatbotListingType.RESERVATION_PLACE.getCode().equalsIgnoreCase(lt);
-            row.put("urlPayPrefillUrl", buildPayHtmlPrefillUrl(base, cid, title, amount, cur, repayMode));
+            row.put("urlPayPrefillUrl", buildChatbotPayPrefillUrl(base, orgUnitId, cid, title, amount, cur, null));
             if (placeStay) {
                 row.put("payLinkVerbKo", "숙박 예약하기");
                 row.put("payLinkVerbJa", "宿泊予約");
@@ -207,7 +213,12 @@ public class MerchantChatbotProductService {
             return data;
         }
         boolean repayMode = isMerchantUrlPayCheckoutRepay(merchantOrgUnitId);
+        String pgVendor = resolveChatbotCheckoutPgVendor(merchantOrgUnitId);
+        data.put("chatbotCheckoutPgVendor", pgVendor);
         data.put("urlPayCheckoutMode", resolveUrlPayCheckoutModeForMerchant(merchantOrgUnitId));
+        if ("JPAY".equals(pgVendor)) {
+            return enrichJpayUrlPayFactsForChatbotLlm(data, merchantOrgUnitId, repayMode);
+        }
         Map<String, Object> pres;
         try {
             pres = repayMode
@@ -223,7 +234,7 @@ public class MerchantChatbotProductService {
         data.put("urlPayConfigured", true);
         data.putAll(pres);
         String opPg = String.valueOf(data.getOrDefault("urlPayOperationalPgCd", ""));
-        resolveUrlPayCheckoutCurrencyCode(merchantOrgUnitId).ifPresent(cur ->
+        urlPayCheckoutCurrencyService.resolveFromOrgChain(merchantOrgUnitId).ifPresent(cur ->
                 data.put("checkoutCurrencyCode", cur.trim().toUpperCase(Locale.ROOT)));
         String pricingMode = String.valueOf(data.getOrDefault("urlPayPricingMode", "CHECKOUT_CURRENCY"));
         boolean fxHq = urlPayDisplayFxService.isHqFeatureEnabled();
@@ -294,14 +305,46 @@ public class MerchantChatbotProductService {
         return UrlPayCheckoutModeUtil.isRepay(resolveUrlPayCheckoutModeForMerchant(orgUnitId));
     }
 
-    private static String buildPayHtmlPrefillUrl(String publicBaseTrimmed, String compCode,
-                                                 String title, String amountPlain, String currencyIso,
-                                                 boolean repayMode) {
+    /**
+     * 챗봇 결제 진입 시 사용할 PG — 운영 WEB·URL결제 바인딩 1건 기준.
+     * 재결제 모드는 ChillPay 전용({@code pay.html?variant=repay}).
+     */
+    @Transactional(readOnly = true)
+    public String resolveChatbotCheckoutPgVendor(Long orgUnitId) {
+        if (orgUnitId == null) {
+            return "";
+        }
+        if (isMerchantUrlPayCheckoutRepay(orgUnitId)) {
+            return chillPayService.findOperationalWebBindingForUrlPayRepay(orgUnitId).isPresent() ? "CHILLPAY" : "";
+        }
+        return chillPayService.findOperationalWebBindingForUrlPay(orgUnitId)
+                .map(b -> {
+                    String pg = b.getPgCd() != null ? b.getPgCd().trim() : "";
+                    if (PgVendor.isJpayFamily(pg)) {
+                        return "JPAY";
+                    }
+                    if (PgVendor.isChillPayFamily(pg)) {
+                        return "CHILLPAY";
+                    }
+                    return "";
+                })
+                .orElse("");
+    }
+
+    /** 챗봇 결제 프리필 URL — JPAY 운영 바인딩이면 {@code jpay-pay.html}, 아니면 {@code pay.html}. */
+    public String buildChatbotPayPrefillUrl(String publicBaseTrimmed, Long orgUnitId, String compCode,
+                                            String title, String amountPlain, String currencyIso, String orderNo) {
+        boolean repayMode = isMerchantUrlPayCheckoutRepay(orgUnitId);
+        String page = resolveChatbotPayPageFile(orgUnitId, repayMode);
         StringBuilder q = new StringBuilder();
         q.append("m=").append(urlEncode(compCode));
         q.append("&entry=chatbot");
         if (repayMode) {
             q.append("&variant=repay");
+        }
+        String on = orderNo != null ? orderNo.trim() : "";
+        if (!on.isEmpty()) {
+            q.append("&orderNo=").append(urlEncode(on.length() > 20 ? on.substring(0, 20) : on));
         }
         String t = title != null ? title.trim() : "";
         if (!t.isEmpty()) {
@@ -315,12 +358,71 @@ public class MerchantChatbotProductService {
         if (!c.isEmpty()) {
             q.append("&currency=").append(urlEncode(c));
         }
-        String path = "/pay.html?" + q;
+        String path = "/" + page + "?" + q;
         String base = trimSlash(publicBaseTrimmed);
         if (base.isBlank()) {
             return path;
         }
         return base + path;
+    }
+
+    public String buildChatbotPayPrefillUrl(HttpServletRequest req, Long orgUnitId, String compCode,
+                                            String title, String amountPlain, String currencyIso, String orderNo) {
+        return buildChatbotPayPrefillUrl(resolvePublicCustomerSiteBase(req), orgUnitId, compCode,
+                title, amountPlain, currencyIso, orderNo);
+    }
+
+    private String resolveChatbotPayPageFile(Long orgUnitId, boolean repayMode) {
+        if (repayMode || orgUnitId == null) {
+            return "pay.html";
+        }
+        return "JPAY".equals(resolveChatbotCheckoutPgVendor(orgUnitId)) ? "jpay-pay.html" : "pay.html";
+    }
+
+    private Map<String, Object> enrichJpayUrlPayFactsForChatbotLlm(Map<String, Object> data, Long merchantOrgUnitId,
+                                                                   boolean repayMode) {
+        if (repayMode) {
+            data.put("urlPayConfigured", false);
+            data.put("urlPayConfigurationHintKo",
+                    "챗봇 URL 재결제는 ChillPay 전용입니다. JPAY 가맹은 챗봇 URL결제방식을 일반(STANDARD)으로 설정하세요.");
+            return data;
+        }
+        boolean configured = jpayPaymentService.hasOperationalWebBinding(merchantOrgUnitId);
+        data.put("urlPayConfigured", configured);
+        if (!configured) {
+            data.put("urlPayConfigurationHintKo",
+                    "이 가맹점은 JPAY URL 결제(운영·연동용도 URL결제) 바인딩이 없으면 결제 페이지가 열리지 않을 수 있습니다.");
+            return data;
+        }
+        jpayPaymentService.resolveOperationalPgCd(merchantOrgUnitId).ifPresent(pg ->
+                data.put("urlPayOperationalPgCd", pg));
+        urlPayCheckoutCurrencyService.resolveFromOrgChain(merchantOrgUnitId).ifPresent(cur ->
+                data.put("checkoutCurrencyCode", cur.trim().toUpperCase(Locale.ROOT)));
+        data.put("urlPayPricingMode", "CHECKOUT_CURRENCY");
+        data.put("urlPayDisplayFxActive", false);
+        data.put("urlPayFxUiBlind", false);
+        data.put("urlPayInlineWidgetKind", "JPAY_INLINE");
+        data.put("urlPayCustomerCurrencyHintKo", buildJpayUrlPayCustomerCurrencyHintKo(data));
+        hqApiConfigRepository.findAll().stream().findFirst().ifPresent(hq -> {
+            data.put("urlPayFlow", ChillPayService.effectiveUrlPayFlow(hq));
+            data.put("urlPayFormMode", ChillPayService.effectiveUrlPayFormMode(hq));
+        });
+        String opPg = String.valueOf(data.getOrDefault("urlPayOperationalPgCd", ""));
+        Object checkoutCurObj = data.get("checkoutCurrencyCode");
+        String checkoutCur = checkoutCurObj instanceof String ? (String) checkoutCurObj : null;
+        data.put("urlPayAmountScaleMode", paymentCurrencyScaleService.resolveModeForUi(opPg,
+                checkoutCur != null && !checkoutCur.isBlank() ? checkoutCur : ""));
+        return data;
+    }
+
+    private static String buildJpayUrlPayCustomerCurrencyHintKo(Map<String, Object> data) {
+        String checkout = data.get("checkoutCurrencyCode") instanceof String
+                ? ((String) data.get("checkoutCurrencyCode")).trim().toUpperCase(Locale.ROOT) : "";
+        if (!checkout.isBlank()) {
+            return "카탈로그 상품 currencyCode는 고객 안내용이며, JPAY 카드 청구 통화는 checkoutCurrencyCode("
+                    + checkout + ") 설정을 따릅니다. 결제는 jpay-pay.html(챗봇 entry=chatbot)에서 처리됩니다.";
+        }
+        return "상품 금액·통화는 카탈로그와 JPAY 결제 화면을 동일하게 맞추어 안내하세요.";
     }
 
     private static String urlEncode(String raw) {
@@ -349,55 +451,6 @@ public class MerchantChatbotProductService {
             }
         }
         return scheme + "://" + host;
-    }
-
-    /** {@link com.pg.controller.api.ApiPayController} 와 동일 규칙 — URL 결제 체크아웃 통화. */
-    private Optional<String> resolveUrlPayCheckoutCurrencyCode(Long merchantOrgUnitId) {
-        Optional<String> own = firstProfileBaseCurrencyToken(merchantOrgUnitId);
-        if (own.isPresent()) {
-            return own;
-        }
-        Long cur = merchantOrgUnitId;
-        Set<Long> seen = new HashSet<>();
-        while (cur != null && seen.add(cur)) {
-            Optional<OrgUnit> ou = orgUnitRepository.findById(cur);
-            if (ou.isEmpty()) {
-                break;
-            }
-            OrgUnit u = ou.get();
-            if (u.getOrgLevel() == OrgLevel.MASTER_DIST) {
-                Optional<String> distCur = firstProfileBaseCurrencyToken(u.getId());
-                if (distCur.isPresent()) {
-                    return distCur;
-                }
-            }
-            cur = u.getParentId();
-        }
-        cur = merchantOrgUnitId;
-        seen.clear();
-        while (cur != null && seen.add(cur)) {
-            Optional<OrgUnit> ou = orgUnitRepository.findById(cur);
-            if (ou.isEmpty()) {
-                break;
-            }
-            OrgUnit u = ou.get();
-            if (u.getOrgLevel() == OrgLevel.REGIONAL) {
-                return firstProfileBaseCurrencyToken(u.getId());
-            }
-            cur = u.getParentId();
-        }
-        return Optional.empty();
-    }
-
-    private Optional<String> firstProfileBaseCurrencyToken(Long orgUnitId) {
-        if (orgUnitId == null) {
-            return Optional.empty();
-        }
-        return merchantProfileRepository.findByOrgUnitId(orgUnitId)
-                .map(MerchantProfile::getBaseCurrency)
-                .filter(s -> s != null && !s.isBlank())
-                .map(s -> s.split(",")[0].trim())
-                .filter(s -> !s.isEmpty());
     }
 
     private Optional<String> resolveInheritedBrandingLogoUrl(Long merchantOrgUnitId) {

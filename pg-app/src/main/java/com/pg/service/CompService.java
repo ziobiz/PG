@@ -1660,6 +1660,7 @@ public class CompService {
                             m.put("urlPayCheckoutMode", com.pg.urlpay.UrlPayCheckoutModeUtil.normalize(mp.getUrlPayCheckoutMode()));
                             m.put("apiUrlPayCheckoutMode", com.pg.urlpay.UrlPayCheckoutModeUtil.normalize(mp.getApiUrlPayCheckoutMode()));
                             m.put("chatbotUrlPayCheckoutMode", com.pg.urlpay.UrlPayCheckoutModeUtil.normalize(mp.getChatbotUrlPayCheckoutMode()));
+                            m.put("apiJpaySubscriptionUseYn", mp.getApiJpaySubscriptionUseYn() != null ? mp.getApiJpaySubscriptionUseYn() : "N");
                             m.put("chatbotPaymentUseYn", mp.getChatbotPaymentUseYn() != null ? mp.getChatbotPaymentUseYn() : "N");
                             m.put("chatbotProductSlotLimit", mp.getChatbotProductSlotLimit() != null ? mp.getChatbotProductSlotLimit() : "");
                             m.put("chatbotCatalogListingGrant", mp.getChatbotCatalogListingGrant() != null ? mp.getChatbotCatalogListingGrant() : "");
@@ -1739,6 +1740,7 @@ public class CompService {
                                 m.put("urlPayCheckoutMode", com.pg.urlpay.UrlPayCheckoutModeUtil.normalize(mp.getUrlPayCheckoutMode()));
                                 m.put("apiUrlPayCheckoutMode", com.pg.urlpay.UrlPayCheckoutModeUtil.normalize(mp.getApiUrlPayCheckoutMode()));
                                 m.put("chatbotUrlPayCheckoutMode", com.pg.urlpay.UrlPayCheckoutModeUtil.normalize(mp.getChatbotUrlPayCheckoutMode()));
+                            m.put("apiJpaySubscriptionUseYn", mp.getApiJpaySubscriptionUseYn() != null ? mp.getApiJpaySubscriptionUseYn() : "N");
                                 m.put("urlPayWebSettingsAllowed",
                                         chillPayService.findOperationalWebBindingForUrlPay(ou.getId()).isPresent() ? "Y" : "N");
                             }
@@ -1875,6 +1877,10 @@ public class CompService {
                                         m.put("notifyUrlResult", n.getNotiUrl());
                                     } else if (MERCHANT_NOTIFY_MIDDLEWARE.equals(n.getUrlType())) {
                                         m.put("middlewareNotifyUrl", n.getNotiUrl());
+                                    } else if (MerchantNotifyUrl.URL_TYPE_JPAY_NOTIFY.equals(n.getUrlType())) {
+                                        m.put("jpayNotifyUrl", n.getNotiUrl());
+                                    } else if (MerchantNotifyUrl.URL_TYPE_JPAY_CALLBACK.equals(n.getUrlType())) {
+                                        m.put("jpayCallbackUrl", n.getNotiUrl());
                                     }
                                 }
                                 m.put("urlPayAlertEmailYn", mp.getUrlPayAlertEmailYn() != null ? mp.getUrlPayAlertEmailYn() : "N");
@@ -1897,6 +1903,7 @@ public class CompService {
                           String assistantLoginId, String assistantPwd, String assistantRoleType, String brandingEditAllowedYn,
                           String defaultProductName, String defaultProductCode, String defaultProductAmount, String defaultProductDesc,
                           String notifyUrlBackground, String notifyUrlResult,
+                          String jpayNotifyUrl, String jpayCallbackUrl,
                           String notifyUrl1, String notifyUrl2, String notifyUrl3, String notifyUrl4,
                           String middlewareNotifyUrl, String middlewareNotifySecret,
                           String commissionFollowHq, String hqPolicyScope, String perTxFee, String cancelRate,
@@ -1915,6 +1922,7 @@ public class CompService {
                           String urlPayCheckoutMode,
                           String apiUrlPayCheckoutMode,
                           String chatbotUrlPayCheckoutMode,
+                          String apiJpaySubscriptionUseYn,
                           String tabletFeatureUseYn) {
         return orgUnitRepository.findByCode(compId != null ? compId : "")
                 .flatMap(ou -> merchantProfileRepository.findByOrgUnitId(ou.getId())
@@ -1977,6 +1985,9 @@ public class CompService {
                                 applyMerchantUrlPayCheckoutMode(mp, ou.getId(), urlPayCheckoutMode);
                                 applyMerchantApiUrlPayCheckoutMode(mp, ou.getId(), apiUrlPayCheckoutMode);
                                 applyMerchantChatbotUrlPayCheckoutMode(mp, ou.getId(), chatbotUrlPayCheckoutMode);
+                            }
+                            if (childLevel == OrgLevel.MERCHANT && apiJpaySubscriptionUseYn != null && !apiJpaySubscriptionUseYn.trim().isEmpty()) {
+                                mp.setApiJpaySubscriptionUseYn(apiJpaySubscriptionUseYn.trim());
                             }
                             if (childLevel == OrgLevel.MERCHANT && chatbotPaymentUseYn != null && !chatbotPaymentUseYn.trim().isEmpty()) {
                                 mp.setChatbotPaymentUseYn("Y".equalsIgnoreCase(chatbotPaymentUseYn.trim()) ? "Y" : "N");
@@ -2327,7 +2338,7 @@ public class CompService {
                                 String[] mwMerge = mergeMiddlewareNotifyParamsIfOmittedOnUpdate(ou.getId(),
                                         middlewareNotifyUrl, middlewareNotifySecret);
                                 saveMerchantPayNotifyUrls(ou.getId(), notifyUrlBackground, notifyUrlResult,
-                                        mwMerge[0], mwMerge[1]);
+                                        mwMerge[0], mwMerge[1], jpayNotifyUrl, jpayCallbackUrl);
                             }
                             if (chatbotCatalogListingGrant != null && childLevel != OrgLevel.MERCHANT) {
                                 merchantChatbotKbService.applyCatalogListingGrant(mp, chatbotCatalogListingGrant);
@@ -2478,10 +2489,13 @@ public class CompService {
     }
 
     private void saveMerchantPayNotifyUrls(Long orgUnitId, String background, String result,
-                                           String middlewareUrl, String middlewareSecret) {
+                                           String middlewareUrl, String middlewareSecret,
+                                           String jpayNotifyUrl, String jpayCallbackUrl) {
         String bg = normalizeMerchantPayNotifyUrl(background);
         String rs = normalizeMerchantPayNotifyUrl(result);
         String mw = normalizeMerchantPayNotifyUrl(middlewareUrl);
+        String jn = normalizeMerchantPayNotifyUrl(jpayNotifyUrl);
+        String jc = normalizeMerchantPayNotifyUrl(jpayCallbackUrl);
         String sec = middlewareSecret != null ? middlewareSecret.trim() : "";
         if (sec.length() > 256) {
             throw new IllegalArgumentException("PG중계 콜백 시크릿은 256자 이하여야 합니다.");
@@ -2496,8 +2510,15 @@ public class CompService {
         if (mw.length() > maxLen) {
             throw new IllegalArgumentException("PG중계 콜백 URL은 " + maxLen + "자 이하여야 합니다. (현재 " + mw.length() + "자)");
         }
+        if (jn.length() > maxLen) {
+            throw new IllegalArgumentException("JPAY Notify URL은 " + maxLen + "자 이하여야 합니다. (현재 " + jn.length() + "자)");
+        }
+        if (jc.length() > maxLen) {
+            throw new IllegalArgumentException("JPAY Callback URL은 " + maxLen + "자 이하여야 합니다. (현재 " + jc.length() + "자)");
+        }
         merchantNotifyUrlRepository.deleteByOrgUnitIdAndUrlTypeIn(orgUnitId,
-                java.util.List.of("BACKGROUND", "RESULT", MERCHANT_NOTIFY_MIDDLEWARE));
+                java.util.List.of("BACKGROUND", "RESULT", MERCHANT_NOTIFY_MIDDLEWARE,
+                        MerchantNotifyUrl.URL_TYPE_JPAY_NOTIFY, MerchantNotifyUrl.URL_TYPE_JPAY_CALLBACK));
         merchantNotifyUrlRepository.flush();
         if (!bg.isEmpty()) {
             MerchantNotifyUrl n1 = new MerchantNotifyUrl();
@@ -2523,6 +2544,22 @@ public class CompService {
             n3.setSignSecret(sec.isEmpty() ? null : sec);
             n3.setUseYn("Y");
             merchantNotifyUrlRepository.save(n3);
+        }
+        if (!jn.isEmpty()) {
+            MerchantNotifyUrl n4 = new MerchantNotifyUrl();
+            n4.setOrgUnitId(orgUnitId);
+            n4.setUrlType(MerchantNotifyUrl.URL_TYPE_JPAY_NOTIFY);
+            n4.setNotiUrl(jn);
+            n4.setUseYn("Y");
+            merchantNotifyUrlRepository.save(n4);
+        }
+        if (!jc.isEmpty()) {
+            MerchantNotifyUrl n5 = new MerchantNotifyUrl();
+            n5.setOrgUnitId(orgUnitId);
+            n5.setUrlType(MerchantNotifyUrl.URL_TYPE_JPAY_CALLBACK);
+            n5.setNotiUrl(jc);
+            n5.setUseYn("Y");
+            merchantNotifyUrlRepository.save(n5);
         }
     }
 
@@ -2664,9 +2701,9 @@ public class CompService {
                 /* 65–68 default product */
                 null, null, null, null,
                 /* notify 8 + commission 17 + 수수료VAT 2 + regionalSettings */
-                null, null, null, null, null, null, null, null,
+                null, null, null, null, null, null, null, null, null, null,
                 null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null,
-                null, null, null, null, null, null, null, null, null);
+                null, null, null, null, null, null, null, null, null, null);
     }
 
     @Transactional
@@ -2691,6 +2728,7 @@ public class CompService {
                                      String pgBindings, String webPaymentUseYn, String chatbotPaymentUseYn, String baseCurrency,
                                      String defaultProductName, String defaultProductCode, String defaultProductAmount, String defaultProductDesc,
                                      String notifyUrlBackground, String notifyUrlResult,
+                                     String jpayNotifyUrl, String jpayCallbackUrl,
                                      String notifyUrl1, String notifyUrl2, String notifyUrl3, String notifyUrl4,
                                      String middlewareNotifyUrl, String middlewareNotifySecret,
                                      String commissionFollowHq, String hqPolicyScope, String perTxFee, String cancelRate,
@@ -2703,6 +2741,7 @@ public class CompService {
                                      String urlPayCheckoutMode,
                                      String apiUrlPayCheckoutMode,
                                      String chatbotUrlPayCheckoutMode,
+                                     String apiJpaySubscriptionUseYn,
                                      String tabletFeatureUseYn) {
         return registerWithExtra(code, name, compDiv, parentId,
                 compTel, zipCode, addr, addrDetail, addrEtc, addrCountryCd,
@@ -2725,6 +2764,7 @@ public class CompService {
                 pgBindings, webPaymentUseYn, chatbotPaymentUseYn, baseCurrency,
                 defaultProductName, defaultProductCode, defaultProductAmount, defaultProductDesc,
                 notifyUrlBackground, notifyUrlResult,
+                jpayNotifyUrl, jpayCallbackUrl,
                 notifyUrl1, notifyUrl2, notifyUrl3, notifyUrl4,
                 middlewareNotifyUrl, middlewareNotifySecret,
                 commissionFollowHq, hqPolicyScope, perTxFee, cancelRate,
@@ -2740,6 +2780,7 @@ public class CompService {
                 urlPayCheckoutMode,
                 apiUrlPayCheckoutMode,
                 chatbotUrlPayCheckoutMode,
+                null,
                 tabletFeatureUseYn);
     }
 
@@ -2765,6 +2806,7 @@ public class CompService {
                                      String pgBindings, String webPaymentUseYn, String chatbotPaymentUseYn, String baseCurrency,
                                      String defaultProductName, String defaultProductCode, String defaultProductAmount, String defaultProductDesc,
                                      String notifyUrlBackground, String notifyUrlResult,
+                                     String jpayNotifyUrl, String jpayCallbackUrl,
                                      String notifyUrl1, String notifyUrl2, String notifyUrl3, String notifyUrl4,
                                      String middlewareNotifyUrl, String middlewareNotifySecret,
                                      String commissionFollowHq, String hqPolicyScope, String perTxFee, String cancelRate,
@@ -2781,6 +2823,7 @@ public class CompService {
                                      String urlPayCheckoutMode,
                                      String apiUrlPayCheckoutMode,
                                      String chatbotUrlPayCheckoutMode,
+                                     String apiJpaySubscriptionUseYn,
                                      String tabletFeatureUseYn) {
         OrgUnit o = new OrgUnit();
         String compDivVal = compDiv != null ? compDiv.trim() : "AGENCY";
@@ -2857,6 +2900,9 @@ public class CompService {
             applyMerchantUrlPayCheckoutMode(mp, saved.getId(), urlPayCheckoutMode);
             applyMerchantApiUrlPayCheckoutMode(mp, saved.getId(), apiUrlPayCheckoutMode);
             applyMerchantChatbotUrlPayCheckoutMode(mp, saved.getId(), chatbotUrlPayCheckoutMode);
+            if (apiJpaySubscriptionUseYn != null && !apiJpaySubscriptionUseYn.trim().isEmpty()) {
+                mp.setApiJpaySubscriptionUseYn(apiJpaySubscriptionUseYn.trim());
+            }
             if (chatbotPaymentUseYn != null && !chatbotPaymentUseYn.trim().isEmpty()) {
                 mp.setChatbotPaymentUseYn("Y".equalsIgnoreCase(chatbotPaymentUseYn.trim()) ? "Y" : "N");
             } else {
@@ -3033,7 +3079,7 @@ public class CompService {
             saveMerchantDefaultProductOrClear(saved.getId(), defaultProductName, defaultProductCode,
                     defaultProductAmount, defaultProductDesc);
             saveMerchantPayNotifyUrls(saved.getId(), notifyUrlBackground, notifyUrlResult,
-                    middlewareNotifyUrl, middlewareNotifySecret);
+                    middlewareNotifyUrl, middlewareNotifySecret, jpayNotifyUrl, jpayCallbackUrl);
             copyNotifyUrlSlotsFromNearestMasterDistToMerchant(saved.getId(), effectiveParentId);
         }
         if ("MASTER_DIST".equalsIgnoreCase(compDiv)) {
@@ -4388,12 +4434,12 @@ public class CompService {
                             row.get("transferType"), null, null, null, null, null, null, null, null, null,
                             null, null, null, null,
                             null, null, null, null,
-                            null, null, null, null, null, null, null, null,
                             null, null, null, null, null, null, null, null, null, null,
                             null, null, null, null, null, null, null, null, null, null,
+                            null, null, null, null, null, null, null, null, null, null,
+                            null, null, null, null, null, null, null, null, null,
                             null, null, null, null,
-                            null, null, null, null, null, null, null, null, null, null,
-                            null, null, null, null);
+                            null, null, null, null, null, null);
                     if (loginIdVal != null && !loginIdVal.isEmpty() && userRepository.findByUsername(loginIdVal).isEmpty()) {
                         AppUser appUser = new AppUser();
                         appUser.setUsername(loginIdVal);

@@ -40,6 +40,11 @@ public class HomeController {
         return redirectWithMergedQuery("/chatbot-pay.html", compId, request);
     }
 
+    @GetMapping("/jpay-subscribe/{compId}")
+    public String jpaySubscribeByComp(@PathVariable("compId") String compId, HttpServletRequest request) {
+        return redirectWithMergedQuery("/jpay-subscribe.html", compId, request);
+    }
+
     @GetMapping("/jpay-pay/{compId}")
     public String jpayPayByComp(@PathVariable("compId") String compId, HttpServletRequest request) {
         return redirectWithMergedQuery("/jpay-pay.html", compId, request);

@@ -120,6 +120,20 @@
     return '<div class="row mb-2"><div class="col-sm-5"><label class="form-label" data-pg-ui-t="URL 재결제 URL">' + escUi(L('URL 재결제 URL')) + '</label><div class="input-group input-group-sm"><input type="text" class="form-control" id="paymentRepayUrlDisplay" readonly placeholder="' + escUi(L(String(ph))) + '" data-pg-ui-placeholder="' + escUi(String(ph)) + '"><button type="button" class="btn btn-outline-primary" id="paymentRepayUrlCopyBtn" data-pg-ui-t="복사">' + escUi(L('복사')) + '</button></div></div></div>';
   }
 
+  /** 가맹 등록·정보 — JPAY API 구독(③ 인라인 전용) */
+  function merchantJpayApiSubscriptionCardSection() {
+    return {
+      title: 'JPAY API 구독',
+      id: 'jpayApiSubscriptionCard',
+      merchantOnly: true,
+      notice: '가맹 API subscription/prepare · jpay-subscribe.html 전용입니다. URL·챗봇·1회 inline-checkout 과 분리됩니다. 본사 결제로직설정 구독 ON + API연동설정 API구독 PG 바인딩 필요.',
+      rows: [
+        [{ label: 'JPAY API 구독 사용', type: 'select', name: 'apiJpaySubscriptionUseYn', options: [{ v: 'N', t: '미사용' }, { v: 'Y', t: '사용' }], col: 3 }],
+        [{ label: '', type: 'note', col: 12, text: 'prepare: POST /api/middleware/v1/merchant/jpay/subscription/prepare · 해지: POST .../subscription/cancel (최초 orderNo)' }]
+      ]
+    };
+  }
+
   /** 가맹 등록·정보 — API URL 인라인 중계 결제 방식(공개 URL·챗봇과 별도) */
   function merchantApiUrlPayCheckoutCardSection() {
     return {
@@ -2098,6 +2112,7 @@
                 { v: '/calc/payForceRefundList', t: '강제환불' },
                 { v: '/pay/easyPay', t: 'URL결제내역' },
                 { v: '/pay/chatbotPay', t: '챗봇결제내역' },
+                { v: '/pay/jpaySubscription', t: '구독결제내역' },
                 { v: '/calc/offsetCancList', t: '상계취소내역' },
                 { v: '/comp/compMngTree', t: '업체관리' },
                 { v: '/commission/commisionList', t: '수수료관리' },
@@ -2421,6 +2436,17 @@
             [{ label: 'URL 재결제형 제공', type: 'select', name: 'urlPayRepayEnabledYn', options: [{ v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }], col: 2 },
              { label: 'URL 재결제 경로 템플릿', type: 'text', name: 'urlPayRepayPathTemplate', col: 4, placeholder: '/pay-repay/{compCode}' },
              { label: '', type: 'note', col: 6, text: '저장 카드(CreditToken) 재결제 전용 공개 URL. 가맹 「URL 결제 방식」(공개 URL)·「API URL 인라인 중계 결제」·「챗봇결제 설정」 각각 재결제 URL 이면 해당 채널에 적용됩니다.' }]
+          ]
+        },
+        {
+          title: 'JPAY API 구독',
+          notice: '가맹 API 인라인 구독(③) 전용입니다. URL·챗봇·1회 jpay-pay 와 분리됩니다.',
+          rows: [
+            [{ label: 'JPAY API 구독 제공', type: 'select', name: 'jpaySubscriptionEnabledYn', options: [{ v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }], col: 2 },
+             { label: '구독 INLINE 제공', type: 'select', name: 'jpaySubscriptionInlineEnabledYn', options: [{ v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }], col: 2 },
+             { label: '구독 경로 템플릿', type: 'text', name: 'jpaySubscriptionPathTemplate', col: 4, placeholder: '/jpay-subscribe/{compCode}' }],
+            [{ label: '기본 plan JSON', type: 'textarea', name: 'jpaySubscriptionConfigJson', col: 12, rows: 4,
+               placeholder: '{"attempts":"3","interval_time":3600,"total_count":12}' }]
           ]
         },
         {
@@ -2795,6 +2821,7 @@
           ]
         },
         merchantApiUrlPayCheckoutCardSection(),
+        merchantJpayApiSubscriptionCardSection(),
         {
           title: '챗봇결제 설정',
           id: 'chatbotPaymentCard',
@@ -2877,6 +2904,15 @@
           notice: '결제 응답을 가맹점에게 송부할 노티 주소. 등록 시 결제통보 URL관리에 자동 반영됩니다.',
           rows: [
             [{ label: 'URL Background', type: 'text', name: 'notifyUrlBackground', col: 5, placeholder: 'https://' }, { label: 'URL Result', type: 'text', name: 'notifyUrlResult', col: 5, placeholder: 'https://' }]
+          ]
+        },
+        {
+          title: 'JPAY 수신통보 URL',
+          id: 'jpayNotifyUrlCard',
+          merchantOnly: true,
+          notice: 'J-Pay pay_index 전문의 pay_notifyurl·pay_callbackurl 에 사용됩니다. 노티미들웨어 가맹 수신 URL을 등록하세요. 비우면 ICOPAY ingress(cbJpay/rsJpay) 기본값을 사용합니다.',
+          rows: [
+            [{ label: 'Notify (pay_notifyurl)', type: 'text', name: 'jpayNotifyUrl', col: 5, placeholder: 'https://' }, { label: 'Callback (pay_callbackurl)', type: 'text', name: 'jpayCallbackUrl', col: 5, placeholder: 'https://' }]
           ]
         },
         {
@@ -3202,6 +3238,7 @@
           ]
         },
         merchantApiUrlPayCheckoutCardSection(),
+        merchantJpayApiSubscriptionCardSection(),
         {
           title: '챗봇결제 설정',
           id: 'chatbotPaymentCard',
@@ -3272,6 +3309,15 @@
           notice: '결제 응답을 가맹점에게 송부할 노티 주소. 등록 시 결제통보 URL관리에 자동 반영됩니다.',
           rows: [
             [{ label: 'URL Background', type: 'text', name: 'notifyUrlBackground', col: 5, placeholder: 'https://' }, { label: 'URL Result', type: 'text', name: 'notifyUrlResult', col: 5, placeholder: 'https://' }]
+          ]
+        },
+        {
+          title: 'JPAY 수신통보 URL',
+          id: 'jpayNotifyUrlCard',
+          merchantOnly: true,
+          notice: 'J-Pay pay_index 전문의 pay_notifyurl·pay_callbackurl 에 사용됩니다. 노티미들웨어 가맹 수신 URL을 등록하세요. 비우면 ICOPAY ingress(cbJpay/rsJpay) 기본값을 사용합니다.',
+          rows: [
+            [{ label: 'Notify (pay_notifyurl)', type: 'text', name: 'jpayNotifyUrl', col: 5, placeholder: 'https://' }, { label: 'Callback (pay_callbackurl)', type: 'text', name: 'jpayCallbackUrl', col: 5, placeholder: 'https://' }]
           ]
         },
         {
@@ -3542,6 +3588,7 @@
           ]
         },
         merchantApiUrlPayCheckoutCardSection(),
+        merchantJpayApiSubscriptionCardSection(),
         {
           title: '챗봇결제 설정',
           id: 'chatbotPaymentCard',
@@ -3611,6 +3658,15 @@
           notice: '결제 응답을 가맹점에게 송부할 노티 주소. 등록 시 결제통보 URL관리에 자동 반영됩니다.',
           rows: [
             [{ label: 'URL Background', type: 'text', name: 'notifyUrlBackground', col: 5, placeholder: 'https://' }, { label: 'URL Result', type: 'text', name: 'notifyUrlResult', col: 5, placeholder: 'https://' }]
+          ]
+        },
+        {
+          title: 'JPAY 수신통보 URL',
+          id: 'jpayNotifyUrlCard',
+          merchantOnly: true,
+          notice: 'J-Pay pay_index 전문의 pay_notifyurl·pay_callbackurl 에 사용됩니다. 노티미들웨어 가맹 수신 URL을 등록하세요. 비우면 ICOPAY ingress(cbJpay/rsJpay) 기본값을 사용합니다.',
+          rows: [
+            [{ label: 'Notify (pay_notifyurl)', type: 'text', name: 'jpayNotifyUrl', col: 5, placeholder: 'https://' }, { label: 'Callback (pay_callbackurl)', type: 'text', name: 'jpayCallbackUrl', col: 5, placeholder: 'https://' }]
           ]
         },
         {
@@ -5611,6 +5667,29 @@
       '챗봇결제내역: 웹 EFO 챗봇 결제 플로우에서 동일 칠페이(URL/카드) API로 생성·적재한 건만 표시합니다. 통합 결제내역에도 포함되며, 여기서는 origin=CHATBOT 만 조회합니다.',
       'URL결제내역과 동일 API(/api/calc/payList)·그리드를 사용하며 payListVariant=CHATBOT_PAY 로 구분합니다.'
     ]);
+    MENU_SCREENS['/pay/jpaySubscription'] = {
+      emptyMessage: '조회된 구독이 없습니다.',
+      paginationSizeOptions: [25, 50, 100],
+      paginationDefaultSize: 25,
+      searchRows: [[
+        { label: '가맹코드', type: 'text', name: 'searchCompId' },
+        { type: 'searchBtn', label: '검색' }
+      ]],
+      noticeList: ['JPAY API 구독 마스터(tb_merchant_jpay_subscription). 회차별 결제는 통합내역 origin=SUBSCRIPTION 을 참고하세요.'],
+      summary: ['건수'],
+      buttons: [{ id: 'searchBtn', label: '검색', cls: 'btn-primary' }],
+      columns: [
+        { key: 'rowNo', label: '번호' },
+        { key: 'compCode', label: '가맹코드', thClass: 'text-nowrap' },
+        { key: 'checkoutOrderNo', label: '주문번호', thClass: 'text-nowrap' },
+        { key: 'status', label: '상태', thClass: 'text-nowrap' },
+        { key: 'periodCount', label: '회차', thClass: 'text-nowrap' },
+        { key: 'paymentTransactionId', label: '구독TX', thClass: 'text-nowrap' },
+        { key: 'pgCd', label: 'PG', thClass: 'text-nowrap' },
+        { key: 'createdAt', label: '등록', thClass: 'text-nowrap' },
+        { key: 'cancelledAt', label: '해지', thClass: 'text-nowrap' }
+      ]
+    };
   })();
 
   /** 정산보류내역: 가맹점정산내역과 동일 그리드 + [선택 해제]. 지급보류(Y) 가맹점의 정산 실행 건만 표시 */

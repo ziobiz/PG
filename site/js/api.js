@@ -1205,6 +1205,10 @@
     hqApiConfigSave: function (body) {
       return post('/api/hq/apiConfig/save', body).then(function (r) { return r.data; });
     },
+    hqJpaySubscriptions: function (compId) {
+      var q = compId ? ('?compId=' + encodeURIComponent(compId)) : '';
+      return get('/api/hq/jpaySubscriptions' + q).then(function (r) { return r.data; });
+    },
     hqPayCopyTranslateFromKo: function (body) {
       return post('/api/hq/payCopyTranslateFromKo', body || {}).then(function (r) {
         return r && r.data != null ? r.data : {};

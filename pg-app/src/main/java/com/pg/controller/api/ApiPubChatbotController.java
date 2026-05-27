@@ -109,6 +109,7 @@ public class ApiPubChatbotController {
         Map<String, Object> data = new LinkedHashMap<>();
         data.put("compId", ou.get().getCode());
         data.put("urlPayCheckoutMode", productService.resolveUrlPayCheckoutModeForMerchant(ou.get().getId()));
+        data.put("chatbotCheckoutPgVendor", productService.resolveChatbotCheckoutPgVendor(ou.get().getId()));
         data.put("chatbotCommerceHold", commerceHold);
         data.put("items", items);
         data.put("promotionItems", promotionItemsOut);

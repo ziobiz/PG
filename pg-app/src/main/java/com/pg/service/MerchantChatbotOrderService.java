@@ -20,8 +20,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -344,7 +342,8 @@ public class MerchantChatbotOrderService {
         order.setOrderMemo(combinedMemo.isEmpty() ? null : clamp(combinedMemo, 4000));
         orderRepository.save(order);
 
-        String payUrl = buildPayPrefillUrl(request, ou.getId(), ou.getCode(), title, amountBd.toPlainString(), currency, checkoutNo);
+        String payUrl = productService.buildChatbotPayPrefillUrl(request, ou.getId(), ou.getCode(), title,
+                amountBd.toPlainString(), currency, checkoutNo);
         Map<String, Object> data = new LinkedHashMap<>();
         data.put("orderId", order.getId());
         data.put("checkoutOrderNo", checkoutNo);
@@ -352,46 +351,6 @@ public class MerchantChatbotOrderService {
         chatbotPayLinkDeliveryService.deliverIfRequested(data, sendPayLinkEmail, ordererEmail, lineNotifyTokenUser,
                 ou.getCode(), checkoutNo, title, amountBd, currency, payUrl);
         return data;
-    }
-
-    private String buildPayPrefillUrl(HttpServletRequest request, Long orgUnitId, String compCode, String itemTitle,
-                                      String amountPlain, String currencyIso, String orderNo) {
-        boolean repayMode = productService.isMerchantUrlPayCheckoutRepay(orgUnitId);
-        String base = trimSlash(productService.resolvePublicCustomerSiteBase(request));
-        StringBuilder q = new StringBuilder();
-        q.append("m=").append(urlEncode(compCode));
-        q.append("&entry=chatbot");
-        if (repayMode) {
-            q.append("&variant=repay");
-        }
-        q.append("&orderNo=").append(urlEncode(orderNo));
-        if (!itemTitle.isEmpty()) {
-            String t = itemTitle.length() > 500 ? itemTitle.substring(0, 500) : itemTitle;
-            q.append("&item=").append(urlEncode(t));
-        }
-        if (!amountPlain.isEmpty()) {
-            String a = amountPlain.length() > 40 ? amountPlain.substring(0, 40) : amountPlain;
-            q.append("&amount=").append(urlEncode(a));
-        }
-        if (!currencyIso.isEmpty()) {
-            q.append("&currency=").append(urlEncode(currencyIso));
-        }
-        String path = "/pay.html?" + q;
-        if (base.isEmpty()) {
-            return path;
-        }
-        return base + path;
-    }
-
-    private static String urlEncode(String raw) {
-        return URLEncoder.encode(raw != null ? raw : "", StandardCharsets.UTF_8);
-    }
-
-    private static String trimSlash(String u) {
-        if (u == null) {
-            return "";
-        }
-        return u.trim().replaceAll("/+$", "");
     }
 
     private String allocateCheckoutOrderNo(String compCode) {

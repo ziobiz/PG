@@ -137,6 +137,7 @@
               <li class="child-li" data-url="/calc/payForceRefundList"><a href="#" data-menu_id="M0317">강제환불</a></li>
               <li class="child-li" data-url="/pay/easyPay"><a href="#" data-menu_id="M0310">URL결제내역</a></li>
               <li class="child-li" data-url="/pay/chatbotPay"><a href="#" data-menu_id="M0311" data-pg-ui-t="챗봇결제내역">챗봇결제내역</a></li>
+              <li class="child-li" data-url="/pay/jpaySubscription"><a href="#" data-menu_id="M0312" data-pg-ui-t="구독결제내역">구독결제내역</a></li>
               <li class="child-li" data-url="/calc/offsetCancList"><a href="#" data-menu_id="M0309" title="정산 반영(settled) 후 취소·무효·환불 건만 표시. 환수금관리 자동 등록과 연계됩니다.">상계취소내역</a></li>
             </ul>
           </li>
@@ -416,6 +417,7 @@
                 <option value="URL_PAY_REPAY" data-pg-ui-t="②-R URL재결제">②-R URL재결제</option>
                 <option value="WEB_CHATBOT" data-pg-ui-t="③ 챗봇">③ 챗봇</option>
                 <option value="API" data-pg-ui-t="④ API">④ API</option>
+                <option value="API_SUBSCRIPTION" data-pg-ui-t="⑤ API구독">⑤ API구독</option>
               </select>
               <div class="d-flex flex-wrap gap-1 align-items-center small mt-1 mb-0 pg-integ-kind-legend" aria-hidden="true">
                 <span class="badge rounded-pill pg-scope-pastel-noti" data-pg-ui-t="노티">노티</span>
@@ -423,6 +425,7 @@
                 <span class="badge rounded-pill pg-scope-pastel-url" data-pg-ui-t="URL재결제">URL재결제</span>
                 <span class="badge rounded-pill pg-scope-pastel-chatbot" data-pg-ui-t="챗봇">챗봇</span>
                 <span class="badge rounded-pill pg-scope-pastel-api" data-pg-ui-t="API">API</span>
+                <span class="badge rounded-pill pg-scope-pastel-api" data-pg-ui-t="API구독">API구독</span>
               </div>
               <div class="form-text"><span data-pg-ui-t="한 행당 용도 1개. 다른 용도는 PG코드를 달리 해 추가 등록하세요.">한 행당 용도 1개. 다른 용도는 PG코드를 달리 해 추가 등록하세요.</span></div>
             </div>
@@ -649,8 +652,8 @@
 <script src="js/pg-ui.js?v=2"></script>
 <script src="js/pay-list-integrated-catalog.js?v=6"></script>
 <script src="js/table-column-resize.js?v=4"></script>
-  <script src="js/pg-ui-string-map.js?v=14"></script>
-  <script src="js/pg-ui-i18n.js?v=44"></script>
+  <script src="js/pg-ui-string-map.js?v=15"></script>
+  <script src="js/pg-ui-i18n.js?v=45"></script>
   <script src="js/screens.js?v=190"></script>
   <script src="js/pg-pay-list-i18n.js?v=18"></script>
   <script src="js/pg-home-dashboard.js?v=26"></script>

@@ -5,11 +5,15 @@ import java.time.LocalDateTime;
 
 /**
  * 가맹점 결제통보 URL. 결제 응답을 가맹점에게 송부할 노티 주소.
- * urlType: BACKGROUND(백그라운드), RESULT(결과), MIDDLEWARE(PG중계→가맹점 JSON 콜백)
+ * urlType: BACKGROUND, RESULT, MIDDLEWARE, {@link #URL_TYPE_JPAY_NOTIFY}, {@link #URL_TYPE_JPAY_CALLBACK}
  */
 @Entity
 @Table(name = "tb_merchant_notify_url", uniqueConstraints = @UniqueConstraint(columnNames = {"org_unit_id", "url_type"}))
 public class MerchantNotifyUrl {
+
+    public static final String URL_TYPE_JPAY_NOTIFY = "JPAY_NOTIFY";
+    /** J-Pay {@code pay_callbackurl} — 3DS·브라우저 복귀(RESULT) */
+    public static final String URL_TYPE_JPAY_CALLBACK = "JPAY_CALLBACK";
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -18,7 +22,7 @@ public class MerchantNotifyUrl {
     @Column(name = "org_unit_id", nullable = false)
     private Long orgUnitId;
 
-    /** URL구분: BACKGROUND, RESULT, MIDDLEWARE */
+    /** URL구분: BACKGROUND, RESULT, MIDDLEWARE, JPAY_NOTIFY, JPAY_CALLBACK */
     @Column(name = "url_type", nullable = false, length = 20)
     private String urlType;
 

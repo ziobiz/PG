@@ -2000,6 +2000,30 @@
       CH: '向商户发送支付回调的通知地址。保存时会同步到支付通知 URL 管理。',
       TH: 'ที่อยู่แจ้งผลชำระให้ร้านค้า บันทึกแล้วซิงค์ไปจัดการ URL แจ้งเตือน'
     },
+    'JPAY 수신통보 URL': {
+      EN: 'JPAY notify ingress URLs',
+      JP: 'JPAY受信通知URL',
+      CH: 'JPAY 接收通知 URL',
+      TH: 'URL รับแจ้ง JPAY'
+    },
+    'J-Pay pay_index 전문의 pay_notifyurl·pay_callbackurl 에 사용됩니다. 노티미들웨어 가맹 수신 URL을 등록하세요. 비우면 ICOPAY ingress(cbJpay/rsJpay) 기본값을 사용합니다.': {
+      EN: 'Used as pay_notifyurl and pay_callbackurl on J-Pay pay_index. Register your notify-middleware merchant receive URLs. If empty, ICOPAY ingress defaults (cbJpay/rsJpay) apply.',
+      JP: 'J-Pay pay_indexのpay_notifyurl·pay_callbackurlに使用します。ノティミドルウェアの加盟店受信URLを登録してください。空欄の場合はICOPAY ingress(cbJpay/rsJpay)の既定値を使用します。',
+      CH: '用于 J-Pay pay_index 的 pay_notifyurl·pay_callbackurl。请登记通知中间件的商户接收 URL。留空则使用 ICOPAY ingress(cbJpay/rsJpay) 默认值。',
+      TH: 'ใช้เป็น pay_notifyurl และ pay_callbackurl ใน J-Pay pay_index ลงทะเบียน URL รับของร้านที่ notify middleware ว่างไว้ใช้ค่าเริ่มต้น ICOPAY ingress (cbJpay/rsJpay)'
+    },
+    'Notify (pay_notifyurl)': {
+      EN: 'Notify (pay_notifyurl)',
+      JP: 'Notify (pay_notifyurl)',
+      CH: 'Notify (pay_notifyurl)',
+      TH: 'Notify (pay_notifyurl)'
+    },
+    'Callback (pay_callbackurl)': {
+      EN: 'Callback (pay_callbackurl)',
+      JP: 'Callback (pay_callbackurl)',
+      CH: 'Callback (pay_callbackurl)',
+      TH: 'Callback (pay_callbackurl)'
+    },
     '본사에서 [배경/로고 변경권한]을 부여한 가맹점은 메인·로고·테마를 수정할 수 있습니다. 메인이미지=로그인 화면 왼쪽 배경, 로고=로그인창 상단·사이드바 상단.': {
       EN: 'Merchants granted [background/logo edit] may change main image, logos, and theme. Main = login left background; logos = login top and sidebar top.',
       JP: '本社が[背景/ロゴ変更権]を付与した加盟店はメイン・ロゴ・テーマを変更できます。メイン画像=ログイン左背景、ロゴ=ログイン上・サイドバー上。',
@@ -2910,10 +2934,10 @@
       TH: 'ปิดใช้งานแล้ว ผู้ดูแลร้านที่ล็อกอินจะไม่เห็นเมนูจัดการสินค้าในแชทบอท URL ชำระแชทบอทเป็นทางเข้าหน้าชำระสาธารณะ โหมดโปรโมชันและช่วงหมุนเวียนตั้งในแชทบอท » จัดการสินค้า'
     },
     '인라인 DirectCredit(URL·챗봇) 승인 시 PG중계 JSON 전송과 함께 LINE Notify·대표 이메일(전산 SMTP) 알림을 보낼 수 있습니다. 토큰은 비우면 기존 유지, 삭제는 __CLEAR__.': {
-      EN: 'On inline DirectCredit (URL / chatbot) approval, you can send LINE Notify and representative email (system SMTP) together with the PG relay JSON. Leave the token blank to keep the current value; use __CLEAR__ to remove it.',
-      JP: 'インラインDirectCredit（URL・チャットボット）承認時に、PG中継JSONとあわせてLINE Notify・代表メール（電算SMTP）通知を送れます。トークンは空欄で現状維持、削除は__CLEAR__です。',
-      CH: '内联 DirectCredit（URL / 聊天机器人）批准时，可与 PG 中继 JSON 一并发送 LINE Notify 与代表邮箱（系统 SMTP）通知。令牌留空保留原值；删除填 __CLEAR__。',
-      TH: 'เมื่ออนุมัติ DirectCredit แบบอินไลน์ (URL/แชทบอท) สามารถส่ง LINE Notify และอีเมลตัวแทน (SMTP ระบบ) พร้อม JSON รีเลย์ PG ได้ เว้นโทเคนไว้คงค่าเดิม ลบใส่ __CLEAR__'
+      EN: 'On inline URL payment approval (ChillPay DirectCredit, JPAY pay_index, URL / chatbot), you can send LINE Notify and representative email (system SMTP) together with the PG relay JSON. Leave the token blank to keep the current value; use __CLEAR__ to remove it.',
+      JP: 'インラインURL決済承認時（ChillPay DirectCredit・JPAY pay_index・URL/チャットボット）に、PG中継JSONとあわせてLINE Notify・代表メール（電算SMTP）通知を送れます。トークンは空欄で現状維持、削除は__CLEAR__です。',
+      CH: '内联 URL 支付批准时（ChillPay DirectCredit、JPAY pay_index、URL / 聊天机器人），可与 PG 中继 JSON 一并发送 LINE Notify 与代表邮箱（系统 SMTP）通知。令牌留空保留原值；删除填 __CLEAR__。',
+      TH: 'เมื่ออนุมัติชำระ URL แบบอินไลน์ (ChillPay DirectCredit, JPAY pay_index, URL/แชทบอท) สามารถส่ง LINE Notify และอีเมลตัวแทน (SMTP ระบบ) พร้อม JSON รีเลย์ PG ได้ เว้นโทเคนไว้คงค่าเดิม ลบใส่ __CLEAR__'
     },
     '즉시 적용': {
       EN: 'Apply immediately',
@@ -8111,6 +8135,121 @@
       CH: '保存卡(CreditToken)再支付公开 URL。商户「URL 结账方式」（公开 URL）、「API URL 内联中继支付」、「聊天机器人支付设置」各自为再支付 URL 时，应用于对应渠道。',
       TH: 'URL สาธารณะสำหรับชำระซ้ำด้วยบัตรที่บันทึก (CreditToken) เมื่อโหมด URL สาธารณะ·API inline relay·แชทบอทเป็นชำระซ้ำ ใช้กับช่องทางนั้น'
     },
+    /* JPAY API 구독 (③ 인라인) */
+    'JPAY구독설정': {
+      EN: 'JPAY subscription settings',
+      JP: 'JPAY定期設定',
+      CH: 'JPAY 订阅设置',
+      TH: 'ตั้งค่าสมัคร JPAY'
+    },
+    '구독결제내역': {
+      EN: 'Subscription payments',
+      JP: '定期決済一覧',
+      CH: '订阅支付记录',
+      TH: 'รายการชำระสมัคร'
+    },
+    'JPAY구독내역': {
+      EN: 'Subscription payments',
+      JP: '定期決済一覧',
+      CH: '订阅支付记录',
+      TH: 'รายการชำระสมัคร'
+    },
+    'JPAY API 구독': {
+      EN: 'JPAY API subscription',
+      JP: 'JPAY API定期',
+      CH: 'JPAY API 订阅',
+      TH: 'สมัคร JPAY API'
+    },
+    'JPAY API 구독 사용': {
+      EN: 'Use JPAY API subscription',
+      JP: 'JPAY API定期利用',
+      CH: '使用 JPAY API 订阅',
+      TH: 'ใช้สมัคร JPAY API'
+    },
+    'JPAY API 구독 제공': {
+      EN: 'Offer JPAY API subscription',
+      JP: 'JPAY API定期提供',
+      CH: '提供 JPAY API 订阅',
+      TH: 'เปิดให้สมัคร JPAY API'
+    },
+    '구독 INLINE 제공': {
+      EN: 'Subscription INLINE enabled',
+      JP: '定期INLINE提供',
+      CH: '提供订阅 INLINE',
+      TH: 'เปิด Subscription INLINE'
+    },
+    '구독 경로 템플릿': {
+      EN: 'Subscription path template',
+      JP: '定期パステンプレート',
+      CH: '订阅路径模板',
+      TH: 'เทมเพลตพath สมัคร'
+    },
+    '기본 plan JSON': {
+      EN: 'Default plan JSON',
+      JP: '既定 plan JSON',
+      CH: '默认 plan JSON',
+      TH: 'plan JSON เริ่มต้น'
+    },
+    'API구독': {
+      EN: 'API subscription',
+      JP: 'API定期',
+      CH: 'API 订阅',
+      TH: 'สมัคร API'
+    },
+    '⑤ API구독': {
+      EN: '⑤ API subscription',
+      JP: '⑤ API定期',
+      CH: '⑤ API 订阅',
+      TH: '⑤ สมัคร API'
+    },
+    '가맹 API 인라인 구독(③) 전용입니다. URL·챗봇·1회 jpay-pay 와 분리됩니다.': {
+      EN: 'For merchant API inline subscription (channel ③) only. Separate from URL, chatbot, and one-time jpay-pay.',
+      JP: '加盟店APIインライン定期(③)専用です。URL・チャットボット・1回 jpay-pay とは分離されます。',
+      CH: '仅用于商户 API 内联订阅（③）。与 URL、聊天机器人、一次性 jpay-pay 分离。',
+      TH: 'สำหรับสมัคร inline ทาง Merchant API (ช่อง ③) เท่านั้น แยกจาก URL แชทบอท และ jpay-pay ครั้งเดียว'
+    },
+    '가맹 API subscription/prepare · jpay-subscribe.html 전용입니다. URL·챗봇·1회 inline-checkout 과 분리됩니다. 본사 결제로직설정 구독 ON + API연동설정 API구독 PG 바인딩 필요.': {
+      EN: 'For merchant API subscription/prepare and jpay-subscribe.html only. Separate from URL, chatbot, and one-time inline-checkout. Requires HQ payment logic subscription ON and an API subscription PG binding in API integration.',
+      JP: '加盟店API subscription/prepare・jpay-subscribe.html 専用です。URL・チャットボット・1回 inline-checkout とは分離。本社決済ロジック設定の定期ONおよびAPI連携設定のAPI定期PGバインディングが必要です。',
+      CH: '仅用于商户 API subscription/prepare 与 jpay-subscribe.html。与 URL、聊天机器人、一次性 inline-checkout 分离。需在总部「支付逻辑设置」中开启订阅并在 API 联动中绑定 API 订阅 PG。',
+      TH: 'สำหรับ merchant API subscription/prepare และ jpay-subscribe.html เท่านั้น แยกจาก URL แชทบอท และ inline-checkout ครั้งเดียว ต้องเปิดสมัครใน「ตั้งค่าตรรกะการชำระเงิน」ที่สำนักงานใหญ่และผูก PG สมัคร API'
+    },
+    'prepare: POST /api/middleware/v1/merchant/jpay/subscription/prepare · 해지: POST .../subscription/cancel (최초 orderNo)': {
+      EN: 'prepare: POST /api/middleware/v1/merchant/jpay/subscription/prepare · cancel: POST .../subscription/cancel (original orderNo)',
+      JP: 'prepare: POST /api/middleware/v1/merchant/jpay/subscription/prepare · 解約: POST .../subscription/cancel（初回 orderNo）',
+      CH: 'prepare: POST /api/middleware/v1/merchant/jpay/subscription/prepare · 解约: POST .../subscription/cancel（首次 orderNo）',
+      TH: 'prepare: POST /api/middleware/v1/merchant/jpay/subscription/prepare · ยกเลิก: POST .../subscription/cancel (orderNo แรก)'
+    },
+    '조회된 구독이 없습니다.': {
+      EN: 'No subscriptions found.',
+      JP: '該当する定期がありません。',
+      CH: '没有查询到订阅。',
+      TH: 'ไม่พบการสมัคร'
+    },
+    'JPAY API 구독 마스터(tb_merchant_jpay_subscription). 회차별 결제는 통합내역 origin=SUBSCRIPTION 을 참고하세요.': {
+      EN: 'JPAY API subscription master (tb_merchant_jpay_subscription). For per-period charges, see integrated list with origin=SUBSCRIPTION.',
+      JP: 'JPAY API定期マスタ(tb_merchant_jpay_subscription)。回次別決済は統合一覧 origin=SUBSCRIPTION を参照してください。',
+      CH: 'JPAY API 订阅主表 (tb_merchant_jpay_subscription)。各期扣款请查 origin=SUBSCRIPTION 的整合明细。',
+      TH: 'มาสเตอร์สมัคร JPAY API (tb_merchant_jpay_subscription) ชำระรายงวดดูรายการรวม origin=SUBSCRIPTION'
+    },
+    '구독TX': {
+      EN: 'Subscription TX',
+      JP: '定期TX',
+      CH: '订阅 TX',
+      TH: 'TX สมัคร'
+    },
+    '회차': {
+      EN: 'Period',
+      JP: '回次',
+      CH: '期次',
+      TH: 'งวด'
+    },
+    '해지': {
+      EN: 'Cancelled',
+      JP: '解約',
+      CH: '解约',
+      TH: 'ยกเลิกสมัคร'
+    },
     'URL 결제 폼 설정': {
       EN: 'URL payment form settings',
       JP: 'URL決済フォーム設定',
@@ -11330,6 +11469,8 @@
     '② URL': { EN: '② URL', JP: '② URL', CH: '② URL', TH: '② URL' },
     '③ 챗봇': { EN: '③ Chatbot', JP: '③ チャットボット', CH: '③ 聊天机器人', TH: '③ แชทบอท' },
     '④ API': { EN: '④ API', JP: '④ API', CH: '④ API', TH: '④ API' },
+    '⑤ API구독': { EN: '⑤ API subscription', JP: '⑤ API定期', CH: '⑤ API 订阅', TH: '⑤ สมัคร API' },
+    'API구독': { EN: 'API subscription', JP: 'API定期', CH: 'API 订阅', TH: 'สมัคร API' },
     '한 행당 용도 1개. 다른 용도는 PG코드를 달리 해 추가 등록하세요.': {
       EN: 'One scope per row. For another scope, register again with a different PG code.',
       JP: '1行につき用途は1つ。別用途はPGコードを変えて追加登録してください。',

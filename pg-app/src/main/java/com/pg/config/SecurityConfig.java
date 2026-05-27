@@ -48,6 +48,9 @@ public class SecurityConfig {
                 AntPathRequestMatcher.antMatcher("/jpay-pay"),
                 AntPathRequestMatcher.antMatcher("/jpay-pay/**"),
                 AntPathRequestMatcher.antMatcher("/jpay-pay.html"),
+                AntPathRequestMatcher.antMatcher("/jpay-subscribe"),
+                AntPathRequestMatcher.antMatcher("/jpay-subscribe/**"),
+                AntPathRequestMatcher.antMatcher("/jpay-subscribe.html"),
                 AntPathRequestMatcher.antMatcher("/pay-result.html")));
         http.authorizeHttpRequests(auth -> auth.anyRequest().permitAll());
         http.csrf(AbstractHttpConfigurer::disable);
@@ -113,12 +116,16 @@ public class SecurityConfig {
                     AntPathRequestMatcher.antMatcher("/pay-result.html"),
                     AntPathRequestMatcher.antMatcher("/pay.html"),
                     AntPathRequestMatcher.antMatcher("/jpay-pay.html"),
+                    AntPathRequestMatcher.antMatcher("/jpay-subscribe.html"),
                     AntPathRequestMatcher.antMatcher("/favicon.ico"),
                     AntPathRequestMatcher.antMatcher("/robots.txt"),
                     AntPathRequestMatcher.antMatcher("/pay"),
                     AntPathRequestMatcher.antMatcher("/pay/**"),
                     AntPathRequestMatcher.antMatcher("/jpay-pay"),
                     AntPathRequestMatcher.antMatcher("/jpay-pay/**"),
+                    AntPathRequestMatcher.antMatcher("/jpay-subscribe"),
+                    AntPathRequestMatcher.antMatcher("/jpay-subscribe/**"),
+                    AntPathRequestMatcher.antMatcher("/v1/embed-jpay-subscribe/**"),
                     AntPathRequestMatcher.antMatcher("/chatbot-pay"),
                     AntPathRequestMatcher.antMatcher("/chatbot-pay/**"),
                     AntPathRequestMatcher.antMatcher("/v1/embed-chatbot/**"),
