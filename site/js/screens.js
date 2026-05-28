@@ -181,6 +181,15 @@
       '<button type="button" class="btn btn-outline-secondary btn-sm" id="chatbotQrDownloadBtn" data-pg-ui-t="PNG 저장">' + escUi(L('PNG 저장')) + '</button></div></div></div></div>';
   }
 
+  /** 상품관리 — 플랜·프로모션 안내(alert, i18n) */
+  function chatbotProductMngNoticeHtml() {
+    var k = '판매 활성 상품 수는 플랜 상한을 넘을 수 없습니다. 등록(보관) 행은 플랜 대비 최대 +2건까지 가능합니다.(예: 10건 플랜 → 활성 최대 10, 등록 최대 12) 본사 판매금지·챗봇결제 미사용이면 노출이 제한됩니다. 상위 조직은 가맹 코드 입력 후 불러오기 하세요. 챗봇-pay 상단 프로모션(끔·그리드·다이나믹·하이브리드)과 편집 중 상품의 후보 포함은 상단 「챗봇-pay 상단 프로모션」카드에서 함께 설정합니다.';
+    return (
+      '<div class="alert alert-info py-2 px-3 small mb-0" role="note">' +
+      '<span data-pg-ui-t="' + escUi(k) + '">' + escUi(L(k)) + '</span></div>'
+    );
+  }
+
   /** 가맹점·상위 조직 — 챗봇 상품: 상단 등록 폼 + 하단 목록(수정·삭제) */
   function chatbotProductMngGridHtml() {
     return (
@@ -239,12 +248,12 @@
       '<input type="text" class="form-control form-control-sm" id="chatbotFormMerchantName" readonly tabindex="-1">' +
       '</div>' +
       '<div class="col-md-4">' +
-      '<label class="form-label small mb-0" title="Y=고객 챗봇·공개 카탈로그 비노출(개발·검수 등)" data-pg-ui-t="본사 판매금지">' + escUi(L('본사 판매금지')) + '</label>' +
+      '<label class="form-label small mb-0" data-pg-ui-title="Y=고객 챗봇·공개 카탈로그 비노출(개발·검수 등)" title="' + escUi(L('Y=고객 챗봇·공개 카탈로그 비노출(개발·검수 등)')) + '" data-pg-ui-t="본사 판매금지">' + escUi(L('본사 판매금지')) + '</label>' +
       '<select class="form-select form-select-sm" id="chatbotFormHqBlock"></select>' +
       '</div></div>' +
       '<div class="row g-2 mb-2">' +
       '<div class="col-md-2">' +
-      '<label class="form-label small mb-0" title="저장 시 시스템이 코드를 자동 부여합니다." data-pg-ui-t="코드">' + escUi(L('코드')) + '</label>' +
+      '<label class="form-label small mb-0" data-pg-ui-title="저장 시 시스템이 코드를 자동 부여합니다." title="' + escUi(L('저장 시 시스템이 코드를 자동 부여합니다.')) + '" data-pg-ui-t="코드">' + escUi(L('코드')) + '</label>' +
       '<input type="text" class="form-control form-control-sm" id="chatbotFormCode" readonly tabindex="-1">' +
       '</div>' +
       '<div class="col-md-2">' +
@@ -256,7 +265,7 @@
       '<input type="text" class="form-control form-control-sm" id="chatbotFormTitle" maxlength="200">' +
       '</div>' +
       '<div class="col-md-2">' +
-      '<label class="form-label small mb-0" title="일반 판매 또는 예약 상품" data-pg-ui-t="판매·예약">' + escUi(L('판매·예약')) + '</label>' +
+      '<label class="form-label small mb-0" data-pg-ui-title="일반 판매 또는 예약 상품" title="' + escUi(L('일반 판매 또는 예약 상품')) + '" data-pg-ui-t="판매·예약">' + escUi(L('판매·예약')) + '</label>' +
       '<select class="form-select form-select-sm" id="chatbotFormListingType"></select>' +
       '</div>' +
       '<div class="col-md-2">' +
@@ -264,7 +273,7 @@
       '<input type="number" class="form-control form-control-sm" id="chatbotFormResSlot" min="15" max="1440" step="1" placeholder="' + escUi(L('기본')) + '">' +
       '</div>' +
       '<div class="col-md-2">' +
-      '<label class="form-label small mb-0" title="판매=고객 챗봇·카탈로그 노출, 대기=등록만(본사 차단 등 별개)" data-pg-ui-t="판매상태">' + escUi(L('판매상태')) + '</label>' +
+      '<label class="form-label small mb-0" data-pg-ui-title="판매=고객 챗봇·카탈로그 노출, 대기=등록만(본사 차단 등 별개)" title="' + escUi(L('판매=고객 챗봇·카탈로그 노출, 대기=등록만(본사 차단 등 별개)')) + '" data-pg-ui-t="판매상태">' + escUi(L('판매상태')) + '</label>' +
       '<select class="form-select form-select-sm" id="chatbotFormUse"></select>' +
       '</div>' +
       '<div class="col-md-2">' +
@@ -333,17 +342,17 @@
       '<th style="width:2.75rem;text-align:center">#</th>' +
       '<th class="hq-only-col" data-pg-ui-t="가맹점코드">' + escUi(L('가맹점코드')) + '</th>' +
       '<th class="hq-only-col" data-pg-ui-t="가맹점명">' + escUi(L('가맹점명')) + '</th>' +
-      '<th class="hq-only-col" title="Y=고객 챗봇·공개 카탈로그 비노출(개발·검수 등)" data-pg-ui-t="본사 판매금지">' + escUi(L('본사 판매금지')) + '</th>' +
+      '<th class="hq-only-col" data-pg-ui-title="Y=고객 챗봇·공개 카탈로그 비노출(개발·검수 등)" title="' + escUi(L('Y=고객 챗봇·공개 카탈로그 비노출(개발·검수 등)')) + '" data-pg-ui-t="본사 판매금지">' + escUi(L('본사 판매금지')) + '</th>' +
       '<th class="chatbot-prod-col-code" data-pg-ui-t="코드">' + escUi(L('코드')) + '</th>' +
       '<th class="chatbot-prod-col-title" data-pg-ui-t="상품명">' + escUi(L('상품명')) + '</th>' +
-      '<th class="chatbot-prod-col-listing" style="width:9.5rem;min-width:9.5rem" title="일반 판매 또는 예약 상품" data-pg-ui-t="판매·예약">' + escUi(L('판매·예약')) + '</th>' +
+      '<th class="chatbot-prod-col-listing" style="width:9.5rem;min-width:9.5rem" data-pg-ui-title="일반 판매 또는 예약 상품" title="' + escUi(L('일반 판매 또는 예약 상품')) + '" data-pg-ui-t="판매·예약">' + escUi(L('판매·예약')) + '</th>' +
       '<th class="chatbot-prod-col-rescollect" style="width:8.5rem;min-width:8.5rem" data-pg-ui-t="예약결제">' + escUi(L('예약결제')) + '</th>' +
       '<th class="chatbot-prod-col-desc" data-pg-ui-t="설명">' + escUi(L('설명')) + '</th>' +
       '<th class="chatbot-prod-col-amt" style="width:5.5rem;min-width:5rem" data-pg-ui-t="금액">' + escUi(L('금액')) + '</th>' +
       '<th class="chatbot-prod-col-ccy" style="width:4.5rem;min-width:3.5rem;max-width:5.5rem" data-pg-ui-t="통화">' + escUi(L('통화')) + '</th>' +
       '<th class="chatbot-prod-col-sort text-center" style="width:3.25rem;max-width:3.5rem;min-width:3rem" data-pg-ui-t="순서">' + escUi(L('순서')) + '</th>' +
-      '<th style="width:5rem" title="판매=고객 챗봇·카탈로그 노출, 대기=등록만(본사 차단 등 별개)" data-pg-ui-t="판매상태">' + escUi(L('판매상태')) + '</th>' +
-      '<th style="width:4.75rem" title="Y=상단 프로모션 후보(표시 방식이 끔이면 고객 화면에는 안 나옴)" data-pg-ui-t="상단 후보">' + escUi(L('상단 후보')) + '</th>' +
+      '<th style="width:5rem" data-pg-ui-title="판매=고객 챗봇·카탈로그 노출, 대기=등록만(본사 차단 등 별개)" title="' + escUi(L('판매=고객 챗봇·카탈로그 노출, 대기=등록만(본사 차단 등 별개)')) + '" data-pg-ui-t="판매상태">' + escUi(L('판매상태')) + '</th>' +
+      '<th style="width:4.75rem" data-pg-ui-title="Y=상단 프로모션 후보(표시 방식이 끔이면 고객 화면에는 안 나옴)" title="' + escUi(L('Y=상단 프로모션 후보(표시 방식이 끔이면 고객 화면에는 안 나옴)')) + '" data-pg-ui-t="상단 후보">' + escUi(L('상단 후보')) + '</th>' +
       '<th class="chatbot-prod-col-img" data-pg-ui-t="이미지">' + escUi(L('이미지')) + '</th>' +
       '<th style="width:8rem;text-align:center" data-pg-ui-t="관리">' + escUi(L('관리')) + '</th>' +
       '</tr></thead>' +
@@ -2383,16 +2392,10 @@
       formSections: [
         {
           title: '상품관리',
-          notice:
-            '<div class="alert alert-info py-2 px-3 small mb-0" role="note">' +
-            '<span data-pg-ui-t="판매 활성 상품 수는 플랜 상한을 넘을 수 없습니다. 등록(보관) 행은 플랜 대비 최대 +2건까지 가능합니다.(예: 10건 플랜 → 활성 최대 10, 등록 최대 12) 본사 판매금지·챗봇결제 미사용이면 노출이 제한됩니다. 상위 조직은 가맹 코드 입력 후 불러오기 하세요. 챗봇-pay 상단 프로모션(끔·그리드·다이나믹·하이브리드)과 편집 중 상품의 후보 포함은 상단 「챗봇-pay 상단 프로모션」카드에서 함께 설정합니다.">' +
-            '판매 활성 상품 수는 플랜 상한을 넘을 수 없습니다. 등록(보관) 행은 플랜 대비 최대 +2건까지 가능합니다.(예: 10건 플랜 → 활성 최대 10, 등록 최대 12) 본사 판매금지·챗봇결제 미사용이면 노출이 제한됩니다. 상위 조직은 가맹 코드 입력 후 불러오기 하세요. 챗봇-pay 상단 프로모션(끔·그리드·다이나믹·하이브리드)과 편집 중 상품의 후보 포함은 상단 「챗봇-pay 상단 프로모션」카드에서 함께 설정합니다.' +
-            '</span></div>',
-          rows: [[{
-            type: 'customHtml',
-            col: 12,
-            html: chatbotProductMngGridHtml
-          }]]
+          rows: [[
+            { type: 'customHtml', col: 12, html: chatbotProductMngNoticeHtml },
+            { type: 'customHtml', col: 12, html: chatbotProductMngGridHtml }
+          ]]
         }
       ],
       buttons: []
@@ -6029,7 +6032,7 @@
       inner = '<div class="search-cell-input comp-mng-search-actions-wrap d-flex align-items-center gap-2 flex-wrap">' +
         '<label class="d-flex align-items-center mb-0"><input type="checkbox" class="form-check-input me-1" id="' + cbName + '" name="' + cbName + '">' +
         '<span data-pg-i18n-lbl="cb:' + escDA(cbName) + '">' + escUi(L(String(field.label || ''))) + '</span></label>' +
-        '<button type="button" class="btn btn-primary btn-sm screen-search-btn"><span data-pg-ui-t="' + escDA(String(searchLbl)) + '">' + escUi(L(String(searchLbl))) + '</span></button>' +
+        '<button type="button" class="btn btn-primary btn-sm screen-search-btn" data-pg-list-search-btn="1"><span data-pg-ui-t="' + escDA(String(searchLbl)) + '">' + escUi(L(String(searchLbl))) + '</span></button>' +
         '</div>';
       return wrapSearchCell(inner, false);
     }
@@ -6041,7 +6044,7 @@
       var addInlineSort = ccfg.listSortDirToolbar !== false && !ccfg._listToolbarShowsSortDir;
       inner = '<div class="search-cell-input search-cell-input--right d-flex align-items-center flex-wrap gap-2 justify-content-end">';
       if (addInlineSort) inner += buildListSortDirSelectHtml(tabId);
-      inner += '<button type="button" class="btn btn-primary btn-sm screen-search-btn">' + iconHtml + '<span data-pg-ui-t="' + escDA(btnKey) + '">' + escUi(btnLabel) + '</span></button></div>';
+      inner += '<button type="button" class="btn btn-primary btn-sm screen-search-btn" data-pg-list-search-btn="1">' + iconHtml + '<span data-pg-ui-t="' + escDA(btnKey) + '">' + escUi(btnLabel) + '</span></button></div>';
       return wrapSearchCell(inner, false);
     }
     if (field.type === 'button' && field.name === 'searchReset') {
@@ -6549,7 +6552,9 @@
     var html = '<div class="row mb-2 screen-action-row"><div class="col-sm-12 screen-action-buttons">';
     btns.forEach(function (b) {
       var bl2 = String(b.label || '');
-      html += '<button type="button" class="btn ' + (b.cls || 'btn-secondary') + ' btn-sm mr-1" id="' + (b.id || '') + '">' + (bl2 ? ('<span data-pg-ui-t="' + escUi(bl2) + '">' + escUi(L(bl2)) + '</span>') : '') + '</button>';
+      var bidRb = b.id || '';
+      var isListSearchRb = bidRb === 'searchBtn';
+      html += '<button type="button" class="btn ' + (b.cls || 'btn-secondary') + ' btn-sm mr-1' + (isListSearchRb ? ' screen-search-btn' : '') + '" id="' + bidRb + '"' + (isListSearchRb ? ' data-pg-list-search-btn="1"' : '') + '>' + (bl2 ? ('<span data-pg-ui-t="' + escUi(bl2) + '">' + escUi(L(bl2)) + '</span>') : '') + '</button>';
     });
     html += '</div></div>';
     return html;
@@ -6686,7 +6691,8 @@
         }
         var bid = (b && b._viewSettingHello) ? ('viewSettingHelloBtn_' + tid) : (b.id || '');
         var labB = String(b.label || '');
-        buttonsHtml += '<button type="button" class="btn ' + (b.cls || 'btn-secondary') + ' btn-sm" id="' + bid + '">' + (labB ? '<span data-pg-ui-t="' + escUi(labB) + '">' + escUi(L(labB)) + '</span>' : '') + '</button>';
+        var isListSearchBtn = bid === 'searchBtn';
+        buttonsHtml += '<button type="button" class="btn ' + (b.cls || 'btn-secondary') + ' btn-sm' + (isListSearchBtn ? ' screen-search-btn' : '') + '" id="' + bid + '"' + (isListSearchBtn ? ' data-pg-list-search-btn="1"' : '') + '>' + (labB ? '<span data-pg-ui-t="' + escUi(labB) + '">' + escUi(L(labB)) + '</span>' : '') + '</button>';
       });
       buttonsHtml += '</div>';
     }
@@ -6709,12 +6715,17 @@
     function esc(s) {
       return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
     }
+    function spanUiT(ko) {
+      var k = String(ko == null ? '' : ko);
+      if (!k) return '';
+      return '<span data-pg-ui-t="' + esc(k) + '">' + escUi(L(k)) + '</span>';
+    }
     function thKeyLabel(key, rowspan, cls) {
       var col = (cols || []).filter(function (x) { return x && x.key === key; })[0];
       var lab = col ? (col.label || key) : key;
       var rs = rowspan > 1 ? ' rowspan="' + rowspan + '"' : '';
       var c = cls ? String(cls) : 'text-nowrap';
-      return '<th data-key="' + esc(key) + '"' + rs + ' class="' + esc(c) + '">' + escUi(L(String(lab))) + '</th>';
+      return '<th data-key="' + esc(key) + '"' + rs + ' class="' + esc(c) + '">' + spanUiT(String(lab)) + '</th>';
     }
     var APRV_MAIN = ['aprvCnt', 'aprvAmt'];
     var APRV_FEE = ['aprvFeeCnt', 'aprvFeePct', 'aprvFeeSum', 'aprvFeeVat'];

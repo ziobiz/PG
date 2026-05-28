@@ -13770,6 +13770,18 @@
     },
 
     /* HQ /hq/chatbotAiSettings — AI챗봇설정 */
+    '챗봇관리': {
+      EN: 'Chatbot management', JP: 'チャットボット管理', CH: '聊天机器人管理', TH: 'จัดการ Chatbot'
+    },
+    '기본설정': {
+      EN: 'Basic settings', JP: '基本設定', CH: '基本设置', TH: 'การตั้งค่าพื้นฐาน'
+    },
+    '상품관리': {
+      EN: 'Products', JP: '商品管理', CH: '商品管理', TH: 'สินค้า'
+    },
+    '주문관리': {
+      EN: 'Orders', JP: '注文管理', CH: '订单管理', TH: 'คำสั่งซื้อ'
+    },
     'AI챗봇설정': {
       EN: 'AI chatbot settings', JP: 'AIチャットボット設定', CH: 'AI 聊天机器人设置', TH: 'ตั้งค่าแชทบอท AI'
     },
@@ -13858,6 +13870,655 @@
     '모델명 직접입력': {
       EN: 'Enter model name', JP: 'モデル名を直接入力', CH: '手动输入模型名', TH: 'พิมพ์ชื่อโมเดล'
     },
+
+    /* chatbot KB / product / order + collateral summary */
+    '담보금액': {
+      EN: 'Collateral amount', JP: '担保金額', CH: '担保金额', TH: 'ยอดหลักประกัน'
+    },
+    '산하 가맹 챗봇 기본설정 현황': {
+      EN: 'Sub-merchant chatbot basic settings overview',
+      JP: '傘下加盟店チャットボット基本設定状況',
+      CH: '下级商户聊天机器人基本设置概况',
+      TH: 'ภาพรวมการตั้งค่าพื้นฐานแชทบอทร้านในเครือ'
+    },
+    '플랜구매설정': {
+      EN: 'Plan purchase settings',
+      JP: 'プラン購入設定',
+      CH: '套餐购买设置',
+      TH: 'การตั้งค่าซื้อแพลน'
+    },
+    '챗봇·고객 안내 설정': {
+      EN: 'Chatbot & customer guidance',
+      JP: 'チャットボット・顧客案内設定',
+      CH: '聊天机器人与客户说明设置',
+      TH: 'การตั้งค่าแชทบอทและคำแนะนำลูกค้า'
+    },
+    '총본사·본사·총판 등 상위 조직은 산하 가맹점 중 챗봇결제 사용(Y) 가맹점만 표시됩니다(등록 정보와 병합된 안내 표시값). 「상업 기능」열에서 운영 보류를 두면 고객 챗봇에는 상품·예약·결제가 보이지 않지만 문의 채팅은 유지됩니다(챗봇 미사용과 다름). 가맹점 계정은 이 블록이 보이지 않으며, 하단에서 본인 업체 안내만 편집합니다.': {
+      EN: 'Parent orgs (root HQ, HQ, master distributor, etc.) see only sub-merchants with chatbot payment enabled (Y), with merged registration display values. Setting commerce hold in the Commerce column hides products, reservations, and checkout in the public chatbot but keeps inquiry chat (different from chatbot off). Merchant accounts do not see this block and edit only their own guidance below.',
+      JP: '総本社・本社・総販など上位組織は、傘下加盟店のうちチャットボット決済使用(Y)の加盟店のみ表示します（登録情報とマージした案内表示値）。「商業機能」列で運用保留にすると、顧客チャットボットでは商品・予約・決済は非表示ですが問い合わせチャットは維持されます（チャットボット未使用とは異なります）。加盟店アカウントはこのブロックは表示されず、下で自社案内のみ編集します。',
+      CH: '总本部、本部、总代等上级组织仅显示启用聊天机器人支付(Y)的下级商户（合并注册信息的展示值）。在「商业功能」列设为运营暂停时，客户聊天机器人不显示商品、预约、支付，但保留咨询聊天（与关闭聊天机器人不同）。商户账号不显示此块，仅在下方编辑本公司说明。',
+      TH: 'องค์กรแม่ (HQ ราก, HQ, ตัวแทนหลัก ฯลฯ) แสดงเฉพาะร้านในเครือที่เปิดชำระแชทบอท (Y) พร้อมค่าแสดงที่รวมจากการลงทะเบียน ตั้งพักการค้าในคอลัมน์ฟังก์ชันพาณิชย์จะซ่อนสินค้า/จอง/ชำระในแชทบอทสาธารณะแต่คงแชทสอบถาม (ต่างจากปิดแชทบอท) บัญชีร้านไม่เห็นบล็อกนี้ แก้เฉพาะคำแนะนำของตนเองด้านล่าง'
+    },
+    '등록 가능 건수(플랜)과 본사 AI챗봇설정의 월 요금표가 같은 통화로 표시됩니다. 「현재 플랜」은 당월 즉시 적용 기준이며, 상향만 「즉시 상향」에서 반영됩니다(잔여일 차액 미수금). 「다음 플랜(예약)」은 변경이 없으면 예약이 없는 상태로 유지되고, 바꾸면 익월(서울 달력)부터 적용되며 하향·상향 모두 동일합니다.': {
+      EN: 'Registration cap (plan) and HQ AI chatbot monthly fee table use the same currency. Current plan applies immediately this month; only upgrades apply via Immediate upgrade (remaining-day difference as receivable). Next plan (reserved) stays empty if unchanged; if changed, it applies from next calendar month (Seoul) for both downgrades and upgrades.',
+      JP: '登録可能件数（プラン）と本社AIチャットボット設定の月額料金表は同じ通貨で表示されます。「現在プラン」は当月即時適用基準で、件数増の上げのみ「即時上げ」で反映されます（残日数差額は未収金）。「次プラン（予約）」は変更がなければ予約なしのまま、変更すると翌月（ソウル暦）から適用され、下げ・上げとも同じです。',
+      CH: '可注册件数（套餐）与总部 AI 聊天机器人月费表以相同货币显示。「当前套餐」按当月即时生效；仅升级在「即时升级」中反映（剩余天数差额记为未收款）。「下月套餐（预约）」无变更则保持无预约；变更后从次月（首尔日历）起生效，降档与升档相同。',
+      TH: 'เพดานลงทะเบียน (แพลน) และตารางค่าบริการรายเดือน AI แชทบอท HQ ใช้สกุลเงินเดียวกัน แพลนปัจจุบันมีผลทันทีในเดือนนี้ อัปเกรดเท่านั้นผ่านอัปเกรดทันที (ส่วนต่างวันคงเหลือเป็นค้างรับ) แพลนถัดไป (จอง) ว่างถ้าไม่เปลี่ยน เปลี่ยนแล้วมีผลเดือนถัดไป (ปฏิทินโซล) ทั้งลดและเพิ่ม'
+    },
+    '고객 공개 챗봇에 노출되는 회사 안내·운영방식·예약 옵션입니다. 가맹은 본인 정보를 저장하고, 상위 조직은 가맹 코드로 불러온 뒤 저장합니다.': {
+      EN: 'Company guidance, operation mode, and reservation options shown on the public chatbot. Merchants save their own info; parent orgs load by merchant code then save.',
+      JP: '顧客公開チャットボットに表示する会社案内・運用方式・予約オプションです。加盟店は自社情報を保存し、上位組織は加盟店コードで読み込んでから保存します。',
+      CH: '在公开聊天机器人上展示的公司说明、运营方式与预约选项。商户保存本人信息；上级组织按商户代码加载后保存。',
+      TH: 'คำแนะนำบริษัท โหมดการทำงาน และตัวเลือกจองที่แสดงบนแชทบอทสาธารณะ ร้านบันทึกข้อมูลตนเอง องค์กรแม่โหลดด้วยรหัสร้านแล้วบันทึก'
+    },
+    '챗봇 고객이 제출한 주문·예약 정보입니다. 결제가 완료되면 접수(확정)로 바뀌며 PG 거래번호가 연결됩니다.': {
+      EN: 'Orders and reservations submitted by chatbot customers. After payment completes, status becomes confirmed and a PG transaction ID is linked.',
+      JP: 'チャットボット顧客が提出した注文・予約情報です。決済完了後は受付（確定）に変わり、PG取引番号が紐づきます。',
+      CH: '聊天机器人客户提交的订单与预约信息。支付完成后变为受理（确认），并关联 PG 交易号。',
+      TH: 'คำสั่งซื้อและการจองที่ลูกค้าแชทบอทส่ง หลังชำระเสร็จสถานะเป็นยืนยันและเชื่อมหมายเลขธุรกรรม PG'
+    },
+    '운영방식': {
+      EN: 'Operation mode', JP: '運用方式', CH: '运营方式', TH: 'โหมดการทำงาน'
+    },
+    '등록·활성': {
+      EN: 'Registered · active', JP: '登録・有効', CH: '注册·活跃', TH: 'ลงทะเบียน·ใช้งาน'
+    },
+    '안내 회사명': {
+      EN: 'Guidance company name', JP: '案内会社名', CH: '说明用公司名', TH: 'ชื่อบริษัทในคำแนะนำ'
+    },
+    '판매안내': {
+      EN: 'Sales guidance', JP: '販売案内', CH: '销售说明', TH: 'คำแนะนำการขาย'
+    },
+    '회사소개': {
+      EN: 'Company intro', JP: '会社紹介', CH: '公司介绍', TH: 'แนะนำบริษัท'
+    },
+    '상업 기능': {
+      EN: 'Commerce', JP: '商業機能', CH: '商业功能', TH: 'ฟังก์ชันพาณิชย์'
+    },
+    '상품판매 · 선불': {
+      EN: 'Product sales · prepaid', JP: '商品販売・前払い', CH: '商品销售·预付', TH: 'ขายสินค้า · จ่ายล่วงหน้า'
+    },
+    '상품판매 · 후불': {
+      EN: 'Product sales · postpaid', JP: '商品販売・後払い', CH: '商品销售·后付', TH: 'ขายสินค้า · จ่ายหลัง'
+    },
+    '예약방식 · 선불': {
+      EN: 'Reservation · prepaid', JP: '予約方式・前払い', CH: '预约方式·预付', TH: 'จอง · จ่ายล่วงหน้า'
+    },
+    '예약방식 · 후불': {
+      EN: 'Reservation · postpaid', JP: '予約方式・後払い', CH: '预约方式·后付', TH: 'จอง · จ่ายหลัง'
+    },
+    '하이브리드 (판매+예약, 예약은 선불 고정)': {
+      EN: 'Hybrid (sales + reservation; reservation prepaid only)',
+      JP: 'ハイブリッド（販売+予約、予約は前払い固定）',
+      CH: '混合（销售+预约，预约固定预付）',
+      TH: 'ไฮบริด (ขาย+จอง จองจ่ายล่วงหน้าเท่านั้น)'
+    },
+    '대면거래 (판매+예약 · 후불)': {
+      EN: 'Face-to-face (sales + reservation · postpaid)',
+      JP: '対面取引（販売+予約・後払い）',
+      CH: '面对面（销售+预约·后付）',
+      TH: 'พบหน้า (ขาย+จอง · จ่ายหลัง)'
+    },
+    '정상': {
+      EN: 'Normal', JP: '正常', CH: '正常', TH: 'ปกติ'
+    },
+    '운영 보류': {
+      EN: 'Commerce hold', JP: '運用保留', CH: '运营暂停', TH: 'พักการค้า'
+    },
+    '보류 해제': {
+      EN: 'Release hold', JP: '保留解除', CH: '解除暂停', TH: 'ปลดพัก'
+    },
+    '플랜·과금': {
+      EN: 'Plan & billing', JP: 'プラン・課金', CH: '套餐与计费', TH: 'แพลนและการเรียกเก็บ'
+    },
+    '현재 플랜(건)': {
+      EN: 'Current plan (items)', JP: '現在プラン（件）', CH: '当前套餐（件）', TH: 'แพลนปัจจุบัน (รายการ)'
+    },
+    '청구 통화': {
+      EN: 'Billing currency', JP: '請求通貨', CH: '计费货币', TH: 'สกุลเงินเรียกเก็บ'
+    },
+    '과금 기간(서울)': {
+      EN: 'Billing period (Seoul)', JP: '課金期間（ソウル）', CH: '计费期间（首尔）', TH: 'ช่วงเรียกเก็บ (โซล)'
+    },
+    '플랜 변경': {
+      EN: 'Change plan', JP: 'プラン変更', CH: '更改套餐', TH: 'เปลี่ยนแพลน'
+    },
+    '즉시 상향(당월 반영)': {
+      EN: 'Immediate upgrade (this month)', JP: '即時上げ（当月反映）', CH: '即时升级（当月生效）', TH: 'อัปเกรดทันที (เดือนนี้)'
+    },
+    '다음 플랜(예약·익월 적용)': {
+      EN: 'Next plan (reserve · next month)', JP: '次プラン（予約・翌月適用）', CH: '下月套餐（预约·次月生效）', TH: 'แพลนถัดไป (จอง · เดือนถัดไป)'
+    },
+    '예약 없음(익월에도 현재 플랜 유지)': {
+      EN: 'No reservation (keep current plan next month)',
+      JP: '予約なし（翌月も現在プラン維持）',
+      CH: '无预约（下月仍保持当前套餐）',
+      TH: 'ไม่จอง (คงแพลนปัจจุบันเดือนถัดไป)'
+    },
+    '미수금 내역(플랜)': {
+      EN: 'Receivable history (plan)', JP: '未収金内訳（プラン）', CH: '未收款明细（套餐）', TH: 'ประวัติค้างรับ (แพลน)'
+    },
+    '상품관리에서 등록·수정': {
+      EN: 'Register / edit in Products', JP: '商品管理で登録・修正', CH: '在商品管理中注册/修改', TH: 'ลงทะเบียน/แก้ในเมนูสินค้า'
+    },
+    '챗봇 운영방식': {
+      EN: 'Chatbot operation mode', JP: 'チャットボット運用方式', CH: '聊天机器人运营方式', TH: 'โหมดแชทบอท'
+    },
+    '접수': {
+      EN: 'Confirmed', JP: '受付', CH: '受理', TH: 'ยืนยันแล้ว'
+    },
+    '접수일시': {
+      EN: 'Confirmed at', JP: '受付日時', CH: '受理时间', TH: 'เวลายืนยัน'
+    },
+    '결제대기': {
+      EN: 'Awaiting payment', JP: '決済待ち', CH: '待支付', TH: 'รอชำระ'
+    },
+    '상품판매': {
+      EN: 'Product sales', JP: '商品販売', CH: '商品销售', TH: 'ขายสินค้า'
+    },
+    '시간 예약': {
+      EN: 'Time reservation', JP: '時間予約', CH: '时间预约', TH: 'จองเวลา'
+    },
+    '장소 예약': {
+      EN: 'Place reservation', JP: '場所予約', CH: '地点预约', TH: 'จองสถานที่'
+    },
+    '목록에서 [수정]을 누르면 코드가 채워지고 아래 플랜·미수금을 고칠 수 있습니다.': {
+      EN: 'Click [Edit] in the list to fill the code and edit plan and receivables below.',
+      JP: '一覧で［修正］を押すとコードが入力され、下のプラン・未収金を編集できます。',
+      CH: '在列表中点击［修改］将填入代码，可在下方编辑套餐与未收款。',
+      TH: 'กด［แก้ไข］ในรายการเพื่อเติมรหัสและแก้แพลน/ค้างรับด้านล่าง'
+    },
+    '고객이 주문서를 제출하고 결제를 완료하면 접수(확정)됩니다. 예약 시간은 기본설정·상품별 슬롯으로 검증됩니다.': {
+      EN: 'When the customer submits an order form and completes payment, it is confirmed. Reservation times are validated against basic settings and per-product slots.',
+      JP: '顧客が注文書を提出し決済を完了すると受付（確定）になります。予約時間は基本設定・商品別スロットで検証されます。',
+      CH: '客户提交订单并完成支付后变为受理（确认）。预约时间按基本设置与各商品时段验证。',
+      TH: 'เมื่อลูกค้าส่งใบสั่งและชำระเสร็จจะยืนยัน เวลาจองตรวจกับการตั้งค่าพื้นฐานและสล็อตต่อสินค้า'
+    },
+    '선택한 운영방식에 맞춰 공개 챗봇 응대(선불·후불·예약 안내)가 적용됩니다.': {
+      EN: 'Public chatbot responses (prepaid/postpaid/reservation guidance) follow the selected operation mode.',
+      JP: '選択した運用方式に合わせ、公開チャットボットの応対（前払い・後払い・予約案内）が適用されます。',
+      CH: '公开聊天机器人应答（预付/后付/预约说明）按所选运营方式应用。',
+      TH: 'การตอบแชทบอทสาธารณะ (จ่ายล่วงหน้า/หลัง/คำแนะนำจอง) ตามโหมดที่เลือก'
+    },
+    '월 정기·업그레이드 차액은 미수금으로 등록되며 정산에서 환수됩니다.': {
+      EN: 'Monthly recurring and upgrade differences are posted as receivables and recovered in settlement.',
+      JP: '月次定期・アップグレード差額は未収金として登録され、精算で回収されます。',
+      CH: '月定期与升级差额记为未收款，在结算中扣回。',
+      TH: 'ค่ารายเดือนและส่วนต่างอัปเกรดลงเป็นค้างรับและหักในการชำระ'
+    },
+    '챗봇 결제 및 공개 챗봇 노출 상품은 「상품관리」에서 설정합니다. 플랜마다 동시 「판매 활성」 가능 개수가 있으며, 「사용=Y」만 고객에게 판매·노출됩니다. 그보다 2건 더 많게 상품 행은 등록해 두되 판매 비활성(사용=N)으로 둘 수 있습니다. 안내(LLM·카탈로그)에는 판매 활성이면서 본사 판매금지 아닌 상품만 포함됩니다.': {
+      EN: 'Chatbot checkout and public chatbot products are set under Products. Each plan caps concurrent sale-active items; only Use=Y is sold/shown to customers. You may register up to plan+2 rows with sale inactive (Use=N). Guidance (LLM/catalog) includes only sale-active items not blocked by HQ.',
+      JP: 'チャットボット決済および公開チャットボット表示商品は「商品管理」で設定します。プランごとに同時「販売有効」可能件数があり、「使用=Y」のみ顧客に販売・表示されます。それより2件多く商品行を登録し販売非有効（使用=N）にできます。案内（LLM・カタログ）には販売有効かつ本社販売禁止でない商品のみ含まれます。',
+      CH: '聊天机器人支付与公开聊天机器人展示商品在「商品管理」中设置。各套餐限制同时「销售活跃」数量；仅使用=Y 向客户销售/展示。可多登记 plan+2 行并设为销售非活跃(使用=N)。说明(LLM/目录)仅含销售活跃且未被总部禁售的商品。',
+      TH: 'ชำระแชทบอทและสินค้าแสดงบนแชทบอทสาธารณะตั้งใน「สินค้า」 แต่ละแพลนจำกัดสินค้าขายอยู่พร้อมกัน ใช้=Y เท่านั้นที่ขาย/แสดงให้ลูกค้า ลงทะเบียนได้มากกว่าแพลน +2 แถวโดยปิดการขาย(ใช้=N) คำแนะนำ(LLM/แคตตalog) รวมเฉพาะสินค้าขายอยู่ที่ HQ ไม่ห้ามขาย'
+    },
+    '판매 활성(현재/플랜)': {
+      EN: 'Sale active (current/plan)', JP: '販売有効（現在/プラン）', CH: '销售活跃（当前/套餐）', TH: 'ขายอยู่ (ปัจจุบัน/แพลน)'
+    },
+    '플랜 미설정(무제한)': {
+      EN: 'No plan (unlimited)', JP: 'プラン未設定（無制限）', CH: '未设套餐（不限）', TH: 'ไม่มีแพลน (ไม่จำกัด)'
+    },
+    '당월에는 건수가 늘어나는 상향만 즉시 적용됩니다(잔여일 차액 미수금). 익월에 바꿀 플랜(상향·하향)은 아래 예약에서 선택하세요.': {
+      EN: 'Only upgrades that increase the item cap apply immediately this month (remaining-day difference as receivable). Choose next-month plan changes (up or down) in the reservation field below.',
+      JP: '当月は件数が増える上げのみ即時適用されます（残日数差額は未収金）。翌月に変更するプラン（上げ・下げ）は下の予約で選択してください。',
+      CH: '当月仅增加件数的上调即时生效（剩余天数差额记未收款）。下月变更套餐（升/降）请在下方预约中选择。',
+      TH: 'เดือนนี้อัปเกรดที่เพิ่มเพดานเท่านั้นมีผลทันที (ส่วนต่างวันคงเหลือเป็นค้างรับ) เลือกแพลนเดือนถัดไป (ขึ้น/ลง) ในช่องจองด้านล่าง'
+    },
+    '예약이 없으면 익월에도 현재 플랜이 유지됩니다. 값을 바꾸면 익월(서울 달력)부터 그 플랜이 적용됩니다.': {
+      EN: 'Without a reservation, the current plan continues next month. Changing the value applies from next calendar month (Seoul).',
+      JP: '予約がなければ翌月も現在プランが維持されます。値を変えると翌月（ソウル暦）からそのプランが適用されます。',
+      CH: '无预约则下月仍保持当前套餐。更改值后从次月（首尔日历）起生效。',
+      TH: 'ไม่จองจะคงแพลนปัจจุบันเดือนถัดไป เปลี่ยนค่าแล้วมีผลเดือนถัดไป (ปฏิทินโซล)'
+    },
+    '다음 플랜(예약): 없음(익월에도 현재와 동일)': {
+      EN: 'Next plan (reserved): none (same as current next month)',
+      JP: '次プラン（予約）: なし（翌月も現在と同じ）',
+      CH: '下月套餐（预约）：无（下月与当前相同）',
+      TH: 'แพลนถัดไป (จอง): ไม่มี (เดือนถัดไปเหมือนปัจจุบัน)'
+    },
+    '다음 플랜(예약): {0}건 · 적용월 {1}~': {
+      EN: 'Next plan (reserved): {0} items · from {1}',
+      JP: '次プラン（予約）: {0}件 · 適用月 {1}~',
+      CH: '下月套餐（预约）：{0} 件 · 生效月 {1}~',
+      TH: 'แพลนถัดไป (จอง): {0} รายการ · ตั้งแต่ {1}'
+    },
+    '다음 플랜(예약): {0}건': {
+      EN: 'Next plan (reserved): {0} items',
+      JP: '次プラン（予約）: {0}件',
+      CH: '下月套餐（预约）：{0} 件',
+      TH: 'แพลนถัดไป (จอง): {0} รายการ'
+    },
+    '다음 달({0})부터 {1}건 플랜으로 변경 예정입니다. 이번 달은 기존 플랜이 유지됩니다.': {
+      EN: 'Plan will change to {1} items from {0}. Current plan remains this month.',
+      JP: '翌月（{0}）から{1}件プランに変更予定です。今月は既存プランが維持されます。',
+      CH: '预计从 {0} 起改为 {1} 件套餐。本月仍保持原套餐。',
+      TH: 'จะเปลี่ยนเป็นแพลน {1} รายการตั้งแต่ {0} เดือนนี้ยังคงแพลนเดิม'
+    },
+    '챗봇결제가 «미사용»이면 플랜을 바꿀 수 없습니다. 업체등록 등에서 챗봇결제를 켠 뒤 다시 불러오세요.': {
+      EN: 'If chatbot payment is disabled, you cannot change the plan. Enable chatbot payment in merchant registration, then reload.',
+      JP: 'チャットボット決済が「未使用」ならプランを変更できません。加盟店登録等でチャットボット決済を有効にしてから再読み込みしてください。',
+      CH: '聊天机器人支付为「未使用」时无法更改套餐。请在商户注册等处启用后重新加载。',
+      TH: 'ถ้าปิดชำระแชทบอทจะเปลี่ยนแพลนไม่ได้ เปิดในการลงทะเบียนร้านแล้วโหลดใหม่'
+    },
+    '챗봇결제가 «미사용»이면 상품 등록·공개 챗봇이 제한될 수 있습니다. 업체 정보에서 챗봇결제를 활성화하세요.': {
+      EN: 'If chatbot payment is disabled, product registration and the public chatbot may be limited. Enable chatbot payment in company info.',
+      JP: 'チャットボット決済が「未使用」なら商品登録・公開チャットボットが制限される場合があります。加盟店情報でチャットボット決済を有効にしてください。',
+      CH: '聊天机器人支付为「未使用」时可能限制商品注册与公开聊天机器人。请在商户信息中启用。',
+      TH: 'ถ้าปิดชำระแชทบอทอาจจำกัดการลงทะเบียนสินค้าและแชทบอทสาธารณะ เปิดในข้อมูลร้าน'
+    },
+    '운영 보류 중입니다. 고객 공개 챗봇에서는 상품·예약·결제가 비활성이며 문의 채팅만 가능합니다. 해제는 상위 조직 「기본설정」 산하 현황 또는 관리자에서 설정합니다.': {
+      EN: 'Commerce is on hold. The public chatbot disables products, reservations, and checkout; inquiry chat remains. Release via parent org Basic settings overview or admin.',
+      JP: '運用保留中です。顧客公開チャットボットでは商品・予約・決済は無効で、問い合わせチャットのみ可能です。解除は上位組織「基本設定」傘下状況または管理者で設定します。',
+      CH: '运营暂停中。公开聊天机器人禁用商品、预约、支付，仅保留咨询聊天。在上级组织「基本设置」下级概况或管理员处解除。',
+      TH: 'พักการค้าอยู่ แชทบอทสาธารณะปิดสินค้า/จอง/ชำระ เหลือแชทสอบถาม ปลดที่ภาพรวมการตั้งค่าพื้นฐานขององค์กรแม่หรือแอดมิน'
+    },
+    '운영 보류를 해제하면 고객에게 상품·결제 기능이 다시 노출됩니다. 계속할까요?': {
+      EN: 'Releasing commerce hold will show products and checkout to customers again. Continue?',
+      JP: '運用保留を解除すると、顧客に商品・決済機能が再表示されます。続行しますか？',
+      CH: '解除运营暂停后客户将再次看到商品与支付功能。是否继续？',
+      TH: 'ปลดพักการค้าจะแสดงสินค้าและชำระให้ลูกค้าอีกครั้ง ดำเนินการต่อ?'
+    },
+    '챗봇 기본설정 조회에 실패했습니다. 로그인·업체코드를 확인하세요.': {
+      EN: 'Failed to load chatbot basic settings. Check login and merchant code.',
+      JP: 'チャットボット基本設定の取得に失敗しました。ログイン・加盟店コードを確認してください。',
+      CH: '加载聊天机器人基本设置失败。请检查登录与商户代码。',
+      TH: 'โหลดการตั้งค่าพื้นฐานแชทบอทไม่สำเร็จ ตรวจสอบการเข้าสู่ระบบและรหัสร้าน'
+    },
+    '가맹 카탈로그 유형을 하나 이상 선택하세요.': {
+      EN: 'Select at least one merchant catalog type.',
+      JP: '加盟店カタログ種別を1つ以上選択してください。',
+      CH: '请至少选择一种商户目录类型。',
+      TH: 'เลือกประเภทแคตตalog ร้านอย่างน้อย 1 รายการ'
+    },
+    '주문 내역이 없습니다.': {
+      EN: 'No orders.', JP: '注文履歴がありません。', CH: '没有订单。', TH: 'ไม่มีคำสั่งซื้อ'
+    },
+    '업그레이드 차액': {
+      EN: 'Upgrade difference', JP: 'アップグレード差額', CH: '升级差额', TH: 'ส่วนต่างอัปเกรด'
+    },
+    '월 정기': {
+      EN: 'Monthly recurring', JP: '月次定期', CH: '月定期', TH: 'รายเดือน'
+    },
+    '월 정기 ': {
+      EN: 'Monthly ', JP: '月次 ', CH: '月 ', TH: 'รายเดือน '
+    },
+    '본사 요금 미설정 또는 0': {
+      EN: 'HQ fee not set or zero', JP: '本社料金未設定または0', CH: '总部费用未设或为0', TH: 'ยังไม่ตั้งค่าธรรมเนียม HQ หรือเป็น 0'
+    },
+    ' 활성 동시 최대 · ': {
+      EN: ' max concurrent active · ', JP: ' 有効同時最大 · ', CH: ' 最大同时活跃 · ', TH: ' ใช้งานพร้อมกันสูงสุด · '
+    },
+    '건까지 등록': {
+      EN: ' items registered max', JP: '件まで登録', CH: ' 件可注册', TH: ' รายการลงทะเบียนได้'
+    },
+    '무제한으로(즉시)': {
+      EN: 'To unlimited (immediate)', JP: '無制限に（即時）', CH: '改为不限（即时）', TH: 'ไม่จำกัด (ทันที)'
+    },
+    '년 ': {
+      EN: ' ', JP: '年 ', CH: '年 ', TH: ' '
+    },
+    '월 1일 — ': {
+      EN: ' — ', JP: '月1日 — ', CH: '月1日 — ', TH: ' — '
+    },
+    '월 ': {
+      EN: ' ', JP: '月 ', CH: '月 ', TH: ' '
+    },
+    ' · 상품 이미지 상한 ': {
+      EN: ' · product image cap ', JP: ' · 商品画像上限 ', CH: ' · 商品图片上限 ', TH: ' · เพดานรูปสินค้า '
+    },
+    '카탈로그 실효 허용: ': {
+      EN: 'Catalog effective allowed: ', JP: 'カタログ実効許可: ', CH: '目录实际允许: ', TH: 'แคตตalog ที่อนุญาตจริง: '
+    },
+    '가맹에서 사용할 카탈로그 유형': {
+      EN: 'Catalog types for merchant use',
+      JP: '加盟店で使用するカタログ種別',
+      CH: '商户使用的目录类型',
+      TH: 'ประเภทแคตตalog ที่ร้านใช้'
+    },
+    'AI로 회사소개 초안': {
+      EN: 'AI draft for company intro',
+      JP: 'AIで会社紹介草案',
+      CH: 'AI 生成公司介绍草案',
+      TH: 'ร่างแนะนำบริษัทด้วย AI'
+    },
+    '운영방식(선불·후불·예약)과 별개로, 업종에 맞는 주문·예약 질문 흐름을 잡는 분류입니다. 공개 챗봇 AI가 카탈로그·운영방식과 모순 없이 필요한 항목만 묻도록 서버에서 안내 블록으로 전달됩니다.': {
+      EN: 'Separate from operation mode (prepaid/postpaid/reservation), this classifies order/reservation question flows by industry. The server sends guidance blocks so the public chatbot AI asks only needed items without contradicting catalog or operation mode.',
+      JP: '運用方式（前払い・後払い・予約）とは別に、業種に合った注文・予約の質問フローを決める分類です。公開チャットボットAIがカタログ・運用方式と矛盾なく必要項目だけ尋ねるよう、サーバから案内ブロックを渡します。',
+      CH: '与运营方式（预付/后付/预约）分开，按行业设定订单/预约提问流程。服务器下发说明块，使公开聊天机器人 AI 在不与目录/运营方式矛盾的前提下只询问必要项。',
+      TH: 'แยกจากโหมดการทำงาน (จ่ายล่วงหน้า/หลัง/จอง) ใช้จัดลำดับคำถามสั่ง/จองตามอุตสาหกรรม เซิร์ฟเวอร์ส่งบล็อกคำแนะนำให้ AI แชทบอทสาธารณะถามเฉพาะที่จำเป็นโดยไม่ขัดกับแคตตalog/โหมด'
+    },
+    '예약 상품은 동일 시간대가 겹치지 않게 막습니다. 상품마다 다른 슬롯(분)은 「상품관리」에서 덮어쓸 수 있습니다.': {
+      EN: 'Reservation products cannot overlap the same time slot. Per-product slot minutes can be overridden in Products.',
+      JP: '予約商品は同一時間帯が重ならないようにします。商品ごとのスロット（分）は「商品管理」で上書きできます。',
+      CH: '预约商品禁止同一时段重叠。各商品的时段（分钟）可在「商品管理」中覆盖。',
+      TH: 'สินค้าจองห้ามทับช่วงเวลาเดียวกัน สล็อต (นาที) ต่อสินค้าแก้ใน「สินค้า」ได้'
+    },
+    '예약 시간은 기본설정과 상품 슬롯(분)으로 겹침을 검증합니다.': {
+      EN: 'Reservation times are validated for overlap using basic settings and product slot minutes.',
+      JP: '予約時間は基本設定と商品スロット（分）で重複を検証します。',
+      CH: '预约时间按基本设置与商品时段（分钟）验证是否重叠。',
+      TH: 'เวลาจองตรวจทับซ้อนด้วยการตั้งค่าพื้นฐานและสล็อตสินค้า (นาที)'
+    },
+    '숙박형: 고객이 체크아웃 날짜를 넣으면 그날 정오까지 예약이 잡히고, 비우면 예약 슬롯(분)만큼만 잡힙니다. 타임존은 기본설정을 따릅니다.': {
+      EN: 'Lodging: if the customer enters a checkout date, the reservation runs until noon that day; if empty, only the reservation slot minutes apply. Timezone follows basic settings.',
+      JP: '宿泊型: 顧客がチェックアウト日を入れるとその日正午まで予約が入り、空なら予約スロット（分）分だけ入ります。タイムゾーンは基本設定に従います。',
+      CH: '住宿型：客户填写退房日则预约至该日中午；留空则仅按预约时段（分钟）。时区跟随基本设置。',
+      TH: 'ที่พัก: ถ้าลูกค้าใส่วันช็คเอาต์จองถึงเที่ยงวันนั้น ว่างใช้เฉพาะสล็อตจอง (นาที) โซนเวลาตามการตั้งค่าพื้นฐาน'
+    },
+    '코드를 비우고 불러오기하면 로그인 조직 산하 가맹점의 등록 상품을 한 목록으로 봅니다. 본사·총판 열 「본사 판매금지」가 Y면 가맹이 사용=ON이어도 고객 챗봇·카탈로그에 노출되지 않습니다.': {
+      EN: 'Load with an empty code to see registered products of sub-merchants under the logged-in org in one list. If HQ block is Y, items stay hidden from the public chatbot/catalog even when the merchant sets Use=ON.',
+      JP: 'コードを空にして読み込むと、ログイン組織傘下加盟店の登録商品を一覧で見られます。本社・総販列「本社販売禁止」がYなら、加盟店が使用=ONでも顧客チャットボット・カタログに表示されません。',
+      CH: '代码留空并加载可在一个列表中查看登录组织下级商户的注册商品。若总部禁售列为 Y，即使商户使用=ON 也不在客户聊天机器人/目录中展示。',
+      TH: 'โหลดโดยเว้นรหัสว่างจะเห็นสินค้าที่ลงทะเบียนของร้านในเครือในรายการเดียว ถ้าคอลัมน์ HQ ห้ามขายเป็น Y จะไม่แสดงในแชทบอท/แคตตalog แม้ร้านตั้งใช้=ON'
+    },
+    '하이브리드 (좌1고정+2칸 순환)': {
+      EN: 'Hybrid (fixed left + 2 rotating slots)',
+      JP: 'ハイブリッド（左1固定+2枠ローテーション）',
+      CH: '混合（左侧固定+两格轮播）',
+      TH: 'ไฮบริด (ซ้ายคงที่ + 2 ช่องหมุน)'
+    },
+    '챗봇 상단 로고 자동축소( config_json 최상위, 선택 ): chatbot_logo_target_max_bytes(기본 2097152), chatbot_logo_max_edge_px(기본 1024), chatbot_logo_jpeg_quality_start(0~1, 기본 0.92), chatbot_logo_llm_tune_yn=Y(순위 LLM이 권장 변 길이 제안 → 서버 JPEG 재압축).': {
+      EN: 'Chatbot top logo auto-resize (top-level config_json, optional): chatbot_logo_target_max_bytes (default 2097152), chatbot_logo_max_edge_px (default 1024), chatbot_logo_jpeg_quality_start (0–1, default 0.92), chatbot_logo_llm_tune_yn=Y (ranked LLM suggests edge length → server JPEG recompress).',
+      JP: 'チャットボット上部ロゴ自動縮小（config_json最上位、任意）: chatbot_logo_target_max_bytes（既定2097152）, chatbot_logo_max_edge_px（既定1024）, chatbot_logo_jpeg_quality_start（0~1、既定0.92）, chatbot_logo_llm_tune_yn=Y（順位LLMが推奨辺長提案→サーバJPEG再圧縮）。',
+      CH: '聊天机器人顶部 logo 自动缩小（config_json 顶层，可选）：chatbot_logo_target_max_bytes（默认 2097152）、chatbot_logo_max_edge_px（默认 1024）、chatbot_logo_jpeg_quality_start（0~1，默认 0.92）、chatbot_logo_llm_tune_yn=Y（按 LLM 排序建议边长→服务器 JPEG 再压缩）。',
+      TH: 'ย่อโลโก้ด้านบนแชทบอทอัตโนมัติ (config_json ระดับบน ไม่บังคับ): chatbot_logo_target_max_bytes (ค่าเริ่ม 2097152), chatbot_logo_max_edge_px (1024), chatbot_logo_jpeg_quality_start (0~1, 0.92), chatbot_logo_llm_tune_yn=Y (LLM แนะนำความยาวขอบ→บีบ JPEG บนเซิร์ฟเวอร์)'
+    },
+    '미수금이 차감되었습니다.': {
+      EN: 'Receivable has been deducted.',
+      JP: '未収金が差し引かれました。',
+      CH: '未收款已扣减。',
+      TH: 'หักค้างรับแล้ว'
+    },
+    '결제대행사명': {
+      EN: 'Acquirer name', JP: '決済代行名', CH: '支付机构名称', TH: 'ชื่อผู้ให้บริการชำระเงิน'
+    },
+
+    /* chatbot KB / product / order — labels & hints (screens data-pg-ui-t + app.js pgAdminUiT) */
+    '전화': { EN: 'Phone', JP: '電話', CH: '电话', TH: 'โทรศัพท์' },
+    '담당자': { EN: 'Contact', JP: '担当者', CH: '负责人', TH: 'ผู้ติดต่อ' },
+    '대상 가맹점 코드': {
+      EN: 'Target merchant code', JP: '対象加盟店コード', CH: '目标商户代码', TH: 'รหัสร้านเป้าหมาย'
+    },
+    '총판·가맹 기준통화': {
+      EN: 'Master dist·merchant base currency', JP: '総販・加盟店基準通貨', CH: '总代·商户基准货币', TH: 'สกุลเงินฐานตัวแทนหลัก·ร้าน'
+    },
+    '동일 달력월 말까지': {
+      EN: 'Through end of same calendar month', JP: '同一暦月の末まで', CH: '至同一日历月末', TH: 'ถึงสิ้นเดือนปฏิทินเดียวกัน'
+    },
+    '본사 AI챗봇설정과 동일 슬롯별 월 요금': {
+      EN: 'Same per-slot monthly fees as HQ AI chatbot settings',
+      JP: '本社AIチャットボット設定と同じスロット別月額',
+      CH: '与总部 AI 聊天机器人设置相同的分档月费',
+      TH: 'ค่ารายเดือนต่อสล็อตเดียวกับการตั้งค่า AI แชทบอท HQ'
+    },
+    '챗봇 등록·이용 상품': {
+      EN: 'Chatbot registration & usage products', JP: 'チャットボット登録・利用商品', CH: '聊天机器人注册·使用商品', TH: 'สินค้าลงทะเบียน·ใช้แชทบอท'
+    },
+    '선택 안 함': { EN: 'Do not select', JP: '選択しない', CH: '不选择', TH: 'ไม่เลือก' },
+    '판매 활성·등록 한도': {
+      EN: 'Sale active · registration cap', JP: '販売有効・登録上限', CH: '销售活跃·注册上限', TH: 'ขายอยู่ · เพดานลงทะเบียน'
+    },
+    '등록 건수(전체)': {
+      EN: 'Registered items (total)', JP: '登録件数（全体）', CH: '注册件数（全部）', TH: 'จำนวนลงทะเบียน (ทั้งหมด)'
+    },
+    '남은 등록 슬롯': {
+      EN: 'Remaining registration slots', JP: '残り登録スロット', CH: '剩余注册名额', TH: 'สล็อตลงทะเบียนคงเหลือ'
+    },
+    '챗봇결제': { EN: 'Chatbot payment', JP: 'チャットボット決済', CH: '聊天机器人支付', TH: 'ชำระแชทบอท' },
+    '고객 챗봇 문의 시 참고되는 안내입니다. 아래 비우면 1~5는 업체등록 정보와 동일하게 안내됩니다.': {
+      EN: 'Guidance referenced when customers inquire via chatbot. If fields 1–5 below are empty, registration info is used instead.',
+      JP: '顧客チャットボット問い合わせ時に参照される案内です。下を空にすると1~5は加盟店登録情報と同じ案内になります。',
+      CH: '客户通过聊天机器人咨询时参考的说明。下方留空则 1~5 与商户注册信息相同。',
+      TH: 'คำแนะนำเมื่อลูกค้าสอบถามผ่านแชทบอท ว่างด้านล่างจะใช้ข้อมูลลงทะเบียน 1~5 แทน'
+    },
+    '가맹점 업체성격': {
+      EN: 'Merchant business type', JP: '加盟店業種性格', CH: '商户业态', TH: 'ลักษณะธุรกิจร้าน'
+    },
+    '업체성격 보조 메모(선택)': {
+      EN: 'Business type notes (optional)', JP: '業種性格補助メモ（任意）', CH: '业态补充备注（可选）', TH: 'บันทึกเสริมลักษณะธุรกิจ (ไม่บังคับ)'
+    },
+    '특화 업종에서 반드시 받을 정보·피할 표현 등을 적으면 AI 수집 안내에 반영됩니다. 비우면 업체성격 기본 지침만 사용합니다.': {
+      EN: 'Notes on required info or phrases to avoid for specialized industries are applied to AI collection guidance. Empty uses default business-type rules only.',
+      JP: '特化業種で必ず受け取る情報・避ける表現などを書くとAI収集案内に反映されます。空なら業種性格の基本指針のみ使用します。',
+      CH: '填写 specialized 行业必填信息或应避免表述后将反映到 AI 采集说明。留空则仅用业态默认规则。',
+      TH: 'ระบุข้อมูลที่ต้องรับหรือถ้อยคำที่ควรหลีกเลี่ยงในอุตสาหกรรมเฉพาะจะสะท้อนใน AI ว่างใช้แนวทางลักษณะธุรกิจเท่านั้น'
+    },
+    '챗봇 주문·예약 시트 UI(JSON, 선택)': {
+      EN: 'Chatbot order/reservation sheet UI (JSON, optional)',
+      JP: 'チャットボット注文・予約シートUI（JSON、任意）',
+      CH: '聊天机器人订单/预约表单 UI（JSON，可选）',
+      TH: 'UI แผ่นสั่ง/จองแชทบอท (JSON ไม่บังคับ)'
+    },
+    '고객 챗봇 「주문·결제」시트 필드 표시·라벨을 가맹별로 덮어씁니다. 최상위 fields 아래 키: ordererName, ordererEmail, ordererPhone, ordererAddr, orderMemo, reservationLocal, reservationCheckout, guestCount, serviceMinutes. 속성 예: hidden(true/false), labelKo, placeholderKo, showWhenReservation(이용시간 분, serviceMinutes만). 주소를 숨기면 prefillWhenHidden 을 4자 이상 필수. 이메일·전화는 숨길 수 없습니다. 비우면 업체성격 기본만 적용됩니다.': {
+      EN: 'Overrides public chatbot order/payment sheet field visibility and labels per merchant. Top-level fields keys: ordererName, ordererEmail, ordererPhone, ordererAddr, orderMemo, reservationLocal, reservationCheckout, guestCount, serviceMinutes. Attributes e.g. hidden(true/false), labelKo, placeholderKo, showWhenReservation (minutes, serviceMinutes only). If address is hidden, prefillWhenHidden (4+ chars) is required. Email and phone cannot be hidden. Empty uses business-type defaults only.',
+      JP: '顧客チャットボット「注文・決済」シートのフィールド表示・ラベルを加盟店ごとに上書きします。最上位fieldsのキー: ordererName, ordererEmail, ordererPhone, ordererAddr, orderMemo, reservationLocal, reservationCheckout, guestCount, serviceMinutes。属性例: hidden(true/false), labelKo, placeholderKo, showWhenReservation（利用時間分、serviceMinutesのみ）。住所を非表示にする場合prefillWhenHiddenは4文字以上必須。メール・電話は非表示不可。空なら業種性格デフォルトのみ。',
+      CH: '按商户覆盖客户聊天机器人「订单·支付」表单字段显示与标签。顶层 fields 键：ordererName、ordererEmail、ordererPhone、ordererAddr、orderMemo、reservationLocal、reservationCheckout、guestCount、serviceMinutes。属性示例：hidden、labelKo、placeholderKo、showWhenReservation 等。隐藏地址时 prefillWhenHidden 至少 4 字。邮箱·电话不可隐藏。留空则仅用业态默认。',
+      TH: 'แทนที่การแสดง/ป้ายฟิลด์แผ่นสั่ง·ชำระแชทบอทต่อร้าน คีย์ fields: ordererName, ordererEmail, ordererPhone, ordererAddr, orderMemo, reservationLocal, reservationCheckout, guestCount, serviceMinutes ซ่อนที่อยู่ต้องมี prefillWhenHidden 4+ ตัว อีเมล·โทรซ่อนไม่ได้ ว่างใช้ค่าเริ่มต้นลักษณะธุรกิจ'
+    },
+    '예약 기본 슬롯(분)': {
+      EN: 'Default reservation slot (min)', JP: '予約基本スロット（分）', CH: '预约默认时段（分钟）', TH: 'สล็อตจองเริ่มต้น (นาที)'
+    },
+    '예약 타임존(IANA)': {
+      EN: 'Reservation timezone (IANA)', JP: '予約タイムゾーン（IANA）', CH: '预约时区（IANA）', TH: 'โซนเวลาจอง (IANA)'
+    },
+    '허용된 유형 안에서 하나 이상 선택하세요.': {
+      EN: 'Select at least one allowed type.', JP: '許可された種別の中から1つ以上選択してください。', CH: '请在允许的类型中至少选择一种。', TH: 'เลือกอย่างน้อย 1 ประเภทที่อนุญาต'
+    },
+    '회사이름': { EN: 'Company name', JP: '会社名', CH: '公司名称', TH: 'ชื่อบริษัท' },
+    '전화번호': { EN: 'Phone number', JP: '電話番号', CH: '电话号码', TH: 'หมายเลขโทรศัพท์' },
+    '회사주소': { EN: 'Company address', JP: '会社住所', CH: '公司地址', TH: 'ที่อยู่บริษัท' },
+    '담당자 성명': { EN: 'Contact name', JP: '担当者氏名', CH: '负责人姓名', TH: 'ชื่อผู้ติดต่อ' },
+    '기본 안내 (첫 화면 상단)': {
+      EN: 'Default greeting (top of first screen)', JP: '基本案内（最初の画面上部）', CH: '默认说明（首屏顶部）', TH: 'คำแนะนำเริ่มต้น (ด้านบนหน้าแรก)'
+    },
+    'AI로 기본 안내 초안': {
+      EN: 'AI draft for default greeting', JP: 'AIで基本案内草案', CH: 'AI 生成默认说明草案', TH: 'ร่างคำแนะนำเริ่มต้นด้วย AI'
+    },
+    '비우면 시스템 기본 문구가 챗봇 첫 상단에 표시됩니다.': {
+      EN: 'If empty, the system default message appears at the top of the chatbot.',
+      JP: '空にするとシステム既定文がチャットボット上部に表示されます。',
+      CH: '留空则显示系统默认文案于聊天机器人顶部。',
+      TH: 'ว่างจะแสดงข้อความเริ่มต้นของระบบด้านบนแชทบอท'
+    },
+    '판매상품 안내(개요)': {
+      EN: 'Product sales guidance (overview)', JP: '販売商品案内（概要）', CH: '销售商品说明（概要）', TH: 'คำแนะนำสินค้า (ภาพรวม)'
+    },
+    'AI로 판매상품 안내 초안': {
+      EN: 'AI draft for product sales guidance', JP: 'AIで販売商品案内草案', CH: 'AI 生成销售商品说明草案', TH: 'ร่างคำแนะนำสินค้าด้วย AI'
+    },
+    '안내 저장': { EN: 'Save guidance', JP: '案内保存', CH: '保存说明', TH: 'บันทึกคำแนะนำ' },
+    '일반판매': { EN: 'General retail', JP: '一般販売', CH: '一般销售', TH: 'ขายทั่วไป' },
+    '이커머스': { EN: 'E-commerce', JP: 'EC', CH: '电商', TH: 'อีคอมเมิร์ซ' },
+    '컨설팅': { EN: 'Consulting', JP: 'コンサル', CH: '咨询', TH: 'ที่ปรึกษา' },
+    '부동산': { EN: 'Real estate', JP: '不動産', CH: '房地产', TH: 'อสังหาริมทรัพย์' },
+    '자동차판매': { EN: 'Auto sales', JP: '自動車販売', CH: '汽车销售', TH: 'ขายรถยนต์' },
+    '서비스업': { EN: 'Service industry', JP: 'サービス業', CH: '服务业', TH: 'ธุรกิจบริการ' },
+    '일반마사지': { EN: 'General massage', JP: '一般マッサージ', CH: '一般按摩', TH: 'นวดทั่วไป' },
+    '코스메틱': { EN: 'Cosmetics', JP: 'コスメ', CH: '化妆品', TH: 'เครื่องสำอาง' },
+    '클럽(유흥)': { EN: 'Club (entertainment)', JP: 'クラブ（遊興）', CH: '俱乐部（娱乐）', TH: 'คลับ (บันเทิง)' },
+    '클럽(마사지)': { EN: 'Club (massage)', JP: 'クラブ（マッサージ）', CH: '俱乐部（按摩）', TH: 'คลับ (นวด)' },
+    '음식점': { EN: 'Restaurant', JP: '飲食店', CH: '餐饮店', TH: 'ร้านอาหาร' },
+    'VIP 클럽': { EN: 'VIP club', JP: 'VIPクラブ', CH: 'VIP 俱乐部', TH: 'คลับ VIP' },
+    '기타': { EN: 'Other', JP: 'その他', CH: '其他', TH: 'อื่นๆ' },
+    '주문번호': { EN: 'Order no.', JP: '注文番号', CH: '订单号', TH: 'เลขคำสั่งซื้อ' },
+    '주문자': { EN: 'Orderer', JP: '注文者', CH: '订购人', TH: 'ผู้สั่ง' },
+    '예약': { EN: 'Reservation', JP: '予約', CH: '预约', TH: 'การจอง' },
+    '상품': { EN: 'Product', JP: '商品', CH: '商品', TH: 'สินค้า' },
+    '이미지(슬롯)': { EN: 'Image (slots)', JP: '画像（スロット）', CH: '图片（槽位）', TH: 'รูปภาพ (สล็อต)' },
+    '상품 이미지 #1': { EN: 'Product image #1', JP: '商品画像 #1', CH: '商品图片 #1', TH: 'รูปสินค้า #1' },
+    '상품 이미지 #2': { EN: 'Product image #2', JP: '商品画像 #2', CH: '商品图片 #2', TH: 'รูปสินค้า #2' },
+    '상품 이미지 #3': { EN: 'Product image #3', JP: '商品画像 #3', CH: '商品图片 #3', TH: 'รูปสินค้า #3' },
+    '상품 이미지 #4': { EN: 'Product image #4', JP: '商品画像 #4', CH: '商品图片 #4', TH: 'รูปสินค้า #4' },
+    '{0}장': { EN: '{0} images', JP: '{0}枚', CH: '{0} 张', TH: '{0} รูป' },
+    '조직 설정 기준 이미지 {0}장까지 업로드 가능합니다.': {
+      EN: 'Up to {0} images can be uploaded per organization settings.',
+      JP: '組織設定基準で画像{0}枚までアップロードできます。',
+      CH: '按组织设置最多可上传 {0} 张图片。',
+      TH: 'อัปโหลดรูปได้สูงสุด {0} รูปตามการตั้งค่าองค์กร'
+    },
+    '판매허용': { EN: 'Sale allowed', JP: '販売許可', CH: '允许销售', TH: 'อนุญาตขาย' },
+    '차단': { EN: 'Blocked', JP: 'ブロック', CH: '屏蔽', TH: 'บล็อก' },
+    '공산품(일반)': { EN: 'Goods (general)', JP: '日用品（一般）', CH: '工业品（一般）', TH: 'สินค้าทั่วไป' },
+    '음식': { EN: 'Food', JP: '食品', CH: '食品', TH: 'อาหาร' },
+    '동물': { EN: 'Animals', JP: '動物', CH: '动物', TH: 'สัตว์' },
+    '서비스(일반)': { EN: 'Service (general)', JP: 'サービス（一般）', CH: '服务（一般）', TH: 'บริการ (ทั่วไป)' },
+    '사람(서비스)': { EN: 'Person (service)', JP: '人（サービス）', CH: '人员（服务）', TH: 'บุคคล (บริการ)' },
+    '판매(예약)': { EN: 'On sale (reservation)', JP: '販売（予約）', CH: '销售（预约）', TH: 'ขาย (จอง)' },
+    '중지(대기)': { EN: 'Paused (standby)', JP: '停止（待機）', CH: '暂停（待机）', TH: 'หยุด (รอ)' },
+    '시간예약': { EN: 'Time reservation', JP: '時間予約', CH: '时间预约', TH: 'จองเวลา' },
+    '장소예약': { EN: 'Place reservation', JP: '場所予約', CH: '地点预约', TH: 'จองสถานที่' },
+    '판매': { EN: 'Sale', JP: '販売', CH: '销售', TH: 'ขาย' },
+    '예약금': { EN: 'Deposit', JP: '予約金', CH: '预约金', TH: 'มัดจำจอง' },
+    '전액': { EN: 'Full amount', JP: '全額', CH: '全额', TH: 'เต็มจำนวน' },
+    '프로모션': { EN: 'Promotion', JP: 'プロモーション', CH: '促销', TH: 'โปรโมชัน' },
+    '예약결제': { EN: 'Reservation payment', JP: '予約決済', CH: '预约支付', TH: 'ชำระจอง' },
+    '예약 결제': { EN: 'Reservation payment', JP: '予約決済', CH: '预约支付', TH: 'ชำระจอง' },
+    '예약금액': { EN: 'Deposit amount', JP: '予約金額', CH: '预约金额', TH: 'จำนวนมัดจำ' },
+    '예약슬롯(분)': { EN: 'Reservation slot (min)', JP: '予約スロット（分）', CH: '预约时段（分钟）', TH: 'สล็อตจอง (นาที)' },
+    '판매·예약': { EN: 'Sale · reservation', JP: '販売・予約', CH: '销售·预约', TH: 'ขาย · จอง' },
+    '판매상태': { EN: 'Sale status', JP: '販売状態', CH: '销售状态', TH: 'สถานะการขาย' },
+    '항목구성': { EN: 'Item type', JP: '項目構成', CH: '项目类型', TH: 'ประเภทรายการ' },
+    '본사 판매금지': {
+      EN: 'HQ sale block', JP: '本社販売禁止', CH: '总部禁售', TH: 'HQ ห้ามขาย'
+    },
+    '가맹점명': { EN: 'Merchant name', JP: '加盟店名', CH: '商户名称', TH: 'ชื่อร้าน' },
+    '상단 후보': { EN: 'Top promo candidate', JP: '上部候補', CH: '顶部候选', TH: 'ตัวเลือกด้านบน' },
+    '이미지': { EN: 'Image', JP: '画像', CH: '图片', TH: 'รูปภาพ' },
+    '관리': { EN: 'Actions', JP: '管理', CH: '管理', TH: 'จัดการ' },
+    '신규등록': { EN: 'New registration', JP: '新規登録', CH: '新注册', TH: 'ลงทะเบียนใหม่' },
+    '수정 취소': { EN: 'Cancel edit', JP: '修正取消', CH: '取消修改', TH: 'ยกเลิกแก้ไข' },
+    '신규 등록 중입니다.': {
+      EN: 'Registering new item.', JP: '新規登録中です。', CH: '正在新注册。', TH: 'กำลังลงทะเบียนใหม่'
+    },
+    '수정 중입니다. 저장하면 반영됩니다.': {
+      EN: 'Editing. Save to apply.', JP: '修正中です。保存すると反映されます。', CH: '正在编辑。保存后生效。', TH: 'กำลังแก้ไข บันทึกเพื่อใช้'
+    },
+    '불러오기를 눌러 주세요.': {
+      EN: 'Click Load.', JP: '読み込みを押してください。', CH: '请点击加载。', TH: 'กดโหลด'
+    },
+    '불러오기 후 목록이 표시됩니다. 상단 폼에서 신규등록하거나 목록에서 수정·삭제할 수 있습니다.': {
+      EN: 'The list appears after Load. Register new items in the form above or edit/delete from the list.',
+      JP: '読み込み後に一覧が表示されます。上部フォームで新規登録するか、一覧から修正・削除できます。',
+      CH: '加载后显示列表。可在上方表单新注册或于列表中修改·删除。',
+      TH: 'รายการแสดงหลังโหลด ลงทะเบียนใหม่ในฟอร์มด้านบนหรือแก้/ลบจากรายการ'
+    },
+    '열 너비: 표 헤더 각 칸의 오른쪽 가장자리를 드래그하면 열 너비를 조절할 수 있습니다. 설정은 이 브라우저에 저장됩니다.': {
+      EN: 'Column width: drag the right edge of each header cell to resize. Settings are saved in this browser.',
+      JP: '列幅: 表ヘッダ各セルの右端をドラッグして列幅を調整できます。設定はこのブラウザに保存されます。',
+      CH: '列宽：拖动表头各格右缘可调整。设置保存在本浏览器。',
+      TH: 'ความกว้างคอลัมน์: ลากขอบขวาหัวตารางเพื่อปรับ บันทึกในเบราว์เซอร์นี้'
+    },
+    '등록된 상품이 없습니다.': {
+      EN: 'No registered products.', JP: '登録された商品がありません。', CH: '没有已注册商品。', TH: 'ไม่มีสินค้าที่ลงทะเบียน'
+    },
+    '상단 신규등록 폼에서 추가하세요.': {
+      EN: 'Add from the new registration form above.', JP: '上部の新規登録フォームから追加してください。', CH: '请从上方新注册表单添加。', TH: 'เพิ่มจากฟอร์มลงทะเบียนใหม่ด้านบน'
+    },
+    '30분 단위': { EN: '30-min steps', JP: '30分単位', CH: '30 分钟步进', TH: 'ทีละ 30 นาที' },
+    '기본': { EN: 'Default', JP: '基本', CH: '默认', TH: 'ค่าเริ่มต้น' },
+    '고객 결제 금액은 예약금으로 징수되며, 잔액은 별도 정산·현장 수납 등 운영 정책에 따릅니다.': {
+      EN: 'Customer payment is collected as a deposit; balance follows your settlement or on-site collection policy.',
+      JP: '顧客決済金額は予約金として徴収し、残額は別途精算・現場収納など運用方針に従います。',
+      CH: '客户支付金额作为预约金收取，余额按另行结算或现场收款等运营政策处理。',
+      TH: 'เก็บเงินลูกค้าเป็นมัดจำ ส่วนที่เหลือตามนโยบายชำระ/รับหน้างาน'
+    },
+    '호텔·펜션 등: 고객 챗봇에서는 체크인 일시와(권장) 체크아웃 날짜를 받습니다. 객실 수·인원 등은 요청사항에 적도록 안내할 수 있습니다.': {
+      EN: 'Hotels/pensions: the chatbot collects check-in time and (recommended) checkout date. Room count and guests can be guided in order notes.',
+      JP: 'ホテル・ペンション等: 顧客チャットボットではチェックイン日時と（推奨）チェックアウト日を受け取ります。客室数・人数などは要望欄への記載を案内できます。',
+      CH: '酒店/民宿等：聊天机器人收集入住时间与（建议）退房日。房间数·人数等可在备注中填写。',
+      TH: 'โรงแรม/พension: แชทบอทรับเวลาเช็คอินและ(แนะนำ)วันช็คเอาต์ จำนวนห้อง/คนแนะนำในหมายเหตุ'
+    },
+    'Y=고객 챗봇·공개 카탈로그 비노출(개발·검수 등)': {
+      EN: 'Y = hidden from public chatbot/catalog (dev/review etc.)',
+      JP: 'Y=顧客チャットボット・公開カタログ非表示（開発・検収等）',
+      CH: 'Y=不在客户聊天机器人/公开目录展示（开发/验收等）',
+      TH: 'Y=ไม่แสดงในแชทบอท/แคตตalog สาธารณะ (dev/ตรวจ ฯลฯ)'
+    },
+    '저장 시 시스템이 코드를 자동 부여합니다.': {
+      EN: 'Code is assigned automatically on save.', JP: '保存時にシステムがコードを自動付与します。', CH: '保存时系统自动分配代码。', TH: 'ระบบกำหนดรหัสอัตโนมัติเมื่อบันทึก'
+    },
+    '일반 판매 또는 예약 상품': {
+      EN: 'Regular sale or reservation product', JP: '一般販売または予約商品', CH: '一般销售或预约商品', TH: 'ขายทั่วไปหรือสินค้าจอง'
+    },
+    '판매=고객 챗봇·카탈로그 노출, 대기=등록만(본사 차단 등 별개)': {
+      EN: 'Sale = shown in chatbot/catalog; standby = registered only (separate from HQ block)',
+      JP: '販売=顧客チャットボット・カタログ表示、待機=登録のみ（本社ブロック等は別）',
+      CH: '销售=在聊天机器人/目录展示；待机=仅注册（与总部屏蔽无关）',
+      TH: 'ขาย=แสดงในแชทบอท/แคตตalog รอ=ลงทะเบียนอย่างเดียว (แยกจาก HQ บล็อก)'
+    },
+    'Y=상단 프로모션 후보(표시 방식이 끔이면 고객 화면에는 안 나옴)': {
+      EN: 'Y = top promo candidate (hidden on customer UI if display mode is off)',
+      JP: 'Y=上部プロモーション候補（表示方式がオフなら顧客画面に出ません）',
+      CH: 'Y=顶部促销候选（显示方式为关则客户界面不显示）',
+      TH: 'Y=ตัวเลือกโปรโมด้านบน (โหมดปิดจะไม่แสดงให้ลูกค้า)'
+    },
+    '항목 성격(사람 서비스 등)을 지정하면 챗봇 응대 톤이 보정됩니다.': {
+      EN: 'Specifying item nature (e.g. person service) adjusts chatbot tone.',
+      JP: '項目性格（人サービス等）を指定するとチャットボット応対トーンが補正されます。',
+      CH: '指定项目性质（如人员服务）可调整聊天机器人语气。',
+      TH: 'ระบุลักษณะรายการ (เช่น บริการบุคคล) ปรับโทนแชทบอท'
+    },
+    '예약 상품만. 비우면 기본설정(분)': {
+      EN: 'Reservation products only. Empty uses basic settings (min).',
+      JP: '予約商品のみ。空なら基本設定（分）',
+      CH: '仅预约商品。留空则用基本设置（分钟）',
+      TH: 'เฉพาะสินค้าจอง ว่างใช้การตั้งค่าพื้นฐาน (นาที)'
+    },
+    '시간·장소 예약 상품의 선결제 금액 방식입니다.': {
+      EN: 'Prepayment mode for time/place reservation products.',
+      JP: '時間・場所予約商品の前払い金額方式です。',
+      CH: '时间/地点预约商品的预付金额方式。',
+      TH: 'โหมดจ่ายล่วงหน้าสำหรับสินค้าจองเวลา/สถานที่'
+    },
+    '예약금 모드일 때 결제에서 징수할 금액입니다.': {
+      EN: 'Amount collected at checkout in deposit mode.',
+      JP: '予約金モード時に決済で徴収する金額です。',
+      CH: '预约金模式下支付时收取的金额。',
+      TH: 'จำนวนที่เก็บเมื่อชำระในโหมดมัดจำ'
+    },
+    '등록건수 / 등록상한 · 판매활성/플랜활성상한 (0 또는 미설정이면 무제한)': {
+      EN: 'Registered / reg. cap · sale active / plan active cap (0 or unset = unlimited)',
+      JP: '登録件数/登録上限 · 販売有効/プラン有効上限（0または未設定は無制限）',
+      CH: '注册数/注册上限 · 销售活跃/套餐活跃上限（0 或未设=不限）',
+      TH: 'ลงทะเบียน/เพดาน · ขายอยู่/แพลน (0 หรือไม่ตั้ง=ไม่จำกัด)'
+    },
+    '채팅은 가능하나 고객용 상품·예약·결제만 일시 중지': {
+      EN: 'Chat stays on; customer products, reservations, and checkout are paused',
+      JP: 'チャットは可能だが顧客向け商品・予約・決済のみ一時停止',
+      CH: '聊天可用，仅暂停客户商品·预约·支付',
+      TH: 'แชทยังใช้ได้ หยุดเฉพาะสินค้า·จอง·ชำระของลูกค้า'
+    },
+    '구분': { EN: 'Type', JP: '区分', CH: '类型', TH: 'ประเภท' },
+    '청구월': { EN: 'Billing month', JP: '請求月', CH: '计费月', TH: 'เดือนเรียกเก็บ' },
+    '비용처리 내역이 없습니다.': {
+      EN: 'No billing history.', JP: '費用処理履歴がありません。', CH: '没有费用处理记录。', TH: 'ไม่มีประวัติค่าใช้จ่าย'
+    },
+    '최근 청구월 ': { EN: 'Latest billing month ', JP: '最近請求月 ', CH: '最近计费月 ', TH: 'เดือนเรียกเก็บล่าสุด ' },
+    '금액 ': { EN: 'Amount ', JP: '金額 ', CH: '金额 ', TH: 'จำนวน ' },
+    '표시 방식': { EN: 'Display mode', JP: '表示方式', CH: '显示方式', TH: 'โหมดแสดง' },
+    '순환 간격(초)': { EN: 'Rotation interval (sec)', JP: 'ローテーション間隔（秒）', CH: '轮播间隔（秒）', TH: 'ช่วงหมุน (วินาที)' },
+    '편집 상품 · 상단 후보 포함': {
+      EN: 'Editing product · include in top candidates', JP: '編集商品・上部候補に含む', CH: '编辑商品 · 纳入顶部候选', TH: 'แก้สินค้า · รวมตัวเลือกด้านบน'
+    },
+    '상단 후보 포함 도움말': {
+      EN: 'Top candidate help', JP: '上部候補ヘルプ', CH: '顶部候选帮助', TH: 'คำช่วยตัวเลือกด้านบน'
+    },
+    '상단 후보 포함 안내': {
+      EN: 'Include in top promo candidates for the product being edited.',
+      JP: '編集中の商品を上部プロモーション候補に含めます。',
+      CH: '将正在编辑的商品纳入顶部促销候选。',
+      TH: 'รวมสินค้าที่แก้ในตัวเลือกโปรโมด้านบน'
+    },
+    '끔 (상단 숨김)': { EN: 'Off (hide top)', JP: 'オフ（上部非表示）', CH: '关（隐藏顶部）', TH: 'ปิด (ซ่อนด้านบน)' },
+    '프로모션 (전체 그리드)': {
+      EN: 'Promotion (full grid)', JP: 'プロモーション（全体グリッド）', CH: '促销（全网格）', TH: 'โปรโม (กริดเต็ม)'
+    },
+    '다이나믹 (3칸 순환)': {
+      EN: 'Dynamic (3-slot rotation)', JP: 'ダイナミック（3枠ローテーション）', CH: '动态（三格轮播）', TH: 'ไดนามิก (3 ช่องหมุน)'
+    },
+    '미노출': { EN: 'Hidden', JP: '非表示', CH: '不展示', TH: 'ไม่แสดง' },
+    '상단 프로모션': { EN: 'Top promotion', JP: '上部プロモーション', CH: '顶部促销', TH: 'โปรโมด้านบน' },
+    '30의 배수': { EN: 'Multiples of 30', JP: '30の倍数', CH: '30 的倍数', TH: 'ทวีคูณของ 30' },
 
     /* HQ /hq/serverManage — 서버운영관리 (screens L + app.js pgAdminUiT) */
     'SSL 인증서 모니터링': {

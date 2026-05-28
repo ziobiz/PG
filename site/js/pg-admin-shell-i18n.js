@@ -90,15 +90,14 @@
     본사설정: { EN: 'HQ settings', JP: '本社設定', CH: '总部设置', TH: 'ส่วนตั้งค่า HQ' },
     업체관리: { EN: 'Merchant', JP: '加盟店管理', CH: '商户管理', TH: 'จัดการร้านค้า' },
     결제관리: { EN: 'Payments', JP: '決済管理', CH: '支付管理', TH: 'การชำระเงิน' },
-    챗봇관리: { EN: 'Chatbot', JP: 'チャットボット管理', CH: '聊天机器人管理', TH: 'แชทบอท' },
+    챗봇관리: { EN: 'Chatbot management', JP: 'チャットボット管理', CH: '聊天机器人管理', TH: 'จัดการ Chatbot' },
     결제내역: { EN: 'Payment list', JP: '決済一覧', CH: '支付列表', TH: 'รายการชำระเงิน' },
     정산관리: { EN: 'Settlement', JP: '精算管理', CH: '结算管理', TH: 'การชำระบัญชี' },
     통보관리: { EN: 'Notifications', JP: '通知管理', CH: '通知管理', TH: 'การแจ้งเตือน' },
     사용자관리: { EN: 'Users', JP: 'ユーザー管理', CH: '用户管理', TH: 'ผู้ใช้' },
     운영관리: { EN: 'Operations', JP: '運用管理', CH: '运营管理', TH: 'ปฏิบัติการ' },
     리스크관리: { EN: 'Risk', JP: 'リスク管理', CH: '风险管理', TH: 'ความเสี่ยง' },
-    배포설정: { EN: 'Deployment', JP: 'デプロイ設定', CH: '部署设置', TH: 'การใช้งานจริง' },
-    챗봇관리: { EN: 'Chatbot management', JP: 'チャットボット管理', CH: '聊天机器人管理', TH: 'จัดการ Chatbot' }
+    배포설정: { EN: 'Deployment', JP: 'デプロイ設定', CH: '部署设置', TH: 'การใช้งานจริง' }
   };
 
   function T(en, jp, ch, th) {
@@ -351,14 +350,15 @@
   function apply(loc) {
     loc = loc || getLoc();
     applyStaticChrome(loc);
-    applySideNav(loc);
-    applyTopTabs(loc);
-    syncActiveHeader(loc);
     try {
       if (w.PG_UI_I18N && typeof w.PG_UI_I18N.applyDom === 'function') {
         w.PG_UI_I18N.applyDom(document.body);
       }
     } catch (eShellI18nDom) {}
+    /* 사이드바·탭 라벨은 URL_TR/PARENT_SEG가 최종 — applyDom(data-pg-ui-t)보다 나중에 적용 */
+    applySideNav(loc);
+    applyTopTabs(loc);
+    syncActiveHeader(loc);
     try {
       if (typeof w.PG_refreshHeaderUserDisplay === 'function') w.PG_refreshHeaderUserDisplay();
     } catch (eHdr) {}

@@ -757,7 +757,9 @@ body { margin: 0; height: 100%; overflow: hidden; font-family: -apple-system, Bl
   background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='%23dc3545' viewBox='0 0 16 16'%3E%3Cpath d='M10.97 4.97a.75.75 0 0 1 1.07 1.05l-3.99 4.99a.75.75 0 0 1-1.08.02L4.324 8.384a.75.75 0 1 1 1.06-1.06l2.094 2.093 3.473-4.425a.267.267 0 0 1 .02-.022z'/%3E%3C/svg%3E") no-repeat;
 }
 .search-notice ul { margin: 0; padding-left: 18px; }
-.summary-bar-wrap .summary-item { font-weight: 500; color: #333; }
+.summary-bar-wrap .summary-item { font-weight: 600; color: #2b5f8d; }
+.summary-bar-wrap .summary-item#summary_건수,
+.summary-bar-wrap .summary-item[data-pg-summary-key="건수"] { color: #4a148c; font-weight: 700; }
 
 /* 총합(요약) 한 줄: 위·아래 동일 간격 (전체 페이지 공통) */
 .screen-summary-action-row {
@@ -770,22 +772,26 @@ body { margin: 0; height: 100%; overflow: hidden; font-family: -apple-system, Bl
   margin-bottom: 20px;
   min-height: 40px;
 }
-/* 총합 영역 (전역 기본 — 결제·정산 화면은 아래 오버라이드) */
+/* 총합 영역 — 연한 파랑 바 + 건수만 보라(가맹점정산내역과 동일). 결제·정산 특화 색은 화면별 오버라이드 */
 .summary-total-bar {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
   gap: 8px 14px;
-  background: linear-gradient(135deg, #f3e5f5 0%, #e1bee7 100%);
-  border: 1px solid #ce93d8;
-  color: #4a148c;
+  background: #f8fbff;
+  border: 1px solid #d7e8fb;
+  color: #1a3a52;
   padding: 8px 14px;
   border-radius: 6px;
   font-size: var(--app-base-font-size);
   font-weight: 600;
 }
-.summary-total-bar .summary-total-item { white-space: nowrap; }
-/* 건수만 보라 톤 (예: 건수 : 65) — 배경·다른 항목 색은 화면별 기존 UI 유지 */
+.summary-total-bar .summary-total-item {
+  white-space: nowrap;
+  color: #2b5f8d;
+  font-weight: 600;
+}
+/* 건수만 보라 톤 (예: 건수: 65) */
 .summary-total-bar .summary-total-item#summary_건수,
 .summary-total-bar .summary-total-item[data-pg-summary-key="건수"],
 .summary-total-bar .summary-count-item,
@@ -1142,6 +1148,32 @@ body { margin: 0; height: 100%; overflow: hidden; font-family: -apple-system, Bl
   color: #4a148c;
   font-weight: 700;
 }
+
+/* 정산·통보·사용자·운영·API연동 등: 요약 바 톤 = 가맹점정산내역(연한 파랑 + 건수만 보라) */
+#contentsMain .screen-settlement-summary-bar .summary-total-bar,
+#contentsMain .screen-distribution-list .summary-total-bar {
+  background: #f8fbff;
+  border: 1px solid #d7e8fb;
+  color: #1a3a52;
+  padding: 8px 12px;
+  font-size: var(--pay-mng-dense-font-size);
+  font-weight: 600;
+}
+#contentsMain .screen-settlement-summary-bar .summary-total-item,
+#contentsMain .screen-distribution-list .summary-total-item {
+  color: #2b5f8d;
+  font-weight: 600;
+}
+#contentsMain .screen-settlement-summary-bar .summary-total-item#summary_건수,
+#contentsMain .screen-settlement-summary-bar .summary-total-item[data-pg-summary-key="건수"],
+#contentsMain .screen-settlement-summary-bar .summary-count-item,
+#contentsMain .screen-distribution-list .summary-total-item#summary_건수,
+#contentsMain .screen-distribution-list .summary-total-item[data-pg-summary-key="건수"],
+#contentsMain .screen-distribution-list .summary-count-item {
+  color: #4a148c;
+  font-weight: 700;
+}
+
 #contentsMain .screen-calc-fee-list .pay-mng-search-form .form-label,
 #contentsMain .screen-calc-fee-list .pay-mng-search-form .form-control,
 #contentsMain .screen-calc-fee-list .pay-mng-search-form .form-select,
@@ -1326,18 +1358,33 @@ body { margin: 0; height: 100%; overflow: hidden; font-family: -apple-system, Bl
 #contentsMain .screen-daily-pay .summary-total-bar,
 #contentsMain .screen-daily-fee .summary-total-bar,
 #contentsMain .screen-chill-pay-tr-list .summary-total-bar,
-#contentsMain .screen-chill-pay-settlement-list .summary-total-bar {
+#contentsMain .screen-chill-pay-settlement-list .summary-total-bar,
+#contentsMain .screen-ops-integrated-report .summary-total-bar,
+#contentsMain .screen-ops-verify-report .summary-total-bar {
   background: #f8fbff;
   border: 1px solid #cde6f3;
   color: #1a3a52;
   font-weight: 600;
 }
 .screen-pay-list .summary-total-item#summary_건수,
+.screen-pay-list .summary-total-item[data-pg-summary-key="건수"],
+.screen-pay-list .summary-count-item,
 #contentsMain .screen-daily-integrated .summary-total-item#summary_건수,
+#contentsMain .screen-daily-integrated .summary-total-item[data-pg-summary-key="건수"],
 #contentsMain .screen-daily-pay .summary-total-item#summary_건수,
+#contentsMain .screen-daily-pay .summary-total-item[data-pg-summary-key="건수"],
 #contentsMain .screen-daily-fee .summary-total-item#summary_건수,
+#contentsMain .screen-daily-fee .summary-total-item[data-pg-summary-key="건수"],
 #contentsMain .screen-chill-pay-tr-list .summary-total-item#summary_건수,
-#contentsMain .screen-chill-pay-settlement-list .summary-total-item#summary_건수 {
+#contentsMain .screen-chill-pay-tr-list .summary-total-item[data-pg-summary-key="건수"],
+#contentsMain .screen-chill-pay-settlement-list .summary-total-item#summary_건수,
+#contentsMain .screen-chill-pay-settlement-list .summary-total-item[data-pg-summary-key="건수"],
+#contentsMain .screen-ops-integrated-report .summary-total-item#summary_건수,
+#contentsMain .screen-ops-integrated-report .summary-total-item[data-pg-summary-key="건수"],
+#contentsMain .screen-ops-integrated-report .summary-count-item,
+#contentsMain .screen-ops-verify-report .summary-total-item#summary_건수,
+#contentsMain .screen-ops-verify-report .summary-total-item[data-pg-summary-key="건수"],
+#contentsMain .screen-ops-verify-report .summary-count-item {
   color: #4a148c;
   font-weight: 700;
 }
