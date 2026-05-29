@@ -202,18 +202,7 @@ public class ChillPayService {
         }
         Optional<MerchantPgBinding> bindingOpt = findOperationalChillPayFamilyBinding(merchantOrgUnitId, scope);
         if (bindingOpt.isEmpty()) {
-            String hint = scope == UrlPayBindingScope.REPAY
-                    ? "배포설정 > API연동설정에서 해당 pg_cd 행의 연동용도에 「URL재결제」를 켜야 합니다."
-                    : "배포설정 > API연동설정에서 해당 pg_cd 행의 연동용도에 「URL결제」를 켜야 합니다. "
-                            + "(노티 전용 PG만 운영으로 두면 URL 결제·웹결제 설정을 동시에 쓸 수 없습니다.)";
-            throw new IllegalStateException(
-                    (scope == UrlPayBindingScope.REPAY
-                            ? "이 가맹점에 URL 재결제로 사용할 ChillPay 계열 결제대행사(운영)가 없습니다. "
-                            : "이 가맹점에 URL 결제로 사용할 ChillPay 계열 결제대행사(운영)가 없습니다. ")
-                            + "가맹점 등록에서 "
-                            + (scope == UrlPayBindingScope.REPAY ? "URL재결제" : "URL결제")
-                            + " 연동이 있는 결제대행사를 WEB으로 추가한 뒤, 해당 행에 운영(체크)을 켜세요. "
-                            + hint);
+            throw urlPayOperationalBindingMissing(scope, true);
         }
         MerchantPgBinding b = bindingOpt.get();
         Optional<PgAgency> agencyForPgCd = resolvePgAgencyForMerchantBinding(b);
@@ -502,13 +491,10 @@ public class ChillPayService {
     }
 
     /**
-     * 인라인 카드 위젯 종류(다중 PG 확장용). ChillPay만 CCD 연동 완료, 그 외는 프론트에서 위젯 슬롯만 비우고 안내.
+     * 인라인 카드 위젯 종류 — {@link com.pg.urlpay.UrlPayVendorCapabilityRegistry} (URL 결제 공통 플랫폼).
      */
     public static String resolveUrlPayInlineWidgetKind(String pgCd) {
-        if (pgCd == null || pgCd.isBlank()) {
-            return "UNSUPPORTED_INLINE";
-        }
-        return isChillPayFamilyPgCd(pgCd) ? "CHILLPAY_CCD" : "UNSUPPORTED_INLINE";
+        return com.pg.urlpay.UrlPayVendorCapabilityRegistry.resolveInlineWidgetKindLegacy(pgCd);
     }
 
     /**
@@ -1173,11 +1159,15 @@ public class ChillPayService {
 
     /**
      * 공개 URL 결제 페이지용: {@link HqApiConfig}의 인라인/리다이렉트·폼 모드 플래그와,
-     * {@link #resolveConfig(Long)}에 따른 ChillPay URL(ccd·DirectCredit·리다이렉트·appsrv) — 가맹점 바인딩 {@code pg_cd}의 {@code tb_pg_agency} 내용.
+     * 운영 PG가 ChillPay 계열일 때만 {@link #resolveConfig(Long)} URL(ccd·DirectCredit·리다이렉트·appsrv).
+     * JPAY 등 타 PG는 플랫폼 공통 필드만 채우고 ChillPay 전용 URL은 비웁니다.
      * {@code urlPayOperationalPgCd} / {@code urlPayInlineWidgetKind} 는 운영 WEB 바인딩 기준(연동용도 URL결제 PG 우선).
      */
     public Map<String, Object> getUrlPayPresentationForCheckout(Long merchantOrgUnitId) {
-        Config cfg = resolveConfig(merchantOrgUnitId);
+        String opPgCd = resolveUrlPayOperationalPgCd(merchantOrgUnitId);
+        if (opPgCd.isEmpty()) {
+            throw urlPayOperationalBindingMissing(UrlPayBindingScope.STANDARD, false);
+        }
         Map<String, Object> m = new LinkedHashMap<>();
         Optional<HqApiConfig> opt = hqApiConfigRepository.findAll().stream().findFirst();
         if (opt.isEmpty()) {
@@ -1188,15 +1178,42 @@ public class ChillPayService {
             m.put("urlPayFlow", effectiveUrlPayFlow(c));
             m.put("urlPayFormMode", effectiveUrlPayFormMode(c));
         }
-        String opPgCd = resolveUrlPayOperationalPgCd(merchantOrgUnitId);
         String widgetKind = resolveUrlPayInlineWidgetKind(opPgCd);
         m.put("urlPayOperationalPgCd", opPgCd);
         m.put("urlPayInlineWidgetKind", widgetKind);
         m.put("urlPayPricingMode", resolveUrlPayPricingMode(merchantOrgUnitId));
-        m.put("redirectPaymentPageUrl", cfg.getRedirectPaymentPageUrl());
-        m.put("paymentAppsrvV2Url", cfg.getAppsrvPaymentV2Url());
-        m.put("ccdScriptUrl", cfg.getCcdScriptUrl());
+        if (isChillPayFamilyPgCd(opPgCd)) {
+            Config cfg = resolveConfig(merchantOrgUnitId);
+            m.put("redirectPaymentPageUrl", cfg.getRedirectPaymentPageUrl());
+            m.put("paymentAppsrvV2Url", cfg.getAppsrvPaymentV2Url());
+            m.put("ccdScriptUrl", cfg.getCcdScriptUrl());
+        } else {
+            m.put("redirectPaymentPageUrl", "");
+            m.put("paymentAppsrvV2Url", "");
+            m.put("ccdScriptUrl", "");
+        }
         return m;
+    }
+
+    /**
+     * @param chillPayDirectCreditOnly true 이면 ChillPay DirectCredit·CCD 용(ChillPay 계열 바인딩만 후보)
+     */
+    private IllegalStateException urlPayOperationalBindingMissing(UrlPayBindingScope scope, boolean chillPayDirectCreditOnly) {
+        String hint = scope == UrlPayBindingScope.REPAY
+                ? "배포설정 > API연동설정에서 해당 pg_cd 행의 연동용도에 「URL재결제」를 켜야 합니다."
+                : "배포설정 > API연동설정에서 해당 pg_cd 행의 연동용도에 「URL결제」를 켜야 합니다. "
+                        + "(노티 전용 PG만 운영으로 두면 URL 결제·웹결제 설정을 동시에 쓸 수 없습니다.)";
+        String head = scope == UrlPayBindingScope.REPAY
+                ? "이 가맹점에 URL 재결제로 사용할 결제대행사(운영)가 없습니다. "
+                : chillPayDirectCreditOnly
+                ? "이 가맹점에 URL 결제로 사용할 ChillPay 계열 결제대행사(운영)가 없습니다. "
+                : "이 가맹점에 URL 결제로 사용할 운영 결제대행사(WEB·연동용도 URL결제)가 없습니다. ";
+        return new IllegalStateException(
+                head
+                        + "가맹점 등록에서 "
+                        + (scope == UrlPayBindingScope.REPAY ? "URL재결제" : "URL결제")
+                        + " 연동이 있는 결제대행사를 WEB(결제구분)으로 추가한 뒤, 해당 행에 운영(체크)을 켜세요. "
+                        + hint);
     }
 
     public Map<String, Object> getConfigForFrontendUrlPayRepay(Long merchantOrgUnitId) {

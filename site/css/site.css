@@ -4317,6 +4317,17 @@ button.pay-follow-pill:focus-visible {
   opacity: 0.55;
 }
 
+#paymentRepayUrlDisplay.pg-repay-url--jpay-off,
+#paymentRepayUrlDisplay[data-pg-repay-url-locked="Y"] {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+#paymentRepayUrlCopyBtn.disabled,
+#paymentRepayUrlCopyBtn[aria-disabled="true"] {
+  pointer-events: none;
+}
+
 /* ========== 메인(/main) 대시보드 ========== */
 .pg-home-dashboard-mount .pg-dash-insight {
   font-size: 0.92rem;

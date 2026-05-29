@@ -177,6 +177,17 @@ public class MerchantProfile {
     private String apiJpaySubscriptionUseYn = "N";
 
     /**
+     * JPAY URL 결제창(jpay-pay.html) 입력 필드 가맹 오버라이드 —
+     * {@link com.pg.urlpay.JpayCheckoutFieldModeUtil}. NULL/빈값이면 본사 기본값을 따름.
+     */
+    @Column(name = "jpay_checkout_field_mode", length = 20)
+    private String jpayCheckoutFieldMode;
+
+    /** JPAY 결제창 전화 국가번호 드롭다운 가맹 오버라이드 — NULL=본사 기본. */
+    @Column(name = "jpay_phone_dial_code_yn", length = 1)
+    private String jpayPhoneDialCodeYn;
+
+    /**
      * 챗봇 결제 URL 방식 — {@link com.pg.urlpay.UrlPayCheckoutModeUtil}.
      * 웹결제(공개 URL)·API 중계와 별도 선택.
      */
@@ -449,6 +460,15 @@ public class MerchantProfile {
     public String getApiJpaySubscriptionUseYn() { return apiJpaySubscriptionUseYn; }
     public void setApiJpaySubscriptionUseYn(String apiJpaySubscriptionUseYn) {
         this.apiJpaySubscriptionUseYn = apiJpaySubscriptionUseYn != null && "Y".equalsIgnoreCase(apiJpaySubscriptionUseYn.trim()) ? "Y" : "N";
+    }
+
+    public String getJpayCheckoutFieldMode() { return jpayCheckoutFieldMode; }
+    public void setJpayCheckoutFieldMode(String jpayCheckoutFieldMode) {
+        this.jpayCheckoutFieldMode = com.pg.urlpay.JpayCheckoutFieldModeUtil.normalizeMerchantOverride(jpayCheckoutFieldMode);
+    }
+    public String getJpayPhoneDialCodeYn() { return jpayPhoneDialCodeYn; }
+    public void setJpayPhoneDialCodeYn(String jpayPhoneDialCodeYn) {
+        this.jpayPhoneDialCodeYn = com.pg.urlpay.JpayPhoneDialCodeUtil.normalizeMerchantOverride(jpayPhoneDialCodeYn);
     }
 
     public String getChatbotUrlPayCheckoutMode() { return chatbotUrlPayCheckoutMode; }

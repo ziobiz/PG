@@ -104,10 +104,22 @@ public class HqApiConfig {
 
     /**
      * URL 공개 결제 페이지(/pay/…) 입력 필드 구성.
-     * FULL: 청구지·성명 분리 등 전체, SIMPLE: 상품·연락·금액 중심 간편 폼.
+     * FULL: 배송지·성명 분리 등 전체, SIMPLE: 상품·연락·금액 중심 간편 폼.
      */
     @Column(name = "url_pay_form_mode", length = 20)
     private String urlPayFormMode = "FULL";
+
+    /**
+     * JPAY URL 결제창(jpay-pay.html) 입력 필드 본사 기본값 —
+     * {@link com.pg.urlpay.JpayCheckoutFieldModeUtil}.
+     * FULL / CARD_ONLY / CARD_PREFILL. 가맹 오버라이드가 없으면 전체 가맹에 적용됩니다.
+     */
+    @Column(name = "jpay_checkout_field_mode", length = 20)
+    private String jpayCheckoutFieldMode = "FULL";
+
+    /** JPAY 결제창 전화 국가번호 드롭다운 — Y/N. 가맹 오버라이드 없으면 적용. */
+    @Column(name = "jpay_phone_dial_code_yn", length = 1)
+    private String jpayPhoneDialCodeYn = "N";
 
     /**
      * URL 공개 결제 페이지 탭 제목 — 언어코드→문자열 JSON (예: {@code {"KOR":"…","ENG":"…"}}).
@@ -278,6 +290,10 @@ public class HqApiConfig {
     public void setJpaySubscriptionConfigJson(String jpaySubscriptionConfigJson) { this.jpaySubscriptionConfigJson = jpaySubscriptionConfigJson; }
     public String getUrlPayFormMode() { return urlPayFormMode; }
     public void setUrlPayFormMode(String urlPayFormMode) { this.urlPayFormMode = urlPayFormMode; }
+    public String getJpayCheckoutFieldMode() { return jpayCheckoutFieldMode; }
+    public void setJpayCheckoutFieldMode(String jpayCheckoutFieldMode) { this.jpayCheckoutFieldMode = jpayCheckoutFieldMode; }
+    public String getJpayPhoneDialCodeYn() { return jpayPhoneDialCodeYn; }
+    public void setJpayPhoneDialCodeYn(String jpayPhoneDialCodeYn) { this.jpayPhoneDialCodeYn = jpayPhoneDialCodeYn; }
     public String getUrlPayTabTitleJson() { return urlPayTabTitleJson; }
     public void setUrlPayTabTitleJson(String urlPayTabTitleJson) { this.urlPayTabTitleJson = urlPayTabTitleJson; }
     public String getUrlPayFaviconUrl() { return urlPayFaviconUrl; }

@@ -1560,6 +1560,8 @@ public class ApiHqController {
         data.put("jpaySubscriptionPathTemplate", "/jpay-subscribe/{compCode}");
         data.put("jpaySubscriptionConfigJson", "{\"attempts\":\"3\",\"interval_time\":3600,\"total_count\":12}");
         data.put("urlPayFormMode", "FULL");
+        data.put("jpayCheckoutFieldMode", "FULL");
+        data.put("jpayPhoneDialCodeYn", "N");
         data.put("urlPayTabTitleJson", "{}");
         data.put("urlPayFaviconUrl", "");
         data.put("paymentProviderRegistryJson", "{\n  \"version\": 1,\n  \"vendors\": [\n    {\n      \"vendorCode\": \"CHILLPAY\",\n      \"vendorName\": \"칠리페이\",\n      \"integrationTypes\": [\"API_BROKER\", \"URL_PAY\"],\n      \"flowTypes\": [\"INLINE\", \"REDIRECT\"],\n      \"activeYn\": \"Y\"\n    }\n  ]\n}");
@@ -1598,6 +1600,13 @@ public class ApiHqController {
                 data.put("jpaySubscriptionConfigJson", c.getJpaySubscriptionConfigJson());
             }
             if (c.getUrlPayFormMode() != null) data.put("urlPayFormMode", c.getUrlPayFormMode());
+            if (c.getJpayCheckoutFieldMode() != null) {
+                data.put("jpayCheckoutFieldMode",
+                        com.pg.urlpay.JpayCheckoutFieldModeUtil.normalize(c.getJpayCheckoutFieldMode()));
+            }
+            if (c.getJpayPhoneDialCodeYn() != null) {
+                data.put("jpayPhoneDialCodeYn", com.pg.urlpay.JpayPhoneDialCodeUtil.isYes(c.getJpayPhoneDialCodeYn()) ? "Y" : "N");
+            }
             if (c.getUrlPayTabTitleJson() != null && !c.getUrlPayTabTitleJson().isBlank()) {
                 data.put("urlPayTabTitleJson", c.getUrlPayTabTitleJson());
             }
@@ -1678,6 +1687,10 @@ public class ApiHqController {
         }
         String upForm = body.get("urlPayFormMode") != null ? body.get("urlPayFormMode").toString().trim() : "FULL";
         c.setUrlPayFormMode("SIMPLE".equalsIgnoreCase(upForm) ? "SIMPLE" : "FULL");
+        c.setJpayCheckoutFieldMode(com.pg.urlpay.JpayCheckoutFieldModeUtil.normalize(
+                body.get("jpayCheckoutFieldMode") != null ? body.get("jpayCheckoutFieldMode").toString() : null));
+        c.setJpayPhoneDialCodeYn(com.pg.urlpay.JpayPhoneDialCodeUtil.isYes(
+                String.valueOf(body.getOrDefault("jpayPhoneDialCodeYn", "N"))) ? "Y" : "N");
         Object tabTitleJson = body.get("urlPayTabTitleJson");
         if (tabTitleJson != null) {
             String tj = tabTitleJson.toString().trim();

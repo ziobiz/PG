@@ -63,7 +63,7 @@
           <div class="col-6"><input type="text" class="form-control form-control-sm pay-input-round" id="payLastname" placeholder="Last name" required></div>
           <div class="col-12"><input type="email" class="form-control form-control-sm pay-input-round" id="payEmailAddress" placeholder="Email" required></div>
         </div>
-        <div class="pay-label mb-2" id="billingLabel">Billing</div>
+        <div class="pay-label mb-2" id="billingLabel">Shipping address</div>
         <div class="row g-2 mb-3">
           <div class="col-6"><input type="tel" class="form-control form-control-sm pay-input-round" id="payTelephone" placeholder="Phone" required></div>
           <div class="col-6"><input type="text" class="form-control form-control-sm pay-input-round" id="payCountryIsoCode2" maxlength="2" placeholder="US" required style="text-transform:uppercase"></div>
@@ -129,7 +129,7 @@
       var I18N = {
         KOR: {
           title: 'JPAY 구독', brandSub: 'JPAY 정기결제', merchant: '가맹점', item: '상품명', amount: '금액', card: '카드',
-          cardNo: '카드번호', firstName: '이름', lastName: '성', email: '이메일', billing: '청구 정보',
+          cardNo: '카드번호', firstName: '이름', lastName: '성', email: '이메일', shipping: '배송 주소',
           phone: '전화번호', country: '국가(2자)', address: '주소', city: '도시', postcode: '우편번호', pay: '구독하기',
           errMerchant: '가맹점 코드(m)가 필요합니다.', errLoad: '구독 화면을 불러오지 못했습니다.',
           errInvalidSession: '세션이 유효하지 않거나 만료되었습니다.', errSessionMismatch: '세션과 주문 정보가 일치하지 않습니다.',
@@ -138,7 +138,7 @@
         },
         ENG: {
           title: 'JPAY Subscription', brandSub: 'JPAY recurring billing', merchant: 'Merchant', item: 'Item', amount: 'Amount', card: 'Card',
-          cardNo: 'Card number', firstName: 'First name', lastName: 'Last name', email: 'Email', billing: 'Billing',
+          cardNo: 'Card number', firstName: 'First name', lastName: 'Last name', email: 'Email', shipping: 'Shipping address',
           phone: 'Phone', country: 'Country (ISO2)', address: 'Address', city: 'City', postcode: 'Postcode', pay: 'Subscribe',
           errMerchant: 'Merchant code (m) is required.', errLoad: 'Failed to load subscription checkout.',
           errInvalidSession: 'Session is invalid or expired.', errSessionMismatch: 'Session does not match order details.',
@@ -147,7 +147,7 @@
         },
         JPN: {
           title: 'JPAY 定期', brandSub: 'JPAY 定期決済', merchant: '加盟店', item: '商品名', amount: '金額', card: 'カード',
-          cardNo: 'カード番号', firstName: '名', lastName: '姓', email: 'メール', billing: '請求先',
+          cardNo: 'カード番号', firstName: '名', lastName: '姓', email: 'メール', shipping: '配送先',
           phone: '電話', country: '国(2字)', address: '住所', city: '市区町村', postcode: '郵便番号', pay: '定期登録',
           errMerchant: '加盟店コード(m)が必要です。', errLoad: '定期決済画面の読み込みに失敗しました。',
           errInvalidSession: 'セッションが無効または期限切れです。', errSessionMismatch: 'セッションと注文情報が一致しません。',
@@ -156,7 +156,7 @@
         },
         CHN: {
           title: 'JPAY 订阅', brandSub: 'JPAY 定期扣款', merchant: '商户', item: '商品', amount: '金额', card: '银行卡',
-          cardNo: '卡号', firstName: '名', lastName: '姓', email: '邮箱', billing: '账单地址',
+          cardNo: '卡号', firstName: '名', lastName: '姓', email: '邮箱', shipping: '配送地址',
           phone: '电话', country: '国家(2位)', address: '地址', city: '城市', postcode: '邮编', pay: '订阅',
           errMerchant: '需要商户代码(m)。', errLoad: '无法加载订阅页面。',
           errInvalidSession: '会话无效或已过期。', errSessionMismatch: '会话与订单信息不一致。',
@@ -165,7 +165,7 @@
         },
         THA: {
           title: 'JPAY สมัครสมาชิก', brandSub: 'JPAY ชำระรายงวด', merchant: 'ร้านค้า', item: 'สินค้า', amount: 'จำนวนเงิน', card: 'บัตร',
-          cardNo: 'หมายเลขบัตร', firstName: 'ชื่อ', lastName: 'นามสกุล', email: 'อีเมล', billing: 'ที่อยู่เรียกเก็บ',
+          cardNo: 'หมายเลขบัตร', firstName: 'ชื่อ', lastName: 'นามสกุล', email: 'อีเมล', shipping: 'ที่อยู่จัดส่ง',
           phone: 'โทรศัพท์', country: 'ประเทศ(2)', address: 'ที่อยู่', city: 'เมือง', postcode: 'รหัสไปรษณีย์', pay: 'สมัคร',
           errMerchant: 'ต้องระบุรหัสร้านค้า (m)', errLoad: 'โหลดหน้าสมัครไม่สำเร็จ',
           errInvalidSession: 'เซสชันไม่ถูกต้องหรือหมดอายุ', errSessionMismatch: 'เซสชันไม่ตรงกับข้อมูลคำสั่งซื้อ',
@@ -204,7 +204,7 @@
         var em = document.getElementById('payEmailAddress');
         if (em) em.placeholder = t('email');
         var bl = document.getElementById('billingLabel');
-        if (bl) bl.textContent = t('billing');
+        if (bl) bl.textContent = t('shipping');
         var ph = document.getElementById('payTelephone');
         if (ph) ph.placeholder = t('phone');
         var co = document.getElementById('payCountryIsoCode2');

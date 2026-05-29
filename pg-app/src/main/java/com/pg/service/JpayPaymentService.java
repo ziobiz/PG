@@ -129,6 +129,16 @@ public class JpayPaymentService {
         if (orderNo.length() > 64) {
             orderNo = orderNo.substring(0, 64);
         }
+        String countryIso2 = com.pg.urlpay.JpayBuyerPrefillUtil.canonicalCountryIso2(str(body.get("payCountryIsoCode2")));
+        if (countryIso2.length() != 2) {
+            return failOut("payCountryIsoCode2(국가코드 ISO2)가 필요합니다.", "JPAY_COUNTRY_CODE_REQUIRED");
+        }
+        body.put("payCountryIsoCode2", countryIso2);
+        String localPhone = normalizeLocalTelephone(str(body.get("payTelephone")));
+        if (localPhone.isBlank()) {
+            return failOut("payTelephone(전화번호)가 필요합니다.", "JPAY_PHONE_REQUIRED");
+        }
+        body.put("payTelephone", localPhone);
         BigDecimal amountBd = parseAmount(body.get("amount"));
         if (amountBd == null || amountBd.compareTo(BigDecimal.ZERO) <= 0) {
             return failOut("amount는 0보다 커야 합니다.", "INVALID_AMOUNT");
@@ -195,7 +205,7 @@ public class JpayPaymentService {
         addIfPresent(form, body, "pay_state", "payState");
         addIfPresent(form, body, "pay_country_iso_code_2", "payCountryIsoCode2");
         addIfPresent(form, body, "pay_email_address", "payEmailAddress");
-        addIfPresent(form, body, "pay_telephone", "payTelephone");
+        addTelephoneIfPresent(form, body);
         addIfPresent(form, body, "pay_language", "payLanguage");
         addIfPresent(form, body, "system", "system");
 
@@ -228,10 +238,14 @@ public class JpayPaymentService {
             form.add("pay_useragent", ua.length() > 512 ? ua.substring(0, 512) : ua);
         }
 
+        BigDecimal shopperDisplayAmt = parseAmount(body.get("shopperDisplayAmount"));
+        String shopperDisplayCur = str(body.get("shopperDisplayCurrency"));
         jpaySaleRecordService.recordOrTouchPending(orgUnitId, orderNo, amountBd, currency, routeNo,
                 str(body.get("payEmailAddress")),
                 str(body.get("item")),
-                resolveTxnOrigin(str(body.get("txnOrigin"))));
+                resolveTxnOrigin(str(body.get("txnOrigin"))),
+                shopperDisplayAmt,
+                shopperDisplayCur);
 
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
@@ -393,7 +407,7 @@ public class JpayPaymentService {
         addIfPresent(form, body, "pay_state", "payState");
         addIfPresent(form, body, "pay_country_iso_code_2", "payCountryIsoCode2");
         addIfPresent(form, body, "pay_email_address", "payEmailAddress");
-        addIfPresent(form, body, "pay_telephone", "payTelephone");
+        addTelephoneIfPresent(form, body);
         addIfPresent(form, body, "pay_language", "payLanguage");
         addIfPresent(form, body, "system", "system");
         applyJpaySaleDefaults(form, body);
@@ -723,6 +737,26 @@ public class JpayPaymentService {
         if (!v.isBlank()) {
             form.add(formKey, v);
         }
+    }
+
+    /** JPAY — 전화번호는 국가코드(+82 등) 없이 로컬 번호만 전달. */
+    private static void addTelephoneIfPresent(MultiValueMap<String, String> form, Map<String, Object> body) {
+        String v = normalizeLocalTelephone(str(body.get("payTelephone")));
+        if (!v.isBlank()) {
+            form.add("pay_telephone", v);
+        }
+    }
+
+    private static String normalizeLocalTelephone(String raw) {
+        if (raw == null || raw.isBlank()) {
+            return "";
+        }
+        String t = raw.trim();
+        java.util.regex.Matcher m = java.util.regex.Pattern.compile("^\\+\\d{1,4}[\\s\\-]*(.*)$").matcher(t);
+        if (m.matches()) {
+            return m.group(1).trim();
+        }
+        return t;
     }
 
     /**

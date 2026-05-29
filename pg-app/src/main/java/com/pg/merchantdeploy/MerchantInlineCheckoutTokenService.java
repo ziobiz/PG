@@ -43,6 +43,7 @@ public class MerchantInlineCheckoutTokenService {
             String pgVendor,
             String checkoutKind,
             String subscriptionPlanJson,
+            String buyerPrefillJson,
             long expiresEpochSec
     ) {
         Map<String, Object> toPublicMap() {
@@ -66,6 +67,9 @@ public class MerchantInlineCheckoutTokenService {
             if (subscriptionPlanJson != null && !subscriptionPlanJson.isBlank()) {
                 m.put("subscriptionPlanJson", subscriptionPlanJson);
             }
+            if (buyerPrefillJson != null && !buyerPrefillJson.isBlank()) {
+                m.put("buyerPrefill", com.pg.urlpay.JpayBuyerPrefillUtil.parsePublicMap(buyerPrefillJson));
+            }
             m.put("expiresAt", Instant.ofEpochSecond(expiresEpochSec).toString());
             return m;
         }
@@ -78,24 +82,31 @@ public class MerchantInlineCheckoutTokenService {
     public String issue(String pgVendor, String compId, String orderNo, String amountPlain,
                         String currency, String productName) {
         return issueInternal(pgVendor, compId, orderNo, amountPlain, currency, productName,
-                CHECKOUT_ONE_TIME, "");
+                CHECKOUT_ONE_TIME, "", "");
+    }
+
+    public String issueWithBuyerPrefill(String pgVendor, String compId, String orderNo, String amountPlain,
+                                        String currency, String productName, String buyerPrefillJson) {
+        return issueInternal(pgVendor, compId, orderNo, amountPlain, currency, productName,
+                CHECKOUT_ONE_TIME, "", buyerPrefillJson != null ? buyerPrefillJson : "");
     }
 
     public String issueSubscription(String pgVendor, String compId, String orderNo, String amountPlain,
                                     String currency, String productName, String subscriptionPlanJson) {
         return issueInternal(pgVendor, compId, orderNo, amountPlain, currency, productName,
-                CHECKOUT_SUBSCRIPTION, subscriptionPlanJson != null ? subscriptionPlanJson : "");
+                CHECKOUT_SUBSCRIPTION, subscriptionPlanJson != null ? subscriptionPlanJson : "", "");
     }
 
     private String issueInternal(String pgVendor, String compId, String orderNo, String amountPlain,
                                  String currency, String productName, String checkoutKind,
-                                 String subscriptionPlanJson) {
+                                 String subscriptionPlanJson, String buyerPrefillJson) {
         long exp = Instant.now().getEpochSecond() + DEFAULT_TTL_SECONDS;
         String sid = UUID.randomUUID().toString().replace("-", "");
         String vendor = normalizeVendor(pgVendor);
         String kind = normalizeCheckoutKind(checkoutKind);
         String planEnc = encodePlan(subscriptionPlanJson);
-        String payload = joinPayload(sid, compId, orderNo, amountPlain, currency, productName, vendor, kind, planEnc, exp);
+        String prefillEnc = encodePlan(buyerPrefillJson);
+        String payload = joinPayload(sid, compId, orderNo, amountPlain, currency, productName, vendor, kind, planEnc, prefillEnc, exp);
         String sig = sign(payload);
         return base64Url(payload) + "." + base64Url(sig);
     }
@@ -131,8 +142,19 @@ public class MerchantInlineCheckoutTokenService {
         String vendor;
         String checkoutKind = CHECKOUT_ONE_TIME;
         String planEnc = "";
+        String prefillEnc = "";
         long exp;
-        if (fields.length >= 10) {
+        if (fields.length >= 11) {
+            vendor = normalizeVendor(fields[6]);
+            checkoutKind = normalizeCheckoutKind(fields[7]);
+            planEnc = fields[8];
+            prefillEnc = fields[9];
+            try {
+                exp = Long.parseLong(fields[10]);
+            } catch (NumberFormatException e) {
+                return Optional.empty();
+            }
+        } else if (fields.length >= 10) {
             vendor = normalizeVendor(fields[6]);
             checkoutKind = normalizeCheckoutKind(fields[7]);
             planEnc = fields[8];
@@ -179,13 +201,14 @@ public class MerchantInlineCheckoutTokenService {
                 vendor,
                 checkoutKind,
                 decodePlan(planEnc),
+                decodePlan(prefillEnc),
                 exp
         ));
     }
 
     private static String joinPayload(String sessionId, String compId, String orderNo, String amountPlain,
                                       String currency, String productName, String pgVendor, String checkoutKind,
-                                      String planEnc, long exp) {
+                                      String planEnc, String prefillEnc, long exp) {
         return String.join("|",
                 nz(sessionId),
                 nz(compId),
@@ -196,6 +219,7 @@ public class MerchantInlineCheckoutTokenService {
                 normalizeVendor(pgVendor),
                 normalizeCheckoutKind(checkoutKind),
                 nz(planEnc),
+                nz(prefillEnc),
                 Long.toString(exp));
     }
 

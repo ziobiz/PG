@@ -109,6 +109,10 @@
     var k = '무효·환불 정산 방식 카드 안내';
     return '<p class="small text-muted mb-3 mb-md-2"><span data-pg-ui-t="' + escUi(k) + '">' + escUi(L(k)) + '</span></p>';
   }
+  function merchantWebPaymentCardNoticeKo() {
+    return '미사용 선택 시 WEB 결제 시스템이 중지됩니다. 「결제 URL」은 운영·WEB·URL결제 PG별 공개 경로로 자동 표시됩니다(예: JPAY /jpay-pay/업체코드, ChillPay /pay/업체코드). 「URL 재결제 URL」은 해당 PG가 저장 카드 재결제를 지원하고 본사 URL 재결제 기능·URL재결제 PG 바인딩이 있을 때만 표시됩니다. 「URL 결제 방식」은 공개 URL 결제에만 적용됩니다. API·챗봇은 각 설정 카드에서 별도 선택합니다.';
+  }
+
   /** 동일 id(paymentUrlDisplay) — 화면별 placeholder 키만 다름 */
   function merchantPaymentUrlRowHtml(placeholderKo) {
     var ph = placeholderKo || '가맹점 저장 후 조회';
@@ -144,6 +148,25 @@
       rows: [
         [{ label: 'URL 결제 방식', type: 'select', name: 'apiUrlPayCheckoutMode', options: [{ v: 'STANDARD', t: '일반 URL 결제' }, { v: 'REPAY', t: '재결제 URL (저장 카드)' }], col: 3 }],
         [{ label: '', type: 'note', col: 12, text: '본사 결제로직설정에서 URL 결제형 INLINE 제공이 Y 이어야 합니다. prepare 응답 payUrl 에 variant=repay 가 포함되면 재결제 URL 모드입니다.' }]
+      ]
+    };
+  }
+
+  /** 가맹 등록·정보 — JPAY jpay-pay.html 결제창 입력 필드(본사 기본 오버라이드) */
+  function merchantJpayCheckoutFieldModeCardSection() {
+    return {
+      title: 'JPAY 결제창 입력 필드',
+      id: 'jpayCheckoutFieldModeCard',
+      merchantOnly: true,
+      notice: 'JPAY URL 인라인 결제창(jpay-pay.html) 입력 필드입니다. JPAY 필수: (1)카드·CVV (2)성명 (3)이메일 (4)국가코드(ISO2) (5)전화(국가코드 제외). (6)배송 주소는 선택. <strong>본사 기본 따름</strong>이면 본사설정 → 결제로직설정 값을 사용합니다.',
+      rows: [
+        [{ label: 'JPAY 결제창 입력 필드', type: 'select', name: 'jpayCheckoutFieldMode', options: [
+          { v: 'FOLLOW_HQ', t: '본사 기본 따름' },
+          { v: 'FULL', t: '1형 전체 (카드·성명·이메일·전화·배송)' },
+          { v: 'CARD_ONLY', t: '2형 필수 4항목 (카드·성명·이메일·전화)' },
+          { v: 'CARD_PREFILL', t: '3형 카드·성명 + 가맹 prefill' }
+        ], col: 4 }],
+        [{ label: '', type: 'note', col: 12, text: 'JPAY 필수: 국가코드(ISO2)·전화번호는 분리 입력(전화에 +82 등 붙이지 않음). 1·2형은 접속국가가 국가코드 드롭다운 기본값. 3형은 prepare buyerPrefill 의 countryIso2·phone(국가코드 제외). 2형: 주소 숨김. 3형: 카드·성명만 고객 입력.' }]
       ]
     };
   }
@@ -2453,10 +2476,18 @@
           ]
         },
         {
-          title: 'URL 결제 폼 설정',
-          notice: '공개 결제 URL(/pay/업체코드 등) 입력 화면입니다. 간편(SIMPLE)은 성명·상품·금액·DirectCreditToken(카드 데이터는 토큰/CCD에 포함)만 받고, 전체(FULL)는 연락처·청구지까지 받습니다. <strong>브라우저 탭 이름</strong>·<strong>파비콘</strong>은 이 결제 폼(탭 제목·탭 아이콘) 전용이며, 화면 하단 <strong>저장</strong>으로 DB에 반영됩니다. 인라인/리다이렉트는 위 「URL 결제형 기본 방식」과 제공 여부로 결정됩니다.',
+          title: 'JPAY 결제창 입력 필드',
+          notice: 'JPAY URL 결제창(jpay-pay.html) 입력 필드 본사 기본값입니다. JPAY 필수: (1)카드·CVV (2)성명 (3)이메일 (4)국가코드(ISO2) (5)전화(로컬번호). (6)배송 주소는 선택. <strong>1형 전체</strong>=모두 입력. <strong>2형 필수 4항목</strong>+국가코드. <strong>3형</strong>=카드·성명만 입력, 이메일·국가코드·전화·주소는 prepare buyerPrefill. 업체관리 → 가맹 「JPAY 결제창 입력 필드」에서 가맹별 오버라이드 가능.',
           rows: [
-            [{ label: 'URL 결제 입력 폼', type: 'select', name: 'urlPayFormMode', options: [{ v: 'FULL', t: '전체 입력 (청구지·성명 분리)' }, { v: 'SIMPLE', t: '간편 입력 (필수 최소)' }], col: 4 }],
+            [{ label: 'JPAY 결제창 입력 필드', type: 'select', name: 'jpayCheckoutFieldMode', options: [{ v: 'FULL', t: '1형 전체 (카드·성명·이메일·전화·배송)' }, { v: 'CARD_ONLY', t: '2형 필수 4항목 (카드·성명·이메일·전화)' }, { v: 'CARD_PREFILL', t: '3형 카드·성명 + 가맹 prefill' }], col: 4 }],
+            [{ label: '', type: 'note', col: 12, text: 'JPAY 필수 국가코드(ISO2)는 전화번호와 분리합니다. 1·2형: 접속국가가 국가코드 드롭다운 기본값. 3형: buyerPrefill.countryIso2(없으면 접속국). 전화번호는 +82 등 국가번호 없이 로컬 번호만. pay_country_iso_code_2 로 JPAY에 전달됩니다.' }]
+          ]
+        },
+        {
+          title: 'URL 결제 폼 설정',
+          notice: '공개 결제 URL(/pay/업체코드 등) 입력 화면입니다. 간편(SIMPLE)은 성명·상품·금액·DirectCreditToken(카드 데이터는 토큰/CCD에 포함)만 받고, 전체(FULL)는 연락처·배송지까지 받습니다. <strong>브라우저 탭 이름</strong>·<strong>파비콘</strong>은 이 결제 폼(탭 제목·탭 아이콘) 전용이며, 화면 하단 <strong>저장</strong>으로 DB에 반영됩니다. 인라인/리다이렉트는 위 「URL 결제형 기본 방식」과 제공 여부로 결정됩니다.',
+          rows: [
+            [{ label: 'URL 결제 입력 폼', type: 'select', name: 'urlPayFormMode', options: [{ v: 'FULL', t: '전체 입력 (배송지·성명 분리)' }, { v: 'SIMPLE', t: '간편 입력 (필수 최소)' }], col: 4 }],
             [{
               type: 'customHtml',
               col: 12,
@@ -2814,7 +2845,7 @@
           title: '웹결제 사용 / 대표 기본상품정보 (온라인 URL 결제용)',
           id: 'webPaymentCard',
           merchantOnly: true,
-          notice: '미사용 선택 시 WEB 결제 시스템이 중지됩니다. 「URL 결제 방식」은 공개 URL(/pay/업체코드) 결제에만 적용됩니다. API·챗봇 결제 방식은 각 설정 카드에서 별도 선택합니다. 재결제 URL 은 본사 URL 재결제 기능 ON 및 URL재결제 PG 바인딩이 필요합니다.',
+          notice: merchantWebPaymentCardNoticeKo(),
           rows: [
             [{ label: '웹결제 사용여부', type: 'select', name: 'webPaymentUseYn', options: [{ v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }], col: 2 },
              { label: 'URL 결제 방식', type: 'select', name: 'urlPayCheckoutMode', options: [{ v: 'STANDARD', t: '일반 URL 결제' }, { v: 'REPAY', t: '재결제 URL (저장 카드)' }], col: 3 }],
@@ -2824,6 +2855,7 @@
           ]
         },
         merchantApiUrlPayCheckoutCardSection(),
+        merchantJpayCheckoutFieldModeCardSection(),
         merchantJpayApiSubscriptionCardSection(),
         {
           title: '챗봇결제 설정',
@@ -3231,7 +3263,7 @@
           title: '웹결제 사용 / 대표 기본상품정보 (온라인 URL 결제용)',
           id: 'webPaymentCard',
           merchantOnly: true,
-          notice: '미사용 선택 시 WEB 결제 시스템이 중지됩니다. 「URL 결제 방식」은 공개 URL(/pay/업체코드) 결제에만 적용됩니다. API·챗봇 결제 방식은 각 설정 카드에서 별도 선택합니다. 재결제 URL 은 본사 URL 재결제 기능 ON 및 URL재결제 PG 바인딩이 필요합니다.',
+          notice: merchantWebPaymentCardNoticeKo(),
           rows: [
             [{ label: '웹결제 사용여부', type: 'select', name: 'webPaymentUseYn', options: [{ v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }], col: 2 },
              { label: 'URL 결제 방식', type: 'select', name: 'urlPayCheckoutMode', options: [{ v: 'STANDARD', t: '일반 URL 결제' }, { v: 'REPAY', t: '재결제 URL (저장 카드)' }], col: 3 }],
@@ -3241,6 +3273,7 @@
           ]
         },
         merchantApiUrlPayCheckoutCardSection(),
+        merchantJpayCheckoutFieldModeCardSection(),
         merchantJpayApiSubscriptionCardSection(),
         {
           title: '챗봇결제 설정',
@@ -3581,7 +3614,7 @@
           title: '웹결제 사용 / 대표 기본상품정보 (온라인 URL 결제용)',
           id: 'webPaymentCard',
           merchantOnly: true,
-          notice: '미사용 선택 시 WEB 결제 시스템이 중지됩니다. 「URL 결제 방식」은 공개 URL(/pay/업체코드) 결제에만 적용됩니다. API·챗봇 결제 방식은 각 설정 카드에서 별도 선택합니다. 재결제 URL 은 본사 URL 재결제 기능 ON 및 URL재결제 PG 바인딩이 필요합니다.',
+          notice: merchantWebPaymentCardNoticeKo(),
           rows: [
             [{ label: '웹결제 사용여부', type: 'select', name: 'webPaymentUseYn', options: [{ v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }], col: 2 },
              { label: 'URL 결제 방식', type: 'select', name: 'urlPayCheckoutMode', options: [{ v: 'STANDARD', t: '일반 URL 결제' }, { v: 'REPAY', t: '재결제 URL (저장 카드)' }], col: 3 }],
@@ -3591,6 +3624,7 @@
           ]
         },
         merchantApiUrlPayCheckoutCardSection(),
+        merchantJpayCheckoutFieldModeCardSection(),
         merchantJpayApiSubscriptionCardSection(),
         {
           title: '챗봇결제 설정',
@@ -6183,6 +6217,15 @@
     var hqPolicyC = f.hqPolicyOnly ? ' hq-policy-only' : '';
     if (f.type === 'hidden') {
       return '<input type="hidden" name="' + (f.name || '') + '" id="' + (f.name || '') + '">';
+    }
+    if (f.type === 'note') {
+      var colN = f.col || 12;
+      var noteText = String(f.text != null ? f.text : (f.label || ''));
+      if (!noteText) return '';
+      if (pgUiNoticeHasHtml(noteText)) {
+        return '<div class="col-sm-' + colN + '"><div class="text-muted small mb-2" data-pg-ui-html="' + escUi(noteText) + '">' + L(noteText) + '</div></div>';
+      }
+      return '<div class="col-sm-' + colN + '"><p class="text-muted small mb-2" data-pg-ui-t="' + escUi(noteText) + '">' + escUi(L(noteText)) + '</p></div>';
     }
     if (f.type === 'customHtml') {
       var colH = f.col || 12;

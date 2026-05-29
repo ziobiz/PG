@@ -282,6 +282,8 @@ public class ApiCompController {
             @RequestParam(required = false) String apiUrlPayCheckoutMode,
             @RequestParam(required = false) String chatbotUrlPayCheckoutMode,
             @RequestParam(required = false) String apiJpaySubscriptionUseYn,
+            @RequestParam(required = false) String jpayCheckoutFieldMode,
+            @RequestParam(required = false) String jpayPhoneDialCodeYn,
             @RequestParam(required = false) String tabletFeatureUseYn) {
         Long parentIdVal = parentId;
         if (parentIdVal == null && parentComp != null && !parentComp.isEmpty()) {
@@ -336,6 +338,8 @@ public class ApiCompController {
                 apiUrlPayCheckoutMode,
                 chatbotUrlPayCheckoutMode,
                 apiJpaySubscriptionUseYn,
+                jpayCheckoutFieldMode,
+                jpayPhoneDialCodeYn,
                 tabletFeatureUseYn);
         return ResponseEntity.ok(ApiResponse.ok(Map.of("compId", saved.getCode(), "compNm", saved.getName())));
         } catch (IllegalArgumentException e) {
@@ -491,6 +495,8 @@ public class ApiCompController {
             @RequestParam(required = false) String apiUrlPayCheckoutMode,
             @RequestParam(required = false) String chatbotUrlPayCheckoutMode,
             @RequestParam(required = false) String apiJpaySubscriptionUseYn,
+            @RequestParam(required = false) String jpayCheckoutFieldMode,
+            @RequestParam(required = false) String jpayPhoneDialCodeYn,
             @RequestParam(required = false) String tabletFeatureUseYn) {
         var targetOpt = compService.getDetail(compId);
         if (targetOpt.isEmpty()) {
@@ -531,6 +537,8 @@ public class ApiCompController {
                     apiUrlPayCheckoutMode,
                     chatbotUrlPayCheckoutMode,
                     apiJpaySubscriptionUseYn,
+                    jpayCheckoutFieldMode,
+                    jpayPhoneDialCodeYn,
                     tabletFeatureUseYn);
             return ResponseEntity.ok(ok ? ApiResponse.ok(Map.of("success", true, "message", "저장되었습니다."))
                     : ApiResponse.fail("업체를 찾을 수 없습니다.", "NOT_FOUND"));

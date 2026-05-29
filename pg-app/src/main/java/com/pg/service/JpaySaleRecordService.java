@@ -13,6 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.util.Locale;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -55,8 +56,23 @@ public class JpaySaleRecordService {
                                      String customerHint,
                                      String productName,
                                      String txnOrigin) {
+        recordOrTouchPending(orgUnitId, orderNo, amount, currency, routeNo, customerHint, productName, txnOrigin,
+                null, null);
+    }
+
+    public void recordOrTouchPending(Long orgUnitId,
+                                     String orderNo,
+                                     BigDecimal amount,
+                                     String currency,
+                                     int routeNo,
+                                     String customerHint,
+                                     String productName,
+                                     String txnOrigin,
+                                     BigDecimal shopperDisplayAmount,
+                                     String shopperDisplayCurrency) {
         try {
-            doRecord(orgUnitId, orderNo, amount, currency, routeNo, customerHint, productName, txnOrigin);
+            doRecord(orgUnitId, orderNo, amount, currency, routeNo, customerHint, productName, txnOrigin,
+                    shopperDisplayAmount, shopperDisplayCurrency);
         } catch (Exception e) {
             log.warn("JPAY sale 거래 적재(대기) 실패: {}", e.getMessage());
         }
@@ -69,7 +85,9 @@ public class JpaySaleRecordService {
                           int routeNo,
                           String customerHint,
                           String productName,
-                          String txnOrigin) {
+                          String txnOrigin,
+                          BigDecimal shopperDisplayAmount,
+                          String shopperDisplayCurrency) {
         if (orgUnitId == null || orderNo == null || orderNo.isBlank()) {
             return;
         }
@@ -114,6 +132,12 @@ public class JpaySaleRecordService {
         }
         t.setChillPaymentStatus(desc.length() > 50 ? desc.substring(0, 50) : desc);
         t.setPaymentChannel("CARD");
+        if (shopperDisplayAmount != null && shopperDisplayAmount.compareTo(BigDecimal.ZERO) > 0
+                && shopperDisplayCurrency != null && !shopperDisplayCurrency.isBlank()) {
+            t.setDisplayAmt(shopperDisplayAmount);
+            String dc = shopperDisplayCurrency.trim().toUpperCase(Locale.ROOT);
+            t.setDisplayCurType(dc.length() > 3 ? dc.substring(0, 3) : dc);
+        }
         if (t.getSettledYn() == null || t.getSettledYn().isBlank()) {
             t.setSettledYn("N");
         }

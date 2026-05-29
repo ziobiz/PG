@@ -89,6 +89,42 @@ sequenceDiagram
 
 > ChillPay **URL 결제형 INLINE**(`urlPayInlineEnabledYn`) 과는 **별도 스위치**입니다. JPAY 인라인은 위 **API 중계형** 설정을 사용합니다.
 
+##### JPAY 결제창 입력 필드 (본사 기본값)
+
+`결제로직설정 → JPAY 결제창 입력 필드`(`jpayCheckoutFieldMode`) 에서 `jpay-pay.html` 의 입력 항목을 정합니다. 가맹점별로 다르게 두지 않으면 **전체 가맹**에 적용됩니다.
+
+JPAY 필수: **(1) 카드·CVV (2) 성명 (3) 이메일 (4) 전화**. (5) 청구지·(6) 배송지는 선택.
+
+| 모드 | JPAY 항목 | 화면(고객 입력) | JPAY 전송 |
+|------|-----------|-----------------|-----------|
+| `FULL` (1형, 기본) | 1~6 전부 | 모두 입력 | 입력값 그대로 |
+| `CARD_ONLY` (2형) | 1~4 필수 | 카드·성명·**이메일·전화** (주소 숨김) | 1~4 고객 입력값 |
+| `CARD_PREFILL` (3형) | 1·2 고객, 3~6 prefill | **카드·성명만** | 1·2 고객 + **prepare `buyerPrefill`** |
+
+가맹별 오버라이드: **업체관리 → 가맹 상세 → 「JPAY 결제창 입력 필드」**.
+
+**3형 prepare 예시 (`buyerPrefill` 필수: email, phone):**
+```json
+{
+  "orderNo": "ORD-001",
+  "amount": 9800,
+  "currency": "JPY",
+  "productName": "상품",
+  "buyerPrefill": {
+    "email": "buyer@example.com",
+    "phone": "09012345678",
+    "countryIso2": "JP",
+    "address": "1-2-3 Shibuya",
+    "city": "Tokyo",
+    "postcode": "1500001",
+    "shippingAddress": "1-2-3 Shibuya",
+    "shippingCity": "Tokyo",
+    "shippingPostcode": "1500001",
+    "shippingCountryIso2": "JP"
+  }
+}
+```
+
 #### (2) 본사설정 → API연동설정 (JPAY)
 
 | 항목 | 값 |

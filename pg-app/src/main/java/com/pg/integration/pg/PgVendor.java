@@ -19,6 +19,14 @@ public final class PgVendor {
     private PgVendor() {
     }
 
+    /** {@code pg_cd} 비교·접두 판별용 — 공백을 {@code _} 로 통일(예: {@code JPAY API} → {@code JPAY_API}). */
+    public static String normalizePgCdKey(String pgCd) {
+        if (pgCd == null) {
+            return "";
+        }
+        return pgCd.trim().toUpperCase(Locale.ROOT).replaceAll("\\s+", "_");
+    }
+
     /**
      * {@code pg_cd}가 ChillPay 계열인지 — {@code CHILLPAY} 또는 {@code CHILLPAY_…} 접두.
      */
@@ -26,7 +34,7 @@ public final class PgVendor {
         if (pgCd == null) {
             return false;
         }
-        String u = pgCd.trim().toUpperCase(Locale.ROOT);
+        String u = normalizePgCdKey(pgCd);
         return CHILLPAY.equals(u) || u.startsWith(CHILLPAY);
     }
 
@@ -55,7 +63,7 @@ public final class PgVendor {
         if (pgCd == null) {
             return false;
         }
-        String u = pgCd.trim().toUpperCase(Locale.ROOT);
+        String u = normalizePgCdKey(pgCd);
         return JPAY.equals(u) || u.startsWith(JPAY + "_");
     }
 }

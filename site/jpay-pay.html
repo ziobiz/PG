@@ -6,7 +6,9 @@
   <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
   <title>JPAY Payment</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link href="css/pay-inline.css?v=32" rel="stylesheet">
+  <link href="css/pay-inline.css?v=36" rel="stylesheet">
+  <script src="js/url-pay-public-shell.js?v=2"></script>
+  <script src="js/jpay-contact-fields.js?v=2"></script>
   <script>
     (function () {
       try {
@@ -23,7 +25,14 @@
     <div class="pay-card">
       <div class="pay-brand" id="jpayBrandBlock">
         <div class="pay-brand-logo">ICOPAY</div>
-        <div class="pay-brand-sub">JPAY Secure checkout</div>
+        <div class="pay-brand-sub" data-i18n="brandSub">JPAY Secure checkout</div>
+      </div>
+      <div class="pay-lang" role="group" aria-label="Language" data-i18n-aria="langGroup">
+        <button type="button" data-lang="JPN">JPN</button>
+        <button type="button" data-lang="KOR">KOR</button>
+        <button type="button" data-lang="ENG">ENG</button>
+        <button type="button" data-lang="CHN">CHN</button>
+        <button type="button" data-lang="THA">THA</button>
       </div>
       <div id="configError" class="alert alert-warning pay-alert-config" style="display:none;"></div>
       <div id="payResult" class="pay-result" style="display:none;"></div>
@@ -32,42 +41,63 @@
         <input type="hidden" id="orderNo" name="orderNo">
         <div class="pay-form-grid mb-3">
           <div class="pay-row pay-row-static">
-            <div class="pay-row-label">Merchant</div>
+            <div class="pay-row-label"><span data-i18n="merchant">Merchant</span></div>
             <div class="pay-row-value"><span id="merchantNameDisplay">—</span></div>
           </div>
           <div class="pay-row">
-            <label class="pay-row-label mb-0" for="item">Item</label>
-            <div class="pay-row-value"><input type="text" class="form-control form-control-sm pay-input-round" id="item" required></div>
+            <label class="pay-row-label mb-0" for="item"><span data-i18n="item">Item</span></label>
+            <div class="pay-row-value"><input type="text" class="form-control form-control-sm pay-input-round jpay-field-input" id="item" required></div>
           </div>
           <div class="pay-row">
-            <label class="pay-row-label mb-0" for="amount">Amount</label>
+            <label class="pay-row-label mb-0" for="amount"><span data-i18n="amount">Amount</span> <span class="pay-currency-hint text-muted fw-normal" id="payAmountCurrencyHint">(JPY)</span></label>
             <div class="pay-row-value">
-              <input type="number" class="form-control form-control-sm pay-input-round" id="amount" required min="0.01" step="0.01">
-              <span class="small text-muted ms-1" id="currencyHint">JPY</span>
+              <input type="number" class="form-control form-control-sm pay-input-round jpay-field-input" id="amount" required min="0.01" step="0.01">
+              <p class="small text-muted mb-0 mt-1 d-none" id="payAmountScaleNotice"></p>
             </div>
           </div>
+          <div class="pay-row d-none" id="payFxDisplayCurrencyRow">
+            <label class="pay-row-label mb-0" for="payDisplayCurrencySelect"><span data-i18n="fxDisplayCurrency">Display currency</span></label>
+            <div class="pay-row-value d-flex align-items-center gap-2 flex-wrap">
+              <select class="form-select form-select-sm pay-input-round jpay-field-input" id="payDisplayCurrencySelect" style="max-width:8rem"></select>
+              <span class="small text-muted" id="payFxDisplayCurrencyStatic"></span>
+            </div>
+          </div>
+          <div class="pay-row d-none" id="payFxQuoteRow">
+            <div class="pay-row-label"><span data-i18n="fxThbEstimate">Estimated charge</span></div>
+            <div class="pay-row-value"><span id="payFxThbEstimateText" class="small fw-semibold">—</span></div>
+          </div>
         </div>
-        <div class="pay-label mb-2">Card</div>
+        <div class="pay-label mb-1"><span id="payCardSectionLabel" data-i18n="card">Card</span></div>
+        <p class="small text-muted mb-2 d-none" id="payCardNoteText"></p>
         <div class="row g-2 mb-2">
-          <div class="col-12"><input type="text" class="form-control form-control-sm pay-input-round" id="payCardno" inputmode="numeric" autocomplete="cc-number" placeholder="Card number" required></div>
-          <div class="col-4"><input type="text" class="form-control form-control-sm pay-input-round" id="payCardmonth" maxlength="2" placeholder="MM" required></div>
-          <div class="col-4"><input type="text" class="form-control form-control-sm pay-input-round" id="payCardyear" maxlength="4" placeholder="YYYY" required></div>
-          <div class="col-4"><input type="text" class="form-control form-control-sm pay-input-round" id="payCardcvv" maxlength="4" placeholder="CVV" required></div>
+          <div class="col-12"><input type="text" class="form-control form-control-sm pay-input-round jpay-field-input" id="payCardno" inputmode="numeric" autocomplete="cc-number" data-i18n-placeholder="cardNo" required></div>
+          <div class="col-4"><input type="text" class="form-control form-control-sm pay-input-round jpay-field-input" id="payCardmonth" maxlength="2" data-i18n-placeholder="mm" required></div>
+          <div class="col-4"><input type="text" class="form-control form-control-sm pay-input-round jpay-field-input" id="payCardyear" maxlength="4" data-i18n-placeholder="yyyy" required></div>
+          <div class="col-4"><input type="text" class="form-control form-control-sm pay-input-round jpay-field-input" id="payCardcvv" maxlength="4" data-i18n-placeholder="cvv" required></div>
         </div>
-        <div class="row g-2 mb-2">
-          <div class="col-6"><input type="text" class="form-control form-control-sm pay-input-round" id="payFirstname" placeholder="First name" required></div>
-          <div class="col-6"><input type="text" class="form-control form-control-sm pay-input-round" id="payLastname" placeholder="Last name" required></div>
-          <div class="col-12"><input type="email" class="form-control form-control-sm pay-input-round" id="payEmailAddress" placeholder="Email" required></div>
+        <div class="row g-2 mb-2" id="nameRow">
+          <div class="col-6"><input type="text" class="form-control form-control-sm pay-input-round jpay-field-input" id="payFirstname" data-i18n-placeholder="firstName" required></div>
+          <div class="col-6"><input type="text" class="form-control form-control-sm pay-input-round jpay-field-input" id="payLastname" data-i18n-placeholder="lastName" required></div>
         </div>
-        <div class="pay-label mb-2" id="billingLabel">Billing</div>
-        <div class="row g-2 mb-3">
-          <div class="col-6"><input type="tel" class="form-control form-control-sm pay-input-round" id="payTelephone" placeholder="Phone" required></div>
-          <div class="col-6"><input type="text" class="form-control form-control-sm pay-input-round" id="payCountryIsoCode2" maxlength="2" placeholder="US" required style="text-transform:uppercase"></div>
-          <div class="col-12"><input type="text" class="form-control form-control-sm pay-input-round" id="payStreetAddress1" placeholder="Address" required></div>
-          <div class="col-6"><input type="text" class="form-control form-control-sm pay-input-round" id="payCity" placeholder="City" required></div>
-          <div class="col-6"><input type="text" class="form-control form-control-sm pay-input-round" id="payPostcode" placeholder="Postcode" required></div>
+        <div class="row g-2 mb-2" id="contactRow">
+          <div class="col-12"><input type="email" class="form-control form-control-sm pay-input-round jpay-field-input" id="payEmailAddress" data-i18n-placeholder="email" required></div>
+          <div class="col-12">
+            <label class="pay-label mb-1 d-block" for="payContactCountryCode" data-i18n="countryCode">Country code</label>
+            <select class="form-select form-select-sm pay-input-round jpay-field-input" id="payContactCountryCode" required data-i18n-aria="countryCode" aria-label="Country code"></select>
+          </div>
+          <div class="col-12">
+            <label class="pay-label mb-1 d-block" for="payTelephone" data-i18n="phone">Phone</label>
+            <input type="tel" class="form-control form-control-sm pay-input-round jpay-field-input" id="payTelephone" data-i18n-placeholder="phoneHint" required inputmode="tel" autocomplete="tel-national">
+          </div>
+          <input type="hidden" id="payCountryIsoCode2">
         </div>
-        <button type="submit" class="btn btn-primary btn-pay w-100" id="submitBtn">Pay</button>
+        <div class="pay-label mb-2" id="billingLabel" data-i18n="shipping">Shipping address</div>
+        <div class="row g-2 mb-3" id="billingAddressRow">
+          <div class="col-12"><input type="text" class="form-control form-control-sm pay-input-round jpay-field-input" id="payStreetAddress1" data-i18n-placeholder="address" required></div>
+          <div class="col-6"><input type="text" class="form-control form-control-sm pay-input-round jpay-field-input" id="payCity" data-i18n-placeholder="city" required></div>
+          <div class="col-6"><input type="text" class="form-control form-control-sm pay-input-round jpay-field-input" id="payPostcode" data-i18n-placeholder="postcode" required></div>
+        </div>
+        <button type="submit" class="btn btn-primary btn-pay w-100" id="submitBtn" data-i18n="pay">Pay</button>
       </form>
     </div>
   </div>
@@ -127,98 +157,134 @@
       var I18N = {
         KOR: {
           title: 'JPAY 결제', brandSub: 'JPAY 안전 결제', merchant: '가맹점', item: '상품명', amount: '금액', card: '카드',
-          cardNo: '카드번호', firstName: '이름', lastName: '성', email: '이메일', billing: '청구 정보',
-          phone: '전화번호', country: '국가(2자)', address: '주소', city: '도시', postcode: '우편번호', pay: '결제',
+          cardNo: '카드번호', firstName: '이름', lastName: '성', email: '이메일', shipping: '배송 주소',
+          phone: '전화번호', phoneHint: '국가코드 제외 (예: 01012345678)', countryCode: '국가코드', selectCountry: '— 선택 —', country: '국가(2자)', address: '주소', city: '도시', postcode: '우편번호', pay: '결제',
           errMerchant: '가맹점 코드(m)가 필요합니다.', errLoad: '결제 화면을 불러오지 못했습니다.',
           errInvalidSession: '세션이 유효하지 않거나 만료되었습니다.', errSessionMismatch: '세션과 주문 정보가 일치하지 않습니다.',
+          errPrefillRequired: '가맹점 구매자 정보(이메일·전화·국가코드)가 없습니다. prepare buyerPrefill 을 확인하세요.',
+          errCountryCode: '국가코드를 선택하세요.',
           payComplete: '결제 완료', payFailed: '결제 실패', paid: '결제되었습니다.', networkErr: '네트워크 오류',
-          mm: 'MM', yyyy: 'YYYY', cvv: 'CVV'
+          mm: 'MM', yyyy: 'YYYY', cvv: 'CVV',
+          fxDisplayCurrency: '표시 통화', fxThbEstimate: '청구예상 금액', configErr: '설정을 불러오지 못했습니다.',
+          needFxQuote: '환율 견적을 불러오는 중이거나 실패했습니다. 잠시 후 다시 시도하세요.',
+          needAmount: '유효한 금액을 입력하세요.', langGroup: '언어'
         },
         ENG: {
           title: 'JPAY Payment', brandSub: 'JPAY Secure checkout', merchant: 'Merchant', item: 'Item', amount: 'Amount', card: 'Card',
-          cardNo: 'Card number', firstName: 'First name', lastName: 'Last name', email: 'Email', billing: 'Billing',
-          phone: 'Phone', country: 'Country (ISO2)', address: 'Address', city: 'City', postcode: 'Postcode', pay: 'Pay',
+          cardNo: 'Card number', firstName: 'First name', lastName: 'Last name', email: 'Email', shipping: 'Shipping address',
+          phone: 'Phone', phoneHint: 'Local number without country code (e.g. 01012345678)', countryCode: 'Country code', selectCountry: '— Select —', country: 'Country (ISO2)', address: 'Address', city: 'City', postcode: 'Postcode', pay: 'Pay',
           errMerchant: 'Merchant code (m) is required.', errLoad: 'Failed to load checkout.',
           errInvalidSession: 'Session is invalid or expired.', errSessionMismatch: 'Session does not match order details.',
+          errPrefillRequired: 'Missing merchant buyer info (email, phone, country code). Check prepare buyerPrefill.',
+          errCountryCode: 'Select a country code.',
           payComplete: 'Payment complete', payFailed: 'Payment failed', paid: 'Paid', networkErr: 'Network error',
-          mm: 'MM', yyyy: 'YYYY', cvv: 'CVV'
+          mm: 'MM', yyyy: 'YYYY', cvv: 'CVV',
+          fxDisplayCurrency: 'Display currency', fxThbEstimate: 'Estimated charge', configErr: 'Failed to load settings.',
+          needFxQuote: 'Exchange quote is loading or failed. Please wait and try again.',
+          needAmount: 'Enter a valid amount.', langGroup: 'Language'
         },
         JPN: {
           title: 'JPAY 決済', brandSub: 'JPAY セキュア決済', merchant: '加盟店', item: '商品名', amount: '金額', card: 'カード',
-          cardNo: 'カード番号', firstName: '名', lastName: '姓', email: 'メール', billing: '請求先',
-          phone: '電話', country: '国(2字)', address: '住所', city: '市区町村', postcode: '郵便番号', pay: '支払う',
+          cardNo: 'カード番号', firstName: '名', lastName: '姓', email: 'メール', shipping: '配送先',
+          phone: '電話', phoneHint: '国コード除く (例: 09012345678)', countryCode: '国コード', selectCountry: '— 選択 —', country: '国(2字)', address: '住所', city: '市区町村', postcode: '郵便番号', pay: '支払う',
           errMerchant: '加盟店コード(m)が必要です。', errLoad: '決済画面の読み込みに失敗しました。',
           errInvalidSession: 'セッションが無効または期限切れです。', errSessionMismatch: 'セッションと注文情報が一致しません。',
+          errPrefillRequired: '加盟店の購入者情報(メール・電話・国コード)がありません。prepare buyerPrefill を確認してください。',
+          errCountryCode: '国コードを選択してください。',
           payComplete: '決済完了', payFailed: '決済失敗', paid: '決済完了', networkErr: 'ネットワークエラー',
-          mm: 'MM', yyyy: 'YYYY', cvv: 'CVV'
+          mm: 'MM', yyyy: 'YYYY', cvv: 'CVV',
+          fxDisplayCurrency: '表示通貨', fxThbEstimate: '請求予想金額', configErr: '設定の読み込みに失敗しました.',
+          needFxQuote: '為替見積りを読み込み中か、取得に失敗しました。しばらくしてから再度お試しください.',
+          needAmount: '有効な金額を入力してください。', langGroup: '言語'
         },
         CHN: {
           title: 'JPAY 支付', brandSub: 'JPAY 安全支付', merchant: '商户', item: '商品', amount: '金额', card: '银行卡',
-          cardNo: '卡号', firstName: '名', lastName: '姓', email: '邮箱', billing: '账单地址',
-          phone: '电话', country: '国家(2位)', address: '地址', city: '城市', postcode: '邮编', pay: '支付',
+          cardNo: '卡号', firstName: '名', lastName: '姓', email: '邮箱', shipping: '配送地址',
+          phone: '电话', phoneHint: '不含国家码 (例: 13800138000)', countryCode: '国家代码', selectCountry: '— 请选择 —', country: '国家(2位)', address: '地址', city: '城市', postcode: '邮编', pay: '支付',
           errMerchant: '需要商户代码(m)。', errLoad: '无法加载支付页面。',
           errInvalidSession: '会话无效或已过期。', errSessionMismatch: '会话与订单信息不一致。',
+          errPrefillRequired: '缺少商户买家信息(邮箱/电话/国家代码)。请检查 prepare buyerPrefill。',
+          errCountryCode: '请选择国家代码。',
           payComplete: '支付完成', payFailed: '支付失败', paid: '已支付', networkErr: '网络错误',
-          mm: 'MM', yyyy: 'YYYY', cvv: 'CVV'
+          mm: 'MM', yyyy: 'YYYY', cvv: 'CVV',
+          fxDisplayCurrency: '显示货币', fxThbEstimate: '预计扣款金额', configErr: '无法加载设置。',
+          needFxQuote: '汇率报价加载中或失败，请稍后重试。',
+          needAmount: '请输入有效金额。', langGroup: '语言'
         },
         THA: {
           title: 'JPAY ชำระเงิน', brandSub: 'JPAY ชำระเงินปลอดภัย', merchant: 'ร้านค้า', item: 'สินค้า', amount: 'จำนวนเงิน', card: 'บัตร',
-          cardNo: 'หมายเลขบัตร', firstName: 'ชื่อ', lastName: 'นามสกุล', email: 'อีเมล', billing: 'ที่อยู่เรียกเก็บ',
-          phone: 'โทรศัพท์', country: 'ประเทศ(2)', address: 'ที่อยู่', city: 'เมือง', postcode: 'รหัสไปรษณีย์', pay: 'ชำระเงิน',
+          cardNo: 'หมายเลขบัตร', firstName: 'ชื่อ', lastName: 'นามสกุล', email: 'อีเมล', shipping: 'ที่อยู่จัดส่ง',
+          phone: 'โทรศัพท์', phoneHint: 'ไม่รวมรหัสประเทศ (เช่น 0812345678)', countryCode: 'รหัสประเทศ', selectCountry: '— เลือก —', country: 'ประเทศ(2)', address: 'ที่อยู่', city: 'เมือง', postcode: 'รหัสไปรษณีย์', pay: 'ชำระเงิน',
           errMerchant: 'ต้องระบุรหัสร้านค้า (m)', errLoad: 'โหลดหน้าชำระเงินไม่สำเร็จ',
           errInvalidSession: 'เซสชันไม่ถูกต้องหรือหมดอายุ', errSessionMismatch: 'เซสชันไม่ตรงกับข้อมูลคำสั่งซื้อ',
+          errPrefillRequired: 'ไม่มีข้อมูลผู้ซื้อจากร้าน (อีเมล/โทร/รหัสประเทศ) ตรวจสอบ prepare buyerPrefill',
+          errCountryCode: 'เลือกรหัสประเทศ',
           payComplete: 'ชำระเงินสำเร็จ', payFailed: 'ชำระเงินล้มเหลว', paid: 'ชำระแล้ว', networkErr: 'ข้อผิดพลาดเครือข่าย',
-          mm: 'MM', yyyy: 'YYYY', cvv: 'CVV'
+          mm: 'MM', yyyy: 'YYYY', cvv: 'CVV',
+          fxDisplayCurrency: 'สกุลเงินที่แสดง', fxThbEstimate: 'ยอดเรียกเก็บโดยประมาณ', configErr: 'โหลดการตั้งค่าไม่สำเร็จ',
+          needFxQuote: 'กำลังโหลดอัตราแล้วหรือโหลดไม่สำเร็จ โปรดรอแล้วลองอีกครั้ง',
+          needAmount: 'กรุณากรอกจำนวนเงินที่ถูกต้อง', langGroup: 'ภาษา'
         }
       };
+      var urlPayFormMode = 'FULL';
+      var urlPayAmountScaleMode = 'SAME';
+      var urlPayPricingMode = 'CHECKOUT_CURRENCY';
+      var urlPayDisplayFxActive = false;
+      var fxShellState = { urlPayFxQuote: null, urlPayFxReloadTimer: null };
+
       function t(key) {
         var pack = I18N[LANG] || I18N.ENG;
         return pack[key] != null ? pack[key] : (I18N.ENG[key] || key);
       }
+      function setLang(code) {
+        var c = String(code || '').toUpperCase();
+        if (c === 'KO' || c === 'KR') c = 'KOR';
+        if (c === 'JA' || c === 'JP') c = 'JPN';
+        if (c === 'ZH' || c === 'CN') c = 'CHN';
+        if (c === 'TH') c = 'THA';
+        if (c === 'EN') c = 'ENG';
+        if (c !== 'KOR' && c !== 'ENG' && c !== 'CHN' && c !== 'JPN' && c !== 'THA') return;
+        LANG = c;
+        applyI18n();
+        if (window.PG_URL_PAY_SHELL) {
+          PG_URL_PAY_SHELL.applyCardCopyPresentation({
+            lang: LANG, cardCopy: window.__payUrlCardCopy, t: t,
+            onApply: function () { PG_URL_PAY_SHELL.applyAmountScaleNotice({ lang: LANG, cardCopy: window.__payUrlCardCopy, scaleMode: urlPayAmountScaleMode }); }
+          });
+        }
+      }
       function applyI18n() {
-        document.title = t('title');
-        var sub = document.querySelector('#jpayBrandBlock .pay-brand-sub');
-        if (sub) sub.textContent = t('brandSub');
-        var labels = document.querySelectorAll('.pay-row-label');
-        if (labels[0]) labels[0].textContent = t('merchant');
-        var itemLbl = document.querySelector('label[for="item"]');
-        if (itemLbl) itemLbl.textContent = t('item');
-        var amtLbl = document.querySelector('label[for="amount"]');
-        if (amtLbl) amtLbl.textContent = t('amount');
-        var cardLbl = document.querySelector('.pay-label');
-        if (cardLbl) cardLbl.textContent = t('card');
-        var cardNo = document.getElementById('payCardno');
-        if (cardNo) cardNo.placeholder = t('cardNo');
-        var cmm = document.getElementById('payCardmonth');
-        if (cmm) cmm.placeholder = t('mm');
-        var cyy = document.getElementById('payCardyear');
-        if (cyy) cyy.placeholder = t('yyyy');
-        var ccv = document.getElementById('payCardcvv');
-        if (ccv) ccv.placeholder = t('cvv');
-        var fn = document.getElementById('payFirstname');
-        if (fn) fn.placeholder = t('firstName');
-        var ln = document.getElementById('payLastname');
-        if (ln) ln.placeholder = t('lastName');
-        var em = document.getElementById('payEmailAddress');
-        if (em) em.placeholder = t('email');
-        var bl = document.getElementById('billingLabel');
-        if (bl) bl.textContent = t('billing');
-        var ph = document.getElementById('payTelephone');
-        if (ph) ph.placeholder = t('phone');
-        var co = document.getElementById('payCountryIsoCode2');
-        if (co) co.placeholder = t('country');
-        var ad = document.getElementById('payStreetAddress1');
-        if (ad) ad.placeholder = t('address');
-        var ci = document.getElementById('payCity');
-        if (ci) ci.placeholder = t('city');
-        var pc = document.getElementById('payPostcode');
-        if (pc) pc.placeholder = t('postcode');
-        var btn = document.getElementById('submitBtn');
-        if (btn) btn.textContent = t('pay');
+        document.querySelectorAll('[data-i18n]').forEach(function (el) {
+          var k = el.getAttribute('data-i18n');
+          if (k) el.textContent = t(k);
+        });
+        document.querySelectorAll('[data-i18n-placeholder]').forEach(function (el) {
+          var k = el.getAttribute('data-i18n-placeholder');
+          if (k) el.setAttribute('placeholder', t(k));
+        });
+        document.querySelectorAll('[data-i18n-aria]').forEach(function (el) {
+          var k = el.getAttribute('data-i18n-aria');
+          if (k) el.setAttribute('aria-label', t(k));
+        });
+        document.querySelectorAll('.pay-lang button[data-lang]').forEach(function (b) {
+          b.classList.toggle('active', b.getAttribute('data-lang') === LANG);
+        });
+        if (!window.__payUrlCardCopy) document.title = t('title');
         try {
           var hl = { KOR: 'ko', ENG: 'en', JPN: 'ja', CHN: 'zh', THA: 'th' };
           document.documentElement.setAttribute('lang', hl[LANG] || 'en');
         } catch (eH) { /* ignore */ }
+        if (window.PG_URL_PAY_SHELL) {
+          PG_URL_PAY_SHELL.applyAmountScaleNotice({ lang: LANG, cardCopy: window.__payUrlCardCopy, scaleMode: urlPayAmountScaleMode });
+        }
+        if (window.PG_JPAY_CONTACT) {
+          var form0 = document.getElementById('jpayForm');
+          if (form0) PG_JPAY_CONTACT.refreshCountryLabels(form0, LANG, t('selectCountry'));
+        }
+      }
+
+      function jpayContactSelectLabel() {
+        return t('selectCountry');
       }
 
       function getCompId() {
@@ -257,6 +323,89 @@
         el.readOnly = true;
       }
 
+      // JPAY 필수: (1)카드·CVV (2)성명 (3)이메일 (4)전화. (5)배송 주소.
+      // FULL=전체 | CARD_ONLY=1~4 고객입력 | CARD_PREFILL=1·2만 입력, 3~6은 prepare prefill
+      var CHECKOUT_FIELD_MODE = 'FULL';
+      var ADDRESS_FIELD_IDS = ['payStreetAddress1', 'payCity', 'payPostcode'];
+      var CONTACT_FIELD_IDS = ['payEmailAddress', 'payContactCountryCode', 'payTelephone'];
+
+      function setFieldsRequired(ids, required) {
+        ids.forEach(function (id) {
+          var el = document.getElementById(id);
+          if (!el) return;
+          if (required) el.setAttribute('required', 'required');
+          else { el.required = false; el.removeAttribute('required'); }
+        });
+      }
+
+      function applyCheckoutFieldMode(mode) {
+        var m = String(mode || 'FULL').trim().toUpperCase();
+        if (m !== 'CARD_ONLY' && m !== 'CARD_PREFILL') m = 'FULL';
+        CHECKOUT_FIELD_MODE = m;
+        applyUrlPayFormMode();
+      }
+
+      function applyUrlPayFormMode() {
+        var m = CHECKOUT_FIELD_MODE;
+        var hideAddress = (m === 'CARD_ONLY' || m === 'CARD_PREFILL');
+        var hideContact = (m === 'CARD_PREFILL');
+        /* urlPayFormMode(SIMPLE)는 ChillPay pay.html 전용. jpay-pay는 checkoutFieldMode(1·2·3형)만 적용 */
+        setFieldsRequired(CONTACT_FIELD_IDS, !hideContact);
+        setFieldsRequired(ADDRESS_FIELD_IDS, m === 'FULL');
+        var contactRow = document.getElementById('contactRow');
+        if (contactRow) contactRow.style.display = hideContact ? 'none' : '';
+        ['billingLabel', 'billingAddressRow'].forEach(function (id) {
+          var el = document.getElementById(id);
+          if (el) el.style.display = hideAddress ? 'none' : '';
+        });
+        applyI18n();
+      }
+
+      function applyBillingPrefill(prefill) {
+        if (!prefill || CHECKOUT_FIELD_MODE !== 'CARD_PREFILL') return;
+        var p = typeof prefill === 'object' ? prefill : {};
+        var map = {
+          payEmailAddress: p.email || p.payEmailAddress,
+          payTelephone: p.phone || p.payTelephone,
+          payCountryIsoCode2: p.countryIso2 || p.payCountryIsoCode2
+        };
+        Object.keys(map).forEach(function (id) {
+          var v = map[id];
+          var el = document.getElementById(id);
+          if (el && v != null && String(v).trim() !== '') el.value = String(v).trim();
+        });
+        var addrMap = {
+          payStreetAddress1: p.address || p.payStreetAddress1,
+          payCity: p.city || p.payCity,
+          payPostcode: p.postcode || p.payPostcode
+        };
+        Object.keys(addrMap).forEach(function (id) {
+          var v = addrMap[id];
+          var el = document.getElementById(id);
+          if (el && v != null && String(v).trim() !== '') el.value = String(v).trim();
+        });
+        if (window.PG_JPAY_CONTACT) {
+          PG_JPAY_CONTACT.applyPrefill(document.getElementById('jpayForm'), checkoutCtx, p, LANG, jpayContactSelectLabel());
+        }
+        window.__jpayShippingPrefill = {
+          shippingStreetAddress1: p.shippingAddress || p.shippingStreetAddress1,
+          shippingCity: p.shippingCity,
+          shippingPostcode: p.shippingPostcode,
+          shippingCountryIsoCode2: p.shippingCountryIso2 || p.shippingCountryIsoCode2,
+          shippingTelephone: p.shippingPhone || p.shippingTelephone
+        };
+      }
+
+      function assertPrefillReadyForSubmit() {
+        if (CHECKOUT_FIELD_MODE !== 'CARD_PREFILL') return true;
+        var form = document.getElementById('jpayForm');
+        if (window.PG_JPAY_CONTACT) PG_JPAY_CONTACT.syncBeforeSubmit(form);
+        var em = (document.getElementById('payEmailAddress').value || '').trim();
+        var ph = (document.getElementById('payTelephone').value || '').trim();
+        var cc = window.PG_JPAY_CONTACT ? PG_JPAY_CONTACT.readCountryIso2(form) : (document.getElementById('payCountryIsoCode2').value || '').trim();
+        return em.length > 0 && ph.length > 0 && cc.length === 2;
+      }
+
       function showErr(msg) {
         var el = document.getElementById('configError');
         el.style.display = 'block';
@@ -290,7 +439,8 @@
           lockField('orderNo', p.get('orderNo') || p.get('OrderNo'));
           var curParam = p.get('currency') || p.get('cur');
           if (curParam) {
-            document.getElementById('currencyHint').textContent = curParam.trim().toUpperCase();
+            var h = document.getElementById('payAmountCurrencyHint');
+            if (h) h.textContent = '(' + curParam.trim().toUpperCase() + ')';
           }
         } catch (e) {}
       }
@@ -311,7 +461,18 @@
             lockField('orderNo', d.orderNo);
             lockField('amount', d.amount);
             lockField('item', d.productName);
-            if (d.currency) document.getElementById('currencyHint').textContent = String(d.currency).toUpperCase();
+            if (d.currency) {
+              var h0 = document.getElementById('payAmountCurrencyHint');
+              if (h0) h0.textContent = '(' + String(d.currency).toUpperCase() + ')';
+            }
+            applyBillingPrefill(d.buyerPrefill || d.prefill);
+            applyI18n();
+            if (CHECKOUT_FIELD_MODE === 'CARD_PREFILL' && window.PG_JPAY_CONTACT) {
+              var f = document.getElementById('jpayForm');
+              if (f && !PG_JPAY_CONTACT.readCountryIso2(f)) {
+                PG_JPAY_CONTACT.init(f, checkoutCtx || {}, LANG, jpayContactSelectLabel());
+              }
+            }
           });
       }
 
@@ -331,8 +492,60 @@
         return m[LANG] || 'en';
       }
 
+      function initJpayContactFields(ctx) {
+        var form = document.getElementById('jpayForm');
+        if (!form || !window.PG_JPAY_CONTACT) return;
+        PG_JPAY_CONTACT.init(form, ctx || {}, LANG, jpayContactSelectLabel());
+      }
+
+      function applyCheckoutContext(ctx) {
+        checkoutCtx = ctx;
+        urlPayFormMode = ctx.urlPayFormMode != null ? String(ctx.urlPayFormMode) : 'FULL';
+        urlPayAmountScaleMode = ctx.urlPayAmountScaleMode != null ? String(ctx.urlPayAmountScaleMode) : 'SAME';
+        urlPayPricingMode = String(ctx.urlPayPricingMode || 'CHECKOUT_CURRENCY').toUpperCase();
+        urlPayDisplayFxActive = ctx.urlPayDisplayFxActive === true;
+        window.__payUrlCardCopy = ctx.urlPayCardCopy || null;
+        applyCheckoutFieldMode(ctx.checkoutFieldMode);
+        if (ctx.merchantName) document.getElementById('merchantNameDisplay').textContent = ctx.merchantName;
+        if (ctx.checkoutHeaderLogoUrl) {
+          var logoWrap = document.querySelector('#jpayBrandBlock .pay-brand-logo');
+          if (logoWrap) {
+            logoWrap.innerHTML = '';
+            var img = document.createElement('img');
+            img.src = (window.PG_URL_PAY_SHELL && PG_URL_PAY_SHELL.absPayAssetUrl)
+              ? PG_URL_PAY_SHELL.absPayAssetUrl(ctx.checkoutHeaderLogoUrl) : ctx.checkoutHeaderLogoUrl;
+            img.alt = ctx.merchantName || 'ICOPAY';
+            img.className = 'pay-brand-logo-img';
+            logoWrap.appendChild(img);
+          }
+        }
+        var itemEl = document.getElementById('item');
+        if (itemEl && !itemEl.readOnly && ctx.defaultProductName) itemEl.value = String(ctx.defaultProductName).trim();
+        var amtEl = document.getElementById('amount');
+        if (amtEl && !amtEl.readOnly) {
+          var defAmt = ctx.defaultAmount != null ? ctx.defaultAmount : ctx.defaultCheckoutAmount;
+          if (defAmt != null && defAmt !== '') amtEl.value = String(defAmt).trim();
+        }
+        var curHint = document.getElementById('payAmountCurrencyHint');
+        if (curHint && !urlPayDisplayFxActive && ctx.checkoutCurrencyCode) {
+          var q = new URLSearchParams(location.search);
+          if (!(q.get('currency') || q.get('cur'))) {
+            curHint.textContent = '(' + String(ctx.checkoutCurrencyCode).trim().toUpperCase() + ')';
+          }
+        }
+        applyI18n();
+        if (window.PG_URL_PAY_SHELL) {
+          PG_URL_PAY_SHELL.applyCardCopyPresentation({ lang: LANG, cardCopy: window.__payUrlCardCopy, t: t });
+          PG_URL_PAY_SHELL.applyAmountScaleNotice({ lang: LANG, cardCopy: window.__payUrlCardCopy, scaleMode: urlPayAmountScaleMode });
+        }
+        initJpayContactFields(ctx);
+      }
+
       function boot() {
         applyI18n();
+        if (window.PG_URL_PAY_SHELL) {
+          PG_URL_PAY_SHELL.wireLanguageButtons(function () { return LANG; }, setLang);
+        }
         var compId = getCompId();
         if (!compId) { showErr(t('errMerchant')); return; }
         document.getElementById('compIdHidden').value = compId;
@@ -341,39 +554,18 @@
           if (brand && PAY_ENTRY_MERCHANT_API) brand.style.display = 'none';
         }
         applyQueryPrefills();
-        fetchJson(apiUrl('/api/pay/jpay/checkout-context', 'compId=' + encodeURIComponent(compId)))
+        fetchJson(apiUrl('/api/pay/url/checkout-context', 'compId=' + encodeURIComponent(compId)))
           .then(function (ctxRes) {
-            if (!ctxRes.success || !ctxRes.data) throw new Error(ctxRes.message || 'Config error');
-            var ctx = ctxRes.data;
-            checkoutCtx = ctx;
-            if (ctx.merchantName) document.getElementById('merchantNameDisplay').textContent = ctx.merchantName;
-            if (ctx.checkoutHeaderLogoUrl) {
-              var logoWrap = document.querySelector('#jpayBrandBlock .pay-brand-logo');
-              if (logoWrap) {
-                logoWrap.innerHTML = '';
-                var img = document.createElement('img');
-                img.src = ctx.checkoutHeaderLogoUrl;
-                img.alt = ctx.merchantName || 'ICOPAY';
-                img.className = 'pay-brand-logo-img';
-                logoWrap.appendChild(img);
-              }
-            }
-            var itemEl = document.getElementById('item');
-            if (itemEl && !itemEl.readOnly && ctx.defaultProductName) itemEl.value = String(ctx.defaultProductName).trim();
-            var amtEl = document.getElementById('amount');
-            if (amtEl && !amtEl.readOnly && ctx.defaultAmount) amtEl.value = String(ctx.defaultAmount).trim();
-            if (ctx.defaultCountryIso2) {
-              var cEl = document.getElementById('payCountryIsoCode2');
-              if (cEl && !cEl.value) cEl.value = String(ctx.defaultCountryIso2).trim().toUpperCase();
-            }
-            if (ctx.checkoutCurrencyCode) {
-              var curHint = document.getElementById('currencyHint');
-              var q = new URLSearchParams(location.search);
-              if (!(q.get('currency') || q.get('cur'))) {
-                curHint.textContent = String(ctx.checkoutCurrencyCode).trim().toUpperCase();
-              }
-            }
-            return validateSession();
+            if (!ctxRes.success || !ctxRes.data) throw new Error(ctxRes.message || t('configErr'));
+            applyCheckoutContext(ctxRes.data);
+            fxShellState.checkoutCtx = checkoutCtx;
+            fxShellState.compId = compId;
+            fxShellState.apiUrl = apiUrl;
+            fxShellState.t = t;
+            fxShellState.urlPayDisplayFxActive = urlPayDisplayFxActive;
+            var fxP = window.PG_URL_PAY_SHELL
+              ? PG_URL_PAY_SHELL.initDisplayFx(fxShellState) : Promise.resolve();
+            return fxP.then(function () { return validateSession(); });
           })
           .then(function () {
             var ordEl = document.getElementById('orderNo');
@@ -386,20 +578,55 @@
 
       document.getElementById('jpayForm').addEventListener('submit', function (e) {
         e.preventDefault();
+        var btn = document.getElementById('submitBtn');
         if (!assertSessionMatchesForm()) {
           showErr(t('errSessionMismatch'));
           return;
         }
-        var btn = document.getElementById('submitBtn');
+        if (!assertPrefillReadyForSubmit()) {
+          showErr(t('errPrefillRequired'));
+          return;
+        }
+        var formEl = document.getElementById('jpayForm');
+        if (window.PG_JPAY_CONTACT) PG_JPAY_CONTACT.syncBeforeSubmit(formEl);
+        var ccVal = window.PG_JPAY_CONTACT ? PG_JPAY_CONTACT.readCountryIso2(formEl) : (document.getElementById('payCountryIsoCode2').value || '').trim().toUpperCase();
+        if (ccVal.length !== 2) {
+          showErr(t('errCountryCode'));
+          return;
+        }
         btn.disabled = true;
         var compId = document.getElementById('compIdHidden').value.trim();
+        var amtStr = String(document.getElementById('amount').value || '').replace(/,/g, '').trim();
+        var amtRaw = parseFloat(amtStr);
+        if (!(amtRaw > 0)) {
+          showFinished(false, t('needAmount'), '', {});
+          btn.disabled = false;
+          return;
+        }
+        if (urlPayDisplayFxActive && urlPayPricingMode === 'DISPLAY_FX_THB') {
+          var q = fxShellState.urlPayFxQuote;
+          if (!q || !q.fxQuoteToken) {
+            showFinished(false, t('needFxQuote'), document.getElementById('orderNo').value.trim(), {});
+            btn.disabled = false;
+            return;
+          }
+        }
         var cur = (checkoutCtx && checkoutCtx.checkoutCurrencyCode)
           ? String(checkoutCtx.checkoutCurrencyCode).trim().toUpperCase()
-          : (document.getElementById('currencyHint').textContent.trim() || 'JPY');
+          : 'JPY';
+        if (urlPayDisplayFxActive && urlPayPricingMode === 'DISPLAY_FX_THB') {
+          var setCode = checkoutCtx && checkoutCtx.urlPaySettlementCurrencyCode
+            ? String(checkoutCtx.urlPaySettlementCurrencyCode).trim().toUpperCase() : '';
+          if (!setCode || ['THB', 'USD', 'JPY', 'KRW', 'SGD', 'HKD', 'CNY'].indexOf(setCode) < 0) {
+            setCode = (fxShellState.urlPayFxQuote && fxShellState.urlPayFxQuote.settlementCurrency)
+              ? String(fxShellState.urlPayFxQuote.settlementCurrency).trim().toUpperCase() : 'THB';
+          }
+          cur = setCode || 'THB';
+        }
         var body = {
           compId: compId,
           orderNo: document.getElementById('orderNo').value.trim(),
-          amount: document.getElementById('amount').value.trim(),
+          amount: amtStr,
           currency: cur,
           item: document.getElementById('item').value.trim(),
           payCardno: document.getElementById('payCardno').value.replace(/\s/g, ''),
@@ -410,7 +637,7 @@
           payLastname: document.getElementById('payLastname').value.trim(),
           payEmailAddress: document.getElementById('payEmailAddress').value.trim(),
           payTelephone: document.getElementById('payTelephone').value.trim(),
-          payCountryIsoCode2: document.getElementById('payCountryIsoCode2').value.trim().toUpperCase(),
+          payCountryIsoCode2: ccVal,
           payStreetAddress1: document.getElementById('payStreetAddress1').value.trim(),
           payCity: document.getElementById('payCity').value.trim(),
           payPostcode: document.getElementById('payPostcode').value.trim(),
@@ -419,7 +646,21 @@
           system: 'icopay',
           txnOrigin: PAY_ENTRY_CHATBOT ? 'CHATBOT' : (PAY_ENTRY_MERCHANT_API ? 'MERCHANT_API' : 'URL')
         };
-        fetch(API_BASE + '/api/pay/jpay/sale', {
+        if (urlPayDisplayFxActive && urlPayPricingMode === 'DISPLAY_FX_THB') {
+          body.urlPayPricingMode = 'DISPLAY_FX_THB';
+          body.displayCurrency = window.PG_URL_PAY_SHELL
+            ? PG_URL_PAY_SHELL.payFxResolvedDisplayCurrency(checkoutCtx) : 'JPY';
+          body.displayAmount = amtStr;
+          body.fxQuoteToken = (fxShellState.urlPayFxQuote && fxShellState.urlPayFxQuote.fxQuoteToken)
+            ? String(fxShellState.urlPayFxQuote.fxQuoteToken) : '';
+        }
+        var ship = window.__jpayShippingPrefill || {};
+        if (ship.shippingStreetAddress1) body.shippingStreetAddress1 = String(ship.shippingStreetAddress1).trim();
+        if (ship.shippingCity) body.shippingCity = String(ship.shippingCity).trim();
+        if (ship.shippingPostcode) body.shippingPostcode = String(ship.shippingPostcode).trim();
+        if (ship.shippingCountryIsoCode2) body.shippingCountryIsoCode2 = String(ship.shippingCountryIsoCode2).trim().toUpperCase();
+        if (ship.shippingTelephone) body.shippingTelephone = String(ship.shippingTelephone).trim();
+        fetch(API_BASE + '/api/pay/url/sale', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(body)

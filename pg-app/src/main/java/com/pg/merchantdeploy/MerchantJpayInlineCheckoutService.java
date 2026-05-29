@@ -113,7 +113,20 @@ public class MerchantJpayInlineCheckoutService {
         }
         String langCode = MerchantCheckoutLangUtil.fromBody(body);
 
-        String sessionToken = tokenService.issue(MerchantPgBrokerVendor.JPAY, ou.getCode(), orderNo,
+        String fieldMode = com.pg.urlpay.JpayCheckoutFieldModeUtil.resolve(
+                profOpt.map(MerchantProfile::getJpayCheckoutFieldMode).orElse(null),
+                hq != null ? hq.getJpayCheckoutFieldMode() : null);
+        String buyerPrefillJson;
+        try {
+            buyerPrefillJson = com.pg.urlpay.JpayBuyerPrefillUtil.resolvePrefillJsonForPrepare(body, fieldMode);
+        } catch (IllegalArgumentException ex) {
+            return fail(ex.getMessage(), "BUYER_PREFILL_INVALID");
+        }
+
+        String sessionToken = buyerPrefillJson != null && !buyerPrefillJson.isBlank()
+                ? tokenService.issueWithBuyerPrefill(MerchantPgBrokerVendor.JPAY, ou.getCode(), orderNo,
+                amountPlain, currency, productName, buyerPrefillJson)
+                : tokenService.issue(MerchantPgBrokerVendor.JPAY, ou.getCode(), orderNo,
                 amountPlain, currency, productName);
         Optional<MerchantInlineCheckoutTokenService.SessionPayload> parsed =
                 tokenService.parseValid(sessionToken, MerchantPgBrokerVendor.JPAY);

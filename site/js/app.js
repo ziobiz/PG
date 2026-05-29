@@ -2352,6 +2352,163 @@
     }
   }
 
+  function pgNormalizePgCdKey(pgCd) {
+    return String(pgCd || '').trim().toUpperCase().replace(/\s+/g, '_');
+  }
+
+  function pgIsJpayFamilyPgCd(pgCd) {
+    if (!pgCd) return false;
+    var u = pgNormalizePgCdKey(pgCd);
+    return u === 'JPAY' || u.indexOf('JPAY_') === 0;
+  }
+
+  /**
+   * URL 결제 공통 플랫폼 — 결제 페이지 경로(서버 {@code UrlPayVendorCapabilityRegistry} 와 동일).
+   * @see docs/URL결제_공통플랫폼_가이드.md
+   */
+  function pgUrlPayCheckoutPagePath(pgCd) {
+    return pgIsJpayFamilyPgCd(pgCd) ? '/jpay-pay/' : '/pay/';
+  }
+
+  /**
+   * URL 재결제 URL 노출 가능 — PG API 재결제 지원 + tb_pg_agency URL재결제 연동.
+   * JPAY 등 미지원 PG는 false (checkout-context 의 urlPayCapabilities.repayUrlEnabled 와 동일).
+   */
+  function pgUrlPayRepayUrlEnabled(pgCd, repayCatalogYn) {
+    if (!repayCatalogYn) return false;
+    if (pgIsJpayFamilyPgCd(pgCd)) return false;
+    return pgIsChillPayFamilyPgCd(pgCd);
+  }
+
+  function pgIsChillPayFamilyPgCd(pgCd) {
+    if (!pgCd) return false;
+    var u = pgNormalizePgCdKey(pgCd);
+    return u === 'CHILLPAY' || u.indexOf('CHILLPAY') === 0;
+  }
+
+  /** 운영·WEB·URL결제 연동 바인딩 1건 — 서버 {@code findOperationalWebBindingForUrlPay} 와 동일 우선순위(ChillPay 계열 우선). */
+  function pgResolveOperationalUrlPayBindingFromPane(pane) {
+    try {
+      var tbody = pane && pane.querySelector ? pane.querySelector('#pgBindingTbody') : null;
+      var cat = pane && pane._pgAgencyCatalog ? pane._pgAgencyCatalog : null;
+      if (!tbody || !cat) return null;
+      var candidates = [];
+      var repayPgCds = {};
+      tbody.querySelectorAll('tr').forEach(function (tr, idx) {
+        var opInp = tr.querySelector('input[name="pgOperational"]');
+        if (!opInp || !opInp.checked) return;
+        var actEl = tr.querySelector('[data-field="activationYn"]');
+        if (actEl && String(actEl.value || '').trim().toUpperCase() === 'N') return;
+        var pmEl = tr.querySelector('[data-field="payMethod"]');
+        var pm = pmEl ? String(pmEl.value || '').trim().toUpperCase() : '';
+        if (pm && pm !== 'WEB') return;
+        var pgSel = tr.querySelector('[data-field="pgCd"]');
+        var cd = pgSel && pgSel.value ? String(pgSel.value).trim() : '';
+        if (!cd) return;
+        var cdKey = pgNormalizePgCdKey(cd);
+        var row = cat[cdKey] || cat[cd.toUpperCase()];
+        if (!row) return;
+        if (String(row.integUrlPayRepayYn || '').toUpperCase() === 'Y') repayPgCds[cdKey] = true;
+        if (String(row.integUrlPayYn || '').toUpperCase() === 'Y') candidates.push({ pgCd: cd, idx: idx });
+      });
+      if (!candidates.length) return null;
+      candidates.sort(function (a, b) {
+        var ac = pgIsChillPayFamilyPgCd(a.pgCd) ? 0 : 1;
+        var bc = pgIsChillPayFamilyPgCd(b.pgCd) ? 0 : 1;
+        if (ac !== bc) return ac - bc;
+        return a.idx - b.idx;
+      });
+      var pick = candidates[0];
+      return {
+        pgCd: pick.pgCd,
+        jpay: pgIsJpayFamilyPgCd(pick.pgCd),
+        repayCatalogYn: !!repayPgCds[String(pick.pgCd).trim().toUpperCase()]
+      };
+    } catch (eRes) {
+      return null;
+    }
+  }
+
+  /** 가맹 결제 URL·URL 재결제 URL — {@link pgUrlPayCheckoutPagePath}·{@link pgUrlPayRepayUrlEnabled} (PG 공통 플랫폼). */
+  function pgRefreshCompDetailPaymentUrls(pane, compId) {
+    if (!pane || !compId) return;
+    var cid = String(compId).trim();
+    if (!cid) return;
+    var base = (window.SITE_CONFIG && window.SITE_CONFIG.paymentBaseUrl) || (window.location.origin || '');
+    base = base.replace(/\/$/, '');
+    var binding = pgResolveOperationalUrlPayBindingFromPane(pane);
+    var payPath = binding && binding.pgCd ? pgUrlPayCheckoutPagePath(binding.pgCd) : '/pay/';
+    var paymentUrlEl = pane.querySelector('#paymentUrlDisplay');
+    var paymentRepayUrlEl = pane.querySelector('#paymentRepayUrlDisplay');
+    var copyBtn = pane.querySelector('#paymentUrlCopyBtn');
+    var copyRepayBtn = pane.querySelector('#paymentRepayUrlCopyBtn');
+    if (paymentUrlEl) {
+      paymentUrlEl.value = base + payPath + encodeURIComponent(cid);
+      paymentUrlEl.disabled = false;
+      paymentUrlEl.removeAttribute('title');
+    }
+    if (paymentRepayUrlEl) {
+      if (!paymentRepayUrlEl._pgRepayPlaceholderKey) {
+        paymentRepayUrlEl._pgRepayPlaceholderKey = paymentRepayUrlEl.getAttribute('data-pg-ui-placeholder') || '가맹점 저장 후 조회';
+      }
+      var repayOn = binding && pgUrlPayRepayUrlEnabled(binding.pgCd, binding.repayCatalogYn);
+      if (!repayOn) {
+        paymentRepayUrlEl.value = '';
+        paymentRepayUrlEl.disabled = true;
+        paymentRepayUrlEl.setAttribute('readonly', 'readonly');
+        paymentRepayUrlEl.setAttribute('data-pg-repay-url-locked', 'Y');
+        if (binding && binding.jpay) {
+          paymentRepayUrlEl.setAttribute('data-pg-ui-title', 'JPAY URL 결제는 저장 카드 재결제(URL 재결제)를 지원하지 않습니다.');
+          paymentRepayUrlEl.setAttribute('data-pg-ui-placeholder', 'JPAY 운영 시 해당 없음');
+        } else {
+          paymentRepayUrlEl.setAttribute('data-pg-ui-title', '운영 PG에 URL 재결제 API·연동용도 URL재결제가 없어 재결제 URL을 사용할 수 없습니다.');
+          paymentRepayUrlEl.setAttribute('data-pg-ui-placeholder', '재결제 URL 해당 없음');
+        }
+        paymentRepayUrlEl.removeAttribute('title');
+        paymentRepayUrlEl.classList.add('pg-repay-url--jpay-off');
+        if (window.PG_UI_I18N && typeof window.PG_UI_I18N.applyDom === 'function') {
+          try { window.PG_UI_I18N.applyDom(paymentRepayUrlEl); } catch (eRepDom) { /* ignore */ }
+        }
+        if (copyRepayBtn) {
+          copyRepayBtn.disabled = true;
+          copyRepayBtn.setAttribute('aria-disabled', 'true');
+          copyRepayBtn.classList.add('disabled');
+        }
+      } else {
+        paymentRepayUrlEl.value = base + '/pay-repay/' + encodeURIComponent(cid);
+        paymentRepayUrlEl.disabled = false;
+        paymentRepayUrlEl.removeAttribute('readonly');
+        paymentRepayUrlEl.removeAttribute('data-pg-repay-url-locked');
+        paymentRepayUrlEl.removeAttribute('data-pg-ui-title');
+        paymentRepayUrlEl.removeAttribute('title');
+        paymentRepayUrlEl.classList.remove('pg-repay-url--jpay-off');
+        paymentRepayUrlEl.setAttribute('data-pg-ui-placeholder', paymentRepayUrlEl._pgRepayPlaceholderKey);
+        if (window.PG_UI_I18N && typeof window.PG_UI_I18N.applyDom === 'function') {
+          try { window.PG_UI_I18N.applyDom(paymentRepayUrlEl); } catch (eRepDom2) { /* ignore */ }
+        }
+        if (copyRepayBtn) {
+          copyRepayBtn.disabled = false;
+          copyRepayBtn.removeAttribute('aria-disabled');
+          copyRepayBtn.classList.remove('disabled');
+        }
+      }
+    }
+    if (copyBtn) copyBtn.disabled = false;
+  }
+  window.pgRefreshCompDetailPaymentUrls = pgRefreshCompDetailPaymentUrls;
+
+  function pgIsRepayUrlLockedByJpay(pane) {
+    var el = pane && pane.querySelector ? pane.querySelector('#paymentRepayUrlDisplay') : null;
+    return !!(el && el.getAttribute('data-pg-repay-url-locked') === 'Y');
+  }
+
+  function pgResolveCompIdFromPane(pane) {
+    if (!pane || !pane.querySelector) return '';
+    var el = pane.querySelector('#compInfoDetailForm [name="compId"]')
+      || pane.querySelector('#compDetailForm [name="compId"]');
+    return el && el.value ? String(el.value).trim() : '';
+  }
+
   /**
    * 가맹점이 본인 업체정보(/comp/myCompMng·/comp/compInfo)만 조회할 때: 웹결제·챗봇결제 카드는 뷰어.
    * 결제 URL / 챗봇결제 URL 입력은 읽기 전용, 복사 버튼만 활성.
@@ -2364,6 +2521,17 @@
       card.querySelectorAll('input, select, textarea, button').forEach(function (el) {
         if (!el || el.type === 'hidden') return;
         var id = el.id || '';
+        if (id === 'paymentRepayUrlDisplay' && el.getAttribute('data-pg-repay-url-locked') === 'Y') {
+          el.disabled = true;
+          el.readOnly = true;
+          return;
+        }
+        if (id === 'paymentRepayUrlCopyBtn' && pgIsRepayUrlLockedByJpay(pane)) {
+          el.disabled = true;
+          el.setAttribute('aria-disabled', 'true');
+          el.classList.add('disabled');
+          return;
+        }
         if (id === 'paymentUrlDisplay' || id === 'paymentRepayUrlDisplay' || id === 'chatbotPaymentUrlDisplay' || id === 'chatbotEmbedScriptDisplay') {
           el.disabled = false;
           if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') el.readOnly = true;
@@ -2410,6 +2578,11 @@
         }
       }
       pgApplyMerchantOwnCompUrlSectionsViewer(pane);
+      var cidOwn = pgResolveCompIdFromPane(pane);
+      if (cidOwn && typeof window.pgRefreshCompDetailPaymentUrls === 'function') {
+        window.pgRefreshCompDetailPaymentUrls(pane, cidOwn);
+        pgApplyMerchantOwnCompUrlSectionsViewer(pane);
+      }
       return;
     }
     var card = pane.querySelector('#webPaymentCard');
@@ -2418,12 +2591,20 @@
     card.classList.toggle('pg-url-pay-card--disabled', !allowed);
     card.querySelectorAll('input, select, textarea, button').forEach(function (el) {
       if (el.closest && el.closest('.pg-binding-list-wrap')) return;
+      var eid = el.id || '';
+      if (eid === 'paymentRepayUrlDisplay' || eid === 'paymentRepayUrlCopyBtn') {
+        if (pgIsRepayUrlLockedByJpay(pane)) return;
+      }
       el.disabled = !allowed;
     });
     if (!allowed) {
       card.setAttribute('title', 'URL 결제 연동이 있는 결제대행사를 WEB으로 등록하고, 해당 행에 운영(체크)을 켜면 이 영역이 활성화됩니다. 여러 운영 행이 있으면 그중 URL 연동이 있는 행이 하나라도 있으면 됩니다.');
     } else {
       card.removeAttribute('title');
+    }
+    var cidCard = pgResolveCompIdFromPane(pane);
+    if (cidCard && typeof window.pgRefreshCompDetailPaymentUrls === 'function') {
+      window.pgRefreshCompDetailPaymentUrls(pane, cidCard);
     }
   }
   window.pgApplyUrlPayWebSettingsCardState = pgApplyUrlPayWebSettingsCardState;
@@ -2601,6 +2782,11 @@
       if (subYn && d.apiJpaySubscriptionUseYn != null) {
         subYn.value = String(d.apiJpaySubscriptionUseYn).trim().toUpperCase() === 'Y' ? 'Y' : 'N';
       }
+      var jpayFieldMode = pane.querySelector('[name="jpayCheckoutFieldMode"]');
+      if (jpayFieldMode && d.jpayCheckoutFieldMode != null) {
+        var jfm = String(d.jpayCheckoutFieldMode).trim().toUpperCase();
+        jpayFieldMode.value = (jfm === 'FULL' || jfm === 'CARD_ONLY' || jfm === 'CARD_PREFILL') ? jfm : 'FOLLOW_HQ';
+      }
       var cb = pane.querySelector('[name="chatbotPaymentUseYn"]');
       if (cb && d.chatbotPaymentUseYn != null) {
         cb.value = String(d.chatbotPaymentUseYn).trim().toUpperCase() === 'Y' ? 'Y' : 'N';
@@ -2615,18 +2801,7 @@
       }
       var divM = String(d.compDiv || '').trim().toUpperCase() === 'MERCHANT';
       var base = (window.SITE_CONFIG && window.SITE_CONFIG.paymentBaseUrl) || (window.location.origin || '');
-      var paymentUrlEl = pane.querySelector('#paymentUrlDisplay');
-      if (paymentUrlEl && divM && d.compId) {
-        paymentUrlEl.value = base.replace(/\/$/, '') + '/pay/' + encodeURIComponent(String(d.compId).trim());
-        paymentUrlEl.disabled = false;
-        paymentUrlEl.removeAttribute('title');
-      }
-      var paymentRepayUrlEl = pane.querySelector('#paymentRepayUrlDisplay');
-      if (paymentRepayUrlEl && divM && d.compId) {
-        paymentRepayUrlEl.value = base.replace(/\/$/, '') + '/pay-repay/' + encodeURIComponent(String(d.compId).trim());
-        paymentRepayUrlEl.disabled = false;
-        paymentRepayUrlEl.removeAttribute('title');
-      }
+      if (divM && d.compId) pgRefreshCompDetailPaymentUrls(pane, d.compId);
       var chatbotUrlEl = pane.querySelector('#chatbotPaymentUrlDisplay');
       if (chatbotUrlEl && divM && d.compId) {
         chatbotUrlEl.value = base.replace(/\/$/, '') + '/chatbot-pay/' + encodeURIComponent(String(d.compId).trim());
@@ -2643,8 +2818,6 @@
       }
       var copyBtn = pane.querySelector('#paymentUrlCopyBtn');
       if (copyBtn) copyBtn.disabled = false;
-      var copyRepayBtn = pane.querySelector('#paymentRepayUrlCopyBtn');
-      if (copyRepayBtn) copyRepayBtn.disabled = false;
       var copyCbBtn = pane.querySelector('#chatbotPaymentUrlCopyBtn');
       if (copyCbBtn) copyCbBtn.disabled = false;
       var copyEmbBtn = pane.querySelector('#chatbotEmbedScriptCopyBtn');
@@ -2653,6 +2826,7 @@
         window.pgRefreshChatbotQrUiInPane(pane, d.compId, d.compDiv);
       }
       pgApplyUrlPayWebSettingsCardState(pane);
+      if (divM && d.compId) pgRefreshCompDetailPaymentUrls(pane, d.compId);
       if (pane.classList && pane.classList.contains('pg-merchant-own-comp-viewer')) {
         pgApplyMerchantOwnCompUrlSectionsViewer(pane);
       }
@@ -2703,7 +2877,9 @@
       tbody.addEventListener('change', function (ev) {
         if (ev.target && ev.target.getAttribute('name') === 'pgOperational') {
           syncPgBindingRowStyles();
+          var cidOp = getCompId();
           if (typeof window.pgApplyUrlPayWebSettingsCardState === 'function') window.pgApplyUrlPayWebSettingsCardState(pane);
+          else if (cidOp && typeof window.pgRefreshCompDetailPaymentUrls === 'function') window.pgRefreshCompDetailPaymentUrls(pane, cidOp);
           pgReapplyCompInfoReadonlyIfMerchantOwnViewer();
         }
       });
@@ -2802,6 +2978,10 @@
       syncPgBindingRowStyles();
       ensureSingleRowOperationalCheckbox();
       if (typeof window.pgApplyUrlPayWebSettingsCardState === 'function') window.pgApplyUrlPayWebSettingsCardState(pane);
+      else {
+        var cidRi = getCompId();
+        if (cidRi && typeof window.pgRefreshCompDetailPaymentUrls === 'function') window.pgRefreshCompDetailPaymentUrls(pane, cidRi);
+      }
       pgReapplyCompInfoReadonlyIfMerchantOwnViewer();
     }
 
@@ -2821,6 +3001,10 @@
         pgSel.addEventListener('change', function () {
           applyPgAgencyTemplateDefaults(tr);
           if (typeof window.pgApplyUrlPayWebSettingsCardState === 'function') window.pgApplyUrlPayWebSettingsCardState(pane);
+          else {
+            var cidPg = getCompId();
+            if (cidPg && typeof window.pgRefreshCompDetailPaymentUrls === 'function') window.pgRefreshCompDetailPaymentUrls(pane, cidPg);
+          }
           pgReapplyCompInfoReadonlyIfMerchantOwnViewer();
         });
       }
@@ -3062,7 +3246,10 @@
       pgAgencyCatalog = {};
       (list || []).forEach(function (p) {
         var cd = (p.pgCd || '').trim();
-        if (cd) pgAgencyCatalog[cd.toUpperCase()] = p;
+        if (!cd) return;
+        var key = pgNormalizePgCdKey(cd);
+        pgAgencyCatalog[key] = p;
+        if (cd.toUpperCase() !== key) pgAgencyCatalog[cd.toUpperCase()] = p;
       });
       var pgAgencyOptsHtml = '<option value="">선택</option>';
       (list || []).forEach(function (p) {
@@ -3106,6 +3293,8 @@
       }
       pane._pgAgencyCatalog = pgAgencyCatalog;
       if (typeof window.pgApplyUrlPayWebSettingsCardState === 'function') window.pgApplyUrlPayWebSettingsCardState(pane);
+      var cidInit = getCompId();
+      if (cidInit && typeof window.pgRefreshCompDetailPaymentUrls === 'function') window.pgRefreshCompDetailPaymentUrls(pane, cidInit);
       if (typeof window.applyReadOnlyCompInfoDetailIfOwn === 'function' && pane._lastCompInfoDetailData) {
         var fuInit = pane.getAttribute('formurl') || '';
         if (fuInit === '/comp/myCompMng' || fuInit === '/comp/compInfo') {
@@ -3114,6 +3303,10 @@
       }
       if (typeof opts.onInitialBindingsApplied === 'function') {
         try { opts.onInitialBindingsApplied(bindings); } catch (eO) {}
+      }
+      var cidAfterBind = getCompId();
+      if (cidAfterBind && typeof window.pgRefreshCompDetailPaymentUrls === 'function') {
+        window.pgRefreshCompDetailPaymentUrls(pane, cidAfterBind);
       }
       addBtn.addEventListener('click', function () {
         var idx = tbody.querySelectorAll('tr').length;
@@ -13705,7 +13898,7 @@
         form.querySelectorAll('input, select, textarea').forEach(function (el) { el.disabled = false; });
         var updBtnReset = pane.querySelector('#compInfoUpdateBtn');
         if (updBtnReset) updBtnReset.style.display = '';
-        var allFieldsInfo = ['compId', 'parentComp', 'compNm', 'compDiv', 'regNo', 'bizType', 'industry', 'bizNature', 'product', 'homepage', 'settleName', 'settleTelNo', 'ceoNm', 'ceoMobile', 'compTel', 'fax', 'zipCode', 'addr', 'addrDetail', 'addrEtc', 'addrCountryCd', 'addrCountryCdOther', 'email', 'siteUrl', 'siteSummary', 'useYn', 'loginId', 'bankCd', 'transferFee', 'cryptoTransferFee', 'accountNo', 'accountHolder', 'commissionConfigAllowed', 'webPaymentUseYn', 'urlPayCheckoutMode', 'apiUrlPayCheckoutMode', 'chatbotUrlPayCheckoutMode', 'apiJpaySubscriptionUseYn', 'chatbotPaymentUseYn', 'chatbotProductSlotLimit', 'chatbotHeaderLogoUrl', 'chatbotAdminUsername', 'chatbotCatalogListingGrant', 'chatbotMaxProductImagesGrant', 'chatbotCatalogListingEnabled', 'baseCurrency', 'remark', 'countryCd', 'countryCdOther', 'swift', 'branchName', 'branchAddr', 'contactTel', 'walletAddress', 'networkName', 'withdrawRestrictType', 'withdrawStartTime', 'withdrawEndTime', 'payLimitDefault', 'payLimitExtra', 'payLimitAlertSms', 'holdRateFollowHq', 'holdRate', 'holdDays', 'commissionFollowHq', 'hqPolicyScope', 'failFee', 'usageRate', 'payRate', 'cancelRate', 'voidFeePerTx', 'manualVoidFeePerTx', 'refundRate', 'voidSettlementMode', 'manualVoidSettlementMode', 'refundSettlementMode', 'forceRefundSettlementMode', 'commissionMemo', 'feeSettlementPerTx', 'remittanceTransferFee', 'usdtTransferFeeUsd', 'feeUsdt', 'feeFx', 'fee3dsRate', 'chargebackFeePerTx', 'chargebackPolicyId', 'payFollowMerchantUseYn', 'payFollowAutoVoidYn', 'payFollowEmailVoidYn', 'payFollowAutoRefundYn', 'payFollowForceRefundYn', 'urlPayAlertEmailYn', 'calcCycle', 'calcProcType', 'calcCloseTime', 'transferType', 'transferCycleDays', 'autoTransferMin', 'calcMinAmt', 'transferExecTime', 'calcExcludeYn', 'calcExcludeTarget', 'calcStartTime', 'payHoldYn', 'feeVatApplyYn', 'feeVatRatePct', 'calcCycleTransitionMode', 'calcCycleChangeRemark', 'defaultProductName', 'defaultProductCode', 'defaultProductAmount', 'defaultProductDesc', 'notifyUrlBackground', 'notifyUrlResult', 'jpayNotifyUrl', 'jpayCallbackUrl', 'assistantLoginId', 'assistantPwd', 'assistantRoleType', 'brandingEditAllowedYn', 'copyright'];
+        var allFieldsInfo = ['compId', 'parentComp', 'compNm', 'compDiv', 'regNo', 'bizType', 'industry', 'bizNature', 'product', 'homepage', 'settleName', 'settleTelNo', 'ceoNm', 'ceoMobile', 'compTel', 'fax', 'zipCode', 'addr', 'addrDetail', 'addrEtc', 'addrCountryCd', 'addrCountryCdOther', 'email', 'siteUrl', 'siteSummary', 'useYn', 'loginId', 'bankCd', 'transferFee', 'cryptoTransferFee', 'accountNo', 'accountHolder', 'commissionConfigAllowed', 'webPaymentUseYn', 'urlPayCheckoutMode', 'apiUrlPayCheckoutMode', 'chatbotUrlPayCheckoutMode', 'jpayCheckoutFieldMode', 'apiJpaySubscriptionUseYn', 'chatbotPaymentUseYn', 'chatbotProductSlotLimit', 'chatbotHeaderLogoUrl', 'chatbotAdminUsername', 'chatbotCatalogListingGrant', 'chatbotMaxProductImagesGrant', 'chatbotCatalogListingEnabled', 'baseCurrency', 'remark', 'countryCd', 'countryCdOther', 'swift', 'branchName', 'branchAddr', 'contactTel', 'walletAddress', 'networkName', 'withdrawRestrictType', 'withdrawStartTime', 'withdrawEndTime', 'payLimitDefault', 'payLimitExtra', 'payLimitAlertSms', 'holdRateFollowHq', 'holdRate', 'holdDays', 'commissionFollowHq', 'hqPolicyScope', 'failFee', 'usageRate', 'payRate', 'cancelRate', 'voidFeePerTx', 'manualVoidFeePerTx', 'refundRate', 'voidSettlementMode', 'manualVoidSettlementMode', 'refundSettlementMode', 'forceRefundSettlementMode', 'commissionMemo', 'feeSettlementPerTx', 'remittanceTransferFee', 'usdtTransferFeeUsd', 'feeUsdt', 'feeFx', 'fee3dsRate', 'chargebackFeePerTx', 'chargebackPolicyId', 'payFollowMerchantUseYn', 'payFollowAutoVoidYn', 'payFollowEmailVoidYn', 'payFollowAutoRefundYn', 'payFollowForceRefundYn', 'urlPayAlertEmailYn', 'calcCycle', 'calcProcType', 'calcCloseTime', 'transferType', 'transferCycleDays', 'autoTransferMin', 'calcMinAmt', 'transferExecTime', 'calcExcludeYn', 'calcExcludeTarget', 'calcStartTime', 'payHoldYn', 'feeVatApplyYn', 'feeVatRatePct', 'calcCycleTransitionMode', 'calcCycleChangeRemark', 'defaultProductName', 'defaultProductCode', 'defaultProductAmount', 'defaultProductDesc', 'notifyUrlBackground', 'notifyUrlResult', 'jpayNotifyUrl', 'jpayCallbackUrl', 'assistantLoginId', 'assistantPwd', 'assistantRoleType', 'brandingEditAllowedYn', 'copyright'];
         allFieldsInfo.forEach(function (k) {
           var el = form.querySelector('[name="' + k + '"]');
           if (el && data[k] != null) {
@@ -13990,15 +14183,14 @@
         var paymentInfoCard = pane.querySelector('#webPaymentCard') || pane.querySelector('#pgInfoCard');
         if (paymentInfoCard) {
           paymentInfoCard.style.display = (data.compDiv === 'MERCHANT') ? '' : 'none';
-          var basePay = (window.SITE_CONFIG && window.SITE_CONFIG.paymentBaseUrl) || (window.location.origin || '');
-          var paymentUrlEl = pane.querySelector('#paymentUrlDisplay');
-          if (paymentUrlEl && data.compId && data.compDiv === 'MERCHANT') {
-            paymentUrlEl.value = basePay.replace(/\/$/, '') + '/pay/' + encodeURIComponent(String(data.compId).trim());
-          } else if (paymentUrlEl) paymentUrlEl.value = '';
-          var paymentRepayUrlEl2 = pane.querySelector('#paymentRepayUrlDisplay');
-          if (paymentRepayUrlEl2 && data.compId && data.compDiv === 'MERCHANT') {
-            paymentRepayUrlEl2.value = basePay.replace(/\/$/, '') + '/pay-repay/' + encodeURIComponent(String(data.compId).trim());
-          } else if (paymentRepayUrlEl2) paymentRepayUrlEl2.value = '';
+          if (data.compId && data.compDiv === 'MERCHANT' && typeof window.pgRefreshCompDetailPaymentUrls === 'function') {
+            window.pgRefreshCompDetailPaymentUrls(pane, data.compId);
+          } else {
+            var paymentUrlElClr = pane.querySelector('#paymentUrlDisplay');
+            if (paymentUrlElClr) paymentUrlElClr.value = '';
+            var paymentRepayUrlElClr = pane.querySelector('#paymentRepayUrlDisplay');
+            if (paymentRepayUrlElClr) paymentRepayUrlElClr.value = '';
+          }
         }
         var chatbotPayCard = pane.querySelector('#chatbotPaymentCard');
         if (chatbotPayCard) {
@@ -14748,7 +14940,7 @@
         var form = pane.querySelector('#compDetailForm');
         if (!form) return;
         initAttachmentSection(pane);
-        var allFields = ['compId', 'parentComp', 'compNm', 'compDiv', 'regNo', 'bizType', 'industry', 'bizNature', 'product', 'homepage', 'settleName', 'settleTelNo', 'ceoNm', 'ceoMobile', 'compTel', 'fax', 'zipCode', 'addr', 'addrDetail', 'addrEtc', 'addrCountryCd', 'addrCountryCdOther', 'email', 'siteUrl', 'siteSummary', 'useYn', 'loginId', 'bankCd', 'transferFee', 'cryptoTransferFee', 'accountNo', 'accountHolder', 'commissionConfigAllowed', 'webPaymentUseYn', 'urlPayCheckoutMode', 'apiUrlPayCheckoutMode', 'chatbotUrlPayCheckoutMode', 'apiJpaySubscriptionUseYn', 'chatbotPaymentUseYn', 'chatbotProductSlotLimit', 'chatbotHeaderLogoUrl', 'chatbotAdminUsername', 'chatbotCatalogListingGrant', 'chatbotMaxProductImagesGrant', 'chatbotCatalogListingEnabled', 'baseCurrency', 'remark', 'settleType', 'commissionRate', 'limitAmt', 'countryCd', 'countryCdOther', 'swift', 'branchName', 'branchAddr', 'contactTel', 'walletAddress', 'networkName', 'withdrawRestrictType', 'withdrawStartTime', 'withdrawEndTime', 'payLimitDefault', 'payLimitExtra', 'payLimitAlertSms', 'holdRateFollowHq', 'holdRate', 'holdDays', 'commissionFollowHq', 'hqPolicyScope', 'failFee', 'usageRate', 'payRate', 'cancelRate', 'voidFeePerTx', 'manualVoidFeePerTx', 'refundRate', 'voidSettlementMode', 'manualVoidSettlementMode', 'refundSettlementMode', 'forceRefundSettlementMode', 'commissionMemo', 'feeSettlementPerTx', 'remittanceTransferFee', 'usdtTransferFeeUsd', 'feeUsdt', 'feeFx', 'fee3dsRate', 'chargebackFeePerTx', 'chargebackPolicyId', 'payFollowMerchantUseYn', 'payFollowAutoVoidYn', 'payFollowEmailVoidYn', 'payFollowAutoRefundYn', 'payFollowForceRefundYn', 'urlPayAlertEmailYn', 'calcCycle', 'calcProcType', 'calcCloseTime', 'transferType', 'transferCycleDays', 'autoTransferMin', 'calcMinAmt', 'transferExecTime', 'calcExcludeYn', 'calcExcludeTarget', 'calcStartTime', 'payHoldYn', 'feeVatApplyYn', 'feeVatRatePct', 'calcCycleTransitionMode', 'calcCycleChangeRemark', 'defaultProductName', 'defaultProductCode', 'defaultProductAmount', 'defaultProductDesc', 'notifyUrlBackground', 'notifyUrlResult', 'jpayNotifyUrl', 'jpayCallbackUrl', 'notifyUrl1', 'notifyUrl2', 'notifyUrl3', 'notifyUrl4', 'remitterName', 'balanceNotifyAmt', 'suspiciousNotifyAmt', 'overseasLoginNotifyAmt', 'tempPwdNotifyAmt', 'nonTranCriterionMonth', 'sameCardLimitWebDay', 'sameCardLimitWebTimes', 'sameCardLimitWebAmt', 'sameCardLimitTerminalDay', 'sameCardLimitTerminalTimes', 'sameCardLimitTerminalAmt', 'dailyUsageFee', 'depositNameLookup', 'transferAuthNo', 'autoConvertNewMemberLimit', 'newMemberDailyLimit', 'convertRefDate', 'convertDailyLimit', 'applyStartDate', 'pgFeeGeneral', 'settleDiffMonthCnt', 'settleReportBankCd', 'pgFeeSamsung', 'smsFee', 'taxInvoiceEmail', 'settleAccountNo', 'directFee', 'solutionFee', 'settleAccountHolder', 'withdrawRestrictType', 'withdrawRestrictStartTime', 'withdrawRestrictEndTime', 'terminalPayRestrict', 'webPayRestrict', 'defaultFeeHq', 'defaultFeeDist', 'defaultFeeBranch', 'defaultFeeAgency', 'defaultFeeSalesOffice', 'defaultPayLimitPerTx', 'defaultPayLimitDay', 'defaultPayLimitMonth', 'defaultPayLimitYearCorp', 'defaultPayLimitYearInd', 'copyright', 'holidayProfileName', 'holidayProfileCountry', 'holidayCountryCode', 'holidayCountryCodes', 'businessHolidayRangesJson', 'businessHolidayExtraDates'];
+        var allFields = ['compId', 'parentComp', 'compNm', 'compDiv', 'regNo', 'bizType', 'industry', 'bizNature', 'product', 'homepage', 'settleName', 'settleTelNo', 'ceoNm', 'ceoMobile', 'compTel', 'fax', 'zipCode', 'addr', 'addrDetail', 'addrEtc', 'addrCountryCd', 'addrCountryCdOther', 'email', 'siteUrl', 'siteSummary', 'useYn', 'loginId', 'bankCd', 'transferFee', 'cryptoTransferFee', 'accountNo', 'accountHolder', 'commissionConfigAllowed', 'webPaymentUseYn', 'urlPayCheckoutMode', 'apiUrlPayCheckoutMode', 'chatbotUrlPayCheckoutMode', 'jpayCheckoutFieldMode', 'apiJpaySubscriptionUseYn', 'chatbotPaymentUseYn', 'chatbotProductSlotLimit', 'chatbotHeaderLogoUrl', 'chatbotAdminUsername', 'chatbotCatalogListingGrant', 'chatbotMaxProductImagesGrant', 'chatbotCatalogListingEnabled', 'baseCurrency', 'remark', 'settleType', 'commissionRate', 'limitAmt', 'countryCd', 'countryCdOther', 'swift', 'branchName', 'branchAddr', 'contactTel', 'walletAddress', 'networkName', 'withdrawRestrictType', 'withdrawStartTime', 'withdrawEndTime', 'payLimitDefault', 'payLimitExtra', 'payLimitAlertSms', 'holdRateFollowHq', 'holdRate', 'holdDays', 'commissionFollowHq', 'hqPolicyScope', 'failFee', 'usageRate', 'payRate', 'cancelRate', 'voidFeePerTx', 'manualVoidFeePerTx', 'refundRate', 'voidSettlementMode', 'manualVoidSettlementMode', 'refundSettlementMode', 'forceRefundSettlementMode', 'commissionMemo', 'feeSettlementPerTx', 'remittanceTransferFee', 'usdtTransferFeeUsd', 'feeUsdt', 'feeFx', 'fee3dsRate', 'chargebackFeePerTx', 'chargebackPolicyId', 'payFollowMerchantUseYn', 'payFollowAutoVoidYn', 'payFollowEmailVoidYn', 'payFollowAutoRefundYn', 'payFollowForceRefundYn', 'urlPayAlertEmailYn', 'calcCycle', 'calcProcType', 'calcCloseTime', 'transferType', 'transferCycleDays', 'autoTransferMin', 'calcMinAmt', 'transferExecTime', 'calcExcludeYn', 'calcExcludeTarget', 'calcStartTime', 'payHoldYn', 'feeVatApplyYn', 'feeVatRatePct', 'calcCycleTransitionMode', 'calcCycleChangeRemark', 'defaultProductName', 'defaultProductCode', 'defaultProductAmount', 'defaultProductDesc', 'notifyUrlBackground', 'notifyUrlResult', 'jpayNotifyUrl', 'jpayCallbackUrl', 'notifyUrl1', 'notifyUrl2', 'notifyUrl3', 'notifyUrl4', 'remitterName', 'balanceNotifyAmt', 'suspiciousNotifyAmt', 'overseasLoginNotifyAmt', 'tempPwdNotifyAmt', 'nonTranCriterionMonth', 'sameCardLimitWebDay', 'sameCardLimitWebTimes', 'sameCardLimitWebAmt', 'sameCardLimitTerminalDay', 'sameCardLimitTerminalTimes', 'sameCardLimitTerminalAmt', 'dailyUsageFee', 'depositNameLookup', 'transferAuthNo', 'autoConvertNewMemberLimit', 'newMemberDailyLimit', 'convertRefDate', 'convertDailyLimit', 'applyStartDate', 'pgFeeGeneral', 'settleDiffMonthCnt', 'settleReportBankCd', 'pgFeeSamsung', 'smsFee', 'taxInvoiceEmail', 'settleAccountNo', 'directFee', 'solutionFee', 'settleAccountHolder', 'withdrawRestrictType', 'withdrawRestrictStartTime', 'withdrawRestrictEndTime', 'terminalPayRestrict', 'webPayRestrict', 'defaultFeeHq', 'defaultFeeDist', 'defaultFeeBranch', 'defaultFeeAgency', 'defaultFeeSalesOffice', 'defaultPayLimitPerTx', 'defaultPayLimitDay', 'defaultPayLimitMonth', 'defaultPayLimitYearCorp', 'defaultPayLimitYearInd', 'copyright', 'holidayProfileName', 'holidayProfileCountry', 'holidayCountryCode', 'holidayCountryCodes', 'businessHolidayRangesJson', 'businessHolidayExtraDates'];
         allFields.forEach(function (k) {
           var el = form.querySelector('[name="' + k + '"]');
           if (el && data[k] != null) {
@@ -14968,15 +15160,14 @@
         if (paymentInfoCard) {
           var divForPg = apiCompDiv || storedCompDiv;
           paymentInfoCard.style.display = (divForPg === 'MERCHANT') ? '' : 'none';
-          var baseDet = (window.SITE_CONFIG && window.SITE_CONFIG.paymentBaseUrl) || (window.location.origin || '');
-          var paymentUrlEl = pane.querySelector('#paymentUrlDisplay');
-          if (paymentUrlEl && data.compId && divForPg === 'MERCHANT') {
-            paymentUrlEl.value = baseDet.replace(/\/$/, '') + '/pay/' + encodeURIComponent(String(data.compId).trim());
-          } else if (paymentUrlEl) paymentUrlEl.value = '';
-          var paymentRepayUrlEl3 = pane.querySelector('#paymentRepayUrlDisplay');
-          if (paymentRepayUrlEl3 && data.compId && divForPg === 'MERCHANT') {
-            paymentRepayUrlEl3.value = baseDet.replace(/\/$/, '') + '/pay-repay/' + encodeURIComponent(String(data.compId).trim());
-          } else if (paymentRepayUrlEl3) paymentRepayUrlEl3.value = '';
+          if (data.compId && divForPg === 'MERCHANT' && typeof window.pgRefreshCompDetailPaymentUrls === 'function') {
+            window.pgRefreshCompDetailPaymentUrls(pane, data.compId);
+          } else {
+            var paymentUrlElDet = pane.querySelector('#paymentUrlDisplay');
+            if (paymentUrlElDet) paymentUrlElDet.value = '';
+            var paymentRepayUrlElDet = pane.querySelector('#paymentRepayUrlDisplay');
+            if (paymentRepayUrlElDet) paymentRepayUrlElDet.value = '';
+          }
         }
         var chatbotPayCardD = pane.querySelector('#chatbotPaymentCard');
         if (chatbotPayCardD) {
@@ -23252,6 +23443,7 @@
             'apiBrokerDefaultFlowType', 'urlPayDefaultFlowType', 'urlPayPathTemplate',
             'apiBrokerInlineEnabledYn', 'apiBrokerRedirectEnabledYn', 'urlPayInlineEnabledYn', 'urlPayRedirectEnabledYn',
             'urlPayFormMode',
+            'jpayCheckoutFieldMode',
             'urlPayTabTitleJson',
             'urlPayFaviconUrl',
             'paymentProviderRegistryJson',

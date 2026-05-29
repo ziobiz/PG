@@ -179,6 +179,85 @@ html[data-pay-embed="1"] .pay-card {
   color: #dc3545;
 }
 
+/* JPAY 결제창: 전체 입력·placeholder 글꼴·크기 통일 (1·2·3형 공통) */
+#jpayForm {
+  --jpay-field-font-family: inherit;
+  --jpay-field-font-size: 0.875rem;
+  --jpay-field-line-height: 1.5;
+  --jpay-field-font-weight: 400;
+  --jpay-field-color: #212529;
+  --jpay-field-placeholder-color: var(--pay-muted);
+}
+
+#jpayForm .jpay-field-input,
+#jpayForm .form-control.jpay-field-input,
+#jpayForm .form-select.jpay-field-input,
+#jpayForm .form-control-sm.jpay-field-input,
+#jpayForm .form-select-sm.jpay-field-input {
+  font-family: var(--jpay-field-font-family);
+  font-size: var(--jpay-field-font-size);
+  line-height: var(--jpay-field-line-height);
+  font-weight: var(--jpay-field-font-weight);
+  color: var(--jpay-field-color);
+}
+
+#jpayForm .jpay-field-input::placeholder,
+#jpayForm .jpay-field-input::-webkit-input-placeholder,
+#jpayForm .jpay-field-input::-moz-placeholder {
+  font-family: var(--jpay-field-font-family);
+  font-size: var(--jpay-field-font-size);
+  line-height: var(--jpay-field-line-height);
+  font-weight: var(--jpay-field-font-weight);
+  color: var(--jpay-field-placeholder-color);
+  opacity: 1;
+}
+
+#jpayForm .form-select-sm.jpay-field-input,
+#jpayForm .form-select-sm.jpay-field-input option {
+  font-family: var(--jpay-field-font-family);
+  font-size: var(--jpay-field-font-size);
+  font-weight: var(--jpay-field-font-weight);
+}
+
+#jpayForm .form-control,
+#jpayForm .form-select,
+#jpayForm .form-control-sm,
+#jpayForm .form-select-sm {
+  font-family: inherit;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  font-weight: 400;
+  color: #212529;
+}
+
+#jpayForm .form-control::placeholder,
+#jpayForm .form-control-sm::placeholder,
+#jpayForm .form-control::-webkit-input-placeholder,
+#jpayForm .form-control-sm::-webkit-input-placeholder,
+#jpayForm .form-control::-moz-placeholder,
+#jpayForm .form-control-sm::-moz-placeholder {
+  font-family: inherit;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  font-weight: 400;
+  color: var(--pay-muted);
+  opacity: 1;
+}
+
+#jpayForm .form-select-sm,
+#jpayForm .form-select-sm option {
+  font-family: inherit;
+  font-size: 0.875rem;
+  font-weight: 400;
+}
+
+#jpayForm #contactRow .pay-label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 0.35rem;
+}
+
 .pay-divider {
   border: 0;
   border-top: 1px solid var(--pay-border);

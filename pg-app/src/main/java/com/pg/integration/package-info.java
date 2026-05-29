@@ -12,6 +12,8 @@
  * <b>신규 PG 추가 절차(요약)</b>
  * <ol>
  *   <li>{@code PgVendor}에 공개 코드 상수·필요 시 {@code pg_cd} 접두 판별 메서드 추가.</li>
+ *   <li><b>URL 공개 결제</b>: {@link com.pg.urlpay.UrlPayVendorCapabilityRegistry}·
+ *       {@link com.pg.urlpay.package-info} — 본사 URL결제설정은 PG 무관, 승인 API·재결제 URL만 어댑터 등록.</li>
  *   <li>결제·노티 전용 서비스는 {@code com.pg.service} 등 기존 패키지에 두되, 노티→거래 공통 진입은
  *       {@link com.pg.integration.pg.notify.PgNotifyInboundTxnHandler} 구현으로 연결.</li>
  *   <li>본사 배포 레지스트리·매핑 UI({@code HqNotifyMappingService} 등)에 벤더 메타 추가.</li>

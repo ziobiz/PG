@@ -8256,6 +8256,12 @@
       CH: 'URL 支付表单设置',
       TH: 'ตั้งค่าฟอร์มชำระ URL'
     },
+    '공개 결제 URL(/pay/업체코드 등) 입력 화면입니다. 간편(SIMPLE)은 성명·상품·금액·DirectCreditToken(카드 데이터는 토큰/CCD에 포함)만 받고, 전체(FULL)는 연락처·배송지까지 받습니다. <strong>브라우저 탭 이름</strong>·<strong>파비콘</strong>은 이 결제 폼(탭 제목·탭 아이콘) 전용이며, 화면 하단 <strong>저장</strong>으로 DB에 반영됩니다. 인라인/리다이렉트는 위 「URL 결제형 기본 방식」과 제공 여부로 결정됩니다.': {
+      EN: 'Public payment URL entry screen (/pay/{merchantCode}, etc.). SIMPLE collects name, product, amount, and DirectCreditToken (card data stays in token/CCD); FULL also collects contact and shipping address. <strong>Browser tab title</strong> and <strong>favicon</strong> apply only to this payment form (tab title/icon) and are saved to the DB with <strong>Save</strong> at the bottom. Inline vs redirect follows the “URL payment default flow” and availability above.',
+      JP: '公開決済URL（/pay/加盟店コード 等）の入力画面です。簡易（SIMPLE）は氏名・商品・金額・DirectCreditToken（カードデータはトークン/CCD内）のみ、全体（FULL）は連絡先・配送先まで取得します。<strong>ブラウザタブ名</strong>・<strong>ファビコン</strong>はこの決済フォーム（タブタイトル・アイコン）専用で、画面下部の<strong>保存</strong>でDBに反映されます。インライン/リダイレクトは上の「URL決済型の既定方式」と提供可否で決まります。',
+      CH: '公开支付 URL（/pay/商户代码 等）输入界面。简易（SIMPLE）仅收集姓名、商品、金额、DirectCreditToken（卡数据在 token/CCD）；完整（FULL）还收集联系方式与配送地址。<strong>浏览器标签标题</strong>与<strong>网站图标</strong>仅用于该支付表单（标签标题/图标），在页面底部<strong>保存</strong>写入数据库。内联/重定向由上方「URL 支付型默认方式」及是否提供决定。',
+      TH: 'หน้าป้อนข้อมูล URL ชำระเงินสาธารณะ SIMPLE รับชื่อ·สินค้า·ยอด·DirectCreditToken เท่านั้น FULL เพิ่มที่อยู่ติดต่อ·ที่อยู่จัดส่ง ชื่อแท็บและ favicon ใช้กับฟอร์มนี้เท่านั้น บันทึกที่ปุ่มล่าง INLINE/REDIRECT ตามค่าเริ่มต้น URL ด้านบน'
+    },
     '공개 결제 URL(/pay/업체코드 등) 입력 화면입니다. 간편(SIMPLE)은 성명·상품·금액·DirectCreditToken(카드 데이터는 토큰/CCD에 포함)만 받고, 전체(FULL)는 연락처·청구지까지 받습니다. <strong>브라우저 탭 이름</strong>·<strong>파비콘</strong>은 이 결제 폼(탭 제목·탭 아이콘) 전용이며, 화면 하단 <strong>저장</strong>으로 DB에 반영됩니다. 인라인/리다이렉트는 위 「URL 결제형 기본 방식」과 제공 여부로 결정됩니다.': {
       EN: 'Public payment URL entry screen (/pay/{merchantCode}, etc.). SIMPLE collects name, product, amount, and DirectCreditToken (card data stays in token/CCD); FULL also collects contact and billing address. <strong>Browser tab title</strong> and <strong>favicon</strong> apply only to this payment form (tab title/icon) and are saved to the DB with <strong>Save</strong> at the bottom. Inline vs redirect follows the “URL payment default flow” and availability above.',
       JP: '公開決済URL（/pay/加盟店コード 等）の入力画面です。簡易（SIMPLE）は氏名・商品・金額・DirectCreditToken（カードデータはトークン/CCD内）のみ、全体（FULL）は連絡先・請求先まで取得します。<strong>ブラウザタブ名</strong>・<strong>ファビコン</strong>はこの決済フォーム（タブタイトル・アイコン）専用で、画面下部の<strong>保存</strong>でDBに反映されます。インライン/リダイレクトは上の「URL決済型の既定方式」と提供可否で決まります。',
@@ -8267,6 +8273,12 @@
       JP: 'URL決済入力フォーム',
       CH: 'URL 支付输入表单',
       TH: 'ฟอร์มป้อน URL ชำระ'
+    },
+    '전체 입력 (배송지·성명 분리)': {
+      EN: 'Full input (shipping address · name split)',
+      JP: '全体入力（配送先・氏名を分離）',
+      CH: '完整输入（配送地址·姓名分开）',
+      TH: 'กรอกแบบเต็ม (ที่อยู่จัดส่ง·แยกชื่อ)'
     },
     '전체 입력 (청구지·성명 분리)': {
       EN: 'Full input (billing address · name split)',
