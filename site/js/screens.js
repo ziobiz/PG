@@ -1505,6 +1505,60 @@
     '<p class="mb-0" data-pg-ui-t="아래 하위 메뉴는 배포설정의 동명 화면과 내용이 같습니다. JPAY 연동·가맹점 API·체크리스트 점검 시 활용하세요.">' +
     escUi(L('아래 하위 메뉴는 배포설정의 동명 화면과 내용이 같습니다. JPAY 연동·가맹점 API·체크리스트 점검 시 활용하세요.')) + '</p></div>';
 
+  /** 운영관리 — 비활성카드 수동 등록 패널(목록 상단 고정) */
+  var OPS_INACTIVE_CARD_REGISTER_HTML = '<div class="card mb-3 border-primary-subtle" id="opsInactiveCardRegCard">' +
+    '<div class="card-body py-3">' +
+    '<div class="fw-semibold mb-2" data-pg-ui-t="비활성 카드 등록">비활성 카드 등록</div>' +
+    '<p class="small text-muted mb-2" data-pg-ui-t="카드 종류를 선택한 뒤 카드번호·사유를 입력하고 [등록]을 누르세요. 등록일시·등록자는 자동 저장됩니다.">' +
+    escUi(L('카드 종류를 선택한 뒤 카드번호·사유를 입력하고 [등록]을 누르세요. 등록일시·등록자는 자동 저장됩니다.')) + '</p>' +
+    '<p class="small text-warning mb-2 d-none" id="opsIcRegPermHint" data-pg-ui-t="본사권한설정에서 이 화면에 삭제(전체) 또는 수정 권한이 있어야 등록·해지할 수 있습니다.">' +
+    escUi(L('본사권한설정에서 이 화면에 삭제(전체) 또는 수정 권한이 있어야 등록·해지할 수 있습니다.')) + '</p>' +
+    '<div class="d-flex flex-wrap gap-2 align-items-end">' +
+    '<div><label class="form-label small mb-0" data-pg-ui-t="PG">PG</label>' +
+    '<select class="form-select form-select-sm" id="opsIcRegPg" style="min-width:7rem">' +
+    '<option value="" data-pg-ui-t="전체 PG">전체 PG</option><option value="JPAY">JPAY</option><option value="CHILLPAY">ChillPay</option></select></div>' +
+    '<div><label class="form-label small mb-0" data-pg-ui-t="카드 종류">카드 종류</label>' +
+    '<select class="form-select form-select-sm" id="opsIcRegBrand" style="min-width:8.5rem">' +
+    pgUiOptHtml([
+      { v: '', t: '선택' },
+      { v: 'VISA', t: 'Visa' },
+      { v: 'MASTERCARD', t: 'Mastercard' },
+      { v: 'AMEX', t: 'American Express' },
+      { v: 'DINERS', t: 'Diners Club' },
+      { v: 'JCB', t: 'JCB' },
+      { v: 'DISCOVER', t: 'Discover' },
+      { v: 'UNIONPAY', t: 'UnionPay' },
+      { v: 'DOMESTIC_KR', t: '국내 전용(9)' },
+      { v: 'OTHER', t: '기타' }
+    ]) + '</select></div>' +
+    '<div style="min-width:16rem"><label class="form-label small mb-0" data-pg-ui-t="카드번호">카드번호</label>' +
+    '<p class="small text-muted mb-1" id="opsIcRegPanPickHint" data-pg-ui-t="카드 종류를 먼저 선택하세요.">' +
+    escUi(L('카드 종류를 먼저 선택하세요.')) + '</p>' +
+    '<div id="opsIcRegPanWarn" class="alert alert-warning py-1 px-2 small mb-1 d-none" role="alert"></div>' +
+    '<div id="opsIcRegPan16" class="d-none ops-ic-pan-seg-row d-flex flex-wrap gap-1 align-items-center">' +
+    '<input type="text" class="form-control form-control-sm font-monospace ops-ic-pan-seg text-center" style="width:3.25rem" maxlength="4" inputmode="numeric" autocomplete="off" disabled>' +
+    '<input type="text" class="form-control form-control-sm font-monospace ops-ic-pan-seg text-center" style="width:3.25rem" maxlength="4" inputmode="numeric" autocomplete="off" disabled>' +
+    '<input type="text" class="form-control form-control-sm font-monospace ops-ic-pan-seg text-center" style="width:3.25rem" maxlength="4" inputmode="numeric" autocomplete="off" disabled>' +
+    '<input type="text" class="form-control form-control-sm font-monospace ops-ic-pan-seg text-center" style="width:3.25rem" maxlength="4" inputmode="numeric" autocomplete="off" disabled>' +
+    '</div>' +
+    '<div id="opsIcRegPanAmex" class="d-none ops-ic-pan-seg-row d-flex flex-wrap gap-1 align-items-center">' +
+    '<input type="text" class="form-control form-control-sm font-monospace ops-ic-pan-seg text-center" style="width:3.25rem" maxlength="4" inputmode="numeric" autocomplete="off" disabled>' +
+    '<span class="text-muted small px-0">-</span>' +
+    '<input type="text" class="form-control form-control-sm font-monospace ops-ic-pan-seg text-center" style="width:4.75rem" maxlength="6" inputmode="numeric" autocomplete="off" disabled>' +
+    '<span class="text-muted small px-0">-</span>' +
+    '<input type="text" class="form-control form-control-sm font-monospace ops-ic-pan-seg text-center" style="width:4rem" maxlength="5" inputmode="numeric" autocomplete="off" disabled>' +
+    '</div>' +
+    '<div id="opsIcRegPanDiners" class="d-none ops-ic-pan-seg-row d-flex flex-wrap gap-1 align-items-center">' +
+    '<input type="text" class="form-control form-control-sm font-monospace ops-ic-pan-seg text-center" style="width:3.25rem" maxlength="4" inputmode="numeric" autocomplete="off" disabled>' +
+    '<span class="text-muted small px-0">-</span>' +
+    '<input type="text" class="form-control form-control-sm font-monospace ops-ic-pan-seg text-center" style="width:4.75rem" maxlength="6" inputmode="numeric" autocomplete="off" disabled>' +
+    '<span class="text-muted small px-0">-</span>' +
+    '<input type="text" class="form-control form-control-sm font-monospace ops-ic-pan-seg text-center" style="width:3.25rem" maxlength="4" inputmode="numeric" autocomplete="off" disabled>' +
+    '</div></div>' +
+    '<div class="flex-grow-1" style="min-width:12rem"><label class="form-label small mb-0" data-pg-ui-t="사유">사유</label>' +
+    '<input type="text" class="form-control form-control-sm" id="opsIcRegReason" maxlength="500"></div>' +
+    '<button type="button" class="btn btn-primary btn-sm" id="opsIcRegBtn" data-pg-ui-t="등록">등록</button></div></div></div>';
+
   var API_MERCHANT_DEPLOY_REG_HTML = '<div class="api-merchant-deploy-reg text-body">' +
     '<h5 class="fw-semibold mb-2" data-pg-ui-t="1. API 가맹점 등록">1. API 가맹점 등록</h5>' +
     '<div class="alert alert-light border small mb-3">' +
@@ -1538,7 +1592,7 @@
     '(이미 업체코드를 알면 검색 없이 코드만 입력해도 됩니다.)</span></li>' +
     '<li class="mb-1"><span data-pg-ui-t="표에서 해당 가맹 줄의 선택을 누릅니다. 위쪽 업체코드 칸이 채워집니다.">표에서 해당 가맹 줄의 선택을 누릅니다. 위쪽 업체코드 칸이 채워집니다.</span></li>' +
     '<li class="mb-1"><span data-pg-ui-t="PG 범위에서 실제 붙일 결제사(PG) 하나를 고릅니다. 잘 모르겠으면 일단 전체 PG로 받아 보고, 담당자에게 물어도 됩니다.">PG 범위에서 실제 붙일 결제사(PG) 하나를 고릅니다. 잘 모르겠으면 일단 전체 PG로 받아 보고, 담당자에게 물어도 됩니다.</span></li>' +
-    '<li class="mb-0"><span data-pg-ui-t="연동 키트 JSON을 누릅니다. 맨 아래 회색 큰 칸에 나오는 글 전체를 복사해, 서버·연동 담당자에게 보내거나 설정에 넣습니다.">연동 키트 JSON을 누릅니다. 맨 아래 회색 큰 칸에 나오는 글 전체를 복사해, 서버·연동 담당자에게 보내거나 설정에 넣습니다.</span></li>' +
+    '<li class="mb-0"><span data-pg-ui-t="연동 키트 JSON·PHP 중 가맹 환경에 맞는 패키지 버튼을 누릅니다.">연동 키트 JSON·PHP 중 가맹 환경에 맞는 패키지 버튼을 누릅니다.</span></li>' +
     '</ol>' +
     '<p class="fw-semibold text-dark mb-1" data-pg-ui-t="아래 두 가지는 꼭 구분하세요">아래 두 가지는 꼭 구분하세요</p>' +
     '<ul class="mb-3 ps-3">' +
@@ -1571,20 +1625,68 @@
     '<select class="form-control form-control-sm" id="merchantDeployVendorScope"></select></div></div>' +
     '<div class="d-flex flex-wrap gap-2 align-items-center mb-3">' +
     '<button type="button" class="btn btn-primary btn-sm" id="merchantDeploySearchBtn" data-pg-ui-t="가맹점 검색">가맹점 검색</button>' +
-    '<button type="button" class="btn btn-outline-primary btn-sm" id="merchantDeployLoadKitBtn" data-pg-ui-t="연동 패키지 생성(JSON)">연동 패키지 생성(JSON)</button>' +
+    '<button type="button" class="btn btn-outline-primary btn-sm" id="merchantDeployLoadKitJsonBtn" data-pg-ui-t="JSON 연동 패키지">JSON 연동 패키지</button>' +
+    '<button type="button" class="btn btn-outline-primary btn-sm" id="merchantDeployLoadKitPhpBtn" data-pg-ui-t="PHP 연동 패키지">PHP 연동 패키지</button>' +
     '<button type="button" class="btn btn-warning btn-sm" id="merchantDeployRotateSecretBtn" data-pg-ui-t="브로커 시크릿 재발급">브로커 시크릿 재발급</button>' +
     '<label class="small mb-0 ms-1 d-flex align-items-center gap-1"><input type="checkbox" id="merchantDeployEnforceYn" checked> ' +
     '<span data-pg-ui-t="강제(시크릿 헤더 필수)">강제(시크릿 헤더 필수)</span></label>' +
     '<button type="button" class="btn btn-outline-secondary btn-sm" id="merchantDeployEnforceBtn" data-pg-ui-t="강제여부 저장">강제여부 저장</button></div>' +
     '<div class="merchant-deploy-table-wrap table-no-col-resize-wrap border rounded mb-2">' +
     '<table class="table table-sm table-bordered align-middle merchant-deploy-merchant-table table-no-col-resize w-100 mb-0" id="merchantDeployMerchantGrid">' +
-    '<colgroup><col class="merchant-deploy-col-act" /><col class="merchant-deploy-col-code" /><col /><col class="merchant-deploy-col-cur" /></colgroup>' +
-    '<thead class="table-light"><tr><th class="text-center text-nowrap" data-pg-ui-t="선택">선택</th><th class="text-nowrap" data-pg-ui-t="업체코드">업체코드</th><th data-pg-ui-t="업체명">업체명</th><th class="text-nowrap" data-pg-ui-t="기준통화">기준통화</th></tr></thead>' +
-    '<tbody><tr><td colspan="4" class="text-center text-muted py-3" data-pg-ui-t="로딩 중…">로딩 중…</td></tr></tbody></table></div>' +
+    '<colgroup><col class="merchant-deploy-col-act" /><col class="merchant-deploy-col-code" /><col class="merchant-deploy-col-master" /><col /><col class="merchant-deploy-col-pg" /><col class="merchant-deploy-col-cur" /></colgroup>' +
+    '<thead class="table-light"><tr><th class="text-center text-nowrap" data-pg-ui-t="선택">선택</th><th class="text-nowrap" data-pg-ui-t="업체코드">업체코드</th><th class="text-nowrap" data-pg-ui-t="상위 총판">상위 총판</th><th data-pg-ui-t="업체명">업체명</th><th class="text-nowrap" data-pg-ui-t="PG대행사">PG대행사</th><th class="text-nowrap" data-pg-ui-t="기준통화">기준통화</th></tr></thead>' +
+    '<tbody><tr><td colspan="6" class="text-center text-muted py-3" data-pg-ui-t="로딩 중…">로딩 중…</td></tr></tbody></table></div>' +
     '<p class="small text-muted mb-2" id="merchantDeployPageInfo"></p>' +
-    '<label class="form-label small" data-pg-ui-t="응답 / 키트 (JSON)">응답 / 키트 (JSON)</label>' +
+    '<label class="form-label small mb-0" id="merchantDeployKitLabel" data-pg-ui-t="연동 패키지 (JSON / PHP)">연동 패키지 (JSON / PHP)</label>' +
     '<pre id="merchantDeployKitJson" class="bg-light p-3 small mb-0" style="max-height:520px;overflow:auto;border:1px solid #dee2e6;white-space:pre-wrap;">' +
-    '<span data-pg-ui-t="업체를 고른 뒤 「연동 패키지 생성(JSON)」을 누르면 요약과 JSON이 채워집니다.">업체를 고른 뒤 「연동 패키지 생성(JSON)」을 누르면 요약과 JSON이 채워집니다.</span></pre></div>';
+    '<span data-pg-ui-t="업체를 고른 뒤 JSON 또는 PHP 연동 패키지 버튼을 누르세요.">업체를 고른 뒤 JSON 또는 PHP 연동 패키지 버튼을 누르세요.</span></pre></div>';
+
+  var MERCHANT_API_DEPLOY_DOCS_HTML = '<div class="merchant-api-deploy-docs text-body">' +
+    '<h5 class="fw-semibold mb-2" data-pg-ui-t="API 배포 문서">API 배포 문서</h5>' +
+    '<div class="alert alert-info small mb-3 py-3" role="region" data-pg-ui-aria-label="화면 안내">' +
+    '<p class="fw-semibold text-dark mb-2" data-pg-ui-t="가맹점 연동용 자료">가맹점 연동용 자료</p>' +
+    '<p class="mb-2" data-pg-ui-t="API배포문서 안내 본문">이 화면에서 가맹점에 전달할 연동 샘플·파라미터 규격·엔드포인트를 확인하고 다운로드할 수 있습니다. 브로커 시크릿 재발급은 「가맹점 API 생성」 화면에서 수행하세요.</p>' +
+    '<p class="mb-0 text-muted small" data-pg-ui-t="API배포문서 안내 보안">브로커 시크릿은 가맹 서버에만 두고 브라우저·앱에 노출하지 마세요.</p></div>' +
+    '<div class="row g-2 mb-3">' +
+    '<div class="col-md-4"><label class="form-label small mb-0" data-pg-ui-t="업체코드 (직접 입력)">업체코드 (직접 입력)</label>' +
+    '<input type="text" class="form-control form-control-sm" id="merchantApiDocsCompId" autocomplete="off" data-pg-ui-placeholder="예: M000123" placeholder="예: M000123"></div>' +
+    '<div class="col-md-4"><label class="form-label small mb-0" data-pg-ui-t="업체명 (검색)">업체명 (검색)</label>' +
+    '<input type="text" class="form-control form-control-sm" id="merchantApiDocsSearchCompNm" autocomplete="off"></div>' +
+    '<div class="col-md-4 d-flex align-items-end"><button type="button" class="btn btn-primary btn-sm w-100" id="merchantApiDocsSearchBtn" data-pg-ui-t="가맹점 검색">가맹점 검색</button></div></div>' +
+    '<div class="merchant-deploy-table-wrap table-no-col-resize-wrap border rounded mb-2">' +
+    '<table class="table table-sm table-bordered align-middle merchant-deploy-merchant-table table-no-col-resize w-100 mb-0" id="merchantApiDocsMerchantGrid">' +
+    '<colgroup><col class="merchant-deploy-col-act" /><col class="merchant-deploy-col-code" /><col class="merchant-deploy-col-master" /><col /><col class="merchant-deploy-col-pg" /><col class="merchant-deploy-col-cur" /></colgroup>' +
+    '<thead class="table-light"><tr><th class="text-center text-nowrap" data-pg-ui-t="선택">선택</th><th class="text-nowrap" data-pg-ui-t="업체코드">업체코드</th><th class="text-nowrap" data-pg-ui-t="상위 총판">상위 총판</th><th data-pg-ui-t="업체명">업체명</th><th class="text-nowrap" data-pg-ui-t="PG대행사">PG대행사</th><th class="text-nowrap" data-pg-ui-t="기준통화">기준통화</th></tr></thead>' +
+    '<tbody><tr><td colspan="6" class="text-center text-muted py-3" data-pg-ui-t="로딩 중…">로딩 중…</td></tr></tbody></table></div>' +
+    '<p class="small text-muted mb-3" id="merchantApiDocsPageInfo"></p>' +
+    '<div id="merchantApiDocsSummary" class="alert alert-secondary small mb-3 py-2 d-none" role="status" aria-live="polite"></div>' +
+    '<div id="merchantApiDocsContent" class="d-none">' +
+    '<section class="mb-4"><h6 class="fw-semibold border-bottom pb-2 mb-3" data-pg-ui-t="다운로드 자료">다운로드 자료</h6>' +
+    '<div class="table-responsive border rounded mb-2"><table class="table table-sm table-bordered align-middle mb-0 w-100" id="merchantApiDocsDownloadGrid">' +
+    '<thead class="table-light"><tr><th data-pg-ui-t="구분">구분</th><th data-pg-ui-t="설명">설명</th><th class="text-nowrap" data-pg-ui-t="다운로드">다운로드</th></tr></thead>' +
+    '<tbody></tbody></table></div></section>' +
+    '<section class="mb-4"><h6 class="fw-semibold border-bottom pb-2 mb-3" id="merchantApiDocsParamTitle" data-pg-ui-t="연동 파라미터 규격">연동 파라미터 규격</h6>' +
+    '<p class="small text-muted mb-2" id="merchantApiDocsEndpointLine"></p>' +
+    '<h6 class="small fw-semibold mt-3 mb-2" data-pg-ui-t="HTTP 헤더">HTTP 헤더</h6>' +
+    '<div class="table-responsive border rounded mb-3"><table class="table table-sm table-bordered align-middle mb-0 w-100" id="merchantApiDocsHeadersGrid">' +
+    '<thead class="table-light"><tr><th class="text-nowrap" data-pg-ui-t="번호">번호</th><th data-pg-ui-t="항목명">항목명</th><th class="text-nowrap" data-pg-ui-t="필수">필수</th><th data-pg-ui-t="예시값">예시값</th><th data-pg-ui-t="비고">비고</th></tr></thead><tbody></tbody></table></div>' +
+    '<h6 class="small fw-semibold mt-3 mb-2" data-pg-ui-t="Prepare 본문 파라미터">Prepare 본문 파라미터</h6>' +
+    '<div class="table-responsive border rounded mb-3"><table class="table table-sm table-bordered align-middle mb-0 w-100" id="merchantApiDocsPrepareGrid">' +
+    '<thead class="table-light"><tr><th class="text-nowrap" data-pg-ui-t="번호">번호</th><th data-pg-ui-t="항목명">항목명</th><th data-pg-ui-t="JSON 경로">JSON 경로</th><th class="text-nowrap" data-pg-ui-t="타입">타입</th><th class="text-nowrap" data-pg-ui-t="최대길이">최대길이</th><th class="text-nowrap" data-pg-ui-t="필수">필수</th><th data-pg-ui-t="설명">설명</th><th data-pg-ui-t="비고">비고</th></tr></thead><tbody></tbody></table></div>' +
+    '<h6 class="small fw-semibold mt-3 mb-2" data-pg-ui-t="buyer 객체 파라미터">buyer 객체 파라미터</h6>' +
+    '<div class="table-responsive border rounded mb-3"><table class="table table-sm table-bordered align-middle mb-0 w-100" id="merchantApiDocsBuyerGrid">' +
+    '<thead class="table-light"><tr><th class="text-nowrap" data-pg-ui-t="번호">번호</th><th data-pg-ui-t="항목명">항목명</th><th data-pg-ui-t="JSON 경로">JSON 경로</th><th class="text-nowrap" data-pg-ui-t="타입">타입</th><th class="text-nowrap" data-pg-ui-t="최대길이">최대길이</th><th class="text-nowrap" data-pg-ui-t="필수">필수</th><th data-pg-ui-t="설명">설명</th><th data-pg-ui-t="비고">비고</th></tr></thead><tbody></tbody></table></div>' +
+    '<h6 class="small fw-semibold mt-3 mb-2" data-pg-ui-t="Status 조회 파라미터">Status 조회 파라미터</h6>' +
+    '<div class="table-responsive border rounded mb-3"><table class="table table-sm table-bordered align-middle mb-0 w-100" id="merchantApiDocsStatusGrid">' +
+    '<thead class="table-light"><tr><th class="text-nowrap" data-pg-ui-t="번호">번호</th><th data-pg-ui-t="항목명">항목명</th><th data-pg-ui-t="JSON 경로">JSON 경로</th><th class="text-nowrap" data-pg-ui-t="타입">타입</th><th class="text-nowrap" data-pg-ui-t="최대길이">최대길이</th><th class="text-nowrap" data-pg-ui-t="필수">필수</th><th data-pg-ui-t="설명">설명</th><th data-pg-ui-t="비고">비고</th></tr></thead><tbody></tbody></table></div>' +
+    '<h6 class="small fw-semibold mt-3 mb-2" data-pg-ui-t="오류 코드">오류 코드</h6>' +
+    '<div class="table-responsive border rounded mb-3"><table class="table table-sm table-bordered align-middle mb-0 w-100" id="merchantApiDocsErrorGrid">' +
+    '<thead class="table-light"><tr><th data-pg-ui-t="오류코드">오류코드</th><th data-pg-ui-t="의미">의미</th></tr></thead><tbody></tbody></table></div></section>' +
+    '<section class="mb-4"><h6 class="fw-semibold border-bottom pb-2 mb-3" data-pg-ui-t="통합 Checkout 엔드포인트">통합 Checkout 엔드포인트</h6>' +
+    '<ul class="small mb-0 ps-3" id="merchantApiDocsEndpoints"></ul></section>' +
+    '<section class="mb-2"><h6 class="fw-semibold border-bottom pb-2 mb-3" data-pg-ui-t="연동 체크리스트">연동 체크리스트</h6>' +
+    '<ol class="small mb-0 ps-3" id="merchantApiDocsChecklist"></ol></section></div>' +
+    '<div id="merchantApiDocsEmpty" class="text-center text-muted py-5 small" data-pg-ui-t="업체를 선택하면 연동 자료가 표시됩니다.">업체를 선택하면 연동 자료가 표시됩니다.</div></div>';
 
   var MENU_SCREENS = {
     '/hq/apiMerchantDeployReg': {
@@ -1596,6 +1698,12 @@
     '/hq/merchantApiGenerate': {
       hideListGrid: true,
       staticHtml: MERCHANT_API_GENERATE_HTML,
+      summary: [],
+      buttons: []
+    },
+    '/hq/merchantApiDeployDocs': {
+      hideListGrid: true,
+      staticHtml: MERCHANT_API_DEPLOY_DOCS_HTML,
       summary: [],
       buttons: []
     },
@@ -2064,6 +2172,26 @@
                 '<div class="border rounded"><table class="table table-sm table-bordered align-middle mb-0 w-100" id="grid_hqPayDisplayCurrencyCatalog">' +
                 '<thead class="table-light"><tr>' + pgUiThT('ISO 4217 숫자') + pgUiThT('표시 통화(알파)') + pgUiThT('전역 기준', 'text-center text-nowrap') + '</tr></thead>' +
                 '<tbody id="hqPayDisplayCurrencyCatalogTbody"><tr><td colspan="3" class="text-center text-muted py-3">' + escUi(L('불러오는 중…')) + '</td></tr></tbody></table></div>' }]
+          ]
+        },
+        {
+          title: '사용불가카드 등록',
+          notice: 'PG별 카드번호 <strong>앞자리(BIN) 접두</strong>만 등록합니다. 입력 시 결제창·승인 API에서 즉시 차단됩니다. 개별 카드번호(비활성카드)는 <strong>운영관리 → 비활성카드등록</strong> 메뉴에서 관리합니다.',
+          rows: [
+            [{ type: 'customHtml', col: 12,
+              html: '<p class="small fw-semibold mb-1" data-pg-ui-t="사용불가 카드 BIN 접두">사용불가 카드 BIN 접두</p>' +
+                '<div class="d-flex flex-wrap gap-2 align-items-end mb-2">' +
+                '<div><label class="form-label small mb-0" data-pg-ui-t="PG">PG</label>' +
+                '<select class="form-select form-select-sm" id="hqPayCardPrefixPg" style="min-width:8rem">' +
+                '<option value="JPAY">JPAY</option><option value="CHILLPAY">ChillPay</option></select></div>' +
+                '<div><label class="form-label small mb-0" data-pg-ui-t="접두(숫자)">접두(숫자)</label>' +
+                '<input type="text" class="form-control form-control-sm" id="hqPayCardPrefixDigits" maxlength="8" inputmode="numeric" style="width:6rem"></div>' +
+                '<div class="flex-grow-1"><label class="form-label small mb-0" data-pg-ui-t="비고">비고</label>' +
+                '<input type="text" class="form-control form-control-sm" id="hqPayCardPrefixRemark"></div>' +
+                '<button type="button" class="btn btn-primary btn-sm" id="hqPayCardPrefixAddBtn" data-pg-ui-t="접두 등록">접두 등록</button></div>' +
+                '<div class="border rounded mb-3"><table class="table table-sm table-bordered mb-0">' +
+                '<thead class="table-light"><tr><th data-pg-ui-t="PG">PG</th><th data-pg-ui-t="접두">접두</th><th data-pg-ui-t="비고">비고</th><th class="text-center" data-pg-ui-t="관리">관리</th></tr></thead>' +
+                '<tbody id="hqPayCardBlockPrefixTbody"><tr><td colspan="4" class="text-center text-muted py-2" data-pg-ui-t="불러오는 중…">불러오는 중…</td></tr></tbody></table></div>' }]
           ]
         },
         {
@@ -5410,6 +5538,41 @@
       summary: [],
       buttons: []
     },
+    '/ops/inactiveCard': {
+      listTopHtml: OPS_INACTIVE_CARD_REGISTER_HTML,
+      emptyMessage: '등록된 비활성 카드가 없습니다.',
+      paginationDefaultSize: 20,
+      paginationSizeOptions: [20, 50, 100],
+      columnGuideFixedKeys: ['rowNo', '_inactiveCardRelease'],
+      viewSettingDefaultSelectedKeys: [
+        'registeredAt', 'registeredBy', 'panDisplay', 'pgVendor', 'reason', 'activeYn', 'releasedAt', 'releasedBy'
+      ],
+      noticeList: [
+        '총본사·본사·총판(ADMIN 포함) 운영자용입니다. 메뉴 접근은 본사권한설정에서 부여합니다.',
+        '등록·해지는 본사권한설정에서 이 화면 권한을 삭제(전체) 또는 수정으로 부여한 계정만 가능합니다.',
+        '카드 종류별 접두(BIN)·자릿수가 맞지 않으면 경고가 표시됩니다. AMEX 15자리(4-6-5), Diners 14자리(4-6-4), 대부분 16자리(4×4), 기타는 접두 검증 없이 13~16자리(4×4)입니다.',
+        '해지는 목록 맨 오른쪽 「OTP 해지」 버튼에서 실행합니다. Google OTP 6자리가 필요합니다.'
+      ],
+      searchRows: [[
+        { label: '상태', type: 'select', name: 'searchActiveYn', col: 2,
+          options: [{ v: 'Y', t: '등록카드' }, { v: 'N', t: '해지됨' }, { v: 'ALL', t: '전체' }] },
+        { type: 'searchBtn' }
+      ]],
+      summary: ['건수'],
+      buttons: [{ id: 'searchBtn', label: '검색', cls: 'btn-primary' }],
+      columns: [
+        { key: 'rowNo', label: '번호' },
+        { key: 'registeredAt', label: '등록일시' },
+        { key: 'registeredBy', label: '등록자' },
+        { key: 'panDisplay', label: '카드번호(마스킹)' },
+        { key: 'pgVendor', label: 'PG' },
+        { key: 'reason', label: '사유' },
+        { key: 'activeYn', label: '상태' },
+        { key: 'releasedAt', label: '해지일시' },
+        { key: 'releasedBy', label: '해지자' },
+        { key: '_inactiveCardRelease', type: 'inactiveCardRelease', label: 'OTP 해지', columnGuideLabel: 'OTP 해지' }
+      ]
+    },
     '/ops/mailLog': {
       emptyMessage: '조회된 데이터가 없습니다.',
       paginationDefaultSize: 20,
@@ -7169,6 +7332,9 @@
         '<div class="mt-3" id="integratedReportDetail_' + tabId + '"></div>';
     } else {
       if (!cfg.hideListGrid) {
+        if (cfg.listTopHtml) {
+          html += typeof cfg.listTopHtml === 'function' ? cfg.listTopHtml() : cfg.listTopHtml;
+        }
         html += renderSearchForm(cfg, tabId);
         if (cfg.noticeList && cfg.noticeList.length > 0) html += renderNotice(cfg);
         html += renderSummaryAndActions(cfg, tabId, url);

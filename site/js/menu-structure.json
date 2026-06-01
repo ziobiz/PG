@@ -115,7 +115,8 @@
         { "label": "메일로그", "url": "/ops/mailLog", "menuId": "M0602" },
         { "label": "TAX 리포트", "url": "/ops/taxReport", "menuId": "M0603" },
         { "label": "통합 리포트", "url": "/ops/integratedReport", "menuId": "M0604" },
-        { "label": "검증 리포트", "url": "/ops/verifyReport", "menuId": "M0605" }
+        { "label": "검증 리포트", "url": "/ops/verifyReport", "menuId": "M0605" },
+        { "label": "비활성카드등록", "url": "/ops/inactiveCard", "menuId": "M0606" }
       ]
     },
     {

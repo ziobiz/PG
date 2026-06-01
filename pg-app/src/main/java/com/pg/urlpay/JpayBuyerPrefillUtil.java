@@ -51,7 +51,7 @@ public final class JpayBuyerPrefillUtil {
         } else {
             throw new IllegalArgumentException("CARD_PREFILL 모드에서는 buyerPrefill 객체가 필요합니다.");
         }
-        Map<String, String> normalized = normalize(map);
+        Map<String, String> normalized = IcipayBuyerContactUtil.normalize(map);
         validateForJpay(normalized);
         try {
             return MAPPER.writeValueAsString(normalized);
@@ -70,59 +70,6 @@ public final class JpayBuyerPrefillUtil {
             return MAPPER.readValue(prefillJson, Map.class);
         } catch (JsonProcessingException e) {
             return Map.of();
-        }
-    }
-
-    private static Map<String, String> normalize(Map<String, Object> raw) {
-        Map<String, String> out = new LinkedHashMap<>();
-        putAlias(out, raw, "email", "payEmailAddress");
-        putAlias(out, raw, "phone", "payTelephone", "telephone");
-        putAlias(out, raw, "countryIso2", "payCountryIsoCode2", "country");
-        putAlias(out, raw, "address", "payStreetAddress1", "streetAddress1", "billingAddress");
-        putAlias(out, raw, "address2", "payStreetAddress2", "streetAddress2");
-        putAlias(out, raw, "city", "payCity");
-        putAlias(out, raw, "state", "payState");
-        putAlias(out, raw, "postcode", "payPostcode", "zip");
-        putAlias(out, raw, "shippingAddress", "shippingStreetAddress1");
-        putAlias(out, raw, "shippingAddress2", "shippingStreetAddress2");
-        putAlias(out, raw, "shippingCity", "shippingCity");
-        putAlias(out, raw, "shippingState", "shippingState");
-        putAlias(out, raw, "shippingPostcode", "shippingPostcode");
-        putAlias(out, raw, "shippingCountryIso2", "shippingCountryIsoCode2");
-        putAlias(out, raw, "shippingPhone", "shippingTelephone");
-        if (out.containsKey("phone")) {
-            out.put("phone", stripDialPrefix(out.get("phone")));
-        }
-        if (out.containsKey("countryIso2")) {
-            out.put("countryIso2", canonicalCountryIso2(out.get("countryIso2")));
-        }
-        return out;
-    }
-
-    private static String stripDialPrefix(String raw) {
-        if (raw == null || raw.isBlank()) {
-            return "";
-        }
-        String t = raw.trim();
-        java.util.regex.Matcher m = java.util.regex.Pattern.compile("^\\+\\d{1,4}[\\s\\-]*(.*)$").matcher(t);
-        if (m.matches()) {
-            return m.group(1).trim();
-        }
-        return t;
-    }
-
-    private static void putAlias(Map<String, String> out, Map<String, Object> raw, String canonical, String... aliases) {
-        Object cv = raw.get(canonical);
-        if (cv != null && !cv.toString().isBlank()) {
-            out.put(canonical, cv.toString().trim());
-            return;
-        }
-        for (String k : aliases) {
-            Object v = raw.get(k);
-            if (v != null && !v.toString().isBlank()) {
-                out.put(canonical, v.toString().trim());
-                return;
-            }
         }
     }
 

@@ -1,0 +1,25 @@
+{
+  "success": true,
+  "data": {
+    "sessionId": "abc123...",
+    "compId": "M000123",
+    "orderNo": "ORD-001",
+    "amount": "10000",
+    "currency": "USD",
+    "productName": "상품명",
+    "pgVendor": "JPAY",
+    "buyerPrefill": {
+      "email": "buyer@example.com",
+      "phone": "1012345678",
+      "countryIso2": "KR"
+    },
+    "expiresAt": "2026-05-29T12:00:00Z",
+    "sessionToken": "eyJ...signed...",
+    "payUrl": "https://api.icopay.co.kr/jpay-pay/M000123?entry=merchant_api&embed=1&session=...",
+    "embedScriptUrl": "https://api.icopay.co.kr/v1/embed-checkout/M000123",
+    "inlineCheckoutPrepareUrl": "https://api.icopay.co.kr/api/middleware/v1/merchant/checkout/prepare",
+    "integrationMode": "INLINE_UNIFIED",
+    "operationalPgCd": "JPAY",
+    "langCode": "ENG"
+  }
+}

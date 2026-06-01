@@ -106,6 +106,68 @@ final class IcopayMerchantApi
         return $this->postJson($path, $body);
     }
 
+    /**
+     * PG 무관 통합 prepare — buyer(email·phone·countryIso2) 필수.
+     *
+     * @param array{email:string,phone:string,countryIso2:string,...} $buyer
+     * @return array{success:bool,data?:array,message?:string,errorCode?:string}
+     */
+    public function prepareUnifiedCheckout(
+        string $orderNo,
+        $amount,
+        array $buyer,
+        string $currency = '',
+        string $productName = '',
+        string $lang = ''
+    ): array {
+        $body = [
+            'compId' => $this->compId,
+            'orderNo' => $orderNo,
+            'amount' => $amount,
+            'buyer' => $buyer,
+        ];
+        if ($currency !== '') {
+            $body['currency'] = strtoupper($currency);
+        }
+        if ($productName !== '') {
+            $body['productName'] = $productName;
+        }
+        $langNorm = self::normalizeLang($lang !== '' ? $lang : self::detectPageLang());
+        if ($langNorm !== '') {
+            $body['lang'] = $langNorm;
+        }
+        return $this->postJson('/api/middleware/v1/merchant/checkout/prepare', $body);
+    }
+
+    /** @return array{success:bool,data?:array,message?:string,errorCode?:string} */
+    public function getUnifiedPaymentStatus(string $orderNo): array
+    {
+        $qs = http_build_query([
+            'compId' => $this->compId,
+            'orderNo' => $orderNo,
+        ]);
+        return $this->getJson('/api/middleware/v1/merchant/checkout/status?' . $qs);
+    }
+
+    public function buildUnifiedEmbedHtml(string $sessionToken, string $targetId = '', string $lang = ''): string
+    {
+        $target = $targetId !== '' ? $targetId : 'icopay-checkout';
+        $compEnc = rawurlencode($this->compId);
+        $tokEnc = htmlspecialchars($sessionToken, ENT_QUOTES, 'UTF-8');
+        $src = htmlspecialchars($this->apiBase . '/v1/embed-checkout/' . $compEnc, ENT_QUOTES, 'UTF-8');
+        $targetEsc = htmlspecialchars($target, ENT_QUOTES, 'UTF-8');
+        $langNorm = self::normalizeLang($lang !== '' ? $lang : self::detectPageLang());
+        $langAttr = $langNorm !== ''
+            ? ' data-lang="' . htmlspecialchars($langNorm, ENT_QUOTES, 'UTF-8') . '"'
+            : '';
+        return '<div id="' . $targetEsc . '"></div>' . "\n"
+            . '<script src="' . $src . '"'
+            . ' data-session-token="' . $tokEnc . '"'
+            . ' data-target="' . $targetEsc . '"'
+            . $langAttr
+            . ' async defer charset="utf-8"></script>';
+    }
+
     /** @return array{success:bool,data?:array,message?:string,errorCode?:string} */
     public function getPaymentStatus(string $vendor, string $orderNo): array
     {

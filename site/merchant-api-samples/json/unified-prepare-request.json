@@ -1,0 +1,13 @@
+{
+  "compId": "M000123",
+  "orderNo": "ORD-001",
+  "amount": 10000,
+  "currency": "USD",
+  "productName": "상품명",
+  "lang": "ENG",
+  "buyer": {
+    "email": "buyer@example.com",
+    "phone": "1012345678",
+    "countryIso2": "KR"
+  }
+}

@@ -118,7 +118,10 @@ public class MerchantJpayInlineCheckoutService {
                 hq != null ? hq.getJpayCheckoutFieldMode() : null);
         String buyerPrefillJson;
         try {
-            buyerPrefillJson = com.pg.urlpay.JpayBuyerPrefillUtil.resolvePrefillJsonForPrepare(body, fieldMode);
+            buyerPrefillJson = com.pg.urlpay.IcipayBuyerContactUtil.resolvePrefillJsonFromBodyOptional(body);
+            if (buyerPrefillJson == null) {
+                buyerPrefillJson = com.pg.urlpay.JpayBuyerPrefillUtil.resolvePrefillJsonForPrepare(body, fieldMode);
+            }
         } catch (IllegalArgumentException ex) {
             return fail(ex.getMessage(), "BUYER_PREFILL_INVALID");
         }

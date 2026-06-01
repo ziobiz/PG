@@ -7,6 +7,7 @@ import com.pg.entity.MerchantProfile;
 import com.pg.entity.OrgLevel;
 import com.pg.entity.OrgLevelPayFollowCap;
 import com.pg.entity.PgTrnsctn;
+import com.pg.integration.pg.PgVendor;
 import com.pg.repository.HqLedgerSysSettingsRepository;
 import com.pg.repository.MerchantProfileRepository;
 import com.pg.repository.OrgLevelPayFollowCapRepository;
@@ -210,6 +211,13 @@ public class PayFollowPolicyService {
     }
 
     /**
+     * JPAY 등 ICOPAY 결제 후속조치(무효·환불·이메일무효) 미지원 PG — UI 숨김·API 거부.
+     */
+    public static boolean isPayFollowHiddenForTransaction(PgTrnsctn t) {
+        return t != null && PgVendor.isJpayFamily(t.getVan());
+    }
+
+    /**
      * 거래 행별 후속조치 — 권한·환경설정 AND 설정된 시간/일자 창. 승인(10)만 true 가능.
      */
     public Map<String, Boolean> payFollowRowEnabled(AppUser viewer, PgTrnsctn t) {
@@ -219,6 +227,9 @@ public class PayFollowPolicyService {
         out.put("EMAIL_VOID", false);
         out.put("AUTO_REFUND", false);
         out.put("FORCE_REFUND", false);
+        if (isPayFollowHiddenForTransaction(t)) {
+            return out;
+        }
         if (t == null || !"10".equals(t.getStatus())) {
             return out;
         }
@@ -460,6 +471,10 @@ public class PayFollowPolicyService {
                 .orElseThrow(() -> new IllegalArgumentException("거래를 찾을 수 없습니다."));
         if (!"10".equals(t.getStatus())) {
             throw new IllegalStateException("승인(결제) 완료 건만 후속조치할 수 있습니다.");
+        }
+        if (isPayFollowHiddenForTransaction(t)) {
+            throw new IllegalStateException(
+                    "JPAY 거래는 결제 후속조치(무효·환불)를 지원하지 않습니다. PG 운영 처리 및 노티 반영으로 확인하세요.");
         }
         if (!"ADMIN".equalsIgnoreCase(user.getRole())) {
             Map<String, Object> org = authService.getOrgInfo(user.getUsername());

@@ -64,6 +64,10 @@ public class PayListActionService {
         payFollowPolicyService.assertMayExecute(user, trnId, action);
         PgTrnsctn t = trnsctnRepository.findById(trnId.trim())
                 .orElseThrow(() -> new IllegalArgumentException("거래를 찾을 수 없습니다."));
+        if (PayFollowPolicyService.isPayFollowHiddenForTransaction(t)) {
+            throw new IllegalStateException(
+                    "JPAY 거래는 결제 후속조치(무효·환불)를 지원하지 않습니다. PG 운영 처리 및 노티 반영으로 확인하세요.");
+        }
 
         switch (action) {
             case EMAIL_VOID -> payFollowEmailVoidService.sendVoidRequestMail(t,

@@ -1,0 +1,30 @@
+ICOPAY Unified Checkout API — Request Parameters (Spec ICOPAY-CHECKOUT-PREPARE-001 v1.0)
+======================================================================================
+
+POST {publicApiBaseUrl}/api/middleware/v1/merchant/checkout/prepare
+Content-Type: application/json
+X-Icopay-Merchant-Broker-Secret: {brokerSecret}  (when enforce is on)
+
+Table 1.1 — Request body
+No.  Parameter     Type     Len   M/O   Description                    Remark
+1    compId        String   64    M*    Merchant company code          *Or merchantId
+2    merchantId    Number   -     O     Internal org unit id
+3    orderNo       String   64    M     Order reference                ChillPay: max 20, alnum+-_. JPAY: max 64
+4    amount        Number   12    M     Payment amount (>0)
+5    currency      String   3     O     ISO 4217 (USD,JPY,KRW,THB…)
+6    productName   String   500   O     Product description
+7    item          String   500   O     Alias for productName
+8    lang          String   5     O     UI: KOR|ENG|JPN|CHN|THA
+9    buyer         Object   -     M     See Table 1.2
+
+Table 1.2 — buyer object
+No.  Parameter          Type     Len   M/O   Remark
+1    email              String   254   M     Required by ICOPAY
+2    phone              String   32    M     Local number (no +country)
+3    countryIso2        String   2     M     ISO2 e.g. KR
+4    address            String   200   O     Shipping prefill
+5-10 (optional shipping fields — see HTML/MD doc)
+
+Kit JSON key: merchantCheckoutApiParameterSpec
+HTML: {BASE}/merchant-api-samples/docs/unified-checkout-api-parameters.html
+MD:   docs/가맹점_통합Checkout_API_연동파라미터_규격.md

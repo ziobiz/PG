@@ -112,6 +112,7 @@
     'drLbl:작성일': { KO: '작성일', EN: 'Created date', JP: '作成日', CH: '创建日期', TH: 'วันที่สร้าง' },
     'searchTitle:label': { KO: '제목', EN: 'Title', JP: 'タイトル', CH: '标题', TH: 'หัวข้อ' },
     searchStatus: { KO: '상태', EN: 'Status', JP: '状態', CH: '状态', TH: 'สถานะ' },
+    searchActiveYn: { KO: '상태', EN: 'Status', JP: '状態', CH: '状态', TH: 'สถานะ' },
     searchReportKind: { KO: '리포트 형식', EN: 'Report format', JP: 'レポート形式', CH: '报表格式', TH: 'รูปแบบรายงาน' },
     searchReportSub: { KO: '리포트구분', EN: 'Report type', JP: 'レポート区分', CH: '报表类别', TH: 'ประเภทรายงาน' },
     searchSettlementReportMerchLbl: { KO: '가맹점코드', EN: 'Merchant code', JP: '加盟店コード', CH: '商户代码', TH: 'รหัสร้านค้า' },
@@ -285,6 +286,9 @@
     'searchMailKind|': optMap(),
     'searchMailKind|VOID_TEST': optMap({ EN: 'VOID test', JP: 'VOIDテスト', CH: 'VOID 测试', TH: 'ทดสอบ VOID' }),
     'searchMailKind|VOID_TXN': optMap({ EN: 'Email void (txn)', JP: 'メール無効（取引）', CH: '邮件作废（交易）', TH: 'อีเมลโมฆะ (ธุรกรรม)' }),
+    'searchActiveYn|Y': optMap({ EN: 'Registered card', JP: '登録カード', CH: '登记卡', TH: 'บัตรที่ลงทะเบียน' }),
+    'searchActiveYn|N': optMap({ EN: 'Released', JP: '解除済', CH: '已解除', TH: 'ยกเลิกแล้ว' }),
+    'searchActiveYn|ALL': optMap(),
     'searchMailStatus|': optMap(),
     'searchMailStatus|SUCCESS': optMap({ EN: 'Success', JP: '成功', CH: '成功', TH: 'สำเร็จ' }),
     'searchMailStatus|FAIL': optMap({ EN: 'Fail', JP: '失敗', CH: '失败', TH: 'ล้มเหลว' }),
@@ -799,6 +803,36 @@
         '総本部・本社(REGIONAL)・総販(MASTER_DIST) または ADMIN のみ。照会は最大93日。',
         '仅总总部、本部(REGIONAL)、总代(MASTER_DIST) 或 ADMIN。查询最长 93 天。',
         'เฉพาะ HQ สูงสุด/ภูมิภาค/ตัวแทนหลักหรือ ADMIN ช่วงสูงสุด 93 วัน'
+      )
+    ],
+    '/ops/inactiveCard': [
+      packN(
+        '총본사·본사·총판(ADMIN 포함) 운영자용입니다. 메뉴 접근은 본사권한설정에서 부여합니다.',
+        'For root HQ, regional HQ, master distributor (incl. ADMIN). Grant menu access in HQ permissions.',
+        '総本部・本社・総販(ADMIN含む)の運用者向けです。メニューアクセスは本社権限設定で付与します。',
+        '供总总部、本部、总代(含 ADMIN)使用。请在总部权限设置中授予菜单访问。',
+        'สำหรับ HQ สูงสุด/ภูมิภาค/ตัวแทนหลัก (รวม ADMIN) ให้สิทธิ์เมนูในสิทธิ์สำนักงานใหญ่'
+      ),
+      packN(
+        '등록·해지는 본사권한설정에서 이 화면 권한을 삭제(전체) 또는 수정으로 부여한 계정만 가능합니다.',
+        'Only accounts with Delete (full) or Modify on this screen in HQ permissions can register or release.',
+        '登録・解除は本社権限でこの画面に削除(全体)または修正があるアカウントのみ可能です。',
+        '仅在本社权限中对该画面拥有删除(全部)或修改的账户可登记/解除。',
+        'เฉพาะบัญชีที่มีสิทธิ์ลบ(เต็ม)หรือแก้ไขหน้านี้ในสิทธิ์สำนักงานใหญ่'
+      ),
+      packN(
+        '카드 종류별 접두(BIN)·자릿수가 맞지 않으면 경고가 표시됩니다. AMEX 15자리(4-6-5), Diners 14자리(4-6-4), 대부분 16자리(4×4), 기타는 접두 검증 없이 13~16자리(4×4)입니다.',
+        'Warnings appear if prefix/length do not match the card type. AMEX 15 (4-6-5), Diners 14 (4-6-4), most 16 (4×4); Other: no prefix check, 13–16 digits (4×4).',
+        'カード種別ごとに接頭(BIN)・桁数が合わないと警告します。AMEX15桁(4-6-5)、Diners14桁(4-6-4)、多くは16桁(4×4)、その他は接頭検証なし13~16桁(4×4)。',
+        '卡种与前缀/位数不符时显示警告。运通15位(4-6-5)、大来14位(4-6-4)、多数16位(4×4)、其他无前缀校验13~16位(4×4)。',
+        'เตือนเมื่อคำนำหน้า/ความยาวไม่ตรงประเภท AMEX 15 (4-6-5) Diners 14 (4-6-4) ส่วนใหญ่ 16 (4×4) อื่นๆ 13–16 (4×4) ไม่ตรวจคำนำหน้า'
+      ),
+      packN(
+        '해지는 목록 맨 오른쪽 「OTP 해지」 버튼에서 실행합니다. Google OTP 6자리가 필요합니다.',
+        'Release via the OTP Release button at the right of the list. Google OTP (6 digits) required.',
+        '解除は一覧右端の「OTP解除」ボタンから実行。Google OTP 6桁が必要です。',
+        '请在列表最右侧「OTP 解除」按钮执行解除。需要 Google OTP 6 位。',
+        'ยกเลิกที่ปุ่ม OTP ยกเลิกทางขวาสุดของรายการ ต้องใช้ Google OTP 6 หลัก'
       )
     ],
     '/ops/integratedReport': [
@@ -1649,7 +1683,7 @@
       || url === '/noti/notiCashReceiptUrlMng' || url === '/notify/cashReceiptUrlMng'
       || url === '/set/gridSetMng' || url === '/user/menuOrderMng'
       || url === '/user/userMng'
-      || url === '/ops/mailLog' || url === '/ops/taxReport' || url === '/ops/integratedReport' || url === '/ops/verifyReport' || url === '/ops/opsMng'
+      || url === '/ops/mailLog' || url === '/ops/taxReport' || url === '/ops/integratedReport' || url === '/ops/verifyReport' || url === '/ops/inactiveCard' || url === '/ops/opsMng'
       || url === '/hq/pgApiMng'
       || url === '/hq/accountMng'
       || url === '/chatbot/chatbotKbMng'
@@ -1969,6 +2003,16 @@
       }
       if (url === '/chatbot/productMng' && typeof pane._chatbotProdRefreshLocale === 'function') {
         try { pane._chatbotProdRefreshLocale(); } catch (eProdLocRf) {}
+      }
+      if (url === '/ops/inactiveCard' && w.PG_UI_I18N && typeof w.PG_UI_I18N.applyDom === 'function') {
+        try {
+          var regIc = pane.querySelector('#opsInactiveCardRegCard');
+          if (regIc) w.PG_UI_I18N.applyDom(regIc);
+          var thIc = pane.querySelector('#grid_' + tid + ' thead');
+          if (thIc) w.PG_UI_I18N.applyDom(thIc);
+          var tbIc = pane.querySelector('#grid_' + tid + ' tbody');
+          if (tbIc) w.PG_UI_I18N.applyDom(tbIc);
+        } catch (eIcPaneI18n) {}
       }
       if (cfg && cfg.isForm && w.PG_UI_I18N && typeof w.PG_UI_I18N.applyDom === 'function') {
         try { w.PG_UI_I18N.applyDom(pane); } catch (eFormPaneDom) {}

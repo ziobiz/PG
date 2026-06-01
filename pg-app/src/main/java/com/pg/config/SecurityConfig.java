@@ -132,6 +132,7 @@ public class SecurityConfig {
                     AntPathRequestMatcher.antMatcher("/v1/embed-chatbot/**"),
                     AntPathRequestMatcher.antMatcher("/v1/embed-pay/**"),
                     AntPathRequestMatcher.antMatcher("/v1/embed-jpay-pay/**"),
+                    AntPathRequestMatcher.antMatcher("/v1/embed-checkout/**"),
                     AntPathRequestMatcher.antMatcher("/merchant-api-samples/**"),
                     AntPathRequestMatcher.antMatcher("/css/**"),
                     AntPathRequestMatcher.antMatcher("/js/**"),

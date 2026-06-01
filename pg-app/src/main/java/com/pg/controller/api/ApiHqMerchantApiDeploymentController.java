@@ -85,6 +85,19 @@ public class ApiHqMerchantApiDeploymentController {
         }
     }
 
+    /** 배포설정 — API배포문서: 가맹 다운로드·연동 파라미터(브로커 시크릿 평문 제외) */
+    @GetMapping("/docs-portal")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> docsPortal(
+            @RequestParam String compId,
+            HttpServletRequest req) {
+        try {
+            assertCanViewComp(compId);
+            return ResponseEntity.ok(ApiResponse.ok(deploymentService.buildDocsPortal(compId, req)));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.ok(ApiResponse.fail(e.getMessage(), "VALIDATION"));
+        }
+    }
+
     @PostMapping("/credential/rotate")
     public ResponseEntity<ApiResponse<Map<String, Object>>> rotate(@RequestBody Map<String, Object> body) {
         try {

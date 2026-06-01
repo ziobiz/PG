@@ -272,6 +272,8 @@ public class PayListService {
             enrichPayListSettlementExpectedDate(row, t, ctx, holidayCache);
             String pgCd = resolvePgCdForPayListRow(ctx, t);
             hqNotifyMappingService.applyDisplayTransform(displayCache, pgCd, row);
+            boolean payFollowHidden = PayFollowPolicyService.isPayFollowHiddenForTransaction(t);
+            row.put("payFollowHidden", payFollowHidden);
             row.put("payFollowRow", payFollowPolicyService.payFollowRowEnabled(payListViewer, t));
             row.put("rowNo", rowNoStart + rowIdx);
             rowIdx++;

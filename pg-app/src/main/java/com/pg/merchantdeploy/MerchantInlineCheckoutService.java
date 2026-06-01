@@ -118,7 +118,17 @@ public class MerchantInlineCheckoutService {
         }
         String langCode = MerchantCheckoutLangUtil.fromBody(body);
 
-        String sessionToken = tokenService.issue(MerchantPgBrokerVendor.CHILLPAY, ou.getCode(), orderNo,
+        String buyerPrefillJson = null;
+        try {
+            buyerPrefillJson = com.pg.urlpay.IcipayBuyerContactUtil.resolvePrefillJsonFromBodyOptional(body);
+        } catch (IllegalArgumentException ex) {
+            return fail(ex.getMessage(), "BUYER_PREFILL_INVALID");
+        }
+
+        String sessionToken = buyerPrefillJson != null && !buyerPrefillJson.isBlank()
+                ? tokenService.issueWithBuyerPrefill(MerchantPgBrokerVendor.CHILLPAY, ou.getCode(), orderNo,
+                amountPlain, currency, productName, buyerPrefillJson)
+                : tokenService.issue(MerchantPgBrokerVendor.CHILLPAY, ou.getCode(), orderNo,
                 amountPlain, currency, productName);
         Optional<MerchantInlineCheckoutTokenService.SessionPayload> parsed =
                 tokenService.parseValid(sessionToken, MerchantPgBrokerVendor.CHILLPAY);

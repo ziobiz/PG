@@ -8,6 +8,7 @@ import com.pg.service.HqLedgerSysSettingsService;
 import com.pg.service.HqOperationalDataResetService;
 import com.pg.service.HqSettlementDataResetService;
 import com.pg.service.PayFollowEmailVoidService;
+import com.pg.service.PayCardPolicyService;
 import com.pg.service.PayFollowPolicyService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -30,19 +31,22 @@ public class ApiHqLedgerSysSettingsController {
     private final AuthService authService;
     private final PayFollowEmailVoidService payFollowEmailVoidService;
     private final PayFollowPolicyService payFollowPolicyService;
+    private final PayCardPolicyService payCardPolicyService;
 
     public ApiHqLedgerSysSettingsController(HqLedgerSysSettingsService service,
                                             HqOperationalDataResetService operationalDataResetService,
                                             HqSettlementDataResetService settlementDataResetService,
                                             AuthService authService,
                                             PayFollowEmailVoidService payFollowEmailVoidService,
-                                            PayFollowPolicyService payFollowPolicyService) {
+                                            PayFollowPolicyService payFollowPolicyService,
+                                            PayCardPolicyService payCardPolicyService) {
         this.service = service;
         this.operationalDataResetService = operationalDataResetService;
         this.settlementDataResetService = settlementDataResetService;
         this.authService = authService;
         this.payFollowEmailVoidService = payFollowEmailVoidService;
         this.payFollowPolicyService = payFollowPolicyService;
+        this.payCardPolicyService = payCardPolicyService;
     }
 
     private boolean canResetOperationalData(Authentication auth) {
@@ -64,6 +68,7 @@ public class ApiHqLedgerSysSettingsController {
     private Map<String, Object> toMapWithPayFollowCaps(HqLedgerSysSettings s) {
         Map<String, Object> m = service.toMap(s);
         m.put("payFollowLevelCaps", payFollowPolicyService.buildLevelCapsPayload());
+        m.put("payCardBlockPrefixes", payCardPolicyService.listBlockPrefixesForAdmin());
         return m;
     }
 
@@ -118,6 +123,43 @@ public class ApiHqLedgerSysSettingsController {
     /**
      * 이메일무효(VOID) 템플릿·SMTP로 테스트 수신처에 샘플 본문 메일을 발송합니다. 결과는 운영관리 메일로그에 남습니다.
      */
+    @PostMapping("/payCardBlockPrefix")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> addPayCardBlockPrefix(
+            Authentication authentication,
+            @RequestBody Map<String, Object> body) {
+        if (!canResetOperationalData(authentication)) {
+            return ResponseEntity.ok(ApiResponse.fail("총본사(HEADQUARTERS) 또는 시스템 관리자만 등록할 수 있습니다.", "FORBIDDEN"));
+        }
+        try {
+            String pg = body.get("pgVendor") != null ? body.get("pgVendor").toString() : "";
+            String prefix = body.get("prefixDigits") != null ? body.get("prefixDigits").toString() : "";
+            String remark = body.get("remark") != null ? body.get("remark").toString() : "";
+            var row = payCardPolicyService.addBlockPrefix(pg, prefix, remark);
+            return ResponseEntity.ok(ApiResponse.ok(Map.of("id", row.getId())));
+        } catch (Exception e) {
+            return ResponseEntity.ok(ApiResponse.fail(e.getMessage(), "ERROR"));
+        }
+    }
+
+    @PostMapping("/payCardBlockPrefix/delete")
+    public ResponseEntity<ApiResponse<Void>> deletePayCardBlockPrefix(
+            Authentication authentication,
+            @RequestBody Map<String, Object> body) {
+        if (!canResetOperationalData(authentication)) {
+            return ResponseEntity.ok(ApiResponse.fail("총본사(HEADQUARTERS) 또는 시스템 관리자만 삭제할 수 있습니다.", "FORBIDDEN"));
+        }
+        try {
+            Object idObj = body.get("id");
+            if (idObj == null) {
+                return ResponseEntity.ok(ApiResponse.fail("id가 필요합니다.", "VALIDATION"));
+            }
+            payCardPolicyService.deleteBlockPrefix(Long.parseLong(idObj.toString().trim()));
+            return ResponseEntity.ok(ApiResponse.ok(null));
+        } catch (Exception e) {
+            return ResponseEntity.ok(ApiResponse.fail(e.getMessage(), "ERROR"));
+        }
+    }
+
     @PostMapping("/testVoidEmail")
     public ResponseEntity<ApiResponse<Map<String, Object>>> testVoidEmail(Authentication authentication,
                                                                           @RequestBody(required = false) Map<String, Object> body) {

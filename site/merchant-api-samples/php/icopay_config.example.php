@@ -7,6 +7,9 @@ return [
     'api_base_url'    => 'https://icopay.co.kr',
     'comp_id'         => 'M000123',
     'broker_secret'   => 'YOUR_BROKER_SECRET',
-    /** chillpay | jpay — 가맹 계약 PG */
-    'default_vendor'  => 'chillpay',
+    /**
+     * unified — PG 무관 통합 prepare (권장)
+     * chillpay | jpay — 레거시 PG별 inline-checkout
+     */
+    'default_integration' => 'unified',
 ];

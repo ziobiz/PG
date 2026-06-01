@@ -404,6 +404,23 @@ public class AuthService {
                 && !user.getOtpSecret().isBlank();
     }
 
+    /** 민감 운영(비활성카드 해지 등) — Google OTP 6자리 검증 */
+    public void verifyTotpOrThrow(AppUser user, String totpCode) {
+        if (user == null) {
+            throw new IllegalStateException("로그인이 필요합니다.");
+        }
+        if (!isOtpFullyEnrolled(user)) {
+            throw new IllegalStateException("Google OTP 등록 후 진행할 수 있습니다.");
+        }
+        String code = totpCode != null ? totpCode.trim() : "";
+        if (code.isEmpty()) {
+            throw new IllegalStateException("OTP 코드를 입력하세요.");
+        }
+        if (!TotpRfc6238.verify(user.getOtpSecret(), code, 2)) {
+            throw new IllegalStateException("OTP 코드가 올바르지 않습니다.");
+        }
+    }
+
     /**
      * 가맹(MERCHANT) 소속이고 {@code tb_user.permission_group_nm} 이 CHATBOT(구 챗봇관리자)인 계정.
      * 챗봇 상품 관리 등에 Google OTP 등록·로그인 2단계를 적용한다.

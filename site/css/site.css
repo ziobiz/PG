@@ -4278,27 +4278,46 @@ button.pay-follow-pill:focus-visible {
   }
 }
 
-/* 배포설정 > 가맹점 API 연동키트: table-responsive 제거 표 — 가로 스크롤 없음, 헤더 정렬 */
-.merchant-deploy-kit .merchant-deploy-table-wrap {
+/* 배포설정 > 가맹점 API 연동키트·API배포문서: table-responsive 제거 표 — 가로 스크롤 없음, 헤더 정렬 */
+.merchant-deploy-kit .merchant-deploy-table-wrap,
+.merchant-api-deploy-docs .merchant-deploy-table-wrap {
   overflow-x: visible;
   max-width: 100%;
 }
-.merchant-deploy-kit .merchant-deploy-merchant-table {
+.merchant-deploy-kit .merchant-deploy-merchant-table,
+.merchant-api-deploy-docs .merchant-deploy-merchant-table {
   table-layout: fixed;
 }
-.merchant-deploy-kit .merchant-deploy-merchant-table thead th {
+.merchant-deploy-kit .merchant-deploy-merchant-table thead th,
+.merchant-api-deploy-docs .merchant-deploy-merchant-table thead th {
   vertical-align: middle;
 }
-.merchant-deploy-kit .merchant-deploy-col-act {
+.merchant-deploy-kit .merchant-deploy-col-act,
+.merchant-api-deploy-docs .merchant-deploy-col-act {
   width: 5.5rem;
 }
-.merchant-deploy-kit .merchant-deploy-col-code {
+.merchant-deploy-kit .merchant-deploy-col-code,
+.merchant-api-deploy-docs .merchant-deploy-col-code {
   width: 9rem;
 }
-.merchant-deploy-kit .merchant-deploy-col-cur {
+.merchant-deploy-kit .merchant-deploy-col-master,
+.merchant-api-deploy-docs .merchant-deploy-col-master {
+  width: 7.5rem;
+}
+.merchant-deploy-kit .merchant-deploy-col-pg,
+.merchant-api-deploy-docs .merchant-deploy-col-pg {
+  width: 8rem;
+}
+.merchant-deploy-kit .merchant-deploy-col-cur,
+.merchant-api-deploy-docs .merchant-deploy-col-cur {
   width: 5.5rem;
 }
-.merchant-deploy-kit .merchant-deploy-merchant-table tbody td:nth-child(3) {
+.merchant-deploy-kit .merchant-deploy-merchant-table tbody td:nth-child(3),
+.merchant-api-deploy-docs .merchant-deploy-merchant-table tbody td:nth-child(3),
+.merchant-deploy-kit .merchant-deploy-merchant-table tbody td:nth-child(4),
+.merchant-api-deploy-docs .merchant-deploy-merchant-table tbody td:nth-child(4),
+.merchant-deploy-kit .merchant-deploy-merchant-table tbody td:nth-child(5),
+.merchant-api-deploy-docs .merchant-deploy-merchant-table tbody td:nth-child(5) {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;

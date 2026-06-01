@@ -8,6 +8,7 @@ import com.pg.entity.MerchantPgBinding;
 import com.pg.entity.MerchantProfile;
 import com.pg.entity.OrgLevel;
 import com.pg.entity.OrgUnit;
+import com.pg.entity.PgAgency;
 import com.pg.repository.HqApiConfigRepository;
 import com.pg.repository.HqNotifyEnvConfigRepository;
 import com.pg.repository.MerchantIcopayBrokerCredentialRepository;
@@ -15,6 +16,7 @@ import com.pg.repository.MerchantNotifyUrlRepository;
 import com.pg.repository.MerchantPgBindingRepository;
 import com.pg.repository.MerchantProfileRepository;
 import com.pg.repository.OrgUnitRepository;
+import com.pg.repository.PgAgencyRepository;
 import com.pg.middleware.notify.PgNotifyIngressPaths;
 import com.pg.service.CompService;
 import com.pg.service.HqNotifyEnvService;
@@ -24,11 +26,16 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 public class MerchantApiDeploymentService {
@@ -43,6 +50,7 @@ public class MerchantApiDeploymentService {
     private final HqNotifyEnvService hqNotifyEnvService;
     private final MerchantPgBrokerCatalog brokerCatalog;
     private final CompService compService;
+    private final PgAgencyRepository pgAgencyRepository;
 
     public MerchantApiDeploymentService(OrgUnitRepository orgUnitRepository,
                                         MerchantProfileRepository merchantProfileRepository,
@@ -53,7 +61,8 @@ public class MerchantApiDeploymentService {
                                         HqNotifyEnvConfigRepository hqNotifyEnvConfigRepository,
                                         HqNotifyEnvService hqNotifyEnvService,
                                         MerchantPgBrokerCatalog brokerCatalog,
-                                        CompService compService) {
+                                        CompService compService,
+                                        PgAgencyRepository pgAgencyRepository) {
         this.orgUnitRepository = orgUnitRepository;
         this.merchantProfileRepository = merchantProfileRepository;
         this.merchantPgBindingRepository = merchantPgBindingRepository;
@@ -64,6 +73,7 @@ public class MerchantApiDeploymentService {
         this.hqNotifyEnvService = hqNotifyEnvService;
         this.brokerCatalog = brokerCatalog;
         this.compService = compService;
+        this.pgAgencyRepository = pgAgencyRepository;
     }
 
     public List<Map<String, Object>> listVendors() {
@@ -82,8 +92,111 @@ public class MerchantApiDeploymentService {
                                                            int page, int size,
                                                            String scopeCompId, boolean scopeSubtreeBelow) {
         /* compDiv=MERCHANT(조직단계). 넷째 인자는 useYn(Y/N/ALL) — 여기에 "MERCHANT"를 넣으면 사용여부와 비교되어 목록이 항상 0건이 됨 */
-        return compService.search(searchCompId, searchCompNm, "MERCHANT", null, null, null,
+        PageResult<Map<String, Object>> result = compService.search(searchCompId, searchCompNm, "MERCHANT", null, null, null,
                 null, null, null, null, page, size, scopeCompId, scopeSubtreeBelow);
+        enrichMerchantListRows(result.getList());
+        return result;
+    }
+
+    private void enrichMerchantListRows(List<Map<String, Object>> list) {
+        if (list == null || list.isEmpty()) {
+            return;
+        }
+        List<Long> orgUnitIds = new ArrayList<>();
+        for (Map<String, Object> row : list) {
+            Object id = row.get("id");
+            if (id instanceof Number n) {
+                orgUnitIds.add(n.longValue());
+            }
+        }
+        if (orgUnitIds.isEmpty()) {
+            return;
+        }
+        Map<Long, List<MerchantPgBinding>> bindingsByOrg = merchantPgBindingRepository
+                .findByOrgUnitIdInOrderByOrgUnitIdAscSortOrderAsc(orgUnitIds)
+                .stream()
+                .collect(Collectors.groupingBy(MerchantPgBinding::getOrgUnitId));
+        Map<String, String> pgNmByCd = new HashMap<>();
+        for (PgAgency agency : pgAgencyRepository.findAllByOrderByPgCdAsc()) {
+            if (agency.getPgCd() == null || agency.getPgCd().isBlank()) {
+                continue;
+            }
+            String key = agency.getPgCd().trim().toUpperCase(Locale.ROOT);
+            String label = agency.getPgNm() != null && !agency.getPgNm().isBlank()
+                    ? agency.getPgNm().trim()
+                    : agency.getPgCd().trim();
+            pgNmByCd.put(key, label);
+        }
+        Map<Long, OrgUnit> orgById = orgUnitRepository.findAll().stream()
+                .collect(Collectors.toMap(OrgUnit::getId, o -> o, (a, b) -> a));
+        for (Map<String, Object> row : list) {
+            Object id = row.get("id");
+            Long ouId = id instanceof Number n ? n.longValue() : null;
+            List<MerchantPgBinding> bindings = ouId != null ? bindingsByOrg.get(ouId) : null;
+            row.put("pgAgency", formatMerchantPgAgencyDisplay(bindings, pgNmByCd));
+            row.put("masterDistNm", resolveNearestMasterDistName(ouId, orgById));
+        }
+    }
+
+    /** 상위 체인에서 가장 가까운 총판(MASTER_DIST) 업체명 */
+    private static String resolveNearestMasterDistName(Long orgUnitId, Map<Long, OrgUnit> orgById) {
+        if (orgUnitId == null || orgById == null || orgById.isEmpty()) {
+            return "-";
+        }
+        Long cur = orgUnitId;
+        Set<Long> seen = new HashSet<>();
+        while (cur != null && seen.add(cur)) {
+            OrgUnit ou = orgById.get(cur);
+            if (ou == null) {
+                break;
+            }
+            if (ou.getOrgLevel() == OrgLevel.MASTER_DIST) {
+                String nm = ou.getName();
+                return nm != null && !nm.isBlank() ? nm.trim() : "-";
+            }
+            cur = ou.getParentId();
+        }
+        return "-";
+    }
+
+    /** 가맹점 목록: 운영(operational Y) PG명 우선, 없으면 활성 바인딩 첫 PG */
+    private static String formatMerchantPgAgencyDisplay(List<MerchantPgBinding> bindings,
+                                                        Map<String, String> pgNmByCd) {
+        if (bindings == null || bindings.isEmpty()) {
+            return "-";
+        }
+        List<String> operational = collectPgAgencyLabels(bindings, pgNmByCd, true);
+        if (!operational.isEmpty()) {
+            return String.join(", ", operational);
+        }
+        List<String> active = collectPgAgencyLabels(bindings, pgNmByCd, false);
+        return active.isEmpty() ? "-" : String.join(", ", active);
+    }
+
+    private static List<String> collectPgAgencyLabels(List<MerchantPgBinding> bindings,
+                                                      Map<String, String> pgNmByCd,
+                                                      boolean operationalOnly) {
+        LinkedHashSet<String> seen = new LinkedHashSet<>();
+        List<String> labels = new ArrayList<>();
+        for (MerchantPgBinding b : bindings) {
+            if (operationalOnly && !"Y".equalsIgnoreCase(optYn(b.getOperationalYn()))) {
+                continue;
+            }
+            if ("N".equalsIgnoreCase(optYn(b.getActivationYn()))) {
+                continue;
+            }
+            String cd = b.getPgCd() != null ? b.getPgCd().trim().toUpperCase(Locale.ROOT) : "";
+            if (cd.isEmpty() || seen.contains(cd)) {
+                continue;
+            }
+            seen.add(cd);
+            labels.add(pgNmByCd.getOrDefault(cd, b.getPgCd() != null ? b.getPgCd().trim() : cd));
+        }
+        return labels;
+    }
+
+    private static String optYn(String yn) {
+        return yn != null ? yn.trim() : "";
     }
 
     public Map<String, Object> buildKit(String compId, String vendorScope, HttpServletRequest req) {
@@ -195,29 +308,44 @@ public class MerchantApiDeploymentService {
             kit.put("merchantInlineCheckoutJpay", buildMerchantInlineCheckoutBlock(publicApiBase, ou.getCode(), "jpay"));
             kit.put("merchantSubscriptionCheckoutJpay", buildMerchantSubscriptionCheckoutBlock(publicApiBase, ou.getCode()));
         }
+        if (MerchantPgBrokerVendor.ALL.equals(vs)) {
+            Map<String, Object> unifiedBlock = buildMerchantUnifiedCheckoutBlock(publicApiBase, ou.getCode());
+            kit.put("merchantUnifiedCheckout", unifiedBlock);
+            kit.put("merchantCheckoutApiParameterSpec",
+                    MerchantCheckoutApiParameterSpec.build(publicApiBase, ou.getCode()));
+            kit.put("integrationModes", buildIntegrationModes(publicApiBase, ou.getCode(), unifiedBlock));
+        }
 
         kit.put("merchantIntegrationSamples", buildIntegrationSamples(publicApiBase));
 
         kit.put("credentialScopes", credentialSummaries(ou.getId()));
 
-        kit.put("integrationChecklist", List.of(
-                "API배포설정의 publicApiBaseUrl(또는 노티 publicBaseUrl)이 가맹점·PG사에 알려준 도메인과 일치하는지 확인",
-                "PHP/JSP 샘플: " + publicApiBase + "/merchant-api-samples/ (README.txt · icopay_config · IcopayMerchantApi)",
-                "ChillPay 인라인(가맹 API): 가맹 서버 POST "
-                        + publicApiBase + "/api/middleware/v1/merchant/chillpay/inline-checkout/prepare → sessionToken → /v1/embed-pay/{compId}",
-                "JPAY 인라인(가맹 API): 가맹 서버 POST "
-                        + publicApiBase + "/api/middleware/v1/merchant/jpay/inline-checkout/prepare → sessionToken → /v1/embed-jpay-pay/{compId}",
-                "JPAY 구독(가맹 API·③): POST "
-                        + publicApiBase + "/api/middleware/v1/merchant/jpay/subscription/prepare → sessionToken → /v1/embed-jpay-subscribe/{compId}",
-                "가맹 PHP/JSP: prepare 는 반드시 가맹 서버에서 호출(브로커 시크릿 노출 금지). 브라우저에는 sessionToken·embed 스크립트만 전달",
-                "ChillPay 콜백·리다이렉트 URL은 본사 API연동설정·노티구성과 동일하게 유지",
-                "JPAY pay_notifyurl·콜백은 기본적으로 notifyIngressUrlMiddleware 경로를 사용합니다. 레거시만 필요하면 tb_pg_agency credentials_extra_json 에 jpayNotifyIngressStyle=OPEN",
-                "브로커 시크릿을 발급한 뒤 「강제」로 설정하면 /api/middleware/v1/pg/... 호출에 "
-                        + MerchantBrokerAccessVerifier.HEADER_MERCHANT_BROKER_SECRET + " 헤더가 필수입니다",
-                "레거시 /api/pay/... 경로는 시크릿 검증 없이 동작합니다(이행 기간용)"
-        ));
+        kit.put("integrationChecklist", MerchantApiDeployChecklistI18n.build(publicApiBase, ou.getCode()));
 
         return kit;
+    }
+
+    /** 배포설정 — API배포문서 화면용(다운로드·연동 파라미터 표). 시크릿 평문·재발급 기능은 포함하지 않음. */
+    public Map<String, Object> buildDocsPortal(String compId, HttpServletRequest req) {
+        Map<String, Object> kit = buildKit(compId, MerchantPgBrokerVendor.ALL, req);
+        Map<String, Object> portal = new LinkedHashMap<>();
+        portal.put("compId", kit.get("compId"));
+        portal.put("merchantName", kit.get("merchantName"));
+        portal.put("merchantOrgUnitId", kit.get("merchantOrgUnitId"));
+        portal.put("publicApiBaseUrl", kit.get("publicApiBaseUrl"));
+        portal.put("baseCurrency", kit.getOrDefault("baseCurrency", ""));
+        portal.put("headersRecommended", kit.get("headersRecommended"));
+        portal.put("notifyIngressUrlMiddleware", kit.get("notifyIngressUrlMiddleware"));
+        portal.put("notifyIngressUrlOpen", kit.get("notifyIngressUrlOpen"));
+        portal.put("merchantPgBindings", kit.get("merchantPgBindings"));
+        portal.put("merchantNotifyUrls", kit.get("merchantNotifyUrls"));
+        portal.put("merchantUnifiedCheckout", kit.get("merchantUnifiedCheckout"));
+        portal.put("merchantCheckoutApiParameterSpec", kit.get("merchantCheckoutApiParameterSpec"));
+        portal.put("integrationModes", kit.get("integrationModes"));
+        portal.put("merchantIntegrationSamples", kit.get("merchantIntegrationSamples"));
+        portal.put("integrationChecklist", kit.get("integrationChecklist"));
+        portal.put("credentialScopes", kit.get("credentialScopes"));
+        return portal;
     }
 
     private Map<String, Object> buildMerchantInlineCheckoutBlock(String publicApiBase, String compId, String vendorKey) {
@@ -267,6 +395,158 @@ public class MerchantApiDeploymentService {
         return block;
     }
 
+    private Map<String, Object> buildMerchantUnifiedCheckoutBlock(String publicApiBase, String compId) {
+        String base = publicApiBase != null ? publicApiBase.trim() : "";
+        Map<String, Object> block = new LinkedHashMap<>();
+        block.put("integrationMode", "INLINE_UNIFIED");
+        block.put("descriptionKr", "PG 무관 통합 인라인 — buyer(email·phone·countryIso2) 필수, 운영 WEB PG 자동 분기");
+        block.put("prepareUrl", base + "/api/middleware/v1/merchant/checkout/prepare");
+        block.put("sessionUrl", base + "/api/middleware/v1/merchant/checkout/session?token={sessionToken}");
+        block.put("statusUrl", base + "/api/middleware/v1/merchant/checkout/status?compId=" + compId + "&orderNo={orderNo}");
+        block.put("embedScriptUrl", base + "/v1/embed-checkout/" + compId);
+        block.put("prepareBodyExample", Map.of(
+                "compId", compId,
+                "orderNo", "ORD-001",
+                "amount", 10000,
+                "currency", "USD",
+                "productName", "상품명",
+                "lang", "ENG",
+                "buyer", Map.of(
+                        "email", "buyer@example.com",
+                        "phone", "1012345678",
+                        "countryIso2", "KR"
+                )
+        ));
+        block.put("embedScriptExample",
+                "<div id=\"icopay-checkout\"></div>\n"
+                        + "<script src=\"" + base + "/v1/embed-checkout/" + compId + "\"\n"
+                        + "  data-session-token=\"{sessionToken}\"\n"
+                        + "  data-target=\"icopay-checkout\"\n"
+                        + "  data-lang=\"{langCode}\" async defer charset=\"utf-8\"></script>");
+        block.put("postMessageEvent", "ICOPAY_INLINE_CHECKOUT");
+        block.put("phpClientMethod", "prepareUnifiedCheckout / buildUnifiedEmbedHtml");
+        block.put("jsonSampleFiles", List.of(
+                "merchant-api-samples/json/unified-prepare-request.json",
+                "merchant-api-samples/json/unified-prepare-response.example.json",
+                "merchant-api-samples/json/README.txt"
+        ));
+        block.put("phpSampleFiles", List.of(
+                "merchant-api-samples/php/IcopayMerchantApi.php",
+                "merchant-api-samples/php/checkout_unified.php",
+                "merchant-api-samples/php/icopay_config.example.php"
+        ));
+        return block;
+    }
+
+    /**
+     * 가맹 배포용 연동 방식 — JSON(REST 직접 호출) · PHP(샘플 클라이언트) 두 패키지.
+     */
+    private Map<String, Object> buildIntegrationModes(String publicApiBase, String compId,
+                                                      Map<String, Object> unifiedBlock) {
+        String base = publicApiBase != null ? publicApiBase.trim() : "";
+        Map<String, Object> modes = new LinkedHashMap<>();
+
+        Map<String, Object> jsonMode = new LinkedHashMap<>();
+        jsonMode.put("mode", "JSON");
+        jsonMode.put("descriptionKr",
+                "REST JSON 직접 호출 — Java·Node·Python·Go 등 모든 언어. 가맹 서버에서 prepare·status HTTP 호출.");
+        jsonMode.put("contentType", "application/json");
+        jsonMode.put("acceptHeader", "application/json");
+        jsonMode.put("authHeader", MerchantBrokerAccessVerifier.HEADER_MERCHANT_BROKER_SECRET);
+        jsonMode.put("authHeaderNoteKr", "브로커 시크릿 강제 시 필수. 레거시 /api/pay/... 는 예외.");
+        jsonMode.put("recommendedFlowKr", List.of(
+                "1) 가맹 서버: POST /api/middleware/v1/merchant/checkout/prepare (buyer 필수)",
+                "2) 응답 data.sessionToken → 브라우저에 /v1/embed-checkout/{compId} 스크립트만 전달",
+                "3) GET .../checkout/status 또는 merchantNotifyUrls 웹훅으로 PAID 확인"
+        ));
+        jsonMode.put("unifiedCheckout", unifiedBlock);
+        jsonMode.put("sampleFilesBaseUrl", base + "/merchant-api-samples/json/");
+        jsonMode.put("prepareRequestExampleUrl", base + "/merchant-api-samples/json/unified-prepare-request.json");
+        jsonMode.put("prepareResponseExampleUrl", base + "/merchant-api-samples/json/unified-prepare-response.example.json");
+        jsonMode.put("curlPrepareExample", buildUnifiedPrepareCurlExample(base, compId));
+        jsonMode.put("curlStatusExample",
+                "curl -sS -G '" + base + "/api/middleware/v1/merchant/checkout/status' \\\n"
+                        + "  --data-urlencode 'compId=" + compId + "' \\\n"
+                        + "  --data-urlencode 'orderNo=ORD-001' \\\n"
+                        + "  -H 'Accept: application/json' \\\n"
+                        + "  -H '" + MerchantBrokerAccessVerifier.HEADER_MERCHANT_BROKER_SECRET + ": {brokerSecret}'");
+        jsonMode.put("buyerSchema", Map.of(
+                "email", "string, required",
+                "phone", "string, required (국가번호 + 제외 로컬 번호)",
+                "countryIso2", "string, required (ISO 3166-1 alpha-2, e.g. KR)"
+        ));
+        modes.put("json", jsonMode);
+
+        Map<String, Object> phpMode = new LinkedHashMap<>();
+        phpMode.put("mode", "PHP");
+        phpMode.put("descriptionKr",
+                "PHP 가맹 서버 — IcopayMerchantApi.php 클라이언트 + checkout_unified.php 샘플 페이지.");
+        phpMode.put("phpVersionMin", "7.4");
+        phpMode.put("downloadBaseUrl", base + "/merchant-api-samples/");
+        phpMode.put("configExamplePath", "merchant-api-samples/php/icopay_config.example.php");
+        phpMode.put("configDeployNoteKr",
+                "icopay_config.example.php → icopay_config.php 복사 후 document root 밖에 두세요.");
+        phpMode.put("configTemplate", Map.of(
+                "api_base_url", base,
+                "comp_id", compId,
+                "broker_secret", "(브로커 시크릿 재발급 값)",
+                "default_integration", "unified"
+        ));
+        phpMode.put("clientFile", "merchant-api-samples/php/IcopayMerchantApi.php");
+        phpMode.put("checkoutUnified", "merchant-api-samples/php/checkout_unified.php");
+        phpMode.put("checkoutLegacyChillpay", "merchant-api-samples/php/checkout_chillpay.php");
+        phpMode.put("checkoutLegacyJpay", "merchant-api-samples/php/checkout_jpay.php");
+        phpMode.put("notifyWebhook", "merchant-api-samples/php/notify_webhook.php");
+        phpMode.put("postMessageJs", "merchant-api-samples/common/icopay-checkout.js");
+        phpMode.put("recommendedMethods", List.of(
+                "prepareUnifiedCheckout($orderNo, $amount, $buyer, ...)",
+                "buildUnifiedEmbedHtml($sessionToken)",
+                "getUnifiedPaymentStatus($orderNo)"
+        ));
+        phpMode.put("quickStartKr", List.of(
+                "1) php/IcopayMerchantApi.php · icopay_config.php 배포",
+                "2) checkout_unified.php 참고 — POST 시 buyer(email·phone·countryIso2) 전달",
+                "3) prepareUnifiedCheckout → buildUnifiedEmbedHtml 출력",
+                "4) common/icopay-checkout.js 로 postMessage 수신"
+        ));
+        phpMode.put("unifiedCheckout", unifiedBlock);
+        phpMode.put("configPhpExample", buildPhpConfigExample(base, compId));
+        modes.put("php", phpMode);
+
+        return modes;
+    }
+
+    private static String buildUnifiedPrepareCurlExample(String base, String compId) {
+        String url = base + "/api/middleware/v1/merchant/checkout/prepare";
+        return "curl -sS -X POST '" + url + "' \\\n"
+                + "  -H 'Content-Type: application/json' \\\n"
+                + "  -H 'Accept: application/json' \\\n"
+                + "  -H '" + MerchantBrokerAccessVerifier.HEADER_MERCHANT_BROKER_SECRET + ": {brokerSecret}' \\\n"
+                + "  -d '{\n"
+                + "    \"compId\": \"" + compId + "\",\n"
+                + "    \"orderNo\": \"ORD-001\",\n"
+                + "    \"amount\": 10000,\n"
+                + "    \"currency\": \"USD\",\n"
+                + "    \"productName\": \"상품명\",\n"
+                + "    \"lang\": \"ENG\",\n"
+                + "    \"buyer\": {\n"
+                + "      \"email\": \"buyer@example.com\",\n"
+                + "      \"phone\": \"1012345678\",\n"
+                + "      \"countryIso2\": \"KR\"\n"
+                + "    }\n"
+                + "  }'";
+    }
+
+    private static String buildPhpConfigExample(String base, String compId) {
+        return "<?php\nreturn [\n"
+                + "    'api_base_url'  => '" + base + "',\n"
+                + "    'comp_id'       => '" + compId + "',\n"
+                + "    'broker_secret' => 'YOUR_BROKER_SECRET',\n"
+                + "    /** unified(권장) | chillpay | jpay */\n"
+                + "    'default_integration' => 'unified',\n"
+                + "];\n";
+    }
+
     private Map<String, Object> buildMerchantSubscriptionCheckoutBlock(String publicApiBase, String compId) {
         String base = publicApiBase != null ? publicApiBase.trim() : "";
         Map<String, Object> block = new LinkedHashMap<>();
@@ -312,14 +592,21 @@ public class MerchantApiDeploymentService {
         m.put("downloadBaseUrl", base + "/merchant-api-samples/");
         m.put("indexUrl", base + "/merchant-api-samples/index.html");
         m.put("readmeUrl", base + "/merchant-api-samples/README.txt");
-        m.put("commonJsUrl", base + "/merchant-api-samples/common/icopay-checkout.js");
+        m.put("json", Map.of(
+                "readme", "merchant-api-samples/json/README.txt",
+                "prepareRequest", "merchant-api-samples/json/unified-prepare-request.json",
+                "prepareResponseExample", "merchant-api-samples/json/unified-prepare-response.example.json",
+                "parameterSpecHtml", "merchant-api-samples/docs/unified-checkout-api-parameters.html"
+        ));
         m.put("php", Map.of(
                 "configExample", "merchant-api-samples/php/icopay_config.example.php",
                 "client", "merchant-api-samples/php/IcopayMerchantApi.php",
+                "checkoutUnified", "merchant-api-samples/php/checkout_unified.php",
                 "checkoutChillpay", "merchant-api-samples/php/checkout_chillpay.php",
                 "checkoutJpay", "merchant-api-samples/php/checkout_jpay.php",
                 "notifyWebhook", "merchant-api-samples/php/notify_webhook.php"
         ));
+        m.put("commonJsUrl", base + "/merchant-api-samples/common/icopay-checkout.js");
         m.put("jsp", Map.of(
                 "configExample", "merchant-api-samples/jsp/icopay-config.example.properties",
                 "clientSample", "merchant-api-samples/jsp/IcopayMerchantApi.sample.java",
@@ -328,8 +615,10 @@ public class MerchantApiDeploymentService {
                 "notifyWebhook", "merchant-api-samples/jsp/notify-webhook.jsp"
         ));
         m.put("workflowKr",
-                "1) 가맹 DB 주문(PENDING) 2) PHP/JSP 서버에서 inline-checkout/prepare 3) sessionToken으로 embed HTML 출력 "
-                        + "4) iframe postMessage 또는 merchantNotifyUrls 웹훅으로 PAID 확인");
+                "1) 가맹 DB 주문(PENDING) 2) JSON: REST prepare / PHP: prepareUnifiedCheckout 3) sessionToken → embed "
+                        + "4) postMessage 또는 웹훅으로 PAID 확인");
+        m.put("integrationModesNoteKr",
+                "키트 integrationModes.json — REST 직접 호출(curl·스키마). integrationModes.php — PHP 클라이언트·설정 템플릿.");
         m.put("securityNoteKr", "브로커 시크릿(X-Icopay-Merchant-Broker-Secret)은 가맹 서버(PHP/JSP)에만 두고 브라우저·앱에 노출하지 마세요.");
         return m;
     }

@@ -65,6 +65,7 @@ public class JpayPaymentService {
     private final UrlPayCheckoutCurrencyService urlPayCheckoutCurrencyService;
     private final JpaySubscriptionConfigService jpaySubscriptionConfigService;
     private final MerchantJpaySubscriptionRepository merchantJpaySubscriptionRepository;
+    private final PayCardPolicyService payCardPolicyService;
     private final RestTemplate restTemplate = new RestTemplate();
 
     public JpayPaymentService(MerchantPgBindingRepository merchantPgBindingRepository,
@@ -77,7 +78,8 @@ public class JpayPaymentService {
                               MerchantNotifyUrlRepository merchantNotifyUrlRepository,
                               UrlPayCheckoutCurrencyService urlPayCheckoutCurrencyService,
                               JpaySubscriptionConfigService jpaySubscriptionConfigService,
-                              MerchantJpaySubscriptionRepository merchantJpaySubscriptionRepository) {
+                              MerchantJpaySubscriptionRepository merchantJpaySubscriptionRepository,
+                              PayCardPolicyService payCardPolicyService) {
         this.merchantPgBindingRepository = merchantPgBindingRepository;
         this.pgAgencyRepository = pgAgencyRepository;
         this.orgServiceUseService = orgServiceUseService;
@@ -89,6 +91,7 @@ public class JpayPaymentService {
         this.urlPayCheckoutCurrencyService = urlPayCheckoutCurrencyService;
         this.jpaySubscriptionConfigService = jpaySubscriptionConfigService;
         this.merchantJpaySubscriptionRepository = merchantJpaySubscriptionRepository;
+        this.payCardPolicyService = payCardPolicyService;
     }
 
     /**
@@ -142,6 +145,16 @@ public class JpayPaymentService {
         BigDecimal amountBd = parseAmount(body.get("amount"));
         if (amountBd == null || amountBd.compareTo(BigDecimal.ZERO) <= 0) {
             return failOut("amount는 0보다 커야 합니다.", "INVALID_AMOUNT");
+        }
+        Map<String, Object> cardVal = payCardPolicyService.validateForSale(
+                PgVendor.JPAY,
+                str(body.get("payCardno")),
+                str(body.get("payCardBrand")),
+                str(body.get("payLanguage")));
+        if (!Boolean.TRUE.equals(cardVal.get("valid"))) {
+            String msg = cardVal.get("message") != null ? cardVal.get("message").toString() : "카드번호를 확인해 주세요.";
+            String code = cardVal.get("errorCode") != null ? cardVal.get("errorCode").toString() : "CARD_POLICY";
+            return failOut(msg, code);
         }
         String currency = urlPayCheckoutCurrencyService.resolveCheckoutCurrency(orgUnitId, str(body.get("currency")));
 

@@ -9371,6 +9371,18 @@
       CH: '基准货币',
       TH: 'สกุลฐาน'
     },
+    'PG대행사': {
+      EN: 'PG agency',
+      JP: 'PG代行',
+      CH: 'PG代理商',
+      TH: 'ตัวแทน PG'
+    },
+    '상위 총판': {
+      EN: 'Parent master dist.',
+      JP: '上位総販',
+      CH: '上级总代',
+      TH: 'ตัวแทนหลักต้นสาย'
+    },
     '전산설정 수수료 통화 표 하단 안내': {
       EN: 'Per currency, <strong>decimals / rounding</strong> are locked by default. Use <strong>Edit</strong> (double confirm) to enter edit mode. Persist with <strong>Save</strong> in the Actions column (double confirm) or the bottom <strong>Save</strong>. <strong>Cancel</strong> reverts unsaved changes for that row only. <strong>Copy global</strong> is available in edit mode and copies the Default (unspecified) decimals/mode into the row (still requires Save).',
       JP: '通貨ごとの<strong>小数・端数</strong>は既定でロックです。<strong>[修正]</strong>で二重確認後に編集モードへ。反映は管理列の<strong>[保存]</strong>（二重確認）または画面下の<strong>保存</strong>。<strong>[キャンセル]</strong>は当該通貨行の未保存変更のみ戻します。<strong>[全体値]</strong>は編集モードでのみ使用でき、上の既定（通貨未指定）を行にコピーします（コピー後も[保存]が必要）。',
@@ -11912,6 +11924,36 @@
       CH: '生成对接包（JSON）',
       TH: 'สร้างแพ็กเกจเชื่อม (JSON)'
     },
+    'JSON 연동 패키지': {
+      EN: 'JSON integration package',
+      JP: 'JSON 連携パッケージ',
+      CH: 'JSON 对接包',
+      TH: 'แพ็กเกจเชื่อมต่อ (JSON)'
+    },
+    'PHP 연동 패키지': {
+      EN: 'PHP integration package',
+      JP: 'PHP 連携パッケージ',
+      CH: 'PHP 对接包',
+      TH: 'แพ็กเกจเชื่อมต่อ (PHP)'
+    },
+    '연동 패키지 (JSON / PHP)': {
+      EN: 'Integration package (JSON / PHP)',
+      JP: '連携パッケージ（JSON / PHP）',
+      CH: '对接包（JSON / PHP）',
+      TH: 'แพ็กเกจเชื่อมต่อ (JSON / PHP)'
+    },
+    '업체를 고른 뒤 JSON 또는 PHP 연동 패키지 버튼을 누르세요.': {
+      EN: 'Pick a merchant, then click the JSON or PHP package button.',
+      JP: '加盟店を選択して、JSON または PHP パッケージボタンを押してください。',
+      CH: '选择商户后，请点击 JSON 或 PHP 套件按钮。',
+      TH: 'เลือกร้านค้าแล้วกดปุ่มแพ็กเกจ JSON หรือ PHP'
+    },
+    '연동 키트 JSON·PHP 중 가맹 환경에 맞는 패키지 버튼을 누릅니다.': {
+      EN: 'Click the JSON/PHP package button that matches your merchant environment.',
+      JP: '加盟店環境に合う JSON/PHP パッケージボタンを押します。',
+      CH: '点击符合商户环境的 JSON/PHP 套件按钮。',
+      TH: 'คลิกปุ่มแพ็กเกจ JSON/PHP ให้ตรงกับสภาพแวดล้อมของร้าน'
+    },
     '브로커 시크릿 재발급': {
       EN: 'Re-issue broker secret',
       JP: 'ブローカーシークレット再発行',
@@ -11941,6 +11983,337 @@
       JP: '応答 / キット(JSON)',
       CH: '响应 / 套件（JSON）',
       TH: 'ตอบกลับ / ชุด (JSON)'
+    },
+    '아래 JSON·PHP 패키지 중 가맹 환경에 맞는 것을 복사해 전달하세요.': {
+      EN: 'Copy and share the JSON/PHP package that matches the merchant environment below.',
+      JP: '下の JSON/PHP パッケージから、加盟店環境に合うものをコピーして共有してください。',
+      CH: '请复制并提供下方与商户环境匹配的 JSON/PHP 套件。',
+      TH: 'คัดลอกและส่งแพ็กเกจ JSON/PHP ที่เหมาะกับสภาพแวดล้อมของร้านด้านล่าง'
+    },
+    'JSON: REST 직접 호출 — curl·buyer 스키마 포함': {
+      EN: 'JSON: Direct REST calls — includes curl & buyer schema',
+      JP: 'JSON: REST 直接呼び出し — curl・buyer スキーマ含む',
+      CH: 'JSON：直接调用 REST — 含 curl 与 buyer 结构',
+      TH: 'JSON: เรียก REST โดยตรง — มี curl และสคีมา buyer'
+    },
+    'PHP: IcopayMerchantApi.php · checkout_unified.php': {
+      EN: 'PHP: IcopayMerchantApi.php · checkout_unified.php',
+      JP: 'PHP: IcopayMerchantApi.php · checkout_unified.php',
+      CH: 'PHP：IcopayMerchantApi.php · checkout_unified.php',
+      TH: 'PHP: IcopayMerchantApi.php · checkout_unified.php'
+    },
+    '샘플 다운로드:': {
+      EN: 'Sample download:',
+      JP: 'サンプルダウンロード:',
+      CH: '示例下载：',
+      TH: 'ดาวน์โหลดตัวอย่าง:'
+    },
+    '연동 파라미터 규격(표):': {
+      EN: 'Integration parameter spec (table):',
+      JP: '連携パラメータ仕様（表）:',
+      CH: '对接参数规范（表）：',
+      TH: 'สเปคพารามิเตอร์เชื่อมต่อ (ตาราง):'
+    },
+    /* /hq/merchantApiDeployDocs — API 배포 문서 */
+    'API 배포 문서': {
+      EN: 'API deployment documents',
+      JP: 'API配布ドキュメント',
+      CH: 'API 部署文档',
+      TH: 'เอกสาร API สำหรับร้าน'
+    },
+    '가맹점 연동용 자료': {
+      EN: 'Merchant integration materials',
+      JP: '加盟店向け連携資料',
+      CH: '商户对接资料',
+      TH: 'เอกสารเชื่อมต่อสำหรับร้าน'
+    },
+    'API배포문서 안내 본문': {
+      EN: 'View and download integration samples, parameter specs, and endpoints for merchants on this screen. Re-issue broker secrets on the “Merchant API (generate)” screen.',
+      JP: 'この画面で加盟店向けの連携サンプル・パラメータ仕様・エンドポイントを確認・ダウンロードできます。ブローカーシークレットの再発行は「加盟店API生成」画面で行います。',
+      CH: '在此页面查看并下载商户对接样本、参数规范与端点。Broker 密钥重发请在「生成商户 API」页面操作。',
+      TH: 'ดูและดาวน์โหลดตัวอย่างเชื่อมต่อ สเปคพารามิเตอร์ และ endpoint สำหรับร้านได้ที่หน้านี้ ออก broker secret ใหม่ที่หน้า「สร้าง Merchant API」'
+    },
+    'API배포문서 안내 보안': {
+      EN: 'Keep broker secrets on the merchant server only — never expose them in browsers or apps.',
+      JP: 'ブローカーシークレットは加盟店サーバーにのみ置き、ブラウザ・アプリに露出しないでください。',
+      CH: 'Broker 密钥仅保存在商户服务器，切勿在浏览器或应用中暴露。',
+      TH: 'เก็บ broker secret ไว้ที่เซิร์ฟเวอร์ร้านเท่านั้น ห้ามเปิดเผยในเบราว์เซอร์หรือแอป'
+    },
+    '다운로드 자료': {
+      EN: 'Download materials',
+      JP: 'ダウンロード資料',
+      CH: '下载资料',
+      TH: 'เอกสารดาวน์โหลด'
+    },
+    '연동 파라미터 규격': {
+      EN: 'Integration parameter specification',
+      JP: '連携パラメータ仕様',
+      CH: '对接参数规范',
+      TH: 'สเปคพารามิเตอร์เชื่อมต่อ'
+    },
+    'HTTP 헤더': {
+      EN: 'HTTP headers',
+      JP: 'HTTPヘッダ',
+      CH: 'HTTP 头',
+      TH: 'HTTP headers'
+    },
+    'Prepare 본문 파라미터': {
+      EN: 'Prepare body parameters',
+      JP: 'Prepare 本文パラメータ',
+      CH: 'Prepare 请求体参数',
+      TH: 'พารามิเตอร์ body Prepare'
+    },
+    'buyer 객체 파라미터': {
+      EN: 'buyer object parameters',
+      JP: 'buyer オブジェクトパラメータ',
+      CH: 'buyer 对象参数',
+      TH: 'พารามิเตอร์อ็อบเจ็กต์ buyer'
+    },
+    'Status 조회 파라미터': {
+      EN: 'Status query parameters',
+      JP: 'Status 照会パラメータ',
+      CH: 'Status 查询参数',
+      TH: 'พารามิเตอร์ query Status'
+    },
+    '오류 코드': {
+      EN: 'Error codes',
+      JP: 'エラーコード',
+      CH: '错误代码',
+      TH: 'รหัสข้อผิดพลาด'
+    },
+    '오류코드': {
+      EN: 'Error code',
+      JP: 'エラーコード',
+      CH: '错误代码',
+      TH: 'รหัสข้อผิดพลาด'
+    },
+    '의미': {
+      EN: 'Meaning',
+      JP: '意味',
+      CH: '含义',
+      TH: 'ความหมาย'
+    },
+    '통합 Checkout 엔드포인트': {
+      EN: 'Unified Checkout endpoints',
+      JP: '統合 Checkout エンドポイント',
+      CH: '统一 Checkout 端点',
+      TH: 'Unified Checkout endpoints'
+    },
+    '연동 체크리스트': {
+      EN: 'Integration checklist',
+      JP: '連携チェックリスト',
+      CH: '对接检查清单',
+      TH: 'เช็กลิสต์การเชื่อมต่อ'
+    },
+    '업체를 선택하면 연동 자료가 표시됩니다.': {
+      EN: 'Select a merchant to show integration materials.',
+      JP: '加盟店を選択すると連携資料が表示されます。',
+      CH: '选择商户后将显示对接资料。',
+      TH: 'เลือกร้านเพื่อแสดงเอกสารเชื่อมต่อ'
+    },
+    '파라미터 규격': {
+      EN: 'Parameter specification',
+      JP: 'パラメータ仕様',
+      CH: '参数规范',
+      TH: 'สเปคพารามิเตอร์'
+    },
+    '통합 Checkout prepare API 필드 표(HTML)': {
+      EN: 'Unified Checkout prepare API field table (HTML)',
+      JP: '統合 Checkout prepare API フィールド表(HTML)',
+      CH: '统一 Checkout prepare API 字段表（HTML）',
+      TH: 'ตารางฟิลด์ Unified Checkout prepare API (HTML)'
+    },
+    '통합 Checkout prepare API 필드 표(텍스트)': {
+      EN: 'Unified Checkout prepare API field table (text)',
+      JP: '統合 Checkout prepare API フィールド表(テキスト)',
+      CH: '统一 Checkout prepare API 字段表（文本）',
+      TH: 'ตารางฟิลด์ Unified Checkout prepare API (ข้อความ)'
+    },
+    'HTML 열기': {
+      EN: 'Open HTML',
+      JP: 'HTMLを開く',
+      CH: '打开 HTML',
+      TH: 'เปิด HTML'
+    },
+    'TXT 열기': {
+      EN: 'Open TXT',
+      JP: 'TXTを開く',
+      CH: '打开 TXT',
+      TH: 'เปิด TXT'
+    },
+    'prepare 요청 샘플': {
+      EN: 'Prepare request sample',
+      JP: 'prepare リクエストサンプル',
+      CH: 'Prepare 请求示例',
+      TH: 'ตัวอย่างคำขอ prepare'
+    },
+    'prepare 응답 예시': {
+      EN: 'Prepare response example',
+      JP: 'prepare レスポンス例',
+      CH: 'Prepare 响应示例',
+      TH: 'ตัวอย่างการตอบ prepare'
+    },
+    'JSON 열기': {
+      EN: 'Open JSON',
+      JP: 'JSONを開く',
+      CH: '打开 JSON',
+      TH: 'เปิด JSON'
+    },
+    'IcopayMerchantApi.php 클라이언트': {
+      EN: 'IcopayMerchantApi.php client',
+      JP: 'IcopayMerchantApi.php クライアント',
+      CH: 'IcopayMerchantApi.php 客户端',
+      TH: 'ไคลเอนต์ IcopayMerchantApi.php'
+    },
+    'checkout_unified.php 샘플': {
+      EN: 'checkout_unified.php sample',
+      JP: 'checkout_unified.php サンプル',
+      CH: 'checkout_unified.php 示例',
+      TH: 'ตัวอย่าง checkout_unified.php'
+    },
+    'icopay_config.example.php': {
+      EN: 'icopay_config.example.php',
+      JP: 'icopay_config.example.php',
+      CH: 'icopay_config.example.php',
+      TH: 'icopay_config.example.php'
+    },
+    'PHP 열기': {
+      EN: 'Open PHP',
+      JP: 'PHPを開く',
+      CH: '打开 PHP',
+      TH: 'เปิด PHP'
+    },
+    '샘플 패키지': {
+      EN: 'Sample package',
+      JP: 'サンプルパッケージ',
+      CH: '示例包',
+      TH: 'แพ็กเกจตัวอย่าง'
+    },
+    'merchant-api-samples 전체 목록': {
+      EN: 'Full merchant-api-samples index',
+      JP: 'merchant-api-samples 一覧',
+      CH: 'merchant-api-samples 完整列表',
+      TH: 'ดัชนี merchant-api-samples ทั้งหมด'
+    },
+    '목록 열기': {
+      EN: 'Open index',
+      JP: '一覧を開く',
+      CH: '打开列表',
+      TH: 'เปิดดัชนี'
+    },
+    '가맹 compId·엔드포인트·curl 예시(JSON)': {
+      EN: 'Merchant compId, endpoints & curl examples (JSON)',
+      JP: '加盟店 compId・エンドポイント・curl 例(JSON)',
+      CH: '商户 compId、端点与 curl 示例（JSON）',
+      TH: 'compId ร้าน, endpoints และตัวอย่าง curl (JSON)'
+    },
+    'JSON 다운로드': {
+      EN: 'Download JSON',
+      JP: 'JSONダウンロード',
+      CH: '下载 JSON',
+      TH: 'ดาวน์โหลด JSON'
+    },
+    'PHP 설정 템플릿·파일 경로(PHP)': {
+      EN: 'PHP config template & file paths',
+      JP: 'PHP 設定テンプレート・ファイルパス',
+      CH: 'PHP 配置模板与文件路径',
+      TH: 'เทมเพลต config PHP และ path ไฟล์'
+    },
+    'PHP 설정 다운로드': {
+      EN: 'Download PHP config',
+      JP: 'PHP設定ダウンロード',
+      CH: '下载 PHP 配置',
+      TH: 'ดาวน์โหลด config PHP'
+    },
+    '문서 조회 실패': {
+      EN: 'Failed to load documents',
+      JP: 'ドキュメント取得失敗',
+      CH: '文档加载失败',
+      TH: 'โหลดเอกสารไม่สำเร็จ'
+    },
+    '다운로드 실패': {
+      EN: 'Download failed',
+      JP: 'ダウンロード失敗',
+      CH: '下载失败',
+      TH: 'ดาวน์โหลดไม่สำเร็จ'
+    },
+    '다운로드': {
+      EN: 'Download',
+      JP: 'ダウンロード',
+      CH: '下载',
+      TH: 'ดาวน์โหลด'
+    },
+    '열기': {
+      EN: 'Open',
+      JP: '開く',
+      CH: '打开',
+      TH: 'เปิด'
+    },
+    'JSON 경로': {
+      EN: 'JSON path',
+      JP: 'JSONパス',
+      CH: 'JSON 路径',
+      TH: 'JSON path'
+    },
+    '타입': {
+      EN: 'Type',
+      JP: '型',
+      CH: '类型',
+      TH: 'ชนิด'
+    },
+    '최대길이': {
+      EN: 'Max length',
+      JP: '最大長',
+      CH: '最大长度',
+      TH: 'ความยาวสูงสุด'
+    },
+    '예시값': {
+      EN: 'Example value',
+      JP: '例示値',
+      CH: '示例值',
+      TH: 'ค่าตัวอย่าง'
+    },
+    '필수(M)': {
+      EN: 'Required (M)',
+      JP: '必須(M)',
+      CH: '必填(M)',
+      TH: 'จำเป็น (M)'
+    },
+    '선택(O)': {
+      EN: 'Optional (O)',
+      JP: '任意(O)',
+      CH: '可选(O)',
+      TH: 'ไม่บังคับ (O)'
+    },
+    '조건부(C)': {
+      EN: 'Conditional (C)',
+      JP: '条件付(C)',
+      CH: '条件(C)',
+      TH: 'ตามเงื่อนไข (C)'
+    },
+    Prepare: {
+      EN: 'Prepare',
+      JP: 'Prepare',
+      CH: 'Prepare',
+      TH: 'Prepare'
+    },
+    Session: {
+      EN: 'Session',
+      JP: 'Session',
+      CH: 'Session',
+      TH: 'Session'
+    },
+    Status: {
+      EN: 'Status',
+      JP: 'Status',
+      CH: 'Status',
+      TH: 'Status'
+    },
+    'Embed 스크립트': {
+      EN: 'Embed script',
+      JP: 'Embed スクリプト',
+      CH: 'Embed 脚本',
+      TH: 'สคริปต์ Embed'
     },
     '업체를 고른 뒤 「연동 패키지 생성(JSON)」을 누르면 요약과 JSON이 채워집니다.': {
       EN: 'Pick a merchant and click “Build integration package (JSON)” to fill the summary and JSON.',
@@ -15416,6 +15789,222 @@
       TH: 'ดับเบิลคลิกแถววันที่ด้านบน'
     },
     '검증 리포트': { EN: 'Verify report', JP: '検証レポート', CH: '验证报表', TH: 'รายงานตรวจสอบ' },
+    '비활성카드등록': { EN: 'Inactive card register', JP: '非活性カード登録', CH: '非活跃卡登记', TH: 'ลงทะเบียนบัตรปิดใช้' },
+    '비활성 카드 등록': { EN: 'Register inactive card', JP: '非活性カード登録', CH: '登记非活跃卡', TH: 'ลงทะเบียนบัตรปิดใช้' },
+    'OTP 해지': { EN: 'Release (OTP)', JP: 'OTP解除', CH: 'OTP 解除', TH: 'ยกเลิก (OTP)' },
+    '해지하려면 Google OTP 6자리를 입력하세요.': {
+      EN: 'Enter your 6-digit Google OTP to release.',
+      JP: '解除するには Google OTP 6桁を入力してください。',
+      CH: '请输入 6 位 Google OTP 以解除。',
+      TH: 'กรอก Google OTP 6 หลักเพื่อยกเลิก'
+    },
+    '등록되었습니다.': { EN: 'Registered.', JP: '登録しました。', CH: '已登记。', TH: 'ลงทะเบียนแล้ว' },
+    '해지되었습니다.': { EN: 'Released.', JP: '解除しました。', CH: '已解除。', TH: 'ยกเลิกแล้ว' },
+    '등록 실패': { EN: 'Register failed', JP: '登録失敗', CH: '登记失败', TH: 'ลงทะเบียนล้มเหลว' },
+    '카드번호를 입력하세요.': { EN: 'Enter card number.', JP: 'カード番号を入力してください。', CH: '请输入卡号。', TH: 'กรอกเลขบัตร' },
+    '카드번호·사유를 입력한 뒤 [등록]을 누르세요. 등록일시·등록자는 자동 저장됩니다.': {
+      EN: 'Enter card number and reason, then click [Register]. Date/time and user are saved automatically.',
+      JP: 'カード番号・理由を入力し[登録]を押してください。登録日時・登録者は自動保存されます。',
+      CH: '输入卡号与原因后点击[登记]。登记时间与登记人自动保存。',
+      TH: 'กรอกเลขบัตรและเหตุผล แล้วกด [ลงทะเบียน] วันที่และผู้ลงทะเบียนบันทึกอัตโนมัติ'
+    },
+    '본사권한설정에서 이 화면에 삭제(전체) 또는 수정 권한이 있어야 등록·해지할 수 있습니다.': {
+      EN: 'Grant Delete (full) or Modify for this screen in HQ permissions to register or release.',
+      JP: '本社権限でこの画面に削除(全体)または修正権限が必要です。',
+      CH: '须在本社权限中为本画面授予删除(全部)或修改权限方可登记/解除。',
+      TH: 'ต้องมีสิทธิ์ลบ(เต็ม)หรือแก้ไขสำหรับหน้านี้ในสิทธิ์สำนักงานใหญ่'
+    },
+    '등록·해지 권한이 없습니다. 본사권한설정에서 삭제(전체) 또는 수정 권한을 부여하세요.': {
+      EN: 'No register/release permission. Grant Delete (full) or Modify in HQ permissions.',
+      JP: '登録・解除権限がありません。本社権限で削除(全体)または修正を付与してください。',
+      CH: '无登记/解除权限。请在本社权限中授予删除(全部)或修改。',
+      TH: 'ไม่มีสิทธิ์ลงทะเบียน/ยกเลิก ให้สิทธิ์ลบ(เต็ม)หรือแก้ไขในสิทธิ์สำนักงานใหญ่'
+    },
+    '등록·해지는 본사권한설정에서 이 화면 권한을 삭제(전체) 또는 수정으로 부여한 계정만 가능합니다.': {
+      EN: 'Only accounts with Delete (full) or Modify on this screen in HQ permissions can register or release.',
+      JP: '本社権限でこの画面に削除(全体)または修正があるアカウントのみ登録・解除できます。',
+      CH: '仅在本社权限中对该画面拥有删除(全部)或修改的账户可登记/解除。',
+      TH: 'เฉพาะบัญชีที่มีสิทธิ์ลบ(เต็ม)หรือแก้ไขหน้านี้ในสิทธิ์สำนักงานใหญ่'
+    },
+    '해지 실패': { EN: 'Release failed', JP: '解除失敗', CH: '解除失败', TH: 'ยกเลิกล้มเหลว' },
+    '카드번호(마스킹)': { EN: 'Card no. (masked)', JP: 'カード番号(マスク)', CH: '卡号(掩码)', TH: 'เลขบัตร (ปิดบางส่วน)' },
+    '등록카드': { EN: 'Registered card', JP: '登録カード', CH: '登记卡', TH: 'บัตรที่ลงทะเบียน' },
+    '해지됨': { EN: 'Released', JP: '解除済', CH: '已解除', TH: 'ยกเลิกแล้ว' },
+    '총본사·본사·총판(ADMIN 포함) 운영자용입니다. 메뉴 접근은 본사권한설정에서 부여합니다.': {
+      EN: 'For root HQ, regional HQ, master distributor (incl. ADMIN). Grant menu access in HQ permissions.',
+      JP: '総本部・本社・総販(ADMIN含む)の運用者向けです。メニューアクセスは本社権限設定で付与します。',
+      CH: '供总总部、本部、总代(含 ADMIN)使用。请在总部权限设置中授予菜单访问。',
+      TH: 'สำหรับ HQ สูงสุด/ภูมิภาค/ตัวแทนหลัก (รวม ADMIN) ให้สิทธิ์เมนูในสิทธิ์สำนักงานใหญ่'
+    },
+    '카드번호는 15자리(AMEX)·16자리만 등록할 수 있습니다. 저장 시 마스킹 표시(원번호는 해시만 보관).': {
+      EN: 'Only 15-digit (AMEX) or 16-digit card numbers. Stored masked (hash only in DB).',
+      JP: 'カード番号は15桁(AMEX)・16桁のみ登録できます。保存時はマスク表示(原本はハッシュのみ保管)。',
+      CH: '仅可登记 15 位(AMEX)或 16 位卡号。保存为掩码显示(仅存哈希)。',
+      TH: 'ลงทะเบียนได้เฉพาะ 15 หลัก (AMEX) หรือ 16 หลัก แสดงแบบปิดบางส่วน (เก็บแฮชใน DB)'
+    },
+    '해지 시 Google OTP 6자리가 필요합니다.': {
+      EN: 'Google OTP (6 digits) required to release.',
+      JP: '解除時は Google OTP 6桁が必要です。',
+      CH: '解除时需要 Google OTP 6 位。',
+      TH: 'ยกเลิกต้องใช้ Google OTP 6 หลัก'
+    },
+    '사용불가카드 등록': { EN: 'Blocked card (BIN)', JP: '使用不可カード登録', CH: '不可用卡(BIN)', TH: 'ลงทะเบียนบัตรใช้ไม่ได้' },
+    'PG별 카드번호 <strong>앞자리(BIN) 접두</strong>만 등록합니다. 입력 시 결제창·승인 API에서 즉시 차단됩니다. 개별 카드번호(비활성카드)는 <strong>운영관리 → 비활성카드등록</strong> 메뉴에서 관리합니다.': {
+      EN: 'Register only <strong>card number prefixes (BIN)</strong> per PG. Blocked immediately at checkout and approval API. Manage individual card numbers (inactive cards) under <strong>Operations → Inactive card register</strong>.',
+      JP: 'PGごとにカード番号の<strong>先頭(BIN)接頭</strong>のみ登録します。入力時に決済画面・承認APIで即時ブロックします。個別カード番号(非活性カード)は<strong>運用管理 → 非活性カード登録</strong>メニューで管理します。',
+      CH: '仅按 PG 登记卡号<strong>前缀(BIN)</strong>。在支付页与批准 API 即时拦截。个别卡号(非活跃卡)请在<strong>运营管理 → 非活跃卡登记</strong>管理。',
+      TH: 'ลงทะเบียนเฉพาะ<strong>คำนำหน้า BIN</strong> ต่อ PG บล็อกทันทีที่หน้าชำระและ API อนุมัติ บัตรรายใบ(ปิดใช้)จัดการที่<strong>ปฏิบัติการ → ลงทะเบียนบัตรปิดใช้</strong>'
+    },
+    '등록일시': { EN: 'Registered at', JP: '登録日時', CH: '登记时间', TH: 'วันที่ลงทะเบียน' },
+    '등록자': { EN: 'Registered by', JP: '登録者', CH: '登记人', TH: 'ผู้ลงทะเบียน' },
+    '15·16자리': {
+      EN: '15–16 digits',
+      JP: '15〜16桁',
+      CH: '15–16位',
+      TH: '15–16 หลัก'
+    },
+    '카드 종류': { EN: 'Card type', JP: 'カード種別', CH: '卡种', TH: 'ประเภทบัตร' },
+    '카드 종류를 먼저 선택하세요.': {
+      EN: 'Select a card type first.',
+      JP: '先にカード種別を選択してください。',
+      CH: '请先选择卡种。',
+      TH: 'กรุณาเลือกประเภทบัตรก่อน'
+    },
+    '카드 종류를 선택한 뒤 카드번호·사유를 입력하고 [등록]을 누르세요. 등록일시·등록자는 자동 저장됩니다.': {
+      EN: 'Select card type, enter card number and reason, then click Register. Date/time and user are saved automatically.',
+      JP: 'カード種別を選び、カード番号・理由を入力して［登録］を押してください。登録日時・登録者は自動保存されます。',
+      CH: '选择卡种后输入卡号与原因，点击［登记］。登记时间与登记人自动保存。',
+      TH: 'เลือกประเภทบัตร กรอกหมายเลขและเหตุผล แล้วกดลงทะเบียน วันที่และผู้ลงทะเบียนบันทึกอัตโนมัติ'
+    },
+    '카드 종류(VISA·Mastercard 등)를 선택하면 브랜드에 맞는 입력칸이 열립니다. AMEX는 15자리(4-6-5), 그 외는 16자리(4칸×4자리)입니다. 저장 시 마스킹 표시(원번호는 해시만 보관).': {
+      EN: 'Select card type (Visa, Mastercard, etc.) to show matching fields. AMEX: 15 digits (4-6-5); others: 16 digits (4×4). Stored masked (hash only in DB).',
+      JP: 'カード種別(VISA・Mastercard等)を選ぶと入力欄が開きます。AMEXは15桁(4-6-5)、その他は16桁(4枠×4桁)。保存時はマスク表示(原本はハッシュのみ)。',
+      CH: '选择卡种(Visa、Mastercard 等)后显示对应输入框。运通 15 位(4-6-5)，其他 16 位(4×4)。保存为掩码(仅存哈希)。',
+      TH: 'เลือกประเภทบัตรแล้วช่องจะเปิดตามแบรนด์ AMEX 15 หลัก (4-6-5) อื่นๆ 16 หลัก (4×4) เก็บแบบปิดบางส่วน (แฮชใน DB)'
+    },
+    'AMEX 카드번호 15자리를 모두 입력하세요.': {
+      EN: 'Enter all 15 digits of the AMEX card number.',
+      JP: 'AMEXカード番号15桁をすべて入力してください。',
+      CH: '请输入完整的 15 位运通卡号。',
+      TH: 'กรุณากรอกหมายเลข AMEX ครบ 15 หลัก'
+    },
+    '카드번호 16자리를 모두 입력하세요.': {
+      EN: 'Enter all 16 digits of the card number.',
+      JP: 'カード番号16桁をすべて入力してください。',
+      CH: '请输入完整的 16 位卡号。',
+      TH: 'กรุณากรอกหมายเลขบัตรครบ 16 หลัก'
+    },
+    'Visa': { EN: 'Visa', JP: 'Visa', CH: 'Visa', TH: 'Visa' },
+    'Mastercard': { EN: 'Mastercard', JP: 'Mastercard', CH: 'Mastercard', TH: 'Mastercard' },
+    'UnionPay': { EN: 'UnionPay', JP: 'UnionPay', CH: '银联', TH: 'UnionPay' },
+    'American Express': { EN: 'American Express', JP: 'American Express', CH: '美国运通', TH: 'American Express' },
+    'Diners Club': { EN: 'Diners Club', JP: 'Diners Club', CH: '大来卡', TH: 'Diners Club' },
+    'Discover': { EN: 'Discover', JP: 'Discover', CH: 'Discover', TH: 'Discover' },
+    '국내 전용(9)': { EN: 'Domestic (9…)', JP: '国内専用(9)', CH: '国内专用(9)', TH: 'ในประเทศ (9)' },
+    '기타': { EN: 'Other', JP: 'その他', CH: '其他', TH: 'อื่นๆ' },
+    '선택한 카드 종류와 카드번호 형식(접두·자릿수)이 일치하지 않습니다.': {
+      EN: 'Card type does not match the number format (prefix/length).',
+      JP: '選択したカード種別とカード番号の形式(接頭・桁数)が一致しません。',
+      CH: '所选卡种与卡号格式(前缀/位数)不一致。',
+      TH: 'ประเภทบัตรไม่ตรงกับรูปแบบหมายเลข (คำนำหน้า/ความยาว)'
+    },
+    'Visa 카드번호는 13자리 또는 16자리입니다.': {
+      EN: 'Visa card numbers are 13 or 16 digits.',
+      JP: 'Visaカード番号は13桁または16桁です。',
+      CH: 'Visa 卡号为 13 位或 16 位。',
+      TH: 'Visa ต้องมี 13 หรือ 16 หลัก'
+    },
+    'Diners Club 카드번호 14자리를 모두 입력하세요.': {
+      EN: 'Enter all 14 digits of the Diners Club card number.',
+      JP: 'Diners Clubカード番号14桁をすべて入力してください。',
+      CH: '请输入完整的 14 位大来卡号。',
+      TH: 'กรอกหมายเลข Diners Club ครบ 14 หลัก'
+    },
+    'UnionPay 카드번호는 16자리입니다. (17~19자리는 기타를 선택하세요.)': {
+      EN: 'UnionPay numbers are 16 digits here. For 17–19 digits, choose Other.',
+      JP: '銀聯は16桁です。(17~19桁は「その他」を選択)',
+      CH: '银联此处为 16 位。(17~19 位请选择「其他」)',
+      TH: 'UnionPay 16 หลักที่นี่ (17–19 หลักเลือก อื่นๆ)'
+    },
+    'UnionPay 17~19자리는 기타를 선택하세요.': {
+      EN: 'For UnionPay 17–19 digits, choose Other.',
+      JP: '銀聯17~19桁は「その他」を選択してください。',
+      CH: '银联 17~19 位请选择「其他」。',
+      TH: 'UnionPay 17–19 หลักให้เลือก อื่นๆ'
+    },
+    '국내 카드번호 16자리를 모두 입력하세요.': {
+      EN: 'Enter all 16 digits of the domestic card number.',
+      JP: '国内カード番号16桁をすべて入力してください。',
+      CH: '请输入完整的 16 位国内卡号。',
+      TH: 'กรอกหมายเลขบัตรในประเทศครบ 16 หลัก'
+    },
+    '기타 카드번호는 13자리 이상 입력하세요.': {
+      EN: 'Other: enter at least 13 digits.',
+      JP: 'その他: 13桁以上入力してください。',
+      CH: '其他: 至少输入 13 位。',
+      TH: 'อื่นๆ: กรอกอย่างน้อย 13 หลัก'
+    },
+    '기타 카드번호는 16자리 이하로 입력하세요.': {
+      EN: 'Other: up to 16 digits.',
+      JP: 'その他: 16桁以下で入力してください。',
+      CH: '其他: 最多 16 位。',
+      TH: 'อื่นๆ: ไม่เกิน 16 หลัก'
+    },
+    '기타 카드번호는 13~16자리로 입력하세요.': {
+      EN: 'Other: enter 13–16 digits.',
+      JP: 'その他: 13~16桁で入力してください。',
+      CH: '其他: 输入 13~16 位。',
+      TH: 'อื่นๆ: 13–16 หลัก'
+    },
+    '카드번호는 13~19자리 숫자여야 합니다.': {
+      EN: 'Card number must be 13–19 digits.',
+      JP: 'カード番号は13~19桁の数字である必要があります。',
+      CH: '卡号须为 13~19 位数字。',
+      TH: 'หมายเลขบัตรต้องเป็นตัวเลข 13–19 หลัก'
+    },
+    '카드번호는 15자리(AMEX) 또는 16자리여야 합니다.': {
+      EN: 'Card number must be 15 digits (AMEX) or 16 digits.',
+      JP: 'カード番号は15桁(AMEX)または16桁である必要があります。',
+      CH: '卡号须为 15 位(AMEX)或 16 位。',
+      TH: 'หมายเลขบัตรต้องมี 15 หลัก (AMEX) หรือ 16 หลัก'
+    },
+    '이미 비활성 등록된 카드입니다.': {
+      EN: 'This card is already registered as inactive.',
+      JP: 'このカードは既に非活性登録されています。',
+      CH: '该卡已登记为非活跃。',
+      TH: 'บัตรนี้ลงทะเบียนปิดใช้แล้ว'
+    },
+    '사유': { EN: 'Reason', JP: '理由', CH: '原因', TH: 'เหตุผล' },
+    '해지': { EN: 'Release', JP: '解除', CH: '解除', TH: 'ยกเลิก' },
+    '권한 없음': { EN: 'No permission', JP: '権限なし', CH: '无权限', TH: 'ไม่มีสิทธิ์' },
+    '본사권한설정에서 삭제(전체) 또는 수정 권한이 필요합니다.': {
+      EN: 'Delete (full) or Modify permission is required in HQ permissions.',
+      JP: '本社権限設定で削除(全体)または修正権限が必要です。',
+      CH: '需要在本社权限设置中授予删除(全部)或修改权限。',
+      TH: 'ต้องมีสิทธิ์ลบ(เต็ม)หรือแก้ไขในสิทธิ์สำนักงานใหญ่'
+    },
+    'VIEW SETTING의 「OTP 해지」 열은 항상 표시됩니다. 해지는 목록 맨 오른쪽 버튼에서 실행하세요.': {
+      EN: 'The OTP Release column is always shown. Use the button at the right end of the list to release.',
+      JP: 'VIEW SETTINGの「OTP解除」列は常に表示されます。解除は一覧右端のボタンから実行してください。',
+      CH: 'VIEW SETTING 中「OTP 解除」列始终显示。请在列表最右侧按钮执行解除。',
+      TH: 'คอลัมน์ OTP ยกเลิกแสดงเสมอ กดปุ่มขวาสุดของรายการเพื่อยกเลิก'
+    },
+    '해지일시': { EN: 'Released at', JP: '解除日時', CH: '解除时间', TH: 'วันที่ยกเลิก' },
+    '해지자': { EN: 'Released by', JP: '解除者', CH: '解除人', TH: 'ผู้ยกเลิก' },
+    '등록된 비활성 카드가 없습니다.': {
+      EN: 'No inactive cards registered.',
+      JP: '登録された非活性カードはありません。',
+      CH: '没有已登记的非活跃卡。',
+      TH: 'ไม่มีบัตรปิดใช้ที่ลงทะเบียน'
+    },
+    '전체 PG': { EN: 'All PG', JP: '全PG', CH: '全部 PG', TH: 'PG ทั้งหมด' },
+    '미지원': { EN: 'Not supported', JP: '未対応', CH: '不支持', TH: 'ไม่รองรับ' },
+    '미사용 PG는 운영 지정 불가': {
+      EN: 'Inactive PG cannot be set operational',
+      JP: '未使用PGは運用指定不可',
+      CH: '未使用的 PG 不可设为运营',
+      TH: 'PG ที่ไม่ใช้งานกำหนดเป็นปฏิบัติการไม่ได้'
+    },
     '통합(Chill)건수': { EN: 'Integrated (Chill) count', JP: '統合(Chill)件数', CH: '综合(Chill)笔数', TH: 'จำนวนรวม (Chill)' },
     '일치건수': { EN: 'Matched count', JP: '一致件数', CH: '一致笔数', TH: 'จำนวนที่ตรงกัน' },
     '불일치건수': { EN: 'Mismatch count', JP: '不一致件数', CH: '不一致笔数', TH: 'จำนวนไม่ตรงกัน' },

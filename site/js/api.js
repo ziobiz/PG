@@ -1169,6 +1169,9 @@
     hqMerchantApiDeploymentKit: function (params) {
       return get('/api/hq/merchant-api-deployment/kit', params || {}).then(function (r) { return r.data; });
     },
+    hqMerchantApiDeploymentDocsPortal: function (params) {
+      return get('/api/hq/merchant-api-deployment/docs-portal', params || {}).then(function (r) { return r.data; });
+    },
     hqMerchantApiDeploymentRotate: function (body) {
       return post('/api/hq/merchant-api-deployment/credential/rotate', body || {}).then(function (r) { return r.data; });
     },
@@ -1434,6 +1437,24 @@
     },
     hqLedgerSysSettingsResetSettlementData: function (body) {
       return post('/api/hq/ledgerSysSettings/resetSettlementData', body || {}).then(function (r) { return r.data; });
+    },
+    hqPayCardBlockPrefixAdd: function (body) {
+      return post('/api/hq/ledgerSysSettings/payCardBlockPrefix', body).then(function (r) { return r.data; });
+    },
+    hqPayCardBlockPrefixDelete: function (body) {
+      return post('/api/hq/ledgerSysSettings/payCardBlockPrefix/delete', body).then(function (r) { return r.data; });
+    },
+    opsInactiveCardAccess: function () {
+      return get('/api/ops/inactiveCard/access').then(function (r) { return r.data; });
+    },
+    opsInactiveCardList: function (params) {
+      return get('/api/ops/inactiveCard/list', params).then(function (r) { return r.data; });
+    },
+    opsInactiveCardRegister: function (body) {
+      return post('/api/ops/inactiveCard/register', body).then(function (r) { return r.data; });
+    },
+    opsInactiveCardRelease: function (body) {
+      return post('/api/ops/inactiveCard/release', body).then(function (r) { return r.data; });
     },
     hqLedgerSysSettingsTestVoidEmail: function (body) {
       return post('/api/hq/ledgerSysSettings/testVoidEmail', body || {}).then(function (r) { return r.data; });

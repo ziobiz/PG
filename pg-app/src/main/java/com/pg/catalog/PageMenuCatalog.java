@@ -26,6 +26,7 @@ public final class PageMenuCatalog {
         add(list, "/hq/pgApiMng", "M0101", "API연동설정", "배포설정");
         add(list, "/hq/apiMerchantDeployReg", "M0906", "API 가맹점 등록", "배포설정");
         add(list, "/hq/merchantApiGenerate", "M0905", "가맹점 API 생성", "배포설정");
+        add(list, "/hq/merchantApiDeployDocs", "M0907", "API배포문서", "배포설정");
         add(list, "/hq/apiConfig", "M0103", "API배포설정", "배포설정");
         add(list, "/hq/paymentOrchestration", "M0118", "결제로직설정", "본사설정");
         add(list, "/hq/urlPayDeploy", "M0122", "URL결제설정", "본사설정");
@@ -86,6 +87,7 @@ public final class PageMenuCatalog {
         add(list, "/ops/taxReport", "M0603", "TAX 리포트", "운영관리");
         add(list, "/ops/integratedReport", "M0604", "통합 리포트", "운영관리");
         add(list, "/ops/verifyReport", "M0605", "검증 리포트", "운영관리");
+        add(list, "/ops/inactiveCard", "M0606", "비활성카드등록", "운영관리");
         add(list, "/risk/list", "M0701", "리스크 현황", "리스크관리");
         add(list, "/deploy/integrationPlan", "M0901", "연동 진행안", "배포설정");
         add(list, "/deploy/jpayWorkPlan", "M0902", "JPAY 단계 계획", "배포설정");
