@@ -1137,6 +1137,75 @@
       extraRow(1) + extraRow(2) + extraRow(3) + extraRow(4) + '</tbody></table></div></div>';
   }
 
+  /** 대행수수료설정 — 기타 수수료 4슬롯(가맹 단일 값) */
+  function hqPgAgencyCostExtraFeesHtml() {
+    function extraRow(i) {
+      return '<tr><td class="p-1 align-middle"><select name="extraFee' + i + 'Mode" class="form-select form-select-sm">' +
+        '<option value="">—</option><option value="PCT">%</option><option value="FIX" data-pg-ui-t="고정">' + escUi(L('고정')) + '</option></select></td>' +
+        '<td class="p-1 align-middle"><input type="text" name="extraFee' + i + 'Name" class="form-control form-control-sm" maxlength="64" data-pg-ui-placeholder="이름" placeholder="' + escUi(L('이름')) + '" autocomplete="off" /></td>' +
+        '<td class="p-1 align-middle"><input type="text" name="extraFee' + i + 'Value" class="form-control form-control-sm text-center" autocomplete="off" /></td></tr>';
+    }
+    return '<div class="card border mb-3 hq-pg-cost-extra-card">' +
+      '<div class="card-header py-2 px-3 bg-light"><strong class="small" data-pg-ui-t="기타 수수료 (비고 · 최대 4건)">' + escUi(L('기타 수수료 (비고 · 최대 4건)')) + '</strong></div>' +
+      '<div class="card-body py-2 px-3"><table class="table table-sm table-bordered align-middle mb-0">' +
+      '<thead class="table-light"><tr><th class="text-center small" data-pg-ui-t="유형">' + escUi(L('유형')) + '</th><th class="text-center small" data-pg-ui-t="수수료명">' + escUi(L('수수료명')) + '</th><th class="text-center small" data-pg-ui-t="값">' + escUi(L('값')) + '</th></tr></thead><tbody>' +
+      extraRow(1) + extraRow(2) + extraRow(3) + extraRow(4) + '</tbody></table></div></div>';
+  }
+
+  /** 대행수수료설정 — 본문(목록+편집) */
+  function hqPgAgencyCostPolicyPageHtml() {
+    return '<div id="hqPgAgencyCostFlash" class="alert alert-dismissible d-none mb-3" role="alert"><span data-pg-banner-text></span>' +
+      '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="' + escUi(L('닫기')) + '"></button></div>' +
+      '<p class="small text-muted mb-3" data-pg-ui-html="노티·거래는 동일 저장소를 사용합니다. 여기서는 <strong>ICOPAY↔PG대행사 계약</strong> 관점의 수수료·담보·정산 주기(T+N 등)만 설정합니다. PG는 <strong>API연동설정</strong>에 등록된 PG코드별로 1건씩 저장합니다.">' + L('노티·거래는 동일 저장소를 사용합니다. 여기서는 <strong>ICOPAY↔PG대행사 계약</strong> 관점의 수수료·담보·정산 주기(T+N 등)만 설정합니다. PG는 <strong>API연동설정</strong>에 등록된 PG코드별로 1건씩 저장합니다.') + '</p>' +
+      '<div class="row g-3"><div class="col-12 col-lg-5"><div class="card h-100"><div class="card-header py-2 small fw-semibold" data-pg-ui-t="저장된 원가 정책">' + escUi(L('저장된 원가 정책')) + '</div><div class="card-body p-2">' +
+      '<div class="table-responsive border rounded" style="max-height:520px;overflow-y:auto"><table class="table table-sm table-hover align-middle mb-0 hq-pg-cost-policy-list-table">' +
+      '<thead class="table-light"><tr><th class="text-nowrap" data-pg-ui-t="PG코드">' + escUi(L('PG코드')) + '</th><th data-pg-ui-t="PG대행사">' + escUi(L('PG대행사')) + '</th><th class="text-nowrap" data-pg-ui-t="결제%">' + escUi(L('결제%')) + '</th><th class="text-nowrap" data-pg-ui-t="정산주기">' + escUi(L('정산주기')) + '</th><th class="text-nowrap" data-pg-ui-t="통화">' + escUi(L('통화')) + '</th></tr></thead>' +
+      '<tbody id="hqPgAgencyCostListTbody"><tr><td colspan="5" class="text-muted text-center small">' + escUi(L('불러오는 중…')) + '</td></tr></tbody></table></div>' +
+      '<button type="button" class="btn btn-success btn-sm mt-2 w-100" id="hqPgAgencyCostNewBtn" data-pg-ui-t="신규 PG">' + escUi(L('신규 PG')) + '</button></div></div></div>' +
+      '<div class="col-12 col-lg-7"><div class="card h-100"><div class="card-header py-2 small fw-semibold" data-pg-ui-t="편집">' + escUi(L('편집')) + '</div><div class="card-body p-2">' +
+      '<div class="row g-2 mb-2"><div class="col-md-6"><label class="form-label small mb-0" for="hqPgCostPgCd" data-pg-ui-t="PG대행사">' + escUi(L('PG대행사')) + '</label>' +
+      '<select class="form-select form-select-sm" id="hqPgCostPgCd" name="pgCd"></select></div>' +
+      '<div class="col-md-3"><label class="form-label small mb-0" for="hqPgCostCurrencyCode" data-pg-ui-t="기준통화">' + escUi(L('기준통화')) + '</label>' +
+      '<select class="form-select form-select-sm" id="hqPgCostCurrencyCode" name="currencyCode">' +
+      '<option value="KRW">KRW</option><option value="USD">USD</option><option value="JPY">JPY</option><option value="EUR">EUR</option>' +
+      '<option value="CNY">CNY</option><option value="THB">THB</option><option value="VND">VND</option><option value="GBP">GBP</option>' +
+      '<option value="TWD">TWD</option><option value="HKD">HKD</option><option value="USDT">USDT</option></select></div>' +
+      '<div class="col-md-3"><label class="form-label small mb-0" for="hqPgCostUseYn" data-pg-ui-t="사용">' + escUi(L('사용')) + '</label>' +
+      '<select class="form-select form-select-sm" id="hqPgCostUseYn" name="useYn"><option value="Y" data-pg-ui-t="사용">' + escUi(L('사용')) + '</option><option value="N" data-pg-ui-t="미사용">' + escUi(L('미사용')) + '</option></select></div></div>' +
+      '<div class="border rounded p-2 mb-2"><div class="small fw-semibold mb-2" data-pg-ui-t="수수료(건당·%)">' + escUi(L('수수료(건당·%)')) + '</div>' +
+      '<div class="row g-2 small">' +
+      feeInp('payRate', L('결제수수료(%)'), 2) + feeInp('perTxFee', L('건당수수료'), 2) + feeInp('failFee', L('실패수수료'), 2) +
+      feeInp('cancelRate', L('취소수수료'), 2) + feeInp('voidFeePerTx', L('무효(건)'), 2) + feeInp('manualVoidFeePerTx', L('수동무효(건)'), 2) +
+      feeInp('refundRate', L('환불(건)'), 2) + feeInp('feeSettlementPerTx', L('정산수수료'), 2) + feeInp('usageRate', L('월이용료'), 2) +
+      feeInp('fee3dsRate', L('3DS(건)'), 2) + feeInp('chargebackFeePerTx', L('차지백(건)'), 2) +
+      feeInp('remittanceTransferFee', L('송금이체'), 2) + feeInp('usdtTransferFeeUsd', L('USDT송금(USD)'), 2) +
+      feeInp('feeUsdt', L('USDT(%)'), 2) + feeInp('feeFx', L('FX(%)'), 2) +
+      '</div><div class="mt-2"><label class="form-label small mb-0" for="hqPgCostChargebackPolicyId" data-pg-ui-t="차지백 구간정책">' + escUi(L('차지백 구간정책')) + '</label>' +
+      '<select class="form-select form-select-sm" id="hqPgCostChargebackPolicyId" name="chargebackPolicyId"><option value="" data-pg-ui-t="(미사용) 건당 차지백만">' + escUi(L('(미사용) 건당 차지백만')) + '</option></select></div></div>' +
+      hqPgAgencyCostExtraFeesHtml() +
+      '<div class="border rounded p-2 mb-2"><div class="small fw-semibold mb-2" data-pg-ui-t="담보(롤링)">' + escUi(L('담보(롤링)')) + '</div>' +
+      '<div class="row g-2">' + feeInp('rollingPct', L('롤링(%)'), 3) + feeInp('rollingDays', L('보류일수'), 3) + '</div></div>' +
+      '<div class="border rounded p-2 mb-2"><div class="small fw-semibold mb-2" data-pg-ui-t="PG 정산 주기 (거래 시각 기준)">' + escUi(L('PG 정산 주기 (거래 시각 기준)')) + '</div>' +
+      '<p class="small text-muted mb-2" data-pg-ui-t="기준은 항상 TRANSACTION(결제 시각)입니다. T=영업일 N일 후 동일 시각, H=24×N시간, D=달력 N일·일괄 시각.">' + escUi(L('기준은 항상 TRANSACTION(결제 시각)입니다. T=영업일 N일 후 동일 시각, H=24×N시간, D=달력 N일·일괄 시각.')) + '</p>' +
+      '<div class="row g-2"><div class="col-md-3"><label class="form-label small mb-0" data-pg-ui-t="기준">' + escUi(L('기준')) + '</label><input type="text" class="form-control form-control-sm" name="settleBasis" value="TRANSACTION" readonly /></div>' +
+      '<div class="col-md-3"><label class="form-label small mb-0" for="hqPgCostSettleType" data-pg-ui-t="유형">' + escUi(L('유형')) + '</label>' +
+      '<select class="form-select form-select-sm" id="hqPgCostSettleType" name="settleScheduleType">' +
+      '<option value="T" data-pg-ui-t="PG정산유형 T">T</option><option value="H" data-pg-ui-t="PG정산유형 H">H</option><option value="D" data-pg-ui-t="PG정산유형 D">D</option></select></div>' +
+      '<div class="col-md-3"><label class="form-label small mb-0" for="hqPgCostSettleLagN" data-pg-ui-t="N">N</label>' +
+      '<input type="number" class="form-control form-control-sm" id="hqPgCostSettleLagN" name="settleLagN" min="1" max="30" value="1" /></div>' +
+      '<div class="col-md-3" id="hqPgCostSettleBatchWrap"><label class="form-label small mb-0" for="hqPgCostSettleBatchTime" data-pg-ui-t="D 일괄시각">' + escUi(L('D 일괄시각')) + '</label>' +
+      '<input type="text" class="form-control form-control-sm" id="hqPgCostSettleBatchTime" name="settleBatchTime" placeholder="09:00" data-pg-ui-placeholder="09:00" /></div></div></div>' +
+      '<div class="mb-2"><label class="form-label small mb-0" for="hqPgCostPolicyRemark" data-pg-ui-t="정책비고">' + escUi(L('정책비고')) + '</label>' +
+      '<textarea class="form-control form-control-sm" id="hqPgCostPolicyRemark" name="policyRemark" rows="2"></textarea></div>' +
+      '<div class="d-flex flex-wrap gap-2"><button type="button" class="btn btn-primary btn-sm" id="hqPgAgencyCostSaveBtn" data-pg-ui-t="저장">' + escUi(L('저장')) + '</button></div>' +
+      '</div></div></div></div>';
+    function feeInp(name, labelKo, col) {
+      var lk = String(labelKo);
+      return '<div class="col-6 col-md-' + col + '"><label class="form-label small mb-0" for="hqPgCost_' + name + '" data-pg-ui-t="' + escUi(lk) + '">' + escUi(L(lk)) + '</label>' +
+        '<input type="text" class="form-control form-control-sm" id="hqPgCost_' + name + '" name="' + name + '" autocomplete="off" /></div>';
+    }
+  }
+
   /** 정산주기: v·t 모두 코드 명(본사 API 로드 시 동일). 설명은 API의 d·option title */
   var CALC_CYCLE_OPTIONS = [
     { v: '', t: '선택' },
@@ -1874,6 +1943,15 @@
         }]]
       }],
       buttons: [{ id: 'hqChargebackPolicyReloadBtn', label: '목록 새로고침', cls: 'btn-outline-secondary' }]
+    },
+    '/hq/pgAgencyCostPolicy': {
+      isForm: true,
+      formSections: [{
+        title: '대행수수료설정',
+        notice: '가맹 수수료(수수료설정)와 별도로, PG사와의 계약 원가·정산 주기를 PG코드(MID) 단위로 관리합니다. 운영 PG결제·PG정산 화면(예정)에서 이 정책을 참조합니다.',
+        rows: [[{ type: 'customHtml', col: 12, html: hqPgAgencyCostPolicyPageHtml }]]
+      }],
+      buttons: [{ id: 'hqPgAgencyCostReloadBtn', label: '목록 새로고침', cls: 'btn-outline-secondary' }]
     },
     '/hq/settlementAdmin': {
       hideListGrid: true,
@@ -5648,6 +5726,103 @@
         { key: 'finalPayAfterRemittance', label: '최종지급(은행기준)', thClass: 'text-end text-nowrap', columnGuideLabel: '세금·은행 대조용' },
         { key: 'reportNote', label: '비고' }
       ]
+    },
+    '/ops/agencyTxnList': {
+      listSortDirAnchor: 'refresh',
+      paginationSizeOptions: [50, 100, 300, 400, 500],
+      paginationDefaultSize: 50,
+      searchFormClass: 'pay-mng-search-form',
+      payMngDenseGrid: true,
+      tableScrollable: true,
+      columnGuideFixedKeys: ['rowNo', 'pgNm', 'pgCd', 'compNm', 'compId', 'trnDate', 'agencySettleYn'],
+      viewSettingDefaultSelectedKeys: [
+        'trnTime', 'routeNo', 'chillTransactionId', 'trnId', 'statusNm', 'amount', 'curType', 'policyCur',
+        'txnFixedFeesSum', 'pctFeesSum', 'usdtFee', 'fxFee', 'fee3dsFee', 'rollingHoldEst',
+        'failFee', 'cancelFee', 'voidFee', 'manualVoidFee', 'refundFee', 'chargebackFee', 'totalAgencyFee'
+      ],
+      noticeList: [
+        '총본사·본사(REGIONAL)·총판(MASTER_DIST) 또는 ADMIN만 이용합니다. 조회 범위는 로그인 조직 하위 가맹 거래입니다.',
+        '수수료는 본사설정 「대행수수료설정」(PG코드=거래 van) 기준이며, 가맹 수수료내역·가맹 정산(settled_yn)과 별개입니다.',
+        '맨 오른쪽 「PG정산유무」는 대행수수료설정의 T/H/D·N·일괄시각으로 산출한 PG 계약 정산 도래 여부(Y=도래, N=미도래)입니다. 정책 없음·van 없음은 빈 칸입니다.'
+      ],
+      searchRows: [
+        [
+          { label: '거래일자', type: 'daterange', from: 'searchFromDate', to: 'searchToDate' },
+          { type: 'quickdate' }
+        ],
+        [
+          { label: '검색구분', type: 'select', name: 'searchFieldType', options: [
+            { v: 'ALL', t: '전체' },
+            { v: 'PG_CD', t: 'PG코드' },
+            { v: 'COMP_NM', t: '업체명' },
+            { v: 'COMP_ID', t: '업체코드' },
+            { v: 'APPROVAL_NO', t: '승인번호' },
+            { v: 'ORDER_NO', t: '주문번호' },
+            { v: 'MID', t: 'MID' },
+            { v: 'ROUTE', t: '루트' },
+            { v: 'CURRENCY', t: '통화' },
+            { v: 'STATUS', t: '상태' },
+            { v: 'AMOUNT', t: '금액' }
+          ], size: 11 },
+          { label: '검색어', type: 'text', name: 'searchKeyword', placeholder: '검색어', size: 22 },
+          { label: '상태그룹', type: 'select', name: 'searchStatusGroup', options: [
+            { v: 'ALL', t: '전체' },
+            { v: 'SUCCESS', t: '성공' },
+            { v: 'FAIL', t: '실패' },
+            { v: 'CANCEL', t: '취소' },
+            { v: 'VOID', t: '무효' },
+            { v: 'MANUAL_VOID', t: '수동무효' },
+            { v: 'REFUND', t: '환불' },
+            { v: 'FORCE_REFUND', t: '강제환불' },
+            { v: 'EXCLUDE_SUCCESS', t: '성공제외' }
+          ], size: 11 },
+          { type: 'searchBtn', label: '검색' }
+        ]
+      ],
+      summary: ['건수'],
+      buttons: [
+        { id: 'payListRefreshBtn', label: '새로고침', cls: 'btn-outline-secondary' },
+        { id: 'searchBtn', label: '검색', cls: 'btn-primary' }
+      ],
+      headerGroups: [
+        { label: 'PG·가맹', keys: ['pgNm', 'pgCd', 'compNm', 'compId'] },
+        { label: '거래', keys: ['trnDate', 'trnTime', 'routeNo', 'chillTransactionId', 'trnId', 'statusNm', 'amount'] },
+        { label: '승인 / 대행수수료(%)', keys: ['txnFixedFeesSum', 'pctFeesSum'] },
+        { label: '기타수수료', keys: ['usdtFee', 'fxFee', 'fee3dsFee'] },
+        { label: '실패·취소·무효·환불·차지백', keys: ['failFee', 'cancelFee', 'voidFee', 'manualVoidFee', 'refundFee', 'chargebackFee'] },
+        { label: '합계·정산', keys: ['rollingHoldEst', 'totalAgencyFee', 'agencySettleYn'] }
+      ],
+      columns: [
+        { key: 'rowNo', label: '번호' },
+        { key: 'pgNm', label: 'PG명' },
+        { key: 'pgCd', label: 'PG코드' },
+        { key: 'compNm', label: '업체명' },
+        { key: 'compId', label: '업체코드' },
+        { key: 'trnDate', label: '거래일' },
+        { key: 'trnTime', label: '거래시간' },
+        { key: 'routeNo', label: '루트' },
+        { key: 'chillTransactionId', label: '승인번호' },
+        { key: 'trnId', label: '거래번호(우리)' },
+        { key: 'statusNm', label: '상태' },
+        { key: 'amount', label: '결제금액' },
+        { key: 'curType', label: '통화' },
+        { key: 'policyCur', label: '정책통화' },
+        { key: 'txnFixedFeesSum', label: '건당수수료' },
+        { key: 'pctFeesSum', label: '결제(%)' },
+        { key: 'usdtFee', label: 'USDT' },
+        { key: 'fxFee', label: 'FX' },
+        { key: 'fee3dsFee', label: '3DS' },
+        { key: 'rollingHoldEst', label: '담보추정액' },
+        { key: 'failFee', label: '실패' },
+        { key: 'cancelFee', label: '취소' },
+        { key: 'voidFee', label: '무효' },
+        { key: 'manualVoidFee', label: '수무효' },
+        { key: 'refundFee', label: '환불' },
+        { key: 'chargebackFee', label: '차지백' },
+        { key: 'totalAgencyFee', label: '대행수수료합' },
+        { key: 'agencySettleYn', label: 'PG정산유무', thClass: 'text-center text-nowrap', columnGuideLabel: '대행수수료설정 T/H/D 기준 도래 Y/N' }
+      ],
+      emptyMessage: '조회된 데이터가 없습니다.'
     },
     '/ops/integratedReport': {
       isOpsIntegratedReport: true,

@@ -104,9 +104,63 @@
     return { EN: en, JP: jp, CH: ch, TH: th };
   }
 
+  /** PARENT_SEG·URL_TR 번역문 → 한국어 키 복원(로케일 전환 시 data-pg-*-ko 오염 방지) */
+  function reverseParentSegKey(displayText) {
+    var txt = String(displayText == null ? '' : displayText).trim();
+    if (!txt) return '';
+    if (PARENT_SEG[txt]) return txt;
+    var keys = Object.keys(PARENT_SEG);
+    for (var i = 0; i < keys.length; i++) {
+      var k = keys[i];
+      var row = PARENT_SEG[k];
+      if (!row) continue;
+      if (row.EN === txt || row.JP === txt || row.CH === txt || row.TH === txt) return k;
+    }
+    return txt;
+  }
+
+  function reverseUrlTrKo(url, displayText) {
+    var tr = URL_TR[url];
+    if (!tr) return '';
+    var txt = String(displayText == null ? '' : displayText).trim();
+    if (!txt) return '';
+    if (tr.EN === txt || tr.JP === txt || tr.CH === txt || tr.TH === txt) {
+      var info = (w.PG_MENU_INFO && w.PG_MENU_INFO[url]) || {};
+      if (info.label) return info.label;
+    }
+    return '';
+  }
+
+  /** 사이드바·탭 한국어 라벨 — textContent 캐시 대신 data-pg-ui-t / PG_MENU_INFO 우선 */
+  function resolveMenuKoLabel(anchor, url) {
+    if (!anchor) return '';
+    var uiT = anchor.getAttribute('data-pg-ui-t');
+    if (uiT && String(uiT).trim()) return String(uiT).trim();
+    var info = (w.PG_MENU_INFO && w.PG_MENU_INFO[url]) || {};
+    if (info.label) return info.label;
+    var stored = anchor.getAttribute('data-pg-menu-ko');
+    if (stored && String(stored).trim()) {
+      var sk = String(stored).trim();
+      var rev = reverseUrlTrKo(url, sk);
+      if (rev) return rev;
+      if (!URL_TR[url] || sk === (info.label || '')) return sk;
+    }
+    return reverseUrlTrKo(url, anchor.textContent) || String(anchor.textContent || '').trim();
+  }
+
+  function resolveParentKoLabel(span) {
+    if (!span) return '';
+    var uiT = span.getAttribute('data-pg-ui-t');
+    if (uiT && String(uiT).trim()) return String(uiT).trim();
+    var stored = span.getAttribute('data-pg-parent-ko');
+    if (stored && PARENT_SEG[String(stored).trim()]) return String(stored).trim();
+    return reverseParentSegKey(span.textContent);
+  }
+
   var URL_TR = {
     '/hq/pgApiMng': T('API integration', 'API連携設定', 'API 联动设置', 'การเชื่อม API'),
     '/hq/defaultCommission': T('Commission', '手数料設定', '手续费设置', 'ค่าธรรมเนียม'),
+    '/hq/pgAgencyCostPolicy': T('Agency fee settings', '代行手数料設定', '代理手续费设置', 'ตั้งค่าค่าธรรมเนียมตัวแทน'),
     '/hq/chargebackPolicy': T('Chargeback', 'チャージバック設定', '拒付/退单设置', 'นโยบาย chargeback'),
     '/hq/businessDaySetting': T('Business days', '営業日設定', '营业日设置', 'วันทำการ'),
     '/hq/apiConfig': T('API deployment', 'API配信設定', 'API 部署设置', 'การตั้งค่า API'),
@@ -187,6 +241,7 @@
     '/ops/opsMng': T('Operations', '運用管理', '运营管理', 'ปฏิบัติการ'),
     '/ops/mailLog': T('Mail log', 'メールログ', '邮件日志', 'บันทึกเมล'),
     '/ops/taxReport': T('TH tax report', 'タイ税務レポート', '泰国税务报表', 'รายงานภาษี TH'),
+    '/ops/agencyTxnList': T('Agency txn list', '代行取引明細', '代行交易明细', 'รายการธุรกรรมตัวแทน'),
     '/ops/integratedReport': T('Integrated report', '統合レポート', '综合报表', 'รายงานรวม'),
     '/ops/verifyReport': T('Verify report', '検証レポート', '验证报表', 'รายงานตรวจสอบ'),
     '/ops/inactiveCard': T('Inactive card register', '非活性カード登録', '非活跃卡登记', 'ลงทะเบียนบัตรปิดใช้'),
@@ -269,20 +324,16 @@
       if (!link) return;
       var sp = link.querySelector('span:not(.menu-arrow)');
       if (!sp) return;
-      if (!sp.getAttribute('data-pg-parent-ko')) {
-        sp.setAttribute('data-pg-parent-ko', sp.textContent.trim());
-      }
-      var key = sp.getAttribute('data-pg-parent-ko');
+      var key = resolveParentKoLabel(sp);
+      sp.setAttribute('data-pg-parent-ko', key);
       sp.textContent = ' ' + (loc === 'KO' ? key : tParentSeg(key, loc)) + ' ';
     });
     document.querySelectorAll('#side-nav-ul .child-li[data-url] > a').forEach(function (a) {
       var li = a.closest('.child-li');
       var url = li && li.getAttribute('data-url');
       if (!url) return;
-      if (!a.getAttribute('data-pg-menu-ko')) {
-        a.setAttribute('data-pg-menu-ko', a.textContent.trim());
-      }
-      var ko = a.getAttribute('data-pg-menu-ko');
+      var ko = resolveMenuKoLabel(a, url);
+      a.setAttribute('data-pg-menu-ko', ko);
       a.textContent = loc === 'KO' ? ko : tUrlLabel(url, loc, ko);
     });
   }
@@ -297,9 +348,9 @@
       if (li.getAttribute('data-pg-catalog-tab') === '1') return;
       var info = (w.PG_MENU_INFO && w.PG_MENU_INFO[url]) || {};
       var sideA = document.querySelector('#side-nav-ul .child-li[data-url="' + url + '"] > a');
-      var sideKo = sideA && sideA.getAttribute('data-pg-menu-ko');
+      var sideKo = sideA ? resolveMenuKoLabel(sideA, url) : '';
       var fallbackKo = info.label || sideKo || tabA.getAttribute('data-pg-tab-ko') || '';
-      if (fallbackKo && !tabA.getAttribute('data-pg-tab-ko')) {
+      if (fallbackKo) {
         tabA.setAttribute('data-pg-tab-ko', fallbackKo);
       }
       tabA.textContent = tUrlLabel(url, loc, fallbackKo);
@@ -375,6 +426,8 @@
     tUrlLabel: tUrlLabel,
     tParentSeg: tParentSeg,
     tParentChain: tParentChain,
+    resolveMenuKoLabel: resolveMenuKoLabel,
+    resolveParentKoLabel: resolveParentKoLabel,
     mainLabel: function () {
       return mainLabel(getLoc());
     },

@@ -1202,6 +1202,15 @@
     hqChargebackPolicyDelete: function (id) {
       return post('/api/hq/chargebackPolicy/delete', { id: id }).then(function (r) { return r.data; });
     },
+    hqPgAgencyCostPolicy: function () {
+      return get('/api/hq/pgAgencyCostPolicy').then(function (r) { return r.data; });
+    },
+    hqPgAgencyCostPolicyDetail: function (pgCd) {
+      return get('/api/hq/pgAgencyCostPolicy/' + encodeURIComponent(pgCd || '')).then(function (r) { return r.data; });
+    },
+    hqPgAgencyCostPolicySave: function (body) {
+      return post('/api/hq/pgAgencyCostPolicy/save', body || {}).then(function (r) { return r.data; });
+    },
     hqApiConfig: function () {
       return get('/api/hq/apiConfig').then(function (r) { return r.data; });
     },
@@ -1640,6 +1649,18 @@
         }
         return payload;
       });
+    },
+    opsAgencyTxnListAccess: function () {
+      return get('/api/ops/agencyTxnList/access').then(function (r) { return r.data; });
+    },
+    opsAgencyTxnList: function (params) {
+      var p = params || {};
+      var q = { page: p.page || 1, size: p.size || 50 };
+      ['searchFromDate', 'searchToDate', 'searchCompId', 'searchCompNm', 'searchFieldType',
+        'searchKeyword', 'searchStatusGroup', 'searchOrderDir'].forEach(function (k) {
+        if (p[k] != null && String(p[k]).trim() !== '') q[k] = p[k];
+      });
+      return get('/api/ops/agencyTxnList', q).then(function (r) { return r.data; });
     },
     opsVerifyReportAccess: function () {
       return get('/api/ops/verifyReport/access').then(function (r) { return r.data; });

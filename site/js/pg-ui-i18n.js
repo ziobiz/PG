@@ -6529,6 +6529,235 @@
       CH: '无上限',
       TH: 'ไม่จำกัด'
     },
+    /* /hq/pgAgencyCostPolicy — 대행수수료설정 (ICOPAY↔PG contract) */
+    '대행수수료설정': {
+      EN: 'Agency fee settings',
+      JP: '代行手数料設定',
+      CH: '代理手续费设置',
+      TH: 'ตั้งค่าค่าธรรมเนียมตัวแทน'
+    },
+    '노티·거래는 동일 저장소를 사용합니다. 여기서는 <strong>ICOPAY↔PG대행사 계약</strong> 관점의 수수료·담보·정산 주기(T+N 등)만 설정합니다. PG는 <strong>API연동설정</strong>에 등록된 PG코드별로 1건씩 저장합니다.': {
+      EN: 'The same noti/transaction store is used. Configure <strong>ICOPAY↔PG agency contract</strong> fees, collateral, and settlement timing (T+N, etc.) only. One row per PG code from <strong>API integration</strong>.',
+      JP: 'ノティ・取引は同一ストアです。<strong>ICOPAY↔PG代行契約</strong>の手数료・担保・精算のみ設定します。PGは<strong>API連携設定</strong>のPGコードごとに1件です。',
+      CH: '通知与交易共用存储。仅配置 <strong>ICOPAY↔PG 代理商合同</strong> 手续费、保证金与结算周期。每个 API 联动中的 PG 代码一条。',
+      TH: 'ใช้คลังเดียวกัน ตั้งค่า<strong>สัญญา ICOPAY↔PG</strong> ค่าธรรมเนียม หลักประกัน รอบชำระ เท่านั้น หนึ่งรายการต่อรหัส PG จาก<strong>การเชื่อม API</strong>'
+    },
+    '가맹 수수료(수수료설정)와 별도로, PG사와의 계약 원가·정산 주기를 PG코드(MID) 단위로 관리합니다. 운영 PG결제·PG정산 화면(예정)에서 이 정책을 참조합니다.': {
+      EN: 'Separate from merchant fees ([Commission]). Manage PG contract cost and settlement per PG code (MID). Planned PG payment/settlement ops screens will reference this policy.',
+      JP: '加盟店手数料（手数料設定）とは別に、PG契約原価・精算をPGコード（MID）単位で管理します。予定のPG決済・PG精算画面が参照します。',
+      CH: '与商户手续费（手续费设置）分开，按 PG 代码（MID）管理 PG 合同成本与结算周期。计划中的 PG 支付/结算运营画面将引用此政策。',
+      TH: 'แยกจากค่าธรรมเนียมร้าน ([Commission]) จัดการต้นทุนสัญญา PG และรอบชำระต่อรหัส PG (MID) หน้าจอ PG ชำระ/สรุป (ตามแผน) จะอ้างอิงนโยบายนี้'
+    },
+    '저장된 원가 정책': {
+      EN: 'Saved cost policies',
+      JP: '保存済み原価ポリシー',
+      CH: '已保存成本政策',
+      TH: 'นโยบายต้นทุนที่บันทึก'
+    },
+    '신규 PG': {
+      EN: 'New PG',
+      JP: '新規PG',
+      CH: '新建 PG',
+      TH: 'PG ใหม่'
+    },
+    '등록된 원가 정책이 없습니다.': {
+      EN: 'No cost policies registered.',
+      JP: '登録された原価ポリシーがありません。',
+      CH: '尚无已登记的成本政策。',
+      TH: 'ยังไม่มีนโยบายต้นทุน'
+    },
+    'PG 선택': {
+      EN: 'Select PG',
+      JP: 'PGを選択',
+      CH: '选择 PG',
+      TH: 'เลือก PG'
+    },
+    '신규 PG 원가를 입력한 뒤 저장하세요.': {
+      EN: 'Enter a new PG cost policy and save.',
+      JP: '新規PG原価を入力して保存してください。',
+      CH: '请输入新的 PG 成本政策后保存。',
+      TH: 'กรอกต้นทุน PG ใหม่แล้วบันทึก'
+    },
+    'PG대행사를 선택하세요.': {
+      EN: 'Select a PG agency.',
+      JP: 'PG代行を選択してください。',
+      CH: '请选择 PG 代理商。',
+      TH: 'เลือกตัวแทน PG'
+    },
+    '결제%': {
+      EN: 'Pay %',
+      JP: '決済%',
+      CH: '支付%',
+      TH: '%ชำระ'
+    },
+    '정산주기': {
+      EN: 'Settlement cycle',
+      JP: '精算サイクル',
+      CH: '结算周期',
+      TH: 'รอบชำระ'
+    },
+    '수수료(건당·%)': {
+      EN: 'Fees (per txn / %)',
+      JP: '手数料（件当・%）',
+      CH: '手续费（每笔·%）',
+      TH: 'ค่าธรรมเนียม (ต่อรายการ / %)'
+    },
+    '3DS(건)': {
+      EN: '3DS (per txn)',
+      JP: '3DS（件）',
+      CH: '3DS（笔）',
+      TH: '3DS (ต่อรายการ)'
+    },
+    'USDT송금(USD)': {
+      EN: 'USDT transfer (USD)',
+      JP: 'USDT送金(USD)',
+      CH: 'USDT 汇款 (USD)',
+      TH: 'โอน USDT (USD)'
+    },
+    'PG 정산 주기 (거래 시각 기준)': {
+      EN: 'PG settlement timing (by txn time)',
+      JP: 'PG精算サイクル（取引時刻基準）',
+      CH: 'PG 结算周期（按交易时刻）',
+      TH: 'รอบชำระ PG (ตามเวลาธุรกรรม)'
+    },
+    '기준은 항상 TRANSACTION(결제 시각)입니다. T=영업일 N일 후 동일 시각, H=24×N시간, D=달력 N일·일괄 시각.': {
+      EN: 'Basis is always TRANSACTION (payment time). T = same clock time after N business days; H = 24×N hours; D = calendar N days at batch time.',
+      JP: '基準は常にTRANSACTION（決済時刻）。T=営業日N日後同一時刻、H=24×N時間、D=暦日N日・一括時刻。',
+      CH: '基准始终为 TRANSACTION（支付时刻）。T=营业日 N 日后同一时刻；H=24×N 小时；D=日历 N 日批量时刻。',
+      TH: 'ฐานคือ TRANSACTION เสมอ T=เวลาเดิมหลัง N วันทำการ H=24×N ชม. D=ปฏิทิน N วันเวลารวม'
+    },
+    'D 일괄시각': {
+      EN: 'D batch time',
+      JP: 'D一括時刻',
+      CH: 'D 批量时刻',
+      TH: 'เวลารวม D'
+    },
+    '정책비고': {
+      EN: 'Policy memo',
+      JP: 'ポリシー備考',
+      CH: '政策备注',
+      TH: 'หมายเหตุนโยบาย'
+    },
+    '값': {
+      EN: 'Value',
+      JP: '値',
+      CH: '数值',
+      TH: 'ค่า'
+    },
+    '결제수수료(%)': {
+      EN: 'Payment fee (%)',
+      JP: '決済手数料(%)',
+      CH: '支付手续费(%)',
+      TH: 'ค่าธรรมเนียมชำระ (%)'
+    },
+    '무효(건)': {
+      EN: 'Void (per txn)',
+      JP: '無効（件）',
+      CH: '作废（笔）',
+      TH: 'โมฆะ (ต่อรายการ)'
+    },
+    '수동무효(건)': {
+      EN: 'Manual void (per txn)',
+      JP: '手動無効（件）',
+      CH: '手动作废（笔）',
+      TH: 'โมฆะด้วยมือ (ต่อรายการ)'
+    },
+    '환불(건)': {
+      EN: 'Refund (per txn)',
+      JP: '返金（件）',
+      CH: '退款（笔）',
+      TH: 'คืนเงิน (ต่อรายการ)'
+    },
+    '월이용료': {
+      EN: 'Monthly usage fee',
+      JP: '月額利用料',
+      CH: '月使用费',
+      TH: 'ค่าบริการรายเดือน'
+    },
+    '차지백(건)': {
+      EN: 'Chargeback (per txn)',
+      JP: 'チャージバック（件）',
+      CH: '拒付（笔）',
+      TH: 'Chargeback (ต่อรายการ)'
+    },
+    '롤링(%)': {
+      EN: 'Rolling (%)',
+      JP: 'ローリング(%)',
+      CH: '滚动保证金(%)',
+      TH: 'Rolling (%)'
+    },
+    '송금이체': {
+      EN: 'Remittance transfer',
+      JP: '送金振込',
+      CH: '汇款转账',
+      TH: 'โอนเงิน'
+    },
+    'USDT(%)': {
+      EN: 'USDT (%)',
+      JP: 'USDT(%)',
+      CH: 'USDT(%)',
+      TH: 'USDT (%)'
+    },
+    'FX(%)': {
+      EN: 'FX (%)',
+      JP: 'FX(%)',
+      CH: 'FX(%)',
+      TH: 'FX (%)'
+    },
+    '기준': {
+      EN: 'Basis',
+      JP: '基準',
+      CH: '基准',
+      TH: 'ฐาน'
+    },
+    'PG정산유형 T': {
+      EN: 'T (business days, same time)',
+      JP: 'T（営業日・同一時刻）',
+      CH: 'T（营业日·同时刻）',
+      TH: 'T (วันทำการ เวลาเดิม)'
+    },
+    'PG정산유형 H': {
+      EN: 'H (24×N hours)',
+      JP: 'H（24×N時間）',
+      CH: 'H（24×N 小时）',
+      TH: 'H (24×N ชม.)'
+    },
+    'PG정산유형 D': {
+      EN: 'D (calendar days, batch time)',
+      JP: 'D（暦日・一括時刻）',
+      CH: 'D（日历日·批量时刻）',
+      TH: 'D (ปฏิทิน เวลารวม)'
+    },
+    'PG코드를 선택하세요.': {
+      EN: 'Select a PG code.',
+      JP: 'PGコードを選択してください。',
+      CH: '请选择 PG 代码。',
+      TH: 'เลือกรหัส PG'
+    },
+    '등록된 PG대행사가 없습니다. API연동설정에서 먼저 등록하세요.': {
+      EN: 'No PG agency registered. Register it first under API integration.',
+      JP: '登録されたPG代行がありません。API連携設定で先に登録してください。',
+      CH: '未登记 PG 代理商。请先在 API 联动设置中登记。',
+      TH: 'ยังไม่มีตัวแทน PG ลงทะเบียนในการเชื่อม API ก่อน'
+    },
+    '정산 주기 유형은 T, H, D 중 하나여야 합니다.': {
+      EN: 'Settlement schedule type must be T, H, or D.',
+      JP: '精算サイクル種別は T、H、D のいずれかです。',
+      CH: '结算周期类型须为 T、H 或 D。',
+      TH: 'ประเภทรอบชำระต้องเป็น T, H หรือ D'
+    },
+    '정산 N은 1~30 사이여야 합니다.': {
+      EN: 'Settlement N must be between 1 and 30.',
+      JP: '精算 N は 1～30 です。',
+      CH: '结算 N 须在 1～30 之间。',
+      TH: 'ค่า N ต้องอยู่ระหว่าง 1–30'
+    },
+    'D(달력일) 모드는 일괄 시각(HH:mm)이 필요합니다.': {
+      EN: 'D (calendar day) mode requires a batch time (HH:mm).',
+      JP: 'D（暦日）モードは一括時刻（HH:mm）が必要です。',
+      CH: 'D（日历日）模式需要批量时刻（HH:mm）。',
+      TH: 'โหมด D ต้องระบุเวลารวม (HH:mm)'
+    },
     /* HQ 영업일설정 / 미니달력 (screens.js, app.js, hq-holiday-calendar.js) */
     '{Y}년': {
       EN: '{Y}',
@@ -15790,6 +16019,25 @@
     },
     '검증 리포트': { EN: 'Verify report', JP: '検証レポート', CH: '验证报表', TH: 'รายงานตรวจสอบ' },
     '비활성카드등록': { EN: 'Inactive card register', JP: '非活性カード登録', CH: '非活跃卡登记', TH: 'ลงทะเบียนบัตรปิดใช้' },
+    '대행거래내역': { EN: 'Agency transaction list', JP: '代行取引明細', CH: '代行交易明细', TH: 'รายการธุรกรรมตัวแทน' },
+    'PG정산유무': { EN: 'PG settlement due', JP: 'PG精算可否', CH: 'PG 是否应结算', TH: 'ครบกำหนด PG' },
+    'PG명': { EN: 'PG name', JP: 'PG名', CH: 'PG 名称', TH: 'ชื่อ PG' },
+    'PG코드': { EN: 'PG code', JP: 'PGコード', CH: 'PG 代码', TH: 'รหัส PG' },
+    '대행수수료합': { EN: 'Agency fee total', JP: '代行手数料合計', CH: '代行手续费合计', TH: 'รวมค่าธรรมเนียมตัวแทน' },
+    'TAX 리포트': { EN: 'TAX report', JP: 'TAXレポート', CH: 'TAX 报表', TH: 'รายงาน TAX' },
+    '메일로그': { EN: 'Mail log', JP: 'メールログ', CH: '邮件日志', TH: 'บันทึกเมล' },
+    'API배포문서': { EN: 'API deployment docs', JP: 'API配布ドキュメント', CH: 'API 部署文档', TH: 'เอกสาร API สำหรับร้าน' },
+    'API 가맹점 등록': { EN: 'API merchant registration', JP: 'API加盟店登録', CH: 'API 商户注册', TH: 'ลงทะเบียนร้าน API' },
+    '가맹점 API 생성': { EN: 'Merchant API (generate)', JP: '加盟店API生成', CH: '生成商户 API', TH: 'สร้าง Merchant API' },
+    'API배포설정': { EN: 'API deploy settings', JP: 'API配信設定', CH: 'API 部署设置', TH: 'ตั้งค่า deploy API' },
+    'JPAY 단계 계획': { EN: 'JPAY rollout plan', JP: 'JPAY段階計画', CH: 'JPAY 阶段计划', TH: 'แผน JPAY' },
+    '가맹점 API 배포': { EN: 'Merchant API rollout', JP: '加盟店API配布', CH: '商户 API 发布', TH: 'นโยบาย Merchant API' },
+    '배포 체크리스트': { EN: 'Launch checklist', JP: '配布チェックリスト', CH: '上线检查清单', TH: 'เช็กลิสต์เปิดใช้' },
+    '본사설정': { EN: 'HQ settings', JP: '本社設定', CH: '总部设置', TH: 'ส่วนตั้งค่า HQ' },
+    '배포설정': { EN: 'Deployment', JP: 'デプロイ設定', CH: '部署设置', TH: 'การใช้งานจริง' },
+    '통보관리': { EN: 'Notifications', JP: '通知管理', CH: '通知管理', TH: 'การแจ้งเตือน' },
+    '리스크관리': { EN: 'Risk', JP: 'リスク管理', CH: '风险管理', TH: 'ความเสี่ยง' },
+    '리스크 현황': { EN: 'Risk dashboard', JP: 'リスク状況', CH: '风险看板', TH: 'ภาพรวมความเสี่ยง' },
     '비활성 카드 등록': { EN: 'Register inactive card', JP: '非活性カード登録', CH: '登记非活跃卡', TH: 'ลงทะเบียนบัตรปิดใช้' },
     'OTP 해지': { EN: 'Release (OTP)', JP: 'OTP解除', CH: 'OTP 解除', TH: 'ยกเลิก (OTP)' },
     '해지하려면 Google OTP 6자리를 입력하세요.': {
@@ -16169,6 +16417,21 @@
       TH: 'ล้มเหลว·ยกเลิก·โมฆะ·คืนเงิน·ชาร์จแบ็ก'
     },
     '차감·지급': { EN: 'Deduction · Payout', JP: '控除・支払', CH: '扣减·拨付', TH: 'หัก·จ่าย' },
+    /* 대행거래내역 (/ops/agencyTxnList) — 2단 그룹 헤더·열 */
+    'PG·가맹': { EN: 'PG · Merchant', JP: 'PG・加盟店', CH: 'PG·商户', TH: 'PG·ร้านค้า' },
+    '승인 / 대행수수료(%)': {
+      EN: 'Approval / agency fee (%)',
+      JP: '承認 / 代行手数料(%)',
+      CH: '授权 / 代行手续费(%)',
+      TH: 'อนุมัติ / ค่าธรรมเนียมตัวแทน (%)'
+    },
+    '합계·정산': { EN: 'Total · settlement', JP: '合計・精算', CH: '合计·结算', TH: 'รวม·ชำระ' },
+    '대행수수료설정 T/H/D 기준 도래 Y/N': {
+      EN: 'Agency fee policy T/H/D due (Y/N)',
+      JP: '代行手数料設定 T/H/D 到来 Y/N',
+      CH: '代行手续费设置 T/H/D 到期 Y/N',
+      TH: 'ครบกำหนด T/H/D นโยบายตัวแทน Y/N'
+    },
     '거래번호(우리)': { EN: 'Txn ID (ours)', JP: '取引番号（自社）', CH: '交易号（我方）', TH: 'รหัสธุรกรรม (ภายใน)' },
     '결제통화': { EN: 'Pay currency', JP: '決済通貨', CH: '支付币种', TH: 'สกุลชำระ' },
     '정책통화': { EN: 'Policy currency', JP: '政策通貨', CH: '政策币种', TH: 'สกุลนโยบาย' },

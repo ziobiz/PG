@@ -229,6 +229,7 @@
     'searchFieldType|APPROVAL_NO': optMap({ EN: 'Approval no.', JP: '承認番号', CH: '授权号', TH: 'เลขอนุมัติ' }),
     'searchFieldType|ORDER_NO': optMap({ EN: 'Order no.', JP: '注文番号', CH: '订单号', TH: 'เลขคำสั่งซื้อ' }),
     'searchFieldType|MID': optMap({ EN: 'MID', JP: 'MID', CH: 'MID', TH: 'MID' }),
+    'searchFieldType|PG_CD': optMap({ EN: 'PG code', JP: 'PGコード', CH: 'PG 代码', TH: 'รหัส PG' }),
     'searchFieldType|ROUTE': optMap({ EN: 'Route', JP: 'ルート', CH: '路由', TH: 'Route' }),
     'searchFieldType|CURRENCY': optMap({ EN: 'Currency', JP: '通貨', CH: '币种', TH: 'สกุลเงิน' }),
     'searchFieldType|STATUS': optMap({ EN: 'Status', JP: '状態', CH: '状态', TH: 'สถานะ' }),
@@ -805,6 +806,29 @@
         'เฉพาะ HQ สูงสุด/ภูมิภาค/ตัวแทนหลักหรือ ADMIN ช่วงสูงสุด 93 วัน'
       )
     ],
+    '/ops/agencyTxnList': [
+      packN(
+        '총본사·본사(REGIONAL)·총판(MASTER_DIST) 또는 ADMIN만 이용합니다. 조회 범위는 로그인 조직 하위 가맹 거래입니다.',
+        'Only root HQ, regional HQ, master distributor, or ADMIN. Scope is merchants under your org tree.',
+        '総本部・本社(REGIONAL)・総販(MASTER_DIST) または ADMIN のみ。照会はログイン組織配下の加盟店取引です。',
+        '仅总总部、本部、总代或 ADMIN。查询范围为登录组织下属商户交易。',
+        'เฉพาะ HQ สูงสุด/ภูมิภาค/ตัวแทนหลักหรือ ADMIN ขอบเขตคือร้านใต้องค์กรที่ล็อกอิน'
+      ),
+      packN(
+        '수수료는 본사설정 「대행수수료설정」(PG코드=거래 van) 기준이며, 가맹 수수료내역·가맹 정산(settled_yn)과 별개입니다.',
+        'Fees use HQ Agency fee settings (PG code = txn van), separate from merchant fee list and merchant settlement (settled_yn).',
+        '手数料は本社設定「代行手数料設定」(PGコード=取引van)基準で、加盟店手数料明細・加盟店精算(settled_yn)とは別です。',
+        '手续费以总部「代行手续费设置」(PG代码=交易 van)为准，与商户手续费明细、商户结算(settled_yn)无关。',
+        'ค่าธรรมเนียมอิงตั้งค่าตัวแทน HQ (รหัส PG = van) แยกจากรายการค่าธรรมเนียมร้านและ settled_yn'
+      ),
+      packN(
+        '맨 오른쪽 「PG정산유무」는 대행수수료설정의 T/H/D·N·일괄시각으로 산출한 PG 계약 정산 도래 여부(Y=도래, N=미도래)입니다. 정책 없음·van 없음은 빈 칸입니다.',
+        'Rightmost PG settlement due: Y/N from agency fee policy T/H/D, lag N, batch time. Blank if no policy or van.',
+        '右端「PG精算可否」は代行手数料設定のT/H/D・N・一括時刻によるPG契約精算到来(Y/N)。政策なし・vanなしは空欄。',
+        '最右「PG是否应结算」由代行手续费设置的 T/H/D·N·批处理时刻得出(Y/N)。无政策或无 van 为空。',
+        'คอลัมน์ขวาสุด: ครบกำหนด PG จาก T/H/D นโยบายตัวแทน Y/N ว่างถ้าไม่มีนโยบายหรือ van'
+      )
+    ],
     '/ops/inactiveCard': [
       packN(
         '총본사·본사·총판(ADMIN 포함) 운영자용입니다. 메뉴 접근은 본사권한설정에서 부여합니다.',
@@ -935,7 +959,21 @@
     'usdtFee,fxFee,fee3dsFee': { KO: '기타수수료', EN: 'Other fees', JP: 'その他手数料', CH: '其他手续费', TH: 'ค่าธรรมเนียมอื่น' },
     'rollingPctPlain,rollingDays,rollingHoldEst': { KO: '담보(롤링)', EN: 'Collateral (rolling)', JP: '担保(ロール)', CH: '担保(滚动)', TH: 'หลักประกัน (โรล)' },
     'failFee,cancelFee,voidFee,manualVoidFee,refundFee,chargebackFee': { KO: '실패·취소·무효·환불·차지백', EN: 'Fail·cancel·void·refund·CB', JP: '失敗・取消・無効・返金・CB', CH: '失败·取消·作废·退款·拒付', TH: 'ล้มเหลว·ยกเลิก·โมฆะ·คืน·CB' },
-    'totalFee,feeVat,expectedPayout,settlementAmt': { KO: '차감·지급', EN: 'Deduction·payout', JP: '控除・支払', CH: '扣减·拨付', TH: 'หัก·จ่าย' }
+    'totalFee,feeVat,expectedPayout,settlementAmt': { KO: '차감·지급', EN: 'Deduction·payout', JP: '控除・支払', CH: '扣减·拨付', TH: 'หัก·จ่าย' },
+    /* 대행거래내역 (/ops/agencyTxnList) 2단 그룹 헤더 */
+    'pgNm,pgCd,compNm,compId': { KO: 'PG·가맹', EN: 'PG · Merchant', JP: 'PG・加盟店', CH: 'PG·商户', TH: 'PG·ร้านค้า' },
+    'trnDate,trnTime,routeNo,chillTransactionId,trnId,statusNm,amount': { KO: '거래', EN: 'Transaction', JP: '取引', CH: '交易', TH: 'ธุรกรรม' },
+    'rollingHoldEst,totalAgencyFee,agencySettleYn': { KO: '합계·정산', EN: 'Total · settlement', JP: '合計・精算', CH: '合计·结算', TH: 'รวม·ชำระ' }
+  };
+
+  /** 대행거래내역 — feeList 와 keys 일부 공유하나 그룹 라벨이 다른 항목 */
+  var AGENCY_HG = {
+    'pgNm,pgCd,compNm,compId': { KO: 'PG·가맹', EN: 'PG · Merchant', JP: 'PG・加盟店', CH: 'PG·商户', TH: 'PG·ร้านค้า' },
+    'trnDate,trnTime,routeNo,chillTransactionId,trnId,statusNm,amount': { KO: '거래', EN: 'Transaction', JP: '取引', CH: '交易', TH: 'ธุรกรรม' },
+    'txnFixedFeesSum,pctFeesSum': { KO: '승인 / 대행수수료(%)', EN: 'Approval / agency fee (%)', JP: '承認／代行手数料(%)', CH: '授权/代行手续费(%)', TH: 'อนุมัติ / ค่าธรรมเนียมตัวแทน (%)' },
+    'usdtFee,fxFee,fee3dsFee': { KO: '기타수수료', EN: 'Other fees', JP: 'その他手数料', CH: '其他手续费', TH: 'ค่าธรรมเนียมอื่น' },
+    'failFee,cancelFee,voidFee,manualVoidFee,refundFee,chargebackFee': { KO: '실패·취소·무효·환불·차지백', EN: 'Fail·cancel·void·refund·CB', JP: '失敗・取消・無効・返金・CB', CH: '失败·取消·作废·退款·拒付', TH: 'ล้มเหลว·ยกเลิก·โมฆะ·คืน·CB' },
+    'rollingHoldEst,totalAgencyFee,agencySettleYn': { KO: '합계·정산', EN: 'Total · settlement', JP: '合計・精算', CH: '合计·结算', TH: 'รวม·ชำระ' }
   };
 
   /** 열 키별 비한국어(및 명시 KO). 비어 있으면 카탈로그 스냅샷(한국어) 유지 */
@@ -1063,6 +1101,14 @@
     reason: { EN: 'Note', JP: '備考', CH: '备注', TH: 'หมายเหตุ' },
     successCount: { EN: 'Success count', JP: '成功件数', CH: '成功笔数', TH: 'จำนวนสำเร็จ' }
   };
+
+  var AGENCY_COL = Object.assign({}, COL, {
+    pgNm: { EN: 'PG name', JP: 'PG名', CH: 'PG 名称', TH: 'ชื่อ PG' },
+    pgCd: { EN: 'PG code', JP: 'PGコード', CH: 'PG 代码', TH: 'รหัส PG' },
+    curType: { EN: 'Currency', JP: '通貨', CH: '币种', TH: 'สกุลเงิน' },
+    totalAgencyFee: { EN: 'Agency fee total', JP: '代行手数료合計', CH: '代行手续费合计', TH: 'รวมค่าธรรมเนียมตัวแทน' },
+    agencySettleYn: { EN: 'PG settlement due', JP: 'PG精算可否', CH: 'PG 是否应结算', TH: 'ครบกำหนด PG' }
+  });
 
   /** 일별통합·일별결제·일별수수료 상태 버킷 열 */
   var STATUS_BUCKET = {
@@ -1207,6 +1253,33 @@
     });
   }
 
+  function applyAgencyTxnListScreenLocale(loc) {
+    var screens = w.PG_SCREENS && w.PG_SCREENS.getMenuScreens ? w.PG_SCREENS.getMenuScreens() : null;
+    if (!screens) return;
+    var url = '/ops/agencyTxnList';
+    var scr = screens[url];
+    if (!scr || !scr.columns) return;
+    ensureChillColSnap(scr);
+    if (loc === 'KO') {
+      restoreChillColSnap(scr);
+      return;
+    }
+    var snap = scr._i18nColSnap;
+    var byKey = {};
+    snap.cols.forEach(function (x) { if (x && x.key) byKey[x.key] = x.label; });
+    scr.columns.forEach(function (c) {
+      if (!c || !c.key) return;
+      var row = AGENCY_COL[c.key] || COL[c.key];
+      c.label = tRow(row, loc, byKey[c.key] != null ? byKey[c.key] : c.label);
+    });
+    (scr.headerGroups || []).forEach(function (g, i) {
+      var sig = (g.keys || []).join(',');
+      var row = AGENCY_HG[sig];
+      var koLab = (snap.hg[i] && snap.hg[i].label) || g.label;
+      g.label = tRow(row, loc, koLab);
+    });
+  }
+
   function applyChillListCatalogLocale(loc) {
     var screens = w.PG_SCREENS && w.PG_SCREENS.getMenuScreens ? w.PG_SCREENS.getMenuScreens() : null;
     if (!screens) return;
@@ -1242,7 +1315,7 @@
   /** 결제내역 동기 URL 외 — 검색폼·안내 스냅/로케일 적용 대상 */
   var EXTRA_I18N_SCREEN_SNAP_URLS = ['/calc/dailyIntegrated', '/calc/dailyPay', '/calc/dailyFee', '/calc/feeList', '/settlement/feeList', '/calc/exCalcList', '/settlement/execute',
     '/settlement/settlementResultDistribute', '/settlement/settlementResultHold', '/calc/calcGmList', '/settlement/franchiseList',
-    '/calc/paySettlementHoldList', '/settlement/paySettlementHoldList', '/ops/integratedReport', '/ops/verifyReport',
+    '/calc/paySettlementHoldList', '/settlement/paySettlementHoldList', '/ops/integratedReport', '/ops/verifyReport', '/ops/agencyTxnList',
     '/comp/compMngTree', '/comp/myCompMng', '/comp/compReg', '/comp/compDetail', '/comp/compInfo', '/comp/compMng',
     '/comp/compInfoHistList', '/comp/compChangeHistory', '/commission/commisionList'];
 
@@ -1683,7 +1756,7 @@
       || url === '/noti/notiCashReceiptUrlMng' || url === '/notify/cashReceiptUrlMng'
       || url === '/set/gridSetMng' || url === '/user/menuOrderMng'
       || url === '/user/userMng'
-      || url === '/ops/mailLog' || url === '/ops/taxReport' || url === '/ops/integratedReport' || url === '/ops/verifyReport' || url === '/ops/inactiveCard' || url === '/ops/opsMng'
+      || url === '/ops/mailLog' || url === '/ops/taxReport' || url === '/ops/integratedReport' || url === '/ops/verifyReport' || url === '/ops/inactiveCard' || url === '/ops/agencyTxnList' || url === '/ops/opsMng'
       || url === '/hq/pgApiMng'
       || url === '/hq/accountMng'
       || url === '/chatbot/chatbotKbMng'
@@ -2100,6 +2173,7 @@
       w.PG_SCREENS.syncPayListIntegratedScreenLabelsFromCatalog();
     }
     applyFeeListScreenLocale(loc);
+    applyAgencyTxnListScreenLocale(loc);
     applyChillListCatalogLocale(loc);
     applyMenuScreensSearchAndNoticesLocale(loc);
     applyScreenChromeLocale(loc);

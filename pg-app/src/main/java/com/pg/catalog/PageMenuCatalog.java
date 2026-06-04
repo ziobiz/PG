@@ -16,6 +16,7 @@ public final class PageMenuCatalog {
     private static List<PageMenuItem> build() {
         List<PageMenuItem> list = new ArrayList<>();
         add(list, "/hq/defaultCommission", "M0102", "수수료설정", "본사설정");
+        add(list, "/hq/pgAgencyCostPolicy", "M0128", "대행수수료설정", "본사설정");
         add(list, "/hq/chargebackPolicy", "M0117", "차지백설정", "본사설정");
         add(list, "/hq/businessDaySetting", "M0109", "영업일설정", "본사설정");
         add(list, "/hq/permissionMng", "M0104", "본사권한설정", "본사설정");
@@ -88,6 +89,7 @@ public final class PageMenuCatalog {
         add(list, "/ops/integratedReport", "M0604", "통합 리포트", "운영관리");
         add(list, "/ops/verifyReport", "M0605", "검증 리포트", "운영관리");
         add(list, "/ops/inactiveCard", "M0606", "비활성카드등록", "운영관리");
+        add(list, "/ops/agencyTxnList", "M0607", "대행거래내역", "운영관리");
         add(list, "/risk/list", "M0701", "리스크 현황", "리스크관리");
         add(list, "/deploy/integrationPlan", "M0901", "연동 진행안", "배포설정");
         add(list, "/deploy/jpayWorkPlan", "M0902", "JPAY 단계 계획", "배포설정");
