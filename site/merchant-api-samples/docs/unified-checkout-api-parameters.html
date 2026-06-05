@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -15,10 +15,14 @@
     .m { font-weight: 700; color: #b02a37; }
     code { background: #f4f4f4; padding: 0.05em 0.3em; border-radius: 3px; }
     pre { background: #f8f8f8; border: 1px solid #ddd; padding: 0.75rem; overflow: auto; font-size: 0.82rem; }
+    a { color: #0d6efd; }
+    .lang-nav { font-size: 0.92rem; margin-bottom: 1rem; padding: 0.5rem 0; border-bottom: 1px solid #eee; }
   </style>
 </head>
 <body>
-  <h1>표 1.1 · ICOPAY Unified Checkout Prepare API Request Parameters</h1>
+  <p class="lang-nav"><strong>Language:</strong>
+    <strong>English</strong> · <a href="unified-checkout-api-parameters.ko.html">한국어</a> · <a href="unified-checkout-api-parameters.ja.html">日本語</a> · <a href="unified-checkout-api-parameters.ch.html">中文</a> · <a href="unified-checkout-api-parameters.th.html">ไทย</a></p>
+  <h1>Table 1.1 · ICOPAY Unified Checkout Prepare API Request Parameters</h1>
   <p class="meta">Spec ID: ICOPAY-CHECKOUT-PREPARE-001 · v1.0 · PG-agnostic inline checkout (ChillPay/JPAY auto-routing)</p>
   <p><strong>Endpoint:</strong> <code>POST {publicApiBaseUrl}/api/middleware/v1/merchant/checkout/prepare</code></p>
   <p><strong>Headers:</strong> <code>Content-Type: application/json</code>, <code>Accept: application/json</code>,
@@ -81,6 +85,13 @@
     <li><strong>JSON</strong> — Direct REST from merchant server. See kit <code>integrationModes.json</code>.</li>
     <li><strong>PHP</strong> — <code>IcopayMerchantApi::prepareUnifiedCheckout()</code> + <code>checkout_unified.php</code>.</li>
   </ul>
-  <p>Full markdown: <code>docs/가맹점_통합Checkout_API_연동파라미터_규격.md</code> · Kit key: <code>merchantCheckoutApiParameterSpec</code></p>
+  <p>Kit JSON key: <code>merchantCheckoutApiParameterSpec</code> ·
+    Flow guide:
+    <a href="unified-checkout-api-flow.html">EN</a> ·
+    <a href="unified-checkout-api-flow.ko.html">KO</a> ·
+    <a href="unified-checkout-api-flow.ja.html">JA</a> ·
+    <a href="unified-checkout-api-flow.ch.html">CH</a> ·
+    <a href="unified-checkout-api-flow.th.html">TH</a> ·
+    Text: <a href="unified-checkout-api-parameters.txt">unified-checkout-api-parameters.txt</a></p>
 </body>
 </html>

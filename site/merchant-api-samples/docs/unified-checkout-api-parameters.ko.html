@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ICOPAY 통합 Checkout API 파라미터</title>
+  <style>
+    body { font-family: system-ui, "Malgun Gothic", sans-serif; max-width: 960px; margin: 1.5rem auto; padding: 0 1rem; line-height: 1.5; color: #222; }
+    h1 { font-size: 1.35rem; margin-bottom: 0.25rem; }
+    h2 { font-size: 1.05rem; margin-top: 1.75rem; border-bottom: 1px solid #ccc; padding-bottom: 0.25rem; }
+    p.meta { color: #555; font-size: 0.92rem; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.88rem; margin: 0.75rem 0 1rem; }
+    th, td { border: 1px solid #ccc; padding: 0.45rem 0.5rem; vertical-align: top; }
+    th { background: #f5f5f5; text-align: left; white-space: nowrap; }
+    .m { font-weight: 700; color: #b02a37; }
+    code { background: #f4f4f4; padding: 0.05em 0.3em; border-radius: 3px; }
+    pre { background: #f8f8f8; border: 1px solid #ddd; padding: 0.75rem; overflow: auto; font-size: 0.82rem; }
+    a { color: #0d6efd; }
+    .lang-nav { font-size: 0.92rem; margin-bottom: 1rem; padding: 0.5rem 0; border-bottom: 1px solid #eee; }
+  </style>
+</head>
+<body>
+  <p class="lang-nav"><strong>언어:</strong>
+    <a href="unified-checkout-api-parameters.html">English</a> · <strong>한국어</strong> · <a href="unified-checkout-api-parameters.ja.html">日本語</a> · <a href="unified-checkout-api-parameters.ch.html">中文</a> · <a href="unified-checkout-api-parameters.th.html">ไทย</a></p>
+  <h1>표 1.1 · ICOPAY 통합 Checkout Prepare API 요청 파라미터</h1>
+  <p class="meta">문서 ID: ICOPAY-CHECKOUT-PREPARE-001 · v1.0 · PG 무관 통합 인라인 checkout (ChillPay/JPAY 자동 분기)</p>
+  <p><strong>엔드포인트:</strong> <code>POST {publicApiBaseUrl}/api/middleware/v1/merchant/checkout/prepare</code></p>
+  <p><strong>헤더:</strong> <code>Content-Type: application/json</code>, <code>Accept: application/json</code>,
+    <code>X-Icopay-Merchant-Broker-Secret</code> (브로커 시크릿 강제 시 필수)</p>
+
+  <h2>표 1.1 — 요청 본문(JSON 루트)</h2>
+  <table>
+    <thead>
+      <tr><th>번호</th><th>항목</th><th>타입</th><th>길이</th><th>필수</th><th>설명</th><th>비고</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>1</td><td>compId</td><td>String</td><td>64</td><td class="m">M*</td><td>가맹점 업체코드</td><td>*또는 merchantId. ICOPAY 부여.</td></tr>
+      <tr><td>2</td><td>merchantId</td><td>Number</td><td>—</td><td>O</td><td>가맹 조직 ID</td><td>compId 대체 가능</td></tr>
+      <tr><td>3</td><td>orderNo</td><td>String</td><td>64</td><td class="m">M</td><td>주문·거래 참조번호</td><td>ChillPay 운영: 영숫자·<code>-</code>·<code>_</code>만, 최대 <strong>20</strong>. JPAY 운영: 최대 64.</td></tr>
+      <tr><td>4</td><td>amount</td><td>Number</td><td>12</td><td class="m">M</td><td>결제 금액</td><td>&gt; 0. JPY/KRW는 정수 권장.</td></tr>
+      <tr><td>5</td><td>currency</td><td>String</td><td>3</td><td>O</td><td>ISO 4217 통화</td><td>USD, JPY, KRW, THB… 생략 시 가맹 기준통화.</td></tr>
+      <tr><td>6</td><td>productName</td><td>String</td><td>500</td><td>O</td><td>상품·주문 설명</td><td>결제창 표시</td></tr>
+      <tr><td>7</td><td>item</td><td>String</td><td>500</td><td>O</td><td>productName 별칭</td><td>productName 없을 때 사용</td></tr>
+      <tr><td>8</td><td>lang</td><td>String</td><td>5</td><td>O</td><td>결제창 UI 언어</td><td><strong>KOR · ENG · JPN · CHN · THA</strong> (또는 ko/en/ja/zh/th)</td></tr>
+      <tr><td>9</td><td>buyer</td><td>Object</td><td>—</td><td class="m">M</td><td>구매자 연락처·배송 prefill</td><td>표 1.2 참고. <code>buyerPrefill</code> 동일.</td></tr>
+    </tbody>
+  </table>
+
+  <h2>표 1.2 — buyer 객체</h2>
+  <table>
+    <thead>
+      <tr><th>번호</th><th>항목</th><th>타입</th><th>길이</th><th>필수</th><th>설명</th><th>비고</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>1</td><td>email</td><td>String</td><td>254</td><td class="m">M</td><td>구매자 이메일</td><td>ICOPAY 필수</td></tr>
+      <tr><td>2</td><td>phone</td><td>String</td><td>32</td><td class="m">M</td><td>로컬 전화번호</td><td>국가번호 + 제거, 로컬만.</td></tr>
+      <tr><td>3</td><td>countryIso2</td><td>String</td><td>2</td><td class="m">M</td><td>국가 ISO 3166-1 alpha-2</td><td>예: KR, US, TH — 대문자</td></tr>
+      <tr><td>4</td><td>address</td><td>String</td><td>200</td><td>O</td><td>배송 주소 1행</td><td>선택 prefill</td></tr>
+      <tr><td>5</td><td>address2</td><td>String</td><td>200</td><td>O</td><td>배송 주소 2행</td><td></td></tr>
+      <tr><td>6</td><td>city</td><td>String</td><td>100</td><td>O</td><td>도시</td><td></td></tr>
+      <tr><td>7</td><td>state</td><td>String</td><td>100</td><td>O</td><td>주·도</td><td></td></tr>
+      <tr><td>8</td><td>postcode</td><td>String</td><td>20</td><td>O</td><td>우편번호</td><td>zip 별칭</td></tr>
+      <tr><td>9</td><td>shippingAddress</td><td>String</td><td>200</td><td>O</td><td>별도 배송지 주소</td><td>address 와 다를 때</td></tr>
+      <tr><td>10</td><td>shippingPhone</td><td>String</td><td>32</td><td>O</td><td>별도 배송지 전화</td><td></td></tr>
+    </tbody>
+  </table>
+
+  <h2>요청 샘플</h2>
+  <pre>{
+  "compId": "M000123",
+  "orderNo": "ORD-20260501001",
+  "amount": 10000,
+  "currency": "USD",
+  "productName": "Sample product",
+  "lang": "ENG",
+  "buyer": {
+    "email": "buyer@example.com",
+    "phone": "1012345678",
+    "countryIso2": "KR"
+  }
+}</pre>
+
+  <h2>연동 방식</h2>
+  <ul>
+    <li><strong>JSON</strong> — 가맹 서버에서 REST 직접 호출. 키트 <code>integrationModes.json</code> 참고.</li>
+    <li><strong>PHP</strong> — <code>IcopayMerchantApi::prepareUnifiedCheckout()</code> + <code>checkout_unified.php</code>.</li>
+  </ul>
+  <p>Kit JSON key: <code>merchantCheckoutApiParameterSpec</code> ·
+    연동 흐름:
+    <a href="unified-checkout-api-flow.html">EN</a> ·
+    <a href="unified-checkout-api-flow.ko.html">KO</a> ·
+    <a href="unified-checkout-api-flow.ja.html">JA</a> ·
+    <a href="unified-checkout-api-flow.ch.html">CH</a> ·
+    <a href="unified-checkout-api-flow.th.html">TH</a> ·
+    텍스트: <a href="unified-checkout-api-parameters.ko.txt">unified-checkout-api-parameters.ko.txt</a></p>
+</body>
+</html>

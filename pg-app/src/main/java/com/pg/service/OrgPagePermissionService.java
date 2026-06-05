@@ -652,9 +652,14 @@ public class OrgPagePermissionService {
                 p = defaultUnpaidMngPermissionForOrgLevel(orgLevel);
             }
             if (p == null && OrgLevel.MERCHANT.name().equals(orgLevel)) {
-                if ("/system/noticeList".equals(url) || "/comp/myCompMng".equals(url)) {
+                if ("/system/noticeList".equals(url) || "/comp/myCompMng".equals(url)
+                        || "/comp/merchantApiPortal".equals(url)) {
                     p = P_OBSERVER;
                 }
+            }
+            if (p == null && !OrgLevel.MERCHANT.name().equals(orgLevel)
+                    && "/comp/merchantApiPortal".equals(url)) {
+                p = P_NONE;
             }
             out.put(url, p != null ? p : P_DELETE);
         }

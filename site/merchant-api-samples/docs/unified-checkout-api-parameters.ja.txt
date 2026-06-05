@@ -1,4 +1,4 @@
-ICOPAY Unified Checkout API — Request Parameters (Spec ICOPAY-CHECKOUT-PREPARE-001 v1.0)
+ICOPAY 統合 Checkout Prepare API リクエストパラメータ (Spec ICOPAY-CHECKOUT-PREPARE-001 v1.0)
 ======================================================================================
 
 POST {publicApiBaseUrl}/api/middleware/v1/merchant/checkout/prepare
@@ -26,9 +26,14 @@ No.  Parameter          Type     Len   M/O   Remark
 5-10 (optional shipping fields — see HTML/MD doc)
 
 Kit JSON key: merchantCheckoutApiParameterSpec
-HTML (EN): {BASE}/merchant-api-samples/docs/unified-checkout-api-parameters.html
-한국어:    {BASE}/merchant-api-samples/docs/unified-checkout-api-parameters.ko.html
-日本語:    {BASE}/merchant-api-samples/docs/unified-checkout-api-parameters.ja.html
-中文:      {BASE}/merchant-api-samples/docs/unified-checkout-api-parameters.ch.html
-ไทย:       {BASE}/merchant-api-samples/docs/unified-checkout-api-parameters.th.html
+HTML (日本語): {BASE}/merchant-api-samples/docs/unified-checkout-api-parameters.ja.html
+English:       {BASE}/merchant-api-samples/docs/unified-checkout-api-parameters.html
+한국어:        {BASE}/merchant-api-samples/docs/unified-checkout-api-parameters.ko.html
+中文:          {BASE}/merchant-api-samples/docs/unified-checkout-api-parameters.ch.html
+ไทย:           {BASE}/merchant-api-samples/docs/unified-checkout-api-parameters.th.html
+Flow (EN):     {BASE}/merchant-api-samples/docs/unified-checkout-api-flow.html
+Flow (KO):     {BASE}/merchant-api-samples/docs/unified-checkout-api-flow.ko.html
+Flow (JA):     {BASE}/merchant-api-samples/docs/unified-checkout-api-flow.ja.html
+Flow (CH):     {BASE}/merchant-api-samples/docs/unified-checkout-api-flow.ch.html
+Flow (TH):     {BASE}/merchant-api-samples/docs/unified-checkout-api-flow.th.html
 Kit:  merchantCheckoutApiParameterSpec (deployment kit JSON)

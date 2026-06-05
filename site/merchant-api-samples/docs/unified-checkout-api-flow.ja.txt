@@ -1,0 +1,61 @@
+ICOPAY 統合 Checkout API — 連携フローとエンドポイント
+======================================================
+仕様 ID: ICOPAY-CHECKOUT-FLOW-001 · v1.0
+
+HTML (日本語): {BASE}/merchant-api-samples/docs/unified-checkout-api-flow.ja.html
+English:       {BASE}/merchant-api-samples/docs/unified-checkout-api-flow.html
+한국어:        {BASE}/merchant-api-samples/docs/unified-checkout-api-flow.ko.html
+中文:          {BASE}/merchant-api-samples/docs/unified-checkout-api-flow.ch.html
+ไทย:           {BASE}/merchant-api-samples/docs/unified-checkout-api-flow.th.html
+パラメータ:    {BASE}/merchant-api-samples/docs/unified-checkout-api-parameters.html
+
+1. 統合 CHECKOUT
+----------------
+prepare は 1 本。ICOPAY が運用 WEB PG に応じ ChillPay/JPAY を自動振分。
+
+  integrationMode: INLINE_UNIFIED
+  Prepare:  POST {BASE}/api/middleware/v1/merchant/checkout/prepare
+  Embed:    {BASE}/v1/embed-checkout/{compId}
+
+compId 例: 6000000028
+
+2. エンドポイント概要
+---------------------
+Prepare   POST  .../merchant/checkout/prepare          加盟店サーバー   ブローカーシークレット要
+Session   GET   .../merchant/checkout/session?token=   ブラウザ(ウィジェット) 不要
+Status    GET   .../merchant/checkout/status?...       加盟店サーバー   ブローカーシークレット要
+Embed JS  GET   /v1/embed-checkout/{compId}            ブラウザ         不要
+
+3. 推奨フロー
+-------------
+1) 加盟店サーバー: 注文(PENDING) 保存
+2) POST prepare（buyer.email, buyer.phone, buyer.countryIso2 必須）
+3) data.sessionToken → ブラウザへ embed スクリプトのみ
+4) ウィジェットが session 呼び出し → iframe (/pay/ または /jpay-pay/)
+5) postMessage ICOPAY_INLINE_CHECKOUT
+6) サーバー: Webhook および/または GET status → 注文更新（冪等）
+
+4. PREPARE
+----------
+POST https://api.icopay.co.kr/api/middleware/v1/merchant/checkout/prepare
+
+ヘッダー: Content-Type, Accept, X-Icopay-Merchant-Broker-Secret
+必須: compId, orderNo, amount, buyer.email, buyer.phone, buyer.countryIso2
+応答: sessionToken, pgVendor, embedScriptUrl, expiresAt
+
+5. SESSION
+----------
+GET .../merchant/checkout/session?token={sessionToken}
+embed ウィジェットが自動呼び出し。pgVendor で iframe 振分。
+
+6. STATUS
+---------
+GET .../merchant/checkout/status?compId=6000000028&orderNo={orderNo}
+加盟店サーバー。found, paymentStatus, approvalNo, amount, paidAt
+
+7. EMBED スクリプト
+-------------------
+https://api.icopay.co.kr/v1/embed-checkout/6000000028
+data-session-token="{sessionToken}" 必須
+
+PHP サンプル: merchant-api-samples/php/checkout_unified.php

@@ -637,7 +637,8 @@ public class DataLoader {
                 row.setOrgLevel(OrgLevel.MERCHANT.name());
                 row.setPageUrl(url);
                 row.setMenuId(item.menuId());
-                if ("/system/noticeList".equals(url) || "/comp/myCompMng".equals(url)) {
+                if ("/system/noticeList".equals(url) || "/comp/myCompMng".equals(url)
+                        || "/comp/merchantApiPortal".equals(url)) {
                     row.setPermission(OrgPagePermissionService.P_OBSERVER);
                 } else {
                     row.setPermission(OrgPagePermissionService.P_NONE);

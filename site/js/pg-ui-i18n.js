@@ -222,6 +222,173 @@
       CH: '首次登录：按设备提示进入平板或标准界面；之后默认沿用上次方式。',
       TH: 'เข้าครั้งแรก: เริ่มตามอุปกรณ์ ครั้งถัดไปใช้โหมดล่าสุดเป็นค่าเริ่มต้น'
     },
+    /* login.html — 로그인 첫 화면 */
+    '사칭 피해 주의 안내': {
+      EN: 'Impersonation scam alert',
+      JP: 'なりすまし被害にご注意',
+      CH: '谨防冒充诈骗',
+      TH: 'คำเตือนการแอบอ้างตัวตน'
+    },
+    '최근 본사나 PG사를 사칭해 금전적 요구를 하는 사례가 발생하고 있습니다.': {
+      EN: 'There have been cases of people impersonating our company or a PG provider to request money.',
+      JP: '最近、当社やPG会社を装って金銭を要求する事例が発生しています。',
+      CH: '近期出现冒充本公司或PG公司要求汇款的情况。',
+      TH: 'มีกรณีแอบอ้างเป็นบริษัทหรือ PG เพื่อเรียกรับเงิน'
+    },
+    '저희는 결제와 관련한 금전을 별도로 요청하지 않습니다. 의심스러운 연락을 받으셨다면 고객센터 또는 계약된 영업지사로 사실 여부를 반드시 확인해 주시기 바랍니다.': {
+      KO: '저희는 결제와 관련한 금전을 별도로 요청하지 않습니다. 의심스러운 연락을 받으셨다면 <strong>고객센터</strong> 또는 <strong>계약된 영업지사</strong>로 사실 여부를 반드시 확인해 주시기 바랍니다.',
+      EN: 'We never ask for money separately for payments. If you receive suspicious contact, please verify with <strong>customer service</strong> or your <strong>contracted sales office</strong>.',
+      JP: '当社は決済に関して別途金銭を請求することはありません。不審な連絡があった場合は、<strong>カスタマーセンター</strong>または<strong>契約営業支店</strong>で事実関係を必ずご確認ください。',
+      CH: '我们不会就支付另行索要款项。如收到可疑联系，请务必向<strong>客服中心</strong>或<strong>签约营业网点</strong>核实。',
+      TH: 'เราไม่เรียกรับเงินแยกจากการชำระเงิน หากได้รับการติดต่อที่น่าสงสัย โปรดตรวจสอบกับ<strong>ศูนย์บริการลูกค้า</strong>หรือ<strong>สาขาขายที่ทำสัญญา</strong>'
+    },
+    '아이디': {
+      EN: 'User ID',
+      JP: 'ログインID',
+      CH: '登录账号',
+      TH: 'รหัสผู้ใช้'
+    },
+    '패스워드': {
+      EN: 'Password',
+      JP: 'パスワード',
+      CH: '密码',
+      TH: 'รหัสผ่าน'
+    },
+    '로그인': {
+      EN: 'Sign in',
+      JP: 'ログイン',
+      CH: '登录',
+      TH: 'เข้าสู่ระบบ'
+    },
+    '로그인 안내 호스트:': {
+      EN: 'Login host:',
+      JP: 'ログインホスト:',
+      CH: '登录主机:',
+      TH: 'โฮสต์เข้าสู่ระบบ:'
+    },
+    '보안 정책에 따라 새 비밀번호를 설정해야 합니다. 방금 입력하신 비밀번호는 확인용으로만 사용되며, 아래에 새 비밀번호(8자 이상)를 입력해 주세요.': {
+      KO: '보안 정책에 따라 <strong>새 비밀번호</strong>를 설정해야 합니다. 방금 입력하신 비밀번호는 확인용으로만 사용되며, 아래에 새 비밀번호(8자 이상)를 입력해 주세요.',
+      EN: 'Per security policy you must set a <strong>new password</strong>. The password you just entered is used for verification only; enter a new password (8+ characters) below.',
+      JP: 'セキュリティポリシーにより<strong>新しいパスワード</strong>の設定が必要です。直前に入力したパスワードは確認用のみです。以下に新しいパスワード（8文字以上）を入力してください。',
+      CH: '根据安全策略，您必须设置<strong>新密码</strong>。刚才输入的密码仅用于验证；请在下方输入新密码（至少8位）。',
+      TH: 'ตามนโยบายความปลอดภัย ต้องตั้ง<strong>รหัสผ่านใหม่</strong> รหัสที่เพิ่งกรอกใช้เพื่อยืนยันเท่านั้น กรอกรหัสใหม่ (อย่างน้อย 8 ตัว) ด้านล่าง'
+    },
+    '새 비밀번호': {
+      EN: 'New password',
+      JP: '新しいパスワード',
+      CH: '新密码',
+      TH: 'รหัสผ่านใหม่'
+    },
+    '새 비밀번호 확인': {
+      EN: 'Confirm new password',
+      JP: '新しいパスワード（確認）',
+      CH: '确认新密码',
+      TH: 'ยืนยันรหัสผ่านใหม่'
+    },
+    '비밀번호 설정 후 입장': {
+      EN: 'Set password and continue',
+      JP: 'パスワード設定後に入場',
+      CH: '设置密码并进入',
+      TH: 'ตั้งรหัสผ่านแล้วเข้าใช้'
+    },
+    '변경 비밀번호': {
+      EN: 'Change password',
+      JP: '変更パスワード',
+      CH: '变更密码',
+      TH: 'เปลี่ยนรหัสผ่าน'
+    },
+    '인증번호': {
+      EN: 'Verification code',
+      JP: '認証番号',
+      CH: '验证码',
+      TH: 'รหัสยืนยัน'
+    },
+    'OTP번호': {
+      EN: 'OTP code',
+      JP: 'OTP番号',
+      CH: 'OTP号码',
+      TH: 'รหัส OTP'
+    },
+    'Google OTP 등록': {
+      EN: 'Register Google OTP',
+      JP: 'Google OTP 登録',
+      CH: '注册 Google OTP',
+      TH: 'ลงทะเบียน Google OTP'
+    },
+    '아이디·비밀번호 확인 후 이 화면에서 Google Authenticator(OTP)를 등록합니다. 구성용 이메일 인증번호는 서버에 설정된 수신처로 발송됩니다.': {
+      KO: '아이디·비밀번호 확인 후 이 화면에서 Google Authenticator(OTP)를 등록합니다. 구성용 <strong>이메일 인증번호</strong>는 서버에 설정된 수신처로 발송됩니다.',
+      EN: 'After verifying your user ID and password, register Google Authenticator (OTP) on this screen. The setup <strong>email verification code</strong> is sent to the address configured on the server.',
+      JP: 'ログインID・パスワード確認後、この画面で Google Authenticator（OTP）を登録します。設定用の<strong>メール認証番号</strong>はサーバーに設定された宛先へ送信されます。',
+      CH: '验证登录账号和密码后，在此界面注册 Google Authenticator (OTP)。配置用<strong>邮件验证码</strong>将发送至服务器配置的收件地址。',
+      TH: 'หลังยืนยันรหัสผู้ใช้และรหัสผ่าน ลงทะเบียน Google Authenticator (OTP) ในหน้านี้ <strong>รหัสยืนยันทางอีเมล</strong>สำหรับตั้งค่าจะส่งไปยังที่อยู่ที่กำหนดบนเซิร์ฟเวอร์'
+    },
+    '인증 메일 발송': {
+      EN: 'Send verification email',
+      JP: '認証メール送信',
+      CH: '发送验证邮件',
+      TH: 'ส่งอีเมลยืนยัน'
+    },
+    '이메일 인증번호 (6자리)': {
+      EN: 'Email verification code (6 digits)',
+      JP: 'メール認証番号（6桁）',
+      CH: '邮件验证码（6位）',
+      TH: 'รหัสยืนยันอีเมล (6 หลัก)'
+    },
+    '인증 확인': {
+      EN: 'Verify',
+      JP: '認証確認',
+      CH: '验证确认',
+      TH: 'ยืนยัน'
+    },
+    'Google Authenticator에서 설정 키 입력으로 아래 시크릿을 등록하세요.': {
+      KO: 'Google Authenticator에서 <strong>설정 키 입력</strong>으로 아래 시크릿을 등록하세요.',
+      EN: 'In Google Authenticator, choose <strong>Enter a setup key</strong> and register the secret below.',
+      JP: 'Google Authenticator で<strong>設定キーの入力</strong>を選び、以下のシークレットを登録してください。',
+      CH: '在 Google Authenticator 中选择<strong>输入设置密钥</strong>并注册下方密钥。',
+      TH: 'ใน Google Authenticator เลือก<strong>ป้อนคีย์ตั้งค่า</strong>แล้วลงทะเบียนคีย์ด้านล่าง'
+    },
+    'otpauth URI (앱에서 스캔·붙여넣기 가능)': {
+      EN: 'otpauth URI (scan or paste in app)',
+      JP: 'otpauth URI（アプリでスキャン・貼り付け可）',
+      CH: 'otpauth URI（可在应用中扫描或粘贴）',
+      TH: 'otpauth URI (สแกนหรือวางในแอปได้)'
+    },
+    '앱에 표시된 6자리 코드': {
+      EN: '6-digit code shown in app',
+      JP: 'アプリに表示された6桁コード',
+      CH: '应用中显示的6位代码',
+      TH: 'รหัส 6 หลักที่แสดงในแอป'
+    },
+    '등록 완료': {
+      EN: 'Complete registration',
+      JP: '登録完了',
+      CH: '完成注册',
+      TH: 'ลงทะเบียนเสร็จ'
+    },
+    '확인': {
+      EN: 'OK',
+      JP: '確認',
+      CH: '确定',
+      TH: 'ตกลง'
+    },
+    '아이디와 비밀번호를 입력하세요.': {
+      EN: 'Enter user ID and password.',
+      JP: 'ログインIDとパスワードを入力してください。',
+      CH: '请输入登录账号和密码。',
+      TH: 'กรอกรหัสผู้ใช้และรหัสผ่าน'
+    },
+    '로그인에 실패했습니다.': {
+      EN: 'Sign-in failed.',
+      JP: 'ログインに失敗しました。',
+      CH: '登录失败。',
+      TH: 'เข้าสู่ระบบไม่สำเร็จ'
+    },
+    '로그인 요청이 실패했습니다. API 서버를 확인하세요.': {
+      EN: 'Sign-in request failed. Check the API server.',
+      JP: 'ログイン要求に失敗しました。APIサーバーを確認してください。',
+      CH: '登录请求失败。请检查 API 服务器。',
+      TH: 'คำขอเข้าสู่ระบบล้มเหลว ตรวจสอบเซิร์ฟเวอร์ API'
+    },
     '8자 이상': { EN: '8+ characters', JP: '8文字以上', CH: '至少8位', TH: 'อย่างน้อย 8 ตัว' },
     /* /main — 홈 대시보드(메인) */
     '오늘': { EN: 'Today', JP: '今日', CH: '今天', TH: 'วันนี้' },
@@ -12243,6 +12410,139 @@
       CH: '对接参数规范（表）：',
       TH: 'สเปคพารามิเตอร์เชื่อมต่อ (ตาราง):'
     },
+    /* /comp/merchantApiPortal — 가맹점 API 연동(조회 전용) */
+    '가맹점API': {
+      EN: 'Merchant API',
+      JP: '加盟店API',
+      CH: '商户 API',
+      TH: 'API ร้านค้า'
+    },
+    '가맹점 API 연동': {
+      EN: 'Merchant API integration',
+      JP: '加盟店API連携',
+      CH: '商户 API 对接',
+      TH: 'การเชื่อมต่อ API ร้านค้า'
+    },
+    '가맹점API 안내 본문': {
+      EN: 'View only the API keys, endpoints, and samples deployed by headquarters. Key issuance and re-issue are HQ-only.',
+      JP: '本社が配布したAPI連携キー・エンドポイント・サンプルのみ閲覧できます。キー発行・再発行は本社のみ可能です。',
+      CH: '仅可查看总部部署的 API 对接密钥、端点与样本。密钥签发与重发仅限总部。',
+      TH: 'ดูได้เฉพาะคีย์ API จุดเชื่อมต่อ และตัวอย่างที่สำนักงานใหญ่แจกจ่าย การออกคีย์ใหม่ทำได้เฉพาะ HQ'
+    },
+    '가맹점API 안내 보안': {
+      EN: 'Store broker secrets on your server only — never in browsers, apps, or public storage.',
+      JP: 'ブローカーシークレットは加盟店サーバーにのみ保管し、ブラウザ・アプリ・公開ストレージに置かないでください。',
+      CH: 'Broker 密钥仅保存在商户服务器，切勿放在浏览器、应用或公开存储中。',
+      TH: 'เก็บ broker secret บนเซิร์ฟเวอร์ร้านเท่านั้น ห้ามใส่ในเบราว์เซอร์ แอป หรือที่เก็บสาธารณะ'
+    },
+    '가맹 API 연동 시 유의사항': {
+      EN: 'Notes for merchant API integration',
+      JP: '加盟店API連携時の注意',
+      CH: '商户 API 对接注意事项',
+      TH: 'ข้อควรระวังการเชื่อมต่อ API ร้านค้า'
+    },
+    '가맹 API 유의: prepare 서버 전용': {
+      EN: 'Call the Prepare API only on your <strong>server</strong>. Never expose the broker secret in browsers, apps, or public storage.',
+      JP: 'Prepare APIは加盟店<strong>サーバー</strong>でのみ呼び出してください。ブローカーシークレットをブラウザ・アプリ・公開ストレージに露出しないでください。',
+      CH: 'Prepare API 仅在商户<strong>服务器</strong>调用。切勿在浏览器、应用或公开存储中暴露 broker 密钥。',
+      TH: 'เรียก Prepare API เฉพาะบน<strong>เซิร์ฟเวอร์</strong>ร้านเท่านั้น ห้ามเปิดเผย broker secret ในเบราว์เซอร์ แอป หรือที่เก็บสาธารณะ'
+    },
+    '가맹 API 유의: sessionToken embed': {
+      EN: 'Pass only the Prepare response <code>sessionToken</code> and the Embed script to the browser.',
+      JP: 'ブラウザには Prepare 応答の <code>sessionToken</code> と Embed スクリプトのみ渡してください。',
+      CH: '浏览器仅传递 Prepare 响应中的 <code>sessionToken</code> 与 Embed 脚本。',
+      TH: 'ส่งให้เบราว์เซอร์เฉพาะ <code>sessionToken</code> จาก Prepare และสคริปต์ Embed'
+    },
+    '가맹 API 유의: 결제 확정': {
+      EN: 'Confirm payment on your <strong>server</strong> via webhook (<code>merchantNotifyUrls</code>) or the Status API.',
+      JP: '決済確定はウェブフック（<code>merchantNotifyUrls</code>）または Status API で<strong>サーバー</strong>側で確認してください。',
+      CH: '请在<strong>服务器</strong>通过 webhook（<code>merchantNotifyUrls</code>）或 Status API 确认支付。',
+      TH: 'ยืนยันการชำระบน<strong>เซิร์ฟเวอร์</strong>ผ่าน webhook (<code>merchantNotifyUrls</code>) หรือ Status API'
+    },
+    '연동 키': {
+      EN: 'Integration keys',
+      JP: '連携キー',
+      CH: '对接密钥',
+      TH: 'คีย์เชื่อมต่อ'
+    },
+    'PG 바인딩 (MID)': {
+      EN: 'PG binding (MID)',
+      JP: 'PGバインディング（MID）',
+      CH: 'PG 绑定 (MID)',
+      TH: 'PG binding (MID)'
+    },
+    '브로커 시크릿': {
+      EN: 'Broker secret',
+      JP: 'ブローカーシークレット',
+      CH: 'Broker 密钥',
+      TH: 'Broker secret'
+    },
+    '공개 API 베이스 URL': {
+      EN: 'Public API base URL',
+      JP: '公開APIベースURL',
+      CH: '公开 API 基础 URL',
+      TH: 'Public API base URL'
+    },
+    'HTTP 헤더명': {
+      EN: 'HTTP header name',
+      JP: 'HTTPヘッダー名',
+      CH: 'HTTP 头名称',
+      TH: 'ชื่อ HTTP header'
+    },
+    '강제(헤더 필수)': {
+      EN: 'Enforced (header required)',
+      JP: '強制（ヘッダー必須）',
+      CH: '强制（必填头）',
+      TH: 'บังคับ (ต้องมี header)'
+    },
+    '항목': {
+      EN: 'Item',
+      JP: '項目',
+      CH: '项目',
+      TH: 'รายการ'
+    },
+    '값': {
+      EN: 'Value',
+      JP: '値',
+      CH: '值',
+      TH: 'ค่า'
+    },
+    '작업': {
+      EN: 'Actions',
+      JP: '操作',
+      CH: '操作',
+      TH: 'การทำงาน'
+    },
+    '숨기기': {
+      EN: 'Hide',
+      JP: '非表示',
+      CH: '隐藏',
+      TH: 'ซ่อน'
+    },
+    '복사할 값이 없습니다.': {
+      EN: 'Nothing to copy.',
+      JP: 'コピーする値がありません。',
+      CH: '没有可复制的内容。',
+      TH: 'ไม่มีค่าที่จะคัดลอก'
+    },
+    'API 연동 배포가 완료되지 않았습니다. 본사에 API 배포를 요청하세요.': {
+      EN: 'API integration has not been deployed yet. Please ask headquarters to deploy API access.',
+      JP: 'API連携の配布が完了していません。本社にAPI配布を依頼してください。',
+      CH: 'API 对接尚未部署。请联系总部开通 API 部署。',
+      TH: 'ยังไม่ได้แจกจ่าย API การเชื่อมต่อ โปรดติดต่อสำนักงานใหญ่'
+    },
+    '전체(ALL)': {
+      EN: 'All (ALL)',
+      JP: '全体(ALL)',
+      CH: '全部(ALL)',
+      TH: 'ทั้งหมด (ALL)'
+    },
+    '복사에 실패했습니다. 값을 직접 선택해 복사하세요.': {
+      EN: 'Copy failed. Select the value and copy manually.',
+      JP: 'コピーに失敗しました。値を選択して手動でコピーしてください。',
+      CH: '复制失败。请手动选择并复制该值。',
+      TH: 'คัดลอกไม่สำเร็จ โปรดเลือกค่าแล้วคัดลอกเอง'
+    },
     /* /hq/merchantApiDeployDocs — API 배포 문서 */
     'API 배포 문서': {
       EN: 'API deployment documents',
@@ -12327,6 +12627,60 @@
       JP: '統合 Checkout エンドポイント',
       CH: '统一 Checkout 端点',
       TH: 'Unified Checkout endpoints'
+    },
+    '통합 Checkout 연동 흐름 설명서': {
+      EN: 'Unified Checkout integration flow guide',
+      JP: '統合 Checkout 連携フロー説明書',
+      CH: '统一 Checkout 对接流程说明',
+      TH: 'คู่มือ flow Unified Checkout'
+    },
+    '통합 Checkout 연동 흐름 설명서 안내': {
+      EN: 'Roles of Prepare, Session, Status, and the Embed script, plus the recommended integration sequence. The HTML guide below matches your screen language.',
+      JP: 'Prepare・Session・Status・Embed スクリプトの役割と推奨連携手順です。下の HTML は画面言語に合わせて表示されます。',
+      CH: '说明 Prepare、Session、Status 与 Embed 脚本的作用及推荐对接顺序。下方 HTML 随界面语言显示。',
+      TH: 'บทบาทของ Prepare, Session, Status และ Embed script พร้อมลำดับเชื่อมต่อที่แนะนำ ด้านล่างเป็น HTML ตามภาษาหน้าจอ'
+    },
+    '연동 흐름 설명서': {
+      EN: 'Integration flow guide',
+      JP: '連携フロー説明書',
+      CH: '对接流程说明',
+      TH: 'คู่มือ flow การเชื่อมต่อ'
+    },
+    '연동설명서': {
+      EN: 'Integration guide',
+      JP: '連携説明書',
+      CH: '对接说明',
+      TH: 'คู่มือการเชื่อมต่อ'
+    },
+    '통합 Checkout 엔드포인트 설명서 (HTML)': {
+      EN: 'Unified Checkout endpoint guide (HTML)',
+      JP: '統合 Checkout エンドポイント説明書 (HTML)',
+      CH: '统一 Checkout 端点说明 (HTML)',
+      TH: 'คู่มือ Unified Checkout endpoints (HTML)'
+    },
+    '통합 Checkout 엔드포인트 설명서 (텍스트)': {
+      EN: 'Unified Checkout endpoint guide (text)',
+      JP: '統合 Checkout エンドポイント説明書 (テキスト)',
+      CH: '统一 Checkout 端点说明（文本）',
+      TH: 'คู่มือ Unified Checkout endpoints (ข้อความ)'
+    },
+    '연동 흐름 설명서 새 탭에서 열기': {
+      EN: 'Open integration flow guide in a new tab',
+      JP: '連携フロー説明書を新しいタブで開く',
+      CH: '在新标签页打开对接流程说明',
+      TH: 'เปิดคู่มือ flow ในแท็บใหม่'
+    },
+    '문서를 열 수 없습니다.': {
+      EN: 'Could not open the document.',
+      JP: '文書を開けませんでした。',
+      CH: '无法打开文档。',
+      TH: 'เปิดเอกสารไม่ได้'
+    },
+    '문서를 불러올 수 없습니다.': {
+      EN: 'Could not load the document.',
+      JP: '文書を読み込めませんでした。',
+      CH: '无法加载文档。',
+      TH: 'โหลดเอกสารไม่ได้'
     },
     '연동 체크리스트': {
       EN: 'Integration checklist',
@@ -16027,6 +16381,7 @@
     'TAX 리포트': { EN: 'TAX report', JP: 'TAXレポート', CH: 'TAX 报表', TH: 'รายงาน TAX' },
     '메일로그': { EN: 'Mail log', JP: 'メールログ', CH: '邮件日志', TH: 'บันทึกเมล' },
     'API배포문서': { EN: 'API deployment docs', JP: 'API配布ドキュメント', CH: 'API 部署文档', TH: 'เอกสาร API สำหรับร้าน' },
+    '가맹점API': { EN: 'Merchant API', JP: '加盟店API', CH: '商户 API', TH: 'API ร้านค้า' },
     'API 가맹점 등록': { EN: 'API merchant registration', JP: 'API加盟店登録', CH: 'API 商户注册', TH: 'ลงทะเบียนร้าน API' },
     '가맹점 API 생성': { EN: 'Merchant API (generate)', JP: '加盟店API生成', CH: '生成商户 API', TH: 'สร้าง Merchant API' },
     'API배포설정': { EN: 'API deploy settings', JP: 'API配信設定', CH: 'API 部署设置', TH: 'ตั้งค่า deploy API' },
@@ -16689,10 +17044,26 @@
     syncDateInputLangUnder(root);
   }
 
+  /** login.html 등 독립 페이지 — 로케일 확정 후 DOM 일괄 반영 */
+  function initLoginPageI18n(root) {
+    try { ensureNavigatorLocaleIfNotUserSet(); } catch (eLoc) { /* ignore */ }
+    var r = root;
+    if (!r && typeof document !== 'undefined') r = document.body;
+    if (r) applyDom(r);
+    try {
+      var loc = getLocale();
+      var langMap = { KO: 'ko', EN: 'en', JP: 'ja', CH: 'zh-Hans', TH: 'th' };
+      if (typeof document !== 'undefined' && document.documentElement) {
+        document.documentElement.setAttribute('lang', langMap[loc] || 'ko');
+      }
+    } catch (eLang) { /* ignore */ }
+  }
+
   g.PG_UI_I18N = {
     t: t,
     getLocale: getLocale,
     applyDom: applyDom,
+    initLoginPageI18n: initLoginPageI18n,
     dateInputBcp47: dateInputBcp47,
     syncDateInputLangUnder: syncDateInputLangUnder,
     ensureAutoLocaleOnce: ensureAutoLocaleOnce,

@@ -170,9 +170,19 @@
         var t = ev.target;
         if (!t || t.id !== SELECT_ID) return;
         captureLoginUiChoice();
-        updateHint(panelRoot);
+        refreshLoginTabletPanelI18n(panelRoot);
       });
     }
+    refreshLoginTabletPanelI18n(panelRoot);
+  }
+
+  function refreshLoginTabletPanelI18n(panelRoot) {
+    if (!panelRoot) return;
+    try {
+      if (g.PG_UI_I18N && typeof g.PG_UI_I18N.applyDom === 'function') {
+        g.PG_UI_I18N.applyDom(panelRoot);
+      }
+    } catch (eDom) { /* ignore */ }
     updateHint(panelRoot);
   }
 
@@ -186,6 +196,7 @@
     captureLoginUiChoice: captureLoginUiChoice,
     clearLoginUiChoice: clearLoginUiChoice,
     initLoginPanel: initLoginPanel,
+    refreshLoginTabletPanelI18n: refreshLoginTabletPanelI18n,
     syncLastLoginModeFromSessionShell: syncLastLoginModeFromSessionShell
   };
 })(typeof window !== 'undefined' ? window : globalThis);

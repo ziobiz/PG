@@ -7,6 +7,7 @@
 | **대상** | ICOPAY와 API 연동하는 가맹점(백엔드 개발자) |
 | **API** | `POST /api/middleware/v1/merchant/checkout/prepare` (통합, 권장) |
 | **연동 방식** | JSON(REST) · PHP(`IcopayMerchantApi.php`) |
+| **관련 문서** | [가맹점_통합Checkout_API_연동흐름.md](./가맹점_통합Checkout_API_연동흐름.md) (Prepare·Session·Status·Embed 흐름) |
 
 본 문서는 ChillPay 등 PG사 매뉴얼의 **Request Parameters 표**와 동일한 목적으로, **가맹점이 ICOPAY prepare 호출 시 반드시·선택적으로 넣어야 하는 JSON 필드**를 규정합니다.
 

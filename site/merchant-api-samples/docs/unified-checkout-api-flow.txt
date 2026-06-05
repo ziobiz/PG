@@ -1,0 +1,87 @@
+ICOPAY Unified Checkout API — Integration Flow & Endpoints
+==========================================================
+Spec ID: ICOPAY-CHECKOUT-FLOW-001 · v1.0
+
+HTML (English): {BASE}/merchant-api-samples/docs/unified-checkout-api-flow.html
+한국어:          {BASE}/merchant-api-samples/docs/unified-checkout-api-flow.ko.html
+日本語:          {BASE}/merchant-api-samples/docs/unified-checkout-api-flow.ja.html
+中文:            {BASE}/merchant-api-samples/docs/unified-checkout-api-flow.ch.html
+ไทย:             {BASE}/merchant-api-samples/docs/unified-checkout-api-flow.th.html
+Parameters:      {BASE}/merchant-api-samples/docs/unified-checkout-api-parameters.html
+
+1. UNIFIED CHECKOUT
+-------------------
+One prepare endpoint; ICOPAY routes to ChillPay or JPAY based on operational WEB PG.
+
+  integrationMode: INLINE_UNIFIED
+  Prepare:  POST {BASE}/api/middleware/v1/merchant/checkout/prepare
+  Embed:    {BASE}/v1/embed-checkout/{compId}
+
+Example compId: 6000000028
+
+2. ENDPOINT SUMMARY
+-------------------
+Prepare   POST  .../merchant/checkout/prepare          Merchant SERVER   Broker secret YES
+Session   GET   .../merchant/checkout/session?token=   Browser (widget)  Broker secret NO
+Status    GET   .../merchant/checkout/status?...       Merchant SERVER   Broker secret YES
+Embed JS  GET   /v1/embed-checkout/{compId}            Browser           Broker secret NO
+
+3. RECOMMENDED FLOW
+-------------------
+1) Merchant server: save order (PENDING)
+2) POST prepare (buyer.email, buyer.phone, buyer.countryIso2 required)
+3) Pass data.sessionToken to browser → embed script only
+4) Widget calls session → mounts iframe (/pay/ or /jpay-pay/)
+5) postMessage ICOPAY_INLINE_CHECKOUT on finish
+6) Server: webhook and/or GET status → update order (idempotent)
+
+4. PREPARE
+----------
+POST https://api.icopay.co.kr/api/middleware/v1/merchant/checkout/prepare
+
+Headers:
+  Content-Type: application/json
+  Accept: application/json
+  X-Icopay-Merchant-Broker-Secret: {brokerSecret}
+
+Required: compId, orderNo, amount, buyer.email, buyer.phone, buyer.countryIso2
+
+Response keys: sessionToken, pgVendor, embedScriptUrl, expiresAt
+
+Samples:
+  merchant-api-samples/json/unified-prepare-request.json
+  merchant-api-samples/json/unified-prepare-response.example.json
+
+5. SESSION
+----------
+GET https://api.icopay.co.kr/api/middleware/v1/merchant/checkout/session?token={sessionToken}
+
+Called by embed widget (not merchant server). Returns pgVendor for iframe routing:
+  JPAY     → /jpay-pay/{compId}?entry=merchant_api&embed=1&session=...
+  ChillPay → /pay/{compId}?entry=merchant_api&embed=1&session=...
+
+6. STATUS
+---------
+GET https://api.icopay.co.kr/api/middleware/v1/merchant/checkout/status?compId=6000000028&orderNo={orderNo}
+
+Merchant server. Response: found, paymentStatus, approvalNo, amount, paidAt.
+
+7. EMBED SCRIPT
+---------------
+https://api.icopay.co.kr/v1/embed-checkout/6000000028
+
+  <div id="icopay-checkout"></div>
+  <script src="https://api.icopay.co.kr/v1/embed-checkout/6000000028"
+          data-session-token="{sessionToken}"
+          data-target="icopay-checkout"
+          data-lang="ENG" async defer charset="utf-8"></script>
+
+Completion event: postMessage type ICOPAY_INLINE_CHECKOUT
+
+8. SECURITY
+-----------
+- Broker secret: server only
+- sessionToken: browser only, before expiresAt
+- Idempotent order updates on webhook/status
+
+PHP sample: merchant-api-samples/php/checkout_unified.php

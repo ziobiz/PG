@@ -7,6 +7,7 @@ import com.pg.entity.AuthToken;
 import com.pg.entity.OrgLevel;
 import com.pg.entity.OrgUnit;
 import com.pg.repository.AuthTokenRepository;
+import com.pg.repository.MerchantIcopayBrokerCredentialRepository;
 import com.pg.repository.MerchantProfileRepository;
 import com.pg.repository.OrgUnitRepository;
 import com.pg.repository.UserRepository;
@@ -35,6 +36,7 @@ public class AuthService {
     private final AuthTokenRepository authTokenRepository;
     private final PasswordEncoder passwordEncoder;
     private final MerchantProfileRepository merchantProfileRepository;
+    private final MerchantIcopayBrokerCredentialRepository merchantIcopayBrokerCredentialRepository;
     private final OrgUnitRepository orgUnitRepository;
     private final OrgPagePermissionService orgPagePermissionService;
     private final OrgPortalHostService orgPortalHostService;
@@ -42,6 +44,7 @@ public class AuthService {
 
     public AuthService(UserRepository userRepository, AuthTokenRepository authTokenRepository,
                        PasswordEncoder passwordEncoder, MerchantProfileRepository merchantProfileRepository,
+                       MerchantIcopayBrokerCredentialRepository merchantIcopayBrokerCredentialRepository,
                        OrgUnitRepository orgUnitRepository,
                        @Lazy OrgPagePermissionService orgPagePermissionService,
                        OrgPortalHostService orgPortalHostService,
@@ -50,6 +53,7 @@ public class AuthService {
         this.authTokenRepository = authTokenRepository;
         this.passwordEncoder = passwordEncoder;
         this.merchantProfileRepository = merchantProfileRepository;
+        this.merchantIcopayBrokerCredentialRepository = merchantIcopayBrokerCredentialRepository;
         this.orgUnitRepository = orgUnitRepository;
         this.orgPagePermissionService = orgPagePermissionService;
         this.orgPortalHostService = orgPortalHostService;
@@ -123,6 +127,7 @@ public class AuthService {
         if (res.getOrgLevel() != null && "MERCHANT".equalsIgnoreCase(res.getOrgLevel())) {
             res.setChatbotPaymentUseYn(resolveChatbotPaymentUseYnForMerchant(res.getOrgUnitId()));
             res.setWebPaymentUseYn(resolveWebPaymentUseYnForMerchant(res.getOrgUnitId()));
+            res.setMerchantApiDeployedYn(resolveMerchantApiDeployedYnForMerchant(res.getOrgUnitId()));
         }
         boolean mustChange = "Y".equalsIgnoreCase(user.getPasswordMustChangeYn())
                 || isInitialTempPassword(user.getUsername(), password);
@@ -160,6 +165,15 @@ public class AuthService {
         return merchantProfileRepository.findByOrgUnitId(orgUnitId)
                 .map(mp -> yn(mp.getWebPaymentUseYn()))
                 .orElse("N");
+    }
+
+    /** 가맹점(org_unit 기준) 본사 API 배포(활성 브로커 시크릿) 여부 — 가맹점API 메뉴 노출에 사용 */
+    public String resolveMerchantApiDeployedYnForMerchant(Long orgUnitId) {
+        if (orgUnitId == null) {
+            return "N";
+        }
+        var creds = merchantIcopayBrokerCredentialRepository.findByOrgUnitIdAndUseYnOrderByIdDesc(orgUnitId, "Y");
+        return creds != null && !creds.isEmpty() ? "Y" : "N";
     }
 
     private static String yn(String v) {

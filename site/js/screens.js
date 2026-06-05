@@ -1751,11 +1751,44 @@
     '<h6 class="small fw-semibold mt-3 mb-2" data-pg-ui-t="오류 코드">오류 코드</h6>' +
     '<div class="table-responsive border rounded mb-3"><table class="table table-sm table-bordered align-middle mb-0 w-100" id="merchantApiDocsErrorGrid">' +
     '<thead class="table-light"><tr><th data-pg-ui-t="오류코드">오류코드</th><th data-pg-ui-t="의미">의미</th></tr></thead><tbody></tbody></table></div></section>' +
-    '<section class="mb-4"><h6 class="fw-semibold border-bottom pb-2 mb-3" data-pg-ui-t="통합 Checkout 엔드포인트">통합 Checkout 엔드포인트</h6>' +
+    '<section class="mb-4"><h6 class="fw-semibold border-bottom pb-2 mb-3 d-flex flex-wrap align-items-baseline gap-1">' +
+    '<span data-pg-ui-t="통합 Checkout 엔드포인트">통합 Checkout 엔드포인트</span>' +
+    '<span class="text-muted fw-normal user-select-none" aria-hidden="true">/</span>' +
+    '<button type="button" class="btn btn-link btn-sm p-0 align-baseline text-nowrap merchant-api-flow-doc-menu" id="merchantApiDocsFlowDocOpen" data-pg-ui-t="연동설명서">연동설명서</button></h6>' +
     '<ul class="small mb-0 ps-3" id="merchantApiDocsEndpoints"></ul></section>' +
     '<section class="mb-2"><h6 class="fw-semibold border-bottom pb-2 mb-3" data-pg-ui-t="연동 체크리스트">연동 체크리스트</h6>' +
     '<ol class="small mb-0 ps-3" id="merchantApiDocsChecklist"></ol></section></div>' +
     '<div id="merchantApiDocsEmpty" class="text-center text-muted py-5 small" data-pg-ui-t="업체를 선택하면 연동 자료가 표시됩니다.">업체를 선택하면 연동 자료가 표시됩니다.</div></div>';
+
+  var MERCHANT_API_PORTAL_HTML = '<div class="merchant-api-portal text-body pg-merchant-api-portal-viewer">' +
+    '<h5 class="fw-semibold mb-2" data-pg-ui-t="가맹점 API 연동">가맹점 API 연동</h5>' +
+    '<div class="alert alert-info small mb-3 py-3" role="region">' +
+    '<p class="mb-2" data-pg-ui-t="가맹점API 안내 본문">본사에서 배포한 API 연동 키와 엔드포인트·샘플만 조회할 수 있습니다. 키 발급·재발급은 본사에서만 가능합니다.</p>' +
+    '<p class="mb-0 text-muted small" data-pg-ui-t="가맹점API 안내 보안">브로커 시크릿은 가맹 서버에만 보관하고 브라우저·앱·공개 저장소에 노출하지 마세요.</p></div>' +
+    '<div id="merchantApiPortalNotDeployed" class="alert alert-warning small d-none" role="status"></div>' +
+    '<div id="merchantApiPortalMain" class="d-none">' +
+    '<section class="mb-4"><h6 class="fw-semibold border-bottom pb-2 mb-3" data-pg-ui-t="연동 키">연동 키</h6>' +
+    '<div class="table-responsive border rounded mb-2"><table class="table table-sm table-bordered align-middle mb-0 w-100" id="merchantApiPortalKeysGrid">' +
+    '<thead class="table-light"><tr><th data-pg-ui-t="항목">항목</th><th data-pg-ui-t="값">값</th><th class="text-nowrap" data-pg-ui-t="작업">작업</th></tr></thead>' +
+    '<tbody id="merchantApiPortalKeysBody"></tbody></table></div></section>' +
+    '<section class="mb-4"><h6 class="fw-semibold border-bottom pb-2 mb-3" data-pg-ui-t="PG 바인딩 (MID)">PG 바인딩 (MID)</h6>' +
+    '<ul class="small mb-0 ps-3" id="merchantApiPortalBindings"></ul></section>' +
+    '<section class="mb-4"><h6 class="fw-semibold border-bottom pb-2 mb-3 d-flex flex-wrap align-items-baseline gap-1">' +
+    '<span data-pg-ui-t="통합 Checkout 엔드포인트">통합 Checkout 엔드포인트</span>' +
+    '<span class="text-muted fw-normal user-select-none" aria-hidden="true">/</span>' +
+    '<button type="button" class="btn btn-link btn-sm p-0 align-baseline text-nowrap merchant-api-flow-doc-menu" id="merchantApiPortalFlowDocOpen" data-pg-ui-t="연동설명서">연동설명서</button></h6>' +
+    '<ul class="small mb-0 ps-3" id="merchantApiPortalEndpoints"></ul></section>' +
+    '<section class="mb-4"><h6 class="fw-semibold border-bottom pb-2 mb-3" data-pg-ui-t="다운로드 자료">다운로드 자료</h6>' +
+    '<div class="table-responsive border rounded mb-2"><table class="table table-sm table-bordered align-middle mb-0 w-100" id="merchantApiPortalDownloadGrid">' +
+    '<thead class="table-light"><tr><th data-pg-ui-t="구분">구분</th><th data-pg-ui-t="설명">설명</th><th class="text-nowrap" data-pg-ui-t="다운로드">다운로드</th></tr></thead>' +
+    '<tbody></tbody></table></div></section>' +
+    '<section class="mb-2"><h6 class="fw-semibold border-bottom pb-2 mb-3" data-pg-ui-t="가맹 API 연동 시 유의사항">가맹 API 연동 시 유의사항</h6>' +
+    '<ul class="small mb-0 ps-3">' +
+    '<li class="mb-1" data-pg-ui-t="가맹 API 유의: prepare 서버 전용">Prepare API는 가맹 <strong>서버</strong>에서만 호출하세요. 브로커 시크릿을 브라우저·앱·공개 저장소에 노출하지 마세요.</li>' +
+    '<li class="mb-1" data-pg-ui-t="가맹 API 유의: sessionToken embed">브라우저에는 Prepare 응답의 <code>sessionToken</code>과 Embed 스크립트만 전달하세요.</li>' +
+    '<li class="mb-0" data-pg-ui-t="가맹 API 유의: 결제 확정">결제 확정은 웹훅(<code>merchantNotifyUrls</code>) 또는 Status API로 <strong>서버</strong>에서 확인하세요.</li>' +
+    '</ul></section></div>' +
+    '<div id="merchantApiPortalLoading" class="text-center text-muted py-5 small" data-pg-ui-t="로딩 중…">로딩 중…</div></div>';
 
   var MENU_SCREENS = {
     '/hq/apiMerchantDeployReg': {
@@ -1773,6 +1806,12 @@
     '/hq/merchantApiDeployDocs': {
       hideListGrid: true,
       staticHtml: MERCHANT_API_DEPLOY_DOCS_HTML,
+      summary: [],
+      buttons: []
+    },
+    '/comp/merchantApiPortal': {
+      hideListGrid: true,
+      staticHtml: MERCHANT_API_PORTAL_HTML,
       summary: [],
       buttons: []
     },

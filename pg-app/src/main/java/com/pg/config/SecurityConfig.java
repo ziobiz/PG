@@ -51,12 +51,16 @@ public class SecurityConfig {
                 AntPathRequestMatcher.antMatcher("/jpay-subscribe"),
                 AntPathRequestMatcher.antMatcher("/jpay-subscribe/**"),
                 AntPathRequestMatcher.antMatcher("/jpay-subscribe.html"),
-                AntPathRequestMatcher.antMatcher("/pay-result.html")));
+                AntPathRequestMatcher.antMatcher("/pay-result.html"),
+                /* 가맹점 API 연동 문서 — 관리 화면(icopay.co.kr) iframe 미리보기 */
+                AntPathRequestMatcher.antMatcher("/merchant-api-samples/**")));
         http.authorizeHttpRequests(auth -> auth.anyRequest().permitAll());
         http.csrf(AbstractHttpConfigurer::disable);
         http.formLogin(AbstractHttpConfigurer::disable);
         http.httpBasic(AbstractHttpConfigurer::disable);
         http.logout(AbstractHttpConfigurer::disable);
+        // 문서/결제 임베드 리소스는 로그인 세션을 만들지 않도록 고정 (JSESSIONID 재발급 → 로그아웃처럼 보이는 현상 방지)
+        http.sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
         http.headers(headers -> headers.frameOptions(frame -> frame.disable()));
         http.cors(Customizer.withDefaults());
         return http.build();

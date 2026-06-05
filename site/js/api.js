@@ -411,6 +411,199 @@
     return null;
   }
 
+  var FLOW_DOC_LANG_PATHS = {
+    EN: 'merchant-api-samples/docs/unified-checkout-api-flow.html',
+    KO: 'merchant-api-samples/docs/unified-checkout-api-flow.ko.html',
+    JP: 'merchant-api-samples/docs/unified-checkout-api-flow.ja.html',
+    CH: 'merchant-api-samples/docs/unified-checkout-api-flow.ch.html',
+    TH: 'merchant-api-samples/docs/unified-checkout-api-flow.th.html'
+  };
+  var PARAM_DOC_LANG_PATHS = {
+    EN: 'merchant-api-samples/docs/unified-checkout-api-parameters.html',
+    KO: 'merchant-api-samples/docs/unified-checkout-api-parameters.ko.html',
+    JP: 'merchant-api-samples/docs/unified-checkout-api-parameters.ja.html',
+    CH: 'merchant-api-samples/docs/unified-checkout-api-parameters.ch.html',
+    TH: 'merchant-api-samples/docs/unified-checkout-api-parameters.th.html'
+  };
+  var PARAM_TXT_LANG_PATHS = {
+    EN: 'merchant-api-samples/docs/unified-checkout-api-parameters.txt',
+    KO: 'merchant-api-samples/docs/unified-checkout-api-parameters.ko.txt',
+    JP: 'merchant-api-samples/docs/unified-checkout-api-parameters.ja.txt',
+    CH: 'merchant-api-samples/docs/unified-checkout-api-parameters.ch.txt',
+    TH: 'merchant-api-samples/docs/unified-checkout-api-parameters.th.txt'
+  };
+
+  function sampleDocLangFromPath(docPath, family) {
+    var p = String(docPath || '');
+    if (/\.ko\.(html|txt)$/i.test(p)) return 'KO';
+    if (/\.ja\.(html|txt)$/i.test(p)) return 'JP';
+    if (/\.ch\.(html|txt)$/i.test(p)) return 'CH';
+    if (/\.th\.(html|txt)$/i.test(p)) return 'TH';
+    if (family === 'flow' && /unified-checkout-api-flow\.html$/i.test(p)) return 'EN';
+    if (family === 'param' && /unified-checkout-api-parameters\.html$/i.test(p)) return 'EN';
+    if (family === 'param' && /unified-checkout-api-parameters\.txt$/i.test(p)) return 'EN';
+    if (family === 'flow' && /unified-checkout-api-flow\.txt$/i.test(p)) return 'EN';
+    return '';
+  }
+
+  function sampleDocLangInfo(docPath) {
+    var p = String(docPath || '');
+    if (/unified-checkout-api-flow/i.test(p)) {
+      return { family: 'flow', cur: sampleDocLangFromPath(p, 'flow'), paths: FLOW_DOC_LANG_PATHS };
+    }
+    if (/unified-checkout-api-parameters/i.test(p)) {
+      return { family: 'param', cur: sampleDocLangFromPath(p, 'param'), paths: PARAM_DOC_LANG_PATHS };
+    }
+    return null;
+  }
+
+  function sampleLangNavLabel(cur) {
+    if (cur === 'KO') return '언어:';
+    if (cur === 'JP') return '言語:';
+    if (cur === 'CH') return '语言:';
+    if (cur === 'TH') return 'ภาษา:';
+    return 'Language:';
+  }
+
+  function buildSampleLangNavHtml(info) {
+    var langs = [
+      { c: 'EN', t: 'English' },
+      { c: 'KO', t: '한국어' },
+      { c: 'JP', t: '日本語' },
+      { c: 'CH', t: '中文' },
+      { c: 'TH', t: 'ไทย' }
+    ];
+    var parts = langs.map(function (x) {
+      if (x.c === info.cur) return '<strong>' + x.t + '</strong>';
+      return '<a href="#" data-pg-doc-lang="' + x.c + '" data-pg-doc-family="' + info.family + '">' + x.t + '</a>';
+    });
+    return '<p class="lang-nav pg-sample-doc-lang-nav"><strong>' + sampleLangNavLabel(info.cur) + '</strong> ' + parts.join(' · ') + '</p>';
+  }
+
+  function sampleMimeForPath(path) {
+    var lower = String(path || '').toLowerCase();
+    if (lower.endsWith('.txt')) return 'text/plain;charset=UTF-8';
+    if (lower.endsWith('.json')) return 'application/json;charset=UTF-8';
+    if (lower.endsWith('.php')) return 'application/x-php;charset=UTF-8';
+    if (lower.endsWith('.java') || lower.endsWith('.properties')) return 'text/plain;charset=UTF-8';
+    if (lower.endsWith('.js')) return 'application/javascript;charset=UTF-8';
+    return 'text/html;charset=UTF-8';
+  }
+
+  function isMerchantSampleHtmlPath(docPath) {
+    return /merchant-api-samples\/.*\.html$/i.test(String(docPath || ''));
+  }
+
+  function sampleHrefToClasspath(href, docPath) {
+    var h = String(href || '').trim();
+    if (!h || /^https?:/i.test(h) || h.charAt(0) === '#') return null;
+    if (h.indexOf('merchant-api-samples/') === 0) return h.replace(/^\//, '');
+    if (h.charAt(0) === '/') return h.replace(/^\//, '');
+
+    var dp = String(docPath || '').replace(/^\//, '');
+    var baseDir = 'merchant-api-samples/';
+    if (/merchant-api-samples\/docs\//i.test(dp)) baseDir = 'merchant-api-samples/docs/';
+    else if (/merchant-api-samples\/index\.html$/i.test(dp)) baseDir = 'merchant-api-samples/';
+    else if (/merchant-api-samples\//i.test(dp)) {
+      var slash = dp.lastIndexOf('/');
+      baseDir = slash >= 0 ? dp.substring(0, slash + 1) : 'merchant-api-samples/';
+    }
+
+    if (h.indexOf('../') === 0) {
+      var parts = baseDir.replace(/\/$/, '').split('/');
+      var rel = h.split('/');
+      for (var i = 0; i < rel.length; i++) {
+        if (rel[i] === '..') {
+          if (parts.length) parts.pop();
+        } else if (rel[i] && rel[i] !== '.') {
+          parts.push(rel[i]);
+        }
+      }
+      return parts.join('/');
+    }
+
+    if (/^(docs|json|php|jsp|common)\//i.test(h)) return 'merchant-api-samples/' + h;
+    if (baseDir === 'merchant-api-samples/docs/') return baseDir + h;
+    return 'merchant-api-samples/' + h;
+  }
+
+  function rewriteSampleDocAnchors(html, docPath) {
+    return String(html || '').replace(/<a\s+([^>]*?)href="([^"]+)"([^>]*)>/gi, function (full, pre, href, post) {
+      if (/\bdata-pg-sample-doc=/.test(pre + post)) return full;
+      var path = sampleHrefToClasspath(href, docPath);
+      if (!path || !/^merchant-api-samples\//i.test(path)) return full;
+      var mime = sampleMimeForPath(path);
+      return '<a ' + pre + 'href="#" data-pg-sample-doc="' + path + '" data-pg-sample-mime="' + mime + '"' + post + '>';
+    });
+  }
+
+  function appendSampleDocBlobNavScript(out) {
+    if (String(out || '').indexOf('pgSampleDocBlobNav') >= 0) return out;
+    var script = '<script id="pgSampleDocBlobNav">(function(){'
+      + 'var FLOW={EN:"' + FLOW_DOC_LANG_PATHS.EN + '",KO:"' + FLOW_DOC_LANG_PATHS.KO + '",JP:"' + FLOW_DOC_LANG_PATHS.JP
+      + '",CH:"' + FLOW_DOC_LANG_PATHS.CH + '",TH:"' + FLOW_DOC_LANG_PATHS.TH + '"};'
+      + 'var PARAM={EN:"' + PARAM_DOC_LANG_PATHS.EN + '",KO:"' + PARAM_DOC_LANG_PATHS.KO + '",JP:"' + PARAM_DOC_LANG_PATHS.JP
+      + '",CH:"' + PARAM_DOC_LANG_PATHS.CH + '",TH:"' + PARAM_DOC_LANG_PATHS.TH + '"};'
+      + 'function openDoc(path,mime){if(!path)return;mime=mime||"text/html;charset=UTF-8";'
+      + 'try{if(window.opener&&window.opener.PG_API&&window.opener.PG_API.openSampleDoc){window.opener.PG_API.openSampleDoc(path,mime);try{window.close();}catch(x){}return;}}catch(e1){}'
+      + 'try{if(window.opener){window.opener.postMessage({type:"pg-open-sample-doc",path:path,mime:mime},"*");try{window.close();}catch(x2){}}}catch(e2){}}'
+      + 'document.querySelectorAll("[data-pg-sample-doc]").forEach(function(el){el.addEventListener("click",function(ev){'
+      + 'ev.preventDefault();openDoc(el.getAttribute("data-pg-sample-doc"),el.getAttribute("data-pg-sample-mime"));});});'
+      + 'document.querySelectorAll("[data-pg-doc-lang]").forEach(function(el){el.addEventListener("click",function(ev){'
+      + 'ev.preventDefault();var fam=el.getAttribute("data-pg-doc-family")||"flow";var lang=el.getAttribute("data-pg-doc-lang");'
+      + 'var map=fam==="param"?PARAM:FLOW;var p=map[lang];if(p)openDoc(p,"text/html;charset=UTF-8");});});'
+      + '})();</script>';
+    if (/<\/body>/i.test(out)) return out.replace(/<\/body>/i, script + '</body>');
+    return out + script;
+  }
+
+  function injectMerchantSampleDocHtml(html, docPath) {
+    if (!isMerchantSampleHtmlPath(docPath)) return String(html || '');
+    var out = String(html || '');
+    var info = sampleDocLangInfo(docPath);
+    if (info && info.cur) {
+      var navHtml = buildSampleLangNavHtml(info);
+      if (/<p class="lang-nav[^"]*">[\s\S]*?<\/p>/i.test(out)) {
+        out = out.replace(/<p class="lang-nav[^"]*">[\s\S]*?<\/p>/i, navHtml);
+      } else {
+        out = out.replace(/<body([^>]*)>/i, '<body$1>' + navHtml);
+      }
+    }
+    out = rewriteSampleDocAnchors(out, docPath);
+    return appendSampleDocBlobNavScript(out);
+  }
+
+  function fetchSampleDoc(path) {
+    var p = String(path || '').replace(/^\//, '').trim();
+    if (!p) {
+      return Promise.reject(new Error(apiT('문서 경로가 없습니다.', 'Document path is missing.')));
+    }
+    var url = getBaseUrl() + '/api/merchant-api-samples/doc?path=' + encodeURIComponent(p);
+    return fetch(url, {
+      credentials: 'omit',
+      mode: 'cors',
+      headers: {
+        Authorization: 'Bearer ' + getToken(),
+        Accept: 'text/html, text/plain, application/json, */*'
+      }
+    }).then(function (res) {
+      if (res.status === 401) {
+        clearAuth();
+        if (typeof window.location !== 'undefined') {
+          window.location.replace((window.location.origin || '') + '/login.html');
+        }
+        return Promise.reject(new Error(apiT('인증이 만료되었습니다. 다시 로그인하세요.', 'Your session has expired. Please sign in again.')));
+      }
+      if (!res.ok) {
+        return Promise.reject(new Error(apiT(
+          '문서를 불러올 수 없습니다. (HTTP ' + res.status + ')',
+          'Could not load document. (HTTP ' + res.status + ')'
+        )));
+      }
+      return res.text();
+    });
+  }
+
   window.PG_API = {
     getToken: getToken,
     setAuth: setAuth,
@@ -1171,6 +1364,26 @@
     },
     hqMerchantApiDeploymentDocsPortal: function (params) {
       return get('/api/hq/merchant-api-deployment/docs-portal', params || {}).then(function (r) { return r.data; });
+    },
+    merchantApiPortalSelf: function () {
+      return get('/api/merchant/api-portal/self').then(function (r) { return r.data; });
+    },
+    fetchSampleDoc: fetchSampleDoc,
+    openSampleDoc: function (path, mime) {
+      return fetchSampleDoc(path).then(function (text) {
+        var m = mime || 'text/html;charset=UTF-8';
+        var body = text;
+        if (/text\/html/i.test(m)) body = injectMerchantSampleDocHtml(body, path);
+        var blob = new Blob([body], { type: m });
+        var u = URL.createObjectURL(blob);
+        /* noopener 제거 — blob 탭에서 언어 전환 시 opener.PG_API 로 재오픈 */
+        var w = window.open(u, '_blank');
+        if (!w) {
+          URL.revokeObjectURL(u);
+          return Promise.reject(new Error(apiT('팝업이 차단되었습니다. 팝업 허용 후 다시 시도하세요.', 'Popup blocked. Allow popups and try again.')));
+        }
+        setTimeout(function () { URL.revokeObjectURL(u); }, 120000);
+      });
     },
     hqMerchantApiDeploymentRotate: function (body) {
       return post('/api/hq/merchant-api-deployment/credential/rotate', body || {}).then(function (r) { return r.data; });

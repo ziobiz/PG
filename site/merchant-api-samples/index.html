@@ -1,38 +1,50 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>ICOPAY 가맹점 연동 샘플</title>
+  <title>ICOPAY Merchant Integration Samples</title>
   <style>
     body { font-family: system-ui, sans-serif; max-width: 720px; margin: 2rem auto; padding: 0 1rem; line-height: 1.6; }
     code { background: #f4f4f4; padding: 0.1em 0.35em; border-radius: 3px; }
     h2 { margin-top: 1.5rem; }
-    ul { padding-left: 1.25rem; }
+    ul, ol { padding-left: 1.25rem; }
+    a { color: #0d6efd; }
   </style>
 </head>
 <body>
-  <h1>ICOPAY 가맹점 연동 샘플</h1>
-  <p>다운로드 베이스: <code>{publicApiBaseUrl}/merchant-api-samples/</code></p>
-  <p>본사 키트 JSON의 <code>integrationModes.json</code> · <code>integrationModes.php</code> 와 함께 사용하세요.</p>
+  <h1>ICOPAY Merchant Integration Samples</h1>
+  <p>Download base: <code>{publicApiBaseUrl}/merchant-api-samples/</code></p>
+  <p>Use together with the HQ deployment kit JSON keys <code>integrationModes.json</code> and <code>integrationModes.php</code>.</p>
 
-  <h2>① JSON (REST 직접 호출)</h2>
+  <h2>① JSON (direct REST)</h2>
   <ol>
-    <li><a href="docs/unified-checkout-api-parameters.html">docs/unified-checkout-api-parameters.html</a> — <strong>Prepare API 파라미터 표 (표 1.1·1.2)</strong></li>
+    <li>Integration flow &amp; endpoints (Prepare · Session · Status · Embed):
+      <a href="docs/unified-checkout-api-flow.html">EN</a> ·
+      <a href="docs/unified-checkout-api-flow.ko.html">KO</a> ·
+      <a href="docs/unified-checkout-api-flow.ja.html">JA</a> ·
+      <a href="docs/unified-checkout-api-flow.ch.html">CH</a> ·
+      <a href="docs/unified-checkout-api-flow.th.html">TH</a></li>
+    <li>Prepare API parameter tables (Tables 1.1 &amp; 1.2):
+      <a href="docs/unified-checkout-api-parameters.html">EN</a> ·
+      <a href="docs/unified-checkout-api-parameters.ko.html">KO</a> ·
+      <a href="docs/unified-checkout-api-parameters.ja.html">JA</a> ·
+      <a href="docs/unified-checkout-api-parameters.ch.html">CH</a> ·
+      <a href="docs/unified-checkout-api-parameters.th.html">TH</a></li>
     <li><a href="json/README.txt">json/README.txt</a></li>
-    <li><a href="json/unified-prepare-request.json">unified-prepare-request.json</a> — prepare 요청 본문</li>
-    <li><a href="json/unified-prepare-response.example.json">unified-prepare-response.example.json</a> — 응답 예시</li>
+    <li><a href="json/unified-prepare-request.json">unified-prepare-request.json</a> — prepare request body</li>
+    <li><a href="json/unified-prepare-response.example.json">unified-prepare-response.example.json</a> — response example</li>
   </ol>
-  <p>가맹 서버에서 <code>POST .../merchant/checkout/prepare</code> → <code>sessionToken</code> → <code>/v1/embed-checkout/{compId}</code></p>
+  <p>On the merchant server: <code>POST .../merchant/checkout/prepare</code> → <code>sessionToken</code> → <code>/v1/embed-checkout/{compId}</code></p>
 
   <h2>② PHP</h2>
   <ol>
-    <li><a href="php/icopay_config.example.php">php/icopay_config.example.php</a> → <code>icopay_config.php</code> (document root 밖 권장)</li>
-    <li><a href="php/IcopayMerchantApi.php">php/IcopayMerchantApi.php</a> — API 클라이언트</li>
-    <li><a href="php/checkout_unified.php">checkout_unified.php</a> — <strong>통합 checkout (권장)</strong></li>
-    <li><a href="php/checkout_chillpay.php">checkout_chillpay.php</a> | <a href="php/checkout_jpay.php">checkout_jpay.php</a> — 레거시 PG별</li>
-    <li><a href="php/notify_webhook.php">notify_webhook.php</a> — 웹훅 스텁</li>
-    <li><a href="common/icopay-checkout.js">common/icopay-checkout.js</a> — postMessage 수신</li>
+    <li><a href="php/icopay_config.example.php">php/icopay_config.example.php</a> → <code>icopay_config.php</code> (keep outside document root)</li>
+    <li><a href="php/IcopayMerchantApi.php">php/IcopayMerchantApi.php</a> — API client</li>
+    <li><a href="php/checkout_unified.php">checkout_unified.php</a> — <strong>unified checkout (recommended)</strong></li>
+    <li><a href="php/checkout_chillpay.php">checkout_chillpay.php</a> | <a href="php/checkout_jpay.php">checkout_jpay.php</a> — legacy per-PG</li>
+    <li><a href="php/notify_webhook.php">notify_webhook.php</a> — webhook stub</li>
+    <li><a href="common/icopay-checkout.js">common/icopay-checkout.js</a> — postMessage handler</li>
   </ol>
 
   <h2>JSP (Java 11+)</h2>
@@ -43,9 +55,9 @@
     <li><a href="jsp/notify-webhook.jsp">jsp/notify-webhook.jsp</a></li>
   </ol>
 
-  <h2>연동 순서</h2>
-  <p>주문 생성 → 서버 prepare (JSON REST 또는 PHP) → sessionToken → embed → postMessage / 웹훅</p>
-  <p>키트: <code>merchantUnifiedCheckout</code>, <code>integrationModes</code> 참고.</p>
-  <p><a href="README.txt">README.txt</a> (텍스트 버전)</p>
+  <h2>Integration flow</h2>
+  <p>Create order → server prepare (JSON REST or PHP) → sessionToken → embed → postMessage / webhook</p>
+  <p>See kit keys <code>merchantUnifiedCheckout</code> and <code>integrationModes</code>.</p>
+  <p><a href="README.txt">README.txt</a> (plain text)</p>
 </body>
 </html>

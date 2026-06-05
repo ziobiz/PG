@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ICOPAY Unified Checkout API พารามิเตอร์</title>
+  <style>
+    body { font-family: system-ui, "Sarabun", "Tahoma", sans-serif; max-width: 960px; margin: 1.5rem auto; padding: 0 1rem; line-height: 1.5; color: #222; }
+    h1 { font-size: 1.35rem; margin-bottom: 0.25rem; }
+    h2 { font-size: 1.05rem; margin-top: 1.75rem; border-bottom: 1px solid #ccc; padding-bottom: 0.25rem; }
+    p.meta { color: #555; font-size: 0.92rem; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.88rem; margin: 0.75rem 0 1rem; }
+    th, td { border: 1px solid #ccc; padding: 0.45rem 0.5rem; vertical-align: top; }
+    th { background: #f5f5f5; text-align: left; white-space: nowrap; }
+    .m { font-weight: 700; color: #b02a37; }
+    code { background: #f4f4f4; padding: 0.05em 0.3em; border-radius: 3px; }
+    pre { background: #f8f8f8; border: 1px solid #ddd; padding: 0.75rem; overflow: auto; font-size: 0.82rem; }
+    a { color: #0d6efd; }
+    .lang-nav { font-size: 0.92rem; margin-bottom: 1rem; padding: 0.5rem 0; border-bottom: 1px solid #eee; }
+  </style>
+</head>
+<body>
+  <p class="lang-nav"><strong>ภาษา:</strong>
+    <a href="unified-checkout-api-parameters.html">English</a> · <a href="unified-checkout-api-parameters.ko.html">한국어</a> · <a href="unified-checkout-api-parameters.ja.html">日本語</a> · <a href="unified-checkout-api-parameters.ch.html">中文</a> · <strong>ไทย</strong></p>
+  <h1>ตาราง 1.1 · ICOPAY Unified Checkout Prepare API พารามิเตอร์คำขอ</h1>
+  <p class="meta">รหัสเอกสาร: ICOPAY-CHECKOUT-PREPARE-001 · v1.0 · Checkout แบบ inline รวมศูนย์ไม่ผูก PG (ChillPay/JPAY แยกอัตโนมัติ)</p>
+  <p><strong>Endpoint:</strong> <code>POST {publicApiBaseUrl}/api/middleware/v1/merchant/checkout/prepare</code></p>
+  <p><strong>Headers:</strong> <code>Content-Type: application/json</code>, <code>Accept: application/json</code>,
+    <code>X-Icopay-Merchant-Broker-Secret</code> (จำเป็นเมื่อบังคับใช้ broker secret)</p>
+
+  <h2>ตาราง 1.1 — Request body (JSON root)</h2>
+  <table>
+    <thead>
+      <tr><th>ลำดับ</th><th>รายการ</th><th>ประเภท</th><th>ความยาว</th><th>บังคับ</th><th>คำอธิบาย</th><th>หมายเหตุ</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>1</td><td>compId</td><td>String</td><td>64</td><td class="m">M*</td><td>รหัสบริษัทร้านค้า</td><td>*หรือ merchantId ที่ ICOPAY กำหนดให้</td></tr>
+      <tr><td>2</td><td>merchantId</td><td>Number</td><td>—</td><td>O</td><td>รหัสองค์กรร้านค้า</td><td>ใช้แทน compId ได้</td></tr>
+      <tr><td>3</td><td>orderNo</td><td>String</td><td>64</td><td class="m">M</td><td>เลขอ้างอิงคำสั่งซื้อ/ธุรกรรม</td><td>ChillPay: ตัวอักษร-ตัวเลข <code>-</code> <code>_</code> เท่านั้น สูงสุด <strong>20</strong> JPAY: สูงสุด 64</td></tr>
+      <tr><td>4</td><td>amount</td><td>Number</td><td>12</td><td class="m">M</td><td>จำนวนเงินชำระ</td><td>&gt; 0 แนะนำใช้จำนวนเต็มสำหรับ JPY/KRW</td></tr>
+      <tr><td>5</td><td>currency</td><td>String</td><td>3</td><td>O</td><td>สกุลเงิน ISO 4217</td><td>USD, JPY, KRW, THB… ค่าเริ่มต้นจากสกุลเงินหลักของร้านค้า</td></tr>
+      <tr><td>6</td><td>productName</td><td>String</td><td>500</td><td>O</td><td>คำอธิบายสินค้า/คำสั่งซื้อ</td><td>แสดงบนหน้าชำระเงิน</td></tr>
+      <tr><td>7</td><td>item</td><td>String</td><td>500</td><td>O</td><td>ชื่อทางเลือกของ productName</td><td>ใช้เมื่อไม่มี productName</td></tr>
+      <tr><td>8</td><td>lang</td><td>String</td><td>5</td><td>O</td><td>ภาษา UI หน้าชำระเงิน</td><td><strong>KOR · ENG · JPN · CHN · THA</strong> (หรือ ko/en/ja/zh/th)</td></tr>
+      <tr><td>9</td><td>buyer</td><td>Object</td><td>—</td><td class="m">M</td><td>ข้อมูลติดต่อผู้ซื้อและ prefill การจัดส่ง</td><td>ดูตาราง 1.2 <code>buyerPrefill</code> เทียบเท่ากัน</td></tr>
+    </tbody>
+  </table>
+
+  <h2>ตาราง 1.2 — ออบเจ็กต์ buyer</h2>
+  <table>
+    <thead>
+      <tr><th>ลำดับ</th><th>รายการ</th><th>ประเภท</th><th>ความยาว</th><th>บังคับ</th><th>คำอธิบาย</th><th>หมายเหตุ</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>1</td><td>email</td><td>String</td><td>254</td><td class="m">M</td><td>อีเมลผู้ซื้อ</td><td>ICOPAY กำหนดให้ต้องมี</td></tr>
+      <tr><td>2</td><td>phone</td><td>String</td><td>32</td><td class="m">M</td><td>เบอร์โทรท้องถิ่น</td><td>ตัดรหัสประเทศ + ใช้เฉพาะเลขท้องถิ่น</td></tr>
+      <tr><td>3</td><td>countryIso2</td><td>String</td><td>2</td><td class="m">M</td><td>ประเทศ ISO 3166-1 alpha-2</td><td>เช่น KR, US, TH — ตัวพิมพ์ใหญ่</td></tr>
+      <tr><td>4</td><td>address</td><td>String</td><td>200</td><td>O</td><td>ที่อยู่จัดส่งบรรทัด 1</td><td>prefill ทางเลือก</td></tr>
+      <tr><td>5</td><td>address2</td><td>String</td><td>200</td><td>O</td><td>ที่อยู่จัดส่งบรรทัด 2</td><td></td></tr>
+      <tr><td>6</td><td>city</td><td>String</td><td>100</td><td>O</td><td>เมือง</td><td></td></tr>
+      <tr><td>7</td><td>state</td><td>String</td><td>100</td><td>O</td><td>รัฐ/จังหวัด</td><td></td></tr>
+      <tr><td>8</td><td>postcode</td><td>String</td><td>20</td><td>O</td><td>รหัสไปรษณีย์</td><td>ชื่อทางเลือก: zip</td></tr>
+      <tr><td>9</td><td>shippingAddress</td><td>String</td><td>200</td><td>O</td><td>ที่อยู่จัดส่งแยก</td><td>เมื่อต่างจาก address</td></tr>
+      <tr><td>10</td><td>shippingPhone</td><td>String</td><td>32</td><td>O</td><td>เบอร์จัดส่งแยก</td><td></td></tr>
+    </tbody>
+  </table>
+
+  <h2>ตัวอย่างคำขอ</h2>
+  <pre>{
+  "compId": "M000123",
+  "orderNo": "ORD-20260501001",
+  "amount": 10000,
+  "currency": "USD",
+  "productName": "Sample product",
+  "lang": "ENG",
+  "buyer": {
+    "email": "buyer@example.com",
+    "phone": "1012345678",
+    "countryIso2": "KR"
+  }
+}</pre>
+
+  <h2>รูปแบบการเชื่อมต่อ</h2>
+  <ul>
+    <li><strong>JSON</strong> — เรียก REST โดยตรงจากเซิร์ฟเวอร์ร้านค้า ดู kit <code>integrationModes.json</code></li>
+    <li><strong>PHP</strong> — <code>IcopayMerchantApi::prepareUnifiedCheckout()</code> + <code>checkout_unified.php</code></li>
+  </ul>
+  <p>Kit JSON key: <code>merchantCheckoutApiParameterSpec</code> ·
+    คู่มือ flow:
+    <a href="unified-checkout-api-flow.html">EN</a> ·
+    <a href="unified-checkout-api-flow.ko.html">KO</a> ·
+    <a href="unified-checkout-api-flow.ja.html">JA</a> ·
+    <a href="unified-checkout-api-flow.ch.html">CH</a> ·
+    <a href="unified-checkout-api-flow.th.html">TH</a> ·
+    ข้อความ: <a href="unified-checkout-api-parameters.th.txt">unified-checkout-api-parameters.th.txt</a></p>
+</body>
+</html>

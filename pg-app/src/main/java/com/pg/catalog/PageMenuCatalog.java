@@ -42,6 +42,7 @@ public final class PageMenuCatalog {
         add(list, "/hq/chatbotAiSettings", "M0126", "AI챗봇설정", "본사설정");
         add(list, "/system/noticeList", "M0201", "공지사항", "업체관리");
         add(list, "/comp/myCompMng", "M0202", "업체정보조회", "업체관리");
+        add(list, "/comp/merchantApiPortal", "M0215", "가맹점API", "업체관리");
         add(list, "/comp/compReg", "M0208", "업체등록", "업체관리");
         add(list, "/comp/compMngTree", "M0209", "업체관리", "업체관리");
         add(list, "/commission/commisionList", "M0210", "수수료관리", "업체관리");

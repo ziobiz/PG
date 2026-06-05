@@ -1,7 +1,7 @@
 <?php
 /**
- * ICOPAY 가맹점 인라인 결제 API 클라이언트 (PHP 7.4+).
- * prepare → embed 스크립트 → postMessage / 웹훅 으로 완료 처리.
+ * ICOPAY merchant inline checkout API client (PHP 7.4+).
+ * Flow: prepare → embed script → postMessage / webhook for completion.
  */
 final class IcopayMerchantApi
 {
@@ -29,7 +29,7 @@ final class IcopayMerchantApi
         );
     }
 
-    /** 가맹 페이지 언어 → KOR|ENG|JPN|CHN|THA (html lang·Accept-Language) */
+    /** Map page language to KOR|ENG|JPN|CHN|THA (html lang / Accept-Language). */
     public static function detectPageLang(): string
     {
         return self::normalizeLang($_SERVER['HTTP_ACCEPT_LANGUAGE'] ?? '');
@@ -107,7 +107,7 @@ final class IcopayMerchantApi
     }
 
     /**
-     * PG 무관 통합 prepare — buyer(email·phone·countryIso2) 필수.
+     * PG-agnostic unified prepare — buyer (email, phone, countryIso2) required.
      *
      * @param array{email:string,phone:string,countryIso2:string,...} $buyer
      * @return array{success:bool,data?:array,message?:string,errorCode?:string}

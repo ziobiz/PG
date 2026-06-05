@@ -1,5 +1,5 @@
 /**
- * ICOPAY 인라인 결제 iframe — postMessage 수신 (PHP/JSP 공통).
+ * ICOPAY inline checkout iframe — postMessage handler (shared by PHP/JSP samples).
  * 사용: <script src="{publicApiBaseUrl}/merchant-api-samples/common/icopay-checkout.js"></script>
  */
 (function (global) {

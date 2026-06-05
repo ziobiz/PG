@@ -189,6 +189,7 @@
     '/hq/accountMng': T('Merchant access', '加盟店アクセス', '商户访问控制', 'การเข้าถึงร้าน'),
     '/system/noticeList': T('Notices', 'お知らせ', '公告', 'ประกาศ'),
     '/comp/myCompMng': T('Merchant lookup', '加盟店情報照会', '商户信息查询', 'ค้นหาร้านค้า'),
+    '/comp/merchantApiPortal': T('Merchant API', '加盟店API', '商户 API', 'API ร้านค้า'),
     '/comp/compInfo': T('Merchant registry (HQ)', '加盟店台帳(本社)', '商户台账(总部)', 'ทะเบียนร้าน (HQ)'),
     '/comp/compMng': T('Merchant list (simple)', '加盟店一覧(簡易)', '商户列表(简)', 'รายการร้าน (แบบง่าย)'),
     '/comp/compMngTree': T('Merchant tree', '加盟店管理', '商户管理', 'จัดการร้านค้า'),

@@ -1581,6 +1581,7 @@
     '/hq/apiMerchantDeployReg': { label: 'API 가맹점 등록', parent: '배포설정' },
     '/hq/merchantApiGenerate': { label: '가맹점 API 생성', parent: '배포설정' },
     '/hq/merchantApiDeployDocs': { label: 'API배포문서', parent: '배포설정' },
+    '/comp/merchantApiPortal': { label: '가맹점API', parent: '업체관리' },
     '/hq/merchantApiDeployKit': { label: '가맹점 API 생성', parent: '배포설정' },
     '/hq/urlPayDeploy': { label: 'URL결제설정', parent: '본사설정' },
     '/hq/paymentOrchestration': { label: '결제로직설정', parent: '본사설정' },
@@ -1885,7 +1886,21 @@
     return permFb;
   }
 
-  /** 가맹점(MERCHANT) & 챗봇결제 미사용 시 챗봇 관리 메뉴 접근 차단 — 본사·총판·ADMIN 등은 무시 */
+  /** 가맹점(MERCHANT) & 본사 API 미배포 시 가맹점API 메뉴 접근 차단 — ADMIN은 예외 */
+  function merchantApiDeployedInSession() {
+    var s = getSessionUser();
+    return s && String(s.merchantApiDeployedYn || 'N').trim().toUpperCase() === 'Y';
+  }
+
+  /** 가맹점API — MERCHANT 조직 + 본사 API 배포 완료(브로커 시크릿) 시에만 메뉴 노출 */
+  function isMerchantApiPortalMenuForbidden(url) {
+    if (url !== '/comp/merchantApiPortal') return false;
+    var sess = getSessionUser();
+    if (!sess || String(sess.role || '').toUpperCase() === 'ADMIN') return false;
+    if (String(sess.orgLevel || '').toUpperCase() !== 'MERCHANT') return true;
+    return !merchantApiDeployedInSession();
+  }
+
   function isMerchantChatbotMenuForbidden(url) {
     var u = url || '';
     if (u !== '/chatbot/productMng' && u !== '/chatbot/chatbotKbMng' && u !== '/chatbot/orderMng') return false;
@@ -1907,6 +1922,7 @@
     if (url === '/hq/businessDaySetting' && !isHeadquartersSessionUser()) return false;
     if (getPagePermissionForUrl(url) === 'NONE') return false;
     if (isMerchantChatbotMenuForbidden(url)) return false;
+    if (isMerchantApiPortalMenuForbidden(url)) return false;
     return true;
   }
 
@@ -2235,7 +2251,7 @@
     document.querySelectorAll('.side-nav .child-li[data-url]').forEach(function (li) {
       var u = li.getAttribute('data-url') || '';
       if (!u) return;
-      if (getPagePermissionForUrl(u) === 'NONE' || isMerchantChatbotMenuForbidden(u)) {
+      if (getPagePermissionForUrl(u) === 'NONE' || isMerchantChatbotMenuForbidden(u) || isMerchantApiPortalMenuForbidden(u)) {
         li.style.display = 'none';
         li.classList.remove('mm-active');
       } else {
@@ -26206,6 +26222,10 @@
       pane._merchantApiDeployDocsBound = true;
       initMerchantApiDeployDocs(pane);
     }
+    if (url === '/comp/merchantApiPortal' && !pane._merchantApiPortalBound) {
+      pane._merchantApiPortalBound = true;
+      initMerchantApiPortal(pane);
+    }
     if (url === '/hq/apiMerchantDeployReg' && !pane._apiMerchRegBound) {
       pane._apiMerchRegBound = true;
       initApiMerchantDeployReg(pane);
@@ -26549,9 +26569,159 @@
     loadMerchants(1);
   }
 
+  function merchantApiScreenLocale() {
+    return window.PG_PAY_LIST_I18N && typeof window.PG_PAY_LIST_I18N.getLocale === 'function'
+      ? window.PG_PAY_LIST_I18N.getLocale() : 'KO';
+  }
+
+  function merchantApiNormalizeSamplePath(raw) {
+    var rel = String(raw || '').trim();
+    if (!rel) return '';
+    if (/^https?:\/\//i.test(rel)) {
+      try {
+        rel = new URL(rel).pathname;
+      } catch (eAbs) {
+        return '';
+      }
+    }
+    return rel.replace(/^\/+/, '');
+  }
+
+  function merchantApiFlowDocRel(jsonS, loc, kind) {
+    var j = jsonS || {};
+    var isText = kind === 'text';
+    if (loc === 'KO') {
+      return isText
+        ? (j.flowDocTextKo || 'merchant-api-samples/docs/unified-checkout-api-flow.ko.txt')
+        : (j.flowDocHtmlKo || 'merchant-api-samples/docs/unified-checkout-api-flow.ko.html');
+    }
+    if (loc === 'JP') {
+      return isText
+        ? (j.flowDocTextJa || 'merchant-api-samples/docs/unified-checkout-api-flow.ja.txt')
+        : (j.flowDocHtmlJa || 'merchant-api-samples/docs/unified-checkout-api-flow.ja.html');
+    }
+    if (loc === 'CH') {
+      return isText
+        ? (j.flowDocTextCh || 'merchant-api-samples/docs/unified-checkout-api-flow.ch.txt')
+        : (j.flowDocHtmlCh || 'merchant-api-samples/docs/unified-checkout-api-flow.ch.html');
+    }
+    if (loc === 'TH') {
+      return isText
+        ? (j.flowDocTextTh || 'merchant-api-samples/docs/unified-checkout-api-flow.th.txt')
+        : (j.flowDocHtmlTh || 'merchant-api-samples/docs/unified-checkout-api-flow.th.html');
+    }
+    return isText
+      ? (j.flowDocText || 'merchant-api-samples/docs/unified-checkout-api-flow.txt')
+      : (j.flowDocHtml || 'merchant-api-samples/docs/unified-checkout-api-flow.html');
+  }
+
+  function merchantApiFlowDocRelPath(jsonS, loc, kind) {
+    return merchantApiNormalizeSamplePath(merchantApiFlowDocRel(jsonS, loc, kind));
+  }
+
+  function merchantApiParamDocRel(spec, loc, kind) {
+    var s = spec || {};
+    var isText = kind === 'text';
+    if (loc === 'KO') {
+      return isText
+        ? (s.documentTextUrlKo || 'merchant-api-samples/docs/unified-checkout-api-parameters.ko.txt')
+        : (s.documentHtmlUrlKo || 'merchant-api-samples/docs/unified-checkout-api-parameters.ko.html');
+    }
+    if (loc === 'JP') {
+      return isText
+        ? (s.documentTextUrlJa || 'merchant-api-samples/docs/unified-checkout-api-parameters.ja.txt')
+        : (s.documentHtmlUrlJa || 'merchant-api-samples/docs/unified-checkout-api-parameters.ja.html');
+    }
+    if (loc === 'CH') {
+      return isText
+        ? (s.documentTextUrlCh || 'merchant-api-samples/docs/unified-checkout-api-parameters.ch.txt')
+        : (s.documentHtmlUrlCh || 'merchant-api-samples/docs/unified-checkout-api-parameters.ch.html');
+    }
+    if (loc === 'TH') {
+      return isText
+        ? (s.documentTextUrlTh || 'merchant-api-samples/docs/unified-checkout-api-parameters.th.txt')
+        : (s.documentHtmlUrlTh || 'merchant-api-samples/docs/unified-checkout-api-parameters.th.html');
+    }
+    return isText
+      ? (s.documentTextUrl || 'merchant-api-samples/docs/unified-checkout-api-parameters.txt')
+      : (s.documentHtmlUrl || 'merchant-api-samples/docs/unified-checkout-api-parameters.html');
+  }
+
+  function merchantApiParamDocRelPath(spec, loc, kind) {
+    return merchantApiNormalizeSamplePath(merchantApiParamDocRel(spec, loc, kind));
+  }
+
+  function merchantApiFlowDocJsonSources(portal) {
+    var p = portal || {};
+    var samples = p.merchantIntegrationSamples || {};
+    var unified = p.merchantUnifiedCheckout || {};
+    return Object.assign({}, samples.json || {}, {
+      flowDocHtml: unified.flowDocHtml || (samples.json && samples.json.flowDocHtml),
+      flowDocHtmlKo: unified.flowDocHtmlKo || (samples.json && samples.json.flowDocHtmlKo),
+      flowDocHtmlJa: unified.flowDocHtmlJa || (samples.json && samples.json.flowDocHtmlJa),
+      flowDocText: unified.flowDocText || (samples.json && samples.json.flowDocText),
+      flowDocTextKo: unified.flowDocTextKo || (samples.json && samples.json.flowDocTextKo),
+      flowDocTextJa: unified.flowDocTextJa || (samples.json && samples.json.flowDocTextJa),
+      flowDocHtmlCh: unified.flowDocHtmlCh || (samples.json && samples.json.flowDocHtmlCh),
+      flowDocHtmlTh: unified.flowDocHtmlTh || (samples.json && samples.json.flowDocHtmlTh),
+      flowDocTextCh: unified.flowDocTextCh || (samples.json && samples.json.flowDocTextCh),
+      flowDocTextTh: unified.flowDocTextTh || (samples.json && samples.json.flowDocTextTh)
+    });
+  }
+
+  function merchantApiOpenSampleDoc(path, mime) {
+    var rel = merchantApiNormalizeSamplePath(path);
+    if (!rel || !window.PG_API || typeof window.PG_API.openSampleDoc !== 'function') {
+      alert(pgAdminUiT('문서를 열 수 없습니다.'));
+      return Promise.resolve();
+    }
+    return window.PG_API.openSampleDoc(rel, mime).catch(function (err) {
+      alert(err && err.message ? err.message : pgAdminUiT('문서를 열 수 없습니다.'));
+    });
+  }
+
+  function merchantApiAddSampleDocRow(tbody, category, desc, path, label, mime) {
+    if (!tbody) return;
+    var rel = merchantApiNormalizeSamplePath(path);
+    var tr = document.createElement('tr');
+    var actHtml = rel
+      ? '<button type="button" class="btn btn-sm btn-outline-primary merchant-api-sample-doc-open"'
+        + ' data-sample-path="' + String(rel).replace(/"/g, '&quot;') + '"'
+        + ' data-sample-mime="' + String(mime || 'text/html;charset=UTF-8').replace(/"/g, '&quot;') + '">'
+        + String(label || pgAdminUiT('열기')).replace(/</g, '&lt;') + '</button>'
+      : '<span class="text-muted">' + pgAdminEscHtml(pgAdminUiT('—')) + '</span>';
+    tr.innerHTML = '<td class="text-nowrap">' + String(category || '').replace(/</g, '&lt;') + '</td>'
+      + '<td class="small">' + String(desc || '').replace(/</g, '&lt;') + '</td>'
+      + '<td class="text-nowrap">' + actHtml + '</td>';
+    var btn = tr.querySelector('.merchant-api-sample-doc-open');
+    if (btn) {
+      btn.addEventListener('click', function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        merchantApiOpenSampleDoc(btn.getAttribute('data-sample-path'), btn.getAttribute('data-sample-mime'));
+      });
+    }
+    tbody.appendChild(tr);
+  }
+
+  function bindMerchantApiFlowDocOpen(pane, portal, openBtnSel) {
+    if (!pane || !portal || !openBtnSel) return;
+    var openBtn = pane.querySelector(openBtnSel);
+    if (!openBtn) return;
+    var jsonS = merchantApiFlowDocJsonSources(portal);
+    var loc = merchantApiScreenLocale();
+    var htmlPath = merchantApiFlowDocRelPath(jsonS, loc, 'html');
+    openBtn.onclick = function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+      merchantApiOpenSampleDoc(htmlPath, 'text/html;charset=UTF-8');
+    };
+  }
+
   /** 배포설정 — API배포문서: 가맹 다운로드·연동 파라미터 표 */
   function initMerchantApiDeployDocs(pane) {
     if (!pane || !window.PG_API) return;
+    pane.classList.add('merchant-api-deploy-docs');
     var gridEl = pane.querySelector('#merchantApiDocsMerchantGrid tbody');
     var compInput = pane.querySelector('#merchantApiDocsCompId');
     var contentEl = pane.querySelector('#merchantApiDocsContent');
@@ -26725,36 +26895,39 @@
       var tbody = pane.querySelector('#merchantApiDocsDownloadGrid tbody');
       if (!tbody) return;
       tbody.innerHTML = '';
-      var base = portal.publicApiBaseUrl || '';
       var spec = portal.merchantCheckoutApiParameterSpec || {};
       var samples = portal.merchantIntegrationSamples || {};
       var modes = portal.integrationModes || {};
-      addDownloadRow(tbody, pgAdminUiT('파라미터 규격'), pgAdminUiT('통합 Checkout prepare API 필드 표(HTML)'),
-        spec.documentHtmlUrl || (base + '/merchant-api-samples/docs/unified-checkout-api-parameters.html'),
-        pgAdminUiT('HTML 열기'));
-      addDownloadRow(tbody, pgAdminUiT('파라미터 규격'), pgAdminUiT('통합 Checkout prepare API 필드 표(텍스트)'),
-        spec.documentTextUrl || (base + '/merchant-api-samples/docs/unified-checkout-api-parameters.txt'),
-        pgAdminUiT('TXT 열기'));
+      var flowJsonS = merchantApiFlowDocJsonSources(portal);
+      var flowLoc = merchantApiScreenLocale();
+      merchantApiAddSampleDocRow(tbody, pgAdminUiT('연동 흐름 설명서'), pgAdminUiT('통합 Checkout 엔드포인트 설명서 (HTML)'),
+        merchantApiFlowDocRelPath(flowJsonS, flowLoc, 'html'), pgAdminUiT('HTML 열기'), 'text/html;charset=UTF-8');
+      merchantApiAddSampleDocRow(tbody, pgAdminUiT('연동 흐름 설명서'), pgAdminUiT('통합 Checkout 엔드포인트 설명서 (텍스트)'),
+        merchantApiFlowDocRelPath(flowJsonS, flowLoc, 'text'), pgAdminUiT('TXT 열기'), 'text/plain;charset=UTF-8');
+      merchantApiAddSampleDocRow(tbody, pgAdminUiT('파라미터 규격'), pgAdminUiT('통합 Checkout prepare API 필드 표(HTML)'),
+        merchantApiParamDocRelPath(spec, flowLoc, 'html'), pgAdminUiT('HTML 열기'), 'text/html;charset=UTF-8');
+      merchantApiAddSampleDocRow(tbody, pgAdminUiT('파라미터 규격'), pgAdminUiT('통합 Checkout prepare API 필드 표(텍스트)'),
+        merchantApiParamDocRelPath(spec, flowLoc, 'text'), pgAdminUiT('TXT 열기'), 'text/plain;charset=UTF-8');
       var jsonS = samples.json || {};
-      addDownloadRow(tbody, 'JSON', pgAdminUiT('prepare 요청 샘플'),
-        base + '/' + (jsonS.prepareRequest || 'merchant-api-samples/json/unified-prepare-request.json'),
-        pgAdminUiT('JSON 열기'));
-      addDownloadRow(tbody, 'JSON', pgAdminUiT('prepare 응답 예시'),
-        base + '/' + (jsonS.prepareResponseExample || 'merchant-api-samples/json/unified-prepare-response.example.json'),
-        pgAdminUiT('JSON 열기'));
+      merchantApiAddSampleDocRow(tbody, 'JSON', pgAdminUiT('prepare 요청 샘플'),
+        jsonS.prepareRequest || 'merchant-api-samples/json/unified-prepare-request.json',
+        pgAdminUiT('JSON 열기'), 'application/json;charset=UTF-8');
+      merchantApiAddSampleDocRow(tbody, 'JSON', pgAdminUiT('prepare 응답 예시'),
+        jsonS.prepareResponseExample || 'merchant-api-samples/json/unified-prepare-response.example.json',
+        pgAdminUiT('JSON 열기'), 'application/json;charset=UTF-8');
       var phpS = samples.php || {};
-      addDownloadRow(tbody, 'PHP', pgAdminUiT('IcopayMerchantApi.php 클라이언트'),
-        base + '/' + (phpS.client || 'merchant-api-samples/php/IcopayMerchantApi.php'),
-        pgAdminUiT('PHP 열기'));
-      addDownloadRow(tbody, 'PHP', pgAdminUiT('checkout_unified.php 샘플'),
-        base + '/' + (phpS.checkoutUnified || 'merchant-api-samples/php/checkout_unified.php'),
-        pgAdminUiT('PHP 열기'));
-      addDownloadRow(tbody, 'PHP', pgAdminUiT('icopay_config.example.php'),
-        base + '/' + (phpS.configExample || 'merchant-api-samples/php/icopay_config.example.php'),
-        pgAdminUiT('PHP 열기'));
-      addDownloadRow(tbody, pgAdminUiT('샘플 패키지'), pgAdminUiT('merchant-api-samples 전체 목록'),
-        samples.indexUrl || (base + '/merchant-api-samples/index.html'),
-        pgAdminUiT('목록 열기'));
+      merchantApiAddSampleDocRow(tbody, 'PHP', pgAdminUiT('IcopayMerchantApi.php 클라이언트'),
+        phpS.client || 'merchant-api-samples/php/IcopayMerchantApi.php',
+        pgAdminUiT('PHP 열기'), 'application/x-php;charset=UTF-8');
+      merchantApiAddSampleDocRow(tbody, 'PHP', pgAdminUiT('checkout_unified.php 샘플'),
+        phpS.checkoutUnified || 'merchant-api-samples/php/checkout_unified.php',
+        pgAdminUiT('PHP 열기'), 'application/x-php;charset=UTF-8');
+      merchantApiAddSampleDocRow(tbody, 'PHP', pgAdminUiT('icopay_config.example.php'),
+        phpS.configExample || 'merchant-api-samples/php/icopay_config.example.php',
+        pgAdminUiT('PHP 열기'), 'application/x-php;charset=UTF-8');
+      merchantApiAddSampleDocRow(tbody, pgAdminUiT('샘플 패키지'), pgAdminUiT('merchant-api-samples 전체 목록'),
+        samples.indexUrl || 'merchant-api-samples/index.html',
+        pgAdminUiT('목록 열기'), 'text/html;charset=UTF-8');
       if (modes.json) {
         addDownloadRow(tbody, pgAdminUiT('JSON 연동 패키지'), pgAdminUiT('가맹 compId·엔드포인트·curl 예시(JSON)'),
           null, pgAdminUiT('JSON 다운로드'), true, function () {
@@ -26822,6 +26995,7 @@
       renderDownloads(portal);
       renderSpecTables(portal);
       renderEndpoints(portal);
+      bindMerchantApiFlowDocOpen(pane, portal, '#merchantApiDocsFlowDocOpen');
       renderChecklist(portal);
       if (contentEl) contentEl.classList.remove('d-none');
       if (emptyEl) emptyEl.classList.add('d-none');
@@ -26856,8 +27030,267 @@
       }).catch(function () {});
     }
     pane._merchantApiDocsRefresh = function () {
+      if (window.PG_UI_I18N && typeof window.PG_UI_I18N.applyDom === 'function') {
+        try { window.PG_UI_I18N.applyDom(pane); } catch (eDocsRfDom) {}
+      }
       if (pane._merchantApiDocsPortal) showPortal(pane._merchantApiDocsPortal);
     };
+  }
+
+  /** 업체관리 — 가맹점API: 본사 배포 결과(키·연동 정보) 조회 전용 */
+  function initMerchantApiPortal(pane) {
+    if (!pane || !window.PG_API || typeof window.PG_API.merchantApiPortalSelf !== 'function') return;
+    pane.classList.add('pg-merchant-api-portal-viewer');
+    var loadingEl = pane.querySelector('#merchantApiPortalLoading');
+    var notDeployedEl = pane.querySelector('#merchantApiPortalNotDeployed');
+    var mainEl = pane.querySelector('#merchantApiPortalMain');
+    var keysBody = pane.querySelector('#merchantApiPortalKeysBody');
+    function esc(s) {
+      return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+    }
+    function portalLoc() {
+      return window.PG_PAY_LIST_I18N && typeof window.PG_PAY_LIST_I18N.getLocale === 'function'
+        ? window.PG_PAY_LIST_I18N.getLocale() : 'KO';
+    }
+    function pickL10n(row, prefix) {
+      if (!row) return '';
+      if (typeof row === 'string') return row;
+      var loc = portalLoc();
+      var suffix = { KO: 'Kr', EN: 'En', JP: 'Jp', CH: 'Ch', TH: 'Th' }[loc] || 'Kr';
+      var p = prefix || 'text';
+      return row[p + suffix] || row[p + 'En'] || row[p + 'Kr'] || '';
+    }
+    function copyText(text, okMsg) {
+      var t = text != null ? String(text) : '';
+      if (!t) { alert(pgAdminUiT('복사할 값이 없습니다.')); return; }
+      var done = function () { alert(okMsg || pgAdminUiT('복사되었습니다.')); };
+      var fail = function () { alert(pgAdminUiT('복사에 실패했습니다. 값을 직접 선택해 복사하세요.')); };
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(t).then(done).catch(fail);
+      } else {
+        try {
+          var ta = document.createElement('textarea');
+          ta.value = t;
+          ta.setAttribute('readonly', 'readonly');
+          ta.style.position = 'fixed';
+          ta.style.left = '-9999px';
+          document.body.appendChild(ta);
+          ta.select();
+          document.execCommand('copy');
+          ta.remove();
+          done();
+        } catch (eCp) { fail(); }
+      }
+    }
+    function addKeyRow(label, displayText, secretValue, rowId) {
+      if (!keysBody) return;
+      var tr = document.createElement('tr');
+      var displayElId = 'mapSecretDisp_' + rowId;
+      tr.innerHTML =
+        '<td class="text-nowrap small">' + esc(label) + '</td>' +
+        '<td class="small"><code class="user-select-all" id="' + esc(displayElId) + '">' + esc(displayText) + '</code></td>' +
+        '<td class="text-nowrap">' +
+        '<button type="button" class="btn btn-sm btn-outline-secondary me-1 merchant-api-portal-secret-view" data-row="' + esc(rowId) + '">' + esc(pgAdminUiT('보기')) + '</button>' +
+        '<button type="button" class="btn btn-sm btn-outline-primary merchant-api-portal-secret-copy" data-row="' + esc(rowId) + '">' + esc(pgAdminUiT('복사')) + '</button>' +
+        '</td>';
+      keysBody.appendChild(tr);
+      if (!pane._merchantApiPortalSecrets) pane._merchantApiPortalSecrets = {};
+      pane._merchantApiPortalSecrets[rowId] = {
+        masked: displayText,
+        plain: secretValue,
+        revealed: false,
+        displayElId: displayElId
+      };
+    }
+    function addPlainCopyRow(label, value, rowId) {
+      if (!keysBody) return;
+      var tr = document.createElement('tr');
+      tr.innerHTML =
+        '<td class="text-nowrap small">' + esc(label) + '</td>' +
+        '<td class="small"><code class="user-select-all">' + esc(value) + '</code></td>' +
+        '<td class="text-nowrap">' +
+        '<button type="button" class="btn btn-sm btn-outline-primary merchant-api-portal-plain-copy" data-row="' + esc(rowId) + '">' + esc(pgAdminUiT('복사')) + '</button>' +
+        '</td>';
+      keysBody.appendChild(tr);
+      if (!pane._merchantApiPortalSecrets) pane._merchantApiPortalSecrets = {};
+      pane._merchantApiPortalSecrets[rowId] = { plain: value, masked: value, revealed: true, displayElId: null };
+    }
+    function bindSecretActions() {
+      pane.querySelectorAll('.merchant-api-portal-secret-view').forEach(function (btn) {
+        if (btn._mapBound) return;
+        btn._mapBound = true;
+        btn.addEventListener('click', function () {
+          var rowId = btn.getAttribute('data-row') || '';
+          var rec = pane._merchantApiPortalSecrets && pane._merchantApiPortalSecrets[rowId];
+          if (!rec) return;
+          rec.revealed = !rec.revealed;
+          if (rec.displayElId) {
+            var el = document.getElementById(rec.displayElId);
+            if (el) el.textContent = rec.revealed ? rec.plain : rec.masked;
+          }
+          btn.textContent = rec.revealed ? pgAdminUiT('숨기기') : pgAdminUiT('보기');
+        });
+      });
+      pane.querySelectorAll('.merchant-api-portal-secret-copy').forEach(function (btn) {
+        if (btn._mapBound) return;
+        btn._mapBound = true;
+        btn.addEventListener('click', function () {
+          var rowId = btn.getAttribute('data-row') || '';
+          var rec = pane._merchantApiPortalSecrets && pane._merchantApiPortalSecrets[rowId];
+          if (!rec) return;
+          copyText(rec.plain);
+        });
+      });
+      pane.querySelectorAll('.merchant-api-portal-plain-copy').forEach(function (btn) {
+        if (btn._mapBound) return;
+        btn._mapBound = true;
+        btn.addEventListener('click', function () {
+          var rowId = btn.getAttribute('data-row') || '';
+          var rec = pane._merchantApiPortalSecrets && pane._merchantApiPortalSecrets[rowId];
+          if (!rec) return;
+          copyText(rec.plain);
+        });
+      });
+    }
+    function renderBindings(portal) {
+      var ul = pane.querySelector('#merchantApiPortalBindings');
+      if (!ul) return;
+      var binds = portal && portal.merchantPgBindings ? portal.merchantPgBindings : [];
+      if (!binds.length) {
+        ul.innerHTML = '<li class="text-muted">' + pgAdminEscHtml(pgAdminUiT('가맹 PG 바인딩이 없습니다. 업체정보에서 결제대행사를 저장하세요.')) + '</li>';
+        return;
+      }
+      ul.innerHTML = binds.map(function (b) {
+        return '<li><code>' + esc(b.pgCd || '') + '</code> · ' + esc(pgAdminUiT('MID')) + ' <strong>' + esc(String(b.mid || '')) + '</strong></li>';
+      }).join('');
+    }
+    function renderEndpoints(portal) {
+      var ul = pane.querySelector('#merchantApiPortalEndpoints');
+      if (!ul) return;
+      var u = portal && portal.merchantUnifiedCheckout ? portal.merchantUnifiedCheckout : {};
+      var items = [];
+      if (u.prepareUrl) items.push({ k: pgAdminUiT('Prepare'), v: u.prepareUrl });
+      if (u.sessionUrl) items.push({ k: pgAdminUiT('Session'), v: u.sessionUrl });
+      if (u.statusUrl) items.push({ k: pgAdminUiT('Status'), v: u.statusUrl });
+      if (u.embedScriptUrl) items.push({ k: pgAdminUiT('Embed 스크립트'), v: u.embedScriptUrl });
+      if (!items.length) {
+        ul.innerHTML = '<li class="text-muted">' + pgAdminEscHtml(pgAdminUiT('—')) + '</li>';
+        return;
+      }
+      ul.innerHTML = items.map(function (it) {
+        return '<li class="mb-1"><strong>' + esc(it.k) + ':</strong> <code class="small">' + esc(it.v) + '</code></li>';
+      }).join('');
+    }
+    function addDownloadRow(tbody, category, desc, href, label) {
+      if (!tbody) return;
+      var tr = document.createElement('tr');
+      var actHtml = href
+        ? '<a class="btn btn-sm btn-outline-primary merchant-api-portal-dl-link" href="' + esc(href) + '" target="_blank" rel="noopener">' + esc(label || pgAdminUiT('열기')) + '</a>'
+        : '<span class="text-muted">' + pgAdminEscHtml(pgAdminUiT('—')) + '</span>';
+      tr.innerHTML = '<td class="text-nowrap">' + esc(category) + '</td><td class="small">' + esc(desc) + '</td><td class="text-nowrap">' + actHtml + '</td>';
+      tbody.appendChild(tr);
+    }
+    function renderDownloads(portal) {
+      var tbody = pane.querySelector('#merchantApiPortalDownloadGrid tbody');
+      if (!tbody) return;
+      tbody.innerHTML = '';
+      var spec = portal.merchantCheckoutApiParameterSpec || {};
+      var samples = portal.merchantIntegrationSamples || {};
+      var flowJsonS = merchantApiFlowDocJsonSources(portal);
+      var flowLoc = merchantApiScreenLocale();
+      merchantApiAddSampleDocRow(tbody, pgAdminUiT('연동 흐름 설명서'), pgAdminUiT('통합 Checkout 엔드포인트 설명서 (HTML)'),
+        merchantApiFlowDocRelPath(flowJsonS, flowLoc, 'html'), pgAdminUiT('HTML 열기'), 'text/html;charset=UTF-8');
+      merchantApiAddSampleDocRow(tbody, pgAdminUiT('연동 흐름 설명서'), pgAdminUiT('통합 Checkout 엔드포인트 설명서 (텍스트)'),
+        merchantApiFlowDocRelPath(flowJsonS, flowLoc, 'text'), pgAdminUiT('TXT 열기'), 'text/plain;charset=UTF-8');
+      merchantApiAddSampleDocRow(tbody, pgAdminUiT('파라미터 규격'), pgAdminUiT('통합 Checkout prepare API 필드 표(HTML)'),
+        merchantApiParamDocRelPath(spec, flowLoc, 'html'), pgAdminUiT('HTML 열기'), 'text/html;charset=UTF-8');
+      merchantApiAddSampleDocRow(tbody, pgAdminUiT('파라미터 규격'), pgAdminUiT('통합 Checkout prepare API 필드 표(텍스트)'),
+        merchantApiParamDocRelPath(spec, flowLoc, 'text'), pgAdminUiT('TXT 열기'), 'text/plain;charset=UTF-8');
+      var jsonS = samples.json || {};
+      merchantApiAddSampleDocRow(tbody, 'JSON', pgAdminUiT('prepare 요청 샘플'),
+        jsonS.prepareRequest || 'merchant-api-samples/json/unified-prepare-request.json',
+        pgAdminUiT('JSON 열기'), 'application/json;charset=UTF-8');
+      merchantApiAddSampleDocRow(tbody, 'PHP', pgAdminUiT('IcopayMerchantApi.php 클라이언트'),
+        (samples.php && samples.php.client) || 'merchant-api-samples/php/IcopayMerchantApi.php',
+        pgAdminUiT('PHP 열기'), 'application/x-php;charset=UTF-8');
+      merchantApiAddSampleDocRow(tbody, pgAdminUiT('샘플 패키지'), pgAdminUiT('merchant-api-samples 전체 목록'),
+        samples.indexUrl || 'merchant-api-samples/index.html',
+        pgAdminUiT('목록 열기'), 'text/html;charset=UTF-8');
+    }
+    function vendorScopeUi(scope) {
+      var s = String(scope || 'ALL').trim().toUpperCase();
+      if (s === 'ALL') return pgAdminUiT('전체(ALL)');
+      if (s === 'CHILLPAY') return 'ChillPay';
+      if (s === 'JPAY') return 'JPAY';
+      return String(scope || '');
+    }
+    function showDeployed(data) {
+      var portal = data.portal || {};
+      pane._merchantApiPortalSecrets = {};
+      if (keysBody) keysBody.innerHTML = '';
+      addPlainCopyRow(pgAdminUiT('업체코드'), data.compId || portal.compId || '', 'compId');
+      addPlainCopyRow(pgAdminUiT('공개 API 베이스 URL'), portal.publicApiBaseUrl || '', 'apiBase');
+      var hdr = data.brokerHeaderName || 'X-Icopay-Merchant-Broker-Secret';
+      addPlainCopyRow(pgAdminUiT('HTTP 헤더명'), hdr, 'hdrName');
+      var creds = data.credentials || [];
+      creds.forEach(function (c, idx) {
+        var scope = c.vendorScope != null ? String(c.vendorScope) : 'ALL';
+        var label = pgAdminUiT('브로커 시크릿') + ' (' + vendorScopeUi(scope) + ')';
+        if (c.enforceYn === 'Y') label += ' · ' + pgAdminUiT('강제(헤더 필수)');
+        addKeyRow(label, c.brokerSecretMasked || '••••••••', c.brokerSecret || '', 'broker_' + idx);
+      });
+      bindSecretActions();
+      renderBindings(portal);
+      renderEndpoints(portal);
+      bindMerchantApiFlowDocOpen(pane, portal, '#merchantApiPortalFlowDocOpen');
+      renderDownloads(portal);
+      if (loadingEl) loadingEl.classList.add('d-none');
+      if (notDeployedEl) notDeployedEl.classList.add('d-none');
+      if (mainEl) mainEl.classList.remove('d-none');
+      if (window.PG_UI_I18N && typeof window.PG_UI_I18N.applyDom === 'function') {
+        try { window.PG_UI_I18N.applyDom(pane); } catch (eMapDom) {}
+      }
+    }
+    function showNotDeployed() {
+      if (loadingEl) loadingEl.classList.add('d-none');
+      if (mainEl) mainEl.classList.add('d-none');
+      if (notDeployedEl) {
+        notDeployedEl.textContent = pgAdminUiT('API 연동 배포가 완료되지 않았습니다. 본사에 API 배포를 요청하세요.');
+        notDeployedEl.classList.remove('d-none');
+      }
+      if (window.PG_UI_I18N && typeof window.PG_UI_I18N.applyDom === 'function') {
+        try { window.PG_UI_I18N.applyDom(pane); } catch (eMapNd) {}
+      }
+    }
+    pane._merchantApiPortalRefresh = function () {
+      if (window.PG_UI_I18N && typeof window.PG_UI_I18N.applyDom === 'function') {
+        try { window.PG_UI_I18N.applyDom(pane); } catch (eMapRf) {}
+      }
+      var cached = pane._merchantApiPortalData;
+      if (!cached) {
+        loadPortal();
+        return;
+      }
+      if (cached.deployed === true) showDeployed(cached);
+      else showNotDeployed();
+    };
+    function loadPortal() {
+      if (loadingEl) loadingEl.classList.remove('d-none');
+      if (mainEl) mainEl.classList.add('d-none');
+      if (notDeployedEl) notDeployedEl.classList.add('d-none');
+      window.PG_API.merchantApiPortalSelf().then(function (data) {
+        pane._merchantApiPortalData = data || {};
+        if (!data || data.deployed !== true) {
+          showNotDeployed();
+          return;
+        }
+        showDeployed(data);
+      }).catch(function (e) {
+        if (loadingEl) loadingEl.classList.add('d-none');
+        alert(e && e.message ? e.message : pgAdminUiT('조회 실패'));
+      });
+    }
+    loadPortal();
   }
 
   /** 결제관리 목록(통합·분류·URL·챗봇·칠페이 통합내역·통합정산 등) */
@@ -27083,6 +27516,10 @@
         try { pane._merchantApiDocsRefresh(); } catch (eDocsRf) {}
         continue;
       }
+      if (url === '/comp/merchantApiPortal' && typeof pane._merchantApiPortalRefresh === 'function') {
+        try { pane._merchantApiPortalRefresh(); } catch (eMapPortalRf) {}
+        continue;
+      }
       if (!window.PG_SCREENS || typeof window.PG_SCREENS.getScreenHtml !== 'function') continue;
       var tid = pane.id;
       try {
@@ -27253,6 +27690,9 @@
         }
         if (url === '/hq/apiMerchantDeployReg') {
           pane._apiMerchRegBound = false;
+        }
+        if (url === '/comp/merchantApiPortal') {
+          pane._merchantApiPortalBound = false;
         }
         if (url === '/ops/inactiveCard') {
           pane._inactiveCardBound = false;
@@ -27629,6 +28069,7 @@
         if (d.otpRegisteredYn !== undefined) prev.otpRegisteredYn = d.otpRegisteredYn;
         if (d.chatbotPaymentUseYn !== undefined) prev.chatbotPaymentUseYn = String(d.chatbotPaymentUseYn);
         if (d.webPaymentUseYn !== undefined) prev.webPaymentUseYn = String(d.webPaymentUseYn);
+        if (d.merchantApiDeployedYn !== undefined) prev.merchantApiDeployedYn = String(d.merchantApiDeployedYn);
         if (d.tabletMenuUrls !== undefined) prev.tabletMenuUrls = Array.isArray(d.tabletMenuUrls) ? d.tabletMenuUrls : [];
         if (d.tabletFeatureUseYn !== undefined) prev.tabletFeatureUseYn = String(d.tabletFeatureUseYn);
         sessionStorage.setItem('pg_admin_user', JSON.stringify(prev));
@@ -27685,6 +28126,34 @@
         if (btn.getAttribute('data-notice-write-btn')) return;
         if (btn.getAttribute('data-notice-toolbar-btn')) return;
         if ((btn.id || '') === 'noticeWriteBtn' || (btn.id || '') === 'noticeLoginHomeBtn' || (btn.id || '') === 'noticeLoginPopupBtn') return;
+        if (pane.classList && pane.classList.contains('pg-merchant-api-portal-viewer')) {
+          var portalObsBtn = btn.classList.contains('merchant-api-portal-secret-view')
+            || btn.classList.contains('merchant-api-portal-secret-copy')
+            || btn.classList.contains('merchant-api-portal-plain-copy')
+            || btn.classList.contains('merchant-api-sample-doc-open')
+            || (btn.id || '') === 'merchantApiPortalFlowDocOpen'
+            || btn.classList.contains('merchant-api-flow-doc-menu');
+          if (portalObsBtn) {
+            btn.disabled = false;
+            btn.removeAttribute('aria-disabled');
+            btn.classList.remove('disabled');
+            btn.style.pointerEvents = '';
+            return;
+          }
+        }
+        if (pane.classList && pane.classList.contains('merchant-api-deploy-docs')) {
+          var docsObsBtn = btn.classList.contains('merchant-api-sample-doc-open')
+            || (btn.id || '') === 'merchantApiDocsFlowDocOpen'
+            || btn.classList.contains('merchant-api-flow-doc-menu')
+            || btn.classList.contains('merchant-api-docs-dl-blob');
+          if (docsObsBtn) {
+            btn.disabled = false;
+            btn.removeAttribute('aria-disabled');
+            btn.classList.remove('disabled');
+            btn.style.pointerEvents = '';
+            return;
+          }
+        }
         if (pane.classList && pane.classList.contains('pg-merchant-own-comp-viewer')
           && ((btn.id || '') === 'paymentUrlCopyBtn' || (btn.id || '') === 'paymentRepayUrlCopyBtn' || (btn.id || '') === 'chatbotPaymentUrlCopyBtn' || (btn.id || '') === 'chatbotEmbedScriptCopyBtn' || (btn.id || '') === 'chatbotQrDownloadBtn')) {
           btn.disabled = false;
@@ -27733,6 +28202,14 @@
           if (t.closest('[data-pg-list-search-btn], #searchBtn, .screen-search-btn, #excelBtn, #excelDownBtn, #listExcelDownBtn, #excelAllDownBtn, #payListRefreshBtn, #printBtn, .quick-date, .pagination-size-opt, .pagination-num, .daily-detail-sort-dir-btn, [data-notice-write-btn], #compDevTreeRemoveBtn, #compAdminResetOrgBtn, .screen-list-sort-dir-menu, .settlement-execute-recent-mode-btn')) return;
           if (pane.classList && pane.classList.contains('pg-merchant-own-comp-viewer')
             && (t.closest('#paymentUrlCopyBtn') || t.closest('#paymentRepayUrlCopyBtn') || t.closest('#chatbotPaymentUrlCopyBtn') || t.closest('#chatbotEmbedScriptCopyBtn') || t.closest('#chatbotQrOpenPng') || t.closest('#chatbotQrDownloadBtn'))) return;
+          if (pane.classList && pane.classList.contains('pg-merchant-api-portal-viewer')
+            && (t.closest('.merchant-api-portal-secret-view') || t.closest('.merchant-api-portal-secret-copy')
+              || t.closest('.merchant-api-portal-plain-copy') || t.closest('.merchant-api-portal-dl-link')
+              || t.closest('.merchant-api-sample-doc-open') || t.closest('.merchant-api-flow-doc-menu')
+              || t.closest('#merchantApiPortalFlowDocOpen'))) return;
+          if (pane.classList && pane.classList.contains('merchant-api-deploy-docs')
+            && (t.closest('.merchant-api-sample-doc-open') || t.closest('.merchant-api-flow-doc-menu')
+              || t.closest('#merchantApiDocsFlowDocOpen'))) return;
           if (t.closest('button, a, [role="button"], .btn, .tab-close-button')) {
             e.preventDefault();
             e.stopPropagation();
@@ -28578,6 +29055,13 @@
       try { window.PG_HOME_DASHBOARD.onMainShown(); } catch (eP) {}
     });
   }
+
+  window.addEventListener('message', function (e) {
+    var d = e && e.data;
+    if (!d || d.type !== 'pg-open-sample-doc' || !d.path) return;
+    if (!window.PG_API || typeof window.PG_API.openSampleDoc !== 'function') return;
+    window.PG_API.openSampleDoc(d.path, d.mime || 'text/html;charset=UTF-8');
+  });
 
   document.addEventListener('DOMContentLoaded', function () {
     requestAnimationFrame(function () {

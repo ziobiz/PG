@@ -1253,6 +1253,27 @@
     });
   }
 
+  /** /comp/merchantApiPortal — 가맹점API 조회 화면(동적 키·다운로드·체크리스트) */
+  function applyMerchantApiPortalScreenLocale(loc) {
+    if (w.PG_APP_REFRESH_LOCALE_PANES && typeof w.PG_APP_REFRESH_LOCALE_PANES === 'function') {
+      /* setLocale 말미에서 전체 pane 갱신 시 처리됨 — 여기서는 열린 탭만 선반영 */
+    }
+    try {
+      var tm = document.getElementById('tabMain');
+      if (!tm) return;
+      var panes = tm.querySelectorAll('.tab-pane.tabConDiv[formurl="/comp/merchantApiPortal"]');
+      for (var i = 0; i < panes.length; i++) {
+        var pane = panes[i];
+        if (w.PG_UI_I18N && typeof w.PG_UI_I18N.applyDom === 'function') {
+          try { w.PG_UI_I18N.applyDom(pane); } catch (eMapPane) {}
+        }
+        if (pane._merchantApiPortalRefresh && typeof pane._merchantApiPortalRefresh === 'function') {
+          try { pane._merchantApiPortalRefresh(); } catch (eMapRf) {}
+        }
+      }
+    } catch (eMapAll) {}
+  }
+
   function applyAgencyTxnListScreenLocale(loc) {
     var screens = w.PG_SCREENS && w.PG_SCREENS.getMenuScreens ? w.PG_SCREENS.getMenuScreens() : null;
     if (!screens) return;
@@ -2174,6 +2195,7 @@
     }
     applyFeeListScreenLocale(loc);
     applyAgencyTxnListScreenLocale(loc);
+    applyMerchantApiPortalScreenLocale(loc);
     applyChillListCatalogLocale(loc);
     applyMenuScreensSearchAndNoticesLocale(loc);
     applyScreenChromeLocale(loc);

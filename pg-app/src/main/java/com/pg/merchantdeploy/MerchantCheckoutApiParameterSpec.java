@@ -54,7 +54,15 @@ public final class MerchantCheckoutApiParameterSpec {
                 "จำเป็นเมื่อบังคับ broker secret ดูค่าใน credentialScopes ของชุด HQ"
         ));
         spec.put("documentHtmlUrl", base + "/merchant-api-samples/docs/unified-checkout-api-parameters.html");
+        spec.put("documentHtmlUrlKo", base + "/merchant-api-samples/docs/unified-checkout-api-parameters.ko.html");
+        spec.put("documentHtmlUrlJa", base + "/merchant-api-samples/docs/unified-checkout-api-parameters.ja.html");
+        spec.put("documentHtmlUrlCh", base + "/merchant-api-samples/docs/unified-checkout-api-parameters.ch.html");
+        spec.put("documentHtmlUrlTh", base + "/merchant-api-samples/docs/unified-checkout-api-parameters.th.html");
         spec.put("documentTextUrl", base + "/merchant-api-samples/docs/unified-checkout-api-parameters.txt");
+        spec.put("documentTextUrlKo", base + "/merchant-api-samples/docs/unified-checkout-api-parameters.ko.txt");
+        spec.put("documentTextUrlJa", base + "/merchant-api-samples/docs/unified-checkout-api-parameters.ja.txt");
+        spec.put("documentTextUrlCh", base + "/merchant-api-samples/docs/unified-checkout-api-parameters.ch.txt");
+        spec.put("documentTextUrlTh", base + "/merchant-api-samples/docs/unified-checkout-api-parameters.th.txt");
         spec.put("documentMarkdown", "docs/가맹점_통합Checkout_API_연동파라미터_규격.md");
         spec.put("sampleRequestJsonUrl", base + "/merchant-api-samples/json/unified-prepare-request.json");
         spec.put("sampleResponseJsonUrl", base + "/merchant-api-samples/json/unified-prepare-response.example.json");

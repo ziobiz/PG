@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ICOPAY Unified Checkout API — Integration Flow</title>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 960px; margin: 1.5rem auto; padding: 0 1rem; line-height: 1.55; color: #222; }
+    h1 { font-size: 1.35rem; margin-bottom: 0.25rem; }
+    h2 { font-size: 1.05rem; margin-top: 1.75rem; border-bottom: 1px solid #ccc; padding-bottom: 0.25rem; }
+    h3 { font-size: 0.98rem; margin-top: 1.25rem; }
+    p.meta { color: #555; font-size: 0.92rem; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.88rem; margin: 0.75rem 0 1rem; }
+    th, td { border: 1px solid #ccc; padding: 0.45rem 0.5rem; vertical-align: top; }
+    th { background: #f5f5f5; text-align: left; }
+    code { background: #f4f4f4; padding: 0.05em 0.3em; border-radius: 3px; }
+    pre { background: #f8f8f8; border: 1px solid #ddd; padding: 0.75rem; overflow: auto; font-size: 0.82rem; white-space: pre-wrap; }
+    .flow { background: #fafafa; border: 1px solid #ddd; padding: 0.75rem 1rem; font-size: 0.85rem; font-family: ui-monospace, monospace; }
+    ul { padding-left: 1.25rem; }
+    a { color: #0d6efd; }
+    .lang-nav { font-size: 0.92rem; margin-bottom: 1rem; padding: 0.5rem 0; border-bottom: 1px solid #eee; }
+    .lang-nav strong { margin-right: 0.35rem; }
+  </style>
+</head>
+<body>
+  <p class="lang-nav"><strong>Language:</strong>
+    <strong>English</strong> · <a href="unified-checkout-api-flow.ko.html">한국어</a> · <a href="unified-checkout-api-flow.ja.html">日本語</a> · <a href="unified-checkout-api-flow.ch.html">中文</a> · <a href="unified-checkout-api-flow.th.html">ไทย</a></p>
+  <h1>ICOPAY Unified Checkout API — Integration Flow &amp; Endpoints</h1>
+  <p class="meta">Spec ID: ICOPAY-CHECKOUT-FLOW-001 · v1.0 · PG-agnostic inline checkout (ChillPay/JPAY auto-routing)</p>
+  <p>Related: <a href="unified-checkout-api-parameters.html">Prepare API parameter tables</a> ·
+    <a href="../index.html">merchant-api-samples index</a></p>
+
+  <h2>1. What is “unified” checkout?</h2>
+  <p>Legacy integrations used separate prepare paths per PG (ChillPay, JPAY). The <strong>unified API</strong> exposes one prepare endpoint;
+    ICOPAY reads the merchant’s <strong>operational WEB PG</strong> setting and routes internally to ChillPay or JPAY.</p>
+  <table>
+    <tr><th>integrationMode</th><td><code>INLINE_UNIFIED</code></td></tr>
+    <tr><th>Prepare</th><td><code>POST {publicApiBaseUrl}/api/middleware/v1/merchant/checkout/prepare</code></td></tr>
+    <tr><th>Embed script</th><td><code>{publicApiBaseUrl}/v1/embed-checkout/{compId}</code></td></tr>
+  </table>
+  <p>Example <code>compId</code>: <code>6000000028</code> (assigned per merchant at HQ deployment).</p>
+
+  <h2>2. Endpoint summary</h2>
+  <table>
+    <thead>
+      <tr><th>Endpoint</th><th>Method</th><th>Caller</th><th>Broker secret</th><th>Purpose</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Prepare</strong><br><code>.../merchant/checkout/prepare</code></td>
+        <td>POST</td><td>Merchant <strong>server</strong></td><td>Yes</td>
+        <td>Create payment session; issue <code>sessionToken</code></td>
+      </tr>
+      <tr>
+        <td><strong>Session</strong><br><code>.../merchant/checkout/session?token=...</code></td>
+        <td>GET</td><td><strong>Browser</strong> (embed widget)</td><td>No</td>
+        <td>Validate token; return <code>pgVendor</code> for iframe routing</td>
+      </tr>
+      <tr>
+        <td><strong>Status</strong><br><code>.../merchant/checkout/status?compId=&amp;orderNo=</code></td>
+        <td>GET</td><td>Merchant <strong>server</strong></td><td>Yes</td>
+        <td>Query payment result for an order</td>
+      </tr>
+      <tr>
+        <td><strong>Embed script</strong><br><code>/v1/embed-checkout/{compId}</code></td>
+        <td>GET (JS)</td><td><strong>Browser</strong></td><td>No</td>
+        <td>Bootstrap checkout iframe widget</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2>3. Recommended flow</h2>
+  <div class="flow">[Merchant server]  Save order (PENDING)
+       │
+       ▼
+[Merchant server]  POST .../checkout/prepare  (buyer required, broker secret)
+       │
+       ▼
+[Merchant server]  Receive data.sessionToken
+       │
+       ▼
+[Browser]          Embed script + data-session-token on checkout page
+       │
+       ├─► GET /v1/embed-checkout/{compId}
+       ├─► GET .../checkout/session?token=...  (widget, automatic)
+       └─► iframe → /pay/{compId} or /jpay-pay/{compId}
+       │
+       ▼
+[Browser]          postMessage ICOPAY_INLINE_CHECKOUT
+       │
+       ▼
+[Merchant server]  Webhook and/or GET .../checkout/status → update order (idempotent)</div>
+
+  <ol>
+    <li>Merchant server: <code>POST .../merchant/checkout/prepare</code> (<code>buyer.email</code>, <code>phone</code>, <code>countryIso2</code> required)</li>
+    <li>Pass <code>data.sessionToken</code> to the browser → load <code>/v1/embed-checkout/{compId}</code> only</li>
+    <li>Confirm <code>PAID</code> via webhook (<code>merchantNotifyUrls</code>) and/or <code>GET .../checkout/status</code></li>
+  </ol>
+
+  <h2>4. Prepare — create payment session</h2>
+  <p><code>POST https://api.icopay.co.kr/api/middleware/v1/merchant/checkout/prepare</code></p>
+  <h3>Headers</h3>
+  <ul>
+    <li><code>Content-Type: application/json</code></li>
+    <li><code>Accept: application/json</code></li>
+    <li><code>X-Icopay-Merchant-Broker-Secret: {brokerSecret}</code> (when enforce is on)</li>
+  </ul>
+  <h3>Required body fields</h3>
+  <ul>
+    <li><code>compId</code> (or <code>merchantId</code>), <code>orderNo</code>, <code>amount</code></li>
+    <li><code>buyer.email</code>, <code>buyer.phone</code>, <code>buyer.countryIso2</code> (ISO 3166-1 alpha-2)</li>
+  </ul>
+  <h3>Key response fields</h3>
+  <ul>
+    <li><code>sessionToken</code> — pass to embed <code>data-session-token</code></li>
+    <li><code>pgVendor</code> — operational PG (e.g. JPAY, CHILLPAY)</li>
+    <li><code>embedScriptUrl</code> — <code>/v1/embed-checkout/{compId}</code></li>
+    <li><code>expiresAt</code> — session expiry</li>
+  </ul>
+  <p>Samples: <a href="../json/unified-prepare-request.json">unified-prepare-request.json</a>,
+    <a href="../json/unified-prepare-response.example.json">unified-prepare-response.example.json</a></p>
+
+  <h2>5. Session — validate token &amp; route PG</h2>
+  <p><code>GET https://api.icopay.co.kr/api/middleware/v1/merchant/checkout/session?token={sessionToken}</code></p>
+  <p>Called automatically by the embed widget (<code>icopay-embed-checkout-widget.js</code>). Merchants rarely call this from the server.
+    No broker secret — the token is a one-time credential.</p>
+  <table>
+    <tr><th>pgVendor</th><th>iframe path</th></tr>
+    <tr><td>JPAY family</td><td><code>/jpay-pay/{compId}?entry=merchant_api&amp;embed=1&amp;session=...</code></td></tr>
+    <tr><td>ChillPay family</td><td><code>/pay/{compId}?entry=merchant_api&amp;embed=1&amp;session=...</code></td></tr>
+  </table>
+
+  <h2>6. Status — query payment result</h2>
+  <p><code>GET https://api.icopay.co.kr/api/middleware/v1/merchant/checkout/status?compId=6000000028&amp;orderNo={orderNo}</code></p>
+  <p>Merchant <strong>server</strong> only. Use for server-side confirmation after postMessage or webhook.</p>
+  <p>Response includes <code>found</code>, <code>paymentStatus</code> (e.g. PAID, NOT_FOUND), <code>approvalNo</code>, <code>amount</code>, <code>paidAt</code>.</p>
+
+  <h2>7. Embed script — mount checkout iframe</h2>
+  <p><code>https://api.icopay.co.kr/v1/embed-checkout/6000000028</code></p>
+  <pre>&lt;div id="icopay-checkout"&gt;&lt;/div&gt;
+&lt;script src="https://api.icopay.co.kr/v1/embed-checkout/6000000028"
+        data-session-token="{sessionToken from prepare}"
+        data-target="icopay-checkout"
+        data-lang="ENG"
+        async defer charset="utf-8"&gt;&lt;/script&gt;
+&lt;script src="https://api.icopay.co.kr/merchant-api-samples/common/icopay-checkout.js"&gt;&lt;/script&gt;
+&lt;script&gt;
+  IcopayCheckout.onMessage(function (detail) {
+    if (detail.phase === 'finished' &amp;&amp; detail.success) {
+      location.href = '/order-complete?orderNo=' + encodeURIComponent(detail.orderNo || '');
+    }
+  }, 'https://api.icopay.co.kr');
+&lt;/script&gt;</pre>
+  <p>On completion the iframe posts <code>ICOPAY_INLINE_CHECKOUT</code> via <code>window.postMessage</code>.</p>
+
+  <h2>8. Security checklist</h2>
+  <ul>
+    <li>Keep <code>X-Icopay-Merchant-Broker-Secret</code> on the merchant server only — never in browser or mobile apps.</li>
+    <li>Pass <code>sessionToken</code> to the browser only; use before <code>expiresAt</code>.</li>
+    <li>Create orders as PENDING before prepare; finalize with idempotent webhook/status handling.</li>
+    <li>Register HTTPS webhook URLs via HQ (<code>merchantNotifyUrls</code>).</li>
+  </ul>
+
+  <h2>9. FAQ</h2>
+  <p><strong>Do I call Session from my server?</strong> No — the embed widget calls it in the browser.</p>
+  <p><strong>Can JPAY open for a “ChillPay” merchant?</strong> Unified routing follows the <strong>operational WEB PG</strong> configured at HQ, not the legacy per-PG API path.</p>
+  <p><strong>Is postMessage enough?</strong> Use it for UX; confirm payment on the server via webhook and/or status.</p>
+
+  <p class="meta">Plain text: <a href="unified-checkout-api-flow.txt">unified-checkout-api-flow.txt</a> ·
+    Parameters: <a href="unified-checkout-api-parameters.html">unified-checkout-api-parameters.html</a></p>
+</body>
+</html>

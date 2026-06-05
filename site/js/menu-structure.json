@@ -36,6 +36,7 @@
       "children": [
         { "label": "공지사항", "url": "/system/noticeList", "menuId": "M0201" },
         { "label": "업체정보조회", "url": "/comp/myCompMng", "menuId": "M0202" },
+        { "label": "가맹점API", "url": "/comp/merchantApiPortal", "menuId": "M0215" },
         { "label": "업체관리", "url": "/comp/compMngTree", "menuId": "M0209" },
         { "label": "수수료관리", "url": "/commission/commisionList", "menuId": "M0210" },
         { "label": "업체변경이력", "url": "/comp/compInfoHistList", "menuId": "M0214" }

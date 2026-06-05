@@ -1,0 +1,61 @@
+ICOPAY 통합 Checkout API — 연동 흐름 및 엔드포인트
+==============================================
+문서 ID: ICOPAY-CHECKOUT-FLOW-001 · v1.0
+
+HTML (한국어): {BASE}/merchant-api-samples/docs/unified-checkout-api-flow.ko.html
+English:       {BASE}/merchant-api-samples/docs/unified-checkout-api-flow.html
+日本語:        {BASE}/merchant-api-samples/docs/unified-checkout-api-flow.ja.html
+中文:          {BASE}/merchant-api-samples/docs/unified-checkout-api-flow.ch.html
+ไทย:           {BASE}/merchant-api-samples/docs/unified-checkout-api-flow.th.html
+파라미터:      {BASE}/merchant-api-samples/docs/unified-checkout-api-parameters.html
+
+1. 통합 CHECKOUT
+----------------
+prepare 1개; ICOPAY가 운영 WEB PG에 따라 ChillPay/JPAY 자동 분기.
+
+  integrationMode: INLINE_UNIFIED
+  Prepare:  POST {BASE}/api/middleware/v1/merchant/checkout/prepare
+  Embed:    {BASE}/v1/embed-checkout/{compId}
+
+compId 예: 6000000028
+
+2. 엔드포인트 요약
+------------------
+Prepare   POST  .../merchant/checkout/prepare          가맹 서버        브로커 시크릿 필요
+Session   GET   .../merchant/checkout/session?token=   브라우저(위젯)   불필요
+Status    GET   .../merchant/checkout/status?...       가맹 서버        브로커 시크릿 필요
+Embed JS  GET   /v1/embed-checkout/{compId}            브라우저         불필요
+
+3. 권장 흐름
+------------
+1) 가맹 서버: 주문(PENDING) 저장
+2) POST prepare (buyer.email, buyer.phone, buyer.countryIso2 필수)
+3) data.sessionToken → 브라우저에 embed 스크립트만 전달
+4) 위젯이 session 호출 → iframe (/pay/ 또는 /jpay-pay/)
+5) postMessage ICOPAY_INLINE_CHECKOUT
+6) 서버: 웹훅 및/또는 GET status → 주문 갱신(멱등)
+
+4. PREPARE
+----------
+POST https://api.icopay.co.kr/api/middleware/v1/merchant/checkout/prepare
+
+헤더: Content-Type, Accept, X-Icopay-Merchant-Broker-Secret
+필수: compId, orderNo, amount, buyer.email, buyer.phone, buyer.countryIso2
+응답: sessionToken, pgVendor, embedScriptUrl, expiresAt
+
+5. SESSION
+----------
+GET .../merchant/checkout/session?token={sessionToken}
+embed 위젯이 자동 호출. pgVendor에 따라 iframe 분기.
+
+6. STATUS
+---------
+GET .../merchant/checkout/status?compId=6000000028&orderNo={orderNo}
+가맹 서버. found, paymentStatus, approvalNo, amount, paidAt
+
+7. EMBED 스크립트
+-----------------
+https://api.icopay.co.kr/v1/embed-checkout/6000000028
+data-session-token="{sessionToken}" 필수
+
+PHP 샘플: merchant-api-samples/php/checkout_unified.php

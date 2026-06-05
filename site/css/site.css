@@ -58,8 +58,8 @@ body { margin: 0; height: 100%; overflow: hidden; font-family: -apple-system, Bl
   min-width: 260px;
   min-height: 0;
   align-self: stretch;
-  height: auto;
-  max-height: none;
+  height: 100%;
+  max-height: 100%;
   background: #2c3138;
   color: #a6b0bf;
   flex-shrink: 0;
@@ -101,7 +101,7 @@ body { margin: 0; height: 100%; overflow: hidden; font-family: -apple-system, Bl
 .sidebar-logo-img {
   transition: padding 0.2s ease, font-size 0.2s ease, max-height 0.2s ease, max-width 0.2s ease;
 }
-.menuFoldDiv { padding: 8px 10px; border-bottom: 1px solid rgba(255,255,255,0.06); }
+.menuFoldDiv { padding: 8px 10px; border-bottom: 1px solid rgba(255,255,255,0.06); flex-shrink: 0; }
 /* 접힌 상태 플라이아웃: 사이드바 오른쪽에 떠 있는 서브메뉴 */
 .flyout-submenu {
   position: fixed;
@@ -147,11 +147,35 @@ body { margin: 0; height: 100%; overflow: hidden; font-family: -apple-system, Bl
   display: none;
   object-fit: contain;
 }
-/* 좌측 사이드바 내부에 세로 스크롤바를 두지 않음(요청: 스크롤은 우측 본문만). 메뉴가 매우 길면 하단은 보이지 않을 수 있음 */
+/* 메뉴 목록만 세로 스크롤 — 로고·접기 버튼은 상단 고정, 우측 본문 스크롤과 분리 */
 #left-side-menu-container {
   flex: 1 1 auto;
   min-height: 0;
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+#left-side-menu-container .side-nav {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.28) rgba(255, 255, 255, 0.06);
+  scrollbar-gutter: stable;
+}
+#left-side-menu-container .side-nav::-webkit-scrollbar {
+  width: 8px;
+}
+#left-side-menu-container .side-nav::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.04);
+}
+#left-side-menu-container .side-nav::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.22);
+  border-radius: 4px;
+}
+#left-side-menu-container .side-nav::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.35);
 }
 .left-side-menu .btn-secondary {
   background: #3a4149 !important;
@@ -2872,6 +2896,33 @@ body.theme-light .child-li.mm-active a, body.theme-gray .child-li.mm-active a, b
 body.theme-light .menuFoldDiv, body.theme-gray .menuFoldDiv, body.theme-pastel_1 .menuFoldDiv, body.theme-pastel_2 .menuFoldDiv, body.theme-pastel_3 .menuFoldDiv, body.theme-pastel_4 .menuFoldDiv, body.theme-pastel_5 .menuFoldDiv {
   background: var(--theme-sidebar-bg) !important;
   border-bottom-color: var(--theme-border-soft) !important;
+}
+body.theme-light #left-side-menu-container .side-nav,
+body.theme-gray #left-side-menu-container .side-nav,
+body.theme-pastel_1 #left-side-menu-container .side-nav,
+body.theme-pastel_2 #left-side-menu-container .side-nav,
+body.theme-pastel_3 #left-side-menu-container .side-nav,
+body.theme-pastel_4 #left-side-menu-container .side-nav,
+body.theme-pastel_5 #left-side-menu-container .side-nav {
+  scrollbar-color: rgba(0, 0, 0, 0.28) rgba(0, 0, 0, 0.06);
+}
+body.theme-light #left-side-menu-container .side-nav::-webkit-scrollbar-thumb,
+body.theme-gray #left-side-menu-container .side-nav::-webkit-scrollbar-thumb,
+body.theme-pastel_1 #left-side-menu-container .side-nav::-webkit-scrollbar-thumb,
+body.theme-pastel_2 #left-side-menu-container .side-nav::-webkit-scrollbar-thumb,
+body.theme-pastel_3 #left-side-menu-container .side-nav::-webkit-scrollbar-thumb,
+body.theme-pastel_4 #left-side-menu-container .side-nav::-webkit-scrollbar-thumb,
+body.theme-pastel_5 #left-side-menu-container .side-nav::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.22);
+}
+body.theme-light #left-side-menu-container .side-nav::-webkit-scrollbar-thumb:hover,
+body.theme-gray #left-side-menu-container .side-nav::-webkit-scrollbar-thumb:hover,
+body.theme-pastel_1 #left-side-menu-container .side-nav::-webkit-scrollbar-thumb:hover,
+body.theme-pastel_2 #left-side-menu-container .side-nav::-webkit-scrollbar-thumb:hover,
+body.theme-pastel_3 #left-side-menu-container .side-nav::-webkit-scrollbar-thumb:hover,
+body.theme-pastel_4 #left-side-menu-container .side-nav::-webkit-scrollbar-thumb:hover,
+body.theme-pastel_5 #left-side-menu-container .side-nav::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.35);
 }
 body.theme-light .left-side-menu .btn-secondary, body.theme-gray .left-side-menu .btn-secondary, body.theme-pastel_1 .left-side-menu .btn-secondary, body.theme-pastel_2 .left-side-menu .btn-secondary, body.theme-pastel_3 .left-side-menu .btn-secondary, body.theme-pastel_4 .left-side-menu .btn-secondary, body.theme-pastel_5 .left-side-menu .btn-secondary {
   background: var(--theme-menu-active-bg) !important;

@@ -64,6 +64,16 @@ public final class MerchantApiDeployChecklistI18n {
         )));
 
         list.add(textMap(new Bundle(
+                "연동 흐름 문서(Prepare·Session·Status·Embed): KO "
+                        + base + "/merchant-api-samples/docs/unified-checkout-api-flow.ko.html · EN/JA 동일 경로",
+                "Integration flow doc (Prepare·Session·Status·Embed): "
+                        + base + "/merchant-api-samples/docs/unified-checkout-api-flow.html (KO/JA variants)",
+                "連携フロー文書: JA " + base + "/merchant-api-samples/docs/unified-checkout-api-flow.ja.html · EN/KO 同パス",
+                "对接流程文档: " + base + "/merchant-api-samples/docs/unified-checkout-api-flow.html（KO/JA 版あり）",
+                "เอกสาร flow การเชื่อมต่อ: " + base + "/merchant-api-samples/docs/unified-checkout-api-flow.html (มี KO/JA)"
+        )));
+
+        list.add(textMap(new Bundle(
                 "ChillPay 인라인(레거시): POST " + base + "/api/middleware/v1/merchant/chillpay/inline-checkout/prepare "
                         + "→ sessionToken → /v1/embed-pay/" + cid,
                 "ChillPay inline (legacy): POST " + base + "/api/middleware/v1/merchant/chillpay/inline-checkout/prepare "

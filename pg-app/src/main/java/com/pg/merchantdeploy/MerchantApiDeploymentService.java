@@ -325,6 +325,56 @@ public class MerchantApiDeploymentService {
         return kit;
     }
 
+    /**
+     * 가맹점 전용 — 본사 API 배포 완료 가맹만 연동 키·문서 조회(평문 시크릿 포함). 발급·수정 없음.
+     */
+    public Map<String, Object> buildMerchantSelfPortal(HttpServletRequest req, String viewerCompId, String viewerOrgLevel) {
+        if (viewerOrgLevel == null || !OrgLevel.MERCHANT.name().equalsIgnoreCase(viewerOrgLevel.trim())) {
+            throw new IllegalArgumentException("가맹점 계정만 조회할 수 있습니다.");
+        }
+        String cid = viewerCompId != null ? viewerCompId.trim() : "";
+        if (cid.isEmpty()) {
+            throw new IllegalArgumentException("가맹 업체코드를 확인할 수 없습니다.");
+        }
+        OrgUnit ou = orgUnitRepository.findByCode(cid)
+                .orElseThrow(() -> new IllegalArgumentException("업체코드를 찾을 수 없습니다."));
+        if (ou.getOrgLevel() != OrgLevel.MERCHANT) {
+            throw new IllegalArgumentException("가맹점(조직단계 MERCHANT)만 조회할 수 있습니다.");
+        }
+
+        List<MerchantIcopayBrokerCredential> creds =
+                credentialRepository.findByOrgUnitIdAndUseYnOrderByIdDesc(ou.getId(), "Y");
+        boolean deployed = creds != null && !creds.isEmpty();
+
+        Map<String, Object> out = new LinkedHashMap<>();
+        out.put("compId", ou.getCode());
+        out.put("merchantName", ou.getName());
+        out.put("deployed", deployed);
+        if (!deployed) {
+            out.put("messageKey", "API_NOT_DEPLOYED");
+            return out;
+        }
+
+        Map<String, Object> portal = buildDocsPortal(cid, req);
+        out.put("portal", portal);
+
+        List<Map<String, Object>> credentialItems = new ArrayList<>();
+        for (MerchantIcopayBrokerCredential c : creds) {
+            Map<String, Object> item = new LinkedHashMap<>();
+            item.put("id", c.getId());
+            item.put("vendorScope", c.getVendorScope());
+            item.put("brokerSecret", c.getBrokerSecret());
+            item.put("brokerSecretMasked", maskBrokerSecretForDisplay(c.getBrokerSecret(), c.getSecretPrefix()));
+            item.put("secretPrefix", c.getSecretPrefix());
+            item.put("enforceYn", c.getEnforceYn());
+            item.put("createdAt", c.getCreatedAt() != null ? c.getCreatedAt().toString() : "");
+            credentialItems.add(item);
+        }
+        out.put("credentials", credentialItems);
+        out.put("brokerHeaderName", MerchantBrokerAccessVerifier.HEADER_MERCHANT_BROKER_SECRET);
+        return out;
+    }
+
     /** 배포설정 — API배포문서 화면용(다운로드·연동 파라미터 표). 시크릿 평문·재발급 기능은 포함하지 않음. */
     public Map<String, Object> buildDocsPortal(String compId, HttpServletRequest req) {
         Map<String, Object> kit = buildKit(compId, MerchantPgBrokerVendor.ALL, req);
@@ -374,7 +424,7 @@ public class MerchantApiDeploymentService {
                 "orderNo", "ORD-001",
                 "amount", jpay ? 100 : 10000,
                 "currency", jpay ? "USD" : "JPY",
-                "productName", "상품명",
+                "productName", "Sample product",
                 "lang", "ENG"
         ));
         block.put("langHintKr",
@@ -404,12 +454,22 @@ public class MerchantApiDeploymentService {
         block.put("sessionUrl", base + "/api/middleware/v1/merchant/checkout/session?token={sessionToken}");
         block.put("statusUrl", base + "/api/middleware/v1/merchant/checkout/status?compId=" + compId + "&orderNo={orderNo}");
         block.put("embedScriptUrl", base + "/v1/embed-checkout/" + compId);
+        block.put("flowDocHtml", base + "/merchant-api-samples/docs/unified-checkout-api-flow.html");
+        block.put("flowDocHtmlKo", base + "/merchant-api-samples/docs/unified-checkout-api-flow.ko.html");
+        block.put("flowDocHtmlJa", base + "/merchant-api-samples/docs/unified-checkout-api-flow.ja.html");
+        block.put("flowDocHtmlCh", base + "/merchant-api-samples/docs/unified-checkout-api-flow.ch.html");
+        block.put("flowDocHtmlTh", base + "/merchant-api-samples/docs/unified-checkout-api-flow.th.html");
+        block.put("flowDocText", base + "/merchant-api-samples/docs/unified-checkout-api-flow.txt");
+        block.put("flowDocTextKo", base + "/merchant-api-samples/docs/unified-checkout-api-flow.ko.txt");
+        block.put("flowDocTextJa", base + "/merchant-api-samples/docs/unified-checkout-api-flow.ja.txt");
+        block.put("flowDocTextCh", base + "/merchant-api-samples/docs/unified-checkout-api-flow.ch.txt");
+        block.put("flowDocTextTh", base + "/merchant-api-samples/docs/unified-checkout-api-flow.th.txt");
         block.put("prepareBodyExample", Map.of(
                 "compId", compId,
                 "orderNo", "ORD-001",
                 "amount", 10000,
                 "currency", "USD",
-                "productName", "상품명",
+                "productName", "Sample product",
                 "lang", "ENG",
                 "buyer", Map.of(
                         "email", "buyer@example.com",
@@ -527,7 +587,7 @@ public class MerchantApiDeploymentService {
                 + "    \"orderNo\": \"ORD-001\",\n"
                 + "    \"amount\": 10000,\n"
                 + "    \"currency\": \"USD\",\n"
-                + "    \"productName\": \"상품명\",\n"
+                + "    \"productName\": \"Sample product\",\n"
                 + "    \"lang\": \"ENG\",\n"
                 + "    \"buyer\": {\n"
                 + "      \"email\": \"buyer@example.com\",\n"
@@ -592,12 +652,31 @@ public class MerchantApiDeploymentService {
         m.put("downloadBaseUrl", base + "/merchant-api-samples/");
         m.put("indexUrl", base + "/merchant-api-samples/index.html");
         m.put("readmeUrl", base + "/merchant-api-samples/README.txt");
-        m.put("json", Map.of(
-                "readme", "merchant-api-samples/json/README.txt",
-                "prepareRequest", "merchant-api-samples/json/unified-prepare-request.json",
-                "prepareResponseExample", "merchant-api-samples/json/unified-prepare-response.example.json",
-                "parameterSpecHtml", "merchant-api-samples/docs/unified-checkout-api-parameters.html"
-        ));
+        Map<String, String> jsonSamples = new LinkedHashMap<>();
+        jsonSamples.put("readme", "merchant-api-samples/json/README.txt");
+        jsonSamples.put("prepareRequest", "merchant-api-samples/json/unified-prepare-request.json");
+        jsonSamples.put("prepareResponseExample", "merchant-api-samples/json/unified-prepare-response.example.json");
+        jsonSamples.put("flowDocHtml", "merchant-api-samples/docs/unified-checkout-api-flow.html");
+        jsonSamples.put("flowDocHtmlKo", "merchant-api-samples/docs/unified-checkout-api-flow.ko.html");
+        jsonSamples.put("flowDocHtmlJa", "merchant-api-samples/docs/unified-checkout-api-flow.ja.html");
+        jsonSamples.put("flowDocHtmlCh", "merchant-api-samples/docs/unified-checkout-api-flow.ch.html");
+        jsonSamples.put("flowDocHtmlTh", "merchant-api-samples/docs/unified-checkout-api-flow.th.html");
+        jsonSamples.put("flowDocText", "merchant-api-samples/docs/unified-checkout-api-flow.txt");
+        jsonSamples.put("flowDocTextKo", "merchant-api-samples/docs/unified-checkout-api-flow.ko.txt");
+        jsonSamples.put("flowDocTextJa", "merchant-api-samples/docs/unified-checkout-api-flow.ja.txt");
+        jsonSamples.put("flowDocTextCh", "merchant-api-samples/docs/unified-checkout-api-flow.ch.txt");
+        jsonSamples.put("flowDocTextTh", "merchant-api-samples/docs/unified-checkout-api-flow.th.txt");
+        jsonSamples.put("parameterSpecHtml", "merchant-api-samples/docs/unified-checkout-api-parameters.html");
+        jsonSamples.put("parameterSpecHtmlKo", "merchant-api-samples/docs/unified-checkout-api-parameters.ko.html");
+        jsonSamples.put("parameterSpecHtmlJa", "merchant-api-samples/docs/unified-checkout-api-parameters.ja.html");
+        jsonSamples.put("parameterSpecHtmlCh", "merchant-api-samples/docs/unified-checkout-api-parameters.ch.html");
+        jsonSamples.put("parameterSpecHtmlTh", "merchant-api-samples/docs/unified-checkout-api-parameters.th.html");
+        jsonSamples.put("parameterSpecText", "merchant-api-samples/docs/unified-checkout-api-parameters.txt");
+        jsonSamples.put("parameterSpecTextKo", "merchant-api-samples/docs/unified-checkout-api-parameters.ko.txt");
+        jsonSamples.put("parameterSpecTextJa", "merchant-api-samples/docs/unified-checkout-api-parameters.ja.txt");
+        jsonSamples.put("parameterSpecTextCh", "merchant-api-samples/docs/unified-checkout-api-parameters.ch.txt");
+        jsonSamples.put("parameterSpecTextTh", "merchant-api-samples/docs/unified-checkout-api-parameters.th.txt");
+        m.put("json", jsonSamples);
         m.put("php", Map.of(
                 "configExample", "merchant-api-samples/php/icopay_config.example.php",
                 "client", "merchant-api-samples/php/IcopayMerchantApi.php",
@@ -705,6 +784,21 @@ public class MerchantApiDeploymentService {
             return "****";
         }
         return s.substring(0, 2) + "…" + s.substring(s.length() - 2);
+    }
+
+    /** 가맹 화면 기본 표시용 — prefix + 마스킹 */
+    static String maskBrokerSecretForDisplay(String secret, String prefix) {
+        if (secret == null || secret.isBlank()) {
+            return "••••••••••••";
+        }
+        String p = prefix != null ? prefix.trim() : "";
+        if (!p.isEmpty()) {
+            return p + "••••••••••••";
+        }
+        if (secret.length() <= 6) {
+            return "••••••";
+        }
+        return secret.substring(0, 3) + "••••••••" + secret.substring(secret.length() - 2);
     }
 
     private static String trimSlash(String u) {
