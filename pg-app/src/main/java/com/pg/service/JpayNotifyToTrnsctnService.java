@@ -1,5 +1,7 @@
 package com.pg.service;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.pg.integration.pg.PgVendor;
 import com.pg.integration.pg.notify.PgNotifyInboundTxnHandler;
 import com.pg.entity.PgAgency;
@@ -19,6 +21,7 @@ import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.Locale;
 import java.util.Map;
@@ -33,6 +36,7 @@ import java.util.UUID;
 public class JpayNotifyToTrnsctnService implements PgNotifyInboundTxnHandler {
 
     private static final Logger log = LoggerFactory.getLogger(JpayNotifyToTrnsctnService.class);
+    private static final ObjectMapper MAPPER = new ObjectMapper();
     private static final String ORIGIN_URL = "URL";
     private static final String ST_PAID = "10";
     private static final String ST_FAIL = "99";
@@ -76,18 +80,19 @@ public class JpayNotifyToTrnsctnService implements PgNotifyInboundTxnHandler {
             return false;
         }
         String raw = in.getRawBody();
-        if (raw == null || raw.isBlank() || raw.trim().startsWith("{")) {
+        if (raw == null || raw.isBlank()) {
             return false;
         }
-        Map<String, String> form = parseFormLowerKeys(raw);
+        Map<String, String> form = parseJpayNotifyFields(raw.trim());
         if (!looksLikeJpayServerNotify(form)) {
             return false;
         }
         String memberid = first(form, "memberid");
         String orderid = first(form, "orderid");
         String ret = first(form, "returncode");
+        String paySt = first(form, "paymentstatus");
         String txnId = first(form, "transaction_id");
-        if (memberid.isBlank() || orderid.isBlank() || ret.isBlank()) {
+        if (memberid.isBlank() || orderid.isBlank() || (ret.isBlank() && paySt.isBlank())) {
             return false;
         }
         Optional<PgAgency> agOpt = findJpayAgencyByMerchantMid(memberid);
@@ -98,12 +103,18 @@ public class JpayNotifyToTrnsctnService implements PgNotifyInboundTxnHandler {
         PgAgency ag = agOpt.get();
         String apiKey = ag.getApiKey() != null ? ag.getApiKey().trim() : "";
         String sign = first(form, "sign");
+        String ch = notifyChannel == null || notifyChannel.isBlank() ? "CALLBACK" : notifyChannel.trim().toUpperCase(Locale.ROOT);
+        boolean resultChannel = "RESULT".equals(ch);
         if (apiKey.isEmpty() || sign.isBlank()) {
-            log.warn("JPAY 노티 서명 검증 생략(키/서명 없음) orderid={}", orderid);
-            return true;
+            /* 3DS 동기 복귀(rsJpay)는 sign 없음 — ChillPay 노티매핑(RESULT·paymentStatus)으로 위임 */
+            log.info("JPAY 노티 sign 없음 — 다음 핸들러(노티매핑)로 위임 orderid={} channel={}", orderid, ch);
+            return false;
         }
         if (!JpaySignatureUtil.verifyNotifySign(form, apiKey, sign)) {
-            log.warn("JPAY 노티 서명 불일치 orderid={}", orderid);
+            log.warn("JPAY 노티 서명 불일치 orderid={} channel={}", orderid, ch);
+            if (resultChannel) {
+                return false;
+            }
             return true;
         }
         String merchantId = in.getMerchantId();
@@ -154,10 +165,9 @@ public class JpayNotifyToTrnsctnService implements PgNotifyInboundTxnHandler {
             String u = cur.trim().toUpperCase(Locale.ROOT);
             t.setCurType(u.length() > 3 ? u.substring(0, 3) : u);
         }
-        String ch = notifyChannel == null || notifyChannel.isBlank() ? "CALLBACK" : notifyChannel.trim().toUpperCase(Locale.ROOT);
         t.setNotifyChannelType(ch);
 
-        boolean ok = "00".equals(ret.trim());
+        boolean ok = "00".equals(ret.trim()) || isJpaySuccessPaymentStatus(paySt);
         String next = ok ? ST_PAID : ST_FAIL;
         String merged = NotifyToTxnStatusMerge.merge(t.getStatus(), next, ch);
         if (merged == null || merged.isBlank()) {
@@ -218,10 +228,51 @@ public class JpayNotifyToTrnsctnService implements PgNotifyInboundTxnHandler {
     }
 
     private static boolean looksLikeJpayServerNotify(Map<String, String> f) {
-        return !first(f, "memberid").isBlank()
-                && !first(f, "orderid").isBlank()
-                && !first(f, "returncode").isBlank()
-                && !first(f, "transaction_id").isBlank();
+        if (first(f, "memberid").isBlank() || first(f, "orderid").isBlank()) {
+            return false;
+        }
+        if (!first(f, "transaction_id").isBlank()) {
+            return !first(f, "returncode").isBlank() || isJpaySuccessPaymentStatus(first(f, "paymentstatus"));
+        }
+        return !first(f, "returncode").isBlank() || isJpaySuccessPaymentStatus(first(f, "paymentstatus"));
+    }
+
+    private static boolean isJpaySuccessPaymentStatus(String raw) {
+        if (raw == null || raw.isBlank()) {
+            return false;
+        }
+        String p = raw.trim().toLowerCase(Locale.ROOT);
+        return "succeeded".equals(p) || "success".equals(p) || "paid".equals(p) || "00".equals(p);
+    }
+
+    private Map<String, String> parseJpayNotifyFields(String body) {
+        if (body.startsWith("{")) {
+            return parseJsonLowerKeys(body);
+        }
+        return parseFormLowerKeys(body);
+    }
+
+    private static Map<String, String> parseJsonLowerKeys(String json) {
+        Map<String, String> m = new LinkedHashMap<>();
+        try {
+            JsonNode root = MAPPER.readTree(json);
+            if (root != null && root.isObject()) {
+                Iterator<String> it = root.fieldNames();
+                while (it.hasNext()) {
+                    String k = it.next();
+                    JsonNode v = root.get(k);
+                    if (v != null && !v.isNull() && v.isValueNode()) {
+                        String val = v.asText();
+                        if (val != null && !val.isBlank()) {
+                            m.put(k.toLowerCase(Locale.ROOT), val.trim());
+                        }
+                    }
+                }
+            }
+        } catch (Exception ignored) {
+            /* ignore */
+        }
+        return m;
     }
 
     private static Map<String, String> parseFormLowerKeys(String body) {

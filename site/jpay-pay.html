@@ -10,6 +10,7 @@
   <script src="js/url-pay-public-shell.js?v=2"></script>
   <script src="js/jpay-contact-fields.js?v=2"></script>
   <script src="js/icopay-card-pay-policy.js?v=1"></script>
+  <script src="js/jpay-pay-msg-i18n.js?v=1"></script>
   <script>
     (function () {
       try {
@@ -178,6 +179,8 @@
           errPrefillRequired: '가맹점 구매자 정보(이메일·전화·국가코드)가 없습니다. prepare buyerPrefill 을 확인하세요.',
           errCountryCode: '국가코드를 선택하세요.',
           payComplete: '결제 완료', payFailed: '결제 실패', paid: '결제되었습니다.', networkErr: '네트워크 오류',
+          jpay3dsUrlMissing: '3DS 인증 URL을 받지 못했습니다. J-Pay 가맹 포털·채널 승인 상태를 확인하세요.',
+          jpayUnknownResponse: 'J-Pay 응답을 해석하지 못했습니다. MID·ApiKey·pay_index URL을 확인하세요.',
           mm: 'MM', yyyy: 'YYYY', cvv: 'CVV',
           fxDisplayCurrency: '표시 통화', fxThbEstimate: '청구예상 금액', configErr: '설정을 불러오지 못했습니다.',
           needFxQuote: '환율 견적을 불러오는 중이거나 실패했습니다. 잠시 후 다시 시도하세요.',
@@ -193,6 +196,8 @@
           errPrefillRequired: 'Missing merchant buyer info (email, phone, country code). Check prepare buyerPrefill.',
           errCountryCode: 'Select a country code.',
           payComplete: 'Payment complete', payFailed: 'Payment failed', paid: 'Paid', networkErr: 'Network error',
+          jpay3dsUrlMissing: '3DS redirect URL was not returned. Check J-Pay merchant portal and channel approval.',
+          jpayUnknownResponse: 'Could not interpret J-Pay response. Verify MID, ApiKey, and pay_index URL.',
           mm: 'MM', yyyy: 'YYYY', cvv: 'CVV',
           fxDisplayCurrency: 'Display currency', fxThbEstimate: 'Estimated charge', configErr: 'Failed to load settings.',
           needFxQuote: 'Exchange quote is loading or failed. Please wait and try again.',
@@ -208,6 +213,8 @@
           errPrefillRequired: '加盟店の購入者情報(メール・電話・国コード)がありません。prepare buyerPrefill を確認してください。',
           errCountryCode: '国コードを選択してください。',
           payComplete: '決済完了', payFailed: '決済失敗', paid: '決済完了', networkErr: 'ネットワークエラー',
+          jpay3dsUrlMissing: '3DS認証URLを受信できませんでした。J-Pay加盟店ポータルとチャネル承認を確認してください。',
+          jpayUnknownResponse: 'J-Pay応答を解釈できませんでした。MID・ApiKey・pay_index URLを確認してください。',
           mm: 'MM', yyyy: 'YYYY', cvv: 'CVV',
           fxDisplayCurrency: '表示通貨', fxThbEstimate: '請求予想金額', configErr: '設定の読み込みに失敗しました.',
           needFxQuote: '為替見積りを読み込み中か、取得に失敗しました。しばらくしてから再度お試しください.',
@@ -223,6 +230,8 @@
           errPrefillRequired: '缺少商户买家信息(邮箱/电话/国家代码)。请检查 prepare buyerPrefill。',
           errCountryCode: '请选择国家代码。',
           payComplete: '支付完成', payFailed: '支付失败', paid: '已支付', networkErr: '网络错误',
+          jpay3dsUrlMissing: '未收到3DS认证跳转地址。请检查J-Pay商户后台与通道审批状态。',
+          jpayUnknownResponse: '无法解析J-Pay响应。请核对MID、ApiKey与pay_index地址。',
           mm: 'MM', yyyy: 'YYYY', cvv: 'CVV',
           fxDisplayCurrency: '显示货币', fxThbEstimate: '预计扣款金额', configErr: '无法加载设置。',
           needFxQuote: '汇率报价加载中或失败，请稍后重试。',
@@ -238,6 +247,8 @@
           errPrefillRequired: 'ไม่มีข้อมูลผู้ซื้อจากร้าน (อีเมล/โทร/รหัสประเทศ) ตรวจสอบ prepare buyerPrefill',
           errCountryCode: 'เลือกรหัสประเทศ',
           payComplete: 'ชำระเงินสำเร็จ', payFailed: 'ชำระเงินล้มเหลว', paid: 'ชำระแล้ว', networkErr: 'ข้อผิดพลาดเครือข่าย',
+          jpay3dsUrlMissing: 'ไม่ได้รับ URL ยืนยัน 3DS ตรวจสอบพอร์ทัลร้านค้า J-Pay และการอนุมัติช่องทาง',
+          jpayUnknownResponse: 'ไม่สามารถอ่านการตอบกลับจาก J-Pay ได้ ตรวจสอบ MID ApiKey และ pay_index URL',
           mm: 'MM', yyyy: 'YYYY', cvv: 'CVV',
           fxDisplayCurrency: 'สกุลเงินที่แสดง', fxThbEstimate: 'ยอดเรียกเก็บโดยประมาณ', configErr: 'โหลดการตั้งค่าไม่สำเร็จ',
           needFxQuote: 'กำลังโหลดอัตราแล้วหรือโหลดไม่สำเร็จ โปรดรอแล้วลองอีกครั้ง',
@@ -253,6 +264,43 @@
       function t(key) {
         var pack = I18N[LANG] || I18N.ENG;
         return pack[key] != null ? pack[key] : (I18N.ENG[key] || key);
+      }
+      function localizeJpayMsg(msg) {
+        if (window.PG_JPAY_PAY_MSG && PG_JPAY_PAY_MSG.translate) {
+          return PG_JPAY_PAY_MSG.translate(msg, LANG);
+        }
+        return msg;
+      }
+      function jpayStatusNum(st) {
+        var n = Number(st);
+        return isNaN(n) ? -1 : n;
+      }
+      function jpayResolveRedirectUrl(d) {
+        d = d || {};
+        var u = d.redirectUrl || d.url || '';
+        if (u) return String(u).trim();
+        var raw = d.rawResponse ? String(d.rawResponse).trim() : '';
+        if (!raw) return '';
+        try {
+          var parsed = raw;
+          if (parsed.charAt(0) === '"' && parsed.charAt(parsed.length - 1) === '"') {
+            parsed = JSON.parse(parsed);
+          }
+          if (typeof parsed === 'string') parsed = JSON.parse(parsed);
+          if (parsed && parsed.url) return String(parsed.url).trim();
+        } catch (e) { /* ignore */ }
+        var m = raw.match(/"url"\s*:\s*"([^"\\]+(?:\\.[^"\\]*)*)"/);
+        return m ? m[1].replace(/\\\//g, '/') : '';
+      }
+      function escHtml(s) {
+        return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      }
+      function resolveJpayFailMsg(st, msg, d) {
+        var m = localizeJpayMsg(msg || '');
+        if (m) return m;
+        if (st === 1) return t('jpay3dsUrlMissing');
+        if (st < 0) return t('jpayUnknownResponse');
+        return t('payFailed');
       }
       function setLang(code) {
         var c = String(code || '').toUpperCase();
@@ -437,7 +485,17 @@
         var el = document.getElementById('payResult');
         el.style.display = 'block';
         el.className = ok ? 'ok pay-result-final' : 'err pay-result-final';
-        el.innerHTML = '<div class="pay-result-title">' + (ok ? t('payComplete') : t('payFailed')) + '</div><p>' + msg + '</p>';
+        var body = escHtml(msg);
+        if (!ok && extra) {
+          var raw = extra.rawResponse ? String(extra.rawResponse).trim() : '';
+          if (raw && body.indexOf(raw.substring(0, Math.min(32, raw.length))) < 0) {
+            body += '<br><small>J-Pay raw: ' + escHtml(raw.length > 320 ? raw.substring(0, 320) + '…' : raw) + '</small>';
+          }
+          if (extra.payIndexUrl) {
+            body += '<br><small>pay_index: ' + escHtml(extra.payIndexUrl) + '</small>';
+          }
+        }
+        el.innerHTML = '<div class="pay-result-title">' + (ok ? t('payComplete') : t('payFailed')) + '</div><p>' + body + '</p>';
         notifyParent(Object.assign({ phase: 'finished', success: ok, orderNo: orderNo || '', message: msg, pgVendor: 'JPAY' }, extra || {}));
       }
 
@@ -711,22 +769,25 @@
           body: JSON.stringify(body)
         }).then(function (r) { return r.json(); }).then(function (res) {
           if (!res.success) {
-            showFinished(false, res.message || t('payFailed'), body.orderNo, {});
+            showFinished(false, localizeJpayMsg(res.message) || t('payFailed'), body.orderNo, {});
             return;
           }
           var d = res.data || {};
-          var st = d.status;
-          var msg = d.msg || '';
-          if (st === 1 && d.redirectUrl) {
-            notifyParent({ phase: 'wait_authorize', success: true, orderNo: body.orderNo, paymentUrl: d.redirectUrl, pgVendor: 'JPAY' });
-            location.href = d.redirectUrl;
+          var st = jpayStatusNum(d.status);
+          var msg = d.msg || d.message || '';
+          var redirectUrl = jpayResolveRedirectUrl(d);
+          if (redirectUrl && (st === 1 || st < 0)) {
+            notifyParent({ phase: 'wait_authorize', success: true, orderNo: body.orderNo, paymentUrl: redirectUrl, pgVendor: 'JPAY' });
+            location.href = redirectUrl;
             return;
           }
           if (st === 0) {
-            showFinished(true, msg || t('paid'), body.orderNo, { jpayStatus: st });
+            showFinished(true, localizeJpayMsg(msg) || t('paid'), body.orderNo, { jpayStatus: st });
             return;
           }
-          showFinished(false, msg || t('payFailed'), body.orderNo, { jpayStatus: st });
+          showFinished(false, resolveJpayFailMsg(st, msg, d), body.orderNo, {
+            jpayStatus: st, rawResponse: d.rawResponse, payIndexUrl: d.payIndexUrl
+          });
         }).catch(function (err) {
           showFinished(false, (err && err.message) || t('networkErr'), body.orderNo, {});
         }).finally(function () { btn.disabled = false; });

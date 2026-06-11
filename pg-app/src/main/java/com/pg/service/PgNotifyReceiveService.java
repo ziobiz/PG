@@ -259,10 +259,17 @@ public class PgNotifyReceiveService {
         if (("RESULT".equalsIgnoreCase(channelType) || "CALLBACK".equalsIgnoreCase(channelType))
                 && request != null
                 && shouldUsePayResultRedirect(channelType, request.getMethod(), body, contentType)) {
-            String loc = buildPayResultRedirectUrl(request, in, body, contentType);
+            String loc = isJpayIngressTarget(notifyTargetCode)
+                    ? buildJpayMerchantNotifyRedirectUrl(in, body, contentType)
+                    : buildPayResultRedirectUrl(request, in, body, contentType);
+            if ((loc == null || loc.isBlank()) && isJpayIngressTarget(notifyTargetCode)) {
+                loc = buildPayResultRedirectUrl(request, in, body, contentType);
+            }
             if (loc != null && !loc.isBlank()) {
-                log.info("pg-notify {} → pay-result redirect (targetCode={})",
-                        channelType, trimNotifyTargetCode(notifyTargetCode));
+                log.info("pg-notify {} → {} redirect (targetCode={})",
+                        channelType,
+                        isJpayIngressTarget(notifyTargetCode) ? "JPAY merchant notify" : "pay-result",
+                        trimNotifyTargetCode(notifyTargetCode));
                 return NotifyReceiveOutcome.redirect(loc);
             }
         }
@@ -390,6 +397,141 @@ public class PgNotifyReceiveService {
         } catch (Exception e) {
             return false;
         }
+    }
+
+    private static boolean isJpayIngressTarget(String notifyTargetCode) {
+        if (notifyTargetCode == null || notifyTargetCode.isBlank()) {
+            return false;
+        }
+        String c = notifyTargetCode.trim().toLowerCase(Locale.ROOT);
+        return "rsjpay".equals(c) || "cbjpay".equals(c);
+    }
+
+    /**
+     * JPAY rsJpay/cbJpay 브라우저 복귀 — 가맹 {@code JPAY_CALLBACK}·{@code JPAY_NOTIFY}(노티미들웨어)로 리다이렉트.
+     * ICOPAY ingress URL 자체로는 보내지 않음(루프 방지). 미설정 시 {@link #buildPayResultRedirectUrl} 폴백.
+     */
+    private String buildJpayMerchantNotifyRedirectUrl(PgNotifyInbound in, String rawBody, String contentType) {
+        Long orgUnitId = in != null ? in.getOrgUnitId() : null;
+        if (orgUnitId == null && in != null && in.getMerchantId() != null && !in.getMerchantId().isBlank()) {
+            orgUnitId = orgUnitRepository.findByCode(in.getMerchantId().trim())
+                    .or(() -> orgUnitRepository.findByCodeIgnoreCase(in.getMerchantId().trim()))
+                    .map(OrgUnit::getId)
+                    .orElse(null);
+        }
+        if (orgUnitId == null) {
+            return null;
+        }
+        String base = resolveMerchantJpayRelayRedirectUrl(orgUnitId);
+        if (base == null || base.isBlank()) {
+            return null;
+        }
+        JpayRedirectParams p = extractJpaySyncCallbackParams(rawBody, contentType);
+        StringBuilder q = new StringBuilder();
+        appendUrlQueryParam(q, "paymentStatus", p.paymentStatus);
+        appendUrlQueryParam(q, "orderID", p.orderId);
+        appendUrlQueryParam(q, "orderId", p.orderId);
+        appendUrlQueryParam(q, "OrderNo", p.orderId);
+        appendUrlQueryParam(q, "transaction_id", p.transactionId);
+        appendUrlQueryParam(q, "memberid", p.memberId);
+        appendUrlQueryParam(q, "returncode", p.returnCode);
+        if (q.length() == 0) {
+            return base;
+        }
+        String sep = base.contains("?") ? "&" : "?";
+        return base + sep + q;
+    }
+
+    /** 가맹 JPAY 수신통보 — Callback(3DS 복귀) 우선, 없으면 Notify URL */
+    private String resolveMerchantJpayRelayRedirectUrl(Long orgUnitId) {
+        for (String urlType : new String[]{
+                MerchantNotifyUrl.URL_TYPE_JPAY_CALLBACK,
+                MerchantNotifyUrl.URL_TYPE_JPAY_NOTIFY}) {
+            Optional<MerchantNotifyUrl> row = merchantNotifyUrlRepository.findByOrgUnitIdAndUrlType(orgUnitId, urlType);
+            if (row.isEmpty()) {
+                continue;
+            }
+            MerchantNotifyUrl n = row.get();
+            if (n.getUseYn() != null && !"Y".equalsIgnoreCase(n.getUseYn().trim())) {
+                continue;
+            }
+            String u = n.getNotiUrl() != null ? n.getNotiUrl().trim() : "";
+            if (u.isBlank() || looksLikeIcopayJpayIngressUrl(u)) {
+                continue;
+            }
+            return u;
+        }
+        return null;
+    }
+
+    private static boolean looksLikeIcopayJpayIngressUrl(String url) {
+        if (url == null || url.isBlank()) {
+            return true;
+        }
+        String lower = url.trim().toLowerCase(Locale.ROOT);
+        boolean ingressPath = lower.contains("/api/open/pg-notify/")
+                || lower.contains("/api/middleware/notify/v1/pg-notify/");
+        boolean jpayTail = lower.contains("/rsjpay") || lower.contains("/cbjpay");
+        return ingressPath && jpayTail;
+    }
+
+    private static final class JpayRedirectParams {
+        String orderId;
+        String transactionId;
+        String memberId;
+        String returnCode;
+        String paymentStatus;
+    }
+
+    private JpayRedirectParams extractJpaySyncCallbackParams(String raw, String contentType) {
+        JpayRedirectParams r = new JpayRedirectParams();
+        String body = raw != null ? raw.trim() : "";
+        if (body.isEmpty()) {
+            return r;
+        }
+        Map<String, String> fm = new LinkedHashMap<>();
+        String ct = contentType != null ? contentType.toLowerCase(Locale.ROOT) : "";
+        if (body.startsWith("{") || ct.contains("json")) {
+            try {
+                JsonNode root = MAPPER.readTree(body);
+                if (root != null && root.isObject()) {
+                    r.orderId = textDeep(root, "orderID", "orderId", "orderid", "OrderNo", "orderNo");
+                    r.transactionId = textDeep(root, "transaction_id", "transactionId", "TransactionId");
+                    r.memberId = textDeep(root, "memberid", "memberId", "MemberId");
+                    r.returnCode = textDeep(root, "returncode", "returnCode", "ReturnCode");
+                    r.paymentStatus = textDeep(root, "paymentStatus", "PaymentStatus", "status");
+                }
+            } catch (Exception ignored) {
+                /* ignore */
+            }
+        } else {
+            parseFormToLowerMap(body, fm);
+            r.orderId = mapGetLoose(fm, "orderid", "order_id", "orderno");
+            r.transactionId = mapGetLoose(fm, "transaction_id", "transactionid");
+            r.memberId = mapGetLoose(fm, "memberid", "member_id");
+            r.returnCode = mapGetLoose(fm, "returncode", "return_code");
+            r.paymentStatus = firstNonBlank(
+                    mapGetLoose(fm, "paymentstatus", "payment_status"),
+                    mapGetLoose(fm, "status"));
+        }
+        if (r.paymentStatus == null || r.paymentStatus.isBlank()) {
+            r.paymentStatus = mapJpayReturnCodeToPaymentStatus(r.returnCode);
+        }
+        return r;
+    }
+
+    private static String mapJpayReturnCodeToPaymentStatus(String returnCode) {
+        if (returnCode == null || returnCode.isBlank()) {
+            return "";
+        }
+        String rc = returnCode.trim();
+        if ("00".equals(rc)) {
+            return "succeeded";
+        }
+        if ("2".equals(rc)) {
+            return "failed";
+        }
+        return "processing";
     }
 
     private String buildPayResultRedirectUrl(HttpServletRequest request, PgNotifyInbound in, String rawBody, String contentType) {

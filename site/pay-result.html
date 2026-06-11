@@ -207,14 +207,18 @@
         var u = raw.toUpperCase();
         var succFlag = getParamLoose(p, ['success', 'Success']);
         if (succFlag === '1' || succFlag === 'Y' || succFlag === 'TRUE') return 'ok';
-        if (u === 'PAID' || u === 'SUCCESS' || u === 'S' || u === 'OK' || u === 'Y' || u === 'T') return 'ok';
+        /* ChillPay: Paid / Success — JPAY 3DS 복귀: succeeded (J-Pay Sync Callback) */
+        if (u === 'PAID' || u === 'SUCCESS' || u === 'SUCCEEDED' || u === 'SUCCESSFUL' || u === 'S' || u === 'OK' || u === 'Y' || u === 'T') return 'ok';
         if (u === 'COMPLETE' || u === 'COMPLETED' || u === 'AUTHORIZED' || u === 'CAPTURE' || u === 'CAPTURED') return 'ok';
+        /* J-Pay returncode in query (rsJpay → pay-result 폴백) */
+        if (u === '00') return 'ok';
         /* ChillPay/ICOPAY 내부 숫자 코드 */
         if (u === '10') return 'ok';
         if (u === '20' || u === '21' || u === '22' || u === '2') return 'cancel';
         if (u === '99' || u === 'F0' || u === '3' || u === '4' || u === '30' || u === '31') return 'fail';
         if (u === 'CANCEL' || u === 'CANCELLED' || u === 'VOID' || u === 'ABORT') return 'cancel';
-        if (u === 'FAIL' || u === 'FAILED' || u === 'ERROR' || u === 'N') return 'fail';
+        if (u === 'FAIL' || u === 'FAILED' || u === 'FAILURE' || u === 'ERROR' || u === 'N') return 'fail';
+        if (u === 'PROCESSING' || u === 'PENDING') return 'cancel';
         return '';
       }
       /** pay.html 과 동일: 브라우저 선호 언어 목록 → URL 결제 UI 코드 */

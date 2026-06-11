@@ -3798,14 +3798,29 @@ button.pay-follow-pill:focus-visible {
   cursor: pointer;
 }
 
-/* 수수료설정: 가맹점 수수료 정책 목록 — 최소 너비 확보, 좁은 영역에서는 가로 스크롤 */
+/* 수수료설정: 가맹점 수수료 정책 목록 — 가로·세로 스크롤(행이 많을 때 G 이하 잘림 방지) */
 .hq-default-comm-policy-scroll.table-responsive {
   overflow-x: auto;
+  overflow-y: auto;
   -webkit-overflow-scrolling: touch;
   max-width: 100%;
+  max-height: min(60vh, 36rem);
+  scrollbar-gutter: stable;
 }
 .hq-default-comm-policy-scroll {
   max-width: 100%;
+}
+.hq-default-comm-policy-scroll .hq-default-comm-policy-table thead th {
+  position: sticky;
+  z-index: 2;
+  background: #f8f9fa;
+  box-shadow: 0 1px 0 #dee2e6;
+}
+.hq-default-comm-policy-scroll .hq-default-comm-policy-table thead tr:first-child th {
+  top: 0;
+}
+.hq-default-comm-policy-scroll .hq-default-comm-policy-table thead tr:nth-child(2) th {
+  top: 2.125rem;
 }
 .hq-default-comm-policy-table {
   width: 100%;

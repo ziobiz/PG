@@ -1886,7 +1886,7 @@
         },
         {
           title: '가맹점 수수료 정책',
-          notice: '위 [저장] 후 목록이 갱신됩니다. 수치 열은 총본사~영업점 합계(가맹 적용분) 기준입니다. 체크 후 [수정] 또는 행 클릭으로 폼에 불러옵니다. [신규정책]으로 초기화한 뒤 입력·저장하면 코드가 자동 부여되어 목록에 나타납니다. 체크한 항목만 [선택 정책 삭제]할 수 있습니다(여러 건 가능). 표 머리의 체크박스로 전체 선택·해제합니다.',
+          notice: '위 [저장] 후 목록이 갱신됩니다. 수치 열은 총본사~영업점 합계(가맹 적용분) 기준입니다. 체크 후 [수정] 또는 행 클릭으로 폼에 불러옵니다. [신규정책]으로 초기화한 뒤 입력·저장하면 코드가 자동 부여되어 목록에 나타납니다(예: A 다음 H). 정책이 많으면 아래 표 영역을 <strong>세로·가로 스크롤</strong>하여 확인하세요. 체크한 항목만 [선택 정책 삭제]할 수 있습니다(여러 건 가능). 표 머리의 체크박스로 전체 선택·해제합니다.',
           rows: [[{
             type: 'customHtml',
             col: 12,
@@ -1894,8 +1894,8 @@
               return '<div id="hqDefaultCommissionFlash" class="alert alert-dismissible d-none mb-3" role="alert">' +
               '<span data-pg-banner-text></span>' +
               '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="' + escUi(L('닫기')) + '"></button></div>' +
-              '<p class="small text-muted mb-2 mb-md-1" data-pg-ui-html="헤더 1행은 <strong>수수료 고정</strong>·<strong>수수료 %</strong>·<strong>담보율</strong>·<strong>기타</strong> 묶음입니다. <strong>수수료 %</strong> 열은 숫자만 표시(단위 % 생략). 결제·USDT·FX는 승인금액 기준 %이며, <strong>3DS</strong>는 정책통화 기준 <strong>건당 고정</strong>입니다. 담보(롤링) 비율은 승인금액 기준 %입니다. 열이 많아 표에 <strong>최소 너비</strong>를 두었으며, 화면이 좁으면 아래 표 영역을 <strong>가로 스크롤</strong>하여 전체 열을 볼 수 있습니다.">' + L('헤더 1행은 <strong>수수료 고정</strong>·<strong>수수료 %</strong>·<strong>담보율</strong>·<strong>기타</strong> 묶음입니다. <strong>수수료 %</strong> 열은 숫자만 표시(단위 % 생략). 결제·USDT·FX는 승인금액 기준 %이며, <strong>3DS</strong>는 정책통화 기준 <strong>건당 고정</strong>입니다. 담보(롤링) 비율은 승인금액 기준 %입니다. 열이 많아 표에 <strong>최소 너비</strong>를 두었으며, 화면이 좁으면 아래 표 영역을 <strong>가로 스크롤</strong>하여 전체 열을 볼 수 있습니다.') + '</p>' +
-              '<div class="table-responsive border rounded hq-default-comm-policy-scroll">' +
+              '<p class="small text-muted mb-2 mb-md-1" data-pg-ui-html="헤더 1행은 <strong>수수료 고정</strong>·<strong>수수료 %</strong>·<strong>담보율</strong>·<strong>기타</strong> 묶음입니다. <strong>수수료 %</strong> 열은 숫자만 표시(단위 % 생략). 결제·USDT·FX는 승인금액 기준 %이며, <strong>3DS</strong>는 정책통화 기준 <strong>건당 고정</strong>입니다. 담보(롤링) 비율은 승인금액 기준 %입니다. 열이 많아 표에 <strong>최소 너비</strong>를 두었으며, 화면이 좁으면 아래 표 영역을 <strong>가로 스크롤</strong>하여 전체 열을 볼 수 있습니다. 정책 행이 많으면 같은 영역을 <strong>세로 스크롤</strong>하여 G 이후 코드도 확인할 수 있습니다.">' + L('헤더 1행은 <strong>수수료 고정</strong>·<strong>수수료 %</strong>·<strong>담보율</strong>·<strong>기타</strong> 묶음입니다. <strong>수수료 %</strong> 열은 숫자만 표시(단위 % 생략). 결제·USDT·FX는 승인금액 기준 %이며, <strong>3DS</strong>는 정책통화 기준 <strong>건당 고정</strong>입니다. 담보(롤링) 비율은 승인금액 기준 %입니다. 열이 많아 표에 <strong>최소 너비</strong>를 두었으며, 화면이 좁으면 아래 표 영역을 <strong>가로 스크롤</strong>하여 전체 열을 볼 수 있습니다. 정책 행이 많으면 같은 영역을 <strong>세로 스크롤</strong>하여 G 이후 코드도 확인할 수 있습니다.') + '</p>' +
+              '<div class="table-responsive table-scrollable border rounded hq-default-comm-policy-scroll">' +
               '<table class="table table-sm table-hover align-middle mb-0 hq-default-comm-policy-table table-no-col-resize">' +
               '<colgroup>' +
               '<col class="hq-def-comm-col" /><col class="hq-def-comm-col" /><col class="hq-def-comm-col" /><col class="hq-def-comm-col" /><col class="hq-def-comm-col" /><col class="hq-def-comm-col" />' +
@@ -7556,7 +7556,7 @@
         if (cfg.columns && cfg.columns.length > 0) html += renderTableColumnGuide(cfg);
         html += renderTable(cfg, tabId);
         if (!cfg.isDailySummaryScreen) {
-          html += renderPagination(tabId, cfg);
+        html += renderPagination(tabId, cfg);
         }
         if (cfg.hasCommissionHistoryTable) {
           html += '<div class="card mt-4 commission-history-card"><div class="card-header py-2 fw-semibold">' + escUi(L('수수료 변경 히스토리')) + '</div><div class="card-body pt-2">' +

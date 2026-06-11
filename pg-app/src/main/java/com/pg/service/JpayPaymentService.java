@@ -15,6 +15,7 @@ import com.pg.repository.MerchantNotifyUrlRepository;
 import com.pg.repository.MerchantPgBindingRepository;
 import com.pg.repository.OrgUnitRepository;
 import com.pg.repository.PgAgencyRepository;
+import com.pg.util.JpayPayIndexResponseParser;
 import com.pg.util.JpaySignatureUtil;
 import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
@@ -26,9 +27,11 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
+import org.springframework.http.converter.StringHttpMessageConverter;
 import org.springframework.web.client.RestTemplate;
 
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Comparator;
@@ -51,7 +54,8 @@ public class JpayPaymentService {
     private static final ObjectMapper OM = new ObjectMapper();
     private static final DateTimeFormatter APPLY_FMT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
     private static final String DEFAULT_SANDBOX_PAY_INDEX = "https://sandbox.j-pay.net/pay_index";
-    private static final String DEFAULT_LIVE_PAY_INDEX = "https://www.j-pay.net/pay_index";
+    /** 운영 API 호스트 — {@code www.j-pay.net/pay_index} 는 404(마케팅 사이트)이므로 {@code api.j-pay.net} 사용 */
+    private static final String DEFAULT_LIVE_PAY_INDEX = "https://api.j-pay.net/pay_index";
     private static final String DEFAULT_BANK_CODE = "901";
 
     private final MerchantPgBindingRepository merchantPgBindingRepository;
@@ -66,7 +70,7 @@ public class JpayPaymentService {
     private final JpaySubscriptionConfigService jpaySubscriptionConfigService;
     private final MerchantJpaySubscriptionRepository merchantJpaySubscriptionRepository;
     private final PayCardPolicyService payCardPolicyService;
-    private final RestTemplate restTemplate = new RestTemplate();
+    private final RestTemplate restTemplate = createJpayRestTemplate();
 
     public JpayPaymentService(MerchantPgBindingRepository merchantPgBindingRepository,
                               PgAgencyRepository pgAgencyRepository,
@@ -274,17 +278,27 @@ public class JpayPaymentService {
             return out;
         }
 
+        JpayPayIndexResponseParser.Outcome parsed;
         int status = -1;
         String msg = "";
         String url3ds = "";
         try {
-            JsonNode n = OM.readTree(raw.trim().startsWith("{") ? raw : "{}");
-            status = n.path("status").asInt(-1);
-            msg = n.path("msg").asText("");
-            url3ds = n.path("url").asText("");
+            parsed = JpayPayIndexResponseParser.parse(raw);
+            status = parsed.status();
+            msg = parsed.msg();
+            url3ds = parsed.url3ds();
+            if (status == 2 && msg.contains("empty response")) {
+                log.warn("JPAY pay_index 빈 응답 orderNo={} payIndexUrl={}", orderNo, payIndexUrl);
+            } else if (status == 2 && parsed.rawJsonUsed() != null && parsed.rawJsonUsed().contains("status")) {
+                log.warn("JPAY pay_index 실패 orderNo={} status={} msg={}", orderNo, status, msg);
+            } else if (status == 1) {
+                log.info("JPAY pay_index 3DS orderNo={} txnId={} url={}", orderNo, parsed.transactionId(), url3ds);
+            }
         } catch (Exception e) {
+            log.warn("JPAY pay_index 응답 파싱 실패 orderNo={} payIndexUrl={} err={} raw={}",
+                    orderNo, payIndexUrl, e.getMessage(), truncateRaw(raw));
             out.put("success", false);
-            out.put("message", "JPAY 응답 파싱 실패");
+            out.put("message", "JPAY 응답 파싱 실패: " + truncateRaw(raw));
             out.put("rawResponse", raw);
             return out;
         }
@@ -302,6 +316,7 @@ public class JpayPaymentService {
         if (status == 1 && url3ds != null && !url3ds.isBlank()) {
             out.put("redirectUrl", url3ds);
         }
+        putJpayPayIndexExtras(out, parsed);
         out.put("orderNo", orderNo);
         out.put("payIndexUrl", payIndexUrl);
         out.put("rawResponse", raw);
@@ -461,17 +476,19 @@ public class JpayPaymentService {
             return out;
         }
 
+        JpayPayIndexResponseParser.Outcome parsed;
         int status = -1;
         String msg = "";
         String url3ds = "";
         try {
-            JsonNode n = OM.readTree(raw.trim().startsWith("{") ? raw : "{}");
-            status = n.path("status").asInt(-1);
-            msg = n.path("msg").asText("");
-            url3ds = n.path("url").asText("");
+            parsed = JpayPayIndexResponseParser.parse(raw);
+            status = parsed.status();
+            msg = parsed.msg();
+            url3ds = parsed.url3ds();
         } catch (Exception e) {
+            log.warn("JPAY subscription pay_index 응답 파싱 실패 orderNo={} err={}", orderNo, e.getMessage());
             out.put("success", false);
-            out.put("message", "JPAY 응답 파싱 실패");
+            out.put("message", "JPAY 응답 파싱 실패: " + truncateRaw(raw));
             out.put("rawResponse", raw);
             return out;
         }
@@ -487,6 +504,7 @@ public class JpayPaymentService {
         if (status == 1 && url3ds != null && !url3ds.isBlank()) {
             out.put("redirectUrl", url3ds);
         }
+        putJpayPayIndexExtras(out, parsed);
         out.put("orderNo", orderNo);
         out.put("checkoutKind", "SUBSCRIPTION");
         out.put("payIndexUrl", payIndexUrl);
@@ -645,10 +663,45 @@ public class JpayPaymentService {
     private String resolvePayIndexUrl(PgAgency agency) {
         String fromJson = resolveExtraStr(agency, "jpayPayIndexUrl", "");
         if (!fromJson.isBlank()) {
-            return fromJson.trim();
+            return normalizeJpayPayIndexUrl(fromJson.trim(), agency);
+        }
+        String epPay = agency.getEndpointUrlPay();
+        if (epPay != null && !epPay.isBlank()) {
+            return normalizeJpayPayIndexUrl(epPay.trim(), agency);
+        }
+        String legacyEp = agency.getApiEndpoint();
+        if (legacyEp != null && !legacyEp.isBlank()) {
+            return normalizeJpayPayIndexUrl(legacyEp.trim(), agency);
         }
         boolean sand = agency.getSandboxYn() == null || "Y".equalsIgnoreCase(agency.getSandboxYn().trim());
         return sand ? DEFAULT_SANDBOX_PAY_INDEX : DEFAULT_LIVE_PAY_INDEX;
+    }
+
+    /**
+     * 구 {@code www.j-pay.net}(404)·{@code http://} 등 잘못된 운영 URL을 {@link #DEFAULT_LIVE_PAY_INDEX} 로 보정.
+     * 샌드박스 URL({@code sandbox.j-pay.net})은 그대로 둡니다.
+     */
+    private static String normalizeJpayPayIndexUrl(String url, PgAgency agency) {
+        if (url == null || url.isBlank()) {
+            boolean sand = agency == null || agency.getSandboxYn() == null
+                    || "Y".equalsIgnoreCase(agency.getSandboxYn().trim());
+            return sand ? DEFAULT_SANDBOX_PAY_INDEX : DEFAULT_LIVE_PAY_INDEX;
+        }
+        String u = url.trim();
+        String lower = u.toLowerCase(Locale.ROOT);
+        if (lower.contains("sandbox.j-pay.net")) {
+            if (lower.startsWith("http://")) {
+                return "https://" + u.substring(7);
+            }
+            return u;
+        }
+        if (lower.matches("https?://(www\\.)?j-pay\\.net/pay_index/?")) {
+            return DEFAULT_LIVE_PAY_INDEX;
+        }
+        if (lower.startsWith("http://") && lower.contains("j-pay.net")) {
+            return "https://" + u.substring(7);
+        }
+        return u;
     }
 
     private String resolveBankCode(PgAgency agency) {
@@ -824,6 +877,33 @@ public class JpayPaymentService {
                 yield "";
             }
         };
+    }
+
+    private static RestTemplate createJpayRestTemplate() {
+        RestTemplate rt = new RestTemplate();
+        rt.getMessageConverters().removeIf(c -> c instanceof StringHttpMessageConverter);
+        StringHttpMessageConverter utf8 = new StringHttpMessageConverter(StandardCharsets.UTF_8);
+        utf8.setWriteAcceptCharset(false);
+        rt.getMessageConverters().add(0, utf8);
+        return rt;
+    }
+
+    private static String truncateRaw(String raw) {
+        if (raw == null) {
+            return "";
+        }
+        String t = raw.trim();
+        return t.length() > 400 ? t.substring(0, 400) + "…" : t;
+    }
+
+    private static void putJpayPayIndexExtras(Map<String, Object> out, JpayPayIndexResponseParser.Outcome parsed) {
+        if (out == null || parsed == null) {
+            return;
+        }
+        String txnId = parsed.transactionId();
+        if (txnId != null && !txnId.isBlank()) {
+            out.put("jpayTransactionId", txnId);
+        }
     }
 
     private static void copyShippingFromBillingIfAbsent(MultiValueMap<String, String> form) {

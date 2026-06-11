@@ -16266,6 +16266,17 @@
           if (templates.length === 0) emptyEl.classList.remove('d-none');
           else emptyEl.classList.add('d-none');
         }
+        var scrollWrap = tb.closest('.hq-default-comm-policy-scroll');
+        var focusRow = tb.querySelector('tr.table-active') || tb.querySelector('tr.hq-default-comm-policy-row:last-child');
+        if (scrollWrap && focusRow) {
+          setTimeout(function () {
+            try {
+              focusRow.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+            } catch (e1) {
+              focusRow.scrollIntoView(false);
+            }
+          }, 0);
+        }
       }
       function hqDefCommGetCheckedScopes() {
         var out = [];

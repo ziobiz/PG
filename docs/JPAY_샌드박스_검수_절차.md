@@ -191,7 +191,7 @@ curl -sS "https://api.icopay.co.kr/api/middleware/v1/merchant/jpay/inline-checko
 
 | # | 작업 |
 |---|------|
-| 1 | `tb_pg_agency` JPAY 행: 샌드박스 **N**, 운영 `pay_index` `https://www.j-pay.net/pay_index` |
+| 1 | `tb_pg_agency` JPAY 행: 샌드박스 **N**, 운영 `pay_index` `https://api.j-pay.net/pay_index` (`www.j-pay.net` 은 404) |
 | 2 | 가맹 바인딩 MID → **운영 MID** 로 변경 |
 | 3 | J-Pay 운영 ApiKey·IP 등록 |
 | 4 | 소액 실거래 1건 → 노티·가맹 웹훅 멱등 확인 |
