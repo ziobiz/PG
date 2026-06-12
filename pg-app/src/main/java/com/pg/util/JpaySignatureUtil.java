@@ -45,16 +45,47 @@ public final class JpaySignatureUtil {
      * @return 서명 일치 여부
      */
     public static boolean verifyNotifySign(Map<String, String> formFields, String apiKey, String signReceived) {
+        return verifyNotifySign(formFields, apiKey, signReceived, null);
+    }
+
+    /**
+     * @param returnCodeOverride 미들웨어가 {@code returncode} 를 바꿔 보낸 경우 JPAY 원문(예: {@code 00})으로 재검증
+     */
+    public static boolean verifyNotifySign(Map<String, String> formFields, String apiKey, String signReceived,
+                                           String returnCodeOverride) {
         if (signReceived == null || signReceived.isBlank() || apiKey == null) {
             return false;
         }
+        TreeMap<String, String> sorted = buildNotifySignFieldMap(formFields, returnCodeOverride);
+        String expect = md5Upper(buildSignPlain(sorted, apiKey.trim()));
+        return constantTimeEquals(expect, signReceived.trim().toUpperCase(Locale.ROOT));
+    }
+
+    /** 노티미들웨어 보강 필드 제외 후 검증, 필요 시 JPAY 원문 {@code returncode=00} 으로 재시도 */
+    public static boolean verifyNotifySignWithMiddlewareRetry(Map<String, String> formFields, String apiKey,
+                                                              String signReceived) {
+        if (verifyNotifySign(formFields, apiKey, signReceived)) {
+            return true;
+        }
+        if (!JpayNotifyStatusResolver.hasMiddlewareManualFollowup(formFields)) {
+            return false;
+        }
+        return verifyNotifySign(formFields, apiKey, signReceived, "00");
+    }
+
+    private static TreeMap<String, String> buildNotifySignFieldMap(Map<String, String> formFields,
+                                                                   String returnCodeOverride) {
         TreeMap<String, String> sorted = new TreeMap<>();
         for (Map.Entry<String, String> e : formFields.entrySet()) {
             String k = e.getKey();
             if (k == null) {
                 continue;
             }
-            if ("sign".equalsIgnoreCase(k.trim())) {
+            String kl = k.trim().toLowerCase(Locale.ROOT);
+            if ("sign".equals(kl)) {
+                continue;
+            }
+            if (kl.startsWith("_middleware_")) {
                 continue;
             }
             String v = e.getValue();
@@ -63,8 +94,10 @@ public final class JpaySignatureUtil {
             }
             sorted.put(k.trim(), v.trim());
         }
-        String expect = md5Upper(buildSignPlain(sorted, apiKey.trim()));
-        return constantTimeEquals(expect, signReceived.trim().toUpperCase(Locale.ROOT));
+        if (returnCodeOverride != null && !returnCodeOverride.isBlank()) {
+            sorted.put("returncode", returnCodeOverride.trim());
+        }
+        return sorted;
     }
 
     private static String buildSignPlain(TreeMap<String, String> sorted, String apiKey) {

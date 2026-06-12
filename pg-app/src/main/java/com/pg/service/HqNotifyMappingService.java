@@ -18,6 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.pg.entity.PgTrnsctn;
 import com.pg.util.ChillPayNotifyOutcomeAdjust;
+import com.pg.util.JpayNotifyStatusResolver;
 import com.pg.util.NotifyAmountParse;
 import com.pg.util.NotifyChannelMerge;
 import com.pg.util.NotifyToTxnStatusMerge;
@@ -417,7 +418,8 @@ public class HqNotifyMappingService {
         cb.add(mapping("orderid", "orderNo", "주문번호 pay_orderid"));
         cb.add(mapping("amount / true_amount", "chillAmount", "금액"));
         cb.add(mapping("currency", "currency", "통화"));
-        cb.add(mapping("returncode", "chillPaymentStatus", "00 성공 / 2 실패"));
+        cb.add(mapping("returncode", "chillPaymentStatus", "00 성공 / 2 실패 / 09 환불(미들웨어)"));
+        cb.add(mapping("_middleware_manualFollowup", "status", "미들웨어 후속(refund·cancel·void)"));
         cb.add(mapping("email / pay_email_address / customer_email", "customerId", "Customer Email"));
         cb.add(mapping("firstname+lastname / customername", "customerNm", "고객 성명"));
         cb.add(mapping("telephone / phone / pay_telephone", "customerTel", "전화"));
@@ -436,6 +438,8 @@ public class HqNotifyMappingService {
         ObjectNode st = dm.putObject("chillPaymentStatus");
         st.put("00", "JPAY 성공");
         st.put("2", "JPAY 실패");
+        st.put("09", "JPAY 환불");
+        st.put("08", "JPAY 취소");
         st.put("succeeded", "3DS 성공");
         st.put("success", "3DS 성공");
         st.put("fail", "3DS 실패");
@@ -977,7 +981,13 @@ public class HqNotifyMappingService {
         String jsonStatField = extractNotifyStatusCodeField(notifyRoot);
         String payStForInternal = firstNonBlankString(jsonPayStat, mappedPs);
         String statusFieldForInternal = firstNonBlankString(jsonStatField, firstNonBlank(byKey, "status"));
-        String internalComputed = PgNotifyInternalStatusMapper.mapForMappedNotify(
+        String mwFollow = firstNonBlankString(
+                textDeep(notifyRoot, "_middleware_manualFollowup"),
+                textDeep(notifyRoot, "_middleware_manualfollowup"));
+        String jpayResolved = JpayNotifyStatusResolver.resolve(
+                statusFieldForInternal, mwFollow, payStForInternal);
+        String internalComputed = jpayResolved != null ? jpayResolved
+                : PgNotifyInternalStatusMapper.mapForMappedNotify(
                 payStForInternal, statusFieldForInternal, vendorCode);
         String rawPaymentForReclass = firstNonBlankString(jsonPayStat, mappedPs);
         internalComputed = ChillPayNotifyOutcomeAdjust.reclassifyPaymentStatusTwoAfterPaid(

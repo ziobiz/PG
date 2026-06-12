@@ -177,11 +177,9 @@ public final class PgNotifyInternalStatusMapper {
         String vc = vendorCode != null ? vendorCode.trim().toUpperCase(Locale.ROOT) : "";
         if (PgVendor.JPAY.equals(vc) || vc.startsWith(PgVendor.JPAY + "_")) {
             String s = statusField != null ? statusField.trim() : "";
-            if ("00".equals(s)) {
-                return ST_PAID;
-            }
-            if ("2".equals(s)) {
-                return ST_FAIL;
+            String fromRc = JpayNotifyStatusResolver.fromReturnCode(s);
+            if (fromRc != null) {
+                return fromRc;
             }
             String p = paymentStatus != null ? paymentStatus.trim().toLowerCase(Locale.ROOT) : "";
             if ("succeeded".equals(p) || "success".equals(p) || "paid".equals(p)) {

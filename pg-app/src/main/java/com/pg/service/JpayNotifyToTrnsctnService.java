@@ -11,6 +11,7 @@ import com.pg.repository.PgAgencyRepository;
 import com.pg.repository.PgTrnsctnRepository;
 import com.pg.util.JpayBuyerContactApplier;
 import com.pg.util.JpaySignatureUtil;
+import com.pg.util.JpayNotifyStatusResolver;
 import com.pg.util.JpayTransactionIdApplier;
 import com.pg.util.NotifyToTxnStatusMerge;
 import org.slf4j.Logger;
@@ -40,8 +41,8 @@ public class JpayNotifyToTrnsctnService implements PgNotifyInboundTxnHandler {
     private static final Logger log = LoggerFactory.getLogger(JpayNotifyToTrnsctnService.class);
     private static final ObjectMapper MAPPER = new ObjectMapper();
     private static final String ORIGIN_URL = "URL";
-    private static final String ST_PAID = "10";
-    private static final String ST_FAIL = "99";
+    private static final String ST_PAID = JpayNotifyStatusResolver.ST_PAID;
+    private static final String ST_FAIL = JpayNotifyStatusResolver.ST_FAIL;
 
     private final PgTrnsctnRepository pgTrnsctnRepository;
     private final PgAgencyRepository pgAgencyRepository;
@@ -115,7 +116,7 @@ public class JpayNotifyToTrnsctnService implements PgNotifyInboundTxnHandler {
             log.info("JPAY 노티 sign 없음 — 다음 핸들러(노티매핑)로 위임 orderid={} channel={}", orderid, ch);
             return false;
         }
-        if (!JpaySignatureUtil.verifyNotifySign(form, apiKey, sign)) {
+        if (!JpaySignatureUtil.verifyNotifySignWithMiddlewareRetry(form, apiKey, sign)) {
             log.warn("JPAY 노티 서명 불일치 orderid={} channel={} — 노티매핑 핸들러로 위임", orderid, ch);
             return false;
         }
@@ -166,20 +167,17 @@ public class JpayNotifyToTrnsctnService implements PgNotifyInboundTxnHandler {
         }
         t.setNotifyChannelType(ch);
 
-        boolean ok = "00".equals(ret.trim()) || isJpaySuccessPaymentStatus(paySt);
-        String next = ok ? ST_PAID : ST_FAIL;
+        String next = JpayNotifyStatusResolver.resolveFromForm(form);
+        if (next == null || next.isBlank()) {
+            next = ST_FAIL;
+        }
         String merged = NotifyToTxnStatusMerge.merge(t.getStatus(), next, ch);
         if (merged == null || merged.isBlank()) {
             merged = next;
         }
         t.setStatus(merged);
-        t.setChillPaymentStatus(ok ? "JPAY_OK" : ("JPAY_FAIL " + ret).trim());
-        if (ST_PAID.equals(merged)) {
-            ZoneId wall = hqLedgerSysSettingsService.resolveLedgerDisplayZoneId();
-            t.setPaidAt(LocalDateTime.now(wall));
-        } else {
-            t.setPaidAt(null);
-        }
+        t.setChillPaymentStatus(JpayNotifyStatusResolver.chillPaymentStatusLabel(merged, ret));
+        applyPaidAtForNotifyOutcome(t, merged);
         if (t.getSettledYn() == null || t.getSettledYn().isBlank()) {
             t.setSettledYn("N");
         }
@@ -237,18 +235,17 @@ public class JpayNotifyToTrnsctnService implements PgNotifyInboundTxnHandler {
         PgTrnsctn t = ex.get();
         JpayTransactionIdApplier.apply(t, first(form, "transaction_id"));
         t.setNotifyChannelType(ch);
-        boolean ok = "00".equals(ret.trim()) || isJpaySuccessPaymentStatus(paySt);
-        String next = ok ? ST_PAID : ST_FAIL;
+        String next = JpayNotifyStatusResolver.resolve(ret, first(form, "_middleware_manualfollowup"), paySt);
+        if (next == null || next.isBlank()) {
+            next = ST_FAIL;
+        }
         String merged = NotifyToTxnStatusMerge.merge(t.getStatus(), next, ch);
         if (merged == null || merged.isBlank()) {
             merged = next;
         }
         t.setStatus(merged);
-        t.setChillPaymentStatus(ok ? "JPAY_OK" : ("JPAY_FAIL " + firstNonBlank(ret, paySt)).trim());
-        if (ST_PAID.equals(merged)) {
-            ZoneId wall = hqLedgerSysSettingsService.resolveLedgerDisplayZoneId();
-            t.setPaidAt(LocalDateTime.now(wall));
-        }
+        t.setChillPaymentStatus(JpayNotifyStatusResolver.chillPaymentStatusLabel(merged, ret));
+        applyPaidAtForNotifyOutcome(t, merged);
         JpayBuyerContactApplier.mergeFromNotifyForm(t, form);
         pgTrnsctnRepository.save(t);
         if (ST_PAID.equals(merged)) {
@@ -260,6 +257,15 @@ public class JpayNotifyToTrnsctnService implements PgNotifyInboundTxnHandler {
         }
         log.info("JPAY 3DS 동기 복귀 반영 trnId={} merchantId={} orderNo={} paymentStatus={}", t.getTrnId(), merchantId, on, paySt);
         return true;
+    }
+
+    private void applyPaidAtForNotifyOutcome(PgTrnsctn t, String merged) {
+        if (ST_PAID.equals(merged)) {
+            ZoneId wall = hqLedgerSysSettingsService.resolveLedgerDisplayZoneId();
+            t.setPaidAt(LocalDateTime.now(wall));
+        } else if (ST_FAIL.equals(merged) || "08".equals(merged)) {
+            t.setPaidAt(null);
+        }
     }
 
     private static String firstNonBlank(String a, String b) {
