@@ -395,7 +395,7 @@ public class ChillPayNotifyToTrnsctnService implements PgNotifyInboundTxnHandler
         }
         Map<String, String> lm = new LinkedHashMap<>();
         parseFormLowerKeys(formBody, lm);
-        String orderNo = getLoose(lm, "orderno", "order_no", "orderid");
+        String orderNo = getLoose(lm, "orderno", "order_no", "orderid", "order_id");
         String transNo = coalesceNonBlank(
                 getLoose(lm, "transno", "trans_no"),
                 getLoose(lm, "transactionid", "transaction_id"));
@@ -405,6 +405,8 @@ public class ChillPayNotifyToTrnsctnService implements PgNotifyInboundTxnHandler
         ObjectNode n = MAPPER.createObjectNode();
         if (orderNo != null && !orderNo.isBlank()) {
             n.put("OrderNo", orderNo.trim());
+            n.put("orderID", orderNo.trim());
+            n.put("orderid", orderNo.trim());
         }
         if (transNo != null && !transNo.isBlank()) {
             n.put("TransactionId", transNo.trim());

@@ -64,6 +64,14 @@ public class PgTrnsctn {
     @Column(name = "customer_nm", length = 200)
     private String customerNm;
 
+    /** JPAY·URL 결제 구매자 전화(로컬 번호). ChillPay 노티에는 없음. */
+    @Column(name = "customer_tel", length = 50)
+    private String customerTel;
+
+    /** JPAY 등 — 마스킹 카드번호(414520***8306). 평문 PAN 저장 금지. */
+    @Column(name = "card_pan_display", length = 32)
+    private String cardPanDisplay;
+
     /** ChillPay Payment Channel (channelCode 등) */
     @Column(name = "payment_channel", length = 80)
     private String paymentChannel;
@@ -155,6 +163,10 @@ public class PgTrnsctn {
     public void setCustomerId(String customerId) { this.customerId = customerId; }
     public String getCustomerNm() { return customerNm; }
     public void setCustomerNm(String customerNm) { this.customerNm = customerNm; }
+    public String getCustomerTel() { return customerTel; }
+    public void setCustomerTel(String customerTel) { this.customerTel = customerTel; }
+    public String getCardPanDisplay() { return cardPanDisplay; }
+    public void setCardPanDisplay(String cardPanDisplay) { this.cardPanDisplay = cardPanDisplay; }
     public String getPaymentChannel() { return paymentChannel; }
     public void setPaymentChannel(String paymentChannel) { this.paymentChannel = paymentChannel; }
     public LocalDateTime getPaidAt() { return paidAt; }

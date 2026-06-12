@@ -74,6 +74,7 @@ public class PayListItemDto {
         row.put("chillTransactionId", chillTxnIdLabel(t));
         /** 하위 호환: 예전 단일 컬럼명 — 칠페이 쪽 ID만 의미 (우리 trnId는 trnId 사용) */
         row.put("transactionId", row.get("chillTransactionId"));
+        row.put("approvalNo", resolveApprovalNoForDisplay(t));
         row.put("chillCustomer", chillCustomerLabel(t));
         row.put("orderNo", orderNoLabel(t));
         row.put("paymentChannel", blank(t.getPaymentChannel()));
@@ -102,7 +103,7 @@ public class PayListItemDto {
         row.put("payProcNm", payProcLabel(effStatus));
         row.put("payCard", "-");
         row.put("cardAprvNo", resolveApprovalNoForDisplay(t));
-        row.put("payCardNo", "-");
+        row.put("payCardNo", payerCardPanDisplay(t));
         row.put("instalMonth", b != null && b.getMaxInstallmentMonths() != null ? String.valueOf(b.getMaxInstallmentMonths()) : "0");
         row.put("payMethod", b != null && b.getPayMethod() != null ? b.getPayMethod() : "카드");
         row.put("corpNm", compNm);
@@ -199,8 +200,9 @@ public class PayListItemDto {
         row.put("productNm", mp != null && mp.getProduct() != null ? mp.getProduct() : "-");
         /** 가맹점의 결제 고객(칠페이 customer 등). 가맹 대표자(CEO)와 구분 */
         row.put("customerNm", payerDisplayName(t));
-        /** 결제자 연락처 — 거래에 없으면 '-' (가맹 대표 휴대폰과 별도) */
-        row.put("customerTel", payerTelPlaceholder());
+        row.put("customerEmail", payerEmailDisplay(t));
+        /** 결제자 연락처 — JPAY pay_telephone 등 */
+        row.put("customerTel", payerTelDisplay(t));
 
         row.put("regionalNm", ctx != null ? ctx.getRegionalNm() : "");
         row.put("masterNm", ctx != null ? ctx.getMasterNm() : "");
@@ -446,19 +448,33 @@ public class PayListItemDto {
         return hasId ? id.trim() : nm.trim();
     }
 
-    /** 그리드 고객명 — 결제자 이름 우선, 없으면 고객 ID */
+    /** 그리드 고객명 — 결제자 이름만 (이메일은 customerEmail) */
     private static String payerDisplayName(PgTrnsctn t) {
         if (t.getCustomerNm() != null && !t.getCustomerNm().isBlank()) {
             return t.getCustomerNm().trim();
         }
-        if (t.getCustomerId() != null && !t.getCustomerId().isBlank()) {
-            return t.getCustomerId().trim();
+        return "-";
+    }
+
+    private static String payerEmailDisplay(PgTrnsctn t) {
+        String id = t.getCustomerId();
+        if (id == null || id.isBlank() || "guest".equalsIgnoreCase(id.trim())) {
+            return "-";
+        }
+        return id.trim();
+    }
+
+    private static String payerTelDisplay(PgTrnsctn t) {
+        if (t.getCustomerTel() != null && !t.getCustomerTel().isBlank()) {
+            return t.getCustomerTel().trim();
         }
         return "-";
     }
 
-    /** 향후 거래 단위 결제자 연락처 컬럼 연동 시 확장 */
-    private static String payerTelPlaceholder() {
+    private static String payerCardPanDisplay(PgTrnsctn t) {
+        if (t.getCardPanDisplay() != null && !t.getCardPanDisplay().isBlank()) {
+            return t.getCardPanDisplay().trim();
+        }
         return "-";
     }
 

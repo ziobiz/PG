@@ -5,6 +5,7 @@ import com.pg.entity.PgTrnsctn;
 import com.pg.integration.pg.PgVendor;
 import com.pg.repository.MerchantJpaySubscriptionRepository;
 import com.pg.repository.PgTrnsctnRepository;
+import com.pg.util.JpayTransactionIdApplier;
 import com.pg.util.NotifyToTxnStatusMerge;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -92,10 +93,7 @@ public class JpaySubscriptionNotifyService {
         t.setVan(PgVendor.JPAY.length() > 10 ? PgVendor.JPAY.substring(0, 10) : PgVendor.JPAY);
         t.setOrderNo(txnOrderNo);
         t.setPayNo(txnOrderNo.length() > 50 ? txnOrderNo.substring(0, 50) : txnOrderNo);
-        String txnId = first(form, "transaction_id");
-        if (!txnId.isBlank()) {
-            t.setChillTransactionId(txnId.length() > 64 ? txnId.substring(0, 64) : txnId.trim());
-        }
+        JpayTransactionIdApplier.apply(t, first(form, "transaction_id"));
         String amtStr = first(form, "true_amount");
         if (amtStr.isBlank()) {
             amtStr = first(form, "amount");

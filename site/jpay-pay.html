@@ -360,6 +360,25 @@
         } catch (e) { return ''; }
       }
 
+      /** pay-result 확인 → jpay-pay(가맹 설정 1·2·3형) 복귀용 */
+      function storePayReturnContext(compId) {
+        if (!compId) return;
+        try {
+          sessionStorage.setItem('pg_pay_return_m', String(compId));
+          sessionStorage.setItem('pg_pay_return_page', 'jpay-pay');
+          var p = new URLSearchParams(location.search || '');
+          var keep = ['entry', 'embed', 'session'];
+          var out = new URLSearchParams();
+          keep.forEach(function (k) {
+            var v = p.get(k);
+            if (v != null && String(v).trim() !== '') out.set(k, v);
+          });
+          var qs = out.toString();
+          if (qs) sessionStorage.setItem('pg_pay_return_qs', qs);
+          else sessionStorage.removeItem('pg_pay_return_qs');
+        } catch (eSt) { /* ignore */ }
+      }
+
       function apiUrl(path, qs) {
         return API_BASE + path + (qs ? ('?' + qs) : '');
       }
@@ -637,6 +656,7 @@
         }
         var compId = getCompId();
         if (!compId) { showErr(t('errMerchant')); return; }
+        storePayReturnContext(compId);
         document.getElementById('compIdHidden').value = compId;
         if (PAY_EMBED_MODE) {
           var brand = document.getElementById('jpayBrandBlock');
@@ -778,6 +798,11 @@
           var redirectUrl = jpayResolveRedirectUrl(d);
           if (redirectUrl && (st === 1 || st < 0)) {
             notifyParent({ phase: 'wait_authorize', success: true, orderNo: body.orderNo, paymentUrl: redirectUrl, pgVendor: 'JPAY' });
+            try {
+              storePayReturnContext(compId);
+              sessionStorage.setItem('pg_pay_pending_order', body.orderNo || '');
+              sessionStorage.removeItem('pg_pay_pending_txn');
+            } catch (eSt3) { /* ignore */ }
             location.href = redirectUrl;
             return;
           }

@@ -1784,6 +1784,8 @@
         bootCompId = compId;
         try {
           sessionStorage.setItem('pg_pay_return_m', compId);
+          sessionStorage.setItem('pg_pay_return_page', 'pay');
+          sessionStorage.removeItem('pg_pay_return_qs');
         } catch (eStM) { /* ignore */ }
         var mnEarly = document.getElementById('merchantNameDisplay');
         if (mnEarly) mnEarly.textContent = compId;
@@ -1910,6 +1912,8 @@
               });
               try {
                 sessionStorage.setItem('pg_pay_return_m', fd.compId || '');
+                sessionStorage.setItem('pg_pay_return_page', 'pay');
+                sessionStorage.removeItem('pg_pay_return_qs');
                 sessionStorage.setItem('pg_pay_pending_order', ord);
                 var tx0 = d.transactionId != null && d.transactionId !== '' ? String(d.transactionId)
                   : (d.TransactionId != null && d.TransactionId !== '' ? String(d.TransactionId) : '');

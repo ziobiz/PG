@@ -5,6 +5,8 @@ import com.pg.entity.OrgUnit;
 import com.pg.entity.PgTrnsctn;
 import com.pg.repository.OrgUnitRepository;
 import com.pg.repository.PgTrnsctnRepository;
+import com.pg.util.JpayBuyerContactApplier;
+import com.pg.util.JpayTransactionIdApplier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -14,6 +16,7 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -70,9 +73,24 @@ public class JpaySaleRecordService {
                                      String txnOrigin,
                                      BigDecimal shopperDisplayAmount,
                                      String shopperDisplayCurrency) {
+        recordOrTouchPending(orgUnitId, orderNo, amount, currency, routeNo, customerHint, productName, txnOrigin,
+                shopperDisplayAmount, shopperDisplayCurrency, null);
+    }
+
+    public void recordOrTouchPending(Long orgUnitId,
+                                     String orderNo,
+                                     BigDecimal amount,
+                                     String currency,
+                                     int routeNo,
+                                     String customerHint,
+                                     String productName,
+                                     String txnOrigin,
+                                     BigDecimal shopperDisplayAmount,
+                                     String shopperDisplayCurrency,
+                                     Map<String, Object> saleBody) {
         try {
             doRecord(orgUnitId, orderNo, amount, currency, routeNo, customerHint, productName, txnOrigin,
-                    shopperDisplayAmount, shopperDisplayCurrency);
+                    shopperDisplayAmount, shopperDisplayCurrency, saleBody);
         } catch (Exception e) {
             log.warn("JPAY sale 거래 적재(대기) 실패: {}", e.getMessage());
         }
@@ -87,7 +105,8 @@ public class JpaySaleRecordService {
                           String productName,
                           String txnOrigin,
                           BigDecimal shopperDisplayAmount,
-                          String shopperDisplayCurrency) {
+                          String shopperDisplayCurrency,
+                          Map<String, Object> saleBody) {
         if (orgUnitId == null || orderNo == null || orderNo.isBlank()) {
             return;
         }
@@ -126,6 +145,9 @@ public class JpaySaleRecordService {
         t.setRouteNo(String.valueOf(routeNo));
         String cid = customerHint != null && !customerHint.isBlank() ? customerHint.trim() : "guest";
         t.setCustomerId(cid.length() > 100 ? cid.substring(0, 100) : cid);
+        if (saleBody != null && !saleBody.isEmpty()) {
+            JpayBuyerContactApplier.applyFromSaleBody(t, saleBody);
+        }
         String desc = "JPAY_URL";
         if (productName != null && !productName.isBlank()) {
             desc = desc + " " + productName.trim();
@@ -146,11 +168,38 @@ public class JpaySaleRecordService {
 
     @Transactional
     public void applySyncApiOutcome(String merchantId, String orderNo, int status, String msg) {
-        applySyncApiOutcome(merchantId, orderNo, status, msg, null);
+        applySyncApiOutcome(merchantId, orderNo, status, msg, null, null);
     }
 
     @Transactional
     public void applySyncApiOutcome(String merchantId, String orderNo, int status, String msg, String txnOrigin) {
+        applySyncApiOutcome(merchantId, orderNo, status, msg, txnOrigin, null);
+    }
+
+    /** pay_index·노티의 JPAY {@code transaction_id} 를 승인번호로 반영(3DS 대기 중에도 표시). */
+    @Transactional
+    public void applyJpayTransactionId(String merchantId, String orderNo, String transactionId, String txnOrigin) {
+        if (merchantId == null || merchantId.isBlank() || orderNo == null || orderNo.isBlank()
+                || transactionId == null || transactionId.isBlank()) {
+            return;
+        }
+        try {
+            String on = orderNo.trim();
+            Optional<PgTrnsctn> ex = findTxnForOrder(merchantId.trim(), on, txnOrigin);
+            if (ex.isEmpty()) {
+                return;
+            }
+            PgTrnsctn t = ex.get();
+            JpayTransactionIdApplier.apply(t, transactionId);
+            pgTrnsctnRepository.save(t);
+        } catch (Exception e) {
+            log.warn("JPAY transaction_id 반영 실패: {}", e.getMessage());
+        }
+    }
+
+    @Transactional
+    public void applySyncApiOutcome(String merchantId, String orderNo, int status, String msg, String txnOrigin,
+                                    String jpayTransactionId) {
         if (merchantId == null || merchantId.isBlank() || orderNo == null || orderNo.isBlank()) {
             return;
         }
@@ -173,6 +222,7 @@ public class JpaySaleRecordService {
                 String m = msg != null ? msg.trim() : "FAIL";
                 t.setChillPaymentStatus(truncate(m, 50));
             }
+            JpayTransactionIdApplier.apply(t, jpayTransactionId);
             /* status==1 (3DS): pending 유지 */
             pgTrnsctnRepository.save(t);
             if (status == 0 && t.getMerchantId() != null && !t.getMerchantId().isBlank()) {

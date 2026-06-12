@@ -9,7 +9,9 @@ import com.pg.entity.PgNotifyInbound;
 import com.pg.entity.PgTrnsctn;
 import com.pg.repository.PgAgencyRepository;
 import com.pg.repository.PgTrnsctnRepository;
+import com.pg.util.JpayBuyerContactApplier;
 import com.pg.util.JpaySignatureUtil;
+import com.pg.util.JpayTransactionIdApplier;
 import com.pg.util.NotifyToTxnStatusMerge;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -84,6 +86,10 @@ public class JpayNotifyToTrnsctnService implements PgNotifyInboundTxnHandler {
             return false;
         }
         Map<String, String> form = parseJpayNotifyFields(raw.trim());
+        String ch = notifyChannel == null || notifyChannel.isBlank() ? "CALLBACK" : notifyChannel.trim().toUpperCase(Locale.ROOT);
+        if ("RESULT".equals(ch) && applyJpaySyncResultIfMinimal(in, form, ch)) {
+            return true;
+        }
         if (!looksLikeJpayServerNotify(form)) {
             return false;
         }
@@ -103,7 +109,6 @@ public class JpayNotifyToTrnsctnService implements PgNotifyInboundTxnHandler {
         PgAgency ag = agOpt.get();
         String apiKey = ag.getApiKey() != null ? ag.getApiKey().trim() : "";
         String sign = first(form, "sign");
-        String ch = notifyChannel == null || notifyChannel.isBlank() ? "CALLBACK" : notifyChannel.trim().toUpperCase(Locale.ROOT);
         boolean resultChannel = "RESULT".equals(ch);
         if (apiKey.isEmpty() || sign.isBlank()) {
             /* 3DS 동기 복귀(rsJpay)는 sign 없음 — ChillPay 노티매핑(RESULT·paymentStatus)으로 위임 */
@@ -111,16 +116,13 @@ public class JpayNotifyToTrnsctnService implements PgNotifyInboundTxnHandler {
             return false;
         }
         if (!JpaySignatureUtil.verifyNotifySign(form, apiKey, sign)) {
-            log.warn("JPAY 노티 서명 불일치 orderid={} channel={}", orderid, ch);
-            if (resultChannel) {
-                return false;
-            }
-            return true;
+            log.warn("JPAY 노티 서명 불일치 orderid={} channel={} — 노티매핑 핸들러로 위임", orderid, ch);
+            return false;
         }
-        String merchantId = in.getMerchantId();
+        String merchantId = resolveMerchantIdForNotify(in, orderid);
         if (merchantId == null || merchantId.isBlank()) {
-            log.warn("JPAY 노티 가맹점 미해석 orderid={}", orderid);
-            return true;
+            log.warn("JPAY 노티 가맹점 미해석 orderid={} — 노티매핑 핸들러로 위임", orderid);
+            return false;
         }
         if (jpaySubscriptionNotifyService.isSubscriptionNotify(form)) {
             jpaySubscriptionNotifyService.applySubscriptionNotify(merchantId.trim(), form, notifyChannel);
@@ -142,10 +144,7 @@ public class JpayNotifyToTrnsctnService implements PgNotifyInboundTxnHandler {
         t.setVan(PgVendor.JPAY.length() > 10 ? PgVendor.JPAY.substring(0, 10) : PgVendor.JPAY);
         t.setOrderNo(on);
         t.setPayNo(on.length() > 50 ? on.substring(0, 50) : on);
-        if (txnId != null && !txnId.isBlank()) {
-            String tid = txnId.trim();
-            t.setChillTransactionId(tid.length() > 64 ? tid.substring(0, 64) : tid);
-        }
+        JpayTransactionIdApplier.apply(t, txnId);
         String amtStr = first(form, "true_amount");
         if (amtStr.isBlank()) {
             amtStr = first(form, "amount");
@@ -192,6 +191,7 @@ public class JpayNotifyToTrnsctnService implements PgNotifyInboundTxnHandler {
             String r = in.getRootNo().trim();
             t.setRouteNo(r.length() > 32 ? r.substring(0, 32) : r);
         }
+        JpayBuyerContactApplier.mergeFromNotifyForm(t, form);
 
         pgTrnsctnRepository.save(t);
         if (ST_PAID.equals(merged) && t.getMerchantId() != null && !t.getMerchantId().isBlank()) {
@@ -203,6 +203,93 @@ public class JpayNotifyToTrnsctnService implements PgNotifyInboundTxnHandler {
         }
         log.info("JPAY 노티 반영 trnId={} merchantId={} orderNo={} returncode={}", t.getTrnId(), merchantId, on, ret);
         return true;
+    }
+
+    /**
+     * 3DS 동기 복귀(rsJpay) — {@code paymentStatus=succeeded&orderID=…} 처럼 memberid·sign 없이 오는 경우.
+     * {@link PgNotifyReceiveService} 가 기존 URL 결제 행으로 가맹점을 해석한 뒤({@code PARSED}) 호출됩니다.
+     */
+    private boolean applyJpaySyncResultIfMinimal(PgNotifyInbound in, Map<String, String> form, String ch) {
+        if (!first(form, "memberid").isBlank()) {
+            return false;
+        }
+        String merchantId = in.getMerchantId();
+        if (merchantId == null || merchantId.isBlank()) {
+            return false;
+        }
+        String orderid = first(form, "orderid");
+        if (orderid.isBlank()) {
+            return false;
+        }
+        String ret = first(form, "returncode");
+        String paySt = first(form, "paymentstatus");
+        if (ret.isBlank() && paySt.isBlank()) {
+            return false;
+        }
+        String on = orderid.trim();
+        if (on.length() > 64) {
+            on = on.substring(0, 64);
+        }
+        Optional<PgTrnsctn> ex = findJpayTxn(merchantId.trim(), on);
+        if (ex.isEmpty()) {
+            return false;
+        }
+        PgTrnsctn t = ex.get();
+        JpayTransactionIdApplier.apply(t, first(form, "transaction_id"));
+        t.setNotifyChannelType(ch);
+        boolean ok = "00".equals(ret.trim()) || isJpaySuccessPaymentStatus(paySt);
+        String next = ok ? ST_PAID : ST_FAIL;
+        String merged = NotifyToTxnStatusMerge.merge(t.getStatus(), next, ch);
+        if (merged == null || merged.isBlank()) {
+            merged = next;
+        }
+        t.setStatus(merged);
+        t.setChillPaymentStatus(ok ? "JPAY_OK" : ("JPAY_FAIL " + firstNonBlank(ret, paySt)).trim());
+        if (ST_PAID.equals(merged)) {
+            ZoneId wall = hqLedgerSysSettingsService.resolveLedgerDisplayZoneId();
+            t.setPaidAt(LocalDateTime.now(wall));
+        }
+        JpayBuyerContactApplier.mergeFromNotifyForm(t, form);
+        pgTrnsctnRepository.save(t);
+        if (ST_PAID.equals(merged)) {
+            try {
+                settlementCalcService.triggerRealtimeAutoSettlementIfDue(t.getMerchantId().trim(), t);
+            } catch (Exception rtEx) {
+                log.warn("실시간 자동정산 트리거 실패 merchantId={}: {}", t.getMerchantId(), rtEx.getMessage());
+            }
+        }
+        log.info("JPAY 3DS 동기 복귀 반영 trnId={} merchantId={} orderNo={} paymentStatus={}", t.getTrnId(), merchantId, on, paySt);
+        return true;
+    }
+
+    private static String firstNonBlank(String a, String b) {
+        if (a != null && !a.isBlank()) {
+            return a.trim();
+        }
+        if (b != null && !b.isBlank()) {
+            return b.trim();
+        }
+        return "";
+    }
+
+    private String resolveMerchantIdForNotify(PgNotifyInbound in, String orderid) {
+        String merchantId = in != null && in.getMerchantId() != null ? in.getMerchantId().trim() : "";
+        if (!merchantId.isBlank()) {
+            return merchantId;
+        }
+        if (orderid == null || orderid.isBlank()) {
+            return "";
+        }
+        String on = orderid.trim();
+        Optional<PgTrnsctn> url = pgTrnsctnRepository.findFirstByOrderNoAndOriginOrderByCreatedAtDesc(on, ORIGIN_URL);
+        if (url.isPresent() && url.get().getMerchantId() != null && !url.get().getMerchantId().isBlank()) {
+            return url.get().getMerchantId().trim();
+        }
+        Optional<PgTrnsctn> api = pgTrnsctnRepository.findFirstByOrderNoAndOriginOrderByCreatedAtDesc(on, "MERCHANT_API");
+        if (api.isPresent() && api.get().getMerchantId() != null && !api.get().getMerchantId().isBlank()) {
+            return api.get().getMerchantId().trim();
+        }
+        return "";
     }
 
     private Optional<PgTrnsctn> findJpayTxn(String merchantId, String orderNo) {

@@ -262,7 +262,8 @@ public class JpayPaymentService {
                 str(body.get("item")),
                 resolveTxnOrigin(str(body.get("txnOrigin"))),
                 shopperDisplayAmt,
-                shopperDisplayCur);
+                shopperDisplayCur,
+                body);
 
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
@@ -306,8 +307,13 @@ public class JpayPaymentService {
         /* compId for sync outcome — resolve from org */
         String midCode = resolveMerchantCode(orgUnitId);
 
+        String jpayTxnId = parsed.transactionId();
+        if (jpayTxnId != null && !jpayTxnId.isBlank()) {
+            jpaySaleRecordService.applyJpayTransactionId(midCode, orderNo, jpayTxnId,
+                    resolveTxnOrigin(str(body.get("txnOrigin"))));
+        }
         if (status == 0 || status == 2) {
-            jpaySaleRecordService.applySyncApiOutcome(midCode, orderNo, status, msg);
+            jpaySaleRecordService.applySyncApiOutcome(midCode, orderNo, status, msg, null, jpayTxnId);
         }
 
         out.put("success", true);
@@ -460,7 +466,10 @@ public class JpayPaymentService {
         jpaySaleRecordService.recordOrTouchPending(orgUnitId, orderNo, amountBd, currency, routeNo,
                 str(body.get("payEmailAddress")),
                 str(body.get("item")),
-                "SUBSCRIPTION");
+                "SUBSCRIPTION",
+                null,
+                null,
+                body);
 
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
@@ -494,8 +503,12 @@ public class JpayPaymentService {
         }
 
         String midCode = resolveMerchantCode(orgUnitId);
+        String jpaySubTxnId = parsed.transactionId();
+        if (jpaySubTxnId != null && !jpaySubTxnId.isBlank()) {
+            jpaySaleRecordService.applyJpayTransactionId(midCode, orderNo, jpaySubTxnId, "SUBSCRIPTION");
+        }
         if (status == 0 || status == 2) {
-            jpaySaleRecordService.applySyncApiOutcome(midCode, orderNo, status, msg, "SUBSCRIPTION");
+            jpaySaleRecordService.applySyncApiOutcome(midCode, orderNo, status, msg, "SUBSCRIPTION", jpaySubTxnId);
         }
 
         out.put("success", true);

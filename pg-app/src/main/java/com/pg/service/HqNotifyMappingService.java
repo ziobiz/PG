@@ -413,14 +413,23 @@ public class HqNotifyMappingService {
         ArrayNode channels = v.putArray("channels");
         ArrayNode cb = objectMapper.createArrayNode();
         cb.add(mapping("transaction_id", "chillTransactionId", "JPAY transaction_id → 승인번호(그리드)"));
+        cb.add(mapping("transaction_id", "cardAprvNo", "JPAY transaction_id → 승인번호(cardAprvNo)"));
         cb.add(mapping("orderid", "orderNo", "주문번호 pay_orderid"));
         cb.add(mapping("amount / true_amount", "chillAmount", "금액"));
         cb.add(mapping("currency", "currency", "통화"));
         cb.add(mapping("returncode", "chillPaymentStatus", "00 성공 / 2 실패"));
+        cb.add(mapping("email / pay_email_address / customer_email", "customerId", "Customer Email"));
+        cb.add(mapping("firstname+lastname / customername", "customerNm", "고객 성명"));
+        cb.add(mapping("telephone / phone / pay_telephone", "customerTel", "전화"));
+        cb.add(mapping("cardno / pay_cardno / card_number", "cardPanDisplay", "마스킹 카드번호"));
         channels.add(buildChannel("CALLBACK", "CALLBACK (서버 노티)", "/calc/payList", "통합 결제내역", cb));
         ArrayNode rs = objectMapper.createArrayNode();
         rs.add(mapping("orderID / orderid", "orderNo", "3DS 동기 리턴"));
         rs.add(mapping("paymentStatus", "chillPaymentStatus", "succeeded 등"));
+        rs.add(mapping("email / pay_email_address", "customerId", "Customer Email"));
+        rs.add(mapping("firstname+lastname", "customerNm", "고객 성명"));
+        rs.add(mapping("telephone / phone", "customerTel", "전화"));
+        rs.add(mapping("cardno / pay_cardno", "cardPanDisplay", "마스킹 카드"));
         channels.add(buildChannel("RESULT", "RESULT (브라우저 리다이렉트·클라이언트)", "/pay/pay.html", "결제(리다이렉트) 화면", rs));
         channels.add(buildChannel("RETURN", "RETURN (동기 응답·return_url 등)", "", "", objectMapper.createArrayNode()));
         ObjectNode dm = objectMapper.createObjectNode();
@@ -898,6 +907,7 @@ public class HqNotifyMappingService {
         }
         if (chillTxn != null && !chillTxn.isBlank()) {
             t.setChillTransactionId(truncate(chillTxn, 64));
+            t.setApprovalNo(truncate(chillTxn, 20));
         }
 
         String custId = firstNonBlank(byKey, "customerId");
@@ -909,6 +919,9 @@ public class HqNotifyMappingService {
         }
         if (custId != null && !custId.isBlank()) {
             t.setCustomerId(truncate(custId, 100));
+        } else if (existingOpt.isPresent() && existingOpt.get().getCustomerId() != null
+                && !"guest".equalsIgnoreCase(existingOpt.get().getCustomerId().trim())) {
+            t.setCustomerId(existingOpt.get().getCustomerId());
         } else {
             t.setCustomerId("guest");
         }
@@ -918,6 +931,23 @@ public class HqNotifyMappingService {
         }
         if (custNm != null && !custNm.isBlank()) {
             t.setCustomerNm(truncate(custNm, 200));
+        } else if (existingOpt.isPresent() && existingOpt.get().getCustomerNm() != null) {
+            t.setCustomerNm(existingOpt.get().getCustomerNm());
+        }
+        String custTel = firstNonBlank(byKey, "customerTel");
+        if (custTel != null && !custTel.isBlank()) {
+            t.setCustomerTel(truncate(custTel, 50));
+        } else if (existingOpt.isPresent() && existingOpt.get().getCustomerTel() != null) {
+            t.setCustomerTel(existingOpt.get().getCustomerTel());
+        }
+        String cardPan = firstNonBlank(byKey, "cardPanDisplay");
+        if (cardPan != null && !cardPan.isBlank()) {
+            String masked = com.pg.util.JpayCardPanMaskUtil.normalizeDisplay(cardPan);
+            if (masked != null && !masked.isBlank()) {
+                t.setCardPanDisplay(truncate(masked, 32));
+            }
+        } else if (existingOpt.isPresent() && existingOpt.get().getCardPanDisplay() != null) {
+            t.setCardPanDisplay(existingOpt.get().getCardPanDisplay());
         }
         String pch = firstNonBlank(byKey, "paymentChannel");
         if (pch != null) {

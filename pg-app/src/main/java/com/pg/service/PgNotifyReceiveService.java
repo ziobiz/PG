@@ -1195,7 +1195,7 @@ public class PgNotifyReceiveService {
         if (body.isBlank() || body.trim().startsWith("{")) {
             return false;
         }
-        String orderNo = firstNonBlank(p.orderNo, extractFormFieldLoose(body, "orderNo", "orderno", "order_no"));
+        String orderNo = firstNonBlank(p.orderNo, extractFormFieldLoose(body, "orderNo", "orderno", "order_no", "orderid", "orderID"));
         if (orderNo == null || orderNo.isBlank()) {
             return false;
         }

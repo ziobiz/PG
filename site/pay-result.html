@@ -385,12 +385,55 @@
           return '';
         }
       }
+      function resolveReturnPageKind() {
+        try {
+          var qp = new URLSearchParams(window.location.search || '');
+          var ck = norm(qp.get('checkout') || qp.get('from') || '').toLowerCase();
+          if (ck === 'jpay-pay' || ck === 'jpay') return 'jpay-pay';
+        } catch (eQ) { /* ignore */ }
+        try {
+          var kind = sessionStorage.getItem('pg_pay_return_page');
+          if (kind) return String(kind).trim().toLowerCase();
+        } catch (eS) { /* ignore */ }
+        return 'pay';
+      }
+      function readStoredReturnQuery() {
+        try {
+          var raw = sessionStorage.getItem('pg_pay_return_qs');
+          return raw ? String(raw) : '';
+        } catch (e) {
+          return '';
+        }
+      }
       function goPayReset() {
         var mid = resolveResetMerchantM();
+        var pageKind = resolveReturnPageKind();
+        var extraQs = readStoredReturnQuery();
+        if (pageKind === 'jpay-pay' && mid) {
+          try {
+            var u = new URL('/jpay-pay/' + encodeURIComponent(mid), window.location.origin);
+            u.searchParams.set('lang', LANG);
+            if (extraQs) {
+              var extra = new URLSearchParams(extraQs);
+              extra.forEach(function (v, k) {
+                var kl = String(k || '').toLowerCase();
+                if (kl === 'm' || kl === 'compid' || kl === 'lang') return;
+                u.searchParams.set(k, v);
+              });
+            }
+            window.location.href = u.pathname + (u.search ? u.search : '');
+            return;
+          } catch (eJ) {
+            window.location.href = 'jpay-pay.html?m=' + encodeURIComponent(mid)
+              + '&lang=' + encodeURIComponent(LANG)
+              + (extraQs ? ('&' + extraQs) : '');
+            return;
+          }
+        }
         try {
           var qs = mid ? ('m=' + encodeURIComponent(mid) + '&lang=' + encodeURIComponent(LANG)) : ('lang=' + encodeURIComponent(LANG));
-          var u = new URL('pay.html?' + qs, window.location.href).href;
-          window.location.href = u;
+          var uPay = new URL('pay.html?' + qs, window.location.href).href;
+          window.location.href = uPay;
         } catch (eU) {
           window.location.href = mid
             ? ('pay.html?m=' + encodeURIComponent(mid) + '&lang=' + encodeURIComponent(LANG))

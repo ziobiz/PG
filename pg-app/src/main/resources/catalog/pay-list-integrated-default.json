@@ -61,11 +61,12 @@
     { "key": "calcDt", "label": "지급일시", "visible": true, "order": 45 },
     { "key": "pgApproveNo", "label": "PG승인번호", "visible": true, "order": 46 },
     { "key": "productNm", "label": "구매상품", "visible": true, "order": 47 },
-    { "key": "customerNm", "label": "고객명(결제자)", "visible": true, "order": 48 },
-    { "key": "customerTel", "label": "휴대폰(결제자)", "visible": true, "order": 49 },
-    { "key": "regionalNm", "label": "총판", "visible": true, "order": 50 },
-    { "key": "masterNm", "label": "지사", "visible": true, "order": 51 },
-    { "key": "branchNm", "label": "대리점", "visible": true, "order": 52 },
-    { "key": "payActions", "label": "후속조치", "visible": true, "order": 53 }
+    { "key": "customerEmail", "label": "고객이메일", "visible": true, "order": 48 },
+    { "key": "customerNm", "label": "고객명(결제자)", "visible": true, "order": 49 },
+    { "key": "customerTel", "label": "휴대폰(결제자)", "visible": true, "order": 50 },
+    { "key": "regionalNm", "label": "총판", "visible": true, "order": 51 },
+    { "key": "masterNm", "label": "지사", "visible": true, "order": 52 },
+    { "key": "branchNm", "label": "대리점", "visible": true, "order": 53 },
+    { "key": "payActions", "label": "후속조치", "visible": true, "order": 54 }
   ]
 }
