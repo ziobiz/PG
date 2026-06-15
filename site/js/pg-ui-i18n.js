@@ -2179,17 +2179,17 @@
       CH: '用于 J-Pay pay_index 的 pay_notifyurl·pay_callbackurl。请登记通知中间件的商户接收 URL。留空则使用 ICOPAY ingress(cbJpay/rsJpay) 默认值。',
       TH: 'ใช้เป็น pay_notifyurl และ pay_callbackurl ใน J-Pay pay_index ลงทะเบียน URL รับของร้านที่ notify middleware ว่างไว้ใช้ค่าเริ่มต้น ICOPAY ingress (cbJpay/rsJpay)'
     },
-    'Notify (pay_notifyurl)': {
-      EN: 'Notify (pay_notifyurl)',
-      JP: 'Notify (pay_notifyurl)',
-      CH: 'Notify (pay_notifyurl)',
-      TH: 'Notify (pay_notifyurl)'
+    'Notify (pay_notifyurl) / Callback URL (NOTI MW)': {
+      EN: 'Notify (pay_notifyurl) / Callback URL (NOTI MW)',
+      JP: 'Notify (pay_notifyurl) / Callback URL (NOTI MW)',
+      CH: 'Notify (pay_notifyurl) / Callback URL (NOTI MW)',
+      TH: 'Notify (pay_notifyurl) / Callback URL (NOTI MW)'
     },
-    'Callback (pay_callbackurl)': {
-      EN: 'Callback (pay_callbackurl)',
-      JP: 'Callback (pay_callbackurl)',
-      CH: 'Callback (pay_callbackurl)',
-      TH: 'Callback (pay_callbackurl)'
+    'Callback (pay_callbackurl) / Result URL (NOTI MW)': {
+      EN: 'Callback (pay_callbackurl) / Result URL (NOTI MW)',
+      JP: 'Callback (pay_callbackurl) / Result URL (NOTI MW)',
+      CH: 'Callback (pay_callbackurl) / Result URL (NOTI MW)',
+      TH: 'Callback (pay_callbackurl) / Result URL (NOTI MW)'
     },
     '본사에서 [배경/로고 변경권한]을 부여한 가맹점은 메인·로고·테마를 수정할 수 있습니다. 메인이미지=로그인 화면 왼쪽 배경, 로고=로그인창 상단·사이드바 상단.': {
       EN: 'Merchants granted [background/logo edit] may change main image, logos, and theme. Main = login left background; logos = login top and sidebar top.',
@@ -2549,6 +2549,78 @@
       JP: 'チャットボット上部ロゴ',
       CH: '聊天机器人顶部 Logo',
       TH: 'โลโก้หัวแชทบอท'
+    },
+    로고설정: {
+      EN: 'Logo setting',
+      JP: 'ロゴ設定',
+      CH: 'Logo 设置',
+      TH: 'ตั้งค่าโลโก้'
+    },
+    '웹결제 상단 로고': {
+      EN: 'Web payment header logo',
+      JP: 'ウェブ決済上部ロゴ',
+      CH: '网页支付顶部 Logo',
+      TH: 'โลโก้หัวหน้าชำระเงินเว็บ'
+    },
+    '기본(총판 로고)': {
+      EN: 'Default (distributor logo)',
+      JP: '基本（総販ロゴ）',
+      CH: '默认（总代 Logo）',
+      TH: 'ค่าเริ่มต้น (โลโก้ตัวแทนหลัก)'
+    },
+    비활성: {
+      EN: 'Disabled',
+      JP: '無効',
+      CH: '禁用',
+      TH: 'ปิดใช้งาน'
+    },
+    '활성(가맹 로고)': {
+      EN: 'Active (merchant logo)',
+      JP: '有効（加盟店ロゴ）',
+      CH: '启用（商户 Logo）',
+      TH: 'เปิดใช้งาน (โลโก้ร้านค้า)'
+    },
+    경고메세지: {
+      EN: 'Warning message',
+      JP: '警告メッセージ',
+      CH: '警告信息',
+      TH: 'ข้อความเตือน'
+    },
+    '경고메세지 문구': {
+      EN: 'Warning message text',
+      JP: '警告メッセージ文言',
+      CH: '警告信息文案',
+      TH: 'ข้อความเตือน'
+    },
+    '기본(3DS 안전 결제)': {
+      EN: 'Default (3DS secure payment)',
+      JP: '基本（3DSセキュア決済）',
+      CH: '默认（3DS 安全支付）',
+      TH: 'ค่าเริ่มต้น (3DS ชำระเงินปลอดภัย)'
+    },
+    '활성(직접 입력)': {
+      EN: 'Active (custom text)',
+      JP: '有効（直接入力）',
+      CH: '启用（自定义文案）',
+      TH: 'เปิดใช้งาน (พิมพ์เอง)'
+    },
+    '결제창 로고 아래에 표시할 문구': {
+      EN: 'Text shown below checkout logo',
+      JP: '決済画面ロゴ下に表示する文言',
+      CH: '显示在支付页 Logo 下方的文案',
+      TH: 'ข้อความใต้โลโก้หน้าชำระเงิน'
+    },
+    '「활성」일 때만 직접 입력 가능합니다. 「기본」은 3DS 안전 결제 문구가 언어별로 표시됩니다. 로고설정이 비활성이면 문구도 표시되지 않습니다.': {
+      EN: 'Custom text is editable only when Active. Default shows 3DS secure payment per language. If logo is disabled, this text is hidden too.',
+      JP: '「有効」時のみ直接入力できます。「基本」は言語別の3DSセキュア決済です。ロゴ設定が無効の場合は文言も非表示です。',
+      CH: '仅「启用」时可编辑。「默认」按语言显示 3DS 安全支付。若 Logo 设为禁用，此文案也不显示。',
+      TH: 'แก้ไขได้เมื่อเลือก「เปิดใช้งาน」เท่านั้น 「ค่าเริ่มต้น」แสดง 3DS ตามภาษา หากปิดโลโก้ ข้อความนี้จะไม่แสดง'
+    },
+    '「활성」일 때만 업로드 가능합니다. PNG·JPEG, 원본 최대 40MB. 서버에서 목표 2MB 이하(본사 AI챗봇설정과 동일)로 재압축합니다.': {
+      EN: 'Upload is available only when Active is selected. PNG/JPEG, max 40MB original; server recompresses to about 2MB (same as HQ AI chatbot settings).',
+      JP: '「有効」選択時のみアップロード可能。PNG・JPEG、原稿最大40MB。サーバーで目標2MB以下に再圧縮（本社AIチャットボット設定と同様）。',
+      CH: '仅在选择「启用」时可上传。PNG/JPEG，原图最大 40MB；服务器压缩至约 2MB（与总部 AI 聊天机器人设置相同）。',
+      TH: 'อัปโหลดได้เมื่อเลือก「เปิดใช้งาน」เท่านั้น PNG/JPEG ต้นฉบับสูงสุด 40MB เซิร์ฟเวอร์บีบอัดเป้าหมายไม่เกิน 2MB (เช่นเดียวกับตั้งค่า AI แชทบอทสำนักงานใหญ่)'
     },
     '업로드·최적화': {
       EN: 'Upload & optimize',
@@ -7769,6 +7841,12 @@
     'SETTLEMENT': { EN: 'SETTLEMENT', JP: 'SETTLEMENT', CH: 'SETTLEMENT', TH: 'SETTLEMENT' },
     'TECH': { EN: 'TECH', JP: 'TECH', CH: 'TECH', TH: 'TECH' },
     'CHATBOT': { EN: 'CHATBOT', JP: 'CHATBOT', CH: 'CHATBOT', TH: 'CHATBOT' },
+    '챗봇관리자': {
+      EN: 'Chatbot admin',
+      JP: 'チャットボット管理者',
+      CH: '聊天机器人管理员',
+      TH: 'ผู้ดูแลแชทบอท'
+    },
     메뉴: { EN: 'Menu', JP: 'メニュー', CH: '菜单', TH: 'เมนู' },
     대메뉴: { EN: 'Main menu', JP: '大メニュー', CH: '主菜单', TH: 'เมนูหลัก' },
     /* /hq/accountMng — 加盟店アクセス（HQ: which companies a login may access） */

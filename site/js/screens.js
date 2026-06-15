@@ -124,6 +124,37 @@
     return '<div class="row mb-2"><div class="col-sm-5"><label class="form-label" data-pg-ui-t="URL 재결제 URL">' + escUi(L('URL 재결제 URL')) + '</label><div class="input-group input-group-sm"><input type="text" class="form-control" id="paymentRepayUrlDisplay" readonly placeholder="' + escUi(L(String(ph))) + '" data-pg-ui-placeholder="' + escUi(String(ph)) + '"><button type="button" class="btn btn-outline-primary" id="paymentRepayUrlCopyBtn" data-pg-ui-t="복사">' + escUi(L('복사')) + '</button></div></div></div>';
   }
 
+  /** 웹결제(URL·JPAY) 상단 로고 — 로고설정「활성」일 때만 업로드 */
+  function webPaymentHeaderLogoFieldBlock() {
+    var phLogo = '업로드 시 자동 반영 · 또는 HTTPS URL 직접 입력';
+    var logoHint = '「활성」일 때만 업로드 가능합니다. PNG·JPEG, 원본 최대 40MB. 서버에서 목표 2MB 이하(본사 AI챗봇설정과 동일)로 재압축합니다.';
+    return '<div class="form-field-block web-payment-header-logo-upload-block w-100" id="webPaymentHeaderLogoBlock">' +
+      '<label class="form-label" data-pg-ui-t="웹결제 상단 로고">' + escUi(L('웹결제 상단 로고')) + '</label>' +
+      '<div class="input-group input-group-sm mb-1">' +
+      '<input type="text" class="form-control form-control-sm" name="webPaymentHeaderLogoUrl" id="webPaymentHeaderLogoUrl" ' +
+      'placeholder="' + escUi(L(phLogo)) + '" data-pg-ui-placeholder="' + escUi(phLogo) + '">' +
+      '<input type="file" class="d-none" id="webPaymentHeaderLogoFile" accept="image/png,image/jpeg,image/jpg">' +
+      '<button type="button" class="btn btn-outline-secondary btn-sm" id="webPaymentHeaderLogoBrowse"><span data-pg-ui-t="파일 선택">' + escUi(L('파일 선택')) + '</span></button>' +
+      '<button type="button" class="btn btn-outline-primary btn-sm" id="webPaymentHeaderLogoUpload"><span data-pg-ui-t="업로드·최적화">' + escUi(L('업로드·최적화')) + '</span></button>' +
+      '</div>' +
+      '<div class="form-text text-muted small" data-pg-ui-t="' + escUi(logoHint) + '">' +
+      escUi(L(logoHint)) +
+      '</div></div>';
+  }
+
+  /** 웹결제 결제창 로고 아래 경고문구 — 경고메세지「활성」일 때만 입력 */
+  function webPaymentHeaderSubtitleFieldBlock() {
+    var ph = '결제창 로고 아래에 표시할 문구';
+    var hint = '「활성」일 때만 직접 입력 가능합니다. 「기본」은 3DS 안전 결제 문구가 언어별로 표시됩니다. 로고설정이 비활성이면 문구도 표시되지 않습니다.';
+    return '<div class="form-field-block web-payment-header-subtitle-block w-100" id="webPaymentHeaderSubtitleBlock">' +
+      '<label class="form-label" data-pg-ui-t="경고메세지 문구">' + escUi(L('경고메세지 문구')) + '</label>' +
+      '<input type="text" class="form-control form-control-sm" name="webPaymentHeaderSubtitleText" id="webPaymentHeaderSubtitleText" ' +
+      'maxlength="200" placeholder="' + escUi(L(ph)) + '" data-pg-ui-placeholder="' + escUi(ph) + '">' +
+      '<div class="form-text text-muted small" data-pg-ui-t="' + escUi(hint) + '">' +
+      escUi(L(hint)) +
+      '</div></div>';
+  }
+
   /** 가맹 등록·정보 — JPAY API 구독(③ 인라인 전용) */
   function merchantJpayApiSubscriptionCardSection() {
     return {
@@ -3094,6 +3125,14 @@
           rows: [
             [{ label: '웹결제 사용여부', type: 'select', name: 'webPaymentUseYn', options: [{ v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }], col: 2 },
              { label: 'URL 결제 방식', type: 'select', name: 'urlPayCheckoutMode', options: [{ v: 'STANDARD', t: '일반 URL 결제' }, { v: 'REPAY', t: '재결제 URL (저장 카드)' }], col: 3 }],
+            [{ label: '로고설정', type: 'select', name: 'webPaymentHeaderLogoMode', options: [
+              { v: 'DEFAULT', t: '기본(총판 로고)' }, { v: 'DISABLED', t: '비활성' }, { v: 'ACTIVE', t: '활성(가맹 로고)' }
+            ], col: 3 }],
+            [{ type: 'customHtml', col: 12, html: webPaymentHeaderLogoFieldBlock }],
+            [{ label: '경고메세지', type: 'select', name: 'webPaymentHeaderSubtitleMode', options: [
+              { v: 'DEFAULT', t: '기본(3DS 안전 결제)' }, { v: 'DISABLED', t: '비활성' }, { v: 'ACTIVE', t: '활성(직접 입력)' }
+            ], col: 3 }],
+            [{ type: 'customHtml', col: 12, html: webPaymentHeaderSubtitleFieldBlock }],
             [{ label: '상품명', type: 'text', name: 'defaultProductName', col: 2, placeholder: '대표 상품명' }, { label: '상품코드', type: 'text', name: 'defaultProductCode', col: 1 }, { label: '기본금액', type: 'text', name: 'defaultProductAmount', col: 1, placeholder: '0' }, { label: '상품설명', type: 'text', name: 'defaultProductDesc', col: 4 }],
             [{ type: 'customHtml', col: 12, html: function () { return merchantPaymentUrlRowHtml('가맹점 저장 후 조회'); } },
              { type: 'customHtml', col: 12, html: function () { return merchantPaymentRepayUrlRowHtml('가맹점 저장 후 조회'); } }]
@@ -3192,7 +3231,7 @@
           merchantOnly: true,
           notice: 'J-Pay pay_index 전문의 pay_notifyurl·pay_callbackurl 에 사용됩니다. 노티미들웨어 가맹 수신 URL을 등록하세요. 비우면 ICOPAY ingress(cbJpay/rsJpay) 기본값을 사용합니다.',
           rows: [
-            [{ label: 'Notify (pay_notifyurl)', type: 'text', name: 'jpayNotifyUrl', col: 5, placeholder: 'https://' }, { label: 'Callback (pay_callbackurl)', type: 'text', name: 'jpayCallbackUrl', col: 5, placeholder: 'https://' }]
+            [{ label: 'Notify (pay_notifyurl) / Callback URL (NOTI MW)', type: 'text', name: 'jpayNotifyUrl', col: 5, placeholder: 'https://' }, { label: 'Callback (pay_callbackurl) / Result URL (NOTI MW)', type: 'text', name: 'jpayCallbackUrl', col: 5, placeholder: 'https://' }]
           ]
         },
         {
@@ -3512,6 +3551,14 @@
           rows: [
             [{ label: '웹결제 사용여부', type: 'select', name: 'webPaymentUseYn', options: [{ v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }], col: 2 },
              { label: 'URL 결제 방식', type: 'select', name: 'urlPayCheckoutMode', options: [{ v: 'STANDARD', t: '일반 URL 결제' }, { v: 'REPAY', t: '재결제 URL (저장 카드)' }], col: 3 }],
+            [{ label: '로고설정', type: 'select', name: 'webPaymentHeaderLogoMode', options: [
+              { v: 'DEFAULT', t: '기본(총판 로고)' }, { v: 'DISABLED', t: '비활성' }, { v: 'ACTIVE', t: '활성(가맹 로고)' }
+            ], col: 3 }],
+            [{ type: 'customHtml', col: 12, html: webPaymentHeaderLogoFieldBlock }],
+            [{ label: '경고메세지', type: 'select', name: 'webPaymentHeaderSubtitleMode', options: [
+              { v: 'DEFAULT', t: '기본(3DS 안전 결제)' }, { v: 'DISABLED', t: '비활성' }, { v: 'ACTIVE', t: '활성(직접 입력)' }
+            ], col: 3 }],
+            [{ type: 'customHtml', col: 12, html: webPaymentHeaderSubtitleFieldBlock }],
             [{ label: '상품명', type: 'text', name: 'defaultProductName', col: 2, placeholder: '대표 상품명' }, { label: '상품코드', type: 'text', name: 'defaultProductCode', col: 1 }, { label: '기본금액', type: 'text', name: 'defaultProductAmount', col: 1, placeholder: '0' }, { label: '상품설명', type: 'text', name: 'defaultProductDesc', col: 4 }],
             [{ type: 'customHtml', col: 12, html: function () { return merchantPaymentUrlRowHtml('가맹점 저장 후 조회'); } },
              { type: 'customHtml', col: 12, html: function () { return merchantPaymentRepayUrlRowHtml('가맹점 저장 후 조회'); } }]
@@ -3598,7 +3645,7 @@
           merchantOnly: true,
           notice: 'J-Pay pay_index 전문의 pay_notifyurl·pay_callbackurl 에 사용됩니다. 노티미들웨어 가맹 수신 URL을 등록하세요. 비우면 ICOPAY ingress(cbJpay/rsJpay) 기본값을 사용합니다.',
           rows: [
-            [{ label: 'Notify (pay_notifyurl)', type: 'text', name: 'jpayNotifyUrl', col: 5, placeholder: 'https://' }, { label: 'Callback (pay_callbackurl)', type: 'text', name: 'jpayCallbackUrl', col: 5, placeholder: 'https://' }]
+            [{ label: 'Notify (pay_notifyurl) / Callback URL (NOTI MW)', type: 'text', name: 'jpayNotifyUrl', col: 5, placeholder: 'https://' }, { label: 'Callback (pay_callbackurl) / Result URL (NOTI MW)', type: 'text', name: 'jpayCallbackUrl', col: 5, placeholder: 'https://' }]
           ]
         },
         {
@@ -3863,6 +3910,14 @@
           rows: [
             [{ label: '웹결제 사용여부', type: 'select', name: 'webPaymentUseYn', options: [{ v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }], col: 2 },
              { label: 'URL 결제 방식', type: 'select', name: 'urlPayCheckoutMode', options: [{ v: 'STANDARD', t: '일반 URL 결제' }, { v: 'REPAY', t: '재결제 URL (저장 카드)' }], col: 3 }],
+            [{ label: '로고설정', type: 'select', name: 'webPaymentHeaderLogoMode', options: [
+              { v: 'DEFAULT', t: '기본(총판 로고)' }, { v: 'DISABLED', t: '비활성' }, { v: 'ACTIVE', t: '활성(가맹 로고)' }
+            ], col: 3 }],
+            [{ type: 'customHtml', col: 12, html: webPaymentHeaderLogoFieldBlock }],
+            [{ label: '경고메세지', type: 'select', name: 'webPaymentHeaderSubtitleMode', options: [
+              { v: 'DEFAULT', t: '기본(3DS 안전 결제)' }, { v: 'DISABLED', t: '비활성' }, { v: 'ACTIVE', t: '활성(직접 입력)' }
+            ], col: 3 }],
+            [{ type: 'customHtml', col: 12, html: webPaymentHeaderSubtitleFieldBlock }],
             [{ label: '상품명', type: 'text', name: 'defaultProductName', col: 2, placeholder: '대표 상품명' }, { label: '상품코드', type: 'text', name: 'defaultProductCode', col: 1 }, { label: '기본금액', type: 'text', name: 'defaultProductAmount', col: 1, placeholder: '0' }, { label: '상품설명', type: 'text', name: 'defaultProductDesc', col: 4 }],
             [{ type: 'customHtml', col: 12, html: function () { return merchantPaymentUrlRowHtml('가맹점 선택 후 조회'); } },
              { type: 'customHtml', col: 12, html: function () { return merchantPaymentRepayUrlRowHtml('가맹점 선택 후 조회'); } }]
@@ -3948,7 +4003,7 @@
           merchantOnly: true,
           notice: 'J-Pay pay_index 전문의 pay_notifyurl·pay_callbackurl 에 사용됩니다. 노티미들웨어 가맹 수신 URL을 등록하세요. 비우면 ICOPAY ingress(cbJpay/rsJpay) 기본값을 사용합니다.',
           rows: [
-            [{ label: 'Notify (pay_notifyurl)', type: 'text', name: 'jpayNotifyUrl', col: 5, placeholder: 'https://' }, { label: 'Callback (pay_callbackurl)', type: 'text', name: 'jpayCallbackUrl', col: 5, placeholder: 'https://' }]
+            [{ label: 'Notify (pay_notifyurl) / Callback URL (NOTI MW)', type: 'text', name: 'jpayNotifyUrl', col: 5, placeholder: 'https://' }, { label: 'Callback (pay_callbackurl) / Result URL (NOTI MW)', type: 'text', name: 'jpayCallbackUrl', col: 5, placeholder: 'https://' }]
           ]
         },
         {

@@ -2,11 +2,9 @@ package com.pg.urlpay;
 
 import com.pg.entity.MerchantDefaultProduct;
 import com.pg.entity.MerchantProfile;
-import com.pg.entity.OrgLevel;
 import com.pg.entity.OrgUnit;
 import com.pg.repository.MerchantDefaultProductRepository;
 import com.pg.repository.MerchantProfileRepository;
-import com.pg.repository.OrgBrandingRepository;
 import com.pg.repository.OrgUnitRepository;
 import com.pg.service.ChillPayService;
 import com.pg.service.PaymentCurrencyScaleService;
@@ -34,7 +32,7 @@ public class UrlPayPublicCheckoutService {
     private final OrgUnitRepository orgUnitRepository;
     private final MerchantProfileRepository merchantProfileRepository;
     private final MerchantDefaultProductRepository merchantDefaultProductRepository;
-    private final OrgBrandingRepository orgBrandingRepository;
+    private final CheckoutHeaderLogoResolver checkoutHeaderLogoResolver;
     private final UrlPayCheckoutCurrencyService urlPayCheckoutCurrencyService;
     private final UrlPayDisplayFxService urlPayDisplayFxService;
     private final PaymentCurrencyScaleService paymentCurrencyScaleService;
@@ -46,7 +44,7 @@ public class UrlPayPublicCheckoutService {
                                        OrgUnitRepository orgUnitRepository,
                                        MerchantProfileRepository merchantProfileRepository,
                                        MerchantDefaultProductRepository merchantDefaultProductRepository,
-                                       OrgBrandingRepository orgBrandingRepository,
+                                       CheckoutHeaderLogoResolver checkoutHeaderLogoResolver,
                                        UrlPayCheckoutCurrencyService urlPayCheckoutCurrencyService,
                                        UrlPayDisplayFxService urlPayDisplayFxService,
                                        PaymentCurrencyScaleService paymentCurrencyScaleService,
@@ -57,7 +55,7 @@ public class UrlPayPublicCheckoutService {
         this.orgUnitRepository = orgUnitRepository;
         this.merchantProfileRepository = merchantProfileRepository;
         this.merchantDefaultProductRepository = merchantDefaultProductRepository;
-        this.orgBrandingRepository = orgBrandingRepository;
+        this.checkoutHeaderLogoResolver = checkoutHeaderLogoResolver;
         this.urlPayCheckoutCurrencyService = urlPayCheckoutCurrencyService;
         this.urlPayDisplayFxService = urlPayDisplayFxService;
         this.paymentCurrencyScaleService = paymentCurrencyScaleService;
@@ -125,7 +123,7 @@ public class UrlPayPublicCheckoutService {
         if (!data.containsKey("pgVendor")) {
             data.put("pgVendor", cap.vendorFamily());
         }
-        resolveCheckoutHeaderLogoUrl(orgUnitId).ifPresent(u -> data.put("checkoutHeaderLogoUrl", u));
+        checkoutHeaderLogoResolver.applyToCheckoutMap(data, orgUnitId);
         data.put("urlPayResultPageUrl", chillPayService.resolveUrlPayResultAbsolute(request, ou.get().getCode()));
         data.put("urlPayCheckoutMode", merchantUrlPayCheckoutMode(orgUnitId));
         data.put("effectiveUrlPayVariant", repay ? UrlPayCheckoutModeUtil.REPAY : UrlPayCheckoutModeUtil.STANDARD);
@@ -178,32 +176,6 @@ public class UrlPayPublicCheckoutService {
         if (!opPg.isEmpty()) {
             urlPayCardCopyService.resolveActiveCopyByPg(opPg).ifPresent(copy -> data.put("urlPayCardCopy", copy));
         }
-    }
-
-    private Optional<String> resolveCheckoutHeaderLogoUrl(Long merchantOrgUnitId) {
-        Long cur = merchantOrgUnitId;
-        while (cur != null) {
-            Optional<OrgUnit> opt = orgUnitRepository.findById(cur);
-            if (opt.isEmpty()) {
-                break;
-            }
-            OrgUnit u = opt.get();
-            if (u.getOrgLevel() == OrgLevel.MASTER_DIST) {
-                return orgBrandingRepository.findByOrgUnitId(u.getId()).flatMap(b -> {
-                    String up = b.getUrlPayImageUrl();
-                    if (up != null && !up.isBlank()) {
-                        return Optional.of(up.trim());
-                    }
-                    String lg = b.getLogoImageUrl();
-                    if (lg != null && !lg.isBlank()) {
-                        return Optional.of(lg.trim());
-                    }
-                    return Optional.empty();
-                });
-            }
-            cur = u.getParentId();
-        }
-        return Optional.empty();
     }
 
     private String merchantUrlPayCheckoutMode(Long orgUnitId) {

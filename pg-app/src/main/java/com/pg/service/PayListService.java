@@ -88,6 +88,7 @@ public class PayListService {
     private final SettlementBusinessHolidayService settlementBusinessHolidayService;
     private final CommissionService commissionService;
     private final FeeListTxnAmountService feeListTxnAmountService;
+    private final com.pg.service.settlement.PgTrnsctnSummaryScanFetcher pgTrnsctnSummaryScanFetcher;
 
     @PersistenceContext
     private EntityManager entityManager;
@@ -106,7 +107,8 @@ public class PayListService {
                           MasterDistSettlementCronZoneService masterDistSettlementCronZoneService,
                           SettlementBusinessHolidayService settlementBusinessHolidayService,
                           CommissionService commissionService,
-                          FeeListTxnAmountService feeListTxnAmountService) {
+                          FeeListTxnAmountService feeListTxnAmountService,
+                          com.pg.service.settlement.PgTrnsctnSummaryScanFetcher pgTrnsctnSummaryScanFetcher) {
         this.trnsctnRepository = trnsctnRepository;
         this.orgUnitRepository = orgUnitRepository;
         this.merchantProfileRepository = merchantProfileRepository;
@@ -122,6 +124,7 @@ public class PayListService {
         this.settlementBusinessHolidayService = settlementBusinessHolidayService;
         this.commissionService = commissionService;
         this.feeListTxnAmountService = feeListTxnAmountService;
+        this.pgTrnsctnSummaryScanFetcher = pgTrnsctnSummaryScanFetcher;
     }
 
     /**
@@ -515,8 +518,13 @@ public class PayListService {
         return buildPayListRowContextMap(List.of(merchantCode.trim())).get(merchantCode.trim());
     }
 
-    private static final int PAY_LIST_FIN_SUMMARY_PAGE_SIZE = 500;
-    private static final int PAY_LIST_FIN_SUMMARY_MAX_SCAN_PAGES = 400;
+    /**
+     * 금액요약 집계가 읽는 거래 행 상한. 과거에는 Page 기반으로 매 페이지마다 전체 COUNT·딥 OFFSET 을
+     * 반복 실행(최대 500×400=20만 건 스캔)해 한 달 등 넓은 기간에서 504(게이트웨이 타임아웃)가 발생했다.
+     * 이제 COUNT 없이 정렬·LIMIT 한 번으로 이 상한까지만 읽어 응답 시간을 항상 일정 범위로 제한한다.
+     * 상한 초과분은 {@code capped} 로 표시하고 화면 안내로 알린다(기간 축소 권장).
+     */
+    private static final int PAY_LIST_FIN_SUMMARY_MAX_ROWS = 50_000;
 
     /** 통합·결제·URL·챗봇·상계취소 — 수수료내역과 동일 건별 산식 상단 요약. 상태별 단일 화면은 null. */
     private static boolean usesFeeListAlignedPayListFinancialSummary(String variant) {
@@ -532,6 +540,17 @@ public class PayListService {
     private static Sort.Direction sortDirectionFromSearchOrderDir(String searchOrderDir) {
         return (searchOrderDir != null && "ASC".equalsIgnoreCase(searchOrderDir.trim()))
                 ? Sort.Direction.ASC : Sort.Direction.DESC;
+    }
+
+    /**
+     * 금액요약 집계용 거래를 <strong>COUNT 없이</strong> 정렬·LIMIT 한 번으로 읽는다.
+     * 검색 그리드와 동일한 {@code spec}(권한·기간·상태 필터)을 적용하며, 정렬은 검색 방향과 동일하다.
+     * Page 기반 반복 스캔(매 페이지 COUNT·딥 OFFSET)이 유발하던 504(게이트웨이 타임아웃)를 방지한다.
+     */
+    private List<PgTrnsctn> fetchPayListFinancialSummaryRows(Specification<PgTrnsctn> spec,
+                                                             PayListSearchRequest req, int limit) {
+        boolean asc = sortDirectionFromSearchOrderDir(req.getSearchOrderDir()).isAscending();
+        return pgTrnsctnSummaryScanFetcher.fetch(spec, asc, limit);
     }
 
     /**
@@ -581,63 +600,53 @@ public class PayListService {
         Map<Long, List<ChargebackFeeTier>> tiersByPolicyId = new HashMap<>();
         Map<String, CommissionPolicy> polCache = new HashMap<>();
         Map<String, PayListRowContext> ctxByMerchant = new HashMap<>();
-        Sort sort = Sort.by(sortDirectionFromSearchOrderDir(req.getSearchOrderDir()), "createdAt")
-                .and(Sort.by(sortDirectionFromSearchOrderDir(req.getSearchOrderDir()), "trnId"));
 
-        for (int pageIdx = 0; pageIdx < PAY_LIST_FIN_SUMMARY_MAX_SCAN_PAGES; pageIdx++) {
-            Pageable pageable = PageRequest.of(pageIdx, PAY_LIST_FIN_SUMMARY_PAGE_SIZE, sort);
-            Page<PgTrnsctn> slice = trnsctnRepository.findAll(spec, pageable);
-            if (slice.isEmpty()) {
-                break;
+        /* COUNT·딥 OFFSET 반복 없이 정렬·LIMIT 한 번으로 거래를 읽는다(504 방지).
+         * 상한+1 을 읽어 초과 여부로 capped 를 판정하고, 초과분은 잘라 상한까지만 집계한다. */
+        List<PgTrnsctn> scanRows = fetchPayListFinancialSummaryRows(spec, req, PAY_LIST_FIN_SUMMARY_MAX_ROWS + 1);
+        if (scanRows.size() > PAY_LIST_FIN_SUMMARY_MAX_ROWS) {
+            capped = true;
+            scanRows = scanRows.subList(0, PAY_LIST_FIN_SUMMARY_MAX_ROWS);
+        }
+        List<String> scanMids = scanRows.stream()
+                .map(PgTrnsctn::getMerchantId)
+                .filter(Objects::nonNull)
+                .map(String::trim)
+                .filter(s -> !s.isEmpty())
+                .distinct()
+                .toList();
+        if (!scanMids.isEmpty()) {
+            ctxByMerchant.putAll(buildPayListRowContextMap(scanMids));
+        }
+        for (PgTrnsctn t : scanRows) {
+            if (t.getMerchantId() == null || t.getMerchantId().isBlank()) {
+                continue;
             }
-            List<String> mids = slice.getContent().stream()
-                    .map(PgTrnsctn::getMerchantId)
-                    .filter(Objects::nonNull)
-                    .map(String::trim)
-                    .filter(s -> !s.isEmpty())
-                    .filter(mid -> !ctxByMerchant.containsKey(mid))
-                    .distinct()
-                    .toList();
-            if (!mids.isEmpty()) {
-                ctxByMerchant.putAll(buildPayListRowContextMap(mids));
+            String compId = t.getMerchantId().trim();
+            PayListRowContext ctx = ctxByMerchant.get(compId);
+            CommissionPolicy pol = polCache.computeIfAbsent(compId,
+                    id -> commissionService.resolveCommissionPolicyForSettlement(id));
+            String payCurKey = PayListItemDto.payCurKeyForFeeCompute(t, ctx);
+            String cur = PayListStatusBarBuckets.normalizeCurrency(payCurKey);
+            if (allowedCur != null && !allowedCur.contains(cur)) {
+                continue;
             }
-            for (PgTrnsctn t : slice.getContent()) {
-                if (t.getMerchantId() == null || t.getMerchantId().isBlank()) {
-                    continue;
-                }
-                String compId = t.getMerchantId().trim();
-                PayListRowContext ctx = ctxByMerchant.get(compId);
-                CommissionPolicy pol = polCache.computeIfAbsent(compId,
-                        id -> commissionService.resolveCommissionPolicyForSettlement(id));
-                String payCurKey = PayListItemDto.payCurKeyForFeeCompute(t, ctx);
-                String cur = PayListStatusBarBuckets.normalizeCurrency(payCurKey);
-                if (allowedCur != null && !allowedCur.contains(cur)) {
-                    continue;
-                }
-                String st = t.getStatus() != null ? t.getStatus().trim() : "";
-                BigDecimal amt = t.getAmtKrw() != null ? t.getAmtKrw() : BigDecimal.ZERO;
-                totalTxn.merge(cur, amt, BigDecimal::add);
-                if ("10".equals(st)) {
-                    successCount++;
-                    approveCountByCur.merge(cur, 1L, Long::sum);
-                    approve.merge(cur, amt, BigDecimal::add);
-                } else if (PayListItemDto.isCancelAmountStatus(st)) {
-                    cancelCountByCur.merge(cur, 1L, Long::sum);
-                    cancel.merge(cur, amt, BigDecimal::add);
-                }
-                FeeListTxnAmountService.FeeListTxnAmounts amts = feeListTxnAmountService.compute(
-                        t, ctx, pol, payCurKey, feeResolver, monthCbCountCache, tiersByPolicyId);
-                totalFeeSum.merge(cur, amts.totalFee(), BigDecimal::add);
-                holdSum.merge(cur, amts.rollingHoldEst(), BigDecimal::add);
-                vatSum.merge(cur, amts.feeVat(), BigDecimal::add);
+            String st = t.getStatus() != null ? t.getStatus().trim() : "";
+            BigDecimal amt = t.getAmtKrw() != null ? t.getAmtKrw() : BigDecimal.ZERO;
+            totalTxn.merge(cur, amt, BigDecimal::add);
+            if ("10".equals(st)) {
+                successCount++;
+                approveCountByCur.merge(cur, 1L, Long::sum);
+                approve.merge(cur, amt, BigDecimal::add);
+            } else if (PayListItemDto.isCancelAmountStatus(st)) {
+                cancelCountByCur.merge(cur, 1L, Long::sum);
+                cancel.merge(cur, amt, BigDecimal::add);
             }
-            if (!slice.hasNext()) {
-                break;
-            }
-            if (pageIdx + 1 >= PAY_LIST_FIN_SUMMARY_MAX_SCAN_PAGES) {
-                capped = true;
-                break;
-            }
+            FeeListTxnAmountService.FeeListTxnAmounts amts = feeListTxnAmountService.compute(
+                    t, ctx, pol, payCurKey, feeResolver, monthCbCountCache, tiersByPolicyId);
+            totalFeeSum.merge(cur, amts.totalFee(), BigDecimal::add);
+            holdSum.merge(cur, amts.rollingHoldEst(), BigDecimal::add);
+            vatSum.merge(cur, amts.feeVat(), BigDecimal::add);
         }
 
         if (!baseCurrencyConfigured) {

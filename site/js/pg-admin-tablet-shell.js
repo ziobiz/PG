@@ -110,6 +110,9 @@
 
   function syncTabletShellClass() {
     try { w.document.documentElement.classList.toggle('pg-admin--tablet', isTabletShellMode()); } catch (eC) { /* ignore */ }
+    if (w.PG_TOPBAR_CONTRAST && typeof w.PG_TOPBAR_CONTRAST.schedule === 'function') {
+      w.PG_TOPBAR_CONTRAST.schedule();
+    }
   }
 
   function syncTabletShellToggleUi() {

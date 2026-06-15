@@ -60,11 +60,11 @@
     var c = opts.cardCopy;
     g.__payUrlCardCopy = c || null;
     var sub = document.querySelector('#jpayBrandBlock .pay-brand-sub, #payBrandTextWrap .pay-brand-sub, .pay-brand-sub');
-    if (sub && c && c.brandSub) {
+    if (sub && c && c.brandSub && !opts.skipBrandSub) {
       var bs = pickLangMap(c.brandSub, lang);
       if (bs) sub.textContent = bs;
-    } else if (sub && opts.t) {
-      var fb = opts.t('brandSub');
+    } else if (sub && opts.t && !opts.skipBrandSub) {
+      var fb = opts.t('brandSub3ds') || opts.t('brandSub');
       if (fb) sub.textContent = fb;
     }
     var title = '';
@@ -328,11 +328,64 @@
       ? String(checkoutCtx.urlPayDisplayFxDefaultDisplayCurrency).trim().toUpperCase() : 'JPY';
   }
 
+  /**
+   * 결제창 로고 아래 경고/안내 문구 — 가맹 webPaymentHeaderSubtitle* + 로고 비활성 시 숨김.
+   * @param {object} ctx checkout-context
+   * @param {{ t?: function }} [opts]
+   */
+  function applyCheckoutHeaderSubtitle(ctx, opts) {
+    opts = opts || {};
+    var sub = g.document.querySelector('#jpayBrandBlock .pay-brand-sub, #payBrandTextWrap .pay-brand-sub, .pay-brand-sub');
+    if (!sub) return;
+    ctx = ctx || {};
+    var logoMode = String(ctx.checkoutHeaderLogoMode || 'DEFAULT').trim().toUpperCase();
+    if (logoMode === 'DISABLED') {
+      sub.style.display = 'none';
+      sub.textContent = '';
+      return;
+    }
+    if (logoMode === 'ACTIVE') {
+      var logoUrl = ctx.checkoutHeaderLogoUrl ? String(ctx.checkoutHeaderLogoUrl).trim() : '';
+      if (!logoUrl) {
+        sub.style.display = 'none';
+        sub.textContent = '';
+        return;
+      }
+    }
+    var brand = g.document.getElementById('jpayBrandBlock') || g.document.querySelector('.pay-brand');
+    if (brand && brand.style.display === 'none') {
+      sub.style.display = 'none';
+      return;
+    }
+    var mode = String(ctx.checkoutHeaderSubtitleMode || 'DEFAULT').trim().toUpperCase();
+    if (mode === 'DISABLED') {
+      sub.style.display = 'none';
+      return;
+    }
+    if (mode === 'ACTIVE') {
+      var custom = ctx.checkoutHeaderSubtitleText ? String(ctx.checkoutHeaderSubtitleText).trim() : '';
+      if (!custom) {
+        sub.style.display = 'none';
+        return;
+      }
+      sub.style.display = '';
+      sub.textContent = custom;
+      return;
+    }
+    sub.style.display = '';
+    if (opts.t) {
+      sub.textContent = opts.t('brandSub3ds') || opts.t('brandSub') || '3DS Secure Payment';
+    } else {
+      sub.textContent = '3DS Secure Payment';
+    }
+  }
+
   g.PG_URL_PAY_SHELL = {
     pickLangMap: pickLangMap,
     absPayAssetUrl: absPayAssetUrl,
     fetchJsonWithRetry: fetchJsonWithRetry,
     applyCardCopyPresentation: applyCardCopyPresentation,
+    applyCheckoutHeaderSubtitle: applyCheckoutHeaderSubtitle,
     applyAmountScaleNotice: applyAmountScaleNotice,
     initDisplayFx: initDisplayFx,
     wireLanguageButtons: wireLanguageButtons,

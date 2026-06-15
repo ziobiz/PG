@@ -428,6 +428,10 @@ public class ApiCompController {
             @RequestParam(required = false) String remark,
             @RequestParam(required = false) String commissionConfigAllowed,
             @RequestParam(required = false) String webPaymentUseYn,
+            @RequestParam(required = false) String webPaymentHeaderLogoMode,
+            @RequestParam(required = false) String webPaymentHeaderLogoUrl,
+            @RequestParam(required = false) String webPaymentHeaderSubtitleMode,
+            @RequestParam(required = false) String webPaymentHeaderSubtitleText,
             @RequestParam(required = false) String chatbotPaymentUseYn,
             @RequestParam(required = false) Integer chatbotProductSlotLimit,
             @RequestParam(required = false) String baseCurrency,
@@ -519,7 +523,10 @@ public class ApiCompController {
         try {
             boolean ok = compService.update(compId, compNm, compDiv, parentId, compTel, zipCode, addr, addrDetail, addrEtc, addrCountryCd,
                     ceoNm, ceoMobile, useYn, loginId, pwd, regNo, bizType, industry, bizNature, product, homepage, settleName, settleTelNo, fax, email,
-                    bankCd, transferFee, cryptoTransferFee, accountNo, accountHolder, remark, commissionConfigAllowed, webPaymentUseYn, chatbotPaymentUseYn, chatbotProductSlotLimit, baseCurrency, siteUrl, siteSummary, pgBindings, regionalSettings,
+                    bankCd, transferFee, cryptoTransferFee, accountNo, accountHolder, remark, commissionConfigAllowed, webPaymentUseYn,
+                    webPaymentHeaderLogoMode, webPaymentHeaderLogoUrl,
+                    webPaymentHeaderSubtitleMode, webPaymentHeaderSubtitleText,
+                    chatbotPaymentUseYn, chatbotProductSlotLimit, baseCurrency, siteUrl, siteSummary, pgBindings, regionalSettings,
                     assistantLoginId, assistantPwd, assistantRoleType, brandingEditAllowedYn,
                     defaultProductName, defaultProductCode, defaultProductAmount, defaultProductDesc,
                     notifyUrlBackground, notifyUrlResult,
@@ -1009,6 +1016,46 @@ public class ApiCompController {
         try {
             ChatbotHeaderLogoUploadService.UploadResult ur =
                     chatbotHeaderLogoUploadService.processAndPersist(ou.get().getId(), compId.trim(), file);
+            Map<String, Object> payload = new LinkedHashMap<>();
+            payload.put("url", ur.publicUrlRelative());
+            payload.put("usedLlmTuningHint", ur.usedLlmTuningHint());
+            payload.put("message", ur.detailMessage());
+            return ResponseEntity.ok(ApiResponse.ok(payload));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.ok(ApiResponse.fail(e.getMessage(), "INVALID"));
+        } catch (IOException e) {
+            return ResponseEntity.ok(ApiResponse.fail(
+                    "파일 처리 오류: " + (e.getMessage() != null ? e.getMessage() : "IO"), "IO_ERROR"));
+        }
+    }
+
+    /** 가맹 웹결제(URL·JPAY) 상단 로고 이미지 업로드 — 로고설정「활성」 시 사용 */
+    @PostMapping(value = "/webPaymentHeaderLogo/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<ApiResponse<Map<String, Object>>> webPaymentHeaderLogoUpload(@RequestParam String compId,
+                                                                                     @RequestParam("file") MultipartFile file) {
+        Authentication auth0 = SecurityContextHolder.getContext().getAuthentication();
+        if (!(auth0 != null && auth0.getPrincipal() instanceof AppUser u0)) {
+            return ResponseEntity.ok(ApiResponse.fail("로그인이 필요합니다.", "UNAUTHORIZED"));
+        }
+        if (!canAccessCompAsViewer(u0, compId)) {
+            return ResponseEntity.ok(ApiResponse.fail("업로드 권한이 없습니다.", "FORBIDDEN"));
+        }
+        if (!"ADMIN".equalsIgnoreCase(u0.getRole())) {
+            Map<String, Object> org = authService.getOrgInfo(u0.getUsername());
+            String mine = org != null && org.get("compId") != null ? org.get("compId").toString().trim() : "";
+            if (!mine.isEmpty() && compId.trim().equalsIgnoreCase(mine)) {
+                return ResponseEntity.ok(ApiResponse.fail(
+                        "본인 소속 업체는 조회만 가능합니다. 변경·업로드는 상위 조직 또는 관리자에서 진행하세요.",
+                        "READ_ONLY_SELF_COMP"));
+            }
+        }
+        Optional<OrgUnit> ou = chatbotHeaderLogoUploadService.requireMerchantOrg(compId);
+        if (ou.isEmpty()) {
+            return ResponseEntity.ok(ApiResponse.fail("가맹점 코드만 업로드 가능합니다.", "INVALID"));
+        }
+        try {
+            ChatbotHeaderLogoUploadService.UploadResult ur =
+                    chatbotHeaderLogoUploadService.processAndPersistWebPaymentHeader(ou.get().getId(), compId.trim(), file);
             Map<String, Object> payload = new LinkedHashMap<>();
             payload.put("url", ur.publicUrlRelative());
             payload.put("usedLlmTuningHint", ur.usedLlmTuningHint());

@@ -131,6 +131,7 @@ public class ApiSettlementController {
     private final CommissionService commissionService;
     private final SettlementBusinessHolidayService settlementBusinessHolidayService;
     private final SettlementRunDateDisplayService settlementRunDateDisplayService;
+    private final com.pg.service.settlement.PgTrnsctnSummaryScanFetcher pgTrnsctnSummaryScanFetcher;
 
     private static final ZoneId SEOUL = ZoneId.of("Asia/Seoul");
 
@@ -164,7 +165,8 @@ public class ApiSettlementController {
                                    ReceivableRecoveryModeService receivableRecoveryModeService,
                                    CommissionService commissionService,
                                    SettlementBusinessHolidayService settlementBusinessHolidayService,
-                                   SettlementRunDateDisplayService settlementRunDateDisplayService) {
+                                   SettlementRunDateDisplayService settlementRunDateDisplayService,
+                                   com.pg.service.settlement.PgTrnsctnSummaryScanFetcher pgTrnsctnSummaryScanFetcher) {
         this.settlementCalcService = settlementCalcService;
         this.settlementRunRepository = settlementRunRepository;
         this.orgUnitRepository = orgUnitRepository;
@@ -196,6 +198,7 @@ public class ApiSettlementController {
         this.commissionService = commissionService;
         this.settlementBusinessHolidayService = settlementBusinessHolidayService;
         this.settlementRunDateDisplayService = settlementRunDateDisplayService;
+        this.pgTrnsctnSummaryScanFetcher = pgTrnsctnSummaryScanFetcher;
     }
 
     private Set<LocalDate> holidaysForMerchant(Map<Long, Set<LocalDate>> holidayCache, PayListRowContext payCtx) {
@@ -1389,6 +1392,8 @@ public class ApiSettlementController {
             @RequestParam(required = false) String searchKeyword,
             @RequestParam(required = false) String searchStatusGroup,
             @RequestParam(required = false) String searchOrderDir,
+            @RequestParam(defaultValue = "false") boolean skipMeta,
+            @RequestParam(defaultValue = "false") boolean listExport,
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "25") int size) {
         Set<String> allowedMerchants = orgAccessService.visibleMerchantCompCodes(authentication);
@@ -1471,7 +1476,8 @@ public class ApiSettlementController {
             return cb.and(parts.toArray(new Predicate[0]));
         };
 
-        int pageSize = Math.min(500, Math.max(1, size));
+        int maxPageSize = listExport ? 2000 : 500;
+        int pageSize = Math.min(maxPageSize, Math.max(1, size));
         int pageOneBased = Math.max(1, page);
         Pageable pageable = PageRequest.of(pageOneBased - 1, pageSize,
                 Sort.by(sortDirectionFromSearchOrderDir(searchOrderDir), "createdAt")
@@ -1515,13 +1521,17 @@ public class ApiSettlementController {
         pr.setSize(slice.getSize());
         pr.setTotalElements(slice.getTotalElements());
         pr.setTotalPages(Math.max(1, slice.getTotalPages()));
-        Map<String, Object> finMeta = computeFeeListFinancialSummary(authentication, spec, searchOrderDir);
         Map<String, Object> meta = pr.getMeta() != null ? new LinkedHashMap<>(pr.getMeta()) : new LinkedHashMap<>();
-        meta.put("payListFinancialSummary", finMeta);
-        if (Boolean.TRUE.equals(finMeta.get("capped"))) {
-            meta.put("feeListFinancialCapped", true);
-            meta.put("feeListFinancialCapNote",
-                    "집계 대상 건수가 많아 일부만 반영되었을 수 있습니다. 기간을 줄이거나 feeList에서 상세 조회하세요.");
+        // 모두다운로드·연속 페이지 조회(skipMeta=true)에서는 전 구간 금액 집계 스캔(최대 20만 행)을 건너뛴다.
+        // 매 페이지 요청마다 동일 스캔을 반복하면 504(게이트웨이 타임아웃)의 주원인이 된다.
+        if (!skipMeta) {
+            Map<String, Object> finMeta = computeFeeListFinancialSummary(authentication, spec, searchOrderDir);
+            meta.put("payListFinancialSummary", finMeta);
+            if (Boolean.TRUE.equals(finMeta.get("capped"))) {
+                meta.put("feeListFinancialCapped", true);
+                meta.put("feeListFinancialCapNote",
+                        "집계 대상 건수가 많아 일부만 반영되었을 수 있습니다. 기간을 줄이거나 feeList에서 상세 조회하세요.");
+            }
         }
         payListService.putHqLedgerPayDisplayCurrencyMeta(meta);
         pr.setMeta(meta);
@@ -1529,8 +1539,11 @@ public class ApiSettlementController {
         return ResponseEntity.ok(ApiResponse.ok(pr));
     }
 
-    private static final int FEE_LIST_FINANCIAL_PAGE_SIZE = 500;
-    private static final int FEE_LIST_FINANCIAL_MAX_SCAN_PAGES = 400;
+    /**
+     * 수수료내역 금액요약이 읽는 거래 상한. 과거 Page 반복 스캔(매 페이지 COUNT·딥 OFFSET)이 유발하던
+     * 504(게이트웨이 타임아웃) 방지를 위해, COUNT 없이 정렬·LIMIT 한 번으로 이 상한까지만 읽는다.
+     */
+    private static final int FEE_LIST_FINANCIAL_MAX_ROWS = 50_000;
 
     /**
      * 수수료내역 검색 조건 전체(페이지 무관) 금액 요약 — feeList 행과 동일 산식.
@@ -1574,62 +1587,53 @@ public class ApiSettlementController {
         Map<String, CommissionPolicy> polCache = new HashMap<>();
         Map<Long, Set<LocalDate>> holidayCache = new HashMap<>();
         Map<String, PayListRowContext> ctxByMerchant = new HashMap<>();
-        Sort sort = Sort.by(sortDirectionFromSearchOrderDir(searchOrderDir), "createdAt")
-                .and(Sort.by(sortDirectionFromSearchOrderDir(searchOrderDir), "trnId"));
 
-        for (int pageIdx = 0; pageIdx < FEE_LIST_FINANCIAL_MAX_SCAN_PAGES; pageIdx++) {
-            Pageable pageable = PageRequest.of(pageIdx, FEE_LIST_FINANCIAL_PAGE_SIZE, sort);
-            Page<PgTrnsctn> slice = pgTrnsctnRepository.findAll(spec, pageable);
-            if (slice.isEmpty()) {
-                break;
+        /* COUNT·딥 OFFSET 반복 없이 정렬·LIMIT 한 번으로 거래를 읽는다(504 방지).
+         * 상한+1 을 읽어 초과 여부로 capped 를 판정하고, 초과분은 잘라 상한까지만 집계한다. */
+        boolean feeAsc = sortDirectionFromSearchOrderDir(searchOrderDir).isAscending();
+        List<PgTrnsctn> scanRows = pgTrnsctnSummaryScanFetcher.fetch(spec, feeAsc, FEE_LIST_FINANCIAL_MAX_ROWS + 1);
+        if (scanRows.size() > FEE_LIST_FINANCIAL_MAX_ROWS) {
+            capped = true;
+            scanRows = scanRows.subList(0, FEE_LIST_FINANCIAL_MAX_ROWS);
+        }
+        List<String> scanMids = scanRows.stream()
+                .map(PgTrnsctn::getMerchantId)
+                .filter(Objects::nonNull)
+                .map(String::trim)
+                .filter(s -> !s.isEmpty())
+                .distinct()
+                .collect(Collectors.toList());
+        if (!scanMids.isEmpty()) {
+            ctxByMerchant.putAll(payListService.buildPayListRowContextMap(scanMids));
+        }
+        for (PgTrnsctn t : scanRows) {
+            if (t.getMerchantId() == null || t.getMerchantId().isBlank()) {
+                continue;
             }
-            List<String> mids = slice.getContent().stream()
-                    .map(PgTrnsctn::getMerchantId)
-                    .filter(Objects::nonNull)
-                    .map(String::trim)
-                    .filter(s -> !s.isEmpty())
-                    .filter(mid -> !ctxByMerchant.containsKey(mid))
-                    .distinct()
-                    .collect(Collectors.toList());
-            if (!mids.isEmpty()) {
-                ctxByMerchant.putAll(payListService.buildPayListRowContextMap(mids));
+            String compId = t.getMerchantId().trim();
+            PayListRowContext ctx = ctxByMerchant.get(compId);
+            CommissionPolicy pol = polCache.computeIfAbsent(compId, this::resolveCommissionPolicyForMerchant);
+            String payCurKey = PayListItemDto.payCurKeyForFeeCompute(t, ctx);
+            String cur = PayListStatusBarBuckets.normalizeCurrency(payCurKey);
+            if (allowedCur != null && !allowedCur.contains(cur)) {
+                continue;
             }
-            for (PgTrnsctn t : slice.getContent()) {
-                if (t.getMerchantId() == null || t.getMerchantId().isBlank()) {
-                    continue;
-                }
-                String compId = t.getMerchantId().trim();
-                PayListRowContext ctx = ctxByMerchant.get(compId);
-                CommissionPolicy pol = polCache.computeIfAbsent(compId, this::resolveCommissionPolicyForMerchant);
-                String payCurKey = PayListItemDto.payCurKeyForFeeCompute(t, ctx);
-                String cur = PayListStatusBarBuckets.normalizeCurrency(payCurKey);
-                if (allowedCur != null && !allowedCur.contains(cur)) {
-                    continue;
-                }
-                totalCount++;
-                String st = t.getStatus() != null ? t.getStatus().trim() : "";
-                BigDecimal amt = t.getAmtKrw() != null ? t.getAmtKrw() : BigDecimal.ZERO;
-                totalTxn.merge(cur, amt, BigDecimal::add);
-                if ("10".equals(st)) {
-                    approveCountByCur.merge(cur, 1L, Long::sum);
-                    approve.merge(cur, amt, BigDecimal::add);
-                } else if (PayListItemDto.isCancelAmountStatus(st)) {
-                    cancelCountByCur.merge(cur, 1L, Long::sum);
-                    cancel.merge(cur, amt, BigDecimal::add);
-                }
-                FeeListTxnAmountService.FeeListTxnAmounts amts = feeListTxnAmountService.compute(
-                        t, ctx, pol, payCurKey, feeResolver, monthCbCountCache, tiersByPolicyId);
-                totalFeeSum.merge(cur, amts.totalFee(), BigDecimal::add);
-                holdSum.merge(cur, amts.rollingHoldEst(), BigDecimal::add);
-                vatSum.merge(cur, amts.feeVat(), BigDecimal::add);
+            totalCount++;
+            String st = t.getStatus() != null ? t.getStatus().trim() : "";
+            BigDecimal amt = t.getAmtKrw() != null ? t.getAmtKrw() : BigDecimal.ZERO;
+            totalTxn.merge(cur, amt, BigDecimal::add);
+            if ("10".equals(st)) {
+                approveCountByCur.merge(cur, 1L, Long::sum);
+                approve.merge(cur, amt, BigDecimal::add);
+            } else if (PayListItemDto.isCancelAmountStatus(st)) {
+                cancelCountByCur.merge(cur, 1L, Long::sum);
+                cancel.merge(cur, amt, BigDecimal::add);
             }
-            if (!slice.hasNext()) {
-                break;
-            }
-            if (pageIdx + 1 >= FEE_LIST_FINANCIAL_MAX_SCAN_PAGES) {
-                capped = true;
-                break;
-            }
+            FeeListTxnAmountService.FeeListTxnAmounts amts = feeListTxnAmountService.compute(
+                    t, ctx, pol, payCurKey, feeResolver, monthCbCountCache, tiersByPolicyId);
+            totalFeeSum.merge(cur, amts.totalFee(), BigDecimal::add);
+            holdSum.merge(cur, amts.rollingHoldEst(), BigDecimal::add);
+            vatSum.merge(cur, amts.feeVat(), BigDecimal::add);
         }
 
         if (!baseCurrencyConfigured) {
@@ -1704,9 +1708,8 @@ public class ApiSettlementController {
     }
 
     private static final int DAILY_FEE_SUMMARY_MAX_DAYS = 93;
-    private static final int DAILY_FEE_PAGE_SIZE = 500;
-    /** 전체 조회 구간 1회 스캔 상한(페이지). 일자별 반복 조회 대신 단일 패스로 504·타임아웃을 줄입니다. */
-    private static final int DAILY_FEE_MAX_SCAN_PAGES = 400;
+    /** 전체 조회 구간을 COUNT·딥 OFFSET 반복 없이 정렬·LIMIT 한 번으로 읽는 거래 상한(504 방지). */
+    private static final int DAILY_FEE_MAX_ROWS = 50_000;
     private static final String[] DAILY_FEE_SUM_NUMERIC_KEYS = {
             "txnFixedFeesSum", "pctFeesSum", "usdtFee", "fxFee", "fee3dsFee", "rollingHoldEst",
             "failFee", "cancelFee", "voidFee", "manualVoidFee", "refundFee", "chargebackFee",
@@ -1892,8 +1895,6 @@ public class ApiSettlementController {
         Map<String, CommissionPolicy> polCache = new HashMap<>();
         Map<Long, Set<LocalDate>> holidayCache = new HashMap<>();
         Map<String, PayListRowContext> ctxByMerchant = new HashMap<>();
-        Sort sort = Sort.by(sortDirectionFromSearchOrderDir(searchOrderDir), "createdAt")
-                .and(Sort.by(sortDirectionFromSearchOrderDir(searchOrderDir), "trnId"));
 
         Map<LocalDate, DailyFeeDayAgg> byDay = new LinkedHashMap<>();
         for (LocalDate d = fromDate; !d.isAfter(effectiveTo); d = d.plusDays(1)) {
@@ -1905,67 +1906,58 @@ public class ApiSettlementController {
                 merchantNameFilter, statusGroup);
 
         boolean capped = false;
-        long totalScanned = 0;
-        for (int pageIdx = 0; pageIdx < DAILY_FEE_MAX_SCAN_PAGES; pageIdx++) {
-            Pageable pageable = PageRequest.of(pageIdx, DAILY_FEE_PAGE_SIZE, sort);
-            Page<PgTrnsctn> slice = pgTrnsctnRepository.findAll(specFull, pageable);
-            if (slice.isEmpty()) {
-                break;
+        /* COUNT·딥 OFFSET 반복 없이 정렬·LIMIT 한 번으로 거래를 읽는다(504 방지). */
+        boolean dailyAsc = sortDirectionFromSearchOrderDir(searchOrderDir).isAscending();
+        List<PgTrnsctn> scanRows = pgTrnsctnSummaryScanFetcher.fetch(specFull, dailyAsc, DAILY_FEE_MAX_ROWS + 1);
+        if (scanRows.size() > DAILY_FEE_MAX_ROWS) {
+            capped = true;
+            scanRows = scanRows.subList(0, DAILY_FEE_MAX_ROWS);
+        }
+        long totalScanned = scanRows.size();
+        List<String> scanMids = scanRows.stream()
+                .map(PgTrnsctn::getMerchantId)
+                .filter(Objects::nonNull)
+                .map(String::trim)
+                .filter(s -> !s.isEmpty())
+                .distinct()
+                .collect(Collectors.toList());
+        if (!scanMids.isEmpty()) {
+            ctxByMerchant.putAll(payListService.buildPayListRowContextMap(scanMids));
+        }
+        for (PgTrnsctn t : scanRows) {
+            if (t.getMerchantId() == null || t.getMerchantId().isBlank() || t.getCreatedAt() == null) {
+                continue;
             }
-            List<String> mids = slice.getContent().stream()
-                    .map(PgTrnsctn::getMerchantId)
-                    .filter(Objects::nonNull)
-                    .map(String::trim)
-                    .filter(s -> !s.isEmpty())
-                    .filter(mid -> !ctxByMerchant.containsKey(mid))
-                    .distinct()
-                    .collect(Collectors.toList());
-            if (!mids.isEmpty()) {
-                ctxByMerchant.putAll(payListService.buildPayListRowContextMap(mids));
+            LocalDate day = t.getCreatedAt().toLocalDate();
+            DailyFeeDayAgg agg = byDay.get(day);
+            if (agg == null) {
+                continue;
             }
-            for (PgTrnsctn t : slice.getContent()) {
-                if (t.getMerchantId() == null || t.getMerchantId().isBlank() || t.getCreatedAt() == null) {
-                    continue;
-                }
-                LocalDate day = t.getCreatedAt().toLocalDate();
-                DailyFeeDayAgg agg = byDay.get(day);
-                if (agg == null) {
-                    continue;
-                }
-                agg.txnCount++;
-                String yn = t.getSettledYn();
-                if (yn != null && "Y".equalsIgnoreCase(yn.trim())) {
-                    agg.settledY++;
-                } else {
-                    agg.settledN++;
-                }
-                Map<String, Object> row = buildFeeListRowMap(t, monthCbCountCache, tiersByPolicyId, ctxByMerchant, polCache,
-                        feeResolver, holidayCache);
-                mergeDailyFeeNumericSums(agg.sums, row);
-                String cur = PayListStatusBarBuckets.normalizeCurrency(String.valueOf(row.getOrDefault("payCur", "KRW")));
-                if (dailyFeeAllowedCur == null || dailyFeeAllowedCur.contains(cur)) {
-                    BigDecimal amt = t.getAmtKrw() != null ? t.getAmtKrw() : BigDecimal.ZERO;
-                    agg.totalTxn.merge(cur, amt, BigDecimal::add);
-                    String st = t.getStatus() != null ? t.getStatus().trim() : "";
-                    if ("10".equals(st)) {
-                        agg.approveCountByCur.merge(cur, 1L, Long::sum);
-                        agg.approve.merge(cur, amt, BigDecimal::add);
-                    } else if (PayListItemDto.isCancelAmountStatus(st)) {
-                        agg.cancelCountByCur.merge(cur, 1L, Long::sum);
-                        agg.cancel.merge(cur, amt, BigDecimal::add);
-                    }
-                    agg.totalFeeSum.merge(cur, toBigDecimal(row.get("totalFee")), BigDecimal::add);
-                    agg.holdSum.merge(cur, toBigDecimal(row.get("rollingHoldEst")), BigDecimal::add);
-                    agg.vatSum.merge(cur, toBigDecimal(row.get("feeVat")), BigDecimal::add);
-                }
+            agg.txnCount++;
+            String yn = t.getSettledYn();
+            if (yn != null && "Y".equalsIgnoreCase(yn.trim())) {
+                agg.settledY++;
+            } else {
+                agg.settledN++;
             }
-            totalScanned += slice.getNumberOfElements();
-            if (!slice.hasNext()) {
-                break;
-            }
-            if (pageIdx + 1 >= DAILY_FEE_MAX_SCAN_PAGES) {
-                capped = true;
-                break;
+            Map<String, Object> row = buildFeeListRowMap(t, monthCbCountCache, tiersByPolicyId, ctxByMerchant, polCache,
+                    feeResolver, holidayCache);
+            mergeDailyFeeNumericSums(agg.sums, row);
+            String cur = PayListStatusBarBuckets.normalizeCurrency(String.valueOf(row.getOrDefault("payCur", "KRW")));
+            if (dailyFeeAllowedCur == null || dailyFeeAllowedCur.contains(cur)) {
+                BigDecimal amt = t.getAmtKrw() != null ? t.getAmtKrw() : BigDecimal.ZERO;
+                agg.totalTxn.merge(cur, amt, BigDecimal::add);
+                String st = t.getStatus() != null ? t.getStatus().trim() : "";
+                if ("10".equals(st)) {
+                    agg.approveCountByCur.merge(cur, 1L, Long::sum);
+                    agg.approve.merge(cur, amt, BigDecimal::add);
+                } else if (PayListItemDto.isCancelAmountStatus(st)) {
+                    agg.cancelCountByCur.merge(cur, 1L, Long::sum);
+                    agg.cancel.merge(cur, amt, BigDecimal::add);
+                }
+                agg.totalFeeSum.merge(cur, toBigDecimal(row.get("totalFee")), BigDecimal::add);
+                agg.holdSum.merge(cur, toBigDecimal(row.get("rollingHoldEst")), BigDecimal::add);
+                agg.vatSum.merge(cur, toBigDecimal(row.get("feeVat")), BigDecimal::add);
             }
         }
 

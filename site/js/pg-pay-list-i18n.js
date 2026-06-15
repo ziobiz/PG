@@ -2108,6 +2108,12 @@
           if (tbIc) w.PG_UI_I18N.applyDom(tbIc);
         } catch (eIcPaneI18n) {}
       }
+      if (url === '/user/userMng' && w.PG_UI_I18N && typeof w.PG_UI_I18N.applyDom === 'function') {
+        try {
+          var tbUm = pane.querySelector('#grid_' + tid + ' tbody');
+          if (tbUm) w.PG_UI_I18N.applyDom(tbUm);
+        } catch (eUmPaneI18n) {}
+      }
       if (cfg && cfg.isForm && w.PG_UI_I18N && typeof w.PG_UI_I18N.applyDom === 'function') {
         try { w.PG_UI_I18N.applyDom(pane); } catch (eFormPaneDom) {}
       }

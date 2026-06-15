@@ -160,6 +160,26 @@ public class MerchantProfile {
     private String webPaymentUseYn = "Y";
 
     /**
+     * 웹결제(URL·JPAY) 결제창 상단 로고 — {@link com.pg.urlpay.WebPaymentHeaderLogoModeUtil}.
+     */
+    @Column(name = "web_payment_header_logo_mode", nullable = false, length = 16)
+    private String webPaymentHeaderLogoMode = "DEFAULT";
+
+    /** 웹결제 상단 로고 URL — mode=ACTIVE 일 때 가맹 업로드 */
+    @Column(name = "web_payment_header_logo_url", length = 500)
+    private String webPaymentHeaderLogoUrl;
+
+    /**
+     * 웹결제 결제창 로고 아래 경고/안내 문구 — {@link com.pg.urlpay.WebPaymentHeaderLogoModeUtil}.
+     */
+    @Column(name = "web_payment_header_subtitle_mode", nullable = false, length = 16)
+    private String webPaymentHeaderSubtitleMode = "DEFAULT";
+
+    /** 웹결제 상단 경고문구 — mode=ACTIVE 일 때 가맹 입력 */
+    @Column(name = "web_payment_header_subtitle_text", length = 200)
+    private String webPaymentHeaderSubtitleText;
+
+    /**
      * 공개 URL 결제 방식 — {@link com.pg.urlpay.UrlPayCheckoutModeUtil}.
      * STANDARD=일반 URL, REPAY=저장 카드 재결제 URL.
      */
@@ -446,6 +466,14 @@ public class MerchantProfile {
     public void setCommissionConfigAllowed(String commissionConfigAllowed) { this.commissionConfigAllowed = commissionConfigAllowed; }
     public String getWebPaymentUseYn() { return webPaymentUseYn; }
     public void setWebPaymentUseYn(String webPaymentUseYn) { this.webPaymentUseYn = webPaymentUseYn; }
+    public String getWebPaymentHeaderLogoMode() { return webPaymentHeaderLogoMode; }
+    public void setWebPaymentHeaderLogoMode(String webPaymentHeaderLogoMode) { this.webPaymentHeaderLogoMode = webPaymentHeaderLogoMode; }
+    public String getWebPaymentHeaderLogoUrl() { return webPaymentHeaderLogoUrl; }
+    public void setWebPaymentHeaderLogoUrl(String webPaymentHeaderLogoUrl) { this.webPaymentHeaderLogoUrl = webPaymentHeaderLogoUrl; }
+    public String getWebPaymentHeaderSubtitleMode() { return webPaymentHeaderSubtitleMode; }
+    public void setWebPaymentHeaderSubtitleMode(String webPaymentHeaderSubtitleMode) { this.webPaymentHeaderSubtitleMode = webPaymentHeaderSubtitleMode; }
+    public String getWebPaymentHeaderSubtitleText() { return webPaymentHeaderSubtitleText; }
+    public void setWebPaymentHeaderSubtitleText(String webPaymentHeaderSubtitleText) { this.webPaymentHeaderSubtitleText = webPaymentHeaderSubtitleText; }
     public String getUrlPayCheckoutMode() { return urlPayCheckoutMode; }
     public void setUrlPayCheckoutMode(String urlPayCheckoutMode) {
         this.urlPayCheckoutMode = urlPayCheckoutMode != null && !urlPayCheckoutMode.isBlank()

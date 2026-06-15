@@ -3,6 +3,7 @@ package com.pg.service;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.pg.integration.pg.PgVendor;
+import com.pg.integration.pg.notify.NotifyIdempotencyLock;
 import com.pg.integration.pg.notify.PgNotifyInboundTxnHandler;
 import com.pg.entity.PgAgency;
 import com.pg.entity.PgNotifyInbound;
@@ -49,17 +50,20 @@ public class JpayNotifyToTrnsctnService implements PgNotifyInboundTxnHandler {
     private final SettlementCalcService settlementCalcService;
     private final HqLedgerSysSettingsService hqLedgerSysSettingsService;
     private final JpaySubscriptionNotifyService jpaySubscriptionNotifyService;
+    private final NotifyIdempotencyLock notifyIdempotencyLock;
 
     public JpayNotifyToTrnsctnService(PgTrnsctnRepository pgTrnsctnRepository,
                                       PgAgencyRepository pgAgencyRepository,
                                       SettlementCalcService settlementCalcService,
                                       HqLedgerSysSettingsService hqLedgerSysSettingsService,
-                                      JpaySubscriptionNotifyService jpaySubscriptionNotifyService) {
+                                      JpaySubscriptionNotifyService jpaySubscriptionNotifyService,
+                                      NotifyIdempotencyLock notifyIdempotencyLock) {
         this.pgTrnsctnRepository = pgTrnsctnRepository;
         this.pgAgencyRepository = pgAgencyRepository;
         this.settlementCalcService = settlementCalcService;
         this.hqLedgerSysSettingsService = hqLedgerSysSettingsService;
         this.jpaySubscriptionNotifyService = jpaySubscriptionNotifyService;
+        this.notifyIdempotencyLock = notifyIdempotencyLock;
     }
 
     @Override
@@ -125,6 +129,9 @@ public class JpayNotifyToTrnsctnService implements PgNotifyInboundTxnHandler {
             log.warn("JPAY 노티 가맹점 미해석 orderid={} — 노티매핑 핸들러로 위임", orderid);
             return false;
         }
+        /* 동시 중복 노티 직렬화(best-effort): 같은 거래(가맹점|주문번호)의 처리가 겹치지 않도록 advisory lock.
+         * 현재 @Transactional 종료 시 자동 해제되며, 실패해도 기존 흐름을 그대로 진행한다. */
+        notifyIdempotencyLock.lock("JPAY", "ORD:" + merchantId.trim() + "|" + orderid.trim());
         if (jpaySubscriptionNotifyService.isSubscriptionNotify(form)) {
             jpaySubscriptionNotifyService.applySubscriptionNotify(merchantId.trim(), form, notifyChannel);
             return true;

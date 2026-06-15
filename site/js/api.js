@@ -1005,6 +1005,25 @@
         });
       });
     },
+    /** 가맹 웹결제 상단 로고 — 서버에서 목표 용량까지 자동 재압축 */
+    compWebPaymentHeaderLogoUpload: function (compId, file) {
+      var base = getBaseUrl();
+      var token = getToken();
+      var fd = new FormData();
+      fd.append('compId', String(compId || '').trim());
+      fd.append('file', file);
+      var headers = {};
+      if (token) headers['Authorization'] = 'Bearer ' + token;
+      return fetch(base + '/api/comp/webPaymentHeaderLogo/upload', { method: 'POST', headers: headers, body: fd }).then(function (res) {
+        if (res.status === 401) { clearAuth(); if (window.location) window.location.replace((window.location.origin || '') + '/login.html'); return Promise.reject(new Error('인증이 만료되었습니다.')); }
+        return res.text().then(function (text) {
+          var r;
+          try { r = text ? JSON.parse(text) : {}; } catch (e) { return Promise.reject(new Error('서버 응답 오류')); }
+          if (r.success === false && r.success !== undefined) throw new Error(r.message || '업로드 실패');
+          return r.data || {};
+        });
+      });
+    },
     compChatbotKbGet: function (compId) {
       return get('/api/comp/chatbotKb', { compId: compId }).then(function (r) {
         if (r.success === false && r.success !== undefined) throw new Error(r.message || '조회 실패');

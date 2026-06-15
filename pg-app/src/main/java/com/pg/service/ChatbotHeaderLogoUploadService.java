@@ -72,6 +72,24 @@ public class ChatbotHeaderLogoUploadService {
 
     @Transactional
     public UploadResult processAndPersist(Long merchantOrgUnitId, String compId, MultipartFile file) throws IOException {
+        return processAndPersistInternal(merchantOrgUnitId, compId, file, "chatbot-header", "hlogo_",
+                MerchantProfile::getChatbotHeaderLogoUrl, MerchantProfile::setChatbotHeaderLogoUrl,
+                "[업체정보] 챗봇 상단 로고 URL");
+    }
+
+    @Transactional
+    public UploadResult processAndPersistWebPaymentHeader(Long merchantOrgUnitId, String compId, MultipartFile file)
+            throws IOException {
+        return processAndPersistInternal(merchantOrgUnitId, compId, file, "web-payment-header", "wlogo_",
+                MerchantProfile::getWebPaymentHeaderLogoUrl, MerchantProfile::setWebPaymentHeaderLogoUrl,
+                "[업체정보] 웹결제 상단 로고 URL");
+    }
+
+    private UploadResult processAndPersistInternal(Long merchantOrgUnitId, String compId, MultipartFile file,
+                                                   String storageSubdir, String filePrefix,
+                                                   java.util.function.Function<MerchantProfile, String> urlGetter,
+                                                   java.util.function.BiConsumer<MerchantProfile, String> urlSetter,
+                                                   String auditLabel) throws IOException {
         if (file.isEmpty()) {
             throw new IllegalArgumentException("파일을 선택하세요.");
         }
@@ -101,27 +119,27 @@ public class ChatbotHeaderLogoUploadService {
         maxEdge = clamp(maxEdge, 320, 2048);
 
         byte[] optimized = optimizeLogoBytes(file.getBytes(), targetMax, maxEdge, startQuality);
-        String fileName = "hlogo_" + UUID.randomUUID().toString().substring(0, 8) + ".jpg";
-        Path basePath = Paths.get(System.getProperty("user.dir"), uploadDir, "chatbot-header",
+        String fileName = filePrefix + UUID.randomUUID().toString().substring(0, 8) + ".jpg";
+        Path basePath = Paths.get(System.getProperty("user.dir"), uploadDir, storageSubdir,
                 sanitizeCompId(compId)).normalize();
         Files.createDirectories(basePath);
         Path targetPath = basePath.resolve(fileName);
         Files.write(targetPath, optimized);
 
-        String relative = "/uploads/chatbot-header/" + sanitizeCompId(compId) + "/" + fileName;
+        String relative = "/uploads/" + storageSubdir + "/" + sanitizeCompId(compId) + "/" + fileName;
 
         MerchantProfile mp = merchantProfileRepository.findByOrgUnitId(merchantOrgUnitId)
                 .orElseThrow(() -> new IllegalArgumentException("가맹 프로필을 찾을 수 없습니다."));
-        String before = nz(mp.getChatbotHeaderLogoUrl());
-        mp.setChatbotHeaderLogoUrl(relative.length() > 500 ? relative.substring(0, 500) : relative);
+        String before = nz(urlGetter.apply(mp));
+        String stored = relative.length() > 500 ? relative.substring(0, 500) : relative;
+        urlSetter.accept(mp, stored);
         merchantProfileRepository.save(mp);
 
         Optional<OrgUnit> ouOpt = orgUnitRepository.findById(merchantOrgUnitId);
         if (ouOpt.isPresent()) {
             OrgUnit ou = ouOpt.get();
             orgUnitChangeAuditService.appendIfChanged(ou.getId(), nz(ou.getCode()), nz(ou.getName()),
-                    "[업체정보] 챗봇 상단 로고 URL",
-                    basenameForAudit(before), basenameForAudit(mp.getChatbotHeaderLogoUrl()));
+                    auditLabel, basenameForAudit(before), basenameForAudit(stored));
         }
 
         String msg = optimized.length <= targetMax

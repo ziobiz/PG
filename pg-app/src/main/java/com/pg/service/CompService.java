@@ -1661,6 +1661,8 @@ public class CompService {
                             m.put("remark", mp.getRemark());
                             m.put("commissionConfigAllowed", mp.getCommissionConfigAllowed());
                             m.put("webPaymentUseYn", mp.getWebPaymentUseYn() != null ? mp.getWebPaymentUseYn() : "Y");
+                            m.put("webPaymentHeaderLogoMode", com.pg.urlpay.WebPaymentHeaderLogoModeUtil.normalize(mp.getWebPaymentHeaderLogoMode()));
+                            m.put("webPaymentHeaderSubtitleMode", com.pg.urlpay.WebPaymentHeaderLogoModeUtil.normalize(mp.getWebPaymentHeaderSubtitleMode()));
                             m.put("urlPayCheckoutMode", com.pg.urlpay.UrlPayCheckoutModeUtil.normalize(mp.getUrlPayCheckoutMode()));
                             m.put("apiUrlPayCheckoutMode", com.pg.urlpay.UrlPayCheckoutModeUtil.normalize(mp.getApiUrlPayCheckoutMode()));
                             m.put("chatbotUrlPayCheckoutMode", com.pg.urlpay.UrlPayCheckoutModeUtil.normalize(mp.getChatbotUrlPayCheckoutMode()));
@@ -1688,6 +1690,8 @@ public class CompService {
                                 m.put("payFollowAutoRefundYn", mp.getPayFollowAutoRefundYn());
                                 m.put("payFollowForceRefundYn", mp.getPayFollowForceRefundYn());
                                 m.put("chatbotHeaderLogoUrl", mp.getChatbotHeaderLogoUrl() != null ? mp.getChatbotHeaderLogoUrl() : "");
+                                m.put("webPaymentHeaderLogoUrl", mp.getWebPaymentHeaderLogoUrl() != null ? mp.getWebPaymentHeaderLogoUrl() : "");
+                                m.put("webPaymentHeaderSubtitleText", mp.getWebPaymentHeaderSubtitleText() != null ? mp.getWebPaymentHeaderSubtitleText() : "");
                                 m.put("chatbotAdminUsername", resolveChatbotAdminUsername(mp));
                                 m.putAll(merchantChatbotKbService.effectiveKbForDisplay(ou, mp));
                             }
@@ -1906,7 +1910,10 @@ public class CompService {
                           String useYn, String loginId, String pwd, String regNo, String bizType, String industry,
                           String bizNature, String product, String homepage, String settleName, String settleTelNo,
                           String fax, String email, String bankCd, String transferFee, String cryptoTransferFee, String accountNo, String accountHolder,
-                          String remark, String commissionConfigAllowed, String webPaymentUseYn, String chatbotPaymentUseYn, Integer chatbotProductSlotLimit, String baseCurrency,
+                          String remark, String commissionConfigAllowed, String webPaymentUseYn,
+                          String webPaymentHeaderLogoMode, String webPaymentHeaderLogoUrl,
+                          String webPaymentHeaderSubtitleMode, String webPaymentHeaderSubtitleText,
+                          String chatbotPaymentUseYn, Integer chatbotProductSlotLimit, String baseCurrency,
                           String siteUrl, String siteSummary, String pgBindings, String regionalSettings,
                           String assistantLoginId, String assistantPwd, String assistantRoleType, String brandingEditAllowedYn,
                           String defaultProductName, String defaultProductCode, String defaultProductAmount, String defaultProductDesc,
@@ -1991,6 +1998,34 @@ public class CompService {
                             String effDivForCommission = childLevel.name();
                             if (commissionConfigAllowed != null) mp.setCommissionConfigAllowed(commissionConfigAllowed);
                             if (webPaymentUseYn != null && !webPaymentUseYn.trim().isEmpty()) mp.setWebPaymentUseYn(webPaymentUseYn.trim());
+                            if (childLevel == OrgLevel.MERCHANT && webPaymentHeaderLogoMode != null && !webPaymentHeaderLogoMode.isBlank()) {
+                                mp.setWebPaymentHeaderLogoMode(
+                                        com.pg.urlpay.WebPaymentHeaderLogoModeUtil.normalize(webPaymentHeaderLogoMode));
+                            }
+                            if (childLevel == OrgLevel.MERCHANT && webPaymentHeaderLogoUrl != null) {
+                                String wpLogo = webPaymentHeaderLogoUrl.trim();
+                                if (wpLogo.isEmpty()) {
+                                    mp.setWebPaymentHeaderLogoUrl(null);
+                                } else if (wpLogo.length() > 500) {
+                                    throw new IllegalArgumentException("웹결제 상단 로고 URL은 500자 이하여야 합니다.");
+                                } else {
+                                    mp.setWebPaymentHeaderLogoUrl(wpLogo);
+                                }
+                            }
+                            if (childLevel == OrgLevel.MERCHANT && webPaymentHeaderSubtitleMode != null && !webPaymentHeaderSubtitleMode.isBlank()) {
+                                mp.setWebPaymentHeaderSubtitleMode(
+                                        com.pg.urlpay.WebPaymentHeaderLogoModeUtil.normalize(webPaymentHeaderSubtitleMode));
+                            }
+                            if (childLevel == OrgLevel.MERCHANT && webPaymentHeaderSubtitleText != null) {
+                                String wpSub = webPaymentHeaderSubtitleText.trim();
+                                if (wpSub.isEmpty()) {
+                                    mp.setWebPaymentHeaderSubtitleText(null);
+                                } else if (wpSub.length() > 200) {
+                                    throw new IllegalArgumentException("웹결제 경고메세지는 200자 이하여야 합니다.");
+                                } else {
+                                    mp.setWebPaymentHeaderSubtitleText(wpSub);
+                                }
+                            }
                             if (childLevel == OrgLevel.MERCHANT) {
                                 applyMerchantUrlPayCheckoutMode(mp, ou.getId(), urlPayCheckoutMode);
                                 applyMerchantApiUrlPayCheckoutMode(mp, ou.getId(), apiUrlPayCheckoutMode);

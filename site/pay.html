@@ -33,7 +33,7 @@
         <img id="payBrandLogoImg" class="pay-brand-logo-img d-none" src="" alt="">
         <div id="payBrandTextWrap">
           <div class="pay-brand-logo" data-i18n="brandTitle">ICOPAY</div>
-          <div class="pay-brand-sub" data-i18n="brandSub">Secure checkout</div>
+          <div class="pay-brand-sub" data-i18n="brandSub3ds">3DS Secure Payment</div>
         </div>
       </div>
 
@@ -213,6 +213,7 @@
   </div>
 
   <script src="js/config.js?v=12"></script>
+  <script src="js/url-pay-public-shell.js?v=3"></script>
   <script>
     (function () {
       var h = (window.location && window.location.hostname) ? window.location.hostname : '';
@@ -379,11 +380,7 @@
           if (rememberField) rememberField.classList.toggle('d-none', !PAY_REPAY_MODE);
           if (cardSelectWrap) cardSelectWrap.classList.toggle('d-none', !PAY_REPAY_MODE);
           if (PAY_REPAY_MODE) {
-            var brandSub = document.querySelector('.pay-brand-sub');
-            if (brandSub && !brandSub.getAttribute('data-repay-sub')) {
-              brandSub.setAttribute('data-repay-sub', '1');
-              brandSub.textContent = t('brandSubRepay');
-            }
+            /* 재결제도 경고메세지(가맹 설정)를 따름 — applyCheckoutHeaderSubtitle */
           }
         } catch (eRepUi) { /* ignore */ }
       }
@@ -455,7 +452,7 @@
       window.__payUrlCardCopy = null;
       var I18N = {
         KOR: {
-          brandTitle: 'ICOPAY', brandSub: '안전 결제', phItem: '상품·서비스명',
+          brandTitle: 'ICOPAY', brandSub3ds: '3DS 안전 결제', phItem: '상품·서비스명',
           merchantName: '가맹점', merchantNameLabel: '가맹점명', currencyJpy: '(JPY)',
           nameOnCardPair: '이름 / 성', phFirst: '이름', phLast: '성',
           item: '상품', mobile: '휴대전화', firstName: '이름', lastName: '성',
@@ -502,7 +499,7 @@
           chatbotNavPrev: '이전 페이지'
         },
         ENG: {
-          brandTitle: 'ICOPAY', brandSub: 'Secure checkout', phItem: 'Digital Contents Product',
+          brandTitle: 'ICOPAY', brandSub3ds: '3DS Secure Payment', phItem: 'Digital Contents Product',
           merchantName: 'Merchant', merchantNameLabel: 'Merchant Name', currencyJpy: '(JPY)',
           nameOnCardPair: 'First / Last name', phFirst: 'First name', phLast: 'Last name',
           item: 'Item', mobile: 'Mobile Number', firstName: 'First Name', lastName: 'Last Name',
@@ -549,7 +546,7 @@
           chatbotNavPrev: 'Previous page'
         },
         CHN: {
-          brandTitle: 'ICOPAY', brandSub: '安全结账', phItem: '商品或服务名称',
+          brandTitle: 'ICOPAY', brandSub3ds: '3DS 安全支付', phItem: '商品或服务名称',
           merchantName: '商户', merchantNameLabel: '商户名称', currencyJpy: '(日元)',
           nameOnCardPair: '名 / 姓', phFirst: '名', phLast: '姓',
           item: '商品', mobile: '手机号码', firstName: '名', lastName: '姓',
@@ -596,7 +593,7 @@
           chatbotNavPrev: '上一页'
         },
         JPN: {
-          brandTitle: 'ICOPAY', brandSub: 'セキュア決済', phItem: '商品・サービス名',
+          brandTitle: 'ICOPAY', brandSub3ds: '3DSセキュア決済', phItem: '商品・サービス名',
           merchantName: '加盟店', merchantNameLabel: '加盟店名', currencyJpy: '(JPY)',
           nameOnCardPair: '名 / 姓', phFirst: '名', phLast: '姓',
           item: '商品', mobile: '携帯電話', firstName: '名', lastName: '姓',
@@ -643,7 +640,7 @@
           chatbotNavPrev: '前のページ'
         },
         THA: {
-          brandTitle: 'ICOPAY', brandSub: 'ชำระเงินปลอดภัย', phItem: 'ชื่อสินค้าหรือบริการ',
+          brandTitle: 'ICOPAY', brandSub3ds: '3DS ชำระเงินปลอดภัย', phItem: 'ชื่อสินค้าหรือบริการ',
           merchantName: 'ร้านค้า', merchantNameLabel: 'ชื่อร้านค้า', currencyJpy: '(JPY)',
           nameOnCardPair: 'ชื่อจริง / นามสกุล', phFirst: 'ชื่อ', phLast: 'นามสกุล',
           item: 'สินค้า / บริการ', mobile: 'เบอร์โทรศัพท์มือถือ', firstName: 'ชื่อ', lastName: 'นามสกุล',
@@ -744,13 +741,6 @@
         }
         var cardSelectWrap = document.getElementById('payRepayCardSelectWrap');
         if (cardSelectWrap) cardSelectWrap.classList.toggle('d-none', !PAY_REPAY_MODE);
-        if (PAY_REPAY_MODE) {
-          var brandSub = document.querySelector('.pay-brand-sub');
-          if (brandSub && !brandSub.getAttribute('data-repay-sub')) {
-            brandSub.setAttribute('data-repay-sub', '1');
-            brandSub.textContent = t('brandSubRepay');
-          }
-        }
       }
 
       function payVariantQuerySuffix() {
@@ -1124,7 +1114,20 @@
       }
 
       function applyCheckoutHeaderBranding() {
-        var logoPath = (checkoutCtx && checkoutCtx.checkoutHeaderLogoUrl) ? String(checkoutCtx.checkoutHeaderLogoUrl).trim() : '';
+        var brand = document.querySelector('.pay-brand');
+        var mode = (checkoutCtx && checkoutCtx.checkoutHeaderLogoMode)
+          ? String(checkoutCtx.checkoutHeaderLogoMode).trim().toUpperCase() : 'DEFAULT';
+        if (mode === 'DISABLED') {
+          if (brand) brand.style.display = 'none';
+          return;
+        }
+        var logoPath = (checkoutCtx && checkoutCtx.checkoutHeaderLogoUrl)
+          ? String(checkoutCtx.checkoutHeaderLogoUrl).trim() : '';
+        if (mode === 'ACTIVE' && !logoPath) {
+          if (brand) brand.style.display = 'none';
+          return;
+        }
+        if (brand) brand.style.display = '';
         var img = document.getElementById('payBrandLogoImg');
         var wrap = document.getElementById('payBrandTextWrap');
         if (!img || !wrap) return;
@@ -1136,6 +1139,12 @@
           img.removeAttribute('src');
           img.classList.add('d-none');
           wrap.classList.remove('d-none');
+        }
+      }
+
+      function applyCheckoutHeaderSubtitleBranding() {
+        if (window.PG_URL_PAY_SHELL && PG_URL_PAY_SHELL.applyCheckoutHeaderSubtitle) {
+          PG_URL_PAY_SHELL.applyCheckoutHeaderSubtitle(checkoutCtx, { t: t });
         }
       }
 
@@ -1168,6 +1177,7 @@
           document.documentElement.setAttribute('lang', hl[code] || 'en');
         } catch (eHtml) { /* ignore */ }
         applyI18n();
+        applyCheckoutHeaderSubtitleBranding();
         if (bootCompId && checkoutCtx) {
           applyCheckoutFormDefaults(bootCompId, checkoutCtx);
         }
@@ -1830,6 +1840,7 @@
             }
           }
           applyCheckoutHeaderBranding();
+          applyCheckoutHeaderSubtitleBranding();
           applyCheckoutFormDefaults(compId, checkoutCtx);
           applyQueryPrefillsFromUrl();
           applyMerchantApiEmbedUi();

@@ -5,14 +5,12 @@ import com.pg.dto.ChillPayDirectCreditResponse;
 import com.pg.entity.HqApiConfig;
 import com.pg.entity.MerchantDefaultProduct;
 import com.pg.entity.MerchantProfile;
-import com.pg.entity.OrgBranding;
-import com.pg.entity.OrgLevel;
 import com.pg.entity.OrgUnit;
 import com.pg.repository.HqApiConfigRepository;
 import com.pg.repository.MerchantDefaultProductRepository;
 import com.pg.repository.MerchantProfileRepository;
-import com.pg.repository.OrgBrandingRepository;
 import com.pg.repository.OrgUnitRepository;
+import com.pg.urlpay.CheckoutHeaderLogoResolver;
 import com.pg.merchantdeploy.MerchantInlineCheckoutTokenService;
 import com.pg.merchantdeploy.MerchantPgBrokerVendor;
 import com.pg.service.ChillPayDirectCreditRecordService;
@@ -66,12 +64,12 @@ public class ApiPayController {
     private final UrlPayCardCopyService urlPayCardCopyService;
     private final UrlPayDisplayFxService urlPayDisplayFxService;
     private final UrlPayCheckoutCurrencyService urlPayCheckoutCurrencyService;
-    private final OrgBrandingRepository orgBrandingRepository;
     private final MerchantCreditTokenService merchantCreditTokenService;
     private final MerchantInlineCheckoutTokenService merchantInlineCheckoutTokenService;
     private final UrlPayChargeResolutionService urlPayChargeResolutionService;
     private final UrlPayPublicCheckoutService urlPayPublicCheckoutService;
     private final UrlPaySaleDispatcher urlPaySaleDispatcher;
+    private final CheckoutHeaderLogoResolver checkoutHeaderLogoResolver;
 
     public ApiPayController(ChillPayService chillPayService,
                             JpayPaymentService jpayPaymentService,
@@ -85,12 +83,12 @@ public class ApiPayController {
                             UrlPayCardCopyService urlPayCardCopyService,
                             UrlPayDisplayFxService urlPayDisplayFxService,
                             UrlPayCheckoutCurrencyService urlPayCheckoutCurrencyService,
-                            OrgBrandingRepository orgBrandingRepository,
                             MerchantCreditTokenService merchantCreditTokenService,
                             MerchantInlineCheckoutTokenService merchantInlineCheckoutTokenService,
                             UrlPayChargeResolutionService urlPayChargeResolutionService,
                             UrlPayPublicCheckoutService urlPayPublicCheckoutService,
-                            UrlPaySaleDispatcher urlPaySaleDispatcher) {
+                            UrlPaySaleDispatcher urlPaySaleDispatcher,
+                            CheckoutHeaderLogoResolver checkoutHeaderLogoResolver) {
         this.chillPayService = chillPayService;
         this.jpayPaymentService = jpayPaymentService;
         this.chillPayDirectCreditRecordService = chillPayDirectCreditRecordService;
@@ -103,12 +101,12 @@ public class ApiPayController {
         this.urlPayCardCopyService = urlPayCardCopyService;
         this.urlPayDisplayFxService = urlPayDisplayFxService;
         this.urlPayCheckoutCurrencyService = urlPayCheckoutCurrencyService;
-        this.orgBrandingRepository = orgBrandingRepository;
         this.merchantCreditTokenService = merchantCreditTokenService;
         this.merchantInlineCheckoutTokenService = merchantInlineCheckoutTokenService;
         this.urlPayChargeResolutionService = urlPayChargeResolutionService;
         this.urlPayPublicCheckoutService = urlPayPublicCheckoutService;
         this.urlPaySaleDispatcher = urlPaySaleDispatcher;
+        this.checkoutHeaderLogoResolver = checkoutHeaderLogoResolver;
     }
 
     private static boolean isUrlPayRepayVariant(String raw) {
@@ -319,7 +317,7 @@ public class ApiPayController {
         data.put("integrationMode", "INLINE");
         data.put("checkoutCurrencyCode", urlPayCheckoutCurrencyService.resolveCheckoutCurrency(orgUnitId, null));
         data.put("clientIp", getClientIp(request));
-        resolveCheckoutHeaderLogoUrl(orgUnitId).ifPresent(u -> data.put("checkoutHeaderLogoUrl", u));
+        checkoutHeaderLogoResolver.applyToCheckoutMap(data, orgUnitId);
         return ResponseEntity.ok(ApiResponse.ok(data));
     }
 
@@ -518,36 +516,6 @@ public class ApiPayController {
         if (v instanceof Map && !((Map<?, ?>) v).isEmpty()) {
             target.put(key, v);
         }
-    }
-
-    /**
-     * 가맹점 상위 체인에서 첫 {@link OrgLevel#MASTER_DIST} 조직의 URL결제 상단 이미지.
-     * {@code url_pay_image_url} 이 있으면 우선, 없으면 기존 로그인 후 로고({@code logo_image_url})를 사용합니다.
-     */
-    private Optional<String> resolveCheckoutHeaderLogoUrl(Long merchantOrgUnitId) {
-        Long cur = merchantOrgUnitId;
-        while (cur != null) {
-            Optional<OrgUnit> opt = orgUnitRepository.findById(cur);
-            if (opt.isEmpty()) {
-                break;
-            }
-            OrgUnit u = opt.get();
-            if (u.getOrgLevel() == OrgLevel.MASTER_DIST) {
-                return orgBrandingRepository.findByOrgUnitId(u.getId()).flatMap(b -> {
-                    String up = b.getUrlPayImageUrl();
-                    if (up != null && !up.isBlank()) {
-                        return Optional.of(up.trim());
-                    }
-                    String lg = b.getLogoImageUrl();
-                    if (lg != null && !lg.isBlank()) {
-                        return Optional.of(lg.trim());
-                    }
-                    return Optional.empty();
-                });
-            }
-            cur = u.getParentId();
-        }
-        return Optional.empty();
     }
 
     /**

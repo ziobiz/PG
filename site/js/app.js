@@ -1443,6 +1443,89 @@
       }
     });
     pgMaybeBindChatbotHeaderLogo(rootEl);
+    pgMaybeBindWebPaymentHeaderLogo(rootEl);
+    pgMaybeBindWebPaymentHeaderSubtitle(rootEl);
+  }
+  /** 웹결제 경고메세지 — ACTIVE 일 때만 입력 활성 */
+  function pgSyncWebPaymentHeaderSubtitleUi(rootEl) {
+    if (!rootEl) return;
+    var modeEl = rootEl.querySelector('[name="webPaymentHeaderSubtitleMode"]');
+    var block = rootEl.querySelector('#webPaymentHeaderSubtitleBlock');
+    if (!modeEl || !block) return;
+    var mode = String(modeEl.value || 'DEFAULT').trim().toUpperCase();
+    var active = mode === 'ACTIVE';
+    block.querySelectorAll('input').forEach(function (el) {
+      el.disabled = !active;
+    });
+    block.classList.toggle('opacity-50', !active);
+    block.setAttribute('aria-disabled', active ? 'false' : 'true');
+  }
+  function pgMaybeBindWebPaymentHeaderSubtitle(rootEl) {
+    if (!rootEl) return;
+    var modeEl = rootEl.querySelector('[name="webPaymentHeaderSubtitleMode"]');
+    if (!modeEl) return;
+    if (!modeEl._pgWebPayHdrSubBound) {
+      modeEl._pgWebPayHdrSubBound = true;
+      modeEl.addEventListener('change', function () { pgSyncWebPaymentHeaderSubtitleUi(rootEl); });
+    }
+    pgSyncWebPaymentHeaderSubtitleUi(rootEl);
+  }
+  /** 웹결제 상단 로고 — 로고설정 ACTIVE 일 때만 업로드 활성 */
+  function pgSyncWebPaymentHeaderLogoUi(rootEl) {
+    if (!rootEl) return;
+    var modeEl = rootEl.querySelector('[name="webPaymentHeaderLogoMode"]');
+    var block = rootEl.querySelector('#webPaymentHeaderLogoBlock');
+    if (!modeEl || !block) return;
+    var mode = String(modeEl.value || 'DEFAULT').trim().toUpperCase();
+    var active = mode === 'ACTIVE';
+    block.querySelectorAll('input, button').forEach(function (el) {
+      if (el.name === 'webPaymentHeaderLogoMode') return;
+      el.disabled = !active;
+    });
+    block.classList.toggle('opacity-50', !active);
+    block.setAttribute('aria-disabled', active ? 'false' : 'true');
+  }
+  function pgMaybeBindWebPaymentHeaderLogo(rootEl) {
+    if (!rootEl || !window.PG_API || !window.PG_API.compWebPaymentHeaderLogoUpload) return;
+    var browse = rootEl.querySelector('#webPaymentHeaderLogoBrowse');
+    var fileEl = rootEl.querySelector('#webPaymentHeaderLogoFile');
+    var upBtn = rootEl.querySelector('#webPaymentHeaderLogoUpload');
+    var urlInp = rootEl.querySelector('#webPaymentHeaderLogoUrl');
+    var modeEl = rootEl.querySelector('[name="webPaymentHeaderLogoMode"]');
+    if (!browse || !fileEl || !upBtn || !urlInp) return;
+    if (!browse._pgWebPayHdrLogoBound) {
+      browse._pgWebPayHdrLogoBound = true;
+      browse.addEventListener('click', function () { fileEl.click(); });
+      fileEl.addEventListener('change', function () {});
+      upBtn.addEventListener('click', function () {
+        var form = browse.closest('form');
+        var compEl = form ? form.querySelector('[name="compId"]') : null;
+        var cid = compEl && compEl.value ? String(compEl.value).trim() : '';
+        if (!cid) {
+          alert(pgAdminUiT('업체코드가 없습니다.'));
+          return;
+        }
+        var f = fileEl.files && fileEl.files[0];
+        if (!f) {
+          alert(pgAdminUiT('이미지 파일을 선택하세요.'));
+          return;
+        }
+        upBtn.disabled = true;
+        window.PG_API.compWebPaymentHeaderLogoUpload(cid, f).then(function (d) {
+          if (d && d.url) urlInp.value = String(d.url);
+          var msg = d && d.message ? String(d.message) : pgAdminUiT('업로드되었습니다.');
+          alert(msg);
+          fileEl.value = '';
+        }).catch(function (e) {
+          alert(e && e.message ? e.message : pgAdminUiT('업로드 실패'));
+        }).finally(function () { pgSyncWebPaymentHeaderLogoUi(rootEl); });
+      });
+    }
+    if (modeEl && !modeEl._pgWebPayHdrLogoModeBound) {
+      modeEl._pgWebPayHdrLogoModeBound = true;
+      modeEl.addEventListener('change', function () { pgSyncWebPaymentHeaderLogoUi(rootEl); });
+    }
+    pgSyncWebPaymentHeaderLogoUi(rootEl);
   }
   /** 업체 폼 내 챗봇 상단 로고 파일 업로드( 즉시 서버 저장 ) */
   function pgMaybeBindChatbotHeaderLogo(rootEl) {
@@ -10294,9 +10377,10 @@
                 } else if (c.type === 'userMngAssistantRole') {
                   var utMng = String(row.userType || 'ASSISTANT').toUpperCase();
                   if (utMng === 'REPRESENTATIVE') {
-                    html += '<td><span class="text-muted small" data-pg-ui-t="권한그룹(대표)">' +
-                      pgAdminEscHtml(row.permissionGroupNm != null && String(row.permissionGroupNm).trim() !== ''
-                        ? String(row.permissionGroupNm).trim() : '-') + '</span></td>';
+                    var pgNmRep = row.permissionGroupNm != null && String(row.permissionGroupNm).trim() !== ''
+                      ? String(row.permissionGroupNm).trim() : '-';
+                    html += '<td><span class="text-muted small" data-pg-ui-t="' + escAttr(pgNmRep) + '">' +
+                      pgAdminEscHtml(pgAdminUiT(pgNmRep)) + '</span></td>';
                   } else {
                     var ar = row.assistantRoleType != null && String(row.assistantRoleType).trim() !== ''
                       ? String(row.assistantRoleType).trim().toUpperCase() : 'MANAGER';
@@ -10346,9 +10430,9 @@
                 } else if (c.type === 'userMngStatus') {
                   var us = row.userStatus || 'ACTIVE';
                   html += '<td><select class="form-select form-select-sm user-mng-sel" data-field="userStatus">';
-                  html += '<option value="ACTIVE"' + (us === 'ACTIVE' ? ' selected' : '') + ' data-pg-ui-t="사용">사용</option>';
-                  html += '<option value="INACTIVE"' + (us === 'INACTIVE' ? ' selected' : '') + ' data-pg-ui-t="미사용">미사용</option>';
-                  html += '<option value="SUSPENDED"' + (us === 'SUSPENDED' ? ' selected' : '') + ' data-pg-ui-t="영구정지">영구정지</option>';
+                  html += '<option value="ACTIVE"' + (us === 'ACTIVE' ? ' selected' : '') + ' data-pg-ui-t="사용">' + pgAdminEscHtml(pgAdminUiT('사용')) + '</option>';
+                  html += '<option value="INACTIVE"' + (us === 'INACTIVE' ? ' selected' : '') + ' data-pg-ui-t="미사용">' + pgAdminEscHtml(pgAdminUiT('미사용')) + '</option>';
+                  html += '<option value="SUSPENDED"' + (us === 'SUSPENDED' ? ' selected' : '') + ' data-pg-ui-t="영구정지">' + pgAdminEscHtml(pgAdminUiT('영구정지')) + '</option>';
                   html += '</select></td>';
                 } else if (c.type === 'userMngDraftDelete') {
                   if (row._draft) {
@@ -14323,7 +14407,7 @@
         form.querySelectorAll('input, select, textarea').forEach(function (el) { el.disabled = false; });
         var updBtnReset = pane.querySelector('#compInfoUpdateBtn');
         if (updBtnReset) updBtnReset.style.display = '';
-        var allFieldsInfo = ['compId', 'parentComp', 'compNm', 'compDiv', 'regNo', 'bizType', 'industry', 'bizNature', 'product', 'homepage', 'settleName', 'settleTelNo', 'ceoNm', 'ceoMobile', 'compTel', 'fax', 'zipCode', 'addr', 'addrDetail', 'addrEtc', 'addrCountryCd', 'addrCountryCdOther', 'email', 'siteUrl', 'siteSummary', 'useYn', 'loginId', 'bankCd', 'transferFee', 'cryptoTransferFee', 'accountNo', 'accountHolder', 'commissionConfigAllowed', 'webPaymentUseYn', 'urlPayCheckoutMode', 'apiUrlPayCheckoutMode', 'chatbotUrlPayCheckoutMode', 'jpayCheckoutFieldMode', 'apiJpaySubscriptionUseYn', 'chatbotPaymentUseYn', 'chatbotProductSlotLimit', 'chatbotHeaderLogoUrl', 'chatbotAdminUsername', 'chatbotCatalogListingGrant', 'chatbotMaxProductImagesGrant', 'chatbotCatalogListingEnabled', 'baseCurrency', 'remark', 'countryCd', 'countryCdOther', 'swift', 'branchName', 'branchAddr', 'contactTel', 'walletAddress', 'networkName', 'withdrawRestrictType', 'withdrawStartTime', 'withdrawEndTime', 'payLimitDefault', 'payLimitExtra', 'payLimitAlertSms', 'holdRateFollowHq', 'holdRate', 'holdDays', 'commissionFollowHq', 'hqPolicyScope', 'failFee', 'usageRate', 'payRate', 'cancelRate', 'voidFeePerTx', 'manualVoidFeePerTx', 'refundRate', 'voidSettlementMode', 'manualVoidSettlementMode', 'refundSettlementMode', 'forceRefundSettlementMode', 'commissionMemo', 'feeSettlementPerTx', 'remittanceTransferFee', 'usdtTransferFeeUsd', 'feeUsdt', 'feeFx', 'fee3dsRate', 'chargebackFeePerTx', 'chargebackPolicyId', 'payFollowMerchantUseYn', 'payFollowAutoVoidYn', 'payFollowEmailVoidYn', 'payFollowAutoRefundYn', 'payFollowForceRefundYn', 'urlPayAlertEmailYn', 'calcCycle', 'calcProcType', 'calcCloseTime', 'transferType', 'transferCycleDays', 'autoTransferMin', 'calcMinAmt', 'transferExecTime', 'calcExcludeYn', 'calcExcludeTarget', 'calcStartTime', 'payHoldYn', 'feeVatApplyYn', 'feeVatRatePct', 'calcCycleTransitionMode', 'calcCycleChangeRemark', 'defaultProductName', 'defaultProductCode', 'defaultProductAmount', 'defaultProductDesc', 'notifyUrlBackground', 'notifyUrlResult', 'jpayNotifyUrl', 'jpayCallbackUrl', 'assistantLoginId', 'assistantPwd', 'assistantRoleType', 'brandingEditAllowedYn', 'copyright'];
+        var allFieldsInfo = ['compId', 'parentComp', 'compNm', 'compDiv', 'regNo', 'bizType', 'industry', 'bizNature', 'product', 'homepage', 'settleName', 'settleTelNo', 'ceoNm', 'ceoMobile', 'compTel', 'fax', 'zipCode', 'addr', 'addrDetail', 'addrEtc', 'addrCountryCd', 'addrCountryCdOther', 'email', 'siteUrl', 'siteSummary', 'useYn', 'loginId', 'bankCd', 'transferFee', 'cryptoTransferFee', 'accountNo', 'accountHolder', 'commissionConfigAllowed', 'webPaymentUseYn', 'webPaymentHeaderLogoMode', 'webPaymentHeaderLogoUrl', 'webPaymentHeaderSubtitleMode', 'webPaymentHeaderSubtitleText', 'urlPayCheckoutMode', 'apiUrlPayCheckoutMode', 'chatbotUrlPayCheckoutMode', 'jpayCheckoutFieldMode', 'apiJpaySubscriptionUseYn', 'chatbotPaymentUseYn', 'chatbotProductSlotLimit', 'chatbotHeaderLogoUrl', 'chatbotAdminUsername', 'chatbotCatalogListingGrant', 'chatbotMaxProductImagesGrant', 'chatbotCatalogListingEnabled', 'baseCurrency', 'remark', 'countryCd', 'countryCdOther', 'swift', 'branchName', 'branchAddr', 'contactTel', 'walletAddress', 'networkName', 'withdrawRestrictType', 'withdrawStartTime', 'withdrawEndTime', 'payLimitDefault', 'payLimitExtra', 'payLimitAlertSms', 'holdRateFollowHq', 'holdRate', 'holdDays', 'commissionFollowHq', 'hqPolicyScope', 'failFee', 'usageRate', 'payRate', 'cancelRate', 'voidFeePerTx', 'manualVoidFeePerTx', 'refundRate', 'voidSettlementMode', 'manualVoidSettlementMode', 'refundSettlementMode', 'forceRefundSettlementMode', 'commissionMemo', 'feeSettlementPerTx', 'remittanceTransferFee', 'usdtTransferFeeUsd', 'feeUsdt', 'feeFx', 'fee3dsRate', 'chargebackFeePerTx', 'chargebackPolicyId', 'payFollowMerchantUseYn', 'payFollowAutoVoidYn', 'payFollowEmailVoidYn', 'payFollowAutoRefundYn', 'payFollowForceRefundYn', 'urlPayAlertEmailYn', 'calcCycle', 'calcProcType', 'calcCloseTime', 'transferType', 'transferCycleDays', 'autoTransferMin', 'calcMinAmt', 'transferExecTime', 'calcExcludeYn', 'calcExcludeTarget', 'calcStartTime', 'payHoldYn', 'feeVatApplyYn', 'feeVatRatePct', 'calcCycleTransitionMode', 'calcCycleChangeRemark', 'defaultProductName', 'defaultProductCode', 'defaultProductAmount', 'defaultProductDesc', 'notifyUrlBackground', 'notifyUrlResult', 'jpayNotifyUrl', 'jpayCallbackUrl', 'assistantLoginId', 'assistantPwd', 'assistantRoleType', 'brandingEditAllowedYn', 'copyright'];
         allFieldsInfo.forEach(function (k) {
           var el = form.querySelector('[name="' + k + '"]');
           if (el && data[k] != null) {
@@ -15365,7 +15449,7 @@
         var form = pane.querySelector('#compDetailForm');
         if (!form) return;
         initAttachmentSection(pane);
-        var allFields = ['compId', 'parentComp', 'compNm', 'compDiv', 'regNo', 'bizType', 'industry', 'bizNature', 'product', 'homepage', 'settleName', 'settleTelNo', 'ceoNm', 'ceoMobile', 'compTel', 'fax', 'zipCode', 'addr', 'addrDetail', 'addrEtc', 'addrCountryCd', 'addrCountryCdOther', 'email', 'siteUrl', 'siteSummary', 'useYn', 'loginId', 'bankCd', 'transferFee', 'cryptoTransferFee', 'accountNo', 'accountHolder', 'commissionConfigAllowed', 'webPaymentUseYn', 'urlPayCheckoutMode', 'apiUrlPayCheckoutMode', 'chatbotUrlPayCheckoutMode', 'jpayCheckoutFieldMode', 'apiJpaySubscriptionUseYn', 'chatbotPaymentUseYn', 'chatbotProductSlotLimit', 'chatbotHeaderLogoUrl', 'chatbotAdminUsername', 'chatbotCatalogListingGrant', 'chatbotMaxProductImagesGrant', 'chatbotCatalogListingEnabled', 'baseCurrency', 'remark', 'settleType', 'commissionRate', 'limitAmt', 'countryCd', 'countryCdOther', 'swift', 'branchName', 'branchAddr', 'contactTel', 'walletAddress', 'networkName', 'withdrawRestrictType', 'withdrawStartTime', 'withdrawEndTime', 'payLimitDefault', 'payLimitExtra', 'payLimitAlertSms', 'holdRateFollowHq', 'holdRate', 'holdDays', 'commissionFollowHq', 'hqPolicyScope', 'failFee', 'usageRate', 'payRate', 'cancelRate', 'voidFeePerTx', 'manualVoidFeePerTx', 'refundRate', 'voidSettlementMode', 'manualVoidSettlementMode', 'refundSettlementMode', 'forceRefundSettlementMode', 'commissionMemo', 'feeSettlementPerTx', 'remittanceTransferFee', 'usdtTransferFeeUsd', 'feeUsdt', 'feeFx', 'fee3dsRate', 'chargebackFeePerTx', 'chargebackPolicyId', 'payFollowMerchantUseYn', 'payFollowAutoVoidYn', 'payFollowEmailVoidYn', 'payFollowAutoRefundYn', 'payFollowForceRefundYn', 'urlPayAlertEmailYn', 'calcCycle', 'calcProcType', 'calcCloseTime', 'transferType', 'transferCycleDays', 'autoTransferMin', 'calcMinAmt', 'transferExecTime', 'calcExcludeYn', 'calcExcludeTarget', 'calcStartTime', 'payHoldYn', 'feeVatApplyYn', 'feeVatRatePct', 'calcCycleTransitionMode', 'calcCycleChangeRemark', 'defaultProductName', 'defaultProductCode', 'defaultProductAmount', 'defaultProductDesc', 'notifyUrlBackground', 'notifyUrlResult', 'jpayNotifyUrl', 'jpayCallbackUrl', 'notifyUrl1', 'notifyUrl2', 'notifyUrl3', 'notifyUrl4', 'remitterName', 'balanceNotifyAmt', 'suspiciousNotifyAmt', 'overseasLoginNotifyAmt', 'tempPwdNotifyAmt', 'nonTranCriterionMonth', 'sameCardLimitWebDay', 'sameCardLimitWebTimes', 'sameCardLimitWebAmt', 'sameCardLimitTerminalDay', 'sameCardLimitTerminalTimes', 'sameCardLimitTerminalAmt', 'dailyUsageFee', 'depositNameLookup', 'transferAuthNo', 'autoConvertNewMemberLimit', 'newMemberDailyLimit', 'convertRefDate', 'convertDailyLimit', 'applyStartDate', 'pgFeeGeneral', 'settleDiffMonthCnt', 'settleReportBankCd', 'pgFeeSamsung', 'smsFee', 'taxInvoiceEmail', 'settleAccountNo', 'directFee', 'solutionFee', 'settleAccountHolder', 'withdrawRestrictType', 'withdrawRestrictStartTime', 'withdrawRestrictEndTime', 'terminalPayRestrict', 'webPayRestrict', 'defaultFeeHq', 'defaultFeeDist', 'defaultFeeBranch', 'defaultFeeAgency', 'defaultFeeSalesOffice', 'defaultPayLimitPerTx', 'defaultPayLimitDay', 'defaultPayLimitMonth', 'defaultPayLimitYearCorp', 'defaultPayLimitYearInd', 'copyright', 'holidayProfileName', 'holidayProfileCountry', 'holidayCountryCode', 'holidayCountryCodes', 'businessHolidayRangesJson', 'businessHolidayExtraDates'];
+        var allFields = ['compId', 'parentComp', 'compNm', 'compDiv', 'regNo', 'bizType', 'industry', 'bizNature', 'product', 'homepage', 'settleName', 'settleTelNo', 'ceoNm', 'ceoMobile', 'compTel', 'fax', 'zipCode', 'addr', 'addrDetail', 'addrEtc', 'addrCountryCd', 'addrCountryCdOther', 'email', 'siteUrl', 'siteSummary', 'useYn', 'loginId', 'bankCd', 'transferFee', 'cryptoTransferFee', 'accountNo', 'accountHolder', 'commissionConfigAllowed', 'webPaymentUseYn', 'webPaymentHeaderLogoMode', 'webPaymentHeaderLogoUrl', 'webPaymentHeaderSubtitleMode', 'webPaymentHeaderSubtitleText', 'urlPayCheckoutMode', 'apiUrlPayCheckoutMode', 'chatbotUrlPayCheckoutMode', 'jpayCheckoutFieldMode', 'apiJpaySubscriptionUseYn', 'chatbotPaymentUseYn', 'chatbotProductSlotLimit', 'chatbotHeaderLogoUrl', 'chatbotAdminUsername', 'chatbotCatalogListingGrant', 'chatbotMaxProductImagesGrant', 'chatbotCatalogListingEnabled', 'baseCurrency', 'remark', 'settleType', 'commissionRate', 'limitAmt', 'countryCd', 'countryCdOther', 'swift', 'branchName', 'branchAddr', 'contactTel', 'walletAddress', 'networkName', 'withdrawRestrictType', 'withdrawStartTime', 'withdrawEndTime', 'payLimitDefault', 'payLimitExtra', 'payLimitAlertSms', 'holdRateFollowHq', 'holdRate', 'holdDays', 'commissionFollowHq', 'hqPolicyScope', 'failFee', 'usageRate', 'payRate', 'cancelRate', 'voidFeePerTx', 'manualVoidFeePerTx', 'refundRate', 'voidSettlementMode', 'manualVoidSettlementMode', 'refundSettlementMode', 'forceRefundSettlementMode', 'commissionMemo', 'feeSettlementPerTx', 'remittanceTransferFee', 'usdtTransferFeeUsd', 'feeUsdt', 'feeFx', 'fee3dsRate', 'chargebackFeePerTx', 'chargebackPolicyId', 'payFollowMerchantUseYn', 'payFollowAutoVoidYn', 'payFollowEmailVoidYn', 'payFollowAutoRefundYn', 'payFollowForceRefundYn', 'urlPayAlertEmailYn', 'calcCycle', 'calcProcType', 'calcCloseTime', 'transferType', 'transferCycleDays', 'autoTransferMin', 'calcMinAmt', 'transferExecTime', 'calcExcludeYn', 'calcExcludeTarget', 'calcStartTime', 'payHoldYn', 'feeVatApplyYn', 'feeVatRatePct', 'calcCycleTransitionMode', 'calcCycleChangeRemark', 'defaultProductName', 'defaultProductCode', 'defaultProductAmount', 'defaultProductDesc', 'notifyUrlBackground', 'notifyUrlResult', 'jpayNotifyUrl', 'jpayCallbackUrl', 'notifyUrl1', 'notifyUrl2', 'notifyUrl3', 'notifyUrl4', 'remitterName', 'balanceNotifyAmt', 'suspiciousNotifyAmt', 'overseasLoginNotifyAmt', 'tempPwdNotifyAmt', 'nonTranCriterionMonth', 'sameCardLimitWebDay', 'sameCardLimitWebTimes', 'sameCardLimitWebAmt', 'sameCardLimitTerminalDay', 'sameCardLimitTerminalTimes', 'sameCardLimitTerminalAmt', 'dailyUsageFee', 'depositNameLookup', 'transferAuthNo', 'autoConvertNewMemberLimit', 'newMemberDailyLimit', 'convertRefDate', 'convertDailyLimit', 'applyStartDate', 'pgFeeGeneral', 'settleDiffMonthCnt', 'settleReportBankCd', 'pgFeeSamsung', 'smsFee', 'taxInvoiceEmail', 'settleAccountNo', 'directFee', 'solutionFee', 'settleAccountHolder', 'withdrawRestrictType', 'withdrawRestrictStartTime', 'withdrawRestrictEndTime', 'terminalPayRestrict', 'webPayRestrict', 'defaultFeeHq', 'defaultFeeDist', 'defaultFeeBranch', 'defaultFeeAgency', 'defaultFeeSalesOffice', 'defaultPayLimitPerTx', 'defaultPayLimitDay', 'defaultPayLimitMonth', 'defaultPayLimitYearCorp', 'defaultPayLimitYearInd', 'copyright', 'holidayProfileName', 'holidayProfileCountry', 'holidayCountryCode', 'holidayCountryCodes', 'businessHolidayRangesJson', 'businessHolidayExtraDates'];
         allFields.forEach(function (k) {
           var el = form.querySelector('[name="' + k + '"]');
           if (el && data[k] != null) {

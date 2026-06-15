@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.pg.integration.pg.PgVendor;
+import com.pg.integration.pg.notify.NotifyIdempotencyLock;
 import com.pg.integration.pg.notify.PgNotifyInboundTxnHandler;
 import com.pg.entity.MerchantPgBinding;
 import com.pg.entity.PgNotifyInbound;
@@ -73,6 +74,7 @@ public class ChillPayNotifyToTrnsctnService implements PgNotifyInboundTxnHandler
     private final SettlementArrearsService settlementArrearsService;
     private final HqLedgerSysSettingsService hqLedgerSysSettingsService;
     private final MerchantChatbotOrderService merchantChatbotOrderService;
+    private final NotifyIdempotencyLock notifyIdempotencyLock;
 
     public ChillPayNotifyToTrnsctnService(PgTrnsctnRepository pgTrnsctnRepository,
                                          MerchantPgBindingRepository merchantPgBindingRepository,
@@ -82,7 +84,8 @@ public class ChillPayNotifyToTrnsctnService implements PgNotifyInboundTxnHandler
                                          SettlementCalcService settlementCalcService,
                                          SettlementArrearsService settlementArrearsService,
                                          HqLedgerSysSettingsService hqLedgerSysSettingsService,
-                                         MerchantChatbotOrderService merchantChatbotOrderService) {
+                                         MerchantChatbotOrderService merchantChatbotOrderService,
+                                         NotifyIdempotencyLock notifyIdempotencyLock) {
         this.pgTrnsctnRepository = pgTrnsctnRepository;
         this.merchantPgBindingRepository = merchantPgBindingRepository;
         this.orgUnitRepository = orgUnitRepository;
@@ -92,6 +95,7 @@ public class ChillPayNotifyToTrnsctnService implements PgNotifyInboundTxnHandler
         this.settlementArrearsService = settlementArrearsService;
         this.hqLedgerSysSettingsService = hqLedgerSysSettingsService;
         this.merchantChatbotOrderService = merchantChatbotOrderService;
+        this.notifyIdempotencyLock = notifyIdempotencyLock;
     }
 
     @Override
@@ -155,6 +159,10 @@ public class ChillPayNotifyToTrnsctnService implements PgNotifyInboundTxnHandler
         if (root == null || !root.isObject()) {
             return true;
         }
+
+        /* 동시 중복 노티 직렬화(best-effort): 같은 거래의 처리가 겹치지 않도록 거래키 단위 advisory lock.
+         * 현재 @Transactional 종료 시 자동 해제되며, 실패해도 기존 흐름을 그대로 진행한다. */
+        acquireChillPayIdempotencyLock(merchantCode.trim(), root);
 
         String pgCd = resolvePgCdForInbound(in);
         String notifyCh = notifyChannel == null || notifyChannel.isBlank() ? "CALLBACK" : notifyChannel.trim().toUpperCase(Locale.ROOT);
@@ -605,6 +613,25 @@ public class ChillPayNotifyToTrnsctnService implements PgNotifyInboundTxnHandler
             }
         }
         return orgBinds.get(0).getPgCd();
+    }
+
+    /**
+     * ChillPay 노티의 거래 식별 키로 동시 중복 처리를 직렬화한다(best-effort).
+     * 거래ID(TransactionId)가 있으면 그것을, 없으면 가맹점|주문번호를 키로 사용한다.
+     * 같은 거래의 중복 노티는 동일 키를 산출하므로 직렬화되고, 다른 거래는 영향받지 않는다.
+     */
+    private void acquireChillPayIdempotencyLock(String merchantCode, JsonNode root) {
+        String chillTxnId = textDeep(root, "TransactionId", "transactionId");
+        String orderNo = textDeep(root, "OrderNo", "orderNo");
+        String key;
+        if (chillTxnId != null && !chillTxnId.isBlank()) {
+            key = "TXN:" + chillTxnId.trim();
+        } else if (orderNo != null && !orderNo.isBlank()) {
+            key = "ORD:" + merchantCode + "|" + orderNo.trim();
+        } else {
+            return;
+        }
+        notifyIdempotencyLock.lock("CHILLPAY", key);
     }
 
     private Optional<PgTrnsctn> findExisting(String merchantId, String chillTxnId, String orderNo) {
