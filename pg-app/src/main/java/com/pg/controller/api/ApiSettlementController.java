@@ -1524,13 +1524,21 @@ public class ApiSettlementController {
         Map<String, Object> meta = pr.getMeta() != null ? new LinkedHashMap<>(pr.getMeta()) : new LinkedHashMap<>();
         // 모두다운로드·연속 페이지 조회(skipMeta=true)에서는 전 구간 금액 집계 스캔(최대 20만 행)을 건너뛴다.
         // 매 페이지 요청마다 동일 스캔을 반복하면 504(게이트웨이 타임아웃)의 주원인이 된다.
+        // 금액요약(건별 수수료 계산)은 건수에 비례해 무겁다. 검색 건수가 임계치를 넘으면 요약을 생략하고
+        // 목록만 즉시 반환해 대용량 기간 검색에서 목록이 통째로 504 나는 것을 막는다(기간 축소 시 요약 표시).
         if (!skipMeta) {
-            Map<String, Object> finMeta = computeFeeListFinancialSummary(authentication, spec, searchOrderDir);
-            meta.put("payListFinancialSummary", finMeta);
-            if (Boolean.TRUE.equals(finMeta.get("capped"))) {
+            if (slice.getTotalElements() <= FEE_LIST_FINANCIAL_COMPUTE_MAX) {
+                Map<String, Object> finMeta = computeFeeListFinancialSummary(authentication, spec, searchOrderDir);
+                meta.put("payListFinancialSummary", finMeta);
+                if (Boolean.TRUE.equals(finMeta.get("capped"))) {
+                    meta.put("feeListFinancialCapped", true);
+                    meta.put("feeListFinancialCapNote",
+                            "집계 대상 건수가 많아 일부만 반영되었을 수 있습니다. 기간을 줄이거나 feeList에서 상세 조회하세요.");
+                }
+            } else {
                 meta.put("feeListFinancialCapped", true);
                 meta.put("feeListFinancialCapNote",
-                        "집계 대상 건수가 많아 일부만 반영되었을 수 있습니다. 기간을 줄이거나 feeList에서 상세 조회하세요.");
+                        "검색 건수가 많아(" + slice.getTotalElements() + "건) 금액요약 계산을 생략했습니다. 기간을 줄이면 요약이 표시됩니다.");
             }
         }
         payListService.putHqLedgerPayDisplayCurrencyMeta(meta);
@@ -1544,6 +1552,12 @@ public class ApiSettlementController {
      * 504(게이트웨이 타임아웃) 방지를 위해, COUNT 없이 정렬·LIMIT 한 번으로 이 상한까지만 읽는다.
      */
     private static final int FEE_LIST_FINANCIAL_MAX_ROWS = 50_000;
+
+    /**
+     * 금액요약(건별 수수료 계산)을 동기로 수행하는 검색 건수 상한. 이 값을 넘으면 요약을 생략하고
+     * 목록만 즉시 반환해, 대용량 기간 검색에서 목록이 통째로 504 나는 것을 막는다.
+     */
+    private static final long FEE_LIST_FINANCIAL_COMPUTE_MAX = 12_000L;
 
     /**
      * 수수료내역 검색 조건 전체(페이지 무관) 금액 요약 — feeList 행과 동일 산식.

@@ -146,6 +146,11 @@ public class JpayPaymentService {
             return failOut("payTelephone(전화번호)가 필요합니다.", "JPAY_PHONE_REQUIRED");
         }
         body.put("payTelephone", localPhone);
+        // 이메일은 규격상 필수(M). 프런트에서도 강제하지만, 직접 API 호출 시 JPAY 원시 실패 대신 명확히 거부한다.
+        String payEmail = str(body.get("payEmailAddress"));
+        if (payEmail.isBlank()) {
+            return failOut("payEmailAddress(이메일)가 필요합니다.", "JPAY_EMAIL_REQUIRED");
+        }
         BigDecimal amountBd = parseAmount(body.get("amount"));
         if (amountBd == null || amountBd.compareTo(BigDecimal.ZERO) <= 0) {
             return failOut("amount는 0보다 커야 합니다.", "INVALID_AMOUNT");

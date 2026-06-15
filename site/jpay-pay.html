@@ -550,7 +550,8 @@
         if (!PAY_ENTRY_MERCHANT_API) return Promise.resolve();
         var tok = '';
         try { tok = (new URLSearchParams(location.search).get('session') || '').trim(); } catch (e) {}
-        if (!tok) return Promise.resolve();
+        // 가맹 API 진입은 prepare 세션 토큰이 필수. 없으면 임의 orderNo 로 진행되어 가맹 status 조회가 NOT_FOUND 가 되므로 차단.
+        if (!tok) return Promise.reject(new Error(t('errInvalidSession')));
         return fetchJson(apiUrl('/api/middleware/v1/merchant/checkout/session', 'token=' + encodeURIComponent(tok)))
           .then(function (res) {
             if (!res.success || !res.data) throw new Error(t('errInvalidSession'));
@@ -697,6 +698,11 @@
           .then(function () {
             var ordEl = document.getElementById('orderNo');
             if (ordEl && !String(ordEl.value || '').trim()) {
+              // 가맹 API(merchant_api) 진입은 prepare 세션의 orderNo 만 사용한다(임의 생성 금지 → 가맹 status NOT_FOUND 방지).
+              if (PAY_ENTRY_MERCHANT_API) {
+                showErr(t('errInvalidSession'));
+                return;
+              }
               ordEl.value = buildJpayOrderNo(compId);
             }
           })

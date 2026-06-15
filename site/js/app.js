@@ -9686,11 +9686,11 @@
       if (!pageNumbers.length) {
         return Promise.resolve(mergeFetchedListPages(firstData, [], target, total));
       }
-      var chunkSize = PG_LIST_FETCH_CHUNK;
+      // 이어받을 페이지 크기는 첫 페이지가 실제 사용한 크기와 동일해야 페이지 번호가 어긋나지 않는다.
+      // (모두다운로드=1,000 청크, 화면 '한 번에 보기'=설정값 그대로 — URL 특수분기 없이 일관 처리)
+      var firstPageSize = firstData && firstData.size != null ? parseInt(String(firstData.size), 10) : 0;
+      var chunkSize = (!isNaN(firstPageSize) && firstPageSize > 0) ? firstPageSize : PG_LIST_FETCH_CHUNK;
       var baseParams = exportMode ? attachListExportParams(params) : Object.assign({}, params);
-      if (exportMode && isPayListBulkExportUrl(url)) {
-        chunkSize = PG_EXCEL_EXPORT_MAX;
-      }
       return fetchListPagesInParallel(baseParams, url, api, cfg, p, pageNumbers, chunkSize).then(function (extra) {
         return mergeFetchedListPages(firstData, [extra], target, total);
       });
@@ -9713,7 +9713,9 @@
       var paramsFa = Object.assign({}, pane._lastListSearchCriteria);
       applyListSearchParamCoercions(paramsFa, urlFa, cfgFa, pane);
       var exportParams = attachListExportParams(paramsFa);
-      var firstSize = isPayListBulkExportUrl(urlFa) ? PG_EXCEL_EXPORT_MAX : PG_LIST_FETCH_CHUNK;
+      // 모두다운로드 수집은 결제내역(payList) 계열도 정산(feeList)과 동일하게 1,000건씩 병렬 청크로 받는다.
+      // 한 요청에 15,000건을 몰아 받으면 단일 요청이 길어져 504(게이트웨이 타임아웃)가 난다.
+      var firstSize = PG_LIST_FETCH_CHUNK;
       exportParams.page = 1;
       exportParams.size = firstSize;
       var promFa = resolveListApiPromise(urlFa, exportParams, apiFa, cfgFa, pane);
@@ -10013,15 +10015,12 @@
       if (fetchAllMode) {
         params.page = 1;
         params.skipMeta = 'true';
+        // 모든 화면 공통: '한 번에 보기'도 첫 페이지부터 1,000건 청크로 받아 단일 대용량 요청(504)을 피한다.
+        // (결제내역 계열만 listExport 플래그가 필요하며, 실제 수집은 1,000건 병렬 청크로 동일)
         if (isPayListBulkExportUrl(url)) {
           params.listExport = 'true';
-          var sizeElFa0 = p.querySelector('#recordsPerPage');
-          var maxViewRows0 = sizeElFa0 ? parseInt(String(sizeElFa0.value || ''), 10) : PG_EXCEL_EXPORT_MAX;
-          if (isNaN(maxViewRows0) || maxViewRows0 < 1) maxViewRows0 = PG_EXCEL_EXPORT_MAX;
-          params.size = Math.min(maxViewRows0, PG_EXCEL_EXPORT_MAX);
-        } else {
-          params.size = PG_LIST_FETCH_CHUNK;
         }
+        params.size = PG_LIST_FETCH_CHUNK;
       }
       var promise = resolveListApiPromise(url, params, api, cfg, p);
       if (promise && fetchAllMode) {

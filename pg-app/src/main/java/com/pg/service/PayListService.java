@@ -290,17 +290,28 @@ public class PayListService {
         pr.setTotalPages(result.getTotalPages());
         if (!req.isSkipMeta()) {
             try {
-                Map<String, Object> bar = computePgTxnStatusBar(req, authentication);
-                Map<String, Object> fin = computePayListFinancialSummary(req, authentication);
                 Map<String, Object> meta = new LinkedHashMap<>();
+                /* 상태바는 단일 GROUP BY 집계라 가볍다 — 항상 계산한다. */
+                Map<String, Object> bar = computePgTxnStatusBar(req, authentication);
                 meta.put("payListStatusBar", bar);
-                if (fin != null) {
-                    meta.put("payListFinancialSummary", fin);
-                    if (Boolean.TRUE.equals(fin.get("capped"))) {
-                        meta.put("payListFinancialCapped", true);
-                        meta.put("payListFinancialCapNote",
-                                "집계 대상 건수가 많아 일부만 반영되었을 수 있습니다. 기간을 줄이거나 목록에서 상세 조회하세요.");
+                /* 금액요약(건별 수수료·담보·부가세)은 거래를 적재해 행별로 계산하므로 건수에 비례해 무겁다.
+                 * 검색 건수가 임계치를 넘으면 요약을 생략하고 목록·상태바만 즉시 반환해 504(타임아웃)를 막는다.
+                 * (목록이 아예 안 뜨는 문제 방지. 요약은 기간을 줄이면 표시된다.) */
+                long totalForMeta = result.getTotalElements();
+                if (totalForMeta <= PAY_LIST_FIN_SUMMARY_COMPUTE_MAX) {
+                    Map<String, Object> fin = computePayListFinancialSummary(req, authentication);
+                    if (fin != null) {
+                        meta.put("payListFinancialSummary", fin);
+                        if (Boolean.TRUE.equals(fin.get("capped"))) {
+                            meta.put("payListFinancialCapped", true);
+                            meta.put("payListFinancialCapNote",
+                                    "집계 대상 건수가 많아 일부만 반영되었을 수 있습니다. 기간을 줄이거나 목록에서 상세 조회하세요.");
+                        }
                     }
+                } else {
+                    meta.put("payListFinancialCapped", true);
+                    meta.put("payListFinancialCapNote",
+                            "검색 건수가 많아(" + totalForMeta + "건) 금액요약 계산을 생략했습니다. 기간을 줄이면 요약이 표시됩니다.");
                 }
                 meta.put("payFollowAllowed", payFollowPolicyService.allowedActionsForViewer(payListViewer));
                 putHqLedgerPayDisplayCurrencyMeta(meta);
@@ -525,6 +536,12 @@ public class PayListService {
      * 상한 초과분은 {@code capped} 로 표시하고 화면 안내로 알린다(기간 축소 권장).
      */
     private static final int PAY_LIST_FIN_SUMMARY_MAX_ROWS = 50_000;
+
+    /**
+     * 금액요약(건별 수수료 계산)을 동기로 수행하는 검색 건수 상한. 이 값을 넘으면 요약을 생략하고
+     * 목록·상태바만 즉시 반환해, 대용량 기간 검색에서 목록이 통째로 504 나는 것을 막는다.
+     */
+    private static final long PAY_LIST_FIN_SUMMARY_COMPUTE_MAX = 12_000L;
 
     /** 통합·결제·URL·챗봇·상계취소 — 수수료내역과 동일 건별 산식 상단 요약. 상태별 단일 화면은 null. */
     private static boolean usesFeeListAlignedPayListFinancialSummary(String variant) {

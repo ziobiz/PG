@@ -1,9 +1,11 @@
 package com.pg.merchantdeploy;
 
 import com.pg.entity.HqApiConfig;
+import com.pg.entity.MerchantPgBinding;
 import com.pg.entity.MerchantProfile;
 import com.pg.entity.OrgUnit;
 import com.pg.entity.PgTrnsctn;
+import com.pg.integration.pg.PgVendor;
 import com.pg.repository.HqApiConfigRepository;
 import com.pg.repository.MerchantProfileRepository;
 import com.pg.repository.OrgUnitRepository;
@@ -87,8 +89,20 @@ public class MerchantInlineCheckoutService {
             if (chillPayService.findOperationalWebBindingForUrlPayRepay(orgUnitId).isEmpty()) {
                 return fail("URL 재결제를 처리할 ChillPay(운영·URL재결제) 바인딩이 없습니다.", "URL_PAY_REPAY_PG_MISSING");
             }
-        } else if (chillPayService.findOperationalWebBindingForUrlPay(orgUnitId).isEmpty()) {
-            return fail("URL 결제를 처리할 ChillPay(운영·URL결제) 바인딩이 없습니다.", "URL_PAYMENT_PG_MISSING");
+        } else {
+            Optional<MerchantPgBinding> opBind = chillPayService.findOperationalWebBindingForUrlPay(orgUnitId);
+            if (opBind.isEmpty()) {
+                return fail("URL 결제를 처리할 ChillPay(운영·URL결제) 바인딩이 없습니다.", "URL_PAYMENT_PG_MISSING");
+            }
+            // 운영 WEB PG가 ChillPay 계열이 아니면(JPAY 등) 이 ChillPay 전용 prepare 로 처리하지 않는다.
+            // (JPAY 는 /api/middleware/v1/merchant/jpay/inline-checkout/prepare 또는 통합 /checkout/prepare 사용)
+            // findOperationalWebBindingForUrlPay 는 ChillPay 를 우선 정렬할 뿐 JPAY 바인딩도 반환하므로,
+            // 여기서 계열을 확정 검증하지 않으면 JPAY 운영 가맹에 CHILLPAY 토큰·/pay/ 가 잘못 발급된다(PG 혼선).
+            String opPgCd = opBind.get().getPgCd() != null ? opBind.get().getPgCd().trim() : "";
+            if (!PgVendor.isChillPayFamily(opPgCd)) {
+                return fail("이 가맹점의 운영 URL 결제 PG는 ChillPay가 아닙니다. 통합 prepare(/api/middleware/v1/merchant/checkout/prepare) "
+                        + "또는 해당 PG 전용 API를 사용하세요.", "PG_NOT_SUPPORTED");
+            }
         }
         Map<String, Object> presentation = repayMode
                 ? chillPayService.getUrlPayRepayPresentationForCheckout(orgUnitId)

@@ -121,14 +121,11 @@ public class ExcelStyledExportService {
                 }
             }
 
+            /* 열 너비: POI autoSizeColumn 은 행마다 AWT 폰트 메트릭으로 너비를 측정해
+             * 행 수에 비례해 매우 느려진다(헤드리스 서버에서 특히 심각 → 대량 다운로드 시 504/타임아웃).
+             * 데이터·서식은 그대로 두고, 문자 길이 기반의 빠른 추정으로 너비를 계산한다. */
             for (int i = 0; i < colCount; i++) {
-                sheet.autoSizeColumn(i);
-                int w = sheet.getColumnWidth(i);
-                if (w < MIN_COL_WIDTH) {
-                    sheet.setColumnWidth(i, MIN_COL_WIDTH);
-                } else if (w > MAX_COL_WIDTH) {
-                    sheet.setColumnWidth(i, MAX_COL_WIDTH);
-                }
+                sheet.setColumnWidth(i, estimateColumnWidth(headers, safeRows, i, colCount));
             }
 
             ByteArrayOutputStream bos = new ByteArrayOutputStream();
@@ -159,6 +156,48 @@ public class ExcelStyledExportService {
         textCols.add(18); // 로그인ID
         textCols.add(19); // 비밀번호
         return buildStyledTable("업체등록_SAMPLE", headers, List.of(sample), textCols);
+    }
+
+    /**
+     * AWT 폰트 측정 없이 문자 길이 기반으로 열 너비를 추정한다(POI 단위: 1문자 ≈ 256).
+     * 한글 등 전각 문자는 약 1.7배로 가중하며, {@link #MIN_COL_WIDTH}~{@link #MAX_COL_WIDTH} 로 제한한다.
+     * 헤더 + 본문 전체를 훑지만 문자열 길이 계산만 하므로 행 수가 많아도 빠르다.
+     */
+    private static int estimateColumnWidth(List<String> headers, List<List<String>> rows, int col, int colCount) {
+        double maxUnits = 0d;
+        if (headers != null && col < headers.size()) {
+            maxUnits = displayUnits(headers.get(col));
+        }
+        if (rows != null) {
+            for (List<String> line : rows) {
+                if (line != null && col < line.size()) {
+                    double u = displayUnits(line.get(col));
+                    if (u > maxUnits) {
+                        maxUnits = u;
+                    }
+                }
+            }
+        }
+        long width = Math.round((maxUnits + 2.5d) * 256d);
+        if (width < MIN_COL_WIDTH) {
+            return MIN_COL_WIDTH;
+        }
+        if (width > MAX_COL_WIDTH) {
+            return MAX_COL_WIDTH;
+        }
+        return (int) width;
+    }
+
+    /** 문자열의 표시 폭(문자 수 기준). ASCII 는 1, 그 외(한글·전각 등)는 1.7 로 가중한다. */
+    private static double displayUnits(String s) {
+        if (s == null || s.isEmpty()) {
+            return 0d;
+        }
+        double units = 0d;
+        for (int i = 0; i < s.length(); i++) {
+            units += s.charAt(i) < 0x80 ? 1.0d : 1.7d;
+        }
+        return units;
     }
 
     private static void setThinBorders(CellStyle style) {
