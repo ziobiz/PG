@@ -1733,9 +1733,9 @@
     '<button type="button" class="btn btn-outline-secondary btn-sm" id="merchantDeployEnforceBtn" data-pg-ui-t="강제여부 저장">강제여부 저장</button></div>' +
     '<div class="merchant-deploy-table-wrap table-no-col-resize-wrap border rounded mb-2">' +
     '<table class="table table-sm table-bordered align-middle merchant-deploy-merchant-table table-no-col-resize w-100 mb-0" id="merchantDeployMerchantGrid">' +
-    '<colgroup><col class="merchant-deploy-col-act" /><col class="merchant-deploy-col-code" /><col class="merchant-deploy-col-master" /><col /><col class="merchant-deploy-col-pg" /><col class="merchant-deploy-col-cur" /></colgroup>' +
-    '<thead class="table-light"><tr><th class="text-center text-nowrap" data-pg-ui-t="선택">선택</th><th class="text-nowrap" data-pg-ui-t="업체코드">업체코드</th><th class="text-nowrap" data-pg-ui-t="상위 총판">상위 총판</th><th data-pg-ui-t="업체명">업체명</th><th class="text-nowrap" data-pg-ui-t="PG대행사">PG대행사</th><th class="text-nowrap" data-pg-ui-t="기준통화">기준통화</th></tr></thead>' +
-    '<tbody><tr><td colspan="6" class="text-center text-muted py-3" data-pg-ui-t="로딩 중…">로딩 중…</td></tr></tbody></table></div>' +
+    '<colgroup><col class="merchant-deploy-col-act" /><col class="merchant-deploy-col-code" /><col class="merchant-deploy-col-master" /><col /><col class="merchant-deploy-col-pg" /><col class="merchant-deploy-col-cur" /><col class="merchant-deploy-col-broker" /><col class="merchant-deploy-col-issued-date" /><col class="merchant-deploy-col-issued-by" /></colgroup>' +
+    '<thead class="table-light"><tr><th class="text-center text-nowrap" data-pg-ui-t="선택">선택</th><th class="text-nowrap" data-pg-ui-t="업체코드">업체코드</th><th class="text-nowrap" data-pg-ui-t="상위 총판">상위 총판</th><th data-pg-ui-t="업체명">업체명</th><th class="text-nowrap" data-pg-ui-t="PG대행사">PG대행사</th><th class="text-nowrap" data-pg-ui-t="기준통화">기준통화</th><th class="text-nowrap" data-pg-ui-t="브로커 시크릿">브로커 시크릿</th><th class="text-nowrap" data-pg-ui-t="발행일자">발행일자</th><th class="text-nowrap" data-pg-ui-t="발행자">발행자</th></tr></thead>' +
+    '<tbody><tr><td colspan="9" class="text-center text-muted py-3" data-pg-ui-t="로딩 중…">로딩 중…</td></tr></tbody></table></div>' +
     '<p class="small text-muted mb-2" id="merchantDeployPageInfo"></p>' +
     '<label class="form-label small mb-0" id="merchantDeployKitLabel" data-pg-ui-t="연동 패키지 (JSON / PHP)">연동 패키지 (JSON / PHP)</label>' +
     '<pre id="merchantDeployKitJson" class="bg-light p-3 small mb-0" style="max-height:520px;overflow:auto;border:1px solid #dee2e6;white-space:pre-wrap;">' +

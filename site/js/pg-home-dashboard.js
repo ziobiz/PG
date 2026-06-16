@@ -913,7 +913,10 @@
     var comp = d.compNm ? localizeDisplayLabel(d.compNm) : '';
     var uid = d.userNm ? localizeDisplayLabel(d.userNm) : '';
     var head = '<div class="d-flex flex-wrap justify-content-between align-items-start mb-3">' +
-      '<div><h5 class="mb-1">' + esc(uid) + (comp ? ' <span class="text-muted">· ' + esc(comp) + '</span>' : '') + '</h5>' +
+      '<div><h5 class="mb-1 pg-dash-user-head">' +
+      (uid ? '<span class="pg-dash-user-name">' + esc(uid) + '</span>' : '') +
+      (comp ? '<span class="pg-dash-user-org"> · ' + esc(comp) + '</span>' : '') +
+      '</h5>' +
       (orgLv ? '<span class="badge bg-secondary">' + esc(uiT(orgLv)) + '</span>' : '') +
       '</div>' +
       (d.asOfDate ? '<div class="text-muted small">' + esc(uiT('기준일')) + ' ' + esc(d.asOfDate) + '</div>' : '') +

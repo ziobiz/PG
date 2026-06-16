@@ -41,6 +41,9 @@ public class MerchantIcopayBrokerCredential {
     @Column(name = "rotated_at")
     private LocalDateTime rotatedAt;
 
+    @Column(name = "issued_by", length = 100)
+    private String issuedBy;
+
     @Column(length = 500)
     private String remark;
 
@@ -75,6 +78,8 @@ public class MerchantIcopayBrokerCredential {
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
     public LocalDateTime getRotatedAt() { return rotatedAt; }
     public void setRotatedAt(LocalDateTime rotatedAt) { this.rotatedAt = rotatedAt; }
+    public String getIssuedBy() { return issuedBy; }
+    public void setIssuedBy(String issuedBy) { this.issuedBy = issuedBy; }
     public String getRemark() { return remark; }
     public void setRemark(String remark) { this.remark = remark; }
 }

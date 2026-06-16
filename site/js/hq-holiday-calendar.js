@@ -222,7 +222,7 @@
         ta.value = datesToText(merged);
         refresh();
       }).catch(function (e) {
-        alert(e && e.message ? e.message : uiT('공휴일 불러오기 실패'));
+        alert(e && e.message ? uiT(e.message) : uiT('공휴일 불러오기 실패'));
       });
     });
 

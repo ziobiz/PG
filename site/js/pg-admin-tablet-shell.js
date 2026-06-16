@@ -178,6 +178,7 @@
   }
 
   function paymentPublicBase() {
+    if (typeof w.pgResolvePaymentBaseUrl === 'function') return w.pgResolvePaymentBaseUrl();
     var base = (w.SITE_CONFIG && w.SITE_CONFIG.paymentBaseUrl) || (w.location.origin || '');
     return String(base).replace(/\/$/, '');
   }

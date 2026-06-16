@@ -96,6 +96,7 @@ public class ApiCompController {
             @RequestParam(required = false) Boolean searchIncludeSub,
             @RequestParam(required = false) String searchParentCompId,
             @RequestParam(required = false) Boolean myOrgOnly,
+            @RequestParam(required = false) Boolean includeLoginOrgInScope,
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "20") int size) {
         String scopeCompId = null;
@@ -132,10 +133,11 @@ public class ApiCompController {
             effectiveSearchUseYn = "ALL";
         }
 
+        boolean includeSelfInScope = Boolean.TRUE.equals(includeLoginOrgInScope);
         PageResult<Map<String, Object>> result = compService.search(
                 searchCompId, searchCompNm, searchCompDiv, effectiveSearchUseYn, searchPayHoldYn,
                 searchCeoNm, searchTerminalId, searchCeoMobile, searchRegNo, searchIncludeSub,
-                page, size, scopeCompId, scopeSubtreeBelow);
+                page, size, scopeCompId, scopeSubtreeBelow, includeSelfInScope);
         return ResponseEntity.ok(ApiResponse.ok(result));
     }
 

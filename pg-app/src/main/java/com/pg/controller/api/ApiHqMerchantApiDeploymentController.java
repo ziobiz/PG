@@ -104,7 +104,12 @@ public class ApiHqMerchantApiDeploymentController {
             String compId = str(body.get("compId"));
             assertCanViewComp(compId);
             String vendorScope = str(body.get("vendorScope"));
-            return ResponseEntity.ok(ApiResponse.ok(deploymentService.rotateBrokerSecret(compId, vendorScope)));
+            String issuedBy = null;
+            Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+            if (auth != null && auth.getPrincipal() instanceof AppUser au) {
+                issuedBy = au.getUsername();
+            }
+            return ResponseEntity.ok(ApiResponse.ok(deploymentService.rotateBrokerSecret(compId, vendorScope, issuedBy)));
         } catch (IllegalArgumentException | IllegalStateException e) {
             return ResponseEntity.ok(ApiResponse.fail(e.getMessage(), "VALIDATION"));
         }

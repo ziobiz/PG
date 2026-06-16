@@ -913,17 +913,18 @@ public class CompService {
 
     /** scopeCompId: 로그인 사용자의 업체코드(본인 org만 조회, 업체정보조회용) */
     public PageResult<Map<String, Object>> search(String compId, String compNm, int page, int size, String scopeCompId) {
-        return search(compId, compNm, null, null, null, null, null, null, null, null, page, size, scopeCompId, false);
+        return search(compId, compNm, null, null, null, null, null, null, null, null, page, size, scopeCompId, false, false);
     }
 
     /**
      * 업체관리 검색 - 확장 파라미터.
      * @param scopeCompId 로그인 사용자 업체코드 등
      * @param scopeSubtreeBelowLoginOrg true면 본인 조직 행은 제외하고 직·간접 하위만 목록에 포함(업체관리 트리용)
+     * @param includeLoginOrgInScope true이면 scopeSubtreeBelowLoginOrg 시 로그인 조직 본인 행도 포함(상위업체 검색용)
      */
     public PageResult<Map<String, Object>> search(String compId, String compNm,
             String compDiv, String useYn, String payHoldYn, String ceoNm, String terminalId, String ceoMobile, String regNo, Boolean includeSub,
-            int page, int size, String scopeCompId, boolean scopeSubtreeBelowLoginOrg) {
+            int page, int size, String scopeCompId, boolean scopeSubtreeBelowLoginOrg, boolean includeLoginOrgInScope) {
         if (scopeSubtreeBelowLoginOrg && (scopeCompId == null || scopeCompId.trim().isEmpty())) {
             PageResult<Map<String, Object>> empty = new PageResult<>();
             empty.setList(new ArrayList<>());
@@ -951,6 +952,9 @@ public class CompService {
                 scoped = Collections.emptyList();
             } else {
                 Set<Long> allowed = new HashSet<>(collectDescendantIds(rootOu.get().getId()));
+                if (includeLoginOrgInScope) {
+                    allowed.add(rootOu.get().getId());
+                }
                 scoped = all.stream().filter(o -> allowed.contains(o.getId())).collect(Collectors.toList());
             }
         } else {

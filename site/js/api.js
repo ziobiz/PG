@@ -14,6 +14,11 @@
     } catch (e) {}
     return (en != null && String(en).trim() !== '') ? String(en) : String(ko);
   }
+  /** 서버 ApiResponse.message — STATIC/맵 키 있으면 현재 언어로, 없으면 원문 */
+  function serverMsgT(msg, fallbackKo, fallbackEn) {
+    if (msg != null && String(msg).trim() !== '') return apiT(String(msg).trim(), fallbackEn);
+    return apiT(fallbackKo, fallbackEn);
+  }
 
   /** 운영 API 기본 (config.js 의 PG_PUBLIC_ICOPAY_API 와 동일 개념) */
   function publicApiRoot() {
@@ -121,7 +126,7 @@
           return Promise.reject(new Error(head + ' HTTP ' + res.status + (flat ? (' — ' + flat) : '') + ' ' + apiT('(최신 pg-app 배포·Nginx 용량·502 등 확인)', '(check deployment/reverse proxy limits/502)')));
         }
         if (!res.ok) {
-          var hint = (data && data.message) ? data.message : (text ? String(text).slice(0, 120) : '');
+          var hint = (data && data.message) ? apiT(String(data.message)) : (text ? String(text).slice(0, 120) : '');
           return Promise.reject(new Error(apiT('API 오류', 'API error') + ' HTTP ' + res.status + (hint ? ': ' + hint : '')));
         }
         return data;
@@ -206,15 +211,16 @@
           )));
         }
         if (!res.ok) {
-          var hint = (data && data.message) ? data.message : (text ? String(text).slice(0, 120) : '');
+          var hint = (data && data.message) ? apiT(String(data.message)) : (text ? String(text).slice(0, 120) : '');
           return Promise.reject(new Error(
             apiT('API 오류', 'API error') + ' HTTP ' + res.status + (hint ? (': ' + hint) : '') +
             ' ' + apiT('(도메인/프록시·CORS 확인)', '(check domain/reverse proxy/CORS)')
           ));
         }
         if (data.success === false) {
+          /* 서버 실패 메시지 — STATIC/맵 키 있으면 현재 언어로 (모든 alert(e.message)에 일괄 적용) */
           var failMsg = (data.message != null && String(data.message).trim() !== '')
-            ? String(data.message).trim()
+            ? apiT(String(data.message).trim())
             : (apiT('요청 처리에 실패했습니다.', 'Request failed.') + (data.errorCode ? ' [' + data.errorCode + ']' : ''));
           var failErr = new Error(failMsg);
           if (data.errorCode) failErr.errorCode = data.errorCode;
@@ -639,7 +645,7 @@
         headers: { 'Cache-Control': 'no-cache', 'Pragma': 'no-cache' }
       }).then(function (r) {
         if (r && r.success === false && r.success !== undefined) {
-          throw new Error(r.message || apiT('영업일 달력 조회 실패', 'Failed to load business-day calendar.'));
+          throw new Error(serverMsgT(r.message, '영업일 달력 조회 실패', 'Failed to load business-day calendar.'));
         }
         var d = r && r.data != null ? r.data : r;
         if (d && typeof d === 'object' && d.data && typeof d.data === 'object' && d.data.months) {
@@ -658,7 +664,7 @@
         headers: noStore
       }).then(function (r) {
         if (r && r.success === false && r.success !== undefined) {
-          throw new Error(r.message || apiT('대시보드 조회 실패', 'Failed to load dashboard.'));
+          throw new Error(serverMsgT(r.message, '대시보드 조회 실패', 'Failed to load dashboard.'));
         }
         var d = r && r.data != null ? r.data : r;
         if (d && typeof d === 'object' && d.data && typeof d.data === 'object' && d.data.sales) {
@@ -809,7 +815,7 @@
 
     pgAgencyList: function () {
       return get('/api/hq/pgAgencyList').then(function (r) {
-        if (r.success === false && r.success !== undefined) throw new Error(r.message || apiT('조회 실패', 'Failed to load.'));
+        if (r.success === false && r.success !== undefined) throw new Error(serverMsgT(r.message, '조회 실패', 'Failed to load.'));
         return r.data || [];
       });
     },
@@ -828,7 +834,7 @@
         return res.text().then(function (text) {
           var r;
           try { r = text ? JSON.parse(text) : {}; } catch (e) { return Promise.reject(new Error(apiT('서버 응답 오류 (API 서버가 실행 중인지, 주소가 맞는지 확인하세요)', 'Server response error (check API server status and address).'))); }
-          if (r.success === false && r.success !== undefined) throw new Error(r.message || apiT('등록 실패', 'Registration failed.'));
+          if (r.success === false && r.success !== undefined) throw new Error(serverMsgT(r.message, '등록 실패', 'Registration failed.'));
           return r;
         });
       });
@@ -897,11 +903,11 @@
         headers: headers,
         body: fd
       }).then(function (res) {
-        if (res.status === 401) { clearAuth(); if (window.location) window.location.replace((window.location.origin || '') + '/login.html'); return Promise.reject(new Error('인증이 만료되었습니다.')); }
+        if (res.status === 401) { clearAuth(); if (window.location) window.location.replace((window.location.origin || '') + '/login.html'); return Promise.reject(new Error(apiT('인증이 만료되었습니다.', 'Your session has expired.'))); }
         return res.text().then(function (text) {
           var r;
-          try { r = text ? JSON.parse(text) : {}; } catch (e) { return Promise.reject(new Error('서버 응답 오류')); }
-          if (r.success === false && r.success !== undefined) throw new Error(r.message || '엑셀 등록 실패');
+          try { r = text ? JSON.parse(text) : {}; } catch (e) { return Promise.reject(new Error(apiT('서버 응답 오류', 'Server response error'))); }
+          if (r.success === false && r.success !== undefined) throw new Error(serverMsgT(r.message, '엑셀 등록 실패'));
           return r;
         });
       });
@@ -909,7 +915,7 @@
 
     compDetail: function (compId) {
       return get('/api/comp/detail', { compId: compId }).then(function (r) {
-        if (r.success === false && r.success !== undefined) throw new Error(r.message || '조회 실패');
+        if (r.success === false && r.success !== undefined) throw new Error(serverMsgT(r.message, '조회 실패'));
         return r.data;
       });
     },
@@ -937,7 +943,7 @@
         headers: headers,
         body: new URLSearchParams(data)
       }).then(function (res) {
-        if (res.status === 401) { clearAuth(); if (window.location) window.location.replace((window.location.origin || '') + '/login.html'); return Promise.reject(new Error('인증이 만료되었습니다.')); }
+        if (res.status === 401) { clearAuth(); if (window.location) window.location.replace((window.location.origin || '') + '/login.html'); return Promise.reject(new Error(apiT('인증이 만료되었습니다.', 'Your session has expired.'))); }
         return res.text().then(function (text) {
           var r;
           try {
@@ -945,9 +951,9 @@
           } catch (e) {
             // 일부 운영 환경에서 업데이트 성공 후 빈 본문/비JSON 본문이 반환될 수 있으므로 성공으로 간주
             if (res.ok) return { success: true, data: {} };
-            return Promise.reject(new Error('서버 응답 오류 (API 서버가 실행 중인지, 주소가 맞는지 확인하세요)'));
+            return Promise.reject(new Error(apiT('서버 응답 오류 (API 서버가 실행 중인지, 주소가 맞는지 확인하세요)', 'Server response error (check API server status and address).')));
           }
-          if (r.success === false && r.success !== undefined) throw new Error(r.message || '수정 실패');
+          if (r.success === false && r.success !== undefined) throw new Error(serverMsgT(r.message, '수정 실패'));
           return r;
         });
       });
@@ -963,10 +969,10 @@
       if (token) headers['Authorization'] = 'Bearer ' + token;
       return fetch(base + '/api/comp/resetPassword', { method: 'POST', headers: headers, body: new URLSearchParams({ compId: compId }) })
         .then(function (res) {
-          if (res.status === 401) { clearAuth(); if (window.location) window.location.replace((window.location.origin || '') + '/login.html'); return Promise.reject(new Error('인증이 만료되었습니다.')); }
+          if (res.status === 401) { clearAuth(); if (window.location) window.location.replace((window.location.origin || '') + '/login.html'); return Promise.reject(new Error(apiT('인증이 만료되었습니다.', 'Your session has expired.'))); }
           return res.text().then(function (text) {
-            var r; try { r = text ? JSON.parse(text) : {}; } catch (e) { return Promise.reject(new Error('서버 응답 오류')); }
-            if (r.success === false && r.success !== undefined) throw new Error(r.message || '비밀번호 초기화 실패');
+            var r; try { r = text ? JSON.parse(text) : {}; } catch (e) { return Promise.reject(new Error(apiT('서버 응답 오류', 'Server response error'))); }
+            if (r.success === false && r.success !== undefined) throw new Error(serverMsgT(r.message, '비밀번호 초기화 실패'));
             return r;
           });
         });
@@ -978,10 +984,10 @@
       if (token) headers['Authorization'] = 'Bearer ' + token;
       return fetch(base + '/api/comp/resetAssistantPassword', { method: 'POST', headers: headers, body: new URLSearchParams({ compId: compId }) })
         .then(function (res) {
-          if (res.status === 401) { clearAuth(); if (window.location) window.location.replace((window.location.origin || '') + '/login.html'); return Promise.reject(new Error('인증이 만료되었습니다.')); }
+          if (res.status === 401) { clearAuth(); if (window.location) window.location.replace((window.location.origin || '') + '/login.html'); return Promise.reject(new Error(apiT('인증이 만료되었습니다.', 'Your session has expired.'))); }
           return res.text().then(function (text) {
-            var r; try { r = text ? JSON.parse(text) : {}; } catch (e) { return Promise.reject(new Error('서버 응답 오류')); }
-            if (r.success === false && r.success !== undefined) throw new Error(r.message || '비밀번호 초기화 실패');
+            var r; try { r = text ? JSON.parse(text) : {}; } catch (e) { return Promise.reject(new Error(apiT('서버 응답 오류', 'Server response error'))); }
+            if (r.success === false && r.success !== undefined) throw new Error(serverMsgT(r.message, '비밀번호 초기화 실패'));
             return r;
           });
         });
@@ -996,11 +1002,11 @@
       var headers = {};
       if (token) headers['Authorization'] = 'Bearer ' + token;
       return fetch(base + '/api/comp/chatbotHeaderLogo/upload', { method: 'POST', headers: headers, body: fd }).then(function (res) {
-        if (res.status === 401) { clearAuth(); if (window.location) window.location.replace((window.location.origin || '') + '/login.html'); return Promise.reject(new Error('인증이 만료되었습니다.')); }
+        if (res.status === 401) { clearAuth(); if (window.location) window.location.replace((window.location.origin || '') + '/login.html'); return Promise.reject(new Error(apiT('인증이 만료되었습니다.', 'Your session has expired.'))); }
         return res.text().then(function (text) {
           var r;
-          try { r = text ? JSON.parse(text) : {}; } catch (e) { return Promise.reject(new Error('서버 응답 오류')); }
-          if (r.success === false && r.success !== undefined) throw new Error(r.message || '업로드 실패');
+          try { r = text ? JSON.parse(text) : {}; } catch (e) { return Promise.reject(new Error(apiT('서버 응답 오류', 'Server response error'))); }
+          if (r.success === false && r.success !== undefined) throw new Error(serverMsgT(r.message, '업로드 실패'));
           return r.data || {};
         });
       });
@@ -1015,24 +1021,24 @@
       var headers = {};
       if (token) headers['Authorization'] = 'Bearer ' + token;
       return fetch(base + '/api/comp/webPaymentHeaderLogo/upload', { method: 'POST', headers: headers, body: fd }).then(function (res) {
-        if (res.status === 401) { clearAuth(); if (window.location) window.location.replace((window.location.origin || '') + '/login.html'); return Promise.reject(new Error('인증이 만료되었습니다.')); }
+        if (res.status === 401) { clearAuth(); if (window.location) window.location.replace((window.location.origin || '') + '/login.html'); return Promise.reject(new Error(apiT('인증이 만료되었습니다.', 'Your session has expired.'))); }
         return res.text().then(function (text) {
           var r;
-          try { r = text ? JSON.parse(text) : {}; } catch (e) { return Promise.reject(new Error('서버 응답 오류')); }
-          if (r.success === false && r.success !== undefined) throw new Error(r.message || '업로드 실패');
+          try { r = text ? JSON.parse(text) : {}; } catch (e) { return Promise.reject(new Error(apiT('서버 응답 오류', 'Server response error'))); }
+          if (r.success === false && r.success !== undefined) throw new Error(serverMsgT(r.message, '업로드 실패'));
           return r.data || {};
         });
       });
     },
     compChatbotKbGet: function (compId) {
       return get('/api/comp/chatbotKb', { compId: compId }).then(function (r) {
-        if (r.success === false && r.success !== undefined) throw new Error(r.message || '조회 실패');
+        if (r.success === false && r.success !== undefined) throw new Error(serverMsgT(r.message, '조회 실패'));
         return r.data || {};
       });
     },
     compChatbotKbMerchantList: function (params) {
       return get('/api/comp/chatbotKb/merchantList', params || {}).then(function (r) {
-        if (r.success === false && r.success !== undefined) throw new Error(r.message || '목록 실패');
+        if (r.success === false && r.success !== undefined) throw new Error(serverMsgT(r.message, '목록 실패'));
         return r.data || { list: [], page: 1, size: 20, totalElements: 0, totalPages: 1 };
       });
     },
@@ -1046,10 +1052,10 @@
       var headers = { 'Content-Type': 'application/x-www-form-urlencoded', 'Accept': 'application/json' };
       if (token) headers['Authorization'] = 'Bearer ' + token;
       return fetch(base + '/api/comp/chatbotKb/commerceHold', { method: 'POST', headers: headers, body: body }).then(function (res) {
-        if (res.status === 401) { clearAuth(); if (window.location) window.location.replace((window.location.origin || '') + '/login.html'); return Promise.reject(new Error('인증이 만료되었습니다.')); }
+        if (res.status === 401) { clearAuth(); if (window.location) window.location.replace((window.location.origin || '') + '/login.html'); return Promise.reject(new Error(apiT('인증이 만료되었습니다.', 'Your session has expired.'))); }
         return res.text().then(function (text) {
-          var r; try { r = text ? JSON.parse(text) : {}; } catch (e) { return Promise.reject(new Error('서버 응답 오류')); }
-          if (r.success === false && r.success !== undefined) throw new Error(r.message || '저장 실패');
+          var r; try { r = text ? JSON.parse(text) : {}; } catch (e) { return Promise.reject(new Error(apiT('서버 응답 오류', 'Server response error'))); }
+          if (r.success === false && r.success !== undefined) throw new Error(serverMsgT(r.message, '저장 실패'));
           return r.data || {};
         });
       });
@@ -1074,10 +1080,10 @@
       var headers = { 'Content-Type': 'application/x-www-form-urlencoded', 'Accept': 'application/json' };
       if (token) headers['Authorization'] = 'Bearer ' + token;
       return fetch(base + '/api/comp/chatbotKb/save', { method: 'POST', headers: headers, body: body }).then(function (res) {
-        if (res.status === 401) { clearAuth(); if (window.location) window.location.replace((window.location.origin || '') + '/login.html'); return Promise.reject(new Error('인증이 만료되었습니다.')); }
+        if (res.status === 401) { clearAuth(); if (window.location) window.location.replace((window.location.origin || '') + '/login.html'); return Promise.reject(new Error(apiT('인증이 만료되었습니다.', 'Your session has expired.'))); }
         return res.text().then(function (text) {
-          var r; try { r = text ? JSON.parse(text) : {}; } catch (e) { return Promise.reject(new Error('서버 응답 오류')); }
-          if (r.success === false && r.success !== undefined) throw new Error(r.message || '저장 실패');
+          var r; try { r = text ? JSON.parse(text) : {}; } catch (e) { return Promise.reject(new Error(apiT('서버 응답 오류', 'Server response error'))); }
+          if (r.success === false && r.success !== undefined) throw new Error(serverMsgT(r.message, '저장 실패'));
           return r.data || {};
         });
       });
@@ -1089,10 +1095,10 @@
       var headers = { 'Content-Type': 'application/x-www-form-urlencoded', 'Accept': 'application/json' };
       if (token) headers['Authorization'] = 'Bearer ' + token;
       return fetch(base + '/api/comp/chatbotKb/suggest', { method: 'POST', headers: headers, body: body }).then(function (res) {
-        if (res.status === 401) { clearAuth(); if (window.location) window.location.replace((window.location.origin || '') + '/login.html'); return Promise.reject(new Error('인증이 만료되었습니다.')); }
+        if (res.status === 401) { clearAuth(); if (window.location) window.location.replace((window.location.origin || '') + '/login.html'); return Promise.reject(new Error(apiT('인증이 만료되었습니다.', 'Your session has expired.'))); }
         return res.text().then(function (text) {
-          var r; try { r = text ? JSON.parse(text) : {}; } catch (e) { return Promise.reject(new Error('서버 응답 오류')); }
-          if (r.success === false && r.success !== undefined) throw new Error(r.message || '생성 실패');
+          var r; try { r = text ? JSON.parse(text) : {}; } catch (e) { return Promise.reject(new Error(apiT('서버 응답 오류', 'Server response error'))); }
+          if (r.success === false && r.success !== undefined) throw new Error(serverMsgT(r.message, '생성 실패'));
           return (r.data && r.data.text != null) ? String(r.data.text) : '';
         });
       });
@@ -1105,7 +1111,7 @@
       if (p.page != null) q.page = p.page;
       if (p.size != null) q.size = p.size;
       return get('/api/comp/chatbotKb/billingHistory', q).then(function (r) {
-        if (r.success === false && r.success !== undefined) throw new Error(r.message || '조회 실패');
+        if (r.success === false && r.success !== undefined) throw new Error(serverMsgT(r.message, '조회 실패'));
         return r.data || { list: [], page: 1, size: 12, totalElements: 0, totalPages: 1, meta: {} };
       });
     },
@@ -1117,17 +1123,17 @@
       if (token) headers['Authorization'] = 'Bearer ' + token;
       return fetch(base + '/api/comp/changeLoginId', { method: 'POST', headers: headers, body: new URLSearchParams({ compId: compId, newLoginId: newLoginId }) })
         .then(function (res) {
-          if (res.status === 401) { clearAuth(); if (window.location) window.location.replace((window.location.origin || '') + '/login.html'); return Promise.reject(new Error('인증이 만료되었습니다.')); }
+          if (res.status === 401) { clearAuth(); if (window.location) window.location.replace((window.location.origin || '') + '/login.html'); return Promise.reject(new Error(apiT('인증이 만료되었습니다.', 'Your session has expired.'))); }
           return res.text().then(function (text) {
-            var r; try { r = text ? JSON.parse(text) : {}; } catch (e) { return Promise.reject(new Error('서버 응답 오류')); }
-            if (r.success === false && r.success !== undefined) throw new Error(r.message || '로그인ID 변경 실패');
+            var r; try { r = text ? JSON.parse(text) : {}; } catch (e) { return Promise.reject(new Error(apiT('서버 응답 오류', 'Server response error'))); }
+            if (r.success === false && r.success !== undefined) throw new Error(serverMsgT(r.message, '로그인ID 변경 실패'));
             return r;
           });
         });
     },
     settlementSetting: function (compId) {
       return get('/api/comp/settlementSetting', { compId: compId }).then(function (r) {
-        if (r.success === false && r.success !== undefined) throw new Error(r.message || '조회 실패');
+        if (r.success === false && r.success !== undefined) throw new Error(serverMsgT(r.message, '조회 실패'));
         return r.data;
       });
     },
@@ -1140,10 +1146,10 @@
       if (token) headers['Authorization'] = 'Bearer ' + token;
       return fetch(base + '/api/comp/settlementSetting/save', { method: 'POST', headers: headers, body: body })
         .then(function (res) {
-          if (res.status === 401) { clearAuth(); if (window.location) window.location.replace((window.location.origin || '') + '/login.html'); return Promise.reject(new Error('인증이 만료되었습니다.')); }
+          if (res.status === 401) { clearAuth(); if (window.location) window.location.replace((window.location.origin || '') + '/login.html'); return Promise.reject(new Error(apiT('인증이 만료되었습니다.', 'Your session has expired.'))); }
           return res.text().then(function (text) {
-            var r; try { r = text ? JSON.parse(text) : {}; } catch (e) { return Promise.reject(new Error('서버 응답 오류')); }
-            if (r.success === false && r.success !== undefined) throw new Error(r.message || '저장 실패');
+            var r; try { r = text ? JSON.parse(text) : {}; } catch (e) { return Promise.reject(new Error(apiT('서버 응답 오류', 'Server response error'))); }
+            if (r.success === false && r.success !== undefined) throw new Error(serverMsgT(r.message, '저장 실패'));
             return r;
           });
         });
@@ -1162,7 +1168,7 @@
         year: year != null ? year : new Date().getFullYear(),
         countries: countries != null ? countries : 'KR,US,JP,TH'
       }).then(function (r) {
-        if (r.success === false && r.success !== undefined) throw new Error(r.message || '조회 실패');
+        if (r.success === false && r.success !== undefined) throw new Error(serverMsgT(r.message, '조회 실패'));
         return r.data || {};
       });
     },
@@ -1172,7 +1178,7 @@
     },
     commissionDetail: function (compId) {
       return get('/api/commission/detail', { compId: compId }).then(function (r) {
-        if (r.success === false && r.success !== undefined) throw new Error(r.message || '조회 실패');
+        if (r.success === false && r.success !== undefined) throw new Error(serverMsgT(r.message, '조회 실패'));
         return r.data;
       });
     },
@@ -1197,7 +1203,7 @@
       if (token) headers['Authorization'] = 'Bearer ' + token;
       return fetch(base + '/api/commission/save', { method: 'POST', headers: headers, body: body })
         .then(function (res) {
-          if (res.status === 401) { clearAuth(); if (window.location) window.location.replace((window.location.origin || '') + '/login.html'); return Promise.reject(new Error('인증이 만료되었습니다.')); }
+          if (res.status === 401) { clearAuth(); if (window.location) window.location.replace((window.location.origin || '') + '/login.html'); return Promise.reject(new Error(apiT('인증이 만료되었습니다.', 'Your session has expired.'))); }
           return res.text().then(function (text) {
             var r = {};
             try {
@@ -1213,7 +1219,7 @@
               var hint = (r && r.message) ? r.message : (text ? String(text).trim().slice(0, 200) : '');
               return Promise.reject(new Error(apiT('저장 실패', 'Save failed') + ' HTTP ' + res.status + (hint ? ': ' + hint : '')));
             }
-            if (r.success === false && r.success !== undefined) throw new Error(r.message || apiT('저장 실패', 'Save failed.'));
+            if (r.success === false && r.success !== undefined) throw new Error(serverMsgT(r.message, '저장 실패', 'Save failed.'));
             return r;
           });
         });
@@ -1495,7 +1501,7 @@
           return Promise.reject(e2 || err);
         });
       }).then(function (r) {
-        if (r && r.success === false) throw new Error(r.message || '파비콘 업로드 실패');
+        if (r && r.success === false) throw new Error(serverMsgT(r.message, '파비콘 업로드 실패'));
         return r.data || r;
       });
     },
@@ -1708,7 +1714,7 @@
     },
     chatbotOrdersList: function (compId) {
       return get('/api/chatbot/orders', { compId: String(compId || '').trim() }).then(function (r) {
-        if (r.success === false && r.success !== undefined) throw new Error(r.message || '목록 실패');
+        if (r.success === false && r.success !== undefined) throw new Error(serverMsgT(r.message, '목록 실패'));
         return Array.isArray(r.data) ? r.data : [];
       });
     },
@@ -1718,14 +1724,14 @@
         params.compId = String(compId).trim();
       }
       return get('/api/chatbot/products', params).then(function (r) {
-        if (r.success === false && r.success !== undefined) throw new Error(r.message || apiT('조회 실패', 'Lookup failed'));
+        if (r.success === false && r.success !== undefined) throw new Error(serverMsgT(r.message, '조회 실패', 'Lookup failed'));
         var raw = r.data;
         return Array.isArray(raw) ? raw : [];
       });
     },
     chatbotProductsCurrencyMeta: function (compId) {
       return get('/api/chatbot/products/currency-meta', { compId: String(compId || '').trim() }).then(function (r) {
-        if (r.success === false && r.success !== undefined) throw new Error(r.message || apiT('통화 정보 조회 실패', 'Currency lookup failed'));
+        if (r.success === false && r.success !== undefined) throw new Error(serverMsgT(r.message, '통화 정보 조회 실패', 'Currency lookup failed'));
         var raw = r.data || {};
         var fallback = ['JPY', 'KRW', 'USD', 'CNY', 'THB'];
         var maxImg = raw.effectiveMaxProductImages != null ? parseInt(String(raw.effectiveMaxProductImages), 10) : 1;
@@ -1749,19 +1755,19 @@
     },
     chatbotProductsPromotionShelfSave: function (body) {
       return post('/api/chatbot/products/promotion-shelf-settings', body || {}).then(function (r) {
-        if (r.success === false && r.success !== undefined) throw new Error(r.message || apiT('저장 실패', 'Save failed'));
+        if (r.success === false && r.success !== undefined) throw new Error(serverMsgT(r.message, '저장 실패', 'Save failed'));
         return r.data || {};
       });
     },
     chatbotProductsSave: function (body) {
       return post('/api/chatbot/products/save', body || {}).then(function (r) {
-        if (r.success === false && r.success !== undefined) throw new Error(r.message || apiT('저장 실패', 'Save failed'));
+        if (r.success === false && r.success !== undefined) throw new Error(serverMsgT(r.message, '저장 실패', 'Save failed'));
         return r.data;
       });
     },
     chatbotProductsDelete: function (compId, id) {
       return del('/api/chatbot/products/' + encodeURIComponent(String(id)) + '?compId=' + encodeURIComponent(String(compId || '').trim())).then(function (r) {
-        if (r.success === false && r.success !== undefined) throw new Error(r.message || apiT('삭제 실패', 'Delete failed'));
+        if (r.success === false && r.success !== undefined) throw new Error(serverMsgT(r.message, '삭제 실패', 'Delete failed'));
         return !!(r.data === true || r.data === '' || r.data == null || r.success);
       });
     },
@@ -1800,7 +1806,7 @@
             var hint = (r && r.message) ? r.message : (text ? String(text).slice(0, 120) : '');
             return Promise.reject(new Error(apiT('API 오류', 'API error') + ' HTTP ' + res.status + (hint ? ': ' + hint : '')));
           }
-          if (!r.success) throw new Error(r.message || apiT('업로드 실패', 'Upload failed'));
+          if (!r.success) throw new Error(serverMsgT(r.message, '업로드 실패', 'Upload failed'));
           return r.data || {};
         });
       }).catch(function (err) {
@@ -2085,7 +2091,7 @@
           return Promise.reject(e2 || err);
         });
       }).then(function (r) {
-        if (r && r.success === false) throw new Error(r.message || '브랜딩 업로드 실패');
+        if (r && r.success === false) throw new Error(serverMsgT(r.message, '브랜딩 업로드 실패'));
         return r.data || r;
       });
     },
@@ -2105,7 +2111,7 @@
         headers: headers,
         body: params
       }, '브랜딩(테마) 저장 응답이 JSON이 아닙니다.').then(function (r) {
-        if (r && r.success === false) throw new Error(r.message || '브랜딩 저장 실패');
+        if (r && r.success === false) throw new Error(serverMsgT(r.message, '브랜딩 저장 실패'));
         return r.data || r;
       });
     },
@@ -2123,7 +2129,7 @@
         headers: headers,
         body: params
       }, '브랜딩 이미지 삭제 응답이 JSON이 아닙니다.').then(function (r) {
-        if (r && r.success === false) throw new Error(r.message || '브랜딩 이미지 삭제 실패');
+        if (r && r.success === false) throw new Error(serverMsgT(r.message, '브랜딩 이미지 삭제 실패'));
         return r.data || r;
       });
     }

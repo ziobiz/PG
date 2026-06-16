@@ -7,7 +7,7 @@ import com.pg.entity.AuthToken;
 import com.pg.entity.OrgLevel;
 import com.pg.entity.OrgUnit;
 import com.pg.repository.AuthTokenRepository;
-import com.pg.repository.MerchantIcopayBrokerCredentialRepository;
+import com.pg.merchantdeploy.MerchantApiDeploymentService;
 import com.pg.repository.MerchantProfileRepository;
 import com.pg.repository.OrgUnitRepository;
 import com.pg.repository.UserRepository;
@@ -36,7 +36,7 @@ public class AuthService {
     private final AuthTokenRepository authTokenRepository;
     private final PasswordEncoder passwordEncoder;
     private final MerchantProfileRepository merchantProfileRepository;
-    private final MerchantIcopayBrokerCredentialRepository merchantIcopayBrokerCredentialRepository;
+    private final MerchantApiDeploymentService merchantApiDeploymentService;
     private final OrgUnitRepository orgUnitRepository;
     private final OrgPagePermissionService orgPagePermissionService;
     private final OrgPortalHostService orgPortalHostService;
@@ -44,7 +44,7 @@ public class AuthService {
 
     public AuthService(UserRepository userRepository, AuthTokenRepository authTokenRepository,
                        PasswordEncoder passwordEncoder, MerchantProfileRepository merchantProfileRepository,
-                       MerchantIcopayBrokerCredentialRepository merchantIcopayBrokerCredentialRepository,
+                       @Lazy MerchantApiDeploymentService merchantApiDeploymentService,
                        OrgUnitRepository orgUnitRepository,
                        @Lazy OrgPagePermissionService orgPagePermissionService,
                        OrgPortalHostService orgPortalHostService,
@@ -53,7 +53,7 @@ public class AuthService {
         this.authTokenRepository = authTokenRepository;
         this.passwordEncoder = passwordEncoder;
         this.merchantProfileRepository = merchantProfileRepository;
-        this.merchantIcopayBrokerCredentialRepository = merchantIcopayBrokerCredentialRepository;
+        this.merchantApiDeploymentService = merchantApiDeploymentService;
         this.orgUnitRepository = orgUnitRepository;
         this.orgPagePermissionService = orgPagePermissionService;
         this.orgPortalHostService = orgPortalHostService;
@@ -167,13 +167,14 @@ public class AuthService {
                 .orElse("N");
     }
 
-    /** 가맹점(org_unit 기준) 본사 API 배포(활성 브로커 시크릿) 여부 — 가맹점API 메뉴 노출에 사용 */
+    /**
+     * 가맹점API 메뉴 노출 — 활성 브로커 시크릿 + 운영(Y) PG 바인딩 중 integ_api_yn=Y 일 때만 Y.
+     */
     public String resolveMerchantApiDeployedYnForMerchant(Long orgUnitId) {
         if (orgUnitId == null) {
             return "N";
         }
-        var creds = merchantIcopayBrokerCredentialRepository.findByOrgUnitIdAndUseYnOrderByIdDesc(orgUnitId, "Y");
-        return creds != null && !creds.isEmpty() ? "Y" : "N";
+        return merchantApiDeploymentService.isMerchantApiIntegrationEligible(orgUnitId) ? "Y" : "N";
     }
 
     private static String yn(String v) {

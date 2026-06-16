@@ -7,10 +7,12 @@ import com.pg.api.dto.LoginResponse;
 import com.pg.entity.AppUser;
 import com.pg.repository.UserRepository;
 import com.pg.service.AuthService;
+import com.pg.service.MerchantChatbotProductService;
 import com.pg.service.OrgPagePermissionService;
 import com.pg.service.OrgTabletMenuService;
 import com.pg.service.PayFollowPolicyService;
 import com.pg.service.UserOtpEnrollmentService;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -30,18 +32,21 @@ public class ApiAuthController {
     private final UserRepository userRepository;
     private final UserOtpEnrollmentService userOtpEnrollmentService;
     private final OrgTabletMenuService orgTabletMenuService;
+    private final MerchantChatbotProductService merchantChatbotProductService;
 
     public ApiAuthController(AuthService authService, OrgPagePermissionService orgPagePermissionService,
                              PayFollowPolicyService payFollowPolicyService,
                              UserRepository userRepository,
                              UserOtpEnrollmentService userOtpEnrollmentService,
-                             OrgTabletMenuService orgTabletMenuService) {
+                             OrgTabletMenuService orgTabletMenuService,
+                             MerchantChatbotProductService merchantChatbotProductService) {
         this.authService = authService;
         this.orgPagePermissionService = orgPagePermissionService;
         this.payFollowPolicyService = payFollowPolicyService;
         this.userRepository = userRepository;
         this.userOtpEnrollmentService = userOtpEnrollmentService;
         this.orgTabletMenuService = orgTabletMenuService;
+        this.merchantChatbotProductService = merchantChatbotProductService;
     }
 
     @PostMapping("/login")
@@ -63,10 +68,11 @@ public class ApiAuthController {
 
     /** 현재 로그인 사용자 정보 (업체정보조회 필터·권한 판단용) */
     @GetMapping("/me")
-    public ResponseEntity<ApiResponse<Map<String, Object>>> me() {
+    public ResponseEntity<ApiResponse<Map<String, Object>>> me(HttpServletRequest request) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         Map<String, Object> user = new HashMap<>();
         user.put("ok", true);
+        user.put("publicPaySiteBase", merchantChatbotProductService.resolvePublicCustomerSiteBase(request));
         if (auth != null && auth.getPrincipal() instanceof AppUser u) {
             AppUser fresh = userRepository.findById(u.getId()).orElse(u);
             user.put("userId", fresh.getUsername());

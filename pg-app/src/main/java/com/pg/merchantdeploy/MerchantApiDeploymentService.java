@@ -25,6 +25,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -93,7 +94,7 @@ public class MerchantApiDeploymentService {
                                                            String scopeCompId, boolean scopeSubtreeBelow) {
         /* compDiv=MERCHANT(조직단계). 넷째 인자는 useYn(Y/N/ALL) — 여기에 "MERCHANT"를 넣으면 사용여부와 비교되어 목록이 항상 0건이 됨 */
         PageResult<Map<String, Object>> result = compService.search(searchCompId, searchCompNm, "MERCHANT", null, null, null,
-                null, null, null, null, page, size, scopeCompId, scopeSubtreeBelow);
+                null, null, null, null, page, size, scopeCompId, scopeSubtreeBelow, false);
         enrichMerchantListRows(result.getList());
         return result;
     }
@@ -129,13 +130,113 @@ public class MerchantApiDeploymentService {
         }
         Map<Long, OrgUnit> orgById = orgUnitRepository.findAll().stream()
                 .collect(Collectors.toMap(OrgUnit::getId, o -> o, (a, b) -> a));
+        Map<Long, MerchantIcopayBrokerCredential> brokerCredByOrg = pickLatestBrokerCredentialByOrg(
+                credentialRepository.findByOrgUnitIdInAndUseYn(orgUnitIds, "Y"));
         for (Map<String, Object> row : list) {
             Object id = row.get("id");
             Long ouId = id instanceof Number n ? n.longValue() : null;
             List<MerchantPgBinding> bindings = ouId != null ? bindingsByOrg.get(ouId) : null;
             row.put("pgAgency", formatMerchantPgAgencyDisplay(bindings, pgNmByCd));
             row.put("masterDistNm", resolveNearestMasterDistName(ouId, orgById));
+            MerchantIcopayBrokerCredential brokerCred = ouId != null ? brokerCredByOrg.get(ouId) : null;
+            row.put("brokerSecretStatus", brokerSecretStatusCode(brokerCred));
+            row.put("brokerIssuedDate", formatBrokerIssuedDate(brokerCred));
+            row.put("brokerIssuedBy", brokerIssuedByDisplay(brokerCred));
         }
+    }
+
+    /** org별 활성 브로커 시크릿 중 최신 발행(또는 재발행) 행 — 동률 시 ALL 범위 우선 */
+    private static Map<Long, MerchantIcopayBrokerCredential> pickLatestBrokerCredentialByOrg(
+            List<MerchantIcopayBrokerCredential> creds) {
+        Map<Long, MerchantIcopayBrokerCredential> best = new HashMap<>();
+        if (creds == null || creds.isEmpty()) {
+            return best;
+        }
+        for (MerchantIcopayBrokerCredential c : creds) {
+            if (c == null || c.getOrgUnitId() == null || !"Y".equalsIgnoreCase(c.getUseYn())) {
+                continue;
+            }
+            Long ouId = c.getOrgUnitId();
+            MerchantIcopayBrokerCredential prev = best.get(ouId);
+            if (prev == null) {
+                best.put(ouId, c);
+                continue;
+            }
+            int cmp = compareBrokerIssuedAt(c, prev);
+            if (cmp > 0) {
+                best.put(ouId, c);
+            } else if (cmp == 0 && preferBrokerScope(c.getVendorScope(), prev.getVendorScope())) {
+                best.put(ouId, c);
+            }
+        }
+        return best;
+    }
+
+    private static boolean preferBrokerScope(String a, String b) {
+        if ("ALL".equalsIgnoreCase(a)) {
+            return !"ALL".equalsIgnoreCase(b);
+        }
+        return false;
+    }
+
+    private static int compareBrokerIssuedAt(MerchantIcopayBrokerCredential a, MerchantIcopayBrokerCredential b) {
+        LocalDateTime ta = latestBrokerIssuedAt(a);
+        LocalDateTime tb = latestBrokerIssuedAt(b);
+        if (ta == null && tb == null) {
+            return 0;
+        }
+        if (ta == null) {
+            return -1;
+        }
+        if (tb == null) {
+            return 1;
+        }
+        return ta.compareTo(tb);
+    }
+
+    private static LocalDateTime latestBrokerIssuedAt(MerchantIcopayBrokerCredential c) {
+        if (c == null) {
+            return null;
+        }
+        LocalDateTime rotated = c.getRotatedAt();
+        LocalDateTime created = c.getCreatedAt();
+        if (rotated != null && created != null) {
+            return rotated.isAfter(created) ? rotated : created;
+        }
+        return rotated != null ? rotated : created;
+    }
+
+    /** NOT_ISSUED | ISSUED | REISSUED */
+    private static String brokerSecretStatusCode(MerchantIcopayBrokerCredential c) {
+        if (c == null || !"Y".equalsIgnoreCase(c.getUseYn())) {
+            return "NOT_ISSUED";
+        }
+        LocalDateTime rotated = c.getRotatedAt();
+        if (rotated == null) {
+            return "ISSUED";
+        }
+        LocalDateTime created = c.getCreatedAt();
+        if (created != null && !rotated.isAfter(created.plusSeconds(10))) {
+            return "ISSUED";
+        }
+        return "REISSUED";
+    }
+
+    private static final DateTimeFormatter BROKER_ISSUED_DATE_FMT = DateTimeFormatter.ofPattern("yyyy.MM.dd");
+
+    private static String formatBrokerIssuedDate(MerchantIcopayBrokerCredential c) {
+        LocalDateTime at = latestBrokerIssuedAt(c);
+        if (at == null) {
+            return "";
+        }
+        return at.format(BROKER_ISSUED_DATE_FMT);
+    }
+
+    private static String brokerIssuedByDisplay(MerchantIcopayBrokerCredential c) {
+        if (c == null || c.getIssuedBy() == null || c.getIssuedBy().isBlank()) {
+            return "";
+        }
+        return c.getIssuedBy().trim();
     }
 
     /** 상위 체인에서 가장 가까운 총판(MASTER_DIST) 업체명 */
@@ -342,9 +443,7 @@ public class MerchantApiDeploymentService {
             throw new IllegalArgumentException("가맹점(조직단계 MERCHANT)만 조회할 수 있습니다.");
         }
 
-        List<MerchantIcopayBrokerCredential> creds =
-                credentialRepository.findByOrgUnitIdAndUseYnOrderByIdDesc(ou.getId(), "Y");
-        boolean deployed = creds != null && !creds.isEmpty();
+        boolean deployed = isMerchantApiIntegrationEligible(ou.getId());
 
         Map<String, Object> out = new LinkedHashMap<>();
         out.put("compId", ou.getCode());
@@ -358,6 +457,8 @@ public class MerchantApiDeploymentService {
         Map<String, Object> portal = buildDocsPortal(cid, req);
         out.put("portal", portal);
 
+        List<MerchantIcopayBrokerCredential> creds =
+                credentialRepository.findByOrgUnitIdAndUseYnOrderByIdDesc(ou.getId(), "Y");
         List<Map<String, Object>> credentialItems = new ArrayList<>();
         for (MerchantIcopayBrokerCredential c : creds) {
             Map<String, Object> item = new LinkedHashMap<>();
@@ -702,6 +803,49 @@ public class MerchantApiDeploymentService {
         return m;
     }
 
+    /**
+     * 가맹점API 메뉴·포털 노출: (1) 활성 브로커 시크릿 + (2) 운영(Y) PG 바인딩 중 tb_pg_agency.integ_api_yn=Y.
+     * URL 결제만(integ_url_pay)인 가맹은 제외.
+     */
+    public boolean isMerchantApiIntegrationEligible(Long orgUnitId) {
+        if (orgUnitId == null) {
+            return false;
+        }
+        var creds = credentialRepository.findByOrgUnitIdAndUseYnOrderByIdDesc(orgUnitId, "Y");
+        if (creds == null || creds.isEmpty()) {
+            return false;
+        }
+        return hasOperationalApiPgBinding(orgUnitId);
+    }
+
+    private boolean hasOperationalApiPgBinding(Long orgUnitId) {
+        for (MerchantPgBinding b : merchantPgBindingRepository.findByOrgUnitIdOrderBySortOrderAsc(orgUnitId)) {
+            if (!"Y".equalsIgnoreCase(trimNull(b.getOperationalYn()))) {
+                continue;
+            }
+            String pgCd = trimNull(b.getPgCd());
+            if (pgCd.isEmpty()) {
+                continue;
+            }
+            Optional<PgAgency> agOpt = pgAgencyRepository.findByPgCd(pgCd);
+            if (agOpt.isEmpty()) {
+                continue;
+            }
+            PgAgency ag = agOpt.get();
+            if (!"Y".equalsIgnoreCase(trimNull(ag.getUseYn()))) {
+                continue;
+            }
+            if ("Y".equalsIgnoreCase(trimNull(ag.getIntegApiYn()))) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static String trimNull(String s) {
+        return s != null ? s.trim() : "";
+    }
+
     private List<Map<String, Object>> credentialSummaries(Long orgUnitId) {
         List<Map<String, Object>> rows = new ArrayList<>();
         for (MerchantIcopayBrokerCredential c : credentialRepository.findByOrgUnitIdAndUseYnOrderByIdDesc(orgUnitId, "Y")) {
@@ -716,7 +860,7 @@ public class MerchantApiDeploymentService {
     }
 
     @Transactional
-    public Map<String, Object> rotateBrokerSecret(String compId, String vendorScope) {
+    public Map<String, Object> rotateBrokerSecret(String compId, String vendorScope, String issuedBy) {
         String cid = compId != null ? compId.trim() : "";
         OrgUnit ou = orgUnitRepository.findByCode(cid)
                 .orElseThrow(() -> new IllegalArgumentException("업체코드를 찾을 수 없습니다."));
@@ -727,21 +871,32 @@ public class MerchantApiDeploymentService {
         if (!MerchantPgBrokerVendor.isKnownVendorScope(scope)) {
             throw new IllegalArgumentException("vendorScope 가 올바르지 않습니다.");
         }
-        credentialRepository.findByOrgUnitIdAndVendorScopeAndUseYn(ou.getId(), scope, "Y")
-                .ifPresent(old -> {
-                    old.setUseYn("N");
-                    old.setRotatedAt(LocalDateTime.now());
-                    credentialRepository.save(old);
-                });
         String secret = MerchantBrokerSecretGenerator.newSecret(40);
-        MerchantIcopayBrokerCredential n = new MerchantIcopayBrokerCredential();
-        n.setOrgUnitId(ou.getId());
-        n.setVendorScope(scope);
-        n.setBrokerSecret(secret);
-        n.setSecretPrefix(MerchantBrokerSecretGenerator.prefixOf(secret));
-        n.setUseYn("Y");
-        n.setEnforceYn("Y");
-        credentialRepository.save(n);
+        LocalDateTime now = LocalDateTime.now();
+        /* uq_merchant_icopay_broker_vendor = UNIQUE(org_unit_id, vendor_scope) — use_yn 무관.
+         * 재발급 시 행을 추가(insert)하면 기존 행(폐기 N 포함)과 충돌하므로, 동일 키가 있으면 UPDATE로 회전한다. */
+        MerchantIcopayBrokerCredential cred = credentialRepository
+                .findByOrgUnitIdAndVendorScope(ou.getId(), scope)
+                .orElseGet(MerchantIcopayBrokerCredential::new);
+        boolean isNew = cred.getId() == null;
+        cred.setOrgUnitId(ou.getId());
+        cred.setVendorScope(scope);
+        cred.setBrokerSecret(secret);
+        cred.setSecretPrefix(MerchantBrokerSecretGenerator.prefixOf(secret));
+        cred.setUseYn("Y");
+        if (isNew) {
+            cred.setRotatedAt(null);
+            cred.setEnforceYn("Y");
+        } else {
+            cred.setRotatedAt(now);
+            if (cred.getEnforceYn() == null || cred.getEnforceYn().isBlank()) {
+                cred.setEnforceYn("Y");
+            }
+        }
+        if (issuedBy != null && !issuedBy.isBlank()) {
+            cred.setIssuedBy(issuedBy.trim());
+        }
+        credentialRepository.save(cred);
         Map<String, Object> out = new LinkedHashMap<>();
         out.put("compId", ou.getCode());
         out.put("vendorScope", scope);

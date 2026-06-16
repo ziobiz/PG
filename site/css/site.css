@@ -4383,6 +4383,42 @@ button.pay-follow-pill:focus-visible {
 .merchant-api-deploy-docs .merchant-deploy-col-cur {
   width: 5.5rem;
 }
+.merchant-deploy-kit .merchant-deploy-col-broker {
+  width: 6.5rem;
+}
+.merchant-deploy-kit .merchant-deploy-col-issued-date {
+  width: 7rem;
+}
+.merchant-deploy-kit .merchant-deploy-col-issued-by {
+  width: 8rem;
+}
+.merchant-deploy-kit .merchant-broker-status {
+  display: inline-block;
+  min-width: 3.75rem;
+  padding: 0.15rem 0.45rem;
+  border-radius: 0.35rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1.35;
+  text-align: center;
+  white-space: nowrap;
+  border: 1px solid transparent;
+}
+.merchant-deploy-kit .merchant-broker-status--issued {
+  color: #9b2c2c;
+  background-color: #fde2e2;
+  border-color: #f5c2c2;
+}
+.merchant-deploy-kit .merchant-broker-status--not-issued {
+  color: #2d3748;
+  background-color: #e2e8f0;
+  border-color: #cbd5e0;
+}
+.merchant-deploy-kit .merchant-broker-status--reissued {
+  color: #856404;
+  background-color: #fff3cd;
+  border-color: #ffeeba;
+}
 .merchant-deploy-kit .merchant-deploy-merchant-table tbody td:nth-child(3),
 .merchant-api-deploy-docs .merchant-deploy-merchant-table tbody td:nth-child(3),
 .merchant-deploy-kit .merchant-deploy-merchant-table tbody td:nth-child(4),
@@ -4419,6 +4455,22 @@ button.pay-follow-pill:focus-visible {
 }
 
 /* ========== 메인(/main) 대시보드 ========== */
+.pg-home-dashboard-mount .pg-dash-user-head {
+  font-size: 1.05rem;
+  font-weight: 600;
+}
+/* 사용자명: 검정(나의정보 표시명). 업체명: 보조색 — 테마 흰글자 상속 무시 */
+#contentsMain .pg-home-dashboard-mount .pg-dash-user-head .pg-dash-user-name {
+  color: #111 !important;
+}
+#contentsMain .pg-home-dashboard-mount .pg-dash-user-head .pg-dash-user-org {
+  color: #5c6c7c !important;
+}
+/* content-inner=흰 배경 + DARK 등 테마 흰글자 상속 — 총본사 이하 조직 로그인 시에도 동일 */
+body.theme-dark .content-inner .pg-home-dashboard-mount .pg-dash-user-head .pg-dash-user-name,
+body.theme-brown .content-inner .pg-home-dashboard-mount .pg-dash-user-head .pg-dash-user-name {
+  color: #111 !important;
+}
 .pg-home-dashboard-mount .pg-dash-insight {
   font-size: 0.92rem;
   color: #5c6c7c;
