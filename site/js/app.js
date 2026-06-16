@@ -32,6 +32,34 @@
     });
     return s;
   }
+  /** 업체정보 비밀번호 초기화 — pane당 1회 리스너 + 진행 중 중복 클릭 방지 */
+  function pgRunCompPasswordResetClick(pane, compId, confirmKey, useAssistant) {
+    if (!compId) {
+      alert(pgAdminUiT('업체코드가 없습니다.'));
+      return;
+    }
+    if (pane && pane._pgCompPwdResetBusy) return;
+    if (!confirm(pgAdminUiT(confirmKey))) return;
+    if (pane) pane._pgCompPwdResetBusy = true;
+    var dimm = document.getElementById('dimm');
+    if (dimm) dimm.style.display = 'flex';
+    var req = useAssistant
+      ? window.PG_API.compResetAssistantPassword(compId)
+      : window.PG_API.compResetPassword(compId);
+    req.then(function (r) {
+      var data = r && r.data;
+      var pwd = data && data.tempPassword != null ? String(data.tempPassword) : ((r && r.tempPassword) ? String(r.tempPassword) : '');
+      if (!pwd) {
+        return Promise.reject(new Error(pgAdminUiT('비밀번호 초기화 실패')));
+      }
+      alert(pgAdminUiTFmt('비밀번호가 초기화되었습니다. 임시비밀번호: {0}', pwd));
+    }).catch(function (err) {
+      alert(pgErrMsg(err, '비밀번호 초기화 실패'));
+    }).finally(function () {
+      if (pane) pane._pgCompPwdResetBusy = false;
+      if (dimm) dimm.style.display = 'none';
+    });
+  }
   /** 본사권한설정 매트릭스 — 메뉴명·대메뉴 구역 (URL 기준, 사이드바와 동일) */
   function pgOrgPermMenuLabel(pageUrl, menuNmKo) {
     var url = pageUrl != null ? String(pageUrl) : '';
@@ -2005,10 +2033,15 @@
     return permFb;
   }
 
-  /** 가맹점(MERCHANT) & API 연동 미충족(브로커 시크릿+운영 API PG) 시 merchantApiDeployedYn=N — ADMIN은 예외 */
+  /** 가맹점(MERCHANT) & 웹결제(Y)+브로커 시크릿(발행·재발행) 미충족 시 merchantApiDeployedYn=N — ADMIN은 예외 */
   function merchantApiDeployedInSession() {
     var s = getSessionUser();
-    return s && String(s.merchantApiDeployedYn || 'N').trim().toUpperCase() === 'Y';
+    if (!s || String(s.merchantApiDeployedYn || 'N').trim().toUpperCase() !== 'Y') return false;
+    if (String(s.orgLevel || '').toUpperCase() === 'MERCHANT'
+        && String(s.webPaymentUseYn || 'N').trim().toUpperCase() !== 'Y') {
+      return false;
+    }
+    return true;
   }
 
   /** 가맹점API — 미충족 시 사이드바 메뉴 항목 자체를 숨김(display:none). 회색 비활성이 아님. */
@@ -4356,7 +4389,7 @@
     compId: 1, regNo: 1, contact: 1, accountNo: 1, zipCode: 1, loginId: 1,
     ceoMobile: 1, compTel: 1, bankNm: 1, rowNo: 1, terminalCountTerminal: 1, terminalCountWeb: 1,
     transferType: 1, calcProcType: 1, calcCycle: 1, calcExcludeYn: 1, payHoldYn: 1, useYn: 1, compDivNm: 1,
-    siteRoot: 1, approvalNo: 1, chillTransactionId: 1, transactionId: 1, cardAprvNo: 1, pgApproveNo: 1,
+    siteRoot: 1, payIntegrationMode: 1, approvalNo: 1, chillTransactionId: 1, transactionId: 1, cardAprvNo: 1, pgApproveNo: 1,
     trnId: 1, orderNo: 1, routeNo: 1, merchantMid: 1, pgCd: 1, trnDate: 1, trnTime: 1, paymentTime: 1,
     day: 1, regDt: 1, calcDt: 1, settlementRunId: 1
   };
@@ -10578,6 +10611,10 @@
                 } else {
                   html += '<td class="text-center text-nowrap"><span data-pg-ui-t="' + escAttr(vUm) + '">' + escHtmlBody(vUm) + '</span></td>';
                 }
+              } else if (c.key === 'useYn' && (url === '/comp/compMngTree' || url === '/comp/compMng' || url === '/comp/compInfo')) {
+                var uyCode = String(row.useYn || 'Y').trim().toUpperCase();
+                var uyLabOrg = uyCode === 'S' ? '영구정지' : (uyCode === 'N' ? '미사용' : '사용');
+                html += '<td class="text-center text-nowrap"><span data-pg-ui-t="' + escAttr(uyLabOrg) + '">' + escHtmlBody(pgAdminUiT(uyLabOrg)) + '</span></td>';
               } else if (url === '/hq/pgApiMng' && c.key === 'useYn') {
                 var uyP = String(row.useYn || '').toUpperCase() === 'N' ? 'N' : 'Y';
                 var uyLab = uyP === 'N' ? '미사용' : '사용';
@@ -10780,6 +10817,13 @@
                     html += '<td class="text-center align-middle small">-</td>';
                   } else {
                     html += '<td class="text-center align-middle small"><span class="pg-comp-grid-clamp" title="' + escHtmlTitle(sr0) + '">' + escHtmlBody(sr0) + '</span></td>';
+                  }
+                } else if (isCompMngTree && c.key === 'payIntegrationMode') {
+                  var pim0 = String(row.payIntegrationMode != null ? row.payIntegrationMode : val || '').trim().toUpperCase();
+                  if (pim0 === 'API' || pim0 === 'URL') {
+                    html += '<td class="text-center align-middle text-nowrap small"><span data-pg-ui-t="' + escAttr(pim0) + '">' + escHtmlBody(pgAdminUiT(pim0)) + '</span></td>';
+                  } else {
+                    html += '<td class="text-center align-middle small">-</td>';
                   }
                 } else if (url === '/comp/compMng' && c.key === 'compNm') {
                   html += '<td class="text-start align-middle">' + (val || '') + '</td>';
@@ -15327,38 +15371,28 @@
           if (f && f.contains(t)) f.setAttribute('data-chatbot-admin-username-checked', '');
         });
       }
-      pane.addEventListener('click', function (e) {
-        var pwdResetBtn = e.target && e.target.closest ? e.target.closest('#compDetailPwdResetBtn, [data-action="비밀번호 초기화"]') : null;
-        if (!pwdResetBtn || !pane.contains(pwdResetBtn)) return;
-        var form = pane.querySelector('#compInfoDetailForm');
-        if (!form || !form.contains(pwdResetBtn)) return;
-        var compIdEl = form.querySelector('[name="compId"]');
-        var compId = compIdEl && compIdEl.value ? compIdEl.value.trim() : '';
-        if (!compId) { alert(pgAdminUiT('업체코드가 없습니다.')); return; }
-        if (!confirm(pgAdminUiT('대표 계정 비밀번호를 초기화하시겠습니까? (임시: 로그인ID+1!)'))) return;
-        var dimmPw = document.getElementById('dimm');
-        if (dimmPw) dimmPw.style.display = 'flex';
-        window.PG_API.compResetPassword(compId).then(function (r) {
-          var pwd = (r && r.data && r.data.tempPassword) ? r.data.tempPassword : (r && r.tempPassword) ? r.tempPassword : '';
-          alert(pwd ? pgAdminUiTFmt('비밀번호가 초기화되었습니다. 임시비밀번호: {0}', pwd) : pgAdminUiT('비밀번호가 초기화되었습니다.'));
-        }).catch(function (err) { alert(pgErrMsg(err, '비밀번호 초기화 실패')); }).finally(function () { if (dimmPw) dimmPw.style.display = 'none'; });
-      });
-      pane.addEventListener('click', function (e) {
-        var asstReset = e.target && e.target.closest ? e.target.closest('#assistantPwdResetBtn, [data-action="보조 비밀번호 초기화"]') : null;
-        if (!asstReset || !pane.contains(asstReset)) return;
-        var formAs = pane.querySelector('#compInfoDetailForm');
-        if (!formAs || !formAs.contains(asstReset)) return;
-        var compIdEl = formAs.querySelector('[name="compId"]');
-        var compIdAs = compIdEl && compIdEl.value ? compIdEl.value.trim() : '';
-        if (!compIdAs) { alert(pgAdminUiT('업체코드가 없습니다.')); return; }
-        if (!confirm(pgAdminUiT('보조 계정 비밀번호를 초기화하시겠습니까? (임시: 보조로그인ID+1!)'))) return;
-        var dimmAs = document.getElementById('dimm');
-        if (dimmAs) dimmAs.style.display = 'flex';
-        window.PG_API.compResetAssistantPassword(compIdAs).then(function (r) {
-          var pwd = (r && r.data && r.data.tempPassword) ? r.data.tempPassword : (r && r.tempPassword) ? r.tempPassword : '';
-          alert(pwd ? pgAdminUiTFmt('비밀번호가 초기화되었습니다. 임시비밀번호: {0}', pwd) : pgAdminUiT('비밀번호가 초기화되었습니다.'));
-        }).catch(function (err) { alert(pgErrMsg(err, '비밀번호 초기화 실패')); }).finally(function () { if (dimmAs) dimmAs.style.display = 'none'; });
-      });
+      if (!pane._pgCompPwdResetClickBoundInfo) {
+        pane._pgCompPwdResetClickBoundInfo = true;
+        pane.addEventListener('click', function (e) {
+          var pwdResetBtn = e.target && e.target.closest ? e.target.closest('#compDetailPwdResetBtn, [data-action="비밀번호 초기화"]') : null;
+          if (pwdResetBtn && pane.contains(pwdResetBtn)) {
+            var form = pane.querySelector('#compInfoDetailForm');
+            if (form && form.contains(pwdResetBtn)) {
+              var compIdEl = form.querySelector('[name="compId"]');
+              var compId = compIdEl && compIdEl.value ? compIdEl.value.trim() : '';
+              pgRunCompPasswordResetClick(pane, compId, '대표 계정 비밀번호를 초기화하시겠습니까? (임시: 로그인ID+1!)', false);
+              return;
+            }
+          }
+          var asstReset = e.target && e.target.closest ? e.target.closest('#assistantPwdResetBtn, [data-action="보조 비밀번호 초기화"]') : null;
+          if (!asstReset || !pane.contains(asstReset)) return;
+          var formAs = pane.querySelector('#compInfoDetailForm');
+          if (!formAs || !formAs.contains(asstReset)) return;
+          var compIdElAs = formAs.querySelector('[name="compId"]');
+          var compIdAs = compIdElAs && compIdElAs.value ? compIdElAs.value.trim() : '';
+          pgRunCompPasswordResetClick(pane, compIdAs, '보조 계정 비밀번호를 초기화하시겠습니까? (임시: 보조로그인ID+1!)', true);
+        });
+      }
       if (url === '/comp/myCompMng') {
         var myCompForm = pane.querySelector('#compInfoDetailForm');
         if (myCompForm) {
@@ -16172,57 +16206,53 @@
           }
         });
       }
-      pane.addEventListener('click', function (e) {
-        var listBtn = e.target && e.target.closest ? e.target.closest('#compDetailListBtn') : null;
-        var idChangeBtn = e.target && e.target.closest ? e.target.closest('[data-action="ID변경"]') : null;
-        var pwdResetBtn = e.target && e.target.closest ? e.target.closest('#compDetailPwdResetBtn, [data-action="비밀번호 초기화"]') : null;
-        var form = pane.querySelector('#compDetailForm');
-        var compIdEl = form && form.querySelector('[name="compId"]');
-        var compId = compIdEl && compIdEl.value ? compIdEl.value.trim() : '';
-        if (listBtn) {
-          if (compId) { try { sessionStorage.setItem('pg_comp_detail_return_compId', compId); } catch (e) {} }
-          fnTopMenuMove('/comp/compMngTree', null, '업체관리');
-          return;
-        }
-        if (idChangeBtn && compId) {
-          var loginIdEl = form && form.querySelector('[name="loginId"]');
-          var currentId = loginIdEl ? String(loginIdEl.value || '') : '';
-          var hid = document.getElementById('pgCompLoginIdChangeCompId');
-          var lab = document.getElementById('pgCompLoginIdChangeCompIdLabel');
-          var inp = document.getElementById('pgCompLoginIdChangeNewId');
-          var modal = document.getElementById('pgCompLoginIdChangeModal');
-          if (hid && lab && inp && modal && window.PG_UI && window.PG_UI.openModal) {
-            window._pgCompLoginIdPending = window._pgCompLoginIdPending || {};
-            window._pgCompLoginIdPending.loginIdEl = loginIdEl;
-            hid.value = compId;
-            lab.textContent = compId;
-            inp.value = currentId;
-            window.PG_UI.openModal(modal);
-            setTimeout(function () { try { inp.focus(); inp.select(); } catch (e1) {} }, 400);
-          } else {
-            var newIdLegacy = window.prompt('새 로그인 ID를 입력하세요.', currentId);
-            if (newIdLegacy != null && newIdLegacy.trim()) {
-              var dimmL = document.getElementById('dimm');
-              if (dimmL) dimmL.style.display = 'flex';
-              window.PG_API.compChangeLoginId(compId, newIdLegacy.trim()).then(function () {
-                alert(pgAdminUiT('로그인 ID가 변경되었습니다.'));
-                if (loginIdEl) loginIdEl.value = newIdLegacy.trim();
-              }).catch(function (err) { alert(pgErrMsg(err, 'ID 변경 실패')); }).finally(function () { if (dimmL) dimmL.style.display = 'none'; });
-            }
+      if (!pane._pgCompDetailToolbarClickBound) {
+        pane._pgCompDetailToolbarClickBound = true;
+        pane.addEventListener('click', function (e) {
+          var listBtn = e.target && e.target.closest ? e.target.closest('#compDetailListBtn') : null;
+          var idChangeBtn = e.target && e.target.closest ? e.target.closest('[data-action="ID변경"]') : null;
+          var pwdResetBtn = e.target && e.target.closest ? e.target.closest('#compDetailPwdResetBtn, [data-action="비밀번호 초기화"]') : null;
+          var form = pane.querySelector('#compDetailForm');
+          var compIdEl = form && form.querySelector('[name="compId"]');
+          var compId = compIdEl && compIdEl.value ? compIdEl.value.trim() : '';
+          if (listBtn) {
+            if (compId) { try { sessionStorage.setItem('pg_comp_detail_return_compId', compId); } catch (e) {} }
+            fnTopMenuMove('/comp/compMngTree', null, '업체관리');
+            return;
           }
-          return;
-        }
-        if (pwdResetBtn && compId) {
-          if (!confirm(pgAdminUiT('해당 업체의 비밀번호를 초기화하시겠습니까?'))) return;
-          var dimm = document.getElementById('dimm');
-          if (dimm) dimm.style.display = 'flex';
-          window.PG_API.compResetPassword(compId).then(function (r) {
-            var pwd = (r && r.data && r.data.tempPassword) ? r.data.tempPassword : (r && r.tempPassword) ? r.tempPassword : '';
-            alert(pwd ? pgAdminUiTFmt('비밀번호가 초기화되었습니다. 임시비밀번호: {0}', pwd) : pgAdminUiT('비밀번호가 초기화되었습니다.'));
-          }).catch(function (err) { alert(pgErrMsg(err, '비밀번호 초기화 실패')); }).finally(function () { if (dimm) dimm.style.display = 'none'; });
-          return;
-        }
-      });
+          if (idChangeBtn && compId) {
+            var loginIdEl = form && form.querySelector('[name="loginId"]');
+            var currentId = loginIdEl ? String(loginIdEl.value || '') : '';
+            var hid = document.getElementById('pgCompLoginIdChangeCompId');
+            var lab = document.getElementById('pgCompLoginIdChangeCompIdLabel');
+            var inp = document.getElementById('pgCompLoginIdChangeNewId');
+            var modal = document.getElementById('pgCompLoginIdChangeModal');
+            if (hid && lab && inp && modal && window.PG_UI && window.PG_UI.openModal) {
+              window._pgCompLoginIdPending = window._pgCompLoginIdPending || {};
+              window._pgCompLoginIdPending.loginIdEl = loginIdEl;
+              hid.value = compId;
+              lab.textContent = compId;
+              inp.value = currentId;
+              window.PG_UI.openModal(modal);
+              setTimeout(function () { try { inp.focus(); inp.select(); } catch (e1) {} }, 400);
+            } else {
+              var newIdLegacy = window.prompt('새 로그인 ID를 입력하세요.', currentId);
+              if (newIdLegacy != null && newIdLegacy.trim()) {
+                var dimmL = document.getElementById('dimm');
+                if (dimmL) dimmL.style.display = 'flex';
+                window.PG_API.compChangeLoginId(compId, newIdLegacy.trim()).then(function () {
+                  alert(pgAdminUiT('로그인 ID가 변경되었습니다.'));
+                  if (loginIdEl) loginIdEl.value = newIdLegacy.trim();
+                }).catch(function (err) { alert(pgErrMsg(err, 'ID 변경 실패')); }).finally(function () { if (dimmL) dimmL.style.display = 'none'; });
+              }
+            }
+            return;
+          }
+          if (pwdResetBtn && compId && form && form.contains(pwdResetBtn)) {
+            pgRunCompPasswordResetClick(pane, compId, '해당 업체의 비밀번호를 초기화하시겠습니까?', false);
+          }
+        });
+      }
     }
     if (url === '/hq/defaultCommission') {
       var dimm = document.getElementById('dimm');
@@ -23345,17 +23375,26 @@
               var stEl = tr.querySelector('[data-field="userStatus"]');
               var irEl = tr.querySelector('[data-field="inactiveReason"]');
               var arEl = tr.querySelector('[data-field="assistantRoleType"]');
+              var userStatus = stEl && stEl.value ? String(stEl.value).trim().toUpperCase() : 'ACTIVE';
+              var inactiveReason = irEl ? String(irEl.value || '').trim() : '';
+              if ((userStatus === 'INACTIVE' || userStatus === 'SUSPENDED') && !inactiveReason) {
+                alert(pgAdminUiT('미사용 또는 영구정지로 변경할 때는 전환사유를 입력하세요.'));
+                updTasks = null;
+                return;
+              }
               updTasks.push(function () {
                 return window.PG_API.userUpdate({
                   id: rid,
                   mobile: mobEl ? String(mobEl.value || '').trim() : '',
-                  userStatus: stEl && stEl.value ? String(stEl.value).trim() : 'ACTIVE',
-                  inactiveReason: irEl ? String(irEl.value || '').trim() : '',
+                  userStatus: userStatus,
+                  inactiveReason: inactiveReason,
                   assistantRoleType: arEl && arEl.value ? String(arEl.value).trim() : 'MANAGER'
                 });
               });
             })(updateRows[j]);
+            if (updTasks === null) return;
           }
+          if (updTasks === null) return;
           if (dimmS) dimmS.style.display = 'flex';
           var chain = Promise.resolve();
           (addTasks || []).forEach(function (fn) {

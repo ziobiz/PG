@@ -41,6 +41,7 @@ public class AuthService {
     private final OrgPagePermissionService orgPagePermissionService;
     private final OrgPortalHostService orgPortalHostService;
     private final OrgTabletMenuService orgTabletMenuService;
+    private final OrgServiceUseService orgServiceUseService;
 
     public AuthService(UserRepository userRepository, AuthTokenRepository authTokenRepository,
                        PasswordEncoder passwordEncoder, MerchantProfileRepository merchantProfileRepository,
@@ -48,7 +49,8 @@ public class AuthService {
                        OrgUnitRepository orgUnitRepository,
                        @Lazy OrgPagePermissionService orgPagePermissionService,
                        OrgPortalHostService orgPortalHostService,
-                       @Lazy OrgTabletMenuService orgTabletMenuService) {
+                       @Lazy OrgTabletMenuService orgTabletMenuService,
+                       OrgServiceUseService orgServiceUseService) {
         this.userRepository = userRepository;
         this.authTokenRepository = authTokenRepository;
         this.passwordEncoder = passwordEncoder;
@@ -58,6 +60,7 @@ public class AuthService {
         this.orgPagePermissionService = orgPagePermissionService;
         this.orgPortalHostService = orgPortalHostService;
         this.orgTabletMenuService = orgTabletMenuService;
+        this.orgServiceUseService = orgServiceUseService;
     }
 
     @Transactional
@@ -84,11 +87,13 @@ public class AuthService {
             return LoginAttempt.badCredentials();
         }
         AppUser user = userOpt.get();
-        if (!user.isEnabled() || !passwordEncoder.matches(password, user.getPassword())) {
+        if (!passwordEncoder.matches(password, user.getPassword())) {
             return LoginAttempt.badCredentials();
         }
-        String ust = user.getUserStatus();
-        if (ust != null && !ust.isBlank() && !"ACTIVE".equalsIgnoreCase(ust.trim())) {
+        if (isOrgLoginSuspendedForUser(user) || OrgUserSuspensionService.isUserSuspended(user)) {
+            return LoginAttempt.orgSuspended();
+        }
+        if (!OrgUserSuspensionService.isUserLoginAllowed(user)) {
             return LoginAttempt.badCredentials();
         }
         if (!loginHostAllowedForUser(user, clientHost)) {
@@ -168,7 +173,7 @@ public class AuthService {
     }
 
     /**
-     * 가맹점API 메뉴 노출 — 활성 브로커 시크릿 + 운영(Y) PG 바인딩 중 integ_api_yn=Y 일 때만 Y.
+     * 가맹점API 메뉴 노출 — 웹결제 사용(Y) + 활성 브로커 시크릿(발행·재발행) 둘 다일 때 Y.
      */
     public String resolveMerchantApiDeployedYnForMerchant(Long orgUnitId) {
         if (orgUnitId == null) {
@@ -184,7 +189,18 @@ public class AuthService {
     public Optional<AppUser> validateToken(String token) {
         if (token == null || token.isEmpty()) return Optional.empty();
         return authTokenRepository.findByTokenAndExpiresAtAfter(token, Instant.now())
-                .flatMap(at -> userRepository.findById(at.getUserId()));
+                .flatMap(at -> userRepository.findById(at.getUserId()))
+                .filter(OrgUserSuspensionService::isUserLoginAllowed)
+                .filter(u -> !isOrgLoginSuspendedForUser(u));
+    }
+
+    private boolean isOrgLoginSuspendedForUser(AppUser user) {
+        if (user == null) {
+            return false;
+        }
+        return resolveOrgUnitForLoginId(user.getUsername())
+                .map(ou -> orgServiceUseService.isOrgLoginSuspended(ou.getId()))
+                .orElse(false);
     }
 
     @Transactional

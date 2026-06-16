@@ -282,9 +282,20 @@ public class UserListService {
             throw new IllegalArgumentException("권한 범위 내 사용자만 수정할 수 있습니다.");
         }
         target.setMobile(safeTrim(mobile));
-        applyUserStatus(target, userStatus);
+        String newStatus = safeTrim(userStatus).toUpperCase(Locale.ROOT);
+        if (newStatus.isEmpty()) {
+            newStatus = "ACTIVE";
+        }
         String ir = safeTrim(inactiveReason);
-        target.setInactiveReason(ir.isEmpty() ? null : ir);
+        if ("INACTIVE".equals(newStatus) || "SUSPENDED".equals(newStatus)) {
+            if (ir.isEmpty()) {
+                throw new IllegalArgumentException("미사용 또는 영구정지로 변경할 때는 전환사유를 입력하세요.");
+            }
+            target.setInactiveReason(ir);
+        } else {
+            target.setInactiveReason(null);
+        }
+        applyUserStatus(target, newStatus);
         /* 대표(REPRESENTATIVE)는 권한그룹을 담당유형으로 덮어쓰지 않음(가맹 챗봇관리자·업체 대표 등 유지) */
         if ("ASSISTANT".equalsIgnoreCase(safeTrim(target.getUserType()))) {
             target.setAssistantRoleType(normalizeAssistantRole(assistantRoleType));

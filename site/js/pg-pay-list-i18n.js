@@ -298,6 +298,7 @@
     'searchUseYn|': optMap(),
     'searchUseYn|Y': optMap({ EN: 'Active', JP: '使用', CH: '使用', TH: 'ใช้งาน' }),
     'searchUseYn|N': optMap({ EN: 'Inactive', JP: '未使用', CH: '未使用', TH: 'ไม่ใช้งาน' }),
+    'searchUseYn|S': optMap({ EN: 'Permanently suspended', JP: '永久停止', CH: '永久停用', TH: 'ระงับถาวร' }),
     'searchUseYn|ALL': optMap({ EN: 'All', JP: 'すべて', CH: '全部', TH: 'ทั้งหมด' }),
     'searchPayHoldYn|': optMap(),
     'searchPayHoldYn|Y': optMap({ EN: 'On hold', JP: '保留', CH: '暂缓', TH: 'พักจ่าย' }),
@@ -928,11 +929,11 @@
     ],
     '/comp/compMngTree': [
       packN(
-        '기본 조회는 업체사용상태가 사용인 업체만 표시합니다. 미사용·전체는 셀렉트에서 선택하세요. 조직별 화면 권한(옵저버·수정 등)은 사용/미사용과 관계없이 동일하게 적용됩니다. 미사용으로 바꾼 조직은 결제·정산·노티가 중단되며, 사용으로 되돌리면 복구됩니다. 상위를 미사용으로 두면 하위 프로필도 함께 미사용 처리됩니다.',
-        'By default only companies marked in use are listed. Pick inactive or all in the filter. Screen permissions (observer, edit, etc.) apply regardless of use flag. Disabling an org stops pay, settlement, and notify; re-enabling restores. Disabling a parent disables descendant profiles.',
-        '既定では使用中の加盟店のみ表示します。未使用・すべてはセレクトで選択してください。画面権限は使用状態に依存しません。未使用にすると決済・精算・ノティが停止し、使用に戻すと復旧します。上位を未使用にすると下位も未使用になります。',
-        '默认仅显示「使用中」的商户；在筛选器选择未使用或全部。界面权限与使用标志无关。停用组织会停止支付、结算与通知；恢复使用即可恢复。上级停用则下级档案一并停用。',
-        'ค่าเริ่มต้นแสดงเฉพาะร้านที่สถานะใช้งาน เลือกไม่ใช้หรือทั้งหมดในตัวกรอง สิทธิ์หน้าจอไม่ขึ้นกับสถานะ ปิดใช้งานจะหยุดการชำระ การหักบัญชี และแจ้งเตือน เปิดกลับได้ ปิดระดับบนจะปิดโปรไฟล์ลูกด้วย'
+        '기본 조회는 업체사용상태가 사용인 업체만 표시합니다. 미사용·영구정지·전체는 셀렉트에서 선택하세요. 미사용(N)은 로그인은 가능하나 신규 결제·정산이 중단됩니다. 영구정지(S)는 연동 사용자 계정이 정지되며 로그인할 수 없습니다. 상위를 미사용/영구정지로 두면 하위 프로필도 함께 연쇄 처리됩니다.',
+        'By default only companies marked as active are listed. Select inactive, permanently suspended, or all in the filter. Inactive (N) allows login but stops new payments and settlement. Permanently suspended (S) disables linked user accounts and blocks login. Setting a parent to inactive or permanently suspended cascades to descendant profiles.',
+        '既定では使用中の加盟店のみ表示します。未使用・永久停止・すべてはセレクトで選択してください。未使用(N)はログイン可能ですが新規決済・精算が停止されます。永久停止(S)は連携ユーザーアカウントが停止されログインできません。上位を未使用/永久停止にすると下位プロフィールも連鎖処理されます。',
+        '默认仅显示「使用中」的商户；在筛选器选择未使用、永久停用或全部。未使用(N)可登录但停止新支付与结算。永久停用(S)会停用关联用户账户且无法登录。上级设为未使用/永久停用则下级档案一并级联处理。',
+        'ค่าเริ่มต้นแสดงเฉพาะร้านที่สถานะใช้งาน เลือกไม่ใช้ ระงับถาวร หรือทั้งหมดในตัวกรอง ไม่ใช้(N) ยังเข้าสู่ระบบได้แต่หยุดการชำระและหักบัญชีใหม่ ระงับถาวร(S) จะระงับบัญชีผู้ใช้ที่เชื่อมโยงและเข้าสู่ระบบไม่ได้ ตั้งระดับบนเป็นไม่ใช้/ระงับถาวรจะส่งผลต่อโปรไฟล์ลูกด้วย'
       ),
       packN(
         '엑셀등록: [SAMPLE]으로 서식 있는 xlsx(헤더 색·표선·가운데 정렬)를 받아 예시 행을 수정·추가한 뒤 [엑셀등록]에 업로드하세요.',
@@ -1049,6 +1050,7 @@
     settlementAmt: { EN: 'Settlement', JP: '精算金', CH: '结算款', TH: 'เงินชำระ' },
     receivables: { EN: 'Receivable', JP: '未収金', CH: '应收', TH: 'ลูกหนี้' },
     siteRoot: { EN: 'Root', JP: 'ルート', CH: '根路由', TH: 'รูท' },
+    payIntegrationMode: { EN: 'Method', JP: '方式', CH: '方式', TH: 'รูปแบบ' },
     contact: { EN: 'Contact', JP: '連絡先', CH: '联系方式', TH: 'ติดต่อ' },
     bankNm: { EN: 'Bank', JP: '銀行', CH: '银行', TH: 'ธนาคาร' },
     accountNo: { EN: 'Account no.', JP: '口座番号', CH: '账号', TH: 'เลขบัญชี' },

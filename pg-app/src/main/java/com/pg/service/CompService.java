@@ -39,11 +39,14 @@ import com.pg.util.VoidRefundSettlementModeUtil;
 import com.pg.util.CardBrandScopeUtil;
 import com.pg.chatbot.ChatbotCatalogPolicy;
 import com.pg.chatbot.ChatbotPromotionShelfMode;
+import com.pg.merchantdeploy.MerchantApiDeploymentService;
 import com.pg.util.ChatbotMerchantAdminConstants;
+import com.pg.util.OrgUseYnUtil;
 import com.pg.util.ChatbotProductPricingUtil;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -112,6 +115,8 @@ public class CompService {
     private final HqChatbotAiSettingsService hqChatbotAiSettingsService;
     private final ChatbotProductMonthlyBillingService chatbotProductMonthlyBillingService;
     private final ChatbotPlanProrationService chatbotPlanProrationService;
+    private final OrgUserSuspensionService orgUserSuspensionService;
+    private final MerchantApiDeploymentService merchantApiDeploymentService;
 
     private static LocalTime parseTime(String s) {
         if (s == null || s.trim().isEmpty()) return null;
@@ -431,7 +436,9 @@ public class CompService {
                        MerchantChatbotProductService merchantChatbotProductService,
                        HqChatbotAiSettingsService hqChatbotAiSettingsService,
                        ChatbotProductMonthlyBillingService chatbotProductMonthlyBillingService,
-                       ChatbotPlanProrationService chatbotPlanProrationService) {
+                       ChatbotPlanProrationService chatbotPlanProrationService,
+                       OrgUserSuspensionService orgUserSuspensionService,
+                       @Lazy MerchantApiDeploymentService merchantApiDeploymentService) {
         this.orgUnitRepository = orgUnitRepository;
         this.merchantProfileRepository = merchantProfileRepository;
         this.settlementSettingRepository = settlementSettingRepository;
@@ -458,6 +465,8 @@ public class CompService {
         this.hqChatbotAiSettingsService = hqChatbotAiSettingsService;
         this.chatbotProductMonthlyBillingService = chatbotProductMonthlyBillingService;
         this.chatbotPlanProrationService = chatbotPlanProrationService;
+        this.orgUserSuspensionService = orgUserSuspensionService;
+        this.merchantApiDeploymentService = merchantApiDeploymentService;
     }
 
     /** 챗봇관리 — 고객 안내 문구(병합 표시값). 가맹만. */
@@ -1241,17 +1250,7 @@ public class CompService {
     }
 
     private static String ynDisplay(String y) {
-        if (y == null || y.isBlank()) {
-            return "";
-        }
-        String t = y.trim();
-        if ("Y".equalsIgnoreCase(t)) {
-            return "사용";
-        }
-        if ("N".equalsIgnoreCase(t)) {
-            return "미사용";
-        }
-        return t;
+        return OrgUseYnUtil.display(y);
     }
 
     private static String ynAllowDisplay(String y) {
@@ -2136,27 +2135,7 @@ public class CompService {
                             mp.setCeoNm(ceoNm);
                             mp.setCeoMobile(ceoMobile);
                             if (useYn != null) {
-                                mp.setUseYn(useYn);
-                                if ("N".equalsIgnoreCase(useYn.trim())) {
-                                    for (Long did : collectDescendantIds(ou.getId())) {
-                                        merchantProfileRepository.findByOrgUnitId(did).ifPresent(dmp -> {
-                                            String prevUy = dmp.getUseYn();
-                                            if (prevUy != null && "N".equalsIgnoreCase(prevUy.trim())) {
-                                                return;
-                                            }
-                                            dmp.setUseYn("N");
-                                            merchantProfileRepository.save(dmp);
-                                            orgUnitRepository.findById(did).ifPresent(dchild ->
-                                                    orgUnitChangeAuditService.appendIfChanged(
-                                                            dchild.getId(),
-                                                            nz(dchild.getCode()),
-                                                            nz(dchild.getName()),
-                                                            "[업체정보] 업체사용여부(상위연쇄)",
-                                                            ynDisplay(prevUy),
-                                                            "미사용"));
-                                        });
-                                    }
-                                }
+                                applyOrgUseYnChange(ou, mp, useYn);
                             }
                             String prevLoginId = mp.getLoginId() != null ? mp.getLoginId().trim() : "";
                             if (loginId != null) {
@@ -2658,14 +2637,107 @@ public class CompService {
                             String encoded = passwordEncoder.encode(tempPlain);
                             mp.setPwd(encoded);
                             merchantProfileRepository.save(mp);
-                            userRepository.findByUsername(lid).ifPresent(u -> {
-                                u.setPassword(encoded);
-                                u.setPasswordMustChangeYn("Y");
-                                userRepository.save(u);
-                            });
+                            AppUser primary = resolveOrCreatePrimaryRepresentativeUser(ou, mp, lid);
+                            primary.setPassword(encoded);
+                            primary.setPasswordMustChangeYn("Y");
+                            orgUserSuspensionService.reactivateRepresentativeForLogin(ou, primary);
+                            userRepository.save(primary);
                             persistSingleOrgFieldChange(ou, "[업체정보] 대표비밀번호", "(유지)", "(초기화)");
                             return java.util.Optional.of(tempPlain);
                         }));
+    }
+
+    /**
+     * 로그인에 쓰이는 대표 {@link AppUser} — username 정확·대소문자 무시·org_unit_code 순 조회, 없으면 생성.
+     * (프로필 loginId만 갱신되고 AppUser가 없거나 username 불일치인 경우 로그인 비밀번호가 바뀌지 않는 문제 방지)
+     */
+    private AppUser resolveOrCreatePrimaryRepresentativeUser(OrgUnit ou, MerchantProfile mp, String loginId) {
+        String lid = loginId != null ? loginId.trim() : "";
+        if (lid.isEmpty()) {
+            throw new IllegalArgumentException("대표 로그인ID가 없습니다.");
+        }
+        Optional<AppUser> found = userRepository.findByUsername(lid);
+        if (found.isEmpty()) {
+            found = userRepository.findByUsernameIgnoreCase(lid);
+        }
+        if (found.isEmpty()) {
+            String code = ou.getCode() != null ? ou.getCode().trim() : "";
+            if (!code.isEmpty()) {
+                AppUser repFallback = null;
+                for (AppUser u : userRepository.findByOrgUnitCode(code)) {
+                    if (u == null || "ADMIN".equalsIgnoreCase(trimToEmpty(u.getRole()))) {
+                        continue;
+                    }
+                    String uname = trimToEmpty(u.getUsername());
+                    if (uname.isEmpty()) {
+                        continue;
+                    }
+                    if (uname.equalsIgnoreCase(lid)) {
+                        found = Optional.of(u);
+                        break;
+                    }
+                    if (repFallback == null && isRepresentativeUserType(u)) {
+                        repFallback = u;
+                    }
+                }
+                if (found.isEmpty() && repFallback != null) {
+                    found = Optional.of(repFallback);
+                }
+            }
+        }
+        AppUser primary = found.orElseGet(() -> {
+            AppUser nu = new AppUser();
+            nu.setUsername(lid);
+            String nm = ou.getName() != null && !ou.getName().isBlank() ? ou.getName().trim()
+                    : (mp.getCeoNm() != null && !mp.getCeoNm().isBlank() ? mp.getCeoNm().trim() : lid);
+            nu.setName(nm);
+            nu.setRole("USER");
+            nu.setEnabled(true);
+            nu.setUserStatus("ACTIVE");
+            nu.setUserType("REPRESENTATIVE");
+            nu.setOrgUnitCode(ou.getCode() != null ? ou.getCode().trim() : null);
+            nu.setPermissionGroupNm("업체사용자");
+            nu.setOtpRegisteredYn("N");
+            return nu;
+        });
+        alignRepresentativeUsername(primary, lid);
+        if (primary.getOrgUnitCode() == null || primary.getOrgUnitCode().isBlank()) {
+            primary.setOrgUnitCode(ou.getCode() != null ? ou.getCode().trim() : null);
+        }
+        if (primary.getPermissionGroupNm() == null || primary.getPermissionGroupNm().isBlank()) {
+            primary.setPermissionGroupNm("업체사용자");
+        }
+        if (primary.getRole() == null || primary.getRole().isBlank()) {
+            primary.setRole("USER");
+        }
+        return primary;
+    }
+
+    private static boolean isRepresentativeUserType(AppUser u) {
+        String ut = trimToEmpty(u.getUserType());
+        return ut.isEmpty() || "REPRESENTATIVE".equalsIgnoreCase(ut);
+    }
+
+    private void alignRepresentativeUsername(AppUser user, String loginId) {
+        if (user == null || loginId == null || loginId.isBlank()) {
+            return;
+        }
+        String lid = loginId.trim();
+        String cur = trimToEmpty(user.getUsername());
+        if (cur.equals(lid)) {
+            return;
+        }
+        if (cur.equalsIgnoreCase(lid)) {
+            user.setUsername(lid);
+            return;
+        }
+        if (userRepository.findByUsername(lid).isEmpty()) {
+            user.setUsername(lid);
+        }
+    }
+
+    private static String trimToEmpty(String s) {
+        return s != null ? s.trim() : "";
     }
 
     /**
@@ -2936,7 +3008,7 @@ public class CompService {
         if (addrCountryCd != null) mp.setAddrCountryCd(addrCountryCd.trim());
         mp.setCeoNm(ceoNm);
         mp.setCeoMobile(ceoMobile);
-        mp.setUseYn(useYn);
+        mp.setUseYn(OrgUseYnUtil.normalize(useYn));
         mp.setLoginId(loginId);
         mp.setRegNo(regNo);
         mp.setBizType(bizType);
@@ -3196,6 +3268,10 @@ public class CompService {
             appUser.setPermissionGroupNm("업체사용자");
             appUser.setOtpRegisteredYn("N");
             userRepository.save(appUser);
+        }
+
+        if (OrgUseYnUtil.S.equals(OrgUseYnUtil.normalize(useYn))) {
+            applyOrgUseYnChange(saved, mp, useYn);
         }
 
         orgUnitChangeAuditService.appendIfChanged(saved.getId(), saved.getCode(), nz(saved.getName()),
@@ -4129,6 +4205,7 @@ public class CompService {
         m.put("receivables", "-");
         m.put("siteRoot", siteRootFromPgBindings(
                 merchantPgBindingRepository.findByOrgUnitIdOrderBySortOrderAsc(o.getId())));
+        m.put("payIntegrationMode", resolvePayIntegrationModeDisplay(o));
         findNearestMasterDistAncestorId(o.getId()).ifPresentOrElse(
                 mid -> m.put("masterDistScopeOrgId", mid),
                 () -> m.put("masterDistScopeOrgId", null));
@@ -4170,6 +4247,17 @@ public class CompService {
         return m;
     }
 
+    /**
+     * 가맹 결제 연동 방식 — 웹결제(Y) + 활성 브로커 시크릿이면 {@code API}, 그 외 가맹은 {@code URL}.
+     * (비가맹 조직은 {@code -})
+     */
+    private String resolvePayIntegrationModeDisplay(OrgUnit o) {
+        if (o == null || o.getOrgLevel() != OrgLevel.MERCHANT) {
+            return "-";
+        }
+        return merchantApiDeploymentService.isMerchantApiIntegrationEligible(o.getId()) ? "API" : "URL";
+    }
+
     private static String bankCdToName(String cd) {
         if (cd == null || cd.isEmpty()) return "-";
         return switch (cd) {
@@ -4197,11 +4285,51 @@ public class CompService {
         String f = normalizeUseYnFilter(useYn);
         if (f == null) return true;
         return merchantProfileRepository.findByOrgUnitId(o.getId())
-                .map(mp -> {
-                    String v = mp.getUseYn() != null ? mp.getUseYn().trim() : "Y";
-                    return f.equalsIgnoreCase(v);
-                })
-                .orElseGet(() -> "Y".equalsIgnoreCase(f));
+                .map(mp -> OrgUseYnUtil.normalize(mp.getUseYn()).equalsIgnoreCase(OrgUseYnUtil.normalize(f)))
+                .orElseGet(() -> OrgUseYnUtil.Y.equalsIgnoreCase(OrgUseYnUtil.normalize(f)));
+    }
+
+    /**
+     * 업체 사용여부 변경 — N/S 시 하위 연쇄. S 는 연동 AppUser 영구정지·세션 무효화.
+     */
+    private void applyOrgUseYnChange(OrgUnit ou, MerchantProfile mp, String useYnRaw) {
+        String prev = OrgUseYnUtil.normalize(mp.getUseYn());
+        String normalized = OrgUseYnUtil.normalize(useYnRaw);
+        mp.setUseYn(normalized);
+        if (OrgUseYnUtil.S.equals(normalized)) {
+            orgUserSuspensionService.suspendAllLinkedUsers(ou.getId());
+            cascadeUseYnToDescendants(ou.getId(), OrgUseYnUtil.S, true);
+        } else if (OrgUseYnUtil.N.equals(normalized)) {
+            cascadeUseYnToDescendants(ou.getId(), OrgUseYnUtil.N, false);
+        }
+        if (OrgUseYnUtil.S.equals(prev) && !OrgUseYnUtil.S.equals(normalized)) {
+            orgUserSuspensionService.restoreAllLinkedUsers(ou.getId());
+        }
+    }
+
+    private void cascadeUseYnToDescendants(Long rootOrgUnitId, String targetYn, boolean suspendUsers) {
+        String target = OrgUseYnUtil.normalize(targetYn);
+        for (Long did : collectDescendantIds(rootOrgUnitId)) {
+            merchantProfileRepository.findByOrgUnitId(did).ifPresent(dmp -> {
+                String prevUy = dmp.getUseYn();
+                if (target.equals(OrgUseYnUtil.normalize(prevUy))) {
+                    return;
+                }
+                dmp.setUseYn(target);
+                merchantProfileRepository.save(dmp);
+                orgUnitRepository.findById(did).ifPresent(dchild ->
+                        orgUnitChangeAuditService.appendIfChanged(
+                                dchild.getId(),
+                                nz(dchild.getCode()),
+                                nz(dchild.getName()),
+                                "[업체정보] 업체사용여부(상위연쇄)",
+                                ynDisplay(prevUy),
+                                ynDisplay(target)));
+                if (suspendUsers) {
+                    orgUserSuspensionService.suspendAllLinkedUsers(did);
+                }
+            });
+        }
     }
 
     private boolean matchPayHoldYn(OrgUnit o, String payHoldYn) {

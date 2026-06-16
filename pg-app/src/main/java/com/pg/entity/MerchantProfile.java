@@ -43,6 +43,7 @@ public class MerchantProfile {
     private String ceoMobile;
 
     @Column(name = "use_yn", length = 1)
+    /** Y=사용, N=미사용(로그인 가능·서비스 중단), S=영구정지(로그인 불가) */
     private String useYn;
 
     @Column(name = "login_id", length = 50)

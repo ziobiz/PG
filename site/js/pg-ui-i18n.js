@@ -1145,11 +1145,23 @@
       CH: '使用状态*',
       TH: 'สถานะ*'
     },
+    '전환사유': {
+      EN: 'Status change reason',
+      JP: '変更理由',
+      CH: '变更原因',
+      TH: 'เหตุผลการเปลี่ยนสถานะ'
+    },
     '미사용전환사유': {
-      EN: 'Reason for inactive',
-      JP: '未使用への変更理由',
-      CH: '停用原因',
-      TH: 'เหตุผลที่ปิดใช้งาน'
+      EN: 'Status change reason',
+      JP: '変更理由',
+      CH: '变更原因',
+      TH: 'เหตุผลการเปลี่ยนสถานะ'
+    },
+    '미사용 또는 영구정지로 변경할 때는 전환사유를 입력하세요.': {
+      EN: 'Enter a status change reason when setting Inactive or Suspended.',
+      JP: '未使用または永久停止に変更する場合は変更理由を入力してください。',
+      CH: '设为未使用或永久停用时请填写变更原因。',
+      TH: 'เมื่อตั้งเป็นไม่ใช้งานหรือระงับถาวร กรุณากรอกเหตุผลการเปลี่ยนสถานะ'
     },
     '초기화 권한 없음': {
       EN: 'No permission to reset',
@@ -1166,6 +1178,24 @@
     },
     '등록': { EN: 'Registered', JP: '登録済み', CH: '已注册', TH: 'ลงทะเบียนแล้ว' },
     '영구정지': { EN: 'Suspended', JP: '永久停止', CH: '永久停用', TH: 'ระงับถาวร' },
+    '영구정지된 업체는 로그인할 수 없습니다.': {
+      EN: 'This merchant is suspended. Please contact the system administrator.',
+      JP: '該当加盟店は停止中です。運用管理者にお問い合わせください。',
+      CH: '该商户已停用。请联系运营管理员。',
+      TH: 'ร้านค้านี้ถูกระงับ กรุณาติดต่อผู้ดูแลระบบ'
+    },
+    '해당가맹점은 정지중입니다. 운영관리자에게 문의하세요.': {
+      EN: 'This merchant is suspended. Please contact the system administrator.',
+      JP: '該当加盟店は停止中です。運用管理者にお問い合わせください。',
+      CH: '该商户已停用。请联系运营管理员。',
+      TH: 'ร้านค้านี้ถูกระงับ กรุณาติดต่อผู้ดูแลระบบ'
+    },
+    '기본 조회는 업체사용상태가 사용인 업체만 표시합니다. 미사용·영구정지·전체는 셀렉트에서 선택하세요. 미사용(N)은 로그인은 가능하나 신규 결제·정산이 중단됩니다. 영구정지(S)는 연동 사용자 계정이 정지되며 로그인할 수 없습니다. 상위를 미사용/영구정지로 두면 하위 프로필도 함께 연쇄 처리됩니다.': {
+      EN: 'By default only companies marked as active are listed. Select inactive, permanently suspended, or all in the filter. Inactive (N) allows login but stops new payments and settlement. Permanently suspended (S) disables linked user accounts and blocks login. Setting a parent to inactive or permanently suspended cascades to descendant profiles.',
+      JP: '既定では使用中の加盟店のみ表示します。未使用・永久停止・すべてはセレクトで選択してください。未使用(N)はログイン可能ですが新規決済・精算が停止されます。永久停止(S)は連携ユーザーアカウントが停止されログインできません。上位を未使用/永久停止にすると下位プロフィールも連鎖処理されます。',
+      CH: '默认仅显示「使用中」的商户；在筛选器选择未使用、永久停用或全部。未使用(N)可登录但停止新支付与结算。永久停用(S)会停用关联用户账户且无法登录。上级设为未使用/永久停用则下级档案一并级联处理。',
+      TH: 'ค่าเริ่มต้นแสดงเฉพาะร้านที่สถานะใช้งาน เลือกไม่ใช้ ระงับถาวร หรือทั้งหมดในตัวกรอง ไม่ใช้(N) ยังเข้าสู่ระบบได้แต่หยุดการชำระและหักบัญชีใหม่ ระงับถาวร(S) จะระงับบัญชีผู้ใช้ที่เชื่อมโยงและเข้าสู่ระบบไม่ได้ ตั้งระดับบนเป็นไม่ใช้/ระงับถาวรจะส่งผลต่อโปรไฟล์ลูกด้วย'
+    },
     '미등록': { EN: 'Not registered', JP: '未登録', CH: '未注册', TH: 'ยังไม่ลงทะเบียน' },
     '초기화': { EN: 'Reset', JP: '初期化', CH: '重置', TH: 'รีเซ็ต' },
     '소속 업체코드를 확인할 수 없습니다.': {
@@ -13503,10 +13533,16 @@
       TH: 'คำอธิบาย'
     },
     '방식': {
-      EN: 'Mode',
+      EN: 'Method',
       JP: '方式',
       CH: '方式',
-      TH: 'โหมด'
+      TH: 'รูปแบบ'
+    },
+    '가맹 결제 연동: 웹결제(Y) 및 브로커 시크릿 발급 시 API, 미발급 시 URL': {
+      EN: 'Merchant integration: API when web payment (Y) and broker secret are active; URL otherwise.',
+      JP: '加盟店連携: ウェブ決済(Y)かつブローカーシークレット発行時はAPI、未発行時はURL。',
+      CH: '商户联动：网页支付(Y)且已发放 broker 密钥时为 API，否则为 URL。',
+      TH: 'การเชื่อมร้าน: API เมื่อเปิดเว็บชำระ (Y) และมี broker secret มิฉะนั้น URL'
     },
     '순서': {
       EN: 'Order',
@@ -18488,10 +18524,10 @@
       TH: '저장 중 DB 제약 오류가 났습니다. การแจ้งเตือน URL이 너무 길지 않은지 확인하고, 운영 DB에 db/V48_merchant_notify_url_length.sql 적용 여부를 확인하세요.'
     },
     '저장된 사용자는 삭제할 수 없습니다. 미사용·영구정지 처리로 변경하세요.': {
-      EN: '저장된 사용자는 삭제할 수 없습니다. 미사용·영구정지 처리로 변경하세요.',
-      JP: '저장된 사용자는 삭제할 수 없습니다. 미사용·영구정지 처리로 변경하세요.',
-      CH: '저장된 사용자는 삭제할 수 없습니다. 미사용·영구정지 처리로 변경하세요.',
-      TH: '저장된 사용자는 삭제할 수 없습니다. 미사용·영구정지 처리로 변경하세요.'
+      EN: 'Saved users cannot be deleted. Change their status to inactive or permanently suspended instead.',
+      JP: '保存済みユーザーは削除できません。未使用・永久停止に変更してください。',
+      CH: '已保存的用户无法删除。请改为设为未使用或永久停用。',
+      TH: 'ไม่สามารถลบผู้ใช้ที่บันทึกแล้วได้ กรุณาเปลี่ยนเป็นสถานะไม่ใช้หรือระงับถาวรแทน'
     },
     '저장된 영업일 설정 목록에 없는 ID입니다.': {
       EN: '저장된 영업일 setting list에 없는 ID입니다.',

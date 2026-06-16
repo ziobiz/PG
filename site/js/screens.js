@@ -2991,7 +2991,7 @@
             [{ label: '업체명', type: 'text', name: 'compNm', col: 2 }, { label: '사업자번호', type: 'regNoWithType', name: 'regNo', col: 2 }, { label: '업태', type: 'text', name: 'bizType', col: 2 }, { label: '종목', type: 'text', name: 'industry', col: 2 }],
             [{ label: '대표자명', type: 'text', name: 'ceoNm', col: 2 }, { label: '휴대폰', type: 'text', name: 'ceoMobile', col: 2 }, { label: '업체전화', type: 'text', name: 'compTel', col: 2 }, { label: '팩스', type: 'text', name: 'fax', col: 2 }, { label: '이메일', type: 'text', name: 'email', col: 2 }],
             [{ type: 'countryAddressRow', zipLabel: '우편번호', addrLabel: '주소', addrDetailLabel: '상세주소', addrEtcLabel: '기타' }],
-            [{ label: '사용여부', type: 'select', name: 'useYn', options: [{ v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }], col: 1 }, { label: '태블릿 UI 기능', type: 'select', name: 'tabletFeatureUseYn', options: [{ v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }], col: 2 }, { label: '대표 아이디 (중복검사)', type: 'text', name: 'loginId', col: 2, button: '중복확인' }, { label: '비밀번호', type: 'passwordReset', name: 'pwdReset', col: 2 }],
+            [{ label: '사용여부', type: 'select', name: 'useYn', options: [{ v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }, { v: 'S', t: '영구정지' }], col: 1 }, { label: '태블릿 UI 기능', type: 'select', name: 'tabletFeatureUseYn', options: [{ v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }], col: 2 }, { label: '대표 아이디 (중복검사)', type: 'text', name: 'loginId', col: 2, button: '중복확인' }, { label: '비밀번호', type: 'passwordReset', name: 'pwdReset', col: 2 }],
             [{ label: '보조 아이디 (중복검사)', type: 'text', name: 'assistantLoginId', col: 2, button: '중복확인' }, { type: 'assistantPasswordManage', col: 2 }]
           ]
         },
@@ -3256,7 +3256,7 @@
         [
           { label: '업체구분', type: 'select', name: 'searchCompDiv', options: [{ v: '', t: '전체' }, { v: 'REGIONAL', t: '본사' }, { v: 'MASTER_DIST', t: '총판' }, { v: 'BRANCH', t: '지사' }, { v: 'AGENCY', t: '대리점' }, { v: 'SALES_OFFICE', t: '영업점' }, { v: 'MERCHANT', t: '가맹점' }], size: 10 },
           { label: '대표자명', type: 'text', name: 'searchCeoNm', size: 12 },
-          { label: '업체사용상태', type: 'select', name: 'searchUseYn', i18nLblKey: 'compTreeSearchUseStatus', options: [{ v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }, { v: 'ALL', t: '전체' }], size: 10 },
+          { label: '업체사용상태', type: 'select', name: 'searchUseYn', i18nLblKey: 'compTreeSearchUseStatus', options: [{ v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }, { v: 'S', t: '영구정지' }, { v: 'ALL', t: '전체' }], size: 10 },
           { label: '업체코드', type: 'text', name: 'searchCompId', size: 12 },
           { label: '업체명', type: 'text', name: 'searchCompNm', size: 12 }
         ],
@@ -3268,7 +3268,7 @@
           { type: 'compMngSearchActions', label: '하위업체포함', checkboxName: 'searchIncludeSub', searchLabel: '검색' }
         ]
       ],
-      noticeList: ['기본 조회는 업체사용상태가 사용인 업체만 표시합니다. 미사용·전체는 셀렉트에서 선택하세요. 조직별 화면 권한(옵저버·수정 등)은 사용/미사용과 관계없이 동일하게 적용됩니다. 미사용으로 바꾼 조직은 결제·정산·노티가 중단되며, 사용으로 되돌리면 복구됩니다. 상위를 미사용으로 두면 하위 프로필도 함께 미사용 처리됩니다.', '엑셀등록: [SAMPLE]으로 서식 있는 xlsx(헤더 색·표선·가운데 정렬)를 받아 예시 행을 수정·추가한 뒤 [엑셀등록]에 업로드하세요.'],
+      noticeList: ['기본 조회는 업체사용상태가 사용인 업체만 표시합니다. 미사용·영구정지·전체는 셀렉트에서 선택하세요. 미사용(N)은 로그인은 가능하나 신규 결제·정산이 중단됩니다. 영구정지(S)는 연동 사용자 계정이 정지되며 로그인할 수 없습니다. 상위를 미사용/영구정지로 두면 하위 프로필도 함께 연쇄 처리됩니다.', '엑셀등록: [SAMPLE]으로 서식 있는 xlsx(헤더 색·표선·가운데 정렬)를 받아 예시 행을 수정·추가한 뒤 [엑셀등록]에 업로드하세요.'],
       summary: ['건수'],
       buttons: [{ id: 'excelBtn', label: '엑셀다운로드', cls: 'btn-info' }, { id: 'excelSampleBtn', label: 'SAMPLE', cls: 'btn-outline-secondary' }, { id: 'excelRegBtn', label: '엑셀등록', cls: 'btn-outline-success' }, { id: 'compRegBtn', label: '등록', cls: 'btn-danger' }],
       tableColumnGuide: true,
@@ -3288,6 +3288,7 @@
         { key: 'bankNm', label: '은행' },
         { key: 'accountNo', label: '계좌번호' },
         { key: 'transferFee', label: '송금수수료' },
+        { key: 'payIntegrationMode', label: '방식', title: '가맹 결제 연동: 웹결제(Y) 및 브로커 시크릿 발급 시 API, 미발급 시 URL', align: 'center' },
         { key: 'calcCycle', label: '정산주기' },
         { key: 'calcProcType', label: '정산구분' },
         { key: 'transferType', label: '이체및송금' },
@@ -3314,7 +3315,7 @@
             [{ label: '상위 본사', type: 'text', name: 'parentComp', col: 2, button: '검색', placeholder: '상위 코드' }, { label: '업체구분*', type: 'select', name: 'compDiv', options: [{ v: '', t: '선택' }, { v: 'REGIONAL', t: '본사' }, { v: 'MASTER_DIST', t: '총판' }, { v: 'BRANCH', t: '지사' }, { v: 'AGENCY', t: '대리점' }, { v: 'SALES_OFFICE', t: '영업점' }, { v: 'MERCHANT', t: '가맹점' }], col: 1 }, { label: '업체명*', type: 'text', name: 'compNm', col: 2 }, { label: '사업자번호*', type: 'regNoWithType', name: 'regNo', col: 2 }, { label: '업태', type: 'text', name: 'bizType', col: 1 }, { label: '종목', type: 'text', name: 'industry', col: 1 }],
             [{ label: '대표자명*', type: 'text', name: 'ceoNm', col: 2 }, { label: '휴대폰*', type: 'text', name: 'ceoMobile', col: 2 }, { label: '업체전화*', type: 'text', name: 'compTel', col: 2 }, { label: '팩스', type: 'text', name: 'fax', col: 2 }, { label: '이메일', type: 'text', name: 'email', col: 2 }],
             [{ type: 'countryAddressRow', zipLabel: '우편번호*', addrLabel: '주소*', addrDetailLabel: '상세주소', addrEtcLabel: '기타' }],
-            [{ label: '사용여부*', type: 'select', name: 'useYn', options: [{ v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }], col: 1 }, { label: '태블릿 UI 기능', type: 'select', name: 'tabletFeatureUseYn', options: [{ v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }], col: 2 }, { label: '로그인ID*', type: 'text', name: 'loginId', col: 2, button: '중복확인' }, { label: '비밀번호*', type: 'password', name: 'pwd', col: 2, button: '저장', placeholder: '8자 이상 → 옆 [저장] 확정' }]
+            [{ label: '사용여부*', type: 'select', name: 'useYn', options: [{ v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }, { v: 'S', t: '영구정지' }], col: 1 }, { label: '태블릿 UI 기능', type: 'select', name: 'tabletFeatureUseYn', options: [{ v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }], col: 2 }, { label: '로그인ID*', type: 'text', name: 'loginId', col: 2, button: '중복확인' }, { label: '비밀번호*', type: 'password', name: 'pwd', col: 2, button: '저장', placeholder: '8자 이상 → 옆 [저장] 확정' }]
           ]
         },
         {
@@ -3673,7 +3674,7 @@
             [{ label: '업체코드', type: 'text', name: 'compId', col: 2, readonly: true }, { label: '상위 본사', type: 'text', name: 'parentComp', col: 2, button: '검색', placeholder: '상위 코드' }, { label: '업체구분*', type: 'select', name: 'compDiv', options: [{ v: '', t: '선택' }, { v: 'HEADQUARTERS', t: '총본사' }, { v: 'REGIONAL', t: '본사' }, { v: 'MASTER_DIST', t: '총판' }, { v: 'BRANCH', t: '지사' }, { v: 'AGENCY', t: '대리점' }, { v: 'SALES_OFFICE', t: '영업점' }, { v: 'MERCHANT', t: '가맹점' }], col: 1 }, { label: '업체명*', type: 'text', name: 'compNm', col: 2 }, { label: '사업자번호*', type: 'regNoWithType', name: 'regNo', col: 2 }, { label: '업태', type: 'text', name: 'bizType', col: 1 }, { label: '종목', type: 'text', name: 'industry', col: 1 }],
             [{ label: '대표자명*', type: 'text', name: 'ceoNm', col: 2 }, { label: '휴대폰*', type: 'text', name: 'ceoMobile', col: 2 }, { label: '업체전화*', type: 'text', name: 'compTel', col: 2 }, { label: '팩스', type: 'text', name: 'fax', col: 2 }, { label: '이메일', type: 'text', name: 'email', col: 2 }, { label: '비고', type: 'text', name: 'remark', col: 2 }],
             [{ type: 'countryAddressRow', zipLabel: '우편번호*', addrLabel: '주소*', addrDetailLabel: '상세주소', addrEtcLabel: '기타' }],
-            [{ label: '사용여부*', type: 'select', name: 'useYn', options: [{ v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }], col: 1 }, { label: '태블릿 UI 기능', type: 'select', name: 'tabletFeatureUseYn', options: [{ v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }], col: 2 }, { label: '로그인ID*', type: 'text', name: 'loginId', col: 2, button: 'ID변경' }, { label: '비밀번호', type: 'passwordReset', name: 'pwdReset', col: 2 }]
+            [{ label: '사용여부*', type: 'select', name: 'useYn', options: [{ v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }, { v: 'S', t: '영구정지' }], col: 1 }, { label: '태블릿 UI 기능', type: 'select', name: 'tabletFeatureUseYn', options: [{ v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }], col: 2 }, { label: '로그인ID*', type: 'text', name: 'loginId', col: 2, button: 'ID변경' }, { label: '비밀번호', type: 'passwordReset', name: 'pwdReset', col: 2 }]
           ]
         },
         {
@@ -4029,7 +4030,7 @@
       searchRows: [
         [
           { label: '업체선택(조직)', type: 'select', name: 'searchCompDiv', i18nLblKey: 'searchCompOrgPick', options: [{ v: '', t: '전체' }, { v: 'REGIONAL', t: '본사' }, { v: 'MASTER_DIST', t: '총판' }, { v: 'BRANCH', t: '지사' }, { v: 'AGENCY', t: '대리점' }, { v: 'SALES_OFFICE', t: '영업점' }, { v: 'MERCHANT', t: '가맹점' }] },
-          { label: '업체사용여부', type: 'select', name: 'searchUseYn', i18nLblKey: 'searchCompListUseYn', options: [{ v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }] },
+          { label: '업체사용여부', type: 'select', name: 'searchUseYn', i18nLblKey: 'searchCompListUseYn', options: [{ v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }, { v: 'S', t: '영구정지' }] },
           { label: '통화', type: 'select', name: 'searchPolicyCur', i18nLblKey: 'searchCurType', options: [
             { v: '', t: '전체' },
             { v: 'JPY', t: 'JPY' },
@@ -5424,7 +5425,7 @@
         { key: '_otpAct', label: 'OTP', type: 'userMngOtp' },
         { key: 'userStatus', label: '사용여부*', type: 'userMngStatus' },
         { key: '_del', label: '삭제', type: 'userMngDraftDelete' },
-        { key: 'inactiveReason', label: '미사용전환사유', type: 'userMngInactiveReason' }
+        { key: 'inactiveReason', label: '전환사유', type: 'userMngInactiveReason' }
       ]
     },
     '/set/gridSetMng': {
@@ -5491,7 +5492,7 @@
             [{ label: '업태', type: 'text', name: 'bizType', col: 2 }, { label: '종목', type: 'text', name: 'industry', col: 2 }],
             [{ label: '대표자명*', type: 'text', name: 'ceoNm', col: 2 }, { label: '휴대폰*', type: 'text', name: 'ceoMobile', col: 2 }, { label: '업체전화*', type: 'text', name: 'compTel', col: 2 }, { label: '팩스', type: 'text', name: 'fax', col: 2 }, { label: '이메일', type: 'text', name: 'email', col: 2 }, { label: '비고', type: 'text', name: 'remark', col: 2 }],
             [{ type: 'countryAddressRow', zipLabel: '우편번호*', addrLabel: '주소*', addrDetailLabel: '상세주소', addrEtcLabel: '기타' }],
-            [{ label: '사용여부*', type: 'select', name: 'useYn', options: [{ v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }], col: 2 }, { label: '태블릿 UI 기능', type: 'select', name: 'tabletFeatureUseYn', options: [{ v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }], col: 2 }, { label: '대표 아이디 (중복검사)', type: 'text', name: 'loginId', col: 2, button: '중복확인' }, { label: '비밀번호', type: 'passwordReset', name: 'pwdReset', col: 2 }],
+            [{ label: '사용여부*', type: 'select', name: 'useYn', options: [{ v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }, { v: 'S', t: '영구정지' }], col: 2 }, { label: '태블릿 UI 기능', type: 'select', name: 'tabletFeatureUseYn', options: [{ v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }], col: 2 }, { label: '대표 아이디 (중복검사)', type: 'text', name: 'loginId', col: 2, button: '중복확인' }, { label: '비밀번호', type: 'passwordReset', name: 'pwdReset', col: 2 }],
             [{ label: '사업자형태', type: 'text', name: 'bizNature', col: 2 }, { label: '취급물품', type: 'text', name: 'product', col: 2 }],
             [{ label: '대표사이트', type: 'text', name: 'homepage', col: 2 }, { label: '정산담당자명', type: 'text', name: 'settleName', col: 2 }],
             [{ label: '정산담당자연락처', type: 'text', name: 'settleTelNo', col: 2 }],

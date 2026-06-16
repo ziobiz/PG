@@ -5,6 +5,7 @@ import com.pg.api.ApiResponse;
 import com.pg.api.dto.LoginAttempt;
 import com.pg.api.dto.LoginRequest;
 import com.pg.service.AuthService;
+import com.pg.service.OrgUserSuspensionService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -48,6 +49,8 @@ public class ApiLoginBypassFilter extends OncePerRequestFilter {
             switch (attempt.getKind()) {
                 case SUCCESS -> writeJson(response, ApiResponse.ok(attempt.getResponse()));
                 case BAD_CREDENTIALS -> writeJson(response, ApiResponse.fail("아이디 또는 비밀번호가 올바르지 않습니다.", "AUTH_FAIL"));
+                case ORG_SUSPENDED -> writeJson(response, ApiResponse.fail(
+                        OrgUserSuspensionService.MSG_ORG_LOGIN_SUSPENDED, "ORG_SUSPENDED"));
                 case OTP_REQUIRED -> writeJson(response, ApiResponse.fail("OTP를 입력하세요.", "OTP_REQUIRED"));
                 case OTP_INVALID -> writeJson(response, ApiResponse.fail("OTP 코드가 올바르지 않습니다.", "OTP_INVALID"));
             }

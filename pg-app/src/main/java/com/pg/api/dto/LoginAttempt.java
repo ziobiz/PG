@@ -9,7 +9,9 @@ public final class LoginAttempt {
         SUCCESS,
         BAD_CREDENTIALS,
         OTP_REQUIRED,
-        OTP_INVALID
+        OTP_INVALID,
+        /** 업체 영구정지(S) — 로그인 불가 */
+        ORG_SUSPENDED
     }
 
     private final Kind kind;
@@ -34,6 +36,10 @@ public final class LoginAttempt {
 
     public static LoginAttempt otpInvalid() {
         return new LoginAttempt(Kind.OTP_INVALID, null);
+    }
+
+    public static LoginAttempt orgSuspended() {
+        return new LoginAttempt(Kind.ORG_SUSPENDED, null);
     }
 
     public Kind getKind() {

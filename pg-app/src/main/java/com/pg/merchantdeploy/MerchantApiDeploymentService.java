@@ -804,42 +804,27 @@ public class MerchantApiDeploymentService {
     }
 
     /**
-     * 가맹점API 메뉴·포털 노출: (1) 활성 브로커 시크릿 + (2) 운영(Y) PG 바인딩 중 tb_pg_agency.integ_api_yn=Y.
-     * URL 결제만(integ_url_pay)인 가맹은 제외.
+     * 가맹점API 메뉴·포털 노출 — 아래 <strong>둘 다</strong> 만족할 때만 true.
+     * <ol>
+     *   <li>가맹 프로필 {@code web_payment_use_yn=Y} (웹결제 사용)</li>
+     *   <li>활성 브로커 시크릿 존재(배포설정 기준 발행·재발행, 미발행 제외)</li>
+     * </ol>
      */
     public boolean isMerchantApiIntegrationEligible(Long orgUnitId) {
         if (orgUnitId == null) {
             return false;
         }
-        var creds = credentialRepository.findByOrgUnitIdAndUseYnOrderByIdDesc(orgUnitId, "Y");
-        if (creds == null || creds.isEmpty()) {
+        if (!isWebPaymentEnabledForMerchant(orgUnitId)) {
             return false;
         }
-        return hasOperationalApiPgBinding(orgUnitId);
+        var creds = credentialRepository.findByOrgUnitIdAndUseYnOrderByIdDesc(orgUnitId, "Y");
+        return creds != null && !creds.isEmpty();
     }
 
-    private boolean hasOperationalApiPgBinding(Long orgUnitId) {
-        for (MerchantPgBinding b : merchantPgBindingRepository.findByOrgUnitIdOrderBySortOrderAsc(orgUnitId)) {
-            if (!"Y".equalsIgnoreCase(trimNull(b.getOperationalYn()))) {
-                continue;
-            }
-            String pgCd = trimNull(b.getPgCd());
-            if (pgCd.isEmpty()) {
-                continue;
-            }
-            Optional<PgAgency> agOpt = pgAgencyRepository.findByPgCd(pgCd);
-            if (agOpt.isEmpty()) {
-                continue;
-            }
-            PgAgency ag = agOpt.get();
-            if (!"Y".equalsIgnoreCase(trimNull(ag.getUseYn()))) {
-                continue;
-            }
-            if ("Y".equalsIgnoreCase(trimNull(ag.getIntegApiYn()))) {
-                return true;
-            }
-        }
-        return false;
+    private boolean isWebPaymentEnabledForMerchant(Long orgUnitId) {
+        return merchantProfileRepository.findByOrgUnitId(orgUnitId)
+                .map(mp -> "Y".equalsIgnoreCase(trimNull(mp.getWebPaymentUseYn())))
+                .orElse(false);
     }
 
     private static String trimNull(String s) {
