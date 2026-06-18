@@ -648,6 +648,13 @@
 
     /* 공통 — API/팝업 오류 메시지 */
     'ID 변경 실패': { EN: 'Failed to change ID', JP: 'ID変更に失敗しました', CH: 'ID更改失败', TH: 'เปลี่ยน ID ไม่สำเร็จ' },
+    'ID변경': { EN: 'Change ID', JP: 'ID変更', CH: '更改 ID', TH: 'เปลี่ยน ID' },
+    '로그인 ID 변경': { EN: 'Change login ID', JP: 'ログインID変更', CH: '更改登录 ID', TH: 'เปลี่ยนรหัสเข้าใช้' },
+    '새 로그인 ID': { EN: 'New login ID', JP: '新しいログインID', CH: '新登录 ID', TH: 'รหัสเข้าใช้ใหม่' },
+    '새 로그인 ID를 입력하세요.': { EN: 'Enter a new login ID.', JP: '新しいログインIDを入力してください。', CH: '请输入新登录 ID。', TH: 'กรุณากรอกรหัสเข้าใช้ใหม่' },
+    '로그인 ID가 변경되었습니다.': { EN: 'Login ID changed.', JP: 'ログインIDが変更されました。', CH: '登录 ID 已更改。', TH: 'เปลี่ยนรหัสเข้าใช้แล้ว' },
+    '변경(로그인 ID)': { EN: 'Change', JP: '変更', CH: '更改', TH: 'เปลี่ยน' },
+    '로그인ID 변경 실패': { EN: 'Failed to change login ID', JP: 'ログインID変更に失敗しました', CH: '登录 ID 更改失败', TH: 'เปลี่ยนรหัสเข้าใช้ไม่สำเร็จ' },
     '발송 실패': { EN: 'Send failed', JP: '送信に失敗しました', CH: '发送失败', TH: 'ส่งไม่สำเร็จ' },
     '인증 실패': { EN: 'Verification failed', JP: '認証に失敗しました', CH: '验证失败', TH: 'ยืนยันไม่สำเร็จ' },
     '등록 실패': { EN: 'Registration failed', JP: '登録に失敗しました', CH: '注册失败', TH: 'ลงทะเบียนไม่สำเร็จ' },
@@ -1713,6 +1720,7 @@
     '파일이름': { EN: 'File name', JP: 'ファイル名', CH: '文件名', TH: 'ชื่อไฟล์' },
     '첨부된 파일': { EN: 'Attached file', JP: '添付ファイル', CH: '已附文件', TH: 'ไฟล์แนบ' },
     '수정': { EN: 'Edit', JP: '修正', CH: '修改', TH: 'แก้ไข' },
+    '상세': { EN: 'Detail', JP: '詳細', CH: '详情', TH: 'รายละเอียด' },
     '첨부된 파일이 없습니다.': {
       EN: 'No attachments.',
       JP: '添付ファイルがありません。',
@@ -12827,6 +12835,289 @@
       CH: '对接检查清单',
       TH: 'เช็กลิสต์การเชื่อมต่อ'
     },
+    'Checkout API 엔드포인트': {
+      EN: 'Checkout API endpoints',
+      JP: 'Checkout API エンドポイント',
+      CH: 'Checkout API 端点',
+      TH: 'Checkout API endpoints'
+    },
+    'WordPress JPAY 플러그인': {
+      EN: 'WordPress JPAY plugins',
+      JP: 'WordPress JPAY プラグイン',
+      CH: 'WordPress JPAY 插件',
+      TH: 'WordPress JPAY plugins'
+    },
+    '통합 Checkout (인라인)': {
+      EN: 'Unified Checkout (inline)',
+      JP: '統合 Checkout（インライン）',
+      CH: '统一 Checkout（内联）',
+      TH: 'Unified Checkout (inline)'
+    },
+    '통합 Checkout (리다이렉트)': {
+      EN: 'Unified Checkout (redirect)',
+      JP: '統合 Checkout（リダイレクト）',
+      CH: '统一 Checkout（重定向）',
+      TH: 'Unified Checkout (redirect)'
+    },
+    'JPAY 인라인': {
+      EN: 'JPAY inline',
+      JP: 'JPAY インライン',
+      CH: 'JPAY 内联',
+      TH: 'JPAY inline'
+    },
+    'JPAY 리다이렉트': {
+      EN: 'JPAY redirect',
+      JP: 'JPAY リダイレクト',
+      CH: 'JPAY 重定向',
+      TH: 'JPAY redirect'
+    },
+    'ChillPay 인라인': {
+      EN: 'ChillPay inline',
+      JP: 'ChillPay インライン',
+      CH: 'ChillPay 内联',
+      TH: 'ChillPay inline'
+    },
+    'ChillPay 리다이렉트': {
+      EN: 'ChillPay redirect',
+      JP: 'ChillPay リダイレクト',
+      CH: 'ChillPay 重定向',
+      TH: 'ChillPay redirect'
+    },
+    '결제 페이지 URL 템플릿': {
+      EN: 'Payment page URL template',
+      JP: '決済ページ URL テンプレート',
+      CH: '支付页 URL 模板',
+      TH: 'เทมเพลต URL หน้าชำระเงิน'
+    },
+    '일반 WordPress': {
+      EN: 'General WordPress',
+      JP: '一般 WordPress',
+      CH: '一般 WordPress',
+      TH: 'WordPress ทั่วไป'
+    },
+    '배포 가이드': {
+      EN: 'Deployment guide',
+      JP: '配布ガイド',
+      CH: '部署指南',
+      TH: 'คู่มือ deploy'
+    },
+    'WordPress JPAY 플러그인 ZIP — 기본 inline, redirect는 HQ REDIRECT Y': {
+      EN: 'WordPress JPAY plugin ZIPs — default inline; redirect requires HQ REDIRECT Y',
+      JP: 'WordPress JPAY プラグイン ZIP — 既定 inline、redirect は HQ REDIRECT Y',
+      CH: 'WordPress JPAY 插件 ZIP — 默认 inline；redirect 需 HQ REDIRECT Y',
+      TH: 'WordPress JPAY plugin ZIP — inline ค่าเริ่มต้น redirect ต้อง HQ REDIRECT Y'
+    },
+    '리다이렉트 checkout API — returnUrl/cancelUrl HTTPS 필수': {
+      EN: 'Redirect checkout API — HTTPS returnUrl/cancelUrl required',
+      JP: 'リダイレクト checkout API — returnUrl/cancelUrl は HTTPS 必須',
+      CH: '重定向 checkout API — returnUrl/cancelUrl 须 HTTPS',
+      TH: 'Redirect checkout API — ต้อง returnUrl/cancelUrl แบบ HTTPS'
+    },
+    '결제 통보 (Webhook) 안내': {
+      EN: 'Payment notify (webhook) guide',
+      JP: '決済通知 (Webhook) 案内',
+      CH: '支付通知 (Webhook) 说明',
+      TH: 'คู่มือการแจ้งชำระ (Webhook)'
+    },
+    'PG→ICOPAY 노티 (본사 설정)': {
+      EN: 'PG→ICOPAY notify (HQ config)',
+      JP: 'PG→ICOPAY ノティ（本社設定）',
+      CH: 'PG→ICOPAY 通知（总部配置）',
+      TH: 'PG→ICOPAY notify (ตั้งค่า HQ)'
+    },
+    '등록된 가맹 결제 통보 URL': {
+      EN: 'Registered merchant payment notify URLs',
+      JP: '登録済み加盟店決済通知 URL',
+      CH: '已登记的商户支付通知 URL',
+      TH: 'URL แจ้งชำระร้านที่ลงทะเบียนแล้ว'
+    },
+    '등록된 merchantNotifyUrls가 없습니다. 본사 업체관리에서 등록하세요.': {
+      EN: 'No merchantNotifyUrls registered. Ask HQ to register them in merchant management.',
+      JP: 'merchantNotifyUrls が未登録です。本社の加盟店管理で登録してください。',
+      CH: '尚未登记 merchantNotifyUrls。请在总部商户管理中登记。',
+      TH: 'ยังไม่มี merchantNotifyUrls — ให้ HQ ลงทะเบียนในการจัดการร้าน'
+    },
+    '아래 연동 배포 요약에서 엔드포인트·Webhook·체크리스트를 확인하세요.': {
+      EN: 'See endpoints, webhook guide, and checklist in the deployment summary below.',
+      JP: '下の連携配布サマリーでエンドポイント・Webhook・チェックリストを確認してください。',
+      CH: '请在下方对接部署摘要中查看端点、Webhook 与检查清单。',
+      TH: 'ดู endpoints, webhook และเช็กลิสต์ในสรุปการ deploy ด้านล่าง'
+    },
+    'WordPress JPAY 배포 가이드': {
+      EN: 'WordPress JPAY deployment guide',
+      JP: 'WordPress JPAY 配布ガイド',
+      CH: 'WordPress JPAY 部署指南',
+      TH: 'คู่มือ deploy WordPress JPAY'
+    },
+    'WooCommerce 플러그인 ZIP': {
+      EN: 'WooCommerce plugin ZIP',
+      JP: 'WooCommerce プラグイン ZIP',
+      CH: 'WooCommerce 插件 ZIP',
+      TH: 'ZIP ปลั๊กอิน WooCommerce'
+    },
+    '일반 WordPress 플러그인 ZIP': {
+      EN: 'General WordPress plugin ZIP',
+      JP: '一般 WordPress プラグイン ZIP',
+      CH: '一般 WordPress 插件 ZIP',
+      TH: 'ZIP ปลั๊กอิน WordPress ทั่วไป'
+    },
+    '가이드 열기': {
+      EN: 'Open guide',
+      JP: 'ガイドを開く',
+      CH: '打开指南',
+      TH: 'เปิดคู่มือ'
+    },
+    'ZIP 열기': {
+      EN: 'Open ZIP',
+      JP: 'ZIP を開く',
+      CH: '打开 ZIP',
+      TH: 'เปิด ZIP'
+    },
+    '가맹 API 연동 채널': {
+      EN: 'Merchant API integration channels',
+      JP: '加盟店 API 連携チャネル',
+      CH: '商户 API 对接渠道',
+      TH: 'ช่องเชื่อมต่อ Merchant API'
+    },
+    'API 인라인 연동': {
+      EN: 'API inline integration',
+      JP: 'API インライン連携',
+      CH: 'API 内联对接',
+      TH: 'API inline'
+    },
+    'API 리다이렉트 연동': {
+      EN: 'API redirect integration',
+      JP: 'API リダイレクト連携',
+      CH: 'API 重定向对接',
+      TH: 'API redirect'
+    },
+    'WordPress/WooCommerce': {
+      EN: 'WordPress/WooCommerce',
+      JP: 'WordPress/WooCommerce',
+      CH: 'WordPress/WooCommerce',
+      TH: 'WordPress/WooCommerce'
+    },
+    'WordPress 플러그인 제공': {
+      EN: 'WordPress plugin rollout',
+      JP: 'WordPress プラグイン提供',
+      CH: 'WordPress 插件提供',
+      TH: 'WordPress plugin'
+    },
+    'WordPress/WooCommerce 연동 채널이 꺼져 있습니다. 업체관리에서 켜거나 본사에 요청하세요.': {
+      EN: 'WordPress/WooCommerce channel is off. Enable it in company management or ask HQ.',
+      JP: 'WordPress/WooCommerce チャネルが OFF です。加盟店管理で ON にするか本社へ依頼してください。',
+      CH: 'WordPress/WooCommerce 渠道已关闭。请在商户管理中开启或联系总部。',
+      TH: 'ช่อง WordPress/WooCommerce ปิด — เปิดในการจัดการร้าน หรือติดต่อ HQ'
+    },
+    /* /comp/compDetail · /comp/compReg — 가맹 정보(加盟店情報) 카드 */
+    '업체구분에 따라 해당하는 입력 항목이 표시됩니다. 사용여부를 미사용으로 변경하면 하위 조직 전체가 미사용됩니다. 가맹점은 상위 지점을 변경하여 다른 사용 중인 상위 아래로 활성화할 수 있습니다.': {
+      EN: 'Fields shown depend on org type. Setting usage to Disabled disables all sub-orgs. Merchants can be re-enabled by moving them under another active parent branch.',
+      JP: '組織区分に応じて入力項目が表示されます。使用可否を「未使用」にすると下位組織全体が未使用になります。加盟店は上位店舗を変更し、使用中の別の上位の下で有効化できます。',
+      CH: '根据组织类型显示对应输入项。将使用状态改为停用时，下级组织全部停用。商户可通过更换上级网点，挂到另一个使用中的上级下以重新启用。',
+      TH: 'ฟิลด์ที่แสดงขึ้นอยู่กับประเภทองค์กร หากตั้งการใช้งานเป็นไม่ใช้ องค์กรย่อยทั้งหมดจะถูกปิด ร้านค้าสามารถเปิดใช้ใหม่ได้โดยย้ายไปอยู่ใต้หน่วยงานที่ใช้งานอยู่'
+    },
+    '미사용 선택 시 WEB 결제 시스템이 중지됩니다. 「결제 URL」은 운영·WEB·URL결제 PG별 공개 경로로 자동 표시됩니다(예: JPAY /jpay-pay/업체코드, ChillPay /pay/업체코드). 「URL 재결제 URL」은 해당 PG가 저장 카드 재결제를 지원하고 본사 URL 재결제 기능·URL재결제 PG 바인딩이 있을 때만 표시됩니다. 「URL 결제 방식」은 공개 URL 결제에만 적용됩니다. API·챗봇은 각 설정 카드에서 별도 선택합니다.': {
+      EN: 'When Disabled is selected, the WEB payment system stops. 「Payment URL」 is shown automatically per active WEB/URL PG (e.g. JPAY /jpay-pay/{merchant code}, ChillPay /pay/{merchant code}). 「URL repay URL」 appears only when the PG supports stored-card repay and HQ URL repay plus URL-repay PG binding are configured. 「URL checkout mode」 applies to public URL checkout only. API and chatbot are set in their own cards.',
+      JP: '「未使用」を選ぶとWEB決済システムは停止します。「決済URL」は運用・WEB・URL決済PGごとの公開パスが自動表示されます（例: JPAY /jpay-pay/加盟店コード, ChillPay /pay/加盟店コード）。「URL再決済URL」は当該PGが保存カード再決済に対応し、本社URL再決済機能・URL再決済PGバインドがある場合のみ表示されます。「URL決済方式」は公開URL決済のみに適用されます。API・チャットボットは各設定カードで別途選択します。',
+      CH: '选择停用时 WEB 支付系统停止。「支付 URL」按运营·WEB·URL 支付 PG 自动显示公开路径（例：JPAY /jpay-pay/商户代码，ChillPay /pay/商户代码）。「URL 再支付 URL」仅在该 PG 支持保存卡再支付且总部 URL 再支付功能与 URL 再支付 PG 绑定均有时显示。「URL 支付方式」仅用于公开 URL 支付。API 与聊天机器人请在各自卡片中单独设置。',
+      TH: 'เลือกไม่ใช้งานแล้วระบบชำระ WEB จะหยุด 「Payment URL」 แสดงเส้นทางสาธารณะตาม PG WEB/URL ที่เปิด (เช่น JPAY /jpay-pay/รหัสร้าน, ChillPay /pay/รหัสร้าน) 「URL repay URL」 แสดงเมื่อ PG รองรับชำระซ้ำด้วยบัตรที่บันทึก และ HQ เปิด URL repay พร้อม binding PG URL repay 「URL checkout mode」 ใช้กับ checkout URL สาธารณะเท่านั้น API และ chatbot ตั้งในการ์ดแยก'
+    },
+    'JPAY 결제창 입력 필드': {
+      EN: 'JPAY checkout input fields',
+      JP: 'JPAY決済画面入力項目',
+      CH: 'JPAY 收银台输入字段',
+      TH: 'ฟิลด์ป้อนข้อมูลหน้าชำระ JPAY'
+    },
+    'JPAY URL 인라인 결제창(jpay-pay.html) 입력 필드입니다. JPAY 필수: (1)카드·CVV (2)성명 (3)이메일 (4)국가코드(ISO2) (5)전화(국가코드 제외). (6)배송 주소는 선택. <strong>본사 기본 따름</strong>이면 본사설정 → 결제로직설정 값을 사용합니다.': {
+      EN: 'Input fields for the JPAY URL inline checkout (jpay-pay.html). JPAY required: (1) card·CVV (2) name (3) email (4) country code (ISO2) (5) phone (local number, no country code). (6) shipping address optional. If <strong>Follow HQ default</strong>, values from HQ Settings → Payment orchestration apply.',
+      JP: 'JPAY URLインライン決済画面(jpay-pay.html)の入力項目です。JPAY必須: (1)カード・CVV (2)氏名 (3)メール (4)国コード(ISO2) (5)電話(国コード除く). (6)配送先は任意。<strong>本社デフォルトに従う</strong>場合は本社設定 → 決済ロジック設定の値を使用します。',
+      CH: 'JPAY URL 内联收银台 (jpay-pay.html) 输入字段。JPAY 必填：(1)卡·CVV (2)姓名 (3)邮箱 (4)国家代码(ISO2) (5)电话(不含国家代码)。(6)配送地址可选。若<strong>跟随总部默认</strong>，使用总部设置 → 支付逻辑设置的值。',
+      TH: 'ฟิลด์ป้อนข้อมูลหน้า JPAY URL inline (jpay-pay.html) JPAY จำเป็น: (1)บัตร·CVV (2)ชื่อ (3)อีเมล (4)รหัสประเทศ ISO2 (5)โทร(ไม่รวมรหัสประเทศ) (6)ที่อยู่จัดส่งเป็นทางเลือก หาก<strong>ตามค่าเริ่มต้น HQ</strong> ใช้ค่าจาก HQ Settings → Payment orchestration'
+    },
+    '본사 기본 따름': {
+      EN: 'Follow HQ default',
+      JP: '本社デフォルトに従う',
+      CH: '跟随总部默认',
+      TH: 'ตามค่าเริ่มต้น HQ'
+    },
+    '1형 전체 (카드·성명·이메일·전화·배송)': {
+      EN: 'Type 1 full (card·name·email·phone·shipping)',
+      JP: '1型 全体 (カード・氏名・メール・電話・配送)',
+      CH: '1型 全部 (卡·姓名·邮箱·电话·配送)',
+      TH: 'แบบ 1 เต็ม (บัตร·ชื่อ·อีเมล·โทร·จัดส่ง)'
+    },
+    '2형 필수 4항목 (카드·성명·이메일·전화)': {
+      EN: 'Type 2 required 4 (card·name·email·phone)',
+      JP: '2型 必須4項目 (カード・氏名・メール・電話)',
+      CH: '2型 必填4项 (卡·姓名·邮箱·电话)',
+      TH: 'แบบ 2 จำเป็น 4 รายการ (บัตร·ชื่อ·อีเมล·โทร)'
+    },
+    '3형 카드·성명 + 가맹 prefill': {
+      EN: 'Type 3 card·name + merchant prefill',
+      JP: '3型 カード・氏名 + 加盟店 prefill',
+      CH: '3型 卡·姓名 + 商户 prefill',
+      TH: 'แบบ 3 บัตร·ชื่อ + merchant prefill'
+    },
+    'JPAY 필수: 국가코드(ISO2)·전화번호는 분리 입력(전화에 +82 등 붙이지 않음). 1·2형은 접속국가가 국가코드 드롭다운 기본값. 3형은 prepare buyerPrefill 의 countryIso2·phone(국가코드 제외). 2형: 주소 숨김. 3형: 카드·성명만 고객 입력.': {
+      EN: 'JPAY required: country code (ISO2) and phone are separate (do not prefix phone with +82, etc.). Types 1·2: visitor country is the default for the country dropdown. Type 3: prepare buyerPrefill countryIso2·phone (no country code). Type 2: hide address. Type 3: customer enters card·name only.',
+      JP: 'JPAY必須: 国コード(ISO2)・電話番号は分離入力(電話に+82等を付けない)。1・2型は接続国が国コードドロップダウンの初期値。3型はprepare buyerPrefillのcountryIso2・phone(国コード除く)。2型: 住所非表示。3型: カード・氏名のみ顧客入力。',
+      CH: 'JPAY 必填：国家代码(ISO2)与电话号码分开输入（电话勿加 +82 等）。1·2 型：访问国家作为国家代码下拉默认值。3 型：prepare buyerPrefill 的 countryIso2·phone（不含国家代码）。2 型：隐藏地址。3 型：客户仅输入卡·姓名。',
+      TH: 'JPAY จำเป็น: รหัสประเทศ ISO2 และโทรแยกกัน (อย่าใส่ +82 ในโทร) แบบ 1·2: ประเทศผู้เข้าชมเป็นค่าเริ่มต้นของ dropdown แบบ 3: prepare buyerPrefill countryIso2·phone (ไม่รวมรหัสประเทศ) แบบ 2: ซ่อนที่อยู่ แบบ 3: ลูกค้ากรอกบัตร·ชื่อเท่านั้น'
+    },
+    '가맹점 API(prepare·embed·redirect·WordPress) 연동 방식을 가맹별로 오픈합니다. 본사 전역 상한은 배포설정 → 결제로직설정입니다. WordPress 사용 시 API 인라인 또는 리다이렉트 중 하나 이상을 켜야 합니다.': {
+      EN: 'Enable merchant API integration modes (prepare·embed·redirect·WordPress) per merchant. HQ global caps: Deployment → Payment orchestration. WordPress requires at least one of API inline or redirect.',
+      JP: '加盟店API(prepare・embed・redirect・WordPress)連携方式を加盟店別に開きます。本社全体上限はデプロイ設定 → 決済ロジック設定です。WordPress使用時はAPIインラインまたはリダイレクトのいずれか以上をONにしてください。',
+      CH: '按商户开启 API 对接方式 (prepare·embed·redirect·WordPress)。总部全局上限：部署设置 → 支付逻辑设置。使用 WordPress 时须至少开启 API 内联或重定向之一。',
+      TH: 'เปิดช่อง Merchant API (prepare·embed·redirect·WordPress) ต่อร้าน ขีดจำกัด HQ: Deployment → Payment orchestration ใช้ WordPress ต้องเปิด API inline หรือ redirect อย่างน้อยหนึ่งช่อง'
+    },
+    '가맹점 API 생성·배포문서·가맹점API 화면에는 여기서 켠 채널만 노출됩니다. prepare API도 비활성 채널은 INTEGRATION_CHANNEL_DISABLED 로 거부됩니다.': {
+      EN: 'Merchant API generate, deployment docs, and merchant API portal show only channels enabled here. prepare API rejects disabled channels with INTEGRATION_CHANNEL_DISABLED.',
+      JP: '加盟店API生成・配布ドキュメント・加盟店API画面にはここでONにしたチャネルのみ表示されます。prepare APIも無効チャネルはINTEGRATION_CHANNEL_DISABLEDで拒否されます。',
+      CH: '商户 API 生成、部署文档、商户 API 门户仅显示此处开启的渠道。prepare API 对未启用渠道返回 INTEGRATION_CHANNEL_DISABLED。',
+      TH: 'หน้าสร้าง Merchant API เอกสาร deploy และ portal แสดงเฉพาะช่องที่เปิดที่นี่ prepare API ปฏิเสธช่องปิดด้วย INTEGRATION_CHANNEL_DISABLED'
+    },
+    '챗봇 플로팅 위젯(홈페이지·쇼핑몰 삽입)': {
+      EN: 'Chatbot floating widget (homepage / store embed)',
+      JP: 'チャットボットフローティングウィジェット（ホームページ・ショップ埋め込み）',
+      CH: '聊天机器人浮动组件（网站/商城嵌入）',
+      TH: 'วิดเจ็ตแชทบอทลอย (ฝังหน้าเว็บ/ร้านค้า)'
+    },
+    '모든 페이지에 공통으로 넣으려면 HTML 하단의 body 태그 직전(또는 쇼핑몰 공통 스크립트)에 아래 한 줄을 붙여 넣으세요.': {
+      EN: 'To show on every page, paste the line below just before the closing </body> tag (or in your store’s shared script include).',
+      JP: '全ページで共通表示するには、HTML下部の</body>直前（またはショップ共通スクリプト）に下記1行を貼り付けてください。',
+      CH: '若要在所有页面共用，请将下面一行粘贴到 HTML 底部 </body> 标签前（或商城公共脚本中）。',
+      TH: 'หากต้องการใช้ทุกหน้า ให้วางบรรทัดด้านล่างก่อนแท็ก </body> (หรือในสคริปต์ร่วมของร้านค้า)'
+    },
+    '챗봇 결제 QR': {
+      EN: 'Chatbot payment QR',
+      JP: 'チャットボット決済 QR',
+      CH: '聊天机器人支付 QR',
+      TH: 'QR ชำระ chatbot'
+    },
+    '카메라로 스캔하면 챗봇 결제 페이지로 이동합니다. 전단·POP·매장 안내에 사용할 수 있습니다.': {
+      EN: 'Scan with a camera to open the chatbot payment page. Use on flyers, POP, or in-store signage.',
+      JP: 'カメラでスキャンするとチャットボット決済ページへ移動します。チラシ・POP・店頭案内に使えます。',
+      CH: '用相机扫描即可进入聊天机器人支付页。可用于传单、POP、店内指引。',
+      TH: 'สแกนด้วยกล้องเพื่อเปิดหน้าชำระ chatbot ใช้กับใบปลิว POP หรือป้ายในร้านได้'
+    },
+    '챗봇 QR를 불러올 수 없습니다. 챗봇 결제 사용이 켜져 있는지 확인하세요.': {
+      EN: 'Cannot load chatbot QR. Check that chatbot payment is enabled.',
+      JP: 'チャットボットQRを読み込めません。チャットボット決済がONか確認してください。',
+      CH: '无法加载聊天机器人 QR。请确认已开启聊天机器人支付。',
+      TH: 'โหลด QR chatbot ไม่ได้ ตรวจสอบว่าเปิดชำระ chatbot แล้ว'
+    },
+    'QR 열기': {
+      EN: 'Open QR',
+      JP: 'QRを開く',
+      CH: '打开 QR',
+      TH: 'เปิด QR'
+    },
+    'PNG 저장': {
+      EN: 'Save PNG',
+      JP: 'PNG保存',
+      CH: '保存 PNG',
+      TH: 'บันทึก PNG'
+    },
     '업체를 선택하면 연동 자료가 표시됩니다.': {
       EN: 'Select a merchant to show integration materials.',
       JP: '加盟店を選択すると連携資料が表示されます。',
@@ -13096,6 +13387,18 @@
       JP: '基準通貨:',
       CH: '基准货币：',
       TH: 'สกุลเงินฐาน:'
+    },
+    '채널:': {
+      EN: 'Channel:',
+      JP: 'チャネル:',
+      CH: '渠道：',
+      TH: 'ช่องทาง:'
+    },
+    'IN=INLINE · RE=REDIRECT · WO=WordPress': {
+      EN: 'IN=INLINE · RE=REDIRECT · WO=WordPress',
+      JP: 'IN=INLINE · RE=REDIRECT · WO=WordPress',
+      CH: 'IN=INLINE · RE=REDIRECT · WO=WordPress',
+      TH: 'IN=INLINE · RE=REDIRECT · WO=WordPress'
     },
     '가맹 PG 바인딩': {
       EN: 'Merchant PG bindings',
@@ -13543,6 +13846,12 @@
       JP: '加盟店連携: ウェブ決済(Y)かつブローカーシークレット発行時はAPI、未発行時はURL。',
       CH: '商户联动：网页支付(Y)且已发放 broker 密钥时为 API，否则为 URL。',
       TH: 'การเชื่อมร้าน: API เมื่อเปิดเว็บชำระ (Y) และมี broker secret มิฉะนั้น URL'
+    },
+    '가맹 API 연동 채널: IN=INLINE, RE=REDIRECT, WO=WordPress/WooCommerce. 복수 사용 시 IN/RE 형식.': {
+      EN: 'Merchant API channels: IN=INLINE, RE=REDIRECT, WO=WordPress/WooCommerce. Multiple: IN/RE format.',
+      JP: '加盟店APIチャネル: IN=INLINE, RE=REDIRECT, WO=WordPress/WooCommerce。複数は IN/RE 形式。',
+      CH: '商户 API 渠道：IN=INLINE，RE=REDIRECT，WO=WordPress/WooCommerce。多个时为 IN/RE 格式。',
+      TH: 'ช่อง Merchant API: IN=INLINE, RE=REDIRECT, WO=WordPress/WooCommerce หลายช่องแสดง IN/RE'
     },
     '순서': {
       EN: 'Order',
@@ -14224,6 +14533,57 @@
     '팝업': {
       EN: 'Popup', JP: 'ポップアップ', CH: '弹窗', TH: 'ป๊อปอัป'
     },
+    '접속팝업': {
+      EN: 'Access popup', JP: '接続ポップアップ', CH: '访问弹窗', TH: 'ป๊อปอัปเมื่อเข้าใช้'
+    },
+    '메인공지': {
+      EN: 'Main notice', JP: 'メイン告知', CH: '主页公告', TH: 'ประกาศหน้าหลัก'
+    },
+    '공지일자': {
+      EN: 'Notice date', JP: '告知日', CH: '公告日期', TH: 'วันที่ประกาศ'
+    },
+    '공지사항': {
+      EN: 'Notices', JP: 'お知らせ', CH: '公告', TH: 'ประกาศ'
+    },
+    '자세히 보기': {
+      EN: 'View details', JP: '詳細を見る', CH: '查看详情', TH: 'ดูรายละเอียด'
+    },
+    '접속팝업 공지로 지정되었습니다.': {
+      EN: 'Set as access popup notice.',
+      JP: '接続ポップアップのお知らせに設定しました。',
+      CH: '已设为访问弹窗公告。',
+      TH: 'ตั้งเป็นป๊อปอัปเมื่อเข้าใช้แล้ว'
+    },
+    '로그인 후 팝업 공지로 지정되었습니다.': {
+      EN: 'Set as post-login popup notice.',
+      JP: 'ログイン後ポップアップのお知らせに設定しました。',
+      CH: '已设为登录后弹窗公告。',
+      TH: 'ตั้งเป็นป๊อปอัปหลังเข้าสู่ระบบแล้ว'
+    },
+    '메인공지로 지정되었습니다.': {
+      EN: 'Set as main dashboard notice.',
+      JP: 'メイン告知に設定しました。',
+      CH: '已设为主页公告。',
+      TH: 'ตั้งเป็นประกาศหน้าหลักแล้ว'
+    },
+    '접속팝업·첫화면은 총본사만 사용할 수 있습니다.': {
+      EN: 'Access popup and home screen are for headquarters only.',
+      JP: '接続ポップアップ・トップ画面は総本社のみ利用できます。',
+      CH: '访问弹窗与首页仅总本部可用。',
+      TH: 'ป๊อปอัปเมื่อเข้าใช้และหน้าแรกใช้ได้เฉพาะสำนักงานใหญ่'
+    },
+    '공지 등록은 총본사·본사·총판(화면 권한 수정 이상)만 가능합니다. 접속팝업·첫화면은 총본사 전용이며, 본사·총판은 팝업·메인공지만 사용할 수 있습니다.': {
+      EN: 'Only HQ, regional HQ, and master distributors (with edit permission) can post notices. Access popup and home screen are HQ-only; regional/master may use post-login popup and main notice only.',
+      JP: 'お知らせ登録は総本社・本社・総販（画面権限修正以上）のみ可能です。接続ポップアップ・トップ画面は総本社専用、本社・総販はポップアップ・メイン告知のみ利用できます。',
+      CH: '仅总本部、本部、总代（具备修改权限）可发布公告。访问弹窗与首页仅总本部可用；本部与总代仅可使用登录后弹窗与主页公告。',
+      TH: 'ลงทะเบียนประกาศได้เฉพาะสำนักงานใหญ่·สำนักงานภูมิภาค·ตัวแทนหลัก (สิทธิ์แก้ไข) ป๊อปอัปเมื่อเข้าใช้และหน้าแรกเฉพาะสำนักงานใหญ่ สำนักงานภูมิภาค·ตัวแทนใช้ป๊อปอัปหลังล็อกอินและประกาศหน้าหลักเท่านั้น'
+    },
+    '배포 대상 「특정지점」은 업체코드/이름 검색 또는 조직레벨→지점 선택으로 추가합니다. 검색·선택은 본인 하위 조직만 가능합니다.': {
+      EN: 'For NOTI deploy target, add branches by code/name search or org level → branch. Search and selection are limited to your downstream org.',
+      JP: '配信対象「特定店舗」は店舗コード/名称検索または組織レベル→店舗選択で追加します。検索・選択は自組織の下位のみ可能です。',
+      CH: '发布对象「特定网点」可通过商户代码/名称搜索或组织层级→网点选择添加。搜索与选择仅限本人下级组织。',
+      TH: 'กลุ่มเป้าหมาย NOTI เพิ่มสาขาด้วยค้นหารหัส/ชื่อหรือระดับองค์กร→เลือกสาขา จำกัดเฉพาะองค์กรลูกข่ายของคุณ'
+    },
     '작성자': {
       EN: 'Author', JP: '作成者', CH: '作者', TH: 'ผู้เขียน'
     },
@@ -14244,6 +14604,9 @@
     },
     '공지 수정': {
       EN: 'Edit notice', JP: 'お知らせ修正', CH: '编辑公告', TH: 'แก้ไขประกาศ'
+    },
+    '공지 등록': {
+      EN: 'New notice', JP: 'お知らせ登録', CH: '发布公告', TH: 'ลงทะเบียนประกาศ'
     },
     '공지 상세': {
       EN: 'Notice detail', JP: 'お知らせ詳細', CH: '公告详情', TH: 'รายละเอียดประกาศ'
@@ -14277,6 +14640,114 @@
     },
     '등록되었습니다.': {
       EN: 'Registered.', JP: '登録しました。', CH: '已登记。', TH: 'ลงทะเบียนแล้ว'
+    },
+    '배포대상': {
+      EN: 'Deploy target', JP: '配信対象', CH: '发布对象', TH: 'กลุ่มเป้าหมาย'
+    },
+    '최근': {
+      EN: 'Recent', JP: '最新', CH: '最新', TH: 'ล่าสุด'
+    },
+    '배포 대상': {
+      EN: 'Deploy target', JP: '配信対象', CH: '发布对象', TH: 'กลุ่มเป้าหมาย'
+    },
+    '배포 대상을 선택하세요.': {
+      EN: 'Select a deploy target.',
+      JP: '配信対象を選択してください。',
+      CH: '请选择发布对象。',
+      TH: 'เลือกกลุ่มเป้าหมาย'
+    },
+    '본사&총판': {
+      EN: 'HQ & distributors', JP: '本社&総販', CH: '总部与总代', TH: 'สำนักงANใหญ่และตัวแทน'
+    },
+    '본사이하': {
+      EN: 'HQ and below', JP: '本社以下', CH: '总部及以下', TH: 'สำนักงANใหญ่ลงไป'
+    },
+    '총판이하': {
+      EN: 'Distributor and below', JP: '総販以下', CH: '总代及以下', TH: 'ตัวแทนลงไป'
+    },
+    '마케팅': {
+      EN: 'Marketing (branch/agency/sales)', JP: 'マーケティング', CH: '营销(支社/代理/营业)', TH: 'การตลาด'
+    },
+    '특정지점': {
+      EN: 'Specific branches (NOTI)', JP: '特定拠点', CH: '指定网点', TH: 'สาขาเฉพาะ'
+    },
+    '특정지점 안내: 업체코드·업체명으로 검색하거나, 조직레벨을 고른 뒤 지점을 선택하여 배포 대상에 추가하세요.': {
+      EN: 'Specific branches: search by code/name, or pick org level then branch to add targets.',
+      JP: '特定拠点: コード・名称検索、または組織レベル→拠点選択で追加。',
+      CH: '指定网点：按代码/名称搜索，或选组织层级后选网点添加。',
+      TH: 'สาขาเฉพาะ: ค้นหาหรือเลือกระดับองค์กรแล้วเลือกสาขา'
+    },
+    '코드/이름 검색': {
+      EN: 'Code / name search', JP: 'コード/名称検索', CH: '代码/名称搜索', TH: 'ค้นหารหัส/ชื่อ'
+    },
+    '업체코드·이름 검색': {
+      EN: 'Search by code or name', JP: '店舗コード・名称検索', CH: '按代码/名称搜索', TH: 'ค้นหาด้วยรหัส/ชื่อ'
+    },
+    '조직레벨별 지점 선택': {
+      EN: 'Select branch by org level', JP: '組織レベル別店舗選択', CH: '按组织层级选择网点', TH: 'เลือกสาขาตามระดับองค์กร'
+    },
+    '조직레벨 선택': {
+      EN: 'Select org level', JP: '組織レベル選択', CH: '选择组织层级', TH: 'เลือกระดับองค์กร'
+    },
+    '조직레벨': {
+      EN: 'Org level', JP: '組織レベル', CH: '组织层级', TH: 'ระดับองค์กร'
+    },
+    '지점 선택': {
+      EN: 'Select branch', JP: '拠点選択', CH: '选择网点', TH: 'เลือกสาขา'
+    },
+    '지점을 선택하세요.': {
+      EN: 'Select a branch.', JP: '拠点を選択してください。', CH: '请选择网点。', TH: 'เลือกสาขา'
+    },
+    '지점 필터(선택)': {
+      EN: 'Branch filter (optional)', JP: '拠点フィルタ(任意)', CH: '网点筛选(可选)', TH: 'กรองสาขา(ไม่บังคับ)'
+    },
+    '코드/이름으로 좁히기': {
+      EN: 'Narrow by code/name', JP: 'コード/名称で絞る', CH: '按代码/名称缩小', TH: 'กรองด้วยรหัส/ชื่อ'
+    },
+    '지점 목록': {
+      EN: 'Load branches', JP: '拠点一覧', CH: '加载网点列表', TH: 'โหลดรายการสาขา'
+    },
+    '선택 지점 추가': {
+      EN: 'Add selected branch', JP: '選択拠点を追加', CH: '添加所选网点', TH: 'เพิ่มสาขาที่เลือก'
+    },
+    '선택된 특정지점': {
+      EN: 'Selected branches', JP: '選択した特定拠点', CH: '已选指定网点', TH: 'สาขาที่เลือก'
+    },
+    '업체코드 또는 업체명': {
+      EN: 'Company code or name', JP: '会社コードまたは名称', CH: '公司代码或名称', TH: 'รหัสหรือชื่อบริษัท'
+    },
+    '업체코드 또는 업체명을 입력하세요.': {
+      EN: 'Enter company code or name.', JP: '会社コードまたは名称を入力してください。', CH: '请输入公司代码或名称。', TH: 'ใส่รหัสหรือชื่อบริษัท'
+    },
+    '불러오는 중…': {
+      EN: 'Loading…', JP: '読み込み中…', CH: '加载中…', TH: 'กำลังโหลด…'
+    },
+    '특정지점(NOTI) 배포 시 대상 업체를 1곳 이상 선택하세요.': {
+      EN: 'For NOTI deploy, select at least one target branch.',
+      JP: '特定拠点(NOTI)配信では対象を1件以上選択してください。',
+      CH: 'NOTI 发布请至少选择一个目标网点。',
+      TH: 'NOTI ต้องเลือกสาขาเป้าหมายอย่างน้อย 1'
+    },
+    '특정지점(NOTI): 업체코드·업체명으로 검색하여 추가하세요. 조직 등급별 최소 선택 단계가 적용됩니다.': {
+      EN: 'NOTI: search by code/name and add targets. Minimum org level applies by your role.',
+      JP: '特定拠点(NOTI): コード・名称で検索して追加。組織等級ごとの最小選択があります。',
+      CH: 'NOTI：按代码/名称搜索添加。按组织等级有最低可选层级。',
+      TH: 'NOTI: ค้นหาและเพิ่มตามระดับองค์กรขั้นต่ำ'
+    },
+    '선택된 배포 대상 업체가 없습니다.': {
+      EN: 'No target branches selected.', JP: '選択された配信先がありません。', CH: '未选择目标网点。', TH: 'ยังไม่เลือกเป้าหมาย'
+    },
+    '공지 등록은 총본사·본사·총판(화면 권한 수정 이상)만 가능합니다. 작성 시 배포 대상을 선택하며, 총판 공지는 해당 총판 하위(지사·대리점·영업점·가맹점)에만 노출됩니다.': {
+      EN: 'Only super-HQ/HQ/distributor (modify+ on this screen) can post. Distributor notices show only under that distributor tree.',
+      JP: 'お知らせ登録は総本社・本社・総販(修正以上)のみ。総販のお知らせは自組織配下のみ表示。',
+      CH: '仅总本部/总部/总代(修改权限以上)可发。总代公告仅在其下级显示。',
+      TH: 'ประกาศได้เฉพาะสำนักงANใหญ่/ตัวแทน(แก้ไข+) ตัวแทนเห็นเฉพาะลูกข่าย'
+    },
+    '총본사·본사는 본사/총판/마케팅/가맹점/ALL/특정지점 등 배포 범위를 선택할 수 있습니다. 특정지점(NOTI)은 조직 등급별 최소 선택 단계(본사→본사부터, 본사 작성→총판부터, 총판 작성→대리점부터)가 적용됩니다.': {
+      EN: 'Super-HQ/HQ can pick deploy scope. NOTI min level: super-HQ from regional, HQ from distributor, distributor from agency.',
+      JP: '総本社・本社は配信範囲を選択。NOTIは等級別最小選択(本社から/総販から/代理店から)。',
+      CH: '总本部/总部可选发布范围。NOTI 按等级有最低可选层级。',
+      TH: 'เลือกขอบเขต NOTI ตามระดับองค์กร'
     },
     '삭제되었습니다.': {
       EN: 'Deleted.', JP: '削除しました。', CH: '已删除。', TH: 'ลบแล้ว'
@@ -17930,10 +18401,10 @@
       TH: 'ไม่พบ상품'
     },
     '새 로그인ID를 입력하세요.': {
-      EN: '새 loginID를 입력하세요.',
-      JP: '새 ログインID를 입력하세요.',
-      CH: '새 登录ID를 입력하세요.',
-      TH: '새 เข้าสู่ระบบID를 입력하세요.'
+      EN: 'Enter a new login ID.',
+      JP: '新しいログインIDを入力してください。',
+      CH: '请输入新登录 ID。',
+      TH: 'กรุณากรอกรหัสเข้าใช้ใหม่'
     },
     '새 비밀번호는 8자 이상이어야 합니다.': {
       EN: '새 비밀번호는 8자 이상이어야 합니다.',

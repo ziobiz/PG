@@ -517,6 +517,28 @@
         }
         el.innerHTML = '<div class="pay-result-title">' + (ok ? t('payComplete') : t('payFailed')) + '</div><p>' + body + '</p>';
         notifyParent(Object.assign({ phase: 'finished', success: ok, orderNo: orderNo || '', message: msg, pgVendor: 'JPAY' }, extra || {}));
+        if (ok) redirectMerchantReturnIfNeeded(true, orderNo);
+      }
+
+      function redirectMerchantReturnIfNeeded(ok, orderNo) {
+        if (!ok || PAY_EMBED_MODE || !PAY_ENTRY_MERCHANT_API) return;
+        var ru = '';
+        try {
+          var p = new URLSearchParams(location.search);
+          ru = (p.get('returnUrl') || p.get('return_url') || '').trim();
+        } catch (eRu) { return; }
+        if (!ru) return;
+        try {
+          var dest = new URL(ru);
+          if (orderNo) dest.searchParams.set('orderNo', orderNo);
+          dest.searchParams.set('icopay_status', 'paid');
+          setTimeout(function () { location.href = dest.toString(); }, 600);
+        } catch (eUrl) {
+          var sep = ru.indexOf('?') >= 0 ? '&' : '?';
+          var q = sep + 'icopay_status=paid';
+          if (orderNo) q += '&orderNo=' + encodeURIComponent(orderNo);
+          setTimeout(function () { location.href = ru + q; }, 600);
+        }
       }
 
       function buildJpayOrderNo(compId) {

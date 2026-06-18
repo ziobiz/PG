@@ -1051,6 +1051,7 @@
     receivables: { EN: 'Receivable', JP: '未収金', CH: '应收', TH: 'ลูกหนี้' },
     siteRoot: { EN: 'Root', JP: 'ルート', CH: '根路由', TH: 'รูท' },
     payIntegrationMode: { EN: 'Method', JP: '方式', CH: '方式', TH: 'รูปแบบ' },
+    apiIntegrationChannel: { EN: 'Channel', JP: 'チャネル', CH: '渠道', TH: 'ช่องทาง' },
     contact: { EN: 'Contact', JP: '連絡先', CH: '联系方式', TH: 'ติดต่อ' },
     bankNm: { EN: 'Bank', JP: '銀行', CH: '银行', TH: 'ธนาคาร' },
     accountNo: { EN: 'Account no.', JP: '口座番号', CH: '账号', TH: 'เลขบัญชี' },
@@ -2233,6 +2234,10 @@
     var pgAgModal = typeof document !== 'undefined' ? document.getElementById('pgAgencyEditModal') : null;
     if (pgAgModal && w.PG_UI_I18N && typeof w.PG_UI_I18N.applyDom === 'function') {
       try { w.PG_UI_I18N.applyDom(pgAgModal); } catch (ePgAgLoc) {}
+    }
+    var noticeModal = typeof document !== 'undefined' ? document.getElementById('pgNoticeWriteModal') : null;
+    if (noticeModal && typeof w.refreshNoticeWriteModalI18n === 'function') {
+      try { w.refreshNoticeWriteModalI18n(noticeModal); } catch (eNmLoc) {}
     }
     updateLangDropdownUi(loc);
   }

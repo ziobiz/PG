@@ -359,6 +359,27 @@
         }
       })();
 
+      function redirectMerchantReturnIfNeeded(ok, orderNo) {
+        if (!ok || PAY_EMBED_MODE || !PAY_ENTRY_MERCHANT_API) return;
+        var ru = '';
+        try {
+          var p = new URLSearchParams(location.search);
+          ru = (p.get('returnUrl') || p.get('return_url') || '').trim();
+        } catch (eRu) { return; }
+        if (!ru) return;
+        try {
+          var dest = new URL(ru);
+          if (orderNo) dest.searchParams.set('orderNo', orderNo);
+          dest.searchParams.set('icopay_status', 'paid');
+          setTimeout(function () { location.href = dest.toString(); }, 600);
+        } catch (eUrl) {
+          var sep = ru.indexOf('?') >= 0 ? '&' : '?';
+          var q = sep + 'icopay_status=paid';
+          if (orderNo) q += '&orderNo=' + encodeURIComponent(orderNo);
+          setTimeout(function () { location.href = ru + q; }, 600);
+        }
+      }
+
       /** STANDARD: 일반 URL·챗봇·API / REPAY: 저장 카드 재결제 URL 전용 */
       var URL_PAY_VARIANT = (function () {
         try {
@@ -1363,6 +1384,9 @@
           orderNo: orderNo || '',
           message: msg != null ? String(msg) : ''
         });
+        if (!isErr && !isCancel) {
+          redirectMerchantReturnIfNeeded(true, orderNo || '');
+        }
       }
 
       function apiUrl(path, qs) {

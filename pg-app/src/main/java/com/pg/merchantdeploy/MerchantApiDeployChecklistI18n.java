@@ -152,6 +152,83 @@ public final class MerchantApiDeployChecklistI18n {
                 "เส้นทางเดิม /api/pay/... ไม่ตรวจ secret (ช่วงย้าย)"
         )));
 
+        list.add(textMap(new Bundle(
+                "통합 리다이렉트: POST " + base + "/api/middleware/v1/merchant/checkout/redirect/prepare "
+                        + "(buyer·returnUrl HTTPS·cancelUrl) → data.payUrl 브라우저 이동 → status/웹훅",
+                "Unified redirect: POST " + base + "/api/middleware/v1/merchant/checkout/redirect/prepare "
+                        + "(buyer, HTTPS returnUrl/cancelUrl) → redirect to data.payUrl → status/webhook",
+                "統合リダイレクト: POST " + base + "/api/middleware/v1/merchant/checkout/redirect/prepare "
+                        + "（buyer・returnUrl HTTPS）→ data.payUrl へ → status/Webhook",
+                "统一重定向: POST " + base + "/api/middleware/v1/merchant/checkout/redirect/prepare "
+                        + "（buyer·HTTPS returnUrl）→ 跳转 data.payUrl → status/webhook",
+                "Unified redirect: POST " + base + "/api/middleware/v1/merchant/checkout/redirect/prepare "
+                        + "→ redirect data.payUrl → status/webhook"
+        )));
+
+        list.add(textMap(new Bundle(
+                "JPAY 리다이렉트: POST " + base + "/api/middleware/v1/merchant/jpay/redirect-checkout/prepare "
+                        + "→ payUrl (returnUrl/cancelUrl HTTPS)",
+                "JPAY redirect: POST " + base + "/api/middleware/v1/merchant/jpay/redirect-checkout/prepare "
+                        + "→ payUrl (HTTPS returnUrl/cancelUrl)",
+                "JPAY リダイレクト: POST " + base + "/api/middleware/v1/merchant/jpay/redirect-checkout/prepare "
+                        + "→ payUrl（returnUrl/cancelUrl HTTPS）",
+                "JPAY 重定向: POST " + base + "/api/middleware/v1/merchant/jpay/redirect-checkout/prepare "
+                        + "→ payUrl（HTTPS returnUrl/cancelUrl）",
+                "JPAY redirect: POST " + base + "/api/middleware/v1/merchant/jpay/redirect-checkout/prepare → payUrl"
+        )));
+
+        list.add(textMap(new Bundle(
+                "ChillPay 리다이렉트: POST " + base + "/api/middleware/v1/merchant/chillpay/redirect-checkout/prepare "
+                        + "→ payUrl (returnUrl/cancelUrl HTTPS)",
+                "ChillPay redirect: POST " + base + "/api/middleware/v1/merchant/chillpay/redirect-checkout/prepare "
+                        + "→ payUrl (HTTPS returnUrl/cancelUrl)",
+                "ChillPay リダイレクト: POST " + base + "/api/middleware/v1/merchant/chillpay/redirect-checkout/prepare "
+                        + "→ payUrl",
+                "ChillPay 重定向: POST " + base + "/api/middleware/v1/merchant/chillpay/redirect-checkout/prepare "
+                        + "→ payUrl",
+                "ChillPay redirect: POST " + base + "/api/middleware/v1/merchant/chillpay/redirect-checkout/prepare → payUrl"
+        )));
+
+        list.add(textMap(new Bundle(
+                "WordPress: woocommerce/icopay-woocommerce-1.1.0.zip · wordpress/icopay-jpay-1.0.0.zip — 기본 inline, redirect는 HQ REDIRECT Y + flow_mode=redirect",
+                "WordPress: icopay-woocommerce-1.1.0.zip · icopay-jpay-1.0.0.zip — default inline; redirect needs HQ REDIRECT Y + flow_mode=redirect",
+                "WordPress: ZIP プラグイン — 既定 inline、redirect は HQ REDIRECT Y + flow_mode=redirect",
+                "WordPress：插件 ZIP — 默认 inline；redirect 需 HQ REDIRECT Y + flow_mode=redirect",
+                "WordPress: ZIP plugin — inline ค่าเริ่มต้น redirect ต้อง HQ REDIRECT Y + flow_mode=redirect"
+        )));
+
+        list.add(textMap(new Bundle(
+                "가맹 결제 통보(Webhook): 본사 merchantNotifyUrls에 가맹 HTTPS URL 등록 — "
+                        + "WooCommerce: https://{도메인}/wp-json/icopay/v1/webhook · "
+                        + "일반 WP: https://{도메인}/wp-json/icopay-jpay/v1/webhook",
+                "Merchant payment webhook: register HTTPS URL in HQ merchantNotifyUrls — "
+                        + "WooCommerce: https://{domain}/wp-json/icopay/v1/webhook · "
+                        + "general WP: https://{domain}/wp-json/icopay-jpay/v1/webhook",
+                "加盟店 Webhook: 本社 merchantNotifyUrls に HTTPS 登録 — "
+                        + "WooCommerce: https://{ドメイン}/wp-json/icopay/v1/webhook · "
+                        + "一般 WP: https://{ドメイン}/wp-json/icopay-jpay/v1/webhook",
+                "商户 Webhook: 在总部 merchantNotifyUrls 登记 HTTPS — "
+                        + "WooCommerce: https://{域名}/wp-json/icopay/v1/webhook · "
+                        + "一般 WP: https://{域名}/wp-json/icopay-jpay/v1/webhook",
+                "Webhook ร้าน: ลงทะเบียน HTTPS ที่ HQ merchantNotifyUrls — WooCommerce / icopay-jpay REST"
+        )));
+
+        list.add(textMap(new Bundle(
+                "notifyIngressUrlMiddleware(PG→ICOPAY)는 본사·PG pay_notifyurl 설정 — 가맹 WordPress Webhook과 다름",
+                "notifyIngressUrlMiddleware (PG→ICOPAY) is HQ/PG pay_notifyurl — not the merchant WordPress webhook",
+                "notifyIngressUrlMiddleware(PG→ICOPAY)は本社・PG 設定 — 加盟店 WordPress Webhook とは別",
+                "notifyIngressUrlMiddleware(PG→ICOPAY) 为总部/PG 配置 — 与商户 WordPress Webhook 不同",
+                "notifyIngressUrlMiddleware (PG→ICOPAY) ตั้ง HQ/PG — ไม่ใช่ Webhook WordPress ร้าน"
+        )));
+
+        list.add(textMap(new Bundle(
+                "returnUrl은 브라우저 복귀용 — 결제 확정은 Webhook 또는 Status API로 서버에서 확인",
+                "returnUrl is browser return only — confirm payment on the server via webhook or Status API",
+                "returnUrl はブラウザ復帰用 — 確定は Webhook または Status API でサーバー確認",
+                "returnUrl 仅浏览器返回 — 请在服务器通过 Webhook 或 Status API 确认",
+                "returnUrl สำหรับเบราว์เซอร์ — ยืนยันที่เซิร์ฟเวอร์ด้วย webhook หรือ Status API"
+        )));
+
         return List.copyOf(list);
     }
 }

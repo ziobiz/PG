@@ -861,6 +861,47 @@
     return kpiStripHtml(ins.kpiStrip, ex) + kpiStripYesterdayHtml(ins.kpiStripYesterday, ex);
   }
 
+  function mainNoticeHtml(mainNotice) {
+    if (!mainNotice || mainNotice.hasNotice !== true && String(mainNotice.hasNotice) !== 'true') return '';
+    var title = mainNotice.title != null ? String(mainNotice.title) : '';
+    var body = mainNotice.body != null ? String(mainNotice.body) : '';
+    var nid = mainNotice.id != null ? String(mainNotice.id) : '';
+    var regDate = mainNotice.regDate != null ? String(mainNotice.regDate).substring(0, 10) : '';
+    if (!title && !body) return '';
+    var bodyHtml = esc(body).replace(/\n/g, '<br>');
+    return (
+      '<div class="card mb-3 pg-dash-main-notice">' +
+      '<div class="card-header py-2 d-flex align-items-center flex-wrap">' +
+      '<strong>' + esc(uiT('공지사항')) + '</strong>' +
+      '</div>' +
+      '<div class="card-body py-3">' +
+      (regDate ? '<div class="small mb-2 pg-dash-main-notice-date">' + esc(uiT('공지일자')) + ': ' + esc(regDate) + '</div>' : '') +
+      (title ? '<div class="fw-semibold mb-0 pg-dash-main-notice-title">' + esc(title) + '</div>' : '') +
+      (body ? '<div class="small mb-2 pg-dash-main-notice-body">' + (title ? '<br>' : '') + bodyHtml + '</div>' : '') +
+      (nid ? '<button type="button" class="btn btn-link btn-sm p-0 pg-dash-main-notice-detail" data-notice-id="' + esc(nid) + '" data-pg-ui-t="자세히 보기">' + esc(uiT('자세히 보기')) + '</button>' : '') +
+      '</div></div>'
+    );
+  }
+
+  function bindMainNoticeDetail(mount) {
+    if (!mount) return;
+    mount.querySelectorAll('.pg-dash-main-notice-detail').forEach(function (btn) {
+      if (btn._pgBound) return;
+      btn._pgBound = true;
+      btn.addEventListener('click', function () {
+        var nid = btn.getAttribute('data-notice-id');
+        if (!nid) return;
+        if (typeof window.openNoticeWriteModal === 'function') {
+          window.openNoticeWriteModal(null, { editId: nid, readOnly: true });
+          return;
+        }
+        if (typeof window.fnTopMenuMove === 'function') {
+          window.fnTopMenuMove('/system/noticeList', null, uiT('공지사항'));
+        }
+      });
+    });
+  }
+
   function insightsSection(d, opts) {
     opts = opts || {};
     var ins = d.insights;
@@ -923,6 +964,7 @@
       '</div>';
 
     var hint = d.insightHint ? '<div class="pg-dash-insight mb-3">' + esc(uiT(String(d.insightHint))) + '</div>' : '';
+    var mainNoticeBlock = mainNoticeHtml(d.mainNotice);
 
     var salesRow = salesRowFromPayload(d);
 
@@ -952,13 +994,14 @@
     var ins;
     if (hubDash) {
       ins = insightsSection(d);
-      mount.innerHTML = head + hint + hq + biz + ins + ql + salesRow + srv + cal + foot;
+      mount.innerHTML = head + hint + mainNoticeBlock + hq + biz + ins + ql + salesRow + srv + cal + foot;
     } else {
       ins = insightsSection(d, { skipKpi: true });
-      mount.innerHTML = head + hint + hq + insightsKpiBlocksHtml(d) + biz + ins + ql + salesRow + srv + cal + foot;
+      mount.innerHTML = head + hint + mainNoticeBlock + hq + insightsKpiBlocksHtml(d) + biz + ins + ql + salesRow + srv + cal + foot;
     }
     bindQuick(mount);
     bindBusinessDayCalendar(mount);
+    bindMainNoticeDetail(mount);
   }
 
   function sessionKey() {
@@ -1064,7 +1107,7 @@
 
   if (typeof window !== 'undefined') {
     window.addEventListener('pg-pay-list-locale-changed', function () {
-      try { refreshLocale(); } catch (eLc) {}
+      try { invalidate(); onMainShown(); } catch (eLc) {}
     });
   }
 

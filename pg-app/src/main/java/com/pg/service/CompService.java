@@ -40,6 +40,7 @@ import com.pg.util.CardBrandScopeUtil;
 import com.pg.chatbot.ChatbotCatalogPolicy;
 import com.pg.chatbot.ChatbotPromotionShelfMode;
 import com.pg.merchantdeploy.MerchantApiDeploymentService;
+import com.pg.merchantdeploy.MerchantApiIntegrationChannelService;
 import com.pg.util.ChatbotMerchantAdminConstants;
 import com.pg.util.OrgUseYnUtil;
 import com.pg.util.ChatbotProductPricingUtil;
@@ -117,6 +118,7 @@ public class CompService {
     private final ChatbotPlanProrationService chatbotPlanProrationService;
     private final OrgUserSuspensionService orgUserSuspensionService;
     private final MerchantApiDeploymentService merchantApiDeploymentService;
+    private final MerchantApiIntegrationChannelService merchantApiIntegrationChannelService;
 
     private static LocalTime parseTime(String s) {
         if (s == null || s.trim().isEmpty()) return null;
@@ -438,7 +440,8 @@ public class CompService {
                        ChatbotProductMonthlyBillingService chatbotProductMonthlyBillingService,
                        ChatbotPlanProrationService chatbotPlanProrationService,
                        OrgUserSuspensionService orgUserSuspensionService,
-                       @Lazy MerchantApiDeploymentService merchantApiDeploymentService) {
+                       @Lazy MerchantApiDeploymentService merchantApiDeploymentService,
+                       MerchantApiIntegrationChannelService merchantApiIntegrationChannelService) {
         this.orgUnitRepository = orgUnitRepository;
         this.merchantProfileRepository = merchantProfileRepository;
         this.settlementSettingRepository = settlementSettingRepository;
@@ -467,6 +470,7 @@ public class CompService {
         this.chatbotPlanProrationService = chatbotPlanProrationService;
         this.orgUserSuspensionService = orgUserSuspensionService;
         this.merchantApiDeploymentService = merchantApiDeploymentService;
+        this.merchantApiIntegrationChannelService = merchantApiIntegrationChannelService;
     }
 
     /** 챗봇관리 — 고객 안내 문구(병합 표시값). 가맹만. */
@@ -1672,6 +1676,9 @@ public class CompService {
                             m.put("jpayCheckoutFieldMode", com.pg.urlpay.JpayCheckoutFieldModeUtil.formatMerchantUiValue(mp.getJpayCheckoutFieldMode()));
                             m.put("jpayPhoneDialCodeYn", com.pg.urlpay.JpayPhoneDialCodeUtil.formatMerchantUiValue(mp.getJpayPhoneDialCodeYn()));
                             m.put("apiJpaySubscriptionUseYn", mp.getApiJpaySubscriptionUseYn() != null ? mp.getApiJpaySubscriptionUseYn() : "N");
+                            m.put("apiBrokerInlineUseYn", mp.getApiBrokerInlineUseYn() != null ? mp.getApiBrokerInlineUseYn() : "Y");
+                            m.put("apiBrokerRedirectUseYn", mp.getApiBrokerRedirectUseYn() != null ? mp.getApiBrokerRedirectUseYn() : "N");
+                            m.put("apiWordpressUseYn", mp.getApiWordpressUseYn() != null ? mp.getApiWordpressUseYn() : "N");
                             m.put("chatbotPaymentUseYn", mp.getChatbotPaymentUseYn() != null ? mp.getChatbotPaymentUseYn() : "N");
                             m.put("chatbotProductSlotLimit", mp.getChatbotProductSlotLimit() != null ? mp.getChatbotProductSlotLimit() : "");
                             m.put("chatbotCatalogListingGrant", mp.getChatbotCatalogListingGrant() != null ? mp.getChatbotCatalogListingGrant() : "");
@@ -1756,6 +1763,9 @@ public class CompService {
                                 m.put("jpayCheckoutFieldMode", com.pg.urlpay.JpayCheckoutFieldModeUtil.formatMerchantUiValue(mp.getJpayCheckoutFieldMode()));
                                 m.put("jpayPhoneDialCodeYn", com.pg.urlpay.JpayPhoneDialCodeUtil.formatMerchantUiValue(mp.getJpayPhoneDialCodeYn()));
                             m.put("apiJpaySubscriptionUseYn", mp.getApiJpaySubscriptionUseYn() != null ? mp.getApiJpaySubscriptionUseYn() : "N");
+                            m.put("apiBrokerInlineUseYn", mp.getApiBrokerInlineUseYn() != null ? mp.getApiBrokerInlineUseYn() : "Y");
+                            m.put("apiBrokerRedirectUseYn", mp.getApiBrokerRedirectUseYn() != null ? mp.getApiBrokerRedirectUseYn() : "N");
+                            m.put("apiWordpressUseYn", mp.getApiWordpressUseYn() != null ? mp.getApiWordpressUseYn() : "N");
                                 m.put("urlPayWebSettingsAllowed",
                                         chillPayService.findOperationalWebBindingForUrlPay(ou.getId()).isPresent() ? "Y" : "N");
                             }
@@ -1941,6 +1951,9 @@ public class CompService {
                           String apiUrlPayCheckoutMode,
                           String chatbotUrlPayCheckoutMode,
                           String apiJpaySubscriptionUseYn,
+                          String apiBrokerInlineUseYn,
+                          String apiBrokerRedirectUseYn,
+                          String apiWordpressUseYn,
                           String jpayCheckoutFieldMode,
                           String jpayPhoneDialCodeYn,
                           String tabletFeatureUseYn) {
@@ -2039,6 +2052,8 @@ public class CompService {
                             if (childLevel == OrgLevel.MERCHANT && apiJpaySubscriptionUseYn != null && !apiJpaySubscriptionUseYn.trim().isEmpty()) {
                                 mp.setApiJpaySubscriptionUseYn(apiJpaySubscriptionUseYn.trim());
                             }
+                            applyMerchantApiIntegrationChannels(mp, childLevel,
+                                    apiBrokerInlineUseYn, apiBrokerRedirectUseYn, apiWordpressUseYn);
                             if (childLevel == OrgLevel.MERCHANT && chatbotPaymentUseYn != null && !chatbotPaymentUseYn.trim().isEmpty()) {
                                 mp.setChatbotPaymentUseYn("Y".equalsIgnoreCase(chatbotPaymentUseYn.trim()) ? "Y" : "N");
                                 if ("N".equalsIgnoreCase(mp.getChatbotPaymentUseYn() != null ? mp.getChatbotPaymentUseYn().trim() : "")) {
@@ -2495,6 +2510,25 @@ public class CompService {
         mp.setApiUrlPayCheckoutMode(norm);
     }
 
+    /** 가맹 API 연동 채널(인라인·리다이렉트·WordPress) — 업체관리 가맹 전용. */
+    private void applyMerchantApiIntegrationChannels(MerchantProfile mp, OrgLevel level,
+                                                    String inlineYn, String redirectYn, String wordpressYn) {
+        if (mp == null || level != OrgLevel.MERCHANT) {
+            return;
+        }
+        if (inlineYn != null && !inlineYn.isBlank()) {
+            mp.setApiBrokerInlineUseYn(inlineYn.trim());
+        }
+        if (redirectYn != null && !redirectYn.isBlank()) {
+            mp.setApiBrokerRedirectUseYn(redirectYn.trim());
+        }
+        if (wordpressYn != null && !wordpressYn.isBlank()) {
+            mp.setApiWordpressUseYn(wordpressYn.trim());
+        }
+        com.pg.merchantdeploy.MerchantApiIntegrationChannelService.validateMerchantChannelCombination(
+                mp.getApiBrokerInlineUseYn(), mp.getApiBrokerRedirectUseYn(), mp.getApiWordpressUseYn());
+    }
+
     /** 가맹점 JPAY 결제창(jpay-pay.html) 입력 필드 오버라이드. FOLLOW_HQ·빈값 → 본사 기본 따름(null). */
     private void applyMerchantJpayCheckoutFieldMode(MerchantProfile mp, String jpayCheckoutFieldMode) {
         if (mp == null || jpayCheckoutFieldMode == null) {
@@ -2841,7 +2875,7 @@ public class CompService {
                 /* notify 8 + commission 17 + 수수료VAT 2 + regionalSettings */
                 null, null, null, null, null, null, null, null, null, null,
                 null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null,
-                null, null, null, null, null, null, null, null, null, null, null, null);
+                null, null, null, null, null, null, null, null, null, null, null, null, null, null, null);
     }
 
     @Transactional
@@ -2880,6 +2914,9 @@ public class CompService {
                                      String apiUrlPayCheckoutMode,
                                      String chatbotUrlPayCheckoutMode,
                                      String apiJpaySubscriptionUseYn,
+                                     String apiBrokerInlineUseYn,
+                                     String apiBrokerRedirectUseYn,
+                                     String apiWordpressUseYn,
                                      String jpayCheckoutFieldMode,
                                      String jpayPhoneDialCodeYn,
                                      String tabletFeatureUseYn) {
@@ -2921,6 +2958,9 @@ public class CompService {
                 apiUrlPayCheckoutMode,
                 chatbotUrlPayCheckoutMode,
                 apiJpaySubscriptionUseYn,
+                apiBrokerInlineUseYn,
+                apiBrokerRedirectUseYn,
+                apiWordpressUseYn,
                 jpayCheckoutFieldMode,
                 jpayPhoneDialCodeYn,
                 tabletFeatureUseYn);
@@ -2966,6 +3006,9 @@ public class CompService {
                                      String apiUrlPayCheckoutMode,
                                      String chatbotUrlPayCheckoutMode,
                                      String apiJpaySubscriptionUseYn,
+                                     String apiBrokerInlineUseYn,
+                                     String apiBrokerRedirectUseYn,
+                                     String apiWordpressUseYn,
                                      String jpayCheckoutFieldMode,
                                      String jpayPhoneDialCodeYn,
                                      String tabletFeatureUseYn) {
@@ -3049,6 +3092,8 @@ public class CompService {
             if (apiJpaySubscriptionUseYn != null && !apiJpaySubscriptionUseYn.trim().isEmpty()) {
                 mp.setApiJpaySubscriptionUseYn(apiJpaySubscriptionUseYn.trim());
             }
+            applyMerchantApiIntegrationChannels(mp, OrgLevel.MERCHANT,
+                    apiBrokerInlineUseYn, apiBrokerRedirectUseYn, apiWordpressUseYn);
             if (chatbotPaymentUseYn != null && !chatbotPaymentUseYn.trim().isEmpty()) {
                 mp.setChatbotPaymentUseYn("Y".equalsIgnoreCase(chatbotPaymentUseYn.trim()) ? "Y" : "N");
             } else {
@@ -4206,6 +4251,7 @@ public class CompService {
         m.put("siteRoot", siteRootFromPgBindings(
                 merchantPgBindingRepository.findByOrgUnitIdOrderBySortOrderAsc(o.getId())));
         m.put("payIntegrationMode", resolvePayIntegrationModeDisplay(o));
+        m.put("apiIntegrationChannel", resolveApiIntegrationChannelDisplay(o));
         findNearestMasterDistAncestorId(o.getId()).ifPresentOrElse(
                 mid -> m.put("masterDistScopeOrgId", mid),
                 () -> m.put("masterDistScopeOrgId", null));
@@ -4256,6 +4302,17 @@ public class CompService {
             return "-";
         }
         return merchantApiDeploymentService.isMerchantApiIntegrationEligible(o.getId()) ? "API" : "URL";
+    }
+
+    /**
+     * 가맹 API 연동 채널 — 본사 결제로직설정 × 가맹 프로필 교집합.
+     * IN(INLINE)·RE(REDIRECT)·WO(WordPress), 복수 사용 시 {@code IN/RE} 형식. (비가맹은 {@code -})
+     */
+    private String resolveApiIntegrationChannelDisplay(OrgUnit o) {
+        if (o == null || o.getOrgLevel() != OrgLevel.MERCHANT) {
+            return "-";
+        }
+        return merchantApiIntegrationChannelService.buildEffectiveChannelDisplayCode(o.getId());
     }
 
     private static String bankCdToName(String cd) {
@@ -4641,7 +4698,7 @@ public class CompService {
                             null, null, null, null, null, null, null, null, null, null,
                             null, null, null, null, null, null, null, null, null,
                             null, null, null, null,
-                            null, null, null, null, null, null, null, null);
+                            null, null, null, null, null, null, null, null, null, null, null);
                     if (loginIdVal != null && !loginIdVal.isEmpty() && userRepository.findByUsername(loginIdVal).isEmpty()) {
                         AppUser appUser = new AppUser();
                         appUser.setUsername(loginIdVal);

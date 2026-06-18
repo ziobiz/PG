@@ -1551,6 +1551,7 @@ public class ApiHqController {
         data.put("urlPayPathTemplate", "/pay/{compCode}");
         data.put("apiBrokerInlineEnabledYn", "Y");
         data.put("apiBrokerRedirectEnabledYn", "Y");
+        data.put("apiWordpressPluginEnabledYn", "Y");
         data.put("urlPayInlineEnabledYn", "Y");
         data.put("urlPayRedirectEnabledYn", "Y");
         data.put("urlPayRepayEnabledYn", "N");
@@ -1589,6 +1590,7 @@ public class ApiHqController {
             if (c.getUrlPayPathTemplate() != null) data.put("urlPayPathTemplate", c.getUrlPayPathTemplate());
             if (c.getApiBrokerInlineEnabledYn() != null) data.put("apiBrokerInlineEnabledYn", c.getApiBrokerInlineEnabledYn());
             if (c.getApiBrokerRedirectEnabledYn() != null) data.put("apiBrokerRedirectEnabledYn", c.getApiBrokerRedirectEnabledYn());
+            if (c.getApiWordpressPluginEnabledYn() != null) data.put("apiWordpressPluginEnabledYn", c.getApiWordpressPluginEnabledYn());
             if (c.getUrlPayInlineEnabledYn() != null) data.put("urlPayInlineEnabledYn", c.getUrlPayInlineEnabledYn());
             if (c.getUrlPayRedirectEnabledYn() != null) data.put("urlPayRedirectEnabledYn", c.getUrlPayRedirectEnabledYn());
             if (c.getUrlPayRepayEnabledYn() != null) data.put("urlPayRepayEnabledYn", c.getUrlPayRepayEnabledYn());
@@ -1671,6 +1673,7 @@ public class ApiHqController {
         c.setUrlPayPathTemplate(pathTpl.isEmpty() ? "/pay/{compCode}" : pathTpl);
         c.setApiBrokerInlineEnabledYn("N".equalsIgnoreCase(String.valueOf(body.getOrDefault("apiBrokerInlineEnabledYn", "Y"))) ? "N" : "Y");
         c.setApiBrokerRedirectEnabledYn("N".equalsIgnoreCase(String.valueOf(body.getOrDefault("apiBrokerRedirectEnabledYn", "Y"))) ? "N" : "Y");
+        c.setApiWordpressPluginEnabledYn("N".equalsIgnoreCase(String.valueOf(body.getOrDefault("apiWordpressPluginEnabledYn", "Y"))) ? "N" : "Y");
         c.setUrlPayInlineEnabledYn("N".equalsIgnoreCase(String.valueOf(body.getOrDefault("urlPayInlineEnabledYn", "Y"))) ? "N" : "Y");
         c.setUrlPayRedirectEnabledYn("N".equalsIgnoreCase(String.valueOf(body.getOrDefault("urlPayRedirectEnabledYn", "Y"))) ? "N" : "Y");
         c.setUrlPayRepayEnabledYn("Y".equalsIgnoreCase(String.valueOf(body.getOrDefault("urlPayRepayEnabledYn", "N"))) ? "Y" : "N");

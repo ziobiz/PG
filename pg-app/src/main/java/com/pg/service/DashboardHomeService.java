@@ -59,6 +59,7 @@ public class DashboardHomeService {
     private final DashboardHqHubService dashboardHqHubService;
     private final DashboardBusinessDayCalendarService dashboardBusinessDayCalendarService;
     private final SettlementRunDateDisplayService settlementRunDateDisplayService;
+    private final NoticeDisplayService noticeDisplayService;
 
     public DashboardHomeService(AuthService authService,
                                 OrgAccessService orgAccessService,
@@ -68,7 +69,8 @@ public class DashboardHomeService {
                                 DashboardInsightsService dashboardInsightsService,
                                 DashboardHqHubService dashboardHqHubService,
                                 DashboardBusinessDayCalendarService dashboardBusinessDayCalendarService,
-                                SettlementRunDateDisplayService settlementRunDateDisplayService) {
+                                SettlementRunDateDisplayService settlementRunDateDisplayService,
+                                NoticeDisplayService noticeDisplayService) {
         this.authService = authService;
         this.orgAccessService = orgAccessService;
         this.pgTrnsctnRepository = pgTrnsctnRepository;
@@ -78,9 +80,14 @@ public class DashboardHomeService {
         this.dashboardHqHubService = dashboardHqHubService;
         this.dashboardBusinessDayCalendarService = dashboardBusinessDayCalendarService;
         this.settlementRunDateDisplayService = settlementRunDateDisplayService;
+        this.noticeDisplayService = noticeDisplayService;
     }
 
     public Map<String, Object> buildHome(Authentication authentication) {
+        return buildHome(authentication, null);
+    }
+
+    public Map<String, Object> buildHome(Authentication authentication, String acceptLanguage) {
         Map<String, Object> out = new LinkedHashMap<>();
         Optional<DashboardAuthSlice> sliceOpt = resolveAuthSlice(authentication);
         if (sliceOpt.isEmpty()) {
@@ -156,6 +163,12 @@ public class DashboardHomeService {
         }
 
         out.put("insightHint", buildInsightHint(orgLevel, admin, emptyScope));
+        try {
+            out.put("mainNotice", noticeDisplayService.resolveMainNotice(user, acceptLanguage));
+        } catch (Exception ex) {
+            log.warn("dashboard mainNotice resolve failed for user={}", user.getUsername(), ex);
+            out.put("mainNotice", Map.of("hasNotice", false));
+        }
         putBusinessDayCalendar(out, s);
         putInsightsAndHqHub(out, s);
         return out;

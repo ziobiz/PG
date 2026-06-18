@@ -9,7 +9,6 @@ import com.pg.repository.HqApiConfigRepository;
 import com.pg.repository.MerchantProfileRepository;
 import com.pg.repository.OrgUnitRepository;
 import com.pg.repository.PgTrnsctnRepository;
-import com.pg.service.ChillPayService;
 import com.pg.service.JpayPaymentService;
 import com.pg.service.MerchantChatbotProductService;
 import com.pg.service.OrgServiceUseService;
@@ -39,6 +38,7 @@ public class MerchantJpayInlineCheckoutService {
     private final MerchantInlineCheckoutTokenService tokenService;
     private final PgTrnsctnRepository pgTrnsctnRepository;
     private final UrlPayCheckoutCurrencyService urlPayCheckoutCurrencyService;
+    private final MerchantApiIntegrationChannelService integrationChannelService;
 
     public MerchantJpayInlineCheckoutService(OrgUnitRepository orgUnitRepository,
                                              MerchantProfileRepository merchantProfileRepository,
@@ -48,7 +48,8 @@ public class MerchantJpayInlineCheckoutService {
                                              MerchantChatbotProductService productService,
                                              MerchantInlineCheckoutTokenService tokenService,
                                              PgTrnsctnRepository pgTrnsctnRepository,
-                                             UrlPayCheckoutCurrencyService urlPayCheckoutCurrencyService) {
+                                             UrlPayCheckoutCurrencyService urlPayCheckoutCurrencyService,
+                                             MerchantApiIntegrationChannelService integrationChannelService) {
         this.orgUnitRepository = orgUnitRepository;
         this.merchantProfileRepository = merchantProfileRepository;
         this.orgServiceUseService = orgServiceUseService;
@@ -58,6 +59,7 @@ public class MerchantJpayInlineCheckoutService {
         this.tokenService = tokenService;
         this.pgTrnsctnRepository = pgTrnsctnRepository;
         this.urlPayCheckoutCurrencyService = urlPayCheckoutCurrencyService;
+        this.integrationChannelService = integrationChannelService;
     }
 
     public Map<String, Object> prepare(Long orgUnitId, Map<String, Object> body, HttpServletRequest request) {
@@ -86,15 +88,12 @@ public class MerchantJpayInlineCheckoutService {
         if (!jpayPaymentService.hasOperationalWebBinding(orgUnitId)) {
             return fail("JPAY URL 결제(운영) 바인딩이 없습니다.", "URL_PAYMENT_PG_MISSING");
         }
-        HqApiConfig hq = hqApiConfigRepository.findAll().stream().findFirst().orElse(null);
-        if (hq != null) {
-            if (!"INLINE".equalsIgnoreCase(ChillPayService.effectiveUrlPayFlow(hq))) {
-                return fail("본사 URL 결제 기본 방식이 INLINE이 아닙니다. 결제로직설정을 확인하세요.", "INLINE_NOT_ENABLED");
-            }
-            if ("N".equalsIgnoreCase(hq.getUrlPayInlineEnabledYn())) {
-                return fail("본사 설정에서 URL 결제형 INLINE 제공이 꺼져 있습니다.", "INLINE_NOT_ENABLED");
-            }
+        Optional<String> inlineDeny = integrationChannelService.denyMessage(orgUnitId,
+                MerchantApiIntegrationChannelService.Channel.API_BROKER_INLINE);
+        if (inlineDeny.isPresent()) {
+            return fail(inlineDeny.get(), MerchantApiIntegrationChannelService.CODE_INTEGRATION_CHANNEL_DISABLED);
         }
+        HqApiConfig hq = hqApiConfigRepository.findAll().stream().findFirst().orElse(null);
 
         String orderNo = normalizeOrderNo(str(body.get("orderNo")));
         if (orderNo.isBlank()) {

@@ -4379,20 +4379,28 @@ button.pay-follow-pill:focus-visible {
 .merchant-api-deploy-docs .merchant-deploy-col-pg {
   width: 8rem;
 }
+.merchant-deploy-kit .merchant-deploy-col-channel,
+.merchant-api-deploy-docs .merchant-deploy-col-channel {
+  width: 5.5rem;
+}
 .merchant-deploy-kit .merchant-deploy-col-cur,
 .merchant-api-deploy-docs .merchant-deploy-col-cur {
   width: 5.5rem;
 }
-.merchant-deploy-kit .merchant-deploy-col-broker {
+.merchant-deploy-kit .merchant-deploy-col-broker,
+.merchant-api-deploy-docs .merchant-deploy-col-broker {
   width: 6.5rem;
 }
-.merchant-deploy-kit .merchant-deploy-col-issued-date {
+.merchant-deploy-kit .merchant-deploy-col-issued-date,
+.merchant-api-deploy-docs .merchant-deploy-col-issued-date {
   width: 7rem;
 }
-.merchant-deploy-kit .merchant-deploy-col-issued-by {
+.merchant-deploy-kit .merchant-deploy-col-issued-by,
+.merchant-api-deploy-docs .merchant-deploy-col-issued-by {
   width: 8rem;
 }
-.merchant-deploy-kit .merchant-broker-status {
+.merchant-deploy-kit .merchant-broker-status,
+.merchant-api-deploy-docs .merchant-broker-status {
   display: inline-block;
   min-width: 3.75rem;
   padding: 0.15rem 0.45rem;
@@ -4404,17 +4412,20 @@ button.pay-follow-pill:focus-visible {
   white-space: nowrap;
   border: 1px solid transparent;
 }
-.merchant-deploy-kit .merchant-broker-status--issued {
+.merchant-deploy-kit .merchant-broker-status--issued,
+.merchant-api-deploy-docs .merchant-broker-status--issued {
   color: #9b2c2c;
   background-color: #fde2e2;
   border-color: #f5c2c2;
 }
-.merchant-deploy-kit .merchant-broker-status--not-issued {
+.merchant-deploy-kit .merchant-broker-status--not-issued,
+.merchant-api-deploy-docs .merchant-broker-status--not-issued {
   color: #2d3748;
   background-color: #e2e8f0;
   border-color: #cbd5e0;
 }
-.merchant-deploy-kit .merchant-broker-status--reissued {
+.merchant-deploy-kit .merchant-broker-status--reissued,
+.merchant-api-deploy-docs .merchant-broker-status--reissued {
   color: #856404;
   background-color: #fff3cd;
   border-color: #ffeeba;
@@ -4478,6 +4489,30 @@ body.theme-brown .content-inner .pg-home-dashboard-mount .pg-dash-user-head .pg-
   padding: 0.5rem 0.75rem;
   background: #f8f9fa;
   border-radius: 0 0.25rem 0.25rem 0;
+}
+/* 메인공지 — insightHint 와 동일 글자색(다크/브라운 테마 흰글자 상속 방지) */
+.pg-home-dashboard-mount .pg-dash-main-notice,
+.pg-home-dashboard-mount .pg-dash-main-notice .pg-dash-main-notice-title,
+.pg-home-dashboard-mount .pg-dash-main-notice .pg-dash-main-notice-body,
+.pg-home-dashboard-mount .pg-dash-main-notice .pg-dash-main-notice-date {
+  color: #5c6c7c;
+}
+body.theme-dark .content-inner .pg-home-dashboard-mount .pg-dash-main-notice,
+body.theme-dark .content-inner .pg-home-dashboard-mount .pg-dash-main-notice .pg-dash-main-notice-title,
+body.theme-dark .content-inner .pg-home-dashboard-mount .pg-dash-main-notice .pg-dash-main-notice-body,
+body.theme-dark .content-inner .pg-home-dashboard-mount .pg-dash-main-notice .pg-dash-main-notice-date,
+body.theme-brown .content-inner .pg-home-dashboard-mount .pg-dash-main-notice,
+body.theme-brown .content-inner .pg-home-dashboard-mount .pg-dash-main-notice .pg-dash-main-notice-title,
+body.theme-brown .content-inner .pg-home-dashboard-mount .pg-dash-main-notice .pg-dash-main-notice-body,
+body.theme-brown .content-inner .pg-home-dashboard-mount .pg-dash-main-notice .pg-dash-main-notice-date {
+  color: #5c6c7c !important;
+}
+.pg-home-dashboard-mount .pg-dash-main-notice {
+  border: 1px solid #e9ecef;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+.pg-home-dashboard-mount .pg-dash-main-notice > .card-body {
+  background: #fff;
 }
 .pg-home-dashboard-mount .pg-dash-kpi .card {
   border: 1px solid #e9ecef;

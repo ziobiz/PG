@@ -38,6 +38,8 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import static com.pg.merchantdeploy.MerchantDeployL10n.Bundle;
+
 @Service
 public class MerchantApiDeploymentService {
 
@@ -52,6 +54,7 @@ public class MerchantApiDeploymentService {
     private final MerchantPgBrokerCatalog brokerCatalog;
     private final CompService compService;
     private final PgAgencyRepository pgAgencyRepository;
+    private final MerchantApiIntegrationChannelService integrationChannelService;
 
     public MerchantApiDeploymentService(OrgUnitRepository orgUnitRepository,
                                         MerchantProfileRepository merchantProfileRepository,
@@ -63,7 +66,8 @@ public class MerchantApiDeploymentService {
                                         HqNotifyEnvService hqNotifyEnvService,
                                         MerchantPgBrokerCatalog brokerCatalog,
                                         CompService compService,
-                                        PgAgencyRepository pgAgencyRepository) {
+                                        PgAgencyRepository pgAgencyRepository,
+                                        MerchantApiIntegrationChannelService integrationChannelService) {
         this.orgUnitRepository = orgUnitRepository;
         this.merchantProfileRepository = merchantProfileRepository;
         this.merchantPgBindingRepository = merchantPgBindingRepository;
@@ -75,6 +79,7 @@ public class MerchantApiDeploymentService {
         this.brokerCatalog = brokerCatalog;
         this.compService = compService;
         this.pgAgencyRepository = pgAgencyRepository;
+        this.integrationChannelService = integrationChannelService;
     }
 
     public List<Map<String, Object>> listVendors() {
@@ -142,6 +147,11 @@ public class MerchantApiDeploymentService {
             row.put("brokerSecretStatus", brokerSecretStatusCode(brokerCred));
             row.put("brokerIssuedDate", formatBrokerIssuedDate(brokerCred));
             row.put("brokerIssuedBy", brokerIssuedByDisplay(brokerCred));
+            if (ouId != null) {
+                row.put("apiIntegrationChannel", integrationChannelService.buildEffectiveChannelDisplayCode(ouId));
+            } else {
+                row.put("apiIntegrationChannel", "-");
+            }
         }
     }
 
@@ -352,6 +362,7 @@ public class MerchantApiDeploymentService {
 
         Optional<MerchantProfile> mpOpt = merchantProfileRepository.findByOrgUnitId(ou.getId());
         mpOpt.ifPresent(mp -> kit.put("baseCurrency", mp.getBaseCurrency() != null ? mp.getBaseCurrency() : ""));
+        kit.put("apiIntegrationChannel", integrationChannelService.buildEffectiveChannelDisplayCode(ou.getId()));
 
         List<Map<String, Object>> bindings = new ArrayList<>();
         for (MerchantPgBinding b : merchantPgBindingRepository.findByOrgUnitIdOrderBySortOrderAsc(ou.getId())) {
@@ -404,18 +415,25 @@ public class MerchantApiDeploymentService {
 
         if (MerchantPgBrokerVendor.ALL.equals(vs) || MerchantPgBrokerVendor.CHILLPAY.equals(vs)) {
             kit.put("merchantInlineCheckoutChillPay", buildMerchantInlineCheckoutBlock(publicApiBase, ou.getCode(), "chillpay"));
+            kit.put("merchantRedirectCheckoutChillPay", buildMerchantRedirectCheckoutBlock(publicApiBase, ou.getCode(), "chillpay"));
         }
         if (MerchantPgBrokerVendor.ALL.equals(vs) || MerchantPgBrokerVendor.JPAY.equals(vs)) {
             kit.put("merchantInlineCheckoutJpay", buildMerchantInlineCheckoutBlock(publicApiBase, ou.getCode(), "jpay"));
+            kit.put("merchantRedirectCheckoutJpay", buildMerchantRedirectCheckoutBlock(publicApiBase, ou.getCode(), "jpay"));
             kit.put("merchantSubscriptionCheckoutJpay", buildMerchantSubscriptionCheckoutBlock(publicApiBase, ou.getCode()));
         }
         if (MerchantPgBrokerVendor.ALL.equals(vs)) {
             Map<String, Object> unifiedBlock = buildMerchantUnifiedCheckoutBlock(publicApiBase, ou.getCode());
+            Map<String, Object> unifiedRedirectBlock = buildMerchantUnifiedRedirectCheckoutBlock(publicApiBase, ou.getCode());
             kit.put("merchantUnifiedCheckout", unifiedBlock);
+            kit.put("merchantUnifiedRedirectCheckout", unifiedRedirectBlock);
             kit.put("merchantCheckoutApiParameterSpec",
                     MerchantCheckoutApiParameterSpec.build(publicApiBase, ou.getCode()));
-            kit.put("integrationModes", buildIntegrationModes(publicApiBase, ou.getCode(), unifiedBlock));
+            kit.put("integrationModes", buildIntegrationModes(publicApiBase, ou.getCode(), unifiedBlock, unifiedRedirectBlock));
         }
+
+        kit.put("wordpressPlugins", buildWordPressPluginDeployBlock(publicApiBase));
+        kit.put("paymentNotifyGuide", buildMerchantPaymentNotifyGuideBlock());
 
         kit.put("merchantIntegrationSamples", buildIntegrationSamples(publicApiBase));
 
@@ -423,7 +441,56 @@ public class MerchantApiDeploymentService {
 
         kit.put("integrationChecklist", MerchantApiDeployChecklistI18n.build(publicApiBase, ou.getCode()));
 
+        applyIntegrationChannelFilter(kit, ou.getId());
+
         return kit;
+    }
+
+    private void applyIntegrationChannelFilter(Map<String, Object> kit, Long orgUnitId) {
+        kit.put("integrationChannels", integrationChannelService.buildStatusBlock(orgUnitId));
+        if (!integrationChannelService.isInlineEffective(orgUnitId)) {
+            kit.remove("merchantInlineCheckoutJpay");
+            kit.remove("merchantInlineCheckoutChillPay");
+            kit.remove("merchantUnifiedCheckout");
+        }
+        if (!integrationChannelService.isRedirectEffective(orgUnitId)) {
+            kit.remove("merchantRedirectCheckoutJpay");
+            kit.remove("merchantRedirectCheckoutChillPay");
+            kit.remove("merchantUnifiedRedirectCheckout");
+        }
+        if (!integrationChannelService.isWordpressEffective(orgUnitId)) {
+            kit.remove("wordpressPlugins");
+        }
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> checklist = (List<Map<String, Object>>) kit.get("integrationChecklist");
+        if (checklist != null) {
+            kit.put("integrationChecklist", filterChecklistByChannels(checklist, orgUnitId));
+        }
+    }
+
+    private List<Map<String, Object>> filterChecklistByChannels(List<Map<String, Object>> list, Long orgUnitId) {
+        boolean inline = integrationChannelService.isInlineEffective(orgUnitId);
+        boolean redirect = integrationChannelService.isRedirectEffective(orgUnitId);
+        boolean wp = integrationChannelService.isWordpressEffective(orgUnitId);
+        List<Map<String, Object>> out = new ArrayList<>();
+        for (Map<String, Object> row : list) {
+            String kr = row.get("textKr") != null ? row.get("textKr").toString() : "";
+            if (!inline && (kr.contains("인라인") || kr.contains("inline") || kr.contains("embed") || kr.contains("Embed"))) {
+                if (!kr.contains("구독") && !kr.contains("subscription")) {
+                    continue;
+                }
+            }
+            if (!redirect && (kr.contains("리다이렉트") || kr.contains("redirect") || kr.contains("REDIRECT") || kr.contains("returnUrl"))) {
+                if (!kr.contains("챗봇") && !kr.contains("URL 결제") && !kr.contains("notifyIngress")) {
+                    continue;
+                }
+            }
+            if (!wp && kr.contains("WordPress")) {
+                continue;
+            }
+            out.add(row);
+        }
+        return out.isEmpty() ? list : out;
     }
 
     /**
@@ -485,12 +552,21 @@ public class MerchantApiDeploymentService {
         portal.put("merchantOrgUnitId", kit.get("merchantOrgUnitId"));
         portal.put("publicApiBaseUrl", kit.get("publicApiBaseUrl"));
         portal.put("baseCurrency", kit.getOrDefault("baseCurrency", ""));
+        portal.put("apiIntegrationChannel", kit.getOrDefault("apiIntegrationChannel", "-"));
         portal.put("headersRecommended", kit.get("headersRecommended"));
         portal.put("notifyIngressUrlMiddleware", kit.get("notifyIngressUrlMiddleware"));
         portal.put("notifyIngressUrlOpen", kit.get("notifyIngressUrlOpen"));
         portal.put("merchantPgBindings", kit.get("merchantPgBindings"));
         portal.put("merchantNotifyUrls", kit.get("merchantNotifyUrls"));
         portal.put("merchantUnifiedCheckout", kit.get("merchantUnifiedCheckout"));
+        portal.put("merchantUnifiedRedirectCheckout", kit.get("merchantUnifiedRedirectCheckout"));
+        portal.put("merchantInlineCheckoutJpay", kit.get("merchantInlineCheckoutJpay"));
+        portal.put("merchantInlineCheckoutChillPay", kit.get("merchantInlineCheckoutChillPay"));
+        portal.put("merchantRedirectCheckoutJpay", kit.get("merchantRedirectCheckoutJpay"));
+        portal.put("merchantRedirectCheckoutChillPay", kit.get("merchantRedirectCheckoutChillPay"));
+        portal.put("wordpressPlugins", kit.get("wordpressPlugins"));
+        portal.put("paymentNotifyGuide", kit.get("paymentNotifyGuide"));
+        portal.put("integrationChannels", kit.get("integrationChannels"));
         portal.put("merchantCheckoutApiParameterSpec", kit.get("merchantCheckoutApiParameterSpec"));
         portal.put("integrationModes", kit.get("integrationModes"));
         portal.put("merchantIntegrationSamples", kit.get("merchantIntegrationSamples"));
@@ -544,6 +620,186 @@ public class MerchantApiDeploymentService {
         block.put("phpCheckoutExample", jpay ? "merchant-api-samples/php/checkout_jpay.php" : "merchant-api-samples/php/checkout_chillpay.php");
         block.put("jspCheckoutExample", jpay ? "merchant-api-samples/jsp/checkout-jpay.jsp" : "merchant-api-samples/jsp/checkout-chillpay.jsp");
         return block;
+    }
+
+    private Map<String, Object> buildMerchantRedirectCheckoutBlock(String publicApiBase, String compId, String vendorKey) {
+        String base = publicApiBase != null ? publicApiBase.trim() : "";
+        boolean jpay = "jpay".equalsIgnoreCase(vendorKey);
+        String vendorScope = jpay ? MerchantPgBrokerVendor.JPAY : MerchantPgBrokerVendor.CHILLPAY;
+        String apiPath = jpay
+                ? "/api/middleware/v1/merchant/jpay/redirect-checkout"
+                : "/api/middleware/v1/merchant/chillpay/redirect-checkout";
+        String payPath = jpay ? "/jpay-pay/" : "/pay/";
+        Map<String, Object> block = new LinkedHashMap<>();
+        block.put("integrationMode", "REDIRECT");
+        block.put("pgVendor", vendorScope);
+        MerchantDeployL10n.putDescription(block, new Bundle(
+                jpay ? "JPAY 리다이렉트 URL 결제" : "ChillPay 리다이렉트 URL 결제",
+                jpay ? "JPAY redirect URL checkout" : "ChillPay redirect URL checkout",
+                jpay ? "JPAY リダイレクト URL 決済" : "ChillPay リダイレクト URL 決済",
+                jpay ? "JPAY 重定向 URL 支付" : "ChillPay 重定向 URL 支付",
+                jpay ? "JPAY redirect URL ชำระเงิน" : "ChillPay redirect URL ชำระเงิน"
+        ));
+        block.put("prepareUrl", base + apiPath + "/prepare");
+        block.put("statusUrl", base + apiPath + "/status?compId=" + compId + "&orderNo={orderNo}");
+        block.put("payPagePathTemplate", base + payPath + compId
+                + "?entry=merchant_api&session={sessionToken}&returnUrl={returnUrlHttps}&cancelUrl={cancelUrlHttps}");
+        block.put("prepareBodyExample", Map.of(
+                "compId", compId,
+                "orderNo", "ORD-001",
+                "amount", jpay ? 100 : 10000,
+                "currency", jpay ? "USD" : "JPY",
+                "productName", "Sample product",
+                "returnUrl", "https://merchant.example.com/payment/return",
+                "cancelUrl", "https://merchant.example.com/payment/cancel"
+        ));
+        MerchantDeployL10n.putTextFields(block, "redirectUsageHint", new Bundle(
+                "prepare → data.payUrl 리다이렉트. 완료 후 returnUrl(?orderNo&icopay_status=paid). PAID는 status·웹훅.",
+                "prepare → redirect browser to data.payUrl. After payment, returnUrl with orderNo & icopay_status=paid. Confirm PAID via status or webhook.",
+                "prepare → data.payUrl へリダイレクト。完了後 returnUrl(?orderNo&icopay_status=paid)。PAID は status または Webhook。",
+                "prepare → 跳转 data.payUrl。完成后 returnUrl(?orderNo&icopay_status=paid)。PAID 用 status 或 webhook 确认。",
+                "prepare → redirect ไป data.payUrl หลังชำระ returnUrl(?orderNo&icopay_status=paid) ยืนยัน PAID ด้วย status/webhook"
+        ));
+        MerchantDeployL10n.putTextFields(block, "wordpressPluginNote", new Bundle(
+                "WordPress: flow_mode=redirect — docs/WordPress_JPAY_플러그인_배포가이드.md",
+                "WordPress: flow_mode=redirect — see docs/WordPress_JPAY_플러그인_배포가이드.md",
+                "WordPress: flow_mode=redirect — docs/WordPress_JPAY_플러그인_배포가이드.md を参照",
+                "WordPress：flow_mode=redirect — 见 docs/WordPress_JPAY_플러그인_배포가이드.md",
+                "WordPress: flow_mode=redirect — ดู docs/WordPress_JPAY_플러그인_배포가이드.md"
+        ));
+        return block;
+    }
+
+    private Map<String, Object> buildMerchantUnifiedRedirectCheckoutBlock(String publicApiBase, String compId) {
+        String base = publicApiBase != null ? publicApiBase.trim() : "";
+        Map<String, Object> block = new LinkedHashMap<>();
+        block.put("integrationMode", "REDIRECT_UNIFIED");
+        MerchantDeployL10n.putDescription(block, new Bundle(
+                "PG 무관 통합 리다이렉트 — returnUrl/cancelUrl HTTPS 필수",
+                "Unified redirect — HTTPS returnUrl/cancelUrl required; routes by operational WEB PG",
+                "PG 非依存統合リダイレクト — returnUrl/cancelUrl は HTTPS 必須",
+                "PG 无关统一重定向 — returnUrl/cancelUrl 须 HTTPS",
+                "Unified redirect — ต้องมี returnUrl/cancelUrl แบบ HTTPS"
+        ));
+        block.put("prepareUrl", base + "/api/middleware/v1/merchant/checkout/redirect/prepare");
+        block.put("statusUrl", base + "/api/middleware/v1/merchant/checkout/redirect/status?compId=" + compId + "&orderNo={orderNo}");
+        return block;
+    }
+
+    private Map<String, Object> buildWordPressPluginDeployBlock(String publicApiBase) {
+        String base = publicApiBase != null ? publicApiBase.trim() : "";
+        Map<String, Object> wp = new LinkedHashMap<>();
+        MerchantDeployL10n.putDescription(wp, new Bundle(
+                "WordPress JPAY 플러그인 ZIP 배포 (WooCommerce·일반 WP)",
+                "WordPress JPAY plugin ZIP (WooCommerce and general WP)",
+                "WordPress JPAY プラグイン ZIP（WooCommerce・一般 WP）",
+                "WordPress JPAY 插件 ZIP（WooCommerce 与一般 WP）",
+                "WordPress JPAY plugin ZIP (WooCommerce และ WP ทั่วไป)"
+        ));
+        MerchantDeployL10n.putTextFields(wp, "inlineDefaultNote", new Bundle(
+                "기본 flow_mode=inline — 기존 인라인 연동과 동일",
+                "Default flow_mode=inline — same as legacy inline integration",
+                "既定 flow_mode=inline — 従来インライン連携と同じ",
+                "默认 flow_mode=inline — 与原有内联相同",
+                "ค่าเริ่มต้น flow_mode=inline — เหมือน inline เดิม"
+        ));
+        MerchantDeployL10n.putTextFields(wp, "redirectDeployNote", new Bundle(
+                "redirect 선택 시 HQ apiBrokerRedirectEnabledYn=Y 및 플러그인 flow_mode=redirect",
+                "For redirect: HQ apiBrokerRedirectEnabledYn=Y and plugin flow_mode=redirect",
+                "redirect 利用時は HQ apiBrokerRedirectEnabledYn=Y と flow_mode=redirect",
+                "重定向需 HQ apiBrokerRedirectEnabledYn=Y 且 flow_mode=redirect",
+                "redirect ต้อง HQ apiBrokerRedirectEnabledYn=Y และ flow_mode=redirect"
+        ));
+        wp.put("docPath", "docs/WordPress_JPAY_플러그인_배포가이드.md");
+        wp.put("buildScript", "tools/build-wp-plugin-zips.ps1");
+        wp.put("woocommercePluginZip", "woocommerce/icopay-woocommerce-1.1.0.zip");
+        wp.put("generalWordPressPluginZip", "wordpress/icopay-jpay-1.0.0.zip");
+        wp.put("flowModes", List.of("inline", "redirect"));
+        wp.put("defaultFlowMode", "inline");
+        wp.put("apiBaseUrlExample", base.isEmpty() ? "https://api.icopay.co.kr" : base);
+        wp.put("woocommerceWebhookPath", "/wp-json/icopay/v1/webhook");
+        wp.put("generalWordPressWebhookPath", "/wp-json/icopay-jpay/v1/webhook");
+        MerchantDeployL10n.putTextFields(wp, "webhookRegisterNote", new Bundle(
+                "WordPress 사용 시 본사 merchantNotifyUrls에 등록할 결제 통보(Webhook) URL 예: "
+                        + "https://{가맹도메인}/wp-json/icopay/v1/webhook (WooCommerce) · "
+                        + "https://{가맹도메인}/wp-json/icopay-jpay/v1/webhook (일반 WP). ICOPAY가 결제 확정 시 POST합니다.",
+                "For WordPress, register merchant payment notify (webhook) URLs at HQ merchantNotifyUrls, e.g. "
+                        + "https://{your-domain}/wp-json/icopay/v1/webhook (WooCommerce) · "
+                        + "https://{your-domain}/wp-json/icopay-jpay/v1/webhook (general WP). ICOPAY POSTs on payment confirmation.",
+                "WordPress 利用時は本社 merchantNotifyUrls に登録: "
+                        + "https://{ドメイン}/wp-json/icopay/v1/webhook (WooCommerce) · "
+                        + "https://{ドメイン}/wp-json/icopay-jpay/v1/webhook (一般 WP)。決済確定時に ICOPAY が POST。",
+                "WordPress 请在总部 merchantNotifyUrls 登记: "
+                        + "https://{域名}/wp-json/icopay/v1/webhook (WooCommerce) · "
+                        + "https://{域名}/wp-json/icopay-jpay/v1/webhook (一般 WP)。ICOPAY 在支付确认时 POST。",
+                "WordPress ลงทะเบียน merchantNotifyUrls ที่ HQ เช่น "
+                        + "https://{โดเมน}/wp-json/icopay/v1/webhook (WooCommerce) · "
+                        + "https://{โดเมน}/wp-json/icopay-jpay/v1/webhook (WP ทั่วไป)"
+        ));
+        return wp;
+    }
+
+    /** 가맹 결제 통보(Webhook) vs PG→ICOPAY 노티 vs returnUrl — 5개 언어. */
+    private Map<String, Object> buildMerchantPaymentNotifyGuideBlock() {
+        Map<String, Object> g = new LinkedHashMap<>();
+        MerchantDeployL10n.putDescription(g, new Bundle(
+                "결제 결과 통보(Webhook) — ICOPAY가 가맹 서버(merchantNotifyUrls)로 POST",
+                "Payment result webhook — ICOPAY POSTs to the merchant server (merchantNotifyUrls)",
+                "決済結果 Webhook — ICOPAY が加盟店サーバー(merchantNotifyUrls)へ POST",
+                "支付结果 Webhook — ICOPAY 向商户服务器(merchantNotifyUrls) POST",
+                "Webhook ผลการชำระ — ICOPAY POST ไปเซิร์ฟเวอร์ร้าน (merchantNotifyUrls)"
+        ));
+        MerchantDeployL10n.putTextFields(g, "overviewNote", new Bundle(
+                "가맹 연동 문서의 「Webhook」은 ICOPAY → 가맹 서버 결제 확정 통보입니다. "
+                        + "본사 업체관리 merchantNotifyUrls에 가맹 HTTPS URL을 등록합니다. "
+                        + "WordPress 플러그인은 아래 REST 경로를 수신합니다.",
+                "In merchant integration docs, 「webhook」 means ICOPAY → merchant server payment confirmation. "
+                        + "Register the merchant HTTPS URL in HQ merchantNotifyUrls. WordPress plugins listen on the REST paths below.",
+                "加盟店連携の「Webhook」は ICOPAY → 加盟店サーバーへの決済確定通知です。"
+                        + "本社 merchantNotifyUrls に HTTPS URL を登録。WordPress は下記 REST を受信。",
+                "商户对接文档中的「Webhook」指 ICOPAY → 商户服务器的支付确认通知。"
+                        + "在总部 merchantNotifyUrls 登记 HTTPS URL。WordPress 插件接收下列 REST 路径。",
+                "Webhook ในเอกสารร้าน = ICOPAY → เซิร์ฟเวอร์ร้าน ลงทะเบียน URL ที่ HQ merchantNotifyUrls"
+        ));
+        MerchantDeployL10n.putTextFields(g, "wordpressWooWebhookNote", new Bundle(
+                "WooCommerce 플러그인 수신 URL: https://{가맹도메인}/wp-json/icopay/v1/webhook",
+                "WooCommerce plugin receive URL: https://{your-domain}/wp-json/icopay/v1/webhook",
+                "WooCommerce 受信 URL: https://{ドメイン}/wp-json/icopay/v1/webhook",
+                "WooCommerce 接收 URL: https://{域名}/wp-json/icopay/v1/webhook",
+                "WooCommerce: https://{โดเมน}/wp-json/icopay/v1/webhook"
+        ));
+        MerchantDeployL10n.putTextFields(g, "wordpressGeneralWebhookNote", new Bundle(
+                "일반 WordPress 플러그인 수신 URL: https://{가맹도메인}/wp-json/icopay-jpay/v1/webhook",
+                "General WordPress plugin receive URL: https://{your-domain}/wp-json/icopay-jpay/v1/webhook",
+                "一般 WordPress 受信 URL: https://{ドメイン}/wp-json/icopay-jpay/v1/webhook",
+                "一般 WordPress 接收 URL: https://{域名}/wp-json/icopay-jpay/v1/webhook",
+                "WP ทั่วไป: https://{โดเมน}/wp-json/icopay-jpay/v1/webhook"
+        ));
+        MerchantDeployL10n.putTextFields(g, "pgIngressNote", new Bundle(
+                "notifyIngressUrlMiddleware — JPAY/PG → ICOPAY 본사 수신 URL(본사·PG 설정). "
+                        + "가맹 WordPress Webhook과 별개이며 가맹이 등록하지 않습니다.",
+                "notifyIngressUrlMiddleware — JPAY/PG → ICOPAY HQ ingress (HQ/PG config). "
+                        + "Not the merchant WordPress webhook; merchants do not register this.",
+                "notifyIngressUrlMiddleware — JPAY/PG → ICOPAY 本社受信（本社・PG 設定）。"
+                        + "加盟店 WordPress Webhook とは別。加盟店は登録しない。",
+                "notifyIngressUrlMiddleware — JPAY/PG → ICOPAY 总部接收（总部/PG 配置）。"
+                        + "与商户 WordPress Webhook 不同，商户无需登记。",
+                "notifyIngressUrlMiddleware — JPAY/PG → ICOPAY HQ (ตั้งค่า HQ/PG) ไม่ใช่ Webhook ร้าน"
+        ));
+        MerchantDeployL10n.putTextFields(g, "returnUrlNote", new Bundle(
+                "returnUrl/cancelUrl — 리다이렉트 결제 후 브라우저 복귀용. Webhook이 아니며, "
+                        + "결제 확정은 Webhook(merchantNotifyUrls) 또는 Status API로 서버에서 확인하세요.",
+                "returnUrl/cancelUrl — browser return after redirect checkout, not a webhook. "
+                        + "Confirm payment on the server via webhook (merchantNotifyUrls) or Status API.",
+                "returnUrl/cancelUrl — リダイレクト後のブラウザ復帰用。Webhook ではない。"
+                        + "確定は Webhook または Status API でサーバー確認。",
+                "returnUrl/cancelUrl — 重定向后浏览器返回，非 Webhook。"
+                        + "请在服务器通过 Webhook 或 Status API 确认支付。",
+                "returnUrl/cancelUrl — กลับเบราว์เซอร์หลัง redirect ไม่ใช่ webhook ยืนยันที่เซิร์ฟเวอร์"
+        ));
+        g.put("woocommerceWebhookPath", "/wp-json/icopay/v1/webhook");
+        g.put("generalWordPressWebhookPath", "/wp-json/icopay-jpay/v1/webhook");
+        return g;
     }
 
     private Map<String, Object> buildMerchantUnifiedCheckoutBlock(String publicApiBase, String compId) {
@@ -603,7 +859,8 @@ public class MerchantApiDeploymentService {
      * 가맹 배포용 연동 방식 — JSON(REST 직접 호출) · PHP(샘플 클라이언트) 두 패키지.
      */
     private Map<String, Object> buildIntegrationModes(String publicApiBase, String compId,
-                                                      Map<String, Object> unifiedBlock) {
+                                                      Map<String, Object> unifiedBlock,
+                                                      Map<String, Object> unifiedRedirectBlock) {
         String base = publicApiBase != null ? publicApiBase.trim() : "";
         Map<String, Object> modes = new LinkedHashMap<>();
 
@@ -621,6 +878,7 @@ public class MerchantApiDeploymentService {
                 "3) GET .../checkout/status 또는 merchantNotifyUrls 웹훅으로 PAID 확인"
         ));
         jsonMode.put("unifiedCheckout", unifiedBlock);
+        jsonMode.put("unifiedRedirectCheckout", unifiedRedirectBlock);
         jsonMode.put("sampleFilesBaseUrl", base + "/merchant-api-samples/json/");
         jsonMode.put("prepareRequestExampleUrl", base + "/merchant-api-samples/json/unified-prepare-request.json");
         jsonMode.put("prepareResponseExampleUrl", base + "/merchant-api-samples/json/unified-prepare-response.example.json");

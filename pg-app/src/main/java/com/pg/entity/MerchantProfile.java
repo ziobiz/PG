@@ -197,6 +197,18 @@ public class MerchantProfile {
     @Column(name = "api_jpay_subscription_use_yn", nullable = false, length = 1)
     private String apiJpaySubscriptionUseYn = "N";
 
+    /** 가맹 API 인라인(embed) 연동 — 본사 apiBrokerInlineEnabledYn·urlPayInlineEnabledYn 과 함께 */
+    @Column(name = "api_broker_inline_use_yn", nullable = false, length = 1)
+    private String apiBrokerInlineUseYn = "Y";
+
+    /** 가맹 API 리다이렉트 연동 — 본사 apiBrokerRedirectEnabledYn·urlPayRedirectEnabledYn 과 함께 */
+    @Column(name = "api_broker_redirect_use_yn", nullable = false, length = 1)
+    private String apiBrokerRedirectUseYn = "N";
+
+    /** WordPress/WooCommerce 플러그인 연동 — 본사 apiWordpressPluginEnabledYn 과 함께 */
+    @Column(name = "api_wordpress_use_yn", nullable = false, length = 1)
+    private String apiWordpressUseYn = "N";
+
     /**
      * JPAY URL 결제창(jpay-pay.html) 입력 필드 가맹 오버라이드 —
      * {@link com.pg.urlpay.JpayCheckoutFieldModeUtil}. NULL/빈값이면 본사 기본값을 따름.
@@ -489,6 +501,21 @@ public class MerchantProfile {
     public String getApiJpaySubscriptionUseYn() { return apiJpaySubscriptionUseYn; }
     public void setApiJpaySubscriptionUseYn(String apiJpaySubscriptionUseYn) {
         this.apiJpaySubscriptionUseYn = apiJpaySubscriptionUseYn != null && "Y".equalsIgnoreCase(apiJpaySubscriptionUseYn.trim()) ? "Y" : "N";
+    }
+
+    public String getApiBrokerInlineUseYn() { return apiBrokerInlineUseYn; }
+    public void setApiBrokerInlineUseYn(String apiBrokerInlineUseYn) {
+        this.apiBrokerInlineUseYn = apiBrokerInlineUseYn != null && "Y".equalsIgnoreCase(apiBrokerInlineUseYn.trim()) ? "Y" : "N";
+    }
+
+    public String getApiBrokerRedirectUseYn() { return apiBrokerRedirectUseYn; }
+    public void setApiBrokerRedirectUseYn(String apiBrokerRedirectUseYn) {
+        this.apiBrokerRedirectUseYn = apiBrokerRedirectUseYn != null && "Y".equalsIgnoreCase(apiBrokerRedirectUseYn.trim()) ? "Y" : "N";
+    }
+
+    public String getApiWordpressUseYn() { return apiWordpressUseYn; }
+    public void setApiWordpressUseYn(String apiWordpressUseYn) {
+        this.apiWordpressUseYn = apiWordpressUseYn != null && "Y".equalsIgnoreCase(apiWordpressUseYn.trim()) ? "Y" : "N";
     }
 
     public String getJpayCheckoutFieldMode() { return jpayCheckoutFieldMode; }

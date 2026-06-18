@@ -2,8 +2,8 @@
 /**
  * Plugin Name: ICOPAY WooCommerce
  * Plugin URI: https://icopay.co.kr
- * Description: ICOPAY URL 인라인 결제(ChillPay/JPAY)를 WooCommerce 결제 수단으로 연동합니다.
- * Version: 1.0.0
+ * Description: ICOPAY URL 인라인·리다이렉트 결제(ChillPay/JPAY)를 WooCommerce 결제 수단으로 연동합니다.
+ * Version: 1.1.0
  * Author: ICOPAY
  * Requires at least: 6.0
  * Requires PHP: 7.4
@@ -17,10 +17,35 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'ICOPAY_WC_VERSION', '1.0.0' );
+define( 'ICOPAY_WC_VERSION', '1.1.0' );
 define( 'ICOPAY_WC_PLUGIN_FILE', __FILE__ );
 define( 'ICOPAY_WC_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'ICOPAY_WC_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
+
+/**
+ * Load icopay-core (bundled or sibling path).
+ */
+function icopay_wc_load_core() {
+	static $loaded = false;
+	if ( $loaded ) {
+		return;
+	}
+	$candidates = array(
+		ICOPAY_WC_PLUGIN_DIR . 'includes/icopay-core/icopay-core.php',
+		dirname( ICOPAY_WC_PLUGIN_DIR ) . '/icopay-core/icopay-core.php',
+		dirname( dirname( ICOPAY_WC_PLUGIN_DIR ) ) . '/wordpress/icopay-core/icopay-core.php',
+	);
+	foreach ( $candidates as $path ) {
+		if ( is_readable( $path ) ) {
+			require_once $path;
+			if ( function_exists( 'icopay_core_bootstrap' ) ) {
+				icopay_core_bootstrap();
+			}
+			$loaded = true;
+			return;
+		}
+	}
+}
 
 /**
  * WooCommerce 미설치 시 안내.
@@ -37,6 +62,8 @@ function icopay_wc_init() {
 		add_action( 'admin_notices', 'icopay_wc_missing_wc_notice' );
 		return;
 	}
+
+	icopay_wc_load_core();
 
 	require_once ICOPAY_WC_PLUGIN_DIR . 'includes/class-icopay-api-client.php';
 	require_once ICOPAY_WC_PLUGIN_DIR . 'includes/class-icopay-order-helper.php';

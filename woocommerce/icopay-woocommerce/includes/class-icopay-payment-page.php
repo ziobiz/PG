@@ -1,6 +1,6 @@
 <?php
 /**
- * ICOPAY 결제(iframe) 페이지 — wc-api=icopay_pay.
+ * ICOPAY 결제 페이지 — inline (wc-api=icopay_pay) + redirect return (wc-api=icopay_return).
  *
  * @package ICOPAY_WooCommerce
  */
@@ -17,12 +17,13 @@ class ICOPAY_Payment_Page {
 	 */
 	public static function init() {
 		add_action( 'woocommerce_api_icopay_pay', array( __CLASS__, 'render' ) );
+		add_action( 'woocommerce_api_icopay_return', array( __CLASS__, 'handle_return' ) );
 		add_action( 'wp_ajax_icopay_confirm_status', array( __CLASS__, 'ajax_confirm_status' ) );
 		add_action( 'wp_ajax_nopriv_icopay_confirm_status', array( __CLASS__, 'ajax_confirm_status' ) );
 	}
 
 	/**
-	 * Payment page URL.
+	 * Inline payment page URL.
 	 *
 	 * @param WC_Order $order Order.
 	 * @return string
@@ -36,6 +37,73 @@ class ICOPAY_Payment_Page {
 			),
 			home_url( '/' )
 		);
+	}
+
+	/**
+	 * Redirect flow return URL (customer lands here after ICOPAY pay page).
+	 *
+	 * @param WC_Order $order Order.
+	 * @return string
+	 */
+	public static function get_return_url( WC_Order $order ) {
+		return add_query_arg(
+			array(
+				'wc-api'   => 'icopay_return',
+				'order_id' => $order->get_id(),
+				'key'      => $order->get_order_key(),
+			),
+			home_url( '/' )
+		);
+	}
+
+	/**
+	 * Redirect return handler — poll status and send customer to order received page.
+	 */
+	public static function handle_return() {
+		$order_id = isset( $_GET['order_id'] ) ? absint( $_GET['order_id'] ) : 0;
+		$key      = isset( $_GET['key'] ) ? wc_clean( wp_unslash( $_GET['key'] ) ) : '';
+
+		$order = wc_get_order( $order_id );
+		if ( ! $order || ! hash_equals( $order->get_order_key(), $key ) ) {
+			wp_die( esc_html__( 'Invalid payment return link.', 'icopay-woocommerce' ), 403 );
+		}
+
+		if ( $order->is_paid() ) {
+			wp_safe_redirect( $order->get_checkout_order_received_url() );
+			exit;
+		}
+
+		$gateways = WC()->payment_gateways()->payment_gateways();
+		/** @var WC_Gateway_ICOPAY|null $gateway */
+		$gateway = isset( $gateways['icopay'] ) ? $gateways['icopay'] : null;
+		if ( ! $gateway || 'icopay' !== $order->get_payment_method() ) {
+			wp_die( esc_html__( 'Payment method not available.', 'icopay-woocommerce' ), 400 );
+		}
+
+		$order_no = $order->get_meta( ICOPAY_Order_Helper::META_ORDER_NO, true );
+		$flow     = ICOPAY_Flow::normalize( $order->get_meta( ICOPAY_Order_Helper::META_FLOW, true ) );
+		if ( ICOPAY_Flow::INLINE === $flow ) {
+			$flow = ICOPAY_Flow::REDIRECT;
+		}
+
+		$api = ICOPAY_Api_Client::from_settings( $gateway->get_icopay_settings() );
+		$res = $api->get_payment_status( $order_no, $flow );
+
+		if ( ! empty( $res['success'] ) && ! empty( $res['data']['paymentStatus'] ) ) {
+			$ps = strtoupper( (string) $res['data']['paymentStatus'] );
+			if ( 'PAID' === $ps ) {
+				ICOPAY_Order_Helper::mark_paid_from_payload(
+					$order,
+					array(
+						'trnId'   => $res['data']['transactionId'] ?? '',
+						'orderNo' => $order_no,
+					)
+				);
+			}
+		}
+
+		wp_safe_redirect( $order->get_checkout_order_received_url() );
+		exit;
 	}
 
 	/**
@@ -67,11 +135,11 @@ class ICOPAY_Payment_Page {
 			wp_die( esc_html__( 'Payment session expired. Please try checkout again.', 'icopay-woocommerce' ), 410 );
 		}
 
-		$api     = ICOPAY_Api_Client::from_settings( $gateway->get_icopay_settings() );
-		$lang    = $gateway->get_option( 'lang', 'auto' );
-		$embed   = $api->build_embed_html( $session, 'icopay-wc-checkout', $lang );
-		$origin  = $api->get_allowed_origin();
-		$return  = $order->get_checkout_order_received_url();
+		$api      = ICOPAY_Api_Client::from_settings( $gateway->get_icopay_settings() );
+		$lang     = $gateway->get_option( 'lang', 'auto' );
+		$embed    = $api->build_embed_html( $session, 'icopay-wc-checkout', $lang );
+		$origin   = $api->get_allowed_origin();
+		$return   = $order->get_checkout_order_received_url();
 		$order_no = $order->get_meta( ICOPAY_Order_Helper::META_ORDER_NO, true );
 
 		wp_enqueue_style(
@@ -105,7 +173,6 @@ class ICOPAY_Payment_Page {
 			)
 		);
 
-		$title = $gateway->get_option( 'title', 'ICOPAY' );
 		include ICOPAY_WC_PLUGIN_DIR . 'templates/payment-page.php';
 		exit;
 	}
@@ -130,8 +197,8 @@ class ICOPAY_Payment_Page {
 		if ( $order->is_paid() ) {
 			wp_send_json_success(
 				array(
-					'paid'       => true,
-					'redirect'   => $order->get_checkout_order_received_url(),
+					'paid'     => true,
+					'redirect' => $order->get_checkout_order_received_url(),
 				)
 			);
 		}
@@ -144,8 +211,9 @@ class ICOPAY_Payment_Page {
 		}
 
 		$order_no = $order->get_meta( ICOPAY_Order_Helper::META_ORDER_NO, true );
+		$flow     = ICOPAY_Flow::normalize( $order->get_meta( ICOPAY_Order_Helper::META_FLOW, true ) );
 		$api      = ICOPAY_Api_Client::from_settings( $gateway->get_icopay_settings() );
-		$res      = $api->get_payment_status( $order_no );
+		$res      = $api->get_payment_status( $order_no, $flow );
 
 		$paid = false;
 		if ( ! empty( $res['success'] ) && ! empty( $res['data']['paymentStatus'] ) ) {
@@ -173,8 +241,8 @@ class ICOPAY_Payment_Page {
 
 		wp_send_json_success(
 			array(
-				'paid'           => false,
-				'paymentStatus'  => $res['data']['paymentStatus'] ?? 'PENDING',
+				'paid'          => false,
+				'paymentStatus' => $res['data']['paymentStatus'] ?? 'PENDING',
 			)
 		);
 	}

@@ -3,7 +3,9 @@ package com.pg.service;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.pg.entity.Notice;
+import com.pg.entity.OrgLevel;
 import com.pg.repository.NoticeRepository;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -11,10 +13,10 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Optional;
 
 /**
  * 비로그인 로그인 페이지 — {@code Accept-Language} 에 맞춰 공지 제목·본문 한 벌 반환.
+ * 접속팝업·첫화면은 <b>총본사(HEADQUARTERS) 작성</b> 공지만 노출합니다.
  */
 @Service
 public class LoginNoticePublicService {
@@ -31,17 +33,29 @@ public class LoginNoticePublicService {
     public Map<String, Object> resolveForAcceptLanguage(String acceptLanguage) {
         String lang = pickLangBucket(acceptLanguage);
         Map<String, Object> map = new LinkedHashMap<>();
-        map.put("home", resolvePinned(noticeRepository.findFirstByShowOnLoginOrderByRegDtDescIdDesc("Y"), lang));
-        map.put("popup", resolvePinned(noticeRepository.findFirstByShowAsPopupOrderByRegDtDescIdDesc("Y"), lang));
+        map.put("home", resolveHeadquartersLoginSite(
+                noticeRepository.findLoginSiteHomeByWriterLevelOrderByRegDtDescIdDesc(
+                        "Y", OrgLevel.HEADQUARTERS, PageRequest.of(0, 1)),
+                lang));
+        map.put("popup", resolveHeadquartersLoginSite(
+                noticeRepository.findLoginSitePopupByWriterLevelOrderByRegDtDescIdDesc(
+                        "Y", OrgLevel.HEADQUARTERS, PageRequest.of(0, 1)),
+                lang));
         map.put("resolvedLang", lang);
         return map;
     }
 
-    private Map<String, Object> resolvePinned(Optional<Notice> opt, String lang) {
-        if (opt.isEmpty()) {
+    private Map<String, Object> resolveHeadquartersLoginSite(List<Notice> candidates, String lang) {
+        if (candidates == null || candidates.isEmpty()) {
             return Map.of("hasNotice", false);
         }
-        Notice n = opt.get();
+        return resolvePinned(candidates.get(0), lang);
+    }
+
+    private Map<String, Object> resolvePinned(Notice n, String lang) {
+        if (n == null) {
+            return Map.of("hasNotice", false);
+        }
         String title = n.getTitle();
         String body = n.getContent() != null ? n.getContent() : "";
         String json = n.getLoginI18nJson();

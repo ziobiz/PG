@@ -41,13 +41,29 @@ public class Notice {
     @Column(name = "login_i18n_json", columnDefinition = "TEXT")
     private String loginI18nJson;
 
-    /** Y: 로그인 직후 모달 팝업(동시에 하나만 Y) */
+    /** Y: 로그인 페이지 접속팝업(동시에 하나만 Y, 총본사 전용) */
     @Column(name = "show_as_popup", nullable = false, length = 1)
     private String showAsPopup = "N";
+
+    /** Y: 로그인 완료 후 메인 팝업(동시에 하나만 Y) */
+    @Column(name = "show_post_login_popup", nullable = false, length = 1)
+    private String showPostLoginPopup = "N";
+
+    /** Y: 메인 대시보드 공지(동시에 하나만 Y) */
+    @Column(name = "show_on_main", nullable = false, length = 1)
+    private String showOnMain = "N";
 
     /** 작성자 표시명(로그인 사용자 이름·없으면 아이디) */
     @Column(name = "writer_nm", length = 100)
     private String writerNm;
+
+    /** 배포 대상 코드 — {@link com.pg.notice.NoticeDeployTarget} */
+    @Column(name = "deploy_target", length = 30)
+    private String deployTarget;
+
+    /** NOTI 배포 시 대상 tb_org_unit.id JSON 배열 */
+    @Column(name = "target_org_unit_ids_json", columnDefinition = "TEXT")
+    private String targetOrgUnitIdsJson;
 
     @PrePersist
     protected void onCreate() {
@@ -75,6 +91,14 @@ public class Notice {
     public void setLoginI18nJson(String loginI18nJson) { this.loginI18nJson = loginI18nJson; }
     public String getShowAsPopup() { return showAsPopup; }
     public void setShowAsPopup(String showAsPopup) { this.showAsPopup = showAsPopup; }
+    public String getShowPostLoginPopup() { return showPostLoginPopup; }
+    public void setShowPostLoginPopup(String showPostLoginPopup) { this.showPostLoginPopup = showPostLoginPopup; }
+    public String getShowOnMain() { return showOnMain; }
+    public void setShowOnMain(String showOnMain) { this.showOnMain = showOnMain; }
     public String getWriterNm() { return writerNm; }
     public void setWriterNm(String writerNm) { this.writerNm = writerNm; }
+    public String getDeployTarget() { return deployTarget; }
+    public void setDeployTarget(String deployTarget) { this.deployTarget = deployTarget; }
+    public String getTargetOrgUnitIdsJson() { return targetOrgUnitIdsJson; }
+    public void setTargetOrgUnitIdsJson(String targetOrgUnitIdsJson) { this.targetOrgUnitIdsJson = targetOrgUnitIdsJson; }
 }

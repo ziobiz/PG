@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Optional;
 
 /**
  * PG 무관 통합 가맹 인라인 checkout — 운영 WEB PG({@link ChillPayService#resolveUrlPayOperationalPgCd})에 따라
@@ -22,20 +23,28 @@ public class MerchantUnifiedInlineCheckoutService {
     private final MerchantJpayInlineCheckoutService jpayInlineCheckoutService;
     private final MerchantInlineCheckoutTokenService tokenService;
     private final MerchantChatbotProductService productService;
+    private final MerchantApiIntegrationChannelService integrationChannelService;
 
     public MerchantUnifiedInlineCheckoutService(ChillPayService chillPayService,
                                                 MerchantInlineCheckoutService chillpayInlineCheckoutService,
                                                 MerchantJpayInlineCheckoutService jpayInlineCheckoutService,
                                                 MerchantInlineCheckoutTokenService tokenService,
-                                                MerchantChatbotProductService productService) {
+                                                MerchantChatbotProductService productService,
+                                                MerchantApiIntegrationChannelService integrationChannelService) {
         this.chillPayService = chillPayService;
         this.chillpayInlineCheckoutService = chillpayInlineCheckoutService;
         this.jpayInlineCheckoutService = jpayInlineCheckoutService;
         this.tokenService = tokenService;
         this.productService = productService;
+        this.integrationChannelService = integrationChannelService;
     }
 
     public Map<String, Object> prepare(Long orgUnitId, Map<String, Object> body, HttpServletRequest request) {
+        Optional<String> inlineDeny = integrationChannelService.denyMessage(orgUnitId,
+                MerchantApiIntegrationChannelService.Channel.API_BROKER_INLINE);
+        if (inlineDeny.isPresent()) {
+            return fail(inlineDeny.get(), MerchantApiIntegrationChannelService.CODE_INTEGRATION_CHANNEL_DISABLED);
+        }
         Map<String, String> buyer;
         try {
             buyer = IcipayBuyerContactUtil.extractAndValidateRequired(body);

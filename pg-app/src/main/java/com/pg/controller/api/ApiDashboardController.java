@@ -3,12 +3,14 @@ package com.pg.controller.api;
 import com.pg.api.ApiResponse;
 import com.pg.service.DashboardHomeService;
 import org.springframework.http.CacheControl;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -26,9 +28,10 @@ public class ApiDashboardController {
 
     /** 메인(/main) 카드·정산 달력·서버 요약 */
     @GetMapping("/home")
-    public ResponseEntity<ApiResponse<Map<String, Object>>> home() {
+    public ResponseEntity<ApiResponse<Map<String, Object>>> home(
+            @RequestHeader(value = HttpHeaders.ACCEPT_LANGUAGE, required = false) String acceptLanguage) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        Map<String, Object> body = dashboardHomeService.buildHome(auth);
+        Map<String, Object> body = dashboardHomeService.buildHome(auth, acceptLanguage);
         if (Boolean.FALSE.equals(body.get("ok"))) {
             return ResponseEntity.ok(ApiResponse.fail(
                     body.get("message") != null ? body.get("message").toString() : "오류", "UNAUTHORIZED"));

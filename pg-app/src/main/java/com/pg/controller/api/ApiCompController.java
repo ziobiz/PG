@@ -284,6 +284,9 @@ public class ApiCompController {
             @RequestParam(required = false) String apiUrlPayCheckoutMode,
             @RequestParam(required = false) String chatbotUrlPayCheckoutMode,
             @RequestParam(required = false) String apiJpaySubscriptionUseYn,
+            @RequestParam(required = false) String apiBrokerInlineUseYn,
+            @RequestParam(required = false) String apiBrokerRedirectUseYn,
+            @RequestParam(required = false) String apiWordpressUseYn,
             @RequestParam(required = false) String jpayCheckoutFieldMode,
             @RequestParam(required = false) String jpayPhoneDialCodeYn,
             @RequestParam(required = false) String tabletFeatureUseYn) {
@@ -340,6 +343,9 @@ public class ApiCompController {
                 apiUrlPayCheckoutMode,
                 chatbotUrlPayCheckoutMode,
                 apiJpaySubscriptionUseYn,
+                apiBrokerInlineUseYn,
+                apiBrokerRedirectUseYn,
+                apiWordpressUseYn,
                 jpayCheckoutFieldMode,
                 jpayPhoneDialCodeYn,
                 tabletFeatureUseYn);
@@ -501,6 +507,9 @@ public class ApiCompController {
             @RequestParam(required = false) String apiUrlPayCheckoutMode,
             @RequestParam(required = false) String chatbotUrlPayCheckoutMode,
             @RequestParam(required = false) String apiJpaySubscriptionUseYn,
+            @RequestParam(required = false) String apiBrokerInlineUseYn,
+            @RequestParam(required = false) String apiBrokerRedirectUseYn,
+            @RequestParam(required = false) String apiWordpressUseYn,
             @RequestParam(required = false) String jpayCheckoutFieldMode,
             @RequestParam(required = false) String jpayPhoneDialCodeYn,
             @RequestParam(required = false) String tabletFeatureUseYn) {
@@ -546,6 +555,9 @@ public class ApiCompController {
                     apiUrlPayCheckoutMode,
                     chatbotUrlPayCheckoutMode,
                     apiJpaySubscriptionUseYn,
+                    apiBrokerInlineUseYn,
+                    apiBrokerRedirectUseYn,
+                    apiWordpressUseYn,
                     jpayCheckoutFieldMode,
                     jpayPhoneDialCodeYn,
                     tabletFeatureUseYn);

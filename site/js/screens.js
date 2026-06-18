@@ -155,6 +155,22 @@
       '</div></div>';
   }
 
+  /** 가맹 등록·정보 — 가맹 API 연동 채널(인라인·리다이렉트·WordPress) */
+  function merchantApiIntegrationChannelsCardSection() {
+    return {
+      title: '가맹 API 연동 채널',
+      id: 'merchantApiIntegrationChannelsCard',
+      merchantOnly: true,
+      notice: '가맹점 API(prepare·embed·redirect·WordPress) 연동 방식을 가맹별로 오픈합니다. 본사 전역 상한은 배포설정 → 결제로직설정입니다. WordPress 사용 시 API 인라인 또는 리다이렉트 중 하나 이상을 켜야 합니다.',
+      rows: [
+        [{ label: 'API 인라인 연동', type: 'select', name: 'apiBrokerInlineUseYn', options: [{ v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }], col: 3 },
+         { label: 'API 리다이렉트 연동', type: 'select', name: 'apiBrokerRedirectUseYn', options: [{ v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }], col: 3 },
+         { label: 'WordPress/WooCommerce', type: 'select', name: 'apiWordpressUseYn', options: [{ v: 'N', t: '미사용' }, { v: 'Y', t: '사용' }], col: 3 }],
+        [{ label: '', type: 'note', col: 12, text: '가맹점 API 생성·배포문서·가맹점API 화면에는 여기서 켠 채널만 노출됩니다. prepare API도 비활성 채널은 INTEGRATION_CHANNEL_DISABLED 로 거부됩니다.' }]
+      ]
+    };
+  }
+
   /** 가맹 등록·정보 — JPAY API 구독(③ 인라인 전용) */
   function merchantJpayApiSubscriptionCardSection() {
     return {
@@ -225,7 +241,7 @@
     return '<div class="row mb-2" id="chatbotQrRow" style="display:none">' +
       '<div class="col-12">' +
       '<label class="form-label" data-pg-ui-t="챗봇 결제 QR">' + escUi(L('챗봇 결제 QR')) + '</label>' +
-      '<div class="form-text text-muted small mb-1" data-pg-ui-t="챗봇 QR 안내">' + escUi(L('카메라로 스캔하면 챗봇 결제 페이지로 이동합니다. 전단·POP·매장 안내에 사용할 수 있습니다.')) + '</div>' +
+      '<div class="form-text text-muted small mb-1" data-pg-ui-t="카메라로 스캔하면 챗봇 결제 페이지로 이동합니다. 전단·POP·매장 안내에 사용할 수 있습니다.">' + escUi(L('카메라로 스캔하면 챗봇 결제 페이지로 이동합니다. 전단·POP·매장 안내에 사용할 수 있습니다.')) + '</div>' +
       '<div class="d-flex flex-wrap align-items-start gap-3">' +
       '<div class="d-flex align-items-center justify-content-center border rounded bg-light" style="width:188px;height:188px">' +
       '<img id="chatbotQrImg" alt="" width="176" height="176" class="d-none" decoding="async" />' +
@@ -1665,7 +1681,8 @@
     '<p class="fw-semibold text-dark mb-2" data-pg-ui-t="순서">순서</p>' +
     '<ol class="mb-2 ps-3">' +
     '<li class="mb-1"><span data-pg-ui-t="API연동설정에서 PG사 연동 추가 후, 연동용도에 API를 켭니다.">API연동설정에서 PG사 연동 추가 후, 연동용도에 API를 켭니다.</span></li>' +
-    '<li class="mb-1"><span data-pg-ui-t="업체등록에서 조직을 가맹점으로 등록하고, 결제대행사에서 아래 목록의 PG 중 하나를 선택·저장합니다.">업체등록에서 조직을 가맹점으로 등록하고, 결제대행사에서 아래 목록의 PG 중 하나를 선택·저장합니다.</span></li>' +
+    '<li class="mb-1"><span data-pg-ui-t="업체등록·업체관리에서 조직을 가맹점으로 등록하고, 「가맹 API 연동 채널」에서 인라인·리다이렉트·WordPress 중 해당 가맹에 맞는 방식만 켭니다.">업체등록·업체관리에서 조직을 가맹점으로 등록하고, 「가맹 API 연동 채널」에서 인라인·리다이렉트·WordPress 중 해당 가맹에 맞는 방식만 켭니다.</span></li>' +
+    '<li class="mb-1"><span data-pg-ui-t="결제대행사(PG) 바인딩은 업체정보 결제대행사에서 저장합니다. PG와 연동 채널은 별개입니다.">결제대행사(PG) 바인딩은 업체정보 결제대행사에서 저장합니다. PG와 연동 채널은 별개입니다.</span></li>' +
     '<li class="mb-1"><span data-pg-ui-t="콜백·결과 URL은 업체정보 또는 통보관리 메뉴에서 등록합니다.">콜백·결과 URL은 업체정보 또는 통보관리 메뉴에서 등록합니다.</span></li>' +
     '<li class="mb-0"><span data-pg-ui-t="등록이 끝나면 2. 가맹점 API 생성에서 MID·엔드포인트·연동 JSON을 발급합니다.">등록이 끝나면 2. 가맹점 API 생성에서 MID·엔드포인트·연동 JSON을 발급합니다.</span></li></ol>' +
     '<p class="small text-muted mb-0" data-pg-ui-t="이 표는 API연동설정 DB를 읽어, 연동용도에 API가 포함된 행만 보여 줍니다.">이 표는 API연동설정 DB를 읽어, 연동용도에 API가 포함된 행만 보여 줍니다.</p></div>' +
@@ -1733,13 +1750,27 @@
     '<button type="button" class="btn btn-outline-secondary btn-sm" id="merchantDeployEnforceBtn" data-pg-ui-t="강제여부 저장">강제여부 저장</button></div>' +
     '<div class="merchant-deploy-table-wrap table-no-col-resize-wrap border rounded mb-2">' +
     '<table class="table table-sm table-bordered align-middle merchant-deploy-merchant-table table-no-col-resize w-100 mb-0" id="merchantDeployMerchantGrid">' +
-    '<colgroup><col class="merchant-deploy-col-act" /><col class="merchant-deploy-col-code" /><col class="merchant-deploy-col-master" /><col /><col class="merchant-deploy-col-pg" /><col class="merchant-deploy-col-cur" /><col class="merchant-deploy-col-broker" /><col class="merchant-deploy-col-issued-date" /><col class="merchant-deploy-col-issued-by" /></colgroup>' +
-    '<thead class="table-light"><tr><th class="text-center text-nowrap" data-pg-ui-t="선택">선택</th><th class="text-nowrap" data-pg-ui-t="업체코드">업체코드</th><th class="text-nowrap" data-pg-ui-t="상위 총판">상위 총판</th><th data-pg-ui-t="업체명">업체명</th><th class="text-nowrap" data-pg-ui-t="PG대행사">PG대행사</th><th class="text-nowrap" data-pg-ui-t="기준통화">기준통화</th><th class="text-nowrap" data-pg-ui-t="브로커 시크릿">브로커 시크릿</th><th class="text-nowrap" data-pg-ui-t="발행일자">발행일자</th><th class="text-nowrap" data-pg-ui-t="발행자">발행자</th></tr></thead>' +
-    '<tbody><tr><td colspan="9" class="text-center text-muted py-3" data-pg-ui-t="로딩 중…">로딩 중…</td></tr></tbody></table></div>' +
+    '<colgroup><col class="merchant-deploy-col-act" /><col class="merchant-deploy-col-code" /><col class="merchant-deploy-col-master" /><col /><col class="merchant-deploy-col-pg" /><col class="merchant-deploy-col-channel" /><col class="merchant-deploy-col-cur" /><col class="merchant-deploy-col-broker" /><col class="merchant-deploy-col-issued-date" /><col class="merchant-deploy-col-issued-by" /></colgroup>' +
+    '<thead class="table-light"><tr><th class="text-center text-nowrap" data-pg-ui-t="선택">선택</th><th class="text-nowrap" data-pg-ui-t="업체코드">업체코드</th><th class="text-nowrap" data-pg-ui-t="상위 총판">상위 총판</th><th data-pg-ui-t="업체명">업체명</th><th class="text-nowrap" data-pg-ui-t="PG대행사">PG대행사</th><th class="text-nowrap" data-pg-ui-t="채널" data-pg-ui-title="가맹 API 연동 채널: IN=INLINE, RE=REDIRECT, WO=WordPress/WooCommerce. 복수 사용 시 IN/RE 형식.">채널</th><th class="text-nowrap" data-pg-ui-t="기준통화">기준통화</th><th class="text-nowrap" data-pg-ui-t="브로커 시크릿">브로커 시크릿</th><th class="text-nowrap" data-pg-ui-t="발행일자">발행일자</th><th class="text-nowrap" data-pg-ui-t="발행자">발행자</th></tr></thead>' +
+    '<tbody><tr><td colspan="10" class="text-center text-muted py-3" data-pg-ui-t="로딩 중…">로딩 중…</td></tr></tbody></table></div>' +
     '<p class="small text-muted mb-2" id="merchantDeployPageInfo"></p>' +
     '<label class="form-label small mb-0" id="merchantDeployKitLabel" data-pg-ui-t="연동 패키지 (JSON / PHP)">연동 패키지 (JSON / PHP)</label>' +
     '<pre id="merchantDeployKitJson" class="bg-light p-3 small mb-0" style="max-height:520px;overflow:auto;border:1px solid #dee2e6;white-space:pre-wrap;">' +
-    '<span data-pg-ui-t="업체를 고른 뒤 JSON 또는 PHP 연동 패키지 버튼을 누르세요.">업체를 고른 뒤 JSON 또는 PHP 연동 패키지 버튼을 누르세요.</span></pre></div>';
+    '<span data-pg-ui-t="업체를 고른 뒤 JSON 또는 PHP 연동 패키지 버튼을 누르세요.">업체를 고른 뒤 JSON 또는 PHP 연동 패키지 버튼을 누르세요.</span></pre>' +
+    '<div id="merchantDeployKitDetail" class="d-none mt-4">' +
+    '<section class="mb-4"><h6 class="fw-semibold border-bottom pb-2 mb-3" data-pg-ui-t="가맹 API 연동 채널">가맹 API 연동 채널</h6>' +
+    '<div class="small" id="merchantGenIntegrationChannels"></div></section>' +
+    '<section class="mb-4"><h6 class="fw-semibold border-bottom pb-2 mb-3 d-flex flex-wrap align-items-baseline gap-1">' +
+    '<span data-pg-ui-t="Checkout API 엔드포인트">Checkout API 엔드포인트</span>' +
+    '<span class="text-muted fw-normal user-select-none" aria-hidden="true">/</span>' +
+    '<button type="button" class="btn btn-link btn-sm p-0 align-baseline text-nowrap merchant-api-flow-doc-menu" id="merchantGenFlowDocOpen" data-pg-ui-t="연동설명서">연동설명서</button></h6>' +
+    '<ul class="small mb-0 ps-3" id="merchantGenEndpoints"></ul></section>' +
+    '<section class="mb-4"><h6 class="fw-semibold border-bottom pb-2 mb-3" data-pg-ui-t="결제 통보 (Webhook) 안내">결제 통보 (Webhook) 안내</h6>' +
+    '<div class="small" id="merchantGenWebhook"></div></section>' +
+    '<section class="mb-4"><h6 class="fw-semibold border-bottom pb-2 mb-3" data-pg-ui-t="WordPress JPAY 플러그인">WordPress JPAY 플러그인</h6>' +
+    '<div class="small" id="merchantGenWordPress"></div></section>' +
+    '<section class="mb-2"><h6 class="fw-semibold border-bottom pb-2 mb-3" data-pg-ui-t="연동 체크리스트">연동 체크리스트</h6>' +
+    '<ol class="small mb-0 ps-3" id="merchantGenChecklist"></ol></section></div></div>';
 
   var MERCHANT_API_DEPLOY_DOCS_HTML = '<div class="merchant-api-deploy-docs text-body">' +
     '<h5 class="fw-semibold mb-2" data-pg-ui-t="API 배포 문서">API 배포 문서</h5>' +
@@ -1755,9 +1786,9 @@
     '<div class="col-md-4 d-flex align-items-end"><button type="button" class="btn btn-primary btn-sm w-100" id="merchantApiDocsSearchBtn" data-pg-ui-t="가맹점 검색">가맹점 검색</button></div></div>' +
     '<div class="merchant-deploy-table-wrap table-no-col-resize-wrap border rounded mb-2">' +
     '<table class="table table-sm table-bordered align-middle merchant-deploy-merchant-table table-no-col-resize w-100 mb-0" id="merchantApiDocsMerchantGrid">' +
-    '<colgroup><col class="merchant-deploy-col-act" /><col class="merchant-deploy-col-code" /><col class="merchant-deploy-col-master" /><col /><col class="merchant-deploy-col-pg" /><col class="merchant-deploy-col-cur" /></colgroup>' +
-    '<thead class="table-light"><tr><th class="text-center text-nowrap" data-pg-ui-t="선택">선택</th><th class="text-nowrap" data-pg-ui-t="업체코드">업체코드</th><th class="text-nowrap" data-pg-ui-t="상위 총판">상위 총판</th><th data-pg-ui-t="업체명">업체명</th><th class="text-nowrap" data-pg-ui-t="PG대행사">PG대행사</th><th class="text-nowrap" data-pg-ui-t="기준통화">기준통화</th></tr></thead>' +
-    '<tbody><tr><td colspan="6" class="text-center text-muted py-3" data-pg-ui-t="로딩 중…">로딩 중…</td></tr></tbody></table></div>' +
+    '<colgroup><col class="merchant-deploy-col-act" /><col class="merchant-deploy-col-code" /><col class="merchant-deploy-col-master" /><col /><col class="merchant-deploy-col-pg" /><col class="merchant-deploy-col-channel" /><col class="merchant-deploy-col-cur" /><col class="merchant-deploy-col-broker" /><col class="merchant-deploy-col-issued-date" /><col class="merchant-deploy-col-issued-by" /></colgroup>' +
+    '<thead class="table-light"><tr><th class="text-center text-nowrap" data-pg-ui-t="선택">선택</th><th class="text-nowrap" data-pg-ui-t="업체코드">업체코드</th><th class="text-nowrap" data-pg-ui-t="상위 총판">상위 총판</th><th data-pg-ui-t="업체명">업체명</th><th class="text-nowrap" data-pg-ui-t="PG대행사">PG대행사</th><th class="text-nowrap" data-pg-ui-t="채널" data-pg-ui-title="가맹 API 연동 채널: IN=INLINE, RE=REDIRECT, WO=WordPress/WooCommerce. 복수 사용 시 IN/RE 형식.">채널</th><th class="text-nowrap" data-pg-ui-t="기준통화">기준통화</th><th class="text-nowrap" data-pg-ui-t="브로커 시크릿">브로커 시크릿</th><th class="text-nowrap" data-pg-ui-t="발행일자">발행일자</th><th class="text-nowrap" data-pg-ui-t="발행자">발행자</th></tr></thead>' +
+    '<tbody><tr><td colspan="10" class="text-center text-muted py-3" data-pg-ui-t="로딩 중…">로딩 중…</td></tr></tbody></table></div>' +
     '<p class="small text-muted mb-3" id="merchantApiDocsPageInfo"></p>' +
     '<div id="merchantApiDocsSummary" class="alert alert-secondary small mb-3 py-2 d-none" role="status" aria-live="polite"></div>' +
     '<div id="merchantApiDocsContent" class="d-none">' +
@@ -1782,11 +1813,17 @@
     '<h6 class="small fw-semibold mt-3 mb-2" data-pg-ui-t="오류 코드">오류 코드</h6>' +
     '<div class="table-responsive border rounded mb-3"><table class="table table-sm table-bordered align-middle mb-0 w-100" id="merchantApiDocsErrorGrid">' +
     '<thead class="table-light"><tr><th data-pg-ui-t="오류코드">오류코드</th><th data-pg-ui-t="의미">의미</th></tr></thead><tbody></tbody></table></div></section>' +
+    '<section class="mb-4"><h6 class="fw-semibold border-bottom pb-2 mb-3" data-pg-ui-t="가맹 API 연동 채널">가맹 API 연동 채널</h6>' +
+    '<div class="small" id="merchantApiDocsIntegrationChannels"></div></section>' +
     '<section class="mb-4"><h6 class="fw-semibold border-bottom pb-2 mb-3 d-flex flex-wrap align-items-baseline gap-1">' +
-    '<span data-pg-ui-t="통합 Checkout 엔드포인트">통합 Checkout 엔드포인트</span>' +
+    '<span data-pg-ui-t="Checkout API 엔드포인트">Checkout API 엔드포인트</span>' +
     '<span class="text-muted fw-normal user-select-none" aria-hidden="true">/</span>' +
     '<button type="button" class="btn btn-link btn-sm p-0 align-baseline text-nowrap merchant-api-flow-doc-menu" id="merchantApiDocsFlowDocOpen" data-pg-ui-t="연동설명서">연동설명서</button></h6>' +
     '<ul class="small mb-0 ps-3" id="merchantApiDocsEndpoints"></ul></section>' +
+    '<section class="mb-4"><h6 class="fw-semibold border-bottom pb-2 mb-3" data-pg-ui-t="WordPress JPAY 플러그인">WordPress JPAY 플러그인</h6>' +
+    '<div class="small" id="merchantApiDocsWordPress"></div></section>' +
+    '<section class="mb-4"><h6 class="fw-semibold border-bottom pb-2 mb-3" data-pg-ui-t="결제 통보 (Webhook) 안내">결제 통보 (Webhook) 안내</h6>' +
+    '<div class="small" id="merchantApiDocsWebhook"></div></section>' +
     '<section class="mb-2"><h6 class="fw-semibold border-bottom pb-2 mb-3" data-pg-ui-t="연동 체크리스트">연동 체크리스트</h6>' +
     '<ol class="small mb-0 ps-3" id="merchantApiDocsChecklist"></ol></section></div>' +
     '<div id="merchantApiDocsEmpty" class="text-center text-muted py-5 small" data-pg-ui-t="업체를 선택하면 연동 자료가 표시됩니다.">업체를 선택하면 연동 자료가 표시됩니다.</div></div>';
@@ -1804,15 +1841,23 @@
     '<tbody id="merchantApiPortalKeysBody"></tbody></table></div></section>' +
     '<section class="mb-4"><h6 class="fw-semibold border-bottom pb-2 mb-3" data-pg-ui-t="PG 바인딩 (MID)">PG 바인딩 (MID)</h6>' +
     '<ul class="small mb-0 ps-3" id="merchantApiPortalBindings"></ul></section>' +
+    '<section class="mb-4"><h6 class="fw-semibold border-bottom pb-2 mb-3" data-pg-ui-t="가맹 API 연동 채널">가맹 API 연동 채널</h6>' +
+    '<div class="small" id="merchantApiPortalIntegrationChannels"></div></section>' +
     '<section class="mb-4"><h6 class="fw-semibold border-bottom pb-2 mb-3 d-flex flex-wrap align-items-baseline gap-1">' +
-    '<span data-pg-ui-t="통합 Checkout 엔드포인트">통합 Checkout 엔드포인트</span>' +
+    '<span data-pg-ui-t="Checkout API 엔드포인트">Checkout API 엔드포인트</span>' +
     '<span class="text-muted fw-normal user-select-none" aria-hidden="true">/</span>' +
     '<button type="button" class="btn btn-link btn-sm p-0 align-baseline text-nowrap merchant-api-flow-doc-menu" id="merchantApiPortalFlowDocOpen" data-pg-ui-t="연동설명서">연동설명서</button></h6>' +
     '<ul class="small mb-0 ps-3" id="merchantApiPortalEndpoints"></ul></section>' +
+    '<section class="mb-4"><h6 class="fw-semibold border-bottom pb-2 mb-3" data-pg-ui-t="WordPress JPAY 플러그인">WordPress JPAY 플러그인</h6>' +
+    '<div class="small" id="merchantApiPortalWordPress"></div></section>' +
+    '<section class="mb-4"><h6 class="fw-semibold border-bottom pb-2 mb-3" data-pg-ui-t="결제 통보 (Webhook) 안내">결제 통보 (Webhook) 안내</h6>' +
+    '<div class="small" id="merchantApiPortalWebhook"></div></section>' +
     '<section class="mb-4"><h6 class="fw-semibold border-bottom pb-2 mb-3" data-pg-ui-t="다운로드 자료">다운로드 자료</h6>' +
     '<div class="table-responsive border rounded mb-2"><table class="table table-sm table-bordered align-middle mb-0 w-100" id="merchantApiPortalDownloadGrid">' +
     '<thead class="table-light"><tr><th data-pg-ui-t="구분">구분</th><th data-pg-ui-t="설명">설명</th><th class="text-nowrap" data-pg-ui-t="다운로드">다운로드</th></tr></thead>' +
     '<tbody></tbody></table></div></section>' +
+    '<section class="mb-4"><h6 class="fw-semibold border-bottom pb-2 mb-3" data-pg-ui-t="연동 체크리스트">연동 체크리스트</h6>' +
+    '<ol class="small mb-0 ps-3" id="merchantApiPortalChecklist"></ol></section>' +
     '<section class="mb-2"><h6 class="fw-semibold border-bottom pb-2 mb-3" data-pg-ui-t="가맹 API 연동 시 유의사항">가맹 API 연동 시 유의사항</h6>' +
     '<ul class="small mb-0 ps-3">' +
     '<li class="mb-1" data-pg-ui-t="가맹 API 유의: prepare 서버 전용">Prepare API는 가맹 <strong>서버</strong>에서만 호출하세요. 브로커 시크릿을 브라우저·앱·공개 저장소에 노출하지 마세요.</li>' +
@@ -2735,6 +2780,8 @@
              { label: 'API 중계형 REDIRECT 제공', type: 'select', name: 'apiBrokerRedirectEnabledYn', options: [{ v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }], col: 2 },
              { label: 'URL 결제형 INLINE 제공', type: 'select', name: 'urlPayInlineEnabledYn', options: [{ v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }], col: 2 },
              { label: 'URL 결제형 REDIRECT 제공', type: 'select', name: 'urlPayRedirectEnabledYn', options: [{ v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }], col: 2 }],
+            [{ label: 'WordPress 플러그인 제공', type: 'select', name: 'apiWordpressPluginEnabledYn', options: [{ v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }], col: 2 },
+             { label: '', type: 'note', col: 10, text: 'WooCommerce·일반 WordPress ZIP·REST webhook 채널 전역 on/off. 가맹별 오픈은 업체관리 → 가맹 「가맹 API 연동 채널」.' }],
             [{ label: 'URL 재결제형 제공', type: 'select', name: 'urlPayRepayEnabledYn', options: [{ v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }], col: 2 },
              { label: 'URL 재결제 경로 템플릿', type: 'text', name: 'urlPayRepayPathTemplate', col: 4, placeholder: '/pay-repay/{compCode}' },
              { label: '', type: 'note', col: 6, text: '저장 카드(CreditToken) 재결제 전용 공개 URL. 가맹 「URL 결제 방식」(공개 URL)·「API URL 인라인 중계 결제」·「챗봇결제 설정」 각각 재결제 URL 이면 해당 채널에 적용됩니다.' }]
@@ -2956,8 +3003,10 @@
       summary: ['건수'],
       buttons: [
         { id: 'noticeWriteBtn', label: '글작성', cls: 'btn-success', noticeToolbar: true },
-        { id: 'noticeLoginHomeBtn', label: '첫화면', cls: 'btn-outline-primary', noticeToolbar: true },
-        { id: 'noticeLoginPopupBtn', label: '팝업', cls: 'btn-outline-primary', noticeToolbar: true },
+        { id: 'noticeLoginHomeBtn', label: '첫화면', cls: 'btn-outline-primary', noticeToolbar: true, noticeHqOnly: true },
+        { id: 'noticeLoginPopupBtn', label: '접속팝업', cls: 'btn-outline-primary', noticeToolbar: true, noticeHqOnly: true },
+        { id: 'noticePostLoginPopupBtn', label: '팝업', cls: 'btn-outline-primary', noticeToolbar: true },
+        { id: 'noticeMainNoticeBtn', label: '메인공지', cls: 'btn-outline-primary', noticeToolbar: true },
         { id: 'searchBtn', label: '검색', cls: 'btn-primary' },
         { id: 'excelBtn', label: '엑셀다운로드', cls: 'btn-info' }
       ],
@@ -2967,12 +3016,20 @@
         { key: 'compNm', label: '업체명' },
         { key: 'compId', label: '업체코드' },
         { key: 'title', label: '제목' },
+        { key: 'deployTargetLabel', label: '배포대상' },
         { key: 'writerNm', label: '작성자' },
         { key: 'showOnLogin', label: '첫화면' },
-        { key: 'showAsPopup', label: '팝업' },
+        { key: 'showAsPopup', label: '접속팝업' },
+        { key: 'showPostLoginPopup', label: '팝업' },
+        { key: 'showOnMain', label: '메인공지' },
         { key: 'regDt', label: '작성일' },
         { key: 'hitCnt', label: '조회수' },
         { key: '_noticeAct', type: 'noticeActions', label: '비고' }
+      ],
+      noticeList: [
+        '기본 조회 기간은 당월(1일~말일)입니다. 가장 최근 공지 1건은 작성일이 기간 밖이어도 목록 맨 위에 「최근」으로 항상 표시됩니다.',
+        '공지 등록은 총본사·본사·총판(화면 권한 수정 이상)만 가능합니다. 접속팝업·첫화면은 총본사 전용이며, 본사·총판은 팝업·메인공지만 사용할 수 있습니다.',
+        '배포 대상 「특정지점」은 업체코드/이름 검색 또는 조직레벨→지점 선택으로 추가합니다. 검색·선택은 본인 하위 조직만 가능합니다.'
       ]
     },
     '/comp/myCompMng': {
@@ -3140,6 +3197,7 @@
         },
         merchantApiUrlPayCheckoutCardSection(),
         merchantJpayCheckoutFieldModeCardSection(),
+        merchantApiIntegrationChannelsCardSection(),
         merchantJpayApiSubscriptionCardSection(),
         {
           title: '챗봇결제 설정',
@@ -3289,6 +3347,7 @@
         { key: 'accountNo', label: '계좌번호' },
         { key: 'transferFee', label: '송금수수료' },
         { key: 'payIntegrationMode', label: '방식', title: '가맹 결제 연동: 웹결제(Y) 및 브로커 시크릿 발급 시 API, 미발급 시 URL', align: 'center' },
+        { key: 'apiIntegrationChannel', label: '채널', title: '가맹 API 연동 채널: IN=INLINE, RE=REDIRECT, WO=WordPress/WooCommerce. 복수 사용 시 IN/RE 형식.', align: 'center' },
         { key: 'calcCycle', label: '정산주기' },
         { key: 'calcProcType', label: '정산구분' },
         { key: 'transferType', label: '이체및송금' },
@@ -3567,6 +3626,7 @@
         },
         merchantApiUrlPayCheckoutCardSection(),
         merchantJpayCheckoutFieldModeCardSection(),
+        merchantApiIntegrationChannelsCardSection(),
         merchantJpayApiSubscriptionCardSection(),
         {
           title: '챗봇결제 설정',
@@ -3926,6 +3986,7 @@
         },
         merchantApiUrlPayCheckoutCardSection(),
         merchantJpayCheckoutFieldModeCardSection(),
+        merchantApiIntegrationChannelsCardSection(),
         merchantJpayApiSubscriptionCardSection(),
         {
           title: '챗봇결제 설정',
@@ -6901,9 +6962,7 @@
           '<div class="col-sm-3"><label class="form-label" data-pg-ui-t="챗봇 상품등록 한도(건)">챗봇 상품등록 한도(건)</label><select class="form-control form-control-sm" name="chatbotProductSlotLimit"><option value="">—</option>' +
           '<option value="10">10</option><option value="20">20</option><option value="50">50</option><option value="80">80</option><option value="100">100</option><option value="150">150</option><option value="200">200</option></select></div>' +
           '<div class="col-sm-5"><label class="form-label" data-pg-ui-t="챗봇결제 URL">챗봇결제 URL</label><div class="input-group input-group-sm"><input type="text" class="form-control" id="chatbotPaymentUrlDisplay" readonly data-pg-ui-placeholder="가맹점 선택 후 조회" placeholder="가맹점 선택 후 조회"><button type="button" class="btn btn-outline-primary" id="chatbotPaymentUrlCopyBtn" data-pg-ui-t="복사">복사</button></div></div></div>' +
-          '<div class="row mb-2"><div class="col-12"><label class="form-label" data-pg-ui-t="챗봇 플로팅 위젯(홈페이지·쇼핑몰 삽입)">챗봇 플로팅 위젯(홈페이지·쇼핑몰 삽입)</label>' +
-          '<div class="form-text text-muted small mb-1" data-pg-ui-t="모든 페이지에 공통으로 넣으려면 HTML 하단의 body 태그 직전(또는 쇼핑몰 공통 스크립트)에 아래 한 줄을 붙여 넣으세요.">모든 페이지에 공통으로 넣으려면 HTML 하단의 body 태그 직전(또는 쇼핑몰 공통 스크립트)에 아래 한 줄을 붙여 넣으세요.</div>' +
-          '<div class="input-group input-group-sm"><input type="text" class="form-control font-monospace" id="chatbotEmbedScriptDisplay" readonly data-pg-ui-placeholder="가맹점 선택 후 조회" placeholder="가맹점 선택 후 조회"><button type="button" class="btn btn-outline-primary" id="chatbotEmbedScriptCopyBtn" data-pg-ui-t="복사">복사</button></div></div></div>' +
+          merchantChatbotEmbedScriptRowHtml('가맹점 선택 후 조회') +
           merchantChatbotQrRowHtml() +
           '</div>';
       } else if (sec.type === 'regionalCardLimitTable') {

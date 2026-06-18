@@ -81,12 +81,28 @@
     if (token) sessionStorage.setItem(AUTH_TOKEN_KEY, token);
     if (user) sessionStorage.setItem(AUTH_USER_KEY, JSON.stringify(user));
     sessionStorage.setItem(AUTH_FLAG_KEY, token ? '1' : '');
+    if (token) sessionStorage.removeItem('pg_post_login_popup_shown');
   }
 
   function clearAuth() {
     sessionStorage.removeItem(AUTH_TOKEN_KEY);
     sessionStorage.removeItem(AUTH_USER_KEY);
     sessionStorage.removeItem(AUTH_FLAG_KEY);
+    sessionStorage.removeItem('pg_post_login_popup_shown');
+  }
+
+  function acceptLanguageHeaders(extra) {
+    var hdr = extra && typeof extra === 'object' ? Object.assign({}, extra) : {};
+    try {
+      var loc = window.PG_UI_I18N && typeof window.PG_UI_I18N.getLocale === 'function'
+        ? String(window.PG_UI_I18N.getLocale() || 'KO').toUpperCase()
+        : 'KO';
+      var map = { KO: 'ko', EN: 'en', JP: 'ja', CH: 'zh', TH: 'th' };
+      hdr['Accept-Language'] = map[loc] || 'ko';
+    } catch (eAl) {
+      hdr['Accept-Language'] = 'ko';
+    }
+    return hdr;
   }
 
   /**
@@ -661,7 +677,7 @@
         path: '/api/dashboard/home',
         method: 'GET',
         params: {},
-        headers: noStore
+        headers: acceptLanguageHeaders(noStore)
       }).then(function (r) {
         if (r && r.success === false && r.success !== undefined) {
           throw new Error(serverMsgT(r.message, '대시보드 조회 실패', 'Failed to load dashboard.'));
@@ -725,6 +741,10 @@
       return post('/api/auth/otp/enroll/activate', { totpCode: totpCode || '' });
     },
 
+    noticeDeployTargets: function () {
+      return get('/api/system/notice/deploy-targets').then(function (r) { return r.data; });
+    },
+
     noticeList: function (params) {
       return get('/api/system/notice', params).then(function (r) { return r.data; });
     },
@@ -733,13 +753,21 @@
       return get('/api/system/notice/' + encodeURIComponent(id)).then(function (r) { return r.data; });
     },
 
+    noticeDisplayGet: function (id) {
+      return get('/api/system/notice/' + encodeURIComponent(id) + '/display', {}, { headers: acceptLanguageHeaders({}) }).then(function (r) { return r.data; });
+    },
+
     noticeCreate: function (title, content, opts) {
       opts = opts || {};
       return post('/api/system/notice', {
         title: title || '',
         content: content || '',
         showOnLogin: !!opts.showOnLogin,
-        showAsPopup: !!opts.showAsPopup
+        showAsPopup: !!opts.showAsPopup,
+        showPostLoginPopup: !!opts.showPostLoginPopup,
+        showOnMain: !!opts.showOnMain,
+        deployTarget: opts.deployTarget || '',
+        targetOrgUnitIds: Array.isArray(opts.targetOrgUnitIds) ? opts.targetOrgUnitIds : []
       });
     },
 
@@ -759,7 +787,19 @@
       return post('/api/system/notice/' + encodeURIComponent(id) + '/login-popup', {});
     },
 
-    /** 로그인 첫 화면·팝업 공지(비로그인). Accept-Language 는 단말 기본 언어(navigator) 기준으로 전달합니다. */
+    noticePinPostLoginPopup: function (id) {
+      return post('/api/system/notice/' + encodeURIComponent(id) + '/post-login-popup', {});
+    },
+
+    noticePinMainNotice: function (id) {
+      return post('/api/system/notice/' + encodeURIComponent(id) + '/main-notice', {});
+    },
+
+    noticePostLoginPopupDisplay: function () {
+      return get('/api/system/notice/display/post-login-popup', {}, { headers: acceptLanguageHeaders({}) }).then(function (r) { return r.data; });
+    },
+
+    /** 로그인 첫 화면·접속팝업 공지(비로그인). Accept-Language 는 단말 기본 언어(navigator) 기준으로 전달합니다. */
     loginNoticePublic: function () {
       var hdr = {};
       try {

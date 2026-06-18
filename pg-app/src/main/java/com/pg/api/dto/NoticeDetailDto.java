@@ -4,6 +4,9 @@ import com.pg.entity.Notice;
 import com.pg.entity.OrgUnit;
 
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 
 public class NoticeDetailDto {
     private Long id;
@@ -15,9 +18,19 @@ public class NoticeDetailDto {
     private String compId;
     private String showOnLogin;
     private String showAsPopup;
+    private String showPostLoginPopup;
+    private String showOnMain;
     private String writerNm;
+    private String deployTarget;
+    private String deployTargetLabel;
+    private List<Map<String, Object>> targetOrgUnits = new ArrayList<>();
 
     public static NoticeDetailDto from(Notice n, OrgUnit ou) {
+        return from(n, ou, null, List.of());
+    }
+
+    public static NoticeDetailDto from(Notice n, OrgUnit ou, String deployTargetLabel,
+                                       List<Map<String, Object>> targetOrgUnits) {
         NoticeDetailDto d = new NoticeDetailDto();
         d.setId(n.getId());
         d.setTitle(n.getTitle());
@@ -26,7 +39,14 @@ public class NoticeDetailDto {
         d.setHitCnt(n.getHitCnt());
         d.setShowOnLogin(n.getShowOnLogin());
         d.setShowAsPopup(n.getShowAsPopup());
+        d.setShowPostLoginPopup(n.getShowPostLoginPopup());
+        d.setShowOnMain(n.getShowOnMain());
         d.setWriterNm(n.getWriterNm());
+        d.setDeployTarget(n.getDeployTarget());
+        d.setDeployTargetLabel(deployTargetLabel);
+        if (targetOrgUnits != null) {
+            d.setTargetOrgUnits(targetOrgUnits);
+        }
         if (ou != null) {
             d.setCompNm(ou.getName());
             d.setCompId(ou.getCode());
@@ -52,6 +72,16 @@ public class NoticeDetailDto {
     public void setShowOnLogin(String showOnLogin) { this.showOnLogin = showOnLogin; }
     public String getShowAsPopup() { return showAsPopup; }
     public void setShowAsPopup(String showAsPopup) { this.showAsPopup = showAsPopup; }
+    public String getShowPostLoginPopup() { return showPostLoginPopup; }
+    public void setShowPostLoginPopup(String showPostLoginPopup) { this.showPostLoginPopup = showPostLoginPopup; }
+    public String getShowOnMain() { return showOnMain; }
+    public void setShowOnMain(String showOnMain) { this.showOnMain = showOnMain; }
     public String getWriterNm() { return writerNm; }
     public void setWriterNm(String writerNm) { this.writerNm = writerNm; }
+    public String getDeployTarget() { return deployTarget; }
+    public void setDeployTarget(String deployTarget) { this.deployTarget = deployTarget; }
+    public String getDeployTargetLabel() { return deployTargetLabel; }
+    public void setDeployTargetLabel(String deployTargetLabel) { this.deployTargetLabel = deployTargetLabel; }
+    public List<Map<String, Object>> getTargetOrgUnits() { return targetOrgUnits; }
+    public void setTargetOrgUnits(List<Map<String, Object>> targetOrgUnits) { this.targetOrgUnits = targetOrgUnits; }
 }

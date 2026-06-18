@@ -14,6 +14,7 @@ class ICOPAY_Order_Helper {
 
 	const META_ORDER_NO   = '_icopay_order_no';
 	const META_SESSION    = '_icopay_session_token';
+	const META_FLOW       = '_icopay_flow_mode';
 	const META_TRN_ID     = '_icopay_trn_id';
 	const META_PG_TXN_ID  = '_icopay_pg_txn_id';
 

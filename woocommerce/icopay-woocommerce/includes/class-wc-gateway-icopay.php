@@ -20,7 +20,7 @@ class WC_Gateway_ICOPAY extends WC_Payment_Gateway {
 		$this->icon               = '';
 		$this->has_fields         = false;
 		$this->method_title       = __( 'ICOPAY (URL Inline)', 'icopay-woocommerce' );
-		$this->method_description = __( 'ICOPAY URL 인라인 결제(ChillPay/JPAY iframe). 본사에서 발급한 compId·브로커 시크릿을 입력하세요.', 'icopay-woocommerce' );
+		$this->method_description = __( 'ICOPAY URL 인라인·리다이렉트 결제(ChillPay/JPAY). 본사에서 발급한 compId·브로커 시크릿을 입력하세요.', 'icopay-woocommerce' );
 		$this->supports           = array( 'products' );
 
 		$this->init_form_fields();
@@ -64,11 +64,22 @@ class WC_Gateway_ICOPAY extends WC_Payment_Gateway {
 			'vendor'         => array(
 				'title'       => __( 'PG vendor', 'icopay-woocommerce' ),
 				'type'        => 'select',
-				'description' => __( 'ChillPay (default) or JPAY inline checkout.', 'icopay-woocommerce' ),
+				'description' => __( 'ChillPay (default) or JPAY checkout.', 'icopay-woocommerce' ),
 				'default'     => 'chillpay',
 				'options'     => array(
 					'chillpay' => 'ChillPay',
 					'jpay'     => 'JPAY',
+				),
+				'desc_tip'    => true,
+			),
+			'flow_mode'      => array(
+				'title'       => __( 'Checkout flow', 'icopay-woocommerce' ),
+				'type'        => 'select',
+				'description' => __( 'Inline keeps the customer on your site (iframe). Redirect sends the browser to ICOPAY pay page.', 'icopay-woocommerce' ),
+				'default'     => 'inline',
+				'options'     => array(
+					'inline'   => __( 'Inline (iframe)', 'icopay-woocommerce' ),
+					'redirect' => __( 'Redirect', 'icopay-woocommerce' ),
 				),
 				'desc_tip'    => true,
 			),
@@ -173,13 +184,39 @@ class WC_Gateway_ICOPAY extends WC_Payment_Gateway {
 			return array( 'result' => 'fail' );
 		}
 
-		$order_no = ICOPAY_Order_Helper::get_or_create_order_no( $order );
-		$amount   = ICOPAY_Order_Helper::amount_plain( $order );
-		$currency = $order->get_currency();
-		$product  = ICOPAY_Order_Helper::product_name_from_order( $order );
-		$lang     = $this->get_option( 'lang', 'auto' );
+		$order_no  = ICOPAY_Order_Helper::get_or_create_order_no( $order );
+		$amount    = ICOPAY_Order_Helper::amount_plain( $order );
+		$currency  = $order->get_currency();
+		$product   = ICOPAY_Order_Helper::product_name_from_order( $order );
+		$lang      = $this->get_option( 'lang', 'auto' );
+		$flow_mode = ICOPAY_Flow::normalize( $this->get_option( 'flow_mode', 'inline' ) );
 
-		$api  = ICOPAY_Api_Client::from_settings( $this->get_icopay_settings() );
+		$order->update_meta_data( ICOPAY_Order_Helper::META_FLOW, $flow_mode );
+
+		$api = ICOPAY_Api_Client::from_settings( $this->get_icopay_settings() );
+
+		if ( ICOPAY_Flow::REDIRECT === $flow_mode ) {
+			$return_url = ICOPAY_Payment_Page::get_return_url( $order );
+			$cancel_url = $order->get_cancel_order_url();
+			$prep       = $api->prepare_redirect_checkout( $order_no, $amount, $currency, $product, $return_url, $cancel_url, $lang );
+
+			if ( empty( $prep['success'] ) || empty( $prep['data']['payUrl'] ) ) {
+				$msg = ! empty( $prep['message'] ) ? (string) $prep['message'] : __( 'Unable to start ICOPAY redirect payment.', 'icopay-woocommerce' );
+				wc_add_notice( $msg, 'error' );
+				return array( 'result' => 'fail' );
+			}
+
+			$order->update_status( 'pending', __( 'Awaiting ICOPAY payment (redirect).', 'icopay-woocommerce' ) );
+			$order->save();
+
+			WC()->cart->empty_cart();
+
+			return array(
+				'result'   => 'success',
+				'redirect' => esc_url_raw( (string) $prep['data']['payUrl'] ),
+			);
+		}
+
 		$prep = $api->prepare_inline_checkout( $order_no, $amount, $currency, $product, $lang );
 
 		if ( empty( $prep['success'] ) || empty( $prep['data']['sessionToken'] ) ) {

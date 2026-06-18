@@ -78,6 +78,10 @@ public class HqApiConfig {
     @Column(name = "url_pay_redirect_enabled_yn", length = 1)
     private String urlPayRedirectEnabledYn = "Y";
 
+    /** WordPress/WooCommerce 플러그인 ZIP·REST webhook 채널 전역 제공 */
+    @Column(name = "api_wordpress_plugin_enabled_yn", length = 1)
+    private String apiWordpressPluginEnabledYn = "Y";
+
     /** URL 재결제(저장 카드) 공개 제공 여부 */
     @Column(name = "url_pay_repay_enabled_yn", length = 1)
     private String urlPayRepayEnabledYn = "N";
@@ -276,6 +280,8 @@ public class HqApiConfig {
     public void setUrlPayInlineEnabledYn(String urlPayInlineEnabledYn) { this.urlPayInlineEnabledYn = urlPayInlineEnabledYn; }
     public String getUrlPayRedirectEnabledYn() { return urlPayRedirectEnabledYn; }
     public void setUrlPayRedirectEnabledYn(String urlPayRedirectEnabledYn) { this.urlPayRedirectEnabledYn = urlPayRedirectEnabledYn; }
+    public String getApiWordpressPluginEnabledYn() { return apiWordpressPluginEnabledYn; }
+    public void setApiWordpressPluginEnabledYn(String apiWordpressPluginEnabledYn) { this.apiWordpressPluginEnabledYn = apiWordpressPluginEnabledYn; }
     public String getUrlPayRepayEnabledYn() { return urlPayRepayEnabledYn; }
     public void setUrlPayRepayEnabledYn(String urlPayRepayEnabledYn) { this.urlPayRepayEnabledYn = urlPayRepayEnabledYn; }
     public String getUrlPayRepayPathTemplate() { return urlPayRepayPathTemplate; }

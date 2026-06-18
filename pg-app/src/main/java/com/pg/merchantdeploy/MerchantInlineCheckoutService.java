@@ -40,6 +40,7 @@ public class MerchantInlineCheckoutService {
     private final MerchantChatbotProductService productService;
     private final MerchantInlineCheckoutTokenService tokenService;
     private final PgTrnsctnRepository pgTrnsctnRepository;
+    private final MerchantApiIntegrationChannelService integrationChannelService;
 
     public MerchantInlineCheckoutService(OrgUnitRepository orgUnitRepository,
                                          MerchantProfileRepository merchantProfileRepository,
@@ -48,7 +49,8 @@ public class MerchantInlineCheckoutService {
                                          HqApiConfigRepository hqApiConfigRepository,
                                          MerchantChatbotProductService productService,
                                          MerchantInlineCheckoutTokenService tokenService,
-                                         PgTrnsctnRepository pgTrnsctnRepository) {
+                                         PgTrnsctnRepository pgTrnsctnRepository,
+                                         MerchantApiIntegrationChannelService integrationChannelService) {
         this.orgUnitRepository = orgUnitRepository;
         this.merchantProfileRepository = merchantProfileRepository;
         this.orgServiceUseService = orgServiceUseService;
@@ -57,6 +59,7 @@ public class MerchantInlineCheckoutService {
         this.productService = productService;
         this.tokenService = tokenService;
         this.pgTrnsctnRepository = pgTrnsctnRepository;
+        this.integrationChannelService = integrationChannelService;
     }
 
     public Map<String, Object> prepare(Long orgUnitId, Map<String, Object> body, HttpServletRequest request) {
@@ -77,6 +80,11 @@ public class MerchantInlineCheckoutService {
             if (wpy != null && "N".equalsIgnoreCase(wpy.trim())) {
                 return fail("이 가맹점은 웹결제(URL 결제)가 미사용으로 설정되어 있습니다.", "WEB_PAYMENT_DISABLED");
             }
+        }
+        Optional<String> inlineDeny = integrationChannelService.denyMessage(orgUnitId,
+                MerchantApiIntegrationChannelService.Channel.API_BROKER_INLINE);
+        if (inlineDeny.isPresent()) {
+            return fail(inlineDeny.get(), MerchantApiIntegrationChannelService.CODE_INTEGRATION_CHANNEL_DISABLED);
         }
         String checkoutMode = profOpt
                 .map(mp -> UrlPayCheckoutModeUtil.normalize(mp.getApiUrlPayCheckoutMode()))
@@ -104,17 +112,7 @@ public class MerchantInlineCheckoutService {
                         + "또는 해당 PG 전용 API를 사용하세요.", "PG_NOT_SUPPORTED");
             }
         }
-        Map<String, Object> presentation = repayMode
-                ? chillPayService.getUrlPayRepayPresentationForCheckout(orgUnitId)
-                : chillPayService.getUrlPayPresentationForCheckout(orgUnitId);
-        String flow = String.valueOf(presentation.getOrDefault("urlPayFlow", "INLINE"));
-        if (!"INLINE".equalsIgnoreCase(flow)) {
-            return fail("본사 URL 결제 기본 방식이 INLINE이 아닙니다. 결제로직설정을 확인하세요.", "INLINE_NOT_ENABLED");
-        }
         HqApiConfig hq = hqApiConfigRepository.findAll().stream().findFirst().orElse(null);
-        if (hq != null && "N".equalsIgnoreCase(hq.getUrlPayInlineEnabledYn())) {
-            return fail("본사 설정에서 URL 결제형 INLINE 제공이 꺼져 있습니다.", "INLINE_NOT_ENABLED");
-        }
 
         String orderNo = ChillPayDirectCreditUtil.normalizeOrderNo(str(body.get("orderNo")));
         if (orderNo == null || orderNo.isBlank()) {
