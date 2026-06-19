@@ -8570,6 +8570,24 @@
       CH: 'URL 结账方式',
       TH: 'โหมดชำระ URL'
     },
+    '상품명 사용': {
+      EN: 'Product name field',
+      JP: '商品名入力',
+      CH: '商品名称字段',
+      TH: 'ช่องชื่อสินค้า'
+    },
+    '회사명 노출': {
+      EN: 'Show company name',
+      JP: '会社名表示',
+      CH: '显示公司名称',
+      TH: 'แสดงชื่อบริษัท'
+    },
+    '다국어 메뉴': {
+      EN: 'Language menu',
+      JP: '多言語メニュー',
+      CH: '多语言菜单',
+      TH: 'เมนูภาษา'
+    },
     '일반 URL 결제': {
       EN: 'Standard URL payment',
       JP: '通常URL決済',
@@ -9716,6 +9734,53 @@
       CH: '结算数据初始化…',
       TH: 'ล้างข้อมูลการชำระ…'
     },
+    '금일 결제·노티 삭제': {
+      EN: 'Delete today\'s payments & notify',
+      JP: '本日決済・ノティ削除',
+      CH: '删除当日支付与通知',
+      TH: 'ลบการชำระและแจ้งเตือนวันนี้'
+    },
+    '금일 결제·노티 삭제…': {
+      EN: 'Delete today\'s payments & notify…',
+      JP: '本日決済・ノティ削除…',
+      CH: '删除当日支付与通知…',
+      TH: 'ลบการชำระและแจ้งเตือนวันนี้…'
+    },
+    '전산설정 금일 결제 노티 삭제 카드 본문': {
+      EN: 'Deletes <strong>pg_trnsctn</strong> rows for the selected calendar day (HQ display timezone) and optionally <strong>tb_pg_notify_inbound</strong> for the same window. Use <strong>before NOTI middleware resends</strong> notifications so ICOPAY can re-process cleanly. Merchant registration, fee policies, and settlement settings are kept. Leave merchant ID empty to affect <strong>all merchants</strong> for that day.',
+      JP: '選択した暦日（本社表示タイムゾーン）の<strong>pg_trnsctn</strong>を削除し、オプションで同期間の<strong>tb_pg_notify_inbound</strong>も削除します。<strong>NOTIミドルウェア再送の直前</strong>に使用し、ICOPAYで再処理できるようにします。加盟店登録・手数料・精算設定は保持。加盟店IDを空にするとその日の<strong>全加盟店</strong>が対象です。',
+      CH: '删除所选日历日（总部显示时区）的 <strong>pg_trnsctn</strong>，可选同时删除同期 <strong>tb_pg_notify_inbound</strong>。请在 <strong>NOTI 中间件重发通知之前</strong>使用，以便 ICOPAY 重新处理。保留商户登记、手续费与结算设置。商户 ID 留空则影响该日<strong>全部商户</strong>。',
+      TH: 'ลบ <strong>pg_trnsctn</strong> ตามวันที่เลือก (เขตเวลาแสดง HQ) และเลือกลบ <strong>tb_pg_notify_inbound</strong> ช่วงเดียวกัน ใช้<strong>ก่อน NOTI ส่งซ้ำ</strong> เก็บการลงทะเบียนร้าน นโยบายค่าธรรมเนียม การตั้งค่าชำระ เว้นรหัสร้านว่าง =<strong>ทุกร้าน</strong>ในวันนั้น'
+    },
+    '대상 일자': { EN: 'Target date', JP: '対象日', CH: '目标日期', TH: 'วันที่เป้าหมาย' },
+    '가맹점 ID(선택)': { EN: 'Merchant ID (optional)', JP: '加盟店ID(任意)', CH: '商户 ID（可选）', TH: 'รหัสร้าน (ไม่บังคับ)' },
+    '비우면 전체 가맹': { EN: 'All merchants if empty', JP: '空欄は全加盟店', CH: '留空为全部商户', TH: 'ว่าง = ทุกร้าน' },
+    '노티수령정보도 삭제': { EN: 'Also delete notify inbound log', JP: 'ノティ受信情報も削除', CH: '同时删除通知接收记录', TH: 'ลบบันทึกแจ้งเตือนด้วย' },
+    '대상 일자를 선택하세요.': { EN: 'Select a target date.', JP: '対象日を選択してください。', CH: '请选择目标日期。', TH: 'เลือกวันที่เป้าหมาย' },
+    '전체 가맹': { EN: 'All merchants', JP: '全加盟店', CH: '全部商户', TH: 'ทุกร้านค้า' },
+    '삭제함': { EN: 'Delete', JP: '削除', CH: '删除', TH: 'ลบ' },
+    '유지함': { EN: 'Keep', JP: '保持', CH: '保留', TH: 'คงไว้' },
+    '금일 결제·노티 삭제가 완료되었습니다.': {
+      EN: 'Today\'s payment and notify data purge completed.',
+      JP: '本日の決済・ノティ削除が完了しました。',
+      CH: '当日支付与通知数据已删除完成。',
+      TH: 'ลบข้อมูลการชำระและแจ้งเตือนวันนี้เสร็จแล้ว'
+    },
+    '지정 일자의 결제내역(pg_trnsctn)을 삭제합니다.\n\n일자: {0}\n범위: {1}\n노티수령정보: {2}\n\nNOTI 재전송 직전에 사용하세요. 가맹·수수료·정산 설정은 유지됩니다.\n\n[확인]으로 다음 안내로 진행합니다.': {
+      EN: 'This deletes pg_trnsctn for the selected day.\n\nDate: {0}\nScope: {1}\nNotify inbound: {2}\n\nUse before NOTI resend. Merchant/fee/settlement settings are kept.\n\nClick OK for the final confirmation.',
+      JP: '指定日の pg_trnsctn を削除します。\n\n日付: {0}\n範囲: {1}\nノティ受信: {2}\n\nNOTI再送の直前に使用。加盟店・手数料・精算設定は保持。\n\n[OK]で最終確認へ。',
+      CH: '将删除指定日的 pg_trnsctn。\n\n日期: {0}\n范围: {1}\n通知接收: {2}\n\n请在 NOTI 重发前使用。保留商户/手续费/结算设置。\n\n[确定]进入最终确认。',
+      TH: 'ลบ pg_trnsctn ตามวันที่\n\nวันที่: {0}\nขอบเขต: {1}\nแจ้งเตือน: {2}\n\nใช้ก่อน NOTI ส่งซ้ำ คงการตั้งค่าร้าน/ค่าธรรมเนียม/ชำระ\n\n[ตกลง]ยืนยันขั้นสุดท้าย'
+    },
+    '마지막 확인입니다.\n\n일자 {0} · {1}의 결제·노티 데이터가 삭제됩니다. 복구할 수 없습니다.\n\n실행하시겠습니까?': {
+      EN: 'Final confirmation.\n\nPayment and notify data for {0} · {1} will be deleted. This cannot be undone.\n\nProceed?',
+      JP: '最終確認です。\n\n{0} · {1} の決済・ノティデータを削除します。元に戻せません。\n\n実行しますか？',
+      CH: '最终确认。\n\n将删除 {0} · {1} 的支付与通知数据，不可恢复。\n\n是否执行？',
+      TH: 'ยืนยันขั้นสุดท้าย\n\nลบข้อมูลชำระ/แจ้งเตือน {0} · {1} กู้คืนไม่ได้\n\nดำเนินการ?'
+    },
+    '결제 {0}': { EN: 'Payments {0}', JP: '決済 {0}', CH: '支付 {0}', TH: 'ชำระ {0}' },
+    '노티 {0}': { EN: 'Notify {0}', JP: 'ノティ {0}', CH: '通知 {0}', TH: 'แจ้งเตือน {0}' },
+    '삭제에 실패했습니다.': { EN: 'Purge failed.', JP: '削除に失敗しました。', CH: '删除失败。', TH: 'ลบไม่สำเร็จ' },
     '전산설정 정산 데이터 초기화 카드 본문': {
       EN: 'Keep: <strong>tb_commission_history</strong> (fee history), <strong>pg_trnsctn</strong> rows, HQ/merchant settlement settings (tb_settlement_setting, fee policy, distribution ratios, HQ cycles, etc.), ChillPay integrated settlement payloads. Delete: settlement runs (tb_settlement_run), receivable/recovery/collateral (rolling)/balance deduction rows that back merchant settlement, holds, distribution, and reports; reset only settled_yn on transactions to N.',
       JP: '保持: <strong>tb_commission_history</strong>（手数料履歴）、<strong>pg_trnsctn</strong> 取引行、本社・加盟店精算設定（tb_settlement_setting・手数料政策・配分比率・本社精算周期等）、チルペイ連携精算の原文。削除: 精算実行(tb_settlement_run)、加盟店精算・保留・流通・レポートの根拠となる実行・未収・回収・担保(ローリング)・残高控除、取引の settled_yn のみ N に初期化。',

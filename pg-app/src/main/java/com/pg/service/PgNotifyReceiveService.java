@@ -258,7 +258,7 @@ public class PgNotifyReceiveService {
          * application/json POST 는 결제대행사 서버 노티 → 200 JSON 만(리다이렉트 없음). */
         if (("RESULT".equalsIgnoreCase(channelType) || "CALLBACK".equalsIgnoreCase(channelType))
                 && request != null
-                && shouldUsePayResultRedirect(channelType, request.getMethod(), body, contentType)) {
+                && shouldUsePayResultRedirect(channelType, request.getMethod(), body, contentType, isLikelyBrowserClient(request))) {
             String loc = isJpayIngressTarget(notifyTargetCode)
                     ? buildJpayMerchantNotifyRedirectUrl(in, body, contentType)
                     : buildPayResultRedirectUrl(request, in, body, contentType);
@@ -352,7 +352,12 @@ public class PgNotifyReceiveService {
      * {@code application/json} POST 는 결제대행사·NOTI 서버 노티로 간주하고 리다이렉트하지 않음(항상 200 JSON).
      * 그 외 RESULT + 비표준 JSON(CT 없음 등)만 레거시 브라우저 복귀용 리다이렉트 후보.
      */
-    private static boolean shouldUsePayResultRedirect(String notifyChannelType, String httpMethod, String rawBody, String contentType) {
+    /**
+     * @param browserClient 실제 브라우저(고객 결제창 복귀) 요청으로 보이면 true. NOTI·연동사 서버-투-서버
+     *                      릴레이(axios 등)이면 false — 이때 form 본문이어도 pay-result 리다이렉트 대신
+     *                      서버 노티(200/422 JSON)로 처리해 NOTI가 처리 결과·재전송을 판별할 수 있게 한다.
+     */
+    private static boolean shouldUsePayResultRedirect(String notifyChannelType, String httpMethod, String rawBody, String contentType, boolean browserClient) {
         String ch = notifyChannelType != null ? notifyChannelType.trim().toUpperCase(Locale.ROOT) : "";
         String m = httpMethod != null ? httpMethod.trim().toUpperCase(Locale.ROOT) : "";
         if ("GET".equals(m)) {
@@ -367,12 +372,34 @@ public class PgNotifyReceiveService {
             if (ct.contains("application/json")) {
                 return false;
             }
-            return "RESULT".equals(ch) && jsonBodyLooksLikePaymentResultForResultRedirect(b);
+            return browserClient && "RESULT".equals(ch) && jsonBodyLooksLikePaymentResultForResultRedirect(b);
         }
+        /* JPAY 원문(form) 등 — 실제 브라우저 복귀만 pay-result 로 보내고, NOTI 서버 릴레이는 노티로 처리 */
         if (ct.contains("application/x-www-form-urlencoded")) {
-            return true;
+            return browserClient;
         }
-        return b.contains("=");
+        return browserClient && b.contains("=");
+    }
+
+    /**
+     * 결제 후 고객 브라우저의 콜백/결과 복귀로 보이는지(User-Agent·Accept 기준).
+     * NOTI·연동사의 서버-투-서버 릴레이(axios/curl 등)는 false.
+     */
+    private static boolean isLikelyBrowserClient(HttpServletRequest req) {
+        if (req == null) {
+            return false;
+        }
+        String ua = req.getHeader("User-Agent");
+        if (ua != null) {
+            String u = ua.toLowerCase(Locale.ROOT);
+            if (u.contains("mozilla") || u.contains("webkit") || u.contains("gecko")
+                    || u.contains("chrome") || u.contains("safari") || u.contains("firefox")
+                    || u.contains("edge") || u.contains("opera") || u.contains("trident")) {
+                return true;
+            }
+        }
+        String accept = req.getHeader("Accept");
+        return accept != null && accept.toLowerCase(Locale.ROOT).contains("text/html");
     }
 
     /**

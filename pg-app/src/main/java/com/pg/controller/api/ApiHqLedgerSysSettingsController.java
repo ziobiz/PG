@@ -6,6 +6,7 @@ import com.pg.entity.HqLedgerSysSettings;
 import com.pg.service.AuthService;
 import com.pg.service.HqLedgerSysSettingsService;
 import com.pg.service.HqOperationalDataResetService;
+import com.pg.service.HqPayNotifyDayPurgeService;
 import com.pg.service.HqSettlementDataResetService;
 import com.pg.service.PayFollowEmailVoidService;
 import com.pg.service.PayCardPolicyService;
@@ -17,6 +18,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.LinkedHashMap;
 import java.util.Locale;
 import java.util.Map;
+import java.time.LocalDate;
 
 /**
  * 본사설정 — 전산설정관리 (NOTI 시스템/환경설정: 시간·동기화, 자동화 메일, 결제 후속조치)
@@ -28,6 +30,7 @@ public class ApiHqLedgerSysSettingsController {
     private final HqLedgerSysSettingsService service;
     private final HqOperationalDataResetService operationalDataResetService;
     private final HqSettlementDataResetService settlementDataResetService;
+    private final HqPayNotifyDayPurgeService payNotifyDayPurgeService;
     private final AuthService authService;
     private final PayFollowEmailVoidService payFollowEmailVoidService;
     private final PayFollowPolicyService payFollowPolicyService;
@@ -36,6 +39,7 @@ public class ApiHqLedgerSysSettingsController {
     public ApiHqLedgerSysSettingsController(HqLedgerSysSettingsService service,
                                             HqOperationalDataResetService operationalDataResetService,
                                             HqSettlementDataResetService settlementDataResetService,
+                                            HqPayNotifyDayPurgeService payNotifyDayPurgeService,
                                             AuthService authService,
                                             PayFollowEmailVoidService payFollowEmailVoidService,
                                             PayFollowPolicyService payFollowPolicyService,
@@ -43,6 +47,7 @@ public class ApiHqLedgerSysSettingsController {
         this.service = service;
         this.operationalDataResetService = operationalDataResetService;
         this.settlementDataResetService = settlementDataResetService;
+        this.payNotifyDayPurgeService = payNotifyDayPurgeService;
         this.authService = authService;
         this.payFollowEmailVoidService = payFollowEmailVoidService;
         this.payFollowPolicyService = payFollowPolicyService;
@@ -213,6 +218,38 @@ public class ApiHqLedgerSysSettingsController {
             HqSettlementDataResetService.Scope scope = HqSettlementDataResetService.parseScope(scopeRaw);
             Map<String, Object> result = new LinkedHashMap<>(settlementDataResetService.reset(scope));
             result.put("reset", true);
+            return ResponseEntity.ok(ApiResponse.ok(result));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.ok(ApiResponse.fail(e.getMessage(), "VALIDATION"));
+        } catch (Exception e) {
+            return ResponseEntity.ok(ApiResponse.fail(e.getMessage(), "ERROR"));
+        }
+    }
+
+    /**
+     * 특정 일자 결제내역·(선택) 노티수령정보 삭제 — NOTI 재전송 후 재처리용.
+     * 본문: {@code date}(YYYY-MM-DD, 필수), {@code merchantId}(선택), {@code purgeInbound}(기본 true), {@code confirm:true}(필수).
+     */
+    @PostMapping("/purgePayAndNotifyForDay")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> purgePayAndNotifyForDay(
+            Authentication authentication,
+            @RequestBody Map<String, Object> body) {
+        if (!canResetOperationalData(authentication)) {
+            return ResponseEntity.ok(ApiResponse.fail("총본사(HEADQUARTERS) 또는 시스템 관리자만 실행할 수 있습니다.", "FORBIDDEN"));
+        }
+        if (body == null || body.get("confirm") == null || !Boolean.TRUE.equals(body.get("confirm"))) {
+            return ResponseEntity.ok(ApiResponse.fail("confirm:true 가 필요합니다.", "VALIDATION"));
+        }
+        try {
+            Object dateObj = body.get("date");
+            if (dateObj == null || dateObj.toString().isBlank()) {
+                return ResponseEntity.ok(ApiResponse.fail("date(YYYY-MM-DD)가 필요합니다.", "VALIDATION"));
+            }
+            LocalDate date = LocalDate.parse(dateObj.toString().trim());
+            String merchantId = body.get("merchantId") != null ? body.get("merchantId").toString() : null;
+            boolean purgeInbound = body.get("purgeInbound") == null || Boolean.parseBoolean(body.get("purgeInbound").toString());
+            Map<String, Object> result = new LinkedHashMap<>(payNotifyDayPurgeService.purgeForDay(date, merchantId, purgeInbound));
+            result.put("purged", true);
             return ResponseEntity.ok(ApiResponse.ok(result));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.ok(ApiResponse.fail(e.getMessage(), "VALIDATION"));

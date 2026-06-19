@@ -187,6 +187,18 @@ public class MerchantProfile {
     @Column(name = "url_pay_checkout_mode", nullable = false, length = 16)
     private String urlPayCheckoutMode = "STANDARD";
 
+    /** URL 결제창 상품명 입력·표시 — Y=사용, N=미사용(결제창에서 숨김) */
+    @Column(name = "url_pay_product_name_use_yn", nullable = false, length = 1)
+    private String urlPayProductNameUseYn = "Y";
+
+    /** URL 결제창 가맹점(회사)명 표시 — Y=노출, N=숨김 */
+    @Column(name = "url_pay_company_name_show_yn", nullable = false, length = 1)
+    private String urlPayCompanyNameShowYn = "Y";
+
+    /** URL 결제창 다국어 변경 메뉴 — Y=표시, N=브라우저 언어 자동(메뉴 숨김) */
+    @Column(name = "url_pay_lang_menu_use_yn", nullable = false, length = 1)
+    private String urlPayLangMenuUseYn = "Y";
+
     /**
      * API URL 인라인 중계 결제 방식 — {@link com.pg.urlpay.UrlPayCheckoutModeUtil}.
      */
@@ -491,6 +503,21 @@ public class MerchantProfile {
     public void setUrlPayCheckoutMode(String urlPayCheckoutMode) {
         this.urlPayCheckoutMode = urlPayCheckoutMode != null && !urlPayCheckoutMode.isBlank()
                 ? urlPayCheckoutMode.trim().toUpperCase(java.util.Locale.ROOT) : "STANDARD";
+    }
+
+    public String getUrlPayProductNameUseYn() { return urlPayProductNameUseYn; }
+    public void setUrlPayProductNameUseYn(String urlPayProductNameUseYn) {
+        this.urlPayProductNameUseYn = urlPayProductNameUseYn != null && "Y".equalsIgnoreCase(urlPayProductNameUseYn.trim()) ? "Y" : "N";
+    }
+
+    public String getUrlPayCompanyNameShowYn() { return urlPayCompanyNameShowYn; }
+    public void setUrlPayCompanyNameShowYn(String urlPayCompanyNameShowYn) {
+        this.urlPayCompanyNameShowYn = urlPayCompanyNameShowYn != null && "Y".equalsIgnoreCase(urlPayCompanyNameShowYn.trim()) ? "Y" : "N";
+    }
+
+    public String getUrlPayLangMenuUseYn() { return urlPayLangMenuUseYn; }
+    public void setUrlPayLangMenuUseYn(String urlPayLangMenuUseYn) {
+        this.urlPayLangMenuUseYn = urlPayLangMenuUseYn != null && "Y".equalsIgnoreCase(urlPayLangMenuUseYn.trim()) ? "Y" : "N";
     }
 
     public String getApiUrlPayCheckoutMode() { return apiUrlPayCheckoutMode; }

@@ -298,6 +298,7 @@
   function wireLanguageButtons(getLang, setLang) {
     g.document.querySelectorAll('.pay-lang button[data-lang]').forEach(function (btn) {
       btn.addEventListener('click', function () {
+        if (g.__urlPayLangMenuDisabled) return;
         var code = btn.getAttribute('data-lang');
         if (!code) return;
         setLang(code);
@@ -309,6 +310,51 @@
     g.document.querySelectorAll('.pay-lang button[data-lang]').forEach(function (b) {
       b.classList.toggle('active', b.getAttribute('data-lang') === getLang());
     });
+  }
+
+  function urlPayYnIsYes(v, defaultYes) {
+    if (v == null || String(v).trim() === '') return defaultYes !== false;
+    return String(v).trim().toUpperCase() !== 'N';
+  }
+
+  /** checkout-context — 상품명·회사명·다국어 메뉴 표시 옵션 */
+  function applyUrlPayPresentationOptions(ctx, opts) {
+    opts = opts || {};
+    if (!ctx) return;
+    var showCo = urlPayYnIsYes(ctx.urlPayCompanyNameShowYn, true);
+    var showItem = urlPayYnIsYes(ctx.urlPayProductNameUseYn, true);
+    var showLang = urlPayYnIsYes(ctx.urlPayLangMenuUseYn, true);
+    var merchRow = g.document.querySelector('#payOrderSummaryTop .pay-row-static');
+    if (merchRow) merchRow.style.display = showCo ? '' : 'none';
+    var itemEl = g.document.getElementById('item');
+    if (itemEl) {
+      var itemWrap = itemEl.closest('.pay-row');
+      if (itemWrap) {
+        itemWrap.style.display = showItem ? '' : 'none';
+        if (showItem) itemEl.setAttribute('required', 'required');
+        else {
+          itemEl.removeAttribute('required');
+          if (!itemEl.readOnly) itemEl.value = '';
+        }
+      }
+    }
+    g.document.querySelectorAll('.pay-lang').forEach(function (el) {
+      el.style.display = showLang ? '' : 'none';
+    });
+    g.__urlPayLangMenuDisabled = !showLang;
+    if (!showLang && typeof opts.detectBrowserLang === 'function' && typeof opts.setLang === 'function') {
+      var bl = opts.detectBrowserLang();
+      var cur = typeof opts.getLang === 'function' ? opts.getLang() : '';
+      if (bl && bl !== cur) opts.setLang(bl);
+    }
+  }
+
+  function resolveUrlPayItemValue(ctx) {
+    var itemEl = g.document.getElementById('item');
+    var v = itemEl ? String(itemEl.value || '').trim() : '';
+    if (v) return v;
+    if (ctx && !urlPayYnIsYes(ctx.urlPayProductNameUseYn, true)) return 'Online Payment';
+    return v;
   }
 
   /** DISPLAY_FX: 멀티 표시통화 셀렉트 또는 본사 고정 표시통화. */
@@ -389,6 +435,8 @@
     applyAmountScaleNotice: applyAmountScaleNotice,
     initDisplayFx: initDisplayFx,
     wireLanguageButtons: wireLanguageButtons,
+    applyUrlPayPresentationOptions: applyUrlPayPresentationOptions,
+    resolveUrlPayItemValue: resolveUrlPayItemValue,
     payFxResolvedDisplayCurrency: payFxResolvedDisplayCurrency
   };
 })(window);

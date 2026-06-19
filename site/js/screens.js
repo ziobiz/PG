@@ -155,6 +155,46 @@
       '</div></div>';
   }
 
+  /** 웹결제 카드 1행 — 사용여부·URL방식·회사명·다국어 */
+  function merchantWebPaymentCardPrimaryRow() {
+    var ynOpts = [{ v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }];
+    return [
+      { label: '웹결제 사용여부', type: 'select', name: 'webPaymentUseYn', options: ynOpts, col: 2 },
+      { label: 'URL 결제 방식', type: 'select', name: 'urlPayCheckoutMode', options: [{ v: 'STANDARD', t: '일반 URL 결제' }, { v: 'REPAY', t: '재결제 URL (저장 카드)' }], col: 2 },
+      { label: '회사명 노출', type: 'select', name: 'urlPayCompanyNameShowYn', options: ynOpts, col: 2 },
+      { label: '다국어 메뉴', type: 'select', name: 'urlPayLangMenuUseYn', options: ynOpts, col: 2 }
+    ];
+  }
+
+  /** 웹결제 카드 — 대표 기본상품(상품명 사용 토글 포함) */
+  function merchantWebPaymentDefaultProductRow() {
+    return [
+      { label: '상품명 사용', type: 'select', name: 'urlPayProductNameUseYn', options: [{ v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }], col: 2 },
+      { label: '상품명', type: 'text', name: 'defaultProductName', col: 2, placeholder: '대표 상품명', blockExtraClass: 'url-pay-product-name-field' },
+      { label: '상품코드', type: 'text', name: 'defaultProductCode', col: 1 },
+      { label: '기본금액', type: 'text', name: 'defaultProductAmount', col: 1, placeholder: '0' },
+      { label: '상품설명', type: 'text', name: 'defaultProductDesc', col: 4 }
+    ];
+  }
+
+  function merchantWebPaymentCardRows(urlPlaceholderKo) {
+    var urlPh = urlPlaceholderKo || '가맹점 저장 후 조회';
+    return [
+      merchantWebPaymentCardPrimaryRow(),
+      [{ label: '로고설정', type: 'select', name: 'webPaymentHeaderLogoMode', options: [
+        { v: 'DEFAULT', t: '기본(총판 로고)' }, { v: 'DISABLED', t: '비활성' }, { v: 'ACTIVE', t: '활성(가맹 로고)' }
+      ], col: 3 }],
+      [{ type: 'customHtml', col: 12, html: webPaymentHeaderLogoFieldBlock }],
+      [{ label: '경고메세지', type: 'select', name: 'webPaymentHeaderSubtitleMode', options: [
+        { v: 'DEFAULT', t: '기본(3DS 안전 결제)' }, { v: 'DISABLED', t: '비활성' }, { v: 'ACTIVE', t: '활성(직접 입력)' }
+      ], col: 3 }],
+      [{ type: 'customHtml', col: 12, html: webPaymentHeaderSubtitleFieldBlock }],
+      merchantWebPaymentDefaultProductRow(),
+      [{ type: 'customHtml', col: 12, html: function () { return merchantPaymentUrlRowHtml(urlPh); } },
+       { type: 'customHtml', col: 12, html: function () { return merchantPaymentRepayUrlRowHtml(urlPh); } }]
+    ];
+  }
+
   /** 가맹 등록·정보 — 가맹 API 연동 채널(인라인·리다이렉트·WordPress) */
   function merchantApiIntegrationChannelsCardSection() {
     return {
@@ -2306,6 +2346,20 @@
                 pgUiParagraphHtml('전산설정 전체 데이터 초기화 카드 본문', 'mb-0 text-muted') + '</div>' +
                 '<button type="button" class="btn btn-danger btn-sm flex-shrink-0 align-self-center" id="hqLedgerOperationalDataResetBtn" data-pg-ui-t="전체 데이터 초기화…">' + escUi(L('전체 데이터 초기화…')) + '</button></div>' }],
             [{ type: 'customHtml', col: 12,
+              html: '<div class="d-flex flex-wrap align-items-start justify-content-between gap-3 border border-warning-subtle rounded p-3 mb-2 bg-body-secondary">' +
+                '<div class="flex-grow-1 small">' +
+                '<div class="fw-semibold text-warning-emphasis mb-1" data-pg-ui-t="금일 결제·노티 삭제">' + escUi(L('금일 결제·노티 삭제')) + '</div>' +
+                pgUiParagraphHtml('전산설정 금일 결제 노티 삭제 카드 본문', 'mb-2 text-muted') +
+                '<div class="d-flex flex-wrap gap-2 align-items-end">' +
+                '<div><label class="form-label small mb-0" for="hqLedgerPurgePayDate" data-pg-ui-t="대상 일자">대상 일자</label>' +
+                '<input type="date" class="form-control form-control-sm" id="hqLedgerPurgePayDate" style="min-width:9.5rem"></div>' +
+                '<div><label class="form-label small mb-0" for="hqLedgerPurgeMerchantId" data-pg-ui-t="가맹점 ID(선택)">가맹점 ID(선택)</label>' +
+                '<input type="text" class="form-control form-control-sm" id="hqLedgerPurgeMerchantId" maxlength="20" placeholder="' + escUi(L('비우면 전체 가맹')) + '" style="min-width:10rem"></div>' +
+                '<div class="form-check mb-1"><input class="form-check-input" type="checkbox" id="hqLedgerPurgeInboundYn" checked>' +
+                '<label class="form-check-label small" for="hqLedgerPurgeInboundYn" data-pg-ui-t="노티수령정보도 삭제">노티수령정보도 삭제</label></div>' +
+                '</div></div>' +
+                '<button type="button" class="btn btn-warning btn-sm flex-shrink-0 align-self-center text-dark" id="hqLedgerPurgePayNotifyDayBtn" data-pg-ui-t="금일 결제·노티 삭제…">' + escUi(L('금일 결제·노티 삭제…')) + '</button></div>' }],
+            [{ type: 'customHtml', col: 12,
               html: '<div class="d-flex flex-wrap align-items-start justify-content-between gap-3 border border-primary-subtle rounded p-3 mb-2 bg-body-secondary">' +
                 '<div class="flex-grow-1 small">' +
                 '<div class="fw-semibold text-primary mb-1" data-pg-ui-t="정산 데이터 초기화">' + escUi(L('정산 데이터 초기화')) + '</div>' +
@@ -3179,21 +3233,7 @@
           id: 'webPaymentCard',
           merchantOnly: true,
           notice: merchantWebPaymentCardNoticeKo(),
-          rows: [
-            [{ label: '웹결제 사용여부', type: 'select', name: 'webPaymentUseYn', options: [{ v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }], col: 2 },
-             { label: 'URL 결제 방식', type: 'select', name: 'urlPayCheckoutMode', options: [{ v: 'STANDARD', t: '일반 URL 결제' }, { v: 'REPAY', t: '재결제 URL (저장 카드)' }], col: 3 }],
-            [{ label: '로고설정', type: 'select', name: 'webPaymentHeaderLogoMode', options: [
-              { v: 'DEFAULT', t: '기본(총판 로고)' }, { v: 'DISABLED', t: '비활성' }, { v: 'ACTIVE', t: '활성(가맹 로고)' }
-            ], col: 3 }],
-            [{ type: 'customHtml', col: 12, html: webPaymentHeaderLogoFieldBlock }],
-            [{ label: '경고메세지', type: 'select', name: 'webPaymentHeaderSubtitleMode', options: [
-              { v: 'DEFAULT', t: '기본(3DS 안전 결제)' }, { v: 'DISABLED', t: '비활성' }, { v: 'ACTIVE', t: '활성(직접 입력)' }
-            ], col: 3 }],
-            [{ type: 'customHtml', col: 12, html: webPaymentHeaderSubtitleFieldBlock }],
-            [{ label: '상품명', type: 'text', name: 'defaultProductName', col: 2, placeholder: '대표 상품명' }, { label: '상품코드', type: 'text', name: 'defaultProductCode', col: 1 }, { label: '기본금액', type: 'text', name: 'defaultProductAmount', col: 1, placeholder: '0' }, { label: '상품설명', type: 'text', name: 'defaultProductDesc', col: 4 }],
-            [{ type: 'customHtml', col: 12, html: function () { return merchantPaymentUrlRowHtml('가맹점 저장 후 조회'); } },
-             { type: 'customHtml', col: 12, html: function () { return merchantPaymentRepayUrlRowHtml('가맹점 저장 후 조회'); } }]
-          ]
+          rows: merchantWebPaymentCardRows('가맹점 저장 후 조회')
         },
         merchantApiUrlPayCheckoutCardSection(),
         merchantJpayCheckoutFieldModeCardSection(),
@@ -3608,21 +3648,7 @@
           id: 'webPaymentCard',
           merchantOnly: true,
           notice: merchantWebPaymentCardNoticeKo(),
-          rows: [
-            [{ label: '웹결제 사용여부', type: 'select', name: 'webPaymentUseYn', options: [{ v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }], col: 2 },
-             { label: 'URL 결제 방식', type: 'select', name: 'urlPayCheckoutMode', options: [{ v: 'STANDARD', t: '일반 URL 결제' }, { v: 'REPAY', t: '재결제 URL (저장 카드)' }], col: 3 }],
-            [{ label: '로고설정', type: 'select', name: 'webPaymentHeaderLogoMode', options: [
-              { v: 'DEFAULT', t: '기본(총판 로고)' }, { v: 'DISABLED', t: '비활성' }, { v: 'ACTIVE', t: '활성(가맹 로고)' }
-            ], col: 3 }],
-            [{ type: 'customHtml', col: 12, html: webPaymentHeaderLogoFieldBlock }],
-            [{ label: '경고메세지', type: 'select', name: 'webPaymentHeaderSubtitleMode', options: [
-              { v: 'DEFAULT', t: '기본(3DS 안전 결제)' }, { v: 'DISABLED', t: '비활성' }, { v: 'ACTIVE', t: '활성(직접 입력)' }
-            ], col: 3 }],
-            [{ type: 'customHtml', col: 12, html: webPaymentHeaderSubtitleFieldBlock }],
-            [{ label: '상품명', type: 'text', name: 'defaultProductName', col: 2, placeholder: '대표 상품명' }, { label: '상품코드', type: 'text', name: 'defaultProductCode', col: 1 }, { label: '기본금액', type: 'text', name: 'defaultProductAmount', col: 1, placeholder: '0' }, { label: '상품설명', type: 'text', name: 'defaultProductDesc', col: 4 }],
-            [{ type: 'customHtml', col: 12, html: function () { return merchantPaymentUrlRowHtml('가맹점 저장 후 조회'); } },
-             { type: 'customHtml', col: 12, html: function () { return merchantPaymentRepayUrlRowHtml('가맹점 저장 후 조회'); } }]
-          ]
+          rows: merchantWebPaymentCardRows('가맹점 저장 후 조회')
         },
         merchantApiUrlPayCheckoutCardSection(),
         merchantJpayCheckoutFieldModeCardSection(),
@@ -3968,21 +3994,7 @@
           id: 'webPaymentCard',
           merchantOnly: true,
           notice: merchantWebPaymentCardNoticeKo(),
-          rows: [
-            [{ label: '웹결제 사용여부', type: 'select', name: 'webPaymentUseYn', options: [{ v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }], col: 2 },
-             { label: 'URL 결제 방식', type: 'select', name: 'urlPayCheckoutMode', options: [{ v: 'STANDARD', t: '일반 URL 결제' }, { v: 'REPAY', t: '재결제 URL (저장 카드)' }], col: 3 }],
-            [{ label: '로고설정', type: 'select', name: 'webPaymentHeaderLogoMode', options: [
-              { v: 'DEFAULT', t: '기본(총판 로고)' }, { v: 'DISABLED', t: '비활성' }, { v: 'ACTIVE', t: '활성(가맹 로고)' }
-            ], col: 3 }],
-            [{ type: 'customHtml', col: 12, html: webPaymentHeaderLogoFieldBlock }],
-            [{ label: '경고메세지', type: 'select', name: 'webPaymentHeaderSubtitleMode', options: [
-              { v: 'DEFAULT', t: '기본(3DS 안전 결제)' }, { v: 'DISABLED', t: '비활성' }, { v: 'ACTIVE', t: '활성(직접 입력)' }
-            ], col: 3 }],
-            [{ type: 'customHtml', col: 12, html: webPaymentHeaderSubtitleFieldBlock }],
-            [{ label: '상품명', type: 'text', name: 'defaultProductName', col: 2, placeholder: '대표 상품명' }, { label: '상품코드', type: 'text', name: 'defaultProductCode', col: 1 }, { label: '기본금액', type: 'text', name: 'defaultProductAmount', col: 1, placeholder: '0' }, { label: '상품설명', type: 'text', name: 'defaultProductDesc', col: 4 }],
-            [{ type: 'customHtml', col: 12, html: function () { return merchantPaymentUrlRowHtml('가맹점 선택 후 조회'); } },
-             { type: 'customHtml', col: 12, html: function () { return merchantPaymentRepayUrlRowHtml('가맹점 선택 후 조회'); } }]
-          ]
+          rows: merchantWebPaymentCardRows('가맹점 선택 후 조회')
         },
         merchantApiUrlPayCheckoutCardSection(),
         merchantJpayCheckoutFieldModeCardSection(),

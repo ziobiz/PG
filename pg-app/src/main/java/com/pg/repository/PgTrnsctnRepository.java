@@ -125,4 +125,11 @@ public interface PgTrnsctnRepository extends JpaRepository<PgTrnsctn, String>, J
            "AND t.status IN ('30','31') AND t.merchantId IN :mids GROUP BY t.merchantId ORDER BY COUNT(t) DESC")
     List<Object[]> dashboardTopRefundMerchantsIn(@Param("f") LocalDateTime f, @Param("t") LocalDateTime t,
                                                    @Param("mids") Collection<String> mids, Pageable pageable);
+
+    /** 일자별 결제내역 삭제(재노티) — created_at 기준 */
+    @Query("SELECT t.trnId FROM PgTrnsctn t WHERE t.createdAt >= :from AND t.createdAt < :to " +
+           "AND (:merchantId IS NULL OR :merchantId = '' OR t.merchantId = :merchantId)")
+    List<String> findTrnIdsByCreatedAtRange(@Param("from") LocalDateTime from,
+                                            @Param("to") LocalDateTime to,
+                                            @Param("merchantId") String merchantId);
 }

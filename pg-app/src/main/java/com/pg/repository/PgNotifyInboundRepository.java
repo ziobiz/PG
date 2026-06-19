@@ -4,6 +4,7 @@ import com.pg.entity.PgNotifyInbound;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -30,4 +31,11 @@ public interface PgNotifyInboundRepository extends JpaRepository<PgNotifyInbound
 
     @Query("SELECT n FROM PgNotifyInbound n WHERE n.createdAt >= :since AND (n.processStatus IS NULL OR UPPER(TRIM(n.processStatus)) <> 'PARSED') AND n.merchantId IN :mids ORDER BY n.createdAt DESC")
     List<PgNotifyInbound> findRecentNotParsedIn(@Param("since") LocalDateTime since, @Param("mids") Collection<String> mids, Pageable pageable);
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("DELETE FROM PgNotifyInbound n WHERE n.createdAt >= :from AND n.createdAt < :to " +
+           "AND (:merchantId IS NULL OR :merchantId = '' OR n.merchantId = :merchantId)")
+    int deleteByCreatedAtRange(@Param("from") LocalDateTime from,
+                               @Param("to") LocalDateTime to,
+                               @Param("merchantId") String merchantId);
 }

@@ -1350,6 +1350,9 @@ public class CompService {
         addDiffYnAllow(rows, oid, compId, compNm, by, p + "수수료설정허용", snap.commissionConfigAllowed(), mp.getCommissionConfigAllowed());
         addDiffYn(rows, oid, compId, compNm, by, p + "웹결제사용여부", snap.webPaymentUseYn(), mp.getWebPaymentUseYn());
         addDiff(rows, oid, compId, compNm, by, p + "URL결제방식", snap.urlPayCheckoutMode(), nz(mp.getUrlPayCheckoutMode()));
+        addDiffYn(rows, oid, compId, compNm, by, p + "URL상품명사용", snap.urlPayProductNameUseYn(), mp.getUrlPayProductNameUseYn());
+        addDiffYn(rows, oid, compId, compNm, by, p + "URL회사명노출", snap.urlPayCompanyNameShowYn(), mp.getUrlPayCompanyNameShowYn());
+        addDiffYn(rows, oid, compId, compNm, by, p + "URL다국어메뉴", snap.urlPayLangMenuUseYn(), mp.getUrlPayLangMenuUseYn());
         addDiff(rows, oid, compId, compNm, by, p + "APIURL결제방식", snap.apiUrlPayCheckoutMode(), nz(mp.getApiUrlPayCheckoutMode()));
         addDiff(rows, oid, compId, compNm, by, p + "JPAY결제창입력필드",
                 snap.jpayCheckoutFieldMode(), com.pg.urlpay.JpayCheckoutFieldModeUtil.formatMerchantUiValue(mp.getJpayCheckoutFieldMode()));
@@ -1444,6 +1447,9 @@ public class CompService {
             String commissionConfigAllowed,
             String webPaymentUseYn,
             String urlPayCheckoutMode,
+            String urlPayProductNameUseYn,
+            String urlPayCompanyNameShowYn,
+            String urlPayLangMenuUseYn,
             String apiUrlPayCheckoutMode,
             String chatbotUrlPayCheckoutMode,
             String jpayCheckoutFieldMode,
@@ -1504,6 +1510,9 @@ public class CompService {
                     nz(mp.getCommissionConfigAllowed()),
                     nz(mp.getWebPaymentUseYn()),
                     nz(mp.getUrlPayCheckoutMode()),
+                    nz(mp.getUrlPayProductNameUseYn()),
+                    nz(mp.getUrlPayCompanyNameShowYn()),
+                    nz(mp.getUrlPayLangMenuUseYn()),
                     nz(mp.getApiUrlPayCheckoutMode()),
                     nz(mp.getChatbotUrlPayCheckoutMode()),
                     com.pg.urlpay.JpayCheckoutFieldModeUtil.formatMerchantUiValue(mp.getJpayCheckoutFieldMode()),
@@ -1671,6 +1680,9 @@ public class CompService {
                             m.put("webPaymentHeaderLogoMode", com.pg.urlpay.WebPaymentHeaderLogoModeUtil.normalize(mp.getWebPaymentHeaderLogoMode()));
                             m.put("webPaymentHeaderSubtitleMode", com.pg.urlpay.WebPaymentHeaderLogoModeUtil.normalize(mp.getWebPaymentHeaderSubtitleMode()));
                             m.put("urlPayCheckoutMode", com.pg.urlpay.UrlPayCheckoutModeUtil.normalize(mp.getUrlPayCheckoutMode()));
+                            m.put("urlPayProductNameUseYn", mp.getUrlPayProductNameUseYn() != null ? mp.getUrlPayProductNameUseYn() : "Y");
+                            m.put("urlPayCompanyNameShowYn", mp.getUrlPayCompanyNameShowYn() != null ? mp.getUrlPayCompanyNameShowYn() : "Y");
+                            m.put("urlPayLangMenuUseYn", mp.getUrlPayLangMenuUseYn() != null ? mp.getUrlPayLangMenuUseYn() : "Y");
                             m.put("apiUrlPayCheckoutMode", com.pg.urlpay.UrlPayCheckoutModeUtil.normalize(mp.getApiUrlPayCheckoutMode()));
                             m.put("chatbotUrlPayCheckoutMode", com.pg.urlpay.UrlPayCheckoutModeUtil.normalize(mp.getChatbotUrlPayCheckoutMode()));
                             m.put("jpayCheckoutFieldMode", com.pg.urlpay.JpayCheckoutFieldModeUtil.formatMerchantUiValue(mp.getJpayCheckoutFieldMode()));
@@ -1758,6 +1770,9 @@ public class CompService {
                                 }
                                 m.put("webPaymentUseYn", mp.getWebPaymentUseYn() != null ? mp.getWebPaymentUseYn() : "Y");
                                 m.put("urlPayCheckoutMode", com.pg.urlpay.UrlPayCheckoutModeUtil.normalize(mp.getUrlPayCheckoutMode()));
+                                m.put("urlPayProductNameUseYn", mp.getUrlPayProductNameUseYn() != null ? mp.getUrlPayProductNameUseYn() : "Y");
+                                m.put("urlPayCompanyNameShowYn", mp.getUrlPayCompanyNameShowYn() != null ? mp.getUrlPayCompanyNameShowYn() : "Y");
+                                m.put("urlPayLangMenuUseYn", mp.getUrlPayLangMenuUseYn() != null ? mp.getUrlPayLangMenuUseYn() : "Y");
                                 m.put("apiUrlPayCheckoutMode", com.pg.urlpay.UrlPayCheckoutModeUtil.normalize(mp.getApiUrlPayCheckoutMode()));
                                 m.put("chatbotUrlPayCheckoutMode", com.pg.urlpay.UrlPayCheckoutModeUtil.normalize(mp.getChatbotUrlPayCheckoutMode()));
                                 m.put("jpayCheckoutFieldMode", com.pg.urlpay.JpayCheckoutFieldModeUtil.formatMerchantUiValue(mp.getJpayCheckoutFieldMode()));
@@ -1948,6 +1963,9 @@ public class CompService {
                           String chatbotCatalogListingEnabled,
                           String chatbotPromotionShelfMode, Integer chatbotPromotionRotateSeconds,
                           String urlPayCheckoutMode,
+                          String urlPayProductNameUseYn,
+                          String urlPayCompanyNameShowYn,
+                          String urlPayLangMenuUseYn,
                           String apiUrlPayCheckoutMode,
                           String chatbotUrlPayCheckoutMode,
                           String apiJpaySubscriptionUseYn,
@@ -2044,6 +2062,8 @@ public class CompService {
                             }
                             if (childLevel == OrgLevel.MERCHANT) {
                                 applyMerchantUrlPayCheckoutMode(mp, ou.getId(), urlPayCheckoutMode);
+                                applyMerchantUrlPayPresentationOptions(mp,
+                                        urlPayProductNameUseYn, urlPayCompanyNameShowYn, urlPayLangMenuUseYn);
                                 applyMerchantApiUrlPayCheckoutMode(mp, ou.getId(), apiUrlPayCheckoutMode);
                                 applyMerchantChatbotUrlPayCheckoutMode(mp, ou.getId(), chatbotUrlPayCheckoutMode);
                                 applyMerchantJpayCheckoutFieldMode(mp, jpayCheckoutFieldMode);
@@ -2486,6 +2506,25 @@ public class CompService {
         mp.setUrlPayLineNotifyToken(raw);
     }
 
+    /** 가맹점 URL 결제창 표시 옵션 — 상품명·회사명·다국어 메뉴 */
+    private void applyMerchantUrlPayPresentationOptions(MerchantProfile mp,
+                                                      String productNameUseYn,
+                                                      String companyNameShowYn,
+                                                      String langMenuUseYn) {
+        if (mp == null) {
+            return;
+        }
+        if (productNameUseYn != null && !productNameUseYn.isBlank()) {
+            mp.setUrlPayProductNameUseYn(productNameUseYn.trim());
+        }
+        if (companyNameShowYn != null && !companyNameShowYn.isBlank()) {
+            mp.setUrlPayCompanyNameShowYn(companyNameShowYn.trim());
+        }
+        if (langMenuUseYn != null && !langMenuUseYn.isBlank()) {
+            mp.setUrlPayLangMenuUseYn(langMenuUseYn.trim());
+        }
+    }
+
     /** 가맹점 공개 URL 결제 방식 (STANDARD | REPAY). */
     private void applyMerchantUrlPayCheckoutMode(MerchantProfile mp, Long orgUnitId, String urlPayCheckoutMode) {
         if (mp == null || orgUnitId == null || urlPayCheckoutMode == null || urlPayCheckoutMode.isBlank()) {
@@ -2875,7 +2914,7 @@ public class CompService {
                 /* notify 8 + commission 17 + 수수료VAT 2 + regionalSettings */
                 null, null, null, null, null, null, null, null, null, null,
                 null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null,
-                null, null, null, null, null, null, null, null, null, null, null, null, null, null, null);
+                null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null);
     }
 
     @Transactional
@@ -2911,6 +2950,9 @@ public class CompService {
                                      String feeVatApplyYn, String feeVatRatePct,
                                      String regionalSettings,
                                      String urlPayCheckoutMode,
+                                     String urlPayProductNameUseYn,
+                                     String urlPayCompanyNameShowYn,
+                                     String urlPayLangMenuUseYn,
                                      String apiUrlPayCheckoutMode,
                                      String chatbotUrlPayCheckoutMode,
                                      String apiJpaySubscriptionUseYn,
@@ -2955,6 +2997,9 @@ public class CompService {
                 feeVatApplyYn, feeVatRatePct,
                 regionalSettings,
                 urlPayCheckoutMode,
+                urlPayProductNameUseYn,
+                urlPayCompanyNameShowYn,
+                urlPayLangMenuUseYn,
                 apiUrlPayCheckoutMode,
                 chatbotUrlPayCheckoutMode,
                 apiJpaySubscriptionUseYn,
@@ -3003,6 +3048,9 @@ public class CompService {
                                      String feeVatApplyYn, String feeVatRatePct,
                                      String regionalSettings,
                                      String urlPayCheckoutMode,
+                                     String urlPayProductNameUseYn,
+                                     String urlPayCompanyNameShowYn,
+                                     String urlPayLangMenuUseYn,
                                      String apiUrlPayCheckoutMode,
                                      String chatbotUrlPayCheckoutMode,
                                      String apiJpaySubscriptionUseYn,
@@ -3085,6 +3133,8 @@ public class CompService {
         if (webPaymentUseYn != null && !webPaymentUseYn.trim().isEmpty()) mp.setWebPaymentUseYn(webPaymentUseYn.trim());
         if ("MERCHANT".equalsIgnoreCase(compDivVal)) {
             applyMerchantUrlPayCheckoutMode(mp, saved.getId(), urlPayCheckoutMode);
+            applyMerchantUrlPayPresentationOptions(mp,
+                    urlPayProductNameUseYn, urlPayCompanyNameShowYn, urlPayLangMenuUseYn);
             applyMerchantApiUrlPayCheckoutMode(mp, saved.getId(), apiUrlPayCheckoutMode);
             applyMerchantChatbotUrlPayCheckoutMode(mp, saved.getId(), chatbotUrlPayCheckoutMode);
             applyMerchantJpayCheckoutFieldMode(mp, jpayCheckoutFieldMode);
@@ -4698,7 +4748,7 @@ public class CompService {
                             null, null, null, null, null, null, null, null, null, null,
                             null, null, null, null, null, null, null, null, null,
                             null, null, null, null,
-                            null, null, null, null, null, null, null, null, null, null, null);
+                            null, null, null, null, null, null, null, null, null, null, null, null, null, null);
                     if (loginIdVal != null && !loginIdVal.isEmpty() && userRepository.findByUsername(loginIdVal).isEmpty()) {
                         AppUser appUser = new AppUser();
                         appUser.setUsername(loginIdVal);

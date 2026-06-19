@@ -90,9 +90,30 @@ public class UrlPayPublicCheckoutService {
                     urlPayCheckoutCurrencyService.resolveCheckoutCurrency(orgUnitId, null));
         }
         Optional<MerchantDefaultProduct> dp = merchantDefaultProductRepository.findByOrgUnitId(orgUnitId);
+        String productNameUseYn = "Y";
+        if (prof.isPresent()) {
+            MerchantProfile p = prof.get();
+            productNameUseYn = p.getUrlPayProductNameUseYn() != null ? p.getUrlPayProductNameUseYn() : "Y";
+            data.put("urlPayProductNameUseYn", productNameUseYn);
+            data.put("urlPayCompanyNameShowYn", p.getUrlPayCompanyNameShowYn() != null ? p.getUrlPayCompanyNameShowYn() : "Y");
+            data.put("urlPayLangMenuUseYn", p.getUrlPayLangMenuUseYn() != null ? p.getUrlPayLangMenuUseYn() : "Y");
+            if (p.getBaseCurrency() != null && !p.getBaseCurrency().isBlank()) {
+                data.put("defaultCurrency", p.getBaseCurrency().trim().toUpperCase(Locale.ROOT));
+            }
+            if (p.getCountryCd() != null && !p.getCountryCd().isBlank()) {
+                data.put("defaultCountryIso2", p.getCountryCd().trim().toUpperCase(Locale.ROOT));
+            } else if (p.getAddrCountryCd() != null && !p.getAddrCountryCd().isBlank()) {
+                data.put("defaultCountryIso2", p.getAddrCountryCd().trim().toUpperCase(Locale.ROOT));
+            }
+        } else {
+            data.put("urlPayProductNameUseYn", productNameUseYn);
+            data.put("urlPayCompanyNameShowYn", "Y");
+            data.put("urlPayLangMenuUseYn", "Y");
+        }
         if (dp.isPresent()) {
             MerchantDefaultProduct p = dp.get();
-            if (p.getProductName() != null && !p.getProductName().isBlank()) {
+            if ("Y".equalsIgnoreCase(productNameUseYn)
+                    && p.getProductName() != null && !p.getProductName().isBlank()) {
                 data.put("defaultProductName", p.getProductName().trim());
             }
             if (p.getDefaultAmount() != null) {
@@ -102,16 +123,6 @@ public class UrlPayPublicCheckoutService {
                 data.put("defaultAmount", p.getDefaultAmount().stripTrailingZeros().toPlainString());
             }
         }
-        prof.ifPresent(p -> {
-            if (p.getBaseCurrency() != null && !p.getBaseCurrency().isBlank()) {
-                data.put("defaultCurrency", p.getBaseCurrency().trim().toUpperCase(Locale.ROOT));
-            }
-            if (p.getCountryCd() != null && !p.getCountryCd().isBlank()) {
-                data.put("defaultCountryIso2", p.getCountryCd().trim().toUpperCase(Locale.ROOT));
-            } else if (p.getAddrCountryCd() != null && !p.getAddrCountryCd().isBlank()) {
-                data.put("defaultCountryIso2", p.getAddrCountryCd().trim().toUpperCase(Locale.ROOT));
-            }
-        });
         enrichPresentation(data, orgUnitId);
         String opPg = String.valueOf(data.getOrDefault("urlPayOperationalPgCd", ""));
         UrlPayVendorCapability cap = capabilityRegistry.resolve(opPg);

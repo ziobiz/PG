@@ -1725,6 +1725,9 @@
     hqLedgerSysSettingsResetSettlementData: function (body) {
       return post('/api/hq/ledgerSysSettings/resetSettlementData', body || {}).then(function (r) { return r.data; });
     },
+    hqLedgerSysSettingsPurgePayNotifyForDay: function (body) {
+      return post('/api/hq/ledgerSysSettings/purgePayAndNotifyForDay', body || {}).then(function (r) { return r.data; });
+    },
     hqPayCardBlockPrefixAdd: function (body) {
       return post('/api/hq/ledgerSysSettings/payCardBlockPrefix', body).then(function (r) { return r.data; });
     },

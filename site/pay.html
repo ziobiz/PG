@@ -213,7 +213,7 @@
   </div>
 
   <script src="js/config.js?v=12"></script>
-  <script src="js/url-pay-public-shell.js?v=3"></script>
+  <script src="js/url-pay-public-shell.js?v=4"></script>
   <script>
     (function () {
       var h = (window.location && window.location.hostname) ? window.location.hostname : '';
@@ -1209,6 +1209,7 @@
 
       document.querySelectorAll('.pay-lang button').forEach(function (btn) {
         btn.addEventListener('click', function () {
+          if (window.__urlPayLangMenuDisabled) return;
           setLang(btn.getAttribute('data-lang') || 'ENG');
         });
       });
@@ -1626,6 +1627,13 @@
         }
         applyPayAmountScaleNotice();
         syncPayAmountYenAccent();
+        if (window.PG_URL_PAY_SHELL && window.PG_URL_PAY_SHELL.applyUrlPayPresentationOptions) {
+          PG_URL_PAY_SHELL.applyUrlPayPresentationOptions(ctx, {
+            getLang: function () { return LANG; },
+            setLang: setLang,
+            detectBrowserLang: detectBrowserUrlPayLang
+          });
+        }
       }
 
       function updatePayFxCurrencyHint() {
@@ -2036,7 +2044,9 @@
           amount: (amtStr && !isNaN(amtRaw)) ? amtStr : '0',
           directCreditToken: hiddenTok.value.trim(),
           phoneNumber: phoneVal,
-          item: document.getElementById('item').value.trim(),
+          item: (window.PG_URL_PAY_SHELL && PG_URL_PAY_SHELL.resolveUrlPayItemValue)
+            ? PG_URL_PAY_SHELL.resolveUrlPayItemValue(checkoutCtx)
+            : document.getElementById('item').value.trim(),
           custEmail: emailVal,
           firstName: fn,
           lastName: ln,
