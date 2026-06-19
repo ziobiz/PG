@@ -18,6 +18,7 @@ import com.pg.service.settlement.SettlementPeriodResolver;
 import com.pg.util.FeeCurrencyRoundResolver;
 import com.pg.util.FeeListRoundingPolicy;
 import com.pg.util.PayDisplayCurrency;
+import com.pg.util.RouteNoDisplayUtil;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -356,7 +357,7 @@ public class CollateralLedgerService {
             m.put("compNm", codeToName.getOrDefault(midTrim, mid));
             String tid = r.getTrnId() != null ? r.getTrnId().trim() : "";
             m.put("trnId", tid);
-            m.put("routeNo", tid.isEmpty() ? "" : routeByTrn.getOrDefault(tid, ""));
+            m.put("routeNo", tid.isEmpty() ? "-" : RouteNoDisplayUtil.formatForDisplay(routeByTrn.getOrDefault(tid, "")));
             String curCell = tid.isEmpty() ? "" : curByTrn.getOrDefault(tid, "");
             if (curCell == null || curCell.isBlank()) {
                 curCell = resolveStatementCurrency(mid);

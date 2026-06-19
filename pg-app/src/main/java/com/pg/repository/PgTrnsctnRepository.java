@@ -24,6 +24,9 @@ public interface PgTrnsctnRepository extends JpaRepository<PgTrnsctn, String>, J
 
     Optional<PgTrnsctn> findFirstByMerchantIdAndOrderNoAndOrigin(String merchantId, String orderNo, String origin);
 
+    /** JPAY 인라인·URL 결제 등 — 주문번호만으로 최신 거래 1건(출처 무관) */
+    Optional<PgTrnsctn> findFirstByOrderNoOrderByCreatedAtDesc(String orderNo);
+
     /** URL 인라인 DirectCredit 직후 적재(origin=URL) 등 — ChillPay RESULT URL(orderNo·transNo) 역추적 */
     Optional<PgTrnsctn> findFirstByOrderNoAndOriginOrderByCreatedAtDesc(String orderNo, String origin);
 

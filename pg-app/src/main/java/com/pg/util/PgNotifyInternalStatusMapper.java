@@ -181,6 +181,10 @@ public final class PgNotifyInternalStatusMapper {
             if (fromRc != null) {
                 return fromRc;
             }
+            String fromPayRc = JpayNotifyStatusResolver.fromReturnCode(paymentStatus);
+            if (fromPayRc != null) {
+                return fromPayRc;
+            }
             String p = paymentStatus != null ? paymentStatus.trim().toLowerCase(Locale.ROOT) : "";
             if ("succeeded".equals(p) || "success".equals(p) || "paid".equals(p)) {
                 return ST_PAID;

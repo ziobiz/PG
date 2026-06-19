@@ -121,8 +121,12 @@ public class JpayNotifyToTrnsctnService implements PgNotifyInboundTxnHandler {
             return false;
         }
         if (!JpaySignatureUtil.verifyNotifySignWithMiddlewareRetry(form, apiKey, sign)) {
-            log.warn("JPAY 노티 서명 불일치 orderid={} channel={} — 노티매핑 핸들러로 위임", orderid, ch);
-            return false;
+            if (!allowMiddlewareRelayWithoutSign(form, in) && !allowTrustedIngressWithoutSign(form, in)) {
+                log.warn("JPAY 노티 서명 불일치 orderid={} channel={} — 노티매핑 핸들러로 위임", orderid, ch);
+                return false;
+            }
+            log.warn("JPAY 노티 서명 불일치 — ICOPAY ingress returncode 적용 orderid={} channel={} returncode={}",
+                    orderid, ch, ret);
         }
         String merchantId = resolveMerchantIdForNotify(in, orderid);
         if (merchantId == null || merchantId.isBlank()) {
@@ -140,18 +144,19 @@ public class JpayNotifyToTrnsctnService implements PgNotifyInboundTxnHandler {
         if (on.length() > 64) {
             on = on.substring(0, 64);
         }
-        Optional<PgTrnsctn> ex = findJpayTxn(merchantId.trim(), on);
+        final String orderKey = on;
+        Optional<PgTrnsctn> ex = findJpayTxn(merchantId.trim(), orderKey);
         PgTrnsctn t = ex.orElseGet(() -> {
             PgTrnsctn x = new PgTrnsctn();
             x.setTrnId(newTrnId());
             x.setMerchantId(merchantId.trim());
             x.setServiceType("URL_JPAY");
-            x.setOrigin(ORIGIN_URL);
+            x.setOrigin(resolveOriginForNewNotifyTxn(merchantId.trim(), orderKey));
             return x;
         });
         t.setVan(PgVendor.JPAY.length() > 10 ? PgVendor.JPAY.substring(0, 10) : PgVendor.JPAY);
-        t.setOrderNo(on);
-        t.setPayNo(on.length() > 50 ? on.substring(0, 50) : on);
+        t.setOrderNo(orderKey);
+        t.setPayNo(orderKey.length() > 50 ? orderKey.substring(0, 50) : orderKey);
         JpayTransactionIdApplier.apply(t, txnId);
         String amtStr = first(form, "true_amount");
         if (amtStr.isBlank()) {
@@ -206,7 +211,7 @@ public class JpayNotifyToTrnsctnService implements PgNotifyInboundTxnHandler {
                 log.warn("실시간 자동정산 트리거 실패 merchantId={}: {}", t.getMerchantId(), rtEx.getMessage());
             }
         }
-        log.info("JPAY 노티 반영 trnId={} merchantId={} orderNo={} returncode={}", t.getTrnId(), merchantId, on, ret);
+        log.info("JPAY 노티 반영 trnId={} merchantId={} orderNo={} returncode={}", t.getTrnId(), merchantId, orderKey, ret);
         return true;
     }
 
@@ -335,6 +340,59 @@ public class JpayNotifyToTrnsctnService implements PgNotifyInboundTxnHandler {
             return !first(f, "returncode").isBlank() || isJpaySuccessPaymentStatus(first(f, "paymentstatus"));
         }
         return !first(f, "returncode").isBlank() || isJpaySuccessPaymentStatus(first(f, "paymentstatus"));
+    }
+
+    /**
+     * NOTI 미들웨어가 JPAY 원문을 ICOPAY로 릴레이한 경우 — 수신 단계에서 가맹점이 이미 PARSED 이고
+     * returncode 가 JPAY 규칙으로 해석 가능하면, 서명 불일치(미들웨어가 msg 등 비스펙 필드를 붙인 경우 등)에도
+     * 기존 MERCHANT_API·URL 대기 건을 갱신합니다.
+     */
+    private static boolean allowMiddlewareRelayWithoutSign(Map<String, String> form, PgNotifyInbound in) {
+        if (form == null || in == null) {
+            return false;
+        }
+        if (in.getMerchantId() == null || in.getMerchantId().isBlank()) {
+            return false;
+        }
+        if (JpayNotifyStatusResolver.resolveFromForm(form) == null) {
+            return false;
+        }
+        if (!first(form, "_middleware_incomingcontenttype").isBlank()
+                || !first(form, "_middleware_rawbodylength").isBlank()) {
+            return true;
+        }
+        /* NOTI 미들웨어 실패 릴레이 — JPAY 원문 returncode=2 + msg("No Card record" 등) */
+        if (!first(form, "msg").isBlank()) {
+            return true;
+        }
+        if (!first(form, "icopaycompid").isBlank()) {
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * ICOPAY 수신 단계에서 가맹점·주문이 이미 확정(PARSED)된 JPAY 노티 —
+     * 서명 불일치여도 JPAY {@code returncode}(00·2·09 등) 규칙으로 반영합니다.
+     */
+    private static boolean allowTrustedIngressWithoutSign(Map<String, String> form, PgNotifyInbound in) {
+        if (form == null || in == null) {
+            return false;
+        }
+        if (in.getMerchantId() == null || in.getMerchantId().isBlank()) {
+            return false;
+        }
+        return JpayNotifyStatusResolver.resolveFromForm(form) != null;
+    }
+
+    private String resolveOriginForNewNotifyTxn(String merchantId, String orderNo) {
+        if (pgTrnsctnRepository.findFirstByMerchantIdAndOrderNoAndOrigin(merchantId, orderNo, "MERCHANT_API").isPresent()) {
+            return "MERCHANT_API";
+        }
+        if (pgTrnsctnRepository.findFirstByMerchantIdAndOrderNoAndOrigin(merchantId, orderNo, ORIGIN_URL).isPresent()) {
+            return ORIGIN_URL;
+        }
+        return ORIGIN_URL;
     }
 
     private static boolean isJpaySuccessPaymentStatus(String raw) {

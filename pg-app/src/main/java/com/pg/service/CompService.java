@@ -35,6 +35,7 @@ import com.pg.service.settlement.SettlementPeriodResolver;
 import com.pg.util.CommissionTierJsonHelper;
 import com.pg.util.PercentDecimalHelper;
 import com.pg.util.ReceivableRecoveryModeUtil;
+import com.pg.util.RouteNoDisplayUtil;
 import com.pg.util.VoidRefundSettlementModeUtil;
 import com.pg.util.CardBrandScopeUtil;
 import com.pg.chatbot.ChatbotCatalogPolicy;
@@ -4225,7 +4226,7 @@ public class CompService {
         }
         LinkedHashSet<String> seen = new LinkedHashSet<>();
         for (MerchantPgBinding b : bindings) {
-            if (b.getRootNo() == null || b.getRootNo().isBlank()) {
+            if (RouteNoDisplayUtil.isAbsent(b.getRootNo())) {
                 continue;
             }
             seen.add(b.getRootNo().trim());

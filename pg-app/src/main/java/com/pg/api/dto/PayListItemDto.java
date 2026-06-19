@@ -12,6 +12,7 @@ import java.time.format.DateTimeFormatter;
 import com.pg.util.CommissionExtraFeeUtil;
 import com.pg.util.MerchantFeeVatUtil;
 import com.pg.util.PayListStatusBarBuckets;
+import com.pg.util.RouteNoDisplayUtil;
 import com.pg.util.TrnTimeDualZoneDisplay;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -491,8 +492,12 @@ public class PayListItemDto {
     }
 
     private static String routeNoLabel(PgTrnsctn t, MerchantPgBinding b) {
-        if (t.getRouteNo() != null && !t.getRouteNo().isBlank()) return t.getRouteNo().trim();
-        if (b != null && b.getRootNo() != null && !b.getRootNo().isBlank()) return b.getRootNo().trim();
+        if (!RouteNoDisplayUtil.isAbsent(t.getRouteNo())) {
+            return t.getRouteNo().trim();
+        }
+        if (b != null && !RouteNoDisplayUtil.isAbsent(b.getRootNo())) {
+            return b.getRootNo().trim();
+        }
         return "-";
     }
 

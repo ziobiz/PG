@@ -2270,7 +2270,7 @@
       formSections: [
         {
           title: '노티 수령 정보',
-          notice: '노티미들웨어·PG(칠페이 등)가 본 시스템의 노티 수신 URL(<code>/api/open/pg-notify/…</code>)로 전송한 요청을 저장한 로그입니다. 목록의 채널 열은 수신 경로 정보 표시용입니다. 대상코드·채널은 신규 수신 건부터 채워집니다(V72). 노티 대상에 연결 총판이 있으면 동일 MID라도 그 총판 트리 안에서만 분기하며, 총판 기준통화와 본문 통화가 다르면 처리 열에 통화불일치(수신경로)로 격리됩니다. <strong>수신성격</strong>은 NOTI가 요청 시 <code>X-Icopay-Notify-Delivery: LIVE|RETRY</code> 또는 <code>X-Noti-Attempt</code>(1=라이브, 2+=재전송) 헤더를 보낼 때만 구분되며, 없으면 「미표시」입니다. 바인딩·매핑을 고친 뒤 과거 건을 결제내역에 붙이려면 본문 보기 모달의 <strong>결제내역 재반영</strong>을 사용하세요(원문이 잘린 건은 불가).',
+          notice: '노티미들웨어·PG(칠페이 등)가 본 시스템의 노티 수신 URL(<code>/api/open/pg-notify/…</code>)로 전송한 요청을 저장한 로그입니다. 목록의 채널 열은 수신 경로 정보 표시용입니다. 대상코드·채널은 신규 수신 건부터 채워집니다(V72). 노티 대상에 연결 총판이 있으면 동일 MID라도 그 총판 트리 안에서만 분기하며, 총판 기준통화와 본문 통화가 다르면 처리 열에 통화불일치(수신경로)로 격리됩니다. <strong>수신성격</strong>은 NOTI가 요청 시 <code>X-Icopay-Notify-Delivery: LIVE|RETRY</code> 또는 <code>X-Noti-Attempt</code>(1=라이브, 2+=재전송) 헤더를 보낼 때만 구분되며, 없으면 「미표시」입니다. 바인딩·매핑을 고친 뒤 과거 건을 결제내역에 붙이려면 본문 보기 모달에서 <strong>본문을 수정·저장</strong>한 뒤 <strong>결제내역 재반영</strong>을 사용하세요(원문이 잘린 건은 불가). 공통 MID 재처리 시 본문에 <code>icopayCompId=업체코드</code> 를 추가하거나 재반영 업체코드 입력란을 사용하세요.',
           rows: [
             [{ type: 'customHtml', col: 12, html: '<div class="row g-2 align-items-end mb-2 ni-inbound-toolbar">' +
               '<div class="col-6 col-md-2"><label class="form-label small mb-0" data-pg-ui-t="수신일(부터)">' + escUi(L('수신일(부터)')) + '</label><input type="date" lang="en-CA" name="niSearchFrom" class="form-control form-control-sm pg-date-input-iso" autocomplete="off"></div>' +
@@ -2310,8 +2310,12 @@
               '<div class="modal-header py-2"><h5 class="modal-title" id="hqNiDetailModalLabel">' + escUi(L('노티 원문')) + '</h5>' +
               '<button type="button" class="btn-close" id="hqNiDetailCloseX" aria-label="' + escUi(L('닫기')) + '"></button></div>' +
               '<div class="modal-body"><p class="small text-muted mb-2" id="hqNiDetailMeta"></p>' +
-              '<textarea id="hqNiDetailBody" class="form-control font-monospace small" rows="16" readonly spellcheck="false"></textarea></div>' +
+              '<div class="mb-2"><label class="form-label small mb-0" for="hqNiReplayCompId" data-pg-ui-t="재반영 업체코드(icopayCompId)">재반영 업체코드(icopayCompId)</label>' +
+              '<input type="text" class="form-control form-control-sm" id="hqNiReplayCompId" maxlength="20" placeholder="예: 6000000041" style="max-width:14rem"></div>' +
+              '<label class="form-label small mb-0" for="hqNiDetailBody">' + escUi(L('수신 본문 (편집 가능)')) + '</label>' +
+              '<textarea id="hqNiDetailBody" class="form-control font-monospace small" rows="16" spellcheck="false"></textarea></div>' +
               '<div class="modal-footer py-2 border-top d-flex gap-2 justify-content-end flex-wrap">' +
+              '<button type="button" class="btn btn-outline-primary btn-sm" id="hqNiSaveBodyBtn">' + escUi(L('본문 저장')) + '</button>' +
               '<button type="button" class="btn btn-primary btn-sm" id="hqNiReplayBtn">' + escUi(L('결제내역 재반영')) + '</button>' +
               '<button type="button" class="btn btn-secondary btn-sm" id="hqNiDetailCloseBtn">' + escUi(L('닫기')) + '</button></div>' +
               '</div></div></div>' }]
@@ -2359,6 +2363,20 @@
                 '<label class="form-check-label small" for="hqLedgerPurgeInboundYn" data-pg-ui-t="노티수령정보도 삭제">노티수령정보도 삭제</label></div>' +
                 '</div></div>' +
                 '<button type="button" class="btn btn-warning btn-sm flex-shrink-0 align-self-center text-dark" id="hqLedgerPurgePayNotifyDayBtn" data-pg-ui-t="금일 결제·노티 삭제…">' + escUi(L('금일 결제·노티 삭제…')) + '</button></div>' }],
+            [{ type: 'customHtml', col: 12,
+              html: '<div class="d-flex flex-wrap align-items-start justify-content-between gap-3 border border-success-subtle rounded p-3 mb-2 bg-body-secondary">' +
+                '<div class="flex-grow-1 small">' +
+                '<div class="fw-semibold text-success mb-1">' + escUi(L('주문별 노티 재반영(icopayCompId)')) + '</div>' +
+                '<p class="mb-2 text-muted">' + escUi(L('결제내역만 삭제하고 노티수령정보(raw_body)가 남아 있을 때, 지정 일자·주문번호별 최신 노티 원문을 icopayCompId와 함께 재반영해 pg_trnsctn을 복구합니다. 공통 MID·복수 가맹점 환경에서 업체코드가 필요합니다.')) + '</p>' +
+                '<div class="d-flex flex-wrap gap-2 align-items-end">' +
+                '<div><label class="form-label small mb-0" for="hqLedgerReplayNotifyDate">' + escUi(L('대상 일자')) + '</label>' +
+                '<input type="date" class="form-control form-control-sm" id="hqLedgerReplayNotifyDate" style="min-width:9.5rem"></div>' +
+                '<div><label class="form-label small mb-0" for="hqLedgerReplayNotifyCompId">icopayCompId</label>' +
+                '<input type="text" class="form-control form-control-sm" id="hqLedgerReplayNotifyCompId" maxlength="20" placeholder="6000000041" style="min-width:10rem"></div>' +
+                '<div class="flex-grow-1" style="min-width:14rem"><label class="form-label small mb-0" for="hqLedgerReplayNotifyOrders">' + escUi(L('주문번호(쉼표 구분)')) + '</label>' +
+                '<input type="text" class="form-control form-control-sm" id="hqLedgerReplayNotifyOrders" placeholder="451,448,444,441,440,439,438,436"></div>' +
+                '</div></div>' +
+                '<button type="button" class="btn btn-success btn-sm flex-shrink-0 align-self-center" id="hqLedgerReplayNotifyOrdersBtn">' + escUi(L('주문별 노티 재반영…')) + '</button></div>' }],
             [{ type: 'customHtml', col: 12,
               html: '<div class="d-flex flex-wrap align-items-start justify-content-between gap-3 border border-primary-subtle rounded p-3 mb-2 bg-body-secondary">' +
                 '<div class="flex-grow-1 small">' +

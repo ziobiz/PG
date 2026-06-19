@@ -6,6 +6,7 @@ import com.pg.api.dto.PageResult;
 import com.pg.entity.PgNotifyInbound;
 import com.pg.repository.PgNotifyInboundRepository;
 import com.pg.util.NotifyIngressDeliveryKindResolver;
+import com.pg.util.RouteNoDisplayUtil;
 import jakarta.persistence.criteria.CriteriaBuilder;
 import jakarta.persistence.criteria.Predicate;
 import jakarta.persistence.criteria.Root;
@@ -137,7 +138,7 @@ public class HqNotifyInboundQueryService {
         m.put("ingressDeliveryKind", idk);
         m.put("ingressDeliveryKindLabel", ingressDeliveryKindLabelKo(idk));
         m.put("mid", blankToDash(in.getMid()));
-        m.put("rootNo", blankToDash(in.getRootNo()));
+        m.put("rootNo", RouteNoDisplayUtil.formatForDisplay(in.getRootNo()));
         m.put("merchantId", blankToDash(in.getMerchantId()));
         m.put("orgUnitId", in.getOrgUnitId());
         m.put("payloadCompId", blankToDash(in.getPayloadCompId()));

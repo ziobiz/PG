@@ -78,24 +78,51 @@ public final class JpayNotifyStatusResolver {
         return null;
     }
 
+    /**
+     * 노티매핑·합성 JSON — {@code returncode} 가 {@code chillPaymentStatus} 로만 매핑된 경우 JPAY 코드를 복원.
+     */
+    public static String resolveReturnCodeForNotify(String directReturnCode,
+                                                    String mappedPaymentStatusField,
+                                                    String statusField) {
+        String direct = directReturnCode != null ? directReturnCode.trim() : "";
+        if (fromReturnCode(direct) != null) {
+            return direct;
+        }
+        String status = statusField != null ? statusField.trim() : "";
+        if (fromReturnCode(status) != null) {
+            return status;
+        }
+        String mapped = mappedPaymentStatusField != null ? mappedPaymentStatusField.trim() : "";
+        if (fromReturnCode(mapped) != null) {
+            return mapped;
+        }
+        return direct.isBlank() ? (status.isBlank() ? mapped : status) : direct;
+    }
+
+    /**
+     * JPAY API 문서 — 비동기 노티 {@code returncode} 원문을 PG 상태 표시에 그대로 저장(00·2·09 등).
+     */
     public static String chillPaymentStatusLabel(String internalStatus, String returnCode) {
         String rc = returnCode != null ? returnCode.trim() : "";
+        if (!rc.isBlank() && fromReturnCode(rc) != null) {
+            return rc.length() > 50 ? rc.substring(0, 50) : rc;
+        }
         if (ST_PAID.equals(internalStatus)) {
-            return "JPAY_OK";
-        }
-        if (ST_REFUND.equals(internalStatus)) {
-            return rc.isBlank() ? "JPAY_REFUND" : ("JPAY_REFUND " + rc);
-        }
-        if (ST_CANCEL.equals(internalStatus)) {
-            return rc.isBlank() ? "JPAY_CANCEL" : ("JPAY_CANCEL " + rc);
-        }
-        if ("21".equals(internalStatus)) {
-            return rc.isBlank() ? "JPAY_VOID" : ("JPAY_VOID " + rc);
+            return rc.isBlank() ? "00" : rc;
         }
         if (ST_FAIL.equals(internalStatus)) {
-            return rc.isBlank() ? "JPAY_FAIL" : ("JPAY_FAIL " + rc);
+            return rc.isBlank() ? "2" : rc;
         }
-        return rc.isBlank() ? "JPAY_NOTIFY" : ("JPAY_" + rc);
+        if (ST_REFUND.equals(internalStatus)) {
+            return rc.isBlank() ? "09" : rc;
+        }
+        if (ST_CANCEL.equals(internalStatus)) {
+            return rc.isBlank() ? "08" : rc;
+        }
+        if ("21".equals(internalStatus)) {
+            return rc.isBlank() ? "21" : rc;
+        }
+        return rc.isBlank() ? "JPAY_NOTIFY" : rc;
     }
 
     public static boolean hasMiddlewareManualFollowup(Map<String, String> form) {

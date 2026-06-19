@@ -6,6 +6,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class JpayNotifyStatusResolverTest {
@@ -27,6 +28,50 @@ class JpayNotifyStatusResolverTest {
     void mergePaidThenRefund() {
         String merged = NotifyToTxnStatusMerge.merge("10", JpayNotifyStatusResolver.ST_REFUND, "CALLBACK");
         assertEquals("30", merged);
+    }
+
+    @Test
+    void failNotifyWithMiddlewareMsg_signVerifiesIgnoringMsg() {
+        String apiKey = "test-api-key";
+        Map<String, String> forwarded = new LinkedHashMap<>();
+        forwarded.put("memberid", "10427");
+        forwarded.put("orderid", "wc39212t131538");
+        forwarded.put("transaction_id", "836605170419");
+        forwarded.put("amount", "3980.00");
+        forwarded.put("true_amount", "3980.00");
+        forwarded.put("datetime", "20260619211633");
+        forwarded.put("returncode", "2");
+        forwarded.put("attach", "");
+        forwarded.put("msg", "No Card record");
+        forwarded.put("_middleware_incomingContentType", "application/x-www-form-urlencoded");
+        forwarded.put("_middleware_rawBodyLength", "202");
+        String sign = JpaySignatureUtil.md5Upper(
+                "amount=3980.00&datetime=20260619211633&memberid=10427&orderid=wc39212t131538"
+                        + "&returncode=2&transaction_id=836605170419&true_amount=3980.00&key=" + apiKey);
+        assertTrue(JpaySignatureUtil.verifyNotifySign(forwarded, apiKey, sign));
+        assertEquals(JpayNotifyStatusResolver.ST_FAIL, JpayNotifyStatusResolver.resolveFromForm(forwarded));
+        assertEquals("99", NotifyToTxnStatusMerge.merge("08", JpayNotifyStatusResolver.ST_FAIL, "CALLBACK"));
+    }
+
+    @Test
+    void returncode2_mapsToFail_notChillPayCancel() {
+        assertEquals(JpayNotifyStatusResolver.ST_FAIL, JpayNotifyStatusResolver.fromReturnCode("2"));
+        assertNotEquals("20", JpayNotifyStatusResolver.fromReturnCode("2"));
+    }
+
+    @Test
+    void returncode2_storedAsJpayCode_inChillPaymentStatus() {
+        assertEquals("2", JpayNotifyStatusResolver.chillPaymentStatusLabel(JpayNotifyStatusResolver.ST_FAIL, "2"));
+        assertEquals("00", JpayNotifyStatusResolver.chillPaymentStatusLabel(JpayNotifyStatusResolver.ST_PAID, "00"));
+    }
+
+    @Test
+    void returncodeFromMappedChillPaymentStatus_resolvesForNotifyMapping() {
+        assertEquals("2", JpayNotifyStatusResolver.resolveReturnCodeForNotify("", "2", ""));
+        assertEquals(JpayNotifyStatusResolver.ST_FAIL,
+                JpayNotifyStatusResolver.resolve(
+                        JpayNotifyStatusResolver.resolveReturnCodeForNotify("", "2", ""),
+                        "", ""));
     }
 
     @Test

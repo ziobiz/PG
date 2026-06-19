@@ -5,6 +5,8 @@ import com.pg.dto.NotiMiddlewareRelayRequest;
 import com.pg.dto.NotifyReceiveOutcome;
 import com.pg.service.PgNotifyReceiveService;
 import jakarta.servlet.http.HttpServletRequest;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -23,6 +25,7 @@ import java.util.Map;
 @Component
 public class PgNotifyIngressHandler {
 
+    private static final Logger log = LoggerFactory.getLogger(PgNotifyIngressHandler.class);
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
     private final PgNotifyReceiveService receiveService;
@@ -81,6 +84,11 @@ public class PgNotifyIngressHandler {
             return toResponse(out);
         } catch (SecurityException e) {
             return ResponseEntity.status(403).contentType(MediaType.TEXT_PLAIN).body("FORBIDDEN");
+        } catch (Exception e) {
+            log.warn("pg-notify handle 실패 token={} target={}: {}", token, targetCode, e.toString());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body("{\"success\":false,\"processed\":false,\"retryable\":true,\"errorCode\":\"NOTIFY_ERROR\"}");
         }
     }
 

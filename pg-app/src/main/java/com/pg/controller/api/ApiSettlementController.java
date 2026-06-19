@@ -62,6 +62,7 @@ import com.pg.util.FeeCurrencyRoundResolver;
 import com.pg.util.FeeListRoundingPolicy;
 import com.pg.util.MerchantFeeVatUtil;
 import com.pg.util.PayDisplayCurrency;
+import com.pg.util.RouteNoDisplayUtil;
 import com.pg.util.PayListStatusBarBuckets;
 import com.pg.util.PercentDecimalHelper;
 import com.pg.util.TrnTimeDualZoneDisplay;
@@ -4003,7 +4004,7 @@ public class ApiSettlementController {
                 .map(MerchantPgBinding::getRootNo)
                 .filter(Objects::nonNull)
                 .map(String::trim)
-                .filter(s -> !s.isEmpty())
+                .filter(s -> !RouteNoDisplayUtil.isAbsent(s))
                 .findFirst();
         if (primary.isPresent()) {
             return primary.get();
@@ -4012,7 +4013,7 @@ public class ApiSettlementController {
                 .map(MerchantPgBinding::getRootNo)
                 .filter(Objects::nonNull)
                 .map(String::trim)
-                .filter(s -> !s.isEmpty())
+                .filter(s -> !RouteNoDisplayUtil.isAbsent(s))
                 .findFirst()
                 .orElse("-");
     }
@@ -4026,7 +4027,7 @@ public class ApiSettlementController {
                 .map(MerchantPgBinding::getRootNo)
                 .filter(Objects::nonNull)
                 .map(String::trim)
-                .filter(s -> !s.isEmpty())
+                .filter(s -> !RouteNoDisplayUtil.isAbsent(s))
                 .findFirst();
         if (primary.isPresent()) {
             return primary.get();
@@ -4035,7 +4036,7 @@ public class ApiSettlementController {
                 .map(MerchantPgBinding::getRootNo)
                 .filter(Objects::nonNull)
                 .map(String::trim)
-                .filter(s -> !s.isEmpty())
+                .filter(s -> !RouteNoDisplayUtil.isAbsent(s))
                 .findFirst()
                 .orElse("-");
     }

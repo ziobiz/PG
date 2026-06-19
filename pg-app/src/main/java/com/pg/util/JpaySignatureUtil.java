@@ -5,6 +5,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.TreeMap;
 
 /**
@@ -73,6 +74,17 @@ public final class JpaySignatureUtil {
         return verifyNotifySign(formFields, apiKey, signReceived, "00");
     }
 
+    /**
+     * JPAY 비동기 노티의 서명 대상 필드(<a href="https://docs.j-pay.net/docs/http">스펙</a>):
+     * {@code memberid, orderid, amount, true_amount, currency, transaction_id, returncode, datetime, attach}.
+     * <p>{@code sign} 은 검증 대상에서 제외하고, NOTI 미들웨어가 덧붙이는 비스펙 필드
+     * ({@code msg}, {@code _middleware_*} 등)는 서명에 포함하지 않는다. 미들웨어가 실패 노티에
+     * {@code msg}("No Card record" 등)를 추가해도 서명이 깨지지 않도록 한다.</p>
+     */
+    private static final Set<String> NOTIFY_SIGN_FIELDS = Set.of(
+            "memberid", "orderid", "amount", "true_amount", "currency",
+            "transaction_id", "returncode", "datetime", "attach");
+
     private static TreeMap<String, String> buildNotifySignFieldMap(Map<String, String> formFields,
                                                                    String returnCodeOverride) {
         TreeMap<String, String> sorted = new TreeMap<>();
@@ -82,17 +94,14 @@ public final class JpaySignatureUtil {
                 continue;
             }
             String kl = k.trim().toLowerCase(Locale.ROOT);
-            if ("sign".equals(kl)) {
-                continue;
-            }
-            if (kl.startsWith("_middleware_")) {
+            if (!NOTIFY_SIGN_FIELDS.contains(kl)) {
                 continue;
             }
             String v = e.getValue();
             if (v == null || v.isBlank()) {
                 continue;
             }
-            sorted.put(k.trim(), v.trim());
+            sorted.put(kl, v.trim());
         }
         if (returnCodeOverride != null && !returnCodeOverride.isBlank()) {
             sorted.put("returncode", returnCodeOverride.trim());

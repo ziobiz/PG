@@ -1704,8 +1704,26 @@
     hqNotifyInboundDetail: function (id) {
       return get('/api/hq/notifyInbound/' + encodeURIComponent(id)).then(function (r) { return r.data; });
     },
-    hqNotifyInboundReplay: function (id) {
-      return post('/api/hq/notifyInbound/' + encodeURIComponent(id) + '/replay', {}).then(function (r) { return r.data; });
+    hqNotifyInboundReplay: function (id, opts) {
+      opts = opts || {};
+      var q = '';
+      if (opts.icopayCompId) {
+        q = '?icopayCompId=' + encodeURIComponent(opts.icopayCompId);
+      }
+      var payload = {};
+      if (opts.rawBody != null && String(opts.rawBody).length) {
+        payload.rawBody = opts.rawBody;
+      }
+      if (opts.icopayCompId && !q) {
+        payload.icopayCompId = opts.icopayCompId;
+      }
+      return post('/api/hq/notifyInbound/' + encodeURIComponent(id) + '/replay' + q, payload).then(function (r) { return r.data; });
+    },
+    hqNotifyInboundUpdateRawBody: function (id, rawBody) {
+      return put('/api/hq/notifyInbound/' + encodeURIComponent(id) + '/rawBody', { rawBody: rawBody }).then(function (r) { return r.data; });
+    },
+    hqNotifyInboundReplayOrders: function (payload) {
+      return post('/api/hq/notifyInbound/replay-orders', payload || {}).then(function (r) { return r.data; });
     },
     hqLedgerSysSettings: function () {
       return get('/api/hq/ledgerSysSettings').then(function (r) { return r.data; });

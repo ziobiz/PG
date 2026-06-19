@@ -7,6 +7,7 @@ import com.pg.repository.OrgUnitRepository;
 import com.pg.repository.PgTrnsctnRepository;
 import com.pg.util.JpayBuyerContactApplier;
 import com.pg.util.JpayTransactionIdApplier;
+import com.pg.util.RouteNoDisplayUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -142,7 +143,10 @@ public class JpaySaleRecordService {
         }
         String cur = currency != null ? currency.trim().toUpperCase() : UrlPayCheckoutCurrencyService.DEFAULT_FALLBACK;
         t.setCurType(cur.length() > 3 ? cur.substring(0, 3) : cur);
-        t.setRouteNo(String.valueOf(routeNo));
+        String routeStored = RouteNoDisplayUtil.normalizeForStorage(routeNo);
+        if (routeStored != null) {
+            t.setRouteNo(routeStored);
+        }
         String cid = customerHint != null && !customerHint.isBlank() ? customerHint.trim() : "guest";
         t.setCustomerId(cid.length() > 100 ? cid.substring(0, 100) : cid);
         if (saleBody != null && !saleBody.isEmpty()) {
@@ -219,8 +223,7 @@ public class JpaySaleRecordService {
             } else if (status == 2) {
                 t.setStatus(ST_FAIL);
                 t.setPaidAt(null);
-                String m = msg != null ? msg.trim() : "FAIL";
-                t.setChillPaymentStatus(truncate(m, 50));
+                t.setChillPaymentStatus("2");
             }
             JpayTransactionIdApplier.apply(t, jpayTransactionId);
             /* status==1 (3DS): pending 유지 */

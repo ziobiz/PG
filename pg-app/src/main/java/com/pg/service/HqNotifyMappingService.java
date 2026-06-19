@@ -984,8 +984,12 @@ public class HqNotifyMappingService {
         String mwFollow = firstNonBlankString(
                 textDeep(notifyRoot, "_middleware_manualFollowup"),
                 textDeep(notifyRoot, "_middleware_manualfollowup"));
+        String returnCodeForJpay = JpayNotifyStatusResolver.resolveReturnCodeForNotify(
+                jsonStatField,
+                mappedPs,
+                statusFieldForInternal);
         String jpayResolved = JpayNotifyStatusResolver.resolve(
-                statusFieldForInternal, mwFollow, payStForInternal);
+                returnCodeForJpay, mwFollow, payStForInternal);
         String internalComputed = jpayResolved != null ? jpayResolved
                 : PgNotifyInternalStatusMapper.mapForMappedNotify(
                 payStForInternal, statusFieldForInternal, vendorCode);
@@ -998,7 +1002,12 @@ public class HqNotifyMappingService {
         }
         t.setStatus(mergedStatus);
 
-        String chillDisplay = resolveChillPaymentStatusForStorage(mappedPs, jsonPayStat, mergedStatus);
+        String chillDisplay;
+        if (PgVendor.isJpayFamily(vendorCode)) {
+            chillDisplay = JpayNotifyStatusResolver.chillPaymentStatusLabel(mergedStatus, returnCodeForJpay);
+        } else {
+            chillDisplay = resolveChillPaymentStatusForStorage(mappedPs, jsonPayStat, mergedStatus);
+        }
         if (chillDisplay != null && !chillDisplay.isBlank()) {
             t.setChillPaymentStatus(truncate(chillDisplay, 50));
         }

@@ -155,6 +155,9 @@ public class ChillPayNotifyToTrnsctnService implements PgNotifyInboundTxnHandler
         if (raw == null || raw.isBlank()) {
             return true;
         }
+        if (looksLikeJpayServerNotifyInRaw(raw.trim())) {
+            return false;
+        }
         JsonNode root = resolveNotifyJsonTree(in, raw.trim());
         if (root == null || !root.isObject()) {
             return true;
@@ -372,6 +375,36 @@ public class ChillPayNotifyToTrnsctnService implements PgNotifyInboundTxnHandler
         }
         merchantOutboundNotifyService.scheduleAfterTxnCommit(t, in, notifyCh);
         return true;
+    }
+
+    /** JPAY 비동기 노티({@code memberid}+{@code orderid}+{@code returncode}) — ChillPay 핸들러가 가로채지 않도록 */
+    private boolean looksLikeJpayServerNotifyInRaw(String raw) {
+        if (raw == null || raw.isBlank()) {
+            return false;
+        }
+        String t = raw.trim();
+        if (t.startsWith("{")) {
+            try {
+                JsonNode n = MAPPER.readTree(t);
+                if (n != null && n.isObject()) {
+                    String memberid = textDeep(n, "memberid", "memberId");
+                    String orderid = textDeep(n, "orderid", "orderId", "orderID");
+                    String ret = textDeep(n, "returncode", "returnCode");
+                    String txnId = textDeep(n, "transaction_id", "transactionId");
+                    if (memberid != null && !memberid.isBlank()
+                            && orderid != null && !orderid.isBlank()
+                            && ((ret != null && !ret.isBlank())
+                            || (txnId != null && !txnId.isBlank()))) {
+                        return true;
+                    }
+                }
+            } catch (Exception ignored) {
+                /* fall through */
+            }
+        }
+        String lower = t.toLowerCase(Locale.ROOT);
+        return lower.contains("memberid=") && lower.contains("orderid=")
+                && (lower.contains("returncode=") || lower.contains("transaction_id="));
     }
 
     /**

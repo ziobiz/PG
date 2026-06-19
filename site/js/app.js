@@ -6,6 +6,14 @@
 (function () {
   'use strict';
 
+  /** 루트번호 표시 — null·빈값·0 은 '-' */
+  function pgFormatRouteNoDisplay(raw) {
+    if (raw == null || raw === undefined) return '-';
+    var s = String(raw).trim();
+    if (!s || s === '0') return '-';
+    return s;
+  }
+  var PG_ROUTE_NO_DISPLAY_KEYS = ['routeNo', 'pgRootNo', 'rootNo', 'siteRoot'];
   /** 그리드 thead/빈 행 등 — 조회 후 innerHTML용 (screens의 L과 동일 파이프라인) */
   function pgAdminUiT(s) {
     if (s == null || s === '') return '';
@@ -10673,6 +10681,9 @@
                 html += '<td class="text-center text-nowrap"><span data-pg-ui-t="' + escAttr(exShow) + '">' + escHtmlBody(exShow) + '</span></td>';
               } else {
                 var val = row[c.key] !== undefined && row[c.key] !== null ? String(row[c.key]) : '';
+                if (PG_ROUTE_NO_DISPLAY_KEYS.indexOf(c.key) >= 0) {
+                  val = pgFormatRouteNoDisplay(val);
+                }
                 if (url === '/ops/inactiveCard' && c.key === 'pgVendor' && !String(val).trim()) {
                   html += '<td class="text-center"><span data-pg-ui-t="전체 PG">' +
                     pgAdminEscHtml(pgAdminUiT('전체 PG')) + '</span></td>';
@@ -10867,7 +10878,7 @@
                   var compNmPlain = val == null ? '' : String(val);
                   html += '<td class="text-start align-middle"><span class="pg-comp-grid-clamp" title="' + escHtmlTitle(compNmPlain) + '">' + escHtmlBody(compNmPlain) + '</span></td>';
                 } else if (isCompMngTree && c.key === 'siteRoot') {
-                  var sr0 = (val == null || val === '' || val === '-') ? '-' : String(val);
+                  var sr0 = pgFormatRouteNoDisplay(val);
                   if (sr0 === '-') {
                     html += '<td class="text-center align-middle small">-</td>';
                   } else {
@@ -21119,6 +21130,49 @@
           }
         });
       }
+      function refreshHqNiDetailFromServer(rid) {
+        return window.PG_API.hqNotifyInboundDetail(rid).then(function (d) {
+          var ta = document.getElementById('hqNiDetailBody');
+          var meta = document.getElementById('hqNiDetailMeta');
+          var modalEl = document.getElementById('hqNiDetailModal');
+          var bodyText = d && d.rawBody != null ? String(d.rawBody) : '';
+          if (ta) ta.value = bodyText;
+          if (modalEl) modalEl.dataset.rawBodyBaseline = bodyText;
+          if (meta) meta.textContent = buildHqNiDetailMetaText(d, rid);
+          return d;
+        });
+      }
+      function bindHqNiSaveBodyIfNeeded() {
+        var saveBtn = document.getElementById('hqNiSaveBodyBtn');
+        if (!saveBtn || saveBtn._hqNiSaveBodyBound) return;
+        saveBtn._hqNiSaveBodyBound = true;
+        saveBtn.addEventListener('click', function () {
+          var modal = document.getElementById('hqNiDetailModal');
+          var rid = modal && modal.dataset.inboundId;
+          var ta = document.getElementById('hqNiDetailBody');
+          if (!rid) {
+            alert(pgAdminUiT('대상 ID가 없습니다.'));
+            return;
+          }
+          if (!ta) return;
+          var body = String(ta.value || '');
+          if (!body.trim()) {
+            alert(pgAdminUiT('본문이 비어 있습니다.'));
+            return;
+          }
+          if (!window.confirm(pgAdminUiT('수정한 노티 본문을 저장합니다. 저장 후 처리상태가 초기화됩니다. 계속할까요?'))) {
+            return;
+          }
+          if (niDimm) niDimm.style.display = 'flex';
+          window.PG_API.hqNotifyInboundUpdateRawBody(rid, body).then(function () {
+            alert(pgAdminUiT('본문이 저장되었습니다.'));
+            niLoad();
+            return refreshHqNiDetailFromServer(rid);
+          }).catch(function (err) {
+            alert(pgErrMsg(err, '본문 저장 실패'));
+          }).finally(function () { if (niDimm) niDimm.style.display = 'none'; });
+        });
+      }
       function bindHqNiReplayIfNeeded() {
         var replayBtn = document.getElementById('hqNiReplayBtn');
         if (!replayBtn || replayBtn._hqNiReplayBound) return;
@@ -21130,11 +21184,24 @@
             alert(pgAdminUiT('대상 ID가 없습니다.'));
             return;
           }
-          if (!window.confirm(pgAdminUiT('저장된 노티 원문으로 가맹 분기·결제내역 적재를 다시 시도합니다. 계속할까요?'))) {
+          var ta = document.getElementById('hqNiDetailBody');
+          var currentBody = ta ? String(ta.value || '') : '';
+          var baseline = modal && modal.dataset.rawBodyBaseline != null ? modal.dataset.rawBodyBaseline : '';
+          var bodyChanged = currentBody !== baseline;
+          var confirmMsg = bodyChanged
+            ? pgAdminUiT('수정한 본문을 저장한 뒤 가맹 분기·결제내역 적재를 다시 시도합니다. 계속할까요?')
+            : pgAdminUiT('저장된 노티 원문으로 가맹 분기·결제내역 적재를 다시 시도합니다. 계속할까요?');
+          if (!window.confirm(confirmMsg)) {
             return;
           }
           if (niDimm) niDimm.style.display = 'flex';
-          window.PG_API.hqNotifyInboundReplay(rid).then(function (res) {
+          var compEl = document.getElementById('hqNiReplayCompId');
+          var compId = compEl ? String(compEl.value || '').trim() : '';
+          var replayOpts = { icopayCompId: compId || undefined };
+          if (bodyChanged) {
+            replayOpts.rawBody = currentBody;
+          }
+          window.PG_API.hqNotifyInboundReplay(rid, replayOpts).then(function (res) {
             var lines = [];
             if (res && res.processStatus) lines.push(pgAdminUiT('노티수령 재처리 결과 처리상태') + ': ' + translateNiApiLabel(res.processStatus));
             if (res && res.merchantId) lines.push(pgAdminUiT('노티수령 재처리 결과 가맹점코드') + ': ' + res.merchantId);
@@ -21144,18 +21211,13 @@
             }
             alert(lines.length ? lines.join('\n') : pgAdminUiT('재처리가 완료되었습니다.'));
             niLoad();
-            return window.PG_API.hqNotifyInboundDetail(rid);
-          }).then(function (d) {
-            if (!d) return;
-            var ta = document.getElementById('hqNiDetailBody');
-            var meta = document.getElementById('hqNiDetailMeta');
-            if (ta) ta.value = d.rawBody != null ? String(d.rawBody) : '';
-            if (meta) meta.textContent = buildHqNiDetailMetaText(d, rid);
+            return refreshHqNiDetailFromServer(rid);
           }).catch(function (err) {
             alert(pgErrMsg(err, '재처리 실패'));
           }).finally(function () { if (niDimm) niDimm.style.display = 'none'; });
         });
       }
+      bindHqNiSaveBodyIfNeeded();
       bindHqNiReplayIfNeeded();
       function niCollectParams() {
         ensureNamedDateRangeYesterdayToToday(pane, '[name="niSearchFrom"]', '[name="niSearchTo"]');
@@ -21226,7 +21288,7 @@
               '<td class="small">' + escNi(formatNiNotifyChannelDisplay(r.notifyChannelType)) + '</td>' +
               '<td class="small font-monospace">' + escNi(r.notifyTargetCode) + '</td>' +
               '<td class="small font-monospace">' + escNi(r.mid) + '</td>' +
-              '<td class="small text-center">' + escNi(r.rootNo) + '</td>' +
+              '<td class="small text-center">' + escNi(pgFormatRouteNoDisplay(r.rootNo)) + '</td>' +
               '<td class="small font-monospace text-truncate" style="max-width:10rem" title="' + escNi(r.transactionId) + '">' + escNi(r.transactionId) + '</td>' +
               '<td class="small text-truncate" style="max-width:8rem" title="' + escNi(r.merchantId) + '">' + escNi(r.merchantId) + '</td>' +
               '<td class="small" style="white-space:normal;line-height:1.25">' +
@@ -21280,7 +21342,11 @@
           var meta = document.getElementById('hqNiDetailMeta');
           var modalEl = document.getElementById('hqNiDetailModal');
           if (modalEl) modalEl.dataset.inboundId = String(d && d.id != null ? d.id : id);
-          if (ta) ta.value = d && d.rawBody != null ? String(d.rawBody) : '';
+          if (ta) {
+            var bodyText = d && d.rawBody != null ? String(d.rawBody) : '';
+            ta.value = bodyText;
+            if (modalEl) modalEl.dataset.rawBodyBaseline = bodyText;
+          }
           if (meta) meta.textContent = buildHqNiDetailMetaText(d, id);
           if (modalEl && window.bootstrap && bootstrap.Modal) {
             bootstrap.Modal.getOrCreateInstance(modalEl).show();
@@ -23090,6 +23156,54 @@
               reloadLedgerSys();
             }).catch(function (err) {
               alert(pgErrMsg(err, '삭제에 실패했습니다.'));
+            }).finally(function () { if (dimmLs) dimmLs.style.display = 'none'; });
+            return;
+          }
+          if (e.target.closest('#hqLedgerReplayNotifyOrdersBtn')) {
+            if (typeof dc !== 'function') return;
+            var replayDateEl = pane.querySelector('#hqLedgerReplayNotifyDate');
+            var replayCompEl = pane.querySelector('#hqLedgerReplayNotifyCompId');
+            var replayOrdersEl = pane.querySelector('#hqLedgerReplayNotifyOrders');
+            var replayDate = replayDateEl ? String(replayDateEl.value || '').trim() : '';
+            var replayComp = replayCompEl ? String(replayCompEl.value || '').trim() : '';
+            var replayOrdersRaw = replayOrdersEl ? String(replayOrdersEl.value || '').trim() : '';
+            if (!replayDate) {
+              alert(pgAdminUiT('대상 일자를 선택하세요.'));
+              return;
+            }
+            if (!replayComp) {
+              alert('icopayCompId(업체코드)를 입력하세요.');
+              return;
+            }
+            var replayOrderNos = replayOrdersRaw.split(/[,;\s]+/).map(function (s) { return s.trim(); }).filter(Boolean);
+            if (!replayOrderNos.length) {
+              alert(pgAdminUiT('주문번호를 입력하세요.'));
+              return;
+            }
+            if (!dc(
+              hqLedgerUiFill('일자 {0} · 업체 {1} · 주문 {2}건의 노티 원문을 재반영합니다.\n\n노티수령정보가 해당 일자에 있어야 합니다.\n\n계속할까요?', [replayDate, replayComp, replayOrderNos.length]),
+              hqLedgerUiFill('마지막 확인입니다.\n\n주문 {0}건에 대해 결제내역(pg_trnsctn) 적재를 시도합니다.', [replayOrderNos.length]))) return;
+            if (dimmLs) dimmLs.style.display = 'flex';
+            window.PG_API.hqNotifyInboundReplayOrders({
+              date: replayDate,
+              icopayCompId: replayComp,
+              orderNos: replayOrderNos
+            }).then(function (d) {
+              d = d || {};
+              var msg = hqLedgerUiFill('완료: 성공 {0}, 실패 {1}, 건너뜀 {2}', [d.ok != null ? d.ok : 0, d.failed != null ? d.failed : 0, d.skipped != null ? d.skipped : 0]);
+              if (d.results && d.results.length) {
+                var lines = d.results.map(function (r) {
+                  r = r || {};
+                  var on = r.orderNo != null ? r.orderNo : (r.inboundId != null ? ('inbound ' + r.inboundId) : '?');
+                  if (r.skipped) return on + ': 건너뜀(' + (r.reason || '') + ')';
+                  if (r.error) return on + ': 오류(' + r.error + ')';
+                  return on + ': ' + (r.processStatus || '') + (r.merchantId ? ' · ' + r.merchantId : '');
+                });
+                msg += '\n\n' + lines.join('\n');
+              }
+              alert(msg);
+            }).catch(function (err) {
+              alert(pgErrMsg(err, '노티 재반영에 실패했습니다.'));
             }).finally(function () { if (dimmLs) dimmLs.style.display = 'none'; });
             return;
           }
@@ -27090,6 +27204,15 @@
     return row[p + suffix] || row[p + 'En'] || row[p + 'Kr'] || '';
   }
 
+  function merchantApiPgScopeAllows(portal, pgVendor) {
+    var scope = portal && portal.merchantApiDocPgScope ? portal.merchantApiDocPgScope : null;
+    if (!scope || !pgVendor) return true;
+    var v = String(pgVendor).trim().toUpperCase();
+    if (v === 'JPAY') return scope.jpay === true;
+    if (v === 'CHILLPAY') return scope.chillPay === true;
+    return true;
+  }
+
   function merchantApiRenderCheckoutEndpoints(ul, portal, pickFn) {
     if (!ul) return;
     function escEp(s) {
@@ -27105,15 +27228,16 @@
     var sections = [
       { title: '통합 Checkout (인라인)', block: portal.merchantUnifiedCheckout, embed: true },
       { title: '통합 Checkout (리다이렉트)', block: portal.merchantUnifiedRedirectCheckout, embed: false, redirect: true },
-      { title: 'JPAY 인라인', block: portal.merchantInlineCheckoutJpay, embed: true },
-      { title: 'JPAY 리다이렉트', block: portal.merchantRedirectCheckoutJpay, embed: false, redirect: true },
-      { title: 'ChillPay 인라인', block: portal.merchantInlineCheckoutChillPay, embed: true },
-      { title: 'ChillPay 리다이렉트', block: portal.merchantRedirectCheckoutChillPay, embed: false, redirect: true }
+      { title: 'JPAY 인라인', block: portal.merchantInlineCheckoutJpay, embed: true, pgVendor: 'JPAY' },
+      { title: 'JPAY 리다이렉트', block: portal.merchantRedirectCheckoutJpay, embed: false, redirect: true, pgVendor: 'JPAY' },
+      { title: 'ChillPay 인라인', block: portal.merchantInlineCheckoutChillPay, embed: true, pgVendor: 'CHILLPAY' },
+      { title: 'ChillPay 리다이렉트', block: portal.merchantRedirectCheckoutChillPay, embed: false, redirect: true, pgVendor: 'CHILLPAY' }
     ];
     var html = '';
     sections.forEach(function (sec) {
       var b = sec.block;
       if (!b || !b.prepareUrl) return;
+      if (sec.pgVendor && !merchantApiPgScopeAllows(portal, sec.pgVendor)) return;
       if (sec.redirect && !allowRedirect) return;
       if (!sec.redirect && sec.embed !== false && !allowInline) return;
       if (sec.redirect === false && sec.embed === false && !allowRedirect) return;

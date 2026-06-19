@@ -24,7 +24,7 @@ public class PgNotifyInbound {
     @Column(name = "payload_comp_id", length = 64)
     private String payloadCompId;
 
-    @Column(name = "merchant_id", length = 20)
+    @Column(name = "merchant_id", length = 50)
     private String merchantId;
 
     @Column(name = "org_unit_id")
@@ -52,7 +52,7 @@ public class PgNotifyInbound {
     @Column(name = "ingress_delivery_kind", length = 16)
     private String ingressDeliveryKind;
 
-    @Column(name = "process_status", length = 20)
+    @Column(name = "process_status", length = 32)
     private String processStatus = "RECEIVED";
 
     @Column(name = "error_message", length = 500)

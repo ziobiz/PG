@@ -318,7 +318,8 @@ public class JpayPaymentService {
                     resolveTxnOrigin(str(body.get("txnOrigin"))));
         }
         if (status == 0 || status == 2) {
-            jpaySaleRecordService.applySyncApiOutcome(midCode, orderNo, status, msg, null, jpayTxnId);
+            jpaySaleRecordService.applySyncApiOutcome(midCode, orderNo, status, msg,
+                    resolveTxnOrigin(str(body.get("txnOrigin"))), jpayTxnId);
         }
 
         out.put("success", true);

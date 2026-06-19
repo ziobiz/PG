@@ -9,6 +9,7 @@ import com.pg.entity.MerchantProfile;
 import com.pg.entity.OrgLevel;
 import com.pg.entity.OrgUnit;
 import com.pg.entity.PgAgency;
+import com.pg.integration.pg.PgVendor;
 import com.pg.repository.HqApiConfigRepository;
 import com.pg.repository.HqNotifyEnvConfigRepository;
 import com.pg.repository.MerchantIcopayBrokerCredentialRepository;
@@ -18,6 +19,7 @@ import com.pg.repository.MerchantProfileRepository;
 import com.pg.repository.OrgUnitRepository;
 import com.pg.repository.PgAgencyRepository;
 import com.pg.middleware.notify.PgNotifyIngressPaths;
+import com.pg.service.ChillPayService;
 import com.pg.service.CompService;
 import com.pg.service.HqNotifyEnvService;
 import jakarta.servlet.http.HttpServletRequest;
@@ -55,6 +57,7 @@ public class MerchantApiDeploymentService {
     private final CompService compService;
     private final PgAgencyRepository pgAgencyRepository;
     private final MerchantApiIntegrationChannelService integrationChannelService;
+    private final ChillPayService chillPayService;
 
     public MerchantApiDeploymentService(OrgUnitRepository orgUnitRepository,
                                         MerchantProfileRepository merchantProfileRepository,
@@ -67,7 +70,8 @@ public class MerchantApiDeploymentService {
                                         MerchantPgBrokerCatalog brokerCatalog,
                                         CompService compService,
                                         PgAgencyRepository pgAgencyRepository,
-                                        MerchantApiIntegrationChannelService integrationChannelService) {
+                                        MerchantApiIntegrationChannelService integrationChannelService,
+                                        ChillPayService chillPayService) {
         this.orgUnitRepository = orgUnitRepository;
         this.merchantProfileRepository = merchantProfileRepository;
         this.merchantPgBindingRepository = merchantPgBindingRepository;
@@ -80,6 +84,7 @@ public class MerchantApiDeploymentService {
         this.compService = compService;
         this.pgAgencyRepository = pgAgencyRepository;
         this.integrationChannelService = integrationChannelService;
+        this.chillPayService = chillPayService;
     }
 
     public List<Map<String, Object>> listVendors() {
@@ -494,6 +499,228 @@ public class MerchantApiDeploymentService {
     }
 
     /**
+     * 가맹 배포 문서 — 운영 URL 결제 PG({@link ChillPayService#resolveUrlPayOperationalPgCd}) 기준으로
+     * JPAY·ChillPay 전용 블록·체크리스트·샘플을 숨깁니다. 통합 checkout(인라인·리다이렉트)은 유지합니다.
+     */
+    private void applyMerchantDocPgVendorFilter(Map<String, Object> kit, Long orgUnitId) {
+        Map<String, Object> scope = resolveMerchantApiDocPgScope(orgUnitId);
+        kit.put("merchantApiDocPgScope", scope);
+        boolean jpay = Boolean.TRUE.equals(scope.get("jpay"));
+        boolean chillPay = Boolean.TRUE.equals(scope.get("chillPay"));
+
+        if (!jpay) {
+            kit.remove("merchantInlineCheckoutJpay");
+            kit.remove("merchantRedirectCheckoutJpay");
+            kit.remove("merchantSubscriptionCheckoutJpay");
+        }
+        if (!chillPay) {
+            kit.remove("merchantInlineCheckoutChillPay");
+            kit.remove("merchantRedirectCheckoutChillPay");
+        }
+
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> brokerBlocks = (List<Map<String, Object>>) kit.get("pgBrokerBlocks");
+        if (brokerBlocks != null) {
+            List<Map<String, Object>> filteredBlocks = new ArrayList<>();
+            for (Map<String, Object> block : brokerBlocks) {
+                String vendorScope = block.get("vendorScope") != null ? block.get("vendorScope").toString() : "";
+                if (matchesMerchantDocPgVendor(vendorScope, jpay, chillPay)) {
+                    filteredBlocks.add(block);
+                }
+            }
+            kit.put("pgBrokerBlocks", filteredBlocks);
+        }
+
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> checklist = (List<Map<String, Object>>) kit.get("integrationChecklist");
+        if (checklist != null) {
+            kit.put("integrationChecklist", filterChecklistByPgVendor(checklist, jpay, chillPay));
+        }
+
+        filterIntegrationSamplesByPgVendor(kit, jpay, chillPay);
+        filterIntegrationModesByPgVendor(kit, jpay, chillPay);
+        filterCredentialScopesByPgVendor(kit, jpay, chillPay);
+    }
+
+    private Map<String, Object> resolveMerchantApiDocPgScope(Long orgUnitId) {
+        String opPg = orgUnitId != null ? chillPayService.resolveUrlPayOperationalPgCd(orgUnitId) : "";
+        if (opPg == null || opPg.isBlank()) {
+            opPg = resolveOperationalPgCdFromBindings(orgUnitId);
+        }
+        boolean jpay = PgVendor.isJpayFamily(opPg);
+        boolean chillPay = PgVendor.isChillPayFamily(opPg);
+        Map<String, Object> scope = new LinkedHashMap<>();
+        scope.put("operationalPgCd", opPg != null ? opPg.trim() : "");
+        scope.put("jpay", jpay);
+        scope.put("chillPay", chillPay);
+        if (jpay) {
+            scope.put("primaryPgVendor", MerchantPgBrokerVendor.JPAY);
+        } else if (chillPay) {
+            scope.put("primaryPgVendor", MerchantPgBrokerVendor.CHILLPAY);
+        } else {
+            scope.put("primaryPgVendor", "");
+        }
+        return scope;
+    }
+
+    private String resolveOperationalPgCdFromBindings(Long orgUnitId) {
+        if (orgUnitId == null) {
+            return "";
+        }
+        for (MerchantPgBinding b : merchantPgBindingRepository.findByOrgUnitIdOrderBySortOrderAsc(orgUnitId)) {
+            if (!"Y".equalsIgnoreCase(optYn(b.getOperationalYn()))) {
+                continue;
+            }
+            if ("N".equalsIgnoreCase(optYn(b.getActivationYn()))) {
+                continue;
+            }
+            String pgCd = b.getPgCd() != null ? b.getPgCd().trim() : "";
+            if (pgCd.isEmpty() || !isAgencyUrlPayIntegration(pgCd)) {
+                continue;
+            }
+            String pm = b.getPayMethod();
+            if (pm != null && !pm.isBlank() && !"WEB".equalsIgnoreCase(pm.trim())) {
+                continue;
+            }
+            return pgCd;
+        }
+        return "";
+    }
+
+    private boolean isAgencyUrlPayIntegration(String pgCd) {
+        if (pgCd == null || pgCd.isBlank()) {
+            return false;
+        }
+        return pgAgencyRepository.findByPgCd(pgCd.trim())
+                .filter(a -> a.getUseYn() != null && "Y".equalsIgnoreCase(a.getUseYn().trim()))
+                .map(a -> "Y".equalsIgnoreCase(a.getIntegUrlPayYn() != null ? a.getIntegUrlPayYn().trim() : ""))
+                .orElse(false);
+    }
+
+    private static boolean matchesMerchantDocPgVendor(String vendorScope, boolean jpay, boolean chillPay) {
+        String vs = MerchantPgBrokerVendor.normalizeScope(vendorScope);
+        if (MerchantPgBrokerVendor.ALL.equals(vs)) {
+            return true;
+        }
+        if (MerchantPgBrokerVendor.JPAY.equals(vs) || PgVendor.isJpayFamily(vs)) {
+            return jpay;
+        }
+        if (MerchantPgBrokerVendor.CHILLPAY.equals(vs) || PgVendor.isChillPayFamily(vs)) {
+            return chillPay;
+        }
+        return true;
+    }
+
+    private static List<Map<String, Object>> filterChecklistByPgVendor(List<Map<String, Object>> list,
+                                                                       boolean jpay, boolean chillPay) {
+        List<Map<String, Object>> out = new ArrayList<>();
+        for (Map<String, Object> row : list) {
+            String kr = row.get("textKr") != null ? row.get("textKr").toString() : "";
+            if (kr.contains("WordPress")) {
+                out.add(row);
+                continue;
+            }
+            if (!chillPay && isChillPaySpecificChecklistItem(kr)) {
+                continue;
+            }
+            if (!jpay && isJpaySpecificChecklistItem(kr)) {
+                continue;
+            }
+            out.add(row);
+        }
+        return out.isEmpty() ? list : out;
+    }
+
+    private static boolean isChillPaySpecificChecklistItem(String text) {
+        if (text == null || text.isBlank()) {
+            return false;
+        }
+        return text.contains("ChillPay 인라인") || text.contains("ChillPay 리다이렉트")
+                || text.contains("ChillPay 콜백");
+    }
+
+    private static boolean isJpaySpecificChecklistItem(String text) {
+        if (text == null || text.isBlank()) {
+            return false;
+        }
+        return text.contains("JPAY 인라인") || text.contains("JPAY 리다이렉트")
+                || text.contains("JPAY 구독") || text.contains("JPAY pay_notifyurl");
+    }
+
+    @SuppressWarnings("unchecked")
+    private static void filterIntegrationSamplesByPgVendor(Map<String, Object> kit, boolean jpay, boolean chillPay) {
+        Object samplesObj = kit.get("merchantIntegrationSamples");
+        if (!(samplesObj instanceof Map<?, ?> samplesRaw)) {
+            return;
+        }
+        Map<String, Object> samples = new LinkedHashMap<>((Map<String, Object>) samplesRaw);
+        Object phpObj = samples.get("php");
+        if (phpObj instanceof Map<?, ?> phpRaw) {
+            Map<String, Object> php = new LinkedHashMap<>((Map<String, Object>) phpRaw);
+            if (!jpay) {
+                php.remove("checkoutJpay");
+            }
+            if (!chillPay) {
+                php.remove("checkoutChillpay");
+            }
+            samples.put("php", php);
+        }
+        Object jspObj = samples.get("jsp");
+        if (jspObj instanceof Map<?, ?> jspRaw) {
+            Map<String, Object> jsp = new LinkedHashMap<>((Map<String, Object>) jspRaw);
+            if (!jpay) {
+                jsp.remove("checkoutJpay");
+            }
+            if (!chillPay) {
+                jsp.remove("checkoutChillpay");
+            }
+            samples.put("jsp", jsp);
+        }
+        kit.put("merchantIntegrationSamples", samples);
+    }
+
+    @SuppressWarnings("unchecked")
+    private static void filterIntegrationModesByPgVendor(Map<String, Object> kit, boolean jpay, boolean chillPay) {
+        Object modesObj = kit.get("integrationModes");
+        if (!(modesObj instanceof Map<?, ?> modesRaw)) {
+            return;
+        }
+        Map<String, Object> modes = new LinkedHashMap<>((Map<String, Object>) modesRaw);
+        Object phpObj = modes.get("php");
+        if (phpObj instanceof Map<?, ?> phpRaw) {
+            Map<String, Object> php = new LinkedHashMap<>((Map<String, Object>) phpRaw);
+            if (!jpay) {
+                php.remove("checkoutLegacyJpay");
+            }
+            if (!chillPay) {
+                php.remove("checkoutLegacyChillpay");
+            }
+            modes.put("php", php);
+        }
+        kit.put("integrationModes", modes);
+    }
+
+    @SuppressWarnings("unchecked")
+    private static void filterCredentialScopesByPgVendor(Map<String, Object> kit, boolean jpay, boolean chillPay) {
+        Object credsObj = kit.get("credentialScopes");
+        if (!(credsObj instanceof List<?> credsRaw)) {
+            return;
+        }
+        List<Map<String, Object>> filtered = new ArrayList<>();
+        for (Object item : credsRaw) {
+            if (!(item instanceof Map<?, ?> rowRaw)) {
+                continue;
+            }
+            Map<String, Object> row = (Map<String, Object>) rowRaw;
+            String scope = row.get("vendorScope") != null ? row.get("vendorScope").toString() : "";
+            if (matchesMerchantDocPgVendor(scope, jpay, chillPay)) {
+                filtered.add(row);
+            }
+        }
+        kit.put("credentialScopes", filtered);
+    }
+
+    /**
      * 가맹점 전용 — 본사 API 배포 완료 가맹만 연동 키·문서 조회(평문 시크릿 포함). 발급·수정 없음.
      */
     public Map<String, Object> buildMerchantSelfPortal(HttpServletRequest req, String viewerCompId, String viewerOrgLevel) {
@@ -546,6 +773,10 @@ public class MerchantApiDeploymentService {
     /** 배포설정 — API배포문서 화면용(다운로드·연동 파라미터 표). 시크릿 평문·재발급 기능은 포함하지 않음. */
     public Map<String, Object> buildDocsPortal(String compId, HttpServletRequest req) {
         Map<String, Object> kit = buildKit(compId, MerchantPgBrokerVendor.ALL, req);
+        Object orgUnitIdObj = kit.get("merchantOrgUnitId");
+        if (orgUnitIdObj instanceof Number orgUnitId) {
+            applyMerchantDocPgVendorFilter(kit, orgUnitId.longValue());
+        }
         Map<String, Object> portal = new LinkedHashMap<>();
         portal.put("compId", kit.get("compId"));
         portal.put("merchantName", kit.get("merchantName"));
@@ -567,6 +798,7 @@ public class MerchantApiDeploymentService {
         portal.put("wordpressPlugins", kit.get("wordpressPlugins"));
         portal.put("paymentNotifyGuide", kit.get("paymentNotifyGuide"));
         portal.put("integrationChannels", kit.get("integrationChannels"));
+        portal.put("merchantApiDocPgScope", kit.get("merchantApiDocPgScope"));
         portal.put("merchantCheckoutApiParameterSpec", kit.get("merchantCheckoutApiParameterSpec"));
         portal.put("integrationModes", kit.get("integrationModes"));
         portal.put("merchantIntegrationSamples", kit.get("merchantIntegrationSamples"));

@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.pg.dto.NotiMiddlewareRelayRequest;
 import com.pg.dto.NotifyReceiveOutcome;
+import com.pg.entity.HqLedgerSysSettings;
 import com.pg.entity.HqNotifyEnvConfig;
 import com.pg.entity.MerchantPgBinding;
 import com.pg.entity.OrgUnit;
@@ -13,6 +14,7 @@ import com.pg.entity.HqNotifyTarget;
 import com.pg.entity.MerchantNotifyUrl;
 import com.pg.entity.MerchantProfile;
 import com.pg.entity.PgNotifyInbound;
+import com.pg.integration.pg.PgVendor;
 import com.pg.integration.pg.notify.PgNotifyInboundTxnDispatcher;
 import com.pg.entity.PgTrnsctn;
 import com.pg.repository.HqNotifyTargetRepository;
@@ -24,17 +26,23 @@ import com.pg.repository.PgAgencyRepository;
 import com.pg.repository.PgNotifyInboundRepository;
 import com.pg.repository.PgTrnsctnRepository;
 import com.pg.util.NotifyIngressDeliveryKindResolver;
+import com.pg.util.PgNotifyInboundSanitizer;
 import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -92,6 +100,8 @@ public class PgNotifyReceiveService {
     private final PgTrnsctnRepository pgTrnsctnRepository;
     private final MerchantProfileRepository merchantProfileRepository;
     private final MerchantNotifyUrlRepository merchantNotifyUrlRepository;
+    private final PgNotifyInboundPersistService inboundPersistService;
+    private final HqLedgerSysSettingsService hqLedgerSysSettingsService;
 
     public PgNotifyReceiveService(HqNotifyEnvService hqNotifyEnvService,
                                 PgNotifyInboundRepository inboundRepository,
@@ -104,7 +114,9 @@ public class PgNotifyReceiveService {
                                 ChillPayService chillPayService,
                                 PgTrnsctnRepository pgTrnsctnRepository,
                                 MerchantProfileRepository merchantProfileRepository,
-                                MerchantNotifyUrlRepository merchantNotifyUrlRepository) {
+                                MerchantNotifyUrlRepository merchantNotifyUrlRepository,
+                                PgNotifyInboundPersistService inboundPersistService,
+                                HqLedgerSysSettingsService hqLedgerSysSettingsService) {
         this.hqNotifyEnvService = hqNotifyEnvService;
         this.inboundRepository = inboundRepository;
         this.bindingRepository = bindingRepository;
@@ -117,12 +129,13 @@ public class PgNotifyReceiveService {
         this.pgTrnsctnRepository = pgTrnsctnRepository;
         this.merchantProfileRepository = merchantProfileRepository;
         this.merchantNotifyUrlRepository = merchantNotifyUrlRepository;
+        this.inboundPersistService = inboundPersistService;
+        this.hqLedgerSysSettingsService = hqLedgerSysSettingsService;
     }
 
     /**
      * @param notifyTargetCode 노티 URL 경로의 두 번째 세그먼트(cb…/rs… 등). 없으면 CALLBACK 로 간주합니다.
      */
-    @Transactional
     public NotifyReceiveOutcome receiveAndRespond(String pathToken, String notifyTargetCode, String rawBody, String contentType, String clientIp, HttpServletRequest request) {
         notifyIngressGuard.assertAllowed(clientIp, rawBody != null ? rawBody : "", request);
         return receiveAndRespondCore(pathToken, notifyTargetCode, rawBody, contentType, clientIp, request);
@@ -133,7 +146,6 @@ public class PgNotifyReceiveService {
      * 동일 HMAC·토큰 정책으로 이 메서드에 <strong>중계 JSON</strong>을 POST 하면 ChillPay 형 노티로 합성해 {@code pg_trnsctn} 에 반영합니다.
      * <p>요청 본문 HMAC 은 클라이언트가 보낸 원문(JSON) 기준입니다.
      */
-    @Transactional
     public NotifyReceiveOutcome receiveNotiMiddlewareRelay(String pathToken, String notifyTargetCode,
                                                            String relayRequestRawJson,
                                                            NotiMiddlewareRelayRequest relay,
@@ -239,38 +251,51 @@ public class PgNotifyReceiveService {
         in.setIngressDeliveryKind(NotifyIngressDeliveryKindResolver.resolve(request));
 
         if (rejectUnknownNotifyTargetIfProvided(in)) {
-            inboundRepository.save(in);
+            in = inboundPersistService.saveInbound(in);
             return NotifyReceiveOutcome.json(buildNotifyApiJsonFailure(in, in.getProcessStatus(), in.getErrorMessage(), true),
                     HttpStatus.UNPROCESSABLE_ENTITY);
         }
 
         resolveAndFillInbound(in, parsed, body, contentType);
-        inboundRepository.save(in);
-        boolean dispatchFailed = false;
+        PgNotifyInboundSanitizer.sanitize(in);
         try {
-            pgNotifyInboundTxnDispatcher.dispatch(in, channelType);
-        } catch (Exception e) {
-            dispatchFailed = true;
-            log.warn("노티→결제내역(pg_trnsctn) 후처리 실패: {}", e.getMessage());
+            in = inboundPersistService.saveInbound(in);
+        } catch (Exception saveEx) {
+            String detail = rootCauseMessage(saveEx);
+            log.error("노티 수신 저장 실패 processStatus={} merchantId={} mid={}: {}",
+                    in.getProcessStatus(), in.getMerchantId(), in.getMid(), detail, saveEx);
+            String msg = "notify inbound save failed";
+            if (detail != null && !detail.isBlank()) {
+                msg = msg + ": " + detail;
+            }
+            return NotifyReceiveOutcome.json(
+                    buildNotifyApiJsonFailure(in, "INBOUND_SAVE_FAILED", msg, true),
+                    HttpStatus.INTERNAL_SERVER_ERROR);
         }
+        boolean dispatchFailed = inboundPersistService.dispatchTxnUpdates(in.getId(), channelType);
         String defaultOk = env.getNotifyOkResponse() != null ? env.getNotifyOkResponse() : "{\"result\":\"OK\"}";
         /* CALLBACK(cb)·RESULT(rs): 브라우저 GET/폼 POST 는 pay-result 로.
          * application/json POST 는 결제대행사 서버 노티 → 200 JSON 만(리다이렉트 없음). */
         if (("RESULT".equalsIgnoreCase(channelType) || "CALLBACK".equalsIgnoreCase(channelType))
                 && request != null
                 && shouldUsePayResultRedirect(channelType, request.getMethod(), body, contentType, isLikelyBrowserClient(request))) {
-            String loc = isJpayIngressTarget(notifyTargetCode)
-                    ? buildJpayMerchantNotifyRedirectUrl(in, body, contentType)
-                    : buildPayResultRedirectUrl(request, in, body, contentType);
-            if ((loc == null || loc.isBlank()) && isJpayIngressTarget(notifyTargetCode)) {
-                loc = buildPayResultRedirectUrl(request, in, body, contentType);
-            }
-            if (loc != null && !loc.isBlank()) {
-                log.info("pg-notify {} → {} redirect (targetCode={})",
-                        channelType,
-                        isJpayIngressTarget(notifyTargetCode) ? "JPAY merchant notify" : "pay-result",
-                        trimNotifyTargetCode(notifyTargetCode));
-                return NotifyReceiveOutcome.redirect(loc);
+            try {
+                String loc = isJpayIngressTarget(notifyTargetCode)
+                        ? buildJpayMerchantNotifyRedirectUrl(in, body, contentType)
+                        : buildPayResultRedirectUrl(request, in, body, contentType);
+                if ((loc == null || loc.isBlank()) && isJpayIngressTarget(notifyTargetCode)) {
+                    loc = buildPayResultRedirectUrl(request, in, body, contentType);
+                }
+                if (loc != null && !loc.isBlank()) {
+                    log.info("pg-notify {} → {} redirect (targetCode={})",
+                            channelType,
+                            isJpayIngressTarget(notifyTargetCode) ? "JPAY merchant notify" : "pay-result",
+                            trimNotifyTargetCode(notifyTargetCode));
+                    return NotifyReceiveOutcome.redirect(loc);
+                }
+            } catch (Exception redirEx) {
+                log.warn("노티 브라우저 리다이렉트 URL 생성 실패 — JSON 응답으로 폴백 (targetCode={}): {}",
+                        trimNotifyTargetCode(notifyTargetCode), redirEx.getMessage());
             }
         }
         /* 서버-투-서버: 수신 로그는 저장됨. 파싱 실패·후처리 실패는 4xx/5xx + JSON 으로 노티미들웨어 재전송 판별 가능하게 함. */
@@ -296,6 +321,21 @@ public class PgNotifyReceiveService {
                     "{\"success\":false,\"processed\":false,\"retryable\":true,\"errorCode\":\"RESPONSE_BUILD_ERROR\"}",
                     HttpStatus.INTERNAL_SERVER_ERROR);
         }
+    }
+
+    private static String rootCauseMessage(Throwable t) {
+        Throwable cur = t;
+        String last = t != null ? t.getMessage() : null;
+        for (int i = 0; i < 8 && cur != null; i++) {
+            if (cur.getMessage() != null && !cur.getMessage().isBlank()) {
+                last = cur.getMessage().trim();
+            }
+            cur = cur.getCause();
+        }
+        if (last == null) {
+            return "";
+        }
+        return last.length() > 240 ? last.substring(0, 240) : last;
     }
 
     private static String buildNotifyApiJsonFailure(PgNotifyInbound in, String errorCode, String message, boolean retryable) {
@@ -374,8 +414,12 @@ public class PgNotifyReceiveService {
             }
             return browserClient && "RESULT".equals(ch) && jsonBodyLooksLikePaymentResultForResultRedirect(b);
         }
-        /* JPAY 원문(form) 등 — 실제 브라우저 복귀만 pay-result 로 보내고, NOTI 서버 릴레이는 노티로 처리 */
+        /* JPAY 원문(form) 등 — CALLBACK(cb…)는 NOTI·서버 노티 전용이므로 리다이렉트하지 않음.
+         * RESULT(rs…)·브라우저 복귀만 pay-result 로 보냅니다. */
         if (ct.contains("application/x-www-form-urlencoded")) {
+            if ("CALLBACK".equals(ch)) {
+                return false;
+            }
             return browserClient;
         }
         return browserClient && b.contains("=");
@@ -984,6 +1028,11 @@ public class PgNotifyReceiveService {
             }
         }
 
+        /* 0b) icopayCompId·compId — JPAY·URL·노티 바인딩으로 가맹점 확정(공통 MID·결제내역 삭제 후 NOTI 재전송·재반영) */
+        if (hasComp && resolveNotifyMerchantByCompId(in, p, ingressScope, compStore)) {
+            return;
+        }
+
         // 1) 연동용도「노티」PG 바인딩만: MID(MerchantCode) + 루트(RouteNo)로 가맹점 분기 (노티미들웨어 표준)
         /* URL 공통 MID 검사보다 먼저 수행 — 동일 MID에 URL 결제 가맹점이 섞여 있어도 노티 전용 바인딩이면 업체코드 없이 수신 가능해야 함. */
         if (p.mid != null && !p.mid.isBlank()) {
@@ -1107,10 +1156,30 @@ public class PgNotifyReceiveService {
             }
         }
 
-        /* URL 결제용 공통 MID + (URL 바인딩 기준) 가맹점 복수: 업체코드 없으면 거부. 노티 분기가 처리 못한 경우만. */
+        /* JPAY 비동기 노티(memberid·orderid·returncode): ChillPay식 integ_noti_yn 없이 JPAY URL/API 바인딩만 있어도
+         * 기존 주문(MERCHANT_API·URL) 또는 단일 JPAY 바인딩으로 가맹점 해석 — URL_PAY_NEEDS_COMP_ID 오판 방지 */
+        if (p.mid != null && !p.mid.isBlank() && looksLikeJpayServerNotifyPayload(p, rawBody)) {
+            if (tryResolveJpayServerNotify(in, p, ingressScope)) {
+                return;
+            }
+        }
+
+        /* URL 결제용 공통 MID + (URL 바인딩 기준) 가맹점 복수: 업체코드 없으면 거부. 노티 분기가 처리 못한 경우만.
+         * JPAY(memberid·orderid) 는 ChillPay compId 규칙을 쓰지 않음 — 주문·transaction_id 로 해석. */
         if (p.mid != null && !p.mid.isBlank()) {
             List<MerchantPgBinding> sameMidAll = applyIngressScope(
                     bindingRepository.findByMidOrderByOperationalYnDescIdAsc(p.mid.trim()), ingressScope);
+            boolean jpayMid = !filterJpayFamilyBindings(sameMidAll).isEmpty();
+            if (jpayMid && looksLikeJpayServerNotifyPayload(p, rawBody)) {
+                if (tryResolveJpayServerNotify(in, p, ingressScope)) {
+                    return;
+                }
+                in.setPayloadCompId(null);
+                in.setProcessStatus("MERCHANT_UNRESOLVED");
+                in.setErrorMessage("JPAY 노티: 주문번호·거래번호로 결제내역을 찾지 못했거나 공통 MID 가맹점을 특정할 수 없습니다. "
+                        + "compId·icopayCompId= 를 넣거나, ICOPAY에 요청(08) 상태 결제 건이 있는지 확인하세요.");
+                return;
+            }
             if (urlPaySharedMidRequiresMerchantCode(sameMidAll) && (!hasComp || compStore == null)) {
                 if (tryResolveUrlPayResultFromPriorTxn(in, p, ingressScope)) {
                     return;
@@ -1151,11 +1220,57 @@ public class PgNotifyReceiveService {
         boolean urlChannelOnThisMid = sameMidOnly.stream()
                 .anyMatch(b -> hasUrlPayChannel(loadAgency(b.getPgCd())));
         if (urlChannelOnThisMid && sameMidOnly.size() > 1) {
+            if (looksLikeJpayServerNotifyPayload(p, rawBody) && tryResolveJpayServerNotify(in, p, ingressScope)) {
+                return;
+            }
             in.setProcessStatus("URL_PAY_NEEDS_COMP_ID");
             in.setErrorMessage("URL 결제용 PG(동일 MID 다가맹점) 노티에는 업체코드(compId) 또는 icopayCompId= 가 필요합니다.");
             return;
         }
         applyBindingResolved(in, chosen);
+    }
+
+    /**
+     * {@code icopayCompId}/{@code compId} 로 업체를 특정한 뒤, 해당 가맹점의 노티·URL·JPAY 바인딩으로 수신을 확정합니다.
+     * URL 결제 전용({@link #resolveUrlPayByCompId})과 달리 JPAY 인라인·API 가맹점도 지원합니다.
+     */
+    private boolean resolveNotifyMerchantByCompId(PgNotifyInbound in, ParsedNotify p, Set<Long> ingressScope, String compStore) {
+        if (compStore == null || compStore.isBlank()) {
+            return false;
+        }
+        Optional<OrgUnit> ouOpt = orgUnitRepository.findByCode(compStore);
+        if (ouOpt.isEmpty()) {
+            ouOpt = orgUnitRepository.findByCodeIgnoreCase(compStore);
+        }
+        if (ouOpt.isEmpty()) {
+            return false;
+        }
+        OrgUnit ou = ouOpt.get();
+        if (ingressScopeActive(ingressScope) && !ingressScope.contains(ou.getId())) {
+            in.setPayloadCompId(compStore);
+            in.setProcessStatus("INGRESS_ORG_SCOPE_MISMATCH");
+            in.setErrorMessage("노티 수신 주소(연결 총판) 트리에 속하지 않는 업체코드입니다.");
+            return true;
+        }
+        String nm = p.mid != null ? p.mid.trim() : "";
+        List<MerchantPgBinding> eligible = bindingRepository.findByOrgUnitIdOrderBySortOrderAsc(ou.getId()).stream()
+                .filter(b -> {
+                    PgAgency ag = loadAgency(b.getPgCd());
+                    return hasNotiIntegration(ag) || hasUrlPayChannel(ag) || hasJpayChannel(ag);
+                })
+                .filter(b -> nm.isEmpty() || b.getMid() == null || nm.equalsIgnoreCase(b.getMid().trim()))
+                .toList();
+        if (eligible.isEmpty()) {
+            return false;
+        }
+        Optional<MerchantPgBinding> chosen = resolveBindingFromList(eligible, p.rootNo);
+        if (chosen.isEmpty()) {
+            return false;
+        }
+        in.setPayloadCompId(compStore);
+        applyBindingResolved(in, chosen.get());
+        log.info("노티 icopayCompId={} → 가맹점 바인딩 확정 mid={} orgUnitId={}", compStore, chosen.get().getMid(), chosen.get().getOrgUnitId());
+        return true;
     }
 
     private void resolveUrlPayByCompId(PgNotifyInbound in, ParsedNotify p, Set<Long> ingressScope) {
@@ -1286,6 +1401,169 @@ public class PgNotifyReceiveService {
         in.setProcessStatus("PARSED");
         in.setErrorMessage(null);
         return true;
+    }
+
+    /**
+     * JPAY 서버 노티 — 동일 주문의 {@code MERCHANT_API}·{@code URL} 거래 또는 단일 JPAY 바인딩으로 가맹점 확정.
+     * CALLBACK(cb…)·RESULT(rs…) 모두 대상(ChillPay URL RESULT 전용 {@link #tryResolveUrlPayResultFromPriorTxn} 와 분리).
+     */
+    private boolean tryResolveJpayServerNotify(PgNotifyInbound in, ParsedNotify p, Set<Long> ingressScope) {
+        String body = in.getRawBody() != null ? in.getRawBody() : "";
+        String orderNo = firstNonBlank(p.orderNo,
+                extractFormFieldLoose(body, "orderid", "order_id", "orderID", "orderno", "order_no"));
+        if (orderNo != null && !orderNo.isBlank()) {
+            String on = orderNo.trim();
+            Optional<PgTrnsctn> anyTxn = pgTrnsctnRepository.findFirstByOrderNoOrderByCreatedAtDesc(on);
+            if (anyTxn.isPresent() && applyJpayInboundFromPriorTxn(in, p, ingressScope, anyTxn.get())) {
+                log.info("JPAY 노티 → 주문 {} 최신 결제내역으로 가맹점 해석 (origin={})", on, anyTxn.get().getOrigin());
+                return true;
+            }
+            for (String origin : new String[]{"MERCHANT_API", "URL", "API", "SUBSCRIPTION"}) {
+                Optional<PgTrnsctn> txnOpt = pgTrnsctnRepository.findFirstByOrderNoAndOriginOrderByCreatedAtDesc(on, origin);
+                if (txnOpt.isEmpty()) {
+                    continue;
+                }
+                if (applyJpayInboundFromPriorTxn(in, p, ingressScope, txnOpt.get())) {
+                    log.info("JPAY 노티 → 기존 거래({}) 주문 {} 로 가맹점 해석", origin, on);
+                    return true;
+                }
+            }
+        }
+        String txnId = extractFormFieldLoose(body, "transaction_id", "transactionid", "transactionId");
+        if (txnId != null && !txnId.isBlank()) {
+            Optional<PgTrnsctn> byTid = pgTrnsctnRepository.findFirstByChillTransactionIdOrderByCreatedAtDesc(txnId.trim());
+            if (byTid.isPresent() && applyJpayInboundFromPriorTxn(in, p, ingressScope, byTid.get())) {
+                log.info("JPAY 노티 → transaction_id {} 로 가맹점 해석", txnId.trim());
+                return true;
+            }
+        }
+        String m = p.mid.trim();
+        List<MerchantPgBinding> jpayBinds = filterJpayFamilyBindings(applyIngressScope(
+                bindingRepository.findByMidOrderByOperationalYnDescIdAsc(m), ingressScope));
+        if (jpayBinds.isEmpty()) {
+            return false;
+        }
+        if (jpayBinds.size() == 1) {
+            applyBindingResolved(in, jpayBinds.get(0));
+            log.info("JPAY 노티 → 단일 JPAY 바인딩으로 가맹점 해석 mid={} orgUnitId={}", m, jpayBinds.get(0).getOrgUnitId());
+            return true;
+        }
+        Optional<MerchantPgBinding> byPath = tryResolveAmbiguousNotiByNotifyUrlTarget(
+                jpayBinds, p.rootNo, in.getNotifyTargetCode());
+        if (byPath.isPresent()) {
+            applyBindingResolved(in, byPath.get());
+            return true;
+        }
+        Optional<MerchantPgBinding> byCur = tryResolveAmbiguousNotiByPayloadCurrency(jpayBinds, p.rootNo, p);
+        if (byCur.isPresent()) {
+            applyBindingResolved(in, byCur.get());
+            return true;
+        }
+        return false;
+    }
+
+    private boolean applyJpayInboundFromPriorTxn(PgNotifyInbound in, ParsedNotify p, Set<Long> ingressScope, PgTrnsctn t) {
+        if (t == null) {
+            return false;
+        }
+        String merchantCode = t.getMerchantId();
+        if (merchantCode == null || merchantCode.isBlank()) {
+            return false;
+        }
+        Optional<OrgUnit> ouOpt = orgUnitRepository.findByCode(merchantCode.trim());
+        if (ouOpt.isEmpty()) {
+            ouOpt = orgUnitRepository.findByCodeIgnoreCase(merchantCode.trim());
+        }
+        if (ouOpt.isEmpty()) {
+            return false;
+        }
+        OrgUnit ou = ouOpt.get();
+        if (ingressScopeActive(ingressScope) && !ingressScope.contains(ou.getId())) {
+            return false;
+        }
+        List<MerchantPgBinding> binds = bindingRepository.findByOrgUnitIdOrderBySortOrderAsc(ou.getId());
+        String memberMid = p.mid != null ? p.mid.trim() : "";
+        List<MerchantPgBinding> jpayOnOrg = binds.stream()
+                .filter(b -> hasJpayChannel(loadAgency(b.getPgCd())))
+                .filter(b -> memberMid.isEmpty() || b.getMid() == null
+                        || memberMid.equalsIgnoreCase(b.getMid().trim()))
+                .toList();
+        if (jpayOnOrg.isEmpty()) {
+            String origin = t.getOrigin() != null ? t.getOrigin().trim() : "";
+            boolean jpayTxn = "MERCHANT_API".equalsIgnoreCase(origin)
+                    || PgVendor.isJpayFamily(t.getVan());
+            if (!jpayTxn) {
+                return false;
+            }
+            in.setPayloadCompId(merchantCode.trim());
+            in.setOrgUnitId(ou.getId());
+            in.setMerchantId(merchantCode.trim());
+            if (!memberMid.isBlank()) {
+                in.setMid(memberMid);
+            } else if (t.getRouteNo() != null) {
+                binds.stream().findFirst().ifPresent(b -> in.setMid(b.getMid()));
+            }
+            String route = firstNonBlank(p.rootNo, t.getRouteNo());
+            if (route != null && !route.isBlank()) {
+                in.setRootNo(route.trim());
+            }
+            in.setProcessStatus("PARSED");
+            in.setErrorMessage(null);
+            return true;
+        }
+        Optional<MerchantPgBinding> chosen = resolveBindingFromList(jpayOnOrg, firstNonBlank(p.rootNo, t.getRouteNo()));
+        if (chosen.isEmpty()) {
+            return false;
+        }
+        in.setPayloadCompId(merchantCode.trim());
+        applyBindingResolved(in, chosen.get());
+        String route = firstNonBlank(p.rootNo, t.getRouteNo());
+        if (route != null && !route.isBlank()) {
+            in.setRootNo(route.trim());
+        }
+        return true;
+    }
+
+    private static boolean looksLikeJpayServerNotifyPayload(ParsedNotify p, String rawBody) {
+        if (p == null || p.mid == null || p.mid.isBlank()) {
+            return false;
+        }
+        String body = rawBody != null ? rawBody.trim() : "";
+        if (body.isEmpty()) {
+            return false;
+        }
+        String lower = body.toLowerCase(Locale.ROOT);
+        /* ChillPay·NOTI 합성 JSON/폼은 MerchantCode — memberid 가 mid 로 잡힌 경우 JPAY 서버 노티 */
+        if (lower.contains("merchantcode=") && !lower.contains("memberid=")) {
+            return false;
+        }
+        if (!lower.contains("memberid=")) {
+            return false;
+        }
+        String orderid = firstNonBlank(p.orderNo,
+                extractFormFieldLoose(body, "orderid", "order_id", "orderID", "orderno", "order_no"));
+        return orderid != null && !orderid.isBlank();
+    }
+
+    private static boolean isJpaySuccessPaymentStatus(String raw) {
+        if (raw == null || raw.isBlank()) {
+            return false;
+        }
+        String v = raw.trim().toLowerCase(Locale.ROOT);
+        return "succeeded".equals(v) || "success".equals(v) || "paid".equals(v) || "00".equals(v);
+    }
+
+    private List<MerchantPgBinding> filterJpayFamilyBindings(List<MerchantPgBinding> list) {
+        if (list == null || list.isEmpty()) {
+            return List.of();
+        }
+        return list.stream()
+                .filter(b -> hasJpayChannel(loadAgency(b.getPgCd())))
+                .toList();
+    }
+
+    private static boolean hasJpayChannel(PgAgency a) {
+        return a != null && PgVendor.isJpayFamily(a.getPgCd());
     }
 
     private static String extractFormFieldLoose(String body, String... names) {
@@ -1631,8 +1909,15 @@ public class PgNotifyReceiveService {
             case "companycode":
             case "company_code":
             case "merchantorgcode":
+            case "icopaycompid":
                 if (out.compId == null) {
                     out.compId = v;
+                }
+                break;
+            case "customerid":
+            case "customer_id":
+                if (out.mid == null && v.matches("\\d{4,20}")) {
+                    out.mid = v;
                 }
                 break;
             case "orderno":
@@ -1681,8 +1966,73 @@ public class PgNotifyReceiveService {
      */
     @Transactional
     public Map<String, Object> replayInboundProcessing(long inboundId) {
+        return replayInboundProcessing(inboundId, null, null);
+    }
+
+    @Transactional
+    public Map<String, Object> replayInboundProcessing(long inboundId, String icopayCompIdOverride) {
+        return replayInboundProcessing(inboundId, icopayCompIdOverride, null);
+    }
+
+    /**
+     * 노티수령 본문({@code raw_body}) 수정 — icopayCompId 추가 등 수동 보정 후 재반영용.
+     * 파싱 결과는 초기화되며, 결제내역 반영은 별도 재반영이 필요합니다.
+     */
+    @Transactional
+    public Map<String, Object> updateInboundRawBody(long inboundId, String rawBody) {
+        if (rawBody == null || rawBody.isBlank()) {
+            throw new IllegalArgumentException("본문이 비어 있습니다.");
+        }
+        String body = rawBody.trim();
+        if (body.length() > 1_000_000) {
+            throw new IllegalArgumentException("본문이 너무 깁니다(최대 1MB).");
+        }
+        if (body.contains("...(truncated)")) {
+            throw new IllegalArgumentException("잘린 원문은 편집·저장할 수 없습니다. NOTI에서 전체 본문을 다시 수신하세요.");
+        }
         PgNotifyInbound in = inboundRepository.findById(inboundId)
                 .orElseThrow(() -> new IllegalArgumentException("수신 로그를 찾을 수 없습니다: " + inboundId));
+        applyInboundRawBodyEdit(in, body);
+        PgNotifyInboundSanitizer.sanitize(in);
+        in = inboundPersistService.saveInbound(in);
+        log.info("노티수령 본문 수정 inboundId={} len={}", inboundId, body.length());
+        Map<String, Object> m = new LinkedHashMap<>();
+        m.put("inboundId", in.getId());
+        m.put("rawBodyLength", body.length());
+        m.put("processStatus", in.getProcessStatus());
+        m.put("saved", true);
+        return m;
+    }
+
+    private static void applyInboundRawBodyEdit(PgNotifyInbound in, String body) {
+        in.setRawBody(body);
+        in.setMid(null);
+        in.setRootNo(null);
+        in.setPayloadCompId(null);
+        in.setMerchantId(null);
+        in.setOrgUnitId(null);
+        in.setProcessStatus("RECEIVED");
+        in.setErrorMessage(null);
+    }
+
+    /**
+     * @param icopayCompIdOverride 원문에 업체코드가 없을 때(결제내역 삭제 후 공통 MID 재전송 등) 강제 지정
+     * @param rawBodyOverride      화면에서 수정한 본문 — 저장 후 재파싱·적재
+     */
+    @Transactional
+    public Map<String, Object> replayInboundProcessing(long inboundId, String icopayCompIdOverride, String rawBodyOverride) {
+        PgNotifyInbound in = inboundRepository.findById(inboundId)
+                .orElseThrow(() -> new IllegalArgumentException("수신 로그를 찾을 수 없습니다: " + inboundId));
+        if (rawBodyOverride != null && !rawBodyOverride.isBlank()) {
+            String edited = rawBodyOverride.trim();
+            if (edited.contains("...(truncated)")) {
+                throw new IllegalArgumentException("잘린 원문은 재처리할 수 없습니다.");
+            }
+            String stored = in.getRawBody() != null ? in.getRawBody().trim() : "";
+            if (!edited.equals(stored)) {
+                applyInboundRawBodyEdit(in, edited);
+            }
+        }
         String body = in.getRawBody() != null ? in.getRawBody() : "";
         if (body.isBlank()) {
             throw new IllegalArgumentException("저장된 원문(raw_body)이 비어 있습니다.");
@@ -1692,6 +2042,9 @@ public class PgNotifyReceiveService {
         }
         String contentType = in.getContentType() != null ? in.getContentType() : "";
         ParsedNotify parsed = parsePayload(body, contentType);
+        if (icopayCompIdOverride != null && !icopayCompIdOverride.isBlank()) {
+            parsed.compId = icopayCompIdOverride.trim();
+        }
         in.setMid(parsed.mid);
         in.setRootNo(parsed.rootNo);
         in.setPayloadCompId(null);
@@ -1700,23 +2053,15 @@ public class PgNotifyReceiveService {
         in.setProcessStatus("RECEIVED");
         in.setErrorMessage(null);
         resolveAndFillInbound(in, parsed, body, contentType);
-        inboundRepository.save(in);
+        in = inboundPersistService.saveInbound(in);
         String channelType = in.getNotifyChannelType() != null && !in.getNotifyChannelType().isBlank()
                 ? in.getNotifyChannelType().trim()
                 : resolveNotifyChannelType(in.getNotifyTargetCode());
         if (channelType == null || channelType.isBlank()) {
             channelType = "CALLBACK";
         }
-        boolean dispatchFailed = false;
-        String dispatchError = null;
-        try {
-            pgNotifyInboundTxnDispatcher.dispatch(in, channelType);
-        } catch (Exception e) {
-            dispatchFailed = true;
-            dispatchError = e.getMessage();
-            log.warn("노티 재처리 dispatch 실패 inboundId={}: {}", inboundId, e.getMessage());
-        }
-        inboundRepository.save(in);
+        boolean dispatchFailed = inboundPersistService.dispatchTxnUpdates(in.getId(), channelType);
+        in = inboundRepository.findById(inboundId).orElse(in);
         Map<String, Object> m = new LinkedHashMap<>();
         m.put("inboundId", in.getId());
         m.put("processStatus", in.getProcessStatus());
@@ -1726,8 +2071,109 @@ public class PgNotifyReceiveService {
         m.put("mid", in.getMid());
         m.put("rootNo", in.getRootNo());
         m.put("dispatchFailed", dispatchFailed);
-        m.put("dispatchError", dispatchError);
+        m.put("dispatchError", dispatchFailed ? "pg_trnsctn post-process failed" : null);
         return m;
+    }
+
+    /**
+     * 지정 일자·주문번호별 최신 노티수령 원문을 {@code icopayCompId} 와 함께 재반영합니다.
+     * 결제내역만 삭제하고 노티 로그가 남아 있을 때 일괄 복구용입니다.
+     */
+    @Transactional
+    public Map<String, Object> replayOrdersWithCompId(String icopayCompId, LocalDate date, List<String> orderNos) {
+        if (icopayCompId == null || icopayCompId.isBlank()) {
+            throw new IllegalArgumentException("icopayCompId(업체코드)가 필요합니다.");
+        }
+        if (date == null) {
+            throw new IllegalArgumentException("date(YYYY-MM-DD)가 필요합니다.");
+        }
+        if (orderNos == null || orderNos.isEmpty()) {
+            throw new IllegalArgumentException("orderNos(주문번호 목록)가 필요합니다.");
+        }
+        String comp = icopayCompId.trim();
+        List<Map<String, Object>> perOrder = new ArrayList<>();
+        int ok = 0;
+        int failed = 0;
+        int skipped = 0;
+        for (String rawOrder : orderNos) {
+            if (rawOrder == null || rawOrder.isBlank()) {
+                continue;
+            }
+            String on = rawOrder.trim();
+            Optional<Long> inboundId = findLatestInboundIdForOrder(date, on);
+            if (inboundId.isEmpty()) {
+                skipped++;
+                Map<String, Object> skip = new LinkedHashMap<>();
+                skip.put("orderNo", on);
+                skip.put("skipped", true);
+                skip.put("reason", "INBOUND_NOT_FOUND");
+                perOrder.add(skip);
+                continue;
+            }
+            try {
+                Map<String, Object> r = replayInboundProcessing(inboundId.get(), comp);
+                r.put("orderNo", on);
+                perOrder.add(r);
+                boolean parsed = "PARSED".equalsIgnoreCase(String.valueOf(r.get("processStatus")).trim());
+                boolean dispatchFailed = Boolean.TRUE.equals(r.get("dispatchFailed"));
+                if (parsed && !dispatchFailed) {
+                    ok++;
+                } else {
+                    failed++;
+                }
+            } catch (Exception ex) {
+                failed++;
+                Map<String, Object> err = new LinkedHashMap<>();
+                err.put("orderNo", on);
+                err.put("inboundId", inboundId.get());
+                err.put("error", ex.getMessage() != null ? ex.getMessage() : ex.getClass().getSimpleName());
+                perOrder.add(err);
+            }
+        }
+        Map<String, Object> out = new LinkedHashMap<>();
+        out.put("icopayCompId", comp);
+        out.put("date", date.toString());
+        out.put("ok", ok);
+        out.put("failed", failed);
+        out.put("skipped", skipped);
+        out.put("results", perOrder);
+        return out;
+    }
+
+    private Optional<Long> findLatestInboundIdForOrder(LocalDate date, String orderNo) {
+        if (date == null || orderNo == null || orderNo.isBlank()) {
+            return Optional.empty();
+        }
+        HqLedgerSysSettings settings = hqLedgerSysSettingsService.getOrCreate();
+        ZoneId zone = HqLedgerSysSettingsService.resolveDisplayZoneIdFromSettings(settings);
+        LocalDateTime from = date.atStartOfDay(zone).toLocalDateTime();
+        LocalDateTime to = date.plusDays(1).atStartOfDay(zone).toLocalDateTime();
+        String on = orderNo.trim();
+        String[] tokens = {
+                "orderid=" + on,
+                "orderid\":\"" + on,
+                "\"orderid\":\"" + on,
+                "orderno=" + on,
+                "OrderNo\":\"" + on,
+                "\"orderNo\":\"" + on,
+                "\"OrderNo\":\"" + on
+        };
+        for (String token : tokens) {
+            String pattern = "%" + token.toLowerCase(Locale.ROOT) + "%";
+            Specification<PgNotifyInbound> spec = (root, query, cb) -> {
+                query.orderBy(cb.desc(root.get("id")));
+                return cb.and(
+                        cb.greaterThanOrEqualTo(root.get("createdAt"), from),
+                        cb.lessThan(root.get("createdAt"), to),
+                        cb.like(cb.lower(root.get("rawBody")), pattern));
+            };
+            var page = inboundRepository.findAll(spec, PageRequest.of(0, 1));
+            List<PgNotifyInbound> hits = page.getContent();
+            if (!hits.isEmpty() && hits.get(0).getId() != null) {
+                return Optional.of(hits.get(0).getId());
+            }
+        }
+        return Optional.empty();
     }
 
     private static class ParsedNotify {

@@ -27,6 +27,7 @@ import com.pg.service.OrgUnitChangeAuditService;
 import com.pg.service.ServerUsageService;
 import com.pg.util.CommissionTierJsonHelper;
 import com.pg.util.PercentDecimalHelper;
+import com.pg.util.RouteNoDisplayUtil;
 import com.pg.util.VoidRefundSettlementModeUtil;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -436,7 +437,7 @@ public class ApiHqController {
                     boolean hasMd5 = p.getMd5SecretKey() != null && !p.getMd5SecretKey().isBlank();
                     m.put("hasApiKey", hasApi ? "Y" : "N");
                     m.put("hasMd5Key", hasMd5 ? "Y" : "N");
-                    m.put("routeNo", p.getRouteNo() != null ? p.getRouteNo() : "");
+                    m.put("routeNo", RouteNoDisplayUtil.formatForDisplay(p.getRouteNo()));
                     m.put("sandboxYn", p.getSandboxYn() != null ? p.getSandboxYn() : "Y");
                     m.put("credentialsExtraJson", p.getCredentialsExtraJson() != null ? p.getCredentialsExtraJson() : "");
                     m.put("extSettleMode", p.getExtSettleMode() != null ? p.getExtSettleMode() : "OFF");
@@ -470,7 +471,7 @@ public class ApiHqController {
                     m.put("pgCd", p.getPgCd());
                     m.put("pgNm", p.getPgNm());
                     m.put("defaultMid", p.getMerchantMid() != null ? p.getMerchantMid() : "");
-                    m.put("routeNo", p.getRouteNo() != null ? p.getRouteNo() : "");
+                    m.put("routeNo", RouteNoDisplayUtil.formatForDisplay(p.getRouteNo()));
                     m.put("sandboxYn", p.getSandboxYn() != null ? p.getSandboxYn() : "Y");
                     m.put("apiEndpoint", p.getApiEndpoint() != null ? p.getApiEndpoint() : "");
                     m.put("endpointNoti", p.getEndpointNoti() != null ? p.getEndpointNoti() : "");
