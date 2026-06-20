@@ -4,7 +4,6 @@ import com.pg.entity.HqApiConfig;
 import com.pg.entity.MerchantPgBinding;
 import com.pg.entity.MerchantProfile;
 import com.pg.entity.OrgUnit;
-import com.pg.integration.pg.PgVendor;
 import com.pg.repository.HqApiConfigRepository;
 import com.pg.repository.MerchantProfileRepository;
 import com.pg.repository.OrgUnitRepository;
@@ -37,6 +36,7 @@ public class MerchantChillpayRedirectCheckoutService {
     private final MerchantInlineCheckoutTokenService tokenService;
     private final MerchantInlineCheckoutService inlineCheckoutService;
     private final MerchantApiIntegrationChannelService integrationChannelService;
+    private final MerchantOperationalPgGuard operationalPgGuard;
 
     public MerchantChillpayRedirectCheckoutService(OrgUnitRepository orgUnitRepository,
                                                    MerchantProfileRepository merchantProfileRepository,
@@ -46,7 +46,8 @@ public class MerchantChillpayRedirectCheckoutService {
                                                    MerchantChatbotProductService productService,
                                                    MerchantInlineCheckoutTokenService tokenService,
                                                    MerchantInlineCheckoutService inlineCheckoutService,
-                                                   MerchantApiIntegrationChannelService integrationChannelService) {
+                                                   MerchantApiIntegrationChannelService integrationChannelService,
+                                                   MerchantOperationalPgGuard operationalPgGuard) {
         this.orgUnitRepository = orgUnitRepository;
         this.merchantProfileRepository = merchantProfileRepository;
         this.orgServiceUseService = orgServiceUseService;
@@ -56,6 +57,7 @@ public class MerchantChillpayRedirectCheckoutService {
         this.tokenService = tokenService;
         this.inlineCheckoutService = inlineCheckoutService;
         this.integrationChannelService = integrationChannelService;
+        this.operationalPgGuard = operationalPgGuard;
     }
 
     public Map<String, Object> prepare(Long orgUnitId, Map<String, Object> body, HttpServletRequest request) {
@@ -81,10 +83,10 @@ public class MerchantChillpayRedirectCheckoutService {
         if (opBind.isEmpty()) {
             return fail("URL 결제를 처리할 ChillPay(운영·URL결제) 바인딩이 없습니다.", "URL_PAYMENT_PG_MISSING");
         }
-        String opPgCd = opBind.get().getPgCd() != null ? opBind.get().getPgCd().trim() : "";
-        if (!PgVendor.isChillPayFamily(opPgCd)) {
-            return fail("이 가맹점의 운영 URL 결제 PG는 ChillPay가 아닙니다. 통합 prepare(/api/middleware/v1/merchant/checkout/redirect/prepare) "
-                    + "또는 해당 PG 전용 API를 사용하세요.", "PG_NOT_SUPPORTED");
+        Optional<Map<String, Object>> vendorDeny = operationalPgGuard.denyIfUrlPayVendorMismatch(
+                orgUnitId, MerchantPgBrokerVendor.CHILLPAY, false);
+        if (vendorDeny.isPresent()) {
+            return vendorDeny.get();
         }
         Optional<String> redirectDeny = integrationChannelService.denyMessage(orgUnitId,
                 MerchantApiIntegrationChannelService.Channel.API_BROKER_REDIRECT);

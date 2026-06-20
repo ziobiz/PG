@@ -1041,6 +1041,7 @@
     pgApproveNo: { EN: 'PG approval no.', JP: 'PG承認番号', CH: 'PG授权号', TH: 'เลขอนุมัติ PG' },
     productNm: { EN: 'Product', JP: '購入商品', CH: '商品', TH: 'สินค้า' },
     customerNm: { EN: 'Payer name', JP: '顧客名', CH: '付款人姓名', TH: 'ชื่อผู้ชำระ' },
+    customerEmail: { EN: 'Payer email', JP: 'メール', CH: '付款人邮箱', TH: 'อีเมลผู้ชำระ' },
     customerTel: { EN: 'Payer mobile', JP: '携帯', CH: '付款人手机', TH: 'มือถือผู้ชำระ' },
     regionalNm: { EN: 'Distributor', JP: '総販', CH: '总代', TH: 'ตัวแทนหลัก' },
     masterNm: { EN: 'Branch', JP: '支社', CH: '分公司', TH: 'สาขา' },

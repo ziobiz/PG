@@ -5,6 +5,30 @@
 (function (g) {
   'use strict';
 
+  var URL_PAY_DEFAULT_TAB_TITLE = {
+    KOR: 'ICOPAY 간편결제',
+    ENG: 'ICOPAY Easy Payment',
+    JPN: 'ICOPAY かんたん決済',
+    CHN: 'ICOPAY 便捷支付',
+    THA: 'ICOPAY ชำระเงินง่าย'
+  };
+
+  function resolveUrlPayBrowserTabTitle(lang, cardCopy, tFn) {
+    if (cardCopy && cardCopy.browserTabTitle && typeof cardCopy.browserTabTitle === 'object') {
+      var custom = String(pickLangMap(cardCopy.browserTabTitle, lang) || '').trim();
+      if (custom) return custom;
+    }
+    if (typeof tFn === 'function') {
+      var fromT = String(tFn('title') || '').trim();
+      if (fromT && fromT !== 'title') return fromT;
+    }
+    return URL_PAY_DEFAULT_TAB_TITLE[lang] || URL_PAY_DEFAULT_TAB_TITLE.ENG;
+  }
+
+  function applyUrlPayBrowserTabTitle(lang, cardCopy, tFn) {
+    g.document.title = resolveUrlPayBrowserTabTitle(lang, cardCopy, tFn);
+  }
+
   function pickLangMap(m, lang) {
     if (!m || typeof m !== 'object') return '';
     var L = lang || 'ENG';
@@ -67,11 +91,7 @@
       var fb = opts.t('brandSub3ds') || opts.t('brandSub');
       if (fb) sub.textContent = fb;
     }
-    var title = '';
-    if (c && c.browserTabTitle && typeof c.browserTabTitle === 'object') {
-      title = String(pickLangMap(c.browserTabTitle, lang) || '').trim();
-    }
-    if (title) g.document.title = title;
+    applyUrlPayBrowserTabTitle(lang, c, opts.t);
     var favPath = (c && c.faviconUrl) ? String(c.faviconUrl).trim() : '';
     var head = g.document.head;
     if (head) {
@@ -317,14 +337,80 @@
     return String(v).trim().toUpperCase() !== 'N';
   }
 
-  /** checkout-context — 상품명·회사명·다국어 메뉴 표시 옵션 */
+  /** jpay-pay.html·pay.html 등 — 가맹점명(Merchant) 행 */
+  function resolveMerchantNameDisplayRow() {
+    var disp = g.document.getElementById('merchantNameDisplay');
+    if (disp) {
+      var byId = disp.closest('.pay-row-static');
+      if (byId) return byId;
+    }
+    return g.document.querySelector('#payOrderSummaryTop .pay-row-static');
+  }
+
+  /** checkout-context — 입력방식(GENERAL|TYPE_A|TYPE_B|TYPE_C) 및 표시 옵션 */
+  function applyUrlPayInputMode(ctx, opts) {
+    opts = opts || {};
+    if (!ctx) return;
+    var mode = String(ctx.urlPayInputMode || 'GENERAL').trim().toUpperCase();
+    if (mode === 'A' || mode === 'TYPEA') mode = 'TYPE_A';
+    else if (mode === 'B' || mode === 'TYPEB') mode = 'TYPE_B';
+    else if (mode === 'C' || mode === 'TYPEC') mode = 'TYPE_C';
+    else if (mode !== 'TYPE_A' && mode !== 'TYPE_B' && mode !== 'TYPE_C') mode = 'GENERAL';
+
+    var presCtx = ctx;
+    if (mode === 'TYPE_A' || mode === 'TYPE_B') {
+      presCtx = Object.assign({}, ctx, {
+        urlPayProductNameUseYn: 'N',
+        urlPayCompanyNameShowYn: 'N',
+        urlPayLangMenuUseYn: 'N'
+      });
+    } else if (mode === 'TYPE_C') {
+      presCtx = Object.assign({}, ctx, {
+        urlPayProductNameUseYn: 'Y',
+        urlPayCompanyNameShowYn: 'Y',
+        urlPayLangMenuUseYn: 'Y'
+      });
+    }
+    applyUrlPayPresentationOptions(presCtx, opts);
+
+    var brandRow = g.document.getElementById('payCardBrandRow');
+    var brandSelect = g.document.getElementById('payCardBrandSelect');
+    if (brandSelect && (mode === 'TYPE_A' || mode === 'GENERAL')) {
+      brandSelect.value = 'AUTO';
+    }
+    /* TYPE_A: 드롭다운만 숨김 — PAN 입력 시 PG_CARD_PAY_POLICY 자동 인식·포맷은 유지 */
+    if (brandRow) {
+      if (mode === 'TYPE_A') brandRow.style.display = 'none';
+      else brandRow.style.display = '';
+    }
+
+    if (mode === 'TYPE_A' || mode === 'TYPE_B') {
+      var nameRow = g.document.getElementById('nameRow');
+      if (nameRow) nameRow.style.display = 'none';
+      ['payFirstname', 'payLastname'].forEach(function (id) {
+        var el = g.document.getElementById(id);
+        if (el) { el.required = false; el.removeAttribute('required'); }
+      });
+    } else if (mode === 'TYPE_C' || mode === 'GENERAL') {
+      var nameRowShow = g.document.getElementById('nameRow');
+      if (nameRowShow && (mode === 'TYPE_C' || String(ctx.checkoutFieldMode || 'FULL').toUpperCase() === 'FULL')) {
+        nameRowShow.style.display = '';
+        ['payFirstname', 'payLastname'].forEach(function (id) {
+          var el = g.document.getElementById(id);
+          if (el) el.setAttribute('required', 'required');
+        });
+      }
+    }
+  }
+
+  /** checkout-context — 상품명·가맹점명·다국어 메뉴 표시 옵션(결제 전문과 별개, 화면 노출만) */
   function applyUrlPayPresentationOptions(ctx, opts) {
     opts = opts || {};
     if (!ctx) return;
     var showCo = urlPayYnIsYes(ctx.urlPayCompanyNameShowYn, true);
     var showItem = urlPayYnIsYes(ctx.urlPayProductNameUseYn, true);
     var showLang = urlPayYnIsYes(ctx.urlPayLangMenuUseYn, true);
-    var merchRow = g.document.querySelector('#payOrderSummaryTop .pay-row-static');
+    var merchRow = resolveMerchantNameDisplayRow();
     if (merchRow) merchRow.style.display = showCo ? '' : 'none';
     var itemEl = g.document.getElementById('item');
     if (itemEl) {
@@ -427,7 +513,9 @@
   }
 
   g.PG_URL_PAY_SHELL = {
-    pickLangMap: pickLangMap,
+    applyUrlPayBrowserTabTitle: applyUrlPayBrowserTabTitle,
+    resolveUrlPayBrowserTabTitle: resolveUrlPayBrowserTabTitle,
+    URL_PAY_DEFAULT_TAB_TITLE: URL_PAY_DEFAULT_TAB_TITLE,
     absPayAssetUrl: absPayAssetUrl,
     fetchJsonWithRetry: fetchJsonWithRetry,
     applyCardCopyPresentation: applyCardCopyPresentation,
@@ -436,6 +524,7 @@
     initDisplayFx: initDisplayFx,
     wireLanguageButtons: wireLanguageButtons,
     applyUrlPayPresentationOptions: applyUrlPayPresentationOptions,
+    applyUrlPayInputMode: applyUrlPayInputMode,
     resolveUrlPayItemValue: resolveUrlPayItemValue,
     payFxResolvedDisplayCurrency: payFxResolvedDisplayCurrency
   };

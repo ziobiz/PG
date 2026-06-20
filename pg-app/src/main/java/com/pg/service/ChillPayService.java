@@ -1547,6 +1547,7 @@ public class ChillPayService {
         meta.put("payListStatusBar", roll.toPayload(multiCurrency, primaryCurrency, totalPages > maxPages));
         meta.put("payListFinancialSummary", payListService.buildChillPayFinancialSummary(rowsForFinancial, authentication));
         payListService.putHqLedgerPayDisplayCurrencyMeta(meta);
+        payListService.putFeeCurrencyFormatMeta(meta);
         display.setMeta(meta);
         return display;
     }
@@ -1629,6 +1630,7 @@ public class ChillPayService {
                 PayListStatusBarBuckets.DEFAULT_STATUS_BAR_BUCKET_ORDER));
         meta.put("payListFinancialSummary", payListService.buildChillPayFinancialSummary(rowsForFinancial, authentication));
         payListService.putHqLedgerPayDisplayCurrencyMeta(meta);
+        payListService.putFeeCurrencyFormatMeta(meta);
         if (scanCapped) {
             meta.put("chillDailySummaryScanCapped", Boolean.TRUE);
             meta.put("chillDailySummaryTotalPages", totalPages);
@@ -1795,6 +1797,7 @@ public class ChillPayService {
             meta.put("chillPayPayDivFilterCapped", Boolean.TRUE);
         }
         payListService.putHqLedgerPayDisplayCurrencyMeta(meta);
+        payListService.putFeeCurrencyFormatMeta(meta);
         out.setMeta(meta);
         return out;
     }
@@ -1916,6 +1919,7 @@ public class ChillPayService {
         settlementFinSummary.put("feeListSummary", true);
         meta.put("payListFinancialSummary", settlementFinSummary);
         payListService.putHqLedgerPayDisplayCurrencyMeta(meta);
+        payListService.putFeeCurrencyFormatMeta(meta);
         meta.put("chillPaySettlementMode", true);
         meta.put("chillPaySettlementApi", "SearchSettlementTransaction");
         meta.put("icopayExpectedSettleHelp",

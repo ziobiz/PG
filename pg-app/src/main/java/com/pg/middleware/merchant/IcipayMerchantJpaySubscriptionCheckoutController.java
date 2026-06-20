@@ -2,6 +2,7 @@ package com.pg.middleware.merchant;
 
 import com.pg.api.ApiResponse;
 import com.pg.entity.OrgUnit;
+import com.pg.merchantdeploy.MerchantApiResponseMapper;
 import com.pg.merchantdeploy.MerchantBrokerAccessVerifier;
 import com.pg.merchantdeploy.MerchantJpaySubscriptionCheckoutService;
 import com.pg.merchantdeploy.MerchantPgBrokerVendor;
@@ -54,13 +55,13 @@ public class IcipayMerchantJpaySubscriptionCheckoutController {
             return ResponseEntity.ok(ApiResponse.fail("compId 또는 merchantId가 필요합니다.", "NOT_FOUND"));
         }
         Map<String, Object> result = subscriptionCheckoutService.prepare(orgUnitId, body != null ? body : Map.of(), request);
-        return mapServiceResult(result);
+        return MerchantApiResponseMapper.mapServiceResult(result);
     }
 
     @GetMapping("/session")
     public ResponseEntity<ApiResponse<Map<String, Object>>> session(@RequestParam("token") String token) {
         Map<String, Object> result = subscriptionCheckoutService.readSession(token);
-        return mapServiceResult(result);
+        return MerchantApiResponseMapper.mapServiceResult(result);
     }
 
     @GetMapping("/status")
@@ -84,7 +85,7 @@ public class IcipayMerchantJpaySubscriptionCheckoutController {
             return ResponseEntity.ok(ApiResponse.fail("compId 또는 merchantId가 필요합니다.", "NOT_FOUND"));
         }
         Map<String, Object> result = subscriptionCheckoutService.subscriptionStatus(orgUnitId, orderNo);
-        return mapServiceResult(result);
+        return MerchantApiResponseMapper.mapServiceResult(result);
     }
 
     @PostMapping("/cancel")
@@ -103,25 +104,7 @@ public class IcipayMerchantJpaySubscriptionCheckoutController {
             return ResponseEntity.ok(ApiResponse.fail("compId 또는 merchantId가 필요합니다.", "NOT_FOUND"));
         }
         Map<String, Object> result = subscriptionCheckoutService.cancel(orgUnitId, body != null ? body : Map.of(), request);
-        return mapServiceResult(result);
-    }
-
-    private ResponseEntity<ApiResponse<Map<String, Object>>> mapServiceResult(Map<String, Object> result) {
-        Object ok = result.get("success");
-        if (ok instanceof Boolean && !(Boolean) ok) {
-            String msg = result.get("message") != null ? result.get("message").toString() : "request failed";
-            String code = result.get("errorCode") != null ? result.get("errorCode").toString() : "ERROR";
-            return ResponseEntity.ok(ApiResponse.fail(msg, code));
-        }
-        Object data = result.get("data");
-        if (data instanceof Map) {
-            @SuppressWarnings("unchecked")
-            Map<String, Object> map = (Map<String, Object>) data;
-            return ResponseEntity.ok(ApiResponse.ok(map));
-        }
-        @SuppressWarnings("unchecked")
-        Map<String, Object> asMap = (Map<String, Object>) result;
-        return ResponseEntity.ok(ApiResponse.ok(asMap));
+        return MerchantApiResponseMapper.mapServiceResult(result);
     }
 
     private Long resolveOrgUnitId(Map<String, Object> body) {

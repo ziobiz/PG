@@ -1714,6 +1714,15 @@
       if (opts.rawBody != null && String(opts.rawBody).length) {
         payload.rawBody = opts.rawBody;
       }
+      if (opts.customerNm != null && String(opts.customerNm).trim() !== '') {
+        payload.customerNm = String(opts.customerNm).trim();
+      }
+      if (opts.customerEmail != null && String(opts.customerEmail).trim() !== '') {
+        payload.customerEmail = String(opts.customerEmail).trim();
+      }
+      if (opts.cardPanDisplay != null && String(opts.cardPanDisplay).trim() !== '') {
+        payload.cardPanDisplay = String(opts.cardPanDisplay).trim();
+      }
       if (opts.icopayCompId && !q) {
         payload.icopayCompId = opts.icopayCompId;
       }

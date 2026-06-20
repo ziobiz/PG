@@ -25,6 +25,7 @@ import com.pg.repository.OrgUnitRepository;
 import com.pg.repository.PgAgencyRepository;
 import com.pg.repository.PgNotifyInboundRepository;
 import com.pg.repository.PgTrnsctnRepository;
+import com.pg.util.JpayCardPanMaskUtil;
 import com.pg.util.NotifyIngressDeliveryKindResolver;
 import com.pg.util.PgNotifyInboundSanitizer;
 import jakarta.servlet.http.HttpServletRequest;
@@ -2021,6 +2022,21 @@ public class PgNotifyReceiveService {
      */
     @Transactional
     public Map<String, Object> replayInboundProcessing(long inboundId, String icopayCompIdOverride, String rawBodyOverride) {
+        return replayInboundProcessing(inboundId, icopayCompIdOverride, rawBodyOverride, null, null, null);
+    }
+
+    /**
+     * @param customerNmOverride    재반영 시 수동 입력 고객명(결제내역 customer_nm)
+     * @param customerEmailOverride 재반영 시 수동 입력 이메일(결제내역 customer_id — guest 등 기존 값 대체)
+     * @param cardPanOverride       재반영 시 수동 입력 카드번호(마스킹·일반 PAN — card_pan_display)
+     */
+    @Transactional
+    public Map<String, Object> replayInboundProcessing(long inboundId,
+                                                       String icopayCompIdOverride,
+                                                       String rawBodyOverride,
+                                                       String customerNmOverride,
+                                                       String customerEmailOverride,
+                                                       String cardPanOverride) {
         PgNotifyInbound in = inboundRepository.findById(inboundId)
                 .orElseThrow(() -> new IllegalArgumentException("수신 로그를 찾을 수 없습니다: " + inboundId));
         if (rawBodyOverride != null && !rawBodyOverride.isBlank()) {
@@ -2062,6 +2078,11 @@ public class PgNotifyReceiveService {
         }
         boolean dispatchFailed = inboundPersistService.dispatchTxnUpdates(in.getId(), channelType);
         in = inboundRepository.findById(inboundId).orElse(in);
+        boolean manualApplied = false;
+        if (!dispatchFailed) {
+            manualApplied = applyReplayManualTxnOverrides(
+                    in, customerNmOverride, customerEmailOverride, cardPanOverride);
+        }
         Map<String, Object> m = new LinkedHashMap<>();
         m.put("inboundId", in.getId());
         m.put("processStatus", in.getProcessStatus());
@@ -2072,7 +2093,80 @@ public class PgNotifyReceiveService {
         m.put("rootNo", in.getRootNo());
         m.put("dispatchFailed", dispatchFailed);
         m.put("dispatchError", dispatchFailed ? "pg_trnsctn post-process failed" : null);
+        m.put("manualTxnOverrideApplied", manualApplied);
         return m;
+    }
+
+    /** 노티 재반영 후 수동 입력 고객명·이메일·카드번호를 pg_trnsctn 에 반영(기존 guest 등은 대체) */
+    private boolean applyReplayManualTxnOverrides(PgNotifyInbound in,
+                                                  String customerNm,
+                                                  String customerEmail,
+                                                  String cardPanRaw) {
+        boolean hasNm = customerNm != null && !customerNm.isBlank();
+        boolean hasEmail = customerEmail != null && !customerEmail.isBlank();
+        boolean hasCard = cardPanRaw != null && !cardPanRaw.isBlank();
+        if (!hasNm && !hasEmail && !hasCard) {
+            return false;
+        }
+        if (in == null || in.getMerchantId() == null || in.getMerchantId().isBlank()) {
+            log.warn("노티 재반영 수동 보정 — 가맹점 미해석 inboundId={}", in != null ? in.getId() : null);
+            return false;
+        }
+        Optional<PgTrnsctn> txOpt = resolveTxnForReplayManualOverride(in);
+        if (txOpt.isEmpty()) {
+            log.warn("노티 재반영 수동 보정 — 거래 미발견 inboundId={} merchantId={}",
+                    in.getId(), in.getMerchantId());
+            return false;
+        }
+        PgTrnsctn t = txOpt.get();
+        if (hasNm) {
+            String nm = customerNm.trim();
+            t.setCustomerNm(nm.length() > 200 ? nm.substring(0, 200) : nm);
+        }
+        if (hasEmail) {
+            String em = customerEmail.trim();
+            t.setCustomerId(em.length() > 100 ? em.substring(0, 100) : em);
+        } else if (hasNm && t.getCustomerId() != null && "guest".equalsIgnoreCase(t.getCustomerId().trim())) {
+            t.setCustomerId(null);
+        }
+        if (hasCard) {
+            String masked = JpayCardPanMaskUtil.normalizeDisplay(cardPanRaw.trim());
+            if (masked != null && !masked.isBlank()) {
+                t.setCardPanDisplay(masked.length() > 32 ? masked.substring(0, 32) : masked);
+            }
+        }
+        pgTrnsctnRepository.save(t);
+        log.info("노티 재반영 수동 보정 trnId={} merchantId={} customerNm={} customerEmail={} cardPan={}",
+                t.getTrnId(), t.getMerchantId(), hasNm, hasEmail, hasCard);
+        return true;
+    }
+
+    private Optional<PgTrnsctn> resolveTxnForReplayManualOverride(PgNotifyInbound in) {
+        String merchantId = in.getMerchantId().trim();
+        String body = in.getRawBody() != null ? in.getRawBody() : "";
+        String contentType = in.getContentType() != null ? in.getContentType() : "";
+        ParsedNotify parsed = parsePayload(body, contentType);
+        String orderNo = parsed.orderNo;
+        if (orderNo == null || orderNo.isBlank()) {
+            orderNo = firstNonBlank(
+                    extractFormFieldLoose(body, "orderid", "order_id", "orderID", "orderno", "order_no"),
+                    extractFormFieldLoose(body, "orderNo", "OrderNo"));
+        }
+        if (orderNo == null || orderNo.isBlank()) {
+            return Optional.empty();
+        }
+        String on = orderNo.trim();
+        if (on.length() > 64) {
+            on = on.substring(0, 64);
+        }
+        for (String origin : List.of("SUBSCRIPTION", "MERCHANT_API", "URL", "NOTI", "CHILL")) {
+            Optional<PgTrnsctn> hit = pgTrnsctnRepository.findFirstByMerchantIdAndOrderNoAndOrigin(merchantId, on, origin);
+            if (hit.isPresent()) {
+                return hit;
+            }
+        }
+        return pgTrnsctnRepository.findFirstByOrderNoAndOriginOrderByCreatedAtDesc(on, "URL")
+                .filter(t -> merchantId.equals(t.getMerchantId()));
     }
 
     /**

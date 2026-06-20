@@ -35,7 +35,15 @@ public class JpayUrlPayCheckoutContextEnricher implements UrlPayCheckoutContextE
         Optional<HqApiConfig> hqOpt = hqApiConfigRepository.findAll().stream().findFirst();
         String hqMode = hqOpt.map(HqApiConfig::getJpayCheckoutFieldMode).orElse(null);
         String merchantMode = profile.map(MerchantProfile::getJpayCheckoutFieldMode).orElse(null);
-        data.put("checkoutFieldMode", JpayCheckoutFieldModeUtil.resolve(merchantMode, hqMode));
+        String inputMode = profile.map(MerchantProfile::getUrlPayInputMode).orElse(UrlPayInputModeUtil.GENERAL);
+        inputMode = UrlPayInputModeUtil.normalize(inputMode);
+        String resolved = JpayCheckoutFieldModeUtil.resolve(merchantMode, hqMode);
+        if (UrlPayInputModeUtil.isMinimalForm(inputMode)) {
+            resolved = JpayCheckoutFieldModeUtil.CARD_PREFILL;
+        } else if (UrlPayInputModeUtil.forcesFullPresentation(inputMode)) {
+            resolved = JpayCheckoutFieldModeUtil.FULL;
+        }
+        data.put("checkoutFieldMode", resolved);
         data.put("jpayCountryCodeRequired", true);
         /* JPAY 결제창은 1·2·3형(checkoutFieldMode)만 사용 — 본사 urlPayFormMode(SIMPLE) 무시 */
         data.put("urlPayFormMode", "FULL");
@@ -47,4 +55,4 @@ public class JpayUrlPayCheckoutContextEnricher implements UrlPayCheckoutContextE
         data.put("integrationMode", "INLINE");
     }
 }
-
+

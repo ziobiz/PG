@@ -39,6 +39,7 @@ public class MerchantJpayInlineCheckoutService {
     private final PgTrnsctnRepository pgTrnsctnRepository;
     private final UrlPayCheckoutCurrencyService urlPayCheckoutCurrencyService;
     private final MerchantApiIntegrationChannelService integrationChannelService;
+    private final MerchantOperationalPgGuard operationalPgGuard;
 
     public MerchantJpayInlineCheckoutService(OrgUnitRepository orgUnitRepository,
                                              MerchantProfileRepository merchantProfileRepository,
@@ -49,7 +50,8 @@ public class MerchantJpayInlineCheckoutService {
                                              MerchantInlineCheckoutTokenService tokenService,
                                              PgTrnsctnRepository pgTrnsctnRepository,
                                              UrlPayCheckoutCurrencyService urlPayCheckoutCurrencyService,
-                                             MerchantApiIntegrationChannelService integrationChannelService) {
+                                             MerchantApiIntegrationChannelService integrationChannelService,
+                                             MerchantOperationalPgGuard operationalPgGuard) {
         this.orgUnitRepository = orgUnitRepository;
         this.merchantProfileRepository = merchantProfileRepository;
         this.orgServiceUseService = orgServiceUseService;
@@ -60,6 +62,7 @@ public class MerchantJpayInlineCheckoutService {
         this.pgTrnsctnRepository = pgTrnsctnRepository;
         this.urlPayCheckoutCurrencyService = urlPayCheckoutCurrencyService;
         this.integrationChannelService = integrationChannelService;
+        this.operationalPgGuard = operationalPgGuard;
     }
 
     public Map<String, Object> prepare(Long orgUnitId, Map<String, Object> body, HttpServletRequest request) {
@@ -87,6 +90,11 @@ public class MerchantJpayInlineCheckoutService {
         }
         if (!jpayPaymentService.hasOperationalWebBinding(orgUnitId)) {
             return fail("JPAY URL 결제(운영) 바인딩이 없습니다.", "URL_PAYMENT_PG_MISSING");
+        }
+        Optional<Map<String, Object>> vendorDeny = operationalPgGuard.denyIfUrlPayVendorMismatch(
+                orgUnitId, MerchantPgBrokerVendor.JPAY, false);
+        if (vendorDeny.isPresent()) {
+            return vendorDeny.get();
         }
         Optional<String> inlineDeny = integrationChannelService.denyMessage(orgUnitId,
                 MerchantApiIntegrationChannelService.Channel.API_BROKER_INLINE);

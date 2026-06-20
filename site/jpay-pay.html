@@ -4,12 +4,12 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
-  <title>JPAY Payment</title>
+  <title>ICOPAY Easy Payment</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="css/pay-inline.css?v=36" rel="stylesheet">
-  <script src="js/url-pay-public-shell.js?v=4"></script>
+  <script src="js/url-pay-public-shell.js?v=8"></script>
   <script src="js/jpay-contact-fields.js?v=2"></script>
-  <script src="js/icopay-card-pay-policy.js?v=1"></script>
+  <script src="js/icopay-card-pay-policy.js?v=2"></script>
   <script src="js/jpay-pay-msg-i18n.js?v=1"></script>
   <script>
     (function () {
@@ -72,9 +72,8 @@
         <div class="pay-label mb-1"><span id="payCardSectionLabel" data-i18n="card">Card</span></div>
         <p class="small text-muted mb-2 d-none" id="payCardNoteText"></p>
         <div class="mb-2" id="payCardBrandRow">
-          <label class="pay-label mb-1" for="payCardBrandSelect" data-i18n="cardBrand">Card type</label>
-          <select class="form-select form-select-sm pay-input-round jpay-field-input" id="payCardBrandSelect" aria-label="Card type">
-            <option value="AUTO" data-i18n="cardBrandAuto">Auto detect</option>
+          <select class="form-select form-select-sm pay-input-round jpay-field-input" id="payCardBrandSelect" data-i18n-aria="cardAutoDetectOption" aria-label="Card auto detect">
+            <option value="AUTO" data-i18n="cardAutoDetectOption">Card auto detect</option>
             <option value="VISA">Visa</option>
             <option value="MASTERCARD">Mastercard</option>
             <option value="JCB">JCB</option>
@@ -184,8 +183,8 @@
       var LANG = resolveInitialUrlPayLang();
       var I18N = {
         KOR: {
-          title: 'JPAY 결제', brandSub3ds: '3DS 안전 결제', merchant: '가맹점', item: '상품명', amount: '금액', card: '카드',
-          cardBrand: '카드 종류', cardBrandAuto: '자동 감지',
+          title: 'ICOPAY 간편결제', brandSub3ds: '3DS 안전 결제', merchant: '가맹점', item: '상품명', amount: '금액',           card: '카드',
+          cardAutoDetectOption: '카드 자동 인식',
           cardNo: '카드번호', firstName: '이름', lastName: '성', email: '이메일', shipping: '배송 주소',
           phone: '전화번호', phoneHint: '국가코드 제외 (예: 01012345678)', countryCode: '국가코드', selectCountry: '— 선택 —', country: '국가(2자)', address: '주소', city: '도시', postcode: '우편번호', pay: '결제',
           errMerchant: '가맹점 코드(m)가 필요합니다.', errLoad: '결제 화면을 불러오지 못했습니다.',
@@ -201,8 +200,8 @@
           needAmount: '유효한 금액을 입력하세요.', langGroup: '언어'
         },
         ENG: {
-          title: 'JPAY Payment', brandSub3ds: '3DS Secure Payment', merchant: 'Merchant', item: 'Item', amount: 'Amount', card: 'Card',
-          cardBrand: 'Card type', cardBrandAuto: 'Auto detect',
+          title: 'ICOPAY Easy Payment', brandSub3ds: '3DS Secure Payment', merchant: 'Merchant', item: 'Item', amount: 'Amount',           card: 'Card',
+          cardAutoDetectOption: 'Card auto detect',
           cardNo: 'Card number', firstName: 'First name', lastName: 'Last name', email: 'Email', shipping: 'Shipping address',
           phone: 'Phone', phoneHint: 'Local number without country code (e.g. 01012345678)', countryCode: 'Country code', selectCountry: '— Select —', country: 'Country (ISO2)', address: 'Address', city: 'City', postcode: 'Postcode', pay: 'Pay',
           errMerchant: 'Merchant code (m) is required.', errLoad: 'Failed to load checkout.',
@@ -218,8 +217,8 @@
           needAmount: 'Enter a valid amount.', langGroup: 'Language'
         },
         JPN: {
-          title: 'JPAY 決済', brandSub3ds: '3DSセキュア決済', merchant: '加盟店', item: '商品名', amount: '金額', card: 'カード',
-          cardBrand: 'カード種類', cardBrandAuto: '自動判定',
+          title: 'ICOPAY かんたん決済', brandSub3ds: '3DSセキュア決済', merchant: '加盟店', item: '商品名', amount: '金額',           card: 'カード',
+          cardAutoDetectOption: 'カード自動認識',
           cardNo: 'カード番号', firstName: '名', lastName: '姓', email: 'メール', shipping: '配送先',
           phone: '電話', phoneHint: '国コード除く (例: 09012345678)', countryCode: '国コード', selectCountry: '— 選択 —', country: '国(2字)', address: '住所', city: '市区町村', postcode: '郵便番号', pay: '支払う',
           errMerchant: '加盟店コード(m)が必要です。', errLoad: '決済画面の読み込みに失敗しました。',
@@ -235,8 +234,8 @@
           needAmount: '有効な金額を入力してください。', langGroup: '言語'
         },
         CHN: {
-          title: 'JPAY 支付', brandSub3ds: '3DS 安全支付', merchant: '商户', item: '商品', amount: '金额', card: '银行卡',
-          cardBrand: '卡种', cardBrandAuto: '自动识别',
+          title: 'ICOPAY 便捷支付', brandSub3ds: '3DS 安全支付', merchant: '商户', item: '商品', amount: '金额',           card: '银行卡',
+          cardAutoDetectOption: '卡片自动识别',
           cardNo: '卡号', firstName: '名', lastName: '姓', email: '邮箱', shipping: '配送地址',
           phone: '电话', phoneHint: '不含国家码 (例: 13800138000)', countryCode: '国家代码', selectCountry: '— 请选择 —', country: '国家(2位)', address: '地址', city: '城市', postcode: '邮编', pay: '支付',
           errMerchant: '需要商户代码(m)。', errLoad: '无法加载支付页面。',
@@ -252,8 +251,8 @@
           needAmount: '请输入有效金额。', langGroup: '语言'
         },
         THA: {
-          title: 'JPAY ชำระเงิน', brandSub3ds: '3DS ชำระเงินปลอดภัย', merchant: 'ร้านค้า', item: 'สินค้า', amount: 'จำนวนเงิน', card: 'บัตร',
-          cardBrand: 'ประเภทบัตร', cardBrandAuto: 'ตรวจจับอัตโนมัติ',
+          title: 'ICOPAY ชำระเงินง่าย', brandSub3ds: '3DS ชำระเงินปลอดภัย', merchant: 'ร้านค้า', item: 'สินค้า', amount: 'จำนวนเงิน',           card: 'บัตร',
+          cardAutoDetectOption: 'ตรวจจับบัตรอัตโนมัติ',
           cardNo: 'หมายเลขบัตร', firstName: 'ชื่อ', lastName: 'นามสกุล', email: 'อีเมล', shipping: 'ที่อยู่จัดส่ง',
           phone: 'โทรศัพท์', phoneHint: 'ไม่รวมรหัสประเทศ (เช่น 0812345678)', countryCode: 'รหัสประเทศ', selectCountry: '— เลือก —', country: 'ประเทศ(2)', address: 'ที่อยู่', city: 'เมือง', postcode: 'รหัสไปรษณีย์', pay: 'ชำระเงิน',
           errMerchant: 'ต้องระบุรหัสร้านค้า (m)', errLoad: 'โหลดหน้าชำระเงินไม่สำเร็จ',
@@ -350,7 +349,11 @@
         document.querySelectorAll('.pay-lang button[data-lang]').forEach(function (b) {
           b.classList.toggle('active', b.getAttribute('data-lang') === LANG);
         });
-        if (!window.__payUrlCardCopy) document.title = t('title');
+        if (window.PG_URL_PAY_SHELL && PG_URL_PAY_SHELL.applyUrlPayBrowserTabTitle) {
+          PG_URL_PAY_SHELL.applyUrlPayBrowserTabTitle(LANG, window.__payUrlCardCopy, t);
+        } else {
+          document.title = t('title');
+        }
         try {
           var hl = { KOR: 'ko', ENG: 'en', JPN: 'ja', CHN: 'zh', THA: 'th' };
           document.documentElement.setAttribute('lang', hl[LANG] || 'en');
@@ -361,6 +364,12 @@
         if (window.PG_JPAY_CONTACT) {
           var form0 = document.getElementById('jpayForm');
           if (form0) PG_JPAY_CONTACT.refreshCountryLabels(form0, LANG, t('selectCountry'));
+        }
+        if (cardPolicyCtrl && cardPolicyCtrl.refreshAutoDetectLabel) {
+          cardPolicyCtrl.refreshAutoDetectLabel(t('cardAutoDetectOption'));
+        } else if (window.PG_CARD_PAY_POLICY && checkoutCtx && checkoutCtx.cardPayPolicy) {
+          var bs = document.getElementById('payCardBrandSelect');
+          if (bs) PG_CARD_PAY_POLICY.syncBrandSelectOptions(bs, checkoutCtx.cardPayPolicy, t('cardAutoDetectOption'));
         }
       }
 
@@ -649,6 +658,7 @@
             alertEl: document.getElementById('payCardPolicyAlert'),
             cvvInput: document.getElementById('payCardcvv'),
             lang: LANG,
+            autoDetectLabel: t('cardAutoDetectOption'),
             onLangChange: function () { return LANG; }
           });
         }
@@ -696,7 +706,13 @@
           }
         }
         applyI18n();
-        if (window.PG_URL_PAY_SHELL && PG_URL_PAY_SHELL.applyUrlPayPresentationOptions) {
+        if (window.PG_URL_PAY_SHELL && PG_URL_PAY_SHELL.applyUrlPayInputMode) {
+          PG_URL_PAY_SHELL.applyUrlPayInputMode(ctx, {
+            getLang: function () { return LANG; },
+            setLang: setLang,
+            detectBrowserLang: detectBrowserUrlPayLang
+          });
+        } else if (window.PG_URL_PAY_SHELL && PG_URL_PAY_SHELL.applyUrlPayPresentationOptions) {
           PG_URL_PAY_SHELL.applyUrlPayPresentationOptions(ctx, {
             getLang: function () { return LANG; },
             setLang: setLang,

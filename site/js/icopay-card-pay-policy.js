@@ -98,6 +98,42 @@
     input.maxLength = max + 4;
   }
 
+  function brandOptionLabel(brand) {
+    switch (String(brand || '').toUpperCase()) {
+      case 'VISA': return 'Visa';
+      case 'MASTERCARD': return 'Mastercard';
+      case 'JCB': return 'JCB';
+      case 'UNIONPAY': return 'UnionPay (62…)';
+      case 'AMEX': return 'American Express';
+      default: return brand;
+    }
+  }
+
+  function syncBrandSelectOptions(brandSelect, policy, autoLabel) {
+    if (!brandSelect || !policy) return;
+    var cur = brandSelect.value || 'AUTO';
+    var allowed = policy.allowedBrands || [];
+    brandSelect.innerHTML = '';
+    var autoOpt = document.createElement('option');
+    autoOpt.value = 'AUTO';
+    autoOpt.textContent = autoLabel || 'Auto detect';
+    autoOpt.setAttribute('data-i18n', 'cardAutoDetectOption');
+    brandSelect.appendChild(autoOpt);
+    for (var i = 0; i < allowed.length; i++) {
+      var b = String(allowed[i] || '').trim().toUpperCase();
+      if (!b || b === 'AUTO') continue;
+      var opt = document.createElement('option');
+      opt.value = b;
+      opt.textContent = brandOptionLabel(b);
+      brandSelect.appendChild(opt);
+    }
+    var hasCur = false;
+    for (var j = 0; j < brandSelect.options.length; j++) {
+      if (brandSelect.options[j].value === cur) { hasCur = true; break; }
+    }
+    brandSelect.value = hasCur ? cur : 'AUTO';
+  }
+
   function init(opts) {
     opts = opts || {};
     var policy = opts.policy;
@@ -109,6 +145,11 @@
     var onLangChange = opts.onLangChange;
 
     if (!policy || !panInput) return;
+
+    var autoLabel = opts.autoDetectLabel || 'Auto detect';
+    if (brandSelect) {
+      syncBrandSelectOptions(brandSelect, policy, autoLabel);
+    }
 
     function showAlert(res) {
       if (!alertEl) return;
@@ -140,30 +181,31 @@
       if (cvvInput) cvvInput.placeholder = (b === 'AMEX') ? '4' : '3';
     }
 
+    function syncDetectedBrandToSelect() {
+      if (!brandSelect) return;
+      if (brandSelect.value && brandSelect.value !== 'AUTO') return;
+      var d = detectBrand(digitsOnly(panInput.value));
+      if (d === 'UNKNOWN') return;
+      for (var oi = 0; oi < brandSelect.options.length; oi++) {
+        if (brandSelect.options[oi].value === d) {
+          brandSelect.value = d;
+          return;
+        }
+      }
+      brandSelect.value = 'AUTO';
+    }
+
     if (brandSelect && policy.brandSelectEnabled) {
-      brandSelect.closest && brandSelect.closest('#payCardBrandRow') &&
-        (brandSelect.closest('#payCardBrandRow').style.display = '');
+      var row = brandSelect.closest ? brandSelect.closest('#payCardBrandRow') : null;
+      if (row && row.style.display !== 'none') row.style.display = '';
       brandSelect.addEventListener('change', function () {
         applyBrandUi();
         runValidate();
       });
-    } else if (brandSelect) {
-      var row = brandSelect.closest ? brandSelect.closest('#payCardBrandRow') : null;
-      if (row) row.style.display = 'none';
     }
 
     panInput.addEventListener('input', function () {
-      if (brandSelect && (!brandSelect.value || brandSelect.value === 'AUTO')) {
-        var d = detectBrand(digitsOnly(panInput.value));
-        if (d !== 'UNKNOWN' && brandSelect) {
-          for (var oi = 0; oi < brandSelect.options.length; oi++) {
-            if (brandSelect.options[oi].value === d) {
-              brandSelect.value = d;
-              break;
-            }
-          }
-        }
-      }
+      syncDetectedBrandToSelect();
       applyBrandUi();
       runValidate();
     });
@@ -171,6 +213,12 @@
     applyBrandUi();
     return {
       validate: runValidate,
+      refreshAutoDetectLabel: function (label) {
+        if (!brandSelect) return;
+        syncBrandSelectOptions(brandSelect, policy, label || autoLabel);
+        syncDetectedBrandToSelect();
+        applyBrandUi();
+      },
       validateFinal: function () {
         var pan = digitsOnly(panInput.value);
         var b = currentBrand();
@@ -189,6 +237,8 @@
     init: init,
     validate: validate,
     detectBrand: detectBrand,
-    digitsOnly: digitsOnly
+    digitsOnly: digitsOnly,
+    syncBrandSelectOptions: syncBrandSelectOptions,
+    brandOptionLabel: brandOptionLabel
   };
 })(typeof window !== 'undefined' ? window : this);

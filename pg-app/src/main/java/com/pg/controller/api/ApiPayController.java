@@ -12,6 +12,8 @@ import com.pg.repository.MerchantProfileRepository;
 import com.pg.repository.OrgUnitRepository;
 import com.pg.urlpay.CheckoutHeaderLogoResolver;
 import com.pg.merchantdeploy.MerchantInlineCheckoutTokenService;
+import com.pg.merchantdeploy.MerchantOperationalPgGuard;
+import com.pg.merchantdeploy.MerchantOperationalPgGuardI18n;
 import com.pg.merchantdeploy.MerchantPgBrokerVendor;
 import com.pg.service.ChillPayDirectCreditRecordService;
 import com.pg.service.ChillPayService;
@@ -70,6 +72,7 @@ public class ApiPayController {
     private final UrlPayPublicCheckoutService urlPayPublicCheckoutService;
     private final UrlPaySaleDispatcher urlPaySaleDispatcher;
     private final CheckoutHeaderLogoResolver checkoutHeaderLogoResolver;
+    private final MerchantOperationalPgGuard operationalPgGuard;
 
     public ApiPayController(ChillPayService chillPayService,
                             JpayPaymentService jpayPaymentService,
@@ -88,7 +91,8 @@ public class ApiPayController {
                             UrlPayChargeResolutionService urlPayChargeResolutionService,
                             UrlPayPublicCheckoutService urlPayPublicCheckoutService,
                             UrlPaySaleDispatcher urlPaySaleDispatcher,
-                            CheckoutHeaderLogoResolver checkoutHeaderLogoResolver) {
+                            CheckoutHeaderLogoResolver checkoutHeaderLogoResolver,
+                            MerchantOperationalPgGuard operationalPgGuard) {
         this.chillPayService = chillPayService;
         this.jpayPaymentService = jpayPaymentService;
         this.chillPayDirectCreditRecordService = chillPayDirectCreditRecordService;
@@ -107,6 +111,29 @@ public class ApiPayController {
         this.urlPayPublicCheckoutService = urlPayPublicCheckoutService;
         this.urlPaySaleDispatcher = urlPaySaleDispatcher;
         this.checkoutHeaderLogoResolver = checkoutHeaderLogoResolver;
+        this.operationalPgGuard = operationalPgGuard;
+    }
+
+    private <T> ResponseEntity<ApiResponse<T>> vendorMismatchIfAny(Long orgUnitId,
+                                                                    String requestedVendorScope,
+                                                                    boolean repayScope) {
+        if (orgUnitId == null) {
+            return null;
+        }
+        Optional<Map<String, Object>> deny = operationalPgGuard.denyIfUrlPayVendorMismatch(
+                orgUnitId, requestedVendorScope, repayScope);
+        if (deny.isEmpty()) {
+            return null;
+        }
+        Map<String, Object> d = deny.get();
+        @SuppressWarnings("unchecked")
+        Map<String, String> messages = (Map<String, String>) d.get("messages");
+        return ResponseEntity.ok(ApiResponse.failI18n(
+                d.get("message") != null ? d.get("message").toString() : "PG vendor mismatch",
+                d.get("errorCode") != null ? d.get("errorCode").toString() : MerchantOperationalPgGuard.ERROR_CODE,
+                d.get("messageKey") != null ? d.get("messageKey").toString()
+                        : MerchantOperationalPgGuardI18n.KEY_PG_VENDOR_MISMATCH,
+                messages));
     }
 
     private static boolean isUrlPayRepayVariant(String raw) {
@@ -265,6 +292,11 @@ public class ApiPayController {
             return ResponseEntity.ok(ApiResponse.fail(
                     "서비스가 중지된 업체입니다. (미사용 또는 상위 조직 미사용)", "ORG_DISABLED"));
         }
+        ResponseEntity<ApiResponse<Map<String, Object>>> vendorBlock = vendorMismatchIfAny(
+                orgUnitId, MerchantPgBrokerVendor.JPAY, false);
+        if (vendorBlock != null) {
+            return vendorBlock;
+        }
         Map<String, Object> result = urlPaySaleDispatcher.executeSale(orgUnitId, body, request, getClientIp(request));
         Object ok = result.get("success");
         if (ok instanceof Boolean && !(Boolean) ok) {
@@ -396,6 +428,11 @@ public class ApiPayController {
                     "서비스가 중지된 업체입니다. (미사용 또는 상위 조직 미사용)", "ORG_DISABLED"));
         }
         if (orgUnitId != null) {
+            ResponseEntity<ApiResponse<Map<String, Object>>> vendorBlock = vendorMismatchIfAny(
+                    orgUnitId, MerchantPgBrokerVendor.CHILLPAY, repay);
+            if (vendorBlock != null) {
+                return vendorBlock;
+            }
             Optional<MerchantProfile> profCfg = merchantProfileRepository.findByOrgUnitId(orgUnitId);
             if (profCfg.isPresent()) {
                 String wpy = profCfg.get().getWebPaymentUseYn();
@@ -452,6 +489,11 @@ public class ApiPayController {
         if (!orgServiceUseService.isOrgServiceActive(orgUnitId)) {
             return ResponseEntity.ok(ApiResponse.fail(
                     "서비스가 중지된 업체입니다. (미사용 또는 상위 조직 미사용)", "ORG_DISABLED"));
+        }
+        ResponseEntity<ApiResponse<Map<String, Object>>> vendorBlock = vendorMismatchIfAny(
+                orgUnitId, MerchantPgBrokerVendor.CHILLPAY, false);
+        if (vendorBlock != null) {
+            return vendorBlock;
         }
         if (!UrlPayDisplayFxService.MODE_DISPLAY_FX_THB.equals(chillPayService.resolveUrlPayPricingMode(orgUnitId))) {
             return ResponseEntity.ok(ApiResponse.fail("이 가맹점 URL 결제는 표시통화(THB정산) 모드가 아닙니다.", "DISPLAY_FX_NOT_CONFIGURED"));
@@ -599,6 +641,13 @@ public class ApiPayController {
         if (merchantOrgUnitId != null && !orgServiceUseService.isOrgServiceActive(merchantOrgUnitId)) {
             return ResponseEntity.ok(ApiResponse.fail(
                     "서비스가 중지된 업체입니다. (미사용 또는 상위 조직 미사용)", "ORG_DISABLED"));
+        }
+        if (merchantOrgUnitId != null) {
+            ResponseEntity<ApiResponse<ChillPayDirectCreditResponse>> vendorBlock = vendorMismatchIfAny(
+                    merchantOrgUnitId, MerchantPgBrokerVendor.CHILLPAY, repayVariant);
+            if (vendorBlock != null) {
+                return vendorBlock;
+            }
         }
 
         String opPg = merchantOrgUnitId != null

@@ -97,6 +97,7 @@ public class UrlPayPublicCheckoutService {
             data.put("urlPayProductNameUseYn", productNameUseYn);
             data.put("urlPayCompanyNameShowYn", p.getUrlPayCompanyNameShowYn() != null ? p.getUrlPayCompanyNameShowYn() : "Y");
             data.put("urlPayLangMenuUseYn", p.getUrlPayLangMenuUseYn() != null ? p.getUrlPayLangMenuUseYn() : "Y");
+            data.put("urlPayInputMode", UrlPayInputModeUtil.normalize(p.getUrlPayInputMode()));
             if (p.getBaseCurrency() != null && !p.getBaseCurrency().isBlank()) {
                 data.put("defaultCurrency", p.getBaseCurrency().trim().toUpperCase(Locale.ROOT));
             }
@@ -109,6 +110,7 @@ public class UrlPayPublicCheckoutService {
             data.put("urlPayProductNameUseYn", productNameUseYn);
             data.put("urlPayCompanyNameShowYn", "Y");
             data.put("urlPayLangMenuUseYn", "Y");
+            data.put("urlPayInputMode", UrlPayInputModeUtil.GENERAL);
         }
         if (dp.isPresent()) {
             MerchantDefaultProduct p = dp.get();

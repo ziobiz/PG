@@ -2299,6 +2299,7 @@
     },
     '결제 URL': { EN: 'Payment URL', JP: '決済URL', CH: '支付 URL', TH: 'URL ชำระ' },
     '웹결제 사용여부': { EN: 'WEB checkout', JP: 'WEB決済の使用', CH: 'WEB 支付使用', TH: 'การใช้ชำระเงิน WEB' },
+    '웹결제': { EN: 'WEB checkout', JP: 'WEB決済', CH: 'WEB 支付', TH: 'ชำระ WEB' },
     '8자 이상 → 옆 [저장] 확정': {
       EN: '8+ chars → confirm with [Save] beside, then register below',
       JP: '8文字以上→横の[保存]で確定後、下部[保存]で登録',
@@ -8570,6 +8571,36 @@
       CH: 'URL 结账方式',
       TH: 'โหมดชำระ URL'
     },
+    '입력방식': {
+      EN: 'Input mode',
+      JP: '入力方式',
+      CH: '输入方式',
+      TH: 'โหมดการกรอก'
+    },
+    '일반': {
+      EN: 'Standard',
+      JP: '通常',
+      CH: '普通',
+      TH: 'ทั่วไป'
+    },
+    'A타입': {
+      EN: 'Type A',
+      JP: 'Aタイプ',
+      CH: 'A 类型',
+      TH: 'ประเภท A'
+    },
+    'B타입': {
+      EN: 'Type B',
+      JP: 'Bタイプ',
+      CH: 'B 类型',
+      TH: 'ประเภท B'
+    },
+    'C타입': {
+      EN: 'Type C',
+      JP: 'Cタイプ',
+      CH: 'C 类型',
+      TH: 'ประเภท C'
+    },
     '상품명 사용': {
       EN: 'Product name field',
       JP: '商品名入力',
@@ -8577,10 +8608,10 @@
       TH: 'ช่องชื่อสินค้า'
     },
     '회사명 노출': {
-      EN: 'Show company name',
-      JP: '会社名表示',
-      CH: '显示公司名称',
-      TH: 'แสดงชื่อบริษัท'
+      EN: 'Merchant name on checkout',
+      JP: '決済画面の加盟店名',
+      CH: '结账页商户名称',
+      TH: 'ชื่อร้านบนหน้าชำระ'
     },
     '다국어 메뉴': {
       EN: 'Language menu',
@@ -11042,6 +11073,54 @@
       CH: '重放到支付明细',
       TH: 'เล่นกลับไปยังรายการชำระ'
     },
+    '재반영 업체코드(icopayCompId)': {
+      EN: 'Replay merchant code (icopayCompId)',
+      JP: '再反映 加盟店コード (icopayCompId)',
+      CH: '重放商户代码 (icopayCompId)',
+      TH: 'รหัสร้าน replay (icopayCompId)'
+    },
+    '재반영 고객명': {
+      EN: 'Replay customer name',
+      JP: '再反映 顧客名',
+      CH: '重放客户姓名',
+      TH: 'ชื่อลูกค้า replay'
+    },
+    '재반영 이메일': {
+      EN: 'Replay customer email',
+      JP: '再反映 メール',
+      CH: '重放客户邮箱',
+      TH: 'อีเมลลูกค้า replay'
+    },
+    '재반영 카드번호': {
+      EN: 'Replay card number',
+      JP: '再反映 カード番号',
+      CH: '重放卡号',
+      TH: 'เลขบัตร replay'
+    },
+    '재반영 고객명 placeholder': {
+      EN: 'e.g. John Smith',
+      JP: '例: 山田 太郎',
+      CH: '例: 张三',
+      TH: 'เช่น สมชาย ใจดี'
+    },
+    '재반영 이메일 placeholder': {
+      EN: 'e.g. payer@example.com',
+      JP: '例: payer@example.com',
+      CH: '例: payer@example.com',
+      TH: 'เช่น payer@example.com'
+    },
+    '재반영 카드번호 placeholder': {
+      EN: 'Masked PAN e.g. 489788***9416',
+      JP: 'マスク例 489788***9416',
+      CH: '掩码示例 489788***9416',
+      TH: 'ตัวอย่าง 489788***9416'
+    },
+    '수신 본문 (편집 가능)': {
+      EN: 'Received body (editable)',
+      JP: '受信本文（編集可）',
+      CH: '接收正文（可编辑）',
+      TH: 'เนื้อหาที่รับ (แก้ไขได้)'
+    },
     '처리상태': {
       EN: 'Process status',
       JP: '処理状態',
@@ -11119,6 +11198,12 @@
       JP: '取り込み警告',
       CH: '入库警告',
       TH: 'คำเตือนการบันทึก'
+    },
+    '노티수령 재처리 결과 고객·카드 반영': {
+      EN: 'Manual customer/card applied',
+      JP: '手入力 顧客・カード反映',
+      CH: '已应用手动客户/卡号',
+      TH: 'ใช้ชื่อลูกค้า/บัตรที่กรอกแล้ว'
     },
     'dispatch 예외': {
       EN: 'Dispatch error',

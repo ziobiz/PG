@@ -2,6 +2,8 @@ package com.pg.api;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 
+import java.util.Map;
+
 /**
  * REST API 공통 응답 포맷 (금융/결제 도메인 표준)
  * <p>클래스 전체 NON_NULL은 제거한다. {@code data}가 {@code Map}일 때 중첩 null 키 생략 등
@@ -15,6 +17,10 @@ public class ApiResponse<T> {
     private String message;
     @JsonInclude(JsonInclude.Include.NON_NULL)
     private String errorCode;
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    private String messageKey;
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    private Map<String, String> messages;
 
     public static <T> ApiResponse<T> ok(T data) {
         ApiResponse<T> r = new ApiResponse<>();
@@ -35,6 +41,19 @@ public class ApiResponse<T> {
         return r;
     }
 
+    public static <T> ApiResponse<T> failI18n(String message,
+                                              String errorCode,
+                                              String messageKey,
+                                              Map<String, String> messages) {
+        ApiResponse<T> r = new ApiResponse<>();
+        r.setSuccess(false);
+        r.setMessage(message);
+        r.setErrorCode(errorCode);
+        r.setMessageKey(messageKey);
+        r.setMessages(messages);
+        return r;
+    }
+
     public boolean isSuccess() { return success; }
     public void setSuccess(boolean success) { this.success = success; }
     public T getData() { return data; }
@@ -43,4 +62,8 @@ public class ApiResponse<T> {
     public void setMessage(String message) { this.message = message; }
     public String getErrorCode() { return errorCode; }
     public void setErrorCode(String errorCode) { this.errorCode = errorCode; }
+    public String getMessageKey() { return messageKey; }
+    public void setMessageKey(String messageKey) { this.messageKey = messageKey; }
+    public Map<String, String> getMessages() { return messages; }
+    public void setMessages(Map<String, String> messages) { this.messages = messages; }
 }

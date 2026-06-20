@@ -191,13 +191,17 @@ public class MerchantProfile {
     @Column(name = "url_pay_product_name_use_yn", nullable = false, length = 1)
     private String urlPayProductNameUseYn = "Y";
 
-    /** URL 결제창 가맹점(회사)명 표시 — Y=노출, N=숨김 */
+    /** URL·공개 결제창(jpay-pay.html 등) — 가맹점명(Merchant) 행 표시 여부. N=비활성(화면만 숨김, 결제 전문은 유지) */
     @Column(name = "url_pay_company_name_show_yn", nullable = false, length = 1)
     private String urlPayCompanyNameShowYn = "Y";
 
     /** URL 결제창 다국어 변경 메뉴 — Y=표시, N=브라우저 언어 자동(메뉴 숨김) */
     @Column(name = "url_pay_lang_menu_use_yn", nullable = false, length = 1)
     private String urlPayLangMenuUseYn = "Y";
+
+    /** URL 공개 결제창 입력방식 — {@link com.pg.urlpay.UrlPayInputModeUtil} */
+    @Column(name = "url_pay_input_mode", nullable = false, length = 16)
+    private String urlPayInputMode = "GENERAL";
 
     /**
      * API URL 인라인 중계 결제 방식 — {@link com.pg.urlpay.UrlPayCheckoutModeUtil}.
@@ -518,6 +522,11 @@ public class MerchantProfile {
     public String getUrlPayLangMenuUseYn() { return urlPayLangMenuUseYn; }
     public void setUrlPayLangMenuUseYn(String urlPayLangMenuUseYn) {
         this.urlPayLangMenuUseYn = urlPayLangMenuUseYn != null && "Y".equalsIgnoreCase(urlPayLangMenuUseYn.trim()) ? "Y" : "N";
+    }
+
+    public String getUrlPayInputMode() { return urlPayInputMode; }
+    public void setUrlPayInputMode(String urlPayInputMode) {
+        this.urlPayInputMode = com.pg.urlpay.UrlPayInputModeUtil.normalize(urlPayInputMode);
     }
 
     public String getApiUrlPayCheckoutMode() { return apiUrlPayCheckoutMode; }

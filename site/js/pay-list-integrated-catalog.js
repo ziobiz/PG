@@ -32,7 +32,7 @@
         'payCustomerIndicator', 'displayPaySummary', 'displayPayCur', 'displayPayAmt',
         'regionalBaseCur', 'masterDistBaseCur', 'merchantBaseCur',
         'chillPaymentStatus', 'settledYn',
-        'payDivNm', 'cardAprvNo', 'productNm', 'customerNm', 'customerTel', 'regionalNm', 'masterNm', 'branchNm',
+        'payDivNm', 'cardAprvNo', 'productNm', 'customerNm', 'customerEmail', 'customerTel', 'regionalNm', 'masterNm', 'branchNm',
         'compRegNo', 'payCard', 'instalMonth', 'payMethod', 'pgNm', 'pgApproveAmt', 'payAprv',
         'holdAmt', 'holdDttm', 'feeCnt', 'feeRate', 'settleAmt', 'calcDt', 'pgApproveNo', 'corpNm', 'terminalId', 'calcCycle',
         'payCardNo', 'payActions'
@@ -43,7 +43,7 @@
         'payCustomerIndicator', 'displayPaySummary', 'displayPayCur', 'displayPayAmt',
         'regionalBaseCur', 'masterDistBaseCur', 'merchantBaseCur',
         'chillPaymentStatus', 'settledYn',
-        'payDivNm', 'cardAprvNo', 'productNm', 'customerNm', 'customerTel', 'regionalNm', 'masterNm', 'branchNm',
+        'payDivNm', 'cardAprvNo', 'productNm', 'customerNm', 'customerEmail', 'customerTel', 'regionalNm', 'masterNm', 'branchNm',
         'compRegNo', 'payMethod', 'pgNm', 'pgApproveAmt', 'payAprv', 'holdAmt', 'holdDttm', 'feeCnt', 'feeRate',
         'settleAmt', 'calcDt', 'pgApproveNo'
       ],
@@ -117,6 +117,7 @@
       { key: 'pgApproveNo', label: 'PG승인번호' },
       { key: 'productNm', label: '구매상품' },
       { key: 'customerNm', label: '고객명(결제자)' },
+      { key: 'customerEmail', label: '이메일(결제자)' },
       { key: 'customerTel', label: '휴대폰(결제자)' },
       { key: 'regionalNm', label: '총판' },
       { key: 'masterNm', label: '지사' },

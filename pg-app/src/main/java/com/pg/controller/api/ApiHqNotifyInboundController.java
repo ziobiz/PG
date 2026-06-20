@@ -86,6 +86,9 @@ public class ApiHqNotifyInboundController {
         try {
             String comp = icopayCompId;
             String rawOverride = null;
+            String customerNm = null;
+            String customerEmail = null;
+            String cardPanDisplay = null;
             if (body != null) {
                 if ((comp == null || comp.isBlank()) && body.get("icopayCompId") != null) {
                     comp = String.valueOf(body.get("icopayCompId")).trim();
@@ -93,9 +96,19 @@ public class ApiHqNotifyInboundController {
                 if (body.get("rawBody") != null) {
                     rawOverride = String.valueOf(body.get("rawBody"));
                 }
+                if (body.get("customerNm") != null) {
+                    customerNm = String.valueOf(body.get("customerNm")).trim();
+                }
+                if (body.get("customerEmail") != null) {
+                    customerEmail = String.valueOf(body.get("customerEmail")).trim();
+                }
+                if (body.get("cardPanDisplay") != null) {
+                    cardPanDisplay = String.valueOf(body.get("cardPanDisplay")).trim();
+                }
             }
             return ResponseEntity.ok(ApiResponse.ok(
-                    pgNotifyReceiveService.replayInboundProcessing(id, comp, rawOverride)));
+                    pgNotifyReceiveService.replayInboundProcessing(
+                            id, comp, rawOverride, customerNm, customerEmail, cardPanDisplay)));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.ok(ApiResponse.fail(e.getMessage(), "BAD_REQUEST"));
         }

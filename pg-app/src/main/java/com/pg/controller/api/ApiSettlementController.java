@@ -4209,6 +4209,7 @@ public class ApiSettlementController {
         row.put("terminalId", "-");
         row.put("productNm", "-");
         row.put("customerNm", "-");
+        row.put("customerEmail", "-");
         row.put("customerTel", "-");
         row.put("approveDt", "-");
         row.put("cancelDt", "-");

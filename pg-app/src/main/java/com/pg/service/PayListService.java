@@ -23,6 +23,7 @@ import com.pg.repository.OrgUnitRepository;
 import com.pg.repository.PgTrnsctnRepository;
 import com.pg.repository.SettlementSettingRepository;
 import com.pg.service.settlement.FeeListTxnAmountService;
+import com.pg.util.FeeCurrencyRoundResolver;
 import com.pg.service.settlement.SettlementBusinessHolidayService;
 import com.pg.service.settlement.SettlementExpectedDateResolver;
 import com.pg.entity.CommissionPolicy;
@@ -206,6 +207,15 @@ public class PayListService {
         meta.put("hqPayDisplayCurrencyCode", PayDisplayCurrency.alphaFromIsoNum(num));
     }
 
+    /** 결제·수수료 그리드 금액 표시 — {@code meta.feeCurrencyFormatByCur}(수수료내역과 동일) */
+    public void putFeeCurrencyFormatMeta(Map<String, Object> meta) {
+        if (meta == null) {
+            return;
+        }
+        meta.put("feeCurrencyFormatByCur",
+                FeeCurrencyRoundResolver.from(hqLedgerSysSettingsService.getOrCreate()).toClientByCurrencyMap());
+    }
+
     private String hqLedgerPayDisplayCurrencyAlpha() {
         return PayDisplayCurrency.alphaFromSettings(hqLedgerSysSettingsService.getOrCreate());
     }
@@ -315,6 +325,7 @@ public class PayListService {
                 }
                 meta.put("payFollowAllowed", payFollowPolicyService.allowedActionsForViewer(payListViewer));
                 putHqLedgerPayDisplayCurrencyMeta(meta);
+                putFeeCurrencyFormatMeta(meta);
                 pr.setMeta(meta);
             } catch (RuntimeException ignored) {
                 /* 집계 실패 시 목록만 반환 */
@@ -1703,6 +1714,7 @@ public class PayListService {
             meta.put("payListStatusBar", bar);
             meta.put("payListFinancialSummary", fin);
             putHqLedgerPayDisplayCurrencyMeta(meta);
+            putFeeCurrencyFormatMeta(meta);
         } catch (RuntimeException ignored) {
             /* 집계 실패 시 일자 목록만 반환 */
         }

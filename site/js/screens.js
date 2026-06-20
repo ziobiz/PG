@@ -155,14 +155,24 @@
       '</div></div>';
   }
 
-  /** 웹결제 카드 1행 — 사용여부·URL방식·회사명·다국어 */
+  /** 웹결제 카드 1행 — 웹결제·URL방식·입력방식 */
   function merchantWebPaymentCardPrimaryRow() {
-    var ynOpts = [{ v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }];
+    var ynUseOpts = [{ v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }];
     return [
-      { label: '웹결제 사용여부', type: 'select', name: 'webPaymentUseYn', options: ynOpts, col: 2 },
+      { label: '웹결제', type: 'select', name: 'webPaymentUseYn', options: ynUseOpts, col: 2 },
       { label: 'URL 결제 방식', type: 'select', name: 'urlPayCheckoutMode', options: [{ v: 'STANDARD', t: '일반 URL 결제' }, { v: 'REPAY', t: '재결제 URL (저장 카드)' }], col: 2 },
-      { label: '회사명 노출', type: 'select', name: 'urlPayCompanyNameShowYn', options: ynOpts, col: 2 },
-      { label: '다국어 메뉴', type: 'select', name: 'urlPayLangMenuUseYn', options: ynOpts, col: 2 }
+      { label: '입력방식', type: 'select', name: 'urlPayInputMode', options: [
+        { v: 'GENERAL', t: '일반' }, { v: 'TYPE_A', t: 'A타입' }, { v: 'TYPE_B', t: 'B타입' }, { v: 'TYPE_C', t: 'C타입' }
+      ], col: 2 }
+    ];
+  }
+
+  /** 웹결제 카드 2행 — 가맹점명·다국어 */
+  function merchantWebPaymentCardSecondaryRow() {
+    var activeOpts = [{ v: 'Y', t: '활성' }, { v: 'N', t: '비활성' }];
+    return [
+      { label: '가맹점명', type: 'select', name: 'urlPayCompanyNameShowYn', options: activeOpts, col: 2 },
+      { label: '다국어 메뉴', type: 'select', name: 'urlPayLangMenuUseYn', options: activeOpts, col: 2 }
     ];
   }
 
@@ -181,6 +191,7 @@
     var urlPh = urlPlaceholderKo || '가맹점 저장 후 조회';
     return [
       merchantWebPaymentCardPrimaryRow(),
+      merchantWebPaymentCardSecondaryRow(),
       [{ label: '로고설정', type: 'select', name: 'webPaymentHeaderLogoMode', options: [
         { v: 'DEFAULT', t: '기본(총판 로고)' }, { v: 'DISABLED', t: '비활성' }, { v: 'ACTIVE', t: '활성(가맹 로고)' }
       ], col: 3 }],
@@ -2270,7 +2281,7 @@
       formSections: [
         {
           title: '노티 수령 정보',
-          notice: '노티미들웨어·PG(칠페이 등)가 본 시스템의 노티 수신 URL(<code>/api/open/pg-notify/…</code>)로 전송한 요청을 저장한 로그입니다. 목록의 채널 열은 수신 경로 정보 표시용입니다. 대상코드·채널은 신규 수신 건부터 채워집니다(V72). 노티 대상에 연결 총판이 있으면 동일 MID라도 그 총판 트리 안에서만 분기하며, 총판 기준통화와 본문 통화가 다르면 처리 열에 통화불일치(수신경로)로 격리됩니다. <strong>수신성격</strong>은 NOTI가 요청 시 <code>X-Icopay-Notify-Delivery: LIVE|RETRY</code> 또는 <code>X-Noti-Attempt</code>(1=라이브, 2+=재전송) 헤더를 보낼 때만 구분되며, 없으면 「미표시」입니다. 바인딩·매핑을 고친 뒤 과거 건을 결제내역에 붙이려면 본문 보기 모달에서 <strong>본문을 수정·저장</strong>한 뒤 <strong>결제내역 재반영</strong>을 사용하세요(원문이 잘린 건은 불가). 공통 MID 재처리 시 본문에 <code>icopayCompId=업체코드</code> 를 추가하거나 재반영 업체코드 입력란을 사용하세요.',
+          notice: '노티미들웨어·PG(칠페이 등)가 본 시스템의 노티 수신 URL(<code>/api/open/pg-notify/…</code>)로 전송한 요청을 저장한 로그입니다. 목록의 채널 열은 수신 경로 정보 표시용입니다. 대상코드·채널은 신규 수신 건부터 채워집니다(V72). 노티 대상에 연결 총판이 있으면 동일 MID라도 그 총판 트리 안에서만 분기하며, 총판 기준통화와 본문 통화가 다르면 처리 열에 통화불일치(수신경로)로 격리됩니다. <strong>수신성격</strong>은 NOTI가 요청 시 <code>X-Icopay-Notify-Delivery: LIVE|RETRY</code> 또는 <code>X-Noti-Attempt</code>(1=라이브, 2+=재전송) 헤더를 보낼 때만 구분되며, 없으면 「미표시」입니다. 바인딩·매핑을 고친 뒤 과거 건을 결제내역에 붙이려면 본문 보기 모달에서 <strong>본문을 수정·저장</strong>한 뒤 <strong>결제내역 재반영</strong>을 사용하세요(원문이 잘린 건은 불가). 공통 MID 재처리 시 본문에 <code>icopayCompId=업체코드</code> 를 추가하거나 재반영 업체코드 입력란을 사용하세요. 노티에 고객명·카드번호가 없을 때는 재반영 모달에서 <strong>재반영 고객명</strong>·<strong>재반영 카드번호</strong>를 입력한 뒤 재반영하면 결제내역에 반영됩니다.',
           rows: [
             [{ type: 'customHtml', col: 12, html: '<div class="row g-2 align-items-end mb-2 ni-inbound-toolbar">' +
               '<div class="col-6 col-md-2"><label class="form-label small mb-0" data-pg-ui-t="수신일(부터)">' + escUi(L('수신일(부터)')) + '</label><input type="date" lang="en-CA" name="niSearchFrom" class="form-control form-control-sm pg-date-input-iso" autocomplete="off"></div>' +
@@ -2310,9 +2321,17 @@
               '<div class="modal-header py-2"><h5 class="modal-title" id="hqNiDetailModalLabel">' + escUi(L('노티 원문')) + '</h5>' +
               '<button type="button" class="btn-close" id="hqNiDetailCloseX" aria-label="' + escUi(L('닫기')) + '"></button></div>' +
               '<div class="modal-body"><p class="small text-muted mb-2" id="hqNiDetailMeta"></p>' +
-              '<div class="mb-2"><label class="form-label small mb-0" for="hqNiReplayCompId" data-pg-ui-t="재반영 업체코드(icopayCompId)">재반영 업체코드(icopayCompId)</label>' +
-              '<input type="text" class="form-control form-control-sm" id="hqNiReplayCompId" maxlength="20" placeholder="예: 6000000041" style="max-width:14rem"></div>' +
-              '<label class="form-label small mb-0" for="hqNiDetailBody">' + escUi(L('수신 본문 (편집 가능)')) + '</label>' +
+              '<div class="d-flex flex-wrap gap-2 mb-2 align-items-end">' +
+              '<div><label class="form-label small mb-0" for="hqNiReplayCompId" data-pg-ui-t="재반영 업체코드(icopayCompId)">재반영 업체코드(icopayCompId)</label>' +
+              '<input type="text" class="form-control form-control-sm" id="hqNiReplayCompId" maxlength="20" placeholder="6000000041" style="min-width:9rem"></div>' +
+              '<div><label class="form-label small mb-0" for="hqNiReplayCustomerNm" data-pg-ui-t="재반영 고객명">재반영 고객명</label>' +
+              '<input type="text" class="form-control form-control-sm" id="hqNiReplayCustomerNm" maxlength="200" data-pg-ui-placeholder="재반영 고객명 placeholder" placeholder="예: 山田 太郎" style="min-width:10rem"></div>' +
+              '<div><label class="form-label small mb-0" for="hqNiReplayCustomerEmail" data-pg-ui-t="재반영 이메일">재반영 이메일</label>' +
+              '<input type="text" class="form-control form-control-sm" id="hqNiReplayCustomerEmail" maxlength="100" data-pg-ui-placeholder="재반영 이메일 placeholder" placeholder="test01@example.com" style="min-width:12rem"></div>' +
+              '<div><label class="form-label small mb-0" for="hqNiReplayCardPan" data-pg-ui-t="재반영 카드번호">재반영 카드번호</label>' +
+              '<input type="text" class="form-control form-control-sm" id="hqNiReplayCardPan" maxlength="32" data-pg-ui-placeholder="재반영 카드번호 placeholder" placeholder="489788***9416" style="min-width:11rem"></div>' +
+              '</div>' +
+              '<label class="form-label small mb-0" for="hqNiDetailBody" data-pg-ui-t="수신 본문 (편집 가능)">수신 본문 (편집 가능)</label>' +
               '<textarea id="hqNiDetailBody" class="form-control font-monospace small" rows="16" spellcheck="false"></textarea></div>' +
               '<div class="modal-footer py-2 border-top d-flex gap-2 justify-content-end flex-wrap">' +
               '<button type="button" class="btn btn-outline-primary btn-sm" id="hqNiSaveBodyBtn">' + escUi(L('본문 저장')) + '</button>' +
@@ -6984,7 +7003,7 @@
           '<input type="hidden" name="pgBindings" id="pgBindingsHidden" value="[]"></div>';
       } else if (sec.type === 'pgInfoDisplay') {
         html += '<div id="pgInfoDisplayWrap" class="pg-info-display">' +
-          '<div class="row mb-2"><div class="col-sm-3"><label class="form-label" data-pg-ui-t="웹결제 사용여부">웹결제 사용여부</label><select class="form-control form-control-sm" name="webPaymentUseYn"><option value="Y" data-pg-ui-t="사용">사용</option><option value="N" data-pg-ui-t="미사용">미사용</option></select></div>' +
+          '<div class="row mb-2"><div class="col-sm-3"><label class="form-label" data-pg-ui-t="웹결제">웹결제</label><select class="form-control form-control-sm" name="webPaymentUseYn"><option value="Y" data-pg-ui-t="사용">사용</option><option value="N" data-pg-ui-t="미사용">미사용</option></select></div>' +
           '<div class="col-sm-5"><label class="form-label" data-pg-ui-t="결제 URL">결제 URL</label><div class="input-group input-group-sm"><input type="text" class="form-control" id="paymentUrlDisplay" readonly data-pg-ui-placeholder="가맹점 선택 후 조회" placeholder="가맹점 선택 후 조회"><button type="button" class="btn btn-outline-primary" id="paymentUrlCopyBtn" data-pg-ui-t="복사">복사</button></div></div></div>' +
           '<div class="row mb-2">' +
           '<div class="col-sm-5"><label class="form-label" data-pg-ui-t="URL 재결제 URL">URL 재결제 URL</label><div class="input-group input-group-sm"><input type="text" class="form-control" id="paymentRepayUrlDisplay" readonly data-pg-ui-placeholder="가맹점 선택 후 조회" placeholder="가맹점 선택 후 조회"><button type="button" class="btn btn-outline-primary" id="paymentRepayUrlCopyBtn" data-pg-ui-t="복사">복사</button></div></div></div>' +
