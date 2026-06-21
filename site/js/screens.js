@@ -162,7 +162,12 @@
       { label: '웹결제', type: 'select', name: 'webPaymentUseYn', options: ynUseOpts, col: 2 },
       { label: 'URL 결제 방식', type: 'select', name: 'urlPayCheckoutMode', options: [{ v: 'STANDARD', t: '일반 URL 결제' }, { v: 'REPAY', t: '재결제 URL (저장 카드)' }], col: 2 },
       { label: '입력방식', type: 'select', name: 'urlPayInputMode', options: [
-        { v: 'GENERAL', t: '일반' }, { v: 'TYPE_A', t: 'A타입' }, { v: 'TYPE_B', t: 'B타입' }, { v: 'TYPE_C', t: 'C타입' }
+        { v: 'GENERAL', t: '일반' },
+        { v: 'TYPE_A', t: 'A타입' },
+        { v: 'TYPE_AG', t: 'AG타입' },
+        { v: 'TYPE_B', t: 'B타입' },
+        { v: 'TYPE_BG', t: 'BG타입' },
+        { v: 'TYPE_C', t: 'C타입' }
       ], col: 2 }
     ];
   }
@@ -4098,7 +4103,7 @@
           regionalOrMasterDistOnly: true,
           notice: '본사·총판만 설정 가능. 메인이미지=로그인 화면 왼쪽 배경, 로고=로그인창 상단·사이드바 상단.'
         },
-        { title: '기타', id: 'regionalMiscCard', headOfficeTierOnly: true, notice: '총본사/본사/총판 공통 설정입니다. COPYRIGHT에 입력한 문구는 화면 하단에 표시됩니다.', rows: [[{ label: 'COPYRIGHT', type: 'textarea', name: 'copyright', col: 6, placeholder: 'Copyright © 2025 ICOPAY Service by Ontheline Co., Ltd.' }, { label: '비고', type: 'textarea', name: 'remark', col: 6 }]] },
+        { title: '기타', id: 'regionalMiscCard', headOfficeTierOnly: true, notice: '총본사/본사/총판 공통 설정입니다. COPYRIGHT에 입력한 문구는 화면 하단에 표시됩니다.', rows: [[{ label: 'COPYRIGHT', type: 'textarea', name: 'copyright', col: 6, placeholder: 'Copyright © 2025 ICOPAY Service by Ontheline Co., Ltd.' }]] },
         {
           title: '결제통보 URL',
           id: 'notifyUrlCard',
@@ -5608,8 +5613,7 @@
             [{ label: '정산담당자연락처', type: 'text', name: 'settleTelNo', col: 2 }],
             [{ label: '계좌은행', type: 'select', name: 'bankCd', options: [{ v: '', t: '선택' }, { v: '04', t: '국민' }, { v: '20', t: '우리' }, { v: '81', t: 'KEB하나' }, { v: '88', t: '신한' }, { v: '11', t: 'NH농협' }], col: 2 }, { label: '이체수수료(기준화폐)', type: 'text', name: 'transferFee', col: 2 }],
             [{ label: '계좌번호*', type: 'text', name: 'accountNo', col: 2 }, { label: '예금주*', type: 'text', name: 'accountHolder', col: 2 }],
-            [{ label: '수수료 설정 권한', type: 'select', name: 'commissionConfigAllowed', options: [{ v: 'N', t: '미부여' }, { v: 'Y', t: '부여' }], col: 2 }, { label: '기준 화폐1', type: 'select', name: 'baseCurrency1', options: [{ v: '', t: '선택' }, { v: 'KRW', t: 'KRW (원)' }, { v: 'USD', t: 'USD (달러)' }, { v: 'JPY', t: 'JPY (엔)' }, { v: 'THB', t: 'THB (바트)' }, { v: 'EUR', t: 'EUR (유로)' }], col: 2 }, { label: '기준 화폐2', type: 'select', name: 'baseCurrency2', options: [{ v: '', t: '선택' }, { v: 'KRW', t: 'KRW (원)' }, { v: 'USD', t: 'USD (달러)' }, { v: 'JPY', t: 'JPY (엔)' }, { v: 'THB', t: 'THB (바트)' }, { v: 'EUR', t: 'EUR (유로)' }], col: 2 }, { label: '기준 화폐3', type: 'select', name: 'baseCurrency3', options: [{ v: '', t: '선택' }, { v: 'KRW', t: 'KRW (원)' }, { v: 'USD', t: 'USD (달러)' }, { v: 'JPY', t: 'JPY (엔)' }, { v: 'THB', t: 'THB (바트)' }, { v: 'EUR', t: 'EUR (유로)' }], col: 2 }],
-            [{ label: '비고', type: 'textarea', name: 'remark', col: 6 }]
+            [{ label: '수수료 설정 권한', type: 'select', name: 'commissionConfigAllowed', options: [{ v: 'N', t: '미부여' }, { v: 'Y', t: '부여' }], col: 2 }, { label: '기준 화폐1', type: 'select', name: 'baseCurrency1', options: [{ v: '', t: '선택' }, { v: 'KRW', t: 'KRW (원)' }, { v: 'USD', t: 'USD (달러)' }, { v: 'JPY', t: 'JPY (엔)' }, { v: 'THB', t: 'THB (바트)' }, { v: 'EUR', t: 'EUR (유로)' }], col: 2 }, { label: '기준 화폐2', type: 'select', name: 'baseCurrency2', options: [{ v: '', t: '선택' }, { v: 'KRW', t: 'KRW (원)' }, { v: 'USD', t: 'USD (달러)' }, { v: 'JPY', t: 'JPY (엔)' }, { v: 'THB', t: 'THB (바트)' }, { v: 'EUR', t: 'EUR (유로)' }], col: 2 }, { label: '기준 화폐3', type: 'select', name: 'baseCurrency3', options: [{ v: '', t: '선택' }, { v: 'KRW', t: 'KRW (원)' }, { v: 'USD', t: 'USD (달러)' }, { v: 'JPY', t: 'JPY (엔)' }, { v: 'THB', t: 'THB (바트)' }, { v: 'EUR', t: 'EUR (유로)' }], col: 2 }]
           ]
         },
         {

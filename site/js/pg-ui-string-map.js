@@ -3172,7 +3172,9 @@
   M['입력방식']={EN:'Input mode',JP:'入力方式',CH:'输入方式',TH:'โหมดการกรอก'};
   M['일반']={EN:'Standard',JP:'通常',CH:'普通',TH:'ทั่วไป'};
   M['A타입']={EN:'Type A',JP:'Aタイプ',CH:'A 类型',TH:'ประเภท A'};
+  M['AG타입']={EN:'Type AG',JP:'AGタイプ',CH:'AG 类型',TH:'ประเภท AG'};
   M['B타입']={EN:'Type B',JP:'Bタイプ',CH:'B 类型',TH:'ประเภท B'};
+  M['BG타입']={EN:'Type BG',JP:'BGタイプ',CH:'BG 类型',TH:'ประเภท BG'};
   M['C타입']={EN:'Type C',JP:'Cタイプ',CH:'C 类型',TH:'ประเภท C'};
   M['상품명 사용']={EN:'Product name field',JP:'商品名入力',CH:'商品名称字段',TH:'ช่องชื่อสินค้า'};
   M['회사명 노출']={EN:'Merchant name on checkout',JP:'決済画面の加盟店名',CH:'结账页商户名称',TH:'ชื่อร้านบนหน้าชำระ'};

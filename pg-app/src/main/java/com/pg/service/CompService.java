@@ -2535,7 +2535,7 @@ public class CompService {
         }
     }
 
-    /** 가맹점 URL 결제창 입력방식 — GENERAL | TYPE_A | TYPE_B | TYPE_C */
+    /** 가맹점 URL 결제창 입력방식 — GENERAL | TYPE_A | TYPE_AG | TYPE_B | TYPE_BG | TYPE_C */
     private void applyMerchantUrlPayInputMode(MerchantProfile mp, String urlPayInputMode) {
         if (mp == null || urlPayInputMode == null || urlPayInputMode.isBlank()) {
             return;

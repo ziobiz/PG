@@ -8589,11 +8589,23 @@
       CH: 'A 类型',
       TH: 'ประเภท A'
     },
+    'AG타입': {
+      EN: 'Type AG',
+      JP: 'AGタイプ',
+      CH: 'AG 类型',
+      TH: 'ประเภท AG'
+    },
     'B타입': {
       EN: 'Type B',
       JP: 'Bタイプ',
       CH: 'B 类型',
       TH: 'ประเภท B'
+    },
+    'BG타입': {
+      EN: 'Type BG',
+      JP: 'BGタイプ',
+      CH: 'BG 类型',
+      TH: 'ประเภท BG'
     },
     'C타입': {
       EN: 'Type C',

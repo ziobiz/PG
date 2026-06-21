@@ -347,20 +347,35 @@
     return g.document.querySelector('#payOrderSummaryTop .pay-row-static');
   }
 
-  /** checkout-context — 입력방식(GENERAL|TYPE_A|TYPE_B|TYPE_C) 및 표시 옵션 */
+  /** checkout-context — 입력방식(GENERAL|TYPE_A|TYPE_AG|TYPE_B|TYPE_BG|TYPE_C) 및 표시 옵션 */
+  function normalizeUrlPayInputMode(raw) {
+    var mode = String(raw || 'GENERAL').trim().toUpperCase();
+    if (mode === 'A' || mode === 'TYPEA') return 'TYPE_A';
+    if (mode === 'AG' || mode === 'TYPEAG') return 'TYPE_AG';
+    if (mode === 'B' || mode === 'TYPEB') return 'TYPE_B';
+    if (mode === 'BG' || mode === 'TYPEBG') return 'TYPE_BG';
+    if (mode === 'C' || mode === 'TYPEC') return 'TYPE_C';
+    if (mode === 'TYPE_A' || mode === 'TYPE_AG' || mode === 'TYPE_B' || mode === 'TYPE_BG' || mode === 'TYPE_C') {
+      return mode;
+    }
+    return 'GENERAL';
+  }
+
   function applyUrlPayInputMode(ctx, opts) {
     opts = opts || {};
     if (!ctx) return;
-    var mode = String(ctx.urlPayInputMode || 'GENERAL').trim().toUpperCase();
-    if (mode === 'A' || mode === 'TYPEA') mode = 'TYPE_A';
-    else if (mode === 'B' || mode === 'TYPEB') mode = 'TYPE_B';
-    else if (mode === 'C' || mode === 'TYPEC') mode = 'TYPE_C';
-    else if (mode !== 'TYPE_A' && mode !== 'TYPE_B' && mode !== 'TYPE_C') mode = 'GENERAL';
+    var mode = normalizeUrlPayInputMode(ctx.urlPayInputMode);
 
     var presCtx = ctx;
     if (mode === 'TYPE_A' || mode === 'TYPE_B') {
       presCtx = Object.assign({}, ctx, {
         urlPayProductNameUseYn: 'N',
+        urlPayCompanyNameShowYn: 'N',
+        urlPayLangMenuUseYn: 'N'
+      });
+    } else if (mode === 'TYPE_AG' || mode === 'TYPE_BG') {
+      presCtx = Object.assign({}, ctx, {
+        urlPayProductNameUseYn: 'Y',
         urlPayCompanyNameShowYn: 'N',
         urlPayLangMenuUseYn: 'N'
       });
@@ -375,32 +390,22 @@
 
     var brandRow = g.document.getElementById('payCardBrandRow');
     var brandSelect = g.document.getElementById('payCardBrandSelect');
-    if (brandSelect && (mode === 'TYPE_A' || mode === 'GENERAL')) {
+    var hideBrand = (mode === 'TYPE_A' || mode === 'TYPE_AG');
+    if (brandSelect && (hideBrand || mode === 'GENERAL')) {
       brandSelect.value = 'AUTO';
     }
-    /* TYPE_A: 드롭다운만 숨김 — PAN 입력 시 PG_CARD_PAY_POLICY 자동 인식·포맷은 유지 */
+    /* TYPE_A/AG: 드롭다운만 숨김 — PAN 입력 시 PG_CARD_PAY_POLICY 자동 인식·포맷은 유지 */
     if (brandRow) {
-      if (mode === 'TYPE_A') brandRow.style.display = 'none';
-      else brandRow.style.display = '';
+      brandRow.style.display = hideBrand ? 'none' : '';
     }
 
-    if (mode === 'TYPE_A' || mode === 'TYPE_B') {
-      var nameRow = g.document.getElementById('nameRow');
-      if (nameRow) nameRow.style.display = 'none';
-      ['payFirstname', 'payLastname'].forEach(function (id) {
-        var el = g.document.getElementById(id);
-        if (el) { el.required = false; el.removeAttribute('required'); }
-      });
-    } else if (mode === 'TYPE_C' || mode === 'GENERAL') {
-      var nameRowShow = g.document.getElementById('nameRow');
-      if (nameRowShow && (mode === 'TYPE_C' || String(ctx.checkoutFieldMode || 'FULL').toUpperCase() === 'FULL')) {
-        nameRowShow.style.display = '';
-        ['payFirstname', 'payLastname'].forEach(function (id) {
-          var el = g.document.getElementById(id);
-          if (el) el.setAttribute('required', 'required');
-        });
-      }
-    }
+    /* A/AG/B/BG/C·일반 — JPAY 필수: 카드 + 이름·성 */
+    var nameRow = g.document.getElementById('nameRow');
+    if (nameRow) nameRow.style.display = '';
+    ['payFirstname', 'payLastname'].forEach(function (id) {
+      var el = g.document.getElementById(id);
+      if (el) el.setAttribute('required', 'required');
+    });
   }
 
   /** checkout-context — 상품명·가맹점명·다국어 메뉴 표시 옵션(결제 전문과 별개, 화면 노출만) */
@@ -525,6 +530,7 @@
     wireLanguageButtons: wireLanguageButtons,
     applyUrlPayPresentationOptions: applyUrlPayPresentationOptions,
     applyUrlPayInputMode: applyUrlPayInputMode,
+    normalizeUrlPayInputMode: normalizeUrlPayInputMode,
     resolveUrlPayItemValue: resolveUrlPayItemValue,
     payFxResolvedDisplayCurrency: payFxResolvedDisplayCurrency
   };
