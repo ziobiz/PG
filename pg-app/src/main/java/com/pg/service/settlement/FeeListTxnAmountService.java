@@ -43,6 +43,17 @@ public class FeeListTxnAmountService {
                                      FeeCurrencyRoundResolver feeResolver,
                                      Map<String, Long> monthCbCountCache,
                                      Map<Long, List<ChargebackFeeTier>> tiersByPolicyId) {
+        return compute(t, payCtx, pol, payCurKey, feeResolver, monthCbCountCache, tiersByPolicyId, null);
+    }
+
+    public FeeListTxnAmounts compute(PgTrnsctn t,
+                                     PayListRowContext payCtx,
+                                     CommissionPolicy pol,
+                                     String payCurKey,
+                                     FeeCurrencyRoundResolver feeResolver,
+                                     Map<String, Long> monthCbCountCache,
+                                     Map<Long, List<ChargebackFeeTier>> tiersByPolicyId,
+                                     SplitPayTxnFeeResolver.InstallmentCache splitPayCache) {
         if (t == null || pol == null || feeResolver == null) {
             return zeroAmounts(feeResolver);
         }
@@ -53,7 +64,7 @@ public class FeeListTxnAmountService {
         FeeListRoundingPolicy feeListRp = feeResolver.forCurrency(cur);
         BigDecimal amountBd = t.getAmtKrw() != null ? t.getAmtKrw() : BigDecimal.ZERO;
         FeeListTxnBreakdownCalculator.FeeListTxnBreakdown br = feeListTxnBreakdownCalculator.computeFeeListTxnBreakdown(
-                t, compId, pol, monthCbCountCache, tiersByPolicyId, feeVatSs, feeListRp);
+                t, compId, pol, monthCbCountCache, tiersByPolicyId, feeVatSs, feeListRp, splitPayCache);
         String stRow = t.getStatus() != null ? t.getStatus().trim() : "";
         BigDecimal totalFeeMag = FeeListRoundingPolicy.round(BigDecimal.valueOf(br.totalFee()), feeListRp);
         BigDecimal feeVatMag = FeeListRoundingPolicy.round(br.feeVatBd(), feeListRp);

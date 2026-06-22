@@ -341,16 +341,16 @@ public class PayListItemDto {
         return u;
     }
 
-    /** 유통 수수료율(있으면) 또는 결제수수료율 + 정책의 USDT·FX 율(%) 합 — 승인 건 % 수수료 추정에 사용(3DS는 건당 고정이라 미포함) */
+    /** 배분 합계(정책 payRate) + USDT·FX 율(%) — 승인 건 % 수수료 추정(3DS는 건당 고정이라 미포함) */
     private static BigDecimal totalFeeRate(PayListRowContext ctx) {
         if (ctx == null) return BigDecimal.ZERO;
         BigDecimal base;
-        if (ctx.getDistFee() != null) {
+        if (ctx.getPolicy() != null) {
+            base = nz(ctx.getPolicy().getPayRate());
+        } else if (ctx.getDistFee() != null) {
             var d = ctx.getDistFee();
             base = nz(d.getHqRate()).add(nz(d.getRegionalRate())).add(nz(d.getMasterRate()))
-                    .add(nz(d.getBranchRate())).add(nz(d.getAgencyRate()));
-        } else if (ctx.getPolicy() != null) {
-            base = nz(ctx.getPolicy().getPayRate());
+                    .add(nz(d.getBranchRate())).add(nz(d.getAgencyRate())).add(nz(d.getSalesOfficeRate()));
         } else {
             base = BigDecimal.ZERO;
         }

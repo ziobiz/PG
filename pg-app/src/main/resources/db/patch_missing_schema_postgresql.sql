@@ -390,6 +390,7 @@ ALTER TABLE tb_merchant_profile ADD COLUMN IF NOT EXISTS split_pay_enabled_yn VA
 ALTER TABLE tb_merchant_profile ADD COLUMN IF NOT EXISTS split_pay_interval_month_yn VARCHAR(1) NOT NULL DEFAULT 'Y';
 ALTER TABLE tb_merchant_profile ADD COLUMN IF NOT EXISTS split_pay_interval_day_yn VARCHAR(1) NOT NULL DEFAULT 'N';
 ALTER TABLE tb_merchant_profile ADD COLUMN IF NOT EXISTS split_pay_day_interval_days INTEGER NOT NULL DEFAULT 10;
+ALTER TABLE tb_merchant_profile ADD COLUMN IF NOT EXISTS split_pay_month_interval_months INTEGER NOT NULL DEFAULT 1;
 ALTER TABLE tb_merchant_profile ADD COLUMN IF NOT EXISTS split_pay_first_pay_mode VARCHAR(16) NOT NULL DEFAULT 'IMMEDIATE';
 CREATE TABLE IF NOT EXISTS tb_split_pay_contract (
     id BIGSERIAL PRIMARY KEY, contract_no VARCHAR(64) NOT NULL, org_unit_id BIGINT NOT NULL, merchant_code VARCHAR(64) NOT NULL,
@@ -409,3 +410,40 @@ CREATE TABLE IF NOT EXISTS tb_split_pay_installment (
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT uq_split_pay_inst_order UNIQUE (order_no), CONSTRAINT uq_split_pay_inst_contract_no UNIQUE (contract_id, installment_no),
     CONSTRAINT uq_split_pay_inst_token UNIQUE (pay_token));
+
+-- V180: URL 분할결제 멀티 모드
+ALTER TABLE tb_merchant_profile ADD COLUMN IF NOT EXISTS split_pay_interval_multi_yn VARCHAR(1) NOT NULL DEFAULT 'N';
+ALTER TABLE tb_merchant_profile ADD COLUMN IF NOT EXISTS split_pay_multi_max_months INTEGER NOT NULL DEFAULT 6;
+
+-- V181: 분할결제 이메일 설정 (customer_locale, D+3 메일, 단계별 템플릿)
+ALTER TABLE tb_split_pay_contract ADD COLUMN IF NOT EXISTS customer_locale VARCHAR(8) NULL DEFAULT 'KOR';
+ALTER TABLE tb_split_pay_installment ADD COLUMN IF NOT EXISTS mail_d3_sent TIMESTAMP NULL;
+CREATE TABLE IF NOT EXISTS tb_split_pay_email_phase (
+    phase VARCHAR(16) NOT NULL PRIMARY KEY,
+    mail_from_address VARCHAR(255) NULL,
+    mail_from_name VARCHAR(200) NULL,
+    alert_recipient_emails TEXT NULL,
+    test_recipient_email VARCHAR(255) NULL,
+    subject_kor VARCHAR(500) NULL,
+    body_kor TEXT NULL,
+    subject_eng VARCHAR(500) NULL,
+    body_eng TEXT NULL,
+    subject_jpn VARCHAR(500) NULL,
+    body_jpn TEXT NULL,
+    subject_chn VARCHAR(500) NULL,
+    body_chn TEXT NULL,
+    subject_tha VARCHAR(500) NULL,
+    body_tha TEXT NULL,
+    updated_at TIMESTAMP NULL
+);
+INSERT INTO tb_split_pay_email_phase (phase, updated_at)
+SELECT v.phase, CURRENT_TIMESTAMP
+FROM (
+    SELECT 'D_MINUS1' AS phase UNION ALL
+    SELECT 'D0' UNION ALL
+    SELECT 'D1' UNION ALL
+    SELECT 'D2' UNION ALL
+    SELECT 'D3'
+) v
+WHERE NOT EXISTS (SELECT 1 FROM tb_split_pay_email_phase p WHERE p.phase = v.phase);
+

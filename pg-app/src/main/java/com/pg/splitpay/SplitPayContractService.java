@@ -10,7 +10,8 @@ import com.pg.repository.MerchantProfileRepository;
 import com.pg.repository.OrgUnitRepository;
 import com.pg.repository.SplitPayContractRepository;
 import com.pg.repository.SplitPayInstallmentRepository;
-import com.pg.service.MerchantChatbotProductService;
+import com.pg.service.ChillPayService;
+import com.pg.service.PublicCustomerSiteBaseService;
 import com.pg.service.settlement.SettlementBusinessHolidayService;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.stereotype.Service;
@@ -40,8 +41,9 @@ public class SplitPayContractService {
     private final SplitPayInstallmentRepository installmentRepository;
     private final SplitPayScheduleService scheduleService;
     private final SettlementBusinessHolidayService holidayService;
-    private final MerchantChatbotProductService merchantChatbotProductService;
+    private final PublicCustomerSiteBaseService publicCustomerSiteBaseService;
     private final SplitPayMailService splitPayMailService;
+    private final ChillPayService chillPayService;
 
     public SplitPayContractService(OrgUnitRepository orgUnitRepository,
                                    MerchantProfileRepository merchantProfileRepository,
@@ -50,8 +52,9 @@ public class SplitPayContractService {
                                    SplitPayInstallmentRepository installmentRepository,
                                    SplitPayScheduleService scheduleService,
                                    SettlementBusinessHolidayService holidayService,
-                                   MerchantChatbotProductService merchantChatbotProductService,
-                                   SplitPayMailService splitPayMailService) {
+                                   PublicCustomerSiteBaseService publicCustomerSiteBaseService,
+                                   SplitPayMailService splitPayMailService,
+                                   ChillPayService chillPayService) {
         this.orgUnitRepository = orgUnitRepository;
         this.merchantProfileRepository = merchantProfileRepository;
         this.commissionPolicyRepository = commissionPolicyRepository;
@@ -59,8 +62,9 @@ public class SplitPayContractService {
         this.installmentRepository = installmentRepository;
         this.scheduleService = scheduleService;
         this.holidayService = holidayService;
-        this.merchantChatbotProductService = merchantChatbotProductService;
+        this.publicCustomerSiteBaseService = publicCustomerSiteBaseService;
         this.splitPayMailService = splitPayMailService;
+        this.chillPayService = chillPayService;
     }
 
     @Transactional(readOnly = true)
@@ -70,11 +74,18 @@ public class SplitPayContractService {
         Map<String, Object> m = new LinkedHashMap<>();
         m.put("compId", ou.getCode());
         m.put("compNm", ou.getName());
-        m.put("splitPayEnabledYn", yn(mp != null ? mp.getSplitPayEnabledYn() : "N"));
+        m.put("splitPayEnabledYn", SplitPayMerchantUtil.isEnabled(mp) ? "Y" : "N");
+        m.put("apiUrlPayCheckoutMode", SplitPayMerchantUtil.resolveApiCheckoutModeForDisplay(mp));
         m.put("splitPayIntervalMonthYn", yn(mp != null ? mp.getSplitPayIntervalMonthYn() : "Y"));
         m.put("splitPayIntervalDayYn", yn(mp != null ? mp.getSplitPayIntervalDayYn() : "N"));
+        m.put("splitPayIntervalMultiYn", yn(mp != null ? mp.getSplitPayIntervalMultiYn() : "N"));
+        m.put("splitPayMultiMaxMonths", mp != null && mp.getSplitPayMultiMaxMonths() != null ? mp.getSplitPayMultiMaxMonths() : 6);
         m.put("splitPayDayIntervalDays", mp != null && mp.getSplitPayDayIntervalDays() != null ? mp.getSplitPayDayIntervalDays() : 10);
+        m.put("splitPayMonthIntervalMonths", mp != null && mp.getSplitPayMonthIntervalMonths() != null ? mp.getSplitPayMonthIntervalMonths() : 1);
         m.put("splitPayFirstPayMode", mp != null && mp.getSplitPayFirstPayMode() != null ? mp.getSplitPayFirstPayMode() : SplitPayContract.FIRST_IMMEDIATE);
+        String opPg = chillPayService.resolveUrlPayOperationalPgCd(ou.getId());
+        m.put("operationalPgCd", opPg != null ? opPg : "");
+        m.put("checkoutPage", SplitPayCheckoutPageUtil.resolveCheckoutPage(opPg));
         return m;
     }
 
@@ -117,9 +128,11 @@ public class SplitPayContractService {
                                                 String intervalType,
                                                 Integer intervalValue,
                                                 String currencyCode,
+                                                String customerLocale,
                                                 HttpServletRequest request) {
         OrgUnit ou = resolveMerchant(compCode);
         assertSplitPayEnabled(ou.getId());
+        assertUrlPayOperationalPg(ou.getId());
         validateCreateInput(totalAmount, installmentCount, intervalType, ou.getId());
         MerchantProfile mp = merchantProfileRepository.findByOrgUnitId(ou.getId()).orElse(null);
         String firstMode = mp != null && mp.getSplitPayFirstPayMode() != null
@@ -144,6 +157,11 @@ public class SplitPayContractService {
         c.setMerchantCode(ou.getCode());
         c.setCustomerEmail(customerEmail.trim());
         c.setCustomerName(customerName != null ? customerName.trim() : null);
+        String loc = customerLocale != null && !customerLocale.isBlank()
+                ? SplitPayMailLocaleUtil.normalize(customerLocale)
+                : SplitPayMailLocaleUtil.fromAcceptLanguage(
+                        request != null ? request.getHeader("Accept-Language") : null);
+        c.setCustomerLocale(loc);
         c.setTotalAmount(totalAmount);
         c.setCurrencyCode(currencyCode != null && !currencyCode.isBlank() ? currencyCode.trim().toUpperCase(Locale.ROOT) : "JPY");
         c.setInstallmentCount(installmentCount);
@@ -157,7 +175,7 @@ public class SplitPayContractService {
         c.setStatus(SplitPayContract.STATUS_ACTIVE);
         contractRepository.save(c);
 
-        String base = merchantChatbotProductService.resolvePublicCustomerSiteBase(request).replaceAll("/+$", "");
+        String base = publicCustomerSiteBaseService.resolvePublicCustomerSiteBase(request).replaceAll("/+$", "");
         List<Map<String, Object>> instRows = new ArrayList<>();
         SplitPayInstallment firstInst = null;
         for (int i = 0; i < installmentCount; i++) {
@@ -241,6 +259,11 @@ public class SplitPayContractService {
         m.put("status", inst.getStatus());
         m.put("payToken", inst.getPayToken());
         m.put("checkoutKind", "SPLIT_PAY");
+        String opPg = chillPayService.resolveUrlPayOperationalPgCd(c.getOrgUnitId());
+        m.put("operationalPgCd", opPg != null ? opPg : "");
+        m.put("checkoutPage", SplitPayCheckoutPageUtil.resolveCheckoutPage(opPg));
+        m.put("customerEmail", c.getCustomerEmail());
+        m.put("customerName", c.getCustomerName() != null ? c.getCustomerName() : "");
         return m;
     }
 
@@ -279,8 +302,16 @@ public class SplitPayContractService {
 
     private void assertSplitPayEnabled(Long orgUnitId) {
         MerchantProfile mp = merchantProfileRepository.findByOrgUnitId(orgUnitId).orElse(null);
-        if (mp == null || !"Y".equalsIgnoreCase(yn(mp.getSplitPayEnabledYn()))) {
+        if (!SplitPayMerchantUtil.isEnabled(mp)) {
             throw new IllegalStateException("SPLIT_PAY_DISABLED");
+        }
+    }
+
+    /** ChillPay·JPAY 운영 URL 결제 PG 바인딩 필수 */
+    private void assertUrlPayOperationalPg(Long orgUnitId) {
+        String opPg = chillPayService.resolveUrlPayOperationalPgCd(orgUnitId);
+        if (!SplitPayCheckoutPageUtil.hasSupportedOperationalPg(opPg)) {
+            throw new IllegalStateException("URL_PAYMENT_PG_MISSING");
         }
     }
 
@@ -288,11 +319,21 @@ public class SplitPayContractService {
         if (totalAmount == null || totalAmount.compareTo(BigDecimal.ZERO) <= 0) {
             throw new IllegalArgumentException("INVALID_AMOUNT");
         }
+        MerchantProfile mp = merchantProfileRepository.findByOrgUnitId(orgUnitId).orElse(null);
+        String it = intervalType != null ? intervalType.trim().toUpperCase(Locale.ROOT) : SplitPayContract.INTERVAL_MONTH;
+        if (SplitPayContract.INTERVAL_MULTI.equals(it)) {
+            if (mp == null || !"Y".equalsIgnoreCase(yn(mp.getSplitPayIntervalMultiYn()))) {
+                throw new IllegalStateException("INTERVAL_MULTI_DISABLED");
+            }
+            int maxMonths = mp.getSplitPayMultiMaxMonths() != null ? mp.getSplitPayMultiMaxMonths() : 6;
+            if (installmentCount < 1 || installmentCount > maxMonths) {
+                throw new IllegalArgumentException("INVALID_MULTI_COUNT");
+            }
+            return;
+        }
         if (installmentCount < 2 || installmentCount > 60) {
             throw new IllegalArgumentException("INVALID_COUNT");
         }
-        MerchantProfile mp = merchantProfileRepository.findByOrgUnitId(orgUnitId).orElse(null);
-        String it = intervalType != null ? intervalType.trim().toUpperCase(Locale.ROOT) : SplitPayContract.INTERVAL_MONTH;
         if (SplitPayContract.INTERVAL_DAY.equals(it)) {
             if (mp == null || !"Y".equalsIgnoreCase(yn(mp.getSplitPayIntervalDayYn()))) {
                 throw new IllegalStateException("INTERVAL_DAY_DISABLED");
@@ -303,6 +344,9 @@ public class SplitPayContractService {
     }
 
     private static int resolveIntervalValue(String intervalType, Integer intervalValue, MerchantProfile mp) {
+        if (SplitPayContract.INTERVAL_MULTI.equalsIgnoreCase(intervalType)) {
+            return 1;
+        }
         if (SplitPayContract.INTERVAL_DAY.equalsIgnoreCase(intervalType)) {
             if (intervalValue != null && intervalValue > 0) {
                 return intervalValue;
@@ -310,7 +354,11 @@ public class SplitPayContractService {
             return mp != null && mp.getSplitPayDayIntervalDays() != null && mp.getSplitPayDayIntervalDays() > 0
                     ? mp.getSplitPayDayIntervalDays() : 10;
         }
-        return intervalValue != null && intervalValue > 0 ? intervalValue : 1;
+        if (intervalValue != null && intervalValue > 0) {
+            return intervalValue;
+        }
+        return mp != null && mp.getSplitPayMonthIntervalMonths() != null && mp.getSplitPayMonthIntervalMonths() > 0
+                ? mp.getSplitPayMonthIntervalMonths() : 1;
     }
 
     private static String generateContractNo() {

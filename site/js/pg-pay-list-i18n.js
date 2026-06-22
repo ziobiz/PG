@@ -97,6 +97,8 @@
     'searchCompId:label': { KO: '업체코드', EN: 'Company code', JP: '加盟店コード', CH: '商户代码', TH: 'รหัสร้าน' },
     'searchCompNm:label': { KO: '업체명', EN: 'Company name', JP: '加盟店名', CH: '商户名称', TH: 'ชื่อร้าน' },
     searchCompId: { KO: '업체코드', EN: 'Company code', JP: '加盟店コード', CH: '商户代码', TH: 'รหัสร้าน' },
+    contractNo: { KO: '계약번호', EN: 'Contract no.', JP: '契約番号', CH: '合同号', TH: 'เลขสัญญา' },
+    'compId:label': { KO: '업체코드', EN: 'Company code', JP: '加盟店コード', CH: '商户代码', TH: 'รหัสร้าน' },
     searchCompNm: { KO: '업체명', EN: 'Company name', JP: '加盟店名', CH: '商户名称', TH: 'ชื่อร้าน' },
     searchTaxScope: { KO: '보고구분', EN: 'Report scope', JP: '報告区分', CH: '报表范围', TH: 'ขอบเขตรายงาน' },
     searchYearMonth: { KO: '귀속월', EN: 'Attribution month', JP: '帰属月', CH: '归属月', TH: 'เดือนที่ครอบคลุม' },
@@ -108,6 +110,9 @@
     'drLbl:결제일자': { KO: '결제일자', EN: 'Payment date', JP: '決済日', CH: '支付日期', TH: 'วันที่ชำระ' },
     'drLbl:전송일자': { KO: '전송일자', EN: 'Send date', JP: '送信日', CH: '发送日期', TH: 'วันที่ส่ง' },
     'drLbl:거래일자': { KO: '거래일자', EN: 'Txn date', JP: '取引日', CH: '交易日期', TH: 'วันที่ทำรายการ' },
+    'drLbl:납부예정일': { KO: '납부예정일', EN: 'Due date', JP: '支払予定日', CH: '应付日期', TH: 'วันครบกำหนด' },
+    'contractNo:label': { KO: '계약번호', EN: 'Contract no.', JP: '契約番号', CH: '合同号', TH: 'เลขสัญญา' },
+    status: { KO: '회차상태', EN: 'Installment status', JP: '回次状態', CH: '期次状态', TH: 'สถานะงวด' },
     'drLbl:적재일': { KO: '적재일', EN: 'Ingest date', JP: '取込日', CH: '入库日', TH: 'วันที่บันทึก' },
     'drLbl:작성일': { KO: '작성일', EN: 'Created date', JP: '作成日', CH: '创建日期', TH: 'วันที่สร้าง' },
     'searchTitle:label': { KO: '제목', EN: 'Title', JP: 'タイトル', CH: '标题', TH: 'หัวข้อ' },
@@ -158,7 +163,9 @@
     searchSettlementReportCompPh: { KO: '가맹점 코드', EN: 'Merchant code', JP: '加盟店コード', CH: '商户代码', TH: 'รหัสร้านค้า' },
     searchMasterId: { KO: '총판 조직 코드', EN: 'Master dist. org code', JP: '総販組織コード', CH: '总代组织代码', TH: 'รหัสองค์กรตัวแทนหลัก' },
     searchRegionalId: { KO: '본사 지급 리포트 시 필터', EN: 'Filter for HQ payout report', JP: '本社支払レポート用フィルタ', CH: '本部拨付报表筛选', TH: 'ตัวกรองรายงานจ่ายสำนักงานใหญ่' },
-    searchYearMonth: { KO: 'YYYY-MM', EN: 'YYYY-MM', JP: 'YYYY-MM', CH: 'YYYY-MM', TH: 'YYYY-MM' }
+    searchYearMonth: { KO: 'YYYY-MM', EN: 'YYYY-MM', JP: 'YYYY-MM', CH: 'YYYY-MM', TH: 'YYYY-MM' },
+    compId: { KO: '업체코드', EN: 'Company code', JP: '加盟店コード', CH: '商户代码', TH: 'รหัสร้าน' },
+    contractNo: { KO: '계약번호', EN: 'Contract no.', JP: '契約番号', CH: '合同号', TH: 'เลขสัญญา' }
   };
 
   function optMap(base) {
@@ -309,7 +316,13 @@
     'searchPolicyCur|USD': optMap({ EN: 'USD', JP: 'USD', CH: 'USD', TH: 'USD' }),
     'searchPolicyCur|THB': optMap({ EN: 'THB', JP: 'THB', CH: 'THB', TH: 'THB' }),
     'searchPolicyCur|CNY': optMap({ EN: 'CNY', JP: 'CNY', CH: 'CNY', TH: 'CNY' }),
-    'searchPolicyCur|KRW': optMap({ EN: 'KRW', JP: 'KRW', CH: 'KRW', TH: 'KRW' })
+    'searchPolicyCur|KRW': optMap({ EN: 'KRW', JP: 'KRW', CH: 'KRW', TH: 'KRW' }),
+    'status|PENDING': optMap({ EN: 'Unpaid', JP: '未払い', CH: '未付', TH: 'ค้างชำระ' }),
+    'status|PAID': optMap({ EN: 'Paid', JP: '納付完了', CH: '已付', TH: 'ชำระแล้ว' }),
+    'status|CANCELLED': optMap({ EN: 'Cancelled', JP: '取消', CH: '已取消', TH: 'ยกเลิก' }),
+    'status|ACTIVE': optMap({ EN: 'Active', JP: '進行中', CH: '进行中', TH: 'ดำเนินอยู่' }),
+    'status|COMPLETED': optMap({ EN: 'Completed', JP: '完了', CH: '已完成', TH: 'เสร็จสิ้น' }),
+    'status|STOPPED': optMap({ EN: 'Stopped', JP: '停止', CH: '已停止', TH: 'หยุดแล้ว' })
   };
 
   var QD = {
@@ -477,25 +490,87 @@
     ],
     '/calc/splitPayList': [
       packN(
-        'URL 분할결제 계약 목록입니다. 가맹 업체등록·업체정보의 「URL 분할결제」에서 기능을 켠 가맹만 계약을 생성할 수 있습니다.',
-        'Split-payment contract list. Only merchants with URL split pay enabled under merchant registration/info can create contracts.',
-        'URL分割決済契約一覧です。加盟店登録・加盟店情報の「URL分割決済」で機能を有効にした加盟店のみ契約を作成できます。',
-        'URL 分次支付合同列表。仅在商户注册/信息中开启「URL 分次支付」的商户可创建合同。',
-        'รายการสัญญาชำระแบ่งงวด URL ร้านที่เปิดใช้ใน「URL ชำระแบ่งงวด」เท่านั้นที่สร้างสัญญาได้'
+        'URL 분할결제 계약 목록입니다. 「API URL 인라인 중계 결제」에서 분할 결제를 선택하고 「URL 분할결제」에서 사용을 켠 가맹만 계약을 생성할 수 있습니다.',
+        'Split-payment contract list. Only merchants with Split payment in API URL inline relay checkout and usage enabled in URL split payment can create contracts.',
+        'URL分割決済契約一覧。「API URLインライン中継決済」で分割決済を選択し「URL分割決済」で利用をオンにした加盟店のみ契約作成可能。',
+        'URL 分次支付合同列表。仅在「API URL 内联中继支付」选分次支付且在「URL 分次支付」开启使用的商户可创建合同。',
+        'รายการสัญญาแบ่งงวด URL เฉพาะร้านที่เลือกแบ่งงวดใน API URL inline และเปิดใช้ใน URL แบ่งงวด'
       ),
       packN(
-        '각 회차 결제는 URL 결제 플로우로 진행됩니다. 1회차는 즉시결제(IMMEDIATE) 또는 링크발송(LINK) 모드에 따라 처리되며, 미납 회차는 매일 결제 링크 메일이 발송됩니다.',
-        'Each installment uses the URL payment flow. The first installment is IMMEDIATE or LINK; overdue installments receive a daily payment-link email.',
-        '各回の決済はURL決済フローで進みます。1回目は即時決済(IMMEDIATE)またはリンク送信(LINK)で、未払い回は毎日決済リンクメールが送信されます。',
-        '各期通过 URL 支付流程。首期按 IMMEDIATE 或 LINK 处理；未付期次每日发送支付链接邮件。',
-        'แต่ละงวดใช้ flow ชำระ URL งวดแรกเป็น IMMEDIATE หรือ LINK งวดค้างได้รับอีเมลลิงก์ชำระทุกวัน'
+        '각 회차 결제는 운영 URL PG에 따라 ChillPay(pay.html) 또는 JPAY(jpay-pay.html) 결제창으로 진행됩니다. 1회차는 즉시결제(IMMEDIATE) 또는 링크발송(LINK)이며, 미납 회차는 매일 결제 링크 메일이 발송됩니다.',
+        'Each installment uses ChillPay (pay.html) or JPAY (jpay-pay.html) per operational URL PG. First: IMMEDIATE or LINK; overdue installments get daily link emails.',
+        '各回次は運用URL PGに応じ ChillPay(pay.html)または JPAY(jpay-pay.html)。1回目は即時決済(IMMEDIATE)またはリンク送信(LINK)。未払い回は毎日リンクメール。',
+        '各期按运营 URL PG 使用 ChillPay(pay.html) 或 JPAY(jpay-pay.html)。首期 IMMEDIATE 或 LINK；未付期次每日发链接邮件。',
+        'แต่ละงวดใช้ ChillPay (pay.html) หรือ JPAY (jpay-pay.html) ตาม PG URL งวดแรก IMMEDIATE หรือ LINK งวดค้างส่งอีเมลทุกวัน'
       ),
       packN(
-        '수수료는 본사 수수료정책의 분할수수료율·분할고정수수료(건)가 계약 생성 시 스냅샷으로 저장됩니다. API: POST /api/pay/split/contracts · GET /api/pay/split/installment?token=…',
-        'Fees snapshot split fee rate and fixed fee per installment from HQ policy at contract creation. API: POST /api/pay/split/contracts · GET /api/pay/split/installment?token=…',
-        '手数料は本社手数料政策の分割手数料率・分割固定手数料(件)が契約作成時にスナップショット保存されます。API: POST /api/pay/split/contracts · GET /api/pay/split/installment?token=…',
-        '手续费在创建合同时快照保存总部的分次费率与固定费(笔)。API: POST /api/pay/split/contracts · GET /api/pay/split/installment?token=…',
-        'ค่าธรรมเนียม snapshot อัตราและคงที่ต่องวดจากนโยบาย HQ ตอนสร้างสัญญา API: POST /api/pay/split/contracts · GET /api/pay/split/installment?token=…'
+        '공개 분할결제 URL 또는 API(POST /api/pay/split/contracts)로 계약합니다. 수수료는 본사 수수료정책의 분할수수료율·분할고정수수료(건)가 계약 생성 시 스냅샷으로 저장됩니다.',
+        'Contract via public split payment URL or API (POST /api/pay/split/contracts). Fees snapshot HQ split fee rate and fixed fee per installment at contract creation.',
+        '公開分割決済URLまたはAPI(POST /api/pay/split/contracts)で契約。手数料は本社手数料政策の分割手数料率・分割固定手数料(件)を契約作成時にスナップショット保存。',
+        '通过公开分次支付 URL 或 API(POST /api/pay/split/contracts) 签约。手续费在创建合同时快照保存总部分次费率与固定费(笔)。',
+        'สร้างสัญญาผ่าน URL สาธารณะหรือ API (POST /api/pay/split/contracts) ค่าธรรมเนียม snapshot จากนโยบาย HQ ตอนสร้างสัญญา'
+      )
+    ],
+    '/pay/splitPay': [
+      packN(
+        '분할결제내역: URL 분할결제 계약의 회차별 결제(pg_trnsctn)만 표시합니다. 통합 결제내역에도 포함되며, 여기서는 분할결제 회차 주문번호로만 조회합니다.',
+        'Split payment list: installment payments (pg_trnsctn) only. Also in integrated payment list; filtered by split installment order numbers.',
+        '分割決済一覧: URL分割決済契約の回次別決済(pg_trnsctn)のみ。統合決済一覧にも含まれ、ここでは分割回次注文番号のみ。',
+        '分次支付交易：仅 URL 分次支付合同的各期支付(pg_trnsctn)。亦在综合支付列表中；此处仅按分次期次订单号筛选。',
+        'รายการชำระแบ่งงวด: เฉพาะ pg_trnsctn ต่องวดสัญญา URL แบ่งงวด รวมในรายการรวมด้วย กรองด้วยเลขคำสั่งงวด'
+      ),
+      packN(
+        'URL결제내역·챗봇결제내역과 동일 API(/api/calc/payList)·그리드를 사용하며 payListVariant=SPLIT_PAY 로 구분합니다.',
+        'Same API (/api/calc/payList) and grid as URL/chatbot payment lists; payListVariant=SPLIT_PAY.',
+        'URL・チャットボット決済一覧と同じ API・グリッド。payListVariant=SPLIT_PAY。',
+        '与 URL/聊天机器人支付列表相同 API 与网格；payListVariant=SPLIT_PAY。',
+        'API/กริดเดียวกับ URL/Chatbot; payListVariant=SPLIT_PAY'
+      )
+    ],
+    '/splitpay/progressMng': [
+      packN(
+        '분할결제 계약별 회차 진행 현황입니다. 계약 단위 납부율·회차별 예정일·납부 상태를 확인합니다.',
+        'Installment progress per split-payment contract: paid ratio, due dates, and status per installment.',
+        '分割決済契約ごとの回次進行状況。契約単位の納付率・回次別予定日・状態を確認。',
+        '分次支付合同各期进度：合同缴费率、各期到期日与状态。',
+        'ความคืบหน้าแต่ละงวดต่อสัญญาแบ่งงวด: อัตราชำระ วันครบกำหนด สถานะ'
+      ),
+      packN(
+        '회차 결제가 완료되면 결제관리 「결제내역」과 「분할결제내역」에도 동일 거래가 표시됩니다.',
+        'Completed installment payments also appear in Payment list and Split payment list.',
+        '回次決済完了後は「決済一覧」「分割決済一覧」にも同一取引が表示。',
+        '期次支付完成后亦显示于「支付列表」「分次支付交易」。',
+        'เมื่อชำระงวดแล้วแสดงในรายการชำระและรายการแบ่งงวด'
+      ),
+      packN(
+        '가맹점은 본인 소속 가맹 계약·회차만 조회됩니다.',
+        'Merchants see only contracts/installments for their own merchant code.',
+        '加盟店は自店の契約・回次のみ照会可能。',
+        '商户仅可查看本店合同与期次。',
+        'ร้านค้าเห็นเฉพาะสัญญา/งวดของร้านตนเอง'
+      )
+    ],
+    '/splitpay/mailMng': [
+      packN(
+        '분할결제 회차별 결제 링크 이메일 발송 현황입니다. D-1·당일(D0)·D+1·D+2·D+3 자동 발송 일시를 확인할 수 있습니다.',
+        'Email status for split-payment installment links: D-1, D0, D+1, D+2, D+3 auto-send timestamps.',
+        '分割決済回次別リンクメール送信状況。D-1・当日(D0)・D+1・D+2・D+3の自動送信日時。',
+        '分次支付各期链接邮件发送状态：D-1、D0、D+1、D+2、D+3 自动发送时间。',
+        'สถานะอีเมลลิงก์งวด: D-1, D0, D+1, D+2, D+3'
+      ),
+      packN(
+        '미납(PENDING) 회차는 [링크재발송]으로 결제 안내 메일을 수동 재발송할 수 있습니다.',
+        'PENDING installments: use [Resend link] for manual payment reminder email.',
+        '未払い(PENDING)回次は[リンク再送信]で手動再送可能。',
+        '未付(PENDING)期次可用[重发链接]手动再发邮件。',
+        'งวด PENDING: กด[ส่งลิงก์อีกครั้ง]เพื่อส่งอีเมลซ้ำ'
+      ),
+      packN(
+        '자동 발송은 매일 스케줄러가 처리하며, 운영 메일 로그는 「운영관리 > 메일로그」에서 확인합니다.',
+        'Auto sends run daily via scheduler; see Operations > Mail log for delivery logs.',
+        '自動送信は毎日スケジューラ処理。運用メールログは「運用管理>メールログ」。',
+        '自动发送由每日调度处理；邮件日志见「运营管理>邮件日志」。',
+        'ส่งอัตโนมัติรายวัน ดูล็อกที่ปฏิบัติการ>เมลล็อก'
       )
     ],
     '/calc/chillPaySettlementList': [
@@ -592,6 +667,22 @@
         'FinalPayAfterRemittance は送金手数料反映後の支払基準額で、実際の銀行送金との照合にご利用ください。',
         'FinalPayAfterRemittance 为扣减汇款手续费后的拨付基准金额，可与实际银行汇款核对。',
         'FinalPayAfterRemittance = ยอดจ่ายหลังค่าธรรมเนียมโอน ใช้เทียบกับโอนจริง'
+      )
+    ],
+    '/calc/queryIntegrated': [
+      packN(
+        '통합조회(JPAY Export 캐시)와 동일 필터로, 거래일(trnDate) 구간을 일 단위로 집계합니다. 일자별 성공·실패·취소·무효·이메일무효·환불·강제환불·기타 건수는 해당 일 전체 건 기준입니다. 일자 행을 더블클릭하면 아래에 해당 일 통합조회 전체·금액 요약이 표시됩니다.',
+        'Same filters as Integrated query (JPAY Export cache), aggregated by calendar day on trnDate. Per-day bucket counts are for all rows that day. Double-click a date row to show all integrated query rows and amount summary for that day below.',
+        '統合照会（JPAY Exportキャッシュ）と同一フィルタで、取引日(trnDate)範囲を日単位で集計します。日付行をダブルクリックすると当日の統合照会と金額要約を下に表示します。',
+        '与「整合查询（JPAY Export 缓存）」相同筛选，按交易日(trnDate)区间做按日汇总。双击日期行可在下方显示该日全部整合查询及金额摘要。',
+        'ใช้ตัวกรองเดียวกับค้นหารวม (แคช JPAY Export) สรุปรายวันตาม trnDate ดับเบิลคลิกวันที่เพื่อดูรายการและสรุปยอดของวันนั้น'
+      ),
+      packN(
+        '조회 기간은 최대 93일입니다. 통합조회 화면에서 [JPAY 동기화]로 캐시를 갱신한 뒤 조회하세요. 당월 등으로 종료일이 오늘 이후이면 표시는 전산 기준일(오늘)까지만 합니다.',
+        'The query window is up to 93 days. Refresh cache via [JPAY sync] on Integrated query first. If end date is after today, display stops at ledger today.',
+        '照会期間は最大93日です。統合照会画面で[JPAY同期]後に照会してください。終了日が今日以降の場合は今日まで表示します。',
+        '查询区间最长93天。请先在整合查询屏执行 [JPAY 同步] 刷新缓存。结束日晚于今天则仅显示至今天。',
+        'ช่วงสูงสุด 93 วัน ซิงค์แคชที่หน้าค้นหารวมก่อน ถ้าวันสิ้นสุดหลังวันนี้แสดงถึงวันนี้เท่านั้น'
       )
     ],
     '/calc/dailyIntegrated': [
@@ -1017,7 +1108,7 @@
     'displayPayAmt': { KO: '고객금액', EN: 'Shopper amt', JP: '顧客金額', CH: '客户金额', TH: 'ยอดลูกค้า' },
     'trnDate,trnTime,routeNo,chillTransactionId,trnId': { KO: '거래', EN: 'Transaction', JP: '取引', CH: '交易', TH: 'ธุรกรรม' },
     'txnFixedFeesSum,pctFeesSum': { KO: '승인 / 결제수수료(%)', EN: 'Approval / pay fee (%)', JP: '承認／決済手数料(%)', CH: '授权/支付手续费(%)', TH: 'อนุมัติ / ค่าธรรมเนียม (%)' },
-    'usdtFee,fxFee,fee3dsFee': { KO: '기타수수료', EN: 'Other fees', JP: 'その他手数料', CH: '其他手续费', TH: 'ค่าธรรมเนียมอื่น' },
+    'usdtFee,fxFee,fee3dsFee,splitPayPctFee,splitPayFixedFee': { KO: '기타수수료', EN: 'Other fees', JP: 'その他手数料', CH: '其他手续费', TH: 'ค่าธรรมเนียมอื่น' },
     'rollingPctPlain,rollingDays,rollingHoldEst': { KO: '담보(롤링)', EN: 'Collateral (rolling)', JP: '担保(ロール)', CH: '担保(滚动)', TH: 'หลักประกัน (โรล)' },
     'failFee,cancelFee,voidFee,manualVoidFee,refundFee,chargebackFee': { KO: '실패·취소·무효·환불·차지백', EN: 'Fail·cancel·void·refund·CB', JP: '失敗・取消・無効・返金・CB', CH: '失败·取消·作废·退款·拒付', TH: 'ล้มเหลว·ยกเลิก·โมฆะ·คืน·CB' },
     'totalFee,feeVat,expectedPayout,settlementAmt': { KO: '차감·지급', EN: 'Deduction·payout', JP: '控除・支払', CH: '扣减·拨付', TH: 'หัก·จ่าย' },
@@ -1032,7 +1123,7 @@
     'pgNm,pgCd,compNm,compId': { KO: 'PG·가맹', EN: 'PG · Merchant', JP: 'PG・加盟店', CH: 'PG·商户', TH: 'PG·ร้านค้า' },
     'trnDate,trnTime,routeNo,chillTransactionId,trnId,statusNm,amount': { KO: '거래', EN: 'Transaction', JP: '取引', CH: '交易', TH: 'ธุรกรรม' },
     'txnFixedFeesSum,pctFeesSum': { KO: '승인 / 대행수수료(%)', EN: 'Approval / agency fee (%)', JP: '承認／代行手数料(%)', CH: '授权/代行手续费(%)', TH: 'อนุมัติ / ค่าธรรมเนียมตัวแทน (%)' },
-    'usdtFee,fxFee,fee3dsFee': { KO: '기타수수료', EN: 'Other fees', JP: 'その他手数料', CH: '其他手续费', TH: 'ค่าธรรมเนียมอื่น' },
+    'usdtFee,fxFee,fee3dsFee,splitPayPctFee,splitPayFixedFee': { KO: '기타수수료', EN: 'Other fees', JP: 'その他手数料', CH: '其他手续费', TH: 'ค่าธรรมเนียมอื่น' },
     'failFee,cancelFee,voidFee,manualVoidFee,refundFee,chargebackFee': { KO: '실패·취소·무효·환불·차지백', EN: 'Fail·cancel·void·refund·CB', JP: '失敗・取消・無効・返金・CB', CH: '失败·取消·作废·退款·拒付', TH: 'ล้มเหลว·ยกเลิก·โมฆะ·คืน·CB' },
     'rollingHoldEst,totalAgencyFee,agencySettleYn': { KO: '합계·정산', EN: 'Total · settlement', JP: '合計・精算', CH: '合计·结算', TH: 'รวม·ชำระ' }
   };
@@ -1107,6 +1198,7 @@
     masterNm: { EN: 'Branch', JP: '支社', CH: '分公司', TH: 'สาขา' },
     branchNm: { EN: 'Agency', JP: '代理店', CH: '代理', TH: 'ตัวแทน' },
     payActions: { EN: 'Follow-up', JP: '後続対応', CH: '后续处理', TH: 'ดำเนินการต่อ' },
+    payRemark: { EN: 'Remarks', JP: '備考', CH: '备注', TH: 'หมายเหตุ' },
     compDivNm: { EN: 'Org type', JP: '組織区分', CH: '组织类型', TH: 'ประเภทองค์กร' },
     settlementAmt: { EN: 'Settlement', JP: '精算金', CH: '结算款', TH: 'เงินชำระ' },
     receivables: { EN: 'Receivable', JP: '未収金', CH: '应收', TH: 'ลูกหนี้' },
@@ -1141,6 +1233,10 @@
     usdtFee: { EN: 'USDT', JP: 'USDT', CH: 'USDT', TH: 'USDT' },
     fxFee: { EN: 'FX', JP: 'FX', CH: 'FX', TH: 'FX' },
     fee3dsFee: { EN: '3DS', JP: '3DS', CH: '3DS', TH: '3DS' },
+    splitPayFeePctRate: { EN: 'Split (%)', JP: '分割(%)', CH: '分期(%)', TH: 'แบ่ง (%)' },
+    splitPayPctFee: { EN: 'Split fee', JP: '分割手数料', CH: '分期手续费', TH: 'ค่าธรรมเนียมแบ่ง' },
+    splitPayFixedPerInst: { EN: 'Split/inst', JP: '分割件当', CH: '分期/笔', TH: 'แบ่ง/รายการ' },
+    splitPayFixedFee: { EN: 'Split fixed', JP: '分割固定', CH: '分期固定', TH: 'คงที่แบ่ง' },
     rollingHoldEst: { EN: 'Collateral est.', JP: '担保見積額', CH: '担保估计额', TH: 'ประมาณหลักประกัน' },
     failFee: { EN: 'Fail fee', JP: '失敗', CH: '失败', TH: 'ล้มเหลว' },
     cancelFee: { EN: 'Cancel fee', JP: '取消', CH: '取消', TH: 'ยกเลิก' },
@@ -1168,7 +1264,19 @@
     installmentCount: { EN: 'Installments', JP: '分割回数', CH: '分次期数', TH: 'จำนวนงวด' },
     paidCount: { EN: 'Paid count', JP: '支払回数', CH: '已付期数', TH: 'จำนวนที่ชำแล้ว' },
     contractDate: { EN: 'Contract date', JP: '契約日', CH: '合同日', TH: 'วันสัญญา' },
-    createdAt: { EN: 'Created at', JP: '登録日時', CH: '登记时间', TH: 'วันที่ลงทะเบียน' }
+    createdAt: { EN: 'Created at', JP: '登録日時', CH: '登记时间', TH: 'วันที่ลงทะเบียน' },
+    installmentNo: { EN: 'Installment', JP: '回次', CH: '期次', TH: 'งวด' },
+    installmentCount: { EN: 'Total installments', JP: '総回次', CH: '总期数', TH: 'งวดทั้งหมด' },
+    progressPct: { EN: 'Progress (%)', JP: '進捗率(%)', CH: '进度(%)', TH: 'ความคืบหน้า (%)' },
+    dueDate: { EN: 'Due date', JP: '支払予定日', CH: '应付日期', TH: 'วันครบกำหนด' },
+    paidAt: { EN: 'Paid at', JP: '支払日時', CH: '支付时间', TH: 'วันที่ชำระ' },
+    contractStatus: { EN: 'Contract status', JP: '契約状態', CH: '合同状态', TH: 'สถานะสัญญา' },
+    mailDMinus1Sent: { EN: 'D-1 sent', JP: 'D-1送信', CH: 'D-1 发送', TH: 'ส่ง D-1' },
+    mailD0Sent: { EN: 'D0 sent', JP: 'D0送信', CH: 'D0 发送', TH: 'ส่ง D0' },
+    mailD1Sent: { EN: 'D+1 sent', JP: 'D+1送信', CH: 'D+1 发送', TH: 'ส่ง D+1' },
+    mailD2Sent: { EN: 'D+2 sent', JP: 'D+2送信', CH: 'D+2 发送', TH: 'ส่ง D+2' },
+    mailD3Sent: { EN: 'D+3 sent', JP: 'D+3送信', CH: 'D+3 发送', TH: 'ส่ง D+3' },
+    splitPayMailResend: { EN: 'Resend', JP: '再送信', CH: '重发', TH: 'ส่งอีกครั้ง' }
   };
 
   var AGENCY_COL = Object.assign({}, COL, {
@@ -1403,7 +1511,7 @@
   var _screenSnap = null;
 
   /** 결제내역 동기 URL 외 — 검색폼·안내 스냅/로케일 적용 대상 */
-  var EXTRA_I18N_SCREEN_SNAP_URLS = ['/calc/dailyIntegrated', '/calc/dailyPay', '/calc/dailyFee', '/calc/feeList', '/settlement/feeList', '/calc/exCalcList', '/settlement/execute',
+  var EXTRA_I18N_SCREEN_SNAP_URLS = ['/calc/dailyIntegrated', '/calc/queryIntegrated', '/calc/dailyPay', '/calc/dailyFee', '/calc/feeList', '/settlement/feeList', '/calc/exCalcList', '/settlement/execute',
     '/settlement/settlementResultDistribute', '/settlement/settlementResultHold', '/calc/calcGmList', '/settlement/franchiseList',
     '/calc/paySettlementHoldList', '/settlement/paySettlementHoldList', '/ops/integratedReport', '/ops/verifyReport', '/ops/agencyTxnList',
     '/comp/compMngTree', '/comp/myCompMng', '/comp/compReg', '/comp/compDetail', '/comp/compInfo', '/comp/compMng',
@@ -1432,7 +1540,11 @@
     '/settlement/collateralList': 1,
     '/chatbot/chatbotKbMng': 1,
     '/chatbot/productMng': 1,
-    '/chatbot/orderMng': 1
+    '/chatbot/orderMng': 1,
+    '/calc/splitPayList': 1,
+    '/calc/jpayTrList': 1,
+    '/splitpay/progressMng': 1,
+    '/splitpay/mailMng': 1
   };
 
   function deepClone(o) {
@@ -1483,6 +1595,61 @@
         isDailySummaryScreen: !!scr.isDailySummaryScreen,
         isOpsVerifyReport: !!scr.isOpsVerifyReport
       };
+    });
+  }
+
+  function applyStandardGridColumnsLocale(scr, snap, loc) {
+    if (!scr || !scr.columns || !snap || !snap.columns) return;
+    if (loc === 'KO') {
+      scr.columns.forEach(function (c, idx) {
+        var s = snap.columns[idx];
+        if (s && c && s.key === c.key && s.label != null) c.label = s.label;
+      });
+      return;
+    }
+    scr.columns.forEach(function (c) {
+      if (!c || !c.key) return;
+      var snapRow = null;
+      for (var i = 0; i < snap.columns.length; i++) {
+        var s = snap.columns[i];
+        if (s && s.key === c.key) {
+          snapRow = s;
+          break;
+        }
+      }
+      var fb = snapRow && snapRow.label != null ? snapRow.label : c.label;
+      var row = COL[c.key];
+      if (row && snapRow && String(snapRow.label || '') === String(fb || '')) {
+        c.label = tRow(row, loc, fb);
+      } else if (w.PG_UI_I18N && typeof w.PG_UI_I18N.t === 'function') {
+        c.label = w.PG_UI_I18N.t(fb);
+      } else if (row) {
+        c.label = tRow(row, loc, fb);
+      }
+    });
+  }
+
+  /** 단일 헤더 그리드: data-pg-ui-t 키는 한글 라벨 유지, 표시는 applyDom */
+  function restoreCompGridColumnsKoLabels(scr, snap) {
+    if (!scr || !scr.columns || !snap || !snap.columns) return;
+    scr.columns.forEach(function (c, idx) {
+      var s = snap.columns[idx];
+      if (s && c && s.key === c.key && s.label != null) c.label = s.label;
+    });
+  }
+
+  function compGridColsWithKoLabels(cols, snapCols) {
+    if (!cols || !cols.length || !snapCols || !snapCols.length) return cols;
+    return cols.map(function (c) {
+      var nc = Object.assign({}, c);
+      for (var i = 0; i < snapCols.length; i++) {
+        var s = snapCols[i];
+        if (s && s.key === c.key && s.label != null) {
+          nc.label = s.label;
+          break;
+        }
+      }
+      return nc;
     });
   }
 
@@ -1606,10 +1773,7 @@
         if (snap.searchRows3 != null) scr.searchRows3 = deepClone(snap.searchRows3);
         if (snap.noticeList) scr.noticeList = snap.noticeList.slice();
         if (COMP_GRID_SINGLE_HEADER_URLS[u] && snap.columns && scr.columns) {
-          scr.columns.forEach(function (c, idx) {
-            var s = snap.columns[idx];
-            if (s && c && s.key === c.key && s.label != null) c.label = s.label;
-          });
+          applyStandardGridColumnsLocale(scr, snap, 'KO');
         }
         if (scr.isDailySummaryScreen || scr.isOpsVerifyReport) applyDailySummaryColumnsLocale(scr, snap, 'KO');
         return;
@@ -1625,11 +1789,7 @@
         }
       }
       if (COMP_GRID_SINGLE_HEADER_URLS[u] && snap.columns && scr.columns) {
-        scr.columns.forEach(function (c) {
-          if (!c || !c.key) return;
-          var snapRow = snap.columns.filter(function (x) { return x && x.key === c.key; })[0];
-          if (snapRow && snapRow.label != null) c.label = snapRow.label;
-        });
+        restoreCompGridColumnsKoLabels(scr, snap);
       }
       if (scr.isDailySummaryScreen || scr.isOpsVerifyReport) applyDailySummaryColumnsLocale(scr, snap, loc);
     });
@@ -1791,7 +1951,12 @@
         }
         return;
       }
-      scr.emptyMessage = UI.empty[loc] || scr.emptyMessage;
+      var customEmptyMsg = _screenSnap.empty[u];
+      if (customEmptyMsg != null && String(customEmptyMsg).trim() !== '' && String(customEmptyMsg) !== UI.empty.KO) {
+        scr.emptyMessage = customEmptyMsg;
+      } else {
+        scr.emptyMessage = UI.empty[loc] || scr.emptyMessage;
+      }
       (scr.buttons || []).forEach(function (b) {
         if (!b || !b.id) return;
         var id = String(b.id);
@@ -1830,7 +1995,7 @@
     var integrated = w.PG_SCREENS && w.PG_SCREENS.getPayListIntegratedSyncUrls ? w.PG_SCREENS.getPayListIntegratedSyncUrls() : [];
     if (integrated.indexOf(url) !== -1) return true;
     return url === '/calc/calcList' || url === '/settlement/distributionList'
-      || url === '/calc/dailyIntegrated' || url === '/calc/dailyPay' || url === '/calc/dailyFee'
+      || url === '/calc/dailyIntegrated' || url === '/calc/queryIntegrated' || url === '/calc/dailyPay' || url === '/calc/dailyFee'
       || url === '/calc/feeList' || url === '/settlement/feeList'
       || url === '/calc/exCalcList' || url === '/settlement/execute'
       || url === '/calc/calcGmList' || url === '/settlement/franchiseList'
@@ -1855,10 +2020,13 @@
       || url === '/commission/commisionList'
       || url === '/system/noticeList'
       || url === '/risk/list'
+      || url === '/calc/splitPayList' || url === '/calc/jpayTrList'
+      || url === '/splitpay/progressMng' || url === '/splitpay/mailMng'
       || (url.indexOf('/comp/') === 0);
   }
 
   function refreshOpenPayListTheads(loc) {
+    if (!_screenSnap) ensureScreenSnap();
     var screens = w.PG_SCREENS && w.PG_SCREENS.getMenuScreens ? w.PG_SCREENS.getMenuScreens() : null;
     var build = w.PG_SCREENS && w.PG_SCREENS.buildStandardDataGridTheadHtml;
     var buildDist = w.PG_SCREENS && w.PG_SCREENS.buildDistributionListTheadHtmlFromCols;
@@ -1876,10 +2044,15 @@
       var tid = pane.id;
       var thead = pane.querySelector('#grid_' + tid + ' thead');
       if (!thead || !pane._lastGridCols || !pane._lastGridCols.length) return;
+      var snapColsThead = (_screenSnap && _screenSnap.scrKo && _screenSnap.scrKo[url])
+        ? _screenSnap.scrKo[url].columns : null;
+      var colsBuild = compSingle && snapColsThead
+        ? compGridColsWithKoLabels(pane._lastGridCols, snapColsThead)
+        : pane._lastGridCols;
       if (cfg.distributionThreeRowHeader && buildDist) {
-        thead.innerHTML = buildDist(pane._lastGridCols);
+        thead.innerHTML = buildDist(colsBuild);
       } else {
-        thead.innerHTML = build(pane._lastGridCols, cfg.headerGroups || [], { selectAllTitle: '전체선택' });
+        thead.innerHTML = build(colsBuild, cfg.headerGroups || [], { selectAllTitle: '전체선택' });
       }
       if (w.PG_UI_I18N && typeof w.PG_UI_I18N.applyDom === 'function') {
         try { w.PG_UI_I18N.applyDom(thead); } catch (eTheadI18n) {}
@@ -1983,7 +2156,31 @@
           var ek = ekEl.getAttribute('data-pg-ui-t');
           if (ek && w.PG_UI_I18N && typeof w.PG_UI_I18N.t === 'function') ekEl.textContent = w.PG_UI_I18N.t(ek);
         } else {
-          emptyCell.textContent = UI.empty[loc] || UI.empty.KO;
+          var em0 = (cfg && cfg.emptyMessage) ? String(cfg.emptyMessage) : (UI.empty[loc] || UI.empty.KO);
+          emptyCell.textContent = (w.PG_UI_I18N && typeof w.PG_UI_I18N.t === 'function') ? w.PG_UI_I18N.t(em0) : em0;
+        }
+      }
+      if ((url === '/splitpay/progressMng' || url === '/splitpay/mailMng' || url === '/calc/splitPayList' || url === '/calc/jpayTrList')
+          && pane._lastGridCols && pane._lastGridCols.length && cfg) {
+        var buildThSp = w.PG_SCREENS && w.PG_SCREENS.buildStandardDataGridTheadHtml;
+        if (typeof buildThSp === 'function') {
+          var snapColsSp = (_screenSnap && _screenSnap.scrKo && _screenSnap.scrKo[url])
+            ? _screenSnap.scrKo[url].columns : null;
+          var colsSp = snapColsSp
+            ? compGridColsWithKoLabels(pane._lastGridCols, snapColsSp)
+            : pane._lastGridCols;
+          var theadSp = pane.querySelector('#grid_' + tid + ' thead');
+          if (theadSp) {
+            var selTSp = (loc === 'KO' ? UI.selectAll.KO : (UI.selectAll[loc] || UI.selectAll.EN));
+            theadSp.innerHTML = buildThSp(colsSp, cfg.headerGroups || [], { selectAllTitle: selTSp });
+            if (w.PG_UI_I18N && typeof w.PG_UI_I18N.applyDom === 'function') {
+              try { w.PG_UI_I18N.applyDom(theadSp); } catch (eSpTh) {}
+            }
+          }
+          var tbSp = pane.querySelector('#grid_' + tid + ' tbody');
+          if (tbSp && w.PG_UI_I18N && typeof w.PG_UI_I18N.applyDom === 'function') {
+            try { w.PG_UI_I18N.applyDom(tbSp); } catch (eSpTb) {}
+          }
         }
       }
       if (w.PG_UI_I18N && typeof w.PG_UI_I18N.applyDom === 'function') {
@@ -2007,6 +2204,12 @@
             var tbPh = pane.querySelector('#grid_' + gid0 + ' tbody');
             if (tbPh) w.PG_UI_I18N.applyDom(tbPh);
           }
+          if (url === '/splitpay/progressMng' || url === '/splitpay/mailMng' || url === '/calc/splitPayList') {
+            var sfSp = pane.querySelector('.screen-search-form');
+            if (sfSp) w.PG_UI_I18N.applyDom(sfSp);
+            var actSp = pane.querySelector('.screen-summary-action-row');
+            if (actSp) w.PG_UI_I18N.applyDom(actSp);
+          }
         } catch (eSeDom) {}
       }
     });
@@ -2019,6 +2222,7 @@
   }
 
   function refreshOpenPayMngDomI18n(loc) {
+    if (!_screenSnap) ensureScreenSnap();
     var screens = w.PG_SCREENS && w.PG_SCREENS.getMenuScreens ? w.PG_SCREENS.getMenuScreens() : null;
     if (!screens) return;
     document.querySelectorAll('.tab-pane.tabConDiv[formurl]').forEach(function (pane) {

@@ -232,6 +232,7 @@
           var prev = JSON.parse(w.sessionStorage.getItem('pg_admin_user') || '{}') || {};
           if (d.webPaymentUseYn != null) prev.webPaymentUseYn = String(d.webPaymentUseYn);
           if (d.chatbotPaymentUseYn != null) prev.chatbotPaymentUseYn = String(d.chatbotPaymentUseYn);
+          if (d.apiJpaySubscriptionUseYn != null) prev.apiJpaySubscriptionUseYn = String(d.apiJpaySubscriptionUseYn);
           w.sessionStorage.setItem('pg_admin_user', JSON.stringify(prev));
         } catch (eSt) { /* ignore */ }
       }

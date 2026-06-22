@@ -52,6 +52,7 @@ public class SettlementReportService {
     private final OrgUnitRepository orgUnitRepository;
     private final PgTrnsctnRepository pgTrnsctnRepository;
     private final SettlementCalcService settlementCalcService;
+    private final CommissionService commissionService;
     private final CommissionPolicyRepository commissionPolicyRepository;
     private final HqLedgerSysSettingsRepository hqLedgerSysSettingsRepository;
     private final ReceivableRecoveryModeService receivableRecoveryModeService;
@@ -64,6 +65,7 @@ public class SettlementReportService {
     public SettlementReportService(OrgUnitRepository orgUnitRepository,
                                    PgTrnsctnRepository pgTrnsctnRepository,
                                    SettlementCalcService settlementCalcService,
+                                   CommissionService commissionService,
                                    CommissionPolicyRepository commissionPolicyRepository,
                                    HqLedgerSysSettingsRepository hqLedgerSysSettingsRepository,
                                    ReceivableRecoveryModeService receivableRecoveryModeService,
@@ -75,6 +77,7 @@ public class SettlementReportService {
         this.orgUnitRepository = orgUnitRepository;
         this.pgTrnsctnRepository = pgTrnsctnRepository;
         this.settlementCalcService = settlementCalcService;
+        this.commissionService = commissionService;
         this.commissionPolicyRepository = commissionPolicyRepository;
         this.hqLedgerSysSettingsRepository = hqLedgerSysSettingsRepository;
         this.receivableRecoveryModeService = receivableRecoveryModeService;
@@ -103,11 +106,11 @@ public class SettlementReportService {
         if (compId == null || compId.isBlank()) {
             return "KRW";
         }
-        return commissionPolicyRepository.findByScope(compId.trim())
-                .map(CommissionPolicy::getCurrencyCode)
-                .filter(c -> c != null && !c.isBlank())
-                .map(c -> c.trim().toUpperCase(Locale.ROOT))
-                .orElse("KRW");
+        CommissionPolicy pol = commissionService.resolveCommissionPolicyForSettlement(compId.trim());
+        if (pol != null && pol.getCurrencyCode() != null && !pol.getCurrencyCode().isBlank()) {
+            return pol.getCurrencyCode().trim().toUpperCase(Locale.ROOT);
+        }
+        return "KRW";
     }
 
     private FeeCurrencyRoundResolver feeCurrencyRoundResolver() {
@@ -125,7 +128,7 @@ public class SettlementReportService {
         if (compId == null || compId.isBlank() || r == null) {
             return new MdrPerTxnSplit(0d, 0d);
         }
-        CommissionPolicy pol = resolveCommissionPolicyForMerchantRow(compId.trim());
+        CommissionPolicy pol = commissionService.resolveCommissionPolicyForSettlement(compId.trim());
         if (pol == null) {
             return new MdrPerTxnSplit(0d, 0d);
         }
@@ -287,16 +290,6 @@ public class SettlementReportService {
                 .orElse(false);
     }
 
-    private CommissionPolicy resolveCommissionPolicyForMerchantRow(String merchantId) {
-        if (merchantId != null && !merchantId.isBlank()) {
-            Optional<CommissionPolicy> direct = commissionPolicyRepository.findByScope(merchantId.trim());
-            if (direct.isPresent()) {
-                return direct.get();
-            }
-        }
-        return commissionPolicyRepository.findByScope("DEFAULT").orElse(null);
-    }
-
     private void applyExecuteRemittanceAndFinalPay(Map<String, Object> m, SettlementRun r, String merchantId, FeeListRoundingPolicy rp) {
         BigDecimal payBd = nz(r.getPayAmt());
         BigDecimal storedRemit = r.getRemittanceFeeAmt();
@@ -315,7 +308,7 @@ public class SettlementReportService {
             m.put("remittanceFee", -remD);
             return;
         }
-        CommissionPolicy pol = resolveCommissionPolicyForMerchantRow(merchantId);
+        CommissionPolicy pol = commissionService.resolveCommissionPolicyForSettlement(merchantId);
         boolean usdt = merchantUsesUsdtRemittanceFee(merchantId);
         if (usdt && pol != null && pol.getUsdtTransferFeeUsd() != null
                 && pol.getUsdtTransferFeeUsd().compareTo(BigDecimal.ZERO) > 0) {

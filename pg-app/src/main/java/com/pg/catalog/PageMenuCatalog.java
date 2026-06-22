@@ -48,8 +48,9 @@ public final class PageMenuCatalog {
         add(list, "/commission/commisionList", "M0210", "수수료관리", "업체관리");
         add(list, "/comp/compInfoHistList", "M0214", "업체변경이력", "업체관리");
         add(list, "/calc/chillPayTrList", "M0319", "통합내역", "결제관리");
-        add(list, "/calc/jpayTrList", "M0328", "JPAY통합내역", "결제관리");
-        add(list, "/calc/splitPayList", "M0329", "분할결제내역", "결제관리");
+        add(list, "/calc/jpayTrList", "M0328", "통합조회", "결제관리");
+        add(list, "/calc/queryIntegrated", "M0331", "조회통합", "결제관리");
+        add(list, "/pay/splitPay", "M0330", "분할결제내역", "결제관리");
         add(list, "/calc/dailyIntegrated", "M0326", "일별통합", "결제관리");
         add(list, "/calc/payList", "M0301", "결제내역", "결제관리");
         add(list, "/calc/dailyPay", "M0327", "일별결제", "결제관리");
@@ -80,6 +81,10 @@ public final class PageMenuCatalog {
         add(list, "/chatbot/chatbotKbMng", "M0612", "기본설정", "챗봇관리");
         add(list, "/chatbot/productMng", "M0611", "상품관리", "챗봇관리");
         add(list, "/chatbot/orderMng", "M0613", "주문관리", "챗봇관리");
+        add(list, "/calc/splitPayList", "M0329", "계약관리", "분할관리");
+        add(list, "/splitpay/progressMng", "M0711", "진행관리", "분할관리");
+        add(list, "/splitpay/mailMng", "M0712", "이메일관리", "분할관리");
+        add(list, "/splitpay/emailSettings", "M0713", "이메일설정", "분할관리");
         add(list, "/noti/notiUrlMng", "M0801", "결제통보 URL관리", "통보관리");
         add(list, "/noti/notiSendMngList", "M0802", "결제통보 전송관리", "통보관리");
         add(list, "/noti/notiCashReceiptUrlMng", "M0805", "현금영수증통보 URL관리", "통보관리");

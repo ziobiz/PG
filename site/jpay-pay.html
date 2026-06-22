@@ -580,6 +580,21 @@
           lockField('item', p.get('item') || p.get('desc'));
           lockField('amount', p.get('amount') || p.get('amt'));
           lockField('orderNo', p.get('orderNo') || p.get('OrderNo'));
+          var email = p.get('email') || p.get('payEmailAddress');
+          if (email) {
+            var em = document.getElementById('payEmailAddress');
+            if (em) { em.value = email.trim(); em.readOnly = true; }
+          }
+          var buyerName = p.get('buyerName') || p.get('customerName');
+          if (buyerName) {
+            var parts = String(buyerName).trim().split(/\s+/);
+            var fn = document.getElementById('payFirstName');
+            var ln = document.getElementById('payLastName');
+            if (fn && ln && parts.length) {
+              if (parts.length === 1) { fn.value = parts[0]; }
+              else { fn.value = parts[0]; ln.value = parts.slice(1).join(' '); }
+            }
+          }
           var curParam = p.get('currency') || p.get('cur');
           if (curParam) {
             var h = document.getElementById('payAmountCurrencyHint');

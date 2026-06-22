@@ -5,6 +5,7 @@ import com.pg.api.dto.PageResult;
 import com.pg.splitpay.SplitPayListService;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -31,8 +32,10 @@ public class ApiCalcSplitPayController {
             @RequestParam(required = false) String contractNo,
             @RequestParam(required = false) String status,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate searchFromDate,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate searchToDate) {
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate searchToDate,
+            Authentication authentication) {
         return ResponseEntity.ok(ApiResponse.ok(
-                splitPayListService.search(page, size, compId, contractNo, status, searchFromDate, searchToDate)));
+                splitPayListService.search(page, size, compId, contractNo, status, searchFromDate, searchToDate,
+                        authentication)));
     }
 }

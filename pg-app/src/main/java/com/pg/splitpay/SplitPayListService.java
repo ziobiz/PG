@@ -6,10 +6,12 @@ import com.pg.entity.SplitPayInstallment;
 import com.pg.repository.SplitPayContractRepository;
 import com.pg.repository.SplitPayInstallmentRepository;
 import jakarta.persistence.criteria.Predicate;
+import com.pg.service.OrgAccessService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -21,27 +23,45 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 
 @Service
 public class SplitPayListService {
 
     private final SplitPayContractRepository contractRepository;
     private final SplitPayInstallmentRepository installmentRepository;
+    private final OrgAccessService orgAccessService;
 
     public SplitPayListService(SplitPayContractRepository contractRepository,
-                               SplitPayInstallmentRepository installmentRepository) {
+                               SplitPayInstallmentRepository installmentRepository,
+                               OrgAccessService orgAccessService) {
         this.contractRepository = contractRepository;
         this.installmentRepository = installmentRepository;
+        this.orgAccessService = orgAccessService;
     }
 
     @Transactional(readOnly = true)
     public PageResult<Map<String, Object>> search(int page1, int size,
                                                  String compId, String contractNo, String status,
-                                                 LocalDate fromDate, LocalDate toDate) {
+                                                 LocalDate fromDate, LocalDate toDate,
+                                                 Authentication authentication) {
+        Set<String> visible = orgAccessService.visibleMerchantCompCodes(authentication);
+        if (visible != null && visible.isEmpty()) {
+            return PageResult.empty(page1, size);
+        }
         int pageIdx = Math.max(page1, 1) - 1;
         int sz = size <= 0 ? 50 : Math.min(size, 300);
         Specification<SplitPayContract> spec = (root, query, cb) -> {
             List<Predicate> ps = new ArrayList<>();
+            if (visible != null) {
+                Set<String> upper = visible.stream()
+                        .filter(s -> s != null && !s.isBlank())
+                        .map(s -> s.trim().toUpperCase(Locale.ROOT))
+                        .collect(java.util.stream.Collectors.toSet());
+                if (!upper.isEmpty()) {
+                    ps.add(cb.upper(root.get("merchantCode")).in(upper));
+                }
+            }
             if (compId != null && !compId.isBlank()) {
                 ps.add(cb.equal(cb.upper(root.get("merchantCode")), compId.trim().toUpperCase(Locale.ROOT)));
             }

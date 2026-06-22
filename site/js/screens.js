@@ -257,20 +257,61 @@
     };
   }
 
-  /** 가맹 등록·정보 — URL 분할결제 계약·회차 결제 */
+  /** URL 분할결제 — 월기간 1~24개월 */
+  function merchantSplitPayMonthIntervalOptions() {
+    var opts = [];
+    for (var m = 1; m <= 24; m++) {
+      opts.push({ v: String(m), t: m + '개월' });
+    }
+    return opts;
+  }
+
+  /** URL 분할결제 — 멀티 최대 개월 (3·5·6·12=1년) */
+  function merchantSplitPayMultiMaxOptions() {
+    return [
+      { v: '3', t: '3개월' },
+      { v: '5', t: '5개월' },
+      { v: '6', t: '6개월' },
+      { v: '12', t: '1년' }
+    ];
+  }
+
+  /** URL 분할결제 — 일기간 (5일 단위 프리셋) */
+  function merchantSplitPayDayIntervalOptions() {
+    return [5, 7, 10, 15, 20, 40, 50].map(function (d) {
+      return { v: String(d), t: d + '일' };
+    });
+  }
+
+  function merchantSplitPayUrlRowHtml(placeholderKo) {
+    var ph = placeholderKo || '가맹점 저장 후 조회';
+    return '<div class="row mb-2"><div class="col-sm-5"><label class="form-label" data-pg-ui-t="분할결제 URL">' + escUi(L('분할결제 URL')) + '</label><div class="input-group input-group-sm"><input type="text" class="form-control" id="splitPayUrlDisplay" readonly placeholder="' + escUi(L(String(ph))) + '" data-pg-ui-placeholder="' + escUi(String(ph)) + '"><button type="button" class="btn btn-outline-primary" id="splitPayUrlCopyBtn" data-pg-ui-t="복사">' + escUi(L('복사')) + '</button></div></div></div>';
+  }
+
+  /** 가맹 등록·정보 — URL 분할결제 계약·회차 설정 (API URL 인라인 중계 결제와 별도) */
   function merchantSplitPayCardSection() {
     return {
       title: 'URL 분할결제',
       id: 'splitPayCard',
       merchantOnly: true,
-      notice: 'URL 분할결제 계약·회차별 결제를 가맹별로 허용합니다. 월간·일간 간격 중 하나 이상을 켜야 하며, 1회차는 즉시결제 또는 링크발송을 선택합니다. 수수료는 본사 수수료정책의 분할수수료율·분할고정수수료(건)가 적용됩니다.',
+      notice: '「분할결제 사용여부」로 URL 분할결제·분할관리 메뉴 노출을 제어합니다. 사용 ON인 가맹은 분할결제 URL(공개) 또는 분할 계약 API로 고객 계약·회차 결제를 진행합니다. 「API URL 인라인 중계 결제」의 결제방식 선택과는 별개입니다. 회차는 운영 URL PG에 따라 pay.html 또는 jpay-pay.html 입니다.',
       rows: [
-        [{ label: '분할결제 사용', type: 'select', name: 'splitPayEnabledYn', options: [{ v: 'N', t: '미사용' }, { v: 'Y', t: '사용' }], col: 3 },
-         { label: '월간 간격', type: 'select', name: 'splitPayIntervalMonthYn', options: [{ v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }], col: 3 },
-         { label: '일간 간격', type: 'select', name: 'splitPayIntervalDayYn', options: [{ v: 'N', t: '미사용' }, { v: 'Y', t: '사용' }], col: 3 }],
-        [{ label: '일간격 일수', type: 'text', name: 'splitPayDayIntervalDays', col: 2, placeholder: '10' },
-         { label: '1회차 결제', type: 'select', name: 'splitPayFirstPayMode', options: [{ v: 'IMMEDIATE', t: '즉시결제' }, { v: 'LINK', t: '링크발송' }], col: 3 }],
-        [{ label: '', type: 'note', col: 12, text: '일간격 사용 시 일간격 일수(기본 10일) 간격으로 회차 예정일이 잡힙니다. 미납 회차는 매일 결제 링크 메일이 발송됩니다. API: GET /api/pay/split/merchant-config · POST .../preview · POST .../contracts' }]
+        [{ label: '분할결제 사용여부', type: 'select', name: 'splitPayEnabledYn', options: [{ v: 'N', t: '미사용' }, { v: 'Y', t: '사용' }], col: 3 }],
+        [{ label: '월/일 설정', type: 'select', name: 'splitPayIntervalType', options: [
+          { v: 'MONTH', t: '월간' },
+          { v: 'DAY', t: '일간' },
+          { v: 'MULTI', t: '멀티' }
+        ], col: 3 },
+         { label: '기간', type: 'select', name: 'splitPayIntervalPeriod', options: merchantSplitPayMonthIntervalOptions(), col: 3 }],
+        [{ label: '1회차 결제', type: 'select', name: 'splitPayFirstPayMode', options: [{ v: 'IMMEDIATE', t: '즉시결제' }, { v: 'LINK', t: '링크발송' }], col: 3 },
+         { type: 'hidden', name: 'splitPayIntervalMonthYn' },
+         { type: 'hidden', name: 'splitPayIntervalDayYn' },
+         { type: 'hidden', name: 'splitPayIntervalMultiYn' },
+         { type: 'hidden', name: 'splitPayMonthIntervalMonths' },
+         { type: 'hidden', name: 'splitPayDayIntervalDays' },
+         { type: 'hidden', name: 'splitPayMultiMaxMonths' }],
+        [{ type: 'customHtml', col: 12, html: merchantSplitPayUrlRowHtml('가맹점 저장 후 조회') }],
+        [{ label: '', type: 'note', col: 12, text: '분할결제 사용 ON 시 월간·일간·멀티 중 하나를 설정합니다. 멀티는 고객이 1개월~설정 최대개월 중 기간을 직접 선택합니다. 1회차는 즉시결제 또는 링크발송. 미납 회차는 매일 결제 링크 메일이 발송됩니다. 미사용이면 분할관리·분할결제내역 메뉴가 숨겨집니다.' }]
       ]
     };
   }
@@ -281,10 +322,14 @@
       title: 'API URL 인라인 중계 결제',
       id: 'apiUrlPayCheckoutCard',
       merchantOnly: true,
-      notice: '가맹 API inline-checkout/prepare 호출 시 payUrl·결제창에 적용됩니다. 공개 URL·챗봇과 별도로 일반 URL/재결제 URL 을 선택할 수 있습니다. 재결제 URL 은 본사 URL 재결제 기능 ON 및 URL재결제 PG 바인딩(연동용도 URL재결제·운영 Y)이 필요합니다.',
+      notice: '가맹 쇼핑몰 등에서 API 인라인 inline-checkout/prepare 를 호출할 때 저장된 값이 payUrl·결제창에 반영됩니다. 공개 결제 URL·챗봇결제와는 별도 설정입니다. ChillPay·JPAY API 인라인 모두 동일하게 적용됩니다.',
       rows: [
-        [{ label: 'URL 결제 방식', type: 'select', name: 'apiUrlPayCheckoutMode', options: [{ v: 'STANDARD', t: '일반 URL 결제' }, { v: 'REPAY', t: '재결제 URL (저장 카드)' }], col: 3 }],
-        [{ label: '', type: 'note', col: 12, text: '본사 결제로직설정에서 URL 결제형 INLINE 제공이 Y 이어야 합니다. prepare 응답 payUrl 에 variant=repay 가 포함되면 재결제 URL 모드입니다.' }]
+        [{ label: 'URL 결제 방식', type: 'select', name: 'apiUrlPayCheckoutMode', options: [
+          { v: 'STANDARD', t: '일반 결제' },
+          { v: 'REPAY', t: '재구매 결제' },
+          { v: 'SPLIT_PAY', t: '분할 결제' }
+        ], col: 3 }],
+        [{ label: '', type: 'note', col: 12, text: '필수: 가맹 「API 인라인 연동」·「웹결제」사용, 운영 URL PG 바인딩, 본사 결제로직 URL INLINE 제공(Y). 일반 결제 → pay.html 또는 jpay-pay.html. 재구매 결제 → ChillPay API 인라인만(pay-repay), JPAY API 인라인 미지원. 분할 결제 → 1회 prepare 불가, API 분할 계약(POST /api/pay/split/contracts) 이용. 공개 URL 분할결제는 「URL 분할결제」사용 ON으로 별도 운영합니다.' }]
       ]
     };
   }
@@ -2593,8 +2638,9 @@
               { label: '설정 대상 화면', type: 'select', name: 'targetPageUrl', col: 4, options: [
                 /* 결제관리 — 사이드 메뉴(menu-structure·index) 순서·표기와 동일 */
                 { v: '/calc/chillPayTrList', t: '통합내역' },
-                { v: '/calc/jpayTrList', t: 'JPAY통합내역' },
-                { v: '/calc/splitPayList', t: '분할결제내역' },
+                { v: '/calc/jpayTrList', t: '통합조회' },
+                { v: '/calc/queryIntegrated', t: '조회통합' },
+                { v: '/pay/splitPay', t: '분할결제내역' },
                 { v: '/calc/dailyIntegrated', t: '일별통합' },
                 { v: '/calc/payList', t: '결제내역' },
                 { v: '/calc/dailyPay', t: '일별결제' },
@@ -2609,6 +2655,8 @@
                 { v: '/pay/chatbotPay', t: '챗봇결제내역' },
                 { v: '/pay/jpaySubscription', t: '구독결제내역' },
                 { v: '/calc/offsetCancList', t: '상계취소내역' },
+                /* 분할관리 */
+                { v: '/calc/splitPayList', t: '계약관리' },
                 { v: '/comp/compMngTree', t: '업체관리' },
                 { v: '/commission/commisionList', t: '수수료관리' },
                 /* 정산관리 — 사이드 메뉴 순서·표기 */
@@ -4560,9 +4608,69 @@
         { key: 'fee', label: '수수료' },
         { key: 'refundStatus', label: '환불' },
         { key: 'chargeback', label: '차지백' },
+        { key: 'cardBin', label: 'Card BIN' },
         { key: 'urlSource', label: 'URL출처' }
       ],
       emptyMessage: '동기화 후 조회됩니다. [JPAY 동기화]를 실행하세요.'
+    },
+    '/calc/queryIntegrated': {
+      isDailySummaryScreen: true,
+      dailySummaryKind: 'jpay',
+      listSortDirAnchor: 'refresh',
+      searchFormClass: 'screen-search-form pay-mng-search-form',
+      searchRows: [
+        [
+          { label: '거래일자', type: 'daterange', from: 'searchFromDate', to: 'searchToDate' },
+          { type: 'quickdate', quickdateLabels: ['당일', '당월', '전일', '1주', '2주', '전월'], quickdateRanges: ['day', 'month', 'prevDay', 'week', 'week2', 'prevMonth'] }
+        ],
+        [
+          { label: '검색구분', type: 'select', name: 'searchFieldType', options: [
+            { v: 'ALL', t: '전체' },
+            { v: 'ORDER_NO', t: '주문번호' },
+            { v: 'APPROVAL_NO', t: '승인번호' },
+            { v: 'MID', t: 'MID' }
+          ], size: 11 },
+          { label: '검색어', type: 'text', name: 'searchKeyword', placeholder: '검색어', size: 22 },
+          { label: '상태구분', type: 'select', name: 'searchPayDivCd', options: [
+            { v: '', t: '전체' },
+            { v: '10', t: '성공' },
+            { v: '30', t: '환불' },
+            { v: '31', t: '강제환불' },
+            { v: '99', t: '실패' }
+          ], size: 11 },
+          { type: 'searchBtn', label: '검색' }
+        ]
+      ],
+      noticeList: [
+        '통합조회(JPAY Export 캐시)와 동일 필터로, 거래일(trnDate) 구간을 일 단위로 집계합니다. 일자별 성공·실패·취소·무효·이메일무효·환불·강제환불·기타 건수는 해당 일 전체 건 기준입니다. 일자 행을 더블클릭하면 아래 「선택 일자 상세」에 해당 일 통합조회 전체·금액 요약이 표시됩니다.',
+        '조회 기간은 최대 93일입니다. 당월 등으로 종료일이 오늘 이후이면 표시는 전산 기준일(오늘)까지만 합니다(미래 일자 미표시). 통합조회 화면에서 [JPAY 동기화]로 캐시를 갱신한 뒤 조회하세요.'
+      ],
+      summary: ['건수'],
+      buttons: [
+        { id: 'payListRefreshBtn', label: '새로고침', cls: 'btn-outline-secondary' },
+        { id: 'excelDownBtn', label: '엑셀다운로드', cls: 'btn-info' },
+        { id: 'searchBtn', label: '검색', cls: 'btn-primary' }
+      ],
+      columns: [
+        { key: 'rowNo', label: '번호' },
+        { key: 'day', label: '일자' },
+        { key: 'totalElements', label: '총건수' },
+        { statusBucketKey: 'SUCCESS', label: '성공' },
+        { statusBucketKey: 'FAIL', label: '실패' },
+        { statusBucketKey: 'CANCEL', label: '취소' },
+        { statusBucketKey: 'VOID', label: '무효' },
+        { statusBucketKey: 'EMAIL_VOID', label: '이메일 무효' },
+        { statusBucketKey: 'REFUND', label: '환불' },
+        { statusBucketKey: 'FORCE_REFUND', label: '강제환불' },
+        { statusBucketKey: 'OTHER', label: '기타' },
+        { key: 'payCur_THB', label: 'THB', currencyCode: 'THB' },
+        { key: 'payCur_JPY', label: 'JPY', currencyCode: 'JPY' },
+        { key: 'payCur_KRW', label: 'KRW', currencyCode: 'KRW' },
+        { key: 'payCur_USD', label: 'USD', currencyCode: 'USD' },
+        { key: 'payCur_CNY', label: 'CNY', currencyCode: 'CNY' },
+        { key: 'note', label: '비고' }
+      ],
+      emptyMessage: '조회된 데이터가 없습니다.'
     },
     '/calc/splitPayList': {
       listSortDirAnchor: 'refresh',
@@ -4590,9 +4698,9 @@
         ]
       ],
       noticeList: [
-        'URL 분할결제 계약 목록입니다. 가맹 업체등록·업체정보의 「URL 분할결제」에서 기능을 켠 가맹만 계약을 생성할 수 있습니다.',
-        '각 회차 결제는 URL 결제 플로우로 진행됩니다. 1회차는 즉시결제(IMMEDIATE) 또는 링크발송(LINK) 모드에 따라 처리되며, 미납 회차는 매일 결제 링크 메일이 발송됩니다.',
-        '수수료는 본사 수수료정책의 분할수수료율·분할고정수수료(건)가 계약 생성 시 스냅샷으로 저장됩니다. API: POST /api/pay/split/contracts · GET /api/pay/split/installment?token=…'
+        'URL 분할결제 계약 목록입니다. 「URL 분할결제」에서 사용을 켠 가맹만 계약을 생성할 수 있습니다.',
+        '각 회차 결제는 운영 URL PG에 따라 ChillPay(pay.html) 또는 JPAY(jpay-pay.html) 결제창으로 진행됩니다. 1회차는 즉시결제(IMMEDIATE) 또는 링크발송(LINK)이며, 미납 회차는 매일 결제 링크 메일이 발송됩니다.',
+        '공개 분할결제 URL 또는 API(POST /api/pay/split/contracts)로 계약합니다. 수수료는 본사 수수료정책의 분할수수료율·분할고정수수료(건)가 계약 생성 시 스냅샷으로 저장됩니다.'
       ],
       summary: ['건수'],
       buttons: [
@@ -4612,6 +4720,128 @@
         { key: 'createdAt', label: '등록일시' }
       ],
       emptyMessage: '조회된 분할결제 계약이 없습니다.'
+    },
+    '/splitpay/progressMng': {
+      listSortDirAnchor: 'refresh',
+      paginationSizeOptions: [50, 100, 300],
+      paginationDefaultSize: 50,
+      payListStatusBar: true,
+      searchFormClass: 'screen-search-form pay-mng-search-form',
+      searchRows: [
+        [
+          { label: '납부예정일', type: 'daterange', from: 'searchFromDate', to: 'searchToDate' },
+          { type: 'quickdate', quickdateLabels: ['당일', '당월', '전일', '1주', '2주', '전월'], quickdateRanges: ['day', 'month', 'prevDay', 'week', 'week2', 'prevMonth'] }
+        ],
+        [
+          { label: '업체코드', type: 'text', name: 'compId', placeholder: '업체코드', size: 14 },
+          { label: '계약번호', type: 'text', name: 'contractNo', placeholder: '계약번호', size: 18 },
+          { label: '회차상태', type: 'select', name: 'status', options: [
+            { v: '', t: '전체' },
+            { v: 'PENDING', t: '미납' },
+            { v: 'PAID', t: '납부완료' },
+            { v: 'CANCELLED', t: '취소' }
+          ], size: 11 },
+          { type: 'searchBtn', label: '검색' },
+          { type: 'button', name: 'searchReset', label: '검색 초기화' }
+        ]
+      ],
+      noticeList: [
+        '분할결제 계약별 회차 진행 현황입니다. 계약 단위 납부율·회차별 예정일·납부 상태를 확인합니다.',
+        '회차 결제가 완료되면 결제관리 「결제내역」과 「분할결제내역」에도 동일 거래가 표시됩니다.',
+        '가맹점은 본인 소속 가맹 계약·회차만 조회됩니다.'
+      ],
+      summary: ['건수'],
+      buttons: [
+        { id: 'payListRefreshBtn', label: '새로고침', cls: 'btn-outline-secondary' },
+        { id: 'excelDownBtn', label: '엑셀다운로드', cls: 'btn-info' }
+      ],
+      columns: [
+        { key: 'rowNo', label: 'No.' },
+        { key: 'contractNo', label: '계약번호' },
+        { key: 'compId', label: '업체코드' },
+        { key: 'installmentNo', label: '회차' },
+        { key: 'installmentCount', label: '총회차' },
+        { key: 'paidCount', label: '납부회차' },
+        { key: 'progressPct', label: '진행률(%)' },
+        { key: 'amount', label: '회차금액' },
+        { key: 'currencyCode', label: '통화' },
+        { key: 'dueDate', label: '납부예정일' },
+        { key: 'status', label: '회차상태' },
+        { key: 'paidAt', label: '납부일시' },
+        { key: 'customerEmail', label: '고객이메일' },
+        { key: 'contractStatus', label: '계약상태' },
+        { key: 'orderNo', label: '주문번호' }
+      ],
+      emptyMessage: '조회된 분할결제 회차가 없습니다.'
+    },
+    '/splitpay/mailMng': {
+      listSortDirAnchor: 'refresh',
+      paginationSizeOptions: [50, 100, 300],
+      paginationDefaultSize: 50,
+      payListStatusBar: true,
+      searchFormClass: 'screen-search-form pay-mng-search-form',
+      searchRows: [
+        [
+          { label: '납부예정일', type: 'daterange', from: 'searchFromDate', to: 'searchToDate' },
+          { type: 'quickdate', quickdateLabels: ['당일', '당월', '전일', '1주', '2주', '전월'], quickdateRanges: ['day', 'month', 'prevDay', 'week', 'week2', 'prevMonth'] }
+        ],
+        [
+          { label: '업체코드', type: 'text', name: 'compId', placeholder: '업체코드', size: 14 },
+          { label: '계약번호', type: 'text', name: 'contractNo', placeholder: '계약번호', size: 18 },
+          { label: '회차상태', type: 'select', name: 'status', options: [
+            { v: 'PENDING', t: '미납' },
+            { v: '', t: '전체' },
+            { v: 'PAID', t: '납부완료' },
+            { v: 'CANCELLED', t: '취소' }
+          ], size: 11 },
+          { type: 'searchBtn', label: '검색' },
+          { type: 'button', name: 'searchReset', label: '검색 초기화' }
+        ]
+      ],
+      noticeList: [
+        '분할결제 회차별 결제 링크 이메일 발송 현황입니다. D-1·당일(D0)·D+1·D+2·D+3 자동 발송 일시를 확인할 수 있습니다.',
+        '미납(PENDING) 회차는 [링크재발송]으로 결제 안내 메일을 수동 재발송할 수 있습니다.',
+        '자동 발송은 매일 스케줄러가 처리하며, 운영 메일 로그는 「운영관리 > 메일로그」에서 확인합니다.'
+      ],
+      summary: ['건수'],
+      buttons: [
+        { id: 'payListRefreshBtn', label: '새로고침', cls: 'btn-outline-secondary' },
+        { id: 'excelDownBtn', label: '엑셀다운로드', cls: 'btn-info' }
+      ],
+      columns: [
+        { key: 'rowNo', label: 'No.' },
+        { key: 'contractNo', label: '계약번호' },
+        { key: 'compId', label: '업체코드' },
+        { key: 'installmentNo', label: '회차' },
+        { key: 'customerEmail', label: '고객이메일' },
+        { key: 'dueDate', label: '납부예정일' },
+        { key: 'status', label: '회차상태' },
+        { key: 'mailDMinus1Sent', label: 'D-1발송' },
+        { key: 'mailD0Sent', label: 'D0발송' },
+        { key: 'mailD1Sent', label: 'D+1발송' },
+        { key: 'mailD2Sent', label: 'D+2발송' },
+        { key: 'mailD3Sent', label: 'D+3발송' },
+        { key: 'splitPayMailResend', label: '재발송', type: 'splitPayMailResendBtn' }
+      ],
+      emptyMessage: '조회된 분할결제 이메일 대상이 없습니다.'
+    },
+    '/splitpay/emailSettings': {
+      isForm: true,
+      splitPayEmailSettingsScreen: true,
+      hideListGrid: true,
+      formSections: [
+        {
+          title: '분할결제 이메일설정',
+          notice: '분할결제 이메일설정 안내',
+          rows: [
+            [{ type: 'customHtml', col: 12, html: '<div id="splitPayEmailSettingsRoot" class="split-pay-email-settings-root"></div>' }]
+          ]
+        }
+      ],
+      buttons: [
+        { id: 'splitPayEmailSettingsSaveBtn', label: '저장', cls: 'btn-primary' },
+        { id: 'splitPayEmailSettingsTestBtn', label: '테스트발송', cls: 'btn-outline-primary' }
+      ]
     },
     '/calc/dailyIntegrated': {
       isDailySummaryScreen: true,
@@ -5146,12 +5376,13 @@
       columnGuideFixedKeys: ['rowNo', 'compNm', 'compId', 'trnDate', 'curType'],
       viewSettingDefaultSelectedKeys: [
         'trnTime', 'routeNo', 'chillTransactionId', 'trnId', 'statusNm', 'amount', 'payCur', 'curType', 'policyCur', 'calcCycle', 'expectedSettleDate',
-        'txnFixedFeesSum', 'pctFeesSum', 'usdtFee', 'fxFee', 'fee3dsFee', 'rollingPctPlain', 'rollingDays', 'rollingHoldEst',
+        'txnFixedFeesSum', 'pctFeesSum', 'usdtFee', 'fxFee', 'fee3dsFee', 'splitPayPctFee', 'splitPayFixedFee',
+        'rollingPctPlain', 'rollingDays', 'rollingHoldEst',
         'failFee', 'cancelFee', 'voidFee', 'manualVoidFee', 'refundFee', 'chargebackFee',
         'totalFee', 'feeVat', 'expectedPayout', 'settlementAmt', 'vatAppliedYn'
       ],
       noticeList: [
-        '검색: 첫 줄에서 거래일·빠른기간을 정한 뒤, 둘째 줄에서 검색구분·검색어·상태그룹을 맞추고 오른쪽 [검색]을 누릅니다. 「전체」는 해당 조건으로 좁히지 않습니다. VIEW SETTING에서 열 표시를 켜고 끌 수 있습니다. 앞쪽 열 순서(업체·거래일·거래시간·루트·승인번호·거래번호)는 통합 결제내역 기본과 같습니다. 건당수수료 열은 거래 성공 시 과금되는 성공(건당) 고정액만 표시합니다. 기타수수료: USDT·FX는 승인금액 대비 %(「결제(%)」 합계에 포함), 3DS는 정책통화 기준 건당 고정(합계 열에는 미포함·별도 열). 세 항목은 결제·건당 등과 별도로 동시 과금될 수 있습니다. 금액이 없으면 USDT·FX·3DS 열은 — 입니다. 정산 수수료는 정산 실행 시 1회 과금되며, 송금(이체) 수수료는 그 이후 송금 처리 시 과금되어 정산리포트에 정산 수수료·송금 수수료로 각각 표시됩니다. 이 화면의 총수수료·지급예상에는 정산·송금 건당액이 포함되지 않습니다. 결제(성공): 건당·%(승인 시 부과) 열, 담보(롤링%·추정액), 지급예상액, 정산액(지급예상−담보추정). 실패·취소·무효·환불 등은 상태별 수수료 규칙을 따르며, 무효·환불 계열은 성공 건과 동일한 건당·%가 추가로 과금될 수 있습니다(이중 과금). 차감(취소·환불·무효·실패 등): 지급예상액은 0, 총수수료·부가세는 과금액(양수), 정산액은 −(총수수료+부가세)입니다. 담보 추정은 승인 건에만 표시됩니다. 본사·총판 등은 로그인 조직 하위 가맹점만 조회됩니다.'
+        '검색: 첫 줄에서 거래일·빠른기간을 정한 뒤, 둘째 줄에서 검색구분·검색어·상태그룹을 맞추고 오른쪽 [검색]을 누릅니다. 「전체」는 해당 조건으로 좁히지 않습니다. VIEW SETTING에서 열 표시를 켜고 끌 수 있습니다. 앞쪽 열 순서(업체·거래일·거래시간·루트·승인번호·거래번호)는 통합 결제내역 기본과 같습니다. 건당수수료 열은 거래 성공 시 과금되는 성공(건당) 고정액만 표시합니다. 기타수수료: USDT·FX는 승인금액 대비 %(「결제(%)」 합계에 포함), 3DS는 정책통화 기준 건당 고정(합계 열에는 미포함·별도 열). 분할결제 거래는 분할(%)·분할수수료(% 과금액)·분할건당·분할고정(1회차에 분할건×회차수 합산)이 추가되며 총수수료·정산에 포함됩니다. 세 항목은 결제·건당 등과 별도로 동시 과금될 수 있습니다. 금액이 없으면 USDT·FX·3DS·분할 열은 — 입니다. 정산 수수료는 정산 실행 시 1회 과금되며, 송금(이체) 수수료는 그 이후 송금 처리 시 과금되어 정산리포트에 정산 수수료·송금 수수료로 각각 표시됩니다. 이 화면의 총수수료·지급예상에는 정산·송금 건당액이 포함되지 않습니다. 결제(성공): 건당·%(승인 시 부과) 열, 담보(롤링%·추정액), 지급예상액, 정산액(지급예상−담보추정). 실패·취소·무효·환불 등은 상태별 수수료 규칙을 따르며, 무효·환불 계열은 성공 건과 동일한 건당·%가 추가로 과금될 수 있습니다(이중 과금). 차감(취소·환불·무효·실패 등): 지급예상액은 0, 총수수료·부가세는 과금액(양수), 정산액은 −(총수수료+부가세)입니다. 담보 추정은 승인 건에만 표시됩니다. 본사·총판 등은 로그인 조직 하위 가맹점만 조회됩니다.'
       ],
       searchRows: [
         [
@@ -5196,7 +5427,7 @@
       headerGroups: [
         { label: '거래', keys: ['trnDate', 'trnTime', 'routeNo', 'chillTransactionId', 'trnId'] },
         { label: '승인 / 결제수수료(%)', keys: ['txnFixedFeesSum', 'pctFeesSum'] },
-        { label: '기타수수료', keys: ['usdtFee', 'fxFee', 'fee3dsFee'] },
+        { label: '기타수수료', keys: ['usdtFee', 'fxFee', 'fee3dsFee', 'splitPayPctFee', 'splitPayFixedFee'] },
         { label: '담보(롤링)', keys: ['rollingPctPlain', 'rollingDays', 'rollingHoldEst'] },
         { label: '실패·취소·무효·환불·차지백', keys: ['failFee', 'cancelFee', 'voidFee', 'manualVoidFee', 'refundFee', 'chargebackFee'] },
         { label: '차감·지급', keys: ['totalFee', 'feeVat', 'expectedPayout', 'settlementAmt'] }
@@ -5223,6 +5454,10 @@
         { key: 'usdtFee', label: 'USDT', columnGuideLabel: 'USDT(%) 과금액(승인금액 기준)' },
         { key: 'fxFee', label: 'FX', columnGuideLabel: 'FX(%) 과금액(승인금액 기준)' },
         { key: 'fee3dsFee', label: '3DS', columnGuideLabel: '3DS 건당 고정 과금액' },
+        { key: 'splitPayFeePctRate', label: '분할(%)', columnGuideLabel: '분할결제 % 수수료율(계약 스냅샷·정책)' },
+        { key: 'splitPayPctFee', label: '분할수수료', columnGuideLabel: '분할결제 % 수수료 과금액(회차별)' },
+        { key: 'splitPayFixedPerInst', label: '분할건당', columnGuideLabel: '분할 고정수수료(분할건) 정책 단가' },
+        { key: 'splitPayFixedFee', label: '분할고정', columnGuideLabel: '분할 고정수수료 과금액(1회차에 계약 전체 합산)' },
         { key: 'rollingPctPlain', label: '담보율(%)' },
         { key: 'rollingDays', label: '보류일' },
         { key: 'rollingHoldEst', label: '담보추정액' },
@@ -6362,6 +6597,10 @@
         o.type = 'payActions';
         o.key = 'payActions';
       }
+      else if (c.gridType === 'payRemark') {
+        o.type = 'payRemark';
+        o.key = 'payRemark';
+      }
       return o;
     });
     if (P.columnGuideFixedKeys && P.columnGuideFixedKeys.length) {
@@ -6455,6 +6694,10 @@
     MENU_SCREENS['/pay/chatbotPay'] = cloneWith('CHATBOT_PAY', [
       '챗봇결제내역: 웹 EFO 챗봇 결제 플로우에서 동일 칠페이(URL/카드) API로 생성·적재한 건만 표시합니다. 통합 결제내역에도 포함되며, 여기서는 origin=CHATBOT 만 조회합니다.',
       'URL결제내역과 동일 API(/api/calc/payList)·그리드를 사용하며 payListVariant=CHATBOT_PAY 로 구분합니다.'
+    ]);
+    MENU_SCREENS['/pay/splitPay'] = cloneWith('SPLIT_PAY', [
+      '분할결제내역: URL 분할결제 계약의 회차별 결제(pg_trnsctn)만 표시합니다. 통합 결제내역에도 포함되며, 여기서는 분할결제 회차 주문번호로만 조회합니다.',
+      'URL결제내역·챗봇결제내역과 동일 API(/api/calc/payList)·그리드를 사용하며 payListVariant=SPLIT_PAY 로 구분합니다.'
     ]);
     MENU_SCREENS['/pay/jpaySubscription'] = {
       emptyMessage: '조회된 구독이 없습니다.',

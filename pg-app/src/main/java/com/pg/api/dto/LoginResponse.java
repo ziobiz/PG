@@ -29,6 +29,10 @@ public class LoginResponse {
     private String chatbotPaymentUseYn;
     /** 가맹점(MERCHANT) 로그인 시 URL(웹)결제 사용 Y/N — 그 외 조직·역할은 null */
     private String webPaymentUseYn;
+    /** 가맹점(MERCHANT) 로그인 시 분할결제 사용 Y/N — 분할관리 메뉴 노출용 */
+    private String splitPayEnabledYn;
+    /** 가맹점(MERCHANT) 로그인 시 JPAY API 구독결제 사용 Y/N — 구독결제내역 메뉴 노출용 */
+    private String apiJpaySubscriptionUseYn;
     /** 가맹점(MERCHANT) 로그인 시 본사 API 배포(브로커 시크릿 발급) 완료 Y/N — 가맹점API 메뉴 노출용 */
     private String merchantApiDeployedYn;
     /** 공지사항 등록 가능(총본사·본사·총판 + 화면 권한 MODIFY 이상) */
@@ -70,6 +74,10 @@ public class LoginResponse {
     public void setChatbotPaymentUseYn(String chatbotPaymentUseYn) { this.chatbotPaymentUseYn = chatbotPaymentUseYn; }
     public String getWebPaymentUseYn() { return webPaymentUseYn; }
     public void setWebPaymentUseYn(String webPaymentUseYn) { this.webPaymentUseYn = webPaymentUseYn; }
+    public String getSplitPayEnabledYn() { return splitPayEnabledYn; }
+    public void setSplitPayEnabledYn(String splitPayEnabledYn) { this.splitPayEnabledYn = splitPayEnabledYn; }
+    public String getApiJpaySubscriptionUseYn() { return apiJpaySubscriptionUseYn; }
+    public void setApiJpaySubscriptionUseYn(String apiJpaySubscriptionUseYn) { this.apiJpaySubscriptionUseYn = apiJpaySubscriptionUseYn; }
     public String getMerchantApiDeployedYn() { return merchantApiDeployedYn; }
     public void setMerchantApiDeployedYn(String merchantApiDeployedYn) { this.merchantApiDeployedYn = merchantApiDeployedYn; }
     public boolean isCanWriteNotice() { return canWriteNotice; }

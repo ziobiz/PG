@@ -67,6 +67,7 @@
     { "key": "regionalNm", "label": "총판", "visible": true, "order": 51 },
     { "key": "masterNm", "label": "지사", "visible": true, "order": 52 },
     { "key": "branchNm", "label": "대리점", "visible": true, "order": 53 },
-    { "key": "payActions", "label": "후속조치", "visible": true, "order": 54 }
+    { "key": "payActions", "label": "후속조치", "visible": true, "order": 54 },
+    { "key": "payRemark", "label": "비고", "visible": true, "order": 55 }
   ]
 }

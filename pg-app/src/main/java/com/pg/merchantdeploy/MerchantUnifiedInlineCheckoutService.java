@@ -3,6 +3,7 @@ package com.pg.merchantdeploy;
 import com.pg.integration.pg.PgVendor;
 import com.pg.service.ChillPayService;
 import com.pg.service.MerchantChatbotProductService;
+import com.pg.splitpay.SplitPayCheckoutModeGuard;
 import com.pg.urlpay.IcipayBuyerContactUtil;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.stereotype.Service;
@@ -25,21 +26,29 @@ public class MerchantUnifiedInlineCheckoutService {
     private final MerchantChatbotProductService productService;
     private final MerchantApiIntegrationChannelService integrationChannelService;
 
+    private final SplitPayCheckoutModeGuard splitPayCheckoutModeGuard;
+
     public MerchantUnifiedInlineCheckoutService(ChillPayService chillPayService,
                                                 MerchantInlineCheckoutService chillpayInlineCheckoutService,
                                                 MerchantJpayInlineCheckoutService jpayInlineCheckoutService,
                                                 MerchantInlineCheckoutTokenService tokenService,
                                                 MerchantChatbotProductService productService,
-                                                MerchantApiIntegrationChannelService integrationChannelService) {
+                                                MerchantApiIntegrationChannelService integrationChannelService,
+                                                SplitPayCheckoutModeGuard splitPayCheckoutModeGuard) {
         this.chillPayService = chillPayService;
         this.chillpayInlineCheckoutService = chillpayInlineCheckoutService;
         this.jpayInlineCheckoutService = jpayInlineCheckoutService;
         this.tokenService = tokenService;
         this.productService = productService;
         this.integrationChannelService = integrationChannelService;
+        this.splitPayCheckoutModeGuard = splitPayCheckoutModeGuard;
     }
 
     public Map<String, Object> prepare(Long orgUnitId, Map<String, Object> body, HttpServletRequest request) {
+        Optional<Map<String, Object>> splitDeny = splitPayCheckoutModeGuard.denyInlineOneShotPrepare(orgUnitId);
+        if (splitDeny.isPresent()) {
+            return splitDeny.get();
+        }
         Optional<String> inlineDeny = integrationChannelService.denyMessage(orgUnitId,
                 MerchantApiIntegrationChannelService.Channel.API_BROKER_INLINE);
         if (inlineDeny.isPresent()) {

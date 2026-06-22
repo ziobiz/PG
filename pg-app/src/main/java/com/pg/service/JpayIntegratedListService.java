@@ -20,6 +20,8 @@ import com.pg.util.JpayNotifyStatusResolver;
 
 import com.pg.util.JpayTradeStatusMapper;
 
+import com.pg.util.PayListStatusBarBuckets;
+
 import org.springframework.stereotype.Service;
 
 import org.springframework.transaction.annotation.Transactional;
@@ -34,11 +36,19 @@ import java.time.LocalDate;
 
 import java.time.LocalDateTime;
 
+import java.math.BigDecimal;
+
 import java.util.ArrayList;
+
+import java.util.HashMap;
+
+import java.util.HashSet;
 
 import java.util.LinkedHashMap;
 
 import java.util.List;
+
+import java.util.Set;
 
 import java.util.Locale;
 
@@ -244,7 +254,7 @@ public class JpayIntegratedListService {
 
                                                      JpayPortalAccount acc) throws Exception {
 
-        Path xlsx = portalExportRunner.runExport(from, to, user, pass);
+        Path xlsx = portalExportRunner.runExport(user, pass, from.toString(), to.toString());
 
         try {
 
@@ -608,6 +618,8 @@ public class JpayIntegratedListService {
 
             m.put("urlSource", JpayOrderExcelParseService.col(row, "URL Source"));
 
+            m.put("cardBin", JpayOrderExcelParseService.col(row, "Card BIN"));
+
             out.add(m);
 
         }
@@ -755,6 +767,139 @@ public class JpayIntegratedListService {
     }
 
 
+
+    /**
+     * 통합조회(JPAY Export 캐시) — 거래일 기준 일별 집계(조회통합 화면).
+     */
+    public Map<String, Object> buildDailyIntegratedSummary(LocalDate tFrom, LocalDate tTo, LocalDate effectiveTo,
+                                                           String searchKeyword, String searchOrderNo,
+                                                           String searchPayDivCd, String searchOrderDir) {
+        List<Map<String, Object>> filtered = filterRows(cachedRows, searchKeyword, searchOrderNo, searchPayDivCd,
+                tFrom, effectiveTo);
+        Map<LocalDate, JpayDayAgg> byDay = new LinkedHashMap<>();
+        for (LocalDate d = tFrom; !d.isAfter(effectiveTo); d = d.plusDays(1)) {
+            byDay.put(d, new JpayDayAgg());
+        }
+        for (Map<String, Object> row : filtered) {
+            String dStr = String.valueOf(row.getOrDefault("trnDate", "")).trim();
+            if (dStr.length() < 10) {
+                continue;
+            }
+            LocalDate ld;
+            try {
+                ld = LocalDate.parse(dStr.substring(0, 10));
+            } catch (Exception ignored) {
+                continue;
+            }
+            JpayDayAgg agg = byDay.get(ld);
+            if (agg == null) {
+                continue;
+            }
+            agg.count++;
+            String st = String.valueOf(row.getOrDefault("icopayStatus", "")).trim();
+            if (st.isEmpty()) {
+                st = String.valueOf(row.getOrDefault("dbStatus", "")).trim();
+            }
+            String bucket = PayListStatusBarBuckets.bucketForPgStatus(st);
+            agg.bucketCount.merge(bucket, 1L, Long::sum);
+            String cur = PayListStatusBarBuckets.normalizeCurrency(String.valueOf(row.getOrDefault("currency", "")));
+            BigDecimal amt = PayListStatusBarBuckets.parseMoney(row.get("amount"));
+            agg.totalTxn.merge(cur, amt, BigDecimal::add);
+            if (PayListStatusBarBuckets.SUCCESS.equals(bucket)) {
+                agg.successCount++;
+                agg.approve.merge(cur, amt, BigDecimal::add);
+                agg.approveCountByCur.merge(cur, 1L, Long::sum);
+            } else if (isJpayCancelFinancialBucket(bucket)) {
+                agg.cancel.merge(cur, amt, BigDecimal::add);
+                agg.cancelCountByCur.merge(cur, 1L, Long::sum);
+            }
+        }
+        List<Map<String, Object>> rows = new ArrayList<>();
+        for (LocalDate d = effectiveTo; !d.isBefore(tFrom); d = d.minusDays(1)) {
+            JpayDayAgg agg = byDay.getOrDefault(d, new JpayDayAgg());
+            Map<String, Object> one = new LinkedHashMap<>();
+            one.put("day", d.toString());
+            one.put("totalElements", agg.count);
+            one.put("statusBucketCounts", new LinkedHashMap<>(agg.bucketCount));
+            Map<String, Object> meta = new LinkedHashMap<>();
+            meta.put("payListFinancialSummary", agg.toFinancialSummary());
+            one.put("meta", meta);
+            rows.add(one);
+        }
+        PayListService.applyDailySummaryDayListOrder(rows, searchOrderDir);
+        Map<String, Object> payload = new LinkedHashMap<>();
+        payload.put("list", rows);
+        Map<String, Object> meta = new LinkedHashMap<>();
+        meta.put("jpayIntegrated", true);
+        meta.put("cachedTotal", cachedRows.size());
+        meta.put("lastSyncAt", lastSyncAt != null ? lastSyncAt.toString() : "");
+        meta.put("dailyJpayNote",
+                "일자별 상세는 동일 조건으로 jpayTrSearch(통합조회)에 해당 일자만 지정해 조회합니다.");
+        if (cachedRows.isEmpty()) {
+            meta.put("note", "캐시된 통합조회 데이터가 없습니다. 통합조회 화면에서 [JPAY 동기화]를 실행하세요.");
+        }
+        payload.put("meta", meta);
+        return payload;
+    }
+
+    private static boolean isJpayCancelFinancialBucket(String bucket) {
+        return PayListStatusBarBuckets.CANCEL.equals(bucket)
+                || PayListStatusBarBuckets.REFUND.equals(bucket)
+                || PayListStatusBarBuckets.VOID.equals(bucket)
+                || PayListStatusBarBuckets.EMAIL_VOID.equals(bucket)
+                || PayListStatusBarBuckets.FORCE_REFUND.equals(bucket);
+    }
+
+    private static final class JpayDayAgg {
+        long count;
+        long successCount;
+        final Map<String, Long> bucketCount = new HashMap<>();
+        final Map<String, BigDecimal> totalTxn = new HashMap<>();
+        final Map<String, BigDecimal> approve = new HashMap<>();
+        final Map<String, BigDecimal> cancel = new HashMap<>();
+        final Map<String, Long> approveCountByCur = new HashMap<>();
+        final Map<String, Long> cancelCountByCur = new HashMap<>();
+
+        Map<String, Object> toFinancialSummary() {
+            Set<String> union = new HashSet<>();
+            union.addAll(totalTxn.keySet());
+            union.addAll(approve.keySet());
+            union.addAll(cancel.keySet());
+            List<String> currencyOrder = new ArrayList<>(union);
+            PayListStatusBarBuckets.sortCurrencyCodes(currencyOrder);
+            if (currencyOrder.isEmpty()) {
+                currencyOrder.add("JPY");
+            }
+            Map<String, String> totalTxnPlain = new LinkedHashMap<>();
+            Map<String, String> approvePlain = new LinkedHashMap<>();
+            Map<String, String> cancelPlain = new LinkedHashMap<>();
+            Map<String, String> paymentPlain = new LinkedHashMap<>();
+            Map<String, Long> approveCountPlain = new LinkedHashMap<>();
+            Map<String, Long> cancelCountPlain = new LinkedHashMap<>();
+            for (String c : currencyOrder) {
+                BigDecimal a = approve.getOrDefault(c, BigDecimal.ZERO);
+                BigDecimal k = cancel.getOrDefault(c, BigDecimal.ZERO);
+                totalTxnPlain.put(c, PayListStatusBarBuckets.stripTrailingZeros(totalTxn.getOrDefault(c, BigDecimal.ZERO)));
+                approvePlain.put(c, PayListStatusBarBuckets.stripTrailingZeros(a));
+                cancelPlain.put(c, PayListStatusBarBuckets.stripTrailingZeros(k));
+                paymentPlain.put(c, PayListStatusBarBuckets.stripTrailingZeros(a.subtract(k)));
+                approveCountPlain.put(c, approveCountByCur.getOrDefault(c, 0L));
+                cancelCountPlain.put(c, cancelCountByCur.getOrDefault(c, 0L));
+            }
+            Map<String, Object> out = new LinkedHashMap<>();
+            out.put("successCount", successCount);
+            out.put("multiCurrency", currencyOrder.size() > 1);
+            out.put("primaryCurrency", currencyOrder.get(0));
+            out.put("currencyOrder", currencyOrder);
+            out.put("totalTxnByCurrency", totalTxnPlain);
+            out.put("approveByCurrency", approvePlain);
+            out.put("cancelByCurrency", cancelPlain);
+            out.put("approveCountByCurrency", approveCountPlain);
+            out.put("cancelCountByCurrency", cancelCountPlain);
+            out.put("paymentByCurrency", paymentPlain);
+            return out;
+        }
+    }
 
     private record ReconcileSummary(int matched, int updated, int unmatched) {
 

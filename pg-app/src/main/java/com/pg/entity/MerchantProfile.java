@@ -383,9 +383,21 @@ public class MerchantProfile {
     @Column(name = "split_pay_day_interval_days", nullable = false)
     private Integer splitPayDayIntervalDays = 10;
 
+    /** 월 단위 간격 기본 개월 수 (예: 1=매월, 2=2개월마다) */
+    @Column(name = "split_pay_month_interval_months", nullable = false)
+    private Integer splitPayMonthIntervalMonths = 1;
+
     /** 1회차: IMMEDIATE=즉시결제, LINK=링크만 */
     @Column(name = "split_pay_first_pay_mode", length = 16, nullable = false)
     private String splitPayFirstPayMode = "IMMEDIATE";
+
+    /** 분할결제 — 멀티(고객 선택 개월) 모드 */
+    @Column(name = "split_pay_interval_multi_yn", length = 1, nullable = false)
+    private String splitPayIntervalMultiYn = "N";
+
+    /** 멀티 모드 최대 선택 개월 (3·5·6·12) */
+    @Column(name = "split_pay_multi_max_months", nullable = false)
+    private Integer splitPayMultiMaxMonths = 6;
 
     /** 기준 화폐. 본사: 최대 3종 comma구분 (KRW,USD,JPY). 총판: 1종만 */
     @Column(name = "base_currency", length = 30)
@@ -551,8 +563,7 @@ public class MerchantProfile {
 
     public String getApiUrlPayCheckoutMode() { return apiUrlPayCheckoutMode; }
     public void setApiUrlPayCheckoutMode(String apiUrlPayCheckoutMode) {
-        this.apiUrlPayCheckoutMode = apiUrlPayCheckoutMode != null && !apiUrlPayCheckoutMode.isBlank()
-                ? apiUrlPayCheckoutMode.trim().toUpperCase(java.util.Locale.ROOT) : "STANDARD";
+        this.apiUrlPayCheckoutMode = com.pg.urlpay.UrlPayCheckoutModeUtil.normalize(apiUrlPayCheckoutMode);
     }
     public String getApiJpaySubscriptionUseYn() { return apiJpaySubscriptionUseYn; }
     public void setApiJpaySubscriptionUseYn(String apiJpaySubscriptionUseYn) {
@@ -736,9 +747,23 @@ public class MerchantProfile {
     public void setSplitPayIntervalDayYn(String splitPayIntervalDayYn) { this.splitPayIntervalDayYn = splitPayIntervalDayYn != null && "Y".equalsIgnoreCase(splitPayIntervalDayYn.trim()) ? "Y" : "N"; }
     public Integer getSplitPayDayIntervalDays() { return splitPayDayIntervalDays; }
     public void setSplitPayDayIntervalDays(Integer splitPayDayIntervalDays) { this.splitPayDayIntervalDays = splitPayDayIntervalDays != null && splitPayDayIntervalDays > 0 ? splitPayDayIntervalDays : 10; }
+    public Integer getSplitPayMonthIntervalMonths() { return splitPayMonthIntervalMonths; }
+    public void setSplitPayMonthIntervalMonths(Integer splitPayMonthIntervalMonths) {
+        this.splitPayMonthIntervalMonths = splitPayMonthIntervalMonths != null && splitPayMonthIntervalMonths > 0
+                ? splitPayMonthIntervalMonths : 1;
+    }
     public String getSplitPayFirstPayMode() { return splitPayFirstPayMode; }
     public void setSplitPayFirstPayMode(String splitPayFirstPayMode) {
         this.splitPayFirstPayMode = splitPayFirstPayMode != null && "LINK".equalsIgnoreCase(splitPayFirstPayMode.trim()) ? "LINK" : "IMMEDIATE";
+    }
+    public String getSplitPayIntervalMultiYn() { return splitPayIntervalMultiYn; }
+    public void setSplitPayIntervalMultiYn(String splitPayIntervalMultiYn) {
+        this.splitPayIntervalMultiYn = splitPayIntervalMultiYn != null && "Y".equalsIgnoreCase(splitPayIntervalMultiYn.trim()) ? "Y" : "N";
+    }
+    public Integer getSplitPayMultiMaxMonths() { return splitPayMultiMaxMonths; }
+    public void setSplitPayMultiMaxMonths(Integer splitPayMultiMaxMonths) {
+        int v = splitPayMultiMaxMonths != null ? splitPayMultiMaxMonths : 6;
+        this.splitPayMultiMaxMonths = (v == 3 || v == 5 || v == 6 || v == 12) ? v : 6;
     }
     public String getBaseCurrency() { return baseCurrency; }
     public void setBaseCurrency(String baseCurrency) { this.baseCurrency = baseCurrency; }

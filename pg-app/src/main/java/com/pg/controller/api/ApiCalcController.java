@@ -415,6 +415,69 @@ public class ApiCalcController {
         }
     }
 
+    @GetMapping("/dailyJpayIntegratedSummary")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> dailyJpayIntegratedSummary(
+            @RequestParam(required = false) String searchOrderDir,
+            @RequestParam(required = false) String searchKeyword,
+            @RequestParam(required = false) String searchOrderNo,
+            @RequestParam(required = false) String searchFieldType,
+            @RequestParam(required = false) String searchPayDivCd,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate searchFromDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate searchToDate) {
+        try {
+            String sk = searchKeyword != null ? searchKeyword.trim() : "";
+            String son = searchOrderNo != null ? searchOrderNo.trim() : "";
+            String sft = searchFieldType != null ? searchFieldType.trim().toUpperCase(Locale.ROOT) : "";
+            if (!sft.isEmpty() && !sk.isEmpty()) {
+                switch (sft) {
+                    case "ORDER_NO" -> {
+                        son = sk;
+                        sk = "";
+                    }
+                    case "APPROVAL_NO", "MID" -> { /* searchKeyword blob filter */ }
+                    case "ALL" -> { /* keep sk */ }
+                    default -> { /* keep sk */ }
+                }
+            }
+
+            LocalDate tFrom = searchFromDate;
+            LocalDate tTo = searchToDate;
+            if (tFrom == null || tTo == null) {
+                return ResponseEntity.ok(ApiResponse.fail("거래일자 시작·종료(searchFromDate, searchToDate)는 필수입니다.", "VALIDATION"));
+            }
+            if (tFrom.isAfter(tTo)) {
+                return ResponseEntity.ok(ApiResponse.fail("거래일자 시작이 종료보다 늦을 수 없습니다.", "VALIDATION"));
+            }
+            long span = ChronoUnit.DAYS.between(tFrom, tTo) + 1;
+            if (span > DAILY_CHILL_SUMMARY_MAX_DAYS) {
+                return ResponseEntity.ok(ApiResponse.fail("조회 기간은 " + DAILY_CHILL_SUMMARY_MAX_DAYS + "일 이내로 지정해 주세요.", "VALIDATION"));
+            }
+            ZoneId ledgerTz = hqLedgerSysSettingsService.resolveLedgerDisplayZoneId();
+            LocalDate today = LocalDate.now(ledgerTz);
+            LocalDate effectiveTo = tTo.isAfter(today) ? today : tTo;
+            if (tFrom.isAfter(effectiveTo)) {
+                Map<String, Object> empty = new LinkedHashMap<>();
+                empty.put("list", List.of());
+                empty.put("meta", Map.of("note", "조회 구간에 포함된 일자가 없습니다(미래 일자는 표시하지 않습니다)."));
+                return ResponseEntity.ok(ApiResponse.ok(empty));
+            }
+
+            Map<String, Object> payload = jpayIntegratedListService.buildDailyIntegratedSummary(
+                    tFrom, tTo, effectiveTo, sk, son, searchPayDivCd, searchOrderDir);
+            if (tTo.isAfter(today)) {
+                @SuppressWarnings("unchecked")
+                Map<String, Object> meta = payload.get("meta") instanceof Map<?, ?> m
+                        ? new LinkedHashMap<>((Map<String, Object>) m) : new LinkedHashMap<>();
+                meta.put("displayToDate", today.toString());
+                meta.put("requestedToDate", tTo.toString());
+                payload.put("meta", meta);
+            }
+            return ResponseEntity.ok(ApiResponse.ok(payload));
+        } catch (IllegalStateException e) {
+            return ResponseEntity.ok(ApiResponse.fail(e.getMessage(), "JPAY"));
+        }
+    }
+
     private static Map<String, Long> statusBucketCountsFromPayListStatusBar(Map<String, Object> meta) {
         Map<String, Long> out = new LinkedHashMap<>();
         if (meta == null) {
@@ -710,7 +773,7 @@ public class ApiCalcController {
             return ResponseEntity.ok(ApiResponse.fail(e.getMessage(), "JPAY"));
         } catch (Exception e) {
             String msg = e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName();
-            return ResponseEntity.ok(ApiResponse.fail("JPAY 통합내역 조회 실패: " + msg, "JPAY"));
+            return ResponseEntity.ok(ApiResponse.fail("통합조회 조회 실패: " + msg, "JPAY"));
         }
     }
 

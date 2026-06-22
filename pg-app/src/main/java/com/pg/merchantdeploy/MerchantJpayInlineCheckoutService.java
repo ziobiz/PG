@@ -11,8 +11,10 @@ import com.pg.repository.OrgUnitRepository;
 import com.pg.repository.PgTrnsctnRepository;
 import com.pg.service.JpayPaymentService;
 import com.pg.service.MerchantChatbotProductService;
+import com.pg.splitpay.SplitPayCheckoutModeGuard;
 import com.pg.service.OrgServiceUseService;
 import com.pg.service.UrlPayCheckoutCurrencyService;
+import com.pg.urlpay.UrlPayCheckoutModeUtil;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.stereotype.Service;
 
@@ -40,6 +42,7 @@ public class MerchantJpayInlineCheckoutService {
     private final UrlPayCheckoutCurrencyService urlPayCheckoutCurrencyService;
     private final MerchantApiIntegrationChannelService integrationChannelService;
     private final MerchantOperationalPgGuard operationalPgGuard;
+    private final SplitPayCheckoutModeGuard splitPayCheckoutModeGuard;
 
     public MerchantJpayInlineCheckoutService(OrgUnitRepository orgUnitRepository,
                                              MerchantProfileRepository merchantProfileRepository,
@@ -51,7 +54,8 @@ public class MerchantJpayInlineCheckoutService {
                                              PgTrnsctnRepository pgTrnsctnRepository,
                                              UrlPayCheckoutCurrencyService urlPayCheckoutCurrencyService,
                                              MerchantApiIntegrationChannelService integrationChannelService,
-                                             MerchantOperationalPgGuard operationalPgGuard) {
+                                             MerchantOperationalPgGuard operationalPgGuard,
+                                             SplitPayCheckoutModeGuard splitPayCheckoutModeGuard) {
         this.orgUnitRepository = orgUnitRepository;
         this.merchantProfileRepository = merchantProfileRepository;
         this.orgServiceUseService = orgServiceUseService;
@@ -63,9 +67,14 @@ public class MerchantJpayInlineCheckoutService {
         this.urlPayCheckoutCurrencyService = urlPayCheckoutCurrencyService;
         this.integrationChannelService = integrationChannelService;
         this.operationalPgGuard = operationalPgGuard;
+        this.splitPayCheckoutModeGuard = splitPayCheckoutModeGuard;
     }
 
     public Map<String, Object> prepare(Long orgUnitId, Map<String, Object> body, HttpServletRequest request) {
+        Optional<Map<String, Object>> splitDeny = splitPayCheckoutModeGuard.denyInlineOneShotPrepare(orgUnitId);
+        if (splitDeny.isPresent()) {
+            return splitDeny.get();
+        }
         if (orgUnitId == null) {
             return fail("가맹점을 찾을 수 없습니다.", "NOT_FOUND");
         }
@@ -86,6 +95,19 @@ public class MerchantJpayInlineCheckoutService {
             String wpy = profOpt.get().getWebPaymentUseYn();
             if (wpy != null && "N".equalsIgnoreCase(wpy.trim())) {
                 return fail("이 가맹점은 웹결제(URL 결제)가 미사용으로 설정되어 있습니다.", "WEB_PAYMENT_DISABLED");
+            }
+            if (UrlPayCheckoutModeUtil.isSplitPay(profOpt.get().getApiUrlPayCheckoutMode())) {
+                String base = trimSlash(productService.resolvePublicCustomerSiteBase(request));
+                String setup = (base.isEmpty() ? "" : base) + "/split-pay-setup.html?m=" + urlEnc(ou.getCode());
+                Map<String, Object> hint = new LinkedHashMap<>();
+                hint.put("splitPaySetupUrl", setup);
+                hint.put("checkoutKind", "SPLIT_PAY");
+                Map<String, Object> out = new LinkedHashMap<>();
+                out.put("success", false);
+                out.put("message", "API URL 결제 방식이 분할 결제입니다. POST /api/pay/split/contracts 또는 분할 신청 URL을 사용하세요.");
+                out.put("errorCode", "SPLIT_PAY_MODE");
+                out.put("data", hint);
+                return out;
             }
         }
         if (!jpayPaymentService.hasOperationalWebBinding(orgUnitId)) {

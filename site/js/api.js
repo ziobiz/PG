@@ -129,8 +129,12 @@
           var gwKo = '게이트웨이 시간 초과(HTTP ' + res.status + '). 조회 기간을 줄인 뒤 [검색]을 다시 시도해 주세요.';
           var gwTpl = '게이트웨이 시간 초과(HTTP {0}). 조회 기간을 줄인 뒤 [검색]을 다시 시도해 주세요.';
           var gwMsg = apiT(gwTpl, 'Gateway timeout (HTTP {0}). Narrow the date range and click [Search] again.');
+          if (url.indexOf('jpayTrSync') >= 0) {
+            gwKo = 'JPAY 동기화 시간 초과(HTTP ' + res.status + '). Playwright Export에 5~15분 걸릴 수 있습니다. 서버 Nginx proxy_read_timeout(900초) 설정 후, 거래일자를 1~3일로 줄여 다시 시도하세요.';
+            gwMsg = apiT(gwKo, 'JPAY sync timed out (HTTP ' + res.status + '). Export may take 5–15 min. Increase Nginx proxy_read_timeout (900s) and try a shorter date range (1–3 days).');
+          }
           if (gwMsg.indexOf('{0}') >= 0) gwMsg = gwMsg.replace('{0}', String(res.status));
-          else gwMsg = apiT(gwKo, 'Gateway timeout (HTTP ' + res.status + '). Narrow the date range and click [Search] again.');
+          else if (url.indexOf('jpayTrSync') < 0) gwMsg = apiT(gwKo, 'Gateway timeout (HTTP ' + res.status + '). Narrow the date range and click [Search] again.');
           return Promise.reject(new Error(gwMsg));
         }
         var data;
@@ -839,6 +843,24 @@
     splitPayListSearch: function (params) {
       return get('/api/calc/splitPayList', params).then(function (r) { return r.data; });
     },
+    splitPayProgressListSearch: function (params) {
+      return get('/api/splitpay/progressList', params).then(function (r) { return r.data; });
+    },
+    splitPayMailListSearch: function (params) {
+      return get('/api/splitpay/mailList', params).then(function (r) { return r.data; });
+    },
+    splitPayResendMail: function (body) {
+      return post('/api/splitpay/resendMail', body || {}).then(function (r) { return r.data; });
+    },
+    splitPayEmailSettingsGet: function () {
+      return get('/api/splitpay/emailSettings').then(function (r) { return r.data; });
+    },
+    splitPayEmailSettingsSave: function (body) {
+      return post('/api/splitpay/emailSettings/save', body || {}).then(function (r) { return r.data; });
+    },
+    splitPayEmailSettingsTest: function (body) {
+      return post('/api/splitpay/emailSettings/test', body || {}).then(function (r) { return r.data; });
+    },
     jpayTrSync: function (params) {
       var q = params || {};
       var parts = [];
@@ -853,6 +875,9 @@
     },
     dailyChillIntegratedSummary: function (params) {
       return get('/api/calc/dailyChillIntegratedSummary', params).then(function (r) { return r.data; });
+    },
+    dailyJpayIntegratedSummary: function (params) {
+      return get('/api/calc/dailyJpayIntegratedSummary', params).then(function (r) { return r.data; });
     },
     dailyPaySummary: function (params) {
       return get('/api/calc/dailyPaySummary', params).then(function (r) { return r.data; });

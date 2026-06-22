@@ -15,14 +15,22 @@ import java.util.Properties;
 public class LedgerSmtpMailService {
 
     public void sendPlainText(HqLedgerSysSettings s, String to, String subject, String text) {
+        sendPlainText(s, to, subject, text, null, null);
+    }
+
+    public void sendPlainText(HqLedgerSysSettings s, String to, String subject, String text,
+                              String fromAddressOverride, String fromNameOverride) {
         if (to == null || to.isBlank()) {
             throw new IllegalStateException("수신 이메일이 비어 있습니다.");
         }
+        String fromAddr = fromAddressOverride != null && !fromAddressOverride.isBlank()
+                ? fromAddressOverride.trim()
+                : (s.getMailFromAddress() != null ? s.getMailFromAddress().trim() : "");
+        if (fromAddr.isBlank()) {
+            throw new IllegalStateException("발신 메일 주소가 비어 있습니다.");
+        }
         if (s.getSmtpHost() == null || s.getSmtpHost().isBlank()) {
             throw new IllegalStateException("SMTP 호스트가 설정되지 않았습니다. 전산설정관리에서 SMTP를 입력하세요.");
-        }
-        if (s.getMailFromAddress() == null || s.getMailFromAddress().isBlank()) {
-            throw new IllegalStateException("발신 메일 주소가 비어 있습니다.");
         }
         int port = s.getSmtpPort() != null && s.getSmtpPort() > 0 ? s.getSmtpPort() : 587;
         boolean auth = "Y".equalsIgnoreCase(trimYn(s.getSmtpAuthYn()));
@@ -49,7 +57,14 @@ public class LedgerSmtpMailService {
         sender.setJavaMailProperties(p);
 
         SimpleMailMessage msg = new SimpleMailMessage();
-        msg.setFrom(s.getMailFromAddress().trim());
+        String fromName = fromNameOverride != null && !fromNameOverride.isBlank()
+                ? fromNameOverride.trim()
+                : (s.getMailFromName() != null ? s.getMailFromName().trim() : "");
+        if (!fromName.isEmpty()) {
+            msg.setFrom(fromName + " <" + fromAddr + ">");
+        } else {
+            msg.setFrom(fromAddr);
+        }
         msg.setTo(to.trim().split("\\s*,\\s*"));
         msg.setSubject(subject != null ? subject : "");
         msg.setText(text != null ? text : "");

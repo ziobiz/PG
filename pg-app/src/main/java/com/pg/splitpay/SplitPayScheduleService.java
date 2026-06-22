@@ -24,6 +24,7 @@ public class SplitPayScheduleService {
         for (int i = 1; i <= installmentCount; i++) {
             LocalDate d = switch (intervalType != null ? intervalType.trim().toUpperCase() : SplitPayContract.INTERVAL_MONTH) {
                 case SplitPayContract.INTERVAL_DAY -> contractDate.plusDays((long) (i - 1) * Math.max(intervalValue, 1));
+                case SplitPayContract.INTERVAL_MULTI -> contractDate.plusMonths((long) (i - 1));
                 default -> contractDate.plusMonths((long) (i - 1) * Math.max(intervalValue, 1));
             };
             raw.add(BusinessDayCalendar.adjustToNextBusinessDay(d, holidays));

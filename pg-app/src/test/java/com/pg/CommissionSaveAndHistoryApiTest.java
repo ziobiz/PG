@@ -161,6 +161,7 @@ class CommissionSaveAndHistoryApiTest {
         assertThat(first.path("compId").asText()).isEqualTo(TEST_MERCHANT_CODE);
         assertThat(first.path("hqRate").asDouble()).isEqualTo(4.4);
         assertThat(first.path("hqPerTxFee").asDouble()).isEqualTo(11.0);
+        assertThat(first.path("totalRate").asDouble()).isEqualTo(4.4);
 
         mockMvc.perform(get("/api/commission/history")
                         .header("Authorization", auth)

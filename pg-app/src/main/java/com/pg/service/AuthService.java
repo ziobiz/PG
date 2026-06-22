@@ -132,6 +132,8 @@ public class AuthService {
         if (res.getOrgLevel() != null && "MERCHANT".equalsIgnoreCase(res.getOrgLevel())) {
             res.setChatbotPaymentUseYn(resolveChatbotPaymentUseYnForMerchant(res.getOrgUnitId()));
             res.setWebPaymentUseYn(resolveWebPaymentUseYnForMerchant(res.getOrgUnitId()));
+            res.setSplitPayEnabledYn(resolveSplitPayEnabledYnForMerchant(res.getOrgUnitId()));
+            res.setApiJpaySubscriptionUseYn(resolveApiJpaySubscriptionUseYnForMerchant(res.getOrgUnitId()));
             res.setMerchantApiDeployedYn(resolveMerchantApiDeployedYnForMerchant(res.getOrgUnitId()));
         }
         boolean mustChange = "Y".equalsIgnoreCase(user.getPasswordMustChangeYn())
@@ -169,6 +171,26 @@ public class AuthService {
         }
         return merchantProfileRepository.findByOrgUnitId(orgUnitId)
                 .map(mp -> yn(mp.getWebPaymentUseYn()))
+                .orElse("N");
+    }
+
+    /** 가맹점(org_unit 기준) 분할결제 스위치 — 세션·메뉴 표시에 사용 */
+    public String resolveSplitPayEnabledYnForMerchant(Long orgUnitId) {
+        if (orgUnitId == null) {
+            return "N";
+        }
+        return merchantProfileRepository.findByOrgUnitId(orgUnitId)
+                .map(mp -> yn(mp.getSplitPayEnabledYn()))
+                .orElse("N");
+    }
+
+    /** 가맹점(org_unit 기준) JPAY API 구독결제 스위치 — 구독결제내역 메뉴 표시에 사용 */
+    public String resolveApiJpaySubscriptionUseYnForMerchant(Long orgUnitId) {
+        if (orgUnitId == null) {
+            return "N";
+        }
+        return merchantProfileRepository.findByOrgUnitId(orgUnitId)
+                .map(mp -> yn(mp.getApiJpaySubscriptionUseYn()))
                 .orElse("N");
     }
 

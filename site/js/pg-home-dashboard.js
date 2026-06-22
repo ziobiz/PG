@@ -91,6 +91,13 @@
     if (m) {
       return uiT('미수금 잔액 {0}건 · 합계 약 {1} 원').replace('{0}', m[1]).replace('{1}', String(m[2]).trim());
     }
+    m = raw.match(/^미수금\s*잔액\s*([0-9,]+)건\s*·\s*합계\s*약\s*(.+)\s+([A-Z]{3})$/);
+    if (m) {
+      return uiT('미수금 잔액 {0}건 · 합계 약 {1} {2}')
+        .replace('{0}', m[1])
+        .replace('{1}', String(m[2]).trim())
+        .replace('{2}', m[3]);
+    }
     m = raw.match(/^최근\s*30일\s*정산\s*보류\/지급보류\s*실행\s*([0-9,]+)건$/);
     if (m) {
       return uiT('최근 30일 정산 보류/지급보류 실행 {0}건').replace('{0}', m[1]);
@@ -693,6 +700,26 @@
     return '<div class="col-12 mb-2"><div class="border rounded p-3 bg-light">' + head + tbl + '</div></div>';
   }
 
+  /** 미수 잔액 KPI — receivableRemainingByCurrency(통화별) 우선, 없으면 합계만 */
+  function kpiReceivableBalanceDisplay(kpi) {
+    kpi = kpi && typeof kpi === 'object' ? kpi : {};
+    var rows = Array.isArray(kpi.receivableRemainingByCurrency) ? kpi.receivableRemainingByCurrency : [];
+    if (!rows.length) {
+      return fmtMoney(kpi.receivableRemainingSum != null ? kpi.receivableRemainingSum : 0);
+    }
+    if (rows.length === 1) {
+      var r0 = rows[0];
+      var c0 = normalizeDashboardCurrency(r0 && r0.currency != null ? String(r0.currency) : '');
+      return fmtMoneyForCurrency(r0 && r0.remainingSum != null ? r0.remainingSum : 0, c0) + ' ' + c0;
+    }
+    return rows
+      .map(function (r) {
+        var c = normalizeDashboardCurrency(r && r.currency != null ? String(r.currency) : '');
+        return c + ' ' + fmtMoneyForCurrency(r && r.remainingSum != null ? r.remainingSum : 0, c);
+      })
+      .join(' / ');
+  }
+
   function riskScorecardHtml(rs, explainers) {
     if (!rs || typeof rs !== 'object') return '';
     var sc = rs.score != null ? Number(rs.score) : 0;
@@ -737,7 +764,7 @@
       chip(uiT('무효계열'), fmtNum(kpi.todayVoids), 'secondary') +
       chip(uiT('취소(20)'), fmtNum(kpi.todayCancels), 'secondary') +
       chip(uiT('미수 건수'), fmtNum(kpi.receivableOpenCount), kpi.receivableOpenCount > 0 ? 'danger' : 'secondary') +
-      chip(uiT('미수 잔액'), fmtMoney(kpi.receivableRemainingSum) + ' ' + esc(uiT('원')), kpi.receivableOpenCount > 0 ? 'danger' : 'secondary') +
+      chip(uiT('미수 잔액'), kpiReceivableBalanceDisplay(kpi), kpi.receivableOpenCount > 0 ? 'danger' : 'secondary') +
       chip(uiT('노티 미처리(7d)'), fmtNum(kpi.notifyNotParsedLast7d), kpi.notifyNotParsedLast7d > 0 ? 'warning' : 'secondary') +
       chip(uiT('정산보류(30d)'), fmtNum(kpi.settlementHoldOrPayoutHoldRows30d), kpi.settlementHoldOrPayoutHoldRows30d > 0 ? 'warning' : 'secondary') +
       '</div>' +

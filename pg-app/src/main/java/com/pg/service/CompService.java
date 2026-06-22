@@ -1690,7 +1690,7 @@ public class CompService {
                             m.put("urlPayCompanyNameShowYn", mp.getUrlPayCompanyNameShowYn() != null ? mp.getUrlPayCompanyNameShowYn() : "Y");
                             m.put("urlPayLangMenuUseYn", mp.getUrlPayLangMenuUseYn() != null ? mp.getUrlPayLangMenuUseYn() : "Y");
                             m.put("urlPayInputMode", com.pg.urlpay.UrlPayInputModeUtil.normalize(mp.getUrlPayInputMode()));
-                            m.put("apiUrlPayCheckoutMode", com.pg.urlpay.UrlPayCheckoutModeUtil.normalize(mp.getApiUrlPayCheckoutMode()));
+                            m.put("apiUrlPayCheckoutMode", com.pg.splitpay.SplitPayMerchantUtil.resolveApiCheckoutModeForDisplay(mp));
                             m.put("chatbotUrlPayCheckoutMode", com.pg.urlpay.UrlPayCheckoutModeUtil.normalize(mp.getChatbotUrlPayCheckoutMode()));
                             m.put("jpayCheckoutFieldMode", com.pg.urlpay.JpayCheckoutFieldModeUtil.formatMerchantUiValue(mp.getJpayCheckoutFieldMode()));
                             m.put("jpayPhoneDialCodeYn", com.pg.urlpay.JpayPhoneDialCodeUtil.formatMerchantUiValue(mp.getJpayPhoneDialCodeYn()));
@@ -1781,7 +1781,7 @@ public class CompService {
                                 m.put("urlPayCompanyNameShowYn", mp.getUrlPayCompanyNameShowYn() != null ? mp.getUrlPayCompanyNameShowYn() : "Y");
                                 m.put("urlPayLangMenuUseYn", mp.getUrlPayLangMenuUseYn() != null ? mp.getUrlPayLangMenuUseYn() : "Y");
                             m.put("urlPayInputMode", com.pg.urlpay.UrlPayInputModeUtil.normalize(mp.getUrlPayInputMode()));
-                                m.put("apiUrlPayCheckoutMode", com.pg.urlpay.UrlPayCheckoutModeUtil.normalize(mp.getApiUrlPayCheckoutMode()));
+                                m.put("apiUrlPayCheckoutMode", com.pg.splitpay.SplitPayMerchantUtil.resolveApiCheckoutModeForDisplay(mp));
                                 m.put("chatbotUrlPayCheckoutMode", com.pg.urlpay.UrlPayCheckoutModeUtil.normalize(mp.getChatbotUrlPayCheckoutMode()));
                                 m.put("jpayCheckoutFieldMode", com.pg.urlpay.JpayCheckoutFieldModeUtil.formatMerchantUiValue(mp.getJpayCheckoutFieldMode()));
                                 m.put("jpayPhoneDialCodeYn", com.pg.urlpay.JpayPhoneDialCodeUtil.formatMerchantUiValue(mp.getJpayPhoneDialCodeYn()));
@@ -1937,7 +1937,10 @@ public class CompService {
                                 m.put("splitPayEnabledYn", mp.getSplitPayEnabledYn() != null ? mp.getSplitPayEnabledYn() : "N");
                                 m.put("splitPayIntervalMonthYn", mp.getSplitPayIntervalMonthYn() != null ? mp.getSplitPayIntervalMonthYn() : "Y");
                                 m.put("splitPayIntervalDayYn", mp.getSplitPayIntervalDayYn() != null ? mp.getSplitPayIntervalDayYn() : "N");
+                                m.put("splitPayIntervalMultiYn", mp.getSplitPayIntervalMultiYn() != null ? mp.getSplitPayIntervalMultiYn() : "N");
+                                m.put("splitPayMultiMaxMonths", mp.getSplitPayMultiMaxMonths() != null ? mp.getSplitPayMultiMaxMonths() : 6);
                                 m.put("splitPayDayIntervalDays", mp.getSplitPayDayIntervalDays() != null ? mp.getSplitPayDayIntervalDays() : 10);
+                                m.put("splitPayMonthIntervalMonths", mp.getSplitPayMonthIntervalMonths() != null ? mp.getSplitPayMonthIntervalMonths() : 1);
                                 m.put("splitPayFirstPayMode", mp.getSplitPayFirstPayMode() != null ? mp.getSplitPayFirstPayMode() : "IMMEDIATE");
                             }
                             return m;
@@ -1992,7 +1995,10 @@ public class CompService {
                           String splitPayEnabledYn,
                           String splitPayIntervalMonthYn,
                           String splitPayIntervalDayYn,
+                          String splitPayIntervalMultiYn,
                           String splitPayDayIntervalDays,
+                          String splitPayMonthIntervalMonths,
+                          String splitPayMultiMaxMonths,
                           String splitPayFirstPayMode) {
         return orgUnitRepository.findByCode(compId != null ? compId : "")
                 .flatMap(ou -> merchantProfileRepository.findByOrgUnitId(ou.getId())
@@ -2297,7 +2303,8 @@ public class CompService {
                                         payFollowEmailVoidYn, payFollowAutoRefundYn, payFollowForceRefundYn);
                                 applyMerchantUrlPayAlerts(mp, urlPayAlertEmailYn, urlPayLineNotifyToken);
                                 applyMerchantSplitPay(mp, splitPayEnabledYn, splitPayIntervalMonthYn,
-                                        splitPayIntervalDayYn, splitPayDayIntervalDays, splitPayFirstPayMode);
+                                        splitPayIntervalDayYn, splitPayIntervalMultiYn, splitPayDayIntervalDays,
+                                        splitPayMonthIntervalMonths, splitPayMultiMaxMonths, splitPayFirstPayMode);
                             }
                             merchantProfileRepository.save(mp);
                             if (assistantLoginId != null && !assistantLoginId.trim().isEmpty()) {
@@ -2531,7 +2538,10 @@ public class CompService {
                                        String splitPayEnabledYn,
                                        String splitPayIntervalMonthYn,
                                        String splitPayIntervalDayYn,
+                                       String splitPayIntervalMultiYn,
                                        String splitPayDayIntervalDays,
+                                       String splitPayMonthIntervalMonths,
+                                       String splitPayMultiMaxMonths,
                                        String splitPayFirstPayMode) {
         if (mp == null) {
             return;
@@ -2545,9 +2555,37 @@ public class CompService {
         if (splitPayIntervalDayYn != null && !splitPayIntervalDayYn.isBlank()) {
             mp.setSplitPayIntervalDayYn(splitPayIntervalDayYn);
         }
+        if (splitPayIntervalMultiYn != null && !splitPayIntervalMultiYn.isBlank()) {
+            mp.setSplitPayIntervalMultiYn(splitPayIntervalMultiYn);
+        }
+        if ("Y".equalsIgnoreCase(mp.getSplitPayIntervalMultiYn() != null ? mp.getSplitPayIntervalMultiYn().trim() : "N")) {
+            mp.setSplitPayIntervalMultiYn("Y");
+            mp.setSplitPayIntervalMonthYn("N");
+            mp.setSplitPayIntervalDayYn("N");
+        } else if ("Y".equalsIgnoreCase(mp.getSplitPayIntervalDayYn() != null ? mp.getSplitPayIntervalDayYn().trim() : "N")) {
+            mp.setSplitPayIntervalDayYn("Y");
+            mp.setSplitPayIntervalMonthYn("N");
+            mp.setSplitPayIntervalMultiYn("N");
+        } else {
+            mp.setSplitPayIntervalMonthYn("Y");
+            mp.setSplitPayIntervalDayYn("N");
+            mp.setSplitPayIntervalMultiYn("N");
+        }
         if (splitPayDayIntervalDays != null && !splitPayDayIntervalDays.isBlank()) {
             try {
                 mp.setSplitPayDayIntervalDays(Integer.parseInt(splitPayDayIntervalDays.trim()));
+            } catch (NumberFormatException ignored) {
+            }
+        }
+        if (splitPayMonthIntervalMonths != null && !splitPayMonthIntervalMonths.isBlank()) {
+            try {
+                mp.setSplitPayMonthIntervalMonths(Integer.parseInt(splitPayMonthIntervalMonths.trim()));
+            } catch (NumberFormatException ignored) {
+            }
+        }
+        if (splitPayMultiMaxMonths != null && !splitPayMultiMaxMonths.isBlank()) {
+            try {
+                mp.setSplitPayMultiMaxMonths(Integer.parseInt(splitPayMultiMaxMonths.trim()));
             } catch (NumberFormatException ignored) {
             }
         }
@@ -2597,7 +2635,7 @@ public class CompService {
         mp.setUrlPayCheckoutMode(norm);
     }
 
-    /** 가맹점 API URL 인라인 중계 결제 방식 (STANDARD | REPAY). */
+    /** 가맹점 API URL 인라인 중계 결제 방식 (STANDARD | REPAY | SPLIT_PAY). */
     private void applyMerchantApiUrlPayCheckoutMode(MerchantProfile mp, Long orgUnitId, String apiUrlPayCheckoutMode) {
         if (mp == null || orgUnitId == null || apiUrlPayCheckoutMode == null || apiUrlPayCheckoutMode.isBlank()) {
             return;

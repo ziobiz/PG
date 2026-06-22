@@ -11,6 +11,7 @@ import com.pg.entity.PgTrnsctn;
 import com.pg.repository.PgAgencyRepository;
 import com.pg.repository.PgTrnsctnRepository;
 import com.pg.service.settlement.SettlementArrearsService;
+import com.pg.splitpay.SplitPayPaymentHookService;
 import com.pg.util.JpayDisputeNotifyStatusResolver;
 import com.pg.util.JpayBuyerContactApplier;
 import com.pg.util.JpaySignatureUtil;
@@ -54,6 +55,7 @@ public class JpayNotifyToTrnsctnService implements PgNotifyInboundTxnHandler {
     private final JpaySubscriptionNotifyService jpaySubscriptionNotifyService;
     private final NotifyIdempotencyLock notifyIdempotencyLock;
     private final SettlementArrearsService settlementArrearsService;
+    private final SplitPayPaymentHookService splitPayPaymentHookService;
 
     public JpayNotifyToTrnsctnService(PgTrnsctnRepository pgTrnsctnRepository,
                                       PgAgencyRepository pgAgencyRepository,
@@ -61,7 +63,8 @@ public class JpayNotifyToTrnsctnService implements PgNotifyInboundTxnHandler {
                                       HqLedgerSysSettingsService hqLedgerSysSettingsService,
                                       JpaySubscriptionNotifyService jpaySubscriptionNotifyService,
                                       NotifyIdempotencyLock notifyIdempotencyLock,
-                                      SettlementArrearsService settlementArrearsService) {
+                                      SettlementArrearsService settlementArrearsService,
+                                      SplitPayPaymentHookService splitPayPaymentHookService) {
         this.pgTrnsctnRepository = pgTrnsctnRepository;
         this.pgAgencyRepository = pgAgencyRepository;
         this.settlementCalcService = settlementCalcService;
@@ -69,6 +72,7 @@ public class JpayNotifyToTrnsctnService implements PgNotifyInboundTxnHandler {
         this.jpaySubscriptionNotifyService = jpaySubscriptionNotifyService;
         this.notifyIdempotencyLock = notifyIdempotencyLock;
         this.settlementArrearsService = settlementArrearsService;
+        this.splitPayPaymentHookService = splitPayPaymentHookService;
     }
 
     @Override
@@ -213,6 +217,7 @@ public class JpayNotifyToTrnsctnService implements PgNotifyInboundTxnHandler {
         JpayBuyerContactApplier.mergeFromNotifyForm(t, form);
 
         pgTrnsctnRepository.save(t);
+        hookSplitPayInstallment(t);
         try {
             settlementArrearsService.registerPostSettlementRecoveryIfDue(prevStatus, prevSettledYn, t);
         } catch (Exception recoveryEx) {
@@ -275,6 +280,7 @@ public class JpayNotifyToTrnsctnService implements PgNotifyInboundTxnHandler {
         applyPaidAtForNotifyOutcome(t, merged);
         JpayBuyerContactApplier.mergeFromNotifyForm(t, form);
         pgTrnsctnRepository.save(t);
+        hookSplitPayInstallment(t);
         if (ST_PAID.equals(merged)) {
             try {
                 settlementCalcService.triggerRealtimeAutoSettlementIfDue(t.getMerchantId().trim(), t);
@@ -284,6 +290,17 @@ public class JpayNotifyToTrnsctnService implements PgNotifyInboundTxnHandler {
         }
         log.info("JPAY 3DS 동기 복귀 반영 trnId={} merchantId={} orderNo={} paymentStatus={}", t.getTrnId(), merchantId, on, paySt);
         return true;
+    }
+
+    private void hookSplitPayInstallment(PgTrnsctn t) {
+        if (t == null || t.getOrderNo() == null || t.getOrderNo().isBlank()) {
+            return;
+        }
+        try {
+            splitPayPaymentHookService.onTxnStatusChange(t.getOrderNo(), t.getStatus(), t.getTrnId());
+        } catch (Exception ex) {
+            log.warn("분할결제 연동 실패 orderNo={}: {}", t.getOrderNo(), ex.getMessage());
+        }
     }
 
     private void applyPaidAtForNotifyOutcome(PgTrnsctn t, String merged) {

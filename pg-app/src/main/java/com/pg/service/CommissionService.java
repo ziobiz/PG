@@ -126,6 +126,14 @@ public class CommissionService {
     }
 
     private Map<String, Object> buildCommissionRow(OrgUnit merchant) {
+        return buildCommissionRow(merchant, true);
+    }
+
+    /**
+     * @param preferLatestHistoryDistribution 목록·상세 표시 시 true — 최신 변경 이력 배분을 우선.
+     *                                      저장 직후 스냅샷 생성 시 false — 방금 저장한 DB 배분을 사용.
+     */
+    private Map<String, Object> buildCommissionRow(OrgUnit merchant, boolean preferLatestHistoryDistribution) {
         Map<String, Object> m = new HashMap<>();
         String mc = normCompCode(merchant);
         m.put("id", merchant.getId());
@@ -171,14 +179,8 @@ public class CommissionService {
             m.put("feeSettlementPerTx", ex.getFeeSettlementPerTx());
             m.put("feeRefund", ex.getFeeRefund());
         });
-        Optional<DistributionFeeConfig> odf = distributionFeeConfigRepository.findByCompId(mc);
-        if (odf.isEmpty() && merchant.getCode() != null && !mc.equals(merchant.getCode())) {
-            odf = distributionFeeConfigRepository.findByCompId(merchant.getCode());
-        }
-        if (odf.isEmpty() && effectiveScope != null && !effectiveScope.isBlank() && !effectiveScope.equals(mc)) {
-            odf = distributionFeeConfigRepository.findByCompId(effectiveScope);
-        }
-        if (odf.isPresent()) {
+        Optional<DistributionFeeConfig> odf = resolveDistributionFeeConfig(merchant, mc, effectiveScope);
+        if (odf.isPresent() && !isDistributionConfigEffectivelyEmpty(odf.get())) {
             applyDistributionToMap(m, odf.get());
         } else {
             applyDistributionToMap(m, null);
@@ -186,6 +188,9 @@ public class CommissionService {
             if (effectiveScope == null && policy != null) {
                 applyDirectPolicyFallbackToDistribution(m, policy);
             }
+        }
+        if (preferLatestHistoryDistribution) {
+            applyLatestCommissionHistoryDistributionForDisplay(mc, m);
         }
 
         m.put("totalNm", resolveMerchantBaseCurrencyDisplay(merchant));
@@ -223,6 +228,124 @@ public class CommissionService {
         m.put("salesOfficePerTxFee", BigDecimal.ZERO);
     }
 
+    /**
+     * 가맹 배분 행이 존재하지만 전부 0(초기 생성)이면 본사 템플릿(scope) 배분을 사용한다.
+     * 그렇지 않으면 목록만 0·합계 오류가 나고 히스토리 스냅샷과 어긋날 수 있다.
+     */
+    private Optional<DistributionFeeConfig> resolveDistributionFeeConfig(OrgUnit merchant, String merchantCode,
+                                                                         String effectiveScope) {
+        String mc = normCompCode(merchantCode);
+        String rawCode = merchant != null ? merchant.getCode() : null;
+        Optional<DistributionFeeConfig> merchantDf = findDistributionByCompIdCandidates(mc, rawCode);
+        if (merchantDf.isPresent() && !isDistributionConfigEffectivelyEmpty(merchantDf.get())) {
+            return merchantDf;
+        }
+        if (effectiveScope != null && !effectiveScope.isBlank() && !effectiveScope.equals(mc)) {
+            String scopeKey = normCompCode(effectiveScope);
+            Optional<DistributionFeeConfig> scopeDf = distributionFeeConfigRepository.findByCompId(scopeKey);
+            if (scopeDf.isEmpty() && !scopeKey.equals(effectiveScope)) {
+                scopeDf = distributionFeeConfigRepository.findByCompId(effectiveScope);
+            }
+            if (scopeDf.isPresent() && !isDistributionConfigEffectivelyEmpty(scopeDf.get())) {
+                return scopeDf;
+            }
+        }
+        return merchantDf;
+    }
+
+    private Optional<DistributionFeeConfig> findDistributionByCompIdCandidates(String mc, String rawCode) {
+        if (mc == null || mc.isEmpty()) {
+            return Optional.empty();
+        }
+        Optional<DistributionFeeConfig> odf = distributionFeeConfigRepository.findByCompId(mc);
+        if (odf.isEmpty() && rawCode != null) {
+            String raw = normCompCode(rawCode);
+            if (!raw.isEmpty() && !raw.equals(mc)) {
+                odf = distributionFeeConfigRepository.findByCompId(raw);
+            }
+            if (odf.isEmpty() && !rawCode.equals(raw)) {
+                odf = distributionFeeConfigRepository.findByCompId(rawCode);
+            }
+        }
+        return odf;
+    }
+
+    private static boolean isDistributionConfigEffectivelyEmpty(DistributionFeeConfig df) {
+        if (df == null) {
+            return true;
+        }
+        return isZeroOrNull(df.getHqRate())
+                && isZeroOrNull(df.getRegionalRate())
+                && isZeroOrNull(df.getMasterRate())
+                && isZeroOrNull(df.getBranchRate())
+                && isZeroOrNull(df.getAgencyRate())
+                && isZeroOrNull(df.getSalesOfficeRate())
+                && isZeroOrNull(df.getHqPerTxFee())
+                && isZeroOrNull(df.getRegionalPerTxFee())
+                && isZeroOrNull(df.getMasterPerTxFee())
+                && isZeroOrNull(df.getBranchPerTxFee())
+                && isZeroOrNull(df.getAgencyPerTxFee())
+                && isZeroOrNull(df.getSalesOfficePerTxFee());
+    }
+
+    private static boolean isDistributionMapEffectivelyEmpty(Map<String, Object> m) {
+        if (m == null || m.isEmpty()) {
+            return true;
+        }
+        String[] keys = {
+                "hqRate", "regionalRate", "masterRate", "branchRate", "agencyRate", "salesOfficeRate",
+                "hqPerTxFee", "regionalPerTxFee", "masterPerTxFee", "branchPerTxFee", "agencyPerTxFee", "salesOfficePerTxFee"
+        };
+        for (String k : keys) {
+            if (!isZeroOrNull(m.get(k))) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private static boolean isZeroOrNull(Object v) {
+        if (v == null) {
+            return true;
+        }
+        return bd(v).compareTo(BigDecimal.ZERO) == 0;
+    }
+
+    /**
+     * 수수료관리 목록·상세 표시: 최신 변경 이력 스냅샷의 단계별 배분(요율·건당)을 우선한다.
+     * DB/템플릿만 보면 총본사 %만 있고 본사 %가 빠져 합계가 히스토리와 어긋날 수 있다.
+     */
+    private void applyLatestCommissionHistoryDistributionForDisplay(String merchantCode, Map<String, Object> m) {
+        if (merchantCode == null || merchantCode.isBlank() || m == null) {
+            return;
+        }
+        List<CommissionHistory> desc = commissionHistoryRepository.findByCompIdIgnoreCaseOrderByCreatedAtDesc(merchantCode.trim());
+        if (desc == null || desc.isEmpty()) {
+            return;
+        }
+        Map<String, Object> snap = parseHistorySnapshotMap(desc.get(0));
+        if (snap == null || snap.isEmpty() || isDistributionMapEffectivelyEmpty(snap)) {
+            return;
+        }
+        copyDistributionFieldsFromMap(snap, m);
+    }
+
+    private static void copyDistributionFieldsFromMap(Map<String, Object> src, Map<String, Object> dest) {
+        if (src == null || dest == null) {
+            return;
+        }
+        String[] keys = {
+                "hqRate", "regionalRate", "masterRate", "branchRate", "agencyRate", "salesOfficeRate",
+                "hqPerTxFee", "regionalPerTxFee", "masterPerTxFee", "branchPerTxFee", "agencyPerTxFee", "salesOfficePerTxFee",
+                "applyStartDate", "applyStartDateStr"
+        };
+        for (String k : keys) {
+            if (src.containsKey(k) && src.get(k) != null) {
+                dest.put(k, src.get(k));
+            }
+        }
+    }
+
     private String resolveMerchantHqScopeForDisplay(OrgUnit merchant) {
         if (merchant == null) return "DEFAULT";
         Long orgUnitId = merchant.getId();
@@ -247,8 +370,24 @@ public class CommissionService {
      * <p>본사정책 따름(Y)이면 {@code hqPolicyScope}(비면 DEFAULT)에 해당하는 <b>배포 템플릿</b> 행을 사용합니다.
      * 가맹 스코프({@code tb_commission_policy.scope=가맹코드}) 행이 남아 있어도 본사 목록과 동일한 값이 오도록,
      * 직접입력(N)일 때만 가맹 스코프를 봅니다.</p>
+     * <p>가맹별 단계별 배분({@link DistributionFeeConfig}·변경 이력) 합계가 있으면
+     * {@code payRate}·{@code perTxFee}에 반영합니다(수수료내역 결제%·건당과 수수료관리 합계 일치).</p>
      */
     public CommissionPolicy resolveCommissionPolicyForSettlement(String merchantCode) {
+        CommissionPolicy base = resolveBaseCommissionPolicyTemplate(merchantCode);
+        String mc = merchantCode != null ? merchantCode.trim() : "";
+        if (mc.isEmpty()) {
+            return base;
+        }
+        Optional<OrgUnit> ouOpt = resolveOrgByCode(mc);
+        if (ouOpt.isEmpty() || ouOpt.get().getOrgLevel() != OrgLevel.MERCHANT) {
+            return base;
+        }
+        return overlayMerchantDistributionRatesOnPolicy(ouOpt.get(), mc, base);
+    }
+
+    /** 본사 템플릿 또는 가맹 직접입력 정책(배분 합계 미반영). */
+    private CommissionPolicy resolveBaseCommissionPolicyTemplate(String merchantCode) {
         String mc = merchantCode != null ? merchantCode.trim() : "";
         if (mc.isEmpty()) {
             return commissionPolicyRepository.findByScope("DEFAULT").orElseGet(CommissionPolicy::new);
@@ -285,6 +424,111 @@ public class CommissionService {
         return commissionPolicyRepository.findByScope(templateScope)
                 .or(() -> commissionPolicyRepository.findByScope("DEFAULT"))
                 .orElseGet(CommissionPolicy::new);
+    }
+
+    /** 가맹 단계별 배분(최신 변경 이력 우선) 합계 → 결제 수수료율·건당 수수료. */
+    private CommissionPolicy overlayMerchantDistributionRatesOnPolicy(OrgUnit merchant, String mc, CommissionPolicy base) {
+        Map<String, Object> dist = resolveEffectiveDistributionMap(merchant, mc, true);
+        if (isDistributionMapEffectivelyEmpty(dist)) {
+            return base;
+        }
+        putTotals(dist);
+        CommissionPolicy effective = cloneCommissionPolicyForSettlement(base);
+        effective.setPayRate(bd(dist.get("totalRate")));
+        effective.setPerTxFee(bd(dist.get("totalPerTxFee")));
+        return effective;
+    }
+
+    private Map<String, Object> resolveEffectiveDistributionMap(OrgUnit merchant, String mc, boolean preferLatestHistory) {
+        Map<String, Object> m = new HashMap<>();
+        String effectiveScope = resolveMerchantHqScopeForDisplay(merchant);
+        Optional<DistributionFeeConfig> odf = resolveDistributionFeeConfig(merchant, mc, effectiveScope);
+        if (odf.isPresent() && !isDistributionConfigEffectivelyEmpty(odf.get())) {
+            applyDistributionToMap(m, odf.get());
+        } else {
+            applyDistributionToMap(m, null);
+            if (effectiveScope == null) {
+                CommissionPolicy pol = resolveBaseCommissionPolicyTemplate(mc);
+                if (pol != null) {
+                    applyDirectPolicyFallbackToDistribution(m, pol);
+                }
+            }
+        }
+        if (preferLatestHistory) {
+            applyLatestCommissionHistoryDistributionForDisplay(mc, m);
+        }
+        return m;
+    }
+
+    private static CommissionPolicy cloneCommissionPolicyForSettlement(CommissionPolicy base) {
+        if (base == null) {
+            return new CommissionPolicy();
+        }
+        CommissionPolicy c = new CommissionPolicy();
+        c.setScope(base.getScope());
+        c.setPolicyName(base.getPolicyName());
+        c.setDeployYn(base.getDeployYn());
+        c.setPerTxFee(base.getPerTxFee());
+        c.setUsageRate(base.getUsageRate());
+        c.setFailFee(base.getFailFee());
+        c.setCancelRate(base.getCancelRate());
+        c.setVoidFeePerTx(base.getVoidFeePerTx());
+        c.setManualVoidFeePerTx(base.getManualVoidFeePerTx());
+        c.setRefundRate(base.getRefundRate());
+        c.setPayRate(base.getPayRate());
+        c.setFeeSettlementPerTx(base.getFeeSettlementPerTx());
+        c.setRemittanceTransferFee(base.getRemittanceTransferFee());
+        c.setUsdtTransferFeeUsd(base.getUsdtTransferFeeUsd());
+        c.setFeeUsdt(base.getFeeUsdt());
+        c.setFeeFx(base.getFeeFx());
+        c.setRollingPct(base.getRollingPct());
+        c.setRollingDays(base.getRollingDays());
+        c.setCurrencyCode(base.getCurrencyCode());
+        c.setPolicyRemark(base.getPolicyRemark());
+        c.setFee3dsRate(base.getFee3dsRate());
+        c.setChargebackFeePerTx(base.getChargebackFeePerTx());
+        c.setChargebackPolicyId(base.getChargebackPolicyId());
+        c.setVoidSettlementMode(base.getVoidSettlementMode());
+        c.setManualVoidSettlementMode(base.getManualVoidSettlementMode());
+        c.setRefundSettlementMode(base.getRefundSettlementMode());
+        c.setForceRefundSettlementMode(base.getForceRefundSettlementMode());
+        c.setExtraFee1Name(base.getExtraFee1Name());
+        c.setExtraFee1Mode(base.getExtraFee1Mode());
+        c.setExtraFee1Value(base.getExtraFee1Value());
+        c.setExtraFee2Name(base.getExtraFee2Name());
+        c.setExtraFee2Mode(base.getExtraFee2Mode());
+        c.setExtraFee2Value(base.getExtraFee2Value());
+        c.setExtraFee3Name(base.getExtraFee3Name());
+        c.setExtraFee3Mode(base.getExtraFee3Mode());
+        c.setExtraFee3Value(base.getExtraFee3Value());
+        c.setExtraFee4Name(base.getExtraFee4Name());
+        c.setExtraFee4Mode(base.getExtraFee4Mode());
+        c.setExtraFee4Value(base.getExtraFee4Value());
+        return c;
+    }
+
+    private static void syncPolicyPayFieldsFromDistribution(CommissionPolicy policy, DistributionFeeConfig df) {
+        if (policy == null || df == null) {
+            return;
+        }
+        BigDecimal totalRate = bd(df.getHqRate())
+                .add(bd(df.getRegionalRate()))
+                .add(bd(df.getMasterRate()))
+                .add(bd(df.getBranchRate()))
+                .add(bd(df.getAgencyRate()))
+                .add(bd(df.getSalesOfficeRate()));
+        BigDecimal totalPerTx = bd(df.getHqPerTxFee())
+                .add(bd(df.getRegionalPerTxFee()))
+                .add(bd(df.getMasterPerTxFee()))
+                .add(bd(df.getBranchPerTxFee()))
+                .add(bd(df.getAgencyPerTxFee()))
+                .add(bd(df.getSalesOfficePerTxFee()));
+        if (totalRate.signum() > 0 || !isDistributionConfigEffectivelyEmpty(df)) {
+            policy.setPayRate(totalRate);
+        }
+        if (totalPerTx.signum() > 0 || !isDistributionConfigEffectivelyEmpty(df)) {
+            policy.setPerTxFee(totalPerTx);
+        }
     }
 
     private void applyDistributionToMap(Map<String, Object> m, DistributionFeeConfig df) {
@@ -632,10 +876,12 @@ public class CommissionService {
             m.put("compId", mc.isEmpty() ? ou.getCode() : mc);
             m.put("compNm", ou.getName());
             m.put("orgUnitId", ou.getId());
-            CommissionPolicy policy = commissionPolicyRepository.findByScope(mc)
-                    .or(() -> ou.getCode() != null && !mc.equals(ou.getCode())
-                            ? commissionPolicyRepository.findByScope(ou.getCode()) : Optional.empty())
-                    .orElse(null);
+            CommissionPolicy policy = ou.getOrgLevel() == OrgLevel.MERCHANT
+                    ? resolveCommissionPolicyForSettlement(mc)
+                    : commissionPolicyRepository.findByScope(mc)
+                            .or(() -> ou.getCode() != null && !mc.equals(ou.getCode())
+                                    ? commissionPolicyRepository.findByScope(ou.getCode()) : Optional.empty())
+                            .orElse(null);
             if (policy != null) {
                 m.put("perTxFee", policy.getPerTxFee());
                 m.put("cancelRate", policy.getCancelRate());
@@ -694,15 +940,17 @@ public class CommissionService {
                 } catch (Exception ignored) {
                 }
             });
-            Optional<DistributionFeeConfig> odf2 = distributionFeeConfigRepository.findByCompId(mc);
-            if (odf2.isEmpty() && ou.getCode() != null && !mc.equals(ou.getCode())) {
-                odf2 = distributionFeeConfigRepository.findByCompId(ou.getCode());
-            }
-            if (odf2.isPresent()) {
+            String effectiveScope = resolveMerchantHqScopeForDisplay(ou);
+            Optional<DistributionFeeConfig> odf2 = resolveDistributionFeeConfig(ou, mc, effectiveScope);
+            if (odf2.isPresent() && !isDistributionConfigEffectivelyEmpty(odf2.get())) {
                 applyDistributionToMap(m, odf2.get());
             } else {
                 applyDistributionToMap(m, null);
+                if (effectiveScope == null && policy != null) {
+                    applyDirectPolicyFallbackToDistribution(m, policy);
+                }
             }
+            applyLatestCommissionHistoryDistributionForDisplay(mc, m);
             putTotals(m);
             if (m.get("applyStartDate") instanceof LocalDate d) m.put("applyStartDateStr", d.toString());
             else if (m.get("applyStartDate") != null) m.put("applyStartDateStr", m.get("applyStartDate").toString());
@@ -756,22 +1004,6 @@ public class CommissionService {
                 }
             }
             applyExtraFeesFromCommissionBody(policy, body);
-            commissionPolicyRepository.save(policy);
-
-            MerchantCommissionExtra extra = merchantCommissionExtraRepository.findByOrgUnitId(ou.getId())
-                    .orElseGet(() -> {
-                        MerchantCommissionExtra e = new MerchantCommissionExtra();
-                        e.setOrgUnitId(ou.getId());
-                        return e;
-                    });
-            setBd(extra::setFeeAccountActivation, body.get("feeAccountActivation"));
-            setBd(extra::setFeeAnnual, body.get("feeAnnual"));
-            setBd(extra::setFeeTechService, body.get("feeTechService"));
-            setBd(extra::setFeeSettlementPerTx, body.get("feeSettlementPerTx"));
-            setBd(extra::setFeeRefund, body.get("feeRefund"));
-            setPct(extra::setFeeUsdt, body.get("feeUsdt"));
-            setPct(extra::setFeeFx, body.get("feeFx"));
-            merchantCommissionExtraRepository.save(extra);
 
             DistributionFeeConfig df = distributionFeeConfigRepository.findByCompId(merchantCode)
                     .or(() -> ou.getCode() != null && !merchantCode.equals(ou.getCode())
@@ -803,8 +1035,27 @@ public class CommissionService {
                 }
             }
             distributionFeeConfigRepository.save(df);
+            syncPolicyPayFieldsFromDistribution(policy, df);
+            commissionPolicyRepository.save(policy);
 
-            Map<String, Object> snap = buildCommissionRow(ou);
+            MerchantCommissionExtra extra = merchantCommissionExtraRepository.findByOrgUnitId(ou.getId())
+                    .orElseGet(() -> {
+                        MerchantCommissionExtra e = new MerchantCommissionExtra();
+                        e.setOrgUnitId(ou.getId());
+                        return e;
+                    });
+            setBd(extra::setFeeAccountActivation, body.get("feeAccountActivation"));
+            setBd(extra::setFeeAnnual, body.get("feeAnnual"));
+            setBd(extra::setFeeTechService, body.get("feeTechService"));
+            setBd(extra::setFeeSettlementPerTx, body.get("feeSettlementPerTx"));
+            setBd(extra::setFeeRefund, body.get("feeRefund"));
+            setPct(extra::setFeeUsdt, body.get("feeUsdt"));
+            setPct(extra::setFeeFx, body.get("feeFx"));
+            merchantCommissionExtraRepository.save(extra);
+
+            Map<String, Object> snap = buildCommissionRow(ou, false);
+            applyDistributionToMap(snap, df);
+            putTotals(snap);
             snap.put("compNm", ou.getName());
             snap.put("compId", merchantCode);
 

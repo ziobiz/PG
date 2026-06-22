@@ -18,7 +18,7 @@
       'payCustomerIndicator', 'displayPaySummary', 'displayPayCur', 'displayPayAmt',
       'regionalBaseCur', 'masterDistBaseCur', 'merchantBaseCur',
       'chillPaymentStatus', 'settledYn', 'payDivNm', 'cardAprvNo', 'productNm', 'customerNm',
-      'payActions'
+      'payActions', 'payRemark'
     ],
     /**
      * 조직항목설정: 조직 유형별 허용 열 체크의 기본안(REGIONAL 은 런타임에서 전체 토글열로 확장).
@@ -35,7 +35,7 @@
         'payDivNm', 'cardAprvNo', 'productNm', 'customerNm', 'customerEmail', 'customerTel', 'regionalNm', 'masterNm', 'branchNm',
         'compRegNo', 'payCard', 'instalMonth', 'payMethod', 'pgNm', 'pgApproveAmt', 'payAprv',
         'holdAmt', 'holdDttm', 'feeCnt', 'feeRate', 'settleAmt', 'calcDt', 'pgApproveNo', 'corpNm', 'terminalId', 'calcCycle',
-        'payCardNo', 'payActions'
+        'payCardNo', 'payActions', 'payRemark'
       ],
       BRANCH_GROUP: [
         'chillTransactionId', 'trnId', 'chillCustomer', 'orderNo', 'paymentChannel', 'payCompletedAt',
@@ -53,7 +53,7 @@
         'payCustomerIndicator', 'displayPaySummary', 'displayPayCur', 'displayPayAmt',
         'regionalBaseCur', 'masterDistBaseCur', 'merchantBaseCur',
         'chillPaymentStatus', 'settledYn',
-        'payDivNm', 'cardAprvNo', 'productNm', 'customerNm', 'payActions'
+        'payDivNm', 'cardAprvNo', 'productNm', 'customerNm', 'payActions', 'payRemark'
       ]
     },
     headerGroups: [
@@ -66,7 +66,7 @@
       { label: '고객통화', keys: ['displayPayCur'] },
       { label: '고객금액', keys: ['displayPayAmt'] }
     ],
-    /** gridType: 'checkbox' | 'payActions', 그 외 일반 열 */
+    /** gridType: 'checkbox' | 'payActions' | 'payRemark', 그 외 일반 열 */
     columns: [
       { key: '_chk', label: '선택', gridType: 'checkbox' },
       { key: 'rowNo', label: '번호' },
@@ -122,7 +122,8 @@
       { key: 'regionalNm', label: '총판' },
       { key: 'masterNm', label: '지사' },
       { key: 'branchNm', label: '대리점' },
-      { key: 'payActions', label: '후속조치', gridType: 'payActions' }
+      { key: 'payActions', label: '후속조치', gridType: 'payActions' },
+      { key: 'payRemark', label: '비고', gridType: 'payRemark' }
     ]
   };
 

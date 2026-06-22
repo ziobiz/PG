@@ -1017,6 +1017,12 @@
       CH: '应收余额 {0} 笔 · 合计约 {1} 韩元',
       TH: 'ลูกหนี้ {0} รายการ · รวมประมาณ {1} วอน'
     },
+    '미수금 잔액 {0}건 · 합계 약 {1} {2}': {
+      EN: 'Receivable balance {0} rows · approx. sum {1} {2}',
+      JP: '未収金残 {0} 件・合計 約 {1} {2}',
+      CH: '应收余额 {0} 笔 · 合计约 {1} {2}',
+      TH: 'ลูกหนี้ {0} รายการ · รวมประมาณ {1} {2}'
+    },
     '최근 30일 정산 보류/지급보류 실행 {0}건': {
       EN: '{0} settlement hold / payout-hold runs in the last 30 days',
       JP: '直近30日 精算保留／支払保留 実行 {0} 件',
@@ -1911,7 +1917,7 @@
       EN: 'Multi',
       JP: 'マルチ',
       CH: '多选',
-      TH: 'หลายสกุล'
+      TH: 'มัลติ'
     },
     '자동(BOT)': {
       EN: 'Auto (BOT)',
@@ -6760,6 +6766,36 @@
       CH: '拒付（退单）设置',
       TH: 'ตั้งค่า chargeback'
     },
+    '차지백설정 구조': {
+      EN: 'Chargeback policy tiers',
+      JP: 'チャージバック設定の段階',
+      CH: '拒付设置分段结构',
+      TH: 'โครงสร้างช่วงชาร์จแบ็ก'
+    },
+    '구간': {
+      EN: 'Tier',
+      JP: '区間',
+      CH: '区间',
+      TH: 'ช่วง'
+    },
+    '이상': {
+      EN: 'and above',
+      JP: '以上',
+      CH: '及以上',
+      TH: 'ขึ้นไป'
+    },
+    '{0} ~ {1}건': {
+      EN: '{0} – {1} txns',
+      JP: '{0}～{1}件',
+      CH: '{0}～{1}笔',
+      TH: '{0}–{1} รายการ'
+    },
+    '{0} ~ 이상건': {
+      EN: '{0}+ txns',
+      JP: '{0}件以上',
+      CH: '{0}笔及以上',
+      TH: '{0} รายการขึ้นไป'
+    },
     '월간 환불·강제환불(거래 상태 30·31) 건수로 구간을 정합니다. 해당 월 누적 건수에 맞는 첫 구간의 건당 금액을, 정산 배치에 포함된 환불·강제환불 건수만큼 곱해 합산합니다. 구간 정책을 쓰지 않으면 [수수료설정]의 차지백수수료(건)만 적용됩니다.': {
       EN: 'Tiers are defined by monthly refund and forced-refund counts (txn statuses 30 and 31). For the month, the per-case amount from the first tier that matches cumulative count is multiplied by refund/forced-refund counts included in the settlement batch and summed. If no tier policy is used, only the per-txn chargeback fee from [Fee settings] applies.',
       JP: '月次の返金・強制返金（取引ステータス30・31）件数で段階を定めます。当月の累計件数に合致する最初の段階の件当金額を、精算バッチに含まれる返金・強制返金件数分だけ掛けて合算します。段階ポリシーを使わない場合は[手数料設定]のチャージバック手数料（件）のみが適用されます。',
@@ -7610,6 +7646,60 @@
       JP: 'チャットボット管理',
       CH: '聊天机器人管理',
       TH: 'จัดการ Chatbot'
+    },
+    분할관리: {
+      EN: 'Split payment ops',
+      JP: '分割決済運用',
+      CH: '分次支付运营',
+      TH: 'จัดการแบ่งงวด'
+    },
+    진행관리: {
+      EN: 'Progress',
+      JP: '進行管理',
+      CH: '进度管理',
+      TH: 'ความคืบหน้า'
+    },
+    이메일관리: {
+      EN: 'Email management',
+      JP: 'メール管理',
+      CH: '邮件管理',
+      TH: 'จัดการอีเมล'
+    },
+    이메일설정: {
+      EN: 'Email settings',
+      JP: 'メール設定',
+      CH: '邮件设置',
+      TH: 'ตั้งค่าอีเมล'
+    },
+    계약관리: {
+      EN: 'Contract management',
+      JP: '契約管理',
+      CH: '合同管理',
+      TH: 'จัดการสัญญา'
+    },
+    분할결제내역: {
+      EN: 'Split payment list',
+      JP: '分割決済一覧',
+      CH: '分次支付记录',
+      TH: 'รายการชำระแบ่งงวด'
+    },
+    링크재발송: {
+      EN: 'Resend link',
+      JP: 'リンク再送信',
+      CH: '重发链接',
+      TH: 'ส่งลิงก์อีกครั้ง'
+    },
+    미납: {
+      EN: 'Unpaid',
+      JP: '未払い',
+      CH: '未付',
+      TH: 'ค้างชำระ'
+    },
+    납부완료: {
+      EN: 'Paid',
+      JP: '納付完了',
+      CH: '已付',
+      TH: 'ชำระแล้ว'
     },
     기타: { EN: 'Other', JP: 'その他', CH: '其他', TH: 'อื่นๆ' },
     '조직 단계별 기본 권한은 <strong>총본사</strong>(또는 시스템 관리자)만 편집합니다.': {
@@ -8847,6 +8937,30 @@
       CH: '普通 URL 支付',
       TH: 'ชำระ URL ปกติ'
     },
+    '일반 결제': {
+      EN: 'Standard payment',
+      JP: '通常決済',
+      CH: '普通支付',
+      TH: 'ชำระปกติ'
+    },
+    '재구매 결제': {
+      EN: 'Re-purchase payment',
+      JP: '再購入決済',
+      CH: '复购支付',
+      TH: 'ชำระซื้อซ้ำ'
+    },
+    '분할 결제': {
+      EN: 'Split payment',
+      JP: '分割決済',
+      CH: '分次支付',
+      TH: 'ชำระแบ่งงวด'
+    },
+    '월간격 개월': {
+      EN: 'Month interval (months)',
+      JP: '月間隔（ヶ月）',
+      CH: '月间隔（月数）',
+      TH: 'ช่วงรายเดือน (เดือน)'
+    },
     '재결제 URL (저장 카드)': {
       EN: 'Re-pay URL (saved cards)',
       JP: '再決済URL（保存カード）',
@@ -8883,17 +8997,29 @@
       CH: 'API URL 内联中继支付',
       TH: 'ชำระ API URL inline relay'
     },
-    '가맹 API inline-checkout/prepare 호출 시 payUrl·결제창에 적용됩니다. 공개 URL·챗봇과 별도로 일반 URL/재결제 URL 을 선택할 수 있습니다. 재결제 URL 은 본사 URL 재결제 기능 ON 및 URL재결제 PG 바인딩(연동용도 URL재결제·운영 Y)이 필요합니다.': {
-      EN: 'Applies to payUrl and checkout when calling merchant API inline-checkout/prepare. Standard / re-pay URL can be set separately from public URL and chatbot. Re-pay URL requires HQ re-pay enabled and an operational URL re-pay PG binding.',
-      JP: '加盟店API inline-checkout/prepare 呼び出し時の payUrl・決済画面に適用されます。公開URL・チャットボットとは別に通常URL/再決済URLを選択できます。再決済URLは本社URL再決済機能ONおよびURL再決済PGバインディング(連動用途URL再決済・運用Y)が必要です。',
-      CH: '调用商户 API inline-checkout/prepare 时应用于 payUrl 与结账页。可与公开 URL、聊天机器人分开选择普通 URL/再支付 URL。再支付 URL 需开启总部再支付功能并绑定 URL 再支付 PG（用途 URL 再支付·运营 Y）。',
-      TH: 'ใช้กับ payUrl และหน้าชำระเมื่อเรียก merchant API inline-checkout/prepare เลือก URL ปกติ/ชำระซ้ำแยกจาก URL สาธารณะและแชทบอทได้ URL ชำระซ้ำต้องเปิดฟีเจอร์ที่สำนักงานใหญ่และผูก PG URL ชำระซ้ำ (operational Y)'
+    '가맹 쇼핑몰 등에서 API 인라인 inline-checkout/prepare 를 호출할 때 저장된 값이 payUrl·결제창에 반영됩니다. 공개 결제 URL·챗봇결제와는 별도 설정입니다. ChillPay·JPAY API 인라인 모두 동일하게 적용됩니다.': {
+      EN: 'When your mall calls API inline checkout/prepare, the saved setting applies to payUrl and the checkout page. Separate from public payment URL and chatbot checkout. Applies to both ChillPay and JPAY API inline.',
+      JP: '加盟店ショッピングモール等が API インライン inline-checkout/prepare を呼び出すとき、保存値が payUrl・決済画面に反映されます。公開決済URL・チャットボット決済とは別設定です。ChillPay・JPAY API インラインに同じく適用されます。',
+      CH: '商户商城等调用 API 内联 inline-checkout/prepare 时，保存值应用于 payUrl 与结账页。与公开支付 URL、聊天机器人支付分开设置。ChillPay 与 JPAY API 内联同样适用。',
+      TH: 'เมื่อร้านเรียก API inline checkout/prepare ค่าที่บันทึกจะใช้กับ payUrl และหน้าชำระ แยกจาก URL ชำระสาธารณะและแชทบอท ใช้ได้ทั้ง ChillPay และ JPAY API inline'
     },
-    '본사 결제로직설정에서 URL 결제형 INLINE 제공이 Y 이어야 합니다. prepare 응답 payUrl 에 variant=repay 가 포함되면 재결제 URL 모드입니다.': {
-      EN: 'HQ payment logic must have URL payment INLINE enabled (Y). If prepare response payUrl includes variant=repay, re-pay URL mode is active.',
-      JP: '本社決済ロジック設定でURL決済型INLINE提供がYである必要があります。prepare応答 payUrl に variant=repay が含まれると再決済URLモードです。',
-      CH: '总部支付逻辑设置中 URL 支付型 INLINE 提供须为 Y。若 prepare 响应 payUrl 含 variant=repay 则为再支付 URL 模式。',
-      TH: 'ต้องเปิด URL payment INLINE (Y) ในการตั้งค่าตรรกะชำระที่สำนักงานใหญ่ หาก payUrl ใน prepare มี variant=repay คือโหมด URL ชำระซ้ำ'
+    '필수: 가맹 「API 인라인 연동」·「웹결제」사용, 운영 URL PG 바인딩, 본사 결제로직 URL INLINE 제공(Y). 일반 결제 → pay.html 또는 jpay-pay.html. 재구매 결제 → ChillPay API 인라인만(pay-repay), JPAY API 인라인 미지원. 분할 결제 → 1회 prepare 불가, 「URL 분할결제」사용 ON 후 분할 계약 API 또는 분할결제 URL 이용.': {
+      EN: 'Required: merchant API inline integration and web payment ON, operational URL PG binding, HQ payment logic URL INLINE (Y). Standard → pay.html or jpay-pay.html. Repurchase → ChillPay API inline only (pay-repay); JPAY API inline not supported. Split → one-shot prepare blocked; enable URL split payment then use split contract API or split payment URL.',
+      JP: '必須：加盟店「APIインライン連携」・「ウェブ決済」利用、運用URL PGバインディング、本社決済ロジック URL INLINE 提供(Y)。通常決済→pay.html または jpay-pay.html。再購入決済→ChillPay APIインラインのみ(pay-repay)、JPAY APIインライン非対応。分割決済→1回 prepare 不可、「URL分割決済」利用ON後に分割契約APIまたは分割決済URLを利用。',
+      CH: '须启用商户「API 内联对接」「网页支付」、绑定运营 URL PG、总部支付逻辑 URL INLINE(Y)。普通支付→pay.html 或 jpay-pay.html。复购支付→仅 ChillPay API 内联(pay-repay)，不支持 JPAY API 内联。分次支付→不可单次 prepare，开启「URL 分次支付」后使用分次合同 API 或分次支付 URL。',
+      TH: 'ต้องเปิด「API inline」·「ชำระเว็บ」ผูก PG URL ที่ใช้งาน และ HQ URL INLINE (Y) ปกติ→pay.html หรือ jpay-pay.html ซื้อซ้ำ→ChillPay API inline เท่านั้น แบ่งงวด→ห้าม prepare ครั้งเดียว เปิด「URL แบ่งงวด」แล้วใช้ API สัญญาหรือ URL แบ่งงวด'
+    },
+    '가맹 API inline-checkout/prepare 호출 시 payUrl·결제창에 적용됩니다. 일반 결제·재구매 결제·분할 결제 중 선택합니다. 재구매 결제는 본사 URL 재결제 기능 ON 및 URL재결제 PG 바인딩이 필요합니다. 분할 결제 선택 시 1회 결제 prepare 대신 분할 계약 API·/split-pay-setup 을 사용합니다.': {
+      EN: 'Applies to payUrl and checkout when calling merchant API inline-checkout/prepare. Choose standard, re-purchase, or split payment. Re-purchase requires HQ re-pay enabled and a URL re-pay PG binding. Split payment uses split contract API and /split-pay-setup instead of one-shot prepare.',
+      JP: '加盟店API inline-checkout/prepare 呼び出し時の payUrl・決済画面に適用。通常決済・再購入決済・分割決済から選択。再購入決済は本社URL再決済機能ONおよびURL再決済PGバインディングが必要。分割決済選択時は1回prepareの代わりに分割契約API・/split-pay-setupを使用。',
+      CH: '调用商户 API inline-checkout/prepare 时应用于 payUrl 与结账页。可选普通支付、复购支付、分次支付。复购支付需开启总部再支付功能并绑定 URL 再支付 PG。分次支付使用分次合同 API 与 /split-pay-setup，而非单次 prepare。',
+      TH: 'ใช้กับ payUrl และหน้าชำระเมื่อเรียก merchant API inline-checkout/prepare เลือกชำระปกติ ซื้อซ้ำ หรือแบ่งงวด ซื้อซ้ำต้องเปิดฟีเจอร์ที่สำนักงานใหญ่และผูก PG URL ชำระซ้ำ แบ่งงวดใช้ API สัญญาแบ่งงวดและ /split-pay-setup แทน prepare ครั้งเดียว'
+    },
+    '본사 결제로직설정에서 URL 결제형 INLINE 제공이 Y 이어야 합니다. 분할 결제 회차는 운영 URL PG(ChillPay·JPAY)에 따라 pay.html 또는 jpay-pay.html 로 진행됩니다.': {
+      EN: 'HQ payment logic must have URL payment INLINE enabled (Y). Split installments use pay.html (ChillPay) or jpay-pay.html (JPAY) per operational URL PG.',
+      JP: '本社決済ロジック設定でURL決済型INLINE提供がYである必要があります。分割回次は運用URL PG(ChillPay·JPAY)に応じ pay.html または jpay-pay.html です。',
+      CH: '总部支付逻辑须启用 URL INLINE。分次各期按运营 URL PG(ChillPay·JPAY) 使用 pay.html 或 jpay-pay.html。',
+      TH: 'ต้องเปิด URL INLINE ที่ HQ งวดแบ่งงวดใช้ pay.html (ChillPay) หรือ jpay-pay.html (JPAY) ตาม PG URL ที่ใช้งาน'
     },
     '미사용 선택 시 WEB 결제 시스템이 중지됩니다. 「URL 결제 방식」은 공개 URL(/pay/업체코드) 결제에만 적용됩니다. API·챗봇 결제 방식은 각 설정 카드에서 별도 선택합니다. 재결제 URL 은 본사 URL 재결제 기능 ON 및 URL재결제 PG 바인딩이 필요합니다.': {
       EN: 'If disabled, web payment stops. URL checkout mode applies to public URL (/pay/{merchantCode}) only. API and chatbot modes are set on their own cards. Re-pay URL requires HQ re-pay enabled and a URL re-pay PG binding.',
@@ -8957,11 +9083,119 @@
       CH: 'URL 分次支付',
       TH: 'ชำระแบ่งงวด URL'
     },
+    '분할결제 사용여부': {
+      EN: 'Split pay enabled',
+      JP: '分割決済利用',
+      CH: '分次支付启用',
+      TH: 'ใช้ชำระแบ่งงวด'
+    },
+    '분할결제 URL': {
+      EN: 'Split payment URL',
+      JP: '分割決済URL',
+      CH: '分次支付 URL',
+      TH: 'URL ชำระแบ่งงวด'
+    },
+    'API URL 결제방식을 분할 결제로 선택하세요': {
+      EN: 'Select Split payment in API URL checkout mode.',
+      JP: 'API URL決済方式で分割決済を選択してください。',
+      CH: '请将 API URL 支付方式选为分次支付。',
+      TH: 'เลือกแบ่งงวดในโหมด API URL'
+    },
+    '분할결제 사용을 켜 주세요': {
+      EN: 'Turn on split payment usage.',
+      JP: '分割決済の利用をオンにしてください。',
+      CH: '请开启分次支付使用。',
+      TH: 'เปิดการใช้ชำระแบ่งงวด'
+    },
+    '「API URL 인라인 중계 결제」에서 분할 결제를 선택하고, 아래 분할결제 사용을 켠 가맹에 적용됩니다. 분할결제 URL(공개) 또는 분할 계약 API로 고객 계약·회차 결제를 진행합니다. 회차는 운영 URL PG에 따라 pay.html 또는 jpay-pay.html 입니다.': {
+      EN: 'Select Split payment in API URL inline relay checkout and enable split pay below. Customers contract and pay installments via public split payment URL or split contract API. Installments use pay.html or jpay-pay.html per operational URL PG.',
+      JP: '「API URLインライン中継決済」で分割決済を選択し、下の分割決済利用をオンにした加盟店に適用。分割決済URL(公開)または分割契約APIで契約・回次決済。回次は運用URL PGに応じ pay.html または jpay-pay.html。',
+      CH: '在「API URL 内联中继支付」中选择分次支付并开启下方分次支付使用。客户通过公开分次支付 URL 或分次合同 API 签约与分期。各期按运营 URL PG 使用 pay.html 或 jpay-pay.html。',
+      TH: 'เลือกแบ่งงวดใน「API URL inline relay」และเปิดใช้ด้านล่าง ลูกค้าสัญญาและชำระงวดผ่าน URL สาธารณะหรือ API สัญญา งวดใช้ pay.html หรือ jpay-pay.html ตาม PG URL'
+    },
+    '분할결제 사용 ON과 API 결제방식「분할 결제」가 모두 필요합니다. 월간·일간·멀티 중 하나만 선택합니다. 멀티는 고객이 1개월~설정 최대개월 중 기간을 직접 선택합니다. 1회차는 즉시결제 또는 링크발송. 미납 회차는 매일 결제 링크 메일이 발송됩니다.': {
+      EN: 'Both split pay ON and API mode Split payment are required. Choose monthly, daily, or multi (one only). Multi lets customers pick 1 month up to the configured maximum. First installment: immediate pay or link email. Overdue installments receive daily payment-link emails.',
+      JP: '分割決済利用ONとAPI決済方式「分割決済」の両方が必要です。月間・日間・マルチはいずれか一方のみ。マルチはお客様が1ヶ月～設定最大ヶ月の期間を選択します。1回目は即時決済またはリンク送信。未払い回は毎日リンクメール。',
+      CH: '须同时开启分次支付且 API 方式为「分次支付」。按月、按日、多选三选一。多选允许客户选择 1 个月至设定最长期限。首期立即支付或发链接。未付期次每日发链接邮件。',
+      TH: 'ต้องเปิดใช้แบ่งงวดและเลือกโหมด API แบ่งงวด เลือกรายเดือน รายวัน หรือมัลติอย่างใดอย่างหนึ่ง มัลติให้ลูกค้าเลือก 1 เดือนถึงสูงสุดที่ตั้ง งวดแรกทันทีหรือส่งลิงก์ งวดค้างได้รับอีเมลทุกวัน'
+    },
+    '분할결제 사용 ON과 API 결제방식「분할 결제」가 모두 필요합니다. 월간·일간 중 하나만 선택합니다. 1회차는 즉시결제 또는 링크발송. 미납 회차는 매일 결제 링크 메일이 발송됩니다.': {
+      EN: 'Both split pay ON and API mode Split payment are required. Choose monthly or daily (one only). First installment: immediate pay or link email. Overdue installments receive daily payment-link emails.',
+      JP: '分割決済利用ONとAPI決済方式「分割決済」の両方が必要です。月間・日間はいずれか一方のみ。1回目は即時決済またはリンク送信。未払い回は毎日決済リンクメール。',
+      CH: '须同时开启分次支付使用且 API 方式为「分次支付」。按月或按日二选一。首期立即支付或发链接。未付期次每日发送支付链接邮件。',
+      TH: 'ต้องเปิดใช้แบ่งงวดและเลือกโหมด API แบ่งงวด เลือกรายเดือนหรือรายวันอย่างใดอย่างหนึ่ง งวดแรกชำระทันทีหรือส่งลิงก์ งวดค้างได้รับอีเมลทุกวัน'
+    },
+    '분할결제 사용 시에만 분할결제 URL·설정이 활성화됩니다. 월간 또는 일간 중 하나만 선택할 수 있습니다. 미납 회차는 매일 결제 링크 메일이 발송됩니다.': {
+      EN: 'Split pay URL and settings work only when usage is on. Choose monthly or daily (one only). Overdue installments get daily link emails.',
+      JP: '分割決済利用時のみURL・設定が有効。月間・日間はいずれか一方。未払い回は毎日リンクメール。',
+      CH: '仅启用分次支付时 URL 与设置可用。按月或按日二选一。未付期次每日发链接邮件。',
+      TH: 'URL และการตั้งค่าใช้ได้เมื่อเปิดใช้แบ่งงวด เลือกรายเดือนหรือรายวันอย่างใดอย่างหนึ่ง งวดค้างส่งอีเมลทุกวัน'
+    },
+    '「API URL 인라인 중계 결제」에서 URL 결제 방식을 분할 결제로 선택하고, 아래 분할결제 사용을 켠 가맹에 적용됩니다. 분할결제 URL로 고객이 계약·회차 결제를 진행합니다. 월간·일간 중 하나를 선택하고 기간을 지정합니다. 1회차는 즉시결제 또는 링크발송을 선택합니다. 회차 결제는 가맹 운영 URL PG에 따라 ChillPay(pay.html) 또는 JPAY(jpay-pay.html) 결제창으로 진행됩니다.': {
+      EN: 'Select Split payment in API URL inline mode and enable split pay below. Customers use the split pay URL for contracts and installments. Choose monthly or daily period and first-installment mode. Installments use pay.html or jpay-pay.html per operational PG.',
+      JP: 'API URLインラインで分割決済を選択し、下の分割決済利用をオンに。分割決済URLで契約・回次決済。月間・日間と期間・1回目方式を指定。回次は運用PGに応じ pay.html / jpay-pay.html。',
+      CH: '在 API URL 内联中选择分次支付并开启下方分次支付。客户通过分次支付 URL 签约与分期。选择月/日周期与首期方式。各期按运营 PG 使用 pay.html 或 jpay-pay.html。',
+      TH: 'เลือกแบ่งงวดใน API URL inline และเปิดใช้ด้านล่าง ลูกค้าใช้ URL แบ่งงวดสำหรับสัญญาและงวด เลือกรายเดือน/รายวันและงวดแรก ชำระผ่าน pay.html หรือ jpay-pay.html'
+    },
     '분할결제 사용': {
       EN: 'Split pay enabled',
       JP: '分割決済利用',
       CH: '启用分次支付',
       TH: 'ใช้ชำระแบ่งงวด'
+    },
+    '월/일 설정': {
+      EN: 'Monthly / daily',
+      JP: '月/日設定',
+      CH: '月/日设置',
+      TH: 'รายเดือน / รายวัน'
+    },
+    '월간': {
+      EN: 'Monthly',
+      JP: '月間',
+      CH: '按月',
+      TH: 'รายเดือน'
+    },
+    '1년': {
+      EN: '1 year',
+      JP: '1年',
+      CH: '1年',
+      TH: '1 ปี'
+    },
+    '일간': {
+      EN: 'Daily interval',
+      JP: '日間',
+      CH: '按日',
+      TH: 'รายวัน'
+    },
+    '기간': {
+      EN: 'Period',
+      JP: '期間',
+      CH: '周期',
+      TH: 'ระยะเวลา'
+    },
+    '월결제': {
+      EN: 'Monthly pay',
+      JP: '月払い',
+      CH: '按月支付',
+      TH: 'ชำระรายเดือน'
+    },
+    '월기간설정': {
+      EN: 'Monthly period',
+      JP: '月間期間',
+      CH: '月周期设置',
+      TH: 'ระยะรายเดือน'
+    },
+    '일결제': {
+      EN: 'Daily interval pay',
+      JP: '日払い',
+      CH: '按日支付',
+      TH: 'ชำระตามวัน'
+    },
+    '일기간설정': {
+      EN: 'Day period',
+      JP: '日間期間',
+      CH: '日周期设置',
+      TH: 'ระยะรายวัน'
     },
     '월간 간격': {
       EN: 'Monthly interval',
@@ -8980,6 +9214,30 @@
       JP: '日間隔日数',
       CH: '日间隔天数',
       TH: 'จำนวนวันระหว่างงวด'
+    },
+    '월간격 개월': {
+      EN: 'Month interval (months)',
+      JP: '月間隔（ヶ月）',
+      CH: '月间隔（月数）',
+      TH: 'ช่วงเดือน (เดือน)'
+    },
+    '일반 결제': {
+      EN: 'Standard payment',
+      JP: '通常決済',
+      CH: '普通支付',
+      TH: 'ชำระปกติ'
+    },
+    '재구매 결제': {
+      EN: 'Repurchase payment',
+      JP: '再購入決済',
+      CH: '复购支付',
+      TH: 'ชำระซื้อซ้ำ'
+    },
+    '분할 결제': {
+      EN: 'Split payment',
+      JP: '分割決済',
+      CH: '分期支付',
+      TH: 'ชำระแบ่งงวด'
     },
     '1회차 결제': {
       EN: 'First installment',
@@ -9047,6 +9305,281 @@
       CH: '未找到分次支付合同。',
       TH: 'ไม่พบสัญญาชำระแบ่งงวด'
     },
+    '조회된 분할결제 회차가 없습니다.': {
+      EN: 'No split-payment installments found.',
+      JP: '分割決済回次がありません。',
+      CH: '未找到分次支付期次。',
+      TH: 'ไม่พบงวดชำระแบ่งงวด'
+    },
+    '조회된 분할결제 이메일 대상이 없습니다.': {
+      EN: 'No split-payment email targets found.',
+      JP: '分割決済メール対象がありません。',
+      CH: '未找到分次支付邮件对象。',
+      TH: 'ไม่พบเป้าหมายอีเมลแบ่งงวด'
+    },
+    '납부예정일': {
+      EN: 'Due date',
+      JP: '支払予定日',
+      CH: '应付日期',
+      TH: 'วันครบกำหนด'
+    },
+    '회차상태': {
+      EN: 'Installment status',
+      JP: '回次状態',
+      CH: '期次状态',
+      TH: 'สถานะงวด'
+    },
+    '총회차': {
+      EN: 'Total installments',
+      JP: '総回次',
+      CH: '总期数',
+      TH: 'งวดทั้งหมด'
+    },
+    '납부회차': {
+      EN: 'Paid installments',
+      JP: '支払回次',
+      CH: '已付期次',
+      TH: 'งวดที่ชำแล้ว'
+    },
+    '진행률(%)': {
+      EN: 'Progress (%)',
+      JP: '進捗率(%)',
+      CH: '进度(%)',
+      TH: 'ความคืบหน้า (%)'
+    },
+    '회차금액': {
+      EN: 'Installment amount',
+      JP: '回次金額',
+      CH: '期次金额',
+      TH: 'ยอดงวด'
+    },
+    '납부일시': {
+      EN: 'Paid at',
+      JP: '支払日時',
+      CH: '支付时间',
+      TH: 'วันที่ชำระ'
+    },
+    '계약상태': {
+      EN: 'Contract status',
+      JP: '契約状態',
+      CH: '合同状态',
+      TH: 'สถานะสัญญา'
+    },
+    'D-1발송': {
+      EN: 'D-1 sent',
+      JP: 'D-1送信',
+      CH: 'D-1 发送',
+      TH: 'ส่ง D-1'
+    },
+    'D0발송': {
+      EN: 'D0 sent',
+      JP: 'D0送信',
+      CH: 'D0 发送',
+      TH: 'ส่ง D0'
+    },
+    'D+1발송': {
+      EN: 'D+1 sent',
+      JP: 'D+1送信',
+      CH: 'D+1 发送',
+      TH: 'ส่ง D+1'
+    },
+    'D+2발송': {
+      EN: 'D+2 sent',
+      JP: 'D+2送信',
+      CH: 'D+2 发送',
+      TH: 'ส่ง D+2'
+    },
+    'D+3발송': {
+      EN: 'D+3 sent',
+      JP: 'D+3送信',
+      CH: 'D+3 发送',
+      TH: 'ส่ง D+3'
+    },
+    '재발송': {
+      EN: 'Resend',
+      JP: '再送信',
+      CH: '重发',
+      TH: 'ส่งอีกครั้ง'
+    },
+    '분할결제 계약별 회차 진행 현황입니다. 계약 단위 납부율·회차별 예정일·납부 상태를 확인합니다.': {
+      EN: 'Installment progress per split-payment contract: paid ratio, due dates, and status per installment.',
+      JP: '分割決済契約ごとの回次進行状況。契約単位の納付率・回次別予定日・状態を確認。',
+      CH: '分次支付合同各期进度：合同缴费率、各期到期日与状态。',
+      TH: 'ความคืบหน้าแต่ละงวดต่อสัญญาแบ่งงวด: อัตราชำระ วันครบกำหนด สถานะ'
+    },
+    '회차 결제가 완료되면 결제관리 「결제내역」과 「분할결제내역」에도 동일 거래가 표시됩니다.': {
+      EN: 'Completed installment payments also appear in Payment list and Split payment list.',
+      JP: '回次決済完了後は「決済一覧」「分割決済一覧」にも同一取引が表示。',
+      CH: '期次支付完成后亦显示于「支付列表」「分次支付记录」。',
+      TH: 'เมื่อชำระงวดแล้วแสดงในรายการชำระและรายการแบ่งงวด'
+    },
+    '가맹점은 본인 소속 가맹 계약·회차만 조회됩니다.': {
+      EN: 'Merchants see only contracts/installments for their own merchant code.',
+      JP: '加盟店は自店の契約・回次のみ照会可能。',
+      CH: '商户仅可查看本店合同与期次。',
+      TH: 'ร้านค้าเห็นเฉพาะสัญญา/งวดของร้านตนเอง'
+    },
+    '분할결제 회차별 결제 링크 이메일 발송 현황입니다. D-1·당일(D0)·D+1·D+2·D+3 자동 발송 일시를 확인할 수 있습니다.': {
+      EN: 'Email status for split-payment installment links: D-1, D0, D+1, D+2, D+3 auto-send timestamps.',
+      JP: '分割決済回次別リンクメール送信状況。D-1・当日(D0)・D+1・D+2・D+3の自動送信日時。',
+      CH: '分次支付各期链接邮件发送状态：D-1、D0、D+1、D+2、D+3 自动发送时间。',
+      TH: 'สถานะอีเมลลิงก์งวด: D-1, D0, D+1, D+2, D+3'
+    },
+    '분할결제 이메일설정': {
+      EN: 'Split payment email settings',
+      JP: '分割決済メール設定',
+      CH: '分次支付邮件设置',
+      TH: 'ตั้งค่าอีเมลแบ่งงวด'
+    },
+    '분할결제 이메일설정 안내': {
+      EN: 'Templates for D-1~D+3 installment reminders. SMTP uses HQ ledger auto-email settings; override sender, subject, body, and alert recipients per phase. Customer language follows contract locale (KOR/ENG/JPN/CHN/THA). Placeholders: {{contractNo}} {{installmentNo}} {{installmentCount}} {{amount}} {{currency}} {{dueDate}} {{orderNo}} {{payUrl}} {{customerName}} {{customerEmail}}',
+      JP: 'D-1〜D+3の回次リマインダーテンプレート。SMTPは本社「全社設定」の自動メールを使用。段階ごとに差出人・件名・本文・通知先を上書き。顧客言語は契約localeに従います。プレースホルダー: {{contractNo}} 等',
+      CH: 'D-1~D+3 期次提醒模板。SMTP 使用总部全社设置的自动邮件；各阶段可覆盖发件人、主题、正文、通知收件人。客户语言按合同 locale。占位符见说明。',
+      TH: 'เทมเพลตเตือนงวด D-1~D+3 ใช้ SMTP จากการตั้งค่าอีเมล HQ แก้ผู้ส่ง/หัวข้อ/เนื้อหา/แจ้งเตือนต่องวด ภาษาลูกค้าตาม locale สัญญา'
+    },
+    '발신메일': {
+      EN: 'From email',
+      JP: '送信元メール',
+      CH: '发件邮箱',
+      TH: 'อีเมลผู้ส่ง'
+    },
+    '발신 표시명': {
+      EN: 'From display name',
+      JP: '送信者表示名',
+      CH: '发件人显示名',
+      TH: 'ชื่อผู้ส่งที่แสดง'
+    },
+    '알림수신': {
+      EN: 'Alert recipients',
+      JP: '通知受信',
+      CH: '通知收件',
+      TH: 'ผู้รับแจ้งเตือน'
+    },
+    '알림수신(쉼표 구분)': {
+      EN: 'Alert recipients (comma-separated)',
+      JP: '通知受信（カンマ区切り）',
+      CH: '通知收件（逗号分隔）',
+      TH: 'ผู้รับแจ้งเตือน (คั่นด้วยจุลภาค)'
+    },
+    '메일제목': {
+      EN: 'Email subject',
+      JP: 'メール件名',
+      CH: '邮件主题',
+      TH: 'หัวข้ออีเมล'
+    },
+    '메일본문': {
+      EN: 'Email body',
+      JP: 'メール本文',
+      CH: '邮件正文',
+      TH: 'เนื้อหาอีเมล'
+    },
+    '테스트 수신 메일': {
+      EN: 'Test recipient email',
+      JP: 'テスト受信メール',
+      CH: '测试收件邮箱',
+      TH: 'อีเมลทดสอบรับ'
+    },
+    '테스트발송': {
+      EN: 'Send test',
+      JP: 'テスト送信',
+      CH: '测试发送',
+      TH: 'ส่งทดสอบ'
+    },
+    'SMTP 기본(전산설정)': {
+      EN: 'SMTP default (ledger settings)',
+      JP: 'SMTP既定（全社設定）',
+      CH: 'SMTP 默认（全社设置）',
+      TH: 'SMTP ค่าเริ่มต้น (การตั้งค่า HQ)'
+    },
+    'D-1 (전일)': { EN: 'D-1 (day before)', JP: 'D-1（前日）', CH: 'D-1（前一日）', TH: 'D-1 (วันก่อน)' },
+    'D0 (당일)': { EN: 'D0 (due day)', JP: 'D0（当日）', CH: 'D0（当日）', TH: 'D0 (วันครบ)' },
+    'D+1': { EN: 'D+1', JP: 'D+1', CH: 'D+1', TH: 'D+1' },
+    'D+2': { EN: 'D+2', JP: 'D+2', CH: 'D+2', TH: 'D+2' },
+    'D+3': { EN: 'D+3', JP: 'D+3', CH: 'D+3', TH: 'D+3' },
+    '분할결제 이메일설정을 저장하시겠습니까?': {
+      EN: 'Save split payment email settings?',
+      JP: '分割決済メール設定を保存しますか？',
+      CH: '保存分次支付邮件设置？',
+      TH: 'บันทึกการตั้งค่าอีเมลแบ่งงวด?'
+    },
+    '분할결제 테스트 메일을 발송하시겠습니까?': {
+      EN: 'Send a split payment test email?',
+      JP: '分割決済テストメールを送信しますか？',
+      CH: '发送分次支付测试邮件？',
+      TH: 'ส่งอีเมลทดสอบแบ่งงวด?'
+    },
+    '저장된 설정으로 테스트 메일이 발송됩니다.': {
+      EN: 'A test mail will be sent using saved settings.',
+      JP: '保存済み設定でテストメールを送信します。',
+      CH: '将使用已保存设置发送测试邮件。',
+      TH: 'จะส่งอีเมลทดสอบด้วยการตั้งค่าที่บันทึกแล้ว'
+    },
+    '총본사 또는 시스템 관리자만 저장할 수 있습니다.': {
+      EN: 'Only root HQ or system admin can save.',
+      JP: '総本部またはシステム管理者のみ保存できます。',
+      CH: '仅总总部或系统管理员可保存。',
+      TH: 'เฉพาะสำนักงานใหญ่สุดหรือผู้ดูแลระบบเท่านั้นที่บันทึกได้'
+    },
+    '분할결제 회차별 결제 링크 이메일 발송 현황입니다. D-1·당일(D0)·D+1·D+2 자동 발송 일시를 확인할 수 있습니다.': {
+      EN: 'Email status for split-payment installment links: D-1, D0, D+1, D+2 auto-send timestamps.',
+      JP: '分割決済回次別リンクメール送信状況。D-1・当日(D0)・D+1・D+2の自動送信日時。',
+      CH: '分次支付各期链接邮件发送状态：D-1、D0、D+1、D+2 自动发送时间。',
+      TH: 'สถานะอีเมลลิงก์งวด: D-1, D0, D+1, D+2'
+    },
+    '미납(PENDING) 회차는 [링크재발송]으로 결제 안내 메일을 수동 재발송할 수 있습니다.': {
+      EN: 'PENDING installments: use [Resend link] for manual payment reminder email.',
+      JP: '未払い(PENDING)回次は[リンク再送信]で手動再送可能。',
+      CH: '未付(PENDING)期次可用[重发链接]手动再发邮件。',
+      TH: 'งวด PENDING: กด[ส่งลิงก์อีกครั้ง]เพื่อส่งอีเมลซ้ำ'
+    },
+    '자동 발송은 매일 스케줄러가 처리하며, 운영 메일 로그는 「운영관리 > 메일로그」에서 확인합니다.': {
+      EN: 'Auto sends run daily via scheduler; see Operations > Mail log for delivery logs.',
+      JP: '自動送信は毎日スケジューラ処理。運用メールログは「運用管理>メールログ」。',
+      CH: '自动发送由每日调度处理；邮件日志见「运营管理>邮件日志」。',
+      TH: 'ส่งอัตโนมัติรายวัน ดูล็อกที่ปฏิบัติการ>เมลล็อก'
+    },
+    '선택 회차에 결제 링크 안내 메일을 재발송합니다. 계속할까요?': {
+      EN: 'Resend the payment link email for the selected installment. Continue?',
+      JP: '選択回次に決済リンク案内メールを再送信します。続行しますか？',
+      CH: '为所选期次重发支付链接邮件。是否继续？',
+      TH: 'ส่งอีเมลลิงก์ชำระซ้ำสำหรับงวดที่เลือก ดำเนินต่อหรือไม่'
+    },
+    '정말 발송합니다.': {
+      EN: 'Send it now.',
+      JP: '送信します。',
+      CH: '确认发送。',
+      TH: 'ส่งเลย'
+    },
+    '메일 재발송을 요청했습니다.': {
+      EN: 'Mail resend requested.',
+      JP: 'メール再送信をリクエストしました。',
+      CH: '已请求重发邮件。',
+      TH: 'ส่งคำขอส่งอีเมลซ้ำแล้ว'
+    },
+    '메일 재발송 실패': {
+      EN: 'Mail resend failed',
+      JP: 'メール再送信失敗',
+      CH: '邮件重发失败',
+      TH: 'ส่งอีเมลซ้ำล้มเหลว'
+    },
+    '회차 ID가 없습니다.': {
+      EN: 'Installment ID is missing.',
+      JP: '回次IDがありません。',
+      CH: '缺少期次 ID。',
+      TH: 'ไม่มีรหัสงวด'
+    },
+    '분할결제내역: URL 분할결제 계약의 회차별 결제(pg_trnsctn)만 표시합니다. 통합 결제내역에도 포함되며, 여기서는 분할결제 회차 주문번호로만 조회합니다.': {
+      EN: 'Split payment list: installment payments (pg_trnsctn) only. Also in integrated payment list; filtered by split installment order numbers.',
+      JP: '分割決済一覧: URL分割決済契約の回次別決済(pg_trnsctn)のみ。統合決済一覧にも含まれ、ここでは分割回次注文番号のみ。',
+      CH: '分次支付记录：仅 URL 分次支付合同的各期支付(pg_trnsctn)。亦在综合支付列表中；此处仅按分次期次订单号筛选。',
+      TH: 'รายการชำระแบ่งงวด: เฉพาะ pg_trnsctn ต่องวดสัญญา URL แบ่งงวด รวมในรายการรวมด้วย กรองด้วยเลขคำสั่งงวด'
+    },
+    'URL결제내역·챗봇결제내역과 동일 API(/api/calc/payList)·그리드를 사용하며 payListVariant=SPLIT_PAY 로 구분합니다.': {
+      EN: 'Same API (/api/calc/payList) and grid as URL/chatbot payment lists; payListVariant=SPLIT_PAY.',
+      JP: 'URL・チャットボット決済一覧と同じ API・グリッド。payListVariant=SPLIT_PAY。',
+      CH: '与 URL/聊天机器人支付列表相同 API 与网格；payListVariant=SPLIT_PAY。',
+      TH: 'API/กริดเดียวกับ URL/Chatbot; payListVariant=SPLIT_PAY'
+    },
     'URL 분할결제 계약·회차별 결제를 가맹별로 허용합니다. 월간·일간 간격 중 하나 이상을 켜야 하며, 1회차는 즉시결제 또는 링크발송을 선택합니다. 수수료는 본사 수수료정책의 분할수수료율·분할고정수수료(건)가 적용됩니다.': {
       EN: 'Enable URL split-payment contracts and per-installment pay per merchant. Turn on monthly or daily interval (or both). First installment: immediate pay or link email. Fees use HQ split fee rate and fixed fee per installment.',
       JP: 'URL分割決済契約・回次別決済を加盟店ごとに許可します。月間・日間間隔のいずれか以上を有効にし、1回目は即時決済またはリンク送信を選択します。手数料は本社手数料政策の分割手数料率・分割固定手数料(件)が適用されます。',
@@ -9058,6 +9591,84 @@
       JP: '日間隔利用時は日間隔日数(既定10日)で回次予定日を設定します。未払い回は毎日決済リンクメールが送信されます。API: GET /api/pay/split/merchant-config · POST .../preview · POST .../contracts',
       CH: '使用日间隔时，按日间隔天数(默认10天)排定各期到期日。未付期次每日发送支付链接邮件。API: GET /api/pay/split/merchant-config · POST .../preview · POST .../contracts',
       TH: 'ใช้ช่วงรายวัน กำหนดวันครบตามจำนวนวัน (ค่าเริ่มต้น 10) งวดค้างได้รับอีเมลลิงก์ชำระทุกวัน API: GET /api/pay/split/merchant-config · POST .../preview · POST .../contracts'
+    },
+    '「API URL 인라인 중계 결제」에서 URL 결제 방식을 분할 결제로 선택한 가맹에 적용됩니다. 월간·일간 중 하나를 선택하고 기간을 지정합니다. 1회차는 즉시결제 또는 링크발송을 선택합니다. 회차 결제는 가맹 운영 URL PG에 따라 ChillPay(pay.html) 또는 JPAY(jpay-pay.html) 결제창으로 진행됩니다. 수수료는 본사 수수료정책의 분할수수료율·분할고정수수료(건)가 적용됩니다.': {
+      EN: 'Applies when API URL inline mode is Split payment. Choose monthly or daily (one only) and set the period. First installment: immediate or link email. Installments use ChillPay pay.html or JPAY jpay-pay.html per operational URL PG.',
+      JP: 'API URLインラインで分割決済を選択した加盟店向け。月間・日間のいずれか一方と期間を指定。1回目は即時決済またはリンク送信。回次は運用URL PGに応じ pay.html / jpay-pay.html。',
+      CH: '适用于 API URL 内联选择分期支付的商户。按月或按日二选一并设周期。首期立即支付或发链接。各期按运营 URL PG 使用 pay.html 或 jpay-pay.html。',
+      TH: 'ใช้เมื่อเลือกแบ่งงวดใน API URL inline เลือกรายเดือนหรือรายวันอย่างใดอย่างหนึ่งและกำหนดระยะ งวดแรกทันทีหรือส่งลิงก์ ชำระผ่าน pay.html / jpay-pay.html ตาม PG'
+    },
+    '월간 또는 일간 중 하나만 선택할 수 있습니다. 미납 회차는 매일 결제 링크 메일이 발송됩니다. 공개 신청: /split-pay/{업체코드} · API: GET /api/pay/split/merchant-config · POST .../preview · POST .../contracts': {
+      EN: 'Select either monthly or daily (not both). Overdue installments: daily link email. Public /split-pay/{merchant}.',
+      JP: '月間・日間はいずれか一方のみ選択。未払い回は毎日リンクメール。公開 /split-pay/{加盟店コード}。',
+      CH: '月付与日付只能二选一。未付期次每日发链接邮件。公开 /split-pay/{商户代码}。',
+      TH: 'เลือกรายเดือนหรือรายวันอย่างใดอย่างหนึ่ง งวดค้างส่งอีเมลทุกวัน'
+    },
+    '「API URL 인라인 중계 결제」에서 URL 결제 방식을 분할 결제로 선택한 가맹에 적용됩니다. 월결제·일결제 중 하나 이상을 켜야 하며, 1회차는 즉시결제 또는 링크발송을 선택합니다. 회차 결제는 가맹 운영 URL PG에 따라 ChillPay(pay.html) 또는 JPAY(jpay-pay.html) 결제창으로 진행됩니다. 수수료는 본사 수수료정책의 분할수수료율·분할고정수수료(건)가 적용됩니다.': {
+      EN: 'Applies when API URL inline mode is Split payment. Enable monthly or daily pay (or both). First installment: immediate or link email. Installments use ChillPay pay.html or JPAY jpay-pay.html per operational URL PG.',
+      JP: 'API URLインラインで分割決済を選択した加盟店向け。月払い・日払いのいずれか以上を有効に。1回目は即時決済またはリンク送信。回次は運用URL PGに応じ pay.html / jpay-pay.html。',
+      CH: '适用于 API URL 内联选择分期支付的商户。须开启月付或日付（至少一种）。首期立即支付或发链接。各期按运营 URL PG 使用 pay.html 或 jpay-pay.html。',
+      TH: 'ใช้เมื่อเลือกแบ่งงวดใน API URL inline เปิดชำระรายเดือนหรือตามวันอย่างน้อยหนึ่งแบบ งวดแรกทันทีหรือส่งลิงก์ ชำระผ่าน pay.html / jpay-pay.html ตาม PG'
+    },
+    '「API URL 인라인 중계 결제」에서 URL 결제 방식을 분할 결제로 선택한 가맹에 적용됩니다. 월간·일간 간격 중 하나 이상을 켜야 하며, 1회차는 즉시결제 또는 링크발송을 선택합니다. 회차 결제는 가맹 운영 URL PG에 따라 ChillPay(pay.html) 또는 JPAY(jpay-pay.html) 결제창으로 진행됩니다. 수수료는 본사 수수료정책의 분할수수료율·분할고정수수료(건)가 적용됩니다.': {
+      EN: 'Applies when API URL inline mode is Split payment. Installments use ChillPay pay.html or JPAY jpay-pay.html per operational URL PG. Fees: HQ split rate and fixed fee.',
+      JP: 'API URLインラインで分割決済を選択した加盟店向け。回次は運用URL PGに応じ ChillPay pay.html または JPAY jpay-pay.html。',
+      CH: '适用于 API URL 内联选择分期支付的商户。各期按运营 URL PG 使用 ChillPay pay.html 或 JPAY jpay-pay.html。',
+      TH: 'ใช้เมื่อเลือกแบ่งงวดใน API URL inline ชำระผ่าน pay.html (ChillPay) หรือ jpay-pay.html (JPAY) ตาม PG'
+    },
+    '가맹 API inline-checkout/prepare 호출 시 payUrl·결제창에 적용됩니다. 일반 결제·재구매 결제·분할 결제 중 선택합니다. 재구매 결제는 본사 URL 재결제 기능 ON 및 URL재결제 PG 바인딩이 필요합니다. 분할 결제 선택 시 1회 결제 prepare 대신 분할 계약 API·/split-pay-setup 을 사용합니다.': {
+      EN: 'Merchant API inline prepare payUrl mode: standard, repurchase, or split. Split uses contract API and /split-pay-setup.',
+      JP: '加盟店API inline prepare の決済方式：通常・再購入・分割。分割は契約API・/split-pay-setup。',
+      CH: '商户 API inline prepare：普通、复购或分期。分期使用合同 API 与 /split-pay-setup。',
+      TH: 'โหมด merchant API inline: ปกติ/ซื้อซ้ำ/แบ่งงวด แบ่งงวดใช้ API สัญญา'
+    },
+    '본사 결제로직설정에서 URL 결제형 INLINE 제공이 Y 이어야 합니다. 분할 결제는 JPAY 운영 PG 기준으로 회차별 jpay-pay.html 결제가 진행됩니다.': {
+      EN: 'HQ must enable URL INLINE. Split installments pay via jpay-pay.html on JPAY operational PG.',
+      JP: '本社でURL INLINE必須。分割はJPAY運用PGでjpay-pay.html。',
+      CH: '总部须启用 URL INLINE。分期各期经 JPAY jpay-pay.html。',
+      TH: 'HQ ต้องเปิด URL INLINE แบ่งงวดชำระผ่าน jpay-pay.html'
+    },
+    '월결제·일결제 사용 시 각 기간 설정이 활성화됩니다. 미납 회차는 매일 결제 링크 메일이 발송됩니다. 공개 신청: /split-pay/{업체코드} · API: GET /api/pay/split/merchant-config · POST .../preview · POST .../contracts': {
+      EN: 'Period settings enable when monthly or daily pay is on. Overdue: daily link email. Public /split-pay/{merchant}.',
+      JP: '月払い・日払い使用時に期間設定が有効。未払いは毎日リンクメール。公開 /split-pay/{加盟店コード}。',
+      CH: '启用月付/日付时周期设置可用。逾期每日发链接邮件。公开 /split-pay/{商户代码}。',
+      TH: 'เปิดชำระรายเดือน/ตามวันแล้วตั้งระยะได้ งวดค้างส่งอีเมลทุกวัน'
+    },
+    '월간격·일간격 사용 시 각 간격 입력란이 활성화됩니다. 미납 회차는 매일 결제 링크 메일이 발송됩니다. 공개 신청: /split-pay/{업체코드} · API: GET /api/pay/split/merchant-config · POST .../preview · POST .../contracts': {
+      EN: 'Interval inputs enable when monthly/daily is on. Overdue: daily link email. Public /split-pay/{merchant}.',
+      JP: '月間・日間使用時に入力有効。未払いは毎日リンクメール。公開 /split-pay/{加盟店コード}。',
+      CH: '启用月/日间隔时输入可用。逾期每日发链接邮件。公开 /split-pay/{商户代码}。',
+      TH: 'เปิดช่วงเดือน/วันแล้วช่องกรอกใช้ได้ งวดค้างส่งอีเมลทุกวัน'
+    },
+    'URL 분할결제 계약 목록입니다. 「API URL 인라인 중계 결제」에서 분할 결제를 선택하고 「URL 분할결제」에서 사용을 켠 가맹만 계약을 생성할 수 있습니다.': {
+      EN: 'Split-payment contract list. Only merchants with Split payment in API URL inline relay checkout and usage enabled in URL split payment can create contracts.',
+      JP: 'URL分割決済契約一覧。「API URLインライン中継決済」で分割決済を選択し「URL分割決済」で利用をオンにした加盟店のみ契約作成可能。',
+      CH: 'URL 分次支付合同列表。仅在「API URL 内联中继支付」选分次支付且在「URL 分次支付」开启使用的商户可创建合同。',
+      TH: 'รายการสัญญาแบ่งงวด URL เฉพาะร้านที่เลือกแบ่งงวดใน API URL inline และเปิดใช้ใน URL แบ่งงวด'
+    },
+    '공개 분할결제 URL 또는 API(POST /api/pay/split/contracts)로 계약합니다. 수수료는 본사 수수료정책의 분할수수료율·분할고정수수료(건)가 계약 생성 시 스냅샷으로 저장됩니다.': {
+      EN: 'Contract via public split payment URL or API (POST /api/pay/split/contracts). Fees snapshot HQ split fee rate and fixed fee per installment at contract creation.',
+      JP: '公開分割決済URLまたはAPI(POST /api/pay/split/contracts)で契約。手数料は本社手数料政策の分割手数料率・分割固定手数料(件)を契約作成時にスナップショット保存。',
+      CH: '通过公开分次支付 URL 或 API(POST /api/pay/split/contracts) 签约。手续费在创建合同时快照保存总部分次费率与固定费(笔)。',
+      TH: 'สร้างสัญญาผ่าน URL สาธารณะหรือ API (POST /api/pay/split/contracts) ค่าธรรมเนียม snapshot จากนโยบาย HQ ตอนสร้างสัญญา'
+    },
+    '각 회차 결제는 운영 URL PG에 따라 ChillPay(pay.html) 또는 JPAY(jpay-pay.html) 결제창으로 진행됩니다. 1회차는 즉시결제(IMMEDIATE) 또는 링크발송(LINK)이며, 미납 회차는 매일 결제 링크 메일이 발송됩니다.': {
+      EN: 'Each installment uses ChillPay (pay.html) or JPAY (jpay-pay.html) per operational URL PG. First: IMMEDIATE or LINK; overdue installments get daily link emails.',
+      JP: '各回次は運用URL PGに応じ ChillPay(pay.html)または JPAY(jpay-pay.html)。1回目は即時決済(IMMEDIATE)またはリンク送信(LINK)。未払い回は毎日リンクメール。',
+      CH: '各期按运营 URL PG 使用 ChillPay(pay.html) 或 JPAY(jpay-pay.html)。首期 IMMEDIATE 或 LINK；未付期次每日发链接邮件。',
+      TH: 'แต่ละงวดใช้ ChillPay (pay.html) หรือ JPAY (jpay-pay.html) ตาม PG URL งวดแรก IMMEDIATE หรือ LINK งวดค้างส่งอีเมลทุกวัน'
+    },
+    'URL 분할결제 계약 목록입니다. 가맹 업체등록·업체정보의 「API URL 인라인 중계 결제」에서 URL 결제 방식을 분할 결제로 선택한 가맹만 계약을 생성할 수 있습니다.': {
+      EN: 'Split-payment contract list. Only merchants with API URL inline mode set to Split payment can create contracts.',
+      JP: 'URL分割決済契約一覧。API URLインラインで分割決済を選択した加盟店のみ契約作成可能。',
+      CH: 'URL 分次支付合同列表。仅 API URL 内联方式选为分次支付的商户可创建合同。',
+      TH: 'รายการสัญญาแบ่งงวด URL เฉพาะร้านที่เลือกแบ่งงวดใน API URL inline'
+    },
+    '각 회차 결제는 가맹 운영 URL PG에 따라 ChillPay(pay.html) 또는 JPAY(jpay-pay.html) 결제창으로 진행됩니다. 1회차는 즉시결제(IMMEDIATE) 또는 링크발송(LINK) 모드에 따라 처리되며, 미납 회차는 매일 결제 링크 메일이 발송됩니다.': {
+      EN: 'Each installment uses ChillPay pay.html or JPAY jpay-pay.html per operational URL PG. First: IMMEDIATE or LINK; overdue installments get daily link emails.',
+      JP: '各回次は運用URL PGに応じ ChillPay pay.html または JPAY jpay-pay.html。1回目はIMMEDIATEまたはLINK。未払いは毎日リンクメール。',
+      CH: '各期按运营 URL PG 使用 ChillPay pay.html 或 JPAY jpay-pay.html。首期 IMMEDIATE 或 LINK；未付期每日发链接邮件。',
+      TH: 'แต่ละงวดใช้ pay.html (ChillPay) หรือ jpay-pay.html (JPAY) ตาม PG URL งวดแรก IMMEDIATE หรือ LINK งวดค้างส่งอีเมลทุกวัน'
     },
     'JPAY API 구독 사용': {
       EN: 'Use JPAY API subscription',
@@ -17946,6 +18557,10 @@
     '거래시간': { EN: 'Txn time', JP: '取引時刻', CH: '交易时间', TH: 'เวลาทำรายการ' },
     'USDT': { EN: 'USDT', JP: 'USDT', CH: 'USDT', TH: 'USDT' },
     '3DS': { EN: '3DS', JP: '3DS', CH: '3DS', TH: '3DS' },
+    '분할(%)': { EN: 'Split (%)', JP: '分割(%)', CH: '分期(%)', TH: 'แบ่ง (%)' },
+    '분할수수료': { EN: 'Split fee', JP: '分割手数料', CH: '分期手续费', TH: 'ค่าธรรมเนียมแบ่ง' },
+    '분할건당': { EN: 'Split/inst', JP: '分割件当', CH: '分期/笔', TH: 'แบ่ง/รายการ' },
+    '분할고정': { EN: 'Split fixed', JP: '分割固定', CH: '分期固定', TH: 'คงที่แบ่ง' },
     '성공제외': { EN: 'Exclude success', JP: '成功を除く', CH: '不含成功', TH: 'ยกเว้นสำเร็จ' },
     '가맹 정산설정 정산주기': {
       EN: 'Settlement cycle (merchant setting)',
@@ -20945,6 +21560,14 @@
         if (loc === 'JP') return nd + '日';
         if (loc === 'CH') return nd + '天';
         if (loc === 'TH') return nd + ' วัน';
+      }
+      var mMonth = sKo.match(/^(\d{1,2})개월$/);
+      if (mMonth) {
+        var nmo = mMonth[1];
+        if (loc === 'EN') return nmo + (nmo === '1' ? ' month' : ' months');
+        if (loc === 'JP') return nmo + 'ヶ月';
+        if (loc === 'CH') return nmo + '个月';
+        if (loc === 'TH') return nmo + ' เดือน';
       }
       var mHour = sKo.match(/^(\d{1,3})시간$/);
       if (mHour) {

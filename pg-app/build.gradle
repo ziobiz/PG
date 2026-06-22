@@ -45,4 +45,10 @@ processResources {
         exclude '로컬 서버 실행.bat', 'menu-test.html'
         exclude '**/screens_original.js'
     }
+    from("${rootDir}/../scripts/jpay-portal-export.js") {
+        into 'scripts'
+    }
+    from("${rootDir}/../scripts/package.json") {
+        into 'scripts'
+    }
 }

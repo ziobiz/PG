@@ -57,9 +57,9 @@ public class OrgPagePermissionService {
      * <ul>
      *   <li>MANAGER — 전 메뉴 {@link #P_DELETE}</li>
      *   <li>OPERATOR — 사용자관리·정산관리 그룹 제외 전부</li>
-     *   <li>SETTLEMENT — 업체관리·결제관리·정산관리·챗봇관리</li>
+     *   <li>SETTLEMENT — 업체관리·결제관리·정산관리·챗봇관리·분할관리</li>
      *   <li>TECH — 결제관리·통보관리</li>
-     *   <li>CHATBOT_ADMIN — 업체관리·결제관리·챗봇관리</li>
+     *   <li>CHATBOT_ADMIN — 업체관리·결제관리·챗봇관리·분할관리</li>
      * </ul>
      */
     public static String defaultAssistantFloorForCatalogItem(String assistantRoleType, PageMenuCatalog.PageMenuItem item) {
@@ -80,13 +80,13 @@ public class OrgPagePermissionService {
             return !"사용자관리".equals(g) && !"정산관리".equals(g);
         }
         if ("SETTLEMENT".equals(roleUpper)) {
-            return "업체관리".equals(g) || "결제관리".equals(g) || "정산관리".equals(g) || "챗봇관리".equals(g);
+            return "업체관리".equals(g) || "결제관리".equals(g) || "정산관리".equals(g) || "챗봇관리".equals(g) || "분할관리".equals(g);
         }
         if ("TECH".equals(roleUpper)) {
             return "결제관리".equals(g) || "통보관리".equals(g);
         }
         if (ChatbotMerchantAdminConstants.ASSISTANT_ROLE_TYPE.equals(roleUpper)) {
-            return "업체관리".equals(g) || "결제관리".equals(g) || "챗봇관리".equals(g);
+            return "업체관리".equals(g) || "결제관리".equals(g) || "챗봇관리".equals(g) || "분할관리".equals(g);
         }
         return true;
     }
@@ -484,10 +484,13 @@ public class OrgPagePermissionService {
         }
     }
 
-    /** ADMIN·미연결 계정: 제한 없음 → null */
+    /**
+     * 로그인 사용자 최종 페이지 권한.
+     * 조직에 연결된 계정(총본사·본사·총판·가맹 등)은 역할이 ADMIN 이어도 본사권한설정을 적용합니다.
+     * 조직 미연결 ADMIN 만 null(제한 없음).
+     */
     public Map<String, String> resolvePagePermissionsForUser(AppUser user) {
         if (user == null) return null;
-        if ("ADMIN".equalsIgnoreCase(user.getRole())) return null;
         Map<String, Object> org = authService.getOrgInfo(user.getUsername());
         if (org == null) return null;
         Object ol = org.get("orgLevel");
@@ -506,7 +509,8 @@ public class OrgPagePermissionService {
             base = effectiveMapForOrgLevel(level);
         }
         Map<String, String> layered = applyAssistantRoleOverlayIfNeeded(user, base, org);
-        return elevateMerchantChatbotAdminChatbotMenusIfEligible(user, org, layered);
+        return elevateMerchantSplitPayMenusIfEligible(user, org,
+                elevateMerchantChatbotAdminChatbotMenusIfEligible(user, org, layered));
     }
 
     /**
@@ -543,6 +547,42 @@ public class OrgPagePermissionService {
         String floor = P_DELETE;
         raisePermissionFloor(out, "/chatbot/productMng", floor);
         raisePermissionFloor(out, "/chatbot/chatbotKbMng", floor);
+        return out;
+    }
+
+    /**
+     * 가맹(MERCHANT)이고 분할결제 사용(Y)이면 분할관리·분할결제 관련 메뉴 최소 사용권한을 확보합니다.
+     */
+    private Map<String, String> elevateMerchantSplitPayMenusIfEligible(AppUser user, Map<String, Object> org,
+                                                                      Map<String, String> permissions) {
+        if (user == null || org == null || permissions == null) {
+            return permissions;
+        }
+        if (!OrgLevel.MERCHANT.name().equalsIgnoreCase(trim(String.valueOf(org.getOrDefault("orgLevel", ""))))) {
+            return permissions;
+        }
+        Object ouIdObj = org.get("orgUnitId");
+        if (ouIdObj == null) {
+            return permissions;
+        }
+        long ouId;
+        try {
+            ouId = Long.parseLong(ouIdObj.toString().trim());
+        } catch (NumberFormatException e) {
+            return permissions;
+        }
+        String splitYn = merchantProfileRepository.findByOrgUnitId(ouId)
+                .map(MerchantProfile::getSplitPayEnabledYn)
+                .orElse("N");
+        if (!"Y".equalsIgnoreCase(trim(splitYn))) {
+            return permissions;
+        }
+        Map<String, String> out = new LinkedHashMap<>(permissions);
+        String floor = P_DELETE;
+        raisePermissionFloor(out, "/calc/splitPayList", floor);
+        raisePermissionFloor(out, "/pay/splitPay", floor);
+        raisePermissionFloor(out, "/splitpay/progressMng", floor);
+        raisePermissionFloor(out, "/splitpay/mailMng", floor);
         return out;
     }
 
@@ -631,9 +671,6 @@ public class OrgPagePermissionService {
 
     public Map<String, String> effectiveMapForOrgLevel(String orgLevel) {
         List<OrgPagePermission> rows = orgPagePermissionRepository.findByOrgLevelOrderByPageUrlAsc(orgLevel);
-        if (OrgLevel.HEADQUARTERS.name().equals(orgLevel) && rows.isEmpty()) {
-            return defaultHeadquartersFullAccessMap();
-        }
         if (OrgLevel.MERCHANT.name().equals(orgLevel) && rows.isEmpty()) {
             return defaultMerchantRestrictedMap();
         }
@@ -761,10 +798,11 @@ public class OrgPagePermissionService {
         Map<String, String> out = new LinkedHashMap<>();
         for (PageMenuCatalog.PageMenuItem item : PageMenuCatalog.items()) {
             String url = item.pageUrl();
+            String levelPerm = base.getOrDefault(url, P_DELETE);
             if (byUrl.containsKey(url)) {
-                out.put(url, byUrl.get(url));
+                out.put(url, intersectPermission(levelPerm, byUrl.get(url)));
             } else {
-                out.put(url, base.get(url));
+                out.put(url, levelPerm);
             }
         }
         return out;
@@ -1045,17 +1083,6 @@ public class OrgPagePermissionService {
         orgUnitChangeAuditService.appendIfChanged(ou.getId(), cid, cnm, "[조직권한] 메뉴권한방식", oldKo, newKo);
         orgUnitChangeAuditService.appendIfChanged(ou.getId(), cid, cnm, "[조직권한] 개별메뉴 건수",
                 String.valueOf(oldPermCount), String.valueOf(newPermCount));
-    }
-
-    /**
-     * 총본사(HEADQUARTERS) — DB에 권한 행이 없을 때 기본값: 카탈로그 전체 DELETE(모든 기능 사용 가능)
-     */
-    private Map<String, String> defaultHeadquartersFullAccessMap() {
-        Map<String, String> out = new LinkedHashMap<>();
-        for (PageMenuCatalog.PageMenuItem item : PageMenuCatalog.items()) {
-            out.put(item.pageUrl(), P_DELETE);
-        }
-        return out;
     }
 
     /**

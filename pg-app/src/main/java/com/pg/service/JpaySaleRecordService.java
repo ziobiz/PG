@@ -7,6 +7,7 @@ import com.pg.repository.OrgUnitRepository;
 import com.pg.repository.PgTrnsctnRepository;
 import com.pg.util.JpayBuyerContactApplier;
 import com.pg.util.JpayTransactionIdApplier;
+import com.pg.splitpay.SplitPayPaymentHookService;
 import com.pg.util.RouteNoDisplayUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -40,15 +41,18 @@ public class JpaySaleRecordService {
     private final OrgUnitRepository orgUnitRepository;
     private final SettlementCalcService settlementCalcService;
     private final HqLedgerSysSettingsService hqLedgerSysSettingsService;
+    private final SplitPayPaymentHookService splitPayPaymentHookService;
 
     public JpaySaleRecordService(PgTrnsctnRepository pgTrnsctnRepository,
                                  OrgUnitRepository orgUnitRepository,
                                  SettlementCalcService settlementCalcService,
-                                 HqLedgerSysSettingsService hqLedgerSysSettingsService) {
+                                 HqLedgerSysSettingsService hqLedgerSysSettingsService,
+                                 SplitPayPaymentHookService splitPayPaymentHookService) {
         this.pgTrnsctnRepository = pgTrnsctnRepository;
         this.orgUnitRepository = orgUnitRepository;
         this.settlementCalcService = settlementCalcService;
         this.hqLedgerSysSettingsService = hqLedgerSysSettingsService;
+        this.splitPayPaymentHookService = splitPayPaymentHookService;
     }
 
     @Transactional
@@ -228,6 +232,7 @@ public class JpaySaleRecordService {
             JpayTransactionIdApplier.apply(t, jpayTransactionId);
             /* status==1 (3DS): pending 유지 */
             pgTrnsctnRepository.save(t);
+            hookSplitPay(t);
             if (status == 0 && t.getMerchantId() != null && !t.getMerchantId().isBlank()) {
                 try {
                     settlementCalcService.triggerRealtimeAutoSettlementIfDue(t.getMerchantId().trim(), t);
@@ -237,6 +242,17 @@ public class JpaySaleRecordService {
             }
         } catch (Exception e) {
             log.warn("JPAY 동기 응답 반영 실패: {}", e.getMessage());
+        }
+    }
+
+    private void hookSplitPay(PgTrnsctn t) {
+        if (t == null || t.getOrderNo() == null) {
+            return;
+        }
+        try {
+            splitPayPaymentHookService.onTxnStatusChange(t.getOrderNo(), t.getStatus(), t.getTrnId());
+        } catch (Exception ex) {
+            log.warn("분할결제 연동 실패 orderNo={}: {}", t.getOrderNo(), ex.getMessage());
         }
     }
 

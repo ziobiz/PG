@@ -125,6 +125,29 @@ export SPRING_PROFILES_ACTIVE=prod
 # 정산 자동 배치 tick(매 분 등). 기본 켜짐. 끄려면 실행 전: export APP_SETTLEMENT_AUTO_RUN=false
 # (관리자 화면 ①). 본사 DB ② 허용과 함께 켜져 있어야 AUTO 가맹 H1 등이 돌아감.
 export APP_SETTLEMENT_AUTO_RUN="${APP_SETTLEMENT_AUTO_RUN:-true}"
+# JPAY 동기화(Playwright): 재시작마다 JAR → scripts/ 갱신 (별도 스크립트 업로드 불필요)
+export PG_SCRIPTS_DIR="${PG_SCRIPTS_DIR:-$PG_APP_DIR/scripts}"
+mkdir -p "$PG_SCRIPTS_DIR"
+if command -v unzip >/dev/null 2>&1; then
+  echo "   JPAY scripts: JAR에서 추출(재시작 시 자동 갱신)..."
+  unzip -p "$JAR" BOOT-INF/classes/scripts/jpay-portal-export.js >"$PG_SCRIPTS_DIR/jpay-portal-export.js" 2>/dev/null || true
+  unzip -p "$JAR" BOOT-INF/classes/scripts/package.json >"$PG_SCRIPTS_DIR/package.json" 2>/dev/null || true
+  script_ver=$(grep -m1 'SCRIPT_VERSION' "$PG_SCRIPTS_DIR/jpay-portal-export.js" 2>/dev/null || true)
+  if [[ -n "$script_ver" ]]; then
+    echo "   → $script_ver"
+  fi
+else
+  echo "   경고: unzip 없음 — JPAY 동기화 시 앱이 JAR에서 스크립트를 추출합니다."
+fi
+if [[ -d "$PG_SCRIPTS_DIR" ]] && command -v npm >/dev/null 2>&1 \
+    && [[ ! -d "$PG_SCRIPTS_DIR/node_modules/playwright" ]]; then
+  echo "   JPAY scripts: Playwright 미설치 → npm install (최초 1회, 수 분 소요 가능)..."
+  (cd "$PG_SCRIPTS_DIR" && npm install --omit=dev && npx playwright install chromium) >>"$LOG_FILE" 2>&1 || true
+fi
+if [[ -d "$PG_SCRIPTS_DIR/node_modules/playwright" ]] && command -v npx >/dev/null 2>&1; then
+  echo "   JPAY scripts: Chromium 시스템 의존성 확인(install-deps)..."
+  (cd "$PG_SCRIPTS_DIR" && npx playwright install-deps chromium) >>"$LOG_FILE" 2>&1 || true
+fi
 nohup java -jar "$JAR" --spring.profiles.active=prod --server.port=8080 >>"$LOG_FILE" 2>&1 &
 echo "   로그: tail -f $LOG_FILE"
 echo "   성공 한 줄: grep 'Started PgAppApplication' $LOG_FILE | tail -1"

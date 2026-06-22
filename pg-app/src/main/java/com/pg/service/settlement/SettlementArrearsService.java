@@ -13,6 +13,7 @@ import com.pg.entity.SettlementSetting;
 import com.pg.service.CommissionService;
 import com.pg.repository.HqApiConfigRepository;
 import com.pg.repository.HqLedgerSysSettingsRepository;
+import com.pg.repository.MerchantProfileRepository;
 import com.pg.repository.MerchantReceivableRecoveryRequestRepository;
 import com.pg.repository.MerchantReceivableRepository;
 import com.pg.repository.OrgUnitRepository;
@@ -23,6 +24,7 @@ import com.pg.service.ReceivableRecoveryModeService;
 import com.pg.util.FeeCurrencyRoundResolver;
 import com.pg.util.FeeListRoundingPolicy;
 import com.pg.util.PayDisplayCurrency;
+import com.pg.util.ReceivableBillingCurrencyResolver;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -64,6 +66,7 @@ public class SettlementArrearsService {
     private final SettlementSettingRepository settlementSettingRepository;
     private final HqApiConfigRepository hqApiConfigRepository;
     private final HqLedgerSysSettingsRepository hqLedgerSysSettingsRepository;
+    private final MerchantProfileRepository merchantProfileRepository;
     private final ReceivableRecoveryModeService receivableRecoveryModeService;
     private final DistributionFeeSnapshotApplier distributionFeeSnapshotApplier;
 
@@ -77,6 +80,7 @@ public class SettlementArrearsService {
                                   SettlementSettingRepository settlementSettingRepository,
                                   HqApiConfigRepository hqApiConfigRepository,
                                   HqLedgerSysSettingsRepository hqLedgerSysSettingsRepository,
+                                  MerchantProfileRepository merchantProfileRepository,
                                   ReceivableRecoveryModeService receivableRecoveryModeService,
                                   DistributionFeeSnapshotApplier distributionFeeSnapshotApplier) {
         this.settlementRecoveryRepository = settlementRecoveryRepository;
@@ -89,6 +93,7 @@ public class SettlementArrearsService {
         this.settlementSettingRepository = settlementSettingRepository;
         this.hqApiConfigRepository = hqApiConfigRepository;
         this.hqLedgerSysSettingsRepository = hqLedgerSysSettingsRepository;
+        this.merchantProfileRepository = merchantProfileRepository;
         this.receivableRecoveryModeService = receivableRecoveryModeService;
         this.distributionFeeSnapshotApplier = distributionFeeSnapshotApplier;
     }
@@ -297,7 +302,18 @@ public class SettlementArrearsService {
         r.setReasonCode(REASON_AUTO_SETTLEMENT_DEFICIT);
         r.setMemo(slotMemo);
         r.setCreatedBy("SYSTEM");
+        r.setBillingCcy(resolveBillingCcyForMerchant(merchantId, null));
         merchantReceivableRepository.save(r);
+    }
+
+    private String resolveBillingCcyForMerchant(String merchantId, String explicit) {
+        return ReceivableBillingCurrencyResolver.resolve(
+                explicit,
+                merchantId,
+                orgUnitRepository,
+                merchantProfileRepository,
+                commissionService,
+                hqLedgerSysSettingsRepository);
     }
 
     private BigDecimal applyFifoRecoveries(String merchantId, Long settlementRunId, BigDecimal cap) {
@@ -465,6 +481,8 @@ public class SettlementArrearsService {
         if (billingCcy != null && !billingCcy.isBlank()) {
             String c = billingCcy.trim().toUpperCase(java.util.Locale.ROOT);
             r.setBillingCcy(c.length() > 3 ? c.substring(0, 3) : c);
+        } else {
+            r.setBillingCcy(resolveBillingCcyForMerchant(merchantId.trim(), null));
         }
         return merchantReceivableRepository.save(r);
     }

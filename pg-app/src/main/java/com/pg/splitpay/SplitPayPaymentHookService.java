@@ -38,10 +38,20 @@ public class SplitPayPaymentHookService {
         installmentRepository.findByOrderNo(orderNo.trim()).ifPresent(inst -> {
             if (STATUS_PAID.equals(txnStatus)) {
                 markPaid(inst, pgTrnId);
-            } else if ("30".equals(txnStatus) || "31".equals(txnStatus) || "21".equals(txnStatus) || "22".equals(txnStatus)) {
+            } else if (isReversalStatus(txnStatus)) {
                 splitPayContractService.stopContractOnFirstInstallmentReversal(orderNo);
             }
         });
+    }
+
+    private static boolean isReversalStatus(String txnStatus) {
+        if (txnStatus == null || txnStatus.isBlank()) {
+            return false;
+        }
+        return switch (txnStatus.trim()) {
+            case "20", "21", "22", "30", "31" -> true;
+            default -> false;
+        };
     }
 
     private void markPaid(SplitPayInstallment inst, String pgTrnId) {

@@ -14,6 +14,7 @@ import com.pg.entity.MerchantProfile;
 import com.pg.entity.OrgLevel;
 import com.pg.entity.OrgUnit;
 import com.pg.entity.PgTrnsctn;
+import com.pg.entity.SplitPayInstallment;
 import com.pg.entity.SettlementSetting;
 import com.pg.repository.CommissionPolicyRepository;
 import com.pg.repository.DistributionFeeConfigRepository;
@@ -458,12 +459,6 @@ public class PayListService {
         Map<String, DistributionFeeConfig> distByCompId = distributionFeeConfigRepository.findByCompIdIn(codes).stream()
                 .collect(Collectors.toMap(DistributionFeeConfig::getCompId, d -> d, (a, b) -> a));
 
-        Optional<CommissionPolicy> defaultPolicy = commissionPolicyRepository.findByScope("DEFAULT");
-        Map<String, CommissionPolicy> policyByScope = new HashMap<>();
-        for (CommissionPolicy p : commissionPolicyRepository.findByScopeIn(codes)) {
-            policyByScope.put(p.getScope(), p);
-        }
-
         Map<Long, SettlementSetting> settlementByOrgId = new HashMap<>();
         if (!merchantOrgIds.isEmpty()) {
             for (SettlementSetting ss : settlementSettingRepository.findByOrgUnitIdIn(merchantOrgIds)) {
@@ -477,7 +472,7 @@ public class PayListService {
             MerchantProfile profile = merchant != null ? profileByOrgId.get(merchant.getId()) : null;
             MerchantPgBinding binding = pickBindingFromList(merchant == null ? null : bindingsByOrgId.get(merchant.getId()));
             DistributionFeeConfig dist = distByCompId.get(code);
-            CommissionPolicy pol = Optional.ofNullable(policyByScope.get(code)).or(() -> defaultPolicy).orElse(null);
+            CommissionPolicy pol = commissionService.resolveCommissionPolicyForSettlement(code);
             SettlementSetting ss = merchant == null ? null : settlementByOrgId.get(merchant.getId());
             String[] hier = hierarchyNames(merchant, byId);
             String[] hbc = hierarchyBaseCurrencies(merchant, byId, profileByOrgId);
@@ -1140,7 +1135,7 @@ public class PayListService {
             if (toDt != null) {
                 parts.add(cb.lessThanOrEqualTo(root.get("createdAt"), toDt));
             }
-            parts.add(variantPredicate(root, cb, variant));
+            parts.add(variantPredicate(root, cb, variant, query));
             addNotifyChannelPredicate(parts, root, cb, variant, req);
             addPayDivPredicate(parts, root, cb, req.getSearchPayDivCd());
             addPayProcPredicate(parts, root, cb, req.getSearchPayProcCd());
@@ -2053,7 +2048,8 @@ public class PayListService {
     }
 
     private Predicate variantPredicate(jakarta.persistence.criteria.Root<PgTrnsctn> root,
-                                       jakarta.persistence.criteria.CriteriaBuilder cb, String variant) {
+                                       jakarta.persistence.criteria.CriteriaBuilder cb, String variant,
+                                       jakarta.persistence.criteria.CriteriaQuery<?> query) {
         return switch (variant) {
             case "INTEGRATED" -> cb.conjunction();
             case "SUCCESS" -> cb.equal(root.get("status"), "10");
@@ -2068,6 +2064,12 @@ public class PayListService {
                     root.get("status").in("20", "21", "22", "30", "31", "40", "41", "42"));
             case "URL_PAY" -> cb.equal(root.get("origin"), "URL");
             case "CHATBOT_PAY" -> cb.equal(root.get("origin"), "CHATBOT");
+            case "SPLIT_PAY" -> {
+                jakarta.persistence.criteria.Subquery<String> sq = query.subquery(String.class);
+                jakarta.persistence.criteria.Root<SplitPayInstallment> inst = sq.from(SplitPayInstallment.class);
+                sq.select(inst.get("orderNo"));
+                yield root.get("orderNo").in(sq);
+            }
             case "NOTI" -> cb.equal(root.get("origin"), "NOTI");
             default -> cb.conjunction();
         };

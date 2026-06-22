@@ -48,6 +48,7 @@ import com.pg.service.ReceivableRecoveryModeService;
 import com.pg.service.SettlementReportService;
 import com.pg.service.settlement.FeeListTxnAmountService;
 import com.pg.service.settlement.FeeListTxnBreakdownCalculator;
+import com.pg.service.settlement.SplitPayTxnFeeResolver;
 import com.pg.service.settlement.SettlementArrearsService;
 import com.pg.service.settlement.SettlementAutoRunService;
 import com.pg.service.settlement.SettlementBusinessHolidayService;
@@ -122,6 +123,7 @@ public class ApiSettlementController {
     private final HqLedgerSysSettingsRepository hqLedgerSysSettingsRepository;
     private final FeeListTxnBreakdownCalculator feeListTxnBreakdownCalculator;
     private final FeeListTxnAmountService feeListTxnAmountService;
+    private final SplitPayTxnFeeResolver splitPayTxnFeeResolver;
     private final SettlementRecoveryRepository settlementRecoveryRepository;
     private final MerchantReceivableRepository merchantReceivableRepository;
     private final MerchantReceivableRecoveryRequestRepository merchantReceivableRecoveryRequestRepository;
@@ -157,6 +159,7 @@ public class ApiSettlementController {
                                    HqLedgerSysSettingsRepository hqLedgerSysSettingsRepository,
                                    FeeListTxnBreakdownCalculator feeListTxnBreakdownCalculator,
                                    FeeListTxnAmountService feeListTxnAmountService,
+                                   SplitPayTxnFeeResolver splitPayTxnFeeResolver,
                                    SettlementRecoveryRepository settlementRecoveryRepository,
                                    MerchantReceivableRepository merchantReceivableRepository,
                                    MerchantReceivableRecoveryRequestRepository merchantReceivableRecoveryRequestRepository,
@@ -189,6 +192,7 @@ public class ApiSettlementController {
         this.hqLedgerSysSettingsRepository = hqLedgerSysSettingsRepository;
         this.feeListTxnBreakdownCalculator = feeListTxnBreakdownCalculator;
         this.feeListTxnAmountService = feeListTxnAmountService;
+        this.splitPayTxnFeeResolver = splitPayTxnFeeResolver;
         this.settlementRecoveryRepository = settlementRecoveryRepository;
         this.merchantReceivableRepository = merchantReceivableRepository;
         this.merchantReceivableRecoveryRequestRepository = merchantReceivableRecoveryRequestRepository;
@@ -1501,6 +1505,8 @@ public class ApiSettlementController {
                 : payListService.buildPayListRowContextMap(mids);
         Map<String, CommissionPolicy> polCache = new HashMap<>();
         Map<Long, Set<LocalDate>> holidayCache = new HashMap<>();
+        SplitPayTxnFeeResolver.InstallmentCache splitPayCache =
+                splitPayTxnFeeResolver.buildCache(slice.getContent());
 
         List<Map<String, Object>> rows = new ArrayList<>();
         int rowNoStart = (pageOneBased - 1) * pageSize + 1;
@@ -1510,7 +1516,7 @@ public class ApiSettlementController {
                 continue;
             }
             Map<String, Object> feeRow = buildFeeListRowMap(t, monthCbCountCache, tiersByPolicyId, ctxByMerchant, polCache,
-                    feeResolver, holidayCache);
+                    feeResolver, holidayCache, splitPayCache);
             feeRow.put("rowNo", rowNoStart + rowIdx);
             rowIdx++;
             rows.add(feeRow);
@@ -1621,6 +1627,7 @@ public class ApiSettlementController {
         if (!scanMids.isEmpty()) {
             ctxByMerchant.putAll(payListService.buildPayListRowContextMap(scanMids));
         }
+        SplitPayTxnFeeResolver.InstallmentCache splitPayCache = splitPayTxnFeeResolver.buildCache(scanRows);
         for (PgTrnsctn t : scanRows) {
             if (t.getMerchantId() == null || t.getMerchantId().isBlank()) {
                 continue;
@@ -1645,7 +1652,7 @@ public class ApiSettlementController {
                 cancel.merge(cur, amt, BigDecimal::add);
             }
             FeeListTxnAmountService.FeeListTxnAmounts amts = feeListTxnAmountService.compute(
-                    t, ctx, pol, payCurKey, feeResolver, monthCbCountCache, tiersByPolicyId);
+                    t, ctx, pol, payCurKey, feeResolver, monthCbCountCache, tiersByPolicyId, splitPayCache);
             totalFeeSum.merge(cur, amts.totalFee(), BigDecimal::add);
             holdSum.merge(cur, amts.rollingHoldEst(), BigDecimal::add);
             vatSum.merge(cur, amts.feeVat(), BigDecimal::add);
@@ -1726,7 +1733,9 @@ public class ApiSettlementController {
     /** 전체 조회 구간을 COUNT·딥 OFFSET 반복 없이 정렬·LIMIT 한 번으로 읽는 거래 상한(504 방지). */
     private static final int DAILY_FEE_MAX_ROWS = 50_000;
     private static final String[] DAILY_FEE_SUM_NUMERIC_KEYS = {
-            "txnFixedFeesSum", "pctFeesSum", "usdtFee", "fxFee", "fee3dsFee", "rollingHoldEst",
+            "txnFixedFeesSum", "pctFeesSum", "usdtFee", "fxFee", "fee3dsFee",
+            "splitPayPctFee", "splitPayFixedFee",
+            "rollingHoldEst",
             "failFee", "cancelFee", "voidFee", "manualVoidFee", "refundFee", "chargebackFee",
             "totalFee", "feeVat", "expectedPayout", "settlementAmt"
     };
@@ -1939,6 +1948,7 @@ public class ApiSettlementController {
         if (!scanMids.isEmpty()) {
             ctxByMerchant.putAll(payListService.buildPayListRowContextMap(scanMids));
         }
+        SplitPayTxnFeeResolver.InstallmentCache splitPayCache = splitPayTxnFeeResolver.buildCache(scanRows);
         for (PgTrnsctn t : scanRows) {
             if (t.getMerchantId() == null || t.getMerchantId().isBlank() || t.getCreatedAt() == null) {
                 continue;
@@ -1956,7 +1966,7 @@ public class ApiSettlementController {
                 agg.settledN++;
             }
             Map<String, Object> row = buildFeeListRowMap(t, monthCbCountCache, tiersByPolicyId, ctxByMerchant, polCache,
-                    feeResolver, holidayCache);
+                    feeResolver, holidayCache, splitPayCache);
             mergeDailyFeeNumericSums(agg.sums, row);
             String cur = PayListStatusBarBuckets.normalizeCurrency(String.valueOf(row.getOrDefault("payCur", "KRW")));
             if (dailyFeeAllowedCur == null || dailyFeeAllowedCur.contains(cur)) {
@@ -2696,7 +2706,8 @@ public class ApiSettlementController {
                                                    Map<String, PayListRowContext> ctxByMerchant,
                                                    Map<String, CommissionPolicy> polCache,
                                                    FeeCurrencyRoundResolver feeResolver,
-                                                   Map<Long, Set<LocalDate>> holidayCache) {
+                                                   Map<Long, Set<LocalDate>> holidayCache,
+                                                   SplitPayTxnFeeResolver.InstallmentCache splitPayCache) {
         String compId = t.getMerchantId().trim();
         PayListRowContext payCtx = ctxByMerchant.get(compId);
         SettlementSetting feeVatSs = payCtx != null ? payCtx.getSettlement() : null;
@@ -2707,10 +2718,10 @@ public class ApiSettlementController {
         BigDecimal amountBd = t.getAmtKrw() != null ? t.getAmtKrw() : BigDecimal.ZERO;
         BigDecimal payRateBd = nz(pol.getPayRate());
         FeeListTxnBreakdownCalculator.FeeListTxnBreakdown br = feeListTxnBreakdownCalculator.computeFeeListTxnBreakdown(
-                t, compId, pol, monthCbCountCache, tiersByPolicyId, feeVatSs, feeListRp);
+                t, compId, pol, monthCbCountCache, tiersByPolicyId, feeVatSs, feeListRp, splitPayCache);
         String stRow = t.getStatus() != null ? t.getStatus().trim() : "";
         FeeListTxnAmountService.FeeListTxnAmounts feeAmts = feeListTxnAmountService.compute(
-                t, payCtx, pol, payCurKey, feeResolver, monthCbCountCache, tiersByPolicyId);
+                t, payCtx, pol, payCurKey, feeResolver, monthCbCountCache, tiersByPolicyId, splitPayCache);
         BigDecimal totalFeeBd = feeAmts.totalFee();
         BigDecimal feeVatOut = feeAmts.feeVat();
         BigDecimal expectedPayoutBd = feeAmts.expectedPayout();
@@ -2786,6 +2797,14 @@ public class ApiSettlementController {
         m.put("fxFee", feeListMoney(br.fxFee(), feeListRp).doubleValue());
         m.put("fee3dsRate", PercentDecimalHelper.toPlainAmountOneDecimal(nz(pol.getFee3dsRate())));
         m.put("fee3dsFee", feeListMoney(br.fee3dsFee(), feeListRp).doubleValue());
+        m.put("splitPayFeePctRate", br.splitPayFeePctRatePlain() != null && !br.splitPayFeePctRatePlain().isBlank()
+                ? br.splitPayFeePctRatePlain() : "—");
+        m.put("splitPayPctFee", br.splitPayPctFee() > 0d || (br.splitPayFeePctRatePlain() != null && !br.splitPayFeePctRatePlain().isBlank())
+                ? feeListMoney(br.splitPayPctFee(), feeListRp).doubleValue() : null);
+        m.put("splitPayFixedPerInst", br.splitPayFixedPerInstPlain() != null && !br.splitPayFixedPerInstPlain().isBlank()
+                ? br.splitPayFixedPerInstPlain() : "—");
+        m.put("splitPayFixedFee", br.splitPayFixedFee() > 0d || (br.splitPayFixedPerInstPlain() != null && !br.splitPayFixedPerInstPlain().isBlank())
+                ? feeListMoney(br.splitPayFixedFee(), feeListRp).doubleValue() : null);
         m.put("settlementPerTxFee", feeListMoney(br.settlementPerTxFee(), feeListRp).doubleValue());
         m.put("chargebackFee", feeListMoney(br.chargebackFee(), feeListRp).doubleValue());
         m.put("rollingPctPlain", br.rollingPctPlain());
@@ -3941,6 +3960,7 @@ public class ApiSettlementController {
             aggPerTx = aggPerTx.add(FeeListRoundingPolicy.round(BigDecimal.valueOf(br.perTxFee()), feeListRp));
             double paySideD = br.payFee() + br.usdtFee() + br.fxFee() + br.fee3dsFee()
                     + br.extraFee1() + br.extraFee2() + br.extraFee3() + br.extraFee4()
+                    + br.splitPayPctFee() + br.splitPayFixedFee()
                     + br.usageFee() + br.failFee() + br.chargebackFee();
             aggPaySide = aggPaySide.add(FeeListRoundingPolicy.round(BigDecimal.valueOf(paySideD), feeListRp));
             aggCancel = aggCancel.add(FeeListRoundingPolicy.round(BigDecimal.valueOf(br.cancelFee()), feeListRp));

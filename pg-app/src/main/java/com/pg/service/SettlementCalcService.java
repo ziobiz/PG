@@ -15,6 +15,7 @@ import com.pg.entity.OrgUnit;
 import com.pg.entity.SettlementSetting;
 import com.pg.entity.ChargebackFeeTier;
 import com.pg.service.settlement.FeeListTxnBreakdownCalculator;
+import com.pg.service.settlement.SplitPayTxnFeeResolver;
 import com.pg.service.settlement.SettlementArrearsService;
 import com.pg.service.settlement.SettlementCycleTiming;
 import com.pg.service.settlement.SettlementBusinessHolidayService;
@@ -82,6 +83,7 @@ public class SettlementCalcService {
     private final VoidRefundSettlementModeResolutionService voidRefundSettlementModeResolutionService;
     private final CommissionService commissionService;
     private final FeeListTxnBreakdownCalculator feeListTxnBreakdownCalculator;
+    private final SplitPayTxnFeeResolver splitPayTxnFeeResolver;
 
     public SettlementCalcService(PgTrnsctnRepository trnsctnRepository,
                                  CommissionPolicyRepository commissionPolicyRepository,
@@ -98,7 +100,8 @@ public class SettlementCalcService {
                                  SettlementBusinessHolidayService settlementBusinessHolidayService,
                                  VoidRefundSettlementModeResolutionService voidRefundSettlementModeResolutionService,
                                  CommissionService commissionService,
-                                 FeeListTxnBreakdownCalculator feeListTxnBreakdownCalculator) {
+                                 FeeListTxnBreakdownCalculator feeListTxnBreakdownCalculator,
+                                 SplitPayTxnFeeResolver splitPayTxnFeeResolver) {
         this.trnsctnRepository = trnsctnRepository;
         this.commissionPolicyRepository = commissionPolicyRepository;
         this.settlementRunRepository = settlementRunRepository;
@@ -115,6 +118,7 @@ public class SettlementCalcService {
         this.voidRefundSettlementModeResolutionService = voidRefundSettlementModeResolutionService;
         this.commissionService = commissionService;
         this.feeListTxnBreakdownCalculator = feeListTxnBreakdownCalculator;
+        this.splitPayTxnFeeResolver = splitPayTxnFeeResolver;
     }
 
     public List<SettlementRun> listRuns(LocalDate fromDate, LocalDate toDate) {
@@ -972,10 +976,11 @@ public class SettlementCalcService {
 
         Map<String, Long> monthCbCountCache = new HashMap<>();
         Map<Long, List<ChargebackFeeTier>> tiersByPolicyId = new HashMap<>();
+        SplitPayTxnFeeResolver.InstallmentCache splitPayCache = splitPayTxnFeeResolver.buildCache(txList);
         BigDecimal sumTxnFee = BigDecimal.ZERO;
         for (PgTrnsctn t : txList) {
             FeeListTxnBreakdownCalculator.FeeListTxnBreakdown br = feeListTxnBreakdownCalculator.computeFeeListTxnBreakdown(
-                    t, merchantId, policy, monthCbCountCache, tiersByPolicyId, feeVatSs, lr);
+                    t, merchantId, policy, monthCbCountCache, tiersByPolicyId, feeVatSs, lr, splitPayCache);
             sumTxnFee = sumTxnFee.add(FeeListRoundingPolicy.round(BigDecimal.valueOf(br.totalFee()), lr));
         }
         BigDecimal feeExtraFix = CommissionExtraFeeUtil.sumFixedForSettlementRounded(policy, lr);

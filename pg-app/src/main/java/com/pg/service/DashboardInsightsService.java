@@ -5,14 +5,18 @@ import com.pg.entity.PgNotifyInbound;
 import com.pg.entity.SettlementRun;
 import com.pg.entity.SettlementSetting;
 import com.pg.entity.CommissionPolicy;
+import com.pg.repository.MerchantProfileRepository;
 import com.pg.repository.MerchantReceivableRepository;
+import com.pg.repository.OrgUnitRepository;
 import com.pg.repository.PgNotifyInboundRepository;
 import com.pg.repository.PgTrnsctnRepository;
 import com.pg.repository.SettlementRunRepository;
 import com.pg.repository.SettlementSettingRepository;
+import com.pg.repository.HqLedgerSysSettingsRepository;
 import com.pg.util.DashboardCurrencyAggregate;
 import com.pg.util.DashboardTupleRows;
 import com.pg.util.PayListStatusBarBuckets;
+import com.pg.util.ReceivableBillingCurrencyResolver;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 
@@ -46,19 +50,28 @@ public class DashboardInsightsService {
     private final SettlementRunRepository settlementRunRepository;
     private final SettlementSettingRepository settlementSettingRepository;
     private final CommissionService commissionService;
+    private final OrgUnitRepository orgUnitRepository;
+    private final MerchantProfileRepository merchantProfileRepository;
+    private final HqLedgerSysSettingsRepository hqLedgerSysSettingsRepository;
 
     public DashboardInsightsService(PgTrnsctnRepository pgTrnsctnRepository,
                                     MerchantReceivableRepository merchantReceivableRepository,
                                     PgNotifyInboundRepository pgNotifyInboundRepository,
                                     SettlementRunRepository settlementRunRepository,
                                     SettlementSettingRepository settlementSettingRepository,
-                                    CommissionService commissionService) {
+                                    CommissionService commissionService,
+                                    OrgUnitRepository orgUnitRepository,
+                                    MerchantProfileRepository merchantProfileRepository,
+                                    HqLedgerSysSettingsRepository hqLedgerSysSettingsRepository) {
         this.pgTrnsctnRepository = pgTrnsctnRepository;
         this.merchantReceivableRepository = merchantReceivableRepository;
         this.pgNotifyInboundRepository = pgNotifyInboundRepository;
         this.settlementRunRepository = settlementRunRepository;
         this.settlementSettingRepository = settlementSettingRepository;
         this.commissionService = commissionService;
+        this.orgUnitRepository = orgUnitRepository;
+        this.merchantProfileRepository = merchantProfileRepository;
+        this.hqLedgerSysSettingsRepository = hqLedgerSysSettingsRepository;
     }
 
     public Map<String, Object> build(boolean unrestricted,
@@ -314,7 +327,7 @@ public class DashboardInsightsService {
                 continue;
             }
             String cur = resolveReceivableDisplayCurrency(r);
-            ReceivableCurrencyAgg agg = merged.computeIfAbsent(cur, ReceivableCurrencyAgg::new);
+            ReceivableCurrencyAgg agg = merged.computeIfAbsent(cur, k -> new ReceivableCurrencyAgg());
             agg.openCount++;
             agg.remainingSum = agg.remainingSum.add(
                     r.getRemainingAmount() != null ? r.getRemainingAmount() : BigDecimal.ZERO);
@@ -332,20 +345,17 @@ public class DashboardInsightsService {
     }
 
     private String resolveReceivableDisplayCurrency(MerchantReceivable r) {
-        if (r.getBillingCcy() != null && !r.getBillingCcy().isBlank()) {
-            return PayListStatusBarBuckets.normalizeCurrency(r.getBillingCcy().trim());
-        }
-        String mc = r.getMerchantId() != null ? r.getMerchantId().trim() : "";
-        if (mc.isEmpty()) {
-            return PayListStatusBarBuckets.normalizeCurrency("KRW");
-        }
-        CommissionPolicy pol = commissionService.resolveCommissionPolicyForSettlement(mc);
-        String c = pol != null ? pol.getCurrencyCode() : null;
-        return PayListStatusBarBuckets.normalizeCurrency(c != null && !c.isBlank() ? c.trim() : "KRW");
+        return ReceivableBillingCurrencyResolver.resolve(
+                r != null ? r.getBillingCcy() : null,
+                r != null ? r.getMerchantId() : null,
+                orgUnitRepository,
+                merchantProfileRepository,
+                commissionService,
+                hqLedgerSysSettingsRepository);
     }
 
     private static String formatReceivableAmountForCurrency(BigDecimal amt, String currency) {
-        String cur = currency != null ? currency.trim().toUpperCase(Locale.ROOT) : "KRW";
+        String cur = currency != null && !currency.isBlank() ? currency.trim().toUpperCase(Locale.ROOT) : "";
         int scale = ("KRW".equals(cur) || "JPY".equals(cur) || "VND".equals(cur)) ? 0 : 2;
         BigDecimal v = amt != null ? amt : BigDecimal.ZERO;
         return v.setScale(scale, RoundingMode.HALF_UP).toPlainString();
@@ -357,7 +367,7 @@ public class DashboardInsightsService {
         }
         if (recvByCur.size() == 1) {
             Map<String, Object> row = recvByCur.get(0);
-            String cur = String.valueOf(row.getOrDefault("currency", "KRW"));
+            String cur = String.valueOf(row.getOrDefault("currency", ""));
             BigDecimal sum = DashboardTupleRows.readDecimal(row.get("remainingSum"));
             return "미수금 잔액 " + recvCnt + "건 · 합계 약 " + formatReceivableAmountForCurrency(sum, cur) + " " + cur;
         }
@@ -366,7 +376,7 @@ public class DashboardInsightsService {
             if (parts.length() > 0) {
                 parts.append(" / ");
             }
-            String cur = String.valueOf(row.getOrDefault("currency", "KRW"));
+            String cur = String.valueOf(row.getOrDefault("currency", ""));
             BigDecimal sum = DashboardTupleRows.readDecimal(row.get("remainingSum"));
             parts.append(cur).append(' ').append(formatReceivableAmountForCurrency(sum, cur));
         }
@@ -379,7 +389,7 @@ public class DashboardInsightsService {
         }
         if (recvByCur.size() == 1) {
             Map<String, Object> row = recvByCur.get(0);
-            String cur = String.valueOf(row.getOrDefault("currency", "KRW"));
+            String cur = String.valueOf(row.getOrDefault("currency", ""));
             BigDecimal sum = DashboardTupleRows.readDecimal(row.get("remainingSum"));
             return "미수금 잔액이 " + formatReceivableAmountForCurrency(sum, cur) + " " + cur + " 남아 있습니다. ";
         }
@@ -388,7 +398,7 @@ public class DashboardInsightsService {
             if (parts.length() > 0) {
                 parts.append(", ");
             }
-            String cur = String.valueOf(row.getOrDefault("currency", "KRW"));
+            String cur = String.valueOf(row.getOrDefault("currency", ""));
             BigDecimal sum = DashboardTupleRows.readDecimal(row.get("remainingSum"));
             parts.append(formatReceivableAmountForCurrency(sum, cur)).append(' ').append(cur);
         }

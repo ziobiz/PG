@@ -4,7 +4,7 @@ import com.pg.entity.SplitPayContract;
 import com.pg.entity.SplitPayInstallment;
 import com.pg.repository.SplitPayContractRepository;
 import com.pg.repository.SplitPayInstallmentRepository;
-import com.pg.service.MerchantChatbotProductService;
+import com.pg.service.PublicCustomerSiteBaseService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -22,16 +22,16 @@ public class SplitPayMailScheduler {
     private final SplitPayInstallmentRepository installmentRepository;
     private final SplitPayContractRepository contractRepository;
     private final SplitPayMailService mailService;
-    private final MerchantChatbotProductService merchantChatbotProductService;
+    private final PublicCustomerSiteBaseService publicCustomerSiteBaseService;
 
     public SplitPayMailScheduler(SplitPayInstallmentRepository installmentRepository,
                                  SplitPayContractRepository contractRepository,
                                  SplitPayMailService mailService,
-                                 MerchantChatbotProductService merchantChatbotProductService) {
+                                 PublicCustomerSiteBaseService publicCustomerSiteBaseService) {
         this.installmentRepository = installmentRepository;
         this.contractRepository = contractRepository;
         this.mailService = mailService;
-        this.merchantChatbotProductService = merchantChatbotProductService;
+        this.publicCustomerSiteBaseService = publicCustomerSiteBaseService;
     }
 
     @org.springframework.scheduling.annotation.Scheduled(cron = "${app.splitPay.mailCron:0 10 8 * * *}", zone = "Asia/Seoul")
@@ -47,9 +47,9 @@ public class SplitPayMailScheduler {
     @Transactional
     public void processDueMails(LocalDate today) {
         LocalDate from = today.minusDays(1);
-        LocalDate to = today.plusDays(2);
+        LocalDate to = today.plusDays(3);
         List<SplitPayInstallment> pending = installmentRepository.findPendingDueBetween(from, to);
-        String siteBase = merchantChatbotProductService.resolvePublicCustomerSiteBase(null);
+        String siteBase = publicCustomerSiteBaseService.resolvePublicCustomerSiteBase(null);
         for (SplitPayInstallment inst : pending) {
             if (!SplitPayInstallment.STATUS_PENDING.equals(inst.getStatus())) {
                 continue;
@@ -77,6 +77,10 @@ public class SplitPayMailScheduler {
             } else if (due.plusDays(2).equals(today) && inst.getMailD2Sent() == null) {
                 mailService.sendInstallmentLink(c, inst, siteBase, "D2");
                 inst.setMailD2Sent(LocalDateTime.now());
+                installmentRepository.save(inst);
+            } else if (due.plusDays(3).equals(today) && inst.getMailD3Sent() == null) {
+                mailService.sendInstallmentLink(c, inst, siteBase, "D3");
+                inst.setMailD3Sent(LocalDateTime.now());
                 installmentRepository.save(inst);
             }
         }

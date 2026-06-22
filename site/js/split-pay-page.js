@@ -15,6 +15,17 @@
     return location.protocol + '//api.' + h.replace(/^www\./, '');
   }
   function qs() { return new URLSearchParams(location.search || ''); }
+  function isJpayPg(pgCd) {
+    if (!pgCd) return false;
+    var u = String(pgCd).trim().toUpperCase();
+    return u === 'JPAY' || u.indexOf('JPAY') === 0 || u.indexOf('JPAY_') === 0;
+  }
+  function resolvePayPage(d) {
+    if (d.checkoutPage) return String(d.checkoutPage);
+    if (isJpayPg(d.operationalPgCd)) return 'jpay-pay.html';
+    if (d.operationalPgCd) return 'pay.html';
+    return 'pay.html';
+  }
   function showMsg(text, bad) {
     var el = document.getElementById('msg');
     el.textContent = text;
@@ -53,11 +64,15 @@
         if (d.nextDueDate) next += ' · ' + d.nextDueDate;
         document.getElementById('vNext').textContent = next;
         var btn = document.getElementById('goPayBtn');
-        var payUrl = '/pay.html?m=' + encodeURIComponent(d.compId || '') +
+        var payPage = resolvePayPage(d);
+        var payUrl = '/' + payPage + '?m=' + encodeURIComponent(d.compId || '') +
           '&orderNo=' + encodeURIComponent(d.orderNo || '') +
           '&amount=' + encodeURIComponent(d.amount || d.currentAmount || '') +
           '&item=' + encodeURIComponent('SplitPay ' + (d.contractNo || '')) +
           '&splitPay=1';
+        if (d.currencyCode) payUrl += '&currency=' + encodeURIComponent(d.currencyCode);
+        if (d.customerEmail) payUrl += '&email=' + encodeURIComponent(d.customerEmail);
+        if (d.customerName) payUrl += '&buyerName=' + encodeURIComponent(d.customerName);
         btn.href = payUrl;
         btn.classList.remove('d-none');
       })

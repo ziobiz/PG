@@ -11,6 +11,7 @@ import com.pg.repository.OrgUnitRepository;
 import com.pg.repository.PgTrnsctnRepository;
 import com.pg.service.ChillPayService;
 import com.pg.service.MerchantChatbotProductService;
+import com.pg.splitpay.SplitPayCheckoutModeGuard;
 import com.pg.service.OrgServiceUseService;
 import com.pg.urlpay.UrlPayCheckoutModeUtil;
 import com.pg.util.ChillPayDirectCreditUtil;
@@ -41,6 +42,7 @@ public class MerchantInlineCheckoutService {
     private final PgTrnsctnRepository pgTrnsctnRepository;
     private final MerchantApiIntegrationChannelService integrationChannelService;
     private final MerchantOperationalPgGuard operationalPgGuard;
+    private final SplitPayCheckoutModeGuard splitPayCheckoutModeGuard;
 
     public MerchantInlineCheckoutService(OrgUnitRepository orgUnitRepository,
                                          MerchantProfileRepository merchantProfileRepository,
@@ -51,7 +53,8 @@ public class MerchantInlineCheckoutService {
                                          MerchantInlineCheckoutTokenService tokenService,
                                          PgTrnsctnRepository pgTrnsctnRepository,
                                          MerchantApiIntegrationChannelService integrationChannelService,
-                                         MerchantOperationalPgGuard operationalPgGuard) {
+                                         MerchantOperationalPgGuard operationalPgGuard,
+                                         SplitPayCheckoutModeGuard splitPayCheckoutModeGuard) {
         this.orgUnitRepository = orgUnitRepository;
         this.merchantProfileRepository = merchantProfileRepository;
         this.orgServiceUseService = orgServiceUseService;
@@ -62,9 +65,14 @@ public class MerchantInlineCheckoutService {
         this.pgTrnsctnRepository = pgTrnsctnRepository;
         this.integrationChannelService = integrationChannelService;
         this.operationalPgGuard = operationalPgGuard;
+        this.splitPayCheckoutModeGuard = splitPayCheckoutModeGuard;
     }
 
     public Map<String, Object> prepare(Long orgUnitId, Map<String, Object> body, HttpServletRequest request) {
+        Optional<Map<String, Object>> splitDeny = splitPayCheckoutModeGuard.denyInlineOneShotPrepare(orgUnitId);
+        if (splitDeny.isPresent()) {
+            return splitDeny.get();
+        }
         if (orgUnitId == null) {
             return fail("가맹점을 찾을 수 없습니다.", "NOT_FOUND");
         }

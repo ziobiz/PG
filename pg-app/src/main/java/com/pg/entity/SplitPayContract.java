@@ -17,6 +17,7 @@ public class SplitPayContract {
 
     public static final String INTERVAL_MONTH = "MONTH";
     public static final String INTERVAL_DAY = "DAY";
+    public static final String INTERVAL_MULTI = "MULTI";
 
     public static final String FIRST_IMMEDIATE = "IMMEDIATE";
     public static final String FIRST_LINK = "LINK";
@@ -39,6 +40,9 @@ public class SplitPayContract {
 
     @Column(name = "customer_name", length = 200)
     private String customerName;
+
+    @Column(name = "customer_locale", length = 8)
+    private String customerLocale = "KOR";
 
     @Column(name = "total_amount", nullable = false, precision = 20, scale = 4)
     private BigDecimal totalAmount;
@@ -111,6 +115,8 @@ public class SplitPayContract {
     public void setCustomerEmail(String customerEmail) { this.customerEmail = customerEmail; }
     public String getCustomerName() { return customerName; }
     public void setCustomerName(String customerName) { this.customerName = customerName; }
+    public String getCustomerLocale() { return customerLocale; }
+    public void setCustomerLocale(String customerLocale) { this.customerLocale = customerLocale; }
     public BigDecimal getTotalAmount() { return totalAmount; }
     public void setTotalAmount(BigDecimal totalAmount) { this.totalAmount = totalAmount; }
     public String getCurrencyCode() { return currencyCode; }

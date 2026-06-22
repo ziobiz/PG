@@ -28,16 +28,16 @@ public interface MerchantReceivableRepository extends JpaRepository<MerchantRece
 
     List<MerchantReceivable> findByReasonCodeAndMemoIn(String reasonCode, Collection<String> memos);
 
-    @Query("SELECT COUNT(r), COALESCE(SUM(r.remainingAmount), 0) FROM MerchantReceivable r WHERE UPPER(TRIM(r.status)) = 'PENDING'")
+    @Query("SELECT COUNT(r), COALESCE(SUM(r.remainingAmount), 0) FROM MerchantReceivable r WHERE UPPER(TRIM(r.status)) IN ('PENDING', 'PARTIAL')")
     Object[] dashboardPendingReceivableAll();
 
-    @Query("SELECT COUNT(r), COALESCE(SUM(r.remainingAmount), 0) FROM MerchantReceivable r WHERE UPPER(TRIM(r.status)) = 'PENDING' AND r.merchantId IN :mids")
+    @Query("SELECT COUNT(r), COALESCE(SUM(r.remainingAmount), 0) FROM MerchantReceivable r WHERE UPPER(TRIM(r.status)) IN ('PENDING', 'PARTIAL') AND r.merchantId IN :mids")
     Object[] dashboardPendingReceivableIn(@Param("mids") Collection<String> mids);
 
-    @Query("SELECT r FROM MerchantReceivable r WHERE UPPER(TRIM(r.status)) = 'PENDING'")
+    @Query("SELECT r FROM MerchantReceivable r WHERE UPPER(TRIM(r.status)) IN ('PENDING', 'PARTIAL')")
     List<MerchantReceivable> findAllPendingForDashboard();
 
-    @Query("SELECT r FROM MerchantReceivable r WHERE UPPER(TRIM(r.status)) = 'PENDING' AND r.merchantId IN :mids")
+    @Query("SELECT r FROM MerchantReceivable r WHERE UPPER(TRIM(r.status)) IN ('PENDING', 'PARTIAL') AND r.merchantId IN :mids")
     List<MerchantReceivable> findPendingForDashboardIn(@Param("mids") Collection<String> mids);
 
     @Query("SELECT r FROM MerchantReceivable r WHERE r.createdAt >= :since ORDER BY r.createdAt DESC")

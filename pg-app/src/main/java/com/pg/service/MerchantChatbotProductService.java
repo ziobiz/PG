@@ -43,6 +43,7 @@ public class MerchantChatbotProductService {
     private final PaymentCurrencyScaleService paymentCurrencyScaleService;
     private final UrlPayCheckoutCurrencyService urlPayCheckoutCurrencyService;
     private final JpayPaymentService jpayPaymentService;
+    private final PublicCustomerSiteBaseService publicCustomerSiteBaseService;
 
     public MerchantChatbotProductService(MerchantChatbotProductRepository productRepository,
                                         OrgUnitRepository orgUnitRepository,
@@ -55,7 +56,8 @@ public class MerchantChatbotProductService {
                                         UrlPayDisplayFxService urlPayDisplayFxService,
                                         PaymentCurrencyScaleService paymentCurrencyScaleService,
                                         UrlPayCheckoutCurrencyService urlPayCheckoutCurrencyService,
-                                        JpayPaymentService jpayPaymentService) {
+                                        JpayPaymentService jpayPaymentService,
+                                        PublicCustomerSiteBaseService publicCustomerSiteBaseService) {
         this.productRepository = productRepository;
         this.orgUnitRepository = orgUnitRepository;
         this.merchantProfileRepository = merchantProfileRepository;
@@ -68,6 +70,7 @@ public class MerchantChatbotProductService {
         this.paymentCurrencyScaleService = paymentCurrencyScaleService;
         this.urlPayCheckoutCurrencyService = urlPayCheckoutCurrencyService;
         this.jpayPaymentService = jpayPaymentService;
+        this.publicCustomerSiteBaseService = publicCustomerSiteBaseService;
     }
 
     public long countProductsForMerchant(Long merchantOrgUnitId) {
@@ -152,21 +155,7 @@ public class MerchantChatbotProductService {
      * {@code tb_hq_api_config.public_api_base_url} → 노티 {@code public_base_url} → 요청 Host 순.
      */
     public String resolvePublicCustomerSiteBase(HttpServletRequest req) {
-        String configured = hqApiConfigRepository.findAll().stream().findFirst()
-                .map(c -> c.getPublicApiBaseUrl() != null ? c.getPublicApiBaseUrl().trim() : "")
-                .orElse("");
-        configured = trimSlash(configured);
-        if (!configured.isBlank()) {
-            return configured;
-        }
-        String notifyBase = trimSlash(hqNotifyEnvService.getOrCreate().getPublicBaseUrl());
-        if (!notifyBase.isBlank()) {
-            return notifyBase;
-        }
-        if (req != null) {
-            return trimSlash(inferBaseFromRequest(req));
-        }
-        return "";
+        return publicCustomerSiteBaseService.resolvePublicCustomerSiteBase(req);
     }
 
     /**
@@ -434,23 +423,6 @@ public class MerchantChatbotProductService {
             return "";
         }
         return u.trim().replaceAll("/+$", "");
-    }
-
-    private static String inferBaseFromRequest(HttpServletRequest req) {
-        String scheme = req.getHeader("X-Forwarded-Proto");
-        if (scheme == null || scheme.isBlank()) {
-            scheme = req.getScheme();
-        }
-        String host = req.getHeader("X-Forwarded-Host");
-        if (host == null || host.isBlank()) {
-            host = req.getServerName();
-            int port = req.getServerPort();
-            if (("http".equalsIgnoreCase(scheme) && port != 80)
-                    || ("https".equalsIgnoreCase(scheme) && port != 443)) {
-                host = host + ":" + port;
-            }
-        }
-        return scheme + "://" + host;
     }
 
     private Optional<String> resolveInheritedBrandingLogoUrl(Long merchantOrgUnitId) {

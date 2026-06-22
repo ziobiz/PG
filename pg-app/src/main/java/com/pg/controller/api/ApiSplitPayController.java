@@ -61,6 +61,7 @@ public class ApiSplitPayController {
                     str(body, "intervalType"),
                     intObj(body, "intervalValue"),
                     str(body, "currencyCode"),
+                    firstNonBlank(str(body, "locale"), str(body, "lang"), str(body, "customerLocale")),
                     request)));
         } catch (IllegalStateException e) {
             return ResponseEntity.ok(ApiResponse.fail(e.getMessage(), e.getMessage()));
@@ -108,5 +109,17 @@ public class ApiSplitPayController {
             return null;
         }
         return Integer.parseInt(v.toString().trim());
+    }
+
+    private static String firstNonBlank(String... vals) {
+        if (vals == null) {
+            return "";
+        }
+        for (String v : vals) {
+            if (v != null && !v.isBlank()) {
+                return v.trim();
+            }
+        }
+        return "";
     }
 }

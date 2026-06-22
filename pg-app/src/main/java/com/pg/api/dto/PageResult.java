@@ -3,6 +3,7 @@ package com.pg.api.dto;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import org.springframework.data.domain.Page;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -19,6 +20,17 @@ public class PageResult<T> {
     /** 리포트 등 부가 메타(비율·건당요금 안내) */
     @JsonInclude(JsonInclude.Include.NON_NULL)
     private Map<String, Object> meta;
+
+    public static <T> PageResult<T> empty(int page1, int size) {
+        PageResult<T> r = new PageResult<>();
+        r.setList(Collections.emptyList());
+        int sz = size <= 0 ? 50 : Math.min(size, 300);
+        r.setPage(Math.max(page1, 1));
+        r.setSize(sz);
+        r.setTotalElements(0);
+        r.setTotalPages(0);
+        return r;
+    }
 
     public static <E, D> PageResult<D> of(Page<E> page, java.util.function.Function<E, D> mapper) {
         PageResult<D> r = new PageResult<>();

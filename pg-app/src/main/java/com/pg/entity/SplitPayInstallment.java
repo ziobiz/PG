@@ -66,6 +66,9 @@ public class SplitPayInstallment {
     @Column(name = "mail_d2_sent")
     private LocalDateTime mailD2Sent;
 
+    @Column(name = "mail_d3_sent")
+    private LocalDateTime mailD3Sent;
+
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 
@@ -120,6 +123,8 @@ public class SplitPayInstallment {
     public void setMailD1Sent(LocalDateTime mailD1Sent) { this.mailD1Sent = mailD1Sent; }
     public LocalDateTime getMailD2Sent() { return mailD2Sent; }
     public void setMailD2Sent(LocalDateTime mailD2Sent) { this.mailD2Sent = mailD2Sent; }
+    public LocalDateTime getMailD3Sent() { return mailD3Sent; }
+    public void setMailD3Sent(LocalDateTime mailD3Sent) { this.mailD3Sent = mailD3Sent; }
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
     public LocalDateTime getUpdatedAt() { return updatedAt; }

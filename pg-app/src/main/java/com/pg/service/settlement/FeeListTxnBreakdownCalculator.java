@@ -38,13 +38,16 @@ public class FeeListTxnBreakdownCalculator {
     private final ChargebackFeePolicyRepository chargebackFeePolicyRepository;
     private final PgTrnsctnRepository pgTrnsctnRepository;
     private final VoidRefundSettlementModeResolutionService voidRefundSettlementModeResolutionService;
+    private final SplitPayTxnFeeResolver splitPayTxnFeeResolver;
 
     public FeeListTxnBreakdownCalculator(ChargebackFeePolicyRepository chargebackFeePolicyRepository,
                                          PgTrnsctnRepository pgTrnsctnRepository,
-                                         VoidRefundSettlementModeResolutionService voidRefundSettlementModeResolutionService) {
+                                         VoidRefundSettlementModeResolutionService voidRefundSettlementModeResolutionService,
+                                         SplitPayTxnFeeResolver splitPayTxnFeeResolver) {
         this.chargebackFeePolicyRepository = chargebackFeePolicyRepository;
         this.pgTrnsctnRepository = pgTrnsctnRepository;
         this.voidRefundSettlementModeResolutionService = voidRefundSettlementModeResolutionService;
+        this.splitPayTxnFeeResolver = splitPayTxnFeeResolver;
     }
 
     public record FeeListTxnBreakdown(
@@ -67,6 +70,10 @@ public class FeeListTxnBreakdownCalculator {
             double extraFee2,
             double extraFee3,
             double extraFee4,
+            double splitPayPctFee,
+            double splitPayFixedFee,
+            String splitPayFeePctRatePlain,
+            String splitPayFixedPerInstPlain,
             double rollingHoldEst,
             String rollingPctPlain,
             int rollingDays,
@@ -117,6 +124,19 @@ public class FeeListTxnBreakdownCalculator {
             Map<Long, List<ChargebackFeeTier>> tiersByPolicyId,
             SettlementSetting merchantFeeVatSetting,
             FeeListRoundingPolicy rp) {
+        return computeFeeListTxnBreakdown(t, compId, pol, monthCbCountCache, tiersByPolicyId,
+                merchantFeeVatSetting, rp, null);
+    }
+
+    public FeeListTxnBreakdown computeFeeListTxnBreakdown(
+            PgTrnsctn t,
+            String compId,
+            CommissionPolicy pol,
+            Map<String, Long> monthCbCountCache,
+            Map<Long, List<ChargebackFeeTier>> tiersByPolicyId,
+            SettlementSetting merchantFeeVatSetting,
+            FeeListRoundingPolicy rp,
+            SplitPayTxnFeeResolver.InstallmentCache splitPayCache) {
         BigDecimal amountBd = t.getAmtKrw() != null ? t.getAmtKrw() : BigDecimal.ZERO;
         int feeScale = rp.decimalPlaces();
         RoundingMode feeRm = rp.roundMode();
@@ -143,10 +163,15 @@ public class FeeListTxnBreakdownCalculator {
         double extraFee2 = 0d;
         double extraFee3 = 0d;
         double extraFee4 = 0d;
+        SplitPayTxnFeeResolver.SplitPayFeeAmounts splitPay = SplitPayTxnFeeResolver.SplitPayFeeAmounts.zero();
         double successFeesSeparate = 0d;
         String rollingPctPlain = PercentDecimalHelper.toPlainOneDecimal(nz(pol.getRollingPct()));
         int rollingDays = pol.getRollingDays() != null ? pol.getRollingDays() : 0;
         double rollingHoldEst = 0d;
+        double splitPayPctFee = 0d;
+        double splitPayFixedFee = 0d;
+        String splitPayPctRatePlain = "";
+        String splitPayFixedPerInstPlain = "";
 
         if ("F0".equals(st) || "99".equals(st)) {
             failFee = nz(pol.getFailFee()).doubleValue();
@@ -154,6 +179,11 @@ public class FeeListTxnBreakdownCalculator {
             cancelFee = nz(pol.getCancelRate()).doubleValue();
         } else if ("21".equals(st) || "22".equals(st) || "30".equals(st) || "31".equals(st)
                 || "40".equals(st) || "41".equals(st) || "42".equals(st)) {
+            splitPay = splitPayTxnFeeResolver.resolve(t, pol, amountBd, rp, splitPayCache);
+            splitPayPctFee = splitPay.pctFee();
+            splitPayFixedFee = splitPay.fixedFee();
+            splitPayPctRatePlain = splitPay.pctRatePlain();
+            splitPayFixedPerInstPlain = splitPay.fixedPerInstPlain();
             if ("21".equals(st) || "40".equals(st)) {
                 voidFee = nz(pol.getVoidFeePerTx()).doubleValue();
             } else if ("22".equals(st) || "41".equals(st)) {
@@ -175,8 +205,14 @@ public class FeeListTxnBreakdownCalculator {
                 extraFee4 = CommissionExtraFeeUtil.pctSlotAmountOnApproved(pol, 4, amountBd, feeScale, feeRm).doubleValue();
             }
             successFeesSeparate = perTxFee + payFee + usdtFee + fxFee + fee3dsFee
-                    + extraFee1 + extraFee2 + extraFee3 + extraFee4;
+                    + extraFee1 + extraFee2 + extraFee3 + extraFee4
+                    + splitPayPctFee + splitPayFixedFee;
         } else if ("10".equals(st)) {
+            splitPay = splitPayTxnFeeResolver.resolve(t, pol, amountBd, rp, splitPayCache);
+            splitPayPctFee = splitPay.pctFee();
+            splitPayFixedFee = splitPay.fixedFee();
+            splitPayPctRatePlain = splitPay.pctRatePlain();
+            splitPayFixedPerInstPlain = splitPay.fixedPerInstPlain();
             rollingHoldEst = amountBd.signum() > 0
                     ? amountBd.multiply(nz(pol.getRollingPct())).divide(BigDecimal.valueOf(100), feeScale, feeRm).doubleValue()
                     : 0d;
@@ -197,7 +233,8 @@ public class FeeListTxnBreakdownCalculator {
         if ("10".equals(st)) {
             totalFee = Math.max(0d, perTxFee + usageFee + failFee + cancelFee + voidFee + manualVoidFee + refundFee
                     + payFee + usdtFee + fxFee + fee3dsFee + chargebackFee
-                    + extraFee1 + extraFee2 + extraFee3 + extraFee4);
+                    + extraFee1 + extraFee2 + extraFee3 + extraFee4
+                    + splitPayPctFee + splitPayFixedFee);
         } else if ("F0".equals(st) || "99".equals(st)) {
             totalFee = Math.max(0d, failFee);
         } else if ("20".equals(st)) {
@@ -225,7 +262,9 @@ public class FeeListTxnBreakdownCalculator {
                 MerchantFeeVatUtil.vatOnFeeAmount(totalFeeBd, merchantFeeVatSetting, vatScale), rp);
         return new FeeListTxnBreakdown(0d, usdtRemitUsd, perTxFee, usageFee, failFee, cancelFee, voidFee, manualVoidFee, refundFee,
                 payFee, usdtFee, fxFee, fee3dsFee, settlementPerTxFee, chargebackFee,
-                extraFee1, extraFee2, extraFee3, extraFee4, rollingHoldEst, rollingPctPlain, rollingDays, successFeesSeparate, totalFee, feeVatBd);
+                extraFee1, extraFee2, extraFee3, extraFee4,
+                splitPayPctFee, splitPayFixedFee, splitPayPctRatePlain, splitPayFixedPerInstPlain,
+                rollingHoldEst, rollingPctPlain, rollingDays, successFeesSeparate, totalFee, feeVatBd);
     }
 
     private static BigDecimal nz(BigDecimal v) {
