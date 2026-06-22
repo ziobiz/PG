@@ -152,6 +152,8 @@ public class PayFollowPolicyService {
         m.put("EMAIL_VOID", false);
         m.put("AUTO_REFUND", false);
         m.put("FORCE_REFUND", false);
+        m.put("MANUAL_VOID", false);
+        m.put("MANUAL_REFUND", false);
         if (user == null) {
             return m;
         }
@@ -161,6 +163,8 @@ public class PayFollowPolicyService {
             m.put("EMAIL_VOID", yn(env.getEmailVoidYn()));
             m.put("AUTO_REFUND", yn(env.getAutoRefundYn()));
             m.put("FORCE_REFUND", yn(env.getForceRefundYn()) && forceRefundPeriodPositive(env));
+            m.put("MANUAL_VOID", yn(env.getAutoVoidYn()));
+            m.put("MANUAL_REFUND", yn(env.getAutoRefundYn()));
             return m;
         }
         Map<String, Object> org = authService.getOrgInfo(user.getUsername());
@@ -182,6 +186,8 @@ public class PayFollowPolicyService {
             m.put("EMAIL_VOID", gEmail);
             m.put("AUTO_REFUND", gRef);
             m.put("FORCE_REFUND", gForce);
+            m.put("MANUAL_VOID", gVoid);
+            m.put("MANUAL_REFUND", gRef);
             return m;
         }
 
@@ -207,14 +213,21 @@ public class PayFollowPolicyService {
         m.put("EMAIL_VOID", gEmail && merchantActionEffective(mp.getPayFollowEmailVoidYn()));
         m.put("AUTO_REFUND", gRef && merchantActionEffective(mp.getPayFollowAutoRefundYn()));
         m.put("FORCE_REFUND", gForce && merchantActionEffective(mp.getPayFollowForceRefundYn()));
+        m.put("MANUAL_VOID", gVoid && merchantActionEffective(mp.getPayFollowAutoVoidYn()));
+        m.put("MANUAL_REFUND", gRef && merchantActionEffective(mp.getPayFollowAutoRefundYn()));
         return m;
     }
 
+    /** JPAY — 자동환불·강제환불 API + 수동무효·수동환불 */
+    public static boolean isJpayManualFollowTransaction(PgTrnsctn t) {
+        return t != null && PgVendor.isJpayFamily(t.getVan());
+    }
+
     /**
-     * JPAY 등 ICOPAY 결제 후속조치(무효·환불·이메일무효) 미지원 PG — UI 숨김·API 거부.
+     * 후속조치 열 자체를 숨김(성공내역 등). JPAY는 {@link #isJpayManualFollowTransaction} 으로 수동 2종 표시.
      */
     public static boolean isPayFollowHiddenForTransaction(PgTrnsctn t) {
-        return t != null && PgVendor.isJpayFamily(t.getVan());
+        return false;
     }
 
     /**
@@ -227,10 +240,17 @@ public class PayFollowPolicyService {
         out.put("EMAIL_VOID", false);
         out.put("AUTO_REFUND", false);
         out.put("FORCE_REFUND", false);
-        if (isPayFollowHiddenForTransaction(t)) {
+        out.put("MANUAL_VOID", false);
+        out.put("MANUAL_REFUND", false);
+        if (t == null || !"10".equals(t.getStatus())) {
             return out;
         }
-        if (t == null || !"10".equals(t.getStatus())) {
+        if (isJpayManualFollowTransaction(t)) {
+            HqNotifyEnvConfig env = hqNotifyEnvService.getOrCreate();
+            out.put("AUTO_REFUND", Boolean.TRUE.equals(base.get("AUTO_REFUND")) && withinAutoRefundDays(t, env, REFUND_DAY_ZONE));
+            out.put("FORCE_REFUND", Boolean.TRUE.equals(base.get("FORCE_REFUND")) && withinForceRefundDays(t, env, REFUND_DAY_ZONE));
+            out.put("MANUAL_VOID", Boolean.TRUE.equals(base.get("MANUAL_VOID")));
+            out.put("MANUAL_REFUND", Boolean.TRUE.equals(base.get("MANUAL_REFUND")));
             return out;
         }
         HqNotifyEnvConfig env = hqNotifyEnvService.getOrCreate();
@@ -449,9 +469,9 @@ public class PayFollowPolicyService {
             return true;
         }
         return switch (a) {
-            case AUTO_VOID -> yn(cap.getAutoVoidYn());
+            case AUTO_VOID, MANUAL_VOID -> yn(cap.getAutoVoidYn());
             case EMAIL_VOID -> yn(cap.getEmailVoidYn());
-            case AUTO_REFUND -> yn(cap.getAutoRefundYn());
+            case AUTO_REFUND, MANUAL_REFUND -> yn(cap.getAutoRefundYn());
             case FORCE_REFUND -> yn(cap.getForceRefundYn());
         };
     }
@@ -463,6 +483,8 @@ public class PayFollowPolicyService {
             case EMAIL_VOID -> requireYn(env.getEmailVoidYn(), "이메일무효");
             case AUTO_REFUND -> requireYn(env.getAutoRefundYn(), "자동환불");
             case FORCE_REFUND -> requireYn(env.getForceRefundYn(), "강제환불");
+            case MANUAL_VOID -> requireYn(env.getAutoVoidYn(), "수동무효");
+            case MANUAL_REFUND -> requireYn(env.getAutoRefundYn(), "수동환불");
         }
         if (user == null) {
             throw new IllegalStateException("로그인이 필요합니다.");
@@ -472,9 +494,15 @@ public class PayFollowPolicyService {
         if (!"10".equals(t.getStatus())) {
             throw new IllegalStateException("승인(결제) 완료 건만 후속조치할 수 있습니다.");
         }
-        if (isPayFollowHiddenForTransaction(t)) {
+        boolean jpay = isJpayManualFollowTransaction(t);
+        if (jpay && (action == PayListActionService.PayFollowAction.AUTO_VOID
+                || action == PayListActionService.PayFollowAction.EMAIL_VOID)) {
             throw new IllegalStateException(
-                    "JPAY 거래는 결제 후속조치(무효·환불)를 지원하지 않습니다. PG 운영 처리 및 노티 반영으로 확인하세요.");
+                    "JPAY 거래는 자동무효·이메일무효를 사용할 수 없습니다.");
+        }
+        if (!jpay && (action == PayListActionService.PayFollowAction.MANUAL_VOID
+                || action == PayListActionService.PayFollowAction.MANUAL_REFUND)) {
+            throw new IllegalStateException("수동무효·수동환불은 JPAY 거래만 지원합니다.");
         }
         if (!"ADMIN".equalsIgnoreCase(user.getRole())) {
             Map<String, Object> org = authService.getOrgInfo(user.getUsername());
@@ -502,9 +530,9 @@ public class PayFollowPolicyService {
                     throw new IllegalStateException("가맹점 정보에서 결제 후속조치 사용이 꺼져 있습니다.");
                 }
                 boolean ok = switch (action) {
-                    case AUTO_VOID -> merchantActionEffective(mp.getPayFollowAutoVoidYn());
+                    case AUTO_VOID, MANUAL_VOID -> merchantActionEffective(mp.getPayFollowAutoVoidYn());
                     case EMAIL_VOID -> merchantActionEffective(mp.getPayFollowEmailVoidYn());
-                    case AUTO_REFUND -> merchantActionEffective(mp.getPayFollowAutoRefundYn());
+                    case AUTO_REFUND, MANUAL_REFUND -> merchantActionEffective(mp.getPayFollowAutoRefundYn());
                     case FORCE_REFUND -> merchantActionEffective(mp.getPayFollowForceRefundYn());
                 };
                 if (!ok) {
@@ -518,6 +546,10 @@ public class PayFollowPolicyService {
                     throw new IllegalStateException("소속 업체 및 하위 가맹점 거래만 후속조치할 수 있습니다.");
                 }
             }
+        }
+        if (action == PayListActionService.PayFollowAction.MANUAL_VOID
+                || action == PayListActionService.PayFollowAction.MANUAL_REFUND) {
+            return;
         }
         ZoneId ref = resolvePayFollowZone(env);
         switch (action) {

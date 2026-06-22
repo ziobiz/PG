@@ -34,6 +34,12 @@ public interface MerchantReceivableRepository extends JpaRepository<MerchantRece
     @Query("SELECT COUNT(r), COALESCE(SUM(r.remainingAmount), 0) FROM MerchantReceivable r WHERE UPPER(TRIM(r.status)) = 'PENDING' AND r.merchantId IN :mids")
     Object[] dashboardPendingReceivableIn(@Param("mids") Collection<String> mids);
 
+    @Query("SELECT r FROM MerchantReceivable r WHERE UPPER(TRIM(r.status)) = 'PENDING'")
+    List<MerchantReceivable> findAllPendingForDashboard();
+
+    @Query("SELECT r FROM MerchantReceivable r WHERE UPPER(TRIM(r.status)) = 'PENDING' AND r.merchantId IN :mids")
+    List<MerchantReceivable> findPendingForDashboardIn(@Param("mids") Collection<String> mids);
+
     @Query("SELECT r FROM MerchantReceivable r WHERE r.createdAt >= :since ORDER BY r.createdAt DESC")
     List<MerchantReceivable> findRecentCreatedAll(@Param("since") LocalDateTime since, Pageable pageable);
 

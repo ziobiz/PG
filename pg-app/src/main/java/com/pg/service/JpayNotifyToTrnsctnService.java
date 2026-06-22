@@ -10,6 +10,8 @@ import com.pg.entity.PgNotifyInbound;
 import com.pg.entity.PgTrnsctn;
 import com.pg.repository.PgAgencyRepository;
 import com.pg.repository.PgTrnsctnRepository;
+import com.pg.service.settlement.SettlementArrearsService;
+import com.pg.util.JpayDisputeNotifyStatusResolver;
 import com.pg.util.JpayBuyerContactApplier;
 import com.pg.util.JpaySignatureUtil;
 import com.pg.util.JpayNotifyStatusResolver;
@@ -51,19 +53,22 @@ public class JpayNotifyToTrnsctnService implements PgNotifyInboundTxnHandler {
     private final HqLedgerSysSettingsService hqLedgerSysSettingsService;
     private final JpaySubscriptionNotifyService jpaySubscriptionNotifyService;
     private final NotifyIdempotencyLock notifyIdempotencyLock;
+    private final SettlementArrearsService settlementArrearsService;
 
     public JpayNotifyToTrnsctnService(PgTrnsctnRepository pgTrnsctnRepository,
                                       PgAgencyRepository pgAgencyRepository,
                                       SettlementCalcService settlementCalcService,
                                       HqLedgerSysSettingsService hqLedgerSysSettingsService,
                                       JpaySubscriptionNotifyService jpaySubscriptionNotifyService,
-                                      NotifyIdempotencyLock notifyIdempotencyLock) {
+                                      NotifyIdempotencyLock notifyIdempotencyLock,
+                                      SettlementArrearsService settlementArrearsService) {
         this.pgTrnsctnRepository = pgTrnsctnRepository;
         this.pgAgencyRepository = pgAgencyRepository;
         this.settlementCalcService = settlementCalcService;
         this.hqLedgerSysSettingsService = hqLedgerSysSettingsService;
         this.jpaySubscriptionNotifyService = jpaySubscriptionNotifyService;
         this.notifyIdempotencyLock = notifyIdempotencyLock;
+        this.settlementArrearsService = settlementArrearsService;
     }
 
     @Override
@@ -179,6 +184,10 @@ public class JpayNotifyToTrnsctnService implements PgNotifyInboundTxnHandler {
         }
         t.setNotifyChannelType(ch);
 
+        String prevStatus = t.getStatus();
+        String prevSettledYn = t.getSettledYn();
+        boolean icopayManualEcho = "Y".equalsIgnoreCase(first(form, JpayManualFollowUpNotifyService.ICOPAY_MANUAL_FOLLOWUP_FLAG));
+
         String next = JpayNotifyStatusResolver.resolveFromForm(form);
         if (next == null || next.isBlank()) {
             next = ST_FAIL;
@@ -204,6 +213,11 @@ public class JpayNotifyToTrnsctnService implements PgNotifyInboundTxnHandler {
         JpayBuyerContactApplier.mergeFromNotifyForm(t, form);
 
         pgTrnsctnRepository.save(t);
+        try {
+            settlementArrearsService.registerPostSettlementRecoveryIfDue(prevStatus, prevSettledYn, t);
+        } catch (Exception recoveryEx) {
+            log.warn("환수금 자동등록 실패 trnId={}: {}", t.getTrnId(), recoveryEx.getMessage());
+        }
         if (ST_PAID.equals(merged) && t.getMerchantId() != null && !t.getMerchantId().isBlank()) {
             try {
                 settlementCalcService.triggerRealtimeAutoSettlementIfDue(t.getMerchantId().trim(), t);
@@ -211,7 +225,8 @@ public class JpayNotifyToTrnsctnService implements PgNotifyInboundTxnHandler {
                 log.warn("실시간 자동정산 트리거 실패 merchantId={}: {}", t.getMerchantId(), rtEx.getMessage());
             }
         }
-        log.info("JPAY 노티 반영 trnId={} merchantId={} orderNo={} returncode={}", t.getTrnId(), merchantId, orderKey, ret);
+        log.info("JPAY 노티 반영 trnId={} merchantId={} orderNo={} returncode={} manualEcho={}",
+                t.getTrnId(), merchantId, orderKey, ret, icopayManualEcho);
         return true;
     }
 
@@ -333,6 +348,9 @@ public class JpayNotifyToTrnsctnService implements PgNotifyInboundTxnHandler {
     }
 
     private static boolean looksLikeJpayServerNotify(Map<String, String> f) {
+        if (JpayDisputeNotifyStatusResolver.looksLikeDisputeWebhook(f)) {
+            return false;
+        }
         if (first(f, "memberid").isBlank() || first(f, "orderid").isBlank()) {
             return false;
         }

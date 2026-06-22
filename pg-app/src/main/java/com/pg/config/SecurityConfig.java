@@ -86,6 +86,7 @@ public class SecurityConfig {
                 .requestMatchers(AntPathRequestMatcher.antMatcher("/api/pay/chillpay/**")).permitAll()
                 .requestMatchers(AntPathRequestMatcher.antMatcher("/api/pay/jpay/**")).permitAll()
                 .requestMatchers(AntPathRequestMatcher.antMatcher("/api/pay/url/**")).permitAll()
+                .requestMatchers(AntPathRequestMatcher.antMatcher("/api/pay/split/**")).permitAll()
                 .requestMatchers(AntPathRequestMatcher.antMatcher("/api/open/pg-notify/**")).permitAll()
                 .requestMatchers(AntPathRequestMatcher.antMatcher("/api/middleware/notify/**")).permitAll()
                 .requestMatchers(AntPathRequestMatcher.antMatcher("/api/middleware/v1/pg/**")).permitAll()
@@ -121,6 +122,8 @@ public class SecurityConfig {
                     AntPathRequestMatcher.antMatcher("/pay-result.html"),
                     AntPathRequestMatcher.antMatcher("/pay.html"),
                     AntPathRequestMatcher.antMatcher("/jpay-pay.html"),
+                    AntPathRequestMatcher.antMatcher("/split-pay.html"),
+                    AntPathRequestMatcher.antMatcher("/split-pay-setup.html"),
                     AntPathRequestMatcher.antMatcher("/jpay-subscribe.html"),
                     AntPathRequestMatcher.antMatcher("/favicon.ico"),
                     AntPathRequestMatcher.antMatcher("/robots.txt"),
@@ -133,6 +136,10 @@ public class SecurityConfig {
                     AntPathRequestMatcher.antMatcher("/v1/embed-jpay-subscribe/**"),
                     AntPathRequestMatcher.antMatcher("/chatbot-pay"),
                     AntPathRequestMatcher.antMatcher("/chatbot-pay/**"),
+                    AntPathRequestMatcher.antMatcher("/split-pay"),
+                    AntPathRequestMatcher.antMatcher("/split-pay/**"),
+                    AntPathRequestMatcher.antMatcher("/split-pay-install"),
+                    AntPathRequestMatcher.antMatcher("/split-pay-install/**"),
                     AntPathRequestMatcher.antMatcher("/v1/embed-chatbot/**"),
                     AntPathRequestMatcher.antMatcher("/v1/embed-pay/**"),
                     AntPathRequestMatcher.antMatcher("/v1/embed-jpay-pay/**"),

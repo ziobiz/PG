@@ -112,6 +112,14 @@ public class CommissionPolicy {
     @Column(name = "chargeback_policy_id")
     private Long chargebackPolicyId;
 
+    /** 분할결제 수수료율(%) — 매 회차 승인금액 기준 */
+    @Column(name = "split_pay_fee_pct", precision = 5, scale = 2)
+    private BigDecimal splitPayFeePct = BigDecimal.ZERO;
+
+    /** 분할고정수수료(건당) — 1회차에 N×건당 합산 */
+    @Column(name = "split_pay_fixed_fee_per_inst", precision = 12, scale = 1)
+    private BigDecimal splitPayFixedFeePerInst = BigDecimal.ZERO;
+
     /** null·FOLLOW 시 본사 {@code tb_hq_ledger_sys_settings} 기본 */
     @Column(name = "void_settlement_mode", length = 16)
     private String voidSettlementMode;
@@ -224,6 +232,10 @@ public class CommissionPolicy {
     public void setChargebackFeePerTx(BigDecimal chargebackFeePerTx) { this.chargebackFeePerTx = chargebackFeePerTx != null ? chargebackFeePerTx : BigDecimal.ZERO; }
     public Long getChargebackPolicyId() { return chargebackPolicyId; }
     public void setChargebackPolicyId(Long chargebackPolicyId) { this.chargebackPolicyId = chargebackPolicyId; }
+    public BigDecimal getSplitPayFeePct() { return splitPayFeePct; }
+    public void setSplitPayFeePct(BigDecimal splitPayFeePct) { this.splitPayFeePct = splitPayFeePct != null ? splitPayFeePct : BigDecimal.ZERO; }
+    public BigDecimal getSplitPayFixedFeePerInst() { return splitPayFixedFeePerInst; }
+    public void setSplitPayFixedFeePerInst(BigDecimal splitPayFixedFeePerInst) { this.splitPayFixedFeePerInst = splitPayFixedFeePerInst != null ? splitPayFixedFeePerInst : BigDecimal.ZERO; }
 
     public String getVoidSettlementMode() { return voidSettlementMode; }
     public void setVoidSettlementMode(String voidSettlementMode) { this.voidSettlementMode = voidSettlementMode; }

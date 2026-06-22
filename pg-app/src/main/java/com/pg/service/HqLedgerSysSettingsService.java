@@ -163,6 +163,10 @@ public class HqLedgerSysSettingsService {
         m.put("emailVoidContactName", nz(s.getEmailVoidContactName()));
         m.put("chillpayTrInitSyncMonths", ledgerIntOr(s.getChillpayTrInitSyncMonths(), 3));
         m.put("chillpayTrRecentSyncDays", ledgerIntOr(s.getChillpayTrRecentSyncDays(), 2));
+        m.put("jpayPortalUsername", nz(s.getJpayPortalUsername()));
+        m.put("jpayPortalPasswordSet", s.getJpayPortalPassword() != null && !s.getJpayPortalPassword().isBlank());
+        m.put("jpayTrInitSyncMonths", ledgerIntOr(s.getJpayTrInitSyncMonths(), 3));
+        m.put("jpayTrRecentSyncDays", ledgerIntOr(s.getJpayTrRecentSyncDays(), 2));
         m.put("appLogMemoryRetentionDays", ledgerIntOr(s.getAppLogMemoryRetentionDays(), 30));
         m.put("appLogFileRetentionDays", ledgerIntOr(s.getAppLogFileRetentionDays(), 90));
         m.put("feeListDecimalPlaces", ledgerIntOr(s.getFeeListDecimalPlaces(), 2));
@@ -248,6 +252,19 @@ public class HqLedgerSysSettingsService {
         }
         if (body.containsKey("chillpayTrRecentSyncDays")) {
             s.setChillpayTrRecentSyncDays(clampInt(body.get("chillpayTrRecentSyncDays"), 2, 1, 365));
+        }
+        if (body.containsKey("jpayPortalUsername")) {
+            s.setJpayPortalUsername(trimToNull(body.get("jpayPortalUsername")));
+        }
+        String jpayPw = trimToNull(body.get("jpayPortalPassword"));
+        if (jpayPw != null) {
+            s.setJpayPortalPassword(jpayPw);
+        }
+        if (body.containsKey("jpayTrInitSyncMonths")) {
+            s.setJpayTrInitSyncMonths(clampInt(body.get("jpayTrInitSyncMonths"), 3, 1, 120));
+        }
+        if (body.containsKey("jpayTrRecentSyncDays")) {
+            s.setJpayTrRecentSyncDays(clampInt(body.get("jpayTrRecentSyncDays"), 2, 1, 365));
         }
         if (body.containsKey("appLogMemoryRetentionDays")) {
             s.setAppLogMemoryRetentionDays(clampInt(body.get("appLogMemoryRetentionDays"), 30, 1, 3650));

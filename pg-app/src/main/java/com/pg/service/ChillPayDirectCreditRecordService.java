@@ -1,6 +1,7 @@
 package com.pg.service;
 
 import com.pg.integration.pg.PgVendor;
+import com.pg.splitpay.SplitPayPaymentHookService;
 import com.pg.dto.ChillPayDirectCreditResponse;
 import com.pg.entity.OrgUnit;
 import com.pg.entity.PgTrnsctn;
@@ -50,19 +51,22 @@ public class ChillPayDirectCreditRecordService {
     private final HqLedgerSysSettingsService hqLedgerSysSettingsService;
     private final UrlPaySuccessAlertService urlPaySuccessAlertService;
     private final MerchantChatbotOrderService merchantChatbotOrderService;
+    private final SplitPayPaymentHookService splitPayPaymentHookService;
 
     public ChillPayDirectCreditRecordService(PgTrnsctnRepository pgTrnsctnRepository,
                                             OrgUnitRepository orgUnitRepository,
                                             SettlementCalcService settlementCalcService,
                                             HqLedgerSysSettingsService hqLedgerSysSettingsService,
                                             UrlPaySuccessAlertService urlPaySuccessAlertService,
-                                            MerchantChatbotOrderService merchantChatbotOrderService) {
+                                            MerchantChatbotOrderService merchantChatbotOrderService,
+                                            SplitPayPaymentHookService splitPayPaymentHookService) {
         this.pgTrnsctnRepository = pgTrnsctnRepository;
         this.orgUnitRepository = orgUnitRepository;
         this.settlementCalcService = settlementCalcService;
         this.hqLedgerSysSettingsService = hqLedgerSysSettingsService;
         this.urlPaySuccessAlertService = urlPaySuccessAlertService;
         this.merchantChatbotOrderService = merchantChatbotOrderService;
+        this.splitPayPaymentHookService = splitPayPaymentHookService;
     }
 
     /**
@@ -240,6 +244,13 @@ public class ChillPayDirectCreditRecordService {
             }
         }
         log.info("DirectCredit 거래 적재 trnId={} merchantId={} orderNo={} status={}", t.getTrnId(), merchantId, orderNo, t.getStatus());
+        if (paid) {
+            try {
+                splitPayPaymentHookService.onTxnStatusChange(orderNo, t.getStatus(), t.getTrnId());
+            } catch (Exception ex) {
+                log.warn("분할결제 연동 실패 orderNo={}: {}", orderNo, ex.getMessage());
+            }
+        }
     }
 
     private static String newTrnId() {

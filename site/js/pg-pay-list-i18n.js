@@ -328,7 +328,21 @@
     AUTO_VOID: { KO: '무효처리', EN: 'Auto void', JP: '自動無効', CH: '自动作废', TH: 'โมฆะอัตโนมัติ' },
     EMAIL_VOID: { KO: '이메일 무효', EN: 'Email void', JP: 'メール無効', CH: '邮件作废', TH: 'โมฆะทางอีเมล' },
     AUTO_REFUND: { KO: '환불처리', EN: 'Auto refund', JP: '自動返金', CH: '自动退款', TH: 'คืนเงินอัตโนมัติ' },
-    FORCE_REFUND: { KO: '강제환불', EN: 'Force refund', JP: '強制返金', CH: '强制退款', TH: 'บังคับคืนเงิน' }
+    FORCE_REFUND: { KO: '강제환불', EN: 'Force refund', JP: '強制返金', CH: '强制退款', TH: 'บังคับคืนเงิน' },
+    MANUAL_VOID: {
+      KO: '수동무효',
+      EN: 'Manual void',
+      JP: '手動無効',
+      CH: '手动作废',
+      TH: 'โมฆะด้วยมือ'
+    },
+    MANUAL_REFUND: {
+      KO: '수동환불',
+      EN: 'Manual refund',
+      JP: '手動返金',
+      CH: '手动退款',
+      TH: 'คืนเงินด้วยมือ'
+    }
   };
 
   /** setSummaryText 등에서 쓰는 한글 키 → 로케일 라벨 (값은 그대로 두고 접두만 번역) */
@@ -437,6 +451,52 @@
       packN('자격: 배포설정 > API배포설정 또는 tb_pg_agency(ChillPay)의 MerchantCode·ApiKey·MD5 Secret Key·샌드박스 여부를 사용합니다.', 'Credentials: deploy settings / tb_pg_agency (MerchantCode, ApiKey, MD5 secret, sandbox).', '認証情報は API 配備設定／tb_pg_agency を使用。', '凭据来自部署配置与 tb_pg_agency。', 'ใช้รหัสจากการตั้งค่า API'),
       packN('순서(내림차순·오름차순)는 [새로고침] 왼쪽 메뉴에서 고르며, 누르는 즉시 다시 조회됩니다(기본 내림차순). TransactionDate 범위는 검색 기간(날짜)을 ChillPay 형식(dd/MM/yyyy HH:mm:ss)으로 변환합니다. 문서: ChillPay-API-Transaction-Services-Document-EN_v1.0.6.', 'Sort order is next to [Refresh]. Default DESC. Date range is converted to ChillPay format per API doc v1.0.6.', '並び順は[再読込]左。期間は ChillPay 形式に変換。', '排序在刷新旁，日期按文档转 ChillPay 格式。', 'เรียงลำดับข้างรีเฟรช'),
       packN('그리드 열 노출은 상단 VIEW SETTING에서 조정합니다(저장 시 사용자별로 유지). 번호·승인번호·업체명·업체코드·거래일·거래시간(JP·TH 두 줄)·루트는 그리드에 항상 표시되며 VIEW SETTING 목록에는 나오지 않습니다. 거래일은 YYYY-MM-DD(예: 2026-05-09) 형식으로 표시됩니다. 본사설정 → 조직항목설정에서 화면「통합내역」 허용 열을 제한할 수 있습니다.', 'Columns via VIEW SETTING (per user). Fixed leading columns are always visible. Transaction date is shown as YYYY-MM-DD (e.g. 2026-05-09). Org column allowance in HQ settings.', '列は VIEW SETTING。固定列は常時表示。取引日は YYYY-MM-DD（例: 2026-05-09）形式。', '列通过 VIEW SETTING 调整，前列固定。交易日期以 YYYY-MM-DD（例：2026-05-09）显示。', 'คอลัมน์ตั้งค่า VIEW วันที่ทำรายการแสดงเป็น YYYY-MM-DD (เช่น 2026-05-09)')
+    ],
+    '/calc/jpayTrList': [
+      packN(
+        'JPAY 가맹 포털(merchant.j-pay.net)에 자동 로그인 → Export 다운로드 → ICOPAY 결제내역 대조·반영합니다. 목록 API가 없어 포털 Export 엑셀을 사용합니다.',
+        'Auto-login to JPAY merchant portal (merchant.j-pay.net), Export download, reconcile with ICOPAY payments. No list API — uses portal Export spreadsheet.',
+        'JPAY加盟店ポータルへ自動ログイン→Export取得→ICOPAY決済と照合。一覧APIがなくExportを使用。',
+        '自动登录 JPAY 商户门户、Export 下载、与 ICOPAY 支付对账。无列表 API，使用门户 Export。',
+        'ล็อกอินพอร์ทัล JPAY อัตโนมัติ ดาวน์โหลด Export กระทบยอดกับ ICOPAY ไม่มี list API ใช้ Export'
+      ),
+      packN(
+        '본사설정 > 결제대행사로직에서 총판별 JPAY 포털 계정을 등록하고, 전산설정관리에서 동기화 기간을 설정하세요. VPS에 Node.js·Playwright(Chromium)가 필요합니다.',
+        'Register per-master-distributor JPAY portal accounts under HQ > Payment acquirer logic; set sync period in Ledger system settings. VPS needs Node.js and Playwright (Chromium).',
+        '本社設定＞決済代行ロジックで総販別JPAYポータルアカウントを登録し、全算設定で同期期間を設定。VPSにNode.js・Playwright(Chromium)が必要。',
+        '在总部设置 > 支付机构逻辑注册各总代 JPAY 门户账户，在账务系统设置同步期间。VPS 需 Node.js·Playwright(Chromium)。',
+        'ลงทะเบียนบัญชีพอร์ทัล JPAY ต่อตัวแทนหลักที่ HQ > ตรรกะผู้ให้บริการชำระ ตั้งช่วงซิงค์ในระบบบัญชี VPS ต้องมี Node.js·Playwright'
+      ),
+      packN(
+        '[JPAY 동기화]는 선택 기간 Export 후 캐시 목록을 갱신합니다. 날짜 없이 검색하면 최근 동기화 범위(일)로 자동 동기화합니다.',
+        '[JPAY sync] refreshes cached list after Export for the selected period. Search without dates uses recent sync days from settings.',
+        '[JPAY同期]は選択期間のExport後キャッシュを更新。日付なし検索は設定の最近同期日数で自動同期。',
+        '[JPAY 同步] 按所选期间 Export 后刷新缓存。无日期搜索则按最近同步天数自动同步。',
+        '[ซิงค์ JPAY] อัปเดตแคชหลัง Export ตามช่วงที่เลือก ค้นหาไม่ใส่วันที่ใช้ช่วงซิงค์ล่าสุด'
+      )
+    ],
+    '/calc/splitPayList': [
+      packN(
+        'URL 분할결제 계약 목록입니다. 가맹 업체등록·업체정보의 「URL 분할결제」에서 기능을 켠 가맹만 계약을 생성할 수 있습니다.',
+        'Split-payment contract list. Only merchants with URL split pay enabled under merchant registration/info can create contracts.',
+        'URL分割決済契約一覧です。加盟店登録・加盟店情報の「URL分割決済」で機能を有効にした加盟店のみ契約を作成できます。',
+        'URL 分次支付合同列表。仅在商户注册/信息中开启「URL 分次支付」的商户可创建合同。',
+        'รายการสัญญาชำระแบ่งงวด URL ร้านที่เปิดใช้ใน「URL ชำระแบ่งงวด」เท่านั้นที่สร้างสัญญาได้'
+      ),
+      packN(
+        '각 회차 결제는 URL 결제 플로우로 진행됩니다. 1회차는 즉시결제(IMMEDIATE) 또는 링크발송(LINK) 모드에 따라 처리되며, 미납 회차는 매일 결제 링크 메일이 발송됩니다.',
+        'Each installment uses the URL payment flow. The first installment is IMMEDIATE or LINK; overdue installments receive a daily payment-link email.',
+        '各回の決済はURL決済フローで進みます。1回目は即時決済(IMMEDIATE)またはリンク送信(LINK)で、未払い回は毎日決済リンクメールが送信されます。',
+        '各期通过 URL 支付流程。首期按 IMMEDIATE 或 LINK 处理；未付期次每日发送支付链接邮件。',
+        'แต่ละงวดใช้ flow ชำระ URL งวดแรกเป็น IMMEDIATE หรือ LINK งวดค้างได้รับอีเมลลิงก์ชำระทุกวัน'
+      ),
+      packN(
+        '수수료는 본사 수수료정책의 분할수수료율·분할고정수수료(건)가 계약 생성 시 스냅샷으로 저장됩니다. API: POST /api/pay/split/contracts · GET /api/pay/split/installment?token=…',
+        'Fees snapshot split fee rate and fixed fee per installment from HQ policy at contract creation. API: POST /api/pay/split/contracts · GET /api/pay/split/installment?token=…',
+        '手数料は本社手数料政策の分割手数料率・分割固定手数料(件)が契約作成時にスナップショット保存されます。API: POST /api/pay/split/contracts · GET /api/pay/split/installment?token=…',
+        '手续费在创建合同时快照保存总部的分次费率与固定费(笔)。API: POST /api/pay/split/contracts · GET /api/pay/split/installment?token=…',
+        'ค่าธรรมเนียม snapshot อัตราและคงที่ต่องวดจากนโยบาย HQ ตอนสร้างสัญญา API: POST /api/pay/split/contracts · GET /api/pay/split/installment?token=…'
+      )
     ],
     '/calc/chillPaySettlementList': [
       packN(
@@ -1103,7 +1163,12 @@
     chillStatus: { EN: 'Integrated status', JP: '統合状態', CH: '综合状态', TH: 'สถานะรวม' },
     notiStatus: { EN: 'NOTI status', JP: 'NOTI状態', CH: 'NOTI 状态', TH: 'สถานะ NOTI' },
     reason: { EN: 'Note', JP: '備考', CH: '备注', TH: 'หมายเหตุ' },
-    successCount: { EN: 'Success count', JP: '成功件数', CH: '成功笔数', TH: 'จำนวนสำเร็จ' }
+    successCount: { EN: 'Success count', JP: '成功件数', CH: '成功笔数', TH: 'จำนวนสำเร็จ' },
+    contractNo: { EN: 'Contract no.', JP: '契約番号', CH: '合同号', TH: 'เลขสัญญา' },
+    installmentCount: { EN: 'Installments', JP: '分割回数', CH: '分次期数', TH: 'จำนวนงวด' },
+    paidCount: { EN: 'Paid count', JP: '支払回数', CH: '已付期数', TH: 'จำนวนที่ชำแล้ว' },
+    contractDate: { EN: 'Contract date', JP: '契約日', CH: '合同日', TH: 'วันสัญญา' },
+    createdAt: { EN: 'Created at', JP: '登録日時', CH: '登记时间', TH: 'วันที่ลงทะเบียน' }
   };
 
   var AGENCY_COL = Object.assign({}, COL, {

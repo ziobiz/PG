@@ -1934,6 +1934,11 @@ public class CompService {
                                 m.put("urlPayAlertEmailYn", mp.getUrlPayAlertEmailYn() != null ? mp.getUrlPayAlertEmailYn() : "N");
                                 m.put("urlPayLineNotifyTokenConfigured",
                                         (mp.getUrlPayLineNotifyToken() != null && !mp.getUrlPayLineNotifyToken().isBlank()) ? "Y" : "N");
+                                m.put("splitPayEnabledYn", mp.getSplitPayEnabledYn() != null ? mp.getSplitPayEnabledYn() : "N");
+                                m.put("splitPayIntervalMonthYn", mp.getSplitPayIntervalMonthYn() != null ? mp.getSplitPayIntervalMonthYn() : "Y");
+                                m.put("splitPayIntervalDayYn", mp.getSplitPayIntervalDayYn() != null ? mp.getSplitPayIntervalDayYn() : "N");
+                                m.put("splitPayDayIntervalDays", mp.getSplitPayDayIntervalDays() != null ? mp.getSplitPayDayIntervalDays() : 10);
+                                m.put("splitPayFirstPayMode", mp.getSplitPayFirstPayMode() != null ? mp.getSplitPayFirstPayMode() : "IMMEDIATE");
                             }
                             return m;
                         }));
@@ -1983,7 +1988,12 @@ public class CompService {
                           String apiWordpressUseYn,
                           String jpayCheckoutFieldMode,
                           String jpayPhoneDialCodeYn,
-                          String tabletFeatureUseYn) {
+                          String tabletFeatureUseYn,
+                          String splitPayEnabledYn,
+                          String splitPayIntervalMonthYn,
+                          String splitPayIntervalDayYn,
+                          String splitPayDayIntervalDays,
+                          String splitPayFirstPayMode) {
         return orgUnitRepository.findByCode(compId != null ? compId : "")
                 .flatMap(ou -> merchantProfileRepository.findByOrgUnitId(ou.getId())
                         .map(mp -> {
@@ -2286,6 +2296,8 @@ public class CompService {
                                 mergeMerchantPayFollowFromRequest(mp, payFollowMerchantUseYn, payFollowAutoVoidYn,
                                         payFollowEmailVoidYn, payFollowAutoRefundYn, payFollowForceRefundYn);
                                 applyMerchantUrlPayAlerts(mp, urlPayAlertEmailYn, urlPayLineNotifyToken);
+                                applyMerchantSplitPay(mp, splitPayEnabledYn, splitPayIntervalMonthYn,
+                                        splitPayIntervalDayYn, splitPayDayIntervalDays, splitPayFirstPayMode);
                             }
                             merchantProfileRepository.save(mp);
                             if (assistantLoginId != null && !assistantLoginId.trim().isEmpty()) {
@@ -2491,7 +2503,6 @@ public class CompService {
     private static final String URL_PAY_LINE_TOKEN_CLEAR = "__CLEAR__";
     private static final int URL_PAY_LINE_TOKEN_MAX_LEN = 256;
 
-    /** 가맹점만. 토큰 비움·미전달은 유지, {@code __CLEAR__} 이면 삭제. */
     private void applyMerchantUrlPayAlerts(MerchantProfile mp, String urlPayAlertEmailYn, String urlPayLineNotifyToken) {
         if (mp == null) {
             return;
@@ -2516,6 +2527,35 @@ public class CompService {
         mp.setUrlPayLineNotifyToken(raw);
     }
 
+    private void applyMerchantSplitPay(MerchantProfile mp,
+                                       String splitPayEnabledYn,
+                                       String splitPayIntervalMonthYn,
+                                       String splitPayIntervalDayYn,
+                                       String splitPayDayIntervalDays,
+                                       String splitPayFirstPayMode) {
+        if (mp == null) {
+            return;
+        }
+        if (splitPayEnabledYn != null && !splitPayEnabledYn.isBlank()) {
+            mp.setSplitPayEnabledYn(splitPayEnabledYn);
+        }
+        if (splitPayIntervalMonthYn != null && !splitPayIntervalMonthYn.isBlank()) {
+            mp.setSplitPayIntervalMonthYn(splitPayIntervalMonthYn);
+        }
+        if (splitPayIntervalDayYn != null && !splitPayIntervalDayYn.isBlank()) {
+            mp.setSplitPayIntervalDayYn(splitPayIntervalDayYn);
+        }
+        if (splitPayDayIntervalDays != null && !splitPayDayIntervalDays.isBlank()) {
+            try {
+                mp.setSplitPayDayIntervalDays(Integer.parseInt(splitPayDayIntervalDays.trim()));
+            } catch (NumberFormatException ignored) {
+            }
+        }
+        if (splitPayFirstPayMode != null && !splitPayFirstPayMode.isBlank()) {
+            mp.setSplitPayFirstPayMode(splitPayFirstPayMode);
+        }
+    }
+
     /** 가맹점 URL 결제창 표시 옵션 — 상품명·회사명·다국어 메뉴 */
     private void applyMerchantUrlPayPresentationOptions(MerchantProfile mp,
                                                       String productNameUseYn,
@@ -2535,7 +2575,7 @@ public class CompService {
         }
     }
 
-    /** 가맹점 URL 결제창 입력방식 — GENERAL | TYPE_A | TYPE_AG | TYPE_AF | TYPE_AE | TYPE_B | TYPE_BG | TYPE_BF | TYPE_BE | TYPE_C */
+    /** 가맹점 URL 결제창 입력방식 — GENERAL | TYPE_AA | TYPE_BA | TYPE_AN | … | TYPE_CN (구 TYPE_A/B/C 는 normalize 시 AN/BN/CN) */
     private void applyMerchantUrlPayInputMode(MerchantProfile mp, String urlPayInputMode) {
         if (mp == null || urlPayInputMode == null || urlPayInputMode.isBlank()) {
             return;

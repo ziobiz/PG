@@ -821,6 +821,36 @@
     chillPayTrSearch: function (params) {
       return get('/api/calc/chillPayTrSearch', params).then(function (r) { return r.data; });
     },
+    jpayTrSearch: function (params) {
+      return get('/api/calc/jpayTrSearch', params).then(function (r) { return r.data; });
+    },
+    splitPayMerchantConfig: function (compId) {
+      return get('/api/pay/split/merchant-config', { compId: compId || '' }).then(function (r) { return r.data; });
+    },
+    splitPayPreview: function (body) {
+      return post('/api/pay/split/preview', body || {}).then(function (r) { return r.data; });
+    },
+    splitPayCreateContract: function (body) {
+      return post('/api/pay/split/contracts', body || {}).then(function (r) { return r.data; });
+    },
+    splitPayInstallmentContext: function (token) {
+      return get('/api/pay/split/installment', { token: token || '' }).then(function (r) { return r.data; });
+    },
+    splitPayListSearch: function (params) {
+      return get('/api/calc/splitPayList', params).then(function (r) { return r.data; });
+    },
+    jpayTrSync: function (params) {
+      var q = params || {};
+      var parts = [];
+      Object.keys(q).forEach(function (k) {
+        if (q[k] != null && String(q[k]).trim() !== '') parts.push(encodeURIComponent(k) + '=' + encodeURIComponent(String(q[k])));
+      });
+      var path = '/api/calc/jpayTrSync' + (parts.length ? '?' + parts.join('&') : '');
+      return post(path, {}).then(function (r) { return r.data; });
+    },
+    jpayTradeQuery: function (body) {
+      return post('/api/calc/jpayTradeQuery', body || {}).then(function (r) { return r.data; });
+    },
     dailyChillIntegratedSummary: function (params) {
       return get('/api/calc/dailyChillIntegratedSummary', params).then(function (r) { return r.data; });
     },
@@ -1494,6 +1524,15 @@
     },
     hqApiConfigSave: function (body) {
       return post('/api/hq/apiConfig/save', body).then(function (r) { return r.data; });
+    },
+    hqJpayPortalAccounts: function () {
+      return get('/api/hq/jpayPortalAccount').then(function (r) { return r.data; });
+    },
+    hqJpayPortalAccountSave: function (body) {
+      return post('/api/hq/jpayPortalAccount', body || {}).then(function (r) { return r.data; });
+    },
+    hqJpayPortalAccountDelete: function (body) {
+      return post('/api/hq/jpayPortalAccount/delete', body || {}).then(function (r) { return r.data; });
     },
     hqJpaySubscriptions: function (compId) {
       var q = compId ? ('?compId=' + encodeURIComponent(compId)) : '';

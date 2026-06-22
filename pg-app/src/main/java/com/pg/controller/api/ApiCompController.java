@@ -524,7 +524,12 @@ public class ApiCompController {
             @RequestParam(required = false) String apiWordpressUseYn,
             @RequestParam(required = false) String jpayCheckoutFieldMode,
             @RequestParam(required = false) String jpayPhoneDialCodeYn,
-            @RequestParam(required = false) String tabletFeatureUseYn) {
+            @RequestParam(required = false) String tabletFeatureUseYn,
+            @RequestParam(required = false) String splitPayEnabledYn,
+            @RequestParam(required = false) String splitPayIntervalMonthYn,
+            @RequestParam(required = false) String splitPayIntervalDayYn,
+            @RequestParam(required = false) String splitPayDayIntervalDays,
+            @RequestParam(required = false) String splitPayFirstPayMode) {
         var targetOpt = compService.getDetail(compId);
         if (targetOpt.isEmpty()) {
             return ResponseEntity.ok(ApiResponse.fail("업체를 찾을 수 없습니다.", "NOT_FOUND"));
@@ -576,7 +581,12 @@ public class ApiCompController {
                     apiWordpressUseYn,
                     jpayCheckoutFieldMode,
                     jpayPhoneDialCodeYn,
-                    tabletFeatureUseYn);
+                    tabletFeatureUseYn,
+                    splitPayEnabledYn,
+                    splitPayIntervalMonthYn,
+                    splitPayIntervalDayYn,
+                    splitPayDayIntervalDays,
+                    splitPayFirstPayMode);
             return ResponseEntity.ok(ok ? ApiResponse.ok(Map.of("success", true, "message", "저장되었습니다."))
                     : ApiResponse.fail("업체를 찾을 수 없습니다.", "NOT_FOUND"));
         } catch (IllegalArgumentException e) {

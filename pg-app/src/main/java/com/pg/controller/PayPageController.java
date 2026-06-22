@@ -65,20 +65,34 @@ public class PayPageController {
         }
     }
 
+    @GetMapping(value = "/split-pay.html", produces = MediaType.TEXT_HTML_VALUE)
+    public ResponseEntity<String> splitPayHtml() {
+        return serveStaticHtml("static/split-pay.html", "split-pay.html");
+    }
+
+    @GetMapping(value = "/split-pay-setup.html", produces = MediaType.TEXT_HTML_VALUE)
+    public ResponseEntity<String> splitPaySetupHtml() {
+        return serveStaticHtml("static/split-pay-setup.html", "split-pay-setup.html");
+    }
+
     @GetMapping(value = "/jpay-subscribe.html", produces = MediaType.TEXT_HTML_VALUE)
     public ResponseEntity<String> jpaySubscribeHtml() {
+        return serveStaticHtml("static/jpay-subscribe.html", "jpay-subscribe.html");
+    }
+
+    private ResponseEntity<String> serveStaticHtml(String classpath, String logName) {
         try {
-            Resource resource = new ClassPathResource("static/jpay-subscribe.html");
+            Resource resource = new ClassPathResource(classpath);
             String html = new String(resource.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
             return ResponseEntity.ok()
                     .contentType(MediaType.parseMediaType("text/html;charset=UTF-8"))
                     .cacheControl(CacheControl.noStore())
                     .body(html);
         } catch (IOException e) {
-            log.error("jpay-subscribe.html 로드 실패", e);
+            log.error("{} 로드 실패", logName, e);
             return ResponseEntity.internalServerError()
                     .contentType(MediaType.TEXT_PLAIN)
-                    .body("JPAY subscription page unavailable.");
+                    .body("Page unavailable.");
         }
     }
 }

@@ -891,6 +891,8 @@ public class ApiHqController {
             data.put("fee3dsRate", p.getFee3dsRate() != null ? PercentDecimalHelper.toPlainAmountOneDecimal(p.getFee3dsRate()) : "0.0");
             data.put("chargebackFeePerTx", p.getChargebackFeePerTx() != null ? PercentDecimalHelper.toPlainAmountOneDecimal(p.getChargebackFeePerTx()) : "0.0");
             data.put("chargebackPolicyId", p.getChargebackPolicyId() != null ? p.getChargebackPolicyId() : "");
+            data.put("splitPayFeePct", p.getSplitPayFeePct() != null ? PercentDecimalHelper.toPlainOneDecimal(p.getSplitPayFeePct()) : "0");
+            data.put("splitPayFixedFeePerInst", p.getSplitPayFixedFeePerInst() != null ? PercentDecimalHelper.toPlainAmountOneDecimal(p.getSplitPayFixedFeePerInst()) : "0.0");
             data.put("voidSettlementMode", policySettlementModeForApi(p.getVoidSettlementMode()));
             data.put("manualVoidSettlementMode", policySettlementModeForApi(p.getManualVoidSettlementMode()));
             data.put("refundSettlementMode", policySettlementModeForApi(p.getRefundSettlementMode()));
@@ -910,6 +912,8 @@ public class ApiHqController {
             data.put("fee3dsRate", "0.0");
             data.put("chargebackFeePerTx", "0.0");
             data.put("chargebackPolicyId", "");
+            data.put("splitPayFeePct", "0");
+            data.put("splitPayFixedFeePerInst", "0.0");
             data.put("voidSettlementMode", VoidRefundSettlementModeUtil.GENERAL);
             data.put("manualVoidSettlementMode", VoidRefundSettlementModeUtil.GENERAL);
             data.put("refundSettlementMode", VoidRefundSettlementModeUtil.GENERAL);
@@ -1000,6 +1004,8 @@ public class ApiHqController {
             p.setFeeFx(PercentDecimalHelper.parsePercentOneDecimal(body.get("feeFx")));
             p.setFee3dsRate(PercentDecimalHelper.parsePercentOneDecimal(body.get("fee3dsRate")));
             p.setChargebackFeePerTx(PercentDecimalHelper.parseAmountOneDecimal(body.get("chargebackFeePerTx")));
+            p.setSplitPayFeePct(PercentDecimalHelper.parsePercentOneDecimal(body.get("splitPayFeePct")));
+            p.setSplitPayFixedFeePerInst(PercentDecimalHelper.parseAmountOneDecimal(body.get("splitPayFixedFeePerInst")));
             applyExtraFeesFromBody(p, body);
             p.setTierCommissionJson(CommissionTierJsonHelper.buildTierJsonFromPolicyScalars(p));
         }
@@ -1122,6 +1128,8 @@ public class ApiHqController {
         m.put("policyRemark", p.getPolicyRemark() != null ? p.getPolicyRemark() : "");
         m.put("fee3dsRate", p.getFee3dsRate() != null ? PercentDecimalHelper.toPlainAmountOneDecimal(p.getFee3dsRate()) : "0.0");
         m.put("chargebackFeePerTx", p.getChargebackFeePerTx() != null ? PercentDecimalHelper.toPlainAmountOneDecimal(p.getChargebackFeePerTx()) : "0.0");
+        m.put("splitPayFeePct", p.getSplitPayFeePct() != null ? PercentDecimalHelper.toPlainOneDecimal(p.getSplitPayFeePct()) : "0");
+        m.put("splitPayFixedFeePerInst", p.getSplitPayFixedFeePerInst() != null ? PercentDecimalHelper.toPlainAmountOneDecimal(p.getSplitPayFixedFeePerInst()) : "0.0");
         m.put("chargebackPolicyId", p.getChargebackPolicyId() != null ? p.getChargebackPolicyId() : "");
         m.put("voidSettlementMode", policySettlementModeForApi(p.getVoidSettlementMode()));
         m.put("manualVoidSettlementMode", policySettlementModeForApi(p.getManualVoidSettlementMode()));

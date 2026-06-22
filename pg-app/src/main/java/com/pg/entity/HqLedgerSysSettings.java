@@ -99,6 +99,18 @@ public class HqLedgerSysSettings {
     @Column(name = "chillpay_tr_recent_sync_days", nullable = false)
     private Integer chillpayTrRecentSyncDays = 2;
 
+    @Column(name = "jpay_portal_username", length = 255)
+    private String jpayPortalUsername;
+
+    @Column(name = "jpay_portal_password", length = 512)
+    private String jpayPortalPassword;
+
+    @Column(name = "jpay_tr_init_sync_months", nullable = false)
+    private Integer jpayTrInitSyncMonths = 3;
+
+    @Column(name = "jpay_tr_recent_sync_days", nullable = false)
+    private Integer jpayTrRecentSyncDays = 2;
+
     @Column(name = "app_log_memory_retention_days", nullable = false)
     private Integer appLogMemoryRetentionDays = 30;
 
@@ -237,6 +249,14 @@ public class HqLedgerSysSettings {
     public void setChillpayTrInitSyncMonths(Integer chillpayTrInitSyncMonths) { this.chillpayTrInitSyncMonths = chillpayTrInitSyncMonths; }
     public Integer getChillpayTrRecentSyncDays() { return chillpayTrRecentSyncDays; }
     public void setChillpayTrRecentSyncDays(Integer chillpayTrRecentSyncDays) { this.chillpayTrRecentSyncDays = chillpayTrRecentSyncDays; }
+    public String getJpayPortalUsername() { return jpayPortalUsername; }
+    public void setJpayPortalUsername(String jpayPortalUsername) { this.jpayPortalUsername = jpayPortalUsername; }
+    public String getJpayPortalPassword() { return jpayPortalPassword; }
+    public void setJpayPortalPassword(String jpayPortalPassword) { this.jpayPortalPassword = jpayPortalPassword; }
+    public Integer getJpayTrInitSyncMonths() { return jpayTrInitSyncMonths; }
+    public void setJpayTrInitSyncMonths(Integer jpayTrInitSyncMonths) { this.jpayTrInitSyncMonths = jpayTrInitSyncMonths; }
+    public Integer getJpayTrRecentSyncDays() { return jpayTrRecentSyncDays; }
+    public void setJpayTrRecentSyncDays(Integer jpayTrRecentSyncDays) { this.jpayTrRecentSyncDays = jpayTrRecentSyncDays; }
     public Integer getAppLogMemoryRetentionDays() { return appLogMemoryRetentionDays; }
     public void setAppLogMemoryRetentionDays(Integer appLogMemoryRetentionDays) { this.appLogMemoryRetentionDays = appLogMemoryRetentionDays; }
     public Integer getAppLogFileRetentionDays() { return appLogFileRetentionDays; }

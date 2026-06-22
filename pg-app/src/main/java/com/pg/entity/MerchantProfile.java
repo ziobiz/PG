@@ -367,6 +367,26 @@ public class MerchantProfile {
     @Column(name = "url_pay_line_notify_token", length = 256)
     private String urlPayLineNotifyToken;
 
+    /** URL 분할결제 사용 Y/N */
+    @Column(name = "split_pay_enabled_yn", length = 1, nullable = false)
+    private String splitPayEnabledYn = "N";
+
+    /** 분할결제 — 월 단위 간격 허용 */
+    @Column(name = "split_pay_interval_month_yn", length = 1, nullable = false)
+    private String splitPayIntervalMonthYn = "Y";
+
+    /** 분할결제 — 일 단위 간격 허용 */
+    @Column(name = "split_pay_interval_day_yn", length = 1, nullable = false)
+    private String splitPayIntervalDayYn = "N";
+
+    /** 일 단위 간격 기본 일수 (예: 10일 간격) */
+    @Column(name = "split_pay_day_interval_days", nullable = false)
+    private Integer splitPayDayIntervalDays = 10;
+
+    /** 1회차: IMMEDIATE=즉시결제, LINK=링크만 */
+    @Column(name = "split_pay_first_pay_mode", length = 16, nullable = false)
+    private String splitPayFirstPayMode = "IMMEDIATE";
+
     /** 기준 화폐. 본사: 최대 3종 comma구분 (KRW,USD,JPY). 총판: 1종만 */
     @Column(name = "base_currency", length = 30)
     private String baseCurrency;
@@ -708,6 +728,18 @@ public class MerchantProfile {
     public void setUrlPayAlertEmailYn(String urlPayAlertEmailYn) { this.urlPayAlertEmailYn = urlPayAlertEmailYn; }
     public String getUrlPayLineNotifyToken() { return urlPayLineNotifyToken; }
     public void setUrlPayLineNotifyToken(String urlPayLineNotifyToken) { this.urlPayLineNotifyToken = urlPayLineNotifyToken; }
+    public String getSplitPayEnabledYn() { return splitPayEnabledYn; }
+    public void setSplitPayEnabledYn(String splitPayEnabledYn) { this.splitPayEnabledYn = splitPayEnabledYn != null && "Y".equalsIgnoreCase(splitPayEnabledYn.trim()) ? "Y" : "N"; }
+    public String getSplitPayIntervalMonthYn() { return splitPayIntervalMonthYn; }
+    public void setSplitPayIntervalMonthYn(String splitPayIntervalMonthYn) { this.splitPayIntervalMonthYn = splitPayIntervalMonthYn != null && "Y".equalsIgnoreCase(splitPayIntervalMonthYn.trim()) ? "Y" : "N"; }
+    public String getSplitPayIntervalDayYn() { return splitPayIntervalDayYn; }
+    public void setSplitPayIntervalDayYn(String splitPayIntervalDayYn) { this.splitPayIntervalDayYn = splitPayIntervalDayYn != null && "Y".equalsIgnoreCase(splitPayIntervalDayYn.trim()) ? "Y" : "N"; }
+    public Integer getSplitPayDayIntervalDays() { return splitPayDayIntervalDays; }
+    public void setSplitPayDayIntervalDays(Integer splitPayDayIntervalDays) { this.splitPayDayIntervalDays = splitPayDayIntervalDays != null && splitPayDayIntervalDays > 0 ? splitPayDayIntervalDays : 10; }
+    public String getSplitPayFirstPayMode() { return splitPayFirstPayMode; }
+    public void setSplitPayFirstPayMode(String splitPayFirstPayMode) {
+        this.splitPayFirstPayMode = splitPayFirstPayMode != null && "LINK".equalsIgnoreCase(splitPayFirstPayMode.trim()) ? "LINK" : "IMMEDIATE";
+    }
     public String getBaseCurrency() { return baseCurrency; }
     public void setBaseCurrency(String baseCurrency) { this.baseCurrency = baseCurrency; }
     public Integer getTerminalCountTerminal() { return terminalCountTerminal; }

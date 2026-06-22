@@ -41,6 +41,20 @@ public final class BusinessDayCalendar {
      * {@code end}에서 역으로 가며 영업일만 세어, 정확히 {@code businessDaysBack}번째 "이전 영업일" 날짜.
      * {@code businessDaysBack <= 0}이면 {@code end} 그대로.
      */
+    /** 비영업일이면 다음 영업일까지 전진 */
+    public static LocalDate adjustToNextBusinessDay(LocalDate d, Set<LocalDate> holidays) {
+        if (d == null) {
+            return null;
+        }
+        LocalDate cur = d;
+        int guard = 0;
+        while (!isBusinessDay(cur, holidays) && guard < 366) {
+            cur = cur.plusDays(1);
+            guard++;
+        }
+        return cur;
+    }
+
     public static LocalDate subtractBusinessDays(LocalDate end, int businessDaysBack, Set<LocalDate> holidays) {
         if (businessDaysBack <= 0) {
             return end;

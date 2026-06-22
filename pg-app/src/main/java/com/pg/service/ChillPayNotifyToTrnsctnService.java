@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.pg.integration.pg.PgVendor;
+import com.pg.splitpay.SplitPayPaymentHookService;
 import com.pg.integration.pg.notify.NotifyIdempotencyLock;
 import com.pg.integration.pg.notify.PgNotifyInboundTxnHandler;
 import com.pg.entity.MerchantPgBinding;
@@ -75,6 +76,7 @@ public class ChillPayNotifyToTrnsctnService implements PgNotifyInboundTxnHandler
     private final HqLedgerSysSettingsService hqLedgerSysSettingsService;
     private final MerchantChatbotOrderService merchantChatbotOrderService;
     private final NotifyIdempotencyLock notifyIdempotencyLock;
+    private final SplitPayPaymentHookService splitPayPaymentHookService;
 
     public ChillPayNotifyToTrnsctnService(PgTrnsctnRepository pgTrnsctnRepository,
                                          MerchantPgBindingRepository merchantPgBindingRepository,
@@ -85,7 +87,8 @@ public class ChillPayNotifyToTrnsctnService implements PgNotifyInboundTxnHandler
                                          SettlementArrearsService settlementArrearsService,
                                          HqLedgerSysSettingsService hqLedgerSysSettingsService,
                                          MerchantChatbotOrderService merchantChatbotOrderService,
-                                         NotifyIdempotencyLock notifyIdempotencyLock) {
+                                         NotifyIdempotencyLock notifyIdempotencyLock,
+                                         SplitPayPaymentHookService splitPayPaymentHookService) {
         this.pgTrnsctnRepository = pgTrnsctnRepository;
         this.merchantPgBindingRepository = merchantPgBindingRepository;
         this.orgUnitRepository = orgUnitRepository;
@@ -96,6 +99,7 @@ public class ChillPayNotifyToTrnsctnService implements PgNotifyInboundTxnHandler
         this.hqLedgerSysSettingsService = hqLedgerSysSettingsService;
         this.merchantChatbotOrderService = merchantChatbotOrderService;
         this.notifyIdempotencyLock = notifyIdempotencyLock;
+        this.splitPayPaymentHookService = splitPayPaymentHookService;
     }
 
     @Override
@@ -189,6 +193,7 @@ public class ChillPayNotifyToTrnsctnService implements PgNotifyInboundTxnHandler
                 } catch (Exception ex) {
                     log.warn("챗봇 주문 확정 연동 실패(노티 적재는 유지) trnId={}: {}", t.getTrnId(), ex.getMessage());
                 }
+                invokeSplitPayHook(t);
                 merchantOutboundNotifyService.scheduleAfterTxnCommit(t, in, notifyCh);
                 return true;
             }
@@ -373,8 +378,20 @@ public class ChillPayNotifyToTrnsctnService implements PgNotifyInboundTxnHandler
         } catch (Exception ex) {
             log.warn("챗봇 주문 확정 연동 실패(노티 적재는 유지) trnId={}: {}", t.getTrnId(), ex.getMessage());
         }
+        invokeSplitPayHook(t);
         merchantOutboundNotifyService.scheduleAfterTxnCommit(t, in, notifyCh);
         return true;
+    }
+
+    private void invokeSplitPayHook(PgTrnsctn t) {
+        if (t == null || t.getOrderNo() == null) {
+            return;
+        }
+        try {
+            splitPayPaymentHookService.onTxnStatusChange(t.getOrderNo(), t.getStatus(), t.getTrnId());
+        } catch (Exception ex) {
+            log.warn("분할결제 연동 실패 orderNo={}: {}", t.getOrderNo(), ex.getMessage());
+        }
     }
 
     /** JPAY 비동기 노티({@code memberid}+{@code orderid}+{@code returncode}) — ChillPay 핸들러가 가로채지 않도록 */
@@ -404,7 +421,8 @@ public class ChillPayNotifyToTrnsctnService implements PgNotifyInboundTxnHandler
         }
         String lower = t.toLowerCase(Locale.ROOT);
         return lower.contains("memberid=") && lower.contains("orderid=")
-                && (lower.contains("returncode=") || lower.contains("transaction_id="));
+                && (lower.contains("returncode=") || lower.contains("transaction_id="))
+                && !lower.contains("alert_type=");
     }
 
     /**

@@ -29,7 +29,7 @@ public final class PageMenuCatalog {
         add(list, "/hq/merchantApiGenerate", "M0905", "가맹점 API 생성", "배포설정");
         add(list, "/hq/merchantApiDeployDocs", "M0907", "API배포문서", "배포설정");
         add(list, "/hq/apiConfig", "M0103", "API배포설정", "배포설정");
-        add(list, "/hq/paymentOrchestration", "M0118", "결제로직설정", "본사설정");
+        add(list, "/hq/paymentOrchestration", "M0118", "결제대행사로직", "본사설정");
         add(list, "/hq/urlPayDeploy", "M0122", "URL결제설정", "본사설정");
         add(list, "/hq/notifyEnv", "M0105", "노티구성설정", "본사설정");
         add(list, "/hq/notifyMapping", "M0107", "노티매핑설정", "본사설정");
@@ -48,6 +48,8 @@ public final class PageMenuCatalog {
         add(list, "/commission/commisionList", "M0210", "수수료관리", "업체관리");
         add(list, "/comp/compInfoHistList", "M0214", "업체변경이력", "업체관리");
         add(list, "/calc/chillPayTrList", "M0319", "통합내역", "결제관리");
+        add(list, "/calc/jpayTrList", "M0328", "JPAY통합내역", "결제관리");
+        add(list, "/calc/splitPayList", "M0329", "분할결제내역", "결제관리");
         add(list, "/calc/dailyIntegrated", "M0326", "일별통합", "결제관리");
         add(list, "/calc/payList", "M0301", "결제내역", "결제관리");
         add(list, "/calc/dailyPay", "M0327", "일별결제", "결제관리");

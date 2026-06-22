@@ -6315,6 +6315,30 @@
       CH: '拒付手续费',
       TH: 'ค่าธรรมเนียมชาร์จแบ็ก'
     },
+    '분할수수료율': {
+      EN: 'Split fee rate',
+      JP: '分割手数料率',
+      CH: '分次手续费率',
+      TH: 'อัตราค่าธรรมเนียมแบ่งงวด'
+    },
+    '분할고정수수료': {
+      EN: 'Split fixed fee',
+      JP: '分割固定手数料',
+      CH: '分次固定手续费',
+      TH: 'ค่าธรรมเนียมคงที่แบ่งงวด'
+    },
+    '분할건': {
+      EN: 'Split/inst',
+      JP: '分割件',
+      CH: '分次件',
+      TH: 'แบ่ง/ครั้ง'
+    },
+    '분할': {
+      EN: 'Split',
+      JP: '分割',
+      CH: '分次',
+      TH: 'แบ่ง'
+    },
     '내용': {
       EN: 'Item',
       JP: '内容',
@@ -8523,6 +8547,54 @@
       CH: '支付编排',
       TH: 'การเรียงลำดับการชำระเงิน'
     },
+    '결제대행사로직': {
+      EN: 'Payment acquirer logic',
+      JP: '決済代行ロジック',
+      CH: '支付机构逻辑',
+      TH: 'ตรรกะผู้ให้บริการชำระ'
+    },
+    'JPAY 포털 통합내역 (총판별 계정)': {
+      EN: 'JPAY portal integrated list (per master distributor account)',
+      JP: 'JPAYポータル統合履歴（総販別アカウント）',
+      CH: 'JPAY 门户整合明细（按总代账户）',
+      TH: 'รายการรวมพอร์ทัล JPAY (บัญชีต่อตัวแทนหลัก)'
+    },
+    'JPAY는 목록 API가 없습니다. 총판(MASTER_DIST)마다 merchant.j-pay.net 포털 ID 1개를 등록하면, 동기화 시 계정을 순회해 Export 엑셀을 병합·대조합니다. (예: JPY 총판·USD 총판 각각 별도 계정) 비밀번호는 저장 시에만 갱신됩니다.': {
+      EN: 'JPAY has no list API. Register one merchant.j-pay.net portal ID per MASTER_DIST; sync loops accounts and merges Export spreadsheets. (e.g. separate accounts for JPY and USD master distributors.) Password updates only on save.',
+      JP: 'JPAYに一覧APIはありません。総販(MASTER_DIST)ごとに merchant.j-pay.net のポータルIDを1件登録し、同期時にアカウントを順にExport・照合します。（例：JPY総販・USD総販は別アカウント）パスワードは保存時のみ更新。',
+      CH: 'JPAY 无列表 API。每个总代(MASTER_DIST)注册一个 merchant.j-pay.net 门户 ID；同步时遍历账户合并 Export 并对账。（例：JPY/USD 总代各一账户）密码仅在保存时更新。',
+      TH: 'JPAY ไม่มี list API ลงทะเบียน portal ID ของ merchant.j-pay.net ต่อ MASTER_DIST หนึ่งรายการ ซิงค์วนบัญชีและรวม Export (เช่น JPY/USD แยกบัญชี) รหัสผ่านอัปเดตเมื่อบันทึกเท่านั้น'
+    },
+    'JPAY 통합내역(동기화 기간)': {
+      EN: 'JPAY integrated list (sync period)',
+      JP: 'JPAY統合履歴（同期期間）',
+      CH: 'JPAY 整合明细（同步期间）',
+      TH: 'รายการรวม JPAY (ช่วงซิงค์)'
+    },
+    'JPAY 포털 로그인 계정은 <strong>본사설정 &gt; 결제대행사로직</strong>에서 총판(MASTER_DIST)별로 등록합니다. 아래는 동기화 기간만 설정합니다. 서버(VPS)에 <code>Node.js</code>·Playwright Chromium이 필요합니다.': {
+      EN: 'Register JPAY portal login accounts per MASTER_DIST under <strong>HQ settings &gt; Payment acquirer logic</strong>. Below sets sync period only. Server (VPS) needs <code>Node.js</code> and Playwright Chromium.',
+      JP: 'JPAYポータルログインは<strong>本社設定 &gt; 決済代行ロジック</strong>で総販(MASTER_DIST)別に登録します。以下は同期期間のみ。サーバー(VPS)に <code>Node.js</code>・Playwright Chromium が必要です。',
+      CH: 'JPAY 门户登录账户在<strong>总部设置 &gt; 支付机构逻辑</strong>按总代(MASTER_DIST)注册。下方仅设同步期间。服务器(VPS)需 <code>Node.js</code> 与 Playwright Chromium。',
+      TH: 'บัญชีล็อกอินพอร์ทัล JPAY ลงทะเบียนต่อ MASTER_DIST ที่ <strong>ตั้งค่า HQ &gt; ตรรกะผู้ให้บริการชำระ</strong> ด้านล่างตั้งช่วงซิงค์เท่านั้น เซิร์ฟเวอร์(VPS)ต้องมี <code>Node.js</code> และ Playwright Chromium'
+    },
+    '포털 ID': { EN: 'Portal ID', JP: 'ポータルID', CH: '门户 ID', TH: 'Portal ID' },
+    '포털 비밀번호': { EN: 'Portal password', JP: 'ポータルパスワード', CH: '门户密码', TH: 'รหัสผ่านพอร์ทัล' },
+    '계정 저장': { EN: 'Save account', JP: 'アカウント保存', CH: '保存账户', TH: 'บันทึกบัญชี' },
+    '입력 초기화': { EN: 'Clear form', JP: '入力クリア', CH: '清空输入', TH: 'ล้างฟอร์ม' },
+    '총판코드': { EN: 'Master dist. code', JP: '総販コード', CH: '总代代码', TH: 'รหัสตัวแทนหลัก' },
+    '예: JPY 총판': { EN: 'e.g. JPY master dist.', JP: '例: JPY総販', CH: '例：JPY 总代', TH: 'เช่น ตัวแทนหลัก JPY' },
+    '신규·변경 시 입력': { EN: 'Enter on new or change', JP: '新規・変更時のみ入力', CH: '新建或变更时输入', TH: 'กรอกเมื่อสร้างหรือเปลี่ยน' },
+    '등록된 계정이 없습니다.': { EN: 'No accounts registered.', JP: '登録されたアカウントがありません。', CH: '没有已注册账户。', TH: 'ไม่มีบัญชีที่ลงทะเบียน' },
+    '이 JPAY 포털 계정을 삭제할까요?': { EN: 'Delete this JPAY portal account?', JP: 'このJPAYポータルアカウントを削除しますか？', CH: '删除此 JPAY 门户账户？', TH: 'ลบบัญชีพอร์ทัล JPAY นี้หรือไม่' },
+    '포털표시': { EN: 'Portal label', JP: 'ポータル表示', CH: '门户显示名', TH: 'ชื่อแสดงพอร์ทัล' },
+    'JPAY상태': { EN: 'JPAY status', JP: 'JPAY状態', CH: 'JPAY 状态', TH: 'สถานะ JPAY' },
+    'URL출처': { EN: 'URL source', JP: 'URL出所', CH: 'URL 来源', TH: 'แหล่ง URL' },
+    '동기화 후 조회됩니다. [JPAY 동기화]를 실행하세요.': {
+      EN: 'Sync first, then search. Run [JPAY sync].',
+      JP: '同期後に照会できます。[JPAY同期]を実行してください。',
+      CH: '请先同步后查询。执行 [JPAY 同步]。',
+      TH: 'ซิงค์ก่อนจึงค้นหาได้ กด [ซิงค์ JPAY]'
+    },
     '결제대행 연동 핵심 정책입니다. 통합유형(API_BROKER/URL_PAY)별 결제 실행방식(INLINE/REDIRECT) 기본값과 URL결제 경로를 설정합니다.': {
       EN: 'Core policy for payment-acquirer integration. Set the default payment flow (INLINE/REDIRECT) per integration type (API_BROKER/URL_PAY) and the URL payment path.',
       JP: '決済代行連携の中核ポリシーです。統合タイプ（API_BROKER／URL_PAY）ごとに決済実行方式（INLINE／REDIRECT）の既定値とURL決済パスを設定します。',
@@ -8607,59 +8679,149 @@
       CH: '普通',
       TH: 'ทั่วไป'
     },
-    'A타입': {
-      EN: 'Type A',
-      JP: 'Aタイプ',
-      CH: 'A 类型',
-      TH: 'ประเภท A'
+    'AA 타입': {
+      EN: 'Type AA',
+      JP: 'AA タイプ',
+      CH: 'AA 类型',
+      TH: 'ประเภท AA'
     },
-    'AG타입': {
+    'AN 타입': {
+      EN: 'Type AN',
+      JP: 'AN タイプ',
+      CH: 'AN 类型',
+      TH: 'ประเภท AN'
+    },
+    'AG 타입': {
       EN: 'Type AG',
-      JP: 'AGタイプ',
+      JP: 'AG タイプ',
       CH: 'AG 类型',
       TH: 'ประเภท AG'
     },
-    'AF타입': {
+    'AF 타입': {
       EN: 'Type AF',
-      JP: 'AFタイプ',
+      JP: 'AF タイプ',
       CH: 'AF 类型',
       TH: 'ประเภท AF'
     },
-    'AE타입': {
+    'AE 타입': {
       EN: 'Type AE',
-      JP: 'AEタイプ',
+      JP: 'AE タイプ',
       CH: 'AE 类型',
       TH: 'ประเภท AE'
     },
-    'B타입': {
-      EN: 'Type B',
-      JP: 'Bタイプ',
-      CH: 'B 类型',
-      TH: 'ประเภท B'
+    'BN 타입': {
+      EN: 'Type BN',
+      JP: 'BN タイプ',
+      CH: 'BN 类型',
+      TH: 'ประเภท BN'
     },
-    'BG타입': {
+    'BG 타입': {
       EN: 'Type BG',
-      JP: 'BGタイプ',
+      JP: 'BG タイプ',
       CH: 'BG 类型',
       TH: 'ประเภท BG'
     },
-    'BF타입': {
+    'BF 타입': {
       EN: 'Type BF',
-      JP: 'BFタイプ',
+      JP: 'BF タイプ',
       CH: 'BF 类型',
       TH: 'ประเภท BF'
     },
-    'BE타입': {
+    'BE 타입': {
       EN: 'Type BE',
-      JP: 'BEタイプ',
+      JP: 'BE タイプ',
       CH: 'BE 类型',
       TH: 'ประเภท BE'
     },
-    'C타입': {
-      EN: 'Type C',
-      JP: 'Cタイプ',
-      CH: 'C 类型',
-      TH: 'ประเภท C'
+    'BA 타입': {
+      EN: 'Type BA',
+      JP: 'BA タイプ',
+      CH: 'BA 类型',
+      TH: 'ประเภท BA'
+    },
+    'CN 타입': {
+      EN: 'Type CN',
+      JP: 'CN タイプ',
+      CH: 'CN 类型',
+      TH: 'ประเภท CN'
+    },
+    '입력방식 일반 설명': {
+      EN: 'Standard: use merchant display options and JPAY field mode as saved. No preset sync.',
+      JP: '通常：保存された表示オプション・JPAY入力モードをそのまま使用。プリセット同期なし。',
+      CH: '普通：按已保存的显示选项与 JPAY 字段模式，不同步预设。',
+      TH: 'ทั่วไป: ใช้ตัวเลือกแสดงผลและโหมดฟิลด์ JPAY ตามที่บันทึก ไม่ซิงก์พรีเซ็ต'
+    },
+    '입력방식 AA 타입 설명': {
+      EN: 'Type AA: Type AE + language menu active only.',
+      JP: 'AA タイプ：AE タイプ + 多言語メニューのみ有効。',
+      CH: 'AA 类型：AE 类型 + 仅启用多语言菜单。',
+      TH: 'AA: AE + เปิดเมนูภาษาเท่านั้น'
+    },
+    '입력방식 AN 타입 설명': {
+      EN: 'Type AN: amount, card, first/last name only. Hides card-brand dropdown and product name. Merchant name and language menu off. Logo/warning: default.',
+      JP: 'AN タイプ：金額・カード・姓名のみ。カードブランド選択・商品名非表示。加盟店名・多言語オフ。ロゴ/警告：基本。',
+      CH: 'AN 类型：仅金额、卡号、姓名。隐藏卡品牌下拉与商品名。商户名与多语言关闭。Logo/警告：默认。',
+      TH: 'AN: จำนวน·บัตร·ชื่อ-นามสกุล ซ่อนแบรนด์บัตร·ชื่อสินค้า ปิดชื่อร้าน·เมนูภาษา โลโก้/คำเตือน: ค่าเริ่มต้น'
+    },
+    '입력방식 AG 타입 설명': {
+      EN: 'Type AG: Type AN + product name shown. Merchant name and language menu off. Logo/warning: default.',
+      JP: 'AG タイプ：AN + 商品名表示。加盟店名・多言語オフ。ロゴ/警告：基本。',
+      CH: 'AG 类型：AN + 显示商品名。商户名与多语言关闭。Logo/警告：默认。',
+      TH: 'AG: AN + แสดงชื่อสินค้า ปิดชื่อร้าน·เมนูภาษา โลโก้/คำเตือน: ค่าเริ่มต้น'
+    },
+    '입력방식 AF 타입 설명': {
+      EN: 'Type AF: Type AG + logo and warning message inactive (hidden).',
+      JP: 'AF タイプ：AG + ロゴ・警告メッセージ非活性（非表示）。',
+      CH: 'AF 类型：AG + Logo 与警告信息未启用（隐藏）。',
+      TH: 'AF: AG + โลโก้และข้อความเตือนไม่แสดง'
+    },
+    '입력방식 AE 타입 설명': {
+      EN: 'Type AE: Type AF + product name hidden.',
+      JP: 'AE タイプ：AF + 商品名非表示。',
+      CH: 'AE 类型：AF + 隐藏商品名。',
+      TH: 'AE: AF + ซ่อนชื่อสินค้า'
+    },
+    '입력방식 BN 타입 설명': {
+      EN: 'Type BN: like AN with card-brand dropdown. Product name hidden. Merchant name and language menu off. Logo/warning: default.',
+      JP: 'BN タイプ：AN にカードブランド選択を追加。商品名非表示。加盟店名・多言語オフ。ロゴ/警告：基本。',
+      CH: 'BN 类型：类似 AN 并显示卡品牌下拉。隐藏商品名。商户名与多语言关闭。Logo/警告：默认。',
+      TH: 'BN: เหมือน AN มีเลือกแบรนด์บัตร ซ่อนชื่อสินค้า ปิดชื่อร้าน·เมนูภาษา โลโก้/คำเตือน: ค่าเริ่มต้น'
+    },
+    '입력방식 BG 타입 설명': {
+      EN: 'Type BG: Type BN + product name shown. Logo/warning: default.',
+      JP: 'BG タイプ：BN + 商品名表示。ロゴ/警告：基本。',
+      CH: 'BG 类型：BN + 显示商品名。Logo/警告：默认。',
+      TH: 'BG: BN + แสดงชื่อสินค้า โลโก้/คำเตือน: ค่าเริ่มต้น'
+    },
+    '입력방식 BF 타입 설명': {
+      EN: 'Type BF: Type BG + logo and warning message inactive.',
+      JP: 'BF タイプ：BG + ロゴ・警告メッセージ非活性。',
+      CH: 'BF 类型：BG + Logo 与警告未启用。',
+      TH: 'BF: BG + โลโก้และข้อความเตือนไม่แสดง'
+    },
+    '입력방식 BE 타입 설명': {
+      EN: 'Type BE: Type BF + product name hidden.',
+      JP: 'BE タイプ：BF + 商品名非表示。',
+      CH: 'BE 类型：BF + 隐藏商品名。',
+      TH: 'BE: BF + ซ่อนชื่อสินค้า'
+    },
+    '입력방식 BA 타입 설명': {
+      EN: 'Type BA: Type BE + language menu active only.',
+      JP: 'BA タイプ：BE タイプ + 多言語メニューのみ有効。',
+      CH: 'BA 类型：BE 类型 + 仅启用多语言菜单。',
+      TH: 'BA: BE + เปิดเมนูภาษาเท่านั้น'
+    },
+    '입력방식 CN 타입 설명': {
+      EN: 'Type CN: full checkout — merchant name, language menu, product name, logo and warning all active (default on).',
+      JP: 'CN タイプ：決済画面フル — 加盟店名・多言語・商品名・ロゴ/警告をすべて有効（基本ON）。',
+      CH: 'CN 类型：完整结账 — 商户名、多语言、商品名、Logo/警告全部启用。',
+      TH: 'CN: ฟอร์มเต็ม — ชื่อร้าน·เมนูภาษา·ชื่อสินค้า·โลโก้/คำเตือน เปิดทั้งหมด'
+    },
+    '입력방식 변경 안내': {
+      EN: 'Changing input mode syncs the display options below. Values you edit manually are kept when you save.',
+      JP: '入力方式を変更すると下の表示オプションがプリセットと同期します。手動で変更した値は保存時に優先されます。',
+      CH: '更改输入方式会同步下方显示选项。手动修改的值在保存时优先。',
+      TH: 'เปลี่ยนโหมดการกรอกจะซิงก์ตัวเลือกด้านล่าง ค่าที่แก้เองจะถูกเก็บเมื่อบันทึก'
     },
     '상품명 사용': {
       EN: 'Product name field',
@@ -8781,6 +8943,121 @@
       JP: 'JPAY API定期',
       CH: 'JPAY API 订阅',
       TH: 'สมัคร JPAY API'
+    },
+    /* URL 분할결제 */
+    '분할결제내역': {
+      EN: 'Split payment list',
+      JP: '分割決済一覧',
+      CH: '分次支付记录',
+      TH: 'รายการชำระแบ่งงวด'
+    },
+    'URL 분할결제': {
+      EN: 'URL split payment',
+      JP: 'URL分割決済',
+      CH: 'URL 分次支付',
+      TH: 'ชำระแบ่งงวด URL'
+    },
+    '분할결제 사용': {
+      EN: 'Split pay enabled',
+      JP: '分割決済利用',
+      CH: '启用分次支付',
+      TH: 'ใช้ชำระแบ่งงวด'
+    },
+    '월간 간격': {
+      EN: 'Monthly interval',
+      JP: '月間間隔',
+      CH: '按月间隔',
+      TH: 'ช่วงรายเดือน'
+    },
+    '일간 간격': {
+      EN: 'Daily interval',
+      JP: '日間間隔',
+      CH: '按日间隔',
+      TH: 'ช่วงรายวัน'
+    },
+    '일간격 일수': {
+      EN: 'Day interval (days)',
+      JP: '日間隔日数',
+      CH: '日间隔天数',
+      TH: 'จำนวนวันระหว่างงวด'
+    },
+    '1회차 결제': {
+      EN: 'First installment',
+      JP: '1回目決済',
+      CH: '首期支付',
+      TH: 'งวดแรก'
+    },
+    '즉시결제': {
+      EN: 'Pay immediately',
+      JP: '即時決済',
+      CH: '立即支付',
+      TH: 'ชำระทันที'
+    },
+    '링크발송': {
+      EN: 'Send link',
+      JP: 'リンク送信',
+      CH: '发送链接',
+      TH: 'ส่งลิงก์'
+    },
+    '계약번호': {
+      EN: 'Contract no.',
+      JP: '契約番号',
+      CH: '合同号',
+      TH: 'เลขสัญญา'
+    },
+    '고객이메일': {
+      EN: 'Customer email',
+      JP: '顧客メール',
+      CH: '客户邮箱',
+      TH: 'อีเมลลูกค้า'
+    },
+    '분할횟수': {
+      EN: 'Installments',
+      JP: '分割回数',
+      CH: '分次期数',
+      TH: 'จำนวนงวด'
+    },
+    '납부횟수': {
+      EN: 'Paid count',
+      JP: '支払回数',
+      CH: '已付期数',
+      TH: 'จำนวนที่ชำแล้ว'
+    },
+    '계약일': {
+      EN: 'Contract date',
+      JP: '契約日',
+      CH: '合同日',
+      TH: 'วันสัญญา'
+    },
+    '진행중': {
+      EN: 'Active',
+      JP: '進行中',
+      CH: '进行中',
+      TH: 'ดำเนินอยู่'
+    },
+    '중지': {
+      EN: 'Stopped',
+      JP: '停止',
+      CH: '已停止',
+      TH: 'หยุดแล้ว'
+    },
+    '조회된 분할결제 계약이 없습니다.': {
+      EN: 'No split-payment contracts found.',
+      JP: '分割決済契約がありません。',
+      CH: '未找到分次支付合同。',
+      TH: 'ไม่พบสัญญาชำระแบ่งงวด'
+    },
+    'URL 분할결제 계약·회차별 결제를 가맹별로 허용합니다. 월간·일간 간격 중 하나 이상을 켜야 하며, 1회차는 즉시결제 또는 링크발송을 선택합니다. 수수료는 본사 수수료정책의 분할수수료율·분할고정수수료(건)가 적용됩니다.': {
+      EN: 'Enable URL split-payment contracts and per-installment pay per merchant. Turn on monthly or daily interval (or both). First installment: immediate pay or link email. Fees use HQ split fee rate and fixed fee per installment.',
+      JP: 'URL分割決済契約・回次別決済を加盟店ごとに許可します。月間・日間間隔のいずれか以上を有効にし、1回目は即時決済またはリンク送信を選択します。手数料は本社手数料政策の分割手数料率・分割固定手数料(件)が適用されます。',
+      CH: '按商户启用 URL 分次支付合同与分期支付。须开启按月或按日间隔（至少一种）。首期可选立即支付或发送链接。手续费适用总部分次费率与固定费(笔)。',
+      TH: 'เปิดสัญญาชำระแบ่งงวด URL และชำระรายงวดต่อร้าน ต้องเปิดช่วงรายเดือนหรือรายวันอย่างน้อยหนึ่งแบบ งวดแรกชำระทันทีหรือส่งลิงก์ ค่าธรรมเนียมใช้อัตราและคงที่ต่องวดจากนโยบาย HQ'
+    },
+    '일간격 사용 시 일간격 일수(기본 10일) 간격으로 회차 예정일이 잡힙니다. 미납 회차는 매일 결제 링크 메일이 발송됩니다. API: GET /api/pay/split/merchant-config · POST .../preview · POST .../contracts': {
+      EN: 'With daily interval, due dates use day-interval days (default 10). Overdue installments get a daily payment-link email. API: GET /api/pay/split/merchant-config · POST .../preview · POST .../contracts',
+      JP: '日間隔利用時は日間隔日数(既定10日)で回次予定日を設定します。未払い回は毎日決済リンクメールが送信されます。API: GET /api/pay/split/merchant-config · POST .../preview · POST .../contracts',
+      CH: '使用日间隔时，按日间隔天数(默认10天)排定各期到期日。未付期次每日发送支付链接邮件。API: GET /api/pay/split/merchant-config · POST .../preview · POST .../contracts',
+      TH: 'ใช้ช่วงรายวัน กำหนดวันครบตามจำนวนวัน (ค่าเริ่มต้น 10) งวดค้างได้รับอีเมลลิงก์ชำระทุกวัน API: GET /api/pay/split/merchant-config · POST .../preview · POST .../contracts'
     },
     'JPAY API 구독 사용': {
       EN: 'Use JPAY API subscription',
@@ -20111,10 +20388,22 @@
       TH: 'imageType은 main, logo, first, popcon 또는 urlPay이어야 합니다.'
     },
     'JPAY 거래는 결제 후속조치(무효·환불)를 지원하지 않습니다. PG 운영 처리 및 노티 반영으로 확인하세요.': {
-      EN: 'JPAY transaction는 결제 후속조치(무효·환불)를 지원하지 않습니다. PG 운영 처리 및 notification 반영으로 확인하세요.',
-      JP: 'JPAY 取引는 결제 후속조치(무효·환불)를 지원하지 않습니다. PG 운영 처리 및 通知 반영으로 확인하세요.',
-      CH: 'JPAY 交易는 결제 후속조치(무효·환불)를 지원하지 않습니다. PG 운영 처리 및 通知 반영으로 확인하세요.',
-      TH: 'JPAY ธุรกรรม는 결제 후속조치(무효·환불)를 지원하지 않습니다. PG 운영 처리 및 การแจ้งเตือน 반영으로 확인하세요.'
+      EN: 'JPAY transactions use Manual void / Manual refund after JPAY portal approval. Run those actions from the payment list.',
+      JP: 'JPAY取引はJPAY管理画面で無効・返金承認後、決済一覧の「手動無効」「手動返金」を実行してください。',
+      CH: 'JPAY交易请在JPAY管理端作废/退款批准后，于支付列表执行「手动作废」「手动退款」。',
+      TH: 'ธุรกรรม JPAY ให้ทำโมฆะ/คืนเงินด้วยมือหลังอนุมัติที่พอร์ทัล JPAY จากรายการชำระเงิน'
+    },
+    'JPAY 거래는 수동무효·수동환불만 사용할 수 있습니다. JPAY 관리자 처리 후 해당 메뉴를 실행하세요.': {
+      EN: 'JPAY transactions support only Manual void and Manual refund. Complete JPAY portal processing first, then run the action here.',
+      JP: 'JPAY取引は手動無効・手動返金のみ利用できます。JPAY管理画面で処理後、当該メニューを実行してください。',
+      CH: 'JPAY交易仅支持手动作废与手动退款。请先在JPAY管理端处理，再在此执行。',
+      TH: 'ธุรกรรม JPAY ใช้ได้เฉพาะโมฆะ/คืนเงินด้วยมือ ดำเนินการที่พอร์ทัล JPAY ก่อน แล้วกดเมนูนี้'
+    },
+    '수동무효·수동환불은 JPAY 거래만 지원합니다.': {
+      EN: 'Manual void and Manual refund are available for JPAY transactions only.',
+      JP: '手動無効・手動返金はJPAY取引のみ対応しています。',
+      CH: '手动作废与手动退款仅适用于JPAY交易。',
+      TH: 'โมฆะ/คืนเงินด้วยมือใช้ได้เฉพาะธุรกรรม JPAY'
     },
     'JPAY 구독은 /api/pay/jpay/subscribe 또는 subscription/prepare API를 사용하세요.': {
       EN: 'JPAY 구독은 /api/pay/jpay/subscribe 또는 subscription/prepare API를 사용하세요.',

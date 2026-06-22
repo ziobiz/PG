@@ -12,6 +12,8 @@ import com.pg.service.ChillPayService;
 import com.pg.service.HqLedgerSysSettingsService;
 import com.pg.service.HqNotifyMappingService;
 import com.pg.service.OrgAccessService;
+import com.pg.service.JpayIntegratedListService;
+import com.pg.service.JpayTradeApiService;
 import com.pg.service.PayListActionService;
 import com.pg.service.PayListService;
 import com.pg.util.PayDisplayCurrency;
@@ -46,12 +48,16 @@ public class ApiCalcController {
     private final CommissionPolicyRepository commissionPolicyRepository;
     private final HqLedgerSysSettingsService hqLedgerSysSettingsService;
     private final OrgAccessService orgAccessService;
+    private final JpayIntegratedListService jpayIntegratedListService;
+    private final JpayTradeApiService jpayTradeApiService;
 
     public ApiCalcController(PayListService payListService, PayListActionService payListActionService,
                              ChillPayService chillPayService, HqNotifyMappingService hqNotifyMappingService,
                              OrgUnitRepository orgUnitRepository, CommissionPolicyRepository commissionPolicyRepository,
                              HqLedgerSysSettingsService hqLedgerSysSettingsService,
-                             OrgAccessService orgAccessService) {
+                             OrgAccessService orgAccessService,
+                             JpayIntegratedListService jpayIntegratedListService,
+                             JpayTradeApiService jpayTradeApiService) {
         this.payListService = payListService;
         this.payListActionService = payListActionService;
         this.chillPayService = chillPayService;
@@ -60,6 +66,8 @@ public class ApiCalcController {
         this.commissionPolicyRepository = commissionPolicyRepository;
         this.hqLedgerSysSettingsService = hqLedgerSysSettingsService;
         this.orgAccessService = orgAccessService;
+        this.jpayIntegratedListService = jpayIntegratedListService;
+        this.jpayTradeApiService = jpayTradeApiService;
     }
 
     private static PageResult<Map<String, Object>> emptyChillPayPage(int page, int size) {
@@ -643,6 +651,67 @@ public class ApiCalcController {
             case "REFUND", "FORCE_REFUND", "VOID", "MANUAL_VOID", "EXCLUDE_SUCCESS" -> true;
             default -> false;
         };
+    }
+
+    /** JPAY Trade API — 단건 상태 재조회 후 결제내역 반영 */
+    @PostMapping("/jpayTradeQuery")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> jpayTradeQuery(@RequestBody Map<String, String> body) {
+        try {
+            String trnId = body != null ? body.get("trnId") : null;
+            if (trnId == null || trnId.isBlank()) {
+                return ResponseEntity.ok(ApiResponse.fail("trnId가 필요합니다.", "VALIDATION"));
+            }
+            return ResponseEntity.ok(ApiResponse.ok(jpayTradeApiService.queryAndApplyToTxn(trnId.trim())));
+        } catch (IllegalArgumentException | IllegalStateException e) {
+            return ResponseEntity.ok(ApiResponse.fail(e.getMessage(), "JPAY"));
+        }
+    }
+
+    /** JPAY 통합내역 — 포털 Export 자동 동기화 */
+    @PostMapping("/jpayTrSync")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> jpayTrSync(
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate searchFromDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate searchToDate) {
+        try {
+            return ResponseEntity.ok(ApiResponse.ok(jpayIntegratedListService.syncFromPortal(searchFromDate, searchToDate)));
+        } catch (IllegalStateException e) {
+            return ResponseEntity.ok(ApiResponse.fail(e.getMessage(), "JPAY"));
+        } catch (Exception e) {
+            String msg = e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName();
+            return ResponseEntity.ok(ApiResponse.fail("JPAY 포털 동기화 실패: " + msg, "JPAY"));
+        }
+    }
+
+    /** JPAY 통합내역 — 마지막 동기화 캐시 목록 */
+    @GetMapping("/jpayTrSearch")
+    public ResponseEntity<ApiResponse<PageResult<Map<String, Object>>>> jpayTrSearch(
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "50") int size,
+            @RequestParam(required = false) String searchKeyword,
+            @RequestParam(required = false) String searchOrderNo,
+            @RequestParam(required = false) String searchPayDivCd,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate searchFromDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate searchToDate,
+            @RequestParam(defaultValue = "false") boolean autoSync) {
+        try {
+            LocalDate tFrom = searchFromDate;
+            LocalDate tTo = searchToDate;
+            if (tFrom == null && tTo == null) {
+                tTo = LocalDate.now();
+                int days = hqLedgerSysSettingsService.getOrCreate().getJpayTrRecentSyncDays() != null
+                        ? hqLedgerSysSettingsService.getOrCreate().getJpayTrRecentSyncDays() : 2;
+                tFrom = tTo.minusDays(Math.max(1, days) - 1L);
+                autoSync = true;
+            }
+            PageResult<Map<String, Object>> r = jpayIntegratedListService.search(
+                    page, size, searchKeyword, searchOrderNo, searchPayDivCd, tFrom, tTo, autoSync);
+            return ResponseEntity.ok(ApiResponse.ok(r));
+        } catch (IllegalStateException e) {
+            return ResponseEntity.ok(ApiResponse.fail(e.getMessage(), "JPAY"));
+        } catch (Exception e) {
+            String msg = e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName();
+            return ResponseEntity.ok(ApiResponse.fail("JPAY 통합내역 조회 실패: " + msg, "JPAY"));
+        }
     }
 
     /** 결제내역 후속조치: 자동무효·이메일무효·자동환불·강제환불 (본사 환경설정 Y 일 때만) */

@@ -30,7 +30,8 @@ public final class CommissionTierJsonHelper {
     public static final List<String> ROW_KEYS = List.of(
             "payRate", "perTxFee", "failFee", "cancelRate", "voidFeePerTx", "manualVoidFeePerTx",
             "refundRate", "feeSettlementPerTx", "remittanceTransferFee", "usdtTransferFeeUsd",
-            "fee3dsRate", "feeUsdt", "feeFx", "usageRate", "chargebackFeePerTx");
+            "fee3dsRate", "feeUsdt", "feeFx", "usageRate", "chargebackFeePerTx",
+            "splitPayFeePct", "splitPayFixedFeePerInst");
 
     private CommissionTierJsonHelper() {
     }
@@ -132,6 +133,8 @@ public final class CommissionTierJsonHelper {
             case "usageRate" -> p.getUsageRate() != null ? PercentDecimalHelper.toPlainAmountOneDecimal(p.getUsageRate()) : "";
             case "fee3dsRate" -> p.getFee3dsRate() != null ? PercentDecimalHelper.toPlainAmountOneDecimal(p.getFee3dsRate()) : "";
             case "chargebackFeePerTx" -> p.getChargebackFeePerTx() != null ? PercentDecimalHelper.toPlainAmountOneDecimal(p.getChargebackFeePerTx()) : "";
+            case "splitPayFeePct" -> p.getSplitPayFeePct() != null ? PercentDecimalHelper.toPlainOneDecimal(p.getSplitPayFeePct()) : "";
+            case "splitPayFixedFeePerInst" -> p.getSplitPayFixedFeePerInst() != null ? PercentDecimalHelper.toPlainAmountOneDecimal(p.getSplitPayFixedFeePerInst()) : "";
             default -> "";
         };
     }
@@ -159,6 +162,8 @@ public final class CommissionTierJsonHelper {
             p.setUsageRate(sumLevels(rows, "usageRate", false));
             p.setFee3dsRate(sumLevels(rows, "fee3dsRate", false));
             p.setChargebackFeePerTx(sumLevels(rows, "chargebackFeePerTx", false));
+            p.setSplitPayFeePct(sumLevels(rows, "splitPayFeePct", true));
+            p.setSplitPayFixedFeePerInst(sumLevels(rows, "splitPayFixedFeePerInst", false));
         }
         JsonNode extras = root.get("extras");
         if (extras != null && extras.isArray()) {
@@ -195,7 +200,7 @@ public final class CommissionTierJsonHelper {
 
     private static boolean isPctRowKey(String rowKey) {
         return switch (rowKey) {
-            case "payRate", "feeUsdt", "feeFx" -> true;
+            case "payRate", "feeUsdt", "feeFx", "splitPayFeePct" -> true;
             default -> false;
         };
     }

@@ -4,7 +4,8 @@
   "description": "fxhj 로그인/메뉴 저장 스크립트",
   "scripts": {
     "login": "node fxhj-login-save-menu.js",
-    "login:otp": "set FXHJ_OTP=%1 && node fxhj-login-save-menu.js"
+    "login:otp": "set FXHJ_OTP=%1 && node fxhj-login-save-menu.js",
+    "jpay-export": "node jpay-portal-export.js"
   },
   "dependencies": {
     "playwright": "^1.40.0"

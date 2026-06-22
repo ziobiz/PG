@@ -6,6 +6,8 @@ import com.pg.entity.PgTrnsctn;
 import com.pg.integration.pg.PgVendor;
 import com.pg.repository.OrgUnitRepository;
 import com.pg.repository.PgTrnsctnRepository;
+import com.pg.service.settlement.SettlementArrearsService;
+import com.pg.util.JpayNotifyStatusResolver;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -15,8 +17,8 @@ import java.util.Locale;
 /**
  * 결제내역 그리드 후속조치 ({@code tb_hq_notify_env_config} 자동무효·이메일무효·자동환불·강제환불 — 본사설정 전산설정관리에서 편집).
  * <p>
- * 자동무효·환불·강제환불은 ChillPay Transaction API(void/refund request)를 호출한 뒤 성공 시 내부 상태를 갱신하고,
- * 이메일무효는 전산설정 SMTP로 템플릿 메일을 발송한 뒤 상태를 갱신합니다.
+ * ChillPay: 자동무효·환불·강제환불은 Transaction API 호출 후 내부 상태 갱신.
+ * JPAY: 자동환불·강제환불은 {@code /pay/trade/refund} API 호출. 무효는 수동무효·포털 처리.
  */
 @Service
 public class PayListActionService {
@@ -25,7 +27,11 @@ public class PayListActionService {
         AUTO_VOID,
         EMAIL_VOID,
         AUTO_REFUND,
-        FORCE_REFUND
+        FORCE_REFUND,
+        /** JPAY 전용 — JPAY 포털 무효 승인 후 ICOPAY 수동 반영 */
+        MANUAL_VOID,
+        /** JPAY 전용 — JPAY 포털 환불 승인 후 ICOPAY 수동 반영 */
+        MANUAL_REFUND
     }
 
     private final PayFollowPolicyService payFollowPolicyService;
@@ -33,17 +39,26 @@ public class PayListActionService {
     private final OrgUnitRepository orgUnitRepository;
     private final ChillPayService chillPayService;
     private final PayFollowEmailVoidService payFollowEmailVoidService;
+    private final SettlementArrearsService settlementArrearsService;
+    private final JpayManualFollowUpNotifyService jpayManualFollowUpNotifyService;
+    private final JpayTradeApiService jpayTradeApiService;
 
     public PayListActionService(PayFollowPolicyService payFollowPolicyService,
                                 PgTrnsctnRepository trnsctnRepository,
                                 OrgUnitRepository orgUnitRepository,
                                 ChillPayService chillPayService,
-                                PayFollowEmailVoidService payFollowEmailVoidService) {
+                                PayFollowEmailVoidService payFollowEmailVoidService,
+                                SettlementArrearsService settlementArrearsService,
+                                JpayManualFollowUpNotifyService jpayManualFollowUpNotifyService,
+                                JpayTradeApiService jpayTradeApiService) {
         this.payFollowPolicyService = payFollowPolicyService;
         this.trnsctnRepository = trnsctnRepository;
         this.orgUnitRepository = orgUnitRepository;
         this.chillPayService = chillPayService;
         this.payFollowEmailVoidService = payFollowEmailVoidService;
+        this.settlementArrearsService = settlementArrearsService;
+        this.jpayManualFollowUpNotifyService = jpayManualFollowUpNotifyService;
+        this.jpayTradeApiService = jpayTradeApiService;
     }
 
     @Transactional
@@ -64,14 +79,22 @@ public class PayListActionService {
         payFollowPolicyService.assertMayExecute(user, trnId, action);
         PgTrnsctn t = trnsctnRepository.findById(trnId.trim())
                 .orElseThrow(() -> new IllegalArgumentException("거래를 찾을 수 없습니다."));
-        if (PayFollowPolicyService.isPayFollowHiddenForTransaction(t)) {
+
+        boolean jpay = PgVendor.isJpayFamily(t.getVan());
+        if (jpay && (action == PayFollowAction.AUTO_VOID || action == PayFollowAction.EMAIL_VOID)) {
             throw new IllegalStateException(
-                    "JPAY 거래는 결제 후속조치(무효·환불)를 지원하지 않습니다. PG 운영 처리 및 노티 반영으로 확인하세요.");
+                    "JPAY 거래는 자동무효·이메일무효를 사용할 수 없습니다. 수동무효 또는 JPAY 포털에서 처리하세요.");
+        }
+        if (!jpay && (action == PayFollowAction.MANUAL_VOID || action == PayFollowAction.MANUAL_REFUND)) {
+            throw new IllegalStateException("수동무효·수동환불은 JPAY 거래만 지원합니다.");
         }
 
+        String prevStatus = t.getStatus();
+        String prevSettledYn = t.getSettledYn();
+        String actor = user != null ? user.getUsername() : null;
+
         switch (action) {
-            case EMAIL_VOID -> payFollowEmailVoidService.sendVoidRequestMail(t,
-                    user != null ? user.getUsername() : null);
+            case EMAIL_VOID -> payFollowEmailVoidService.sendVoidRequestMail(t, actor);
             case AUTO_VOID -> {
                 long ouId = resolveMerchantOrgUnitId(t);
                 long chillTxn = parseChillPayTransactionId(t);
@@ -79,26 +102,60 @@ public class PayListActionService {
                 chillPayService.requestChillPayVoid(ouId, chillTxn);
             }
             case AUTO_REFUND, FORCE_REFUND -> {
-                long ouId = resolveMerchantOrgUnitId(t);
-                long chillTxn = parseChillPayTransactionId(t);
-                requireChillPayVan(t);
-                chillPayService.requestChillPayRefund(ouId, chillTxn);
+                if (jpay) {
+                    jpayTradeApiService.requestRefund(t, null, action == PayFollowAction.FORCE_REFUND ? "icopay force refund" : "icopay refund");
+                } else {
+                    long ouId = resolveMerchantOrgUnitId(t);
+                    long chillTxn = parseChillPayTransactionId(t);
+                    requireChillPayVan(t);
+                    chillPayService.requestChillPayRefund(ouId, chillTxn);
+                }
             }
+            case MANUAL_VOID, MANUAL_REFUND -> requireJpayVan(t);
         }
 
-        t.setStatus(switch (action) {
+        String nextStatus = switch (action) {
             case AUTO_VOID -> "40";
             case EMAIL_VOID -> "41";
             case AUTO_REFUND -> "42";
             case FORCE_REFUND -> "31";
-        });
+            case MANUAL_VOID -> "21";
+            case MANUAL_REFUND -> "30";
+        };
+        t.setStatus(nextStatus);
+        if (jpay) {
+            String rc = switch (action) {
+                case MANUAL_REFUND, AUTO_REFUND, FORCE_REFUND -> "09";
+                case MANUAL_VOID -> "08";
+                default -> "00";
+            };
+            t.setChillPaymentStatus(JpayNotifyStatusResolver.chillPaymentStatusLabel(nextStatus, rc));
+            t.setPaidAt(null);
+        }
         trnsctnRepository.save(t);
+
+        try {
+            settlementArrearsService.registerPostSettlementRecoveryIfDue(prevStatus, prevSettledYn, t);
+        } catch (Exception ex) {
+            org.slf4j.LoggerFactory.getLogger(PayListActionService.class)
+                    .warn("환수금 자동등록 실패 trnId={}: {}", t.getTrnId(), ex.getMessage());
+        }
+
+        if (action == PayFollowAction.MANUAL_VOID || action == PayFollowAction.MANUAL_REFUND) {
+            jpayManualFollowUpNotifyService.sendAfterManualFollowUp(t, action, actor);
+        }
     }
 
     private static void requireChillPayVan(PgTrnsctn t) {
         String v = t.getVan();
         if (v == null || !PgVendor.CHILLPAY.equalsIgnoreCase(v.trim())) {
             throw new IllegalStateException("ChillPay 거래만 API 무효·환불을 호출할 수 있습니다.");
+        }
+    }
+
+    private static void requireJpayVan(PgTrnsctn t) {
+        if (!PgVendor.isJpayFamily(t.getVan())) {
+            throw new IllegalStateException("JPAY 거래만 수동무효·수동환불을 사용할 수 있습니다.");
         }
     }
 

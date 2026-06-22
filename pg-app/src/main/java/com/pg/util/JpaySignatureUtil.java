@@ -75,6 +75,34 @@ public final class JpaySignatureUtil {
     }
 
     /**
+     * JPAY Dispute webhook(Refund·Chargeback) — 문서 PHP 예제와 동일:
+     * {@code sign} 제외 non-empty 파라미터 ASCII 정렬 → {@code key=value&…&key=APIKEY} → MD5 대문자.
+     */
+    public static boolean verifyDisputeWebhookSign(Map<String, String> formFields, String apiKey, String signReceived) {
+        if (signReceived == null || signReceived.isBlank() || apiKey == null || formFields == null) {
+            return false;
+        }
+        TreeMap<String, String> sorted = new TreeMap<>();
+        for (Map.Entry<String, String> e : formFields.entrySet()) {
+            String k = e.getKey();
+            if (k == null) {
+                continue;
+            }
+            String kl = k.trim().toLowerCase(Locale.ROOT);
+            if ("sign".equals(kl)) {
+                continue;
+            }
+            String v = e.getValue();
+            if (v == null || v.isBlank()) {
+                continue;
+            }
+            sorted.put(kl, v.trim());
+        }
+        String expect = md5Upper(buildSignPlain(sorted, apiKey.trim()));
+        return constantTimeEquals(expect, signReceived.trim().toUpperCase(Locale.ROOT));
+    }
+
+    /**
      * JPAY 비동기 노티의 서명 대상 필드(<a href="https://docs.j-pay.net/docs/http">스펙</a>):
      * {@code memberid, orderid, amount, true_amount, currency, transaction_id, returncode, datetime, attach}.
      * <p>{@code sign} 은 검증 대상에서 제외하고, NOTI 미들웨어가 덧붙이는 비스펙 필드

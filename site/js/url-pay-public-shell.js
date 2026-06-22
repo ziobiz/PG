@@ -347,75 +347,17 @@
     return g.document.querySelector('#payOrderSummaryTop .pay-row-static');
   }
 
-  /** checkout-context — 입력방식(GENERAL|TYPE_A|…|TYPE_AE|TYPE_BE|TYPE_C) 및 표시 옵션 */
+    /** checkout-context — 입력방식(GENERAL|TYPE_AA|…|TYPE_CN) 및 표시 옵션 */
   function normalizeUrlPayInputMode(raw) {
-    var mode = String(raw || 'GENERAL').trim().toUpperCase();
-    if (mode === 'A' || mode === 'TYPEA') return 'TYPE_A';
-    if (mode === 'AG' || mode === 'TYPEAG') return 'TYPE_AG';
-    if (mode === 'AF' || mode === 'TYPEAF') return 'TYPE_AF';
-    if (mode === 'AE' || mode === 'TYPEAE') return 'TYPE_AE';
-    if (mode === 'B' || mode === 'TYPEB') return 'TYPE_B';
-    if (mode === 'BG' || mode === 'TYPEBG') return 'TYPE_BG';
-    if (mode === 'BF' || mode === 'TYPEBF') return 'TYPE_BF';
-    if (mode === 'BE' || mode === 'TYPEBE') return 'TYPE_BE';
-    if (mode === 'C' || mode === 'TYPEC') return 'TYPE_C';
-    if (mode === 'TYPE_A' || mode === 'TYPE_AG' || mode === 'TYPE_AF' || mode === 'TYPE_AE'
-        || mode === 'TYPE_B' || mode === 'TYPE_BG' || mode === 'TYPE_BF' || mode === 'TYPE_BE'
-        || mode === 'TYPE_C') {
-      return mode;
+    if (g.PG_URL_PAY_INPUT_MODE && g.PG_URL_PAY_INPUT_MODE.normalize) {
+      return g.PG_URL_PAY_INPUT_MODE.normalize(raw);
     }
-    return 'GENERAL';
+    return String(raw || 'GENERAL').trim().toUpperCase();
   }
 
-  /** 관리자 웹결제 카드·결제창과 동일한 입력방식 프리셋. GENERAL 은 null */
   function getUrlPayInputModePreset(raw) {
-    var mode = normalizeUrlPayInputMode(raw);
-    if (mode === 'GENERAL') return null;
-    var base = { defaultProductAmount: '' };
-    if (mode === 'TYPE_A' || mode === 'TYPE_B') {
-      return Object.assign({}, base, {
-        urlPayCompanyNameShowYn: 'N',
-        urlPayLangMenuUseYn: 'N',
-        urlPayProductNameUseYn: 'N',
-        webPaymentHeaderLogoMode: 'DEFAULT',
-        webPaymentHeaderSubtitleMode: 'DEFAULT'
-      });
-    }
-    if (mode === 'TYPE_AG' || mode === 'TYPE_BG') {
-      return Object.assign({}, base, {
-        urlPayCompanyNameShowYn: 'N',
-        urlPayLangMenuUseYn: 'N',
-        urlPayProductNameUseYn: 'Y',
-        webPaymentHeaderLogoMode: 'DEFAULT',
-        webPaymentHeaderSubtitleMode: 'DEFAULT'
-      });
-    }
-    if (mode === 'TYPE_AF' || mode === 'TYPE_BF') {
-      return Object.assign({}, base, {
-        urlPayCompanyNameShowYn: 'N',
-        urlPayLangMenuUseYn: 'N',
-        urlPayProductNameUseYn: 'Y',
-        webPaymentHeaderLogoMode: 'DISABLED',
-        webPaymentHeaderSubtitleMode: 'DISABLED'
-      });
-    }
-    if (mode === 'TYPE_AE' || mode === 'TYPE_BE') {
-      return Object.assign({}, base, {
-        urlPayCompanyNameShowYn: 'N',
-        urlPayLangMenuUseYn: 'N',
-        urlPayProductNameUseYn: 'N',
-        webPaymentHeaderLogoMode: 'DISABLED',
-        webPaymentHeaderSubtitleMode: 'DISABLED'
-      });
-    }
-    if (mode === 'TYPE_C') {
-      return Object.assign({}, base, {
-        urlPayCompanyNameShowYn: 'Y',
-        urlPayLangMenuUseYn: 'Y',
-        urlPayProductNameUseYn: 'Y',
-        webPaymentHeaderLogoMode: 'DEFAULT',
-        webPaymentHeaderSubtitleMode: 'DEFAULT'
-      });
+    if (g.PG_URL_PAY_INPUT_MODE && g.PG_URL_PAY_INPUT_MODE.getPreset) {
+      return g.PG_URL_PAY_INPUT_MODE.getPreset(raw);
     }
     return null;
   }
@@ -437,7 +379,10 @@
 
     var brandRow = g.document.getElementById('payCardBrandRow');
     var brandSelect = g.document.getElementById('payCardBrandSelect');
-    var hideBrand = (mode === 'TYPE_A' || mode === 'TYPE_AG' || mode === 'TYPE_AF' || mode === 'TYPE_AE');
+    var hideBrand = (g.PG_URL_PAY_INPUT_MODE && g.PG_URL_PAY_INPUT_MODE.hidesCardBrandSelect)
+      ? g.PG_URL_PAY_INPUT_MODE.hidesCardBrandSelect(mode)
+      : (mode === 'TYPE_AN' || mode === 'TYPE_AG' || mode === 'TYPE_AF' || mode === 'TYPE_AE'
+        || mode === 'TYPE_AA');
     if (brandSelect && (hideBrand || mode === 'GENERAL')) {
       brandSelect.value = 'AUTO';
     }

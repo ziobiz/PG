@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ICOPAY Split Payment Setup</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="css/pay-inline.css?v=1" rel="stylesheet">
+</head>
+<body class="pay-inline-body">
+  <div class="pay-shell">
+    <div class="pay-card">
+      <div class="pay-brand mb-3">
+        <div class="pay-brand-logo" data-i18n="brand">ICOPAY</div>
+        <div class="pay-brand-sub" data-i18n="subtitle">Split payment setup</div>
+      </div>
+      <div class="pay-lang mb-3" role="group">
+        <button type="button" data-lang="JPN">JPN</button>
+        <button type="button" data-lang="KOR">KOR</button>
+        <button type="button" data-lang="ENG">ENG</button>
+        <button type="button" data-lang="CHN">CHN</button>
+        <button type="button" data-lang="THA">THA</button>
+      </div>
+      <div id="msg" class="alert d-none"></div>
+      <form id="setupForm" class="pay-form-grid">
+        <div class="pay-row"><label class="pay-row-label" for="email" data-i18n="email">Email</label><div class="pay-row-value"><input class="form-control form-control-sm" id="email" type="email" required></div></div>
+        <div class="pay-row"><label class="pay-row-label" for="customerName" data-i18n="name">Name</label><div class="pay-row-value"><input class="form-control form-control-sm" id="customerName" type="text"></div></div>
+        <div class="pay-row"><label class="pay-row-label" for="totalAmount" data-i18n="totalAmount">Total amount</label><div class="pay-row-value"><input class="form-control form-control-sm" id="totalAmount" type="number" min="1" step="1" required></div></div>
+        <div class="pay-row"><label class="pay-row-label" for="installmentCount" data-i18n="count">Installments</label><div class="pay-row-value"><input class="form-control form-control-sm" id="installmentCount" type="number" min="2" max="60" value="3" required></div></div>
+        <div class="pay-row"><label class="pay-row-label" for="intervalType" data-i18n="interval">Interval</label><div class="pay-row-value"><select class="form-select form-select-sm" id="intervalType"><option value="MONTH" data-i18n-opt="month">Monthly</option><option value="DAY" data-i18n-opt="day">Every N days</option></select></div></div>
+        <div class="pay-row" id="intervalValueRow"><label class="pay-row-label" for="intervalValue" data-i18n="intervalDays">Interval days</label><div class="pay-row-value"><input class="form-control form-control-sm" id="intervalValue" type="number" min="1" value="10"></div></div>
+        <div class="pay-row"><button type="button" class="btn btn-outline-secondary btn-sm" id="previewBtn" data-i18n="preview">Preview schedule</button></div>
+        <pre id="previewOut" class="small bg-light p-2 rounded d-none"></pre>
+        <button type="submit" class="btn btn-primary w-100 mt-2" data-i18n="create">Create contract</button>
+      </form>
+      <div id="resultBox" class="d-none mt-3">
+        <p class="small mb-1" data-i18n="created">Contract created.</p>
+        <a id="firstPayLink" class="btn btn-success w-100" href="#" data-i18n="firstPay">Pay first installment</a>
+      </div>
+    </div>
+  </div>
+  <script src="js/split-pay-setup.js?v=1"></script>
+</body>
+</html>

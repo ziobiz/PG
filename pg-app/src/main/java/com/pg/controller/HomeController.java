@@ -40,6 +40,16 @@ public class HomeController {
         return redirectWithMergedQuery("/chatbot-pay.html", compId, request);
     }
 
+    @GetMapping("/split-pay/{compId}")
+    public String splitPaySetupByComp(@PathVariable("compId") String compId, HttpServletRequest request) {
+        return redirectWithMergedQuery("/split-pay-setup.html", compId, request);
+    }
+
+    @GetMapping("/split-pay-install/{compId}")
+    public String splitPayInstallByComp(@PathVariable("compId") String compId, HttpServletRequest request) {
+        return redirectWithMergedQuery("/split-pay.html", compId, request);
+    }
+
     @GetMapping("/jpay-subscribe/{compId}")
     public String jpaySubscribeByComp(@PathVariable("compId") String compId, HttpServletRequest request) {
         return redirectWithMergedQuery("/jpay-subscribe.html", compId, request);

@@ -155,6 +155,12 @@
       '</div></div>';
   }
 
+  function urlPayInputModeHintHtml() {
+    var key = '입력방식 일반 설명';
+    return '<div class="col-12"><p class="form-text text-muted small mb-2 url-pay-input-mode-hint" data-pg-ui-t="' + escUi(key) + '">' +
+      escUi(L(key)) + '</p></div>';
+  }
+
   /** 웹결제 카드 1행 — 웹결제·URL방식·입력방식 */
   function merchantWebPaymentCardPrimaryRow() {
     var ynUseOpts = [{ v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }];
@@ -163,15 +169,17 @@
       { label: 'URL 결제 방식', type: 'select', name: 'urlPayCheckoutMode', options: [{ v: 'STANDARD', t: '일반 URL 결제' }, { v: 'REPAY', t: '재결제 URL (저장 카드)' }], col: 2 },
       { label: '입력방식', type: 'select', name: 'urlPayInputMode', options: [
         { v: 'GENERAL', t: '일반' },
-        { v: 'TYPE_A', t: 'A타입' },
-        { v: 'TYPE_AG', t: 'AG타입' },
-        { v: 'TYPE_AF', t: 'AF타입' },
-        { v: 'TYPE_AE', t: 'AE타입' },
-        { v: 'TYPE_B', t: 'B타입' },
-        { v: 'TYPE_BG', t: 'BG타입' },
-        { v: 'TYPE_BF', t: 'BF타입' },
-        { v: 'TYPE_BE', t: 'BE타입' },
-        { v: 'TYPE_C', t: 'C타입' }
+        { v: 'TYPE_AA', t: 'AA 타입' },
+        { v: 'TYPE_BA', t: 'BA 타입' },
+        { v: 'TYPE_AN', t: 'AN 타입' },
+        { v: 'TYPE_AG', t: 'AG 타입' },
+        { v: 'TYPE_AF', t: 'AF 타입' },
+        { v: 'TYPE_AE', t: 'AE 타입' },
+        { v: 'TYPE_BN', t: 'BN 타입' },
+        { v: 'TYPE_BG', t: 'BG 타입' },
+        { v: 'TYPE_BF', t: 'BF 타입' },
+        { v: 'TYPE_BE', t: 'BE 타입' },
+        { v: 'TYPE_CN', t: 'CN 타입' }
       ], col: 2 }
     ];
   }
@@ -189,10 +197,10 @@
   function merchantWebPaymentDefaultProductRow() {
     return [
       { label: '상품명 사용', type: 'select', name: 'urlPayProductNameUseYn', options: [{ v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }], col: 2 },
-      { label: '상품명', type: 'text', name: 'defaultProductName', col: 2, placeholder: '대표 상품명', blockExtraClass: 'url-pay-product-name-field' },
-      { label: '상품코드', type: 'text', name: 'defaultProductCode', col: 1 },
-      { label: '기본금액', type: 'text', name: 'defaultProductAmount', col: 1, placeholder: '' },
-      { label: '상품설명', type: 'text', name: 'defaultProductDesc', col: 4 }
+      { label: '상품명', type: 'text', name: 'defaultProductName', col: 2, placeholder: '대표 상품명', blockExtraClass: 'url-pay-product-field' },
+      { label: '상품코드', type: 'text', name: 'defaultProductCode', col: 1, blockExtraClass: 'url-pay-product-field' },
+      { label: '기본금액', type: 'text', name: 'defaultProductAmount', col: 1, placeholder: '', blockExtraClass: 'url-pay-product-field' },
+      { label: '상품설명', type: 'text', name: 'defaultProductDesc', col: 4, blockExtraClass: 'url-pay-product-field' }
     ];
   }
 
@@ -200,6 +208,7 @@
     var urlPh = urlPlaceholderKo || '가맹점 저장 후 조회';
     return [
       merchantWebPaymentCardPrimaryRow(),
+      [{ type: 'customHtml', col: 12, html: urlPayInputModeHintHtml }],
       merchantWebPaymentCardSecondaryRow(),
       [{ label: '로고설정', type: 'select', name: 'webPaymentHeaderLogoMode', options: [
         { v: 'DEFAULT', t: '기본(총판 로고)' },
@@ -244,6 +253,24 @@
       rows: [
         [{ label: 'JPAY API 구독 사용', type: 'select', name: 'apiJpaySubscriptionUseYn', options: [{ v: 'N', t: '미사용' }, { v: 'Y', t: '사용' }], col: 3 }],
         [{ label: '', type: 'note', col: 12, text: 'prepare: POST /api/middleware/v1/merchant/jpay/subscription/prepare · 해지: POST .../subscription/cancel (최초 orderNo)' }]
+      ]
+    };
+  }
+
+  /** 가맹 등록·정보 — URL 분할결제 계약·회차 결제 */
+  function merchantSplitPayCardSection() {
+    return {
+      title: 'URL 분할결제',
+      id: 'splitPayCard',
+      merchantOnly: true,
+      notice: 'URL 분할결제 계약·회차별 결제를 가맹별로 허용합니다. 월간·일간 간격 중 하나 이상을 켜야 하며, 1회차는 즉시결제 또는 링크발송을 선택합니다. 수수료는 본사 수수료정책의 분할수수료율·분할고정수수료(건)가 적용됩니다.',
+      rows: [
+        [{ label: '분할결제 사용', type: 'select', name: 'splitPayEnabledYn', options: [{ v: 'N', t: '미사용' }, { v: 'Y', t: '사용' }], col: 3 },
+         { label: '월간 간격', type: 'select', name: 'splitPayIntervalMonthYn', options: [{ v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }], col: 3 },
+         { label: '일간 간격', type: 'select', name: 'splitPayIntervalDayYn', options: [{ v: 'N', t: '미사용' }, { v: 'Y', t: '사용' }], col: 3 }],
+        [{ label: '일간격 일수', type: 'text', name: 'splitPayDayIntervalDays', col: 2, placeholder: '10' },
+         { label: '1회차 결제', type: 'select', name: 'splitPayFirstPayMode', options: [{ v: 'IMMEDIATE', t: '즉시결제' }, { v: 'LINK', t: '링크발송' }], col: 3 }],
+        [{ label: '', type: 'note', col: 12, text: '일간격 사용 시 일간격 일수(기본 10일) 간격으로 회차 예정일이 잡힙니다. 미납 회차는 매일 결제 링크 메일이 발송됩니다. API: GET /api/pay/split/merchant-config · POST .../preview · POST .../contracts' }]
       ]
     };
   }
@@ -1194,7 +1221,9 @@
       { k: 'feeUsdt', t: 'USDT수수료율', u: '%' },
       { k: 'feeFx', t: 'FX수수료율', u: '%' },
       { k: 'usageRate', t: '월간이용료', u: '월' },
-      { k: 'chargebackFeePerTx', t: '차지백수수료', u: '(건)' }
+      { k: 'chargebackFeePerTx', t: '차지백수수료', u: '(건)' },
+      { k: 'splitPayFeePct', t: '분할수수료율', u: '%' },
+      { k: 'splitPayFixedFeePerInst', t: '분할고정수수료', u: '(건)' }
     ];
     var th = tierLevels.map(function (x) {
       var tk = String(x.t);
@@ -2038,8 +2067,8 @@
               '<table class="table table-sm table-hover align-middle mb-0 hq-default-comm-policy-table table-no-col-resize">' +
               '<colgroup>' +
               '<col class="hq-def-comm-col" /><col class="hq-def-comm-col" /><col class="hq-def-comm-col" /><col class="hq-def-comm-col" /><col class="hq-def-comm-col" /><col class="hq-def-comm-col" />' +
-              '<col class="hq-def-comm-col" /><col class="hq-def-comm-col" /><col class="hq-def-comm-col" /><col class="hq-def-comm-col" /><col class="hq-def-comm-col" /><col class="hq-def-comm-col" /><col class="hq-def-comm-col" /><col class="hq-def-comm-col" /><col class="hq-def-comm-col" /><col class="hq-def-comm-col" /><col class="hq-def-comm-col" />' +
-              '<col class="hq-def-comm-col" /><col class="hq-def-comm-col" /><col class="hq-def-comm-col" />' +
+              '<col class="hq-def-comm-col" /><col class="hq-def-comm-col" /><col class="hq-def-comm-col" /><col class="hq-def-comm-col" /><col class="hq-def-comm-col" /><col class="hq-def-comm-col" /><col class="hq-def-comm-col" /><col class="hq-def-comm-col" /><col class="hq-def-comm-col" /><col class="hq-def-comm-col" /><col class="hq-def-comm-col" /><col class="hq-def-comm-col" />' +
+              '<col class="hq-def-comm-col" /><col class="hq-def-comm-col" /><col class="hq-def-comm-col" /><col class="hq-def-comm-col" />' +
               '<col class="hq-def-comm-col" /><col class="hq-def-comm-col" />' +
               '<col class="hq-def-comm-col" />' +
               '<col class="hq-def-comm-col" /><col class="hq-def-comm-col" /><col class="hq-def-comm-col" /><col class="hq-def-comm-col" />' +
@@ -2057,16 +2086,16 @@
               '<th rowspan="2" class="text-center align-middle hq-def-comm-th-cb-zone small"><span data-pg-ui-t="차지백">' + escUi(L('차지백')) + '</span><br><span data-pg-ui-t="구간정책">' + escUi(L('구간정책')) + '</span></th>' +
               '<th rowspan="2" class="text-center align-middle hq-def-comm-th-deploy" data-pg-ui-t="적용">' + escUi(L('적용')) + '</th>' +
               '<th rowspan="2" class="text-center align-middle hq-def-comm-th-cur" data-pg-ui-t="통화">' + escUi(L('통화')) + '</th>' +
-              '<th colspan="11" class="text-center align-middle small hq-def-comm-th-group border-start" data-pg-ui-t="수수료 고정">' + escUi(L('수수료 고정')) + '</th>' +
-              '<th colspan="3" class="text-center align-middle small hq-def-comm-th-group border-start" data-pg-ui-t="수수료 %">' + escUi(L('수수료 %')) + '</th>' +
+              '<th colspan="12" class="text-center align-middle small hq-def-comm-th-group border-start" data-pg-ui-t="수수료 고정">' + escUi(L('수수료 고정')) + '</th>' +
+              '<th colspan="4" class="text-center align-middle small hq-def-comm-th-group border-start" data-pg-ui-t="수수료 %">' + escUi(L('수수료 %')) + '</th>' +
               '<th colspan="2" class="text-center align-middle small hq-def-comm-th-group border-start" data-pg-ui-t="담보율">' + escUi(L('담보율')) + '</th>' +
               '<th rowspan="2" class="text-center align-middle hq-def-comm-th-mon border-start" data-pg-ui-t="월간">' + escUi(L('월간')) + '</th>' +
               '<th colspan="4" class="text-center align-middle small hq-def-comm-th-group border-start" data-pg-ui-t="기타">' + escUi(L('기타')) + '</th>' +
               '<th rowspan="2" class="text-center align-middle hq-def-comm-th-upd text-nowrap border-start" data-pg-ui-t="일시">' + escUi(L('일시')) + '</th>' +
               '</tr>' +
               '<tr>' +
-              '<th class="hq-def-comm-th-sub text-center border-start" data-pg-ui-t="건당">' + escUi(L('건당')) + '</th><th class="hq-def-comm-th-sub text-center" data-pg-ui-t="실패">' + escUi(L('실패')) + '</th><th class="hq-def-comm-th-sub text-center" data-pg-ui-t="정산">' + escUi(L('정산')) + '</th><th class="hq-def-comm-th-sub text-center" data-pg-ui-t="송금">' + escUi(L('송금')) + '</th><th class="hq-def-comm-th-sub text-center" data-pg-ui-t="U송금">' + escUi(L('U송금')) + '</th><th class="hq-def-comm-th-sub text-center" data-pg-ui-t="차지백">' + escUi(L('차지백')) + '</th><th class="hq-def-comm-th-sub text-center" data-pg-ui-t="취소">' + escUi(L('취소')) + '</th><th class="hq-def-comm-th-sub text-center" data-pg-ui-t="무효">' + escUi(L('무효')) + '</th><th class="hq-def-comm-th-sub text-center" data-pg-ui-t="수무효">' + escUi(L('수무효')) + '</th><th class="hq-def-comm-th-sub text-center" data-pg-ui-t="환불">' + escUi(L('환불')) + '</th><th class="hq-def-comm-th-sub text-center">3DS</th>' +
-              '<th class="hq-def-comm-th-sub text-center border-start" data-pg-ui-t="결제">' + escUi(L('결제')) + '</th><th class="hq-def-comm-th-sub text-center">USDT</th><th class="hq-def-comm-th-sub text-center">FX</th>' +
+              '<th class="hq-def-comm-th-sub text-center border-start" data-pg-ui-t="건당">' + escUi(L('건당')) + '</th><th class="hq-def-comm-th-sub text-center" data-pg-ui-t="실패">' + escUi(L('실패')) + '</th><th class="hq-def-comm-th-sub text-center" data-pg-ui-t="정산">' + escUi(L('정산')) + '</th><th class="hq-def-comm-th-sub text-center" data-pg-ui-t="송금">' + escUi(L('송금')) + '</th><th class="hq-def-comm-th-sub text-center" data-pg-ui-t="U송금">' + escUi(L('U송금')) + '</th><th class="hq-def-comm-th-sub text-center" data-pg-ui-t="차지백">' + escUi(L('차지백')) + '</th><th class="hq-def-comm-th-sub text-center" data-pg-ui-t="취소">' + escUi(L('취소')) + '</th><th class="hq-def-comm-th-sub text-center" data-pg-ui-t="무효">' + escUi(L('무효')) + '</th><th class="hq-def-comm-th-sub text-center" data-pg-ui-t="수무효">' + escUi(L('수무효')) + '</th><th class="hq-def-comm-th-sub text-center" data-pg-ui-t="환불">' + escUi(L('환불')) + '</th><th class="hq-def-comm-th-sub text-center">3DS</th><th class="hq-def-comm-th-sub text-center" data-pg-ui-t="분할건">' + escUi(L('분할건')) + '</th>' +
+              '<th class="hq-def-comm-th-sub text-center border-start" data-pg-ui-t="결제">' + escUi(L('결제')) + '</th><th class="hq-def-comm-th-sub text-center">USDT</th><th class="hq-def-comm-th-sub text-center">FX</th><th class="hq-def-comm-th-sub text-center" data-pg-ui-t="분할">' + escUi(L('분할')) + '</th>' +
               '<th class="hq-def-comm-th-sub text-center border-start" data-pg-ui-t="비율">' + escUi(L('비율')) + '</th><th class="hq-def-comm-th-sub text-center" data-pg-ui-t="일">' + escUi(L('일')) + '</th>' +
               '<th id="hqDefCommExtraHead1" class="hq-def-comm-th-sub text-center border-start" data-pg-ui-t="기타1">' + escUi(L('기타1')) + '</th><th id="hqDefCommExtraHead2" class="hq-def-comm-th-sub text-center" data-pg-ui-t="기타2">' + escUi(L('기타2')) + '</th><th id="hqDefCommExtraHead3" class="hq-def-comm-th-sub text-center" data-pg-ui-t="기타3">' + escUi(L('기타3')) + '</th><th id="hqDefCommExtraHead4" class="hq-def-comm-th-sub text-center" data-pg-ui-t="기타4">' + escUi(L('기타4')) + '</th>' +
               '</tr>' +
@@ -2440,6 +2469,14 @@
           ]
         },
         {
+          title: 'JPAY 통합내역(동기화 기간)',
+          notice: 'JPAY 포털 로그인 계정은 <strong>본사설정 &gt; 결제대행사로직</strong>에서 총판(MASTER_DIST)별로 등록합니다. 아래는 동기화 기간만 설정합니다. 서버(VPS)에 <code>Node.js</code>·Playwright Chromium이 필요합니다.',
+          rows: [
+            [{ label: 'JPAY 초기화 동기화(개월)', type: 'number', name: 'jpayTrInitSyncMonths', col: 3, placeholder: '기본 3' },
+             { label: 'JPAY 최근 동기화 범위(일)', type: 'number', name: 'jpayTrRecentSyncDays', col: 3, placeholder: '기본 2' }]
+          ]
+        },
+        {
           title: '수수료·정산 로직 (수수료내역)',
           notice: '통화별 표는 결제·정산 통화(알파 코드)마다 소수 자릿수·잘리는 자리 처리를 지정합니다. 소수 자릿수가 0이면 금액은 정수만 의미하므로 「잘리는 자리 처리」는 비활성화되며 저장 시 그대로(버림, DOWN)로 통일됩니다. 목록 API는 행의 결제통화·거래통화에 맞춰 이 설정을 적용합니다. JSON에 없는 통화는 아래 「기본(통화 미지정)」값을 따릅니다. 조직항목설정 VIEW SETTING의 통화 열은 가맹 정책통화·거래통화를 표시하며, 총판 하위 가맹이 쓰는 모든 통화가 데이터에 존재하면 각 행에 그대로 나타납니다.',
           rows: [
@@ -2556,6 +2593,8 @@
               { label: '설정 대상 화면', type: 'select', name: 'targetPageUrl', col: 4, options: [
                 /* 결제관리 — 사이드 메뉴(menu-structure·index) 순서·표기와 동일 */
                 { v: '/calc/chillPayTrList', t: '통합내역' },
+                { v: '/calc/jpayTrList', t: 'JPAY통합내역' },
+                { v: '/calc/splitPayList', t: '분할결제내역' },
                 { v: '/calc/dailyIntegrated', t: '일별통합' },
                 { v: '/calc/payList', t: '결제내역' },
                 { v: '/calc/dailyPay', t: '일별결제' },
@@ -2873,7 +2912,7 @@
       isForm: true,
       formSections: [
         {
-          title: '결제로직설정',
+          title: '결제대행사로직',
           notice: '결제대행 연동 핵심 정책입니다. 통합유형(API_BROKER/URL_PAY)별 결제 실행방식(INLINE/REDIRECT) 기본값과 URL결제 경로를 설정합니다.',
           rows: [
             [{ label: 'API 중계형 기본 방식', type: 'select', name: 'apiBrokerDefaultFlowType', options: [{ v: 'INLINE', t: 'INLINE' }, { v: 'REDIRECT', t: 'REDIRECT' }], col: 2 },
@@ -2888,6 +2927,49 @@
             [{ label: 'URL 재결제형 제공', type: 'select', name: 'urlPayRepayEnabledYn', options: [{ v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }], col: 2 },
              { label: 'URL 재결제 경로 템플릿', type: 'text', name: 'urlPayRepayPathTemplate', col: 4, placeholder: '/pay-repay/{compCode}' },
              { label: '', type: 'note', col: 6, text: '저장 카드(CreditToken) 재결제 전용 공개 URL. 가맹 「URL 결제 방식」(공개 URL)·「API URL 인라인 중계 결제」·「챗봇결제 설정」 각각 재결제 URL 이면 해당 채널에 적용됩니다.' }]
+          ]
+        },
+        {
+          title: 'JPAY 포털 통합내역 (총판별 계정)',
+          notice: 'JPAY는 목록 API가 없습니다. 총판(MASTER_DIST)마다 merchant.j-pay.net 포털 ID 1개를 등록하면, 동기화 시 계정을 순회해 Export 엑셀을 병합·대조합니다. (예: JPY 총판·USD 총판 각각 별도 계정) 비밀번호는 저장 시에만 갱신됩니다.',
+          rows: [
+            [{
+              type: 'customHtml',
+              col: 12,
+              html: '<input type="hidden" id="hqJpayPortalAccountEditId" value="">' +
+                '<div class="border rounded p-2 mb-2 bg-light bg-opacity-25">' +
+                '<div class="row g-2 align-items-end">' +
+                '<div class="col-md-3"><label class="form-label small mb-0" for="hqJpayPortalMasterDist" data-pg-ui-t="총판">총판</label>' +
+                '<select class="form-select form-select-sm" id="hqJpayPortalMasterDist"><option value="" data-pg-ui-t="선택">선택</option></select></div>' +
+                '<div class="col-md-2"><label class="form-label small mb-0" for="hqJpayPortalPgCd" data-pg-ui-t="PG코드">PG코드</label>' +
+                '<select class="form-select form-select-sm" id="hqJpayPortalPgCd"><option value="" data-pg-ui-t="선택">선택</option></select></div>' +
+                '<div class="col-md-2"><label class="form-label small mb-0" for="hqJpayPortalLabel" data-pg-ui-t="표시명">표시명</label>' +
+                '<input type="text" class="form-control form-control-sm" id="hqJpayPortalLabel" maxlength="200" data-pg-ui-placeholder="예: JPY 총판" placeholder="예: JPY 총판"></div>' +
+                '<div class="col-md-2"><label class="form-label small mb-0" for="hqJpayPortalUsername" data-pg-ui-t="포털 ID">포털 ID</label>' +
+                '<input type="text" class="form-control form-control-sm" id="hqJpayPortalUsername" autocomplete="off"></div>' +
+                '<div class="col-md-2"><label class="form-label small mb-0" for="hqJpayPortalPassword" data-pg-ui-t="포털 비밀번호">포털 비밀번호</label>' +
+                '<input type="password" class="form-control form-control-sm" id="hqJpayPortalPassword" autocomplete="new-password" data-pg-ui-placeholder="신규·변경 시 입력" placeholder="신규·변경 시 입력"></div>' +
+                '<div class="col-md-1"><label class="form-label small mb-0" for="hqJpayPortalUseYn" data-pg-ui-t="사용">사용</label>' +
+                '<select class="form-select form-select-sm" id="hqJpayPortalUseYn"><option value="Y">Y</option><option value="N">N</option></select></div>' +
+                '<div class="col-12 d-flex flex-wrap gap-2 pb-1">' +
+                '<button type="button" class="btn btn-sm btn-primary" id="hqJpayPortalAccountSaveBtn" data-pg-ui-t="계정 저장">계정 저장</button>' +
+                '<button type="button" class="btn btn-sm btn-outline-secondary" id="hqJpayPortalAccountCancelBtn" data-pg-ui-t="입력 초기화">입력 초기화</button>' +
+                '</div></div></div>' +
+                '<div class="table-responsive"><table class="table table-sm table-bordered align-middle mb-0">' +
+                '<thead class="table-light"><tr>' +
+                '<th class="text-center" style="width:3rem">#</th>' +
+                '<th style="min-width:8rem" data-pg-ui-t="총판코드">총판코드</th>' +
+                '<th style="min-width:8rem" data-pg-ui-t="표시명">표시명</th>' +
+                '<th style="min-width:6rem" data-pg-ui-t="PG코드">PG코드</th>' +
+                '<th style="min-width:9rem" data-pg-ui-t="포털 ID">포털 ID</th>' +
+                '<th class="text-center" style="width:5rem" data-pg-ui-t="비밀번호">비밀번호</th>' +
+                '<th class="text-center" style="width:4rem" data-pg-ui-t="사용">사용</th>' +
+                '<th class="text-center" style="width:4.5rem" data-pg-ui-t="수정">수정</th>' +
+                '<th class="text-center" style="width:4.5rem" data-pg-ui-t="삭제">삭제</th>' +
+                '</tr></thead>' +
+                '<tbody id="hqJpayPortalAccountTbody"><tr><td colspan="9" class="text-center text-muted py-3" data-pg-ui-t="불러오는 중…">불러오는 중…</td></tr></tbody>' +
+                '</table></div>'
+            }]
           ]
         },
         {
@@ -3288,6 +3370,7 @@
         merchantJpayCheckoutFieldModeCardSection(),
         merchantApiIntegrationChannelsCardSection(),
         merchantJpayApiSubscriptionCardSection(),
+        merchantSplitPayCardSection(),
         {
           title: '챗봇결제 설정',
           id: 'chatbotPaymentCard',
@@ -3703,6 +3786,7 @@
         merchantJpayCheckoutFieldModeCardSection(),
         merchantApiIntegrationChannelsCardSection(),
         merchantJpayApiSubscriptionCardSection(),
+        merchantSplitPayCardSection(),
         {
           title: '챗봇결제 설정',
           id: 'chatbotPaymentCard',
@@ -4049,6 +4133,7 @@
         merchantJpayCheckoutFieldModeCardSection(),
         merchantApiIntegrationChannelsCardSection(),
         merchantJpayApiSubscriptionCardSection(),
+        merchantSplitPayCardSection(),
         {
           title: '챗봇결제 설정',
           id: 'chatbotPaymentCard',
@@ -4414,6 +4499,119 @@
         { key: 'paymentDate', label: 'PaymentDate(원문)' }
       ],
       emptyMessage: '조회된 데이터가 없습니다.'
+    },
+    '/calc/jpayTrList': {
+      listSortDirAnchor: 'refresh',
+      paginationSizeOptions: [50, 100, 300],
+      paginationDefaultSize: 50,
+      payListStatusBar: true,
+      searchFormClass: 'screen-search-form pay-mng-search-form',
+      searchRows: [
+        [
+          { label: '거래일자', type: 'daterange', from: 'searchFromDate', to: 'searchToDate' },
+          { type: 'quickdate', quickdateLabels: ['당일', '당월', '전일', '1주', '2주', '전월'], quickdateRanges: ['day', 'month', 'prevDay', 'week', 'week2', 'prevMonth'] }
+        ],
+        [
+          { label: '검색구분', type: 'select', name: 'searchFieldType', options: [
+            { v: 'ALL', t: '전체' },
+            { v: 'ORDER_NO', t: '주문번호' },
+            { v: 'APPROVAL_NO', t: '승인번호' },
+            { v: 'MID', t: 'MID' }
+          ], size: 11 },
+          { label: '검색어', type: 'text', name: 'searchKeyword', placeholder: '검색어', size: 22 },
+          { label: '상태구분', type: 'select', name: 'searchPayDivCd', options: [
+            { v: '', t: '전체' },
+            { v: '10', t: '성공' },
+            { v: '30', t: '환불' },
+            { v: '31', t: '강제환불' },
+            { v: '99', t: '실패' }
+          ], size: 11 },
+          { type: 'searchBtn', label: '검색' },
+          { type: 'button', name: 'searchReset', label: '검색 초기화' }
+        ]
+      ],
+      noticeList: [
+        'JPAY 가맹 포털(merchant.j-pay.net)에 자동 로그인 → Export 다운로드 → ICOPAY 결제내역 대조·반영합니다. 목록 API가 없어 포털 Export 엑셀을 사용합니다.',
+        '본사설정 > 결제대행사로직에서 총판별 JPAY 포털 계정을 등록하고, 전산설정관리에서 동기화 기간을 설정하세요. VPS에 Node.js·Playwright(Chromium)가 필요합니다.',
+        '[JPAY 동기화]는 선택 기간 Export 후 캐시 목록을 갱신합니다. 날짜 없이 검색하면 최근 동기화 범위(일)로 자동 동기화합니다.'
+      ],
+      summary: ['건수'],
+      buttons: [
+        { id: 'jpayTrSyncBtn', label: 'JPAY 동기화', cls: 'btn-primary' },
+        { id: 'payListRefreshBtn', label: '새로고침', cls: 'btn-outline-secondary' },
+        { id: 'excelDownBtn', label: '엑셀다운로드', cls: 'btn-info' }
+      ],
+      columns: [
+        { key: 'rowNo', label: 'No.' },
+        { key: 'masterDistNm', label: '총판' },
+        { key: 'portalLabel', label: '포털표시' },
+        { key: 'transactionId', label: '승인번호' },
+        { key: 'compNm', label: '업체명' },
+        { key: 'compId', label: '업체코드' },
+        { key: 'trnDate', label: '거래일' },
+        { key: 'trnTime', label: '거래시간' },
+        { key: 'merchant', label: 'MID' },
+        { key: 'orderNo', label: '주문번호' },
+        { key: 'amount', label: '결제금액' },
+        { key: 'currency', label: '통화' },
+        { key: 'status', label: 'JPAY상태' },
+        { key: 'icopay', label: 'ICOPAY' },
+        { key: 'dbStatus', label: 'DB상태' },
+        { key: 'fee', label: '수수료' },
+        { key: 'refundStatus', label: '환불' },
+        { key: 'chargeback', label: '차지백' },
+        { key: 'urlSource', label: 'URL출처' }
+      ],
+      emptyMessage: '동기화 후 조회됩니다. [JPAY 동기화]를 실행하세요.'
+    },
+    '/calc/splitPayList': {
+      listSortDirAnchor: 'refresh',
+      paginationSizeOptions: [50, 100, 300],
+      paginationDefaultSize: 50,
+      payListStatusBar: true,
+      searchFormClass: 'screen-search-form pay-mng-search-form',
+      searchRows: [
+        [
+          { label: '등록일자', type: 'daterange', from: 'searchFromDate', to: 'searchToDate' },
+          { type: 'quickdate', quickdateLabels: ['당일', '당월', '전일', '1주', '2주', '전월'], quickdateRanges: ['day', 'month', 'prevDay', 'week', 'week2', 'prevMonth'] }
+        ],
+        [
+          { label: '업체코드', type: 'text', name: 'compId', placeholder: '업체코드', size: 14 },
+          { label: '계약번호', type: 'text', name: 'contractNo', placeholder: '계약번호', size: 18 },
+          { label: '상태', type: 'select', name: 'status', options: [
+            { v: '', t: '전체' },
+            { v: 'ACTIVE', t: '진행중' },
+            { v: 'COMPLETED', t: '완료' },
+            { v: 'STOPPED', t: '중지' },
+            { v: 'CANCELLED', t: '취소' }
+          ], size: 11 },
+          { type: 'searchBtn', label: '검색' },
+          { type: 'button', name: 'searchReset', label: '검색 초기화' }
+        ]
+      ],
+      noticeList: [
+        'URL 분할결제 계약 목록입니다. 가맹 업체등록·업체정보의 「URL 분할결제」에서 기능을 켠 가맹만 계약을 생성할 수 있습니다.',
+        '각 회차 결제는 URL 결제 플로우로 진행됩니다. 1회차는 즉시결제(IMMEDIATE) 또는 링크발송(LINK) 모드에 따라 처리되며, 미납 회차는 매일 결제 링크 메일이 발송됩니다.',
+        '수수료는 본사 수수료정책의 분할수수료율·분할고정수수료(건)가 계약 생성 시 스냅샷으로 저장됩니다. API: POST /api/pay/split/contracts · GET /api/pay/split/installment?token=…'
+      ],
+      summary: ['건수'],
+      buttons: [
+        { id: 'payListRefreshBtn', label: '새로고침', cls: 'btn-outline-secondary' },
+        { id: 'excelDownBtn', label: '엑셀다운로드', cls: 'btn-info' }
+      ],
+      columns: [
+        { key: 'rowNo', label: 'No.' },
+        { key: 'contractNo', label: '계약번호' },
+        { key: 'compId', label: '업체코드' },
+        { key: 'customerEmail', label: '고객이메일' },
+        { key: 'totalAmount', label: '총금액' },
+        { key: 'installmentCount', label: '분할횟수' },
+        { key: 'paidCount', label: '납부횟수' },
+        { key: 'status', label: '상태' },
+        { key: 'contractDate', label: '계약일' },
+        { key: 'createdAt', label: '등록일시' }
+      ],
+      emptyMessage: '조회된 분할결제 계약이 없습니다.'
     },
     '/calc/dailyIntegrated': {
       isDailySummaryScreen: true,

@@ -4,6 +4,7 @@ import com.pg.entity.MerchantReceivable;
 import com.pg.entity.PgNotifyInbound;
 import com.pg.entity.SettlementRun;
 import com.pg.entity.SettlementSetting;
+import com.pg.entity.CommissionPolicy;
 import com.pg.repository.MerchantReceivableRepository;
 import com.pg.repository.PgNotifyInboundRepository;
 import com.pg.repository.PgTrnsctnRepository;
@@ -11,6 +12,7 @@ import com.pg.repository.SettlementRunRepository;
 import com.pg.repository.SettlementSettingRepository;
 import com.pg.util.DashboardCurrencyAggregate;
 import com.pg.util.DashboardTupleRows;
+import com.pg.util.PayListStatusBarBuckets;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 
@@ -43,17 +45,20 @@ public class DashboardInsightsService {
     private final PgNotifyInboundRepository pgNotifyInboundRepository;
     private final SettlementRunRepository settlementRunRepository;
     private final SettlementSettingRepository settlementSettingRepository;
+    private final CommissionService commissionService;
 
     public DashboardInsightsService(PgTrnsctnRepository pgTrnsctnRepository,
                                     MerchantReceivableRepository merchantReceivableRepository,
                                     PgNotifyInboundRepository pgNotifyInboundRepository,
                                     SettlementRunRepository settlementRunRepository,
-                                    SettlementSettingRepository settlementSettingRepository) {
+                                    SettlementSettingRepository settlementSettingRepository,
+                                    CommissionService commissionService) {
         this.pgTrnsctnRepository = pgTrnsctnRepository;
         this.merchantReceivableRepository = merchantReceivableRepository;
         this.pgNotifyInboundRepository = pgNotifyInboundRepository;
         this.settlementRunRepository = settlementRunRepository;
         this.settlementSettingRepository = settlementSettingRepository;
+        this.commissionService = commissionService;
     }
 
     public Map<String, Object> build(boolean unrestricted,
@@ -144,8 +149,10 @@ public class DashboardInsightsService {
         long recvCnt = DashboardTupleRows.readLong(recv != null && recv.length > 0 ? recv[0] : null);
         BigDecimal recvRem = recv != null && recv.length > 1
                 ? DashboardTupleRows.readDecimal(recv[1]) : BigDecimal.ZERO;
+        List<Map<String, Object>> recvByCur = loadReceivableRemainingByCurrency(unrestricted, merchantScopeNonNull);
         kpi.put("receivableOpenCount", recvCnt);
         kpi.put("receivableRemainingSum", recvRem.setScale(0, RoundingMode.HALF_UP));
+        kpi.put("receivableRemainingByCurrency", recvByCur);
 
         LocalDateTime notifySince = today.minusDays(7).atStartOfDay();
         long notifyBad = countNotifyNotParsed(unrestricted, merchantScopeNonNull, notifySince, weekNextStart);
@@ -158,7 +165,7 @@ public class DashboardInsightsService {
 
         root.put("timeline", buildTimeline(unrestricted, merchantScopeNonNull, today));
 
-        root.put("priorityQueue", buildPriorityQueue(scoreThis - scorePrev, recvCnt, recvRem, notifyBad, holds, lvl));
+        root.put("priorityQueue", buildPriorityQueue(scoreThis - scorePrev, recvCnt, recvByCur, notifyBad, holds, lvl));
 
         root.put("anomalies", buildAnomalies(unrestricted, merchantScopeNonNull, weekThisStart, weekNextStart, lvl));
 
@@ -166,7 +173,7 @@ public class DashboardInsightsService {
 
         root.put("explainers", defaultExplainers());
 
-        root.put("ruleNarrative", buildRuleNarrative(scoreThis, scorePrev, bThis, recvCnt, recvRem, notifyBad, holds, lvl));
+        root.put("ruleNarrative", buildRuleNarrative(scoreThis, scorePrev, bThis, recvCnt, recvByCur, notifyBad, holds, lvl));
         return root;
     }
 
@@ -219,6 +226,7 @@ public class DashboardInsightsService {
         k.put("todayCancels", 0L);
         k.put("receivableOpenCount", 0L);
         k.put("receivableRemainingSum", BigDecimal.ZERO.setScale(0, RoundingMode.HALF_UP));
+        k.put("receivableRemainingByCurrency", List.of());
         k.put("notifyNotParsedLast7d", 0L);
         k.put("settlementHoldOrPayoutHoldRows30d", 0L);
         return k;
@@ -291,6 +299,105 @@ public class DashboardInsightsService {
                 ? merchantReceivableRepository.dashboardPendingReceivableAll()
                 : merchantReceivableRepository.dashboardPendingReceivableIn(mids);
         return DashboardTupleRows.normalizeRow(raw);
+    }
+
+    private List<Map<String, Object>> loadReceivableRemainingByCurrency(boolean unrestricted, Set<String> mids) {
+        if (!unrestricted && (mids == null || mids.isEmpty())) {
+            return List.of();
+        }
+        List<MerchantReceivable> rows = unrestricted
+                ? merchantReceivableRepository.findAllPendingForDashboard()
+                : merchantReceivableRepository.findPendingForDashboardIn(mids);
+        Map<String, ReceivableCurrencyAgg> merged = new LinkedHashMap<>();
+        for (MerchantReceivable r : rows) {
+            if (r == null) {
+                continue;
+            }
+            String cur = resolveReceivableDisplayCurrency(r);
+            ReceivableCurrencyAgg agg = merged.computeIfAbsent(cur, ReceivableCurrencyAgg::new);
+            agg.openCount++;
+            agg.remainingSum = agg.remainingSum.add(
+                    r.getRemainingAmount() != null ? r.getRemainingAmount() : BigDecimal.ZERO);
+        }
+        List<Map<String, Object>> out = new ArrayList<>();
+        for (Map.Entry<String, ReceivableCurrencyAgg> e : merged.entrySet()) {
+            Map<String, Object> m = new LinkedHashMap<>();
+            m.put("currency", e.getKey());
+            m.put("openCount", e.getValue().openCount);
+            m.put("remainingSum", e.getValue().remainingSum.setScale(8, RoundingMode.HALF_UP));
+            out.add(m);
+        }
+        out.sort(Comparator.comparing(m -> String.valueOf(m.get("currency"))));
+        return out;
+    }
+
+    private String resolveReceivableDisplayCurrency(MerchantReceivable r) {
+        if (r.getBillingCcy() != null && !r.getBillingCcy().isBlank()) {
+            return PayListStatusBarBuckets.normalizeCurrency(r.getBillingCcy().trim());
+        }
+        String mc = r.getMerchantId() != null ? r.getMerchantId().trim() : "";
+        if (mc.isEmpty()) {
+            return PayListStatusBarBuckets.normalizeCurrency("KRW");
+        }
+        CommissionPolicy pol = commissionService.resolveCommissionPolicyForSettlement(mc);
+        String c = pol != null ? pol.getCurrencyCode() : null;
+        return PayListStatusBarBuckets.normalizeCurrency(c != null && !c.isBlank() ? c.trim() : "KRW");
+    }
+
+    private static String formatReceivableAmountForCurrency(BigDecimal amt, String currency) {
+        String cur = currency != null ? currency.trim().toUpperCase(Locale.ROOT) : "KRW";
+        int scale = ("KRW".equals(cur) || "JPY".equals(cur) || "VND".equals(cur)) ? 0 : 2;
+        BigDecimal v = amt != null ? amt : BigDecimal.ZERO;
+        return v.setScale(scale, RoundingMode.HALF_UP).toPlainString();
+    }
+
+    private static String formatReceivableSummaryTitle(long recvCnt, List<Map<String, Object>> recvByCur) {
+        if (recvCnt <= 0 || recvByCur == null || recvByCur.isEmpty()) {
+            return "";
+        }
+        if (recvByCur.size() == 1) {
+            Map<String, Object> row = recvByCur.get(0);
+            String cur = String.valueOf(row.getOrDefault("currency", "KRW"));
+            BigDecimal sum = DashboardTupleRows.readDecimal(row.get("remainingSum"));
+            return "미수금 잔액 " + recvCnt + "건 · 합계 약 " + formatReceivableAmountForCurrency(sum, cur) + " " + cur;
+        }
+        StringBuilder parts = new StringBuilder();
+        for (Map<String, Object> row : recvByCur) {
+            if (parts.length() > 0) {
+                parts.append(" / ");
+            }
+            String cur = String.valueOf(row.getOrDefault("currency", "KRW"));
+            BigDecimal sum = DashboardTupleRows.readDecimal(row.get("remainingSum"));
+            parts.append(cur).append(' ').append(formatReceivableAmountForCurrency(sum, cur));
+        }
+        return "미수금 잔액 " + recvCnt + "건 · " + parts;
+    }
+
+    private static String formatReceivableNarrative(List<Map<String, Object>> recvByCur) {
+        if (recvByCur == null || recvByCur.isEmpty()) {
+            return "";
+        }
+        if (recvByCur.size() == 1) {
+            Map<String, Object> row = recvByCur.get(0);
+            String cur = String.valueOf(row.getOrDefault("currency", "KRW"));
+            BigDecimal sum = DashboardTupleRows.readDecimal(row.get("remainingSum"));
+            return "미수금 잔액이 " + formatReceivableAmountForCurrency(sum, cur) + " " + cur + " 남아 있습니다. ";
+        }
+        StringBuilder parts = new StringBuilder();
+        for (Map<String, Object> row : recvByCur) {
+            if (parts.length() > 0) {
+                parts.append(", ");
+            }
+            String cur = String.valueOf(row.getOrDefault("currency", "KRW"));
+            BigDecimal sum = DashboardTupleRows.readDecimal(row.get("remainingSum"));
+            parts.append(formatReceivableAmountForCurrency(sum, cur)).append(' ').append(cur);
+        }
+        return "미수금 잔액이 " + parts + " 남아 있습니다. ";
+    }
+
+    private static final class ReceivableCurrencyAgg {
+        long openCount;
+        BigDecimal remainingSum = BigDecimal.ZERO;
     }
 
     private long countNotifyNotParsed(boolean unrestricted, Set<String> mids, LocalDateTime from, LocalDateTime toEx) {
@@ -370,15 +477,18 @@ public class DashboardInsightsService {
         return items;
     }
 
-    private List<Map<String, Object>> buildPriorityQueue(int riskDelta, long recvCnt, BigDecimal recvRem,
+    private List<Map<String, Object>> buildPriorityQueue(int riskDelta, long recvCnt, List<Map<String, Object>> recvByCur,
                                                         long notifyBad, long holds, String orgLevel) {
         List<Prior> list = new ArrayList<>();
         if (recvCnt > 0) {
+            BigDecimal recvRem = recvByCur != null ? recvByCur.stream()
+                    .map(m -> DashboardTupleRows.readDecimal(m.get("remainingSum")))
+                    .reduce(BigDecimal.ZERO, BigDecimal::add) : BigDecimal.ZERO;
             double extra = recvRem.compareTo(BigDecimal.ZERO) > 0
                     ? Math.min(40, recvRem.divide(BigDecimal.valueOf(5_000_000L), 2, RoundingMode.HALF_UP).doubleValue() * 8.0)
                     : 0.0;
             double sev = Math.min(100, 35 + extra);
-            list.add(new Prior(sev, "미수금 잔액 " + recvCnt + "건 · 합계 약 " + recvRem.toPlainString() + " 원", "/calc/unpaidMng",
+            list.add(new Prior(sev, formatReceivableSummaryTitle(recvCnt, recvByCur), "/calc/unpaidMng",
                     "PENDING_RECEIVABLE"));
         }
         if (notifyBad > 0) {
@@ -505,7 +615,7 @@ public class DashboardInsightsService {
     }
 
     private static String buildRuleNarrative(int scoreThis, int scorePrev, RiskBuckets bThis,
-                                             long recvCnt, BigDecimal recvRem, long notifyBad, long holds, String orgLevel) {
+                                             long recvCnt, List<Map<String, Object>> recvByCur, long notifyBad, long holds, String orgLevel) {
         StringBuilder sb = new StringBuilder();
         int dScore = scoreThis - scorePrev;
         sb.append("최근 7일 리스크 점수는 ").append(scoreThis).append("점이며, 직전 7일 대비 ")
@@ -513,7 +623,7 @@ public class DashboardInsightsService {
         sb.append("구성은 실패 ").append(bThis.fail).append("·무효계열 ").append(bThis.voidFamily)
                 .append("·환불 ").append(bThis.refund).append("·취소 ").append(bThis.cancel).append("건입니다. ");
         if (recvCnt > 0) {
-            sb.append("미수금 잔액이 ").append(recvRem.toPlainString()).append(" 원 남아 있습니다. ");
+            sb.append(formatReceivableNarrative(recvByCur));
         }
         if (notifyBad > 0) {
             sb.append("노티 미매핑/미적재가 7일간 ").append(notifyBad).append("건입니다. ");
