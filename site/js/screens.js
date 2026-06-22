@@ -145,7 +145,7 @@
   /** 웹결제 결제창 로고 아래 경고문구 — 경고메세지「활성」일 때만 입력 */
   function webPaymentHeaderSubtitleFieldBlock() {
     var ph = '결제창 로고 아래에 표시할 문구';
-    var hint = '「활성」일 때만 직접 입력 가능합니다. 「기본」은 3DS 안전 결제 문구가 언어별로 표시됩니다. 로고설정이 비활성이면 문구도 표시되지 않습니다.';
+    var hint = '「활성」일 때만 직접 입력 가능합니다. 「기본」은 3DS 안전 결제 문구가 언어별로 표시됩니다. 로고설정이 미활성이면 문구도 표시되지 않습니다.';
     return '<div class="form-field-block web-payment-header-subtitle-block w-100" id="webPaymentHeaderSubtitleBlock">' +
       '<label class="form-label" data-pg-ui-t="경고메세지 문구">' + escUi(L('경고메세지 문구')) + '</label>' +
       '<input type="text" class="form-control form-control-sm" name="webPaymentHeaderSubtitleText" id="webPaymentHeaderSubtitleText" ' +
@@ -165,8 +165,12 @@
         { v: 'GENERAL', t: '일반' },
         { v: 'TYPE_A', t: 'A타입' },
         { v: 'TYPE_AG', t: 'AG타입' },
+        { v: 'TYPE_AF', t: 'AF타입' },
+        { v: 'TYPE_AE', t: 'AE타입' },
         { v: 'TYPE_B', t: 'B타입' },
         { v: 'TYPE_BG', t: 'BG타입' },
+        { v: 'TYPE_BF', t: 'BF타입' },
+        { v: 'TYPE_BE', t: 'BE타입' },
         { v: 'TYPE_C', t: 'C타입' }
       ], col: 2 }
     ];
@@ -187,7 +191,7 @@
       { label: '상품명 사용', type: 'select', name: 'urlPayProductNameUseYn', options: [{ v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }], col: 2 },
       { label: '상품명', type: 'text', name: 'defaultProductName', col: 2, placeholder: '대표 상품명', blockExtraClass: 'url-pay-product-name-field' },
       { label: '상품코드', type: 'text', name: 'defaultProductCode', col: 1 },
-      { label: '기본금액', type: 'text', name: 'defaultProductAmount', col: 1, placeholder: '0' },
+      { label: '기본금액', type: 'text', name: 'defaultProductAmount', col: 1, placeholder: '' },
       { label: '상품설명', type: 'text', name: 'defaultProductDesc', col: 4 }
     ];
   }
@@ -198,7 +202,10 @@
       merchantWebPaymentCardPrimaryRow(),
       merchantWebPaymentCardSecondaryRow(),
       [{ label: '로고설정', type: 'select', name: 'webPaymentHeaderLogoMode', options: [
-        { v: 'DEFAULT', t: '기본(총판 로고)' }, { v: 'DISABLED', t: '비활성' }, { v: 'ACTIVE', t: '활성(가맹 로고)' }
+        { v: 'DEFAULT', t: '기본(총판 로고)' },
+        { v: 'HTML', t: '기본(HTML)' },
+        { v: 'ACTIVE', t: '활성(가맹점 로고)' },
+        { v: 'DISABLED', t: '미활성' }
       ], col: 3 }],
       [{ type: 'customHtml', col: 12, html: webPaymentHeaderLogoFieldBlock }],
       [{ label: '경고메세지', type: 'select', name: 'webPaymentHeaderSubtitleMode', options: [

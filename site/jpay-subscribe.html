@@ -406,33 +406,13 @@
             var ctx = ctxRes.data;
             checkoutCtx = ctx;
             if (ctx.merchantName) document.getElementById('merchantNameDisplay').textContent = ctx.merchantName;
-            (function applyJpayHeaderBranding() {
-              var brand = document.getElementById('jpayBrandBlock');
-              if (!brand) return;
-              var mode = (ctx.checkoutHeaderLogoMode)
-                ? String(ctx.checkoutHeaderLogoMode).trim().toUpperCase() : 'DEFAULT';
-              if (mode === 'DISABLED') {
-                brand.style.display = 'none';
-                return;
-              }
-              var logoUrl = ctx.checkoutHeaderLogoUrl ? String(ctx.checkoutHeaderLogoUrl).trim() : '';
-              if (mode === 'ACTIVE' && !logoUrl) {
-                brand.style.display = 'none';
-                return;
-              }
-              brand.style.display = '';
-              if (logoUrl) {
-                var logoWrap = document.querySelector('#jpayBrandBlock .pay-brand-logo');
-                if (logoWrap) {
-                  logoWrap.innerHTML = '';
-                  var img = document.createElement('img');
-                  img.src = ctx.checkoutHeaderLogoUrl;
-                  img.alt = ctx.merchantName || 'ICOPAY';
-                  img.className = 'pay-brand-logo-img';
-                  logoWrap.appendChild(img);
-                }
-              }
-            })();
+            if (window.PG_URL_PAY_SHELL && PG_URL_PAY_SHELL.applyCheckoutHeaderLogo) {
+              PG_URL_PAY_SHELL.applyCheckoutHeaderLogo(ctx, {
+                brandBlockId: 'jpayBrandBlock',
+                logoWrapSelector: '.pay-brand-logo',
+                t: typeof t === 'function' ? t : undefined
+              });
+            }
             applyI18n();
             var itemEl = document.getElementById('item');
             if (itemEl && !itemEl.readOnly && ctx.defaultProductName) itemEl.value = String(ctx.defaultProductName).trim();

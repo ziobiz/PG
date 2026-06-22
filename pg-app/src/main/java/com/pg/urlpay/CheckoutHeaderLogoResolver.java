@@ -51,6 +51,9 @@ public class CheckoutHeaderLogoResolver {
             }
             return new Resolved(WebPaymentHeaderLogoModeUtil.ACTIVE, Optional.of(custom.trim()));
         }
+        if (WebPaymentHeaderLogoModeUtil.HTML.equals(mode)) {
+            return new Resolved(WebPaymentHeaderLogoModeUtil.HTML, Optional.empty());
+        }
         return new Resolved(WebPaymentHeaderLogoModeUtil.DEFAULT, resolveMasterDistBrandingLogo(merchantOrgUnitId));
     }
 

@@ -1568,6 +1568,49 @@
     pgMaybeBindWebPaymentHeaderLogo(rootEl);
     pgMaybeBindWebPaymentHeaderSubtitle(rootEl);
     pgMaybeBindUrlPayProductNameUi(rootEl);
+    pgMaybeBindUrlPayInputModeUi(rootEl);
+  }
+  /** 입력방식 변경 시에만 프리set 반영 — 조회·저장 후에는 DB 값 유지, 필드는 수동 수정 가능 */
+  function pgApplyUrlPayInputModePreset(rootEl, mode) {
+    if (!rootEl) return;
+    var shell = window.PG_URL_PAY_SHELL;
+    if (!shell || !shell.getUrlPayInputModePreset) {
+      pgSyncUrlPayInputModeControlledFields(rootEl);
+      return;
+    }
+    var preset = shell.getUrlPayInputModePreset(mode);
+    if (!preset) {
+      pgSyncUrlPayInputModeControlledFields(rootEl);
+      return;
+    }
+    Object.keys(preset).forEach(function (key) {
+      var el = rootEl.querySelector('[name="' + key + '"]');
+      if (el) el.value = preset[key] != null ? String(preset[key]) : '';
+    });
+    pgSyncUrlPayProductNameUi(rootEl);
+    pgSyncWebPaymentHeaderLogoUi(rootEl);
+    pgSyncWebPaymentHeaderSubtitleUi(rootEl);
+  }
+  function pgSyncUrlPayInputModeControlledFields(rootEl) {
+    if (!rootEl) return;
+    ['urlPayCompanyNameShowYn', 'urlPayLangMenuUseYn', 'urlPayProductNameUseYn',
+      'webPaymentHeaderLogoMode', 'webPaymentHeaderSubtitleMode'].forEach(function (name) {
+      rootEl.querySelectorAll('[name="' + name + '"]').forEach(function (el) {
+        el.disabled = false;
+      });
+    });
+    rootEl.classList.remove('url-pay-input-mode-controlled');
+  }
+  function pgMaybeBindUrlPayInputModeUi(rootEl) {
+    if (!rootEl) return;
+    var modeEl = rootEl.querySelector('[name="urlPayInputMode"]');
+    if (!modeEl) return;
+    if (!modeEl._pgUrlPayInputModeBound) {
+      modeEl._pgUrlPayInputModeBound = true;
+      modeEl.addEventListener('change', function () {
+        pgApplyUrlPayInputModePreset(rootEl, modeEl.value);
+      });
+    }
   }
   /** URL 결제 상품명 — 사용(Y) 일 때만 입력란 표시 */
   function pgSyncUrlPayProductNameUi(rootEl) {
@@ -3361,7 +3404,7 @@
       var uim = pane.querySelector('[name="urlPayInputMode"]');
       if (uim) {
         var im = String(d.urlPayInputMode || 'GENERAL').trim().toUpperCase();
-        var validInputModes = ['GENERAL', 'TYPE_A', 'TYPE_AG', 'TYPE_B', 'TYPE_BG', 'TYPE_C'];
+        var validInputModes = ['GENERAL', 'TYPE_A', 'TYPE_AG', 'TYPE_AF', 'TYPE_AE', 'TYPE_B', 'TYPE_BG', 'TYPE_BF', 'TYPE_BE', 'TYPE_C'];
         if (validInputModes.indexOf(im) < 0 && window.PG_URL_PAY_SHELL && PG_URL_PAY_SHELL.normalizeUrlPayInputMode) {
           im = PG_URL_PAY_SHELL.normalizeUrlPayInputMode(im);
         }

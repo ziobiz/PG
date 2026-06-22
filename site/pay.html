@@ -1139,31 +1139,12 @@
       }
 
       function applyCheckoutHeaderBranding() {
-        var brand = document.querySelector('.pay-brand');
-        var mode = (checkoutCtx && checkoutCtx.checkoutHeaderLogoMode)
-          ? String(checkoutCtx.checkoutHeaderLogoMode).trim().toUpperCase() : 'DEFAULT';
-        if (mode === 'DISABLED') {
-          if (brand) brand.style.display = 'none';
-          return;
-        }
-        var logoPath = (checkoutCtx && checkoutCtx.checkoutHeaderLogoUrl)
-          ? String(checkoutCtx.checkoutHeaderLogoUrl).trim() : '';
-        if (mode === 'ACTIVE' && !logoPath) {
-          if (brand) brand.style.display = 'none';
-          return;
-        }
-        if (brand) brand.style.display = '';
-        var img = document.getElementById('payBrandLogoImg');
-        var wrap = document.getElementById('payBrandTextWrap');
-        if (!img || !wrap) return;
-        if (logoPath) {
-          img.src = absPayAssetUrl(logoPath);
-          img.classList.remove('d-none');
-          wrap.classList.add('d-none');
-        } else {
-          img.removeAttribute('src');
-          img.classList.add('d-none');
-          wrap.classList.remove('d-none');
+        if (window.PG_URL_PAY_SHELL && PG_URL_PAY_SHELL.applyCheckoutHeaderLogo) {
+          PG_URL_PAY_SHELL.applyCheckoutHeaderLogo(checkoutCtx, {
+            imgId: 'payBrandLogoImg',
+            textWrapId: 'payBrandTextWrap',
+            t: t
+          });
         }
       }
 

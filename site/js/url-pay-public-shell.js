@@ -347,50 +347,97 @@
     return g.document.querySelector('#payOrderSummaryTop .pay-row-static');
   }
 
-  /** checkout-context — 입력방식(GENERAL|TYPE_A|TYPE_AG|TYPE_B|TYPE_BG|TYPE_C) 및 표시 옵션 */
+  /** checkout-context — 입력방식(GENERAL|TYPE_A|…|TYPE_AE|TYPE_BE|TYPE_C) 및 표시 옵션 */
   function normalizeUrlPayInputMode(raw) {
     var mode = String(raw || 'GENERAL').trim().toUpperCase();
     if (mode === 'A' || mode === 'TYPEA') return 'TYPE_A';
     if (mode === 'AG' || mode === 'TYPEAG') return 'TYPE_AG';
+    if (mode === 'AF' || mode === 'TYPEAF') return 'TYPE_AF';
+    if (mode === 'AE' || mode === 'TYPEAE') return 'TYPE_AE';
     if (mode === 'B' || mode === 'TYPEB') return 'TYPE_B';
     if (mode === 'BG' || mode === 'TYPEBG') return 'TYPE_BG';
+    if (mode === 'BF' || mode === 'TYPEBF') return 'TYPE_BF';
+    if (mode === 'BE' || mode === 'TYPEBE') return 'TYPE_BE';
     if (mode === 'C' || mode === 'TYPEC') return 'TYPE_C';
-    if (mode === 'TYPE_A' || mode === 'TYPE_AG' || mode === 'TYPE_B' || mode === 'TYPE_BG' || mode === 'TYPE_C') {
+    if (mode === 'TYPE_A' || mode === 'TYPE_AG' || mode === 'TYPE_AF' || mode === 'TYPE_AE'
+        || mode === 'TYPE_B' || mode === 'TYPE_BG' || mode === 'TYPE_BF' || mode === 'TYPE_BE'
+        || mode === 'TYPE_C') {
       return mode;
     }
     return 'GENERAL';
+  }
+
+  /** 관리자 웹결제 카드·결제창과 동일한 입력방식 프리셋. GENERAL 은 null */
+  function getUrlPayInputModePreset(raw) {
+    var mode = normalizeUrlPayInputMode(raw);
+    if (mode === 'GENERAL') return null;
+    var base = { defaultProductAmount: '' };
+    if (mode === 'TYPE_A' || mode === 'TYPE_B') {
+      return Object.assign({}, base, {
+        urlPayCompanyNameShowYn: 'N',
+        urlPayLangMenuUseYn: 'N',
+        urlPayProductNameUseYn: 'N',
+        webPaymentHeaderLogoMode: 'DEFAULT',
+        webPaymentHeaderSubtitleMode: 'DEFAULT'
+      });
+    }
+    if (mode === 'TYPE_AG' || mode === 'TYPE_BG') {
+      return Object.assign({}, base, {
+        urlPayCompanyNameShowYn: 'N',
+        urlPayLangMenuUseYn: 'N',
+        urlPayProductNameUseYn: 'Y',
+        webPaymentHeaderLogoMode: 'DEFAULT',
+        webPaymentHeaderSubtitleMode: 'DEFAULT'
+      });
+    }
+    if (mode === 'TYPE_AF' || mode === 'TYPE_BF') {
+      return Object.assign({}, base, {
+        urlPayCompanyNameShowYn: 'N',
+        urlPayLangMenuUseYn: 'N',
+        urlPayProductNameUseYn: 'Y',
+        webPaymentHeaderLogoMode: 'DISABLED',
+        webPaymentHeaderSubtitleMode: 'DISABLED'
+      });
+    }
+    if (mode === 'TYPE_AE' || mode === 'TYPE_BE') {
+      return Object.assign({}, base, {
+        urlPayCompanyNameShowYn: 'N',
+        urlPayLangMenuUseYn: 'N',
+        urlPayProductNameUseYn: 'N',
+        webPaymentHeaderLogoMode: 'DISABLED',
+        webPaymentHeaderSubtitleMode: 'DISABLED'
+      });
+    }
+    if (mode === 'TYPE_C') {
+      return Object.assign({}, base, {
+        urlPayCompanyNameShowYn: 'Y',
+        urlPayLangMenuUseYn: 'Y',
+        urlPayProductNameUseYn: 'Y',
+        webPaymentHeaderLogoMode: 'DEFAULT',
+        webPaymentHeaderSubtitleMode: 'DEFAULT'
+      });
+    }
+    return null;
+  }
+
+  function isUrlPayInputModeControlled(raw) {
+    return getUrlPayInputModePreset(raw) != null;
+  }
+
+  function resolveUrlPayEffectiveCheckoutCtx(ctx) {
+    return ctx || {};
   }
 
   function applyUrlPayInputMode(ctx, opts) {
     opts = opts || {};
     if (!ctx) return;
     var mode = normalizeUrlPayInputMode(ctx.urlPayInputMode);
-
-    var presCtx = ctx;
-    if (mode === 'TYPE_A' || mode === 'TYPE_B') {
-      presCtx = Object.assign({}, ctx, {
-        urlPayProductNameUseYn: 'N',
-        urlPayCompanyNameShowYn: 'N',
-        urlPayLangMenuUseYn: 'N'
-      });
-    } else if (mode === 'TYPE_AG' || mode === 'TYPE_BG') {
-      presCtx = Object.assign({}, ctx, {
-        urlPayProductNameUseYn: 'Y',
-        urlPayCompanyNameShowYn: 'N',
-        urlPayLangMenuUseYn: 'N'
-      });
-    } else if (mode === 'TYPE_C') {
-      presCtx = Object.assign({}, ctx, {
-        urlPayProductNameUseYn: 'Y',
-        urlPayCompanyNameShowYn: 'Y',
-        urlPayLangMenuUseYn: 'Y'
-      });
-    }
-    applyUrlPayPresentationOptions(presCtx, opts);
+    /* 가맹 저장값(로고·경고·상품명·가맹점명·다국어) — 입력방식 프리set으로 덮지 않음 */
+    applyUrlPayPresentationOptions(ctx, opts);
 
     var brandRow = g.document.getElementById('payCardBrandRow');
     var brandSelect = g.document.getElementById('payCardBrandSelect');
-    var hideBrand = (mode === 'TYPE_A' || mode === 'TYPE_AG');
+    var hideBrand = (mode === 'TYPE_A' || mode === 'TYPE_AG' || mode === 'TYPE_AF' || mode === 'TYPE_AE');
     if (brandSelect && (hideBrand || mode === 'GENERAL')) {
       brandSelect.value = 'AUTO';
     }
@@ -466,7 +513,91 @@
   }
 
   /**
-   * 결제창 로고 아래 경고/안내 문구 — 가맹 webPaymentHeaderSubtitle* + 로고 비활성 시 숨김.
+   * 결제창 상단 로고 — DEFAULT(총판 이미지·없으면 숨김), HTML(ICOPAY 문구), ACTIVE(가맹 이미지), DISABLED(전체 숨김).
+   * @param {object} ctx checkout-context
+   * @param {{ brandEl?: Element, brandBlockId?: string, logoWrapSelector?: string, imgId?: string, textWrapId?: string, t?: function }} [opts]
+   */
+  function applyCheckoutHeaderLogo(ctx, opts) {
+    opts = opts || {};
+    ctx = ctx || {};
+    var mode = String(ctx.checkoutHeaderLogoMode || 'DEFAULT').trim().toUpperCase();
+    var brand = opts.brandEl
+      || (opts.brandBlockId ? g.document.getElementById(opts.brandBlockId) : null)
+      || g.document.querySelector('.pay-brand');
+    if (!brand) return;
+
+    if (mode === 'DISABLED') {
+      brand.style.display = 'none';
+      return;
+    }
+
+    var logoUrl = ctx.checkoutHeaderLogoUrl ? String(ctx.checkoutHeaderLogoUrl).trim() : '';
+    var showImage = false;
+    var showText = false;
+
+    if (mode === 'HTML') {
+      showText = true;
+    } else if (mode === 'ACTIVE') {
+      if (!logoUrl) {
+        brand.style.display = 'none';
+        return;
+      }
+      showImage = true;
+    } else if (mode === 'DEFAULT') {
+      if (!logoUrl) {
+        brand.style.display = 'none';
+        return;
+      }
+      showImage = true;
+    } else {
+      if (!logoUrl) {
+        brand.style.display = 'none';
+        return;
+      }
+      showImage = true;
+    }
+
+    brand.style.display = '';
+
+    var img = opts.imgId ? g.document.getElementById(opts.imgId) : null;
+    var textWrap = opts.textWrapId ? g.document.getElementById(opts.textWrapId) : null;
+    var logoWrap = opts.logoWrapSelector ? brand.querySelector(opts.logoWrapSelector) : null;
+    var brandTitle = opts.t ? (opts.t('brandTitle') || 'ICOPAY') : 'ICOPAY';
+
+    if (img && textWrap) {
+      if (showImage) {
+        img.src = absPayAssetUrl(logoUrl);
+        img.alt = ctx.merchantName || 'ICOPAY';
+        img.classList.remove('d-none');
+        textWrap.classList.add('d-none');
+      } else if (showText) {
+        img.removeAttribute('src');
+        img.classList.add('d-none');
+        textWrap.classList.remove('d-none');
+        var textEl = textWrap.querySelector('.pay-brand-logo');
+        if (textEl) textEl.textContent = brandTitle;
+      }
+      return;
+    }
+
+    if (logoWrap) {
+      if (showImage) {
+        logoWrap.innerHTML = '';
+        var imgEl = g.document.createElement('img');
+        imgEl.src = absPayAssetUrl(logoUrl);
+        imgEl.alt = ctx.merchantName || 'ICOPAY';
+        imgEl.className = 'pay-brand-logo-img';
+        logoWrap.appendChild(imgEl);
+      } else if (showText) {
+        logoWrap.innerHTML = '';
+        logoWrap.className = 'pay-brand-logo';
+        logoWrap.textContent = brandTitle;
+      }
+    }
+  }
+
+  /**
+   * 결제창 로고 아래 경고/안내 문구 — 가맹 webPaymentHeaderSubtitle* + 로고 미활성 시 숨김.
    * @param {object} ctx checkout-context
    * @param {{ t?: function }} [opts]
    */
@@ -524,6 +655,7 @@
     absPayAssetUrl: absPayAssetUrl,
     fetchJsonWithRetry: fetchJsonWithRetry,
     applyCardCopyPresentation: applyCardCopyPresentation,
+    applyCheckoutHeaderLogo: applyCheckoutHeaderLogo,
     applyCheckoutHeaderSubtitle: applyCheckoutHeaderSubtitle,
     applyAmountScaleNotice: applyAmountScaleNotice,
     initDisplayFx: initDisplayFx,
@@ -531,6 +663,9 @@
     applyUrlPayPresentationOptions: applyUrlPayPresentationOptions,
     applyUrlPayInputMode: applyUrlPayInputMode,
     normalizeUrlPayInputMode: normalizeUrlPayInputMode,
+    getUrlPayInputModePreset: getUrlPayInputModePreset,
+    isUrlPayInputModeControlled: isUrlPayInputModeControlled,
+    resolveUrlPayEffectiveCheckoutCtx: resolveUrlPayEffectiveCheckoutCtx,
     resolveUrlPayItemValue: resolveUrlPayItemValue,
     payFxResolvedDisplayCurrency: payFxResolvedDisplayCurrency
   };

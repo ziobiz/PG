@@ -118,12 +118,7 @@ public class UrlPayPublicCheckoutService {
                     && p.getProductName() != null && !p.getProductName().isBlank()) {
                 data.put("defaultProductName", p.getProductName().trim());
             }
-            if (p.getDefaultAmount() != null) {
-                long amt = p.getDefaultAmount().longValue();
-                data.put("defaultAmountYen", amt);
-                data.put("defaultCheckoutAmount", amt);
-                data.put("defaultAmount", p.getDefaultAmount().stripTrailingZeros().toPlainString());
-            }
+            /* 기본금액 — 결제창에서 고객 직접 입력(프리필 없음) */
         }
         enrichPresentation(data, orgUnitId);
         String opPg = String.valueOf(data.getOrDefault("urlPayOperationalPgCd", ""));

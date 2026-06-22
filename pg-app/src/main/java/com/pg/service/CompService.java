@@ -2535,12 +2535,14 @@ public class CompService {
         }
     }
 
-    /** 가맹점 URL 결제창 입력방식 — GENERAL | TYPE_A | TYPE_AG | TYPE_B | TYPE_BG | TYPE_C */
+    /** 가맹점 URL 결제창 입력방식 — GENERAL | TYPE_A | TYPE_AG | TYPE_AF | TYPE_AE | TYPE_B | TYPE_BG | TYPE_BF | TYPE_BE | TYPE_C */
     private void applyMerchantUrlPayInputMode(MerchantProfile mp, String urlPayInputMode) {
         if (mp == null || urlPayInputMode == null || urlPayInputMode.isBlank()) {
             return;
         }
-        mp.setUrlPayInputMode(urlPayInputMode.trim());
+        String norm = com.pg.urlpay.UrlPayInputModeUtil.normalize(urlPayInputMode.trim());
+        mp.setUrlPayInputMode(norm);
+        /* 표시 옵션·로고·경고는 폼에서 저장한 값 우선 — 입력방식 프리셋은 관리 화면 변경 시에만 JS 동기화 */
     }
 
     /** 가맹점 공개 URL 결제 방식 (STANDARD | REPAY). */

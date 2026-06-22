@@ -2608,13 +2608,31 @@
       CH: '默认（总代 Logo）',
       TH: 'ค่าเริ่มต้น (โลโก้ตัวแทนหลัก)'
     },
+    '기본(HTML)': {
+      EN: 'Default (HTML)',
+      JP: '基本（HTML）',
+      CH: '默认（HTML）',
+      TH: 'ค่าเริ่มต้น (HTML)'
+    },
     비활성: {
       EN: 'Disabled',
       JP: '無効',
       CH: '禁用',
       TH: 'ปิดใช้งาน'
     },
+    미활성: {
+      EN: 'Inactive',
+      JP: '非活性',
+      CH: '未启用',
+      TH: 'ไม่แสดง'
+    },
     '활성(가맹 로고)': {
+      EN: 'Active (merchant logo)',
+      JP: '有効（加盟店ロゴ）',
+      CH: '启用（商户 Logo）',
+      TH: 'เปิดใช้งาน (โลโก้ร้านค้า)'
+    },
+    '활성(가맹점 로고)': {
       EN: 'Active (merchant logo)',
       JP: '有効（加盟店ロゴ）',
       CH: '启用（商户 Logo）',
@@ -2655,6 +2673,12 @@
       JP: '「有効」時のみ直接入力できます。「基本」は言語別の3DSセキュア決済です。ロゴ設定が無効の場合は文言も非表示です。',
       CH: '仅「启用」时可编辑。「默认」按语言显示 3DS 安全支付。若 Logo 设为禁用，此文案也不显示。',
       TH: 'แก้ไขได้เมื่อเลือก「เปิดใช้งาน」เท่านั้น 「ค่าเริ่มต้น」แสดง 3DS ตามภาษา หากปิดโลโก้ ข้อความนี้จะไม่แสดง'
+    },
+    '「활성」일 때만 직접 입력 가능합니다. 「기본」은 3DS 안전 결제 문구가 언어별로 표시됩니다. 로고설정이 미활성이면 문구도 표시되지 않습니다.': {
+      EN: 'Custom text is editable only when Active. Default shows 3DS secure payment per language. If logo is inactive, this text is hidden too.',
+      JP: '「有効」時のみ直接入力できます。「基本」は言語別の3DSセキュア決済です。ロゴ設定が非活性の場合は文言も非表示です。',
+      CH: '仅「启用」时可编辑。「默认」按语言显示 3DS 安全支付。若 Logo 设为未启用，此文案也不显示。',
+      TH: 'แก้ไขได้เมื่อเลือก「เปิดใช้งาน」เท่านั้น 「ค่าเริ่มต้น」แสดง 3DS ตามภาษา หากโลโก้ไม่แสดง ข้อความนี้จะไม่แสดง'
     },
     '「활성」일 때만 업로드 가능합니다. PNG·JPEG, 원본 최대 40MB. 서버에서 목표 2MB 이하(본사 AI챗봇설정과 동일)로 재압축합니다.': {
       EN: 'Upload is available only when Active is selected. PNG/JPEG, max 40MB original; server recompresses to about 2MB (same as HQ AI chatbot settings).',
@@ -8595,6 +8619,18 @@
       CH: 'AG 类型',
       TH: 'ประเภท AG'
     },
+    'AF타입': {
+      EN: 'Type AF',
+      JP: 'AFタイプ',
+      CH: 'AF 类型',
+      TH: 'ประเภท AF'
+    },
+    'AE타입': {
+      EN: 'Type AE',
+      JP: 'AEタイプ',
+      CH: 'AE 类型',
+      TH: 'ประเภท AE'
+    },
     'B타입': {
       EN: 'Type B',
       JP: 'Bタイプ',
@@ -8606,6 +8642,18 @@
       JP: 'BGタイプ',
       CH: 'BG 类型',
       TH: 'ประเภท BG'
+    },
+    'BF타입': {
+      EN: 'Type BF',
+      JP: 'BFタイプ',
+      CH: 'BF 类型',
+      TH: 'ประเภท BF'
+    },
+    'BE타입': {
+      EN: 'Type BE',
+      JP: 'BEタイプ',
+      CH: 'BE 类型',
+      TH: 'ประเภท BE'
     },
     'C타입': {
       EN: 'Type C',
