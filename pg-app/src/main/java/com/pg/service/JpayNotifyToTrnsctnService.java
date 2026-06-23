@@ -56,6 +56,7 @@ public class JpayNotifyToTrnsctnService implements PgNotifyInboundTxnHandler {
     private final NotifyIdempotencyLock notifyIdempotencyLock;
     private final SettlementArrearsService settlementArrearsService;
     private final SplitPayPaymentHookService splitPayPaymentHookService;
+    private final MerchantOutboundNotifyService merchantOutboundNotifyService;
 
     public JpayNotifyToTrnsctnService(PgTrnsctnRepository pgTrnsctnRepository,
                                       PgAgencyRepository pgAgencyRepository,
@@ -64,7 +65,8 @@ public class JpayNotifyToTrnsctnService implements PgNotifyInboundTxnHandler {
                                       JpaySubscriptionNotifyService jpaySubscriptionNotifyService,
                                       NotifyIdempotencyLock notifyIdempotencyLock,
                                       SettlementArrearsService settlementArrearsService,
-                                      SplitPayPaymentHookService splitPayPaymentHookService) {
+                                      SplitPayPaymentHookService splitPayPaymentHookService,
+                                      MerchantOutboundNotifyService merchantOutboundNotifyService) {
         this.pgTrnsctnRepository = pgTrnsctnRepository;
         this.pgAgencyRepository = pgAgencyRepository;
         this.settlementCalcService = settlementCalcService;
@@ -73,6 +75,7 @@ public class JpayNotifyToTrnsctnService implements PgNotifyInboundTxnHandler {
         this.notifyIdempotencyLock = notifyIdempotencyLock;
         this.settlementArrearsService = settlementArrearsService;
         this.splitPayPaymentHookService = splitPayPaymentHookService;
+        this.merchantOutboundNotifyService = merchantOutboundNotifyService;
     }
 
     @Override
@@ -232,6 +235,7 @@ public class JpayNotifyToTrnsctnService implements PgNotifyInboundTxnHandler {
         }
         log.info("JPAY 노티 반영 trnId={} merchantId={} orderNo={} returncode={} manualEcho={}",
                 t.getTrnId(), merchantId, orderKey, ret, icopayManualEcho);
+        merchantOutboundNotifyService.scheduleAfterTxnCommit(t, in, ch);
         return true;
     }
 
@@ -289,6 +293,7 @@ public class JpayNotifyToTrnsctnService implements PgNotifyInboundTxnHandler {
             }
         }
         log.info("JPAY 3DS 동기 복귀 반영 trnId={} merchantId={} orderNo={} paymentStatus={}", t.getTrnId(), merchantId, on, paySt);
+        merchantOutboundNotifyService.scheduleAfterTxnCommit(t, in, ch);
         return true;
     }
 

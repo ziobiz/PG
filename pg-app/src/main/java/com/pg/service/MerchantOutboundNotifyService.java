@@ -36,7 +36,7 @@ import java.util.Optional;
  *   <li>{@link #URL_TYPE_MIDDLEWARE} — PG중계 동일 페이로드(+선택 HMAC).</li>
  *   <li>{@link #URL_TYPE_BACKGROUND},{@link #URL_TYPE_RESULT} — 업체등록 「결제통보 URL」(URL·챗봇·노티·인라인 DirectCredit 공통 ChillPay 플로우).</li>
  * </ul>
- * 칠페이 계열({@link PgVendor#isChillPayVendorCode})만 1차 활성화.
+ * ChillPay·JPAY 결제 확정 후 가맹점 URL Background/Result/MIDDLEWARE 로 JSON POST.
  */
 @Service
 public class MerchantOutboundNotifyService {
@@ -52,14 +52,17 @@ public class MerchantOutboundNotifyService {
     private final PgTrnsctnRepository pgTrnsctnRepository;
     private final OrgUnitRepository orgUnitRepository;
     private final MerchantNotifyUrlRepository merchantNotifyUrlRepository;
+    private final MerchantNotifyOutboundLogService merchantNotifyOutboundLogService;
     private final RestTemplate restTemplate = new RestTemplate();
 
     public MerchantOutboundNotifyService(PgTrnsctnRepository pgTrnsctnRepository,
                                          OrgUnitRepository orgUnitRepository,
-                                         MerchantNotifyUrlRepository merchantNotifyUrlRepository) {
+                                         MerchantNotifyUrlRepository merchantNotifyUrlRepository,
+                                         MerchantNotifyOutboundLogService merchantNotifyOutboundLogService) {
         this.pgTrnsctnRepository = pgTrnsctnRepository;
         this.orgUnitRepository = orgUnitRepository;
         this.merchantNotifyUrlRepository = merchantNotifyUrlRepository;
+        this.merchantNotifyOutboundLogService = merchantNotifyOutboundLogService;
     }
 
     /**
@@ -69,7 +72,7 @@ public class MerchantOutboundNotifyService {
         if (savedTxn == null || savedTxn.getTrnId() == null || savedTxn.getTrnId().isBlank()) {
             return;
         }
-        if (!PgVendor.isChillPayVendorCode(savedTxn.getVan())) {
+        if (!PgVendor.isChillPayVendorCode(savedTxn.getVan()) && !PgVendor.isJpayFamily(savedTxn.getVan())) {
             return;
         }
         final String trnId = savedTxn.getTrnId().trim();
@@ -111,6 +114,8 @@ public class MerchantOutboundNotifyService {
             return;
         }
         Long orgUnitId = ou.get().getId();
+        String merchantCodeTrim = merchantCode.trim();
+        String notifyCh = notifyChannel;
         Optional<MerchantNotifyUrl> mwOpt = merchantNotifyUrlRepository.findByOrgUnitIdAndUrlType(orgUnitId, URL_TYPE_MIDDLEWARE);
         Optional<MerchantNotifyUrl> bgOpt = merchantNotifyUrlRepository.findByOrgUnitIdAndUrlType(orgUnitId, URL_TYPE_BACKGROUND);
         Optional<MerchantNotifyUrl> rsOpt = merchantNotifyUrlRepository.findByOrgUnitIdAndUrlType(orgUnitId, URL_TYPE_RESULT);
@@ -123,9 +128,12 @@ public class MerchantOutboundNotifyService {
         if (mw.isPresent()) {
             try {
                 String bodyMw = OM.writeValueAsString(basePayload);
-                boolean okMw = postWithRetries(mw.get().getNotiUrl().trim(), bodyMw, mw.get().getSignSecret());
-                if (okMw) {
+                PostOutcome outMw = postWithRetries(mw.get().getNotiUrl().trim(), bodyMw, mw.get().getSignSecret());
+                recordOutboundLog(merchantCodeTrim, orgUnitId, t, notifyCh, URL_TYPE_MIDDLEWARE, mw.get().getNotiUrl().trim(), bodyMw, outMw);
+                if (outMw.success) {
                     anySuccess = true;
+                } else {
+                    log.warn("MIDDLEWARE 결제통보 전송 실패 (재시도 소진): {}", mw.get().getNotiUrl());
                 }
             } catch (Exception e) {
                 log.warn("MIDDLEWARE 결제통보 직렬화 실패 trnId={}: {}", trnId, e.getMessage());
@@ -136,8 +144,12 @@ public class MerchantOutboundNotifyService {
         if (bg.isPresent()) {
             try {
                 String bodyBg = OM.writeValueAsString(withMerchantNotifyTarget(basePayload, URL_TYPE_BACKGROUND));
-                if (postPlainPayNotify(bg.get(), bodyBg, URL_TYPE_BACKGROUND)) {
+                PostOutcome outBg = postPlainPayNotify(bg.get(), bodyBg);
+                recordOutboundLog(merchantCodeTrim, orgUnitId, t, notifyCh, URL_TYPE_BACKGROUND, bg.get().getNotiUrl().trim(), bodyBg, outBg);
+                if (outBg.success) {
                     anySuccess = true;
+                } else {
+                    log.warn("BACKGROUND 결제통보 전송 실패 (재시도 소진): {}", bg.get().getNotiUrl());
                 }
             } catch (Exception e) {
                 log.warn("BACKGROUND 결제통보 직렬화 실패 trnId={}: {}", trnId, e.getMessage());
@@ -148,8 +160,12 @@ public class MerchantOutboundNotifyService {
         if (rs.isPresent()) {
             try {
                 String bodyRs = OM.writeValueAsString(withMerchantNotifyTarget(basePayload, URL_TYPE_RESULT));
-                if (postPlainPayNotify(rs.get(), bodyRs, URL_TYPE_RESULT)) {
+                PostOutcome outRs = postPlainPayNotify(rs.get(), bodyRs);
+                recordOutboundLog(merchantCodeTrim, orgUnitId, t, notifyCh, URL_TYPE_RESULT, rs.get().getNotiUrl().trim(), bodyRs, outRs);
+                if (outRs.success) {
                     anySuccess = true;
+                } else {
+                    log.warn("RESULT 결제통보 전송 실패 (재시도 소진): {}", rs.get().getNotiUrl());
                 }
             } catch (Exception e) {
                 log.warn("RESULT 결제통보 직렬화 실패 trnId={}: {}", trnId, e.getMessage());
@@ -175,13 +191,47 @@ public class MerchantOutboundNotifyService {
     /**
      * 업체등록 「URL Background · URL Result」。DB에 단일 행이라도 {@link MerchantNotifyUrl#getSignSecret()} 이 있으면 MIDDLEWARE와 동일 헤더로 서명.
      */
-    private boolean postPlainPayNotify(MerchantNotifyUrl row, String bodyJson, String kindForLog) {
+    private PostOutcome postPlainPayNotify(MerchantNotifyUrl row, String bodyJson) {
         String sig = row.getSignSecret();
-        boolean ok = postWithRetries(row.getNotiUrl().trim(), bodyJson, sig);
-        if (!ok) {
-            log.warn("{} 결제통보 전송 실패 (재시도 소진): {}", kindForLog, row.getNotiUrl());
+        return postWithRetries(row.getNotiUrl().trim(), bodyJson, sig);
+    }
+
+    private void recordOutboundLog(String compId, Long orgUnitId, PgTrnsctn t, String notifyChannel,
+                                   String urlType, String targetUrl, String payloadBody, PostOutcome outcome) {
+        if (outcome == null) {
+            return;
         }
-        return ok;
+        try {
+            merchantNotifyOutboundLogService.append(
+                    compId,
+                    orgUnitId,
+                    t.getTrnId(),
+                    t.getOrderNo(),
+                    urlType,
+                    targetUrl,
+                    notifyChannel,
+                    payloadBody,
+                    outcome.success,
+                    outcome.attempts,
+                    outcome.httpStatus,
+                    outcome.errorMessage);
+        } catch (Exception e) {
+            log.warn("결제통보 전송 이력 저장 실패 trnId={} urlType={}: {}", t.getTrnId(), urlType, e.getMessage());
+        }
+    }
+
+    private static final class PostOutcome {
+        private final boolean success;
+        private final int attempts;
+        private final Integer httpStatus;
+        private final String errorMessage;
+
+        private PostOutcome(boolean success, int attempts, Integer httpStatus, String errorMessage) {
+            this.success = success;
+            this.attempts = attempts;
+            this.httpStatus = httpStatus;
+            this.errorMessage = errorMessage;
+        }
     }
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
@@ -214,7 +264,7 @@ public class MerchantOutboundNotifyService {
         return m;
     }
 
-    private boolean postWithRetries(String url, String bodyJson, String secret) {
+    private PostOutcome postWithRetries(String url, String bodyJson, String secret) {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
         if (secret != null && !secret.isBlank()) {
@@ -224,26 +274,33 @@ public class MerchantOutboundNotifyService {
             }
         }
         HttpEntity<String> entity = new HttpEntity<>(bodyJson, headers);
+        int attempts = 0;
+        Integer lastHttp = null;
+        String lastErr = null;
         for (int attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+            attempts = attempt + 1;
             if (BACKOFF_MS[attempt] > 0) {
                 try {
                     Thread.sleep(BACKOFF_MS[attempt]);
                 } catch (InterruptedException ie) {
                     Thread.currentThread().interrupt();
-                    return false;
+                    return new PostOutcome(false, attempts, lastHttp, "interrupted");
                 }
             }
             try {
                 ResponseEntity<String> resp = restTemplate.postForEntity(url, entity, String.class);
+                lastHttp = resp.getStatusCode().value();
                 if (resp.getStatusCode().is2xxSuccessful()) {
-                    return true;
+                    return new PostOutcome(true, attempts, lastHttp, null);
                 }
+                lastErr = "HTTP " + lastHttp;
                 log.warn("미들웨어 아웃바운드 비성공 HTTP {} (시도 {}/{})", resp.getStatusCode(), attempt + 1, MAX_ATTEMPTS);
             } catch (Exception e) {
+                lastErr = e.getMessage();
                 log.warn("미들웨어 아웃바운드 실패 (시도 {}/{}): {}", attempt + 1, MAX_ATTEMPTS, e.getMessage());
             }
         }
-        return false;
+        return new PostOutcome(false, attempts, lastHttp, lastErr);
     }
 
     private static String hmacSha256Hex(String secret, String payload) {

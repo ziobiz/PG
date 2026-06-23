@@ -2,6 +2,7 @@ package com.pg.controller.api;
 
 import com.pg.api.ApiResponse;
 import com.pg.api.dto.PageResult;
+import com.pg.service.MerchantNotifyOutboundLogService;
 import com.pg.service.NotifyUrlService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -16,9 +17,12 @@ import java.util.Map;
 public class ApiNotifyController {
 
     private final NotifyUrlService notifyUrlService;
+    private final MerchantNotifyOutboundLogService merchantNotifyOutboundLogService;
 
-    public ApiNotifyController(NotifyUrlService notifyUrlService) {
+    public ApiNotifyController(NotifyUrlService notifyUrlService,
+                               MerchantNotifyOutboundLogService merchantNotifyOutboundLogService) {
         this.notifyUrlService = notifyUrlService;
+        this.merchantNotifyOutboundLogService = merchantNotifyOutboundLogService;
     }
 
     private static PageResult<Map<String, Object>> emptyPage(int page, int size) {
@@ -48,7 +52,11 @@ public class ApiNotifyController {
             @RequestParam(required = false) String searchCompNm,
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "20") int size) {
-        return ResponseEntity.ok(ApiResponse.ok(emptyPage(page, size)));
+        LocalDate from = searchFromDate != null ? searchFromDate : LocalDate.now();
+        LocalDate to = searchToDate != null ? searchToDate : LocalDate.now();
+        PageResult<Map<String, Object>> result = merchantNotifyOutboundLogService.search(
+                page, size, from, to, searchCompNm);
+        return ResponseEntity.ok(ApiResponse.ok(result));
     }
 
     @GetMapping("/cashReceiptUrlMng")

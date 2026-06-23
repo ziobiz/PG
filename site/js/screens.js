@@ -5957,7 +5957,7 @@
       ],
       summary: ['건수', '성공', '실패'],
       buttons: [{ id: 'searchBtn', label: '검색', cls: 'btn-primary' }, { id: 'excelBtn', label: '엑셀다운로드', cls: 'btn-info' }],
-      columns: [{ key: '_chk', type: 'checkbox' }, { key: 'rowNo', label: '번호' }, { key: 'compNm', label: '업체명' }, { key: 'compId', label: '업체코드' }, { key: 'sendDt', label: '전송일시' }, { key: 'result', label: '결과' }, { key: 'retryCnt', label: '재전송횟수' }]
+      columns: [{ key: '_chk', type: 'checkbox' }, { key: 'rowNo', label: '번호' }, { key: 'compNm', label: '업체명' }, { key: 'compId', label: '업체코드' }, { key: 'urlType', label: 'URL구분' }, { key: 'targetUrl', label: '통보URL' }, { key: 'sendDt', label: '전송일시' }, { key: 'result', label: '결과' }, { key: 'retryCnt', label: '재전송횟수' }, { key: 'webhookPayloadPreview', label: '웹훅 본문' }, { key: 'orderNo', label: '주문번호' }, { key: 'trnId', label: '거래번호' }]
     },
     '/noti/notiCashReceiptUrlMng': {
       searchRows: [
