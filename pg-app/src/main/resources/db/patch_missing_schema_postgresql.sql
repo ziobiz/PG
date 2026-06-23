@@ -415,6 +415,13 @@ CREATE TABLE IF NOT EXISTS tb_split_pay_installment (
 ALTER TABLE tb_merchant_profile ADD COLUMN IF NOT EXISTS split_pay_interval_multi_yn VARCHAR(1) NOT NULL DEFAULT 'N';
 ALTER TABLE tb_merchant_profile ADD COLUMN IF NOT EXISTS split_pay_multi_max_months INTEGER NOT NULL DEFAULT 6;
 
+-- V182: URL 분할결제 결제창 — 로고·안내메세지·다국어 메뉴
+ALTER TABLE tb_merchant_profile ADD COLUMN IF NOT EXISTS split_pay_header_logo_mode VARCHAR(16) NOT NULL DEFAULT 'HTML';
+ALTER TABLE tb_merchant_profile ADD COLUMN IF NOT EXISTS split_pay_header_logo_url VARCHAR(500);
+ALTER TABLE tb_merchant_profile ADD COLUMN IF NOT EXISTS split_pay_header_subtitle_mode VARCHAR(16) NOT NULL DEFAULT 'DEFAULT';
+ALTER TABLE tb_merchant_profile ADD COLUMN IF NOT EXISTS split_pay_header_subtitle_text VARCHAR(200);
+ALTER TABLE tb_merchant_profile ADD COLUMN IF NOT EXISTS split_pay_lang_menu_use_yn VARCHAR(1) NOT NULL DEFAULT 'Y';
+
 -- V181: 분할결제 이메일 설정 (customer_locale, D+3 메일, 단계별 템플릿)
 ALTER TABLE tb_split_pay_contract ADD COLUMN IF NOT EXISTS customer_locale VARCHAR(8) NULL DEFAULT 'KOR';
 ALTER TABLE tb_split_pay_installment ADD COLUMN IF NOT EXISTS mail_d3_sent TIMESTAMP NULL;

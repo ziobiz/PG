@@ -10,9 +10,12 @@
 <body class="pay-inline-body">
   <div class="pay-shell">
     <div class="pay-card">
-      <div class="pay-brand mb-3">
-        <div class="pay-brand-logo" data-i18n="brand">ICOPAY</div>
-        <div class="pay-brand-sub" data-i18n="subtitle">Split payment</div>
+      <div class="pay-brand mb-3" id="splitPayBrandBlock">
+        <img id="splitPayBrandLogoImg" class="pay-brand-logo-img d-none" src="" alt="">
+        <div id="splitPayBrandTextWrap">
+          <div class="pay-brand-logo" data-i18n="brand">ICOPAY</div>
+          <div class="pay-brand-sub" data-i18n="subtitle">Split payment</div>
+        </div>
       </div>
       <div class="pay-lang mb-3" role="group">
         <button type="button" data-lang="JPN">JPN</button>
@@ -34,6 +37,7 @@
       <a id="goPayBtn" class="btn btn-primary w-100 d-none" href="#" data-i18n="goPay">Proceed to payment</a>
     </div>
   </div>
-  <script src="js/split-pay-page.js?v=1"></script>
+  <script src="js/url-pay-public-shell.js?v=1"></script>
+  <script src="js/split-pay-page.js?v=2"></script>
 </body>
 </html>

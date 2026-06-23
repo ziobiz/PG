@@ -13,6 +13,7 @@ import com.pg.repository.SplitPayInstallmentRepository;
 import com.pg.service.ChillPayService;
 import com.pg.service.PublicCustomerSiteBaseService;
 import com.pg.service.settlement.SettlementBusinessHolidayService;
+import com.pg.urlpay.CheckoutHeaderLogoResolver;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -44,6 +45,7 @@ public class SplitPayContractService {
     private final PublicCustomerSiteBaseService publicCustomerSiteBaseService;
     private final SplitPayMailService splitPayMailService;
     private final ChillPayService chillPayService;
+    private final CheckoutHeaderLogoResolver checkoutHeaderLogoResolver;
 
     public SplitPayContractService(OrgUnitRepository orgUnitRepository,
                                    MerchantProfileRepository merchantProfileRepository,
@@ -54,7 +56,8 @@ public class SplitPayContractService {
                                    SettlementBusinessHolidayService holidayService,
                                    PublicCustomerSiteBaseService publicCustomerSiteBaseService,
                                    SplitPayMailService splitPayMailService,
-                                   ChillPayService chillPayService) {
+                                   ChillPayService chillPayService,
+                                   CheckoutHeaderLogoResolver checkoutHeaderLogoResolver) {
         this.orgUnitRepository = orgUnitRepository;
         this.merchantProfileRepository = merchantProfileRepository;
         this.commissionPolicyRepository = commissionPolicyRepository;
@@ -65,6 +68,7 @@ public class SplitPayContractService {
         this.publicCustomerSiteBaseService = publicCustomerSiteBaseService;
         this.splitPayMailService = splitPayMailService;
         this.chillPayService = chillPayService;
+        this.checkoutHeaderLogoResolver = checkoutHeaderLogoResolver;
     }
 
     @Transactional(readOnly = true)
@@ -86,6 +90,7 @@ public class SplitPayContractService {
         String opPg = chillPayService.resolveUrlPayOperationalPgCd(ou.getId());
         m.put("operationalPgCd", opPg != null ? opPg : "");
         m.put("checkoutPage", SplitPayCheckoutPageUtil.resolveCheckoutPage(opPg));
+        checkoutHeaderLogoResolver.applySplitPayToCheckoutMap(m, ou.getId());
         return m;
     }
 
@@ -264,6 +269,7 @@ public class SplitPayContractService {
         m.put("checkoutPage", SplitPayCheckoutPageUtil.resolveCheckoutPage(opPg));
         m.put("customerEmail", c.getCustomerEmail());
         m.put("customerName", c.getCustomerName() != null ? c.getCustomerName() : "");
+        checkoutHeaderLogoResolver.applySplitPayToCheckoutMap(m, c.getOrgUnitId());
         return m;
     }
 

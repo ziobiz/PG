@@ -1,6 +1,7 @@
 (function () {
   'use strict';
   var LANG = 'ENG';
+  var checkoutCtx = {};
   var I18N = {
     KOR: { brand: 'ICOPAY', subtitle: '분할결제', contractNo: '계약번호', orderNo: '주문번호', totalAmount: '총금액', installments: '총 회차', current: '이번 회차·금액', remaining: '남은 회차', next: '다음 금액·일자', goPay: '결제 진행', loadErr: '결제 정보를 불러올 수 없습니다.', paid: '이미 결제된 회차입니다.' },
     ENG: { brand: 'ICOPAY', subtitle: 'Split payment', contractNo: 'Contract', orderNo: 'Order No', totalAmount: 'Total', installments: 'Installments', current: 'This installment', remaining: 'Remaining', next: 'Next amount · date', goPay: 'Proceed to payment', loadErr: 'Cannot load payment info.', paid: 'Already paid.' },
@@ -9,6 +10,44 @@
     THA: { brand: 'ICOPAY', subtitle: 'ชำระแบบแบ่งงวด', contractNo: 'เลขสัญญา', orderNo: 'เลขคำสั่ง', totalAmount: 'ยอดรวม', installments: 'จำนวนงวด', current: 'งวดนี้', remaining: 'งวดคงเหลือ', next: 'งวดถัดไป', goPay: 'ดำเนินการชำระ', loadErr: 'โหลดข้อมูลไม่ได้', paid: 'ชำระแล้ว' }
   };
   function t(k) { return (I18N[LANG] && I18N[LANG][k]) || I18N.ENG[k] || k; }
+  function splitPayShell() { return window.PG_URL_PAY_SHELL || null; }
+  function detectBrowserSplitPayLang() {
+    var nav = (navigator.language || navigator.userLanguage || 'en').toLowerCase();
+    if (nav.indexOf('ko') === 0) return 'KOR';
+    if (nav.indexOf('ja') === 0) return 'JPN';
+    if (nav.indexOf('zh') === 0) return 'CHN';
+    if (nav.indexOf('th') === 0) return 'THA';
+    return 'ENG';
+  }
+  function applySplitPayHeader() {
+    var shell = splitPayShell();
+    if (!shell || !shell.applyCheckoutHeaderLogo) return;
+    var opts = {
+      brandBlockId: 'splitPayBrandBlock',
+      imgId: 'splitPayBrandLogoImg',
+      textWrapId: 'splitPayBrandTextWrap',
+      t: function (k) {
+        if (k === 'brandTitle') return t('brand');
+        if (k === 'brandSub3ds' || k === 'brandSub') return t('subtitle');
+        return t(k);
+      }
+    };
+    shell.applyCheckoutHeaderLogo(checkoutCtx, opts);
+    if (shell.applyCheckoutHeaderSubtitle) shell.applyCheckoutHeaderSubtitle(checkoutCtx, opts);
+  }
+  function applySplitPayLangMenu() {
+    var show = String(checkoutCtx.splitPayLangMenuUseYn || 'Y').trim().toUpperCase() === 'Y';
+    document.querySelectorAll('.pay-lang').forEach(function (el) {
+      el.style.display = show ? '' : 'none';
+    });
+    if (!show) {
+      var bl = detectBrowserSplitPayLang();
+      if (bl && bl !== LANG) {
+        LANG = bl;
+        applyLang();
+      }
+    }
+  }
   function apiBase() {
     var h = location.hostname;
     if (h.indexOf('api.') === 0) return location.protocol + '//' + h;
@@ -37,6 +76,7 @@
       var k = n.getAttribute('data-i18n');
       if (k) n.textContent = t(k);
     });
+    applySplitPayHeader();
   }
   document.querySelectorAll('.pay-lang button').forEach(function (b) {
     b.addEventListener('click', function () {
@@ -53,6 +93,9 @@
       .then(function (j) {
         if (!j || !j.success || !j.data) { showMsg((j && j.message) || t('loadErr'), true); return; }
         var d = j.data;
+        checkoutCtx = d;
+        applySplitPayLangMenu();
+        applySplitPayHeader();
         document.getElementById('summary').classList.remove('d-none');
         document.getElementById('vContractNo').textContent = d.contractNo || '';
         document.getElementById('vOrderNo').textContent = d.orderNo || '';

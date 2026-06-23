@@ -9095,6 +9095,66 @@
       CH: '分次支付 URL',
       TH: 'URL ชำระแบ่งงวด'
     },
+    '「분할결제 사용여부」로 URL 분할결제·분할관리 메뉴 노출을 제어합니다. 사용 ON인 가맹은 분할결제 URL(공개) 또는 분할 계약 API로 고객 계약·회차 결제를 진행합니다. 「API URL 인라인 중계 결제」의 결제방식 선택과는 별개입니다. 회차는 운영 URL PG에 따라 pay.html 또는 jpay-pay.html 입니다.': {
+      EN: 'Split pay enabled controls URL split payment and split management menu visibility. When ON, customers contract and pay installments via public split payment URL or split contract API. Independent of API URL inline relay checkout mode. Installments use pay.html or jpay-pay.html per operational URL PG.',
+      JP: '「分割決済利用」でURL分割決済・分割管理メニューの表示を制御。ONの加盟店は分割決済URL(公開)または分割契約APIで契約・回次決済。「API URLインライン中継決済」の決済方式選択とは別。回次は運用URL PGに応じ pay.html または jpay-pay.html。',
+      CH: '「分次支付使用」控制 URL 分次支付与分次管理菜单显示。开启后客户通过公开 URL 或分次合同 API 签约分期。「API URL 内联中继支付」的支付方式选择与之独立。各期按运营 URL PG 使用 pay.html 或 jpay-pay.html。',
+      TH: '「ใช้แบ่งงวด」ควบคุมเมนู URL แบ่งงวดและจัดการแบ่งงวด เมื่อเปิด ลูกค้าสัญญาและชำระงวดผ่าน URL สาธารณะหรือ API แยกจากโหมด API URL inline relay งวดใช้ pay.html หรือ jpay-pay.html ตาม PG'
+    },
+    '분할결제 사용 ON 시 월간·일간·멀티 중 하나를 설정합니다. 멀티는 고객이 1개월~설정 최대개월 중 기간을 직접 선택합니다. 1회차는 즉시결제 또는 링크발송. 미납 회차는 매일 결제 링크 메일이 발송됩니다. 미사용이면 분할관리·분할결제내역 메뉴가 숨겨집니다.': {
+      EN: 'When split pay is ON, choose monthly, daily, or multi (one only). Multi lets customers pick 1 month up to the configured maximum. First installment: immediate pay or link email. Overdue installments receive daily payment-link emails. When OFF, split management and split payment history menus are hidden.',
+      JP: '分割決済利用ON時は月間・日間・マルチのいずれかを設定。マルチはお客様が1ヶ月～設定最大ヶ月を選択。1回目は即時決済またはリンク送信。未払い回は毎日リンクメール。未使用時は分割管理・分割決済履歴メニューを非表示。',
+      CH: '分次支付开启时设置按月、按日或多选之一。多选允许客户选择 1 个月至设定最长期限。首期立即支付或发链接。未付期次每日发链接邮件。未使用时隐藏分次管理与分次支付记录菜单。',
+      TH: 'เมื่อเปิดแบ่งงวด เลือกรายเดือน รายวัน หรือมัลติ มัลติให้ลูกค้าเลือก 1 เดือนถึงสูงสุด งวดแรกทันทีหรือส่งลิงก์ งวดค้างได้รับอีเมลทุกวัน ปิดใช้จะซ่อนเมนูจัดการและประวัติ'
+    },
+    '로고설정': {
+      EN: 'Logo setting',
+      JP: 'ロゴ設定',
+      CH: '徽标设置',
+      TH: 'ตั้งค่าโลโก้'
+    },
+    '안내메세지': {
+      EN: 'Guide message',
+      JP: '案内メッセージ',
+      CH: '提示信息',
+      TH: 'ข้อความแนะนำ'
+    },
+    '안내메세지 문구': {
+      EN: 'Guide message text',
+      JP: '案内メッセージ文',
+      CH: '提示文案',
+      TH: 'ข้อความแนะนำ'
+    },
+    '분할결제 상단 로고': {
+      EN: 'Split pay header logo',
+      JP: '分割決済画面上部ロゴ',
+      CH: '分次支付页眉徽标',
+      TH: 'โลโก้หัวหน้าแบ่งงวด'
+    },
+    '기본(분할결제 안내)': {
+      EN: 'Default (split pay guide)',
+      JP: '基本(分割決済案内)',
+      CH: '默认(分次支付说明)',
+      TH: 'ค่าเริ่มต้น(คำแนะนำแบ่งงวด)'
+    },
+    '「활성(직접입력)」일 때만 직접 입력 가능합니다. 「기본」은 분할결제 안내 문구가 언어별로 표시됩니다. 로고설정이 비활성이면 문구도 표시되지 않습니다.': {
+      EN: 'Direct input only when Active (custom). Default shows split pay guide text per language. Hidden when logo is disabled.',
+      JP: '「有効(直接入力)」時のみ入力可。「基本」は言語別の分割決済案内を表示。ロゴ設定が無効なら非表示。',
+      CH: '仅「启用(自定义)」时可输入。「默认」按语言显示分次支付说明。徽标禁用时文案也不显示。',
+      TH: 'กรอกได้เมื่อ「เปิดใช้(กำหนดเอง)」เท่านั้น 「ค่าเริ่มต้น」แสดงคำแนะนำตามภาษา ซ่อนเมื่อโลโก้ปิด'
+    },
+    '「활성(가맹점 로고)」일 때만 업로드 가능합니다. PNG·JPEG, 원본 최대 40MB. 서버에서 목표 2MB 이하로 재압축합니다.': {
+      EN: 'Upload only when Active (merchant logo). PNG/JPEG, max 40MB original; server recompresses toward 2MB or less.',
+      JP: '「有効(加盟店ロゴ)」時のみアップロード可。PNG/JPEG、原稿最大40MB。サーバーで目標2MB以下に再圧縮。',
+      CH: '仅「启用(商户徽标)」时可上传。PNG/JPEG，原图最大 40MB；服务器压缩至约 2MB 以下。',
+      TH: 'อัปโหลดได้เมื่อ「เปิดใช้(โลโก้ร้าน)」เท่านั้น PNG/JPEG สูงสุด 40MB บีบอัดต่ำกว่า 2MB'
+    },
+    '결제창 로고 아래에 표시할 문구': {
+      EN: 'Text below checkout logo',
+      JP: '決済画面上部ロゴ下の文言',
+      CH: '结帐页徽标下方文案',
+      TH: 'ข้อความใต้โลโก้หน้าชำระ'
+    },
     'API URL 결제방식을 분할 결제로 선택하세요': {
       EN: 'Select Split payment in API URL checkout mode.',
       JP: 'API URL決済方式で分割決済を選択してください。',

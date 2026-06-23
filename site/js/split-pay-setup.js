@@ -6,6 +6,8 @@
 
   var merchantMultiMax = 0;
 
+  var checkoutCtx = {};
+
   var I18N = {
 
     KOR: { brand: 'ICOPAY', subtitle: '분할결제 신청', email: '이메일', name: '이름', totalAmount: '총금액', count: '회차 수', payTerm: '결제 기간', interval: '나누기 방식', month: '월 단위', day: 'N일 단위', multi: '멀티(고객 선택)', intervalDays: '일 간격', intervalMonths: '월 간격', preview: '일정 미리보기', create: '계약 생성', created: '계약이 생성되었습니다.', firstPay: '1회차 결제', err: '처리할 수 없습니다.', disabled: '이 가맹점은 분할결제를 사용하지 않습니다.' },
@@ -23,6 +25,49 @@
   var PG_SPLIT_PAY_DAY_INTERVALS = [5, 7, 10, 15, 20, 40, 50];
 
   function t(k) { return (I18N[LANG] && I18N[LANG][k]) || I18N.ENG[k] || k; }
+
+  function splitPayShell() { return window.PG_URL_PAY_SHELL || null; }
+
+  function detectBrowserSplitPayLang() {
+    var nav = (navigator.language || navigator.userLanguage || 'en').toLowerCase();
+    if (nav.indexOf('ko') === 0) return 'KOR';
+    if (nav.indexOf('ja') === 0) return 'JPN';
+    if (nav.indexOf('zh') === 0) return 'CHN';
+    if (nav.indexOf('th') === 0) return 'THA';
+    return 'ENG';
+  }
+
+  function applySplitPayHeader() {
+    var shell = splitPayShell();
+    if (!shell || !shell.applyCheckoutHeaderLogo) return;
+    var opts = {
+      brandBlockId: 'splitPayBrandBlock',
+      imgId: 'splitPayBrandLogoImg',
+      textWrapId: 'splitPayBrandTextWrap',
+      t: function (k) {
+        if (k === 'brandTitle') return t('brand');
+        if (k === 'brandSub3ds' || k === 'brandSub') return t('subtitle');
+        return t(k);
+      }
+    };
+    shell.applyCheckoutHeaderLogo(checkoutCtx, opts);
+    if (shell.applyCheckoutHeaderSubtitle) shell.applyCheckoutHeaderSubtitle(checkoutCtx, opts);
+  }
+
+  function applySplitPayLangMenu() {
+    var show = String(checkoutCtx.splitPayLangMenuUseYn || 'Y').trim().toUpperCase() === 'Y';
+    document.querySelectorAll('.pay-lang').forEach(function (el) {
+      el.style.display = show ? '' : 'none';
+    });
+    if (!show) {
+      var bl = detectBrowserSplitPayLang();
+      if (bl && bl !== LANG) {
+        LANG = bl;
+        applyLang();
+        if (!isMultiMode()) toggleIntervalRow();
+      }
+    }
+  }
 
   function monthSuffix() {
 
@@ -86,6 +131,8 @@
 
     if (isMultiMode()) setupMultiPayTermControl(merchantMultiMax);
 
+    applySplitPayHeader();
+
   }
 
   document.querySelectorAll('.pay-lang button').forEach(function (b) {
@@ -114,7 +161,9 @@
 
       totalAmount: document.getElementById('totalAmount').value,
 
-      currencyCode: 'JPY'
+      currencyCode: 'JPY',
+
+      locale: LANG
 
     };
 
@@ -349,6 +398,12 @@
       .then(function (j) {
 
         if (!j || !j.success || !j.data) return;
+
+        checkoutCtx = j.data;
+
+        applySplitPayLangMenu();
+
+        applySplitPayHeader();
 
         var enabled = String(j.data.splitPayEnabledYn || 'N').trim().toUpperCase() === 'Y';
 

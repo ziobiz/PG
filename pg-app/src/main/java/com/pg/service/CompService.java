@@ -1942,6 +1942,11 @@ public class CompService {
                                 m.put("splitPayDayIntervalDays", mp.getSplitPayDayIntervalDays() != null ? mp.getSplitPayDayIntervalDays() : 10);
                                 m.put("splitPayMonthIntervalMonths", mp.getSplitPayMonthIntervalMonths() != null ? mp.getSplitPayMonthIntervalMonths() : 1);
                                 m.put("splitPayFirstPayMode", mp.getSplitPayFirstPayMode() != null ? mp.getSplitPayFirstPayMode() : "IMMEDIATE");
+                                m.put("splitPayHeaderLogoMode", com.pg.urlpay.WebPaymentHeaderLogoModeUtil.normalize(mp.getSplitPayHeaderLogoMode()));
+                                m.put("splitPayHeaderLogoUrl", mp.getSplitPayHeaderLogoUrl() != null ? mp.getSplitPayHeaderLogoUrl() : "");
+                                m.put("splitPayHeaderSubtitleMode", com.pg.urlpay.WebPaymentHeaderLogoModeUtil.normalize(mp.getSplitPayHeaderSubtitleMode()));
+                                m.put("splitPayHeaderSubtitleText", mp.getSplitPayHeaderSubtitleText() != null ? mp.getSplitPayHeaderSubtitleText() : "");
+                                m.put("splitPayLangMenuUseYn", mp.getSplitPayLangMenuUseYn() != null ? mp.getSplitPayLangMenuUseYn() : "Y");
                             }
                             return m;
                         }));
@@ -1999,7 +2004,12 @@ public class CompService {
                           String splitPayDayIntervalDays,
                           String splitPayMonthIntervalMonths,
                           String splitPayMultiMaxMonths,
-                          String splitPayFirstPayMode) {
+                          String splitPayFirstPayMode,
+                          String splitPayHeaderLogoMode,
+                          String splitPayHeaderLogoUrl,
+                          String splitPayHeaderSubtitleMode,
+                          String splitPayHeaderSubtitleText,
+                          String splitPayLangMenuUseYn) {
         return orgUnitRepository.findByCode(compId != null ? compId : "")
                 .flatMap(ou -> merchantProfileRepository.findByOrgUnitId(ou.getId())
                         .map(mp -> {
@@ -2305,6 +2315,8 @@ public class CompService {
                                 applyMerchantSplitPay(mp, splitPayEnabledYn, splitPayIntervalMonthYn,
                                         splitPayIntervalDayYn, splitPayIntervalMultiYn, splitPayDayIntervalDays,
                                         splitPayMonthIntervalMonths, splitPayMultiMaxMonths, splitPayFirstPayMode);
+                                applyMerchantSplitPayCheckoutPresentation(mp, splitPayHeaderLogoMode, splitPayHeaderLogoUrl,
+                                        splitPayHeaderSubtitleMode, splitPayHeaderSubtitleText, splitPayLangMenuUseYn);
                             }
                             merchantProfileRepository.save(mp);
                             if (assistantLoginId != null && !assistantLoginId.trim().isEmpty()) {
@@ -2591,6 +2603,46 @@ public class CompService {
         }
         if (splitPayFirstPayMode != null && !splitPayFirstPayMode.isBlank()) {
             mp.setSplitPayFirstPayMode(splitPayFirstPayMode);
+        }
+    }
+
+    private void applyMerchantSplitPayCheckoutPresentation(MerchantProfile mp,
+                                                           String headerLogoMode,
+                                                           String headerLogoUrl,
+                                                           String headerSubtitleMode,
+                                                           String headerSubtitleText,
+                                                           String langMenuUseYn) {
+        if (mp == null) {
+            return;
+        }
+        if (headerLogoMode != null && !headerLogoMode.isBlank()) {
+            mp.setSplitPayHeaderLogoMode(com.pg.urlpay.WebPaymentHeaderLogoModeUtil.normalize(headerLogoMode));
+        }
+        if (headerLogoUrl != null) {
+            String logo = headerLogoUrl.trim();
+            if (logo.isEmpty()) {
+                mp.setSplitPayHeaderLogoUrl(null);
+            } else if (logo.length() > 500) {
+                throw new IllegalArgumentException("분할결제 상단 로고 URL은 500자 이하여야 합니다.");
+            } else {
+                mp.setSplitPayHeaderLogoUrl(logo);
+            }
+        }
+        if (headerSubtitleMode != null && !headerSubtitleMode.isBlank()) {
+            mp.setSplitPayHeaderSubtitleMode(com.pg.urlpay.WebPaymentHeaderLogoModeUtil.normalize(headerSubtitleMode));
+        }
+        if (headerSubtitleText != null) {
+            String sub = headerSubtitleText.trim();
+            if (sub.isEmpty()) {
+                mp.setSplitPayHeaderSubtitleText(null);
+            } else if (sub.length() > 200) {
+                throw new IllegalArgumentException("분할결제 안내메세지는 200자 이하여야 합니다.");
+            } else {
+                mp.setSplitPayHeaderSubtitleText(sub);
+            }
+        }
+        if (langMenuUseYn != null && !langMenuUseYn.isBlank()) {
+            mp.setSplitPayLangMenuUseYn(langMenuUseYn);
         }
     }
 

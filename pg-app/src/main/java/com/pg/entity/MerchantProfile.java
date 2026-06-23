@@ -399,6 +399,26 @@ public class MerchantProfile {
     @Column(name = "split_pay_multi_max_months", nullable = false)
     private Integer splitPayMultiMaxMonths = 6;
 
+    /** URL 분할결제 결제창 상단 로고 — {@link com.pg.urlpay.WebPaymentHeaderLogoModeUtil} */
+    @Column(name = "split_pay_header_logo_mode", nullable = false, length = 16)
+    private String splitPayHeaderLogoMode = "HTML";
+
+    /** URL 분할결제 상단 로고 URL — mode=ACTIVE 일 때 가맹 업로드 */
+    @Column(name = "split_pay_header_logo_url", length = 500)
+    private String splitPayHeaderLogoUrl;
+
+    /** URL 분할결제 결제창 로고 아래 안내문구 — {@link com.pg.urlpay.WebPaymentHeaderLogoModeUtil} */
+    @Column(name = "split_pay_header_subtitle_mode", nullable = false, length = 16)
+    private String splitPayHeaderSubtitleMode = "DEFAULT";
+
+    /** URL 분할결제 상단 안내문구 — mode=ACTIVE 일 때 가맹 입력 */
+    @Column(name = "split_pay_header_subtitle_text", length = 200)
+    private String splitPayHeaderSubtitleText;
+
+    /** URL 분할결제 결제창 다국어 변경 메뉴 — Y=표시, N=숨김 */
+    @Column(name = "split_pay_lang_menu_use_yn", nullable = false, length = 1)
+    private String splitPayLangMenuUseYn = "Y";
+
     /** 기준 화폐. 본사: 최대 3종 comma구분 (KRW,USD,JPY). 총판: 1종만 */
     @Column(name = "base_currency", length = 30)
     private String baseCurrency;
@@ -764,6 +784,24 @@ public class MerchantProfile {
     public void setSplitPayMultiMaxMonths(Integer splitPayMultiMaxMonths) {
         int v = splitPayMultiMaxMonths != null ? splitPayMultiMaxMonths : 6;
         this.splitPayMultiMaxMonths = (v == 3 || v == 5 || v == 6 || v == 12) ? v : 6;
+    }
+    public String getSplitPayHeaderLogoMode() { return splitPayHeaderLogoMode; }
+    public void setSplitPayHeaderLogoMode(String splitPayHeaderLogoMode) {
+        this.splitPayHeaderLogoMode = splitPayHeaderLogoMode;
+    }
+    public String getSplitPayHeaderLogoUrl() { return splitPayHeaderLogoUrl; }
+    public void setSplitPayHeaderLogoUrl(String splitPayHeaderLogoUrl) { this.splitPayHeaderLogoUrl = splitPayHeaderLogoUrl; }
+    public String getSplitPayHeaderSubtitleMode() { return splitPayHeaderSubtitleMode; }
+    public void setSplitPayHeaderSubtitleMode(String splitPayHeaderSubtitleMode) {
+        this.splitPayHeaderSubtitleMode = splitPayHeaderSubtitleMode;
+    }
+    public String getSplitPayHeaderSubtitleText() { return splitPayHeaderSubtitleText; }
+    public void setSplitPayHeaderSubtitleText(String splitPayHeaderSubtitleText) {
+        this.splitPayHeaderSubtitleText = splitPayHeaderSubtitleText;
+    }
+    public String getSplitPayLangMenuUseYn() { return splitPayLangMenuUseYn; }
+    public void setSplitPayLangMenuUseYn(String splitPayLangMenuUseYn) {
+        this.splitPayLangMenuUseYn = splitPayLangMenuUseYn != null && "Y".equalsIgnoreCase(splitPayLangMenuUseYn.trim()) ? "Y" : "N";
     }
     public String getBaseCurrency() { return baseCurrency; }
     public void setBaseCurrency(String baseCurrency) { this.baseCurrency = baseCurrency; }

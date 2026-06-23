@@ -257,6 +257,37 @@
     };
   }
 
+  /** URL 분할결제 결제창 — 로고설정「활성」일 때만 업로드 */
+  function splitPayHeaderLogoFieldBlock() {
+    var phLogo = '업로드 시 자동 반영 · 또는 HTTPS URL 직접 입력';
+    var logoHint = '「활성(가맹점 로고)」일 때만 업로드 가능합니다. PNG·JPEG, 원본 최대 40MB. 서버에서 목표 2MB 이하로 재압축합니다.';
+    return '<div class="form-field-block split-pay-header-logo-upload-block w-100" id="splitPayHeaderLogoBlock">' +
+      '<label class="form-label" data-pg-ui-t="분할결제 상단 로고">' + escUi(L('분할결제 상단 로고')) + '</label>' +
+      '<div class="input-group input-group-sm mb-1">' +
+      '<input type="text" class="form-control form-control-sm" name="splitPayHeaderLogoUrl" id="splitPayHeaderLogoUrl" ' +
+      'placeholder="' + escUi(L(phLogo)) + '" data-pg-ui-placeholder="' + escUi(phLogo) + '">' +
+      '<input type="file" class="d-none" id="splitPayHeaderLogoFile" accept="image/png,image/jpeg,image/jpg">' +
+      '<button type="button" class="btn btn-outline-secondary btn-sm" id="splitPayHeaderLogoBrowse"><span data-pg-ui-t="파일 선택">' + escUi(L('파일 선택')) + '</span></button>' +
+      '<button type="button" class="btn btn-outline-primary btn-sm" id="splitPayHeaderLogoUpload"><span data-pg-ui-t="업로드·최적화">' + escUi(L('업로드·최적화')) + '</span></button>' +
+      '</div>' +
+      '<div class="form-text text-muted small" data-pg-ui-t="' + escUi(logoHint) + '">' +
+      escUi(L(logoHint)) +
+      '</div></div>';
+  }
+
+  /** URL 분할결제 결제창 — 안내메세지「활성」일 때만 입력 */
+  function splitPayHeaderSubtitleFieldBlock() {
+    var ph = '결제창 로고 아래에 표시할 문구';
+    var hint = '「활성(직접입력)」일 때만 직접 입력 가능합니다. 「기본」은 분할결제 안내 문구가 언어별로 표시됩니다. 로고설정이 비활성이면 문구도 표시되지 않습니다.';
+    return '<div class="form-field-block split-pay-header-subtitle-block w-100" id="splitPayHeaderSubtitleBlock">' +
+      '<label class="form-label" data-pg-ui-t="안내메세지 문구">' + escUi(L('안내메세지 문구')) + '</label>' +
+      '<input type="text" class="form-control form-control-sm" name="splitPayHeaderSubtitleText" id="splitPayHeaderSubtitleText" ' +
+      'maxlength="200" placeholder="' + escUi(L(ph)) + '" data-pg-ui-placeholder="' + escUi(ph) + '">' +
+      '<div class="form-text text-muted small" data-pg-ui-t="' + escUi(hint) + '">' +
+      escUi(L(hint)) +
+      '</div></div>';
+  }
+
   /** URL 분할결제 — 월기간 1~24개월 */
   function merchantSplitPayMonthIntervalOptions() {
     var opts = [];
@@ -310,6 +341,18 @@
          { type: 'hidden', name: 'splitPayMonthIntervalMonths' },
          { type: 'hidden', name: 'splitPayDayIntervalDays' },
          { type: 'hidden', name: 'splitPayMultiMaxMonths' }],
+        [{ label: '로고설정', type: 'select', name: 'splitPayHeaderLogoMode', options: [
+          { v: 'DEFAULT', t: '기본(총판 로고)' },
+          { v: 'HTML', t: '기본(HTML)' },
+          { v: 'ACTIVE', t: '활성(가맹점 로고)' },
+          { v: 'DISABLED', t: '비활성' }
+        ], col: 3 }],
+        [{ type: 'customHtml', col: 12, html: splitPayHeaderLogoFieldBlock }],
+        [{ label: '안내메세지', type: 'select', name: 'splitPayHeaderSubtitleMode', options: [
+          { v: 'DEFAULT', t: '기본(분할결제 안내)' }, { v: 'DISABLED', t: '비활성' }, { v: 'ACTIVE', t: '활성(직접입력)' }
+        ], col: 3 },
+         { label: '다국어 메뉴', type: 'select', name: 'splitPayLangMenuUseYn', options: [{ v: 'Y', t: '활성' }, { v: 'N', t: '비활성' }], col: 3 }],
+        [{ type: 'customHtml', col: 12, html: splitPayHeaderSubtitleFieldBlock }],
         [{ type: 'customHtml', col: 12, html: merchantSplitPayUrlRowHtml('가맹점 저장 후 조회') }],
         [{ label: '', type: 'note', col: 12, text: '분할결제 사용 ON 시 월간·일간·멀티 중 하나를 설정합니다. 멀티는 고객이 1개월~설정 최대개월 중 기간을 직접 선택합니다. 1회차는 즉시결제 또는 링크발송. 미납 회차는 매일 결제 링크 메일이 발송됩니다. 미사용이면 분할관리·분할결제내역 메뉴가 숨겨집니다.' }]
       ]

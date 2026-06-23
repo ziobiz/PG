@@ -86,6 +86,58 @@ public class CheckoutHeaderLogoResolver {
         st.text().ifPresent(t -> data.put("checkoutHeaderSubtitleText", t));
     }
 
+    public Resolved resolveSplitPay(Long merchantOrgUnitId) {
+        Optional<MerchantProfile> prof = merchantProfileRepository.findByOrgUnitId(merchantOrgUnitId);
+        String mode = WebPaymentHeaderLogoModeUtil.normalize(
+                prof.map(MerchantProfile::getSplitPayHeaderLogoMode).orElse(WebPaymentHeaderLogoModeUtil.HTML));
+        if (WebPaymentHeaderLogoModeUtil.DISABLED.equals(mode)) {
+            return new Resolved(WebPaymentHeaderLogoModeUtil.DISABLED, Optional.empty());
+        }
+        if (WebPaymentHeaderLogoModeUtil.ACTIVE.equals(mode)) {
+            String custom = prof.map(MerchantProfile::getSplitPayHeaderLogoUrl).orElse("");
+            if (custom == null || custom.isBlank()) {
+                return new Resolved(WebPaymentHeaderLogoModeUtil.ACTIVE, Optional.empty());
+            }
+            return new Resolved(WebPaymentHeaderLogoModeUtil.ACTIVE, Optional.of(custom.trim()));
+        }
+        if (WebPaymentHeaderLogoModeUtil.HTML.equals(mode)) {
+            return new Resolved(WebPaymentHeaderLogoModeUtil.HTML, Optional.empty());
+        }
+        return new Resolved(WebPaymentHeaderLogoModeUtil.DEFAULT, resolveMasterDistBrandingLogo(merchantOrgUnitId));
+    }
+
+    public SubtitleResolved resolveSplitPaySubtitle(Long merchantOrgUnitId) {
+        Optional<MerchantProfile> prof = merchantProfileRepository.findByOrgUnitId(merchantOrgUnitId);
+        String mode = WebPaymentHeaderLogoModeUtil.normalize(
+                prof.map(MerchantProfile::getSplitPayHeaderSubtitleMode).orElse(WebPaymentHeaderLogoModeUtil.DEFAULT));
+        if (WebPaymentHeaderLogoModeUtil.DISABLED.equals(mode)) {
+            return new SubtitleResolved(WebPaymentHeaderLogoModeUtil.DISABLED, Optional.empty());
+        }
+        if (WebPaymentHeaderLogoModeUtil.ACTIVE.equals(mode)) {
+            String custom = prof.map(MerchantProfile::getSplitPayHeaderSubtitleText).orElse("");
+            if (custom == null || custom.isBlank()) {
+                return new SubtitleResolved(WebPaymentHeaderLogoModeUtil.ACTIVE, Optional.empty());
+            }
+            return new SubtitleResolved(WebPaymentHeaderLogoModeUtil.ACTIVE, Optional.of(custom.trim()));
+        }
+        return new SubtitleResolved(WebPaymentHeaderLogoModeUtil.DEFAULT, Optional.empty());
+    }
+
+    public void applySplitPayToCheckoutMap(Map<String, Object> data, Long merchantOrgUnitId) {
+        if (data == null || merchantOrgUnitId == null) {
+            return;
+        }
+        Resolved r = resolveSplitPay(merchantOrgUnitId);
+        data.put("checkoutHeaderLogoMode", r.mode());
+        r.url().ifPresent(u -> data.put("checkoutHeaderLogoUrl", u));
+        SubtitleResolved st = resolveSplitPaySubtitle(merchantOrgUnitId);
+        data.put("checkoutHeaderSubtitleMode", st.mode());
+        st.text().ifPresent(t -> data.put("checkoutHeaderSubtitleText", t));
+        Optional<MerchantProfile> prof = merchantProfileRepository.findByOrgUnitId(merchantOrgUnitId);
+        String langMenu = prof.map(MerchantProfile::getSplitPayLangMenuUseYn).orElse("Y");
+        data.put("splitPayLangMenuUseYn", langMenu != null && "Y".equalsIgnoreCase(langMenu.trim()) ? "Y" : "N");
+    }
+
     private Optional<String> resolveMasterDistBrandingLogo(Long merchantOrgUnitId) {
         Long cur = merchantOrgUnitId;
         while (cur != null) {

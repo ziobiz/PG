@@ -85,6 +85,14 @@ public class ChatbotHeaderLogoUploadService {
                 "[업체정보] 웹결제 상단 로고 URL");
     }
 
+    @Transactional
+    public UploadResult processAndPersistSplitPayHeader(Long merchantOrgUnitId, String compId, MultipartFile file)
+            throws IOException {
+        return processAndPersistInternal(merchantOrgUnitId, compId, file, "split-pay-header", "slogo_",
+                MerchantProfile::getSplitPayHeaderLogoUrl, MerchantProfile::setSplitPayHeaderLogoUrl,
+                "[업체정보] 분할결제 상단 로고 URL");
+    }
+
     private UploadResult processAndPersistInternal(Long merchantOrgUnitId, String compId, MultipartFile file,
                                                    String storageSubdir, String filePrefix,
                                                    java.util.function.Function<MerchantProfile, String> urlGetter,
