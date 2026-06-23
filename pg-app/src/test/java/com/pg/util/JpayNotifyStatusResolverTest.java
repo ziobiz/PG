@@ -25,6 +25,14 @@ class JpayNotifyStatusResolverTest {
     }
 
     @Test
+    void mergeFailThenPaid_callbackUpgradesToSuccess() {
+        assertEquals("10",
+                NotifyToTxnStatusMerge.merge("99", JpayNotifyStatusResolver.ST_PAID, "CALLBACK"));
+        assertEquals("10",
+                NotifyToTxnStatusMerge.merge("08", JpayNotifyStatusResolver.ST_PAID, "CALLBACK"));
+    }
+
+    @Test
     void mergePaidThenRefund() {
         String merged = NotifyToTxnStatusMerge.merge("10", JpayNotifyStatusResolver.ST_REFUND, "CALLBACK");
         assertEquals("30", merged);

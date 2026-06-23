@@ -7,6 +7,7 @@ import java.util.Locale;
  * <ul>
  *   <li>RESULT 로 실패·취소·환불·무효 등 터미널 상태가 오면, 이전 CALLBACK 성공(10)을 덮어씁니다.</li>
  *   <li>CALLBACK 은 일반적으로 더 강한(높은 rank) 상태만 반영해 성공→실패 순서를 허용합니다.</li>
+ *   <li>JPAY 비동기 승인 — pay_index 동기 실패(99) 등 선행 상태 뒤 {@code returncode=00} 성공(10) 노티는 승인으로 갱신합니다.</li>
  *   <li>이번 노티에서 상태를 판단할 수 없으면(incoming null) 기존 상태를 유지합니다.</li>
  * </ul>
  */
@@ -36,6 +37,10 @@ public final class NotifyToTxnStatusMerge {
         if ("10".equals(prev) && isTerminalOutcome(inc)) {
             return inc;
         }
+        /* JPAY 비동기 승인 — 선행 실패(99)·대기(08) 뒤 returncode=00 등 성공 노티는 최종 승인으로 갱신 */
+        if ("10".equals(inc) && isProvisionalPreSuccess(prev)) {
+            return inc;
+        }
         String ch = notifyChannel == null ? "" : notifyChannel.trim().toUpperCase(Locale.ROOT);
         if ("RESULT".equals(ch) && isTerminalOutcome(inc)) {
             return inc;
@@ -52,6 +57,17 @@ public final class NotifyToTxnStatusMerge {
         }
         return switch (st.trim()) {
             case "99", "F0", "f0", "20", "30", "31", "21", "22", "40", "41", "42" -> true;
+            default -> false;
+        };
+    }
+
+    /** pay_index 동기 실패·결제 대기 등 — 비동기 승인 노티로 성공(10)으로 바뀔 수 있는 상태 */
+    private static boolean isProvisionalPreSuccess(String st) {
+        if (st == null || st.isBlank()) {
+            return false;
+        }
+        return switch (st.trim()) {
+            case "99", "F0", "f0", "08" -> true;
             default -> false;
         };
     }
