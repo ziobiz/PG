@@ -22,4 +22,25 @@ public interface HqPayCardBlacklistRepository extends JpaRepository<HqPayCardBla
             AND (b.pgVendor IS NULL OR TRIM(b.pgVendor) = '' OR UPPER(TRIM(b.pgVendor)) = UPPER(TRIM(:pg)))
             """)
     Optional<HqPayCardBlacklist> findActiveHit(@Param("hash") String panHash, @Param("pg") String pgVendor);
+
+    @Query("""
+            SELECT b FROM HqPayCardBlacklist b
+            WHERE b.activeYn = 'Y' AND b.matchMode = 'MASK_6_4' AND b.panDisplay = :maskKey
+            AND (b.pgVendor IS NULL OR TRIM(b.pgVendor) = '' OR UPPER(TRIM(b.pgVendor)) = UPPER(TRIM(:pg)))
+            """)
+    Optional<HqPayCardBlacklist> findActiveMaskDisplayHit(@Param("maskKey") String maskKey, @Param("pg") String pgVendor);
+
+    long countByRegisteredOrgUnitIdAndActiveYn(Long registeredOrgUnitId, String activeYn);
+
+    long countByRegisteredOrgUnitIdAndActiveYnAndSource(Long registeredOrgUnitId, String activeYn, String source);
+
+    Optional<HqPayCardBlacklist> findTopByRegisteredOrgUnitIdOrderByCreatedAtDesc(Long registeredOrgUnitId);
+
+    default Optional<java.time.LocalDateTime> findLatestCreatedAtByOrg(Long orgUnitId) {
+        return findTopByRegisteredOrgUnitIdOrderByCreatedAtDesc(orgUnitId).map(HqPayCardBlacklist::getCreatedAt);
+    }
+
+    default Optional<String> findLatestSourceByOrg(Long orgUnitId) {
+        return findTopByRegisteredOrgUnitIdOrderByCreatedAtDesc(orgUnitId).map(HqPayCardBlacklist::getSource);
+    }
 }

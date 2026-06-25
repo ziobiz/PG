@@ -13,6 +13,7 @@ import com.pg.service.AuthService;
 import com.pg.service.CompService;
 import com.pg.service.ExcelStyledExportService;
 import com.pg.util.ChatbotProductPricingUtil;
+import com.pg.util.NotifyUrlDisplayMask;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -156,9 +157,54 @@ public class ApiCompController {
             }
         }
         return compService.getDetail(compId)
+                .map(m -> maskJpayNotifyUrlsForMerchantSelfView(m, auth))
                 .map(ApiResponse::ok)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.ok(ApiResponse.fail("업체를 찾을 수 없습니다.", "NOT_FOUND")));
+    }
+
+    /**
+     * 가맹점이 본인 업체(/comp/myCompMng·업체정보)를 조회할 때 JPAY 수신통보 URL은 마킹만 노출.
+     * 총본사·본사·총판 등 상위 조직이 하위 가맹을 조회할 때는 원문 URL을 유지합니다.
+     */
+    private Map<String, Object> maskJpayNotifyUrlsForMerchantSelfView(Map<String, Object> detail, Authentication auth) {
+        if (detail == null || auth == null || !(auth.getPrincipal() instanceof AppUser u)) {
+            return detail;
+        }
+        if ("ADMIN".equalsIgnoreCase(u.getRole())) {
+            return detail;
+        }
+        Map<String, Object> org = authService.getOrgInfo(u.getUsername());
+        if (org == null) {
+            return detail;
+        }
+        String orgLevel = String.valueOf(org.getOrDefault("orgLevel", "")).trim().toUpperCase(Locale.ROOT);
+        if (!OrgLevel.MERCHANT.name().equals(orgLevel)) {
+            return detail;
+        }
+        String mine = org.get("compId") != null ? org.get("compId").toString().trim() : "";
+        String target = detail.get("compId") != null ? detail.get("compId").toString().trim() : "";
+        if (mine.isEmpty() || target.isEmpty() || !mine.equalsIgnoreCase(target)) {
+            return detail;
+        }
+        maskNotifyUrlField(detail, "jpayNotifyUrl");
+        maskNotifyUrlField(detail, "jpayCallbackUrl");
+        return detail;
+    }
+
+    private static void maskNotifyUrlField(Map<String, Object> detail, String key) {
+        if (detail == null || key == null || !detail.containsKey(key)) {
+            return;
+        }
+        Object raw = detail.get(key);
+        if (raw == null) {
+            return;
+        }
+        String s = raw.toString().trim();
+        if (s.isEmpty()) {
+            return;
+        }
+        detail.put(key, NotifyUrlDisplayMask.mask(s));
     }
 
     @PostMapping("/register")
@@ -293,7 +339,17 @@ public class ApiCompController {
             @RequestParam(required = false) String apiWordpressUseYn,
             @RequestParam(required = false) String jpayCheckoutFieldMode,
             @RequestParam(required = false) String jpayPhoneDialCodeYn,
-            @RequestParam(required = false) String tabletFeatureUseYn) {
+            @RequestParam(required = false) String tabletFeatureUseYn,
+            @RequestParam(required = false) String cardRiskPolicyMode,
+            @RequestParam(required = false) String cardRiskTier1Hours,
+            @RequestParam(required = false) String cardRiskTier1Min,
+            @RequestParam(required = false) String cardRiskTier2Hours,
+            @RequestParam(required = false) String cardRiskTier2Min,
+            @RequestParam(required = false) String cardRiskTier3Hours,
+            @RequestParam(required = false) String cardRiskTier3Min,
+            @RequestParam(required = false) String cardRiskTier4Hours,
+            @RequestParam(required = false) String cardRiskTier4Min,
+            @RequestParam(required = false) String cardRiskAutoBlacklistTier) {
         Long parentIdVal = parentId;
         if (parentIdVal == null && parentComp != null && !parentComp.isEmpty()) {
             String trimmed = parentComp.trim();
@@ -356,7 +412,13 @@ public class ApiCompController {
                 apiWordpressUseYn,
                 jpayCheckoutFieldMode,
                 jpayPhoneDialCodeYn,
-                tabletFeatureUseYn);
+                tabletFeatureUseYn,
+                cardRiskPolicyMode,
+                cardRiskTier1Hours, cardRiskTier1Min,
+                cardRiskTier2Hours, cardRiskTier2Min,
+                cardRiskTier3Hours, cardRiskTier3Min,
+                cardRiskTier4Hours, cardRiskTier4Min,
+                cardRiskAutoBlacklistTier);
         return ResponseEntity.ok(ApiResponse.ok(Map.of("compId", saved.getCode(), "compNm", saved.getName())));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.ok(ApiResponse.fail(e.getMessage(), "VALIDATION"));
@@ -537,7 +599,17 @@ public class ApiCompController {
             @RequestParam(required = false) String splitPayHeaderLogoUrl,
             @RequestParam(required = false) String splitPayHeaderSubtitleMode,
             @RequestParam(required = false) String splitPayHeaderSubtitleText,
-            @RequestParam(required = false) String splitPayLangMenuUseYn) {
+            @RequestParam(required = false) String splitPayLangMenuUseYn,
+            @RequestParam(required = false) String cardRiskPolicyMode,
+            @RequestParam(required = false) String cardRiskTier1Hours,
+            @RequestParam(required = false) String cardRiskTier1Min,
+            @RequestParam(required = false) String cardRiskTier2Hours,
+            @RequestParam(required = false) String cardRiskTier2Min,
+            @RequestParam(required = false) String cardRiskTier3Hours,
+            @RequestParam(required = false) String cardRiskTier3Min,
+            @RequestParam(required = false) String cardRiskTier4Hours,
+            @RequestParam(required = false) String cardRiskTier4Min,
+            @RequestParam(required = false) String cardRiskAutoBlacklistTier) {
         var targetOpt = compService.getDetail(compId);
         if (targetOpt.isEmpty()) {
             return ResponseEntity.ok(ApiResponse.fail("업체를 찾을 수 없습니다.", "NOT_FOUND"));
@@ -602,7 +674,13 @@ public class ApiCompController {
                     splitPayHeaderLogoUrl,
                     splitPayHeaderSubtitleMode,
                     splitPayHeaderSubtitleText,
-                    splitPayLangMenuUseYn);
+                    splitPayLangMenuUseYn,
+                    cardRiskPolicyMode,
+                    cardRiskTier1Hours, cardRiskTier1Min,
+                    cardRiskTier2Hours, cardRiskTier2Min,
+                    cardRiskTier3Hours, cardRiskTier3Min,
+                    cardRiskTier4Hours, cardRiskTier4Min,
+                    cardRiskAutoBlacklistTier);
             return ResponseEntity.ok(ok ? ApiResponse.ok(Map.of("success", true, "message", "저장되었습니다."))
                     : ApiResponse.fail("업체를 찾을 수 없습니다.", "NOT_FOUND"));
         } catch (IllegalArgumentException e) {

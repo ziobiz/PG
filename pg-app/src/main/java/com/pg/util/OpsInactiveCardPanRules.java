@@ -8,6 +8,12 @@ public final class OpsInactiveCardPanRules {
     private OpsInactiveCardPanRules() {
     }
 
+    public static void validateForMaskRegister(String maskKey) {
+        if (!PayCardMaskKeyUtil.isValidMaskKey(maskKey)) {
+            throw new IllegalArgumentException("카드번호는 앞 6자리 + *** + 뒤 4자리 형식(예: 531289***8601)으로 입력하세요.");
+        }
+    }
+
     public static void validateForRegister(String brandKey, String panDigits) {
         String pan = PayCardBrandDetector.normalizePan(panDigits);
         if (pan.length() < 13 || pan.length() > 19) {

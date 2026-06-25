@@ -42,6 +42,45 @@
     return 'KO';
   }
 
+  function applyMsgArgs(text, data) {
+    if (!text) return text;
+    var s = String(text);
+    var d = data || {};
+    if (d.remainingMinutes != null && s.indexOf('{0}') >= 0) {
+      s = s.replace('{0}', String(d.remainingMinutes));
+    }
+    if (d.blockedPrefix != null && s.indexOf('{0}') >= 0) {
+      s = s.replace('{0}', String(d.blockedPrefix));
+    }
+    if (d.arg0 != null && s.indexOf('{0}') >= 0) {
+      s = s.replace('{0}', String(d.arg0));
+    }
+    return s;
+  }
+
+  /** 서버 검증 응답(flat messages) · checkout policy(nested messages) 공통 */
+  function resolveMessage(policy, data, messageKey, lang, extras) {
+    var lk = langKey(lang);
+    var key = messageKey || (data && (data.messageKey || data.errorCode));
+    var bag = data && data.messages;
+    var text = null;
+    if (bag) {
+      if (bag[lk] && typeof bag[lk] === 'string') {
+        text = bag[lk];
+      } else if (key && bag[key] && typeof bag[key] === 'object') {
+        text = bag[key][lk] || bag[key].KO;
+      }
+    }
+    if (!text && policy && key) {
+      text = msg(policy, key, lang, extras && extras.arg0 != null ? extras.arg0 : null);
+      if (text === key) text = null;
+    }
+    if (!text && data && data.message) {
+      text = data.message;
+    }
+    return applyMsgArgs(text || key || '', data || extras || {});
+  }
+
   function msg(policy, key, lang, arg) {
     var lk = langKey(lang);
     var bag = policy && policy.messages && policy.messages[key];
@@ -62,13 +101,13 @@
     for (i = 0; i < prefixes.length; i++) {
       var p = String(prefixes[i] || '');
       if (p && pan.indexOf(p) === 0) {
-        return { valid: false, message: msg(policy, 'BLOCKED_PREFIX', lang, p), errorCode: 'BLOCKED_PREFIX' };
+        return { valid: false, message: msg(policy, 'BLOCKED_PREFIX', lang, p), errorCode: 'BLOCKED_PREFIX', messageKey: 'BLOCKED_PREFIX', blockedPrefix: p };
       }
     }
     var pg = String(policy.pgVendor || '').toUpperCase();
     if (pg.indexOf('JPAY') === 0) {
       if (pan.indexOf('60') === 0 || pan.indexOf('81') === 0) {
-        return { valid: false, message: msg(policy, 'UNION_60_81', lang), errorCode: 'UNION_60_81' };
+        return { valid: false, message: msg(policy, 'UNION_60_81', lang), errorCode: 'UNION_60_81', messageKey: 'UNION_60_81' };
       }
     }
     var detected = detectBrand(pan);
@@ -76,15 +115,15 @@
     if (brand === 'UNKNOWN' && selectedBrand && selectedBrand !== 'AUTO') brand = selectedBrand;
     var allowed = policy.allowedBrands || [];
     if (allowed.length && allowed.indexOf(brand) < 0 && brand !== 'UNKNOWN') {
-      return { valid: false, message: msg(policy, 'BRAND_NOT_ALLOWED', lang, brand), errorCode: 'BRAND_NOT_ALLOWED' };
+      return { valid: false, message: msg(policy, 'BRAND_NOT_ALLOWED', lang, brand), errorCode: 'BRAND_NOT_ALLOWED', messageKey: 'BRAND_NOT_ALLOWED', arg0: brand };
     }
     if (pg.indexOf('JPAY') === 0 && detected === 'UNIONPAY' && pan.indexOf('62') !== 0) {
-      return { valid: false, message: msg(policy, 'UNION_NOT_62', lang), errorCode: 'UNION_NOT_62' };
+      return { valid: false, message: msg(policy, 'UNION_NOT_62', lang), errorCode: 'UNION_NOT_62', messageKey: 'UNION_NOT_62' };
     }
     var exp = expectedLen(brand === 'UNKNOWN' ? detected : brand);
     if (pan.length >= exp - 1 && pan.length !== exp && pan.length >= 14) {
       var k = brand === 'AMEX' || detected === 'AMEX' ? 'AMEX_LEN' : 'CARD_LEN';
-      return { valid: false, message: msg(policy, k, lang, exp), errorCode: k };
+      return { valid: false, message: msg(policy, k, lang, exp), errorCode: k, messageKey: k, arg0: exp };
     }
     return { valid: true, brand: brand, expectedLength: exp };
   }
@@ -134,6 +173,35 @@
     brandSelect.value = hasCur ? cur : 'AUTO';
   }
 
+  function resolveLang(opts) {
+    if (opts && typeof opts.onLangChange === 'function') return opts.onLangChange();
+    return opts && opts.lang ? opts.lang : 'KO';
+  }
+
+  function postCardPolicyCheck(opts, pan, brand, lang) {
+    var compId = typeof opts.getCompId === 'function' ? opts.getCompId() : opts.compId;
+    if (!compId || pan.length < 10) return Promise.resolve(null);
+    var url = opts.checkUrl || '/api/pay/url/card-policy-check';
+    var base = opts.apiBase != null ? String(opts.apiBase) : '';
+    if (base && url.indexOf('http') !== 0 && url.charAt(0) === '/') {
+      url = base.replace(/\/$/, '') + url;
+    }
+    var body = JSON.stringify({
+      compId: compId,
+      pan: pan,
+      cardBrand: brand && brand !== 'AUTO' ? brand : '',
+      lang: lang
+    });
+    if (typeof opts.postJson === 'function') {
+      return opts.postJson(url, body).then(function (r) { return r && r.data ? r.data : r; });
+    }
+    return fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+      body: body
+    }).then(function (res) { return res.json(); }).then(function (r) { return r && r.data ? r.data : r; });
+  }
+
   function init(opts) {
     opts = opts || {};
     var policy = opts.policy;
@@ -143,6 +211,9 @@
     var cvvInput = opts.cvvInput;
     var lang = opts.lang || 'KO';
     var onLangChange = opts.onLangChange;
+    var serverTimer = null;
+    var serverSeq = 0;
+    var lastServerBlock = null;
 
     if (!policy || !panInput) return;
 
@@ -158,7 +229,12 @@
         alertEl.textContent = '';
         return;
       }
-      alertEl.textContent = res.message || '';
+      var curLang = resolveLang({ lang: lang, onLangChange: onLangChange });
+      var text = res.message;
+      if (res.messageKey || res.errorCode) {
+        text = resolveMessage(policy, res, res.messageKey || res.errorCode, curLang, res);
+      }
+      alertEl.textContent = text || '';
       alertEl.classList.remove('d-none');
     }
 
@@ -168,9 +244,51 @@
     }
 
     function runValidate() {
-      var res = validate(policy, panInput.value, currentBrand(), typeof onLangChange === 'function' ? onLangChange() : lang);
-      showAlert(res);
-      return res;
+      var curLang = resolveLang({ lang: lang, onLangChange: onLangChange });
+      var clientRes = validate(policy, panInput.value, currentBrand(), curLang);
+      if (!clientRes.valid) {
+        lastServerBlock = null;
+        showAlert(clientRes);
+        return clientRes;
+      }
+      if (lastServerBlock && lastServerBlock.valid === false) {
+        showAlert(lastServerBlock);
+        return lastServerBlock;
+      }
+      showAlert(clientRes);
+      return clientRes;
+    }
+
+    function scheduleServerCheck() {
+      var pan = digitsOnly(panInput.value);
+      var curLang = resolveLang({ lang: lang, onLangChange: onLangChange });
+      if (pan.length < 10 || !(typeof opts.getCompId === 'function' ? opts.getCompId() : opts.compId)) {
+        lastServerBlock = null;
+        return;
+      }
+      clearTimeout(serverTimer);
+      serverTimer = setTimeout(function () {
+        var seq = ++serverSeq;
+        var brand = currentBrand();
+        postCardPolicyCheck(opts, pan, brand, curLang).then(function (data) {
+          if (seq !== serverSeq) return;
+          if (!data) return;
+          if (data.valid === false) {
+            var mk = data.messageKey || data.errorCode;
+            lastServerBlock = {
+              valid: false,
+              errorCode: data.errorCode || mk,
+              messageKey: mk,
+              messages: data.messages || null,
+              remainingMinutes: data.remainingMinutes
+            };
+            showAlert(lastServerBlock);
+          } else {
+            lastServerBlock = null;
+            runValidate();
+          }
+        }).catch(function () {});
+      }, 400);
     }
 
     function applyBrandUi() {
@@ -201,6 +319,7 @@
       brandSelect.addEventListener('change', function () {
         applyBrandUi();
         runValidate();
+        scheduleServerCheck();
       });
     }
 
@@ -208,6 +327,11 @@
       syncDetectedBrandToSelect();
       applyBrandUi();
       runValidate();
+      scheduleServerCheck();
+    });
+
+    panInput.addEventListener('blur', function () {
+      scheduleServerCheck();
     });
 
     applyBrandUi();
@@ -219,16 +343,34 @@
         syncDetectedBrandToSelect();
         applyBrandUi();
       },
+      refreshLang: function () {
+        runValidate();
+      },
       validateFinal: function () {
         var pan = digitsOnly(panInput.value);
         var b = currentBrand();
         if (b === 'AUTO') b = detectBrand(pan);
         var exp = expectedLen(b === 'UNKNOWN' ? detectBrand(pan) : b);
+        var curLang = resolveLang({ lang: lang, onLangChange: onLangChange });
         if (pan.length !== exp) {
           var k = (b === 'AMEX' || detectBrand(pan) === 'AMEX') ? 'AMEX_LEN' : 'CARD_LEN';
-          return { valid: false, message: msg(policy, k, lang, exp), errorCode: k };
+          return { valid: false, message: msg(policy, k, curLang, exp), errorCode: k, messageKey: k, arg0: exp };
         }
-        return validate(policy, pan, b, typeof onLangChange === 'function' ? onLangChange() : lang);
+        if (lastServerBlock && lastServerBlock.valid === false) {
+          return {
+            valid: false,
+            message: resolveMessage(policy, lastServerBlock, lastServerBlock.messageKey || lastServerBlock.errorCode, curLang, lastServerBlock),
+            errorCode: lastServerBlock.errorCode,
+            messageKey: lastServerBlock.messageKey,
+            messages: lastServerBlock.messages,
+            remainingMinutes: lastServerBlock.remainingMinutes
+          };
+        }
+        return validate(policy, pan, b, curLang);
+      },
+      checkServerNow: function () {
+        scheduleServerCheck();
+        return postCardPolicyCheck(opts, digitsOnly(panInput.value), currentBrand(), resolveLang({ lang: lang, onLangChange: onLangChange }));
       }
     };
   }

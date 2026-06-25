@@ -103,6 +103,16 @@ app:
     # DB(tb_pg_agency URL결제 행·tb_hq_api_config)에 Route가 없을 때만 사용하는 최후 폴백. 운영 Route는 API연동설정에서 관리.
     route-no: ${CHILLPAY_ROUTE_NO:4}
     sandbox: ${CHILLPAY_SANDBOX:true}
+  # JPAY 요청(08) 대기 — 노티 미수신 UNPAID 건 Trade Query 자동 동기화
+  jpay:
+    pendingReconcile:
+      enabled: ${APP_JPAY_PENDING_RECONCILE_ENABLED:true}
+      cron: "${APP_JPAY_PENDING_RECONCILE_CRON:0 */15 * * * *}"
+      staleMinutes: ${APP_JPAY_PENDING_RECONCILE_STALE_MINUTES:30}
+      # 하위 호환(분 설정이 우선): 시간 단위는 더 이상 사용하지 않음
+      staleHours: ${APP_JPAY_PENDING_RECONCILE_STALE_HOURS:2}
+      maxAgeDays: ${APP_JPAY_PENDING_RECONCILE_MAX_AGE_DAYS:14}
+      batchSize: ${APP_JPAY_PENDING_RECONCILE_BATCH_SIZE:50}
   # PG 노티 수신(/api/open/pg-notify/{token}) — ziobiz/NOTI 미들웨어 송신원 보완
   # allowed-client-cidrs 비우면 IP 제한 없음. hmac-secret 비우면 HMAC 검증 없음.
   pg-notify:

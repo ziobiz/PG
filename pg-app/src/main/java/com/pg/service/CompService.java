@@ -120,6 +120,7 @@ public class CompService {
     private final OrgUserSuspensionService orgUserSuspensionService;
     private final MerchantApiDeploymentService merchantApiDeploymentService;
     private final MerchantApiIntegrationChannelService merchantApiIntegrationChannelService;
+    private final HqRiskCardPolicyService hqRiskCardPolicyService;
 
     private static LocalTime parseTime(String s) {
         if (s == null || s.trim().isEmpty()) return null;
@@ -442,7 +443,8 @@ public class CompService {
                        ChatbotPlanProrationService chatbotPlanProrationService,
                        OrgUserSuspensionService orgUserSuspensionService,
                        @Lazy MerchantApiDeploymentService merchantApiDeploymentService,
-                       MerchantApiIntegrationChannelService merchantApiIntegrationChannelService) {
+                       MerchantApiIntegrationChannelService merchantApiIntegrationChannelService,
+                       HqRiskCardPolicyService hqRiskCardPolicyService) {
         this.orgUnitRepository = orgUnitRepository;
         this.merchantProfileRepository = merchantProfileRepository;
         this.settlementSettingRepository = settlementSettingRepository;
@@ -472,6 +474,7 @@ public class CompService {
         this.orgUserSuspensionService = orgUserSuspensionService;
         this.merchantApiDeploymentService = merchantApiDeploymentService;
         this.merchantApiIntegrationChannelService = merchantApiIntegrationChannelService;
+        this.hqRiskCardPolicyService = hqRiskCardPolicyService;
     }
 
     /** 챗봇관리 — 고객 안내 문구(병합 표시값). 가맹만. */
@@ -923,6 +926,57 @@ public class CompService {
             mp.setPayFollowForceRefundYn("Y".equalsIgnoreCase(payFollowForceRefundYn.trim()) ? "Y" : "N");
         }
         payFollowPolicyService.clampMerchantPayFollowToLevelCeiling(mp);
+    }
+
+    private void mergeMerchantCardRiskIfAny(MerchantProfile mp,
+                                            String cardRiskPolicyMode,
+                                            String cardRiskTier1Hours, String cardRiskTier1Min,
+                                            String cardRiskTier2Hours, String cardRiskTier2Min,
+                                            String cardRiskTier3Hours, String cardRiskTier3Min,
+                                            String cardRiskTier4Hours, String cardRiskTier4Min,
+                                            String cardRiskAutoBlacklistTier) {
+        if (mp == null) {
+            return;
+        }
+        if (cardRiskPolicyMode == null && cardRiskTier1Hours == null && cardRiskTier1Min == null
+                && cardRiskTier2Hours == null && cardRiskTier2Min == null
+                && cardRiskTier3Hours == null && cardRiskTier3Min == null
+                && cardRiskTier4Hours == null && cardRiskTier4Min == null
+                && cardRiskAutoBlacklistTier == null) {
+            return;
+        }
+        Map<String, String> fields = new HashMap<>();
+        if (cardRiskPolicyMode != null) {
+            fields.put("cardRiskPolicyMode", cardRiskPolicyMode);
+        }
+        if (cardRiskTier1Hours != null) {
+            fields.put("cardRiskTier1Hours", cardRiskTier1Hours);
+        }
+        if (cardRiskTier1Min != null) {
+            fields.put("cardRiskTier1Min", cardRiskTier1Min);
+        }
+        if (cardRiskTier2Hours != null) {
+            fields.put("cardRiskTier2Hours", cardRiskTier2Hours);
+        }
+        if (cardRiskTier2Min != null) {
+            fields.put("cardRiskTier2Min", cardRiskTier2Min);
+        }
+        if (cardRiskTier3Hours != null) {
+            fields.put("cardRiskTier3Hours", cardRiskTier3Hours);
+        }
+        if (cardRiskTier3Min != null) {
+            fields.put("cardRiskTier3Min", cardRiskTier3Min);
+        }
+        if (cardRiskTier4Hours != null) {
+            fields.put("cardRiskTier4Hours", cardRiskTier4Hours);
+        }
+        if (cardRiskTier4Min != null) {
+            fields.put("cardRiskTier4Min", cardRiskTier4Min);
+        }
+        if (cardRiskAutoBlacklistTier != null) {
+            fields.put("cardRiskAutoBlacklistTier", cardRiskAutoBlacklistTier);
+        }
+        hqRiskCardPolicyService.applyMerchantCardRiskFromRequest(mp, fields);
     }
 
     /** scopeCompId: 로그인 사용자의 업체코드(본인 org만 조회, 업체정보조회용) */
@@ -1718,6 +1772,7 @@ public class CompService {
                                 m.put("payFollowEmailVoidYn", mp.getPayFollowEmailVoidYn());
                                 m.put("payFollowAutoRefundYn", mp.getPayFollowAutoRefundYn());
                                 m.put("payFollowForceRefundYn", mp.getPayFollowForceRefundYn());
+                                hqRiskCardPolicyService.putMerchantCardRiskOnMap(m, mp);
                                 m.put("chatbotHeaderLogoUrl", mp.getChatbotHeaderLogoUrl() != null ? mp.getChatbotHeaderLogoUrl() : "");
                                 m.put("webPaymentHeaderLogoUrl", mp.getWebPaymentHeaderLogoUrl() != null ? mp.getWebPaymentHeaderLogoUrl() : "");
                                 m.put("webPaymentHeaderSubtitleText", mp.getWebPaymentHeaderSubtitleText() != null ? mp.getWebPaymentHeaderSubtitleText() : "");
@@ -2009,7 +2064,13 @@ public class CompService {
                           String splitPayHeaderLogoUrl,
                           String splitPayHeaderSubtitleMode,
                           String splitPayHeaderSubtitleText,
-                          String splitPayLangMenuUseYn) {
+                          String splitPayLangMenuUseYn,
+                          String cardRiskPolicyMode,
+                          String cardRiskTier1Hours, String cardRiskTier1Min,
+                          String cardRiskTier2Hours, String cardRiskTier2Min,
+                          String cardRiskTier3Hours, String cardRiskTier3Min,
+                          String cardRiskTier4Hours, String cardRiskTier4Min,
+                          String cardRiskAutoBlacklistTier) {
         return orgUnitRepository.findByCode(compId != null ? compId : "")
                 .flatMap(ou -> merchantProfileRepository.findByOrgUnitId(ou.getId())
                         .map(mp -> {
@@ -2311,6 +2372,12 @@ public class CompService {
                             if (childLevel == OrgLevel.MERCHANT) {
                                 mergeMerchantPayFollowFromRequest(mp, payFollowMerchantUseYn, payFollowAutoVoidYn,
                                         payFollowEmailVoidYn, payFollowAutoRefundYn, payFollowForceRefundYn);
+                                mergeMerchantCardRiskIfAny(mp, cardRiskPolicyMode,
+                                        cardRiskTier1Hours, cardRiskTier1Min,
+                                        cardRiskTier2Hours, cardRiskTier2Min,
+                                        cardRiskTier3Hours, cardRiskTier3Min,
+                                        cardRiskTier4Hours, cardRiskTier4Min,
+                                        cardRiskAutoBlacklistTier);
                                 applyMerchantUrlPayAlerts(mp, urlPayAlertEmailYn, urlPayLineNotifyToken);
                                 applyMerchantSplitPay(mp, splitPayEnabledYn, splitPayIntervalMonthYn,
                                         splitPayIntervalDayYn, splitPayIntervalMultiYn, splitPayDayIntervalDays,
@@ -3065,22 +3132,23 @@ public class CompService {
                             String remark) {
         return registerWithExtra(code, name, compDiv, parentId, compTel, zipCode, addr, addrDetail, null, null,
                 ceoNm, ceoMobile, useYn, loginId, regNo,
-                null, null, null, null, null, null, null, null, null, null, null, /* settleType, commissionRate, limitAmt */ email, pwd,
+                null, null, null, null, null, null, null, null, null, null, null,
+                email, pwd,
                 bankCd, transferFee, null, accountNo, accountHolder,
                 null, null, null, null, null, null, null, null, null,
                 remark,
-                /* withdrawRestrictType + withdraw / pay limit / hold / calc */
                 null, null, null, null, null, null, null, null, null, null, null, null,
-                /* 55–64: transfer … calcStart … calcProc … */
                 null, null, null, null, null, null, null, null, null, null,
-                /* pgBindings … */
                 null, null, null, null,
-                /* 65–68 default product */
                 null, null, null, null,
-                /* notify 8 + commission 17 + 수수료VAT 2 + regionalSettings */
                 null, null, null, null, null, null, null, null, null, null,
                 null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null,
-                null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null);
+                null, null,
+                null, null,
+                null,
+                null, null, null, null, null, null, null, null, null,
+                null, null, null, null, null, null, null, null,
+                null, null, null, null, null, null, null);
     }
 
     @Transactional
@@ -3128,7 +3196,13 @@ public class CompService {
                                      String apiWordpressUseYn,
                                      String jpayCheckoutFieldMode,
                                      String jpayPhoneDialCodeYn,
-                                     String tabletFeatureUseYn) {
+                                     String tabletFeatureUseYn,
+                                     String cardRiskPolicyMode,
+                                     String cardRiskTier1Hours, String cardRiskTier1Min,
+                                     String cardRiskTier2Hours, String cardRiskTier2Min,
+                                     String cardRiskTier3Hours, String cardRiskTier3Min,
+                                     String cardRiskTier4Hours, String cardRiskTier4Min,
+                                     String cardRiskAutoBlacklistTier) {
         return registerWithExtra(code, name, compDiv, parentId,
                 compTel, zipCode, addr, addrDetail, addrEtc, addrCountryCd,
                 ceoNm, ceoMobile, useYn, loginId,
@@ -3176,7 +3250,13 @@ public class CompService {
                 apiWordpressUseYn,
                 jpayCheckoutFieldMode,
                 jpayPhoneDialCodeYn,
-                tabletFeatureUseYn);
+                tabletFeatureUseYn,
+                cardRiskPolicyMode,
+                cardRiskTier1Hours, cardRiskTier1Min,
+                cardRiskTier2Hours, cardRiskTier2Min,
+                cardRiskTier3Hours, cardRiskTier3Min,
+                cardRiskTier4Hours, cardRiskTier4Min,
+                cardRiskAutoBlacklistTier);
     }
 
     @Transactional
@@ -3228,7 +3308,13 @@ public class CompService {
                                      String apiWordpressUseYn,
                                      String jpayCheckoutFieldMode,
                                      String jpayPhoneDialCodeYn,
-                                     String tabletFeatureUseYn) {
+                                     String tabletFeatureUseYn,
+                                     String cardRiskPolicyMode,
+                                     String cardRiskTier1Hours, String cardRiskTier1Min,
+                                     String cardRiskTier2Hours, String cardRiskTier2Min,
+                                     String cardRiskTier3Hours, String cardRiskTier3Min,
+                                     String cardRiskTier4Hours, String cardRiskTier4Min,
+                                     String cardRiskAutoBlacklistTier) {
         OrgUnit o = new OrgUnit();
         String compDivVal = compDiv != null ? compDiv.trim() : "AGENCY";
         Long effectiveParentId = parentId;
@@ -3349,6 +3435,12 @@ public class CompService {
             validateMerchantPolicyCurrencyCompatibility(chosenCur, commissionFollowHq, hqPolicyScope, null);
             mergeMerchantPayFollowFromRequest(mp, payFollowMerchantUseYn, payFollowAutoVoidYn,
                     payFollowEmailVoidYn, payFollowAutoRefundYn, payFollowForceRefundYn);
+            mergeMerchantCardRiskIfAny(mp, cardRiskPolicyMode,
+                    cardRiskTier1Hours, cardRiskTier1Min,
+                    cardRiskTier2Hours, cardRiskTier2Min,
+                    cardRiskTier3Hours, cardRiskTier3Min,
+                    cardRiskTier4Hours, cardRiskTier4Min,
+                    cardRiskAutoBlacklistTier);
             applyMerchantUrlPayAlerts(mp, urlPayAlertEmailYn, urlPayLineNotifyToken);
             merchantChatbotKbService.seedFromRegistration(mp, saved);
         }
@@ -4911,14 +5003,15 @@ public class CompService {
                             row.get("remark"),
                             null, null, null, null, null, null, null, null, null, null, row.get("calcCycle"), null,
                             row.get("transferType"), null, null, null, null, null, null, null, null, null,
-                            null, null, null, null,
-                            null, null, null, null,
                             null, null, null, null, null, null, null, null, null, null,
-                            null, null, null, null, null, null, null, null, null, null,
-                            null, null, null, null, null, null, null, null, null, null,
+                            null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null,
+                            null, null,
+                            null, null,
+                            null,
                             null, null, null, null, null, null, null, null, null,
-                            null, null, null, null,
-                            null, null, null, null, null, null, null, null, null, null, null, null, null, null, null);
+                            null, null, null, null, null, null, null, null,
+                            null, null, null, null, null, null, null,
+                            null, null, null, null, null, null, null, null);
                     if (loginIdVal != null && !loginIdVal.isEmpty() && userRepository.findByUsername(loginIdVal).isEmpty()) {
                         AppUser appUser = new AppUser();
                         appUser.setUsername(loginIdVal);

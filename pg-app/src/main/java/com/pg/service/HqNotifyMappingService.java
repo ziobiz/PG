@@ -1001,7 +1001,8 @@ public class HqNotifyMappingService {
         String rawPaymentForReclass = firstNonBlankString(jsonPayStat, mappedPs);
         internalComputed = ChillPayNotifyOutcomeAdjust.reclassifyPaymentStatusTwoAfterPaid(
                 existingOpt, rawPaymentForReclass, internalComputed);
-        String mergedStatus = NotifyToTxnStatusMerge.merge(t.getStatus(), internalComputed, notifyChannel);
+        String mergedStatus = NotifyToTxnStatusMerge.merge(
+                t.getStatus(), internalComputed, notifyChannel, t.getOutcomeReasonCode());
         if (mergedStatus == null || mergedStatus.isBlank()) {
             mergedStatus = "08";
         }

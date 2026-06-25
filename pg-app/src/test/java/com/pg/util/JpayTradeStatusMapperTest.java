@@ -3,7 +3,9 @@ package com.pg.util;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class JpayTradeStatusMapperTest {
 
@@ -21,7 +23,23 @@ class JpayTradeStatusMapperTest {
         assertEquals("30", JpayTradeStatusMapper.fromPortalTradingStatus("Refunded", "No", "No"));
         assertEquals("31", JpayTradeStatusMapper.fromPortalTradingStatus("Success, Notified", "Yes", "No"));
         assertEquals("20", JpayTradeStatusMapper.fromPortalTradingStatus("Unpaid", "No", "No"));
+        assertEquals("20", JpayTradeStatusMapper.fromPortalTradingStatus("unpaid", "No", "No"));
         assertNull(JpayTradeStatusMapper.fromPortalTradingStatus("Refund in progress", "No", "No"));
+    }
+
+    @Test
+    void mapTradeQueryPaymentStatus_usesTradeStateOnly() {
+        assertEquals("20", JpayTradeStatusMapper.mapTradeQueryPaymentStatus("UNPAID"));
+        assertEquals("10", JpayTradeStatusMapper.mapTradeQueryPaymentStatus("SUCCESS"));
+        assertNull(JpayTradeStatusMapper.mapTradeQueryPaymentStatus(""));
+        assertNull(JpayTradeStatusMapper.mapTradeQueryPaymentStatus(null));
+    }
+
+    @Test
+    void reconcilePolicy_blocksPaidFromPortalOrQuery() {
+        assertFalse(JpayReconcileStatusPolicy.mayApplyReconcileMapping("10"));
+        assertTrue(JpayReconcileStatusPolicy.mayApplyReconcileMapping("20"));
+        assertTrue(JpayReconcileStatusPolicy.mayApplyReconcileMapping("99"));
     }
 
     @Test

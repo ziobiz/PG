@@ -5,20 +5,22 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.pg.integration.pg.PgVendor;
 import com.pg.integration.pg.notify.NotifyIdempotencyLock;
 import com.pg.integration.pg.notify.PgNotifyInboundTxnHandler;
+import com.pg.entity.OrgUnit;
 import com.pg.entity.PgAgency;
 import com.pg.entity.PgNotifyInbound;
 import com.pg.entity.PgTrnsctn;
+import com.pg.repository.OrgUnitRepository;
 import com.pg.repository.PgAgencyRepository;
 import com.pg.repository.PgTrnsctnRepository;
 import com.pg.service.settlement.SettlementArrearsService;
 import com.pg.splitpay.SplitPayPaymentHookService;
-import com.pg.util.JpayDisputeNotifyStatusResolver;
 import com.pg.util.JpayBuyerContactApplier;
-import com.pg.util.JpaySignatureUtil;
+import com.pg.util.JpayDisputeNotifyStatusResolver;
 import com.pg.util.JpayNotifyStatusResolver;
+import com.pg.util.JpaySignatureUtil;
 import com.pg.util.JpayTransactionIdApplier;
-import com.pg.util.TxnOutcomeReasonApplier;
 import com.pg.util.NotifyToTxnStatusMerge;
+import com.pg.util.TxnOutcomeReasonApplier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -59,6 +61,8 @@ public class JpayNotifyToTrnsctnService implements PgNotifyInboundTxnHandler {
     private final SplitPayPaymentHookService splitPayPaymentHookService;
     private final MerchantOutboundNotifyService merchantOutboundNotifyService;
     private final OutcomeReasonWarmCoordinator outcomeReasonWarmCoordinator;
+    private final PayCardFailCooldownService payCardFailCooldownService;
+    private final OrgUnitRepository orgUnitRepository;
 
     public JpayNotifyToTrnsctnService(PgTrnsctnRepository pgTrnsctnRepository,
                                       PgAgencyRepository pgAgencyRepository,
@@ -69,7 +73,9 @@ public class JpayNotifyToTrnsctnService implements PgNotifyInboundTxnHandler {
                                       SettlementArrearsService settlementArrearsService,
                                       SplitPayPaymentHookService splitPayPaymentHookService,
                                       MerchantOutboundNotifyService merchantOutboundNotifyService,
-                                      OutcomeReasonWarmCoordinator outcomeReasonWarmCoordinator) {
+                                      OutcomeReasonWarmCoordinator outcomeReasonWarmCoordinator,
+                                      PayCardFailCooldownService payCardFailCooldownService,
+                                      OrgUnitRepository orgUnitRepository) {
         this.pgTrnsctnRepository = pgTrnsctnRepository;
         this.pgAgencyRepository = pgAgencyRepository;
         this.settlementCalcService = settlementCalcService;
@@ -80,6 +86,8 @@ public class JpayNotifyToTrnsctnService implements PgNotifyInboundTxnHandler {
         this.splitPayPaymentHookService = splitPayPaymentHookService;
         this.merchantOutboundNotifyService = merchantOutboundNotifyService;
         this.outcomeReasonWarmCoordinator = outcomeReasonWarmCoordinator;
+        this.payCardFailCooldownService = payCardFailCooldownService;
+        this.orgUnitRepository = orgUnitRepository;
     }
 
     @Override
@@ -203,7 +211,7 @@ public class JpayNotifyToTrnsctnService implements PgNotifyInboundTxnHandler {
         if (next == null || next.isBlank()) {
             next = ST_FAIL;
         }
-        String merged = NotifyToTxnStatusMerge.merge(t.getStatus(), next, ch);
+        String merged = NotifyToTxnStatusMerge.merge(t.getStatus(), next, ch, t.getOutcomeReasonCode());
         if (merged == null || merged.isBlank()) {
             merged = next;
         }
@@ -226,6 +234,7 @@ public class JpayNotifyToTrnsctnService implements PgNotifyInboundTxnHandler {
 
         pgTrnsctnRepository.save(t);
         outcomeReasonWarmCoordinator.onRecorded(recordedReason);
+        applyCardFailCooldownFromTxn(t, merged);
         hookSplitPayInstallment(t);
         try {
             settlementArrearsService.registerPostSettlementRecoveryIfDue(prevStatus, prevSettledYn, t);
@@ -282,7 +291,7 @@ public class JpayNotifyToTrnsctnService implements PgNotifyInboundTxnHandler {
         if (next == null || next.isBlank()) {
             next = ST_FAIL;
         }
-        String merged = NotifyToTxnStatusMerge.merge(t.getStatus(), next, ch);
+        String merged = NotifyToTxnStatusMerge.merge(t.getStatus(), next, ch, t.getOutcomeReasonCode());
         if (merged == null || merged.isBlank()) {
             merged = next;
         }
@@ -293,6 +302,7 @@ public class JpayNotifyToTrnsctnService implements PgNotifyInboundTxnHandler {
         JpayBuyerContactApplier.mergeFromNotifyForm(t, form);
         pgTrnsctnRepository.save(t);
         outcomeReasonWarmCoordinator.onRecorded(recordedReason2);
+        applyCardFailCooldownFromTxn(t, merged);
         hookSplitPayInstallment(t);
         if (ST_PAID.equals(merged)) {
             try {
@@ -500,6 +510,35 @@ public class JpayNotifyToTrnsctnService implements PgNotifyInboundTxnHandler {
         } catch (Exception ignored) {
         }
         return m;
+    }
+
+    private void applyCardFailCooldownFromTxn(PgTrnsctn t, String merged) {
+        if (t == null || t.getCardPanHash() == null || t.getCardPanHash().isBlank()) {
+            return;
+        }
+        String hash = t.getCardPanHash().trim();
+        String mask = t.getCardPanDisplay();
+        Long orgUnitId = resolveOrgUnitId(t);
+        if (ST_PAID.equals(merged)) {
+            payCardFailCooldownService.clearOnSuccessByHash(PgVendor.JPAY, hash, orgUnitId);
+            return;
+        }
+        if (ST_FAIL.equals(merged)) {
+            payCardFailCooldownService.recordFromTxnHash(PgVendor.JPAY, hash, mask, "FAIL", t.getOutcomeReason(), orgUnitId);
+            return;
+        }
+        String oc = t.getOutcomeReasonCode();
+        if (oc != null && NotifyToTxnStatusMerge.OUTCOME_CODE_UNPAID_PROVISIONAL.equalsIgnoreCase(oc.trim())) {
+            payCardFailCooldownService.recordFromTxnHash(PgVendor.JPAY, hash, mask,
+                    NotifyToTxnStatusMerge.OUTCOME_CODE_UNPAID_PROVISIONAL, t.getOutcomeReason(), orgUnitId);
+        }
+    }
+
+    private Long resolveOrgUnitId(PgTrnsctn t) {
+        if (t == null || t.getMerchantId() == null || t.getMerchantId().isBlank()) {
+            return null;
+        }
+        return orgUnitRepository.findByCode(t.getMerchantId().trim()).map(OrgUnit::getId).orElse(null);
     }
 
     private static String first(Map<String, String> m, String key) {

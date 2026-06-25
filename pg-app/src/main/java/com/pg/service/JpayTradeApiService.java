@@ -11,11 +11,15 @@ import com.pg.repository.OrgUnitRepository;
 import com.pg.repository.PgAgencyRepository;
 import com.pg.repository.PgTrnsctnRepository;
 import com.pg.util.JpayNotifyStatusResolver;
+import com.pg.util.JpayReconcileStatusPolicy;
 import com.pg.util.JpaySignatureUtil;
 import com.pg.util.JpayTradeStatusMapper;
+import com.pg.util.NotifyToTxnStatusMerge;
 import com.pg.util.PgNotifyInternalStatusMapper;
+import com.pg.util.TxnOutcomeReasonApplier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -29,6 +33,7 @@ import org.springframework.web.client.RestTemplate;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.nio.charset.StandardCharsets;
+import java.time.ZoneId;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -52,31 +57,55 @@ public class JpayTradeApiService {
     private final PgAgencyRepository pgAgencyRepository;
     private final OrgUnitRepository orgUnitRepository;
     private final PgTrnsctnRepository pgTrnsctnRepository;
+    private final OutcomeReasonWarmCoordinator outcomeReasonWarmCoordinator;
     private final RestTemplate restTemplate = createRestTemplate();
+
+    @Value("${app.jpay.pendingReconcile.staleMinutes:30}")
+    private int staleMinutes;
 
     public JpayTradeApiService(MerchantPgBindingRepository merchantPgBindingRepository,
                                PgAgencyRepository pgAgencyRepository,
                                OrgUnitRepository orgUnitRepository,
-                               PgTrnsctnRepository pgTrnsctnRepository) {
+                               PgTrnsctnRepository pgTrnsctnRepository,
+                               OutcomeReasonWarmCoordinator outcomeReasonWarmCoordinator) {
         this.merchantPgBindingRepository = merchantPgBindingRepository;
         this.pgAgencyRepository = pgAgencyRepository;
         this.orgUnitRepository = orgUnitRepository;
         this.pgTrnsctnRepository = pgTrnsctnRepository;
+        this.outcomeReasonWarmCoordinator = outcomeReasonWarmCoordinator;
     }
 
     public Map<String, Object> queryAndApplyToTxn(String trnId) {
         PgTrnsctn t = pgTrnsctnRepository.findById(trnId.trim())
                 .orElseThrow(() -> new IllegalArgumentException("거래를 찾을 수 없습니다."));
+        return queryAndApplyToTxnEntity(t);
+    }
+
+    /** 승인번호(Transaction ID)로 JPAY Trade Query·상태 반영 */
+    public Map<String, Object> queryAndApplyByChillTransactionId(String chillTransactionId) {
+        if (chillTransactionId == null || chillTransactionId.isBlank()) {
+            throw new IllegalArgumentException("승인번호(Transaction ID)가 필요합니다.");
+        }
+        PgTrnsctn t = pgTrnsctnRepository.findFirstByChillTransactionIdOrderByCreatedAtDesc(chillTransactionId.trim())
+                .orElseThrow(() -> new IllegalArgumentException("승인번호에 해당하는 거래를 찾을 수 없습니다: " + chillTransactionId.trim()));
+        return queryAndApplyToTxnEntity(t);
+    }
+
+    private Map<String, Object> queryAndApplyToTxnEntity(PgTrnsctn t) {
         requireJpayTxn(t);
         TradeCtx ctx = resolveTradeCtx(t);
         JsonNode body = postTradeQuery(ctx, t.getOrderNo());
         String tradeState = body.path("trade_state").asText("");
         String returnCode = body.path("returncode").asText("");
-        String mapped = JpayTradeStatusMapper.fromTradeState(tradeState);
-        if (mapped == null) {
-            mapped = JpayNotifyStatusResolver.fromReturnCode(returnCode);
-        }
+        String mapped = JpayTradeStatusMapper.mapTradeQueryPaymentStatus(tradeState);
         String oldStatus = nz(t.getStatus());
+        if (mapped == null && JpayReconcileStatusPolicy.mayApplyStaleUnpaidProvisional(
+                oldStatus, tradeState, t.getCreatedAt(), staleMinutes, ZoneId.of("Asia/Seoul"))) {
+            mapped = PgNotifyInternalStatusMapper.ST_CANCEL;
+            if (tradeState.isBlank()) {
+                tradeState = "UNPAID";
+            }
+        }
         Map<String, Object> out = new LinkedHashMap<>();
         out.put("trnId", t.getTrnId());
         out.put("orderNo", t.getOrderNo());
@@ -88,25 +117,40 @@ public class JpayTradeApiService {
         body.fields().forEachRemaining(e -> apiMap.put(e.getKey(),
                 e.getValue().isNull() ? "" : e.getValue().asText("")));
         out.put("apiResponse", apiMap);
-        if (mapped != null && !mapped.equals(oldStatus)) {
-            t.setStatus(mapped);
-            String rcLabel = returnCode.isBlank() ? tradeState : returnCode;
-            t.setChillPaymentStatus(JpayNotifyStatusResolver.chillPaymentStatusLabel(mapped, rcLabel));
-            if (!PgNotifyInternalStatusMapper.ST_PAID.equals(mapped)) {
-                t.setPaidAt(null);
+        if (mapped != null && JpayReconcileStatusPolicy.mayApplyReconcileMapping(mapped)) {
+            String merged = NotifyToTxnStatusMerge.merge(oldStatus, mapped, "RESULT", t.getOutcomeReasonCode());
+            if (merged != null && !merged.equals(oldStatus)) {
+                t.setStatus(merged);
+                String rcLabel = !tradeState.isBlank() ? tradeState : returnCode;
+                t.setChillPaymentStatus(JpayNotifyStatusResolver.chillPaymentStatusLabel(merged, rcLabel));
+                if (!PgNotifyInternalStatusMapper.ST_PAID.equals(merged)) {
+                    t.setPaidAt(null);
+                }
+                String txnId = body.path("transaction_id").asText("");
+                if (!txnId.isBlank() && (t.getChillTransactionId() == null || t.getChillTransactionId().isBlank())) {
+                    t.setChillTransactionId(txnId);
+                }
+                String jpayLabel = !tradeState.isBlank() ? tradeState : returnCode;
+                Optional<String> recordedReason = TxnOutcomeReasonApplier.applyJpayReconcileOutcome(
+                        t, oldStatus, merged, jpayLabel);
+                outcomeReasonWarmCoordinator.onRecorded(recordedReason);
+                pgTrnsctnRepository.save(t);
+                out.put("newStatus", merged);
+                out.put("updated", true);
+                out.put("message", "JPAY 조회 결과로 결제내역 상태를 갱신했습니다.");
+                return out;
             }
-            String txnId = body.path("transaction_id").asText("");
-            if (!txnId.isBlank() && (t.getChillTransactionId() == null || t.getChillTransactionId().isBlank())) {
-                t.setChillTransactionId(txnId);
-            }
-            pgTrnsctnRepository.save(t);
-            out.put("newStatus", mapped);
-            out.put("updated", true);
-            out.put("message", "JPAY 조회 결과로 결제내역 상태를 갱신했습니다.");
+        }
+        if (mapped != null && PgNotifyInternalStatusMapper.ST_PAID.equals(mapped.trim())) {
+            out.put("newStatus", oldStatus);
+            out.put("updated", false);
+            out.put("message", "JPAY 조회 Success는 Trade Query로 승인(10) 갱신하지 않습니다. 서명 노티를 확인하세요.");
         } else {
             out.put("newStatus", oldStatus);
             out.put("updated", false);
-            out.put("message", mapped == null ? "JPAY 조회는 성공했으나 상태 매핑이 없습니다." : "이미 동일 상태입니다.");
+            out.put("message", mapped == null
+                    ? "JPAY 조회는 성공했으나 trade_state 매핑이 없습니다(returncode=00은 조회 성공이며 결제 승인이 아닙니다)."
+                    : "이미 동일 상태입니다.");
         }
         return out;
     }

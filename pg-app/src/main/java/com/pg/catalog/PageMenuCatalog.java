@@ -18,6 +18,7 @@ public final class PageMenuCatalog {
         add(list, "/hq/defaultCommission", "M0102", "수수료설정", "본사설정");
         add(list, "/hq/pgAgencyCostPolicy", "M0128", "대행수수료설정", "본사설정");
         add(list, "/hq/chargebackPolicy", "M0117", "차지백설정", "본사설정");
+        add(list, "/hq/riskCardPolicy", "M0129", "리스크설정", "본사설정");
         add(list, "/hq/businessDaySetting", "M0109", "영업일설정", "본사설정");
         add(list, "/hq/permissionMng", "M0104", "본사권한설정", "본사설정");
         add(list, "/hq/opsModeMng", "M0127", "태블릿설정", "본사설정");

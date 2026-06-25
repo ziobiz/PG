@@ -9,6 +9,7 @@
         { "label": "수수료설정", "url": "/hq/defaultCommission", "menuId": "M0102" },
         { "label": "대행수수료설정", "url": "/hq/pgAgencyCostPolicy", "menuId": "M0128" },
         { "label": "차지백설정", "url": "/hq/chargebackPolicy", "menuId": "M0117" },
+        { "label": "리스크설정", "url": "/hq/riskCardPolicy", "menuId": "M0129" },
         { "label": "영업일설정", "url": "/hq/businessDaySetting", "menuId": "M0109" },
         { "label": "본사권한설정", "url": "/hq/permissionMng", "menuId": "M0104" },
         { "label": "태블릿설정", "url": "/hq/opsModeMng", "menuId": "M0127" },

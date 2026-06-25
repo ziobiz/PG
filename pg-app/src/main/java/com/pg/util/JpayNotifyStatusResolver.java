@@ -32,15 +32,16 @@ public final class JpayNotifyStatusResolver {
         if (fromMw != null) {
             return fromMw;
         }
+        /* UNPAID는 returncode=00보다 우선 — 미결제 건이 승인으로 오인되지 않도록 */
+        if (isJpayUnpaidPaymentStatus(paymentStatus)) {
+            return ST_CANCEL;
+        }
         String fromRc = fromReturnCode(returnCode);
         if (fromRc != null) {
             return fromRc;
         }
         if (isJpaySuccessPaymentStatus(paymentStatus)) {
             return ST_PAID;
-        }
-        if (isJpayUnpaidPaymentStatus(paymentStatus)) {
-            return ST_CANCEL;
         }
         return null;
     }

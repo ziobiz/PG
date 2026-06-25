@@ -451,6 +451,37 @@ public class MerchantProfile {
     @Column(name = "pay_follow_force_refund_yn", length = 1)
     private String payFollowForceRefundYn;
 
+    /** FOLLOW_HQ | CUSTOM | DISABLED */
+    @Column(name = "card_risk_policy_mode", length = 16)
+    private String cardRiskPolicyMode = "DISABLED";
+
+    @Column(name = "card_risk_tier1_hours")
+    private Integer cardRiskTier1Hours;
+
+    @Column(name = "card_risk_tier1_min")
+    private Integer cardRiskTier1Min;
+
+    @Column(name = "card_risk_tier2_hours")
+    private Integer cardRiskTier2Hours;
+
+    @Column(name = "card_risk_tier2_min")
+    private Integer cardRiskTier2Min;
+
+    @Column(name = "card_risk_tier3_hours")
+    private Integer cardRiskTier3Hours;
+
+    @Column(name = "card_risk_tier3_min")
+    private Integer cardRiskTier3Min;
+
+    @Column(name = "card_risk_tier4_hours")
+    private Integer cardRiskTier4Hours;
+
+    @Column(name = "card_risk_tier4_min")
+    private Integer cardRiskTier4Min;
+
+    @Column(name = "card_risk_auto_blacklist_tier")
+    private Integer cardRiskAutoBlacklistTier;
+
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 
@@ -820,6 +851,28 @@ public class MerchantProfile {
     public void setPayFollowAutoRefundYn(String payFollowAutoRefundYn) { this.payFollowAutoRefundYn = payFollowAutoRefundYn; }
     public String getPayFollowForceRefundYn() { return payFollowForceRefundYn; }
     public void setPayFollowForceRefundYn(String payFollowForceRefundYn) { this.payFollowForceRefundYn = payFollowForceRefundYn; }
+    public String getCardRiskPolicyMode() { return cardRiskPolicyMode; }
+    public void setCardRiskPolicyMode(String cardRiskPolicyMode) { this.cardRiskPolicyMode = cardRiskPolicyMode; }
+    public Integer getCardRiskTier1Hours() { return cardRiskTier1Hours; }
+    public void setCardRiskTier1Hours(Integer cardRiskTier1Hours) { this.cardRiskTier1Hours = cardRiskTier1Hours; }
+    public Integer getCardRiskTier1Min() { return cardRiskTier1Min; }
+    public void setCardRiskTier1Min(Integer cardRiskTier1Min) { this.cardRiskTier1Min = cardRiskTier1Min; }
+    public Integer getCardRiskTier2Hours() { return cardRiskTier2Hours; }
+    public void setCardRiskTier2Hours(Integer cardRiskTier2Hours) { this.cardRiskTier2Hours = cardRiskTier2Hours; }
+    public Integer getCardRiskTier2Min() { return cardRiskTier2Min; }
+    public void setCardRiskTier2Min(Integer cardRiskTier2Min) { this.cardRiskTier2Min = cardRiskTier2Min; }
+    public Integer getCardRiskTier3Hours() { return cardRiskTier3Hours; }
+    public void setCardRiskTier3Hours(Integer cardRiskTier3Hours) { this.cardRiskTier3Hours = cardRiskTier3Hours; }
+    public Integer getCardRiskTier3Min() { return cardRiskTier3Min; }
+    public void setCardRiskTier3Min(Integer cardRiskTier3Min) { this.cardRiskTier3Min = cardRiskTier3Min; }
+    public Integer getCardRiskTier4Hours() { return cardRiskTier4Hours; }
+    public void setCardRiskTier4Hours(Integer cardRiskTier4Hours) { this.cardRiskTier4Hours = cardRiskTier4Hours; }
+    public Integer getCardRiskTier4Min() { return cardRiskTier4Min; }
+    public void setCardRiskTier4Min(Integer cardRiskTier4Min) { this.cardRiskTier4Min = cardRiskTier4Min; }
+    public Integer getCardRiskAutoBlacklistTier() { return cardRiskAutoBlacklistTier; }
+    public void setCardRiskAutoBlacklistTier(Integer cardRiskAutoBlacklistTier) {
+        this.cardRiskAutoBlacklistTier = cardRiskAutoBlacklistTier;
+    }
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
 }

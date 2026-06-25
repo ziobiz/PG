@@ -24,6 +24,14 @@ public final class JpayTradeStatusMapper {
         };
     }
 
+    /**
+     * Trade Query 응답 — 결제 상태는 {@code trade_state}만 사용합니다.
+     * {@code returncode=00}은 조회 API 성공이며 승인(10)으로 해석하지 않습니다.
+     */
+    public static String mapTradeQueryPaymentStatus(String tradeState) {
+        return fromTradeState(tradeState);
+    }
+
     public static String fromPortalTradingStatus(String tradingStatus, String chargebackYn, String rdrYn) {
         if (isYes(chargebackYn) || isYes(rdrYn)) {
             return "31";
@@ -38,14 +46,15 @@ public final class JpayTradeStatusMapper {
         if (t.contains("refund in progress")) {
             return null;
         }
-        if (t.contains("success") || t.contains("notified")) {
-            return PgNotifyInternalStatusMapper.ST_PAID;
+        /* UNPAID·Fail을 Success보다 먼저 — 포털 표기 혼선·부분 문자열 방어 */
+        if (t.contains("unpaid")) {
+            return PgNotifyInternalStatusMapper.ST_CANCEL;
         }
         if (t.contains("fail")) {
             return PgNotifyInternalStatusMapper.ST_FAIL;
         }
-        if (t.contains("unpaid")) {
-            return PgNotifyInternalStatusMapper.ST_CANCEL;
+        if (t.contains("success") || t.contains("notified")) {
+            return PgNotifyInternalStatusMapper.ST_PAID;
         }
         return null;
     }

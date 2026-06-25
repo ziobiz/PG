@@ -30,4 +30,13 @@ class TxnOutcomeReasonApplierTest {
         assertTrue(t.getOutcomeReason().contains("고객 요청"));
         assertEquals("ICOPAY", t.getOutcomeReasonSource());
     }
+
+    @Test
+    void applyJpayReconcileOutcome_unpaidCancel() {
+        com.pg.entity.PgTrnsctn t = new com.pg.entity.PgTrnsctn();
+        TxnOutcomeReasonApplier.applyJpayReconcileOutcome(t, "08", "20", "UNPAID");
+        assertEquals("결제 미완료(UNPAID, 노티 미수신, 임시 취소)", t.getOutcomeReason());
+        assertEquals(NotifyToTxnStatusMerge.OUTCOME_CODE_UNPAID_PROVISIONAL, t.getOutcomeReasonCode());
+        assertEquals("JPAY", t.getOutcomeReasonSource());
+    }
 }

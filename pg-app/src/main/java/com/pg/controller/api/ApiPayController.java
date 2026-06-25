@@ -20,6 +20,7 @@ import com.pg.service.ChillPayService;
 import com.pg.service.JpayPaymentService;
 import com.pg.service.MerchantCreditTokenService;
 import com.pg.service.OrgServiceUseService;
+import com.pg.service.PayCardPolicyService;
 import com.pg.service.PaymentCurrencyScaleService;
 import com.pg.service.UrlPayCardCopyService;
 import com.pg.service.UrlPayChargeResolutionService;
@@ -73,6 +74,7 @@ public class ApiPayController {
     private final UrlPaySaleDispatcher urlPaySaleDispatcher;
     private final CheckoutHeaderLogoResolver checkoutHeaderLogoResolver;
     private final MerchantOperationalPgGuard operationalPgGuard;
+    private final PayCardPolicyService payCardPolicyService;
 
     public ApiPayController(ChillPayService chillPayService,
                             JpayPaymentService jpayPaymentService,
@@ -92,7 +94,8 @@ public class ApiPayController {
                             UrlPayPublicCheckoutService urlPayPublicCheckoutService,
                             UrlPaySaleDispatcher urlPaySaleDispatcher,
                             CheckoutHeaderLogoResolver checkoutHeaderLogoResolver,
-                            MerchantOperationalPgGuard operationalPgGuard) {
+                            MerchantOperationalPgGuard operationalPgGuard,
+                            PayCardPolicyService payCardPolicyService) {
         this.chillPayService = chillPayService;
         this.jpayPaymentService = jpayPaymentService;
         this.chillPayDirectCreditRecordService = chillPayDirectCreditRecordService;
@@ -112,6 +115,7 @@ public class ApiPayController {
         this.urlPaySaleDispatcher = urlPaySaleDispatcher;
         this.checkoutHeaderLogoResolver = checkoutHeaderLogoResolver;
         this.operationalPgGuard = operationalPgGuard;
+        this.payCardPolicyService = payCardPolicyService;
     }
 
     private <T> ResponseEntity<ApiResponse<T>> vendorMismatchIfAny(Long orgUnitId,
@@ -203,6 +207,44 @@ public class ApiPayController {
         } catch (IllegalStateException e) {
             return ResponseEntity.ok(ApiResponse.fail(e.getMessage(), "URL_PAY_ROUTE_NOT_CONFIGURED"));
         }
+    }
+
+    /**
+     * 결제창 카드번호 사전 검증 — 비활성카드(마스킹)·실패 쿨다운·BIN 등 JPAY 호출 전 차단.
+     */
+    @PostMapping("/url/card-policy-check")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> urlPayCardPolicyCheck(
+            @RequestBody Map<String, Object> body) {
+        return cardPolicyCheckInternal(body);
+    }
+
+    /** {@link #urlPayCardPolicyCheck} 하위 호환 */
+    @PostMapping("/jpay/card-policy-check")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> jpayCardPolicyCheck(
+            @RequestBody Map<String, Object> body) {
+        return cardPolicyCheckInternal(body);
+    }
+
+    private ResponseEntity<ApiResponse<Map<String, Object>>> cardPolicyCheckInternal(Map<String, Object> body) {
+        Map<String, Object> safe = body != null ? body : Map.of();
+        Long merchantIdVal = null;
+        Object mid = safe.get("merchantId");
+        if (mid != null && !mid.toString().isEmpty()) {
+            try {
+                merchantIdVal = Long.parseLong(mid.toString());
+            } catch (NumberFormatException ignored) {
+            }
+        }
+        Long orgUnitId = resolveMerchantOrgUnitId(merchantIdVal, str(safe, "compId"));
+        if (orgUnitId == null) {
+            return ResponseEntity.ok(ApiResponse.fail("가맹점을 찾을 수 없습니다.", "NOT_FOUND"));
+        }
+        String pg = chillPayService.resolveUrlPayOperationalPgCd(orgUnitId);
+        String pan = firstNonBlankStr(safe, "pan", "payCardno", "cardno");
+        String brand = firstNonBlankStr(safe, "cardBrand", "payCardBrand");
+        String lang = firstNonBlankStr(safe, "lang", "language");
+        Map<String, Object> result = payCardPolicyService.validateForSale(pg, pan, brand, lang, orgUnitId);
+        return ResponseEntity.ok(ApiResponse.ok(result));
     }
 
     /**

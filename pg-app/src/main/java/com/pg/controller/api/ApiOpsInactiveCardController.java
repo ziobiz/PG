@@ -73,4 +73,18 @@ public class ApiOpsInactiveCardController {
             return ResponseEntity.ok(ApiResponse.fail(e.getMessage(), "ERROR"));
         }
     }
+
+    @PostMapping("/update")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> update(
+            Authentication authentication,
+            @RequestBody Map<String, Object> body) {
+        try {
+            Map<String, Object> row = opsInactiveCardService.update(authentication, body != null ? body : Map.of());
+            return ResponseEntity.ok(ApiResponse.ok(row));
+        } catch (IllegalStateException e) {
+            return ResponseEntity.ok(ApiResponse.fail(e.getMessage(), "FORBIDDEN"));
+        } catch (Exception e) {
+            return ResponseEntity.ok(ApiResponse.fail(e.getMessage(), "ERROR"));
+        }
+    }
 }

@@ -72,6 +72,9 @@ public class PgTrnsctn {
     @Column(name = "card_pan_display", length = 32)
     private String cardPanDisplay;
 
+    @Column(name = "card_pan_hash", length = 64)
+    private String cardPanHash;
+
     /** ChillPay Payment Channel (channelCode 등) */
     @Column(name = "payment_channel", length = 80)
     private String paymentChannel;
@@ -180,6 +183,8 @@ public class PgTrnsctn {
     public void setCustomerTel(String customerTel) { this.customerTel = customerTel; }
     public String getCardPanDisplay() { return cardPanDisplay; }
     public void setCardPanDisplay(String cardPanDisplay) { this.cardPanDisplay = cardPanDisplay; }
+    public String getCardPanHash() { return cardPanHash; }
+    public void setCardPanHash(String cardPanHash) { this.cardPanHash = cardPanHash; }
     public String getPaymentChannel() { return paymentChannel; }
     public void setPaymentChannel(String paymentChannel) { this.paymentChannel = paymentChannel; }
     public LocalDateTime getPaidAt() { return paidAt; }

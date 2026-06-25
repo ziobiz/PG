@@ -2596,6 +2596,8 @@ td.empty-state-cell {
 /* 전역 푸터: 회사명은 각 페이지 하단으로 이동 후 유지 또는 제거용 */
 .footer { flex-shrink: 0; background: #fff; padding: 8px 20px; border-top: 1px solid #e8e8e8; font-size: var(--app-base-font-size); color: #999; }
 .dimmed { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.4); z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+/* 비활성카드 수정 — 탭 pane 밖(body)에 두어도 백드롭 위에 표시 */
+#opsIcEditModal.modal { z-index: 10060 !important; }
 .dimmed-icon { width: 3rem; height: 3rem; }
 .dimmed-text { margin-top: 12px; font-weight: 600; color: #fff !important; }
 #content-frame { display: block; width: 100%; height: 100%; min-height: 500px; border: 0; }
@@ -3557,11 +3559,13 @@ body.theme-light .left-side-menu .btn-secondary:hover, body.theme-gray .left-sid
   background: linear-gradient(90deg, rgba(220, 53, 69, 0.22) 0, rgba(220, 53, 69, 0.06) 12px, #fff5f5 28px);
   box-shadow: inset 4px 0 0 0 #dc3545;
 }
-.org-perm-table tbody tr.org-perm-row--OBSERVER {
+.org-perm-table tbody tr.org-perm-row--OBSERVER,
+.org-perm-table tbody tr.org-perm-row--OBSERVER_HELLO {
   background: linear-gradient(90deg, rgba(13, 110, 253, 0.18) 0, rgba(13, 110, 253, 0.05) 12px, #f0f7ff 28px);
   box-shadow: inset 4px 0 0 0 #0d6efd;
 }
-.org-perm-table tbody tr.org-perm-row--MODIFY {
+.org-perm-table tbody tr.org-perm-row--MODIFY,
+.org-perm-table tbody tr.org-perm-row--MODIFY_HELLO {
   background: linear-gradient(90deg, rgba(253, 126, 20, 0.2) 0, rgba(253, 126, 20, 0.06) 12px, #fff9f0 28px);
   box-shadow: inset 4px 0 0 0 #fd7e14;
 }
@@ -4465,6 +4469,60 @@ button.pay-follow-pill:focus-visible {
   background-color: #fff3cd;
   border-color: #ffeeba;
 }
+
+/* 가맹 등록 — 리스크관리 트리거 카드 (파스텔 보라) */
+.card-risk-trigger-card {
+  border-color: #ddd6fe;
+}
+.card-risk-trigger-card > .card-header {
+  background-color: #ede9fe;
+  color: #5b21b6;
+  border-bottom-color: #ddd6fe;
+}
+
+/* 본사설정 — 가맹점 리스크 현황 방식 배지 */
+.hq-risk-merchant-list-wrap .merchant-risk-policy-mode {
+  display: inline-block;
+  min-width: 4.25rem;
+  padding: 0.15rem 0.45rem;
+  border-radius: 0.35rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1.35;
+  text-align: center;
+  white-space: nowrap;
+  border: 1px solid transparent;
+}
+.hq-risk-merchant-list-wrap .merchant-risk-policy-mode--disabled {
+  color: #2d3748;
+  background-color: #e2e8f0;
+  border-color: #cbd5e0;
+}
+.hq-risk-merchant-list-wrap .merchant-risk-policy-mode--custom {
+  color: #9b2c2c;
+  background-color: #fde2e2;
+  border-color: #f5c2c2;
+}
+.hq-risk-merchant-list-wrap .merchant-risk-policy-mode--follow-hq {
+  color: #553c9a;
+  background-color: #ede9fe;
+  border-color: #ddd6fe;
+}
+
+/* 운영관리 — 비활성 카드 등록 입력 폭 */
+#opsInactiveCardRegCard .ops-ic-reg-pan-field,
+#opsInactiveCardRegCard .ops-ic-reg-reason-field,
+#opsInactiveCardRegCard .ops-ic-reg-comp-nm-field {
+  flex: 1 1 10rem;
+  min-width: 10rem;
+  max-width: 18rem;
+}
+#opsInactiveCardRegCard .ops-ic-reg-pan-field .form-control,
+#opsInactiveCardRegCard .ops-ic-reg-reason-field .form-control,
+#opsInactiveCardRegCard .ops-ic-reg-comp-nm-field .form-control {
+  width: 100%;
+}
+
 .merchant-deploy-kit .merchant-deploy-merchant-table tbody td:nth-child(3),
 .merchant-api-deploy-docs .merchant-deploy-merchant-table tbody td:nth-child(3),
 .merchant-deploy-kit .merchant-deploy-merchant-table tbody td:nth-child(4),

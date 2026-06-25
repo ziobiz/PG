@@ -235,7 +235,7 @@ public class OutcomeReasonTranslateService {
         }
     }
 
-    static String normalizeLocale(String locale) {
+    public static String normalizeLocale(String locale) {
         if (locale == null || locale.isBlank()) {
             return "KO";
         }

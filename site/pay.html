@@ -213,6 +213,7 @@
   </div>
 
   <script src="js/config.js?v=12"></script>
+  <script src="js/pg-pay-submit-guard.js?v=1"></script>
   <script src="js/url-pay-input-mode.js?v=4"></script>
   <script src="js/url-pay-public-shell.js?v=11"></script>
   <script>
@@ -501,6 +502,7 @@
           redirectModeNotice: '본사 설정이 리다이렉트(호스티드) URL 결제입니다. ChillPay 호스티드로 보내는 서명 POST는 서버 연동 후 사용할 수 있습니다. 「결제로직설정」에서 URL 결제형 기본 방식을 INLINE으로 바꾸면 이 페이지에서 카드 토큰(DirectCredit) 결제를 쓸 수 있습니다.',
           orgDisabled: '서비스가 중지된 가맹점입니다.',
           payOk: '결제 요청이 처리되었습니다.', payFail: '결제에 실패했습니다.',
+          payInProgress: '이미 결제 중입니다. 잠시만 기다려 주세요.',
           unsupportedInlinePgNoPg: '이 가맹점의 운영 PG는 공개 URL 인라인 카드 입력을 아직 지원하지 않습니다. 호스티드 결제 등 다른 흐름이나 PG별 위젯 연동 후 이용해 주세요.',
           unsupportedInlinePgWithPg: '운영 PG 코드 {pg} 는 공개 URL 인라인 카드 입력을 아직 지원하지 않습니다. 호스티드 결제 등 다른 흐름이나 PG별 위젯 연동 후 이용해 주세요.',
           unsupportedInlineSubmit: '인라인 카드 결제를 사용할 수 없습니다. 운영 PG 설정을 확인하세요.',
@@ -549,6 +551,7 @@
           redirectModeNotice: 'HQ settings use hosted (redirect) URL checkout. A server-signed POST to ChillPay is required to complete this flow. Set URL pay default to INLINE under Payment orchestration to use card token (DirectCredit) on this page.',
           orgDisabled: 'This merchant is disabled.',
           payOk: 'Payment request processed.', payFail: 'Payment failed.',
+          payInProgress: 'Payment is already in progress. Please wait.',
           unsupportedInlinePgNoPg: 'Inline card capture on this public URL is not wired for this merchant’s active payment provider yet. Use hosted checkout or add that PSP’s widget when available.',
           unsupportedInlinePgWithPg: 'Inline card capture is not wired for PSP code {pg} on this public URL yet. Use hosted checkout or integrate that PSP’s widget under this checkout shell.',
           unsupportedInlineSubmit: 'Inline card payment is not available for the configured PSP.',
@@ -597,6 +600,7 @@
           redirectModeNotice: '当前为托管（跳转）URL 结账。需服务器对 ChillPay 的签名 POST 完成后方可使用。请在「支付编排」中将 URL 支付默认改为 INLINE，以在本页使用 DirectCredit 卡令牌。',
           orgDisabled: '该商户已停用。',
           payOk: '支付请求已处理。', payFail: '支付失败。',
+          payInProgress: '支付正在进行中，请稍候。',
           unsupportedInlinePgNoPg: '当前商户的运营 PG 尚未在此公开 URL 上接入内联卡输入。请使用托管结账或后续接入该 PG 的安全控件。',
           unsupportedInlinePgWithPg: '运营 PG（代码 {pg}）尚未在此公开 URL 上接入内联卡输入。请使用托管结账或接入该 PG 的控件。',
           unsupportedInlineSubmit: '无法使用内联卡支付，请检查运营 PG 配置。',
@@ -645,6 +649,7 @@
           redirectModeNotice: '本社設定はホスティド（リダイレクト）URL 決済です。ChillPay への署名付き POST はサーバ連携後に利用できます。「決済連携拡張設定」で URL 決済を INLINE にすると、本ページで DirectCredit（カードトークン）が使えます。',
           orgDisabled: 'この加盟店は利用できません。',
           payOk: '決済リクエストを処理しました。', payFail: '決済に失敗しました。',
+          payInProgress: '決済処理中です。しばらくお待ちください。',
           unsupportedInlinePgNoPg: 'この公開URLでのインラインカード入力は、設定されている運用PGでは未対応です。ホスティド決済やPG別ウィジェット連携をご利用ください。',
           unsupportedInlinePgWithPg: '運用PGコード {pg} はこの公開URLでのインラインカード入力に未対応です。ホスティド決済やウィジェット連携をご利用ください。',
           unsupportedInlineSubmit: 'インラインカード決済は利用できません。運用PG設定を確認してください。',
@@ -693,6 +698,7 @@
           redirectModeNotice: 'ตั้งค่าเป็นชำระแบบโฮสต์ (รีไดเร็กต์) ต้องมี POST แบบมีลายเซ็นจากเซิร์ฟเวอร์ไป ChillPay จึงจะใช้งานได้ เปลี่ยน URL เป็น INLINE ในการตั้งค่า orchestration เพื่อใช้ DirectCredit บนหน้านี้',
           orgDisabled: 'ร้านค้านี้ถูกระงับ',
           payOk: 'ดำเนินการชำระเงินแล้ว', payFail: 'การชำระเงินล้มเหลว',
+          payInProgress: 'กำลังชำระเงินอยู่แล้ว กรุณารอสักครู่',
           unsupportedInlinePgNoPg: 'ผู้ให้บริการชำระเงินที่เปิดใช้งานของร้านนี้ยังไม่รองรับการกรอกบัตรแบบอินไลน์บน URL สาธารณะนี้ ใช้แบบโฮสต์หรือเชื่อมวิดเจ็ตของ PSP นั้นเมื่อพร้อม',
           unsupportedInlinePgWithPg: 'PSP รหัส {pg} ยังไม่รองรับการกรอกบัตรแบบอินไลน์บน URL นี้ ใช้แบบโฮสต์หรือเชื่อมวิดเจ็ตของ PSP',
           unsupportedInlineSubmit: 'ไม่สามารถชำระด้วยบัตรแบบอินไลน์สำหรับ PSP ที่ตั้งค่าไว้',
@@ -1207,6 +1213,27 @@
         el.textContent = msg;
       }
 
+      function payGuardOpts(btn) {
+        return {
+          lang: LANG,
+          t: t,
+          button: btn,
+          onWarn: function (m) { showResult(m, true); }
+        };
+      }
+
+      function payGuardUnlock(btn) {
+        var g = window.PG_PAY_SUBMIT_GUARD;
+        if (g) g.unlockForRetry({ button: btn });
+        else if (btn) btn.disabled = false;
+      }
+
+      function payGuardFail(btn) {
+        var g = window.PG_PAY_SUBMIT_GUARD;
+        if (g) g.unlockAfterFailure({ button: btn });
+        else if (btn) btn.disabled = false;
+      }
+
       /** 가맹점 iframe(embed-pay) → 부모 창 postMessage */
       function notifyMerchantEmbedCheckout(detail) {
         if (!PAY_ENTRY_MERCHANT_API && !PAY_EMBED_MODE) return;
@@ -1487,7 +1514,7 @@
         if (eventId === 'CreateTokenFailed' || eventId === 'CreateTokenError') {
           window.__pgPayContinue = null;
           var btn = document.getElementById('submitBtn');
-          if (btn) btn.disabled = false;
+          payGuardUnlock(btn);
           var msg = (data && (data.message || data.Message)) ? String(data.message || data.Message) : '';
           showResult(t('ccdTokenFail') + (msg ? ' ' + msg : ''), true);
         }
@@ -1965,13 +1992,14 @@
             }
             var line = ((res.data.message || res.data.status || '') + ' ' + (d ? (d.paymentStatus || '') : '')).trim();
             showPayFinished(true, line || t('payFail'), ord, false);
-          } else {
-            showPayFinished(true, res.message || t('payFail'), fd.orderNo || '', false);
+            payGuardFail(btn);
+            return;
           }
+          showPayFinished(true, res.message || t('payFail'), fd.orderNo || '', false);
+          payGuardFail(btn);
         }).catch(function (err) {
           showPayFinished(true, (err && err.message) || t('payFail'), fd.orderNo || '', false);
-        }).finally(function () {
-          if (btn) btn.disabled = false;
+          payGuardFail(btn);
         });
       }
 
@@ -1997,7 +2025,12 @@
           return;
         }
 
-        btn.disabled = true;
+        var guard = window.PG_PAY_SUBMIT_GUARD;
+        if (guard) {
+          if (!guard.tryLock(payGuardOpts(btn))) return;
+        } else {
+          btn.disabled = true;
+        }
 
         var hiddenTok = document.getElementById('directCreditToken');
 
@@ -2072,19 +2105,19 @@
 
         if (!urlPayCcdCardholderOnly() && !fn.length && !ln.length) {
           showResult(t('needPayerName'), true);
-          btn.disabled = false;
+          payGuardUnlock(btn);
           return;
         }
         if (!(Number(fd.amount) > 0)) {
           showResult(t('needAmount'), true);
-          btn.disabled = false;
+          payGuardUnlock(btn);
           return;
         }
 
         if (urlPayDisplayFxActive && urlPayPricingMode === 'DISPLAY_FX_THB') {
           if (!urlPayFxQuote || !urlPayFxQuote.fxQuoteToken) {
             showResult(t('needFxQuote'), true);
-            btn.disabled = false;
+            payGuardUnlock(btn);
             return;
           }
         }
@@ -2101,7 +2134,7 @@
             fd.directCreditToken = h ? h.value.trim() : '';
             if (!fd.directCreditToken) {
               showResult(t('needToken'), true);
-              btn.disabled = false;
+              payGuardUnlock(btn);
               return;
             }
             postChillPayDirectCredit(fd);
@@ -2115,13 +2148,13 @@
           if (!ok) {
             window.__pgPayContinue = null;
             showResult(t('ccdNotReady'), true);
-            btn.disabled = false;
+            payGuardUnlock(btn);
           }
           return;
         }
 
         showResult(t('needToken'), true);
-        btn.disabled = false;
+        payGuardUnlock(btn);
       });
 
       setLang(LANG);

@@ -61,7 +61,12 @@ public final class PayCardPolicyI18n {
     private static String ko(String k) {
         return switch (k) {
             case "BLOCKED_PREFIX" -> "이 카드번호는 사용할 수 없습니다. (BIN {0})";
-            case "BLACKLIST" -> "등록된 사용 제한 카드입니다. 고객센터로 문의해 주세요.";
+            case "BLACKLIST", "INACTIVE_CARD" -> "해당 카드는 사용중지 된 카드입니다. 관리자에게 문의 바랍니다.";
+            case "CARD_COOLDOWN" -> "이 카드는 잠시 사용할 수 없습니다. 약 {0}분 후 다시 시도해 주세요.";
+            case "CARD_COOLDOWN_TIER_1" -> "1차 결제 실패 경고입니다. 동일 카드는 약 {0}분 후 다시 시도할 수 있습니다.";
+            case "CARD_COOLDOWN_TIER_2" -> "2차 결제 실패 경고입니다. 동일 카드는 약 {0}분 후 다시 시도할 수 있습니다.";
+            case "CARD_COOLDOWN_TIER_3" -> "3차 결제 실패 경고입니다. 동일 카드는 약 {0}분 후 다시 시도할 수 있습니다.";
+            case "CARD_COOLDOWN_TIER_4" -> "4차 결제 실패 경고입니다. 동일 카드는 약 {0}분 후 다시 시도할 수 있습니다.";
             case "BRAND_NOT_ALLOWED" -> "이 결제수단(PG)에서는 {0} 카드를 사용할 수 없습니다.";
             case "UNION_NOT_62" -> "유니온페이는 62로 시작하는 카드만 사용할 수 있습니다.";
             case "UNION_60_81" -> "60·81로 시작하는 유니온페이 카드는 사용할 수 없습니다.";
@@ -76,7 +81,12 @@ public final class PayCardPolicyI18n {
     private static String en(String k) {
         return switch (k) {
             case "BLOCKED_PREFIX" -> "This card number cannot be used. (BIN {0})";
-            case "BLACKLIST" -> "This card is restricted. Please contact support.";
+            case "BLACKLIST", "INACTIVE_CARD" -> "This card has been suspended. Please contact the administrator.";
+            case "CARD_COOLDOWN" -> "This card is temporarily unavailable. Please try again in about {0} minute(s).";
+            case "CARD_COOLDOWN_TIER_1" -> "1st payment failure warning. Please try this card again in about {0} minute(s).";
+            case "CARD_COOLDOWN_TIER_2" -> "2nd payment failure warning. Please try this card again in about {0} minute(s).";
+            case "CARD_COOLDOWN_TIER_3" -> "3rd payment failure warning. Please try this card again in about {0} minute(s).";
+            case "CARD_COOLDOWN_TIER_4" -> "4th payment failure warning. Please try this card again in about {0} minute(s).";
             case "BRAND_NOT_ALLOWED" -> "{0} cards are not accepted for this payment provider.";
             case "UNION_NOT_62" -> "Only UnionPay cards starting with 62 are accepted.";
             case "UNION_60_81" -> "UnionPay cards starting with 60 or 81 cannot be used.";
@@ -91,7 +101,12 @@ public final class PayCardPolicyI18n {
     private static String jp(String k) {
         return switch (k) {
             case "BLOCKED_PREFIX" -> "このカード番号はご利用いただけません。(BIN {0})";
-            case "BLACKLIST" -> "ご利用制限のカードです。サポートへお問い合わせください。";
+            case "BLACKLIST", "INACTIVE_CARD" -> "このカードは利用停止されています。管理者にお問い合わせください。";
+            case "CARD_COOLDOWN" -> "このカードは一時的にご利用いただけません。約{0}分後に再度お試しください。";
+            case "CARD_COOLDOWN_TIER_1" -> "1回目の決済失敗警告です。同じカードは約{0}分後に再度お試しください。";
+            case "CARD_COOLDOWN_TIER_2" -> "2回目の決済失敗警告です。同じカードは約{0}分後に再度お試しください。";
+            case "CARD_COOLDOWN_TIER_3" -> "3回目の決済失敗警告です。同じカードは約{0}分後に再度お試しください。";
+            case "CARD_COOLDOWN_TIER_4" -> "4回目の決済失敗警告です。同じカードは約{0}分後に再度お試しください。";
             case "BRAND_NOT_ALLOWED" -> "この決済では{0}カードはご利用いただけません。";
             case "UNION_NOT_62" -> "銀聯(UnionPay)は62から始まるカードのみ利用できます。";
             case "UNION_60_81" -> "60・81から始まる銀聯カードはご利用いただけません。";
@@ -106,7 +121,12 @@ public final class PayCardPolicyI18n {
     private static String ch(String k) {
         return switch (k) {
             case "BLOCKED_PREFIX" -> "无法使用此卡号。(BIN {0})";
-            case "BLACKLIST" -> "此卡已被限制使用，请联系客服。";
+            case "BLACKLIST", "INACTIVE_CARD" -> "该卡已停止使用，请联系管理员。";
+            case "CARD_COOLDOWN" -> "该卡暂时无法使用，请约 {0} 分钟后再试。";
+            case "CARD_COOLDOWN_TIER_1" -> "第1次支付失败警告。相同卡号约 {0} 分钟后可再次尝试。";
+            case "CARD_COOLDOWN_TIER_2" -> "第2次支付失败警告。相同卡号约 {0} 分钟后可再次尝试。";
+            case "CARD_COOLDOWN_TIER_3" -> "第3次支付失败警告。相同卡号约 {0} 分钟后可再次尝试。";
+            case "CARD_COOLDOWN_TIER_4" -> "第4次支付失败警告。相同卡号约 {0} 分钟后可再次尝试。";
             case "BRAND_NOT_ALLOWED" -> "此支付渠道不支持{0}卡。";
             case "UNION_NOT_62" -> "银联卡仅支持以62开头的卡号。";
             case "UNION_60_81" -> "以60或81开头的银联卡无法使用。";
@@ -121,7 +141,12 @@ public final class PayCardPolicyI18n {
     private static String th(String k) {
         return switch (k) {
             case "BLOCKED_PREFIX" -> "ไม่สามารถใช้หมายเลขบัตรนี้ได้ (BIN {0})";
-            case "BLACKLIST" -> "บัตรนี้ถูกจำกัดการใช้งาน กรุณาติดต่อฝ่ายสนับสนุน";
+            case "BLACKLIST", "INACTIVE_CARD" -> "บัตรนี้ถูกระงับการใช้งาน กรุณาติดต่อผู้ดูแลระบบ";
+            case "CARD_COOLDOWN" -> "บัตรนี้ใช้งานชั่วคราวไม่ได้ กรุณาลองอีกครั้งในอีกประมาณ {0} นาที";
+            case "CARD_COOLDOWN_TIER_1" -> "คำเตือนความล้มเหลวครั้งที่ 1 ลองบัตรเดิมอีกครั้งในอีกประมาณ {0} นาที";
+            case "CARD_COOLDOWN_TIER_2" -> "คำเตือนความล้มเหลวครั้งที่ 2 ลองบัตรเดิมอีกครั้งในอีกประมาณ {0} นาที";
+            case "CARD_COOLDOWN_TIER_3" -> "คำเตือนความล้มเหลวครั้งที่ 3 ลองบัตรเดิมอีกครั้งในอีกประมาณ {0} นาที";
+            case "CARD_COOLDOWN_TIER_4" -> "คำเตือนความล้มเหลวครั้งที่ 4 ลองบัตรเดิมอีกครั้งในอีกประมาณ {0} นาที";
             case "BRAND_NOT_ALLOWED" -> "ผู้ให้บริการชำระเงินนี้ไม่รองรับบัตร {0}";
             case "UNION_NOT_62" -> "UnionPay รองรับเฉพาะบัตรที่ขึ้นต้นด้วย 62";
             case "UNION_60_81" -> "บัตร UnionPay ที่ขึ้นต้นด้วย 60 หรือ 81 ใช้ไม่ได้";
@@ -131,6 +156,11 @@ public final class PayCardPolicyI18n {
             case "SELECT_BRAND" -> "กรุณาเลือกแบรนด์บัตร";
             default -> k;
         };
+    }
+
+    public static String tierCooldownMessageKey(int failCount) {
+        int tier = Math.min(Math.max(failCount, 1), 4);
+        return "CARD_COOLDOWN_TIER_" + tier;
     }
 
     public static String brandLabelKo(PayCardBrand brand) {

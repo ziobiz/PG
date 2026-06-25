@@ -109,7 +109,7 @@ public class HqLedgerSysSettings {
     private Integer jpayTrInitSyncMonths = 3;
 
     @Column(name = "jpay_tr_recent_sync_days", nullable = false)
-    private Integer jpayTrRecentSyncDays = 2;
+    private Integer jpayTrRecentSyncDays = 7;
 
     @Column(name = "app_log_memory_retention_days", nullable = false)
     private Integer appLogMemoryRetentionDays = 30;
@@ -171,6 +171,18 @@ public class HqLedgerSysSettings {
     /** 미수금 환수 기본(AUTO/MANUAL). 신규 가맹 정산설정 초기값·본사 일괄 동기화 기준. */
     @Column(name = "receivable_recovery_default_mode", nullable = false, length = 16)
     private String receivableRecoveryDefaultMode = "AUTO";
+
+    @Column(name = "card_fail_cooldown_enabled_yn", nullable = false, length = 1)
+    private String cardFailCooldownEnabledYn = "Y";
+
+    @Column(name = "card_fail_cooldown_tier1_min", nullable = false)
+    private Integer cardFailCooldownTier1Min = 5;
+
+    @Column(name = "card_fail_cooldown_tier2_min", nullable = false)
+    private Integer cardFailCooldownTier2Min = 10;
+
+    @Column(name = "card_fail_cooldown_tier3_min", nullable = false)
+    private Integer cardFailCooldownTier3Min = 60;
 
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
@@ -292,6 +304,22 @@ public class HqLedgerSysSettings {
     public String getReceivableRecoveryDefaultMode() { return receivableRecoveryDefaultMode; }
     public void setReceivableRecoveryDefaultMode(String receivableRecoveryDefaultMode) {
         this.receivableRecoveryDefaultMode = receivableRecoveryDefaultMode;
+    }
+    public String getCardFailCooldownEnabledYn() { return cardFailCooldownEnabledYn; }
+    public void setCardFailCooldownEnabledYn(String cardFailCooldownEnabledYn) {
+        this.cardFailCooldownEnabledYn = cardFailCooldownEnabledYn;
+    }
+    public Integer getCardFailCooldownTier1Min() { return cardFailCooldownTier1Min; }
+    public void setCardFailCooldownTier1Min(Integer cardFailCooldownTier1Min) {
+        this.cardFailCooldownTier1Min = cardFailCooldownTier1Min;
+    }
+    public Integer getCardFailCooldownTier2Min() { return cardFailCooldownTier2Min; }
+    public void setCardFailCooldownTier2Min(Integer cardFailCooldownTier2Min) {
+        this.cardFailCooldownTier2Min = cardFailCooldownTier2Min;
+    }
+    public Integer getCardFailCooldownTier3Min() { return cardFailCooldownTier3Min; }
+    public void setCardFailCooldownTier3Min(Integer cardFailCooldownTier3Min) {
+        this.cardFailCooldownTier3Min = cardFailCooldownTier3Min;
     }
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }

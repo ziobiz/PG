@@ -2,13 +2,17 @@ package com.pg.service;
 
 import com.pg.entity.HqPayCardBlacklist;
 import com.pg.entity.HqPayCardBlockPrefix;
+import com.pg.entity.OrgUnit;
 import com.pg.integration.pg.PgVendor;
 import com.pg.repository.HqPayCardBlacklistRepository;
 import com.pg.repository.HqPayCardBlockPrefixRepository;
-import com.pg.util.PayCardBrand;
+import com.pg.repository.OrgUnitRepository;
 import com.pg.util.OpsInactiveCardPanRules;
+import com.pg.util.PayCardBrand;
 import com.pg.util.PayCardBrandDetector;
+import com.pg.util.PayCardMaskKeyUtil;
 import com.pg.util.PayCardPanHashUtil;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -28,6 +32,9 @@ import java.util.Set;
 @Service
 public class PayCardPolicyService {
 
+    public static final String MATCH_MODE_FULL_PAN = "FULL_PAN";
+    public static final String MATCH_MODE_MASK_6_4 = "MASK_6_4";
+
     private static final Set<PayCardBrand> JPAY_ALLOWED = EnumSet.of(
             PayCardBrand.VISA, PayCardBrand.MASTERCARD, PayCardBrand.JCB,
             PayCardBrand.UNIONPAY, PayCardBrand.AMEX);
@@ -36,11 +43,17 @@ public class PayCardPolicyService {
 
     private final HqPayCardBlockPrefixRepository blockPrefixRepository;
     private final HqPayCardBlacklistRepository blacklistRepository;
+    private final PayCardFailCooldownService payCardFailCooldownService;
+    private final OrgUnitRepository orgUnitRepository;
 
     public PayCardPolicyService(HqPayCardBlockPrefixRepository blockPrefixRepository,
-                                HqPayCardBlacklistRepository blacklistRepository) {
+                                HqPayCardBlacklistRepository blacklistRepository,
+                                @Lazy PayCardFailCooldownService payCardFailCooldownService,
+                                OrgUnitRepository orgUnitRepository) {
         this.blockPrefixRepository = blockPrefixRepository;
         this.blacklistRepository = blacklistRepository;
+        this.payCardFailCooldownService = payCardFailCooldownService;
+        this.orgUnitRepository = orgUnitRepository;
     }
 
     public String normalizePgVendor(String pgCdOrVan) {
@@ -85,7 +98,13 @@ public class PayCardPolicyService {
         out.put("unionPayValidPrefix", "62");
         Map<String, Map<String, String>> msg = new LinkedHashMap<>();
         msg.put("BLOCKED_PREFIX", PayCardPolicyI18n.allLang("BLOCKED_PREFIX", "{0}"));
-        msg.put("BLACKLIST", PayCardPolicyI18n.allLang("BLACKLIST"));
+        msg.put("BLACKLIST", PayCardPolicyI18n.allLang("INACTIVE_CARD"));
+        msg.put("INACTIVE_CARD", PayCardPolicyI18n.allLang("INACTIVE_CARD"));
+        msg.put("CARD_COOLDOWN", PayCardPolicyI18n.allLang("CARD_COOLDOWN", "{0}"));
+        for (int tier = 1; tier <= 4; tier++) {
+            String key = PayCardPolicyI18n.tierCooldownMessageKey(tier);
+            msg.put(key, PayCardPolicyI18n.allLang(key, "{0}"));
+        }
         msg.put("BRAND_NOT_ALLOWED", PayCardPolicyI18n.allLang("BRAND_NOT_ALLOWED", "{0}"));
         msg.put("UNION_NOT_62", PayCardPolicyI18n.allLang("UNION_NOT_62"));
         msg.put("UNION_60_81", PayCardPolicyI18n.allLang("UNION_60_81"));
@@ -110,6 +129,11 @@ public class PayCardPolicyService {
     }
 
     public Map<String, Object> validateForSale(String pgVendorRaw, String panRaw, String selectedBrandRaw, String lang) {
+        return validateForSale(pgVendorRaw, panRaw, selectedBrandRaw, lang, null);
+    }
+
+    public Map<String, Object> validateForSale(String pgVendorRaw, String panRaw, String selectedBrandRaw, String lang,
+                                               Long orgUnitId) {
         String pg = normalizePgVendor(pgVendorRaw);
         String pan = PayCardBrandDetector.normalizePan(panRaw);
         String langNorm = lang != null ? lang.trim() : "KO";
@@ -118,14 +142,18 @@ public class PayCardPolicyService {
             return fail("INVALID_PAN", "INVALID_PAN", langNorm);
         }
 
+        if (findBlacklistHit(pan, pg).isPresent()) {
+            return fail("INACTIVE_CARD", "INACTIVE_CARD", langNorm);
+        }
+
+        Optional<Map<String, Object>> cooldown = payCardFailCooldownService.checkBlocked(pg, pan, langNorm, orgUnitId);
+        if (cooldown.isPresent()) {
+            return cooldown.get();
+        }
+
         PayCardBrand detected = PayCardBrandDetector.detect(pan);
         PayCardBrand selected = PayCardBrandDetector.parseBrandKey(selectedBrandRaw);
         PayCardBrand brand = selected != null ? selected : detected;
-
-        Optional<HqPayCardBlacklist> bl = blacklistRepository.findActiveHit(PayCardPanHashUtil.hashPan(pan), pg);
-        if (bl.isPresent()) {
-            return fail("BLACKLIST", "BLACKLIST", langNorm);
-        }
 
         String blockedPrefix = matchBlockedPrefix(pg, pan);
         if (blockedPrefix != null) {
@@ -164,6 +192,24 @@ public class PayCardPolicyService {
         ok.put("brand", brand.name());
         ok.put("expectedLength", expected);
         return ok;
+    }
+
+    public Optional<HqPayCardBlacklist> findBlacklistHit(String pan, String pgVendor) {
+        String pg = normalizePgVendor(pgVendor);
+        String norm = PayCardBrandDetector.normalizePan(pan);
+        if (norm.length() >= 13) {
+            Optional<HqPayCardBlacklist> full = blacklistRepository.findActiveHit(PayCardPanHashUtil.hashPan(norm), pg);
+            if (full.isPresent()) {
+                return full;
+            }
+        }
+        if (norm.length() >= 10) {
+            String maskKey = PayCardMaskKeyUtil.maskKeyFromPan(norm);
+            if (!maskKey.isEmpty()) {
+                return blacklistRepository.findActiveMaskDisplayHit(maskKey, pg);
+            }
+        }
+        return Optional.empty();
     }
 
     private String matchBlockedPrefix(String pg, String pan) {
@@ -229,29 +275,97 @@ public class PayCardPolicyService {
 
     @Transactional
     public HqPayCardBlacklist addBlacklistManual(String pgVendor, String panRaw, String reason, String registeredBy) {
-        return addBlacklistManual(pgVendor, panRaw, reason, registeredBy, null);
+        return addBlacklistManual(pgVendor, panRaw, reason, registeredBy, null, null);
     }
 
     public HqPayCardBlacklist addBlacklistManual(String pgVendor, String panRaw, String reason, String registeredBy,
                                                String cardBrand) {
+        return addBlacklistManual(pgVendor, panRaw, reason, registeredBy, cardBrand, null);
+    }
+
+    public HqPayCardBlacklist addBlacklistManual(String pgVendor, String panRaw, String reason, String registeredBy,
+                                               String cardBrand, String holderName) {
+        return addBlacklistManual(pgVendor, panRaw, reason, registeredBy, cardBrand, holderName, null, null, null);
+    }
+
+    public HqPayCardBlacklist addBlacklistManual(String pgVendor, String panRaw, String reason, String registeredBy,
+                                               String cardBrand, String holderName,
+                                               Long orgUnitId, String compId, String compNm) {
+        String pg = pgVendor != null && !pgVendor.isBlank() ? normalizePgVendor(pgVendor) : null;
+        String pgScope = pg != null ? pg : PgVendor.JPAY;
+
+        if (PayCardMaskKeyUtil.isMaskInput(panRaw)) {
+            String maskKey = PayCardMaskKeyUtil.normalizeMaskInput(panRaw);
+            OpsInactiveCardPanRules.validateForMaskRegister(maskKey);
+            if (blacklistRepository.findActiveMaskDisplayHit(maskKey, pgScope).isPresent()) {
+                throw new IllegalArgumentException("이미 비활성 등록된 카드입니다.");
+            }
+            String hash = PayCardMaskKeyUtil.hashForMaskKey(maskKey);
+            HqPayCardBlacklist row = new HqPayCardBlacklist();
+            row.setPgVendor(pg);
+            row.setPanHash(hash);
+            row.setPanDisplay(maskKey);
+            row.setMatchMode(MATCH_MODE_MASK_6_4);
+            row.setHolderName(trimHolder(holderName));
+            row.setSource("MANUAL");
+            row.setReason(reason != null ? reason.trim() : null);
+            row.setRegisteredBy(registeredBy != null && !registeredBy.isBlank() ? registeredBy.trim() : null);
+            row.setActiveYn("Y");
+            applyRegisteredMerchantSnapshot(row, orgUnitId, compId, compNm);
+            return blacklistRepository.save(row);
+        }
+
         String pan = PayCardBrandDetector.normalizePan(panRaw);
         OpsInactiveCardPanRules.validateForRegister(cardBrand, pan);
-        String pg = pgVendor != null && !pgVendor.isBlank() ? normalizePgVendor(pgVendor) : null;
         String hash = PayCardPanHashUtil.hashPan(pan);
-        Optional<HqPayCardBlacklist> ex = blacklistRepository.findActiveHit(hash, pg != null ? pg : PgVendor.JPAY);
-        if (ex.isPresent()) {
+        if (blacklistRepository.findActiveHit(hash, pgScope).isPresent()) {
+            throw new IllegalArgumentException("이미 비활성 등록된 카드입니다.");
+        }
+        String maskKey = PayCardMaskKeyUtil.maskKeyFromPan(pan);
+        if (!maskKey.isEmpty() && blacklistRepository.findActiveMaskDisplayHit(maskKey, pgScope).isPresent()) {
             throw new IllegalArgumentException("이미 비활성 등록된 카드입니다.");
         }
         HqPayCardBlacklist row = new HqPayCardBlacklist();
         row.setPgVendor(pg);
         row.setPanHash(hash);
-        row.setPanDisplay(PayCardPanHashUtil.maskForDisplay(pan));
+        row.setPanDisplay(maskKey.isEmpty() ? PayCardPanHashUtil.maskForDisplay(pan) : maskKey);
+        row.setMatchMode(MATCH_MODE_FULL_PAN);
+        row.setHolderName(trimHolder(holderName));
         row.setSource("MANUAL");
         row.setReason(reason != null ? reason.trim() : null);
         row.setRegisteredBy(registeredBy != null && !registeredBy.isBlank() ? registeredBy.trim() : null);
         row.setActiveYn("Y");
         row.setReleasedAt(null);
         row.setReleasedBy(null);
+        applyRegisteredMerchantSnapshot(row, orgUnitId, compId, compNm);
+        return blacklistRepository.save(row);
+    }
+
+    @Transactional
+    public HqPayCardBlacklist addBlacklistAutoMask(String pgVendor, String maskKey, String reason) {
+        return addBlacklistAutoMask(pgVendor, maskKey, reason, null);
+    }
+
+    @Transactional
+    public HqPayCardBlacklist addBlacklistAutoMask(String pgVendor, String maskKey, String reason, Long orgUnitId) {
+        String mk = PayCardMaskKeyUtil.normalizeMaskInput(maskKey);
+        if (!PayCardMaskKeyUtil.isValidMaskKey(mk)) {
+            return null;
+        }
+        String pg = normalizePgVendor(pgVendor);
+        if (blacklistRepository.findActiveMaskDisplayHit(mk, pg).isPresent()) {
+            return null;
+        }
+        HqPayCardBlacklist row = new HqPayCardBlacklist();
+        row.setPgVendor(pg);
+        row.setPanHash(PayCardMaskKeyUtil.hashForMaskKey(mk));
+        row.setPanDisplay(mk);
+        row.setMatchMode(MATCH_MODE_MASK_6_4);
+        row.setSource("AUTO");
+        row.setReason(reason != null ? reason.trim() : "AUTO_FAIL_COOLDOWN");
+        row.setRegisteredOrgUnitId(orgUnitId);
+        applyRegisteredMerchantSnapshot(row, orgUnitId, null, null);
+        row.setActiveYn("Y");
         return blacklistRepository.save(row);
     }
 
@@ -269,9 +383,41 @@ public class PayCardPolicyService {
     }
 
     @Transactional
+    public HqPayCardBlacklist updateInactiveCardContent(long id, String pgVendor, String holderName, String reason,
+                                                        Long orgUnitId, String compId, String compNm, String updatedBy) {
+        HqPayCardBlacklist row = blacklistRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("등록 건을 찾을 수 없습니다."));
+        if (!"Y".equalsIgnoreCase(String.valueOf(row.getActiveYn()).trim())) {
+            throw new IllegalStateException("해지된 카드는 수정할 수 없습니다.");
+        }
+        String pg = pgVendor != null && !pgVendor.isBlank() ? normalizePgVendor(pgVendor) : null;
+        row.setPgVendor(pg);
+        row.setHolderName(trimHolder(holderName));
+        row.setReason(reason != null ? reason.trim() : null);
+        String compIdVal = compId != null ? compId.trim() : "";
+        String compNmVal = compNm != null ? compNm.trim() : "";
+        if (compIdVal.isEmpty()) {
+            row.setRegisteredOrgUnitId(null);
+            row.setRegisteredCompId(null);
+            row.setRegisteredCompNm(compNmVal.isEmpty() ? null
+                    : (compNmVal.length() > 200 ? compNmVal.substring(0, 200) : compNmVal));
+        } else {
+            applyRegisteredMerchantSnapshot(row, orgUnitId, compIdVal, compNmVal);
+        }
+        row.setContentUpdatedAt(java.time.LocalDateTime.now());
+        row.setContentUpdatedBy(updatedBy != null && !updatedBy.isBlank() ? updatedBy.trim() : null);
+        return blacklistRepository.save(row);
+    }
+
+    @Transactional
     public HqPayCardBlacklist addBlacklistAuto(String pgVendor, String panRaw, String reason) {
+        return addBlacklistAuto(pgVendor, panRaw, reason, null);
+    }
+
+    @Transactional
+    public HqPayCardBlacklist addBlacklistAuto(String pgVendor, String panRaw, String reason, Long orgUnitId) {
         String pan = PayCardBrandDetector.normalizePan(panRaw);
-        if (pan.length() < 15) {
+        if (pan.length() < 10) {
             return null;
         }
         String pg = normalizePgVendor(pgVendor);
@@ -279,12 +425,19 @@ public class PayCardPolicyService {
         if (blacklistRepository.findActiveHit(hash, pg).isPresent()) {
             return null;
         }
+        String maskKey = PayCardMaskKeyUtil.maskKeyFromPan(pan);
+        if (!maskKey.isEmpty() && blacklistRepository.findActiveMaskDisplayHit(maskKey, pg).isPresent()) {
+            return null;
+        }
         HqPayCardBlacklist row = new HqPayCardBlacklist();
         row.setPgVendor(pg);
         row.setPanHash(hash);
-        row.setPanDisplay(PayCardPanHashUtil.maskForDisplay(pan));
+        row.setPanDisplay(maskKey.isEmpty() ? PayCardPanHashUtil.maskForDisplay(pan) : maskKey);
+        row.setMatchMode(MATCH_MODE_FULL_PAN);
         row.setSource("AUTO");
         row.setReason(reason != null ? reason.trim() : "AUTO_FRAUD");
+        row.setRegisteredOrgUnitId(orgUnitId);
+        applyRegisteredMerchantSnapshot(row, orgUnitId, null, null);
         row.setActiveYn("Y");
         return blacklistRepository.save(row);
     }
@@ -299,6 +452,53 @@ public class PayCardPolicyService {
 
     private static String normalizePrefix(String raw) {
         return PayCardBrandDetector.normalizePan(raw);
+    }
+
+    private static String trimHolder(String holderName) {
+        if (holderName == null) {
+            return null;
+        }
+        String t = holderName.trim();
+        return t.isEmpty() ? null : (t.length() > 100 ? t.substring(0, 100) : t);
+    }
+
+    private void applyRegisteredMerchantSnapshot(HqPayCardBlacklist row, Long orgUnitId, String compIdIn, String compNmIn) {
+        if (row == null) {
+            return;
+        }
+        String compId = compIdIn != null ? compIdIn.trim() : "";
+        String compNm = compNmIn != null ? compNmIn.trim() : "";
+        Long resolvedOrgId = orgUnitId;
+        if (!compId.isEmpty()) {
+            row.setRegisteredCompId(compId.length() > 32 ? compId.substring(0, 32) : compId);
+            Optional<OrgUnit> ouOpt = orgUnitRepository.findByCodeIgnoreCase(compId);
+            if (ouOpt.isPresent()) {
+                resolvedOrgId = ouOpt.get().getId();
+                if (compNm.isEmpty()) {
+                    String nm = ouOpt.get().getName();
+                    if (nm != null && !nm.isBlank()) {
+                        compNm = nm.trim();
+                    }
+                }
+            }
+        } else if (resolvedOrgId != null) {
+            Optional<OrgUnit> ouById = orgUnitRepository.findById(resolvedOrgId);
+            if (ouById.isPresent()) {
+                OrgUnit ou = ouById.get();
+                if (ou.getCode() != null && !ou.getCode().isBlank()) {
+                    row.setRegisteredCompId(ou.getCode().trim());
+                }
+                if (compNm.isEmpty() && ou.getName() != null && !ou.getName().isBlank()) {
+                    compNm = ou.getName().trim();
+                }
+            }
+        }
+        if (resolvedOrgId != null) {
+            row.setRegisteredOrgUnitId(resolvedOrgId);
+        }
+        if (!compNm.isEmpty()) {
+            row.setRegisteredCompNm(compNm.length() > 200 ? compNm.substring(0, 200) : compNm);
+        }
     }
 
     private static Map<String, Object> prefixToMap(HqPayCardBlockPrefix row) {
@@ -316,6 +516,8 @@ public class PayCardPolicyService {
         m.put("id", row.getId());
         m.put("pgVendor", row.getPgVendor());
         m.put("panDisplay", row.getPanDisplay());
+        m.put("holderName", row.getHolderName());
+        m.put("matchMode", row.getMatchMode());
         m.put("source", row.getSource());
         m.put("reason", row.getReason());
         m.put("activeYn", row.getActiveYn());

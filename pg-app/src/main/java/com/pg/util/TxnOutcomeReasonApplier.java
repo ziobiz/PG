@@ -82,6 +82,43 @@ public final class TxnOutcomeReasonApplier {
         return apply(t, prevStatus, mergedStatus, msg, "2", SOURCE_JPAY);
     }
 
+    /**
+     * JPAY Trade Query·포털 Export 동기화로 확정된 터미널 상태.
+     * UNPAID(노티 미수신) → 취소(20) 등 노티 없이 조회로만 반영되는 건의 처리사유.
+     */
+    public static Optional<String> applyJpayReconcileOutcome(PgTrnsctn t, String prevStatus, String newStatus,
+                                                             String jpayStatusRaw) {
+        if (t == null || newStatus == null || newStatus.isBlank()) {
+            return Optional.empty();
+        }
+        if (!shouldRecordForStatus(newStatus)) {
+            return Optional.empty();
+        }
+        String raw = jpayStatusRaw != null ? jpayStatusRaw.trim() : "";
+        String reason;
+        String code;
+        if (PgNotifyInternalStatusMapper.ST_CANCEL.equals(newStatus) && isJpayUnpaidLabel(raw)) {
+            reason = "결제 미완료(UNPAID, 노티 미수신, 임시 취소)";
+            code = NotifyToTxnStatusMerge.OUTCOME_CODE_UNPAID_PROVISIONAL;
+        } else if (PgNotifyInternalStatusMapper.ST_FAIL.equals(newStatus)) {
+            reason = raw.isBlank() ? "JPAY 조회 실패" : "JPAY 조회: " + raw;
+            code = "FAIL";
+        } else if (PgNotifyInternalStatusMapper.ST_REFUND.equals(newStatus)) {
+            reason = raw.isBlank() ? "JPAY 환불 확정" : "JPAY 환불: " + raw;
+            code = "REFUND";
+        } else {
+            return Optional.empty();
+        }
+        return apply(t, prevStatus, newStatus, reason, code, SOURCE_JPAY);
+    }
+
+    private static boolean isJpayUnpaidLabel(String raw) {
+        if (raw.isBlank()) {
+            return false;
+        }
+        return raw.toUpperCase(Locale.ROOT).contains("UNPAID");
+    }
+
     public static Optional<String> applyIcopayFollowUp(PgTrnsctn t, String prevStatus, String newStatus,
                                            String actionCode, String actor, String adminReason, String apiDetail) {
         if (t == null) {

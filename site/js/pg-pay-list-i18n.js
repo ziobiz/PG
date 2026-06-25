@@ -990,25 +990,32 @@
         'สำหรับ HQ สูงสุด/ภูมิภาค/ตัวแทนหลัก (รวม ADMIN) ให้สิทธิ์เมนูในสิทธิ์สำนักงานใหญ่'
       ),
       packN(
-        '등록·해지는 본사권한설정에서 이 화면 권한을 삭제(전체) 또는 수정으로 부여한 계정만 가능합니다.',
-        'Only accounts with Delete (full) or Modify on this screen in HQ permissions can register or release.',
-        '登録・解除は本社権限でこの画面に削除(全体)または修正があるアカウントのみ可能です。',
-        '仅在本社权限中对该画面拥有删除(全部)或修改的账户可登记/解除。',
-        'เฉพาะบัญชีที่มีสิทธิ์ลบ(เต็ม)หรือแก้ไขหน้านี้ในสิทธิ์สำนักงานใหญ่'
+        '등록·해지·수정은 본사권한설정에서 이 화면 권한을 삭제(전체) 또는 수정으로 부여한 계정만 가능합니다.',
+        'Only accounts with Delete (full) or Modify on this screen in HQ permissions can register, release, or edit.',
+        '登録・解除・修正は本社権限でこの画面に削除(全体)または修正があるアカウントのみ可能です。',
+        '仅在本社权限中对该画面拥有删除(全部)或修改的账户可登记/解除/修改。',
+        'เฉพาะบัญชีที่มีสิทธิ์ลบ(เต็ม)หรือแก้ไขหน้านี้ในสิทธิ์สำนักงานใหญ่เท่านั้นที่ลงทะเบียน/ยกเลิก/แก้ไขได้'
       ),
       packN(
-        '카드 종류별 접두(BIN)·자릿수가 맞지 않으면 경고가 표시됩니다. AMEX 15자리(4-6-5), Diners 14자리(4-6-4), 대부분 16자리(4×4), 기타는 접두 검증 없이 13~16자리(4×4)입니다.',
-        'Warnings appear if prefix/length do not match the card type. AMEX 15 (4-6-5), Diners 14 (4-6-4), most 16 (4×4); Other: no prefix check, 13–16 digits (4×4).',
-        'カード種別ごとに接頭(BIN)・桁数が合わないと警告します。AMEX15桁(4-6-5)、Diners14桁(4-6-4)、多くは16桁(4×4)、その他は接頭検証なし13~16桁(4×4)。',
-        '卡种与前缀/位数不符时显示警告。运通15位(4-6-5)、大来14位(4-6-4)、多数16位(4×4)、其他无前缀校验13~16位(4×4)。',
-        'เตือนเมื่อคำนำหน้า/ความยาวไม่ตรงประเภท AMEX 15 (4-6-5) Diners 14 (4-6-4) ส่วนใหญ่ 16 (4×4) อื่นๆ 13–16 (4×4) ไม่ตรวจคำนำหน้า'
+        '카드번호는 마스킹 형식(앞 6자리 + *** + 뒤 4자리)으로 등록합니다. 업체코드·업체명은 출처 표시용이며, 등록된 카드는 전 가맹점 결제에서 차단됩니다.',
+        'Register card numbers in masked form (first 6 + *** + last 4). Merchant code/name are for source display only; registered cards block payment for all merchants.',
+        'カード番号はマスク形式(先頭6桁 + *** + 下4桁)で登録します。加盟店コード・名は出典表示用で、登録カードは全加盟店の決済でブロックされます。',
+        '卡号以掩码格式(前6位 + *** + 后4位)登记。商户代码/名仅作来源显示，登记卡在全商户支付中拦截。',
+        'ลงทะเบียนเลขบัตรแบบปิดบางส่วน (6 หลักแรก + *** + 4 หลักท้าย) รหัส/ชื่อร้านแสดงแหล่งที่มา บัตรที่ลงทะเบียนบล็อกทุกร้าน'
       ),
       packN(
-        '해지는 목록 맨 오른쪽 「OTP 해지」 버튼에서 실행합니다. Google OTP 6자리가 필요합니다.',
-        'Release via the OTP Release button at the right of the list. Google OTP (6 digits) required.',
-        '解除は一覧右端の「OTP解除」ボタンから実行。Google OTP 6桁が必要です。',
-        '请在列表最右侧「OTP 解除」按钮执行解除。需要 Google OTP 6 位。',
-        'ยกเลิกที่ปุ่ม OTP ยกเลิกทางขวาสุดของรายการ ต้องใช้ Google OTP 6 หลัก'
+        '등록 구분: 수동=운영자 직접 등록, 자동=리스크 트리거 자동 등록. 본사설정 리스크설정의 수동등록·자동등록 건수에 반영됩니다.',
+        'Registration type: Manual = operator entry, Auto = risk trigger. Counts appear in HQ risk settings (manual/auto).',
+        '登録区分: 手動=運用者登録、自動=リスクトリガー。本社リスク設定の手動/自動件数に反映されます。',
+        '登记区分：手动=运营登记，自动=风险触发。计入总部风险设置的手动/自动数量。',
+        'ประเภท: มือ=ผู้ดำเนินการ อัตโนมัติ=ทริกเกอร์ความเสี่ยง นับในการตั้งค่าความเสี่ยง HQ'
+      ),
+      packN(
+        '해지는 목록 「해지」 버튼에서 실행합니다. Google OTP 6자리가 필요합니다. 수정은 「수정」 버튼에서 내용을 변경하며, 최근일시에 반영됩니다.',
+        'Release via the Release button in the list (Google OTP, 6 digits). Edit content via Edit; last modified time is shown separately.',
+        '解除は一覧の「解除」ボタンから実行(Google OTP 6桁)。修正は「修正」ボタンで内容を変更し、最終更新日時に反映されます。',
+        '请在列表「解除」按钮执行解除(需 Google OTP 6 位)。「修改」按钮可改内容，最近修改时间单独显示。',
+        'ยกเลิกที่ปุ่ม「ยกเลิก」ในรายการ (Google OTP 6 หลัก) แก้ไขที่ปุ่ม「แก้ไข」 เวลาแก้ไขล่าสุดแสดงแยก'
       )
     ],
     '/ops/integratedReport': [
@@ -2216,6 +2223,85 @@
     });
   }
 
+  function previewOutcomeReasonText(s) {
+    if (s == null || s === '') return '';
+    var t = String(s).trim();
+    if (t.length <= 200) return t;
+    return t.substring(0, 200) + '\u2026';
+  }
+
+  /** 결제내역 계열 — 처리사유 열이 있는 화면 */
+  var PAY_LIST_OUTCOME_REASON_URLS = {
+    '/calc/payList': 1, '/calc/payNotiList': 1, '/calc/paySuccessList': 1, '/calc/payFailList': 1,
+    '/calc/payRefundList': 1, '/calc/payForceRefundList': 1, '/calc/payCancelList': 1, '/calc/payVoidList': 1,
+    '/calc/payEmailVoidList': 1, '/calc/offsetCancList': 1, '/pay/easyPay': 1, '/pay/chatbotPay': 1, '/pay/splitPay': 1
+  };
+
+  function applyOutcomeReasonTranslationsToPane(pane, list, map) {
+    if (!pane || !list || !list.length) return;
+    list.forEach(function (row) {
+      if (!row) return;
+      var raw = row.outcomeReason != null ? String(row.outcomeReason).trim() : '';
+      if (!raw) return;
+      var display = (map && map[raw] != null) ? String(map[raw]) : raw;
+      row.outcomeReasonDisplay = display;
+      row.outcomeReasonPreview = previewOutcomeReasonText(display);
+    });
+    var updated = {};
+    pane.querySelectorAll('.pg-outcome-reason-preview[data-pg-outcome-row-idx]').forEach(function (el) {
+      var idx = parseInt(el.getAttribute('data-pg-outcome-row-idx') || '-1', 10);
+      if (isNaN(idx) || idx < 0 || idx >= list.length) return;
+      var row = list[idx] || {};
+      var prev = row.outcomeReasonPreview != null ? String(row.outcomeReasonPreview) : '';
+      el.textContent = prev;
+      updated[idx] = 1;
+      if (w.PG_UI_I18N && typeof w.PG_UI_I18N.t === 'function') {
+        var tip = w.PG_UI_I18N.t('더블클릭하면 전체 처리사유를 볼 수 있습니다.');
+        if (tip) el.setAttribute('title', tip);
+      }
+    });
+    /* 구버전 그리드(마커 없음) — 행 인덱스로 폴백 */
+    pane.querySelectorAll('tbody tr[data-row-idx]').forEach(function (tr) {
+      var idx = parseInt(tr.getAttribute('data-row-idx') || '-1', 10);
+      if (isNaN(idx) || idx < 0 || idx >= list.length || updated[idx]) return;
+      var row = list[idx] || {};
+      var prev = row.outcomeReasonPreview != null ? String(row.outcomeReasonPreview) : '';
+      if (!prev) return;
+      var span = tr.querySelector('.pg-outcome-reason-preview');
+      if (span) {
+        span.textContent = prev;
+        if (!span.getAttribute('data-pg-outcome-row-idx')) {
+          span.setAttribute('data-pg-outcome-row-idx', String(idx));
+        }
+      }
+    });
+  }
+
+  /** UI 언어 전환 직후 — 열린 결제내역 그리드의 처리사유만 재번역 */
+  function refreshPayGridOutcomeReasons(loc) {
+    if (!w.PG_API || typeof w.PG_API.outcomeReasonTranslate !== 'function') return;
+    loc = normalizeLocale(loc || getLocale());
+    document.querySelectorAll('.tab-pane.tabConDiv[formurl]').forEach(function (pane) {
+      var url = pane.getAttribute('formurl') || '';
+      if (!PAY_LIST_OUTCOME_REASON_URLS[url]) return;
+      var list = pane._lastGridList;
+      if (!list || !list.length) return;
+      var texts = [];
+      var seen = {};
+      list.forEach(function (row) {
+        if (!row) return;
+        var raw = row.outcomeReason != null ? String(row.outcomeReason).trim() : '';
+        if (!raw || seen[raw]) return;
+        seen[raw] = 1;
+        texts.push(raw);
+      });
+      if (!texts.length) return;
+      w.PG_API.outcomeReasonTranslate(texts, loc).then(function (map) {
+        applyOutcomeReasonTranslationsToPane(pane, list, map || {});
+      }).catch(function () { /* ignore */ });
+    });
+  }
+
   function lblText(row, loc, fallback) {
     if (!row) return fallback;
     if (loc === 'KO') return fallback;
@@ -2392,6 +2478,7 @@
         try { w.PG_UI_I18N.applyDom(pane); } catch (eFormPaneDom) {}
       }
     });
+    try { refreshPayGridOutcomeReasons(loc); } catch (eOrRf) {}
     if (typeof w.PG_refreshPayListAggregateBarsDom === 'function') {
       try { w.PG_refreshPayListAggregateBarsDom(); } catch (eAgg) {}
     }
@@ -2563,6 +2650,7 @@
     payFollowLabel: payFollowLabel,
     refreshOpenPayMngDomI18n: refreshOpenPayMngDomI18n,
     refreshOpenPayListPaneChrome: refreshOpenPayListPaneChrome,
+    refreshPayGridOutcomeReasons: refreshPayGridOutcomeReasons,
     isPayMngDomPaneUrl: isPayMngDomPaneUrl,
     formatVerifyReportDayNote: formatVerifyReportDayNote
   };

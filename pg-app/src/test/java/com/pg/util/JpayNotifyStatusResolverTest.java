@@ -62,11 +62,27 @@ class JpayNotifyStatusResolverTest {
     }
 
     @Test
+    void unpaidProvisionalCancel_lateFail_exampleOrder() {
+        String merged = NotifyToTxnStatusMerge.merge(
+                "20", JpayNotifyStatusResolver.ST_FAIL, "CALLBACK",
+                NotifyToTxnStatusMerge.OUTCOME_CODE_UNPAID_PROVISIONAL);
+        assertEquals("99", merged);
+    }
+
+    @Test
     void paymentStatusUnpaid_mapsToCancel() {
         assertEquals(JpayNotifyStatusResolver.ST_CANCEL,
                 JpayNotifyStatusResolver.resolve("", "", "Unpaid"));
         assertEquals(JpayNotifyStatusResolver.ST_CANCEL,
                 JpayNotifyStatusResolver.resolve("", "", "unpaid"));
+    }
+
+    @Test
+    void paymentStatusUnpaid_winsOverReturncode00() {
+        assertEquals(JpayNotifyStatusResolver.ST_CANCEL,
+                JpayNotifyStatusResolver.resolve("00", "", "Unpaid"));
+        assertEquals(JpayNotifyStatusResolver.ST_CANCEL,
+                JpayNotifyStatusResolver.resolve("00", "", "unpaid"));
     }
 
     @Test

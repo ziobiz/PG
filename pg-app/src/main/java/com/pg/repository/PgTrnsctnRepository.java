@@ -135,4 +135,14 @@ public interface PgTrnsctnRepository extends JpaRepository<PgTrnsctn, String>, J
     List<String> findTrnIdsByCreatedAtRange(@Param("from") LocalDateTime from,
                                             @Param("to") LocalDateTime to,
                                             @Param("merchantId") String merchantId);
+
+    /** JPAY 요청(08)·오승인(10) 대기 건 — Trade Query 자동 동기화 대상 */
+    @Query("SELECT t FROM PgTrnsctn t WHERE t.status IN ('08', '10') " +
+           "AND UPPER(t.van) LIKE 'JPAY%' " +
+           "AND t.orderNo IS NOT NULL AND TRIM(t.orderNo) <> '' " +
+           "AND t.createdAt <= :staleBefore AND t.createdAt >= :notOlderThan " +
+           "ORDER BY t.createdAt ASC")
+    List<PgTrnsctn> findStaleJpayPendingForReconcile(@Param("staleBefore") LocalDateTime staleBefore,
+                                                     @Param("notOlderThan") LocalDateTime notOlderThan,
+                                                     Pageable pageable);
 }

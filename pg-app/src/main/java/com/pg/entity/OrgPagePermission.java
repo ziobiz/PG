@@ -24,7 +24,7 @@ public class OrgPagePermission {
     @Column(name = "menu_id", length = 32)
     private String menuId;
 
-    /** NONE, OBSERVER, MODIFY, DELETE */
+    /** NONE, OBSERVER, OBSERVER_HELLO, MODIFY, MODIFY_HELLO, DELETE */
     @Column(name = "permission", nullable = false, length = 16)
     private String permission;
 

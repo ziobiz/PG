@@ -159,7 +159,8 @@ public class JpayPaymentService {
                 PgVendor.JPAY,
                 str(body.get("payCardno")),
                 str(body.get("payCardBrand")),
-                str(body.get("payLanguage")));
+                str(body.get("payLanguage")),
+                orgUnitId);
         if (!Boolean.TRUE.equals(cardVal.get("valid"))) {
             String msg = cardVal.get("message") != null ? cardVal.get("message").toString() : "카드번호를 확인해 주세요.";
             String code = cardVal.get("errorCode") != null ? cardVal.get("errorCode").toString() : "CARD_POLICY";
@@ -319,7 +320,8 @@ public class JpayPaymentService {
         }
         if (status == 0 || status == 2) {
             jpaySaleRecordService.applySyncApiOutcome(midCode, orderNo, status, msg,
-                    resolveTxnOrigin(str(body.get("txnOrigin"))), jpayTxnId);
+                    resolveTxnOrigin(str(body.get("txnOrigin"))), jpayTxnId,
+                    str(body.get("payCardno")));
         }
 
         out.put("success", true);
@@ -514,7 +516,8 @@ public class JpayPaymentService {
             jpaySaleRecordService.applyJpayTransactionId(midCode, orderNo, jpaySubTxnId, "SUBSCRIPTION");
         }
         if (status == 0 || status == 2) {
-            jpaySaleRecordService.applySyncApiOutcome(midCode, orderNo, status, msg, "SUBSCRIPTION", jpaySubTxnId);
+            jpaySaleRecordService.applySyncApiOutcome(midCode, orderNo, status, msg, "SUBSCRIPTION", jpaySubTxnId,
+                    str(body.get("payCardno")));
         }
 
         out.put("success", true);

@@ -314,6 +314,84 @@
     });
   }
 
+  /** 리스크설정 — 시간(0~72) */
+  function riskCardPolicyHourOptions() {
+    var opts = [];
+    for (var h = 0; h <= 72; h++) {
+      opts.push({ v: String(h), t: h + '시간' });
+    }
+    return opts;
+  }
+
+  /** 리스크설정 — 분(0~59) */
+  function riskCardPolicyMinOptions() {
+    var opts = [];
+    for (var m = 0; m <= 59; m++) {
+      opts.push({ v: String(m), t: m + '분' });
+    }
+    return opts;
+  }
+
+  function riskCardPolicyAutoTierOptions() {
+    return [
+      { v: '1', t: '1차' },
+      { v: '2', t: '2차' },
+      { v: '3', t: '3차' },
+      { v: '4', t: '4차' }
+    ];
+  }
+
+  function riskCardPolicyTierFormRow(n) {
+    return [
+      { label: n + '차 시간', type: 'select', name: 'tier' + n + 'Hours', options: riskCardPolicyHourOptions(), col: 1 },
+      { label: n + '차 분', type: 'select', name: 'tier' + n + 'Min', options: riskCardPolicyMinOptions(), col: 1 }
+    ];
+  }
+
+  function hqRiskCardPolicyMerchantTableHtml() {
+    return '<div class="table-responsive border rounded hq-risk-merchant-list-wrap">' +
+      '<table class="table table-sm table-hover align-middle mb-0" id="grid_hqRiskMerchantList">' +
+      '<thead class="table-light"><tr>' +
+      pgUiThT('가맹점이름') + pgUiThT('업체코드') +
+      pgUiThT('1차') + pgUiThT('2차') + pgUiThT('3차') + pgUiThT('4차') +
+      pgUiThT('자동 등록 트리거') + pgUiThT('방식') + pgUiThT('수동등록') + pgUiThT('자동등록') + pgUiThT('최신등록') + pgUiThT('채널') +
+      '</tr></thead>' +
+      '<tbody id="hqRiskMerchantListTbody"><tr><td colspan="12" class="text-center text-muted py-3">' + escUi(L('불러오는 중…')) + '</td></tr></tbody></table></div>';
+  }
+
+  /** 가맹 등록·정보 — 리스크관리 트리거(쿨다운·자동 비활성) */
+  function merchantCardRiskTriggerSection() {
+    var hourOpts = riskCardPolicyHourOptions();
+    var minOpts = riskCardPolicyMinOptions();
+    var tierOpts = riskCardPolicyAutoTierOptions();
+    function tierRow(n) {
+      return [
+        { label: n + '차 시간', type: 'select', name: 'cardRiskTier' + n + 'Hours', options: hourOpts, col: 1, cardRiskCustomOnly: true },
+        { label: n + '차 분', type: 'select', name: 'cardRiskTier' + n + 'Min', options: minOpts, col: 1, cardRiskCustomOnly: true }
+      ];
+    }
+    return {
+      title: '리스크관리 트리거',
+      id: 'cardRiskTriggerCard',
+      merchantOnly: true,
+      cardExtraClass: 'card-risk-trigger-card',
+      notice: '동일 카드 FAIL·UNPAID 누적 시 JPAY 호출 전 일시 차단합니다. CVV·카드번호 형식 오류는 집계하지 않습니다. 본사정책 따름 시 [본사설정 → 리스크설정]을 사용하며, 별도정책은 본사보다 우선합니다. 미사용 시 해당 가맹의 위험관리를 끕니다.',
+      rows: [
+        [{ label: '위험 정책', type: 'select', name: 'cardRiskPolicyMode', col: 3,
+          options: [
+            { v: 'DISABLED', t: '미사용' },
+            { v: 'FOLLOW_HQ', t: '본사정책 따름' },
+            { v: 'CUSTOM', t: '별도정책' }
+          ] }],
+        tierRow(1),
+        tierRow(2),
+        tierRow(3),
+        tierRow(4),
+        [{ label: '자동 등록 트리거', type: 'select', name: 'cardRiskAutoBlacklistTier', options: tierOpts, col: 2, cardRiskCustomOnly: true }]
+      ]
+    };
+  }
+
   function merchantSplitPayUrlRowHtml(placeholderKo) {
     var ph = placeholderKo || '가맹점 저장 후 조회';
     return '<div class="row mb-2"><div class="col-sm-5"><label class="form-label" data-pg-ui-t="분할결제 URL">' + escUi(L('분할결제 URL')) + '</label><div class="input-group input-group-sm"><input type="text" class="form-control" id="splitPayUrlDisplay" readonly placeholder="' + escUi(L(String(ph))) + '" data-pg-ui-placeholder="' + escUi(String(ph)) + '"><button type="button" class="btn btn-outline-primary" id="splitPayUrlCopyBtn" data-pg-ui-t="복사">' + escUi(L('복사')) + '</button></div></div></div>';
@@ -1808,55 +1886,49 @@
   var OPS_INACTIVE_CARD_REGISTER_HTML = '<div class="card mb-3 border-primary-subtle" id="opsInactiveCardRegCard">' +
     '<div class="card-body py-3">' +
     '<div class="fw-semibold mb-2" data-pg-ui-t="비활성 카드 등록">비활성 카드 등록</div>' +
-    '<p class="small text-muted mb-2" data-pg-ui-t="카드 종류를 선택한 뒤 카드번호·사유를 입력하고 [등록]을 누르세요. 등록일시·등록자는 자동 저장됩니다.">' +
-    escUi(L('카드 종류를 선택한 뒤 카드번호·사유를 입력하고 [등록]을 누르세요. 등록일시·등록자는 자동 저장됩니다.')) + '</p>' +
+    '<p class="small text-muted mb-2" data-pg-ui-t="마스킹 카드번호(앞6+***+뒤4)·업체코드·업체명·이름(구분용)·사유를 입력하고 [등록]을 누르세요. 등록된 카드는 전 가맹점 결제에서 차단되며, 업체코드·업체명은 출처 표시용입니다.">' +
+    escUi(L('마스킹 카드번호(앞6+***+뒤4)·업체코드·업체명·이름(구분용)·사유를 입력하고 [등록]을 누르세요. 등록된 카드는 전 가맹점 결제에서 차단되며, 업체코드·업체명은 출처 표시용입니다.')) + '</p>' +
     '<p class="small text-warning mb-2 d-none" id="opsIcRegPermHint" data-pg-ui-t="본사권한설정에서 이 화면에 삭제(전체) 또는 수정 권한이 있어야 등록·해지할 수 있습니다.">' +
     escUi(L('본사권한설정에서 이 화면에 삭제(전체) 또는 수정 권한이 있어야 등록·해지할 수 있습니다.')) + '</p>' +
     '<div class="d-flex flex-wrap gap-2 align-items-end">' +
     '<div><label class="form-label small mb-0" data-pg-ui-t="PG">PG</label>' +
     '<select class="form-select form-select-sm" id="opsIcRegPg" style="min-width:7rem">' +
     '<option value="" data-pg-ui-t="전체 PG">전체 PG</option><option value="JPAY">JPAY</option><option value="CHILLPAY">ChillPay</option></select></div>' +
-    '<div><label class="form-label small mb-0" data-pg-ui-t="카드 종류">카드 종류</label>' +
-    '<select class="form-select form-select-sm" id="opsIcRegBrand" style="min-width:8.5rem">' +
-    pgUiOptHtml([
-      { v: '', t: '선택' },
-      { v: 'VISA', t: 'Visa' },
-      { v: 'MASTERCARD', t: 'Mastercard' },
-      { v: 'AMEX', t: 'American Express' },
-      { v: 'DINERS', t: 'Diners Club' },
-      { v: 'JCB', t: 'JCB' },
-      { v: 'DISCOVER', t: 'Discover' },
-      { v: 'UNIONPAY', t: 'UnionPay' },
-      { v: 'DOMESTIC_KR', t: '국내 전용(9)' },
-      { v: 'OTHER', t: '기타' }
-    ]) + '</select></div>' +
-    '<div style="min-width:16rem"><label class="form-label small mb-0" data-pg-ui-t="카드번호">카드번호</label>' +
-    '<p class="small text-muted mb-1" id="opsIcRegPanPickHint" data-pg-ui-t="카드 종류를 먼저 선택하세요.">' +
-    escUi(L('카드 종류를 먼저 선택하세요.')) + '</p>' +
-    '<div id="opsIcRegPanWarn" class="alert alert-warning py-1 px-2 small mb-1 d-none" role="alert"></div>' +
-    '<div id="opsIcRegPan16" class="d-none ops-ic-pan-seg-row d-flex flex-wrap gap-1 align-items-center">' +
-    '<input type="text" class="form-control form-control-sm font-monospace ops-ic-pan-seg text-center" style="width:3.25rem" maxlength="4" inputmode="numeric" autocomplete="off" disabled>' +
-    '<input type="text" class="form-control form-control-sm font-monospace ops-ic-pan-seg text-center" style="width:3.25rem" maxlength="4" inputmode="numeric" autocomplete="off" disabled>' +
-    '<input type="text" class="form-control form-control-sm font-monospace ops-ic-pan-seg text-center" style="width:3.25rem" maxlength="4" inputmode="numeric" autocomplete="off" disabled>' +
-    '<input type="text" class="form-control form-control-sm font-monospace ops-ic-pan-seg text-center" style="width:3.25rem" maxlength="4" inputmode="numeric" autocomplete="off" disabled>' +
-    '</div>' +
-    '<div id="opsIcRegPanAmex" class="d-none ops-ic-pan-seg-row d-flex flex-wrap gap-1 align-items-center">' +
-    '<input type="text" class="form-control form-control-sm font-monospace ops-ic-pan-seg text-center" style="width:3.25rem" maxlength="4" inputmode="numeric" autocomplete="off" disabled>' +
-    '<span class="text-muted small px-0">-</span>' +
-    '<input type="text" class="form-control form-control-sm font-monospace ops-ic-pan-seg text-center" style="width:4.75rem" maxlength="6" inputmode="numeric" autocomplete="off" disabled>' +
-    '<span class="text-muted small px-0">-</span>' +
-    '<input type="text" class="form-control form-control-sm font-monospace ops-ic-pan-seg text-center" style="width:4rem" maxlength="5" inputmode="numeric" autocomplete="off" disabled>' +
-    '</div>' +
-    '<div id="opsIcRegPanDiners" class="d-none ops-ic-pan-seg-row d-flex flex-wrap gap-1 align-items-center">' +
-    '<input type="text" class="form-control form-control-sm font-monospace ops-ic-pan-seg text-center" style="width:3.25rem" maxlength="4" inputmode="numeric" autocomplete="off" disabled>' +
-    '<span class="text-muted small px-0">-</span>' +
-    '<input type="text" class="form-control form-control-sm font-monospace ops-ic-pan-seg text-center" style="width:4.75rem" maxlength="6" inputmode="numeric" autocomplete="off" disabled>' +
-    '<span class="text-muted small px-0">-</span>' +
-    '<input type="text" class="form-control form-control-sm font-monospace ops-ic-pan-seg text-center" style="width:3.25rem" maxlength="4" inputmode="numeric" autocomplete="off" disabled>' +
-    '</div></div>' +
-    '<div class="flex-grow-1" style="min-width:12rem"><label class="form-label small mb-0" data-pg-ui-t="사유">사유</label>' +
+    '<div style="min-width:8rem"><label class="form-label small mb-0" data-pg-ui-t="업체코드">업체코드</label>' +
+    '<input type="text" class="form-control form-control-sm" id="opsIcRegCompId" maxlength="32" data-pg-ui-placeholder="예: M001" placeholder="' + escUi(L('예: M001')) + '" autocomplete="off"></div>' +
+    '<div class="ops-ic-reg-comp-nm-field"><label class="form-label small mb-0" data-pg-ui-t="업체명">업체명</label>' +
+    '<input type="text" class="form-control form-control-sm" id="opsIcRegCompNm" maxlength="200" data-pg-ui-placeholder="예: OO가맹점" placeholder="' + escUi(L('예: OO가맹점')) + '" autocomplete="off"></div>' +
+    '<div style="min-width:11rem"><label class="form-label small mb-0" data-pg-ui-t="이름(구분용)">이름(구분용)</label>' +
+    '<input type="text" class="form-control form-control-sm" id="opsIcRegHolderName" maxlength="100" data-pg-ui-placeholder="예: 홍길동" placeholder="' + escUi(L('예: 홍길동')) + '" autocomplete="off"></div>' +
+    '<div class="ops-ic-reg-pan-field"><label class="form-label small mb-0" data-pg-ui-t="카드번호(앞 6자리 + *** + 뒤 4자리)">카드번호(앞 6자리 + *** + 뒤 4자리)</label>' +
+    '<input type="text" class="form-control form-control-sm font-monospace" id="opsIcRegPanMask" maxlength="13" inputmode="numeric" data-pg-ui-placeholder="예: 531289***8601" placeholder="' + escUi(L('예: 531289***8601')) + '" autocomplete="off"></div>' +
+    '<div class="ops-ic-reg-reason-field"><label class="form-label small mb-0" data-pg-ui-t="사유">사유</label>' +
     '<input type="text" class="form-control form-control-sm" id="opsIcRegReason" maxlength="500"></div>' +
     '<button type="button" class="btn btn-primary btn-sm" id="opsIcRegBtn" data-pg-ui-t="등록">등록</button></div></div></div>';
+
+  var OPS_INACTIVE_CARD_EDIT_MODAL_HTML = '<div class="modal fade" id="opsIcEditModal" tabindex="-1" aria-hidden="true">' +
+    '<div class="modal-dialog modal-dialog-centered"><div class="modal-content">' +
+    '<div class="modal-header py-2"><h6 class="modal-title" data-pg-ui-t="비활성 카드 수정">비활성 카드 수정</h6>' +
+    '<button type="button" class="btn-close" data-bs-dismiss="modal" data-pg-ui-aria-label="닫기"></button></div>' +
+    '<div class="modal-body">' +
+    '<input type="hidden" id="opsIcEditId">' +
+    '<div class="mb-2"><label class="form-label small mb-0" data-pg-ui-t="카드번호">카드번호</label>' +
+    '<input type="text" class="form-control form-control-sm font-monospace" id="opsIcEditPan" readonly></div>' +
+    '<div class="row g-2 mb-2"><div class="col-6"><label class="form-label small mb-0" data-pg-ui-t="업체코드">업체코드</label>' +
+    '<input type="text" class="form-control form-control-sm" id="opsIcEditCompId" maxlength="32"></div>' +
+    '<div class="col-6"><label class="form-label small mb-0" data-pg-ui-t="업체명">업체명</label>' +
+    '<input type="text" class="form-control form-control-sm" id="opsIcEditCompNm" maxlength="200"></div></div>' +
+    '<div class="mb-2"><label class="form-label small mb-0" data-pg-ui-t="이름(구분용)">이름(구분용)</label>' +
+    '<input type="text" class="form-control form-control-sm" id="opsIcEditHolderName" maxlength="100"></div>' +
+    '<div class="mb-2"><label class="form-label small mb-0" data-pg-ui-t="PG">PG</label>' +
+    '<select class="form-select form-select-sm" id="opsIcEditPg">' +
+    '<option value="" data-pg-ui-t="전체 PG">전체 PG</option><option value="JPAY">JPAY</option><option value="CHILLPAY">ChillPay</option></select></div>' +
+    '<div class="mb-0"><label class="form-label small mb-0" data-pg-ui-t="사유">사유</label>' +
+    '<input type="text" class="form-control form-control-sm" id="opsIcEditReason" maxlength="500"></div>' +
+    '</div><div class="modal-footer py-2">' +
+    '<button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal" data-pg-ui-t="취소">취소</button>' +
+    '<button type="button" class="btn btn-primary btn-sm" id="opsIcEditSaveBtn" data-pg-ui-t="저장">저장</button>' +
+    '</div></div></div></div>';
 
   var API_MERCHANT_DEPLOY_REG_HTML = '<div class="api-merchant-deploy-reg text-body">' +
     '<h5 class="fw-semibold mb-2" data-pg-ui-t="1. API 가맹점 등록">1. API 가맹점 등록</h5>' +
@@ -2242,6 +2314,31 @@
       }],
       buttons: [{ id: 'hqChargebackPolicyReloadBtn', label: '목록 새로고침', cls: 'btn-outline-secondary' }]
     },
+    '/hq/riskCardPolicy': {
+      isForm: true,
+      formSections: [
+        {
+          title: '리스크설정',
+          notice: '동일 카드 FAIL·UNPAID 누적 시 JPAY 호출 전 일시 차단합니다. CVV·카드번호 형식 오류는 집계하지 않으며 성공 결제 시 횟수가 초기화됩니다. 아래에서 선택한 차수에서 자동으로 비활성카드(마스킹)에 등록됩니다.',
+          rows: [
+            [{ label: '위험관리 사용', type: 'select', name: 'enabledYn', col: 2,
+              options: [{ v: 'Y', t: '사용' }, { v: 'N', t: '미사용' }] },
+             { label: '자동 등록 트리거', type: 'select', name: 'autoBlacklistTriggerTier', col: 2,
+              options: riskCardPolicyAutoTierOptions() }],
+            riskCardPolicyTierFormRow(1),
+            riskCardPolicyTierFormRow(2),
+            riskCardPolicyTierFormRow(3),
+            riskCardPolicyTierFormRow(4)
+          ]
+        },
+        {
+          title: '가맹점 리스크 현황',
+          notice: '등록된 모든 가맹점의 리스크 방식·적용 값을 표시합니다. 별도설정 가맹은 본사 설정보다 우선 적용됩니다. 미사용 가맹은 방식 열에 회색으로 표시됩니다.',
+          rows: [[{ type: 'customHtml', col: 12, html: hqRiskCardPolicyMerchantTableHtml }]]
+        }
+      ],
+      buttons: [{ id: 'hqRiskCardPolicySaveBtn', label: '저장', cls: 'btn-primary' }]
+    },
     '/hq/pgAgencyCostPolicy': {
       isForm: true,
       formSections: [{
@@ -2564,7 +2661,7 @@
           notice: 'JPAY 포털 로그인 계정은 <strong>본사설정 &gt; 결제대행사로직</strong>에서 총판(MASTER_DIST)별로 등록합니다. 아래는 동기화 기간만 설정합니다. 서버(VPS)에 <code>Node.js</code>·Playwright Chromium이 필요합니다.',
           rows: [
             [{ label: 'JPAY 초기화 동기화(개월)', type: 'number', name: 'jpayTrInitSyncMonths', col: 3, placeholder: '기본 3' },
-             { label: 'JPAY 최근 동기화 범위(일)', type: 'number', name: 'jpayTrRecentSyncDays', col: 3, placeholder: '기본 2' }]
+             { label: 'JPAY 최근 동기화 범위(일)', type: 'number', name: 'jpayTrRecentSyncDays', col: 3, placeholder: '기본 7(최소 7일)' }]
           ]
         },
         {
@@ -3376,6 +3473,7 @@
             [{ label: '보류율(%)', type: 'text', name: 'holdRate', col: 1, placeholder: '5', holdRateOnly: true }, { label: '보류기간(일)', type: 'text', name: 'holdDays', col: 1, placeholder: '120', holdRateOnly: true }]
           ]
         },
+        merchantCardRiskTriggerSection(),
         {
           title: '무효·환불 정산 (안내)',
           id: 'voidRefundSettleGuideCard',
@@ -3792,6 +3890,7 @@
             [{ label: '보류율(%)', type: 'text', name: 'holdRate', col: 1, placeholder: '5', holdRateOnly: true }, { label: '보류기간(일)', type: 'text', name: 'holdDays', col: 1, placeholder: '120', holdRateOnly: true }]
           ]
         },
+        merchantCardRiskTriggerSection(),
         {
           title: '무효·환불 정산 (안내)',
           id: 'voidRefundSettleGuideCard',
@@ -4139,6 +4238,7 @@
             [{ label: '보류율(%)', type: 'text', name: 'holdRate', col: 1, placeholder: '5', holdRateOnly: true }, { label: '보류기간(일)', type: 'text', name: 'holdDays', col: 1, placeholder: '120', holdRateOnly: true }]
           ]
         },
+        merchantCardRiskTriggerSection(),
         {
           title: '무효·환불 정산 (안내)',
           id: 'voidRefundSettleGuideCard',
@@ -4627,7 +4727,7 @@
       noticeList: [
         'JPAY 가맹 포털(merchant.j-pay.net)에 자동 로그인 → Export 다운로드 → ICOPAY 결제내역 대조·반영합니다. 목록 API가 없어 포털 Export 엑셀을 사용합니다.',
         '본사설정 > 결제대행사로직에서 총판별 JPAY 포털 계정을 등록하고, 전산설정관리에서 동기화 기간을 설정하세요. VPS에 Node.js·Playwright(Chromium)가 필요합니다.',
-        '[JPAY 동기화]는 선택 기간 Export 후 캐시 목록을 갱신합니다. 날짜 없이 검색하면 최근 동기화 범위(일)로 자동 동기화합니다.'
+        '[JPAY 동기화]는 포털 Export 후 캐시를 갱신합니다. 화면 거래일이 하루(당일)여도 동기화는 본사설정의 최근 동기화 범위(최소 7일)만큼 포털에서 받아옵니다. 목록 조회는 화면에 선택한 거래일자로 필터됩니다.'
       ],
       summary: ['건수'],
       buttons: [
@@ -6102,6 +6202,7 @@
             [{ label: '수수료 설정 권한', type: 'select', name: 'commissionConfigAllowed', options: [{ v: 'N', t: '미부여' }, { v: 'Y', t: '부여' }], col: 2 }, { label: '기준 화폐1', type: 'select', name: 'baseCurrency1', options: [{ v: '', t: '선택' }, { v: 'KRW', t: 'KRW (원)' }, { v: 'USD', t: 'USD (달러)' }, { v: 'JPY', t: 'JPY (엔)' }, { v: 'THB', t: 'THB (바트)' }, { v: 'EUR', t: 'EUR (유로)' }], col: 2 }, { label: '기준 화폐2', type: 'select', name: 'baseCurrency2', options: [{ v: '', t: '선택' }, { v: 'KRW', t: 'KRW (원)' }, { v: 'USD', t: 'USD (달러)' }, { v: 'JPY', t: 'JPY (엔)' }, { v: 'THB', t: 'THB (바트)' }, { v: 'EUR', t: 'EUR (유로)' }], col: 2 }, { label: '기준 화폐3', type: 'select', name: 'baseCurrency3', options: [{ v: '', t: '선택' }, { v: 'KRW', t: 'KRW (원)' }, { v: 'USD', t: 'USD (달러)' }, { v: 'JPY', t: 'JPY (엔)' }, { v: 'THB', t: 'THB (바트)' }, { v: 'EUR', t: 'EUR (유로)' }], col: 2 }]
           ]
         },
+        merchantCardRiskTriggerSection(),
         {
           title: '무효·환불 정산 (안내)',
           id: 'voidRefundSettleGuideCard',
@@ -6316,15 +6417,16 @@
       emptyMessage: '등록된 비활성 카드가 없습니다.',
       paginationDefaultSize: 20,
       paginationSizeOptions: [20, 50, 100],
-      columnGuideFixedKeys: ['rowNo', '_inactiveCardRelease'],
+      columnGuideFixedKeys: ['rowNo', 'registeredAt', 'compNm', 'compId', '_inactiveCardEdit', '_inactiveCardRelease'],
       viewSettingDefaultSelectedKeys: [
-        'registeredAt', 'registeredBy', 'panDisplay', 'pgVendor', 'reason', 'activeYn', 'releasedAt', 'releasedBy'
+        'lastModifiedAt', 'registeredBy', 'regTypeLabel', 'holderName', 'panDisplay', 'pgVendor', 'reason', 'activeYn', 'releasedAt', 'releasedBy'
       ],
       noticeList: [
         '총본사·본사·총판(ADMIN 포함) 운영자용입니다. 메뉴 접근은 본사권한설정에서 부여합니다.',
-        '등록·해지는 본사권한설정에서 이 화면 권한을 삭제(전체) 또는 수정으로 부여한 계정만 가능합니다.',
-        '카드 종류별 접두(BIN)·자릿수가 맞지 않으면 경고가 표시됩니다. AMEX 15자리(4-6-5), Diners 14자리(4-6-4), 대부분 16자리(4×4), 기타는 접두 검증 없이 13~16자리(4×4)입니다.',
-        '해지는 목록 맨 오른쪽 「OTP 해지」 버튼에서 실행합니다. Google OTP 6자리가 필요합니다.'
+        '등록·해지·수정은 본사권한설정에서 이 화면 권한을 삭제(전체) 또는 수정으로 부여한 계정만 가능합니다.',
+        '카드번호는 마스킹 형식(앞 6자리 + *** + 뒤 4자리)으로 등록합니다. 업체코드·업체명은 출처 표시용이며, 등록된 카드는 전 가맹점 결제에서 차단됩니다.',
+        '등록 구분: 수동=운영자 직접 등록, 자동=리스크 트리거 자동 등록. 본사설정 리스크설정의 수동등록·자동등록 건수에 반영됩니다.',
+        '해지는 목록 「해지」 버튼에서 실행합니다. Google OTP 6자리가 필요합니다. 수정은 「수정」 버튼에서 내용을 변경하며, 최근일시에 반영됩니다.'
       ],
       searchRows: [[
         { label: '상태', type: 'select', name: 'searchActiveYn', col: 2,
@@ -6336,14 +6438,20 @@
       columns: [
         { key: 'rowNo', label: '번호' },
         { key: 'registeredAt', label: '등록일시' },
+        { key: 'lastModifiedAt', label: '최근일시', columnGuideLabel: '내용 수정 일시(등록일시와 별도)' },
+        { key: 'compNm', label: '업체명' },
+        { key: 'compId', label: '업체코드' },
         { key: 'registeredBy', label: '등록자' },
-        { key: 'panDisplay', label: '카드번호(마스킹)' },
+        { key: 'regTypeLabel', label: '등록구분', columnGuideLabel: '수동·자동 등록 구분' },
+        { key: 'holderName', label: '이름(구분)', columnGuideLabel: '카드 구분용 표시명(매칭 제외)' },
+        { key: 'panDisplay', label: '카드번호', columnGuideLabel: '카드번호' },
         { key: 'pgVendor', label: 'PG' },
         { key: 'reason', label: '사유' },
         { key: 'activeYn', label: '상태' },
         { key: 'releasedAt', label: '해지일시' },
         { key: 'releasedBy', label: '해지자' },
-        { key: '_inactiveCardRelease', type: 'inactiveCardRelease', label: 'OTP 해지', columnGuideLabel: 'OTP 해지' }
+        { key: '_inactiveCardEdit', type: 'inactiveCardEdit', label: '수정', columnGuideLabel: '수정' },
+        { key: '_inactiveCardRelease', type: 'inactiveCardRelease', label: '해지', columnGuideLabel: '해지(Google OTP 필요)' }
       ]
     },
     '/ops/mailLog': {
@@ -7416,6 +7524,7 @@
     if (f.voidRefundSettlementModeField) blockClass += ' commission-void-refund-mode-field';
     if (f.customOnly) blockClass += ' commission-custom-only';
     if (f.holdRateOnly) blockClass += ' hold-rate-custom-only';
+    if (f.cardRiskCustomOnly) blockClass += ' card-risk-custom-only';
     if (f.feeVatRateOnly) blockClass += ' fee-vat-rate-only';
     if (isWideTime) blockClass += ' settle-time-wide-block';
     if (f.blockExtraClass) blockClass += ' ' + String(f.blockExtraClass);
@@ -8048,7 +8157,7 @@
 
   /** 조직별 권한 세팅 — 조직 탭 + 페이지별 권한 셀렉트 (내용은 API 로드 후 채움) */
   function renderOrgPagePermissionShell(tabId) {
-    var introKey = '조직 구분(총본사~가맹점)별로 메뉴(URL) 접근 권한을 설정합니다. <strong>총본사</strong>는 DB에 별도 저장이 없을 때 기본으로 <strong>모든 메뉴 전체 권한(삭제·전체)</strong>입니다. 각 대메뉴(본사설정·업체관리·배포설정 등) 구역 제목 오른쪽 <strong>간편</strong>에서 권한을 고르면 그 구역의 하위 메뉴가 한 번에 동일하게 맞춰집니다. <strong>옵저버</strong>는 조회만, <strong>수정</strong>은 쓰기·수정(삭제·일괄삭제 등 제한), <strong>삭제</strong>는 해당 화면의 삭제·수정·저장 등 모든 작업을 허용합니다. <strong>접근불가</strong>는 메뉴에서 숨깁니다. <strong>업체접근설정</strong>에 등록된 업체와 교집합으로 사용자관리 목록이 제한됩니다. 아래 <strong>담당자 권한그룹별 메뉴</strong>는 조직 최종 권한(상단 개별 조직 권한) 이내에서 관리/운영/정산/기술 담당 계정(ASSISTANT)의 메뉴를 한 단계 더 조입니다.';
+    var introKey = '조직 구분(총본사~가맹점)별로 메뉴(URL) 접근 권한을 설정합니다. <strong>총본사</strong>는 DB에 별도 저장이 없을 때 기본으로 <strong>모든 메뉴 전체 권한(삭제·전체)</strong>입니다. 각 대메뉴(본사설정·업체관리·배포설정 등) 구역 제목 오른쪽 <strong>간편</strong>에서 권한을 고르면 그 구역의 하위 메뉴가 한 번에 동일하게 맞춰집니다. <strong>옵저버(조회만)</strong>·<strong>수정(삭제제한)</strong>은 헬로(안내·VIEW SETTING) 없이, <strong>옵저버(헬로)</strong>·<strong>수정(헬로)</strong>·<strong>삭제(전체)</strong>는 헬로를 사용할 수 있습니다. <strong>접근불가</strong>는 메뉴에서 숨깁니다. <strong>업체접근설정</strong>에 등록된 업체와 교집합으로 사용자관리 목록이 제한됩니다. 아래 <strong>담당자 권한그룹별 메뉴</strong>는 조직 최종 권한(상단 개별 조직 권한) 이내에서 관리/운영/정산/기술 담당 계정(ASSISTANT)의 메뉴를 한 단계 더 조입니다.';
     var unitIntroKey = '총본사~가맹점 <strong>각 조직</strong>을 선택해, 단계별 기본과 다른 권한을 둘 수 있습니다. <strong>단계 기본 따름</strong>이면 위 탭의 조직 구분 기준만 적용되고, <strong>개별 설정</strong>이면 아래 표에서만 덮어씁니다. 조직을 고르면 <strong>현재 적용되는 권한(최종)</strong>이 표시됩니다.';
     var assistIntroKey = '위에서 조직을 선택하면, 해당 조직에 <strong>접근 가능한 메뉴</strong>만 표시됩니다. 값을 <strong>조직 기본(상한)</strong>으로 두면 담당자에게도 조직과 동일한 권한이 적용됩니다. 본사·총판·총본사는 자기 조직만 저장할 수 있습니다.';
     return (
@@ -8061,6 +8170,7 @@
       '<span><i class="org-perm-legend-observer" aria-hidden="true"></i><span data-pg-ui-t="옵저버">' + escUi(L('옵저버')) + '</span></span>' +
       '<span><i class="org-perm-legend-modify" aria-hidden="true"></i><span data-pg-ui-t="수정">' + escUi(L('수정')) + '</span></span>' +
       '<span><i class="org-perm-legend-delete" aria-hidden="true"></i><span data-pg-ui-t="삭제(전체)">' + escUi(L('삭제(전체)')) + '</span></span>' +
+      '<span class="text-muted small ms-1" data-pg-ui-t="(헬로) = 안내·VIEW SETTING 사용">' + escUi(L('(헬로) = 안내·VIEW SETTING 사용')) + '</span>' +
       '</div>' +
       '<ul class="nav nav-pills flex-wrap gap-1 mb-3 org-perm-level-tabs" id="orgPermTabs_' + tabId + '" role="tablist"></ul>' +
       '<div class="table-responsive org-perm-table-wrap table-no-col-resize-wrap">' +
@@ -8399,6 +8509,7 @@
   window.PG_CALC_CYCLE_OPTIONS = CALC_CYCLE_OPTIONS;
   window.PG_CALC_CYCLE_SEARCH_OPTIONS = CALC_CYCLE_SEARCH_OPTIONS;
   window.PG_SCREENS = {
+    getOpsInactiveCardEditModalHtml: function () { return OPS_INACTIVE_CARD_EDIT_MODAL_HTML; },
     getScreenHtml: getScreenHtml,
     getMenuScreens: function () { return MENU_SCREENS; },
     buildDistributionListTheadHtml: buildDistributionListTheadHtml,

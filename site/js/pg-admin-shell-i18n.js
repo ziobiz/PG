@@ -163,6 +163,7 @@
     '/hq/defaultCommission': T('Commission', '手数料設定', '手续费设置', 'ค่าธรรมเนียม'),
     '/hq/pgAgencyCostPolicy': T('Agency fee settings', '代行手数料設定', '代理手续费设置', 'ตั้งค่าค่าธรรมเนียมตัวแทน'),
     '/hq/chargebackPolicy': T('Chargeback', 'チャージバック設定', '拒付/退单设置', 'นโยบาย chargeback'),
+    '/hq/riskCardPolicy': T('Risk settings', 'リスク設定', '风险设置', 'ตั้งค่าความเสี่ยง'),
     '/hq/businessDaySetting': T('Business days', '営業日設定', '营业日设置', 'วันทำการ'),
     '/hq/apiConfig': T('API deployment', 'API配信設定', 'API 部署设置', 'การตั้งค่า API'),
     '/hq/apiMerchantDeployReg': T('API merchant registration', 'API加盟店登録', 'API 商户注册', 'ลงทะเบียนร้าน API'),

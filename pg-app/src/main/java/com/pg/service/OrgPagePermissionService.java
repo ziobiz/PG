@@ -16,6 +16,7 @@ import com.pg.repository.OrgUnitAssistantPagePermissionRepository;
 import com.pg.repository.OrgUnitPagePermissionRepository;
 import com.pg.repository.OrgUnitRepository;
 import com.pg.util.ChatbotMerchantAdminConstants;
+import com.pg.util.PagePermissionCodes;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -27,15 +28,17 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 /**
- * 조직 단계(OrgLevel) 기본 권한 + 개별 조직(OrgUnit) 오버라이드 — NONE / OBSERVER / MODIFY / DELETE
+ * 조직 단계(OrgLevel) 기본 권한 + 개별 조직(OrgUnit) 오버라이드 — NONE / OBSERVER / OBSERVER_HELLO / MODIFY / MODIFY_HELLO / DELETE
  */
 @Service
 public class OrgPagePermissionService {
 
-    public static final String P_NONE = "NONE";
-    public static final String P_OBSERVER = "OBSERVER";
-    public static final String P_MODIFY = "MODIFY";
-    public static final String P_DELETE = "DELETE";
+    public static final String P_NONE = PagePermissionCodes.P_NONE;
+    public static final String P_OBSERVER = PagePermissionCodes.P_OBSERVER;
+    public static final String P_OBSERVER_HELLO = PagePermissionCodes.P_OBSERVER_HELLO;
+    public static final String P_MODIFY = PagePermissionCodes.P_MODIFY;
+    public static final String P_MODIFY_HELLO = PagePermissionCodes.P_MODIFY_HELLO;
+    public static final String P_DELETE = PagePermissionCodes.P_DELETE;
 
     public static final String MODE_LEVEL_DEFAULT = "LEVEL_DEFAULT";
     public static final String MODE_CUSTOM = "CUSTOM";
@@ -628,39 +631,21 @@ public class OrgPagePermissionService {
         return s == null ? "" : s.trim();
     }
 
-    /** 조직 상한(ceiling)과 담당자 권한의 교집합(더 제한적인 쪽). */
+    /** 조직 상한(ceiling)과 담당자 권한의 교집합(더 제한적인 쪽). 헬로는 양쪽 모두 허용일 때만. */
     public String intersectPermission(String ceiling, String rolePerm) {
-        String c = normalizePerm(ceiling);
-        String r = normalizePerm(rolePerm);
-        int sc = strength(c);
-        int sr = strength(r);
-        return permFromStrength(Math.min(sc, sr));
+        return PagePermissionCodes.intersect(ceiling, rolePerm);
     }
 
     private static int strength(String p) {
-        return switch (normalizePermStatic(p)) {
-            case P_DELETE -> 4;
-            case P_MODIFY -> 3;
-            case P_OBSERVER -> 2;
-            case P_NONE -> 1;
-            default -> 1;
-        };
+        return PagePermissionCodes.baseStrength(p);
     }
 
     private static String permFromStrength(int s) {
-        if (s <= 1) return P_NONE;
-        if (s == 2) return P_OBSERVER;
-        if (s == 3) return P_MODIFY;
-        return P_DELETE;
+        return PagePermissionCodes.fromBaseStrength(s);
     }
 
     private static String normalizePermStatic(String p) {
-        if (p == null || p.isBlank()) return P_DELETE;
-        String u = p.trim().toUpperCase(Locale.ROOT);
-        return switch (u) {
-            case P_NONE, P_OBSERVER, P_MODIFY, P_DELETE -> u;
-            default -> P_DELETE;
-        };
+        return PagePermissionCodes.normalize(p);
     }
 
     /** org 정보를 이미 알 때 */
@@ -736,7 +721,7 @@ public class OrgPagePermissionService {
         }
         String raw = m.get("/calc/unpaidMng");
         String p = normalizePerm(raw != null ? raw : P_NONE);
-        return P_MODIFY.equals(p) || P_DELETE.equals(p);
+        return PagePermissionCodes.canWriteLike(p);
     }
 
     /**
@@ -754,10 +739,11 @@ public class OrgPagePermissionService {
         if (m != null) {
             String raw = m.get("/system/noticeList");
             String p = raw != null ? normalizePerm(raw) : P_DELETE;
-            if (P_NONE.equals(p) || P_OBSERVER.equals(p)) {
+            String base = PagePermissionCodes.base(p);
+            if (P_NONE.equals(base) || P_OBSERVER.equals(base)) {
                 return false;
             }
-            if (!P_MODIFY.equals(p) && !P_DELETE.equals(p)) {
+            if (!P_MODIFY.equals(base) && !P_DELETE.equals(base)) {
                 return false;
             }
         }
@@ -1125,7 +1111,9 @@ public class OrgPagePermissionService {
         payload.put("permOptions", List.of(
                 Map.of("v", P_NONE, "t", "접근불가"),
                 Map.of("v", P_OBSERVER, "t", "옵저버(조회만)"),
-                Map.of("v", P_MODIFY, "t", "수정(쓰기·수정, 삭제 제한)"),
+                Map.of("v", P_OBSERVER_HELLO, "t", "옵저버(헬로)"),
+                Map.of("v", P_MODIFY, "t", "수정(삭제제한)"),
+                Map.of("v", P_MODIFY_HELLO, "t", "수정(헬로)"),
                 Map.of("v", P_DELETE, "t", "삭제(전체)")
         ));
         payload.put("payFollowLevelCaps", payFollowPolicyService.buildLevelCapsPayload());
@@ -1190,12 +1178,7 @@ public class OrgPagePermissionService {
     }
 
     private static String normalizePerm(String p) {
-        if (p == null || p.isBlank()) return P_DELETE;
-        String u = p.trim().toUpperCase(Locale.ROOT);
-        return switch (u) {
-            case P_NONE, P_OBSERVER, P_MODIFY, P_DELETE -> u;
-            default -> P_DELETE;
-        };
+        return PagePermissionCodes.normalize(p);
     }
 
     /** DB에 남아 있는 /ops/* 배포 문서 권한을 /deploy/* 로 병합 */

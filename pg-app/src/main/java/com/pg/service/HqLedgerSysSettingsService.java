@@ -166,7 +166,7 @@ public class HqLedgerSysSettingsService {
         m.put("jpayPortalUsername", nz(s.getJpayPortalUsername()));
         m.put("jpayPortalPasswordSet", s.getJpayPortalPassword() != null && !s.getJpayPortalPassword().isBlank());
         m.put("jpayTrInitSyncMonths", ledgerIntOr(s.getJpayTrInitSyncMonths(), 3));
-        m.put("jpayTrRecentSyncDays", ledgerIntOr(s.getJpayTrRecentSyncDays(), 2));
+        m.put("jpayTrRecentSyncDays", ledgerIntOr(s.getJpayTrRecentSyncDays(), 7));
         m.put("appLogMemoryRetentionDays", ledgerIntOr(s.getAppLogMemoryRetentionDays(), 30));
         m.put("appLogFileRetentionDays", ledgerIntOr(s.getAppLogFileRetentionDays(), 90));
         m.put("feeListDecimalPlaces", ledgerIntOr(s.getFeeListDecimalPlaces(), 2));
@@ -194,6 +194,10 @@ public class HqLedgerSysSettingsService {
         m.put("refundSettlementMode", VoidRefundSettlementModeUtil.normalize(s.getRefundSettlementMode()));
         m.put("forceRefundSettlementMode", VoidRefundSettlementModeUtil.normalize(s.getForceRefundSettlementMode()));
         m.put("receivableRecoveryDefaultMode", ReceivableRecoveryModeUtil.normalize(s.getReceivableRecoveryDefaultMode()));
+        m.put("cardFailCooldownEnabledYn", yn(s.getCardFailCooldownEnabledYn()));
+        m.put("cardFailCooldownTier1Min", ledgerIntOr(s.getCardFailCooldownTier1Min(), 5));
+        m.put("cardFailCooldownTier2Min", ledgerIntOr(s.getCardFailCooldownTier2Min(), 10));
+        m.put("cardFailCooldownTier3Min", ledgerIntOr(s.getCardFailCooldownTier3Min(), 60));
         {
             int hm = s.getHelloTimelineDurationMin() != null && s.getHelloTimelineDurationMin() > 0
                     ? s.getHelloTimelineDurationMin() : 10;
@@ -264,7 +268,7 @@ public class HqLedgerSysSettingsService {
             s.setJpayTrInitSyncMonths(clampInt(body.get("jpayTrInitSyncMonths"), 3, 1, 120));
         }
         if (body.containsKey("jpayTrRecentSyncDays")) {
-            s.setJpayTrRecentSyncDays(clampInt(body.get("jpayTrRecentSyncDays"), 2, 1, 365));
+            s.setJpayTrRecentSyncDays(clampInt(body.get("jpayTrRecentSyncDays"), 7, 7, 365));
         }
         if (body.containsKey("appLogMemoryRetentionDays")) {
             s.setAppLogMemoryRetentionDays(clampInt(body.get("appLogMemoryRetentionDays"), 30, 1, 3650));
@@ -313,6 +317,18 @@ public class HqLedgerSysSettingsService {
                     s.setDataRetentionPolicyJson(norm);
                 }
             }
+        }
+        if (body.containsKey("cardFailCooldownEnabledYn")) {
+            s.setCardFailCooldownEnabledYn(parseYn(body.get("cardFailCooldownEnabledYn"), s.getCardFailCooldownEnabledYn()));
+        }
+        if (body.containsKey("cardFailCooldownTier1Min")) {
+            s.setCardFailCooldownTier1Min(clampInt(body.get("cardFailCooldownTier1Min"), 5, 1, 24 * 60));
+        }
+        if (body.containsKey("cardFailCooldownTier2Min")) {
+            s.setCardFailCooldownTier2Min(clampInt(body.get("cardFailCooldownTier2Min"), 10, 1, 24 * 60));
+        }
+        if (body.containsKey("cardFailCooldownTier3Min")) {
+            s.setCardFailCooldownTier3Min(clampInt(body.get("cardFailCooldownTier3Min"), 60, 1, 24 * 60));
         }
         HqLedgerSysSettings saved = repository.save(s);
         hqNotifyEnvService.mergePayFollowActionsFromBody(body);

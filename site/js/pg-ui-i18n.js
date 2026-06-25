@@ -18210,7 +18210,139 @@
     '리스크관리': { EN: 'Risk', JP: 'リスク管理', CH: '风险管理', TH: 'ความเสี่ยง' },
     '리스크 현황': { EN: 'Risk dashboard', JP: 'リスク状況', CH: '风险看板', TH: 'ภาพรวมความเสี่ยง' },
     '비활성 카드 등록': { EN: 'Register inactive card', JP: '非活性カード登録', CH: '登记非活跃卡', TH: 'ลงทะเบียนบัตรปิดใช้' },
-    'OTP 해지': { EN: 'Release (OTP)', JP: 'OTP解除', CH: 'OTP 解除', TH: 'ยกเลิก (OTP)' },
+    '마스킹 카드번호(앞6+***+뒤4)·업체코드·업체명·이름(구분용)·사유를 입력하고 [등록]을 누르세요. 등록된 카드는 전 가맹점 결제에서 차단되며, 업체코드·업체명은 출처 표시용입니다.': {
+      EN: 'Enter masked card (first 6 + *** + last 4), merchant code, merchant name, display name, and reason, then click Register. The card is blocked for all merchants; code and name are source info only.',
+      JP: 'マスクカード番号(先頭6+***+末尾4)·加盟店コード·加盟店名·表示名·理由を入力し[登録]を押してください。登録カードは全加盟店でブロックされ、コード・店名は出典表示用です。',
+      CH: '输入掩码卡号(前6+***+后4)、商户代码、商户名称、区分姓名和原因后点击登记。该卡在全商户拦截；代码与名称为来源信息。',
+      TH: 'กรอกเลขบัตรมาสก์ รหัสร้าน ชื่อร้าน ชื่อแยกประเภท และเหตุผล แล้วกดลงทะเบียน บัตรถูกบล็อกทุกร้าน รหัส/ชื่อร้านเป็นข้อมูลแหล่งที่มาเท่านั้น'
+    },
+    '예: M001': { EN: 'e.g. M001', JP: '例: M001', CH: '例: M001', TH: 'เช่น M001' },
+    '예: OO가맹점': { EN: 'e.g. Sample Merchant', JP: '例: OO加盟店', CH: '例: OO商户', TH: 'เช่น ร้าน OO' },
+    '카드번호는 마스킹 형식(앞 6자리 + *** + 뒤 4자리)으로 등록합니다. 업체코드·업체명은 출처 표시용이며, 등록된 카드는 전 가맹점 결제에서 차단됩니다.': {
+      EN: 'Register card numbers in masked format (first 6 + *** + last 4). Merchant code and name are source info; blocked cards apply to all merchants.',
+      JP: 'カード番号はマスク形式(先頭6桁 + *** + 下4桁)で登録します。加盟店コード・名は出典表示用で、登録カードは全加盟店でブロックされます。',
+      CH: '卡号以掩码格式(前6位 + *** + 后4位)登记。商户代码与名称为来源信息；登记卡在全商户拦截。',
+      TH: 'ลงทะเบียนเลขบัตรแบบมาสก์ (6 หลักแรก + *** + 4 หลักท้าย) รหัส/ชื่อร้านเป็นข้อมูลแหล่งที่มา บัตรที่ลงทะเบียนบล็อกทุกร้าน'
+    },
+    '등록 구분: 수동=운영자 직접 등록, 자동=리스크 트리거 자동 등록. 본사설정 리스크설정의 수동등록·자동등록 건수에 반영됩니다.': {
+      EN: 'Registration: Manual = operator entry; Auto = risk trigger. Counts appear under HQ Risk settings (Manual / Auto registration).',
+      JP: '登録区分: 手動=運営者登録、自動=リスクトリガー自動登録。本社リスク設定の手動登録・自動登録件数に反映されます。',
+      CH: '登记区分：手动=运营录入，自动=风险触发。计入总部风险设置中的手动/自动登记件数。',
+      TH: 'ประเภท: ด้วยตนเอง=ผู้ดำเนินการ อัตโนมัติ=ทริกเกอร์ความเสี่ยง นับในเมนูตั้งค่าความเสี่ยง HQ'
+    },
+    '유효한 가맹점 업체코드가 아닙니다.': {
+      EN: 'Not a valid merchant code.',
+      JP: '有効な加盟店コードではありません。',
+      CH: '不是有效的商户代码。',
+      TH: 'ไม่ใช่รหัสร้านค้าที่ถูกต้อง'
+    },
+    '수동·자동 등록 구분': { EN: 'Manual vs auto registration', JP: '手動・自動登録区分', CH: '手动/自动登记区分', TH: 'แยกลงทะเบียนด้วยตนเอง/อัตโนมัติ' },
+    '마스킹 카드번호(앞6+***+뒤4)·이름(구분용)·사유를 입력하고 [등록]을 누르세요. 동일 패턴 카드는 JPAY 결제 전에 차단됩니다.': {
+      EN: 'Enter masked card (first 6 + *** + last 4), display name, and reason, then click Register. Matching cards are blocked before JPAY payment.',
+      JP: 'マスクカード番号(先頭6+***+末尾4)·表示名·理由を入力し[登録]を押してください。同一パターンのカードはJPAY決済前にブロックされます。',
+      CH: '输入掩码卡号(前6+***+后4)、区分用姓名和原因后点击登记。匹配卡号在 JPAY 支付前会被拦截。',
+      TH: 'กรอกเลขบัตรแบบมาสก์ (6 หลักแรก + *** + 4 หลักท้าย) ชื่อแยกประเภท และเหตุผล แล้วกดลงทะเบียน บัตรที่ตรงรูปแบบจะถูกบล็อกก่อนชำระ JPAY'
+    },
+    '이름(구분용)': { EN: 'Name (label)', JP: '名前(区分用)', CH: '姓名(区分)', TH: 'ชื่อ (แยกประเภท)' },
+    '이름(구분)': { EN: 'Name (label)', JP: '名前(区分)', CH: '姓名(区分)', TH: 'ชื่อ (แยกประเภท)' },
+    '카드번호(마스킹)': { EN: 'Card no. (masked)', JP: 'カード番号(マスク)', CH: '卡号(掩码)', TH: 'เลขบัตร (มาสก์)' },
+    '카드번호': { EN: 'Card number', JP: 'カード番号', CH: '卡号', TH: 'เลขบัตร' },
+    '카드번호(앞 6자리 + *** + 뒤 4자리)': { EN: 'Card no. (first 6 + *** + last 4)', JP: 'カード番号(先頭6桁 + *** + 下4桁)', CH: '卡号(前6位 + *** + 后4位)', TH: 'เลขบัตร (6 หลักแรก + *** + 4 หลักท้าย)' },
+    '카드번호(앞 6자리 + *** + 뒤 4자리)를 입력하세요.': { EN: 'Enter the card number (first 6 + *** + last 4).', JP: 'カード番号(先頭6桁 + *** + 下4桁)を入力してください。', CH: '请输入卡号(前6位 + *** + 后4位)。', TH: 'กรุณากรอกเลขบัตร (6 หลักแรก + *** + 4 หลักท้าย)' },
+    '예: 홍길동': { EN: 'e.g. John Doe', JP: '例: 山田太郎', CH: '例: 张三', TH: 'เช่น สมชาย ใจดี' },
+    '예: 531289***8601': { EN: 'e.g. 531289***8601', JP: '例: 531289***8601', CH: '例: 531289***8601', TH: 'เช่น 531289***8601' },
+    '앞 6자리 + *** + 뒤 4자리': { EN: 'First 6 + *** + last 4', JP: '先頭6桁 + *** + 末尾4桁', CH: '前6位 + *** + 后4位', TH: '6 หลักแรก + *** + 4 หลักท้าย' },
+    '카드 구분용 표시명(매칭 제외)': { EN: 'Display name for card (not used for matching)', JP: 'カード区分用表示名(照合対象外)', CH: '卡区分显示名(不参与匹配)', TH: 'ชื่อแสดงแยกบัตร (ไม่ใช้จับคู่)' },
+    '결제 실패 카드 쿨다운 (JPAY)': { EN: 'Card fail cooldown (JPAY)', JP: '決済失敗カードクールダウン (JPAY)', CH: '支付失败卡冷却 (JPAY)', TH: 'คูลดาวน์บัตรชำระล้มเหลว (JPAY)' },
+    '동일 카드로 FAIL·UNPAID가 누적되면 JPAY 호출 전에 일시 차단합니다. CVV·카드번호 형식 오류는 집계하지 않습니다. 성공 결제 시 횟수가 초기화됩니다. 4회차는 자동으로 운영관리 비활성카드(마스킹) 등록이며 시간 설정은 없습니다.': {
+      EN: 'Repeated FAIL/UNPAID on the same card triggers temporary blocks before JPAY. CVV and card format errors are excluded. Success resets the count. The 4th failure auto-registers an inactive masked card with no wait time.',
+      JP: '同一カードでFAIL・UNPAIDが累積するとJPAY呼び出し前に一時ブロックします。CVV・カード番号形式エラーは集計しません。成功決済で回数はリセットされます。4回目は運営管理の非活性カード(マスク)に自動登録され待機時間はありません。',
+      CH: '同一卡累计 FAIL/UNPAID 时在调用 JPAY 前临时拦截。CVV 与卡号格式错误不计入。支付成功会重置次数。第4次自动登记运营非活跃卡(掩码)，无等待时间。',
+      TH: 'FAIL/UNPAID สะสมบัตรเดียวกันจะถูกบล็อกชั่วคราวก่อน JPAY ไม่นับ CVV/รูปแบบเลขบัตร สำเร็จจะรีเซ็ต ครั้งที่ 4 ลงทะเบียนบัตรปิดใช้แบบมาสก์อัตโนมัติ ไม่มีเวลารอ'
+    },
+    '동일 카드 FAIL·UNPAID 누적 시 JPAY 호출 전 일시 차단합니다. CVV·카드번호 형식 오류는 집계하지 않습니다. 본사정책 따름 시 [본사설정 → 리스크설정]을 사용하며, 별도정책은 본사보다 우선합니다. 미사용 시 해당 가맹의 위험관리를 끕니다.': {
+      EN: 'Repeated FAIL/UNPAID on the same card is temporarily blocked before JPAY. CVV and invalid card format are not counted. When following HQ policy, use [HQ settings → Risk settings]; custom policy overrides HQ. Disabled turns off risk management for this merchant.',
+      JP: '同一カードのFAIL・UNPAID累積時、JPAY呼び出し前に一時ブロックします。CVV・カード番号形式エラーは集計しません。本社ポリシーに従う場合は[本社設定 → リスク設定]を使用し、個別ポリシーは本社より優先します。未使用の場合は当該加盟店のリスク管理をオフにします。',
+      CH: '同一卡累计 FAIL/UNPAID 时在调用 JPAY 前临时拦截。CVV 与卡号格式错误不计入。遵循总部政策时使用[总部设置 → 风险设置]；单独政策优先于总部。未使用时关闭该商户风险管理。',
+      TH: 'FAIL/UNPAID สะสมบัตรเดียวกันจะถูกบล็อกชั่วคราวก่อน JPAY ไม่นับ CVV/รูปแบบเลขบัตร หากตามนโยบาย HQ ใช้ [ตั้งค่า HQ → ความเสี่ยง] นโยบายแยกมีลำดับเหนือ HQ ไม่ใช้จะปิดการจัดการความเสี่ยงของร้านนี้'
+    },
+    '동일 카드 FAIL·UNPAID 누적 시 JPAY 호출 전 일시 차단합니다. CVV·카드번호 형식 오류는 집계하지 않으며 성공 결제 시 횟수가 초기화됩니다. 아래에서 선택한 차수에서 자동으로 비활성카드(마스킹)에 등록됩니다.': {
+      EN: 'Repeated FAIL/UNPAID on the same card is temporarily blocked before JPAY. CVV and invalid card format are not counted; success resets the count. At the selected tier below, the card is auto-registered as an inactive masked card.',
+      JP: '同一カードのFAIL・UNPAID累積時、JPAY呼び出し前に一時ブロックします。CVV・カード番号形式エラーは集計せず、成功決済で回数はリセットされます。下で選択した回数で非活性カード(マスク)に自動登録されます。',
+      CH: '同一卡累计 FAIL/UNPAID 时在调用 JPAY 前临时拦截。CVV 与卡号格式错误不计入，支付成功会重置次数。在下方所选次数自动登记为非活跃卡(掩码)。',
+      TH: 'FAIL/UNPAID สะสมบัตรเดียวกันจะถูกบล็อกชั่วคราวก่อน JPAY ไม่นับ CVV/รูปแบบเลขบัตร สำเร็จจะรีเซ็ต ระดับที่เลือกด้านล่างจะลงทะเบียนบัตรปิดใช้แบบมาสก์อัตโนมัติ'
+    },
+    '등록된 모든 가맹점의 리스크 방식·적용 값을 표시합니다. 별도설정 가맹은 본사 설정보다 우선 적용됩니다. 미사용 가맹은 방식 열에 회색으로 표시됩니다.': {
+      EN: 'Shows risk mode and applied values for all merchants. Custom policy merchants override HQ. Disabled merchants appear in gray in the Mode column.',
+      JP: '登録済みの全加盟店のリスク方式・適用値を表示します。個別設定の加盟店は本社設定より優先されます。未使用は方式列に灰色で表示されます。',
+      CH: '显示所有商户的风险方式与应用值。单独设置优先于总部。未使用在方式列以灰色显示。',
+      TH: 'แสดงรูปแบบความเสี่ยงและค่าที่ใช้ของร้านค้าทั้งหมด ตั้งค่าแยกมีลำดับเหนือ HQ ไม่ใช้แสดงสีเทาในคอลัมน์รูปแบบ'
+    },
+    '리스크관리가 활성(본사정책 따름·별도정책)인 가맹점만 표시됩니다. 별도정책 가맹은 본사 설정보다 우선 적용됩니다.': {
+      EN: 'Only merchants with active risk management (follow HQ or custom policy) are shown. Custom policy merchants override HQ settings.',
+      JP: 'リスク管理が有効(本社ポリシーに従う・個別ポリシー)な加盟店のみ表示します。個別ポリシーの加盟店は本社設定より優先されます。',
+      CH: '仅显示风险管理已启用(遵循总部政策或单独政策)的商户。单独政策优先于总部设置。',
+      TH: 'แสดงเฉพาะร้านที่เปิดการจัดการความเสี่ยง (ตาม HQ หรือนโยบายแยก) นโยบายแยกมีลำดับเหนือการตั้งค่า HQ'
+    },
+    '가맹점이름': { EN: 'Merchant name', JP: '加盟店名', CH: '商户名称', TH: 'ชื่อร้านค้า' },
+    '가맹점 리스크 현황': { EN: 'Merchant risk status', JP: '加盟店リスク状況', CH: '商户风险现状', TH: 'สถานะความเสี่ยงร้านค้า' },
+    '1차': { EN: 'Tier 1', JP: '1次', CH: '第1次', TH: 'ครั้งที่ 1' },
+    '2차': { EN: 'Tier 2', JP: '2次', CH: '第2次', TH: 'ครั้งที่ 2' },
+    '3차': { EN: 'Tier 3', JP: '3次', CH: '第3次', TH: 'ครั้งที่ 3' },
+    '4차': { EN: 'Tier 4', JP: '4次', CH: '第4次', TH: 'ครั้งที่ 4' },
+    '자동등록': { EN: 'Auto registration', JP: '自動登録', CH: '自动登记', TH: 'ลงทะเบียนอัตโนมัติ' },
+    '수동등록': { EN: 'Manual registration', JP: '手動登録', CH: '手动登记', TH: 'ลงทะเบียนด้วยตนเอง' },
+    '자동 등록 트리거': { EN: 'Auto-register trigger', JP: '自動登録トリガー', CH: '自动登记触发', TH: 'ทริกเกอร์ลงทะเบียนอัตโนมัติ' },
+    '현등록카드수': { EN: 'Registered cards', JP: '登録カード数', CH: '已登记卡数', TH: 'จำนวนบัตรที่ลงทะเบียน' },
+    '등록구분': { EN: 'Registration', JP: '登録', CH: '登记', TH: 'การลงทะเบียน' },
+    '최신등록': { EN: 'Latest registration', JP: '最新登録', CH: '最近登记', TH: 'ลงทะเบียนล่าสุด' },
+    '채널': { EN: 'Channel', JP: 'チャネル', CH: '渠道', TH: 'ช่องทาง' },
+    '방식': { EN: 'Method', JP: '方式', CH: '方式', TH: 'รูปแบบ' },
+    '표시할 가맹점이 없습니다.': { EN: 'No merchants to display.', JP: '表示する加盟店がありません。', CH: '没有可显示的商户。', TH: 'ไม่มีร้านค้าให้แสดง' },
+    '불러오는 중…': { EN: 'Loading…', JP: '読み込み中…', CH: '加载中…', TH: 'กำลังโหลด…' },
+    '리스크관리 트리거': { EN: 'Risk trigger', JP: 'リスク管理トリガー', CH: '风险管理触发', TH: 'ทริกเกอร์ความเสี่ยง' },
+    '리스크설정': { EN: 'Risk settings', JP: 'リスク設定', CH: '风险设置', TH: 'ตั้งค่าความเสี่ยง' },
+    '위험관리 사용': { EN: 'Risk management', JP: '危険管理の使用', CH: '使用风险管理', TH: 'ใช้การจัดการความเสี่ยง' },
+    '본사정책 따름': { EN: 'Follow HQ policy', JP: '本社ポリシーに従う', CH: '遵循总部政策', TH: 'ตามนโยบาย HQ' },
+    '별도정책': { EN: 'Custom policy', JP: '個別ポリシー', CH: '单独政策', TH: 'นโยบายแยก' },
+    '쿨다운 사용': { EN: 'Cooldown enabled', JP: 'クールダウン使用', CH: '启用冷却', TH: 'ใช้คูลดาวน์' },
+    '1차 대기(분)': { EN: '1st wait (min)', JP: '1次待機(分)', CH: '第1次等待(分)', TH: 'รอครั้งที่ 1 (นาที)' },
+    '2차 대기(분)': { EN: '2nd wait (min)', JP: '2次待機(分)', CH: '第2次等待(分)', TH: 'รอครั้งที่ 2 (นาที)' },
+    '3차 대기(분)': { EN: '3rd wait (min)', JP: '3次待機(分)', CH: '第3次等待(分)', TH: 'รอครั้งที่ 3 (นาที)' },
+    'OTP 해지': { EN: 'Release', JP: '解除', CH: '解除', TH: 'ยกเลิก' },
+    '해지(Google OTP 필요)': {
+      EN: 'Release (Google OTP required)',
+      JP: '解除(Google OTP必要)',
+      CH: '解除(需 Google OTP)',
+      TH: 'ยกเลิก(ต้องใช้ Google OTP)'
+    },
+    '비활성 카드 수정': { EN: 'Edit inactive card', JP: '非活性カード修正', CH: '修改非活跃卡', TH: 'แก้ไขบัตรปิดใช้' },
+    '최근일시': { EN: 'Last modified', JP: '最終更新日時', CH: '最近修改时间', TH: 'แก้ไขล่าสุด' },
+    '내용 수정 일시(등록일시와 별도)': {
+      EN: 'Content last modified (separate from registered at)',
+      JP: '内容修正日時(登録日時とは別)',
+      CH: '内容修改时间(与登记时间分开)',
+      TH: 'เวลาแก้ไขเนื้อหา (แยกจากวันที่ลงทะเบียน)'
+    },
+    '등록·해지·수정은 본사권한설정에서 이 화면 권한을 삭제(전체) 또는 수정으로 부여한 계정만 가능합니다.': {
+      EN: 'Only accounts with Delete (full) or Modify on this screen in HQ permissions can register, release, or edit.',
+      JP: '本社権限でこの画面に削除(全体)または修正があるアカウントのみ登録・解除・修正できます。',
+      CH: '仅在本社权限中对该画面拥有删除(全部)或修改的账户可登记/解除/修改。',
+      TH: 'เฉพาะบัญชีที่มีสิทธิ์ลบ(เต็ม)หรือแก้ไขหน้านี้ในสิทธิ์สำนักงานใหญ่เท่านั้นที่ลงทะเบียน/ยกเลิก/แก้ไขได้'
+    },
+    '등록·해지·수정 권한이 없습니다. 본사권한설정에서 삭제(전체) 또는 수정 권한을 부여하세요.': {
+      EN: 'No register/release/edit permission. Grant Delete (full) or Modify in HQ permissions.',
+      JP: '登録・解除・修正権限がありません。本社権限で削除(全体)または修正を付与してください。',
+      CH: '无登记/解除/修改权限。请在本社权限中授予删除(全部)或修改。',
+      TH: 'ไม่มีสิทธิ์ลงทะเบียน/ยกเลิก/แก้ไข ให้สิทธิ์ลบ(เต็ม)หรือแก้ไขในสิทธิ์สำนักงานใหญ่'
+    },
+    '해지는 목록 「해지」 버튼에서 실행합니다. Google OTP 6자리가 필요합니다. 수정은 「수정」 버튼에서 내용을 변경하며, 최근일시에 반영됩니다.': {
+      EN: 'Release via the Release button in the list (Google OTP, 6 digits). Edit content via Edit; last modified time is shown separately.',
+      JP: '解除は一覧の「解除」ボタンから実行(Google OTP 6桁)。修正は「修正」ボタンで内容を変更し、最終更新日時に反映されます。',
+      CH: '请在列表「解除」按钮执行解除(需 Google OTP 6 位)。「修改」按钮可改内容，最近修改时间单独显示。',
+      TH: 'ยกเลิกที่ปุ่ม「ยกเลิก」ในรายการ (Google OTP 6 หลัก) แก้ไขที่ปุ่ม「แก้ไข」 เวลาแก้ไขล่าสุดแสดงแยก'
+    },
+    '저장 실패': { EN: 'Save failed', JP: '保存失敗', CH: '保存失败', TH: 'บันทึกล้มเหลว' },
     '해지하려면 Google OTP 6자리를 입력하세요.': {
       EN: 'Enter your 6-digit Google OTP to release.',
       JP: '解除するには Google OTP 6桁を入力してください。',
@@ -18247,6 +18379,7 @@
     },
     '해지 실패': { EN: 'Release failed', JP: '解除失敗', CH: '解除失败', TH: 'ยกเลิกล้มเหลว' },
     '카드번호(마스킹)': { EN: 'Card no. (masked)', JP: 'カード番号(マスク)', CH: '卡号(掩码)', TH: 'เลขบัตร (ปิดบางส่วน)' },
+    '카드번호(앞 6자리 + *** + 뒤 4자리)': { EN: 'Card no. (first 6 + *** + last 4)', JP: 'カード番号(先頭6桁 + *** + 下4桁)', CH: '卡号(前6位 + *** + 后4位)', TH: 'เลขบัตร (6 หลักแรก + *** + 4 หลักท้าย)' },
     '등록카드': { EN: 'Registered card', JP: '登録カード', CH: '登记卡', TH: 'บัตรที่ลงทะเบียน' },
     '해지됨': { EN: 'Released', JP: '解除済', CH: '已解除', TH: 'ยกเลิกแล้ว' },
     '총본사·본사·총판(ADMIN 포함) 운영자용입니다. 메뉴 접근은 본사권한설정에서 부여합니다.': {
@@ -18402,11 +18535,11 @@
       CH: '需要在本社权限设置中授予删除(全部)或修改权限。',
       TH: 'ต้องมีสิทธิ์ลบ(เต็ม)หรือแก้ไขในสิทธิ์สำนักงานใหญ่'
     },
-    'VIEW SETTING의 「OTP 해지」 열은 항상 표시됩니다. 해지는 목록 맨 오른쪽 버튼에서 실행하세요.': {
-      EN: 'The OTP Release column is always shown. Use the button at the right end of the list to release.',
-      JP: 'VIEW SETTINGの「OTP解除」列は常に表示されます。解除は一覧右端のボタンから実行してください。',
-      CH: 'VIEW SETTING 中「OTP 解除」列始终显示。请在列表最右侧按钮执行解除。',
-      TH: 'คอลัมน์ OTP ยกเลิกแสดงเสมอ กดปุ่มขวาสุดของรายการเพื่อยกเลิก'
+    'VIEW SETTING의 「해지」·「수정」 열은 항상 표시됩니다. 해지·수정은 목록 오른쪽 버튼에서 실행하세요.': {
+      EN: 'Release and Edit columns are always shown. Use the buttons at the right of the list.',
+      JP: 'VIEW SETTINGの「解除」「修正」列は常に表示されます。解除・修正は一覧右のボタンから実行してください。',
+      CH: 'VIEW SETTING 中「解除」「修改」列始终显示。请在列表右侧按钮操作。',
+      TH: 'คอลัมน์ยกเลิกและแก้ไขแสดงเสมอ ใช้ปุ่มทางขวาของรายการ'
     },
     '해지일시': { EN: 'Released at', JP: '解除日時', CH: '解除时间', TH: 'วันที่ยกเลิก' },
     '해지자': { EN: 'Released by', JP: '解除者', CH: '解除人', TH: 'ผู้ยกเลิก' },
@@ -21636,6 +21769,41 @@
         if (loc === 'JP') return nh + '時間';
         if (loc === 'CH') return nh + '小时';
         if (loc === 'TH') return nh + ' ชม.';
+      }
+      var mTierHour = sKo.match(/^([1-4])차 시간$/);
+      if (mTierHour) {
+        var th = mTierHour[1];
+        if (loc === 'EN') return 'Tier ' + th + ' hours';
+        if (loc === 'JP') return th + '次 時間';
+        if (loc === 'CH') return '第' + th + '次 小时';
+        if (loc === 'TH') return 'ครั้งที่ ' + th + ' (ชม.)';
+      }
+      var mHourMin = sKo.match(/^(\d{1,3})시간 (\d{1,2})분$/);
+      if (mHourMin) {
+        var hmH = mHourMin[1];
+        var hmM = mHourMin[2];
+        if (loc === 'EN') {
+          return hmH + (hmH === '1' ? ' hr ' : ' hrs ') + hmM + ' min';
+        }
+        if (loc === 'JP') return hmH + '時間 ' + hmM + '分';
+        if (loc === 'CH') return hmH + '小时 ' + hmM + '分';
+        if (loc === 'TH') return hmH + ' ชม. ' + hmM + ' นาที';
+      }
+      var mTierMin = sKo.match(/^([1-4])차 분$/);
+      if (mTierMin) {
+        var tm = mTierMin[1];
+        if (loc === 'EN') return 'Tier ' + tm + ' min';
+        if (loc === 'JP') return tm + '次 分';
+        if (loc === 'CH') return '第' + tm + '次 分';
+        if (loc === 'TH') return 'ครั้งที่ ' + tm + ' (นาที)';
+      }
+      var mTierOnly = sKo.match(/^([1-4])차$/);
+      if (mTierOnly) {
+        var to = mTierOnly[1];
+        if (loc === 'EN') return 'Tier ' + to;
+        if (loc === 'JP') return to + '次';
+        if (loc === 'CH') return '第' + to + '次';
+        if (loc === 'TH') return 'ครั้งที่ ' + to;
       }
       var mMin = sKo.match(/^(\d{1,4})분$/);
       if (mMin) {

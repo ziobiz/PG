@@ -52,10 +52,10 @@ public class JpayPortalExportRunner {
         pb.redirectErrorStream(true);
         Process p = pb.start();
         String log = new String(p.getInputStream().readAllBytes(), java.nio.charset.StandardCharsets.UTF_8);
-        boolean finished = p.waitFor(300, TimeUnit.SECONDS);
+        boolean finished = p.waitFor(540, TimeUnit.SECONDS);
         if (!finished) {
             p.destroyForcibly();
-            throw new IOException("JPAY 포털 export 타임아웃(300초). 로그: " + truncateForUser(log));
+            throw new IOException("JPAY 포털 export 타임아웃(540초). 로그: " + truncateForUser(log));
         }
         if (p.exitValue() != 0) {
             throw new IOException("JPAY 포털 export 실패(exit " + p.exitValue() + "): " + truncateForUser(log));

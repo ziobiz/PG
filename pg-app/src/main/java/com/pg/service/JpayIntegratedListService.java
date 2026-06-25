@@ -18,9 +18,19 @@ import com.pg.repository.PgTrnsctnRepository;
 
 import com.pg.util.JpayNotifyStatusResolver;
 
+import com.pg.util.JpayReconcileStatusPolicy;
+
 import com.pg.util.JpayTradeStatusMapper;
 
+import com.pg.util.NotifyToTxnStatusMerge;
+
+import com.pg.util.TxnOutcomeReasonApplier;
+
 import com.pg.util.PayListStatusBarBuckets;
+
+import org.springframework.beans.factory.annotation.Autowired;
+
+import org.springframework.context.annotation.Lazy;
 
 import org.springframework.stereotype.Service;
 
@@ -35,6 +45,12 @@ import java.nio.file.Path;
 import java.time.LocalDate;
 
 import java.time.LocalDateTime;
+
+import java.time.temporal.ChronoUnit;
+
+import java.util.concurrent.ExecutorService;
+
+import java.util.concurrent.Executors;
 
 import java.math.BigDecimal;
 
@@ -88,6 +104,8 @@ public class JpayIntegratedListService {
 
     private final OrgAccessService orgAccessService;
 
+    private final OutcomeReasonWarmCoordinator outcomeReasonWarmCoordinator;
+
 
 
     private volatile LocalDateTime lastSyncAt;
@@ -95,6 +113,34 @@ public class JpayIntegratedListService {
     private volatile String lastSyncMessage = "";
 
     private volatile List<Map<String, Object>> cachedRows = List.of();
+
+    /** @Transactional 프록시를 통해 백그라운드에서 동기화를 실행하기 위한 자기 참조 */
+    @Autowired
+    @Lazy
+    private JpayIntegratedListService self;
+
+    /** 포털 Export는 수 분 소요 — HTTP 요청과 분리된 단일 백그라운드 스레드에서 실행 */
+    private final ExecutorService syncExecutor = Executors.newSingleThreadExecutor(r -> {
+        Thread t = new Thread(r, "jpay-portal-sync");
+        t.setDaemon(true);
+        return t;
+    });
+
+    private volatile boolean syncRunning = false;
+
+    private volatile String syncJobStatus = "IDLE"; // IDLE, RUNNING, DONE, ERROR
+
+    private volatile String syncJobMessage = "";
+
+    private volatile LocalDateTime syncJobStartedAt;
+
+    private volatile LocalDateTime syncJobFinishedAt;
+
+    private volatile LocalDate syncJobFrom;
+
+    private volatile LocalDate syncJobTo;
+
+    private volatile Map<String, Object> syncJobResult;
 
 
 
@@ -110,7 +156,9 @@ public class JpayIntegratedListService {
 
                                      OrgUnitRepository orgUnitRepository,
 
-                                     OrgAccessService orgAccessService) {
+                                     OrgAccessService orgAccessService,
+
+                                     OutcomeReasonWarmCoordinator outcomeReasonWarmCoordinator) {
 
         this.hqLedgerSysSettingsService = hqLedgerSysSettingsService;
 
@@ -126,6 +174,8 @@ public class JpayIntegratedListService {
 
         this.orgAccessService = orgAccessService;
 
+        this.outcomeReasonWarmCoordinator = outcomeReasonWarmCoordinator;
+
     }
 
 
@@ -138,9 +188,23 @@ public class JpayIntegratedListService {
 
         LocalDate tTo = to != null ? to : LocalDate.now();
 
-        LocalDate tFrom = from != null ? from : tTo.minusDays(
+        LocalDate tFrom = from != null ? from : tTo;
 
-                Math.max(1, settings.getJpayTrRecentSyncDays() != null ? settings.getJpayTrRecentSyncDays() : 2) - 1L);
+        int configured = settings.getJpayTrRecentSyncDays() != null ? settings.getJpayTrRecentSyncDays() : 7;
+
+        int syncDays = Math.max(7, Math.min(365, configured));
+
+        LocalDate exportTo = tTo;
+
+        LocalDate exportFrom = tFrom;
+
+        LocalDate widenFrom = exportTo.minusDays(Math.max(1, syncDays) - 1L);
+
+        if (exportFrom.isAfter(widenFrom)) {
+
+            exportFrom = widenFrom;
+
+        }
 
 
 
@@ -153,6 +217,8 @@ public class JpayIntegratedListService {
         int updated = 0;
 
         int unmatched = 0;
+
+        int parseScanned = 0;
 
         List<String> accountMessages = new ArrayList<>();
 
@@ -172,7 +238,11 @@ public class JpayIntegratedListService {
 
             }
 
-            allRaw.addAll(exportAndParse(tFrom, tTo, user, pass, null));
+            ExportParseResult legacy = exportAndParse(exportFrom, exportTo, user, pass, null);
+
+            allRaw.addAll(legacy.rows);
+
+            parseScanned += legacy.report.dataRowsScanned();
 
             ReconcileSummary summary = reconcileRows(allRaw, null);
 
@@ -188,9 +258,13 @@ public class JpayIntegratedListService {
 
             for (JpayPortalAccount acc : accounts) {
 
-                List<Map<String, String>> raw = exportAndParse(tFrom, tTo,
+                ExportParseResult parsed = exportAndParse(exportFrom, exportTo,
 
                         acc.getPortalUsername(), acc.getPortalPassword(), acc);
+
+                List<Map<String, String>> raw = parsed.rows;
+
+                parseScanned += parsed.report.dataRowsScanned();
 
                 allRaw.addAll(raw);
 
@@ -218,9 +292,29 @@ public class JpayIntegratedListService {
 
         lastSyncAt = LocalDateTime.now();
 
-        lastSyncMessage = "JPAY 포털 Export " + allRaw.size() + "건 (" + String.join(", ", accountMessages)
+        StringBuilder msg = new StringBuilder();
 
-                + ") — ICOPAY 반영 " + updated + "건";
+        msg.append("JPAY 포털 Export ").append(allRaw.size()).append("건 (").append(String.join(", ", accountMessages))
+
+                .append(") — 조회 목록 ").append(cachedRows.size()).append("건 — ICOPAY DB 반영 ").append(updated).append("건");
+
+        msg.append(" [포털조회 ").append(exportFrom).append("~").append(exportTo).append("]");
+
+        if (allRaw.isEmpty()) {
+
+            if (parseScanned > 0) {
+
+                msg.append(" — 엑셀 ").append(parseScanned).append("행이나 승인번호·주문번호를 읽지 못했습니다.");
+
+            } else {
+
+                msg.append(" — 해당 기간 포털 거래가 없습니다. 거래일자를 [1주]·[당월]로 넓혀 동기화하세요.");
+
+            }
+
+        }
+
+        lastSyncMessage = msg.toString();
 
         Map<String, Object> out = new LinkedHashMap<>();
 
@@ -228,7 +322,13 @@ public class JpayIntegratedListService {
 
         out.put("toDate", tTo.toString());
 
+        out.put("exportFromDate", exportFrom.toString());
+
+        out.put("exportToDate", exportTo.toString());
+
         out.put("portalRows", allRaw.size());
+
+        out.put("listRows", cachedRows.size());
 
         out.put("accountCount", accounts.isEmpty() ? 1 : accounts.size());
 
@@ -248,7 +348,25 @@ public class JpayIntegratedListService {
 
 
 
-    private List<Map<String, String>> exportAndParse(LocalDate from, LocalDate to,
+    private static final class ExportParseResult {
+
+        final List<Map<String, String>> rows;
+
+        final JpayOrderExcelParseService.ParseReport report;
+
+        ExportParseResult(List<Map<String, String>> rows, JpayOrderExcelParseService.ParseReport report) {
+
+            this.rows = rows;
+
+            this.report = report;
+
+        }
+
+    }
+
+
+
+    private ExportParseResult exportAndParse(LocalDate from, LocalDate to,
 
                                                      String user, String pass,
 
@@ -258,7 +376,9 @@ public class JpayIntegratedListService {
 
         try {
 
-            List<Map<String, String>> raw = excelParseService.parseFile(xlsx);
+            JpayOrderExcelParseService.ParseReport report = excelParseService.parseFileReport(xlsx);
+
+            List<Map<String, String>> raw = new ArrayList<>(report.rows());
 
             if (acc != null) {
 
@@ -276,7 +396,7 @@ public class JpayIntegratedListService {
 
             }
 
-            return raw;
+            return new ExportParseResult(raw, report);
 
         } finally {
 
@@ -306,7 +426,9 @@ public class JpayIntegratedListService {
 
                                                   LocalDate from, LocalDate to,
 
-                                                  boolean triggerSyncIfEmpty) throws Exception {
+                                                  boolean triggerSyncIfEmpty,
+
+                                                  String searchFieldType) throws Exception {
 
         if (cachedRows.isEmpty() && triggerSyncIfEmpty) {
 
@@ -314,7 +436,7 @@ public class JpayIntegratedListService {
 
         }
 
-        List<Map<String, Object>> filtered = filterRows(cachedRows, searchKeyword, searchOrderNo, searchPayDivCd, from, to);
+        List<Map<String, Object>> filtered = filterRows(cachedRows, searchKeyword, searchOrderNo, searchPayDivCd, from, to, searchFieldType);
 
         int p = Math.max(1, page);
 
@@ -373,6 +495,125 @@ public class JpayIntegratedListService {
         m.put("lastSyncMessage", lastSyncMessage);
 
         m.put("cachedTotal", cachedRows.size());
+
+        return m;
+
+    }
+
+
+
+    /**
+     * 비동기 동기화 시작 — 이미 진행 중이면 현재 상태만 반환합니다.
+     * HTTP 요청을 붙잡지 않으므로 프록시·게이트웨이 504(타임아웃)가 발생하지 않습니다.
+     */
+    public synchronized Map<String, Object> startSyncJob(LocalDate from, LocalDate to) {
+
+        if (syncRunning) {
+
+            return syncJobStatusMap();
+
+        }
+
+        syncRunning = true;
+
+        syncJobStatus = "RUNNING";
+
+        syncJobStartedAt = LocalDateTime.now();
+
+        syncJobFinishedAt = null;
+
+        syncJobFrom = from;
+
+        syncJobTo = to;
+
+        syncJobMessage = "JPAY 포털 Export 진행 중입니다. 계정·기간에 따라 수 분 걸릴 수 있습니다.";
+
+        syncJobResult = null;
+
+        final LocalDate f = from;
+
+        final LocalDate t = to;
+
+        syncExecutor.submit(() -> {
+
+            try {
+
+                Map<String, Object> res = self.syncFromPortal(f, t);
+
+                syncJobResult = res;
+
+                syncJobMessage = String.valueOf(res.getOrDefault("message", "동기화 완료"));
+
+                syncJobStatus = "DONE";
+
+            } catch (Exception e) {
+
+                String msg = e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName();
+
+                syncJobMessage = "JPAY 포털 동기화 실패: " + msg;
+
+                syncJobStatus = "ERROR";
+
+            } finally {
+
+                syncJobFinishedAt = LocalDateTime.now();
+
+                syncRunning = false;
+
+            }
+
+        });
+
+        return syncJobStatusMap();
+
+    }
+
+
+
+    /** 비동기 동기화 진행 상태 — 프론트가 폴링합니다. */
+    public Map<String, Object> syncJobStatusMap() {
+
+        Map<String, Object> m = new LinkedHashMap<>();
+
+        m.put("status", syncJobStatus);
+
+        m.put("running", syncRunning);
+
+        m.put("message", syncJobMessage);
+
+        m.put("startedAt", syncJobStartedAt != null ? syncJobStartedAt.toString() : "");
+
+        m.put("finishedAt", syncJobFinishedAt != null ? syncJobFinishedAt.toString() : "");
+
+        m.put("fromDate", syncJobFrom != null ? syncJobFrom.toString() : "");
+
+        m.put("toDate", syncJobTo != null ? syncJobTo.toString() : "");
+
+        if (syncJobStartedAt != null) {
+
+            long elapsed = ChronoUnit.SECONDS.between(syncJobStartedAt,
+
+                    syncJobFinishedAt != null ? syncJobFinishedAt : LocalDateTime.now());
+
+            m.put("elapsedSeconds", Math.max(0, elapsed));
+
+        } else {
+
+            m.put("elapsedSeconds", 0L);
+
+        }
+
+        m.put("lastSyncAt", lastSyncAt != null ? lastSyncAt.toString() : "");
+
+        m.put("lastSyncMessage", lastSyncMessage);
+
+        m.put("cachedTotal", cachedRows.size());
+
+        if (syncJobResult != null) {
+
+            m.put("result", syncJobResult);
+
+        }
 
         return m;
 
@@ -446,7 +687,7 @@ public class JpayIntegratedListService {
 
             String mapped = JpayTradeStatusMapper.fromPortalTradingStatus(trading, chargeback, rdr);
 
-            if (mapped == null) {
+            if (mapped == null || !JpayReconcileStatusPolicy.mayApplyReconcileMapping(mapped)) {
 
                 continue;
 
@@ -454,15 +695,17 @@ public class JpayIntegratedListService {
 
             String old = t.getStatus() != null ? t.getStatus().trim() : "";
 
-            if (!mapped.equals(old)) {
+            String merged = NotifyToTxnStatusMerge.merge(old, mapped, "RESULT", t.getOutcomeReasonCode());
 
-                t.setStatus(mapped);
+            if (merged != null && !merged.equals(old)) {
 
-                String rc = JpayTradeStatusMapper.returnCodeForInternalStatus(mapped);
-                t.setChillPaymentStatus(JpayNotifyStatusResolver.chillPaymentStatusLabel(mapped,
+                t.setStatus(merged);
+
+                String rc = JpayTradeStatusMapper.returnCodeForInternalStatus(merged);
+                t.setChillPaymentStatus(JpayNotifyStatusResolver.chillPaymentStatusLabel(merged,
                         rc.isBlank() ? "00" : rc));
 
-                if (!"10".equals(mapped)) {
+                if (!"10".equals(merged)) {
 
                     t.setPaidAt(null);
 
@@ -473,6 +716,10 @@ public class JpayIntegratedListService {
                     t.setChillTransactionId(txnId);
 
                 }
+
+                Optional<String> recordedReason = TxnOutcomeReasonApplier.applyJpayReconcileOutcome(
+                        t, old, merged, trading);
+                outcomeReasonWarmCoordinator.onRecorded(recordedReason);
 
                 pgTrnsctnRepository.save(t);
 
@@ -522,19 +769,25 @@ public class JpayIntegratedListService {
 
             Map<String, Object> m = new LinkedHashMap<>();
 
-            String orderNo = JpayOrderExcelParseService.col(row, "Merchant Order Number");
+            String orderNo = JpayOrderExcelParseService.col(row, "Merchant Order Number", "pay_orderid", "orderid");
 
-            String txnId = JpayOrderExcelParseService.col(row, "Transaction ID");
+            String txnId = JpayOrderExcelParseService.col(row, "Transaction ID", "transaction_id");
 
-            String trading = JpayOrderExcelParseService.col(row, "Trading Status");
+            if (orderNo.isBlank() && txnId.isBlank()) {
 
-            String amount = JpayOrderExcelParseService.col(row, "Transaction Amount");
+                continue;
 
-            String currency = JpayOrderExcelParseService.col(row, "Transaction Currency", "Original Currency");
+            }
 
-            String mid = JpayOrderExcelParseService.col(row, "Gateway Access Number");
+            String trading = JpayOrderExcelParseService.col(row, "Trading Status", "trading_status");
 
-            String txnDate = JpayOrderExcelParseService.col(row, "Transaction Date");
+            String amount = JpayOrderExcelParseService.col(row, "Transaction Amount", "transaction_amount");
+
+            String currency = JpayOrderExcelParseService.col(row, "Transaction Currency", "Original Currency", "original_currency");
+
+            String mid = JpayOrderExcelParseService.col(row, "Gateway Access Number", "gateway_access_number");
+
+            String txnDate = JpayOrderExcelParseService.col(row, "Transaction Date", "transaction_date");
 
             String masterCode = row.getOrDefault("_masterCompCode", "");
 
@@ -610,15 +863,15 @@ public class JpayIntegratedListService {
 
             }
 
-            m.put("fee", JpayOrderExcelParseService.col(row, "Fee"));
+            m.put("fee", JpayOrderExcelParseService.col(row, "Fee", "fee"));
 
-            m.put("refundStatus", JpayOrderExcelParseService.col(row, "Refund Status"));
+            m.put("refundStatus", JpayOrderExcelParseService.col(row, "Refund Status", "refund_status"));
 
-            m.put("chargeback", JpayOrderExcelParseService.col(row, "Is it a chargeback?"));
+            m.put("chargeback", JpayOrderExcelParseService.col(row, "Is it a chargeback?", "chargeback"));
 
-            m.put("urlSource", JpayOrderExcelParseService.col(row, "URL Source"));
+            m.put("urlSource", JpayOrderExcelParseService.col(row, "URL Source", "url_source"));
 
-            m.put("cardBin", JpayOrderExcelParseService.col(row, "Card BIN"));
+            m.put("cardBin", JpayOrderExcelParseService.col(row, "Card BIN", "card_bin"));
 
             out.add(m);
 
@@ -638,7 +891,7 @@ public class JpayIntegratedListService {
 
         }
 
-        String t = raw.trim();
+        String t = raw.trim().replace('/', '-');
 
         if (t.length() >= 10) {
 
@@ -660,7 +913,7 @@ public class JpayIntegratedListService {
 
                                                       String keyword, String orderNo, String payDivCd,
 
-                                                      LocalDate from, LocalDate to) {
+                                                      LocalDate from, LocalDate to, String fieldType) {
 
         String kw = keyword != null ? keyword.trim().toLowerCase(Locale.ROOT) : "";
 
@@ -668,15 +921,25 @@ public class JpayIntegratedListService {
 
         String status = payDivCd != null ? payDivCd.trim() : "";
 
+        String ft = fieldType != null ? fieldType.trim().toUpperCase(Locale.ROOT) : "";
+
         return rows.stream()
 
                 .filter(r -> {
 
+                    String txnId = String.valueOf(r.getOrDefault("transactionId", "")).trim();
+
+                    String ord = String.valueOf(r.getOrDefault("orderNo", "")).trim();
+
+                    if (txnId.isEmpty() && ord.isEmpty()) {
+
+                        return false;
+
+                    }
+
                     if (!on.isEmpty()) {
 
-                        String o = String.valueOf(r.getOrDefault("orderNo", "")).toLowerCase(Locale.ROOT);
-
-                        if (!o.contains(on)) {
+                        if (!ord.toLowerCase(Locale.ROOT).contains(on)) {
 
                             return false;
 
@@ -702,29 +965,31 @@ public class JpayIntegratedListService {
 
                         String d = String.valueOf(r.getOrDefault("trnDate", ""));
 
-                        if (!d.isBlank()) {
+                        if (d.isBlank()) {
 
-                            try {
+                            return false;
 
-                                LocalDate ld = LocalDate.parse(d.substring(0, Math.min(10, d.length())));
+                        }
 
-                                if (from != null && ld.isBefore(from)) {
+                        try {
 
-                                    return false;
+                            LocalDate ld = LocalDate.parse(d.substring(0, Math.min(10, d.length())));
 
-                                }
+                            if (from != null && ld.isBefore(from)) {
 
-                                if (to != null && ld.isAfter(to)) {
-
-                                    return false;
-
-                                }
-
-                            } catch (Exception ignored) {
-
-                                /* skip date filter */
+                                return false;
 
                             }
+
+                            if (to != null && ld.isAfter(to)) {
+
+                                return false;
+
+                            }
+
+                        } catch (Exception ignored) {
+
+                            return false;
 
                         }
 
@@ -732,27 +997,57 @@ public class JpayIntegratedListService {
 
                     if (!kw.isEmpty()) {
 
-                        String blob = (r.getOrDefault("transactionId", "") + " "
+                        if ("ORDER_NO".equals(ft)) {
 
-                                + r.getOrDefault("orderNo", "") + " "
+                            if (!ord.toLowerCase(Locale.ROOT).contains(kw)) {
 
-                                + r.getOrDefault("merchant", "") + " "
+                                return false;
 
-                                + r.getOrDefault("compId", "") + " "
+                            }
 
-                                + r.getOrDefault("compNm", "") + " "
+                        } else if ("APPROVAL_NO".equals(ft)) {
 
-                                + r.getOrDefault("masterDistCompId", "") + " "
+                            if (!txnId.toLowerCase(Locale.ROOT).contains(kw)) {
 
-                                + r.getOrDefault("masterDistNm", "") + " "
+                                return false;
 
-                                + r.getOrDefault("portalLabel", "") + " "
+                            }
 
-                                + r.getOrDefault("status", "")).toLowerCase(Locale.ROOT);
+                        } else if ("MID".equals(ft)) {
 
-                        if (!blob.contains(kw)) {
+                            String mid = String.valueOf(r.getOrDefault("merchant", "")).toLowerCase(Locale.ROOT);
 
-                            return false;
+                            if (!mid.contains(kw)) {
+
+                                return false;
+
+                            }
+
+                        } else {
+
+                            String blob = (txnId + " "
+
+                                    + ord + " "
+
+                                    + r.getOrDefault("merchant", "") + " "
+
+                                    + r.getOrDefault("compId", "") + " "
+
+                                    + r.getOrDefault("compNm", "") + " "
+
+                                    + r.getOrDefault("masterDistCompId", "") + " "
+
+                                    + r.getOrDefault("masterDistNm", "") + " "
+
+                                    + r.getOrDefault("portalLabel", "") + " "
+
+                                    + r.getOrDefault("status", "")).toLowerCase(Locale.ROOT);
+
+                            if (!blob.contains(kw)) {
+
+                                return false;
+
+                            }
 
                         }
 
@@ -775,7 +1070,7 @@ public class JpayIntegratedListService {
                                                            String searchKeyword, String searchOrderNo,
                                                            String searchPayDivCd, String searchOrderDir) {
         List<Map<String, Object>> filtered = filterRows(cachedRows, searchKeyword, searchOrderNo, searchPayDivCd,
-                tFrom, effectiveTo);
+                tFrom, effectiveTo, null);
         Map<LocalDate, JpayDayAgg> byDay = new LinkedHashMap<>();
         for (LocalDate d = tFrom; !d.isAfter(effectiveTo); d = d.plusDays(1)) {
             byDay.put(d, new JpayDayAgg());

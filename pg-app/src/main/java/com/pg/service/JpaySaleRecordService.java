@@ -7,6 +7,9 @@ import com.pg.repository.OrgUnitRepository;
 import com.pg.repository.PgTrnsctnRepository;
 import com.pg.util.JpayBuyerContactApplier;
 import com.pg.util.JpayTransactionIdApplier;
+import com.pg.util.NotifyToTxnStatusMerge;
+import com.pg.util.PayCardBrandDetector;
+import com.pg.util.PayCardPanHashUtil;
 import com.pg.splitpay.SplitPayPaymentHookService;
 import com.pg.util.RouteNoDisplayUtil;
 import com.pg.util.TxnOutcomeReasonApplier;
@@ -44,19 +47,22 @@ public class JpaySaleRecordService {
     private final HqLedgerSysSettingsService hqLedgerSysSettingsService;
     private final SplitPayPaymentHookService splitPayPaymentHookService;
     private final OutcomeReasonWarmCoordinator outcomeReasonWarmCoordinator;
+    private final PayCardFailCooldownService payCardFailCooldownService;
 
     public JpaySaleRecordService(PgTrnsctnRepository pgTrnsctnRepository,
                                  OrgUnitRepository orgUnitRepository,
                                  SettlementCalcService settlementCalcService,
                                  HqLedgerSysSettingsService hqLedgerSysSettingsService,
                                  SplitPayPaymentHookService splitPayPaymentHookService,
-                                 OutcomeReasonWarmCoordinator outcomeReasonWarmCoordinator) {
+                                 OutcomeReasonWarmCoordinator outcomeReasonWarmCoordinator,
+                                 PayCardFailCooldownService payCardFailCooldownService) {
         this.pgTrnsctnRepository = pgTrnsctnRepository;
         this.orgUnitRepository = orgUnitRepository;
         this.settlementCalcService = settlementCalcService;
         this.hqLedgerSysSettingsService = hqLedgerSysSettingsService;
         this.splitPayPaymentHookService = splitPayPaymentHookService;
         this.outcomeReasonWarmCoordinator = outcomeReasonWarmCoordinator;
+        this.payCardFailCooldownService = payCardFailCooldownService;
     }
 
     @Transactional
@@ -159,6 +165,7 @@ public class JpaySaleRecordService {
         t.setCustomerId(cid.length() > 100 ? cid.substring(0, 100) : cid);
         if (saleBody != null && !saleBody.isEmpty()) {
             JpayBuyerContactApplier.applyFromSaleBody(t, saleBody);
+            applyCardPanHashFromSaleBody(t, saleBody);
         }
         String desc = "JPAY_URL";
         if (productName != null && !productName.isBlank()) {
@@ -212,6 +219,12 @@ public class JpaySaleRecordService {
     @Transactional
     public void applySyncApiOutcome(String merchantId, String orderNo, int status, String msg, String txnOrigin,
                                     String jpayTransactionId) {
+        applySyncApiOutcome(merchantId, orderNo, status, msg, txnOrigin, jpayTransactionId, null);
+    }
+
+    @Transactional
+    public void applySyncApiOutcome(String merchantId, String orderNo, int status, String msg, String txnOrigin,
+                                    String jpayTransactionId, String panDigits) {
         if (merchantId == null || merchantId.isBlank() || orderNo == null || orderNo.isBlank()) {
             return;
         }
@@ -238,6 +251,9 @@ public class JpaySaleRecordService {
                 pgTrnsctnRepository.save(t);
                 outcomeReasonWarmCoordinator.onRecorded(recordedReason);
                 hookSplitPay(t);
+                String pan = resolvePanForCooldown(panDigits, t);
+                payCardFailCooldownService.recordQualifyingFailure(PgVendor.JPAY, pan, "FAIL", msg,
+                        resolveOrgUnitId(t));
                 return;
             }
             JpayTransactionIdApplier.apply(t, jpayTransactionId);
@@ -245,6 +261,8 @@ public class JpaySaleRecordService {
             pgTrnsctnRepository.save(t);
             hookSplitPay(t);
             if (status == 0 && t.getMerchantId() != null && !t.getMerchantId().isBlank()) {
+                String panOk = resolvePanForCooldown(panDigits, t);
+                payCardFailCooldownService.clearOnSuccess(PgVendor.JPAY, panOk, resolveOrgUnitId(t));
                 try {
                     settlementCalcService.triggerRealtimeAutoSettlementIfDue(t.getMerchantId().trim(), t);
                 } catch (Exception rtEx) {
@@ -298,6 +316,38 @@ public class JpaySaleRecordService {
         }
         return pgTrnsctnRepository.findFirstByMerchantIdAndOrderNoAndOrigin(
                 merchantId, orderNo, ORIGIN_URL);
+    }
+
+    private static void applyCardPanHashFromSaleBody(PgTrnsctn t, Map<String, Object> body) {
+        if (t == null || body == null || body.isEmpty()) {
+            return;
+        }
+        Object raw = body.get("payCardno");
+        if (raw == null) {
+            raw = body.get("pay_cardno");
+        }
+        if (raw == null) {
+            return;
+        }
+        String pan = PayCardBrandDetector.normalizePan(raw.toString());
+        if (pan.length() >= 10) {
+            t.setCardPanHash(PayCardPanHashUtil.hashPan(pan));
+        }
+    }
+
+    private Long resolveOrgUnitId(PgTrnsctn t) {
+        if (t == null || t.getMerchantId() == null || t.getMerchantId().isBlank()) {
+            return null;
+        }
+        return orgUnitRepository.findByCode(t.getMerchantId().trim()).map(OrgUnit::getId).orElse(null);
+    }
+
+    private static String resolvePanForCooldown(String panDigits, PgTrnsctn t) {
+        String pan = PayCardBrandDetector.normalizePan(panDigits);
+        if (pan.length() >= 10) {
+            return pan;
+        }
+        return "";
     }
 
     private static String newTrnId() {
