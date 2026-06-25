@@ -4699,6 +4699,13 @@
       paginationSizeOptions: [50, 100, 300],
       paginationDefaultSize: 50,
       payListStatusBar: true,
+      tableColumnGuide: true,
+      /** VIEW SETTING에서 숨길 수 없는 열: 번호·업체·거래일시만 고정(통합내역과 동일 패턴) */
+      columnGuideFixedKeys: ['rowNo', 'compNm', 'compId', 'trnDate', 'trnTime'],
+      viewSettingDefaultSelectedKeys: [
+        'masterDistNm', 'portalLabel', 'merchant', 'orderNo', 'customer', 'amount', 'currency',
+        'icopay', 'statusNm', 'fee', 'refundStatus', 'chargeback', 'cardBin', 'urlSource'
+      ],
       searchFormClass: 'screen-search-form pay-mng-search-form',
       searchRows: [
         [
@@ -4727,7 +4734,9 @@
       noticeList: [
         'JPAY 가맹 포털(merchant.j-pay.net)에 자동 로그인 → Export 다운로드 → ICOPAY 결제내역 대조·반영합니다. 목록 API가 없어 포털 Export 엑셀을 사용합니다.',
         '본사설정 > 결제대행사로직에서 총판별 JPAY 포털 계정을 등록하고, 전산설정관리에서 동기화 기간을 설정하세요. VPS에 Node.js·Playwright(Chromium)가 필요합니다.',
-        '[JPAY 동기화]는 포털 Export 후 캐시를 갱신합니다. 화면 거래일이 하루(당일)여도 동기화는 본사설정의 최근 동기화 범위(최소 7일)만큼 포털에서 받아옵니다. 목록 조회는 화면에 선택한 거래일자로 필터됩니다.'
+        '[JPAY 동기화]는 포털 Export 후 캐시를 갱신합니다. 화면 거래일이 하루(당일)여도 동기화는 본사설정의 최근 동기화 범위(최소 7일)만큼 포털에서 받아옵니다. 목록 조회는 화면에 선택한 거래일자로 필터됩니다.',
+        '그리드 열 노출은 상단 VIEW SETTING에서 조정합니다(저장 시 사용자별로 유지). 번호·업체명·업체코드·거래일·거래시간은 그리드에 항상 표시되며 VIEW SETTING 목록에는 나오지 않습니다. 열 너비는 헤더 경계를 드래그해 조절할 수 있습니다.',
+        '동기화한 포털 Export 목록은 DB(tb_jpay_portal_export_cache)에 저장됩니다. 로그아웃·재로그인·서버 재시작 후에도 [검색]만으로 마지막 동기화 목록을 조회할 수 있습니다. 포털 최신 반영이 필요할 때만 [JPAY 동기화]를 실행하세요.'
       ],
       summary: ['건수'],
       buttons: [
@@ -4746,11 +4755,12 @@
         { key: 'trnTime', label: '거래시간' },
         { key: 'merchant', label: 'MID' },
         { key: 'orderNo', label: '주문번호' },
+        { key: 'customer', label: '고객' },
         { key: 'amount', label: '결제금액' },
         { key: 'currency', label: '통화' },
         { key: 'status', label: 'JPAY상태' },
         { key: 'icopay', label: 'ICOPAY' },
-        { key: 'dbStatus', label: 'DB상태' },
+        { key: 'statusNm', label: '상태' },
         { key: 'fee', label: '수수료' },
         { key: 'refundStatus', label: '환불' },
         { key: 'chargeback', label: '차지백' },

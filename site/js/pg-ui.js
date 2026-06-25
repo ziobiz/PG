@@ -246,6 +246,29 @@
     return 'neutral';
   };
 
+  /**
+   * JPAY 통합조회 — ICOPAY dbStatus·icopayStatus 우선, 포털 Trading Status 텍스트 폴백.
+   * @returns {'success'|'cancel'|'void'|'refund'|'fail'|'pending'|'other'|'neutral'}
+   */
+  global.PG_UI.resolveJpayTrRowTone = function (row) {
+    if (!row || typeof row !== 'object') return 'neutral';
+    var code = row.dbStatus != null ? String(row.dbStatus).trim() : '';
+    if (!code && row.icopayStatus != null) code = String(row.icopayStatus).trim();
+    if (code) {
+      return global.PG_UI.resolvePayRowTone({
+        status: code,
+        chillPaymentStatus: row.statusNm != null ? String(row.statusNm).trim() : ''
+      });
+    }
+    var portal = row.status != null ? String(row.status).trim() : '';
+    if (!portal && row.tradingStatus != null) portal = String(row.tradingStatus).trim();
+    if (!portal && row.statusNm != null) portal = String(row.statusNm).trim();
+    if (portal) {
+      return global.PG_UI.resolveChillTrRowTone({ status: portal });
+    }
+    return 'neutral';
+  };
+
   /** 결제내역·통합내역 Status 열 — 행 톤과 동일한 뱃지 색(기타=상단 집계 OTHER 톤) */
   global.PG_UI.payGridStatusBadge = function (rawText, tone, rowOpt) {
     var t = tone && tone !== 'neutral' ? tone : 'neutral';

@@ -1395,6 +1395,7 @@ body { margin: 0; height: 100%; overflow: hidden; font-family: -apple-system, Bl
 #contentsMain .screen-daily-fee .summary-total-bar,
 #contentsMain .screen-chill-pay-tr-list .summary-total-bar,
 #contentsMain .screen-chill-pay-settlement-list .summary-total-bar,
+#contentsMain .screen-jpay-tr-list .summary-total-bar,
 #contentsMain .screen-ops-integrated-report .summary-total-bar,
 #contentsMain .screen-ops-verify-report .summary-total-bar {
   background: #f8fbff;
@@ -1415,6 +1416,8 @@ body { margin: 0; height: 100%; overflow: hidden; font-family: -apple-system, Bl
 #contentsMain .screen-chill-pay-tr-list .summary-total-item[data-pg-summary-key="건수"],
 #contentsMain .screen-chill-pay-settlement-list .summary-total-item#summary_건수,
 #contentsMain .screen-chill-pay-settlement-list .summary-total-item[data-pg-summary-key="건수"],
+#contentsMain .screen-jpay-tr-list .summary-total-item#summary_건수,
+#contentsMain .screen-jpay-tr-list .summary-total-item[data-pg-summary-key="건수"],
 #contentsMain .screen-ops-integrated-report .summary-total-item#summary_건수,
 #contentsMain .screen-ops-integrated-report .summary-total-item[data-pg-summary-key="건수"],
 #contentsMain .screen-ops-integrated-report .summary-count-item,

@@ -11,6 +11,7 @@ import java.time.format.DateTimeFormatter;
 
 import com.pg.util.CommissionExtraFeeUtil;
 import com.pg.util.MerchantFeeVatUtil;
+import com.pg.util.MerchantDisplayCurrencyResolver;
 import com.pg.util.PayListStatusBarBuckets;
 import com.pg.util.RouteNoDisplayUtil;
 import com.pg.util.TrnTimeDualZoneDisplay;
@@ -521,30 +522,7 @@ public class PayListItemDto {
     }
 
     private static String resolveCurrencyCodeForDisplay(PgTrnsctn t, MerchantProfile mp) {
-        String db = t.getCurType() != null ? t.getCurType().trim().toUpperCase(Locale.ROOT) : "";
-        String assembled;
-        if (!looksLikeWeakDefaultKrw(db)) {
-            assembled = db.isEmpty() ? "KRW" : db;
-        } else {
-            List<String> bases = parseBaseCurrencyTokens(mp);
-            List<String> nonKrwBases = new ArrayList<>();
-            for (String b : bases) {
-                if (!looksLikeWeakDefaultKrw(b)) {
-                    nonKrwBases.add(b);
-                }
-            }
-            if (nonKrwBases.size() == 1) {
-                assembled = nonKrwBases.get(0);
-            } else if (nonKrwBases.size() >= 2) {
-                nonKrwBases.sort(String::compareTo);
-                assembled = String.join("/", nonKrwBases);
-            } else if (bases.size() == 1) {
-                assembled = bases.get(0);
-            } else {
-                assembled = db.isEmpty() ? "KRW" : db;
-            }
-        }
-        return normalizeDisplayCurrency(assembled);
+        return MerchantDisplayCurrencyResolver.resolveCurrencyCodeForDisplay(t, mp);
     }
 
     /** ISO 4217 숫자(764 등)·복수 통화 조합을 알파 코드(THB 등)로 표시 */
@@ -562,24 +540,6 @@ public class PayListItemDto {
             return parts.isEmpty() ? "KRW" : String.join("/", parts);
         }
         return PayListStatusBarBuckets.normalizeCurrency(assembled);
-    }
-
-    private static boolean looksLikeWeakDefaultKrw(String c) {
-        return c == null || c.isEmpty() || "KRW".equals(c) || "410".equals(c);
-    }
-
-    private static List<String> parseBaseCurrencyTokens(MerchantProfile mp) {
-        if (mp == null || mp.getBaseCurrency() == null || mp.getBaseCurrency().isBlank()) {
-            return List.of();
-        }
-        List<String> out = new ArrayList<>();
-        for (String p : mp.getBaseCurrency().split(",")) {
-            String s = p != null ? p.trim().toUpperCase(Locale.ROOT) : "";
-            if (!s.isEmpty()) {
-                out.add(PayListStatusBarBuckets.normalizeCurrency(s));
-            }
-        }
-        return out;
     }
 
     /**

@@ -6,6 +6,14 @@ import com.pg.api.dto.PageResult;
 
 import com.pg.entity.JpayPortalAccount;
 
+import com.pg.entity.JpayPortalExportCache;
+
+import com.pg.entity.MerchantPgBinding;
+
+import com.pg.entity.MerchantProfile;
+
+import com.pg.entity.OrgLevel;
+
 import com.pg.entity.OrgUnit;
 
 import com.pg.entity.PgTrnsctn;
@@ -14,19 +22,35 @@ import com.pg.integration.pg.PgVendor;
 
 import com.pg.repository.OrgUnitRepository;
 
+import com.pg.repository.JpayPortalExportCacheRepository;
+
+import com.pg.repository.MerchantPgBindingRepository;
+
+import com.pg.repository.MerchantProfileRepository;
+
 import com.pg.repository.PgTrnsctnRepository;
 
 import com.pg.util.JpayNotifyStatusResolver;
+import com.pg.util.JpayPortalDateParser;
 
 import com.pg.util.JpayReconcileStatusPolicy;
 
 import com.pg.util.JpayTradeStatusMapper;
 
+import com.pg.util.MerchantDisplayCurrencyResolver;
+
 import com.pg.util.NotifyToTxnStatusMerge;
 
 import com.pg.util.TxnOutcomeReasonApplier;
 
+import com.pg.util.FeeCurrencyRoundResolver;
 import com.pg.util.PayListStatusBarBuckets;
+
+import com.fasterxml.jackson.core.type.TypeReference;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import jakarta.annotation.PostConstruct;
 
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -45,6 +69,8 @@ import java.nio.file.Path;
 import java.time.LocalDate;
 
 import java.time.LocalDateTime;
+
+import java.time.format.DateTimeFormatter;
 
 import java.time.temporal.ChronoUnit;
 
@@ -106,6 +132,16 @@ public class JpayIntegratedListService {
 
     private final OutcomeReasonWarmCoordinator outcomeReasonWarmCoordinator;
 
+    private final JpayPortalExportCacheRepository exportCacheRepository;
+
+    private final MerchantProfileRepository merchantProfileRepository;
+
+    private final MerchantPgBindingRepository merchantPgBindingRepository;
+
+    private final MasterDistSettlementCronZoneService masterDistSettlementCronZoneService;
+
+    private final ObjectMapper objectMapper;
+
 
 
     private volatile LocalDateTime lastSyncAt;
@@ -158,7 +194,17 @@ public class JpayIntegratedListService {
 
                                      OrgAccessService orgAccessService,
 
-                                     OutcomeReasonWarmCoordinator outcomeReasonWarmCoordinator) {
+                                     OutcomeReasonWarmCoordinator outcomeReasonWarmCoordinator,
+
+                                     JpayPortalExportCacheRepository exportCacheRepository,
+
+                                     MerchantProfileRepository merchantProfileRepository,
+
+                                     MerchantPgBindingRepository merchantPgBindingRepository,
+
+                                     MasterDistSettlementCronZoneService masterDistSettlementCronZoneService,
+
+                                     ObjectMapper objectMapper) {
 
         this.hqLedgerSysSettingsService = hqLedgerSysSettingsService;
 
@@ -175,6 +221,106 @@ public class JpayIntegratedListService {
         this.orgAccessService = orgAccessService;
 
         this.outcomeReasonWarmCoordinator = outcomeReasonWarmCoordinator;
+
+        this.exportCacheRepository = exportCacheRepository;
+
+        this.merchantProfileRepository = merchantProfileRepository;
+
+        this.merchantPgBindingRepository = merchantPgBindingRepository;
+
+        this.masterDistSettlementCronZoneService = masterDistSettlementCronZoneService;
+
+        this.objectMapper = objectMapper;
+
+    }
+
+
+
+    /** 서버 기동 시 마지막 동기화 목록을 DB에서 메모리로 복원 */
+    @PostConstruct
+    void warmCacheFromDatabase() {
+        loadCacheFromDatabaseIfEmpty();
+    }
+
+
+
+    private synchronized boolean loadCacheFromDatabaseIfEmpty() {
+
+        if (!cachedRows.isEmpty()) {
+
+            return true;
+
+        }
+
+        return exportCacheRepository.findById(JpayPortalExportCache.DEFAULT_KEY)
+
+                .map(this::applyCacheEntity)
+
+                .orElse(false);
+
+    }
+
+
+
+    private boolean applyCacheEntity(JpayPortalExportCache ent) {
+
+        try {
+
+            String json = ent.getRowsJson() != null ? ent.getRowsJson() : "[]";
+
+            List<Map<String, Object>> rows = objectMapper.readValue(json, new TypeReference<>() {});
+
+            if (rows == null || rows.isEmpty()) {
+
+                return false;
+
+            }
+
+            cachedRows = List.copyOf(repairEnrichedRows(rows));
+
+            lastSyncAt = ent.getSyncedAt();
+
+            lastSyncMessage = ent.getLastSyncMessage() != null ? ent.getLastSyncMessage() : "";
+
+            return true;
+
+        } catch (Exception ignored) {
+
+            return false;
+
+        }
+
+    }
+
+
+
+    private void persistCacheToDatabase(LocalDate exportFrom, LocalDate exportTo) {
+
+        try {
+
+            JpayPortalExportCache ent = exportCacheRepository.findById(JpayPortalExportCache.DEFAULT_KEY)
+
+                    .orElseGet(JpayPortalExportCache::new);
+
+            ent.setCacheKey(JpayPortalExportCache.DEFAULT_KEY);
+
+            ent.setSyncedAt(lastSyncAt);
+
+            ent.setLastSyncMessage(lastSyncMessage);
+
+            ent.setExportFrom(exportFrom);
+
+            ent.setExportTo(exportTo);
+
+            ent.setRowsJson(objectMapper.writeValueAsString(cachedRows));
+
+            exportCacheRepository.save(ent);
+
+        } catch (Exception ignored) {
+
+            /* DB 저장 실패해도 동기화·메모리 목록은 유지 */
+
+        }
 
     }
 
@@ -290,6 +436,8 @@ public class JpayIntegratedListService {
 
         cachedRows = enrichRows(allRaw);
 
+        cachedRows = List.copyOf(repairEnrichedRows(cachedRows));
+
         lastSyncAt = LocalDateTime.now();
 
         StringBuilder msg = new StringBuilder();
@@ -315,6 +463,8 @@ public class JpayIntegratedListService {
         }
 
         lastSyncMessage = msg.toString();
+
+        persistCacheToDatabase(exportFrom, exportTo);
 
         Map<String, Object> out = new LinkedHashMap<>();
 
@@ -430,6 +580,18 @@ public class JpayIntegratedListService {
 
                                                   String searchFieldType) throws Exception {
 
+        if (cachedRows.isEmpty()) {
+
+            loadCacheFromDatabaseIfEmpty();
+
+        }
+
+        if (!cachedRows.isEmpty()) {
+
+            cachedRows = List.copyOf(repairEnrichedRows(cachedRows));
+
+        }
+
         if (cachedRows.isEmpty() && triggerSyncIfEmpty) {
 
             syncFromPortal(from, to);
@@ -478,6 +640,19 @@ public class JpayIntegratedListService {
 
         meta.put("cachedTotal", cachedRows.size());
 
+        long missingTrnDate = cachedRows.stream()
+
+                .filter(r -> JpayPortalDateParser.rowTrnDate(r).isEmpty())
+
+                .count();
+
+        meta.put("cachedMissingTrnDate", missingTrnDate);
+
+        meta.put("feeCurrencyFormatByCur",
+                FeeCurrencyRoundResolver.from(hqLedgerSysSettingsService.getOrCreate()).toClientByCurrencyMap());
+
+        meta.put("payListFinancialSummary", aggregateFinancialSummary(filtered));
+
         pr.setMeta(meta);
 
         return pr;
@@ -487,6 +662,8 @@ public class JpayIntegratedListService {
 
 
     public Map<String, Object> syncMeta() {
+
+        loadCacheFromDatabaseIfEmpty();
 
         Map<String, Object> m = new LinkedHashMap<>();
 
@@ -765,13 +942,15 @@ public class JpayIntegratedListService {
 
         List<Map<String, Object>> out = new ArrayList<>();
 
+        Map<Long, Optional<MerchantProfile>> profileCache = new HashMap<>();
+
         for (Map<String, String> row : raw) {
 
             Map<String, Object> m = new LinkedHashMap<>();
 
-            String orderNo = JpayOrderExcelParseService.col(row, "Merchant Order Number", "pay_orderid", "orderid");
+            String orderNo = resolvePortalOrderNo(row);
 
-            String txnId = JpayOrderExcelParseService.col(row, "Transaction ID", "transaction_id");
+            String txnId = resolvePortalTransactionId(row);
 
             if (orderNo.isBlank() && txnId.isBlank()) {
 
@@ -785,9 +964,25 @@ public class JpayIntegratedListService {
 
             String currency = JpayOrderExcelParseService.col(row, "Transaction Currency", "Original Currency", "original_currency");
 
+            String originalCurrency = JpayOrderExcelParseService.col(row, "Original Currency", "original_currency");
+
+            if (currency.isBlank() && !originalCurrency.isBlank()) {
+
+                currency = originalCurrency;
+
+            }
+
+            currency = PayListStatusBarBuckets.normalizeCurrency(currency);
+
+            if (!originalCurrency.isBlank()) {
+
+                m.put("originalCurrency", PayListStatusBarBuckets.normalizeCurrency(originalCurrency));
+
+            }
+
             String mid = JpayOrderExcelParseService.col(row, "Gateway Access Number", "gateway_access_number");
 
-            String txnDate = JpayOrderExcelParseService.col(row, "Transaction Date", "transaction_date");
+            String txnDate = resolvePortalTransactionDate(row);
 
             String masterCode = row.getOrDefault("_masterCompCode", "");
 
@@ -827,7 +1022,29 @@ public class JpayIntegratedListService {
 
             }
 
-            splitDateTime(txnDate, m);
+            JpayPortalDateParser.applyDateTimeFields(txnDate, m);
+
+            if (!m.containsKey("trnDate") || String.valueOf(m.get("trnDate")).isBlank()) {
+
+                for (String alt : new String[]{"Transaction Date", "transaction_date", "交易日期"}) {
+
+                    String dv = row.get(alt);
+
+                    if (dv != null && !dv.isBlank()) {
+
+                        JpayPortalDateParser.applyDateTimeFields(dv, m);
+
+                        if (m.containsKey("trnDate")) {
+
+                            break;
+
+                        }
+
+                    }
+
+                }
+
+            }
 
             String mapped = JpayTradeStatusMapper.fromPortalTradingStatus(trading,
 
@@ -865,6 +1082,14 @@ public class JpayIntegratedListService {
 
             m.put("fee", JpayOrderExcelParseService.col(row, "Fee", "fee"));
 
+            String customerEmail = JpayOrderExcelParseService.col(row, "Customer Email", "customer_email");
+
+            String customerName = JpayOrderExcelParseService.col(row, "Customer Name", "customer_name");
+
+            m.put("customerEmail", customerEmail);
+
+            m.put("customerName", customerName);
+
             m.put("refundStatus", JpayOrderExcelParseService.col(row, "Refund Status", "refund_status"));
 
             m.put("chargeback", JpayOrderExcelParseService.col(row, "Is it a chargeback?", "chargeback"));
@@ -872,6 +1097,12 @@ public class JpayIntegratedListService {
             m.put("urlSource", JpayOrderExcelParseService.col(row, "URL Source", "url_source"));
 
             m.put("cardBin", JpayOrderExcelParseService.col(row, "Card BIN", "card_bin"));
+
+            fillTxnFallbacks(m, txn);
+
+            resolveCurrencyOnRow(m, txn, profileCache);
+
+            applyStatusNm(m);
 
             out.add(m);
 
@@ -885,25 +1116,7 @@ public class JpayIntegratedListService {
 
     private static void splitDateTime(String raw, Map<String, Object> m) {
 
-        if (raw == null || raw.isBlank()) {
-
-            return;
-
-        }
-
-        String t = raw.trim().replace('/', '-');
-
-        if (t.length() >= 10) {
-
-            m.put("trnDate", t.substring(0, 10));
-
-        }
-
-        if (t.length() > 11) {
-
-            m.put("trnTime", t.substring(11).trim());
-
-        }
+        JpayPortalDateParser.applyDateTimeFields(raw, m);
 
     }
 
@@ -963,17 +1176,15 @@ public class JpayIntegratedListService {
 
                     if (from != null || to != null) {
 
-                        String d = String.valueOf(r.getOrDefault("trnDate", ""));
+                        Optional<LocalDate> ldOpt = JpayPortalDateParser.rowTrnDate(r);
 
-                        if (d.isBlank()) {
+                        if (ldOpt.isEmpty()) {
 
-                            return false;
+                            /* 거래일 미파싱 행은 날짜 필터에서 제외하지 않음(그리드·수동 확인 가능) */
 
-                        }
+                        } else {
 
-                        try {
-
-                            LocalDate ld = LocalDate.parse(d.substring(0, Math.min(10, d.length())));
+                            LocalDate ld = ldOpt.get();
 
                             if (from != null && ld.isBefore(from)) {
 
@@ -986,10 +1197,6 @@ public class JpayIntegratedListService {
                                 return false;
 
                             }
-
-                        } catch (Exception ignored) {
-
-                            return false;
 
                         }
 
@@ -1198,6 +1405,326 @@ public class JpayIntegratedListService {
 
     private record ReconcileSummary(int matched, int updated, int unmatched) {
 
+    }
+
+    private static String resolvePortalOrderNo(Map<String, String> row) {
+        String v = JpayOrderExcelParseService.col(row,
+                "Merchant Order Number", "pay_orderid", "orderid", "商户订单号");
+        if (!v.isBlank()) {
+            return v;
+        }
+        return scanRowValueByHeaderHint(row, "merchant", "order");
+    }
+
+    private static String resolvePortalTransactionId(Map<String, String> row) {
+        String v = JpayOrderExcelParseService.col(row,
+                "Transaction ID", "transaction_id", "交易流水号", "交易号");
+        if (!v.isBlank()) {
+            return v;
+        }
+        return scanRowValueByHeaderHint(row, "transaction", "id");
+    }
+
+    private static String resolvePortalTransactionDate(Map<String, String> row) {
+        String v = JpayOrderExcelParseService.col(row,
+                "Transaction Date", "transaction_date", "交易日期", "Payment Date", "payment_date");
+        if (!v.isBlank()) {
+            return v;
+        }
+        v = JpayOrderExcelParseService.col(row, "Refund time", "refund_time");
+        if (!v.isBlank()) {
+            return v;
+        }
+        return scanRowValueByHeaderHint(row, "transaction", "date");
+    }
+
+    private static String scanRowValueByHeaderHint(Map<String, String> row, String... tokens) {
+        if (row == null || tokens == null || tokens.length == 0) {
+            return "";
+        }
+        outer:
+        for (Map.Entry<String, String> e : row.entrySet()) {
+            String key = e.getKey();
+            if (key == null || key.startsWith("_")) {
+                continue;
+            }
+            String nk = key.toLowerCase(Locale.ROOT).replaceAll("@\\d+$", "");
+            for (String t : tokens) {
+                if (t == null || t.isBlank() || !nk.contains(t.toLowerCase(Locale.ROOT))) {
+                    continue outer;
+                }
+            }
+            String val = e.getValue();
+            if (val != null && !val.isBlank()) {
+                return val.trim();
+            }
+        }
+        return "";
+    }
+
+    private void fillTxnFallbacks(Map<String, Object> m, Optional<PgTrnsctn> txn) {
+        if (m == null) {
+            return;
+        }
+        if (txn.isEmpty()) {
+            return;
+        }
+        PgTrnsctn t = txn.get();
+        String tid = String.valueOf(m.getOrDefault("transactionId", "")).trim();
+        if (tid.isEmpty() && t.getChillTransactionId() != null && !t.getChillTransactionId().isBlank()) {
+            m.put("transactionId", t.getChillTransactionId().trim());
+        }
+        boolean trnDateBlank = fieldBlank(m, "trnDate");
+        boolean trnTimeBlank = fieldBlank(m, "trnTime");
+        if (t.getPaidAt() != null) {
+            if (trnDateBlank) {
+                m.put("trnDate", t.getPaidAt().toLocalDate().toString());
+                trnDateBlank = false;
+            }
+            if (trnTimeBlank) {
+                m.put("trnTime", t.getPaidAt().toLocalTime().format(DateTimeFormatter.ofPattern("HH:mm:ss")));
+            }
+        } else if (trnDateBlank && t.getCreatedAt() != null) {
+            m.put("trnDate", t.getCreatedAt().toLocalDate().toString());
+            if (trnTimeBlank) {
+                m.put("trnTime", t.getCreatedAt().toLocalTime().format(DateTimeFormatter.ofPattern("HH:mm:ss")));
+            }
+        }
+        if (fieldBlank(m, "customerEmail")) {
+            String em = payerEmailFromTxn(t);
+            if (!em.isBlank()) {
+                m.put("customerEmail", em);
+            }
+        }
+        if (fieldBlank(m, "customerName") && t.getCustomerNm() != null && !t.getCustomerNm().isBlank()) {
+            m.put("customerName", t.getCustomerNm().trim());
+        }
+    }
+
+    private static boolean fieldBlank(Map<String, Object> m, String key) {
+        return m == null || key == null || !m.containsKey(key)
+                || String.valueOf(m.getOrDefault(key, "")).trim().isEmpty();
+    }
+
+    private static String payerEmailFromTxn(PgTrnsctn t) {
+        if (t == null) {
+            return "";
+        }
+        String id = t.getCustomerId();
+        if (id == null || id.isBlank() || "guest".equalsIgnoreCase(id.trim())) {
+            return "";
+        }
+        return id.trim();
+    }
+
+    /** 그리드 고객 열 — 이메일 | 성명 (결제내역 chillCustomer와 동일 구분자) */
+    private static void applyCustomerDisplay(Map<String, Object> m) {
+        if (m == null) {
+            return;
+        }
+        String em = String.valueOf(m.getOrDefault("customerEmail", "")).trim();
+        String nm = String.valueOf(m.getOrDefault("customerName", "")).trim();
+        if (em.isEmpty() && nm.isEmpty()) {
+            m.put("customer", "");
+            return;
+        }
+        if (!em.isEmpty() && !nm.isEmpty()) {
+            m.put("customer", em + " | " + nm);
+        } else {
+            m.put("customer", !em.isEmpty() ? em : nm);
+        }
+    }
+
+    private static Map<String, Object> aggregateFinancialSummary(List<Map<String, Object>> rows) {
+        JpayDayAgg agg = new JpayDayAgg();
+        if (rows == null || rows.isEmpty()) {
+            return agg.toFinancialSummary();
+        }
+        for (Map<String, Object> row : rows) {
+            agg.count++;
+            String st = String.valueOf(row.getOrDefault("icopayStatus", "")).trim();
+            if (st.isEmpty()) {
+                st = String.valueOf(row.getOrDefault("dbStatus", "")).trim();
+            }
+            if (st.isEmpty()) {
+                st = String.valueOf(row.getOrDefault("status", "")).trim();
+            }
+            String bucket = PayListStatusBarBuckets.bucketForPgStatus(st);
+            if (PayListStatusBarBuckets.OTHER.equals(bucket) && !st.isEmpty()) {
+                bucket = PayListStatusBarBuckets.bucketForChillStatus(st);
+            }
+            agg.bucketCount.merge(bucket, 1L, Long::sum);
+            String cur = PayListStatusBarBuckets.normalizeCurrency(String.valueOf(row.getOrDefault("currency", "")));
+            BigDecimal amt = PayListStatusBarBuckets.parseMoney(row.get("amount"));
+            agg.totalTxn.merge(cur, amt, BigDecimal::add);
+            if (PayListStatusBarBuckets.SUCCESS.equals(bucket)) {
+                agg.successCount++;
+                agg.approve.merge(cur, amt, BigDecimal::add);
+                agg.approveCountByCur.merge(cur, 1L, Long::sum);
+            } else if (isJpayCancelFinancialBucket(bucket)) {
+                agg.cancel.merge(cur, amt, BigDecimal::add);
+                agg.cancelCountByCur.merge(cur, 1L, Long::sum);
+            }
+        }
+        return agg.toFinancialSummary();
+    }
+
+    private void resolveCurrencyOnRow(Map<String, Object> m, Optional<PgTrnsctn> txn,
+                                      Map<Long, Optional<MerchantProfile>> profileCache) {
+        if (m == null) {
+            return;
+        }
+        applyResolvedCurrency(m, txn, profileCache);
+        applyCustomerDisplay(m);
+    }
+
+    private void applyResolvedCurrency(Map<String, Object> m, Optional<PgTrnsctn> txn,
+                                       Map<Long, Optional<MerchantProfile>> profileCache) {
+        OrgCurrencyContext ctx = resolveOrgCurrencyContext(m);
+        MerchantProfile merchantMp = loadMerchantProfile(ctx.merchantOrgId(), profileCache);
+        MerchantProfile masterMp = loadMerchantProfile(ctx.masterDistOrgId(), profileCache);
+        String resolved = MerchantDisplayCurrencyResolver.resolveJpayRowCurrency(
+                String.valueOf(m.getOrDefault("currency", "")),
+                String.valueOf(m.getOrDefault("originalCurrency", "")),
+                txn.orElse(null),
+                merchantMp,
+                masterMp);
+        if (!resolved.isBlank()) {
+            m.put("currency", resolved);
+        }
+        String baseCur = masterMp != null
+                ? MerchantDisplayCurrencyResolver.primaryFromMerchantProfile(masterMp)
+                : MerchantDisplayCurrencyResolver.primaryFromMerchantProfile(merchantMp);
+        if (!baseCur.isBlank()) {
+            m.put("merchantBaseCur", baseCur);
+        }
+    }
+
+    private record OrgCurrencyContext(Long merchantOrgId, Long masterDistOrgId) {
+    }
+
+    private OrgCurrencyContext resolveOrgCurrencyContext(Map<String, Object> m) {
+        Long merchantOrgId = null;
+        Long masterOrgId = null;
+        String compId = String.valueOf(m.getOrDefault("compId", "")).trim();
+        if (!compId.isEmpty()) {
+            merchantOrgId = orgUnitRepository.findByCodeIgnoreCase(compId).map(OrgUnit::getId).orElse(null);
+        }
+        if (merchantOrgId == null) {
+            String mid = String.valueOf(m.getOrDefault("merchant", "")).trim();
+            if (!mid.isEmpty()) {
+                for (MerchantPgBinding binding : merchantPgBindingRepository
+                        .findByMidIgnoreCaseOrderByOperationalYnDescIdAsc(mid)) {
+                    Optional<OrgUnit> ou = orgUnitRepository.findById(binding.getOrgUnitId());
+                    if (ou.isPresent() && ou.get().getOrgLevel() == OrgLevel.MERCHANT) {
+                        merchantOrgId = ou.get().getId();
+                        break;
+                    }
+                }
+            }
+        }
+        if (merchantOrgId != null) {
+            masterOrgId = masterDistSettlementCronZoneService.findNearestMasterDistOrgId(merchantOrgId).orElse(null);
+        }
+        if (masterOrgId == null) {
+            String masterCode = String.valueOf(m.getOrDefault("masterDistCompId", "")).trim();
+            if (!masterCode.isEmpty()) {
+                masterOrgId = orgUnitRepository.findByCodeIgnoreCase(masterCode).map(OrgUnit::getId).orElse(null);
+            }
+        }
+        return new OrgCurrencyContext(merchantOrgId, masterOrgId);
+    }
+
+    private MerchantProfile loadMerchantProfile(Long orgUnitId, Map<Long, Optional<MerchantProfile>> profileCache) {
+        if (orgUnitId == null) {
+            return null;
+        }
+        Optional<MerchantProfile> cached = profileCache.get(orgUnitId);
+        if (cached != null) {
+            return cached.orElse(null);
+        }
+        Optional<MerchantProfile> loaded = merchantProfileRepository.findByOrgUnitId(orgUnitId);
+        profileCache.put(orgUnitId, loaded);
+        return loaded.orElse(null);
+    }
+
+    private static void applyStatusNm(Map<String, Object> m) {
+        if (m == null) {
+            return;
+        }
+        String db = String.valueOf(m.getOrDefault("dbStatus", "")).trim();
+        String ic = String.valueOf(m.getOrDefault("icopayStatus", "")).trim();
+        String code = !db.isEmpty() ? db : ic;
+        if (!code.isEmpty()) {
+            m.put("statusNm", PayListStatusBarBuckets.pgStatusDisplayLabel(code));
+            return;
+        }
+        String trading = String.valueOf(m.getOrDefault("status", "")).trim();
+        if (!trading.isEmpty()) {
+            m.put("statusNm", portalTradingStatusLabel(trading));
+        }
+    }
+
+    private static String portalTradingStatusLabel(String trading) {
+        if (trading == null || trading.isBlank()) {
+            return "";
+        }
+        return switch (PayListStatusBarBuckets.bucketForChillStatus(trading)) {
+            case PayListStatusBarBuckets.SUCCESS -> "성공";
+            case PayListStatusBarBuckets.FAIL -> "실패";
+            case PayListStatusBarBuckets.CANCEL -> "취소";
+            case PayListStatusBarBuckets.REFUND, PayListStatusBarBuckets.FORCE_REFUND -> "환불";
+            case PayListStatusBarBuckets.VOID, PayListStatusBarBuckets.EMAIL_VOID -> "무효";
+            default -> trading;
+        };
+    }
+
+    private List<Map<String, Object>> repairEnrichedRows(List<Map<String, Object>> rows) {
+        if (rows == null || rows.isEmpty()) {
+            return List.of();
+        }
+        Map<Long, Optional<MerchantProfile>> profileCache = new HashMap<>();
+        List<Map<String, Object>> out = new ArrayList<>(rows.size());
+        for (Map<String, Object> row : rows) {
+            out.add(repairEnrichedRow(row, profileCache));
+        }
+        return out;
+    }
+
+    private Map<String, Object> repairEnrichedRow(Map<String, Object> src,
+                                                Map<Long, Optional<MerchantProfile>> profileCache) {
+        Map<String, Object> m = src instanceof LinkedHashMap ? src : new LinkedHashMap<>(src);
+        String txnDate = String.valueOf(m.getOrDefault("trnDate", "")).trim();
+        if (txnDate.isEmpty()) {
+            String raw = String.valueOf(m.getOrDefault("transactionDate", "")).trim();
+            if (!raw.isEmpty()) {
+                JpayPortalDateParser.applyDateTimeFields(raw, m);
+            }
+        }
+        String orderNo = String.valueOf(m.getOrDefault("orderNo", "")).trim();
+        String txnId = String.valueOf(m.getOrDefault("transactionId", "")).trim();
+        Optional<PgTrnsctn> txn = findTxn(orderNo, txnId);
+        if (txn.isPresent()) {
+            PgTrnsctn t = txn.get();
+            if (!m.containsKey("dbStatus") || String.valueOf(m.getOrDefault("dbStatus", "")).isBlank()) {
+                m.put("dbStatus", t.getStatus());
+            }
+            if (!"Y".equals(String.valueOf(m.getOrDefault("icopay", "")))) {
+                m.put("icopay", "Y");
+            }
+            if (!m.containsKey("compId") || String.valueOf(m.getOrDefault("compId", "")).isBlank()) {
+                m.put("compId", t.getMerchantId());
+            }
+            if (!m.containsKey("compNm") || String.valueOf(m.getOrDefault("compNm", "")).isBlank()) {
+                orgUnitRepository.findByCodeIgnoreCase(t.getMerchantId() != null ? t.getMerchantId().trim() : "")
+                        .map(OrgUnit::getName)
+                        .ifPresent(nm -> m.put("compNm", nm));
+            }
+        }
+        fillTxnFallbacks(m, txn);
+        resolveCurrencyOnRow(m, txn, profileCache);
+        applyStatusNm(m);
+        return m;
     }
 
 }

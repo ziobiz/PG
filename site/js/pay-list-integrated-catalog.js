@@ -153,6 +153,14 @@
     }
   };
 
+  /** 통합조회(/calc/jpayTrList) VIEW SETTING 기본안 (고정: 번호·업체·거래일시) */
+  w.PG_JPAY_TR_VIEW_DEFAULTS = {
+    viewSettingDefaultSelectedKeys: [
+      'masterDistNm', 'portalLabel', 'merchant', 'orderNo', 'customer', 'amount', 'currency',
+      'icopay', 'statusNm', 'fee', 'refundStatus', 'chargeback', 'cardBin', 'urlSource'
+    ]
+  };
+
   /** 통합정산(/calc/chillPaySettlementList) VIEW SETTING·조직항목설정 기본안 (고정열: 번호만 — 통화 포함 나머지는 토글·허용 목록) */
   w.PG_CHILL_PAY_SETTLEMENT_VIEW_DEFAULTS = {
     viewSettingDefaultSelectedKeys: [

@@ -334,7 +334,8 @@ public class JpayOrderExcelParseService {
                 if (d == (long) d) {
                     yield String.valueOf((long) d);
                 }
-                yield String.valueOf(d);
+                String plain = java.math.BigDecimal.valueOf(d).toPlainString();
+                yield plain;
             }
             case BOOLEAN -> String.valueOf(cell.getBooleanCellValue());
             case FORMULA -> readFormulaCell(cell);

@@ -215,6 +215,8 @@
     'searchPayDivCd|41': optMap({ EN: 'Email void', JP: 'メール無効', CH: '邮件作废', TH: 'โมฆะทางอีเมล' }),
     'searchPayDivCd|42': optMap({ EN: 'Auto refund', JP: '自動返金', CH: '自动退款', TH: 'คืนเงินอัตโนมัติ' }),
     'searchPayDivCd|31': optMap({ EN: 'Force refund', JP: '強制返金', CH: '强制退款', TH: 'บังคับคืนเงิน' }),
+    'searchPayDivCd|30': optMap({ EN: 'Refund', JP: '返金', CH: '退款', TH: 'คืนเงิน' }),
+    'searchPayDivCd|99': optMap({ EN: 'Fail', JP: '失敗', CH: '失败', TH: 'ล้มเหลว' }),
     'searchPayProcCd|10': optMap({ EN: 'Pending settlement', JP: '精算待ち', CH: '待结算', TH: 'รอชำระบัญชี' }),
     'searchPayProcCd|20': optMap({ EN: 'Settled', JP: '精算済', CH: '已结算', TH: 'ชำระแล้ว' }),
     'searchPayProcCd|30': optMap({ EN: 'Payment cancelled', JP: '決済取消', CH: '支付取消', TH: 'ยกเลิกการชำระ' }),
@@ -481,11 +483,39 @@
         'ลงทะเบียนบัญชีพอร์ทัล JPAY ต่อตัวแทนหลักที่ HQ > ตรรกะผู้ให้บริการชำระ ตั้งช่วงซิงค์ในระบบบัญชี VPS ต้องมี Node.js·Playwright'
       ),
       packN(
-        '[JPAY 동기화]는 선택 기간 Export 후 캐시 목록을 갱신합니다. 날짜 없이 검색하면 최근 동기화 범위(일)로 자동 동기화합니다.',
-        '[JPAY sync] refreshes cached list after Export for the selected period. Search without dates uses recent sync days from settings.',
-        '[JPAY同期]は選択期間のExport後キャッシュを更新。日付なし検索は設定の最近同期日数で自動同期。',
-        '[JPAY 同步] 按所选期间 Export 后刷新缓存。无日期搜索则按最近同步天数自动同步。',
-        '[ซิงค์ JPAY] อัปเดตแคชหลัง Export ตามช่วงที่เลือก ค้นหาไม่ใส่วันที่ใช้ช่วงซิงค์ล่าสุด'
+        '[JPAY 동기화]는 포털 Export 후 캐시를 갱신합니다. 화면 거래일이 하루(당일)여도 동기화는 본사설정의 최근 동기화 범위(최소 7일)만큼 포털에서 받아옵니다. 목록 조회는 화면에 선택한 거래일자로 필터됩니다.',
+        '[JPAY sync] refreshes cache after portal Export. Even for a single-day search range, sync fetches at least the recent sync window (min. 7 days) from settings. List filter uses the dates on screen.',
+        '[JPAY同期]はポータルExport後キャッシュを更新。画面の取引日が当日でも同期は設定の最近同期範囲(最低7日)分を取得。一覧は画面の取引日でフィルタ。',
+        '[JPAY 同步] 门户 Export 后刷新缓存。即使画面交易日为单日，同步也会按最近同步范围（至少 7 天）从门户获取。列表按画面所选交易日期筛选。',
+        '[ซิงค์ JPAY] อัปเดตแคชหลัง Export พอร์ทัล แม้เลือกวันเดียวก็ซิงค์ตามช่วงล่าสุด (อย่างน้อย 7 วัน) รายการกรองตามวันที่บนหน้าจอ'
+      ),
+      packN(
+        '그리드 열 노출은 상단 VIEW SETTING에서 조정합니다(저장 시 사용자별로 유지). 번호·업체명·업체코드·거래일·거래시간은 그리드에 항상 표시되며 VIEW SETTING 목록에는 나오지 않습니다. 열 너비는 헤더 경계를 드래그해 조절할 수 있습니다.',
+        'Columns via VIEW SETTING (saved per user). No., merchant name/code, and txn date/time are always visible and not listed in VIEW SETTING. Drag column borders to resize.',
+        '列は VIEW SETTING で調整（ユーザー別保存）。番号・加盟店名・コード・取引日時は常時表示で VIEW SETTING には出ません。ヘッダ境界をドラッグして列幅調整。',
+        '列通过 VIEW SETTING 调整（按用户保存）。序号、商户名/代码、交易日期/时间始终显示且不在 VIEW SETTING 中。可拖拽表头边界调整列宽。',
+        'คอลัมน์ตั้งค่า VIEW SETTING (บันทึกต่อผู้ใช้) ลำดับ·ชื่อ/รหัสร้าน·วัน/เวลาทำรายการแสดงเสมอ ลากขอบหัวตารางปรับความกว้าง'
+      ),
+      packN(
+        '동기화한 포털 Export 목록은 DB에 저장됩니다. 로그아웃·재로그인·서버 재시작 후에도 [검색]만으로 마지막 동기화 목록을 조회할 수 있습니다. 포털 최신 반영이 필요할 때만 [JPAY 동기화]를 실행하세요.',
+        'Synced portal Export list is stored in DB. After logout, re-login, or server restart, use [Search] to view the last sync without re-syncing. Run [JPAY sync] only when you need fresh portal data.',
+        '同期したポータルExport一覧はDBに保存。ログアウト・再ログイン・サーバー再起動後も[検索]で最終同期一覧を表示。ポータル最新が必要なときのみ[JPAY同期]。',
+        '同步的门户 Export 列表存入 DB。登出、重登或服务器重启后仅 [搜索] 即可查看上次同步。仅在需要门户最新数据时执行 [JPAY 同步]。',
+        'รายการ Export พอร์ทัลหลังซิงค์เก็บใน DB หลังล็อกเอาท์/ล็อกอินใหม่/รีสตาร์ทเซิร์ฟเวอร์ ใช้ [ค้นหา] ดูรายการซิงค์ล่าสุดได้ ซิงค์ใหม่เมื่อต้องการข้อมูลล่าสุดจากพอร์ทัล'
+      ),
+      packN(
+        '고객 열은 포털 Export의 이메일·성명을 「이메일 | 성명」으로 표시합니다(VIEW SETTING에서 토글). 거래일·거래시간·고객 등은 1차로 엑셀 값을 쓰고, 해당 행이 엑셀에 있으나 일부만 비어 있을 때만 ICOPAY 결제내역(pg_trnsctn)으로 보강합니다. 엑셀에 없는 결제내역 건을 목록에 추가하지 않습니다.',
+        'Customer column shows portal Export email and name as 「email | name」(toggle in VIEW SETTING). Txn date/time/customer use Excel first; ICOPAY payment history (pg_trnsctn) fills only missing fields on rows that exist in Export. Rows are never added from payment history alone.',
+        '顧客列はポータルExportのメール・氏名を「メール | 氏名」で表示(VIEW SETTINGで切替)。取引日・取引時間・顧客はまずExcel、Exportに存在する行で欠けた項目のみICOPAY決済(pg_trnsctn)で補完。Excelにない決済を一覧に追加しません。',
+        '客户列以门户 Export 的邮箱、姓名显示为「邮箱 | 姓名」(VIEW SETTING 可切换)。交易日期/时间/客户优先用 Excel；仅对 Export 中已有但部分缺失的行用 ICOPAY 支付(pg_trnsctn)补全。不会单独从支付历史追加行。',
+        'คอลัมน์ลูกค้าแสดงอีเมล·ชื่อจาก Export เป็น「อีเมล | ชื่อ」(สลับใน VIEW SETTING) วัน/เวลา/ลูกค้าใช้ Excel ก่อน เติมจาก ICOPAY (pg_trnsctn) เฉพาะแถวที่มีใน Export แต่ขาดบางฟิลด์ ไม่เพิ่มแถวจากประวัติชำระเงินอย่างเดียว'
+      ),
+      packN(
+        '통화 열은 1차 포털 Export의 Transaction Currency를 쓰고, 비어 있거나 KRW(410) 등 노티 기본값만 있으면 업체관리의 가맹·총판 기준통화(업체코드·MID·총판코드로 조회)로 보강합니다. 결제내역과 동일하게 약한 KRW 기본값만으로 JPY·USD 가맹을 KRW로 표시하지 않습니다.',
+        'Currency column uses portal Export Transaction Currency first; if empty or only weak KRW/410 defaults, it is filled from company management base currency (merchant code, MID, master-distributor code) — same rule as payment history (no JPY/USD merchant shown as KRW from notify defaults alone).',
+        '通貨列はまずポータルExportのTransaction Currency。空またはKRW(410)等の弱い既定値のみの場合は、業者管理の基準通貨（業者コード・MID・総販コード）で補完。決済一覧と同様、弱いKRW既定だけでJPY・USD加盟店をKRW表示しません。',
+        '货币列优先使用门户 Export 的 Transaction Currency；若为空或仅为 KRW(410) 等弱默认值，则按企业管理中的基准货币（商户代码、MID、总代代码）补全，与支付历史相同，不会因弱 KRW 默认将 JPY/USD 商户显示为 KRW。',
+        'คอลัมน์สกุลเงินใช้ Transaction Currency จาก Export ก่อน หากว่างหรือมีแค่ KRW(410) ค่าเริ่มต้นอ่อน จะเติมจากสกุลฐานในการจัดการร้าน (รหัสร้าน MID รหัสตัวแทนหลัก) ตามกฎเดียวกับประวัติชำระเงิน'
       )
     ],
     '/calc/splitPayList': [
@@ -1324,6 +1354,24 @@
     paymentDate: { EN: 'PaymentDate (raw)', JP: 'PaymentDate(原文)', CH: 'PaymentDate(原文)', TH: 'PaymentDate (ดิบ)' }
   });
 
+  /** 통합조회(/calc/jpayTrList) 그리드·VIEW SETTING 열 라벨 */
+  var JPAY_TR_COL = Object.assign({}, COL, {
+    masterDistNm: { EN: 'Master dist.', JP: '総販', CH: '总代', TH: 'ตัวแทนหลัก' },
+    portalLabel: { EN: 'Portal label', JP: 'ポータル表示', CH: '门户显示', TH: 'ป้ายพอร์ทัล' },
+    transactionId: COL.approvalNo,
+    merchant: { EN: 'MID', JP: 'MID', CH: 'MID', TH: 'MID' },
+    customer: { KO: '고객', EN: 'Customer', JP: '顧客', CH: '客户', TH: 'ลูกค้า' },
+    amount: COL.amount,
+    status: { EN: 'JPAY status', JP: 'JPAY状態', CH: 'JPAY 状态', TH: 'สถานะ JPAY' },
+    icopay: COL.icopayAmt,
+    statusNm: { EN: 'Status', JP: '状態', CH: '状态', TH: 'สถานะ' },
+    fee: COL.chillFeeAmt,
+    refundStatus: { EN: 'Refund', JP: '返金', CH: '退款', TH: 'คืนเงิน' },
+    chargeback: COL.chargebackFee,
+    cardBin: { EN: 'Card BIN', JP: 'Card BIN', CH: 'Card BIN', TH: 'Card BIN' },
+    urlSource: { EN: 'URL source', JP: 'URL出所', CH: 'URL 来源', TH: 'แหล่ง URL' }
+  });
+
   var CHILL_ST_COL = Object.assign({}, CHILL_TR_COL, {
     settleAmount: { EN: 'Settle amount', JP: '精算金額(Settle)', CH: '结算金额(Settle)', TH: 'ยอดชำระ Settle' },
     netAmount: { EN: 'Net amount', JP: '純額(Net)', CH: '净额(Net)', TH: 'สุทธิ Net' },
@@ -1513,6 +1561,26 @@
         var koLab = (snap.hg[i] && snap.hg[i].label) || g.label;
         g.label = tRow(row, loc, koLab);
       });
+    });
+  }
+
+  function applyJpayListCatalogLocale(loc) {
+    var screens = w.PG_SCREENS && w.PG_SCREENS.getMenuScreens ? w.PG_SCREENS.getMenuScreens() : null;
+    if (!screens) return;
+    var scr = screens['/calc/jpayTrList'];
+    if (!scr || !scr.columns) return;
+    ensureChillColSnap(scr);
+    if (loc === 'KO') {
+      restoreChillColSnap(scr);
+      return;
+    }
+    var snap = scr._i18nColSnap;
+    var byKey = {};
+    snap.cols.forEach(function (x) { if (x && x.key) byKey[x.key] = x.label; });
+    scr.columns.forEach(function (c) {
+      if (!c || !c.key) return;
+      var row = JPAY_TR_COL[c.key];
+      c.label = tRow(row, loc, byKey[c.key] != null ? byKey[c.key] : c.label);
     });
   }
 
@@ -1993,6 +2061,7 @@
         else if (id === 'settlementPublishDistributeBtn') b.label = UI.settlementPublishDistribute[loc] || UI.settlementPublishDistribute.EN || b.label;
         else if (id === 'settlementPublishHoldBtn') b.label = UI.settlementPublishHold[loc] || UI.settlementPublishHold.EN || b.label;
         else if (id === 'payoutHoldReleaseBtn') b.label = UI.payoutHoldReleaseBulk[loc] || UI.payoutHoldReleaseBulk.EN || b.label;
+        else if (id === 'jpayTrSyncBtn') b.label = (w.PG_UI_I18N && typeof w.PG_UI_I18N.t === 'function') ? w.PG_UI_I18N.t('JPAY 동기화') : b.label;
       });
     });
   }
@@ -2564,6 +2633,7 @@
     applyAgencyTxnListScreenLocale(loc);
     applyMerchantApiPortalScreenLocale(loc);
     applyChillListCatalogLocale(loc);
+    applyJpayListCatalogLocale(loc);
     applyMenuScreensSearchAndNoticesLocale(loc);
     applyScreenChromeLocale(loc);
     patchCalcCycleSearchOptionAll(loc);
